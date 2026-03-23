@@ -1,0 +1,1619 @@
+[Music]
+all right hi everyone my name is alexander and i'm
+hi everyone my name is alexander and i'm here to talk about the rendering of
+here to talk about the rendering of memories you're told or
+memories you're told or how to be bob ross with shaders i guess
+how to be bob ross with shaders i guess before we start
+before we start i'd like you to cancel to sign into your
+i'd like you to cancel to sign into your cell phones and
+cell phones and to remember to fill out the evaluation
+to remember to fill out the evaluation forms after the talk
+so before we start talking about the memories of told
+memories of told i am going to talk a little bit about
+i am going to talk a little bit about myself
+i feel very weird giving a graphics talk because i am actually quite sight
+because i am actually quite sight impaired i only have
+impaired i only have 16 eyesight it's specifically because of
+16 eyesight it's specifically because of this gene
+this gene right here and i know that because they
+right here and i know that because they actually use the genes
+actually use the genes sample from me when i was one as part of
+sample from me when i was one as part of the human
+the human genome project so i guess you're welcome
+genome project so i guess you're welcome for that scientific discovery
+for that scientific discovery um and you might be wondering why do i
+um and you might be wondering why do i end up making games which is such a
+end up making games which is such a visual medium instead of like
+visual medium instead of like continuing on this very promising korean
+continuing on this very promising korean genetics i i had started so early
+genetics i i had started so early and it is kind of ironic but
+and it is kind of ironic but for me i've always been attracted to
+for me i've always been attracted to video games because
+video games because they're these constructed environments
+they're these constructed environments that are meant to be
+that are meant to be traversed and be discovered and read at
+traversed and be discovered and read at a glance
+a glance when a good level designer makes a level
+when a good level designer makes a level they will use something called a squint
+they will use something called a squint test where they will
+test where they will blur their vision and see if the level
+blur their vision and see if the level is still
+is still legible i can't stop squint test
+legible i can't stop squint test i do it all the time and let me tell you
+i do it all the time and let me tell you reality doesn't hold up to it
+reality doesn't hold up to it so having games where the environment
+so having games where the environment has actually been designed to be legible
+has actually been designed to be legible it's not so weird i ended up doing this
+more specifically with
+painterly aesthetics and something that's not trying to be photorealistic
+that's not trying to be photorealistic quite often it's a lot easier to read
+quite often it's a lot easier to read because you artists are thinking much
+because you artists are thinking much more about like
+more about like the the base shape of the objects and
+the the base shape of the objects and you don't have like
+you don't have like all the like noise of
+all the like noise of the real life coming in the way so for
+the real life coming in the way so for example playing
+example playing a game like the return of the oppo din
+a game like the return of the oppo din was something i really enjoyed because
+was something i really enjoyed because everything had
+everything had clear outlines and
+was easy to tell apart so when i got the chance to work on 11
+so when i got the chance to work on 11 11 i
+11 i i jumped at it um it's a narrative game
+i jumped at it um it's a narrative game set in the first world war and it tells
+set in the first world war and it tells the story from
+the story from both the german and the allied side
+both the german and the allied side it's a co-production between art and
+it's a co-production between art and animations digix arts
+animations digix arts and it's published by bandai namco team
+and it's published by bandai namco team size was around 30
+size was around 30 and the team was distributed all around
+and the team was distributed all around the world i think that's like a talk in
+the world i think that's like a talk in itself how we we managed to do that
+itself how we we managed to do that we used unity 17.3 with a modified
+we used unity 17.3 with a modified legacy deferred renderer and development
+legacy deferred renderer and development time was approximately
+time was approximately three months of sorry six months of
+three months of sorry six months of pre-production
+pre-production and 10 months of a full production
+and 10 months of a full production and the game was released in november
+and the game was released in november to commemorate the centennial of the
+to commemorate the centennial of the armistice and hence the name
+armistice and hence the name as you can see we kind of have the
+as you can see we kind of have the release date in the name of the game
+release date in the name of the game so we could not afford any delays
+so we could not afford any delays so that was a very interesting
+so that was a very interesting experience but we managed to do it in
+experience but we managed to do it in the end
+oh in case you haven't seen the game i'm going to show you the trailer
+going to show you the trailer so you can get a sense of how this
+so you can get a sense of how this painterly art style looks
+painterly art style looks see if we can zoom in here
+[Music]
+the first time you see someone die everything shuts down you're left with
+everything shuts down you're left with thoughts that go round
+thoughts that go round and round every man has his demons
+and round every man has his demons i did what any father would do
+i did what any father would do and i would make the same choices again
+[Music] i just did what we all did
+i followed orders
+[Music]
+yeah that music always gets me all right so here is the outline of
+all right so here is the outline of the talk i'm first going to give you an
+the talk i'm first going to give you an overview of how the painterly
+overview of how the painterly render pipeline works and i'm then going
+render pipeline works and i'm then going to go over some challenges and
+to go over some challenges and snazzy features that is in it after that
+snazzy features that is in it after that i'm going to show you how the artists
+i'm going to show you how the artists use the pipeline and following that is
+use the pipeline and following that is optimization of it
+optimization of it and then at the end i'm going to have a
+and then at the end i'm going to have a very short
+very short section on the future improvements and
+section on the future improvements and at the end there will also be some time
+at the end there will also be some time for questions
+so um all these interstitials you're gonna see like
+interstitials you're gonna see like throughout the talk actually like the
+throughout the talk actually like the concept art we were like working towards
+concept art we were like working towards so that should give you an idea of like
+so that should give you an idea of like where we where we were at the start and
+where we where we were at the start and where we ended up
+where we ended up so whenever i start on a new project
+so whenever i start on a new project and i have to develop new new tech for
+and i have to develop new new tech for it i look at
+it i look at existing white papers specifically when
+existing white papers specifically when you're doing graphics programming if you
+you're doing graphics programming if you find papers that are kind of old
+find papers that are kind of old it means that they're quite they're
+it means that they're quite they're quite likely to be
+quite likely to be um something you can actually achieve
+um something you can actually achieve like for a commercial project now
+like for a commercial project now because you're also going to make sure
+because you're also going to make sure that you have enough head room for the
+that you have enough head room for the rest of the rendering taking place
+rest of the rendering taking place thankfully i found these two papers
+thankfully i found these two papers that are both using particles to
+that are both using particles to approximate the
+approximate the brush strokes so you get this painterly
+brush strokes so you get this painterly look
+oh sorry about that there we go
+okay there we go so what you see here is two papers that are
+what you see here is two papers that are uh one is completely object-based and
+uh one is completely object-based and the other one is
+the other one is working uh full screen especially the
+working uh full screen especially the one on the right
+one on the right showed us that this is actually an
+showed us that this is actually an approach that could work
+approach that could work and the way that it works in the game is
+and the way that it works in the game is we have
+we have the base frame the base frame buffer
+the base frame the base frame buffer and on top of that we paint all these
+and on top of that we paint all these particles
+particles and then they are combined together
+and then they are combined together the first innovation we did was
+the first innovation we did was just painting these particles on top of
+just painting these particles on top of the the frame buffer
+the the frame buffer already meant that it looked a lot
+already meant that it looked a lot better
+better than what had been done before because
+than what had been done before because we could like close all the
+we could like close all the the gaps in the particles and um
+it kind of resembles how if you're using a camera obscura like you are
+a camera obscura like you are you're basically taking a picture and
+you're basically taking a picture and then you're painting the strokes on top
+then you're painting the strokes on top of
+of it
+on the technical side all of this is based on a
+based on a technique developed by garrett thomas
+technique developed by garrett thomas from amd
+from amd it's all based on compute and it's a
+it's all based on compute and it's a tile based approach
+tile based approach i will only do a very quick uh overview
+i will only do a very quick uh overview of how it works because
+of how it works because like he took a whole talk explaining
+like he took a whole talk explaining more in more detail
+more in more detail how each step is put together but his
+how each step is put together but his slides are really available on the vault
+slides are really available on the vault if
+if you need to check them up and there's
+you need to check them up and there's also a kit repository
+right so this is how a frame is constructed
+constructed we first have the regular frame buffer
+we first have the regular frame buffer rendering and together with that we also
+rendering and together with that we also render a
+render a specific brush buffer that contains
+specific brush buffer that contains extra information
+extra information for the effect to place the brushstrokes
+for the effect to place the brushstrokes after that we do bloom and ambient
+after that we do bloom and ambient occlusion
+occlusion and after that we start the actual
+and after that we start the actual rendering
+sorry my notes are can i do this nope so we generate new strokes
+nope so we generate new strokes and after that we update
+and after that we update [Music]
+[Music] the strokes that are currently on the
+the strokes that are currently on the screen some of them are deleted
+screen some of them are deleted and will die
+maybe i should do it out there we go and then we end with um
+and then we end with um uh culling and course calling um
+uh culling and course calling um all of this is basically to make the
+all of this is basically to make the rendering of the strokes more efficient
+rendering of the strokes more efficient at the end and we
+at the end and we also do blender blending with the
+also do blender blending with the background image as part of the brush
+background image as part of the brush stroke rendering
+stroke rendering and when all of that is done we have the
+and when all of that is done we have the color grading
+color grading and tone mapping
+this is the different aspects that the artists have control over and what
+artists have control over and what you're seeing here is the
+you're seeing here is the different debug views that they have so
+different debug views that they have so they can control
+they can control the size of the brush strokes if the
+the size of the brush strokes if the brush strokes should boil
+brush strokes should boil and if they should flow if they boil
+and if they should flow if they boil they basically die out quicker so you
+they basically die out quicker so you get something that kind of shimmers
+get something that kind of shimmers it's really good for interactive objects
+it's really good for interactive objects in the game something that you need to
+in the game something that you need to stand out
+stand out since this game is about the first world
+since this game is about the first world war a lot of uh
+war a lot of uh the levels take place in the trenches
+the levels take place in the trenches and they're like really wet and muddy so
+and they're like really wet and muddy so we needed to show something that was
+we needed to show something that was like running with water
+like running with water and that means that the artists can
+and that means that the artists can actually go in and say like i want this
+actually go in and say like i want this the strokes to flow along the surface
+the strokes to flow along the surface and they flow along the direction that
+and they flow along the direction that the directors
+the directors that the artists have also instructed
+that the artists have also instructed the effect to use
+something that is also quite unique is that we can actually
+that we can actually select what brush stroke we should
+select what brush stroke we should render with
+render with so that way you can have something that
+so that way you can have something that approximates like a very dry
+approximates like a very dry brush being kind of like dabbed onto the
+brush being kind of like dabbed onto the canvas but you can also have something
+canvas but you can also have something that's much more
+that's much more wet and like long longer so there's a
+wet and like long longer so there's a lot of flexibility for the artists to
+lot of flexibility for the artists to use there
+this is the format of the brush buffer so size flow speed and angle each get a
+so size flow speed and angle each get a full eight bits because we need as much
+full eight bits because we need as much precision there as we can get
+for brush type i'm only using six bits and then i have
+and then i have two bits left for
+for boil speed the reason for this layout was predominantly that we
+layout was predominantly that we had to integrate this into the deferred
+had to integrate this into the deferred buffer and
+buffer and gamma correction caused some of these
+gamma correction caused some of these values to be kind of wonky so it had to
+values to be kind of wonky so it had to be
+be laid out this way
+so an early challenge was to make sure that the brush strokes would actually be
+that the brush strokes would actually be aligned with the
+aligned with the objects and that's both they have to
+objects and that's both they have to respect the object's own orientation
+respect the object's own orientation as you see with the magenta arrows and
+as you see with the magenta arrows and they also had to
+they also had to to work with perspective distortion
+to work with perspective distortion and it took me a while to figure this
+and it took me a while to figure this out but what i ended up doing was that
+out but what i ended up doing was that i would take both the current fragments
+i would take both the current fragments position in world space into the
+position in world space into the fragment shader along with
+fragment shader along with the world tangent and cotangent
+the world tangent and cotangent and that way i could generate an offset
+and that way i could generate an offset point and take both of them
+point and take both of them into screen space and get a direction
+into screen space and get a direction vector
+vector and then take the get the radians from
+and then take the get the radians from that and then store that
+that and then store that as a normalized radian into the brush
+as a normalized radian into the brush map this all sounds kind of expensive
+map this all sounds kind of expensive and yeah
+and yeah i was using uh an atom uh two for for
+i was using uh an atom uh two for for that but it turned out to not be that
+that but it turned out to not be that big of an issue as we're gonna come
+big of an issue as we're gonna come later in the optimization step
+okay
+there we go so when new strokes are created it happens in a
+new strokes are created it happens in a kernel that
+kernel that takes the whole screen and for each
+takes the whole screen and for each pixel generates a random number
+pixel generates a random number then for um to modify this spawn chance
+then for um to modify this spawn chance we look at the current uh brush size we
+we look at the current uh brush size we want here
+want here and the flow speed along with the boil
+and the flow speed along with the boil speed and also the alpha coverage of the
+speed and also the alpha coverage of the strokes that are already there so
+strokes that are already there so if we don't have a good amount of
+if we don't have a good amount of coverage we want to create more brush
+coverage we want to create more brush strokes
+strokes and all of those numbers are added
+and all of those numbers are added together and if they're more than one
+together and if they're more than one brush stroke is created and that is by
+brush stroke is created and that is by taking an index from an
+taking an index from an consume buffer and use that to index
+consume buffer and use that to index into all the
+into all the data arrays that contains all the
+data arrays that contains all the information for the strokes
+so it's important that the rng is very uniform
+uniform to start with i was using a noise
+to start with i was using a noise texture and i kept getting strokes
+texture and i kept getting strokes planted on top of each other which was a
+planted on top of each other which was a both it didn't look good and it was also
+both it didn't look good and it was also not very performant so at the end i used
+not very performant so at the end i used wang hash which cabi games
+wang hash which cabi games covers in the render talk on below it's
+covers in the render talk on below it's very easy to implement and it is
+very easy to implement and it is producing some very nice noise so i can
+producing some very nice noise so i can recommend using that
+so after the strokes are created we move on to
+on to updating all the strokes that are
+updating all the strokes that are already on the screen the first thing is
+already on the screen the first thing is that the precision is updated
+that the precision is updated and then we get the depth and color from
+and then we get the depth and color from the g buffer
+the g buffer we also get the brush type flow speed
+we also get the brush type flow speed boil speed and size from the brush map
+boil speed and size from the brush map buffer
+buffer and if the surface is flowing or boiling
+and if the surface is flowing or boiling stroke will
+stroke will die out faster in this in when we are
+die out faster in this in when we are applying the
+applying the lifetime to the stroke a stroke is
+lifetime to the stroke a stroke is removed
+removed that is its index is added back to the
+that is its index is added back to the consume buffer from before
+consume buffer from before if it's alpha hits zero
+if it's alpha hits zero so in order to make the effect not look
+so in order to make the effect not look uh like you're watching it through as a
+uh like you're watching it through as a screen door
+screen door it's quite important that it moves with
+it's quite important that it moves with the scene underneath
+the scene underneath so what you're seeing here is two is the
+so what you're seeing here is two is the same scene
+same scene but where on one hand they are they are
+but where on one hand they are they are completely static they don't follow the
+completely static they don't follow the scene on the right side they are using
+scene on the right side they are using motion vectors to
+motion vectors to move along and especially if you're
+move along and especially if you're looking at the door frame you can
+looking at the door frame you can clearly see that there's a lot of
+clearly see that there's a lot of flickering going on if you don't do this
+flickering going on if you don't do this thankfully in unity you can just say i
+thankfully in unity you can just say i want motion vectors and you get them and
+want motion vectors and you get them and they turn out to be
+they turn out to be of a pretty good quality
+of a pretty good quality next step is course calling this happens
+next step is course calling this happens with the box box intersection
+with the box box intersection and testing revealed that 16x8 calling
+and testing revealed that 16x8 calling tiles was the
+tiles was the was the most efficient number
+was the most efficient number when a collection con
+when a collection con collision is detected the strokes index
+collision is detected the strokes index is added to that tiles
+is added to that tiles index buffer and a very similar approach
+index buffer and a very similar approach is used for
+is used for the next step the fine calling
+the next step the fine calling here each tile is 32 by 32 pixels
+here each tile is 32 by 32 pixels it's again a box box intersection
+it's again a box box intersection testing but when
+testing but when we're done with that we also do a step
+we're done with that we also do a step of biotonic
+of biotonic sorting based on the depth of the
+sorting based on the depth of the particles
+particles to get correct alpha blending later on
+to get correct alpha blending later on and the platonic sword is the same that
+and the platonic sword is the same that garrett thomas used in his talk
+so the render kernel is what really is the most different from
+the most different from from garrett's approach it's um
+from garrett's approach it's um it starts by taking loading
+it starts by taking loading by loading all the stroke data into lds
+by loading all the stroke data into lds so it's faster to retrieve we then set
+so it's faster to retrieve we then set the accumulated color to
+the accumulated color to zero and we then for each thread
+zero and we then for each thread takes care of one pixel we loop through
+takes care of one pixel we loop through the particles and it's essentially
+the particles and it's essentially a ray cast through them so if the ray
+a ray cast through them so if the ray hits the stroke
+hits the stroke we also we sampled its its stroke
+we also we sampled its its stroke texture
+texture and combines it with the strokes collar
+and combines it with the strokes collar and add it to the accumulated collar
+and add it to the accumulated collar by using a custom alpha blend we can
+by using a custom alpha blend we can actually go front to back
+actually go front to back instead of back to front we didn't see
+instead of back to front we didn't see much of an improvement
+much of an improvement in garrett thomas's talk he see he sees
+in garrett thomas's talk he see he sees a huge
+a huge performance boost from this but it's
+performance boost from this but it's mainly just because he's actually doing
+mainly just because he's actually doing particles in
+particles in world space and he shows that you can go
+world space and he shows that you can go very close to them
+very close to them and then i just left it in because it
+and then i just left it in because it wasn't hurting performance either
+wasn't hurting performance either all of this is rendered into an hdr
+all of this is rendered into an hdr ready back buffer
+ready back buffer so we avoid banding and the alpha value
+so we avoid banding and the alpha value stored here is what
+stored here is what can is what is used in the
+can is what is used in the generation kernel to determine how much
+generation kernel to determine how much coverage we have
+so strokes are stored in an alpha 8 2k texture
+stored in an alpha 8 2k texture um we found out that distinctive strokes
+um we found out that distinctive strokes are actually way more important
+are actually way more important than like quite diffuse and soft i
+than like quite diffuse and soft i personally thought that was actually
+personally thought that was actually going to work better
+going to work better and turned out i was completely wrong
+and turned out i was completely wrong and
+and different sprites give give impression
+different sprites give give impression of different surfaces so
+of different surfaces so for example for wood we ended up using
+for example for wood we ended up using quite long and hard strokes and then for
+quite long and hard strokes and then for the cat in the game we had some that
+the cat in the game we had some that were like much more like harry
+were like much more like harry and and bristly
+all right so let's cover some snazzy features
+early on the biggest issue we had with um
+um with the effect was readability which
+with the effect was readability which shouldn't really come as a surprise i
+shouldn't really come as a surprise i guess
+guess what you're seeing here is actually a
+what you're seeing here is actually a screenshot from
+screenshot from the vertical slice a couple of months
+the vertical slice a couple of months into production and it
+into production and it this was a bit of a crisis moment
+this was a bit of a crisis moment because
+because if we couldn't get this to work we would
+if we couldn't get this to work we would have to abandon the
+have to abandon the the painting effect and do something
+the painting effect and do something completely different you might not be
+completely different you might not be able to see it but there's actually a
+able to see it but there's actually a man crouching on the ground
+man crouching on the ground so this amount of of
+so this amount of of yeah blurriness um that just wouldn't
+yeah blurriness um that just wouldn't work
+work for the um for the vertical slice what
+for the um for the vertical slice what we ended up doing was just increasing
+we ended up doing was just increasing the amount of particles so
+the amount of particles so they would approximate the shape of the
+they would approximate the shape of the scene more
+scene more but for the like full release this
+but for the like full release this didn't look that great and it also
+didn't look that great and it also wasn't performance so we had to find out
+wasn't performance so we had to find out a different way to do it
+a different way to do it so the reason why this happens is that
+so the reason why this happens is that we're painting all the strokes on top of
+we're painting all the strokes on top of the background image
+the background image and that basically means that if you
+and that basically means that if you have a stroke that is like from the
+have a stroke that is like from the background
+background it's still going to cover like uh
+it's still going to cover like uh something that is in the foreground such
+something that is in the foreground such as kurt's arm here that's being obscured
+as kurt's arm here that's being obscured by the
+by the particles from the seep
+particles from the seep behind him
+so the trick was to sample the depth buffer in the render
+sample the depth buffer in the render kernel so we know what is the
+kernel so we know what is the absolute depth we should traverse
+absolute depth we should traverse through when we go through all our
+through when we go through all our particles
+particles so we get like all the particles that
+so we get like all the particles that are belonging to kurt's arm but we stop
+are belonging to kurt's arm but we stop when we know that the particles that are
+when we know that the particles that are behind behind him
+behind behind him um yeah would just lead to like
+um yeah would just lead to like covering up the
+what's in the foreground so this works but you see that we get these
+this works but you see that we get these like quite hard edges on objects which
+like quite hard edges on objects which is not painted at all
+is not painted at all and in order to fix that we end up
+and in order to fix that we end up blurring the background with
+blurring the background with a kawasa filter and the reason why i
+a kawasa filter and the reason why i ended up using this is because it's
+ended up using this is because it's quite performant
+quite performant it takes a little bit of like manual
+it takes a little bit of like manual tweaking so what you do is at
+tweaking so what you do is at each step you sample out in a cross
+each step you sample out in a cross of four samples and if you use bilinear
+of four samples and if you use bilinear sampling you
+sampling you end up with double the amount
+so it's quite easy to to use it does require a little bit of like
+it does require a little bit of like manual tweaking so you don't get like
+manual tweaking so you don't get like the banding artifacts
+the banding artifacts you might be able to see in the
+you might be able to see in the projector but yeah i recommend using it
+something that was also important was that
+that objects would have their correct size of
+objects would have their correct size of strokes
+strokes attached to them so if something recedes
+attached to them so if something recedes into the background and it's important
+into the background and it's important that it's still legible we need the
+that it's still legible we need the strokes on them to be smaller
+strokes on them to be smaller and that was quite easy by just taking
+and that was quite easy by just taking the depth of
+the depth of in the fragment shader and
+in the fragment shader and use that to increase the brush size
+use that to increase the brush size interestingly enough
+interestingly enough we actually ended up having this
+we actually ended up having this something that the artists could control
+something that the artists could control with a modifier
+with a modifier and they would sometimes use it in
+and they would sometimes use it in reverse so if you have something where
+reverse so if you have something where you want to
+you want to guide the the eye of the player
+guide the the eye of the player this is like a technique that's also
+this is like a technique that's also used in in regular painting where
+used in in regular painting where you will use detail where you want the
+you will use detail where you want the viewer to look
+viewer to look and this meant that we could actually
+and this meant that we could actually like kind of get something kind of
+like kind of get something kind of similar in an interactive environment
+similar in an interactive environment which
+which i think is pretty cool
+it also had to take in the camera's field of view
+field of view so in in the game one of the characters
+so in in the game one of the characters has a camera
+has a camera and can take pictures and in order to
+and can take pictures and in order to have zooming we change the camera's fov
+have zooming we change the camera's fov and
+and it's not really because you have like a
+it's not really because you have like a different distance to the object but
+different distance to the object but like this they can still be like smaller
+like this they can still be like smaller bigger on the screen and
+bigger on the screen and i fixed that by just having a
+i fixed that by just having a curve for the artist to to tweak where
+curve for the artist to to tweak where this would be added in
+this would be added in based on the current fov of the camera
+early on it was all about getting as many strokes on the screen as possible
+many strokes on the screen as possible like we thought that
+like we thought that like this is how we're gonna make it
+like this is how we're gonna make it look look really good like so we had
+look look really good like so we had around two million strokes at the end of
+around two million strokes at the end of the vertical slice
+but sort of like halfway through development have we
+development have we started to realize actually it's better
+started to realize actually it's better if there's fewer because they look
+if there's fewer because they look quite artificial if they're like placed
+quite artificial if they're like placed like right next to each other
+like right next to each other um it looks like this like manic robot
+um it looks like this like manic robot has been like ah i need to
+has been like ah i need to to paint this as good as possible so
+for longer strokes because they're all they will have the same height as
+they will have the same height as short strokes they will cover a larger
+short strokes they will cover a larger area so we need fewer of them
+area so we need fewer of them and i basically just took that into
+and i basically just took that into account when generating the
+account when generating the the random probability of them spawning
+the random probability of them spawning and it has this had
+and it has this had the added benefit that it looked better
+the added benefit that it looked better but we would also get better performance
+but we would also get better performance because there's fewer brush strokes on
+because there's fewer brush strokes on the screen so
+the screen so for example here if you look at the
+for example here if you look at the image to the right the beams look
+image to the right the beams look a lot more painterly and human made
+a lot more painterly and human made because there's fewer strokes on them
+the second hardest problem to solve was flickering so
+flickering so the strokes kind of act as a as a down
+the strokes kind of act as a as a down sampling of the
+sampling of the the bass frame buffer and
+the bass frame buffer and this this causes the the scene to be
+this this causes the the scene to be become
+become like very noisy when you're moving the
+like very noisy when you're moving the camera around
+camera around and when objects are moving and the
+and when objects are moving and the solution to this was to
+solution to this was to assemble the collar of the brush stroke
+assemble the collar of the brush stroke in a cross so we wouldn't just use the
+in a cross so we wouldn't just use the the center of the stroke but we would
+the center of the stroke but we would also look around it
+also look around it here i would actually use the the brush
+here i would actually use the the brush type
+type as well to basically do a bit of
+as well to basically do a bit of rejection sampling so
+rejection sampling so you kind of want the stroke to be
+you kind of want the stroke to be colored by only the object that it's
+colored by only the object that it's supposed to represent
+supposed to represent but we don't have that data available
+but we don't have that data available but
+but there's a good chance that it's only
+there's a good chance that it's only going to be
+going to be the object itself that has the exact
+the object itself that has the exact same brush type
+same brush type so it's like something in the in the
+so it's like something in the in the background is likely going to be using
+background is likely going to be using something else
+something else so that's like a cheap and quick way to
+so that's like a cheap and quick way to to kind of fake that
+we also found out that the motion vectors from unity are a little bit
+vectors from unity are a little bit like noisy so even when nothing is
+like noisy so even when nothing is moving there would be a little bit of
+moving there would be a little bit of of like drift so by applying a simple
+of like drift so by applying a simple threshold that also took care of that so
+threshold that also took care of that so the camera would have to actually be
+the camera would have to actually be in motion on object would have to be in
+in motion on object would have to be in motion before you would start to have
+motion before you would start to have the stroke changing shape oh sorry
+the stroke changing shape oh sorry changing color
+so in the real world when you're looking at a painting you can actually pick out
+at a painting you can actually pick out the individual brush strokes
+the individual brush strokes that's because the each stroke will
+that's because the each stroke will catch the light a little bit differently
+catch the light a little bit differently because of the inherent impasto
+because of the inherent impasto of course we can't actually do like do
+of course we can't actually do like do that
+that because we don't know the lighting
+because we don't know the lighting conditions of each player's
+conditions of each player's room that they're playing in but we can
+room that they're playing in but we can approximate it and
+approximate it and that's simply by randomizing the collar
+that's simply by randomizing the collar and also by randomizing the angle we
+and also by randomizing the angle we actually get something that looks a lot
+actually get something that looks a lot more
+more like handcrafted
+like handcrafted it's also kind of like part of the the
+it's also kind of like part of the the pointillism
+pointillism which is part of impressionism that in
+which is part of impressionism that in inspired this whole
+inspired this whole art style to begin with
+art style to begin with so the way that this randomization is
+so the way that this randomization is done
+done is um i tried to first use hsv
+is um i tried to first use hsv but i got a lot of like flickery and and
+but i got a lot of like flickery and and edge cases where it wouldn't work so
+edge cases where it wouldn't work so in the end i had to come up with
+in the end i had to come up with something where because every all the
+something where because every all the other colors was in rgb like the
+other colors was in rgb like the randomization of them also had to be an
+randomization of them also had to be an rgb
+rgb and by looking at the color space
+and by looking at the color space like the rgb color cube you can actually
+like the rgb color cube you can actually see that you if you
+see that you if you look at it from the right direction it
+look at it from the right direction it kind of resembles hsv
+kind of resembles hsv anyways so if you take a vector that
+anyways so if you take a vector that goes from
+goes from from like pure black to pure white and
+from like pure black to pure white and use that to form an orthonormal
+use that to form an orthonormal set of basis vectors you can actually
+set of basis vectors you can actually use those to add
+use those to add color randomization it's by no means
+color randomization it's by no means perfect but it's good enough for like
+perfect but it's good enough for like the small amount that that we needed
+the small amount that that we needed and it turned to also be much more
+and it turned to also be much more efficient because we didn't have to do
+efficient because we didn't have to do the conversion
+the conversion to htv and back again
+so we had to keep the randomization that was happening to each stroke
+was happening to each stroke constant from frame to frame otherwise
+constant from frame to frame otherwise the stroke would keep changing color
+the stroke would keep changing color and the only constant set of information
+and the only constant set of information i had
+i had for the stroke was actually it's index
+for the stroke was actually it's index so i wrote this function you see here
+so i wrote this function you see here where
+where i get a like a photorandomized
+i get a like a photorandomized like value out that is then used to
+like value out that is then used to apply all of
+apply all of these offsets
+so this is some of my my favorite features
+features we can actually
+we can actually particles in two different ways so one
+particles in two different ways so one is just using an alpha cutout
+is just using an alpha cutout standard particle shader that writes
+standard particle shader that writes into the brush buffer
+into the brush buffer the good thing about this is that it's a
+the good thing about this is that it's a workflow that the artists are familiar
+workflow that the artists are familiar with
+with and it also allows the strokes to be lit
+and it also allows the strokes to be lit so you can see we're using that for fire
+so you can see we're using that for fire quite a lot
+quite a lot we can also inject shuriken particles
+we can also inject shuriken particles unity's particle system directly into
+unity's particle system directly into the effects so they appear as brush
+the effects so they appear as brush strokes
+strokes and i thought personally we were going
+and i thought personally we were going to use this everywhere because
+to use this everywhere because it's damn cool but unfortunately
+it's damn cool but unfortunately in the unity's deferred renderer you
+in the unity's deferred renderer you can't actually access the lighting data
+can't actually access the lighting data so they they required a lot of like
+so they they required a lot of like artists tweaking in order to
+artists tweaking in order to sit well with the scene so and then we
+sit well with the scene so and then we only used them in like very
+only used them in like very like rare circumstances and most of the
+like rare circumstances and most of the time we ended up using the alpha quad
+time we ended up using the alpha quad particles instead
+particles instead they're also kind of a pain in the butt
+they're also kind of a pain in the butt to implement because there was a lot of
+to implement because there was a lot of unique rules for them because they
+unique rules for them because they wouldn't get that color from
+wouldn't get that color from the scene so for example having them
+the scene so for example having them work with
+work with fog meant that i had to take that
+fog meant that i had to take that equation and actually put it into the
+equation and actually put it into the injection code or like the injection
+injection code or like the injection compute
+compute kernel and also um
+kernel and also um it's why we had to split up our
+it's why we had to split up our post-processing so some of it would
+post-processing so some of it would happen before the pencil effect and some
+happen before the pencil effect and some of it would happen afterwards
+of it would happen afterwards which incur the performance cost
+yeah so good idea could have been better if we had more data
+been better if we had more data available
+all right so how many of your graphics programmers
+a fair amount okay how many of your artists
+artists also a fair amount okay have you ever
+also a fair amount okay have you ever been part of a production maybe you can
+been part of a production maybe you can recognize this
+i will say at times it was kind of stressful
+stressful [Laughter]
+[Laughter] so we thankfully had some pre-production
+so we thankfully had some pre-production on the game and i think that is what
+on the game and i think that is what really
+really allowed us to achieve the look we had in
+allowed us to achieve the look we had in the end
+the end um at the start it was only me and the
+um at the start it was only me and the art director so i had like all the
+art director so i had like all the like i could focus completely on just
+like i could focus completely on just trying out the various things and get
+trying out the various things and get something he was happy with
+something he was happy with um but i also think it's like a lot of
+um but i also think it's like a lot of the
+the uh the reason why we ended up with
+uh the reason why we ended up with something that worked is that i was
+something that worked is that i was constantly in
+constantly in dialogue with the artist about like well
+dialogue with the artist about like well how should we get this pipeline
+how should we get this pipeline uh to do the things that that you guys
+uh to do the things that that you guys needed to do
+needed to do um i would also say the artists were
+um i would also say the artists were like really nimble
+like really nimble to adapt to how it worked because it's
+to adapt to how it worked because it's it as you're gonna see now it's a quite
+it as you're gonna see now it's a quite weird workflow and it was definitely
+weird workflow and it was definitely something that none of us had tried to
+something that none of us had tried to do before
+so the artists have three levels of control they have
+control they have globally on the camera where they can
+globally on the camera where they can adjust
+adjust variables such as the maximum and the
+variables such as the maximum and the minimum brush size
+minimum brush size and how long the brush stroke should
+and how long the brush stroke should live and so on
+live and so on then they can also go in and adjust it
+then they can also go in and adjust it on a per material basis
+on a per material basis with overrides for brush type
+with overrides for brush type brush size and so on and finally there's
+brush size and so on and finally there's also
+also on text level a texture that in format
+on text level a texture that in format resembles very much what's in the
+resembles very much what's in the the brush buffer where they can go
+the brush buffer where they can go and like have like the maximum amount of
+and like have like the maximum amount of control
+so we used substance for most of our texturing work and it has a
+most of our texturing work and it has a lot of
+lot of advantages you can reuse graphs so if
+advantages you can reuse graphs so if you create like a base
+you create like a base wood material you can re use that to
+wood material you can re use that to create a lot of
+create a lot of variations very quickly it also allows
+variations very quickly it also allows live editing and i think this is what
+live editing and i think this is what was actually the most beneficial for us
+was actually the most beneficial for us because
+because like i i was the only graphics
+like i i was the only graphics programmer on this project so i didn't
+programmer on this project so i didn't have time to
+have time to do some kind of like custom solutions so
+do some kind of like custom solutions so they could actually see how the
+they could actually see how the models would look like in their 3d
+models would look like in their 3d modeling tools so they always had to
+modeling tools so they always had to take them into
+take them into unity to see the end result and
+unity to see the end result and if we hadn't had this like like live
+if we hadn't had this like like live editing
+editing it would have taken so much longer and
+it would have taken so much longer and i actually have an example of that
+there we go so what you see here is uh a substance
+what you see here is uh a substance material being
+material being edited in real time and you can see that
+edited in real time and you can see that getting all these
+getting all these variables of like what directions are
+variables of like what directions are the strokes going in and how big are
+the strokes going in and how big are they and like how
+they and like how much boil do we have on them like not
+much boil do we have on them like not having these
+having these uh this exposed so you could like play
+uh this exposed so you could like play around with it would have taken a lot
+around with it would have taken a lot longer time to
+longer time to find settings that that works
+there was also a lot of problems with them this is mainly due to
+them this is mainly due to the the version of
+the the version of substance integration that we had to
+substance integration that we had to work with we had very long bake times
+work with we had very long bake times and it often broke on on console bills
+and it often broke on on console bills it would also sometimes like crash the
+it would also sometimes like crash the units editor when we imported them
+units editor when we imported them and it it actually and then we had to
+and it it actually and then we had to um like our tools program had to spend a
+um like our tools program had to spend a lot of time on developing this tool that
+lot of time on developing this tool that would allow us to switch
+would allow us to switch between substances and baked out
+between substances and baked out materials
+materials for this for to allow us to actually
+for this for to allow us to actually ship the game so thankfully there's
+ship the game so thankfully there's like a new integration uh on its way so
+like a new integration uh on its way so hopefully that should
+hopefully that should completely remove all of these problems
+there was also like some guidelines for creating good textures
+creating good textures if we did something that was approaching
+if we did something that was approaching real life
+real life you have something that's very noisy and
+you have something that's very noisy and that noise
+that noise causes the brush strokes to change color
+causes the brush strokes to change color very quickly so you get something that
+very quickly so you get something that flickers
+flickers but on the other hand if you just blur
+but on the other hand if you just blur all the textures you end up with
+all the textures you end up with something that doesn't really
+something that doesn't really have any definition and the image ends
+have any definition and the image ends up looking really flat
+up looking really flat so having something where you get this
+so having something where you get this kind of like
+kind of like posterized look turned out to be the
+posterized look turned out to be the best and having a bit of like smooth
+best and having a bit of like smooth gradients
+gradients also helped we would also exaggerate the
+also helped we would also exaggerate the main forms slightly so they would read
+main forms slightly so they would read better
+better underneath the effect and this is kind
+underneath the effect and this is kind of like the same
+of like the same principles that would be used for
+principles that would be used for modelling as well
+acids came in two flavors we would have hero acids such as
+hero acids such as characters and acids that were that were
+characters and acids that were that were used often
+used often they would be hand-painted in a
+they would be hand-painted in a substance painter
+substance painter whereas the rest would use
+whereas the rest would use substances from substance designer and
+substances from substance designer and the good thing about those is that the
+the good thing about those is that the only thing
+only thing we needed to do was to do a correct uv
+we needed to do was to do a correct uv unwrap and
+unwrap and the model would be done
+so for characters and other hero assets this is the pro
+other hero assets this is the pro the process we would
+the process we would do the same texture
+do the same texture methods that you saw earlier but we
+methods that you saw earlier but we would also paint in extra highlights and
+would also paint in extra highlights and shadows into the albedo map
+shadows into the albedo map to kind of make the the characters pop
+to kind of make the the characters pop even more
+even more underneath below the effect
+so painting the like hero assets um like as you saw
+like hero assets um like as you saw earlier the
+earlier the format for the for the brush map buffer
+format for the for the brush map buffer is
+is that's not artist friendly so in
+that's not artist friendly so in substance
+substance painter the artist would paint into
+painter the artist would paint into these uh
+these uh like custom defined channels that would
+like custom defined channels that would control the each
+control the each aspect of of the brushstroke
+aspect of of the brushstroke and when we then imported it into unity
+and when we then imported it into unity a custom
+a custom editor script would then take all of
+editor script would then take all of that information
+that information and crunch it down into the texture
+and crunch it down into the texture format that
+format that the pencil effect was expecting
+specifically for characters we found that we actually needed them to
+that we actually needed them to pop a lot more so
+we wrote this kind of like highlight shader so it is
+kind of like highlight shader so it is it is a it is a
+it is a it is a normal rim light but it actually takes
+normal rim light but it actually takes the lighting in the scene into account
+the lighting in the scene into account so it's
+so it's just uh so it so the character sits more
+just uh so it so the character sits more with the scene
+with the scene but you still get like them standing out
+but you still get like them standing out more from
+more from from the background and objects around
+from the background and objects around them
+them which worked really well
+all right optimizations and i think i'm doing well for time
+and i think i'm doing well for time that's good
+that's good okay so
+this was the first project where i was a graphics program on and
+graphics program on and i think for more experienced graphics
+i think for more experienced graphics programmers a lot of this
+programmers a lot of this advice is going to see kind of
+advice is going to see kind of like basic but in my experience it's
+like basic but in my experience it's actually quite hard to
+actually quite hard to find this stuff online and find
+find this stuff online and find tutorials on it
+tutorials on it so i hope it's it's going to be
+so i hope it's it's going to be beneficial for people out there that
+beneficial for people out there that there's a place where they can actually
+there's a place where they can actually learn about this
+so performance target wise we looked at gcn as our main architecture to optimize
+gcn as our main architecture to optimize for because it's the one used on
+for because it's the one used on playstation
+playstation 4 and xbox we targeted the full hp on
+4 and xbox we targeted the full hp on on playstation 4 and 90p on xbox and
+on playstation 4 and 90p on xbox and yeah i would advise you don't give
+yeah i would advise you don't give everyone on the team a 1080 graphics
+everyone on the team a 1080 graphics card because
+card because you're sitting there i go i was sitting
+you're sitting there i go i was sitting there as doing the graphics program and
+there as doing the graphics program and being like oh
+being like oh we should probably start optimizing and
+we should probably start optimizing and um yeah
+um yeah uh it's we had to to get um
+uh it's we had to to get um about halfway through development before
+about halfway through development before we started to really
+we started to really take this into into account um
+so for optimization and for profiling i used
+used gpu razer quite a lot there's other
+gpu razer quite a lot there's other tools out there but i really like the
+tools out there but i really like the way that
+way that it's presented i think sony does a
+it's presented i think sony does a really good job with their tools
+really good job with their tools they they're easy to read and
+they they're easy to read and not surprisingly we found out that the
+not surprisingly we found out that the main
+main thing that had to be optimized was to
+thing that had to be optimized was to render kernel because in a standard hd
+render kernel because in a standard hd resolution you have
+resolution you have around two million particles or two
+around two million particles or two sorry two million
+sorry two million pixels and for a given frame we would
+pixels and for a given frame we would have around
+have around thirty thousand strokes so the kernel
+thirty thousand strokes so the kernel creating the strokes and updating the
+creating the strokes and updating the strokes
+strokes they were quite like really cheap like
+they were quite like really cheap like that wasn't
+that wasn't the worry and it also meant that i
+the worry and it also meant that i didn't have to worry about putting in
+didn't have to worry about putting in new features into
+new features into that part of the pipeline that much but
+that part of the pipeline that much but anything that affected the rendering
+anything that affected the rendering had to be considered quite carefully
+so something that's quite easy to stumble into when you're using unity is
+stumble into when you're using unity is that you're gonna
+that you're gonna coupling your render thread to the main
+coupling your render thread to the main thread
+thread and what this means is that you're not
+and what this means is that you're not gonna be able to have your
+gonna be able to have your render thread like process the last
+render thread like process the last framework while you are doing the logic
+framework while you are doing the logic for the current one
+for the current one and it's a lot of it this is not really
+and it's a lot of it this is not really that well documented at the moment for
+that well documented at the moment for example if you
+example if you use any of the methods in the graphics
+use any of the methods in the graphics class you're likely going to cause
+class you're likely going to cause going to cost this coupling and the
+going to cost this coupling and the solution to that is actually use
+solution to that is actually use command buffers which is not really
+command buffers which is not really explained in the documentation either
+explained in the documentation either it's presented as a way to
+it's presented as a way to extend the graphics pipeline which is
+extend the graphics pipeline which is true but if you use them you're also
+true but if you use them you're also making sure that all the
+making sure that all the the commands are executed on the render
+the commands are executed on the render thread
+so scriptable render pipelines was released
+released all like was starting to get previewed
+all like was starting to get previewed during uh
+during uh the production of 11 11 and i wish we
+the production of 11 11 and i wish we could have switched over to it but
+could have switched over to it but i mean it was still an experimental
+i mean it was still an experimental feature
+feature so originally um we were generating the
+so originally um we were generating the brush map buffer
+brush map buffer with replacement shaders and they are
+with replacement shaders and they are terrible they basically causes the the
+terrible they basically causes the the camera to cull
+camera to cull again and you end up with with more draw
+again and you end up with with more draw calls and you also end up causing
+calls and you also end up causing coupling
+coupling with the main thread so with scriptable
+with the main thread so with scriptable render pipelines it would likely have
+render pipelines it would likely have been
+been easier to fix this because i would have
+easier to fix this because i would have like all the calling results
+like all the calling results readily available but i was stuck with
+readily available but i was stuck with the deferred
+the deferred renderer and i was also stuck with a
+renderer and i was also stuck with a non-source
+non-source code version of unity so there was
+code version of unity so there was yeah i had to be quite creative with
+yeah i had to be quite creative with with how i went about
+with how i went about solving this
+solving this so what i did is that i stole a buffer
+so what i did is that i stole a buffer in the
+in the in the g buffer so normally unity stores
+in the g buffer so normally unity stores the
+the specular value completely separate but
+specular value completely separate but that's actually only constructed from as
+that's actually only constructed from as a specular value or specularity value
+a specular value or specularity value and the albedo collar so by using an
+and the albedo collar so by using an unused channel to store the specularity
+unused channel to store the specularity i freed up a whole whole buffer where i
+i freed up a whole whole buffer where i could store all the information that i
+could store all the information that i needed
+needed it didn't mean that all the lighting
+it didn't mean that all the lighting equations got like more expensive
+equations got like more expensive because that color just wasn't readily
+because that color just wasn't readily available you had to
+available you had to like recreate it for every light but in
+like recreate it for every light but in the end we didn't have that many lights
+the end we didn't have that many lights in the game anyways because we were like
+in the game anyways because we were like concerned about having as much
+concerned about having as much performance reserved for the
+performance reserved for the painstaking effect anyways so this
+painstaking effect anyways so this turned out to not be an issue
+turned out to not be an issue but it did mean that all the deferred
+but it did mean that all the deferred lighting shares had to be changed
+lighting shares had to be changed thankfully that's something you can
+thankfully that's something you can actually access in
+actually access in in unity quite easily as you can see
+in unity quite easily as you can see here
+here so turned out to be easy what was not so
+so turned out to be easy what was not so easy
+easy is that unity has a system for
+generating shaders that work with both the the third and forward render
+the the third and forward render pipeline and all the lighting
+pipeline and all the lighting that goes on there but of course they
+that goes on there but of course they would be expecting the
+would be expecting the normal deferred uh color layout or like
+normal deferred uh color layout or like buffer layout
+buffer layout so in order to fix that i wrote this
+so in order to fix that i wrote this like
+like kind of dumb find and replace tool um so
+kind of dumb find and replace tool um so i could go through the
+i could go through the altered like the generated
+altered like the generated shader code and replace it but
+shader code and replace it but it was not a great workflow because i
+it was not a great workflow because i had to hit a button on um
+had to hit a button on um on the shader you can actually access
+on the shader you can actually access the the generated
+the the generated code like through scripting so you
+code like through scripting so you i would always have to go in and hit a
+i would always have to go in and hit a button to show the generated code
+button to show the generated code copy it over into a separate file and
+copy it over into a separate file and then run the patching
+then run the patching system on that separate file
+system on that separate file so yeah wasn't it wasn't fun
+some objects would be forward rendered so if we have something
+so if we have something like a special effect shader that were
+like a special effect shader that were used in in certain
+used in in certain sequences they have their own like
+sequences they have their own like lighting going on
+lighting going on so they can be rendered as part of the
+so they can be rendered as part of the regular deferred pass
+regular deferred pass and this also meant that they would have
+and this also meant that they would have to be rendered into the
+to be rendered into the brush buffer separately the way that
+brush buffer separately the way that we would do this is that the artist
+we would do this is that the artist would add a script to the object and
+would add a script to the object and instruct what
+instruct what materials should be uh should be used or
+materials should be uh should be used or should be
+should be should be rendered that way and the
+should be rendered that way and the effect would then
+effect would then generate a separate command buffer the
+generate a separate command buffer the that would run after
+that would run after the deferred pass was done and that way
+the deferred pass was done and that way we will get that information into the
+we will get that information into the brush buffer
+this also meant that i had to inject a special shader pass
+special shader pass into into the shaders which was also
+into into the shaders which was also taken care of by the patching system you
+taken care of by the patching system you just saw
+all right draw calls so most games have been on draw course in
+most games have been on draw course in unity is
+unity is is like something you really have to
+is like something you really have to look out for
+look out for and there are more and more tricks you
+and there are more and more tricks you can use to
+can use to reduce them so a fairly new thing is
+reduce them so a fairly new thing is that you can use
+that you can use layer call distances on the camera to
+layer call distances on the camera to basically say well if you know that
+basically say well if you know that something is quite small
+something is quite small you can use you can call it out
+you can use you can call it out at a shorter distance than the the far
+at a shorter distance than the the far clip plane of the camera
+clip plane of the camera we will also combine meshes when
+we will also combine meshes when necessary
+necessary and unity static batching is quite
+and unity static batching is quite temperamental so it also took our
+temperamental so it also took our artists a lot of
+artists a lot of diligence and experimentation to make
+diligence and experimentation to make sure that we had everything batching as
+sure that we had everything batching as much as
+much as possible so inclusion calling
+possible so inclusion calling is also something that sometimes
+is also something that sometimes led to like better performance sometimes
+led to like better performance sometimes not so we would test it on a level by
+not so we would test it on a level by level basis if we should
+level basis if we should have that enabled
+so data packing is a pretty pretty cool technique what this allows
+pretty cool technique what this allows is that you can fit
+is that you can fit more more information into less space
+more more information into less space in our case we used it for feeding more
+in our case we used it for feeding more strokes
+strokes into into lds and we also reduced the
+into into lds and we also reduced the amount of
+amount of vram that the effect required which was
+vram that the effect required which was basically freed up
+basically freed up like texture space for the rest of of
+like texture space for the rest of of the rendering
+so it can also increase increase performance because you have
+performance because you have less data that has to be loaded from
+less data that has to be loaded from vram so there's like less
+vram so there's like less data that has to be transferred over it
+data that has to be transferred over it does increase alu pressure
+does increase alu pressure so it's easy to make sure that you
+so it's easy to make sure that you actually test to
+actually test to see if this is actually gonna like be
+see if this is actually gonna like be more performant than
+more performant than not having it in the good thing is that
+not having it in the good thing is that it's very easy to implement because
+it's very easy to implement because you're only looking at the
+you're only looking at the the spots in your code where you are
+the spots in your code where you are reading and writing your data out so
+reading and writing your data out so it's something that's not going to have
+it's something that's not going to have like repercussions for the rest of your
+like repercussions for the rest of your logic
+logic and hlsl supplies f16 to ft2
+and hlsl supplies f16 to ft2 and reverse that allows you to to do
+and reverse that allows you to to do this packing
+this packing of two floats into one float
+but of course the lag of precision can't be an issue so there was like some of
+be an issue so there was like some of some of the information such as the
+some of the information such as the position where we just couldn't use this
+for optimizing alu and vgpr usage i use these two talks from
+usage i use these two talks from emil person aka humus
+emil person aka humus they're really good it's like super
+they're really good it's like super concrete and easy to
+concrete and easy to to use advice and in our
+to use advice and in our specific case using isp which is an
+specific case using isp which is an approximation of
+approximation of of division turned out to be really
+of division turned out to be really beneficial in a lot of cases
+beneficial in a lot of cases syncos is also a lot
+syncos is also a lot more efficient than doing synonym
+more efficient than doing synonym and course separately all of these are
+and course separately all of these are hlsl intrinsic functions that are
+hlsl intrinsic functions that are readily available
+readily available i also found that pre-computing part of
+i also found that pre-computing part of the intersection mouth
+the intersection mouth and then have that available in a
+and then have that available in a constant buffer led to a nice speed up
+constant buffer led to a nice speed up and we would also pre-compute the aspect
+and we would also pre-compute the aspect and inverse aspect radio
+and inverse aspect radio for use in in other parts of the
+for use in in other parts of the pipeline
+pipeline and this is the aspect radio of the the
+and this is the aspect radio of the the brush strokes
+so a nice feature in unity is that you can actually see the
+can actually see the generated byte code by just uh finding
+generated byte code by just uh finding the shader in
+the shader in in the editor and clicking this button
+in the editor and clicking this button and what that allows you to do is to
+and what that allows you to do is to compare if changes to your shader is
+compare if changes to your shader is actually going to change the amount of
+actually going to change the amount of of instructions that you generate which
+of instructions that you generate which when it takes
+when it takes like maybe 20 minutes to do a build this
+like maybe 20 minutes to do a build this can very quickly add up to a lot of
+can very quickly add up to a lot of time time gained
+something you can also do on some platforms is
+platforms is to use platform-specific defines to
+to use platform-specific defines to basically notch the compiler to
+basically notch the compiler to to optimize your shader in different
+to optimize your shader in different ways it's not
+ways it's not it's not available on on everything but
+it's not available on on everything but yeah for the consoles that can be a
+yeah for the consoles that can be a benefit as well
+so when you're starting out learning compute
+compute shaders quite often people will use
+shaders quite often people will use structs
+structs and it's
+and it's they're terrible it's
+they're terrible it's way better to use a structure of a race
+way better to use a structure of a race instead of an array of
+instead of an array of structs and the reason for that is that
+structs and the reason for that is that you get better cache currency
+you get better cache currency and each kernel can load in the data it
+and each kernel can load in the data it it needs itself like for example for all
+it needs itself like for example for all the culling that we do
+the culling that we do we don't need the color of the of the
+we don't need the color of the of the brush stroke so there's no reason to
+brush stroke so there's no reason to have that
+have that sticking around
+and i this is a guess and maybe someone in the audience will
+and maybe someone in the audience will know this but i also think that the
+know this but i also think that the compiler can rearrange the code so
+compiler can rearrange the code so alu instructions can happen while memory
+alu instructions can happen while memory fetches
+fetches are also being done and if it's done as
+are also being done and if it's done as as
+as like one big fetch of a struct
+like one big fetch of a struct i think that's a lot harder for the
+i think that's a lot harder for the compiler to
+compiler to to schedule
+so what you're seeing here is the debug view that i use the most
+view that i use the most and this is the
+and this is the content of each calling tile so if you
+content of each calling tile so if you see a pixel
+see a pixel in that that is because a brush stroke
+in that that is because a brush stroke has been
+has been determined to be inside that that
+determined to be inside that that calling tile
+calling tile and something that
+and something that worked really well in terms of
+worked really well in terms of optimizing the effect without
+optimizing the effect without like a visual uh loss of quality was to
+like a visual uh loss of quality was to actually
+actually look at how many strokes are inside the
+look at how many strokes are inside the calling tile and then feed that back
+calling tile and then feed that back into the generation kernel so
+into the generation kernel so if um if the tile was starting to fill
+if um if the tile was starting to fill up
+up the probability of new strokes spawning
+the probability of new strokes spawning would be reduced
+so what's going on with all the green and blue colors
+and blue colors well it's quite often that a stroke will
+well it's quite often that a stroke will not cover
+not cover all the the pixels in a 32 by 32
+all the the pixels in a 32 by 32 tile so
+tile so that basically means that if that you
+that basically means that if that you you you end up like
+you you end up like with a lot of the threats not doing
+with a lot of the threats not doing anything and
+anything and on gcn uh eight by eight pixels is
+on gcn uh eight by eight pixels is actually the optimal size for
+actually the optimal size for for a work group
+for a work group but that puts a lot of limitations on
+but that puts a lot of limitations on how much you can actually fit into your
+how much you can actually fit into your local data share
+yeah so you might think like okay can we reduce the
+reduce the size of the calling tiles and
+size of the calling tiles and unfortunately testing showed that
+unfortunately testing showed that if um if they're smaller than 32 by 32
+if um if they're smaller than 32 by 32 pixels they
+pixels they started being being slower so what i did
+started being being slower so what i did instead
+instead is that i would keep the calling the
+is that i would keep the calling the fine calling
+fine calling at 32 pixels but i would then
+at 32 pixels but i would then actually run three different
+actually run three different render kernels after each other each
+render kernels after each other each optimized for a different
+optimized for a different amount of strokes in that calling tile
+amount of strokes in that calling tile and i did this first as like a quick
+and i did this first as like a quick test to see if the approach would work
+test to see if the approach would work out i thought i would have to do some
+out i thought i would have to do some kind of like
+kind of like quick clever scheduling but it turns out
+quick clever scheduling but it turns out it was actually like really really fast
+it was actually like really really fast so what happens is that the
+the render kernel that's optimized for 8x8 pixels will
+8x8 pixels will look at how how many strokes are in the
+look at how how many strokes are in the tile and if it's not fitting the amount
+tile and if it's not fitting the amount that
+that it can fit into lds it will early out
+it can fit into lds it will early out and because
+and because all the threads in the work group are
+all the threads in the work group are earlying out it's
+earlying out it's it's very quick to do this so on average
+it's very quick to do this so on average um
+um executing um a render kernel that
+executing um a render kernel that wouldn't actually affect anything in the
+wouldn't actually affect anything in the image would only take
+image would only take 90 microseconds and
+90 microseconds and i thought this would kind of be like a
+i thought this would kind of be like a golden uh oh like i guess it's a silver
+golden uh oh like i guess it's a silver bullet yeah silver bullets to
+bullet yeah silver bullets to performance but it turns out it was only
+performance but it turns out it was only a 0.7
+a 0.7 millisecond gain we had from it but
+millisecond gain we had from it but that's still
+that's still still nice
+all right so now i'm going to talk a bit about the future improvements
+about the future improvements and a conclusion
+so one drawback of using um substances is that they wouldn't be cons
+substances is that they wouldn't be cons they wouldn't take the topology of an
+they wouldn't take the topology of an object into account so for example
+object into account so for example these uh like floorboards you see here
+these uh like floorboards you see here you would actually need smaller strokes
+you would actually need smaller strokes on the
+on the thinner sides of the boards than on the
+thinner sides of the boards than on the rest of them
+rest of them and in order to allow the artist to
+and in order to allow the artist to to fix this i actually
+to fix this i actually had time to put in vertex painting of
+had time to put in vertex painting of of brush sizes into the whole pipeline
+of brush sizes into the whole pipeline but it came online so late so we didn't
+but it came online so late so we didn't end up using it in the end
+unity is doing a lot of amazing things at the moment
+at the moment scripted render pipelines is one of them
+scripted render pipelines is one of them and if we had had access to that it
+and if we had had access to that it would have helped with a lot of issues
+we could have had lit injected strokes because
+because uh in their high definition render
+uh in their high definition render pipeline all of that information is
+pipeline all of that information is readily available
+readily available i guess it will be available in the
+i guess it will be available in the lightweight one as well
+lightweight one as well and the ability to create and bind
+and the ability to create and bind buffers more freely
+buffers more freely would have meant that i would have a lot
+would have meant that i would have a lot more like flexibility in
+more like flexibility in what i would have been able to do
+something that we saw at the end of the project is because the
+project is because the the brush stroke the brush sizes
+the brush stroke the brush sizes in an in a single 8-bit channel that
+in an in a single 8-bit channel that means that it's a normalized value
+means that it's a normalized value and if we needed to to go in and change
+and if we needed to to go in and change the
+the like make make some big strokes for
+like make make some big strokes for example in one scene we would have to do
+example in one scene we would have to do that on the global level which meant
+that on the global level which meant that all the materials had
+that all the materials had to be uh had to be tweaked because it
+to be uh had to be tweaked because it was like all coupled together
+was like all coupled together so in the future i would store all of
+so in the future i would store all of this in a 16-bit um
+this in a 16-bit um half precision value instead so you
+half precision value instead so you don't have that coupling between all the
+don't have that coupling between all the brush sizes
+brush sizes that would have saved our lead artist a
+that would have saved our lead artist a lot of time
+lot of time in the end
+so nowadays you have to make sure that your game is easy to share
+your game is easy to share and we found that youtube compression
+and we found that youtube compression was very tough on the effect it took us
+was very tough on the effect it took us a couple of tries
+a couple of tries in recording footage for for trailers
+in recording footage for for trailers before we really got a
+before we really got a got a hang of it um and
+got a hang of it um and it's it's it's such a shame right
+it's it's it's such a shame right because when people actually see the
+because when people actually see the game in
+game in in real life they'll they they can see
+in real life they'll they they can see the
+the the texture that you get from having uh
+the texture that you get from having uh the brushstrokes there whereas a lot of
+the brushstrokes there whereas a lot of it is kind of like washed out if you're
+it is kind of like washed out if you're watching it on a phone
+that said i'm i'm really proud of what we achieved
+we achieved so what you're seeing here is uh a piece
+so what you're seeing here is uh a piece of concept art
+of concept art from early in development and this is
+from early in development and this is the scene
+the scene that you see at the start of the game
+that you see at the start of the game especially like the way that the
+especially like the way that the like lamp posts uh like having this like
+like lamp posts uh like having this like nice halo around them and how
+nice halo around them and how dreamy looking the the background is i
+dreamy looking the the background is i think that's really nice
+think that's really nice and you can also see it here with like
+and you can also see it here with like other other scenes in the game like
+other other scenes in the game like having this
+having this sense of uh um
+sense of uh um of a not that defined background like
+of a not that defined background like rushing past you for example when you're
+rushing past you for example when you're playing with the pigeon is something
+playing with the pigeon is something that um
+that um yeah i think looks really beautiful
+so here at the end of the talk i would also like to thank
+also like to thank a bunch of different people i got a lot
+a bunch of different people i got a lot of mentoring
+of mentoring throughout the project from a bunch of
+throughout the project from a bunch of very talented graphics programmers
+very talented graphics programmers we also got a lot of help from the unity
+we also got a lot of help from the unity spotlight team with figuring out some of
+spotlight team with figuring out some of the
+the various ways to tweak the different
+various ways to tweak the different pipelines to do what we
+pipelines to do what we what we needed it to do
+and i would also like to thank cody the lead artist on the game for helping out
+lead artist on the game for helping out with
+with preparing the some of the slides in in
+preparing the some of the slides in in this talk
+this talk and lastly i would also like to thank
+and lastly i would also like to thank admin
+admin and ben dynamco for allowing me to
+and ben dynamco for allowing me to give this talk in the end
+so i would also like to thank the rest of the team that i worked with at admin
+of the team that i worked with at admin um
+um i think everyone was was doing a really
+i think everyone was was doing a really good job but
+good job but like maybe even more importantly it was
+like maybe even more importantly it was it's also one of the
+it's also one of the teams i've been on where we had the best
+teams i've been on where we had the best social interactions like everyone was
+social interactions like everyone was jailing really well and it it meant that
+jailing really well and it it meant that it was just a pleasure to
+it was just a pleasure to to work on this game yeah it's one of
+to work on this game yeah it's one of the best projects i've been
+the best projects i've been involved in
+involved in all right so to conclude on all
+all right so to conclude on all all of this pre-production is really a
+all of this pre-production is really a must if you're trying to do something
+must if you're trying to do something that is
+that is as weird as as we try to achieve and
+as weird as as we try to achieve and it's important that
+it's important that the technology has a head start before
+the technology has a head start before the rest of production
+the rest of production ramps up also talk to your artists and
+ramps up also talk to your artists and make sure that what you're developing is
+make sure that what you're developing is actually what they need
+actually what they need the disciplines have to to work together
+the disciplines have to to work together in order to uh
+in order to uh to achieve the look that you want
+to achieve the look that you want compute shaders
+compute shaders have a huge potential for photo of like
+have a huge potential for photo of like um
+um for painstaking rendering and i can't
+for painstaking rendering and i can't wait to see
+wait to see what's going to be done with them in the
+what's going to be done with them in the future
+future and thankfully i would say be a nervous
+and thankfully i would say be a nervous when you start
+when you start because then there's a lot of easy
+because then there's a lot of easy things you can fix at the end of
+things you can fix at the end of the project to increase your performance
+all right that's it [Applause]
+[Applause] so there's microphones set up if you
+so there's microphones set up if you want to ask me questions
+want to ask me questions um i'll i can actually see
+um i'll i can actually see the microphone from here but i guess if
+the microphone from here but i guess if you form a line
+you form a line that'll work and remember to say where
+that'll work and remember to say where you're from when you ask the question
+hey that was a beautiful presentation really awesome work
+really awesome work thank you um i have a quick question how
+thank you um i have a quick question how did the
+did the uh how did the artist author the flow
+uh how did the artist author the flow directions
+directions so that was um
+so that was um [Music]
+that was by painting like regular flow maps in
+maps in in substance painter and also having
+in substance painter and also having custom notes for it when
+custom notes for it when it was in substance designer i think
+it was in substance designer i think if you meet us in the wrap-up room cody
+if you meet us in the wrap-up room cody is actually here and he can
+is actually here and he can he's sitting right there he can he can
+he's sitting right there he can he can answer
+answer more specifically how that worked thanks
+do we have any more yes i asked about the feature
+i asked about the feature about because i look is look the static
+about because i look is look the static static image i think is very beautiful
+static image i think is very beautiful but what when the camera is moving and
+but what when the camera is moving and then we can
+then we can figure out that uh the pain the stroke
+figure out that uh the pain the stroke is
+is like a little bit figuring because they
+like a little bit figuring because they are keep
+are keep appearing and disappearing so is that
+appearing and disappearing so is that the final effect that the artists expect
+the final effect that the artists expect or you try to make it more
+or you try to make it more could you try and rephrase them i mean
+could you try and rephrase them i mean for the dynamic scene
+for the dynamic scene you will find that uh the stroke is keep
+you will find that uh the stroke is keep appearing and disappearing far away or
+appearing and disappearing far away or something like that is this the final
+something like that is this the final effect that
+effect that the artist expected
+the artist expected uh so if i'm understanding you correctly
+uh so if i'm understanding you correctly you're asking if artists
+you're asking if artists ex was expecting the effect to behave as
+ex was expecting the effect to behave as it did
+it did yes because you you create a game with
+yes because you you create a game with some concept art
+some concept art is just static right yeah it's very
+is just static right yeah it's very beautiful and the static theme oh i see
+beautiful and the static theme oh i see what you mean so in motion was it like
+what you mean so in motion was it like what we were trying to go for yeah
+what we were trying to go for yeah so um our art director actually made a
+so um our art director actually made a kind of like a sizzle reel of things he
+kind of like a sizzle reel of things he wanted the effect to do
+wanted the effect to do early on and a lot of that was inspired
+early on and a lot of that was inspired by actually i think i have a
+slide for that yeah so we would look at something like
+something like the old man and the sea which is a
+the old man and the sea which is a really beautiful oil painted animation
+really beautiful oil painted animation and he had eight different things that
+and he had eight different things that he wanted to see in the painting effect
+he wanted to see in the painting effect some of them that was not really
+some of them that was not really achievable but something like boil
+achievable but something like boil and like slurring like some of that
+and like slurring like some of that stuff we
+stuff we we kind of got in so
+we kind of got in so i think early on like that dialogue with
+i think early on like that dialogue with him is really what informed how the
+him is really what informed how the effect looked in the end
+effect looked in the end i think there was definitely a learning
+i think there was definitely a learning curve for the artist in order to
+curve for the artist in order to figure out how to create the 3d art that
+figure out how to create the 3d art that would work because
+would work because they couldn't like just look at it
+they couldn't like just look at it inside 3d max they would have to
+inside 3d max they would have to export it into the game engine and then
+export it into the game engine and then fiddle around with it but
+fiddle around with it but we definitely saw like at the end of the
+we definitely saw like at the end of the production they had a lot easier time
+production they had a lot easier time creating assets quickly because they had
+creating assets quickly because they had a
+a huge library of substances to rely on
+huge library of substances to rely on and they
+and they just knew the whole effect much better
+just knew the whole effect much better okay thank you all right
+hello great talk thank you did you explore machine learning
+explore machine learning style transfer to perform this effect
+style transfer to perform this effect sorry uh i think it's the question to if
+sorry uh i think it's the question to if we use machine learning did you explore
+we use machine learning did you explore the possibility of using style transfer
+the possibility of using style transfer oh do you mean the one no
+oh do you mean the one no we didn't use any machine learning for
+we didn't use any machine learning for this
+this so if we had used machine learning the
+so if we had used machine learning the problem with that is that you you give
+problem with that is that you you give up a lot of control for
+up a lot of control for how easy it is to use and as you can see
+how easy it is to use and as you can see here we had a lot of
+here we had a lot of artist control over specific objects and
+artist control over specific objects and the scene as a whole
+the scene as a whole so if we had used like machine learning
+so if we had used like machine learning i think we would have kind of like
+i think we would have kind of like thought what that approach would have
+thought what that approach would have given us
+given us so i'm seeing some quite interesting
+so i'm seeing some quite interesting approaches uh at gdc this year where
+approaches uh at gdc this year where they have
+they have like used it but they also bill it as a
+like used it but they also bill it as a way to
+way to prototype as a given look and i think
+prototype as a given look and i think that
+that it's gonna be interesting to see if
+it's gonna be interesting to see if we're gonna end up with like some kind
+we're gonna end up with like some kind of hybrid approach where
+of hybrid approach where we we will have like some parameters
+we we will have like some parameters that are are controlled but what i'm
+that are are controlled but what i'm seeing
+seeing seeing from using machine learning so
+seeing from using machine learning so far is that it it is like it's kind of
+far is that it it is like it's kind of like a take it or leave it situation
+like a take it or leave it situation you either use it or you don't okay see
+you either use it or you don't okay see thank you you're welcome
+hello so you mentioned a lot of i'm going to talk about
+going to talk about troubles with unity and all that um
+troubles with unity and all that um could you go into
+could you go into why unity was chosen for a project over
+why unity was chosen for a project over maybe unreal or a custom engine
+maybe unreal or a custom engine yeah that's a good question so
+i mean i'm happy i'm a unity freelancer so
+so i think it was predominantly because
+i think it was predominantly because admin has used it for
+admin has used it for like other problems other other problems
+like other problems other other problems or the projects
+or the projects in the past um so it's there was a lot
+in the past um so it's there was a lot of
+of like institutional knowledge on how to
+like institutional knowledge on how to use the engine and i think for the size
+use the engine and i think for the size of team we were it was also
+of team we were it was also a fairly good fit um
+so i have only worked a little bit with unreal so
+unreal so this is kind of like hearsay but what
+this is kind of like hearsay but what i've
+i've heard is that if you have to modify
+heard is that if you have to modify their renderer like you have to
+their renderer like you have to delve like you basically have to write
+delve like you basically have to write in c plus and
+in c plus and like tear out things and like put things
+like tear out things and like put things back together whereas
+back together whereas unity is much more and i guess this is
+unity is much more and i guess this is kind of like an engine design philosophy
+kind of like an engine design philosophy they use um
+they use um they approach it much more like a
+they approach it much more like a toolbox
+toolbox and there's like you have to build more
+and there's like you have to build more on top but it's kind of designed that
+on top but it's kind of designed that way
+way um and then there are limitations of how
+um and then there are limitations of how far you can go with that when you're
+far you can go with that when you're using the current deferred
+using the current deferred or forward renderer but what that is
+or forward renderer but what that is doing now with the srp
+doing now with the srp and the whole dot system you're going to
+and the whole dot system you're going to see that like it's
+see that like it's probably going to be a lot quicker to do
+probably going to be a lot quicker to do all of these things
+all of these things so yeah that's that's why we ended up
+so yeah that's that's why we ended up with unity i see thank you
+i think we have one more i think
+that's it okay all right well thank you for coming
+for coming and remember to fill out evaluations
+and remember to fill out evaluations afterwards
+afterwards all right enjoy what's next

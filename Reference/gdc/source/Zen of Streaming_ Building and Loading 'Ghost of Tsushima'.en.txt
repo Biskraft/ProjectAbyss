@@ -1,0 +1,1706 @@
+[Music] hi and welcome to zen of streaming a
+hi and welcome to zen of streaming a building and loading the ghost of
+building and loading the ghost of tsushima
+tsushima so i'm adrian bentley and the coding
+so i'm adrian bentley and the coding team lead at sucker punch productions
+team lead at sucker punch productions i've been working there 17 years and
+i've been working there 17 years and i've started on sly three worked all the
+i've started on sly three worked all the way through infamous series and most
+way through infamous series and most recently published
+recently published ghost of tsushima which is what we're
+ghost of tsushima which is what we're going to talk about today
+going to talk about today so first i'll talk about some initial
+so first i'll talk about some initial sketching process
+sketching process which i'm going to call napkin math and
+which i'm going to call napkin math and then talking about some of the tools and
+then talking about some of the tools and optimization stuff we relied on a
+optimization stuff we relied on a rendering overview a deeper dive into
+rendering overview a deeper dive into our fine grained streaming system and a
+our fine grained streaming system and a little bit of tips on loading and kind
+little bit of tips on loading and kind of a conclusion
+of a conclusion so
+so i also encourage you to check out some
+i also encourage you to check out some other gec talks i'm going to reference
+other gec talks i'm going to reference in this presentation
+in this presentation there's bill rose's presentation on
+there's bill rose's presentation on particle and cloth simulation um
+particle and cloth simulation um used to sort of keep our world pretty
+used to sort of keep our world pretty lively
+lively matt p is going to give a presentation
+matt p is going to give a presentation about samurai landscapes the tools and
+about samurai landscapes the tools and procedural systems we use to build the
+procedural systems we use to build the game
+game um eric w is going to give a
+um eric w is going to give a presentation about procedural grass
+presentation about procedural grass which is a really big part of the mood
+which is a really big part of the mood and the look of the game and then later
+and the look of the game and then later this year jasmine is going to give a
+this year jasmine is going to give a presentation at siggraph on lighting and
+presentation at siggraph on lighting and rendering
+rendering so here's a video just for context to
+so here's a video just for context to show you what ghost is like
+i swore to protect this island with my life
+life never once betraying my code
+never once betraying my code [Music]
+until today [Music]
+[Music] fun stuff
+fun stuff all right so
+all right so let's talk about the key technology we
+let's talk about the key technology we used starting early it's napkins
+used starting early it's napkins so where do we start let's uh go back to
+so where do we start let's uh go back to shipping a superhero based game called
+shipping a superhero based game called second sun in 2014 and we we basically
+second sun in 2014 and we we basically were built this whole game as a dense
+were built this whole game as a dense urban environment it's our version of
+urban environment it's our version of seattle
+seattle and with fixed times of day which we
+and with fixed times of day which we leveraged a bunch and lots of jumping
+leveraged a bunch and lots of jumping around and climbing over things and
+around and climbing over things and zooming around the city it's pretty
+zooming around the city it's pretty it's pretty different from what we're
+it's pretty different from what we're doing now but i did a presentation on
+doing now but i did a presentation on some engine tech for second sun several
+some engine tech for second sun several years ago and i'll recap a few bits here
+years ago and i'll recap a few bits here for context
+for context so we had about 100 meter tiles about
+so we had about 100 meter tiles about 250 of them
+250 of them used to make up the world and second sun
+used to make up the world and second sun and there was a lot of proper use but
+and there was a lot of proper use but unless overall than you might think for
+unless overall than you might think for some of the larger stuff like ground and
+some of the larger stuff like ground and buildings and
+buildings and big structures obviously the space
+big structures obviously the space needle is one of those
+needle is one of those so one of the techniques we use to kind
+so one of the techniques we use to kind of ship the game reliably is we
+of ship the game reliably is we basically have fixed budgets we have an
+basically have fixed budgets we have an assembly system that our build tools do
+assembly system that our build tools do where they take small small assets and
+where they take small small assets and pack them up into what we call packs and
+pack them up into what we call packs and in infamous this included textures and
+in infamous this included textures and it was super simple and guaranteed we
+it was super simple and guaranteed we fit in disk and memory and it also
+fit in disk and memory and it also allowed artists to make trade-offs and
+allowed artists to make trade-offs and fix problems themselves um in in the
+fix problems themselves um in in the run-up to ship
+run-up to ship so this worked great um here's a
+so this worked great um here's a breakdown for the disc for second sun
+breakdown for the disc for second sun which barely fit on a one-layer blu-ray
+which barely fit on a one-layer blu-ray there's definitely some duplication in
+there's definitely some duplication in there in terms of texture assets but it
+there in terms of texture assets but it mostly was was pretty good because we
+mostly was was pretty good because we had this core asset pack that we would
+had this core asset pack that we would put stuff in there to reduce duplication
+put stuff in there to reduce duplication just to reference everywhere effectively
+just to reference everywhere effectively and this took a bit of artist management
+and this took a bit of artist management but it wasn't too too bad um
+but it wasn't too too bad um the tiles were themselves were about 72
+the tiles were themselves were about 72 megabytes total most of the time you
+megabytes total most of the time you were running around and only streaming
+were running around and only streaming in the the smaller chunks of 22 megs and
+in the the smaller chunks of 22 megs and such and then you'd get the higher res
+such and then you'd get the higher res 48 meg chunks of texture high risk
+48 meg chunks of texture high risk textures when you got to the sort of
+textures when you got to the sort of nearest four of these tiles and we had
+nearest four of these tiles and we had 16 or so loaded at a time so
+16 or so loaded at a time so but how does that compare to our new
+but how does that compare to our new game so tsushima is a very different
+game so tsushima is a very different place it has expansive organic areas
+place it has expansive organic areas with minimal artificial lighting
+with minimal artificial lighting it has a totally different style lots of
+it has a totally different style lots of trees bushes and long sight lines
+trees bushes and long sight lines um and what about the size here's actual
+um and what about the size here's actual seattle versus tsushima island it's
+seattle versus tsushima island it's clearly bigger a 708 square kilometers
+clearly bigger a 708 square kilometers versus 214
+versus 214 and
+and if you look at um
+if you look at um there was concerns that the 708 was just
+there was concerns that the 708 was just too too big you get bored riding a horse
+too too big you get bored riding a horse across it so we get smaller about 64
+across it so we get smaller about 64 square kilometers still about 20 times
+square kilometers still about 20 times second sun's area so let's do the math
+second sun's area so let's do the math um 6400 tiles 720 megs
+um 6400 tiles 720 megs 72 megs is 460 gigabytes which is
+72 megs is 460 gigabytes which is clearly way too much um and if you say
+clearly way too much um and if you say half a disk or so that's about four megs
+half a disk or so that's about four megs a tile it's really not a lot of space
+a tile it's really not a lot of space especially for textures and so we have a
+especially for textures and so we have a bunch of work to do
+bunch of work to do and i mean it's smaller on disk means
+and i mean it's smaller on disk means that you won't necessarily have to worry
+that you won't necessarily have to worry about read speeds as much but it's still
+about read speeds as much but it's still a big concern but to figure out much
+a big concern but to figure out much work let's look at the density we we
+work let's look at the density we we sketched out so
+sketched out so we guessed something like 2500 trees per
+we guessed something like 2500 trees per 100 meter tile 10 000 maybe medium-sized
+100 meter tile 10 000 maybe medium-sized boulders and other things bushes and
+boulders and other things bushes and whatnot and potentially more small stuff
+whatnot and potentially more small stuff especially if you're talking about grass
+especially if you're talking about grass tufts or flowers or things like that
+tufts or flowers or things like that so that's one every one to two meters
+so that's one every one to two meters and if you multiply that out by the
+and if you multiply that out by the current instant sizes we had
+current instant sizes we had it would hit about 12 megabytes per tile
+it would hit about 12 megabytes per tile which is clearly more than four and thus
+which is clearly more than four and thus way too big
+way too big um
+um and so here's some early estimates for
+and so here's some early estimates for what we needed to do to make this work
+what we needed to do to make this work for a giant world some of these are
+for a giant world some of these are pretty big and obviously and we had a
+pretty big and obviously and we had a long road ahead of us
+long road ahead of us so
+so basically what this says is that very
+basically what this says is that very few of the constraints uh well actually
+few of the constraints uh well actually we use the last decade it will actually
+we use the last decade it will actually continue to work um basically all of
+continue to work um basically all of these were no goes except for the pack
+these were no goes except for the pack aggregation and some of the building
+aggregation and some of the building structure reuse that we that we used in
+structure reuse that we that we used in infamous
+infamous um we needed to do tech to match the
+um we needed to do tech to match the vision in addition we also needed to
+vision in addition we also needed to avoid drastically increasing our team
+avoid drastically increasing our team size so we had to emphasize scale
+size so we had to emphasize scale basically everywhere we did defer some
+basically everywhere we did defer some decisions on texture thinking and that
+decisions on texture thinking and that multiple cores could potentially solve
+multiple cores could potentially solve problems that we had
+problems that we had but i kind of had an inkling that
+but i kind of had an inkling that fine-grained texture streaming would be
+fine-grained texture streaming would be important in the future if not this
+important in the future if not this project the next so we'll talk about
+project the next so we'll talk about that how that went in a little bit
+that how that went in a little bit so where do we land
+so where do we land effectively we had a bunch of content
+effectively we had a bunch of content but not a ridiculous amount because
+but not a ridiculous amount because we're hyper focused on construction
+we're hyper focused on construction efficiency and reuse um and that's about
+efficiency and reuse um and that's about that lands around 700 gigabytes and half
+that lands around 700 gigabytes and half a million files synced for most people
+a million files synced for most people um some people would have more if they
+um some people would have more if they were working on like facial blending
+were working on like facial blending technology or high-res textures for
+technology or high-res textures for certain certain domains could have a
+certain certain domains could have a bunch more space
+bunch more space but most of this isn't changing daily
+but most of this isn't changing daily and so it wasn't a huge huge problem got
+and so it wasn't a huge huge problem got a little bit harder toward the end of
+a little bit harder toward the end of the project especially with working home
+the project especially with working home and here's the stats for the final disc
+and here's the stats for the final disc most things grew especially textures and
+most things grew especially textures and dialogue terrain was clearly new but we
+dialogue terrain was clearly new but we basically had compacted so much of the
+basically had compacted so much of the other game data that this was all much
+other game data that this was all much smaller than it used to be um we ended
+smaller than it used to be um we ended up fitting comfortably on a two-layer
+up fitting comfortably on a two-layer blu-ray after compression
+blu-ray after compression so for memory we had one gigabyte of
+so for memory we had one gigabyte of texture space to load into
+texture space to load into a significantly smaller footprint for
+a significantly smaller footprint for stream meshes up to one gig 1.6
+stream meshes up to one gig 1.6 gigabytes of packs and the rest went to
+gigabytes of packs and the rest went to render targets slot heaps and other
+render targets slot heaps and other general heaps
+general heaps were the remainder
+were the remainder so
+so talking about performance our frame is
+talking about performance our frame is structured fairly similar to second sun
+structured fairly similar to second sun we had an extra half a core an extra
+we had an extra half a core an extra five low re low priority job job um job
+five low re low priority job job um job threads and the phases of the of the
+threads and the phases of the of the game were pretty similar with update and
+game were pretty similar with update and solve and render all sort of sequenced
+solve and render all sort of sequenced the way they were before
+the way they were before the main changes we did were a lot more
+the main changes we did were a lot more threading and a lot more async gpu
+threading and a lot more async gpu compute that was that's the big thing
+compute that was that's the big thing that i think helped us a time
+that i think helped us a time so here's an example frame and this is
+so here's an example frame and this is about as tight as you can get you can
+about as tight as you can get you can see sort of how packed the little blue
+see sort of how packed the little blue bars are at the top
+bars are at the top um the main the main thread and such and
+um the main the main thread and such and cpu code sort of is running but then
+cpu code sort of is running but then there's also a whole bunch of background
+there's also a whole bunch of background stuff you can see at the bottom that are
+stuff you can see at the bottom that are overlapping with the cpu getting
+overlapping with the cpu getting interrupted and coming back to fill
+interrupted and coming back to fill holes
+holes so here zooming in on the main thread
+so here zooming in on the main thread and high priority jobs you'll see ai at
+and high priority jobs you'll see ai at the beginning it's what we call update
+the beginning it's what we call update solve in the middle where it does
+solve in the middle where it does animation jobs and physics and such and
+animation jobs and physics and such and then rendering at the end and this scene
+then rendering at the end and this scene is particularly render heavy since it's
+is particularly render heavy since it's inside of a city with lots of npcs and
+inside of a city with lots of npcs and combat and such
+combat and such so here's a gpu frame
+so here's a gpu frame there's a lot of
+there's a lot of standard stuff here we did a much bunch
+standard stuff here we did a much bunch of async compute which you can see
+of async compute which you can see circled at the bottom
+circled at the bottom and there's a whole bunch of extra
+and there's a whole bunch of extra deferred passes and optimizations we had
+deferred passes and optimizations we had done throughout that process
+done throughout that process and here's some file i o since we talked
+and here's some file i o since we talked about loading
+about loading basically as you run around the game
+basically as you run around the game we're constantly churning texture reads
+we're constantly churning texture reads um this is a little noisier than it than
+um this is a little noisier than it than it is normally i guess not noisier but
+it is normally i guess not noisier but it's it's the the spaces in between are
+it's it's the the spaces in between are not going to be quite as big because
+not going to be quite as big because this is a dev scenario and so file opens
+this is a dev scenario and so file opens are slower
+are slower but the actual read speeds are probably
+but the actual read speeds are probably slower on the on the target hardware so
+slower on the on the target hardware so there's this is a similar to what you'd
+there's this is a similar to what you'd actually see in the game
+actually see in the game so i'm sure this is a common experience
+so i'm sure this is a common experience but we shipped ghosts working from home
+but we shipped ghosts working from home for the last five months of the process
+for the last five months of the process this is it's pretty rough um but during
+this is it's pretty rough um but during the panic transition we kind of moved
+the panic transition we kind of moved vpn and some other bandwidth hogs to aws
+vpn and some other bandwidth hogs to aws to avoid our office network being a
+to avoid our office network being a super tight bottleneck
+super tight bottleneck and while there was a bunch of
+and while there was a bunch of difficulties we benefited from a couple
+difficulties we benefited from a couple things so an efficient build system that
+things so an efficient build system that we have is basically not reliant on
+we have is basically not reliant on distribution it does caching and some
+distribution it does caching and some other things which we were able to kind
+other things which we were able to kind of massage around a bit to work and work
+of massage around a bit to work and work from home environment better
+from home environment better and it also helps that we have a decent
+and it also helps that we have a decent idea of where we're taking the game in
+idea of where we're taking the game in the finishing process
+the finishing process so worked out okay but definitely
+so worked out okay but definitely wouldn't want to do it again
+wouldn't want to do it again so building tsushima
+so building tsushima effectively let's talk about how we got
+effectively let's talk about how we got there
+there so one of the things we the newest
+so one of the things we the newest things we had to deal with was
+things we had to deal with was terrain and so our first strategy was to
+terrain and so our first strategy was to leverage what we knew and try building
+leverage what we knew and try building larger worlds in maya we did a bunch of
+larger worlds in maya we did a bunch of tools work with terrain stamping and
+tools work with terrain stamping and procedural placement and this worked
+procedural placement and this worked okay initially but eventually it had
+okay initially but eventually it had performance and reliability problems
+performance and reliability problems with the scale that we needed and we
+with the scale that we needed and we also didn't get enough context with
+also didn't get enough context with buildings and props and trees and
+buildings and props and trees and in-game lighting and lots of stuff you
+in-game lighting and lots of stuff you need if you want to be texturing or
+need if you want to be texturing or massaging things or moving things around
+massaging things or moving things around it's difficult to do if you can't get
+it's difficult to do if you can't get everything in context
+everything in context so we would switch to the sort of the
+so we would switch to the sort of the other direction which is an in-engine
+other direction which is an in-engine editor
+editor where we would do painting and
+where we would do painting and procedural systems to flush out the
+procedural systems to flush out the world this is similar to a lot of other
+world this is similar to a lot of other stuff but it you know took a lot of work
+stuff but it you know took a lot of work and maybe somewhat differently we
+and maybe somewhat differently we actually leveraged the gpu really
+actually leveraged the gpu really heavily for this work
+heavily for this work trying to make it as we're super
+trying to make it as we're super responsive as possible so
+responsive as possible so things like
+things like if you'd paint the paint the ground it
+if you'd paint the paint the ground it would sort of auto auto regrow the
+would sort of auto auto regrow the the trees around you and stuff it sort
+the trees around you and stuff it sort of gave you roughly instant feedback
+of gave you roughly instant feedback which was pretty useful
+which was pretty useful um all the the gpu compute stuff and
+um all the the gpu compute stuff and virtual texturing was all aiming for a
+virtual texturing was all aiming for a low memory footprint and brunt low
+low memory footprint and brunt low cpu and improved gpu performance as well
+cpu and improved gpu performance as well um but also it was intended to provide
+um but also it was intended to provide good support to the procedural tools for
+good support to the procedural tools for placing stuff so you could pretty
+placing stuff so you could pretty efficiently fill out records to say
+efficiently fill out records to say here's where the new trees go and it
+here's where the new trees go and it would it would work really quickly
+would it would work really quickly so if you want to know more about any of
+so if you want to know more about any of any of these bits you should go to check
+any of these bits you should go to check out matt p's samurai landscapes gdc talk
+out matt p's samurai landscapes gdc talk he'll be talking about all the
+he'll be talking about all the procedural stuff and a bunch of gpu
+procedural stuff and a bunch of gpu optimizations and things including the
+optimizations and things including the gpu culling
+gpu culling so let's talk about how we split up the
+so let's talk about how we split up the world here's a debug display without our
+world here's a debug display without our procedural growth of our 200 meter tiles
+procedural growth of our 200 meter tiles and yes that's gin in the lower right
+and yes that's gin in the lower right and yes it's quite barren because all
+and yes it's quite barren because all the procedural growth is a huge chunk of
+the procedural growth is a huge chunk of what we actually um
+what we actually um have in the world
+have in the world so 200 meter tiles why that size it
+so 200 meter tiles why that size it produced fewer files and less
+produced fewer files and less duplication waste in the
+duplication waste in the in the sort of the scale that we were
+in the sort of the scale that we were looking at and we did end up adding
+looking at and we did end up adding about up to about 2.5 megabytes of
+about up to about 2.5 megabytes of terrain related stuff lots of texturing
+terrain related stuff lots of texturing for texturing stuff but also things for
+for texturing stuff but also things for metadata for placing grass and
+metadata for placing grass and controlling water flow and things like
+controlling water flow and things like that
+that so here's a picture of our seven level
+so here's a picture of our seven level quad tree which we used to manage the
+quad tree which we used to manage the streaming process process for this stuff
+streaming process process for this stuff um the the leaf level you'll see in
+um the the leaf level you'll see in green there is a three by three grid of
+green there is a three by three grid of tiles that you have at the finest detail
+tiles that you have at the finest detail level and it gives you about 200 meters
+level and it gives you about 200 meters guaranteed sight lines
+guaranteed sight lines for content
+for content so the first set of optimizations we
+so the first set of optimizations we went for was the obvious ones we store
+went for was the obvious ones we store one copy of the height map and then
+one copy of the height map and then after we read it in we make it visible
+after we read it in we make it visible with cpu physics kind of using it
+with cpu physics kind of using it directly rather than trying to construct
+directly rather than trying to construct a bsp or some other crazy structure from
+a bsp or some other crazy structure from it
+it um
+um we also forwarded a bunch of this data
+we also forwarded a bunch of this data to ai and sound effects so grass depth
+to ai and sound effects so grass depth for example you want to be able to know
+for example you want to be able to know for awareness if guys can see you in the
+for awareness if guys can see you in the grass
+grass and
+and one of the other cool things we had done
+one of the other cool things we had done was taking our virtual texture worth of
+was taking our virtual texture worth of uh material ids and forwarding that to
+uh material ids and forwarding that to the cpu so you can get a centimeter
+the cpu so you can get a centimeter level or so precision on if you stepped
+level or so precision on if you stepped on the ground hey is it on in a puddle
+on the ground hey is it on in a puddle do i need to create a mud splash and and
+do i need to create a mud splash and and have that work and that was pretty neat
+have that work and that was pretty neat it gave us a lot of really good detail
+it gave us a lot of really good detail another thing to keep an eye on um we
+another thing to keep an eye on um we had to keep an eye on i should say uh
+had to keep an eye on i should say uh was at eight kilometers you do start
+was at eight kilometers you do start running into precision problems working
+running into precision problems working in world space we really didn't need to
+in world space we really didn't need to do anything drastic in the end just lots
+do anything drastic in the end just lots of little fixes liberally applying the
+of little fixes liberally applying the general maximum of you subtract before
+general maximum of you subtract before you multiply
+you multiply for dealing with inverses of matrices
+for dealing with inverses of matrices and things like that
+and things like that so one of the techniques we use pretty
+so one of the techniques we use pretty heavily when trying to optimize is
+heavily when trying to optimize is compile time data merging and so
+compile time data merging and so effectively you take you take something
+effectively you take you take something that's a big expensive full-fledged
+that's a big expensive full-fledged object with scriptability and various
+object with scriptability and various other things you make a lower level
+other things you make a lower level version of it and you allow that that
+version of it and you allow that that version of it to merge and instance
+version of it to merge and instance itself in a really compact way so
+itself in a really compact way so geometry for example normally does this
+geometry for example normally does this in something like six byte records but
+in something like six byte records but that's per lod per shader i'll talk more
+that's per lod per shader i'll talk more about how we optimize that later but um
+about how we optimize that later but um basically that instancing process is
+basically that instancing process is what allows us to kind of make things
+what allows us to kind of make things really compact
+really compact um
+um and we do this for building bvhs for
+and we do this for building bvhs for physics and sort of renderable
+physics and sort of renderable occlusions data structures and for
+occlusions data structures and for arrays of cloth obstacles parkour
+arrays of cloth obstacles parkour splines breakables etc and so that
+splines breakables etc and so that allows you to
+allows you to do a bunch of of
+do a bunch of of interesting stuff there we switched away
+interesting stuff there we switched away from our some of our partial offline
+from our some of our partial offline rebates for for imposters infamous
+rebates for for imposters infamous basically we had this problem where
+basically we had this problem where you'd have
+you'd have the geometry
+the geometry and update up to date one place and then
+and update up to date one place and then the baked texture would be sort of in a
+the baked texture would be sort of in a different spot and they'd get a little
+different spot and they'd get a little bit scrambled and having that out of
+bit scrambled and having that out of sync was really annoying and so we
+sync was really annoying and so we basically just merge everything right
+basically just merge everything right now just straight up as part of the
+now just straight up as part of the build system
+build system to try and keep everything up to date
+to try and keep everything up to date throughout development
+throughout development so
+so index ranges are one of the techniques
+index ranges are one of the techniques we use to help keep overlap hood low i
+we use to help keep overlap hood low i mentioned everything's in these big
+mentioned everything's in these big arrays right so oftentimes the arrays
+arrays right so oftentimes the arrays are small enough that you can refer to a
+are small enough that you can refer to a set of things with with four bytes so a
+set of things with with four bytes so a two byte two byte min max
+two byte two byte min max and to do this you basically can sort by
+and to do this you basically can sort by parent chain and so
+parent chain and so that basically puts things in an order
+that basically puts things in an order where if you refer to a node higher up
+where if you refer to a node higher up in the tree of instancing tree you can
+in the tree of instancing tree you can say hey take all the geometry or all the
+say hey take all the geometry or all the physics below me and and
+physics below me and and treat that as a
+treat that as a min and a max and then you can add
+min and a max and then you can add remove it when something breaks for
+remove it when something breaks for example
+example and it works pretty well
+and it works pretty well so if you need a subset of content
+so if you need a subset of content that's another thing that is kind of
+that's another thing that is kind of optimization for merging um obviously if
+optimization for merging um obviously if you're merging tens of thousands of
+you're merging tens of thousands of files for the far lods for example you
+files for the far lods for example you want to memoize the file so you don't
+want to memoize the file so you don't like have to reread them millions of
+like have to reread them millions of times and so
+times and so but
+but if you sort of merge everything into one
+if you sort of merge everything into one big tree you'd end up with cases where
+big tree you'd end up with cases where there was just lots and lots of little
+there was just lots and lots of little bits of content that
+bits of content that didn't have anything in them that was
+didn't have anything in them that was far lod relevant and so you we just it
+far lod relevant and so you we just it was the overhead built up a lot and so
+was the overhead built up a lot and so what we changed to do was to filter as
+what we changed to do was to filter as you merge and that basically means that
+you merge and that basically means that you're doing it once instead of ten
+you're doing it once instead of ten thousand times kind of thing so that was
+thousand times kind of thing so that was super effective it brought our some of
+super effective it brought our some of our merging times down from five minutes
+our merging times down from five minutes to 30 seconds in one case and and we've
+to 30 seconds in one case and and we've brought it down farther since then but
+brought it down farther since then but it's pretty good
+it's pretty good so here's an overhead view of some of
+so here's an overhead view of some of the the far growth with merged audio map
+the the far growth with merged audio map on the right so just an example of the
+on the right so just an example of the kinds of things will merge up to the
+kinds of things will merge up to the world level um
+world level um obviously the the camera is not a sort
+obviously the the camera is not a sort of a view you would normally see in the
+of a view you would normally see in the game and so we didn't really optimize
+game and so we didn't really optimize for that the tree the sort of card based
+for that the tree the sort of card based trees are really optimized for sort of
+trees are really optimized for sort of long horizontal views which is primarily
+long horizontal views which is primarily what we would have in ghost
+so talking about packs these are our kind of aggregate files and basically
+kind of aggregate files and basically all of the things we load that aren't
+all of the things we load that aren't textures and a couple other types of
+textures and a couple other types of things are basically these this format
+things are basically these this format and so the idea here is you have
+and so the idea here is you have um a header and a table of contents and
+um a header and a table of contents and that those are cached
+that those are cached the first you read them only once and
+the first you read them only once and after that you basically have a couple
+after that you basically have a couple reads and then you can get to you can
+reads and then you can get to you can you can get to sort of usable data and
+you can get to sort of usable data and so it's built for the memory format that
+so it's built for the memory format that it's going to show up in and it's got
+it's going to show up in and it's got all its pointers references in a sort of
+all its pointers references in a sort of a compact way of of figuring out where
+a compact way of of figuring out where everything goes
+everything goes um and ready to get be ready to go
+um and ready to get be ready to go really quickly
+really quickly so
+so and the other thing we do here is we
+and the other thing we do here is we leverage virtual memory to avoid
+leverage virtual memory to avoid fragmentation we used to use sort of
+fragmentation we used to use sort of fixed size pages but that was kind of
+fixed size pages but that was kind of annoying for some for a variety of
+annoying for some for a variety of reasons
+reasons um and the the fragmentation problem
+um and the the fragmentation problem just goes away with virtual memory which
+just goes away with virtual memory which and it's great
+and it's great so and we do subdivide reads for better
+so and we do subdivide reads for better deadline scheduling other content like
+deadline scheduling other content like audio and we have something like 1700
+audio and we have something like 1700 terrain tiles and a thousand other packs
+terrain tiles and a thousand other packs mostly missions and regions to make up
+mostly missions and regions to make up the whole game so we don't have a ton of
+the whole game so we don't have a ton of these they're the sort of the merging
+these they're the sort of the merging process uh we have multiple tiers of
+process uh we have multiple tiers of that and the last linking step to build
+that and the last linking step to build these packs kind of simplifies the game
+these packs kind of simplifies the game down into a relatively
+down into a relatively uh tight structure
+uh tight structure so in terms of spatially streaming
+so in terms of spatially streaming one strategy to keep terrain tiles small
+one strategy to keep terrain tiles small was to take the sparse complex data and
+was to take the sparse complex data and put it into sort of co-located region
+put it into sort of co-located region packs with larger budgets so here you
+packs with larger budgets so here you can see a zoomed out view of a bunch of
+can see a zoomed out view of a bunch of different regions a big city a few
+different regions a big city a few medium villages and a bunch of small
+medium villages and a bunch of small landmarks um authoring bounding volumes
+landmarks um authoring bounding volumes for for these is kind of how you get
+for for these is kind of how you get that shape and it allows us to know what
+that shape and it allows us to know what sections of terrain tiles those regions
+sections of terrain tiles those regions can overlap so we use that to know which
+can overlap so we use that to know which ones to load correctly and also know
+ones to load correctly and also know which ones are we have all the physics
+which ones are we have all the physics loaded in order to do simulations and
+loaded in order to do simulations and pathing and stuff accurately
+so what about missions we especially stream those as well most most of them
+stream those as well most most of them do but some of them don't and it's not
+do but some of them don't and it's not always easy to do that for some cases
+always easy to do that for some cases where you have like i'm going to follow
+where you have like i'm going to follow this guy across the world for this
+this guy across the world for this silver path mission and such
+silver path mission and such um so so it's not a complete given
+um so so it's not a complete given we've used task grass for a long time
+we've used task grass for a long time and that we did the same thing for this
+and that we did the same thing for this game and this time we built bigger
+game and this time we built bigger components and that were kind of more
+components and that were kind of more more meaty and and had a lot more
+more meaty and and had a lot more built-in behavior for designers to use
+built-in behavior for designers to use and this basically allowed us to have
+and this basically allowed us to have less
+less programmer help needed to accomplish
+programmer help needed to accomplish their goals and they made a ton of
+their goals and they made a ton of content and and got pretty far with that
+content and and got pretty far with that uh we did this all in game and which is
+uh we did this all in game and which is critical for some things like snapping
+critical for some things like snapping to physics and debugging visualizations
+to physics and debugging visualizations and things like that um and all you know
+and things like that um and all you know as i mentioned in my last presentation
+as i mentioned in my last presentation all our dev ui is remotable so here's an
+all our dev ui is remotable so here's an example of our super useful history
+example of our super useful history debugging applied to animation so you
+debugging applied to animation so you can scrub back and forth and get a bunch
+can scrub back and forth and get a bunch of debugging info about what's going on
+of debugging info about what's going on under the hood you can see the ground
+under the hood you can see the ground estimate of the landing sort of updating
+estimate of the landing sort of updating as it goes
+as it goes and we applied this sort of concept to
+and we applied this sort of concept to animation missions ai conversations a
+animation missions ai conversations a whole bunch of stuff and it's super
+whole bunch of stuff and it's super useful to be able to have a ton of
+useful to be able to have a ton of context and detail when you're trying to
+context and detail when you're trying to work work out what's going on with
+work work out what's going on with something and try and
+something and try and finesse the and polish things and such
+finesse the and polish things and such so
+so uh missions at scale it's kind of a
+uh missions at scale it's kind of a problem we we realized kind of part way
+problem we we realized kind of part way through that because of all the
+through that because of all the large-scale changes people were making
+large-scale changes people were making moving terrain up and down around
+moving terrain up and down around changing the growth a lot you could end
+changing the growth a lot you could end up with
+up with um breakages and we did all the time and
+um breakages and we did all the time and it ended up
+it ended up being a major problem so the way we
+being a major problem so the way we combated that was basically to do stuff
+combated that was basically to do stuff at compile time so validation and fix up
+at compile time so validation and fix up um the main fix up model we used was
+um the main fix up model we used was train snapping so things wouldn't drift
+train snapping so things wouldn't drift out of sync with the terrain they would
+out of sync with the terrain they would update if they were procedurally placed
+update if they were procedurally placed and such but basically
+and such but basically um
+um at compile time you load the height map
+at compile time you load the height map and then look up the correct location
+and then look up the correct location and adjust the height of when where
+and adjust the height of when where things were to sort of keep things in
+things were to sort of keep things in sync and that really helped um
+sync and that really helped um other things like validation of object
+other things like validation of object references so when you when a mission
+references so when you when a mission wants to open a door in a city make sure
+wants to open a door in a city make sure that it makes sure that the
+that it makes sure that the an artist can't move that door into a
+an artist can't move that door into a spot or you know chain delete it or
+spot or you know chain delete it or something like that so that the mission
+something like that so that the mission can't find it anymore and sort of
+can't find it anymore and sort of hardening that relationship helped a lot
+hardening that relationship helped a lot in keeping things making sure people are
+in keeping things making sure people are aware of the changes they're making what
+aware of the changes they're making what side effects they're having and such
+side effects they're having and such so another important thing to mention is
+so another important thing to mention is uh respawning and so one of the things
+uh respawning and so one of the things that players that we do is we respawn
+that players that we do is we respawn players to the closest safe breadcrumb
+players to the closest safe breadcrumb or the nearest respawn point as they
+or the nearest respawn point as they approach content in addition to being
+approach content in addition to being good for player understanding this
+good for player understanding this really helps load time since you're
+really helps load time since you're closer to the same content when you
+closer to the same content when you respawn and you'll see as you he's
+respawn and you'll see as you he's running forward here the little green
+running forward here the little green dots are moving around as you get closer
+dots are moving around as you get closer to them and such that's the that's the
+to them and such that's the that's the breadcrumb and
+breadcrumb and when you when he falls down he sort of
+when you when he falls down he sort of stands back up at that particular
+stands back up at that particular location
+location so let's talk about cpu performance a
+so let's talk about cpu performance a bit
+bit while streaming is best because not
+while streaming is best because not things don't exist and that's sort of
+things don't exist and that's sort of the best state of being for for stuff to
+the best state of being for for stuff to exist
+exist for stuff to work in um you can also
+for stuff to work in um you can also have lots of static sleeping objects and
+have lots of static sleeping objects and we handle that with something what i'm
+we handle that with something what i'm going to call a static distance heap and
+going to call a static distance heap and so this is effectively a way of
+so this is effectively a way of computing travel
+computing travel comparing total travel distance against
+comparing total travel distance against a heap of items and
+a heap of items and it gives us an amortized constant time
+it gives us an amortized constant time update of a single moving reference
+update of a single moving reference point versus all that stuff so in this
+point versus all that stuff so in this debug display green is a awake object
+debug display green is a awake object and red pings mean we've made a distance
+and red pings mean we've made a distance check and you'll notice we're only only
+check and you'll notice we're only only doing a couple of those every frame um
+doing a couple of those every frame um and when you're not when you're near a
+and when you're not when you're near a boundary that little circle the updates
+boundary that little circle the updates are happening a lot more frequently
+are happening a lot more frequently and so this is this is pretty efficient
+and so this is this is pretty efficient and it basically gives us um
+and it basically gives us um better perform performance over time
+better perform performance over time than something like recomputing every 10
+than something like recomputing every 10 meters or even then raw cmd could do
+meters or even then raw cmd could do um
+um and
+and so for example we spent about 12
+so for example we spent about 12 microseconds updating hundreds and
+microseconds updating hundreds and hundreds of volumes against the hero and
+hundreds of volumes against the hero and before that we had before we applied
+before that we had before we applied this naive sphere checks were costing us
+this naive sphere checks were costing us sort of over 300 microseconds and such
+sort of over 300 microseconds and such so here's some condensed pseudocode
+so here's some condensed pseudocode effectively you have a heap of based on
+effectively you have a heap of based on travel distance as i mentioned and you
+travel distance as i mentioned and you recheck the closest object and updating
+recheck the closest object and updating their location in the heap so your
+their location in the heap so your current travel distance plus how far it
+current travel distance plus how far it is to the boundary is the next time that
+is to the boundary is the next time that object can wake up for example for
+object can wake up for example for example so as you find reach that
+example so as you find reach that threshold you might wake them up or you
+threshold you might wake them up or you might not you might sort of put them
+might not you might sort of put them back in
+back in and we also include a rebase operation
+and we also include a rebase operation to keep the precision good every 100
+to keep the precision good every 100 meters we just subtract 100 meters off
+meters we just subtract 100 meters off of everybody
+of everybody and the sign distance function here also
+and the sign distance function here also allows you to sort of say hey if you're
+allows you to sort of say hey if you're really far inside the boundary uh you
+really far inside the boundary uh you know you're awake and gonna be awake for
+know you're awake and gonna be awake for a while we don't have to check the
+a while we don't have to check the distance
+distance to that object as often either
+to that object as often either and so for efficiency
+and so for efficiency uh the items are have backer back
+uh the items are have backer back indices to allow for quick removal from
+indices to allow for quick removal from heap and active lists and things like
+heap and active lists and things like that so this is super useful it doesn't
+that so this is super useful it doesn't work for all use cases obviously if you
+work for all use cases obviously if you have a lot of moving objects or constant
+have a lot of moving objects or constant camera cuts and teleportation
+camera cuts and teleportation it would reduce its effectiveness and
+it would reduce its effectiveness and you'd want to use things like bvhs or
+you'd want to use things like bvhs or something in those cases um
+something in those cases um but really this applies to a ton of
+but really this applies to a ton of cases that we that we find
+cases that we that we find are
+are are useful and it basically has become
+are useful and it basically has become kind of a magic bullet for us
+kind of a magic bullet for us so let's talk about tasty tasty baked
+so let's talk about tasty tasty baked goods
+goods so
+so i mentioned doing things at compile time
+i mentioned doing things at compile time is really useful and it's great but
+is really useful and it's great but there are situations where that doesn't
+there are situations where that doesn't work
+work so for example if the dependencies are
+so for example if the dependencies are really hard that can be a really big
+really hard that can be a really big time set because people are constantly
+time set because people are constantly rebuilding if you kind of have to say
+rebuilding if you kind of have to say well if anything changes let's rebuild
+well if anything changes let's rebuild or if it generates a ton of data or the
+or if it generates a ton of data or the input is really huge sometimes it's it's
+input is really huge sometimes it's it's or even if it's just really expensive to
+or even if it's just really expensive to do and it happens often enough sometimes
+do and it happens often enough sometimes those are bad ideas so we basically took
+those are bad ideas so we basically took some of the sort of small data output
+some of the sort of small data output but large sort of expensive inputs cases
+but large sort of expensive inputs cases and we would bake those nightly for
+and we would bake those nightly for example growth and blends we would do
+example growth and blends we would do this sort of thing
+this sort of thing and we did it on a form of ps4s 10 10
+and we did it on a form of ps4s 10 10 ps4 dev kits
+ps4 dev kits and this
+and this worked pretty well but you know it's
+worked pretty well but you know it's there's definitely some quirks involved
+there's definitely some quirks involved so what about the big stuff though we
+so what about the big stuff though we don't want to
+don't want to have a ton of big big data on disk
+have a ton of big big data on disk because disk is one of the things we're
+because disk is one of the things we're optimizing for right so pathing is one
+optimizing for right so pathing is one of those things
+of those things in second sun we manually authored all
+in second sun we manually authored all our path meshes and it was really error
+our path meshes and it was really error prone people would change the
+prone people would change the environment and missions would just be
+environment and missions would just be broken and at ghost scale it would never
+broken and at ghost scale it would never work there's no way and so we did a
+work there's no way and so we did a bunch of work to automate automate this
+bunch of work to automate automate this system for the most part um and
+system for the most part um and basically
+basically project it into and automatically
+project it into and automatically generate pathing information on a 20
+generate pathing information on a 20 centimeter grid mostly for terrain but
+centimeter grid mostly for terrain but further stuff as well
+further stuff as well so when a subgrid wakes up that's one of
+so when a subgrid wakes up that's one of those like partial tiles there we would
+those like partial tiles there we would cast cast hundreds of thousands of rays
+cast cast hundreds of thousands of rays against the terrain and physics but
+against the terrain and physics but these are all vertical rays then we kind
+these are all vertical rays then we kind of coalesce a bunch of the calculations
+of coalesce a bunch of the calculations so we don't spend a huge amount of time
+so we don't spend a huge amount of time on them and then we deflate and build
+on them and then we deflate and build the connectivity to sort of
+the connectivity to sort of get you the right sort of player shape
+get you the right sort of player shape cut out and offsets from the walls and
+cut out and offsets from the walls and things like that and to see quick checks
+things like that and to see quick checks to say hey can i make it over there and
+to say hey can i make it over there and what not
+what not and so that that's kind of
+and so that that's kind of the general model there and buildings
+the general model there and buildings would generate grids as well from custom
+would generate grids as well from custom meshes and link up with terrain and
+meshes and link up with terrain and basically we ended up using hierarchical
+basically we ended up using hierarchical a-star with authored portals like
+a-star with authored portals like ladders you can see kind of a little
+ladders you can see kind of a little reference to there and some
+reference to there and some automatically generated portals like gap
+automatically generated portals like gap jumps for example in this case if you
+jumps for example in this case if you want to go to the porch from the porsche
+want to go to the porch from the porsche to the awning there you'd run inside and
+to the awning there you'd run inside and climb up the ladder and jump out the
+climb up the ladder and jump out the window
+window and so all of this calculation is
+and so all of this calculation is amortized in the background jobs over
+amortized in the background jobs over time and so it's not going to block time
+time and so it's not going to block time critical work and we do we do need to
+critical work and we do we do need to chunk it up because we don't bleed
+chunk it up because we don't bleed things across frames at the moment but
+things across frames at the moment but generally it worked pretty well and this
+generally it worked pretty well and this in the end this saved us basically all
+in the end this saved us basically all of our pathing data that we thought we
+of our pathing data that we thought we were going to have to deal with
+were going to have to deal with made testing much easier since it's all
+made testing much easier since it's all live while editing so if you're moving
+live while editing so if you're moving rocks around everything's up to date
+rocks around everything's up to date super great
+super great um so we shipped a multiplayer mode
+um so we shipped a multiplayer mode called legends and it was fun it was
+called legends and it was fun it was super successful but i would like to
+super successful but i would like to note that networking in the streaming
+note that networking in the streaming world is very hard i don't have enough
+world is very hard i don't have enough time to go into detail so let me just
+time to go into detail so let me just say the generation numbers migration and
+say the generation numbers migration and packet lotting oh my
+so let's talk about an overview of our
+let's talk about an overview of our rendering approach
+rendering approach so in second sun everything was a mesh
+so in second sun everything was a mesh and we used large blockers and static
+and we used large blockers and static time of day to solid effect
+time of day to solid effect i mentioned like dynamic bsp that was
+i mentioned like dynamic bsp that was all kind of large buildings that were
+all kind of large buildings that were mostly closed that we could kind of drop
+mostly closed that we could kind of drop down
+down convex objects to kind of build build
+convex objects to kind of build build edges out of and occlude things on the
+edges out of and occlude things on the cpu um it's pretty cool but it totally
+cpu um it's pretty cool but it totally doesn't work in the new environment
+doesn't work in the new environment because in ghost we have paper thin
+because in ghost we have paper thin walls quite literally in some cases like
+walls quite literally in some cases like paper doors
+paper doors and we have interiors so those things
+and we have interiors so those things aren't solid anymore and there's
+aren't solid anymore and there's pinpoint holes with slats and things and
+pinpoint holes with slats and things and windows and vegetation everywhere it's
+windows and vegetation everywhere it's very different from a city environment
+very different from a city environment so we ended up with some obvious
+so we ended up with some obvious optimizations uh
+optimizations uh z equals it's a really good one for
+z equals it's a really good one for vegetation for example um and some you
+vegetation for example um and some you know some obvious stuff hype map stuff
+know some obvious stuff hype map stuff we leaned a lot on gpu occlusion i'll
+we leaned a lot on gpu occlusion i'll talk about a tiny bit um and the
+talk about a tiny bit um and the real-time time of day was another big
+real-time time of day was another big wrench i'll cover a little later
+wrench i'll cover a little later so
+so for height maps we used a fairly a
+for height maps we used a fairly a simple approach kind of based on the
+simple approach kind of based on the terrain rendering a frostbite article i
+terrain rendering a frostbite article i referenced down below
+referenced down below um it uses basically sort of neighbor
+um it uses basically sort of neighbor index buffers and then make sure
+index buffers and then make sure everything is only one one uh sort of
+everything is only one one uh sort of power of two resolution away from the
+power of two resolution away from the their neighbors and we just sort of
+their neighbors and we just sort of populate everything
+populate everything we uh we also did i mentioned virtual
+we uh we also did i mentioned virtual texturing and that's that's sort of the
+texturing and that's that's sort of the more interesting aspect of this
+more interesting aspect of this and helped with amortizing expensive
+and helped with amortizing expensive blending up calculations and tons and
+blending up calculations and tons and tons of decals uh to allow us to build
+tons of decals uh to allow us to build the world kind of partially out of
+the world kind of partially out of decals so like all the roads are made
+decals so like all the roads are made for just placing down chunks of decals
+for just placing down chunks of decals um into the terrain
+um into the terrain and you'll see you can start look at
+and you'll see you can start look at matt pease talk to for more details
+matt pease talk to for more details there
+there so um gpu compute is one of the major
+so um gpu compute is one of the major things i wanted to talk about a little
+things i wanted to talk about a little bit it's not gonna talk about the
+bit it's not gonna talk about the implementation that's gonna be another
+implementation that's gonna be another matt p thing but i'm gonna talk about
+matt p thing but i'm gonna talk about the memory implications so
+the memory implications so uh the occlusion calling we did
+uh the occlusion calling we did initially was it's all last frame sort
+initially was it's all last frame sort of
+of uh based and
+uh based and which is not my favorite thing but we
+which is not my favorite thing but we mostly got it all fixed up but it's its
+mostly got it all fixed up but it's its main target was really minimizing our
+main target was really minimizing our memory footprint so it's less flexible
+memory footprint so it's less flexible but it's much more space efficient
+but it's much more space efficient you can see here the structure it's
+you can see here the structure it's about 24 bytes of of instances
+about 24 bytes of of instances we have a larger version for more
+we have a larger version for more accurate stuff where you need to match
+accurate stuff where you need to match the rotation on building walls for
+the rotation on building walls for example um
+example um our tile count could fit that we
+our tile count could fit that we estimated before could fit about one in
+estimated before could fit about one in a one-third of a meg instead of 12
+a one-third of a meg instead of 12 and all far lod geometry in the world
+and all far lod geometry in the world merged up into the every tree or
+merged up into the every tree or medium-sized boulder or larger thing
+medium-sized boulder or larger thing took a total of 10 megabytes for for
+took a total of 10 megabytes for for this sort of structure which is pretty
+this sort of structure which is pretty great compared to what we had before so
+great compared to what we had before so the gpu was great at handling inclusion
+the gpu was great at handling inclusion culling efficiently although we had to
+culling efficiently although we had to jump through some hoops to get all the
+jump through some hoops to get all the way there we ended up throwing the
+way there we ended up throwing the terrain triangles that it well edited as
+terrain triangles that it well edited as well um and we this was this was really
+well um and we this was this was really really powerful to get a ton a ton of
+really powerful to get a ton a ton of stuff on the screen so you can see matt
+stuff on the screen so you can see matt ps talk for more implementation details
+ps talk for more implementation details we have some far lod stochastic stuff
+we have some far lod stochastic stuff which is pretty cool
+which is pretty cool um one of the things that we added was
+um one of the things that we added was to support a lot of the diversity that
+to support a lot of the diversity that they ended up needing for
+they ended up needing for character characters and for biomes was
+character characters and for biomes was shader swapping we had this before but
+shader swapping we had this before but we've really sort of amplified it a
+we've really sort of amplified it a bunch by building kind of bespo systems
+bunch by building kind of bespo systems to do this at a very low level basically
+to do this at a very low level basically for free in the run time
+for free in the run time and to off for authoring tools to
+and to off for authoring tools to basically use inheritance to kind of
+basically use inheritance to kind of only override certain things so they
+only override certain things so they could keep things in sync pretty well
+could keep things in sync pretty well and this includes support for gpu cult
+and this includes support for gpu cult assets they would do bucketing in order
+assets they would do bucketing in order to kind of have the right set of swaps
+to kind of have the right set of swaps available for a particular cmd array of
+available for a particular cmd array of gpu called assets so this worked really
+gpu called assets so this worked really well
+well grass is another really big thing for
+grass is another really big thing for the game
+the game we do this fully procedurally because
+we do this fully procedurally because there's no way we could store it all but
+there's no way we could store it all but it's kind of baked into the terrain
+it's kind of baked into the terrain structure
+structure a lot of it's based on gpu compute it
+a lot of it's based on gpu compute it also leverages the the culling code i
+also leverages the the culling code i talked about for for
+talked about for for other stuff
+other stuff the papers grass and spider lilies and
+the papers grass and spider lilies and things like that and it was instrumental
+things like that and it was instrumental in kind of building this nice
+in kind of building this nice mood atmosphere that kind of would give
+mood atmosphere that kind of would give you a lot of the wind and character
+you a lot of the wind and character interaction and feel from the game
+interaction and feel from the game so for more details on that see eric's
+so for more details on that see eric's talk on the grass and ghost in the
+talk on the grass and ghost in the advances section session
+advances section session so we pushed gpu compute further but by
+so we pushed gpu compute further but by um
+um basically
+basically adding extra
+adding extra inputs to our particle system so
+inputs to our particle system so particles were a big deal and infamous
+particles were a big deal and infamous we had superpowers everywhere lots of
+we had superpowers everywhere lots of dynamic crazy stuff you could
+dynamic crazy stuff you could dynamically go through the environment
+dynamically go through the environment up and over things um in this game we
+up and over things um in this game we don't have any of that but we do have
+don't have any of that but we do have lots and lots of leaves and lots and
+lots and lots of leaves and lots and lots of nature and so
+lots of nature and so once we started using wind as a core
+once we started using wind as a core gameplay feature that really unlocked
+gameplay feature that really unlocked the ability to do cool stuff with our
+the ability to do cool stuff with our systems and so we added a bunch of
+systems and so we added a bunch of things there
+things there like terrain and water access and
+like terrain and water access and whatnot
+whatnot and that made it really really useful
+and that made it really really useful we also in order to keep things from
+we also in order to keep things from like alive and moving you really had to
+like alive and moving you really had to have a ton of simulation on npcs so gpu
+have a ton of simulation on npcs so gpu cloth is one of the things we did we
+cloth is one of the things we did we took our system and made it way way way
+took our system and made it way way way better
+better and we have a bunch of tricks we use to
+and we have a bunch of tricks we use to kind of keep it cheap so we don't have
+kind of keep it cheap so we don't have to do tons and tons of iterations
+to do tons and tons of iterations and constraints and layering and a bunch
+and constraints and layering and a bunch of others i was shocked how much
+of others i was shocked how much we got out of this
+we got out of this so
+so uh you should totally ask bill when you
+uh you should totally ask bill when you look at his presentation about the horse
+look at his presentation about the horse reigns and so
+reigns and so you want to go visit his for details on
+you want to go visit his for details on a lot of the tricks we used and you know
+a lot of the tricks we used and you know techniques there
+techniques there so
+so time of day
+time of day in infamous it was fixed and we
+in infamous it was fixed and we optimized around it heavily but in ghost
+optimized around it heavily but in ghost for 20 times the size there's no way we
+for 20 times the size there's no way we can make this work
+can make this work we could compress it in such and that
+we could compress it in such and that might work but then you know you have
+might work but then you know you have many times a day to worry about and
+many times a day to worry about and you'd have to interpolate and some games
+you'd have to interpolate and some games do that but it's really just too big for
+do that but it's really just too big for us to be able to deal with and so
+us to be able to deal with and so instead what we do is we we do
+instead what we do is we we do relighting effectively
+relighting effectively and really we want to you want to be
+and really we want to you want to be able to have the time of day change as
+able to have the time of day change as you ride through the environment because
+you ride through the environment because it can take a long time to go from place
+it can take a long time to go from place to place it gives you different moods
+to place it gives you different moods and at night this is more makes more
+and at night this is more makes more sense to be able to do stealth
+sense to be able to do stealth attacks and things like that so it's as
+attacks and things like that so it's as a gameplay opportunity so it's really a
+a gameplay opportunity so it's really a key part of the game
+key part of the game and so
+and so effectively we i mentioned we kind of
+effectively we i mentioned we kind of relight
+relight rewrite data and then we bake uh store
+rewrite data and then we bake uh store cache some far shadow maps and such and
+cache some far shadow maps and such and all of the far distance stuff you're
+all of the far distance stuff you're seeing is just lit geometry like we
+seeing is just lit geometry like we normally would do maybe it doesn't have
+normally would do maybe it doesn't have quite as much specular response in some
+quite as much specular response in some cases and things like that but
+cases and things like that but it's generally pretty
+it's generally pretty thorough that way
+thorough that way and then um and it goes off pretty far
+and then um and it goes off pretty far like we don't render trees all the way
+like we don't render trees all the way to the end of the island there's some
+to the end of the island there's some stochastic lodgings going on but it
+stochastic lodgings going on but it works pretty well
+works pretty well so
+so uh
+uh i mentioned relighting um we do that
+i mentioned relighting um we do that with six or sixteen nearest cube maps
+with six or sixteen nearest cube maps they do some self shadowing stuff which
+they do some self shadowing stuff which is kind of cool we also do our classic
+is kind of cool we also do our classic tech mesh visibility that we have
+tech mesh visibility that we have and we have a sort of a coarser terrain
+and we have a sort of a coarser terrain based
+far distant lighting that we use for non-cities and sort of the
+non-cities and sort of the the whole world basically at a time
+the whole world basically at a time and a lot of this stuff is
+and a lot of this stuff is is pretty simple it's like using a sky
+is pretty simple it's like using a sky visibility and with some bounce
+visibility and with some bounce sort of compression approach and it can
+sort of compression approach and it can be represented pretty small so like 44
+be represented pretty small so like 44 megabytes for all of the terrain probes
+megabytes for all of the terrain probes in the in the world um and we re-light
+in the in the world um and we re-light those as i mentioned in async compute to
+those as i mentioned in async compute to really make that work i did mention the
+really make that work i did mention the the cube maps uh i would highly
+the cube maps uh i would highly recommend you check out the runtime pc6
+recommend you check out the runtime pc6 compressor that kristoff has
+compressor that kristoff has here
+here at this link and it was super great for
+at this link and it was super great for helping with cache performance
+helping with cache performance and um on memory overhead but it saved
+and um on memory overhead but it saved us like a couple hundred megabytes of
+us like a couple hundred megabytes of memory
+memory so here's a shot of our tet mesh at like
+so here's a shot of our tet mesh at like a mongol roadblock you can see it's
+a mongol roadblock you can see it's populated sort of in and around the
+populated sort of in and around the stuff
+and here's a shot of the course terrain probes we stored at various heights
+probes we stored at various heights above the train so there's like three
+above the train so there's like three layers and gives you kind of a
+layers and gives you kind of a sort of a soft
+sort of a soft version of data if you're in the middle
+version of data if you're in the middle of a forest it'll be darker and more
+of a forest it'll be darker and more green things like that
+so there's a lot of other things to account for though in in ghost so one of
+account for though in in ghost so one of the things i mentioned before was thin
+the things i mentioned before was thin walls uh those are a big challenge we
+walls uh those are a big challenge we have the sort of interior mask approach
+have the sort of interior mask approach that we use for those and the atmosphere
+that we use for those and the atmosphere of the game is a pretty big part of it
+of the game is a pretty big part of it so real time clouds and volumetric fog
+so real time clouds and volumetric fog those are pretty pretty key we have a
+those are pretty pretty key we have a scattering aligned color space kind of
+scattering aligned color space kind of technique that we use there a lot and
+technique that we use there a lot and almost all of this code is running an
+almost all of this code is running an async compute to try and keep it nice
+async compute to try and keep it nice and amortized and so it doesn't actually
+and amortized and so it doesn't actually slow the
+slow the game down too much
+game down too much if you want to hear more about this the
+if you want to hear more about this the details here you should definitely check
+details here you should definitely check out jasmine's siggraph talk later this
+out jasmine's siggraph talk later this year
+year so we did a ton more optimization screen
+so we did a ton more optimization screen space shadows
+space shadows of the most s's allowed us to drop small
+of the most s's allowed us to drop small shadow geometry from from their shadow
+shadow geometry from from their shadow passes and that's not just the tiny tiny
+passes and that's not just the tiny tiny stuff like sub pixel like we would drop
+stuff like sub pixel like we would drop before this is really medium sized
+before this is really medium sized things
+things like you know a two foot bush for
+like you know a two foot bush for example and that that helped a ton
+example and that that helped a ton thanks to ben studio for for help there
+thanks to ben studio for for help there we use pgo to change uh
+we use pgo to change uh shader scheduling around and really make
+shader scheduling around and really make the async compute overlap really nicely
+the async compute overlap really nicely and a lot of other sort of standard
+and a lot of other sort of standard approach approaches like scalarizing and
+approach approaches like scalarizing and branching in certain certain cases to
+branching in certain certain cases to make sure that we have better register
+make sure that we have better register use and things like that and a lot of
+use and things like that and a lot of different shaders
+different shaders generally though it was a big it was a
+generally though it was a big it was a big team effort
+big team effort when we shipped our e3 demo we were
+when we shipped our e3 demo we were reasonably over performance and it was a
+reasonably over performance and it was a as a problem we hadn't done all the log
+as a problem we hadn't done all the log work we needed to or really kind of
+work we needed to or really kind of other optimizations on occlusion or
+other optimizations on occlusion or shadows for trees at a far distance
+shadows for trees at a far distance things like that and and so
+things like that and and so you know over time we definitely
+you know over time we definitely invested a ton of time into into making
+invested a ton of time into into making things go faster and the artists really
+things go faster and the artists really stepped up and did a ton of work to
+stepped up and did a ton of work to really solidify the game um and by the
+really solidify the game um and by the end of the ship it was pretty solid um
+end of the ship it was pretty solid um so it was a good team effort there
+so it was a good team effort there so doubling down on second sends photo
+so doubling down on second sends photo mode that was actually a big part that
+mode that was actually a big part that we thought was super successful
+we thought was super successful when we released second son um and it's
+when we released second son um and it's we decided to sort of do the same kind
+we decided to sort of do the same kind of thing again you have a dedicated
+of thing again you have a dedicated button for it and we added animation um
+button for it and we added animation um animation to the world which is kind of
+animation to the world which is kind of interesting a little different than most
+interesting a little different than most other games so basically at any point in
+other games so basically at any point in the game you can pause what you're doing
+the game you can pause what you're doing including in the middle of combat and
+including in the middle of combat and take a video of what's going on in the
+take a video of what's going on in the scene sort of the mood with with
+scene sort of the mood with with particles going by and wind changing and
+particles going by and wind changing and cloth moving in the breeze and such and
+cloth moving in the breeze and such and it's really amazing to see what users
+it's really amazing to see what users can do if you have a beautiful game and
+can do if you have a beautiful game and give them fun tools to play with um
+give them fun tools to play with um this is super great
+this is super great so let's talk a little bit more deep in
+so let's talk a little bit more deep in detail about texture streaming so we
+detail about texture streaming so we started a bit optimistic
+started a bit optimistic the
+the we thought we could handle it maybe with
+we thought we could handle it maybe with core i started a sort of a future
+core i started a sort of a future looking experiment for uh texture
+looking experiment for uh texture streaming sort of on a fine grain level
+streaming sort of on a fine grain level and it turned out that it really wasn't
+and it turned out that it really wasn't that you know
+that you know future looking
+future looking e3 2018 we basically started getting
+e3 2018 we basically started getting blocked by
+blocked by um problems running out of memory on dev
+um problems running out of memory on dev kits even and that was a huge issue so
+kits even and that was a huge issue so we ended up making a panicked switch to
+we ended up making a panicked switch to this new system without any of the other
+this new system without any of the other tech that we really needed to to make it
+tech that we really needed to to make it work for real like prefetching and such
+work for real like prefetching and such which was super exciting because we had
+which was super exciting because we had a lot of cut scenes in that demo and to
+a lot of cut scenes in that demo and to deal with the prefetching there i had to
+deal with the prefetching there i had to sort of throw it all together last
+sort of throw it all together last minute
+minute so the system itself is basically the
+so the system itself is basically the similar to a lot of other studios i
+similar to a lot of other studios i imagine it's got defragmentation of a
+imagine it's got defragmentation of a big heap the and it's optimized maybe a
+big heap the and it's optimized maybe a little bit differently than some things
+little bit differently than some things to sort of have
+to sort of have um a giant manifest of data so so
+um a giant manifest of data so so textures don't have to go through
+textures don't have to go through multiple reads a single read per texture
+multiple reads a single read per texture and we load that manifest at boot time
+and we load that manifest at boot time to kind of keep things super super
+to kind of keep things super super simple and includes lower lower level
+simple and includes lower lower level lods so you can basically draw
+lods so you can basically draw everything at a blurry blurry distance
+everything at a blurry blurry distance like when we you can see example here so
+like when we you can see example here so in this example we're basically jumping
+in this example we're basically jumping about 200 meters away and you can see
+about 200 meters away and you can see the terrain loading in the background
+the terrain loading in the background the grass popping in and such and it
+the grass popping in and such and it takes like three seconds or so to load
+takes like three seconds or so to load the more important stuff up front in the
+the more important stuff up front in the camera
+camera and get it to the point where it's hard
+and get it to the point where it's hard to see any other changes happening as we
+to see any other changes happening as we kind of
+kind of load the more prefetching and more other
+load the more prefetching and more other textures we think might be relevant
+textures we think might be relevant um and you can see the defragmentation
+um and you can see the defragmentation happening at the bottom we move about 25
+happening at the bottom we move about 25 megs a frame and we end up issuing
+megs a frame and we end up issuing something like 16 reads per frame async
+something like 16 reads per frame async asynchronously
+asynchronously and again this is sort of a dev scenario
+and again this is sort of a dev scenario so it's probably a little bit faster
+so it's probably a little bit faster than in shipping hardware but you could
+than in shipping hardware but you could sort of see what it might look like
+sort of see what it might look like um and so i mentioned the manifested
+um and so i mentioned the manifested boot it's a single swing up file that's
+boot it's a single swing up file that's kind of collected from all the texture
+kind of collected from all the texture data
+data the idea there is that is that you
+the idea there is that is that you basically have a representation all the
+basically have a representation all the time and there's this one file which is
+time and there's this one file which is collected
+collected and it's the whole system is sort of
+and it's the whole system is sort of much simpler because of that you don't
+much simpler because of that you don't have to rebuild packs when textures
+have to rebuild packs when textures change at all they just are in the
+change at all they just are in the manifest if they're there and that's it
+manifest if they're there and that's it manifests rebuilt only
+manifests rebuilt only ends up reading the textures that have
+ends up reading the textures that have changed because they can look at the md
+changed because they can look at the md files and say hey this isn't actually
+files and say hey this isn't actually different i'm just going to skip this
+different i'm just going to skip this one keep what i've got um the textures
+one keep what i've got um the textures themselves are the sort of header plus
+themselves are the sort of header plus metadata which ends up in the manifest
+metadata which ends up in the manifest but also the sort of runtime mips
+but also the sort of runtime mips exactly in the layout that we need it in
+exactly in the layout that we need it in so you can basically do a single read
+so you can basically do a single read and then you're done um no fix up at all
+and then you're done um no fix up at all and you're you're there
+and so in order to do this work uh we basically had to do it in sort of a
+basically had to do it in sort of a threaded way and the
+threaded way and the the kind of to do in the background you
+the kind of to do in the background you really want to have safe data to access
+really want to have safe data to access and so we basically did this copy
+and so we basically did this copy operation to let the let the threads
+operation to let the let the threads party on it with no no worries about if
+party on it with no no worries about if something was adding or moving stuff
+something was adding or moving stuff from that list um
+from that list um and
+and we the after a couple of layers of of
+we the after a couple of layers of of optimization
+optimization you basically want to modify or set it
+you basically want to modify or set it up so that objects when they change
+up so that objects when they change because most objects aren't changing um
+because most objects aren't changing um can poke their data into this big array
+can poke their data into this big array and it becomes kind of the copy ends up
+and it becomes kind of the copy ends up becoming really literally like almost a
+becoming really literally like almost a mem copy there are some exceptional
+mem copy there are some exceptional cases where if you find an uh like a
+cases where if you find an uh like a character that has changed costumes you
+character that has changed costumes you need to recompact the semdi data for the
+need to recompact the semdi data for the the geometry so you have a minimal set
+the geometry so you have a minimal set in that case but for the most part it's
+in that case but for the most part it's just mem copy and at that point the
+just mem copy and at that point the overhead becomes a big problem and so
+overhead becomes a big problem and so for example we found that
+for example we found that that uh running copies from multiple
+that uh running copies from multiple threads is actually a bad idea um
+threads is actually a bad idea um copying less than 16k from from threads
+copying less than 16k from from threads was is a bad idea
+was is a bad idea atomic increments are a really bad idea
+atomic increments are a really bad idea because they just at the overhead adds
+because they just at the overhead adds up and so the pro your profiler is
+up and so the pro your profiler is really your friend when you're working
+really your friend when you're working on this stuff so let's look at profiler
+on this stuff so let's look at profiler um so here's what the the streaming code
+um so here's what the the streaming code looks like these are all these are
+looks like these are all these are mostly background threads you'll see the
+mostly background threads you'll see the half millisecond down there the copy
+half millisecond down there the copy operations that are going on and then
+operations that are going on and then the we go wide to measure distance per
+the we go wide to measure distance per shader effectively and then we sort of
+shader effectively and then we sort of multiplex the shaders together and say
+multiplex the shaders together and say you know hey what's the scale of on each
+you know hey what's the scale of on each texture
+texture and then keep track of the top 16 bottom
+and then keep track of the top 16 bottom 16 things like that to
+16 things like that to to uh read or to throw away if we're
+to uh read or to throw away if we're going to make space for new textures
+going to make space for new textures so here's the pseudo code
+so here's the pseudo code it's a structure of arrays sort of cmd
+it's a structure of arrays sort of cmd friendly approach
+friendly approach we find the triangle area and the
+we find the triangle area and the desired texture size with some fixed
+desired texture size with some fixed point precision um
+point precision um so the uv scale can work pretty well um
+so the uv scale can work pretty well um we end up
+we end up keeping the top 16 i mentioned by screen
+keeping the top 16 i mentioned by screen size and so the idea there is that if
+size and so the idea there is that if you have something up up front or
+you have something up up front or getting close to up front that needs a
+getting close to up front that needs a higher mip you really want it to show up
+higher mip you really want it to show up so you don't like it doesn't show up and
+so you don't like it doesn't show up and it's really blurry uh in front of your
+it's really blurry uh in front of your face um and symmetry is kind of fun i i
+face um and symmetry is kind of fun i i had fun writing this and i found like a
+had fun writing this and i found like a cheap cheap ceiling of a log as like a
+cheap cheap ceiling of a log as like a integer add kind of thing in a round
+integer add kind of thing in a round operation it's pretty it's pretty cool
+operation it's pretty it's pretty cool so
+so there are some tricky cases though for
+there are some tricky cases though for texture streaming i'm sure there's lots
+texture streaming i'm sure there's lots more but the the two that popped out for
+more but the the two that popped out for me were
+me were particle atlases so we had this this way
+particle atlases so we had this this way of drawing all our particles in a single
+of drawing all our particles in a single draw call and it had an atlas and that
+draw call and it had an atlas and that sort of didn't work very well and we
+sort of didn't work very well and we ended up having multiple atlases because
+ended up having multiple atlases because of texture size and it turned out to be
+of texture size and it turned out to be just just as efficient to switch it to a
+just just as efficient to switch it to a bindless model where you can just sort
+bindless model where you can just sort of scalarize based on texture index and
+of scalarize based on texture index and you're good to go
+you're good to go um virtual texturing was also kind of
+um virtual texturing was also kind of weird where in some rare situations you
+weird where in some rare situations you would be moving around and a decal
+would be moving around and a decal hadn't loaded yet and so it was sort of
+hadn't loaded yet and so it was sort of a blurry version of the ground in order
+a blurry version of the ground in order to keep keep that
+to keep keep that from sticking around forever we
+from sticking around forever we basically added this round robin update
+basically added this round robin update that would
+that would eventually catch up to things um
+eventually catch up to things um it's not perfect but but it works
+it's not perfect but but it works so
+so one of the two big things that's hard in
+one of the two big things that's hard in texture streaming in my opinion um are
+texture streaming in my opinion um are the uv heuristics now uvs are really
+the uv heuristics now uvs are really complicated um we ended up trying
+complicated um we ended up trying the goal was to really get it down to a
+the goal was to really get it down to a single 16-bit integer so that we can
+single 16-bit integer so that we can kind of
+kind of so we can have cindy kind of operate on
+so we can have cindy kind of operate on tons of these things at once
+tons of these things at once and we tried a bunch of heuristics to
+and we tried a bunch of heuristics to bake it down to this and it was pretty
+bake it down to this and it was pretty pretty tricky we ended up landing on a
+pretty tricky we ended up landing on a log bucketing approach where you
+log bucketing approach where you basically take the size of the texture
+basically take the size of the texture that you're measuring you take the log
+that you're measuring you take the log of that and you put it in a bucket based
+of that and you put it in a bucket based on that log and then
+on that log and then and then you add up the area of
+and then you add up the area of triangles in that particular bucket and
+triangles in that particular bucket and then when you're trying to figure out
+then when you're trying to figure out hey what what's the actual and you kind
+hey what what's the actual and you kind of do maximums and averages on the
+of do maximums and averages on the actual texture size to figure out what
+actual texture size to figure out what the worst one is
+the worst one is and then you kind of say hey take the
+and then you kind of say hey take the area as you go up these the these sort
+area as you go up these the these sort of buckets and once you hit half of the
+of buckets and once you hit half of the mesh you kind of know the general
+mesh you kind of know the general kind of
+kind of texture usage for at least half of the
+texture usage for at least half of the mesh and then 80 is where we sort of
+mesh and then 80 is where we sort of really draw the line and say hey
+really draw the line and say hey you basically if you have a really tiny
+you basically if you have a really tiny thing that's trying to amp the texture
+thing that's trying to amp the texture up to like four times the size just just
+up to like four times the size just just ignore it so but
+ignore it so but it also helps you hide avoid things
+it also helps you hide avoid things where you get degenerate uvs from
+where you get degenerate uvs from something like a log generator
+something like a log generator that happens to be inside of a
+that happens to be inside of a um
+um a big log that's on the beach for
+a big log that's on the beach for example um
+example um and that that avoids those sorts of
+and that that avoids those sorts of situations killing you for texture
+situations killing you for texture texture bandwidth or texture size
+texture bandwidth or texture size um the bucketing was slightly faster
+um the bucketing was slightly faster than sorting you could probably do the
+than sorting you could probably do the same thing with sorting
+same thing with sorting so this worked well enough to ship but
+so this worked well enough to ship but there's still some weird cases this sort
+there's still some weird cases this sort of 1d approach doesn't really handle
+of 1d approach doesn't really handle like counter uv stretching if you kind
+like counter uv stretching if you kind of stretch one direction and then
+of stretch one direction and then stretch it back up in the in the uv
+stretch it back up in the in the uv scale and the shader it gets confused in
+scale and the shader it gets confused in some of those sorts of situations so
+some of those sorts of situations so um there's still some some work to do
+um there's still some some work to do here
+here um next time
+um next time so i mentioned we have a one gig budget
+so i mentioned we have a one gig budget uh what do you do if you're over budget
+uh what do you do if you're over budget we use a simple penalty scheme where
+we use a simple penalty scheme where effectively every frame we sort of
+effectively every frame we sort of penalize it more and more globally until
+penalize it more and more globally until you get to a point where all the
+you get to a point where all the textures you're asking for will fit and
+textures you're asking for will fit and then once you've finished reading all
+then once you've finished reading all the stuff you need and at that level
+the stuff you need and at that level which will try a sort of less penal
+which will try a sort of less penal penalty until you get to the point where
+penalty until you get to the point where you know you're you're stabilized um
+you know you're you're stabilized um in the in the level you want to ask for
+in the in the level you want to ask for so
+so uh it this system worked pretty well um
+uh it this system worked pretty well um and but it required a lot of debugging
+and but it required a lot of debugging and so we added some debugging tools to
+and so we added some debugging tools to help artists sort of diagnose problems
+help artists sort of diagnose problems um
+um you can see
+you can see an example of that here with the
+an example of that here with the bounding boxes for these little
+bounding boxes for these little these little spikes surrounding the
+these little spikes surrounding the mongol war camp
+mongol war camp and you can basically see the debating
+and you can basically see the debating setup where we can filter on texture
+setup where we can filter on texture name or shader name or you can look for
+name or shader name or you can look for textures by badness
+textures by badness that's like sort of a low screen area
+that's like sort of a low screen area versus a high resolution requested
+versus a high resolution requested and that that was pretty useful in order
+and that that was pretty useful in order to see hey what the heck is this why is
+to see hey what the heck is this why is this taking up so much texture space or
+this taking up so much texture space or you know
+you know where is this one 2k map coming from oh
+where is this one 2k map coming from oh it's that log way over on that beach
+it's that log way over on that beach things like that
+things like that so um
+so um one of the other things that's really
+one of the other things that's really critical to handle correctly is
+critical to handle correctly is prefetching so prefetching is super
+prefetching so prefetching is super important if you want to avoid halo 2
+important if you want to avoid halo 2 style cutscene pops where you look at
+style cutscene pops where you look at the face and the face gets a normal map
+the face and the face gets a normal map and it's like
+and it's like those drive me nuts so
+those drive me nuts so every camera cut or character coming
+every camera cut or character coming into existence needed needs a bit of
+into existence needed needs a bit of foreknowledge to really get the right
+foreknowledge to really get the right data and there's no magic bullet here
+data and there's no magic bullet here it's just a bunch of work plumbing to
+it's just a bunch of work plumbing to make sure that you've got the camera
+make sure that you've got the camera cuts available you know what cut scenes
+cuts available you know what cut scenes you might be starting and making sure
+you might be starting and making sure that the rigging knows you know
+that the rigging knows you know how far ahead of time you might need
+how far ahead of time you might need them because you can't just load all of
+them because you can't just load all of them all at once
+them all at once um
+um and even then like you run into
+and even then like you run into situations where
+situations where you don't want to load more than a 1k
+you don't want to load more than a 1k map for most of the time even in a lot
+map for most of the time even in a lot of cutscenes 1k is totally fine but if
+of cutscenes 1k is totally fine but if you're going to be doing a super close
+you're going to be doing a super close close-up on somebody's face that becomes
+close-up on somebody's face that becomes a case where you really need to load
+a case where you really need to load more and so we clamped basically a 1k
+more and so we clamped basically a 1k most of the time and then would
+most of the time and then would unlock it for photo mode and for some
+unlock it for photo mode and for some cutscenes to get those close-up shots
+cutscenes to get those close-up shots looking really good
+looking really good so uh
+so uh bounding boxes
+bounding boxes add up a lot so we mentioned sort of the
+add up a lot so we mentioned sort of the 24 byte instances those are pretty
+24 byte instances those are pretty efficient right well if you need a
+efficient right well if you need a bounding box for every piece of geometry
+bounding box for every piece of geometry per shader
+per shader per lod and for each of those instances
+per lod and for each of those instances it sort of negates the whole thing so
+it sort of negates the whole thing so instead what we do is we basically
+instead what we do is we basically bucket um on a grid and this is to avoid
+bucket um on a grid and this is to avoid some of the more n squaredness of the
+some of the more n squaredness of the next phase where we will bottom up merge
+next phase where we will bottom up merge bounding boxes in order to get a smaller
+bounding boxes in order to get a smaller number of these things
+number of these things and we do this until we hit something
+and we do this until we hit something like a square root of the number of
+like a square root of the number of the of items that we're worried about
+the of items that we're worried about um and that we apply that to growth to
+um and that we apply that to growth to kind of minimize that overhead i think
+kind of minimize that overhead i think it's something like 10 bigger than the
+it's something like 10 bigger than the 24 megabyte
+24 megabyte cost for most for most purposes
+cost for most for most purposes for terrain uh something like the
+for terrain uh something like the texture ground textures and the grass um
+texture ground textures and the grass um information we we did something simpler
+information we we did something simpler and we just split the tile up into 16
+and we just split the tile up into 16 chunks and stored one
+chunks and stored one one per each of those things
+one per each of those things and we do have a sort of scales of
+and we do have a sort of scales of terrain so the larger terrain have
+terrain so the larger terrain have coarser texels and to avoid those trying
+coarser texels and to avoid those trying to say i just have really giant bounding
+to say i just have really giant bounding boxes and such we have a minimum camera
+boxes and such we have a minimum camera distance that we clamp a lot of that
+distance that we clamp a lot of that stuff to to make sure a similar thing
+stuff to to make sure a similar thing that we use for tree imposters because
+that we use for tree imposters because you are aren't going to get any closer
+you are aren't going to get any closer to a tree
+to a tree imposter than say
+imposter than say 120 meters because at that point we'll
+120 meters because at that point we'll switch to the actual tree right and so
+switch to the actual tree right and so there's there's a bunch of clamping that
+there's there's a bunch of clamping that we can do in order to optimize those
+we can do in order to optimize those situations
+situations so we did end up applying this to mesh
+so we did end up applying this to mesh streaming as well
+streaming as well characters were getting tight with all
+characters were getting tight with all the flavors they wanted to add an
+the flavors they wanted to add an environment was over core and it was it
+environment was over core and it was it was pretty tight on a lot of those
+was pretty tight on a lot of those situations so adding meshes into the mix
+situations so adding meshes into the mix like textures
+like textures works really well as well it's it's a
+works really well as well it's it's a very squishable problem just like
+very squishable problem just like textures and unlock the constraints for
+textures and unlock the constraints for how many characters we could have in a
+how many characters we could have in a particular mission or things like that
+particular mission or things like that we just stopped worrying about that for
+we just stopped worrying about that for the most part
+the most part all the measurement in over-budget logic
+all the measurement in over-budget logic is running is similar and running at the
+is running is similar and running at the same time so it's actually relatively
+same time so it's actually relatively cheap performance wise
+cheap performance wise the main complication is our
+the main complication is our stipple-based loading
+stipple-based loading lod fading
+lod fading is
+is kind of doesn't really it's hard to make
+kind of doesn't really it's hard to make that understand the loading process as
+that understand the loading process as well so we needed to add sort of promote
+well so we needed to add sort of promote a bunch of that information about what
+a bunch of that information about what mesh groups are relevant for particular
+mesh groups are relevant for particular log branches
+log branches into the
+into the into the sort of the visibility and the
+into the sort of the visibility and the uh proxy
+uh proxy the gpu calling code in order to make it
+the gpu calling code in order to make it so that it knew what to do and how to
+so that it knew what to do and how to say oh actually that doesn't exist i'm
+say oh actually that doesn't exist i'm just going to always draw this side and
+just going to always draw this side and such
+such and don't worry about stippling
+and don't worry about stippling i'll use virtual memory for this like we
+i'll use virtual memory for this like we do with pax and this worked much better
+do with pax and this worked much better than the defragmentation system was way
+than the defragmentation system was way simpler you can kind of instantly
+simpler you can kind of instantly reclaim memory and reallocate it um
+reclaim memory and reallocate it um there's some you know there's definitely
+there's some you know there's definitely a cpu cost to doing so but it's it's
+a cpu cost to doing so but it's it's much simpler and we're going to use this
+much simpler and we're going to use this going forward in the future for textures
+going forward in the future for textures and for everything else
+and for everything else so here's the structure for mapping lod
+so here's the structure for mapping lod ranges memory offsets i mentioned before
+ranges memory offsets i mentioned before the textures are a single read same deal
+the textures are a single read same deal for lot ranges it's just you know the
+for lot ranges it's just you know the vertex streams and chunks that kind of
+vertex streams and chunks that kind of you need for
+you need for you know lot five through two great take
+you know lot five through two great take that chunk
+that chunk we use a compressed distance byte for
+we use a compressed distance byte for all distances just because this is a
+all distances just because this is a really easy way to get at this stuff
+really easy way to get at this stuff so conclusions
+so conclusions um and some interesting things about
+um and some interesting things about loading our cold boot times are pretty
+loading our cold boot times are pretty good or not you know not amazing but
+good or not you know not amazing but they're okay about 44 seconds or so but
+they're okay about 44 seconds or so but the fast travel and death reload times
+the fast travel and death reload times were fast enough that users and press
+were fast enough that users and press actually noticed um it was kind of weird
+actually noticed um it was kind of weird for us because we've been living with it
+for us because we've been living with it for so long and it is a thing we we tend
+for so long and it is a thing we we tend to focus on
+to focus on but it was it was nice to see people
+but it was it was nice to see people really appreciate it and oddly we ended
+really appreciate it and oddly we ended up needing to slow down our death
+up needing to slow down our death reloads because users we could start
+reloads because users we could start seeing loading tips and then they would
+seeing loading tips and then they would go away immediately and that was just
+go away immediately and that was just too weird so we kept them up for a
+too weird so we kept them up for a minimum amount of time in order to make
+minimum amount of time in order to make it so they're readable and we actually
+it so they're readable and we actually currently load as fast as on ps4 as we
+currently load as fast as on ps4 as we do on ps5 and bc mode that was actually
+do on ps5 and bc mode that was actually due to unfortunate typo we found kind of
+due to unfortunate typo we found kind of late and we're hoping to fix that on a
+late and we're hoping to fix that on a future patch but we'll see
+future patch but we'll see so um the spirit of matching tech to
+so um the spirit of matching tech to vision um
+vision um the the vision of the gamer actually
+the the vision of the gamer actually really helped to kind of smooth a lot of
+really helped to kind of smooth a lot of the stuff out one of the touchstones um
+the stuff out one of the touchstones um when building the game was we we wanted
+when building the game was we we wanted to reduce the noise and make sure that
+to reduce the noise and make sure that the
+the the game had
+the game had you could basically be calm in it and
+you could basically be calm in it and and relax
+and relax and we have a lot of variety but it's
+and we have a lot of variety but it's really but it's a little bit more spread
+really but it's a little bit more spread out than it was in infamous
+out than it was in infamous so that helped a bunch the design also
+so that helped a bunch the design also helped with bread the bread crumb
+helped with bread the bread crumb responding i mentioned responding in the
+responding i mentioned responding in the same place
+same place it helps into intuition and also reload
+it helps into intuition and also reload times
+times so one of the
+so one of the probably the main trick we pulled was to
+probably the main trick we pulled was to reduce textures by about three quarters
+reduce textures by about three quarters during warps so if you're going to an
+during warps so if you're going to an area our kind of uh conservative
+area our kind of uh conservative estimate says you want this uh just
+estimate says you want this uh just throw away like three quarters of that
+throw away like three quarters of that um and it should be mostly fine
+um and it should be mostly fine this does mean there are some cases
+this does mean there are some cases where you can't do this like cutscenes
+where you can't do this like cutscenes so if you're going across the world to a
+so if you're going across the world to a different set of characters with a
+different set of characters with a different cut scene
+different cut scene that warp sort of warp will be slower
+that warp sort of warp will be slower and we have a couple cases within the
+and we have a couple cases within the game but not very many
+game but not very many so
+so uh the general techniques for doing this
+uh the general techniques for doing this are to you really want to minimize reads
+are to you really want to minimize reads per file so you aggregate lots of small
+per file so you aggregate lots of small files into big chunks of things um
+files into big chunks of things um and we as i mentioned we do this with
+and we as i mentioned we do this with like literally pointer patch and you're
+like literally pointer patch and you're good to go
+good to go with pac data
+with pac data you you wanna
+you you wanna sort of do lots of
+sort of do lots of optimization and kind of flattening and
+optimization and kind of flattening and simplification into low levels data
+simplification into low levels data structures during asset compilation um
+structures during asset compilation um which means you need relatively smart
+which means you need relatively smart build tools that don't need to rebuild
+build tools that don't need to rebuild when that that piece of that file didn't
+when that that piece of that file didn't actually change that that you really
+actually change that that you really need to look at and you need to keep
+need to look at and you need to keep them fast so iteration doesn't doesn't
+them fast so iteration doesn't doesn't slow down too much and things like that
+slow down too much and things like that um and we obviously need to spend a
+um and we obviously need to spend a bunch of time optimizing that's the
+bunch of time optimizing that's the other thing um we leaned on gpu compute
+other thing um we leaned on gpu compute really heavily and obviously we pulled a
+really heavily and obviously we pulled a few tricks but that was
+few tricks but that was that's kind of the general approach we
+that's kind of the general approach we used for this game
+used for this game so
+so in the future we'd like to obviously
+in the future we'd like to obviously extend what we've been working on here
+extend what we've been working on here and work on sort of do more virtual
+and work on sort of do more virtual memories
+memories tricks and like the gpu compute was
+tricks and like the gpu compute was really effective so we're going to
+really effective so we're going to double down on that probably going
+double down on that probably going forward
+forward fine grain streaming was also really
+fine grain streaming was also really effective and so we're going to need to
+effective and so we're going to need to see how we can make something like
+see how we can make something like animations or sounds squishy enough to
+animations or sounds squishy enough to really make that
+really make that efficient
+efficient and um obviously there's lots of other
+and um obviously there's lots of other work to do solving some of our quirky
+work to do solving some of our quirky things like complex uvs or
+things like complex uvs or you know tools work and build time work
+you know tools work and build time work lots of stuff to do
+lots of stuff to do so i'd like to thank everybody um i i
+so i'd like to thank everybody um i i was not certainly the only person
+was not certainly the only person working on this stuff there's lots of
+working on this stuff there's lots of programmers that did a bunch of this
+programmers that did a bunch of this work in this presentation um so thanks
+work in this presentation um so thanks to thanks to everybody then there and
+to thanks to everybody then there and thanks to the art team and everyone else
+thanks to the art team and everyone else for helping to ship a really great game
+for helping to ship a really great game and so if you'd like to work on things
+and so if you'd like to work on things like this we are hiring we're looking
+like this we are hiring we're looking for programmers of a variety of
+for programmers of a variety of positions and junior and senior are
+positions and junior and senior are welcome so please check us out
+and here is a fun extra if you would like to see it
+like to see it every game has retargeting problems
+every game has retargeting problems this is a just a weird one i don't i
+this is a just a weird one i don't i don't know how jen's horse got assigned
+don't know how jen's horse got assigned to the
+to the to be his opponent and a duel but he did
+to be his opponent and a duel but he did there you go
+[Music]
+and there's some networking sort of stuff we had this cool virus that
+stuff we had this cool virus that happened while we were
+happened while we were shipping
+shipping uh after after shipping actually we had
+uh after after shipping actually we had to sort of patch the game to sort of
+to sort of patch the game to sort of eliminate it so anyway thanks for
+eliminate it so anyway thanks for watching cheers
+watching cheers [Music]

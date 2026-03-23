@@ -1,0 +1,394 @@
+My name is Martin Thorson True and I'm a senior technical artist and I've been in
+senior technical artist and I've been in the industry for about 13
+the industry for about 13 years. Um, the last game I helped out
+years. Um, the last game I helped out was Witcher 3. A small disclaimer
+was Witcher 3. A small disclaimer though, I am no longer employed by CD
+though, I am no longer employed by CD Project Red. I moved on, but I was
+Project Red. I moved on, but I was allowed to do this anyway.
+allowed to do this anyway. So, welcome to content optimization
+So, welcome to content optimization pipeline for an openw world game.
+I will start with a statement that artist they can do amazing
+artist they can do amazing things beautiful things is how we
+show this is in-game by the way. Uh but they can also do things like
+way. Uh but they can also do things like this and this is not to bash on any
+this and this is not to bash on any artist. It's just stuff that seeps
+artist. It's just stuff that seeps through the cracks. Uh, I call this Mesh
+through the cracks. Uh, I call this Mesh Monster. I have no idea what it is, but
+Monster. I have no idea what it is, but it's in there.
+it's in there. Um, they also like to do stuff like
+this. This one about 5% of the actual mesh is above
+one about 5% of the actual mesh is above ground. The rest is
+ground. The rest is below. So, Titanic.
+below. So, Titanic. Yeah. Also, artistic creativity as I
+Yeah. Also, artistic creativity as I call it.
+call it. It's the same here. 30% is above ground,
+It's the same here. 30% is above ground, 70% is below
+70% is below ground. Uh, one famous asset we had at
+ground. Uh, one famous asset we had at city project was the chicken
+city project was the chicken bucket. And that one has 1 and a half
+bucket. And that one has 1 and a half million
+triangles. And you can imagine it was a big on the screen. Um, it was very
+big on the screen. Um, it was very expensive chickens.
+So uh this presentation will be in four parts. Why we well you saw how we did
+parts. Why we well you saw how we did the optimization, the outcome and what
+the optimization, the outcome and what we learned.
+we learned. So
+why there there was a need to find something that was robust and scalable
+something that was robust and scalable to the everchanging demands of an open
+to the everchanging demands of an open world game
+world game production. We needed to find the assets
+production. We needed to find the assets um that needed the extra love and
+um that needed the extra love and attention.
+attention. Um, we did not have that many post or
+Um, we did not have that many post or pre-export
+pre-export checks and we had approximately 500,000
+checks and we had approximately 500,000 entities placed. That doesn't mean they
+entities placed. That doesn't mean they are unique. It just placed entities.
+are unique. It just placed entities. We could also change the entities inside
+We could also change the entities inside in the inside our editor like give them
+in the inside our editor like give them more collision shapes, merge meshes, add
+more collision shapes, merge meshes, add extra loads,
+extra loads, uh add
+uh add materials. We could also author assets
+materials. We could also author assets like materials, um particle effects,
+like materials, um particle effects, shaders. And inside the editor, we also
+shaders. And inside the editor, we also have certain components like light
+have certain components like light components, sound components, and
+components, sound components, and vegetation. All of these costs, all of
+vegetation. All of these costs, all of these need to be
+optimized. So, how did we do it? We created this. I call it the
+it? We created this. I call it the database
+database viewer. Um, I will go more into detail
+viewer. Um, I will go more into detail on this later, but it's a database back
+on this later, but it's a database back end and a small viewer on top of it.
+end and a small viewer on top of it. with the
+world. The the general layout of uh the Redkit engine is that we have a world,
+Redkit engine is that we have a world, we have layers and world has properties
+we have layers and world has properties as well. And layers have
+as well. And layers have properties. Inside layers, we have
+properties. Inside layers, we have entities and they have also properties.
+entities and they have also properties. And inside entities, we have components
+And inside entities, we have components and they all have properties.
+and they all have properties. Um, we needed something to iterate
+Um, we needed something to iterate through the worlds and the layers to
+through the worlds and the layers to find certain properties that we were
+find certain properties that we were interested in like size, vert count,
+interested in like size, vert count, materials, uh, radius of a light and
+materials, uh, radius of a light and whatever you actually wanted. So, we
+whatever you actually wanted. So, we needed something to iterate
+needed something to iterate through. We did. We queried all those
+through. We did. We queried all those properties we needed and then every time
+properties we needed and then every time we found something, we spit that out as
+we found something, we spit that out as a one string inside a text file. Like I
+a one string inside a text file. Like I said, we needed something
+said, we needed something fast to implement because we're in full
+fast to implement because we're in full production. Um, so this was the
+production. Um, so this was the solution. I'm not saying it's the
+solution. I'm not saying it's the optimal solution. This was our solution.
+optimal solution. This was our solution. Uh so we everything was found was put
+Uh so we everything was found was put into uh a text file that is looking like
+into uh a text file that is looking like this. So it's an SQL statement basically
+this. So it's an SQL statement basically just
+just saying insert into
+saying insert into blah. So with this text file, it's not a
+blah. So with this text file, it's not a database yet, but with this text file,
+database yet, but with this text file, we can iterate through this text file
+we can iterate through this text file and
+and uh create the
+uh create the database. This ended up being several
+database. This ended up being several files depending on where in the world
+files depending on where in the world you
+you were. The files, some of them became
+were. The files, some of them became huge, 2 GB of text.
+huge, 2 GB of text. Um, but with those files, like I said,
+Um, but with those files, like I said, we used Python. We iterated over each
+we used Python. We iterated over each line and created the database. And this
+line and created the database. And this is where all the fun and magic
+is where all the fun and magic comes. Anyone could come to me or they
+comes. Anyone could come to me or they could do it themselves, come up with
+could do it themselves, come up with what they wanted to know. And for
+what they wanted to know. And for example, give me all the meshes that has
+example, give me all the meshes that has no loads and the triangle count is
+no loads and the triangle count is larger than 2,000 and the outer height
+larger than 2,000 and the outer height distance is greater than 50
+distance is greater than 50 m and we can find all the assets. It
+m and we can find all the assets. It will kick out a list of where in the
+will kick out a list of where in the world it was, the name, the layer, the
+world it was, the name, the layer, the position,
+position, everything. Another example would be
+everything. Another example would be give me the position and the radius of
+give me the position and the radius of the light to cast shadows. It's a
+the light to cast shadows. It's a feasible
+question. Uh last example, give me the vertex count and bounding box bounding
+vertex count and bounding box bounding box area of mesh
+components. So this tool did all that. Um just to see if I can
+Um just to see if I can there quick
+there quick overview artist or anyone using this
+overview artist or anyone using this this was on the server so everybody had
+this was on the server so everybody had access to it. uh they could write a
+access to it. uh they could write a statement if they knew how to do SQL
+statement if they knew how to do SQL statements, write it over here. They
+statements, write it over here. They could execute, get the output on the
+could execute, get the output on the right hand side. If they liked what they
+right hand side. If they liked what they did, they could save the command and
+did, they could save the command and since it was on the server, everyone had
+since it was on the server, everyone had access to their commands as well. And
+access to their commands as well. And the commands went over here and you can
+the commands went over here and you can double click it to use it. So you don't
+double click it to use it. So you don't have to write it again, of course.
+have to write it again, of course. Um, if you wanted to find it, you can
+Um, if you wanted to find it, you can see on the map exactly where it was. So,
+see on the map exactly where it was. So, you can see
+you can see this light with radius of 200 m or
+this light with radius of 200 m or whatever it was there, you can find it.
+whatever it was there, you can find it. You see it on the map, you can click on
+You see it on the map, you can click on this map and that will actually teleport
+this map and that will actually teleport you. If you had the editor open, it will
+you. If you had the editor open, it will move you over there directly. So, the
+move you over there directly. So, the artist could do an SQL statement, wear
+artist could do an SQL statement, wear the light and directly drop you in at
+the light and directly drop you in at that position.
+that position. Um, you could save the image so it's an
+Um, you could save the image so it's an artist can actually see all the broken
+artist can actually see all the broken meshes or loads or whatnot. They can get
+meshes or loads or whatnot. They can get the image and see all the dots on the
+the image and see all the dots on the screen. The image was saved in 4K for
+screen. The image was saved in 4K for the people who wanted to zoom to see,
+the people who wanted to zoom to see, oh, I'm in this corner of this house.
+oh, I'm in this corner of this house. So uh city project red also had uh
+So uh city project red also had uh Google solutions.
+Google solutions. So all the data went up to Google to
+So all the data went up to Google to Google docs and this is how we presented
+Google docs and this is how we presented it for the people that actually needed
+it for the people that actually needed to help out fixing it. We presented
+to help out fixing it. We presented lists of names and asset and what was
+lists of names and asset and what was wrong and they went to Google
+Sheets. We um as you yeah just said that uh as you see we could also have
+uh as you see we could also have different
+different pre-defined images. I will show you two
+pre-defined images. I will show you two next slide where we call it the vertex
+next slide where we call it the vertex density map, high foliage map, uh light
+density map, high foliage map, uh light radius map. We we could just add more of
+radius map. We we could just add more of these images.
+these images. Um and this slide is already done.
+Um and this slide is already done. So this is the uh vertex density map and
+So this is the uh vertex density map and the high foliage count map. Just to show
+the high foliage count map. Just to show you a little bit what what we did by
+you a little bit what what we did by default on the left hand side we have
+default on the left hand side we have vertex density map and basically what
+vertex density map and basically what that was we took the vertex count
+that was we took the vertex count uh and looked at the bounding box of
+uh and looked at the bounding box of that entity to just get a idea of how
+that entity to just get a idea of how many vertices were in a certain area.
+many vertices were in a certain area. With this, of course, you can see
+With this, of course, you can see directly that there's certain areas that
+directly that there's certain areas that are a little bit more dense. Most likely
+are a little bit more dense. Most likely that is the area we need to optimize,
+that is the area we need to optimize, but it can also be used for the level
+but it can also be used for the level designers to see, oh, this area hasn't
+designers to see, oh, this area hasn't been populated. Maybe we want to add
+been populated. Maybe we want to add more stuff over here.
+more stuff over here. The um high foliage count map was just
+The um high foliage count map was just for to see that okay in these areas we
+for to see that okay in these areas we need to start trimming off the trees or
+grass since everything was uh uh statements that we can kick off every
+statements that we can kick off every week. This is basically how it looked
+week. This is basically how it looked like. every week, every Monday, I kicked
+like. every week, every Monday, I kicked off the same SQL statements
+off the same SQL statements um so that we could do a burndown chart.
+um so that we could do a burndown chart. So connected to Google, grabbed all the
+So connected to Google, grabbed all the data that was uh there
+data that was uh there and as you can see we can have a nice
+and as you can see we can have a nice burndown shot week to week. So they can
+burndown shot week to week. So they can work during the week. we can put in
+work during the week. we can put in strike teams to one week we needed to
+strike teams to one week we needed to fix all the LODs and the next week we
+fix all the LODs and the next week we can see if it was fixed or not and this
+can see if it was fixed or not and this just helped us to focus what we needed
+just helped us to focus what we needed to fix during that
+week. So the outcome here are some amazing
+outcome here are some amazing findings. We found a shadow casting
+findings. We found a shadow casting light that was 4,000 m in diameter.
+light that was 4,000 m in diameter. And I'm in America. I have no idea what
+And I'm in America. I have no idea what that is in
+that is in miles or in feet. Sorry. But it's huge.
+miles or in feet. Sorry. But it's huge. And the funny part is as well when I
+And the funny part is as well when I looked at the layer, I think the layer
+looked at the layer, I think the layer was cave. So it's
+underground. Another amazing find was we found, again, not bashing on any artist,
+found, again, not bashing on any artist, stuff sips through the crack. It's
+stuff sips through the crack. It's everywhere. We found animated bows.
+everywhere. We found animated bows. These were about 200. They were all
+These were about 200. They were all underground. The outer height distance
+underground. The outer height distance was almost a
+was almost a kilometer. And because they were
+kilometer. And because they were animated, they had skinning data and
+animated, they had skinning data and bones. Uh I also found test
+bones. Uh I also found test assets. And this is a couple of week
+assets. And this is a couple of week before final, the first
+final. Um, we found a quarter of a million
+Um, we found a quarter of a million vertices on one
+vertices on one ship. We found over 200 meshes that had
+ship. We found over 200 meshes that had 2,000 triangles and no loads. This is an
+2,000 triangles and no loads. This is an open world game. You need loads. A lot
+open world game. You need loads. A lot of
+of them. And we found that in one place
+them. And we found that in one place there was 105,000 grass
+there was 105,000 grass entities in an area that was smaller
+entities in an area that was smaller than 32 square meters.
+than 32 square meters. And the funny part in this one is that
+And the funny part in this one is that this had nothing to do with the artist.
+this had nothing to do with the artist. This was actually an implementation
+This was actually an implementation error of our folio system. So the
+error of our folio system. So the programmer loved this. He could find
+programmer loved this. He could find this area. He could quickly go there
+this area. He could quickly go there look at a code and yes he said awesome
+look at a code and yes he said awesome now he can fix it because he had a repro
+now he can fix it because he had a repro case. He saw where it was and the
+case. He saw where it was and the programmer could fix this problem
+programmer could fix this problem because it was programming issue and not
+because it was programming issue and not an art issue. So it's not just artists
+an art issue. So it's not just artists that use this tool and could use it even
+programmers. So the results because of all this data or we could focus on
+all this data or we could focus on certain areas and certain
+certain areas and certain assets and we could put in strike teams.
+assets and we could put in strike teams. So this week you can look at only the
+So this week you can look at only the LODs and they have all the list to do
+LODs and they have all the list to do that.
+that. Uh it was very efficient in that way to
+Uh it was very efficient in that way to know exactly what you're looking for
+know exactly what you're looking for with all the lists. It was accurate
+with all the lists. It was accurate because this is taken from the build. So
+because this is taken from the build. So in theory, if we ship that day, this is
+in theory, if we ship that day, this is the data that would go on
+the data that would go on disk. So it's accurate. You had all the
+disk. So it's accurate. You had all the paths to the assets like layers and
+paths to the assets like layers and entities, components, it was all there.
+entities, components, it was all there. So
+So it's and so what after that we had what
+it's and so what after that we had what did we learn from
+did we learn from this? First of what went
+this? First of what went wrong the huge text
+wrong the huge text files. So have anyone tried to open a 2
+files. So have anyone tried to open a 2 GB of text in Notepad or
+GB of text in Notepad or Notepad++? Basically it coughs and says
+Notepad++? Basically it coughs and says no not at all. Um, so don't do that.
+no not at all. Um, so don't do that. That's horrible. And on top of that,
+That's horrible. And on top of that, because it's SQL statements line by
+because it's SQL statements line by line, if one line is
+line, if one line is wrong, the database will not be
+wrong, the database will not be generated. So you have to rebuild it
+generated. So you have to rebuild it again and circumvent
+again and circumvent that. The next statement is trying to
+that. The next statement is trying to add everything into the database. And I
+add everything into the database. And I will try to explain this much better. If
+will try to explain this much better. If we have house A over here and we have
+we have house A over here and we have the same house A over here, different
+the same house A over here, different layers or maybe the same layer, but they
+layers or maybe the same layer, but they are the same house, just different
+are the same house, just different positions. So this is a design flow from
+positions. So this is a design flow from my part, but we were in a hurry. Sorry.
+my part, but we were in a hurry. Sorry. Yeah. Um, what the script, the code did
+Yeah. Um, what the script, the code did was it found this house, put that as one
+was it found this house, put that as one line of SQL statement saying, "Hey, I
+line of SQL statement saying, "Hey, I found house a position blah." it
+found house a position blah." it continued. It found house A again and
+continued. It found house A again and wrote a complete new line with the same
+wrote a complete new line with the same data but just a new
+data but just a new position. So that's the reason the text
+position. So that's the reason the text files are two gigs. If I would do it
+files are two gigs. If I would do it again, I would probably try to just say
+again, I would probably try to just say here's house
+here's house A as a table and then I would have
+A as a table and then I would have positions of houses A as a table. houses
+positions of houses A as a table. houses and positions
+and positions um would also
+um would also significantly lower the actual size of
+significantly lower the actual size of the text
+the text file. Um there was no real-time update
+file. Um there was no real-time update to the database. So if an artist fixed
+to the database. So if an artist fixed stuff, they had to wait for the next
+stuff, they had to wait for the next build to execute the SQL statements and
+build to execute the SQL statements and from the tool. Um if I would do
+from the tool. Um if I would do everything again, I wouldn't do textile
+everything again, I wouldn't do textile either. I would just trying to put the
+either. I would just trying to put the database directly into the
+database directly into the editor. Um, the last point
+editor. Um, the last point is my findings because we work with
+is my findings because we work with Google Docs. I could not find it could
+Google Docs. I could not find it could be me. So, no hot feelings Google. I'm
+be me. So, no hot feelings Google. I'm just saying I could not get the Google
+just saying I could not get the Google API to create pie charts from the Google
+API to create pie charts from the Google Excel sheets. So I had to use a separate
+Excel sheets. So I had to use a separate lib to do that for example and that's
+lib to do that for example and that's just thing we had Google we did all
+just thing we had Google we did all things but I need to use other libs just
+things but I need to use other libs just to kick out the burndown charts I would
+to kick out the burndown charts I would love it to be one
+love it to be one lib so what went
+lib so what went right like I said it was useful for more
+right like I said it was useful for more than just the artist level designer can
+than just the artist level designer can find areas they wanted to populate uh
+find areas they wanted to populate uh programmers can find errors
+programmers can find errors um we found things that we didn't know
+um we found things that we didn't know exist. Uh the data was accurate because
+exist. Uh the data was accurate because it like I said it came from the build.
+it like I said it came from the build. It was fast to search through because
+It was fast to search through because SQL that's the reason I chose
+SQL that's the reason I chose SQL. Um and by having this image, this
+SQL. Um and by having this image, this is something very amazing. Um during my
+is something very amazing. Um during my time uh I've learned that if you give an
+time uh I've learned that if you give an artist an image of a map and saying
+artist an image of a map and saying these 200 red dots are errors, they are
+these 200 red dots are errors, they are more much more happier than having an
+more much more happier than having an Excel sheet with 200 of lines. They're
+Excel sheet with 200 of lines. They're saying these are the
+saying these are the errors. Somehow having an image makes it
+errors. Somehow having an image makes it real. So it's super useful.
+So uh I want to thank um a couple of people and I will butcher their names I
+people and I will butcher their names I say sorry already. Um Kristoff
+say sorry already. Um Kristoff Trishin, Patrick
+Trishin, Patrick Drosvski, Emil
+Drosvski, Emil Givvenski,
+Givvenski, Wukosski, Jose Tesera, Costas
+Wukosski, Jose Tesera, Costas Mikolopoulos and CD Project Red.
+Mikolopoulos and CD Project Red. Thank
+Thank [Applause]
+you. If you have questions, there are mics
+everywhere. Otherwise, you can uh grab me outside out there. Yes. Hello. So,
+me outside out there. Yes. Hello. So, first of all, thank you for the talk.
+first of all, thank you for the talk. It's really informative. Um I just
+It's really informative. Um I just wonder um so you said that uh you guys
+wonder um so you said that uh you guys have the database and then you guys were
+have the database and then you guys were able to use the uh queries SQR
+able to use the uh queries SQR statements uh to to to find something
+statements uh to to to find something that you want were was really impossible
+that you want were was really impossible to find during development. How much did
+to find during development. How much did you guys involve testers into this
+you guys involve testers into this process running this uh you know just
+process running this uh you know just running this uh queries and then to find
+running this uh queries and then to find errors? These queries were actually
+errors? These queries were actually basically me sitting on Mondays and
+basically me sitting on Mondays and Tuesdays and to create these sheets. But
+Tuesdays and to create these sheets. But the artist when they saw the tool, they
+the artist when they saw the tool, they started using it themselves. So the
+started using it themselves. So the artist just open up the tool and they
+artist just open up the tool and they started to find their own issues and
+started to find their own issues and they started to write some crazy SQL
+they started to write some crazy SQL statements that was huge. Yeah. So that
+statements that was huge. Yeah. So that was super awesome. So we did not have
+was super awesome. So we did not have testers. The artist directly went on.
+testers. The artist directly went on. Okay. Thank you. Yeah.
+I was wondering if you could talk a little bit about uh time series data
+little bit about uh time series data about did you design the database so
+about did you design the database so that you could look at historical trends
+that you could look at historical trends that way or did you do all of that by
+that way or did you do all of that by analyzing your Google Sheets X plus
+analyzing your Google Sheets X plus facto there was just Google sheets
+facto there was just Google sheets analyzing so during this time I also had
+analyzing so during this time I also had to learn
+to learn SQL so it's it's it was it was awesome
+SQL so it's it's it was it was awesome plus C++ and all that. Yeah.
+plus C++ and all that. Yeah. Thank you. Okay. Thank you.
+Thank you. Okay. Thank you. [Applause]
+[Applause] [Music]

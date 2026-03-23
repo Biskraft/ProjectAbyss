@@ -1,0 +1,1662 @@
+[Music] so uh
+so uh welcome to welcome to this talk on
+welcome to welcome to this talk on cementing your duct tape my name is
+cementing your duct tape my name is matthias venkamp
+matthias venkamp this is my first gdc so kind of bear
+this is my first gdc so kind of bear with me i'm a little nervous for the
+with me i'm a little nervous for the presentation but
+presentation but i hope you'll enjoy it for some
+i hope you'll enjoy it for some housekeeping before we get started
+housekeeping before we get started please
+please keep your phones on silent and do
+keep your phones on silent and do remember to fill in your surveys at the
+remember to fill in your surveys at the end of the talk
+end of the talk we should have some time for questions
+we should have some time for questions but if we don't
+but if we don't room 3022 will be the wrap-up room it's
+room 3022 will be the wrap-up room it's just around the corner
+just around the corner of the hallway so you will be able to
+of the hallway so you will be able to find me there after the talk
+find me there after the talk so first who am i and what am i doing
+so first who am i and what am i doing here
+here i am currently a senior technical artist
+i am currently a senior technical artist working on the total war franchise i'm
+working on the total war franchise i'm sure
+sure most of you have at least heard of the
+most of you have at least heard of the franchise it is my fourth year working
+franchise it is my fourth year working at creative assembly in that position
+at creative assembly in that position which makes it my seventh year in the
+which makes it my seventh year in the industry i've worked on
+industry i've worked on games such as divinity original sin at
+games such as divinity original sin at larian studios in ghent i've also worked
+larian studios in ghent i've also worked afterwards
+afterwards on twitter.be which was an educational
+on twitter.be which was an educational game
+game using the unity engine in the web
+using the unity engine in the web browser where kids would do homework as
+browser where kids would do homework as a currency to progress the game's story
+a currency to progress the game's story very interesting implementation and then
+very interesting implementation and then i transitioned to
+i transitioned to working on the farming simulator titles
+working on the farming simulator titles in zurich in switzerland before
+in zurich in switzerland before eventually making it into
+eventually making it into creative assembly as a technical artist
+creative assembly as a technical artist i've since worked on
+i've since worked on titles such as total war warhammer 1 and
+titles such as total war warhammer 1 and 2.
+2. i've spent most of my time there working
+i've spent most of my time there working on total war
+on total war arena which uh who here is aware of
+arena which uh who here is aware of total war arena that it exists
+total war arena that it exists right a fair amount of people i've also
+right a fair amount of people i've also worked on the upcoming total war three
+worked on the upcoming total war three kingdoms
+kingdoms um before we dig any deeper into arena
+um before we dig any deeper into arena uh
+uh as those who know arena will know it was
+as those who know arena will know it was shut down
+shut down on february 27th of this year so i'll
+on february 27th of this year so i'll not be fielding any questions about the
+not be fielding any questions about the shutdown
+shutdown but the talk is more about what we
+but the talk is more about what we learned from its development so it's not
+learned from its development so it's not because the game is shut down with that
+because the game is shut down with that we can't learn from the things that we
+we can't learn from the things that we did on it
+did on it so first an overview of what the talk is
+so first an overview of what the talk is going to touch on
+going to touch on the first thing we're going to do is
+the first thing we're going to do is define what technical art really means
+define what technical art really means on total war as i'm sure i don't have to
+on total war as i'm sure i don't have to tell a lot of you
+tell a lot of you technical art kind of means different
+technical art kind of means different things depending on
+things depending on who you're talking to what studio you're
+who you're talking to what studio you're at um even the people that you work with
+at um even the people that you work with or the phase of production that you're
+or the phase of production that you're currently in
+currently in that depends on your job description
+that depends on your job description essentially changes over time which is
+essentially changes over time which is very interesting it makes
+very interesting it makes technical artists a bit obscure it'll i
+technical artists a bit obscure it'll i brought with me some examples as well
+brought with me some examples as well from
+from the production of total war arena to
+the production of total war arena to illustrate what we're talking about
+illustrate what we're talking about today
+today and how we used essentially duct tape
+and how we used essentially duct tape solutions
+solutions to then learn from what we did
+to then learn from what we did implementing those hacks or what we
+implementing those hacks or what we considered to be hacks but
+considered to be hacks but while being aware that they needed to be
+while being aware that they needed to be removed afterwards so we use these
+removed afterwards so we use these things as learning processes really
+things as learning processes really then we're going to go over some lessons
+then we're going to go over some lessons things that we in hindsight wish
+things that we in hindsight wish we had done differently obviously
+we had done differently obviously hindsight is 20 20 but
+hindsight is 20 20 but going forward we'll implement a lot of
+going forward we'll implement a lot of the lessons that we
+the lessons that we that we learned from this from using
+that we learned from this from using this technique and then lastly hopefully
+this technique and then lastly hopefully you'll take something away from
+you'll take something away from this presentation so for those of you
+this presentation so for those of you who don't know arena which is apparently
+who don't know arena which is apparently a fair few of you i brought along a
+a fair few of you i brought along a video with me that illustrates
+video with me that illustrates there's actually a marketing material
+there's actually a marketing material that markets are
+that markets are one of our commanders ambiorix which has
+one of our commanders ambiorix which has a bit of special meaning to me because
+a bit of special meaning to me because i'm belgian and he
+i'm belgian and he is a belgian folk hero so
+[Music]
+so that was total war arena as you can see it's a moba style
+see it's a moba style rts very high action a bit of a high
+rts very high action a bit of a high action implementation of the traditional
+action implementation of the traditional total war franchise
+total war franchise so on to defining what technical art in
+so on to defining what technical art in total war actually means
+total war actually means we are a centralized team that means
+we are a centralized team that means that we work on every single project
+that we work on every single project which also means that our tools and
+which also means that our tools and pipelines need to work
+pipelines need to work at least theoretically on every project
+at least theoretically on every project that doesn't
+that doesn't does of course not mean that some of our
+does of course not mean that some of our tools cannot be project specific
+tools cannot be project specific on total war arena as on warhammer and
+on total war arena as on warhammer and on three kingdoms we always have
+on three kingdoms we always have specific solutions for very specific
+specific solutions for very specific problems
+problems they all have separate branches of the
+they all have separate branches of the engine as well so that means that
+engine as well so that means that certain engine tools on older versions
+certain engine tools on older versions such as total war arena which
+such as total war arena which technically is still a branch of the
+technically is still a branch of the rom2 engine
+rom2 engine certain tools will not be available to
+certain tools will not be available to us that will be available to other
+us that will be available to other projects and then
+projects and then total war three kingdoms being the most
+total war three kingdoms being the most modern one had the fanciest tools
+modern one had the fanciest tools so we end up having different solutions
+so we end up having different solutions to
+to to similar but also different problems
+to similar but also different problems because the tech is fundamentally
+because the tech is fundamentally different
+different we're also a fairly small team with just
+we're also a fairly small team with just four technical artists we supply
+four technical artists we supply support for over 80 clients clients
+support for over 80 clients clients being defined
+being defined as just developers who use our tools
+as just developers who use our tools mostly character artists and environment
+mostly character artists and environment artists but also sometimes animators and
+artists but also sometimes animators and effects artists
+effects artists that's actually closer to 100 now and
+that's actually closer to 100 now and that covers
+that covers roughly six concurrent game projects so
+roughly six concurrent game projects so we're working on roughly six projects at
+we're working on roughly six projects at any given time
+any given time our role in that picture is to establish
+our role in that picture is to establish art pipelines and tools we build
+art pipelines and tools we build things like exporters for substance
+things like exporters for substance designer and substance painter
+designer and substance painter as well as for 3ds max and maya and we
+as well as for 3ds max and maya and we maintain
+maintain the tools that we build for artists and
+the tools that we build for artists and make sure that their content can get
+make sure that their content can get from one place to another in the
+from one place to another in the pipeline as smoothly as possible
+pipeline as smoothly as possible we also play a key role in establishing
+we also play a key role in establishing conventions and standards
+conventions and standards which is going to be an important thing
+which is going to be an important thing in this talk later on but i'll come back
+in this talk later on but i'll come back to that
+to that and probably most importantly tech
+and probably most importantly tech artists at total war
+artists at total war on total war and i think tech artists in
+on total war and i think tech artists in the entire industry play a key role
+the entire industry play a key role as an interface between art and
+as an interface between art and programming i think that's the one
+programming i think that's the one common denominator that every tech
+common denominator that every tech artist seems to share
+artist seems to share where we make sure that when an artist
+where we make sure that when an artist says
+says we need this then when by the time that
+we need this then when by the time that request gets to programming
+request gets to programming it's actually what they need not what
+it's actually what they need not what they say they need it's kind of a genius
+they say they need it's kind of a genius wish kind of thing
+wish kind of thing uh because it really happens quite a lot
+uh because it really happens quite a lot when an artist says oh i need this
+when an artist says oh i need this particular
+particular type of exporter but then a tech artist
+type of exporter but then a tech artist gets their hands on it and says no
+gets their hands on it and says no actually you don't there's a tool that
+actually you don't there's a tool that does this for you already
+does this for you already and that happens quite a lot and that
+and that happens quite a lot and that ends up costing thousands of man hours
+ends up costing thousands of man hours in some cases or
+in some cases or gaining thousands of man-hours if you
+gaining thousands of man-hours if you get it right
+get it right into the meat of the talk then uh
+into the meat of the talk then uh cementing your duct tape so what does
+cementing your duct tape so what does duct tape actually really mean
+duct tape actually really mean i'm sure a few of you have wondered
+i'm sure a few of you have wondered about this
+about this when i talk about duct tape in the
+when i talk about duct tape in the context of this presentation i'm really
+context of this presentation i'm really talking about very quickly implemented
+talking about very quickly implemented solutions
+solutions there's a key difference with hacks
+there's a key difference with hacks which will become clear throughout the
+which will become clear throughout the talk
+talk and also they prioritize function over
+and also they prioritize function over form
+form it means we need to get the stuff out
+it means we need to get the stuff out the door
+the door basically now or yesterday in some cases
+basically now or yesterday in some cases and that means that when we write the
+and that means that when we write the code for these things we are keenly
+code for these things we are keenly aware of the fact that this code is
+aware of the fact that this code is going to be
+going to be dumped in the garbage as soon as the
+dumped in the garbage as soon as the content is out
+content is out going in that is essentially the key
+going in that is essentially the key difference between duct tape and hacks
+difference between duct tape and hacks is a hack will tend to survive whereas
+is a hack will tend to survive whereas duct tapes the duct tape solution in
+duct tapes the duct tape solution in this context will
+this context will be implemented with the idea and the
+be implemented with the idea and the prerequisite that it will be removed
+prerequisite that it will be removed afterwards
+afterwards and basically the metaphor for that is
+and basically the metaphor for that is plug the leak versus replace the pipe
+plug the leak versus replace the pipe so some examples that i brought with me
+so some examples that i brought with me today from the production of total war
+today from the production of total war arena the first example will go
+arena the first example will go into how we made a data change that led
+into how we made a data change that led to a host of improvements
+to a host of improvements very important to note with that is that
+very important to note with that is that a lot of the improvements that we ended
+a lot of the improvements that we ended up having
+up having were not actually planned when we went
+were not actually planned when we went in to make the change
+in to make the change what we did do going in to make the
+what we did do going in to make the changes was just to simplify our data so
+changes was just to simplify our data so our artist would have an easier time
+our artist would have an easier time interacting with it
+interacting with it what we could never have imagined is
+what we could never have imagined is that one of the changes because of the
+that one of the changes because of the change we made one of the things we got
+change we made one of the things we got not for free but it became feasible was
+not for free but it became feasible was an entire dynamic ui pipeline
+an entire dynamic ui pipeline something that we would otherwise never
+something that we would otherwise never even have conceived of
+even have conceived of so first example then the variant
+so first example then the variant cleanup this is the term that we refer
+cleanup this is the term that we refer to
+to in that we refer to on arena during
+in that we refer to on arena during production
+production as the single small data change that we
+as the single small data change that we made which resulted in a big production
+made which resulted in a big production speed increase better tools and
+speed increase better tools and eventually automatic ui generation
+eventually automatic ui generation something that i'm sure a lot of you
+something that i'm sure a lot of you would be happy with having on
+would be happy with having on a production so what is a variant uh
+a production so what is a variant uh really so variants the term variant came
+really so variants the term variant came from
+from code mostly basically what it does is it
+code mostly basically what it does is it describes the
+describes the parts that make up a unit or an entity
+parts that make up a unit or an entity on the battlefield
+on the battlefield the reason that these parts are distinct
+the reason that these parts are distinct is because in total war arena and in
+is because in total war arena and in most total warp
+most total warp games but in arena more so these
+games but in arena more so these individual pieces can be swapped out
+individual pieces can be swapped out on arena we had an upgradeable equipment
+on arena we had an upgradeable equipment pipeline which meant that
+pipeline which meant that we needed to have systems to deal with
+we needed to have systems to deal with the fact that our units would be
+the fact that our units would be upgraded
+upgraded this also means that our art assets had
+this also means that our art assets had to be authored to make sure that they
+to be authored to make sure that they would all fit on the same body for
+would all fit on the same body for example if you had a piece of armor that
+example if you had a piece of armor that could be swapped out because
+could be swapped out because armor was a separate mesh that means
+armor was a separate mesh that means also that you have to avoid skinning
+also that you have to avoid skinning issues and
+issues and debug clipping issues and of course that
+debug clipping issues and of course that also
+also means that you need to have the ability
+means that you need to have the ability to preview what your unit will look like
+to preview what your unit will look like when it gets upgraded or rather when it
+when it gets upgraded or rather when it equips
+equips the equipment you're making for it what
+the equipment you're making for it what we saw actually
+we saw actually in part because arena was running on a
+in part because arena was running on a rather old code base was that
+rather old code base was that the pipeline didn't actually allow for
+the pipeline didn't actually allow for us to preview our units being upgraded
+us to preview our units being upgraded as they were in the game
+as they were in the game the reason for that is that multiple
+the reason for that is that multiple systems were added over the years but
+systems were added over the years but very little tools were built
+very little tools were built to deal with the new data total war
+to deal with the new data total war arena was actually the first title in a
+arena was actually the first title in a total war franchise that had a
+total war franchise that had a player-driven upgraded
+player-driven upgraded upgrading system the other total war
+upgrading system the other total war games do have
+games do have upgradable equipment but it's more
+upgradable equipment but it's more system driven which means that for
+system driven which means that for artists it's less
+artists it's less exposed for arena it was much more
+exposed for arena it was much more integrated
+integrated because we had everything from cosmetics
+because we had everything from cosmetics to ranked
+to ranked battle achievement icons sorry ranked
+battle achievement icons sorry ranked battle achievements
+battle achievements rewards that you could upgrade that you
+rewards that you could upgrade that you could get
+could get and unlock new cosmetics for commanders
+and unlock new cosmetics for commanders your units could be entirely customized
+your units could be entirely customized this is a system that we hadn't built
+this is a system that we hadn't built before and obviously the implementation
+before and obviously the implementation for it was kind of done
+for it was kind of done in a straightforward way ironically in
+in a straightforward way ironically in a duct tape way so what we ended up with
+a duct tape way so what we ended up with was a system where
+was a system where all of the individual upgrades were
+all of the individual upgrades were actually stored in separate files
+actually stored in separate files obviously the the obvious result of this
+obviously the the obvious result of this is that our character artists could not
+is that our character artists could not actually preview the unit before it went
+actually preview the unit before it went to the game
+to the game that means that our character artists
+that means that our character artists had a very tough time previewing their
+had a very tough time previewing their content and making sure it didn't clip
+content and making sure it didn't clip with the other meshes before their stuff
+with the other meshes before their stuff went into the game and
+went into the game and that actually turned into a bit of a
+that actually turned into a bit of a nightmare with qa bugs
+nightmare with qa bugs and we constantly had to iterate our
+and we constantly had to iterate our content
+content to make sure everything was conforming
+to make sure everything was conforming to the same standard
+to the same standard it wasn't made any easier that a lot of
+it wasn't made any easier that a lot of the content we used in total war arena
+the content we used in total war arena was also reused from different projects
+was also reused from different projects both previous and current
+both previous and current to ensure that we could handle the
+to ensure that we could handle the content
+content requirements for the project now the
+requirements for the project now the reason for this really
+reason for this really we found the first question we asked
+we found the first question we asked ourselves is why is this actually the
+ourselves is why is this actually the case
+case obviously we know that it's because of
+obviously we know that it's because of multiple systems were added over the
+multiple systems were added over the years but
+years but the question we really asked ourselves
+the question we really asked ourselves was like how does the system actually
+was like how does the system actually work
+work by visualizing this in a flow graph it
+by visualizing this in a flow graph it became quickly apparent that
+became quickly apparent that basically what was happening is the
+basically what was happening is the database contained a reference to
+database contained a reference to some external file that the game engine
+some external file that the game engine then loaded at runtime and constructed
+then loaded at runtime and constructed the variant
+the variant at runtime obviously the obvious
+at runtime obviously the obvious the obvious upgrade to that the obvious
+the obvious upgrade to that the obvious step forward would have been to just
+step forward would have been to just implement what the game does in the unit
+implement what the game does in the unit editor
+editor in fact that would have been the
+in fact that would have been the straightforward solution however we
+straightforward solution however we didn't want to do that
+didn't want to do that instead we wanted a data change we
+instead we wanted a data change we wanted to make sure that instead of
+wanted to make sure that instead of upgrading our editor to add more complex
+upgrading our editor to add more complex behavior to
+behavior to a problem that shouldn't really exist in
+a problem that shouldn't really exist in the first place
+the first place instead of doing that we wanted just to
+instead of doing that we wanted just to change our data so the data was simpler
+change our data so the data was simpler and the editor
+and the editor required just a very small change to
+required just a very small change to just deal with how the new data was
+just deal with how the new data was formatted
+formatted so what we did then was to just remove a
+so what we did then was to just remove a single column from the database which
+single column from the database which was the reference to the visual
+was the reference to the visual information
+information but we kept the key to the equipment and
+but we kept the key to the equipment and then all we needed to do
+then all we needed to do in our variant files which are xml based
+in our variant files which are xml based was add a single attribute in the xml
+was add a single attribute in the xml tag that the database could recognize
+tag that the database could recognize and say oh i need to now enable this
+and say oh i need to now enable this piece which was then the
+piece which was then the proper helmet the proper shield etc so
+proper helmet the proper shield etc so we visualized how we wanted to do it
+we visualized how we wanted to do it essentially we just wanted to cut out
+essentially we just wanted to cut out that
+that that step of the database where the
+that step of the database where the database was loading visual content
+database was loading visual content because obviously a database is not a
+because obviously a database is not a visual system
+visual system and instead stored all of the visual
+and instead stored all of the visual information
+information in files that were actually hand built
+in files that were actually hand built to handle visual information
+to handle visual information so it became a much more straightforward
+so it became a much more straightforward process obviously the question
+process obviously the question it's easy to say we want to do it this
+it's easy to say we want to do it this way but
+way but we actually have to find out whether we
+we actually have to find out whether we can do it so we spent about a day of r
+can do it so we spent about a day of r d which turned into about three days of
+d which turned into about three days of code work
+code work which then resulted in a lot of
+which then resulted in a lot of redundant code actually being removed
+redundant code actually being removed i'm sure any programmer would think
+i'm sure any programmer would think that's a very good a very good thing
+that's a very good a very good thing our programmers are actually really
+our programmers are actually really happy with this change because a lot of
+happy with this change because a lot of spaghetti code could be removed and a
+spaghetti code could be removed and a lot of edge cases could be
+lot of edge cases could be could be handled as well and the code
+could be handled as well and the code became much more
+became much more straightforward which resulted in a
+straightforward which resulted in a bunch more improvements
+bunch more improvements over time which i'll touch on later so
+over time which i'll touch on later so the question really then was
+the question really then was obviously three days of code work
+obviously three days of code work doesn't mean that our data has suddenly
+doesn't mean that our data has suddenly magically changed we what we actually
+magically changed we what we actually found is that we had about a month of
+found is that we had about a month of work to change how the content files
+work to change how the content files were stored
+were stored because we obviously needed to transfer
+because we obviously needed to transfer all of that visual information from the
+all of that visual information from the database
+database into our text-based variant files they
+into our text-based variant files they don't just magically update because
+don't just magically update because because the code changed so how to do
+because the code changed so how to do that
+that transfer well we wrote a entirely
+transfer well we wrote a entirely one-off script
+one-off script this is where the duct tape really comes
+this is where the duct tape really comes in because this script was
+in because this script was well basically the ugliest thing you've
+well basically the ugliest thing you've ever seen but it worked
+ever seen but it worked so it transferred all of that content
+so it transferred all of that content from the database
+from the database into our variant files and that one-off
+into our variant files and that one-off change
+change learned taught us basically how we
+learned taught us basically how we needed to make that change in the first
+needed to make that change in the first place
+place instead of going in and saying let's
+instead of going in and saying let's make like a super solid tool
+make like a super solid tool to handle this information change
+to handle this information change instead of doing that we said
+instead of doing that we said let's just try it let's prototype that
+let's just try it let's prototype that and just use the actual prototype in
+and just use the actual prototype in production
+production and just debug the content and just deal
+and just debug the content and just deal with it and by doing that
+with it and by doing that we actually learned enough about what we
+we actually learned enough about what we needed to do over time
+needed to do over time to then later turn it into a passive
+to then later turn it into a passive process because by then
+process because by then we understood the problem space we knew
+we understood the problem space we knew what we had to do we knew the problems
+what we had to do we knew the problems that we could encounter
+that we could encounter because we understood both the data and
+because we understood both the data and how to interact with it
+how to interact with it what that actually looks like if you
+what that actually looks like if you visualize the before and after
+visualize the before and after is on the left you see the unit in its
+is on the left you see the unit in its basic default configuration which is
+basic default configuration which is what the artists were actually seeing
+what the artists were actually seeing and then to the left of it
+and then to the left of it you can see the several equipments for
+you can see the several equipments for higher upgrade levels that were stored
+higher upgrade levels that were stored in separate files
+in separate files on the right you see the editor after
+on the right you see the editor after the change
+the change now the only change that we actually
+now the only change that we actually needed to do to the editor was to give
+needed to do to the editor was to give it the ability to hide certain slots
+it the ability to hide certain slots that was a very tiny code change
+that was a very tiny code change relatively speaking
+relatively speaking compared to the implementation change
+compared to the implementation change that we would have needed to do to
+that we would have needed to do to implement
+implement database interaction from the editor so
+database interaction from the editor so just by changing how the content was
+just by changing how the content was formatted
+formatted we were able to add a lot of
+we were able to add a lot of improvements into our editor
+improvements into our editor but again this was a very small change
+but again this was a very small change basically all we did is remove a single
+basically all we did is remove a single column from a single date table in a
+column from a single date table in a database and
+database and moved that information somewhere else
+moved that information somewhere else and while it was a complex change
+and while it was a complex change it wasn't really all that impressive
+it wasn't really all that impressive however
+however what we did get is a host of later
+what we did get is a host of later improvements that we did not see coming
+improvements that we did not see coming for one our programmers because the code
+for one our programmers because the code was now much simpler to deal with and
+was now much simpler to deal with and because the data was now much simpler to
+because the data was now much simpler to interact with
+interact with came up with the fact that we instead of
+came up with the fact that we instead of loading every single conceivable part
+loading every single conceivable part for every unit on startup which is
+for every unit on startup which is terrible for startup time we could now
+terrible for startup time we could now start loading on
+start loading on our unit parts on demand which meant
+our unit parts on demand which meant that when you equip an equipment
+that when you equip an equipment it's at that point in time that it will
+it's at that point in time that it will actually start loading the model
+actually start loading the model that was only possible because our data
+that was only possible because our data files were now structured in such a way
+files were now structured in such a way that the data model was much easier to
+that the data model was much easier to interact with
+interact with that of course resulted in a bunch of
+that of course resulted in a bunch of startup time improvements but
+startup time improvements but additionally because our data files were
+additionally because our data files were now essentially now contained
+now essentially now contained all of the visual information that a
+all of the visual information that a unit could ever have
+unit could ever have that meant that because they're xml
+that meant that because they're xml based python became incredibly powerful
+based python became incredibly powerful suddenly we could do metrics gathering
+suddenly we could do metrics gathering offline
+offline because these metadata files the variant
+because these metadata files the variant files which are essentially metadata
+files which are essentially metadata files
+files referenced our models so okay it's
+referenced our models so okay it's basically one step
+basically one step from reading some xml data to then
+from reading some xml data to then reading the model files to then
+reading the model files to then simulating what a unit would
+simulating what a unit would behave like in the game engine
+behave like in the game engine which meant you could measure things
+which meant you could measure things like draw calls without ever starting
+like draw calls without ever starting the game up
+the game up that also led to ideas for for future
+that also led to ideas for for future performance improvement systems
+performance improvement systems because again we understood the data
+because again we understood the data much better now because it was just
+much better now because it was just formatted in a more human-friendly way
+formatted in a more human-friendly way most importantly though it also led to
+most importantly though it also led to the creation of our entire ui pipeline
+the creation of our entire ui pipeline so that's pretty significant as well
+so that's pretty significant as well what this essentially is is an example
+what this essentially is is an example of an accelerator
+of an accelerator it's something that on the user's side
+it's something that on the user's side is actually a net zero
+is actually a net zero change but on the development side it
+change but on the development side it makes a huge difference
+makes a huge difference because the simplification of data led
+because the simplification of data led to a much deeper understanding of it
+to a much deeper understanding of it which in turn led to better processes
+which in turn led to better processes because these processes could now be
+because these processes could now be informed by this deeper understanding of
+informed by this deeper understanding of the data
+the data that then leads me to the second example
+that then leads me to the second example that i brought with me today which is
+that i brought with me today which is total war arena's ui pipeline i've
+total war arena's ui pipeline i've referenced it a few times so far
+referenced it a few times so far so i'm sure you're all curious to see
+so i'm sure you're all curious to see what it looks like so
+what it looks like so the problem that we had on arena was
+the problem that we had on arena was that ui production is
+that ui production is quite expensive i'm sure this is a
+quite expensive i'm sure this is a common problem in almost any production
+common problem in almost any production but on arena we had a lot of icons this
+but on arena we had a lot of icons this is also a
+is also a fairly common problem on arena we had
+fairly common problem on arena we had hundreds
+hundreds i think actually thousands of icons
+i think actually thousands of icons every single equipment in our game and
+every single equipment in our game and you have to imagine
+you have to imagine we have when the game shut down we had
+we have when the game shut down we had four factions each of which had 50 units
+four factions each of which had 50 units each of which had five equipments and
+each of which had five equipments and three upgrade levels so
+three upgrade levels so you can do the math on that one most of
+you can do the math on that one most of those had unique icons
+those had unique icons on top of that we had things like unit
+on top of that we had things like unit cards commander portraits
+cards commander portraits we had i think 30ish commanders each of
+we had i think 30ish commanders each of which had
+which had a few cosmetic skins so those needed
+a few cosmetic skins so those needed icons as well
+icons as well that's a bit high maintenance because
+that's a bit high maintenance because content changes things like character
+content changes things like character artists changing what a shield looks
+artists changing what a shield looks like
+like for example would require the icon to be
+for example would require the icon to be updated to reflect the changes
+updated to reflect the changes that's really not that scalable to give
+that's really not that scalable to give you really an idea of just the scale
+you really an idea of just the scale that this problem has this is a tiny
+that this problem has this is a tiny sampling
+sampling of the amount of icons we actually have
+of the amount of icons we actually have in our game these are just all equipment
+in our game these are just all equipment icons by the way not commander portraits
+icons by the way not commander portraits not achievement icons not skill icons
+not achievement icons not skill icons and not unit portraits
+and not unit portraits so that really gives you an idea of just
+so that really gives you an idea of just how high maintenance our pipeline was
+how high maintenance our pipeline was so again we took the same approach as we
+so again we took the same approach as we did on the first example
+did on the first example how is the data maintained well that
+how is the data maintained well that question was answered
+question was answered rather quickly basically a uh artist
+rather quickly basically a uh artist would go into the game engine take a
+would go into the game engine take a screenshot of
+screenshot of whatever asset they would make an icon
+whatever asset they would make an icon for take it into photoshop
+for take it into photoshop and then after 30 minutes of actually
+and then after 30 minutes of actually not after 30 minutes of work the reason
+not after 30 minutes of work the reason it says 30 minutes is because opening
+it says 30 minutes is because opening the game engine and the various tools
+the game engine and the various tools takes some time as well
+takes some time as well so for a single icon it might take 30
+so for a single icon it might take 30 minutes for 10 icons it might take 35
+minutes for 10 icons it might take 35 i'm sure you're all familiar with this
+i'm sure you're all familiar with this type of problem but even so
+type of problem but even so the overhead is quite large and really
+the overhead is quite large and really not sustainable
+not sustainable so we found this is really not scalable
+so we found this is really not scalable super high maintenance and we needed to
+super high maintenance and we needed to change this
+change this so stepping back then i think a good way
+so stepping back then i think a good way to
+to to do that is basically to abstract what
+to do that is basically to abstract what you're doing
+you're doing we actually asked ourselves we have a
+we actually asked ourselves we have a toolbox of stuff like we have
+toolbox of stuff like we have solutions and other projects that have
+solutions and other projects that have similar problems and
+similar problems and maybe we have some things in place some
+maybe we have some things in place some pieces of tech that we can scrap from
+pieces of tech that we can scrap from other solutions
+other solutions okay so we had an existing python code
+okay so we had an existing python code base
+base we had everything from version control
+we had everything from version control to image manipulation tools the ability
+to image manipulation tools the ability to interact with our game data
+to interact with our game data and just general python
+and just general python implementations for all kinds of
+implementations for all kinds of solutions what we also had
+solutions what we also had was marmoset toolbag three and this is
+was marmoset toolbag three and this is where it gets really interesting
+where it gets really interesting just a month before we had this problem
+just a month before we had this problem or rather just a month before we decided
+or rather just a month before we decided there was a problem
+there was a problem uh python 3 i'm sorry marmoset toolbag
+uh python 3 i'm sorry marmoset toolbag 3.03
+3.03 shipped it included python 3.6 support
+shipped it included python 3.6 support now this became really interesting for
+now this became really interesting for us because at the time
+us because at the time suddenly we found oh we have this
+suddenly we found oh we have this existing code base
+existing code base our artists know how to use mermaid
+our artists know how to use mermaid toolbag 3 and
+toolbag 3 and members at toolback 3 has a proven track
+members at toolback 3 has a proven track record of
+record of just making really pretty renders and
+just making really pretty renders and now it has a python api
+now it has a python api i think we can probably do a few things
+i think we can probably do a few things there we also had the substance batch
+there we also had the substance batch tools
+tools on total war we used the substance
+on total war we used the substance automation toolkit quite a bit
+automation toolkit quite a bit mostly in a headless fashion usually we
+mostly in a headless fashion usually we use this
+use this for image processing between various
+for image processing between various applications
+applications on total war arena actually the
+on total war arena actually the implementation we had for the substance
+implementation we had for the substance automation toolkit
+automation toolkit was to get our textures from substance
+was to get our textures from substance painter into the game
+painter into the game basically what we did is in substance
+basically what we did is in substance painter our textures would be authored
+painter our textures would be authored in the
+in the substance default metalness roughness
+substance default metalness roughness shading model but our game engine didn't
+shading model but our game engine didn't actually have that
+actually have that shading model so we used substance to
+shading model so we used substance to transform our textures into a different
+transform our textures into a different lighting model that sounds
+lighting model that sounds counter-intuitive but what that means is
+counter-intuitive but what that means is because we were under the assumption
+because we were under the assumption that our assets would be used on other
+that our assets would be used on other projects as well
+projects as well basically all we needed to do was to
+basically all we needed to do was to change that process
+change that process for a different game engine and then our
+for a different game engine and then our assets would be globally compatible with
+assets would be globally compatible with every project on total war
+every project on total war so this is what we use the substance
+so this is what we use the substance batch tools for so we knew we had a
+batch tools for so we knew we had a track record of like we can do something
+track record of like we can do something with this
+with this so the idea then became why don't we
+so the idea then became why don't we just take a screenshot from an asset
+just take a screenshot from an asset that's been set up in sub
+that's been set up in sub in marmoset pipe it through substance
+in marmoset pipe it through substance designer graph
+designer graph and then just put it into the game i'm
+and then just put it into the game i'm sure we can do something with that
+sure we can do something with that so well basically yeah we had a proof of
+so well basically yeah we had a proof of concept working in less than an hour
+concept working in less than an hour which was really impressive for us
+which was really impressive for us which mostly is down to the power of the
+which mostly is down to the power of the tool bag
+tool bag api um while it's a bit nascent it is
+api um while it's a bit nascent it is very good at what it does and extremely
+very good at what it does and extremely fast it's also
+fast it's also production capable was also production
+production capable was also production capable in under a day
+capable in under a day that doesn't mean that it was an actual
+that doesn't mean that it was an actual tool again this is
+tool again this is a talk about duct tape i don't have
+a talk about duct tape i don't have a video or a screenshot of what that
+a video or a screenshot of what that thing looked like and i will never show
+thing looked like and i will never show it to anyone
+it to anyone what i do have is a video of what it
+what i do have is a video of what it looked like a month ago
+looked like a month ago because i'm going to pretend that this
+because i'm going to pretend that this is what it always looked like
+is what it always looked like so basically what we what we did is we
+so basically what we what we did is we built a tool that allows us to set up
+built a tool that allows us to set up lighting and camera settings and
+lighting and camera settings and basically any kind of settings
+basically any kind of settings in a single marmoset scene that then
+in a single marmoset scene that then allows
+allows us to duplicate the settings in other
+us to duplicate the settings in other scenes that already just have a model
+scenes that already just have a model set up in them
+set up in them what that means is you only have to
+what that means is you only have to light a single scene and you can reuse
+light a single scene and you can reuse that setup in
+that setup in all of your renders which really because
+all of your renders which really because of the speed of marmoset means that your
+of the speed of marmoset means that your iteration time becomes extremely low
+iteration time becomes extremely low what you see happen here is commander
+what you see happen here is commander portraits
+portraits specifically for ambiorxis being used as
+specifically for ambiorxis being used as a test asset
+a test asset but for keen eyed among you i actually
+but for keen eyed among you i actually don't know if it's
+don't know if it's legible probably not but the asset in
+legible probably not but the asset in this video is actually
+this video is actually parented to a group called underscore
+parented to a group called underscore ignore so the pipeline
+ignore so the pipeline is just not implementing that particular
+is just not implementing that particular mesh in the in the render for the other
+mesh in the in the render for the other commanders
+commanders but obviously it's useful to have a test
+but obviously it's useful to have a test asset so
+asset so it's just duplicating the lighting the
+it's just duplicating the lighting the render settings the camera angle
+render settings the camera angle camera position and everything else for
+camera position and everything else for all of those other commanders which
+all of those other commanders which we've posed in the same pose
+we've posed in the same pose obviously this also requires that your
+obviously this also requires that your commanders have the same
+commanders have the same bodily shape and general proportions
+bodily shape and general proportions but basically what you can do is if they
+but basically what you can do is if they don't you can just make another template
+don't you can just make another template and merge in lighting from one template
+and merge in lighting from one template and a camera from another
+and a camera from another so there are there are various things
+so there are there are various things that you can do to deal with that
+that you can do to deal with that at that point what you have is a raw
+at that point what you have is a raw render obviously that can't really go to
+render obviously that can't really go to the game engine
+the game engine some sometimes it might depending on
+some sometimes it might depending on your setup but
+your setup but you probably will want to do something
+you probably will want to do something like transparency maybe some cropping
+like transparency maybe some cropping maybe adding a frame onto it that's
+maybe adding a frame onto it that's where substance designer basically comes
+where substance designer basically comes in
+in any substance designer artist will be
+any substance designer artist will be able to turn that image
+able to turn that image into something that can go into the game
+into something that can go into the game those
+those networks ended up being rather simple
+networks ended up being rather simple so why is this really duct tape well the
+so why is this really duct tape well the proof of concept was created and working
+proof of concept was created and working in two days
+in two days it was a very quick turnaround and it
+it was a very quick turnaround and it was designed for single use
+was designed for single use and mostly not designed for other work
+and mostly not designed for other work either
+either um the original version of the tool was
+um the original version of the tool was so hacky that i actually had to have
+so hacky that i actually had to have that i actually had to alter the code
+that i actually had to alter the code while a ui artist was sitting next to me
+while a ui artist was sitting next to me but we did get the content out on time
+but we did get the content out on time we went from production saying we need
+we went from production saying we need this now
+this now to we have the content in a couple days
+to we have the content in a couple days so that was
+so that was that was actually very super quick
+that was actually very super quick turnaround and we ended up producing 200
+turnaround and we ended up producing 200 assets in
+assets in a couple days so really
+a couple days so really at that time because it was so uh
+at that time because it was so uh not badly implemented but it was because
+not badly implemented but it was because it was such a hack it wouldn't even have
+it was such a hack it wouldn't even have been useful on other projects in fact
+been useful on other projects in fact not two weeks after we produced the
+not two weeks after we produced the content it broke because of some
+content it broke because of some environment thing we never really
+environment thing we never really figured out what it was
+figured out what it was but obviously that's not really the
+but obviously that's not really the point the point is we got the content
+point the point is we got the content out and we learned
+out and we learned about the solutions that we needed in
+about the solutions that we needed in fact
+fact what's important to note about that is
+what's important to note about that is really this implementation was only
+really this implementation was only possible because of the data work from
+possible because of the data work from the previous example
+the previous example the reason for this is because our
+the reason for this is because our variant data files that i refer to in
+variant data files that i refer to in that i refer to in the first example
+that i refer to in the first example were now so simplified that we knew how
+were now so simplified that we knew how to interact with our data
+to interact with our data and know and we knew where to find the
+and know and we knew where to find the models that would make up a particular
+models that would make up a particular equipment or a particular configuration
+equipment or a particular configuration we also knew where to get the fbx files
+we also knew where to get the fbx files the tga files and everything else from
+the tga files and everything else from our resource folders
+our resource folders to then import into marmoset the biggest
+to then import into marmoset the biggest challenge by far
+challenge by far for this pipeline was not to take the
+for this pipeline was not to take the screenshot it was to get the stuff into
+screenshot it was to get the stuff into marmoset in the first place
+marmoset in the first place because obviously interacting with game
+because obviously interacting with game data information
+data information you can't directly import some custom
+you can't directly import some custom binary
+binary format into marmoset so you have to get
+format into marmoset so you have to get an fbx file
+an fbx file our pipelines were not optimized to
+our pipelines were not optimized to provide this fpx file in the first place
+provide this fpx file in the first place but because of the simplification of
+but because of the simplification of data we were much
+data we were much more able to create some sort of patched
+more able to create some sort of patched solution that would
+solution that would export these those fbx's that we needed
+export these those fbx's that we needed so that was actually
+so that was actually really convenient for us but importantly
+really convenient for us but importantly as well
+as well is because we now understood our data
+is because we now understood our data much better
+much better we wouldn't have had the idea to make
+we wouldn't have had the idea to make this pipeline in the first place
+this pipeline in the first place had that not been the case and i think
+had that not been the case and i think that's really the key message here
+that's really the key message here so this tool or rather the first
+so this tool or rather the first duct tape implementation of it was used
+duct tape implementation of it was used in production while prototyping
+in production while prototyping production work with the tool was
+production work with the tool was actually mostly done by myself
+actually mostly done by myself with a uart sitting next to me like i
+with a uart sitting next to me like i said earlier me actually
+said earlier me actually altering the code while we were doing
+altering the code while we were doing while we were doing the actual work
+while we were doing the actual work but key to that is that actually working
+but key to that is that actually working with the tool
+with the tool led to a host of improvements later on
+led to a host of improvements later on that we would otherwise never have
+that we would otherwise never have conceived of
+conceived of i think that's a phenomenon that any
+i think that's a phenomenon that any tool developer can relate to is you
+tool developer can relate to is you probably have a good idea of how you
+probably have a good idea of how you want your tool to work but actually
+want your tool to work but actually working with
+working with it usually leads to insights that you
+it usually leads to insights that you just can't have otherwise
+just can't have otherwise so this is where also the distinction
+so this is where also the distinction between
+between it being a hack or it being duct taped
+it being a hack or it being duct taped really comes in
+really comes in if you consider something to be duct
+if you consider something to be duct tape at least in the meaning of the term
+tape at least in the meaning of the term of this talk is that you are going to
+of this talk is that you are going to rip the band-aid off later
+rip the band-aid off later um many quick iterations early on really
+um many quick iterations early on really in that resulted in a much more robust
+in that resulted in a much more robust duel down the line but we rewrote the
+duel down the line but we rewrote the entire thing from scratch
+entire thing from scratch every single line of code was rewritten
+every single line of code was rewritten in fact the original prototype was never
+in fact the original prototype was never even submitted to perforce because i
+even submitted to perforce because i refused to do that
+but there's a catch everything you just saw is built on one thing and
+saw is built on one thing and i really want to see if anyone can guess
+i really want to see if anyone can guess what it is i'm going to give you 20
+what it is i'm going to give you 20 seconds
+seconds no all right so
+no all right so file conventions anyone who knows me
+file conventions anyone who knows me knows that i'm a naming conventions guy
+knows that i'm a naming conventions guy in fact
+in fact when i went to do a talk in london at
+when i went to do a talk in london at industry workshops which is an art
+industry workshops which is an art like a super artistic convention i
+like a super artistic convention i managed to
+managed to somehow amuse 45 artists long enough
+somehow amuse 45 artists long enough that they stuck around for a 50-minute
+that they stuck around for a 50-minute presentation on folder structures
+yes so the reason why i really hammer on this and i swear i
+i really hammer on this and i swear i will have something about naming
+will have something about naming conventions on my gravestone
+conventions on my gravestone is that good conventions really make
+is that good conventions really make tool development easier any tool
+tool development easier any tool developer can
+developer can can confirm this because if your data is
+can confirm this because if your data is all formatted in a consistent way
+all formatted in a consistent way then your the amount of lines that you
+then your the amount of lines that you have to write to
+have to write to deal with edge cases goes from an
+deal with edge cases goes from an entire framework just to deal with edge
+entire framework just to deal with edge cases to in our case we basically didn't
+cases to in our case we basically didn't deal with edge cases we just let the
+deal with edge cases we just let the edge cases fail
+edge cases fail because our data was formatted in such a
+because our data was formatted in such a good way that
+good way that even at a 10 failure rate we would just
+even at a 10 failure rate we would just deal with a 10 percent rather than doing
+deal with a 10 percent rather than doing it in code
+it in code it also makes prototyping a lot faster
+it also makes prototyping a lot faster because again you don't have to start
+because again you don't have to start at the at a point where you're still
+at the at a point where you're still trying to get to the data in the first
+trying to get to the data in the first place
+place if you automatically know where the data
+if you automatically know where the data is and how to interact with it
+is and how to interact with it again by simplifying the data that's a
+again by simplifying the data that's a really good first
+really good first step your prototyping is going to be so
+step your prototyping is going to be so much faster because you can start
+much faster because you can start at the point of your prototype where
+at the point of your prototype where your prototype will immediately
+your prototype will immediately do what it's designed to do just maybe
+do what it's designed to do just maybe not in the best way but that's why it's
+not in the best way but that's why it's a prototype
+a prototype but if it has to interact with data and
+but if it has to interact with data and you don't have the data to begin with
+you don't have the data to begin with then prototyping is just a whole lot
+then prototyping is just a whole lot slower
+slower it also makes tools more reliable
+it also makes tools more reliable because again if your tools don't have
+because again if your tools don't have to worry about edge cases
+to worry about edge cases and essentially don't implement behavior
+and essentially don't implement behavior that will deal with edge cases
+that will deal with edge cases it means that the actual behavior that
+it means that the actual behavior that the tool is designed to do
+the tool is designed to do will be a lot more reliable because you
+will be a lot more reliable because you can just tell an artist who says the
+can just tell an artist who says the tool doesn't work to format their data
+tool doesn't work to format their data properly
+properly our conventions really in this case
+our conventions really in this case meant that validation was easier
+meant that validation was easier because well we didn't do any it also
+because well we didn't do any it also means that
+means that the use of duct tape was a lot safer
+the use of duct tape was a lot safer basically what we did is because we had
+basically what we did is because we had this reliable database of
+this reliable database of of data essentially we knew where to
+of data essentially we knew where to find our models we knew where to find
+find our models we knew where to find our textures
+our textures it meant that we could just take a
+it meant that we could just take a branch or a copy
+branch or a copy of the original data and do some
+of the original data and do some transforms on it do some animation on it
+transforms on it do some animation on it make make the character pose
+make make the character pose but we knew we didn't have to touch the
+but we knew we didn't have to touch the original data we just left the original
+original data we just left the original data intact and just made a copy and
+data intact and just made a copy and then worked on the copy
+then worked on the copy but because we always knew where to find
+but because we always knew where to find the source we could just do that again
+the source we could just do that again and again and again
+and again and again and always make sure that we can go back
+and always make sure that we can go back to that source which meant that our
+to that source which meant that our original data
+original data formatted in the way it was served as a
+formatted in the way it was served as a safety net independent of any one tool
+safety net independent of any one tool because everything fails sooner or later
+because everything fails sooner or later in every game development process
+in every game development process and if you have that safety net it means
+and if you have that safety net it means you can just always go back to the
+you can just always go back to the source
+source obviously that's easier said than done
+obviously that's easier said than done good conventions are really hard and
+good conventions are really hard and they take a lot of work so i brought
+they take a lot of work so i brought with me
+with me three golden rules for good conventions
+three golden rules for good conventions that i hope
+that i hope you'll take home with you first one
+you'll take home with you first one is that good conventions take a lot of
+is that good conventions take a lot of work because they require constant
+work because they require constant evaluation but not
+evaluation but not constant change that's a really
+constant change that's a really important distinction
+important distinction what we actually do on total war is when
+what we actually do on total war is when we come up with a new naming convention
+we come up with a new naming convention or an iteration on an existing one
+or an iteration on an existing one for a new project or a new branch or a
+for a new project or a new branch or a new dlc or whatever
+new dlc or whatever we actually sit down in a meeting room
+we actually sit down in a meeting room and i will stress this until the day i
+and i will stress this until the day i die there is no amount of work that you
+die there is no amount of work that you can put in a naming
+can put in a naming convention that is too much because six
+convention that is too much because six months down the line
+months down the line you suddenly you realize oh your
+you suddenly you realize oh your convention wasn't strong enough to deal
+convention wasn't strong enough to deal with this new pipeline
+with this new pipeline well okay that's 6 000 man hours down
+well okay that's 6 000 man hours down the drain just to
+the drain just to transfer those 10 000 assets into the
+transfer those 10 000 assets into the new convention that does deal with it
+new convention that does deal with it or you build some patch tech to deal
+or you build some patch tech to deal with the new change and then suddenly
+with the new change and then suddenly you have technical debt
+you have technical debt if you just avoid it to begin with then
+if you just avoid it to begin with then if your conventions are good enough to
+if your conventions are good enough to deal with whatever you're going to
+deal with whatever you're going to encounter
+encounter well that's going to save you a lot of
+well that's going to save you a lot of time down the line
+time down the line so good evaluation but not constant
+so good evaluation but not constant change essentially means when you nail
+change essentially means when you nail down your conventions
+down your conventions just do a review for us we
+just do a review for us we actually validate the very first
+actually validate the very first submission in a new convention so the
+submission in a new convention so the first submission
+first submission for art in the new naming convention
+for art in the new naming convention will not go into perforce until a tech
+will not go into perforce until a tech artist actually approves it
+artist actually approves it what we then do is one weekend we do
+what we then do is one weekend we do another evaluation
+another evaluation as much to see if the conventions are
+as much to see if the conventions are being respected
+being respected as to see that the conventions actually
+as to see that the conventions actually hold up under the stress of production
+hold up under the stress of production and then we do the same thing a month
+and then we do the same thing a month afterwards again to see if the
+afterwards again to see if the conventions are good but also to see if
+conventions are good but also to see if they're being enforced so it's kind of a
+they're being enforced so it's kind of a two-way
+two-way street where you ensure that your
+street where you ensure that your conventions are strong enough but also
+conventions are strong enough but also that they're being enforced properly
+that they're being enforced properly this also allows you to nip certain
+this also allows you to nip certain mistakes in the bud really early on
+mistakes in the bud really early on while you're selling your prototyping
+while you're selling your prototyping phase to make sure that you
+phase to make sure that you provide enough data for your future
+provide enough data for your future pipelines all to all work
+pipelines all to all work an example of what we maybe could have
+an example of what we maybe could have done on total war arena
+done on total war arena was to always export an fbx file with a
+was to always export an fbx file with a max file
+max file just just to ensure that any pipeline
+just just to ensure that any pipeline that might make use of it
+that might make use of it would have it we have plenty of space on
+would have it we have plenty of space on perforce so there's no reason not to do
+perforce so there's no reason not to do it
+it so in hindsight we could have always
+so in hindsight we could have always exported an fbx file and we could have
+exported an fbx file and we could have skipped an entire step in our
+skipped an entire step in our prototyping process
+prototyping process the second and this is i think one of
+the second and this is i think one of the most important ones
+the most important ones and but not necessarily one of the most
+and but not necessarily one of the most intuitive ones is a strong underpinning
+intuitive ones is a strong underpinning philosophy
+philosophy what this really means is that you have
+what this really means is that you have to have something that can under build
+to have something that can under build your naming conventions
+your naming conventions that can be summed up in a mantra the
+that can be summed up in a mantra the three steps that i say there is print it
+three steps that i say there is print it workshop it
+workshop it teach it because what we actually did on
+teach it because what we actually did on total war arena is we had a half
+total war arena is we had a half hour workshop where i actually taught
+hour workshop where i actually taught the artists our naming conventions
+the artists our naming conventions essentially taking them through the
+essentially taking them through the steps that i would take to come up with
+steps that i would take to come up with the name
+the name for the file what that actually resulted
+for the file what that actually resulted in
+in is maybe 10 minutes of summing up of the
+is maybe 10 minutes of summing up of the mantra of the naming convention if you
+mantra of the naming convention if you will the
+will the summing up in five sentences and then 15
+summing up in five sentences and then 15 minutes of actual exercises i would give
+minutes of actual exercises i would give them an image and tell them to label it
+them an image and tell them to label it and that actually made it it sounds
+and that actually made it it sounds silly but
+silly but two years afterward i hadn't done a
+two years afterward i hadn't done a single correction to any submission
+single correction to any submission sin for two years which is something
+sin for two years which is something that i've never seen before
+that i've never seen before so our naming conventions essentially
+so our naming conventions essentially became self-reinforcing we taught them
+became self-reinforcing we taught them how to fish
+how to fish in other words a good example of what a
+in other words a good example of what a strong underpinning philosophy might be
+strong underpinning philosophy might be in our case one of the strongest we have
+in our case one of the strongest we have is call it what it is
+is call it what it is not what it's used for a good example of
+not what it's used for a good example of in a real world object where that might
+in a real world object where that might be the case is if you have a simple lego
+be the case is if you have a simple lego brick
+brick lego will label their bricks as a 6x2 or
+lego will label their bricks as a 6x2 or 4x2 or a wheel but they won't say
+4x2 or a wheel but they won't say it's a wheel for a police car because it
+it's a wheel for a police car because it might be on a fire truck
+might be on a fire truck so that's a important distinction
+so that's a important distinction between what it is versus what it's used
+between what it is versus what it's used for
+for it's true that for some assets these two
+it's true that for some assets these two things will overlap but if you keep a
+things will overlap but if you keep a conscious distinction between the two
+conscious distinction between the two then you'll find that you're prepared
+then you'll find that you're prepared for way more use cases because what it
+for way more use cases because what it results in
+results in is essentially a lego kit that your
+is essentially a lego kit that your designers can use
+designers can use and they're free to change their minds
+and they're free to change their minds without the fundamental naming
+without the fundamental naming conventions and labeling systems
+conventions and labeling systems of your entire repository needing to
+of your entire repository needing to change to deal with design
+change to deal with design changes this is not because the
+changes this is not because the underlying
+underlying thinking there is not that we don't want
+thinking there is not that we don't want design to change their mind
+design to change their mind we want them to be able to change their
+we want them to be able to change their mind without needing to
+mind without needing to overhaul our entire repository because
+overhaul our entire repository because for game design is just as much an
+for game design is just as much an iterative process as any other craft
+iterative process as any other craft lastly consistent enforcement i think
+lastly consistent enforcement i think this is the one that requires the least
+this is the one that requires the least explanation
+explanation the only solution we found for that was
+the only solution we found for that was just make people clean up their own mess
+just make people clean up their own mess if they make a wrong submission just
+if they make a wrong submission just make him fix it
+make him fix it and they won't do it again and if they
+and they won't do it again and if they do just make him fix it again until they
+do just make him fix it again until they stop
+so we're nearing the i think the last third of the presentation
+third of the presentation what we learned looking back there are a
+what we learned looking back there are a few things that we learned from this
+few things that we learned from this process
+process basically tunnel vision is the enemy of
+basically tunnel vision is the enemy of any
+any production it's all about the big
+production it's all about the big picture and your solutions really only
+picture and your solutions really only make sense in the context of the product
+make sense in the context of the product that they're meant for
+that they're meant for so what you should do there this is a
+so what you should do there this is a really tricky one there is not
+really tricky one there is not really a golden solution for that but
+really a golden solution for that but what we found is that regular follow-up
+what we found is that regular follow-up productions
+productions of three evaluations help
+of three evaluations help basically you the questions you have to
+basically you the questions you have to ask is do the solution
+ask is do the solution does the solution still fit the project
+does the solution still fit the project do you really need that asset processor
+do you really need that asset processor or
+or is your is your requirement is your
+is your is your requirement is your production requirement
+production requirement um has it has it changed does it need to
+um has it has it changed does it need to do things that it wasn't designed for
+do things that it wasn't designed for does it call for a new tool or can you
+does it call for a new tool or can you use a different tool for it that's maybe
+use a different tool for it that's maybe better at dealing with the data
+better at dealing with the data a good example of that might be that for
+a good example of that might be that for example we could have made our game
+example we could have made our game engine
+engine produce the ui icons because it's
+produce the ui icons because it's basically already a renderer
+basically already a renderer but it would have added a bunch of
+but it would have added a bunch of overhead and it didn't have the render
+overhead and it didn't have the render features that tool bag had
+features that tool bag had what we have now instead is a rendering
+what we have now instead is a rendering pipeline
+pipeline in marmoset toolbag that is compatible
+in marmoset toolbag that is compatible with any 3d data
+with any 3d data including data that wasn't necessarily
+including data that wasn't necessarily meant for the game engine
+meant for the game engine so that really um gave us a much more
+so that really um gave us a much more powerful tool than i think the game
+powerful tool than i think the game engine would
+engine would realistically have been able to
+realistically have been able to implement
+implement it's also important to evaluate your
+it's also important to evaluate your tools in the context of the whole
+tools in the context of the whole project because
+project because the first question you always must ask
+the first question you always must ask is can the need for this tool be
+is can the need for this tool be eliminated
+eliminated obviously a shorter pipeline is always
+obviously a shorter pipeline is always going to be more stable
+going to be more stable and fewer tools is always better so the
+and fewer tools is always better so the question also there is
+question also there is is another tool more appropriate again
+is another tool more appropriate again that's the comparison between should we
+that's the comparison between should we have used the game engine or marmoset
+also lots of things actually do require a proper solution now
+a proper solution now using a duct tape solution to learn from
+using a duct tape solution to learn from is
+is it shouldn't be your go-to solution i
+it shouldn't be your go-to solution i would say
+would say it's not always obvious and errors in
+it's not always obvious and errors in judgment can happen for this but it's
+judgment can happen for this but it's kind of up to your own intuition
+kind of up to your own intuition about whether to use a hack to just get
+about whether to use a hack to just get the content out or
+the content out or rather duct tape to just get the content
+rather duct tape to just get the content out or to go through the motions
+out or to go through the motions of just prototype development delivery
+of just prototype development delivery it's kind of really up to the context in
+it's kind of really up to the context in the situ in this specific situation that
+the situ in this specific situation that you're in
+so some of the more more important lessons are as well if you do
+lessons are as well if you do use duct tape solutions for the love of
+use duct tape solutions for the love of god get rid of them
+god get rid of them because patch tech like this accumulates
+because patch tech like this accumulates technical debt very quickly
+technical debt very quickly these kinds of solutions are beautiful
+these kinds of solutions are beautiful to learn from it allows you to look to
+to learn from it allows you to look to teach yourself
+teach yourself the solution you actually need instead
+the solution you actually need instead of the one you think you need
+of the one you think you need again going back to the first example
+again going back to the first example where
+where we had an editor that wasn't really
+we had an editor that wasn't really equipped to deal with the new data
+equipped to deal with the new data and the straightforward solution was
+and the straightforward solution was just implement database behavior
+just implement database behavior instead we implemented a different data
+instead we implemented a different data format
+format which we then used duct tape for which
+which we then used duct tape for which taught us that oh actually using a
+taught us that oh actually using a different data format isn't much is much
+different data format isn't much is much better
+better much more sustainable but very key about
+much more sustainable but very key about that
+that is never ever build anything on top of
+is never ever build anything on top of duct tape tech if you find
+duct tape tech if you find that a hack went in to ship some content
+that a hack went in to ship some content notify production and tell them you can
+notify production and tell them you can get your content but you need to
+get your content but you need to give us the time to re-implement this
+give us the time to re-implement this from the ground up because it will bite
+from the ground up because it will bite you in the ass
+you in the ass six months down the line so going
+six months down the line so going forward then
+forward then basically it's saying the same thing
+basically it's saying the same thing work out when to remove the duct tape
+work out when to remove the duct tape because you always have to find when is
+because you always have to find when is duct tape appropriate and when will
+duct tape appropriate and when will production require proper tools
+production require proper tools for the pipeline that we had we actually
+for the pipeline that we had we actually asked production or we told production
+asked production or we told production you're going to need to give us time to
+you're going to need to give us time to re-implement this
+re-implement this from the ground up because we can give
+from the ground up because we can give you the content on time
+you the content on time but if we keep this in the production it
+but if we keep this in the production it will break in two weeks and we're gonna
+will break in two weeks and we're gonna have to keep fixing it
+have to keep fixing it instead if we just re-implement it it
+instead if we just re-implement it it will keep working forever or well
+will keep working forever or well nothing works forever but it will keep
+nothing works forever but it will keep working for at least a couple months or
+working for at least a couple months or years
+years so basically you just work with the
+so basically you just work with the other departments to ensure that you get
+other departments to ensure that you get the appropriate amount of time
+the appropriate amount of time to rip the band-aid off as it will
+so takeaways of the talk then nearing the end
+the end there is actually a benefit first key
+there is actually a benefit first key message is that there is a benefit to
+message is that there is a benefit to using temporary solutions
+using temporary solutions not everything requires the proper
+not everything requires the proper solution now and managed
+solution now and managed duct tape can be very useful again the
+duct tape can be very useful again the idea is that you
+idea is that you going in realize that the solution
+going in realize that the solution you're implementing is temporary and
+you're implementing is temporary and you're going to need to get rid of it
+you're going to need to get rid of it but the idea is that you learn from it
+but the idea is that you learn from it you learn the problem space and the
+you learn the problem space and the solution space you learn
+solution space you learn the actual solution that you need
+the actual solution that you need instead of the one you think you need
+instead of the one you think you need so changing production requirements in
+so changing production requirements in that context also might mean that
+that context also might mean that a solution is best left as a temporary
+a solution is best left as a temporary fix until a bigger system replaces it
+fix until a bigger system replaces it it happens all the time in production
+it happens all the time in production when some new big system comes online
+when some new big system comes online that suddenly
+that suddenly your solution is either redundant or
+your solution is either redundant or requires a complete overhaul
+requires a complete overhaul the straightforward solution might seem
+the straightforward solution might seem that you just adapt it to whatever the
+that you just adapt it to whatever the new
+new environment is but at that point it
+environment is but at that point it might be more productive to just step
+might be more productive to just step back and take a look to see if you can
+back and take a look to see if you can make a bigger or smaller solution that
+make a bigger or smaller solution that does something
+does something that does what you need it to do more
+that does what you need it to do more elegantly
+in that context i think the key message of this entire talk is that every
+of this entire talk is that every solution is a learning opportunity
+solution is a learning opportunity everything can be done better but not
+everything can be done better but not everything really has to
+everything really has to it doesn't mean it's not because you
+it doesn't mean it's not because you want to build a rocket that you have to
+want to build a rocket that you have to reach the moon
+reach the moon it's kind of up to you to determine
+it's kind of up to you to determine how big the solution is that you need
+how big the solution is that you need because it kind of really matters
+because it kind of really matters how big the problem is how urgent the
+how big the problem is how urgent the problem is how soon you need a solution
+problem is how soon you need a solution as well
+as well there's always a lot of factors
+there's always a lot of factors determining this
+determining this essentially but it's kind of up to you
+essentially but it's kind of up to you to figure out with production and the
+to figure out with production and the other departments
+other departments to know what your priorities are but in
+to know what your priorities are but in that
+that every step clarifies the problem space
+every step clarifies the problem space and it really helps you understand a
+and it really helps you understand a better solution
+better solution it really allows you to come up
+it really allows you to come up with a new understanding of the data and
+with a new understanding of the data and how to best
+how to best interact with it allows you to come up
+interact with it allows you to come up with best practices and it allows you to
+with best practices and it allows you to really understand your own pipeline in
+really understand your own pipeline in ways that you
+ways that you thought you did but you didn't really
+thought you did but you didn't really then i think also one of the bigger ones
+then i think also one of the bigger ones is that fewer tools is always better
+is that fewer tools is always better a shorter chain is less likely to fail
+a shorter chain is less likely to fail that doesn't mean that you must have
+that doesn't mean that you must have less steps in your pipeline you can have
+less steps in your pipeline you can have as many steps in your pipeline as you
+as many steps in your pipeline as you want as long as it's
+want as long as it's hidden from the artists so a one-button
+hidden from the artists so a one-button solution will always be better
+solution will always be better that doesn't mean that your black box
+that doesn't mean that your black box must be the biggest thing ever written
+must be the biggest thing ever written there is also the same concept applies
+there is also the same concept applies if you do make a black box
+if you do make a black box but in general if you have a one button
+but in general if you have a one button solution
+solution then at least you can debug what's going
+then at least you can debug what's going on
+on rather than ask an artist whether
+rather than ask an artist whether they've pressed a very particular button
+they've pressed a very particular button or checked a box somewhere hidden in a
+or checked a box somewhere hidden in a ui panel
+one of the last ones then is to pick your targets
+your targets you should work to eliminate tools not
+you should work to eliminate tools not build new ones
+build new ones i think the go-to solution for a lot of
+i think the go-to solution for a lot of problems is oh we can build a tool to do
+problems is oh we can build a tool to do this really easily the next time around
+this really easily the next time around and i think that's a pitfall that a lot
+and i think that's a pitfall that a lot of tech artists and a lot of tool
+of tech artists and a lot of tool developers easily fall into because you
+developers easily fall into because you get caught in the joy of making tools
+get caught in the joy of making tools and you end up making tools for their
+and you end up making tools for their own sake and
+own sake and if you find yourself doing that just
+if you find yourself doing that just stop
+a shorter pipeline is just always better and a data change
+and a data change as we saw in the first example can just
+as we saw in the first example can just be way more effective than any tool
+be way more effective than any tool you should just always question whether
+you should just always question whether data is being treated by the tools that
+data is being treated by the tools that are meant to treat it
+are meant to treat it and whether data is being stored in the
+and whether data is being stored in the format that the data was meant
+format that the data was meant to be stored in in our case we had
+to be stored in in our case we had visual information being stored
+visual information being stored in a largely binary database which are
+in a largely binary database which are two formats that are
+two formats that are inherently incompatible
+and lastly build safety nets uh system independent structures that
+uh system independent structures that don't fail such as good folder
+don't fail such as good folder structures and naming conventions will
+structures and naming conventions will help you ensure that your you have
+help you ensure that your you have something to fall back on
+something to fall back on it will allow you to treat your content
+it will allow you to treat your content in different ways and just try out new
+in different ways and just try out new pipelines without ever needing to
+pipelines without ever needing to consult an artist
+consult an artist because you will have the content
+because you will have the content available to you if you already have
+available to you if you already have that repository of
+that repository of fbx files it means you don't need a max
+fbx files it means you don't need a max installation to get to the model data
+installation to get to the model data and that is very relevant for any tool
+and that is very relevant for any tool developer and very important
+developer and very important so these system independent structures
+so these system independent structures that are
+that are very slow moving and therefore hard to
+very slow moving and therefore hard to break will serve as your safety net and
+break will serve as your safety net and ensure that
+ensure that you have something to fall back on
+you have something to fall back on a few great resources then that really
+a few great resources then that really helped me
+helped me make this talk and really helped me
+make this talk and really helped me build the tools
+build the tools actually was the first one i want to
+actually was the first one i want to point out is the
+point out is the gdc 2018 talk from michael malinowski a
+gdc 2018 talk from michael malinowski a practical approach to developing
+practical approach to developing forward-facing riggs tools and pipelines
+forward-facing riggs tools and pipelines was anyone at that talk in this room
+was anyone at that talk in this room yeah so it dealt with the plug-in
+yeah so it dealt with the plug-in factory design pattern this is probably
+factory design pattern this is probably the most prolific design pattern that we
+the most prolific design pattern that we currently use on total war
+currently use on total war on technical art tools because it is by
+on technical art tools because it is by definition extremely good at dealing
+definition extremely good at dealing with edge cases
+with edge cases so i highly recommend you check out that
+so i highly recommend you check out that talk it's freely available on the fault
+talk it's freely available on the fault second i think really obvious just look
+second i think really obvious just look up the wikipedia definition on technical
+up the wikipedia definition on technical debt because it's got
+debt because it's got so many external links um it
+so many external links um it obviously it's kind of like let me
+obviously it's kind of like let me google that for you i know but
+google that for you i know but uh it's also it's just a very relevant
+uh it's also it's just a very relevant still a very relevant definition
+still a very relevant definition it's it stems from regular software
+it's it stems from regular software development not just game development
+development not just game development and it really helps people who don't
+and it really helps people who don't necessarily understand what technical
+necessarily understand what technical that is or maybe think they do
+that is or maybe think they do really come to terms with the various
+really come to terms with the various concepts that
+concepts that go into it and help you understand how
+go into it and help you understand how to deal with it as well because
+to deal with it as well because obviously over the years
+obviously over the years as software development has aged various
+as software development has aged various techniques and tactics have been
+techniques and tactics have been developed to deal with it
+developed to deal with it then lastly there's an article on
+then lastly there's an article on breakingthewheel.com
+breakingthewheel.com video game art pipelines that's actually
+video game art pipelines that's actually a really good article
+a really good article that does an incredibly good job of
+that does an incredibly good job of breaking down how to identify
+breaking down how to identify bottlenecks in your asset production
+bottlenecks in your asset production pipeline
+pipeline it uses it uses the same principles that
+it uses it uses the same principles that were used on
+were used on uh like factory pipelines and factory
+uh like factory pipelines and factory production lines
+production lines to identify essentially the slowest part
+to identify essentially the slowest part in your production
+in your production and ensure that you can prioritize
+and ensure that you can prioritize properly which things you need to
+properly which things you need to optimize
+optimize first um so that did a very good job of
+first um so that did a very good job of describing that with that i just want to
+describing that with that i just want to thank everyone for listening and you can
+thank everyone for listening and you can contact me on the email address here
+contact me on the email address here we have some time for questions thank
+so yeah so for questions you can go to the mic
+the mic also i have business cards if anyone
+also i have business cards if anyone wants to contact me later
+wants to contact me later hi um i have
+hi um i have quite a few issues in our studio with
+quite a few issues in our studio with managing these band-aid tools and the
+managing these band-aid tools and the biggest pushback i get about either
+biggest pushback i get about either removing them or promoting them to
+removing them or promoting them to something a little bit more permanent
+something a little bit more permanent is there's a fear of the time cost that
+is there's a fear of the time cost that it's going to take to do that and the
+it's going to take to do that and the risk that's associated with it
+risk that's associated with it how do you convince people to buy in um
+how do you convince people to buy in um toward making that leap of faith in
+toward making that leap of faith in either direction
+either direction i get the right allies um it's it's a
+i get the right allies um it's it's a bit political but
+bit political but for the variant cleanup it actually took
+for the variant cleanup it actually took me roughly a month to uh
+me roughly a month to uh to convince the various key people that
+to convince the various key people that would end up making the call
+would end up making the call that we actually needed to do this i did
+that we actually needed to do this i did that at the time
+that at the time by actually writing up a big word doc
+by actually writing up a big word doc explaining like
+explaining like these are these are this is how we
+these are these are this is how we should do it and these are the things
+should do it and these are the things that we would get in return
+that we would get in return and then you just list out all of the
+and then you just list out all of the things that we all of the problems that
+things that we all of the problems that you encounter
+you encounter as a result of this not being a thing
+as a result of this not being a thing yet um
+yet um various bugs are always good uh like if
+various bugs are always good uh like if you have like a thousand bugs that
+you have like a thousand bugs that basically could be avoided by
+basically could be avoided by implementing this new system
+implementing this new system then it's kind of at that point it just
+then it's kind of at that point it just becomes a numbers game
+becomes a numbers game so you can just hit someone in the face
+so you can just hit someone in the face with a big number and say
+with a big number and say look this is costing us a ton of time
+look this is costing us a ton of time and money uh we should really do this
+and money uh we should really do this it is difficult though it's just getting
+it is difficult though it's just getting the right allies
+the right allies thanks thank you
+thanks thank you uh thank you for talk i have a question
+uh thank you for talk i have a question regarding uh how do you
+regarding uh how do you catch the errors in the conventions do
+catch the errors in the conventions do you have like scripts or ci or something
+you have like scripts or ci or something yeah so that's a that's a good question
+yeah so that's a that's a good question um on total
+um on total arena by the end of the production uh we
+arena by the end of the production uh we actually did have
+actually did have a script that would go through our
+a script that would go through our entire folder structure and catch any
+entire folder structure and catch any errors
+errors but i think in general that's really
+but i think in general that's really hard to achieve because of
+hard to achieve because of various concerns in terms with in terms
+various concerns in terms with in terms of um
+of um there will always be edge cases i think
+there will always be edge cases i think the best
+the best so the way we actually do deal with it
+so the way we actually do deal with it is to just do periodical evaluations
+is to just do periodical evaluations if you you do an evaluation the day of
+if you you do an evaluation the day of the first submission
+the first submission then one a week after the first
+then one a week after the first submission when
+submission when more stuff has gone in and then a month
+more stuff has gone in and then a month and then two months afterwards
+and then two months afterwards and if you catch things that have that
+and if you catch things that have that have been done wrong or if a
+have been done wrong or if a particularly
+particularly egregious number of mistakes have been
+egregious number of mistakes have been made
+made then you can just do your periodical
+then you can just do your periodical evaluations at a higher frequency and
+evaluations at a higher frequency and keep doing them
+keep doing them until people get it right but again
+until people get it right but again there it's just important to
+there it's just important to trust in the area leads to enforce those
+trust in the area leads to enforce those conventions for you because you won't
+conventions for you because you won't have the resources or the time to do it
+have the resources or the time to do it yourself
+yourself thank you great talk thank you thank you
+thank you great talk thank you thank you sounds like you've put a ton of time and
+sounds like you've put a ton of time and thought and energy
+thought and energy into naming conventions i'm curious do
+into naming conventions i'm curious do you plan on
+you plan on publishing the the work that you've come
+publishing the the work that you've come up with in that specifics like those
+up with in that specifics like those conventions as well as
+conventions as well as the the presentation you gave on getting
+the the presentation you gave on getting people to buy into it
+people to buy into it yeah so um yes a quick note the
+yeah so um yes a quick note the presentation slides will be available on
+presentation slides will be available on tech
+tech artists.org um so
+artists.org um so uh but for the naming conventions thing
+uh but for the naming conventions thing i think so i think we are kind of
+i think so i think we are kind of looking into like publishing
+looking into like publishing our mantra if you will i think our
+our mantra if you will i think our mantra for total war was actually
+mantra for total war was actually call it what it is not what it's used
+call it what it is not what it's used for classification
+for classification labels have weights so uh shield is
+labels have weights so uh shield is bigger than
+bigger than shield small so small comes after shield
+shield small so small comes after shield in that sense not every shield is small
+in that sense not every shield is small but all small
+but all small shields are part of a shield group kind
+shields are part of a shield group kind of that
+of that uh consideration and there were some
+uh consideration and there were some other things as well we summed it up and
+other things as well we summed it up and we actually did print it out on a poster
+we actually did print it out on a poster so it's possible i'll i'll
+so it's possible i'll i'll try and uh see if we can publish that
+try and uh see if we can publish that somewhere thank you
+somewhere thank you thank you hi mathias
+thank you hi mathias hi naming conventions are outmoded fight
+hi naming conventions are outmoded fight me
+me so sorry could you repeat the naming
+so sorry could you repeat the naming conventions are outmoded
+conventions are outmoded fight me right why do we continue to
+fight me right why do we continue to encode metadata into a fixed string
+encode metadata into a fixed string of a given length we should be putting
+of a given length we should be putting our assets in an asset database and
+our assets in an asset database and doing proper meta tagging that we can
+doing proper meta tagging that we can dynamically update over the process of
+dynamically update over the process of the entire project
+the entire project sure um i would agree if we had the
+sure um i would agree if we had the resources to build a data bank
+resources to build a data bank um we well we are looking into building
+um we well we are looking into building one
+one but if you if you're if you as a
+but if you if you're if you as a developer don't have the resources to
+developer don't have the resources to build an asset management tool
+build an asset management tool which many don't because that kind of
+which many don't because that kind of thing tends to be a mammoth task
+thing tends to be a mammoth task then naming conventions are your first
+then naming conventions are your first and last line of defense
+and last line of defense so i absolutely agree that they're
+so i absolutely agree that they're outmoded if you have the resources to
+outmoded if you have the resources to deal
+deal with that kind of system but if you
+with that kind of system but if you don't then they
+don't then they are i think are your only fallback
+are i think are your only fallback thanks
+thanks thank you all right i think that brings
+thank you all right i think that brings us to an end
+us to an end thank you

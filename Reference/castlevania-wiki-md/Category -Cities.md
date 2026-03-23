@@ -1,0 +1,3 @@
+# Category:Cities
+
+Category: Environments

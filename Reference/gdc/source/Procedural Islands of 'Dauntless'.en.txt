@@ -1,0 +1,673 @@
+[Music] so welcome to our talk thanks for coming
+so welcome to our talk thanks for coming it's a 5:30 which is late in the day so
+it's a 5:30 which is late in the day so I appreciate it
+so first off my name is Michael trache I prior to this spent a bunch of years 15
+prior to this spent a bunch of years 15 that Bower on Knights of the Old
+that Bower on Knights of the Old Republic an artist was the Louisville
+Republic an artist was the Louisville art lead through massive X 1 through 3
+art lead through massive X 1 through 3 and in the early days of what is now
+and in the early days of what is now anthem I was a technical art director hi
+anthem I was a technical art director hi my name is Nicola Koenig and I'm an
+my name is Nicola Koenig and I'm an engineer at Phoenix loves and previous
+engineer at Phoenix loves and previous their work that side effects on Virginia
+their work that side effects on Virginia and Houdini engine plugin for unreal so
+and Houdini engine plugin for unreal so today we're gonna talk a little bit
+today we're gonna talk a little bit about Dauntless the game we're working
+about Dauntless the game we're working on right now we're going to talk about
+on right now we're going to talk about what we wanted to accomplish where we're
+what we wanted to accomplish where we're at and to those that don't know we're
+at and to those that don't know we're discussing a Houdini Houdini engine
+discussing a Houdini Houdini engine pipeline so we need to cover a few
+pipeline so we need to cover a few basics on just some Houdini terms so
+basics on just some Houdini terms so that some of this makes sense to those
+that some of this makes sense to those with less experience with that and from
+with less experience with that and from there we're gonna describe our overall
+there we're gonna describe our overall pipeline what we've set up it's a still
+pipeline what we've set up it's a still work-in-progress what we're gonna
+work-in-progress what we're gonna describe where we're at and we're going
+describe where we're at and we're going to dig into a few sort of useful pieces
+to dig into a few sort of useful pieces for anyone interested in sort of a
+for anyone interested in sort of a Houdini engine pipeline of their own so
+Houdini engine pipeline of their own so that's those building blocks so
+that's those building blocks so Dauntless is a co-op action RPG it's a
+Dauntless is a co-op action RPG it's a free-to-play title that's currently in
+free-to-play title that's currently in early access you'll fight powerful
+early access you'll fight powerful behemoths and craft weapons and play
+behemoths and craft weapons and play with your friends so it all takes place
+with your friends so it all takes place on the shattered Isles which is pretty
+on the shattered Isles which is pretty much the topic of our talk here so if
+much the topic of our talk here so if you want to learn more about dauntless
+you want to learn more about dauntless as a game and everything else invite you
+as a game and everything else invite you to go check it out at play dauntless
+to go check it out at play dauntless calm but the rest of this should
+calm but the rest of this should hopefully become self-explanatory so
+hopefully become self-explanatory so yeah the shattered Isles they play a
+yeah the shattered Isles they play a pretty critical role they're not just a
+pretty critical role they're not just a passive backdrop
+passive backdrop like some we joined the team because
+like some we joined the team because working on this a pretty exciting
+working on this a pretty exciting environment was was a lot of fun
+environment was was a lot of fun personally but also because we're doing
+personally but also because we're doing this with a really really small team and
+this with a really really small team and that meant we couldn't go about this
+that meant we couldn't go about this basically in the traditional way when I
+basically in the traditional way when I say small team most of the world art
+say small team most of the world art you're gonna be seeing here was created
+you're gonna be seeing here was created by world artists with Jen Morgan
+by world artists with Jen Morgan technical art with Cory Lake and our
+technical art with Cory Lake and our direction by Glenn Barnes so very few
+direction by Glenn Barnes so very few hands were involved in this so when I
+hands were involved in this so when I say instead of talking about an art
+say instead of talking about an art department I'll probably say Jen or Cory
+department I'll probably say Jen or Cory and think of them as synonymous we
+and think of them as synonymous we wanted to we had an open-ended you know
+wanted to we had an open-ended you know list of themes biomes that we wanted to
+list of themes biomes that we wanted to kind of take on we only had some
+kind of take on we only had some concepts and some idea of the types of
+concepts and some idea of the types of environment to take on when we started
+environment to take on when we started this but we knew that there'd be more to
+this but we knew that there'd be more to come and it'd be an evolving kind of
+come and it'd be an evolving kind of thing an evolving digital target but
+thing an evolving digital target but also just you know we'd kind of adapt to
+also just you know we'd kind of adapt to new themes as they showed up so we
+new themes as they showed up so we didn't know the scope of everything that
+didn't know the scope of everything that we'd be taking on when we started it but
+we'd be taking on when we started it but visually we knew there'd be pretty wide
+visually we knew there'd be pretty wide range technically we couldn't just make
+range technically we couldn't just make do with any space we we wanted fairly
+do with any space we we wanted fairly predictable topology for you know the
+predictable topology for you know the player navigation gameplay but these
+player navigation gameplay but these these are procedural spaces and we'll
+these are procedural spaces and we'll get into some of what that means but
+get into some of what that means but they're also directed spaces that means
+they're also directed spaces that means the level craters I'll say designers but
+the level craters I'll say designers but it was sometimes Jen but you know
+it was sometimes Jen but you know everyone sort of contributed to that but
+everyone sort of contributed to that but the idea is that we wanted to kind of
+the idea is that we wanted to kind of lay out what would happen and that would
+lay out what would happen and that would be part of the input so that would mean
+be part of the input so that would mean that we land on the island we start in
+that we land on the island we start in this swamp when we make our way up into
+this swamp when we make our way up into this forest area over here whatever
+this forest area over here whatever that'd be the type of input that some of
+that'd be the type of input that some of them might want to sort of begin
+them might want to sort of begin creating some of these things with we
+creating some of these things with we haven't ruled out like generating just
+haven't ruled out like generating just sort of new things that and see how they
+sort of new things that and see how they go but in general these are a directed
+go but in general these are a directed thing
+thing we needed to be compatible with unreal
+we needed to be compatible with unreal we wanted Jen - Jen and kori to continue
+we wanted Jen - Jen and kori to continue working on an island as if it was
+working on an island as if it was created by hand so the end result of
+created by hand so the end result of this like specifically that means you
+this like specifically that means you know maybe not a lot of custom or custom
+know maybe not a lot of custom or custom mesh we had to be careful with because
+mesh we had to be careful with because we wanted her to resume painting
+we wanted her to resume painting landscape or plants or manipulating
+landscape or plants or manipulating meshes and that kind of thing and her
+meshes and that kind of thing and her her overall workflow couldn't be damaged
+her overall workflow couldn't be damaged as a result of us generating that also
+as a result of us generating that also meant we just need powerful controls to
+meant we just need powerful controls to sort of tailor or alter the the
+sort of tailor or alter the the generated results so not so much just
+generated results so not so much just letting her manipulate after the fact as
+letting her manipulate after the fact as much as it was like sort of guide some
+much as it was like sort of guide some of the generations stuff coming into it
+so here's where we're now
+so note that these have received receive some art polish that's just part of our
+some art polish that's just part of our standard process which I think can
+standard process which I think can hopefully explain a little bit more of
+hopefully explain a little bit more of but it's just game captures of some of
+but it's just game captures of some of the islands
+[Music]
+sorry cartoons we sped up to make the most of your time
+most of your time [Music]
+yeah so we've got you know initial couple biomes here we've got more in the
+couple biomes here we've got more in the works
+works these all have a bunch of sub area kind
+these all have a bunch of sub area kind of types sub biomes whatever within that
+of types sub biomes whatever within that but you know we currently generate all
+but you know we currently generate all the assets required to make a fully
+the assets required to make a fully playable Dauntless level so there's no
+playable Dauntless level so there's no additional work required on the result
+additional work required on the result but to kind of hop in and continue like
+but to kind of hop in and continue like do full play experience on it and this
+do full play experience on it and this is where we'll describe a little bit of
+is where we'll describe a little bit of Houdini
+Houdini so this is our introductory slide so
+so this is our introductory slide so what is Houdini Houdini to us is a
+what is Houdini Houdini to us is a visual programming tool not based you
+visual programming tool not based you have four main types of geometry in
+have four main types of geometry in Houdini which are points vertices
+Houdini which are points vertices indices primitives and detail you can
+indices primitives and detail you can associate different attributes with
+associate different attributes with those then you can package your not
+those then you can package your not metrics into assets and you can bring
+metrics into assets and you can bring that into unreal this is very similar to
+that into unreal this is very similar to a blueprint where you have parameters on
+a blueprint where you have parameters on individual nodes and you basically
+individual nodes and you basically promote them to your asset and those
+promote them to your asset and those show up in unreal
+show up in unreal in details panel then you have two main
+in details panel then you have two main scripting languages in knie which is
+scripting languages in knie which is Python index luzon hdk which is the
+Python index luzon hdk which is the Houdini development kit which we make
+Houdini development kit which we make use of extensively and there's an engine
+use of extensively and there's an engine and to ask reading the engine is
+and to ask reading the engine is essentially transport mechanism that
+essentially transport mechanism that brings the data from Houdini to unreal
+brings the data from Houdini to unreal and the other way as well so our
+and the other way as well so our technology right now we use Houdini 16 I
+technology right now we use Houdini 16 I believe we started on 2014 reading 16
+believe we started on 2014 reading 16 was pretty major update for us because
+was pretty major update for us because it brought hide fields which we make use
+it brought hide fields which we make use of foreign landscape construction our
+of foreign landscape construction our Houdini engine manual plug-in is a fork
+Houdini engine manual plug-in is a fork of funny
+of funny Unreal Engine plugin provided by side
+Unreal Engine plugin provided by side effects which we split off about two
+effects which we split off about two years ago and we maintain our own Fork
+years ago and we maintain our own Fork we'll do our best to point out
+we'll do our best to point out differences between our plugin and and
+differences between our plugin and and the kind of current thing
+the kind of current thing forgive us if we wrong you know
+forgive us if we wrong you know obviously take
+obviously take official engine docks is kind of gospel
+official engine docks is kind of gospel over top of any bar examples so right
+over top of any bar examples so right now we're able to generate about 25
+now we're able to generate about 25 different types of actors from Kalinin
+different types of actors from Kalinin data and the way we do is is we look for
+data and the way we do is is we look for presence of particular attributes on
+presence of particular attributes on points or pre minutes
+points or pre minutes and we also are able to into pretty much
+and we also are able to into pretty much any unreal asset or an Electra or the
+any unreal asset or an Electra or the whole map back in Tahiti for processing
+whole map back in Tahiti for processing as well so the standard approach of
+as well so the standard approach of inputting data into Virginia is you
+inputting data into Virginia is you basically just include geometry but what
+basically just include geometry but what happens to the data that you're trying
+happens to the data that you're trying to introduce no geometry this is
+to introduce no geometry this is basically what it gets complicated you
+basically what it gets complicated you essentially have to resort to inputting
+essentially have to resort to inputting that data as geometry by basic encoding
+that data as geometry by basic encoding attributes on that and decoding that on
+attributes on that and decoding that on queenside so our way to solve this
+queenside so our way to solve this problem is to convert all the data on
+problem is to convert all the data on inland real disco we do is we include we
+inland real disco we do is we include we go through all the properties in the
+go through all the properties in the asset we convert the only properties to
+asset we convert the only properties to binary J's and same happens to the if we
+binary J's and same happens to the if we want to input the actor as well
+want to input the actor as well we basically include all the properties
+we basically include all the properties of the actor we also Traverse all the
+of the actor we also Traverse all the components and harvest all the data as
+components and harvest all the data as well and we do this recursively and on
+well and we do this recursively and on the hidden side we have two operators
+the hidden side we have two operators that we created custom operators one
+that we created custom operators one because the binary json into text jason
+because the binary json into text jason so that we can use Python to basically
+so that we can use Python to basically parse that and extract information and
+parse that and extract information and the second one is the actual geometry
+the second one is the actual geometry unpacking
+unpacking we're basically it knows how to fit
+we're basically it knows how to fit certain types of actors so any kind of
+certain types of actors so any kind of mash these P landscapes and so on so our
+mash these P landscapes and so on so our way of aggregating data is to use a
+way of aggregating data is to use a system that we call a recipe system a
+system that we call a recipe system a recipe is an aggregation of parameters
+recipe is an aggregation of parameters as well as matches and foliage types and
+as well as matches and foliage types and landscape materials and let's keep layer
+landscape materials and let's keep layer objects basically anything that's
+objects basically anything that's necessary in order for us to construct
+necessary in order for us to construct and an island so this is an example of a
+and an island so this is an example of a mossy biome forest that was created
+mossy biome forest that was created using our most he recipe so we're gonna
+using our most he recipe so we're gonna quickly cover our overall pipeline at
+quickly cover our overall pipeline at kind of a high level just
+kind of a high level just some contacts to some of the later
+some contacts to some of the later pieces yeah so what you're seeing on the
+pieces yeah so what you're seeing on the left left sorry is just sort of a
+left left sorry is just sort of a high-level graph that sometimes
+high-level graph that sometimes describes that generally describes the
+describes that generally describes the overall connectivity the the main spaces
+overall connectivity the the main spaces and you know any sort of navigation
+and you know any sort of navigation that's intended so you know node 1 is or
+that's intended so you know node 1 is or area 1 is connected to 2 and you know is
+area 1 is connected to 2 and you know is implied that there's sort of a clean
+implied that there's sort of a clean navigation route from A to B the so this
+navigation route from A to B the so this this is sort of a part of the input that
+this is sort of a part of the input that would go into a complete level we take
+would go into a complete level we take that and we Pro we have an intermediate
+that and we Pro we have an intermediate to D stage where we essentially just use
+to D stage where we essentially just use Voronoi a Voronoi fracture cut in two
+Voronoi a Voronoi fracture cut in two dimensions that we used to resolve a lot
+dimensions that we used to resolve a lot of the sort of high-level constraints of
+of the sort of high-level constraints of the map so that's things like there is a
+the map so that's things like there is a path from 1 to 2 or whatever it is
+path from 1 to 2 or whatever it is specified it's it's 2d but we are taking
+specified it's it's 2d but we are taking some three-dimensional things into
+some three-dimensional things into account you know like we don't want to
+account you know like we don't want to slope of more than that exceeds a
+slope of more than that exceeds a certain say value so the route from from
+certain say value so the route from from one area to the other may sort of
+one area to the other may sort of chicane or cut back and forth and that
+chicane or cut back and forth and that kind of thing so but there's a lot of
+kind of thing so but there's a lot of stuff that kind of goes into this
+stuff that kind of goes into this there's also a ton of attributes that
+there's also a ton of attributes that we're sort of calculating at that point
+we're sort of calculating at that point to figure out you know how far things
+to figure out you know how far things are from the island edge groups for this
+are from the island edge groups for this is part of a navigation network this
+is part of a navigation network this can't be obstructed and and some
+can't be obstructed and and some outcrops and some other stuff which I'll
+outcrops and some other stuff which I'll describe from there we work on a sort of
+describe from there we work on a sort of initial like a very clean 3d mesh that
+initial like a very clean 3d mesh that describes the general 3d volume we call
+describes the general 3d volume we call land massing but the overall 3d shape
+land massing but the overall 3d shape that has been sort of specified we're
+that has been sort of specified we're not covering a lot of the design tools
+not covering a lot of the design tools we just didn't have time to kind of go
+we just didn't have time to kind of go over a lot of them but we can describe
+over a lot of them but we can describe those the thing that's interested just
+those the thing that's interested just come on up after yeah so the mesh like I
+come on up after yeah so the mesh like I said is clean and watertight we deal
+said is clean and watertight we deal with like a lot of bowties and another
+with like a lot of bowties and another sort of more complex 3d situations we
+sort of more complex 3d situations we just want to make sure the the squeaky
+just want to make sure the the squeaky clean results at this point are very
+clean results at this point are very predictable for
+predictable for a lot of her next stuff it also toggle
+a lot of her next stuff it also toggle the primitive groups here so basically
+the primitive groups here so basically we know where the cliffs are really
+we know where the cliffs are really traversable AR yeah yeah a lot of groups
+traversable AR yeah yeah a lot of groups and attributes and stuff like that we
+and attributes and stuff like that we define the overall 3d shape like the
+define the overall 3d shape like the island bottom is is sort of determined
+island bottom is is sort of determined by sort of manipulating another 3d
+by sort of manipulating another 3d fracture Voronoi fracture but we're just
+fracture Voronoi fracture but we're just sort of manipulating the cell points the
+sort of manipulating the cell points the cutters basically of that to sort of
+cutters basically of that to sort of produce sort of a rocky shape that sort
+produce sort of a rocky shape that sort of fit our style so the the gif in the
+of fit our style so the the gif in the top right is just sort of a 2d section
+top right is just sort of a 2d section cutting through the island that
+cutting through the island that hopefully describes sir how that's
+hopefully describes sir how that's created so the points along the top are
+created so the points along the top are actually the same Voronoi cells from the
+actually the same Voronoi cells from the previous but you know the ones down the
+previous but you know the ones down the side basically are the new guys so we
+side basically are the new guys so we like I said we've got outcrops it's just
+like I said we've got outcrops it's just sort of our term for this just some land
+sort of our term for this just some land that is sort of shoved up or down on the
+that is sort of shoved up or down on the surface of it these their orientation
+surface of it these their orientation and some other stuff is determined from
+and some other stuff is determined from some sort of fake stress vectors that
+some sort of fake stress vectors that just give some initial alignment that
+just give some initial alignment that makes sense and follows kind of where we
+makes sense and follows kind of where we were headed artistically but to be
+were headed artistically but to be honest most of these get sort of shoved
+honest most of these get sort of shoved around a particular little shoving
+around a particular little shoving around land and the outcrops themselves
+around land and the outcrops themselves is the majority of sort of the design
+is the majority of sort of the design input that the iteration that a level
+input that the iteration that a level creator would kind of go through so
+creator would kind of go through so usually noodling with this kind of thing
+usually noodling with this kind of thing is just part of just the exploration
+from there we determine or we create a whole number of additional sort of
+whole number of additional sort of assets sort of branch from that point
+assets sort of branch from that point and we instantiate everything from
+and we instantiate everything from reflection probes to the player starts
+reflection probes to the player starts foliage and fitted landscape that sort
+foliage and fitted landscape that sort of matches well what you just described
+of matches well what you just described earlier the overall number of these
+earlier the overall number of these stages we can't actually describe in any
+stages we can't actually describe in any sort of level of detail within a half an
+sort of level of detail within a half an hour or whatever that would be
+hour or whatever that would be meaningful
+meaningful so rather than then covering all of them
+so rather than then covering all of them at like a breakneck pace we decided to
+at like a breakneck pace we decided to sort of dig into a select few
+sort of dig into a select few interesting ones and also provide you
+interesting ones and also provide you with sort of a building block and like a
+with sort of a building block and like a starting point so that anyone is
+starting point so that anyone is interested or whatever knows how to like
+interested or whatever knows how to like maybe incorporate a piece of this back
+maybe incorporate a piece of this back in their pipelines so the first example
+in their pipelines so the first example we create what's the point in saying
+we create what's the point in saying it's Apple it's probably the easiest one
+it's Apple it's probably the easiest one you have a cadena network on the right
+you have a cadena network on the right which basically generates random points
+which basically generates random points it assign random transformations to
+it assign random transformations to those points we also have an attribute
+those points we also have an attribute to string attribute on a point that is a
+to string attribute on a point that is a path to unreal asset that is going to be
+path to unreal asset that is going to be in saturated and also have our plug-in
+in saturated and also have our plug-in specific attributes which defines
+specific attributes which defines whether to create instant static meshes
+whether to create instant static meshes or static meshes and then on the Left
+or static meshes and then on the Left you have basically unrealistic routing
+you have basically unrealistic routing asset that looks that these are none in
+asset that looks that these are none in real they can see all the parameters
+real they can see all the parameters exposed in detail panel and you can
+exposed in detail panel and you can choose the static mesh to instance as
+choose the static mesh to instance as well as how many points you want you'll
+well as how many points you want you'll most likely want to provide additional
+most likely want to provide additional transform information for a lot of
+transform information for a lot of things depending on what you're doing
+things depending on what you're doing so we commonly would have say scale and
+so we commonly would have say scale and orient these are just the normal sorry
+orient these are just the normal sorry scale as a flow three orient as a
+scale as a flow three orient as a quaternion flow for you yeah it would
+quaternion flow for you yeah it would most likely want to supply those as well
+most likely want to supply those as well to give them a complete transformation
+to give them a complete transformation for an instance the these are just the
+for an instance the these are just the standard Houdini wants that refer to the
+standard Houdini wants that refer to the engine docks
+engine docks could you knee engine doc sorry for the
+could you knee engine doc sorry for the kind of better description of what each
+kind of better description of what each of those does it's actually a great time
+of those does it's actually a great time to point out that random scattering is
+to point out that random scattering is actually really the solution for a lot
+actually really the solution for a lot of the things that we wanted it has its
+of the things that we wanted it has its place you know it's like Perlin noise
+place you know it's like Perlin noise it's useful but it's not the be-all and
+it's useful but it's not the be-all and end-all solution for most of the things
+end-all solution for most of the things you'll probably end up wanting to do so
+you'll probably end up wanting to do so quite often we wanted left very very
+quite often we wanted left very very specific arrangement probably an artist
+specific arrangement probably an artist controlled arrangement of meshes for a
+controlled arrangement of meshes for a specific thing so we're talking about
+specific thing so we're talking about cliffs here but our solution is actually
+cliffs here but our solution is actually generic for other situations I'll try
+generic for other situations I'll try and cover those and the this target
+and cover those and the this target needed to evolve so we kind of wanted
+needed to evolve so we kind of wanted destructive setup that would allow us to
+destructive setup that would allow us to continue improving you know what that
+continue improving you know what that would end up looking like and have that
+would end up looking like and have that just sort of natively work so our
+just sort of natively work so our approach works off of the idea that if
+approach works off of the idea that if we had a few or a number of samples that
+we had a few or a number of samples that described ideal so if art were to
+described ideal so if art were to arrange in this case cliff rocks in a
+arrange in this case cliff rocks in a way that matched what they wanted to see
+way that matched what they wanted to see Jen wanted to see we could pick the
+Jen wanted to see we could pick the smartest one that made sense for a new
+smartest one that made sense for a new target scenario and adapt it so yeah
+target scenario and adapt it so yeah what we came up with Jen gives
+what we came up with Jen gives everything a really fun name so she
+everything a really fun name so she called this one quilting what we came up
+called this one quilting what we came up with was we would define inside of a
+with was we would define inside of a blueprint the ideal arrangements that
+blueprint the ideal arrangements that covering sort of a range of kind of
+covering sort of a range of kind of scenarios and that kind of thing and we
+scenarios and that kind of thing and we could determine a mapping of sort of
+could determine a mapping of sort of meshes and transforms you know from from
+meshes and transforms you know from from a source scenario to a target sinner
+a source scenario to a target sinner so we supply a number of parameters
+so we supply a number of parameters inputs that would help Jen prioritize
+inputs that would help Jen prioritize certain things so this would let us say
+certain things so this would let us say minimize overall scale changes from from
+minimize overall scale changes from from source to target non-uniform scale you
+source to target non-uniform scale you know like stretch any along any kind of
+know like stretch any along any kind of one axis and overall just distortion
+one axis and overall just distortion differences because the we're dealing
+differences because the we're dealing with a very organic island we're not we
+with a very organic island we're not we didn't format the stuff from land
+didn't format the stuff from land massing to you know snap to a very
+massing to you know snap to a very specific number of scenarios you know
+specific number of scenarios you know it's not it's not a tile set in that
+it's not it's not a tile set in that regard so we needed to be you know
+regard so we needed to be you know supply ways of sort of configuring what
+supply ways of sort of configuring what was important and here yeah you can see
+was important and here yeah you can see some example output of our quilter asset
+some example output of our quilter asset and this is this is untouched from from
+and this is this is untouched from from the system so this is just the sort of
+the system so this is just the sort of raw output of the biome its recipe and
+raw output of the biome its recipe and the quilter asset along primitives that
+the quilter asset along primitives that we have grouped or marked as cliffs
+we have grouped or marked as cliffs whatever from from some of our earlier
+whatever from from some of our earlier things
+another example of point instancing is foliage in our case we were pumping this
+foliage in our case we were pumping this into unreal instanced foliage actor and
+into unreal instanced foliage actor and system so yet again Jen could paint
+system so yet again Jen could paint flowers and keep adjusting these the way
+flowers and keep adjusting these the way she was before but the result would work
+she was before but the result would work with standard instancing and stuff like
+with standard instancing and stuff like that so the difference in our plugin and
+that so the difference in our plugin and and I think where the current state of
+and I think where the current state of the Houdini and Jim plugin is wouldn't
+the Houdini and Jim plugin is wouldn't be all that different that one change we
+be all that different that one change we liked Unreal instanced sorry foliage
+liked Unreal instanced sorry foliage propagation volume did like the results
+propagation volume did like the results but we wanted to take a little bit more
+but we wanted to take a little bit more direct control over where instances sat
+direct control over where instances sat and specifically where and how it kind
+and specifically where and how it kind of grew so we just want to add a little
+of grew so we just want to add a little bit basically doing reels and the best
+bit basically doing reels and the best way to do that was to sort of we rolled
+way to do that was to sort of we rolled the room so we have a very very simple
+the room so we have a very very simple growth simulation I'll describe a little
+growth simulation I'll describe a little bit more that in a second we use a
+bit more that in a second we use a lightweight like low res 2d vector field
+lightweight like low res 2d vector field it's just noise we call it like a fake
+it's just noise we call it like a fake prevailing winds and the reason we do
+prevailing winds and the reason we do that is just so that when we scatter
+that is just so that when we scatter plants and scans
+plants and scans sorry plants recede and propagate that
+sorry plants recede and propagate that we just get slightly more natural
+we just get slightly more natural looking you know cluster shapes and and
+looking you know cluster shapes and and bunching so yeah you can see here
+bunching so yeah you can see here they're faint but the plants themselves
+they're faint but the plants themselves or whatever and the vector field so this
+or whatever and the vector field so this is just a quick gif of it showing we run
+is just a quick gif of it showing we run a fixed number of generations each plant
+a fixed number of generations each plant respects like a shade radius of its
+respects like a shade radius of its neighboring plants these are all
+neighboring plants these are all configurable to recipe which we showed
+configurable to recipe which we showed earlier we can get into all the details
+earlier we can get into all the details of the recipe just know that there's a
+of the recipe just know that there's a handful of controls like its shade like
+handful of controls like its shade like what it covers where and how it grows so
+what it covers where and how it grows so that that could include in water near
+that that could include in water near water in shade or like in cliff shade or
+water in shade or like in cliff shade or stuff like that so we just we gave a few
+stuff like that so we just we gave a few sort of inputs Jen actually controlled
+sort of inputs Jen actually controlled like the number of generations that
+like the number of generations that would sort of be propagate to for perf
+would sort of be propagate to for perf reasons we let every plant try and read
+reasons we let every plant try and read properly
+properly and if it fails after sort of a couple
+and if it fails after sort of a couple times or a threshold we cut it out or we
+times or a threshold we cut it out or we don't allow it to try again kind of
+don't allow it to try again kind of thing so age is sort of you know tracked
+thing so age is sort of you know tracked along with some of the other parameters
+along with some of the other parameters and that would drive scale which you can
+and that would drive scale which you can kind of see here so the oldest plants
+kind of see here so the oldest plants are the biggest winner it's located
+are the biggest winner it's located another example which is our landscape
+another example which is our landscape example it's very similar to the point
+example it's very similar to the point example but high fields - er primitives
+example but high fields - er primitives so it operates on primitives we created
+so it operates on primitives we created four high fields here we tag them with
+four high fields here we tag them with attributes such as name also with the
+attributes such as name also with the path to the landscape info object and we
+path to the landscape info object and we create four high fields here one is
+create four high fields here one is visibility one is the actual height
+visibility one is the actual height field and two are the landscape layers
+field and two are the landscape layers we normalize them here as well and on
+we normalize them here as well and on the left is the result I meant to say
+the left is the result I meant to say this earlier but the first few steps
+this earlier but the first few steps with a pipeline involving Houdini engine
+with a pipeline involving Houdini engine can be a little intimidating
+can be a little intimidating this just there's a lot to take in it's
+this just there's a lot to take in it's it's a piece of cake for me club but
+it's a piece of cake for me club but it's not for me so everything you need
+it's not for me so everything you need to theoretically build one of these
+to theoretically build one of these should be visible or should be covered
+should be visible or should be covered in this slide ask us if we missed
+in this slide ask us if we missed anything but if there's any interest we
+anything but if there's any interest we can definitely supply the assets
+can definitely supply the assets themselves it's probably worth pointing
+themselves it's probably worth pointing out as well here sure to cover that
+out as well here sure to cover that earlier we're talking about unreal here
+earlier we're talking about unreal here and sorry this the slide specifically
+and sorry this the slide specifically would be very kind of unreal but a
+would be very kind of unreal but a majority what we're talking about is
+majority what we're talking about is actually pretty applicable to unity tip
+actually pretty applicable to unity tip as well so so this is the result of our
+as well so so this is the result of our snow we buy them recipe where we had
+snow we buy them recipe where we had just the water plane level and insurance
+just the water plane level and insurance that affects the landscape layers and
+that affects the landscape layers and enduring effects the foolish instances I
+enduring effects the foolish instances I forgot to mention that - there's yes a
+forgot to mention that - there's yes a fitted water plane that basically goes
+fitted water plane that basically goes along with the biome results whatever
+along with the biome results whatever from tsunamis we do keep it's worth
+from tsunamis we do keep it's worth noting we keep landscape layers
+noting we keep landscape layers normalized ourself on real does have its
+normalized ourself on real does have its own waiting within the layer info object
+own waiting within the layer info object sorry but
+we decided to sort of keep that the normalized state of it sort of track
+normalized state of it sort of track during tracked ourselves just give us
+during tracked ourselves just give us more control yeah it was able to much
+more control yeah it was able to much easier to sort of predict or explain
+easier to sort of predict or explain exactly why a specific weight ended up
+exactly why a specific weight ended up being exactly what it was so the layers
+being exactly what it was so the layers in their count the number of layers
+in their count the number of layers they're all recipe driven as well so we
+they're all recipe driven as well so we just showed some sort of normal issue
+just showed some sort of normal issue materials when we started with some of
+materials when we started with some of that but a lot of the look that we were
+that but a lot of the look that we were kind of going for really wanted to give
+kind of going for really wanted to give sort of a thickness or a depth to to a
+sort of a thickness or a depth to to a lot of the surfaces within the world we
+lot of the surfaces within the world we wanted a natural-looking build up that
+wanted a natural-looking build up that you know made all the kind of world
+you know made all the kind of world objects look like they kind of belong
+objects look like they kind of belong there so you can see a few examples here
+there so you can see a few examples here with snow we did this with sand it's
+with snow we did this with sand it's potentially moss with some other things
+potentially moss with some other things as well dump that one that cumulation
+as well dump that one that cumulation and so this was just another landscape
+and so this was just another landscape layer but this had sort of some special
+layer but this had sort of some special properties that we tied it to an unreal
+properties that we tied it to an unreal render target and that meant we could do
+render target and that meant we could do so we did vertex offset sorry Bert
+so we did vertex offset sorry Bert vertex displacement essentially or
+vertex displacement essentially or whatever for the vertices and a
+whatever for the vertices and a correction to the normals after the fact
+correction to the normals after the fact anyone that gets into vertex offset has
+anyone that gets into vertex offset has to bill with that yeah and this
+to bill with that yeah and this simulates just natural build up against
+simulates just natural build up against those world surfaces I use quotes with
+those world surfaces I use quotes with simulated a lot because it's not a
+simulated a lot because it's not a simulation and we're not doing any
+simulation and we're not doing any Houdini's capable of also it's a really
+Houdini's capable of also it's a really cool simulation but this is not a
+cool simulation but this is not a simulation really the goal here was very
+simulation really the goal here was very configurable art configurable profiles
+configurable art configurable profiles and and we really wanted Jen to be able
+and and we really wanted Jen to be able to kind of kind of drive the result and
+to kind of kind of drive the result and being able to control like its max depth
+being able to control like its max depth and that kind of thing or whatever or
+and that kind of thing or whatever or where and how it built up or whatever is
+where and how it built up or whatever is just anyone that works a simulation
+just anyone that works a simulation knows it's a little hard to kind of tame
+knows it's a little hard to kind of tame those sometimes I make sure that the
+those sometimes I make sure that the results for those are predictable not
+results for those are predictable not that it that route is impossible it's
+that it that route is impossible it's just that we opted to drive that a
+just that we opted to drive that a little more carefully so here you can
+little more carefully so here you can see it capture for the engine as well
+see it capture for the engine as well this just shows like in the case of
+this just shows like in the case of trees the the
+trees the the and sort of leeward profiles that you
+and sort of leeward profiles that you know let Jen basically kind of build up
+know let Jen basically kind of build up a shape that she liked for
+a shape that she liked for natural-looking snow buildup yeah
+natural-looking snow buildup yeah I'm glossing over a number of the
+I'm glossing over a number of the details with this we're not trying to
+details with this we're not trying to protect anything or like just not give
+protect anything or like just not give those details that just didn't all fit
+those details that just didn't all fit but we're not trying to hide anything so
+but we're not trying to hide anything so if there's anything that's sort of
+if there's anything that's sort of useful or ever feel free to ask us or
+useful or ever feel free to ask us or definitely want to fill in the details
+definitely want to fill in the details so things so we kind of basica to
+so things so we kind of basica to describing things that we've learned
+describing things that we've learned I've worked in this the first one is
+I've worked in this the first one is just don't do the goober acid it's hard
+just don't do the goober acid it's hard to maintain in debug then what really
+to maintain in debug then what really worked well for us was decomposing all
+worked well for us was decomposing all our pipeline into multiple stages so we
+our pipeline into multiple stages so we have about 50 necessarily for sale and
+have about 50 necessarily for sale and they got rearranged a few times so the
+they got rearranged a few times so the modular nature of how did pay off so
+modular nature of how did pay off so that allowed us to work in parallel on
+that allowed us to work in parallel on some of them as well as allows us to
+some of them as well as allows us to switch to certain parts of the pipeline
+switch to certain parts of the pipeline out or disable in order to speed up the
+out or disable in order to speed up the cook and also allows us to achieve some
+cook and also allows us to achieve some poram polymorphism as long as you
+poram polymorphism as long as you respect the same person tuples also
+respect the same person tuples also represent that and use Python for that
+represent that and use Python for that so that's basically what we do and then
+so that's basically what we do and then we optimize that into either of X nodes
+we optimize that into either of X nodes or hdk and speaking of hdk it was
+or hdk and speaking of hdk it was extremely useful for us to actually be
+extremely useful for us to actually be like spin up the visual studio which is
+like spin up the visual studio which is basically attached to energy K node and
+basically attached to energy K node and debug that because that was just easier
+debug that because that was just easier way to debug geometry down and do printf
+way to debug geometry down and do printf debugging yeah you can put a Python
+debugging yeah you can put a Python snippet into you know any of these
+snippet into you know any of these networks super simply and super powerful
+networks super simply and super powerful there's a lot you can do with it it's
+there's a lot you can do with it it's not quite as fast as as Beck's or HD K
+not quite as fast as as Beck's or HD K but we found situations where it can
+but we found situations where it can become unwieldly especially when you
+become unwieldly especially when you start if you're shoving like you know
+start if you're shoving like you know three pages worth of stuff into a
+three pages worth of stuff into a wrangle you know you're getting to a
+wrangle you know you're getting to a part where I found it just kind of hard
+part where I found it just kind of hard to deal with this the solutions to some
+to deal with this the solutions to some of that but for just the best debug
+of that but for just the best debug ability vehicle and I are both I think a
+ability vehicle and I are both I think a little bit more comfortable in a kind of
+little bit more comfortable in a kind of a sea world so that made us kind of opt
+a sea world so that made us kind of opt for HD K in those cases as well
+so another thing was ability to save the hip file so basically something went
+hip file so basically something went over to our system our artists would
+over to our system our artists would save the hip file and we would open that
+save the hip file and we would open that scene in academia and just inspect that
+scene in academia and just inspect that and debug that the like we mentioned
+and debug that the like we mentioned before getting a very unreal compatible
+before getting a very unreal compatible output ended up really being I feel like
+output ended up really being I feel like a good choice we did opt for a layer to
+a good choice we did opt for a layer to discuss options like not using landscape
+discuss options like not using landscape and some things like that briefly but
+and some things like that briefly but being able to just resume editing one of
+being able to just resume editing one of these levels and exactly how it was
+these levels and exactly how it was created by hand or whatever was super
+created by hand or whatever was super valuable and you might rephrase some of
+valuable and you might rephrase some of this is like getting us to kind of make
+this is like getting us to kind of make sure we were thinking more unreal like
+sure we were thinking more unreal like in some situations versus getting Jen to
+in some situations versus getting Jen to say to think more Houdini like most of
+say to think more Houdini like most of the Houdini stuff is essentially
+the Houdini stuff is essentially invisible or not invisible not a great
+invisible or not invisible not a great word but we did not ask Jen to sort of
+word but we did not ask Jen to sort of get more Houdini proficient basically in
+get more Houdini proficient basically in this so and the last point is being able
+this so and the last point is being able to input arbitrary types not just the
+to input arbitrary types not just the geometry back into academia was
+geometry back into academia was extremely valuable to us it actually
+extremely valuable to us it actually allowed us to build assistant do
+allowed us to build assistant do determine is decreasing essentially yeah
+determine is decreasing essentially yeah so like raw proper classes back and
+so like raw proper classes back and forth is it's really nice whereas the
+forth is it's really nice whereas the attributes themselves if you try and
+attributes themselves if you try and contain those any other way it gets real
+contain those any other way it gets real messy so yeah thank you
+messy so yeah thank you [Applause]

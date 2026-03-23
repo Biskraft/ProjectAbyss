@@ -1,0 +1,589 @@
+[Music]
+hello uh my name is Colin white uh I worked at cppy bar games working on a
+worked at cppy bar games working on a game called below and this is the
+game called below and this is the rendering of below low complexity high
+rendering of below low complexity high density
+density detail so what what is below below is a
+detail so what what is below below is a procedurally
+procedurally generated action adventure game um it is
+generated action adventure game um it is ired by Rog likes uh of old and it's
+ired by Rog likes uh of old and it's mixed in with handcrafted content um
+mixed in with handcrafted content um here's some pictures that I find to be
+here's some pictures that I find to be pretty cool to demonstrate the world of
+pretty cool to demonstrate the world of below uh the visual makeup of below is
+below uh the visual makeup of below is low geometric complexity art in the form
+low geometric complexity art in the form of these uh 3D geometry um highres
+of these uh 3D geometry um highres handdrawn backgrounds and an intricate
+handdrawn backgrounds and an intricate display of moving Det details so this is
+display of moving Det details so this is a short outline of what we're going to
+a short outline of what we're going to talk about today uh um we're talking
+talk about today uh um we're talking about a making a dark game uh Dynamic
+about a making a dark game uh Dynamic lighting and the layering transform or
+lighting and the layering transform or skewing method that we used uh in the
+skewing method that we used uh in the game and there are zero below related
+game and there are zero below related puns in this
+puns in this presentation uh let's see things get
+presentation uh let's see things get dark Into Darkness uh this was uh below
+dark Into Darkness uh this was uh below is an intentionally dark game uh we
+is an intentionally dark game uh we really wanted to have negative space as
+really wanted to have negative space as a prominent uh visual feature in the
+a prominent uh visual feature in the game and the the thing that we're going
+game and the the thing that we're going to talk about today is the difficulties
+to talk about today is the difficulties with uh making such a dark game um some
+with uh making such a dark game um some of the things that we encountered were
+of the things that we encountered were contouring uh banding and uh being
+contouring uh banding and uh being unable to distinguish from uh darkness
+unable to distinguish from uh darkness and the fact that users will adjust
+and the fact that users will adjust their gamma um however they see fit when
+their gamma um however they see fit when you eventually release the
+you eventually release the game
+game so uh this is an example of uh
+so uh this is an example of uh contouring you can see that there's uh
+contouring you can see that there's uh spaces of uh like um very clear areas
+spaces of uh like um very clear areas where there's banding or segmenting of
+where there's banding or segmenting of the uh the visual space which is bad we
+the uh the visual space which is bad we don't want that um here is a screenshot
+don't want that um here is a screenshot which is very very dark but we want it
+which is very very dark but we want it to be very very dark so we want to make
+to be very very dark so we want to make sure that uh it it is
+sure that uh it it is intentional
+intentional and the first thing you need to assume
+and the first thing you need to assume is that the end result will be on a
+is that the end result will be on a poorly calibrated monitor or a viewing
+poorly calibrated monitor or a viewing condition uh users will destroy the
+condition uh users will destroy the white balance and Gamma by cranking the
+white balance and Gamma by cranking the gamma either on their television or
+gamma either on their television or within the game therefore you want to
+within the game therefore you want to deliver the best quality image uh uh up
+deliver the best quality image uh uh up till that point uh so the one of the
+till that point uh so the one of the first things that we did at the studio
+first things that we did at the studio uh to try
+uh to try and um level the playing field and make
+and um level the playing field and make things better for uh
+things better for uh um I guess uh development of the art uh
+um I guess uh development of the art uh was monitor calibration and it is hugely
+was monitor calibration and it is hugely important it pro it promotes consistent
+important it pro it promotes consistent art creation and it helped uh in our
+art creation and it helped uh in our case uh reducing false positive bugs
+case uh reducing false positive bugs because we knew
+because we knew um that everyone was going to have a
+um that everyone was going to have a similarly calibrated monitor however it
+similarly calibrated monitor however it doesn't fix uh time of day bias which is
+doesn't fix uh time of day bias which is uh the difference between uh your
+uh the difference between uh your lighting conditions with outdoor light
+lighting conditions with outdoor light the the color temperature of outdoor
+the the color temperature of outdoor light um trans U transforming to uh the
+light um trans U transforming to uh the indoor light later in the day so like
+indoor light later in the day so like indoor outdoor lighting um so what we
+indoor outdoor lighting um so what we proposed was a gamma correct pipeline um
+proposed was a gamma correct pipeline um through development of the game it it
+through development of the game it it was kind of difficult to figure out
+was kind of difficult to figure out exactly how you make a gamma correct
+exactly how you make a gamma correct pipeline because there aren't very many
+pipeline because there aren't very many examples of exactly how you do it um so
+examples of exactly how you do it um so I just wanted to sort of summarize how
+I just wanted to sort of summarize how we did it and uh hopefully other people
+we did it and uh hopefully other people can use that to do the same um so the
+can use that to do the same um so the first thing was uh bringing in gamma
+first thing was uh bringing in gamma textures to your linear space rendering
+textures to your linear space rendering where you do lighting your
+where you do lighting your postprocessing your color grading
+postprocessing your color grading uh your your user gamma modification and
+uh your your user gamma modification and noise and then you compose that to the
+noise and then you compose that to the back
+back buffer um and on top of that you render
+buffer um and on top of that you render you your UI and the back buffer uh will
+you your UI and the back buffer uh will be in gamma space the same with the
+be in gamma space the same with the UI um so srgb is a color space uh which
+UI um so srgb is a color space uh which is perceptually uniform it's what most
+is perceptually uniform it's what most uh image editing uh tools uh Photoshop
+uh image editing uh tools uh Photoshop um other image editing programs use to
+um other image editing programs use to encode their color information you're
+encode their color information you're going to want to make sure to use your
+going to want to make sure to use your albo textures which or your base color
+albo textures which or your base color textures for your 3D meshes for your
+textures for your 3D meshes for your backgrounds you want all of that to be
+backgrounds you want all of that to be in srg srgb gamma
+in srg srgb gamma space um also of note uh the graphics
+space um also of note uh the graphics apis like directex and uh opengl cheaply
+apis like directex and uh opengl cheaply convert between srgb and linear um and
+convert between srgb and linear um and and that's something that you're going
+and that's something that you're going to want to use and then finally uh the
+to want to use and then finally uh the back buffers will also be in this srgb
+back buffers will also be in this srgb gamma
+gamma space uh linear space so linear space
+space uh linear space so linear space the reason that it's important is
+the reason that it's important is because gamma space is only valid uh
+because gamma space is only valid uh between the values of zero and one if
+between the values of zero and one if you want to do any lighting outside of
+you want to do any lighting outside of that range uh you're going to be clamped
+that range uh you're going to be clamped to it and it it's not going to go it's
+to it and it it's not going to go it's not going to end well um so you want to
+not going to end well um so you want to make sure that you maintain your
+make sure that you maintain your intermediate results in your whole
+intermediate results in your whole entire rendering pipeline up to the
+entire rendering pipeline up to the point where you put it to your back
+point where you put it to your back buffer in linear space and the types of
+buffer in linear space and the types of uh render targets or Texture buffers
+uh render targets or Texture buffers that you're going to be using to do that
+that you're going to be using to do that are rgba uh well yeah rgba 16f R11 G11
+are rgba uh well yeah rgba 16f R11 G11 B10 F or RG r10 G10
+B10 F or RG r10 G10 B10 uh A2 uh the one that we used
+B10 uh A2 uh the one that we used primarily and Below was r 11 g111 B10 F
+primarily and Below was r 11 g111 B10 F uh cuz we found that that had the the
+uh cuz we found that that had the the the best
+the best um it had the best uh performance uh per
+um it had the best uh performance uh per cost ratio um so linear space the thing
+cost ratio um so linear space the thing that's important is uh if you're going
+that's important is uh if you're going to do any effects uh post-processing
+to do any effects uh post-processing effects or lighting effects uh that are
+effects or lighting effects uh that are physically simulated you definitely need
+physically simulated you definitely need to be working in linear space uh so
+to be working in linear space uh so anything such as depth of field Bloom
+anything such as depth of field Bloom motion blur color
+motion blur color grading uh tone mapping all of those
+grading uh tone mapping all of those you're going to need to to be doing in
+you're going to need to to be doing in uh linear space uh so one of the
+uh linear space uh so one of the problems that we had in gamma space was
+problems that we had in gamma space was we realized that our color grading was
+we realized that our color grading was introducing artifacts um and that was
+introducing artifacts um and that was the contouring that I showed you before
+the contouring that I showed you before so we decided that we needed to move our
+so we decided that we needed to move our color grading into linear
+color grading into linear space uh and what this did is it
+space uh and what this did is it preserved the Precision of your your
+preserved the Precision of your your data in your render Target to the final
+transformation so uh one of the ways that you can do uh color grading is by
+that you can do uh color grading is by creating a lookup table in the form of a
+creating a lookup table in the form of a uh 32x 32x 32 color
+uh 32x 32x 32 color Cube which we see right here which you
+Cube which we see right here which you can thenay into a 1024x 32 strip which
+can thenay into a 1024x 32 strip which we see here um which you can put on on
+we see here um which you can put on on top of a uh a render from your game in
+top of a uh a render from your game in Photoshop do your color grading export
+Photoshop do your color grading export that and then import it to your engine
+that and then import it to your engine and use that Cube to basically the the
+and use that Cube to basically the the XY Z AIS of the cube corresponds to your
+XY Z AIS of the cube corresponds to your input color and what's in the actual
+input color and what's in the actual pixel is your output
+pixel is your output color and that's what what you can use
+color and that's what what you can use for your color grading we found was that
+for your color grading we found was that if you do this in Photoshop and you uh
+if you do this in Photoshop and you uh export it with uh 32-bit color or or
+export it with uh 32-bit color or or 24-bit color 8 bit per channel uh your
+24-bit color 8 bit per channel uh your input texture misses a lot of precision
+input texture misses a lot of precision and will introduce a number of
+and will introduce a number of artifacts so what we decided to do was
+artifacts so what we decided to do was create an in-game uh color grading tool
+create an in-game uh color grading tool instead which you see right
+instead which you see right here and it has all of the necessary
+here and it has all of the necessary function ality that we needed for uh
+function ality that we needed for uh doing the color grading from
+doing the color grading from Photoshop and it automatically uh
+Photoshop and it automatically uh converts the color values from linear to
+converts the color values from linear to or from gamma space to linear space on
+or from gamma space to linear space on top of that this allowed us to create
+top of that this allowed us to create the uh to create animations for
+the uh to create animations for interpolating between color grading
+interpolating between color grading scripts which we use in gameplay to uh
+scripts which we use in gameplay to uh Express a number of different in-game
+Express a number of different in-game events and we're still using the the
+events and we're still using the the color Cube internally uh we just create
+color Cube internally uh we just create the color tube and generate the
+the color tube and generate the transformation based on the color
+transformation based on the color grading uh values that we have from our
+grading uh values that we have from our in-game
+in-game editor and this helps a lot with the
+editor and this helps a lot with the filmlook look of below um and it it
+filmlook look of below um and it it became a a pretty important feature uh
+became a a pretty important feature uh for the development of below so this is
+for the development of below so this is a picture of uh the color grading before
+a picture of uh the color grading before the in-game editor and the the better
+the in-game editor and the the better use of precision and this is after which
+use of precision and this is after which honestly with these projectors is
+honestly with these projectors is probably hard to tell but that's a
+probably hard to tell but that's a pretty good example of why you want to
+pretty good example of why you want to make sure that you're doing the best
+make sure that you're doing the best that you can before you actually release
+that you can before you actually release your
+your game so another thing that was a pretty
+game so another thing that was a pretty prominent or important effect that we
+prominent or important effect that we use in the game was a noise or film
+use in the game was a noise or film grain which we tried initially in the
+grain which we tried initially in the form of a Shader which has uh Burns
+form of a Shader which has uh Burns scratches and pearlin noise but we found
+scratches and pearlin noise but we found it to be extremely expensive and
+it to be extremely expensive and sometimes every every once in a while
+sometimes every every once in a while when the seed got to exactly the right
+when the seed got to exactly the right spot you would see a repeating pattern
+spot you would see a repeating pattern which definitely didn't want uh we tried
+which definitely didn't want uh we tried dithering um and that also it was just
+dithering um and that also it was just too video gamey it makes it feel like
+too video gamey it makes it feel like it's an older uh I mean we're trying to
+it's an older uh I mean we're trying to make a game that is uh inspired by old
+make a game that is uh inspired by old Rog life likes but not not that
+Rog life likes but not not that much um so what we ended up uh landing
+much um so what we ended up uh landing on was a uh a noise generation generator
+on was a uh a noise generation generator um called the Wang has which uses binary
+um called the Wang has which uses binary operators uh you can see the code right
+operators uh you can see the code right here I'm not going to explain all of it
+here I'm not going to explain all of it but it uses binary operators um which
+but it uses binary operators um which makes it extremely fast um the
+makes it extremely fast um the disassembly on it is is is actually
+disassembly on it is is is actually pretty pretty good um and it had much
+pretty pretty good um and it had much higher quality than the other uh noise
+higher quality than the other uh noise generation and there was no uh
+generation and there was no uh distinguishable repeating pattern so
+distinguishable repeating pattern so this was before the noise and after
+this was before the noise and after which probably can't see too well um and
+which probably can't see too well um and uh yeah the the noise just a second
+uh yeah the the noise just a second before we move on the noise was really
+before we move on the noise was really really important uh for breaking down
+really important uh for breaking down that contouring even further to the
+that contouring even further to the point where uh it was really really hard
+point where uh it was really really hard to tell any of it at all and uh I think
+to tell any of it at all and uh I think we're we're feeling pretty good about
+we're we're feeling pretty good about the way that the the image quality is
+the way that the the image quality is currently looking in the game so uh the
+currently looking in the game so uh the final conversion to gamma space um you
+final conversion to gamma space um you combine your lighting your color grading
+combine your lighting your color grading your user gamma and your noise to the
+your user gamma and your noise to the srgb back buffer and then you render
+srgb back buffer and then you render your UI on top uh which uh the the
+your UI on top uh which uh the the reason you want to render your UI on top
+reason you want to render your UI on top is to make sure that you're keeping your
+is to make sure that you're keeping your UI and srgb space and if it's outputed
+UI and srgb space and if it's outputed directly to something that's in srgb
+directly to something that's in srgb space doesn't require any lighting
+space doesn't require any lighting doesn't require your linear space it
+doesn't require your linear space it it's going to skip the conversion uh
+it's going to skip the conversion uh from srgb to linear to srgb um and it
+from srgb to linear to srgb um and it it's the best way to go so moving on uh
+it's the best way to go so moving on uh we it's part two uh let there be light
+we it's part two uh let there be light or making a lighting system from scratch
+or making a lighting system from scratch uh in the beginning with below we
+uh in the beginning with below we started out with a pseudo lighting
+started out with a pseudo lighting system
+system where there was a circle of light around
+where there was a circle of light around the player and it was very very
+the player and it was very very rudimentary this was back when the game
+rudimentary this was back when the game was heavily 2D um and the game was
+was heavily 2D um and the game was always EnV envisioned to be dark and
+always EnV envisioned to be dark and Moody uh the requirements that we would
+Moody uh the requirements that we would need for creating this lighting system
+need for creating this lighting system was uh well the reason that we needed to
+was uh well the reason that we needed to to do it was that our our game engine
+to do it was that our our game engine only supported a perspective projection
+only supported a perspective projection and what we'll talk about later with uh
+and what we'll talk about later with uh uh the game is there's a uh orthographic
+uh the game is there's a uh orthographic camera that's required for the skewing
+camera that's required for the skewing method that we use to render the 3D
+method that we use to render the 3D meshes and there are handdrawn
+meshes and there are handdrawn backgrounds and the combination of both
+backgrounds and the combination of both of those things require us to use an
+of those things require us to use an ortho camera um basically it's to make
+ortho camera um basically it's to make sure that the 3D meshes are rooted
+sure that the 3D meshes are rooted directly onto the uh handdrawn
+directly onto the uh handdrawn backgrounds and if there are any Sprites
+backgrounds and if there are any Sprites there is no
+there is no perspective Distortion around
+perspective Distortion around them so what if we added Dynamic
+them so what if we added Dynamic lighting to the game uh we we started
+lighting to the game uh we we started with a deferred lighting system
+with a deferred lighting system implemented that whole thing we found it
+implemented that whole thing we found it to be pretty good but then uh it it was
+to be pretty good but then uh it it was really slow on Xbox because it's really
+really slow on Xbox because it's really hard to fit um your render targets into
+hard to fit um your render targets into your esram so we decided to try and
+your esram so we decided to try and create a tiled forward lighting system
+create a tiled forward lighting system that would Leverage the power of uh the
+that would Leverage the power of uh the the Xbox um so it starts with a compute
+the Xbox um so it starts with a compute Shader that reduces the lights to a
+Shader that reduces the lights to a spatial subdivision of tiles uh in our
+spatial subdivision of tiles uh in our game it's uh 16x 16 World units which
+game it's uh 16x 16 World units which corresponds to approximately 16 x 16 uh
+corresponds to approximately 16 x 16 uh screen space units um and we divide it
+screen space units um and we divide it into those tiles and then for each of
+into those tiles and then for each of those tiles we call a list of lights
+those tiles we call a list of lights ahead of time before rendering the GE
+ahead of time before rendering the GE geometry we then packed the lights uh
+geometry we then packed the lights uh using a bit mask and we were able to use
+using a bit mask and we were able to use ASN compute to do the light culling uh
+ASN compute to do the light culling uh operation at the same time as we're
+operation at the same time as we're doing other things which I believe were
+doing other things which I believe were the uh the shadow rendering and uh a few
+the uh the shadow rendering and uh a few other physics based uh
+simulations so yeah and ended up being a big win um
+big win um so yes when you're lighting when you're
+so yes when you're lighting when you're when you're actually evaluating the
+when you're actually evaluating the lighting is when you render your 3D
+lighting is when you render your 3D meshes and at the time of the pixel
+meshes and at the time of the pixel Shader of your 3D mesh you unpack the
+Shader of your 3D mesh you unpack the tiles Cold Light list uh and the way
+tiles Cold Light list uh and the way that we we we did that um and and I'm
+that we we we did that um and and I'm always looking for uh neat optimizations
+always looking for uh neat optimizations and the best way to to use uh to
+and the best way to to use uh to leverage uh Shader code or or Shader
+leverage uh Shader code or or Shader optimizations and and what functionality
+optimizations and and what functionality is is out there to best optimize stuff
+is is out there to best optimize stuff cuz that's what Graphics programmers do
+cuz that's what Graphics programmers do often um and the the interesting thing
+often um and the the interesting thing that we were able to do uh was use a
+that we were able to do uh was use a count bits function and a first bit High
+count bits function and a first bit High to scan through the bit mask really
+to scan through the bit mask really really quickly and unpack the the lights
+really quickly and unpack the the lights and you can see that that code right
+and you can see that that code right there but I I I should add that uh the
+there but I I I should add that uh the the binary arithmetic for uh doing these
+the binary arithmetic for uh doing these things um it is really really fast on on
+things um it is really really fast on on gpus and it's something that uh was
+gpus and it's something that uh was really really helpful in optimizing the
+really really helpful in optimizing the game uh the other thing of note is that
+game uh the other thing of note is that uh the tile for lighting system works
+uh the tile for lighting system works really really well with
+really really well with msaa uh originally we were trying to use
+msaa uh originally we were trying to use a deferred lighting system that deferred
+a deferred lighting system that deferred all of your uh your geometry information
+all of your uh your geometry information such as the normals the bo uh the any
+such as the normals the bo uh the any glow that you're going to do any world
+glow that you're going to do any world space information to uh texture buffers
+space information to uh texture buffers render targets um and if you're using
+render targets um and if you're using msaa it's going to have as many samples
+msaa it's going to have as many samples as actual memory and that is extremely
+as actual memory and that is extremely it's
+it's disproportionately uh slow for msaa
+disproportionately uh slow for msaa whereas tiled forward lighting your
+whereas tiled forward lighting your lighting evaluation only happens once
+lighting evaluation only happens once per pixel and with uh the tille forward
+per pixel and with uh the tille forward lighting system you're not required to
+lighting system you're not required to defer as much information and it ended
+defer as much information and it ended up working out really well with msaa and
+up working out really well with msaa and msaa we ended up kind of needing to use
+msaa we ended up kind of needing to use because uh postprocess
+because uh postprocess anti-aliasing uh we didn't find that
+anti-aliasing uh we didn't find that FXAA was pretty was very good um and
+FXAA was pretty was very good um and temporal anti-aliasing would become
+temporal anti-aliasing would become really really difficult to do if you
+really really difficult to do if you were doing any type of um or it it
+were doing any type of um or it it become very difficult to do if your
+become very difficult to do if your geometry is really small and you need to
+geometry is really small and you need to and and the temporal aliasing of whether
+and and the temporal aliasing of whether pixels render or don't between frames is
+pixels render or don't between frames is going to be ex extraordinarily high so
+going to be ex extraordinarily high so yeah it helps with small
+yeah it helps with small geometry um so Point Light Shadows one
+geometry um so Point Light Shadows one of the interesting things that we tried
+of the interesting things that we tried was uh dual paraboloid Shadow Maps um
+was uh dual paraboloid Shadow Maps um you can see one of the hemispheres of
+you can see one of the hemispheres of that right here uh we tried doing that
+that right here uh we tried doing that and there were difficult steam issues
+and there were difficult steam issues because you actually have two
+because you actually have two hemispheres that you are sampling
+hemispheres that you are sampling between when you're trying to check for
+between when you're trying to check for your shadows and anytime the geometry
+your shadows and anytime the geometry goes through the center of the light it
+goes through the center of the light it would warp the the vertices and create a
+would warp the the vertices and create a lot of interesting artifacts um so we
+lot of interesting artifacts um so we decided to use Cube Maps um Cube Maps
+decided to use Cube Maps um Cube Maps the the downsides are you've got six
+the the downsides are you've got six faces to render and in below typical
+faces to render and in below typical scene is hundreds of meshes and that's a
+scene is hundreds of meshes and that's a lot of geometry geometry to render
+lot of geometry geometry to render therefore uh your your CPU time is
+therefore uh your your CPU time is extrem extremely valuable and Gathering
+extrem extremely valuable and Gathering lists of geometry is is something that
+lists of geometry is is something that you don't want to spend a whole lot of
+you don't want to spend a whole lot of time doing um so here's a little
+time doing um so here's a little animated gif of uh what one of those
+animated gif of uh what one of those lights uh shadowcast would look like and
+lights uh shadowcast would look like and what we did to optimize this process was
+what we did to optimize this process was create a conservative volume of your
+create a conservative volume of your lights and your camera and we
+lights and your camera and we multi-threaded the calling of the lists
+multi-threaded the calling of the lists of that geometry to run simultaneously
+of that geometry to run simultaneously across many cores on the Xbox and it
+across many cores on the Xbox and it ended up working out really really well
+ended up working out really really well and uh it was a good performance win as
+and uh it was a good performance win as well um so one of the other interesting
+well um so one of the other interesting point light shadow optimizations that we
+point light shadow optimizations that we had was we used a geometry Shader to
+had was we used a geometry Shader to replicate the geometry to all of the
+replicate the geometry to all of the different faces of the cube map and we
+different faces of the cube map and we were able to do that in a single draw
+were able to do that in a single draw call um so what was the impact of
+call um so what was the impact of creating this lighting system in below
+creating this lighting system in below uh one of the things was um as a result
+uh one of the things was um as a result light became a resource in our game that
+light became a resource in our game that it's craftable it's something that you
+it's craftable it's something that you can create it's something you get from
+can create it's something you get from defeating enemies which allowed us to
+defeating enemies which allowed us to make really dark areas that as you can
+make really dark areas that as you can see here it's almost Pitch Black back so
+see here it's almost Pitch Black back so it also allowed us to think about what
+it also allowed us to think about what happens if the player has this control
+happens if the player has this control over light can we allow them to light up
+over light can we allow them to light up a room essentially creating a bread
+a room essentially creating a bread crumb path for them to follow um and it
+crumb path for them to follow um and it gave us the confidence to make the game
+gave us the confidence to make the game even darker than we initially
+even darker than we initially anticipated
+so uh um and
+then sorry I'm running a little
+late so another issue uh or another thing that we found um by creating this
+thing that we found um by creating this lighting system was it allowed us to um
+lighting system was it allowed us to um interact with have enemies interact with
+interact with have enemies interact with light it allowed us to do things like
+light it allowed us to do things like create light volumes which we then use
+create light volumes which we then use to activate switches and we even created
+to activate switches and we even created this thing where lights will reveal
+this thing where lights will reveal hidden objects and that whole thing
+hidden objects and that whole thing piggybacks on the lighting system and it
+piggybacks on the lighting system and it extends all the way to lights that are
+extends all the way to lights that are actually hidden by other lights so you
+actually hidden by other lights so you can use a light to reveal this hidden
+can use a light to reveal this hidden world that's filled with lights that
+world that's filled with lights that will then for example in these uh these
+will then for example in these uh these videos illuminate the character whereas
+videos illuminate the character whereas it would otherwise not be uh
+it would otherwise not be uh visible so so the the moral of the story
+visible so so the the moral of the story is that if you're going to add uh the
+is that if you're going to add uh the ability to create light uh in your game
+ability to create light uh in your game for Game playay you better make sure
+for Game playay you better make sure that it scales as well as
+that it scales as well as possible so here is uh part three uh
+possible so here is uh part three uh things get skewed uh we're going to talk
+things get skewed uh we're going to talk about the skewing method of how we uh
+about the skewing method of how we uh rendered the 3D meshes in the game um
+rendered the 3D meshes in the game um and how it gives or sorry if you want to
+and how it gives or sorry if you want to know how how it gives the authentic and
+know how how it gives the authentic and original perspective of the game from an
+original perspective of the game from an artistic perspective uh go see Dan my
+artistic perspective uh go see Dan my cooworker Dan Cox's talk uh on Thursday
+cooworker Dan Cox's talk uh on Thursday uh March 2nd uh room 2011 in this
+uh March 2nd uh room 2011 in this building I believe at 3 p.m. um and uh
+building I believe at 3 p.m. um and uh this is a picture of a a very very
+this is a picture of a a very very Shameless
+Shameless pug um so the origin for our skewing in
+pug um so the origin for our skewing in the game is that every time you die you
+the game is that every time you die you come back as a new character so we
+come back as a new character so we wanted to demonstrate that with uh
+wanted to demonstrate that with uh randomized uh outfits and in order to do
+randomized uh outfits and in order to do that uh originally we had Sprites 2D
+that uh originally we had Sprites 2D Sprites and if you were to try and do
+Sprites and if you were to try and do all of those uh outfits in Sprites it
+all of those uh outfits in Sprites it would be an immense amount of data it
+would be an immense amount of data it would just not work out it wasn't
+would just not work out it wasn't possible um therefore we tried to figure
+possible um therefore we tried to figure out how we could render 3D meshes with
+out how we could render 3D meshes with the ortho camera because of the uh the
+the ortho camera because of the uh the handdrawn backgrounds and the first
+handdrawn backgrounds and the first thing we tried was rotating everything
+thing we tried was rotating everything along an axis uh the one parallel or uh
+along an axis uh the one parallel or uh tangent to the camera um which was okay
+tangent to the camera um which was okay at first however the Shadows that we
+at first however the Shadows that we added uh which came later uh didn't
+added uh which came later uh didn't match and that was a problem the other
+match and that was a problem the other problem was that when geometry
+problem was that when geometry interacted with other geometry um it it
+interacted with other geometry um it it it it created a lot of issues uh and
+it it created a lot of issues uh and um yeah and then finally uh there were
+um yeah and then finally uh there were issues with attachment where if you
+issues with attachment where if you attach an object to another 3D object
+attach an object to another 3D object with the rotation it became really
+with the rotation it became really difficult to make sure that that worked
+difficult to make sure that that worked properly so uh in our game the skewing
+properly so uh in our game the skewing method that we used is uh uh the camera
+method that we used is uh uh the camera is top down on the Y AIS and uh the
+is top down on the Y AIS and uh the screen space coordinates are x and z so
+screen space coordinates are x and z so what we do is we move the vertex
+what we do is we move the vertex position in the Z axis based on the Y
+position in the Z axis based on the Y position and then we push the vertex
+position and then we push the vertex position uh in the Y AIS towards the
+position uh in the Y AIS towards the camera based on the ZW World position
+camera based on the ZW World position and we do this for all 3D geometry
+and we do this for all 3D geometry that's been rendered um and this is a
+that's been rendered um and this is a demo of of how it works this is that was
+demo of of how it works this is that was the regular game view now this is our 3D
+the regular game view now this is our 3D world view this is what it looks like
+world view this is what it looks like like without any of the the skewing and
+like without any of the the skewing and then when we press the magic button to
+then when we press the magic button to do the skew you can see that it pushes
+do the skew you can see that it pushes it all towards the camera and aligns it
+it all towards the camera and aligns it in a way so that it it works almost as
+in a way so that it it works almost as if it was uh rendering towards the
+if it was uh rendering towards the camera um but it allows us
+camera um but it allows us to create a depth buffer uh which has
+to create a depth buffer uh which has all of the important information that we
+all of the important information that we need to do effects such as uh
+need to do effects such as uh um screen space ambient occlusion depth
+um screen space ambient occlusion depth of the field volumetric fog of War um
+of the field volumetric fog of War um all of these things require a world
+all of these things require a world space position and with a depth buffer
+space position and with a depth buffer that contained all of this information
+that contained all of this information we were able to uh do all of these
+we were able to uh do all of these things and here is a example of the uh
+things and here is a example of the uh game before the fog of war and then once
+game before the fog of war and then once it's been uh composited in you can see
+it's been uh composited in you can see the uh
+the uh U pillars are rising out of the fog it
+U pillars are rising out of the fog it looks pretty cool and then uh we're able
+looks pretty cool and then uh we're able to with the world space information uh
+to with the world space information uh deduce uh or create the ssao effect in
+deduce uh or create the ssao effect in conclusion uh indie game development is
+conclusion uh indie game development is sometimes crazy um and a lot of the
+sometimes crazy um and a lot of the things that we talked about today
+things that we talked about today weren't necessarily the fastest most
+weren't necessarily the fastest most optimal way of creating something but
+optimal way of creating something but sometimes you take the the easy route
+sometimes you take the the easy route because uh you're small teams you don't
+because uh you're small teams you don't have the most time in the world and
+have the most time in the world and you're just trying to to do the best
+you're just trying to to do the best that you can and lastly with respect to
+that you can and lastly with respect to the uh layering
+the uh layering transform uh sometimes you get stuck
+transform uh sometimes you get stuck with weird systems and uh sometimes uh
+with weird systems and uh sometimes uh Reinventing it would uh take too much
+Reinventing it would uh take too much time or or take too much risk um but
+time or or take too much risk um but sometimes these weird things give your
+sometimes these weird things give your game its charm and I think uh below is a
+game its charm and I think uh below is a pretty Charming game
+pretty Charming game thanks for
+thanks for [Music]
+coming so we have some time for questions uh does anyone have
+any cool um well I will go over oh hi hello uh so I noticed you do most
+oh hi hello uh so I noticed you do most of your lighting computation on the GPU
+of your lighting computation on the GPU but then you use that for gameplay
+but then you use that for gameplay mechanics did that cause any challenges
+mechanics did that cause any challenges because all of the final computations
+because all of the final computations like the volume were on the GPU correct
+like the volume were on the GPU correct yeah and so did you have to uh move that
+yeah and so did you have to uh move that data from the GPU to the CPU to uh do
+data from the GPU to the CPU to uh do the game play based on yeah yeah sorry
+the game play based on yeah yeah sorry um so to answer your question uh we did
+um so to answer your question uh we did all of the gameplay based uh light Li in
+all of the gameplay based uh light Li in computations uh on the CPU uh all of the
+computations uh on the CPU uh all of the the lighting information was coming in
+the lighting information was coming in from our uh Lua uh light scripting
+from our uh Lua uh light scripting system um we we brought all of that
+system um we we brought all of that light information in we put it uh
+light information in we put it uh through to C++ and then from there sent
+through to C++ and then from there sent the the light information to the GPU but
+the the light information to the GPU but basically in between when you do the
+basically in between when you do the light coling the the coling is doing a
+light coling the the coling is doing a bunch of those checks uh on CPU so it
+bunch of those checks uh on CPU so it seemed like a pretty good place to
+seemed like a pretty good place to figure out those results uh most of the
+figure out those results uh most of the time when we were uh referencing the uh
+time when we were uh referencing the uh gameplay based uh light checks those
+gameplay based uh light checks those were happening uh multi-threaded while
+were happening uh multi-threaded while we were doing the the calling of the
+we were doing the the calling of the lights on
+lights on CPU
+CPU [Music]
+thanks any more
+any more questions um I'm probably going to go
+questions um I'm probably going to go over to the the other area so if you
+over to the the other area so if you have questions and you don't want to ask
+have questions and you don't want to ask uh here I can answer them there thank
+uh here I can answer them there thank you
+again

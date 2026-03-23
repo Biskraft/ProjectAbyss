@@ -1,0 +1,3 @@
+# Category:Scarves
+
+Category: Accessories

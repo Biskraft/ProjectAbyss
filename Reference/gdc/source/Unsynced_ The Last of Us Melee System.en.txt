@@ -1,0 +1,1372 @@
+[Music]
+all right I think we're ready to get started hi my name is Anthony Neumann
+started hi my name is Anthony Neumann welcome to my talk about the naolia
+welcome to my talk about the naolia system of the last of us thanks so much
+system of the last of us thanks so much for coming we're going to talk about
+for coming we're going to talk about some of the techniques and decisions
+some of the techniques and decisions that went into creating the hand hand
+that went into creating the hand hand fighting system of the last of us it's
+fighting system of the last of us it's going to be a pretty broad talk we're
+going to be a pretty broad talk we're going to be talking about some aesthetic
+going to be talking about some aesthetic stuff some mechanical design and then
+stuff some mechanical design and then getting into the nitty-gritty of some
+getting into the nitty-gritty of some script syntax so let's get started
+script syntax so let's get started first fair warning this talk is rated M
+first fair warning this talk is rated M for Mature there is quite a bit of
+for Mature there is quite a bit of violence melee system is a system of
+violence melee system is a system of choreographed violence so it's kind of
+choreographed violence so it's kind of unavoidable and talking about it so fair
+unavoidable and talking about it so fair warning also spoiler alert if you
+warning also spoiler alert if you haven't played later sections of the
+haven't played later sections of the last of us I'm going to be showing some
+last of us I'm going to be showing some of that stuff off so fair warning so
+of that stuff off so fair warning so before we talk about how we did it let's
+before we talk about how we did it let's take a look at what we did let's look at
+take a look at what we did let's look at what we shipped so we had melee for two
+what we shipped so we had melee for two playable characters being Joel and Ellie
+playable characters being Joel and Ellie we had three different Ally types so
+we had three different Ally types so bill with his machete Ellie with her
+bill with his machete Ellie with her switchblade and then test Tommy and
+switchblade and then test Tommy and Henry which with just their fists we had
+Henry which with just their fists we had five enemy types being humans and the
+five enemy types being humans and the four infected classes seven weapons and
+four infected classes seven weapons and all of us added up to nearly a thousand
+all of us added up to nearly a thousand individual melee moves and that was just
+individual melee moves and that was just for single-player we had a totally
+for single-player we had a totally separate melee system for multiplayer
+separate melee system for multiplayer pvp and all of this never exceeded a
+pvp and all of this never exceeded a four megabyte memory footprint so this
+four megabyte memory footprint so this is just a graph visualization of the
+is just a graph visualization of the melee system this is just single-player
+melee system this is just single-player so as you can see it's pretty large
+so as you can see it's pretty large there's a lot of moves it's pretty
+there's a lot of moves it's pretty complex so in my dog we always try to do
+complex so in my dog we always try to do more with less we try to get a lot done
+more with less we try to get a lot done with a really lean and mean team so
+with a really lean and mean team so let's take a look at who we had working
+let's take a look at who we had working on melee so we had one designer yours
+on melee so we had one designer yours truly we had two animators this is Lee
+truly we had two animators this is Lee Davis who specialized on the technical
+Davis who specialized on the technical side of animations
+side of animations and this is Ryan McGarry who specialized
+and this is Ryan McGarry who specialized more on the cinematic side so facial
+more on the cinematic side so facial animations the more cinematic moves we
+animations the more cinematic moves we had one programmer Ian Jones who has the
+had one programmer Ian Jones who has the brain of ten ordinary programmers and he
+brain of ten ordinary programmers and he also do a lot of work on player controls
+also do a lot of work on player controls so aiming movement Crouch stuff like
+so aiming movement Crouch stuff like that so we really only learned I used
+that so we really only learned I used like a third of his time I so that was
+like a third of his time I so that was the team about three and a third people
+the team about three and a third people to make the system so let's take a look
+to make the system so let's take a look at our overall direction we had two
+at our overall direction we had two goals that we were trying to hit first
+goals that we were trying to hit first we wanted to support the tone we were
+we wanted to support the tone we were trying to establish with the Last of Us
+trying to establish with the Last of Us and build on the world we were trying to
+and build on the world we were trying to create we're gonna mail a gameplay that
+create we're gonna mail a gameplay that was brutal and visceral and conveyed the
+was brutal and visceral and conveyed the high stakes survival at all costs a
+high stakes survival at all costs a world of the game
+world of the game secondly we we wanted melee to take on a
+secondly we we wanted melee to take on a greater role in combat in the world of
+greater role in combat in the world of The Last of Us people aren't making
+The Last of Us people aren't making bullets anymore so ammo is much more
+bullets anymore so ammo is much more scarce and so melee becomes a lot more
+scarce and so melee becomes a lot more important also with the infected classes
+important also with the infected classes who obviously don't use guns melee
+who obviously don't use guns melee becomes a lot more important for them as
+becomes a lot more important for them as well so there's really two stories I
+well so there's really two stories I want to tell today the first is the
+want to tell today the first is the story of design how do we create
+story of design how do we create satisfying mechanics how do we hit the
+satisfying mechanics how do we hit the aesthetic tone that we're going for the
+aesthetic tone that we're going for the second story is implementation how are
+second story is implementation how are we going to ship this how are we going
+we going to ship this how are we going to get it to fit into memory how are we
+to get it to fit into memory how are we going to actually do this so let's take
+going to actually do this so let's take a look at design first so when we're
+a look at design first so when we're talking about design it's not just about
+talking about design it's not just about mechanics it's also about the look and
+mechanics it's also about the look and the feel of the combat what's the tone
+the feel of the combat what's the tone that you're trying to hit how do you
+that you're trying to hit how do you convey an emotion through your combat so
+convey an emotion through your combat so an eye dog the game's story is the spine
+an eye dog the game's story is the spine of all our decisions and that doesn't
+of all our decisions and that doesn't just mean the plot like the narrative of
+just mean the plot like the narrative of the story it's also the tone and the
+the story it's also the tone and the genre that the story is trying to
+genre that the story is trying to establish the Last of Us is a story of
+establish the Last of Us is a story of human struggle in a harsh cruel world
+human struggle in a harsh cruel world the setting is just a backdrop to a
+the setting is just a backdrop to a story about humanity the pandemic isn't
+story about humanity the pandemic isn't what's important
+what's important the infected aren't what's important
+the infected aren't what's important what's important is how he
+what's important is how he human beings react into these harsh
+human beings react into these harsh situations to emphasize this harsh cruel
+situations to emphasize this harsh cruel world Mele has to be brutal the world
+world Mele has to be brutal the world has to be high-stakes and that's what
+has to be high-stakes and that's what really brings out the human struggles of
+really brings out the human struggles of these characters is the pressure of
+these characters is the pressure of these high-stakes situations so how do
+these high-stakes situations so how do we do that one of the first ways is
+we do that one of the first ways is through creating a sense of impact if
+through creating a sense of impact if you want people to get invested enough
+you want people to get invested enough in your combat to feel an emotion they
+in your combat to feel an emotion they have to believe it they have to feel it
+have to believe it they have to feel it so let's take a look at some techniques
+so let's take a look at some techniques that we use for that so we started out
+that we use for that so we started out by looking at a lot of anime reference
+by looking at a lot of anime reference so this is arguably some of the hardest
+so this is arguably some of the hardest impacts out there are these MMA
+impacts out there are these MMA knockouts and there's something
+knockouts and there's something interesting you'll notice about what's
+interesting you'll notice about what's physically happening here which is that
+physically happening here which is that most of the velocity of the impact is
+most of the velocity of the impact is expressed through the person's head
+expressed through the person's head their actual body moves very little
+their actual body moves very little comparatively and this serves ironically
+comparatively and this serves ironically to make the impact feel much harder but
+to make the impact feel much harder but it also makes that people feel heavier
+it also makes that people feel heavier you know it gives them a sense of weight
+you know it gives them a sense of weight that makes them seem more believable
+that makes them seem more believable there's a problem with using real-world
+there's a problem with using real-world reference all the time which is that
+reference all the time which is that real life is incredibly confusing if
+real life is incredibly confusing if you've ever watched youtube videos of
+you've ever watched youtube videos of street fights or MMA fights often it
+street fights or MMA fights often it devolves into this you know chaos that's
+devolves into this you know chaos that's not really going to work for a game so
+not really going to work for a game so how do you make a fight readable and
+how do you make a fight readable and have a sense of impact at the same time
+have a sense of impact at the same time so this is kind of what we settled on
+so this is kind of what we settled on notice the the really long pauses on the
+notice the the really long pauses on the windup and on the follow-through of the
+windup and on the follow-through of the punches this is what makes these punches
+punches this is what makes these punches seem distinct and readable the actual
+seem distinct and readable the actual swing itself is only like 2 or 3 frames
+swing itself is only like 2 or 3 frames and that makes it feel really fast and
+and that makes it feel really fast and impactful and then again you can kind of
+impactful and then again you can kind of see from the enemy's reaction we were
+see from the enemy's reaction we were kind of following from the MMA reference
+kind of following from the MMA reference of moving the head and the upper
+of moving the head and the upper shoulder is way more than the rest of
+shoulder is way more than the rest of his body kind of trying to make him feel
+his body kind of trying to make him feel a bit heavier another way of creating a
+a bit heavier another way of creating a sense of impact is with sudden and
+sense of impact is with sudden and drastic changes in momentum and these
+drastic changes in momentum and these cliffs
+we lower it down just a bit in these clips you can see there isn't a lot of
+clips you can see there isn't a lot of bounce from the head when it hits the
+bounce from the head when it hits the surface let's take a look at this slow
+surface let's take a look at this slow motion so what's happening here is that
+motion so what's happening here is that the kinetic energy of the guy's head
+the kinetic energy of the guy's head moving towards the wall or the counter
+moving towards the wall or the counter isn't going anywhere like it's the only
+isn't going anywhere like it's the only way it's on the only place that's going
+way it's on the only place that's going is internally as trauma like all of that
+is internally as trauma like all of that energy is transferred completely into
+energy is transferred completely into his cells and you don't think about this
+his cells and you don't think about this consciously but if you're looking at it
+consciously but if you're looking at it you kind of feel it you understand it
+you kind of feel it you understand it that that is hurting if he was bouncing
+that that is hurting if he was bouncing off of the surface it would look like
+off of the surface it would look like WWF or something and it wouldn't be as
+WWF or something and it wouldn't be as believable of an impact so earlier I
+believable of an impact so earlier I brought up humanity as a concept that's
+brought up humanity as a concept that's important to the game's story this is
+important to the game's story this is true but humanity is also something that
+true but humanity is also something that makes everything in the game much more
+makes everything in the game much more affecting it really punches up all the
+affecting it really punches up all the action that you're seeing the humanity
+action that you're seeing the humanity that's expressed through the characters
+that's expressed through the characters makes you empathize with them and when
+makes you empathize with them and when you empathize you feel what is happening
+you empathize you feel what is happening to them along with them and that makes
+to them along with them and that makes the actions seem a lot more impactful
+the actions seem a lot more impactful and real so we want our fights to come
+and real so we want our fights to come off as life-or-death struggles between
+off as life-or-death struggles between real human characters driven by
+real human characters driven by self-preservation so how do we do that
+self-preservation so how do we do that one major way we express humanity was
+one major way we express humanity was through facial animations so we
+through facial animations so we choreograph the combat systems that
+choreograph the combat systems that there were a lot of opportunities for
+there were a lot of opportunities for the camera to get up close to see the
+the camera to get up close to see the faces of these characters as they kind
+faces of these characters as they kind of express their humanities and I
+of express their humanities and I personally think this does way more than
+personally think this does way more than any amount of blood or gore to make your
+any amount of blood or gore to make your combat seem impactful and it went a long
+combat seem impactful and it went a long way into helping us like establish the
+way into helping us like establish the tone we were trying to go for with the
+tone we were trying to go for with the melee combat
+so our next look-and-feel concept is motivation and I'm not talking about
+motivation and I'm not talking about acting like what's my motivation what I
+acting like what's my motivation what I mean is make sure that characters have a
+mean is make sure that characters have a physical motivation for everything
+physical motivation for everything that's happening to them so you'll find
+that's happening to them so you'll find as you're creating a melee combat system
+as you're creating a melee combat system there's a lot of stuff you want your
+there's a lot of stuff you want your characters to do to support a mechanic
+characters to do to support a mechanic or does make the game more fun you'll
+or does make the game more fun you'll need them to be in a particular pose or
+need them to be in a particular pose or you'll need them to be a little bit to
+you'll need them to be a little bit to the right or to move them around what
+the right or to move them around what I'd suggest is to always make sure
+I'd suggest is to always make sure there's some kind of physical reason for
+there's some kind of physical reason for them to be doing the things that they're
+them to be doing the things that they're doing some kind of physical excuse that
+doing some kind of physical excuse that motivates what they're doing in the game
+motivates what they're doing in the game let's take a look at what I'm talking
+let's take a look at what I'm talking about
+about so this is kind of a counter example of
+so this is kind of a counter example of what not to do here we have LED jumping
+what not to do here we have LED jumping up to stab a guy I love this moves one
+up to stab a guy I love this moves one of my favorites but something just isn't
+of my favorites but something just isn't quite right here it's something subtle
+quite right here it's something subtle let's take a look at it a little slower
+let's take a look at it a little slower and we'll see what I'm talking about so
+and we'll see what I'm talking about so what's happening you'll notice that the
+what's happening you'll notice that the guy's standing up to get stabbed and
+guy's standing up to get stabbed and that's kind of ridiculous why is he like
+that's kind of ridiculous why is he like presenting his neck to you in order to
+presenting his neck to you in order to be killed that doesn't really make a lot
+be killed that doesn't really make a lot of sense so this is what I'm talking
+of sense so this is what I'm talking about there's no motivation for him to
+about there's no motivation for him to be doing this this was kind of a
+be doing this this was kind of a necessary evil because this move could
+necessary evil because this move could either be done from a brick stun which
+either be done from a brick stun which has the guy doubled over or it could be
+has the guy doubled over or it could be done as a stealth kill in which case the
+done as a stealth kill in which case the guy would be standing up so there was
+guy would be standing up so there was kind of no way around this ideally we
+kind of no way around this ideally we would have had a different animation
+would have had a different animation that could have handled this a little
+that could have handled this a little bit better but it wasn't necessary evil
+bit better but it wasn't necessary evil to ship the game let's take a look at a
+to ship the game let's take a look at a better example so here's an example of
+better example so here's an example of moving a character with motivation as
+moving a character with motivation as you can tell here the enemy is standing
+you can tell here the enemy is standing facing 90 degrees away from Joel if we
+facing 90 degrees away from Joel if we slow it down you'll notice that the pop
+slow it down you'll notice that the pop is pretty significant when he pops into
+is pretty significant when he pops into the first pose of the reaction animation
+the first pose of the reaction animation the thing is that your eye hides it
+the thing is that your eye hides it because he's being motivated by the axe
+because he's being motivated by the axe through his neck so there's something
+through his neck so there's something that gives a physical reason for him to
+that gives a physical reason for him to pop into that pose and when you look at
+pop into that pose and when you look at it full speed you don't notice the pop
+it full speed you don't notice the pop at all
+so this is Joel slamming a guy in the wall we really like these wall moves we
+wall we really like these wall moves we wanted them to happen as frequently as
+wanted them to happen as frequently as possible so we were very generous with
+possible so we were very generous with the amount of distance that you could be
+the amount of distance that you could be away from the wall
+away from the wall with the guy in order for this move to
+with the guy in order for this move to trigger we look at it from the side
+trigger we look at it from the side you'll see how long that distance
+you'll see how long that distance actually is that's a pretty gnarly lurch
+actually is that's a pretty gnarly lurch like he's going pretty far the thing is
+like he's going pretty far the thing is that it's hidden by the fact that joel
+that it's hidden by the fact that joel is pushing the guy forward that joel is
+is pushing the guy forward that joel is like moving around and so your eye
+like moving around and so your eye interpolates that as it's happening
+interpolates that as it's happening again from the player's perspective it
+again from the player's perspective it looks fine and you don't notice that
+looks fine and you don't notice that it's happened so of course something
+it's happened so of course something important to consider is how we're going
+important to consider is how we're going to frame this action to the player so
+to frame this action to the player so let's talk about cameras for a little
+let's talk about cameras for a little bit the base melee camera in the last of
+bit the base melee camera in the last of us is a systemic camera that can soph to
+us is a systemic camera that can soph to one side and tries to frame both the
+one side and tries to frame both the attacker and the defender by looking at
+attacker and the defender by looking at the midpoint and keeping the defender
+the midpoint and keeping the defender on-screen so let's take a look at what
+on-screen so let's take a look at what that looks like you see as I punched the
+that looks like you see as I punched the guy the camera moves kind of off to the
+guy the camera moves kind of off to the side framing both characters as I move
+side framing both characters as I move around it kind of centers a little bit
+around it kind of centers a little bit more on jewel into my normal
+more on jewel into my normal navigational camera when the camera
+navigational camera when the camera starts off on the wrong side of the
+starts off on the wrong side of the action it slowly orbits around until
+action it slowly orbits around until it's in the correct spot so this was the
+it's in the correct spot so this was the way we found to frame the action
+way we found to frame the action consistently without doing a lot of hand
+consistently without doing a lot of hand placement of cameras and it was
+placement of cameras and it was something we found was the smoothest way
+something we found was the smoothest way to frame the engine so for special moves
+to frame the engine so for special moves like finishers or grapples we used
+like finishers or grapples we used animated cameras for emphasis and a
+animated cameras for emphasis and a greater cinematic feel and it's kind of
+greater cinematic feel and it's kind of an old technique they've been doing in
+an old technique they've been doing in since Scott of war or maybe earlier but
+since Scott of war or maybe earlier but it's great and it works for even more
+it's great and it works for even more impact
+impact we used cut cameras but we only use them
+we used cut cameras but we only use them for deaths and I'll talk about why so
+for deaths and I'll talk about why so the great thing about deaths is it's
+the great thing about deaths is it's shocking the camera cut is really
+shocking the camera cut is really shocking which synergizes well with the
+shocking which synergizes well with the shock of being killed so there's a great
+shock of being killed so there's a great synergy there the other thing that's
+synergy there the other thing that's awesome is that cutting the camera is
+awesome is that cutting the camera is very disorienting but the great thing
+very disorienting but the great thing about using it for deaths is it doesn't
+about using it for deaths is it doesn't matter that the player is disoriented
+matter that the player is disoriented because they're dead so cut cameras are
+because they're dead so cut cameras are a great thing to kind of really
+a great thing to kind of really emphasize and punch up a death moment as
+emphasize and punch up a death moment as a bit of trivia the clickers and the
+a bit of trivia the clickers and the camera cut were inspired by the chainsaw
+camera cut were inspired by the chainsaw guy from Resident Evil 4 which also had
+guy from Resident Evil 4 which also had a camera cut which really made him a
+a camera cut which really made him a memorable enemy one last and just stupid
+memorable enemy one last and just stupid simple technique is camera shake I know
+simple technique is camera shake I know it's easy I know like almost every game
+it's easy I know like almost every game with melee and it has it but there's a
+with melee and it has it but there's a reason it is awesome you should use it
+reason it is awesome you should use it camera shake is great so here is the
+camera shake is great so here is the same combo from before just seems a
+same combo from before just seems a little flat something's not right and
+little flat something's not right and something's not amped up but just a
+something's not amped up but just a touch of camera shake on all the impacts
+touch of camera shake on all the impacts and suddenly it just feels way more
+and suddenly it just feels way more impactful and way more real so camera
+impactful and way more real so camera shake is great so that's the visual
+shake is great so that's the visual element of the design let's talk for a
+element of the design let's talk for a little bit about mechanics about the
+little bit about mechanics about the design of the actual gameplay so the
+design of the actual gameplay so the story of the development of the games
+story of the development of the games melee mechanics had a lot to do with me
+melee mechanics had a lot to do with me overcoming some ego issues like any game
+overcoming some ego issues like any game designer I wanted my part of the game to
+designer I wanted my part of the game to be amazing to be rich deep and complex I
+be amazing to be rich deep and complex I wanted some rock-paper-scissors gameplay
+wanted some rock-paper-scissors gameplay I wanted some Yomi in there you know I
+I wanted some Yomi in there you know I wanted it to be complex and interesting
+wanted it to be complex and interesting I wanted melee to be able to stand on
+I wanted melee to be able to stand on its own I wanted there to be encounters
+its own I wanted there to be encounters where it was just melee and that the
+where it was just melee and that the combat was satisfying enough and complex
+combat was satisfying enough and complex enough that it would carry for most of
+enough that it would carry for most of the development on the game we iterated
+the development on the game we iterated on block counter and evade
+on block counter and evade we had so many different varieties of
+we had so many different varieties of these mechanics we had timed counters we
+these mechanics we had timed counters we had evades we had to evade a particular
+had evades we had to evade a particular direction to avoid different attacks a
+direction to avoid different attacks a lot of different versions of this idea
+lot of different versions of this idea this was based on the assumption that
+this was based on the assumption that you know a core element of any melee
+you know a core element of any melee gameplay is the critical strategic
+gameplay is the critical strategic choice between attacking and defending I
+choice between attacking and defending I mean that's something that you just have
+mean that's something that you just have to have in any melee system don't you
+to have in any melee system don't you this is a some footage from a pre-alpha
+this is a some footage from a pre-alpha build of the Last of Us
+build of the Last of Us one of the first things that's most
+one of the first things that's most apparent is how far away the camera is
+apparent is how far away the camera is there's a lot more switching between
+there's a lot more switching between different enemies as you're fighting and
+different enemies as you're fighting and you'll notice that I'm able to evade
+you'll notice that I'm able to evade attacks this one was still had and evade
+attacks this one was still had and evade mechanic in the game they also see guys
+mechanic in the game they also see guys getting into this goofy stance and that
+getting into this goofy stance and that was the way to Telegraph to the player
+was the way to Telegraph to the player that someone was about to do an evade
+that someone was about to do an evade and so there was this rock-paper-scissor
+and so there was this rock-paper-scissor gameplay where you were then supposed to
+gameplay where you were then supposed to grab him instead of punching him the
+grab him instead of punching him the grab gameplay was also a lot deeper you
+grab gameplay was also a lot deeper you could throw guys around you could grab
+could throw guys around you could grab them and headbutt them which would stun
+them and headbutt them which would stun them and then open them up for an even
+them and then open them up for an even bigger grab there was a lot of
+bigger grab there was a lot of complexity yeah let's take a look at
+complexity yeah let's take a look at what it was like to fight the infected
+what it was like to fight the infected so this was an early build of the Tilted
+so this was an early build of the Tilted building and you'll see I can evade
+building and you'll see I can evade these clickers which probably would have
+these clickers which probably would have been nice in the shift game but and you
+been nice in the shift game but and you can see we also had this like goofy kill
+can see we also had this like goofy kill move that was our way of making the
+move that was our way of making the clickers which were supposed to be scary
+clickers which were supposed to be scary so much more challenging so it took a
+so much more challenging so it took a really really long time to kill them so
+really really long time to kill them so obviously all of this looks pretty
+obviously all of this looks pretty gnarly but maybe we could have polished
+gnarly but maybe we could have polished it you know maybe we could have just
+it you know maybe we could have just iterated a little more and figured out a
+iterated a little more and figured out a way to make evade work but there was
+way to make evade work but there was some intrinsic problems with block and
+some intrinsic problems with block and evade that we just couldn't get around
+evade that we just couldn't get around the first it was really difficult for us
+the first it was really difficult for us to find any kind of meaningful challenge
+to find any kind of meaningful challenge so we're very limited on buttons because
+so we're very limited on buttons because we're a shooter so if there was gonna be
+we're a shooter so if there was gonna be a defense button it could only be one
+a defense button it could only be one button and so the way you would think to
+button and so the way you would think to add some challenge to it is with timing
+add some challenge to it is with timing the problem that we ran into is that the
+the problem that we ran into is that the timing was either trivially easy
+timing was either trivially easy in which case do I have it at all or it
+in which case do I have it at all or it was impossibly difficult
+was impossibly difficult there was no like middle ground that we
+there was no like middle ground that we were able to find in our focus tests so
+were able to find in our focus tests so that was one problem the other thing is
+that was one problem the other thing is that blocking fights against the camera
+that blocking fights against the camera system that we were trying to put into
+system that we were trying to put into the game so we wanted the camera to be
+the game so we wanted the camera to be close and over drilled shoulder because
+close and over drilled shoulder because that gives you this feeling of intensity
+that gives you this feeling of intensity this feeling of you know again
+this feeling of you know again empathizing with the humanity of the
+empathizing with the humanity of the character if you can block someone
+character if you can block someone you're going to want to see them an
+you're going to want to see them an attack from off screen is unacceptable
+attack from off screen is unacceptable if you had the opportunity to defend
+if you had the opportunity to defend against it if you don't then it doesn't
+against it if you don't then it doesn't matter that you couldn't see them
+matter that you couldn't see them because there was nothing that you could
+because there was nothing that you could do about it anyways so that's why in
+do about it anyways so that's why in these builds you saw the camera was so
+these builds you saw the camera was so far away because people wanted to see
+far away because people wanted to see these these enemies the other thing
+these these enemies the other thing about that choice between offense and
+about that choice between offense and defense is most of the time in single
+defense is most of the time in single player games that relies on one versus
+player games that relies on one versus many fighting so if you look at God of
+many fighting so if you look at God of War two when they cry these types of
+War two when they cry these types of games they center around the player
+games they center around the player fighting a lot of different enemies and
+fighting a lot of different enemies and figuring out when to attack one person
+figuring out when to attack one person versus defend another person the thing
+versus defend another person the thing is that combat in the last of us doesn't
+is that combat in the last of us doesn't really support that because of the way
+really support that because of the way the stealth works and the shooting works
+the stealth works and the shooting works you very rarely get these one on many
+you very rarely get these one on many fights like Batman or something like
+fights like Batman or something like that you're most of the time fighting
+that you're most of the time fighting one person maybe two
+one person maybe two so that also didn't work finally
+so that also didn't work finally blocking waters down the sense of
+blocking waters down the sense of consequence that we were aiming for in
+consequence that we were aiming for in the game you know you saw with the
+the game you know you saw with the clicker enemies you know the consequence
+clicker enemies you know the consequence of being nabbed by a clicker is way more
+of being nabbed by a clicker is way more significant if you can't block him you
+significant if you can't block him you know if you're able to defend attacks
+know if you're able to defend attacks that kind of waters down the sense of
+that kind of waters down the sense of you messed up not a game that's hurting
+you messed up not a game that's hurting you so it watered that down as finally
+you so it watered that down as finally we cut the Gordian knot and we cut block
+we cut the Gordian knot and we cut block this was like kind of a really tricky
+this was like kind of a really tricky decision to come to it really required
+decision to come to it really required us to throw out a lot of our assumptions
+us to throw out a lot of our assumptions about what we were doing with the melee
+about what we were doing with the melee system but it was the best design
+system but it was the best design decision we made the thing is that that
+decision we made the thing is that that choice between offense and defense is
+choice between offense and defense is critical to a melee game but the last of
+critical to a melee game but the last of us is not a melee game it's a shooting
+us is not a melee game it's a shooting crafting stell thing and melee game so
+crafting stell thing and melee game so and
+and just as kind of an idea how Naughty Dog
+just as kind of an idea how Naughty Dog works we cut block four months before
+works we cut block four months before ship so we kind of totally changed our
+ship so we kind of totally changed our game mechanics pretty late in the game
+game mechanics pretty late in the game so if you don't have offense and defense
+so if you don't have offense and defense how do you create at least some kind of
+how do you create at least some kind of a sense of complexity how do you make it
+a sense of complexity how do you make it so that the player doesn't feel like
+so that the player doesn't feel like they're just mashing buttons we are
+they're just mashing buttons we are restricted on buttons because we're a
+restricted on buttons because we're a shooter so we didn't have a lot of
+shooter so we didn't have a lot of opportunities for different kinds of
+opportunities for different kinds of inputs in order for you to vary your
+inputs in order for you to vary your attacks or anything so one potential
+attacks or anything so one potential solution that was timing attacks now
+solution that was timing attacks now this is a mechanic that's in Ninja
+this is a mechanic that's in Ninja Gaiden and double May Cry where you can
+Gaiden and double May Cry where you can attack attack pause and attack and that
+attack attack pause and attack and that gives you a different kind of combo or
+gives you a different kind of combo or some different move another idea we
+some different move another idea we looked into was charge up attacks where
+looked into was charge up attacks where you like hold down square to get a
+you like hold down square to get a unleash your bigger move so there's this
+unleash your bigger move so there's this implicit like risk/reward thing that
+implicit like risk/reward thing that happens there which is kind of cool
+happens there which is kind of cool maybe we could do something with
+maybe we could do something with strategic placements so no new buttons
+strategic placements so no new buttons but lining up enemies in certain ways or
+but lining up enemies in certain ways or throwing guys into each other or
+throwing guys into each other or something like that maybe we could get
+something like that maybe we could get something there the thing is for the
+something there the thing is for the last of us these ideas are terrible none
+last of us these ideas are terrible none of this worked and the reason why is
+of this worked and the reason why is they were all just too complex for the
+they were all just too complex for the player to keep in their head along with
+player to keep in their head along with all the other things they need to worry
+all the other things they need to worry about from stealth to listen mode to
+about from stealth to listen mode to crafting to all the other complexities
+crafting to all the other complexities that form the whole blast of us combat
+that form the whole blast of us combat so how do we were we able to find good
+so how do we were we able to find good complexities and depth that actually
+complexities and depth that actually worked so the first rule of thumb was to
+worked so the first rule of thumb was to avoid any new inputs so any mechanic
+avoid any new inputs so any mechanic that we were trying to put in we would
+that we were trying to put in we would have to avoid any kind of complex or
+have to avoid any kind of complex or intricate input a great way of doing
+intricate input a great way of doing that was using context so what kind of
+that was using context so what kind of weapon you're holding what kind of enemy
+weapon you're holding what kind of enemy class that you're fighting against that
+class that you're fighting against that was a great source of some death and it
+was a great source of some death and it was very easy for people to understand
+was very easy for people to understand another great thing to do is to
+another great thing to do is to handshake with other systems so melee is
+handshake with other systems so melee is a subsystem of the last of us and a
+a subsystem of the last of us and a great source of depth was handshaking
+great source of depth was handshaking with other subsystems so for example the
+with other subsystems so for example the Shiv and the Mata modded 2x4 interacted
+Shiv and the Mata modded 2x4 interacted with the crafting system if you could
+with the crafting system if you could grab guys and take them as a human
+grab guys and take them as a human shield which would then interact with
+shield which would then interact with the gunplay system so those worked out
+the gunplay system so those worked out another thing to do is to try to create
+another thing to do is to try to create predictive strategy so what this means
+predictive strategy so what this means is some kind of mechanic that doesn't
+is some kind of mechanic that doesn't confer an immediate advantage but
+confer an immediate advantage but confers some advantage a little bit
+confers some advantage a little bit further down the line so an example from
+further down the line so an example from fighting games would be launchers it's
+fighting games would be launchers it's not the launcher that's important it's
+not the launcher that's important it's the juggle moves that you do after and
+the juggle moves that you do after and so setting up this kind of future
+so setting up this kind of future advantage is something I find players
+advantage is something I find players really like and makes them feel clever
+really like and makes them feel clever and finally don't hog mind chair make
+and finally don't hog mind chair make sure that whatever mechanics you're
+sure that whatever mechanics you're putting in are something that the player
+putting in are something that the player can keep in their head reasonably while
+can keep in their head reasonably while they're dealing with all the other stuff
+they're dealing with all the other stuff they have to deal with in the game so
+they have to deal with in the game so let's take a look at an example
+let's take a look at an example so the brick was an example of this in
+so the brick was an example of this in action so it creates a predictive
+action so it creates a predictive strategy it allows you to grab enemies
+strategy it allows you to grab enemies sets up more powerful moves you can
+sets up more powerful moves you can instantly kill a clicker if you have a
+instantly kill a clicker if you have a few by for so it links up with the
+few by for so it links up with the scavenging and stealth assistance of the
+scavenging and stealth assistance of the game because you can throw it as a
+game because you can throw it as a distraction you punch in your
+distraction you punch in your environment behind them
+environment behind them it requires no new buddies you throw it
+it requires no new buddies you throw it just like any other global and it
+just like any other global and it doesn't require much from the player to
+doesn't require much from the player to understand how to use it so yeah that
+understand how to use it so yeah that was the brick so just in general there
+was the brick so just in general there were a ton of different mechanics beyond
+were a ton of different mechanics beyond what I've mentioned that we tried to put
+what I've mentioned that we tried to put in the game and we had to be really
+in the game and we had to be really comfortable with cutting them in the
+comfortable with cutting them in the name of simplicity and elegance you're
+name of simplicity and elegance you're always gonna have some idea that it's
+always gonna have some idea that it's your pet idea and just be really
+your pet idea and just be really comfortable with cutting that and
+comfortable with cutting that and letting go of it in the name of making
+letting go of it in the name of making the game simpler and more accessible
+the game simpler and more accessible always think big picture if you're
+always think big picture if you're working on a subsystem remember that you
+working on a subsystem remember that you are not the system try to harmonize try
+are not the system try to harmonize try to to make your thing fit into the
+to to make your thing fit into the larger hole
+larger hole ideally synergizing with the rest of the
+ideally synergizing with the rest of the game so how does melee fit into
+game so how does melee fit into multiplayer let's just take a look at a
+multiplayer let's just take a look at a quick clip
+quick clip besides this guy's stunned by a smoke
+besides this guy's stunned by a smoke bomb just in the neck trying to flee get
+bomb just in the neck trying to flee get nabbed by modded 2x4 and crawling away
+nabbed by modded 2x4 and crawling away my friends on fire and then I get
+my friends on fire and then I get executed so as you can see melee ended
+executed so as you can see melee ended up giving our PvP combat a very unique
+up giving our PvP combat a very unique feel it really helped to separate us
+feel it really helped to separate us from other third-person shooters in
+from other third-person shooters in multiplayer but we had to selectively
+multiplayer but we had to selectively adapt our mechanics for example there's
+adapt our mechanics for example there's no hostage taking there's no human
+no hostage taking there's no human shield because that's really not fun for
+shield because that's really not fun for the other guy in multiplayer it's no fun
+the other guy in multiplayer it's no fun to be dried around there's also no
+to be dried around there's also no bricks because you can't fool a player
+bricks because you can't fool a player as easily as you can fool an enemy AI so
+as easily as you can fool an enemy AI so instead of using bricks to stun and we
+instead of using bricks to stun and we use the smoke bomb changes like that but
+use the smoke bomb changes like that but one of the biggest changes was that when
+one of the biggest changes was that when you punch someone instead of playing a
+you punch someone instead of playing a nice full body animation they play just
+nice full body animation they play just a flinch now let's take a look at what
+a flinch now let's take a look at what that looked like
+so we did that to allow the person on the receiving end to move around again
+the receiving end to move around again to keep things fun and fast-paced for
+to keep things fun and fast-paced for both players instead of just the person
+both players instead of just the person doing the attacking so obviously there's
+doing the attacking so obviously there's a downside to this it doesn't look
+a downside to this it doesn't look fantastic and it doesn't look as good as
+fantastic and it doesn't look as good as our nolan melee combat this is
+our nolan melee combat this is especially apparent when two people are
+especially apparent when two people are punching each other at the same time
+punching each other at the same time which looks gnarly and I'm very sorry
+which looks gnarly and I'm very sorry about this but it was a necessary evil
+about this but it was a necessary evil to make PvP fun is just kind of an
+to make PvP fun is just kind of an unavoidable thing overall though we lose
+unavoidable thing overall though we lose a lot of the cinematic feel we lose a
+a lot of the cinematic feel we lose a lot of the tones we were trying to
+lot of the tones we were trying to create with the game so how do we bring
+create with the game so how do we bring some of that back into multiplayer so
+some of that back into multiplayer so the answer is fatal movies so again
+the answer is fatal movies so again because we turn it down just a little
+because we turn it down just a little bit again because the person on the
+bit again because the person on the receiving end is being killed it doesn't
+receiving end is being killed it doesn't matter so much that they can't move
+matter so much that they can't move because they're dead anyways and it
+because they're dead anyways and it doesn't matter also a lot of these moves
+doesn't matter also a lot of these moves were a little bit longer and it allowed
+were a little bit longer and it allowed us to bring in the camera a little bit
+us to bring in the camera a little bit close and kind of regain some of the
+close and kind of regain some of the intensity that we lost some multiplayer
+okay so that's design let's talk about how we actually did it so obviously in
+how we actually did it so obviously in constable development memory is crazy
+constable development memory is crazy important even though we've got a ton of
+important even though we've got a ton of memory on next-gen consoles believe me
+memory on next-gen consoles believe me it's gonna dry up really quickly so
+it's gonna dry up really quickly so you'll always have to worry about memory
+you'll always have to worry about memory the memory footprint for the melee
+the memory footprint for the melee system in the last of us was four
+system in the last of us was four megabytes this is the same footprint
+megabytes this is the same footprint that Drake had for his melee moves in
+that Drake had for his melee moves in the Uncharted series the thing is that
+the Uncharted series the thing is that jewel has all these weapons there's the
+jewel has all these weapons there's the infected he's got the human shield
+infected he's got the human shield there's just so many more mechanics in
+there's just so many more mechanics in melee so we had to be really strategic
+melee so we had to be really strategic about how we used our memory so I could
+about how we used our memory so I could go on and on about memory management but
+go on and on about memory management but these are the basic top level strategies
+these are the basic top level strategies that we use the first is modular loading
+that we use the first is modular loading so this is basically breaking up all of
+so this is basically breaking up all of your assets into tiny chunks and then
+your assets into tiny chunks and then only loading exactly what you need at
+only loading exactly what you need at any given time this is how no I dog in
+any given time this is how no I dog in general is able to make their games
+general is able to make their games without any load screens in them because
+without any load screens in them because we are able to kind of be very
+we are able to kind of be very meticulous about only loading exactly
+meticulous about only loading exactly what we need so these were all the
+what we need so these were all the animation bundles of in the melee system
+animation bundles of in the melee system and there's some pretty logical divides
+and there's some pretty logical divides here you might be able to see there's
+here you might be able to see there's the Elliott versus David fight in there
+the Elliott versus David fight in there there's horse melee so that makes sense
+there's horse melee so that makes sense you can kind of split things based on
+you can kind of split things based on where they are in the game and that's a
+where they are in the game and that's a little bit easier something that's a
+little bit easier something that's a little bit more subtle is this division
+little bit more subtle is this division so Anam go melee is what Joel could do
+so Anam go melee is what Joel could do just by himself
+just by himself so if he's alone in a level and he has a
+so if he's alone in a level and he has a pipe it's him swinging it through the
+pipe it's him swinging it through the air you know it's basically so that you
+air you know it's basically so that you have animations to play it when you
+have animations to play it when you press square even if no one's around and
+press square even if no one's around and in melee common is anything that
+in melee common is anything that requires both Joel and someone else it
+requires both Joel and someone else it doesn't matter if it's an infected or he
+doesn't matter if it's an infected or he just some other enemy so this is Joel
+just some other enemy so this is Joel swinging the pipe through the air and it
+swinging the pipe through the air and it stops on a body when it hits it and then
+stops on a body when it hits it and then an MN PC melee is anything that required
+an MN PC melee is anything that required both Joel and an enemy so when the enemy
+both Joel and an enemy so when the enemy reacts to the pipe swinging that's an
+reacts to the pipe swinging that's an anima and PC mailing so at the start of
+anima and PC mailing so at the start of the swing I'm an animal melee on an
+the swing I'm an animal melee on an impact on drill side I'm an animal a
+impact on drill side I'm an animal a common and then the reaction is in an mm
+common and then the reaction is in an mm PC Millie so why do we do this
+PC Millie so why do we do this we do this because in areas where you're
+we do this because in areas where you're transitioning from human combat into
+transitioning from human combat into infected combat it absolutely ensures
+infected combat it absolutely ensures that we're not doubling up on any memory
+that we're not doubling up on any memory if there's an overlap between those two
+if there's an overlap between those two sections when both types of characters
+sections when both types of characters need to be loaded so these were the
+need to be loaded so these were the kinds of strategies we had to do to fit
+kinds of strategies we had to do to fit in memory another interesting memory
+in memory another interesting memory thing is we had both male and female
+thing is we had both male and female infected in the game and for the they
+infected in the game and for the they required different animations because
+required different animations because their skeletons were slightly different
+their skeletons were slightly different and so not only did we have different
+and so not only did we have different animation bundles for the female and
+animation bundles for the female and male versions but we had been split out
+male versions but we had been split out into four for female clicker and male
+into four for female clicker and male clicker female runner male runner it's
+clicker female runner male runner it's that way if you're in a fight with male
+that way if you're in a fight with male runners and female clickers you only
+runners and female clickers you only load exactly what you need again we also
+load exactly what you need again we also used animation streaming the last of us
+used animation streaming the last of us leaned really heavily on streaming the
+leaned really heavily on streaming the game had a reputation for destroying
+game had a reputation for destroying older ps3's and melee was no difference
+older ps3's and melee was no difference we've leaned really heavily on it the
+we've leaned really heavily on it the stealth kill the machete moves the
+stealth kill the machete moves the grapples anything that was longer than
+grapples anything that was longer than 80 frames was a candidate for streaming
+80 frames was a candidate for streaming and this was a huge win for memory we
+and this was a huge win for memory we were also very strategic about our
+were also very strategic about our sample rates so most of the animations
+sample rates so most of the animations in the game are sampled at 10 frames a
+in the game are sampled at 10 frames a second except for certain hero combos
+second except for certain hero combos that you saw very frequently like the
+that you saw very frequently like the fist combo and the pipe combo and those
+fist combo and the pipe combo and those were sampled at 15 frames a second the
+were sampled at 15 frames a second the great thing about streaming is once
+great thing about streaming is once you're already streaming the animation
+you're already streaming the animation it doesn't matter how big it is and so
+it doesn't matter how big it is and so we were able to sample those at 30
+we were able to sample those at 30 frames a second which made those moves
+frames a second which made those moves look a lot better so let's talk about
+look a lot better so let's talk about the implementation of our cameras for a
+the implementation of our cameras for a second so for a lot of moves with
+second so for a lot of moves with animated cameras if
+animated cameras if camera didn't trigger the move would
+camera didn't trigger the move would look absolutely terrible so when you're
+look absolutely terrible so when you're slamming a guy into a wall if the camera
+slamming a guy into a wall if the camera doesn't work then the normal in-game
+doesn't work then the normal in-game camera gets pushed up by collision and
+camera gets pushed up by collision and it'll be in the characters faces and
+it'll be in the characters faces and it'll look awesome awful so and we also
+it'll look awesome awful so and we also needed to make sure that the camera was
+needed to make sure that the camera was never behind collision because then
+never behind collision because then you'd see back face polygons and again
+you'd see back face polygons and again would look awful
+would look awful so what we had was a system of failsafe
+so what we had was a system of failsafe cameras so this is the clicker kill and
+cameras so this is the clicker kill and those little locators around them are
+those little locators around them are possible camera locations and you can
+possible camera locations and you can see the system has chosen the one on the
+see the system has chosen the one on the far right so if any of those points are
+far right so if any of those points are behind collision it'll have a backup and
+behind collision it'll have a backup and they'll have a backup to the backup and
+they'll have a backup to the backup and there's seven in this move so that was
+there's seven in this move so that was our way of ensuring that these animated
+our way of ensuring that these animated cameras would fire and make the move
+cameras would fire and make the move look good so there are a lot of areas in
+look good so there are a lot of areas in the game that are very dark and so it's
+the game that are very dark and so it's kind of a tricky issue to make sure that
+kind of a tricky issue to make sure that melee was visible when you're in these
+melee was visible when you're in these sections so we had this special
+sections so we had this special flashlight that we use to make sure that
+flashlight that we use to make sure that things were visible so here we can see
+things were visible so here we can see the normal flashlight you can see that
+the normal flashlight you can see that it's coming from Joel's right shoulder
+it's coming from Joel's right shoulder it's one of those clip-on flashlights
+it's one of those clip-on flashlights and it's facing away from him so when he
+and it's facing away from him so when he gets killed by the clicker something
+gets killed by the clicker something magical happens we're now sudden how
+magical happens we're now sudden how this flashlight is in his face and like
+this flashlight is in his face and like how is that happening so four moves like
+how is that happening so four moves like this we would hand author a point for
+this we would hand author a point for the flashlight to be and we would turn
+the flashlight to be and we would turn off his shoulder flashlight and turn on
+off his shoulder flashlight and turn on this fake melee flashlight and it
+this fake melee flashlight and it doesn't cast shadows so it was pretty
+doesn't cast shadows so it was pretty cheap and so this was our you know kind
+cheap and so this was our you know kind of hand done solution for hero movies
+of hand done solution for hero movies like this one but for more generic moves
+like this one but for more generic moves like this grapple we would just position
+like this grapple we would just position it behind the actual camera wherever the
+it behind the actual camera wherever the game camera was because if the camera
+game camera was because if the camera can see it and the light can see it odds
+can see it and the light can see it odds are you can see it because they're gonna
+are you can see it because they're gonna line up so if we take a look at what
+line up so if we take a look at what this looks like in game
+this looks like in game you can see that the transitions between
+you can see that the transitions between the normal flashlight and the male a
+the normal flashlight and the male a flashlight are relatively seamless and
+flashlight are relatively seamless and you can consistently see the action so
+you can consistently see the action so getting two animations to play in sync
+getting two animations to play in sync together is obviously a really important
+together is obviously a really important part of making our combat look good so
+part of making our combat look good so let's take a look at some techniques for
+let's take a look at some techniques for them so our system from uncharted was
+them so our system from uncharted was basically it was kind of just like any
+basically it was kind of just like any other scripted animation that two
+other scripted animation that two characters would play together
+characters would play together it was each move was authored as a pair
+it was each move was authored as a pair of animations that would play around a
+of animations that would play around a single point and that point was placed
+single point and that point was placed in the world and his characters replaced
+in the world and his characters replaced that play those same animations together
+that play those same animations together and that was how we did our sinking
+and that was how we did our sinking every melee move was built as a pair of
+every melee move was built as a pair of animations a pair that were always meant
+animations a pair that were always meant to go together
+to go together so for a lot of reasons we kind of broke
+so for a lot of reasons we kind of broke away from this system
+away from this system so as I'm punching this infected or this
+so as I'm punching this infected or this human they're playing different reaction
+human they're playing different reaction animations and in the Uncharted paradigm
+animations and in the Uncharted paradigm those would have been two distinct pairs
+those would have been two distinct pairs of animation the guy was facing away
+of animation the guy was facing away from me that would have been another
+from me that would have been another pair of animations so what we switched
+pair of animations so what we switched to instead is a system where I do
+to instead is a system where I do attacks and I trigger reactions on the
+attacks and I trigger reactions on the enemy and those reactions play
+enemy and those reactions play independently from me and so what that
+independently from me and so what that meant was we had to move away from a
+meant was we had to move away from a system where both people know about one
+system where both people know about one common point well we moved to instead of
+common point well we moved to instead of the system where each character knows
+the system where each character knows where they expect the other character to
+where they expect the other character to be and so what this did was it created
+be and so what this did was it created like kind of a system of interlocking
+like kind of a system of interlocking joints where the attacker would place
+joints where the attacker would place himself relative to where they expect
+himself relative to where they expect the defender to be and the defender
+the defender to be and the defender would place himself or relative to where
+would place himself or relative to where they expect the attacker to be so we
+they expect the attacker to be so we kind of joined them together and sync up
+kind of joined them together and sync up nicely there were a lot of other
+nicely there were a lot of other benefits that we didn't expect from
+benefits that we didn't expect from splitting up and kind of unthinking
+splitting up and kind of unthinking these moves the first was it allowed us
+these moves the first was it allowed us to create some new mechanics so again I
+to create some new mechanics so again I was talking about flinching before and
+was talking about flinching before and we were able to bring that to
+we were able to bring that to single-player as well to create the
+single-player as well to create the runners so this was useful in
+runners so this was useful in establishing them as kind of a lighter
+establishing them as kind of a lighter melee class you're allowed to keep
+melee class you're allowed to keep moving around you're allowed to punch
+moving around you're allowed to punch them back while they're still punching
+them back while they're still punching you and this wouldn't have been possible
+you and this wouldn't have been possible in the Uncharted paradigm the runner
+in the Uncharted paradigm the runner is playing animations but I'm not
+is playing animations but I'm not actually playing animations I'm playing
+actually playing animations I'm playing these kind of flinches which was enabled
+these kind of flinches which was enabled by this new system it also created some
+by this new system it also created some solutions to the problem of uneven
+solutions to the problem of uneven terrain which had always been a problem
+terrain which had always been a problem for us so you can see here that there's
+for us so you can see here that there's a lack of vertical range to the expected
+a lack of vertical range to the expected location of the defender and what that
+location of the defender and what that allowed us to do is in situations like
+allowed us to do is in situations like this where an enemy would be standing on
+this where an enemy would be standing on top of one meter cover it would allow us
+top of one meter cover it would allow us to still be able to do damage to that
+to still be able to do damage to that enemy in our old Uncharted paradigm we
+enemy in our old Uncharted paradigm we would try to author synched animations
+would try to author synched animations for every possible situation that could
+for every possible situation that could happen which just wasn't feasible in the
+happen which just wasn't feasible in the last of us this doesn't look as
+last of us this doesn't look as fantastic as the rest of our combat but
+fantastic as the rest of our combat but there's kind of a necessary solution to
+there's kind of a necessary solution to you know fill in the gaps when we
+you know fill in the gaps when we couldn't afford to make a synced
+couldn't afford to make a synced animation for everything you can see
+animation for everything you can see what this looks like going downhill so
+what this looks like going downhill so again there's like a vertical range here
+again there's like a vertical range here and this guy is able to play independent
+and this guy is able to play independent reactions for me which really helped to
+reactions for me which really helped to generalize our combat and make it work
+generalize our combat and make it work on on weird terrain and in a lot more
+on on weird terrain and in a lot more situations so the whole system was
+situations so the whole system was implemented in script so for some of you
+implemented in script so for some of you this is going to be the most interesting
+this is going to be the most interesting part of the talk and for the rest of you
+part of the talk and for the rest of you it'll be over soon so scripting is
+it'll be over soon so scripting is awesome I started out as a gameplay
+awesome I started out as a gameplay scriptor on uncharted 2 I did the
+scriptor on uncharted 2 I did the wounded cameraman sequence at a lot of
+wounded cameraman sequence at a lot of the other puzzles so I'm super into
+the other puzzles so I'm super into scripting it's I think it's great and I
+scripting it's I think it's great and I really love doing it the great part
+really love doing it the great part about script is that it moves work on
+about script is that it moves work on two designers programmer time is
+two designers programmer time is absolutely precious
+absolutely precious whereas designer time is essentially
+whereas designer time is essentially worthless
+so I mean I really like are you gonna ask a designer to hand optimize your
+ask a designer to hand optimize your assembly code to move more stuff onto
+assembly code to move more stuff onto the SPU's to win back precious
+the SPU's to win back precious milliseconds until your rendering like
+milliseconds until your rendering like your rendering engine is running in
+your rendering engine is running in frame you're not going to do that you
+frame you're not going to do that you need programmers for that you can move
+need programmers for that you can move work less intense technical work onto
+work less intense technical work onto your designers script also gives you
+your designers script also gives you faster iteration so there's the classic
+faster iteration so there's the classic benefit of not having to recompile the
+benefit of not having to recompile the whole executable but what's great about
+whole executable but what's great about script is it removes the barrier between
+script is it removes the barrier between inspiration and implementation the
+inspiration and implementation the person with all the crazy ideas is the
+person with all the crazy ideas is the one actually putting them into the game
+one actually putting them into the game and there's kind of an emotional thing
+and there's kind of an emotional thing here where you've got your ego attached
+here where you've got your ego attached to these ideas and you really want to
+to these ideas and you really want to get them in the game and you're the one
+get them in the game and you're the one doing it so odds are they will get in
+doing it so odds are they will get in the game instead of having to convince
+the game instead of having to convince the program relieves please get my
+the program relieves please get my feature in and finally all true
+feature in and finally all true gangsters know you've got to keep it
+gangsters know you've got to keep it tech space making a graphical scripting
+tech space making a graphical scripting interface is tempting but it's going to
+interface is tempting but it's going to take a ton of your tools programmers
+take a ton of your tools programmers time and it's just never going to be as
+time and it's just never going to be as fast or as flexible as a text-based
+fast or as flexible as a text-based scripting system so I'm going let's
+scripting system so I'm going let's let's take a look let's compare work
+let's take a look let's compare work flows between graphical and and
+flows between graphical and and text-based interfaces so here we have a
+text-based interfaces so here we have a graphical scripting interface as you can
+graphical scripting interface as you can see it's pretty slow there's a lot of
+see it's pretty slow there's a lot of mouse movement and it's just it's just
+mouse movement and it's just it's just not that fast I'm pretty sure this is
+not that fast I'm pretty sure this is kismet
+but in a text-based interface it's just way faster you get a huge speed increase
+so let's talk a little bit about the overall architecture of the script so it
+overall architecture of the script so it all starts with attack lists because I'm
+all starts with attack lists because I'm charted only had one button for melee we
+charted only had one button for melee we wanted a lot of variety we wanted
+wanted a lot of variety we wanted something cool to happen every time you
+something cool to happen every time you press the button so the structure is
+press the button so the structure is built around lists like every time you
+built around lists like every time you press square there are all these things
+press square there are all these things that could happen so in the last of us
+that could happen so in the last of us when you press square this is what
+when you press square this is what happens there's a massive master list
+happens there's a massive master list and it contains these sub lists like
+and it contains these sub lists like playable le attacks and when you're
+playable le attacks and when you're playable le you use those level specific
+playable le you use those level specific attacks or if you're in some level like
+attacks or if you're in some level like when Joel is wounded he has a different
+when Joel is wounded he has a different set of attacks there and finally Joel's
+set of attacks there and finally Joel's basic attacks a couple levels further
+basic attacks a couple levels further down these are the players pipe attacks
+down these are the players pipe attacks and you'll see at the top there's
+and you'll see at the top there's something that says func that's the
+something that says func that's the start func basically what that is is a
+start func basically what that is is a boolean function where if it returns
+boolean function where if it returns true everything in the list is allowed
+true everything in the list is allowed to happen so in this case it's checking
+to happen so in this case it's checking to see if the player has a pipe and now
+to see if the player has a pipe and now all these moves are allowed now let's
+all these moves are allowed now let's get down to the actual melee move level
+get down to the actual melee move level so a melee move at its core is an
+so a melee move at its core is an animation either one or two animations
+animation either one or two animations in this case this is a synced move so
+in this case this is a synced move so there's an attacker and a defender move
+there's an attacker and a defender move in its animation each move has a
+in its animation each move has a priority so if multiple moves are valid
+priority so if multiple moves are valid this is how the system chooses which one
+this is how the system chooses which one should fire so this is based on which
+should fire so this is based on which move is the most desirable so hits are
+move is the most desirable so hits are more desirable than misses finishers are
+more desirable than misses finishers are better than hits wall moves are better
+better than hits wall moves are better than finishers that kind of thing and
+than finishers that kind of thing and finally each move has a start func just
+finally each move has a start func just like the lists and this is again a
+like the lists and this is again a function that if it's true the move is
+function that if it's true the move is allowed to fire so this move is a synced
+allowed to fire so this move is a synced move so the characters have to be close
+move so the characters have to be close enough together for it to be valid so
+enough together for it to be valid so this is a raincheck a range check to
+this is a raincheck a range check to make sure that they're within 4 meters
+make sure that they're within 4 meters of each other and finally the event list
+of each other and finally the event list this is the meet of the move this is
+this is the meet of the move this is what actually happens over the course of
+what actually happens over the course of the melee move so in this case this move
+the melee move so in this case this move is very simple all it does is deal 5
+is very simple all it does is deal 5 damage on frame 0
+so that's the basic structure of the mail a moves themselves what about the
+mail a moves themselves what about the AI and their melee behaviors so when the
+AI and their melee behaviors so when the AI decides to go into melee they have a
+AI decides to go into melee they have a list of behaviors you can see at the top
+list of behaviors you can see at the top there's an array of behaviors I'm only
+there's an array of behaviors I'm only showing one here but they choose from a
+showing one here but they choose from a list just like a player chooses from a
+list just like a player chooses from a list of attacks and what a behavior
+list of attacks and what a behavior basically is is third simple it's an
+basically is is third simple it's an enemy running at the player and trying
+enemy running at the player and trying an attack list and as soon as one of
+an attack list and as soon as one of those attacks is valid it fires so here
+those attacks is valid it fires so here you'll see there's a priority just like
+you'll see there's a priority just like with the moves and this is where I'm
+with the moves and this is where I'm specifying the list of attacks the NPC
+specifying the list of attacks the NPC is allowed to use there's a start func
+is allowed to use there's a start func just like lists and attacks but there's
+just like lists and attacks but there's also an abort func which tells the NPC
+also an abort func which tells the NPC hey you shouldn't be doing this anymore
+hey you shouldn't be doing this anymore either someone else is attacking the
+either someone else is attacking the player or the situation has changed in
+player or the situation has changed in some way that that you should stop doing
+some way that that you should stop doing what you're doing let's take a look at
+what you're doing let's take a look at an example of how all this works so when
+an example of how all this works so when you get grappled by enemies your allies
+you get grappled by enemies your allies will try to come to your rescue here we
+will try to come to your rescue here we have Ellie rescuing Joel from a human
+have Ellie rescuing Joel from a human enemy this is a great way to give a
+enemy this is a great way to give a player a feeling of attachment to these
+player a feeling of attachment to these characters let's take a look at how this
+characters let's take a look at how this works under the hood so this is Elias
+works under the hood so this is Elias rescue behavior the AI scripting is
+rescue behavior the AI scripting is exactly the same for friendly characters
+exactly the same for friendly characters as it is for enemies here's the start
+as it is for enemies here's the start funk and so basically what this is doing
+funk and so basically what this is doing is it's checking to see hey is the
+is it's checking to see hey is the player being grappled is he in one of
+player being grappled is he in one of these grapple like those grapples that I
+these grapple like those grapples that I can rescue him from there's also a kind
+can rescue him from there's also a kind of story consideration here where when
+of story consideration here where when you're still with tests it doesn't make
+you're still with tests it doesn't make sense for Ellie to be rescuing you
+sense for Ellie to be rescuing you because she's kind of near she's unsure
+because she's kind of near she's unsure of herself but once test dies now Ellie
+of herself but once test dies now Ellie is able to use these behaviors so down
+is able to use these behaviors so down here there's the abort func
+here there's the abort func first there's like a sanity check like
+first there's like a sanity check like if too much time has passed something's
+if too much time has passed something's probably wrong so you should abort and
+probably wrong so you should abort and if the player has escaped from the move
+if the player has escaped from the move by themselves then this behavior is no
+by themselves then this behavior is no longer valid at the bottom you can see
+longer valid at the bottom you can see the attack list idea which is telling
+the attack list idea which is telling Ellie which rescues she's allowed to use
+Ellie which rescues she's allowed to use this is one of those moves this is an
+this is one of those moves this is an off-screen version of Ellie's rescued
+off-screen version of Ellie's rescued move
+move and you'll notice something interesting
+and you'll notice something interesting about the start funk which is that
+about the start funk which is that there's no range check so the reason for
+there's no range check so the reason for this is we want this move to happen as
+this is we want this move to happen as much as possible and if she's off-screen
+much as possible and if she's off-screen if you can't see where she is we can
+if you can't see where she is we can cheat her over to the rescue so there's
+cheat her over to the rescue so there's no range check as soon as she decides to
+no range check as soon as she decides to use this behavior if she's off-screen
+use this behavior if she's off-screen she can come in from ten 20 meters away
+she can come in from ten 20 meters away to make this work we also had a blend
+to make this work we also had a blend time of zero so that she just pops into
+time of zero so that she just pops into the move and doesn't lerp across the map
+the move and doesn't lerp across the map our other allies have this behavior as
+our other allies have this behavior as well which I think really made them seem
+well which I think really made them seem dynamic and added like a nice feel to
+dynamic and added like a nice feel to our combat so we script in a proprietary
+our combat so we script in a proprietary version of Lisp which is a language that
+version of Lisp which is a language that allows you to really easily establish
+allows you to really easily establish syntaxes which are basically like big
+syntaxes which are basically like big code macros this allows us to template
+code macros this allows us to template eyes our million moves since there were
+eyes our million moves since there were lots of moves that fall into distinct
+lots of moves that fall into distinct categories hits misses finishers you can
+categories hits misses finishers you can establish kind of a taxonomy and edit
+establish kind of a taxonomy and edit these moves as groups so let's take a
+these moves as groups so let's take a look at how this works this is a defined
+look at how this works this is a defined syntax and you can see inside it there's
+syntax and you can see inside it there's a fight move definition in there and the
+a fight move definition in there and the way the syntax works is at the top you
+way the syntax works is at the top you specify what the inputs of the move are
+specify what the inputs of the move are like this is what's going to make each
+like this is what's going to make each move unique so in this case is a very
+move unique so in this case is a very simple move all it has that's unique is
+simple move all it has that's unique is a name and attack animation and a
+a name and attack animation and a defense animation and you can see how
+defense animation and you can see how these values are then copied and pasted
+these values are then copied and pasted essentially into the move definition
+essentially into the move definition this is what that syntax looks like at
+this is what that syntax looks like at the end of the day as you can see it's
+the end of the day as you can see it's very compressed it looks very nice and
+very compressed it looks very nice and this is kind of the comparison you can
+this is kind of the comparison you can see how I specify the input in on the
+see how I specify the input in on the lower right and then that gets copied
+lower right and then that gets copied into the move using the syntax and this
+into the move using the syntax and this isn't just about more readable code or
+isn't just about more readable code or less typing what's great about this is
+less typing what's great about this is it allows you to make sweeping changes
+it allows you to make sweeping changes across your system very very easily if
+across your system very very easily if you have a bug you can fix it in one
+you have a bug you can fix it in one place instead of a thousand so let's say
+place instead of a thousand so let's say I went to this talk and I was like wow
+I went to this talk and I was like wow camera shake is really great I should
+camera shake is really great I should add it to my moves and so all I would
+add it to my moves and so all I would have to do is add it to the template and
+have to do is add it to the template and then when I compile my code now it's
+then when I compile my code now it's everywhere now every simple fight move
+everywhere now every simple fight move will have camera shake
+will have camera shake I know this stuff is pretty dry but it
+I know this stuff is pretty dry but it was crucial to getting the game done it
+was crucial to getting the game done it was like a really essential technique
+was like a really essential technique and managing all the moves and all the
+and managing all the moves and all the behaviors that we had it was really
+behaviors that we had it was really really essential so something we got a
+really essential so something we got a lot out of is uniting our Mele scripts
+lot out of is uniting our Mele scripts with our normal scripting language
+with our normal scripting language so obviously Naughty Dog is pretty
+so obviously Naughty Dog is pretty famous for our one-off custom crafted
+famous for our one-off custom crafted setups so we have a lot of power in our
+setups so we have a lot of power in our scripting system and we've got a lot of
+scripting system and we've got a lot of mileage out of hooking the melee system
+mileage out of hooking the melee system into that power so let's take a look at
+into that power so let's take a look at some examples so when you ship a guy and
+some examples so when you ship a guy and your shift breaks the blade of the Shiv
+your shift breaks the blade of the Shiv will actually be embedded in the guy's
+will actually be embedded in the guy's neck this is my job so let's take a look
+neck this is my job so let's take a look at how that works so this is a script
+at how that works so this is a script event which is a special melee event
+event which is a special melee event that allows us to hook into the rest of
+that allows us to hook into the rest of the game scripting system and basically
+the game scripting system and basically the embed weapon function is a wrapper
+the embed weapon function is a wrapper function that uses the same
+function that uses the same functionality that allows us to put
+functionality that allows us to put flashlights in our character's hands or
+flashlights in our character's hands or put joules gas mask on his head and so
+put joules gas mask on his head and so yeah it was just a really simple thing
+yeah it was just a really simple thing to do that added a really nice detail
+to do that added a really nice detail some of you may remember this climactic
+some of you may remember this climactic moment from our e3 demo and Evan Wells
+moment from our e3 demo and Evan Wells wanted me to make this move as easy to
+wanted me to make this move as easy to perform as possible to make it almost
+perform as possible to make it almost automatic so let's take a look at how
+automatic so let's take a look at how this works in the shift' game so when
+this works in the shift' game so when you knock a guy down to a knee when you
+you knock a guy down to a knee when you aim your gun you'll automatically aim at
+aim your gun you'll automatically aim at his head when you aim at him it
+his head when you aim at him it transitions him into this begging for
+transitions him into this begging for your life animation and then you kill
+your life animation and then you kill any so this NPC knee recover is the move
+any so this NPC knee recover is the move the enemy is in when they get knocked to
+the enemy is in when they get knocked to a knee and you'll see there's this event
+a knee and you'll see there's this event here allow auto aim and this is
+here allow auto aim and this is something we needed for easy mode to
+something we needed for easy mode to help easy mode players get through
+help easy mode players get through certain scripted sequences like the
+certain scripted sequences like the scenario sequence gives you auto in this
+scenario sequence gives you auto in this part detects when the player is aiming
+part detects when the player is aiming at the head joint of the defender and
+at the head joint of the defender and then transitions them into the begging
+then transitions them into the begging for their life animation and then you
+for their life animation and then you kill them so here's another cool little
+kill them so here's another cool little detail when Joel's
+detail when Joel's melee weapon breaks he'll throw it down
+melee weapon breaks he'll throw it down to the ground
+to the ground if you see it in slow motion you can
+if you see it in slow motion you can kind of see a little better so you kind
+kind of see a little better so you kind of seamlessly throwing the handle down
+of seamlessly throwing the handle down to the ground so the crazy thing here is
+to the ground so the crazy thing here is that because it's happening while he's
+that because it's happening while he's moving around you're not in melee
+moving around you're not in melee anymore so I can't do that animation as
+anymore so I can't do that animation as part of the melee system it can't be a
+part of the melee system it can't be a melee event because you're not in melee
+melee event because you're not in melee anymore so the way this works is there's
+anymore so the way this works is there's this attacker end funk and what this
+this attacker end funk and what this means is if the attacker has left the
+means is if the attacker has left the move for any reason if they've been shot
+move for any reason if they've been shot if the moves over naturally if someone
+if the moves over naturally if someone else hits them this is like a guaranteed
+else hits them this is like a guaranteed thing to fire so it's like an on exit or
+thing to fire so it's like an on exit or something and what this does is it
+something and what this does is it actually spawns a script process that
+actually spawns a script process that handles the throwing a weapon down so
+handles the throwing a weapon down so it's like a fadeaway pass to the rest of
+it's like a fadeaway pass to the rest of the scripting system outside of the
+the scripting system outside of the melee system so here's that script the
+melee system so here's that script the drop weapon script it's really simple
+drop weapon script it's really simple all it does is it plays a gesture of the
+all it does is it plays a gesture of the player throwing the weapon down it
+player throwing the weapon down it breaks the weapon which causes it to
+breaks the weapon which causes it to physicalize and fall to the ground and
+physicalize and fall to the ground and then it just cleans itself up all it
+then it just cleans itself up all it does is just remove the script process
+does is just remove the script process when it's done so let's take a look at
+when it's done so let's take a look at one more example this is from
+one more example this is from multiplayer so all of these animations
+multiplayer so all of these animations are the same and there's nothing
+are the same and there's nothing implicitly about firing these different
+implicitly about firing these different weapons that gives them any different
+weapons that gives them any different behavior their hand scripted to make all
+behavior their hand scripted to make all these different things happen so here
+these different things happen so here I'm popping the head off and this one I
+I'm popping the head off and this one I had to script the body charring and the
+had to script the body charring and the flames on the ground and then finally
+flames on the ground and then finally there was a move I really was hoping we
+there was a move I really was hoping we could get into the game but this weapon
+could get into the game but this weapon just didn't make it into the game was
+just didn't make it into the game was just a prototype it's a grenade launcher
+sorry mom so let's take a look at that last grenade launcher one so basically
+last grenade launcher one so basically what it does is again pretty simple it
+what it does is again pretty simple it spawns an explosion at the defender and
+spawns an explosion at the defender and this is a special explosion that doesn't
+this is a special explosion that doesn't do any damage to the player because that
+do any damage to the player because that would suck and then it uses my favorite
+would suck and then it uses my favorite functions the dismemberment functions to
+functions the dismemberment functions to kind of destroy all the limbs and the
+kind of destroy all the limbs and the head of the defender so just a couple of
+head of the defender so just a couple of things about what I was talking about in
+things about what I was talking about in terms of script those
+terms of script those of small details are exactly what I'm
+of small details are exactly what I'm talking about when I say that it's great
+talking about when I say that it's great to move this work on to the designer
+to move this work on to the designer programmers don't have time for stuff
+programmers don't have time for stuff like that like embedding a ship in a
+like that like embedding a ship in a guy's neck it's like a small detail and
+guy's neck it's like a small detail and they have way more important things to
+they have way more important things to do they got to worry about the level
+do they got to worry about the level heap and and that kind of stuff
+heap and and that kind of stuff so moving on to the designers allows you
+so moving on to the designers allows you to get these kind of cool ideas into the
+to get these kind of cool ideas into the game cheaply and it allows you to kind
+game cheaply and it allows you to kind of add a lot of personality into your
+of add a lot of personality into your melee system so if you take an away
+melee system so if you take an away anything from this talk
+anything from this talk just remember to design for the overall
+just remember to design for the overall package make sure your mechanics
+package make sure your mechanics harmonize with the rest of the game
+harmonize with the rest of the game don't be like an amateur drummer playing
+don't be like an amateur drummer playing too loud and drowning out the rest of
+too loud and drowning out the rest of the band find a way to level yourself
+the band find a way to level yourself off and harmonize with the rest of the
+off and harmonize with the rest of the systems in the game design good
+systems in the game design good complexity design complexity that
+complexity design complexity that doesn't consume too much mind share try
+doesn't consume too much mind share try to create elegant and simple mechanics
+to create elegant and simple mechanics that still give you great gameplay I
+that still give you great gameplay I highly recommend implementing your
+highly recommend implementing your system in script and having a designer
+system in script and having a designer implement it I think it's the way to go
+implement it I think it's the way to go and seriously camera shake is awesome if
+and seriously camera shake is awesome if you're making a [ __ ] game put it in
+you're making a [ __ ] game put it in there so finally I just wanted to throw
+there so finally I just wanted to throw some thanks I wanted to thank a couple
+some thanks I wanted to thank a couple people this is Chris Robbins and Ruben
+people this is Chris Robbins and Ruben Langdon our awesome stunt actors we
+Langdon our awesome stunt actors we worked with quite a few stunt actors but
+worked with quite a few stunt actors but these guys were with us from the
+these guys were with us from the beginning and they really helped to
+beginning and they really helped to shape the melee system Chris was the
+shape the melee system Chris was the attacker and Joel and Ruben was the
+attacker and Joel and Ruben was the defender and the infected and these guys
+defender and the infected and these guys were great I wanted to thank the rest of
+were great I wanted to thank the rest of the melee team Lee Davis Ian Jones and
+the melee team Lee Davis Ian Jones and Ryan McGarry I also wanted to thank a
+Ryan McGarry I also wanted to thank a key Ikram who hooked me up with all
+key Ikram who hooked me up with all these awesome portraits I think this is
+these awesome portraits I think this is him from Movember and finally I wanted
+him from Movember and finally I wanted to thank my fearless leaders Bruce
+to thank my fearless leaders Bruce Straley and Neil druckmann for all their
+Straley and Neil druckmann for all their guidance and support these guys are a
+guidance and support these guys are a blast to work with and inspire me every
+blast to work with and inspire me every day
+day they're great finally there's some other
+they're great finally there's some other Naughty Dog talks you should go see Rob
+Naughty Dog talks you should go see Rob Drupal talk about art direction at three
+Drupal talk about art direction at three o'clock max D coffee talking about Ellie
+o'clock max D coffee talking about Ellie and AI buddy AI in the last of us at 4
+and AI buddy AI in the last of us at 4 o'clock and Vivienne ding talking about
+o'clock and Vivienne ding talking about in-game and cinematic lighting at 5:30
+in-game and cinematic lighting at 5:30 you can hit me up on Twitter on a bad
+you can hit me up on Twitter on a bad data underscore
+data underscore and yeah that's my talk thank you all
+and yeah that's my talk thank you all for coming and enjoy the rest of the
+for coming and enjoy the rest of the conference
+conference [Applause]
+I think we got like a couple minutes for questions like I need like five minutes
+questions like I need like five minutes or something for questions just go let
+or something for questions just go let that run I'll ask a question okay yeah
+that run I'll ask a question okay yeah has gone so with your with the really
+has gone so with your with the really intimate synchronized animations and you
+intimate synchronized animations and you know the interacting with the
+know the interacting with the environment in the walls but which you
+environment in the walls but which you guys approach to making sure was safe so
+guys approach to making sure was safe so that people weren't split by doorways or
+that people weren't split by doorways or you know I'm not sure I know for example
+you know I'm not sure I know for example in the in the choke out right did you
+in the in the choke out right did you what you guys do to make sure that the
+what you guys do to make sure that the general space that the two characters
+general space that the two characters are safe before you actually love the
+are safe before you actually love the enemy yeah so what we did is there's I
+enemy yeah so what we did is there's I don't know if you if you've been any of
+don't know if you if you've been any of our other talks you know we have this
+our other talks you know we have this well I mean it's a common thing uh
+well I mean it's a common thing uh navmesh right so we've got knavish on
+navmesh right so we've got knavish on the ground and instead of using
+the ground and instead of using collision which had all kinds of
+collision which had all kinds of problems
+problems people would just slide themselves away
+people would just slide themselves away from the borders of the navmesh
+from the borders of the navmesh and if we had moves that had like a
+and if we had moves that had like a really large area like the choke out
+really large area like the choke out exactly like you're talking about we
+exactly like you're talking about we would just raise that tolerance you know
+would just raise that tolerance you know so we would give the the player and the
+so we would give the the player and the enemy a wider berth so they would slide
+enemy a wider berth so they would slide a little bit further away from it so in
+a little bit further away from it so in some situations it's not ideal you get a
+some situations it's not ideal you get a little bit of a slide but most of the
+little bit of a slide but most of the time you don't notice okay thanks
+how do you sync the loading of animations with a script that fire them
+animations with a script that fire them like if this scream is firing an
+like if this scream is firing an animation or triggering it and it's not
+animation or triggering it and it's not loaded yet or is it this quick that
+loaded yet or is it this quick that looks know it said everything is
+looks know it said everything is manually loaded it's like a really
+manually loaded it's like a really full-time job for a little kind of
+full-time job for a little kind of full-time job but it's the
+full-time job but it's the responsibility of the level designers
+responsibility of the level designers it's like a really intricate balancing
+it's like a really intricate balancing act of loading stuff and they would just
+act of loading stuff and they would just have to know if I have these characters
+have to know if I have these characters in this level I'm gonna need to load
+in this level I'm gonna need to load these exact melee bundles okay yep hi
+these exact melee bundles okay yep hi could you talk about the process that
+could you talk about the process that brought you from this really complicated
+brought you from this really complicated system and how you ended up being like
+system and how you ended up being like there are in cases you know you're just
+there are in cases you know you're just mashing the button to make the thing
+mashing the button to make the thing happen from a design perspective what
+happen from a design perspective what happened at your company to help you
+happened at your company to help you realize that that was the right thing to
+realize that that was the right thing to do you know like how do you get there so
+do you know like how do you get there so yeah I mean so really what happened is
+yeah I mean so really what happened is we were about to put the game in the
+we were about to put the game in the hands of the press like people from
+hands of the press like people from outside of Naughty Dog we're gonna play
+outside of Naughty Dog we're gonna play the game and talk about it to other
+the game and talk about it to other people and this just changed everything
+people and this just changed everything like it was like okay no more screwing
+like it was like okay no more screwing around like let's make this happen and
+around like let's make this happen and it really it kind of cut the BS you know
+it really it kind of cut the BS you know I mean it really forced me to make
+I mean it really forced me to make decisions that actually worked and
+decisions that actually worked and actually made the game work well and
+actually made the game work well and that was kind of the thing that pushed
+that was kind of the thing that pushed me to kind of get over or like all the
+me to kind of get over or like all the things that I was too attached to of you
+things that I was too attached to of you know I want the system to work this way
+know I want the system to work this way or something like that and it was kind
+or something like that and it was kind of a teachable moment for me to really
+of a teachable moment for me to really kind of let my ego go off to the side
+kind of let my ego go off to the side and do what's best for the game yeah
+and do what's best for the game yeah thanks anyone else we got like two more
+thanks anyone else we got like two more minutes awesome well thank you guys so
+minutes awesome well thank you guys so much for coming I really appreciate it

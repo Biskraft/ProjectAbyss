@@ -1,0 +1,3 @@
+# Category:Dungeons
+
+Category: Environments

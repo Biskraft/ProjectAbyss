@@ -1,0 +1,8 @@
+# Game Over
+
+thumb|Game Over in *Disgaea 2: Dark Hero Days*.
+  - Game Over** is a game state caused when certain conditions are met that results in loss of progress in the game. The main condition that causes a game over is when all player controlled characters are eliminated on the field and additional units cannot be dispatched using the Base Panel, because the gameplay limit of dispatched units (usually 10) has been exhausted or the base panel is destroyed. This occurs in the vast majority of stages in the *Disgaea* series, though doing this at certain stages may result in a cutscene being played before the game over or even an alternate ending sequence where the player gets to start over from the beginning. Other conditions may exist that cause a game over, such as the Dark Sun in *Disgaea 2: Cursed Memories* as an effect on the turn schedule, or by standing on a Geo Panel with a Game Over effect in *Disgaea 5: Alliance of Vengeance*.
+
+In older *Disgaea* games, when the game is over, the player is only allowed to continue to the title screen. This results in the player losing all progress since their last save, as they cannot resume from the last battle. Starting in *Disgaea D2: A Brighter Darkness*, players are shown a menu in which the player can choose to retry the battle, return to the Map Select menu, or return to the title screen. The third option acts as in the prior games, while the first two introduce the ability to resume while only losing progress after the battle started, which may be different than the last save if the player has not saved often enough.
+
+Category: Gameplay

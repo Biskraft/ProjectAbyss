@@ -1,0 +1,1537 @@
+[Music] hi my name is Ben and this is a beer
+hi my name is Ben and this is a beer we'll both be talking today we're here
+we'll both be talking today we're here to talk about geometry caching that we
+to talk about geometry caching that we did implement it in halo 5 Guardians so
+did implement it in halo 5 Guardians so for those that are kind of new and don't
+for those that are kind of new and don't know what geometry caching is it's the
+know what geometry caching is it's the storage of vertex motion for quick
+storage of vertex motion for quick playback
+playback it's like motion capture for character
+it's like motion capture for character animation allows you to capsulate really
+animation allows you to capsulate really complex motion and play it at runtime in
+complex motion and play it at runtime in the game engine for those Maya animators
+the game engine for those Maya animators out there geometry caching will be
+out there geometry caching will be familiar term as you do play blasting
+familiar term as you do play blasting and your 3d animations when you're doing
+and your 3d animations when you're doing flip books but let me show you in game
+flip books but let me show you in game example from Halo 5
+keep your head down and run
+I'm okay keep going
+[Applause]
+so beyond doing massive deals scale destruction which was our primary goal
+destruction which was our primary goal in Halo 5 we found out that geometry
+in Halo 5 we found out that geometry caching is pretty much good for any type
+caching is pretty much good for any type of kinematic based motion as we
+of kinematic based motion as we developed a system we went from just
+developed a system we went from just purely a destruction team into a wider
+purely a destruction team into a wider ranging thing using it throughout the
+ranging thing using it throughout the whole package and software we used it
+whole package and software we used it for character rigs effects environments
+for character rigs effects environments and sky boxes the author of this team
+and sky boxes the author of this team authoring teams for this type of
+authoring teams for this type of technology can actually be any of your
+technology can actually be any of your team you don't need to have a specific
+team you don't need to have a specific team for it you can use it based in any
+team for it you can use it based in any year system if you componentize this
+year system if you componentize this code so what we're really talking about
+code so what we're really talking about is moving geometry really fast on the
+is moving geometry really fast on the GPU we got off to over a million GPU
+GPU we got off to over a million GPU transforms at 60fps and our engine which
+transforms at 60fps and our engine which allowed us to fine tune and make this
+allowed us to fine tune and make this thing extremely fast and efficient in
+thing extremely fast and efficient in the gameplay me and Sabir didn't do this
+the gameplay me and Sabir didn't do this alone there was a large team of us that
+alone there was a large team of us that did it we so we want to give a quick
+did it we so we want to give a quick call out to those guys Michael Bolton
+call out to those guys Michael Bolton was the forefather he made the first
+was the forefather he made the first homebrew geometry caching for us on Halo
+homebrew geometry caching for us on Halo 5 Chris woods was our field art lead who
+5 Chris woods was our field art lead who kind of led our team Sabir was our white
+kind of led our team Sabir was our white knight engineer that came in after
+knight engineer that came in after Michael Bolton and fine-tuned that so he
+Michael Bolton and fine-tuned that so he could go through all his technical
+could go through all his technical details on that
+details on that Alex Hogan was a tech art lead he helped
+Alex Hogan was a tech art lead he helped with the initial testing and
+with the initial testing and implementation Mike LaFave was our
+implementation Mike LaFave was our content creator on the project who
+content creator on the project who really put the thing through its paces
+really put the thing through its paces my name's Ben
+my name's Ben I did the authoring story for Halo 5
+I did the authoring story for Halo 5 pharrell this content that's now in
+pharrell this content that's now in actually Houdini 16 so you can actually
+actually Houdini 16 so you can actually get in there and actually access this
+get in there and actually access this technology right now but we also want to
+technology right now but we also want to give a shout out to everybody else at
+give a shout out to everybody else at 343 that we worked with there's the list
+343 that we worked with there's the list is kind of long so they all helped in a
+is kind of long so they all helped in a lot of different ways so I want to give
+lot of different ways so I want to give them a shout out to that so for the
+them a shout out to that so for the course of this talk we're kind of give a
+course of this talk we're kind of give a little outline to what we're gonna do
+little outline to what we're gonna do just so you kind of understand the
+just so you kind of understand the dataflow we're gonna talk about the
+dataflow we're gonna talk about the initial concept how we actually kind of
+initial concept how we actually kind of thought it up where we came from it we
+thought it up where we came from it we give you a little background story on
+give you a little background story on why we're actually optimizing things
+why we're actually optimizing things because geometry caching has actually
+because geometry caching has actually been implemented in a few engines now
+been implemented in a few engines now but these are optimizations to actually
+but these are optimizations to actually push it up to the next level
+push it up to the next level then we're gonna break down the
+then we're gonna break down the technology and its core architecture and
+technology and its core architecture and then all the component ties systems that
+then all the component ties systems that we have for it
+we have for it and then we'll wrap up for a few
+and then we'll wrap up for a few questions
+so in the spring of 2015 we knew we're going to be in the e3 headliner so ever
+going to be in the e3 headliner so ever all eyes were on us for our talk that
+all eyes were on us for our talk that sequence was the main focus of the
+sequence was the main focus of the studio and our stuff started running a
+studio and our stuff started running a little bit over perf because we were
+little bit over perf because we were trying to get the best we could out of
+trying to get the best we could out of it we're shoving as many things and
+it we're shoving as many things and sequences in there so one of the tasks
+sequences in there so one of the tasks that we were challenged was was making
+that we were challenged was was making our system even more faster get more
+our system even more faster get more geometry in there optimize it so we had
+geometry in there optimize it so we had to share the load across to all the
+to share the load across to all the different teams like lighting animation
+different teams like lighting animation effects those all had to share and
+effects those all had to share and coexist with our system so we had a
+coexist with our system so we had a little I of the production I saw are on
+little I of the production I saw are on fun as everybody was intently honest so
+fun as everybody was intently honest so it kicked us up to the next gear
+it kicked us up to the next gear technology sort of those wondering why
+technology sort of those wondering why we needed to improve that was the
+we needed to improve that was the primary reason so let me just kind of
+primary reason so let me just kind of dive forward our very first
+dive forward our very first implementation is the kind of a standard
+implementation is the kind of a standard fluid approach this is topology that
+fluid approach this is topology that changes every single frame that means
+changes every single frame that means the beacon described as vertex count
+the beacon described as vertex count agnostic that means from one frame to
+agnostic that means from one frame to the next frame topology completely
+the next frame topology completely different you can go from a human to a
+different you can go from a human to a man you're not using blend targets you
+man you're not using blend targets you can literally read to I put you to
+can literally read to I put you to apologize anything like VD made rameshan
+apologize anything like VD made rameshan and surfacing
+and surfacing this is kind of like the Olympic file
+this is kind of like the Olympic file format where you can quickly load and
+format where you can quickly load and reload anything in offline packages well
+reload anything in offline packages well Olympic is a good idea it's not actually
+Olympic is a good idea it's not actually a practical runtime solution and engine
+a practical runtime solution and engine so one of the things that we this if we
+so one of the things that we this if we continued with fluid we were gonna
+continued with fluid we were gonna actually have all of our assets cut so
+actually have all of our assets cut so we moved to the next thing we found out
+we moved to the next thing we found out Michael Bolton implemented us for us
+Michael Bolton implemented us for us sorry Michael Bolton helped us implement
+sorry Michael Bolton helped us implement a rigid pipeline so rigid is what we
+a rigid pipeline so rigid is what we kind of deform to fine as multiple
+kind of deform to fine as multiple vertices that share a single transform
+vertices that share a single transform this is the concept of object transforms
+this is the concept of object transforms bones particle animation character flock
+bones particle animation character flock swarms leave blowing in the wind this
+swarms leave blowing in the wind this became our golden child this is pretty
+became our golden child this is pretty much what we ship almost
+much what we ship almost all the assets with in Halo 5 however
+all the assets with in Halo 5 however this method was not enough to ship we
+this method was not enough to ship we still needed to do soft information one
+still needed to do soft information one night as a beer was working hard and he
+night as a beer was working hard and he actually came up with the next
+actually came up with the next implementation for us we called this
+implementation for us we called this soft it's a single transform per each
+soft it's a single transform per each vertex we could find out we could pass
+vertex we could find out we could pass it around like tens and hundreds of
+it around like tens and hundreds of thousands of transforms so in order to
+thousands of transforms so in order to take those transforms that are per an
+take those transforms that are per an object we put it per vertice allowing us
+object we put it per vertice allowing us to bend to form towers a lot of those
+to bend to form towers a lot of those actually towers are really soft
+actually towers are really soft deforming buildings that were had to
+deforming buildings that were had to over 32,000 transform so we're crushing
+over 32,000 transform so we're crushing down um but in order to take the
+down um but in order to take the technology further for us we developed a
+technology further for us we developed a framework in order so we can further and
+framework in order so we can further and continue to optimize this going into the
+continue to optimize this going into the future that's we got the full framework
+future that's we got the full framework this is the core architecture on top
+this is the core architecture on top this is the shared across all the
+this is the shared across all the heuristic values our base component we
+heuristic values our base component we actually introduced with static rigid
+actually introduced with static rigid skin soft and fluid static is something
+skin soft and fluid static is something that we actually never focused on at
+that we actually never focused on at first when he first implemented this but
+first when he first implemented this but actually the static component is really
+actually the static component is really kind of important that's when the
+kind of important that's when the geometry is not moving which is the
+geometry is not moving which is the biggest time-saver you don't have moving
+biggest time-saver you don't have moving geometry hiding under a table or
+geometry hiding under a table or something like that you need to
+something like that you need to efficiently call and maintain this just
+efficiently call and maintain this just normal end state's environment you are
+normal end state's environment you are matauri but actually has to be built
+matauri but actually has to be built into the system and skinned is more of
+into the system and skinned is more of your standard character pipeline we
+your standard character pipeline we didn't really focus on this because of
+didn't really focus on this because of the type of work we were doing but it is
+the type of work we were doing but it is a core implementation strategy this is a
+a core implementation strategy this is a multiple transform for multiple bones so
+multiple transform for multiple bones so as we go through the talk we kind of
+as we go through the talk we kind of have this in a different little
+have this in a different little heuristic to we're gonna talk about the
+heuristic to we're gonna talk about the core architecture which I'm going to
+core architecture which I'm going to pass off to severe for a little while
+pass off to severe for a little while and he's got run through what the common
+and he's got run through what the common optimizations and quantizations for the
+optimizations and quantizations for the rest of the code they're not gonna come
+rest of the code they're not gonna come back to it and I'm going to talk about
+back to it and I'm going to talk about the fluid rigid static soft and skin
+the fluid rigid static soft and skin more from the authoring side of handling
+okay so let's talk about the engineering side of things mainly this slide is here
+side of things mainly this slide is here for you to kind of refer back to roughly
+for you to kind of refer back to roughly as a table of contents we'll go through
+as a table of contents we'll go through the data structures involved the import
+the data structures involved the import pipeline and what the runtime involves
+pipeline and what the runtime involves so as Ben mentioned in order to actually
+so as Ben mentioned in order to actually pull off this geometry cache system you
+pull off this geometry cache system you have two components to it
+have two components to it you have transforms and you have
+you have transforms and you have geometry these are roughly the the
+geometry these are roughly the the components that are necessary for each
+components that are necessary for each type you know something like static you
+type you know something like static you only require geometry just because it's
+only require geometry just because it's actually not moving and something like
+actually not moving and something like soft implicit surfaces
+soft implicit surfaces you only need transform since the
+you only need transform since the implicit part kind of describes the
+implicit part kind of describes the geometry inherently we'll touch on these
+geometry inherently we'll touch on these exactly as we go through this slides so
+exactly as we go through this slides so let's talk about transforms first in
+let's talk about transforms first in order to represent and transform this is
+order to represent and transform this is kind of the bare minimum that you need
+kind of the bare minimum that you need to represent rotation represented using
+to represent rotation represented using a quaternion translation and scale
+a quaternion translation and scale obviously completely unpacked this is 32
+obviously completely unpacked this is 32 bytes which is quite heavy to be passing
+bytes which is quite heavy to be passing around but before we go further let's
+around but before we go further let's talk about some of the alternative
+talk about some of the alternative representations that we considered when
+representations that we considered when developing this technology one of the
+developing this technology one of the first things that came to mind is
+first things that came to mind is storing Delta position and Delta
+storing Delta position and Delta rotations of course because of the
+rotations of course because of the temporal coherency you get much better
+temporal coherency you get much better compression from this however we knew
+compression from this however we knew that halo 5 was going to have to support
+that halo 5 was going to have to support join in progress when you have joins in
+join in progress when you have joins in progress systems we didn't know exactly
+progress systems we didn't know exactly how long certain animations were going
+how long certain animations were going to be and that we would we wouldn't
+to be and that we would we wouldn't possibly not be able to support blast
+possibly not be able to support blast playing up to a particular frame when a
+playing up to a particular frame when a joint in progress was actually happening
+joint in progress was actually happening in retrospect this was the right
+in retrospect this was the right decision
+decision looking at the perf metrics and some of
+looking at the perf metrics and some of the lengths of animations we would not
+the lengths of animations we would not have been able to blast play everything
+have been able to blast play everything up to when join in progress needed to
+up to when join in progress needed to actually occur
+actually occur the second representation we also
+the second representation we also considered was storing velocity and
+considered was storing velocity and acceleration this again has a lot of
+acceleration this again has a lot of temporal coherency so there's there's
+temporal coherency so there's there's quite a bit of compression you can get
+quite a bit of compression you can get out of this however I was worried about
+out of this however I was worried about the the physics simulation that we would
+the the physics simulation that we would essentially
+essentially be writing in the stability of that
+be writing in the stability of that right because again this is still some
+right because again this is still some sort of like a delta compression format
+sort of like a delta compression format where where the previous frame describes
+where where the previous frame describes your next frame this again doesn't solve
+your next frame this again doesn't solve the blast playing problem and join in
+the blast playing problem and join in progress was still a concern
+progress was still a concern so the third representation you can
+so the third representation you can think of is sort of like a video codec
+think of is sort of like a video codec right where you have major frames where
+right where you have major frames where the full transforms are stored and then
+the full transforms are stored and then you Delta compress between them this is
+you Delta compress between them this is quite promising but of course the
+quite promising but of course the complexity was high throughout the
+complexity was high throughout the project there was only one graphics
+project there was only one graphics engineer on this project first it was
+engineer on this project first it was Michael Bolton and then I took over
+Michael Bolton and then I took over midway through so we knew we didn't have
+midway through so we knew we didn't have a whole lot of time to dedicate to this
+a whole lot of time to dedicate to this and and on top of that you know I had
+and and on top of that you know I had all their responsibilities as well
+all their responsibilities as well also when we were moving from Halo 4 to
+also when we were moving from Halo 4 to halo 5
+halo 5 we went from 512 megabytes to 5
+we went from 512 megabytes to 5 gigabytes at the time we thought oh man
+gigabytes at the time we thought oh man 5 gigs we have so much memory we will we
+5 gigs we have so much memory we will we don't need to compress that much right
+don't need to compress that much right we have plenty right we're just gonna
+we have plenty right we're just gonna have trouble filling the the 5 gigs from
+have trouble filling the the 5 gigs from disk this turned out to be we were very
+disk this turned out to be we were very wrong we ran out of memory like right
+wrong we ran out of memory like right away so to remind you again this is kind
+away so to remind you again this is kind of the the transform which can fully
+of the the transform which can fully describe what the transform is per frame
+describe what the transform is per frame we didn't want to have be dependent on
+we didn't want to have be dependent on previous or next frames the PAC
+previous or next frames the PAC transform that we end up coming up with
+transform that we end up coming up with is we relied mostly on quantization so
+is we relied mostly on quantization so we ended up packing the the quaternion
+we ended up packing the the quaternion translation and scale sort of as follows
+translation and scale sort of as follows so let's go through each one of the the
+so let's go through each one of the the quantizations that we did for
+quantizations that we did for translation it's we generate a axis
+translation it's we generate a axis align bounding box per frame and we
+align bounding box per frame and we store that per frame bounding box off as
+store that per frame bounding box off as constant data we quantize the
+constant data we quantize the translation between 0 & 1 within the
+translation between 0 & 1 within the axis line bounding box and it's a simple
+axis line bounding box and it's a simple operation to to reconstruct our original
+operation to to reconstruct our original translation of course this is a lossy
+translation of course this is a lossy compression but this as long as your
+compression but this as long as your your content team is sort of aware when
+your content team is sort of aware when they're starting to lose precision they
+they're starting to lose precision they can where they can work with this and
+can where they can work with this and then we'll touch on exactly some of the
+then we'll touch on exactly some of the techniques we use to try and mitigate
+techniques we use to try and mitigate this
+this so quaternion compression this is an
+so quaternion compression this is an entirely novel I've seen in a few
+entirely novel I've seen in a few different places but I don't remember
+different places but I don't remember the exact source where I
+the exact source where I pulled some of the ideas from but we
+pulled some of the ideas from but we start with the quaternion identity given
+start with the quaternion identity given the paternity and identity we know that
+the paternity and identity we know that we can derive the force component from
+we can derive the force component from using only the three others however this
+using only the three others however this leads to a precision loss if you if you
+leads to a precision loss if you if you always pick W as the oh sorry skipping
+always pick W as the oh sorry skipping ahead so we know that from the previous
+ahead so we know that from the previous slide you can see that W will always
+slide you can see that W will always result in a positive value of course
+result in a positive value of course using another quaternion identity we we
+using another quaternion identity we we extract the positive R at the inverse
+extract the positive R at the inverse quaternion in case W ends up being so
+quaternion in case W ends up being so however that leads to precision loss if
+however that leads to precision loss if you always drop the W component right so
+you always drop the W component right so we can store off exactly which component
+we can store off exactly which component we are going to drop and we drop the
+we are going to drop and we drop the maximum value between X Y Z and W this
+maximum value between X Y Z and W this allows us to again retain more precision
+allows us to again retain more precision since we also know that we've dropped
+since we also know that we've dropped the largest largest paternity and value
+the largest largest paternity and value we want to renormalize
+we want to renormalize the remaining values the remaining
+the remaining values the remaining values being renormalized we maps to 0
+values being renormalized we maps to 0 to 1 so essentially we're storing 3
+to 1 so essentially we're storing 3 components at 30 bits and we store which
+components at 30 bits and we store which component we actually dropped in two
+component we actually dropped in two bits scale was was very simple
+bits scale was was very simple quantization and this was quantized
+quantization and this was quantized between 0 & 1
+between 0 & 1 what we did is during the import stage
+what we did is during the import stage the entire scaling entire scale the
+the entire scaling entire scale the maximum scale that we could see was
+maximum scale that we could see was renormalized between 0 & 1 and the
+renormalized between 0 & 1 and the geometry was expanded so that scaling
+geometry was expanded so that scaling was always between 0 & 1
+was always between 0 & 1 this allowed us to only shrink the
+this allowed us to only shrink the geometry as necessary not actually grow
+geometry as necessary not actually grow it and and this was quite helpful also
+it and and this was quite helpful also being able to scale by 0 is quite
+being able to scale by 0 is quite important as that's how we deleted parts
+important as that's how we deleted parts out of our actual simulation and we'll
+out of our actual simulation and we'll touch on that later so let's talk about
+touch on that later so let's talk about the geometry representation of what
+the geometry representation of what actual what that meant so we have to
+actual what that meant so we have to remember that this is going to involve
+remember that this is going to involve two different geometry representations
+two different geometry representations one pre vertex transform pre geometry
+one pre vertex transform pre geometry cache transform and one post transform
+cache transform and one post transform you want to integrate this into your
+you want to integrate this into your existing rendering pipeline you probably
+existing rendering pipeline you probably don't want to build a whole new
+don't want to build a whole new rendering system just to render this you
+rendering system just to render this you kind of want to do the transforms and
+kind of want to do the transforms and integrate it into exactly
+integrate it into exactly you're doing it and you want to try and
+you're doing it and you want to try and look for the fastest way in which you
+look for the fastest way in which you render static geometry in your engine
+render static geometry in your engine for us this is roughly kind of the
+for us this is roughly kind of the vertex format that we had in the vertex
+vertex format that we had in the vertex target that we wanted to go to again so
+target that we wanted to go to again so position we needed to transform UVs were
+position we needed to transform UVs were kind of a pass-through normal and
+kind of a pass-through normal and tangent of course we needed to transform
+tangent of course we needed to transform since the the target is a world vertex
+since the the target is a world vertex and the X form ID was again used as a
+and the X form ID was again used as a lookup to to try and feed the color the
+lookup to to try and feed the color the reason this geometry format was picked
+reason this geometry format was picked is Halos engine didn't have a super
+is Halos engine didn't have a super flexible vertex format in that you could
+flexible vertex format in that you could arbitrarily pick whatever we had a set
+arbitrarily pick whatever we had a set of vertex formats we were choosing
+of vertex formats we were choosing between and the world's vertex format
+between and the world's vertex format was essentially the the fastest that we
+was essentially the the fastest that we could render objects with dynamic
+could render objects with dynamic lighting for your shadowing this was
+lighting for your shadowing this was just as a we just rendered the geometry
+just as a we just rendered the geometry into a cascaded shadow map and the
+into a cascaded shadow map and the geometry again this was the fastest
+geometry again this was the fastest pipeline through our engine so this is
+pipeline through our engine so this is the vertex format we chose so the vertex
+the vertex format we chose so the vertex and index buffers I'll touch on this
+and index buffers I'll touch on this very quickly the vertex buffers we were
+very quickly the vertex buffers we were able to limit to 65,000 parts and and
+able to limit to 65,000 parts and and therefore we were able to get away with
+therefore we were able to get away with 16-bit vertices the way we were packing
+16-bit vertices the way we were packing the vertex buffers initially we stored
+the vertex buffers initially we stored them as 32-bit vertex vertex indices
+them as 32-bit vertex vertex indices this is quite slow on the Xbox one so if
+this is quite slow on the Xbox one so if you are considering doing this it's
+you are considering doing this it's really worth your time to chunk up your
+really worth your time to chunk up your assets so they can be split into 16-bit
+assets so they can be split into 16-bit indices we didn't end up being able to
+indices we didn't end up being able to make this optimization just ran out of
+make this optimization just ran out of time but this is definitely something
+time but this is definitely something you should consider so I want to touch
+you should consider so I want to touch on implicit surfaces there were some
+on implicit surfaces there were some types of surfaces that we used in the
+types of surfaces that we used in the engine that were very uniform it was
+engine that were very uniform it was just like a flat plane so you can
+just like a flat plane so you can imagine like a flag which has a very
+imagine like a flag which has a very uniform topology you don't actually need
+uniform topology you don't actually need to store geometry data for this given a
+to store geometry data for this given a width and height you can actually derive
+width and height you can actually derive where the vertices would be on this
+where the vertices would be on this particular shape and you can use the
+particular shape and you can use the vertex shader to and and the sv vertex
+vertex shader to and and the sv vertex ID attribute to derive where all the
+ID attribute to derive where all the positions are of this actual shape so
+positions are of this actual shape so all you need to compute is the
+all you need to compute is the transforms this is particularly useful
+transforms this is particularly useful for soft bodies now I'll touch on how we
+for soft bodies now I'll touch on how we used LDS later but in this case
+used LDS later but in this case vertexes carrying that unique transform
+vertexes carrying that unique transform so the LDS memory where you would
+so the LDS memory where you would potentially share computations between
+potentially share computations between waves are between threads wasn't
+waves are between threads wasn't actually necessary so this turned out to
+actually necessary so this turned out to be a good way to handle implicit soft
+be a good way to handle implicit soft surfaces we also had initially talked
+surfaces we also had initially talked about the idea of additional vertex
+about the idea of additional vertex attributes the transforms are
+attributes the transforms are essentially what's driving the the
+essentially what's driving the the dynamics of the whole simulation however
+dynamics of the whole simulation however there could be additional attributes
+there could be additional attributes like temperature and viscosity and
+like temperature and viscosity and things like that to drive the the color
+things like that to drive the the color and and you know the shading of the
+and and you know the shading of the object itself then we'll touch on the
+object itself then we'll touch on the pros and cons of kind of this approach
+pros and cons of kind of this approach we ended up not making a whole lot of
+we ended up not making a whole lot of use for it but yeah he'll touch on
+use for it but yeah he'll touch on exactly from the authoring story and why
+exactly from the authoring story and why you would want to prefer one versus the
+you would want to prefer one versus the other okay so let's move on to the
+other okay so let's move on to the import pipeline we were we used Olympic
+import pipeline we were we used Olympic heavily and from our DCC we would go
+heavily and from our DCC we would go into Olympic however you do not want to
+into Olympic however you do not want to use Olympic as your format that that
+use Olympic as your format that that your runtime is actually using you want
+your runtime is actually using you want to pre-process this into a specific
+to pre-process this into a specific engine optimized for Matt because
+engine optimized for Matt because Olympic generally represents full frame
+Olympic generally represents full frame geometry every frame you're getting
+geometry every frame you're getting essentially the entire stack the initial
+essentially the entire stack the initial implementation that we had for this was
+implementation that we had for this was a analytic part extraction where we were
+a analytic part extraction where we were trying to find temporal coherence
+trying to find temporal coherence between a rigid part that appeared on
+between a rigid part that appeared on one frame and then rediscovered that far
+one frame and then rediscovered that far but we discover that part in a later
+but we discover that part in a later frame this was a complicated
+frame this was a complicated mathematical process to try and discover
+mathematical process to try and discover this coherency based on the tolerance
+this coherency based on the tolerance levels used we could either get higher
+levels used we could either get higher accuracy but it lets you a huge import
+accuracy but it lets you a huge import time or if you reduce the tolerance we
+time or if you reduce the tolerance we you would get either false positives so
+you would get either false positives so this ended up being very problematic
+this ended up being very problematic especially how long it was taking us to
+especially how long it was taking us to to import so the next stage of it I
+to import so the next stage of it I realized after working with Ben for a
+realized after working with Ben for a little bit is a lot of this inter frame
+little bit is a lot of this inter frame cracking that these rigid pieces were
+cracking that these rigid pieces were going through actually existed in
+going through actually existed in Olympic to are existed in Houdini are
+Olympic to are existed in Houdini are programmed to begin with
+programmed to begin with if Ben was just able to export this
+if Ben was just able to export this additional attribute data we could speed
+additional attribute data we could speed things up immensely and and once we did
+things up immensely and and once we did we yeah we saw an incredible speed up we
+we yeah we saw an incredible speed up we went from things that used to take over
+went from things that used to take over 30 minutes to 45 minutes down to maybe
+30 minutes to 45 minutes down to maybe you know 30 seconds it was incredible
+you know 30 seconds it was incredible speed up that that was very much worth
+speed up that that was very much worth it
+it also this led to a really really high
+also this led to a really really high accuracy unless the artist actually made
+accuracy unless the artist actually made an error in in the park tracking so this
+an error in in the park tracking so this was overall a win sometimes you know
+was overall a win sometimes you know just a little bit of data helps
+just a little bit of data helps eliminate a lot of processing power we
+eliminate a lot of processing power we didn't actually I'm fully implementing
+didn't actually I'm fully implementing this in the production pipeline but
+this in the production pipeline but after working with it for a little bit
+after working with it for a little bit we realized the system can actually be
+we realized the system can actually be split into two components you have the
+split into two components you have the transform hierarchy and this transform
+transform hierarchy and this transform cloud that your dynamics artists are
+cloud that your dynamics artists are working on and then you have a palette
+working on and then you have a palette of geometry that a separate set of
+of geometry that a separate set of artists could potentially work on so for
+artists could potentially work on so for instance if you wanted to do an
+instance if you wanted to do an interesting flock of birds one artist
+interesting flock of birds one artist could actually work on the bird model
+could actually work on the bird model itself and then the other artist can
+itself and then the other artist can actually work on the the dynamics and
+actually work on the the dynamics and the fly through and then during the
+the fly through and then during the import stage buying them together we
+import stage buying them together we ended up not quite having this this nice
+ended up not quite having this this nice separation between the two teams but
+separation between the two teams but this is something that you guys should
+this is something that you guys should consider if you plan on implementing
+consider if you plan on implementing something like this just a quick note on
+something like this just a quick note on meshing optimization we use the DX mesh
+meshing optimization we use the DX mesh optimizer and this saved about 3% GPU
+optimizer and this saved about 3% GPU time all right yeah GPU time this would
+time all right yeah GPU time this would this added very little to the import
+this added very little to the import stage so it's definitely worth adding in
+stage so it's definitely worth adding in so let's talk about packing for the run
+so let's talk about packing for the run time so so far we know that the import
+time so so far we know that the import stage generated a palette of geometry
+stage generated a palette of geometry pieces that we want to pack together and
+pieces that we want to pack together and we have a set of transforms that are
+we have a set of transforms that are part per frame while the part is
+part per frame while the part is actually alive so what's the optimal
+actually alive so what's the optimal strategy the entire time we were
+strategy the entire time we were bandwidth bound on the GPU so bandwidth
+bandwidth bound on the GPU so bandwidth is the key thing you want to minimize so
+is the key thing you want to minimize so the way you want to kind of pack this
+the way you want to kind of pack this and we'll go through an example to kind
+and we'll go through an example to kind of show you is you want to sort
+of show you is you want to sort everything that's first
+everything that's first born to the front of the list all the
+born to the front of the list all the vertices and then all the parts within
+vertices and then all the parts within that frame you want to sort the thing
+that frame you want to sort the thing that dies the first towards the front
+that dies the first towards the front and what you end up with is essentially
+and what you end up with is essentially the right edge moving ahead as parts are
+the right edge moving ahead as parts are born and the left edge moves ahead as
+born and the left edge moves ahead as parts die and you want to pack this into
+parts die and you want to pack this into one big buffer we were specifically
+one big buffer we were specifically shipping just on the Xbox one so really
+shipping just on the Xbox one so really wanted to optimize for the minimum
+wanted to optimize for the minimum number of allocations and pack the data
+number of allocations and pack the data together and offset into the buffer when
+together and offset into the buffer when when actually binding it and also null
+when actually binding it and also null transforms are important here in order
+transforms are important here in order to eliminate some of these transforms so
+to eliminate some of these transforms so to give you an example if here we have
+to give you an example if here we have you know four parts one's born and on
+you know four parts one's born and on you know frame 0 the first one and dies
+you know frame 0 the first one and dies on frame 3 right so the active range for
+on frame 3 right so the active range for this when you're rendering frame 1 is
+this when you're rendering frame 1 is just this object here when we start
+just this object here when we start rendering frame to the next part is born
+rendering frame to the next part is born and we're still rendering the previous
+and we're still rendering the previous part that's alive in frame 3 obviously
+part that's alive in frame 3 obviously the first part dies in which case now
+the first part dies in which case now weird active range shrinks again the
+weird active range shrinks again the left edge moves ahead when we render
+left edge moves ahead when we render frame for another part is born in the
+frame for another part is born in the act of rage expands and this is kind of
+act of rage expands and this is kind of the way you want to bind into the B onto
+the way you want to bind into the B onto the GPU the the active range of the
+the GPU the the active range of the vertex buffer now what on frame 7 you
+vertex buffer now what on frame 7 you notice that a new part is born however a
+notice that a new part is born however a part that stuck in the middle has
+part that stuck in the middle has actually died in this case the way our
+actually died in this case the way our pipeline was set up we shipped on dx11
+pipeline was set up we shipped on dx11 halo 5 so we didn't quite have some of
+halo 5 so we didn't quite have some of the more I guess advanced geometry
+the more I guess advanced geometry vertex generation on the GPU that we're
+vertex generation on the GPU that we're starting to see kind of like in
+starting to see kind of like in frostbite and also in Assassin's Creed
+frostbite and also in Assassin's Creed but this is essentially the idea you you
+but this is essentially the idea you you might be able to do some interesting
+might be able to do some interesting things with there and not have to rely
+things with there and not have to rely on the fact that you need to delete a
+on the fact that you need to delete a part in the middle in this case now when
+part in the middle in this case now when it comes to transform packing you kind
+it comes to transform packing you kind of want to do the same thing pack all
+of want to do the same thing pack all the transforms into a single giant
+the transforms into a single giant buffer and we want them packed right
+buffer and we want them packed right next to each other and we offset into
+next to each other and we offset into the buffer to actually render it in this
+the buffer to actually render it in this case you can kind of see that on frame 0
+case you can kind of see that on frame 0 there's only one part that's action
+there's only one part that's action active and alive and therefore that gets
+active and alive and therefore that gets packed first on the next frame again
+packed first on the next frame again just only a single part so that's what
+just only a single part so that's what gets packed in the next frame there's
+gets packed in the next frame there's two parts and so on and so forth
+two parts and so on and so forth this ideal packing again tracks to what
+this ideal packing again tracks to what your actual active ranges and your
+your actual active ranges and your binding the minimal set to the GPU and
+binding the minimal set to the GPU and and essentially transferring the minimal
+and essentially transferring the minimal amount of data to the actual GPU one
+amount of data to the actual GPU one thing yeah so pack into a single buffer
+thing yeah so pack into a single buffer this ended up being much more efficient
+this ended up being much more efficient in terms of minimizing the number of
+in terms of minimizing the number of allocations that d3d is going to do one
+allocations that d3d is going to do one thing to note is because of the packing
+thing to note is because of the packing structure that we talked about earlier
+structure that we talked about earlier if you use structured buffers this is
+if you use structured buffers this is going to lead to byte swapping that's
+going to lead to byte swapping that's going to occur between the CPU and GPU
+going to occur between the CPU and GPU so you want to be aware of this we ended
+so you want to be aware of this we ended up using the byte address buffer which
+up using the byte address buffer which is quite handy not a lot of engines
+is quite handy not a lot of engines necessarily support it but this is
+necessarily support it but this is something that you need to consider if
+something that you need to consider if you need to represent CPU okay so let's
+you need to represent CPU okay so let's talk about the runtime down so the first
+talk about the runtime down so the first thing that we implemented was
+thing that we implemented was interpolation and looping for everything
+interpolation and looping for everything even the quaternions we were able to
+even the quaternions we were able to drop something from most of their
+drop something from most of their animations from 60 frames per second
+animations from 60 frames per second down to 30 frames per second this
+down to 30 frames per second this allowed us to obviously cut the
+allowed us to obviously cut the bandwidth in half right away for far
+bandwidth in half right away for far distance objects you can interpolate
+distance objects you can interpolate even more and kind of get away with it
+even more and kind of get away with it because they're obviously not so big in
+because they're obviously not so big in screen thing to note is deletion and
+screen thing to note is deletion and creation rules can kind of get hairy
+creation rules can kind of get hairy here when you're interpolating you need
+here when you're interpolating you need to come up with a defined set of rules
+to come up with a defined set of rules that make sense of when does it when is
+that make sense of when does it when is a part actually born and when is a part
+a part actually born and when is a part actually die when you're in between
+actually die when you're in between frames we weren't super happy with the
+frames we weren't super happy with the rules we came up with because it always
+rules we came up with because it always led to some inconsistency in one
+led to some inconsistency in one animation or another so experiment with
+animation or another so experiment with this and find something that you're
+this and find something that you're happy with
+happy with also interpolation is obviously not an
+also interpolation is obviously not an option for fluid assets this is changing
+option for fluid assets this is changing topology every frame there's no per
+topology every frame there's no per there's no inner frame coherency between
+there's no inner frame coherency between the vertices so the first approach that
+the vertices so the first approach that we had for the GPU pipeline was a series
+we had for the GPU pipeline was a series of compute shaders where we would
+of compute shaders where we would decompress and blend transforms in one
+decompress and blend transforms in one computer transform the vertices in
+computer transform the vertices in another and then another computer to
+another and then another computer to compact and
+compact and to the render pipeline this obviously
+to the render pipeline this obviously continually round tripped to the main
+continually round tripped to the main memory and and completely killed our
+memory and and completely killed our bandwidth so this approach was not going
+bandwidth so this approach was not going to work the second attempt was to have
+to work the second attempt was to have an uber computer where we perform all
+an uber computer where we perform all the stages in a single computer
+the stages in a single computer we used group sinks to try and
+we used group sinks to try and synchronize data caches and we utilized
+synchronize data caches and we utilized LDS to to synchronize between or within
+LDS to to synchronize between or within the wave itself this was about a 3x
+the wave itself this was about a 3x speed up and so we were pretty happy
+speed up and so we were pretty happy with this a note on the decompression
+with this a note on the decompression obviously on you you have a limited
+obviously on you you have a limited amount of LDS memory when you're
+amount of LDS memory when you're actually sharing your your blended and
+actually sharing your your blended and trended and uncompressed transforms so
+trended and uncompressed transforms so your active number of transforms that
+your active number of transforms that you can write to LVS has to we limited
+you can write to LVS has to we limited it to 64 in order to make sure we had
+it to 64 in order to make sure we had enough occupancy on the GPU this was
+enough occupancy on the GPU this was enforced in the importer when the
+enforced in the importer when the importer detected that you are going to
+importer detected that you are going to end up with more than 64 transforms per
+end up with more than 64 transforms per way or it limited the wave size to only
+way or it limited the wave size to only a maximum of 64 transforms so when
+a maximum of 64 transforms so when actually selecting the dispatch size
+actually selecting the dispatch size this is essentially what you want to
+this is essentially what you want to keep in mind you want to select the
+keep in mind you want to select the largest dispatch size you can you can
+largest dispatch size you can you can you can find but only up to 64
+you can find but only up to 64 transforms per wave you don't want to if
+transforms per wave you don't want to if you schedule 2 if you schedule anymore
+you schedule 2 if you schedule anymore than that onto the LDS you you will
+than that onto the LDS you you will start to suffer occupancy issues for us
+start to suffer occupancy issues for us this almost all the time we were still
+this almost all the time we were still able to run the maximum 1024 lanes
+able to run the maximum 1024 lanes except for the last wave which usually
+except for the last wave which usually was whatever leftover number of vertices
+was whatever leftover number of vertices need to be processed so the the next big
+need to be processed so the the next big optimization came is when we moved
+optimization came is when we moved everything over to a synched async
+everything over to a synched async compute this is a fixed animation so you
+compute this is a fixed animation so you know what's gonna happen ahead of time
+know what's gonna happen ahead of time you can prepare future frames in
+you can prepare future frames in previous frames we had quite a few
+previous frames we had quite a few occasions in our pipeline where the GPU
+occasions in our pipeline where the GPU was idle and this is a great thing to
+was idle and this is a great thing to pair with things that are ALU heavy
+pair with things that are ALU heavy essentially this
+essentially this is almost entirely bandwidth bound and
+is almost entirely bandwidth bound and so if you have ALU heavy sections of the
+so if you have ALU heavy sections of the GPU this is when you want to layer this
+GPU this is when you want to layer this in also at the end of the project we
+in also at the end of the project we started to play around with how to
+started to play around with how to integrate physics more into this we were
+integrate physics more into this we were able to generate physics collision data
+able to generate physics collision data just in time and especially on a shared
+just in time and especially on a shared memory system this works out pretty well
+memory system this works out pretty well you can feed this back in a havoc using
+you can feed this back in a havoc using we were experimenting with those two
+we were experimenting with those two physics types to try and feed the
+physics types to try and feed the geometry back into havoc and actually
+geometry back into havoc and actually have collision responses on them
+have collision responses on them there are several variants here you that
+there are several variants here you that you can play with for instance you can
+you can play with for instance you can have on/off States which is obviously
+have on/off States which is obviously pretty easy so if the player can't get
+pretty easy so if the player can't get to a bridge you want to blow up the
+to a bridge you want to blow up the bridge and then so the on state is the
+bridge and then so the on state is the bridges there and they off state the
+bridges there and they off state the bridge is gone and then a more
+bridge is gone and then a more fine-grained approaches the player might
+fine-grained approaches the player might be on the bridge while it's collapsing
+be on the bridge while it's collapsing in which case a physics geometry needs
+in which case a physics geometry needs to be generated every frame so both
+to be generated every frame so both those are the two kind of approaches we
+those are the two kind of approaches we started to look at and the last thing
+started to look at and the last thing I'll point out is the slides will be
+I'll point out is the slides will be available offline so you can read
+available offline so you can read through the shader exactly but the key
+through the shader exactly but the key thing to remember is you want to try and
+thing to remember is you want to try and hoist as many of the processing into the
+hoist as many of the processing into the scalar unit from vector units as you
+scalar unit from vector units as you possibly can for the Xbox if this was
+possibly can for the Xbox if this was make uniform call this is now available
+make uniform call this is now available in shader model six as more of a
+in shader model six as more of a cross-platform ability but it's
+cross-platform ability but it's definitely worth optimizing to move as
+definitely worth optimizing to move as much of the work from vector units into
+much of the work from vector units into scalar units as you can the next thing
+scalar units as you can the next thing is also be sparing with your groups inks
+is also be sparing with your groups inks they can be costly and if you have too
+they can be costly and if you have too many of them they will end up slowing
+many of them they will end up slowing down perfect it so we only ended up
+down perfect it so we only ended up needing one and this is the rough
+needing one and this is the rough structure and how we decompressed
+structure and how we decompressed everything again just to remind you on
+everything again just to remind you on some of the things you can do here's
+some of the things you can do here's another
+to advance on the constructors coordinates
+coordinates affirmative commander
+that Kraken reveals sequence from Halo 5 in the plateau section of the game was
+in the plateau section of the game was one of our first levels that we actually
+one of our first levels that we actually worked on so it's one of the first
+worked on so it's one of the first things that we learned a lot about the
+things that we learned a lot about the game and how geometry caching worked
+game and how geometry caching worked it's also the one that kind of carried
+it's also the one that kind of carried us through the whole production as we
+us through the whole production as we had to optimize and change things um so
+had to optimize and change things um so I'm gonna I'm gonna jump into more of
+I'm gonna I'm gonna jump into more of the authoring side for the rest of the
+the authoring side for the rest of the talk and kind of go and lessons we
+talk and kind of go and lessons we learned from like the artist side so you
+learned from like the artist side so you can use any content creation package you
+can use any content creation package you want one good thing about using a little
+want one good thing about using a little because to intermediary we could use max
+because to intermediary we could use max maya any package and write to a limbic
+maya any package and write to a limbic and then we could interpret import that
+and then we could interpret import that import that data into the engine so that
+import that data into the engine so that way we wouldn't be limited by whatever
+way we wouldn't be limited by whatever software our artists were but a few
+software our artists were but a few things to keep in mind though when
+things to keep in mind though when you're authoring for these different
+you're authoring for these different types
+types static needs a relative mesh for each
+static needs a relative mesh for each frame so that's like camera culling on
+frame so that's like camera culling on so you need to have components in that
+so you need to have components in that in your DCC rigid needs an identifier
+in your DCC rigid needs an identifier per part in Houdini we use name and my
+per part in Houdini we use name and my you can use the shape nodes or you can
+you can use the shape nodes or you can put an ID per each bone soft needs a
+put an ID per each bone soft needs a wide range of deformers so whether
+wide range of deformers so whether you're doing in cloth so fluids lavash
+you're doing in cloth so fluids lavash or rate projection skin needs the whole
+or rate projection skin needs the whole character pipeline so the more
+character pipeline so the more automating you can do of a character
+automating you can do of a character pipeline it's a little bit better you
+pipeline it's a little bit better you try to avoid as much of that character
+try to avoid as much of that character author a character authoring when we're
+author a character authoring when we're doing geometry caching and fluid needs
+doing geometry caching and fluid needs to be able to allow the package to do
+to be able to allow the package to do anything so you can switch from bears to
+anything so you can switch from bears to dogs two cats all in the same geometry
+dogs two cats all in the same geometry sequence and pick any frame you want
+sequence and pick any frame you want it's not just necessarily VDB remesh
+it's not just necessarily VDB remesh Inge you literally need to be
+Inge you literally need to be artistically allowed to do whatever you
+artistically allowed to do whatever you want um one of the things to keep in
+want um one of the things to keep in mind is the lexicon for each software
+mind is the lexicon for each software package is different we actually ran
+package is different we actually ran into this issue a lot limbic Houdini and
+into this issue a lot limbic Houdini and Maya all use different terminologies and
+Maya all use different terminologies and across the studio not every base really
+across the studio not every base really familiar where data is stored so you can
+familiar where data is stored so you can look at this offline but like places
+look at this offline but like places where UVs are stored its vertex
+where UVs are stored its vertex level and Houdini but in my it's like
+level and Houdini but in my it's like the face vertex level this actually
+the face vertex level this actually becomes a big lingo issue when you're
+becomes a big lingo issue when you're going back and forth with your software
+and these are the additional attributes that we had a store for each level of
+that we had a store for each level of the data I'm using the Houdini terms on
+the data I'm using the Houdini terms on the left cuz I'm more familiar with them
+the left cuz I'm more familiar with them with the point that's just your raw
+with the point that's just your raw position data and you also need your DC
+position data and you also need your DC asset DCC additional attributes that you
+asset DCC additional attributes that you don't really export and that's usually a
+don't really export and that's usually a rest position this is usually our T pose
+rest position this is usually our T pose for on your geometry caches you use this
+for on your geometry caches you use this to blend back and forth and to maintain
+to blend back and forth and to maintain the geometry as it goes through
+the geometry as it goes through traditional stuff like your vertex as
+traditional stuff like your vertex as your normal TVs CDs and colors and
+your normal TVs CDs and colors and skinning weights that's where you
+skinning weights that's where you normally maintain them and then on the
+normally maintain them and then on the primitive level you have to maintain
+primitive level you have to maintain your part IDs and materials the other
+your part IDs and materials the other things to keep an account is a pointless
+things to keep an account is a pointless and primitive list this might seem a
+and primitive list this might seem a little bit weird but as you have a
+little bit weird but as you have a geometry sequence over time it's very
+geometry sequence over time it's very easy to manipulate the data and have
+easy to manipulate the data and have points in the geometry get in a
+points in the geometry get in a different array and as artists come and
+different array and as artists come and merge and blend geometry suik instance
+merge and blend geometry suik instance together you can get the data stack of
+together you can get the data stack of all the different like point listings
+all the different like point listings arbitrarily out of focus and it comes
+arbitrarily out of focus and it comes really hard to track the data so we
+really hard to track the data so we actually put a list at the very
+actually put a list at the very beginning of our content import so as
+beginning of our content import so as soon as the geometry came in we assigned
+soon as the geometry came in we assigned each point a list number so that one
+each point a list number so that one would go to export it it came out the
+would go to export it it came out the same list as it goes through the whole
+same list as it goes through the whole sequence also the Olympic intermediate
+sequence also the Olympic intermediate format we'll only reasons why we're
+format we'll only reasons why we're using it is it supported in a host of
+using it is it supported in a host of DCC formats and it's also actually
+DCC formats and it's also actually implemented in a lot of the engines and
+implemented in a lot of the engines and different varying levels one of the
+different varying levels one of the things we originally got this concept of
+things we originally got this concept of geometry caching from the CryEngine so I
+geometry caching from the CryEngine so I we know and a lot of the derivatives of
+we know and a lot of the derivatives of it that this geometry caching texts
+it that this geometry caching texts exist at a lower level State across a
+exist at a lower level State across a lot of the engines right now also the
+lot of the engines right now also the one thing we also want to talk about the
+one thing we also want to talk about the Olympic versatility as you're using it
+Olympic versatility as you're using it as an authoring source the best thing
+as an authoring source the best thing about Olympic is it allows you to read
+about Olympic is it allows you to read any line of data at any frame without
+any line of data at any frame without having to slurp up the whole thing if
+having to slurp up the whole thing if you use FBX and you have a 3,000 frame
+you use FBX and you have a 3,000 frame sequence you have to literally load up
+sequence you have to literally load up the whole FBX sequence
+the whole FBX sequence in order to pull lines of data out of it
+in order to pull lines of data out of it where's a limbic it's really easy in
+where's a limbic it's really easy in Python or in different seed bindings to
+Python or in different seed bindings to be able to pull the one exact piece of
+be able to pull the one exact piece of data you need and when you're writing
+data you need and when you're writing out big large sequences of 3,000 frames
+out big large sequences of 3,000 frames 100 frames in geometry you don't want to
+100 frames in geometry you don't want to kind of like have to pull in and consume
+kind of like have to pull in and consume all your memory on your computer just to
+all your memory on your computer just to be read it the one other thing though to
+be read it the one other thing though to describe though is olimpic is not a
+describe though is olimpic is not a universal seem description format like
+universal seem description format like FBX and Colada and stuff like that so
+FBX and Colada and stuff like that so but what it does really well is handle
+but what it does really well is handle geometry and that's all we really want
+geometry and that's all we really want the intermediate file format to do
+another thing that we kind of ran into a lot is integration and performance
+lot is integration and performance testing Jarmusch crashings could be
+testing Jarmusch crashings could be really a small part of your pipeline so
+really a small part of your pipeline so as you implement it you should take in
+as you implement it you should take in these things as note building a kill
+these things as note building a kill switch we were working on like some of
+switch we were working on like some of the biggest events throughout halo 5 and
+the biggest events throughout halo 5 and we got kind of the Eye of Sauron
+we got kind of the Eye of Sauron throughout the whole project just
+throughout the whole project just because they're the biggest things
+because they're the biggest things everybody has really focused on them so
+everybody has really focused on them so we in order to prove that our system
+we in order to prove that our system wasn't the culprit you can just easily
+wasn't the culprit you can just easily kill it and then see the perf cost of
+kill it and then see the perf cost of other systems whether it's your effects
+other systems whether it's your effects your lighting yourself like that are
+your lighting yourself like that are actually a baseline for our system was
+actually a baseline for our system was under two microseconds whereas like the
+under two microseconds whereas like the other effects systems and animation
+other effects systems and animation system usually have a higher-level need
+system usually have a higher-level need because they have to do a lot more CPU
+because they have to do a lot more CPU GPU bound work whereas ours if you just
+GPU bound work whereas ours if you just turn on the system as two microseconds
+turn on the system as two microseconds the other things to keep in mind is it's
+the other things to keep in mind is it's a geometry sequence so when you actually
+a geometry sequence so when you actually want to put it into a sequencer or do
+want to put it into a sequencer or do testing have start/stop resets of go do
+testing have start/stop resets of go do frames and also make sure you do test
+frames and also make sure you do test for a little bit because it does
+for a little bit because it does different burying types of storage
+different burying types of storage format so it's kind of the dynamically
+format so it's kind of the dynamically compressible so make sure that the when
+compressible so make sure that the when you have just like say a static piece of
+you have just like say a static piece of geometry the whole format will change
+geometry the whole format will change itself to be the best optimized and then
+itself to be the best optimized and then also with the Asthma Sabir mentioned
+also with the Asthma Sabir mentioned earlier with a deletion and creation it
+earlier with a deletion and creation it can get really hairy
+can get really hairy so we listed out a list of tests to do
+so we listed out a list of tests to do but these were very seems like silly
+but these were very seems like silly tests but they became very unique and
+tests but they became very unique and different for us and then depending on
+different for us and then depending on how you write the code they could
+how you write the code they could actually cause some pretty interesting
+actually cause some pretty interesting gaffes to say the least we actually lost
+gaffes to say the least we actually lost our
+our fluid caching pipeline because of
+fluid caching pipeline because of deletion in creation at one point so now
+deletion in creation at one point so now I'm gonna dive into the component system
+I'm gonna dive into the component system so for fluid to kind of give you a
+so for fluid to kind of give you a little better idea of what it is if you
+little better idea of what it is if you ever have seen a 3d zoetrope it's
+ever have seen a 3d zoetrope it's suggestive static models and as you spin
+suggestive static models and as you spin this around and you look through this
+this around and you look through this slit you'll see the birds in motion this
+slit you'll see the birds in motion this was thought over 130 130 years ago but
+was thought over 130 130 years ago but we use it a lot for DVD beer meshing
+we use it a lot for DVD beer meshing nowadays we've kind of talked about the
+nowadays we've kind of talked about the pros and cons of fluid some additional
+pros and cons of fluid some additional optimizing and some topology examples
+optimizing and some topology examples fluids were kind of like our first lub
+fluids were kind of like our first lub they we thought it's going to be the
+they we thought it's going to be the only thing that we needed and that's one
+only thing that we needed and that's one of the reasons that actually almost got
+of the reasons that actually almost got the whole system cut from Halo 5 because
+the whole system cut from Halo 5 because it's not really a great experience it's
+it's not really a great experience it's really easy to author it's easy to get
+really easy to author it's easy to get into the game you can rapidly prototype
+into the game you can rapidly prototype and you can do any art asset there's
+and you can do any art asset there's really no minimum bandwidth you can just
+really no minimum bandwidth you can just pump geometry into the game however it
+pump geometry into the game however it becomes very expensive in there it's the
+becomes very expensive in there it's the same reason you don't want to put an
+same reason you don't want to put an Olympic file straight in there it comes
+Olympic file straight in there it comes really large data sizes but it's not
+really large data sizes but it's not really a reason to discount fluid
+really a reason to discount fluid there's a lot of times where you just
+there's a lot of times where you just need to do pure art and rapid prototype
+need to do pure art and rapid prototype so fluid is really good test case for
+so fluid is really good test case for that as the beer was messaging the
+that as the beer was messaging the optimization that doesn't require
+optimization that doesn't require transforms the geometry you know it's a
+transforms the geometry you know it's a constant load to the GPU so you can if
+constant load to the GPU so you can if you have a really good streaming system
+you have a really good streaming system it makes the process a lot faster you
+it makes the process a lot faster you can always balance for the constant
+can always balance for the constant memory load sorry yeah go on
+memory load sorry yeah go on so this is a quick topology example for
+so this is a quick topology example for those aren't familiar with the
+those aren't familiar with the dynamically changing Poly's this is what
+dynamically changing Poly's this is what fluid really is I'm gonna move on to
+fluid really is I'm gonna move on to region now this is used to really
+region now this is used to really heavily at the very end state of our
+heavily at the very end state of our game we actually when you see this next
+game we actually when you see this next sequence we actually had over like 10000
+sequence we actually had over like 10000 close to 20,000 swarms going for but at
+close to 20,000 swarms going for but at the end of the sequence we passed it on
+the end of the sequence we passed it on to an outsource vendor and they did the
+to an outsource vendor and they did the assumption that we could only have about
+assumption that we could only have about 20 flaw 20 of these constructors in the
+20 flaw 20 of these constructors in the swarm afterwards so we actually had a
+swarm afterwards so we actually had a cut out over 75% of the swarm down in
+cut out over 75% of the swarm down in order to meet that source outsource
+order to meet that source outsource vendors expectations
+[Music]
+so rigid really was our golden child it was how we should ship the majority of
+was how we should ship the majority of our all of our assets across the whole
+our all of our assets across the whole game soft and fluid and skinned are
+game soft and fluid and skinned are really important but rigids really were
+really important but rigids really were you gonna use 90 percent of your assets
+you gonna use 90 percent of your assets when you can access tens of thousands
+when you can access tens of thousands hundreds thousands transform very
+hundreds thousands transform very cheaply and efficiently it's easy to
+cheaply and efficiently it's easy to make anything a rigid body so we're
+make anything a rigid body so we're gonna kind of go over some of the
+gonna kind of go over some of the different benefits and pros and cons of
+different benefits and pros and cons of this aliasing issue subsidizing issues
+this aliasing issue subsidizing issues some of the reasons why we actually had
+some of the reasons why we actually had art defined limits on the asset types
+art defined limits on the asset types and then some more improvements with
+and then some more improvements with instancing lobs and sprites so with
+instancing lobs and sprites so with rigid it's really any kinematic motion
+rigid it's really any kinematic motion it becomes really just a really
+it becomes really just a really transform cloud in the end and you can
+transform cloud in the end and you can put on this transform cloud pretty much
+put on this transform cloud pretty much anything you want so since it is
+anything you want so since it is kinematic it means it's baked animation
+kinematic it means it's baked animation but the good thing is you still want to
+but the good thing is you still want to put lights of life in your engine and in
+put lights of life in your engine and in your game so if you have all these
+your game so if you have all these interactive systems we're not trying to
+interactive systems we're not trying to absorb them or replace them you can
+absorb them or replace them you can actually use those where it matters
+actually use those where it matters really up-close in your face so if you
+really up-close in your face so if you have a nice animation system or flocking
+have a nice animation system or flocking system you can have that right up in
+system you can have that right up in your face
+your face whereas this geometry caching can be off
+whereas this geometry caching can be off to the side and cyclical cycles are in
+to the side and cyclical cycles are in flags off to the side it's it's a
+flags off to the side it's it's a trade-off and memory and stuff like that
+trade-off and memory and stuff like that but you're reducing all the runtime
+but you're reducing all the runtime costs associated with running a
+costs associated with running a simulation or a whole character based
+simulation or a whole character based animation pipeline and you can also
+animation pipeline and you can also componentize this code so that you use
+componentize this code so that you use it in your GPU in different sections of
+it in your GPU in different sections of these systems like your flocking your
+these systems like your flocking your particle your crowd system you can kind
+particle your crowd system you can kind of spread it depending on how you cut up
+of spread it depending on how you cut up the code and share it in your system so
+the code and share it in your system so one of the things that we actually found
+one of the things that we actually found out we actually don't have anything with
+out we actually don't have anything with a million transforms in Halo 5 this was
+a million transforms in Halo 5 this was actually a system test that we did when
+actually a system test that we did when you actually put a million things in the
+you actually put a million things in the game at only 1080p you don't actually
+game at only 1080p you don't actually have enough pixels on the screen this
+have enough pixels on the screen this kind creates a noise problem you
+kind creates a noise problem you actually get true aliasing because you
+actually get true aliasing because you don't have enough pixels on the screen
+don't have enough pixels on the screen only until you really get to 4k do you
+only until you really get to 4k do you actually notice that you can
+actually notice that you can actually have a million points flying
+actually have a million points flying around so we're not really trying to
+around so we're not really trying to compete with Krakatoa we're trying to
+compete with Krakatoa we're trying to just do simple INF assets and usually
+just do simple INF assets and usually when you're getting that complex it
+when you're getting that complex it doesn't actually have the intended
+doesn't actually have the intended visual objective that you're trying to
+visual objective that you're trying to achieve just because you can morph
+achieve just because you can morph routing things on the screen doesn't
+routing things on the screen doesn't necessarily mean you should but one of
+necessarily mean you should but one of the things to do if you are trying to
+the things to do if you are trying to put that many points on screen
+put that many points on screen use just a simple pixel shader you don't
+use just a simple pixel shader you don't need to do any expensive textures or
+need to do any expensive textures or anything like that it causes a lot of
+anything like that it causes a lot of aliasing and also sorry you don't even
+aliasing and also sorry you don't even actually have to really do geometry or
+actually have to really do geometry or anything like that
+anything like that when you really get to a million points
+when you really get to a million points on most of the screens resolutions for
+on most of the screens resolutions for the next couple of generations you can
+the next couple of generations you can really just use a ribbon with points on
+really just use a ribbon with points on it in a regular effects pipeline it's
+it in a regular effects pipeline it's useful up to a point but what it really
+useful up to a point but what it really means when you can push a million
+means when you can push a million transforms around is it's really
+transforms around is it's really efficient and that you can share the
+efficient and that you can share the load across the whole system with your
+load across the whole system with your effects and the lighting teams and your
+effects and the lighting teams and your footprint is generally extremely small
+footprint is generally extremely small one of the methods we actually used is
+one of the methods we actually used is called subsidizing it limits the amount
+called subsidizing it limits the amount of pieces that you actually have to
+of pieces that you actually have to author you don't have to author 100
+author you don't have to author 100 different objects people have a hard
+different objects people have a hard time counting objects if you really want
+time counting objects if you really want try to count all the stars real quickly
+try to count all the stars real quickly it should take you only a second but
+it should take you only a second but it's actually 10 stars in there but the
+it's actually 10 stars in there but the way your brain processes is the same
+way your brain processes is the same reason we cut the phone numbers down to
+reason we cut the phone numbers down to about seven digits its mouth the max
+about seven digits its mouth the max limit humans can perceive real quickly
+limit humans can perceive real quickly at a glance so when you're building a
+at a glance so when you're building a crowd system especially usually only do
+crowd system especially usually only do three to eight variations you don't
+three to eight variations you don't really need to do more than that it
+really need to do more than that it simplifies the authoring story because
+simplifies the authoring story because you don't have to make hundreds and
+you don't have to make hundreds and hundreds of unique objects the beauty
+hundreds of unique objects the beauty really is in the motion not really in
+really is in the motion not really in all the different unique geometry it's
+all the different unique geometry it's not really your environment in order to
+not really your environment in order to actually even make the system we even go
+actually even make the system we even go further we didn't carry these out fully
+further we didn't carry these out fully but since it is really just a true
+but since it is really just a true transform cloud you can actually just
+transform cloud you can actually just use instancing for a lot of this
+use instancing for a lot of this geometry if you're only using 3d objects
+geometry if you're only using 3d objects you can actually just instance across
+you can actually just instance across the whole thing one of the things that
+the whole thing one of the things that we actually didn't do correctly was on
+we actually didn't do correctly was on those swarms we actually had at one
+those swarms we actually had at one point thirty thousand unique pieces
+point thirty thousand unique pieces geometry this created a bigger disk
+geometry this created a bigger disk space if we literally just used one
+space if we literally just used one instance piece of geometry it would have
+instance piece of geometry it would have cut down the disk load the render times
+cut down the disk load the render times still the same in order to render that
+still the same in order to render that mini constructor swarm but uh the
+mini constructor swarm but uh the actually on disk footprint which kind of
+actually on disk footprint which kind of really fights you when you're actually
+really fights you when you're actually doing downloadable content that's
+doing downloadable content that's significantly reduced additionally using
+significantly reduced additionally using Lodz what you can do you can keep this
+Lodz what you can do you can keep this completely in the GPU you don't have to
+completely in the GPU you don't have to do anything the same deletion and
+do anything the same deletion and scaling method you can just do with the
+scaling method you can just do with the z-depth and just pick different models
+z-depth and just pick different models to scale and scale out on so I'm gonna
+to scale and scale out on so I'm gonna actually leave you with a reference
+actually leave you with a reference injured from Alfred Turk uh Alfred
+injured from Alfred Turk uh Alfred Hitchcock's the bird it was actually
+Hitchcock's the bird it was actually filmed not too far from here only a few
+filmed not too far from here only a few of these birds are actually alive on
+of these birds are actually alive on this set most of them are just static
+this set most of them are just static so only need to animate what you want to
+so only need to animate what you want to see don't have to animate everything
+see don't have to animate everything just because some of the art defined
+just because some of the art defined limits that we did is from our bigger
+limits that we did is from our bigger towers we are they kind of became up to
+towers we are they kind of became up to around 32 K and transforms you don't
+around 32 K and transforms you don't really need to have more than that we
+really need to have more than that we actually found out half our assets
+actually found out half our assets actually worked at about half that rate
+actually worked at about half that rate this is kind of up to your studio and
+this is kind of up to your studio and what your game is doing but we recommend
+what your game is doing but we recommend anywhere between four K to 65 K for each
+anywhere between four K to 65 K for each asset since your artists are authoring
+asset since your artists are authoring this they know what the assets best you
+this they know what the assets best you don't want to put more transforms in
+don't want to put more transforms in just because so if they know what the
+just because so if they know what the limit is it's easier to call the other
+limit is it's easier to call the other one we had it was a three thousand frame
+one we had it was a three thousand frame limit per each animation this rascally
+limit per each animation this rascally depending on your frame rate equals
+depending on your frame rate equals anywhere from 25 seconds to over a
+anywhere from 25 seconds to over a hundred seconds of animation and you can
+hundred seconds of animation and you can even actually go down to five frames for
+even actually go down to five frames for a second if you want with these exports
+a second if you want with these exports if you're just going slow motion across
+if you're just going slow motion across the screen what we found out is it
+the screen what we found out is it doesn't really need to be a long
+doesn't really need to be a long sequence of geometry most of the time
+sequence of geometry most of the time it's just calling something like a bird
+it's just calling something like a bird fly a bird flock flying across the whole
+fly a bird flock flying across the whole level the issue wasn't really that the
+level the issue wasn't really that the flock was flying for a minute and a half
+flock was flying for a minute and a half in the screen it was the the bounding
+in the screen it was the the bounding volume across the whole object was
+volume across the whole object was coming a problem so I call it the
+coming a problem so I call it the centipede thing where we just take the
+centipede thing where we just take the asset and then you cut it off you delete
+asset and then you cut it off you delete scale
+scale even though the author one animation
+even though the author one animation asset you're just shrinking the bounding
+asset you're just shrinking the bounding sphere for each section of it as the
+sphere for each section of it as the flock flies across the screen this
+flock flies across the screen this actually significantly reduces the load
+actually significantly reduces the load time to because you don't always have to
+time to because you don't always have to have a constant 3,000 frame geometry
+have a constant 3,000 frame geometry sequence in but in memory just because
+sequence in but in memory just because of the sheer scale of it when the whole
+of the sheer scale of it when the whole Birds flocks are flying across that way
+Birds flocks are flying across that way it's easier if the player looks at it
+it's easier if the player looks at it you can do it you can call and drop that
+you can do it you can call and drop that from the memory really quick a few other
+from the memory really quick a few other random authoring notes when you're doing
+random authoring notes when you're doing with rigid you pretty much need any
+with rigid you pretty much need any particle rigid body motion graphics any
+particle rigid body motion graphics any mechanical motion methods you can use to
+mechanical motion methods you can use to author with rigid but you always have to
+author with rigid but you always have to do IDs on any object so that's the most
+do IDs on any object so that's the most important thing to maintain and then
+important thing to maintain and then also when you're separating the parts we
+also when you're separating the parts we used to kick connectivity based
+used to kick connectivity based dictionary so that we could identify
+dictionary so that we could identify which piece was associated with each
+which piece was associated with each other and Houdini this is usually like
+other and Houdini this is usually like the assemble stop or something like that
+the assemble stop or something like that but the one thing to do is once you've
+but the one thing to do is once you've actually export the whole transform
+actually export the whole transform cloud if you have 20 pieces all doing
+cloud if you have 20 pieces all doing the same motion to reduce them as being
+the same motion to reduce them as being 20 different exports and just have a
+20 different exports and just have a single export with a single transform
+single export with a single transform this will reduce a lot of your overhead
+this will reduce a lot of your overhead even though we have like simplified
+even though we have like simplified explosions or bird flocking 'z you can
+explosions or bird flocking 'z you can actually put like five Birds on the same
+actually put like five Birds on the same transform when you have a hundred Birds
+transform when you have a hundred Birds you're not going to notice that five
+you're not going to notice that five birds are all traveling together I'm
+birds are all traveling together I'm going to move on to static this is
+going to move on to static this is actually something we didn't actually
+actually something we didn't actually focus on enough and most of the
+focus on enough and most of the unaccounted for time in the whole game
+unaccounted for time in the whole game was just cleaning up this static
+was just cleaning up this static geometry to end States so it's really
+geometry to end States so it's really kind of a story of state changes in
+kind of a story of state changes in sequencers seems really city because
+sequencers seems really city because jhanjhar caching is supposed to be
+jhanjhar caching is supposed to be moving geometry but this is where it
+moving geometry but this is where it actually hits you you don't want to have
+actually hits you you don't want to have these expensive moving geometry being
+these expensive moving geometry being static that's why we have so many
+static that's why we have so many optimizations for environment geometry
+one of the things there's also minimize duration on these geometry classes for
+duration on these geometry classes for the e3 headliner we had twelve towers
+the e3 headliner we had twelve towers all going off in different sequences
+all going off in different sequences when we initially exported those things
+when we initially exported those things they all went off and triggered at the
+they all went off and triggered at the same time this crazed a giant spike in
+same time this crazed a giant spike in memory that was pretty read astok but
+memory that was pretty read astok but the only thing we had to do to clean it
+the only thing we had to do to clean it up was to the start of each beat in the
+up was to the start of each beat in the sequencer is that's when we triggered
+sequencer is that's when we triggered the exact moment for each of those
+the exact moment for each of those towers to collapse it came signed a
+towers to collapse it came signed a silly but the fact that every single one
+silly but the fact that every single one of those towers were all drawing from
+of those towers were all drawing from the memory at the exact same moment
+the memory at the exact same moment create increased the spike time so
+create increased the spike time so dramatically that we had a lot of people
+dramatically that we had a lot of people like running around chasing us down so
+like running around chasing us down so if you kind of think of like the 1812
+if you kind of think of like the 1812 overture for D from vendetta where it's
+overture for D from vendetta where it's explosions going off as soon as the
+explosions going off as soon as the explosion happens as soon as one of
+explosion happens as soon as one of those towers happens if you just trigger
+those towers happens if you just trigger it for just that amount of time you
+it for just that amount of time you juice the overhead so very dramatically
+juice the overhead so very dramatically the other thing is to it might seem a
+the other thing is to it might seem a little bit weird but perspective culling
+little bit weird but perspective culling and over in a game environment and
+and over in a game environment and camera culling doesn't seem like a
+camera culling doesn't seem like a native intuitive thing but if you have
+native intuitive thing but if you have say like a small simple explosion pieces
+say like a small simple explosion pieces go flying the initial state you only
+go flying the initial state you only want the outside shell you don't wanna
+want the outside shell you don't wanna see inside pieces but soon as something
+see inside pieces but soon as something explodes you need to see that inside
+explodes you need to see that inside pieces as it twirls around as soon as
+pieces as it twirls around as soon as that piece lands you don't want to see
+that piece lands you don't want to see this side that it lands on you can call
+this side that it lands on you can call that side or if it goes off the side of
+that side or if it goes off the side of a cliff you don't want that piece of
+a cliff you don't want that piece of geometry to continue and fall off the
+geometry to continue and fall off the cliff so you want a camera call based on
+cliff so you want a camera call based on what the characters can see some of
+what the characters can see some of these assets depends on what you're kind
+these assets depends on what you're kind of doing if you're doing a simple Jersey
+of doing if you're doing a simple Jersey barrier and where the player can play
+barrier and where the player can play everywhere this it might still seem kind
+everywhere this it might still seem kind of strange but it helps reduce the cost
+of strange but it helps reduce the cost overhead of all the additional polygons
+overhead of all the additional polygons because if you can't see it don't render
+because if you can't see it don't render it but when you're doing with geometry
+it but when you're doing with geometry where you always see the inside of this
+where you always see the inside of this it becomes a severe problem oh yeah the
+it becomes a severe problem oh yeah the other thing is it becomes also a handoff
+other thing is it becomes also a handoff issue to when you're doing something as
+issue to when you're doing something as big as the towers the end states we
+big as the towers the end states we actually just built into the actual
+actually just built into the actual environment geometry instead of actually
+environment geometry instead of actually loading that whole thing in the GPU
+loading that whole thing in the GPU process just for those geometry caches
+process just for those geometry caches we just built in half the towers into
+we just built in half the towers into the sequences even though we were
+the sequences even though we were simulating those towers we just picked a
+simulating those towers we just picked a random point where it looked really good
+random point where it looked really good and then we pass that off to the
+and then we pass that off to the environment team so it built it right
+environment team so it built it right into the environment pipeline all your
+into the environment pipeline all your environment geometries always gave you
+environment geometries always gave you the most efficient that's kind of what
+the most efficient that's kind of what you always focus on but with moving
+you always focus on but with moving geometry you kind
+geometry you kind don't think about Oh the geometry static
+don't think about Oh the geometry static I should probably not have this in a
+I should probably not have this in a moving geometry sequence because we
+moving geometry sequence because we actually have the whole base of the
+actually have the whole base of the tower even though it's not moving just
+tower even though it's not moving just continuously stay there
+continuously stay there as soon as we cut that off all the
+as soon as we cut that off all the assets for all those towers we've got
+assets for all those towers we've got reduced in half because awesome if it's
+reduced in half because awesome if it's not moving you don't have to play it as
+not moving you don't have to play it as far as an additional collision method
+far as an additional collision method Sabir I was talking about just-in-time
+Sabir I was talking about just-in-time collision one of the things that we
+collision one of the things that we found out is like for the expecially for
+found out is like for the expecially for that crack and reveal players were never
+that crack and reveal players were never supposed to go up and touch that
+supposed to go up and touch that geometry so we never bothered to even
+geometry so we never bothered to even put collision there but an internal
+put collision there but an internal method is to actually do state machines
+method is to actually do state machines or sequencers you just put the geometry
+or sequencers you just put the geometry either in the environment or in the
+either in the environment or in the state machine and you just trigger them
+state machine and you just trigger them and parallel this way you don't have to
+and parallel this way you don't have to put collision into your geometry caching
+put collision into your geometry caching pipeline if you don't need to you can
+pipeline if you don't need to you can but we actually got away with a whole
+but we actually got away with a whole Halo 5 without actually needing to have
+Halo 5 without actually needing to have this in there arbitrarily so soft is the
+this in there arbitrarily so soft is the cool invention
+cool invention Sabir was working on where it's just
+Sabir was working on where it's just implicitly defined geometry and dlc left
+implicitly defined geometry and dlc left multiplayer book called Moulton that
+multiplayer book called Moulton that came out this past summer we got over to
+came out this past summer we got over to was 82,000 transformed playing in a
+was 82,000 transformed playing in a multiplayer level where everybody was
+multiplayer level where everybody was running around and shooting so we're
+running around and shooting so we're gonna talk a little bit about the pros
+gonna talk a little bit about the pros and cons of this a little bit about the
+and cons of this a little bit about the topology and some lessons that we
+topology and some lessons that we learned in extra vertex attributes soft
+learned in extra vertex attributes soft is relatively expensive if you have a
+is relatively expensive if you have a character pipeline there's a reason why
+character pipeline there's a reason why you built that character pipeline it's a
+you built that character pipeline it's a lot more efficient means of transfer it
+lot more efficient means of transfer it for this but the offering for soft is
+for this but the offering for soft is extremely easy think of all the stuff
+extremely easy think of all the stuff you have to do for a character pipeline
+you have to do for a character pipeline all the rigging and stuff like that
+all the rigging and stuff like that you don't have to do that for soft you
+you don't have to do that for soft you can use any type of deforming you want
+can use any type of deforming you want you can do rate projections it's really
+you can do rate projections it's really easy to export you don't need a whole
+easy to export you don't need a whole team to build the character for you
+team to build the character for you break it and I made it I can just do a
+break it and I made it I can just do a fluid particle sim ray project on top of
+fluid particle sim ray project on top of it and capture all the simulation data
+it and capture all the simulation data it's also really kind of nice because
+it's also really kind of nice because you don't actually add to worry about
+you don't actually add to worry about the geometry at runtime so it becomes
+the geometry at runtime so it becomes actually extremely cheap the one thing
+actually extremely cheap the one thing we did learn though is vertex density
+we did learn though is vertex density even though we can put 80 mm transforms
+even though we can put 80 mm transforms in there there's
+in there there's silly the texture density for UV space
+silly the texture density for UV space it's always gonna be a little bit bigger
+it's always gonna be a little bit bigger so even though we could put color in
+so even though we could put color in there it didn't actually express itself
+there it didn't actually express itself as best as it could if we could go back
+as best as it could if we could go back and redo those assets we would have just
+and redo those assets we would have just done a render of the texture sim put
+done a render of the texture sim put that into a Tesla later and put it a
+that into a Tesla later and put it a little bit nicer shader I wouldn't have
+little bit nicer shader I wouldn't have done it with actually a geometry caching
+done it with actually a geometry caching method that we did we would have used
+method that we did we would have used the same sinned at a-- but have been a
+the same sinned at a-- but have been a lot more optimized format and you could
+lot more optimized format and you could got higher detail so you kind of just
+got higher detail so you kind of just want to use the geometry caching where
+want to use the geometry caching where it's could be best optimized and
+it's could be best optimized and actually doing color transfer and
+actually doing color transfer and showing that much detail wasn't really
+showing that much detail wasn't really the best method for it additionally any
+the best method for it additionally any other additional vertex attributes make
+other additional vertex attributes make it an option effects people will always
+it an option effects people will always be like I need that one extra Channel I
+be like I need that one extra Channel I need that one extra Channel but when
+need that one extra Channel but when you're starting to push around a lot of
+you're starting to push around a lot of geometry it's not really as important
+geometry it's not really as important you're really the beauties in the motion
+you're really the beauties in the motion it's not really in whether that color
+it's not really in whether that color goes off so when you build the pipeline
+goes off so when you build the pipeline up do the extra additional attributes as
+up do the extra additional attributes as a secondary thing don't put it as the
+a secondary thing don't put it as the first thing that goes in there because
+first thing that goes in there because it just could be a lot of dead overhead
+it just could be a lot of dead overhead for you this is another topology example
+for you this is another topology example if you remember the fluid before this is
+if you remember the fluid before this is a simple ray projection on top of it it
+a simple ray projection on top of it it kind of looks silly but all sudden this
+kind of looks silly but all sudden this reduces a very expensive asset down to
+reduces a very expensive asset down to extremely simple asset go a little bit
+extremely simple asset go a little bit faster now so one of the things you can
+faster now so one of the things you can also do is optimize the topology for it
+also do is optimize the topology for it this is a simple grid but when you drape
+this is a simple grid but when you drape it on a cloth our table the way the
+it on a cloth our table the way the triangles layout it actually folds
+triangles layout it actually folds really funny so if you just do the same
+really funny so if you just do the same thing like character topology and you
+thing like character topology and you put the edges where it matters these are
+put the edges where it matters these are the one on the right will actually
+the one on the right will actually accordion very appropriately whereas the
+accordion very appropriately whereas the one on the Left will just be a lot of
+one on the Left will just be a lot of wasted vertices on the top and in the
+wasted vertices on the top and in the middle finally we're getting too into
+middle finally we're getting too into skinned this is where like H I K
+skinned this is where like H I K carretera Tori this is when you're doing
+carretera Tori this is when you're doing character rigs and motions so that's
+character rigs and motions so that's usually represents a very complex
+usually represents a very complex pipeline a very complex authoring story
+pipeline a very complex authoring story and up until this point all we did was
+and up until this point all we did was basic sims to form our wrappers very
+basic sims to form our wrappers very simple something simple that one artist
+simple something simple that one artist could create so we didn't even actually
+could create so we didn't even actually implement this we just theorized that
+implement this we just theorized that this was it there's a good talk the
+this was it there's a good talk the other day
+other day that we've been talking with delusion of
+that we've been talking with delusion of motion by Mario Palmieri oh and norm
+motion by Mario Palmieri oh and norm Schafer they actually implemented the
+Schafer they actually implemented the skinning method which was kind of cool
+skinning method which was kind of cool it actually saves the most amount of
+it actually saves the most amount of memory if you actually need to do GPU
+memory if you actually need to do GPU runtime deformation it's an extremely
+runtime deformation it's an extremely efficient method you can get to like 166
+efficient method you can get to like 166 minutes in to 4k textures which is cool
+minutes in to 4k textures which is cool but we never bothered to focus on that
+but we never bothered to focus on that ship because the offering story for
+ship because the offering story for something say like a tower was very
+something say like a tower was very complex and there's no sense in proving
+complex and there's no sense in proving a character rig on a giant building
+a character rig on a giant building that's continuously sinned and changed
+that's continuously sinned and changed every single authoring moment so this
+every single authoring moment so this kind of led us to not even develop this
+kind of led us to not even develop this things but on the alternative if you're
+things but on the alternative if you're doing something as simple as procedural
+doing something as simple as procedural ringing like a snake this can be
+ringing like a snake this can be actually authored extremely quick and
+actually authored extremely quick and easy this is something that we really
+easy this is something that we really didn't do a lot but we actually had a
+didn't do a lot but we actually had a lot of assets like this in the game
+lot of assets like this in the game these would be like cables switching
+these would be like cables switching between buildings to buildings
+between buildings to buildings cables vines we had so many vines that
+cables vines we had so many vines that were put into random DLC content just
+were put into random DLC content just because it was cheap overhead for us to
+because it was cheap overhead for us to put in so now wrapping into the
+put in so now wrapping into the conclusion so we talked about the core
+conclusion so we talked about the core architecture
+architecture Sabir went really in-depth on the engine
+Sabir went really in-depth on the engine side but we also got the static the
+side but we also got the static the rigid skin and it's soft and fluid when
+rigid skin and it's soft and fluid when you build based on these kind of like
+you build based on these kind of like base definitions and you had allowed off
+base definitions and you had allowed off there for it
+there for it it kind of separates out the technology
+it kind of separates out the technology for you and it comes easier to optimize
+for you and it comes easier to optimize now we know originally that everybody
+now we know originally that everybody was just using fluid and then kind of
+was just using fluid and then kind of moved on to rigid but if everybody kind
+moved on to rigid but if everybody kind of starts moving on to soft and skin and
+of starts moving on to soft and skin and as you guys go out and develop these
+as you guys go out and develop these systems further you can further optimize
+systems further you can further optimize them so the people that you should
+them so the people that you should reference is actually a real-time caches
+reference is actually a real-time caches for CryEngine this was done by axel
+for CryEngine this was done by axel netting in 2014 a cig graph used with
+netting in 2014 a cig graph used with the forefather of our talk so that's how
+the forefather of our talk so that's how we actually originally based all of our
+we actually originally based all of our technology off of then we further
+technology off of then we further improved it after we learned all of our
+improved it after we learned all of our life lessons in Halo 5 but also do the
+life lessons in Halo 5 but also do the illusion of motion it's kind of more of
+illusion of motion it's kind of more of an intro to
+an intro to what we were doing they use textures
+what we were doing they use textures where we use a different a little bit of
+where we use a different a little bit of different streaming of data but if
+different streaming of data but if you're just going off the shelf it's a
+you're just going off the shelf it's a really good method as opposed to going
+really good method as opposed to going for the whole hardware engine that we
+for the whole hardware engine that we need to do because you have to implement
+need to do because you have to implement that directly into your engine
+that directly into your engine well Houdini has also done some of the
+well Houdini has also done some of the authoring side and unreal doing some
+authoring side and unreal doing some more on the engine side there we used
+more on the engine side there we used our own engine so not all these systems
+our own engine so not all these systems going to be available on all
+going to be available on all off-the-shelf packages at the current
+off-the-shelf packages at the current point in time if you have any questions
+point in time if you have any questions feel free to step up to the mic if you
+feel free to step up to the mic if you don't want to step up to the mic and
+don't want to step up to the mic and email me and the beer afterwards we'll
+email me and the beer afterwards we'll be around for a little while in the
+be around for a little while in the wrap-up room too after this so thank you
+wrap-up room too after this so thank you guys for all for coming and please fill
+guys for all for coming and please fill out the survey we appreciate it very
+out the survey we appreciate it very much
+much [Applause]
+[Applause] [Music]
+[Music] [Applause]
+Hey is it something yeah so Ben can probably talk more about it but we did
+probably talk more about it but we did have some looping sequences right so
+have some looping sequences right so essentially you you interpolate some of
+essentially you you interpolate some of your ending frames back into your
+your ending frames back into your beginning frames and yeah you're able to
+beginning frames and yeah you're able to do that for all the flags the bird
+do that for all the flags the bird flights and cyclical things we actually
+flights and cyclical things we actually had a lot of those it actually became
+had a lot of those it actually became kind of a trick because depending on
+kind of a trick because depending on what you're doing like a flag or
+what you're doing like a flag or something like that it might become a
+something like that it might become a staggered blend frame so just like
+staggered blend frame so just like tileable textures in order to get a
+tileable textures in order to get a table texture you overlay the two ends
+table texture you overlay the two ends and then you kind of stamp between that
+and then you kind of stamp between that so you actually time warp the geometry
+so you actually time warp the geometry sequence so that the two ends actually
+sequence so that the two ends actually come back on to each other
+come back on to each other so that you got a pair better blending
+so that you got a pair better blending you can actually meet the geometry
+you can actually meet the geometry sequence at the end but that means your
+sequence at the end but that means your end state in your first state have to
+end state in your first state have to match and that's actually really hard to
+match and that's actually really hard to author but where does if you just drag
+author but where does if you just drag the two pieces geometry around you can
+the two pieces geometry around you can actually blend between them and it's
+actually blend between them and it's pretty seamless every once in a while
+pretty seamless every once in a while you'll notice a hitch but you can just
+you'll notice a hitch but you can just put a little bit of noise into that
+put a little bit of noise into that blend sequence and it actually messes it
+blend sequence and it actually messes it up just enough where you don't even
+up just enough where you don't even notice that's the blend point
+okay yeah we might be out of time all see you in the wrapper

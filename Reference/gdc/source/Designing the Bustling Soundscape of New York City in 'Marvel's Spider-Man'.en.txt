@@ -1,0 +1,1474 @@
+[Music] we are going to talk about designing the
+we are going to talk about designing the bustling soundscape of marvel's new york
+bustling soundscape of marvel's new york city
+city so i am alex previty i'm an audio
+so i am alex previty i'm an audio designer at insomniac games
+designer at insomniac games and i am blake johnson also audio
+and i am blake johnson also audio designer at insomniac games
+designer at insomniac games and yeah we're very excited to be here
+and yeah we're very excited to be here today to share how we
+today to share how we um us and obviously a lot of talented
+um us and obviously a lot of talented people at insomniac games came to create
+people at insomniac games came to create the sound of marvel's manhattan
+the sound of marvel's manhattan in
+in marvel's spider-man
+marvel's spider-man so before we
+so before we get going just a little background on
+get going just a little background on alex and i
+alex and i we met at the savannah college of art
+we met at the savannah college of art and design we were randomly placed as
+and design we were randomly placed as roommates and had a lot of ridiculous
+roommates and had a lot of ridiculous times together and we did graduate
+times together and we did graduate and
+and swap that out that's us last night so
+swap that out that's us last night so we're here now living the dream at
+we're here now living the dream at insomniac games
+a little background on insomniac games it's a pretty great place to work with
+it's a pretty great place to work with work for
+work for a lot of these places thought we were
+a lot of these places thought we were pretty cool to work with up until
+pretty cool to work with up until recently as well
+recently as well and
+and we are looking to hire in a handful of
+we are looking to hire in a handful of positions
+positions and
+and i want to highlight one specifically if
+i want to highlight one specifically if you happen to be a audio programmer
+you happen to be a audio programmer yeah come come find us after i'll be at
+yeah come come find us after i'll be at the booth later today
+the booth later today and you can find it on our website as
+and you can find it on our website as well
+insomniac is been around 25 years we're celebrating our 25th anniversary this
+celebrating our 25th anniversary this year and we got our you know big start
+year and we got our you know big start with i think spyro and then ratchet and
+with i think spyro and then ratchet and clank resistance sunset overdrive the
+clank resistance sunset overdrive the unspoken and of course what we're here
+unspoken and of course what we're here to talk about today is marvel's
+to talk about today is marvel's spiderman
+spiderman a little background on our team
+a little background on our team internally at insomniac
+internally at insomniac we have one audio director
+we have one audio director one audio lead
+one audio lead four audio designers including alex and
+four audio designers including alex and i
+i one dialogue coordinator
+one dialogue coordinator and then we extensively used sony
+and then we extensively used sony product development
+product development services we just call them sony pd
+services we just call them sony pd and from them we had 10 sound designers
+and from them we had 10 sound designers three which were working in-house for a
+three which were working in-house for a bit of the end of the project
+bit of the end of the project one dialogue coordinator in-house
+one dialogue coordinator in-house four dialogue coordinators external
+four dialogue coordinators external three music editors externally
+three music editors externally and yeah that's the team
+and yeah that's the team specs on the project we used wise so
+specs on the project we used wise so you'll be seeing some screenshots from
+you'll be seeing some screenshots from that
+we had 256 megabytes of ram for audio and that includes the 60 megabytes for
+and that includes the 60 megabytes for wise and engine overhead
+wise and engine overhead and the remaining about 190 megabytes
+and the remaining about 190 megabytes for sound banks and media
+today we're talking about marvel's manhattan and alex will first be
+manhattan and alex will first be discussing the city ambient bed which
+discussing the city ambient bed which includes the city room tone per se
+includes the city room tone per se and then the fake 3d layers
+and then the fake 3d layers crowds and the crowd system
+crowds and the crowd system the city perimeter spline emitter
+reverb and how that is created on a mass scale
+scale and dynamic ambient systems this being
+and dynamic ambient systems this being things like weather time of day stuff
+things like weather time of day stuff like that
+like that and then wrapping up with the
+and then wrapping up with the performance and optimization for those
+performance and optimization for those areas
+areas i'll be talking about the ambient and
+i'll be talking about the ambient and scripted vehicle systems so traffic
+scripted vehicle systems so traffic and
+and the um like chase vehicles and things
+the um like chase vehicles and things like that
+like that uh that entails the engines
+uh that entails the engines their horns
+their horns uh brakes squeals and turn squeals
+and doppler buys and what i like to call the whiz by system
+so before i pass it off to alex here's just an example of what the final
+just an example of what the final version of marvel's manhattan sounds
+version of marvel's manhattan sounds like
+like from a handful of different perspectives
+three rows on that one
+[Music]
+hey hey so you know we had to make the city sound great that was kind of our
+city sound great that was kind of our first major challenge we had to tackle
+first major challenge we had to tackle on this game so as you know new york
+on this game so as you know new york city is one of the busiest and loudest
+city is one of the busiest and loudest cities in the entire world i think on
+cities in the entire world i think on average in the midtown area in manhattan
+average in the midtown area in manhattan it averages about 75 db
+it averages about 75 db you know at any given time
+you know at any given time so basically we needed our sound to
+so basically we needed our sound to represent how crazy new york city was
+represent how crazy new york city was and how bustling it can be but we also
+and how bustling it can be but we also needed the ambience to not be fatiguing
+needed the ambience to not be fatiguing you know because when you're out in new
+you know because when you're out in new york city as a pedestrian you maybe
+york city as a pedestrian you maybe you'll be walking for a couple ten
+you'll be walking for a couple ten minutes go down the subway station go
+minutes go down the subway station go home go to work but you know in our game
+home go to work but you know in our game you know you're going to be out in the
+you know you're going to be out in the city for maybe 10 12 hours of gameplay
+city for maybe 10 12 hours of gameplay time so we kind of had to make sure that
+time so we kind of had to make sure that we were you know making this happen so
+we were you know making this happen so we're kind of stuck being a rock on a
+we're kind of stuck being a rock on a hard place in this game trying to figure
+hard place in this game trying to figure out that dichotomy between having a game
+out that dichotomy between having a game be bustling and crazy sounding but also
+be bustling and crazy sounding but also be in the background enough so it's not
+be in the background enough so it's not you know
+you know kind of reputation no well whatever
+kind of reputation no well whatever anyways it was a tough reputation to
+anyways it was a tough reputation to kind of uphold for new york city so we
+kind of uphold for new york city so we kind of had a challenge in front of us
+kind of had a challenge in front of us like what do we do
+like what do we do so
+so we kind of had to find a way to
+we kind of had to find a way to basically
+basically construct new york city's ambiance from
+construct new york city's ambiance from the ground up
+the ground up so what we kind of had to do first is
+so what we kind of had to do first is you know find some good source
+you know find some good source recordings that kind of were very
+recordings that kind of were very characteristic of what new york city
+characteristic of what new york city sounds like so what we did first is
+sounds like so what we did first is this first step into deconstruction was
+this first step into deconstruction was basically taking some good profile some
+basically taking some good profile some good samples and kind of running that
+good samples and kind of running that through izotope rx so i use the kind of
+through izotope rx so i use the kind of room tone generator that's normally used
+room tone generator that's normally used for kind of filling dialogue and stuff
+for kind of filling dialogue and stuff but i use that for this system so
+but i use that for this system so basically we kind of took all these new
+basically we kind of took all these new york city ambiences ran it through
+york city ambiences ran it through isotope rx and kind of generated these
+isotope rx and kind of generated these very static tones that kind of had the
+very static tones that kind of had the energy and frequency spectrum of what
+energy and frequency spectrum of what new york city felt like but stripping
+new york city felt like but stripping you know every element out that would be
+you know every element out that would be considered distracting and then using
+considered distracting and then using that same edited sample you know bank i
+that same edited sample you know bank i also ran it through gram evolution which
+also ran it through gram evolution which kind of like smears things and kind of
+kind of like smears things and kind of makes them like
+makes them like like cream cheese on a bagel kind of
+like cream cheese on a bagel kind of thing you know what i'm saying so
+thing you know what i'm saying so basically we kind of layer that in with
+basically we kind of layer that in with our more static isotope rx generated
+our more static isotope rx generated stuff to kind of get this like very
+stuff to kind of get this like very amorphous kind of moving feeling of new
+amorphous kind of moving feeling of new york city without having anything that
+york city without having anything that sticks out like police whistles car
+sticks out like police whistles car horns people talking etc so this is
+horns people talking etc so this is really helpful for us because we kind of
+really helpful for us because we kind of had to sell the energy of the city
+had to sell the energy of the city without really having anything that's
+without really having anything that's recognizable and things that you would
+recognizable and things that you would pick out with things loop
+pick out with things loop um this is also really helpful for kind
+um this is also really helpful for kind of stereo and quad imaging in our game
+of stereo and quad imaging in our game you know if we were right on reliant on
+you know if we were right on reliant on 3d elements only we would just have
+3d elements only we would just have problems with it not really feeling full
+problems with it not really feeling full and i think just having things be 2d as
+and i think just having things be 2d as just a foundation really helped fill out
+just a foundation really helped fill out the stereo field unfortunately in this
+the stereo field unfortunately in this game for reasons we'll get into later we
+game for reasons we'll get into later we didn't have a lot of streaming bandwidth
+didn't have a lot of streaming bandwidth so a lot of our beds and loops were
+so a lot of our beds and loops were actually stereo we tossed some source
+actually stereo we tossed some source reverb in our delay which were surround
+reverb in our delay which were surround it kind of fell out the back speakers a
+it kind of fell out the back speakers a little bit so the next element we have
+little bit so the next element we have for our ambience is our kind of random
+for our ambience is our kind of random 3d layers so you know while we stripped
+3d layers so you know while we stripped everything out that was interesting as
+everything out that was interesting as the foundation we kind of had to add
+the foundation we kind of had to add that stuff back in to kind of make the
+that stuff back in to kind of make the city interesting so you know new york
+city interesting so you know new york city is a lot of cool sounds got like
+city is a lot of cool sounds got like car horns sirens you know people yelling
+car horns sirens you know people yelling at each other construction
+at each other construction dogs barking car alarms whatever it is
+dogs barking car alarms whatever it is so we kind of edited those out and kind
+so we kind of edited those out and kind of created these banks of different ones
+of created these banks of different ones so once we pulled all these interesting
+so once we pulled all these interesting one shots of different categories we
+one shots of different categories we basically kind of separated them into
+basically kind of separated them into different categories and different banks
+different categories and different banks so we had three actor mixers and wise
+so we had three actor mixers and wise that were used to organize everything we
+that were used to organize everything we had our close sounds we could hear
+had our close sounds we could hear basically when we were really close on
+basically when we were really close on street level
+street level had a not
+in the city available we also had a sky layer just for you know when you're up
+layer just for you know when you're up higher you can hear planes and
+higher you can hear planes and helicopters and things of that nature
+helicopters and things of that nature and this was really helpful for us in
+and this was really helpful for us in the long run because we were able to
+the long run because we were able to take all these three different layers
+take all these three different layers including the sky one so far and
+including the sky one so far and basically kind of mix them all
+basically kind of mix them all differently depending on where you were
+differently depending on where you were with states and rtpcs which we'll get
+with states and rtpcs which we'll get into later as well
+into later as well so here's kind of a video showing you
+so here's kind of a video showing you know the different layers being added
+know the different layers being added one at a time to kind of create the full
+one at a time to kind of create the full bed that we have in the game
+[Music]
+so
+[Music] so that's basically the bed only there's
+so that's basically the bed only there's no actual like 3d diegetic sounds in
+no actual like 3d diegetic sounds in that video at all so that's just like
+that video at all so that's just like the faked bed
+the faked bed so that worked really well for us you
+so that worked really well for us you know for being inside of the city but
+know for being inside of the city but you could also traverse outside of the
+you could also traverse outside of the city's boundaries kind of on that you
+city's boundaries kind of on that you know outside road area by the seawall so
+know outside road area by the seawall so we had to make sure that when you were
+we had to make sure that when you were outside in that area that the city
+outside in that area that the city sounds were being spatialized correctly
+sounds were being spatialized correctly to basically the center of the city
+to basically the center of the city so what i had to do basically to start
+so what i had to do basically to start off was draw a pathway kind of
+off was draw a pathway kind of exactly
+exactly detailing the outline of our road where
+detailing the outline of our road where all the buildings were and we had a path
+all the buildings were and we had a path following emitter that would just follow
+following emitter that would just follow the player you know along that rail that
+the player you know along that rail that we drew
+we drew and then we had our technical artist at
+and then we had our technical artist at the time who still worked with us david
+the time who still worked with us david santiago he helped us basically kind of
+santiago he helped us basically kind of draw all these volumes that would create
+draw all these volumes that would create this network that whenever we would walk
+this network that whenever we would walk inside of it it would kind of turn off
+inside of it it would kind of turn off the 2d surround ambience and kind of
+the 2d surround ambience and kind of activate this 3d point source emitter so
+activate this 3d point source emitter so look at this photo here
+look at this photo here all those blue volumes are what were
+all those blue volumes are what were automatically drawn and also hand
+automatically drawn and also hand authored so whenever you step into that
+authored so whenever you step into that area it turns off the surround reverb
+area it turns off the surround reverb and everything kind of turns up the 3d
+and everything kind of turns up the 3d stuff
+stuff if you look really closely with the
+if you look really closely with the arrows pointing to that little magenta
+arrows pointing to that little magenta line and that's the line that i drew
+line and that's the line that i drew it took a while to set up but once it
+it took a while to set up but once it was all working correctly it was great
+was all working correctly it was great so another thing we had to do is make
+so another thing we had to do is make sure all the crowds had sounds so yeah
+sure all the crowds had sounds so yeah like you know new york city is great
+like you know new york city is great lively but it's full of people that's
+lively but it's full of people that's what makes it so lively in the first
+what makes it so lively in the first place so we needed to make sure that
+place so we needed to make sure that they all have the proper wallet and
+they all have the proper wallet and stuff and 2d walla was not going to cut
+stuff and 2d walla was not going to cut it at all so for scented overdrive
+it at all so for scented overdrive we kind of developed this system called
+we kind of developed this system called the crowd horde emitter system so in
+the crowd horde emitter system so in such a overdrive you can basically fight
+such a overdrive you can basically fight and you know battle up to 40 different
+and you know battle up to 40 different you know bots at one time and so instead
+you know bots at one time and so instead of hit them having all their individual
+of hit them having all their individual emitters running at the same time it was
+emitters running at the same time it was kind of hard to manage performance and
+kind of hard to manage performance and sound wise we kind of had a system where
+sound wise we kind of had a system where would take about five to ten people and
+would take about five to ten people and it would basically find a center of mass
+it would basically find a center of mass and generate a 3d point source emitter
+and generate a 3d point source emitter and now basically every couple frames it
+and now basically every couple frames it would just follow it and when the crowd
+would just follow it and when the crowd would dissipate it would play a stop
+would dissipate it would play a stop event and go away
+event and go away so that's kind of how it worked for this
+so that's kind of how it worked for this game it was really helpful for us
+game it was really helpful for us because we were able to basically find
+because we were able to basically find crowds place emitter on it it would
+crowds place emitter on it it would follow it and we take it away so here's
+follow it and we take it away so here's a video of it being soloed and if you
+a video of it being soloed and if you look at kind of the blue orbs and debug
+look at kind of the blue orbs and debug you can kind of see where that
+you can kind of see where that static emitter is being drawn
+so you saw it's kind of coarse and sometimes it can spawn in kind of weird
+sometimes it can spawn in kind of weird unexpected places so instead of making
+unexpected places so instead of making you know the actual source that's
+you know the actual source that's playing on the emitter an actual mono
+playing on the emitter an actual mono sample we had it stereo is mostly mono
+sample we had it stereo is mostly mono when you're farther away but when you
+when you're farther away but when you got closer it kind of spread to a more
+got closer it kind of spread to a more stereo quad image so that when you were
+stereo quad image so that when you were kind of closer to it it kind of felt
+kind of closer to it it kind of felt like it was enveloping you which really
+like it was enveloping you which really helped to not only sell the size of the
+helped to not only sell the size of the city in the crowd but to kind of mask
+city in the crowd but to kind of mask some of the imperfections in our system
+some of the imperfections in our system so our next thing we had to do is kind
+so our next thing we had to do is kind of come up with other diegetic 3d
+of come up with other diegetic 3d emitters so spider-man can be on the
+emitters so spider-man can be on the street level everything's lively down
+street level everything's lively down there but we kind of needed a way for
+there but we kind of needed a way for the upper levels of the city to sound
+the upper levels of the city to sound lively as well because spider-man can
+lively as well because spider-man can swing crawl run wherever he wants to go
+swing crawl run wherever he wants to go basically
+basically so we kind of need more dynamics and
+so we kind of need more dynamics and also when you're swinging at mid to high
+also when you're swinging at mid to high levels we needed everything to kind of
+levels we needed everything to kind of feel like it was moving we couldn't just
+feel like it was moving we couldn't just sell that on our 3d ambience alone and
+sell that on our 3d ambience alone and our 2d stuff
+our 2d stuff so basically our easiest way to do this
+so basically our easiest way to do this was to take every single hvac in a
+was to take every single hvac in a window on a rooftop rooftop vents etc
+window on a rooftop rooftop vents etc and place audio emitters on them um it
+and place audio emitters on them um it was really helpful for us because our
+was really helpful for us because our artists use houdini to kind of populate
+artists use houdini to kind of populate everything out
+everything out so we're kind of able to open up all
+so we're kind of able to open up all these art prefabs place our sounds in
+these art prefabs place our sounds in them close them back up and the game
+them close them back up and the game automatically updates them which was
+automatically updates them which was cool but there's a lot of these so we
+cool but there's a lot of these so we kind of needed a way to manage the voice
+kind of needed a way to manage the voice count so basically
+count so basically our audio programmer at the time came up
+our audio programmer at the time came up with a system where you know once we
+with a system where you know once we generate sound banks on these special
+generate sound banks on these special emitters it actually recognizes its max
+emitters it actually recognizes its max attenuation settings so once you get
+attenuation settings so once you get outside of that range the engine
+outside of that range the engine actually shuts off and hibernates the
+actually shuts off and hibernates the emitter so wise isn't being pinged a lot
+emitter so wise isn't being pinged a lot and our engine has a much more
+and our engine has a much more manageable voice count as well so here's
+manageable voice count as well so here's a video of that in action again if you
+a video of that in action again if you look at the blue orbs or the sound
+look at the blue orbs or the sound emitters you can kind of see them going
+emitters you can kind of see them going in and out depending on how close or far
+in and out depending on how close or far away you are
+[Music]
+see that was really helpful because when that was not on we crashed the game
+that was not on we crashed the game everyone hated us so
+everyone hated us so thanks audio programmers
+thanks audio programmers so you know that was all cool and stuff
+so you know that was all cool and stuff we kind of needed a way to balance our
+we kind of needed a way to balance our 2d and 3d elements not only our 3d fake
+2d and 3d elements not only our 3d fake elements but also our diegetic stuff it
+elements but also our diegetic stuff it kind of took a while to strike that
+kind of took a while to strike that harmonious balance to make everything
+harmonious balance to make everything right basically took us from when i
+right basically took us from when i started basically almost two years to
+started basically almost two years to really get that fine line between you
+really get that fine line between you know having our fake stuff and our real
+know having our fake stuff and our real stuff together nicely and we kind of had
+stuff together nicely and we kind of had issues with things sticking out too much
+issues with things sticking out too much so we just kind of made everything flat
+so we just kind of made everything flat turned it down and it kind of made
+turned it down and it kind of made everything fit nicely so here's a video
+everything fit nicely so here's a video kind of showing
+kind of showing the 3d elements that are diegetic only
+the 3d elements that are diegetic only to kind of hear how the city sounds with
+to kind of hear how the city sounds with all the real stuff and then halfway
+all the real stuff and then halfway through i'll kind of unmute the 2d fake
+through i'll kind of unmute the 2d fake stuff to kind of hear how big it sounds
+stuff to kind of hear how big it sounds [Music]
+so for the sound design and everything you know that was a good start but we
+you know that was a good start but we also needed a way to kind of make
+also needed a way to kind of make everything sit well in the world so one
+everything sit well in the world so one of the first things we needed to do was
+of the first things we needed to do was kind of fill out the space with reverb
+kind of fill out the space with reverb so no space is complete without his
+so no space is complete without his reverb and it kind of helped all our
+reverb and it kind of helped all our sounds feel world eyes and also helped
+sounds feel world eyes and also helped our city kind of feel more grounded as
+our city kind of feel more grounded as well
+well so
+so here's some quick stats for you our open
+here's some quick stats for you our open world in this game is six kilometers by
+world in this game is six kilometers by three kilometers
+three kilometers as its general size there's nine
+as its general size there's nine districts
+districts there's over 500 roads and over 1200
+there's over 500 roads and over 1200 alleyways there's 8 300 buildings
+alleyways there's 8 300 buildings so we needed a way to kind of make sure
+so we needed a way to kind of make sure all these alleys courtyards and other
+all these alleys courtyards and other spaces were you know assigned the proper
+spaces were you know assigned the proper audio volumes so initially
+audio volumes so initially i did these by hand and it sucked really
+i did these by hand and it sucked really bad
+bad um it took me about two to three days
+um it took me about two to three days per district and it was just time
+per district and it was just time consuming stressful
+consuming stressful and did not make me very happy at all
+and did not make me very happy at all and anytime that any geometry was
+and anytime that any geometry was adjusted if buildings removed and stuff
+adjusted if buildings removed and stuff we basically had to redo everything from
+we basically had to redo everything from scratch and it was not a good time so we
+scratch and it was not a good time so we kind of needed to find another solution
+kind of needed to find another solution for this because this was not
+for this because this was not sustainable in the long term at all
+sustainable in the long term at all so what we did
+so what we did was turn again to our technical art team
+was turn again to our technical art team who is great and we love them very much
+who is great and we love them very much they already have all the data for how
+they already have all the data for how all the buildings are what the spaces
+all the buildings are what the spaces are between them and their shape so they
+are between them and their shape so they kind of use the space and measured it to
+kind of use the space and measured it to kind of generate these volumes for us
+kind of generate these volumes for us and every time you know something would
+and every time you know something would change they'll just regenerate it would
+change they'll just regenerate it would take a few minutes and all be good so we
+take a few minutes and all be good so we kind of gave them a few parameters for
+kind of gave them a few parameters for size for alleys and courtyard and stuff
+size for alleys and courtyard and stuff and every single you know type that we
+and every single you know type that we would generate in place they would have
+would generate in place they would have a different reverb and delay assignment
+a different reverb and delay assignment from wise to kind of give a different
+from wise to kind of give a different space we also kind of use this
+space we also kind of use this to apply different y states as well so
+to apply different y states as well so every volume type
+every volume type other than having reverb and delay
+other than having reverb and delay settings that are different also have a
+settings that are different also have a different y state as well to kind of
+different y state as well to kind of dynamically adjust the mix of the city
+dynamically adjust the mix of the city and other sounds as well
+and other sounds as well so here's a photo kind of of all of the
+so here's a photo kind of of all of the streets and alleyways in our game from a
+streets and alleyways in our game from a bird's-eye view
+bird's-eye view and then here
+and then here are all the volumes that were generated
+are all the volumes that were generated um a few of these are hand-placed um
+um a few of these are hand-placed um kind of the ones on the edge and some of
+kind of the ones on the edge and some of the more bespoke areas but most of what
+the more bespoke areas but most of what you're seeing here is what was
+you're seeing here is what was automatically generated from our team
+automatically generated from our team which was super helpful
+which was super helpful so
+so that's all fine and dandy but we also
+that's all fine and dandy but we also needed a way to make our city kind of
+needed a way to make our city kind of react to whatever is going on
+react to whatever is going on um you know the city can sound great but
+um you know the city can sound great but it also needs to be dynamic and living
+it also needs to be dynamic and living and breathing which makes new york city
+and breathing which makes new york city so special
+so special so one of the first and most important
+so one of the first and most important things we had to figure out was making
+things we had to figure out was making sure that our city was changing
+sure that our city was changing appropriately based on player position
+appropriately based on player position so basically gameplay gave us this
+so basically gameplay gave us this parameter of player height and we
+parameter of player height and we basically used that to kind of
+basically used that to kind of drive an rtpc and wise and that would
+drive an rtpc and wise and that would drive a bunch of different things
+drive a bunch of different things like blending between blend containers
+like blending between blend containers it would do eq volume reverb and delay
+it would do eq volume reverb and delay adjustment and also change you know some
+adjustment and also change you know some various mixed assets we would bring up
+various mixed assets we would bring up and down
+and down for why states as well we had over 10
+for why states as well we had over 10 different categories of environment
+different categories of environment types like parks different alley types
+types like parks different alley types and that was also further used to kind
+and that was also further used to kind of push our mix in the game to bring
+of push our mix in the game to bring elements up and down
+elements up and down so here's an example of a wide screen
+so here's an example of a wide screen shot of one of our layers and you can
+shot of one of our layers and you can just see a few ways we're just taking
+just see a few ways we're just taking our player height and doing some subtle
+our player height and doing some subtle things with the mix to kind of make it
+things with the mix to kind of make it feel more realistic and it's not shown
+feel more realistic and it's not shown here but also in the effects tab we're
+here but also in the effects tab we're doing some high shelving and low
+doing some high shelving and low shelving as well with this rtpc
+shelving as well with this rtpc so here's a quick video just kind of
+so here's a quick video just kind of showing how the city will sound a little
+showing how the city will sound a little bit different depending on how high up
+bit different depending on how high up you are
+that's all continuous too so there's no like on and off states that are
+like on and off states that are happening like if you move up and down
+happening like if you move up and down it's all dynamically happening in real
+it's all dynamically happening in real time mostly via rtpc
+time mostly via rtpc so we also kind of needed a way for our
+so we also kind of needed a way for our districts to sound different you know we
+districts to sound different you know we have our neighborhoods we have our
+have our neighborhoods we have our different pockets in the city so we kind
+different pockets in the city so we kind of needed those to sound different as
+of needed those to sound different as well
+well so we kind of talked with the art team
+so we kind of talked with the art team in match notes to see kind of what's
+in match notes to see kind of what's your art bible what's your goal in this
+your art bible what's your goal in this space and how can we take that same idea
+space and how can we take that same idea and kind of apply it to our ambience and
+and kind of apply it to our ambience and our different audio we have here so in
+our different audio we have here so in our ambient bed we had certain sounds
+our ambient bed we had certain sounds play
+play a lot more or not at all in some cases
+a lot more or not at all in some cases and we would do some little mix changes
+and we would do some little mix changes to make sure that like how the space
+to make sure that like how the space felt from a visual standpoint was
+felt from a visual standpoint was reflected in a very subconscious and
+reflected in a very subconscious and subjective way on the art side in the
+subjective way on the art side in the audio side as well
+audio side as well so
+so for example like in harlem you know it
+for example like in harlem you know it might be a little quieter because it's
+might be a little quieter because it's not as busy but in midtown we would mix
+not as busy but in midtown we would mix up a lot of elements maybe in hell's
+up a lot of elements maybe in hell's kitchen there's more construction
+kitchen there's more construction happening so it would kind of make sure
+happening so it would kind of make sure that that was all being represented
+that that was all being represented properly um and then we also had to make
+properly um and then we also had to make sure that our of beds were different as
+sure that our of beds were different as well
+well basically we had our loot group actors
+basically we had our loot group actors come in and record in different
+come in and record in different languages to make sure that the wallog
+languages to make sure that the wallog beds that happened in different areas
+beds that happened in different areas like chinatown and in harlem and in
+like chinatown and in harlem and in hell's kitchen kind of had a different
+hell's kitchen kind of had a different sound and had different languages
+sound and had different languages throughout we also made sure that our
+throughout we also made sure that our diegetic music that was playing on
+diegetic music that was playing on boomboxes storefronts and cars kind of
+boomboxes storefronts and cars kind of had different genres as well depending
+had different genres as well depending on what district you were in
+on what district you were in so
+so another feature we had that was kind of
+another feature we had that was kind of cool but also very subtle was making
+cool but also very subtle was making sure that our city ambience was mixing
+sure that our city ambience was mixing differently depending on our activity
+differently depending on our activity level so we kind of did was we had a
+level so we kind of did was we had a programmer create the system for us that
+programmer create the system for us that would basically draw this like radius
+would basically draw this like radius around spider-man and inside it would
+around spider-man and inside it would count how many active pedestrians there
+count how many active pedestrians there were
+were kind of what they were doing and also
+kind of what they were doing and also all the ambient and active traffic
+all the ambient and active traffic vehicles
+vehicles and we kind of used that to
+and we kind of used that to you know track this float value that
+you know track this float value that they would give us and that float value
+they would give us and that float value be passed to us as a wise rtpc
+be passed to us as a wise rtpc and then that would kind of help us lean
+and then that would kind of help us lean into stuff more so if the area around it
+into stuff more so if the area around it was really busy we could still rely on
+was really busy we could still rely on the diegetic sounds that were coming
+the diegetic sounds that were coming from those people in those cars but
+from those people in those cars but actually being able to like lean into it
+actually being able to like lean into it further and really push up our intensity
+further and really push up our intensity layers and our bed
+layers and our bed to kind of help sell a fiction that this
+to kind of help sell a fiction that this area is super populated but if you kind
+area is super populated but if you kind of go a couple blocks down it's emptier
+of go a couple blocks down it's emptier would really change the mix of the city
+would really change the mix of the city um and we could also adjust our
+um and we could also adjust our thresholds our radius sizes and other
+thresholds our radius sizes and other things with a config in the engine that
+things with a config in the engine that they set up for us as well
+they set up for us as well so for our weather it was pretty simple
+so for our weather it was pretty simple in our game um we really only had like
+in our game um we really only had like you know day night rain overcast so kind
+you know day night rain overcast so kind of figure out how rain was going to work
+of figure out how rain was going to work in our game
+in our game so of course you know we had a 2d rain
+so of course you know we had a 2d rain bed but we also had some 3d assets as
+bed but we also had some 3d assets as well so for our 2d rainbed you know most
+well so for our 2d rainbed you know most games your traversal is pretty limited
+games your traversal is pretty limited so you can only kind of walk run drive
+so you can only kind of walk run drive etc but spiderman can go anywhere so we
+etc but spiderman can go anywhere so we kind of make sure that our 2d rainbed
+kind of make sure that our 2d rainbed reacted accordingly so we set up a
+reacted accordingly so we set up a raycast system for that which i'll show
+raycast system for that which i'll show you soon
+you soon we also had to make sure that all of our
+we also had to make sure that all of our 3d objects in the game were tagged the
+3d objects in the game were tagged the correct surfaces so similar to earlier
+correct surfaces so similar to earlier how we set up our static emitters on
+how we set up our static emitters on hvacs and rooftops and stuff we had to
+hvacs and rooftops and stuff we had to make sure that umbrellas trash cans and
+make sure that umbrellas trash cans and other things were tagged with 3d rain
+other things were tagged with 3d rain emitters that would turn on when it was
+emitters that would turn on when it was raining and also we're tagged with the
+raining and also we're tagged with the correct material type as well
+correct material type as well so for our 2d reign our audio
+so for our 2d reign our audio programmers set up the system to point
+programmers set up the system to point to raycast from the hero to the ground
+to raycast from the hero to the ground and as soon as the input impact point
+and as soon as the input impact point happens we get an rtpc that measures
+happens we get an rtpc that measures that distance and basically we kind of
+that distance and basically we kind of drive the mix of the 2d rain with that
+drive the mix of the 2d rain with that as well so here's a video kind of
+as well so here's a video kind of showing that in action
+it's pretty simple you know it's just mostly volume and eq changes but once
+mostly volume and eq changes but once it's kind of sits in the rest of the
+it's kind of sits in the rest of the city ambient it really feels pretty nice
+city ambient it really feels pretty nice so another one that was a little more
+so another one that was a little more subtle just kind of time of day change
+subtle just kind of time of day change so basically day and night was our
+so basically day and night was our biggest difference we kind of had to
+biggest difference we kind of had to sell
+sell and this was a very subjective approach
+and this was a very subjective approach so basically daytime would be kind of
+so basically daytime would be kind of the default city ambience it would be
+the default city ambience it would be very bright a lot of the more intense
+very bright a lot of the more intense sizzly layers that were had a sharper q
+sizzly layers that were had a sharper q spectrum we would kind of mix those up
+spectrum we would kind of mix those up during the day
+during the day and at night time we would kind of
+and at night time we would kind of re-cue a lot of the beds to kind of make
+re-cue a lot of the beds to kind of make sure that they were sounding more cold
+sure that they were sounding more cold so we kind of introduced more like low
+so we kind of introduced more like low mids into the mix to kind of make it
+mids into the mix to kind of make it feel emptier and we also changed our
+feel emptier and we also changed our re-ribbon delay completely to kind of
+re-ribbon delay completely to kind of make sure that it kind of reflected how
+make sure that it kind of reflected how the city was a little bit empty or
+the city was a little bit empty or feeling we also turned certain things up
+feeling we also turned certain things up like dogs barking and cars racing at
+like dogs barking and cars racing at night to kind of give the flavor a
+night to kind of give the flavor a little bit more of a different kind of
+little bit more of a different kind of vibe
+vibe so
+so all that stuff was in game sounded great
+all that stuff was in game sounded great but we ran into a huge wall which was
+but we ran into a huge wall which was performance in optimization which is
+performance in optimization which is everyone's favorite subject
+everyone's favorite subject so basically a lot of times in our game
+so basically a lot of times in our game especially towards the end of the title
+especially towards the end of the title development we were kind of over limit a
+development we were kind of over limit a lot um we only had you know 180 190
+lot um we only had you know 180 190 megabytes to spare for the whole entire
+megabytes to spare for the whole entire game and since the open world was loaded
+game and since the open world was loaded most of the time we'd make sure that was
+most of the time we'd make sure that was fitting into memory
+fitting into memory so one of the first steps we did to kind
+so one of the first steps we did to kind of get in memory was switching from
+of get in memory was switching from a-track nine to aug vorbis which was
+a-track nine to aug vorbis which was really helpful because that kind of made
+really helpful because that kind of made our overall ram usage drop by about 10
+our overall ram usage drop by about 10 megabytes which for us was huge
+megabytes which for us was huge however
+however this caused us to rise our cpu usage by
+this caused us to rise our cpu usage by about 12
+about 12 from what you know the engine having to
+from what you know the engine having to decode the avorbus stuff so we kind of
+decode the avorbus stuff so we kind of put a lot of ambient elements that were
+put a lot of ambient elements that were being streamed in a track nine so they
+being streamed in a track nine so they wouldn't have to be decoded but they
+wouldn't have to be decoded but they were being streamed anyways so they
+were being streamed anyways so they weren't taking up any memory at all um
+weren't taking up any memory at all um for our resident memory
+for our resident memory and distant layers were also more
+and distant layers were also more compressed so distant sirens that were
+compressed so distant sirens that were more muffled we just used a really
+more muffled we just used a really aggressive compression ratio on those if
+aggressive compression ratio on those if they were being low pass anyways you
+they were being low pass anyways you wouldn't be able to tell those nasty
+wouldn't be able to tell those nasty artifacts so that was a huge win for us
+artifacts so that was a huge win for us as well
+as well but so how to kind of be you know smart
+but so how to kind of be you know smart with what was streaming what was
+with what was streaming what was resonant if everything was streaming at
+resonant if everything was streaming at once we were also competing with quad
+once we were also competing with quad music and a bunch of dialogue and
+music and a bunch of dialogue and everything that was happening in the
+everything that was happening in the world so we kind of had to make a lot of
+world so we kind of had to make a lot of our things that we would normally
+our things that we would normally be streaming we had to make those
+be streaming we had to make those resonant so we kind of chopped up those
+resonant so we kind of chopped up those longer loops into shorter segments and
+longer loops into shorter segments and crossfaded between them so it's not only
+crossfaded between them so it's not only helped with variety but kind of gave us
+helped with variety but kind of gave us more bang for a buck when it came to
+more bang for a buck when it came to what was being loaded
+what was being loaded unfortunately to sacrifice a lot of our
+unfortunately to sacrifice a lot of our more dynamic layers and kind of
+more dynamic layers and kind of sum things together before they went
+sum things together before they went into y's just because we couldn't run
+into y's just because we couldn't run everything at the same time
+everything at the same time and like i said before we couldn't do
+and like i said before we couldn't do quad ambiences in our game because we
+quad ambiences in our game because we had just too much streaming contention
+had just too much streaming contention so we basically had to make sure that
+so we basically had to make sure that everything was stereo but using our
+everything was stereo but using our surround sound reverb and delay to kind
+surround sound reverb and delay to kind of fill out those rear speakers
+of fill out those rear speakers so that's kind of how the ambience fake
+so that's kind of how the ambience fake and real stuff worked in our game i'll
+and real stuff worked in our game i'll pass it off to blake to talk about the
+pass it off to blake to talk about the cars
+so as you saw alex uh when i came on alex was in the midst of putting
+alex was in the midst of putting together
+together a really dynamic and
+a really dynamic and layered ambient system
+layered ambient system but there was still
+but there was still one system especially in the three in in
+one system especially in the three in in terms of the actual interactable objects
+terms of the actual interactable objects that really needed to be taken care of
+that really needed to be taken care of and being new york of course that is
+and being new york of course that is cars
+cars there's a lot of cars in new york
+there's a lot of cars in new york so cars became my first
+so cars became my first like the vehicles the traffic became my
+like the vehicles the traffic became my number one priority and first big task
+number one priority and first big task on the project
+on the project so just creating that bridge between
+so just creating that bridge between what alex created in the 2d system and
+what alex created in the 2d system and bringing that like matching that with
+bringing that like matching that with the actual cars you interact with on the
+the actual cars you interact with on the street
+just a quick overview of the traffic or ambient car system
+ambient car system there can be up to 180 active
+there can be up to 180 active cars at one time that's not including
+cars at one time that's not including parked cars and i learned
+parked cars and i learned along did a really great talk yesterday
+along did a really great talk yesterday and i think there's something
+and i think there's something in like four digits in terms of parked
+in like four digits in terms of parked cars thankfully for sound we don't
+cars thankfully for sound we don't really need to do much for parked cars
+really need to do much for parked cars but 180 active vehicles i'll get to how
+but 180 active vehicles i'll get to how we
+we worked with that because
+worked with that because 180 is
+180 is too much for us to you know be actively
+too much for us to you know be actively doing things
+doing things classified into five car types
+classified into five car types and
+and vehi the traffic vehicles essentially
+vehi the traffic vehicles essentially had four core sounds that they were make
+had four core sounds that they were make that they could make
+that they could make being engines
+being engines the tire road noise
+the tire road noise their brake squeals
+their brake squeals and car horns
+the five car types we had were commercial which is like your box trucks
+commercial which is like your box trucks delivery trucks that kind of like
+delivery trucks that kind of like diesely engine sounding stuff
+diesely engine sounding stuff compact and sedan were used pretty
+compact and sedan were used pretty similarly and only had some variations
+similarly and only had some variations in terms of the engines we used for them
+in terms of the engines we used for them suv
+suv class we used for
+class we used for the
+the sable kind of humvee vehicles
+sable kind of humvee vehicles in towards the end of the game
+in towards the end of the game and then electric were the taxis because
+and then electric were the taxis because marvel's manhattan is pretty
+marvel's manhattan is pretty eco-friendly and the taxis look like
+eco-friendly and the taxis look like kind of electrical electric vehicles
+so engines was definitely the biggest hurdle to overcome
+hurdle to overcome if you've ever worked in audio and
+if you've ever worked in audio and specifically with vehicles you know that
+specifically with vehicles you know that it's
+it's especially dynamic vehicles
+especially dynamic vehicles it's a challenge because
+it's a challenge because an engine sound is a very complex sound
+an engine sound is a very complex sound and
+and if it's a if it's static you know it
+if it's a if it's static you know it does the same thing every time that's
+does the same thing every time that's one thing you can kind of
+one thing you can kind of bake what you want to use but
+bake what you want to use but in the traffic system in sparta
+in the traffic system in sparta spider-man the vehicles can be
+spider-man the vehicles can be interrupted and you know they stop and
+interrupted and you know they stop and go anytime
+go anytime so i started experimenting with
+so i started experimenting with a plug-in you may know it's for wise and
+a plug-in you may know it's for wise and other middleware
+other middleware called rev by crankcase audio
+called rev by crankcase audio and it's a
+and it's a granular synthesis based
+granular synthesis based engine simulator
+engine simulator so i was playing around with that
+so i was playing around with that in
+in using it with our traffic system
+using it with our traffic system and we all agreed that it sounded the
+and we all agreed that it sounded the best it was the best sounding option
+best it was the best sounding option over using like loop-based audio
+over using like loop-based audio but
+but a it's really cpu intensive and
+a it's really cpu intensive and obviously with the number of vehicles
+obviously with the number of vehicles that also throws another wrench in the
+that also throws another wrench in the system
+system but i'll get to performance more later
+but i'll get to performance more later so we used nine rev models uh many which
+so we used nine rev models uh many which were created and provided by the audio
+were created and provided by the audio guys in the uk
+but we did use a loop-based system for the electric taxis because uh pretty
+the electric taxis because uh pretty much any non-classic
+much any non-classic like like gas engine sound
+like like gas engine sound does not really work in rev it's really
+does not really work in rev it's really just meant for that
+just meant for that and then we used loops for
+and then we used loops for the police sedans
+the police sedans because at the beginning of the game
+because at the beginning of the game there's like a ton and to try to have
+there's like a ton and to try to have rev in rev instances on those
+rev in rev instances on those plus they're they pretty much do the
+plus they're they pretty much do the same thing every time and they're not a
+same thing every time and they're not a focus so it works to make those loop
+focus so it works to make those loop based
+oh and just a note on rev
+rev it used about 1.5 to 2.5 percent of our
+it used about 1.5 to 2.5 percent of our audio cpu thread per instance so it was
+audio cpu thread per instance so it was a little expensive
+so what i ended up doing
+what i ended up doing for the engines
+for the engines was essentially faking a rpm
+was essentially faking a rpm curve over speed so on the x-axis is the
+curve over speed so on the x-axis is the speed of the vehicle y-axis is rpm
+speed of the vehicle y-axis is rpm because these vehicles don't have any
+because these vehicles don't have any traditional physics you would expect in
+traditional physics you would expect in like a driving game or any any game
+like a driving game or any any game where vehicles are actually being driven
+where vehicles are actually being driven by physics
+by physics i had to kind of fake things
+i had to kind of fake things and
+in terms of you know programming support potentially you could get
+potentially you could get parameters that
+parameters that could fake the rpm accurately but to do
+could fake the rpm accurately but to do that on a large scale
+that on a large scale and uh just in the amount of time we had
+and uh just in the amount of time we had on the project it just didn't make it in
+on the project it just didn't make it in we weren't able to get something
+we weren't able to get something realistic so
+realistic so what i did was yeah fake this rpm curve
+what i did was yeah fake this rpm curve which ended up sounding pretty good you
+which ended up sounding pretty good you know most of the time you could never
+know most of the time you could never really tell
+really tell and the only issue was when a vehicle
+and the only issue was when a vehicle would
+would be constantly moving at a steady speed
+be constantly moving at a steady speed especially if it was at like a higher
+especially if it was at like a higher rpm because it just kind of sounded flat
+rpm because it just kind of sounded flat lining
+lining but thankfully new york there's a lot of
+but thankfully new york there's a lot of traffic so they're constantly starting
+traffic so they're constantly starting and going
+next i'm going to look a little bit at the break squeal skids and
+the break squeal skids and horn honks
+horn honks they really provided a nice level of
+they really provided a nice level of immersion and just kind of personality
+immersion and just kind of personality to the city
+to the city so first
+so first the horn honks so in this example a
+the horn honks so in this example a sedan spawns into the city
+sedan spawns into the city and the vehicle
+and the vehicle type is set to sedan and this is done on
+type is set to sedan and this is done on the model level so on each type of model
+the model level so on each type of model like the sedan
+like the sedan compact etc
+compact etc the switch would automatically sign
+the switch would automatically sign based on that
+based on that and then we used what's
+and then we used what's we called a random switch
+we called a random switch because we had this issue where
+because we had this issue where you the player is spider-man you jump in
+you the player is spider-man you jump in front of this car and it would honk at
+front of this car and it would honk at you
+you okay that's normal
+okay that's normal you'd move out of the way it'd stop
+you'd move out of the way it'd stop honking you move back in front of it
+honking you move back in front of it five seconds later
+five seconds later [Music]
+[Music] we have a completely different horn you
+we have a completely different horn you know
+know and while we wanted the variety in
+and while we wanted the variety in amongst sedans and compacts especially
+amongst sedans and compacts especially because
+because there are many different horn sounds in
+there are many different horn sounds in those car types
+those car types we needed to be persistent amongst the
+we needed to be persistent amongst the life of the vehicle
+life of the vehicle so we got some programming to sport
+so we got some programming to sport programming support
+programming support to essentially create
+to essentially create a
+a what we call a random switch it just
+what we call a random switch it just randomly selects one switch out of a
+randomly selects one switch out of a handful that you give it
+handful that you give it so
+so sets it to number three so we can stay
+sets it to number three so we can stay with a consistent sounding horn but it
+with a consistent sounding horn but it will still do like a variety of
+will still do like a variety of different types of hogs
+different types of hogs so at the heart just an overview
+so at the heart just an overview hong star event looks at the car type
+hong star event looks at the car type checks the random switch and place the
+checks the random switch and place the honk
+just a side note they will honk anytime they're interrupted abruptly and a very
+they're interrupted abruptly and a very very low probability if they're just
+very low probability if they're just stuck in normal new york traffic
+next we're going to look at brake squeals
+in this situation a delivery truck spawns in
+spawns in the vehicle type is set to commercial
+the vehicle type is set to commercial and the random switch would also be set
+and the random switch would also be set but not relevant in this case
+for our break event the first thing we look at on the engine side is the
+look at on the engine side is the distance of the object causing the brake
+distance of the object causing the brake to give some granularity
+to give some granularity we use this and speed which i'll also
+we use this and speed which i'll also get to in a moment
+get to in a moment so if the distance
+so if the distance of the object from the vehicle was
+of the object from the vehicle was greater than x i think it was around
+greater than x i think it was around maybe like 10 meters
+we would then play something much more subtle and slower like this
+subtle and slower like this [Music]
+[Music] however if the vehicle or if the object
+however if the vehicle or if the object causing the brake was on a shorter
+causing the brake was on a shorter distance then we would look at the speed
+distance then we would look at the speed of the vehicle
+of the vehicle if he was moving pretty fast we would
+if he was moving pretty fast we would give it something
+give it something short but
+short but pretty intense and a little louder
+pretty intense and a little louder like that
+like that and if it was going slower
+and if it was going slower then we would just get a subtle little
+then we would just get a subtle little brake squeal
+brake squeal like that
+like that and to brent just in a cacophony of
+and to brent just in a cacophony of brake squeals we had to make sure there
+brake squeals we had to make sure there was kind of a threshold
+was kind of a threshold so we didn't play them
+so we didn't play them for my new little movements
+so this guy's made me wondering hey what about the tire noise you know that's a
+about the tire noise you know that's a big part of what we hear when cars are
+big part of what we hear when cars are actually driving around it's not really
+actually driving around it's not really the engine all the time
+the engine all the time so uh when a vehicle spawns in if it's
+so uh when a vehicle spawns in if it's moving
+moving it will just automatically start playing
+it will just automatically start playing the tire road noise and it's a pretty
+the tire road noise and it's a pretty simple system
+simple system this is the arc tpc graph of the sound
+this is the arc tpc graph of the sound on x-axis is the vehicle speed
+on x-axis is the vehicle speed so
+so we had an issue where sometimes the
+we had an issue where sometimes the vehicle would stop but it would continue
+vehicle would stop but it would continue to play its sound and we didn't have a
+to play its sound and we didn't have a ton of time to you know thoroughly debug
+ton of time to you know thoroughly debug the issue so just as a fail-safe
+the issue so just as a fail-safe we just dropped the volume to zero when
+we just dropped the volume to zero when when
+when the vehicle wasn't moving
+the vehicle wasn't moving there's also some slight uh pitching up
+there's also some slight uh pitching up not a whole lot
+not a whole lot otherwise it sounds weird and the purple
+otherwise it sounds weird and the purple line is also just a priority playback so
+line is also just a priority playback so it doesn't prioritize it if it's not
+it doesn't prioritize it if it's not moving or moving very fast
+we also have kind of like a wetness system on the ground so
+system on the ground so um there's puddles in our game
+um there's puddles in our game and on the road and uh when you would
+and on the road and uh when you would drive over
+drive over any object really we could send events
+any object really we could send events so
+so when you draw um drove over a puddle or
+when you draw um drove over a puddle or not you but a vehicle would drive over a
+not you but a vehicle would drive over a puddle it would send like a wetness
+puddle it would send like a wetness value on an rtpc
+value on an rtpc and you could do it with just like a
+and you could do it with just like a switch system as well but i just found
+switch system as well but i just found this to be a little more granular
+this to be a little more granular and give me a little more control
+and give me a little more control so it would send like hey you know what
+so it would send like hey you know what you're driving over is wet and it would
+you're driving over is wet and it would fade over
+fade over to the right
+to the right which is that kind of wet concrete wet
+which is that kind of wet concrete wet asphalt kind of sound
+asphalt kind of sound and then go back to dry once it got off
+and then go back to dry once it got off the puddle
+so that's most of the aspects of the ambient traffic system but what about
+ambient traffic system but what about those crazy scripted vehicle moments
+those crazy scripted vehicle moments where they're racing around the city
+where they're racing around the city flying around turns crashing and stuff
+flying around turns crashing and stuff we needed to
+we needed to you know do something extra for those
+you know do something extra for those vehicles
+and the first aspect of that was the tire squeals
+now i wanted to create a dynamic system that kind of took care
+a dynamic system that kind of took care of itself
+of itself amongst any situation that
+amongst any situation that would that the
+would that the designers would throw at it
+designers would throw at it because they had the control of you know
+because they had the control of you know how fast the vehicle would go and you
+how fast the vehicle would go and you know the kind of angles they would go at
+know the kind of angles they would go at and a lot of it was kind of
+and a lot of it was kind of auto-generated too
+auto-generated too so here's a look at a switch container
+so here's a look at a switch container or sorry the
+or sorry the essentially the tire squeal sound
+essentially the tire squeal sound and on the x-axis
+and on the x-axis is the curve of
+is the curve of or the angle of the curve of the vehicle
+or the angle of the curve of the vehicle so you can see if it's within
+so you can see if it's within plus or minus two degrees it's not
+plus or minus two degrees it's not playing the sound at all but as soon as
+playing the sound at all but as soon as it gets above that it will activate the
+it gets above that it will activate the tire squeal sound
+here's another view of the blend container which which it's in
+blend container which which it's in and in the center there's a more subtle
+and in the center there's a more subtle tire squeal sound and also some volume
+tire squeal sound and also some volume reduction and then on the outside you
+reduction and then on the outside you have a
+have a more intense tire squeal sound
+more intense tire squeal sound there were also different tire school
+there were also different tire school sounds
+sounds for different vehicles so like the
+for different vehicles so like the bigger box trucks had
+bigger box trucks had a little different sound than say a
+a little different sound than say a sedan
+now the x-axis is showing vehicle speed and
+and so the pitch would be a little higher
+so the pitch would be a little higher when you're going when the vehicle is
+when you're going when the vehicle is going at higher speeds
+and also to prevent cars sounding like
+cars sounding like they're going crazy fast when they're
+they're going crazy fast when they're not uh this just prevented
+not uh this just prevented uh the chance if
+uh the chance if sometimes uh designers would script in a
+sometimes uh designers would script in a vehicle to not be going that first not
+vehicle to not be going that first not be going that fast
+be going that fast and this made it so we wouldn't have to
+and this made it so we wouldn't have to go in and you know mute it manually or
+go in and you know mute it manually or something or it would just be very
+something or it would just be very subtle so that's volume
+subtle so that's volume on the
+on the versus speed
+now here's an example video in a later part in the game
+part in the game where you can kind of get a sense for
+where you can kind of get a sense for the tire squeals just doing their thing
+the tire squeals just doing their thing um you can kind of hear them in just the
+um you can kind of hear them in just the subtle turns and you know the bigger
+subtle turns and you know the bigger turns varying with speed and such
+turns varying with speed and such [Music]
+next we're going to look at a classic sound that you expect to hear playing as
+sound that you expect to hear playing as spider-man swinging over manhattan and
+spider-man swinging over manhattan and that is
+that is you know that doppler buy when you swing
+you know that doppler buy when you swing or move past something really fast
+so we got some great programming support on this to create an event where
+on this to create an event where when spider-man is at the peak or i
+when spider-man is at the peak or i guess no the bottom of his swing an
+guess no the bottom of his swing an event is sent to nearby vehicles
+event is sent to nearby vehicles or first it checks to see the closest
+or first it checks to see the closest vehicles to spider-man
+vehicles to spider-man and it will choose i think about three
+and it will choose i think about three or four vehicles to play to send the
+or four vehicles to play to send the event on
+event on and it will play
+and it will play a baked doppler sound
+a baked doppler sound so to visualize again
+so to visualize again we would filter based on the vehicle
+we would filter based on the vehicle type so
+type so if we have a sedan here
+if we have a sedan here and the event is fired on the sedan that
+and the event is fired on the sedan that spider-man is swinging over
+spider-man is swinging over and it checks speed because we wanted to
+and it checks speed because we wanted to have when you're swinging a little
+have when you're swinging a little faster to get more intense doppler buys
+faster to get more intense doppler buys and you know that are louder and also
+and you know that are louder and also the pitch change is stronger
+checks its sedan it'll play something like this
+then we also check kind of that middle speed and might play something
+speed and might play something a little more subdued like this
+a little more subdued like this a little slower
+and we learned we also definitely needed to make sure we weren't playing them
+to make sure we weren't playing them when you were below a certain speed
+when you were below a certain speed otherwise you could just hang
+otherwise you could just hang hang there as spider-man
+hang there as spider-man and you would constantly be getting
+and you would constantly be getting these doppler bi sounds as you're not
+these doppler bi sounds as you're not moving at all
+similar to the doppler buy system i was working on the scripted
+i was working on the scripted chase and
+chase and crime system
+crime system and the engines were in there the tire
+and the engines were in there the tire squeals all that stuff but it just
+squeals all that stuff but it just seemed to be missing something
+seemed to be missing something and i realized it's that feeling of
+and i realized it's that feeling of motion as you're you know whizzing by
+motion as you're you know whizzing by cars you know parked and active
+cars you know parked and active so i put together a really
+so i put together a really terribly cpu heavy system and wise just
+terribly cpu heavy system and wise just to get the idea across
+to get the idea across and to share it with a programmer to
+and to share it with a programmer to explain what i was going for
+explain what i was going for and i just pitched that it was very
+and i just pitched that it was very similar to the doppler doppler buy event
+similar to the doppler doppler buy event but we just needed it for the car chases
+but we just needed it for the car chases so
+so what we got was a system very similar
+what we got was a system very similar where only when you're
+where only when you're on a vehicle attached to a vehicle
+on a vehicle attached to a vehicle will this system activate and it looks
+will this system activate and it looks at
+at both parked and active cars that you're
+both parked and active cars that you're going to be passing
+going to be passing and it'll just pick
+and it'll just pick and this gets fired off maybe every
+and this gets fired off maybe every second not too much because we were
+second not too much because we were pretty tight on you know resource cpu
+pretty tight on you know resource cpu and such at the time
+and such at the time and it would pick
+and it would pick about three vehicles to send the event
+about three vehicles to send the event on
+on and
+and we were able to reuse
+we were able to reuse the doppler vi events and then for the
+the doppler vi events and then for the parked cars was more of just a clean
+parked cars was more of just a clean whoosh not with like engine or um
+whoosh not with like engine or um horn in it
+horn in it so here's an example video it's pretty
+so here's an example video it's pretty short but in the beginning you'll hear
+short but in the beginning you'll hear there's none of that movement know that
+there's none of that movement know that whiz by and a few seconds in it'll turn
+whiz by and a few seconds in it'll turn on
+on and i don't think you'll hear in this
+and i don't think you'll hear in this round but it's extra great and surround
+round but it's extra great and surround just fyi
+[Applause]
+lastly to wrap things up on the vehicles performance and optimization was
+performance and optimization was a big issue like i said rev was very
+a big issue like i said rev was very heavy
+heavy and we really had to make sure we
+and we really had to make sure we limited the playback of rev
+limited the playback of rev this went back and forth a few times
+this went back and forth a few times because we found if the number was too
+because we found if the number was too low and you were swinging over a very
+low and you were swinging over a very busy
+busy area of manhattan
+area of manhattan you would hear the vehicle engine pop in
+you would hear the vehicle engine pop in and out as it switched from virtual to
+and out as it switched from virtual to actually playing back in wise
+actually playing back in wise and i believe we settled on around
+and i believe we settled on around seven instances for
+seven instances for the traffic vehicles and it could
+the traffic vehicles and it could potentially be more if it was
+potentially be more if it was descriptive vehicles
+activating and de-activating the sound component on a tight radius really
+component on a tight radius really helped us control this
+helped us control this and similar to the static emitter system
+and similar to the static emitter system but on the you know moving cars
+but on the you know moving cars we had a radius in which the sound
+we had a radius in which the sound component would turn on and off that way
+component would turn on and off that way we didn't have 180 vehicles registered
+we didn't have 180 vehicles registered in wise at all times
+in wise at all times and
+and yeah which really helped with cpu
+yeah which really helped with cpu we also found though that if you're at a
+we also found though that if you're at a higher elevation you could be looking
+higher elevation you could be looking down at a street and seeing cars go by
+down at a street and seeing cars go by but you wouldn't hear them because it
+but you wouldn't hear them because it was below that threshold
+was below that threshold but the concern of the having too many
+but the concern of the having too many cars
+cars active at a time wasn't really an issue
+active at a time wasn't really an issue up there so the com the radius was
+up there so the com the radius was essentially set on ground level so even
+essentially set on ground level so even if you were high up
+if you were high up you would still have a few cars active
+you would still have a few cars active which is really nice because it's
+which is really nice because it's quieter up above
+act 3 also produced some issues where it's much quieter there's far less cars
+it's much quieter there's far less cars on the street and you could see a car
+on the street and you could see a car coming down the street and it would just
+coming down the street and it would just all sudden turn on
+all sudden turn on and then or turn off if it was moving
+and then or turn off if it was moving away from you
+away from you and once again because there's far less
+and once again because there's far less cars on the street cpu wasn't really an
+cars on the street cpu wasn't really an issue there
+issue there so we were able to change the radius and
+so we were able to change the radius and make it bigger for act 3.
+not using rev for electric taxis was also very helpful
+also very helpful and
+and we just got a lot of memory savings from
+we just got a lot of memory savings from using rev because we didn't have to have
+using rev because we didn't have to have a handful of loops saved for every type
+a handful of loops saved for every type of engine we used
+just to conclude this is an example video of
+this is an example video of just walking around and swinging around
+just walking around and swinging around new york city
+new york city with out the
+with out the the traffic sounds and then with them
+the traffic sounds and then with them plopton
+[Music] huh
+thank you
+so
+all right
+okay so lastly we're going to kind of show a little video kind of you know
+show a little video kind of you know showing all the elements in the game in
+showing all the elements in the game in a final product you know in full mix
+a final product you know in full mix with everything activated just kind of
+with everything activated just kind of showing different aspects we talked
+showing different aspects we talked about with the vehicle sounds crowds and
+about with the vehicle sounds crowds and ambience this is a little you know end
+ambience this is a little you know end cap for this
+[Music] okay
+i tried catching that a lot of times i suck at playing the game so it's a
+suck at playing the game so it's a little sloppy sorry
+little sloppy sorry [Applause]
+[Applause] so that kind of does it for us um just
+so that kind of does it for us um just wanted to thank you know
+wanted to thank you know all these people so insomniac games
+all these people so insomniac games obviously for making this game happen
+obviously for making this game happen all these great teams programmers you
+all these great teams programmers you know developers everyone on the team
+know developers everyone on the team super helpful uh sony interactive
+super helpful uh sony interactive entertainment for not only you know
+entertainment for not only you know helping us make this game but was
+helping us make this game but was providing so many incredible sound
+providing so many incredible sound services for us marvel for literally
+services for us marvel for literally inventing spider-man but also just being
+inventing spider-man but also just being a great resource for us and you know
+a great resource for us and you know being there for us in audio kinetic just
+being there for us in audio kinetic just for you know making wise which we all
+for you know making wise which we all love uh here's our twitter's pretty easy
+love uh here's our twitter's pretty easy to find us on there so
+to find us on there so be cool if we could you know chat all
+be cool if we could you know chat all that stuff um yeah thanks for coming out
+that stuff um yeah thanks for coming out everyone uh we have some time left like
+everyone uh we have some time left like 10 minutes so if you have any questions
+10 minutes so if you have any questions we can do a q a
+hey great job guys uh i had a quick question about how you managed uh rev
+question about how you managed uh rev instances
+instances uh did you end up needing to have a
+uh did you end up needing to have a fallback
+fallback for if you you know wanted a car to make
+for if you you know wanted a car to make sound
+sound but
+but didn't have enough instances did you
+didn't have enough instances did you need to fall back to a looping system or
+need to fall back to a looping system or were you able to just be like no like
+were you able to just be like no like it's not important like focus is
+it's not important like focus is is fine so don't play anything yeah
+is fine so don't play anything yeah that's a good question um i was talking
+that's a good question um i was talking to someone yesterday yesterday about
+to someone yesterday yesterday about this with kind of like
+this with kind of like you know i think a lot of games might
+you know i think a lot of games might use like a lod system where at a
+use like a lod system where at a distance it moves to loops kind of what
+distance it moves to loops kind of what you're saying
+you're saying new york is just so dang loud that
+new york is just so dang loud that it was never really an issue
+it was never really an issue except for act 3 like i said
+except for act 3 like i said i think if it was
+i think if it was you know something that we did here
+you know something that we did here more like like i said from above it was
+more like like i said from above it was potentially an issue but then we fixed
+potentially an issue but then we fixed that by moving the radius to where they
+that by moving the radius to where they could be heard down below
+could be heard down below and
+and with alex's system where you kind of
+with alex's system where you kind of hear tire squeals and this and that
+hear tire squeals and this and that around the city it you
+around the city it you i'm sure you could find moments where
+i'm sure you could find moments where you're like oh yeah like i don't think i
+you're like oh yeah like i don't think i quite hear that engine
+quite hear that engine but then again um you know i've spent a
+but then again um you know i've spent a lot of time just listening to traffic on
+lot of time just listening to traffic on the street and whatnot
+the street and whatnot and
+and engines don't really make that much
+engines don't really make that much sound unless someone's really gunning it
+sound unless someone's really gunning it too
+too so that um yeah that was kind of our
+so that um yeah that was kind of our solution there
+solution there good question kind of adding to that i
+good question kind of adding to that i just feel like a lot of games have a
+just feel like a lot of games have a lower noise floor you know because of
+lower noise floor you know because of the location but for this game we were
+the location but for this game we were able to get away with a lot of stupid
+able to get away with a lot of stupid stuff just because like it was so loud
+stuff just because like it was so loud all the time but also it's like you know
+all the time but also it's like you know we had to mix it down so it was never
+we had to mix it down so it was never really like meant to be the main focus
+really like meant to be the main focus because it was just supposed to be in
+because it was just supposed to be in the background so even it sounds loud up
+the background so even it sounds loud up here like in the game's mix is actually
+here like in the game's mix is actually pretty low
+hi uh thank you for the talk it was awesome um i was curious if because you
+awesome um i was curious if because you have a lot of stuff going on in wise
+have a lot of stuff going on in wise like the rtpc stuff and then like just
+like the rtpc stuff and then like just pulling out sounds and then putting them
+pulling out sounds and then putting them back in was there one specific thing
+back in was there one specific thing whether for the vehicles or the ambience
+whether for the vehicles or the ambience that was like
+that was like really kind of kicked your butt and you
+really kind of kicked your butt and you were having trouble getting it to sound
+were having trouble getting it to sound right and what did you do to
+right and what did you do to go about fixing that or making it do
+go about fixing that or making it do what you wanted it to do
+engines were definitely [Laughter]
+like i said the biggest challenge was it's not
+it's not it's not a racing game so
+it's not a racing game so i don't just readily have
+i don't just readily have the rpm value being passed to me
+the rpm value being passed to me or the throttle things like that i was
+or the throttle things like that i was able to get acceleration uh
+able to get acceleration uh for just for the scripted vehicles which
+for just for the scripted vehicles which gave me some a little more control um
+gave me some a little more control um trying to think what other
+trying to think what other oh we had a weird instance where
+oh we had a weird instance where squirrels actually were
+squirrels actually were like crashing the game
+like crashing the game yeah
+yeah so yeah i i
+so yeah i i just you know found these cute little
+just you know found these cute little squirrel cheeps or whatever sound they
+squirrel cheeps or whatever sound they make and put them on and hey i realized
+make and put them on and hey i realized there are a ton of squirrels in this
+there are a ton of squirrels in this game they're like everywhere so i had to
+game they're like everywhere so i had to really reduce how often
+really reduce how often you would hear them
+you would hear them but there was a i think it was just kind
+but there was a i think it was just kind of some old code that
+of some old code that was the way it was deactivating or
+was the way it was deactivating or activating the sound source was like
+activating the sound source was like pinging-wise really hard oh yeah that
+pinging-wise really hard oh yeah that was fun so there's a bug we had for a
+was fun so there's a bug we had for a while where basically like whenever a
+while where basically like whenever a sound instance would be generated on a
+sound instance would be generated on a crowd or a person
+crowd or a person it would just never go away ever so you
+it would just never go away ever so you would look behind you with all them
+would look behind you with all them activated you can just see this trail of
+activated you can just see this trail of like all these emitters and like wives
+like all these emitters and like wives would crash after like a couple minutes
+would crash after like a couple minutes so yeah i think for me personally the
+so yeah i think for me personally the biggest challenge is kind of getting
+biggest challenge is kind of getting that dichotomy just working of like this
+that dichotomy just working of like this city needs to sound huge and we got
+city needs to sound huge and we got constant feedback it seems now it needs
+constant feedback it seems now it needs to be busier it needs to be louder but
+to be busier it needs to be louder but also making sure that like everything
+also making sure that like everything was just out of the way because this
+was just out of the way because this game is very busy there's a lot of
+game is very busy there's a lot of swinging combat you know the music's
+swinging combat you know the music's very bombastic and cinematic as well
+very bombastic and cinematic as well um and also there's a lot of cinematics
+um and also there's a lot of cinematics in the game we had to make sure that
+in the game we had to make sure that everything kind of like sounded like
+everything kind of like sounded like really huge but also was never fatiguing
+really huge but also was never fatiguing never in the way in a way that the
+never in the way in a way that the player would never really like pick out
+player would never really like pick out you know you mixing these things so i
+you know you mixing these things so i think that was just kind of the biggest
+think that was just kind of the biggest challenge for us at least in particular
+challenge for us at least in particular all right thank you very much i love the
+all right thank you very much i love the game thank you
+hey guys great job bringing the city to life it really feels well well done um i
+life it really feels well well done um i wanted to ask if you had any
+wanted to ask if you had any issues
+issues that you had to adjust everything that
+that you had to adjust everything that you had set when the action would ramp
+you had set when the action would ramp up and be bigger and more bombastic like
+up and be bigger and more bombastic like you were saying yeah so um we didn't
+you were saying yeah so um we didn't talk about it very much in this because
+talk about it very much in this because it's kind of a whole nother subject in
+it's kind of a whole nother subject in this game but we had a ton of mixing
+this game but we had a ton of mixing systems um some of them were a little
+systems um some of them were a little bit more like simple like states that
+bit more like simple like states that would come on and off but we also had a
+would come on and off but we also had a lot of side chaining too so we didn't
+lot of side chaining too so we didn't use hdr for this game because
+use hdr for this game because well by the time we had that idea it was
+well by the time we had that idea it was too late it would have sucked so um we
+too late it would have sucked so um we basically just use the wise meter
+basically just use the wise meter plug-in and side-chaining to kind of
+plug-in and side-chaining to kind of manage all that stuff so the ambient
+manage all that stuff so the ambient city bed bus had so many people
+city bed bus had so many people in from different you know buses and
+in from different you know buses and states and everything just taking it
+states and everything just taking it down for like impacts even the music too
+down for like impacts even the music too would take it down a little bit um and
+would take it down a little bit um and we also had these states that would come
+we also had these states that would come on in cinematics it would kind of
+on in cinematics it would kind of neutralize the ambience in like really
+neutralize the ambience in like really different ways and turn it down slightly
+different ways and turn it down slightly so it doesn't get in the way also
+so it doesn't get in the way also whenever you're in combat the city goes
+whenever you're in combat the city goes way down so you can just focus only on
+way down so you can just focus only on like you know the action
+like you know the action excellent thanks
+you just answered the question i was going to ask about cinematics sorry yeah
+going to ask about cinematics sorry yeah is there anything else you would like to
+is there anything else you would like to yeah like uh if you have like a really
+yeah like uh if you have like a really crazy busy like a city scene and then
+crazy busy like a city scene and then it's like a cinematics and you know
+it's like a cinematics and you know maybe it's like an emotional
+maybe it's like an emotional uh beat that you just need to keep yeah
+uh beat that you just need to keep yeah so basically there's only three states
+so basically there's only three states for cinematics it was like default which
+for cinematics it was like default which we used 99 of the time we had our extra
+we used 99 of the time we had our extra heavy state which is only used once in
+heavy state which is only used once in the entire game in our light state which
+the entire game in our light state which is only used once the entire game so
+is only used once the entire game so there's one state literally took care of
+there's one state literally took care of it the entire game it was a very awesome
+it the entire game it was a very awesome kind of one-size-fits-all solution that
+kind of one-size-fits-all solution that was living in our kind of um global
+was living in our kind of um global audio script that was always loaded and
+audio script that was always loaded and just had like a little relay so whenever
+just had like a little relay so whenever we wanted to like call it we just go
+we wanted to like call it we just go into our like you know cinematic script
+into our like you know cinematic script or go to our level script and just kind
+or go to our level script and just kind of add a call back to the state turning
+of add a call back to the state turning it on and off
+it on and off um and instead of just kind of simply
+um and instead of just kind of simply turning down the bed which would have
+turning down the bed which would have worked um there was a definite like
+worked um there was a definite like obvious fade happening as soon as you
+obvious fade happening as soon as you get into a cinematic which was kind of
+get into a cinematic which was kind of jarring so it kind of worked on like a
+jarring so it kind of worked on like a bunch of different levels i think that
+bunch of different levels i think that state was like present on like
+state was like present on like over 20 different sounds you know in
+over 20 different sounds you know in buses and actor mixers individually to
+buses and actor mixers individually to kind of do this thing where like the
+kind of do this thing where like the actual like feeling of the bed is still
+actual like feeling of the bed is still there so there's really not an apparent
+there so there's really not an apparent dip in volume but it strips out a lot of
+dip in volume but it strips out a lot of the more distracting elements like all
+the more distracting elements like all the close ones basically like the bustle
+the close ones basically like the bustle layer kind of went away completely then
+layer kind of went away completely then all the things like horns
+all the things like horns and like the brake squeals and more
+and like the brake squeals and more aggressive distracting elements would
+aggressive distracting elements would come down quite a bit but you'd still
+come down quite a bit but you'd still hear it in the background the sirens and
+hear it in the background the sirens and things were a little bit softer would
+things were a little bit softer would still kind of be at the similar volume
+still kind of be at the similar volume but then all the 3d objects that were
+but then all the 3d objects that were diegetic like music would go all the way
+diegetic like music would go all the way down for boomboxes cars would be a lot
+down for boomboxes cars would be a lot lower and kind of all that stuff would
+lower and kind of all that stuff would kind of be just like
+kind of be just like mixed in a way where it was just working
+mixed in a way where it was just working and it would also be a little bit less
+and it would also be a little bit less so higher up so a lot of the high
+so higher up so a lot of the high elements were naturally quieter would
+elements were naturally quieter would not be dipped as much so it kind of just
+not be dipped as much so it kind of just felt like a natural like
+felt like a natural like you know neutralization of the ambience
+you know neutralization of the ambience nice thanks
+all right i think that does it so thank you guys for coming out so early i
+you guys for coming out so early i appreciate it and have a good gdc

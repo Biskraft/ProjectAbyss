@@ -1,0 +1,1383 @@
+[Music] get started good morning everyone my
+name is Remi Cunha I'm an engine architect on far-right three and four
+architect on far-right three and four five for working at Ubisoft Montreal and
+five for working at Ubisoft Montreal and we here today to talk about pipeline you
+we here today to talk about pipeline you probably already experienced this
+probably already experienced this situation in the past for your coming
+situation in the past for your coming here coming in either at work in the
+here coming in either at work in the morning getting the latest code starting
+morning getting the latest code starting compiling code copying from the network
+compiling code copying from the network the latest data bill and then you have a
+the latest data bill and then you have a plenty of time to enjoy your coffee
+plenty of time to enjoy your coffee break while everything is copying and
+break while everything is copying and compiling some part right free all team
+compiling some part right free all team member at plenty of time to enjoy that
+member at plenty of time to enjoy that coffee break but on Park rifle we made
+coffee break but on Park rifle we made ourselves a lot of felonies because all
+ourselves a lot of felonies because all dispersion could be performed in under
+dispersion could be performed in under two minutes somebody I could have to
+two minutes somebody I could have to name my talk how to get rid of coffee
+name my talk how to get rid of coffee break on your on your project but anyway
+break on your on your project but anyway before gets into optimization we have
+before gets into optimization we have applied for by flying I'd like to
+applied for by flying I'd like to describe it a little bit so you know
+describe it a little bit so you know actually how it works and what our
+actually how it works and what our workflow and one wanted to improve so
+workflow and one wanted to improve so there I'll start with the few numbers
+there I'll start with the few numbers and the first number is the amount of
+and the first number is the amount of data with generating every day for every
+data with generating every day for every package we are generating for each
+package we are generating for each nightly about 250 gig of data of data
+nightly about 250 gig of data of data that's for every night fee and actually
+that's for every night fee and actually sometimes were generating more than one
+sometimes were generating more than one package a day so we someday we have a
+package a day so we someday we have a half a terabyte worth of data generated
+half a terabyte worth of data generated we also have a huge amount of data for
+we also have a huge amount of data for three me 3.7 millions line of code that
+three me 3.7 millions line of code that for the the game and the tools editor
+for the the game and the tools editor 2.5 million sort of those lines are for
+2.5 million sort of those lines are for the runtime intellectual game we've been
+the runtime intellectual game we've been a lot of people working on the game we
+a lot of people working on the game we have been sick studios and Montreal
+have been sick studios and Montreal being the lead one
+being the lead one 450 people working in Montreal in our
+450 people working in Montreal in our industry oh that's a lot of people
+industry oh that's a lot of people getting the data every day we had
+getting the data every day we had several prefers instance but at the end
+several prefers instance but at the end of the project the we had about 500
+of the project the we had about 500 chickens per day 354 data what
+chickens per day 354 data what 50 for the code and this doesn't take
+50 for the code and this doesn't take into account the song which has a
+into account the song which has a separate for force instance so talking
+separate for force instance so talking about perforce we have or artists are
+about perforce we have or artists are working in some asset creation tools
+working in some asset creation tools such as a max machine builder or
+such as a max machine builder or Photoshop and they're saving their work
+Photoshop and they're saving their work on the pro force perforce instance and
+on the pro force perforce instance and we're providing them some plugins so
+we're providing them some plugins so they can actually export the assets into
+they can actually export the assets into platform-agnostic states that he said on
+platform-agnostic states that he said on another for first instance alongside the
+another for first instance alongside the world the definition and the design
+world the definition and the design definition property that kind of stuff
+definition property that kind of stuff and out of this on a PC when you have a
+and out of this on a PC when you have a copy of this second for first instance
+copy of this second for first instance you can run our editor and the editor is
+you can run our editor and the editor is compiling just in time the verse was
+compiling just in time the verse was required to actually put some stuff on
+required to actually put some stuff on the screen
+the screen so let's take the example of a texture
+so let's take the example of a texture the texture will be changing to a let's
+the texture will be changing to a let's say DDS for being shown on PC and all
+say DDS for being shown on PC and all those compilation those transformation
+those compilation those transformation are done just in time when the inter
+are done just in time when the inter required and our site on disk as a
+required and our site on disk as a temporary file can be reused later
+temporary file can be reused later so the important per first instance here
+so the important per first instance here is the one in the middle because out of
+is the one in the middle because out of this prefers instance we can also
+this prefers instance we can also produce a package that can be run on the
+produce a package that can be run on the game run on console so to do so we are
+game run on console so to do so we are running our editor an extraction fast
+running our editor an extraction fast that is actually listing all the
+that is actually listing all the resources used by viven world and then
+resources used by viven world and then out of this Russell's list we can then
+out of this Russell's list we can then follow all the dependencies compiled all
+follow all the dependencies compiled all the assets that are referenced and then
+the assets that are referenced and then compress everything together and build a
+compress everything together and build a package that can be run on console this
+package that can be run on console this process actually the extraction process
+process actually the extraction process with the editor is quite long it can
+with the editor is quite long it can take between 5 and 15 minutes per spur
+take between 5 and 15 minutes per spur clear weather of the world but we are
+clear weather of the world but we are world that are ten kilometers per 10
+world that are ten kilometers per 10 kilometer so it can take a huge amount
+kilometer so it can take a huge amount of time to actually do this extraction
+of time to actually do this extraction pass for all for the entire world so
+pass for all for the entire world so what we do at night we are actually
+what we do at night we are actually distributing this work over a cluster of
+distributing this work over a cluster of DC so each of these pcs doing one
+DC so each of these pcs doing one extraction pass then we gather all those
+extraction pass then we gather all those results onto another machine do the
+results onto another machine do the compilation part following the
+compilation part following the dependencies compressing everything and
+dependencies compressing everything and then packaging everything to be run by
+then packaging everything to be run by the the game on console so this entire
+the the game on console so this entire process is knows is known at the
+process is knows is known at the binarization process and the
+binarization process and the binarization process is at the heart of
+binarization process is at the heart of the pipeline because it's what produces
+the pipeline because it's what produces the directional game for console so we
+the directional game for console so we want this process to be to be maintained
+want this process to be to be maintained in any time so we have some some tests
+in any time so we have some some tests to make sure it never breaks
+to make sure it never breaks so whenever programmer submits some
+so whenever programmer submits some source code we have a form of being the
+source code we have a form of being the machine that we read the change list and
+machine that we read the change list and compile the change list for all the
+compile the change list for all the platform and targets that we are we
+platform and targets that we are we support and if these compilation succeed
+support and if these compilation succeed we can send those binaries to a some
+we can send those binaries to a some machine that are going to perform some
+machine that are going to perform some tests and we're actually doing the
+tests and we're actually doing the binarization process not entirely
+binarization process not entirely dressed as per kilometer of the map just
+dressed as per kilometer of the map just make sure it doesn't break and we also
+make sure it doesn't break and we also have a few regression tests just to make
+have a few regression tests just to make sure the base some basic feature and a
+sure the base some basic feature and a broken so if we are look now at the
+broken so if we are look now at the timing we add at the end of Far Cry 3
+timing we add at the end of Far Cry 3 let's consider the example when you are
+let's consider the example when you are you have the code sync but you have not
+you have the code sync but you have not compiled anything so you want now to get
+compiled anything so you want now to get the latest code and run the editor let's
+the latest code and run the editor let's say so to get the latest code depending
+say so to get the latest code depending on the amount of code that has changed
+on the amount of code that has changed since you have last think it's somewhere
+since you have last think it's somewhere between zero and one minutes then you
+between zero and one minutes then you have to compile the entire editor a full
+have to compile the entire editor a full reveal at the editor at the end of Far
+reveal at the editor at the end of Far Cry 3 was about 40 minutes for the full
+Cry 3 was about 40 minutes for the full video then you have to get the latest
+video then you have to get the latest data data depending on the when you have
+data data depending on the when you have last syncs let's say it's between 0 & 5
+last syncs let's say it's between 0 & 5 minutes and then with that you can run
+minutes and then with that you can run editor as I mentioned before the editor
+editor as I mentioned before the editor is compiling just in time of the
+is compiling just in time of the required work zones to actually run so
+required work zones to actually run so the very first time you have to compile
+the very first time you have to compile a lot of lot of first receipt to just
+a lot of lot of first receipt to just run the editorial first time so the very
+run the editorial first time so the very first run could take up to 15 minutes
+and if you want to binarize locally you still have to do the extraction pass
+still have to do the extraction pass with the editors we have to pay these 15
+with the editors we have to pay these 15 minutes press all the compilation of the
+minutes press all the compilation of the compression and packaging everything
+compression and packaging everything together we're taking about 45 minutes
+together we're taking about 45 minutes to produce a local version on your local
+to produce a local version on your local PC if now if you want to run the game on
+PC if now if you want to run the game on console you have to get the code same
+console you have to get the code same thing then you have to compile it you
+thing then you have to compile it you don't have to compile all the tool in
+don't have to compile all the tool in that case it's just the game so it's
+that case it's just the game so it's less source code was taking about 25
+less source code was taking about 25 minutes then you have to copy the
+minutes then you have to copy the package from the network from the
+package from the network from the network when to get the net latest night
+network when to get the net latest night a bit nightly deal and then you can run
+a bit nightly deal and then you can run the game on console so as you see we had
+the game on console so as you see we had a pretty bad timing at the end of our
+a pretty bad timing at the end of our crisis so we add two to take action and
+crisis so we add two to take action and make sure we we solve this problem for
+make sure we we solve this problem for far cry 4 so I'm going to show you the
+far cry 4 so I'm going to show you the few stuff that we've done on far cry 4
+few stuff that we've done on far cry 4 the first one being the compilation time
+the first one being the compilation time how improve a compilation time the
+how improve a compilation time the second one are improved on lightly deals
+second one are improved on lightly deals just make sure you can produce that
+just make sure you can produce that ideal as fast as we can third one out we
+ideal as fast as we can third one out we can then deliver this that ideal to the
+can then deliver this that ideal to the team member and finally when you have
+team member and finally when you have this this bill how you can iterate
+this this bill how you can iterate locally on console to test your change
+locally on console to test your change you'll do like a change you have made on
+you'll do like a change you have made on your local PC so let's start with the
+your local PC so let's start with the compilation most of the improvement
+compilation most of the improvement we've got our thanks to a from IBM
+we've got our thanks to a from IBM system called fast bill and I get to the
+system called fast bill and I get to the feature of a deal and how it improve our
+feature of a deal and how it improve our compilation but let me start with a few
+compilation but let me start with a few the history actually how we get there so
+the history actually how we get there so I had told you or editor DLL targets
+I had told you or editor DLL targets which was online editor target was
+which was online editor target was taking up to 40 minute for full rebuild
+taking up to 40 minute for full rebuild that for the three point seven millions
+that for the three point seven millions line of code we also add at this time at
+line of code we also add at this time at the end of our query from unity or blob
+the end of our query from unity or blob build depending on how to call them so
+build depending on how to call them so it was lowering this this number to 20
+it was lowering this this number to 20 minutes to do the entire build but the
+minutes to do the entire build but the blood as some Direction problem because
+blood as some Direction problem because whenever you change a CPP file the
+whenever you change a CPP file the entire blood needs to be rebuild so you
+entire blood needs to be rebuild so you build a lot more code that you need
+build a lot more code that you need or some other system just reshuffling
+or some other system just reshuffling the blobs to extract the file you have
+the blobs to extract the file you have Chen and then you have to recompile the
+Chen and then you have to recompile the entire library so it's so so you have
+entire library so it's so so you have bad iteration time with blobs so many
+bad iteration time with blobs so many people were actually not using the blob
+people were actually not using the blob targets and we wouldn't prefer
+targets and we wouldn't prefer preferring the 40 minutes bill just to
+preferring the 40 minutes bill just to avoid detection time when everything is
+avoid detection time when everything is revealed but this time we had a new
+revealed but this time we had a new engine architect that joined the project
+engine architect that joined the project called the from taffy who is actually
+called the from taffy who is actually here today in front of that the pet
+here today in front of that the pet project at home was a build system and
+project at home was a build system and so we try this build system on the Far
+so we try this build system on the Far Cry 4 codebase and we had pretty good
+Cry 4 codebase and we had pretty good result everything was was really in good
+result everything was was really in good shape
+shape so after this early test since we're
+so after this early test since we're good news always ok all in let's try it
+good news always ok all in let's try it and use it on a project so fast builder
+and use it on a project so fast builder is actually improving a builder or build
+is actually improving a builder or build time for four main reasons actually the
+time for four main reasons actually the main features again present today the
+main features again present today the first one being a proper paralyzation so
+first one being a proper paralyzation so you properly use your local machine the
+you properly use your local machine the second one is caching so you can reuse
+second one is caching so you can reuse object files between user the third one
+object files between user the third one is actually a good implementation of the
+is actually a good implementation of the blogging of the unity unity build that
+blogging of the unity unity build that lets you have good iteration time and
+lets you have good iteration time and the last one is the distribution when
+the last one is the distribution when you can actually send some work another
+you can actually send some work another machine on some water machine so let's
+machine on some water machine so let's talk about the paralyzation consider the
+talk about the paralyzation consider the case when you are building several
+case when you are building several dependent DLL what's msbuild does
+dependent DLL what's msbuild does usually if you have properly set up your
+usually if you have properly set up your project is going to compile or your
+project is going to compile or your source file for the audio object file
+source file for the audio object file for the first project in parallel and
+for the first project in parallel and then it's going to link data together
+then it's going to link data together then it will start the dependent DLL
+then it will start the dependent DLL compiling
+compiling linking then another dependent DLL
+linking then another dependent DLL compiling linking all this dependency
+compiling linking all this dependency archly not necessary could start
+archly not necessary could start compiling any of this source file as
+compiling any of this source file as soon as you can the only real dependence
+soon as you can the only real dependence here are between the link steps so it's
+here are between the link steps so it's exactly what Fidel does it tries to
+exactly what Fidel does it tries to compile everything as soon as can and so
+compile everything as soon as can and so you actually better time for compiling
+you actually better time for compiling the entire stuff if you take the far cry
+with a medal that's what the kind of a results you get if you look at your
+results you get if you look at your process monitor with fast deal that the
+process monitor with fast deal that the kind of results you get so it's pretty
+kind of results you get so it's pretty fast and actually have a good
+fast and actually have a good realization of your PC but the parrot
+realization of your PC but the parrot session also have there is also some
+session also have there is also some problems with the paralyzation on static
+problems with the paralyzation on static leveraging within the mess bill as I
+leveraging within the mess bill as I told you if you correctly setup your
+told you if you correctly setup your project all the source file are going to
+project all the source file are going to be compiled in parallel so that's fine
+be compiled in parallel so that's fine but there is also another settings in
+but there is also another settings in the visual studio where you can set up
+the visual studio where you can set up the amount the number of project that
+the amount the number of project that can compile in parallel so if you set
+can compile in parallel so if you set for instance this number-23 resource to
+for instance this number-23 resource to you is going to start three libraries at
+you is going to start three libraries at the same time so you have all the start
+the same time so you have all the start that has sent at the exact at the exact
+that has sent at the exact at the exact same time so every since you have more
+same time so every since you have more tasks that I've been started that you
+tasks that I've been started that you have some available CPUs each task is
+have some available CPUs each task is going to take way longer than it should
+going to take way longer than it should so if I build is properly parallelism
+so if I build is properly parallelism that so actually it goes faster the main
+that so actually it goes faster the main reason for that is when you start too
+reason for that is when you start too many processes at the same time you have
+many processes at the same time you have excessive context switches and each
+excessive context switches and each process is thrashing the cache of other
+process is thrashing the cache of other processes being the code cache data
+processes being the code cache data cache or file system cache so every
+cache or file system cache so every tests going to take longer actually at
+tests going to take longer actually at the the the opportunity to test or build
+the the the opportunity to test or build with a 32 core machine and we will to do
+with a 32 core machine and we will to do what our PD spawning more than a
+what our PD spawning more than a thousand process which is completely
+thousand process which is completely ridiculous in the contrary as bill does
+ridiculous in the contrary as bill does what you expect and zoom properly the
+what you expect and zoom properly the task and start a new task when the core
+task and start a new task when the core becomes available so web info
+becomes available so web info utilization so what's next we want to
+utilization so what's next we want to eliminate redundant compilation and sees
+eliminate redundant compilation and sees where the caching elves the idea behind
+where the caching elves the idea behind the caching is you're going to share the
+the caching is you're going to share the Nabeel wizard build results between user
+Nabeel wizard build results between user so whenever you compile a library dll
+so whenever you compile a library dll whatever you're going to store all the
+whatever you're going to store all the object file on a central cache and then
+object file on a central cache and then link them together in fan another user
+link them together in fan another user is compiling the same source code it's
+is compiling the same source code it's going to retrieve of the results
+going to retrieve of the results directly from the cache so we don't have
+directly from the cache so we don't have to compile it locally and then link them
+to compile it locally and then link them together
+so if we take and you have some wind if you take her the the the example we had
+you take her the the the example we had before ms deal the building firefight
+before ms deal the building firefight for a editor and now building with fast
+for a editor and now building with fast deal and the cash that the kind of
+deal and the cash that the kind of results you get but the third point lead
+results you get but the third point lead the blogging for those of you blobbing a
+the blogging for those of you blobbing a unity builded most name are used in the
+unity builded most name are used in the industry for those of you who don't know
+industry for those of you who don't know this ID BN blobs just to include all the
+this ID BN blobs just to include all the CPP files offshore project into a blob
+CPP files offshore project into a blob files switch reduced whether compilation
+files switch reduced whether compilation so the idea here you put all the file
+so the idea here you put all the file together into a CPP and building the CPP
+together into a CPP and building the CPP is actually faster than the sum of each
+is actually faster than the sum of each individual or build together so you have
+individual or build together so you have which winner out of this and really a
+which winner out of this and really a speed up your bills the problems comes
+speed up your bills the problems comes when you want to iterate on that because
+when you want to iterate on that because whenever you change a file the entire
+whenever you change a file the entire blobs net then needs to be rebuilt so
+blobs net then needs to be rebuilt so what if a bill will do then it will
+what if a bill will do then it will extract the modified files while
+extract the modified files while maintaining all the blobs table and then
+maintaining all the blobs table and then you can iterate on your file without
+you can iterate on your file without paying for rebuilding all the other
+paying for rebuilding all the other blobs every time so we get good
+blobs every time so we get good iteration time but still benefiting from
+iteration time but still benefiting from the blogging and the speedy improvement
+the blogging and the speedy improvement it it brings and finally the
+it it brings and finally the distribution the idea behind the
+distribution the idea behind the distribution is to separate the deal of
+distribution is to separate the deal of an object file into two steps the first
+an object file into two steps the first one being the pre-processing
+one being the pre-processing and then the compilation of the process
+and then the compilation of the process file then when you have a process file
+file then when you have a process file that is holding students has been
+that is holding students has been resolved everything has been included
+resolved everything has been included you can send this purpose as file to
+you can send this purpose as file to some worker on another machine that will
+some worker on another machine that will do the computation for you so you don't
+do the computation for you so you don't have to do it locally and for should
+have to do it locally and for should give you it helps you have a better deal
+give you it helps you have a better deal time there are the other few feature
+time there are the other few feature that worth mentioning one is being the
+that worth mentioning one is being the link dependencies usually when you
+link dependencies usually when you change a CPP with a mess deal in the
+change a CPP with a mess deal in the different
+different we're going to recompile your CPP than
+we're going to recompile your CPP than reading the DLL but also going to
+reading the DLL but also going to reading all the dependent DLL even if
+reading all the dependent DLL even if you haven't change your API your export
+you haven't change your API your export table the DLL DLL as an change so it
+table the DLL DLL as an change so it doesn't require actually to reveal all
+doesn't require actually to reveal all the DLL dependent yellow and fast bill
+the DLL dependent yellow and fast bill actually is doing that if you don't
+actually is doing that if you don't change the API you won't be reading King
+change the API you won't be reading King the entire chain of dependencies with
+the entire chain of dependencies with just reading your the DLL in which you
+just reading your the DLL in which you have change the CPP another feature that
+have change the CPP another feature that worth mentioning is the batching you can
+worth mentioning is the batching you can send thermal targets on the same common
+send thermal targets on the same common line which in return instead of doing
+line which in return instead of doing each targets one after each other all
+each targets one after each other all the targets will be done at the same
+the targets will be done at the same time so you have better paralyzation and
+time so you have better paralyzation and better utilization of U P heat for doing
+better utilization of U P heat for doing all the computation at the same time and
+all the computation at the same time and this is pretty useful for the B machines
+this is pretty useful for the B machines when you just emitter changes testing
+when you just emitter changes testing several targets at the same time it's
+several targets at the same time it's actually speed up shop in machines they
+actually speed up shop in machines they also if you want to do some crystal new
+also if you want to do some crystal new check you can build a lot of target at
+check you can build a lot of target at the same time making sure you're not
+the same time making sure you're not you're not going to break the deal
+you're not going to break the deal before submitting it so if we look at
+before submitting it so if we look at the real-life timing we got out of that
+the real-life timing we got out of that so I told you or main target was 40
+so I told you or main target was 40 minutes we had the blob one I was taking
+minutes we had the blob one I was taking about 20 minutes we did try some project
+about 20 minutes we did try some project commercial products such as incredible
+commercial products such as incredible was greenie actually some some
+was greenie actually some some improvements were able to build or
+improvements were able to build or rebuild worker based in 12 minutes the
+rebuild worker based in 12 minutes the premium is incredible that was bought
+premium is incredible that was bought with 10 machine if I remember correctly
+with 10 machine if I remember correctly for this member the pram is incredible
+for this member the pram is incredible Easter for the same dependency problem
+Easter for the same dependency problem SMS bill that means you won't start a
+SMS bill that means you won't start a project until the previous project is
+project until the previous project is done so you just waiting for stuff when
+done so you just waiting for stuff when you don't really actually don't need to
+you don't really actually don't need to wait so in the contrary a fast deal just
+wait so in the contrary a fast deal just on the local PC gives us a 10 minute for
+on the local PC gives us a 10 minute for video if you put on top of that the
+video if you put on top of that the caching and the distribution were able
+caching and the distribution were able to deal auditor in four minutes so
+to deal auditor in four minutes so that's 40 minutes to 4 minutes and still
+that's 40 minutes to 4 minutes and still the game as the less code actually were
+the game as the less code actually were able to rebuild our PC release target in
+able to rebuild our PC release target in less than a minute 58 seconds to be
+less than a minute 58 seconds to be exact
+exact I said I'm talking about compilation I
+I said I'm talking about compilation I just want to mention a few words about I
+just want to mention a few words about I didn't continue we were using I didn't
+didn't continue we were using I didn't continue on far for three but at the end
+continue on far for three but at the end of the project with the amount of code
+of the project with the amount of code we added it was just getting too slow so
+we added it was just getting too slow so it was not really usable whenever you
+it was not really usable whenever you did a channel it took several minutes to
+did a channel it took several minutes to actually get inside the the exact table
+actually get inside the the exact table so you can actually continue educating
+so you can actually continue educating your your run
+your your run Plus Microsoft is dropping actually they
+Plus Microsoft is dropping actually they are dropping this report I think Visual
+are dropping this report I think Visual Studio 2012 anyway they're dropping
+Studio 2012 anyway they're dropping those reports so we could not use it
+those reports so we could not use it even continue anymore so instead what we
+even continue anymore so instead what we are using is a reloadable DLL I won't
+are using is a reloadable DLL I won't get into the detail of that could be an
+get into the detail of that could be an entire talk about that but the basic
+entire talk about that but the basic idea are you can shine some code into a
+idea are you can shine some code into a DLL and this DLL can be loaded and
+DLL and this DLL can be loaded and unloaded dynamically so you can have
+unloaded dynamically so you can have your editor running another DLL make
+your editor running another DLL make some change in the code reload the DLL
+some change in the code reload the DLL and
+and debug and test your code right away so
+debug and test your code right away so we're using a lot of those master for AI
+we're using a lot of those master for AI and gameplay code actually in a little
+and gameplay code actually in a little devil Jelena we're also using
+devil Jelena we're also using incremental linking but not everywhere
+incremental linking but not everywhere actually it was really a test and see
+actually it was really a test and see approach we are activating incremental
+approach we are activating incremental linking on some projects it gives some
+linking on some projects it gives some some win action on some project on some
+some win action on some project on some order is actually not helping at all so
+order is actually not helping at all so it's just whenever it helps reusing it
+it's just whenever it helps reusing it for it doesn't if we don't use it so now
+for it doesn't if we don't use it so now that we can build the exact table fastly
+that we can build the exact table fastly once also to build the data build as
+once also to build the data build as quick as we can
+quick as we can if we look at the number we had at the
+if we look at the number we had at the end of our three we were generating or
+end of our three we were generating or world for the three platform we're
+world for the three platform we're shipping on in six hours
+shipping on in six hours but that's for all the official Maps
+but that's for all the official Maps plus test margin maps for all the users
+plus test margin maps for all the users so that's roughly six hours to build
+so that's roughly six hours to build something about 4:45 walls on fire I
+something about 4:45 walls on fire I fully managed to get this number down to
+fully managed to get this number down to 1.5 hour but that's for five platforms
+1.5 hour but that's for five platforms were two more platforms
+were two more platforms that's roughly forest
+that's roughly forest 95 world so we got a great winner on far
+95 world so we got a great winner on far cry 4 the main reason for that for that
+cry 4 the main reason for that for that is the first one in the profiling but
+is the first one in the profiling but that's not regular profiling I get into
+that's not regular profiling I get into that on the next slide and the second
+that on the next slide and the second one is worth most cash in trying to
+one is worth most cash in trying to share the results between user so the
+share the results between user so the profiling I'm not talking about regular
+profiling I'm not talking about regular profiling here and I told you in the
+profiling here and I told you in the beginning we are sending some tasks on
+beginning we are sending some tasks on some remote machine to do all the the
+some remote machine to do all the the extraction pass when we're building a
+extraction pass when we're building a package we also using some processes
+package we also using some processes elation for the vs. compilation and it's
+elation for the vs. compilation and it's whenever we combine our sauce we send
+whenever we combine our sauce we send that actually to another process just to
+that actually to another process just to make sure it's completely isolated it
+make sure it's completely isolated it has its own memory don't have Mickeys
+has its own memory don't have Mickeys reading issue we don't have memory issue
+reading issue we don't have memory issue so that's a wave actually or pipeline
+so that's a wave actually or pipeline work every single resource is built in
+work every single resource is built in process isolation the problem is that
+process isolation the problem is that with that is it's really hard to
+with that is it's really hard to actually understand what's going on
+actually understand what's going on because there is some interaction
+because there is some interaction between different machine different
+between different machine different processes you don't have a clear picture
+processes you don't have a clear picture with a that usually have when you have a
+with a that usually have when you have a single process movie with multi thread
+single process movie with multi thread or we can just put some profile points
+or we can just put some profile points in your code and just profile this stuff
+in your code and just profile this stuff you cannot do that actually with that
+you cannot do that actually with that kind of setup so the real problem is you
+kind of setup so the real problem is you don't see the interactions you don't see
+don't see the interactions you don't see how those processes are actually
+how those processes are actually interacting with each other and you
+interacting with each other and you don't have the big picture of what's
+don't have the big picture of what's going on so that's where the remote
+going on so that's where the remote profiling is actually helping us and I
+profiling is actually helping us and I spend what it is so let's consider the
+spend what it is so let's consider the case when you are running a process on a
+case when you are running a process on a given machine if you want to profile
+given machine if you want to profile this process you really what you do is
+this process you really what you do is to add some profile points in your code
+to add some profile points in your code you instrument your code and then this
+you instrument your code and then this code is actually generating some
+code is actually generating some profiling data in you that you save in a
+profiling data in you that you save in a buffer into RAM at some point you can
+buffer into RAM at some point you can dump this buffer onto these can analyze
+dump this buffer onto these can analyze the results with the profiling tool
+the results with the profiling tool that's pretty regular profiling here so
+that's pretty regular profiling here so when you have a subprocesses how do you
+when you have a subprocesses how do you do that the idea here is just simply to
+do that the idea here is just simply to open a socket on your main process and
+open a socket on your main process and of all your sub processes report the
+of all your sub processes report the profiling data jerkey on that circuit
+profiling data jerkey on that circuit and then you just save this information
+and then you just save this information into the same regular buffer
+into the same regular buffer that you have in your main process and
+that you have in your main process and then you can dub the result on disk and
+then you can dub the result on disk and analyze them so it's good with this
+analyze them so it's good with this approach is at the end you just have a
+approach is at the end you just have a profile dump which is exactly the same I
+profile dump which is exactly the same I used to to have so you can actually
+used to to have so you can actually analyze your your run with step
+analyze your your run with step processes with your regular tool and you
+processes with your regular tool and you just see the sub processes as being sub
+just see the sub processes as being sub thread it's just show a thread in your
+thread it's just show a thread in your in your profiling tool that's pretty
+in your profiling tool that's pretty cool because then you can see exactly
+cool because then you can see exactly what our interaction when you send a
+what our interaction when you send a command when it's actually processed by
+command when it's actually processed by the sir process when you read spam what
+the sir process when you read spam what is that is doing just a single single
+is that is doing just a single single view you have all the information when
+view you have all the information when you get that actually now you can start
+you get that actually now you can start to understand what's going on you can
+to understand what's going on you can start to fix and we found tons of
+start to fix and we found tons of problem using that some stuff that are
+problem using that some stuff that are repeated into each process is some
+repeated into each process is some useless step after I've done the same
+useless step after I've done the same point in the scheduling or actually
+point in the scheduling or actually badly badly implemented but a lot of
+badly badly implemented but a lot of inefficiency in there so we saw all
+inefficiency in there so we saw all those problems we're then able to fix
+those problems we're then able to fix them and one of actually we got that
+them and one of actually we got that we're able to have that kind of CP unity
+we're able to have that kind of CP unity zation when you're actually compiling a
+zation when you're actually compiling a lot of courses at the same time when you
+lot of courses at the same time when you see here my 12 core PC hard at work
+see here my 12 core PC hard at work actually compiling texture in this case
+actually compiling texture in this case so when you get to that kind of results
+so when you get to that kind of results you said now that the next step is
+you said now that the next step is actually try trying to do a less work
+actually try trying to do a less work would actually improve my deal time and
+would actually improve my deal time and this is where the root caching helps the
+this is where the root caching helps the idea is pretty simple behind the horse
+idea is pretty simple behind the horse was caching is whenever you are actually
+was caching is whenever you are actually generating some some compiling some
+generating some some compiling some asset for a given platform going to
+asset for a given platform going to store all those assets onto a central
+store all those assets onto a central cache then when another user required I
+cache then when another user required I said you can find it so let's consider
+said you can find it so let's consider this example you want to use a texture
+this example you want to use a texture you are going to ask the central cash do
+you are going to ask the central cash do you already have the results the
+you already have the results the compiled asset for this texture he
+compiled asset for this texture he doesn't you just compile it locally and
+doesn't you just compile it locally and then store it into the cache and provide
+then store it into the cache and provide the results to the weather raster for
+the results to the weather raster for for the texture but you've another user
+for the texture but you've another user doing the same
+doing the same call would be actually able to retrieve
+call would be actually able to retrieve the results directly from the cache so
+the results directly from the cache so the caching helps to assure the results
+the caching helps to assure the results between user we are populating the cache
+between user we are populating the cache it's not every user died have pushing
+it's not every user died have pushing stuff into the cache
+stuff into the cache actually the B machines at night that
+actually the B machines at night that are fulfilling the cache we are sure on
+are fulfilling the cache we are sure on the casual ways that have official
+the casual ways that have official assets produced by natural an official
+assets produced by natural an official bills we don't have a intermediate asset
+bills we don't have a intermediate asset that could have been compiled by someone
+that could have been compiled by someone working on the compiler or during the
+working on the compiler or during the day for instance and actually what's
+day for instance and actually what's pretty cool with that as I told you our
+pretty cool with that as I told you our editor is JIT compiling the resources
+editor is JIT compiling the resources whenever it requires it
+whenever it requires it so now I can the editor can use the
+so now I can the editor can use the cache as well so actually we have some
+cache as well so actually we have some benefits here because the editor can
+benefits here because the editor can load really faster because it directly
+load really faster because it directly get the results out of the cache instead
+get the results out of the cache instead of compiling a staff locating so what we
+of compiling a staff locating so what we can say about how Knightley's there is
+can say about how Knightley's there is not a lot of information in this section
+not a lot of information in this section but what was there it was a complex
+but what was there it was a complex system so the key was really
+system so the key was really understanding what's going on and here
+understanding what's going on and here the remote profiling was with help and a
+the remote profiling was with help and a grid tool to actually see what was going
+grid tool to actually see what was going on in the process and the different
+on in the process and the different processes interacting to this entire
+processes interacting to this entire operation and also the big win was
+operation and also the big win was actually from the preventing doing
+actually from the preventing doing useless work thanks to the cache but I
+useless work thanks to the cache but I have to raise a big warning here having
+have to raise a big warning here having a rustles cache requires some really
+a rustles cache requires some really good Hardware behind because if you are
+good Hardware behind because if you are if you have some bad on we're on were on
+if you have some bad on we're on were on which you put your cache and you have a
+which you put your cache and you have a lot of user actually eating the cache at
+lot of user actually eating the cache at the same time but you can get to the
+the same time but you can get to the situation or actually retrieving
+situation or actually retrieving something from the cache is longer than
+something from the cache is longer than compiling it located so you have to a
+compiling it located so you have to a good balance to what you put on the
+good balance to what you put on the cache and when you compile the caddy
+cache and when you compile the caddy because you don't want to actually make
+because you don't want to actually make sure be longer by getting stuff out of
+sure be longer by getting stuff out of the cache when it's actually faster to
+the cache when it's actually faster to just compile if your caddy so I'll get
+just compile if your caddy so I'll get to that later what kind of hardware
+to that later what kind of hardware we're using for a cache but it's really
+we're using for a cache but it's really a crucial point with better hardware or
+a crucial point with better hardware or something that cannot deliver you the
+something that cannot deliver you the cache is actually useless we want
+cache is actually useless we want actually to continue from our own
+actually to continue from our own nightly deal
+nightly deal what we want to do the first the extent
+what we want to do the first the extent to do it just get rid of the editor
+to do it just get rid of the editor because running the editor at Ole Miss
+because running the editor at Ole Miss is kind of very long and so we'd like to
+is kind of very long and so we'd like to get rid of that and the main reason also
+get rid of that and the main reason also for that is this is right not the only
+for that is this is right not the only step in the building which is not
+step in the building which is not incremental and also I like Ritu and
+incremental and also I like Ritu and fascist and that's I think an
+fascist and that's I think an incremental build that ideally is the
+incremental build that ideally is the best thing you can do to have a fast
+best thing you can do to have a fast that ideal what you want to do is just
+that ideal what you want to do is just redo that share and not redo all the
+redo that share and not redo all the stuff all the time and that's really
+stuff all the time and that's really actually with the more more important
+actually with the more more important stuff to have a fast that ideal is being
+stuff to have a fast that ideal is being totally incremental for the beginning to
+totally incremental for the beginning to the end so now we have a way to create
+the end so now we have a way to create exact table quickly what a way to create
+exact table quickly what a way to create that ideals quickly we want a way to
+that ideals quickly we want a way to deliver those build as quickly as we can
+deliver those build as quickly as we can to the end user before getting to the
+to the end user before getting to the detail of that let me pull what happens
+detail of that let me pull what happens in the 2012 server we're shipping Far
+in the 2012 server we're shipping Far Cry 3 at this time we shipped it at the
+Cry 3 at this time we shipped it at the end of 2012 we're actually in the CEO
+end of 2012 we're actually in the CEO were shipping another big triple a game
+were shipping another big triple a game Assassin's Creed 3 so we had actually
+Assassin's Creed 3 so we had actually two major triple-a game shipping from
+two major triple-a game shipping from the same studio and at some point on the
+the same studio and at some point on the network you just could not handle it any
+network you just could not handle it any more having thousands of user just
+more having thousands of user just eating the network all the day and was
+eating the network all the day and was completely done and we could not work
+completely done and we could not work anymore if you look at this graph
+anymore if you look at this graph actually for network usage during this
+actually for network usage during this period we had double of the invitation
+period we had double of the invitation in the 2012 summer compared to the
+in the 2012 summer compared to the regular really cycle that we have in
+regular really cycle that we have in this video so the network was completely
+this video so the network was completely down so we had to actually take action
+down so we had to actually take action on that
+on that and we decided as a studio to take
+and we decided as a studio to take action on the software side in the
+action on the software side in the projectors make sure we eat less the
+projectors make sure we eat less the network but also on the studio side
+network but also on the studio side making sure that we have the proper
+making sure that we have the proper [Music]
+[Music] hardware to actually involved that kind
+hardware to actually involved that kind of flowed and this is what we done with
+of flowed and this is what we done with the assets are going to freeze and both
+the assets are going to freeze and both of the solution for the first one are
+of the solution for the first one are thinking package we did that with a tool
+thinking package we did that with a tool that we call RT pal for the runtime
+that we call RT pal for the runtime friend
+friend but before meeting what exactly artifact
+but before meeting what exactly artifact is let me get back to the end of 2012
+is let me get back to the end of 2012 when they're shipping far cry 3 and
+when they're shipping far cry 3 and we're actually submitting or bill that
+we're actually submitting or bill that were to steam and to do that or PC bill
+were to steam and to do that or PC bill the Sistema were using a technology
+the Sistema were using a technology provided by steam called steam pipe the
+provided by steam called steam pipe the idea behind steam steam pipe is to do
+idea behind steam steam pipe is to do differential uploads so it's going to
+differential uploads so it's going to slice your iso into parts and then you
+slice your iso into parts and then you just send the part as a change between
+just send the part as a change between two bills and this is giving great great
+two bills and this is giving great great saving actually up to 50% of our
+saving actually up to 50% of our builders could save up to 50% of the
+builders could save up to 50% of the uploads for for each bill so that's
+uploads for for each bill so that's pretty good and we want to leverage on
+pretty good and we want to leverage on that and try to actually apply that kind
+that and try to actually apply that kind of ideas for tor pipeline but we have a
+of ideas for tor pipeline but we have a great advantage over steam we actually
+great advantage over steam we actually know our data we know that for producing
+know our data we know that for producing big files we know where are the file
+big files we know where are the file boundaries within those big files we
+boundaries within those big files we also know that we have redundancy within
+also know that we have redundancy within our packages because we are actually
+our packages because we are actually distributing some official bills
+distributing some official bills alongside some tests bill that are
+alongside some tests bill that are actually using the same assets so the
+actually using the same assets so the same assets are actually appearing at
+same assets are actually appearing at several place into the same package we
+several place into the same package we also can ask her the question what's the
+also can ask her the question what's the real amount of new data that we're
+real amount of new data that we're actually generating every day out of a
+actually generating every day out of a 20 gigabyte package and the response to
+20 gigabyte package and the response to this question will just filter at our
+this question will just filter at our data and what we get out of that is
+data and what we get out of that is actually textures are clearly the main
+actually textures are clearly the main or sources of a package it's using a to
+or sources of a package it's using a to 80% of the actual storage of the package
+80% of the actual storage of the package and if you look closely of how much
+and if you look closely of how much texture chain on project you can see
+texture chain on project you can see that most of the texture actually three
+that most of the texture actually three revisions at most if you look at the
+revisions at most if you look at the screenshot for instance of the end of
+screenshot for instance of the end of the project you can see that several
+the project you can see that several texture actually have never chain ever
+texture actually have never chain ever the course of the project but still we
+the course of the project but still we are distributing this dues texture every
+are distributing this dues texture every time for every bill which is completely
+time for every bill which is completely insane so then the solution is pretty
+insane so then the solution is pretty easy we want to slice for package into
+easy we want to slice for package into part and just distribute what has
+part and just distribute what has changed between projects ready here
+changed between projects ready here doing to slice or define two parts ash
+doing to slice or define two parts ash all
+all those parts using our shame algorithm in
+those parts using our shame algorithm in da case we're using the md5 algorithm
+da case we're using the md5 algorithm and then produce a manifest file would
+and then produce a manifest file would describe the slicing the file that took
+describe the slicing the file that took something like that when you can see
+something like that when you can see here that I have a big file and here you
+here that I have a big file and here you see actually all the the parts of a
+see actually all the the parts of a constituent is big file so now when you
+constituent is big file so now when you want to get a package you just retrieve
+want to get a package you just retrieve the manifest you look at all the parts
+the manifest you look at all the parts that are referenced within this manifest
+that are referenced within this manifest get all those parts then you get some
+get all those parts then you get some kind of link process that put all those
+kind of link process that put all those parts together and you can rebuild your
+parts together and you can rebuild your package that's pretty cool
+package that's pretty cool but what's cool is when you want to get
+but what's cool is when you want to get another package and the second version
+another package and the second version of the package so we're going to compare
+of the package so we're going to compare the manifest and then you'll see that
+the manifest and then you'll see that just a few parts actually change between
+just a few parts actually change between the two packages so if you want to
+the two packages so if you want to actually get the version two
+actually get the version two what you need to do is just download the
+what you need to do is just download the part that I've change and then you have
+part that I've change and then you have every single Acadie available to
+every single Acadie available to actually rebuild your package and have
+actually rebuild your package and have it on your disk so you just downloaded
+it on your disk so you just downloaded just what I've changed between the
+just what I've changed between the package so it's pretty a light download
+package so it's pretty a light download so the result we get out of that for
+so the result we get out of that for actually a mind-blowing you have 95 95 %
+actually a mind-blowing you have 95 95 % of a package that actually doesn't
+of a package that actually doesn't change at all during two version that
+change at all during two version that means you just need to get one gigabyte
+means you just need to get one gigabyte out of a 22 gigabyte package to get the
+out of a 22 gigabyte package to get the new version and actually a nice
+new version and actually a nice corollary of that is since we have
+corollary of that is since we have written a series about package just
+written a series about package just downloading one package is actually
+downloading one package is actually faster we had up to 40% shrink on the
+faster we had up to 40% shrink on the same package because one part could be
+same package because one part could be referenced several times within the
+referenced several times within the package we just have to download each
+package we just have to download each one once and then we deal everything
+one once and then we deal everything another cool stuff about that is since
+another cool stuff about that is since the package is now smaller to keep we
+the package is now smaller to keep we can keep more of those and actually we
+can keep more of those and actually we could keep up to a year of package
+could keep up to a year of package history and depending of the amount of
+history and depending of the amount of storage you can you can afford to keep
+storage you can you can afford to keep some packages you can actually keep the
+some packages you can actually keep the entire prediction if you had enough
+entire prediction if you had enough enough storage for that so for instance
+enough storage for that so for instance on the ferry we are able to keep a few
+on the ferry we are able to keep a few weeks worth of packages plus a few major
+weeks worth of packages plus a few major milestones on far cry 4 at the end of
+milestones on far cry 4 at the end of your project we had more than
+your project we had more than thousand manifest available to just what
+thousand manifest available to just what just the last last year of worth of
+just the last last year of worth of packages that were just here ready to be
+packages that were just here ready to be used
+used so all those numbers are pretty cool but
+so all those numbers are pretty cool but we can actually do better than that and
+we can actually do better than that and the main reason for that is if you look
+the main reason for that is if you look at the regular world floor for
+at the regular world floor for programmers or people working on the
+programmers or people working on the team they're not actually not getting
+team they're not actually not getting the entire package on playing the real
+the entire package on playing the real game all the time they usually run some
+game all the time they usually run some test map or some environment that looks
+test map or some environment that looks like that pretty empty you have nothing
+like that pretty empty you have nothing that means most of the user actually
+that means most of the user actually touching something like 20% of the data
+touching something like 20% of the data was in the package so touching 20% out
+was in the package so touching 20% out of the 5 person that sheen change
+of the 5 person that sheen change between one package that means that the
+between one package that means that the regular dude on the on the floor just
+regular dude on the on the floor just need to get 1% of their actual data that
+need to get 1% of their actual data that has changed between packages so we went
+has changed between packages so we went to leverage on that also
+to leverage on that also if you we still have to go through this
+if you we still have to go through this link process which is still 20 gigabyte
+link process which is still 20 gigabyte to write on this so it can take some
+to write on this so it can take some time and then also you have to deploy
+time and then also you have to deploy this bill on tour your your kit for
+this bill on tour your your kit for instance if you're working on console
+instance if you're working on console it's still on so long times we want to
+it's still on so long times we want to get rid of that so the idea here to
+get rid of that so the idea here to solve this problem is to deliver the
+solve this problem is to deliver the bill on demand the idea is to stream all
+bill on demand the idea is to stream all the parts on demand when the game
+the parts on demand when the game requires it and if you think about it
+requires it and if you think about it it's really not a problem we're making
+it's really not a problem we're making an open-world game which actually
+an open-world game which actually already stream the content in background
+already stream the content in background a synchronously so we already have in
+a synchronously so we already have in the game all the required element and
+the game all the required element and code to actually deal with the data
+code to actually deal with the data arriving a synchronously and also if you
+arriving a synchronously and also if you look more closely to the numbers on
+look more closely to the numbers on network is actually faster than the
+network is actually faster than the heart value finding the kids you read
+heart value finding the kids you read are pretty bad hard drive and on network
+are pretty bad hard drive and on network you just go faster than the hard drive
+you just go faster than the hard drive so the idea here is to virtualize the
+so the idea here is to virtualize the filesystem GID whenever we virtualized
+filesystem GID whenever we virtualized the filesystem we can then have several
+the filesystem we can then have several implementation of that one could be just
+implementation of that one could be just accessing the regular disk but you can
+accessing the regular disk but you can another implementation which is actually
+another implementation which is actually virtual I
+virtual I the manifest content so for the game we
+the manifest content so for the game we just show a file tree that is described
+just show a file tree that is described by the manifest so the game doesn't see
+by the manifest so the game doesn't see anything but that the implementation of
+anything but that the implementation of the fact system that actually
+the fact system that actually virtualizing this content so that also
+virtualizing this content so that also means that the manifest file system
+means that the manifest file system needs to retrieve some parts in some way
+needs to retrieve some parts in some way and this is where actually the file
+and this is where actually the file system stack solve this problem that I'm
+system stack solve this problem that I'm going to go through an example here to
+going to go through an example here to show you what I mean
+show you what I mean let's consider the case where running
+let's consider the case where running the game on ps4 and we have the regular
+the game on ps4 and we have the regular file system this file system so whenever
+file system this file system so whenever the game refer our source let's say
+the game refer our source let's say texture it's going to ask the file
+texture it's going to ask the file system in the file system in return
+system in the file system in return provide the file so now that we have a
+provide the file so now that we have a virtualized of file system we can
+virtualized of file system we can actually have another implementation
+actually have another implementation that can be for instance network file
+that can be for instance network file system and you have a companion app on
+system and you have a companion app on your PC so that means whenever the game
+your PC so that means whenever the game require some kind of force source this
+require some kind of force source this request can be forwarded to your PC and
+request can be forwarded to your PC and the companion app on a PC just provide
+the companion app on a PC just provide the file and in return you can provide
+the file and in return you can provide this file to the game so now consider
+this file to the game so now consider the case when you have your manifest
+the case when you have your manifest file system so whenever the game require
+file system so whenever the game require some more resources the manifest file
+some more resources the manifest file system is going to troduce this request
+system is going to troduce this request into a part request and yes true for
+into a part request and yes true for this part request to another file system
+this part request to another file system and this is where we have the file
+and this is where we have the file system stack so we can forward this
+system stack so we can forward this final request to the network ID step for
+final request to the network ID step for instance the file system can forward it
+instance the file system can forward it to your PC then your PC can do whatever
+to your PC then your PC can do whatever you want with that so we can have let's
+you want with that so we can have let's a central part server on the network
+a central part server on the network shop between all the users so we can get
+shop between all the users so we can get the part out of the server and can
+the part out of the server and can provide these parts to the network file
+provide these parts to the network file system which give it back to the
+system which give it back to the manifest file system and then we can
+manifest file system and then we can provide the file to the game what's cool
+provide the file to the game what's cool with this setup now I can put in the
+with this setup now I can put in the middle for instance cache file system is
+middle for instance cache file system is going to store look at all the parts we
+going to store look at all the parts we don't have to go through all the network
+don't have to go through all the network a pipeline to get it back so whenever
+a pipeline to get it back so whenever you request your file
+you request your file becomes a park request and you can get
+becomes a park request and you can get the parts directly out of the cache file
+the parts directly out of the cache file system and provide it to the game so I
+system and provide it to the game so I guess at this point you get the idea
+guess at this point you get the idea behind the the file system cache so also
+behind the the file system cache so also what you see here we have a companion
+what you see here we have a companion app running on the PC and this is what
+app running on the PC and this is what actually is RT pal so Archie pal the
+actually is RT pal so Archie pal the companion app we have on the PC train
+companion app we have on the PC train his own PI system stack and actually
+his own PI system stack and actually provide us several features the main one
+provide us several features the main one being rich reading the manifest out of
+being rich reading the manifest out of the manifest server just a network
+the manifest server just a network folder with all the manifest and we're
+folder with all the manifest and we're treating the part on demand so whenever
+treating the part on demand so whenever the game ask for part I'm going to get
+the game ask for part I'm going to get the part of the network save it locally
+the part of the network save it locally using cache file system and providing it
+using cache file system and providing it to the game so we don't have to go
+to the game so we don't have to go through the cache to the the part server
+through the cache to the the part server all the time another cool feature can
+all the time another cool feature can see here is actually I said that the
+see here is actually I said that the game was running on ps4 but we just
+game was running on ps4 but we just don't care it could be on a PC 360 xbox
+don't care it could be on a PC 360 xbox one or whatever it would be exactly the
+one or whatever it would be exactly the same so also what our chapatis providing
+same so also what our chapatis providing us is a way to unify the workflow for
+us is a way to unify the workflow for all the platforms you just work exactly
+all the platforms you just work exactly the same way the ID you just put on your
+the same way the ID you just put on your game a common line thing I want to run
+game a common line thing I want to run this version using RT pal which is
+this version using RT pal which is running on this PC and then the game
+running on this PC and then the game connect for Japan and you're good to go
+connect for Japan and you're good to go so our chip I'll actually I put some
+so our chip I'll actually I put some screenshot here it looks like that and
+screenshot here it looks like that and here I'm going to show you some pretty
+here I'm going to show you some pretty good stuff I'm going to synchronize a
+good stuff I'm going to synchronize a version alive in the video so to think
+version alive in the video so to think reversion you just hit this button
+reversion you just hit this button I just think five version in one click
+I just think five version in one click so now I'm able to actually run this
+so now I'm able to actually run this version if I want to change her the
+version if I want to change her the version that I want to run over the
+version that I want to run over the yesterday version just opened his
+yesterday version just opened his rubdown BAM I just think yesterday
+rubdown BAM I just think yesterday version that's that simple another video
+version that's that simple another video I want to show you is actually doing
+I want to show you is actually doing something completely useless I'm going
+something completely useless I'm going to actually download a deal but doing so
+to actually download a deal but doing so and just click this download button so
+and just click this download button so it's starting to retrieve some some
+it's starting to retrieve some some parts out of the part server but what
+parts out of the part server but what you see here by getting the parts out of
+you see here by getting the parts out of one magnified
+one magnified I'm actually getting this part on disk
+I'm actually getting this part on disk and since this part are shared between
+and since this part are shared between several bills you see all the bills
+several bills you see all the bills progressing at the same time this is the
+progressing at the same time this is the sharing in action that's pretty cool you
+sharing in action that's pretty cool you see actually the share in action with
+see actually the share in action with that kind of downloads so RT pal is
+that kind of downloads so RT pal is providing us transfer and storage
+providing us transfer and storage rejection thanks to the slicing and the
+rejection thanks to the slicing and the parts it provides us also unified
+parts it provides us also unified workflow we can just work exactly the
+workflow we can just work exactly the same way on all platforms it provides
+same way on all platforms it provides instant package synchronization in just
+instant package synchronization in just one click and one cans actually RT pal
+one click and one cans actually RT pal is reinventing package distribution by
+is reinventing package distribution by just getting rid of package distribution
+just getting rid of package distribution that's pretty cool actually the working
+that's pretty cool actually the working with that is just a breeze you just put
+with that is just a breeze you just put a command line run your game and you're
+a command line run your game and you're good to go and that's true for actually
+good to go and that's true for actually the latest build or last year that I
+the latest build or last year that I built it just works so the next point is
+built it just works so the next point is on the hardware side so what are also to
+on the hardware side so what are also to solve the problem at the same time at
+solve the problem at the same time at the studio level by making sure the
+the studio level by making sure the proper hardware to deliver for all the
+proper hardware to deliver for all the project if with at the situation where
+project if with at the situation where many projects were asking some deals at
+many projects were asking some deals at the same time so what we wanted to do is
+the same time so what we wanted to do is have some system that of high
+have some system that of high performance for sure in terms of higher
+performance for sure in terms of higher ups and throughput but also something
+ups and throughput but also something that was quickly scalable so we can
+that was quickly scalable so we can actually adapt depending on the state of
+actually adapt depending on the state of production at the beginning of the
+production at the beginning of the project and at the end of the portion
+project and at the end of the portion you don't add the same needs
+you don't add the same needs so wanted something that can adapt to
+so wanted something that can adapt to that kind of reality and something that
+that kind of reality and something that can be reduced as well so if we have
+can be reduced as well so if we have some failure on on the hardware's and we
+some failure on on the hardware's and we can still after service running so we
+can still after service running so we don't paralyze the entire production we
+don't paralyze the entire production we looked at what was available at the end
+looked at what was available at the end of 2012 and we looked at death which was
+of 2012 and we looked at death which was pretty good but was not good in us in
+pretty good but was not good in us in our poor taste for the in dry herbs
+our poor taste for the in dry herbs field it seems to have improved a lot
+field it seems to have improved a lot since then but it doesn't colleague was
+since then but it doesn't colleague was not good enough we looked also at atom
+not good enough we looked also at atom per HDFS
+per HDFS but the system was too centralized it
+but the system was too centralized it has a main server so if the server get
+has a main server so if the server get down you just lost losing the service we
+down you just lost losing the service we don't know
+don't know to use that we looked at what open a AFS
+to use that we looked at what open a AFS but this project was not mature enough
+but this project was not mature enough so don't want to use that and we looked
+so don't want to use that and we looked at the implement the Gluster
+at the implement the Gluster implementation of read that and this one
+implementation of read that and this one was actually responding to all on it so
+was actually responding to all on it so decided to go with that so what is the
+decided to go with that so what is the Gluster file system you can see it as
+Gluster file system you can see it as for those of you who know the read a
+for those of you who know the read a file system within a disc it's actually
+file system within a disc it's actually distributing the work and an array of a
+distributing the work and an array of a disk the cluster file system is kind of
+disk the cluster file system is kind of the same the same same thing but on a
+the same the same same thing but on a cluster of PCs so it's a distributed
+cluster of PCs so it's a distributed file system on a cluster of PC it adds
+file system on a cluster of PC it adds ourselves we can do some replication
+ourselves we can do some replication between the node so you can have sarin
+between the node so you can have sarin compare the same file on different nodes
+compare the same file on different nodes of the cluster and also it can be
+of the cluster and also it can be emptied in the when you put to network
+emptied in the when you put to network interface into the or each node so
+interface into the or each node so actually one network interface is used
+actually one network interface is used for the internal replication and the
+for the internal replication and the internal communication while the other
+internal communication while the other is used actually for servicing so we
+is used actually for servicing so we don't have the both communication
+don't have the both communication interacting and and making of service
+interacting and and making of service flow so we did some tests and were
+flow so we did some tests and were pretty happy with the results we decided
+pretty happy with the results we decided to go all in with that and buy some hard
+to go all in with that and buy some hard work were to build our own glass tariffs
+work were to build our own glass tariffs s so Knights the time for the right
+s so Knights the time for the right g-guys like for Nike so we built
+g-guys like for Nike so we built actually 8-iron pcs the best one at this
+actually 8-iron pcs the best one at this time and we added in those pcs eight
+time and we added in those pcs eight SSDs plugged in red zero on a dedicated
+SSDs plugged in red zero on a dedicated controller card jerk into the PCI
+controller card jerk into the PCI Express slot and we added the best
+Express slot and we added the best network card we can found at this time
+network card we can found at this time some 10 gigabit per second a network
+some 10 gigabit per second a network card and we put this 8 node cluster
+card and we put this 8 node cluster cluster to the test so we did some tests
+cluster to the test so we did some tests on the throughput side with a 14
+on the throughput side with a 14 gigabyte file with 30 user downloading
+gigabyte file with 30 user downloading it at the same time we compared to what
+it at the same time we compared to what we had at this time on us was built on
+we had at this time on us was built on top of San from EMC was a gigantic
+top of San from EMC was a gigantic for those of you know at this time so
+for those of you know at this time so after the year the Yangtze Sun we were
+after the year the Yangtze Sun we were getting up to 18 megabyte per second out
+getting up to 18 megabyte per second out of the blaster were able to get 73
+of the blaster were able to get 73 megabyte per second for the 30
+megabyte per second for the 30 concurrent user getting the deal at the
+concurrent user getting the deal at the same time on dry herbs field the test
+same time on dry herbs field the test was hundred thousand file downloaded at
+was hundred thousand file downloaded at the same time by several small files by
+the same time by several small files by by by several user so out of the Sun
+by by several user so out of the Sun were able to have a 250 thousand i ups
+were able to have a 250 thousand i ups and out of the glacier were able to get
+and out of the glacier were able to get more than alpha million i ups for those
+more than alpha million i ups for those of you are familiar with those numbers
+of you are familiar with those numbers alpha million a UPS is completely insane
+alpha million a UPS is completely insane and what's cool about that we are able
+and what's cool about that we are able to compare the results those results to
+to compare the results those results to another unit we got from a violin
+another unit we got from a violin another brand of memory of iron memory
+another brand of memory of iron memory and we were able to get a 6000 series
+and we were able to get a 6000 series violinist and and we compared to what's
+violinist and and we compared to what's pretty cool here we get the same result
+pretty cool here we get the same result that the iron violin memory but if you
+that the iron violin memory but if you look at red is the cost of do stuff it's
+look at red is the cost of do stuff it's you cannot compare that it's just
+you cannot compare that it's just another one that's pretty cool actually
+another one that's pretty cool actually we got some pretty good results out of
+we got some pretty good results out of that and it cost just a fraction of of
+that and it cost just a fraction of of what I am equipments actually a provider
+what I am equipments actually a provider so we're using that for our keypads so
+so we're using that for our keypads so we can get a builder out of the the
+we can get a builder out of the the asset store also using that for the
+asset store also using that for the Roses cashing so as I told you you need
+Roses cashing so as I told you you need to have with the hardware to provide a
+to have with the hardware to provide a reliable cash so now we have it and we
+reliable cash so now we have it and we also using that for the computation cash
+also using that for the computation cash off as bill so future work want to do on
+off as bill so future work want to do on the glass surface system is actually
+the glass surface system is actually reevaluate staff because that seems to
+reevaluate staff because that seems to have improved a lot since then so it
+have improved a lot since then so it could be actually nice to revalue that
+could be actually nice to revalue that and see today it would be a better
+and see today it would be a better choice and the cluster and the main
+choice and the cluster and the main reason about that is tilde cluster
+reason about that is tilde cluster suffers from a problem the ealing
+suffers from a problem the ealing process since we have mere millions of
+process since we have mere millions of assets on those discs whenever you have
+assets on those discs whenever you have a problem with the node the cluster
+a problem with the node the cluster enter some eating mode and while in
+enter some eating mode and while in eating mode the entire service really
+eating mode the entire service really gets
+gets degraded a lot and that has been a
+degraded a lot and that has been a problem several time on the on the
+problem several time on the on the project so now we've seen how to build
+project so now we've seen how to build an exact table quickly build that ideal
+an exact table quickly build that ideal quickly to deliver this bill as quickly
+quickly to deliver this bill as quickly as we can to the user the last point I
+as we can to the user the last point I want to talk about is how we can iterate
+want to talk about is how we can iterate look at it as quick as we can and to
+look at it as quick as we can and to explain that like back let's get back
+explain that like back let's get back again in 2012 summer when the shipping
+again in 2012 summer when the shipping for a three and at the end of the
+for a three and at the end of the project we had several small bugs that
+project we had several small bugs that required to change the settings into
+required to change the settings into some XML file in the package so at this
+some XML file in the package so at this time you had three solution to actually
+time you had three solution to actually solve that kind of problems - - - fix
+solve that kind of problems - - - fix your bug the first one was to just make
+your bug the first one was to just make your change into the source file submit
+your change into the source file submit and wait for the next day for the
+and wait for the next day for the nightly that pretty good workflow the
+nightly that pretty good workflow the second one was to do the change but free
+second one was to do the change but free binarized locally as I told you at the
+binarized locally as I told you at the beginning of this talk was also too long
+beginning of this talk was also too long was not actually available and the third
+was not actually available and the third solution was to actually open the big
+solution was to actually open the big file by n try to find your file put your
+file by n try to find your file put your modified file into the big file
+modified file into the big file repackaged the big file then we
+repackaged the big file then we redeployed the big file on console and
+redeployed the big file on console and any were good to go so just to say it
+any were good to go so just to say it was just a nightmare to fig that kind of
+was just a nightmare to fig that kind of bug at the end of our query and so we
+bug at the end of our query and so we wanted to improve on that but still this
+wanted to improve on that but still this last workflow actually changing stuff by
+last workflow actually changing stuff by n was pretty efficient it was just a
+n was pretty efficient it was just a plain because you have to do everything
+plain because you have to do everything by n but it was pretty efficient so we
+by n but it was pretty efficient so we wanted to actually try to automate do
+wanted to actually try to automate do stuff so have a system that can actually
+stuff so have a system that can actually detect the changes for you compile the
+detect the changes for you compile the file if it requires some compilation of
+file if it requires some compilation of monstrance some transformation and then
+monstrance some transformation and then and all the big file creation for you
+and all the big file creation for you and the deployment if necessary and
+and the deployment if necessary and these steps actually define a workflow
+these steps actually define a workflow that we could call the patching workflow
+that we could call the patching workflow and this patching work for three stages
+and this patching work for three stages the first one being detecting these
+the first one being detecting these changes we do not have through what we
+changes we do not have through what we call the compile depths then packaging
+call the compile depths then packaging those changes together we doing that
+those changes together we doing that through the patch big file and then
+through the patch big file and then applying those changes to a running bill
+applying those changes to a running bill and we doing that to the big file stack
+and we doing that to the big file stack so detecting the changes consider the
+so detecting the changes consider the case when you have a texture
+case when you have a texture that needs to be combined to produce an
+that needs to be combined to produce an output what actually defined this output
+output what actually defined this output is the source file but you have many
+is the source file but you have many other stuff that actually can change the
+other stuff that actually can change the output you can have some settings
+output you can have some settings applied for a compiler telling him how
+applied for a compiler telling him how you want to compile this detector you
+you want to compile this detector you can have some code version that has
+can have some code version that has content and compile with the same
+content and compile with the same setting that same input five producing
+setting that same input five producing another output file so all those little
+another output file so all those little things actually defining the inputs of
+things actually defining the inputs of your outputs and what we do is creating
+your outputs and what we do is creating a file which we call a compiled app and
+a file which we call a compiled app and just say all the inputs that we use to
+just say all the inputs that we use to produce an output so now you had that
+produce an output so now you had that when we are doing your nightly deal we
+when we are doing your nightly deal we are compiling a bunch of texture let's
+are compiling a bunch of texture let's say what we're going to come to a
+say what we're going to come to a produce at the same time all the
+produce at the same time all the compiled depths and we are going to
+compiled depths and we are going to package the texture into the regular
+package the texture into the regular package but package all the compile that
+package but package all the compile that into a separate package so now when you
+into a separate package so now when you are on your local PC you want to know if
+are on your local PC you want to know if you have some local changes for a given
+you have some local changes for a given texture you don't have to actually get
+texture you don't have to actually get this texture what you need to get is the
+this texture what you need to get is the compile depth once you have your compile
+compile depth once you have your compile depth you can look at actually what it
+depth you can look at actually what it says so it tells you what file has been
+says so it tells you what file has been used to produce the output what version
+used to produce the output what version of the code what settings and then you
+of the code what settings and then you can compare if each of these inputs to
+can compare if each of these inputs to what you have on your local disk and if
+what you have on your local disk and if you have something that has changed that
+you have something that has changed that means you have some local changes
+means you have some local changes compared to what has been used produced
+compared to what has been used produced the official nightly deal and if you
+the official nightly deal and if you want to see your changes in your bill
+want to see your changes in your bill you need to actually recompile this
+you need to actually recompile this texture so we compile it and then you
+texture so we compile it and then you can package this texture into what we
+can package this texture into what we call the patch big file then when you
+call the patch big file then when you have this patch big file you can
+have this patch big file you can actually mount it into the game so
+actually mount it into the game so whenever the game will require the set
+whenever the game will require the set texture look into the party file first
+texture look into the party file first if the PI B file as the texture can
+if the PI B file as the texture can provide it directly if he doesn't
+provide it directly if he doesn't figures go through the regular workflow
+figures go through the regular workflow and get the texture out of the regular
+and get the texture out of the regular package what cool so with that is you
+package what cool so with that is you can add your part big files which
+can add your part big files which applies all your can changes but if you
+applies all your can changes but if you want to get back to the original
+want to get back to the original package you just have to get rid of the
+package you just have to get rid of the big file and bam you back to the
+big file and bam you back to the actually the original the original bill
+so what could here's thanks to our key value nothing you get downloaded just
+value nothing you get downloaded just have to get the compiled app and out of
+have to get the compiled app and out of the compiled depth then and thanks to
+the compiled depth then and thanks to the stack file system you can if you
+the stack file system you can if you have a local change it will come from
+have a local change it will come from the patch big file if you don't have
+the patch big file if you don't have local changes it will go through the
+local changes it will go through the stack file system or chip and everything
+stack file system or chip and everything and will retrieve the actual asset from
+and will retrieve the actual asset from the from the part server what's pretty
+the from the part server what's pretty cool with that is actually you can patch
+cool with that is actually you can patch some asset that you I never don't know
+some asset that you I never don't know that I find it pretty cool so we still
+that I find it pretty cool so we still several stuff which now improved our
+several stuff which now improved our compilation times thanks to the the
+compilation times thanks to the the thanks to fast bill mostly we've seen
+thanks to fast bill mostly we've seen how we improved or fast or likely build
+how we improved or fast or likely build sent to the remote profiling and the
+sent to the remote profiling and the usos caching we seen or approved or
+usos caching we seen or approved or package distribution thanks to our pal
+package distribution thanks to our pal Elliott store we've seen how we improved
+Elliott store we've seen how we improved our local iterations thanks to the Deaf
+our local iterations thanks to the Deaf patcher there are many people have been
+patcher there are many people have been working on those on this subject so I'd
+working on those on this subject so I'd like to give credits to a few key people
+like to give credits to a few key people that I've been working on this stuff and
+that I've been working on this stuff and that's it thank you for coming
+think we have a few minutes if you want some questions I think you're going to
+some questions I think you're going to talk I have a question about your fast
+talk I have a question about your fast world did you have any custom build
+world did you have any custom build steps cogeneration things of that nature
+steps cogeneration things of that nature and was that difficult to configure with
+and was that difficult to configure with past build the idea it's like a graph
+past build the idea it's like a graph node which every step within the
+node which every step within the completion will dictate when you have
+completion will dictate when you have all the dependencies that have been
+all the dependencies that have been already digital some of those nodes can
+already digital some of those nodes can be just executing a text on there like
+be just executing a text on there like so exist able so you can actually flip
+so exist able so you can actually flip whatever you want in the bill
+whatever you want in the bill dependences oh thank you about fast bill
+dependences oh thank you about fast bill how does it detect dependencies or how
+how does it detect dependencies or how does it know when you need to get a file
+does it know when you need to get a file from the cache or build it locally for
+from the cache or build it locally for the cache is actually the Preferences
+the cache is actually the Preferences file or plus the option that has been
+file or plus the option that has been used after the people says file plus the
+used after the people says file plus the option that has been used a few other
+option that has been used a few other settings and produces a quiche out of
+settings and produces a quiche out of those that can be used to actually get
+those that can be used to actually get the object file out of the cache thank
+the object file out of the cache thank you hi thanks for the talk
+you hi thanks for the talk um so you said that when your engineers
+um so you said that when your engineers submit code to the perforce store then
+submit code to the perforce store then there a process that runs before their
+there a process that runs before their code can be submitted and one of those
+code can be submitted and one of those is the IANA binarize on an area of the
+is the IANA binarize on an area of the world
+world I was wondering does that take a long
+I was wondering does that take a long time does it introduce a lot of latency
+time does it introduce a lot of latency for when the engineer wants to check
+for when the engineer wants to check their code in the binarization is too
+their code in the binarization is too cool we're not we're not doing the
+cool we're not we're not doing the entire wall for sure we're just doing
+entire wall for sure we're just doing actually two maps at the same time what
+actually two maps at the same time what I call the map is this perimeter of the
+I call the map is this perimeter of the wall which is in two maps at this time
+wall which is in two maps at this time and text between ten and fifteen minutes
+and text between ten and fifteen minutes so yeah we are some Latin scene we
+so yeah we are some Latin scene we cannot do all the change list so when we
+cannot do all the change list so when we go change list and it's done then we go
+go change list and it's done then we go to the next changes that have been
+to the next changes that have been combined and ready
+combined and ready were to be used so yes we're not doing
+were to be used so yes we're not doing all the changes and there is some
+all the changes and there is some latency okay but you are using the
+latency okay but you are using the actual shipping world it's not just some
+actual shipping world it's not just some test world you know that's the true real
+test world you know that's the true real map of the real world
+map of the real world Thanks hi you said that you were good
+Thanks hi you said that you were good resource cash doing tonight
+resource cash doing tonight so does it mean that if I change
+so does it mean that if I change something from a morning like textual
+something from a morning like textual format all the resource cash is broken
+format all the resource cash is broken for entire day sorry scuse me
+for entire day sorry scuse me if I change something to the morning in
+if I change something to the morning in bitter like texture format mm-hmm
+bitter like texture format mm-hmm does it mean that resource clash is
+does it mean that resource clash is broken until the nightly build usually
+broken until the nightly build usually we try to ask our team member when we
+we try to ask our team member when we have big changes that are going to
+have big changes that are going to create some problems okay it doesn't
+create some problems okay it doesn't mean that it will break the deal the
+mean that it will break the deal the official deal as the addictive all plus
+official deal as the addictive all plus the version if you make a change in the
+the version if you make a change in the code that actually introduced some some
+code that actually introduced some some I don't mean breaking the bill just the
+I don't mean breaking the bill just the cash will be useless until okay yes so
+cash will be useless until okay yes so but one can we you can reprise the cash
+but one can we you can reprise the cash flow can animation for instance when you
+flow can animation for instance when you change the version of the extra compiler
+change the version of the extra compiler for instance you can run your cache on
+for instance you can run your cache on your PC so just send the modernization
+your PC so just send the modernization the combined cash price but you can't
+the combined cash price but you can't many will build the cash on bit machines
+many will build the cash on bit machines like that's central cash whatever it is
+like that's central cash whatever it is actually no I mean the resource cache
+actually no I mean the resource cache like yeah can you repeat it manual like
+like yeah can you repeat it manual like in the morning fine thanks hello could
+in the morning fine thanks hello could you please clarify your comparison so
+you please clarify your comparison so when you compare it
+when you compare it first built with incredible you said
+first built with incredible you said that on 10 machines in credibility was
+that on 10 machines in credibility was slower than on one machine felt build
+slower than on one machine felt build work and it was same machines 32 cores
+work and it was same machines 32 cores right was a 12-course actually or
+right was a 12-course actually or machines at a regular workstation look
+machines at a regular workstation look at it wasn't a quad core machine that we
+at it wasn't a quad core machine that we all have yeah incredible was running on
+all have yeah incredible was running on those same machines
+those same machines okay so it's same machines like a
+okay so it's same machines like a machine okay think yes hi so you were
+machine okay think yes hi so you were making comparisons to 2012 and where
+making comparisons to 2012 and where things were in 2012 how long did it take
+things were in 2012 how long did it take you to get this you know what point in
+you to get this you know what point in for card for did this all sort of come
+for card for did this all sort of come together and you thank six people at the
+together and you thank six people at the end about how many people total were
+end about how many people total were working on this and was it like a
+working on this and was it like a full-time thing for them like the in
+full-time thing for them like the in terms of managing this project how did
+terms of managing this project how did that go so that but actually one of the
+that go so that but actually one of the most actually fast deal has been two
+most actually fast deal has been two months
+months so yeah fast bills which they took two
+so yeah fast bills which they took two months the RT pallet seems like was
+months the RT pallet seems like was running in two or three months so having
+running in two or three months so having all the pipeline and slicing the stuff
+all the pipeline and slicing the stuff on build machines that pattern took a
+on build machines that pattern took a bit more because you have to change a
+bit more because you have to change a few staffing or pipeline to make it work
+few staffing or pipeline to make it work and that ability improvements was like
+and that ability improvements was like three or four months for a fast build
+three or four months for a fast build actually was just one person
+actually was just one person Archie pan was also just one person that
+Archie pan was also just one person that partner was mostly from the system side
+partner was mostly from the system side one person and that I did also was one
+one person and that I did also was one person so was not a big investment was
+person so was not a big investment was just good IDs correctly applied I just
+just good IDs correctly applied I just worked thank you welcome
+worked thank you welcome I guess we're done thank you for coming
+I guess we're done thank you for coming [Applause]

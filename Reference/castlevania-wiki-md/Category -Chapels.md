@@ -1,0 +1,3 @@
+# Category:Chapels
+
+Category: Environments

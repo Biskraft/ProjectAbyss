@@ -1,0 +1,2575 @@
+[Music]
+good afternoon everyone I could have your attention really quick
+I could have your attention really quick before that I took it started with a
+before that I took it started with a talk proper I want to share two quick
+talk proper I want to share two quick notes with you first please silence cell
+notes with you first please silence cell phones laptops anything else that might
+phones laptops anything else that might make a disruptive noise second this is
+make a disruptive noise second this is mentioned in a few places in the program
+mentioned in a few places in the program one second all right
+one second all right sure so it is mentioned in a couple
+sure so it is mentioned in a couple spots in the program and at the door but
+spots in the program and at the door but there are also too few spots where it's
+there are also too few spots where it's not mentioned this is a two-hour talk we
+not mentioned this is a two-hour talk we are gonna run until five including QA
+are gonna run until five including QA obviously there's a whole bunch of
+obviously there's a whole bunch of sessions at 4:30 some of you may be very
+sessions at 4:30 some of you may be very attached to those sessions I have good
+attached to those sessions I have good news for you this slide should run about
+news for you this slide should run about an hour and 20 and then we'll do Q&A so
+an hour and 20 and then we'll do Q&A so if you're willing to skip QA catch on
+if you're willing to skip QA catch on GDC vault you should be able to catch a
+GDC vault you should be able to catch a 4:30 talk thirdly and lastly I've been
+4:30 talk thirdly and lastly I've been asked that if possible if you could all
+asked that if possible if you could all scoot towards the center of your
+scoot towards the center of your sections as late comers come in we want
+sections as late comers come in we want to allow them to enter the audience as
+to allow them to enter the audience as with a minimal disruption
+with that welcome to I shot you first I am both honored and incredibly excited
+am both honored and incredibly excited to be here today to talk to you about
+to be here today to talk to you about the gameplay networking of Halo Reach
+the gameplay networking of Halo Reach when I started working on reach three
+when I started working on reach three long years ago I knew very little of
+long years ago I knew very little of what I'm going to describe to you in
+what I'm going to describe to you in this talk and I would have killed to get
+this talk and I would have killed to get my hands on it I hope that you will find
+my hands on it I hope that you will find its lessons useful in your own games the
+its lessons useful in your own games the very first thing that you're probably
+very first thing that you're probably wondering is who the heck am i to be
+wondering is who the heck am i to be talking to you about this I'm David
+talking to you about this I'm David Aldridge I'm the lead networking
+Aldridge I'm the lead networking engineer at Bungie I spent approximately
+engineer at Bungie I spent approximately three years working on Halo Reach
+three years working on Halo Reach networking I've been in the games
+networking I've been in the games industry for quite a long time before
+industry for quite a long time before that starting with this gem over ten
+that starting with this gem over ten years ago the second thing you're
+years ago the second thing you're probably all wondering is what is Halo
+probably all wondering is what is Halo Reach fortunately I have prepared a
+Reach fortunately I have prepared a small video here to show you what you're
+small video here to show you what you're missing cool sound please pardon the
+missing cool sound please pardon the technical difficulties
+[Music] to me
+triple kill
+so that's Halo Reach we're pretty proud of it so there's three things that I
+of it so there's three things that I want you to walk out of this talk with
+want you to walk out of this talk with three things that if I do my job you
+three things that if I do my job you will leave here with first we're gonna
+will leave here with first we're gonna talk about a proven architecture for
+talk about a proven architecture for scalable gameplay networking proven
+scalable gameplay networking proven across three Halo titles this word
+across three Halo titles this word scalable is very very key here and we're
+scalable is very very key here and we're gonna return to it again and again there
+gonna return to it again and again there are many ways to do networking that are
+are many ways to do networking that are not scalable we have a way that we have
+not scalable we have a way that we have been we have had very good luck with
+been we have had very good luck with scaling across games with very very
+scaling across games with very very large numbers of objects and very
+large numbers of objects and very diverse gameplay mechanics second we're
+diverse gameplay mechanics second we're gonna talk about how to design solid
+gonna talk about how to design solid networking for your game mechanics which
+networking for your game mechanics which includes things like ensuring that your
+includes things like ensuring that your game mechanic design and your network
+game mechanic design and your network design work hand-in-hand to reach the
+design work hand-in-hand to reach the highest possible quality third we're
+highest possible quality third we're gonna talk about how to measure and
+gonna talk about how to measure and optimize your networking systems
+optimize your networking systems something that is incredibly important
+there are a few things that I want to get out of the way upfront that this
+get out of the way upfront that this talk is not about since there's the word
+talk is not about since there's the word networking in the title there are
+networking in the title there are certain expectations first we're not
+certain expectations first we're not talking about halos campaign or
+talking about halos campaign or firefight networking we're specifically
+firefight networking we're specifically talking about the competitive
+talking about the competitive multiplayer experience 16 players pvp
+multiplayer experience 16 players pvp campaign and fire fight use a different
+campaign and fire fight use a different networking model that will touch on very
+networking model that will touch on very very briefly but we won't go into any
+very briefly but we won't go into any detail on second we're not talking about
+detail on second we're not talking about sockets we're not talking about
+sockets we're not talking about traversing a gnat and punching a hole in
+traversing a gnat and punching a hole in a firewall and connecting to a remote
+a firewall and connecting to a remote machine everyone has to solve this
+machine everyone has to solve this problem once but it's not really that
+problem once but it's not really that interesting in the long run third we're
+interesting in the long run third we're not going to talk about what we call
+not going to talk about what we call high level networking at Bungie things
+high level networking at Bungie things like matchmaking getting players
+like matchmaking getting players together into games
+together into games creating your online ecosystem that
+creating your online ecosystem that further ado let's go into the game play
+further ado let's go into the game play networking architecture all right so
+networking architecture all right so what is game play networking what is
+what is game play networking what is this problem we're trying to solve here
+this problem we're trying to solve here i sat down I tried to write a definition
+i sat down I tried to write a definition this is what I came up with it's a
+this is what I came up with it's a little wordy it's very explicit I don't
+little wordy it's very explicit I don't actually like this definition very much
+actually like this definition very much at all
+at all communicating sufficient information
+communicating sufficient information perceptually shared reality this sounds
+perceptually shared reality this sounds almost like you could you could like
+almost like you could you could like test and algorithm against it that's
+test and algorithm against it that's that's crazy game plan already does not
+that's crazy game plan already does not really work this way in practice this is
+really work this way in practice this is what gameplay networking is in my
+what gameplay networking is in my opinion technology to help multiple
+opinion technology to help multiple players sustain the belief that they're
+players sustain the belief that they're playing a fun game together what
+playing a fun game together what underlies that does not matter all right
+underlies that does not matter all right how can we solve this problem how can we
+how can we solve this problem how can we create some technology so the players
+create some technology so the players believe they're playing a game together
+believe they're playing a game together there are some simple approaches simpler
+there are some simple approaches simpler approaches nothing's really are simple
+approaches nothing's really are simple but simplifying approaches that will
+but simplifying approaches that will make your life easier first you can use
+make your life easier first you can use locks tab also called deterministic or
+locks tab also called deterministic or input passing methods this is what halos
+input passing methods this is what halos campaign and firefight networking use in
+campaign and firefight networking use in this model you rely on the complete
+this model you rely on the complete determinism of your game loop you pass
+determinism of your game loop you pass the non-deterministic player controller
+the non-deterministic player controller inputs over the wire and voila
+inputs over the wire and voila everyone's running in the same game
+everyone's running in the same game simulation the downsides to this are
+simulation the downsides to this are that your input latency from the
+that your input latency from the controller to the game includes the
+controller to the game includes the network round-trip time to the post of
+network round-trip time to the post of the game this means that for
+the game this means that for first-person shooters you end up with
+first-person shooters you end up with significant input latency when you try
+significant input latency when you try to shoot your gun or jump or operate on
+to shoot your gun or jump or operate on the world in any way unacceptable in a
+the world in any way unacceptable in a multiplayer context where players are
+multiplayer context where players are fighting each other the second way you
+fighting each other the second way you can make your life easier is to use
+can make your life easier is to use reliable transport protocols you whether
+reliable transport protocols you whether TCP or a homegrown reliable UDP to try
+TCP or a homegrown reliable UDP to try to reduce the latency of it this can
+to reduce the latency of it this can make your life much much easier because
+make your life much much easier because you don't have to worry about things
+you don't have to worry about things being reordered or lost in the wild
+being reordered or lost in the wild wooly internet this works very well as
+wooly internet this works very well as long as you have relatively simple
+long as you have relatively simple Network State or you're willing to use a
+Network State or you're willing to use a very large amount of bandwidth and
+very large amount of bandwidth and restrict the number of machines and
+restrict the number of machines and Internet connections that can play your
+Internet connections that can play your game third you can always send all of
+game third you can always send all of the network state about your game
+the network state about your game specifically you can always send it
+specifically you can always send it atomic
+atomic what this means is you will not have
+what this means is you will not have problems where the network state of one
+problems where the network state of one object is out of sync with the network
+object is out of sync with the network state of another you can guarantee that
+state of another you can guarantee that remote clients will receive the entire
+remote clients will receive the entire network state of the world in a
+network state of the world in a consistent way this fixes an enormous
+consistent way this fixes an enormous class of bugs that quake three model is
+class of bugs that quake three model is famous for this this works very very
+famous for this this works very very well as long as you can express the
+well as long as you can express the total network state of your game and no
+total network state of your game and no more than a few hundred bytes let's say
+more than a few hundred bytes let's say does not work with very large numbers of
+does not work with very large numbers of objects unfortunately for us and the
+objects unfortunately for us and the reason I'm here to talk to you today
+reason I'm here to talk to you today halo has to solve the hard problem we
+halo has to solve the hard problem we have hundreds of networked objects every
+have hundreds of networked objects every one of which can stop a bullet every one
+one of which can stop a bullet every one of which can affect the gameplay in a
+of which can affect the gameplay in a critical way we have a highly
+critical way we have a highly competitive skill based action game that
+competitive skill based action game that players devote thousands of hours to
+players devote thousands of hours to mastering we do not use dedicated
+mastering we do not use dedicated servers to minimize latency between
+servers to minimize latency between peers players expect the game to always
+peers players expect the game to always work for many of you from the PC world
+work for many of you from the PC world players on PCs can tolerate a certain
+players on PCs can tolerate a certain amount of cutscene with their connection
+amount of cutscene with their connection you can show them some interesting debug
+you can show them some interesting debug information like lag indicators things
+information like lag indicators things like that we don't the console audience
+like that we don't the console audience doesn't really tolerate much of this at
+doesn't really tolerate much of this at all
+all they pretty much just has to work and
+they pretty much just has to work and lastly there's sort of the death knell
+lastly there's sort of the death knell for any of these methods for Halo
+for any of these methods for Halo multiplayer is this N squared problem
+multiplayer is this N squared problem that comes up in so many contexts across
+that comes up in so many contexts across engineering for n players we have to
+engineering for n players we have to send the network game state two and
+send the network game state two and minus one remote machines and the amount
+minus one remote machines and the amount of things occurring in the game world is
+of things occurring in the game world is proportional to the number of players
+proportional to the number of players because they're all shooting they're all
+because they're all shooting they're all creating havoc this leads us to a
+creating havoc this leads us to a classic almost N squared graph something
+classic almost N squared graph something like this where the very lower left
+like this where the very lower left there is the amount of bandwidth that
+there is the amount of bandwidth that you would need to transmit everything
+you would need to transmit everything that was happening in the world if you
+that was happening in the world if you were in a two-player game and the far
+were in a two-player game and the far right hundred times is the amount you
+right hundred times is the amount you would need for a 16 player game
+would need for a 16 player game this is totally infeasible for Halo if
+this is totally infeasible for Halo if we've graphed this out and it comes out
+we've graphed this out and it comes out to something ludicrous like 20 megabits
+to something ludicrous like 20 megabits a second of data
+fortunately we are not the first game to have faced this problem even more
+have faced this problem even more fortunately one of the games that did
+fortunately one of the games that did wrote a beautiful paper over ten years
+wrote a beautiful paper over ten years ago and presented at GDC the tribes
+ago and presented at GDC the tribes engine networking model by mark
+engine networking model by mark Frohnmayer and Tim gift they outlined a
+Frohnmayer and Tim gift they outlined a host client model resilient to cheating
+host client model resilient to cheating at most PvP games the key attribute of
+at most PvP games the key attribute of their model that made it really
+their model that made it really interesting for us and made it the only
+interesting for us and made it the only model or the top model when we were
+model or the top model when we were considering model for halo is that their
+considering model for halo is that their protocols for how they how they
+protocols for how they how they communicate about the game over the
+communicate about the game over the network are all about semi reliable data
+network are all about semi reliable data delivery they're all about providing
+delivery they're all about providing network state that is not fully reliable
+network state that is not fully reliable so you don't you're not forced to resend
+so you don't you're not forced to resend specifically they support this idea of
+specifically they support this idea of persistent state and transient events
+persistent state and transient events we'll go into detail on what those are
+we'll go into detail on what those are and what they're used for and the result
+and what they're used for and the result of all this the result of being of
+of all this the result of being of having these semi reliable guarantees is
+having these semi reliable guarantees is that the whole thing is highly scalable
+that the whole thing is highly scalable to match available bandwidth we never
+to match available bandwidth we never have to build up a huge latency debt
+have to build up a huge latency debt because we flooded the connection with
+because we flooded the connection with too much data alright before I can tell
+too much data alright before I can tell you about how our system works I have to
+you about how our system works I have to define three key terms gameplay
+define three key terms gameplay networking terms unfortunately or not
+networking terms unfortunately or not that standardized so let's get our terms
+that standardized so let's get our terms straight right up front first
+straight right up front first replication replication is a term that
+replication replication is a term that we use at Bungie I haven't heard it used
+we use at Bungie I haven't heard it used elsewhere but it might it might very
+elsewhere but it might it might very well be it specifically is the idea of
+well be it specifically is the idea of taking some state that exists on one box
+taking some state that exists on one box and then transmitting sufficient
+and then transmitting sufficient information over the network so that it
+information over the network so that it can be replicated on the other box the
+can be replicated on the other box the analogy to think of is like a Star Trek
+analogy to think of is like a Star Trek replicator you take a description of a
+replicator you take a description of a cup of hot Earl Grey tea and you give it
+cup of hot Earl Grey tea and you give it to the included in the replicator and
+to the included in the replicator and the replicator can create a copy of it
+the replicator can create a copy of it that appears to match it's basically the
+that appears to match it's basically the what we mean when we use the word
+what we mean when we use the word replication we were going to give you a
+replication we were going to give you a description of the object or what's
+description of the object or what's happening with the object and then it's
+happening with the object and then it's going to appear and look to you to be
+going to appear and look to you to be real second term Authority this is
+real second term Authority this is fairly intuitive
+fairly intuitive this is the idea of who's the host who
+this is the idea of who's the host who has the authority over objects for
+has the authority over objects for almost all objects for almost all things
+almost all objects for almost all things because we're a host client game because
+because we're a host client game because we're very sensitive to cheating and to
+we're very sensitive to cheating and to attack surfaces for cheating the host
+attack surfaces for cheating the host has almost all the authority in our game
+has almost all the authority in our game yes it's the throat ativ over object
+yes it's the throat ativ over object health damage events projectile
+health damage events projectile positions things like that clients can
+positions things like that clients can exert some limited authority over their
+exert some limited authority over their own bipeds and we'll talk about that as
+own bipeds and we'll talk about that as well
+well thirdly prediction prediction is what
+thirdly prediction prediction is what you do in between receiving updates
+you do in between receiving updates about an object in this little animation
+about an object in this little animation I've got here if you assume that this
+I've got here if you assume that this moving circle is an object and this is a
+moving circle is an object and this is a simulation occurring on a client machine
+simulation occurring on a client machine and the green stars are updates coming
+and the green stars are updates coming in from the host about where this object
+in from the host about where this object really is and what direction it's really
+really is and what direction it's really moving all the movement of the object in
+moving all the movement of the object in between the green stars and afterwards
+between the green stars and afterwards and predictably bouncing off walls and
+and predictably bouncing off walls and things like that
+things like that that's all prediction that's all us
+that's all prediction that's all us applying rules and guesses about what we
+applying rules and guesses about what we think is going to happen with the object
+think is going to happen with the object I'm gonna throw this word around a
+I'm gonna throw this word around a little bit okay that was pretty painless
+little bit okay that was pretty painless now we're that much closer to looking at
+now we're that much closer to looking at how we network beautiful things like
+how we network beautiful things like this networking stack there's any
+this networking stack there's any old-school Network programmers in the
+old-school Network programmers in the room you're probably expecting this to
+room you're probably expecting this to come up a little sooner but it doesn't
+come up a little sooner but it doesn't look much like the OSI networking stack
+look much like the OSI networking stack let's run through it at the very highest
+let's run through it at the very highest level we have the game code everything
+level we have the game code everything everyone else works on who's not on the
+everyone else works on who's not on the networking team it simply runs the game
+networking team it simply runs the game the next level below the game we called
+the next level below the game we called a game interface the game interface is
+a game interface the game interface is responsible for scraping the game for
+responsible for scraping the game for extracting all the data from the game
+extracting all the data from the game that we might potentially want to
+that we might potentially want to replicate the prioritization layer then
+replicate the prioritization layer then takes all that data that game interface
+takes all that data that game interface has gathered and decides what stuff is
+has gathered and decides what stuff is most important to send once the
+most important to send once the prioritization layer has selected what
+prioritization layer has selected what to send we hand it off to the
+to send we hand it off to the replication layer which implements
+replication layer which implements essentially the tribe's protocols again
+essentially the tribe's protocols again we're gonna look at all this in more
+we're gonna look at all this in more detail
+below that we're gonna we have things we're not gonna look at in detail the
+we're not gonna look at in detail the channel manager which has flow in
+channel manager which has flow in congestion control to keep us from
+congestion control to keep us from flooding flooding players connections
+flooding flooding players connections and the transport layer which looks like
+and the transport layer which looks like everybody else's transport layers just
+everybody else's transport layers just across platform socket layer okay in
+across platform socket layer okay in this talk we're gonna cover these three
+this talk we're gonna cover these three layers specifically in pretty good depth
+layers specifically in pretty good depth we're not gonna talk about anything
+we're not gonna talk about anything below or above okay some meet some
+below or above okay some meet some actual real algorithms and instead of
+actual real algorithms and instead of just overviews state data this is the
+just overviews state data this is the first tribes protocol and the one that
+first tribes protocol and the one that accounts for the vast majority of our
+accounts for the vast majority of our bandwidth state data provides this very
+bandwidth state data provides this very specific guarantee eventually the most
+specific guarantee eventually the most current state will arrive sounds simple
+current state will arrive sounds simple it's incredibly powerful what does this
+it's incredibly powerful what does this mean let's say I was the host and my
+mean let's say I was the host and my position on this stage was being
+position on this stage was being replicated out to all of you as clients
+replicated out to all of you as clients say further this position is being
+say further this position is being replicated as state data if I start in
+replicated as state data if I start in this position and you all know that I'm
+this position and you all know that I'm here we start from time 0 everything's
+here we start from time 0 everything's in sync and then I walk across the stage
+in sync and then I walk across the stage then I stop state data guarantees that
+then I stop state data guarantees that if I stand here for long enough and the
+if I stand here for long enough and the connection is not dropped you will all
+connection is not dropped you will all eventually see me appear at this
+eventually see me appear at this location it does not guarantee any of
+location it does not guarantee any of the intermediate locations that will be
+the intermediate locations that will be sent all the intermediate information
+sent all the intermediate information can be dropped based on available
+can be dropped based on available bandwidth so this is used for all the
+bandwidth so this is used for all the vast majority of properties in our game
+vast majority of properties in our game objects physicians Health's timers tons
+objects physicians Health's timers tons and tons of properties the second
+and tons of properties the second replication protocol is called events
+events are all about justifying state data transitions with richer data events
+data transitions with richer data events have much much better screenshots than
+have much much better screenshots than state data as you can see because events
+state data as you can see because events are all about telling you the thing
+are all about telling you the thing about why something happened why
+about why something happened why someone's health died or dropped why
+someone's health died or dropped why someone died why a warthog has just lost
+someone died why a warthog has just lost a wheel all these words of things the
+a wheel all these words of things the event reliability guarantee is
+event reliability guarantee is non-existent
+non-existent unlike state data which guarantees the
+unlike state data which guarantees the eventual delivery of the most up-to-date
+eventual delivery of the most up-to-date state events have no guarantees
+state events have no guarantees whatsoever every event could potentially
+whatsoever every event could potentially be dropped this is important because
+be dropped this is important because events are describing transitions if you
+events are describing transitions if you are not in a location where you can
+are not in a location where you can currently see the transition occurring
+currently see the transition occurring like if you are for example outside this
+like if you are for example outside this room you don't care about transitions
+room you don't care about transitions that are occurring within this room you
+that are occurring within this room you only care about the final state so if
+only care about the final state so if you were to enter the room you would see
+you were to enter the room you would see the updated state last replication
+the updated state last replication protocol control data control data is
+protocol control data control data is all about improving the accuracy of our
+all about improving the accuracy of our prediction systems for control data we
+prediction systems for control data we take the sub sample of the players
+take the sub sample of the players controller inputs and a few other useful
+controller inputs and a few other useful things and we transmit that sort of as
+things and we transmit that sort of as frequently as we can from the client to
+frequently as we can from the client to the host and reflect it back out to all
+the host and reflect it back out to all clients what this lets us do is it lets
+clients what this lets us do is it lets us in Ferrer's in the game or predict
+us in Ferrer's in the game or predict changes in the game far in advance of
+changes in the game far in advance of when they would actually change the game
+when they would actually change the game for example if I'm running forward and
+for example if I'm running forward and then I push the left stick to start
+then I push the left stick to start strafing left you won't actually see a
+strafing left you won't actually see a change in my object for several frames
+change in my object for several frames plus acceleration time plus however long
+plus acceleration time plus however long until it actually moves more than one
+until it actually moves more than one pixel you know whatever significant
+pixel you know whatever significant amount of time control data allows us to
+amount of time control data allows us to transmit the fact that I'm pushing my
+transmit the fact that I'm pushing my stick left so that everyone else can
+stick left so that everyone else can start to predict that I'm going to begin
+start to predict that I'm going to begin to strafe to improve the accuracy of
+to strafe to improve the accuracy of their prediction this is a very very
+their prediction this is a very very tiny amount of data control data for one
+tiny amount of data control data for one player is something like 20 bits very
+player is something like 20 bits very very carefully hand packed data because
+very carefully hand packed data because it's sent so often okay let's look at
+it's sent so often okay let's look at the big picture putting together all
+the big picture putting together all these protocols in one we have a host
+these protocols in one we have a host box in the client box as all good
+box in the client box as all good networking diagrams should firstly the
+networking diagrams should firstly the client sends control data to the host
+client sends control data to the host this includes both his stick inputs and
+this includes both his stick inputs and the current information about where he
+the current information about where he thinks he is in the world like Maya
+thinks he is in the world like Maya biped is currently in a certain location
+biped is currently in a certain location this is how the client exerts most of
+this is how the client exerts most of his agency in the world second clients
+his agency in the world second clients will transmit events to the host these
+will transmit events to the host these are transient things the client can do
+are transient things the client can do that he needs the hosts permission to do
+that he needs the hosts permission to do or that he needs the host to
+or that he needs the host to to execute he needs the host to actually
+to execute he needs the host to actually change the world in response to these
+change the world in response to these things he's trying to do from host to
+things he's trying to do from host to client the picture is a little bit
+client the picture is a little bit bigger we have control data which is
+bigger we have control data which is stripped down to just the minimum at
+stripped down to just the minimum at this point just the controller or inputs
+this point just the controller or inputs that are useful for prediction we have
+that are useful for prediction we have state data this is the vast majority of
+state data this is the vast majority of all our bandwidth again this is
+all our bandwidth again this is transmitting all of the final states all
+transmitting all of the final states all the current states of everything that is
+the current states of everything that is that is important over time and we have
+that is important over time and we have events which are just like with what the
+events which are just like with what the client sends to the host they are
+client sends to the host they are justifications for the state data
+justifications for the state data transitions that occurred so take an
+transitions that occurred so take an example right here we have in state data
+example right here we have in state data the Warthog now has a broken windshield
+the Warthog now has a broken windshield that's a piece of state data that's
+that's a piece of state data that's transmitted windshield state is now
+transmitted windshield state is now broken if that was the only thing we
+broken if that was the only thing we transmitted and we didn't transmit this
+transmitted and we didn't transmit this Warthog just took damage at this point
+Warthog just took damage at this point you would just see the windshield
+you would just see the windshield permute maybe there'd be some fake
+permute maybe there'd be some fake effects to cover it up but we wouldn't
+effects to cover it up but we wouldn't really know why the windshield got
+really know why the windshield got broken if you have the event you see
+broken if you have the event you see beautiful sparks you see all the
+beautiful sparks you see all the appropriate transits transitions you
+appropriate transits transitions you have special sound effects you know all
+have special sound effects you know all the beautiful flavor material that
+the beautiful flavor material that describes why the state data transition
+describes why the state data transition took place ok
+took place ok again I beat this drum several times now
+again I beat this drum several times now you're gonna hear me beat it several
+you're gonna hear me beat it several more times replication is never fully
+more times replication is never fully reliable unreliability enables
+reliable unreliability enables aggressive prioritization
+aggressive prioritization which lets us deal with the fact that we
+which lets us deal with the fact that we don't really have an object cap which
+don't really have an object cap which lets us deal with the fact that we have
+lets us deal with the fact that we have 200 synchronized objects or more in a 16
+200 synchronized objects or more in a 16 player game I mean it Peaks well over
+player game I mean it Peaks well over 2,000 so what can we do with
+2,000 so what can we do with prioritization we can give the power to
+prioritization we can give the power to our flow control layer to the guy who is
+our flow control layer to the guy who is looking at the current connection status
+looking at the current connection status and figuring out whether it's safe to
+and figuring out whether it's safe to currently send data without causing
+currently send data without causing packet loss or a latency spike we can
+packet loss or a latency spike we can give this flow control layer that full
+give this flow control layer that full authority he decides when to send a
+authority he decides when to send a packet he decides when it's safe and how
+packet he decides when it's safe and how big it should be when he decides to send
+big it should be when he decides to send a packet he talked to the replication
+a packet he talked to the replication layer and says hey we're sending a
+layer and says hey we're sending a packet now what would you like to
+packet now what would you like to sequester right
+sequester right replication fills up the packet how are
+replication fills up the packet how are big it is obviously we don't have room
+big it is obviously we don't have room to fit all our data we never do we don't
+to fit all our data we never do we don't really have 20 megabit connections and
+really have 20 megabit connections and even if we did we wouldn't have the perf
+even if we did we wouldn't have the perf to actually encode it all into a packet
+to actually encode it all into a packet so we write high-priority data first of
+so we write high-priority data first of course right pray or write data in
+course right pray or write data in priority order all right we've sold our
+priority order all right we've sold our souls in terms of complexity to get this
+souls in terms of complexity to get this wonderful prioritization system so let's
+wonderful prioritization system so let's take a little quick look at what its
+take a little quick look at what its capabilities are it's sort of what you
+capabilities are it's sort of what you would expect it's it's a similar to the
+would expect it's it's a similar to the problem of culling of like figuring out
+problem of culling of like figuring out what stuff is important to render it's a
+what stuff is important to render it's a little bit of a software problem
+little bit of a software problem but basically we're looking at hey what
+but basically we're looking at hey what stuff is close to this client what stuff
+stuff is close to this client what stuff is he looking at what stuff could hurt
+is he looking at what stuff could hurt him what stuff has he recently damaged
+him what stuff has he recently damaged because that's a pretty strong indicator
+because that's a pretty strong indicator of interest there's some really
+of interest there's some really unintuitive stuff you get in here
+unintuitive stuff you get in here which we have evolved over time things
+which we have evolved over time things like Oh grenades as they fly through the
+like Oh grenades as they fly through the air
+air our prioritized based on how likely they
+our prioritized based on how likely they are to damage a particular player that
+are to damage a particular player that seemed reasonable to us it's not going
+seemed reasonable to us it's not going to damage you why do you care but we
+to damage you why do you care but we discovered significant lag artifacts on
+discovered significant lag artifacts on the players own grenades because players
+the players own grenades because players watch their own grenades like hawks even
+watch their own grenades like hawks even though they're completely irrelevant to
+though they're completely irrelevant to them after they've thrown them they
+them after they've thrown them they can't affect them in any way but in
+can't affect them in any way but in general they can't affect them in any
+general they can't affect them in any way you can shoot grenades out of the
+way you can shoot grenades out of the air crazy sandbox designers there's tons
+air crazy sandbox designers there's tons and tons of these special cases that we
+and tons of these special cases that we have so sort of built up over the years
+have so sort of built up over the years in response to player feedback to give
+in response to player feedback to give the the best behavior that we can let's
+the the best behavior that we can let's look at a quick example of this this is
+look at a quick example of this this is a screenshot just taken from a Halo
+a screenshot just taken from a Halo Reach game this player here and the
+Reach game this player here and the lower-left has just killed the player
+lower-left has just killed the player who is now ragdoll and falling to the
+who is now ragdoll and falling to the ground below him let's take a look at
+ground below him let's take a look at the network prioritization of data about
+the network prioritization of data about these objects - the guy who's still
+these objects - the guy who's still alive so everything we're going to see
+alive so everything we're going to see is about sending data to the guy who's
+is about sending data to the guy who's still alive firstly we have a
+still alive firstly we have a prioritization overlay which I'm sure
+prioritization overlay which I'm sure most of you cannot read don't worry this
+most of you cannot read don't worry this is our end game debugger that sort of
+is our end game debugger that sort of shows all of our prioritization
+shows all of our prioritization decisions as they occur
+some examples the dead-body so first off the legend there's three numbers here
+the legend there's three numbers here for each object first is the final
+for each object first is the final priority this is the final like
+priority this is the final like literally if this number is higher you
+literally if this number is higher you get to go in the packet first second
+get to go in the packet first second relevance relevance is sort of a pure
+relevance relevance is sort of a pure measure of how noticeable something is
+measure of how noticeable something is without regard to its importance to the
+without regard to its importance to the game third update priority this is in
+game third update priority this is in milliseconds and this tells us hey how
+milliseconds and this tells us hey how often should we try to send updates
+often should we try to send updates about this object so zero means we're
+about this object so zero means we're sending updates as fast as we can about
+sending updates as fast as we can about this dead body every single packet gets
+this dead body every single packet gets an opportunity to do so to send
+an opportunity to do so to send something the 1.0 relevance is basically
+something the 1.0 relevance is basically maxed out and that's because we know
+maxed out and that's because we know that players watch ragdolls fall for a
+that players watch ragdolls fall for a few seconds after they kill people
+few seconds after they kill people they're proud point five is a fairly
+they're proud point five is a fairly high total priority there's all kinds
+high total priority there's all kinds there's tons of tons of range that has
+there's tons of tons of range that has to be encapsulated into the priority
+to be encapsulated into the priority range do things like stacked bonuses so
+range do things like stacked bonuses so 0.5 is actually a fairly high priority
+0.5 is actually a fairly high priority in this stage in this scenario
+in this stage in this scenario conversely we can look at this gun here
+conversely we can look at this gun here this strange pink thing is a covenant
+this strange pink thing is a covenant needle rifle the update period for this
+needle rifle the update period for this is 127 milliseconds so we're trying to
+is 127 milliseconds so we're trying to send them updates about eight times a
+send them updates about eight times a second about this gun its relevance is
+second about this gun its relevance is almost as high point nine seven because
+almost as high point nine seven because it's quite obvious it's in it's in the
+it's quite obvious it's in it's in the players space it's very very close to
+players space it's very very close to his screen it's on screen but the
+his screen it's on screen but the priority is much much lower than it was
+priority is much much lower than it was for the biped 0.2 - that's because
+for the biped 0.2 - that's because priority mixes in all the information
+priority mixes in all the information that we have gleaned about what is
+that we have gleaned about what is actually important to the player over
+actually important to the player over and above what is noticeable guns when
+and above what is noticeable guns when they're falling generally not that
+they're falling generally not that important to players meant they might go
+important to players meant they might go pick them up but in general they're
+pick them up but in general they're watching the body they're watching
+watching the body they're watching protocols in flight they're not watching
+protocols in flight they're not watching the gun even lower priority example this
+the gun even lower priority example this is a grenade same shot same exact moment
+is a grenade same shot same exact moment in time dead body in the background
+in time dead body in the background there this is a grenade the inactive
+there this is a grenade the inactive grenade that was dropped by the guy when
+grenade that was dropped by the guy when he died sitting in in the water behind
+he died sitting in in the water behind the shooter this grenade is off-screen
+the shooter this grenade is off-screen we're trying to send updates about this
+we're trying to send updates about this grenade about three times a second here
+grenade about three times a second here is 339 about 3 X 3 times a second
+is 339 about 3 X 3 times a second relevance 0.73 still seems fairly high
+relevance 0.73 still seems fairly high from a 0 to 1
+from a 0 to 1 range 0.73 is not actually that high
+range 0.73 is not actually that high because the relevance range has to
+because the relevance range has to encapsulate everything from objects that
+encapsulate everything from objects that are near to you to unthreatening
+are near to you to unthreatening non-critical on your team objects that
+non-critical on your team objects that are across an enormous map so that's why
+are across an enormous map so that's why you see like a point seven three here
+you see like a point seven three here instead of a zero point zero just cuz
+instead of a zero point zero just cuz it's an off-screen grenade and the end
+it's an off-screen grenade and the end result priority is quite low it's point
+result priority is quite low it's point one nine here so this grenade is gonna
+one nine here so this grenade is gonna get updated maybe three times a second
+get updated maybe three times a second if we have bandwidth certainly not more
+if we have bandwidth certainly not more than that
+all right that's the core of our architecture this idea of using
+architecture this idea of using unreliable protocols to enable
+unreliable protocols to enable prioritization to give us unlimited
+prioritization to give us unlimited scalability is the core of bungees
+scalability is the core of bungees approach to Halo unfortunately our job
+approach to Halo unfortunately our job is not over we have to actually design
+is not over we have to actually design the individual pieces of gameplay
+the individual pieces of gameplay networking and this is actually quite
+networking and this is actually quite difficult let's look at some examples
+difficult let's look at some examples firstly throwing a grenade
+[Music] [Applause]
+not that exciting pretty similar to a lot of other our first-person shooters
+lot of other our first-person shooters what is it what happens when we throw a
+what is it what happens when we throw a grenade well this is a sequence diagram
+grenade well this is a sequence diagram which is a tool we use quite a bit when
+which is a tool we use quite a bit when we're analyzing how we're going to
+we're analyzing how we're going to network a gameplay mechanic let's take a
+network a gameplay mechanic let's take a look at it in terms of a single box if
+look at it in terms of a single box if we were throwing a grenade what does it
+we were throwing a grenade what does it look like from the controller the player
+look like from the controller the player presses the left trigger very simple
+presses the left trigger very simple that goes gets consumed by the
+that goes gets consumed by the simulation loop at some point fairly
+simulation loop at some point fairly quickly and then a grenade throw
+quickly and then a grenade throw animation begins there is some lead-up
+animation begins there is some lead-up Telegraph animation while the player
+Telegraph animation while the player winds up and throws and then at a key
+winds up and throws and then at a key release frame somewhere around here with
+release frame somewhere around here with his hand the grenade is detached aimed
+his hand the grenade is detached aimed at a target using the players current
+at a target using the players current facing directions and other code and
+facing directions and other code and then launched exactly how you would
+then launched exactly how you would think a grenade thrower would work it's
+think a grenade thrower would work it's beautiful this is how it's worked since
+beautiful this is how it's worked since halo 1 how can we network this grenade
+halo 1 how can we network this grenade throw there's actually a surprisingly
+throw there's actually a surprisingly wide variety of options first let's try
+wide variety of options first let's try something simple now we know we've
+something simple now we know we've talked to design we've played halo so we
+talked to design we've played halo so we know we played the prototype at that
+know we played the prototype at that time for Halo so we know grenades are
+time for Halo so we know grenades are very important to the game we know we
+very important to the game we know we want them to be host adjudicated we want
+want them to be host adjudicated we want them to be authoritative we don't want
+them to be authoritative we don't want to allow players to cheat with grenades
+to allow players to cheat with grenades so let's try this this sort of
+so let's try this this sort of permission slip approach we send a
+permission slip approach we send a grenade throw request to the host once
+grenade throw request to the host once he confirms that we are allowed to throw
+he confirms that we are allowed to throw a grenade we do our whole animation and
+a grenade we do our whole animation and throw a grenade will this be a good
+throw a grenade will this be a good networking approach and it won't but how
+networking approach and it won't but how do we know that for sure
+do we know that for sure one of the most useful analysis tools is
+one of the most useful analysis tools is to use these sequence diagrams but with
+to use these sequence diagrams but with two boxes instead of looking at the
+two boxes instead of looking at the controller
+controller controllers a single machine picture
+okay first thing that happens the client pushes a button and sends a message to
+pushes a button and sends a message to the host I would like to throw a grenade
+the host I would like to throw a grenade now very first thing you'll notice this
+now very first thing you'll notice this arrow is tilted unlike all sequence
+arrow is tilted unlike all sequence diagram standards why on earth is it
+diagram standards why on earth is it tilted it's because we are dealing with
+tilted it's because we are dealing with a distributed state machine this period
+a distributed state machine this period is the one-way network latency from the
+is the one-way network latency from the client to the host these these tilts of
+client to the host these these tilts of these arrows are the key that makes this
+these arrows are the key that makes this sequence diagram tool so useful to us
+sequence diagram tool so useful to us because you can see all the potential
+because you can see all the potential overlaps of all the pieces of your
+overlaps of all the pieces of your mechanic all the different ways it could
+mechanic all the different ways it could be network all the vulnerabilities okay
+be network all the vulnerabilities okay so what happens pretty simple the host
+so what happens pretty simple the host gets the request he says ok you could
+gets the request he says ok you could throw a grenade that sounds fine starts
+throw a grenade that sounds fine starts to throw animation when he reaches your
+to throw animation when he reaches your release frame he throws a grenade so
+release frame he throws a grenade so that you're happy he sends back a yeah
+that you're happy he sends back a yeah that's cool you're starting your grenade
+that's cool you're starting your grenade throw go ahead start your throw
+throw go ahead start your throw animation you start your throw animation
+animation you start your throw animation you play your delay for a certain period
+you play your delay for a certain period of time you reach your release frame
+of time you reach your release frame about the same time you reach your
+about the same time you reach your release frame you'll get a message from
+release frame you'll get a message from the host that hey this grenade totally
+the host that hey this grenade totally exists everything's cool we have a
+exists everything's cool we have a problem here
+problem here we are waiting our round trip time
+we are waiting our round trip time before we're giving the client any
+before we're giving the client any feedback on his button press players
+feedback on his button press players hate this players hit it with a passion
+hate this players hit it with a passion this is totally and completely
+this is totally and completely unacceptable so we have to find a better
+unacceptable so we have to find a better way ok let's try something new something
+way ok let's try something new something a little more direct a little bit less
+a little more direct a little bit less asking for permission we'll just throw a
+asking for permission we'll just throw a grenade locally we'll just let the
+grenade locally we'll just let the player like he hits the button he runs
+player like he hits the button he runs his animation he throws a grenade and
+his animation he throws a grenade and we'll ask the host to also throw a
+we'll ask the host to also throw a grenade so that everybody else in the
+grenade so that everybody else in the game can tell that we have a grenade in
+game can tell that we have a grenade in flight what if this look like sequence
+flight what if this look like sequence diagram button press we start our
+diagram button press we start our automation immediately it's nice and
+automation immediately it's nice and responsive everybody's happy and
+responsive everybody's happy and playtests huh so good tell the host I've
+playtests huh so good tell the host I've begun a grenade throw host does the same
+begun a grenade throw host does the same thing as he did before triggered his
+thing as he did before triggered his throw animation on the release frame he
+throw animation on the release frame he throws a grenade where's the lag where
+throws a grenade where's the lag where are we hiding the fact that the host is
+are we hiding the fact that the host is adjudicating the grenade throw or is it
+adjudicating the grenade throw or is it judicata the fact that in the end the
+judicata the fact that in the end the grenades damage will be owned by the
+grenades damage will be owned by the host the answer is there isn't any lag
+host the answer is there isn't any lag in this scenario we have not hidden the
+in this scenario we have not hidden the lag anywhere in this diagram we have
+lag anywhere in this diagram we have never asked the host for permission
+never asked the host for permission which means does not mean that we've
+which means does not mean that we've succeeded
+succeeded you do not want this you very much do
+you do not want this you very much do not want this this means you have
+not want this this means you have incurred latency debt you have created
+incurred latency debt you have created an artifact a dissimilarity and a
+an artifact a dissimilarity and a synchronicity in your simulation which
+synchronicity in your simulation which you will have to pay for in some way
+you will have to pay for in some way either you will have unhappy players due
+either you will have unhappy players due to inconsistent results in the game or
+to inconsistent results in the game or you will have some sort of warp later on
+you will have some sort of warp later on or you'll have additional code
+or you'll have additional code complexity to try to reconcile things in
+complexity to try to reconcile things in flight you have to pay for this sort of
+flight you have to pay for this sort of thing somehow ok so let's look at the
+thing somehow ok so let's look at the actual way we do grenade throws just
+actual way we do grenade throws just like in the second option we predict the
+like in the second option we predict the throw animation so as soon as you push
+throw animation so as soon as you push the trigger button on a client machine
+the trigger button on a client machine you immediately begin your throw
+you immediately begin your throw there's no controller input latency but
+there's no controller input latency but we do not predict the grenade release we
+we do not predict the grenade release we wait for the hosts this means that all
+wait for the hosts this means that all grenades in flight will be real the host
+grenades in flight will be real the host is authoritative we haven't incurred any
+is authoritative we haven't incurred any lag debt but where is the lag in this
+lag debt but where is the lag in this view somewhere we're paying for a
+view somewhere we're paying for a round-trip time let's take a look
+round-trip time let's take a look similar to before client pushes a button
+similar to before client pushes a button tells the host host does it's so far so
+tells the host host does it's so far so good
+good oh but at the moment when the client
+oh but at the moment when the client reaches his release frame he does not
+reaches his release frame he does not throw the grenade as we said the host
+throw the grenade as we said the host must be authoritative over all grenades
+must be authoritative over all grenades in flight he deletes the grenade so he
+in flight he deletes the grenade so he gets to here and the grenade vanishes
+gets to here and the grenade vanishes from his hand and he continues his
+from his hand and he continues his animation at the same time as he reached
+animation at the same time as he reached that release frame and deleted the
+that release frame and deleted the grenade he sends off a message to the
+grenade he sends off a message to the host please create a grenade with this
+host please create a grenade with this aiming information round-trip time later
+aiming information round-trip time later the host comes back and says yep this
+the host comes back and says yep this grenade object got created here his
+grenade object got created here his position and velocity and the grenade
+position and velocity and the grenade appears where we put the leg fairly
+appears where we put the leg fairly straightforward right here you could
+straightforward right here you could tell you see this pattern over and over
+tell you see this pattern over and over it's a call in response to say please do
+it's a call in response to say please do this thing okay here's the feedback from
+this thing okay here's the feedback from it clearly round-trip time how is this
+it clearly round-trip time how is this better than the other way well that's
+better than the other way well that's where networking becomes a bit more of
+where networking becomes a bit more of an art than a science this is much much
+an art than a science this is much much better than the original solution where
+better than the original solution where we asked for permission before we
+we asked for permission before we triggered the animation
+triggered the animation two reasons one players are extremely
+two reasons one players are extremely sensitive to input lag they're extremely
+sensitive to input lag they're extremely sensitive to anything any button they
+sensitive to anything any button they can push on the controller that doesn't
+can push on the controller that doesn't cause some reaction immediately in the
+cause some reaction immediately in the game so having that arm start moving
+game so having that arm start moving immediately is infinitely preferable
+immediately is infinitely preferable second during the time of this lag
+second during the time of this lag during the time between the normal
+during the time between the normal release frame and the frame when the
+release frame and the frame when the grenade actually appears round-trip time
+grenade actually appears round-trip time later there's a giant arm on the screen
+later there's a giant arm on the screen it's covering like a third of the screen
+it's covering like a third of the screen it's moving really fast got really high
+it's moving really fast got really high res textures on it it's got all my
+res textures on it it's got all my custom crap on it that I've bought with
+custom crap on it that I've bought with all my credits it's really distracting
+all my credits it's really distracting not only that I'm probably not looking
+not only that I'm probably not looking at what's in my hand I'm probably still
+at what's in my hand I'm probably still looking down my crosshair it is to make
+looking down my crosshair it is to make sure that I'm aiming my grenade
+sure that I'm aiming my grenade correctly players don't notice they
+correctly players don't notice they literally don't see this this can get up
+literally don't see this this can get up to a hundred even 150 milliseconds
+to a hundred even 150 milliseconds casual players and getting to 200 before
+casual players and getting to 200 before they notice anything this is completely
+they notice anything this is completely shippable this is how we've shipped
+shippable this is how we've shipped grenade throws of earth for three games
+grenade throws of earth for three games now fortunately having such a beautiful
+now fortunately having such a beautiful grenade throw networking allows us to
+grenade throw networking allows us to get results like this
+[Music]
+okay that may have been a little the grenade example may have been a little
+grenade example may have been a little artificial we never actually shipped any
+artificial we never actually shipped any of those earlier sort of our made-up
+of those earlier sort of our made-up methods of networking grenades the
+methods of networking grenades the suboptimal methods let's look at some
+suboptimal methods let's look at some trickier game play examples let's look
+trickier game play examples let's look at some features that actually were in
+at some features that actually were in reach that had multiple iterations of
+reach that had multiple iterations of networking some of which we shipped in
+networking some of which we shipped in our public beta that were deeply flawed
+our public beta that were deeply flawed okay first up our merlok let's take a
+okay first up our merlok let's take a look at what our milan armor lock is an
+look at what our milan armor lock is an invincibility shield player pushes a
+invincibility shield player pushes a button there's an intro animation during
+button there's an intro animation during which he drops into this locked pose at
+which he drops into this locked pose at the end of that intro animation which is
+the end of that intro animation which is three frames long incidentally very
+three frames long incidentally very important three frames he gets
+important three frames he gets invulnerability and also infinite mass
+he has that for some period of time and then he'll release the button or run out
+then he'll release the button or run out of energy and his shield will go away
+of energy and his shield will go away seems like a fun mechanic how should we
+seems like a fun mechanic how should we network this first version we did all
+network this first version we did all the animations the entry into a into an
+the animations the entry into a into an armor lock pose and the appearance of
+armor lock pose and the appearance of the blue shield and the infinite mass on
+the blue shield and the infinite mass on in the physics simulation all were
+in the physics simulation all were predicted by clients so you locally when
+predicted by clients so you locally when you decided to use armor lock would
+you decided to use armor lock would activate all the attributes of armor
+activate all the attributes of armor lock in your simulation this felt great
+lock in your simulation this felt great this played great in our system length
+this played great in our system length play tests in our land play tests at in
+play tests in our land play tests at in the office we had this in for a few
+the office we had this in for a few months and then we started doing take
+months and then we started doing take homes where we load the game up put two
+homes where we load the game up put two boxes and take it home and and play
+boxes and take it home and and play together and we discovered where the lag
+together and we discovered where the lag was let's look at armor lock v1 the
+was let's look at armor lock v1 the client pushes a button he begins his
+client pushes a button he begins his animation immediately everything's
+animation immediately everything's responsive there's a three frame delay
+responsive there's a three frame delay here tells the host hey I've activated
+here tells the host hey I've activated my armor lock host runs the intro when
+my armor lock host runs the intro when the intro animation completes on the
+the intro animation completes on the client he gets invulnerability as
+client he gets invulnerability as depicted by this green box
+depicted by this green box when it completes on the host he also
+when it completes on the host he also gets invulnerability on system lengths
+gets invulnerability on system lengths this worked great
+this worked great what's the vulnerability where is the
+what's the vulnerability where is the lag that's right here grenade explodes
+lag that's right here grenade explodes on the host it's very very special time
+on the host it's very very special time what does this do well host evaluates it
+what does this do well host evaluates it this is okay grant exploded you're not
+this is okay grant exploded you're not invulnerable yet you're still playing
+invulnerable yet you're still playing your intro animation so I'm going to
+your intro animation so I'm going to damage you hey by the way this grenade
+damage you hey by the way this grenade blew up
+blew up you just took damage the client says oh
+you just took damage the client says oh sure that's what makes sense I took
+sure that's what makes sense I took damage no he does not he says what the
+damage no he does not he says what the hell I was armor locked I did the right
+hell I was armor locked I did the right thing I saw the grenade coming I pushed
+thing I saw the grenade coming I pushed the button I said I fly through the air
+the button I said I fly through the air push the button I was armored a lot I
+push the button I was armored a lot I saw the beautiful blue shield this is
+saw the beautiful blue shield this is blue [ __ ]
+so this was no good we had very furious players I just explained the lag so
+players I just explained the lag so version two let's try it again
+version two let's try it again that version one never saw the light of
+that version one never saw the light of day no no that's too terrible we've
+day no no that's too terrible we've never shipped that version two let's
+never shipped that version two let's have the animation be controlled by the
+have the animation be controlled by the client sort of inspired by the grenade
+client sort of inspired by the grenade or the grenade approach well let the
+or the grenade approach well let the client immediately start his intro
+client immediately start his intro animation but once he reaches the frame
+animation but once he reaches the frame where he would normally enable the
+where he would normally enable the shield he does not enable the shield he
+shield he does not enable the shield he stays unshielded there's no beautiful
+stays unshielded there's no beautiful blue shield
+blue shield there's no infinite mass he waits for
+there's no infinite mass he waits for the host to tell him that he's actually
+the host to tell him that he's actually invincible this is the method we shipped
+invincible this is the method we shipped in our public beta where did we move the
+in our public beta where did we move the lag to here now let's take a look at the
+lag to here now let's take a look at the sequence diagram client begins his
+sequence diagram client begins his animation on button press yadda yadda
+animation on button press yadda yadda tell the host host runs the intro client
+tell the host host runs the intro client finishes his intro animation does not
+finishes his intro animation does not turn on a shield as we said host
+turn on a shield as we said host completes turns on the real shield and
+completes turns on the real shield and then he tells the client hey you're
+then he tells the client hey you're vulnerable now you can turn on your blue
+vulnerable now you can turn on your blue shield and your infinite mass
+shield and your infinite mass everything's great there's a really
+everything's great there's a really ominous hole there in that diagram
+ominous hole there in that diagram and indeed same exact vulnerability just
+and indeed same exact vulnerability just a little less obvious grenade explodes
+a little less obvious grenade explodes here hey by the way you got damaged
+here hey by the way you got damaged again just like last time and client did
+again just like last time and client did not have a blue shield so he doesn't
+not have a blue shield so he doesn't have any real strong reason to believe
+have any real strong reason to believe that he's invulnerable so in some sense
+that he's invulnerable so in some sense this is consistent networking is this
+this is consistent networking is this correct networking players unfortunately
+correct networking players unfortunately are not very understanding a bit of this
+are not very understanding a bit of this and they say why does my armor lock not
+and they say why does my armor lock not work properly like this mechanic is
+work properly like this mechanic is broken this shift in our public beta
+broken this shift in our public beta million people played this and they told
+million people played this and they told us loud and clear this was not
+us loud and clear this was not acceptable well actually they well they
+acceptable well actually they well they told us loud and clear and also we day
+told us loud and clear and also we day to mind their use of the equipment and
+to mind their use of the equipment and discovered that our lock was not as
+discovered that our lock was not as popular as the others so we knew we had
+popular as the others so we knew we had something we had a problem we needed to
+something we had a problem we needed to fix this lag shows up there it's just
+fix this lag shows up there it's just wonderful period of sort of broken
+wonderful period of sort of broken mechanics from the player's perspective
+mechanics from the player's perspective so we implemented a version 3 for ship
+so we implemented a version 3 for ship with one last tweak one very evil tweak
+with one last tweak one very evil tweak let's take a look same thing as before
+let's take a look same thing as before client begins his animation he does not
+client begins his animation he does not turn on his shield when he finishes it
+turn on his shield when he finishes it tells the host standard stuff oh this is
+tells the host standard stuff oh this is different why did we just do we just
+different why did we just do we just said instead of waiting for the three
+said instead of waiting for the three frame delay to trigger invulnerability
+frame delay to trigger invulnerability on the host we shrink that three frame
+on the host we shrink that three frame delay by the measured round-trip time
+delay by the measured round-trip time between the host and the using client
+what is this pain well means this we activate the shield on the host early
+activate the shield on the host early before the intro animation actually ends
+before the intro animation actually ends so somewhere up here the shield will
+so somewhere up here the shield will activate instead of down here where it
+activate instead of down here where it should and then we tell the client and
+should and then we tell the client and lo and behold it lines up with where he
+lo and behold it lines up with where he expects to see his armor lock activate
+expects to see his armor lock activate it's almost like we planned that and we
+it's almost like we planned that and we did but it's obvious right by shrinking
+did but it's obvious right by shrinking the frame delay by round-trip time we
+the frame delay by round-trip time we have exactly brought that we've paid for
+have exactly brought that we've paid for the lag we have brought the host time
+the lag we have brought the host time stream up forward in time so
+stream up forward in time so the client can see a consistent view of
+the client can see a consistent view of the world and we haven't incurred
+the world and we haven't incurred latency debt the world's consistent
+latency debt the world's consistent there's not something out of sync that's
+there's not something out of sync that's waiting to bite us later so what did we
+waiting to bite us later so what did we just do like grenades it can explode
+just do like grenades it can explode everything's fine everyone's always in
+everything's fine everyone's always in sync there's everything works great
+sync there's everything works great players are happy what do we do this
+players are happy what do we do this feels too good to be true what we did
+feels too good to be true what we did was we broke the game mechanic in a very
+was we broke the game mechanic in a very targeted way we went in there and we
+targeted way we went in there and we grabbed the frame delay number that the
+grabbed the frame delay number that the designers had so carefully tweaked with
+designers had so carefully tweaked with so much love and we slammed over it for
+so much love and we slammed over it for networking we actually changed the way
+networking we actually changed the way the game played we changed the real
+the game played we changed the real simulation this is the pretty much the
+simulation this is the pretty much the only other way that we have yet found
+only other way that we have yet found that you can hide latency other than
+that you can hide latency other than paying for a round-trip time or
+paying for a round-trip time or reconciling afterwards you can change
+reconciling afterwards you can change game mechanics fortunately we got away
+game mechanics fortunately we got away with this because players it was
+with this because players it was discovered once again somewhat by luck
+discovered once again somewhat by luck players do not care that someone else's
+players do not care that someone else's armor lock activates a couple frames
+armor lock activates a couple frames early sometimes they care but rarely
+early sometimes they care but rarely they care tremendously that their armor
+they care tremendously that their armor lock activates on exactly the correct
+lock activates on exactly the correct frame because they are very attuned to
+frame because they are very attuned to that timing so we got away with it we
+that timing so we got away with it we shifted the lag by changing the game
+shifted the lag by changing the game mechanic we shifted the inconsistency
+mechanic we shifted the inconsistency from the player who cares a lot who's
+from the player who cares a lot who's using armor lock to the host and all the
+using armor lock to the host and all the other players in the game who don't care
+other players in the game who don't care as much just let us ship another
+as much just let us ship another wonderful feature
+tie the leader
+double kill
+I'm really infinite mass I mentioned that's why they wanted that turns out it
+that's why they wanted that turns out it when a rigidbody hit something with
+when a rigidbody hit something with infinite mass you know the mass doesn't
+infinite mass you know the mass doesn't give the rich body has to give entirely
+give the rich body has to give entirely so we deals with more or less infinite
+so we deals with more or less infinite damage all right third example another
+damage all right third example another reach mechanic that shipped with
+reach mechanic that shipped with somewhat broken networking in the beta
+somewhat broken networking in the beta assassinations let's look at what these
+assassinations let's look at what these are first strike the lead these were a
+are first strike the lead these were a signature multiplayer feature for us in
+signature multiplayer feature for us in reach we wanted to provide an exciting
+reach we wanted to provide an exciting way to sort of take a take a small risk
+way to sort of take a take a small risk and humiliate another player so what
+and humiliate another player so what does this mean in terms of what are the
+does this mean in terms of what are the high level of problem we're trying to
+high level of problem we're trying to solve you have to buy pads that are
+solve you have to buy pads that are happily running along in their own
+happily running along in their own simulations they're both predicting
+simulations they're both predicting their current positions as I mean
+their current positions as I mean they're both clients they are somewhat
+they're both clients they are somewhat ahead of what the host believes their
+ahead of what the host believes their head by one way one way network time to
+head by one way one way network time to the host of the host current simulation
+the host of the host current simulation and then suddenly out of the blue we
+and then suddenly out of the blue we need to force these two bipeds to
+need to force these two bipeds to perform a joint perfectly synchronized
+perform a joint perfectly synchronized animation with very very tiny error
+animation with very very tiny error margins the animators have carefully
+margins the animators have carefully scripted this so that the knife slides
+scripted this so that the knife slides exactly between the 13th and 14th rib of
+exactly between the 13th and 14th rib of the elite whatever their Anatomy is they
+the elite whatever their Anatomy is they do not we can't fudge this this has to
+do not we can't fudge this this has to be precisely accurate this turned out to
+be precisely accurate this turned out to be something we had never really done
+be something we had never really done before in multiplayer so we implemented
+before in multiplayer so we implemented a system which we shipped in the public
+a system which we shipped in the public beta local prediction of participant
+beta local prediction of participant positions and orientations what do I
+positions and orientations what do I mean by this what this means is when the
+mean by this what this means is when the assassination order comes down from the
+assassination order comes down from the host which says these two players have
+host which says these two players have just begun assassinating each other each
+just begun assassinating each other each individual box is permitted to make that
+individual box is permitted to make that assassination occur in whatever location
+assassination occur in whatever location is most convenient most pretty for them
+is most convenient most pretty for them based on their current beliefs about the
+based on their current beliefs about the positions of those two objects so
+positions of those two objects so everyone runs the assassin
+everyone runs the assassin in a slightly different spot potentially
+in a slightly different spot potentially with a slightly different animation so
+with a slightly different animation so that it can fit in that spot and we
+that it can fit in that spot and we thought this would be great because it
+thought this would be great because it would minimize lag on the way into the
+would minimize lag on the way into the animation it would solve this problem we
+animation it would solve this problem we were very afraid of which was all these
+were very afraid of which was all these bipeds are in their own little
+bipeds are in their own little predictive futures and we need to bring
+predictive futures and we need to bring them back into the into the hosts
+them back into the into the hosts present that seems like it's gonna cause
+present that seems like it's gonna cause artifacts so we did this and it did work
+artifacts so we did this and it did work that way like it definitely prevented
+that way like it definitely prevented lag on the way into assassinations and
+lag on the way into assassinations and it worked really well in our play tests
+it worked really well in our play tests and take-homes unfortunately it totally
+and take-homes unfortunately it totally failed in the public beta let's take a
+failed in the public beta let's take a look at some of the bug videos from our
+look at some of the bug videos from our wonderful bug database they came back
+wonderful bug database they came back from the beta
+this one's my favorite this black screen is what you see in a film when there was
+is what you see in a film when there was a host migration
+it will surprise very few of the programmers in the audience to learn
+programmers in the audience to learn that that location that we got warped
+that that location that we got warped you after the host migration was zero
+you after the host migration was zero zero zero all right so this wasn't very
+zero zero all right so this wasn't very good there were clearly a lot of
+good there were clearly a lot of problems they fell broadly into two
+problems they fell broadly into two categories first the animations didn't
+categories first the animations didn't always fit in the predicted positions on
+always fit in the predicted positions on client machines clients would decide
+client machines clients would decide okay to minimize network lag I'm gonna
+okay to minimize network lag I'm gonna run the assasination over here in this
+run the assasination over here in this corner but turned out there sometimes
+corner but turned out there sometimes was no assassination that animation that
+was no assassination that animation that would fit there so they would try and
+would fit there so they would try and then the system would panic and havoc
+then the system would panic and havoc would freak out because you're pushing
+would freak out because you're pushing people through walls and then we would
+people through walls and then we would break up break apart the assassination
+break up break apart the assassination you get people pushing through walls you
+you get people pushing through walls you see all the artifacts who saw in those
+see all the artifacts who saw in those bug videos second class of bug was at
+bug videos second class of bug was at the end of the animation any survivors
+the end of the animation any survivors need to get back in sync on all boxes
+need to get back in sync on all boxes remember we allowed every peer to play
+remember we allowed every peer to play the assassination in a different spot
+the assassination in a different spot which means all the survivors are the
+which means all the survivors are the survivor or both survivors possibly are
+survivor or both survivors possibly are in different spots on every box but when
+in different spots on every box but when you come out and the guys still alive
+you come out and the guys still alive everyone has to get back in sync somehow
+everyone has to get back in sync somehow so our system took care of that of
+so our system took care of that of course if you received position updates
+course if you received position updates we said oh sassá nations aren't
+we said oh sassá nations aren't happening anymore get in sync so there
+happening anymore get in sync so there was those artifacts like what you saw in
+was those artifacts like what you saw in those videos that people like warping
+those videos that people like warping and blending right after the
+and blending right after the assassination but this was totally
+assassination but this was totally unacceptable for one very very specific
+unacceptable for one very very specific reason we just got through playing a
+reason we just got through playing a very expensive very beautiful piece of
+very expensive very beautiful piece of content to draw the attention of every
+content to draw the attention of every player in the game they're all staring
+player in the game they're all staring at this survivor they're all wishing
+at this survivor they're all wishing they were him and then he warps and then
+they were him and then he warps and then we get thousands of forum posts saying
+we get thousands of forum posts saying that our game is laggy and the player
+that our game is laggy and the player perception is everything you can't draw
+perception is everything you can't draw their attention and then have an
+their attention and then have an artifact so there were a couple of fixes
+artifact so there were a couple of fixes to produce the shipping version first
+to produce the shipping version first all peers including the participants
+all peers including the participants obey the host strictly this means that
+obey the host strictly this means that we get rid of the problem of
+we get rid of the problem of discrepancies on exit survivors are
+discrepancies on exit survivors are always in the exact correct position at
+always in the exact correct position at the end of the animation because we paid
+the end of the animation because we paid to get them in sync at the beginning now
+to get them in sync at the beginning now we've still had the original problem
+we've still had the original problem that we were worried about to start with
+that we were worried about to start with of hey on the entry into the
+of hey on the entry into the assassination we have to get rid of all
+assassination we have to get rid of all these discrepancies how are we going to
+these discrepancies how are we going to do that and so we very carefully
+do that and so we very carefully implemented a you know visual only
+implemented a you know visual only object state interpolator so that at the
+object state interpolator so that at the beginning of the assassination all of
+beginning of the assassination all of the havoc state all of the is our true
+the havoc state all of the is our true logical object state would be warped to
+logical object state would be warped to so that the assassination could begin
+so that the assassination could begin and be in be in perfect sync with the
+and be in be in perfect sync with the hosts
+hosts but we delayed bringing the physical and
+but we delayed bringing the physical and our pardon me the collidable and the
+our pardon me the collidable and the renderable properties of the bipeds into
+renderable properties of the bipeds into those locations we blended them over
+those locations we blended them over time using a quick exponential blend for
+time using a quick exponential blend for like three-quarters of a second even
+like three-quarters of a second even that didn't look great when we looked at
+that didn't look great when we looked at it in our debug cameras when our
+it in our debug cameras when our animators looked at this under network
+animators looked at this under network test conditions they said that's nice
+test conditions they said that's nice not gonna work that's totally
+not gonna work that's totally unacceptable there's still these big
+unacceptable there's still these big blends on the way into my beautiful
+blends on the way into my beautiful animation then we played it in game and
+animation then we played it in game and we discovered that once again heaven had
+we discovered that once again heaven had smiled upon us as you may remember from
+smiled upon us as you may remember from the first the video showing how
+the first the video showing how assassinations work when you start an
+assassinations work when you start an assassination on the frame you start the
+assassination on the frame you start the camera pulls out into third person to
+camera pulls out into third person to better show the ballet
+better show the ballet turns out the camera pull to third
+turns out the camera pull to third person takes about three-quarters of a
+person takes about three-quarters of a second and during that time the camera
+second and during that time the camera is traveling at hmm 25 feet per second
+is traveling at hmm 25 feet per second the players perspective is changing so
+the players perspective is changing so fast they can't tell what's happening we
+fast they can't tell what's happening we can blend 20 feet they don't even notice
+can blend 20 feet they don't even notice we tried it
+their brains fill in somehow consistency because they're confused and then they
+because they're confused and then they see the animation happen and then there
+see the animation happen and then there they just backfill like oh that must
+they just backfill like oh that must have been what happened so no visible
+have been what happened so no visible latency no reports of lag out to 300
+latency no reports of lag out to 300 milliseconds or so totally fine
+milliseconds or so totally fine and once again we could ship beautiful
+and once again we could ship beautiful things
+reinforcements
+all right so all of our experiences on reach and on prior games have led us to
+reach and on prior games have led us to these four rules four rules for
+these four rules four rules for designing your game play networking
+designing your game play networking systems first you have to decide for
+systems first you have to decide for each gameplay mechanic and sort of some
+each gameplay mechanic and sort of some some high-level principles as well
+some high-level principles as well which parts of your game are adjudicated
+which parts of your game are adjudicated by a single authority versus the parts
+by a single authority versus the parts that are allowed to be predicted and
+that are allowed to be predicted and allowed to be out of sync for brief
+allowed to be out of sync for brief periods the more stuff is adjudicated by
+periods the more stuff is adjudicated by the authority the fairer and more
+the authority the fairer and more consistent the game is the more stuff
+consistent the game is the more stuff that's predicted the more responsive the
+that's predicted the more responsive the game is most often you will have to mix
+game is most often you will have to mix these paradigms even within every
+these paradigms even within every individual game mechanic as we saw you
+individual game mechanic as we saw you have to split the mechanic up and make
+have to split the mechanic up and make predicted the pretty pieces and make
+predicted the pretty pieces and make adjudicated the important pieces second
+adjudicated the important pieces second always always ask where you're hiding
+always always ask where you're hiding the lag you can save yourself from
+the lag you can save yourself from shipping ugly public beta and networking
+shipping ugly public beta and networking like we did if you have hosts
+like we did if you have hosts adjudication occurring you will have lag
+adjudication occurring you will have lag somewhere if you don't have lag
+somewhere if you don't have lag somewhere you don't have those
+somewhere you don't have those adjudication you have incurred like debt
+adjudication you have incurred like debt third don't be afraid to change game
+third don't be afraid to change game mechanics to improve networking this is
+mechanics to improve networking this is incredibly important we we have in the
+incredibly important we we have in the past several times had gameplay
+past several times had gameplay mechanics that we liked internally that
+mechanics that we liked internally that the design was very happy with and that
+the design was very happy with and that played very well on land games halo 3 is
+played very well on land games halo 3 is shipping melee is a classic example it
+shipping melee is a classic example it was this fairly complex well somewhat
+was this fairly complex well somewhat complex thing where when two players
+complex thing where when two players melee to each other at the same time the
+melee to each other at the same time the player with more health would win the
+player with more health would win the other one would die they felt this added
+other one would die they felt this added tactical depth to the game in practice
+tactical depth to the game in practice on the internet with a few hundred
+on the internet with a few hundred milliseconds of latency you couldn't
+milliseconds of latency you couldn't tell with great precision what the
+tell with great precision what the health of your opponent was versus your
+health of your opponent was versus your own health which meant that when you
+own health which meant that when you went and in melee it felt arbitrary it
+went and in melee it felt arbitrary it felt like sometimes you died sometimes
+felt like sometimes you died sometimes he died you had no control we patched
+he died you had no control we patched three months after ship two
+three months after ship two simplify mail it to tear it down and
+simplify mail it to tear it down and make it this much simpler thing where if
+make it this much simpler thing where if both players shields are relatively low
+both players shields are relatively low they simply both die designers weren't
+they simply both die designers weren't as happy with this it wasn't as
+as happy with this it wasn't as tactically deep but it worked on the
+tactically deep but it worked on the internet it was fun and fair to players
+internet it was fun and fair to players forth this almost goes without saying
+forth this almost goes without saying because it's so common across all of
+because it's so common across all of game to have pardon me and really all of
+game to have pardon me and really all of engineering reserve time to iterate
+engineering reserve time to iterate networking is incredibly hard to get
+networking is incredibly hard to get full test coverage for as all of you
+full test coverage for as all of you who've worked on it know you will test
+who've worked on it know you will test it at your desk you will test it with
+it at your desk you will test it with your coat your co-workers you will have
+your coat your co-workers you will have an army of testers bang on it you will
+an army of testers bang on it you will take it home and play it then you'll
+take it home and play it then you'll hand it off to a publisher alpha with
+hand it off to a publisher alpha with 10,000 participants and an executive at
+10,000 participants and an executive at your publisher will load up their game
+your publisher will load up their game onto a kit onto a retail Xbox and he'll
+onto a kit onto a retail Xbox and he'll put it in his car and he will take it to
+put it in his car and he will take it to his cabin at Whistler and he will plug
+his cabin at Whistler and he will plug it in and he'll boot up your game in his
+it in and he'll boot up your game in his cabin at Whistler up in the trees and
+then he will play and he will proceed to tell you at great length on your
+tell you at great length on your feedback forums how bad your networking
+feedback forums how bad your networking is seriously the Whistler forum thread
+is seriously the Whistler forum thread as it came to be known inside Bungie I'm
+as it came to be known inside Bungie I'm not making this up it actually was the
+not making this up it actually was the source of several significant fixes
+source of several significant fixes between our alpha and Delta because his
+between our alpha and Delta because his connection had attributes we had never
+connection had attributes we had never seen before
+seen before he had latency variants we model the
+he had latency variants we model the latency variance on a connection as like
+latency variance on a connection as like a sort of normal distribution
+a sort of normal distribution his latency variance the square of a
+his latency variance the square of a standard deviation was over 700
+standard deviation was over 700 milliseconds his packets were bouncing
+milliseconds his packets were bouncing around all over the place I don't know
+around all over the place I don't know what the hell there's a buffering he had
+what the hell there's a buffering he had with his ISP up there but he had
+with his ISP up there but he had unbelievably interesting bugs and he got
+unbelievably interesting bugs and he got the game into all kinds of crazy states
+the game into all kinds of crazy states because of his bad network and we were
+because of his bad network and we were able to go in and fix them took a lot of
+able to go in and fix them took a lot of time so reserve that time all right
+time so reserve that time all right after you've got your architecture and
+after you've got your architecture and after you've networked your gameplay you
+after you've networked your gameplay you have to go in and measure and optimize
+have to go in and measure and optimize your networking to make sure that it's
+your networking to make sure that it's actually as efficient as it as it needs
+actually as efficient as it as it needs to be this is really really hard for
+to be this is really really hard for networking unfortunately both because of
+networking unfortunately both because of the test coverage problem which we just
+the test coverage problem which we just talked about and because networking is a
+talked about and because networking is a magnet for entropy it's a very very
+magnet for entropy it's a very very complex system it gets more complex all
+complex system it gets more complex all the time because there's always tons of
+the time because there's always tons of impetus to optimize it it's invisible
+impetus to optimize it it's invisible it's only really noticed when it goes
+it's only really noticed when it goes wrong and perhaps most insidiously
+wrong and perhaps most insidiously networking has to work on an unreliable
+networking has to work on an unreliable underlying layer on the internet which
+underlying layer on the internet which means it has tons and tons of internal
+means it has tons and tons of internal safeguards and fail overs which means
+safeguards and fail overs which means that if you have some system that is
+that if you have some system that is horribly broken somewhere in your
+horribly broken somewhere in your networking tree you probably won't
+networking tree you probably won't notice it for a very long time because
+notice it for a very long time because one of the failed one of the safeguards
+one of the failed one of the safeguards will save you while consuming a ton of
+will save you while consuming a ton of extra bandwidth or being inefficient in
+extra bandwidth or being inefficient in some other way at the end of Halo 3 and
+some other way at the end of Halo 3 and when he'll tree shipped we had built up
+when he'll tree shipped we had built up a couple games worth this sort of
+a couple games worth this sort of entropy and as a result 16 player games
+entropy and as a result 16 player games in Halo 3 did not work very consistently
+in Halo 3 did not work very consistently there were a great percentage of lag
+there were a great percentage of lag artifacts and so this richest most
+artifacts and so this richest most complex most chaotic version of Halo
+complex most chaotic version of Halo which we all loved so much didn't really
+which we all loved so much didn't really work very well on the internet and we
+work very well on the internet and we were sad so we said hey let's go in
+were sad so we said hey let's go in let's attack it let's optimize it
+optimization is super dangerous it's really easy using your expert knowledge
+really easy using your expert knowledge of the system and your belief that you
+of the system and your belief that you yourself are a smart person which we all
+yourself are a smart person which we all share I'm sure to think about the
+share I'm sure to think about the architecture of your networking decide
+architecture of your networking decide something that seems like it could be
+something that seems like it could be better implement an optimization gain
+better implement an optimization gain some small amount of efficiency and
+some small amount of efficiency and introduce a ton of bugs again this all
+introduce a ton of bugs again this all comes back to test coverage you can't
+comes back to test coverage you can't really fully test your networking or
+really fully test your networking or it's incredibly incredibly hard and
+it's incredibly incredibly hard and requires just vast vast resources
+requires just vast vast resources so changing architecture has to be
+so changing architecture has to be something that has to be done very very
+something that has to be done very very deliberate
+deliberate what this means is the kinds of
+what this means is the kinds of optimizations you will think of from
+optimizations you will think of from thinking about how your architecture
+thinking about how your architecture currently works will usually not be the
+currently works will usually not be the best bang for the buck really we don't
+best bang for the buck really we don't want to be optimizing without good data
+want to be optimizing without good data we don't want to just be you know going
+we don't want to just be you know going in and thinking about functions that are
+in and thinking about functions that are slow on a CPU optimizing or events we
+slow on a CPU optimizing or events we think are big on on Network optimizing
+think are big on on Network optimizing and going and go in and change them what
+and going and go in and change them what we want is data this is one of my
+we want is data this is one of my favorite quotes and the other Michael
+favorite quotes and the other Michael Jackson
+first rule of program optimization don't do it
+do it second rule for experts only don't do it
+second rule for experts only don't do it yet well we knew we knew we needed to do
+yet well we knew we knew we needed to do it unfortunately we couldn't follow mr.
+it unfortunately we couldn't follow mr. Jackson's advice so inspection tools are
+Jackson's advice so inspection tools are what you need to get past this problem
+what you need to get past this problem to get to where it's okay to optimize
+to get to where it's okay to optimize deep inspection tools will help you
+deep inspection tools will help you identify the things that are the best
+identify the things that are the best bang for the buck so we thought about
+bang for the buck so we thought about this we sort of figured this out we said
+this we sort of figured this out we said okay we need some tools what do we need
+okay we need some tools what do we need well let's think about how we do CPU
+well let's think about how we do CPU optimization like we boot up the game
+optimization like we boot up the game and we run some representative test case
+and we run some representative test case and then we gather data which gives us a
+and then we gather data which gives us a nice hierarchical view of where all of
+nice hierarchical view of where all of our time's going then we figure out the
+our time's going then we figure out the best bang for the buck pieces and
+best bang for the buck pieces and optimize them so we built some profilers
+optimize them so we built some profilers that seemed natural they would track bad
+that seemed natural they would track bad with use for us and priority calculation
+with use for us and priority calculation results and show them on screen let's
+results and show them on screen let's take a look at some of the capabilities
+take a look at some of the capabilities of our profilers that we built so this
+of our profilers that we built so this is from a lab game of reach this video
+is from a lab game of reach this video recording and we bring up this graph
+recording and we bring up this graph view a bunch of configuration stuff at
+view a bunch of configuration stuff at the top data series in the in the center
+the top data series in the in the center and then graphing on the data series at
+and then graphing on the data series at the bottom you can't read these numbers
+the bottom you can't read these numbers or you can see a lot of these lines
+or you can see a lot of these lines don't worry about it not important
+don't worry about it not important what's important is the kind of content
+what's important is the kind of content being presented here the first line here
+being presented here the first line here is showing even the entirety of
+is showing even the entirety of replication used bandwidth the total
+replication used bandwidth the total amount of data being sent now it's split
+amount of data being sent now it's split into five lines this is showing all of
+into five lines this is showing all of our replication bandwidth used by
+our replication bandwidth used by protocol type so state data as one
+protocol type so state data as one events as another control data and then
+events as another control data and then voice
+in particular you can see here well if you could if you take a look at the GC
+you could if you take a look at the GC vault and look at a good resident
+vault and look at a good resident version of the video you can see that
+version of the video you can see that state data takes up about 80% of our
+state data takes up about 80% of our bandwidth hey there's a lot more lines
+bandwidth hey there's a lot more lines now we've just gone another level deeper
+now we've just gone another level deeper we can go inside state data and events
+we can go inside state data and events and look at individual types of events
+and look at individual types of events and individual classes of objects so we
+and individual classes of objects so we can look at bipeds versus weapons versus
+can look at bipeds versus weapons versus items and look at all their bandwidth
+items and look at all their bandwidth use we can go even one level deeper
+use we can go even one level deeper which is shown here we can look at every
+which is shown here we can look at every individual property of every subtype of
+individual property of every subtype of every type of replication so we can look
+every type of replication so we can look at biped positions and compare them to
+at biped positions and compare them to weapon inventories all of this data is
+weapon inventories all of this data is shown of course with a nice graphing
+shown of course with a nice graphing view so you can see which types are
+view so you can see which types are spiky very very important in any kind of
+spiky very very important in any kind of optimization now this is all very useful
+optimization now this is all very useful this gives us a nice like sort of a
+this gives us a nice like sort of a high-level classification based view of
+high-level classification based view of bandwidth use but one other really
+bandwidth use but one other really interesting thing especially in
+interesting thing especially in combination with priority information is
+combination with priority information is per object bandwidth use which I've just
+per object bandwidth use which I've just turned on in the background as a sea of
+turned on in the background as a sea of numbers there our profiler tracks for
+numbers there our profiler tracks for every individual object all of the
+every individual object all of the bandwidth use associated with that
+bandwidth use associated with that object as well as all of the bandwidth
+object as well as all of the bandwidth that the object would like to use in an
+that the object would like to use in an ideal world and it tracks all those and
+ideal world and it tracks all those and shows them here and they're color-coded
+shows them here and they're color-coded by who's using the most bandwidth versus
+by who's using the most bandwidth versus the least and this can let us identify
+the least and this can let us identify things like individual objects that are
+things like individual objects that are sitting off in a corner and chewing up
+sitting off in a corner and chewing up bandwidth for no apparent reason
+bandwidth for no apparent reason which happens all the time so that's our
+which happens all the time so that's our profiling tool we built this and I don't
+profiling tool we built this and I don't know about a month maybe three weeks and
+know about a month maybe three weeks and we decided to go and attack well meeting
+we decided to go and attack well meeting ahead of myself we had one other tool
+ahead of myself we had one other tool besides profilers to work with this tool
+besides profilers to work with this tool is called films films are something
+is called films films are something we've had since halo 3 they provide us
+we've had since halo 3 they provide us with deterministic playback of gameplay
+with deterministic playback of gameplay sessions they're called films instead of
+sessions they're called films instead of deterministic playback of gameplay
+deterministic playback of gameplay sessions because they're a user facing
+sessions because they're a user facing feature players can actually record
+feature players can actually record their gameplay sessions and and play
+their gameplay sessions and and play them back these are very very useful for
+them back these are very very useful for debugging gameplay but they've never
+debugging gameplay but they've never been really the very
+been really the very for Network debugging because network
+for Network debugging because network systems are of course idle during film
+systems are of course idle during film playback networking is all about live
+playback networking is all about live decisions it's all about looking at the
+decisions it's all about looking at the current state of the internet and making
+current state of the internet and making decisions so that was sort of neat so we
+decisions so that was sort of neat so we looked at these and we said hey we've
+looked at these and we said hey we've got this profiler on the one hand seems
+got this profiler on the one hand seems pretty sweet we got these films on the
+pretty sweet we got these films on the other hand everyone loves although the
+other hand everyone loves although the gameplay guys sort of thumb their noses
+gameplay guys sort of thumb their noses at us with their incredibly easy to
+at us with their incredibly easy to repro bugs and we said hey these things
+repro bugs and we said hey these things sure would taste good together can we
+sure would taste good together can we make that happen and of course we're
+make that happen and of course we're engineers we can so we spliced the
+engineers we can so we spliced the network profiler data into the film at
+network profiler data into the film at the times when gameplay was occurring so
+the times when gameplay was occurring so after every frame of gameplay we would
+after every frame of gameplay we would inject a little debug blob into our
+inject a little debug blob into our films that's being they're being
+films that's being they're being streamed out to the console hard drive
+streamed out to the console hard drive containing all of the new network state
+containing all of the new network state that was sampled during that frame so
+that was sampled during that frame so all the information about every packet
+all the information about every packet we sent and received and all the
+we sent and received and all the prioritization decisions for the first
+prioritization decisions for the first time in Halo history we could analyze
+time in Halo history we could analyze network performance after the fact which
+network performance after the fact which just enabled all kinds of wonderful deep
+just enabled all kinds of wonderful deep investigations we'd never been able to
+investigations we'd never been able to do before all right
+do before all right profilers and films are all very well
+profilers and films are all very well but we still need some way to actually
+but we still need some way to actually gather data to actually figure out
+gather data to actually figure out whether the game is working well so when
+whether the game is working well so when you play test we need to play the game
+you play test we need to play the game that's the the ultimate test till we ran
+that's the the ultimate test till we ran network / focused play tests about once
+network / focused play tests about once a month we ran network filters on all
+a month we ran network filters on all the boxes in the lab so that we could
+the boxes in the lab so that we could simulate all kinds of different network
+simulate all kinds of different network conditions packet loss limited bandwidth
+conditions packet loss limited bandwidth latency spikes brief connection drops
+latency spikes brief connection drops all sorts things like that and then we
+all sorts things like that and then we had players play and then we ran up into
+had players play and then we ran up into a problem very quickly players can play
+a problem very quickly players can play and they can sort of tell us whether
+and they can sort of tell us whether they had a good time or not whether they
+they had a good time or not whether they thought the networking was laggy or not
+thought the networking was laggy or not which incidentally correlates almost
+which incidentally correlates almost perfectly with whether they won or not
+but really this wasn't very scientific and it wasn't very granular it wasn't
+and it wasn't very granular it wasn't helping us figure out whether we were
+helping us figure out whether we were actually making our networking better we
+actually making our networking better we needed a more
+needed a more scientific way to measure success so
+scientific way to measure success so what did we do we allow players to
+what did we do we allow players to report every time they see lag by
+report every time they see lag by pushing a controller button especially a
+pushing a controller button especially a sign for that purpose in these play
+sign for that purpose in these play tests this injects an additional debug
+tests this injects an additional debug blob into the wonderful film allowing us
+blob into the wonderful film allowing us to jump to it later and look at what
+to jump to it later and look at what they saw and investigate why they saw
+they saw and investigate why they saw lag this is how we turned this from an
+lag this is how we turned this from an art a guessing based game and an
+art a guessing based game and an incredibly labor-intensive game into a
+incredibly labor-intensive game into a science when we could run the game at
+science when we could run the game at our bandwidth goals and get no perceived
+our bandwidth goals and get no perceived lag events coming out of the players we
+lag events coming out of the players we knew we had succeeded there were a few
+knew we had succeeded there were a few bumps along the way most notably as we
+bumps along the way most notably as we went through our network optimizations
+went through our network optimizations we started discovering that perceived
+we started discovering that perceived lag events we're still getting put in by
+lag events we're still getting put in by players they were still pushing the
+players they were still pushing the button we didn't understand it we would
+button we didn't understand it we would go in and we would look at the at their
+go in and we would look at the at their films and look at what they saw and they
+films and look at what they saw and they didn't see any lag there was no network
+didn't see any lag there was no network loggers plenty of bandwidth available
+loggers plenty of bandwidth available instead they would push this button
+instead they would push this button whenever some game mechanic confused
+whenever some game mechanic confused them if they got shot from behind by two
+them if they got shot from behind by two guys at once and the Deaf camera didn't
+guys at once and the Deaf camera didn't show them how they got killed clearly
+show them how they got killed clearly enough they would hit the button it like
+enough they would hit the button it like that looked laggy it got incredibly
+that looked laggy it got incredibly subtle things like the at one point we
+subtle things like the at one point we had it were tuning grenade damage in the
+had it were tuning grenade damage in the Alpha and grenades were tuned up
+Alpha and grenades were tuned up somewhat from from their halo 3 level so
+somewhat from from their halo 3 level so a grenade could kill you in one shot
+a grenade could kill you in one shot much more much more often than at a
+much more much more often than at a larger distance and in pre-alpha nerf
+larger distance and in pre-alpha nerf network earth tests we got a significant
+network earth tests we got a significant number of perceived lag events inserted
+number of perceived lag events inserted when players would get killed by these
+when players would get killed by these grenades because getting killed in one
+grenades because getting killed in one shot from nearly full health is very
+shot from nearly full health is very confusing and feels very disorienting so
+confusing and feels very disorienting so we would bring these things to our
+we would bring these things to our designers and send them these little sub
+designers and send them these little sub snippets of films and say hey these game
+snippets of films and say hey these game mechanics are confusing players they
+mechanics are confusing players they think they're laggy and we had science
+think they're laggy and we had science to back it up all right
+to back it up all right the culmination of all of this
+the culmination of all of this I'm gonna show you the same section of
+I'm gonna show you the same section of gameplay that we looked at before I'm
+gameplay that we looked at before I'm gonna talk about everything working
+gonna talk about everything working together so this is not a live game it's
+together so this is not a live game it's not a video of a live game this is a
+not a video of a live game this is a video of one of our films playing back
+video of one of our films playing back so we can go into third-person and view
+so we can go into third-person and view the game from different perspectives we
+the game from different perspectives we can fly the camera around and view
+can fly the camera around and view what's happening in the game to our
+what's happening in the game to our hearts content even more powerfully we
+hearts content even more powerfully we can rewind we can go back and we can
+can rewind we can go back and we can view a questionable section of the game
+view a questionable section of the game over and over with these powerful
+over and over with these powerful profiling tools available to us there is
+profiling tools available to us there is no excuse to us for not tracking down
+no excuse to us for not tracking down lag problems given this tool set of
+lag problems given this tool set of course it gets even more interesting all
+course it gets even more interesting all the so I've shown you up until now is
+the so I've shown you up until now is all of the network data of the host box
+all of the network data of the host box in one big bucket like the graph is
+in one big bucket like the graph is showing all the bandwidth use of the
+showing all the bandwidth use of the host to all clients that's not really
+host to all clients that's not really the most interesting thing the most
+the most interesting thing the most interesting thing is this which looks
+interesting thing is this which looks sort of the same to you but you have to
+sort of the same to you but you have to take my word for it this is showing
+take my word for it this is showing bandwidth as sent to the particular
+bandwidth as sent to the particular client there with the sword only this is
+client there with the sword only this is the contents of the packets that we were
+the contents of the packets that we were sent we sent to him in this game at this
+sent we sent to him in this game at this time we can also go in and look at a
+time we can also go in and look at a particular object like this shotgun and
+particular object like this shotgun and press a button and filter all of our
+press a button and filter all of our data being sent to that one Lille with
+data being sent to that one Lille with that one guy with the sword to show only
+that one guy with the sword to show only data sent about that shotgun
+data sent about that shotgun similarly this biped we can say oh this
+similarly this biped we can say oh this is all the stuff we transmitted about
+is all the stuff we transmitted about that biped this is the total output of
+that biped this is the total output of our prioritisation systems the movement
+our prioritisation systems the movement of that guy recently every attribute
+of that guy recently every attribute would care about but these are still one
+would care about but these are still one second averages oh we can get way more
+second averages oh we can get way more detail than that we have all the data we
+detail than that we have all the data we can show every single packet that we
+can show every single packet that we sent to this client and look inside them
+sent to this client and look inside them in this very visual way to see exactly
+in this very visual way to see exactly which packets included updates about
+which packets included updates about this guy what properties they included
+this guy what properties they included we can scroll through time we can scrub
+we can scroll through time we can scrub back and forth exactly like we could
+back and forth exactly like we could before
+this whole picture is what allowed us to reduce the overall bandwidth use of Halo
+reduce the overall bandwidth use of Halo 3 heard me halo reach from halo 3 by
+3 heard me halo reach from halo 3 by over 80% the total time for development
+over 80% the total time for development of these tools the film integration and
+of these tools the film integration and the various visualizers somewhere on the
+the various visualizers somewhere on the order of 6 weeks plus a significant
+order of 6 weeks plus a significant amount of time ongoing reviewing
+amount of time ongoing reviewing perceived like events after play tests
+perceived like events after play tests all right so we took this wonderful
+all right so we took this wonderful process taking you back in time again
+process taking you back in time again we're at the end of halo 3 we're
+we're at the end of halo 3 we're starting up a reach we built this
+starting up a reach we built this beautiful toolset we integrated it into
+beautiful toolset we integrated it into our films we Unleashed it on Halo 3 on
+our films we Unleashed it on Halo 3 on internal builds we said let's see what
+internal builds we said let's see what we find I wonder what the what the
+we find I wonder what the what the problem is and we got this wonderful
+problem is and we got this wonderful high-level breakdown of data and this is
+high-level breakdown of data and this is the first thing we harvested this is
+the first thing we harvested this is even before we had network per fly tests
+even before we had network per fly tests and we got ok 50% of our data as
+and we got ok 50% of our data as positions velocities and orientations
+positions velocities and orientations 20% player control so forth we said hey
+20% player control so forth we said hey let's go optimize the heavy hitters just
+let's go optimize the heavy hitters just like we wouldn't CPU perf this was a
+like we wouldn't CPU perf this was a false start unfortunately turns out it's
+false start unfortunately turns out it's very very difficult to further optimize
+very very difficult to further optimize positions velocities and orientations
+positions velocities and orientations this is very much like seeing your math
+this is very much like seeing your math functions and your CPU profiles they are
+functions and your CPU profiles they are things that have to be done a lot
+things that have to be done a lot they're in a lot of algorithms they tend
+they're in a lot of algorithms they tend to be already fairly optimal because
+to be already fairly optimal because everyone working on them knows they're
+everyone working on them knows they're gonna be used a lot and so they we
+gonna be used a lot and so they we didn't get much out of it they were
+didn't get much out of it they were already pretty optimal from even their
+already pretty optimal from even their original implementations so we need to
+original implementations so we need to go up to a higher level here are some
+go up to a higher level here are some good optimizations first reducing
+good optimizations first reducing always-on bandwidth use this was sort of
+always-on bandwidth use this was sort of a traditional networking optimization we
+a traditional networking optimization we would call it we remove data that was
+would call it we remove data that was duplicated sorry so the control
+duplicated sorry so the control replication from hosts to clients
+replication from hosts to clients accounted for a significant amount of
+accounted for a significant amount of upstream and we looked into it and we
+upstream and we looked into it and we found that it didn't contain positions
+found that it didn't contain positions and orientations and velocities it
+and orientations and velocities it contained things we could compress
+contained things we could compress pretty well so we went in and we removed
+pretty well so we went in and we removed a bunch of data that was duplicated we
+a bunch of data that was duplicated we removed data we could infer in other
+removed data we could infer in other ways and we optimized some encoding by
+ways and we optimized some encoding by hand very carefully and we got this down
+hand very carefully and we got this down about 60% by doing this just because we
+about 60% by doing this just because we knew we had
+knew we had we knew it was a significant amount of
+we knew it was a significant amount of bandwidth we knew it was worth spending
+bandwidth we knew it was worth spending this time so we spent like two weeks on
+this time so we spent like two weeks on this tiny section of code trying to just
+this tiny section of code trying to just hand tweak the hell out of it and this
+hand tweak the hell out of it and this worked out this is the only optimization
+worked out this is the only optimization we implemented that I would consider a
+we implemented that I would consider a success that was actually a networking
+success that was actually a networking optimization but yet I have many more
+optimization but yet I have many more slides let's take a look
+slides let's take a look fixing a prioritization bug so when guys
+fixing a prioritization bug so when guys die in Halo they drop all this crap to a
+die in Halo they drop all this crap to a couple guns couple grenades that sort of
+couple guns couple grenades that sort of thing
+thing these fall to the ground that are
+these fall to the ground that are stimulated by havoc we discovered a
+stimulated by havoc we discovered a problem with the profiler idle grenades
+problem with the profiler idle grenades rolling around on the ground had
+rolling around on the ground had incredibly high Network priority it just
+incredibly high Network priority it just showed up to us like they're using all
+showed up to us like they're using all this bandwidth so they're red on the on
+this bandwidth so they're red on the on the object bandwidth display bring up
+the object bandwidth display bring up the priority profiler is a ton of data
+the priority profiler is a ton of data they're kind of very very high priority
+they're kind of very very high priority numbers showing up and we said what on
+numbers showing up and we said what on earth is going on so we trace it back
+earth is going on so we trace it back and we walked through the prioritization
+and we walked through the prioritization algorithms and we discovered that a bug
+algorithms and we discovered that a bug fix was implemented at the end of Halo 3
+fix was implemented at the end of Halo 3 which was causing this to happen so we
+which was causing this to happen so we traced back why was this done like this
+traced back why was this done like this is crazy why our island Grenada Idol
+is crazy why our island Grenada Idol grenades have such high priority turned
+grenades have such high priority turned out that at the end of Halo three about
+out that at the end of Halo three about two weeks before our sea equipment was
+two weeks before our sea equipment was given a huge priority boost equipment in
+given a huge priority boost equipment in Halo 3 was like these throwable things
+Halo 3 was like these throwable things that could spawn bubble shields or drain
+that could spawn bubble shields or drain people's shields and they were an
+people's shields and they were an equipment was laggy and so they gave it
+equipment was laggy and so they gave it a big priority boost and they said
+a big priority boost and they said alright we're you know that's all that I
+alright we're you know that's all that I tested it worked
+tested it worked turned out through an accident of design
+turned out through an accident of design on the gameplay coders side grenades and
+on the gameplay coders side grenades and equipment had the same parent class
+equipment had the same parent class which was called equipment so all the
+which was called equipment so all the idle grenades on the ground without
+idle grenades on the ground without their pins pulled totally on threatening
+their pins pulled totally on threatening to anyone receive this same priority
+to anyone receive this same priority boost consuming tremendous amounts of
+boost consuming tremendous amounts of bandwidth as they rolled around gently
+bandwidth as they rolled around gently on the ground and waited for someone to
+on the ground and waited for someone to pick them up simple fix one-line apply
+pick them up simple fix one-line apply priority boost only two active equipment
+priority boost only two active equipment this by itself freed up probably 20% of
+this by itself freed up probably 20% of our bandwidth the whole battle was ident
+our bandwidth the whole battle was ident buying the issue alright another example
+buying the issue alright another example a little different changing game
+a little different changing game mechanics halo 3 used a constant
+mechanics halo 3 used a constant artificial friction on items these these
+artificial friction on items these these idle grenades and weapons on the ground
+idle grenades and weapons on the ground as they rolled around on the ground we
+as they rolled around on the ground we we sort we applied this artificial
+we sort we applied this artificial friction to them to keep them from all
+friction to them to keep them from all rolling indefinitely until they reach
+rolling indefinitely until they reach the lowest point in the level the
+the lowest point in the level the problem with this was if you had an
+problem with this was if you had an object on a hill a relatively steep hill
+object on a hill a relatively steep hill the artificial friction would combat
+the artificial friction would combat gravity and keep the object rolling
+gravity and keep the object rolling slowly for a long period of time
+slowly for a long period of time consuming network bandwidth so not that
+consuming network bandwidth so not that relevant to the game so we didn't really
+relevant to the game so we didn't really want this behavior so we went into the
+want this behavior so we went into the item code and the physics code and we
+item code and the physics code and we implemented this fake friction system
+implemented this fake friction system totally arbitrary gameplay code no one
+totally arbitrary gameplay code no one really understood why I was there except
+really understood why I was there except the network encoders but it's this crazy
+the network encoders but it's this crazy thing where designers can say oh yeah
+thing where designers can say oh yeah please apply this friction curve over
+please apply this friction curve over time so that we allow we allow objects
+time so that we allow we allow objects to travel down steep hills at full speed
+to travel down steep hills at full speed without applying any friction to them
+without applying any friction to them whatsoever so they're just subject to
+whatsoever so they're just subject to Newtonian physics once they reach a
+Newtonian physics once they reach a relatively gentle slope we apply this
+relatively gentle slope we apply this friction curve that designers specify
+friction curve that designers specify which starts with low friction and ramps
+which starts with low friction and ramps up over the course of three to four
+up over the course of three to four seconds to infinite friction and bring
+seconds to infinite friction and bring them to a screeching halt so grenades
+them to a screeching halt so grenades dropped on hills would fly down them in
+dropped on hills would fly down them in a couple seconds looking better in the
+a couple seconds looking better in the process if I do say so myself and then
+process if I do say so myself and then come to rest nobody noticed this nobody
+come to rest nobody noticed this nobody the design team cared nobody on the
+the design team cared nobody on the sandbox team cared but this probably say
+sandbox team cared but this probably say is another 10% just because there's so
+is another 10% just because there's so many items players dropped so much stuff
+many items players dropped so much stuff and it gets to cerb so often next
+and it gets to cerb so often next example rag doll network King rag dolls
+example rag doll network King rag dolls are kind of a pain they're deeply deep
+are kind of a pain they're deeply deep physical simulations they have a lot of
+physical simulations they have a lot of nodes that move around there's a lot of
+nodes that move around there's a lot of it's very hard to capture all of their
+it's very hard to capture all of their state in a small package like if you
+state in a small package like if you have a guy who's alive and he's running
+have a guy who's alive and he's running around playing an animation you can
+around playing an animation you can pretty much capture his state as current
+pretty much capture his state as current position direction he's traveling maybe
+position direction he's traveling maybe the animation he's playing and you're
+the animation he's playing and you're done like 100 bits of a deal
+done like 100 bits of a deal ragdolls on the other hand is like oh
+ragdolls on the other hand is like oh god we got to transmit all these bones
+god we got to transmit all these bones they're all physically separate they can
+they're all physically separate they can bounce off things independently what a
+bounce off things independently what a mess
+mess so we always sort of come
+so we always sort of come Krauss we always come up with different
+Krauss we always come up with different compromises trying to network less of
+compromises trying to network less of like some subsections the ragdoll never
+like some subsections the ragdoll never looked that great it burned a lot of
+looked that great it burned a lot of bandwidth so we said hey do we have to
+bandwidth so we said hey do we have to network ragdolls like really so we're
+network ragdolls like really so we're trying we're trying to turn the problem
+trying we're trying to turn the problem on its head and say hey can we just get
+on its head and say hey can we just get rid of this whole problem and we brought
+rid of this whole problem and we brought this over to our sandbox design lead
+this over to our sandbox design lead sage and Merrill said hey can we can we
+sage and Merrill said hey can we can we not network ragdolls and we went through
+not network ragdolls and we went through the street three stages of gameplay
+the street three stages of gameplay design response to this sort of thing
+design response to this sort of thing you'll probably see yourselves first
+you'll probably see yourselves first shocked what are you doing Network
+shocked what are you doing Network ragdolls we might want to do something
+ragdolls we might want to do something with them someday
+with them someday then skepticism I'm sure this whole this
+then skepticism I'm sure this whole this will work like that same sort of crazy
+will work like that same sort of crazy like does known everybody else network
+like does known everybody else network ragdolls and then consideration where
+ragdolls and then consideration where they dig in and tell us what what really
+they dig in and tell us what what really are the problems with not networking
+are the problems with not networking ragdolls
+ragdolls for real and they came up with two
+for real and they came up with two things first ragdolls blocked bullets
+things first ragdolls blocked bullets like every other object in our game
+like every other object in our game ragdolls are physically real and they
+ragdolls are physically real and they can block bullet trajectories so we
+can block bullet trajectories so we needed to deal with this somehow if we
+needed to deal with this somehow if we were gonna let ragdolls desync because
+were gonna let ragdolls desync because otherwise you'd have invisible objects
+otherwise you'd have invisible objects blocking bullets on different peers
+blocking bullets on different peers second problem was humpin quite serious
+since halo 1 there has been this tradition in the Halo community this
+tradition in the Halo community this tradition that we didn't want to mess
+tradition that we didn't want to mess with when you kill someone and you have
+with when you kill someone and you have some time to spare because you're not
+some time to spare because you're not under attack right now you walk over to
+under attack right now you walk over to their corpse and then you press your
+their corpse and then you press your Crouch button drop them down like this
+Crouch button drop them down like this and you release your Crouch button and
+and you release your Crouch button and you push it again and so forth until you
+you push it again and so forth until you get bored very important for the ragdoll
+get bored very important for the ragdoll to be in the right spot so that that's
+to be in the right spot so that that's humiliates him properly so that he can
+humiliates him properly so that he can see that you're doing this to him
+see that you're doing this to him totally serious this is a real thing so
+totally serious this is a real thing so we made two fixes to deal with these two
+we made two fixes to deal with these two problems first we went into our
+problems first we went into our collision system in our projectile
+collision system in our projectile system and we allowed bullets and
+system and we allowed bullets and grenades to penetrate ragdolls freely we
+grenades to penetrate ragdolls freely we allow them to over penetrate without any
+allow them to over penetrate without any side effects we use the debug harness to
+side effects we use the debug harness to verify that there were no side-effects
+verify that there were no side-effects was that it added fairly late in the
+was that it added fairly late in the game second we have an assistant to
+game second we have an assistant to synchronize the initial state of
+synchronize the initial state of ragdolls
+ragdolls so we wouldn't Network them over time as
+so we wouldn't Network them over time as they were flying through the air
+they were flying through the air bouncing around on the ground but we
+bouncing around on the ground but we would Network them very exactly with the
+would Network them very exactly with the debug harness to verify we would Network
+debug harness to verify we would Network their initial state at the moment of
+their initial state at the moment of death on all boxes and all boxes would
+death on all boxes and all boxes would be guaranteed to start with that which
+be guaranteed to start with that which meant as long as you didn't interfere
+meant as long as you didn't interfere with the ragdoll too much it would be in
+with the ragdoll too much it would be in perfect sync in most cases and this
+perfect sync in most cases and this worked well enough once in a while if
+worked well enough once in a while if there's enough grenades going off you
+there's enough grenades going off you can have ragdoll just completely desync
+can have ragdoll just completely desync and it becomes obvious but by-and-large
+and it becomes obvious but by-and-large worked quite well and we saved up
+worked quite well and we saved up another 10 12 percent of bandwidth maybe
+lastly I have sort of a bucket of interesting cases of smoothing out
+interesting cases of smoothing out bursts of bandwidth smoothing out worst
+bursts of bandwidth smoothing out worst cases very much like smoothing out worst
+cases very much like smoothing out worst case frames of CPU performance first we
+case frames of CPU performance first we had problems with high rate of fire
+had problems with high rate of fire weapons machine guns bullets were
+weapons machine guns bullets were networked optimally but not the damage
+networked optimally but not the damage that they were causing people who
+that they were causing people who designed the original machine gun
+designed the original machine gun networking knew that they would fire
+networking knew that they would fire very rapidly and so they needed an
+very rapidly and so they needed an efficient bit of networking for them so
+efficient bit of networking for them so they did that but when the bullets hit
+they did that but when the bullets hit targets and dealt damage it would
+targets and dealt damage it would trigger individual events for every bit
+trigger individual events for every bit of damage and that could take all your
+of damage and that could take all your bandwidth very very quickly if people
+bandwidth very very quickly if people with multiple you with machine guns were
+with multiple you with machine guns were shooting targeted a lot of hit points so
+shooting targeted a lot of hit points so we went in and we said okay first four
+we went in and we said okay first four bullets that do a small amount of damage
+bullets that do a small amount of damage we're gonna just let clients predict
+we're gonna just let clients predict some of those damage effects so that the
+some of those damage effects so that the Coast doesn't have to tell them oh yeah
+Coast doesn't have to tell them oh yeah this kind of spark occurred and this
+this kind of spark occurred and this sound played and yeah yadda yadda yadda
+sound played and yeah yadda yadda yadda like it's a machine gun it's firing 15
+like it's a machine gun it's firing 15 times a second like just just play your
+times a second like just just play your own sparks another example we had
+own sparks another example we had periodic update of game statistics data
+periodic update of game statistics data so we have this blob of data we send
+so we have this blob of data we send that shows up on the and endgame stats
+that shows up on the and endgame stats that took priority over gameplay traffic
+that took priority over gameplay traffic because it was on a protocol below our
+because it was on a protocol below our application layers this would come in
+application layers this would come in every like 10 to 30 seconds and just
+every like 10 to 30 seconds and just take all the bandwidth in every packet
+take all the bandwidth in every packet until it was updated two three four
+until it was updated two three four packets and we discovered this with the
+packets and we discovered this with the bandwidth profiler because we get lag
+bandwidth profiler because we get lag events during that time because at the
+events during that time because at the end of that three or four frame period
+end of that three or four frame period the networking would turn back on for
+the networking would turn back on for the game
+the game and everything would warp and we dug
+and everything would warp and we dug into it with the per packet information
+into it with the per packet information in the profiler and discovered lo and
+in the profiler and discovered lo and behold all the gameplay did is just
+behold all the gameplay did is just missing from four or five packets and so
+missing from four or five packets and so we found this guy and we beat him into
+we found this guy and we beat him into submission you can only send 10% of each
+submission you can only send 10% of each packet maximum statistics data can be
+packet maximum statistics data can be can be late it's fine
+lastly low priority objects were getting updates in perfect sync this is an
+updates in perfect sync this is an interesting problem so our priority
+interesting problem so our priority system ramps up the priority of objects
+system ramps up the priority of objects over time to make sure that they
+over time to make sure that they eventually the state data guarantee will
+eventually the state data guarantee will be met
+be met eventually the most updated state will
+eventually the most updated state will arrive problem was if you had a lot of
+arrive problem was if you had a lot of objects that were out far far away and
+objects that were out far far away and they all tied for lowest priority and
+they all tied for lowest priority and they all got disturbed at the same time
+they all got disturbed at the same time like a pile of crates across the level
+like a pile of crates across the level that gets bumped into they would all get
+that gets bumped into they would all get lowest priority they wouldn't get sent
+lowest priority they wouldn't get sent and they'd ramp up and priority slowly
+and they'd ramp up and priority slowly slowly slowly slowly and then they'd all
+slowly slowly slowly and then they'd all get really old and then they'd all panic
+get really old and then they'd all panic on the same frame and say oh crap we
+on the same frame and say oh crap we haven't been sent in five seconds we
+haven't been sent in five seconds we need to get in sync and they would eat
+need to get in sync and they would eat two packets to say oh my god this whole
+two packets to say oh my god this whole stack of crates over here has just got
+stack of crates over here has just got updated and all the guys a guy you're
+updated and all the guys a guy you're standing in front of the guy you're
+standing in front of the guy you're fighting doesn't get didn't get any
+fighting doesn't get didn't get any bandwidth during those two because he
+bandwidth during those two because he wasn't panicked he got an update
+wasn't panicked he got an update recently and so we got lag artifacts
+recently and so we got lag artifacts from this simple fix again limit objects
+from this simple fix again limit objects that can take this panic priority to a
+that can take this panic priority to a fixed number per packet so we always
+fixed number per packet so we always reserved space in the packet for the
+reserved space in the packet for the current live gameplay that matters all
+current live gameplay that matters all right three rules of network
+right three rules of network optimization gleaned from all this first
+optimization gleaned from all this first measure twice cut once
+measure twice cut once just like CPU optimization used tools it
+just like CPU optimization used tools it will be worth the implementation time
+will be worth the implementation time for the tools I promise second in
+for the tools I promise second in general as long as you have some very
+general as long as you have some very basic encoding and compression like
+basic encoding and compression like you're not mem copying vector threes
+you're not mem copying vector threes into your packets you're at least doing
+into your packets you're at least doing you know a little bit of encoding and
+you know a little bit of encoding and compression you won't get much benefit
+compression you won't get much benefit out of going looking at that further
+out of going looking at that further that that mind goes you know empties out
+that that mind goes you know empties out pretty quickly you need to look at the
+pretty quickly you need to look at the big picture much like CPU perf lastly
+big picture much like CPU perf lastly make friends with your game mechanics
+make friends with your game mechanics designers and coders because as you
+designers and coders because as you probably saw four of those five network
+probably saw four of those five network optimizations were pretty much game
+optimizations were pretty much game mechanics changes you're identifying and
+mechanics changes you're identifying and changing the game
+changing the game so you make friends with these guys take
+so you make friends with these guys take them out to lunch and so on and then
+them out to lunch and so on and then abuse those friendships very important
+abuse those friendships very important all right I'm almost done in less than
+all right I'm almost done in less than five minutes to go it's 4:20 for some of
+five minutes to go it's 4:20 for some of you may have to rush tidbits in the
+you may have to rush tidbits in the future I want to leave you with a couple
+future I want to leave you with a couple things first some numbers from reach
+things first some numbers from reach some actual quantitative stuff most
+some actual quantitative stuff most important not going to read through all
+important not going to read through all these most important is the top number
+these most important is the top number our goal for reach was to have 16 player
+our goal for reach was to have 16 player games function on a 384 kilobits stream
+games function on a 384 kilobits stream consumer connection so we could be
+consumer connection so we could be considered to be sort of the baseline
+considered to be sort of the baseline DSL at the end our nerf tests showed us
+DSL at the end our nerf tests showed us that we could we'd have a solid game
+that we could we'd have a solid game with no lag artifacts with 250 kilobits
+with no lag artifacts with 250 kilobits per second of total bandwidth in a 16
+per second of total bandwidth in a 16 player game we were very happy with this
+related best practices these are not strictly related to gameplay networking
+strictly related to gameplay networking but they're really important first flow
+but they're really important first flow in congestion control just dumping stuff
+in congestion control just dumping stuff into sockets until the connection gives
+into sockets until the connection gives up the ghost or floods or starts
+up the ghost or floods or starts dropping packets not optimal for the
+dropping packets not optimal for the quality of your game you implement your
+quality of your game you implement your own flow in congestion control you can
+own flow in congestion control you can guarantee the ability to send responsive
+guarantee the ability to send responsive data at all times or send a low latency
+data at all times or send a low latency data at all times second once you have
+data at all times second once you have that flow control layer you can record
+that flow control layer you can record the quality of each individual players
+the quality of each individual players connection record how good their
+connection record how good their upstream is and how stable their
+upstream is and how stable their connection is you can save those records
+connection is you can save those records and then you can use that to drive your
+and then you can use that to drive your host selection the benefit we got from
+host selection the benefit we got from smarter host selection in reach was on
+smarter host selection in reach was on the same order as the benefit we got
+the same order as the benefit we got from bandwidth optimizations because
+from bandwidth optimizations because finally we were actually able to select
+finally we were actually able to select the good host
+the good host select the guys with the education at
+select the guys with the education at the university connections the eyes of
+the university connections the eyes of the megabit up and completely rock-solid
+the megabit up and completely rock-solid connections third post migration this is
+connections third post migration this is hard to add players love it really nice
+hard to add players love it really nice for for gameplay networking quality
+for for gameplay networking quality because if you have a bad host if a host
+because if you have a bad host if a host is having a bad day because his wife is
+is having a bad day because his wife is downloading Netflix or whatever you can
+downloading Netflix or whatever you can host migrate in the middle of the game
+host migrate in the middle of the game to a better host and get rid of all the
+to a better host and get rid of all the lag artifacts in five or ten seconds
+lag artifacts in five or ten seconds instead of forcing players to live with
+instead of forcing players to live with them
+them consider having a multiplayer beta or
+consider having a multiplayer beta or demo almost all the top of multiplayer
+demo almost all the top of multiplayer game timing gears is doing this cod does
+game timing gears is doing this cod does this it's it's become almost common
+this it's it's become almost common practice but definitely do it you can
+practice but definitely do it you can get a tremendous amount of test coverage
+get a tremendous amount of test coverage from this we would not have shipped
+from this we would not have shipped anywhere near our quality if we did not
+anywhere near our quality if we did not use regular internal play tests with
+use regular internal play tests with traffic shaping to measure your game
+traffic shaping to measure your game mechanics under some levels of latency
+mechanics under some levels of latency if you play everything on a system link
+if you play everything on a system link game it's not gonna be or partly a LAN
+game it's not gonna be or partly a LAN game it's not you're not gonna get an
+game it's not you're not gonna get an accurate picture of how your game plays
+accurate picture of how your game plays on the Internet consider having full
+on the Internet consider having full time Network testers this is something
+time Network testers this is something that Bungie has which I had never seen
+that Bungie has which I had never seen before and working on networking on past
+before and working on networking on past games and it was something no revelation
+games and it was something no revelation we have guys a guy in pre-production and
+we have guys a guy in pre-production and then more guys later on in the project
+then more guys later on in the project whose only job is to stress and attack
+whose only job is to stress and attack the networking of the game these guys
+the networking of the game these guys will keep your your game mechanics
+will keep your your game mechanics designers and your network programmers
+designers and your network programmers honest and it will give you an accurate
+honest and it will give you an accurate picture of the quality of your game of
+picture of the quality of your game of your networking over time few more
+your networking over time few more resources a couple of papers you can
+resources a couple of papers you can read this deck will be will be online
+read this deck will be will be online these give you some sort of more
+these give you some sort of more high-level information and more detail
+high-level information and more detail on their application protocols many many
+on their application protocols many many people work to make Halo Reach play as
+people work to make Halo Reach play as well as it does online especially these
+well as it does online especially these guys Nick Girone
+guys Nick Girone Paul Llewellyn John cable and our
+Paul Llewellyn John cable and our fearless leader Luke Timmons lead of our
+fearless leader Luke Timmons lead of our networking and UI group lastly just sort
+networking and UI group lastly just sort of a quick look at the future our system
+of a quick look at the future our system is not completely perfect
+is not completely perfect we have usability improvements to our
+we have usability improvements to our replication systems we want to implement
+replication systems we want to implement currently it takes a lot of boilerplate
+currently it takes a lot of boilerplate code to implement to implement new
+code to implement to implement new mechanics we want to fix that we also
+mechanics we want to fix that we also want to extend our protocols to support
+want to extend our protocols to support more low bandwidth complex use cases
+more low bandwidth complex use cases like I have a state machine off here in
+like I have a state machine off here in the corner I just want it to be
+the corner I just want it to be networked I don't want to get a PhD in
+networked I don't want to get a PhD in replication I don't want to think about
+replication I don't want to think about it I just want this state machine to
+it I just want this state machine to stay in sync on multiple boxes we want
+stay in sync on multiple boxes we want to make that sort of thing easy but of
+to make that sort of thing easy but of course
+course there the real question here is what's
+there the real question here is what's really next for bungie what are we doing
+if you've been paying attention to the the news recently you may have heard the
+the news recently you may have heard the rumor as profound prepended by Kotaku
+rumor as profound prepended by Kotaku and others that we're making world of
+and others that we're making world of warcraft in space as cool as that sounds
+warcraft in space as cool as that sounds that's not true it's not what we're
+that's not true it's not what we're doing the only thing I can tell you
+doing the only thing I can tell you today is that if you love working on or
+today is that if you love working on or playing massively
+playing massively awesome multiplayer online action games
+awesome multiplayer online action games you should come talk to us we are hiring
+you should come talk to us we are hiring across all disciplines for many
+across all disciplines for many positions I will not take questions
+it is 429 if your talk is also if you're going to 84 30 is in South Hall you can
+going to 84 30 is in South Hall you can totally do it
+totally do it but I'm sure the Q&A will be interesting
+but I'm sure the Q&A will be interesting too yes on the grenade throw yes there
+too yes on the grenade throw yes there is firstly because we didn't need to
+is firstly because we didn't need to because we had because we had happened
+because we had because we had happened upon this other design which player
+upon this other design which player which were players were ok with and so
+which were players were ok with and so we never really revisited it secondly
+we never really revisited it secondly because it actually would not have
+because it actually would not have worked for the grenade throw because
+worked for the grenade throw because there's a very specific expectation that
+there's a very specific expectation that the clients have or the players have in
+the clients have or the players have in Halo which is that their grenade aiming
+Halo which is that their grenade aiming is sampled at the release frame it is
+is sampled at the release frame it is not sampled when they push the button or
+not sampled when they push the button or at any time earlier and players are very
+at any time earlier and players are very attuned to this they will took they will
+attuned to this they will took they will hit the button when they know they're
+hit the button when they know they're thinking about throwing a grenade and
+thinking about throwing a grenade and then they'll aim it during the little
+then they'll aim it during the little telegraph so doing anything where we
+telegraph so doing anything where we lock in the aiming before that release
+lock in the aiming before that release frame wouldn't work please also be many
+frame wouldn't work please also be many more questions but please fill out your
+more questions but please fill out your sheets the correct way to do that is to
+sheets the correct way to do that is to circle the excellent but please pull
+circle the excellent but please pull them out yes
+there are two phases to Hana the question was how do we handle host
+question was how do we handle host migration in particular when the server
+migration in particular when the server just vanishes off the place base of the
+just vanishes off the place base of the planet there are two phases to this if
+planet there are two phases to this if the server just drops ungracefully the
+the server just drops ungracefully the first thing we have to do is what we
+first thing we have to do is what we call a host election which is a
+call a host election which is a distributed algorithm to determine for
+distributed algorithm to determine for all the individuals sort of leaderless
+all the individuals sort of leaderless peers that remain to determine to elect
+peers that remain to determine to elect a new host among themselves once they
+a new host among themselves once they have elected a new host the actual
+have elected a new host the actual process of doing a doing game play host
+process of doing a doing game play host migration is very very complicated it
+migration is very very complicated it could be a talk in itself the core of it
+could be a talk in itself the core of it is that in most cases the new host takes
+is that in most cases the new host takes his current game state reinitialize --is
+his current game state reinitialize --is his networking state his replication
+his networking state his replication state from that does a consistency pass
+state from that does a consistency pass to look for any things that might be
+to look for any things that might be might have been out of sync because at
+might have been out of sync because at the time that the host migration
+the time that the host migration occurred he was in the middle of
+occurred he was in the middle of receiving Network data things like that
+receiving Network data things like that and then he becomes the new host and
+and then he becomes the new host and everybody joins in progress to him
+everybody joins in progress to him joining progress is fairly simple
+joining progress is fairly simple because we have this split between state
+because we have this split between state data and events to join a game all you
+data and events to join a game all you need is all the current state data and
+need is all the current state data and you're guaranteed to be in sync with all
+you're guaranteed to be in sync with all of the current network state of the game
+I'm sorry can you speak louder
+yes and that is sort of what the state data panicking that I mentioned gives us
+data panicking that I mentioned gives us the are to be the priority panicking
+the are to be the priority panicking where we ratchet up priorities over time
+where we ratchet up priorities over time nothing in the game is more than a
+nothing in the game is more than a couple seconds out of date on any peer
+couple seconds out of date on any peer so if something is truly irrelevant to
+so if something is truly irrelevant to you you'll get update and it's moving
+you you'll get update and it's moving you'll get updates about it every couple
+you'll get updates about it every couple seconds instead of every frame if you do
+seconds instead of every frame if you do not have there's one special case which
+not have there's one special case which is interesting if you do not have the
+is interesting if you do not have the current game state because for example
+current game state because for example the hosts dropped off the face of the
+the hosts dropped off the face of the earth while the game was starting up
+earth while the game was starting up before the the original host could tell
+before the the original host could tell everyone what was happening in the game
+everyone what was happening in the game we we call this a double host migration
+we we call this a double host migration and it's we have to initialize the world
+and it's we have to initialize the world from from a clean slate and just we
+from from a clean slate and just we inherit only the statistics data like
+inherit only the statistics data like the current score and things like that
+the current score and things like that and we'll reset all the game state that
+and we'll reset all the game state that happens fairly rarely because it in
+happens fairly rarely because it in normal gameplay requires two hosts to
+normal gameplay requires two hosts to fail in rapid succession
+yes
+priority and relevance is a very interesting thing it's possible that
+interesting thing it's possible that it's over engineered it's not something
+it's over engineered it's not something that's that's unknown at Bungie
+that's that's unknown at Bungie well the idea what we think about it is
+well the idea what we think about it is relevance is a pure metric of how
+relevance is a pure metric of how noticeable something is so relevance is
+noticeable something is so relevance is calculated purely by is it on screen how
+calculated purely by is it on screen how far away is it what is its radius
+far away is it what is its radius what is its perceptual like slice of the
+what is its perceptual like slice of the screen sort of very pure things like
+screen sort of very pure things like that that don't take into account game
+that that don't take into account game mechanics or what type of object it is
+mechanics or what type of object it is and that that's sort of an algorithm we
+and that that's sort of an algorithm we can write in isolation then we take out
+can write in isolation then we take out all those relevances for all the
+all those relevances for all the different objects and we mix in special
+different objects and we mix in special rules like what type of object are you
+rules like what type of object are you have you damage the player recently
+have you damage the player recently things like this and that is the output
+things like this and that is the output of that set of rules is what gives you
+of that set of rules is what gives you priority and that just gives us a nice
+priority and that just gives us a nice sort of split for be able to evaluate
+sort of split for be able to evaluate each algorithm in isolation we could we
+each algorithm in isolation we could we could mix it together detail next
+sure this question is whose authoritative over hits when you're
+authoritative over hits when you're dealing with bipeds that are all inside
+dealing with bipeds that are all inside the different positions on all the boxes
+the different positions on all the boxes how we do networked aim-assist
+how we do networked aim-assist what networked bullets and network to
+what networked bullets and network to damage could be a talk all on its own
+damage could be a talk all on its own and in fact one version of this talk was
+and in fact one version of this talk was that let's see if I can give a quick
+that let's see if I can give a quick summary the core idea of that is at the
+summary the core idea of that is at the moment bullets are fired we do not
+moment bullets are fired we do not transmit the worldspace vector of what
+transmit the worldspace vector of what you are shooting we transmit a target
+you are shooting we transmit a target relative vector which says you're
+relative vector which says you're shooting relative to this target who is
+shooting relative to this target who is likely you're the guy you're trying to
+likely you're the guy you're trying to hurt with a particularly vector on
+hurt with a particularly vector on remote boxes including the host your
+remote boxes including the host your bullet is reconstructed to have the same
+bullet is reconstructed to have the same lead the bullet is then simulated on all
+lead the bullet is then simulated on all peers and on the host peer when it hits
+peers and on the host peer when it hits someone it will deal damage that's the
+someone it will deal damage that's the broad stroke of it it's a lot more
+broad stroke of it it's a lot more interesting stuff like how we deal with
+interesting stuff like how we deal with Rockets versus machine guns and how we
+Rockets versus machine guns and how we deal with the really interesting case of
+deal with the really interesting case of you pull the trigger and fire your gun
+you pull the trigger and fire your gun and then before your bullet your fire
+and then before your bullet your fire request reaches the host you die on the
+request reaches the host you die on the host so when he gets it he's like oh you
+host so when he gets it he's like oh you you think you fired your gun like you
+you think you fired your gun like you saw a muzzle flash on your screen but
+saw a muzzle flash on your screen but you're dead how do you deal with that
+you're dead how do you deal with that and and the answer is that in most cases
+and and the answer is that in most cases we have we have sanity checks and
+we have we have sanity checks and whatnot but we we will construct a fake
+whatnot but we we will construct a fake new gun out of whole cloth fire the
+new gun out of whole cloth fire the bullet and then delete it specifically
+bullet and then delete it specifically so that whenever you see a muzzle flash
+so that whenever you see a muzzle flash like you will you will generally get
+like you will you will generally get your bullet shot with correct aim assist
+your bullet shot with correct aim assist and all that sort of thing next yes
+the so your question is about the the splicing of the profiler data into the
+splicing of the profiler data into the films and and how we get the data about
+films and and how we get the data about every client into one film the answer is
+every client into one film the answer is that the host film includes all of the
+that the host film includes all of the upstream and downstream that he
+upstream and downstream that he experienced so it includes everything he
+experienced so it includes everything he sent to every client everything every
+sent to every client everything every client sent to him and every individual
+client sent to him and every individual client film only includes their traffic
+client film only includes their traffic only includes their upstream and
+only includes their upstream and downstream so the way the way that we
+downstream so the way the way that we investigate these things is we always
+investigate these things is we always work from the host film
+if you are watching a film in Halo Reach a user user facing retail film that was
+a user user facing retail film that was recorded by a client box and the game
+recorded by a client box and the game had any sort of bandwidth limitation if
+had any sort of bandwidth limitation if you then detach the camera from that
+you then detach the camera from that guy's view and go fly and look at the
+guy's view and go fly and look at the other side of the map you will see
+other side of the map you will see certain artifacts you will see objects
+certain artifacts you will see objects updating once a second and things like
+updating once a second and things like that yes
+correct
+yes
+so I'm not gonna repeat that question because it was very long I hope everyone
+because it was very long I hope everyone heard it the way that works is the
+heard it the way that works is the appearance of the shield on a guy who is
+appearance of the shield on a guy who is armored locking is always hosts
+armored locking is always hosts authoritative it is always transmitted
+authoritative it is always transmitted from the host to everyone including both
+from the host to everyone including both the user and viewers so the fact that
+the user and viewers so the fact that the host shortens the the timer
+the host shortens the the timer automatically causes the shield to
+automatically causes the shield to appear early on every other box so we
+appear early on every other box so we don't have to worry about that yes we
+don't have to worry about that yes we don't yeah we don't shorts look at the
+don't yeah we don't shorts look at the animation in any way just just the blue
+animation in any way just just the blue shield will appear at frame 1 or
+shield will appear at frame 1 or whatever you're sure yes
+good question fantastic question I love that question it does not work at the
+that question it does not work at the field level the priority is per object
+field level the priority is per object for state data however we do look at
+for state data however we do look at which fields are dirty which fields
+which fields are dirty which fields currently need to be sent and we use
+currently need to be sent and we use that to bias priorities in some ways so
+that to bias priorities in some ways so for example if the state of whether you
+for example if the state of whether you are alive or dead has changed your
+are alive or dead has changed your priority is quite high because almost
+priority is quite high because almost everyone needs to know that so we do a
+everyone needs to know that so we do a little bit of work with that there's a
+little bit of work with that there's a lot of fancier stuff we could do like oh
+lot of fancier stuff we could do like oh how dirty is your position like your
+how dirty is your position like your position could be dirty by a centimeter
+position could be dirty by a centimeter and we'll send it and it doesn't we
+and we'll send it and it doesn't we don't really feed that into our
+don't really feed that into our prioritization versus something that's
+prioritization versus something that's dull you know rolling down a hill
+dull you know rolling down a hill rapidly it has a 10-foot dirty position
+rapidly it has a 10-foot dirty position we are considering adding stuff like
+we are considering adding stuff like that
+that currently we are constrained primarily
+currently we are constrained primarily by cpu perf in the complexity of our
+by cpu perf in the complexity of our prioritization algorithm the total
+prioritization algorithm the total prioritization cost for a host at
+prioritization cost for a host at maximum bandwidth 600 kilobits ish is
+maximum bandwidth 600 kilobits ish is around 1.8 milliseconds on the 360 no
+around 1.8 milliseconds on the 360 no 360 Harbor thread so sure
+very good question the the state data updates are not ordered with respect to
+updates are not ordered with respect to each other you can absolutely get you
+each other you can absolutely get you wouldn't out of order is an interesting
+wouldn't out of order is an interesting question so you can't absolutely have
+question so you can't absolutely have this scenario you can have an object
+this scenario you can have an object change in two linked ways like like yes
+change in two linked ways like like yes his position his position changes and
+his position his position changes and his health changes those can be so those
+his health changes those can be so those updates can be sent in separate packets
+updates can be sent in separate packets which means that the client can
+which means that the client can absolutely get one of them without the
+absolutely get one of them without the other so if there's any any sort of
+other so if there's any any sort of interplay between those two properties
+interplay between those two properties there are vulnerabilities there where
+there are vulnerabilities there where clients can have some inconsistent state
+clients can have some inconsistent state briefly the only guarantee we provide is
+briefly the only guarantee we provide is that we will never apply state we will
+that we will never apply state we will never apply old state data updates about
+never apply old state data updates about an object so if you have a you have a
+an object so if you have a you have a state data update about the position of
+state data update about the position of an object and then another one following
+an object and then another one following it on the wire and they get cross packet
+it on the wire and they get cross packet reordering on the internet happen all
+reordering on the internet happen all the time we will apply the first one
+the time we will apply the first one that arrives and then we will notice
+that arrives and then we will notice that the other one is older for that
+that the other one is older for that entity and we will discard it and that's
+entity and we will discard it and that's important because otherwise you lose the
+important because otherwise you lose the guarantee that you will eventually
+guarantee that you will eventually converge to the final state
+good question good question we are not considering occluders you're quite right
+considering occluders you're quite right that that evaluating that sort of thing
+that that evaluating that sort of thing for every potential player camera would
+for every potential player camera would be performing would be prohibitively
+be performing would be prohibitively costly on the cpu so it's purely based
+costly on the cpu so it's purely based on metrics that we can derive without
+on metrics that we can derive without doing massive work like that we do have
+doing massive work like that we do have fairly accurate information about every
+fairly accurate information about every player's camera position and orientation
+player's camera position and orientation we we do a lot of work to make that
+we we do a lot of work to make that happen
+happen fortunately for us client to host
+fortunately for us client to host bandwidth is very cheap so we can shove
+bandwidth is very cheap so we can shove extra data into the control data for the
+extra data into the control data for the client to host about like here's my
+client to host about like here's my current camera position because I know
+current camera position because I know you can't predict it because I'm using a
+you can't predict it because I'm using a third-person camera on my vehicle right
+third-person camera on my vehicle right now things like that or I'm dead and I'm
+now things like that or I'm dead and I'm currently like flying around the world
+currently like flying around the world in this flying camera or orbiting camera
+in this flying camera or orbiting camera on various teammates will transmit that
+on various teammates will transmit that data explicitly to the house so we can
+data explicitly to the house so we can use it but ya know occluder is nothing
+use it but ya know occluder is nothing like that
+okay fair enough I guess I guess accurate may be the wrong word like yeah
+accurate may be the wrong word like yeah we can't we can't guarantee you that
+we can't we can't guarantee you that like at the time this data gets to that
+like at the time this data gets to that client the camera position and
+client the camera position and orientation we use to fill that packet
+orientation we use to fill that packet will be the same as his camera that's
+will be the same as his camera that's complete nonsense of course yeah to some
+complete nonsense of course yeah to some extent like for by at least round-trip
+extent like for by at least round-trip time he can turn his camera do whatever
+time he can turn his camera do whatever he wants to
+he wants to to that extent he can see artifact that
+to that extent he can see artifact that the prioritization system would have
+the prioritization system would have blocked likes we could have some
+blocked likes we could have some off-screen thing that we deprioritize he
+off-screen thing that we deprioritize he looks towards it and he sees under the
+looks towards it and he sees under the the underbelly right the way we handled
+the underbelly right the way we handled that is we limit the amount of D
+that is we limit the amount of D prioritisation we do for things that are
+prioritisation we do for things that are off-camera because that can change very
+off-camera because that can change very quickly we are primarily based on
+quickly we are primarily based on distance because that's harder to change
+distance because that's harder to change quickly
+quickly and we use a frustum with a wider fov
+and we use a frustum with a wider fov than the basic one for for on-screen
+than the basic one for for on-screen tests sure all right
+big wet sorry yes absolutely
+as far as vehicle populations and using that to sort of limit network problems
+that to sort of limit network problems on reach we are entirely bound by cpu
+on reach we are entirely bound by cpu costs for pretty much everything we do
+costs for pretty much everything we do so we do not limit object counts for
+so we do not limit object counts for networking reasons at all we can support
+networking reasons at all we can support something on the order of 30 vehicles
+something on the order of 30 vehicles maybe like 30 full suspension vehicles
+maybe like 30 full suspension vehicles in addition to the 16 players before
+in addition to the 16 players before networking will start to run into
+networking will start to run into problems or do you know gradually
+problems or do you know gradually degrading priority to answer your
+degrading priority to answer your question specifically yes vehicle
+question specifically yes vehicle updates are a huge amount of bandwidth
+updates are a huge amount of bandwidth because they are huge they're highly
+because they are huge they're highly noticeable players care about them a lot
+noticeable players care about them a lot they catch the eye in Halo 3 we spent a
+they catch the eye in Halo 3 we spent a lot of cerf on them in reach we we
+lot of cerf on them in reach we we actually had a major development
+actually had a major development initiative to fix that and I can talk
+initiative to fix that and I can talk about that because we have a few more
+about that because we have a few more minutes that's pretty interesting
+minutes that's pretty interesting so in Halo 3 we had a blending system
+so in Halo 3 we had a blending system which we use on bipeds so when you got a
+which we use on bipeds so when you got a network update about a biped and it was
+network update about a biped and it was out of sync and some just by some amount
+out of sync and some just by some amount some number of feet and you had to sort
+some number of feet and you had to sort of fix up get in sync with the host we
+of fix up get in sync with the host we did this this visual only interpolation
+did this this visual only interpolation that I mentioned with assassinations
+that I mentioned with assassinations where your your logical state warps and
+where your your logical state warps and your physic state warps to that location
+your physic state warps to that location but your your body gets this little
+but your your body gets this little blends the exponential blend that
+blends the exponential blend that consumes the error as you continue to
+consumes the error as you continue to predict forward so it looks pretty good
+predict forward so it looks pretty good for vehicles we couldn't do this in Halo
+for vehicles we couldn't do this in Halo 3 because of their interaction with
+3 because of their interaction with havoc slamming the blending vehicles
+havoc slamming the blending vehicles turned out to be very complicated
+turned out to be very complicated because of the level of complexity of
+because of the level of complexity of their rigidbody front hierarchy as it
+their rigidbody front hierarchy as it was represented in havoc and because of
+was represented in havoc and because of annoying issues like the dirt kicked up
+annoying issues like the dirt kicked up by the warthogs tires is based on an
+by the warthogs tires is based on an impact system that is driven from havoc
+impact system that is driven from havoc contact points of the wheels on the
+contact points of the wheels on the ground so when you warp the physics all
+ground so when you warp the physics all the dirt starts coming up from the new
+the dirt starts coming up from the new locations and the fact that you're
+locations and the fact that you're blending this object to it looks like
+blending this object to it looks like garbage like you're clearly cheating so
+garbage like you're clearly cheating so we for reach we rewrote that system that
+we for reach we rewrote that system that visual interpolation system to work with
+visual interpolation system to work with all object types we fixed all the issues
+all object types we fixed all the issues with vehicles so we would we would
+with vehicles so we would we would calculate you know the transform from
+calculate you know the transform from the the visual object to the real
+the the visual object to the real physics object in the inverse of that
+physics object in the inverse of that and we would use that to move things
+and we would use that to move things around as needed so any visual represent
+around as needed so any visual represent to any visual elements like a dirt from
+to any visual elements like a dirt from my wheel would get blended back to the
+my wheel would get blended back to the visual position to correspond with the
+visual position to correspond with the the
+the that visual match being blended the
+that visual match being blended the result of that is that we could cut down
+result of that is that we could cut down our vehicle update rates a lot on Halo 3
+our vehicle update rates a lot on Halo 3 we tried very very hard to keep vehicles
+we tried very very hard to keep vehicles at 20 update seconds rarely below 15
+at 20 update seconds rarely below 15 because they were very high priorities
+because they were very high priorities how we did that because they look really
+how we did that because they look really bad when they warped because we didn't
+bad when they warped because we didn't have any blending with this blending we
+have any blending with this blending we found we could drop vehicles to anywhere
+found we could drop vehicles to anywhere downs like 5 updates a second and they
+downs like 5 updates a second and they would look good it is grass
+it's very specifically very very precisely the logical position of the
+precisely the logical position of the object is warped immediately the haddock
+object is warped immediately the haddock representation all the rigid bodies and
+representation all the rigid bodies and things are worked immediately which
+things are worked immediately which allows you to do you guarantee that the
+allows you to do you guarantee that the the guy will be able to run he won't run
+the guy will be able to run he won't run into invisible walls for example a bad
+into invisible walls for example a bad example let me finish and I'll go back
+example let me finish and I'll go back to that the visual representation and
+to that the visual representation and the what we call the collision
+the what we call the collision representation which is distinct from
+representation which is distinct from physics are blended and the collision
+physics are blended and the collision representation is all the things that
+representation is all the things that can be shot so if you shoot a guy who's
+can be shot so if you shoot a guy who's blending and that you see it hit his his
+blending and that you see it hit his his body it will actually do damage it'll
+body it will actually do damage it'll be--it'll work correctly so the thing
+be--it'll work correctly so the thing I'm saying about physics the reason we
+I'm saying about physics the reason we have to work physics is because you can
+have to work physics is because you can have this case with like a thin wall and
+have this case with like a thin wall and you're predicting that you're running on
+you're predicting that you're running on the right side of the wall and then you
+the right side of the wall and then you get an update that says oh no you're on
+get an update that says oh no you're on the left side of the wall this is a
+the left side of the wall this is a solid wall but you know fairly thin if
+solid wall but you know fairly thin if you try to blend physics and not warp it
+you try to blend physics and not warp it it's very hard to get that to sort of
+it's very hard to get that to sort of consistently well won't look right patek
+consistently well won't look right patek will predict all sorts of terrible
+will predict all sorts of terrible things as you push the the rigidbody
+things as you push the the rigidbody through the wall right it'll start
+through the wall right it'll start exploding so we warp havoc and a logical
+exploding so we warp havoc and a logical position to the other side of the wall
+position to the other side of the wall so prediction can be happy and you know
+so prediction can be happy and you know think I'm on the right spot everything's
+think I'm on the right spot everything's cool and I need to be this visual only
+cool and I need to be this visual only blend visual and collision blend that's
+blend visual and collision blend that's great
+great nobody's behind you
+[Music] yeah
+that's a very good question um v8 when you are driving a vehicle in halo you
+you are driving a vehicle in halo you have the same level of control over it
+have the same level of control over it that you would normally have over your
+that you would normally have over your own biped so you the way that works for
+own biped so you the way that works for the biped is you as you're running
+the biped is you as you're running around you transmit your worldspace
+around you transmit your worldspace position and orientation and other
+position and orientation and other things to the host and he sort of copes
+things to the host and he sort of copes with it he applies the same blending
+with it he applies the same blending logic the clients use unless it's insane
+logic the clients use unless it's insane and then of course he'll correct you
+and then of course he'll correct you vehicle work the same way as soon as you
+vehicle work the same way as soon as you get into the driver's seat of a vehicle
+get into the driver's seat of a vehicle your control stream switches instead of
+your control stream switches instead of sending your biped data it sends your
+sending your biped data it sends your vehicle data the host copes with it
+vehicle data the host copes with it everyone blends all the way around and
+everyone blends all the way around and everything you know it looks beautiful
+everything you know it looks beautiful on the others there's no latency
+on the others there's no latency whatsoever the hope the client isn't
+whatsoever the hope the client isn't actually authoritative technically
+actually authoritative technically because he can be corrected but he's
+because he can be corrected but he's authoritative within his bubble sure all
+authoritative within his bubble sure all right thank you very much everybody
+right thank you very much everybody [Applause]

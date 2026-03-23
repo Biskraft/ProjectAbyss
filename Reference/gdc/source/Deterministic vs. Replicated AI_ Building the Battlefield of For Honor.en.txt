@@ -1,0 +1,1415 @@
+[Music] so just a quick reminder you can just
+so just a quick reminder you can just mute your phone and also at the end of
+mute your phone and also at the end of the session there is a survey that says
+the session there is a survey that says that you can feel if we want to give any
+that you can feel if we want to give any feedback it will be really appreciated
+feedback it will be really appreciated it's our first talk here at GGC so
+it's our first talk here at GGC so anything can be interesting for us so
+anything can be interesting for us so this is exactly geebo game protected on
+this is exactly geebo game protected on phone oh and I am a Frederic doll AI
+phone oh and I am a Frederic doll AI programmer on for now attributes of
+programmer on for now attributes of morale so the game has been released two
+morale so the game has been released two weeks ago and the feedback we get from
+weeks ago and the feedback we get from the community we see is really
+the community we see is really incredible but fewer years ago when we
+incredible but fewer years ago when we started working on the project we didn't
+started working on the project we didn't know exactly what would be the game
+know exactly what would be the game today
+today and in fact most of the time when you
+and in fact most of the time when you work on a new IP a new game
+work on a new IP a new game you don't know what you will be released
+you don't know what you will be released at the end you need to iterate you need
+at the end you need to iterate you need to prototype you need to test stuff you
+to prototype you need to test stuff you need to find what it's fun and try to
+need to find what it's fun and try to build around it on the tech side it
+build around it on the tech side it means that you have multiple needs that
+means that you have multiple needs that will emerge and as we were able to see
+will emerge and as we were able to see during this conference some time one
+during this conference some time one technology is not enough to fulfill all
+technology is not enough to fulfill all these needs and you have to test
+these needs and you have to test multiple approaches and maybe have
+multiple approaches and maybe have multiple approaches that Co ability in
+multiple approaches that Co ability in your game so the vision for for now was
+your game so the vision for for now was to create a melee fighting game so
+to create a melee fighting game so basically you control a character but
+basically you control a character but most importantly you control its weapon
+most importantly you control its weapon so you really are inside the battlefield
+so you really are inside the battlefield you are inside the combat one important
+you are inside the combat one important aspect is that the game needed to have
+aspect is that the game needed to have competitive multiplayer aspects the game
+competitive multiplayer aspects the game need to be fair because its player
+need to be fair because its player against players need to be skill based
+against players need to be skill based responsive reactive and stuff like that
+responsive reactive and stuff like that also the game we wanted to create a game
+also the game we wanted to create a game where you are in a believable
+where you are in a believable battlefield it's means that it's not a
+battlefield it's means that it's not a kind of a new arena of we're details we
+kind of a new arena of we're details we are a few fights are fighting each other
+are a few fights are fighting each other but really a huge battlefields with the
+but really a huge battlefields with the clash of armies hundreds of NPCs that
+clash of armies hundreds of NPCs that fight each other and you are only one
+fight each other and you are only one soldier inside this battlefield so for
+soldier inside this battlefield so for the AI we ended up creating two
+the AI we ended up creating two rated system-1 deterministic one
+rated system-1 deterministic one replicated why
+replicated why what what's happened during the process
+what what's happened during the process what was the need that we needed to
+what was the need that we needed to fulfill that's what we will try to show
+fulfill that's what we will try to show today with this talk so we'll in this
+today with this talk so we'll in this talk we will first show few fundamentals
+talk we will first show few fundamentals of the game I will control characters
+of the game I will control characters are we under underlies the online part
+are we under underlies the online part and stuff like that
+and stuff like that then gazai Vijay will talk about the
+then gazai Vijay will talk about the deterministic AI system I will follow
+deterministic AI system I will follow with replicated one and we will have a
+with replicated one and we will have a huge takeaways at the end of the session
+huge takeaways at the end of the session so let's start with the fundamentals in
+so let's start with the fundamentals in the game we have multiple characters
+the game we have multiple characters that you have to control first one is
+that you have to control first one is the zero as a one with more skills or
+the zero as a one with more skills or more abilities it's one that the player
+more abilities it's one that the player is able to control in the game but we
+is able to control in the game but we have also what we could call the map
+have also what we could call the map feelers so on the Left captain soldiers
+feelers so on the Left captain soldiers archers this kind of stuff is it this
+archers this kind of stuff is it this sounds with characters that creates the
+sounds with characters that creates the feeling of the army also in the campaign
+feeling of the army also in the campaign we have a cute elephant and huge wolves
+we have a cute elephant and huge wolves we have posters and other kind of
+we have posters and other kind of characters but so yeah that's the kind
+characters but so yeah that's the kind of character we have controlled and to
+of character we have controlled and to control is each character we decided to
+control is each character we decided to use an input driven approach it means
+use an input driven approach it means that it's like controlling a gamepad so
+that it's like controlling a gamepad so if you are a gamepad you just press a
+if you are a gamepad you just press a button and it will have an impact on
+button and it will have an impact on your character but it mean also that you
+your character but it mean also that you have an indirect control on your
+have an indirect control on your character you can't stay in the eye for
+character you can't stay in the eye for example I want my character to go at 10
+example I want my character to go at 10 meter per second there is no way to do
+meter per second there is no way to do that the only thing you can do is gives
+that the only thing you can do is gives your intuition of the left stick of your
+your intuition of the left stick of your gamepad and the strength of a stick and
+gamepad and the strength of a stick and that's all so it means that he is into
+that's all so it means that he is into driven we use exactly the same pipeline
+driven we use exactly the same pipeline for the player and for the AI in this
+for the player and for the AI in this game which lets you go to one of our
+game which lets you go to one of our tool we call it katana basically it's
+tool we call it katana basically it's the tool that the character designer
+the tool that the character designer used to create the characters so it's a
+used to create the characters so it's a huge state machine in which all the
+huge state machine in which all the states so blue boxes that you can see
+states so blue boxes that you can see here define a state of the character so
+here define a state of the character so it defines the
+it defines the play during certain duration the
+play during certain duration the duration is defined by the length of the
+duration is defined by the length of the clip and they can define all kind of
+clip and they can define all kind of properties the movement available for
+properties the movement available for the character at this moment does you
+the character at this moment does you have some difference maybe yes modifier
+have some difference maybe yes modifier yes some special abilities and they also
+yes some special abilities and they also can define all the branchings between
+can define all the branchings between the states and as you can see on the
+the states and as you can see on the bottom they can specify some kind of
+bottom they can specify some kind of conditions that allowed to trigger this
+conditions that allowed to trigger this kind of branchings
+kind of branchings so so when what does an update loop look
+so so when what does an update loop look like in our game it's in fact pretty
+like in our game it's in fact pretty simple we just generate input from a pad
+simple we just generate input from a pad we send them into katana katana update
+we send them into katana katana update the state of the actor we get this into
+the state of the actor we get this into the world and we're able to render it if
+the world and we're able to render it if we have multiple character it's exactly
+we have multiple character it's exactly the same we just generate input for the
+the same we just generate input for the other character we send them into katana
+other character we send them into katana it updates a state of The Associated
+it updates a state of The Associated actor and we're able to put that in the
+actor and we're able to put that in the world
+world so for CI since we use the same pipeline
+so for CI since we use the same pipeline it's presently simple CI as to generate
+it's presently simple CI as to generate inputs send them into katana and you
+inputs send them into katana and you know what's happened after that but how
+know what's happened after that but how does it work in multiplayer I will let
+does it work in multiplayer I will let the VA explain this system hello
+the VA explain this system hello so yes our game is a multiplayer game it
+so yes our game is a multiplayer game it works online the players are fighting
+works online the players are fighting against each other
+against each other and the architecture that we chose from
+and the architecture that we chose from the beginning was to build a
+the beginning was to build a peer-to-peer one the main reason was
+peer-to-peer one the main reason was that we wanted as little latency as
+that we wanted as little latency as possible between two fighters between
+possible between two fighters between when you're fighting somebody is in
+when you're fighting somebody is in front of you he's in your face we wanted
+front of you he's in your face we wanted that to be as fast as possible so what
+that to be as fast as possible so what we actually send between each of the
+we actually send between each of the peers in a session or actually in the
+peers in a session or actually in the inputs of the players it's the only
+inputs of the players it's the only thing with very rare exceptions that are
+thing with very rare exceptions that are actually sent and the way that it works
+actually sent and the way that it works is when a peer receives those inputs
+is when a peer receives those inputs from the network it's the exact same
+from the network it's the exact same pipeline that kinetic mentioned we go
+pipeline that kinetic mentioned we go that we get those inputs it starts
+that we get those inputs it starts driving the new actor with katana but
+driving the new actor with katana but obviously there is lag
+obviously there is lag we're not receiving those inputs
+we're not receiving those inputs immediately yet
+immediately yet so what we do is we have a deterministic
+so what we do is we have a deterministic simulation that runs on every single
+simulation that runs on every single peer of the session what that means is
+peer of the session what that means is that every peer is responsible to
+that every peer is responsible to keeping in sync with everybody when we
+keeping in sync with everybody when we receive an input from another peer we
+receive an input from another peer we every peer rewinds in time and sherry
+every peer rewinds in time and sherry simulates every single step to catch up
+simulates every single step to catch up and we end up with the same conclusion
+and we end up with the same conclusion so the this deterministic simulation in
+so the this deterministic simulation in the game what Felix showed you before
+the game what Felix showed you before the graph it's our game play runs into
+the graph it's our game play runs into that that simulation so everything is
+that that simulation so everything is deterministic and come to the same same
+deterministic and come to the same same conclusion to illustrate a bit what that
+conclusion to illustrate a bit what that means I'm gonna give an example that it
+means I'm gonna give an example that it doesn't really happen in our game
+doesn't really happen in our game because we don't have three frames
+because we don't have three frames attacks in our game but I think it
+attacks in our game but I think it illustrates what's that what I imagine
+illustrates what's that what I imagine you're fighting somebody over the net
+you're fighting somebody over the net he's on the other side and you launch an
+he's on the other side and you launch an attack so a time zero your attack is
+attack so a time zero your attack is launched and we compute the frame you
+launched and we compute the frame you start winding up the attack your weapon
+start winding up the attack your weapon is starting to travel the frame
+is starting to travel the frame continues we get to the second the
+continues we get to the second the second part of the animation and you
+second part of the animation and you finally hit your opponent you're happy
+finally hit your opponent you're happy you're yours you're trying to celebrate
+you're yours you're trying to celebrate and then now comes the fourth frame
+and then now comes the fourth frame imagine at that moment that you actually
+imagine at that moment that you actually receive an input from your opponent at
+receive an input from your opponent at that moment I mentioned that the inputs
+that moment I mentioned that the inputs are time-stamped so we see at that
+are time-stamped so we see at that moment that a time is zero the opponent
+moment that a time is zero the opponent decided to change the stance so what
+decided to change the stance so what that means for us in the game is that
+that means for us in the game is that that input it needs to be taken into
+that input it needs to be taken into account at time zero the moment that it
+account at time zero the moment that it happened and what we do is that we
+happened and what we do is that we completely invalidate the state in which
+completely invalidate the state in which we were so there was there were never
+we were so there was there were never any it's it didn't happen and always in
+any it's it didn't happen and always in the same frame that were that that were
+the same frame that were that that were mentioned so the fourth frame we start
+mentioned so the fourth frame we start simulating every single step but now
+simulating every single step but now with that new information so the
+with that new information so the information catches on
+information catches on we simulate and we end up with the
+we simulate and we end up with the result obviously in that case it's it's
+result obviously in that case it's it's pretty intense but as I mentioned we
+pretty intense but as I mentioned we don't have four frames attacks in our
+don't have four frames attacks in our games but it's really important that
+games but it's really important that because it introduces a fundamental
+because it introduces a fundamental difference in our game between a frame
+difference in our game between a frame and a simulation step because simulation
+and a simulation step because simulation steps happen multiple times per frame
+steps happen multiple times per frame they're they're directly dependent about
+they're they're directly dependent about your network conditions when you receive
+your network conditions when you receive those inputs what's happening so imagine
+those inputs what's happening so imagine you have your big frame did a couple
+you have your big frame did a couple simulations but as soon as you start
+simulations but as soon as you start having inputs that bring you really far
+having inputs that bring you really far away in time your frame becomes way too
+away in time your frame becomes way too big
+big the player is sad the framerate drops so
+the player is sad the framerate drops so this this was a really big implication
+this this was a really big implication for our game those rewinds they happen
+for our game those rewinds they happen all the time we we have a way of
+all the time we we have a way of prioritizing the inputs of the actor
+prioritizing the inputs of the actor that that's fighting in front of you so
+that that's fighting in front of you so you won't see any rewinds within or as
+you won't see any rewinds within or as least as possible but the actors that
+least as possible but the actors that are around them players that are on the
+are around them players that are on the other side of the map
+other side of the map they still generate those inputs that
+they still generate those inputs that are processed more slowly so we always
+are processed more slowly so we always have up to treat for Reece emulation
+have up to treat for Reece emulation steps per frame so we it's our normal
+steps per frame so we it's our normal operation and we need to be able to
+operation and we need to be able to recover and not have a big impact on
+recover and not have a big impact on frame rate frame rate when we have a
+frame rate frame rate when we have a really big simulation
+really big simulation so in that case example 300 milliseconds
+so in that case example 300 milliseconds delay which would mean 600 milliseconds
+delay which would mean 600 milliseconds of ping it incurs a up to nine steps of
+of ping it incurs a up to nine steps of free simulation in a single frame to be
+free simulation in a single frame to be able to do this every single object in
+able to do this every single object in our game as a history buffer so we save
+our game as a history buffer so we save the space of those actors it's it's it's
+the space of those actors it's it's it's in a simplified structure optimize and
+in a simplified structure optimize and compress as much as possible and every
+compress as much as possible and every actor has a definition of that state
+actor has a definition of that state that then copied inside a bigger list
+that then copied inside a bigger list and that history buffer we keep around
+and that history buffer we keep around up to five seconds for every single
+up to five seconds for every single object so of course that takes a lot of
+object so of course that takes a lot of memory and the bat enables us really to
+memory and the bat enables us really to when we go back in time to resume elate
+when we go back in time to resume elate from that from that moment I mentioned
+from that from that moment I mentioned every single object as depth and it's
+every single object as depth and it's really the case you get the idea every
+really the case you get the idea every gameplay element the explosions in the
+gameplay element the explosions in the background the guys fighting the heroes
+background the guys fighting the heroes their small soldiers they all use that
+their small soldiers they all use that system it introduces also something
+system it introduces also something really awesome that we did in the game
+really awesome that we did in the game that helped the production that you
+that helped the production that you don't see
+don't see that you don't really see when you play
+that you don't really see when you play up it's the fact that since we keep all
+up it's the fact that since we keep all those states and their game is
+those states and their game is deterministic we're able to have those
+deterministic we're able to have those kind of features in our editor if they
+kind of features in our editor if they were fighting you're testing something
+were fighting you're testing something our designer is working in it and he
+our designer is working in it and he sees a bug and he's like this this
+sees a bug and he's like this this didn't work as expected maybe there was
+didn't work as expected maybe there was something that was wrong
+something that was wrong well we have the ability to rewind and
+well we have the ability to rewind and go back directly to where we were where
+go back directly to where we were where was twisting moment and we can replay
+was twisting moment and we can replay and all the inputs of the players of the
+and all the inputs of the players of the at that moment were recorded and we
+at that moment were recorded and we replay them so we get to the exact same
+replay them so we get to the exact same conclusion then the NDA and what we saw
+conclusion then the NDA and what we saw before and all our tools can enable us
+before and all our tools can enable us to inspect what's happening we can see
+to inspect what's happening we can see what's the states of the objects and I
+what's the states of the objects and I mentioned designers because it's a
+mentioned designers because it's a really powerful tool for them but even
+really powerful tool for them but even for us programmers I mean since the code
+for us programmers I mean since the code is deterministic we can put a breakpoint
+is deterministic we can put a breakpoint in the code and what we're gonna see is
+in the code and what we're gonna see is the exact same values happening awesome
+the exact same values happening awesome camera work right so everything that's
+camera work right so everything that's happening it's it's a really powerful
+happening it's it's a really powerful tool it was a bit of a side effect of
+tool it was a bit of a side effect of that architecture choice but we wanted
+that architecture choice but we wanted to share a bit about it you probably see
+to share a bit about it you probably see me coming this talk is about AI
+me coming this talk is about AI deterministic AI so I did deterministic
+deterministic AI so I did deterministic simulation is where they live what's
+simulation is where they live what's happening and when we started the game
+happening and when we started the game we like we knew a bit in which direction
+we like we knew a bit in which direction they were going but we want to give a
+they were going but we want to give a believable medieval battlefield to the
+believable medieval battlefield to the player we wanted them to be to have a
+player we wanted them to be to have a sense of scale being able to fight other
+sense of scale being able to fight other fierce opponents the other players but
+fierce opponents the other players but also to be part of something bigger so
+also to be part of something bigger so we knew that we wanted to add a lot of
+we knew that we wanted to add a lot of factors in our world we were not aiming
+factors in our world we were not aiming to the tens of thousands of factors I
+to the tens of thousands of factors I mean we're not a shooter so that the
+mean we're not a shooter so that the size of our Maps was not going to be
+size of our Maps was not going to be that big but around 200 actors was
+that big but around 200 actors was basically our goal at that moment and
+basically our goal at that moment and with the the architecture that we showed
+with the the architecture that we showed you in the beginning sending all those
+you in the beginning sending all those inputs over the network we knew it was
+inputs over the network we knew it was not gonna cut it
+not gonna cut it it was gonna take way too much bandwidth
+it was gonna take way too much bandwidth so a solution for that as we mentioned
+so a solution for that as we mentioned in the simulation was rather than
+in the simulation was rather than computing the input the
+computing the input the the inputs that we're sending two actors
+the inputs that we're sending two actors out from outside the simulation and
+out from outside the simulation and sending them you compute them from
+sending them you compute them from inside dissemination thus deterministic
+inside dissemination thus deterministic AI what that means is that when you're
+AI what that means is that when you're playing online every single peer is is
+playing online every single peer is is coming to the same conclusion and
+coming to the same conclusion and controls is AI in the exact same way
+controls is AI in the exact same way everybody is saying everybody's
+everybody is saying everybody's synchronized without sending anything
+synchronized without sending anything over the network that's a really big
+over the network that's a really big implication for us it was it met our
+implication for us it was it met our requirements it worked well for that no
+requirements it worked well for that no network traffic that's awesome but it
+network traffic that's awesome but it had a really big implication about what
+had a really big implication about what did that mean on the CPU side computing
+did that mean on the CPU side computing all those actors with those rewinds it
+all those actors with those rewinds it was going to come to a cost so we needed
+was going to come to a cost so we needed to find a good solution for that so we
+to find a good solution for that so we have multiple one of them's but the big
+have multiple one of them's but the big ones that enabled us to do that is the
+ones that enabled us to do that is the first one is time slicing those actors
+first one is time slicing those actors they we wanted them to fill them up so
+they we wanted them to fill them up so that the players add sense of still they
+that the players add sense of still they did not have to be as reactive as
+did not have to be as reactive as possible so we cheated a bit and time
+possible so we cheated a bit and time slicing them and basically not updating
+slicing them and basically not updating them every single step of the summation
+them every single step of the summation means that if you get to a frame that we
+means that if you get to a frame that we need to resume elate multiple simulation
+need to resume elate multiple simulation steps
+steps well those actors are only going to be
+well those actors are only going to be updated once so our update time that we
+updated once so our update time that we came up with was around three Hertz so
+came up with was around three Hertz so of course it's something that we tested
+of course it's something that we tested through to play tears from gameplays
+through to play tears from gameplays it's a we needed to see what was the the
+it's a we needed to see what was the the limit at which we could bring that but
+limit at which we could bring that but it did allow us to be extremely
+it did allow us to be extremely resilient to rewinds in that in that
+resilient to rewinds in that in that case the second steps are simplified
+case the second steps are simplified physics so this is the world that you
+physics so this is the world that you see when you play the game it looks
+see when you play the game it looks pretty and all and this is the world
+pretty and all and this is the world that the players the order the
+that the players the order the collisions the the collisions that the
+collisions the the collisions that the player is actually interact with the
+player is actually interact with the collision meshes everybody is probably
+collision meshes everybody is probably aware of those systems but even that it
+aware of those systems but even that it proved too much too costly for simple
+proved too much too costly for simple soldiers so what we do is we extract the
+soldiers so what we do is we extract the collision edges of all those meshes and
+collision edges of all those meshes and all of that is cached in a localized
+all of that is cached in a localized manner in the map so the actor is really
+manner in the map so the actor is really only test the ground and
+only test the ground and those edges and that's all it's a very
+those edges and that's all it's a very dull life they don't they're not aware
+dull life they don't they're not aware of the rest but they don't care they're
+of the rest but they don't care they're there to die for you so we're not too
+there to die for you so we're not too attached for them to them
+attached for them to them third of all it's awesome but we needed
+third of all it's awesome but we needed a solution for navigation and it came
+a solution for navigation and it came clear at the beginning that navmesh
+clear at the beginning that navmesh pathfinding and in our case was going to
+pathfinding and in our case was going to be problematic one of the reason was
+be problematic one of the reason was that our libraries were not determine
+that our libraries were not determine the the deterministic from the from the
+the the deterministic from the from the get-go so it was going to cause issues
+get-go so it was going to cause issues and we had concerns about the CPU cos of
+and we had concerns about the CPU cos of all of that so our solution was to use
+all of that so our solution was to use what we call net flows there basically
+what we call net flows there basically big roads that level designers and
+big roads that level designers and mission designers drawing the maps looks
+mission designers drawing the maps looks a bit like something like that obviously
+a bit like something like that obviously it limits the gameplay space of those
+it limits the gameplay space of those actors they don't go everywhere but they
+actors they don't go everywhere but they really have a defined role in the game
+really have a defined role in the game they're fighting over a certain piece of
+they're fighting over a certain piece of territory so level designers draw those
+territory so level designers draw those those those knife lows they define which
+those those knife lows they define which direction the actor should be going and
+direction the actor should be going and but they still have parameters that they
+but they still have parameters that they can tweak to tweak the eye and those so
+can tweak to tweak the eye and those so we started to have something that was
+we started to have something that was interesting we wanted to see those
+interesting we wanted to see those actors fight and have some meaningful
+actors fight and have some meaningful game plane that in that section and our
+game plane that in that section and our first solution was to start with a
+first solution was to start with a top-down approach to controlling where
+top-down approach to controlling where every single of those actors should be
+every single of those actors should be going so you can imagine the formations
+going so you can imagine the formations the soldiers are marching together and
+the soldiers are marching together and having a clash but our problem with that
+having a clash but our problem with that is so on foreigner we were extremely a
+is so on foreigner we were extremely a gameplay driven it was our mantra was
+gameplay driven it was our mantra was follow the fun and fell faster and
+follow the fun and fell faster and follow the fun the four FS and we were
+follow the fun the four FS and we were playing that and we were not feeling it
+playing that and we were not feeling it that it was interesting we it well it
+that it was interesting we it well it started to be evident to the players
+started to be evident to the players that there were some higher rules that
+that there were some higher rules that were happening that were weird sometimes
+were happening that were weird sometimes with the extra exact positioning and
+with the extra exact positioning and also we still we were still having the
+also we still we were still having the merge issue it's a big battlefield there
+merge issue it's a big battlefield there is the players kill those guys extremely
+is the players kill those guys extremely extremely fast so we need to fill it up
+extremely fast so we need to fill it up as as soon as as often as possible and
+as as soon as as often as possible and having those formations those platoons
+having those formations those platoons and merging them was was proving to be a
+and merging them was was proving to be a daunting task I'm not saying it's not
+daunting task I'm not saying it's not solvable but in our case it was causing
+solvable but in our case it was causing it was starting to be extremely costly
+it was starting to be extremely costly it was not really fun and it started to
+it was not really fun and it started to be so it was a bit of a mess so we took
+be so it was a bit of a mess so we took a step back and our solution when we
+a step back and our solution when we talk about it is really simple it's it's
+talk about it is really simple it's it's [ __ ] and I'm not even kidding our
+[ __ ] and I'm not even kidding our first implementations or pretty much
+first implementations or pretty much that they were in wandering aimlessly
+that they were in wandering aimlessly but the idea was to find simple rules
+but the idea was to find simple rules that would govern those actors that
+that would govern those actors that would that when they're going to to the
+would that when they're going to to the center of the battlefield so that it
+center of the battlefield so that it started to make more sense to a player
+started to make more sense to a player the rules are simple
+the rules are simple it's easy to visualize and the player
+it's easy to visualize and the player started to see that they add an impact
+started to see that they add an impact on each of those actors so the
+on each of those actors so the complexity of those behaviors they come
+complexity of those behaviors they come from the number of rules that you start
+from the number of rules that you start adding to them by themselves those rules
+adding to them by themselves those rules are not very complicated but it the more
+are not very complicated but it the more you add the more you start having
+you add the more you start having something that's that's interesting so
+something that's that's interesting so one of them for example was the distance
+one of them for example was the distance between actors when they're traveling to
+between actors when they're traveling to to the battle the distance between
+to the battle the distance between themselves we all know them to be closer
+themselves we all know them to be closer but if they fight we ask them to spread
+but if they fight we ask them to spread that bit more there's this notion
+that bit more there's this notion centered around the player that you we
+centered around the player that you we have that repulsion bubble that
+have that repulsion bubble that increases and decreases based on his
+increases and decreases based on his action so they start get being afraid of
+action so they start get being afraid of you and all of those starting adding up
+you and all of those starting adding up and up to 105 so when the player fights
+and up to 105 so when the player fights thought-bubble increases and decreases
+thought-bubble increases and decreases and the guys can the soldiers can move
+and the guys can the soldiers can move out of the way and those rules starting
+out of the way and those rules starting adding up so for example this one the
+adding up so for example this one the mostess effect you start moving they
+mostess effect you start moving they moved out they move out of the way
+moved out they move out of the way it's always very satisfying so all those
+it's always very satisfying so all those rules added adding over and over we were
+rules added adding over and over we were like yeah that's perfect their system
+like yeah that's perfect their system works let's give that to designer so
+works let's give that to designer so that case start tweaking those values
+that case start tweaking those values well they were not that happy so we we
+well they were not that happy so we we gave those systems and what happens
+gave those systems and what happens happens
+happens so it's working so what was happening is
+so it's working so what was happening is that the I need to find out of that so
+that the I need to find out of that so what we wanted was really the the end
+what we wanted was really the the end result the battlefield that we in which
+result the battlefield that we in which the player was was actually fighting but
+the player was was actually fighting but we were getting to that point with very
+we were getting to that point with very simple rules so every time we were
+simple rules so every time we were changing one it could affect the other
+changing one it could affect the other and that's it's that weird moment
+and that's it's that weird moment or we were creating emergent gameplay
+or we were creating emergent gameplay but our goal was that emergent state so
+but our goal was that emergent state so it was finding the rules that bring to
+it was finding the rules that bring to that state proved to be a lot of trial
+that state proved to be a lot of trial and error left hand right trying to see
+and error left hand right trying to see what happened and to quote one of the
+what happened and to quote one of the designer I had a chance to work with
+designer I had a chance to work with that's pretty much that's pretty much
+that's pretty much that's pretty much what she was saying like I'm she was
+what she was saying like I'm she was scared of touching those values it was
+scared of touching those values it was starting to do something weird so so our
+starting to do something weird so so our solution for that was to create presets
+solution for that was to create presets in the end when we think about it the
+in the end when we think about it the experience of the player in those lanes
+experience of the player in those lanes and where he's fighting was very pretty
+and where he's fighting was very pretty fine so we wanted something where we
+fine so we wanted something where we come back claustrophobic or something
+come back claustrophobic or something more spread out or something that we
+more spread out or something that we call they're scattered one so those
+call they're scattered one so those systems if you look a bit what it was
+systems if you look a bit what it was how it works so we can see a bit of
+how it works so we can see a bit of ladybug display all those forces that
+ladybug display all those forces that are applied to every actor the guy the
+are applied to every actor the guy the soldiers in the bag that joined the
+soldiers in the bag that joined the battle everything was very systemic it
+battle everything was very systemic it evolved well it was giving the result
+evolved well it was giving the result that we wanted to go back a bit to the
+that we wanted to go back a bit to the scattered part we all saw those movies I
+scattered part we all saw those movies I mean those two armies are crashing into
+mean those two armies are crashing into each other then there's that big camera
+each other then there's that big camera cut and smoke then everybody is mixed up
+cut and smoke then everybody is mixed up left and right there's a big bunch of
+left and right there's a big bunch of battles on on each side and every time
+battles on on each side and every time you were trying to get to that point
+you were trying to get to that point well it wasn't working their reality is
+well it wasn't working their reality is that when you think about it the first
+that when you think about it the first layer is just start hitting each other
+layer is just start hitting each other and then it so it wasn't it wasn't
+and then it so it wasn't it wasn't treating what we really wanted so to
+treating what we really wanted so to show the kind of thinking that brought
+show the kind of thinking that brought us to there is that the simple rule that
+us to there is that the simple rule that we ended implementing that bites off and
+we ended implementing that bites off and was very complicated but that brings us
+was very complicated but that brings us to the proper result is something like
+to the proper result is something like that that we can call the gentle man
+that that we can call the gentle man rule which is if somebody is fighting an
+rule which is if somebody is fighting an actor so let's say we have a blue
+actor so let's say we have a blue soldier that comes to battle and then
+soldier that comes to battle and then the other booths all the earth sees oh
+the other booths all the earth sees oh I'm sorry you're doing a duel
+I'm sorry you're doing a duel he lets him fight and he goes to find a
+he lets him fight and he goes to find a new target which is more appropriate and
+new target which is more appropriate and starts fighting so only that simple rule
+starts fighting so only that simple rule when generalized brought us to the to
+when generalized brought us to the to the state that we wanted so to give a
+the state that we wanted so to give a small example and give something like
+small example and give something like that
+that it's extremely messy there's a bunch of
+it's extremely messy there's a bunch of guys fighting guys and girls fighting
+guys fighting guys and girls fighting left and right on the battlefield and
+left and right on the battlefield and but fine finding those those small rules
+but fine finding those those small rules was really one of the challenging part
+was really one of the challenging part because because of the intricacies and
+because because of the intricacies and the interdependence of all of them so
+the interdependence of all of them so it's fine we have those soldiers they go
+it's fine we have those soldiers they go to the battle they start fighting but we
+to the battle they start fighting but we still needed to be able to generate
+still needed to be able to generate those inputs so kaduk mentioned at the
+those inputs so kaduk mentioned at the beginning that we use the same character
+beginning that we use the same character pipeline for every single four actors
+pipeline for every single four actors and it's the same thing for the small
+and it's the same thing for the small soldiers so this is really great for
+soldiers so this is really great for animators they can take that they play
+animators they can take that they play the small soldier and start using with
+the small soldier and start using with them but it's not really interesting for
+them but it's not really interesting for the player or maybe DLC character
+the player or maybe DLC character announced and this is really a great
+announced and this is really a great tool for for animators because they
+tool for for animators because they don't rely on setups from the AI
+don't rely on setups from the AI programmers or a AI designers to test
+programmers or a AI designers to test something they can build AI they add
+something they can build AI they add animation they can look and control the
+animation they can look and control the movement see what's happening so they it
+movement see what's happening so they it made them extremely independent from us
+made them extremely independent from us not that they don't like to talk to us
+not that they don't like to talk to us but so the way that we use to generate
+but so the way that we use to generate those inputs is that we have an
+those inputs is that we have an implementation of our behavior trees
+implementation of our behavior trees inside the simulation it's not extremely
+inside the simulation it's not extremely complex but it does a good job so you
+complex but it does a good job so you can see actually that the beaver trees
+can see actually that the beaver trees that we have right now in the game or
+that we have right now in the game or extremely simple it's different rhythms
+extremely simple it's different rhythms of attack depending on the distance of
+of attack depending on the distance of the target but what's interesting is
+the target but what's interesting is that so we develop the tools that enable
+that so we develop the tools that enable designers to actually debug what was
+designers to actually debug what was happening and and and then see and
+happening and and and then see and control the rhythm and the difficulty
+control the rhythm and the difficulty and this can also be applied to any
+and this can also be applied to any other actor this is one of the other
+other actor this is one of the other actor that we have in the game that uses
+actor that we have in the game that uses the deterministic system we call them
+the deterministic system we call them captains
+captains the trees became started to be a bit
+the trees became started to be a bit more complex but it's filled up like our
+more complex but it's filled up like our bigger fighters and I come earlier but
+bigger fighters and I come earlier but it's it started to prove interesting so
+it's it started to prove interesting so Ribeira trees by themselves are nodes
+Ribeira trees by themselves are nodes there is the one that we're actually
+there is the one that we're actually generating the inputs when it runs
+generating the inputs when it runs really the the up
+really the the up of those nodes is it creates a structure
+of those nodes is it creates a structure that are the inputs the Ru is the
+that are the inputs the Ru is the character attacking is it moving is it
+character attacking is it moving is it dodging and the conditions that the
+dodging and the conditions that the designers can put in place and hooks
+designers can put in place and hooks that enable the actors to influence the
+that enable the actors to influence the environment they're basically evens so
+environment they're basically evens so our experience of using divert trees
+our experience of using divert trees inside the simulation was a mixed one in
+inside the simulation was a mixed one in the sense that it was extremely powerful
+the sense that it was extremely powerful for prototyping designers could come
+for prototyping designers could come with with quick ways of testing gameplay
+with with quick ways of testing gameplay see what was working but we ended up on
+see what was working but we ended up on often - once that system was validated
+often - once that system was validated on a gameplay level we needed to extract
+on a gameplay level we needed to extract those functionalities and then implement
+those functionalities and then implement them as services so we had a we had a
+them as services so we had a we had a lot of analyzing what we wanted to do
+lot of analyzing what we wanted to do set them up so it was a really good way
+set them up so it was a really good way to iterate quickly but CPU wise it was
+to iterate quickly but CPU wise it was casting too much so we needed to extract
+casting too much so we needed to extract the logic of those and put them in
+the logic of those and put them in separate nodes so you saw the actors we
+separate nodes so you saw the actors we have a living battlefield but then on
+have a living battlefield but then on the other part they're still heroes that
+the other part they're still heroes that you need to fight that's part so yes we
+you need to fight that's part so yes we have with a deterministic eaj we have a
+have with a deterministic eaj we have a battlefield with a lot of character
+battlefield with a lot of character inside it we were able to go and play
+inside it we were able to go and play with the system but we wanted to also
+with the system but we wanted to also bring challenges to the player it's a it
+bring challenges to the player it's a it man it was meant to be a PvP game it was
+man it was meant to be a PvP game it was meant to have a PvP experience inside it
+meant to have a PvP experience inside it so we needed ways to control as well as
+so we needed ways to control as well as the eros the kind of characters the
+the eros the kind of characters the player is able to play so we will try to
+player is able to play so we will try to create a system - - under this kind of
+create a system - - under this kind of challenge so why do we need another a AI
+challenge so why do we need another a AI system for it first of all we have
+system for it first of all we have enough food in the map for the
+enough food in the map for the deterministic AI system but if the
+deterministic AI system but if the player go out of it we are we can't do
+player go out of it we are we can't do anything so we needed to have a way to
+anything so we needed to have a way to be able to chase the player everywhere
+be able to chase the player everywhere in the map also we want who have this
+in the map also we want who have this cool moment like you can see in the
+cool moment like you can see in the picture where you grab the player on
+picture where you grab the player on shoulder and you throw him into spikes
+shoulder and you throw him into spikes so we needed to have a more a bit better
+so we needed to have a more a bit better understanding of what is your
+understanding of what is your environment what are what what is it do
+environment what are what what is it do you have around your ear oh we need did
+you have around your ear oh we need did also a better reactivity 300-millisecond
+also a better reactivity 300-millisecond you updateui i it's it's a bit slow and
+you updateui i it's it's a bit slow and if you player just in front of you and
+if you player just in front of you and you have to react to it it's it can be
+you have to react to it it's it can be pragmatic and one important aspect is
+pragmatic and one important aspect is that we wanted the edge controls the
+that we wanted the edge controls the same kind of character we didn't want it
+same kind of character we didn't want it who add because it's a but to add 10,000
+who add because it's a but to add 10,000 HP so that the player add to just attack
+HP so that the player add to just attack him all over again to be able to kill
+him all over again to be able to kill him so we needed to base the difficulty
+him so we needed to base the difficulty on the skill and not on the statistic of
+on the skill and not on the statistic of the character so if we look back to how
+the character so if we look back to how do we control the character the player
+do we control the character the player for the player we get the pad with
+for the player we get the pad with generate input send them into the
+generate input send them into the situation so for the AI so forth I
+situation so for the AI so forth I replicated AI system for the bots we do
+replicated AI system for the bots we do the AI will generate inputs so it will
+the AI will generate inputs so it will generate the input on one machine and
+generate the input on one machine and send them over the network so here we
+send them over the network so here we have an interesting system it's a since
+have an interesting system it's a since we are working with a deterministic
+we are working with a deterministic situation so what does it gives us
+situation so what does it gives us basically it gives us that we don't need
+basically it gives us that we don't need to predict the state of the replicated
+to predict the state of the replicated characters as that of the other players
+characters as that of the other players for example because the simulation does
+for example because the simulation does it for us in fact in the simulation if
+it for us in fact in the simulation if you look at the Korean state you have in
+you look at the Korean state you have in fact the latest updated version of your
+fact the latest updated version of your character and if you receive an input
+character and if you receive an input and I rewind happen it will be updated
+and I rewind happen it will be updated and you will be fine so of course what
+and you will be fine so of course what happen if who you ever rewind the world
+happen if who you ever rewind the world the state of the world can change so we
+the state of the world can change so we discussed with the designer and we
+discussed with the designer and we decided that we didn't want to consider
+decided that we didn't want to consider the winner wines because most of the
+the winner wines because most of the time he won't happen but it can be on
+time he won't happen but it can be on another place on the battlefield it
+another place on the battlefield it doesn't really necessary affect user
+doesn't really necessary affect user fights that you are currently doing and
+fights that you are currently doing and but if it happens that it affects the
+but if it happens that it affects the faster the fights that you are currently
+faster the fights that you are currently doing we the only thing that you have to
+doing we the only thing that you have to do is just
+do is just check your the current world state and
+check your the current world state and change the decision of the I so for a
+change the decision of the I so for a certain amount of time when you fight
+certain amount of time when you fight against someone who is controlled by
+against someone who is controlled by another machine you can take wrong
+another machine you can take wrong decisions but we decided that it was
+decisions but we decided that it was okay because as soon as you will receive
+okay because as soon as you will receive the real state where you are we'll just
+the real state where you are we'll just a date and take new decisions for the AI
+a date and take new decisions for the AI so and also when very important aspect
+so and also when very important aspect is that since we are updated outside of
+is that since we are updated outside of the submission we are updated only once
+the submission we are updated only once per frame we don't
+per frame we don't if rewind happened it doesn't affect the
+if rewind happened it doesn't affect the replicated era system so we have more
+replicated era system so we have more CPU sanzu seems so for this system we
+CPU sanzu seems so for this system we built a lot of elements first one is the
+built a lot of elements first one is the team strategies that will analyze the
+team strategies that will analyze the battlefield and try to assign tasks to
+battlefield and try to assign tasks to to the characters to spread them and try
+to the characters to spread them and try to win the game then each actor will
+to win the game then each actor will have to try to accomplish this task and
+have to try to accomplish this task and you have a lot of services to fight
+you have a lot of services to fight navigate and kind of stuff but in the
+navigate and kind of stuff but in the end what we want is to generate inputs
+end what we want is to generate inputs for katana to control the character so
+for katana to control the character so in this talk will mainly focus on the
+in this talk will mainly focus on the right service and the inputs because
+right service and the inputs because that's an really a specific aspect of
+that's an really a specific aspect of for now maybe well next year our
+for now maybe well next year our colleague will I want to give you more
+colleague will I want to give you more information about the zero systems so if
+information about the zero systems so if we look at katana so the way we control
+we look at katana so the way we control the characters basically is the state
+the characters basically is the state machine so if we want to control the
+machine so if we want to control the character what we want really is to
+character what we want really is to control what happened into the state
+control what happened into the state machine what are what are the state what
+machine what are what are the state what are the transition that we do in this in
+are the transition that we do in this in the what what is the dissolution of your
+the what what is the dissolution of your state machine but the main issue we have
+state machine but the main issue we have is that we have 12 different characters
+is that we have 12 different characters all 12 characters have a unique state
+all 12 characters have a unique state machine that defines our gameplay and
+machine that defines our gameplay and also this this data was
+also this this data was was edited by designers so they were
+was edited by designers so they were able to submit and make changes every
+able to submit and make changes every day so it was really problematic for the
+day so it was really problematic for the eye to be always up to date so we
+eye to be always up to date so we decided to automatically extract
+decided to automatically extract information from this data so we have
+information from this data so we have two aspects that we extract
+two aspects that we extract automatically the first one is standard
+automatically the first one is standard information so what kind of attack are
+information so what kind of attack are you able to do are you able to charge
+you able to do are you able to charge your attacks can you find find your
+your attacks can you find find your attack what are the ranges the timings
+attack what are the ranges the timings and do you have special properties like
+and do you have special properties like for example as you can see on the
+for example as you can see on the pictures you have on the left and SSL
+pictures you have on the left and SSL which doesn't have some difference when
+which doesn't have some difference when his idle and on the right you have a
+his idle and on the right you have a tank that has some difference when he is
+tank that has some difference when he is idle so to be able to extract this kind
+idle so to be able to extract this kind of information we discussed with the
+of information we discussed with the character designers and we were able to
+character designers and we were able to define standards and so it means that
+define standards and so it means that they they built all the characters all
+they they built all the characters all this standard information in the
+this standard information in the characters with the same kind of
+characters with the same kind of patterns so the algorithm was we're able
+patterns so the algorithm was we're able to extract and find locate these
+to extract and find locate these patterns inside the state machine and
+patterns inside the state machine and extract the information for the yeah but
+extract the information for the yeah but you have always combos and unique
+you have always combos and unique abilities unique actions that define and
+abilities unique actions that define and give the flavour to your character so
+give the flavour to your character so you can see that for example we have an
+you can see that for example we have an ability which reflects this the context
+ability which reflects this the context not very important like most of the
+not very important like most of the structure and what we want for the bots
+structure and what we want for the bots is to go to this state this state
+is to go to this state this state represent for example the end of the
+represent for example the end of the attack but how can we do that basically
+attack but how can we do that basically what we want is to be able to extract
+what we want is to be able to extract the pass into the state machine so we go
+the pass into the state machine so we go into the branching between the states we
+into the branching between the states we look at the condition and we try to
+look at the condition and we try to extract what kind of inputs what are the
+extract what kind of inputs what are the elements that will allow the character
+elements that will allow the character to fulfill the condition and this
+to fulfill the condition and this triggers the branching so we do that for
+triggers the branching so we do that for all the states until we go to the root
+all the states until we go to the root of the ability so to be able to do that
+of the ability so to be able to do that it was
+it was pretty simple we needed to find a way to
+pretty simple we needed to find a way to give information to the algorithm to say
+give information to the algorithm to say I want to reach this specific state so
+I want to reach this specific state so in fact it's some data that the
+in fact it's some data that the character designer will have to put
+character designer will have to put directly inside the data and and that's
+directly inside the data and and that's it we are able to locate them and in
+it we are able to locate them and in fact since they knows our characters
+fact since they knows our characters they are able to define okay this is a
+they are able to define okay this is a kind of this is a special ability of my
+kind of this is a special ability of my character and I want to be sure that he
+character and I want to be sure that he is able to do it so with that we have
+is able to do it so with that we have all the knowledge of our character we
+all the knowledge of our character we know how to control it but we have to
+know how to control it but we have to get this information and bring it to the
+get this information and bring it to the eye so we decided to create simple
+eye so we decided to create simple elements that will that we call fight
+elements that will that we call fight actions that are able to perform one
+actions that are able to perform one specific action so for example we have a
+specific action so for example we have a fight action for block 1 for the attack
+fight action for block 1 for the attack dodged what brakes and stuff like that
+dodged what brakes and stuff like that and we are also one that is able to play
+and we are also one that is able to play input pass so the past that we have
+input pass so the past that we have extracted with the algorithm one
+extracted with the algorithm one important aspect of it is that all these
+important aspect of it is that all these blocks all these fight actions are
+blocks all these fight actions are character agnostic there is no code
+character agnostic there is no code that's a force of weakness are in this
+that's a force of weakness are in this specific condition you have to do this
+specific condition you have to do this kind of stuff
+kind of stuff so the only uzo to extracted data it's
+so the only uzo to extracted data it's way easier way zero to debug it was
+way easier way zero to debug it was really a really good thing so if we take
+really a really good thing so if we take a look at one example we will just look
+a look at one example we will just look at a block of the attack so on the left
+at a block of the attack so on the left you have a player you will attack the
+you have a player you will attack the but and the bots will try to defend
+but and the bots will try to defend himself so it's pretty simple but how do
+himself so it's pretty simple but how do we do that in the game so first of all
+we do that in the game so first of all we need to be able to detect that but is
+we need to be able to detect that but is attacked by the player then at runtime
+attacked by the player then at runtime we go inside the katana graph of the
+we go inside the katana graph of the player and we're able to detect that
+player and we're able to detect that okay is attacking and we know when will
+okay is attacking and we know when will be the it time after that we go inside
+be the it time after that we go inside the extracted information for the but
+the extracted information for the but we get the differentiation of this
+we get the differentiation of this character and the delay to trigger to
+character and the delay to trigger to activate this difference when we send
+activate this difference when we send the input and the only remaining part is
+the input and the only remaining part is just to be sure that we will have some
+just to be sure that we will have some defense when the Ito cure so that we can
+defense when the Ito cure so that we can block the attack so we do that for all
+block the attack so we do that for all these kind of actions most of them are
+these kind of actions most of them are really pretty simple but we are able to
+really pretty simple but we are able to work to combine them but yeah we wanted
+work to combine them but yeah we wanted so now we are able to do all the small
+so now we are able to do all the small elements but we have to need between
+elements but we have to need between needs in our game first of all is PDP in
+needs in our game first of all is PDP in pvp we want to replace players we want
+pvp we want to replace players we want to have unpredictable fighters that when
+to have unpredictable fighters that when a player will face an opponent he will
+a player will face an opponent he will not know if we will not recognize
+not know if we will not recognize pattern in it but in PvE it's different
+pattern in it but in PvE it's different we wanted to be able to teach the game
+we wanted to be able to teach the game we wanted to create some elements that
+we wanted to create some elements that that will help the player learn the
+that will help the player learn the mechanics and try different things and
+mechanics and try different things and try to find what is the best option
+try to find what is the best option against special abilities and stuff like
+against special abilities and stuff like that so this kind of our character
+that so this kind of our character hammer pattern based and we also had few
+hammer pattern based and we also had few bosses in the game with multiple stages
+bosses in the game with multiple stages and stuff like that so we decided to
+and stuff like that so we decided to yeah a solution to create this kind of
+yeah a solution to create this kind of factor was to create a kind of database
+factor was to create a kind of database of all the moves all the actions so the
+of all the moves all the actions so the butt will be able to perform so if we
+butt will be able to perform so if we look at the editor as you can see it
+look at the editor as you can see it looks like katana but it's another one
+looks like katana but it's another one we were able to reuse a lot of elements
+we were able to reuse a lot of elements that's why it looks almost the same but
+that's why it looks almost the same but so we have three main elements on the
+so we have three main elements on the right it's what we call the action graph
+right it's what we call the action graph so we put all the fight action blocks
+so we put all the fight action blocks together we are able to create branching
+together we are able to create branching between them set up conditions that's a
+between them set up conditions that's a load to trigger to activate this
+load to trigger to activate this branching on the left you have the
+branching on the left you have the decision tree parts it's where you will
+decision tree parts it's where you will create a tree structure that will
+create a tree structure that will contain all the action graph so all the
+contain all the action graph so all the leaf of the tree contain an action graph
+leaf of the tree contain an action graph it in fact is an action that you are
+it in fact is an action that you are able to perform and we have conditions
+able to perform and we have conditions filters cooldown that allow you to
+filters cooldown that allow you to define what branches of your tree are
+define what branches of your tree are available at a specific moment so how
+available at a specific moment so how does it look at run time basically we do
+does it look at run time basically we do a query inside this database every frame
+a query inside this database every frame which can be programmatic so we can
+which can be programmatic so we can optimize we did we did some stuff to be
+optimize we did we did some stuff to be able to be sure that it's not a big deal
+able to be sure that it's not a big deal so first the first thing is that we pre
+so first the first thing is that we pre compute everything we notice that most
+compute everything we notice that most of the condition are duplicated so
+of the condition are duplicated so instead of computing your information
+instead of computing your information into your condition what what we did is
+into your condition what what we did is that we compute the information before
+that we compute the information before and in the condition you have only to
+and in the condition you have only to just check a value it's really really
+just check a value it's really really easy after that since we use a tree
+easy after that since we use a tree structure if the designer organizes
+structure if the designer organizes Wells the condition and the branches we
+Wells the condition and the branches we are able to have a good early out and
+are able to have a good early out and also we are able to do partial Corey's
+also we are able to do partial Corey's basically when the but is fighting with
+basically when the but is fighting with in when is performing a specific action
+in when is performing a specific action is performing your is doing action graph
+is performing your is doing action graph so we have we defined a priority for it
+so we have we defined a priority for it and we can trim and remove in the query
+and we can trim and remove in the query all the elements that are less important
+all the elements that are less important in the tree so in fact most of the time
+in the tree so in fact most of the time you just look at a few parts a really
+you just look at a few parts a really small amount of branches in your tree so
+small amount of branches in your tree so if we take a look at one example so on
+if we take a look at one example so on the left you can see the bottle detour
+the left you can see the bottle detour in renta at runtime and on the right you
+in renta at runtime and on the right you have the player in blue and the butts in
+have the player in blue and the butts in orange and as the but will try to defend
+orange and as the but will try to defend himself an attack and you will be you
+himself an attack and you will be you can see the on the bottom of the
+can see the on the bottom of the condition they are highlighted in blue
+condition they are highlighted in blue in green and red when the condition are
+in green and red when the condition are met or not so it was really a really
+met or not so it was really a really powerful to help the designer understand
+powerful to help the designer understand what is happening
+he's doing a pretty good job but so right now we have sodas I know we're
+right now we have sodas I know we're able to create all these fighters but I
+able to create all these fighters but I will can we but we have to use them in
+will can we but we have to use them in PvP so if we take a look at one simple
+PvP so if we take a look at one simple example we have six players the
+example we have six players the matchmaking they want to play a game
+matchmaking they want to play a game where you have two teams two team of
+where you have two teams two team of four player the matchmaking will balance
+four player the matchmaking will balance all the players so you know that your
+all the players so you know that your team are balanced but you have one
+team are balanced but you have one missing guy in each team so we need to
+missing guy in each team so we need to add a but in each team but what kind of
+add a but in each team but what kind of but do you choose if you enter you don't
+but do you choose if you enter you don't want to introduce an advantage to one
+want to introduce an advantage to one team by choosing a fighter which is way
+team by choosing a fighter which is way too too hard and and select two birds
+too too hard and and select two birds that are that don't have the same
+that are that don't have the same difficulty and in fact in the game we
+difficulty and in fact in the game we created three difficulty levels for from
+created three difficulty levels for from point one to rank three
+point one to rank three so how can you be sure that your
+so how can you be sure that your difficulty look something like this
+difficulty look something like this all the rank one are at the same level
+all the rank one are at the same level approximately and there are less odd
+approximately and there are less odd than the wrong - and the round three are
+than the wrong - and the round three are better and everywhere than everyone else
+better and everywhere than everyone else how can you guarantee that you have your
+how can you guarantee that you have your difficulty is almost emotional
+difficulty is almost emotional in fact we ended up wanting to validate
+in fact we ended up wanting to validate zzi but we have so took a 12 character
+zzi but we have so took a 12 character sorry we have three difficulty levels it
+sorry we have three difficulty levels it means that we have too many matchup that
+means that we have too many matchup that we want to test and most of the time
+we want to test and most of the time when we had meetings with designers
+when we had meetings with designers testers directors and we were fighting
+testers directors and we were fighting against a specific bot and everyone was
+against a specific bot and everyone was saying oh yeah I feel this guy is easy I
+saying oh yeah I feel this guy is easy I feel his arm but it was not it was only
+feel his arm but it was not it was only feeling not science so we decided to
+feeling not science so we decided to implement automatic duels between
+implement automatic duels between but and we track the results so it's
+but and we track the results so it's pretty simple you set up an arena you
+pretty simple you set up an arena you put two fighters against each other and
+put two fighters against each other and as soon as there is one dead you have
+as soon as there is one dead you have your result so the usage was very very
+your result so the usage was very very cool we were able to play more than 250
+cool we were able to play more than 250 duels each night
+duels each night four on one PC and the goal was to reach
+four on one PC and the goal was to reach a predefined window Astro because an
+a predefined window Astro because an assassin for example can who should win
+assassin for example can who should win more easily and against tank so you
+more easily and against tank so you don't you don't need to aim to a 50%
+don't you don't need to aim to a 50% rescue for all your characters but it's
+rescue for all your characters but it's not a silver bullet because if you have
+not a silver bullet because if you have two butts that are broken the result
+two butts that are broken the result doesn't make any sense you need to be
+doesn't make any sense you need to be sure that you have one but at least that
+sure that you have one but at least that represent exactly the level of
+represent exactly the level of difficulty that you yes that you want
+difficulty that you yes that you want for a specific rank and after that sure
+for a specific rank and after that sure I want to compare it with others and and
+I want to compare it with others and and so on so it's it's only mainly to detect
+so on so it's it's only mainly to detect either vilena Mary's but we were able to
+either vilena Mary's but we were able to use it in in that way so that's it for
+use it in in that way so that's it for the replica today I will try to share a
+the replica today I will try to share a few takeaways about all this this
+few takeaways about all this this process so we use the input driven
+process so we use the input driven approach was it worth it basically yes
+approach was it worth it basically yes in fact we were able to share all the
+in fact we were able to share all the player improvements and testing so we
+player improvements and testing so we have in foreigner a team of testers that
+have in foreigner a team of testers that is fully dedicated to test the player
+is fully dedicated to test the player just to test the characters and they do
+just to test the characters and they do that by just playing with the characters
+that by just playing with the characters and on the AI side we were sure that
+and on the AI side we were sure that characters well tested and well well and
+characters well tested and well well and in fact if we send an input through the
+in fact if we send an input through the character it will do exactly what we
+character it will do exactly what we wanted him to do so
+wanted him to do so mostly when we had the bug that when a
+mostly when we had the bug that when a but wasn't able to perform something it
+but wasn't able to perform something it wasn't the AI side that was the inputs
+wasn't the AI side that was the inputs that was sent was not so good one also
+that was sent was not so good one also it as Bobby mentioned it allows the user
+it as Bobby mentioned it allows the user so yeah many metals or designers
+so yeah many metals or designers to prototype very easily they were able
+to prototype very easily they were able to spawn an elephant for example and
+to spawn an elephant for example and just play with him with the pad so it
+just play with him with the pad so it was a no need of any programmer for that
+was a no need of any programmer for that which is a really good thing because
+which is a really good thing because programmers can be a bottleneck sometime
+programmers can be a bottleneck sometime and also it was really lightweight for
+and also it was really lightweight for the networking and one interesting thing
+the networking and one interesting thing is that since we use the same pipeline
+is that since we use the same pipeline the AI count [ __ ] it's not possible
+the AI count [ __ ] it's not possible see I can only send input like the
+see I can only send input like the player and so if the player can do
+player and so if the player can do something Zi can do it and it in the
+something Zi can do it and it in the opposite if the player comes do
+opposite if the player comes do something the I come do it
+something the I come do it so for a competitive for military again
+so for a competitive for military again it's important so that you know that
+it's important so that you know that when you do you are in PvP you are
+when you do you are in PvP you are you're a I can't count it it's important
+you're a I can't count it it's important so we used also a lot of data-driven as
+so we used also a lot of data-driven as you were as we explained the bivi trees
+you were as we explained the bivi trees on the left on the top right you have
+on the left on the top right you have katana on the bottom right you have the
+katana on the bottom right you have the battle was it really was it yes
+battle was it really was it yes basically the designers were really
+basically the designers were really autonomous they were the owner of the
+autonomous they were the owner of the feature of the factors of the characters
+feature of the factors of the characters of anything it was really really
+of anything it was really really important for us and but also and we
+important for us and but also and we were able to create a lot of characters
+were able to create a lot of characters we have so 12 characters at lunch in the
+we have so 12 characters at lunch in the game we have I think an 100 of different
+game we have I think an 100 of different kind of fighters of AI fighters that can
+kind of fighters of AI fighters that can take control of these characters but
+take control of these characters but it's really important to give them great
+it's really important to give them great tools you you can't just give them like
+tools you you can't just give them like a Scalia mentioned a list of properties
+a Scalia mentioned a list of properties to set and and that's it you need to be
+to set and and that's it you need to be able to give them good visualization you
+able to give them good visualization you need to give them debug tools a way to
+need to give them debug tools a way to understand what's happening so that they
+understand what's happening so that they are able to relate when they have
+are able to relate when they have problems and bugs and they are able to
+problems and bugs and they are able to iterate understand what is happening and
+iterate understand what is happening and after that ii see you and that's because
+after that ii see you and that's because maybe there is a bug inside and then the
+maybe there is a bug inside and then the other side working with a simulation I
+other side working with a simulation I mean it
+mean it being five years in total and foreigner
+being five years in total and foreigner what was it was it a good idea
+what was it was it a good idea did it work and it's been a daunting
+did it work and it's been a daunting task we learned a lot that the
+task we learned a lot that the advantages of having something that you
+advantages of having something that you don't need to to think basically
+don't need to to think basically programmers that are working in the
+programmers that are working in the simulation they don't need to care about
+simulation they don't need to care about the fact that they're on a network or
+the fact that they're on a network or not the simulation is always right it's
+not the simulation is always right it's going to take care of what's happening
+going to take care of what's happening if it if a programmer was working in the
+if it if a programmer was working in the constraints of the simulation in a
+constraints of the simulation in a deterministic fashion well he it was
+deterministic fashion well he it was already working online so that was
+already working online so that was really a great a great thing we didn't
+really a great a great thing we didn't need to be taking into account is is it
+need to be taking into account is is it the real position is it is it an entity
+the real position is it is it an entity that's owned by my system by my by my
+that's owned by my system by my by my session or is it somebody else handling
+session or is it somebody else handling which replicas it's something that we
+which replicas it's something that we didn't need you to look into so that was
+didn't need you to look into so that was really great of course that we need do
+really great of course that we need do you need to take into account that you
+you need to take into account that you need to work in the deterministic code
+need to work in the deterministic code so as it happened a lot storing
+so as it happened a lot storing something outside of the history buffers
+something outside of the history buffers that we showed in the beginning well it
+that we showed in the beginning well it cause it caused these things so
+cause it caused these things so obviously once once everybody knew the
+obviously once once everybody knew the framework in which we were working it
+framework in which we were working it worked it worked pretty well and I mean
+worked it worked pretty well and I mean it's the whole talk why we're here to AI
+it's the whole talk why we're here to AI systems was that a good thing was that a
+systems was that a good thing was that a bad thing and for us really when we
+bad thing and for us really when we think about it it's it it those systems
+think about it it's it it those systems did what we want from the beginning it's
+did what we want from the beginning it's really what were the tools that we
+really what were the tools that we needed to build those systems what's the
+needed to build those systems what's the behavior that we wanted and by having
+behavior that we wanted and by having the approach of always centering our
+the approach of always centering our design decisions there were technical
+design decisions there were technical decisions on the player well they tabled
+decisions on the player well they tabled us to come to that to that point and in
+us to come to that to that point and in the end yes we think we think we made
+the end yes we think we think we made the right calls it was I mean it's it's
+the right calls it was I mean it's it's doing a great job every systems both
+doing a great job every systems both systems are different however I think
+systems are different however I think those two systems it's not an LD so I
+those two systems it's not an LD so I sold yours that are going in an a flow
+sold yours that are going in an a flow cannot become but and start going
+cannot become but and start going somewhere else so there's definitely
+somewhere else so there's definitely some limitations it's some things that
+some limitations it's some things that we can think about evolving and it's a
+we can think about evolving and it's a constraint that was definitely something
+constraint that was definitely something to look into in throughout all the
+to look into in throughout all the production
+production so that covers it that covers it all
+so that covers it that covers it all thank you very much for your time
+thank you very much for your time I think we have some time for questions
+I think we have some time for questions [Applause]
+[Applause] [Music]
+[Music] and and also one point they just after
+and and also one point they just after the this presentation there's an awesome
+the this presentation there's an awesome presentation about modifiers and
+presentation about modifiers and foreigner that's done by one of our
+foreigner that's done by one of our colleagues in leadership at Yi so yes
+colleagues in leadership at Yi so yes good so I don't know if there's any
+good so I don't know if there's any questions do we have time
+questions do we have time yes yes yes it's not directly I related
+yes yes yes it's not directly I related but in the replicated AI how do you
+but in the replicated AI how do you decide in a peer-to-peer based game how
+decide in a peer-to-peer based game how I decide who simulates the replicated AI
+I decide who simulates the replicated AI the way that it works is that there's
+the way that it works is that there's there's a peer that's owner of one of
+there's a peer that's owner of one of that AI so there's a it can be one
+that AI so there's a it can be one machine or multiple machines that that
+machine or multiple machines that that can send those inputs the the way that
+can send those inputs the the way that we decide it's so since in the the goal
+we decide it's so since in the the goal of the bots when they're fighting is
+of the bots when they're fighting is really to replace a player we there is
+really to replace a player we there is no there's no specific metric about
+no there's no specific metric about choosing who's gonna be the owner of
+choosing who's gonna be the owner of that but I mean it's gonna be it's it's
+that but I mean it's gonna be it's it's there's definitely gonna be a difference
+there's definitely gonna be a difference for player for players that were
+for player for players that were fighting against that but I mean he's
+fighting against that but I mean he's gonna have the same flag as the host
+gonna have the same flag as the host does the owner of that of that of that
+does the owner of that of that of that tier but it it's it's the same thing as
+tier but it it's it's the same thing as the player against we are fighting so a
+the player against we are fighting so a good choice I would say was probably
+good choice I would say was probably probably to take choose that teams so
+probably to take choose that teams so like basically if on my machine I'm most
+like basically if on my machine I'm most thing I'm handling a but that's on my on
+thing I'm handling a but that's on my on my side I won't be fighting him I won't
+my side I won't be fighting him I won't get an advantage I won't get zero a zero
+get an advantage I won't get zero a zero lag zero ping while so by using that
+lag zero ping while so by using that rule it's a good way to mitigate that
+rule it's a good way to mitigate that issue interesting thank you hello
+issue interesting thank you hello so you mentioned specifically about AI
+so you mentioned specifically about AI but I wanted to know this for the player
+but I wanted to know this for the player versus player you also only send the
+versus player you also only send the inputs or if you also send some state
+inputs or if you also send some state properties on the players or I love
+properties on the players or I love anything same thing it's something or
+anything same thing it's something or the inputs only the inputs and everybody
+the inputs only the inputs and everybody gets to the same conclusion and so so so
+gets to the same conclusion and so so so yeah as soon as you play on your machine
+yeah as soon as you play on your machine you take your decisions instantaneously
+you take your decisions instantaneously so it's deterministic and and those
+so it's deterministic and and those inputs when they receive on the other
+inputs when they receive on the other side the other machine really syncs up
+side the other machine really syncs up and goes to the same point but it's the
+and goes to the same point but it's the only and
+only and that we said so it's closer to a
+that we said so it's closer to a lockstep system exactly Thanks problem
+lockstep system exactly Thanks problem two questions would you re do the
+two questions would you re do the matches between the bots like if you did
+matches between the bots like if you did balance changes for the heroes
+balance changes for the heroes and then also did you only do that with
+and then also did you only do that with one map or did you do that with multiple
+one map or did you do that with multiple kinds of maps oh sorry the bots vs bots
+kinds of maps oh sorry the bots vs bots it matches if you rebalance the
+it matches if you rebalance the champions so like maybe affect their
+champions so like maybe affect their range or something like that
+range or something like that do you rerun the three matches between
+do you rerun the three matches between all the bots get a new ranking yeah yeah
+all the bots get a new ranking yeah yeah of course
+of course currently we are doing iterations and
+currently we are doing iterations and patches and stuff like that and yeah we
+patches and stuff like that and yeah we can we can use the same system to to
+can we can use the same system to to validate and we can if we need if really
+validate and we can if we need if really if we change something really important
+if we change something really important on one character we we can update the AI
+on one character we we can update the AI accordingly to be sure that we maintain
+accordingly to be sure that we maintain to the same difficulty yes and then for
+to the same difficulty yes and then for the buffer vs bots matches were you
+the buffer vs bots matches were you doing that just on one map or all the
+doing that just on one map or all the maps currently we use it on one map but
+maps currently we use it on one map but we could use it in any map here
+we could use it in any map here basically we we have one map what which
+basically we we have one map what which was so the first map that was created
+was so the first map that was created and we use it all the time so we did a
+and we use it all the time so we did a test in this one and I think we have all
+test in this one and I think we have all the kind of situation that we want in
+the kind of situation that we want in this map like you drop's so you can just
+this map like you drop's so you can just throw someone on from a bridge we have
+throw someone on from a bridge we have spikes and stuff like that so yeah thank
+spikes and stuff like that so yeah thank you hi
+you hi so are there properties to the melee
+so are there properties to the melee combat that make the deterministic and
+combat that make the deterministic and input driven system that you guys went
+input driven system that you guys went for more useful as compared to like
+for more useful as compared to like other game types like a shooter or RTS
+other game types like a shooter or RTS or something yeah it's a very good
+or something yeah it's a very good question SC on our side well it worked
+question SC on our side well it worked really well we what we wanted was really
+really well we what we wanted was really to get feedbacks as quick as possible
+to get feedbacks as quick as possible because the your enemy is really in
+because the your enemy is really in front of your face so we wanted to have
+front of your face so we wanted to have the link between those two peers as
+the link between those two peers as short as possible so that's why we
+short as possible so that's why we wanted to into that direction if your
+wanted to into that direction if your enemies are further away I mean I I'm
+enemies are further away I mean I I'm not sure you need such a big system
+not sure you need such a big system because it has a cost like every single
+because it has a cost like every single other actors in the world even
+other actors in the world even somebody that's really far away well we
+somebody that's really far away well we if there's a lag if we get an input
+if there's a lag if we get an input that's further away in time we receive
+that's further away in time we receive mainly we simulate that actor so it has
+mainly we simulate that actor so it has a toll on CPU so I I don't think it's
+a toll on CPU so I I don't think it's defined it's necessarily something I
+defined it's necessarily something I would be using on a first-person shooter
+would be using on a first-person shooter for example - I also had second question
+for example - I also had second question did you ever run into butterfly effects
+did you ever run into butterfly effects when like replaying stuff or were there
+when like replaying stuff or were there every like really long latency they like
+every like really long latency they like you wouldn't be able to replay
+you wouldn't be able to replay definitely at the beginning of the game
+definitely at the beginning of the game it was starting at the something that
+it was starting at the something that happened we call them like the vortex of
+happened we call them like the vortex of death because if it takes too much time
+death because if it takes too much time then your next input it can take more
+then your next input it can take more time than the other recently it's longer
+time than the other recently it's longer and then over and over so what we do is
+and then over and over so what we do is like we always ensure that our we have
+like we always ensure that our we have enough time to catch up
+enough time to catch up luckily we didn't have that issue but
+luckily we didn't have that issue but it's the conclude something that can
+it's the conclude something that can happen if you have something that's
+happen if you have something that's applied on for example all the actors in
+applied on for example all the actors in the world and if you do this and you
+the world and if you do this and you need to receive late a lot of simulation
+need to receive late a lot of simulation steps it can definitely happen what we
+steps it can definitely happen what we probably do is that we our system is if
+probably do is that we our system is if somebody is lagging too much he's gonna
+somebody is lagging too much he's gonna get kicked out before things get too bad
+get kicked out before things get too bad so cool thank you yeah I'm curious about
+so cool thank you yeah I'm curious about your BOTS on BOTS matches
+your BOTS on BOTS matches don't you get like an like a skewed
+don't you get like an like a skewed statistic if like a certain type of AI
+statistic if like a certain type of AI is like just because of the balancing is
+is like just because of the balancing is just by design more effective against
+just by design more effective against another type like how do you like
+another type like how do you like compensate for that I'm just curious
+compensate for that I'm just curious like about metrics like want that like
+like about metrics like want that like skew them somehow it's I think it's
+skew them somehow it's I think it's where we guarantee that at least one
+where we guarantee that at least one character is tweaked and tested by a
+character is tweaked and tested by a human so that in fact the other one will
+human so that in fact the other one will only be tested against this one of
+only be tested against this one of course we test all the characters with
+course we test all the characters with the testers but we guarantee that some
+the testers but we guarantee that some cars are really really heavily tested so
+cars are really really heavily tested so that we are sure that it represents
+that we are sure that it represents exactly was the level of everyone so all
+exactly was the level of everyone so all characters are supposed to be equally
+characters are supposed to be equally effective against all other characters
+effective against all other characters in that games not equally but that's why
+in that games not equally but that's why if you have an SSN for example gets a
+if you have an SSN for example gets a tongue it may may have a better win
+tongue it may may have a better win ratio against this one but we try to
+ratio against this one but we try to just be sure that it's omajin use we
+just be sure that it's omajin use we have
+have we allow a certain margin but okay thank
+we allow a certain margin but okay thank you hello my question is about the rules
+you hello my question is about the rules determining the rules and I was
+determining the rules and I was wondering if the what the process was to
+wondering if the what the process was to determine if a rule was a good one or a
+determine if a rule was a good one or a bad one
+bad one and there was some kind of formula you
+and there was some kind of formula you were using to judge the fitness of a
+were using to judge the fitness of a certain rule and if that could possibly
+certain rule and if that could possibly be automated for the rules that govern
+be automated for the rules that govern the fighters yes so you were talking
+the fighters yes so you were talking about how you said a rule and then it
+about how you said a rule and then it wasn't quite right and then you go it
+wasn't quite right and then you go it changed I was wondering about that
+changed I was wondering about that process yeah it was a lot of so our
+process yeah it was a lot of so our engine since it's a simulation based
+engine since it's a simulation based engine we can speed up the process a lot
+engine we can speed up the process a lot so there were a lot of times where we
+so there were a lot of times where we were able to let's write those values
+were able to let's write those values let's see what happened simulated and
+let's see what happened simulated and some of our designers people were
+some of our designers people were wondering what the hell are you doing
+wondering what the hell are you doing it's been ten minutes you're watching
+it's been ten minutes you're watching the gameplay on fast-forward and well
+the gameplay on fast-forward and well they were validating the balance and
+they were validating the balance and what are the impacts of what they were
+what are the impacts of what they were doing so we have a way of really
+doing so we have a way of really increasing really really fast so that's
+increasing really really fast so that's one of the way other way it's a lot of
+one of the way other way it's a lot of debug display tools visualizing what's
+debug display tools visualizing what's happening with the different forces the
+happening with the different forces the different algorithms that we were
+different algorithms that we were putting in place and yeah that's most of
+putting in place and yeah that's most of it Thanks I was curious on the bottom
+it Thanks I was curious on the bottom bob matches if you had completely
+bob matches if you had completely deterministic AI how the match is just
+deterministic AI how the match is just in turnaround exactly the same every
+in turnaround exactly the same every single time no sir but I'm not
+single time no sir but I'm not deterministic the yeah of the but is not
+deterministic the yeah of the but is not deterministic it's completed only on one
+deterministic it's completed only on one machine and is that's why we we
+machine and is that's why we we replicate is there so it's a good
+replicate is there so it's a good question I mean our game it's
+question I mean our game it's deterministic but there's still random
+deterministic but there's still random like every what the way that it works is
+like every what the way that it works is that every single agent has its seed
+that every single agent has its seed it's old and a random generator that's
+it's old and a random generator that's aligned to the current simulation step
+aligned to the current simulation step the agency and then we're sure that in
+the agency and then we're sure that in in the simulation step we can use random
+in the simulation step we can use random that random generator and have varying
+that random generator and have varying results so even if but definitely if we
+results so even if but definitely if we use the same thing and we send the same
+use the same thing and we send the same inputs you're gonna get the exact same
+inputs you're gonna get the exact same result absolutely
+result absolutely so changing the seed of this session
+so changing the seed of this session stuff like that these ways that we use
+stuff like that these ways that we use to to have a variant so that you're not
+to to have a variant so that you're not doing exactly the same thing
+doing exactly the same thing okay yeah and and yes effect in fact
+okay yeah and and yes effect in fact it's if you send the same input but as
+it's if you send the same input but as because the false about the system that
+because the false about the system that generates the input is not deterministic
+generates the input is not deterministic you can just have different metrics
+you can just have different metrics every time my concern is about what
+every time my concern is about what happens when you when you receive an
+happens when you when you receive an update and you Ray simulate do you have
+update and you Ray simulate do you have a way to figure out which entities to
+a way to figure out which entities to assimilate or you choose go to
+assimilate or you choose go to everything right now we're simulate
+everything right now we're simulate everything like when the naive approach
+everything like when the naive approach maybe and so so we redo everything what
+maybe and so so we redo everything what we do is that when we see that there is
+we do is that when we see that there is a change that affected an object so we
+a change that affected an object so we have that other pattern that we call the
+have that other pattern that we call the observer pattern that's responsible of
+observer pattern that's responsible of all the visual effects for example blood
+all the visual effects for example blood splatters effects sounds so that when it
+splatters effects sounds so that when it sees that and an object State has
+sees that and an object State has changed well it cancels the the effects
+changed well it cancels the the effects that were linked to that to that object
+that were linked to that to that object and so so that's where we come in sync
+and so so that's where we come in sync but yeah so we're not separating its for
+but yeah so we're not separating its for foreigners to hello thank you for the
+foreigners to hello thank you for the talk so your so the game is available
+talk so your so the game is available for different platforms right Xbox
+for different platforms right Xbox Playstation yes
+Playstation yes when does can you play across those no
+when does can you play across those no no we can't
+no we can't well the deterministic engine is one of
+well the deterministic engine is one of the problems so you cannot you cannot do
+the problems so you cannot you cannot do that and and but but we have a meta game
+that and and but but we have a meta game where you control territories and
+where you control territories and separate this is the same across all the
+separate this is the same across all the platforms but the game no you come to
+platforms but the game no you come to play on ps4 against someone on Xbox one
+play on ps4 against someone on Xbox one no it's because the determinism but even
+no it's because the determinism but even for Windows versus windows I would think
+for Windows versus windows I would think determinism would be a problem if your
+determinism would be a problem if your if your platform dependent yeah well we
+if your platform dependent yeah well we were not a platform dependent in the
+were not a platform dependent in the sense that we did add some issues for
+sense that we did add some issues for example at the beginning with until vs
+example at the beginning with until vs AMD CPUs we're not always getting the
+AMD CPUs we're not always getting the exact same results but it's it's
+exact same results but it's it's something that I personally didn't do it
+something that I personally didn't do it but our engine engineer is a figurative
+but our engine engineer is a figurative way to fix that but wait so wait we
+way to fix that but wait so wait we probably would be able to fix it for
+probably would be able to fix it for multi-platform and
+multi-platform and platform consoles but it's it's not part
+platform consoles but it's it's not part of any plan it seems that we don't have
+of any plan it seems that we don't have enough time for more question but we can
+enough time for more question but we can meet in the reprimand if you want after
+meet in the reprimand if you want after that so thank you very much again thank
+that so thank you very much again thank you
+you [Applause]

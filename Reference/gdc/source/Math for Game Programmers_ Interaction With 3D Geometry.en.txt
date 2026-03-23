@@ -1,0 +1,1919 @@
+[Music] welcome to this last section of the day
+welcome to this last section of the day entitled interacting with your 3D
+entitled interacting with your 3D geometry um You probably guessed I was a
+geometry um You probably guessed I was a professional bodybuilder but you're
+professional bodybuilder but you're wrong I'm actually a graphic software
+wrong I'm actually a graphic software engineer with Intel okay all right so
+engineer with Intel okay all right so games Graphics there's all sorts of fun
+games Graphics there's all sorts of fun stuff you got particle systems lens
+stuff you got particle systems lens flares cameras lights but any sort of
+flares cameras lights but any sort of meaningful interaction between the
+meaningful interaction between the player and his environment happens with
+player and his environment happens with those geometric objects whether it's
+those geometric objects whether it's rigid bodies skin characters or some of
+rigid bodies skin characters or some of those soft body things that are becoming
+those soft body things that are becoming more more important and these all things
+more more important and these all things they all have meshes okay so we're going
+they all have meshes okay so we're going to cover a lot of wide variety of things
+to cover a lot of wide variety of things today I'm going to first uh cover a lot
+today I'm going to first uh cover a lot of Basics review for some people but you
+of Basics review for some people but you know it's fundamentals we want everybody
+know it's fundamentals we want everybody to know following that I'm going to dive
+to know following that I'm going to dive deep into convex meshes then we'll take
+deep into convex meshes then we'll take a look at solid meshes and spatial
+a look at solid meshes and spatial properties thereof that affect motion
+properties thereof that affect motion and then we're going to finish off with
+and then we're going to finish off with some springy things and hopefully lots
+some springy things and hopefully lots of practical examples uh that'll be fun
+of practical examples uh that'll be fun for you guys and um yeah you're to take
+for you guys and um yeah you're to take pictures of course but these slides will
+pictures of course but these slides will be available online um later on okay
+be available online um later on okay this is math tutorial today so you were
+this is math tutorial today so you were warned there be some math in this course
+warned there be some math in this course but don't worry a lot of it is very uh
+but don't worry a lot of it is very uh very straightforward in fact just
+very straightforward in fact just knowing your basic Vector arithmetic dot
+knowing your basic Vector arithmetic dot product and cross product that's going
+product and cross product that's going to give you guys 99% of what you need in
+to give you guys 99% of what you need in this industry to succeed uh for example
+this industry to succeed uh for example you know your standard lighting
+you know your standard lighting equations in your shaders on your GPU I
+equations in your shaders on your GPU I mean it's n.l you know to get your
+mean it's n.l you know to get your diffus lighting just product you're
+diffus lighting just product you're writing some game script code for let's
+writing some game script code for let's say some robot right and you want to
+say some robot right and you want to know okay if the player walks in front
+know okay if the player walks in front of you you know you have to shoot him
+of you you know you have to shoot him down well simply take the dotproduct of
+down well simply take the dotproduct of the direction the robot is facing with
+the direction the robot is facing with the vector from the robot to the player
+the vector from the robot to the player and if that Vector close to one he's in
+and if that Vector close to one he's in front fire away if that's if it's
+front fire away if that's if it's negative you know save your ammo he's
+negative you know save your ammo he's somewhere behind you you don't see him
+somewhere behind you you don't see him okay in addition to some of that basic
+okay in addition to some of that basic math there's going to be a few new
+math there's going to be a few new things we're going to introduce today um
+things we're going to introduce today um you know shown here on the right um you
+you know shown here on the right um you know the outer products and the
+know the outer products and the jacobians and stuff um you're probably
+jacobians and stuff um you're probably wondering outer product what's that well
+wondering outer product what's that well the dark product or inner product is
+the dark product or inner product is something you're already familiar with
+something you're already familiar with you can think of that as a row Vector
+you can think of that as a row Vector times a column vector and that gives us
+times a column vector and that gives us the scalar we're all familiar with the
+the scalar we're all familiar with the outer product now think of it as a
+outer product now think of it as a column Vector times a row Vector the
+column Vector times a row Vector the rules of matrix
+rules of matrix multiplication produce give you a 3X3
+multiplication produce give you a 3X3 Matrix um you're probably scratching
+Matrix um you're probably scratching your head wondering okay well you know I
+your head wondering okay well you know I started out with six numbers I've got n
+started out with six numbers I've got n that's like lossy file lossy compression
+that's like lossy file lossy compression where the result is bigger than the
+where the result is bigger than the original file size what's the point well
+original file size what's the point well this this is actually useful and we'll
+this this is actually useful and we'll see why but first let's take a look at
+see why but first let's take a look at um sort of a geometric understanding of
+um sort of a geometric understanding of what the how the outer product might be
+what the how the outer product might be used okay we already know that um you
+used okay we already know that um you know what the do product is let's say we
+know what the do product is let's say we have a vector that's of unit length U
+have a vector that's of unit length U and we have some other vector v and we
+and we have some other vector v and we take the dot product and that gives us
+take the dot product and that gives us this distance of v as if we projected
+this distance of v as if we projected along U now that's a scalar if we want
+along U now that's a scalar if we want let's say a vector along that line then
+let's say a vector along that line then we multiply u. V * U and that gives us
+we multiply u. V * U and that gives us this line so V projected onto that line
+this line so V projected onto that line okay so now can we so that's if so we
+okay so now can we so that's if so we have U * UV can we change the brackets
+have U * UV can we change the brackets and move it over to the left so it's u.u
+and move it over to the left so it's u.u * V well that doesn't work because
+* V well that doesn't work because that's just one time V which is actually
+that's just one time V which is actually V which is different than this
+V which is different than this projection Vector that we wanted so to
+projection Vector that we wanted so to do that it's actually you take the outer
+do that it's actually you take the outer product of U with itself and that gives
+product of U with itself and that gives you a 3X3 Matrix that if I multiply that
+you a 3X3 Matrix that if I multiply that matrix by any Vector IT projects it onto
+matrix by any Vector IT projects it onto that line okay so think of how you might
+that line okay so think of how you might write your uh player navigation code you
+write your uh player navigation code you know you got some guy running around
+know you got some guy running around your world you know and the user hits
+your world you know and the user hits the W key and he's running along and he
+the W key and he's running along and he hits a wall and well you don't want it
+hits a wall and well you don't want it to go through the wall but you don't
+to go through the wall but you don't maybe you don't want to have them stick
+maybe you don't want to have them stick there you want to have them maybe slide
+there you want to have them maybe slide along the wall so you probably written a
+along the wall so you probably written a routine like this called slide along
+routine like this called slide along ball where you know you take the the
+ball where you know you take the the intended velocity or vector of the user
+intended velocity or vector of the user V and you know you have this U let's say
+V and you know you have this U let's say this U Vector is now sticking into the
+this U Vector is now sticking into the wall and you subtract out the that
+wall and you subtract out the that component of the motion and you're left
+component of the motion and you're left with what the Green Arrow there the you
+with what the Green Arrow there the you know so the player sliding along the
+know so the player sliding along the wall all right so in that little
+wall all right so in that little equation we see V show up in there twice
+equation we see V show up in there twice can we factor that out well indeed you
+can we factor that out well indeed you can and what you get is the identity
+can and what you get is the identity Matrix minus this outer product is now
+Matrix minus this outer product is now this 3x3 Matrix that you can use to
+this 3x3 Matrix that you can use to project uh vectors onto a plane of which
+project uh vectors onto a plane of which U is the normal of okay now why it's
+U is the normal of okay now why it's better to have some why it's sometimes
+better to have some why it's sometimes useful to have things in that Matrix
+useful to have things in that Matrix form instead of just some function is
+form instead of just some function is well certain things you can you can you
+well certain things you can you can you know pass matrices into like other
+know pass matrices into like other systems of equations and so on where you
+systems of equations and so on where you can't necessarily stuff an arbitrary
+can't necessarily stuff an arbitrary function okay and we'll see more uses of
+function okay and we'll see more uses of this later on okay now at first because
+this later on okay now at first because there's a lot of geometry uh algorithms
+there's a lot of geometry uh algorithms that we're going to writing uh you know
+that we're going to writing uh you know this is the bane of existence of of
+this is the bane of existence of of these things is numerical Precision
+these things is numerical Precision issues if you're doing graphics and
+issues if you're doing graphics and lighting you know everything just kind
+lighting you know everything just kind of works out you know you know that
+of works out you know you know that pixel is always the right color but you
+pixel is always the right color but you know the problems are more when you're
+know the problems are more when you're doing things with geometry like slicing
+doing things with geometry like slicing and dicing and stuff now it it comes to
+and dicing and stuff now it it comes to this when we have a line for example
+this when we have a line for example it's a continuous thing and if you sort
+it's a continuous thing and if you sort of zoom in zoom in zoom in to like the
+of zoom in zoom in zoom in to like the lowest bits of precision and you start
+lowest bits of precision and you start looking at points along that line well
+looking at points along that line well they're not really on the line anymore
+they're not really on the line anymore because you don't quite have the
+because you don't quite have the Precision to do to to do that and you're
+Precision to do to to do that and you're thinking well you know floating point
+thinking well you know floating point you got 23 bit mantis this should be
+you got 23 bit mantis this should be more than enough Precision well the
+more than enough Precision well the problem is not be is still not enough
+problem is not be is still not enough because you might have a long line
+because you might have a long line segment and you're chopping it let's say
+segment and you're chopping it let's say really close down to making something
+really close down to making something really short and as a result you can
+really short and as a result you can sort of change the direction of that
+sort of change the direction of that line a little bit and can throw things
+line a little bit and can throw things off where you have those two lines that
+off where you have those two lines that are sort of like this you saw examples
+are sort of like this you saw examples in the previous talk or you might be
+in the previous talk or you might be doing successive operations and you get
+doing successive operations and you get new numerical drift and things get
+new numerical drift and things get really bad okay and we're going to see
+really bad okay and we're going to see examples of this issue later on because
+examples of this issue later on because it's just something we have to be aware
+it's just something we have to be aware of okay so geometry let's take a look at
+of okay so geometry let's take a look at the building blocks now um you know
+the building blocks now um you know triangles and planes and your college
+triangles and planes and your college math class probably taught you that a
+math class probably taught you that a plane is a 2d subset of a 3D space in
+plane is a 2d subset of a 3D space in games and Graphics of course we you know
+games and Graphics of course we you know our planes and triangles have to specify
+our planes and triangles have to specify an above and a below you know or on top
+an above and a below you know or on top or in front behind whatever you would
+or in front behind whatever you would like to call it so for triangles
+like to call it so for triangles typically they'll be inm noral Vector
+typically they'll be inm noral Vector for the triangle saying which way is
+for the triangle saying which way is above and maybe a counterclockwise
+above and maybe a counterclockwise convention to the vertices uh for planes
+convention to the vertices uh for planes it's that a b and c of the plane
+it's that a b and c of the plane equation um that Define the normal which
+equation um that Define the normal which points up above okay also note that uh I
+points up above okay also note that uh I I prefer to use a convention ax plus b y
+I prefer to use a convention ax plus b y + c z plus d equals z because then I can
++ c z plus d equals z because then I can think of my plane to point test as this
+think of my plane to point test as this 4D dotproduct of the of the homogeneous
+4D dotproduct of the of the homogeneous coordinate or homogeneous point with the
+coordinate or homogeneous point with the plane equation itself uh one more small
+plane equation itself uh one more small note um often instead of saying a b c d
+note um often instead of saying a b c d you know people will interchange and say
+you know people will interchange and say XYZ W because that's the same convention
+XYZ W because that's the same convention used for querian and homogeneous
+used for querian and homogeneous coordinates and Float 4 registers and D
+coordinates and Float 4 registers and D okay so so now one of the things that
+okay so so now one of the things that we're going to need to be able to do is
+we're going to need to be able to do is uh you know maybe find the intersection
+uh you know maybe find the intersection of three planes where do they all meet
+of three planes where do they all meet you could have three faces on a mesh and
+you could have three faces on a mesh and you want to know that vertex location
+you want to know that vertex location all right well this is a classic linear
+all right well this is a classic linear algebra problem of three equations and
+algebra problem of three equations and three unknowns the X and Y and Z
+three unknowns the X and Y and Z components of your position V are the
+components of your position V are the unknown knows so take your three normals
+unknown knows so take your three normals from the plane equations put them in a
+from the plane equations put them in a 3X3 Matrix invert that multiply by this
+3X3 Matrix invert that multiply by this Vector that composed of the W
+Vector that composed of the W coordinates and VOA you get your answer
+coordinates and VOA you get your answer now if you have two planes that are
+now if you have two planes that are parallel well that Matrix won't be
+parallel well that Matrix won't be invertible and there's no answer anyway
+invertible and there's no answer anyway so all the math kind of nicely works out
+so all the math kind of nicely works out okay all right so what if we have four
+okay all right so what if we have four planes well okay I have to explain what
+planes well okay I have to explain what I mean by this problem um and I'm going
+I mean by this problem um and I'm going to do it with an example let's say I'm
+to do it with an example let's say I'm building a house I start with this floor
+building a house I start with this floor and I build up the walls and then I'm
+and I build up the walls and then I'm constructing the roof and and before I'm
+constructing the roof and and before I'm done you know I want to know well what's
+done you know I want to know well what's the top of that house going to look like
+the top of that house going to look like you know how do those four planes come
+you know how do those four planes come together just based on the plane
+together just based on the plane equations and there's three
+equations and there's three possibilities for that I can have sort
+possibilities for that I can have sort of the north south come together first
+of the north south come together first or the East West or they might all
+or the East West or they might all actually me at a point well using what
+actually me at a point well using what you just learned from a previous slide
+you just learned from a previous slide you can think oh grab three of the
+you can think oh grab three of the planes generate a point test it against
+planes generate a point test it against a fourth plane and yes that will work uh
+a fourth plane and yes that will work uh but one of the things that we like to do
+but one of the things that we like to do whenever we construct algorithms is you
+whenever we construct algorithms is you know can we do it in such a way where
+know can we do it in such a way where we're not sort of you know picking uh
+we're not sort of you know picking uh you know how do I pick the three who's
+you know how do I pick the three who's the odd man out and and so on so instead
+the odd man out and and so on so instead of that let's try putting all four plane
+of that let's try putting all four plane equations now in a 4x4
+equations now in a 4x4 Matrix now if they all do me at a point
+Matrix now if they all do me at a point well then I'll have a solution to the
+well then I'll have a solution to the equation that's shown on this slide here
+equation that's shown on this slide here but I'm multiplying something by
+but I'm multiplying something by something else and I'm getting zero
+something else and I'm getting zero that's only going to happen if that
+that's only going to happen if that Matrix is singular and we know a simple
+Matrix is singular and we know a simple test for that already and that's seeing
+test for that already and that's seeing if the determinant of the Matrix is zero
+if the determinant of the Matrix is zero furthermore if my other plane equ if my
+furthermore if my other plane equ if my plane equations are in this uh Matrix in
+plane equations are in this uh Matrix in a you know in a nice you know clockwise
+a you know in a nice you know clockwise counterclockwise order and I I don't put
+counterclockwise order and I I don't put any of my roofing material on upside
+any of my roofing material on upside down then I can use the sign of the
+down then I can use the sign of the determinant to distinguish between the
+determinant to distinguish between the other two
+other two cases okay now you've seen this but I'm
+cases okay now you've seen this but I'm just going to you know Ram it down your
+just going to you know Ram it down your throat because everyone needs to know
+throat because everyone needs to know this so sorry if it's review but
+this so sorry if it's review but intersecting line with a plane I've got
+intersecting line with a plane I've got two points and I want to know where they
+two points and I want to know where they meet v0 to V1 is my line segment I can
+meet v0 to V1 is my line segment I can do that test and I know the distance
+do that test and I know the distance above and or below the plane okay and so
+above and or below the plane okay and so I think of now as I'm traveling from v0
+I think of now as I'm traveling from v0 to V1 okay think of yourself moving that
+to V1 okay think of yourself moving that direction and so I'm just it's a matter
+direction and so I'm just it's a matter of just
+of just solving uh you know for what at what
+solving uh you know for what at what time do I cross that plane and shown on
+time do I cross that plane and shown on the right is that's high school math to
+the right is that's high school math to find that value of t or for time so once
+find that value of t or for time so once you've got that then you take that value
+you've got that then you take that value shove it back in your equation sort of
+shove it back in your equation sort of move along that line you know T you know
+move along that line you know T you know that that fraction T and you've got your
+that that fraction T and you've got your 3D point of impact okay all right so uh
+3D point of impact okay all right so uh getting back to doing interaction in in
+getting back to doing interaction in in a game well things are made of triangles
+a game well things are made of triangles so if I've let's say the user clicks on
+so if I've let's say the user clicks on his Mouse you know what did he click on
+his Mouse you know what did he click on or you've got some bullet flying through
+or you've got some bullet flying through the scene and does it hit the bad guy so
+the scene and does it hit the bad guy so yeah here we have to test this Ray the
+yeah here we have to test this Ray the path of the bullet against our geometry
+path of the bullet against our geometry say a triangle so we you know we the
+say a triangle so we you know we the triangle sits on a plane we find the
+triangle sits on a plane we find the point on the plane where it hits and and
+point on the plane where it hits and and then we say well we want to know if it's
+then we say well we want to know if it's inside or out so we test against all of
+inside or out so we test against all of the edges okay this is the simple easy
+the edges okay this is the simple easy you know simplistic way of doing it and
+you know simplistic way of doing it and um in order to test against an edge you
+um in order to test against an edge you know you have the edge cross product
+know you have the edge cross product with the you know from one of the edge
+with the you know from one of the edge vertices to the point and if that cross
+vertices to the point and if that cross product Vector points the same direction
+product Vector points the same direction as the normal then yeah it's on the
+as the normal then yeah it's on the inside of that edge on the inside of all
+inside of that edge on the inside of all three edges you hit the triangle outside
+three edges you hit the triangle outside any of the edges obviously you missed
+any of the edges obviously you missed okay right and that's the that's sort of
+okay right and that's the that's sort of the simple first implementation that you
+the simple first implementation that you might write and
+might write and Implement okay but things in your game
+Implement okay but things in your game they have like thousands of triangles on
+they have like thousands of triangles on them well the answer is simple just
+them well the answer is simple just check against all of the triangles now
+check against all of the triangles now okay that's obviously going to be fairly
+okay that's obviously going to be fairly inefficient and I invite you all
+inefficient and I invite you all tomorrow to attend goo's talk on spatial
+tomorrow to attend goo's talk on spatial structures because he'll tell you how to
+structures because he'll tell you how to rule out many of those tests altogether
+rule out many of those tests altogether okay but just conceptually for now you
+okay but just conceptually for now you can sort of think of it that way but
+can sort of think of it that way but also keep in mind depending on how you
+also keep in mind depending on how you Traverse those structures spatial
+Traverse those structures spatial structures and this and what's in your
+structures and this and what's in your scene you know if you if you detect a
+scene you know if you if you detect a hit o I got a triangle well you might
+hit o I got a triangle well you might have to keep checking because there
+have to keep checking because there might be something closer right you know
+might be something closer right you know that hits so as you're checking you sort
+that hits so as you're checking you sort of shorten your Ray and keep going you
+of shorten your Ray and keep going you know cuz you don't want to spray like a
+know cuz you don't want to spray like a you know a bunch of bullets against a
+you know a bunch of bullets against a crowd and have the people in the back
+crowd and have the people in the back fall down no no you want the zombies in
+fall down no no you want the zombies in the front to fall down okay next here's
+the front to fall down okay next here's an issue you need to be aware of is I
+an issue you need to be aware of is I can have two triangles you know nicely
+can have two triangles you know nicely sitting together and I shoot a ray and
+sitting together and I shoot a ray and it goes right through you know and but
+it goes right through you know and but but the same Edge they got the same
+but the same Edge they got the same points and that's because of this naive
+points and that's because of this naive implementation when I'm checking against
+implementation when I'm checking against one triangle I generate a point on that
+one triangle I generate a point on that plane and let's say you know numerical
+plane and let's say you know numerical Precision just just Falls outside an
+Precision just just Falls outside an edge check the other Triangle Well I'm
+edge check the other Triangle Well I'm projecting onto a different plane so I'm
+projecting onto a different plane so I'm generating a different point okay and
+generating a different point okay and and so you know you have to kind of be
+and so you know you have to kind of be aware of this I mean a simple fix would
+aware of this I mean a simple fix would be to kind of make the triangles a
+be to kind of make the triangles a little bigger or something or you know
+little bigger or something or you know you can go back and study Geno slides
+you can go back and study Geno slides and you know with plucker coordinates
+and you know with plucker coordinates and do this all the correct way now um
+and do this all the correct way now um and finally your meshes themselves they
+and finally your meshes themselves they have to be intact if you've got T
+have to be intact if you've got T intersections are holes you can imagine
+intersections are holes you can imagine a bullet flying right through where
+a bullet flying right through where there's a missing triangle and that
+there's a missing triangle and that brings us to this notion of solid
+brings us to this notion of solid geometry and you should have you know we
+geometry and you should have you know we touched on that a little bit in the last
+touched on that a little bit in the last section you saw that and that's this
+section you saw that and that's this idea where you have a borderless
+idea where you have a borderless manifold mesh so anytime you have an
+manifold mesh so anytime you have an edge there's a face on both sides and
+edge there's a face on both sides and the poly and the normals are sort of all
+the poly and the normals are sort of all consistently facing outward and so on
+consistently facing outward and so on and then it's all watertight nothing
+and then it's all watertight nothing could leak in or out and so the mesh
+could leak in or out and so the mesh itself becomes this infinitely thin
+itself becomes this infinitely thin boundary representation separating solid
+boundary representation separating solid matter from empty space okay and then
+matter from empty space okay and then given that I can I can take a point and
+given that I can I can take a point and I can say whether that point definitely
+I can say whether that point definitely is inside or outside of my mesh just
+is inside or outside of my mesh just simply cast a long Ray if you first hit
+simply cast a long Ray if you first hit the backside of a polygon it has to be
+the backside of a polygon it has to be on the inside of the object otherwise
+on the inside of the object otherwise it's free and the clear in in in empty
+it's free and the clear in in in empty space outside okay all right so that was
+space outside okay all right so that was a little bit of review for everyone um
+a little bit of review for everyone um now I'm going to dive deep into convex
+now I'm going to dive deep into convex meshes okay now your University classes
+meshes okay now your University classes or textbooks might have described a
+or textbooks might have described a convex set is one for which any two
+convex set is one for which any two elements if you have picked any two
+elements if you have picked any two elements in that set the line segment
+elements in that set the line segment between them must also be contained in
+between them must also be contained in that set okay now a more intuitive ways
+that set okay now a more intuitive ways to understand a convex mesh is to think
+to understand a convex mesh is to think anytime you've got two neighboring faces
+anytime you've got two neighboring faces their normals are going to be tilting
+their normals are going to be tilting away from each other instead of towards
+away from each other instead of towards each other a test for that take the
+each other a test for that take the cross product of you know triangle uh
+cross product of you know triangle uh face a with face B and the and the
+face a with face B and the and the result should run in the same direction
+result should run in the same direction as the edge according to face a um you
+as the edge according to face a um you can also think of a convex mesh as a
+can also think of a convex mesh as a volume bounded by a number of planes the
+volume bounded by a number of planes the intersection of a number of half spaces
+intersection of a number of half spaces essentially or if think of every vertex
+essentially or if think of every vertex lies at or below every other face okay
+lies at or below every other face okay so the reason for convex meshes is that
+so the reason for convex meshes is that all a lot of algorithms become so much
+all a lot of algorithms become so much easier to
+easier to implement okay for example in an in
+implement okay for example in an in andout test well to test if a Point's
+andout test well to test if a Point's inside a convex mesh I just have to
+inside a convex mesh I just have to check with all the plane equations if
+check with all the plane equations if you're underneath any all the planes
+you're underneath any all the planes you're inside I don't have to worry
+you're inside I don't have to worry about those Edge tests and Corner cases
+about those Edge tests and Corner cases numeric robustness and all that so that
+numeric robustness and all that so that gets a little
+gets a little easier um testing array if you know like
+easier um testing array if you know like like that bullet flying through space
+like that bullet flying through space whatever for a ray intersecting a convex
+whatever for a ray intersecting a convex well for okay so i' I've got that Ray
+well for okay so i' I've got that Ray and and then for you know I've got this
+and and then for you know I've got this thing made out of planes and just for
+thing made out of planes and just for whenever I've I take all the planes that
+whenever I've I take all the planes that are facing against the ray so like the
+are facing against the ray so like the dot product of the Ray and that plane
+dot product of the Ray and that plane normal is less than zero and then it's
+normal is less than zero and then it's just cropping any part of the ray that
+just cropping any part of the ray that lies above right so here I'm sort of
+lies above right so here I'm sort of moving the back start of the ray this v0
+moving the back start of the ray this v0 moving it up you know as it's being
+moving it up you know as it's being chopped by each of these planes and then
+chopped by each of these planes and then what if I'm left with something of
+what if I'm left with something of positive length then that v0 is now the
+positive length then that v0 is now the point of impact the last plane that
+point of impact the last plane that sliced it is a normal of
+sliced it is a normal of impact and this generalizes of course to
+impact and this generalizes of course to a general line segment uh with two end
+a general line segment uh with two end points and sort of in addition to
+points and sort of in addition to trimming you know from v0 with the front
+trimming you know from v0 with the front placing planes I trim V1 with sort of
+placing planes I trim V1 with sort of the back facing planes and if I'm left
+the back facing planes and if I'm left with something a positive length at the
+with something a positive length at the end then that's what's stuck inside my
+end then that's what's stuck inside my object all right so convex to convexes
+object all right so convex to convexes well there's a nice property here that
+well there's a nice property here that if there if two convex objects are not
+if there if two convex objects are not interpenetrating there'll be a
+interpenetrating there'll be a separating plane between them and I'm
+separating plane between them and I'm sure the physics sessions tomorrow if
+sure the physics sessions tomorrow if you attend those they'll tell you all
+you attend those they'll tell you all about fast ways to find these
+about fast ways to find these furthermore if they you if they are
+furthermore if they you if they are separated one of the planes that will
+separated one of the planes that will separate the two will be either a face
+separate the two will be either a face from one a face from the other or
+from one a face from the other or something that takes an edge from each
+something that takes an edge from each and the cross product is it's normal
+and the cross product is it's normal okay um learn more about that tomorrow
+okay um learn more about that tomorrow I'm sure if two convexes are touching
+I'm sure if two convexes are touching then the area or contact patch which
+then the area or contact patch which they're touching it will be either a
+they're touching it will be either a point a line segment or itself a convex
+point a line segment or itself a convex polygon so you can understand why
+polygon so you can understand why physics engines really like these things
+physics engines really like these things okay so I've sold you that hey convexes
+okay so I've sold you that hey convexes are cool we want to use these for a lot
+are cool we want to use these for a lot of reasons but I've got things in my
+of reasons but I've got things in my scene and oh they're not convex what do
+scene and oh they're not convex what do I do well in that case you generate a
+I do well in that case you generate a convex Hall of those for those uh meshes
+convex Hall of those for those uh meshes which is simply the smallest convex mesh
+which is simply the smallest convex mesh that contains the original mesh well so
+that contains the original mesh well so how do you do that uh this's something
+how do you do that uh this's something that people have been doing for like
+that people have been doing for like like 40 years now and there's two
+like 40 years now and there's two general categories of approaches for
+general categories of approaches for generating convex hes you can start with
+generating convex hes you can start with like a big bounding box and you kind of
+like a big bounding box and you kind of shrink it down and CH slice it chop it
+shrink it down and CH slice it chop it you know whatever until you get
+you know whatever until you get something that tightly fits all your
+something that tightly fits all your points or you can start really small
+points or you can start really small with like you know maybe a couple back
+with like you know maybe a couple back toback triangles or tetrahedron
+toback triangles or tetrahedron something convex and then you add points
+something convex and then you add points to it keeping it convex as you grow it
+to it keeping it convex as you grow it out until you've grown it out to contain
+out until you've grown it out to contain all your points okay so the most popular
+all your points okay so the most popular implementation out there um is Q hul
+implementation out there um is Q hul based on the quick paper and it's one of
+based on the quick paper and it's one of these expansionist uh types of
+these expansionist uh types of algorithms um it works in an arbitrary
+algorithms um it works in an arbitrary number of Dimensions but typically if
+number of Dimensions but typically if you're going to use it you're going to
+you're going to use it you're going to use it for three-dimensional things and
+use it for three-dimensional things and and it's one of these expansionist
+and it's one of these expansionist approaches and so I've just Illustrated
+approaches and so I've just Illustrated what that looks like on the right you
+what that looks like on the right you know I've got some convex mesh and
+know I've got some convex mesh and there's new point that we're going to
+there's new point that we're going to add find all the faces for which it's
+add find all the faces for which it's above okay then you throw those away and
+above okay then you throw those away and there's left with the silhouette and
+there's left with the silhouette and then you fill fill that hole with uh a
+then you fill fill that hole with uh a new fan of polygons an
+new fan of polygons an is you got uh oh and then just continue
+is you got uh oh and then just continue for the next vertex and and so on until
+for the next vertex and and so on until until you've grown it up as big as you
+until you've grown it up as big as you want but at each step you have this
+want but at each step you have this issue where um you know you have to make
+issue where um you know you have to make sure that things are still intact and
+sure that things are still intact and convex and even the original quick Hall
+convex and even the original quick Hall paper says yeah we have these numerical
+paper says yeah we have these numerical bus and shits usually they always show
+bus and shits usually they always show up you just have to you know constantly
+up you just have to you know constantly scan for them and fix them when you see
+scan for them and fix them when you see them what that might look like is as
+them what that might look like is as follows here I've got some little hole
+follows here I've got some little hole and I grow it with this new yellow point
+and I grow it with this new yellow point out here throw away a couple triangles
+out here throw away a couple triangles and I these three and notice that one of
+and I these three and notice that one of them is kind of skinny and so you can
+them is kind of skinny and so you can see where you know if something's skinny
+see where you know if something's skinny like that you know the normal might be
+like that you know the normal might be bent over in a in a weird way and it
+bent over in a in a weird way and it might not be convex and so maybe
+might not be convex and so maybe flipping an edge or something will fix
+flipping an edge or something will fix that sort of thing okay and and these
+that sort of thing okay and and these algorithms typically work with um you
+algorithms typically work with um you know winged Edge data structures which
+know winged Edge data structures which are very effective for this but there's
+are very effective for this but there's also a simple approach for Hall
+also a simple approach for Hall Generation Um just based on triangle
+Generation Um just based on triangle meshes it also works and that's to think
+meshes it also works and that's to think of again this one of these expansion
+of again this one of these expansion approaches so you have this triangulated
+approaches so you have this triangulated mesh and anytime I want to uh
+mesh and anytime I want to uh iteratively grow the hall with new
+iteratively grow the hall with new points I find all the triangle storage
+points I find all the triangle storage that's above then I take a tetrahedron
+that's above then I take a tetrahedron and I glue it on top okay so where the
+and I glue it on top okay so where the three you know the three of the points
+three you know the three of the points are the three vertices of the triangle
+are the three vertices of the triangle that I'm putting it on top of and the
+that I'm putting it on top of and the fourth point is my new point up here and
+fourth point is my new point up here and then you know because you know we don't
+then you know because you know we don't want all these all the stuff inside you
+want all these all the stuff inside you know we sort of just delete all the
+know we sort of just delete all the backtack triangles and I'm left with
+backtack triangles and I'm left with just the boundary representation on the
+just the boundary representation on the outside so you know fairly simple fairly
+outside so you know fairly simple fairly elegant but it's it too runs into this
+elegant but it's it too runs into this numerical robustness problem um because
+numerical robustness problem um because you can get generate the folds and stuff
+you can get generate the folds and stuff even with this approach so I'm going to
+even with this approach so I'm going to sort of dive into a little an example
+sort of dive into a little an example here to illustrate uh how they happen
+here to illustrate uh how they happen and how to fix them so imagine I've got
+and how to fix them so imagine I've got some point cloud in a bunch of vertices
+some point cloud in a bunch of vertices that I'm generating a convex hole for
+that I'm generating a convex hole for and five of these points ABCDE e are at
+and five of these points ABCDE e are at one end of the of this cloud and they're
+one end of the of this cloud and they're all sort of CER is and at some point you
+all sort of CER is and at some point you know I've generated a intermediate Hall
+know I've generated a intermediate Hall that's got all the points except for e
+that's got all the points except for e and and now we want to add e to our hall
+and and now we want to add e to our hall for whatever reason and okay so I I test
+for whatever reason and okay so I I test e with the left triangle and using you
+e with the left triangle and using you know six-bit mathematics it you know
+know six-bit mathematics it you know tells me that it's below okay and then I
+tells me that it's below okay and then I test with the right triangle and you
+test with the right triangle and you know bad numerical Precision it tells me
+know bad numerical Precision it tells me oh yeah you're but you're above that
+oh yeah you're but you're above that triangle so then I have to slap a tetr
+triangle so then I have to slap a tetr on top of the right triangle lift it up
+on top of the right triangle lift it up and that this new vertex is over to e
+and that this new vertex is over to e well look what happened I've got this
+well look what happened I've got this upside down red triangle it's facing the
+upside down red triangle it's facing the wrong way so as long as I have one point
+wrong way so as long as I have one point that's inside my convex Hall I can you
+that's inside my convex Hall I can you know test for these and detect them the
+know test for these and detect them the solution is as simple as the way we're
+solution is as simple as the way we're generating these holes you just take a
+generating these holes you just take a new tetrahedon and you shove it in there
+new tetrahedon and you shove it in there what it does it deletes the bad triangle
+what it does it deletes the bad triangle and the and the one that we didn't lift
+and the and the one that we didn't lift up in the first place generates a two
+up in the first place generates a two green triangle shown on the far right
+green triangle shown on the far right and I've left with this nice convex Hall
+and I've left with this nice convex Hall everything facing outward as we like
+everything facing outward as we like okay and that's how that works all right
+okay and that's how that works all right so a lot of the off-the-shelf convex
+so a lot of the off-the-shelf convex Hull algorithms out there are going to
+Hull algorithms out there are going to generate your complete Hall with all
+generate your complete Hall with all points on the extreme but you may not
+points on the extreme but you may not really need all of those imagine if
+really need all of those imagine if you've got a you know a whole bunch of
+you've got a you know a whole bunch of points in a point cloud and there's sort
+points in a point cloud and there's sort of this round feature on the side it's
+of this round feature on the side it's all of those you know every single one
+all of those you know every single one of those points if they're extreme all
+of those points if they're extreme all are going to be included the thing is a
+are going to be included the thing is a convex Hall is already this gross
+convex Hall is already this gross approximation right I mean you don't
+approximation right I mean you don't need that many points you know maybe 30
+need that many points you know maybe 30 will probably be more than enough so the
+will probably be more than enough so the quick call algorithm it's order and log
+quick call algorithm it's order and log and time and uh that's a contribution to
+and time and uh that's a contribution to the paper uh one of the reasons that
+the paper uh one of the reasons that that it is that way is because of the
+that it is that way is because of the way they sort of order vertices to add
+way they sort of order vertices to add to the hole so instead of that I mean we
+to the hole so instead of that I mean we don't really care about order and log in
+don't really care about order and log in because this is offline processing
+because this is offline processing typically we're just kind of preparing
+typically we're just kind of preparing our stuff to use at runtime this isn't
+our stuff to use at runtime this isn't at runtime so but let's Instead at each
+at runtime so but let's Instead at each step let's always pick the best vertex
+step let's always pick the best vertex so we're always picking the best one to
+so we're always picking the best one to increase our volume of our Hall the most
+increase our volume of our Hall the most and then we can just stop if we adding
+and then we can just stop if we adding new vertices doesn't improve it or if
+new vertices doesn't improve it or if we've kind of reached a threshold we
+we've kind of reached a threshold we don't want any more vertices in that
+don't want any more vertices in that okay so that's a way to you know make
+okay so that's a way to you know make your stuff game efficient okay
+your stuff game efficient okay furthermore there's uh this trade-off
+furthermore there's uh this trade-off between minimizing the number of planes
+between minimizing the number of planes versus minimizing the number of points
+versus minimizing the number of points what I've shown up here is two plutonic
+what I've shown up here is two plutonic solids that illustrate this trade-off
+solids that illustrate this trade-off perfectly one as fewer planes one has
+perfectly one as fewer planes one has fewer points now the algorithms I
+fewer points now the algorithms I described for creating simplified Hall
+described for creating simplified Hall work on vertices and they're
+work on vertices and they're triangulated but if you uh you you can
+triangulated but if you uh you you can use what's known as a geometric dual to
+use what's known as a geometric dual to solve for the one and I I'll just sort
+solve for the one and I I'll just sort of leave it as an exercise to to look
+of leave it as an exercise to to look that up and and study it because I don't
+that up and and study it because I don't have a whole lot of time to get into in
+have a whole lot of time to get into in a lot of detail but essentially You by
+a lot of detail but essentially You by taking the Jewel and you know so I have
+taking the Jewel and you know so I have all these points that are actually the
+all these points that are actually the plain equations from this original full
+plain equations from this original full hle when you compute a simplified hle
+hle when you compute a simplified hle that minimizes vertices you're actually
+that minimizes vertices you're actually minimizing planes take the duel back and
+minimizing planes take the duel back and you've got you know this a hall that
+you've got you know this a hall that will look more like the one on the right
+will look more like the one on the right you know vertices will typically have a
+you know vertices will typically have a veillance of three um and you know faces
+veillance of three um and you know faces will have you know five or six sides as
+will have you know five or six sides as opposed to something that looks
+opposed to something that looks triangulated
+triangulated okay um some of the re there's and
+okay um some of the re there's and there's a trade-off sometimes you want
+there's a trade-off sometimes you want fewer vertices if it's uh something like
+fewer vertices if it's uh something like you're doing gjk a lot sometimes if
+you're doing gjk a lot sometimes if you're doing you know like a lot of
+you're doing you know like a lot of plane tests then you want to have fewer
+plane tests then you want to have fewer planes so it's there there's tradeoffs
+planes so it's there there's tradeoffs for which is better all right okay so
+for which is better all right okay so you you know how to generate convex HS
+you you know how to generate convex HS but you know let's say I've got some
+but you know let's say I've got some objects that it's not realistic enough
+objects that it's not realistic enough you know things are colliding in the air
+you know things are colliding in the air and it just doesn't look right you know
+and it just doesn't look right you know the Fidelity is is missing
+the Fidelity is is missing so the solution there is to take you
+so the solution there is to take you know more complicated objects and break
+know more complicated objects and break them down into convex parts so you get a
+them down into convex parts so you get a tighter fit an artist can do this in 3ds
+tighter fit an artist can do this in 3ds Max or Maya but for fortunately uh that
+Max or Maya but for fortunately uh that could be a bit of work fortunately
+could be a bit of work fortunately there's a couple tools out there that
+there's a couple tools out there that can help uh John Ratcliffe On the physx
+can help uh John Ratcliffe On the physx team now at Nvidia and CED Mamu who now
+team now at Nvidia and CED Mamu who now works at AMD both of these guys have uh
+works at AMD both of these guys have uh written software it's open source free
+written software it's open source free to download and use that you can throw
+to download and use that you can throw in your game engine it'll do exactly
+in your game engine it'll do exactly this for you alternatively if you got
+this for you alternatively if you got skin characters well you've already kind
+skin characters well you've already kind of done the work because you've got it's
+of done the work because you've got it's rigged you've got bones you can grab a
+rigged you've got bones you can grab a the for for any of the for all the bones
+the for for any of the for all the bones simply sample your skin mesh find any
+simply sample your skin mesh find any vertices that are weighted to that bone
+vertices that are weighted to that bone and generate a hall or Collision volume
+and generate a hall or Collision volume based on that okay so an example of that
+based on that okay so an example of that is shown here and okay I mean you've all
+is shown here and okay I mean you've all seen you know rag dolls falling
+seen you know rag dolls falling downstairs demos and that sort of thing
+downstairs demos and that sort of thing so here you know you see this the skin
+so here you know you see this the skin mesh that we're that we're drawing and
+mesh that we're that we're drawing and showing okay and
+showing okay and but instead of the actual skin mesh
+but instead of the actual skin mesh being doing the interaction it's really
+being doing the interaction it's really the underlying bones that are are that
+the underlying bones that are are that are doing all the Collision detection
+are doing all the Collision detection and interacting in the scene okay so
+and interacting in the scene okay so that that's that would be the way to do
+that that's that would be the way to do it and not just characters like full
+it and not just characters like full body but you know other types of objects
+body but you know other types of objects as well you you know would do the same
+as well you you know would do the same sort of thing and there's our R doll
+sort of thing and there's our R doll hand for example
+hand for example okay okay next I'm going to we're going
+okay okay next I'm going to we're going to take a little detour and take a look
+to take a little detour and take a look at Boolean operations another fun
+at Boolean operations another fun subject in computational solid geometry
+subject in computational solid geometry so this is when you have a mesh you
+so this is when you have a mesh you remember they're solid they Define sort
+remember they're solid they Define sort of empty and solid space and if I have
+of empty and solid space and if I have two of them I can do set operations
+two of them I can do set operations Union intersection and subtraction
+Union intersection and subtraction couple examples are shown in this video
+couple examples are shown in this video uh now in the general case you know you
+uh now in the general case you know you want to have a good winged Edge data
+want to have a good winged Edge data structure to to implement this and what
+structure to to implement this and what you would do is you would uh take all
+you would do is you would uh take all the edges of one slice them with all the
+the edges of one slice them with all the faces the other and vice versa and then
+faces the other and vice versa and then whenever one passes in or out of the
+whenever one passes in or out of the other you have to sort of testate along
+other you have to sort of testate along it you know adding new edges and for the
+it you know adding new edges and for the other one as well and then match those
+other one as well and then match those edges and then sort of take half of one
+edges and then sort of take half of one half of the other stick them together
+half of the other stick them together you got your building operation okay now
+you got your building operation okay now what I described in a few sentence is
+what I described in a few sentence is actually a heck of a lot harder to
+actually a heck of a lot harder to implement you know they've got all those
+implement you know they've got all those Corner cases numeric robustness you know
+Corner cases numeric robustness you know tolerance issues it's it's not easy so
+tolerance issues it's it's not easy so let's take a step back uh and think okay
+let's take a step back uh and think okay where where are we going to use this
+where where are we going to use this this stuff you know certainly level
+this stuff you know certainly level design modeling there's applications
+design modeling there's applications there but a lot of the art tools they
+there but a lot of the art tools they already have the stuff built in um so if
+already have the stuff built in um so if you thinking at runtime well you know
+you thinking at runtime well you know hey you know destruction is kind of fun
+hey you know destruction is kind of fun or geomod I'm tunneling through through
+or geomod I'm tunneling through through some environments and that but in these
+some environments and that but in these cases you know I don't have an artist
+cases you know I don't have an artist who's like finely tweaking and placing
+who's like finely tweaking and placing points no no I'm like checking grenades
+points no no I'm like checking grenades and blowing stuff up so you know you
+and blowing stuff up so you know you might be thinking okay is there like a
+might be thinking okay is there like a you know quick and dirty simple approach
+you know quick and dirty simple approach maybe something based on convexes since
+maybe something based on convexes since we've been looking at those recently and
+we've been looking at those recently and sure okay let's explore that a little
+sure okay let's explore that a little bit so um we've already seen you know
+bit so um we've already seen you know mesh cropping or s or slicing where we
+mesh cropping or s or slicing where we you know chopping all the edges if you
+you know chopping all the edges if you uh crop a convex mesh you have this nice
+uh crop a convex mesh you have this nice property that there's you know you get
+property that there's you know you get an open loop okay but there's only going
+an open loop okay but there's only going to be one okay in general mesh you can
+to be one okay in general mesh you can get more and but then that Loop is also
+get more and but then that Loop is also going to be a convex polygon so it'll be
+going to be a convex polygon so it'll be easy to triangulate if when you get to
+easy to triangulate if when you get to that step for rendering so intersecting
+that step for rendering so intersecting two convexes
+two convexes you can think of it as cropping one with
+you can think of it as cropping one with all the planes of the other okay but you
+all the planes of the other okay but you wait wait wait a sec you saw I I took a
+wait wait wait a sec you saw I I took a convex mesh earlier and another convex
+convex mesh earlier and another convex mesh and I subtracted one from the other
+mesh and I subtracted one from the other and the result wasn't convex H how does
+and the result wasn't convex H how does that work well that's because I mean
+that work well that's because I mean that was a subtraction not not an
+that was a subtraction not not an intersection the subtraction with the
+intersection the subtraction with the with the solid is the same as doing an
+with the solid is the same as doing an intersection with all the stuff around
+intersection with all the stuff around it so you can do non-convex operand as a
+it so you can do non-convex operand as a Union of all these of a bunch of convex
+Union of all these of a bunch of convex operand so we basically do all those
+operand so we basically do all those convex to convex intersections and then
+convex to convex intersections and then just you know throw the result together
+just you know throw the result together okay all right but even crop okay we we
+okay all right but even crop okay we we saw convex Hall you know bisc you know
+saw convex Hall you know bisc you know chopping line even chopping a convex
+chopping line even chopping a convex object you're subject to those annoying
+object you're subject to those annoying numerical robustness issues um and you
+numerical robustness issues um and you know this is you can do things like you
+know this is you can do things like you okay check the planes make sure you know
+okay check the planes make sure you know you're not generating any sort of twist
+you're not generating any sort of twist because if you have a plane that's
+because if you have a plane that's coming very close to a Vertex you if you
+coming very close to a Vertex you if you make a mistake and you you you sort of
+make a mistake and you you you sort of you know chop these edges instead of
+you know chop these edges instead of those ones you can generate little
+those ones you can generate little problems at the corners um you know but
+problems at the corners um you know but and then it still gets more hairy
+and then it still gets more hairy because you know may you might have more
+because you know may you might have more than four planes you might have like
+than four planes you might have like five or six and so you're probably
+five or six and so you're probably thinking ah there's too many Corner
+thinking ah there's too many Corner cases is there something simple I can do
+cases is there something simple I can do like a snap to Grid or something and
+like a snap to Grid or something and just not have to deal with any of this
+just not have to deal with any of this stuff okay so here's a little trick that
+stuff okay so here's a little trick that I've been doing for Jon for a while that
+I've been doing for Jon for a while that it kind of works and and that's uh not
+it kind of works and and that's uh not snap to grid but it's something a little
+snap to grid but it's something a little different it's quantize the plane
+different it's quantize the plane equations so uh so any of the Boolean
+equations so uh so any of the Boolean operand will only have plain equations
+operand will only have plain equations that satisfy certain conditions and what
+that satisfy certain conditions and what it is is I take for remember our plane
+it is is I take for remember our plane equations are ax plus b y plus c z plus
+equations are ax plus b y plus c z plus d equals z If I multiply those numbers
+d equals z If I multiply those numbers by some number it's still the same plane
+by some number it's still the same plane so I make sure for any of the plane
+so I make sure for any of the plane equations I there exists some number I
+equations I there exists some number I can multiply by so that AB b c d are all
+can multiply by so that AB b c d are all integers furthermore A and C are
+integers furthermore A and C are integers less than a small constant all
+integers less than a small constant all right so now we recall how when I have a
+right so now we recall how when I have a Vertex it's going to be the intersection
+Vertex it's going to be the intersection of three more planes and how did we
+of three more planes and how did we compute that well we had this Matrix
+compute that well we had this Matrix right and that M Matrix there of the
+right and that M Matrix there of the normals that's all integer values now I
+normals that's all integer values now I invert it multiply by this Vector which
+invert it multiply by this Vector which are all integer values now and so the
+are all integer values now and so the result is going to be uh this point V of
+result is going to be uh this point V of which its X Y and Z components are all
+which its X Y and Z components are all going to be rational numbers where the
+going to be rational numbers where the where the denominator is no larger than
+where the denominator is no larger than the determinant because when I take an
+the determinant because when I take an inverse of Matrix I to divide by the
+inverse of Matrix I to divide by the determinant so that means for any two
+determinant so that means for any two points I generate if they're not the
+points I generate if they're not the same point they'll have to be at least
+same point they'll have to be at least one that one over that determinant
+one that one over that determinant distance apart from each other well what
+distance apart from each other well what this gives me is a hardcoded fixed
+this gives me is a hardcoded fixed Epsilon I can throw in my code you know
+Epsilon I can throw in my code you know to test whether to tell me whether two
+to test whether to tell me whether two points are the same or not okay and
+points are the same or not okay and based on that you know I can throw rocks
+based on that you know I can throw rocks at this piece of glass all day and
+at this piece of glass all day and nothing is ever going to break well the
+nothing is ever going to break well the glass is going to break but the code
+glass is going to break but the code isn't okay
+isn't okay so
+so now now even though I doing this there's
+now now even though I doing this there's no integer math in the implementation no
+no integer math in the implementation no no no all that stuff you saw in the last
+no no all that stuff you saw in the last slide that was just proof that this
+slide that was just proof that this works the implementation itself is you
+works the implementation itself is you know floating Point math 32-bit you know
+know floating Point math 32-bit you know don't need double Precision uh normals
+don't need double Precision uh normals are of unit length you know just as
+are of unit length you know just as you'd like but the code itself doesn't
+you'd like but the code itself doesn't have all those fancy all those crazy
+have all those fancy all those crazy Corner cases if then else statements and
+Corner cases if then else statements and and this and that so although here it's
+and this and that so although here it's running on just you know single core uh
+running on just you know single core uh CPU I mean it's potentially could run on
+CPU I mean it's potentially could run on a GPU fairly easily like GP GPU type of
+a GPU fairly easily like GP GPU type of implementation and it's fairly efficient
+implementation and it's fairly efficient I can do many Boolean operations per
+I can do many Boolean operations per frame break lots of break lots of glass
+frame break lots of break lots of glass I can take the the part that I Che that
+I can take the the part that I Che that I chunk out and I can generate little
+I chunk out and I can generate little pieces of fragments or extra rigid
+pieces of fragments or extra rigid bodies from
+bodies from them so hey that new that uh number
+them so hey that new that uh number Theory course I took in University was
+Theory course I took in University was actually useful for something okay next
+actually useful for something okay next we're going to take a look at some of
+we're going to take a look at some of the spatial properties of our solid
+the spatial properties of our solid objects so when we have these meshes and
+objects so when we have these meshes and they're solid again I'm stressing that's
+they're solid again I'm stressing that's an important factor we can correctly
+an important factor we can correctly calculate the volume Center mass and the
+calculate the volume Center mass and the inertia of our objects which will affect
+inertia of our objects which will affect motions we'll see okay so I'm going to
+motions we'll see okay so I'm going to cover a little bit of review material
+cover a little bit of review material for uh or new or introductory material
+for uh or new or introductory material depending on your perspective okay so
+depending on your perspective okay so the center of mass of a triangle now
+the center of mass of a triangle now there's many ways to Define Center but
+there's many ways to Define Center but this is the center of mass so if I Chuck
+this is the center of mass so if I Chuck the triangle up in the air what point is
+the triangle up in the air what point is it going to spin around that happens to
+it going to spin around that happens to be uh the point where if I take the
+be uh the point where if I take the three vertices and divide by three
+three vertices and divide by three that's that point okay uh the area of a
+that's that point okay uh the area of a triangle well if I if I take two edges
+triangle well if I if I take two edges take the cross product uh figure out its
+take the cross product uh figure out its magnitude uh half of that is going to be
+magnitude uh half of that is going to be the triangle area now if I have a
+the triangle area now if I have a triangle with a predefined normal well
+triangle with a predefined normal well then instead of you know taking the
+then instead of you know taking the magnitude I can just take the dot
+magnitude I can just take the dot product with that normal an advantage
+product with that normal an advantage here is actually get ass signed area so
+here is actually get ass signed area so I could have triangles a negative area
+I could have triangles a negative area negative area and soon we will see why
+negative area and soon we will see why that's useful okay
+that's useful okay okay now just to make it clear to
+okay now just to make it clear to everyone it doesn't matter which two
+everyone it doesn't matter which two edges you pick you know when you take
+edges you pick you know when you take the cross product you're going to get
+the cross product you're going to get the exact same result unless you're
+the exact same result unless you're going the other way and then you'll get
+going the other way and then you'll get the negative
+the negative result okay so how do I get the area of
+result okay so how do I get the area of a polygon something with end points well
+a polygon something with end points well break it down into a bunch of triangles
+break it down into a bunch of triangles find some reference point P could be the
+find some reference point P could be the origin doesn't matter and for every Edge
+origin doesn't matter and for every Edge on my polygon take those two vertices my
+on my polygon take those two vertices my reference point that's a triangle and
+reference point that's a triangle and just add all those areas together but
+just add all those areas together but what if this point p is on the outside
+what if this point p is on the outside of my polygon or if my polygon is all
+of my polygon or if my polygon is all sorts of concavities and stuff it's not
+sorts of concavities and stuff it's not convex it doesn't matter this still
+convex it doesn't matter this still works because you know sure I'm covering
+works because you know sure I'm covering a bunch of area that's on the outside so
+a bunch of area that's on the outside so I'm you know but I'm also going to be
+I'm you know but I'm also going to be adding uh these negative uh area
+adding uh these negative uh area triangles that's going to cancel all
+triangles that's going to cancel all that out so you get the same result it
+that out so you get the same result it just
+just works okay oh here okay so here if I've
+works okay oh here okay so here if I've got a tetrahedron and now if I take the
+got a tetrahedron and now if I take the cross product from all four of the sides
+cross product from all four of the sides and combine them together they cancel
+and combine them together they cancel each other out okay so add these four
+each other out okay so add these four vectors and the result is zero now
+vectors and the result is zero now remember how we generated those convex
+remember how we generated those convex hols with the slapping the tetrahedrons
+hols with the slapping the tetrahedrons together and then removing the backtack
+together and then removing the backtack triangles which obviously those two
+triangles which obviously those two normals would cancel out so if in this
+normals would cancel out so if in this so by mathematical induction You can
+so by mathematical induction You can conclude that for any mesh that's closed
+conclude that for any mesh that's closed and solid adding up all the area
+and solid adding up all the area weighted normals is going to add up to
+weighted normals is going to add up to zero and that lets us actually and
+zero and that lets us actually and that's why this works okay generating
+that's why this works okay generating the polygon nor the normal of a polygon
+the polygon nor the normal of a polygon with end points and this could be a
+with end points and this could be a polygon I shouldn't have drawn a convex
+polygon I shouldn't have drawn a convex one because it can actually work with
+one because it can actually work with something that's con concave and points
+something that's con concave and points slightly off the plane equation and
+slightly off the plane equation and stuff it's a matter of adding up all uh
+stuff it's a matter of adding up all uh combining all the uh triangle normals
+combining all the uh triangle normals with the same sort of triangle summation
+with the same sort of triangle summation not the magnitudes but you know taking
+not the magnitudes but you know taking those vectors combining them together
+those vectors combining them together and getting this long green Vector
+and getting this long green Vector showing bottom right that is the normal
+showing bottom right that is the normal of the polygon um and length is double
+of the polygon um and length is double the area okay and again if this point P
+the area okay and again if this point P lies on lies on further away sure you
+lies on lies on further away sure you know those arrows are going to grow on
+know those arrows are going to grow on top because there's more area but
+top because there's more area but there's also you know negative things
+there's also you know negative things pointing down that sort of cancel each
+pointing down that sort of cancel each other out the reference point P doesn't
+other out the reference point P doesn't even have to lie in the same plane as
+even have to lie in the same plane as all the other points uh the only way
+all the other points uh the only way it's going to break down is that if p is
+it's going to break down is that if p is so far away that you're going to run
+so far away that you're going to run into rounding
+into rounding air okay
+air okay all right so that's the 2D stuff now
+all right so that's the 2D stuff now let's start looking at the 3D uh things
+let's start looking at the 3D uh things you may have guessed that the center of
+you may have guessed that the center of mass of a tetraedron is the average of
+mass of a tetraedron is the average of the four vertices and volume okay well
+the four vertices and volume okay well that's sort of Base times height let's
+that's sort of Base times height let's think of that uh the base uh uh area uh
+think of that uh the base uh uh area uh is you know have that cross product
+is you know have that cross product which conveniently gives us this Vector
+which conveniently gives us this Vector that points straight up okay so half of
+that points straight up okay so half of that um now in this Vector form we we
+that um now in this Vector form we we don't we can take as our you know
+don't we can take as our you know instead of because we don't know the
+instead of because we don't know the height per se but we can take any Edge
+height per se but we can take any Edge leading up to our fourth vertex and Dot
+leading up to our fourth vertex and Dot product with that because only the you
+product with that because only the you know this orthogonal component is going
+know this orthogonal component is going to matter and that will give us their
+to matter and that will give us their volume but it's actually 1/3 because
+volume but it's actually 1/3 because it's a pyramid okay so this cross dot
+it's a pyramid okay so this cross dot combo is also known as the triple
+combo is also known as the triple product and as mentioned in an earlier
+product and as mentioned in an earlier talk it is mathematically equivalent to
+talk it is mathematically equivalent to taking those three vectors three three
+taking those three vectors three three edges from this tetrahedron shoving them
+edges from this tetrahedron shoving them in a matrix and taking the determinant
+in a matrix and taking the determinant okay all right so whatever we can deduce
+okay all right so whatever we can deduce through simple geometric reasoning we
+through simple geometric reasoning we can also solve through very complicated
+can also solve through very complicated calculus so what I've shown here at the
+calculus so what I've shown here at the top is this is the definite integral
+top is this is the definite integral where the limits of the integration def
+where the limits of the integration def uh describe the the limits or the region
+uh describe the the limits or the region of the tetrahedron and I can pass any
+of the tetrahedron and I can pass any function I want into there so if I take
+function I want into there so if I take my unit function I pass it in and run
+my unit function I pass it in and run off for a few days and write out all
+off for a few days and write out all this calc calcus and make sure I'm right
+this calc calcus and make sure I'm right I all will come back with the formula
+I all will come back with the formula for the volume if I pass in a function
+for the volume if I pass in a function that's uh that basically Returns the
+that's uh that basically Returns the position you know with adjusted for for
+position you know with adjusted for for volume then I get back my center of mass
+volume then I get back my center of mass okay now I'm going to invoke this a
+okay now I'm going to invoke this a little bit later I just wanted to take
+little bit later I just wanted to take the opportunity now to scare everybody
+the opportunity now to scare everybody with it okay so all right you don't have
+with it okay so all right you don't have a whole lot of four-sided four po
+a whole lot of four-sided four po objects in your game you probably have
+objects in your game you probably have like thousand tens of thousands of
+like thousand tens of thousands of triangles on your objects so how how do
+triangles on your objects so how how do you get the volume of them well now just
+you get the volume of them well now just like we saw a triangle summation what we
+like we saw a triangle summation what we do here is tetrahedral summation for all
+do here is tetrahedral summation for all the triangles you know the three points
+the triangles you know the three points plus some reference point perhaps the
+plus some reference point perhaps the origin we just add up all these
+origin we just add up all these tetrahedral volumes and that gives us
+tetrahedral volumes and that gives us the volume of our entire object and
+the volume of our entire object and again the same principle of you know uh
+again the same principle of you know uh things falling on the outside and
+things falling on the outside and negative weighted or negative volume
+negative weighted or negative volume tetron canceling out it all just works
+tetron canceling out it all just works Center of mass well as you'd expect it's
+Center of mass well as you'd expect it's just a volume weighted average of all
+just a volume weighted average of all the center of masses of all the little
+the center of masses of all the little tetrahedrons
+tetrahedrons okay so getting the right center of mass
+okay so getting the right center of mass is a good thing to do so here and here
+is a good thing to do so here and here we have this catapult arm sort of thing
+we have this catapult arm sort of thing and it's got uh sort you know we throw
+and it's got uh sort you know we throw it in a physics scene rig it up with a
+it in a physics scene rig it up with a hinge joint and there's sort of this
+hinge joint and there's sort of this large volume at the other end of the at
+large volume at the other end of the at the end of the handle so the center of
+the end of the handle so the center of mass you know you know if we calculate
+mass you know you know if we calculate right it's going to be somewhere around
+right it's going to be somewhere around there and then we just kind of let it
+there and then we just kind of let it fly in a game environment we kind of get
+fly in a game environment we kind of get this nice behavior that we'd expect now
+this nice behavior that we'd expect now we didn't have to write any custom code
+we didn't have to write any custom code there's no springs here this is just
+there's no springs here this is just emergent Behavior the way that we like
+emergent Behavior the way that we like to enable artists to build things had I
+to enable artists to build things had I taken the bounding box of this object
+taken the bounding box of this object and taken its Center and used that as a
+and taken its Center and used that as a center of mass we wouldn't have had this
+center of mass we wouldn't have had this kind of
+kind of behavior okay so having solid meshes and
+behavior okay so having solid meshes and solid matter matters okay all right so
+solid matter matters okay all right so the third aspect of uh spatial
+the third aspect of uh spatial properties that affects motion is the
+properties that affects motion is the inertia uh hopefully everyone's familiar
+inertia uh hopefully everyone's familiar with the moment of inertia in 2D and you
+with the moment of inertia in 2D and you have this idea that if you've got
+have this idea that if you've got something spinning you know something
+something spinning you know something orbiting around a fixed axis then you
+orbiting around a fixed axis then you know uh it it for stuff that's further
+know uh it it for stuff that's further away from that axis it takes a little
+away from that axis it takes a little bit more energy to get it up to speed
+bit more energy to get it up to speed okay so i' I've Rewritten this moment of
+okay so i' I've Rewritten this moment of inertia calculation in a couple ways
+inertia calculation in a couple ways here so you can try to understand it as
+here so you can try to understand it as you know it's sort of the variance along
+you know it's sort of the variance along X plus the variance along y to give you
+X plus the variance along y to give you the moment of something spinning around
+the moment of something spinning around Z because when we step up to three
+Z because when we step up to three dimensions you know it's not a scalar
+dimensions you know it's not a scalar anymore we have a 3X3 Matrix known as
+anymore we have a 3X3 Matrix known as the inertia tensor that describes uh the
+the inertia tensor that describes uh the motion of an object and it's and the
+motion of an object and it's and the form of that's shown in the in the
+form of that's shown in the in the bottom right and there's a high
+bottom right and there's a high relationship between this Matrix and the
+relationship between this Matrix and the covariance Matrix so in order to compute
+covariance Matrix so in order to compute inertia we're actually going to compute
+inertia we're actually going to compute covariant because you know with one you
+covariant because you know with one you have the other and vice versa okay so if
+have the other and vice versa okay so if you studied statistics this might look
+you studied statistics this might look familiar to you um if not it's still
+familiar to you um if not it's still pretty easy imagine if I have an object
+pretty easy imagine if I have an object that consists of a number of discrete
+that consists of a number of discrete little Point masses okay to compute its
+little Point masses okay to compute its covariance it's simply you know summing
+covariance it's simply you know summing up you know the outer product of all
+up you know the outer product of all those positions with themselves in a
+those positions with themselves in a matrix okay so yes here's yet another
+matrix okay so yes here's yet another use of that outer product that I
+use of that outer product that I mentioned in the beginning okay so all
+mentioned in the beginning okay so all right that works for that gives me the
+right that works for that gives me the covariance of something with a bunch of
+covariance of something with a bunch of points but our objects are these
+points but our objects are these continuous solids so what we're going to
+continuous solids so what we're going to try to do is one of those uh tetrahedral
+try to do is one of those uh tetrahedral summation tricks so now if I just get
+summation tricks so now if I just get the covariant contribution from a single
+the covariant contribution from a single tetrahedron then I'm done um so what I'm
+tetrahedron then I'm done um so what I'm going to now I'm going to reinvoke that
+going to now I'm going to reinvoke that scary triple integral but I'm going to
+scary triple integral but I'm going to shove inside of it the that outer
+shove inside of it the that outer product okay and um I I did this online
+product okay and um I I did this online on Wolfram Alpha where I'd like shov in
+on Wolfram Alpha where I'd like shov in the equation but then it timed out on me
+the equation but then it timed out on me so to like put in part of the equation
+so to like put in part of the equation and then get half the result and then
+and then get half the result and then shov in the rest you know because the
+shov in the rest you know because the the free version online just you know
+the free version online just you know doesn't give you enough free Cycles or
+doesn't give you enough free Cycles or something but um you have to trust me
+something but um you have to trust me that the answer at the bottom there is
+that the answer at the bottom there is the right so if now I know this calculus
+the right so if now I know this calculus might go over the heads of some people
+might go over the heads of some people don't worry about it what we have now is
+don't worry about it what we have now is a formula for getting the covariance
+a formula for getting the covariance contribution from a single
+contribution from a single tetrahedron and then remember we wanted
+tetrahedron and then remember we wanted to get the inertia and so we have this
+to get the inertia and so we have this covariance and I've Rewritten in the
+covariance and I've Rewritten in the middle line there in another form
+middle line there in another form because it's a 3X3 Matrix so each of the
+because it's a 3X3 Matrix so each of the IJ elements of that Matrix looks exactly
+IJ elements of that Matrix looks exactly like this and we're summing over the
+like this and we're summing over the mesh where uh UV and W are the uh are
+mesh where uh UV and W are the uh are sort of the the three vertices of each
+sort of the the three vertices of each uh triangle but because we know things
+uh triangle but because we know things are you know will spin about their
+are you know will spin about their Center of mass we can't use any
+Center of mass we can't use any reference point we have to use a center
+reference point we have to use a center of mass as we do this
+of mass as we do this summation okay so let's say you know we
+summation okay so let's say you know we got covariance and then to get to
+got covariance and then to get to inertia it's that formula that I that's
+inertia it's that formula that I that's shown at the bottom um it's it's a
+shown at the bottom um it's it's a because uh or if you look at the top
+because uh or if you look at the top left you know we see the y y plus ZZ in
+left you know we see the y y plus ZZ in the upper left hand corner the inertia
+the upper left hand corner the inertia Matrix that's because you know if you're
+Matrix that's because you know if you're spinning around X it's the stuff along X
+spinning around X it's the stuff along X it doesn't matter it's sort of the other
+it doesn't matter it's sort of the other two and that you know the relationship
+two and that you know the relationship between the two um but the matrices
+between the two um but the matrices covariance inertia they have the same
+covariance inertia they have the same igen vectors the diagonalize the same so
+igen vectors the diagonalize the same so it's all good so anyway enough of that
+it's all good so anyway enough of that we we you know we've got our inertia
+we we you know we've got our inertia Matrix so let's um you know we how do we
+Matrix so let's um you know we how do we use this and what the inertia is is it
+use this and what the inertia is is it defines a relationship between angular
+defines a relationship between angular momentum and angular spin but Ang but
+momentum and angular spin but Ang but spin also depends on the current
+spin also depends on the current orientation so here here we've got some
+orientation so here here we've got some spinning on some uh spinning objects
+spinning on some uh spinning objects they all have they're all the same
+they all have they're all the same object they have the same angular
+object they have the same angular momentum but the spin is very different
+momentum but the spin is very different because they started at different
+because they started at different orientations so you can see some things
+orientations so you can see some things are going to be spinning a little faster
+are going to be spinning a little faster because they're going around you know
+because they're going around you know sort of the long axis versus the short
+sort of the long axis versus the short axis right even though they have the
+axis right even though they have the same momentum so as we knock these
+same momentum so as we knock these things around you know we sort of get
+things around you know we sort of get the behavior the way things proc process
+the behavior the way things proc process and all that stuff um now there's no
+and all that stuff um now there's no gravity but um you know hopefully that
+gravity but um you know hopefully that yeah as we hit things it takes less
+yeah as we hit things it takes less energy to get them sort of spin sort of
+energy to get them sort of spin sort of the short way versus the long way and
+the short way versus the long way and stuff here I've added gravity back in
+stuff here I've added gravity back in but apparently not a whole lot of
+but apparently not a whole lot of gravity so this looks like uh you know
+gravity so this looks like uh you know kind of in slow motion like you know got
+kind of in slow motion like you know got a GoPro camera and you're like filming
+a GoPro camera and you're like filming your skateboarding tricks or something
+your skateboarding tricks or something um but you know hopefully the behavior
+um but you know hopefully the behavior looks yeah this is kind of what you'd
+looks yeah this is kind of what you'd expect you know you could do kick flips
+expect you know you could do kick flips in an environment like this um there
+in an environment like this um there landed it perfect okay oh yeah and the
+landed it perfect okay oh yeah and the equation is you know sort of show shown
+equation is you know sort of show shown on the right there and and you probably
+on the right there and and you probably notice also that the spin Vector sort of
+notice also that the spin Vector sort of changes it's the momentum that stays
+changes it's the momentum that stays constant but the spin actually changes
+constant but the spin actually changes from frame to frame okay so what we
+from frame to frame okay so what we looked at so far was uh the volume
+looked at so far was uh the volume integration or calculating these
+integration or calculating these properties of our objects so now you
+properties of our objects so now you know that's sort of the work half now
+know that's sort of the work half now let's study the other half the fun half
+let's study the other half the fun half a little bit more and that's this time
+a little bit more and that's this time integration okay so volume integration
+integration okay so volume integration and then now time integration well
+and then now time integration well that's just fancy terminology for how
+that's just fancy terminology for how you update some objects from its current
+you update some objects from its current state to where it is at the next uh time
+state to where it is at the next uh time step so for position you've got some guy
+step so for position you've got some guy you know position PT at time T his
+you know position PT at time T his position at p t plus delta T is simply
+position at p t plus delta T is simply add it's his velocity times the time
+add it's his velocity times the time step and you got the new position so
+step and you got the new position so okay this morning you took a class about
+okay this morning you took a class about querin you're thinking hey I've got a
+querin you're thinking hey I've got a spin Vector I know how to create a
+spin Vector I know how to create a querian from that that you know based on
+querian from that that you know based on the spin and so I can multiply that
+the spin and so I can multiply that quern premultiply that quitan by my
+quern premultiply that quitan by my orientation to get my new orientation
+orientation to get my new orientation and yeah that sort of works uh but one
+and yeah that sort of works uh but one of the things and we'll see why in in a
+of the things and we'll see why in in a minute is that we what we' like to do is
+minute is that we what we' like to do is form these time in integration equations
+form these time in integration equations as is uh adding instead of
+as is uh adding instead of multiplication so uh the form on the on
+multiplication so uh the form on the on the right here is where I've got my next
+the right here is where I've got my next state my next orientation is my current
+state my next orientation is my current qu current orientation plus this deriv
+qu current orientation plus this deriv plus a derivative I how that quer is
+plus a derivative I how that quer is going to change times the the time step
+going to change times the the time step value like how much I'm going to CH or
+value like how much I'm going to CH or how much time is
+how much time is elapsed okay so um it gets a little
+elapsed okay so um it gets a little trickier another important thing is that
+trickier another important thing is that remember that spin vector we saw that
+remember that spin vector we saw that was sort of
+was sort of changing um the thing is when I'm doing
+changing um the thing is when I'm doing this orientation update and and this is
+this orientation update and and this is the problem that that it's only valid at
+the problem that that it's only valid at the beginning of the time step so I
+the beginning of the time step so I can't really apply that same Vector that
+can't really apply that same Vector that same uh spin for the entire time step um
+same uh spin for the entire time step um you get this thing called numerical
+you get this thing called numerical drift and it's best explained by you
+drift and it's best explained by you know if uh the classic example of you
+know if uh the classic example of you know you're following the path of a
+know you're following the path of a circle so say I'm you know following the
+circle so say I'm you know following the path of a circle I you know what I would
+path of a circle I you know what I would do is I would look down what's the
+do is I would look down what's the tangent take a step okay look down
+tangent take a step okay look down what's the tangent or the derivative
+what's the tangent or the derivative take another step and so on but if I'm
+take another step and so on but if I'm taking big steps as shown in the little
+taking big steps as shown in the little picture there in the upper right I'm
+picture there in the upper right I'm going to be slightly you know getting
+going to be slightly you know getting further away from the origin or falling
+further away from the origin or falling out of orbit okay and that's that's what
+out of orbit okay and that's that's what happens with the typical what's uh sorry
+happens with the typical what's uh sorry what's known as a forward Oiler update
+what's known as a forward Oiler update you sort of you know take that
+you sort of you know take that derivative from the current time step
+derivative from the current time step and you apply delta T time to that so
+and you apply delta T time to that so now instead let's say I'm going to I'm
+now instead let's say I'm going to I'm going to use a different approach the
+going to use a different approach the following follow the path of a circle
+following follow the path of a circle okay using this runch cuta
+okay using this runch cuta technique what what you do is okay you
+technique what what you do is okay you look down at the Circle you say what's
+look down at the Circle you say what's you know what's the tangent okay then
+you know what's the tangent okay then instead of taking a full step using that
+instead of taking a full step using that along that tangent you sort of look half
+along that tangent you sort of look half a step forward in that direction look
+a step forward in that direction look down what's the tangent at that point or
+down what's the tangent at that point or the derivative at that point ah okay now
+the derivative at that point ah okay now you got a new derivative lean back take
+you got a new derivative lean back take a half step along that Direction look
+a half step along that Direction look down what's the tangent or derivative
+down what's the tangent or derivative here okay okay got Instinct value lean
+here okay okay got Instinct value lean back now reach look lean sort of forward
+back now reach look lean sort of forward a full step with that latest tangent
+a full step with that latest tangent Vector look down okay what's the
+Vector look down okay what's the derivative or tangent out here and then
+derivative or tangent out here and then instead of using that last one you take
+instead of using that last one you take actually this weighted average of all
+actually this weighted average of all four of those derivatives or all four of
+four of those derivatives or all four of those tangents and you and that's how
+those tangents and you and that's how you advance yourself okay and this works
+you advance yourself okay and this works great for people who like to walk around
+great for people who like to walk around in circles and it's a perfect way to
+in circles and it's a perfect way to update our orientation in our in our
+update our orientation in our in our games so first I'm show uh objects with
+games so first I'm show uh objects with a very high angular
+a very high angular momentum okay and I'm going to turn on
+momentum okay and I'm going to turn on that forward Oiler update and look what
+that forward Oiler update and look what happens okay my object gained a whole
+happens okay my object gained a whole bunch of energy and the spin sort of
+bunch of energy and the spin sort of converged to one of the principal axes
+converged to one of the principal axes of the
+of the object here I'm doing that runch cuta
+object here I'm doing that runch cuta update and it's not gaining energy this
+update and it's not gaining energy this just kind of works it's you know sort of
+just kind of works it's you know sort of spinning getting that nice behavior as
+spinning getting that nice behavior as we'd expect and spin sort of orbits
+we'd expect and spin sort of orbits around the uh the momentum which is you
+around the uh the momentum which is you know what this shape of object is going
+know what this shape of object is going to give us okay all right so we've
+to give us okay all right so we've looked uh so far sort of at rigid body
+looked uh so far sort of at rigid body objects and how they kind of work now
+objects and how they kind of work now we're going to explore the Soft Stuff a
+we're going to explore the Soft Stuff a little bit okay so instead of an object
+little bit okay so instead of an object with a position and an orientation don't
+with a position and an orientation don't worry about orientation but every vertex
+worry about orientation but every vertex on the object has its own position now
+on the object has its own position now and but all these vertices are going to
+and but all these vertices are going to sort of be connected with some sort of
+sort of be connected with some sort of constraint or spring okay and and okay
+constraint or spring okay and and okay so when we when we build these sorts of
+so when we when we build these sorts of things uh you know there will be a
+things uh you know there will be a visual mesh for objects but the way we
+visual mesh for objects but the way we connect them with these Springs or
+connect them with these Springs or constraints might actually differ from
+constraints might actually differ from that uh cloth is a CL classic example so
+that uh cloth is a CL classic example so let's take a look at how we build like a
+let's take a look at how we build like a a cloth mesh for for
+a cloth mesh for for simulation um you know youve you've got
+simulation um you know youve you've got a whole bunch of vertices or points and
+a whole bunch of vertices or points and you're going to create these strong
+you're going to create these strong connections with their immediate
+connections with their immediate neighbors because you know cloth doesn't
+neighbors because you know cloth doesn't really stretch or compress all that much
+really stretch or compress all that much you know along that Dimension and then
+you know along that Dimension and then okay there's going to be some sort of
+okay there's going to be some sort of you know do an example here if this
+you know do an example here if this works you know sort of you know you're
+works you know sort of you know you're going to let it might Shear a little bit
+going to let it might Shear a little bit like this U but there will be some
+like this U but there will be some resistance to it so for the you know for
+resistance to it so for the you know for every vertex you know along the
+every vertex you know along the diagonals you're going to create some
+diagonals you're going to create some sort of connection with maybe a slightly
+sort of connection with maybe a slightly less stiff uh connection between them
+less stiff uh connection between them and and to resist bending you know uh
+and and to resist bending you know uh something bending over like this you
+something bending over like this you know you have connections between every
+know you have connections between every vertex and two over um in each Direction
+vertex and two over um in each Direction okay and you'd have like stiffer uh
+okay and you'd have like stiffer uh connections for something like leather
+connections for something like leather or for something like Silk you they'd be
+or for something like Silk you they'd be very weak or
+very weak or non-existent okay and it's not just
+non-existent okay and it's not just cloth I mean you can build uh like
+cloth I mean you can build uh like rubber ducks or things out of 3D lates
+rubber ducks or things out of 3D lates of you know all sorts of connections
+of you know all sorts of connections okay so for implementing these it really
+okay so for implementing these it really comes down to the time integration you
+comes down to the time integration you know how do you simulate these soft
+know how do you simulate these soft objects and there's two schools of
+objects and there's two schools of thought there's uh you know the
+thought there's uh you know the kinematic approach and the dynamic
+kinematic approach and the dynamic approach now the kinematic approach is
+approach now the kinematic approach is to think of you know anytime I have a
+to think of you know anytime I have a connection between two vertices that's a
+connection between two vertices that's a constraint those two things belong at
+constraint those two things belong at this you know this distance apart from
+this you know this distance apart from each other and so for the implementation
+each other and so for the implementation every frame you'll see if two points oh
+every frame you'll see if two points oh if they're further away than they need
+if they're further away than they need to be then you sort of nudge them closer
+to be then you sort of nudge them closer maybe not move them all the way maybe
+maybe not move them all the way maybe nudge them a little bit closer maybe do
+nudge them a little bit closer maybe do a few passes or something like that and
+a few passes or something like that and or if they're too close then you just
+or if they're too close then you just kind of nudge them apart so it's very
+kind of nudge them apart so it's very easy to implement just your basic Vector
+easy to implement just your basic Vector arithmetic that I'm sure everyone's
+arithmetic that I'm sure everyone's familiar with oh plus you also have to
+familiar with oh plus you also have to know how to take a square root assuming
+know how to take a square root assuming you can do that too then you can
+you can do that too then you can implement this and um uh you can find
+implement this and um uh you can find many reference uh reference
+many reference uh reference implementations and and papers on how to
+implementations and and papers on how to do it a nice thing is that these systems
+do it a nice thing is that these systems they don't explode because you're always
+they don't explode because you're always pushing stuff closer to where it's
+pushing stuff closer to where it's supposed to be you're not going to get
+supposed to be you're not going to get any weird Behavior where things all of a
+any weird Behavior where things all of a sudden you know vaporize and go off in
+sudden you know vaporize and go off in space and not surprisingly it's the most
+space and not surprisingly it's the most common system used out there in games
+common system used out there in games and uh physics engines the only caveat
+and uh physics engines the only caveat is that you know uh because you're the
+is that you know uh because you're the way you're sort of implementing if you
+way you're sort of implementing if you have things that are under sort of a
+have things that are under sort of a true stress either compression or
+true stress either compression or stretch um you know is there are they
+stretch um you know is there are they guaranteed to converge to some sort of
+guaranteed to converge to some sort of uh Force correct State um I'm sure
+uh Force correct State um I'm sure there's implementations where people
+there's implementations where people have figured out how to do that but uh
+have figured out how to do that but uh the alternative is to use a dynamic
+the alternative is to use a dynamic approach to solving cloth and this is
+approach to solving cloth and this is you know more the poor pure physics
+you know more the poor pure physics approach and it's to think whenever I
+approach and it's to think whenever I have two two vertices that are connected
+have two two vertices that are connected they're connected with a spring that
+they're connected with a spring that applies Force okay so if I've got
+applies Force okay so if I've got Springs that are fairly weak in force
+Springs that are fairly weak in force it's easy to implement you just sort of
+it's easy to implement you just sort of you know add a little velocity to each
+you know add a little velocity to each of those end points and and it moves us
+of those end points and and it moves us on but if I have let's say a very very
+on but if I have let's say a very very stiff spring and let's say because you
+stiff spring and let's say because you know a character in a game kind of moves
+know a character in a game kind of moves an endpoint or something now I have this
+an endpoint or something now I have this string that's spr that's stretched out
+string that's spr that's stretched out and if it's a very high force and I want
+and if it's a very high force and I want to simulate that even if it's only 160th
+to simulate that even if it's only 160th of the second I can like you know bang
+of the second I can like you know bang to you know pull it back together but
+to you know pull it back together but it'll overshoot because the forces are
+it'll overshoot because the forces are so high and then it's like oh now it's
+so high and then it's like oh now it's even more out of whack and then it
+even more out of whack and then it shoots and then boom boom and these
+shoots and then boom boom and these things just explode right so the all
+things just explode right so the all even if you try to runch cuta
+even if you try to runch cuta integration
+integration well you know you're sort of looking at
+well you know you're sort of looking at half steps but I mean half of a huge
+half steps but I mean half of a huge number is still a pretty huge number so
+number is still a pretty huge number so that doesn't work the only way to
+that doesn't work the only way to actually inte Implement integrate these
+actually inte Implement integrate these properly is with implicit integration or
+properly is with implicit integration or backward Oiler um and and we're going to
+backward Oiler um and and we're going to take a look at that but first let's
+take a look at that but first let's compare with the kinematic approach now
+compare with the kinematic approach now it's easy to implement you can have like
+it's easy to implement you can have like this is actually running on a single
+this is actually running on a single core lots of cloth it's easy to do now
+core lots of cloth it's easy to do now excuse the my shading it might look a
+excuse the my shading it might look a little plasticky but you know hopefully
+little plasticky but you know hopefully you think look at this then yeah that
+you think look at this then yeah that behavior works you know fairly
+behavior works you know fairly responsive I could use this in a game
+responsive I could use this in a game and yeah you know it kind of does the
+and yeah you know it kind of does the job you know and chances are this
+job you know and chances are this probably is good enough for most people
+probably is good enough for most people um the only cave as I mentioned is I'm
+um the only cave as I mentioned is I'm sort of pulling on things I have all
+sort of pulling on things I have all these constraints that are sort of
+these constraints that are sort of fighting against each other and the way
+fighting against each other and the way these things are connected you can kind
+these things are connected you can kind of get this continued oscillation
+of get this continued oscillation because you're not sort of you know it's
+because you're not sort of you know it's not getting into this relaxed forced
+not getting into this relaxed forced converg State it's no no you're
+converg State it's no no you're constantly fighting so it's only so
+constantly fighting so it's only so that's the only case where these things
+that's the only case where these things may break down might depend on the
+may break down might depend on the implementation too um
+implementation too um but we're going to now take a look at
+but we're going to now take a look at sort of the implicit integration
+sort of the implicit integration approach because it's kind of
+approach because it's kind of interesting you might actually learn
+interesting you might actually learn something um and and like I said it's
+something um and and like I said it's it's based on forces and springs and the
+it's based on forces and springs and the forward Oiler approach is as follows um
+forward Oiler approach is as follows um you have for every point in your cloth
+you have for every point in your cloth or soft object you know it's got a
+or soft object you know it's got a velocity and then all these Springs
+velocity and then all these Springs connected to it and gravity and and wind
+connected to it and gravity and and wind or whatever else so at each point
+or whatever else so at each point there's a net force being applied to a
+there's a net force being applied to a point or a vertex
+point or a vertex so the four oer update would be to okay
+so the four oer update would be to okay uh divide that net force by your mass
+uh divide that net force by your mass and that is your acceleration apply that
+and that is your acceleration apply that and you got your velocity for the next
+and you got your velocity for the next time step okay we've already described
+time step okay we've already described why that's going to break down because
+why that's going to break down because things might explode so the implicit
+things might explode so the implicit approach what you do is instead of
+approach what you do is instead of applying the forces at a point based on
+applying the forces at a point based on the forces at the current at the start
+the forces at the current at the start of the time step you use the forces from
+of the time step you use the forces from the end of the time step but wait a
+the end of the time step but wait a second those are forces from the future
+second those are forces from the future we're not yet there yet we don't know
+we're not yet there yet we don't know what they are because we don't know
+what they are because we don't know where everything's going to be I mean
+where everything's going to be I mean how can we even do that and so that's
+how can we even do that and so that's why for this approach you you end up
+why for this approach you you end up creating one of these linear systems and
+creating one of these linear systems and solving for those forces and in order to
+solving for those forces and in order to do that you need to know the derivatives
+do that you need to know the derivatives of the forces that is how the force at a
+of the forces that is how the force at a point will change based on a change in
+point will change based on a change in position and a change in velocity okay
+position and a change in velocity okay so now the thing is with force in
+so now the thing is with force in Springs in a 3D world it's is a 3D
+Springs in a 3D world it's is a 3D vector and the I can move something as I
+vector and the I can move something as I move a spring I can move that point in
+move a spring I can move that point in 3D so the derivative is this now this
+3D so the derivative is this now this 3x3 Matrix known as a Jacobian and the
+3x3 Matrix known as a Jacobian and the general form is shown in the upper right
+general form is shown in the upper right so that's what we would have to derive
+so that's what we would have to derive to implement these systems now we don't
+to implement these systems now we don't have a whole lot of time left to you
+have a whole lot of time left to you know go deep deep into a whole bunch of
+know go deep deep into a whole bunch of calculus but fortunately we don't have
+calculus but fortunately we don't have to let's try some geometric intuition
+to let's try some geometric intuition instead
+instead when I have a spring it's you know a
+when I have a spring it's you know a simple you know kind of a linear thing
+simple you know kind of a linear thing so let's first look at what how does the
+so let's first look at what how does the force change this derivative of force
+force change this derivative of force along the spring Direction well if I
+along the spring Direction well if I have a spring and let's say one point's
+have a spring and let's say one point's at the origin and the other Point's at
+at the origin and the other Point's at Point P or you can think of it as Vector
+Point P or you can think of it as Vector P because one side's the origin if it's
+P because one side's the origin if it's compressed then there's a force a at the
+compressed then there's a force a at the end kind of facing out away from the
+end kind of facing out away from the spring as I move that out and I stretch
+spring as I move that out and I stretch it now there's a force coming towards me
+it now there's a force coming towards me so the change in force for a change in
+so the change in force for a change in position is simply minus K that spring
+position is simply minus K that spring constant okay not surprisingly if you
+constant okay not surprisingly if you know if the force is minus k- K * P
+know if the force is minus k- K * P while the derivative with respect to P
+while the derivative with respect to P is just minus K you know standard
+is just minus K you know standard calculus okay well that's only half the
+calculus okay well that's only half the equation now consider if I move that end
+equation now consider if I move that end point sort of up or down if my spring is
+point sort of up or down if my spring is at its rest length and I grab this other
+at its rest length and I grab this other point and if I move it up or down well
+point and if I move it up or down well there's no there's no force and there's
+there's no there's no force and there's no change in force you know because for
+no change in force you know because for a small change up or down but the story
+a small change up or down but the story changes if my spring is now stretched
+changes if my spring is now stretched out then it's got then and I'm holding
+out then it's got then and I'm holding it up here there's a force kind of
+it up here there's a force kind of coming down towards me from that end
+coming down towards me from that end point I move that my arm down and now
+point I move that my arm down and now there's a force coming up towards me so
+there's a force coming up towards me so there's a change in force you know from
+there's a change in force you know from this to this right so the change is up
+this to this right so the change is up but if but if it was compressed now I've
+but if but if it was compressed now I've got this Force pointing up and as I
+got this Force pointing up and as I lower the end point now I've got a force
+lower the end point now I've got a force pointing down so my change in force for
+pointing down so my change in force for a change in uh position you know
+a change in uh position you know anything orthogonal to the spring
+anything orthogonal to the spring Direction now depends on where we are
+Direction now depends on where we are relative to the rest length R which is
+relative to the rest length R which is shown in the bottom right there so for
+shown in the bottom right there so for somebody if they actually went off and
+somebody if they actually went off and they solved all that calculus and came
+they solved all that calculus and came back they would have come back with this
+back they would have come back with this right that's what the calculus would
+right that's what the calculus would have given you but hopefully you know if
+have given you but hopefully you know if you follow the geometric intuition well
+you follow the geometric intuition well and remembered what I talked about the
+and remembered what I talked about the very beginning with those outer products
+very beginning with those outer products this should look obvious because it's
+this should look obvious because it's simply minus K times that first thing in
+simply minus K times that first thing in the brackets there that's you know P
+the brackets there that's you know P outter product P divided P which is
+outter product P divided P which is essentially unit length Vector along
+essentially unit length Vector along that direction uh out of product with
+that direction uh out of product with itself okay and that describes this
+itself okay and that describes this motion and then the perpendicular motion
+motion and then the perpendicular motion simply I minus that for the other term
+simply I minus that for the other term right so cool you know now you
+right so cool you know now you understand what a Jacobian is okay um
+understand what a Jacobian is okay um the spring equation is probably the
+the spring equation is probably the easiest difference equation so this is
+easiest difference equation so this is probably the easiest example for trying
+probably the easiest example for trying to learn what a Jacobian is that you can
+to learn what a Jacobian is that you can think of um now you do the same thing to
+think of um now you do the same thing to get change in force for change in
+get change in force for change in velocity um because that's the you know
+velocity um because that's the you know some more deres you need and then you
+some more deres you need and then you have these things and you can put them
+have these things and you can put them in the linear system now I don't have
+in the linear system now I don't have time to go into all the algebra and all
+time to go into all the algebra and all the details of it but essentially it's
+the details of it but essentially it's one of those things where you've got one
+one of those things where you've got one of those big matrices you know ax equals
+of those big matrices you know ax equals B but X the unknown is now Delta V and a
+B but X the unknown is now Delta V and a this Matrix is sort of identity minus
+this Matrix is sort of identity minus that term and and so on and B is the
+that term and and so on and B is the other vector and it's a little more
+other vector and it's a little more tricky because okay you you know it's
+tricky because okay you you know it's not just you know one 3D Vector but you
+not just you know one 3D Vector but you you know your your velocity State and
+you know your your velocity State and your position state are basically this
+your position state are basically this concatenation of all the points in your
+concatenation of all the points in your in your spring mesh and this so this a
+in your spring mesh and this so this a matrix becomes this big sparse linear
+matrix becomes this big sparse linear system and stuff um all that stuff's you
+system and stuff um all that stuff's you know there's sources I can point to to
+know there's sources I can point to to later that describe it all but I just
+later that describe it all but I just kind of want to get some of this
+kind of want to get some of this geometric intuition so you can kind of
+geometric intuition so you can kind of see how these things work okay so I'm
+see how these things work okay so I'm going to illustrate you know what that
+going to illustrate you know what that can look like at runtime first you know
+can look like at runtime first you know we'll take see the what the weak Springs
+we'll take see the what the weak Springs look like with that forward Oiler update
+look like with that forward Oiler update and you see oh okay this is kind of
+and you see oh okay this is kind of jelly type Behavior maybe you could do
+jelly type Behavior maybe you could do some ocean waves with this but it's not
+some ocean waves with this but it's not real cloth if you want something to like
+real cloth if you want something to like touch and feel like real cloth stuff you
+touch and feel like real cloth stuff you know you got to you know use those uh
+know you got to you know use those uh stiffer Springs if you're using the the
+stiffer Springs if you're using the the spring based approach so here you know
+spring based approach so here you know it's there's the underlying spring
+it's there's the underlying spring Network that you would have and yeah
+Network that you would have and yeah okay this I mean you already saw this
+okay this I mean you already saw this kind of stuff with the kinetic approach
+kind of stuff with the kinetic approach um or k Sorry kinematic approach um you
+um or k Sorry kinematic approach um you know what's the advantage of the of the
+know what's the advantage of the of the implicit integration well here it is
+implicit integration well here it is it's when you have these things under
+it's when you have these things under stress right you know there's no Jitter
+stress right you know there's no Jitter no billowing no energy leaking the
+no billowing no energy leaking the system in fact when you pull back a
+system in fact when you pull back a slingshot because you're actually
+slingshot because you're actually calculating the forces on all these
+calculating the forces on all these things so if you put a projectile there
+things so if you put a projectile there you would know how much force to apply
+you would know how much force to apply to it so you could launch it right it's
+to it so you could launch it right it's all sort of force correct and here's
+all sort of force correct and here's examples of sort of like 3D objects kind
+examples of sort of like 3D objects kind of connected with a bunch of STI Springs
+of connected with a bunch of STI Springs so on all
+so on all right okay now um those a kind of a big
+right okay now um those a kind of a big Whirlwind of topics and you know we
+Whirlwind of topics and you know we started off looking at some basic stuff
+started off looking at some basic stuff you know how four planes come together
+you know how four planes come together to meet you know building that roof or
+to meet you know building that roof or so on um now and we looked at sort of
+so on um now and we looked at sort of solids and motion and all those kind of
+solids and motion and all those kind of things the main objective here was to
+things the main objective here was to try to get people to first of all to
+try to get people to first of all to think of their meshes as not just a bag
+think of their meshes as not just a bag of triangles but once you start thinking
+of triangles but once you start thinking of a mesh as a solid you know and you
+of a mesh as a solid you know and you you can have this tetrahedral
+you can have this tetrahedral decomposition or breaking stuff into
+decomposition or breaking stuff into convex meshes for uh Collision detection
+convex meshes for uh Collision detection you know you have this more intuitive
+you know you have this more intuitive powerful understanding of your geometry
+powerful understanding of your geometry and furthermore we then we sort of
+and furthermore we then we sort of looked at you know uh things in motion
+looked at you know uh things in motion um and you know a lot of people with
+um and you know a lot of people with Graphics you get this fairly good
+Graphics you get this fairly good understanding of you know you're
+understanding of you know you're basically in your algebra but when you
+basically in your algebra but when you start exploring some of the physics
+start exploring some of the physics space and geometry space you step a
+space and geometry space you step a little bit beyond you know some of that
+little bit beyond you know some of that math and learning you know the value of
+math and learning you know the value of things like outer product and you know
+things like outer product and you know jacobians and all that sort of thing and
+jacobians and all that sort of thing and it can open the door to new new and
+it can open the door to new new and interesting fun things you can do in
+interesting fun things you can do in your game experiences okay so now
+your game experiences okay so now admittedly that was probably quite a lot
+admittedly that was probably quite a lot for some people to digest um and you
+for some people to digest um and you might have questions you might not think
+might have questions you might not think of them right away you might think of
+of them right away you might think of them like an hour after you leave here
+them like an hour after you leave here I'll be around all week so feel free to
+I'll be around all week so feel free to flag me down just look for the
+flag me down just look for the bodybuilder in the the crowd that's me
+bodybuilder in the the crowd that's me and you know we can have coffee and I'll
+and you know we can have coffee and I'll explain things further um in the
+explain things further um in the meantime if there's any questions that
+meantime if there's any questions that someone has right now I think we might
+someone has right now I think we might have a few minutes left to answer yeah
+have a few minutes left to answer yeah got a couple
+got a couple minutes someone has a burning
+minutes someone has a burning question I had a non- math related
+question I had a non- math related question which is just what uh kind of
+question which is just what uh kind of input were you using for those hand
+input were you using for those hand gesture demos um oh it's one it's like a
+gesture demos um oh it's one it's like a depth camera based thing so but like was
+depth camera based thing so but like was it is a connect or a um well in this I
+it is a connect or a um well in this I was actually using uh a a time of flight
+was actually using uh a a time of flight camera um so what I do uh and now just
+camera um so what I do uh and now just we I just got my paper published um and
+we I just got my paper published um and and uh a coworker demoed this at i3d
+and uh a coworker demoed this at i3d last week a demo poster session uh we
+last week a demo poster session uh we take the depth you know we have a sort
+take the depth you know we have a sort of a model of the hand um and then we
+of a model of the hand um and then we take the depth data and we want to fit
+take the depth data and we want to fit that model to the depth data I mean
+that model to the depth data I mean there's a lot of people been trying to
+there's a lot of people been trying to solve this problem I'm sort of like a
+solve this problem I'm sort of like a math 3D physics guy and I like you know
+math 3D physics guy and I like you know I I was task with like um you know
+I I was task with like um you know assume that I already have this and then
+assume that I already have this and then build cool experiences and interactions
+build cool experiences and interactions I'm like but but I need software to
+I'm like but but I need software to track the hand so I had to like build it
+track the hand so I had to like build it because nobody had it so yeah I took the
+because nobody had it so yeah I took the depth data um and then I basically got
+depth data um and then I basically got like a rigid body model of the hand and
+like a rigid body model of the hand and all constructed and I've got you know
+all constructed and I've got you know the oh okay I'll sorry I'll try to be
+the oh okay I'll sorry I'll try to be quick the you know the the you know the
+quick the you know the the you know the constraints you learn about this morning
+constraints you learn about this morning you should go to the physics class you
+you should go to the physics class you know because it's really just an
+know because it's really just an extension of like a physics engine you
+extension of like a physics engine you know you have all these connections you
+know you have all these connections you know that are constraints on on on the
+know that are constraints on on on the joints you have Collision constraints
+joints you have Collision constraints and then all those little depth values
+and then all those little depth values are like little magnets or something and
+are like little magnets or something and you just kind of like pull on the
+you just kind of like pull on the surface now you there's a few things you
+surface now you there's a few things you want to do you make them a little weaker
+want to do you make them a little weaker because you might mismatch you know
+because you might mismatch you know points to where they lie on the surface
+points to where they lie on the surface and it relies a little bit on temp
+and it relies a little bit on temp temporal coherence because you know if
+temporal coherence because you know if you if you're starting from a bad frame
+you if you're starting from a bad frame it's not going to work but you kind of
+it's not going to work but you kind of need to do that anyway because the depth
+need to do that anyway because the depth data is pretty bad right like for you
+data is pretty bad right like for you know you know the speed and Fidelity
+know you know the speed and Fidelity because there's can be depth noise and
+because there's can be depth noise and no collusions and all that stuff so we
+no collusions and all that stuff so we really kind of need to take advantage
+really kind of need to take advantage typic coherence anyway in the solution
+typic coherence anyway in the solution but yeah we talk about that online I can
+but yeah we talk about that online I can show you I got like a camera here if
+show you I got like a camera here if you're interested yeah but yeah it's not
+you're interested yeah but yeah it's not really related to this talk but um sorry
+really related to this talk but um sorry uh any other
+questions sure hey thanks for that
+sure hey thanks for that uh uh touch touching that last uh part
+uh uh touch touching that last uh part with the like the spring
+with the like the spring network uh and when you when you do
+network uh and when you when you do basically uh integration of uh like
+basically uh integration of uh like within that time step uh uh do do you
+within that time step uh uh do do you have to
+have to uh uh take into account all the like the
+uh uh take into account all the like the the uh spring Springs next to your
+the uh spring Springs next to your current basically if you have if you
+current basically if you have if you have a mass node basically uh with
+have a mass node basically uh with springs
+springs uh uh you have you have mass nodes and
+uh uh you have you have mass nodes and they they are interconnected with
+they they are interconnected with springs so basically all the all the
+springs so basically all the all the nodes next to your current node uh they
+nodes next to your current node uh they kind of have to affect uh the position
+kind of have to affect uh the position uh or or the next position of of the
+uh or or the next position of of the node do you have to cach all those like
+node do you have to cach all those like the states of all those noes that affect
+the states of all those noes that affect your
+current do do I understand I'm having problems expressing myself obvious so
+problems expressing myself obvious so yeah when you're solving any sort of
+yeah when you're solving any sort of these these systems like even a general
+these these systems like even a general rigid body system you you have to solve
+rigid body system you you have to solve a lot of these equations simultaneously
+a lot of these equations simultaneously yeah and then with the implicit
+yeah and then with the implicit integration it's even worse because it's
+integration it's even worse because it's you're sort of solving kind of future
+you're sort of solving kind of future like velocity and position kind of
+like velocity and position kind of simultaneously as well so it does get
+simultaneously as well so it does get very tricky because everything connects
+very tricky because everything connects with everything else and they have to
+with everything else and they have to solve them all together so you end up um
+solve them all together so you end up um and you know you end up sort of adding
+and you know you end up sort of adding all these little jacobians and you know
+all these little jacobians and you know in that system and then sort of solving
+in that system and then sort of solving into sort of an answer that will uh you
+into sort of an answer that will uh you know uh you know energy minimizing type
+know uh you know energy minimizing type of type of thing yeah but in the middle
+of type of thing yeah but in the middle you then you will then have quite a lot
+you then you will then have quite a lot of data basically more data than you
+of data basically more data than you begin with to kind of yeah it's still
+begin with to kind of yeah it's still going to be it's going to be order the
+going to be it's going to be order the size so it's it's going to be uh you
+size so it's it's going to be uh you know the the topology the like the
+know the the topology the like the connections uh of each point um you know
+connections uh of each point um you know that's like every Point can be connected
+that's like every Point can be connected um to for 12 say um neighbors and so
+um to for 12 say um neighbors and so they'll you know there you're going to
+they'll you know there you're going to have an AM amount of data to process
+have an AM amount of data to process like your math equations are going to
+like your math equations are going to have that much stuff in them so it's
+have that much stuff in them so it's going to be like you know you know over
+going to be like you know you know over 10 times the number of points in your
+10 times the number of points in your Matrix or in your mesh right and it's in
+Matrix or in your mesh right and it's in 3D so it's I mean these are you know uh
+3D so it's I mean these are you know uh and with position and velocity and other
+and with position and velocity and other other things going on so yeah it's a
+other things going on so yeah it's a bigger data footprint yeah certainly the
+bigger data footprint yeah certainly the kinematic approach I mean they have a
+kinematic approach I mean they have a very small data footprint it's very um
+very small data footprint it's very um you that it's it's one of the what helps
+you that it's it's one of the what helps make them more efficient is that makes
+make them more efficient is that makes it cash efficient as well too cuz they
+it cash efficient as well too cuz they have much smaller data footprint yeah
+have much smaller data footprint yeah you're absolutely right there's there's
+you're absolutely right there's there's a huge data footprint cost as well
+a huge data footprint cost as well specifically I'm I'm just trying to
+specifically I'm I'm just trying to create this really flowy water surface
+create this really flowy water surface and trying to get away with like as
+and trying to get away with like as little problem like yeah water you can
+little problem like yeah water you can you can start out with like the the
+you can start out with like the the forward Oiler systems um because you get
+forward Oiler systems um because you get sort of that nice wavy Behavior that's a
+sort of that nice wavy Behavior that's a good place to start and then for you
+good place to start and then for you know for the implicit type things I mean
+know for the implicit type things I mean that's there is a damping to it that
+that's there is a damping to it that just is natural with the integration so
+just is natural with the integration so like the cloth will sort of settle and
+like the cloth will sort of settle and it's you know sometimes you have to do
+it's you know sometimes you have to do things to kind of create that life back
+things to kind of create that life back into objects because it's even without
+into objects because it's even without adding damping terms it will dampen
+adding damping terms it will dampen itself um which is you know one
+itself um which is you know one something that can happen well yeah I've
+something that can happen well yeah I've been I've been using the like data from
+been I've been using the like data from the previous step to integrate like
+the previous step to integrate like within the Integrations and I've been
+within the Integrations and I've been getting away with it for some reason it
+getting away with it for some reason it works maybe maybe my like coefficients
+works maybe maybe my like coefficients are like low enough to for it to work
+are like low enough to for it to work but
+but yeah trouble if I if I just ignore about
+yeah trouble if I if I just ignore about this yeah okay thank you yeah no problem
+this yeah okay thank you yeah no problem okay oh sorry one more um so a lot of
+okay oh sorry one more um so a lot of this was actually really new to me but
+this was actually really new to me but also seemed really interesting um so for
+also seemed really interesting um so for actually trying to like understand the
+actually trying to like understand the concepts more in detail and really like
+concepts more in detail and really like get it down um would you recommend more
+get it down um would you recommend more like just jumping in and trying to write
+like just jumping in and trying to write Tech demos that kind of follow this or
+Tech demos that kind of follow this or would you books or absolutely even even
+would you books or absolutely even even if you're using you know work if you're
+if you're using you know work if you're using like an off-the-shelf physics
+using like an off-the-shelf physics engine or something it's nice to you
+engine or something it's nice to you know uh write your own code of the same
+know uh write your own code of the same thing like when I used to work at a Gaia
+thing like when I used to work at a Gaia on the like the physx SDK and stuff one
+on the like the physx SDK and stuff one of the one of the things that helped me
+of the one of the things that helped me be of benefit to my employer was the
+be of benefit to my employer was the fact that I had done a lot of that kind
+fact that I had done a lot of that kind of stuff on my own in the past before
+of stuff on my own in the past before like similar things uh maybe not to the
+like similar things uh maybe not to the same extent because it's quite a large
+same extent because it's quite a large engine um so yeah I would encourage
+engine um so yeah I would encourage anybody like you know try writing a gjk
+anybody like you know try writing a gjk algorithm or a you know a little you
+algorithm or a you know a little you know little solver for Springs you know
+know little solver for Springs you know and constantly Cheng yourself because
+and constantly Cheng yourself because then you know even if it work you're
+then you know even if it work you're using off-the-shelf systems I mean
+using off-the-shelf systems I mean you'll understand those systems and the
+you'll understand those systems and the and the issues involved with them right
+and the issues involved with them right like that famous force uh the the mass
+like that famous force uh the the mass ratio issue with rigid body uh rag dolls
+ratio issue with rigid body uh rag dolls and stuff right like what is that if
+and stuff right like what is that if you've ever kind of tinkered with the
+you've ever kind of tinkered with the equations it's like oh you got it and
+equations it's like oh you got it and then you you'll be the guy in the room
+then you you'll be the guy in the room that you know everyone's saying ah we
+that you know everyone's saying ah we can't ship our game because it's broken
+can't ship our game because it's broken and you'll just know right so yeah I
+and you'll just know right so yeah I would totally encourage that it's like
+would totally encourage that it's like you know it's the same thing as like if
+you know it's the same thing as like if you take a math course without ever
+you take a math course without ever solving any the exercises at the end of
+solving any the exercises at the end of each chapter you're not really going to
+each chapter you're not really going to learn the math as well so it that's my
+learn the math as well so it that's my personal opinion but yeah definitely
+personal opinion but yeah definitely tinkering is always worthwhile but you
+tinkering is always worthwhile but you have to balance it out because you know
+have to balance it out because you know you want to get paid and you know you
+you want to get paid and you know you can't spend all your time sort of you
+can't spend all your time sort of you know rein inventing the wheel and stuff
+know rein inventing the wheel and stuff so yeah I guess I was a little lucky
+so yeah I guess I was a little lucky because I'm a little bit older so like
+because I'm a little bit older so like when I was at BioWare in the 90s none of
+when I was at BioWare in the 90s none of the stuff existed and we just had to
+the stuff existed and we just had to kind of re invent you know I I got the
+kind of re invent you know I I got the opportunity to kind of implement all the
+opportunity to kind of implement all the stuff when it was first around so I know
+stuff when it was first around so I know it's a little harder for you know you
+it's a little harder for you know you guys coming in the industry because all
+guys coming in the industry because all the stuff's already written no one's
+the stuff's already written no one's going to pay you to write the stuff that
+going to pay you to write the stuff that I got paid to write when you know 15
+I got paid to write when you know 15 years ago so sorry about that but you
+years ago so sorry about that but you know um but yeah definitely you know
+know um but yeah definitely you know hack hack on this on on the side it it I
+hack hack on this on on the side it it I can't stress enough that's very good way
+can't stress enough that's very good way to learn all right thank you
+yeah all right well is that all gu thanks guys for coming

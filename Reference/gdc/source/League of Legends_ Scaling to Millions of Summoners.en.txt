@@ -1,0 +1,1500 @@
+[Music] We got the mic on. All right, cool. Good
+We got the mic on. All right, cool. Good afternoon. How's everybody doing?
+afternoon. How's everybody doing? Couple
+Couple uh quick uh announcements GDC wanted me
+uh quick uh announcements GDC wanted me to make. Um if everybody could turn off
+to make. Um if everybody could turn off their cell phones so they don't beep
+their cell phones so they don't beep during the presentation and so there's
+during the presentation and so there's not a symphony after the presentation of
+not a symphony after the presentation of emails. Um the
+emails. Um the uh evaluation forms will be emailed out
+uh evaluation forms will be emailed out after uh the session. So, if you guys
+after uh the session. So, if you guys could all fill those out, uh GDC wants
+could all fill those out, uh GDC wants to know which sessions were good. I'd
+to know which sessions were good. I'd also, you know, like some feedback in
+also, you know, like some feedback in terms of if you guys enjoyed the
+terms of if you guys enjoyed the presentation. So, if you guys could fill
+presentation. So, if you guys could fill those out, that'd be awesome as well.
+those out, that'd be awesome as well. So, with that, let's get started. This
+So, with that, let's get started. This is League of Legends scaling to millions
+is League of Legends scaling to millions of summoners.
+of summoners. A little bit about me. My name is Scott
+A little bit about me. My name is Scott Dilap. I'm a scalability architect at
+Dilap. I'm a scalability architect at Riot. I've been with Riot since uh 2008.
+Riot. I've been with Riot since uh 2008. Uh how many people played uh League of
+Uh how many people played uh League of Legends in beta?
+Legends in beta? We got a good mix of people. Looks like
+We got a good mix of people. Looks like about 5 10%. So in League of Legends
+about 5 10%. So in League of Legends time, I was at Riot about a year before
+time, I was at Riot about a year before beta to kind of put some things in
+beta to kind of put some things in perspective. Um,
+perspective. Um, and then
+and then uh you've got my uh Twitter, my Twitter
+uh you've got my uh Twitter, my Twitter handle and my email uh there on the
+handle and my email uh there on the slides if anybody wants to catch up
+slides if anybody wants to catch up after the presentation. I'd be more than
+after the presentation. I'd be more than happy to talk to people. So just look me
+happy to talk to people. So just look me up. Little bit about Riot. So,
+up. Little bit about Riot. So, Riot was founded in September of 2006 by
+Riot was founded in September of 2006 by Brandon Beck and Mark Merrill. Uh, back
+Brandon Beck and Mark Merrill. Uh, back when I joined Riot about four years ago.
+when I joined Riot about four years ago. I think we had about 25 or 30 employees.
+I think we had about 25 or 30 employees. Uh, today we've got a little bit north
+Uh, today we've got a little bit north of 500 with offices, the main office is
+of 500 with offices, the main office is in Santa Monica, California. We've got
+in Santa Monica, California. We've got an engineering office in
+an engineering office in uh in St. Louis, Missouri. And then
+uh in St. Louis, Missouri. And then we've got a uh player support and
+we've got a uh player support and community office in Dublin and another
+community office in Dublin and another one in Soul, South Korea.
+So our mission at Riot, every company's got to have a mission. You've got to
+got to have a mission. You've got to have some sort of core theme that you're
+have some sort of core theme that you're going to optimize on. Um you know, if
+going to optimize on. Um you know, if you've got five things, which one do you
+you've got five things, which one do you pick? And actually, I'm going to restart
+pick? And actually, I'm going to restart this because it's auto doing timings on
+this because it's auto doing timings on me,
+me, which could be a bad thing.
+Let's see if this will work. So, our mission at Riot is very simple.
+So, our mission at Riot is very simple. It's to be the most player focused
+It's to be the most player focused gaming company in the world. So, what
+gaming company in the world. So, what does that mean? Well, everything that we
+does that mean? Well, everything that we do at Riot is viewed through the lens of
+do at Riot is viewed through the lens of what do you do? What do we do uh for the
+what do you do? What do we do uh for the players? So, whether that's an
+players? So, whether that's an engineering decision, whether that's,
+engineering decision, whether that's, you know, feedback from the forms,
+you know, feedback from the forms, taking that into account. Now, that
+taking that into account. Now, that doesn't necessarily mean that, you know,
+doesn't necessarily mean that, you know, every new skin idea or something like
+every new skin idea or something like that is instantly uh, you know, released
+that is instantly uh, you know, released every two weeks right after it pops up
+every two weeks right after it pops up on the forms, but we we take all that
+on the forms, but we we take all that into account. I mean, we really want to
+into account. I mean, we really want to focus on what's the best the best player
+focus on what's the best the best player experience for everything that we do.
+experience for everything that we do. So, League of Legends, how many people
+So, League of Legends, how many people played League of Legends?
+played League of Legends? Most everybody on it. So, I don't need
+Most everybody on it. So, I don't need to go into everything about League of
+to go into everything about League of Legends.
+Legends. This thing keeps like auto moving. It's
+This thing keeps like auto moving. It's possessed.
+possessed. two seconds.
+two seconds. Let me try it the other way. I'm gonna
+Let me try it the other way. I'm gonna do it in rehearsal mode
+do it in rehearsal mode and then that should reset the uh
+and then that should reset the uh slides for some reason.
+All right, sorry about that. So, um this is a scale talk. So, it's useful in a
+is a scale talk. So, it's useful in a scale talk to have uh some perspective
+scale talk to have uh some perspective on what we're talking about in terms of
+on what we're talking about in terms of scale. So, we released some numbers in
+scale. So, we released some numbers in July of last year and basically covered
+July of last year and basically covered that we had 15 million registered users.
+that we had 15 million registered users. Uh we had about 4 million uh players a
+Uh we had about 4 million uh players a month and a peak CCU of about 500,000 uh
+month and a peak CCU of about 500,000 uh players a day when we hit peak. Now, if
+players a day when we hit peak. Now, if we compare that to November, going
+we compare that to November, going forward just a little bit, uh we went to
+forward just a little bit, uh we went to 32 million registered accounts, uh 4.2 2
+32 million registered accounts, uh 4.2 2 million daily players and 1.3 million uh
+million daily players and 1.3 million uh peak concurrent users. So little bit of
+peak concurrent users. So little bit of a difference. Now if any of you went to
+a difference. Now if any of you went to how many of you went to Travis George's
+how many of you went to Travis George's talk this morning on Dominion,
+talk this morning on Dominion, uh one of the phrases that Travis used
+uh one of the phrases that Travis used was riot scale. U one of the things
+was riot scale. U one of the things that's interesting about the things we
+that's interesting about the things we do at Riot Games is those are the
+do at Riot Games is those are the numbers that you have to hit when
+numbers that you have to hit when something goes out the door. And not
+something goes out the door. And not only do you have to hit those numbers,
+only do you have to hit those numbers, but you have to plan in advance. Case in
+but you have to plan in advance. Case in point, a feature that went out in July
+point, a feature that went out in July now needs to be able to handle a much
+now needs to be able to handle a much larger amount of users in November, for
+larger amount of users in November, for instance. So for, you know, certain
+instance. So for, you know, certain types of features, you know, Dominion,
+types of features, you know, Dominion, um, I think it was about 12 months worth
+um, I think it was about 12 months worth of development. So obviously, we can't
+of development. So obviously, we can't go rework Dominion between July and
+go rework Dominion between July and November to hit scale targets. So we
+November to hit scale targets. So we have to be cognizant of that as we're
+have to be cognizant of that as we're developing new features to kind of have
+developing new features to kind of have runway going forward.
+Now you you take the scale and you take the mission of being the most player uh
+the mission of being the most player uh player focused gaming company in the
+player focused gaming company in the world and then you start to look at that
+world and then you start to look at that in terms of challenges and the big thing
+in terms of challenges and the big thing is there's lots of ways that we can
+is there's lots of ways that we can solve problems but they don't always
+solve problems but they don't always make sense from a player perspective.
+make sense from a player perspective. So social elements for instance they
+So social elements for instance they have to be accessible from everybody.
+have to be accessible from everybody. doesn't make sense if five of you can
+doesn't make sense if five of you can chat with five more people but you can't
+chat with five more people but you can't chat with everybody in PvP Net for
+chat with everybody in PvP Net for instance. Um there's also crafting just
+instance. Um there's also crafting just an enjoyable player experience. So one
+an enjoyable player experience. So one of the things we like to get right is
+of the things we like to get right is when we release a feature we like for
+when we release a feature we like for everybody to be able to get their hands
+everybody to be able to get their hands on it. Um, how many people have ever
+on it. Um, how many people have ever gotten a a Christmas gift and you pick
+gotten a a Christmas gift and you pick the box up and it kind of feels funny
+the box up and it kind of feels funny and you open it up and there's some uh
+and you open it up and there's some uh dot there's some inkjet printer uh
+dot there's some inkjet printer uh printed out thing from Amazon that says
+printed out thing from Amazon that says you will receive this in two weeks. Your
+you will receive this in two weeks. Your mom, you know, didn't order it on time
+mom, you know, didn't order it on time or something. So, you got this stock
+or something. So, you got this stock gap. Well, how many people like that? It
+gap. Well, how many people like that? It sucks. So, it's the same thing, you
+sucks. So, it's the same thing, you know, with gaming. You don't want I
+know, with gaming. You don't want I mean, you don't want to have this
+mean, you don't want to have this feature out and like, oh, well, only a
+feature out and like, oh, well, only a thousand people can play it right now or
+thousand people can play it right now or something. That's not what you want to
+something. That's not what you want to do. And ju, you know, just like the
+do. And ju, you know, just like the Christmas gift, you'd almost wish that
+Christmas gift, you'd almost wish that you didn't get the Christmas gift
+you didn't get the Christmas gift because now you just got to stare at
+because now you just got to stare at this piece of paper and you're like,
+this piece of paper and you're like, "This isn't fun." Well, I mean, it's the
+"This isn't fun." Well, I mean, it's the same thing when we release features. I
+same thing when we release features. I mean, if everyone can't play them, it's
+mean, if everyone can't play them, it's just not fun. I mean, it it actually
+just not fun. I mean, it it actually does the inverse. It creates negative,
+does the inverse. It creates negative, you know, will of the player base and
+you know, will of the player base and people just aren't enjoying what they're
+people just aren't enjoying what they're doing. So, when something goes out the
+doing. So, when something goes out the door, we like to make sure that
+door, we like to make sure that everybody can get it. uh you know the
+everybody can get it. uh you know the more recent example for instance uh was
+more recent example for instance uh was ranked teams and then back before that
+ranked teams and then back before that um with Dominion Dominion was in private
+um with Dominion Dominion was in private was in a limited beta form for a couple
+was in a limited beta form for a couple days and then flash forward to Monday
+days and then flash forward to Monday and here's Dominion and everybody can go
+and here's Dominion and everybody can go play it. So how do we create a system
+play it. So how do we create a system that balances this? We've got scale that
+that balances this? We've got scale that continues to increase but yet we want to
+continues to increase but yet we want to deliver, you know, the highest quality
+deliver, you know, the highest quality all at the same time to the players.
+all at the same time to the players. So that's what we're going to talk about
+So that's what we're going to talk about today. Essentially what we what I've
+today. Essentially what we what I've tried to do is over the last four years
+tried to do is over the last four years we develop a number of core strategies
+we develop a number of core strategies that have kind of evolved that we use to
+that have kind of evolved that we use to align uh with player value and being
+align uh with player value and being able to run League of Legends as an
+able to run League of Legends as an operational service. And I've tried to
+operational service. And I've tried to take the core things that we do and
+take the core things that we do and really get down to the essence of them.
+really get down to the essence of them. So it's not just me talking about well
+So it's not just me talking about well yeah we did this cool thing. We wrote
+yeah we did this cool thing. We wrote these lines of code and here we go. You
+these lines of code and here we go. You guys can't do anything with that. So,
+guys can't do anything with that. So, we're going to start with the core items
+we're going to start with the core items and then we're going to work back and
+and then we're going to work back and add some add some color commentary of
+add some add some color commentary of how that applies to League of Legends.
+how that applies to League of Legends. But at the end of the day, whether
+But at the end of the day, whether you've got a big project or a small
+you've got a big project or a small project, if it's mobile or if it's, you
+project, if it's mobile or if it's, you know, a PC game, all the things that
+know, a PC game, all the things that we're talking about should apply. So,
+we're talking about should apply. So, the first thing that we're going to talk
+the first thing that we're going to talk about is we're going to talk about em
+about is we're going to talk about em embracing Java and NoSQL. Although
+embracing Java and NoSQL. Although really most of this is NoSQL, so if you
+really most of this is NoSQL, so if you don't use Java, it's not a not a big
+don't use Java, it's not a not a big deal. We're going to talk about how we
+deal. We're going to talk about how we think simple is the best way to go
+think simple is the best way to go followed up by coding a dynamic system
+followed up by coding a dynamic system some scaling best practices and then
+some scaling best practices and then finally monitoring everything.
+finally monitoring everything. So embracing Java and NoSQL. So the
+So embracing Java and NoSQL. So the first thing that problem that we have is
+first thing that problem that we have is how do we develop a system rapidly but
+how do we develop a system rapidly but at the same time plan for future
+at the same time plan for future capacity needs just like we saw with
+capacity needs just like we saw with those slides a second ago. July is here,
+those slides a second ago. July is here, November is here.
+November is here. Um, a little bit of context as we're
+Um, a little bit of context as we're going through uh the session this
+going through uh the session this afternoon. The backend platform systems
+afternoon. The backend platform systems for League of Legends are are written in
+for League of Legends are are written in a Java based stack. So, we use a lot of
+a Java based stack. So, we use a lot of different technologies at Riot. Uh, you
+different technologies at Riot. Uh, you know, we use Adobe Flex, we use PHP,
+know, we use Adobe Flex, we use PHP, we've got a lot of C++ code, but we're
+we've got a lot of C++ code, but we're going to kind of focus on this portion
+going to kind of focus on this portion of the stack today that does a lot of
+of the stack today that does a lot of the backend systems with matchmaking,
+the backend systems with matchmaking, uh, game server allocation, things of
+uh, game server allocation, things of that nature.
+that nature. As far as what the stack looks like in a
+As far as what the stack looks like in a little more detail, uh we use a kind of
+little more detail, uh we use a kind of a mix of old and new elements. If you've
+a mix of old and new elements. If you've done anything in the Java ecosystem,
+done anything in the Java ecosystem, Spring and Tomcat are pretty uh common
+Spring and Tomcat are pretty uh common things in that space. And then we use a
+things in that space. And then we use a caching technology uh from Oracle called
+caching technology uh from Oracle called Oracle Coherence. So before I dive into
+Oracle Coherence. So before I dive into NoSQL, when we were developing League of
+NoSQL, when we were developing League of Legends, well, I couldn't tell you that
+Legends, well, I couldn't tell you that we would be where we're at today in
+we would be where we're at today in terms of CCU or players, we did always
+terms of CCU or players, we did always have an eye towards the future. And part
+have an eye towards the future. And part of building something is not just
+of building something is not just building it, it's being able to sustain
+building it, it's being able to sustain it and grow it. So given that, you know,
+it and grow it. So given that, you know, we wanted to be able to continue to
+we wanted to be able to continue to develop faster and faster. So we use a
+develop faster and faster. So we use a lot of open source. Uh you can do that
+lot of open source. Uh you can do that with any language, whether it's in
+with any language, whether it's in Python or in Ruby. A big thing is
+Python or in Ruby. A big thing is tooling. Um technologies almost always
+tooling. Um technologies almost always fail my five minute test because of
+fail my five minute test because of tooling. you pull something up in an IDE
+tooling. you pull something up in an IDE or some, you know, editor that's
+or some, you know, editor that's supposed to support a language and then
+supposed to support a language and then it doesn't work or you try to run the
+it doesn't work or you try to run the debugger or you try to run a profiler.
+debugger or you try to run a profiler. So, you know, there are languages that
+So, you know, there are languages that are more concise, but um that's not the
+are more concise, but um that's not the entire part of the delivery pipeline.
+entire part of the delivery pipeline. You have to be able to debug things. You
+You have to be able to debug things. You have to be able to performance tune. And
+have to be able to performance tune. And if you don't have the right tools to be
+if you don't have the right tools to be able to do that, then you run into
+able to do that, then you run into problems. So, we always try to take both
+problems. So, we always try to take both tools and language into account when
+tools and language into account when we're delivering features at Riot.
+we're delivering features at Riot. We also looked at the fact that we had a
+We also looked at the fact that we had a large pool of developers to pull from.
+large pool of developers to pull from. There are a lot of buzzword ccentric
+There are a lot of buzzword ccentric technologies right now that are awesome
+technologies right now that are awesome technologies, but you can't hire anybody
+technologies, but you can't hire anybody to do anything with them. You'll find
+to do anything with them. You'll find one guy and the other two guys got a job
+one guy and the other two guys got a job somewhere else. So that's also a
+somewhere else. So that's also a problem. So one of the things we liked
+problem. So one of the things we liked about Java is there's a a large talent
+about Java is there's a a large talent pool of really awesome developers that
+pool of really awesome developers that we could work with to continue to raise
+we could work with to continue to raise the bar of our engineering teams.
+As I mentioned earlier, we use a product from Oracle called Oracle Coherence, but
+from Oracle called Oracle Coherence, but I like to always explain it. If you took
+I like to always explain it. If you took the name off of it and threw the source
+the name off of it and threw the source code up on GitHub, it would just be
+code up on GitHub, it would just be classified as a NoSQL.
+classified as a NoSQL. Oh, PowerPoint says no. That's good.
+I blame the projector.
+Here.
+Let me see. I think I can just skip ahead.
+There we go. Okay. Try this again. So if you put it up on GitHub, uh it would
+you put it up on GitHub, uh it would just be classified as a NoSQL
+just be classified as a NoSQL technology. The other thing is, uh we
+technology. The other thing is, uh we were you know when we started
+were you know when we started development of League of Legends 4 years
+development of League of Legends 4 years ago, the you know the NoSQL space was
+ago, the you know the NoSQL space was different than it is today. So we we do
+different than it is today. So we we do use different NoSQL technologies at Riot
+use different NoSQL technologies at Riot today. We use uh Reddus for some things,
+today. We use uh Reddus for some things, MongoDB, but back when we were making
+MongoDB, but back when we were making decisions four years ago to to start
+decisions four years ago to to start with, this was one of the more
+with, this was one of the more established choices. Uh coherence is
+established choices. Uh coherence is used a lot in the financial space. So
+used a lot in the financial space. So there's a there's a lot of large
+there's a there's a lot of large clusters um that do a lot of high
+clusters um that do a lot of high performance computing behind it.
+performance computing behind it. So the big things that coherence gives
+So the big things that coherence gives us and you get these with a lot of NoSQL
+us and you get these with a lot of NoSQL technologies. You got horizontal scaling
+technologies. You got horizontal scaling um that's helped us simplify absorbing
+um that's helped us simplify absorbing CCU growth over time. So you can add
+CCU growth over time. So you can add boxes, the data partitions. So that that
+boxes, the data partitions. So that that that's a pretty good combination. The
+that's a pretty good combination. The other thing that you get from a lot of
+other thing that you get from a lot of NoSQL technologies, and we talk a little
+NoSQL technologies, and we talk a little bit more about this later in the
+bit more about this later in the presentation, it's not just about the
+presentation, it's not just about the tech. A lot of them have patterns, the
+tech. A lot of them have patterns, the way you interact with them. And given
+way you interact with them. And given those patterns, the real power is what
+those patterns, the real power is what they're, you know, enforcing with those
+they're, you know, enforcing with those patterns that then translates out and
+patterns that then translates out and scale and other benefits later. So, and
+scale and other benefits later. So, and I started this with the presentation
+I started this with the presentation view again
+view again one more time. Sorry about that guys.
+one more time. Sorry about that guys. It is possessed today.
+Okay. So as far as how we use coherence, one way that people use caching
+one way that people use caching technologies, how many people use mim
+technologies, how many people use mim cache? So a lot of times with mimcache
+cache? So a lot of times with mimcache we'll do a cache to the side pattern
+we'll do a cache to the side pattern where you have some sort of data access
+where you have some sort of data access tier and then you load data from a
+tier and then you load data from a database and then we turn around and uh
+database and then we turn around and uh put the data in the cache to then read
+put the data in the cache to then read from memory and normally it's some sort
+from memory and normally it's some sort of distributed memory uh because you
+of distributed memory uh because you have too much data or something. It's
+have too much data or something. It's not going to fit on local machine. Well
+not going to fit on local machine. Well in our case we actually take the cache
+in our case we actually take the cache and pull it over here and it's actually
+and pull it over here and it's actually the first level that the uh DAO talks
+the first level that the uh DAO talks to. In a lot of cases I tell the
+to. In a lot of cases I tell the engineers just forget that there's a
+engineers just forget that there's a database even back there. So the benefit
+database even back there. So the benefit of that is it's much more direct on one
+of that is it's much more direct on one at one level but then we're also taking
+at one level but then we're also taking advantage of all the different
+advantage of all the different technologies that are in the NoSQL
+technologies that are in the NoSQL and/caching layer itself. Uh a lot of
+and/caching layer itself. Uh a lot of times to get real performant things
+times to get real performant things you're going to have to get down into
+you're going to have to get down into the technology. the idea of we're going
+the technology. the idea of we're going to do everything agnostic starts to kind
+to do everything agnostic starts to kind of break down at some point because you
+of break down at some point because you need something that you're just not
+need something that you're just not going to get in an agnostic sense just
+going to get in an agnostic sense just like if you've written SQL and then you
+like if you've written SQL and then you need to get down to some stored
+need to get down to some stored procedure technology in Postgress or my
+procedure technology in Postgress or my SQL you can't write it in plain vanilla
+SQL you can't write it in plain vanilla a lot of times so we get a lot of power
+a lot of times so we get a lot of power from doing that though the biggest thing
+from doing that though the biggest thing um is is grid computing uh I can write
+um is is grid computing uh I can write one line of code and run a query or run
+one line of code and run a query or run a mutation operation
+a mutation operation and it will turn around and use 200
+and it will turn around and use 200 cores seamlessly and come back with some
+cores seamlessly and come back with some sort of result. I don't have to worry
+sort of result. I don't have to worry about well will it not come back? What
+about well will it not come back? What if it gets duplicate um data coming
+if it gets duplicate um data coming back? It's just one line of code and
+back? It's just one line of code and that's it. That's a really cool thing
+that's it. That's a really cool thing because now engineers at Riot we don't
+because now engineers at Riot we don't have to focus on well how do I deal with
+have to focus on well how do I deal with all the plumbing of 200 cores. I just
+all the plumbing of 200 cores. I just use them so I can go back and do what I
+use them so I can go back and do what I want to do which is focus on player
+want to do which is focus on player value. We also get things as I mentioned
+value. We also get things as I mentioned earlier like transparent partitioning.
+earlier like transparent partitioning. So we can add machines to the cluster
+So we can add machines to the cluster and our scale pretty much goes out
+and our scale pretty much goes out linearly in a very predictable fashion.
+So moving a little bit away from the setup now uh the next thing is simple is
+setup now uh the next thing is simple is best. So how do we develop features
+best. So how do we develop features quickly but at the same time don't drown
+quickly but at the same time don't drown ourselves in bugs and technical debt.
+ourselves in bugs and technical debt. So a modern CPU will do more than 3
+So a modern CPU will do more than 3 billion instructions. That's a lot. uh
+billion instructions. That's a lot. uh you can throw away and mess around with
+you can throw away and mess around with 2.5 billion instructions and still have
+2.5 billion instructions and still have 500 million instructions to do something
+500 million instructions to do something with. Uh most code I've seen 500 million
+with. Uh most code I've seen 500 million instructions is plenty for most types of
+instructions is plenty for most types of things that you're doing. The other
+things that you're doing. The other thing is technology these days is fast.
+thing is technology these days is fast. I'm not saying you don't need to pay
+I'm not saying you don't need to pay attention to it and you know make smart
+attention to it and you know make smart decisions but languages are fast, memory
+decisions but languages are fast, memory is fast, network's fast. uh used to when
+is fast, network's fast. uh used to when I was fresh out of college, you'd have
+I was fresh out of college, you'd have all these debates about this language is
+all these debates about this language is fast, this language is slow, this is
+fast, this language is slow, this is interpreted, you can never use it for
+interpreted, you can never use it for that. I don't hear a lot of that these
+that. I don't hear a lot of that these days. You know, if you read hacker news,
+days. You know, if you read hacker news, most of the stuff is not about a
+most of the stuff is not about a language being fast or slow. I mean,
+language being fast or slow. I mean, there's all kinds of things with, you
+there's all kinds of things with, you know, uh JavaScript with no.js out there
+know, uh JavaScript with no.js out there and Python and all kinds of new
+and Python and all kinds of new languages. So, it's really not so much
+languages. So, it's really not so much about, you know, raw language speed
+about, you know, raw language speed anymore. The other thing is complexity
+anymore. The other thing is complexity at the end of the day is the enemy of
+at the end of the day is the enemy of quality. um the more complex things are
+quality. um the more complex things are I can give you a laundry list of reasons
+I can give you a laundry list of reasons why that's a problem
+why that's a problem uh you know long methods with lots of
+uh you know long methods with lots of code in them if you try to transition it
+code in them if you try to transition it to a new engineer you know that that
+to a new engineer you know that that handoff has problems you know there's
+handoff has problems you know there's unforeseen edge cases there's bugs that
+unforeseen edge cases there's bugs that pop up if you want to reuse code between
+pop up if you want to reuse code between this piece of a system over here and
+this piece of a system over here and this piece of a system over there it
+this piece of a system over there it doesn't quite fit right because it's too
+doesn't quite fit right because it's too big so at the end of the day our big
+big so at the end of the day our big thing is to not overdesign
+thing is to not overdesign So let's let's dig into a little bit of
+So let's let's dig into a little bit of that. So one of the theories that we use
+that. So one of the theories that we use is this thing what we call rig the game.
+is this thing what we call rig the game. So you can have some sort of operation
+So you can have some sort of operation that you need to do multiple things at
+that you need to do multiple things at the same time and you can do a lot of
+the same time and you can do a lot of coordination but it's usually easier to
+coordination but it's usually easier to kind of divide the inputs up in advance
+kind of divide the inputs up in advance if you can kind of flip the problem
+if you can kind of flip the problem inside out. So if we look at a
+inside out. So if we look at a visualization of that,
+visualization of that, you can have a bunch of threads and have
+you can have a bunch of threads and have work and then have data that they share
+work and then have data that they share and they can sit there and coordinate.
+and they can sit there and coordinate. But as you can see, just looking at this
+But as you can see, just looking at this picture, the picture doesn't even look
+picture, the picture doesn't even look clean. You got all these lines. It kind
+clean. You got all these lines. It kind of takes you a second to figure out
+of takes you a second to figure out what's going on.
+what's going on. On the flip side, you can take the data
+On the flip side, you can take the data kind of nightly nicely split it up based
+kind of nightly nicely split it up based on pairing it up with the work. It's a
+on pairing it up with the work. It's a much cleaner picture. The other thing is
+much cleaner picture. The other thing is the code behind this is much simpler.
+the code behind this is much simpler. Once the code gets a chunk of data, it
+Once the code gets a chunk of data, it does what it needs to do and that's it.
+does what it needs to do and that's it. It doesn't have to worry about edge
+It doesn't have to worry about edge cases, doesn't have to worry about dirty
+cases, doesn't have to worry about dirty reads or anything else. It just goes
+reads or anything else. It just goes about its business and then that pattern
+about its business and then that pattern will pretty much stack out. So, a couple
+will pretty much stack out. So, a couple examples of that in League of Legends,
+examples of that in League of Legends, uh, right around season one, we went
+uh, right around season one, we went through and reworked the game server
+through and reworked the game server allocation algorithm. Um, and I'll talk
+allocation algorithm. Um, and I'll talk more about that later as well. But one
+more about that later as well. But one of the things that we did was we wrote
+of the things that we did was we wrote it with the idea that it could partition
+it with the idea that it could partition itself. And for the longest time in
+itself. And for the longest time in production, we never turned it up more
+production, we never turned it up more than one. There was just, you know, a
+than one. There was just, you know, a level of one running back there. But
+level of one running back there. But then when we got close to Dominion, if
+then when we got close to Dominion, if you went to Travis's presentation, one
+you went to Travis's presentation, one of the interesting characteristics of
+of the interesting characteristics of Dominion was the fact that games are now
+Dominion was the fact that games are now 20 minutes shorter for Dominion. So the
+20 minutes shorter for Dominion. So the same quantity of players that used to
+same quantity of players that used to play Summoner's Rift now play Dominion.
+play Summoner's Rift now play Dominion. It's twice as many people going through
+It's twice as many people going through the turn styles. So, uh, twice as many
+the turn styles. So, uh, twice as many game starts, twice as many champ
+game starts, twice as many champ selects, twice as many statistics being
+selects, twice as many statistics being processed, twice as many games being
+processed, twice as many games being allocated. So, when we were load testing
+allocated. So, when we were load testing for Dominion, we went and cranked the
+for Dominion, we went and cranked the knob up, so to speak, validated the
+knob up, so to speak, validated the results, tweaked a couple little edge
+results, tweaked a couple little edge cases for things. Um, you can run into
+cases for things. Um, you can run into things like uh starvation with this
+things like uh starvation with this model. I mean, you don't want to run out
+model. I mean, you don't want to run out of game servers, for instance. So we
+of game servers, for instance. So we added a little bit of work stealing. So
+added a little bit of work stealing. So um you didn't have one pool that got
+um you didn't have one pool that got full and the other one didn't. But all
+full and the other one didn't. But all in all it was a very simple migration.
+So the next thing I'm going to cover today is the concept of coding a dynamic
+today is the concept of coding a dynamic system. And this is one of the key
+system. And this is one of the key things that we've evolved to do at Riot
+things that we've evolved to do at Riot over over the last uh several years. So
+over over the last uh several years. So the big problem is how do we handle not
+the big problem is how do we handle not only monthly change but uh as you guys
+only monthly change but uh as you guys all know every two weeks we push out a
+all know every two weeks we push out a champion and use a couple skins. So we
+champion and use a couple skins. So we have bi-weekly change and then we also
+have bi-weekly change and then we also have what I like to call hourly change.
+have what I like to call hourly change. Change is not just when we decide that
+Change is not just when we decide that we're going to have change. Change just
+we're going to have change. Change just kind of happens. So I usually like to
+kind of happens. So I usually like to use the analogy a single box or a
+use the analogy a single box or a developer laptop or workstation is a
+developer laptop or workstation is a very predictable beast. It's got a set
+very predictable beast. It's got a set amount of memory. There's a set CPU on
+amount of memory. There's a set CPU on it. You run your code. It runs kind of
+it. You run your code. It runs kind of in a predictable amount of time and you
+in a predictable amount of time and you know what you're going to get.
+know what you're going to get. A large system, however, changes while
+A large system, however, changes while it's running. Um, I like I usually say
+it's running. Um, I like I usually say around the office. I mean, it's
+around the office. I mean, it's basically organic. There's inputs and
+basically organic. There's inputs and outputs and you see things ripple, but
+outputs and you see things ripple, but at the same time, you may not exactly
+at the same time, you may not exactly know, well, why does that ripple? I I
+know, well, why does that ripple? I I see it and I kind of know, but again,
+see it and I kind of know, but again, why is it doing that? There's all kinds
+why is it doing that? There's all kinds of reasons for that. So, a couple
+of reasons for that. So, a couple examples just to give you guys a few
+examples just to give you guys a few that we've seen over the years. Uh, one
+that we've seen over the years. Uh, one thing, I think it was two summers ago.
+thing, I think it was two summers ago. Um, we had lots of player reports on the
+Um, we had lots of player reports on the forums of issues in the game and we kind
+forums of issues in the game and we kind of dug into our systems a little bit and
+of dug into our systems a little bit and then it kind of went away. Well, then
+then it kind of went away. Well, then late in the day we figured out this
+late in the day we figured out this happened to be uh Europe. the uh there
+happened to be uh Europe. the uh there was a I think a Champions League uh
+was a I think a Champions League uh playoff going on and all the people in
+playoff going on and all the people in Europe were streaming the soccer matches
+Europe were streaming the soccer matches over the internet and the pipes were
+over the internet and the pipes were just a little bit full. So we were
+just a little bit full. So we were seeing a reflection essentially of the
+seeing a reflection essentially of the of the internet infrastructure in Europe
+of the internet infrastructure in Europe and it wasn't just us. All kinds of
+and it wasn't just us. All kinds of other games are seeing it too. So that
+other games are seeing it too. So that was something didn't have anything to do
+was something didn't have anything to do with us doing a deploy yet we had an
+with us doing a deploy yet we had an operational you know change that we had
+operational you know change that we had to try to mitigate. Um, a little
+to try to mitigate. Um, a little different example that I'll tell on
+different example that I'll tell on myself is back when we were in real real
+myself is back when we were in real real early beta. Um, of course we were a 25
+early beta. Um, of course we were a 25 30 person company and our beta
+30 person company and our beta environment was sharing a certain amount
+environment was sharing a certain amount of infrastructure in data centers that
+of infrastructure in data centers that our load test environment was sharing.
+our load test environment was sharing. And I'm sitting in the office in in
+And I'm sitting in the office in in Santa Monica. I got my headphones on.
+Santa Monica. I got my headphones on. I'm pounding the heck out of the system
+I'm pounding the heck out of the system trying to, you know, raise the scale on
+trying to, you know, raise the scale on some stuff. And all of a sudden,
+some stuff. And all of a sudden, everybody around me starts asking, "Why
+everybody around me starts asking, "Why do we have lag in the system? What's
+do we have lag in the system? What's going on here?" And the forums go crazy.
+going on here?" And the forums go crazy. I'm like, "It's probably me." So, I
+I'm like, "It's probably me." So, I clicked the little button, stopped the
+clicked the little button, stopped the load test, and sure enough, everything
+load test, and sure enough, everything went away. Well, turns out I had
+went away. Well, turns out I had saturated a couple switches and a few
+saturated a couple switches and a few other things sitting there in the office
+other things sitting there in the office with my little uh botnet of load test
+with my little uh botnet of load test harnesses. So, you know, that was
+harnesses. So, you know, that was another example of something that just
+another example of something that just kind of came out of the left field. But
+kind of came out of the left field. But there's much more practical things, too.
+there's much more practical things, too. I mean, you you get hardware failures.
+I mean, you you get hardware failures. If you do the math on large systems, you
+If you do the math on large systems, you know, a hard drive will die, you know,
+know, a hard drive will die, you know, once about once a year on average. So,
+once about once a year on average. So, if you have enough boxes, you're going
+if you have enough boxes, you're going to get a hard drive that dies every day.
+to get a hard drive that dies every day. So, the question is, when do we fix
+So, the question is, when do we fix this? Uh, do we do it next release? Do
+this? Uh, do we do it next release? Do we do we create a downtime? Well, if we
+we do we create a downtime? Well, if we do it next release, what if it's a big
+do it next release, what if it's a big problem? Again, player value. Another
+problem? Again, player value. Another one would be, what if we do it during a
+one would be, what if we do it during a downtime? Well, we can pick lighter down
+downtime? Well, we can pick lighter down times, but that doesn't mean there's not
+times, but that doesn't mean there's not people playing. Um, for instance, we
+people playing. Um, for instance, we hired a new engineer the other day, and
+hired a new engineer the other day, and we were talking and he's got a young
+we were talking and he's got a young son, so he gets up at 5:00 in the
+son, so he gets up at 5:00 in the morning and would play League of
+morning and would play League of Legends. Uh, get a couple games in in
+Legends. Uh, get a couple games in in the morning. Well, we might be doing
+the morning. Well, we might be doing downtime at 5:00 a.m. Pacific. So, yeah,
+downtime at 5:00 a.m. Pacific. So, yeah, that doesn't affect the masses, but he's
+that doesn't affect the masses, but he's just as valuable as they are. So, you
+just as valuable as they are. So, you know, you want to try to not have
+know, you want to try to not have downtime as well when you have to fix
+downtime as well when you have to fix things.
+things. So, that's not going to work. So there's
+So, that's not going to work. So there's a variety of ways that we come about
+a variety of ways that we come about making things dynamic. Uh one of them is
+making things dynamic. Uh one of them is picking technologies with elastic
+picking technologies with elastic properties. Um as we talked about
+properties. Um as we talked about earlier like no SQL you get dynamic
+earlier like no SQL you get dynamic cluster uh recomposition if you need to
+cluster uh recomposition if you need to pull nodes. We try to pick a lot of
+pull nodes. We try to pick a lot of things with stateless growth patterns so
+things with stateless growth patterns so we can add boxes in and you know put
+we can add boxes in and you know put them behind the load balancer and add
+them behind the load balancer and add capacity
+capacity things of that nature. Now not
+things of that nature. Now not everything has to be elastic. A lot of
+everything has to be elastic. A lot of times you'll get force multipliers. So
+times you'll get force multipliers. So like for instance in our caching tier
+like for instance in our caching tier that helps a lot of things you know it's
+that helps a lot of things you know it's less load on things in the front they
+less load on things in the front they can kind of spread out across the
+can kind of spread out across the caching tier. You also get things in
+caching tier. You also get things in different places in the stack maybe
+different places in the stack maybe sometimes behind the the caching tier.
+sometimes behind the the caching tier. So like in our case we do uh right
+So like in our case we do uh right behind uh batching for certain things.
+behind uh batching for certain things. So that actually gives us in some ways
+So that actually gives us in some ways uh a little more robustness for the
+uh a little more robustness for the database because the database doesn't
+database because the database doesn't have to work as hard. There's not as
+have to work as hard. There's not as many simultaneous open connections. uh
+many simultaneous open connections. uh you know being able to take a larger
+you know being able to take a larger chunk of data, the databases can
+chunk of data, the databases can optimize a little different. So you know
+optimize a little different. So you know compared to what I've seen on a lot of
+compared to what I've seen on a lot of crazy rigs and setups with you know 50
+crazy rigs and setups with you know 50 100 my SQL instances we don't have to
+100 my SQL instances we don't have to run near as much per CCU is what I've
+run near as much per CCU is what I've seen for a lot of things that just go
+seen for a lot of things that just go straight to a database for example.
+straight to a database for example. Now it's also not just about
+Now it's also not just about technologies. It's about what you do
+technologies. It's about what you do with your code. Your code is probably
+with your code. Your code is probably the biggest thing um that you're going
+the biggest thing um that you're going to run into is things that you've done
+to run into is things that you've done and we've done lots of these our
+and we've done lots of these our ourselves. Um I'm not going to lie, when
+ourselves. Um I'm not going to lie, when we first rolled League of Legends out,
+we first rolled League of Legends out, guess what we did? We had properties and
+guess what we did? We had properties and config files because that's what
+config files because that's what everybody else does. They've got their
+everybody else does. They've got their little XML or their JSON or their text
+little XML or their JSON or their text file and hey, that works. Works real
+file and hey, that works. Works real good until the system is having an issue
+good until the system is having an issue at 5:00 on Friday afternoon and you
+at 5:00 on Friday afternoon and you don't want to have to reboot it to
+don't want to have to reboot it to change a setting. So, all of our
+change a setting. So, all of our settings are dynamic these days.
+settings are dynamic these days. And then we use uh coherence to
+And then we use uh coherence to basically propagate out the data. But
+basically propagate out the data. But you can use all kinds of different
+you can use all kinds of different things. Um I think uh Netflix the other
+things. Um I think uh Netflix the other day did a white paper or something I
+day did a white paper or something I that I saw that they're using Zookeeper
+that I saw that they're using Zookeeper to push out configuration changes. Now
+to push out configuration changes. Now the other thing that people get hung up
+the other thing that people get hung up on is well oh when do I push those
+on is well oh when do I push those changes? How do I make this happen?
+changes? How do I make this happen? Because you know I need to make sure it
+Because you know I need to make sure it happens at right this exact second. Well
+happens at right this exact second. Well with a larger running system or just any
+with a larger running system or just any system in general there is no exact
+system in general there is no exact second. There's people and there's still
+second. There's people and there's still people. So there's just before and
+people. So there's just before and after. So it doesn't matter that you get
+after. So it doesn't matter that you get lost in the minutia of it has to go out
+lost in the minutia of it has to go out right here. It's just before and after
+right here. It's just before and after and it needs to be a reasonable amount
+and it needs to be a reasonable amount of time. The other thing is your
+of time. The other thing is your algorithms have to be able to take uh
+algorithms have to be able to take uh advantage of this. You can push out a
+advantage of this. You can push out a new setting, but if your system doesn't
+new setting, but if your system doesn't ever pay attention to it, it doesn't
+ever pay attention to it, it doesn't matter. So a lot of our algorithms
+matter. So a lot of our algorithms essentially they'll they'll loop or
+essentially they'll they'll loop or they'll come back around and every so
+they'll come back around and every so often look and see, oh well this value
+often look and see, oh well this value went from 5 to 10. Let me adjust.
+So, looking at some more specific examples of this, um, all the thread
+examples of this, um, all the thread pools that we've got, we've added
+pools that we've got, we've added wrappers to them to be able to config
+wrappers to them to be able to config them on the fly. Uh, let's just say it's
+them on the fly. Uh, let's just say it's not a good thing if we have a box that's
+not a good thing if we have a box that's running at 10% CPU and we have some
+running at 10% CPU and we have some operational issue and, uh, Mark
+operational issue and, uh, Mark Merrell's like, well, can we fix it? And
+Merrell's like, well, can we fix it? And I'm like, well, we have lots of
+I'm like, well, we have lots of hardware, but no, I can't get any more
+hardware, but no, I can't get any more threads out of it right now. I mean,
+threads out of it right now. I mean, that's just silly. So all the threads we
+that's just silly. So all the threads we can we can tweak on the fly if we need
+can we can tweak on the fly if we need to. We've taken this up a couple levels
+to. We've taken this up a couple levels in recent years as well. Uh we can
+in recent years as well. Uh we can change roles of machines, you know, pull
+change roles of machines, you know, pull them in and out. This helps a lot with
+them in and out. This helps a lot with uh hot fixes. We we can do, you know,
+uh hot fixes. We we can do, you know, much smaller hot fixes on backend server
+much smaller hot fixes on backend server side things now. And we can also do
+side things now. And we can also do different things with features uh
+different things with features uh without just rolling them out as part of
+without just rolling them out as part of a big bang deploy. So Dominion again was
+a big bang deploy. So Dominion again was a perfect example of that. Dominion was
+a perfect example of that. Dominion was out. we were able to do some kind of uh
+out. we were able to do some kind of uh real world uh beta testing with it and
+real world uh beta testing with it and then just flip it on. So that works out
+then just flip it on. So that works out really good to be able to manage that.
+So the next thing I'm going to dive into is scaling best practices. So what
+is scaling best practices. So what happens when we follow all these rules
+happens when we follow all these rules for scaling that we see floating around
+for scaling that we see floating around the internet and we still run into
+the internet and we still run into issues.
+So this is my modern scaling cliffnotes as I like to call it when we do uh
+as I like to call it when we do uh engineering onboarding in in uh at Rya.
+engineering onboarding in in uh at Rya. So we start out and scaling is hard. So
+So we start out and scaling is hard. So let's get rid of some things so it's
+let's get rid of some things so it's easier.
+easier. What do we get rid of? Does anybody
+What do we get rid of? Does anybody know? There's like all kinds of options
+know? There's like all kinds of options and then there's these things that you
+and then there's these things that you use all the time. You're like I can't
+use all the time. You're like I can't get rid of that. So then we go the other
+get rid of that. So then we go the other way. We're like all right I'll start
+way. We're like all right I'll start with a blank sheet of paper and we're
+with a blank sheet of paper and we're going to just put like three things on
+going to just put like three things on there and call it a day.
+there and call it a day. And then once we only have three things,
+And then once we only have three things, we can optimize. So let's say we make a
+we can optimize. So let's say we make a choice that the minimum user that plays
+choice that the minimum user that plays League of Legends has to have a 2
+League of Legends has to have a 2 megabit internet connection. Well, I
+megabit internet connection. Well, I don't have to optimize for 56k modem
+don't have to optimize for 56k modem anymore as an example. There might be
+anymore as an example. There might be some other decisions I can make. You
+some other decisions I can make. You know, maybe my art assets can be a
+know, maybe my art assets can be a little bit bigger because I know they
+little bit bigger because I know they can come down faster. So if we take that
+can come down faster. So if we take that and we take that that concept and we
+and we take that that concept and we look at it with some different
+look at it with some different technologies. How many people know what
+technologies. How many people know what map produce is? So a lot of the Hadoop
+map produce is? So a lot of the Hadoop stuff in the BI space these days, it's a
+stuff in the BI space these days, it's a concept called map reduce under the
+concept called map reduce under the hood. And really map reduce is saying,
+hood. And really map reduce is saying, well, we're going to solve all of our
+well, we're going to solve all of our problems with a map step and a reduced
+problems with a map step and a reduced step and then we can optimize the heck
+step and then we can optimize the heck out of how that operates.
+out of how that operates. Uh with no SQL, a lot of NoSQL is I'm
+Uh with no SQL, a lot of NoSQL is I'm going to just take your joins away
+going to just take your joins away because the average case is awesome on
+because the average case is awesome on your joins, but the una case that we
+your joins, but the una case that we need to join two big tables causes you
+need to join two big tables causes you performance problems. So if you don't do
+performance problems. So if you don't do that most of the time, you won't have
+that most of the time, you won't have problems. Now, interestingly enough,
+problems. Now, interestingly enough, most NoSQL technologies are putting
+most NoSQL technologies are putting joins back and secondary indexes and
+joins back and secondary indexes and NoSQL in SQL now. It's kind of funny.
+NoSQL in SQL now. It's kind of funny. Uh, another one's cap theorem. How many
+Uh, another one's cap theorem. How many people know what cap them is? So cap the
+people know what cap them is? So cap the is this theory that says you've got uh
+is this theory that says you've got uh consistency, availability, and uh
+consistency, availability, and uh partitioning. And you can only pick two.
+partitioning. And you can only pick two. So if you want consistency and
+So if you want consistency and availability, it's kind of hard to
+availability, it's kind of hard to partition stuff. Whereas if you have
+partition stuff. Whereas if you have availability and you can seamlessly
+availability and you can seamlessly partition, keeping things completely
+partition, keeping things completely consistent all the time will cause
+consistent all the time will cause problems.
+So looking at this a little more practical level, the common example if
+practical level, the common example if you read a lot of big data stuff or uh
+you read a lot of big data stuff or uh scaling data in general is they talk
+scaling data in general is they talk about keeping stuff together. So they
+about keeping stuff together. So they usually always use this example of like
+usually always use this example of like a blog entry and the blog entry has a
+a blog entry and the blog entry has a comment and you store them in the same
+comment and you store them in the same record. Then you do something uh I write
+record. Then you do something uh I write some crazy uh you know discussion on um
+some crazy uh you know discussion on um on the League of Legends forums uh with
+on the League of Legends forums uh with a blog, one of our blogs about something
+a blog, one of our blogs about something about this champion is the best champion
+about this champion is the best champion ever. Well, everybody gets on there and
+ever. Well, everybody gets on there and says, "No, you're crazy." So now I have
+says, "No, you're crazy." So now I have 300 comments that are all stored in the
+300 comments that are all stored in the same record. And now my oper my code
+same record. And now my oper my code that's manipulating that has a different
+that's manipulating that has a different performance characteristic.
+performance characteristic. But we're not here to talk about blog
+But we're not here to talk about blog comments. So let's talk about a very
+comments. So let's talk about a very practical example. the same thing. So
+practical example. the same thing. So with League of Legends, we have servers
+with League of Legends, we have servers that run lots of uh League of Legends
+that run lots of uh League of Legends server processes
+server processes and we have a root object that we that
+and we have a root object that we that represents the server and there's a
+represents the server and there's a bunch of child objects that represent
+bunch of child objects that represent the game server processes underneath
+the game server processes underneath that and we use that as part of our uh
+that and we use that as part of our uh game server provisioning algorithm.
+game server provisioning algorithm. So the thing that's interesting is over
+So the thing that's interesting is over time the complexity of those child
+time the complexity of those child objects has gotten uh larger. We have
+objects has gotten uh larger. We have more game modes now. There's more
+more game modes now. There's more champions in the game. And the number of
+champions in the game. And the number of games per server, we're more efficient
+games per server, we're more efficient and we run larger hardware than we used
+and we run larger hardware than we used to. So if you kind of dig down into the
+to. So if you kind of dig down into the data model a little more, you've got a
+data model a little more, you've got a machine. It might have game instances
+machine. It might have game instances with name and player and some different
+with name and player and some different state. Well, the problem is
+state. Well, the problem is all that's happening at the same time
+all that's happening at the same time and these child objects start to get
+and these child objects start to get bigger and I've got tons of instances on
+bigger and I've got tons of instances on on a server. So I go from pushing 20k of
+on a server. So I go from pushing 20k of data around to maybe pushing more than a
+data around to maybe pushing more than a half a mega data around.
+half a mega data around. And even though I said things are fast,
+And even though I said things are fast, things aren't infinitely fast. So I
+things aren't infinitely fast. So I start having network transfer and object
+start having network transfer and object serialization being bounding factors to
+serialization being bounding factors to my game server provisioning algorithm.
+my game server provisioning algorithm. You've also got the fact that this
+You've also got the fact that this algorithm performs exactly the opposite
+algorithm performs exactly the opposite of how you would want as an engineer. As
+of how you would want as an engineer. As you get more people on the system, it
+you get more people on the system, it goes slower. At a minimum, you want it
+goes slower. At a minimum, you want it to run at constant speed. And even
+to run at constant speed. And even better, it would be to find a clever way
+better, it would be to find a clever way with uh technologies use like ring
+with uh technologies use like ring buffers to actually run faster when
+buffers to actually run faster when there's more load on. But we're going
+there's more load on. But we're going the opposite. So essentially, we've kind
+the opposite. So essentially, we've kind of got the pipe full. I mean, yeah, we
+of got the pipe full. I mean, yeah, we may not be saturating a one gig uh, you
+may not be saturating a one gig uh, you know, uh, network segment, but we're
+know, uh, network segment, but we're still bound by moving all that data
+still bound by moving all that data around. So, at this point, we had to go
+around. So, at this point, we had to go back uh before season 1 and review and
+back uh before season 1 and review and basically say, do we really have one
+basically say, do we really have one object anymore? We thought we did, but
+object anymore? We thought we did, but when we really dug into it, there's
+when we really dug into it, there's actually, even though it's the both
+actually, even though it's the both objects are about a game, they have very
+objects are about a game, they have very different roles. So, we had to go
+different roles. So, we had to go through and divide those objects up uh
+through and divide those objects up uh with one having the players in some
+with one having the players in some different state that we need for pregame
+different state that we need for pregame and another object that represents just
+and another object that represents just the state we need for game server
+the state we need for game server allocation. At that point, that object
+allocation. At that point, that object became a very consistent fixed size. So
+became a very consistent fixed size. So now the pipe is much better. So the game
+now the pipe is much better. So the game server provisioning algorithm will now
+server provisioning algorithm will now run uh pretty much at constant speed. So
+run uh pretty much at constant speed. So essentially the moral of the story is
+essentially the moral of the story is all these rules, you can't just let them
+all these rules, you can't just let them go to your head. You got to wonder,
+go to your head. You got to wonder, well, okay, when do I pick a new set of
+well, okay, when do I pick a new set of rules? When do I slightly adjust things?
+rules? When do I slightly adjust things? And you you have to continue to look at
+And you you have to continue to look at your system as it evolves to see if now
+your system as it evolves to see if now you've moved into a different place that
+you've moved into a different place that now you need to react to.
+So the final thing I want to drive into is the concept of monitoring everything.
+is the concept of monitoring everything. So how do we know when we have a
+So how do we know when we have a problem?
+We got pictures. How many people like pictures? Few people. All right. How
+pictures? Few people. All right. How many people like logs with millions of
+many people like logs with millions of operations a day? Few more people. It's
+operations a day? Few more people. It's about even so far. Well, I'm gonna vote
+about even so far. Well, I'm gonna vote like this.
+like this. There are logs right now that I will die
+There are logs right now that I will die before I can scan them with my eyes
+before I can scan them with my eyes enough to find patterns in them. I've
+enough to find patterns in them. I've tried.
+tried. And there's also causality. Causality in
+And there's also causality. Causality in logs is hard. You can, you know, a lot
+logs is hard. You can, you know, a lot of times limit things down by a thread,
+of times limit things down by a thread, but when you're going across different
+but when you're going across different machines, you got to start having uh,
+machines, you got to start having uh, you know, ways to coordinate, you know,
+you know, ways to coordinate, you know, transactions and sequences and it just
+transactions and sequences and it just kind of spirals out of control real
+kind of spirals out of control real quick. So like in this case uh this
+quick. So like in this case uh this happened to be a network issue and we
+happened to be a network issue and we can see it ripple through that organic
+can see it ripple through that organic system I talked about earlier with load
+system I talked about earlier with load averages change and the matchmaking
+averages change and the matchmaking queue has a little hiccup and then the
+queue has a little hiccup and then the you can see it reflect in the network
+you can see it reflect in the network traffic. So you go look at the graphs
+traffic. So you go look at the graphs and essentially you try to go back in
+and essentially you try to go back in time and figure out well what was the
+time and figure out well what was the trigger cuz you'll see the ripple in all
+trigger cuz you'll see the ripple in all kinds of different cases. Maybe it was
+kinds of different cases. Maybe it was the other thing maybe it was the
+the other thing maybe it was the matchmaking queue. Well, if there's an
+matchmaking queue. Well, if there's an issue with the matchmaking queue, then
+issue with the matchmaking queue, then people can't get in champ select as fast
+people can't get in champ select as fast and you'll see network ramifications
+and you'll see network ramifications that way. So, it is kind of tricky to
+that way. So, it is kind of tricky to find the timing, but at least you've got
+find the timing, but at least you've got something to start with.
+something to start with. So, we try to monitor the heck out of
+So, we try to monitor the heck out of everything. Uh, and one way that we do
+everything. Uh, and one way that we do that is we automate metrics gathering.
+that is we automate metrics gathering. So, in our case with Java, we've got a
+So, in our case with Java, we've got a um AOP uh aspect oriented interceptor
+um AOP uh aspect oriented interceptor that basically we log all the external
+that basically we log all the external calls for League of Legends uh coming
+calls for League of Legends uh coming into the plat the platform systems. So
+into the plat the platform systems. So think about that for a second. Lots of
+think about that for a second. Lots of calls. Then we sample the internal
+calls. Then we sample the internal calls. Now really we just need a
+calls. Now really we just need a statistical sample. So we've backed this
+statistical sample. So we've backed this uh out over time. It used to be I don't
+uh out over time. It used to be I don't know 5% and 1%. Now it's probably a
+know 5% and 1%. Now it's probably a tenth of a percent. And then we we log
+tenth of a percent. And then we we log all that out and then we automate the
+all that out and then we automate the reporting on it. And as the last bullet
+reporting on it. And as the last bullet point says, people always like ask me,
+point says, people always like ask me, well, isn't this slow? Well, you need
+well, isn't this slow? Well, you need you know you need to be cognizant of
+you know you need to be cognizant of things. You know, you don't want to get
+things. You know, you don't want to get a disc IO backup or something like that.
+a disc IO backup or something like that. So you got to make sure that that's
+So you got to make sure that that's okay. But general overhead on this CPU
+okay. But general overhead on this CPU and diswise is about 1%. Versus the data
+and diswise is about 1%. Versus the data that allows us to triage live systems
+that allows us to triage live systems and you know make evaluations of
+and you know make evaluations of changing features that data is
+changing features that data is invaluable.
+invaluable. Now all that data is useless if I can't
+Now all that data is useless if I can't look at it in a good way. So this
+look at it in a good way. So this happens to be an example of an automated
+happens to be an example of an automated report that we run that basically
+report that we run that basically compares two snapshots in time and it
+compares two snapshots in time and it runs every day on all the different uh
+runs every day on all the different uh environments that we run. Now, I can
+environments that we run. Now, I can scan those numbers that are there, but
+scan those numbers that are there, but that's going to take me a second. So, as
+that's going to take me a second. So, as you can see, we've got the color-coded
+you can see, we've got the color-coded red bars that pop out real quick, and I
+red bars that pop out real quick, and I can say, "Well, something's changed."
+can say, "Well, something's changed." So, now, what are we going to do next?
+So, now, what are we going to do next? We've got those red bars. How are we
+We've got those red bars. How are we going to dig into that problem?
+going to dig into that problem? We could go back to our logs and GP
+We could go back to our logs and GP things. That sounds like a good idea.
+things. That sounds like a good idea. However, if you're going to bother to
+However, if you're going to bother to add one layer of automation, why stop
+add one layer of automation, why stop there? So, it was very obvious when we
+there? So, it was very obvious when we first got this report, the engineer that
+first got this report, the engineer that worked on it, he'd bring he'd email me
+worked on it, he'd bring he'd email me the sample of it and I'd be like,
+the sample of it and I'd be like, "Great. Now, what are we going to do
+"Great. Now, what are we going to do with the red bar?" And I'd always ask
+with the red bar?" And I'd always ask him the the next question was always the
+him the the next question was always the same one. So, I'm like, "Well, let's
+same one. So, I'm like, "Well, let's just automate that." So, in this case,
+just automate that." So, in this case, let's say hypothetically the red bar was
+let's say hypothetically the red bar was like a max value. So, with a max value,
+like a max value. So, with a max value, I'm going to want to know distribution
+I'm going to want to know distribution because a max is only telling me a half
+because a max is only telling me a half the problem.
+the problem. So in this case, you can, you know, very
+So in this case, you can, you know, very I don't know if you guys can read that
+I don't know if you guys can read that or not, but down at the bottom, we've
+or not, but down at the bottom, we've got about 113 calls that took more than
+got about 113 calls that took more than two seconds. Uh that could have been
+two seconds. Uh that could have been slow ISP, all kinds of things. But on
+slow ISP, all kinds of things. But on the flip side, I've got a little bit
+the flip side, I've got a little bit north of uh uh 542,000 that are less
+north of uh uh 542,000 that are less than 100 milliseconds. So if I was to
+than 100 milliseconds. So if I was to give you a percentage on this, 99.99
+give you a percentage on this, 99.99 something% are all fine. So
+something% are all fine. So statistically, there's really not a
+statistically, there's really not a problem here. So, we need to go through
+problem here. So, we need to go through and automate to make those decisions be
+and automate to make those decisions be able to just happen. Um, now some other
+able to just happen. Um, now some other things that we've done is uh game server
+things that we've done is uh game server monitoring. You know, originally there's
+monitoring. You know, originally there's things that dump out in logs that say uh
+things that dump out in logs that say uh how many people have been in champ
+how many people have been in champ select and then we transition and you
+select and then we transition and you sit there and wait. That usually is
+sit there and wait. That usually is indicative of a game server having
+indicative of a game server having issues. So, we'll turn around and we've
+issues. So, we'll turn around and we've automated the log gathering of that and
+automated the log gathering of that and it goes straight to the person that's
+it goes straight to the person that's going to react to that. Um, and then
+going to react to that. Um, and then over time we've we've wor started to
+over time we've we've wor started to work on things like building more
+work on things like building more sophisticated rules that the servers
+sophisticated rules that the servers will basically just take themselves
+will basically just take themselves offline. I mean, again, it's easier to
+offline. I mean, again, it's easier to error on the side of the player
+error on the side of the player experience than it is to, you know, wake
+experience than it is to, you know, wake somebody up or have the network
+somebody up or have the network operations center take time to go figure
+operations center take time to go figure respond. It's better to pull the thing
+respond. It's better to pull the thing from service, you know, in a, you know,
+from service, you know, in a, you know, in a uh peaceful transition and then
+in a uh peaceful transition and then react to the problem.
+So to recap, we talked a little bit about embracing
+we talked a little bit about embracing technologies that are elastic like
+technologies that are elastic like NoSQL.
+NoSQL. Uh we're big believers at Riot that the
+Uh we're big believers at Riot that the best thing to do is usually the simplest
+best thing to do is usually the simplest thing to do. Um the engineers that sit
+thing to do. Um the engineers that sit at the round table and say, "Oh, I need
+at the round table and say, "Oh, I need this crazy threading thing and I need
+this crazy threading thing and I need this big huge, you know, grid computing
+this big huge, you know, grid computing setup." A lot of times we don't even
+setup." A lot of times we don't even need that even though we use it. Uh we
+need that even though we use it. Uh we use it for some things but we try not to
+use it for some things but we try not to to pound a to fit and put everything in
+to pound a to fit and put everything in it. We always start with simple
+it. We always start with simple a dynamic system is going to give you a
+a dynamic system is going to give you a lot more operational flexibility than
+lot more operational flexibility than having hard-coded config files and
+having hard-coded config files and things that are very rigid.
+things that are very rigid. Monitoring everything or excuse me
+Monitoring everything or excuse me scaling best practices it uh are pretty
+scaling best practices it uh are pretty much you know even though they're the
+much you know even though they're the 8020 case there are cases that they are
+8020 case there are cases that they are meant to be broken. And then finally,
+meant to be broken. And then finally, you need to monitor the live system.
+you need to monitor the live system. Otherwise, you essentially are kind of
+Otherwise, you essentially are kind of flying blind in terms of uh what is
+flying blind in terms of uh what is actually happening and what's happening
+actually happening and what's happening to your players. So, with that, uh I'd
+to your players. So, with that, uh I'd be happy to take some questions. Uh I
+be happy to take some questions. Uh I purposely left a little bit of time
+purposely left a little bit of time because I assume people had a number of
+because I assume people had a number of questions. Just walk up to the mics. If
+questions. Just walk up to the mics. If you want to talk to anybody at Riot,
+you want to talk to anybody at Riot, there's a few people floating around the
+there's a few people floating around the audience. Uh I'll be available
+audience. Uh I'll be available afterward. And then we've got a booth at
+afterward. And then we've got a booth at the uh over in the career pavilion if
+the uh over in the career pavilion if you're interested in any of the types of
+you're interested in any of the types of things that we're doing. We're always
+things that we're doing. We're always looking for uh more awesome engineers to
+looking for uh more awesome engineers to join Riot Games. So, thank you.
+join Riot Games. So, thank you. [Music]
+Uh question on uh your server side stuff. How do you how do you test
+stuff. How do you how do you test everything? How do you test you know
+everything? How do you test you know things like failover or if somebody
+things like failover or if somebody accidentally a server? you know, you
+accidentally a server? you know, you can't just crash a data center and see
+can't just crash a data center and see what happens. So,
+what happens. So, well, actually,
+well, actually, uh, one of the things that we do that
+uh, one of the things that we do that I've heard is a little different than
+I've heard is a little different than some people is we have a couple full
+some people is we have a couple full scale environments that we try to test
+scale environments that we try to test as detailed as we can. Uh, there are
+as detailed as we can. Uh, there are certain features. It takes longer to
+certain features. It takes longer to statistically model the data, dummy it
+statistically model the data, dummy it up, and run the I like to call it's like
+up, and run the I like to call it's like the uh the high school chemistry lab
+the uh the high school chemistry lab experiments. it takes longer to do that
+experiments. it takes longer to do that sometimes than uh to actually write the
+sometimes than uh to actually write the code sometimes. We do a lot of that. Um
+code sometimes. We do a lot of that. Um now that's not even for us that's not
+now that's not even for us that's not always practical for everything. So we
+always practical for everything. So we try to spend a lot of time of what can I
+try to spend a lot of time of what can I do to test something that will then
+do to test something that will then extrapolate. Um so that's another thing
+extrapolate. Um so that's another thing that we do as far as specifically your
+that we do as far as specifically your case of failure. Um 95% of things that
+case of failure. Um 95% of things that I've seen that has a white paper or a
+I've seen that has a white paper or a sales guy that says it fails over
+sales guy that says it fails over doesn't. Um I can't tell you how many
+doesn't. Um I can't tell you how many times I've seen something that oh yeah
+times I've seen something that oh yeah it's master slave and when you pull the
+it's master slave and when you pull the master it's just going to pop. It never
+master it's just going to pop. It never works like that. I can give you two
+works like that. I can give you two technologies we've got in our stack that
+technologies we've got in our stack that work as advertised and the rest we've
+work as advertised and the rest we've had to kind of work on. So yeah, you
+had to kind of work on. So yeah, you have to test failover. You don't just
+have to test failover. You don't just put it in and configure it and go. Um, I
+put it in and configure it and go. Um, I know some companies, uh, I'm trying to
+know some companies, uh, I'm trying to think, I think it's Netflix has got a a
+think, I think it's Netflix has got a a tool called Chaos Monkey that they
+tool called Chaos Monkey that they actually let it run during set hours of
+actually let it run during set hours of the day and it just runs around and
+the day and it just runs around and destroys stuff because their theory is
+destroys stuff because their theory is if you can't survive when something's
+if you can't survive when something's destroyed, then you're not you're kind
+destroyed, then you're not you're kind of just putting your head in the sand.
+of just putting your head in the sand. Uh, I know I joke with some of the guys
+Uh, I know I joke with some of the guys at Riot, I'll say things have been
+at Riot, I'll say things have been running good and they're like, "Sh." I'm
+running good and they're like, "Sh." I'm like, "No, I want a system good enough I
+like, "No, I want a system good enough I can taunt it daily and it still won't
+can taunt it daily and it still won't fall over." So, so those are some of the
+fall over." So, so those are some of the things we do, but yeah, the big thing is
+things we do, but yeah, the big thing is to test the failover cases because they
+to test the failover cases because they don't ever work out of the box. So,
+don't ever work out of the box. So, yeah.
+yeah. As far as monitoring everything, uh
+As far as monitoring everything, uh couple of charts up there look like you
+couple of charts up there look like you uh use a tool called Cacti. Is that
+uh use a tool called Cacti. Is that true? And do you also use any others?
+true? And do you also use any others? We've used Cacti for some things. Um we
+We've used Cacti for some things. Um we use, you know, Nagios for different
+use, you know, Nagios for different alerting. One of the more recent things
+alerting. One of the more recent things is we ended up writing a homegrown
+is we ended up writing a homegrown charting tool for a lot of the non
+charting tool for a lot of the non hardware type metrics that are actually
+hardware type metrics that are actually I call them synthetic metrics of our
+I call them synthetic metrics of our application. And essentially what we've
+application. And essentially what we've done is we we're big on the definition
+done is we we're big on the definition of done at Riot. And it's not just code.
+of done at Riot. And it's not just code. You know, it's unit test, it's QA. Well,
+You know, it's unit test, it's QA. Well, one of the definitions of done these
+one of the definitions of done these days at Riot is every piece of code,
+days at Riot is every piece of code, every feature that goes out, you have to
+every feature that goes out, you have to be able to monitor it at an application
+be able to monitor it at an application level. So developers, you know, we've
+level. So developers, you know, we've got libraries. They'll drop a couple
+got libraries. They'll drop a couple lines of code in for their key metrics.
+lines of code in for their key metrics. And then when the features go out, we
+And then when the features go out, we make sure to explain to, you know, the
+make sure to explain to, you know, the network operations staff and to, you
+network operations staff and to, you know, live support and player support,
+know, live support and player support, different people that will be consuming
+different people that will be consuming that data, what does it mean? So it's
+that data, what does it mean? So it's not just the engineers. So it's part of
+not just the engineers. So it's part of the development cycle. You have to have
+the development cycle. You have to have data because what we kept running into
+data because what we kept running into was we'd write things and then they go
+was we'd write things and then they go to production and then we'd be like,
+to production and then we'd be like, "Oh, it'd be nice if we added an alert
+"Oh, it'd be nice if we added an alert for that or it'd be nice if we had data
+for that or it'd be nice if we had data for that." and we you were just too far
+for that." and we you were just too far behind you just too much behind the
+behind you just too much behind the curve when you you did it that way. So,
+curve when you you did it that way. So, we've got some homegrown tools for some
+we've got some homegrown tools for some of those things. Now, there are there's
+of those things. Now, there are there's a ton of things these days that you know
+a ton of things these days that you know you can just pull off the shelf. There's
+you can just pull off the shelf. There's three or four different things on
+three or four different things on GitHub. Uh I know um uh Stumble Upon had
+GitHub. Uh I know um uh Stumble Upon had a time series based uh tool that's
+a time series based uh tool that's backed by Hadoop and you can basically
+backed by Hadoop and you can basically store like finite data like CPUs and all
+store like finite data like CPUs and all kinds of different things. Uh, and
+kinds of different things. Uh, and basically you don't have to get rid of
+basically you don't have to get rid of any of it, which is really nice because
+any of it, which is really nice because if you need to go back to an event and
+if you need to go back to an event and correlate it from two weeks ago, you
+correlate it from two weeks ago, you don't just have the aggregate, you can
+don't just have the aggregate, you can get down to the the detail level data.
+get down to the the detail level data. So, um, I'd look at some of that stuff
+So, um, I'd look at some of that stuff if it's something you're interested in.
+if it's something you're interested in. So,
+So, see, yeah.
+see, yeah. Hi. Um, I was just kind of wondering
+Hi. Um, I was just kind of wondering because you did a great job of uh
+because you did a great job of uh explaining scaling on technology, but
+explaining scaling on technology, but I'm also kind of interested in how the
+I'm also kind of interested in how the human resources end of this works
+human resources end of this works because if you're scaling technology, I
+because if you're scaling technology, I assume you need a certain amount of
+assume you need a certain amount of human resources to be able to cope with
+human resources to be able to cope with the, you know, building out of your
+the, you know, building out of your systems because I mean, you've already
+systems because I mean, you've already described a lot of QA and testing and
+described a lot of QA and testing and and and programming. So, can you
+and and programming. So, can you describe a little bit how uh how much
+describe a little bit how uh how much how big is your team and what do you
+how big is your team and what do you think you need to actually implement
+think you need to actually implement some of these techniques and maybe some
+some of these techniques and maybe some other advice in that area? Um, as far as
+other advice in that area? Um, as far as exact numbers these days, I'll
+exact numbers these days, I'll apologize. I'm probably not the guy. Um,
+apologize. I'm probably not the guy. Um, but I can give you a couple ballparks.
+but I can give you a couple ballparks. Um, first of all, we got a 24-hour a day
+Um, first of all, we got a 24-hour a day uh network operations staff that there's
+uh network operations staff that there's usually two or three guys uh basically
+usually two or three guys uh basically on duty all the time. So, that's just
+on duty all the time. So, that's just the live side of it. Now, I think back
+the live side of it. Now, I think back to what you were maybe hitting on. One
+to what you were maybe hitting on. One of the things that we invested in uh
+of the things that we invested in uh several years ago because we knew it was
+several years ago because we knew it was going to come to pass u is uh DevOps. So
+going to come to pass u is uh DevOps. So we have an in-house DevOps tool that
+we have an in-house DevOps tool that basically just like the definition of
+basically just like the definition of done is you have to be able to monitor
+done is you have to be able to monitor things. The other definition of done is
+things. The other definition of done is you have to have the recipes to be able
+you have to have the recipes to be able to push the code. So that scales all the
+to push the code. So that scales all the way up from you know local QA
+way up from you know local QA environments to larger public you know
+environments to larger public you know public beta environments to you know
+public beta environments to you know different platforms of League of Legends
+different platforms of League of Legends all over the world. So that's actually
+all over the world. So that's actually kept you know the the people side of
+kept you know the the people side of this much more uh fixed than what it
+this much more uh fixed than what it would have been otherwise. uh you know
+would have been otherwise. uh you know as we've grown because we have different
+as we've grown because we have different territories that run as different
+territories that run as different environments instead of having to have
+environments instead of having to have you know a whole set of people for each
+you know a whole set of people for each one the tool will do a lot of it and we
+one the tool will do a lot of it and we keep you know trying to automate that as
+keep you know trying to automate that as much as possible. So really you need
+much as possible. So really you need people more on you know the things with
+people more on you know the things with you know racking and stacking hardware
+you know racking and stacking hardware and that side of it. So,
+and that side of it. So, but can you give me an overall staff?
+but can you give me an overall staff? I tell I tell you what. Um, if you want
+I tell I tell you what. Um, if you want to hang around after uh the session,
+to hang around after uh the session, there's a couple people from Riot the
+there's a couple people from Riot the audience I'll be happy to hook you up
+audience I'll be happy to hook you up with and they can give you a more
+with and they can give you a more specific uh number on some of that.
+specific uh number on some of that. Okay. I was just looking for ballpark.
+Okay. I was just looking for ballpark. That's Thank you.
+That's Thank you. Yeah. Hi. Um I was wondering about your
+Yeah. Hi. Um I was wondering about your use of map produce map produce. Um
+use of map produce map produce. Um because I guess um some things, for
+because I guess um some things, for example, getting one player stats, you
+example, getting one player stats, you don't really need map produce. I guess
+don't really need map produce. I guess it's just like one get. So I was
+it's just like one get. So I was wondering what kind of situations you
+wondering what kind of situations you use.
+use. A lot of the stuff we're driving on with
+A lot of the stuff we're driving on with map produce these days are uh we have a
+map produce these days are uh we have a a big data team at Riot that is diving
+a big data team at Riot that is diving into a number of different things with
+into a number of different things with um statistics and BI and things of that
+um statistics and BI and things of that nature. So we're diving into a lot of
+nature. So we're diving into a lot of that stuff uh with Hadoop and map
+that stuff uh with Hadoop and map produce these days. Actually, it's a
+produce these days. Actually, it's a pretty hot thing that we're hiring for
+pretty hot thing that we're hiring for if you got any interest in it. But
+if you got any interest in it. But that's where a lot of it's coming from
+that's where a lot of it's coming from on the I I call it the the more pure
+on the I I call it the the more pure platform side of the world. Um we
+platform side of the world. Um we haven't steered to that as much. I mean,
+haven't steered to that as much. I mean, 3 four years ago, a lot of the map
+3 four years ago, a lot of the map produced stuff was more batch job type
+produced stuff was more batch job type things which didn't really fit with the
+things which didn't really fit with the gameplay type experience. So although
+gameplay type experience. So although there's different things now with you
+there's different things now with you know that are more performant with stuff
+know that are more performant with stuff like that but back when we were looking
+like that but back when we were looking at some of the original stuff we try to
+at some of the original stuff we try to probably keep the map produce a little
+probably keep the map produce a little more on the analytic side than the
+more on the analytic side than the actual you know champion select side of
+actual you know champion select side of the house. Cool. Thanks.
+the house. Cool. Thanks. Yeah.
+Yeah. Can you talk about how and how often you
+Can you talk about how and how often you guys do your load testing?
+guys do your load testing? Load testing is a continual thing as I
+Load testing is a continual thing as I like to say, but uh primarily there's
+like to say, but uh primarily there's load testing that fits in the cadence of
+load testing that fits in the cadence of the release um that goes out every two
+the release um that goes out every two weeks. So that's a must. Um essentially
+weeks. So that's a must. Um essentially there's a what I it's similar to the
+there's a what I it's similar to the tribunal for the game. There's a load
+tribunal for the game. There's a load testing tribunal and they have to sign
+testing tribunal and they have to sign off on things and if uh they don't then
+off on things and if uh they don't then various people start to kind of what's
+various people start to kind of what's going on? Is it has a release? it ready
+going on? Is it has a release? it ready to go. Now that being said, we also use
+to go. Now that being said, we also use load testing for a number of features
+load testing for a number of features because sometimes uh as we like to call
+because sometimes uh as we like to call it, we have this concept of we call it
+it, we have this concept of we call it the treadmill. So when code goes in and
+the treadmill. So when code goes in and depending on where it gets, then you
+depending on where it gets, then you know you have a set amount of time for
+know you have a set amount of time for it's going to go out. So we'll actually
+it's going to go out. So we'll actually branch off and do specific load tests
+branch off and do specific load tests for different things uh to verify uh you
+for different things uh to verify uh you know different uh code paths and
+know different uh code paths and strategies before the code goes into
+strategies before the code goes into main because sometimes just based on the
+main because sometimes just based on the risk factors of it and things like that
+risk factors of it and things like that you have to have the data before you can
+you have to have the data before you can just say all right this is ready to go
+just say all right this is ready to go out the door now. So
+hey yeah thanks for the talk. Um, I was curious on your perspective on the value
+curious on your perspective on the value of owning your own hardware and the data
+of owning your own hardware and the data centers and that sort of thing,
+centers and that sort of thing, especially as it relates to scalability
+especially as it relates to scalability and you know, not so much when you're
+and you know, not so much when you're like where you are now at whatever 30
+like where you are now at whatever 30 million monthly active or 11 million
+million monthly active or 11 million monthly activives, but as you're
+monthly activives, but as you're building your enterprise early on and
+building your enterprise early on and the cost benefit is is less obvious than
+the cost benefit is is less obvious than it is now.
+it is now. Yeah, it you know, it's a mix of cost
+Yeah, it you know, it's a mix of cost and performance and predictability, I
+and performance and predictability, I guess I'd say. Um, I've seen lots of
+guess I'd say. Um, I've seen lots of things that I've spent an hour digging
+things that I've spent an hour digging on something and then it's like, "Oh,
+on something and then it's like, "Oh, Amazon's just having a bad day." Um, so,
+Amazon's just having a bad day." Um, so, you know, it's a mix of things,
+you know, it's a mix of things, especially when you're starting out. Uh,
+especially when you're starting out. Uh, you know, there's a variety of cloud
+you know, there's a variety of cloud providers. I know I walked through the
+providers. I know I walked through the pavilion earlier and there's three or
+pavilion earlier and there's three or four of them over there that, you know,
+four of them over there that, you know, are good places to probably start. The
+are good places to probably start. The bigger thing I'd probably look at is,
+bigger thing I'd probably look at is, you know, where you at with cons
+you know, where you at with cons consistent performance. I mean, we've
+consistent performance. I mean, we've had the uh I'm trying to think, was that
+had the uh I'm trying to think, was that last fall when when Amazon had like the
+last fall when when Amazon had like the big massive outage and you know, people
+big massive outage and you know, people were running from EBS volumes, you know,
+were running from EBS volumes, you know, running for the hills, all kinds of
+running for the hills, all kinds of stuff. So, it it adds a layer of um
+stuff. So, it it adds a layer of um disruption in just, you know, your
+disruption in just, you know, your performance, too. And if the system can
+performance, too. And if the system can handle that, that's great, but it's not
+handle that, that's great, but it's not going to be quite as consistent as um
+going to be quite as consistent as um you know, real hardware. So, you know,
+you know, real hardware. So, you know, it's just it's a balance you got to
+it's just it's a balance you got to maintain on all those things. Or the
+maintain on all those things. Or the other thing you can do is you can have
+other thing you can do is you can have hybridized approaches. I've talked to a
+hybridized approaches. I've talked to a lot of uh different people that you know
+lot of uh different people that you know you use a little bit of this use that
+you use a little bit of this use that for burst capacity and so on and so
+for burst capacity and so on and so forth. So
+forth. So yeah.
+yeah. Hey Scott, thanks. Um managing all those
+Hey Scott, thanks. Um managing all those servers, you know, for something this
+servers, you know, for something this big, it's pretty tough, I'm sure. Uh do
+big, it's pretty tough, I'm sure. Uh do you guys use any like uh configuration
+you guys use any like uh configuration management like Puppet or Chef and and
+management like Puppet or Chef and and and how would you um get those on the
+and how would you um get those on the new instances as they're booting up? you
+new instances as they're booting up? you know, if there's failover or you need a
+know, if there's failover or you need a scale. Um, and how would you promote
+scale. Um, and how would you promote those from like dev to QA to prod once
+those from like dev to QA to prod once they're tested?
+they're tested? Gotcha. So, as I mentioned a little bit
+Gotcha. So, as I mentioned a little bit earlier on the uh DevOps side of things,
+earlier on the uh DevOps side of things, we do use a lot of Chef uh that
+we do use a lot of Chef uh that basically is a key part of our kind of
+basically is a key part of our kind of homegrown DevOps tool. So, that that
+homegrown DevOps tool. So, that that that handles a decent amount of that. As
+that handles a decent amount of that. As far as the hardware goes, while it is,
+far as the hardware goes, while it is, you know, smoke tested and things like
+you know, smoke tested and things like that, hardware doesn't go from dev to
+that, hardware doesn't go from dev to QA, the software does more so. So we
+QA, the software does more so. So we don't have to worry as much about that.
+don't have to worry as much about that. Um, and then the big thing is just
+Um, and then the big thing is just having these things being elastic
+having these things being elastic because you can't put something in if
+because you can't put something in if the system's not made to handle it. So I
+the system's not made to handle it. So I mean that's been the big thing or even
+mean that's been the big thing or even if you essentially you've got to be able
+if you essentially you've got to be able to 100% trust it. Um,
+to 100% trust it. Um, um, back in, you know, years past, we've
+um, back in, you know, years past, we've had things that are supposed to fail
+had things that are supposed to fail over, they work most of the time. Well,
+over, they work most of the time. Well, or, you know, you can hot, you know,
+or, you know, you can hot, you know, deploy things and they'll work most of
+deploy things and they'll work most of the time, but then there might be an
+the time, but then there might be an issue. What happens is you end up ering
+issue. What happens is you end up ering airing on the side of well we're not
+airing on the side of well we're not going to do a hot deploy because we
+going to do a hot deploy because we don't know what'll happen even if it's a
+don't know what'll happen even if it's a 1% case. You just can't. So I mean
+1% case. You just can't. So I mean essentially you nullified the entire
+essentially you nullified the entire thing. It's just like we have a a bad
+thing. It's just like we have a a bad you know a player that has a network
+you know a player that has a network issue. One player can cause an issue
+issue. One player can cause an issue with you know the entire champ select
+with you know the entire champ select process. So you've got to get those
+process. So you've got to get those types of hot swappable things rock solid
+types of hot swappable things rock solid so then you can start to use them as a
+so then you can start to use them as a foundation. And if there's any um doubt
+foundation. And if there's any um doubt at all, then essentially uh most of the
+at all, then essentially uh most of the time you end up just not using them to
+time you end up just not using them to be safe. So
+be safe. So yeah.
+yeah. Hi.
+Hi. Um I'm curious if you evaluated any
+Um I'm curious if you evaluated any other languages for your server back
+other languages for your server back end, especially C or Erling and what
+end, especially C or Erling and what your opinions on those are.
+your opinions on those are. Yeah, I mean we're constantly looking at
+Yeah, I mean we're constantly looking at things. I mean again the industry
+things. I mean again the industry continues to evolve. So we do have some
+continues to evolve. So we do have some things in house uh with Erling and a
+things in house uh with Erling and a little bit of stuff with Scala that
+little bit of stuff with Scala that we've uh that we've been doing recently.
+we've uh that we've been doing recently. So we've got some things there. Uh at
+So we've got some things there. Uh at the time at least when we started things
+the time at least when we started things with the platform we wanted to kind of
+with the platform we wanted to kind of accelerate using a mix of different open
+accelerate using a mix of different open source tools and other things. So that's
+source tools and other things. So that's kind of where we arrived at with Java
+kind of where we arrived at with Java plus uh some of the guys on the team had
+plus uh some of the guys on the team had experience in that to start with. But
+experience in that to start with. But you know as we build new pieces and
+you know as we build new pieces and modules and things we're always kind of
+modules and things we're always kind of on the lookout for what's the best thing
+on the lookout for what's the best thing and you know there is no one way to do
+and you know there is no one way to do this. I mean like I said these days it's
+this. I mean like I said these days it's not about this language being fast or
+not about this language being fast or something else. There's different
+something else. There's different characteristics you know with you know
+characteristics you know with you know actorbased models and things like that
+actorbased models and things like that that have pros and cons to them and in
+that have pros and cons to them and in certain in some situations you know the
+certain in some situations you know the pros are you know very powerful. So
+pros are you know very powerful. So uh what is your personal opinion of
+uh what is your personal opinion of Erling? of
+Erling? of Erling.
+Erling. Erlang, I've seen a lot of awesome stuff
+Erlang, I've seen a lot of awesome stuff done in Erling. You know, it's one of
+done in Erling. You know, it's one of the things that if I had it to do over
+the things that if I had it to do over and I knew a little more about it when
+and I knew a little more about it when we started a few other things, it would
+we started a few other things, it would have been a very powerful thing. Um I
+have been a very powerful thing. Um I know we've got a couple engineers that
+know we've got a couple engineers that are diving into some of the things with
+are diving into some of the things with it. I know um I think it was Facebook
+it. I know um I think it was Facebook there's a uh PDF floating around. They
+there's a uh PDF floating around. They built their chat system on top of Erling
+built their chat system on top of Erling as an example. So, uh, you know, there's
+as an example. So, uh, you know, there's a little bit of a learning curve,
+a little bit of a learning curve, especially coming from some other
+especially coming from some other places, but the power of being able to
+places, but the power of being able to swap things in and out and, you know,
+swap things in and out and, you know, it'll do in-memory migrations on
+it'll do in-memory migrations on different things is really cool for, you
+different things is really cool for, you know, these types of systems. So,
+know, these types of systems. So, okay, thanks.
+okay, thanks. Yeah.
+Yeah. So, you had active MQ on one of your
+So, you had active MQ on one of your slides. I wonder if you could talk about
+slides. I wonder if you could talk about messaging and how that fits in with
+messaging and how that fits in with scalability and monitoring. Um, I didn't
+scalability and monitoring. Um, I didn't dive into it, but messaging is one of
+dive into it, but messaging is one of those key uh elements that always comes
+those key uh elements that always comes up when you're reading about, you know,
+up when you're reading about, you know, building scalable systems. You know,
+building scalable systems. You know, you've got concepts of messaging. Uh,
+you've got concepts of messaging. Uh, essentially, you know, asynchronous
+essentially, you know, asynchronous behavior because asynchronous behavior
+behavior because asynchronous behavior is also going to allow your system to
+is also going to allow your system to stretch. Now, you know, it can only
+stretch. Now, you know, it can only stretch so far, but if you got messages
+stretch so far, but if you got messages going back and forth, then you've got
+going back and forth, then you've got some variance on uh as far as, you know,
+some variance on uh as far as, you know, how fast things have to move. They get
+how fast things have to move. They get degradated by 10%, it's okay. depending
+degradated by 10%, it's okay. depending on how you have buffering and
+on how you have buffering and persistence set up that can do some
+persistence set up that can do some things for failover. So messaging, you
+things for failover. So messaging, you know, is a key piece of the equation. Um
+know, is a key piece of the equation. Um there's different ways to do that, you
+there's different ways to do that, you know, too. I mean, some people go down
+know, too. I mean, some people go down to kind of a bare bones layer these days
+to kind of a bare bones layer these days with the zero MQ. There's the Java
+with the zero MQ. There's the Java technologies. Uh more recently, I know
+technologies. Uh more recently, I know uh I think it's uh Castle that Twitter's
+uh I think it's uh Castle that Twitter's uh Twitter's got and uh I think it's
+uh Twitter's got and uh I think it's Kafka is the one that LinkedIn has that
+Kafka is the one that LinkedIn has that have different characteristics. So yeah,
+have different characteristics. So yeah, that's that's a key part of, you know,
+that's that's a key part of, you know, the space as well, depending on, you
+the space as well, depending on, you know, your use case.
+know, your use case. Anybody else? Okay. Well, thank you guys
+Anybody else? Okay. Well, thank you guys for coming. Uh again, uh please fill out
+for coming. Uh again, uh please fill out the evaluations. They're going to email
+the evaluations. They're going to email out uh afterward and I'd be happy to
+out uh afterward and I'd be happy to hang out up here and talk for a second
+hang out up here and talk for a second if anybody's got any questions. Thanks.

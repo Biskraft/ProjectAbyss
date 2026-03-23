@@ -1,0 +1,947 @@
+[Music] hello and welcome to our presentation
+hello and welcome to our presentation my name is vila rustia i'm a principal
+my name is vila rustia i'm a principal animation programmer
+animation programmer here with me presenting is il
+here with me presenting is il principal gameplay animator
+principal gameplay animator we both are from company called remedy
+we both are from company called remedy we are quite small studio in finland
+we are quite small studio in finland famous from our
+famous from our story driven action games
+story driven action games such as max payne alan wake quantum
+such as max payne alan wake quantum break and our latest control
+break and our latest control in this talk we will go through how we
+in this talk we will go through how we build our own animation technology how
+build our own animation technology how we took the responsiveness to the next
+we took the responsiveness to the next level
+level how we started using this quite new deck
+how we started using this quite new deck called motion matching
+called motion matching how we created animation friendly tools
+how we created animation friendly tools and how of course how we survived
+and how of course how we survived through all the craziness that was
+through all the craziness that was happening around us with the project
+happening around us with the project but before we start here's a video of
+but before we start here's a video of control
+[Music]
+in quite early in the project we sat down
+down and started laying out our core game
+and started laying out our core game goals
+goals we wanted to make a fast action
+we wanted to make a fast action game
+game this means much stronger focus on
+this means much stronger focus on gameplay what the quantum break was
+gameplay what the quantum break was this also means that the animations
+this also means that the animations can't compromise controls
+can't compromise controls it needs to be twice as responsive what
+it needs to be twice as responsive what the quantum break was
+the quantum break was we got a lot of feedback on that
+for action we of course need more enemies on the screen this includes
+more enemies on the screen this includes supernatural abilities include flying
+supernatural abilities include flying and throwing
+and throwing objects so how to make game responsive
+objects so how to make game responsive this for us this means code driven
+this for us this means code driven movement
+movement it needs to work without any animations
+it needs to work without any animations and it needs to be easy enough that even
+and it needs to be easy enough that even the designers can iterate
+the designers can iterate for animation part this is quite tricky
+for animation part this is quite tricky so i started evaluating like different
+so i started evaluating like different options
+and i found out motion matching it seems
+i found out motion matching it seems quite good
+quite good candidate
+candidate so what is motion matching
+so what is motion matching it's a tech originally presented by
+it's a tech originally presented by ubisoft in 2015 nuclear ai and then
+ubisoft in 2015 nuclear ai and then brought to the bigger audience in 2016
+brought to the bigger audience in 2016 gdc
+gdc it's a database of animations
+it's a database of animations we predict the path based on the
+we predict the path based on the player's input and then the ai path
+player's input and then the ai path we search through
+we search through this big database to find the frame
+this big database to find the frame which best matches the character's
+which best matches the character's current pose and the path we generated
+current pose and the path we generated this search is then repeated every frame
+this search is then repeated every frame so in action we have a character
+so in action we have a character and we have a path
+and we have a path we have a bunch of points in a path some
+we have a bunch of points in a path some in the future some in the past
+in the future some in the past then we have a points in the character
+then we have a points in the character such as
+such as angle positions velocities hip direction
+angle positions velocities hip direction and then the head height
+then we have generate offline the same information for animations
+information for animations we run through this
+we run through this search through this database
+search through this database and compute cost for each frame
+and compute cost for each frame then in the end
+then in the end we pick the one with the closest
+we pick the one with the closest in this case
+in this case it picked really well
+so i started making prototype
+prototype at that point we were using more theme
+at that point we were using more theme as a middleware so i added a custom node
+as a middleware so i added a custom node to it and then simple path prediction
+to it and then simple path prediction for animations
+for animations we use the ubisoft dance card
+we use the ubisoft dance card as a reference
+as a reference i added the motion shader which defines
+i added the motion shader which defines how exactly the posing trajectories
+how exactly the posing trajectories compared
+compared we chose to use the data driven approach
+we chose to use the data driven approach to allow
+to allow quick iteration what features we need
+quick iteration what features we need so i exposed potion
+so i exposed potion position velocity and direction
+position velocity and direction for trajectory channels
+for trajectory channels i added
+i added support for specifying the time
+support for specifying the time so those points
+so those points those channels could be in the future or
+those channels could be in the future or in the past for bones
+the information is only relative to current
+information is only relative to current frame
+in order to control this we i added a bunch of
+we i added a bunch of markup
+markup i split the locomotion state in the idle
+i split the locomotion state in the idle start stop and move
+start stop and move then we went through all the animations
+then we went through all the animations that were in the database and tagged
+that were in the database and tagged those based on these
+those based on these and this is how it looked
+and this is how it looked so we have our
+so we have our test character walking around
+test character walking around with generated pad the path is the one
+with generated pad the path is the one that is in the ground
+that is in the ground and the character is following quite
+and the character is following quite nicely
+nicely and all this data is just the raw data
+and all this data is just the raw data we didn't do
+we didn't do much of editing with this
+much of editing with this and it seems to work surprisingly well
+and it seems to work surprisingly well with this
+so we were happy with this prototype we were also happy with the runtime
+we were also happy with the runtime characteristics of it
+characteristics of it the motion matching only needs some
+the motion matching only needs some small internal state like animation
+small internal state like animation index and time
+index and time it's so small that we could easily like
+it's so small that we could easily like use that even in the multiplayer game
+use that even in the multiplayer game the memory usage is also good
+the memory usage is also good it's small and consistent
+it's small and consistent and
+and it it's same in each frame
+but then surprise happened morphine goes out of market
+out of market so i had to stop doing this prototype
+so i had to stop doing this prototype now we need to now we need to have a
+now we need to now we need to have a light options
+light options we checked the havoc behavior granny
+we checked the havoc behavior granny animation studio and some others
+animation studio and some others but there's not really anything similar
+but there's not really anything similar available
+available we would also have to build quite a lot
+we would also have to build quite a lot of tech on top of those middlewares but
+of tech on top of those middlewares but those mirrors also share the risk of
+those mirrors also share the risk of going out of market
+going out of market seems that for us the best option is to
+seems that for us the best option is to build our own tech
+build our own tech and for that we need a plan
+and for that we need a plan with past experience we wanted to focus
+with past experience we wanted to focus on performance
+on performance runtime performance and the fast
+runtime performance and the fast iteration
+iteration we wanted to
+simplify the graphs so we wanted more powerful nodes doing
+so we wanted more powerful nodes doing complex operations such as motion
+complex operations such as motion matching
+matching which we chose as to be the core feature
+which we chose as to be the core feature the old playercraft was close to 10 000
+the old playercraft was close to 10 000 nodes
+nodes the top picture you can see it's just a
+the top picture you can see it's just a small fraction of complexity that we had
+we chose then that we want to use the expressions instead of math nodes all
+expressions instead of math nodes all those gray boxes that you can see in the
+those gray boxes that you can see in the top picture are actually mad nodes
+top picture are actually mad nodes then we picked the best features from
+then we picked the best features from the old middlewares
+the old middlewares and
+and no state machines
+no state machines i will cover that in a later slide
+i will cover that in a later slide so we started with
+so we started with co-driven moment only single plane three
+co-driven moment only single plane three input and internal variables and
+input and internal variables and expressions
+expressions and this is how it looks so we have a
+and this is how it looks so we have a motion matching that will cover
+motion matching that will cover the core locomotion
+the core locomotion then we have an animation clip to handle
+then we have an animation clip to handle mantling
+mantling the select will pick
+the select will pick uh either one depending on
+uh either one depending on the player's action
+the player's action then we have a more traditional notes
+then we have a more traditional notes such as feather blend and blend n
+such as feather blend and blend n the blend n covers the a matrix and the
+the blend n covers the a matrix and the fader blend then applies it only to
+fader blend then applies it only to upper body
+upper body the two bone ik fixes the aiming hand in
+the two bone ik fixes the aiming hand in right place
+for expression i created own expression language quite similar to shader
+language quite similar to shader languages
+languages i hooked that one into graph
+i hooked that one into graph which runs before the graph is evaluated
+which runs before the graph is evaluated this allows us to compute internal
+this allows us to compute internal variables
+variables so the input variables are the ones that
+so the input variables are the ones that come from the game the graph variables
+come from the game the graph variables are the ones that are computed
+are the ones that are computed the graph itself can use both of these
+the graph itself can use both of these in addition to that i write expression
+in addition to that i write expression node
+node it's a node in a graph
+it's a node in a graph it can be placed in any point there and
+it can be placed in any point there and it only runs when the node is active
+it only runs when the node is active it can modify bones or compute variables
+it can modify bones or compute variables for next node
+for next node it's really good for prototyping
+it's really good for prototyping features
+features such as
+different ik setups
+but then second surprise e3 demo so we just got this deck running and now
+so we just got this deck running and now we have six months to ship hands-off
+we have six months to ship hands-off demo
+demo it needs to have a functional mission
+it needs to have a functional mission multiple player abilities four enemy
+multiple player abilities four enemy archetypes and everything needs to run
+archetypes and everything needs to run on new tech
+we need survival plan for locomotion we chose to use motion
+for locomotion we chose to use motion matching fall
+matching fall we don't have time to do anything else
+we don't have time to do anything else in order to allow multiple animators to
+in order to allow multiple animators to work with this we need to split crafts
+work with this we need to split crafts into layers
+into layers luckily we have the expressions to make
+luckily we have the expressions to make up all the missing features that we have
+up all the missing features that we have and luckily we also have time to work
+and luckily we also have time to work with the
+with the tech so we added animation mixer it
+tech so we added animation mixer it defines
+defines the graph order so you can choose
+the graph order so you can choose if a graph is running in the prefix or
+if a graph is running in the prefix or postphysics after
+postphysics after dialogue lines are at the time timelines
+dialogue lines are at the time timelines each of these graphs here are on files
+each of these graphs here are on files they can define their own set of phones
+they can define their own set of phones and they can be shared quite easily
+and they can be shared quite easily because their own files so you can use
+because their own files so you can use it with different characters
+in order to handle the layering i added the input post
+the input post it allows craft to read bones from the
+it allows craft to read bones from the previous layer mix it
+previous layer mix it and then
+and then if that node is not active in the layer
+if that node is not active in the layer it can skip the previous ones as
+it can skip the previous ones as optimization
+so what it means that no state machines it means no animist animation specific
+it means no animist animation specific state machine
+state machine the main idea was that we combine it
+the main idea was that we combine it with the gameplay and ai
+with the gameplay and ai this would then reduce the possibility
+this would then reduce the possibility that these state machines would be
+that these state machines would be mismatching
+mismatching it was quite big issue in a quantum
+it was quite big issue in a quantum break
+break for example
+for example quantum break is quite famous with the
+quantum break is quite famous with the infinite fallback
+infinite fallback i i spent like one at least one month
+i i spent like one at least one month trying to fix that one and there's still
+trying to fix that one and there's still some cases in a shipped game
+so how we do this then we have a higher level actions in a pla
+we have a higher level actions in a pla in a blend tree we have a select node
+in a blend tree we have a select node which chooses which action is active
+which chooses which action is active each of these actions
+each of these actions then have a transition node
+then have a transition node using the motion matching it speaks the
+using the motion matching it speaks the best transition to come into this
+best transition to come into this then there's the main
+sequence which handles the switching then to the main loop
+then to the main loop this could be
+this could be a simple case like the idle loop in here
+a simple case like the idle loop in here or it more complex like motion matching
+or it more complex like motion matching running or traditional blend tree
+but actually these features are coming soon
+soon we are not done
+so we have to cover this somehow
+luckily we have this expression language we can use it to build temporary state
+we can use it to build temporary state machine
+machine to handle the
+to handle the handle all these transitions
+handle all these transitions and then use timers to time when the
+and then use timers to time when the transition is ending
+transition is ending this is not the nicest way
+this is not the nicest way but at least we all
+but at least we all we
+we managed to continue the work
+so meanwhile we started working with this match node it's same kind of
+this match node it's same kind of database of animations as motion
+database of animations as motion matching
+matching in addition it has target position and
+in addition it has target position and rotation coming from the code
+rotation coming from the code it picks the best animation a starting
+it picks the best animation a starting frame using the same also matching
+frame using the same also matching search
+search to actually reach target it has built-in
+to actually reach target it has built-in motion warping support
+motion warping support and it also allows to do the animation
+and it also allows to do the animation driven
+driven movement so to control this we added
+movement so to control this we added some markup
+some markup the the match range defines like where
+the the match range defines like where the animation can be started
+the animation can be started this allows to use like different
+this allows to use like different distances
+distances for where to start the animation
+for where to start the animation the warping is also controllable by this
+the warping is also controllable by this markup
+markup so the position and rotation can be
+so the position and rotation can be choose that
+choose that happens in certain frames
+so in action we have a character that is running
+running at this point it decides that it wants
+at this point it decides that it wants to go in the cover
+so code generates the target the motion
+code generates the target the motion matching picks
+matching picks the the result
+the the result at
+at this case it picks something in further
+this case it picks something in further in the animation so the positional
+in the animation so the positional warping is
+warping is 73 percent this point
+73 percent this point we scale this
+we scale this to actually handle the
+to actually handle the blending nicely
+blending nicely and to see this in
+in full action just a clip
+i like and as you can see the result is 100 percent so it's perfectly matching
+100 percent so it's perfectly matching the target
+at this point i will switch to iloca it will cover the more
+it will cover the more animation-specific things
+hello i'm mika kozela principal gameplay animator at remedy and i was working on
+animator at remedy and i was working on control as the animation lead
+control as the animation lead and one of our first challenges for the
+and one of our first challenges for the e3 demo was how to make locomotion work
+e3 demo was how to make locomotion work with motion matching
+our motion matching was pretty much in a state where wheeler left it when
+state where wheeler left it when starting to work on the new technology
+starting to work on the new technology and we were hitting the infamous 80
+and we were hitting the infamous 80 quality
+quality we had all the normal motion matching
+we had all the normal motion matching issues start animations didn't always
+issues start animations didn't always work stops almost never worked
+work stops almost never worked there was some sliding
+there was some sliding even more when converted to cultural
+even more when converted to cultural motion
+motion sometimes the character would just get
+sometimes the character would just get stuck in a single pose
+stuck in a single pose and often it just looked like the
+and often it just looked like the character was
+character was running weirdly and then when you debug
+running weirdly and then when you debug it turns out he's looping some single
+it turns out he's looping some single cycle
+cycle from a random animation
+from a random animation and since all the coders were working on
+and since all the coders were working on getting the technology ready for
+getting the technology ready for e3 there was no time to improve upon
+e3 there was no time to improve upon motion matching itself so we needed to
+motion matching itself so we needed to shift the demo with what we had
+and the way i started to approach approach morse and matching was that i
+approach morse and matching was that i need to learn how to think like the
+need to learn how to think like the algorithm
+algorithm once i understand how it works
+once i understand how it works then i can start to provide it with
+then i can start to provide it with animations that work with it
+animations that work with it and if something isn't working
+and if something isn't working i can deduce why that's happening
+i can deduce why that's happening and often it's pretty simple
+if you provide motion matching with the kind of animations it's looking for it's
+kind of animations it's looking for it's gonna work well
+gonna work well so we needed to create animations that
+so we needed to create animations that match
+match the kind of paths what the game was
+the kind of paths what the game was requesting
+requesting so we created this kind of animations
+so we created this kind of animations that had
+that had accurate speed and correct acceleration
+accurate speed and correct acceleration curves
+curves and that of course eliminates sliding
+and that of course eliminates sliding and also improves the way motion
+and also improves the way motion matching works
+matching works here's a workflow example
+here's a workflow example so we have a script in motionbuilder
+so we have a script in motionbuilder and you could specify the movement
+and you could specify the movement parameters so you would put the same
+parameters so you would put the same values what the game was using here
+values what the game was using here and then we can define
+and then we can define what is the direction we are coming from
+what is the direction we are coming from and where do we want to continue after
+and where do we want to continue after this animation and at what speeds
+this animation and at what speeds and then when you run the script it will
+and then when you run the script it will generate movement for the trajectory
+generate movement for the trajectory for example here i generated 180 degree
+for example here i generated 180 degree turn
+we would bring in motion capture typically
+typically it's quite far from the movement what we
+it's quite far from the movement what we need for the game
+need for the game because the game tries to be so
+because the game tries to be so responsive but
+responsive but then with some editing
+then with some editing we could make it much better
+we could make it much better with the game movement
+now of course since we are doing this much editing on every animation we
+much editing on every animation we couldn't pull off a large database of
+couldn't pull off a large database of animations like i suggested in the
+animations like i suggested in the earlier motion matching talks
+earlier motion matching talks so instead we chose to create a pretty
+so instead we chose to create a pretty traditional set of animations with start
+traditional set of animations with start stops turns and so on
+stops turns and so on and turns out that this kind of data set
+and turns out that this kind of data set works just fine with motion matching
+works just fine with motion matching end result is more or less similar to
+end result is more or less similar to putting the same animations into
+putting the same animations into a state machine
+and doing this kind of animations got us to a point where start animations were
+to a point where start animations were working stops were working
+working stops were working there was less lighting thanks to
+there was less lighting thanks to matching the movement between animation
+matching the movement between animation and
+and code
+we still had the problem that sometimes the character would get stuck in a
+the character would get stuck in a single pose
+single pose it looks like this
+it looks like this and this started happening when we
+and this started happening when we started adding turn animations to our
+started adding turn animations to our database
+database and specifically it happens when the
+and specifically it happens when the player is trying to walk an arc
+player is trying to walk an arc like in this video
+like in this video and the reason this happens is that in
+and the reason this happens is that in order to walk a pattern like this the
+order to walk a pattern like this the player has to be continuously changing
+player has to be continuously changing the input in order to keep turning
+the input in order to keep turning but the prediction always assumes that
+but the prediction always assumes that we will keep the current input so
+we will keep the current input so in practice it's looking for the kind of
+in practice it's looking for the kind of data that begins with the turn
+data that begins with the turn but then continues to move straight
+but then continues to move straight and it starts finding this kind of
+and it starts finding this kind of animation in the end of the turning
+animation in the end of the turning animations
+animations and if the player keeps turning it might
+and if the player keeps turning it might find the same frame over and over again
+find the same frame over and over again and this could be a really hard problem
+and this could be a really hard problem to solve but luckily when you think
+to solve but luckily when you think about it
+about it we don't actually want
+we don't actually want motion matching to ever jump to these
+motion matching to ever jump to these frames directly
+frames directly they only make sense as part of the turn
+they only make sense as part of the turn animation
+animation so we added a very simple feature where
+so we added a very simple feature where we could target parts of the animation
+we could target parts of the animation to be ignored by the search
+to be ignored by the search for example in this turn animation
+for example in this turn animation we would leave maybe 10 frames near the
+we would leave maybe 10 frames near the beginning of the turn for motion
+beginning of the turn for motion matching to pick
+matching to pick and anything after that would be
+and anything after that would be ignored from the search
+ignored from the search these frames are still
+these frames are still accessible for continuous flavor so if
+accessible for continuous flavor so if this animation starts playing it can
+this animation starts playing it can play all the way through
+and this turned out to be a pretty powerful tool for controlling motion
+powerful tool for controlling motion matching
+matching one use case was fixing this problem
+one use case was fixing this problem where you get stuck in a pose
+where you get stuck in a pose you could also use it a bit more for
+you could also use it a bit more for stylistic reasons for example
+stylistic reasons for example if you want to play your stop animation
+if you want to play your stop animation so that player always plants at least
+so that player always plants at least one foot in a stop
+one foot in a stop then you can ignore the part where both
+then you can ignore the part where both feet are
+feet are already planted to make sure we get
+already planted to make sure we get enough of the stopping
+enough of the stopping and in a similar way
+and in a similar way maybe you want your start animations to
+maybe you want your start animations to always start from the beginning
+always start from the beginning so you can ignore all the other frames
+so you can ignore all the other frames to pause it to play this animation from
+to pause it to play this animation from the first frame
+the first frame another good thing to ignore is tails
+another good thing to ignore is tails after transitions
+after transitions when building a locomotion set typically
+when building a locomotion set typically what you get is lots of transitions or
+what you get is lots of transitions or changes of directions that all lead into
+changes of directions that all lead into the same loops
+the same loops so in practice you'll have these pieces
+so in practice you'll have these pieces of the loop scattered all the way across
+of the loop scattered all the way across your animation database
+your animation database and this is actually why motion matching
+and this is actually why motion matching might start looping a small piece of
+might start looping a small piece of animation because instead of your main
+animation because instead of your main loop
+loop it can find one of these loops after a
+it can find one of these loops after a transition and start looping a small
+transition and start looping a small part there
+part there but by ignoring those frames
+but by ignoring those frames and only letting them play
+and only letting them play when the transition is playing
+when the transition is playing help us get rid of the problem of
+help us get rid of the problem of getting stuck in a loop
+getting stuck in a loop also
+also anything near the end of the animation
+anything near the end of the animation it doesn't really make sense to jump to
+it doesn't really make sense to jump to the end of the animation because the
+the end of the animation because the animation is just gonna end and you have
+animation is just gonna end and you have to jump somewhere else
+to jump somewhere else so we were able to reduce some
+so we were able to reduce some glitchiness by just ignoring the ends of
+glitchiness by just ignoring the ends of animations
+animations and of course since what the ignore tag
+and of course since what the ignore tag is doing it's basically limiting the
+is doing it's basically limiting the search space it also works as an
+search space it also works as an optimization
+optimization in control we were able to cut our
+in control we were able to cut our search space down to 20 of the original
+so after adding the ignore tags to the animations
+animations we got to a point where the most
+we got to a point where the most outstanding issues were fixed
+when it comes to combining abilities with locomotion
+with locomotion we went for a pretty old cool approach
+we went for a pretty old cool approach of
+of blending upper body animations on top of
+blending upper body animations on top of locomotion
+locomotion since locomotion was always facing the
+since locomotion was always facing the direction where you are going
+direction where you are going every animation needed to support all
+every animation needed to support all the possible directions so we built a
+the possible directions so we built a matrices out of our animations
+matrices out of our animations and in some places where it had most
+and in some places where it had most impact we added full body animations
+and with that we got the retreat on modern
+modern we had a playable mission and we were
+we had a playable mission and we were able to deliver all the intended
+able to deliver all the intended gameplay features
+gameplay features we had a couple of set-piece animations
+we had a couple of set-piece animations and indian cinematics
+and indian cinematics and our first building shift which is
+and our first building shift which is the transforming building
+the transforming building and all of this was running on a new
+and all of this was running on a new technology
+technology here's a little glimpse into our e3
+here's a little glimpse into our e3 demo rituals
+you can keep traveling deeper
+[Music]
+okay so when building this demo
+so when building this demo we were able to get a lot of important
+we were able to get a lot of important ground work done
+ground work done first of all for by defining what kind
+first of all for by defining what kind of a game we are making
+of a game we are making but also laying foundations for our
+but also laying foundations for our animation technology
+animation technology and we were on track with the main goals
+and we were on track with the main goals we had the game was responsive
+we had the game was responsive we had good runtime performance
+we had good runtime performance and iterating on animation systems was
+and iterating on animation systems was fast because
+fast because any change you made could be hot loaded
+any change you made could be hot loaded to the game almost instantly
+to the game almost instantly and as a standard feature the match node
+and as a standard feature the match node was a great success
+was a great success it proved to be a pretty versatile tool
+it proved to be a pretty versatile tool and became our go-to option whenever we
+and became our go-to option whenever we needed to do some one-off animations
+using motion matching was still quite difficult for us
+difficult for us we spent a lot of time debugging it and
+we spent a lot of time debugging it and trying to figure out why something
+trying to figure out why something wasn't working
+wasn't working and overall didn't really yet have the
+and overall didn't really yet have the level of control we needed over it
+level of control we needed over it and we also have some visualizers
+and we also have some visualizers most notably we couldn't do straight
+most notably we couldn't do straight locomotion without sliding yet
+to debug motion matching we already had some information available so we could
+some information available so we could see what animation was playing which
+see what animation was playing which frame and what is the cause of this
+frame and what is the cause of this frame
+frame and also if the animation was changed we
+and also if the animation was changed we could see that what would have been the
+could see that what would have been the cost of continuing the previous
+cost of continuing the previous animation
+animation but that didn't really answer all of the
+but that didn't really answer all of the questions we were having such as
+questions we were having such as why was one my animation interrupted
+why was one my animation interrupted or why isn't my animation getting picked
+or why isn't my animation getting picked and to answer these questions villa
+and to answer these questions villa created a new animation debugger
+created a new animation debugger on the left it shows all the animations
+on the left it shows all the animations in the database
+in the database and on the right it shows a real-time
+and on the right it shows a real-time visualization of the course
+visualization of the course of the different frames in that
+of the different frames in that animation
+animation so every little bar on the right
+so every little bar on the right corresponds to one frame in the
+corresponds to one frame in the animation and the height of the bar
+animation and the height of the bar tells that how much cost that frame is
+tells that how much cost that frame is getting
+it was also possible to hover mouse on top of the frames
+top of the frames to get more information about that frame
+to get more information about that frame such as
+such as how is this frame tagged what is its
+how is this frame tagged what is its cost
+cost and how do the different channels
+and how do the different channels contribute to the cost
+you could also tune the motion shader at the different
+tune the motion shader at the different cost of different channel live and see
+cost of different channel live and see how the pearl frame costs react to this
+how the pearl frame costs react to this so this way you can try to tune your
+so this way you can try to tune your shader so that
+shader so that motion matching starts picking your
+motion matching starts picking your your animation
+your animation and then you can unpause the game
+and then you can unpause the game and keep playing
+and keep playing and see how the game feels after the
+and see how the game feels after the modifications you did
+finally it was possible to draw some debug visualization like the path points
+debug visualization like the path points and the skeleton of the character
+and the skeleton of the character and then you could scrub backwards
+and then you could scrub backwards through a recording of the game
+through a recording of the game find the frame maybe where a glitch
+find the frame maybe where a glitch happened
+happened and then you can investigate for example
+and then you can investigate for example that
+that which animation did it choose
+which animation did it choose and why did it not choose the animation
+and why did it not choose the animation i wanted it to choose
+to get even more control over motion matching
+matching we added a new kind of data driven
+we added a new kind of data driven category tagging system
+category tagging system so it was possible to add custom
+so it was possible to add custom category events
+category events on the animations and then we could
+on the animations and then we could request motion matching to play
+request motion matching to play animations from that category
+animations from that category and this was a soft category system in a
+and this was a soft category system in a sense that
+sense that we could assign penalty for picking
+we could assign penalty for picking animations from a wrong category
+animations from a wrong category so if you want to ensure that it's
+so if you want to ensure that it's always playing animations from a
+always playing animations from a specific category
+specific category we can give
+we can give a really high category penalty in which
+a really high category penalty in which case it forces it to pick those
+case it forces it to pick those animations but it's also possible to
+animations but it's also possible to give a lower penalty in which case it
+give a lower penalty in which case it will prioritize the animations in the
+will prioritize the animations in the correct category but if there are no
+correct category but if there are no good matches there it can then default
+good matches there it can then default to the other categories
+the reason our stray flop emotion was sliding
+sliding was that
+was that when strafing you have to be able to
+when strafing you have to be able to move to every possible direction
+move to every possible direction but since we can only have a discrete
+but since we can only have a discrete number of directions in the animation
+number of directions in the animation database
+database then we get situations like the top
+then we get situations like the top picture here
+picture here where the orange line is showing where
+where the orange line is showing where the code wants the character to go and
+the code wants the character to go and the yellow line is the best matching
+the yellow line is the best matching animation for that
+animation for that and if you play that animation but at
+and if you play that animation but at the same time move along the orange path
+the same time move along the orange path the feet will start
+the feet will start sliding so to fix this we made it so
+sliding so to fix this we made it so that the character gets rotated so that
+that the character gets rotated so that the animated path is aligned
+the animated path is aligned with the path the code is requesting and
+with the path the code is requesting and then we apply a correction on the upper
+then we apply a correction on the upper body to counter for this correction
+body to counter for this correction so in practice we are
+so in practice we are rotating the lower body of the character
+rotating the lower body of the character to align with the path
+on the animation side work was proceeding well
+proceeding well a lot of things that were causing
+a lot of things that were causing friction early on like missing features
+friction early on like missing features were being fixed and animators were
+were being fixed and animators were getting experience on the technology
+getting experience on the technology and one one nice bonus we get from
+and one one nice bonus we get from motion matching was that now that we had
+motion matching was that now that we had best practices how to create the
+best practices how to create the animations
+animations every animator on the gameplay idea was
+every animator on the gameplay idea was able to create their own locomotion sets
+able to create their own locomotion sets on the players side we still needed a
+on the players side we still needed a lot of improvement
+lot of improvement and the main problem was that when
+and the main problem was that when players were playing the game
+players were playing the game and running around and combining
+and running around and combining abilities and shooting at the same time
+abilities and shooting at the same time things started getting messy
+things started getting messy we get this awkward process of trying to
+we get this awkward process of trying to sort behind your back
+sort behind your back uh switching between the different
+uh switching between the different abilities didn't look smooth
+abilities didn't look smooth and some important animations got lost
+and some important animations got lost in the overall business of the animation
+so what we wanted to do was reduce any kind of issues caused by
+was reduce any kind of issues caused by changing input
+changing input and make the main actions what the
+and make the main actions what the player is performing stand out
+we started from our worst offender hip firing
+firing we wanted to get rid of the stiff
+we wanted to get rid of the stiff feeling we get when combining upper body
+feeling we get when combining upper body and lower body animations
+and lower body animations and instead create a full body
+and instead create a full body locomotion set for hip firing
+locomotion set for hip firing and we also want if now that we could
+and we also want if now that we could make nice straight locomotion we wanted
+make nice straight locomotion we wanted to make a strafing set
+to make a strafing set so that the character wouldn't have to
+so that the character wouldn't have to turn around
+turn around while moving
+while moving this would perform better under changing
+this would perform better under changing input
+input and also we didn't have to worry about
+and also we didn't have to worry about scene handling
+so this is what we were able to create
+and indeed it worked a lot better than our previous version
+when transitioning between normal locomotion and hip firing we did it so
+locomotion and hip firing we did it so that we added the transitions to the
+that we added the transitions to the motion databases
+motion databases so every transition into some hip fire
+so every transition into some hip fire animation would go into the hip fire
+animation would go into the hip fire database and transitions back to normal
+database and transitions back to normal locomotion would go to the normal
+locomotion would go to the normal locomotion database
+locomotion database and to make sure every time we go into
+and to make sure every time we go into hip firing we play some transition we
+hip firing we play some transition we use the category dax to force
+use the category dax to force transitions
+transitions for coming back to normal locomotion we
+for coming back to normal locomotion we didn't need to add them motion matching
+didn't need to add them motion matching was speaking the right transitions
+was speaking the right transitions automatically
+and every transition was timed so that in two frames you get from your pose to
+in two frames you get from your pose to being ready to shoot to give this
+being ready to shoot to give this feeling that as soon as you hit the fire
+feeling that as soon as you hit the fire button the player starts powering the
+button the player starts powering the gun
+and while the hand is pointing to the right direction we let the rest of the
+right direction we let the rest of the body turn a bit slower just to make it
+body turn a bit slower just to make it feel a bit more natural
+next offender was launching objects through the air
+through the air it had similar resources as as the hip
+it had similar resources as as the hip fire
+fire and this strafe locomotion worked for
+and this strafe locomotion worked for hifi we also wanted to try that for
+hifi we also wanted to try that for launching
+launching we were also getting feedback that
+we were also getting feedback that launch needs to feel stronger
+launch needs to feel stronger and we need to have a better connection
+and we need to have a better connection between the object and the character
+between the object and the character and i figured that by using straight
+and i figured that by using straight locomotion we can also get a much more
+locomotion we can also get a much more controlled composition of the character
+controlled composition of the character and the object on the screen
+and the object on the screen so this way we can plan for a better
+so this way we can plan for a better connection between them as well
+connection between them as well only problem was that we didn't really
+only problem was that we didn't really have time to build another locomotion
+have time to build another locomotion set
+set so what we did instead was we took the
+so what we did instead was we took the hip fire locomotion
+hip fire locomotion and for every animation we would turn
+and for every animation we would turn the character 90 degrees
+the character 90 degrees switch the pause
+switch the pause and this gave us the launch locomotion
+and this gave us the launch locomotion some animations went through a bit more
+some animations went through a bit more polish but the bulk of the work was done
+polish but the bulk of the work was done like this
+and as a result we got launching that feels
+feels a lot stronger
+a lot stronger works better on the chasing input
+and we were also able to improve the connection between the object and the
+connection between the object and the character
+for the animations where you launched the object we had some full body
+the object we had some full body animations
+animations such as this one where you run forward
+such as this one where you run forward and launch the object
+for other directions we would use the same animation but blend it with
+same animation but blend it with locomotion
+like this and we chose to use hip fire locomotion
+and we chose to use hip fire locomotion as a base for this drawing
+as a base for this drawing because that way we could get some body
+because that way we could get some body rotation into the animation as well
+rotation into the animation as well and nicely it also
+and nicely it also allowed us to
+allowed us to make use of the transitions we added for
+make use of the transitions we added for the hip fire
+the hip fire we were also able to blend seamlessly
+we were also able to blend seamlessly from full body animation to other body
+from full body animation to other body animation
+animation like here where the animation starts as
+like here where the animation starts as full body but when the player changes
+full body but when the player changes its direction it seamlessly blends into
+its direction it seamlessly blends into upper body animation
+and what we got with all of these improvements was a character that can
+improvements was a character that can seamlessly switch between launching and
+seamlessly switch between launching and hip firing
+hip firing while running around without creating
+while running around without creating animation issues
+and yeah in the end we made it
+in the end we made it we were able to sit the game in three
+we were able to sit the game in three years including pre-production time
+years including pre-production time plugging at 10 to 20 hours of gameplay
+plugging at 10 to 20 hours of gameplay this was the biggest tournament again
+this was the biggest tournament again yet
+yet we had 11 different enemies
+we had 11 different enemies some fights against big bosses which was
+some fights against big bosses which was a remedy first
+a remedy first 25 minutes of cinematics and two and a
+25 minutes of cinematics and two and a half hours of conversations
+half hours of conversations and as you can see from the timeline
+and as you can see from the timeline below
+below since shipping the e3 demo we had one
+since shipping the e3 demo we had one year to complete the full game
+and most importantly now we have control over our animation technology
+over our animation technology and we are in a good place to start
+and we are in a good place to start building on top of this
+building on top of this all right
+all right now
+now it's been some time already since
+it's been some time already since shipping control
+shipping control so we also wanted to give a quick look
+so we also wanted to give a quick look at where we are going with our motion
+at where we are going with our motion matching since then
+matching since then in control we prove that we can make a
+in control we prove that we can make a game feel responsive
+game feel responsive and since then the progress has been
+and since then the progress has been more on improving animation quality and
+more on improving animation quality and making our workflows less tedious
+and big part of this has been adding support for animation driven motion
+support for animation driven motion matching this is to give the characters
+matching this is to give the characters a more grounded organic feel
+a more grounded organic feel and we have this available for the
+and we have this available for the player on npcs
+player on npcs for player of course only using when it
+for player of course only using when it makes sense
+makes sense we generally still like to use code
+we generally still like to use code driven for the most part but if there
+driven for the most part but if there are ever cases where we want to
+are ever cases where we want to prioritize animation quality over
+prioritize animation quality over controls
+controls we can always switch to animation driven
+we can always switch to animation driven for npcs we are animation driven by
+for npcs we are animation driven by default
+default but still allowing designers to switch
+but still allowing designers to switch to culture and movement if they want to
+to culture and movement if they want to try different speeds for the enemies for
+try different speeds for the enemies for example
+the way we do animation driven is that the characters are still moving along
+the characters are still moving along the exact path that is given
+the exact path that is given this is to avoid any kind of pathfinding
+this is to avoid any kind of pathfinding issues
+issues but the speed at which you move along
+but the speed at which you move along this path comes from animation
+and adding animation driven locomotion here has changed our workflow
+locomotion here has changed our workflow a bit so instead of
+a bit so instead of first generating movement for the
+first generating movement for the trajectory and then animating on top of
+trajectory and then animating on top of that we are now animating first and
+that we are now animating first and plotting the trajectory based on the
+plotting the trajectory based on the animations
+when using animation driven movement we can choose
+can choose either to use both rotation and position
+either to use both rotation and position or keep positional movement call driven
+or keep positional movement call driven but rotation animation driven
+but rotation animation driven and this is good for a playable
+and this is good for a playable character way we can still get the
+character way we can still get the benefits of code driven movement
+benefits of code driven movement but
+but we can reduce issues that come from code
+we can reduce issues that come from code driven rotation and the animated
+driven rotation and the animated rotation being of sync
+and uh we are able to specify with animation tags on which frames do we
+animation tags on which frames do we want to be animation driven
+want to be animation driven so for example if you want to make 180
+so for example if you want to make 180 degree turn feel more grounded
+degree turn feel more grounded we can make part of that turn animation
+we can make part of that turn animation driven
+driven to make it grounded and have a bit of
+to make it grounded and have a bit of control over the timing in the animation
+control over the timing in the animation but leave the rest of it still code
+but leave the rest of it still code driven
+now being animation driven only goes so far
+because even though the animation technically can now control the speed
+technically can now control the speed motion matching still prioritizes
+motion matching still prioritizes animations that are matching
+animations that are matching the speed what it's requesting
+the speed what it's requesting and the qualcomm is
+and the qualcomm is uh we added the option to use distance
+uh we added the option to use distance instead of time
+instead of time to sample the animations so for example
+to sample the animations so for example instead of asking
+instead of asking where am i gonna be one second from now
+where am i gonna be one second from now you can ask where am i gonna be after
+you can ask where am i gonna be after moving along the path for one meter
+moving along the path for one meter and this makes motion matching
+and this makes motion matching completely
+completely independent of the movement speed
+independent of the movement speed so
+so now we don't have to use speed as a
+now we don't have to use speed as a factor in it if we want we can do that
+factor in it if we want we can do that so
+so one thing that works for example is that
+one thing that works for example is that we can check against current speed and
+we can check against current speed and the speed after moving two meters
+the speed after moving two meters but still leave the
+but still leave the how the acceleration happens between
+how the acceleration happens between this totally up for animation
+this totally up for animation or we can completely leave speed out of
+or we can completely leave speed out of the matching and use a category instead
+the matching and use a category instead for picking animations in sets that
+for picking animations in sets that match the speed we want
+match the speed we want and this allows motionbutton to work on
+and this allows motionbutton to work on animations as whether speed is
+animations as whether speed is organically varying between animations
+there was also one one more motion channel we had to add to make
+channel we had to add to make animation driven movement work
+animation driven movement work the problem was that when
+the problem was that when characteristics were strafing
+characteristics were strafing now that the chord was no longer
+now that the chord was no longer rotating the character to face the right
+rotating the character to face the right direction
+direction it was failing to find the correct
+it was failing to find the correct animations
+animations so we added this channel called
+so we added this channel called trajectory direction relative to
+trajectory direction relative to velocity
+velocity it basically tells you what is my
+it basically tells you what is my rotation relative to movement direction
+rotation relative to movement direction and this helped it picked correct strafe
+and this helped it picked correct strafe directions under animation driven
+directions under animation driven movement
+and that is all we have thank you for listening
+listening i hope you enjoyed this
+i hope you enjoyed this if you like how we work go check out
+if you like how we work go check out jobs at the renview website
+jobs at the renview website and don't hesitate to get in touch if
+and don't hesitate to get in touch if you want to discuss more
+you want to discuss more thank you
+thank you [Music]

@@ -1,0 +1,646 @@
+[Music] hello I'm c'mon you can technically do
+hello I'm c'mon you can technically do designer and audio programmer at Pixar
+designer and audio programmer at Pixar if and I will be talking about the audio
+if and I will be talking about the audio systems for our VR game paper beast I'll
+systems for our VR game paper beast I'll be addressing several different topics
+be addressing several different topics ranging from simulation and physics to
+ranging from simulation and physics to audio based synchronization and the art
+audio based synchronization and the art specialization if you're not familiar
+specialization if you're not familiar with the game paper Beast is a VR
+with the game paper Beast is a VR adventure game where you accidentally
+adventure game where you accidentally thrown into a poetic world in which new
+thrown into a poetic world in which new life is born from big data and you will
+life is born from big data and you will explore this world and slowly discover
+explore this world and slowly discover and interact with the Tico system here's
+and interact with the Tico system here's a short trailer to get a better idea
+[Music] okay so let's go now into the details of
+okay so let's go now into the details of what we've seen the game relies on a
+what we've seen the game relies on a custom physics engine and everything is
+custom physics engine and everything is physics driven creatures plants terrain
+physics driven creatures plants terrain weather the creatures have procedural
+weather the creatures have procedural locomotion this means their movements
+locomotion this means their movements are not written in advance but
+are not written in advance but calculated in real time they can slide
+calculated in real time they can slide if they are sanding slippery slopes they
+if they are sanding slippery slopes they can be carried away by river streams or
+can be carried away by river streams or struggle if their limp is caught by a
+struggle if their limp is caught by a predator the terrain is handled with a
+predator the terrain is handled with a fluid simulation water and sand flow
+fluid simulation water and sand flow dynamic lead as erosion creature lived
+dynamic lead as erosion creature lived attracts they can dig and create small
+attracts they can dig and create small dams the weather is dynamic as well you
+dams the weather is dynamic as well you can have rain sandstorms and wind
+can have rain sandstorms and wind affecting the physics it ranges from a
+affecting the physics it ranges from a small breeze making plants rustle to a
+small breeze making plants rustle to a big storm blowing creatures away and
+big storm blowing creatures away and flooding the land and all these elements
+flooding the land and all these elements can be interacted with you can grab the
+can be interacted with you can grab the creatures leave them in the air had them
+creatures leave them in the air had them cross obstacles you also have tools to
+cross obstacles you also have tools to manipulate the terrain and whether
+manipulate the terrain and whether directly or indirectly all these
+directly or indirectly all these elements and features had many
+elements and features had many implications and were the starting point
+implications and were the starting point of the audio tech design paper beasts
+of the audio tech design paper beasts being a vr game with emotion at its core
+being a vr game with emotion at its core in an unfamiliar setting we had to put a
+in an unfamiliar setting we had to put a lot of energy to make sure runtime of
+lot of energy to make sure runtime of your behavior was accurate I'm in
+your behavior was accurate I'm in synchronization specialization
+synchronization specialization propagation there were all key elements
+propagation there were all key elements for making the player truly believe in
+for making the player truly believe in this universe no matter its weirdness
+this universe no matter its weirdness then does this highly dynamic game
+then does this highly dynamic game context where situations get very
+context where situations get very unpredictable and granular with many
+unpredictable and granular with many moving parts
+moving parts this means audio has to be very dynamic
+this means audio has to be very dynamic as well and react accurately to every
+as well and react accurately to every possible situation even when it gets a
+possible situation even when it gets a bit chaotic and on top of that does the
+bit chaotic and on top of that does the VR medium which gives the player much
+VR medium which gives the player much more focus and discernment about what
+more focus and discernment about what they're hearing with 360 motion head
+they're hearing with 360 motion head tracking and we felt this really raised
+tracking and we felt this really raised the bar for interactive audio so because
+the bar for interactive audio so because of all these things sound has been an
+of all these things sound has been an early focus in the development and
+early focus in the development and indeed the audio team was quite large
+indeed the audio team was quite large compared to similar sized projects for
+compared to similar sized projects for 12 people into the development team
+12 people into the development team three worked exclusively on audio so
+three worked exclusively on audio so that's a quarter we had fryin portion
+that's a quarter we had fryin portion she's a radio artist who specializes in
+she's a radio artist who specializes in pseudo natural sounds she is fully into
+pseudo natural sounds she is fully into original song creation we had Roley
+original song creation we had Roley Potter for the original soundtrack
+Potter for the original soundtrack British composer of electronic ambient
+British composer of electronic ambient music they both brought a very fresh
+music they both brought a very fresh vision as it was both the first time
+vision as it was both the first time they worked for videogames and finally
+they worked for videogames and finally myself I am a sound designer and shisha
+myself I am a sound designer and shisha programmer and I took care of the audio
+programmer and I took care of the audio tech from integration to system design
+tech from integration to system design and coding we worked with unity and wise
+and coding we worked with unity and wise from a Geo kinetic which was a big help
+from a Geo kinetic which was a big help to get many advanced audio features we
+to get many advanced audio features we also used the binaural audio features of
+also used the binaural audio features of the psvr as it was our main target
+the psvr as it was our main target platform will now go through the major
+platform will now go through the major audio features of paper beasts and we
+audio features of paper beasts and we use them to discuss the more general
+use them to discuss the more general strategies and lessons we learned about
+strategies and lessons we learned about interactive audio and vr first we'll
+interactive audio and vr first we'll talk about the creatures sounds and more
+talk about the creatures sounds and more globally how we handle the physics
+globally how we handle the physics engines audio then we'll go with the
+engines audio then we'll go with the vocalizations and how we used audio to
+vocalizations and how we used audio to drive animation and other things
+drive animation and other things throughout the projects and finally
+throughout the projects and finally we'll talk about the environments of
+we'll talk about the environments of paper beasts and how we handled VR
+paper beasts and how we handled VR specialization let's start with the
+specialization let's start with the creatures here are a few of the
+creatures here are a few of the creatures inside paper beasts as you can
+creatures inside paper beasts as you can see we have many very different
+see we have many very different creatures with different number of legs
+creatures with different number of legs different sizes different behaviors and
+different sizes different behaviors and materials they were designed in a custom
+materials they were designed in a custom editor within unity which we called poly
+editor within unity which we called poly tulle creatures can be created and
+tulle creatures can be created and edited on-the-fly adjusted very quickly
+edited on-the-fly adjusted very quickly it's a very flexible tool as we said
+it's a very flexible tool as we said these creatures just have a code
+these creatures just have a code behavior but they have no traditional
+behavior but they have no traditional keyframe animations they have intense of
+keyframe animations they have intense of movements but unexpected results can
+movements but unexpected results can happen any time if the creature slips if
+happen any time if the creature slips if another creature interferes if the
+another creature interferes if the player grabs it and the terrain is also
+player grabs it and the terrain is also possibly soft so creatures can be buried
+possibly soft so creatures can be buried the ground can fall underneath them and
+the ground can fall underneath them and there's also water and streams making it
+there's also water and streams making it even more complex so for us in audio the
+even more complex so for us in audio the only reliable source of information is
+only reliable source of information is the actual physics engines data
+the actual physics engines data within these features and constraints
+within these features and constraints what we wanted for the audio was
+what we wanted for the audio was something as flexible as the physics
+something as flexible as the physics edit or something that reacts accurately
+edit or something that reacts accurately and closely to the physics simulation
+and closely to the physics simulation but most importantly we wanted to give a
+but most importantly we wanted to give a real sonic identity to each creature so
+real sonic identity to each creature so how did we approach this well
+how did we approach this well physics fluid simulation and all small
+physics fluid simulation and all small granularity very dynamic systems are a
+granularity very dynamic systems are a big challenge for interactive audio
+big challenge for interactive audio design when working with physics on one
+design when working with physics on one hand you have these unpredictable
+hand you have these unpredictable continuous streams of data coming from
+continuous streams of data coming from everywhere in the simulation and what
+everywhere in the simulation and what you need is to trigger a very limited
+you need is to trigger a very limited number of discreet sounds at a given
+number of discreet sounds at a given time maybe a dozen also you can't
+time maybe a dozen also you can't anticipate anything that's happening
+anticipate anything that's happening next so the work here is really to
+next so the work here is really to interpret this data to translate it and
+interpret this data to translate it and make it usable and meaningful for audio
+make it usable and meaningful for audio as said earlier we could rely only on
+as said earlier we could rely only on the physics engines data which are
+the physics engines data which are positions velocities collision
+positions velocities collision information and none of this data is
+information and none of this data is clean even when you see what seems to be
+clean even when you see what seems to be a clean collision it's often a
+a clean collision it's often a succession of frames where many
+succession of frames where many collisions occur with various velocities
+collisions occur with various velocities there's a lot of noise so we build small
+there's a lot of noise so we build small code units to analyze specific physic
+code units to analyze specific physic interactions which we call sound sources
+interactions which we call sound sources their job is to filter the noise and
+their job is to filter the noise and translate the data into some information
+translate the data into some information this zone information is events for
+this zone information is events for triggering and stopping sounds plus
+triggering and stopping sounds plus runtime audio parameters the Sun sauces
+runtime audio parameters the Sun sauces are instanced and attached to specific
+are instanced and attached to specific points on our creatures and there's one
+points on our creatures and there's one Sun sauce type for each different physic
+Sun sauce type for each different physic interaction for example our most common
+interaction for example our most common some sauce types were move impacts slide
+some sauce types were move impacts slide tension emotion shake and bind and each
+tension emotion shake and bind and each was tasked to trigger a specific set of
+was tasked to trigger a specific set of audio events and to control specific
+audio events and to control specific parameters in wise
+parameters in wise now let's take the case of the move Sun
+now let's take the case of the move Sun source as an example so the move Sun
+source as an example so the move Sun source is used for putting sound on
+source is used for putting sound on simple movements for this one we used
+simple movements for this one we used three inputs from the physics engine
+three inputs from the physics engine which are speed acceleration and
+which are speed acceleration and position each one is fetched on the
+position each one is fetched on the points that are attached to the sound
+points that are attached to the sound source instance first speed and
+source instance first speed and acceleration are mixed into a custom
+acceleration are mixed into a custom intensity value which is computed power
+intensity value which is computed power points then this value is averaged
+points then this value is averaged between points and with the system of
+between points and with the system of thresholds it triggers and stops some
+thresholds it triggers and stops some loop in wise this same value is smoothed
+loop in wise this same value is smoothed and sent to our TPC in wise affecting
+and sent to our TPC in wise affecting volume and filters depending on the case
+volume and filters depending on the case the point positions are weighted by the
+the point positions are weighted by the intensity into a centroid this centroid
+intensity into a centroid this centroid is smoothed over time and used as the
+is smoothed over time and used as the sound emitter position by wise now we'll
+sound emitter position by wise now we'll explain a bit more each stage of the
+explain a bit more each stage of the process beginning with the mixing of
+process beginning with the mixing of speed and acceleration into this custom
+speed and acceleration into this custom intensity so it's actually a basic
+intensity so it's actually a basic tweakable sum and product of speed and
+tweakable sum and product of speed and acceleration the coefficients are set by
+acceleration the coefficients are set by the audio designers for each creature
+the audio designers for each creature this allows us to treat the weights of
+this allows us to treat the weights of velocity and acceleration in some cases
+velocity and acceleration in some cases we wanted the acceleration to affect
+we wanted the acceleration to affect more for example the sounds of paper
+more for example the sounds of paper creasing or sometimes we wanted the
+creasing or sometimes we wanted the velocity to affect more for example for
+velocity to affect more for example for a parachute pushing around then from
+a parachute pushing around then from this intensity how do we get to the
+this intensity how do we get to the actual triggering of events and setting
+actual triggering of events and setting of parameters in white we start from
+of parameters in white we start from this noisy intensity input and we add a
+this noisy intensity input and we add a threshold above which sound starts
+threshold above which sound starts playing but as we see this would result
+playing but as we see this would result in sound starting and stopping very
+in sound starting and stopping very quickly which is not aesthetically or
+quickly which is not aesthetically or technically viable in audio so we add a
+technically viable in audio so we add a hysteresis behavior which means there
+hysteresis behavior which means there are two threshold values when going
+are two threshold values when going above the upper one we stop the sound
+above the upper one we stop the sound when going below the lower one we stop
+when going below the lower one we stop the sound this makes much cleaner starts
+the sound this makes much cleaner starts and stops for the sound while still
+and stops for the sound while still being very reactive then we add temporal
+being very reactive then we add temporal thresholds to minimum duration and a
+thresholds to minimum duration and a cooldown which ensure that wise is never
+cooldown which ensure that wise is never spammed with instructions and that the
+spammed with instructions and that the sounds have time to fade in and out
+sounds have time to fade in and out properly in parallel this intensity
+properly in parallel this intensity value is also smooth and sent to wise
+value is also smooth and sent to wise other
+other EPC about specialization each sound
+EPC about specialization each sound source is specialized independently this
+source is specialized independently this has been key for us in VR the moment we
+has been key for us in VR the moment we put one centimeter upper leg to play the
+put one centimeter upper leg to play the footsteps was the moment they started to
+footsteps was the moment they started to really work in flat-screen games it's
+really work in flat-screen games it's often more permissive
+often more permissive for example you can specialize a whole
+for example you can specialize a whole humanoid voice for the footsteps on a
+humanoid voice for the footsteps on a single position and it sounds fine in VR
+single position and it sounds fine in VR you have to be more accurate than that
+you have to be more accurate than that and in paper-based I would say any
+and in paper-based I would say any creature bigger that a basketball had to
+creature bigger that a basketball had to be specialized on several images so the
+be specialized on several images so the emitters were positioned on the points
+emitters were positioned on the points that were attached to the sun sources
+that were attached to the sun sources and when there were many points we use
+and when there were many points we use centroids weighted by our custom
+centroids weighted by our custom intensity value to get as precise as we
+intensity value to get as precise as we could here's an example on this creature
+could here's an example on this creature the metallic rustle is moving along the
+the metallic rustle is moving along the body as the centroid follows movement
+body as the centroid follows movement intensity the small points are the one
+intensity the small points are the one assigned to the sound source and the
+assigned to the sound source and the centroid is the big point
+so the idea was that to each creature we could add any number of some sources
+could add any number of some sources assigned to the points we wanted here is
+assigned to the points we wanted here is cage one of our biggest creatures in the
+cage one of our biggest creatures in the game it has already three Sun sources
+game it has already three Sun sources just for the sound of the body crackling
+just for the sound of the body crackling one father had a neck one for the left
+one father had a neck one for the left part of the body and one for the right
+part of the body and one for the right part this was for when you go between
+part this was for when you go between its legs you can hear the two sets of
+its legs you can hear the two sets of legs rumbling all around you also you
+legs rumbling all around you also you can see the sound emitter for immersion
+can see the sound emitter for immersion being positioned in the middle of the
+being positioned in the middle of the immersed legs and here for a simpler
+immersed legs and here for a simpler smaller creature you have a different
+smaller creature you have a different sound source sets
+the locomotion sounds whereas a specific type of song sauce that manage food
+type of song sauce that manage food slides and footsteps we used one a meter
+slides and footsteps we used one a meter per leg one challenge we faced was to
+per leg one challenge we faced was to characterize the gait of each creature
+characterize the gait of each creature often when you hear a real animal moving
+often when you hear a real animal moving especially when it's fast
+especially when it's fast you don't hear individual steps you hear
+you don't hear individual steps you hear a rhythm in theory that should have been
+a rhythm in theory that should have been automatic with our audio parameters
+automatic with our audio parameters being driven by the strengths of each
+being driven by the strengths of each step but we wanted to accentuate that to
+step but we wanted to accentuate that to avoid the typing machine effects when
+avoid the typing machine effects when footsteps unlike tag tag tag tag tag tag
+footsteps unlike tag tag tag tag tag tag tag tag that's why we added static wise
+tag tag that's why we added static wise parameters giving to each foot different
+parameters giving to each foot different offsets of volume pitch and filters so
+offsets of volume pitch and filters so each footstep sound would be affected by
+each footstep sound would be affected by these parameters giving a rhythm to the
+these parameters giving a rhythm to the global gait now let's listen a bit to
+global gait now let's listen a bit to the result of all this
+[Music]
+in the end we would say these are the benefits of the method the workflow is
+benefits of the method the workflow is rather efficient it was pretty quick to
+rather efficient it was pretty quick to put sounds on new creatures there's a
+put sounds on new creatures there's a lot of room for user intervention it's
+lot of room for user intervention it's easy to what other creatures give them
+easy to what other creatures give them some signatures and adjust things when
+some signatures and adjust things when they didn't work right away and it's
+they didn't work right away and it's modular structure maybe it's very
+modular structure maybe it's very flexible in the end it was used for all
+flexible in the end it was used for all physical objects not only creatures and
+physical objects not only creatures and it was easy to add new some source types
+it was easy to add new some source types for new behaviors that would follow the
+for new behaviors that would follow the same pipeline but there's also one
+same pipeline but there's also one particular drawback it is CPU heavy as
+particular drawback it is CPU heavy as each object can trigger many sounds the
+each object can trigger many sounds the voice count can easily go too high and
+voice count can easily go too high and there's a limit to what wise can do on
+there's a limit to what wise can do on that level so we had to do a system for
+that level so we had to do a system for custom high level voice management it
+custom high level voice management it was a bit of work but it was essential
+was a bit of work but it was essential and after that it made our life much
+and after that it made our life much easier now let's talk about the
+easier now let's talk about the creatures vocalizations and how to drive
+creatures vocalizations and how to drive animation and other things with audio
+animation and other things with audio creatures in paper beasts vocalize when
+creatures in paper beasts vocalize when they are manipulated when they're afraid
+they are manipulated when they're afraid or hurt or curious so the vocalizations
+or hurt or curious so the vocalizations were a vital element in making the
+were a vital element in making the creatures feel alive and having the
+creatures feel alive and having the player connect with them our intention
+player connect with them our intention was to make them sound like nothing
+was to make them sound like nothing known also nothing too distinctively
+known also nothing too distinctively vocal Florian used a lot of non vocal
+vocal Florian used a lot of non vocal material glitches cardboard flutes
+material glitches cardboard flutes pencils here are a few examples from the
+pencils here are a few examples from the game the predator cage
+Couty on the paper bore and the tape the challenge with this sound was to connect
+challenge with this sound was to connect them to the visuals as the creatures
+them to the visuals as the creatures both look and sound a bit out of this
+both look and sound a bit out of this world we had to give a little push so
+world we had to give a little push so the player would recognize and accept
+the player would recognize and accept these sounds as their voices without
+these sounds as their voices without questioning so we thought as the
+questioning so we thought as the creatures are very flexible because
+creatures are very flexible because entirely physically simulated and as
+entirely physically simulated and as there are no keyframe animations and no
+there are no keyframe animations and no animators why not drive their movements
+animators why not drive their movements with audio our strategy for this was to
+with audio our strategy for this was to bake sound analysis data from the
+bake sound analysis data from the vocalization assets we made this choice
+vocalization assets we made this choice so we could tweak the analysis data and
+so we could tweak the analysis data and so we could anticipate by knowing the
+so we could anticipate by knowing the data in advance it also allowed us to
+data in advance it also allowed us to ignore runtime attenuations and base the
+ignore runtime attenuations and base the analysis on me on the original sound
+analysis on me on the original sound files here's an overview of our workflow
+files here's an overview of our workflow first we have the offline analysis where
+first we have the offline analysis where we extract speech and volume information
+we extract speech and volume information then all your designers tweak and mix
+then all your designers tweak and mix the analysis curves with custom tools
+the analysis curves with custom tools inside unity then at runtime when a
+inside unity then at runtime when a sound is played the game fetches the
+sound is played the game fetches the matching curve and fit it back to the
+matching curve and fit it back to the animation to another script module or
+animation to another script module or anything else through the game code API
+for the analysis we used open-source software sonic annotate or and Sony
+software sonic annotate or and Sony visualizer with these two you can
+visualizer with these two you can visualize and batch extracts almost any
+visualize and batch extracts almost any kind of data from audio files in our
+kind of data from audio files in our case we extracted amplitude each
+case we extracted amplitude each centroid and spectral centroid the
+centroid and spectral centroid the analysis batch was launched
+analysis batch was launched automatically from unity here's how it
+automatically from unity here's how it looks
+looks first you select some files you run the
+first you select some files you run the analysis then you can preview the sounds
+analysis then you can preview the sounds while visualizing and tweaking the
+while visualizing and tweaking the curves and you can create mix curves by
+curves and you can create mix curves by combining pitch and volume together with
+combining pitch and volume together with a bunch of tweakable parameters to get
+a bunch of tweakable parameters to get to the desired results we also have
+to the desired results we also have additional options using alternate
+additional options using alternate sounds for analysis if you want to
+sounds for analysis if you want to analyze only one layer of the sounds or
+analyze only one layer of the sounds or get rid of parasite frequencies and you
+get rid of parasite frequencies and you can even draw on top of the curves if
+can even draw on top of the curves if you don't get what you want here you see
+you don't get what you want here you see the raw pitch and volume curves and to
+the raw pitch and volume curves and to custom mix curves the mix curve exists
+custom mix curves the mix curve exists in two modes the absolute mode and the
+in two modes the absolute mode and the speed modifier mode that I'm going to
+speed modifier mode that I'm going to explain a bit more here's an animation
+explain a bit more here's an animation with the absolute mode where the
+with the absolute mode where the movement follows a combination of pitch
+movement follows a combination of pitch and volume
+[Music] and here's an animation with the speed
+and here's an animation with the speed modifier mode where it's the speed of
+modifier mode where it's the speed of the movement that follows a combination
+the movement that follows a combination of pitch and volume
+[Music] sometimes we use these two modes
+sometimes we use these two modes combined on single animations each curve
+combined on single animations each curve driving different axes in the animation
+driving different axes in the animation here's a basic example
+[Music] and finally some in-game examples here's
+and finally some in-game examples here's the tape howling then the baby for
+the tape howling then the baby for [Music]
+and finally paper strip in the end this method had passed in several ways it
+method had passed in several ways it helped us making the vocalizations work
+helped us making the vocalizations work by creating a strong audio-visual bond
+by creating a strong audio-visual bond it offered us free diversity in the
+it offered us free diversity in the vocalization motion as each sound file
+vocalization motion as each sound file produces its own unique animation
+produces its own unique animation variation and finally it was very
+variation and finally it was very flexible and easy to adapt for various
+flexible and easy to adapt for various applications and it could be enriched
+applications and it could be enriched with new analysis methods new offline
+with new analysis methods new offline processes for new uses we didn't use it
+processes for new uses we didn't use it as much as we would have liked but
+as much as we would have liked but there's lots of potential now to the
+there's lots of potential now to the final part of this talk where we'll
+final part of this talk where we'll speak about environments and be a
+speak about environments and be a specialization the environment of paper
+specialization the environment of paper beasts also had its share of challenges
+beasts also had its share of challenges essentially because of the VR
+essentially because of the VR specificities in flat screen experiences
+specificities in flat screen experiences audio environment can be a background
+audio environment can be a background illustration that freely evokes what you
+illustration that freely evokes what you want the player to imagine but in VR the
+want the player to imagine but in VR the player has the environment all around
+player has the environment all around them and they need to think they are
+them and they need to think they are truly there audio plays a major role in
+truly there audio plays a major role in this VII nation and it needs to be
+this VII nation and it needs to be accurate and to behave in a natural and
+accurate and to behave in a natural and consistent way then you have also less
+consistent way then you have also less choices when designing audio VR
+choices when designing audio VR environments with flat screen you can
+environments with flat screen you can suggest a lot of things that aren't
+suggest a lot of things that aren't really there
+really there but in VR you have to be very careful
+but in VR you have to be very careful because there is no off screen space if
+because there is no off screen space if something is help the player can just
+something is help the player can just look and see if it's there you can still
+look and see if it's there you can still suggest something that is in an unseen
+suggest something that is in an unseen space behind obstacles but it has to be
+space behind obstacles but it has to be done with caution and finally there's
+done with caution and finally there's the challenge of outdoors in VR making
+the challenge of outdoors in VR making natural sounding environments is
+natural sounding environments is somewhat easy when you are dealing with
+somewhat easy when you are dealing with point sources for example in ontario's
+point sources for example in ontario's with a lot of machinery electric devices
+with a lot of machinery electric devices that's because binary
+that's because binary solutions provide good specialization
+solutions provide good specialization for point sources but without those you
+for point sources but without those you have to deal with ambience pads which is
+have to deal with ambience pads which is a bit less easy in VR there's the mb
+a bit less easy in VR there's the mb sonic format which works quite well if
+sonic format which works quite well if you are able to record your environments
+you are able to record your environments but to design ambisonics pads from
+but to design ambisonics pads from scratch for non realistic environments
+scratch for non realistic environments requires a very specific setup and it
+requires a very specific setup and it isn't very fast nor intuitive so we
+isn't very fast nor intuitive so we search for other solutions that we are
+search for other solutions that we are going to introduce our strategy for
+going to introduce our strategy for ambience pads was to blur the
+ambience pads was to blur the specialization the goal was to make sure
+specialization the goal was to make sure the player wouldn't feel like the
+the player wouldn't feel like the listening to just some files playing we
+listening to just some files playing we wanted to treat the ear into believing
+wanted to treat the ear into believing the sounds were coming from the VR world
+the sounds were coming from the VR world itself to achieve this we combine
+itself to achieve this we combine several specialization techniques trying
+several specialization techniques trying to find the right blend for each scene
+to find the right blend for each scene and each asset first we use static
+and each asset first we use static non-specialized binaural recordings they
+non-specialized binaural recordings they sound very natural and are easily
+sound very natural and are easily accepted by the ear as real when
+accepted by the ear as real when rotating the head they can some awkward
+rotating the head they can some awkward especially if there are prominent
+especially if there are prominent elements in the sound so we use them for
+elements in the sound so we use them for indefinite continuous textures like
+indefinite continuous textures like earth tones or sand rustling then we use
+earth tones or sand rustling then we use specialized quads so for channel sounds
+specialized quads so for channel sounds there are easier to auto land em by
+there are easier to auto land em by Sonic and they give a good sense of 3d
+Sonic and they give a good sense of 3d depth to the scene when rotating the
+depth to the scene when rotating the head we had four emitters at high
+head we had four emitters at high altitude for the four channels each one
+altitude for the four channels each one with a bit of spread to smooth the
+with a bit of spread to smooth the rotation effect sometimes we use them
+rotation effect sometimes we use them with the binaural plugin sometimes with
+with the binaural plugin sometimes with the default specialization we also had
+the default specialization we also had an audio billboard mode to easily
+an audio billboard mode to easily convert a stereo file to a quad pad we
+convert a stereo file to a quad pad we would play the stereo file twice with
+would play the stereo file twice with the second one sitting at 50% of the
+the second one sitting at 50% of the file they would play on Auto Canal
+file they would play on Auto Canal facing emitters giving the same result
+facing emitters giving the same result as a quad file we used additional random
+as a quad file we used additional random ethics to strengthen the 3d motion and
+ethics to strengthen the 3d motion and diversify the result but we did this
+diversify the result but we did this very carefully not to suggest 12
+very carefully not to suggest 12 elements that should have been visible
+elements that should have been visible now an important part of paper based
+now an important part of paper based audio environments is the wind the world
+audio environments is the wind the world of a papist being quite barren apart
+of a papist being quite barren apart from the ecosystem when was the natural
+from the ecosystem when was the natural choice for being the main environmental
+choice for being the main environmental audio character on top of that it was
+audio character on top of that it was also a part of gameplay so it really
+also a part of gameplay so it really made sense to give it some sonic
+made sense to give it some sonic presence
+presence but then the question was how do we
+but then the question was how do we convincingly specialize something that
+convincingly specialize something that is immaterial everywhere and yet
+is immaterial everywhere and yet constantly moving here again our
+constantly moving here again our strategy was to combine several
+strategy was to combine several specialization techniques to try and
+specialization techniques to try and make it feel real we used specialized
+make it feel real we used specialized squads for the base with a lot of asset
+squads for the base with a lot of asset valuations for the different in that
+valuations for the different in that city across the game then we added the
+city across the game then we added the sound of wind buffeting in the ears this
+sound of wind buffeting in the ears this was done with two voices playing in each
+was done with two voices playing in each ear full left and full right we made
+ear full left and full right we made these voices react to head tracking with
+these voices react to head tracking with two individual individual eq's changing
+two individual individual eq's changing the filtering depending on the head
+the filtering depending on the head orientation to simulate the wind
+orientation to simulate the wind entering differently in the ear
+entering differently in the ear depending on the direction we also added
+depending on the direction we also added three wind gusts with moving point
+three wind gusts with moving point sources circulating around the player
+sources circulating around the player and following the direction of the wind
+and following the direction of the wind when the wind is soft they are almost
+when the wind is soft they are almost inaudible they only amplify the
+inaudible they only amplify the buffeting sound and other win related
+buffeting sound and other win related sounds but in high winds
+sounds but in high winds they are very loud and they give a nice
+they are very loud and they give a nice physicality to the air rushing around
+physicality to the air rushing around you another feature is the global
+you another feature is the global dynamic equalizer on the wind bus the
+dynamic equalizer on the wind bus the idea is that the frequency and gain
+idea is that the frequency and gain parameters of the EQ are defined by the
+parameters of the EQ are defined by the ambient zones so they especially
+ambient zones so they especially interpolate when going from one zone to
+interpolate when going from one zone to another we use this for example to
+another we use this for example to measure the wind when going in a covered
+measure the wind when going in a covered space or on the contrary to boost the
+space or on the contrary to boost the base and gain when going on an exposed
+base and gain when going on an exposed Ridge so we create subtle local changes
+Ridge so we create subtle local changes that are very cheap to do and they give
+that are very cheap to do and they give an impression of continuous change this
+an impression of continuous change this prevents the player from filling a
+prevents the player from filling a monotony that would break the illusion
+monotony that would break the illusion and makes him believe that the wind is
+and makes him believe that the wind is actually making this noise okay now
+actually making this noise okay now let's listen to all of this in game
+let's listen to all of this in game [Music]
+now for the reverbs we tried again to convey your sense of space as much as
+convey your sense of space as much as possible we used convolution reverbs and
+possible we used convolution reverbs and we added specialized reflections the
+we added specialized reflections the reflections enhance the 3d impression of
+reflections enhance the 3d impression of the scene which is very valuable in VR
+the scene which is very valuable in VR but they also made it easier to
+but they also made it easier to highlight the different locations and
+highlight the different locations and different acoustics which isn't always
+different acoustics which isn't always obvious with the limitations of impulse
+obvious with the limitations of impulse responses we placed these reflections on
+responses we placed these reflections on the prominent topological features of
+the prominent topological features of the levels big cliffs big rocks and
+the levels big cliffs big rocks and there are plenty of those in the game on
+there are plenty of those in the game on the technical side we used auxilary 3d
+the technical side we used auxilary 3d position busses in wise and we put them
+position busses in wise and we put them as children of the convolution reverb
+as children of the convolution reverb bus each of these busses carried an EQ
+bus each of these busses carried an EQ effects and a delay effects we would
+effects and a delay effects we would have liked to put variable delays
+have liked to put variable delays instead of static ones to have a
+instead of static ones to have a realistic behavior when going near the
+realistic behavior when going near the reflectors we tried with heavy from NZ
+reflectors we tried with heavy from NZ an audio but we didn't have time to get
+an audio but we didn't have time to get to the end of that but it's doable
+to the end of that but it's doable still on propagation we did a basic
+still on propagation we did a basic sound illusion system that would measure
+sound illusion system that would measure the thickness of obstacles between the
+the thickness of obstacles between the listener and the emitter it was
+listener and the emitter it was difficult to do more in an open outdoor
+difficult to do more in an open outdoor environments but this simple solution
+environments but this simple solution was a lot better than nothing in VR it's
+was a lot better than nothing in VR it's very confusing to hear very clearly and
+very confusing to hear very clearly and loudly something you don't see at all
+loudly something you don't see at all that's why occlusion is essential on the
+that's why occlusion is essential on the audio processing side we used wises
+audio processing side we used wises equation pipeline to filter
+equation pipeline to filter independently pre fader and post fader
+independently pre fader and post fader allowing us to filter only the dry
+allowing us to filter only the dry signal and keep the reverbs and
+signal and keep the reverbs and reflections when there is little
+reflections when there is little illusion and we found this gives nice
+illusion and we found this gives nice results and finally we wanted to make a
+results and finally we wanted to make a last note about something very specific
+last note about something very specific to the VR medium when we were still
+to the VR medium when we were still looking for a composer
+looking for a composer we made some tests with atmospheric
+we made some tests with atmospheric music we liked and even when the tone
+music we liked and even when the tone was a hundred thousand matching the game
+was a hundred thousand matching the game universe and scene
+universe and scene most of the time it didn't work in VR it
+most of the time it didn't work in VR it felt like a via character was listening
+felt like a via character was listening to music on headphones within the game
+to music on headphones within the game instead of having the magical blend that
+instead of having the magical blend that happened so easily in flat screen
+happened so easily in flat screen experiences we think this comes from
+experiences we think this comes from dissonance between the acoustic space of
+dissonance between the acoustic space of the music the space of the recording
+the music the space of the recording studio or the space of the reverbs used
+studio or the space of the reverbs used by the composer and the acoustic space
+by the composer and the acoustic space of the game
+of the game that hills Canyon a cave so we thought
+that hills Canyon a cave so we thought of many ways to contract this effect by
+of many ways to contract this effect by specializing the music inside the game
+specializing the music inside the game and so on but gladly our composer Roley
+and so on but gladly our composer Roley had a good intuition about this and he
+had a good intuition about this and he worked on the soundtrack by alternating
+worked on the soundtrack by alternating all along with the VR headsets and
+all along with the VR headsets and listening and tweaking it while inside
+listening and tweaking it while inside VR by doing this he always found where
+VR by doing this he always found where to place his music acoustically in the
+to place his music acoustically in the scene which was a big relief for us the
+scene which was a big relief for us the result is a soundtrack that is often
+result is a soundtrack that is often melded into the sound effects making it
+melded into the sound effects making it difficult to know where the world sounds
+difficult to know where the world sounds and and where the music begins we still
+and and where the music begins we still specialized the music a couple times to
+specialized the music a couple times to integrate it even more in the sound
+integrate it even more in the sound environment so we are coming to the end
+environment so we are coming to the end of this talk let's try and sum up all of
+of this talk let's try and sum up all of this we've discussed about the
+this we've discussed about the interpretation of a simulations data
+interpretation of a simulations data into audio information with some
+into audio information with some examples of our implementation then
+examples of our implementation then we've seen how we can use the
+we've seen how we can use the simulations plasticity at our advantage
+simulations plasticity at our advantage and use audio to drive other game
+and use audio to drive other game elements such as animation and finally
+elements such as animation and finally we've talked about some of the VR
+we've talked about some of the VR specialization techniques we used and
+specialization techniques we used and how by combining them and adding dynamic
+how by combining them and adding dynamic behaviors and details we try to trick
+behaviors and details we try to trick the player into believing in to a VR
+the player into believing in to a VR illusion okay well thank you very much
+illusion okay well thank you very much for listening to this talk and feel free
+for listening to this talk and feel free to commend this video or DM me on
+to commend this video or DM me on Twitter if you have questions or if you
+Twitter if you have questions or if you want to start a conversation by

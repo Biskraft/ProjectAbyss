@@ -1,0 +1,348 @@
+hi everyone it's me Tim today I want to
+talk about botched quests and player
+Freedom this comes from a question from
+Nick Berg one who asked can you share
+your ideas on botched failed quests
+don't these limit the freedom of making
+your own story and
+RPGs I actually think it expands your
+freedom so I think that's a good
+question and I want to explain my
+answer I think Nick is referring to a
+video I did on Quest implementation and
+I will link it below let me give you a
+quick summary when I
+made Arcanum that's when I came up with
+the here are the six states that a quest
+can pass through there are five usual
+ones that go in order which are unknown
+which means you've never heard of the
+quest probably doesn't appear in your
+log never heard of it mentioned might be
+appear in your quest log but you have
+you haven't agreed to do it you just
+you've heard it brought up you know that
+someone's kidnapped you know there are
+bandits in the area but you haven't
+agreed to do anything about it the third
+state third state is accepted you're
+like I will go do that you have told the
+quest Giver I will do it I'm on the job
+so it goes to the accepted State then
+there's achieved you've done whatever it
+is that you said you do but you haven't
+turned it in yet and that's important
+because sometimes especially narrative
+designers want to know the difference
+between
+did you rescue that person did you kill
+the Bandit
+leader versus did you turn it in and
+you're done because the fifth state is
+completed you've turned the quest in
+you've gotten your reward you're done
+now all those can appear differently in
+the UI for the the quest log uh
+narrative designers will treat those
+States differently when people talk to
+you but there's always a special six
+sixth state that I had called botched
+and botched is less of a state it
+appears as a state to the player but
+internally R treated it as a flag
+because you can flag any state as
+botched except for completed cuz once
+you've done it you're done once you you
+know rescue that shopkeeper you don't
+care if he gets killed later cuz you
+rescued him you're done it doesn't
+affect it doesn't undo the fact that you
+rescued him you're
+done
+so botched
+can turn be turned on and off in any
+state so when you turn a that botch flag
+on the state becomes botched but when
+you turn it off it goes back to whatever
+state it was in which
+means if you are supposed to rescue
+someone and you've accepted the quest
+and you're on the process of walking
+back to town and they
+die then your achieved State goes to
+botched and you can't complete it unless
+you unot it and we can talk about that
+now that qu that video was more about
+how to implement those things and you
+can watch it I will give a lot more
+detail about those States and how to
+implement it in the
+video but let me tell you why I why I
+did botched that way and why I don't
+call it fail because botch and unot to
+me I was trying to distinguish it from
+failed which usually means it's failed
+it's done you can't do anything about it
+there were two games in the 9s that
+annoyed me by the way they they annoyed
+designer me because
+uh player me um I I really like those
+games but the designer part of me was
+like I would not have done this I would
+not do that that shouldn't be done first
+one was Ultima
+underworld it let me I was trying to
+turn a quest into an NPC and the way the
+UI worked is if you clicked on the NPC
+if you picked up the item and you hand
+it in your hand if you clicked on NPC
+you gave it to them if you clicked just
+off of an NPC or a chest it just got th
+out thrown out in the world there was a
+NPC who wanted to receive an item that
+was a main story item and I think it was
+a she she was standing in front of a
+lava field and I clicked and she was
+animating and I misclicked and it was
+thrown out in the lava field and
+destroyed it was either destroyed or
+there's no way I could reach it cuz
+touching the lava was instant death no
+matter you was no way to protect
+yourself from it so the item was in
+unretrievable and that Quest was now
+uncompletable but I don't think it went
+into an uncompletable state it was just
+I couldn't finish couldn't finish the
+game had to restart and I had to know I
+had to restart and my by the way my last
+save game was a while ago which I know
+you should never do but I was super
+annoyed and I remember thinking there
+are better ways that could have been
+done and then the second game was B's
+gate the first one it had
+a quest to rescue a farmer's kid um and
+the kid he said something like my my kid
+went missing three days ago please find
+him but no matter what you did you
+always F found the child dead they were
+already
+dead but I had a rais dead scroll and I
+had a cleric in the party who could
+throw it and that raised dead scroll was
+a quest reward from something and I
+remember thinking I'm going to be super
+clever I'm going to raise this kid
+couldn't it was marked invalid Target I
+was so angry because I know the rules of
+D and D that uh raised dead scroll was
+good for anyone who was dead up to 9
+days and I knew this kid was only head
+for 3 days it should have worked it
+didn't because the quest designer didn't
+want it to they basically change the
+rules and this is when I say they are
+bad games and I've said this before it's
+just bad for me the reason this was bad
+for me is either the rule was bad or
+their implementation of the rule was bad
+because I I I knew what the player
+limitation was and they weren't honoring
+it that was not good so what's
+interesting to me is since that point
+games didn't do what I wanted which was
+to allow you to fail at a quest and
+still somehow succeed instead they just
+made it so that they're going to prevent
+you from ever failing a quest and they
+did this by like marking items as Quest
+items and if it's marked as a quest item
+you can't drop it and you can't sell it
+so you basically the only way to get rid
+of it is to hand it in to the quest
+Giver usually their Mark is not
+encumbering you either so that that way
+you don't get filled up with Quest items
+you can't walk
+and then NPCs were often marked as
+essential meaning they cannot be killed
+they can be injured and maybe if they go
+to zero they fall over for a while and
+then they stand back up but they can't
+be killed and that
+way you know if you're going to rescue
+that shopkeeper while he's the on that
+Quest why he's your your the person
+you're escorting maybe he's marked as
+essential and so you can't kill him so
+boom here's the problem I have with that
+that severely limits in my mind player
+Freedom it limits player agency there's
+a lot of things that could happen there
+and the game is going nope I've already
+decided the one way that this ends you
+must turn in that Quest item that one
+you found you must bring this person
+back and who was kidnapped or you know
+you you you cannot raise this child even
+though it's only been dead three days
+and that scroll says nine days is good
+I'm just going to Market it in valid
+Target I saw what I did in Arcane where
+instead of failed I called it botch
+because then you have botch and unot I
+saw that as a way to
+increase the player directed
+storytelling because it put a lot more
+decision- making into the player's
+hands what that meant though was if the
+player does something that causes that
+quest to fail they get a message and
+that's why I thought that botch date was
+important you detect that that NPC died
+you detect that that Quest that item was
+sold or dropped or destroyed and you say
+that Quest is now failed now you can't
+botch a completed Quest cuz you're done
+but any state before that it gets marked
+as failed now if you don't have the
+quest if the quest is is unknown maybe
+you don't have to say anything maybe you
+do maybe you don't maybe on easy mode
+you do and on a more difficult mode you
+don't but on all the other ones if
+you've heard it mentioned if you've
+accepted it if you if you've achieved it
+so you've got the quest item or you're
+you you found the kidnapped person and
+you're walking back if the quest gets
+failed it should change and give you a
+message saying that Quest that you have
+in your log it's now failed you can't do
+it and sure the player could always
+choose to reload but what I like is it
+gives the player the additional freedom
+to keep playing and try to undo the
+failure that's why we had unbg in
+Arcanum so the way this would work is if
+you're on an escort Mission and you're
+coming back with that shopkeeper and
+that person dies cuz you get Way laided
+by Bandits and they happen to shoot him
+or they do an area of AFF thing and and
+the shopkeeper dies raise him from the
+dead there's just there there are
+Scrolls and maybe potions and other
+things you can bring them back from the
+dead if you're on a dialogue Mission and
+the person you're supposed to talk to
+died either because an NPC killed him or
+frequently happened in QA play testing
+of my games the player actually killed
+the person they were supposed to talk to
+well guess what in addition to trying to
+raise them from the dead that's why
+Arcanum had speak with dead you could
+kill someone who had Vital Information
+and you could still get it from them
+sure you could raise them from the dead
+that's option one two you could speak
+with that and try to convince them to
+tell you anyway I hope you bought your
+speech skills right or maybe there's
+another way to get it maybe they have a
+locked safe and the information is in
+there but what I liked about that is
+there there's all kinds of ways you
+could
+continue for the quest item being
+dropped or
+sold you can always go back and get it
+you know just if especially if that item
+is marked as the the shopkeeper won't
+flush it out of their inventory for any
+reason so if you sell it to a shopkeeper
+and then you realize you sold your quest
+item you have to go back and buy it and
+he'll probably sell it to you for more
+money than he bought it from cuz he's a
+shop keeper and he's got to make money
+but here's another idea what if you go
+find another one what if they're they
+ask you to go get something and that
+thing isn't completely unique as long as
+you you know bring them back something
+maybe you can make them happy with it
+maybe finding that other one requ you
+can turn it in and with a speech check
+you can go come on man you just you
+wanted Joe's Wanda Fireballs I brought
+you a Wanda Fireballs that even has more
+charges come on take it maybe you can do
+that or
+or maybe you can craft a wand of
+fireballs yeah what a great way of
+getting crafting involved in story
+involved in quests as a means of
+finishing them and maybe if they said
+they wanted a Wanda Fireballs
+sure you know you can just craft one and
+go here's your W of fireballs you didn't
+go get the one they they said I know
+there's one here it's like they didn't
+care they just wanted a Wanda
+Fireballs but maybe they wanted Joe's
+Wanda Fireballs because it says Joe on
+the side or you know stamped made by Joe
+so you forge it maybe part of crafting
+or maybe a subscale of crafting is
+forging it's making an item a document
+or something that looks like something
+else so when you use that crafting skill
+part of that skill or the crafting skill
+or the sub skill forgery depending on
+how often you want to do this is to make
+a new one that looks like the one you
+supposed to get so maybe just maybe you
+don't even try to go get that wand that
+Joe made you don't feel like dealing
+with those Bandits or maybe maybe
+there's a pesky dragon in that cave and
+you're like you know what I'm tired of
+Dragons I'm tired of dealing with them
+I'm just going to go straight to forging
+now yeah it requires you to have a
+certain amount of skill and it probably
+requ a certain amount of materials maybe
+Joe's wands are always tipped in silver
+so you're like uh I got to go get silver
+or maybe he tips them in or chalum and
+you're like I don't have any or outome
+okay maybe you have to buy it maybe you
+have to go find it somewhere else but
+maybe hopefully there won't be a dragon
+guarding it what I love about this is it
+gives you an alternative it gives you a
+way of doing it that's fun it involves
+exploring it may involve combat it may
+involve dialogue it's got all the things
+wrapped up in there and what is this
+crafting is now involved as a potential
+Quest solution suddenly crafting is out
+there not just to give you XP or to let
+you make extra potions which you
+probably won't never use but you can use
+them to complete quests you can craft
+the thing the person's asking for rather
+than go get
+it I'm going to argue that botching and
+unbg Quest by its very
+nature of being
+unot adds to player directed story and
+increases the players agency and freedom
+in the game they're playing so I hope
+that not only does this answer your
+question Nick Berg One I hope you find
+it to be a good answer because I wish
+more games would do this

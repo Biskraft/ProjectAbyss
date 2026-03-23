@@ -1,0 +1,984 @@
+[Music]
+all right welcome everyone i'm going to get going
+welcome everyone i'm going to get going right on time here because
+right on time here because it's 30 minutes and it's full of stuff
+it's 30 minutes and it's full of stuff so please turn off your cell phones and
+so please turn off your cell phones and don't forget to
+don't forget to fill in your surveys
+if you don't know me my name is andreas i head up the tools and infrastructure
+i head up the tools and infrastructure team and insomniac games
+team and insomniac games and today i'm here to talk to you about
+and today i'm here to talk to you about our cache simulator called cache
+our cache simulator called cache sim so this is a tool that we've
+sim so this is a tool that we've developed for programmers to use to
+developed for programmers to use to measure how well they're using the cache
+measure how well they're using the cache and i'm excited to announce today that
+and i'm excited to announce today that we're going to open source this tech and
+we're going to open source this tech and that you can all
+that you can all well in fact you already have access to
+well in fact you already have access to it if you had only known the url
+it if you had only known the url so the thing i want to show you first
+so the thing i want to show you first what we're going to talk about here just
+what we're going to talk about here just in case
+in case you you woke up frozen in a time machine
+you you woke up frozen in a time machine or something
+or something memory sizes and cache sizes so i hadn't
+memory sizes and cache sizes so i hadn't really seen a 2d breakdown of things so
+really seen a 2d breakdown of things so if you think about a big block
+if you think about a big block of memory like this and then you put the
+of memory like this and then you put the l2 from a jaguar next to it
+l2 from a jaguar next to it it's kind of tiny and then if you put
+it's kind of tiny and then if you put the l1 next to it
+the l1 next to it yeah but if you know you think about
+yeah but if you know you think about this why
+this why why are we making these caches so small
+why are we making these caches so small well they're really fast right that's
+well they're really fast right that's the thing that goes
+the thing that goes uh that goes along with this is that if
+uh that goes along with this is that if you can
+you can hit the smaller thing it's a lot faster
+hit the smaller thing it's a lot faster right we're talking about orders
+right we're talking about orders of magnitude and we forget this too much
+of magnitude and we forget this too much as programmers
+as programmers but it's really when we can hit these
+but it's really when we can hit these orders of magnitude improvements that we
+orders of magnitude improvements that we get
+get the really big payoffs and
+the really big payoffs and i think it is true personally that most
+i think it is true personally that most programming languages make it really
+programming languages make it really easy to screw up
+easy to screw up right you can add memory operations that
+right you can add memory operations that you didn't even realize were memory
+you didn't even realize were memory operations because
+operations because programming languages like to abstract
+programming languages like to abstract the stuff they make it easy for you to
+the stuff they make it easy for you to destroy performance
+destroy performance so as programmers trying to fix
+so as programmers trying to fix performance problems uh typically
+performance problems uh typically with working on the cache we just need
+with working on the cache we just need access pattern information
+access pattern information and that's not something that is easily
+and that's not something that is easily gleanable from the code like you
+gleanable from the code like you actually have to dig in
+actually have to dig in so what are we going to do well if
+so what are we going to do well if you're doing anything like this you're
+you're doing anything like this you're probably using a sampling profiler right
+probably using a sampling profiler right because they
+because they basically won something happened 10
+basically won something happened 10 years ago and everything else just
+years ago and everything else just disappeared
+disappeared and it's easy to see why this is true
+and it's easy to see why this is true like they're non-intrusive you can just
+like they're non-intrusive you can just run them and they tell you
+run them and they tell you with a pretty good guess about what's
+with a pretty good guess about what's going on um and
+going on um and they can also give you hardware
+they can also give you hardware statistics like yeah the number of cache
+statistics like yeah the number of cache misses and things
+misses and things and they use hardware statistics to do
+and they use hardware statistics to do so so they're actually pretty accurate
+so so they're actually pretty accurate but and that's a big but they have a big
+but and that's a big but they have a big limitation
+limitation right they interrupt your program every
+right they interrupt your program every so often
+so often and the instructions and that end is
+and the instructions and that end is pretty big and even if you can try to
+pretty big and even if you can try to make it smaller there's
+make it smaller there's actually quite a big gap
+so now you have something that you're curious about finding out why is this
+curious about finding out why is this taking half a millisecond
+taking half a millisecond right i suspect that there's something
+right i suspect that there's something bad going on in the system but like it
+bad going on in the system but like it just pops in two or three samples in
+just pops in two or three samples in there
+there and that's essentially useless
+outside though of the sampling space there are tools like valgrind
+there are tools like valgrind that take a completely different
+that take a completely different approach so this is a tool that sets up
+approach so this is a tool that sets up a synthetic cpu
+a synthetic cpu and then runs your program on that cpu
+and then runs your program on that cpu and you can instrument and do
+and you can instrument and do stuff with the program and part of that
+stuff with the program and part of that stuff that they do is cache grind
+stuff that they do is cache grind so that's a module that you can run on
+so that's a module that you can run on top of valgrind and what this does is it
+top of valgrind and what this does is it will break down your instructions reads
+will break down your instructions reads and writes and simulate them on top of a
+and writes and simulate them on top of a cache and then you can get this awesome
+cache and then you can get this awesome sort of super detailed output at the end
+sort of super detailed output at the end so
+so it's easy to see why that will give you
+it's easy to see why that will give you a completely different picture because
+a completely different picture because you're not looking at every end
+you're not looking at every end instructions or like that entire block
+instructions or like that entire block you're actually pinpointing everything
+you're actually pinpointing everything down to a particular instruction
+down to a particular instruction uh but it comes with a bunch of cons for
+uh but it comes with a bunch of cons for us right that
+us right that our games don't run on linux where this
+our games don't run on linux where this thing runs and it's all or nothing so
+thing runs and it's all or nothing so if you know you can't decide to do this
+if you know you can't decide to do this halfway through you're going to be
+halfway through you're going to be navigating your menus and loading your
+navigating your menus and loading your level and doing all the things at like a
+level and doing all the things at like a hundred times slow down
+hundred times slow down which needless to say is not
+which needless to say is not particularly great if you're trying to
+particularly great if you're trying to get to that particular gameplay thing
+get to that particular gameplay thing you're looking at
+you're looking at there is a tool that is near and dear to
+there is a tool that is near and dear to my heart from the previous generation of
+my heart from the previous generation of consoles that i won't mention by name
+consoles that i won't mention by name and allowed you to do something similar
+and allowed you to do something similar for a short period of time and then run
+for a short period of time and then run unimpeded again and i really felt that
+unimpeded again and i really felt that we could use a tool like this
+if you have a tool like this i'm going to show you just in case you haven't
+to show you just in case you haven't used this like this why you want them
+used this like this why you want them here's some high level rendering code
+here's some high level rendering code from our push buffer
+from our push buffer so the purpose of this code is to say
+so the purpose of this code is to say well i have a bunch of textures
+well i have a bunch of textures and i'm going to convert it to lower
+and i'm going to convert it to lower level data that's going to be fed into
+level data that's going to be fed into the gpu push buffers on the next string
+the gpu push buffers on the next string and the details aren't super important
+and the details aren't super important but what i'm calling out here is that
+but what i'm calling out here is that this is relatively well-tuned code
+this is relatively well-tuned code something that i wouldn't expect to be a
+something that i wouldn't expect to be a disaster
+disaster right and i found using tooling that
+right and i found using tooling that this particular access of 16-bit flag
+this particular access of 16-bit flag was missing l2
+was missing l2 2800 times in a frame
+2800 times in a frame which is a huge deal
+and sometimes it's just the small things right why did it happen well it wasn't
+right why did it happen well it wasn't some sort of ominous bad guy putting
+some sort of ominous bad guy putting this in right it happened accidentally
+this in right it happened accidentally because
+because the object it was accessing had been
+the object it was accessing had been organized into a hot part in a cold part
+organized into a hot part in a cold part and during maintenance because something
+and during maintenance because something grew or shrunk or someone added
+grew or shrunk or someone added something without thinking it through
+something without thinking it through again programming language abstracting
+again programming language abstracting things for you
+things for you this little poor guy had dropped from
+this little poor guy had dropped from the hot cash line into the cold cash
+the hot cash line into the cold cash line
+line how do you fix it you swap two lines in
+how do you fix it you swap two lines in the header file
+the header file and you save up to a quarter millisecond
+and you save up to a quarter millisecond depending on view right
+depending on view right that's what i'm talking about and
+that's what i'm talking about and your time investment to do something
+your time investment to do something like this is like half an hour
+like this is like half an hour and there are other reasons that you
+and there are other reasons that you want tooling that help you along the
+want tooling that help you along the right path so sometimes you have
+right path so sometimes you have utility functions like i'm sure if you
+utility functions like i'm sure if you look at a profile for any random game
+look at a profile for any random game you'll see things like
+you'll see things like mem compare standing out when it really
+mem compare standing out when it really shouldn't or
+shouldn't or you know just accessing a position will
+you know just accessing a position will show up in the in the
+show up in the in the profile output so in this case uh what
+profile output so in this case uh what i'm showing here is our scene object
+i'm showing here is our scene object class has a way to query for hey what's
+class has a way to query for hey what's the position of this thing
+the position of this thing and it's pretty easy to see what it's
+and it's pretty easy to see what it's going to do it's just going to access a
+going to do it's just going to access a row from a matrix
+row from a matrix right and if you see this sort of thing
+right and if you see this sort of thing showing up in the in the cache report
+showing up in the in the cache report you're going to be like i can't optimize
+you're going to be like i can't optimize this it's just a return statement what
+this it's just a return statement what are we going to do
+are we going to do well that's the wrong way to think about
+well that's the wrong way to think about it what we need to optimize are the
+it what we need to optimize are the people who are giving this poor guy cold
+people who are giving this poor guy cold this pointers right they should be doing
+this pointers right they should be doing something else but in order to do that
+something else but in order to do that you have to figure out who is calling
+you have to figure out who is calling this guy with all these cold
+this guy with all these cold pointers and propagate the blame up the
+pointers and propagate the blame up the stack
+stack so i did that and our tool does this and
+so i did that and our tool does this and uh i have found that one particular
+uh i have found that one particular programmer
+programmer was responsible for 12 000 out of the 14
+was responsible for 12 000 out of the 14 000 l2 misses in get position
+000 l2 misses in get position so again i'm not going to bore you with
+so again i'm not going to bore you with all the details of the code here but
+all the details of the code here but like
+like basically it was a loop like this that
+basically it was a loop like this that said
+said i am going to go through and do a broad
+i am going to go through and do a broad face is what the comment said
+face is what the comment said to quickly get to the set of things that
+to quickly get to the set of things that i need to look at the things that are
+i need to look at the things that are around the camera
+around the camera very prototypey very sort of first pass
+very prototypey very sort of first pass but like you know things like this
+but like you know things like this happen
+happen okay so it's burning through 10 000 or
+okay so it's burning through 10 000 or so
+so 12 000 in fact placed things by
+12 000 in fact placed things by designers and then figuring out which
+designers and then figuring out which ones are actually near the camera
+ones are actually near the camera this thing 12 000 l2 misses in a frame
+this thing 12 000 l2 misses in a frame from this one particular location
+from this one particular location right i mean to put things in
+right i mean to put things in perspective here this is like one
+perspective here this is like one millisecond
+millisecond this entire system was one millisecond
+this entire system was one millisecond per frame on pc
+per frame on pc so if you've done any console dev uh
+so if you've done any console dev uh yeah it's not one millisecond
+yeah it's not one millisecond so looking at this thing i'm like wait
+so looking at this thing i'm like wait what's going on i need to fix this
+what's going on i need to fix this uh well it's good that these things that
+uh well it's good that these things that it's accessing over and over again with
+it's accessing over and over again with these super expensive l2 misses they
+these super expensive l2 misses they always return the same result because
+always return the same result because these things never move so my fix for
+these things never move so my fix for this particular problem then was to say
+this particular problem then was to say well because they never move
+well because they never move i only need to update this array when
+i only need to update this array when these things come and go which is super
+these things come and go which is super super rare and i can then get rid of
+super rare and i can then get rid of this get position call entirely
+this get position call entirely and that saves you 650 micros per frame
+and that saves you 650 micros per frame on an i7
+it's a bigger project right it takes a couple of hours maybe to reorganize it
+couple of hours maybe to reorganize it but there are real wins
+but there are real wins so to do something like this to actually
+so to do something like this to actually simulate what is going on in a program
+simulate what is going on in a program it seems
+it seems so easy if we could just you know be
+so easy if we could just you know be super human
+super human because it's all there in the
+because it's all there in the instruction stream like all we have to
+instruction stream like all we have to do is look at what the instructions are
+do is look at what the instructions are doing
+doing and looking at the addresses and the
+and looking at the addresses and the operands and saying you know if this was
+operands and saying you know if this was cached
+cached and if this was not cached and somehow
+and if this was not cached and somehow count that up
+count that up so to do that we would basically flip a
+so to do that we would basically flip a switch
+switch when we have gotten at full speed to
+when we have gotten at full speed to some point of interest
+some point of interest and then start single stepping the
+and then start single stepping the instructions and seeing what are they
+instructions and seeing what are they doing
+doing update some cache simulation and then
+update some cache simulation and then turn off the trace
+turn off the trace and report and we'd live happily ever
+and report and we'd live happily ever after
+after how do you even do this
+how do you even do this so and it sounds like we pitch things
+so and it sounds like we pitch things and we practice
+and we practice you know explaining the value of things
+you know explaining the value of things and
+and it helps if your boss understands you uh
+it helps if your boss understands you uh this is my boss
+this is my boss he doesn't understand me and so i said
+he doesn't understand me and so i said to him i think there's something here we
+to him i think there's something here we should have our own caching layer that
+should have our own caching layer that we can apply for all these things that
+we can apply for all these things that there's no off-the-shelf tooling
+there's no off-the-shelf tooling and i think my subject was i can see
+and i think my subject was i can see crazy town from here
+crazy town from here he said sure so i did that
+he said sure so i did that and my first approach which went nowhere
+and my first approach which went nowhere really but we'll see why
+really but we'll see why i started looking at binary
+i started looking at binary instrumentation frameworks so if you're
+instrumentation frameworks so if you're not familiar these are tools that will
+not familiar these are tools that will allow you to sort of muck with your
+allow you to sort of muck with your executable as it's running right so you
+executable as it's running right so you can say oh go find this function i'm
+can say oh go find this function i'm going to rewrite to look like this and
+going to rewrite to look like this and you can actually go way low labor too
+you can actually go way low labor too you can say oh let me patch up all these
+you can say oh let me patch up all these sse instructions to do something else or
+sse instructions to do something else or whatever
+whatever there's dynamo rio is one popular one
+there's dynamo rio is one popular one and intel has one
+and intel has one pin but remember the scope of what we're
+pin but remember the scope of what we're trying to do here we're trying to look
+trying to do here we're trying to look at every single instruction that touches
+at every single instruction that touches memory
+memory let's just say that that's not really in
+let's just say that that's not really in the design wheelhouse of these
+the design wheelhouse of these frameworks like because the metadata
+frameworks like because the metadata that they need the track to like undo
+that they need the track to like undo these patches and all the things
+these patches and all the things it's hundreds and hundreds of megabytes
+it's hundreds and hundreds of megabytes i don't know about you but our
+i don't know about you but our executable is kind of big
+executable is kind of big right aaa games but i think you know i
+right aaa games but i think you know i was interested in the space and if
+was interested in the space and if you're going to
+you're going to look at these frameworks i would
+look at these frameworks i would encourage you to look at them for like
+encourage you to look at them for like how can i put
+how can i put sort of cheap d-trace style probes into
+sort of cheap d-trace style probes into the game that i can enable and there's
+the game that i can enable and there's zero cost when they're not there
+zero cost when they're not there you know things like how often is this
+you know things like how often is this zero how often is this min max value
+zero how often is this min max value between whatever like if you're doing
+between whatever like if you're doing your own custom stuff without having to
+your own custom stuff without having to recompile the game
+recompile the game all right so that was a bust and so i
+all right so that was a bust and so i said okay next
+said okay next next approach i'm going to write a
+next approach i'm going to write a function somehow
+function somehow it's going to be called trace function
+it's going to be called trace function you give it a function pointer
+you give it a function pointer and then magically it's going to
+and then magically it's going to disassemble each instruction
+disassemble each instruction it's going to find the memory
+it's going to find the memory dereferences of that instruction and
+dereferences of that instruction and update the simulated cache
+update the simulated cache and then because i don't want to emulate
+and then because i don't want to emulate the entire cpu like i'm going to rely on
+the entire cpu like i'm going to rely on the cpu to do the heavy lifting it's
+the cpu to do the heavy lifting it's going to actually execute the
+going to actually execute the instruction
+instruction and to do that like isolate the
+and to do that like isolate the instruction in a temporary buffer run it
+instruction in a temporary buffer run it and then return back to me so i can keep
+and then return back to me so i can keep doing this
+doing this that doesn't sound too bad
+that doesn't sound too bad yeah as soon as you hit a branch
+yeah as soon as you hit a branch instruction like your party comes
+instruction like your party comes crashing down because
+crashing down because oh yeah they're all relative offset
+oh yeah they're all relative offset coded so if you copy the thing elsewhere
+coded so if you copy the thing elsewhere in branch it's going to just branch into
+in branch it's going to just branch into garbage memory
+garbage memory okay maybe we need to emulate them and
+okay maybe we need to emulate them and then you've got
+then you've got the rip pointer so if you're not
+the rip pointer so if you're not familiar with x64 assembly
+familiar with x64 assembly there are a lot of places in x64
+there are a lot of places in x64 assembly where you use implicit
+assembly where you use implicit references
+references to the instruction pointer with a 32-bit
+to the instruction pointer with a 32-bit signed offset
+signed offset now removing the instruction let's just
+now removing the instruction let's just say that those deltas are no longer what
+say that those deltas are no longer what you want them to be so you have to
+you want them to be so you have to either patch them which you sometimes
+either patch them which you sometimes can't if you move it to a different four
+can't if you move it to a different four gigabyte range and
+gigabyte range and okay but on top of this we're also
+okay but on top of this we're also violating the win64 api because
+violating the win64 api because in win64 every non-leaf function is
+in win64 every non-leaf function is associated with
+associated with sort of a stack unwinding data block
+sort of a stack unwinding data block if you don't have that block and you
+if you don't have that block and you take an exception your program
+take an exception your program dies like there's no trying to fix that
+dies like there's no trying to fix that up like it just
+up like it just goes away and you might think well
+goes away and you might think well that's just if you divide by c
+that's just if you divide by c or something which we wouldn't do but no
+or something which we wouldn't do but no if you've ever used output debug string
+if you've ever used output debug string or any other number of win32 internal
+or any other number of win32 internal things
+things they use exceptions internally
+they use exceptions internally even if we fix all those problems
+even if we fix all those problems it's still a pretty intrusive approach
+it's still a pretty intrusive approach right because even if we had this
+right because even if we had this magical trace function
+magical trace function we would have to have everyone opt in to
+we would have to have everyone opt in to being traced they would have to start
+being traced they would have to start this frame saying oh are we tracing
+this frame saying oh are we tracing then let me run to this rube goldberg
+then let me run to this rube goldberg machine over here or otherwise i'm just
+machine over here or otherwise i'm just going to do things normally so
+going to do things normally so i was almost ready to give up but then
+i was almost ready to give up but then it hit me
+it hit me e-flags is the flags register of
+e-flags is the flags register of x86 right and if you've done assembly
+x86 right and if you've done assembly programming you know that this is where
+programming you know that this is where the
+the carry flag and the zero flag and all
+carry flag and the zero flag and all these things are but there's also this
+these things are but there's also this guy the trap flag
+guy the trap flag intriguing this is how your debugger f11
+intriguing this is how your debugger f11 steps right if you're looking at
+steps right if you're looking at disassembly and you're hitting f11
+disassembly and you're hitting f11 it sets the trap bit and then the cpu
+it sets the trap bit and then the cpu continues running but
+continues running but after it's run the instruction it's
+after it's run the instruction it's before it runs the next one
+before it runs the next one it will actually generate an exception
+it will actually generate an exception so okay can we leverage this it turns
+so okay can we leverage this it turns out you can route this exception to the
+out you can route this exception to the windows structured exception handling
+windows structured exception handling machinery
+machinery and you can put a handler in for it
+and you can put a handler in for it which means that if you set this flag
+which means that if you set this flag if you do it on your own thread you're
+if you do it on your own thread you're going to have little problems but you'll
+going to have little problems but you'll basically get called back for every
+basically get called back for every instruction
+instruction you can choose when you want to do this
+you can choose when you want to do this or not
+or not but it still seems like you would have
+but it still seems like you would have the the sort of opt-in
+the the sort of opt-in problem that i just talked about where
+problem that i just talked about where everyone who wanted to be traced would
+everyone who wanted to be traced would have to have a structured exception
+have to have a structured exception handler
+handler and jump through all this stuff but aha
+and jump through all this stuff but aha since windows xp
+since windows xp there's this little known thing called
+there's this little known thing called vector exception handlers that allow you
+vector exception handlers that allow you to set a crossbar handler for the entire
+to set a crossbar handler for the entire app
+app so with those crazy building blocks
+so with those crazy building blocks to do this we can install a vectored
+to do this we can install a vectored exception handler across the entire app
+exception handler across the entire app and it's going to listen for these trap
+and it's going to listen for these trap exceptions
+exceptions then we'll go find the threads that we
+then we'll go find the threads that we want to simulate and we set their trap
+want to simulate and we set their trap bits
+we're now getting called for every instruction on all those threads into
+instruction on all those threads into our handler
+our handler it's trapping us so at this point we
+it's trapping us so at this point we disassemble the instruction from the
+disassemble the instruction from the text segment
+text segment we're not moving it anywhere we find the
+we're not moving it anywhere we find the memory operands and we update our cache
+memory operands and we update our cache simulation
+simulation and then if we want to keep tracing
+and then if we want to keep tracing because this bit auto resets right
+because this bit auto resets right we set it again so that we get called
+we set it again so that we get called back for the next instruction
+back for the next instruction and then to stop it's pretty easy all we
+and then to stop it's pretty easy all we need to do is basically stop setting
+need to do is basically stop setting these
+these trace bits so i was excited to
+trace bits so i was excited to get two integer editions working with
+get two integer editions working with this approach
+this approach there are some other problems first of
+there are some other problems first of all your debugger
+all your debugger relies on this like this is its space
+relies on this like this is its space like we just barged into its party
+like we just barged into its party saying hey what's going on
+saying hey what's going on and because the debugger gets the first
+and because the debugger gets the first chance of trapping all these exceptions
+chance of trapping all these exceptions and will
+and will right it gets super confused you'll have
+right it gets super confused you'll have everything from the debugger crashing to
+everything from the debugger crashing to like doing all thing
+like doing all thing you know remember it will normally have
+you know remember it will normally have set these single trace
+set these single trace flags and so you can take your debugger
+flags and so you can take your debugger down very easily just run
+down very easily just run outside of the debugger was my solution
+outside of the debugger was my solution the more serious problem is that i had
+the more serious problem is that i had deadlocks in ntdll for actually running
+deadlocks in ntdll for actually running this on a full game executable
+this on a full game executable so there's a lock inside of ntdl not to
+so there's a lock inside of ntdl not to bore you too much that protects this
+bore you too much that protects this vectored exception handler dispatch list
+vectored exception handler dispatch list and the idea is that while a handler is
+and the idea is that while a handler is being run you have to protect this list
+being run you have to protect this list with a lock so that you don't remove the
+with a lock so that you don't remove the handler while the list is being
+handler while the list is being traversed and all these boring things
+traversed and all these boring things and the thing is all the threads were
+and the thing is all the threads were blocked on this lock but no one held the
+blocked on this lock but no one held the lock
+lock so that's great i'm not really sure but
+so that's great i'm not really sure but if
+if we step back and look at what we're
+we step back and look at what we're doing here like we're running a full aaa
+doing here like we're running a full aaa game executable
+game executable and for every thread for every
+and for every thread for every instruction we're sandwiching in this
+instruction we're sandwiching in this cash simulation handler
+cash simulation handler on using the structured exception
+on using the structured exception handling machinery which is like it
+handling machinery which is like it inverts
+inverts you know the normal work of the program
+you know the normal work of the program with cash simulation by i don't know
+with cash simulation by i don't know five orders of magnitude or something so
+five orders of magnitude or something so let's just say that no one probably at
+let's just say that no one probably at microsoft anticipated anyone to use it
+microsoft anticipated anyone to use it this way
+this way and nothing was obviously wrong but what
+and nothing was obviously wrong but what if i had to mentor a guest i think it is
+if i had to mentor a guest i think it is that critical sections that are in the
+that critical sections that are in the process of being entered
+process of being entered if you then take a trap and you go in
+if you then take a trap and you go in and take another critical section
+and take another critical section in the trap handler i think that is bad
+in the trap handler i think that is bad news
+news um anyway i wanted to get something done
+um anyway i wanted to get something done so my solution was this
+so my solution was this and you may or may not agree with my
+and you may or may not agree with my reasoning here vector exception handlers
+reasoning here vector exception handlers are exotic
+are exotic we are not shipping this feature outside
+we are not shipping this feature outside of uh you know
+of uh you know i used to say office but that's no
+i used to say office but that's no longer true but i hope you're not
+longer true but i hope you're not shipping this to players because we
+shipping this to players because we certainly aren't
+certainly aren't so what i do is i go find this handler
+so what i do is i go find this handler that takes a lock and will iterate the
+that takes a lock and will iterate the list of exactly one handler and call
+list of exactly one handler and call that handler which is always our handler
+that handler which is always our handler with the jump door handler yes it is
+with the jump door handler yes it is ugly but
+ugly but on the other hand it works and i also
+on the other hand it works and i also got rid of all the operating system
+got rid of all the operating system dependencies from the cash stream
+dependencies from the cash stream module itself so it would never try to
+module itself so it would never try to do a syscall
+do a syscall so at this point it works and
+so at this point it works and beautifully instruction streams start
+beautifully instruction streams start trickling into these things
+trickling into these things and because we can now inspect them one
+and because we can now inspect them one by one the next step is to look at
+by one the next step is to look at okay what memory addresses are they
+okay what memory addresses are they looking at
+looking at and in terms of disassemblers i used one
+and in terms of disassemblers i used one called udis86 which is nice
+called udis86 which is nice and there's a fork of it made by the
+and there's a fork of it made by the radar 2 project that is even better
+radar 2 project that is even better because it gives you the memory access
+because it gives you the memory access operands
+operands so here's what i'm talking about you
+so here's what i'm talking about you basically from the context record of the
+basically from the context record of the thing that interrupted you you get the
+thing that interrupted you you get the instruction pointer and you disassemble
+instruction pointer and you disassemble straight from the text segment
+straight from the text segment and then you just have to figure out
+and then you just have to figure out what addresses are involved in computing
+what addresses are involved in computing this instruction
+should be easy you know here's a simple example there's a move
+example there's a move clearly it's moving you know 32 bits
+clearly it's moving you know 32 bits from ebx into the pointer rex
+from ebx into the pointer rex well that's the theory but if you've
+well that's the theory but if you've done x86 assembly you know that
+done x86 assembly you know that there's tons of stuff that touches
+there's tons of stuff that touches memory but doesn't have a memory operand
+memory but doesn't have a memory operand and there are things that have memory
+and there are things that have memory operands but don't touch memory
+uh so string instructions uh a good example uses implicit registers
+example uses implicit registers you get your stack traffic which will
+you get your stack traffic which will also pollute your caches
+also pollute your caches even calling and returning from
+even calling and returning from functions will mutate the stack
+functions will mutate the stack and there's lia which is super common
+and there's lia which is super common your three operand swiss army knife for
+your three operand swiss army knife for computing things
+computing things which has memory operand but doesn't
+which has memory operand but doesn't touch memory and so if you get this
+touch memory and so if you get this wrong you just
+wrong you just have really bad results and they're also
+have really bad results and they're also crazy things like they're long
+crazy things like they're long knobs that you can use to pad and that
+knobs that you can use to pad and that have memory operands which i found
+have memory operands which i found really interesting
+really interesting and there's floating pointer stores and
+and there's floating pointer stores and prefetches and needless to say you can
+prefetches and needless to say you can take all of this and you can put it in a
+take all of this and you can put it in a somewhat awful switch but you can handle
+somewhat awful switch but you can handle all of it in like 200 lines of code
+all of it in like 200 lines of code which is better than doing every
+which is better than doing every instruction so once we've figured out
+instruction so once we've figured out what the memory accesses are
+what the memory accesses are we're ready to go poke our cache and so
+we're ready to go poke our cache and so the first thing we can do is go post the
+the first thing we can do is go post the cache to say well we know that we're
+cache to say well we know that we're going to execute the instructions so
+going to execute the instructions so make sure that we do an i read
+make sure that we do an i read from this address and then we have our
+from this address and then we have our reads
+reads so we poke the cache again and we do a
+so we poke the cache again and we do a read simulation and then we do write
+read simulation and then we do write simulation
+simulation which then opens the question how do you
+which then opens the question how do you simulate a cache
+simulate a cache well if you're familiar with anything
+well if you're familiar with anything about caches they have associativity
+about caches they have associativity set associativity and so you can
+set associativity and so you can basically break them down as a
+basically break them down as a two-dimensional array of ways and sets
+two-dimensional array of ways and sets so to see if something is in the cache
+so to see if something is in the cache or indeed entered into the cache
+or indeed entered into the cache uh you take the input address of
+uh you take the input address of whatever you're looking for
+whatever you're looking for and a certain number of bits depending
+and a certain number of bits depending on on the number of sets that you have
+on on the number of sets that you have and then you go look at those lines that
+and then you go look at those lines that are associated with that particular set
+are associated with that particular set those are called the ways and
+those are called the ways and you know you run the comparison against
+you know you run the comparison against all of them hardware
+all of them hardware thinks this is a really nice problem
+thinks this is a really nice problem because all it needs to do is do a
+because all it needs to do is do a parallel comparison which we can't do in
+parallel comparison which we can't do in software
+software so but anyway that's the theory
+so but anyway that's the theory i was interested in simulating a jaguar
+i was interested in simulating a jaguar core because that's the cpu that we
+core because that's the cpu that we know and love so um you have two modules
+know and love so um you have two modules they all have they both have a shared l2
+they all have they both have a shared l2 and four cores and each chord then has
+and four cores and each chord then has its own d1 and i1
+its own d1 and i1 and a particular quirk is that it's
+and a particular quirk is that it's inclusive so if you have a line that is
+inclusive so if you have a line that is in
+in in for it's for something to be a hit it
+in for it's for something to be a hit it has to be in both l2 and i1
+has to be in both l2 and i1 for example if you need an if you need
+for example if you need an if you need an l1 hit
+an l1 hit so what's left to do is to figure out
+so what's left to do is to figure out the associativities which are no secrets
+the associativities which are no secrets they're right here
+they're right here i want two-way associative d1 8-way for
+i want two-way associative d1 8-way for example l2 and 61
+example l2 and 61 we have the sizes and with a bunch of
+we have the sizes and with a bunch of helper glue that i'm not going to show
+helper glue that i'm not going to show you
+you in this talk you can go look at it
+in this talk you can go look at it yourself
+yourself we can declare these two-dimensional
+we can declare these two-dimensional array type helpers
+array type helpers and i set up this module thing that is
+and i set up this module thing that is okay four d ones
+okay four d ones four i wants a level two and a pointer
+four i wants a level two and a pointer to the other module
+to the other module right and this is important because if
+right and this is important because if you're writing to something real
+you're writing to something real hardware is going to do
+hardware is going to do a line reservation of the thing you're
+a line reservation of the thing you're writing which this
+writing which this cache synchronization protocols can make
+cache synchronization protocols can make sure that it's kicked out of the other
+sure that it's kicked out of the other guys l2
+guys l2 so we need to simulate that or we're
+so we need to simulate that or we're just lying about things
+just lying about things so for each cache line we're accessing
+so for each cache line we're accessing depending generated from these reads and
+depending generated from these reads and writes right if you are straddling a
+writes right if you are straddling a cache line boundary this will apply for
+cache line boundary this will apply for both the cache lights
+both the cache lights you're reading if we're writing to that
+you're reading if we're writing to that cache line
+cache line we had better go kick it out of every
+we had better go kick it out of every other core
+other core on our module and the other modules l2
+on our module and the other modules l2 and then we can do a look at plus record
+and then we can do a look at plus record so i'm treating the cpu here as an
+so i'm treating the cpu here as an inorder cpu for the purposes of the
+inorder cpu for the purposes of the cache
+cache so i'm going to pretend that whatever
+so i'm going to pretend that whatever you asked for will be cached by this
+you asked for will be cached by this right but what we're also looking up is
+right but what we're also looking up is to see if it's already in the cache and
+to see if it's already in the cache and that's how we can determine something as
+that's how we can determine something as a hit or miss
+a hit or miss so we independently hit the l1 and the
+so we independently hit the l1 and the l2
+l2 and because it is an inclusive hierarchy
+and because it is an inclusive hierarchy it has to be in both to be considered an
+it has to be in both to be considered an l1 hit
+l1 hit if it's only in the l2 it's an l2 hit
+if it's only in the l2 it's an l2 hit and otherwise it's a mess
+and otherwise it's a mess so it's reasonably simple all right
+so it's reasonably simple all right so with all this stuff i now have hooked
+so with all this stuff i now have hooked up to a keyboard shortcut but
+up to a keyboard shortcut but i'm sure you can find other ways of
+i'm sure you can find other ways of doing it and then i run a frame
+doing it and then i run a frame on this in the game like this is a full
+on this in the game like this is a full aaa
+aaa game i'm talking about here it takes a
+game i'm talking about here it takes a couple of minutes
+couple of minutes to do this which is still pretty awesome
+to do this which is still pretty awesome given what it's
+given what it's actually doing and how hacky it is and
+actually doing and how hacky it is and you know out falls
+you know out falls 200 megs maybe 100 megs depending on
+200 megs maybe 100 megs depending on exactly how much
+exactly how much of data and
+of data and i've you know i'm so happy to say that
+i've you know i'm so happy to say that the goal is there like it achieved this
+the goal is there like it achieved this goal of saying
+goal of saying you know once it's done this slow thing
+you know once it's done this slow thing it resumes running at full frame rate so
+it resumes running at full frame rate so if you want to do 15 of these you can
+if you want to do 15 of these you can like there's no problem
+like there's no problem so with the data we get out as i
+so with the data we get out as i mentioned we capture call stacks too
+mentioned we capture call stacks too which is integral to this data that's
+which is integral to this data that's why it's so big
+why it's so big and we track l1 hits l2 hits l2 misses
+and we track l1 hits l2 hits l2 misses and we also put in a special thing to to
+and we also put in a special thing to to track pre-fetches explicit prefetches
+track pre-fetches explicit prefetches put in by programmers
+put in by programmers and see if those prefetches hit things
+and see if those prefetches hit things that are in the cache so that's a pretty
+that are in the cache so that's a pretty good detector to say
+good detector to say yeah i saw you put these prefetches in
+yeah i saw you put these prefetches in but 95 of the time they're pre-fetching
+but 95 of the time they're pre-fetching from cash
+so uh i'll just briefly show the gui tool that comes along with this
+tool that comes along with this this is a flat breakdown of things
+this is a flat breakdown of things which you can use to scan for anomalies
+which you can use to scan for anomalies like this should not have this many l2
+like this should not have this many l2 messages or something
+messages or something and because we track the call stacks we
+and because we track the call stacks we can turn this into a
+can turn this into a tree that shows you you know from all
+tree that shows you you know from all the way from the
+the way from the root symbol across all the threads like
+root symbol across all the threads like how the l2 misses and hits and
+how the l2 misses and hits and everything break down
+everything break down and you can reverse the tree which is
+and you can reverse the tree which is helpful when you're looking for
+helpful when you're looking for who is to blame for this function
+who is to blame for this function missing cache
+missing cache and that's how you can find things that
+and that's how you can find things that are similar to that gameplay example
+are similar to that gameplay example that i showed previously
+that i showed previously and finally there's a way to go from
+and finally there's a way to go from symbol to source
+symbol to source and then see how the l2 misses and
+and then see how the l2 misses and everything break down for those source
+everything break down for those source lines
+that's it for the tooling really and um a couple of things like we wanted to
+a couple of things like we wanted to make it obvious in the
+make it obvious in the source and you see that in a minute how
+source and you see that in a minute how like what what what bad looks like
+like what what what bad looks like so we came up with this badness factor
+so we came up with this badness factor which is the number of l2 misses
+which is the number of l2 misses squared divided by the number of
+squared divided by the number of instructions to really make it obvious
+instructions to really make it obvious that
+that this line be worn some attention
+this line be worn some attention and in general because it takes a little
+and in general because it takes a little while to do the captures i just found
+while to do the captures i just found that
+that it's worthwhile to put a bunch of views
+it's worthwhile to put a bunch of views in here so you can reuse and go back to
+in here so you can reuse and go back to the dumps after a while
+the dumps after a while so you'll see that if you look at the
+so you'll see that if you look at the tools that for example it resolves the
+tools that for example it resolves the symbols and then sticks them in the dump
+symbols and then sticks them in the dump so it's independent from the program and
+so it's independent from the program and things like this
+things like this so just a real quick
+intro to how i found that first issue right if you look at the flat profile
+right if you look at the flat profile you see wait why is this relatively well
+you see wait why is this relatively well optimized rendering code showing up here
+optimized rendering code showing up here with 2 800 misses
+with 2 800 misses when you go to the source view that's
+when you go to the source view that's the badness factor
+the badness factor this line is doing nothing but missing
+this line is doing nothing but missing cache this needs to be addressed and
+cache this needs to be addressed and from there on you can
+from there on you can relatively easily see what's going on
+relatively easily see what's going on so to wrap up the pros of this approach
+so to wrap up the pros of this approach is that you get every memory access of
+is that you get every memory access of the
+the of the program it doesn't cost you
+of the program it doesn't cost you anything in terms of like you need to
+anything in terms of like you need to link with crazy things
+link with crazy things it's not encumbered in any way so you
+it's not encumbered in any way so you can just play with it and because it
+can just play with it and because it works on windows
+works on windows you can go all the way into graphics
+you can go all the way into graphics drivers and the os code if you want it's
+drivers and the os code if you want it's kind of scary in there but
+kind of scary in there but so that might be interesting interesting
+so that might be interesting interesting if you are a windows dev and you're
+if you are a windows dev and you're trying to look at some particular
+trying to look at some particular problematic
+problematic pc architecture cache and it's open
+pc architecture cache and it's open source like i mentioned so
+source like i mentioned so you know if you need something that
+you know if you need something that walks every instruction on every thread
+walks every instruction on every thread sort of slowly you can do this
+as i mentioned capture speed could be better i'm sure we can optimize it
+better i'm sure we can optimize it it only works on windows so yes
+it only works on windows so yes but you can still pretend that you're
+but you can still pretend that you're simulating a jaguar cache which we do
+simulating a jaguar cache which we do and it's not
+and it's not as bad as you might think because if you
+as bad as you might think because if you ignore dx11 stuff and the operating
+ignore dx11 stuff and the operating system stuff like it doesn't really
+system stuff like it doesn't really matter if your high level rendering code
+matter if your high level rendering code or gameplay code has been compiled by
+or gameplay code has been compiled by clang or msbc
+clang or msbc right the number of memory accesses and
+right the number of memory accesses and where they go is pretty much the same
+where they go is pretty much the same and of course it's not 100 hardware
+and of course it's not 100 hardware accurate right because
+accurate right because we are treating the cpu as an inward cpu
+we are treating the cpu as an inward cpu here it doesn't account for the out of
+here it doesn't account for the out of order scheduling window which if you saw
+order scheduling window which if you saw my talk from last year doesn't account
+my talk from last year doesn't account for that much anyway
+for that much anyway like if you're seeing triple digits
+like if you're seeing triple digits worth of l2 misses in a thing like it'll
+worth of l2 misses in a thing like it'll suck and out of water too like it's
+suck and out of water too like it's there's no magic fix but it's a caveat
+there's no magic fix but it's a caveat and they're a bunch of smaller issues
+and they're a bunch of smaller issues like it has to use virtual addresses to
+like it has to use virtual addresses to simulate the caches
+simulate the caches the replacement line policy is not
+the replacement line policy is not perfect
+perfect array prefetches are not yet simulated
+array prefetches are not yet simulated so if you have very heavy sort of sim
+so if you have very heavy sort of sim decode walking a race like you'll over
+decode walking a race like you'll over report them pessimistically
+report them pessimistically so yes some care is required and that's
+so yes some care is required and that's what i hope to
+what i hope to address in the future some of those
+address in the future some of those things right make it uh
+things right make it uh faster and fix some of the the
+faster and fix some of the the pre-fetching stuff on the race
+pre-fetching stuff on the race and i would like to implement all of the
+and i would like to implement all of the special things like non-temporal stores
+special things like non-temporal stores and loads
+and loads and then whatever extensions you guys
+and then whatever extensions you guys have
+have so that's my prepared talk on this and
+so that's my prepared talk on this and you can get this
+you can get this right now at github and play with it and
+right now at github and play with it and we have i think three minutes for
+questions [Music]
+[Music] [Applause]
+there's microphones
+hi great stuff um what's the chances of actually being able to put this on a
+actually being able to put this on a console platform
+console platform if for example you didn't actually have
+if for example you didn't actually have a windows build
+a windows build um can't comment
+all right i should i should talk to somebody you should know and i should
+somebody you should know and i should know that we can't talk about that
+know that we can't talk about that yeah i know i know we can talk about it
+yeah i know i know we can talk about it offline all right let's do that
+anyone else
+all right oh one more oh yeah do you support like multi-core
+do you support like multi-core interactions and like evictions from the
+interactions and like evictions from the different clusters
+different clusters that sort of thing so yeah
+that sort of thing so yeah in case not everyone heard it is
+in case not everyone heard it is multi-core interaction supported in here
+multi-core interaction supported in here yes like all the threads are running
+yes like all the threads are running independently because but because
+independently because but because they're running through the windows
+they're running through the windows exception handling machinery
+exception handling machinery like the it won't be perfect but it'll
+like the it won't be perfect but it'll be
+be really kind of good like the win32
+really kind of good like the win32 scheduler gets all
+scheduler gets all aggressive about this because all the
+aggressive about this because all the threads are sort of spin locking and
+threads are sort of spin locking and interrupting each other so
+interrupting each other so there's a good mix of things coming
+there's a good mix of things coming through and the way the simulator works
+through and the way the simulator works is that you pin all the threads that you
+is that you pin all the threads that you care about to a particular hardware core
+care about to a particular hardware core and then all the accesses that win32
+and then all the accesses that win32 thread runs regardless of physical core
+thread runs regardless of physical core on the machine is going to be simulated
+on the machine is going to be simulated as
+as if it came in always on for example core
+if it came in always on for example core four on your jaguar cool
+four on your jaguar cool would you see um statistics as well for
+would you see um statistics as well for full sharing on cache lines
+full sharing on cache lines do you ever expose that in your gui um
+do you ever expose that in your gui um the question is do we expose false
+the question is do we expose false sharing no
+sharing no okay we don't cool thank you very much
+how do you think compares to linux cash grind which you mentioned early on
+grind which you mentioned early on sorry one more time you mentioned linux
+sorry one more time you mentioned linux cache grind from valgrind
+cache grind from valgrind yes and how does it compare this in
+yes and how does it compare this in terms of results
+terms of results or effectiveness it does basically the
+or effectiveness it does basically the same thing but it does so in an opt-in
+same thing but it does so in an opt-in way you could say okay so yes it is
+way you could say okay so yes it is comparable
+i was just curious if you had a chance to look at the uh like intel like
+to look at the uh like intel like hardware counters or anything like that
+hardware counters or anything like that um i don't know like how well
+um i don't know like how well they're exposed than anything except
+they're exposed than anything except like intel tools but there's some kind
+like intel tools but there's some kind of hooks
+of hooks into like cache performance right and
+into like cache performance right and that's what sampling profiles use
+that's what sampling profiles use right they're built on those hardware
+right they're built on those hardware counters to to
+counters to to get cache metrics okay right so the
+get cache metrics okay right so the question is
+question is how does this relate to hardware cache
+how does this relate to hardware cache metrics you can get from the cpu
+metrics you can get from the cpu yeah i mean i know like things like v2
+yeah i mean i know like things like v2 and they don't i don't think it's
+and they don't i don't think it's presented very well but they do have
+presented very well but they do have like some information about like
+like some information about like right that's what sampling profile is
+right that's what sampling profile is relying on is sampling those hardware
+relying on is sampling those hardware counters
+counters i think there are four debug registers
+i think there are four debug registers you can set and you can sample up to
+you can set and you can sample up to four
+four there's 30 sensors or so there were
+there's 30 sensors or so there were things that you can
+things that you can read and then the sampling profiler lets
+read and then the sampling profiler lets you pick a few of them
+you pick a few of them right but it doesn't really know what
+right but it doesn't really know what instructions cost the l2 misses but
+instructions cost the l2 misses but that's the problem i'm trying to solve
+that's the problem i'm trying to solve here
+here right but that will give you accurate
+right but that will give you accurate numbers for a
+numbers for a run of instructions on a particular cpu
+run of instructions on a particular cpu that is in your machine
+that is in your machine whereas this simulates that you're
+whereas this simulates that you're running it on a jaguar cpu regardless of
+running it on a jaguar cpu regardless of what platform you're on
+what platform you're on hello one question i have is whether you
+hello one question i have is whether you track
+track how many times each instruction is
+how many times each instruction is executed because this sometimes gives
+executed because this sometimes gives valuable insights
+valuable insights of whether you have a lot of cache
+of whether you have a lot of cache misses and
+misses and but also now many times that instruction
+but also now many times that instruction was executed so you basically have a
+was executed so you basically have a cache
+cache misrate so you can know if that there is
+misrate so you can know if that there is a tiny loop which is executed many times
+a tiny loop which is executed many times and missing many times right so
+and missing many times right so i think the question is do we count the
+i think the question is do we count the number of times in instructions executed
+number of times in instructions executed yeah kind of a destruction trace
+yeah kind of a destruction trace oh yes we do and that's but the badness
+oh yes we do and that's but the badness factor is actually based on
+factor is actually based on the number of ltmas squared divided by
+the number of ltmas squared divided by the number of instructions executed
+the number of instructions executed right okay okay that's pretty cool thank
+right okay okay that's pretty cool thank you cool
+you cool all right that's it in case there are
+all right that's it in case there are additional questions find me outside in
+additional questions find me outside in the conference
+the conference and thank you

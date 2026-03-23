@@ -1,0 +1,837 @@
+[Music] hi my name is matt lindsey i'm an
+hi my name is matt lindsey i'm an independent game developer and i'd like
+independent game developer and i'd like to show you how pico 8 is useful for
+to show you how pico 8 is useful for rapid development of prototypes or other
+rapid development of prototypes or other small projects
+small projects so what is picoway
+so what is picoway pika08 describes itself as a fantasy
+pika08 describes itself as a fantasy console
+console essentially it's an all-in-one game
+essentially it's an all-in-one game creation suite that gives you a variety
+creation suite that gives you a variety of simple rapid development tools each
+of simple rapid development tools each of which has useful constraints to help
+of which has useful constraints to help you make games faster it also runs on
+you make games faster it also runs on basically everything you can see it has
+basically everything you can see it has a windows version and a raspberry pi
+a windows version and a raspberry pi version then a linux version and an osx
+version then a linux version and an osx version so
+version so chances are very good that you can
+chances are very good that you can probably work it into your workflow
+probably work it into your workflow somehow
+so it gives you a very simple sprite editing tool
+sprite editing tool uh wherein you can see right you can
+uh wherein you can see right you can very quickly mock up these little
+very quickly mock up these little sprites this here is a ninja and it has
+sprites this here is a ninja and it has 16 colors when a fairly low resolution
+16 colors when a fairly low resolution which allows you to fairly quickly make
+which allows you to fairly quickly make easily differentiated sprites but not
+easily differentiated sprites but not get too caught up in the details
+get too caught up in the details it has a very rapid tile map editor so
+it has a very rapid tile map editor so you can go from having a blank screen to
+you can go from having a blank screen to new platforms to jump around in and test
+new platforms to jump around in and test on very quickly the map itself is large
+on very quickly the map itself is large but not huge so you have some some
+but not huge so you have some some constraints there too enough to give you
+constraints there too enough to give you space to test things or make something
+space to test things or make something small but nothing too gigantic
+it has a very simple sound editing tool you can see here i select a sine wave
+you can see here i select a sine wave and then increase pitch over time to
+and then increase pitch over time to make a sort of simple jumping blue sound
+make a sort of simple jumping blue sound right
+right you can also select a variety of other
+you can also select a variety of other different sound effects and a four
+different sound effects and a four tracker different uh music editing tool
+tracker different uh music editing tool which allows you to import either these
+which allows you to import either these instruments that you've created or use
+instruments that you've created or use some default ones and very quickly make
+some default ones and very quickly make some music with different effects but
+some music with different effects but nothing too complicated
+it uses a subset of lua as its scripting language
+language so you get a rapid and human readable
+so you get a rapid and human readable code base
+code base that also is kept fairly small it has a
+that also is kept fairly small it has a c a token limit on the bottom right side
+c a token limit on the bottom right side of the little pico 8 screen there you
+of the little pico 8 screen there you can't have more than about 8 200 tokens
+can't have more than about 8 200 tokens which keeps things from getting too
+which keeps things from getting too bloated
+so pico 8 gives you a variety of simple low-level calls right an init function
+low-level calls right an init function an update function draw function things
+an update function draw function things to draw sprites to the screen or play
+to draw sprites to the screen or play sounds or show you the map
+sounds or show you the map so let's build on top of this and make a
+so let's build on top of this and make a little platformer now you could at this
+little platformer now you could at this point write a simple bespoke engine for
+point write a simple bespoke engine for whatever kind of game that you're trying
+whatever kind of game that you're trying to make and depending on your level of
+to make and depending on your level of experience or the nature of your idea or
+experience or the nature of your idea or your time frame this might be the right
+your time frame this might be the right idea for you but you don't actually need
+idea for you but you don't actually need to work from truly nothing if you want
+to work from truly nothing if you want to really get up and going faster
+any game that you load into a pico 8 console also gives you access to the
+console also gives you access to the full assets and source code of that game
+full assets and source code of that game if you run the install demos command you
+if you run the install demos command you get a variety of little sample games to
+get a variety of little sample games to learn from and build on
+learn from and build on like this little platformer here called
+like this little platformer here called gel pie or george lpl i'm not exactly
+gel pie or george lpl i'm not exactly sure
+sure and if your goal is just you know to
+and if your goal is just you know to build on top of something there
+build on top of something there like this demo platformer this might be
+like this demo platformer this might be all you need to do you might just
+all you need to do you might just install the demos load up the demo
+install the demos load up the demo platformer and start adding some new
+platformer and start adding some new stuff
+stuff and i do want to note here
+and i do want to note here that just because something is open
+that just because something is open source
+source doesn't mean you have the right to
+doesn't mean you have the right to modify it and publish it especially if
+modify it and publish it especially if this is somebody else's game
+this is somebody else's game that being said out of the way right
+that being said out of the way right the original celeste which was a pico8
+the original celeste which was a pico8 game its movement code has been released
+game its movement code has been released under an mit license so you are allowed
+under an mit license so you are allowed to distribute it or publish it or even
+to distribute it or publish it or even sell it as long as you also do so with
+sell it as long as you also do so with an mit license
+an mit license now celeste and its sequel celeste ii
+now celeste and its sequel celeste ii another pico8 game
+another pico8 game use a very simple and similar foundation
+use a very simple and similar foundation of collision
+of collision input handling drawing things to the
+input handling drawing things to the screen etc
+screen etc which works very well for a lot of
+which works very well for a lot of different kinds of games of the two i
+different kinds of games of the two i think celeste two's code base is a
+think celeste two's code base is a little bit clearer and easier to work in
+little bit clearer and easier to work in so
+so let's not go completely from scratch
+let's not go completely from scratch let's modify some of the basic
+let's modify some of the basic structures in the celeste 2 code base
+structures in the celeste 2 code base into our game to give us something to
+into our game to give us something to build on
+build on now we're not going to be using the
+now we're not going to be using the entire code base we're just going to be
+entire code base we're just going to be picking out the most useful portions of
+picking out the most useful portions of it the basic low-level stuff that we
+it the basic low-level stuff that we don't want to have to worry about when
+don't want to have to worry about when our goal is to iterate on ideas and
+our goal is to iterate on ideas and develop prototypes and a few places i'm
+develop prototypes and a few places i'm going to be making some modifications
+going to be making some modifications for this purpose as well as for
+for this purpose as well as for simplicity and i'll point those out when
+simplicity and i'll point those out when we get to them
+we get to them also uh before we move on i also want to
+also uh before we move on i also want to note celeste 2
+note celeste 2 is not under an mit license it's under a
+is not under an mit license it's under a creative commons license with all of
+creative commons license with all of these different attributes and you can't
+these different attributes and you can't sell it if you make a version of this
+sell it if you make a version of this game and then put it on the internet
+game and then put it on the internet just a little note here
+just a little note here okay
+okay so
+so we need some assets just to mess around
+we need some assets just to mess around with right so we can see here we've
+with right so we can see here we've built up a few very simple assets we
+built up a few very simple assets we have a target we have a shuriken we have
+have a target we have a shuriken we have a little ninja we have a platform and i
+a little ninja we have a platform and i want to take a brief moment to point you
+want to take a brief moment to point you at flags so you'll see here next to the
+at flags so you'll see here next to the target right there's all those little
+target right there's all those little dots
+dots and one of the dots is red
+and one of the dots is red that means that that flag is currently
+that means that that flag is currently turned on
+turned on there are seven of the eight of them
+there are seven of the eight of them right zero through seven
+right zero through seven and we're going to be using that later
+and we're going to be using that later the flags on them by themselves don't do
+the flags on them by themselves don't do anything these are user defined
+anything these are user defined this is just a way of us saying okay
+this is just a way of us saying okay does this sprite have that flag great do
+does this sprite have that flag great do something about it we can set these and
+something about it we can set these and check them in code as well but i'm set
+check them in code as well but i'm set one here for a purpose that we're going
+one here for a purpose that we're going to get into later just remember that the
+to get into later just remember that the target and the ninja both have flag zero
+target and the ninja both have flag zero set
+so to start things off right at the top of our code we have a few different
+of our code we have a few different globals right we have our table of
+globals right we have our table of objects and a table of types in the
+objects and a table of types in the table that's called lookup
+table that's called lookup the table is the most useful and
+the table is the most useful and flexible data structure in lua you're
+flexible data structure in lua you're going to be using it all the time
+going to be using it all the time your tables are going to be your arrays
+your tables are going to be your arrays they're going to be
+they're going to be just all of your structs are going to be
+just all of your structs are going to be tables right everything's tables
+tables right everything's tables and the lookup function for the lookup
+and the lookup function for the lookup table here which is i think the most
+table here which is i think the most interesting of the three is something
+interesting of the three is something that we're using as a lua meta table to
+that we're using as a lua meta table to enable object-oriented style inheritance
+enable object-oriented style inheritance and if that sentence doesn't mean
+and if that sentence doesn't mean anything to you that's okay don't worry
+anything to you that's okay don't worry about it it's all pretty simple to use
+about it it's all pretty simple to use you don't need to understand this to use
+you don't need to understand this to use it
+it as well as that we've
+as well as that we've stretched up a few basic
+stretched up a few basic references to the buttons here
+references to the buttons here right so we don't want to have to
+right so we don't want to have to remember which button is left and which
+remember which button is left and which button is x and which button is o we can
+button is x and which button is o we can just set a few const here this is also
+just set a few const here this is also uh adapted from the celeste one code
+uh adapted from the celeste one code base where this was present and is
+base where this was present and is notably absent from these solus 2 code
+notably absent from these solus 2 code base
+base so everything in our game is going to be
+so everything in our game is going to be an object and if you are familiar with
+an object and if you are familiar with object oriented game programming this is
+object oriented game programming this is going to look very familiar to you i
+going to look very familiar to you i also want to note you don't have to make
+also want to note you don't have to make your game object oriented it's just very
+your game object oriented it's just very easy to work in and comfortable for many
+easy to work in and comfortable for many different game developers
+different game developers so our objects have a series of shared
+so our objects have a series of shared attributes they have a speed in the x
+attributes they have a speed in the x and y direction they have a position
+and y direction they have a position they have an a unique identifier based
+they have an a unique identifier based on where on the map they spawned
+on where on the map they spawned as well as a few other little notable
+as well as a few other little notable things here
+things here uh they have some collisions which are
+uh they have some collisions which are going to get into exactly how the
+going to get into exactly how the collision engine of celeste ii and
+collision engine of celeste ii and similarly how celeste works and why that
+similarly how celeste works and why that may or may not be useful for your game
+may or may not be useful for your game but each object has access to those
+but each object has access to those collision and movement functions
+collision and movement functions they can see if they overlap or contain
+they can see if they overlap or contain another thing they can see if they are
+another thing they can see if they are solid right there's a helpful function
+solid right there's a helpful function called corner correct so if an object is
+called corner correct so if an object is moving and would just barely bump the
+moving and would just barely bump the edge of another tile you can sort of
+edge of another tile you can sort of nudge it upwards or downwards slightly
+nudge it upwards or downwards slightly to give it a more natural movement path
+to give it a more natural movement path i also want to note here
+i also want to note here that each object has a user-defined
+that each object has a user-defined hitbox which is an offset from that
+hitbox which is an offset from that object's position and width and height
+object's position and width and height this allows you to have certain objects
+this allows you to have certain objects have a hitbox which is differently sized
+have a hitbox which is differently sized than their sprite might imply so you can
+than their sprite might imply so you can have a hazard be a little bit smaller
+have a hazard be a little bit smaller than it looks on the screen you can have
+than it looks on the screen you can have a collectible pickup be a little bit
+a collectible pickup be a little bit bigger than it looks on the screen
+bigger than it looks on the screen etc right here you can see i have drawn
+etc right here you can see i have drawn the hitboxes of uh celeste ii i booted
+the hitboxes of uh celeste ii i booted up a level and i added a little bit of
+up a level and i added a little bit of code to just draw all of the hitboxes
+code to just draw all of the hitboxes and you can see some of them are larger
+and you can see some of them are larger than their sprites some of them are
+than their sprites some of them are smaller you can see the spikes have very
+smaller you can see the spikes have very little little hit boxes right feel more
+little little hit boxes right feel more fair
+fair and the player's hit box is just sort of
+and the player's hit box is just sort of this bottom rectangle
+this bottom rectangle now the way that the collision works in
+now the way that the collision works in this little engine that we we're working
+this little engine that we we're working on here that we've adapted from celeste
+on here that we've adapted from celeste 2 is pixel perfect so each object
+2 is pixel perfect so each object as it's moving moves one pixel at a time
+as it's moving moves one pixel at a time first in the x direction then the y
+first in the x direction then the y direction
+direction and checks to see if it's hitting
+and checks to see if it's hitting anything on the way this is going to
+anything on the way this is going to give us extremely accurate
+give us extremely accurate pixel perfect collision and very very
+pixel perfect collision and very very robust collision at that it's unlikely
+robust collision at that it's unlikely that two objects are going to out of
+that two objects are going to out of happenstance be overlapping when they
+happenstance be overlapping when they shouldn't be with this engine however
+shouldn't be with this engine however i do want to stress here
+i do want to stress here that this is great for precise
+that this is great for precise platforming and it's great for really
+platforming and it's great for really precise collision detection but it's
+precise collision detection but it's very expensive
+very expensive by which i mean it takes a lot of
+by which i mean it takes a lot of computation time
+computation time so if your game doesn't rely on really
+so if your game doesn't rely on really precise collisions between objects you
+precise collisions between objects you may want to use a cheaper collision
+may want to use a cheaper collision model the platformer that you get when
+model the platformer that you get when you install the demos for pico 8 has a
+you install the demos for pico 8 has a much simpler
+much simpler version of this where instead of moving
+version of this where instead of moving one pixel at a time it simply checks if
+one pixel at a time it simply checks if your end position is somewhere you are
+your end position is somewhere you are allowed to be and if it is it moves you
+allowed to be and if it is it moves you there and if it isn't it creates a
+there and if it isn't it creates a bounce so that you would sort of bounce
+bounce so that you would sort of bounce off the edge of whatever
+off the edge of whatever you were trying to move into and this is
+you were trying to move into and this is also you know robust enough this works
+also you know robust enough this works fine for a lot of different kinds of
+fine for a lot of different kinds of games and if your prototype needs lots
+games and if your prototype needs lots and lots of different objects on screen
+and lots of different objects on screen at the same time all moving around and
+at the same time all moving around and detecting collisions you may want to
+detecting collisions you may want to consider this alternate collision
+consider this alternate collision version instead of the
+version instead of the more intensive but more accurate pixel
+more intensive but more accurate pixel perfect version
+oh also one other note before we leave this slide there's a
+this slide there's a flag here called remainder this allows
+flag here called remainder this allows you to make sure in this engine you're
+you to make sure in this engine you're moving only an integer number of
+moving only an integer number of collisions per frame so if you're moving
+collisions per frame so if you're moving at a speed of 2.5 first you move at a
+at a speed of 2.5 first you move at a speed of two the next frame you move at
+speed of two the next frame you move at a speed of three it carries over a
+a speed of three it carries over a little bit of the non-integer portions
+little bit of the non-integer portions of your movement speed to really make
+of your movement speed to really make sure you have clean collisions because
+sure you have clean collisions because you don't want the player moving half a
+you don't want the player moving half a pixel and messing up all of your math
+inputs are handled fairly simply uh we have this large block here it looks kind
+have this large block here it looks kind of scary but really it's just saying if
+of scary but really it's just saying if you push left you're moving left and you
+you push left you're moving left and you push right you're moving right even if
+push right you're moving right even if you were already pushing another
+you were already pushing another direction
+direction this works very cleanly
+this works very cleanly uh also notably we have a quick check
+uh also notably we have a quick check for your jump we want to make sure that
+for your jump we want to make sure that you're not jumping too frequently
+you're not jumping too frequently because that might feel strange so you
+because that might feel strange so you can only jump every four frames
+can only jump every four frames basically if you're not already jumping
+basically if you're not already jumping you know if you haven't you haven't just
+you know if you haven't you haven't just jumped and you push the button
+jumped and you push the button great jump as to how and why you're
+great jump as to how and why you're allowed to jump that's handled later in
+allowed to jump that's handled later in the player code
+the player code speaking of that the player code has
+speaking of that the player code has been greatly simplified from the celeste
+been greatly simplified from the celeste ii original version we've essentially
+ii original version we've essentially stripped away everything from it except
+stripped away everything from it except a basic jump and move around and
+a basic jump and move around and collision update
+collision update i have chosen to keep the wall jump from
+i have chosen to keep the wall jump from celeste 2 because i think it's just sort
+celeste 2 because i think it's just sort of a fun flexible mechanic
+of a fun flexible mechanic excuse me
+excuse me and it'll work well in the kind of games
+and it'll work well in the kind of games that we want to test out we may want to
+that we want to test out we may want to wall jump anyway and if you wanted to
+wall jump anyway and if you wanted to remove it it wouldn't be hard to remove
+remove it it wouldn't be hard to remove the player notably has a state
+the player notably has a state which is
+which is key to how its update function works so
+key to how its update function works so the player's default state is 0 which is
+the player's default state is 0 which is our standard moving around and jumping
+our standard moving around and jumping state if you want a different set of
+state if you want a different set of updates to happen on a different state
+updates to happen on a different state let's say for example you wanted the
+let's say for example you wanted the player to be able to swim
+player to be able to swim that is going to change how they update
+that is going to change how they update their movement over time it's going to
+their movement over time it's going to change what happens when you get a jump
+change what happens when you get a jump input right these are things you can
+input right these are things you can handle very easily and very quickly by
+handle very easily and very quickly by adding a new state to the player that
+adding a new state to the player that does what you want it to do and then
+does what you want it to do and then adding a transition between the two
+adding a transition between the two states we're going to be getting into
+states we're going to be getting into more of that later
+more of that later we also have a brief check here called
+we also have a brief check here called hazard check so if any object in the
+hazard check so if any object in the world is flagged as a hazard we can know
+world is flagged as a hazard we can know in what direction it should be a hazard
+in what direction it should be a hazard and enable ourselves to
+and enable ourselves to be you know correctly hurt by it when
+be you know correctly hurt by it when that happens
+that happens otherwise we have the same sort of move
+otherwise we have the same sort of move x move y
+x move y and uh a simple flag called on ground
+and uh a simple flag called on ground which looks one pixel below the player's
+which looks one pixel below the player's current hitbox to see if that is a solid
+current hitbox to see if that is a solid object if it is you are on the ground
+object if it is you are on the ground you are allowed to jump and do grounded
+you are allowed to jump and do grounded things
+things so at the very beginning of our game we
+so at the very beginning of our game we need to spawn in some objects this is a
+need to spawn in some objects this is a very simple little code that looks at
+very simple little code that looks at every tile on the map we're going all
+every tile on the map we're going all 127 across and all 60 you know 128 over
+127 across and all 60 you know 128 over 0 to 127 and all 64 down
+0 to 127 and all 64 down looking at every tile on the map and
+looking at every tile on the map and we're calling two different functions
+we're calling two different functions and get tells us what sprite is at the
+and get tells us what sprite is at the tile position x y
+tile position x y and f get tells us if a sprite has a
+and f get tells us if a sprite has a particular flag so this looks at every
+particular flag so this looks at every different
+different tile location on the map and it sees if
+tile location on the map and it sees if anything has
+anything has flag zero
+flag zero if it does that means that that should
+if it does that means that that should spawn an object of the relevant type and
+spawn an object of the relevant type and shouldn't actually be a tile on the map
+shouldn't actually be a tile on the map so simply put if we find something which
+so simply put if we find something which is a target and it has a little zero
+is a target and it has a little zero flag
+flag spawn a target in that location and then
+spawn a target in that location and then get rid of the background tile that
+get rid of the background tile that looks like a target
+looks like a target right very simple very flexible again
+right very simple very flexible again most of the code and structure of this
+most of the code and structure of this code is useful for lots of different
+code is useful for lots of different kinds of games besides platformers
+kinds of games besides platformers it's just generically this is a i think
+it's just generically this is a i think a helpful structure for you to adapt in
+a helpful structure for you to adapt in your prototypes
+your prototypes so putting it all together
+so putting it all together we've taken the celeste ii code base and
+we've taken the celeste ii code base and stripped out everything from it that we
+stripped out everything from it that we don't need and put it into a new project
+don't need and put it into a new project you can see we've shrunk the number of
+you can see we've shrunk the number of tokens in our code from almost 8 000 to
+tokens in our code from almost 8 000 to about 1700 give or take
+about 1700 give or take and we have some basic movement right we
+and we have some basic movement right we can run around we correctly uh enter do
+can run around we correctly uh enter do not intersect with the wall tiles we can
+not intersect with the wall tiles we can wall jump
+wall jump this is all fairly stable feels pretty
+this is all fairly stable feels pretty good to move around in and of course if
+good to move around in and of course if we wanted to tweak the jump arcs or
+we wanted to tweak the jump arcs or gravity or the movement speed or
+gravity or the movement speed or whatever we could do that very easily
+whatever we could do that very easily so now
+so now let's build on top of that right we're
+let's build on top of that right we're here to make a platformer so let's make
+here to make a platformer so let's make a platformer let's iterate on this idea
+a platformer let's iterate on this idea so let's add some shurikens right our
+so let's add some shurikens right our ninja has no way of actually interacting
+ninja has no way of actually interacting with the targets right now so let's add
+with the targets right now so let's add a simple type right we have a new type
+a simple type right we have a new type it's called shuriken and creating it is
+it's called shuriken and creating it is very easy you can see we just invoke the
+very easy you can see we just invoke the new type function and its initialization
+new type function and its initialization is very simple we just want it to get
+is very simple we just want it to get rid of itself if it hangs out in the
+rid of itself if it hangs out in the world for too long right after you throw
+world for too long right after you throw a shuriken
+a shuriken one second later in a 30 frame per
+one second later in a 30 frame per second game which is the default update
+second game which is the default update if 30 frames have passed and this
+if 30 frames have passed and this hurricane is still around it shouldn't
+hurricane is still around it shouldn't be around anymore
+be around anymore so
+so all we have to do is move it in its
+all we have to do is move it in its directions in its little custom update
+directions in its little custom update and check to see if it overlapped a
+and check to see if it overlapped a target right if it is overlapping with
+target right if it is overlapping with an object and that object's base is
+an object and that object's base is target which is another defined type
+target which is another defined type that you can see below the jurican type
+that you can see below the jurican type then destroy the target and destroy
+then destroy the target and destroy yourself
+yourself right
+right or or more accurately set the destroyed
+or or more accurately set the destroyed flag to be true of the target and the
+flag to be true of the target and the destroyed flag to be true of yourself to
+destroyed flag to be true of yourself to be later cleaned up in the update
+be later cleaned up in the update function
+function otherwise we need to go update the
+otherwise we need to go update the player right similarly
+player right similarly similarly to how we are updating jumping
+similarly to how we are updating jumping and detecting jumping input we add
+and detecting jumping input we add another function here that takes it a
+another function here that takes it a quick check to see if you're pushing
+quick check to see if you're pushing another button right we have the button
+another button right we have the button which isn't jumping which i called k
+which isn't jumping which i called k other in this case which we're now going
+other in this case which we're now going to use for a weapon
+to use for a weapon so if you push the weapon button and i
+so if you push the weapon button and i want you to be able to throw shurikens
+want you to be able to throw shurikens more rapidly than jump so you can do
+more rapidly than jump so you can do this every other frame
+this every other frame then you know now you are considered to
+then you know now you are considered to have your input weapon pressed and later
+have your input weapon pressed and later we have a in the update we're to see if
+we have a in the update we're to see if you're pushing that button and if you
+you're pushing that button and if you are we're going to throw a shuriken and
+are we're going to throw a shuriken and throwing a shuriken is very simple if
+throwing a shuriken is very simple if you are facing in the direction it
+you are facing in the direction it spawns the shuriken in front of you and
+spawns the shuriken in front of you and then gives it a speed related to your
+then gives it a speed related to your speed so if you're running forward
+speed so if you're running forward throwing a shuriken it behaves how you
+throwing a shuriken it behaves how you expect it to
+expect it to and uh and and so right
+so now we can throw shurikens right there's a little ninja he's hopping
+there's a little ninja he's hopping around and he's throwing shurikens isn't
+around and he's throwing shurikens isn't that great and uh those shurikens
+that great and uh those shurikens interact with targets and if you wanted
+interact with targets and if you wanted to right we could also add sound effects
+to right we could also add sound effects to this pretty easily we could add a
+to this pretty easily we could add a sound effect for throwing a shuriken and
+sound effect for throwing a shuriken and then sound effects for blowing up a
+then sound effects for blowing up a target we could add sound effect for
+target we could add sound effect for jumping these would all be very fast to
+jumping these would all be very fast to do right this is very very rapid
+do right this is very very rapid iteration at this point but throwing
+iteration at this point but throwing shurikens is great but that's not
+shurikens is great but that's not movement let's add some cool movement as
+movement let's add some cool movement as well right so let's add uh ice skating
+well right so let's add uh ice skating right
+right so think like frozone or iceman right
+so think like frozone or iceman right they can they can hang out in the air
+they can they can hang out in the air and skate on a sheet of ice what does
+and skate on a sheet of ice what does that actually look like well
+that actually look like well if they're moving downwards right if
+if they're moving downwards right if you're falling then you can convert that
+you're falling then you can convert that speed over 10 frames you can move your
+speed over 10 frames you can move your vertical speed into horizontal speed
+vertical speed into horizontal speed and that works pretty well
+and that works pretty well but it also doesn't really sell the
+but it also doesn't really sell the illusion on itself so we're also adding
+illusion on itself so we're also adding one other set of small changes
+one other set of small changes we're adding icicles icicles are not
+we're adding icicles icicles are not objects in this case
+objects in this case they are simply points that we keep
+they are simply points that we keep track of and with an age right so every
+track of and with an age right so every icicle just has a point on the map
+icicle just has a point on the map and then it as it gets older it gets
+and then it as it gets older it gets longer
+longer and it has a bit of randomness in there
+and it has a bit of randomness in there too to make the icicle path look a bit
+too to make the icicle path look a bit more like natural instead of a big sheet
+more like natural instead of a big sheet although again if you wanted to make it
+although again if you wanted to make it a big sheet you can make it a big sheet
+a big sheet you can make it a big sheet the only other note that we should uh
+the only other note that we should uh track here for the icicles is if you
+track here for the icicles is if you just put one at each position if you're
+just put one at each position if you're moving it faster than one pixel per
+moving it faster than one pixel per frame then you'd have holes in your ice
+frame then you'd have holes in your ice path so you need to make sure you
+path so you need to make sure you iterate your ice path over the entirety
+iterate your ice path over the entirety of your movement
+of your movement right and there's a few other little
+right and there's a few other little changes to make right we have an ice
+changes to make right we have an ice skating state which uh if you're
+skating state which uh if you're you know if you let go of the button
+you know if you let go of the button then you uh then you stop skating if you
+then you uh then you stop skating if you uh hit the ground you stop skating right
+uh hit the ground you stop skating right all this all this stuff
+all this all this stuff so now you can skate around right now
+so now you can skate around right now you can hop off a wall and start skating
+you can hop off a wall and start skating and you can still throw shurikens right
+and you can still throw shurikens right we've even moved the shuriken throwing
+we've even moved the shuriken throwing code to outside of the zero update and
+code to outside of the zero update and into the generic player update right you
+into the generic player update right you can even skate backwards if you want to
+can even skate backwards if you want to and this is pretty cool and now we can
+and this is pretty cool and now we can start iterating level designs off of
+start iterating level designs off of this right what happens now that you can
+this right what happens now that you can skate on ice well because you have this
+skate on ice well because you have this fairly controlled horizontal movement
+fairly controlled horizontal movement you can have this ladder-like structure
+you can have this ladder-like structure right you can very easily sort of climb
+right you can very easily sort of climb up objects if you have access to enough
+up objects if you have access to enough right you could theoretically you could
+right you could theoretically you could do an infinite wall jump uh if you
+do an infinite wall jump uh if you wanted to you could actually set
+wanted to you could actually set a limit to this you know you could not
+a limit to this you know you could not have an infinite amount of ice skating
+have an infinite amount of ice skating but a limited amount of ice skating or
+but a limited amount of ice skating or increase that if you pick up an object
+increase that if you pick up an object or whatever right iterate just have fun
+or whatever right iterate just have fun with it have just mess around the idea
+with it have just mess around the idea at this point now that you have the
+at this point now that you have the basic structure
+basic structure i also want to take a note though right
+i also want to take a note though right what we did is essentially go through
+what we did is essentially go through the celeste ii codebase and take the
+the celeste ii codebase and take the portions of it that we think are most
+portions of it that we think are most useful for our game
+useful for our game and strip it away and and port it into a
+and strip it away and and port it into a new cart and make it from scratch you
+new cart and make it from scratch you don't actually have to do that if you
+don't actually have to do that if you don't want to because remember if you
+don't want to because remember if you load celeste 2
+load celeste 2 into pico 8
+into pico 8 then you can just modify it
+then you can just modify it so
+so what if you want to do that right what
+what if you want to do that right what if you want to just load celeste 2 right
+if you want to just load celeste 2 right into your pico 8 console and start
+into your pico 8 console and start modifying it immediately
+modifying it immediately uh there's a few small changes to make
+uh there's a few small changes to make here you add a little flag at the top
+here you add a little flag at the top that says standalone equals one this is
+that says standalone equals one this is something that was already present in
+something that was already present in the code base and allows you to have
+the code base and allows you to have better interactions with the map as
+better interactions with the map as opposed to the uh compressed tile data
+opposed to the uh compressed tile data that it was originally ingesting so by
+that it was originally ingesting so by doing this you can just
+doing this you can just modify the map and sort of the upper
+modify the map and sort of the upper left corner
+left corner and start drawing things out
+and start drawing things out we also need to create the player
+we also need to create the player because again we're no longer loading
+because again we're no longer loading our levels in the original kind of way
+our levels in the original kind of way so in the init just put the player
+so in the init just put the player somewhere i put them at 30 30.
+somewhere i put them at 30 30. also you can remove all the grappling
+also you can remove all the grappling hook stuff because presumably you're not
+hook stuff because presumably you're not here to test out the celeste ii
+here to test out the celeste ii grappling hook you're here to test out
+grappling hook you're here to test out your own new movement so you can just
+your own new movement so you can just remove that stuff and the decompression
+remove that stuff and the decompression i want to note here that the code you're
+i want to note here that the code you're seeing
+seeing is not right taken right from the picoa
+is not right taken right from the picoa console it's actually taken from visual
+console it's actually taken from visual studio
+studio or vsc visual studio code in the back
+or vsc visual studio code in the back end a pico8 file is just a long text
+end a pico8 file is just a long text file so you can edit it with whatever
+file so you can edit it with whatever tools you usually like to edit your code
+tools you usually like to edit your code and then simply reload the game in pico8
+and then simply reload the game in pico8 and it'll load in your changes right
+and it'll load in your changes right very simple to integrate into your
+very simple to integrate into your workflow you don't actually have to use
+workflow you don't actually have to use the text editor present in pico8 if you
+the text editor present in pico8 if you don't want to
+don't want to so you remove you remove the grappling
+so you remove you remove the grappling hook stuff right you remove all this
+hook stuff right you remove all this this stuff that you don't need now we
+this stuff that you don't need now we can add some new stuff right let's
+can add some new stuff right let's modify it let's let's uh change things
+modify it let's let's uh change things up
+up so let's add cling to ceilings that's
+so let's add cling to ceilings that's kind of a fun idea i don't think i've
+kind of a fun idea i don't think i've seen that in a lot of games some games
+seen that in a lot of games some games yeah sort of a ninja like move where you
+yeah sort of a ninja like move where you cling to a ceiling move around
+cling to a ceiling move around so what does that look like well if
+so what does that look like well if you're in the air and you're holding up
+you're in the air and you're holding up then you should be clinging to a ceiling
+then you should be clinging to a ceiling if you are next to a ceiling so we check
+if you are next to a ceiling so we check two pixels above the player's hit box
+two pixels above the player's hit box and
+and then if that's solid and you're holding
+then if that's solid and you're holding up great you're clinging to the ceiling
+up great you're clinging to the ceiling we add a new state that says
+we add a new state that says if you're still uh below a ceiling right
+if you're still uh below a ceiling right if that ceiling hasn't stopped existing
+if that ceiling hasn't stopped existing or if you haven't moved away from it
+or if you haven't moved away from it you're still clinging to the ceiling
+you're still clinging to the ceiling and you can also move around left and
+and you can also move around left and right if you're on the ceiling if you
+right if you're on the ceiling if you let go of the button you shouldn't be
+let go of the button you shouldn't be clinging anymore right this is this is
+clinging anymore right this is this is all it is a really small code change to
+all it is a really small code change to make this new behavior
+make this new behavior and now we can just jump and cling to
+and now we can just jump and cling to ceilings right
+ceilings right pretty easy pretty pretty clean right
+pretty easy pretty pretty clean right didn't take very long at all to go from
+didn't take very long at all to go from load up celeste 2 to add this new
+load up celeste 2 to add this new different movement option but why stop
+different movement option but why stop at one right let's keep going let's add
+at one right let's keep going let's add some more stuff
+some more stuff let's add hang gliding so what does that
+let's add hang gliding so what does that look like well we have a hang gliding
+look like well we have a hang gliding sprite which you can see has a little
+sprite which you can see has a little hang glider and the poles and lonnie's
+hang glider and the poles and lonnie's little hands holding onto the hang
+little hands holding onto the hang glider which we're going to just draw
+glider which we're going to just draw right on top of lonnie as long as he is
+right on top of lonnie as long as he is hang glider
+hang glider so you can see
+so you can see that we just add a new state
+that we just add a new state called you know we call it hang gliding
+called you know we call it hang gliding and it has a very simple movement code
+and it has a very simple movement code it simply accelerates you in the x
+it simply accelerates you in the x direction
+direction and ever so slightly dips you down over
+and ever so slightly dips you down over time right that's all it is this is all
+time right that's all it is this is all of the code that you need to add this
+of the code that you need to add this new movement option now that you have
+new movement option now that you have the engine
+the engine right and how does it look like well it
+right and how does it look like well it looks like this right if you're in the
+looks like this right if you're in the air and you push the hang gliding button
+air and you push the hang gliding button now you're hang gliding right and you
+now you're hang gliding right and you can even use the two of them you can
+can even use the two of them you can hang glide off of stuff and you can grab
+hang glide off of stuff and you can grab onto ceilings so what does it look like
+onto ceilings so what does it look like if you have both those things right what
+if you have both those things right what kinds of levels can you make with these
+kinds of levels can you make with these two sets of mechanics well maybe you
+two sets of mechanics well maybe you could do something like this right we
+could do something like this right we have a series of horizontally focused
+have a series of horizontally focused different
+different areas for your platform through right
+areas for your platform through right you have some spikes around there and
+you have some spikes around there and they're differently traversed with
+they're differently traversed with combinations of these two mechanics
+combinations of these two mechanics all right you can continue to modify
+all right you can continue to modify this right maybe you need one upgrade
+this right maybe you need one upgrade first and then you go get the other one
+first and then you go get the other one maybe
+maybe uh you have enemies that you need to
+uh you have enemies that you need to glide around right you just set those as
+glide around right you just set those as hazards in the code and give them some
+hazards in the code and give them some movement you can even have them have
+movement you can even have them have access to the player if you want to to
+access to the player if you want to to be able to track them right maybe you
+be able to track them right maybe you want moving platforms that's pretty easy
+want moving platforms that's pretty easy too you just make sure that your
+too you just make sure that your platforms that can move are listed as
+platforms that can move are listed as solid and that's going to satisfy the
+solid and that's going to satisfy the constraints that we're using to check to
+constraints that we're using to check to see if you can grab onto a ceiling right
+see if you can grab onto a ceiling right very easy to iterate on from here
+very easy to iterate on from here so you've at this point let's say you've
+so you've at this point let's say you've made your first pass your prototype
+made your first pass your prototype right you have an idea and you've
+right you have an idea and you've executed it in pico 8 in some form and
+executed it in pico 8 in some form and you want to share it with either other
+you want to share it with either other team members or you want to get player
+team members or you want to get player feedback to see how it feels right
+feedback to see how it feels right how do you do that how do you share your
+how do you do that how do you share your game
+game it's it's quite easy
+it's it's quite easy so you can run a command that says save
+so you can run a command that says save the names your game dot png this saves
+the names your game dot png this saves it in a cart right pico 8 cart is just a
+it in a cart right pico 8 cart is just a very very small png file that you can
+very very small png file that you can load into a pico 8 console you can see
+load into a pico 8 console you can see here all of the modified celeste 2 here
+here all of the modified celeste 2 here that i didn't remove a lot of stuff from
+that i didn't remove a lot of stuff from i removed the grappling hook from
+i removed the grappling hook from and i removed the compression tools from
+and i removed the compression tools from and i added some other stuff that's 36
+and i added some other stuff that's 36 kilobytes all together it's a very very
+kilobytes all together it's a very very very small file
+very small file and this can be loaded into any picoa
+and this can be loaded into any picoa console by using the load command or
+console by using the load command or just by clicking and dragging the file
+just by clicking and dragging the file into the console and then hit control r
+into the console and then hit control r that'll load it and then you can just
+that'll load it and then you can just you're off to the races now you can go
+you're off to the races now you can go right
+right but if you want to share it with other
+but if you want to share it with other people who are not internal or who don't
+people who are not internal or who don't have pico 8 or for whatever reason if
+have pico 8 or for whatever reason if you don't want the code that you're
+you don't want the code that you're sharing around to be viewable right if
+sharing around to be viewable right if you don't want people to have access to
+you don't want people to have access to the source there are other ways of doing
+the source there are other ways of doing it too
+it too you can export it as a web page right
+you can export it as a web page right export your thing dot html it spits out
+export your thing dot html it spits out an html file in a javascript file and
+an html file in a javascript file and now you can host this on itch.io for
+now you can host this on itch.io for people to play you can hand this to
+people to play you can hand this to anybody to open in a web browser
+anybody to open in a web browser if you have an internal company website
+if you have an internal company website you can host it on your internal company
+you can host it on your internal company website and tell your fellow employees
+website and tell your fellow employees to go check out your uh your network
+to go check out your uh your network website and then they can just go play
+website and then they can just go play it and give you feedback right and
+it and give you feedback right and there's a full
+there's a full web integration player for pico 8 files
+web integration player for pico 8 files but if you also don't want to do that
+but if you also don't want to do that right if you just want to give them
+right if you just want to give them executable you can just give them an
+executable you can just give them an executable you just export something dot
+executable you just export something dot bin and it generates an executable for
+bin and it generates an executable for any kind of platform you're likely to be
+any kind of platform you're likely to be running it on it's got a linux version
+running it on it's got a linux version and an osx version and a windows version
+and an osx version and a windows version you just give them the zip file and in
+you just give them the zip file and in there is your executable and then they
+there is your executable and then they can just play right
+can just play right it's just compiled code so
+it's just compiled code so i do want to note here that there are
+i do want to note here that there are some kinds of games
+some kinds of games which
+which are not especially fast the prototype in
+are not especially fast the prototype in picoa right
+picoa right 3d games like this is a version of doom
+3d games like this is a version of doom called poom uh that somebody made in
+called poom uh that somebody made in picoad is actually a small team of
+picoad is actually a small team of people over a long period of time a lot
+people over a long period of time a lot of work to make this very very cool
+of work to make this very very cool thing
+thing and it works great but
+and it works great but this is not their rapid development
+this is not their rapid development right this this took a lot of work to
+right this this took a lot of work to make happen so these kinds of 3d games
+make happen so these kinds of 3d games uh you can see similarly we have a port
+uh you can see similarly we have a port of virtual racing right
+of virtual racing right also perfectly possible very doable in
+also perfectly possible very doable in pico8 ignore my terrible play here for a
+pico8 ignore my terrible play here for a moment but you can see there are you
+moment but you can see there are you know basic polygons and there's a really
+know basic polygons and there's a really cool dithering effect and you have a
+cool dithering effect and you have a little modeled car and he moves around
+little modeled car and he moves around right all very possible but a lot of
+right all very possible but a lot of work uh and probably not fast for your
+work uh and probably not fast for your prototyping the other notable limitation
+prototyping the other notable limitation is text based hey games or text heavy
+is text based hey games or text heavy games this is a pico egg cart that has
+games this is a pico egg cart that has the first three chapters of a tale of
+the first three chapters of a tale of two cities which works fine but requires
+two cities which works fine but requires a bit of a bit of finagling so if you're
+a bit of a bit of finagling so if you're planning to just write your strings
+planning to just write your strings right in the code as raw data and you
+right in the code as raw data and you need a lot of them like a lot a lot of
+need a lot of them like a lot a lot of them maybe consider additional or
+them maybe consider additional or different tooling
+different tooling so to wrap things up i use pico8 pico8
+so to wrap things up i use pico8 pico8 gives you really useful constraints for
+gives you really useful constraints for making your prototypes making them
+making your prototypes making them really really quickly and making them in
+really really quickly and making them in a way that's very easy to share and
+a way that's very easy to share and export with other people
+export with other people anybody can play your picoweight game
+anybody can play your picoweight game once you've made it
+once you've made it uh so thank you all so much for coming
+uh so thank you all so much for coming right click there uh my name is matt
+right click there uh my name is matt lindsey you can find me on twitter if
+lindsey you can find me on twitter if you want to talk to me about picoac or
+you want to talk to me about picoac or anything else i'm at matt lindsey
+anything else i'm at matt lindsey this talk was largely developed from a
+this talk was largely developed from a development blog i'm
+development blog i'm writing for a little pico 8 game i'm
+writing for a little pico 8 game i'm making called ball ninja and if you want
+making called ball ninja and if you want to read about that or other pico 8
+to read about that or other pico 8 development things as i work on them um
+development things as i work on them um if you want to see this project as it
+if you want to see this project as it goes on you can just go to ball.ninja
+goes on you can just go to ball.ninja which is also where i'm going to upload
+which is also where i'm going to upload the carts i made specifically for this
+the carts i made specifically for this presentation if you want to play with
+presentation if you want to play with them yourselves
+them yourselves thank you all so much for coming i've
+thank you all so much for coming i've been matt lindsey i hope you all have a
+been matt lindsey i hope you all have a good gdc it's been an honor to be here
+good gdc it's been an honor to be here thank you all so much
+thank you all so much bye

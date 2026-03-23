@@ -1,0 +1,895 @@
+[Music] [Applause]
+[Applause] hey
+hey so like dave mentioned uh this is not
+so like dave mentioned uh this is not actually a talk about utility
+actually a talk about utility ai from the content creation standpoint
+ai from the content creation standpoint this is a talk about utility ai
+this is a talk about utility ai from the content creators standpoint and
+from the content creators standpoint and where this all came from was about a
+where this all came from was about a year ago after gdc
+year ago after gdc i had this inkling of wanting to make a
+i had this inkling of wanting to make a tool
+tool that could turn utility ai into
+that could turn utility ai into something that was intuitive and
+something that was intuitive and accessible
+accessible for the average ai developer um this was
+for the average ai developer um this was partially
+partially selfishly motivated i had a lot of
+selfishly motivated i had a lot of designers at arenanet
+designers at arenanet that were working with utility ai
+that were working with utility ai projects that dave and i had done there
+projects that dave and i had done there and other things like that
+and other things like that and there were a lot of gaps in the
+and there were a lot of gaps in the education there
+education there there's a lot of other ai developers
+there's a lot of other ai developers especially in places like the ai summit
+especially in places like the ai summit at gdc
+at gdc where i had conversations with people
+where i had conversations with people about how they had difficulty with
+about how they had difficulty with educating designers or even programmers
+educating designers or even programmers about how utility ai is supposed to work
+about how utility ai is supposed to work so there's a specific challenge that
+so there's a specific challenge that keeps coming up in the guild wars 2
+keeps coming up in the guild wars 2 franchise which is
+franchise which is probably easiest to summarize as why the
+probably easiest to summarize as why the hell does my ai do that thing
+hell does my ai do that thing he's supposed to do this thing so the
+he's supposed to do this thing so the fact that we keep
+fact that we keep facing this question over and over
+facing this question over and over signals to me that our tools need to be
+signals to me that our tools need to be better
+better uh we need to be better about creating
+uh we need to be better about creating tools for rapid iteration and
+tools for rapid iteration and prototyping
+prototyping but we also need to be better about
+but we also need to be better about creating tools for debugging
+creating tools for debugging so curvature is a standalone tool and
+so curvature is a standalone tool and that might sound like a strange decision
+that might sound like a strange decision uh since we
+uh since we already have a game engine with a bunch
+already have a game engine with a bunch of utility ai technology built into it
+of utility ai technology built into it but my thinking here is pretty
+but my thinking here is pretty straightforward coupling to a particular
+straightforward coupling to a particular game engine is a constraint
+game engine is a constraint it carries a lot of baggage there's
+it carries a lot of baggage there's things that i have to do if i'm going to
+things that i have to do if i'm going to work on a utility ai experiment
+work on a utility ai experiment like set up the rendering and make sure
+like set up the rendering and make sure that all my shaders are right so that i
+that all my shaders are right so that i can actually see my ai agents running
+can actually see my ai agents running around
+around and maybe if i want to have some physics
+and maybe if i want to have some physics involved i have to get all that debugged
+involved i have to get all that debugged there's an awful lot of extra stuff that
+there's an awful lot of extra stuff that just has to happen
+just has to happen for a ai experiment to come to life
+for a ai experiment to come to life another problem that i run into a lot
+another problem that i run into a lot personally is that
+personally is that a lot of engines out there are not great
+a lot of engines out there are not great at real-time editing
+at real-time editing and what i mean is they have to do data
+and what i mean is they have to do data pipeline builds
+pipeline builds and this means that every time i need to
+and this means that every time i need to change something i have to run a process
+change something i have to run a process that bakes my data out does some
+that bakes my data out does some processing of some kind
+processing of some kind and it generates something that can
+and it generates something that can actually run in the game this is
+actually run in the game this is murder on iteration time so instant
+murder on iteration time so instant feedback is actually the secret
+feedback is actually the secret to building a system that's easy to
+to building a system that's easy to understand
+understand as a result curvature is 100
+as a result curvature is 100 self-contained
+self-contained my hope is that it's really easy to set
+my hope is that it's really easy to set up and play with
+up and play with and there's no baggage from any other
+and there's no baggage from any other engines or technologies involved it's
+engines or technologies involved it's literally one exe file written in c
+literally one exe file written in c sharp
+sharp you can drop it on your desktop run it
+you can drop it on your desktop run it and go
+and go the last point that i really want to
+the last point that i really want to hammer on this is that this is a fully
+hammer on this is that this is a fully real-time editing experience everything
+real-time editing experience everything you play with in this tool
+you play with in this tool is reflected immediately back to you
+is reflected immediately back to you so utility ai is an architectural
+so utility ai is an architectural category
+category of approaches to making behavioral
+of approaches to making behavioral decisions with an ai system
+decisions with an ai system the basic principle of utility theory is
+the basic principle of utility theory is in a nutshell we're going to score all
+in a nutshell we're going to score all the possible things that i might want to
+the possible things that i might want to do as an ai agent
+do as an ai agent and then i'm just going to pick the best
+and then i'm just going to pick the best one for some value of best
+one for some value of best this is specifically built on the
+this is specifically built on the infinite access utility system that dave
+infinite access utility system that dave mark introduced here at the ai summit
+mark introduced here at the ai summit several years ago
+several years ago i don't have time to go into a full
+i don't have time to go into a full treatment of how the architecture works
+treatment of how the architecture works but the basic pieces are pretty easy
+the first thing that we want to do is get a whole bunch of input data about
+get a whole bunch of input data about the world
+the world so we've had talks earlier in the last
+so we've had talks earlier in the last couple of days about knowledge
+couple of days about knowledge representation
+representation and understanding the context of what
+and understanding the context of what our agents are doing in the world around
+our agents are doing in the world around them
+them this is exactly the kind of thing that
+this is exactly the kind of thing that i'm talking about now
+i'm talking about now taking data from the simulation and
+taking data from the simulation and processing it
+processing it in our case we do this through what we
+in our case we do this through what we call response curves which are basically
+call response curves which are basically just small little compact formulas
+just small little compact formulas and those formulas help us decide that
+and those formulas help us decide that for each possible behavior
+for each possible behavior what is the score should i continue
+what is the score should i continue talking right now should i take a drink
+talking right now should i take a drink of water
+of water should i blow my nose whatever what i
+should i blow my nose whatever what i have a lot of options of things i could
+have a lot of options of things i could do right now
+do right now what's the winner so the recipe for this
+what's the winner so the recipe for this whole
+whole system is really simple uh it's input
+system is really simple uh it's input data plus response curve equals score
+data plus response curve equals score and then you just pick the best scoring
+and then you just pick the best scoring option so
+option so before i get into the the bulk of this
+before i get into the the bulk of this there's a couple of quick things that i
+there's a couple of quick things that i just wanted to point out
+just wanted to point out curvature is a spare time project it's
+curvature is a spare time project it's not sponsored by arenanet it's not a
+not sponsored by arenanet it's not a public
+public thing it's actually open source just me
+thing it's actually open source just me on my own time
+on my own time uh there's room for improvement but i
+uh there's room for improvement but i think that's actually very exciting
+think that's actually very exciting because that leads me to a challenge
+because that leads me to a challenge that i would like to issue to everyone
+that i would like to issue to everyone here
+here specifically i would like you to leave
+specifically i would like you to leave this session
+this session thinking about how you can improve ai
+thinking about how you can improve ai tooling
+tooling because i firmly believe that all of us
+because i firmly believe that all of us can and all of us should
+so uh step one of this whole process is knowledge representation
+knowledge representation uh i'm gonna quickly define some
+uh i'm gonna quickly define some requirements that i impose on this
+requirements that i impose on this system uh it's gonna be a lot simpler
+system uh it's gonna be a lot simpler than most games would work with
+than most games would work with but it's just enough to get the the
+but it's just enough to get the the basics of a simulation running so that
+basics of a simulation running so that we can play with it
+we can play with it so the first thing i wanted to do is
+so the first thing i wanted to do is identify properties of agents
+identify properties of agents so an agent is basically just a
+so an agent is basically just a character in npc or whatever running
+character in npc or whatever running around in the world
+around in the world they have properties some of those are
+they have properties some of those are user defined and some of them are
+user defined and some of them are calculated from the simulation
+calculated from the simulation but regardless of where this information
+but regardless of where this information comes from everything needs to have a
+comes from everything needs to have a name this is a personal line in the sand
+name this is a personal line in the sand of my own
+of my own where i want to be able to refer by name
+where i want to be able to refer by name every human readable string
+every human readable string to every single piece of my ai data
+to every single piece of my ai data the next part of this that's important
+the next part of this that's important is validation
+is validation i want to be able to have an expression
+i want to be able to have an expression of what numbers make sense
+of what numbers make sense for this particular type of data so we
+for this particular type of data so we can do numeric ranges
+can do numeric ranges and we can also encourage or do
+and we can also encourage or do user-defined tags
+user-defined tags if you were here for res graham's talk
+if you were here for res graham's talk earlier this should sound awfully
+earlier this should sound awfully familiar
+familiar so let's look at the ui real quick this
+so let's look at the ui real quick this is what the ui for
+is what the ui for knowledge representation curvature looks
+knowledge representation curvature looks like the idea here is that we have a
+like the idea here is that we have a series of records
+series of records and each record is a piece of data about
+and each record is a piece of data about the world
+the world and it has a number of attributes the
+and it has a number of attributes the first one that i want to point out is
+first one that i want to point out is name
+name so we have these names over in these
+so we have these names over in these boxes here that describe
+boxes here that describe what this data is what is its semantic
+what this data is what is its semantic significance
+the next thing we want to look at is where does this data come from
+where does this data come from in this case we have two choices it can
+in this case we have two choices it can be a property of an
+be a property of an agent or it can be something derived
+agent or it can be something derived using a prefab equation i'll describe
+using a prefab equation i'll describe prefabs a little bit in a second
+another piece of information that's very useful is the validation
+useful is the validation does this number have to be in a
+does this number have to be in a configurable range or is it a predefined
+configurable range or is it a predefined value like a tag or an enumeration
+value like a tag or an enumeration so you can see here there's just a
+so you can see here there's just a couple of different pieces of ui that
+couple of different pieces of ui that will dynamically spawn
+will dynamically spawn into the window as you choose whether or
+into the window as you choose whether or not this is a configurable
+not this is a configurable range or a predefined value you'll get
+range or a predefined value you'll get ui that automatically helps you flesh
+ui that automatically helps you flesh out the validation for that data point
+then down here we have this little use distance prefab drop down which is
+distance prefab drop down which is a nice little transition to why we do
+a nice little transition to why we do prefabs
+prefabs at all so the idea is there are a lot of
+at all so the idea is there are a lot of things that we can compute about the
+things that we can compute about the environment
+environment we can compute distances we can compute
+we can compute distances we can compute line of sight we can do all kinds of
+line of sight we can do all kinds of great stuff
+great stuff and we don't want to have to represent
+and we don't want to have to represent that as static data that a designer
+that as static data that a designer enters
+enters this is stuff the simulation should be
+this is stuff the simulation should be able to provide to us for free or
+able to provide to us for free or small computational cost and then the ai
+small computational cost and then the ai can reason about that information
+can reason about that information so we could use this mechanism to hook
+so we could use this mechanism to hook up a bunch of things we could do
+up a bunch of things we could do pathfinding
+pathfinding we could do raycasting if you're here
+we could do raycasting if you're here just before lunch dave gave an excellent
+just before lunch dave gave an excellent talk on influence maps which would have
+talk on influence maps which would have a lot of potential in a system like this
+a lot of potential in a system like this right now in curvature specifically i've
+right now in curvature specifically i've been deliberately minimalistic because
+been deliberately minimalistic because a it's less work for me and i'm lazy
+a it's less work for me and i'm lazy but b it's actually easier for the user
+but b it's actually easier for the user of the tool
+of the tool to not have to keep all of these
+to not have to keep all of these possible inputs in mind
+possible inputs in mind the main challenge that i've run into
+the main challenge that i've run into with explaining ai
+with explaining ai systems to anyone is that when you get
+systems to anyone is that when you get into a certain level of complexity
+into a certain level of complexity there is just so much going on that is
+there is just so much going on that is virtually impossible to keep it all in
+virtually impossible to keep it all in your head
+your head so we have a whole lot of data about the
+so we have a whole lot of data about the world the next thing that we want to ask
+world the next thing that we want to ask is what kinds of things can we do to
+is what kinds of things can we do to influence that data how can we feed back
+influence that data how can we feed back into the simulation and do things
+into the simulation and do things so again i'll start with some quick
+so again i'll start with some quick requirements that i imposed on this
+requirements that i imposed on this project
+project i wanted to have a set of actions that
+i wanted to have a set of actions that the ai could choose from and these would
+the ai could choose from and these would be things like
+be things like move to a place or start doing this new
+move to a place or start doing this new set of behaviors
+set of behaviors or so on and so forth i wanted to
+or so on and so forth i wanted to basically
+basically have a behavior be an actual effect
+have a behavior be an actual effect in the simulation so anytime an agent
+in the simulation so anytime an agent chooses to do something i should be able
+chooses to do something i should be able to measure that response
+to measure that response in the world so again i could move my
+in the world so again i could move my agent to a place
+agent to a place i could change a property of an agent uh
+i could change a property of an agent uh and all kinds of different little things
+and all kinds of different little things that
+that help make a simulation actually move
+help make a simulation actually move forward through time
+forward through time there's another little element of this
+there's another little element of this that's very interesting as you get into
+that's very interesting as you get into more sophisticated simulations
+more sophisticated simulations which is targeting um
+which is targeting um the number of choices that we have to
+the number of choices that we have to score grows
+score grows in sometimes complex and difficult ways
+in sometimes complex and difficult ways with the number of targets that i have
+with the number of targets that i have to consider
+to consider times the number of decisions that might
+times the number of decisions that might interact with each of those targets
+interact with each of those targets so basically we want to
+so basically we want to limit the number of times that we do
+limit the number of times that we do redundant calculations on
+redundant calculations on parallel targets especially because some
+parallel targets especially because some things just don't make sense to have a
+things just don't make sense to have a target
+target right like if i want to yawn i don't do
+right like if i want to yawn i don't do that to somebody that is a thing that
+that to somebody that is a thing that happens to me personally and
+happens to me personally and that is contained within my agent
+that is contained within my agent so again let's go to some ui here um i
+so again let's go to some ui here um i want to look real quickly at the core
+want to look real quickly at the core of what are four behaviors that i've
+of what are four behaviors that i've defined for this particular demo
+defined for this particular demo um you can see here we've got a couple
+um you can see here we've got a couple of pursuit
+of pursuit and a couple of evade and there's
+and a couple of evade and there's variants for the blue team and the red
+variants for the blue team and the red team
+so each one of these has a specific drop down that tells the
+down that tells the curvature system what happens when an ai
+curvature system what happens when an ai chooses to do this behavior
+chooses to do this behavior what does it mean in the simulation as
+what does it mean in the simulation as an active event
+an active event for this behavior to be executed
+for this behavior to be executed and then of course there's also this
+and then of course there's also this little ability down here to change the
+little ability down here to change the targeting mode
+targeting mode which lets you control what uh context
+which lets you control what uh context makes sense for me to do this action in
+makes sense for me to do this action in so like i said before if i'm yawning
+so like i said before if i'm yawning i can say no that can't target others
+i can say no that can't target others and uncheck that box
+and uncheck that box so this is where the ai starts to happen
+so this is where the ai starts to happen um the real question that we have is
+um the real question that we have is why you remember if i said at the
+why you remember if i said at the beginning uh
+beginning uh the problem that we kept running into
+the problem that we kept running into was why does my ai do this and not that
+was why does my ai do this and not that so why would the ai do this and not that
+so why would the ai do this and not that the answer to that question
+the answer to that question is considerations and again going
+is considerations and again going through the requirements definition
+through the requirements definition um it's really just all about the why
+um it's really just all about the why why would i prefer to do one thing
+why would i prefer to do one thing versus something else
+versus something else the goal here is to account for real
+the goal here is to account for real world relevant data
+world relevant data as much as possible but we also need to
+as much as possible but we also need to contextualize that data
+contextualize that data because it's not the same for me to say
+because it's not the same for me to say i want to buy a plane ticket how far is
+i want to buy a plane ticket how far is too far to fly and i want to walk to
+too far to fly and i want to walk to lunch how far is too far to walk
+lunch how far is too far to walk those are both distance questions but
+those are both distance questions but they have very different contexts
+they have very different contexts so ultimately all of the different input
+so ultimately all of the different input factors that we're gaining from the
+factors that we're gaining from the simulation
+simulation scraping out from this knowledge base
+scraping out from this knowledge base system they all have different
+system they all have different contributions to the score of a
+contributions to the score of a particular behavior and considerations
+particular behavior and considerations are how we reflect that
+are how we reflect that so this is a little bit wallet texty but
+so this is a little bit wallet texty but i'll kind of point out some of the most
+i'll kind of point out some of the most important aspects of it a consideration
+important aspects of it a consideration has an input uh this little highlight
+has an input uh this little highlight here kind of shows that we have
+here kind of shows that we have currently
+currently selected to work with the distance to
+selected to work with the distance to target input
+target input there's also validation which we can do
+there's also validation which we can do from this view
+from this view and then there's this interesting little
+and then there's this interesting little mess down here for a response curve
+mess down here for a response curve now i've seen enough demos of utility ai
+now i've seen enough demos of utility ai to know that as soon as these little uh
+to know that as soon as these little uh two axis plots with the blue curve come
+two axis plots with the blue curve come out
+out a lot of people start feeling a little
+a lot of people start feeling a little freaked out that's fine because
+freaked out that's fine because there is an escape hatching curvature
+there is an escape hatching curvature which is right here the presets button
+so this is the fun part um i am a firm believer in the power of natural
+believer in the power of natural language
+language this is sometimes at odds with my desire
+this is sometimes at odds with my desire to make video games because they don't
+to make video games because they don't often overlap very much
+often overlap very much but i think sometimes it's true that
+but i think sometimes it's true that being able to express something in a few
+being able to express something in a few concise words is much more impactful
+concise words is much more impactful than spending a bunch of time trying to
+than spending a bunch of time trying to play with all these possible sliders and
+play with all these possible sliders and ui elements and
+ui elements and you know rolling numbers and all this to
+you know rolling numbers and all this to try and lock in an exact shape that you
+try and lock in an exact shape that you want
+want so this is the curve preset generator
+so this is the curve preset generator dialog
+dialog these two drop downs here are basically
+these two drop downs here are basically highlighting
+highlighting the two controls that we have this
+the two controls that we have this system is
+system is starting with a list of over a dozen
+starting with a list of over a dozen different preset curves
+different preset curves with no inputs it will let you choose
+with no inputs it will let you choose from amongst all of them
+from amongst all of them but as we refine our request for a curve
+but as we refine our request for a curve it's going to use the natural language
+it's going to use the natural language description of what i put in these boxes
+description of what i put in these boxes to filter down the list of suggestions
+to filter down the list of suggestions and only show me the curves that match
+and only show me the curves that match the exact description that i provide
+the exact description that i provide so here's how that works the top input
+so here's how that works the top input is as input values grow towards one or
+is as input values grow towards one or as input values get bigger basically
+as input values get bigger basically the consideration score should
+the consideration score should now we have some options here we can
+now we have some options here we can become more appealing
+become more appealing we can become less appealing we can stay
+we can become less appealing we can stay the same because we don't care
+the same because we don't care or maybe we can fluctuate a bit because
+or maybe we can fluctuate a bit because we're being random
+so let's look at what happens if i plug in steadily less appealing
+in steadily less appealing scores as inputs grow to the right and
+scores as inputs grow to the right and you can see that graph there
+you can see that graph there and i've chosen a constant or linear
+and i've chosen a constant or linear rate of change
+rate of change in the second input
+the net result is that we get exactly what we asked for
+what we asked for we have this graph that does a perfect
+we have this graph that does a perfect linear decrease from
+linear decrease from yes to no across the input range
+yes to no across the input range but we don't have to stop there what if
+but we don't have to stop there what if we decided that we wanted to have a
+we decided that we wanted to have a curve that
+curve that started decreasing quickly and then
+started decreasing quickly and then slowly decreased out
+slowly decreased out towards the top end of the input range
+towards the top end of the input range this is something that dave and i would
+this is something that dave and i would refer to as a four poly or a quadrat
+refer to as a four poly or a quadrat curve
+curve so we can see here i plug that input
+so we can see here i plug that input into the preset generator
+into the preset generator and that's what i get
+so there are other possibilities in those drop downs
+those drop downs uh what if i decide that i just am not
+uh what if i decide that i just am not content with that
+content with that and what i really wanted was something
+and what i really wanted was something that is slow at either end and fast in
+that is slow at either end and fast in the middle
+the middle and you should already have a mental
+and you should already have a mental image of what this looks like but the
+image of what this looks like but the curve is really easy to visualize
+curve is really easy to visualize this starts slow accelerates in the
+this starts slow accelerates in the middle and then slows down again
+middle and then slows down again this is an inverse logistic curve and
+this is an inverse logistic curve and then just for the hell of it
+then just for the hell of it i figured i'd do a consideration whose
+i figured i'd do a consideration whose score fluctuates
+score fluctuates dynamically and there's a sine wave i
+dynamically and there's a sine wave i didn't bother animating the arrow
+didn't bother animating the arrow because that was a pain
+because that was a pain but you can kind of get the idea of
+but you can kind of get the idea of where this is going
+so i wanted to pause here to to kind of cover a couple of thoughts
+cover a couple of thoughts the natural language feature has gotten
+the natural language feature has gotten a lot of great feedback a lot of people
+a lot of great feedback a lot of people really enjoy being able to work with it
+really enjoy being able to work with it being able to specify things in what
+being able to specify things in what feels like a much more intuitive manner
+feels like a much more intuitive manner it's super easy to implement it's
+it's super easy to implement it's literally just
+literally just a tag on each preset that says these are
+a tag on each preset that says these are the different properties this function
+the different properties this function has
+has it increases quickly at the beginning
+it increases quickly at the beginning slowly at the end or whatever the curve
+slowly at the end or whatever the curve might be
+might be and then the drop downs are just a
+and then the drop downs are just a filtering mechanism so it's super easy
+filtering mechanism so it's super easy there's not actually any natural
+there's not actually any natural language ai
+language ai i'm sorry if i disappointed anyone
+i'm sorry if i disappointed anyone there's no real genuine
+there's no real genuine difficult work going on here but this is
+difficult work going on here but this is low-hanging fruit
+low-hanging fruit for everyone who doesn't want to have to
+for everyone who doesn't want to have to think about the equation form of all
+think about the equation form of all those response curves
+those response curves so this is a very different type of
+so this is a very different type of intuition that people can develop about
+intuition that people can develop about how utility ai works
+how utility ai works without having to think about it in in
+without having to think about it in in more math or formal terms
+more math or formal terms now i think we can go further than this
+now i think we can go further than this uh you'll notice that in the screenshots
+uh you'll notice that in the screenshots there was this notion of as the input
+there was this notion of as the input grows towards one
+grows towards one uh i'm not totally happy with that i
+uh i'm not totally happy with that i would like the ui to say something
+would like the ui to say something more uh relevant like as the input which
+more uh relevant like as the input which actually is distance
+actually is distance grows towards the upper end of the range
+grows towards the upper end of the range which is 75 meters
+which is 75 meters then i should get something that says as
+then i should get something that says as distance to target grows towards 75
+distance to target grows towards 75 meters the score should
+meters the score should and then the designer fills in the blank
+and then the designer fills in the blank so that's kind of an idea of where i'm
+so that's kind of an idea of where i'm going with all this
+going with all this i wanted to jump back to the
+i wanted to jump back to the consideration view real quick because
+consideration view real quick because there's another escape hatch that's
+there's another escape hatch that's worth calling out
+worth calling out uh real quickly and that is this wizard
+uh real quickly and that is this wizard button up here in the top right
+button up here in the top right uh the consideration wizard is genuinely
+uh the consideration wizard is genuinely a wall of text
+a wall of text but the idea here is that if you've got
+but the idea here is that if you've got a moment
+a moment and you're not entirely sure what you're
+and you're not entirely sure what you're trying to accomplish
+trying to accomplish you should be able to sit down and read
+you should be able to sit down and read through these instructions
+through these instructions and get a perfect idea of what you're
+and get a perfect idea of what you're trying to do and why
+trying to do and why so each of these panes each of these
+so each of these panes each of these tabs in the wizard
+tabs in the wizard goes through a different part of
+goes through a different part of building a consideration
+building a consideration the first one is input selection and
+the first one is input selection and this one here you can see is chosen
+this one here you can see is chosen distance to target
+distance to target i then can do the parameterization which
+i then can do the parameterization which tells me what are my relevant ranges
+tells me what are my relevant ranges i care about everything between 0 and 75
+i care about everything between 0 and 75 meters
+meters and then of course there's the actual
+and then of course there's the actual response curve system
+response curve system which has the preset escape hatch again
+which has the preset escape hatch again so that you can go look at the natural
+so that you can go look at the natural language version if that's what you
+language version if that's what you prefer there's a fun little twist on the
+prefer there's a fun little twist on the end of this one which is that
+end of this one which is that naming things is actually as i said
+naming things is actually as i said before very important to me
+before very important to me and one of the ways that i've emphasized
+and one of the ways that i've emphasized that is by providing this link
+that is by providing this link which goes to the curvature wiki and
+which goes to the curvature wiki and actually explains
+actually explains in a very brief and digestible way how
+in a very brief and digestible way how to do good consideration names
+to do good consideration names so this one for example is prioritize
+so this one for example is prioritize closer targets
+closer targets this kind of gives you a real quick and
+this kind of gives you a real quick and three words idea of what the
+three words idea of what the consideration is doing
+consideration is doing what it's trying to accomplish for the
+what it's trying to accomplish for the ai
+so this is probably my favorite phrase right now is building intuition through
+right now is building intuition through play
+play i really like this idea of experimenting
+i really like this idea of experimenting and messing around
+and messing around and just getting your hands dirty and by
+and just getting your hands dirty and by that process alone
+that process alone coming to comprehend how a system
+coming to comprehend how a system functions and how to control it
+functions and how to control it so this is an example of
+so this is an example of a behavior with some considerations on
+a behavior with some considerations on it there's a
+it there's a set of inputs right up here that we can
+set of inputs right up here that we can look at that correspond directly to the
+look at that correspond directly to the inputs that
+inputs that are in those considerations so you
+are in those considerations so you remember things like distance
+remember things like distance or is this target on a particular team
+or is this target on a particular team i can also see the response curves here
+i can also see the response curves here which show that for the current values
+which show that for the current values of the inputs
+of the inputs these are the scores that the
+these are the scores that the considerations will have
+now as i play with these specific input drop-downs we should be able to
+input drop-downs we should be able to see these response curves
+see these response curves moving in response to what i'm doing
+moving in response to what i'm doing so i will change the distance and you
+so i will change the distance and you can watch that blue dot on the bottom
+can watch that blue dot on the bottom right box slide back and forth
+right box slide back and forth that is a very visceral kind of instant
+that is a very visceral kind of instant feedback
+feedback mechanism for someone who doesn't want
+mechanism for someone who doesn't want to think in terms of equations
+to think in terms of equations but does want to think in terms of
+but does want to think in terms of geometric shapes
+geometric shapes so you can play with these and then if
+so you can play with these and then if you want the numbers you can go over
+you want the numbers you can go over here on the left
+here on the left and look at the actual breakdown of the
+and look at the actual breakdown of the scores of what the considerations
+scores of what the considerations produced as they calculated their
+produced as they calculated their response curve values
+response curve values and what the score of the behavior was
+and what the score of the behavior was at the end of that process
+so this is useful if you're looking at considerations within a single behavior
+considerations within a single behavior it doesn't do you much good if what you
+it doesn't do you much good if what you really care about is how different
+really care about is how different behaviors compete with each other
+behaviors compete with each other so there is another tab in curvature
+so there is another tab in curvature which actually targets that specific use
+which actually targets that specific use case
+you can see in the center column there are the four behaviors that i introduced
+are the four behaviors that i introduced at the beginning to pursue and two evade
+at the beginning to pursue and two evade right now i have the variance for the
+right now i have the variance for the red team selected so i'm dealing with
+red team selected so i'm dealing with behaviors that only an agent on the red
+behaviors that only an agent on the red team would actually try to execute
+team would actually try to execute and the same input controls are here as
+and the same input controls are here as well as we had in the consideration
+well as we had in the consideration system
+system with a twist if i have two decisions
+with a twist if i have two decisions that are both based on distance
+that are both based on distance i only get one control in the ui that
+i only get one control in the ui that controls distance
+controls distance it will intelligently collapse all of
+it will intelligently collapse all of the different inputs that are the same
+the different inputs that are the same basic
+basic input data so that you don't have the
+input data so that you don't have the problem
+problem of feeding considerations for this
+of feeding considerations for this decision with a distance of 30
+decision with a distance of 30 and considerations for this decision
+and considerations for this decision with a distance of 50
+with a distance of 50 and now you get broken behavior as a
+and now you get broken behavior as a result
+result so the last piece of this is there's a
+so the last piece of this is there's a little chart and this is a lot more uh
+little chart and this is a lot more uh impressive with larger more complex
+impressive with larger more complex demos but this is enough to get the
+demos but this is enough to get the point across
+point across um you can see here there's these two
+um you can see here there's these two behaviors that are being scored against
+behaviors that are being scored against each other
+each other and the winner of them is highlighted
+and the winner of them is highlighted down at the bottom
+down at the bottom so in the situation that i've configured
+so in the situation that i've configured with these sliders and everything up on
+with these sliders and everything up on the top
+the top uh the particular decision that my ai
+uh the particular decision that my ai will choose to pursue
+will choose to pursue is actually to go chase down an enemy of
+is actually to go chase down an enemy of the red team or probably a blue guy
+the red team or probably a blue guy and we can see that the score for that
+and we can see that the score for that is 0.171
+so this is all different ways of gaining intuition of a running system
+intuition of a running system but it's not quite enough i wanted to
+but it's not quite enough i wanted to put in a
+put in a last twist on the
+last twist on the experimental uh intuition through play
+experimental uh intuition through play concept
+concept and do a complete sandbox simulation so
+and do a complete sandbox simulation so again starting with the requirements for
+again starting with the requirements for what i wanted this to be
+what i wanted this to be i wanted to visualize what the ai would
+i wanted to visualize what the ai would do so if i actually took and built
+do so if i actually took and built all the data for an ai system and
+all the data for an ai system and plugged it into this tool
+plugged it into this tool i want to watch them actually behave
+i want to watch them actually behave the other thing that i really found
+the other thing that i really found really important i alluded to this
+really important i alluded to this earlier is
+earlier is just debugging i want a way to go back
+just debugging i want a way to go back and look at this stuff
+and look at this stuff and understand where it went off the
+and understand where it went off the rails and why
+rails and why so this real quickly is the scenario
+so this real quickly is the scenario mode of curvature um
+mode of curvature um you can see up in the top left there's
+you can see up in the top left there's some red guys kind of hanging around
+some red guys kind of hanging around a little base and there's some blue guys
+a little base and there's some blue guys down in the bottom right doing the same
+down in the bottom right doing the same thing
+thing i'm going to go ahead and play this
+i'm going to go ahead and play this forward and what you'll see is a whole
+forward and what you'll see is a whole bunch of
+bunch of these agents swarming towards each other
+these agents swarming towards each other and then
+and then collapsing as they run into each other
+collapsing as they run into each other in the middle of the field
+in the middle of the field and what's happening is they're doing
+and what's happening is they're doing exactly the two
+exactly the two behaviors that they were given earlier
+behaviors that they were given earlier in the behaviors section which is to
+in the behaviors section which is to pursue their enemies
+pursue their enemies and evade their allies that is the only
+and evade their allies that is the only thing these guys are going to do
+you'll notice as they move towards each other they have this tendency to swing
+other they have this tendency to swing out
+out and that is them trying not to run into
+and that is them trying not to run into each other as they go
+each other as they go and then the fun part happens and they
+and then the fun part happens and they realize that
+realize that i've run into my enemy i don't have a
+i've run into my enemy i don't have a reason to pursue him anymore
+reason to pursue him anymore i have no reason to exist and so they
+i have no reason to exist and so they stall and this is actually an event that
+stall and this is actually an event that you can get in the curvature debug logs
+you can get in the curvature debug logs i stalled because i ran out of stuff
+i stalled because i ran out of stuff that do
+so the debug logs themselves are a little more on the programmer friendly
+little more on the programmer friendly side than the designer friendly side at
+side than the designer friendly side at the moment but this is something that is
+the moment but this is something that is ripe for exploration i think
+ripe for exploration i think down the left side is a tree the tree
+down the left side is a tree the tree contains a list of every tick
+contains a list of every tick that has occurred in the simulation
+that has occurred in the simulation underneath each tick
+underneath each tick there's a list of every agent that did a
+there's a list of every agent that did a thinking operation in that tick
+for every agent in that layer there's a list of all the behaviors that they
+list of all the behaviors that they considered
+considered trying to do
+then for each behavior that they thought about doing there's a list of targets so
+about doing there's a list of targets so relevant things that they could do that
+relevant things that they could do that behavior with in the world
+behavior with in the world the winning option happens to be marked
+the winning option happens to be marked uh in this case there's a small blue
+uh in this case there's a small blue rectangle on one of the items in the
+rectangle on one of the items in the tree on the left side
+tree on the left side this is just kind of a visual indicator
+this is just kind of a visual indicator of this is the thing that in that tick
+of this is the thing that in that tick this particular
+this particular agent actually wound up doing so
+agent actually wound up doing so the key here is actually the text on the
+the key here is actually the text on the right and that has all the details that
+right and that has all the details that we could possibly want
+we could possibly want um i'm not going to go through it line
+um i'm not going to go through it line by line but basically from the top
+by line but basically from the top down there's more generic to more
+down there's more generic to more specific information you can look at
+specific information you can look at things like the position of the agent in
+things like the position of the agent in the world
+the world you can look at what their decision was
+you can look at what their decision was that they actually wound up doing
+that they actually wound up doing you can look at the comparison between
+you can look at the comparison between that decision and other competing
+that decision and other competing decisions
+decisions or even competing targets for the same
+or even competing targets for the same decision and then you can finally at the
+decision and then you can finally at the lowest level of granularity you can see
+lowest level of granularity you can see there's
+there's uh numbers there that represent the
+uh numbers there that represent the actual input values
+actual input values the actual normalized input values and
+the actual normalized input values and the response curve scores for every
+the response curve scores for every single
+single consideration that we processed in that
+consideration that we processed in that tick
+so just to kind of bring this around to a little bit more
+a little bit more open thinking the debug experience is
+open thinking the debug experience is kind of a work in progress there's a lot
+kind of a work in progress there's a lot of stuff that could be done with it
+of stuff that could be done with it there's a lot of exciting potential
+there's a lot of exciting potential there in my opinion uh one of the things
+there in my opinion uh one of the things that
+that would personally make me very happy is
+would personally make me very happy is to be able to rewind the simulation to a
+to be able to rewind the simulation to a specific point
+specific point i would love to be able to scrub forward
+i would love to be able to scrub forward and backward on a timeline
+and backward on a timeline and say this is where things went wrong
+and say this is where things went wrong i'm going to stop there change the data
+i'm going to stop there change the data manipulate the ai design in some way and
+manipulate the ai design in some way and then run the game forward the simulation
+then run the game forward the simulation forward from that exact moment in time
+forward from that exact moment in time and see if it fixes the problem that i
+and see if it fixes the problem that i noticed another thing that would be
+noticed another thing that would be really cool is if
+really cool is if you could modify the properties of an
+you could modify the properties of an agent while you were running through the
+agent while you were running through the simulation
+simulation so i want to i'm in the moment i'm
+so i want to i'm in the moment i'm watching these guys have a giant fight
+watching these guys have a giant fight i want that guy to have 10 more hit
+i want that guy to have 10 more hit points i want to be able to click on
+points i want to be able to click on them and go 10 more hit points
+them and go 10 more hit points and everything just works um that kind
+and everything just works um that kind of thing would be very exciting not just
+of thing would be very exciting not just for me but for a lot of the designers
+for me but for a lot of the designers that i know work with these systems
+that i know work with these systems um the the current limitation of
+um the the current limitation of curvature is you can manipulate the
+curvature is you can manipulate the properties of agents but you have to
+properties of agents but you have to pause the simulation to do it
+pause the simulation to do it so uh you can inspect objects in the
+so uh you can inspect objects in the world those little uh triangular
+world those little uh triangular circular agents that were flying around
+circular agents that were flying around in the simulation mode earlier
+in the simulation mode earlier you can click on them individually and
+you can click on them individually and get a breakdown of what they've been
+get a breakdown of what they've been doing and why they're thinking about
+doing and why they're thinking about what they're thinking about
+what they're thinking about it's opportunity for improvement here
+it's opportunity for improvement here because there's a lot of information
+because there's a lot of information that could be there and it's very
+that could be there and it's very difficult to predict
+difficult to predict in uh kind of ahead of the time
+in uh kind of ahead of the time what information you might want that
+what information you might want that display to populate with
+display to populate with so i might know all kinds of things
+so i might know all kinds of things about this agent what he's been up to
+about this agent what he's been up to but the designer only cares about one
+but the designer only cares about one tiny slice of that
+tiny slice of that and this is a ux challenge to figure out
+and this is a ux challenge to figure out how do i pipe that slice of things that
+how do i pipe that slice of things that the designer needs to know
+the designer needs to know through that particular interface of
+through that particular interface of inspection
+so i got a couple of basic ideas that i really want to leave you with um
+really want to leave you with um if you get nothing else this is the good
+if you get nothing else this is the good stuff we talk a lot about tools for
+stuff we talk a lot about tools for producing stuff
+producing stuff we do a lot of work to make tools so
+we do a lot of work to make tools so that we can ship games
+that we can ship games uh this is a great thing i think tools
+uh this is a great thing i think tools are very important i think tools are a
+are very important i think tools are a critical piece
+critical piece of how we get our jobs done but we don't
+of how we get our jobs done but we don't spend a lot of time
+spend a lot of time about talking about tools that just
+about talking about tools that just provide learning and exposure to a
+provide learning and exposure to a concept
+concept we don't spend a lot of time on
+we don't spend a lot of time on educational tools that exist solely to
+educational tools that exist solely to help people build intuition through play
+one of the things that i think is very critical when we're talking about that
+critical when we're talking about that type of tool
+type of tool is there has to be multiple ways to
+is there has to be multiple ways to understand what's going on and that's
+understand what's going on and that's why there are so many different
+why there are so many different modes and angles for approaching data in
+modes and angles for approaching data in curvature because what i want
+curvature because what i want is for anyone to be able to find a route
+is for anyone to be able to find a route to that information
+to that information that they're comfortable traveling on i
+that they're comfortable traveling on i want everyone to be able to sit down
+want everyone to be able to sit down with that tool
+with that tool and feel that they understand utility ai
+and feel that they understand utility ai because they can own the process of
+because they can own the process of understanding what's going on under the
+understanding what's going on under the hood
+hood and that means we have to give
+and that means we have to give alternatives
+alternatives so iterating on the tool is just as
+so iterating on the tool is just as important as iteration while you're
+important as iteration while you're using the tool
+using the tool a lot of tools talks spend time talking
+a lot of tools talks spend time talking about the user's iteration time and how
+about the user's iteration time and how you need to make sure that they can save
+you need to make sure that they can save and reload and you know do all this
+and reload and you know do all this stuff really quickly
+stuff really quickly that's all very important but actually
+that's all very important but actually evolving the tool
+evolving the tool past version one is also extremely
+past version one is also extremely important and so that's something that i
+important and so that's something that i would
+would like to reinforce here is that when we
+like to reinforce here is that when we build these systems
+build these systems we shouldn't just let them sit once
+we shouldn't just let them sit once we're sort of happy with them
+we're sort of happy with them we need to tend them and grow them and
+we need to tend them and grow them and evolve them with ourselves
+evolve them with ourselves sandboxes are a lot of fun this is just
+sandboxes are a lot of fun this is just kind of a bonus point
+kind of a bonus point i love the idea of doing one outside of
+i love the idea of doing one outside of an engine because it means that it's
+an engine because it means that it's very lightweight it's very flexible
+very lightweight it's very flexible and it gives you the ability to
+and it gives you the ability to experiment very quickly
+experiment very quickly most of all i want everyone here again
+most of all i want everyone here again think about how
+think about how you can improve ai tools and what you
+you can improve ai tools and what you can do
+can do along these lines to make the experience
+along these lines to make the experience of learning and using your ai systems
+of learning and using your ai systems even better
+even better curvature is open source you can find it
+curvature is open source you can find it on github at this url
+on github at this url i'll leave this up and this is also my
+i'll leave this up and this is also my email address
+email address and that's what i got thank you very
+and that's what i got thank you very [Applause]
+much
+you

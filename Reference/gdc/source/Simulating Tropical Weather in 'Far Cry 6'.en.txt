@@ -1,0 +1,1613 @@
+[Music] hello everyone and welcome to our talk
+hello everyone and welcome to our talk topic we will be presenting today is
+topic we will be presenting today is simulating tropical weather in far cry
+simulating tropical weather in far cry 6.
+6. before we begin let me introduce myself
+before we begin let me introduce myself my name is emily jo and i have been a
+my name is emily jo and i have been a technical artist at ubisoft montreal for
+technical artist at ubisoft montreal for the past four years
+the past four years colin will introduce himself a little
+colin will introduce himself a little later when he covers the second half of
+later when he covers the second half of our presentation
+the game that our talk is centered around is far cry 6 the latest
+around is far cry 6 the latest installment of the far cry franchise
+installment of the far cry franchise if you're not familiar with far cry it
+if you're not familiar with far cry it is an open world first person shooter
+is an open world first person shooter series where each title takes place in a
+series where each title takes place in a new environment
+new environment in this case we introduce the players to
+in this case we introduce the players to yara a fictional caribbean island that
+yara a fictional caribbean island that was inspired by cuba and other countries
+was inspired by cuba and other countries here players will take on the role of
+here players will take on the role of danny rojas a local rebel fighting to
+danny rojas a local rebel fighting to topple the regime of dictator anton
+topple the regime of dictator anton castillo and his son diego
+castillo and his son diego parkway's dynamic open worlds are a
+parkway's dynamic open worlds are a shining trait of the franchise each
+shining trait of the franchise each world has a life of its own with many
+world has a life of its own with many systems constantly interacting with one
+systems constantly interacting with one another
+another now to add a tropical island experience
+now to add a tropical island experience to the mix we needed something that
+to the mix we needed something that would be new to far cry a complete
+would be new to far cry a complete dynamic weather system
+to give you an idea of what dynamic weather entails here's a quick sneak
+weather entails here's a quick sneak peek at what you might see as a player
+peek at what you might see as a player in far cry 6.
+today we will be presenting to you our weather system in its entirety
+weather system in its entirety as such we have condensed many topics
+as such we have condensed many topics into the following categories
+into the following categories to start i will go over our inspiration
+to start i will go over our inspiration and core controls
+and core controls i'll then explain how we tackle material
+i'll then explain how we tackle material wetness by covering each asset type
+wetness by covering each asset type following that colin will step through
+following that colin will step through the technical details for each rendering
+the technical details for each rendering feature that supports weather
+feature that supports weather and lastly we will conclude with some
+and lastly we will conclude with some final thoughts
+for our inspiration we looked at the weather for various tropical locations
+weather for various tropical locations such as
+such as cuba island locations are typically home
+cuba island locations are typically home to very distinct and varied tropical
+to very distinct and varied tropical weather
+weather at the start of the project research was
+at the start of the project research was conducted on tropical scenery and
+conducted on tropical scenery and weather so that we could give our
+weather so that we could give our players an authentic experience as they
+players an authentic experience as they explored our world
+explored our world we soon found that we needed to
+we soon found that we needed to incorporate both the iconic sunny
+incorporate both the iconic sunny weather shown here
+weather shown here as well as the flip side of tropical
+as well as the flip side of tropical weather which includes heavy rain and
+weather which includes heavy rain and thunderstorms
+thunderstorms we needed to emulate the way that
+we needed to emulate the way that weather could change back and forth
+weather could change back and forth drastically sometimes within hours
+drastically sometimes within hours we then took these elements that we
+we then took these elements that we wanted to highlight and included them in
+wanted to highlight and included them in our concept art
+yaro was pitched as an ideal tropical paradise it should serve as a convincing
+paradise it should serve as a convincing escape into our game's fantasy
+however our art direction wants to contrast the picture-perfect weather
+contrast the picture-perfect weather with foreboding thunderstorms
+and when the player gets caught in a storm the rain and wetness should be
+storm the rain and wetness should be felt and should be convincing
+and of course yara is an island so the ocean is a key part of the equation even
+ocean is a key part of the equation even for weather
+with that in mind let's translate the direction into goals for implementing
+direction into goals for implementing weather
+weather we want to have a collection of
+we want to have a collection of different weather states
+different weather states we want the weather to be dynamic and
+we want the weather to be dynamic and varied
+varied we want a system where the transitions
+we want a system where the transitions make sense for example a storm should be
+make sense for example a storm should be preceded with darkening clouds and
+preceded with darkening clouds and followed by remaining water puddles
+followed by remaining water puddles and of course everything needs to be
+and of course everything needs to be efficient and fit within our budgets
+efficient and fit within our budgets we must emphasize here that this weather
+we must emphasize here that this weather system will be for an open world game
+system will be for an open world game our decisions are often influenced by
+our decisions are often influenced by data and performance budgets and the
+data and performance budgets and the need to support all times of day and all
+need to support all times of day and all locations in the world
+let's move on to our implementation starting with the core weather controls
+starting with the core weather controls the weather manager is the core code for
+the weather manager is the core code for our weather system and is what
+our weather system and is what essentially drives weather behind the
+essentially drives weather behind the scenes
+scenes it contains information used to define
+it contains information used to define and control weather some of which is
+and control weather some of which is exposed as settings in our weather
+exposed as settings in our weather database
+database consider the weather manager as the back
+consider the weather manager as the back end of the system and the weather
+end of the system and the weather database is the front end
+database is the front end let's go over the setup for our system
+let's go over the setup for our system starting with the weather presets
+starting with the weather presets the collection of weather types is
+the collection of weather types is referred to on the project as weather
+referred to on the project as weather presets
+presets these are defined in the weather
+these are defined in the weather database using the exposed parameters
+database using the exposed parameters from the weather manager
+from the weather manager to get an idea of what we can achieve
+to get an idea of what we can achieve with these parameters let's step through
+with these parameters let's step through some of our final presets and compare a
+some of our final presets and compare a few of their values
+for the few clouds presets we use low cloud coverage values shown in the
+cloud coverage values shown in the bottom right
+in comparison the broken clouds preset uses higher cloud coverage to give us
+uses higher cloud coverage to give us big fluffy clouds
+big fluffy clouds next we can see that the mist preset has
+next we can see that the mist preset has added light fog in the distance
+added light fog in the distance and in comparison to that we have our
+and in comparison to that we have our heavy fog preset with fog values cranked
+heavy fog preset with fog values cranked much higher
+the next few presets will show the progression of rain intensity starting
+progression of rain intensity starting with light rain
+with light rain then moderate rain
+then moderate rain followed by heavy rain at which point
+followed by heavy rain at which point the rain intensity is maximized and the
+the rain intensity is maximized and the sky begins to darken
+sky begins to darken which leaves us with our most intense
+which leaves us with our most intense preset the thunderstorm which adds
+preset the thunderstorm which adds lightning
+now that we have our weather preset building blocks we need to create a
+building blocks we need to create a cycle or a weather pattern
+cycle or a weather pattern in the very beginning our initial idea
+in the very beginning our initial idea was to collect and use real world
+was to collect and use real world meteorological data from cities like
+meteorological data from cities like miami
+miami as shown in the image we obtained the
+as shown in the image we obtained the description of weather at every hour
+description of weather at every hour from a period of time in 2013.
+from a period of time in 2013. although it would have been nice to use
+although it would have been nice to use real world data to drive our forecast we
+real world data to drive our forecast we wanted more artistic control
+wanted more artistic control the method that we ended up going with
+the method that we ended up going with was a similar text file but we timed our
+was a similar text file but we timed our chosen weather presets ourselves and
+chosen weather presets ourselves and designed up to five full day cycles per
+designed up to five full day cycles per region
+region this freedom also allowed us to showcase
+this freedom also allowed us to showcase our weather presets where they look the
+our weather presets where they look the best
+now we need to take some time to discuss regions
+regions the world of far cry 6 has been
+the world of far cry 6 has been subdivided into three main regions
+subdivided into three main regions west central and east each with its own
+west central and east each with its own visual identity
+visual identity the west region was the dry region
+the west region was the dry region central was the wetlands and the east
+central was the wetlands and the east was the jungle region
+was the jungle region to enhance these distinctions we wanted
+to enhance these distinctions we wanted our weather to differ between each
+our weather to differ between each region as well
+note that our definition of regions also extends to smaller zones such as
+extends to smaller zones such as interiors and caves and anything else
+interiors and caves and anything else that artists might need to define
+that artists might need to define for each region we exposed min and max
+for each region we exposed min and max curves to limit certain weather
+curves to limit certain weather properties
+properties this was how we altered weather based on
+this was how we altered weather based on where the player is moving around in the
+where the player is moving around in the world an example usage case would be how
+world an example usage case would be how we set the max fog curve to zero for the
+we set the max fog curve to zero for the indoor zones to prevent fog from
+indoor zones to prevent fog from appearing inside
+appearing inside the limitation to this is that if your
+the limitation to this is that if your indoor area has windows you would see
+indoor area has windows you would see the fog disappear outside as soon as he
+the fog disappear outside as soon as he walked in and this is why we assigned
+walked in and this is why we assigned our zones very carefully
+our zones very carefully our weather manager then took in all the
+our weather manager then took in all the potentially overlapping regions around
+potentially overlapping regions around the player and
+the player and interpolates the curves accordingly to
+interpolates the curves accordingly to output the adjusted weather
+output the adjusted weather the weather manager also needs to allow
+the weather manager also needs to allow for overrides such as for gameplay
+for overrides such as for gameplay missions and pre-rendered cutscenes
+missions and pre-rendered cutscenes for example the opening mission of the
+for example the opening mission of the game has the player fleeing through the
+game has the player fleeing through the city streets in the middle of a
+city streets in the middle of a nighttime thunderstorm
+nighttime thunderstorm additionally our game is available in
+additionally our game is available in multiplayer co-op so weather needs to be
+multiplayer co-op so weather needs to be replicated for all players
+this flowchart illustrates the final order of operations so to summarize we
+order of operations so to summarize we first consult the forecast to get the
+first consult the forecast to get the weather preset at the current time of
+weather preset at the current time of day
+day then based on where the player is we
+then based on where the player is we apply regional adjustments
+apply regional adjustments this gives us the current weather state
+this gives us the current weather state which can be overridden for gameplay
+which can be overridden for gameplay finally we use this weather state to
+finally we use this weather state to update the wetness rain and lightning
+update the wetness rain and lightning with time and output the final
+with time and output the final parameters these are variables like
+parameters these are variables like wetness factor rain factor etc which we
+wetness factor rain factor etc which we can now access to drive visuals audio
+can now access to drive visuals audio gameplay and so on
+now that we've established the inner workings of our weather manager
+workings of our weather manager we need our materials to respond
+we need our materials to respond in other words how do we make our assets
+in other words how do we make our assets wet
+wetness is a huge component of weather when it rains we need to see the world
+when it rains we need to see the world change and this means that every asset
+change and this means that every asset now needs a wet state so that we can
+now needs a wet state so that we can properly blend from dry to wet
+properly blend from dry to wet the risks associated with creating a wet
+the risks associated with creating a wet version of every asset are
+version of every asset are one there are too many assets so
+one there are too many assets so requiring any extra data will add a lot
+requiring any extra data will add a lot of production time
+of production time and two our our teams all have their own
+and two our our teams all have their own asset pipelines and shaders we could be
+asset pipelines and shaders we could be risking a lack of cohesion which would
+risking a lack of cohesion which would be very hard to control given our
+be very hard to control given our project scale
+project scale so our final solution was to work in
+so our final solution was to work in parallel with asset creation
+parallel with asset creation to do this it needed to be simple and
+to do this it needed to be simple and unified as much as possible
+unified as much as possible we also decided that it would be
+we also decided that it would be primarily tech artist driven and it
+primarily tech artist driven and it should work out of the box
+should work out of the box this means that we should be able to
+this means that we should be able to drag and drop assets in the world and
+drag and drop assets in the world and they should get wet properly in the rain
+they should get wet properly in the rain of course some materials receive more
+of course some materials receive more detail and polish but for the simplest
+detail and polish but for the simplest props or legacy assets wetness should
+props or legacy assets wetness should work without having to revisit them
+work without having to revisit them so let's dive into our wetness
+so let's dive into our wetness implementation
+implementation first and foremost we split our solution
+first and foremost we split our solution into two parts by having two wetness
+into two parts by having two wetness types static and dynamic
+types static and dynamic as their names imply static wetness is
+as their names imply static wetness is for objects that will never move and
+for objects that will never move and dynamic is for objects that will move
+dynamic is for objects that will move static wetness applies mostly to our
+static wetness applies mostly to our object bank assets which includes props
+object bank assets which includes props and structures
+and structures their wetness level is determined by
+their wetness level is determined by using the wetness
+using the wetness wetness factor parameter provided by the
+wetness factor parameter provided by the weather manager
+weather manager we also use a wetness shadow map to mask
+we also use a wetness shadow map to mask out wetness where appropriate
+out wetness where appropriate static witness will be the simplest
+static witness will be the simplest visually and will be applied in the
+visually and will be applied in the deferred lighting pass which means it
+deferred lighting pass which means it will only be applied in one spot
+will only be applied in one spot the pros to static wetness is clearly
+the pros to static wetness is clearly its simplicity and the fact that
+its simplicity and the fact that everything can be tweaked at once but
+everything can be tweaked at once but the con is that there is no flexibility
+the con is that there is no flexibility at all
+at all dynamic wetness is reserved primarily
+dynamic wetness is reserved primarily for weapons vehicles and characters
+for weapons vehicles and characters their wetness level is calculated by
+their wetness level is calculated by raycasts to detect exposure to rain
+raycasts to detect exposure to rain their wetness also includes a bonus
+their wetness also includes a bonus feature called local wetness which
+feature called local wetness which handles submersion in water
+handles submersion in water for dynamic wetness the visual change
+for dynamic wetness the visual change will be applied in each individual
+will be applied in each individual shader which means that we can tailor
+shader which means that we can tailor the look a lot more
+the look a lot more the con to this is that we now have to
+the con to this is that we now have to manage every shader that could be used
+manage every shader that could be used for dynamic assets
+first let's look at the static witness type
+type the main wetness calculation we need is
+the main wetness calculation we need is the wetness shadow map which includes
+the wetness shadow map which includes objects that are for example under a
+objects that are for example under a balcony or indoors
+balcony or indoors this is important because we use our
+this is important because we use our props a lot so their wetness should be
+props a lot so their wetness should be accurate no matter where level artists
+accurate no matter where level artists place them
+place them since our static wetness is applied in
+since our static wetness is applied in the deferred lighting pass we stored the
+the deferred lighting pass we stored the wetness shadow in our deferred shadow
+wetness shadow in our deferred shadow pass
+pass we then simply multiply the sample
+we then simply multiply the sample shadow with the weather manager's
+shadow with the weather manager's wetness factor to get the final wetness
+wetness factor to get the final wetness let's look at a wetness shadow example
+let's look at a wetness shadow example in this scene there are lighter dry
+in this scene there are lighter dry concrete patches on the floor and on the
+concrete patches on the floor and on the wooden table as well
+wooden table as well but more importantly let's look at the
+but more importantly let's look at the wetness shadow
+wetness shadow as you can see it works quite well but
+as you can see it works quite well but there are some precision limitations
+there are some precision limitations particularly on vertical surfaces
+particularly on vertical surfaces if you look closely at the highlighted
+if you look closely at the highlighted areas you will see some speckle details
+areas you will see some speckle details this is because the cutoff was
+this is because the cutoff was originally a very harsh line which we
+originally a very harsh line which we softened using dithering
+now let's move on to how we applied the visual of static wetness
+visual of static wetness we first referred to photo reference to
+we first referred to photo reference to analyze exactly what inputs we would
+analyze exactly what inputs we would need and what changes they should drive
+need and what changes they should drive the two visual changes that we
+the two visual changes that we identified as necessary were darkening
+identified as necessary were darkening the albedo and increasing the smoothness
+the albedo and increasing the smoothness some materials like cardboard would
+some materials like cardboard would darken but wouldn't get too shiny and
+darken but wouldn't get too shiny and materials like tiles would not darken
+materials like tiles would not darken but would get much shinier and some
+but would get much shinier and some materials fall in between
+materials fall in between the key to all this was how absorbent
+the key to all this was how absorbent the material was
+as a result the input we chose was porosity
+porosity porosity is most directly related to
+porosity is most directly related to albedo change for example high porosity
+albedo change for example high porosity materials like dirt fabric and raw wood
+materials like dirt fabric and raw wood will become saturated and appear very
+will become saturated and appear very dark
+dark on the other hand low crossing materials
+on the other hand low crossing materials like plastic marble and metal will have
+like plastic marble and metal will have water pooling on the surface rather than
+water pooling on the surface rather than getting absorbed which means that the
+getting absorbed which means that the colors should be unchanged
+colors should be unchanged so now that we have our input we could
+so now that we have our input we could just use a porosity map and move on
+just use a porosity map and move on except for one problem not every
+except for one problem not every material can afford an extra texture map
+material can afford an extra texture map that would exceed our budgets for not
+that would exceed our budgets for not much reward
+much reward so now we need a way to derive porosity
+so now we need a way to derive porosity whenever a porosity texture is not
+whenever a porosity texture is not available
+available and this is where we introduce porosity
+and this is where we introduce porosity factors
+factors since porosity and smoothness are
+since porosity and smoothness are properties that are conceptually
+properties that are conceptually connected our solution was the following
+connected our solution was the following formula where the two porosity factor
+formula where the two porosity factor values are just floats that we could
+values are just floats that we could specify
+specify per material type
+per material type this formula essentially generated a
+this formula essentially generated a porosity map with all the details of the
+porosity map with all the details of the spoon this map but with its values lying
+spoon this map but with its values lying in the range that we specifically
+in the range that we specifically curated
+luckily for us our object bank shaders already had a drop down of material
+already had a drop down of material presets with hard-coded pbr values all
+presets with hard-coded pbr values all we had to do was insert our porosity
+we had to do was insert our porosity factors in there
+factors in there this kept the artist workflows
+this kept the artist workflows completely unchanged and prevented any
+completely unchanged and prevented any setup bugs
+so now that we finally have the porosity input ready we can look at the central
+input ready we can look at the central apply wetness function that is called
+apply wetness function that is called from the deferred lighting pass
+from the deferred lighting pass the code can be referred to later but
+the code can be referred to later but what we essentially did was darken the
+what we essentially did was darken the albedo according to porosity accepted
+albedo according to porosity accepted the material is metallic
+the material is metallic boost the smoothness and note that we
+boost the smoothness and note that we used porosity once more to get even more
+used porosity once more to get even more control
+control and finally replace the specular
+and finally replace the specular reflectance value with that of water
+reflectance value with that of water so for an approximation with very few
+so for an approximation with very few inputs it would be impossible to get
+inputs it would be impossible to get every material response correct
+every material response correct it was more important to judge the
+it was more important to judge the bigger picture rather than individual
+bigger picture rather than individual assets
+assets this helped us avoid an endless loop of
+this helped us avoid an endless loop of tweaking values
+here's a dry versus wet comparison for some of our materials
+some of our materials now let's look at a full scene of assets
+now let's look at a full scene of assets transitioning from dry
+transitioning from dry to wet
+now let's switch gears over to dynamic wetness used for our characters weapons
+wetness used for our characters weapons and vehicles these assets all have a
+and vehicles these assets all have a wetness component that keeps track of
+wetness component that keeps track of their wetness level
+their wetness level as mentioned before characters and
+as mentioned before characters and weapons perform a raycast every few
+weapons perform a raycast every few frames to check their exposure to rain
+frames to check their exposure to rain since vehicles are larger in size these
+since vehicles are larger in size these actually need more than one raycast
+actually need more than one raycast when exposed to rain dynamic assets will
+when exposed to rain dynamic assets will increase in wetness level slowly before
+increase in wetness level slowly before they are fully wet and when no longer
+they are fully wet and when no longer exposed they will also dry slowly
+exposed they will also dry slowly the per-vertex local wetness calculation
+the per-vertex local wetness calculation handled submersion so if a character
+handled submersion so if a character waits halfway into a lake for example
+waits halfway into a lake for example their lower half will appear wet
+now if we recall the benefits of dynamic wetness was that we could customize the
+wetness was that we could customize the way we applied wetness
+way we applied wetness to gather our ideas we once again
+to gather our ideas we once again revisited real world references such as
+revisited real world references such as staring at parked cars outside in the
+staring at parked cars outside in the rain
+for character clothing we utilize the same approach as for our props we use an
+same approach as for our props we use an existing drop down menu in our shaders
+existing drop down menu in our shaders but also added an upper limit to the
+but also added an upper limit to the final smoothness this was just to give
+final smoothness this was just to give us even better results for wet fabrics
+us even better results for wet fabrics specifically
+specifically character hair was the simplest change
+character hair was the simplest change we made we only used one set of porosity
+we made we only used one set of porosity factors
+factors at the early stages of brainstorming we
+at the early stages of brainstorming we really wanted a way for hair to actually
+really wanted a way for hair to actually clump together when wet but it was too
+clump together when wet but it was too ambitious for our scope of work
+for skin we wanted rain to be visible but not in a way where scrolling could
+but not in a way where scrolling could look unnatural or distracting so we went
+look unnatural or distracting so we went with a subtle approach by using a static
+with a subtle approach by using a static texture which contained a dropless
+texture which contained a dropless normal map and a wetness mask
+normal map and a wetness mask with these applied the skin material
+with these applied the skin material wetness was quickly finalized
+on our project weapons and vehicles are closely related they are both gameplay
+closely related they are both gameplay elements and are seen up close from the
+elements and are seen up close from the first person's perspective
+first person's perspective for this reason we gave these assets
+for this reason we gave these assets animated brain effects which were
+animated brain effects which were applied using animated textures updated
+applied using animated textures updated per frame
+per frame these effects were divided into two
+these effects were divided into two parts streaks and droplets which were
+parts streaks and droplets which were applied on vertical and horizontal
+applied on vertical and horizontal surfaces respectively
+for the streaks our input data was only one texture which packed in a streak
+one texture which packed in a streak mask a normal map and a height map
+mask a normal map and a height map the scroll mask was what actually drove
+the scroll mask was what actually drove the vertical movement of the streaks
+the vertical movement of the streaks which we applied in local space uvs we
+which we applied in local space uvs we made sure to only apply the streaks when
+made sure to only apply the streaks when the asset is oriented upright or upside
+the asset is oriented upright or upside down in the latter case we reverse the
+down in the latter case we reverse the scroll direction
+for the droplets we supplied another texture containing a normal map a height
+texture containing a normal map a height map and an id map
+map and an id map to drive the animation here we sampled
+to drive the animation here we sampled the droplets two times to vary the
+the droplets two times to vary the pattern of droplets fading in and out
+pattern of droplets fading in and out with varying timing cycles which was
+with varying timing cycles which was made possible with the edema
+made possible with the edema one thing we were still missing though
+one thing we were still missing though was the tiny static droplets that tend
+was the tiny static droplets that tend to build up over time on hard surfaces
+to build up over time on hard surfaces so what we did was squeeze them into the
+so what we did was squeeze them into the height map texture later on
+height map texture later on we also made sure to use manual mips on
+we also made sure to use manual mips on the droplets texture to reduce sparkling
+the droplets texture to reduce sparkling artifacts
+as we all know adding a feature often results in unexpected issues and edge
+results in unexpected issues and edge cases popping up
+cases popping up one issue we faced was that wetness
+one issue we faced was that wetness effects were showing up inside vehicles
+effects were showing up inside vehicles this was because our vehicles sometimes
+this was because our vehicles sometimes share materials between the exterior and
+share materials between the exterior and interior to save on draw calls
+interior to save on draw calls so the fix for this was simply to use
+so the fix for this was simply to use the red vertex paint channel as an
+the red vertex paint channel as an interior mask
+interior mask once this was painted by artists we
+once this was painted by artists we could
+could remove the interior rain effects except
+remove the interior rain effects except of course
+of course in edge cases such as when our
+in edge cases such as when our convertible cars put down their tops
+convertible cars put down their tops another problem came up when moving
+another problem came up when moving windshield wipers were implemented by
+windshield wipers were implemented by our gameplay team while rain streaks
+our gameplay team while rain streaks were added by our 3d team resulting in
+were added by our 3d team resulting in no interaction between them
+no interaction between them what we did was pack in a windshield
+what we did was pack in a windshield gradient map and set up the shader to
+gradient map and set up the shader to mask the rain according to the current
+mask the rain according to the current gradient value
+gradient value we then pass this value over to gameplay
+we then pass this value over to gameplay to hook everything up
+to hook everything up this is a very small feature that we
+this is a very small feature that we never actually planned but
+never actually planned but inconsistencies like this can really
+inconsistencies like this can really take a player out of an experience very
+take a player out of an experience very quickly so we were happy to add it
+for vegetation we originally used the static wetness approach but this led to
+static wetness approach but this led to two very big issues
+two very big issues firstly trunks and plants near the
+firstly trunks and plants near the jungle floor were actually getting
+jungle floor were actually getting shadowed from the rain which was very
+shadowed from the rain which was very strange to see in nature
+strange to see in nature and secondly we were getting bugs
+and secondly we were getting bugs explaining that the trees were looking
+explaining that the trees were looking metallic
+metallic and this was because the flat leaf cards
+and this was because the flat leaf cards were giving off a uniform reflection of
+were giving off a uniform reflection of the gray sky and the visual was so
+the gray sky and the visual was so strong that it effectively reduced the
+strong that it effectively reduced the realism of our trees by exposing where
+realism of our trees by exposing where the cards were
+the cards were to fix this we converted vegetation over
+to fix this we converted vegetation over to the dynamic witness type just so that
+to the dynamic witness type just so that we could tailor the wetness in the
+we could tailor the wetness in the shaders independently
+shaders independently of course this meant that there would
+of course this meant that there would now no longer be any shadowing
+now no longer be any shadowing but 99 of the time our trees are not
+but 99 of the time our trees are not hand placed indoors so we went through
+hand placed indoors so we went through with the swap
+with the swap in the end we used the droplets texture
+in the end we used the droplets texture on the leaves which finally matched
+on the leaves which finally matched reality a lot better and fix the
+reality a lot better and fix the reflection bugs
+terrain was the final area to conquer not only is it always in the player's
+not only is it always in the player's point of view but as we can see from
+point of view but as we can see from these photo references it also requires
+these photo references it also requires a lot more detail
+a lot more detail let's first summarize very quickly what
+let's first summarize very quickly what we need for our terrain
+we need for our terrain the primary textures used include albedo
+the primary textures used include albedo normal smoothness and now the new
+normal smoothness and now the new texture porosity
+texture porosity these properties are stored in a virtual
+these properties are stored in a virtual texture atlas that we use for the entire
+texture atlas that we use for the entire world
+world to see more about this system you can
+to see more about this system you can refer to our past talk on terrain
+refer to our past talk on terrain note that roads and terrain decals are
+note that roads and terrain decals are all baked into the virtual texture atlas
+all baked into the virtual texture atlas so it really is one complete system that
+so it really is one complete system that we needed to apply wetness to
+to make terrain wet we actually just used the same apply wetness function
+used the same apply wetness function shown earlier the key difference now for
+shown earlier the key difference now for terrain is that the transition was
+terrain is that the transition was changed
+changed we didn't want a linear fade as we
+we didn't want a linear fade as we thought this was a bit too artificial
+thought this was a bit too artificial for something with such a large surface
+for something with such a large surface area
+area so the new transition we created was our
+so the new transition we created was our raindrop splatter effect as shown in the
+raindrop splatter effect as shown in the video
+video to do this a height field simulation was
+to do this a height field simulation was done on the gpu which took in some
+done on the gpu which took in some simple parameters such as drawing and
+simple parameters such as drawing and spreading speed for the splatters
+spreading speed for the splatters the resulting animated mask was used as
+the resulting animated mask was used as our custom wetness factor
+our custom wetness factor another thing to note was that we chose
+another thing to note was that we chose to temporarily increase the terrain
+to temporarily increase the terrain ferocity at this point just to
+ferocity at this point just to accentuate the effects with darker
+accentuate the effects with darker splatters
+now that terrain has its wetness applied we have to turn our attention to the
+we have to turn our attention to the largest visual feature needed to present
+largest visual feature needed to present wetness bottles
+wetness bottles puddles were also a heavily desired
+puddles were also a heavily desired feature for art direction because they
+feature for art direction because they would provide reflections which
+would provide reflections which ultimately makes the environment and
+ultimately makes the environment and lighting much more appealing
+lighting much more appealing the setup for puddles was very simple a
+the setup for puddles was very simple a puddle itself is a terrain decal but all
+puddle itself is a terrain decal but all it contained was an alpha gradient and a
+it contained was an alpha gradient and a checkbox to only write to terrain
+checkbox to only write to terrain porosity
+porosity the gradient served as a pseudo sine
+the gradient served as a pseudo sine distance field which allowed puddles to
+distance field which allowed puddles to build up from the center
+build up from the center we only had a few puddle decal
+we only had a few puddle decal variations which were scattered by our
+variations which were scattered by our existing terrain and road recipe systems
+existing terrain and road recipe systems similar to how cracks and potholes would
+similar to how cracks and potholes would be scattered
+be scattered we calculated the puddle wetness based
+we calculated the puddle wetness based on the terrain porosity and the puddle
+on the terrain porosity and the puddle factor provided by the wetness manager
+factor provided by the wetness manager once we had the put awareness we once
+once we had the put awareness we once again just altered the g buffer values
+again just altered the g buffer values accordingly
+accordingly what we did was slightly blend the
+what we did was slightly blend the albedo to a muddy puddle color and
+albedo to a muddy puddle color and blended the smoothness to one
+blended the smoothness to one for the normals however we initially
+for the normals however we initially used a flat normal but that now brings
+used a flat normal but that now brings us to our next implementation
+us to our next implementation which was puddle effects
+which was puddle effects the two types of puddle effects comprise
+the two types of puddle effects comprise of rain impact ripples which are the
+of rain impact ripples which are the circular ripples that simulate rain
+circular ripples that simulate rain hitting water
+hitting water and wind ripples which are the small
+and wind ripples which are the small waves that occur when a gust of wind
+waves that occur when a gust of wind pushes the puddle surface
+pushes the puddle surface it would have been perfectly acceptable
+it would have been perfectly acceptable to have flat undisturbed puddles but we
+to have flat undisturbed puddles but we really wanted to take it one step
+really wanted to take it one step further and tie in our weather elements
+further and tie in our weather elements so we generated a tiling animated
+so we generated a tiling animated texture updated every frame to be used
+texture updated every frame to be used for all of our puddles
+our input data was a single texture with two normal maps packed inside one for
+two normal maps packed inside one for the rain ripples and one for the wind
+the rain ripples and one for the wind ripples the output was a single animated
+ripples the output was a single animated normal texture
+normal texture so for the rain ripples we sampled the
+so for the rain ripples we sampled the normal texture twice to have two
+normal texture twice to have two overlapping layers of flipbook
+overlapping layers of flipbook animations
+animations these are faded in based on the weather
+these are faded in based on the weather manager's rain effects factor which will
+manager's rain effects factor which will ensure that these ripples only appear
+ensure that these ripples only appear when it is actually raining
+when it is actually raining for the wind ripples we scroll the
+for the wind ripples we scroll the texture based on the current wind
+texture based on the current wind direction and intensity
+direction and intensity as a result this effect can be present
+as a result this effect can be present whether it is raining or not such as
+whether it is raining or not such as when puddles are still on the ground
+when puddles are still on the ground just after a storm
+just after a storm finally we blend these effects together
+finally we blend these effects together to get the result that we use for our
+to get the result that we use for our puddle models
+puddle models this concludes the collection of shader
+this concludes the collection of shader changes we needed to support material
+changes we needed to support material wetness
+wetness and now colin will take you through the
+and now colin will take you through the technical features that allowed us to
+technical features that allowed us to render the weather
+thank you emily
+hi my name is colin wike i'm a 3d programmer at ubisoft toronto where i've
+programmer at ubisoft toronto where i've been for the past five years and i
+been for the past five years and i worked on far cry 5 and far cry 6.
+worked on far cry 5 and far cry 6. now that emily has shown us the
+now that emily has shown us the intricacies of the weather manager
+intricacies of the weather manager and
+and the wetness
+the wetness the implementation of the wetness let's
+the implementation of the wetness let's take a look at the rendering features we
+take a look at the rendering features we needed to realize dynamic weather
+needed to realize dynamic weather but first let's take a look at the
+but first let's take a look at the technical constraints that we had
+technical constraints that we had our game shipped on nine platforms
+our game shipped on nine platforms spanning multiple console generations as
+spanning multiple console generations as well as pc
+well as pc we were aiming for 4k 60fps on nextgen
+we were aiming for 4k 60fps on nextgen and 30fps on the previous gen
+and 30fps on the previous gen this was also a our largest open world
+this was also a our largest open world to date
+to date and as emily mentioned we have a full
+and as emily mentioned we have a full day night cycle in an open world
+day night cycle in an open world which features indoor and outdoor
+which features indoor and outdoor environments and now we need to do all
+environments and now we need to do all of this with dynamic weather
+of this with dynamic weather let's take a look at a sample scene and
+let's take a look at a sample scene and see how these rendering features come
+see how these rendering features come together to complete the depiction of
+together to complete the depiction of our weather states
+our weather states first we have atmospheric scattering
+first we have atmospheric scattering then we have the clouds on the horizon
+then we have the clouds on the horizon and overhead
+and overhead then we have volumetric fog obscuring
+then we have volumetric fog obscuring regions and producing light shafts
+regions and producing light shafts escaping from the clouds
+escaping from the clouds next we have q maps and reflections
+next we have q maps and reflections notice how the power lines are reflected
+notice how the power lines are reflected on the road
+on the road and finally we have rain and lightning
+and finally we have rain and lightning which complete the scene of an intense
+which complete the scene of an intense thunderstorm
+thunderstorm before we look at individual techniques
+before we look at individual techniques let's start with a primer on our
+let's start with a primer on our lighting model
+lighting model we use physically based formulas and aim
+we use physically based formulas and aim to be energy conserving as a goal
+to be energy conserving as a goal new for far cry 6 we have a higher
+new for far cry 6 we have a higher quality multi-scattering diffuse brdf
+quality multi-scattering diffuse brdf and a
+and a ggx specular brdf with multi-scattering
+ggx specular brdf with multi-scattering lobe and support for area lights
+lobe and support for area lights the chart on the right
+the chart on the right shows how we handle specific materials
+shows how we handle specific materials but one
+but one surface type of note was translucency
+surface type of note was translucency which we used for vegetation
+which we used for vegetation for translucency we wrapped the diffuse
+for translucency we wrapped the diffuse lighting for subsurface scattering
+lighting for subsurface scattering and added a second diffuse lobe to
+and added a second diffuse lobe to simulate light going through the surface
+simulate light going through the surface you can refer to steve mccauley's i3d
+you can refer to steve mccauley's i3d talk from 2019 to learn more about these
+talk from 2019 to learn more about these improvements
+improvements for global illumination we use light a
+for global illumination we use light a light probe system
+light probe system where probes are placed by artists
+where probes are placed by artists throughout the world and baked daily to
+throughout the world and baked daily to incorporate changes in the world
+incorporate changes in the world gi data is stored in voxels we pack 13
+gi data is stored in voxels we pack 13 frames of data 11 which are time of day
+frames of data 11 which are time of day increments to give coverage to the sky
+increments to give coverage to the sky and moon there's one key frame for local
+and moon there's one key frame for local lights which is mostly used at night and
+lights which is mostly used at night and one key frame for sky occlusion but
+one key frame for sky occlusion but there's a problem
+there's a problem these gi probes don't include clouds or
+these gi probes don't include clouds or any impact from the weather
+any impact from the weather the solution that we had was to fade out
+the solution that we had was to fade out indirect lighting when cloud coverage is
+indirect lighting when cloud coverage is high
+high this could create a problem if local
+this could create a problem if local lights were in the key frames in all the
+lights were in the key frames in all the key frames but since they are isolated
+key frames but since they are isolated to just one we can avoid fading
+to just one we can avoid fading artificial lights during high
+artificial lights during high cloud coverage
+cloud coverage additionally urban environments tested
+additionally urban environments tested the limits of this system we leaned
+the limits of this system we leaned heavily into the sparse nature of the
+heavily into the sparse nature of the data
+data and the variable probe size to increase
+and the variable probe size to increase precision near and within indoor
+precision near and within indoor environments
+we use the brunton sky model and pre-thumb sun model
+pre-thumb sun model with improvements made such as ozone
+with improvements made such as ozone this setup involves lookup tables
+this setup involves lookup tables calculated offline and previously this
+calculated offline and previously this was generated at runtime but that was
+was generated at runtime but that was very slow
+very slow artists create four skies humidity zero
+artists create four skies humidity zero to one turbidity zero to one and we
+to one turbidity zero to one and we blend between these at runtime to get
+blend between these at runtime to get variation
+variation you can check out our gdc talk from 2015
+you can check out our gdc talk from 2015 about lighting in far cry 4 for early
+about lighting in far cry 4 for early implementation of these concepts
+implementation of these concepts here we show the effects of humidity and
+here we show the effects of humidity and turbidity parameters on the optical
+turbidity parameters on the optical depth lookup table and the blended in
+depth lookup table and the blended in scattering lookup table we blend four
+scattering lookup table we blend four pairs of data together to get our final
+pairs of data together to get our final result
+result the green arrow points to the blended
+the green arrow points to the blended result for each frame and the red arrow
+result for each frame and the red arrow points to the lookup tables with the
+points to the lookup tables with the greatest weight for the frame's humidity
+greatest weight for the frame's humidity and turbidity parameters
+and turbidity parameters this is what gave us our stunning
+this is what gave us our stunning sunrises and sunsets which you see
+sunrises and sunsets which you see casting beautifully on the edges of the
+casting beautifully on the edges of the clouds that leads us to our next subject
+clouds that leads us to our next subject volumetric clouds so why do we want
+volumetric clouds so why do we want volumetric clouds simply put a skybox is
+volumetric clouds simply put a skybox is not sufficient it has poor results in
+not sufficient it has poor results in motion and is difficult to blend between
+motion and is difficult to blend between different weather states
+different weather states a skybox is also more of a backdrop
+a skybox is also more of a backdrop where we wanted something more grounded
+where we wanted something more grounded and interacting with the world
+and interacting with the world additionally we needed our clouds to
+additionally we needed our clouds to respond to weather
+respond to weather and various varying cloud coverage
+and various varying cloud coverage our eventual solution was built on prior
+our eventual solution was built on prior work as listed here
+work as listed here the most important part of cloud
+the most important part of cloud lighting is extinction as light travels
+lighting is extinction as light travels through a volume it loses energy due to
+through a volume it loses energy due to the interaction with white
+the interaction with white water particles
+water particles that clouds are composed of
+that clouds are composed of this extinction is determined by the
+this extinction is determined by the beer lambert law
+beer lambert law which we will henceforth refer to as
+which we will henceforth refer to as transmittance
+transmittance extinction consists of both absorption
+extinction consists of both absorption which is actually quite low for clouds
+which is actually quite low for clouds and scattering
+and scattering the light that eventually hits the eye
+the light that eventually hits the eye after being scattered is measured in
+after being scattered is measured in terms of radiance
+terms of radiance single scattering refers to when light
+single scattering refers to when light enters
+enters a cloud and encounters one scattering
+a cloud and encounters one scattering event before traveling in the direction
+event before traveling in the direction towards the observer
+towards the observer multi-scattering refers to when the
+multi-scattering refers to when the cloud when the light encounters a near
+cloud when the light encounters a near limitless number of scattering events
+limitless number of scattering events within the cloud before traveling in the
+within the cloud before traveling in the direction towards the observer
+direction towards the observer here we show the effects of single
+here we show the effects of single scattering on the clouds
+scattering on the clouds next we isolate the effects of
+next we isolate the effects of multi-scattering on the clouds and
+multi-scattering on the clouds and finally we have
+finally we have the effect of both notice the greater
+the effect of both notice the greater sense of depth in the clouds
+sense of depth in the clouds all of these scattering events can be
+all of these scattering events can be modeled by a phase function which
+modeled by a phase function which projects how much light and in what
+projects how much light and in what direction it will travel after it's
+direction it will travel after it's scattered
+scattered in this diagram we have the oval shape
+in this diagram we have the oval shape representing the phase function
+representing the phase function approximation of light scattering after
+approximation of light scattering after the scattering event at the blue dot
+the scattering event at the blue dot on the right is a plot of the double
+on the right is a plot of the double lobed henye greenstein phase function we
+lobed henye greenstein phase function we used in our implementation the real
+used in our implementation the real phase function for clouds would be much
+phase function for clouds would be much more complex and far too expensive to
+more complex and far too expensive to calculate in real time you can reference
+calculate in real time you can reference this and other lighting code in our
+this and other lighting code in our bonus slides
+bonus slides all of these scattering events can be
+all of these scattering events can be modeled by a phase function
+let's talk about how we authored cloud data which represents the density of
+data which represents the density of particles
+particles in the clouds to be used for scattering
+in the clouds to be used for scattering techniques
+techniques we created base and detail noise
+we created base and detail noise textures containing mixes of noise types
+textures containing mixes of noise types and frequencies which we collapse into a
+and frequencies which we collapse into a single channel
+single channel these textures are then volumetrically
+these textures are then volumetrically sampled and blended together to create
+sampled and blended together to create cloud shapes
+cloud shapes next we generated a weather map to be
+next we generated a weather map to be tiled in the world and scrolled in the
+tiled in the world and scrolled in the wind direction from a weather manager
+wind direction from a weather manager this builds our xy formations of clouds
+this builds our xy formations of clouds and enables us to smoothly interpolate
+and enables us to smoothly interpolate between levels of cloud coverage
+between levels of cloud coverage we also have a curl noise which contains
+we also have a curl noise which contains 3d vector data which we use as an origin
+3d vector data which we use as an origin offset when shooting rays into the base
+offset when shooting rays into the base and detail noise
+and detail noise finally we have cirrus and
+finally we have cirrus and cirrus cloud texture which we map
+cirrus cloud texture which we map hemispherically to the sky
+hemispherically to the sky and a cirrus horizon texture which we
+and a cirrus horizon texture which we map in a cylinder around the camera
+map in a cylinder around the camera let's put all of these together
+let's put all of these together here we start with a clear sky and just
+here we start with a clear sky and just our atmospheric scattering
+our atmospheric scattering then we add cirrus the cirrus hemisphere
+then we add cirrus the cirrus hemisphere and horizon clouds
+and horizon clouds then we add the weather map and you
+then we add the weather map and you start to see the xy shape of the cloud
+start to see the xy shape of the cloud formations
+formations then we combine the gradient texture to
+then we combine the gradient texture to define the shape of the clouds this
+define the shape of the clouds this cumulus gradient ended up being the only
+cumulus gradient ended up being the only gradient we needed to ship although we
+gradient we needed to ship although we did experiment with other cloud types
+did experiment with other cloud types then we used the base detail noise
+then we used the base detail noise volume texture to get the distinctive
+volume texture to get the distinctive cumulus cloud shapes
+cumulus cloud shapes then we used the detailed noise
+then we used the detailed noise volume texture to erode more detail from
+volume texture to erode more detail from those clouds and then finally we add the
+those clouds and then finally we add the curl noise texture to get the wispy
+curl noise texture to get the wispy details on the edges of the clouds
+details on the edges of the clouds ray marching is the process we use to
+ray marching is the process we use to draw clouds efficiently
+draw clouds efficiently it includes it involves shooting a ray
+it includes it involves shooting a ray from the observer and evaluating at
+from the observer and evaluating at specified steps
+specified steps at each step we integrate the density
+at each step we integrate the density from that point back to the sun or moon
+from that point back to the sun or moon we then convert the optical depth that
+we then convert the optical depth that is returned to transmittance which can
+is returned to transmittance which can then be used to approximate single and
+then be used to approximate single and multi multi scattering
+multi multi scattering we then integrate this transmittance
+we then integrate this transmittance along the segment and accumulate single
+along the segment and accumulate single and multi scattering for the raymarch
+and multi scattering for the raymarch total we also apply the extinction to
+total we also apply the extinction to the transmittance so that affects later
+the transmittance so that affects later ray steps
+ray steps this general process for each each pixel
+this general process for each each pixel is as follows
+is as follows calculate the
+calculate the origin from
+origin from the pixel ray march
+the pixel ray march sorry from the pixel and ray march the
+sorry from the pixel and ray march the density transmittance optical depth and
+density transmittance optical depth and scattering both single and multi
+scattering both single and multi calculate the cirrus clouds if there is
+calculate the cirrus clouds if there is non-zero transmittance
+non-zero transmittance use the single and multi-scattering
+use the single and multi-scattering values to calculate the radiance from
+values to calculate the radiance from the phase function
+the phase function and then finally calculate atmospheric
+and then finally calculate atmospheric scattering and blend the clouds in front
+scattering and blend the clouds in front using inverse transmittance as a mask
+using inverse transmittance as a mask it would be far too expensive to ray
+it would be far too expensive to ray march at the full screen resolution so
+march at the full screen resolution so we do so at half of the screen
+we do so at half of the screen resolution we have a radiance and
+resolution we have a radiance and transmittance texture as well as a
+transmittance texture as well as a history radiance and transmittance
+history radiance and transmittance textures which we temporarily reproject
+textures which we temporarily reproject from the last frame
+from the last frame we fill these runtime textures using a
+we fill these runtime textures using a checkerboard rendering process we do a
+checkerboard rendering process we do a single ray march for each pixel quad
+single ray march for each pixel quad using a checkerboard offset combined
+using a checkerboard offset combined with the curl noise offset to get the
+with the curl noise offset to get the ray origin this ray march result is
+ray origin this ray march result is single scattering multi-scattering and
+single scattering multi-scattering and transmittance
+transmittance we project the history into the current
+we project the history into the current frame
+frame and then gather the neighborhood and
+and then gather the neighborhood and reject based on the heuristics listed
+reject based on the heuristics listed we then use bilinear interpolation of
+we then use bilinear interpolation of the neighbors and spread the result
+the neighbors and spread the result of the ray march over this area fading
+of the ray march over this area fading the history over time the result is
+the history over time the result is stored as
+stored as radiance and transmittance history that
+radiance and transmittance history that will be used for the next frame
+will be used for the next frame particularly of note is the process we
+particularly of note is the process we use to store the radiance we encode in
+use to store the radiance we encode in with blue noise
+with blue noise to help mask the noisy artifacts
+to help mask the noisy artifacts inherent to ray marching at such a lower
+inherent to ray marching at such a lower resolution
+resolution notice on the right we do a 2x blur of
+notice on the right we do a 2x blur of the blue noise and it converges to gray
+the blue noise and it converges to gray while the white noise does not
+while the white noise does not this looks pretty good but there's still
+this looks pretty good but there's still a problem we're missing shadows on the
+a problem we're missing shadows on the ground this makes it really hard to
+ground this makes it really hard to determine where the clouds actually are
+determine where the clouds actually are and in reality they're directly overhead
+and in reality they're directly overhead the island
+the island we tried to raymar shadows from the g
+we tried to raymar shadows from the g buffer but that was far too costly the
+buffer but that was far too costly the solution we landed upon was projected
+solution we landed upon was projected cloud shadows it was a simple
+cloud shadows it was a simple orthographic projection nothing fancy
+orthographic projection nothing fancy and the resulting shadow texture will be
+and the resulting shadow texture will be used later on for volumetric fog to get
+used later on for volumetric fog to get light shafts from the clouds
+light shafts from the clouds and here we have the clouds on the
+and here we have the clouds on the ground
+ground and also on the water
+and also on the water next we have the volumetric fog which is
+next we have the volumetric fog which is used for environmental height fog as
+used for environmental height fog as well as local fog from the weather
+well as local fog from the weather presets
+presets our implementation uses a frustum
+our implementation uses a frustum aligned voxel grid
+aligned voxel grid presented in prior work
+presented in prior work we have local and global fog based on
+we have local and global fog based on weather as well as local fog used for
+weather as well as local fog used for different biomes
+different biomes with the volumetric fog light shafts are
+with the volumetric fog light shafts are created by shadows evaluated within the
+created by shadows evaluated within the cells of the volume and here is where we
+cells of the volume and here is where we have some problems
+have some problems here's a brief overview of the
+here's a brief overview of the volumetric fog process
+volumetric fog process we prepare our scene depth information
+we prepare our scene depth information in the first three steps shown and call
+in the first three steps shown and call local
+local fog volumes to screen tiles and then
+fog volumes to screen tiles and then we'll cover the remaining steps in the
+we'll cover the remaining steps in the following slides
+following slides we fill the cells with a radiance
+we fill the cells with a radiance and we do so using the local and global
+and we do so using the local and global densities of fog and fog particles as
+densities of fog and fog particles as well as lighting from the sun atmosphere
+well as lighting from the sun atmosphere indirect lighting point and spotlights
+indirect lighting point and spotlights note that we use temporal filtering on
+note that we use temporal filtering on last gen instead of the upcoming
+last gen instead of the upcoming bilateral blur and this would require a
+bilateral blur and this would require a history buffer that is reprojected into
+history buffer that is reprojected into the current frame and faded out over
+the current frame and faded out over time
+time this requires more memory and is
+this requires more memory and is unfortunately
+unfortunately has some ghosting artifacts but it was a
+has some ghosting artifacts but it was a cheaper solution we also use the same
+cheaper solution we also use the same phase function as the volumetric clouds
+phase function as the volumetric clouds here you can see us filling the volume
+after we fill the cells with the radiance we calculate the continuous sum
+radiance we calculate the continuous sum towards the back of the volume
+towards the back of the volume now we can sample any voxel for fuller
+now we can sample any voxel for fuller radiance accumulation from the eye to
+radiance accumulation from the eye to the destination
+the destination and finally on next gen we do a
+and finally on next gen we do a two-stage process of a bilateral blur in
+two-stage process of a bilateral blur in the x and y-axis blurring in the x-axis
+the x and y-axis blurring in the x-axis outputs transposed and blurring in the
+outputs transposed and blurring in the x-axis transposes back to the original
+x-axis transposes back to the original orientation
+orientation this optimizes reads and writes of the
+this optimizes reads and writes of the textures
+textures but there's still a problem on the right
+but there's still a problem on the right you can see stair stepping in the light
+you can see stair stepping in the light shafts which is an artifact of sampling
+shafts which is an artifact of sampling the shadows
+the shadows we want this to be completely smooth and
+we want this to be completely smooth and the
+the bilateral filtering helps but it doesn't
+bilateral filtering helps but it doesn't completely solve this
+completely solve this the next approach we had was to blur the
+the next approach we had was to blur the actual shadow maps
+actual shadow maps and one benefit of this approach is that
+and one benefit of this approach is that can be reused in multiple places
+can be reused in multiple places here we see the process for exponential
+here we see the process for exponential blurred shadows
+blurred shadows first we convert and down sample three
+first we convert and down sample three near shadow slices from our cascade
+near shadow slices from our cascade shadow map from the sun
+shadow map from the sun then we blur the slices and down sample
+then we blur the slices and down sample again as you can see the result is
+again as you can see the result is significantly smaller than the original
+significantly smaller than the original which is more optimal for quality and
+which is more optimal for quality and performance when volumetrically sampling
+performance when volumetrically sampling let's take a look at a sample scene with
+let's take a look at a sample scene with no fog from our weather manager
+no fog from our weather manager here we add the fog on its own with some
+here we add the fog on its own with some less than ideal artifacting
+less than ideal artifacting this is the result of blurring the
+this is the result of blurring the irradiance volume and screen space it's
+irradiance volume and screen space it's better but there's still artifacts that
+better but there's still artifacts that suggest the shape of the voxels
+suggest the shape of the voxels and finally we enable the exponential
+and finally we enable the exponential blurred shadows
+blurred shadows to this point we have not mentioned how
+to this point we have not mentioned how we actually apply the clouds we apply
+we actually apply the clouds we apply atmospherics clouds and fog at the same
+atmospherics clouds and fog at the same time to save bit on bandwidth when
+time to save bit on bandwidth when writing to areas of the screen where
+writing to areas of the screen where both are visible
+both are visible you can see here that the cloud shadows
+you can see here that the cloud shadows give nice light shafts in the fog
+give nice light shafts in the fog one final detail of our composite pass
+one final detail of our composite pass is that we apply the final value with
+is that we apply the final value with blue noise at the final screen
+blue noise at the final screen resolution this combined with the
+resolution this combined with the temporal aa post process
+temporal aa post process further eliminates ray marching
+further eliminates ray marching artifacts visible in the clouds now
+artifacts visible in the clouds now let's talk about reflections reflections
+let's talk about reflections reflections are crucial to completing the visual
+are crucial to completing the visual concept of wetness as emily mentioned
+concept of wetness as emily mentioned before we used values from the weather
+before we used values from the weather system to determine what surfaces are
+system to determine what surfaces are wet
+wet then we perform the process where rays
+then we perform the process where rays are path traced using the g buffer
+are path traced using the g buffer positions and normals to pixels and
+positions and normals to pixels and screen space to be reflected
+screen space to be reflected this does most of the work of reflecting
+this does most of the work of reflecting objects in the scene such as trees sky
+objects in the scene such as trees sky and clouds on the surface of the road
+and clouds on the surface of the road as well as the mountains shown on the
+as well as the mountains shown on the water surface for more information about
+water surface for more information about our sslr as well as our hybrid ray
+our sslr as well as our hybrid ray tracing solution see my colleagues
+tracing solution see my colleagues stephanie and ehor talk about performant
+stephanie and ehor talk about performant reflective beauty in their talk
+reflective beauty in their talk but what happens when we don't have
+but what happens when we don't have enough data for screen space reflections
+enough data for screen space reflections such as
+such as when we view water at the angle shown on
+when we view water at the angle shown on the right
+the right we need a fallback where there is no
+we need a fallback where there is no data to drive the screen space
+data to drive the screen space reflections
+reflections our fallback comes in the form of cube
+our fallback comes in the form of cube maps which need to show time of day
+maps which need to show time of day changes weather clouds
+changes weather clouds as shown in the sunset reflection on the
+as shown in the sunset reflection on the cloud or the the car on the right
+cloud or the the car on the right our q maps are generated at build time
+our q maps are generated at build time in positions determined by artists and
+in positions determined by artists and they they need to be re-lit with our
+they they need to be re-lit with our atmospheric scattering clouds and fog
+atmospheric scattering clouds and fog qmap data is baked and stored as albedo
+qmap data is baked and stored as albedo normal and smoothness as well as a lower
+normal and smoothness as well as a lower resolution depth map to achieve
+resolution depth map to achieve acceptable performance we re-light just
+acceptable performance we re-light just one face of the cube map each frame
+one face of the cube map each frame except in special cases such as
+except in special cases such as cinematic camera cuts
+cinematic camera cuts the process starts with generating a
+the process starts with generating a sky-only cube map containing only
+sky-only cube map containing only atmospheric scattering clouds and fog
+atmospheric scattering clouds and fog then the sky-only cube map for our fault
+then the sky-only cube map for our fault back reflection is used on uh our ocean
+back reflection is used on uh our ocean then we were light the scene using
+then we were light the scene using the sorry the scene face using the baked
+the sorry the scene face using the baked cube map data and finally we composite
+cube map data and finally we composite the skyq map into the rel relit scene
+the skyq map into the rel relit scene cube map giving the final result shown
+cube map giving the final result shown in the bottom right
+in the bottom right we progressively update a single face
+we progressively update a single face each frame attempting to process cue
+each frame attempting to process cue maps when streaming in new areas
+maps when streaming in new areas after the re-lighting process cube maps
+after the re-lighting process cube maps need to be filtered for blurrier
+need to be filtered for blurrier reflections on rougher surfaces
+reflections on rougher surfaces one large problem that we had was
+one large problem that we had was overcast lighting and weather sometimes
+overcast lighting and weather sometimes it was just it just wasn't dark enough
+it was just it just wasn't dark enough and it could appear flat
+and it could appear flat we want the clouds to have contrast
+we want the clouds to have contrast and we also want to have blue sky
+and we also want to have blue sky breaking through there were several
+breaking through there were several reasons why this was happening one such
+reasons why this was happening one such example was our authored sky were two
+example was our authored sky were two turbid and gray if you want blue in your
+turbid and gray if you want blue in your scene
+scene in your natural lighting essentially it
+in your natural lighting essentially it comes from here but be careful there are
+comes from here but be careful there are otherwise
+otherwise if you put too much blue then your whole
+if you put too much blue then your whole scene will
+scene will get too blue
+get too blue we also had issues with the fog washing
+we also had issues with the fog washing out the image and to fix this we fade
+out the image and to fix this we fade fog based on cloud coverage
+fog based on cloud coverage we had sky lighting that was too bright
+we had sky lighting that was too bright because the clouds never reached the
+because the clouds never reached the horizon in the cube map and there's also
+horizon in the cube map and there's also a blue band
+a blue band in our cube maps that contributes to
+in our cube maps that contributes to this brightness
+this brightness clouds of uniform
+clouds of uniform thickness
+thickness could also wash out the image which is
+could also wash out the image which is why we limit the cumulus coverage to 0.8
+why we limit the cumulus coverage to 0.8 even in the storm
+even in the storm so now let's move our attention to rain
+so now let's move our attention to rain remember the weather system keeps track
+remember the weather system keeps track of
+of a rain factor that we use to drive our
+a rain factor that we use to drive our particle systems
+particle systems it was very apparent early on that our
+it was very apparent early on that our existing cpu particle system would not
+existing cpu particle system would not be able to produce the number of
+be able to produce the number of particles that we wanted for rain
+particles that we wanted for rain therefore we set out to create a gpu
+therefore we set out to create a gpu particle system to render rain effects
+particle system to render rain effects and in doing so we ended up with a
+and in doing so we ended up with a generalized system that supported many
+generalized system that supported many other types of effects as well
+other types of effects as well here's a brief overview of our particle
+here's a brief overview of our particle system you can refer to later in summary
+system you can refer to later in summary we use compute shaders to emit simulate
+we use compute shaders to emit simulate sort and render all the particles on the
+sort and render all the particles on the gpu with minimal interaction with the
+gpu with minimal interaction with the cpu
+cpu for any particle system you need
+for any particle system you need billboards or geometry rendered in the
+billboards or geometry rendered in the right order
+right order our solution was a bitonic sort to order
+our solution was a bitonic sort to order the particles all at once this algorithm
+the particles all at once this algorithm is massively parallel and while it has a
+is massively parallel and while it has a higher average cost than something like
+higher average cost than something like a radex sort it was one of the lowest
+a radex sort it was one of the lowest worst costs which is important in game
+worst costs which is important in game development to avoid frame time spikes
+development to avoid frame time spikes once we have a set of visible particles
+once we have a set of visible particles sorted and ready to render
+sorted and ready to render we need to filter which particles need
+we need to filter which particles need to be rendered in which pass
+to be rendered in which pass we used a prefix sum algorithm to
+we used a prefix sum algorithm to effectively eliminate the empty space in
+effectively eliminate the empty space in a buffer
+a buffer uh to a sorted list of visible particles
+uh to a sorted list of visible particles that are uh just for a single pass
+that are uh just for a single pass this is also a highly parallelized
+this is also a highly parallelized algorithm perfect for the gpu
+algorithm perfect for the gpu let's go through some of the particle
+let's go through some of the particle effects
+effects that we had for ring the first particle
+that we had for ring the first particle effect we want to look at is the range
+effect we want to look at is the range streaks we experimented with
+streaks we experimented with refraction blur and reflections but we
+refraction blur and reflections but we ultimately use transparent textures
+ultimately use transparent textures to achieve the look of rain in
+to achieve the look of rain in photography which was a part of our art
+photography which was a part of our art direction
+direction we use two frames of variation and a
+we use two frames of variation and a normal texture to aid in the lighting we
+normal texture to aid in the lighting we recycle rain streaks and cylinder around
+recycle rain streaks and cylinder around the player to ensure the number of rain
+the player to ensure the number of rain particles remains consistent
+particles remains consistent regardless of how fast the camera is
+regardless of how fast the camera is moving to add continuous variation to
+moving to add continuous variation to the particles
+the particles throughout their lifetimes we used a 3d
+throughout their lifetimes we used a 3d noise texture mapped to world space as
+noise texture mapped to world space as turbulence and finally the emission rate
+turbulence and finally the emission rate and direction of the rain is determined
+and direction of the rain is determined by the wind values provided from the
+by the wind values provided from the weather manager
+weather manager since we had many indoor and outdoor
+since we had many indoor and outdoor environments we needed to occlude rain
+environments we needed to occlude rain where it was not plausible to do this we
+where it was not plausible to do this we created a rain shadow map that we can
+created a rain shadow map that we can reference to determine the range if a
+reference to determine the range if a rain streak or splash was occluded
+rain streak or splash was occluded this was a directional shadow set up to
+this was a directional shadow set up to cover the playable area near the camera
+cover the playable area near the camera parallel to the rain direction
+parallel to the rain direction then we stored this in our regular sun
+then we stored this in our regular sun shadow atlas shown on the right
+shadow atlas shown on the right and the colored image on the left is
+and the colored image on the left is used as a lookup table to convert uv
+used as a lookup table to convert uv space into the atlas texture
+space into the atlas texture the rain shadow map only contains static
+the rain shadow map only contains static scene elements and is updated in
+scene elements and is updated in sections each frame
+sections each frame the next particle effect we want to talk
+the next particle effect we want to talk about is splashes that appear when rain
+about is splashes that appear when rain hits a surface near the camera
+hits a surface near the camera initially this was driven by gpu a gpu
+initially this was driven by gpu a gpu particle event system which emits emits
+particle event system which emits emits new particles when a parent particle
+new particles when a parent particle hits a surface on the depth buffer
+hits a surface on the depth buffer terrain or water
+terrain or water and this means we get splash particles
+and this means we get splash particles on any surface which is opaque including
+on any surface which is opaque including vehicles characters and weapons however
+vehicles characters and weapons however we didn't necessarily want these
+we didn't necessarily want these splashes to be on sides of buildings so
+splashes to be on sides of buildings so we incorporated a slope factor
+we incorporated a slope factor another problem that we had was we
+another problem that we had was we weren't getting enough splashes because
+weren't getting enough splashes because not every particle we checked for
+not every particle we checked for collision would generate a splash so
+collision would generate a splash so therefore we spawned more particles in a
+therefore we spawned more particles in a volume around the camera and snapped
+volume around the camera and snapped them to the depth buffer
+them to the depth buffer for both range streaks and splashes we
+for both range streaks and splashes we wanted pixel lighting especially at
+wanted pixel lighting especially at night however this was far too expensive
+night however this was far too expensive and vertex lighting just wasn't good
+and vertex lighting just wasn't good enough what we did was create a system
+enough what we did was create a system for generating spherical harmonic light
+for generating spherical harmonic light probes for each vertex of the particle
+probes for each vertex of the particle each of these probes calculates
+each of these probes calculates third order
+third order sh coefficients and incorporates sun
+sh coefficients and incorporates sun point and spotlights this gives us
+point and spotlights this gives us better than vertex lighting but is much
+better than vertex lighting but is much cheaper than pixel lighting in addition
+cheaper than pixel lighting in addition we can sample normal maps of particles
+we can sample normal maps of particles for directional lighting and better
+for directional lighting and better specular highlights here we see an
+specular highlights here we see an example of a particle billboard of a
+example of a particle billboard of a sphere a sphere
+sphere a sphere on the right and
+on the right and it only has a diffuse and normal texture
+it only has a diffuse and normal texture the next particle effect we needed was
+the next particle effect we needed was lightning bolts for our thunderstorms
+lightning bolts for our thunderstorms for this effect we created a ribbon or
+for this effect we created a ribbon or trail system we started by creating
+trail system we started by creating trails automatically
+trails automatically left by individual particles but
+left by individual particles but extended this by generating particles
+extended this by generating particles and tessellating geometry between each
+and tessellating geometry between each particle we call these linked emitters
+particle we call these linked emitters using the linked system we emitted
+using the linked system we emitted particles on the cylinder moving from
+particles on the cylinder moving from top to bottom increasing the turbulence
+top to bottom increasing the turbulence in the center of the volume and fading
+in the center of the volume and fading out at each end but this alone was not
+out at each end but this alone was not very realistic
+very realistic we needed to make the lightning effect
+we needed to make the lightning effect uh the world around it
+uh the world around it first we generated an omni light and
+first we generated an omni light and placed it in the scene so that lightning
+placed it in the scene so that lightning would light the environment then we had
+would light the environment then we had to address the
+to address the clouds around the lightning bolt we
+clouds around the lightning bolt we applied lightning to the clouds and the
+applied lightning to the clouds and the up sample pass so that lightning doesn't
+up sample pass so that lightning doesn't end up in the history buffer and cause
+end up in the history buffer and cause ghosting and in order to determine where
+ghosting and in order to determine where the clouds
+the clouds where in the clouds to add light we use
+where in the clouds to add light we use sun scattering factor that we saved in
+sun scattering factor that we saved in the green channel of the cloud ray
+the green channel of the cloud ray marching pass and our implementation
+marching pass and our implementation functions essentially like a column
+functions essentially like a column light
+light the next rendering feature is the ocean
+the next rendering feature is the ocean improvements we made to the ocean
+improvements we made to the ocean rendering were mostly to support tropic
+rendering were mostly to support tropic the tropical environment however oceans
+the tropical environment however oceans still needed to be affected by weather
+still needed to be affected by weather in two ways beaufort level and wind
+in two ways beaufort level and wind direction our previous screen space
+direction our previous screen space tessellation had issues with shoreline
+tessellation had issues with shoreline waves whenever the ocean was parallel to
+waves whenever the ocean was parallel to the view direction it lacked a lot of
+the view direction it lacked a lot of detail in the distance and for more
+detail in the distance and for more information on our previous uh
+information on our previous uh implementation you can see a previous
+implementation you can see a previous gdc talk we had
+gdc talk we had so we added a new type of tessellation
+so we added a new type of tessellation to support sharp waves for weather and
+to support sharp waves for weather and improve the distance visual and support
+improve the distance visual and support shoreline waves
+shoreline waves the tessellation we chose for our ocean
+the tessellation we chose for our ocean was the i sub d tessellation scheme this
+was the i sub d tessellation scheme this basic algorithm sub divides the ocean
+basic algorithm sub divides the ocean mesh into us from the single two
+mesh into us from the single two triangle quad down to subdivided
+triangle quad down to subdivided triangles you see near the camera it is
+triangles you see near the camera it is a progressive refinement algorithm that
+a progressive refinement algorithm that will subdivide into smaller triangles
+will subdivide into smaller triangles each frame as they get closer to the
+each frame as they get closer to the camera
+camera and merge into larger ones as they get
+and merge into larger ones as they get further away
+further away there's a performance limit on the
+there's a performance limit on the number of operations that can be done
+number of operations that can be done every frame so we fill a buffer with
+every frame so we fill a buffer with keys to perform these operations this
+keys to perform these operations this led to a list of a lot of empty space
+led to a list of a lot of empty space this was an area of the sub-d algorithm
+this was an area of the sub-d algorithm that we found to be unsolved and we
+that we found to be unsolved and we needed a solution to this problem so we
+needed a solution to this problem so we used the same prefix sum algorithm from
+used the same prefix sum algorithm from the gpu particle filtering on a
+the gpu particle filtering on a different type of data
+different type of data in our world we have fresh water that
+in our world we have fresh water that meets the ocean therefore we needed to
+meets the ocean therefore we needed to blend the previous screen space
+blend the previous screen space desolation to the sub-d-tessellation to
+desolation to the sub-d-tessellation to do this we use the displacement and
+do this we use the displacement and normals of the freshwater as input in
+normals of the freshwater as input in the intersections of this tessellation
+the intersections of this tessellation type and blended in that range
+type and blended in that range and then we use simple stencil testing
+and then we use simple stencil testing to avoid redundant pixel shading of the
+to avoid redundant pixel shading of the water meshes
+water meshes the beaufort scale is a empirical system
+the beaufort scale is a empirical system that relates wind speed to its effect on
+that relates wind speed to its effect on bodies of water here we show how
+bodies of water here we show how beaufort levels coming from
+beaufort levels coming from the weather manager can impact the look
+the weather manager can impact the look of the water and this is going to be
+of the water and this is going to be beaufort level 0 to 4.
+beaufort level 0 to 4. the buffer levels themselves are tuned
+the buffer levels themselves are tuned to with data such as wind speed
+to with data such as wind speed amplitude and scale as well as
+amplitude and scale as well as choppiness
+choppiness that was both for level one and here's
+that was both for level one and here's the value the sorry these values are
+the value the sorry these values are used to drive the wave simulations which
+used to drive the wave simulations which we will show later
+we will show later the beaufort level also includes
+the beaufort level also includes settings for shoreline waves such as
+settings for shoreline waves such as amplitude frequency speed steepness and
+amplitude frequency speed steepness and number of waves
+number of waves the beaufort levels include settings for
+the beaufort levels include settings for foam which you can see accumulating
+foam which you can see accumulating alongside the increased wave size and
+alongside the increased wave size and this is beaufort level 4.
+this is beaufort level 4. here we have the ocean wave buffers that
+here we have the ocean wave buffers that we generate every frame in order to
+we generate every frame in order to create motion in the waves these buffers
+create motion in the waves these buffers can be mapped back and read on the cpu
+can be mapped back and read on the cpu for physics calculations ocean level
+for physics calculations ocean level start and ocean level but we disabled
+start and ocean level but we disabled this due to performance limits the world
+this due to performance limits the world space fbm was created to get sharp waves
+space fbm was created to get sharp waves up close near the camera using the world
+up close near the camera using the world space buffer
+space buffer uh so using a world space buffer gave us
+uh so using a world space buffer gave us the ability to generate normal
+the ability to generate normal directly instead of from screen space
+directly instead of from screen space like we did previously this gave us
+like we did previously this gave us better details up close as well as uh in
+better details up close as well as uh in the distance with mit mapping next we
+the distance with mit mapping next we use the fft simulation for waves in the
+use the fft simulation for waves in the distance we adjusted our original
+distance we adjusted our original implementation to respond to beaufort
+implementation to respond to beaufort level and wind parameters we also added
+level and wind parameters we also added the accumulation channel to the texture
+the accumulation channel to the texture to create persistent light caps on the
+to create persistent light caps on the waves to prevent tiling in the distance
+waves to prevent tiling in the distance we use the fft buffer as a cascade at a
+we use the fft buffer as a cascade at a different scale
+different scale as well as a purl and noise wave texture
+here we see the fft buffer we started with notice the tiling and the distance
+with notice the tiling and the distance then we have the fft cascading uh the
+then we have the fft cascading uh the fft cascade eliminating some of the
+fft cascade eliminating some of the tiling and finally we have the scrolling
+tiling and finally we have the scrolling purlin noise texture
+purlin noise texture which is removing the rest of the
+which is removing the rest of the titling it does a good job of simulating
+titling it does a good job of simulating the effects of wind on large patches of
+the effects of wind on large patches of water in the distance
+water in the distance related to the new ocean tech was the
+related to the new ocean tech was the inclusion of shoreline waves which we
+inclusion of shoreline waves which we needed for our tropical beaches we had
+needed for our tropical beaches we had far too many shorelines to cover so we
+far too many shorelines to cover so we used a we needed a procedural method
+used a we needed a procedural method which led us to choose the gershner wave
+which led us to choose the gershner wave formula
+formula ins we
+ins we use multiple parameters such as
+use multiple parameters such as amplitude speed and foam to control the
+amplitude speed and foam to control the visuals
+visuals the last rendering feature we'd like to
+the last rendering feature we'd like to talk about is the tree bending which
+talk about is the tree bending which works for in conjunction with the wind
+works for in conjunction with the wind direction
+direction and magnitude coming from the weather
+and magnitude coming from the weather manager we improve the tree bending
+manager we improve the tree bending settings by adding noise and bending
+settings by adding noise and bending amplitudes combined with the wind values
+amplitudes combined with the wind values this gives us an exaggerated movement in
+this gives us an exaggerated movement in the trees that reflects our stormy
+the trees that reflects our stormy weather conditions
+weather conditions these settings are controlled by artists
+these settings are controlled by artists when setting up tree trunk skeletons
+when setting up tree trunk skeletons the movement could sometimes exceed the
+the movement could sometimes exceed the tree's bounding box which could be
+tree's bounding box which could be problematic because it uh they could
+problematic because it uh they could suddenly be cold and ultimately
+suddenly be cold and ultimately the the feature was uh limited by uh
+the the feature was uh limited by uh being plausible when when zooming into
+being plausible when when zooming into the distance to conclude we'd like to
+the distance to conclude we'd like to share some of our final thoughts from
+share some of our final thoughts from both tech and from tech art and
+both tech and from tech art and programming perspectives
+for me things that really drove our success were limiting the complexity
+success were limiting the complexity studying references reducing production
+studying references reducing production dependencies wherever possible and
+dependencies wherever possible and identifying the biggest wins so that we
+identifying the biggest wins so that we could focus on what sells the weather
+could focus on what sells the weather the most
+the most for future work we could simplify the
+for future work we could simplify the database further
+database further we could also set up an easier way to
+we could also set up an easier way to debug and review weather without
+debug and review weather without overrides confusing us
+overrides confusing us we could make more use of witness
+we could make more use of witness effects and push our presets to be more
+effects and push our presets to be more extreme and lastly we could always
+extreme and lastly we could always investigate procedural weather patterns
+investigate procedural weather patterns as opposed to our hard-coded forecasts
+thank you emily for rendering takeaways as you saw there
+for rendering takeaways as you saw there was a lot of tech to maintain there were
+was a lot of tech to maintain there were a lot of interlocking parts which needed
+a lot of interlocking parts which needed to be polished both separately and
+to be polished both separately and together
+together the biggest recommendation we have is to
+the biggest recommendation we have is to finalize these things early that means
+finalize these things early that means your data formats data and processes you
+your data formats data and processes you don't want any of these things changing
+don't want any of these things changing too far into production for future work
+too far into production for future work there were several things listed but one
+there were several things listed but one thing i find most interesting would be
+thing i find most interesting would be to
+to use the same tessellation for both water
+use the same tessellation for both water and terrain and use the same atlas
+and terrain and use the same atlas for virtual texturing
+for virtual texturing we would quickly like to thank the 3d
+we would quickly like to thank the 3d teams who worked on this feature and
+teams who worked on this feature and everyone who helped us along the way
+everyone who helped us along the way as you can see it was a collective
+as you can see it was a collective effort
+effort here's a list of references for the talk
+here's a list of references for the talk and with that we'd like to close out
+and with that we'd like to close out with a video of our final results
+[Music]
+all right thank you for joining us today uh
+uh are there any questions
+are there any questions [Applause]
+okay
+thank you for nice talk i'd like to ask about the cumulative
+i'd like to ask about the cumulative lighting how did you handle shuttle maps
+lighting how did you handle shuttle maps for relight queue map i believe
+for relight queue map i believe shuttle map is outside or to
+shuttle map is outside or to outside and then
+outside and then a shuttle map is assigned to main view
+a shuttle map is assigned to main view crosstalk areas
+crosstalk areas yeah
+yeah so one of the things that we noted in
+so one of the things that we noted in our problem section with overcast
+our problem section with overcast lighting was that we don't have any
+lighting was that we don't have any shadowing in our cube maps
+shadowing in our cube maps so yeah we we didn't have any shadowing
+so yeah we we didn't have any shadowing that's something we'd like to add in the
+that's something we'd like to add in the future
+future thank you
+hey great talk and a lot of awesome information thanks for doing it i had a
+information thanks for doing it i had a quick question you mentioned you had
+quick question you mentioned you had some undesirable effects when in
+some undesirable effects when in interior spaces with some of the weather
+interior spaces with some of the weather and that that led to constraints on sort
+and that that led to constraints on sort of how you were working with like the
+of how you were working with like the fog to spearing through windows and
+fog to spearing through windows and stuff what sort of solutions and
+stuff what sort of solutions and constrictions did that put on like your
+constrictions did that put on like your concave spaces and interior spaces
+concave spaces and interior spaces um so for our zones specifically we did
+um so for our zones specifically we did run into a lot of issues particularly
+run into a lot of issues particularly for the indoor zones
+for the indoor zones as we mentioned the change happens
+as we mentioned the change happens immediately so you will see these
+immediately so you will see these changes if you have windows what we did
+changes if you have windows what we did was if there's ever
+was if there's ever an open space or an area with windows we
+an open space or an area with windows we made another zone essentially where we
+made another zone essentially where we would solve these issues
+hello uh great talk by the way was very informative um my question was related
+informative um my question was related to performance uh it sounds like you
+to performance uh it sounds like you know there was a lot of features that
+know there was a lot of features that you had to add to the basis based
+you had to add to the basis based shaders to get all this wetness and
+shaders to get all this wetness and stuff uh were there any challenges
+stuff uh were there any challenges regarding optimization keeping that
+regarding optimization keeping that running at all times to dynamically
+running at all times to dynamically switch between things
+um yeah so i would say optimization wise everything
+i would say optimization wise everything had to be designed so that uh your cost
+had to be designed so that uh your cost would not
+would not increase when the weather turned on so
+increase when the weather turned on so uh
+uh like emily talked about with dynamic
+like emily talked about with dynamic wetness we we had to assume the cost uh
+wetness we we had to assume the cost uh with the
+with the um trees to be wet dynamically uh as
+um trees to be wet dynamically uh as part of that cost so
+part of that cost so i i guess the the thing is we we would
+i i guess the the thing is we we would have to uh optimize as much as possible
+have to uh optimize as much as possible but we essentially have uh wetness as
+but we essentially have uh wetness as something that could be turned on at any
+something that could be turned on at any time
+time okay thank you
+okay thank you awesome um thanks for the talk i was
+awesome um thanks for the talk i was very curious about your static wetness
+very curious about your static wetness specifically because you're it sounded
+specifically because you're it sounded to me like you were doing that as a
+to me like you were doing that as a deferred rendering pass instead of
+deferred rendering pass instead of complicating your materials and i just
+complicating your materials and i just wanted to make sure that i understood
+wanted to make sure that i understood that correctly is that true
+that correctly is that true yes so basically in every shader we
+yes so basically in every shader we would be assigning the g buffer
+would be assigning the g buffer properties and then in our deferred
+properties and then in our deferred lighting passes where we would assemble
+lighting passes where we would assemble all these properties and perform the
+all these properties and perform the lighting so what we did was just
+lighting so what we did was just basically defer our wetness solutions so
+basically defer our wetness solutions so instead of applying it in every shader
+instead of applying it in every shader which would incur some more cost each
+which would incur some more cost each time
+time we do it all at once
+we do it all at once awesome
+i just had a quick question thank you for the talk by the way really
+thank you for the talk by the way really really
+really informative
+informative uh other quick question
+uh other quick question you render out a rain shadow map and i
+you render out a rain shadow map and i was curious
+was curious it doesn't seem like you reused that for
+it doesn't seem like you reused that for wetness
+wetness no that was specifically just for
+no that was specifically just for particles
+particles we
+we tried to use it for other elements in
+tried to use it for other elements in the game like
+the game like vehicles but as we said it only included
+vehicles but as we said it only included static information because it would be
+static information because it would be far too costly to
+far too costly to update that every frame
+update that every frame so it's really just to give us
+so it's really just to give us directional
+directional directional occlusion information for
+directional occlusion information for particles so essentially you wouldn't
+particles so essentially you wouldn't see
+see rain when there was an overhang that
+rain when there was an overhang that would uh block it whether it's indoor or
+would uh block it whether it's indoor or outdoor or both in and outdoor
+outdoor or both in and outdoor thank you
+[Music] you

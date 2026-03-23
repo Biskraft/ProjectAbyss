@@ -1,0 +1,1216 @@
+[Music] hi I'm Dave oh I'm the lead engineer for
+hi I'm Dave oh I'm the lead engineer for core gameplay and animation on Gears of
+core gameplay and animation on Gears of War in this talk it's a programming talk
+War in this talk it's a programming talk I'm going to present a new approach to
+I'm going to present a new approach to animation transitions that we developed
+animation transitions that we developed during Gears of War I'll describe first
+during Gears of War I'll describe first of all to start off with the high level
+of all to start off with the high level intuitions and the motivations behind
+intuitions and the motivations behind our approach and we're gonna dive down
+our approach and we're gonna dive down into some mathematics and and break it
+into some mathematics and and break it down in detail and then we'll come back
+down in detail and then we'll come back up from that and I'll show a bit of how
+up from that and I'll show a bit of how we integrated the technique into our
+we integrated the technique into our existing game engine before we get into
+existing game engine before we get into all that though let's let's take a quick
+all that though let's let's take a quick look at what Gears of War is all about
+so as you can see from the video there's there's a lot going on Gears Awards a
+there's a lot going on Gears Awards a fast paced game
+fast paced game and our characters are frequently
+and our characters are frequently switching between different kind of
+switching between different kind of actions shooting running chainsawing
+actions shooting running chainsawing enemies in half all the good stuff of
+enemies in half all the good stuff of course when we switch to a new action we
+course when we switch to a new action we also need to naturally transition to a
+also need to naturally transition to a new animation state and so that's kind
+new animation state and so that's kind of what this talk is about
+of what this talk is about so before we start here's were four we
+so before we start here's were four we were doing these transitions kind of the
+were doing these transitions kind of the traditional way which is with with a
+traditional way which is with with a crossfade blend so let's take a look a
+crossfade blend so let's take a look a little bit about that so traditionally
+little bit about that so traditionally when we're transitioning from one
+when we're transitioning from one animation state to another we run a
+animation state to another we run a crossfade blend between the two poses
+crossfade blend between the two poses from our two states so we run our kind
+from our two states so we run our kind of Source State and we start a new
+of Source State and we start a new target state and then we for for the
+target state and then we for for the duration of the transition we run a
+duration of the transition we run a crossfade between those two states so we
+crossfade between those two states so we keep evaluating both the source and the
+keep evaluating both the source and the target during the transition and we kind
+target during the transition and we kind of ramp from the showing mostly the
+of ramp from the showing mostly the source to mostly target right where
+source to mostly target right where where we're blending the blending the
+where we're blending the blending the actual joint angles and translations now
+actual joint angles and translations now when we think about optimizing this kind
+when we think about optimizing this kind of thing often we're focusing on
+of thing often we're focusing on optimizing the blend step and there's
+optimizing the blend step and there's lots of things we can do there you know
+lots of things we can do there you know we can do math optimizations we can do
+we can do math optimizations we can do memory optimizations cache optimizations
+memory optimizations cache optimizations all sorts of good things but four gears
+all sorts of good things but four gears at least the biggest cost is not
+at least the biggest cost is not actually the crossfade transition itself
+actually the crossfade transition itself but rather the fact that we're
+but rather the fact that we're evaluating both the source and target
+evaluating both the source and target states during the transition and for us
+states during the transition and for us each of those states is much more
+each of those states is much more expensive than you know then the simple
+expensive than you know then the simple plane cost it so for that simple
+plane cost it so for that simple crossfade cost itself so I've got a
+crossfade cost itself so I've got a little kind of tiny snapshot of what one
+little kind of tiny snapshot of what one of our animate and one of the pieces of
+of our animate and one of the pieces of one of our animation graphs looks like
+one of our animation graphs looks like in reality it's actually much bigger
+in reality it's actually much bigger than that and we're doing lots of things
+than that and we're doing lots of things where we'll be playing multiple
+where we'll be playing multiple animations we'll be layering things on
+animations we'll be layering things on top we'll be applying a mean offsets for
+top we'll be applying a mean offsets for the gun which involves evaluating more
+the gun which involves evaluating more animations and layering them on top will
+animations and layering them on top will do procedural head look at a bunch of
+do procedural head look at a bunch of other procedural things so there's a lot
+other procedural things so there's a lot going on in each of those states so all
+going on in each of those states so all of that Dwarfs the cost of the actual
+of that Dwarfs the cost of the actual cross fade transition
+cross fade transition now if we're lucky we only have a few
+now if we're lucky we only have a few active transitions at any one time so in
+active transitions at any one time so in this kind of picture I'm showing that
+this kind of picture I'm showing that there's you know four characters going
+there's you know four characters going and three of them are just doing their
+and three of them are just doing their regular thing and then one of them is
+regular thing and then one of them is transitioning and so the cost really
+transitioning and so the cost really during that transition for this
+during that transition for this particular frame is equivalent to five
+particular frame is equivalent to five characters worth of animation right for
+characters worth of animation right for four normal characters and this one guy
+four normal characters and this one guy is transitioning so these cost is double
+is transitioning so these cost is double because he has to evaluate both the
+because he has to evaluate both the source and target states but in the
+source and target states but in the worst case everybody transitions at the
+worst case everybody transitions at the same time and that effectively doubles
+same time and that effectively doubles your animation cost for the frame and
+your animation cost for the frame and for Gears this worst case happens all
+for Gears this worst case happens all the time and in fact it happens in a
+the time and in fact it happens in a bunch of really important times so for
+bunch of really important times so for example in a player versus player match
+example in a player versus player match at the start of the match everybody's
+at the start of the match everybody's kind of doing their their various
+kind of doing their their various loadout type animations getting getting
+loadout type animations getting getting themselves equipped and then as soon as
+themselves equipped and then as soon as the match starts everybody does this mad
+the match starts everybody does this mad dash to strategic locations on the map
+dash to strategic locations on the map and so we have and this is all running
+and so we have and this is all running at 60 frames a second so we have five
+at 60 frames a second so we have five players on each side so ten players
+players on each side so ten players total and they all transition at once so
+total and they all transition at once so at that moment we have ten players that
+at that moment we have ten players that are costing as much as twenty players
+are costing as much as twenty players because we have to evaluate all of their
+because we have to evaluate all of their source animations and all of their are
+source animations and all of their are sort of source animation states and all
+sort of source animation states and all of their target animation states so it
+of their target animation states so it gets quite expensive so we asked
+gets quite expensive so we asked ourselves can we do better and there's
+ourselves can we do better and there's an observation we made here which is
+an observation we made here which is that real humans don't do these
+that real humans don't do these crossfade plans right this is a
+crossfade plans right this is a construct we've made up for for video
+construct we've made up for for video games and I guess filmed too so real
+games and I guess filmed too so real humans don't crossfade but but they do
+humans don't crossfade but but they do have inner inner sin and an easy way of
+have inner inner sin and an easy way of kind of picturing that is imagine that
+kind of picturing that is imagine that you know I'm waving to you and I want to
+you know I'm waving to you and I want to go from this waving state to just having
+go from this waving state to just having my my arm down if I do a crossfade
+my my arm down if I do a crossfade planned then kind of as I'm waving and I
+planned then kind of as I'm waving and I do this transition you know the wave
+do this transition you know the wave kind of bleeds into the going down and
+kind of bleeds into the going down and real people don't do that right and in
+real people don't do that right and in fact fun exercises if you try and do
+fact fun exercises if you try and do this try and keep the period of the wave
+this try and keep the period of the wave down while you reduce its amplitude it's
+down while you reduce its amplitude it's really hard so so what what would really
+really hard so so what what would really happen right is you wave and then you
+happen right is you wave and then you kind of just bring your arm down and my
+kind of just bring your arm down and my arm doesn't come straight down in that
+arm doesn't come straight down in that case it kind of shot out because my way
+case it kind of shot out because my way was you know when I chose to do this
+was you know when I chose to do this transition my wave was kind of heading
+transition my wave was kind of heading that way so the inertia of my hand kind
+that way so the inertia of my hand kind of
+of down and then and then comes down so I
+down and then and then comes down so I guess the takeaway really here is that
+guess the takeaway really here is that they're having a more exciting talk than
+they're having a more exciting talk than Isaac the takeaway here is that that we
+Isaac the takeaway here is that that we don't blend right we do this we do this
+don't blend right we do this we do this kind of momentum preserving transition
+kind of momentum preserving transition and so the idea we came up with is hey
+and so the idea we came up with is hey let's just get rid of these transitions
+let's just get rid of these transitions right they're expensive and then I've
+right they're expensive and then I've just kind of made this case that they
+just kind of made this case that they don't quite match reality and so we'll
+don't quite match reality and so we'll do that great that solves our that
+do that great that solves our that solves our performance thing right now
+solves our performance thing right now instead of during the transition we
+instead of during the transition we value we're evaluating two things now
+value we're evaluating two things now we're just a value in one thing
+we're just a value in one thing everything's great
+everything's great except of course we still have all these
+except of course we still have all these discontinuities so at the moment where
+discontinuities so at the moment where we transition from the source to the
+we transition from the source to the target we're gonna have this big pose
+target we're gonna have this big pose mismatch and that's obviously not
+mismatch and that's obviously not acceptable but the idea then is can we
+acceptable but the idea then is can we fix these discontinuities as some kind
+fix these discontinuities as some kind of magical post process so that's that's
+of magical post process so that's that's what we're talking about it's
+what we're talking about it's transitions as a post process so let's
+transitions as a post process so let's make this a little bit more specific so
+make this a little bit more specific so on this in this picture and I'm gonna
+on this in this picture and I'm gonna take a moment to kind of explain my
+take a moment to kind of explain my notation here because we'll sort of work
+notation here because we'll sort of work with this picture for a little bit but
+with this picture for a little bit but I'm showing the the blue pose which is
+I'm showing the the blue pose which is kind of the pose you're coming from
+kind of the pose you're coming from transitioning to this gold pose the blue
+transitioning to this gold pose the blue pose there I've shown this is blue line
+pose there I've shown this is blue line and it ends at the dot when we start the
+and it ends at the dot when we start the transition and then the gold pose is
+transition and then the gold pose is starting it it's a dot and kind of
+starting it it's a dot and kind of continuing on and you can see there's a
+continuing on and you can see there's a gap between the dots right so that's
+gap between the dots right so that's representing just this pose difference
+representing just this pose difference that we're trying to get rid of and if
+that we're trying to get rid of and if we just if we look at the guy on the
+we just if we look at the guy on the right and we kind of look at it as an
+right and we kind of look at it as an actual animation right if we have no
+actual animation right if we have no transition and you just get a pop right
+transition and you just get a pop right and that's obviously not acceptable in
+and that's obviously not acceptable in our game so this is a kind of a weapon
+our game so this is a kind of a weapon mirror transition in our game these play
+mirror transition in our game these play actually much faster as all of these
+actually much faster as all of these videos are showing it quarter speed
+videos are showing it quarter speed negating right you can see this
+negating right you can see this discontinuity and that's what we want
+discontinuity and that's what we want that's what we want to solve so what we
+that's what we want to solve so what we want to do is we want to find something
+want to do is we want to find something that's going to fit from the old pose to
+that's going to fit from the old pose to the new pose and and be kind of smooth
+the new pose and and be kind of smooth and continuous and pleasing and give us
+and continuous and pleasing and give us a result that looks kind of like the
+a result that looks kind of like the ghost image here right so we're going
+ghost image here right so we're going from the this discontinuous input and
+from the this discontinuous input and then the output is this nice smooth
+then the output is this nice smooth ghost image and we identified three
+ghost image and we identified three primary goals while we were starting to
+primary goals while we were starting to think about how we could we could try to
+think about how we could we could try to solve this things these are these are
+solve this things these are these are kind of important rules that we didn't
+kind of important rules that we didn't want to
+want to we didn't want to break so the first one
+we didn't want to break so the first one is to respect the original animation and
+is to respect the original animation and what I mean by that is that during the
+what I mean by that is that during the transition obviously we need to change
+transition obviously we need to change things up we know we're gonna you know
+things up we know we're gonna you know do something to make the input be
+do something to make the input be continuous but when we're not
+continuous but when we're not transitioning we need to leave the
+transitioning we need to leave the animation exactly as the animators
+animation exactly as the animators offered it and that both to kind of
+offered it and that both to kind of respect their artistry but also for a
+respect their artistry but also for a game like Gears there's important
+game like Gears there's important gameplay implications right the the
+gameplay implications right the the muzzle of the gun needs to be in the
+muzzle of the gun needs to be in the right place when I'm firing otherwise if
+right place when I'm firing otherwise if it's in the wrong place while I'm while
+it's in the wrong place while I'm while I'm moving around then the bullets come
+I'm moving around then the bullets come out it might hit some some obstacle that
+out it might hit some some obstacle that I don't want it to hit obviously we want
+I don't want it to hit obviously we want the result to be believable and pleasing
+the result to be believable and pleasing and in some kind of way and and really
+and in some kind of way and and really we took that to mean that it should be
+we took that to mean that it should be kind of smooth and momentum preserving
+kind of smooth and momentum preserving and this last one I call stay on model
+and this last one I call stay on model but what I really mean here is kind of
+but what I really mean here is kind of don't get out of the space of poses that
+don't get out of the space of poses that are your inputs so an important example
+are your inputs so an important example here in kind of the one we focus on is
+here in kind of the one we focus on is to eliminate overshoot right so if I if
+to eliminate overshoot right so if I if I have a pose and another pose and I
+I have a pose and another pose and I want to go between them
+want to go between them I want the result of sort of in some
+I want the result of sort of in some intuitive sense to stay between those
+intuitive sense to stay between those pose poses and not go beyond kind of
+pose poses and not go beyond kind of that that range that they're defining
+that that range that they're defining because that could lead to you know
+because that could lead to you know unnatural hyperextension of arms or
+unnatural hyperextension of arms or crashing through the body and other
+crashing through the body and other undesirable effects so our first idea
+undesirable effects so our first idea and I call this idea number zero both
+and I call this idea number zero both because we didn't actually implement it
+because we didn't actually implement it but also because I'm a programmer I come
+but also because I'm a programmer I come from
+from starting from zero so this first idea is
+starting from zero so this first idea is that we apply a filter to the output
+that we apply a filter to the output stream so you know you can imagine
+stream so you know you can imagine something like if you have a power drag
+something like if you have a power drag doll in your game
+doll in your game your power drag doll could be kind of
+your power drag doll could be kind of driving towards all these poses during
+driving towards all these poses during the moment of transition the poses will
+the moment of transition the poses will be discontinuous but because the power
+be discontinuous but because the power drag doll has limits to you know has a
+drag doll has limits to you know has a certain amount of inertia to it and has
+certain amount of inertia to it and has limits on the drive strength then the
+limits on the drive strength then the result of the power drag doll will still
+result of the power drag doll will still be kind of smooth but the problem is
+be kind of smooth but the problem is that introduces lag it's difficult to
+that introduces lag it's difficult to tune and that lag in particular is
+tune and that lag in particular is really important because then during a
+really important because then during a high speed movement for example that
+high speed movement for example that isn't during a transition so it's just
+isn't during a transition so it's just animated that way the ragdoll might be
+animated that way the ragdoll might be lagging there and my deviate and then
+lagging there and my deviate and then that kind of breaks the whole
+that kind of breaks the whole expect the animation principal that we
+expect the animation principal that we had right so your gun might not be in
+had right so your gun might not be in the right place and it might not be
+the right place and it might not be matching what the artist intended so the
+matching what the artist intended so the first real idea we tried was this pretty
+first real idea we tried was this pretty simple idea it's basically to blend from
+simple idea it's basically to blend from the organize be careful with they use a
+the organize be careful with they use a blend here but to fade out from the the
+blend here but to fade out from the the pose difference between the source and
+pose difference between the source and the targets we want to take the
+the targets we want to take the difference between those two poses and
+difference between those two poses and ease that out over time going back to
+ease that out over time going back to our picture that gives us a graph kind
+our picture that gives us a graph kind of like this and you can see that the
+of like this and you can see that the poses are continuous now is the the blue
+poses are continuous now is the the blue line and the gold line are connected but
+line and the gold line are connected but you can see that there's a there's a
+you can see that there's a there's a sort of a kink in sort of near the where
+sort of a kink in sort of near the where we start the transition where it's not
+we start the transition where it's not continuous and stalled right there's
+continuous and stalled right there's this velocity discontinuity and if we
+this velocity discontinuity and if we look at the result of that in the actual
+look at the result of that in the actual character animation you can see the
+character animation you can see the poses are themselves continuous so
+poses are themselves continuous so there's no frame where you see a jump
+there's no frame where you see a jump but obviously you see this kind of
+but obviously you see this kind of unnatural slowing down and then speeding
+unnatural slowing down and then speeding back up of the animation so that's no
+back up of the animation so that's no good
+good so the second idea is kind of this
+so the second idea is kind of this natural extension of the first one which
+natural extension of the first one which is to say all right well the problem
+is to say all right well the problem with the first one is that we didn't
+with the first one is that we didn't have this velocity continuity so what if
+have this velocity continuity so what if we remember as well as remembering the
+we remember as well as remembering the actual pose difference we remember the
+actual pose difference we remember the velocity from the from the original pose
+velocity from the from the original pose and we can calculate that by just doing
+and we can calculate that by just doing finite differences right we remember the
+finite differences right we remember the previous previous pose and the previous
+previous previous pose and the previous pose into the difference between those
+pose into the difference between those two by the time that gives us our
+two by the time that gives us our velocity and so then this curve we're
+velocity and so then this curve we're gonna fit is gonna match that not only
+gonna fit is gonna match that not only the difference but match this initial
+the difference but match this initial velocity so when we tried this we chose
+velocity so when we tried this we chose to use a fifth order polynomial as this
+to use a fifth order polynomial as this curve we're gonna interpolate and that
+curve we're gonna interpolate and that we kind of drew that from some
+we kind of drew that from some biomedical literature where they
+biomedical literature where they basically observe that when people were
+basically observe that when people were moving they tended to move this way and
+moving they tended to move this way and that gets us something that smooth and
+that gets us something that smooth and it ends up where we want it to end up so
+it ends up where we want it to end up so that's great but as you can see it dips
+that's great but as you can see it dips below that zero line there right and
+below that zero line there right and that's that's overshoot and when we look
+that's that's overshoot and when we look at the actual animated result we see
+at the actual animated result we see that the gun dips way down for coming
+that the gun dips way down for coming back up so again better than what we had
+back up so again better than what we had but it has this overshoot and and we
+but it has this overshoot and and we don't want to do that so then we took
+don't want to do that so then we took that idea a bit further and we said okay
+that idea a bit further and we said okay well can we do something to limit that
+well can we do something to limit that overshoot and the interesting thing
+overshoot and the interesting thing about the fact that earlier we use this
+about the fact that earlier we use this fifth order polynomial was that we have
+fifth order polynomial was that we have an extra degree of freedom to play with
+an extra degree of freedom to play with we've we've got this acceleration term
+we've we've got this acceleration term now that we can we can pick to whatever
+now that we can we can pick to whatever to be whatever we want and then the
+to be whatever we want and then the previous idea we simply set the
+previous idea we simply set the acceleration to be the initial
+acceleration to be the initial acceleration to be zero and that's kind
+acceleration to be zero and that's kind of gives us something like a smoother
+of gives us something like a smoother step right but we can make a different
+step right but we can make a different choice for that and what we experimented
+choice for that and what we experimented with was this idea of setting the
+with was this idea of setting the initial acceleration so a zero there to
+initial acceleration so a zero there to kind of resist overshoot and basically
+kind of resist overshoot and basically by setting it to give a zero jerk at the
+by setting it to give a zero jerk at the end and jerk is the derivative of
+end and jerk is the derivative of acceleration so that's the rate of
+acceleration so that's the rate of change of acceleration so when we tried
+change of acceleration so when we tried that we got a pretty good result and
+that we got a pretty good result and when we look at that in motion we get
+when we look at that in motion we get that so that that worked out pretty well
+that so that that worked out pretty well and we made up a name for that so that's
+and we made up a name for that so that's we call it inertial ization because it
+we call it inertial ization because it preserves inertia of the incoming motion
+preserves inertia of the incoming motion and because I like to make him new words
+and because I like to make him new words for things my phone now when it auto
+for things my phone now when it auto corrects it it knows that word because I
+corrects it it knows that word because I use it enough so let's look a bit more
+use it enough so let's look a bit more into the details of initialization and
+into the details of initialization and sort of start to build up this this
+sort of start to build up this this curve kind of in a more formal
+curve kind of in a more formal mathematical sense so we want to
+mathematical sense so we want to construct this fifth-order curve that's
+construct this fifth-order curve that's going to kind of go between the blue dot
+going to kind of go between the blue dot and the yellow dot there we know that at
+and the yellow dot there we know that at the end of our curve because we're
+the end of our curve because we're because we're adding this curve onto the
+because we're adding this curve onto the target pose what we're doing to the
+target pose what we're doing to the curve itself is we're basically driving
+curve itself is we're basically driving it to zero right so we want the final
+it to zero right so we want the final conditions of the curve to be that the
+conditions of the curve to be that the actual curve itself is at zero its
+actual curve itself is at zero its velocity zero and also it's acceleration
+velocity zero and also it's acceleration to zero so that it's kind of this smooth
+to zero so that it's kind of this smooth settle at the beginning we know we want
+settle at the beginning we know we want to capture our pose difference so kind
+to capture our pose difference so kind of worried about my notation here but
+of worried about my notation here but basically blue guy right is our old pose
+basically blue guy right is our old pose and our kind of showing in this blue guy
+and our kind of showing in this blue guy minus one meaning he's the the first
+minus one meaning he's the the first previous vote pose and then sort of gold
+previous vote pose and then sort of gold guys our initial target pose so we
+guys our initial target pose so we captured that pose difference as I said
+captured that pose difference as I said we also want to capture the velocity
+we also want to capture the velocity difference so we do that by taking the
+difference so we do that by taking the difference between the two poses and and
+difference between the two poses and and through all of this I'm kind of
+through all of this I'm kind of in terms of sort of a single a single
+in terms of sort of a single a single scalar value right a single
+scalar value right a single floating-point value a bit later in the
+floating-point value a bit later in the talk I'll get into how do we generalize
+talk I'll get into how do we generalize this to vectors and quaternions because
+this to vectors and quaternions because I've seen we want to use the song on
+I've seen we want to use the song on character Jones
+character Jones so we complete compute our velocity
+so we complete compute our velocity there is with finite differences if I
+there is with finite differences if I should mention too that for for here I'm
+should mention too that for for here I'm always showing kind of x0 as being
+always showing kind of x0 as being positive just to keep the explanation
+positive just to keep the explanation simple obviously if it was negative you
+simple obviously if it was negative you could just flip everything over so you
+could just flip everything over so you can make it all the inputs and make it
+can make it all the inputs and make it all the outputs and you get the same
+all the outputs and you get the same result so to keep the explanation simple
+result so to keep the explanation simple I'm gonna say from from here on out that
+I'm gonna say from from here on out that x0 is we assumed to be positive for the
+x0 is we assumed to be positive for the velocity so if the velocity coming in is
+velocity so if the velocity coming in is negative great that's that's basically
+negative great that's that's basically what I've shown here right it's heading
+what I've shown here right it's heading towards zero if the velocity is positive
+towards zero if the velocity is positive it's heading away from the pose that
+it's heading away from the pose that we're trying to get to and that would
+we're trying to get to and that would cause over shooter actually would cause
+cause over shooter actually would cause under shoot so we don't want that and so
+under shoot so we don't want that and so in that situation we just clamp the
+in that situation we just clamp the velocity to be zero now that obviously
+velocity to be zero now that obviously gives us a bit of a velocity
+gives us a bit of a velocity discontinuity in that case but we prefer
+discontinuity in that case but we prefer that over overshoot because we don't
+that over overshoot because we don't want to end up sort of crashing through
+want to end up sort of crashing through the model or breaking joints or anything
+the model or breaking joints or anything like that so if the velocities positive
+like that so if the velocities positive we said it's zero if it's negative we
+we said it's zero if it's negative we just use the expression that I've shown
+just use the expression that I've shown there we then compute our initial
+there we then compute our initial acceleration and this is basically the
+acceleration and this is basically the equation to give you your initial
+equation to give you your initial acceleration such that as I mentioned
+acceleration such that as I mentioned the jerk is zero at D at the end of the
+the jerk is zero at D at the end of the at the end there so this acceleration
+at the end there so this acceleration right is to is to resist the situation
+right is to is to resist the situation where the velocity is kind of heading
+where the velocity is kind of heading down to aggressively too quickly towards
+down to aggressively too quickly towards the zero line so intuitively right that
+the zero line so intuitively right that means we want our acceleration to be
+means we want our acceleration to be positive right because it's fighting
+positive right because it's fighting this incoming negative velocity if the
+this incoming negative velocity if the acceleration ends up being negative then
+acceleration ends up being negative then sort of the way to think about that is
+sort of the way to think about that is that the mass has worked out that we're
+that the mass has worked out that we're kind of helping or velocity and we don't
+kind of helping or velocity and we don't really need to do that right the whole
+really need to do that right the whole idea is to kind of resist the motion so
+idea is to kind of resist the motion so in that situation we just set the
+in that situation we just set the acceleration to be zero all right so
+acceleration to be zero all right so velocity always negative acceleration
+velocity always negative acceleration always positive
+always positive so once we have all these things now we
+so once we have all these things now we basically have our initial conditions
+basically have our initial conditions and are in our ending conditions and
+and are in our ending conditions and we're gonna kind of fit this to a to
+we're gonna kind of fit this to a to this fifth order polynomial spoke that
+this fifth order polynomial spoke that into your favorite math package and you
+into your favorite math package and you end up with this and so really the key
+end up with this and so really the key thing here right is that the at the
+thing here right is that the at the bottom right we see this kind of
+bottom right we see this kind of equation for XT right so that's gonna
+equation for XT right so that's gonna tell us what is the value of x over time
+tell us what is the value of x over time and we're gonna add that on to our
+and we're gonna add that on to our target pose as we're going and that'll
+target pose as we're going and that'll kind of get us our continuity so so far
+kind of get us our continuity so so far so good but I'm gonna come back to
+so good but I'm gonna come back to overshoot for a moment so for all the
+overshoot for a moment so for all the examples that I've used so far they're
+examples that I've used so far they're actually taken from real data from our
+actually taken from real data from our game so the the animation that I that
+game so the the animation that I that are showing there is sort of this mirror
+are showing there is sort of this mirror transition from a from a right handed
+transition from a from a right handed weapon grip to a left handed weapon grip
+weapon grip to a left handed weapon grip transitioning to our kinda our Idol
+transitioning to our kinda our Idol stats and for the particular joint that
+stats and for the particular joint that I'm showing the the actual values are
+I'm showing the the actual values are kind of this one point two and a
+kind of this one point two and a velocity of negative twelve point six
+velocity of negative twelve point six means playing point five and that gives
+means playing point five and that gives the curve that I'm showing so those are
+the curve that I'm showing so those are all kind of real values but what happens
+all kind of real values but what happens if we push things further right what
+if we push things further right what happens if we say let's let's make this
+happens if we say let's let's make this velocity U ridiculous right let's play
+velocity U ridiculous right let's play the the initial animation even faster
+the the initial animation even faster and see what happens does it still hold
+and see what happens does it still hold up and unfortunately the answer is no so
+up and unfortunately the answer is no so we get back to having overshoot now in
+we get back to having overshoot now in practice this almost never happens for
+practice this almost never happens for us so you know we could have stopped
+us so you know we could have stopped here and I think I think we would have
+here and I think I think we would have been fine but we really wanted to
+been fine but we really wanted to enforce this guarantee of no overshoot
+enforce this guarantee of no overshoot just so that we knew we were always safe
+just so that we knew we were always safe and then if we wanted to tune some
+and then if we wanted to tune some animations to play hyper-fast that we'd
+animations to play hyper-fast that we'd be okay
+be okay not just hyper fast too if we have a
+not just hyper fast too if we have a really long blend time than to hit kind
+really long blend time than to hit kind of that zero mark it's it's going to
+of that zero mark it's it's going to open it's going to go further right it's
+open it's going to go further right it's got kind of more time to kill so it's
+got kind of more time to kill so it's got to do something in between and so
+got to do something in between and so it's gonna dip below and and that idea
+it's gonna dip below and and that idea actually thereof that it relates to time
+actually thereof that it relates to time is important because that's actually how
+is important because that's actually how we fixed it is we say if if we're gonna
+we fixed it is we say if if we're gonna get in one of these situations where
+get in one of these situations where it's still gonna overshoot even after
+it's still gonna overshoot even after all the other work we've done we're
+all the other work we've done we're gonna take the time and we're just going
+gonna take the time and we're just going to kind of nudge it to the point where
+to kind of nudge it to the point where that doesn't happen and so then that
+that doesn't happen and so then that solves all of our cases and you can even
+solves all of our cases and you can even kind of picture
+kind of picture you know this limit case where if the if
+you know this limit case where if the if the incoming velocity is you know
+the incoming velocity is you know negative infinity well it's coming
+negative infinity well it's coming straight down but if you set your time
+straight down but if you set your time to zero you know you sure you're gonna
+to zero you know you sure you're gonna slam into your target but but you won't
+slam into your target but but you won't overshoot and so that's really important
+overshoot and so that's really important so how did I come up with that point
+so how did I come up with that point three in this in this slide so I won't
+three in this in this slide so I won't actually get too much into the mathil
+actually get too much into the mathil just give you the answer which is
+just give you the answer which is basically that so we take the kind of
+basically that so we take the kind of the the original requested time and
+the the original requested time and we're gonna take the lower of that or
+we're gonna take the lower of that or this negative 5 X 0 / v-0 just to give
+this negative 5 X 0 / v-0 just to give you bit of a quick hand wavy explanation
+you bit of a quick hand wavy explanation so you sort of believe me I mean other
+so you sort of believe me I mean other than it does work but is really I'm
+than it does work but is really I'm setting the I'm setting all of the roots
+setting the I'm setting all of the roots to kind of happen at that time so I'm
+to kind of happen at that time so I'm figuring out what is the time where
+figuring out what is the time where where they all come across 0 and then
+where they all come across 0 and then basically using that and then I kind of
+basically using that and then I kind of feed that back in so you actually do
+feed that back in so you actually do that step first and then you go back and
+that step first and then you go back and you compute all of your like your
+you compute all of your like your initial acceleration so here's where you
+initial acceleration so here's where you want to pull all your cameras take a
+want to pull all your cameras take a picture this this is basically all of
+picture this this is basically all of the math on one slide and really the the
+the math on one slide and really the the order of steps here is you're going to
+order of steps here is you're going to take your your X 0 in your v-0 you can
+take your your X 0 in your v-0 you can even use that to figure out your
+even use that to figure out your adjusted time t1 plug that in to get
+adjusted time t1 plug that in to get your your a 0 obviously remembering all
+your your a 0 obviously remembering all of the or zero parts right we want our
+of the or zero parts right we want our v-0 to be negative R a0 to be positive
+v-0 to be negative R a0 to be positive and then you're gonna evaluate it with
+and then you're gonna evaluate it with the stuff on the right hand side so
+the stuff on the right hand side so that's really the construction for a
+that's really the construction for a single floating-point value or single
+single floating-point value or single kind of scalar value now let's talk
+kind of scalar value now let's talk about vectors and quaternions right so
+about vectors and quaternions right so we represent all of our joints with
+we represent all of our joints with their translation as a vector and their
+their translation as a vector and their rotation as quaternions we don't we
+rotation as quaternions we don't we don't currently actually initialize
+don't currently actually initialize scale but if you if you were you could
+scale but if you if you were you could just kind of do it as a vector as well
+just kind of do it as a vector as well so the start was talking about vectors
+so the start was talking about vectors so the obvious choice with vectors right
+so the obvious choice with vectors right it's pretty easy you say okay I'm gonna
+it's pretty easy you say okay I'm gonna I'm gonna take my x y&z and I'll just
+I'm gonna take my x y&z and I'll just initialize each of them independently
+initialize each of them independently and there we go I'm done that turns out
+and there we go I'm done that turns out to actually not be very good and not
+to actually not be very good and not give very good results and the reason
+give very good results and the reason for that is because we're we're
+for that is because we're we're potentially going to be messing with
+potentially going to be messing with time and so if one of the axes is is
+time and so if one of the axes is is kind of approaching very quickly in the
+kind of approaching very quickly in the other ones art then we're going to
+other ones art then we're going to adjust time for one of these but not for
+adjust time for one of these but not for the other
+the other and so you're going to get this case
+and so you're going to get this case where one axis now completes before the
+where one axis now completes before the other one and you kind of get this
+other one and you kind of get this unnatural motion and in different
+unnatural motion and in different intuition about it too is that we don't
+intuition about it too is that we don't really want to kind of have any
+really want to kind of have any preference for any particular set of
+preference for any particular set of axes right we that the choice of
+axes right we that the choice of coordinate frame
+coordinate frame ideally shouldn't matter so the fact
+ideally shouldn't matter so the fact that it would show up in kind of this
+that it would show up in kind of this first formulation is not something we
+first formulation is not something we want so instead what we do is we we
+want so instead what we do is we we observe that what we're really trying to
+observe that what we're really trying to do right is eliminate this difference
+do right is eliminate this difference between poses and you can think of the
+between poses and you can think of the difference in two parts there's there's
+difference in two parts there's there's a direction part to it and a magnitude
+a direction part to it and a magnitude part the direction is constant the
+part the direction is constant the magnitude is the part that we want to
+magnitude is the part that we want to eliminate right once we once we get the
+eliminate right once we once we get the magnitude to zero then and we're good so
+magnitude to zero then and we're good so that's really what our approaches is we
+that's really what our approaches is we decompose our vector into the direction
+decompose our vector into the direction and magnitude and then we just
+and magnitude and then we just initialize the magnitude away so let's
+initialize the magnitude away so let's let's dive into that in a bit more
+let's dive into that in a bit more detail so we start off and again I'm
+detail so we start off and again I'm kind of continue with my pictorial
+kind of continue with my pictorial notation here we start off by taking the
+notation here we start off by taking the the x0 is kind of this initial pose
+the x0 is kind of this initial pose difference so we capture that from our
+difference so we capture that from our target pose versus the previous pose we
+target pose versus the previous pose we know we're going to want to compute our
+know we're going to want to compute our velocity so we're going to need kind of
+velocity so we're going to need kind of this this previous this X minus one so
+this this previous this X minus one so we're going to compute that that way
+we're going to compute that that way where we look at the previous previous
+where we look at the previous previous pose versus our target pose and then
+pose versus our target pose and then we're going to do is decomposition where
+we're going to do is decomposition where we're going to take the that vector
+we're going to take the that vector quantity and we're going to decompose it
+quantity and we're going to decompose it into its Direction sort of unit
+into its Direction sort of unit direction and and its magnitude so here
+direction and and its magnitude so here I'm showing kind of x0 without the arrow
+I'm showing kind of x0 without the arrow is the magnitude right where I'm just
+is the magnitude right where I'm just just taking them back to the vector now
+just taking them back to the vector now an obvious choice for how to do that for
+an obvious choice for how to do that for X minus one would be to kind of repeat
+X minus one would be to kind of repeat that same operation right just decompose
+that same operation right just decompose X minus one into its its direction and
+X minus one into its its direction and magnitude but that's actually not quite
+magnitude but that's actually not quite right in a bit of a subtle way because
+right in a bit of a subtle way because what's important for X minus one and for
+what's important for X minus one and for our kind of our velocity calculation
+our kind of our velocity calculation isn't the the velocity in kind of an
+isn't the the velocity in kind of an absolute sense but it's the velocity
+absolute sense but it's the velocity along the same direction that I'm
+along the same direction that I'm amortize away right that's that's the
+amortize away right that's that's the difference that I want to get so really
+difference that I want to get so really what I want to do is a projection so I'm
+what I want to do is a projection so I'm going to take the X minus one vector and
+going to take the X minus one vector and I'm going to project it onto this kind
+I'm going to project it onto this kind of unit vector in that same direction
+of unit vector in that same direction get the magnitude along the lines of
+get the magnitude along the lines of that direction right so that means that
+that direction right so that means that if if X minus one we're not its
+if if X minus one we're not its realigned up sort of the difference of X
+realigned up sort of the difference of X minus one we're not lined up with a
+minus one we're not lined up with a difference of X minus zero then I only
+difference of X minus zero then I only care about the part that's in the same
+care about the part that's in the same line because that's what I'm gonna be
+line because that's what I'm gonna be adding back to my pose we then compute
+adding back to my pose we then compute the velocity from finite differences
+the velocity from finite differences right which is pretty simple it's just
+right which is pretty simple it's just take the difference between the two the
+take the difference between the two the two values and now we're dealing with
+two values and now we're dealing with scalars so this is really easy and of
+scalars so this is really easy and of course divided by R Delta time and then
+course divided by R Delta time and then every frame we're gonna add that back on
+every frame we're gonna add that back on to our target pose so we're gonna
+to our target pose so we're gonna basically say that the vector result of
+basically say that the vector result of this calculation is the the scalar XT
+this calculation is the the scalar XT projected back onto this direction
+projected back onto this direction vector that we that we remembered from
+vector that we that we remembered from the beginning and we do for us we do all
+the beginning and we do for us we do all of this in local space but really just
+of this in local space but really just like with a traditional blend you can
+like with a traditional blend you can sort of choose your spaces to give you
+sort of choose your spaces to give you different kind of effects that you might
+different kind of effects that you might want when we look at quaternions it's a
+want when we look at quaternions it's a pretty similar construction rather than
+pretty similar construction rather than decomposing on to kind of a direction
+decomposing on to kind of a direction and a magnitude we're going to decompose
+and a magnitude we're going to decompose a quaternion onto the axis of rotation
+a quaternion onto the axis of rotation and its angle and then we can just
+and its angle and then we can just initialize the angle that's a gain of
+initialize the angle that's a gain of scalar quantity right similar
+scalar quantity right similar construction to before except now we're
+construction to before except now we're using quaternion math we're gonna take
+using quaternion math we're gonna take our quaternion and we're gonna extract
+our quaternion and we're gonna extract its its axis and we're gonna kind of
+its its axis and we're gonna kind of remember that as our that's sort of
+remember that as our that's sort of arrow x0 and we're gonna then take
+arrow x0 and we're gonna then take extract the angle and remember that as
+extract the angle and remember that as our actual initial x0 that we're gonna
+our actual initial x0 that we're gonna apply the initialisation math to and
+apply the initialisation math to and just like with vectors where i was
+just like with vectors where i was saying we needed to project to be onto
+saying we needed to project to be onto the same direction we want to do the
+the same direction we want to do the same thing for quaternions too so in
+same thing for quaternions too so in this case what we want is we want to
+this case what we want is we want to find the angle around that same rotation
+find the angle around that same rotation axis so the math behind that's tricky
+axis so the math behind that's tricky fortunately smarter people than me have
+fortunately smarter people than me have figured it out this particular one comes
+figured it out this particular one comes from a paper from kimchi made from way
+from a paper from kimchi made from way back 94 if you're interested more kind
+back 94 if you're interested more kind of how to do these this is called swing
+of how to do these this is called swing twists of decomposition so you can just
+twists of decomposition so you can just Google or Bing I guess for Swing twist
+Google or Bing I guess for Swing twist decomposition and then now we're back in
+decomposition and then now we're back in sort of working with scalars so we can
+sort of working with scalars so we can compute our velocity from finite
+compute our velocity from finite differences as before and then when we
+differences as before and then when we apply this back to our place back to our
+apply this back to our place back to our output pose we're going to take that
+output pose we're going to take that kind of initialize scalar value and
+kind of initialize scalar value and we're going to take the axis that we
+we're going to take the axis that we remembered construct a quaternion from
+remembered construct a quaternion from certain axis and angle construction and
+certain axis and angle construction and then layer that on to the the sort of
+then layer that on to the the sort of the original posts of the original
+the original posts of the original unfiltered pose catch my breath after a
+unfiltered pose catch my breath after a bunch of math and then we can move on to
+bunch of math and then we can move on to a comparison of blending versus inertial
+a comparison of blending versus inertial ization in some of the properties so
+ization in some of the properties so when we look at this is kind of a recap
+when we look at this is kind of a recap of a bit of how I started the talk but
+of a bit of how I started the talk but when we compare blending a traditional
+when we compare blending a traditional kind of cross great blending versus
+kind of cross great blending versus initialization right with crossfade
+initialization right with crossfade blending we're evaluating both the
+blending we're evaluating both the source and target during the transition
+source and target during the transition and you know as I mentioned kind of
+and you know as I mentioned kind of making the case for this that's
+making the case for this that's expensive right we have it gives us this
+expensive right we have it gives us this variable frame cost and because we have
+variable frame cost and because we have working with these fixed budgets we need
+working with these fixed budgets we need to kind of accommodate for that so we
+to kind of accommodate for that so we end up in the cases where we're not
+end up in the cases where we're not transitioning having all of this kind of
+transitioning having all of this kind of wasted room because we had to
+wasted room because we had to accommodate the case where we are
+accommodate the case where we are transitioning and that's really because
+transitioning and that's really because the source and target are both expensive
+the source and target are both expensive with initialization
+with initialization we're only evaluating the target during
+we're only evaluating the target during the transition as well as of course the
+the transition as well as of course the the actual initialization math but
+the actual initialization math but that's pretty cheap so the cost of any
+that's pretty cheap so the cost of any given frame is is fixed it doesn't
+given frame is is fixed it doesn't matter if we're transitioning or not and
+matter if we're transitioning or not and that's this huge advantage because now
+that's this huge advantage because now we can kind of use up our full buffer
+we can kind of use up our full buffer without really you know our full budget
+without really you know our full budget I should say without really needing to
+I should say without really needing to to give us much Headroom to allow for
+to give us much Headroom to allow for transitions because during transitions
+transitions because during transitions that cost the same as when we're not
+that cost the same as when we're not transitioning there's some other
+transitioning there's some other advantages too when with a traditional
+advantages too when with a traditional blend during the actual arts or a
+blend during the actual arts or a traditional Crossley blend during the
+traditional Crossley blend during the actual crossfade we are evaluating both
+actual crossfade we are evaluating both of these states at once if those are
+of these states at once if those are parametric States so you know say we're
+parametric States so you know say we're driving a gun angle or ahead look at
+driving a gun angle or ahead look at target we have to be driving that still
+target we have to be driving that still for both the source and the target
+for both the source and the target and sometimes that can get really tricky
+and sometimes that can get really tricky especially if the thing that we were
+especially if the thing that we were using to drive the source is no longer
+using to drive the source is no longer meaningful so for example let's say I'm
+meaningful so for example let's say I'm doing my head look at and the thing that
+doing my head look at and the thing that I was looking at with my head ceases to
+I was looking at with my head ceases to exist or I no longer wish to look at it
+exist or I no longer wish to look at it well I can't just stop driving that if
+well I can't just stop driving that if if I'm if I'm feeding the source you
+if I'm if I'm feeding the source you know something has to go into therefore
+know something has to go into therefore this if it's this parametric animation
+this if it's this parametric animation so you know I have to make me do tricks
+so you know I have to make me do tricks too
+too to remember where it was and kind of
+to remember where it was and kind of always have these last values and keep
+always have these last values and keep you know kind of plugging that in so
+you know kind of plugging that in so it's a lot of complexity and bookkeeping
+it's a lot of complexity and bookkeeping within Ursula's ation I just don't worry
+within Ursula's ation I just don't worry about it I'd say okay well the thing
+about it I'd say okay well the thing you're looking at it's not there anymore
+you're looking at it's not there anymore so I'm gonna take you out of the looking
+so I'm gonna take you out of the looking at things State and I'm gonna transition
+at things State and I'm gonna transition you to this new state and and I don't
+you to this new state and and I don't worry about it because you're not you're
+worry about it because you're not you're not evaluating the source anymore
+not evaluating the source anymore and of course there's this qualitative
+and of course there's this qualitative difference and this was kind of what I
+difference and this was kind of what I was miming a little bit earlier in the
+was miming a little bit earlier in the talk and and that's not just me miming
+talk and and that's not just me miming it actually ends up being true so you
+it actually ends up being true so you can see there that on the blend you see
+can see there that on the blend you see the wave kind of bleeding through during
+the wave kind of bleeding through during the transition and so you can kind of
+the transition and so you can kind of get some unnatural artifacts and any
+get some unnatural artifacts and any kind of periodic motion to something
+kind of periodic motion to something less periodic or with a different period
+less periodic or with a different period you get some of these kind of artifacts
+you get some of these kind of artifacts with a conventional transition often
+with a conventional transition often what you do is you try to tune your
+what you do is you try to tune your transition time to be less than a period
+transition time to be less than a period and then and then it doesn't matter as
+and then and then it doesn't matter as much but that means you got to do all of
+much but that means you got to do all of this kind of fiddly work whereas with an
+this kind of fiddly work whereas with an Ursula's ation it just kind of works so
+Ursula's ation it just kind of works so let's talk a little bit about how we
+let's talk a little bit about how we actually implemented this and gears
+actually implemented this and gears gears Awards based on the Unreal Engine
+gears Awards based on the Unreal Engine 4 sort of a customized version we we
+4 sort of a customized version we we really broke down the work in kind of
+really broke down the work in kind of two three parts and the nice thing about
+two three parts and the nice thing about this is each of these three is actually
+this is each of these three is actually pretty easy so there's this this concept
+pretty easy so there's this this concept of an inertial ization node right this
+of an inertial ization node right this is going to be the thing or some kind of
+is going to be the thing or some kind of filter right there's gonna be the thing
+filter right there's gonna be the thing that's running near the end of your
+that's running near the end of your frame and a saying and basically doing
+frame and a saying and basically doing the inertial ization math that I
+the inertial ization math that I presented right it's getting this
+presented right it's getting this discontinuous input stream and it's
+discontinuous input stream and it's going to apply the math to it and give
+going to apply the math to it and give you a continuous stream on the output we
+you a continuous stream on the output we need to be able to actually tell that
+need to be able to actually tell that node when to when to trigger and
+node when to when to trigger and initialization so we need some kind of
+initialization so we need some kind of hooks into the animation system so that
+hooks into the animation system so that when the animation
+when the animation actually wants to transition to a new
+actually wants to transition to a new state it can kind of notify and say hey
+state it can kind of notify and say hey you know please PLEASE inertia lies me
+you know please PLEASE inertia lies me now and then there's some code hooks we
+now and then there's some code hooks we can do to that make life a little bit
+can do to that make life a little bit easier as well and I'll get to that in a
+easier as well and I'll get to that in a moment
+moment so the inertial ization node itself in
+so the inertial ization node itself in our case I said we're using unreal so
+our case I said we're using unreal so it's kind of this animgraph sort of data
+it's kind of this animgraph sort of data flow graph for poses so we basically add
+flow graph for poses so we basically add this node pretty late in our graph and
+this node pretty late in our graph and we evaluated then and the input is this
+we evaluated then and the input is this discontinuous poulos stream and then the
+discontinuous poulos stream and then the output right is the inertial eyes post
+output right is the inertial eyes post stream and if we dive into that a little
+stream and if we dive into that a little bit deeper what we're doing right is
+bit deeper what we're doing right is when a new inertial ization is requested
+when a new inertial ization is requested we remember the pose difference for
+we remember the pose difference for across all of our joints in in both
+across all of our joints in in both vectors and quaternions we remember the
+vectors and quaternions we remember the initial velocities as well
+initial velocities as well we remember the requested initialization
+we remember the requested initialization durations that's kind of the t1 and then
+durations that's kind of the t1 and then we we start our timer at t0 and then
+we we start our timer at t0 and then every frame we're just going to update T
+every frame we're just going to update T with our delta time we're gonna evaluate
+with our delta time we're gonna evaluate that initialization curve right that X
+that initialization curve right that X of T curve and we're gonna add that on
+of T curve and we're gonna add that on to our joints and then this parts
+to our joints and then this parts important we're gonna then remember the
+important we're gonna then remember the output pose and in a pose history buffer
+output pose and in a pose history buffer so that if someone were to request an
+so that if someone were to request an initialization again we're going to use
+initialization again we're going to use that history of poses to do the actual
+that history of poses to do the actual x0 and v-0 calculations right so in my
+x0 and v-0 calculations right so in my in my earlier slides that was the the
+in my earlier slides that was the the blue poses is that kind of I remembered
+blue poses is that kind of I remembered pose history and it's important that we
+pose history and it's important that we captured the output pose and not the
+captured the output pose and not the input pose because that way when we
+input pose because that way when we request another initialisation if one
+request another initialisation if one was already in progress we can kind of
+was already in progress we can kind of completely discard all of our knowledge
+completely discard all of our knowledge about the the previous and memorization
+about the the previous and memorization because it's already factored into that
+because it's already factored into that output pose so again we're just kind of
+output pose so again we're just kind of saying okay we had this output pose
+saying okay we had this output pose don't know how we got there but we're
+don't know how we got there but we're getting to something different and
+getting to something different and there's a discontinuity I need to fix it
+there's a discontinuity I need to fix it no problem I just take that difference
+no problem I just take that difference and carry on so output pose part is
+and carry on so output pose part is important as for the actual hooks for
+important as for the actual hooks for requesting an initialization or
+requesting an initialization or triggering an inertial ization with
+triggering an inertial ization with unreal it's pretty simple unreal has
+unreal it's pretty simple unreal has this notion for its regular blends and
+this notion for its regular blends and all of the notes are doing kind of
+all of the notes are doing kind of blending
+blending in there animation system they tend to
+in there animation system they tend to expose this blend curve type so you know
+expose this blend curve type so you know whether you're doing a the ease-in
+whether you're doing a the ease-in ease-out or you know some some linear
+ease-out or you know some some linear blend or whatever we just made up a new
+blend or whatever we just made up a new blend curve type which we call an
+blend curve type which we call an inertial ization and then when a blend
+inertial ization and then when a blend is requested with this curve type we
+is requested with this curve type we actually sort of request the actual
+actually sort of request the actual initialization to the node that's kind
+initialization to the node that's kind of later in the system so we kind of
+of later in the system so we kind of pipe that message through and then we
+pipe that message through and then we zero the blend time so not not the blend
+zero the blend time so not not the blend time that we're passing to the
+time that we're passing to the initialization but the blend time that
+initialization but the blend time that would kind of carry through through this
+would kind of carry through through this irregular node right so if it's an
+irregular node right so if it's an unreal blend node it's got this blend
+unreal blend node it's got this blend time but we sort of right then and there
+time but we sort of right then and there inject to zero and it says okay great
+inject to zero and it says okay great I'm done my gland I don't need to do any
+I'm done my gland I don't need to do any work I'll just pass through the target
+work I'll just pass through the target pose unchanged so kind of we trick it
+pose unchanged so kind of we trick it and then I mentioned that there were
+and then I mentioned that there were some code hooks and we found it useful
+some code hooks and we found it useful to expose this ability to request
+to expose this ability to request inertia lies ation to our actual code we
+inertia lies ation to our actual code we don't use it in too many places but it's
+don't use it in too many places but it's nice 'fl so it's nice to eliminate other
+nice 'fl so it's nice to eliminate other types of discontinuities and that's kind
+types of discontinuities and that's kind of my segue into a little sort of
+of my segue into a little sort of section on tips and tricks and I got a
+section on tips and tricks and I got a picture of duct tape up there because I
+picture of duct tape up there because I kind of like to think of this as you
+kind of like to think of this as you know our animation duct tape every once
+know our animation duct tape every once in a while something's kind of not quite
+in a while something's kind of not quite right now wait a minute I have got some
+right now wait a minute I have got some duct tape I can just go kind of wrap it
+duct tape I can just go kind of wrap it around and it's all fixed never been
+around and it's all fixed never been better
+better so I'll give a few examples of that so
+so I'll give a few examples of that so this first example so in in Gears of War
+this first example so in in Gears of War one of the things you can do is called a
+one of the things you can do is called a roadie run it's basically the sprint and
+roadie run it's basically the sprint and it and when you sprint you always face
+it and when you sprint you always face your direction of movement and so if you
+your direction of movement and so if you are if you are sidestepping and then you
+are if you are sidestepping and then you hit the hit the roadie run button you
+hit the hit the roadie run button you trigger this sprint and what your
+trigger this sprint and what your character does is he kind of instantly
+character does is he kind of instantly pops to face your direction of movement
+pops to face your direction of movement so that the direction of movement is
+so that the direction of movement is right and then he kind of does a
+right and then he kind of does a sprinting thing after that so in Gears
+sprinting thing after that so in Gears three that was basically the end of the
+three that was basically the end of the story that the character would would
+story that the character would would have this sort of facing pop it wasn't
+have this sort of facing pop it wasn't too noticeable the camera tends to move
+too noticeable the camera tends to move around the same time but but it was
+around the same time but but it was there for years for we wanted to we
+there for years for we wanted to we wanted to eliminate that but we didn't
+wanted to eliminate that but we didn't want to affect any of the gameplay you
+want to affect any of the gameplay you know so we want to keep basically
+know so we want to keep basically everything else the same and so what we
+everything else the same and so what we actually do is we still snap the
+actually do is we still snap the character's rotation of the start of the
+character's rotation of the start of the sprint what we request this inertial
+sprint what we request this inertial ization and so what that does is even
+ization and so what that does is even the characters doing something
+the characters doing something discontinuous the the pose itself is
+discontinuous the the pose itself is continuous so if you look at the images
+continuous so if you look at the images on the bottom there the kind of the
+on the bottom there the kind of the first three images are of me just sort
+first three images are of me just sort of side strafing normally and then the
+of side strafing normally and then the remainder are meaning this in a
+remainder are meaning this in a sprinting state that's unfortunate bit
+sprinting state that's unfortunate bit hard to see on this projector but
+hard to see on this projector but there's a kind of a green circle
+there's a kind of a green circle underneath and the green circle shows
+underneath and the green circle shows the character's actual orientation and
+the character's actual orientation and you can see for those first three frames
+you can see for those first three frames you can't really see the arrow because
+you can't really see the arrow because it's pointing up and it's underneath the
+it's pointing up and it's underneath the character but all those subsequent
+character but all those subsequent frames the arrows pointing to the right
+frames the arrows pointing to the right so that's actually the characters kind
+so that's actually the characters kind of moving capsule instantly rotating but
+of moving capsule instantly rotating but you can see that the pose that you get
+you can see that the pose that you get is still continuous because we instantly
+is still continuous because we instantly rotate the capsule but then we request
+rotate the capsule but then we request this inertial ization and says okay yeah
+this inertial ization and says okay yeah there's a discontinuity here sure it's
+there's a discontinuity here sure it's it's just a discontinuity in the route
+it's just a discontinuity in the route the rest of the pose watch I mean I
+the rest of the pose watch I mean I guess we're also changing poses but for
+guess we're also changing poses but for these purposes kind of it's this
+these purposes kind of it's this discontinuity in the root and then
+discontinuity in the root and then initialisation just takes care of that
+initialisation just takes care of that so it was kind of this one line change
+so it was kind of this one line change once we have the system in place and the
+once we have the system in place and the instant ducktape it makes things better
+instant ducktape it makes things better another example that I find interesting
+another example that I find interesting is how we deal with our locomotion
+is how we deal with our locomotion inputs so when you're driving your
+inputs so when you're driving your character around you're we don't
+character around you're we don't actually directly feed your joystick or
+actually directly feed your joystick or even your velocity inputs into the into
+even your velocity inputs into the into kind of the blend space of motion
+kind of the blend space of motion because our game is really responsive so
+because our game is really responsive so that velocity can actually be pretty
+that velocity can actually be pretty twitchy so what we do is we just filter
+twitchy so what we do is we just filter it a little bit and then that kind of
+it a little bit and then that kind of gives you some nice nice sort of posing
+gives you some nice nice sort of posing the output but of course because we're
+the output but of course because we're filtering that if you if you do a sudden
+filtering that if you if you do a sudden change in direction then the filtered
+change in direction then the filtered value can actually get a little bit
+value can actually get a little bit further from a little bit too far from
+further from a little bit too far from from where you want to be and you don't
+from where you want to be and you don't want to kind of stay in this you know
+want to kind of stay in this you know sidestepping when you want to be going
+sidestepping when you want to be going forward or something like that right it
+forward or something like that right it doesn't it doesn't affect the actual
+doesn't it doesn't affect the actual movement of your character but it
+movement of your character but it affects the posing and to give you a lot
+affects the posing and to give you a lot of foot slide so what we do in that
+of foot slide so what we do in that situation is we just snap it to the to
+situation is we just snap it to the to the new value when we detect that it's
+the new value when we detect that it's too far out of line and we initialize
+too far out of line and we initialize which takes care of the pose difference
+which takes care of the pose difference so that gives us kind of this fluid pose
+so that gives us kind of this fluid pose even with twitchy inputs and then lastly
+even with twitchy inputs and then lastly and there was a call-out to last year
+and there was a call-out to last year my colleague Steve Dickinson gave a talk
+my colleague Steve Dickinson gave a talk at GDC about motion warping I won't get
+at GDC about motion warping I won't get into his talk but one of the key things
+into his talk but one of the key things about that is that you had to remember
+about that is that you had to remember these warping kind of landmarks that
+these warping kind of landmarks that you're placing in the world so it's
+you're placing in the world so it's quite a bit of bookkeeping if we
+quite a bit of bookkeeping if we transition from one warped animation to
+transition from one warped animation to another warped animation and we were
+another warped animation and we were doing this with a crossfade bland we
+doing this with a crossfade bland we have to keep track of both of those
+have to keep track of both of those pieces of bookkeeping and that's a lot
+pieces of bookkeeping and that's a lot of bookkeeping so there's really nice
+of bookkeeping so there's really nice way if you don't even support that in
+way if you don't even support that in our engine because there's kind of no
+our engine because there's kind of no need we only have this once for each
+need we only have this once for each character we only have one set of work
+character we only have one set of work points these kind of these landmarks but
+points these kind of these landmarks but it works because we only ever have one
+it works because we only ever have one active work at a time if we're
+active work at a time if we're transitioning we just do the do the
+transitioning we just do the do the initialization and so we don't we're not
+initialization and so we don't we're not remembering the old day old state and
+remembering the old day old state and that's kind of it there's a lot of other
+that's kind of it there's a lot of other examples I won't I won't go into all
+examples I won't I won't go into all those so I want to thank you very much
+those so I want to thank you very much for listening and I want to thank the
+for listening and I want to thank the people at the Coalition back home for
+people at the Coalition back home for working hard on all this stuff if you'd
+working hard on all this stuff if you'd like to join the people of the Coalition
+like to join the people of the Coalition back home we do have some positions open
+back home we do have some positions open and give us a show thanks very much
+and there's nobody in the room after us so we have a couple minutes for
+so we have a couple minutes for questions before we get kicked out if
+questions before we get kicked out if you'd like and otherwise I'd be happy to
+you'd like and otherwise I'd be happy to chat with people outside as well yeah
+chat with people outside as well yeah hello hi there interesting talk thank
+hello hi there interesting talk thank you um question about I might have
+you um question about I might have glossed over this answer because there
+glossed over this answer because there was a lot of stuff happening and you
+was a lot of stuff happening and you know I kind of lost track but you'll be
+know I kind of lost track but you'll be able to clarify I'm sure a lot of this
+able to clarify I'm sure a lot of this stuff seems to for me we have young and
+stuff seems to for me we have young and equivalent of this and our engine which
+equivalent of this and our engine which is essentially a a stop B stop
+is essentially a a stop B stop transition and using whatever type of
+transition and using whatever type of transition you decide to use between
+transition you decide to use between them there's a bunch of different
+them there's a bunch of different algorithms right so one sounds like a
+algorithms right so one sounds like a pretty powerful one and I'm seeing a lot
+pretty powerful one and I'm seeing a lot on what has been shown in terms of how
+on what has been shown in terms of how to deal with stopping you're a clip and
+to deal with stopping you're a clip and going to the be clipped your B clip
+going to the be clipped your B clip seems to assume that you have no
+seems to assume that you have no velocity do you guys store velocity to
+velocity do you guys store velocity to use for each one of your clip beforehand
+use for each one of your clip beforehand or I know this so that's a good question
+or I know this so that's a good question we don't actually factor in or we don't
+we don't actually factor in or we don't consider the velocity of sort of the B
+consider the velocity of sort of the B clip mainly because we don't want to
+clip mainly because we don't want to have to kind of evaluate we don't have
+have to kind of evaluate we don't have to kind of store all the velocities
+to kind of store all the velocities ahead of time and we don't want to have
+ahead of time and we don't want to have to evaluate two frames of the B clip to
+to evaluate two frames of the B clip to kind of know what the velocity would be
+kind of know what the velocity would be it turns out in practice that doesn't
+it turns out in practice that doesn't actually matter and in the sort of
+actually matter and in the sort of visually and the reason for that is if
+visually and the reason for that is if the velocity of the B clip is very low
+the velocity of the B clip is very low so the B clip is kind of fairly freely
+so the B clip is kind of fairly freely idle then then obviously it doesn't
+idle then then obviously it doesn't matter because it's close to zero
+matter because it's close to zero anyways if the velocity is very high
+anyways if the velocity is very high then it's a it's an animation with a lot
+then it's a it's an animation with a lot of motion to it and so for gears
+of motion to it and so for gears especially you know that's typically the
+especially you know that's typically the start of some kind of like pretty
+start of some kind of like pretty powerful action and we actually want to
+powerful action and we actually want to kind of give instant feedback of like
+kind of give instant feedback of like hey you're starting to do something we
+hey you're starting to do something we wouldn't want to muddy that out too much
+wouldn't want to muddy that out too much so in those very dramatic changes people
+so in those very dramatic changes people seem less sensitive to kind of problems
+seem less sensitive to kind of problems around velocity because there's so much
+around velocity because there's so much energy being expended anyways right so
+energy being expended anyways right so big I think what people visually pick up
+big I think what people visually pick up on is kind of these unnatural
+on is kind of these unnatural expenditures of energy but if you're
+expenditures of energy but if you're already expending energy because it's
+already expending energy because it's this kind of high end
+this kind of high end you move then the fact that the that is
+you move then the fact that the that is not quite sort of perfect from an energy
+not quite sort of perfect from an energy point of view you don't really notice
+point of view you don't really notice okay
+okay so essentially you guys didn't feel like
+so essentially you guys didn't feel like that was a problem yeah should be
+that was a problem yeah should be attacked because there was no right and
+attacked because there was no right and one one thing that's kind of sort of a
+one one thing that's kind of sort of a useful tip along with that is that we
+useful tip along with that is that we tend to end our Eclipse I guess sort of
+tend to end our Eclipse I guess sort of the source states while they're in
+the source states while they're in motion and I mean I think that's
+motion and I mean I think that's actually kind of good advice for regular
+actually kind of good advice for regular crossfade transitions too but it means
+crossfade transitions too but it means that then you get a case where sort of
+that then you get a case where sort of like in my gun example you know where
+like in my gun example you know where the guns heading towards this target and
+the guns heading towards this target and then we stop and and it kind of just
+then we stop and and it kind of just continues that momentum or is if we if
+continues that momentum or is if we if we'd had that animation play all the way
+we'd had that animation play all the way out to a settle and then it had to
+out to a settle and then it had to transition to another pose that's not
+transition to another pose that's not quite matched then you get this kind of
+quite matched then you get this kind of like I came to a stop and then I'm
+like I came to a stop and then I'm starting and stopping again and that
+starting and stopping again and that looks a bit funny so it's always you
+looks a bit funny so it's always you know basically for us that just needs
+know basically for us that just needs cut it early and that's great because it
+cut it early and that's great because it gives you control back soon or two right
+gives you control back soon or two right so just good practice thanks for the
+so just good practice thanks for the answer
+answer yeah thank you this is sort of related
+yeah thank you this is sort of related but uh when you calculate the X zero I'm
+but uh when you calculate the X zero I'm assuming that's based on sort of your
+assuming that's based on sort of your target blend time like that the initial
+target blend time like that the initial T one and then you're recalculating T
+T one and then you're recalculating T one later potentially which oh yeah I
+one later potentially which oh yeah I see so so X zero is just the difference
+see so so X zero is just the difference between the poses right so so it doesn't
+between the poses right so so it doesn't actually factor into time but what if
+actually factor into time but what if you don't have a locked pose what if
+you don't have a locked pose what if you're like it's a moving target so if
+you're like it's a moving target so if you oh yeah so so we're calculating it
+you oh yeah so so we're calculating it at the moment of sort of the in the
+at the moment of sort of the in the instantaneous frame of the transition oh
+instantaneous frame of the transition oh I see and then and then from then on
+I see and then and then from then on we're advertising that way but on top of
+we're advertising that way but on top of the moving target so the movement of the
+the moving target so the movement of the target kind of shows up right away or
+target kind of shows up right away or contributes right away gotcha okay thank
+contributes right away gotcha okay thank that most of your examples looked like
+that most of your examples looked like they were for kind of game play action
+they were for kind of game play action upper body sort of motion have you tried
+upper body sort of motion have you tried using this sort of thing for locomotion
+using this sort of thing for locomotion transitions or things like transitioning
+transitions or things like transitioning into a cinematic yeah we use it
+into a cinematic yeah we use it everywhere actually so it works really
+everywhere actually so it works really well I want to move with the feet yeah
+well I want to move with the feet yeah birth phase into it or yeah so we have a
+birth phase into it or yeah so we have a separate system
+separate system that that kind of automatically matches
+that that kind of automatically matches phase for us it's it's not as fancy as
+phase for us it's it's not as fancy as some of the kind of emotion matching
+some of the kind of emotion matching sure Athens but it does a really good
+sure Athens but it does a really good job and and it's really cheap and fast
+job and and it's really cheap and fast so we use that that kind of gets us in
+so we use that that kind of gets us in you know it's kind of true of any kind
+you know it's kind of true of any kind of transition the sure the closer you
+of transition the sure the closer you are to your you know between your poses
+are to your you know between your poses the better result you're going to get so
+the better result you're going to get so by doing the phase match we are always
+by doing the phase match we are always transitioning into into kind of match
+transitioning into into kind of match like phases and then right and then you
+like phases and then right and then you apply this some time yeah and you can
+apply this some time yeah and you can actually like when I mentioned about the
+actually like when I mentioned about the animation node kind of being being at
+animation node kind of being being at the end it doesn't have to be right at
+the end it doesn't have to be right at the very end so right for example run
+the very end so right for example run rik saw afterwards which sure we are in
+rik saw afterwards which sure we are in this in our k space yeah I was gonna ask
+this in our k space yeah I was gonna ask about that as well do you one of the
+about that as well do you one of the major issues with transitions in general
+major issues with transitions in general right it's just the the linearity of all
+right it's just the the linearity of all the joints moving at the same time and
+the joints moving at the same time and things like that I've do you feel like
+things like that I've do you feel like this starts to address that because each
+this starts to address that because each joint effectively has its own inertia
+joint effectively has its own inertia and and and blends effectively different
+and and and blends effectively different differently right offsets the the the
+differently right offsets the the the blend for each joint you feel yeah yeah
+blend for each joint you feel yeah yeah exactly yeah we are both sort of me
+exactly yeah we are both sort of me personally but also our animators seem
+personally but also our animators seem really happy with the quality they get
+really happy with the quality they get out of it so that's that's always kind
+out of it so that's that's always kind of the real test yeah yeah of course
+of the real test yeah yeah of course thank you
+thank you thanks okay I think we got a we got a
+thanks okay I think we got a we got a wrap up but I'm happy to chat with you
+wrap up but I'm happy to chat with you outside if you want thank you

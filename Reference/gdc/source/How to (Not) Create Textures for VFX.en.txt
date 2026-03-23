@@ -1,0 +1,1522 @@
+[Music] i would like to thank you to come here
+i would like to thank you to come here to my little talk about how not to
+to my little talk about how not to create textures for vfx
+create textures for vfx i'm simon tripler he him and up there
+i'm simon tripler he him and up there you can see some games i had a privilege
+you can see some games i had a privilege working on
+working on and here is one of my very first effects
+and here is one of my very first effects i made for a game at some point long
+i made for a game at some point long time ago and here are some effects i did
+time ago and here are some effects i did recently
+recently um
+um yeah and now i would like to invite you
+yeah and now i would like to invite you to a little vacation on an island which
+to a little vacation on an island which i
+i designed like the vfx paradise okay so
+designed like the vfx paradise okay so this is how i imagine the paradise for
+this is how i imagine the paradise for vfx artists
+vfx artists um explosions all the time splashes all
+um explosions all the time splashes all the time that's what we like and
+the time that's what we like and i created this project just for this gdc
+i created this project just for this gdc to have a base for a talk to talk about
+to have a base for a talk to talk about some textures and
+some textures and textures which i think are the most
+textures which i think are the most commonly types
+commonly types you will find in vfx like some splashes
+you will find in vfx like some splashes some explosions some water some foam and
+some explosions some water some foam and so on and so on
+so on and so on but
+but before we come to that i would like to
+before we come to that i would like to give some expectation management
+give some expectation management when you search for resources how to
+when you search for resources how to create textures for effects then you
+create textures for effects then you will find not much but if you find
+will find not much but if you find something it will be stylized and this
+something it will be stylized and this is why i will not focus so much on this
+is why i will not focus so much on this today
+today because you can see there are some names
+because you can see there are some names there if you google them you will find
+there if you google them you will find amazing resources
+amazing resources and i will focus a little more on
+and i will focus a little more on semi-realistic effects
+semi-realistic effects and um
+and um yeah that's what
+yeah that's what i will do
+i will do and i will also not focus on version
+and i will also not focus on version zero version zero is usually um a
+zero version zero is usually um a version where you maybe not even use the
+version where you maybe not even use the texture at all you just communicate
+texture at all you just communicate gameplay usually
+gameplay usually and
+and this is what i will not focus on today i
+this is what i will not focus on today i will also not focus on the final
+will also not focus on the final polished version where you had a lot of
+polished version where you had a lot of time to
+time to spend into your textures right i will
+spend into your textures right i will focus on a version which i call ge
+focus on a version which i call ge stands for good enough and the idea is
+stands for good enough and the idea is that you get to this version as fast as
+that you get to this version as fast as possible but it should look nice not
+possible but it should look nice not amazing but nice so that you um for
+amazing but nice so that you um for example also see the scale of the
+example also see the scale of the explosion because it has some detail uh
+explosion because it has some detail uh or the effect in general um and it
+or the effect in general um and it should be a base for the discussion with
+should be a base for the discussion with for example art direction that you can
+for example art direction that you can say hey uh sure we iterate more about
+say hey uh sure we iterate more about the style of the effect or can we go
+the style of the effect or can we go into the polishing phase so this is what
+into the polishing phase so this is what i would like to focus on today
+i would like to focus on today and as as far to my knowledge this is
+and as as far to my knowledge this is maybe the first or one of the first
+maybe the first or one of the first talks focusing very specific on how to
+talks focusing very specific on how to create textures for vfx
+create textures for vfx let's start at the basics okay
+let's start at the basics okay so the most common texture types for vfx
+so the most common texture types for vfx artists are sprites
+artists are sprites and this is just a texture on a little
+and this is just a texture on a little particle so nothing special here
+particle so nothing special here but we have also spreadsheets which is
+but we have also spreadsheets which is just a collection of sprites on one
+just a collection of sprites on one texture and the particle system will
+texture and the particle system will choose one randomly just for some
+choose one randomly just for some variation
+variation um and then we have flip books which is
+um and then we have flip books which is basically just a little movie running on
+basically just a little movie running on on the particle
+on the particle and then we have volumetric textures
+and then we have volumetric textures which is basically slices of simulations
+which is basically slices of simulations or objects stored into a volumetric
+or objects stored into a volumetric texture and then you can do some magic
+texture and then you can do some magic with that but to be honest i never used
+with that but to be honest i never used one so
+one so i will not focus more on this topic but
+i will not focus more on this topic but i wanted to have the list complete okay
+i wanted to have the list complete okay and the most common use cases for
+and the most common use cases for textures are okay color surprise we have
+textures are okay color surprise we have a color texture and put it on our
+a color texture and put it on our particle we also have masks and these
+particle we also have masks and these masks come usually at least one mask as
+masks come usually at least one mask as an alpha in your color texture to mask
+an alpha in your color texture to mask out these shapes
+out these shapes but a mask can also be a grayscale image
+but a mask can also be a grayscale image just separated separately stored and you
+just separated separately stored and you can use your shader to i don't know mask
+can use your shader to i don't know mask out your other textures if you want to
+out your other textures if you want to and another grayscale mask we have
+and another grayscale mask we have is can or can be used for erosion and
+is can or can be used for erosion and you can see that my little particles
+you can see that my little particles fade out in a bit more interesting way
+fade out in a bit more interesting way than just the opacity
+than just the opacity low and down right
+low and down right and
+and then we have look up textures which are
+then we have look up textures which are basically just little color gradients
+basically just little color gradients and they are used to colorize a
+and they are used to colorize a grayscale map
+grayscale map and here you see how i colorize my
+and here you see how i colorize my little erosion map from before with
+little erosion map from before with different colors and it's just a very
+different colors and it's just a very nice way of
+nice way of um
+um [Music]
+[Music] with not many resources
+with not many resources colorize something very nicely
+colorize something very nicely and of course vector maps which are
+and of course vector maps which are usually used to distort your uv so you
+usually used to distort your uv so you get a little bit of extra motion into
+get a little bit of extra motion into your
+your particle
+particle so and now let's go about how to create
+so and now let's go about how to create these textures because this is what we
+these textures because this is what we are talking about today
+are talking about today um there are four ways of creating
+um there are four ways of creating textures for vfx at least to my
+textures for vfx at least to my knowledge and the first one is handmade
+knowledge and the first one is handmade you can paint it you can use photos
+you can paint it you can use photos you can
+you can use procedural tools like substance or
+use procedural tools like substance or simple tools which are specifically made
+simple tools which are specifically made to create one type of texture
+to create one type of texture or you can simulate something like an
+or you can simulate something like an explosion for example and then bake this
+explosion for example and then bake this into a texture
+into a texture usually done with houdini or blender and
+usually done with houdini or blender and nowadays ambergen
+nowadays ambergen which is the software which can almost
+which is the software which can almost simulate in real time
+simulate in real time and now on the next slide i will have
+and now on the next slide i will have colorized these words depending on how
+colorized these words depending on how quick it is to do
+quick it is to do so here you see and i also have little
+so here you see and i also have little emojis so as you can see
+emojis so as you can see photo bashing and simple tools are the
+photo bashing and simple tools are the fastest way
+fastest way then we have something in the middle
+then we have something in the middle ground with painting and substance
+ground with painting and substance designer depending of course what you
+designer depending of course what you want if you just use substance to store
+want if you just use substance to store out some noises that's a bit quicker
+out some noises that's a bit quicker than doing a realistic fire from scratch
+than doing a realistic fire from scratch and
+and learning simulation
+learning simulation takes forever
+takes forever i i took weeks to follow this one course
+i i took weeks to follow this one course for learning how to do pyro doing the
+for learning how to do pyro doing the simulation itself also takes forever
+simulation itself also takes forever because it's so complicated and then the
+because it's so complicated and then the rendering also takes forever so this
+rendering also takes forever so this will be not any
+will be not any more part of this talk because it just
+more part of this talk because it just takes long and we want to achieve a good
+takes long and we want to achieve a good enough version kavik
+but embergen sneaks a little bit in between because it's real-time
+between because it's real-time simulation and i did not use ambergen
+simulation and i did not use ambergen before but for this talk i did a little
+before but for this talk i did a little test i downloaded it and then i saw what
+test i downloaded it and then i saw what i could could get out of it as quick as
+i could could get out of it as quick as possible and here are the results so
+possible and here are the results so after 50 minutes of ambergen
+after 50 minutes of ambergen i
+i rendered out these little flip books and
+rendered out these little flip books and that's not because i'm a genius it's
+that's not because i'm a genius it's because amber 10 comes with presets
+because amber 10 comes with presets and i think it's 60 or 70 or something
+and i think it's 60 or 70 or something like that and you can just load them in
+like that and you can just load them in and render them out and it's very nice
+and render them out and it's very nice and i think when you take a day of work
+and i think when you take a day of work you can get a very nice base uh for your
+you can get a very nice base uh for your vfx texture library out of that but it's
+vfx texture library out of that but it's important to mention you are not allowed
+important to mention you are not allowed to do that when you only have the demo
+to do that when you only have the demo version you should buy a license then
+version you should buy a license then it's okay
+it's okay but there's one way
+but there's one way which is even faster than all of them
+which is even faster than all of them and this is by the way also the reason
+and this is by the way also the reason or one of the reasons why my talk is how
+or one of the reasons why my talk is how to not create textures
+to not create textures because you use existing textures
+because you use existing textures so of course it's very faster if you use
+so of course it's very faster if you use something existing
+something existing like texture packs or brushes
+like texture packs or brushes then when you do everything by yourself
+then when you do everything by yourself um
+um all of these things like these different
+all of these things like these different texture types these use cases and also
+texture types these use cases and also these different ways of creating things
+these different ways of creating things can sometimes be a bit overwhelming and
+can sometimes be a bit overwhelming and it was important for me to share
+it was important for me to share that
+that i feel and felt like that often
+i feel and felt like that often and in preparation of this talk i spoke
+and in preparation of this talk i spoke with many other professionals and they
+with many other professionals and they told me all the same nobody was like oh
+told me all the same nobody was like oh yeah that's super easy for me they all
+yeah that's super easy for me they all were like oh yeah sometimes i feel like
+were like oh yeah sometimes i feel like especially when there is no texture at
+especially when there is no texture at all um already in the project so i
+all um already in the project so i wanted to share this if you
+wanted to share this if you feel sometimes like that it's okay and
+feel sometimes like that it's okay and you are not alone and i hope with this
+you are not alone and i hope with this talk maybe i can give you some
+talk maybe i can give you some inspirations to overcome this hurdle or
+inspirations to overcome this hurdle or give you some creative ways of creating
+give you some creative ways of creating textures
+again normally we would be very happy to see
+normally we would be very happy to see that now but unfortunately i need to be
+that now but unfortunately i need to be in this a little bit more melancholic uh
+in this a little bit more melancholic uh mood um for this slide because i would
+mood um for this slide because i would like to
+like to speak about and this is the second
+speak about and this is the second reason why this talk is called how not
+reason why this talk is called how not to create textures for vx because they
+to create textures for vx because they have some things in my mind
+have some things in my mind blocking me from creating good textures
+blocking me from creating good textures and
+and maybe if if you want you can give me a
+maybe if if you want you can give me a kiwi can sign if this was happens there
+kiwi can sign if this was happens there on the screen there will be a quote or a
+on the screen there will be a quote or a little sentence if you had this thought
+little sentence if you had this thought in your past or maybe you even think
+in your past or maybe you even think nowadays like that
+nowadays like that using photos is cheating so i
+using photos is cheating so i raised my hand because i fought like
+raised my hand because i fought like that
+that and okay nobody here okay i want to
+and okay nobody here okay i want to okay maybe 50 or maybe maybe 40. okay
+okay maybe 50 or maybe maybe 40. okay that's good to hear that i'm not alone
+that's good to hear that i'm not alone because um
+because um i don't know where this was coming from
+i don't know where this was coming from but for some reason i had this thought
+but for some reason i had this thought in my head and i also know that in
+in my head and i also know that in concept art areas you can hear that
+concept art areas you can hear that often that people especially i don't
+often that people especially i don't know maybe beginners or maybe people who
+know maybe beginners or maybe people who don't do concept art so long they are
+don't do concept art so long they are like oh man you don't paint every pixel
+like oh man you don't paint every pixel by yourself it's cheating
+by yourself it's cheating and here is my little journey of not
+and here is my little journey of not using textures this is
+using textures this is two textures of my one of my earliest
+two textures of my one of my earliest textures i did for vfx for a game at
+textures i did for vfx for a game at some point this is a long time ago i
+some point this is a long time ago i didn't know what i was doing
+didn't know what i was doing and of course i didn't use textures but
+and of course i didn't use textures but later for a project
+later for a project um i yeah continued doing textures and
+um i yeah continued doing textures and you could maybe say okay these are maybe
+you could maybe say okay these are maybe nice for for a stylized game
+nice for for a stylized game unfortunately this was a semi-realistic
+unfortunately this was a semi-realistic game
+game but i was under this impression oh no i
+but i was under this impression oh no i can't use textures and i have to paint
+can't use textures and i have to paint everything by myself and then finally
+everything by myself and then finally later at some point at the project i
+later at some point at the project i finally started using some photos and i
+finally started using some photos and i hope we can agree that these textures on
+hope we can agree that these textures on the right look a little bit better a
+the right look a little bit better a little bit more detail just a little bit
+little bit more detail just a little bit more realistic
+more realistic and it took me a long time to overcome
+and it took me a long time to overcome this hurdle
+this hurdle but important
+but important do not just use any texture from the
+do not just use any texture from the internet don't go to google and and take
+internet don't go to google and and take everything you need to check out the faq
+everything you need to check out the faq or the license and just as an example
+or the license and just as an example textures.com very good yes you can use
+textures.com very good yes you can use it for commercial projects and most
+it for commercial projects and most important at the bottom
+important at the bottom you do not need to mention our website
+you do not need to mention our website this is important because
+this is important because you find many free resources in the
+you find many free resources in the internet but most of them will require
+internet but most of them will require you to attribute to author which is
+you to attribute to author which is totally fine of course especially when
+totally fine of course especially when you have maybe a little
+you have maybe a little indie game or something but it is
+indie game or something but it is unpractical if you go to your producer
+unpractical if you go to your producer at the end of call of duty and say hey i
+at the end of call of duty and say hey i have this list of 50 people could you
+have this list of 50 people could you please add them to the credits because i
+please add them to the credits because i use some brushes and textures for them
+use some brushes and textures for them this is
+this is they will not be
+they will not be delighted about it
+delighted about it at the producer i mean i mean the people
+at the producer i mean i mean the people would
+would and here's an um example for being
+and here's an um example for being careful
+careful the art station standard license
+the art station standard license allows only one commercial project and
+allows only one commercial project and up to 2000 sales which is not that much
+up to 2000 sales which is not that much if we think about the scale of a call of
+if we think about the scale of a call of duty or something so um
+duty or something so um usually on art station you have to buy
+usually on art station you have to buy the extended license but sometimes this
+the extended license but sometimes this is not offered by the creator so be
+is not offered by the creator so be careful about this
+and there's another reason i got blocked by i had in my mind
+i got blocked by i had in my mind another weird thing using third-party
+another weird thing using third-party assets is cheating okay what i had in my
+assets is cheating okay what i had in my med
+med what i had in my me
+what i had in my me in my head sorry
+in my head sorry is
+is that an artist a real artist creates
+that an artist a real artist creates everything from scratch
+everything from scratch and using
+and using i don't know texture packs from someone
+i don't know texture packs from someone else is cheating and um
+else is cheating and um maybe this is something artists have in
+maybe this is something artists have in general i don't know
+general i don't know but i think it's important to mention
+but i think it's important to mention that we are not artists
+that we are not artists which need a kiss from the muse and then
+which need a kiss from the muse and then we start creating something we are
+we start creating something we are production artists so we should use
+production artists so we should use every tool we can get to make things as
+every tool we can get to make things as fast as possible
+fast as possible and
+and yeah as mentioned sometimes i have this
+yeah as mentioned sometimes i have this now
+now today
+today even so this is not something from the
+even so this is not something from the past and
+past and if you also struggle with that if you
+if you also struggle with that if you also have this artist's brain sometimes
+also have this artist's brain sometimes saying no no i want to quit everything
+saying no no i want to quit everything from scratch here come my top six
+from scratch here come my top six solutions to calm your artist's brain
+solutions to calm your artist's brain down
+down so first
+so first it is fast it is very fast to use
+it is fast it is very fast to use textures from from someone else if you
+textures from from someone else if you are allowed to but don't worry there's
+are allowed to but don't worry there's enough work to be done here for example
+enough work to be done here for example is a free flipbook from unity which you
+is a free flipbook from unity which you can use for your project but we see yeah
+can use for your project but we see yeah i mean it looks nice but it's a bit
+i mean it looks nice but it's a bit stuttery and here is what i made out of
+stuttery and here is what i made out of it
+it for this this project i i showed you
+for this this project i i showed you before and to
+before and to improve it a little bit i had to adjust
+improve it a little bit i had to adjust the color curve the size curve enable
+the color curve the size curve enable frame blending in the particle system so
+frame blending in the particle system so that it's not as stuttery as before and
+that it's not as stuttery as before and i most important i
+i most important i animate the frame rate of the flip book
+animate the frame rate of the flip book so that it moves fast at the beginning
+so that it moves fast at the beginning and slow at the end like when the smoke
+and slow at the end like when the smoke calms down because of air friction this
+calms down because of air friction this is what i'm achieving with that and this
+is what i'm achieving with that and this is just one particle you have now to set
+is just one particle you have now to set up the whole explosion with many
+up the whole explosion with many particles and then add other elements
+particles and then add other elements like sprites sprites and sparkles and
+like sprites sprites and sparkles and debris and stuff like that so there's a
+debris and stuff like that so there's a lot of
+lot of enough work for you to do don't worry
+enough work for you to do don't worry just using a third party as it does not
+just using a third party as it does not make you without work
+make you without work sometimes i head to this in my mind oh
+sometimes i head to this in my mind oh yeah i would like to use this flipbook
+yeah i would like to use this flipbook but there's some data missing for
+but there's some data missing for example this flipbook is just lit from
+example this flipbook is just lit from one side but i want to have a dynamic
+one side but i want to have a dynamic lighting but here i need to calm myself
+lighting but here i need to calm myself down and say hey we want to have a good
+down and say hey we want to have a good enough version must not be super
+enough version must not be super polished so it's okay to have just
+polished so it's okay to have just static lighting or something
+static lighting or something maybe you have no uh you have this
+maybe you have no uh you have this flipbook which stutters a little bit and
+flipbook which stutters a little bit and you would like to have these perfect
+you would like to have these perfect motion vectors to blend perfectly
+motion vectors to blend perfectly between the frames but you don't have
+between the frames but you don't have them and you don't know about slate and
+them and you don't know about slate and it can create them for you pretty easily
+it can create them for you pretty easily then maybe it is enough to just enable
+then maybe it is enough to just enable frame blending in the particle system
+frame blending in the particle system uh it's not perfect but it's good enough
+uh it's not perfect but it's good enough and maybe some people are like yeah i i
+and maybe some people are like yeah i i i could imagine using third-party
+i could imagine using third-party libraries but i'm working in stylized
+libraries but i'm working in stylized effects and these are all realistic
+effects and these are all realistic but
+but here's a small example of what you can
+here's a small example of what you can do i mean it's not perfect it was just
+do i mean it's not perfect it was just quickly done drawn by me but i use the
+quickly done drawn by me but i use the realistic or semi-realistic reference
+realistic or semi-realistic reference and draw on top to make something
+and draw on top to make something stylized so this is also maybe a little
+stylized so this is also maybe a little inspiration for you
+inspiration for you and also important when you go into a
+and also important when you go into a company usually you have a team with
+company usually you have a team with other fellow artists and they maybe
+other fellow artists and they maybe created already some textures before you
+created already some textures before you and of course you will reuse them if
+and of course you will reuse them if possible why should you do a 20th
+possible why should you do a 20th explosion if they are 19 perfectly
+explosion if they are 19 perfectly usable in the project so you will use
+usable in the project so you will use third-party assets
+third-party assets anyway and nothing speaks against taking
+anyway and nothing speaks against taking some out of the internet if you are
+some out of the internet if you are allowed to of course
+and then it really helps to find your art
+it really helps to find your art direction on the left you see my little
+direction on the left you see my little explosion which i used this is the unity
+explosion which i used this is the unity flipbook and on the right i just used a
+flipbook and on the right i just used a different flipbook from the same pack
+different flipbook from the same pack and i like the left one more because you
+and i like the left one more because you have a nice silhouette right the right
+have a nice silhouette right the right one is a bit rounder
+one is a bit rounder and now that i know this if i should go
+and now that i know this if i should go and do my own explosion now or
+and do my own explosion now or simulation i know what to look for and
+simulation i know what to look for and this is very valuable finding out what
+this is very valuable finding out what you want and what you like takes usually
+you want and what you like takes usually a lot of amount of time and these assets
+a lot of amount of time and these assets can help you to find out what do you
+can help you to find out what do you like quicker
+like quicker and i already spoiled it a little bit
+and i already spoiled it a little bit this is the most important thing if your
+this is the most important thing if your artist's brain is like oh no i don't
+artist's brain is like oh no i don't want uh to use assets from someone else
+want uh to use assets from someone else then you can tell it hey we just use it
+then you can tell it hey we just use it now and maybe if there's time we can
+now and maybe if there's time we can make our own simulation or effect or
+make our own simulation or effect or explosion later
+explosion later and now finally let's talk about
+and now finally let's talk about practical stuff okay all this theory
+practical stuff okay all this theory so here's this project again you can see
+so here's this project again you can see some some effects going on there
+some some effects going on there and these are the most important
+and these are the most important textures
+textures i created for this project and i will go
+i created for this project and i will go with you
+with you on a little journey and explain how
+on a little journey and explain how those are created
+those are created first a little general guide if you were
+first a little general guide if you were unsure what would be a good way to
+unsure what would be a good way to create the texture first ask yourself do
+create the texture first ask yourself do you need a texture
+you need a texture if you know then enjoy life and if yes
+if you know then enjoy life and if yes then ask yourself is there a third party
+then ask yourself is there a third party asset you can use and if so use it in my
+asset you can use and if so use it in my case
+case the explosion
+the explosion if
+if there's no third-party asset then you
+there's no third-party asset then you can ask yourself hey is there a simple
+can ask yourself hey is there a simple tool which generates this texture for me
+tool which generates this texture for me and if so use it in my case this will be
+and if so use it in my case this will be the little cloud which we're on top of
+the little cloud which we're on top of my island
+my island if no then ask yourself if it's tileable
+if no then ask yourself if it's tileable is it's a tileable texture and if so you
+is it's a tileable texture and if so you can use substance designer of course you
+can use substance designer of course you can also use photoshop but in substance
+can also use photoshop but in substance it's just a little bit faster more
+it's just a little bit faster more convenient
+convenient and if the texture is more unique then i
+and if the texture is more unique then i usually prefer photoshop or creator and
+usually prefer photoshop or creator and that's my little guide here
+that's my little guide here and now let's talk about the explosion
+and now let's talk about the explosion um
+um yeah spoiler i just used explosion from
+yeah spoiler i just used explosion from unity flipbooks but i want to mention
+unity flipbooks but i want to mention that
+that yeah these are cc0 so you can use them
+yeah these are cc0 so you can use them for whatever you want and they offer way
+for whatever you want and they offer way more than just some explosion they also
+more than just some explosion they also have some nice flames and some smoke
+have some nice flames and some smoke and you find whenever i mention
+and you find whenever i mention something here by the way you will find
+something here by the way you will find a source down there in the
+a source down there in the corner
+corner ambergen also offers some free vdb's and
+ambergen also offers some free vdb's and also keep in mind that unity and
+also keep in mind that unity and unreal offer both usually big asset
+unreal offer both usually big asset packs which you can use if you use the
+packs which you can use if you use the respective engine and just the paragon
+respective engine and just the paragon assets alone contain a huge load of
+assets alone contain a huge load of amazing
+amazing vfx
+vfx assets oss in general
+assets oss in general okay that's already for the explosion um
+okay that's already for the explosion um now i would like to talk about this
+now i would like to talk about this background thing which is not
+background thing which is not necessarily a vfx texture but i want to
+necessarily a vfx texture but i want to cover some basics in there so i
+cover some basics in there so i included it here in this talk first we
+included it here in this talk first we look at reference of course i noted
+look at reference of course i noted i noticed that
+i noticed that [Music]
+[Music] these galaxies are basically very soft
+these galaxies are basically very soft gradients and then a lot of high
+gradients and then a lot of high frequency noise on top
+frequency noise on top and then and this is important i wish
+and then and this is important i wish someone would have told this to me like
+someone would have told this to me like i don't know 10 years ago
+i don't know 10 years ago create your source files always in a big
+create your source files always in a big format meaning
+format meaning big format and then set it in your
+big format and then set it in your engine to is to the size you actually
+engine to is to the size you actually need
+need um
+um [Music]
+[Music] this is future proof if production comes
+this is future proof if production comes and says hey we make a high-res version
+and says hey we make a high-res version of our our game or we make a 4k version
+of our our game or we make a 4k version or a 4k page then the only thing you
+or a 4k page then the only thing you have to do is increase these numbers and
+have to do is increase these numbers and you are done you do not want to repaint
+you are done you do not want to repaint all your textures because you created
+all your textures because you created them in two small source files like i
+them in two small source files like i did a while ago and
+did a while ago and this does not mean that i i ask you to
+this does not mean that i i ask you to paint all these little details which at
+paint all these little details which at the end nobody will see okay
+the end nobody will see okay but if you
+but if you oh no no
+oh no no what should i do
+what should i do my laptop is
+my laptop is something happened i am not sure what
+something happened i am not sure what happened
+happened uh did i press something
+uh did i press something no it's good it's good okay so
+no it's good it's good okay so this does not mean
+this does not mean that you paint all these details but the
+that you paint all these details but the workflow and the time um
+workflow and the time um the time investment is the same if you
+the time investment is the same if you use a big brush for example or photos on
+use a big brush for example or photos on a big canvas or if you use a smaller
+a big canvas or if you use a smaller version of the same brush and a small
+version of the same brush and a small canvas so it's exactly the same work for
+canvas so it's exactly the same work for you as an artist but the one version on
+you as an artist but the one version on the left is future proof and the other
+the left is future proof and the other is not
+is not and i have a very nice example for that
+and i have a very nice example for that in baldur's gate 3 there are these ash
+in baldur's gate 3 there are these ash particles flying in the air they can
+particles flying in the air they can come really close to the camera which i
+come really close to the camera which i really like and i tell you if i would
+really like and i tell you if i would have painted this a while ago because of
+have painted this a while ago because of in my head an ash particle is something
+in my head an ash particle is something very small
+very small so i would have created a 32 by 32
+so i would have created a 32 by 32 texture and call it a day but this would
+texture and call it a day but this would then be just a blurry blob in front of
+then be just a blurry blob in front of the camera okay so um
+the camera okay so um yeah this is something i i learned
+yeah this is something i i learned pretty late in my career actually
+pretty late in my career actually brushes okay it's no surprise to use
+brushes okay it's no surprise to use brushes that's a wow simon that's crazy
+brushes that's a wow simon that's crazy but actually i found it really hard to
+but actually i found it really hard to find good brushes for vfx which you
+find good brushes for vfx which you allowed to use there are some websites
+allowed to use there are some websites that are out there with a lot of brush
+that are out there with a lot of brush packs but mostly they are attribution
+packs but mostly they are attribution and as i explained before this is a
+and as i explained before this is a little bit of a practical issue
+little bit of a practical issue um this is not free but adobe bought the
+um this is not free but adobe bought the brushes from coyote webster some time
+brushes from coyote webster some time ago and offers them for free if you have
+ago and offers them for free if you have a subscription
+a subscription to photoshop and i guess most of us have
+to photoshop and i guess most of us have so i wanted to include it here that i
+so i wanted to include it here that i like this better brush
+like this better brush pack a lot which you also see in the
+pack a lot which you also see in the background with some nice clouds and
+background with some nice clouds and sparkle shapes and yeah this is what i
+sparkle shapes and yeah this is what i like and also important i always store
+like and also important i always store everything like the photos the brush
+everything like the photos the brush bags everything into my cloud vfx
+bags everything into my cloud vfx library with that i have it on access on
+library with that i have it on access on all the pcs and even if my my pc crashes
+all the pcs and even if my my pc crashes at some point i still have it and my
+at some point i still have it and my workflow is not disturbed by losing
+workflow is not disturbed by losing these assets so this was
+these assets so this was very important to me
+very important to me saving we save our textures do we
+saving we save our textures do we saving is something very dear to my
+saving is something very dear to my heart because i like to have it
+heart because i like to have it efficient and
+efficient and this is the
+this is the [Music]
+[Music] workflow in photoshop and this is not
+workflow in photoshop and this is not very efficient you have to press file
+very efficient you have to press file and save and then select the type every
+and save and then select the type every time and if you save as tga there's this
+time and if you save as tga there's this little dialogue coming up oh do you want
+little dialogue coming up oh do you want to save in 24 bit 132 and this is so
+to save in 24 bit 132 and this is so annoying and we it can't be annoying
+annoying and we it can't be annoying because we want to iterate often and
+because we want to iterate often and fast and
+fast and this is i'm getting angry looking at
+this is i'm getting angry looking at this gif and this is already twice the
+this gif and this is already twice the speed
+speed so here are my suggestions for
+so here are my suggestions for making it better
+making it better if you use krita there is a batch
+if you use krita there is a batch exporter coming with krita one click you
+exporter coming with krita one click you export your textures to a desired
+export your textures to a desired location in photoshop there's the good
+location in photoshop there's the good old q save very nice script i used it a
+old q save very nice script i used it a long time but nowadays i prefer the
+long time but nowadays i prefer the espresso
+espresso plugin from francesco which is even
+plugin from francesco which is even capable of saying
+capable of saying saving some folder
+saving some folder layer folders into
+layer folders into the
+the different color channels of texture but
+different color channels of texture but i use it mainly for
+i use it mainly for saving and is so good
+saving and is so good okay and the rest of this texture is
+okay and the rest of this texture is actually not super exciting but you see
+actually not super exciting but you see i i iterate quickly i paint some
+i i iterate quickly i paint some some soft brushes then i use this plugin
+some soft brushes then i use this plugin which i just mentioned to save it and
+which i just mentioned to save it and then switch to unreal look at it and
+then switch to unreal look at it and then i use this better brush pack
+then i use this better brush pack to finish off the texture by just adding
+to finish off the texture by just adding some nice clouds shapes and so on
+some nice clouds shapes and so on and yeah this is the for the
+and yeah this is the for the for this texture but i want to mention
+for this texture but i want to mention something maybe you're thinking now oh
+something maybe you're thinking now oh simon you're saying that um we all need
+simon you're saying that um we all need big brush packs and big brush libraries
+big brush packs and big brush libraries i mean
+i mean you can but i
+you can but i don't underestimate the power of the
+don't underestimate the power of the standard brushes and before this talk i
+standard brushes and before this talk i talked with a lot of professionals and
+talked with a lot of professionals and many of them said i just use the thunder
+many of them said i just use the thunder brushes most of the time so i wanted to
+brushes most of the time so i wanted to give out some little techniques which
+give out some little techniques which make you get a lot out of simple brushes
+make you get a lot out of simple brushes first if you have a boring stroke you
+first if you have a boring stroke you can make it more interesting by erasing
+can make it more interesting by erasing some negative shapes with the eraser or
+some negative shapes with the eraser or lasso tool for example so this is a very
+lasso tool for example so this is a very common technique
+common technique also smudge is of course your friend
+also smudge is of course your friend simple stroke smudge it around and not a
+simple stroke smudge it around and not a simple stroke smudge it around and you
+simple stroke smudge it around and you get some nice wispy shapes out of that
+and i'm i want to mention down there you see
+i want to mention down there you see tiled painting happening which means
+tiled painting happening which means when your brush and
+when your brush and is on the one side of your canvas it
+is on the one side of your canvas it wraps around the other side of the
+wraps around the other side of the canvas basically so that you can
+canvas basically so that you can paint perfectly tile tiles textures
+paint perfectly tile tiles textures there
+there and maybe you will now say well krita
+and maybe you will now say well krita had this forever but what you see there
+had this forever but what you see there is photoshop
+is photoshop and
+and this was just
+this was just added in 2021 and i wanted to send it
+added in 2021 and i wanted to send it out here because i didn't know that i
+out here because i didn't know that i stumbled across it on twitter by random
+stumbled across it on twitter by random and i just want to
+and i just want to make sure everyone knows view pattern
+make sure everyone knows view pattern preview this is titled painting in
+preview this is titled painting in photoshop it's amazing
+photoshop it's amazing and shannon has very nice tutorials
+and shannon has very nice tutorials about how to use uh blur a motion blur
+about how to use uh blur a motion blur to get a lot out of simple brushes and
+to get a lot out of simple brushes and she also has very nice um
+she also has very nice um yup tutorials in general
+yup tutorials in general about the standard brushes so you can
+about the standard brushes so you can use these things um i will spoil it now
+use these things um i will spoil it now you don't need to take textures of the
+you don't need to take textures of the slice there will be something later but
+slice there will be something later but i will talk about this later
+i will talk about this later but don't worry you will not lose these
+but don't worry you will not lose these resources
+and this is the most mind-blowing to me because i didn't use the min filter so
+because i didn't use the min filter so much i didn't even know that it existed
+much i didn't even know that it existed and the idea of the min filter is to
+and the idea of the min filter is to increase shapes as you can see i
+increase shapes as you can see i increased the filter strength and then
+increased the filter strength and then these shapes get bigger and bigger but i
+these shapes get bigger and bigger but i saw something very nice on the youtube
+saw something very nice on the youtube channel of cg howe and he um just
+channel of cg howe and he um just painted different sizes of strokes on
+painted different sizes of strokes on top of each other smudged them a little
+top of each other smudged them a little bit a little softer brush on top so
+bit a little softer brush on top so pretty simple
+pretty simple stuff actually and when you use the mint
+stuff actually and when you use the mint filter on that it generates a very nice
+filter on that it generates a very nice shape look at this it doesn't this is
+shape look at this it doesn't this is super cool i would
+super cool i would i don't know how long it would take me
+i don't know how long it would take me to paint this by hand so this is a very
+to paint this by hand so this is a very cool technique to make something nice
+cool technique to make something nice and here another example from ben
+and here another example from ben who show us how to use the mindful of
+who show us how to use the mindful of bigger values and you get very nice
+bigger values and you get very nice interesting stylized shapes out of that
+interesting stylized shapes out of that right just some
+right just some squiggly lines and you get something
+squiggly lines and you get something very nice out of it
+very nice out of it okay so that's uh about brushes and now
+okay so that's uh about brushes and now let's talk about the lightweight texture
+let's talk about the lightweight texture these lightweights were generated in
+these lightweights were generated in photoshop and it all starts with this
+photoshop and it all starts with this little shape there and then
+little shape there and then you can apply the wave filter in
+you can apply the wave filter in photoshop to distort it a little bit and
+photoshop to distort it a little bit and then we use the good old radial blur
+then we use the good old radial blur with the zoom mode and you will see here
+with the zoom mode and you will see here every time you use it every time several
+every time you use it every time several times and every time i do this it gets
+times and every time i do this it gets better and better and look at these
+better and better and look at these chains how to develop doesn't this look
+chains how to develop doesn't this look awesome and it just takes two minutes to
+awesome and it just takes two minutes to do it
+do it um
+um and just for a little comparison here on
+and just for a little comparison here on the left is one of my very early
+the left is one of my very early textures where i tried the same in
+textures where i tried the same in photoshop by hand and i can tell you it
+photoshop by hand and i can tell you it took me longer than these two minutes
+took me longer than these two minutes using the photoshop printer and i guess
+using the photoshop printer and i guess you can agree that the white one looks a
+you can agree that the white one looks a bit better
+and [Music]
+[Music] we
+we have a problem if you use substance
+have a problem if you use substance because substance does not offer a zoom
+because substance does not offer a zoom blur node so we as a vfx community lack
+blur node so we as a vfx community lack this node but
+this node but unfortunately fortunately we have a
+unfortunately fortunately we have a bruno in our community and he told me
+bruno in our community and he told me how to make this happen in substance you
+how to make this happen in substance you can see it by using the polar to
+can see it by using the polar to quotation note and then a directional
+quotation note and then a directional blur and then
+blur and then cartesian two polar again and this is
+cartesian two polar again and this is how it looks so this is our zoom blur
+how it looks so this is our zoom blur and substance just in case you want to
+and substance just in case you want to have it and we also have fortunately a
+have it and we also have fortunately a robin in our community and he
+robin in our community and he used the slope blur for that and it
+used the slope blur for that and it looks like this so
+looks like this so very nice techniques in substance and
+very nice techniques in substance and this is my result so i generated two
+this is my result so i generated two more textures with these techniques
+more textures with these techniques lightning
+lightning [Music]
+[Music] if you look at the lightning
+if you look at the lightning you will see this
+you will see this what you will see when you look on
+what you will see when you look on different scales in the world on
+different scales in the world on different things you will notice that
+different things you will notice that the structures are often the same
+the structures are often the same or similar
+or similar you see that the river the blood vessel
+you see that the river the blood vessel and this little root at the right looks
+and this little root at the right looks very similar to um lightning so maybe if
+very similar to um lightning so maybe if you can't find the perfect resource or
+you can't find the perfect resource or reference or texture maybe you can get a
+reference or texture maybe you can get a little bit creative with your footage
+little bit creative with your footage and so i did so i used
+and so i did so i used the ribbon
+the ribbon and
+and i increased contrast and inverted it and
+i increased contrast and inverted it and then cut away everything what did not
+then cut away everything what did not look like a lightning
+look like a lightning and then i also copied some parts from
+and then i also copied some parts from other parts of the river and rearranged
+other parts of the river and rearranged them to look like my lightning and this
+them to look like my lightning and this is how i did my lightning
+is how i did my lightning but i wanted to have it fade out
+but i wanted to have it fade out no fade in from top to bottom and fade
+no fade in from top to bottom and fade out in a global erosiony way okay
+out in a global erosiony way okay and but this was easy just in photoshop
+and but this was easy just in photoshop but
+but on top i made a little gradient i hope
+on top i made a little gradient i hope you can see there's a little gradient
+you can see there's a little gradient from top to bottom and for the fade out
+from top to bottom and for the fade out mask i just used the photoshop inner
+mask i just used the photoshop inner glow filter and yeah
+glow filter and yeah maybe it's not perfect but it's good
+maybe it's not perfect but it's good enough
+and the water splash is maybe now that we saw how to use these photos not super
+we saw how to use these photos not super special but i just take this photo
+special but i just take this photo increase the contrast and then i cut out
+increase the contrast and then i cut out all the pieces i like and assemble them
+all the pieces i like and assemble them to a nice little water splash
+to a nice little water splash and
+and what i want to
+what i want to emphasize here is
+emphasize here is reusability of textures of vfx textures
+reusability of textures of vfx textures because you should if possible reuse
+because you should if possible reuse them as much as you can and here's an
+them as much as you can and here's an example on my little explosion on the
+example on my little explosion on the left you see these sandy spikes like the
+left you see these sandy spikes like the scent going off right and this is
+scent going off right and this is exactly the same texture like my water
+exactly the same texture like my water splash so why should i create another
+splash so why should i create another water another splash texture if this is
+water another splash texture if this is good enough right
+good enough right so lucky for me it saved some time
+so lucky for me it saved some time yeah
+yeah and also the moon in the background uses
+and also the moon in the background uses the blue channel of
+the blue channel of one of the textures from lewis texture
+one of the textures from lewis texture pack as a base for my little look loot
+pack as a base for my little look loot so that i could colorize it again so i
+so that i could colorize it again so i just reused whatever i could
+just reused whatever i could could get in my hands
+could get in my hands and the water
+and the water is something i saw in a youtube video
+is something i saw in a youtube video this is why oh on the next slide it will
+this is why oh on the next slide it will say source unknown because i saw it in a
+say source unknown because i saw it in a very nice video but i forgot
+very nice video but i forgot what the video was so if you see this
+what the video was so if you see this talk please people
+talk please people tell me that it was you and i will add
+tell me that it was you and i will add you as this source and i generated these
+you as this source and i generated these difference clouds in substance but you
+difference clouds in substance but you can also do it in photoshop by applying
+can also do it in photoshop by applying the
+the um
+um the difference cloud filter twice on
+the difference cloud filter twice on your canvas and then i use substance to
+your canvas and then i use substance to generate the normal map so not too
+generate the normal map so not too special but what i like about substance
+special but what i like about substance is
+is the preview because it's very nice to
+the preview because it's very nice to emphasize how roughly it will look in
+emphasize how roughly it will look in your game right
+your game right and i would also like to underline that
+and i would also like to underline that these shapes on the left there they look
+these shapes on the left there they look awfully a lot like lightning and it is
+awfully a lot like lightning and it is actually a technique to generate these
+actually a technique to generate these clouds increase the contrast and then
+clouds increase the contrast and then use these shapes for your lightning
+use these shapes for your lightning textures but i did not because i wanted
+textures but i did not because i wanted to show you the creative approach using
+to show you the creative approach using photos
+photos and it sources unknown like i said
+and it sources unknown like i said and now let's talk about the waterfall
+and now let's talk about the waterfall so the waterfall starts of course with a
+so the waterfall starts of course with a reference i really liked and
+reference i really liked and there's something
+there's something we will use substance for that and when
+we will use substance for that and when i think about substance i always think
+i think about substance i always think about making things from scratch i guess
+about making things from scratch i guess it comes from the fact that the
+it comes from the fact that the substance tutorials out there for stone
+substance tutorials out there for stone and sand and all these cool things
+and sand and all these cool things always start from scratch and they
+always start from scratch and they generate photovoice resource results and
+generate photovoice resource results and this is just amazing
+this is just amazing but i tried and to be honest um
+but i tried and to be honest um i think this explosion texture which i
+i think this explosion texture which i tried doing from scratch could be
+tried doing from scratch could be improved a little bit and also this fire
+improved a little bit and also this fire is not
+is not without the potential to get better but
+without the potential to get better but at some point i realized why should i do
+at some point i realized why should i do everything from scratch why not take a
+everything from scratch why not take a flame from a photo like here use a tile
+flame from a photo like here use a tile sampler node
+sampler node and just uh splattered on on on the
+and just uh splattered on on on the canvas and substance and then get a
+canvas and substance and then get a perfectly nice
+perfectly nice fiery tileable texture out of this
+fiery tileable texture out of this within some minutes
+within some minutes and this is what i did for the waterfall
+and this is what i did for the waterfall so i took this amazing texture from
+so i took this amazing texture from from textures.com
+from textures.com and made the border a little bit softer
+and made the border a little bit softer and then used this tile sampler note to
+and then used this tile sampler note to just splat it around and this is the
+just splat it around and this is the result you can see here is get it up and
+result you can see here is get it up and down to see how
+down to see how where the actual textures are and i
+where the actual textures are and i think it blends very very well
+think it blends very very well and then i put it on my waterfall under
+and then i put it on my waterfall under the edge
+the edge and now i'm contradicting myself a
+and now i'm contradicting myself a little bit i said we are talking about
+little bit i said we are talking about good enough but i was not super
+good enough but i was not super satisfied even though it should be good
+satisfied even though it should be good enough right but
+enough right but i wanted to try something else because i
+i wanted to try something else because i found it did not resemble too much the
+found it did not resemble too much the structures in my reference folder right
+structures in my reference folder right folder texture picture
+folder texture picture so
+so then i did something crazy
+then i did something crazy i used the reference picture as texture
+i used the reference picture as texture so i got into a substance with the svg
+so i got into a substance with the svg node which lets you paint
+node which lets you paint a
+a vertex
+vertex vector shapes yeah so i painted some
+vector shapes yeah so i painted some vector shapes i blurred them a little
+vector shapes i blurred them a little bit and with that i cut away all these
+bit and with that i cut away all these pieces which i did not need
+pieces which i did not need and then i did the same
+and then i did the same like before i just
+like before i just split it around a lot and have now a
+split it around a lot and have now a texture which looks like this which
+texture which looks like this which resembles more the structure i was
+resembles more the structure i was looking for
+looking for but then while looking at all these
+but then while looking at all these photos i
+photos i saw this and i really like this layer
+saw this and i really like this layer structure in this waterfall right but i
+structure in this waterfall right but i couldn't find a nice texture to
+couldn't find a nice texture to to to resemble that
+to to resemble that but what i found was when you look at
+but what i found was when you look at the forest
+the forest and you flip the forest and you increase
+and you flip the forest and you increase the contrast a little bit it looks
+the contrast a little bit it looks kind of like these layer structures
+kind of like these layer structures right so i just took this in my
+right so i just took this in my substance
+substance and overlaid this layer with the other
+and overlaid this layer with the other layer i created before
+layer i created before and now i got here where i have some
+and now i got here where i have some nice structures but also sometimes you
+nice structures but also sometimes you see these
+see these these wavy layer things falling down
+these wavy layer things falling down right
+right so uh yeah this is what i ended up with
+so uh yeah this is what i ended up with and here are some more creative ways
+and here are some more creative ways this one is from pete clark how to use
+this one is from pete clark how to use the interesting photo choices for you
+the interesting photo choices for you for your textures so he generates a
+for your textures so he generates a massive flash out of a little rubber
+massive flash out of a little rubber duck and here is the good old chicken
+duck and here is the good old chicken thingy which gets converted into a
+thingy which gets converted into a texture yeah
+texture yeah so unfortunately these are not for me
+so unfortunately these are not for me but they are still awesome
+but they are still awesome okay and now let's talk about this
+okay and now let's talk about this little cloud for this little cloud i
+little cloud for this little cloud i used
+used a tool which is just there for creating
+a tool which is just there for creating clouds it's called kumo works it's open
+clouds it's called kumo works it's open source and
+source and you can paint a very simple shape and it
+you can paint a very simple shape and it will create a very nice cloud there are
+will create a very nice cloud there are a lot of sliders
+a lot of sliders but you can use these templates to get
+but you can use these templates to get different cloud
+different cloud structures out of that which is super
+structures out of that which is super super nice and also you can change the
+super nice and also you can change the light source direction which means that
+light source direction which means that if your shader can do it
+if your shader can do it you can generate different light maps
+you can generate different light maps from all direction and then you have a
+from all direction and then you have a six-sided light map shader in your game
+six-sided light map shader in your game if you want to have this
+if you want to have this and here is the texture i generated out
+and here is the texture i generated out of this and for this cloud i generated
+of this and for this cloud i generated three different masks the diffuse mask
+three different masks the diffuse mask of course
+of course but then i wanted when the lightning
+but then i wanted when the lightning goes off i have a little mask from below
+goes off i have a little mask from below that the little cloud is a little bit
+that the little cloud is a little bit too
+too lit
+lit and for that i just used
+and for that i just used the light source comes from below now i
+the light source comes from below now i just used another version of my little
+just used another version of my little cloud and increased the contrast and
+cloud and increased the contrast and then took my original texture inverted
+then took my original texture inverted it and then
+it and then increased the contrast a bit and masked
+increased the contrast a bit and masked it a bit out
+it a bit out and combined both and this is my little
+and combined both and this is my little mask for
+mask for the the lighting
+the the lighting no the lightning for the lighting cloud
+no the lightning for the lighting cloud and
+and was this correct i don't okay but you
+was this correct i don't okay but you get what i'm saying uh and the last
+get what i'm saying uh and the last thing is i wanted to have this cloud
+thing is i wanted to have this cloud appear not just um fade in and out i
+appear not just um fade in and out i wanted to appear at least at the
+wanted to appear at least at the beginning and that it grows right now
+beginning and that it grows right now that it erodes into the scene and this
+that it erodes into the scene and this is i just painted with soft standard
+is i just painted with soft standard brushes on top of the alpha channel and
+brushes on top of the alpha channel and this is basically just what i did there
+this is basically just what i did there and these three different masks i put
+and these three different masks i put now into one
+now into one texture into the rgb channels and this
+texture into the rgb channels and this is something we know as gray packing or
+is something we know as gray packing or channel packing it's very common known
+channel packing it's very common known technique but i wanted to add two things
+technique but i wanted to add two things about that
+about that first
+first i don't know if you know but in
+i don't know if you know but in photoshop in the layer style in your
+photoshop in the layer style in your folder layer folders or the layers
+folder layer folders or the layers themselves you can enable these
+themselves you can enable these checkboxes to send this photo or layer
+checkboxes to send this photo or layer directly to the color channel which is
+directly to the color channel which is amazing and super easy
+amazing and super easy so you can do that here in in my
+so you can do that here in in my gif you see how i just check these boxes
+gif you see how i just check these boxes and everything is set up or you just use
+and everything is set up or you just use the the plugin by francesco it is also
+the the plugin by francesco it is also capable of doing that but
+capable of doing that but yeah wanted to
+yeah wanted to share this knowledge here
+share this knowledge here and second
+and second the big advantage of
+the big advantage of channel packing
+channel packing is that you have to sample your texture
+is that you have to sample your texture only once in the shader yeah here i
+only once in the shader yeah here i sample it only once and then i can use
+sample it only once and then i can use these three masks which are put into the
+these three masks which are put into the rgb channels for whatever i want
+rgb channels for whatever i want but often
+but often my
+my shaders sample each layer
+shaders sample each layer separately anyway because for example i
+separately anyway because for example i want to move them in different ways or
+want to move them in different ways or maybe i want to sample them at different
+maybe i want to sample them at different resolutions or something with different
+resolutions or something with different uv tilings
+uv tilings and so for my workflow 90 of the time i
+and so for my workflow 90 of the time i noticed that this channel packing i love
+noticed that this channel packing i love this technique but
+this technique but i prefer to store these masks as
+i prefer to store these masks as grayscale images just the separate ones
+grayscale images just the separate ones and then i can reuse them very easily in
+and then i can reuse them very easily in other shaders which also read in
+other shaders which also read in this mask but it is a very cool
+this mask but it is a very cool technique for these special cases like
+technique for these special cases like my little cloud and there is actually a
+my little cloud and there is actually a talk from um nikola about spellbounds
+talk from um nikola about spellbounds which i heavily recommend it's super
+which i heavily recommend it's super cool they use
+cool they use this technique for almost all the vfx
+this technique for almost all the vfx textures and they have one master shader
+textures and they have one master shader reading in everything and it's super
+reading in everything and it's super interesting so if you like the technique
+interesting so if you like the technique then
+then yeah you can have a look on this talk
+shader magic it doesn't fit in here so well because i would like to talk about
+well because i would like to talk about textures right but um i think there are
+textures right but um i think there are three simple techniques
+three simple techniques which can boost your textures a lot and
+which can boost your textures a lot and it was important to me to share them
+it was important to me to share them because even if you are a bit hesitant
+because even if you are a bit hesitant with going into material or shadow
+with going into material or shadow creation i think these can help you a
+creation i think these can help you a lot and so i wanted to
+lot and so i wanted to share this
+share this your redistorsion look up textures and
+your redistorsion look up textures and erosion are three techniques which are
+erosion are three techniques which are simple but cool
+simple but cool and uv distortion we sorted at the
+and uv distortion we sorted at the beginning already it adds some motion
+beginning already it adds some motion like my little cloud starts wobbling if
+like my little cloud starts wobbling if you um generate it with this example
+you um generate it with this example here
+here and here is the cloud again you see that
+and here is the cloud again you see that yeah my static texture not super
+yeah my static texture not super exciting but up there with this simple
+exciting but up there with this simple shader trick a lot of motion suddenly
+shader trick a lot of motion suddenly which i really like
+which i really like and look up textures are like be spoken
+and look up textures are like be spoken before just there to colorize your
+before just there to colorize your grayscale image or mask with a little
+grayscale image or mask with a little lookup gradient
+lookup gradient very resourceful technique and it also
+very resourceful technique and it also changes how you create your textures
+changes how you create your textures because instead if you have if you have
+because instead if you have if you have or if you want to have different
+or if you want to have different versions for your
+versions for your flipbook
+flipbook you
+you do not need to store them separately
+do not need to store them separately into different color versions you can
+into different color versions you can now use a grayscale flipbook and
+now use a grayscale flipbook and colorize it with this little lookup
+colorize it with this little lookup gradients which is better for
+gradients which is better for performance and memory and
+performance and memory and also gives you as a vfx artist more
+also gives you as a vfx artist more flexibility
+flexibility and
+and it is also used and this is for the
+it is also used and this is for the stylized people you can use it for
+stylized people you can use it for stylization as well so on the on the
+stylization as well so on the on the left is the explosion like seen before
+left is the explosion like seen before and on the right i use the little look
+and on the right i use the little look up texture which only has some colors
+up texture which only has some colors and you can see that it looks very more
+and you can see that it looks very more comicky i would say
+comicky i would say so it's a very useful tool
+so it's a very useful tool to have into your belt
+to have into your belt and erosion is like be spoken before
+and erosion is like be spoken before they are for making the fade out a bit
+they are for making the fade out a bit more interesting
+more interesting and
+and here you can see another little shared
+here you can see another little shared example i just put them in for someone
+example i just put them in for someone want to implement it later
+want to implement it later and
+and it basically fakes complexity so that
+it basically fakes complexity so that here you see on the left side there's
+here you see on the left side there's the little texture and you see these
+the little texture and you see these shapes falling down and while they're
+shapes falling down and while they're falling down they dissolve right and on
+falling down they dissolve right and on the right you see how it would look like
+the right you see how it would look like if you would just use soft alpha and
+if you would just use soft alpha and it's not just exciting
+it's not just exciting and here the same example on the left we
+and here the same example on the left we see these water splashes and while they
+see these water splashes and while they are falling down they rolled away so it
+are falling down they rolled away so it looks way more exciting i think than on
+looks way more exciting i think than on the right side where
+the right side where nothing happens basically
+nothing happens basically yeah
+yeah um
+um yeah and here's the alpha original
+yeah and here's the alpha original software and this is also a technique
+software and this is also a technique which can be used for stylization again
+which can be used for stylization again left side is the explosion this time
+left side is the explosion this time with the stylized look up texture
+with the stylized look up texture assigned and on the right side you see
+assigned and on the right side you see um how the alpha erodes away and i think
+um how the alpha erodes away and i think it looks way more like a stylized i
+it looks way more like a stylized i don't know manga animation
+don't know manga animation or explosion than the left side right
+so um there are
+there are not too many resources
+not too many resources to
+to [Music]
+[Music] about this topic about the texture
+about this topic about the texture generation itself but there are
+generation itself but there are quite some tools out there like for
+quite some tools out there like for example this little cloud tool i just
+example this little cloud tool i just showed
+showed and
+and did you know for example that
+did you know for example that krita has a particle brush engine which
+krita has a particle brush engine which allows you to paint very nice wispy
+allows you to paint very nice wispy smoke
+smoke or that photoshop has a flame filter
+or that photoshop has a flame filter which generates very nice flamy shapes
+which generates very nice flamy shapes for you
+for you and we did not even talk about
+and we did not even talk about the effects texture maker which is a
+the effects texture maker which is a tool running in your browser and it can
+tool running in your browser and it can generate many kind of different textures
+generate many kind of different textures for you
+for you [Music]
+[Music] and save it into a flipbook super
+and save it into a flipbook super practical
+practical and then there is a flamepainter is a
+and then there is a flamepainter is a very commonly known tool but it is i i
+very commonly known tool but it is i i didn't know that there is an online
+didn't know that there is an online version which you can also use for
+version which you can also use for creating very interesting
+creating very interesting things and you can see the links down
+things and you can see the links down there of course
+there of course and i think it would be nice if if we
+and i think it would be nice if if we could
+could um collect all these this knowledge at
+um collect all these this knowledge at some point maybe a decentralized
+some point maybe a decentralized website or something to so that everyone
+website or something to so that everyone can access that because it's it's really
+can access that because it's it's really it took a lot of research for me to find
+it took a lot of research for me to find all these things
+all these things and i think it would be nice if this
+and i think it would be nice if this person can then maybe would prepare a
+person can then maybe would prepare a talk about this and while talking then
+talk about this and while talking then mentioned it he actually did
+mentioned it he actually did so i created this resource database for
+so i created this resource database for my preparation where i collected all
+my preparation where i collected all these things and i separated in eight
+these things and i separated in eight different
+different categories
+categories the first four are like to find textures
+the first four are like to find textures and texture patches and
+and texture patches and packs and brushes and also some photo
+packs and brushes and also some photo and video footage which you can use as a
+and video footage which you can use as a base for your textures
+base for your textures and the other four are focused on
+and the other four are focused on tutorials so i collected any tutorial i
+tutorials so i collected any tutorial i could find i mean there are not too many
+could find i mean there are not too many but
+but what i could find i put in there for
+what i could find i put in there for for the different methods of generating
+for the different methods of generating the textures
+the textures and if you feel fancy you're of course
+and if you feel fancy you're of course free to
+free to search the database directly by yourself
+search the database directly by yourself with keywords
+with keywords by authors or maybe some some like fire
+by authors or maybe some some like fire or lightning or something like that uh i
+or lightning or something like that uh i need to mention i will extend the
+need to mention i will extend the keyboards further in the future
+keyboards further in the future uh so if there's maybe something in
+uh so if there's maybe something in there
+there uh which you can't find yet hopefully in
+uh which you can't find yet hopefully in the future it will be better i didn't
+the future it will be better i didn't have too much time to
+have too much time to perfectionize
+perfectionize the all the tagging yet but i will do in
+the all the tagging yet but i will do in the future
+and now you may ask yeah that's great but how do i access that
+but how do i access that and to that i would answer you can
+and to that i would answer you can use this qr code
+use this qr code or this url
+or this url or this very small url down there if you
+or this very small url down there if you like it a little bit shorter
+like it a little bit shorter and this will lead you to a website um
+and this will lead you to a website um just some some notes on websites with
+just some some notes on websites with some links and it will not only contain
+some links and it will not only contain the link to the resource database
+the link to the resource database it also contains
+it also contains links to these slides
+links to these slides so if you want to revisit something or
+so if you want to revisit something or you saw a source that's what uh why i
+you saw a source that's what uh why i mentioned before you don't need to take
+mentioned before you don't need to take photos because you have it already right
+photos because you have it already right now it is online right now and you can
+now it is online right now and you can just look at the slides and i also um
+just look at the slides and i also um added what i basically saying right now
+added what i basically saying right now should be readable in these slides as a
+should be readable in these slides as a little speaker's commentary so
+little speaker's commentary so i hope this helps people who maybe
+i hope this helps people who maybe didn't visit the talk yet
+didn't visit the talk yet and it will also contain the unreal
+and it will also contain the unreal project files and the substance files
+project files and the substance files and later if this talks goes online
+and later if this talks goes online the video recording and there is some
+the video recording and there is some stuff which did not make it into this
+stuff which did not make it into this talk because of time purposes so when
+talk because of time purposes so when you scroll down there's a little secret
+you scroll down there's a little secret section called content plus plus and you
+section called content plus plus and you can look at these slides with for even
+can look at these slides with for even more little tricks and i added a
+more little tricks and i added a commentary in the speakers notes just
+commentary in the speakers notes just for these reasons
+and you can help to make this whole situation
+can help to make this whole situation better if you want because i think
+better if you want because i think there are like i said not too many
+there are like i said not too many resources right so
+resources right so if you uh
+if you uh because
+because in my perfect dream world this talk is
+in my perfect dream world this talk is just the beginning
+just the beginning of this whole discussion and maybe it
+of this whole discussion and maybe it can inspire other people to generate
+can inspire other people to generate some more resources now
+some more resources now specifically for this topic i would
+specifically for this topic i would very much like it to feel less
+very much like it to feel less overwhelmed in the future and if you do
+overwhelmed in the future and if you do you can use this hashtag because it was
+you can use this hashtag because it was only used once on twitter by cg how
+only used once on twitter by cg how actually
+actually and i think we can just take it and
+and i think we can just take it and share our
+share our knowledge there
+knowledge there if you have more resources which are not
+if you have more resources which are not already in the database then feel free
+already in the database then feel free to tell me and i can add the resource
+to tell me and i can add the resource um
+um and if you share something already like
+and if you share something already like maybe you're sharing a texture pack or
+maybe you're sharing a texture pack or something then please share it as cc0 so
+something then please share it as cc0 so that anyone can use it without
+that anyone can use it without attribution or judge money
+attribution or judge money this is totally fine i i'm happy to pay
+this is totally fine i i'm happy to pay for good content but it would be nice to
+for good content but it would be nice to avoid the attribution
+avoid the attribution issue
+issue and if you can paint
+and if you can paint maybe you consider making a little uh
+maybe you consider making a little uh tutorial about this because sometimes i
+tutorial about this because sometimes i see concept artists amazing pieces
+see concept artists amazing pieces um like like uh i don't know a castle or
+um like like uh i don't know a castle or dragon or something and then they paint
+dragon or something and then they paint over some effects and i'm like oh i
+over some effects and i'm like oh i would like to know how you did paint
+would like to know how you did paint these effects right
+these effects right so there's a little example kianen had
+so there's a little example kianen had usually he paints figures and stuff like
+usually he paints figures and stuff like that but he has one video about video
+that but he has one video about video game particles and i really enjoyed that
+game particles and i really enjoyed that much it was a really cool little
+much it was a really cool little lecture and yeah maybe other people
+lecture and yeah maybe other people fancy this too
+and if you're a vfx artist maybe you consider to not only share your vfx in
+consider to not only share your vfx in your ad station profile
+your ad station profile but maybe also the textures because it's
+but maybe also the textures because it's uh even though you don't see the process
+uh even though you don't see the process it's still a very good learning
+it's still a very good learning opportunity to see what an effect was
+opportunity to see what an effect was made of
+and if you want maybe you want to even show your process maybe even a speed
+show your process maybe even a speed painting a very nice example is
+painting a very nice example is sara comedy and she shares a lot of
+sara comedy and she shares a lot of processes this is just simple gifts she
+processes this is just simple gifts she also has speed paintings on her station
+also has speed paintings on her station page and it's not necessarily a
+page and it's not necessarily a vfx texture now but i think it's still a
+vfx texture now but i think it's still a good example how much you can take out
+good example how much you can take out of even this simple gif it's so cool to
+of even this simple gif it's so cool to see right
+see right uh yeah so these are the things that you
+uh yeah so these are the things that you can do if you want to improve the whole
+can do if you want to improve the whole situation
+situation and
+and while cheap studio this is the company
+while cheap studio this is the company i'm working at is also hiring so if you
+i'm working at is also hiring so if you feel like you would like to work in the
+feel like you would like to work in the south of france in a very nice team and
+south of france in a very nice team and like you can see a very nice
+like you can see a very nice little office then feel free to check
+little office then feel free to check out these this little url
+out these this little url and i would also like to take the time
+and i would also like to take the time to thank some people because celine is
+to thank some people because celine is our ceo at waichi and without her it
+our ceo at waichi and without her it wouldn't have been possible for me to
+wouldn't have been possible for me to fly here and to stay here
+fly here and to stay here so thank you so much for that and leah
+so thank you so much for that and leah organized the whole trip and she took
+organized the whole trip and she took away a lot of stress from me i can tell
+away a lot of stress from me i can tell you and of course beer was also my um
+you and of course beer was also my um contact person to gdc and without him i
+contact person to gdc and without him i wouldn't even have dared to
+wouldn't even have dared to apply for this
+apply for this for this talk here so thank you so much
+for this talk here so thank you so much and other people there i highly
+and other people there i highly recommend uh checking their profiles out
+recommend uh checking their profiles out there all great artists and
+there all great artists and these are the people who gave me so much
+these are the people who gave me so much feedback for this talk and shaped it
+feedback for this talk and shaped it together with me so if you liked it
+together with me so if you liked it feel free to visit their profiles and
+feel free to visit their profiles and give them some love
+give them some love if you did not like it then that's me
+if you did not like it then that's me and
+and if there are more questions
+if there are more questions then of course you can
+then of course you can send me a twitter or an email of course
+send me a twitter or an email of course we can also talk after this
+we can also talk after this because i love to speak to fellow with x
+because i love to speak to fellow with x guys
+guys and
+and so that's this for that yeah i didn't
+so that's this for that yeah i didn't forget anything yeah and this is the end
+forget anything yeah and this is the end so um my name is simon
+so um my name is simon and please don't forget
+and please don't forget using photos is not cheating thank you
+using photos is not cheating thank you [Applause]
+and please fill out the vote forms i shall say these little
+shall say these little things to you know you know it right the
+things to you know you know it right the devo vote the feedback forms okay
+devo vote the feedback forms okay great
+great um
+um so that's for me yeah we have 10 minutes
+so that's for me yeah we have 10 minutes left which is very pleasant
+left which is very pleasant in my tests sometimes i run a bit over
+in my tests sometimes i run a bit over the time but
+the time but i guess i was a bit nervous and spoke
+i guess i was a bit nervous and spoke faster
+faster so
+so if you want
+if you want you can ask something but like i said we
+you can ask something but like i said we can also talk afterwards if you want
+oh a question oh no two questions
+oh no two questions oh that's great
+oh that's great um you have a fantastic hierarchy for
+um you have a fantastic hierarchy for organizing like which route you take
+organizing like which route you take have you ever had to sell that workflow
+have you ever had to sell that workflow to a company that had more
+to a company that had more set in stone um
+set in stone um pipelines of their own
+pipelines of their own uh
+uh no
+no good question like like this pipeline if
+good question like like this pipeline if it would be implemented in a company and
+it would be implemented in a company and you mean
+you mean that maybe i uh i hit against the wall
+that maybe i uh i hit against the wall maybe by implementing it yeah again no
+maybe by implementing it yeah again no like what they were used to yeah the my
+like what they were used to yeah the my problem is that i was always the own
+problem is that i was always the own sole
+sole vfx artist in this company so and i
+vfx artist in this company so and i never worked in a huge company
+never worked in a huge company so i positively formulated i never hit
+so i positively formulated i never hit at all so that's good
+at all so that's good but this also means that i never have a
+but this also means that i never have a real fixed
+real fixed guideline to follow i just was doing it
+guideline to follow i just was doing it on the go and hoped it will
+on the go and hoped it will result in something positive
+result in something positive thank you so much
+thank you so much hey
+hey before the question by the way if if
+before the question by the way if if everyone doesn't know there's a vfx
+everyone doesn't know there's a vfx meetup at the saint regis lobby bar
+meetup at the saint regis lobby bar thursday night at 6 30. so come hang out
+thursday night at 6 30. so come hang out um
+um optical flow motion vectors and slate
+optical flow motion vectors and slate i've i've done a lot of that
+i've i've done a lot of that it's an awesome tool but the numbers
+it's an awesome tool but the numbers never seem to translate into unreal
+never seem to translate into unreal correctly i don't know the motion vector
+correctly i don't know the motion vector intensity number that it gives you yeah
+intensity number that it gives you yeah seems to be just completely wrong
+seems to be just completely wrong yeah and i usually just half and i just
+yeah and i usually just half and i just kind of eyeball it i know have you have
+kind of eyeball it i know have you have you found a better way than that to
+you found a better way than that to to take that and get it looking correct
+to take that and get it looking correct this is a question coming from one who
+this is a question coming from one who knows the pain
+i did actually two tutorials about this and i basically eyeball it as well
+and i basically eyeball it as well because they give you some numbers which
+because they give you some numbers which are supposed to be correct
+are supposed to be correct but yeah not really right and
+but yeah not really right and i have this youtube channel it's called
+i have this youtube channel it's called unreal simon and there i made two videos
+unreal simon and there i made two videos just about slate and how to get these
+just about slate and how to get these things out of that but um there are some
+things out of that but um there are some other numbers which supposedly have
+other numbers which supposedly have nothing to do with that but for me they
+nothing to do with that but for me they worked so i just took them and
+worked so i just took them and yeah so and then of course if i was not
+yeah so and then of course if i was not satisfied i i also eyeballed it but
+satisfied i i also eyeballed it but yeah it's
+yeah it's the usability could be improved a little
+the usability could be improved a little bit in that regard yeah okay and that's
+bit in that regard yeah okay and that's not the motion of extra intensity that's
+not the motion of extra intensity that's some other numbers that are is that in
+some other numbers that are is that in the tutorial that you mentioned
+the tutorial that you mentioned where to find those numbers
+where to find those numbers um yeah uh
+um yeah uh um i think the numbers change
+um i think the numbers change the numbers change depending on what you
+the numbers change depending on what you how your simulation looks like i think
+how your simulation looks like i think it is like that yeah and
+it is like that yeah and i mean
+i mean is the youtube here maybe can you look
+is the youtube here maybe can you look at this together youtube
+at this together youtube let me see youtube
+let me see youtube andrea simon
+uh
+probably there's also assignments
+why do i don't find my my video because then we can have a look
+my video because then we can have a look at it as we go but in general it's a
+at it as we go but in general it's a tutorial in general about um
+tutorial in general about um about this the whole slate workflow but
+about this the whole slate workflow but it covers the so i
+it covers the so i can't find it right now i don't know
+can't find it right now i don't know what why why the google search doesn't
+what why why the google search doesn't show it to me but this part is a small
+show it to me but this part is a small part of it so i think you will hopefully
+part of it so i think you will hopefully be happy when you see it thank you
+be happy when you see it thank you thank you so much
+thank you so much okay um
+okay um if there is no more questions then i can
+if there is no more questions then i can just
+just show you just for a short moment the
+show you just for a short moment the content plus plus section which looks
+content plus plus section which looks like this content plus plus and then
+like this content plus plus and then here there's some some more things for
+here there's some some more things for example a summary of all the knowledge
+example a summary of all the knowledge nuggets i wanted to drop on you uh just
+nuggets i wanted to drop on you uh just a little summary and then there are some
+a little summary and then there are some some more little examples down there and
+some more little examples down there and like you see there's comments down there
+like you see there's comments down there so this hopefully makes you happy
+so this hopefully makes you happy and by the way just because i forgot to
+and by the way just because i forgot to talk
+talk this texture is so wide because it was
+this texture is so wide because it was put on this long
+put on this long rim of water so i wanted to avoid tiling
+rim of water so i wanted to avoid tiling issues you know if i would have used um
+issues you know if i would have used um a square texture
+a square texture you would have seen the tiling too much
+you would have seen the tiling too much so yeah that's why it was so wide
+so yeah that's why it was so wide okay
+okay so um yeah if there's no more questions
+so um yeah if there's no more questions then we can
+then we can i don't know have water now
+i don't know have water now so thank you for being here it was
+so thank you for being here it was really really nice to
+really really nice to give me your time and listen to me thank
+give me your time and listen to me thank you so much
+[Music] you

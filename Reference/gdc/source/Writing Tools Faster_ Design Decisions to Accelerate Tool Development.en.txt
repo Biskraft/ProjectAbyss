@@ -1,0 +1,1379 @@
+[Music] hi my name is Nicholas gray I work at a
+hi my name is Nicholas gray I work at a company called our machinery and in this
+company called our machinery and in this talk I'm gonna talk about tools
+talk I'm gonna talk about tools development and more specifically what
+development and more specifically what we've done to speed up tools development
+we've done to speed up tools development and make it faster and make our tools
+and make it faster and make our tools better than before I have a long history
+better than before I have a long history of writing game onions most well-known
+of writing game onions most well-known is probably the bit squid and stingray
+is probably the bit squid and stingray game onion which is actually the same
+game onion which is actually the same onion it got rebranded when autodesk
+onion it got rebranded when autodesk bought it in the last few years I've
+bought it in the last few years I've been working on a new game engine called
+been working on a new game engine called the machinery and been trying to fix all
+the machinery and been trying to fix all the mistakes of the past game engines
+the mistakes of the past game engines that I made so in this talk I'm gonna be
+that I made so in this talk I'm gonna be talking a little bit about the history
+talking a little bit about the history we've had with bit squid and sting ray
+we've had with bit squid and sting ray our troubles with tools why it's been so
+our troubles with tools why it's been so hard for us and what we can possibly do
+hard for us and what we can possibly do about it and how we attempted to fix it
+about it and how we attempted to fix it when writing the machinery so first I'll
+when writing the machinery so first I'll start with a brief history of our
+start with a brief history of our failures as when it comes to tools the
+failures as when it comes to tools the first word in a bit squid our first idea
+first word in a bit squid our first idea about tools who said we shouldn't write
+about tools who said we shouldn't write any tools at all rather we should just
+any tools at all rather we should just expose sort of public file formats like
+expose sort of public file formats like JSON files and our users could just
+JSON files and our users could just write their own tools as long as they
+write their own tools as long as they output at this file format they would
+output at this file format they would work together with our runtime and
+work together with our runtime and everything would be fine it turns out
+everything would be fine it turns out this wasn't really that great idea users
+this wasn't really that great idea users actually do not want to write all the
+actually do not want to write all the tools themselves you would think we
+tools themselves you would think we would have figured that out before
+would have figured that out before starting this game engine but we didn't
+starting this game engine but we didn't really so we quickly had to scramble and
+really so we quickly had to scramble and and address this in some way so first
+and address this in some way so first approach was just well let's hack
+approach was just well let's hack together something quickly in WinForms
+together something quickly in WinForms this actually is a pretty speedy way to
+this actually is a pretty speedy way to build tools you can just put in whatever
+build tools you can just put in whatever shake boxes and buttons and and dialogue
+shake boxes and buttons and and dialogue boxes that you need but it's to be
+boxes that you need but it's to be honest it looks kind of ugly like it's
+honest it looks kind of ugly like it's not it's not the nicest looks and it's
+not it's not the nicest looks and it's also turned out pretty messy we didn't
+also turned out pretty messy we didn't start with a clear plan of how things
+start with a clear plan of how things should work in the tools and how
+should work in the tools and how different tools should interact how
+different tools should interact how things like copy paste and undo and redo
+things like copy paste and undo and redo and and drag and drop and stuff like
+and and drag and drop and stuff like that was supposed to work so over time
+that was supposed to work so over time it got kind of hard to maintain and and
+it got kind of hard to maintain and and it got kind of messy but but to be
+it got kind of messy but but to be honest it worked pretty well and it's a
+honest it worked pretty well and it's a fast and nice way to build tools but we
+fast and nice way to build tools but we need we thought we needed to do
+need we thought we needed to do something better so for sort of the next
+something better so for sort of the next iteration of tools for the bit squid
+iteration of tools for the bit squid onion we decided to go with WPS instead
+onion we decided to go with WPS instead the reason we made this decision was
+the reason we made this decision was like that was sort of the recommended UI
+like that was sort of the recommended UI toolkit from from Windows at that point
+toolkit from from Windows at that point I think it still is but I'm not 100%
+I think it still is but I'm not 100% sure and using WP effort or tools
+sure and using WP effort or tools suddenly looked a lot better a lot
+suddenly looked a lot better a lot prettier but a result of switching to -
+prettier but a result of switching to - WP effing and moving away from this sort
+WP effing and moving away from this sort of hacky approach we'd had before was
+of hacky approach we'd had before was that the tools actually took a lot
+that the tools actually took a lot longer to write I was also a higher
+longer to write I was also a higher barrier of entry WinForms is pretty
+barrier of entry WinForms is pretty simple to hack together a tool is pretty
+simple to hack together a tool is pretty straightforward but for to use WPF
+straightforward but for to use WPF effectively you need to know C sharp you
+effectively you need to know C sharp you need to know sort of the programming
+need to know sort of the programming patterns of of c-sharp and queries file
+patterns of of c-sharp and queries file programming and stuff like that you need
+programming and stuff like that you need to know WPF you need to know
+to know WPF you need to know samo and there's a lot of little
+samo and there's a lot of little subtleties that you need to know and as
+subtleties that you need to know and as a result of the tools so our initial
+a result of the tools so our initial plan was we should rewrite everything
+plan was we should rewrite everything which just take all our wind forms to
+which just take all our wind forms to convert them to WPF and things would be
+convert them to WPF and things would be fine but this conversion actually took a
+fine but this conversion actually took a lot longer than we expected I think just
+lot longer than we expected I think just our unit that
+our unit that took like six months or something to
+took like six months or something to rewrite and as a result we never
+rewrite and as a result we never actually completed this rewrite so some
+actually completed this rewrite so some of the tools you see here so this is
+of the tools you see here so this is sort of our launcher that launched all
+sort of our launcher that launched all our different tools and some of these
+our different tools and some of these tools were rewritten to WPF and some
+tools were rewritten to WPF and some were not and we sort of had this mix of
+were not and we sort of had this mix of tools built on top of different
+tools built on top of different frameworks which is which is not great
+frameworks which is which is not great understand the cause for that was yes
+understand the cause for that was yes that it took so long to rewrite
+that it took so long to rewrite everything in in WPF then we got
+everything in in WPF then we got acquired by Autodesk and one of the
+acquired by Autodesk and one of the requirements or wishes that Autodesk add
+requirements or wishes that Autodesk add was for our editor to be platform
+was for our editor to be platform independent and so that meant we
+independent and so that meant we couldn't use WPF I mean we could try to
+couldn't use WPF I mean we could try to do something with mono but it didn't
+do something with mono but it didn't look very nice and promising to go down
+look very nice and promising to go down that route so we decided to go with
+that route so we decided to go with web-based tools it seemed reasonable
+web-based tools it seemed reasonable everything would be platform independent
+everything would be platform independent sort of by default it would be built on
+sort of by default it would be built on a web technology we also had the idea
+a web technology we also had the idea that we could buy by using web
+that we could buy by using web technology we could sort of reuse web
+technology we could sort of reuse web expertise there's a lot of people out
+expertise there's a lot of people out there who knows how to write you guys
+there who knows how to write you guys using HTML and CSS and it could be nice
+using HTML and CSS and it could be nice to use all of that and our tools would
+to use all of that and our tools would run in the browser too which is kind of
+run in the browser too which is kind of nice but there were multiple drawbacks
+nice but there were multiple drawbacks with this approach our tech stack which
+with this approach our tech stack which already was kind of complicated because
+already was kind of complicated because we had an engine using C++ and then we
+we had an engine using C++ and then we have a scripting language for that
+have a scripting language for that engine which was Lua and then we had
+engine which was Lua and then we had c-sharp to run our tools which targeted
+c-sharp to run our tools which targeted WinForms and WPF so that was already
+WinForms and WPF so that was already kind of complicated to this we now added
+kind of complicated to this we now added chromium to run the web tools QT
+chromium to run the web tools QT actually was used for the Windows system
+actually was used for the Windows system and some parts like that we had
+and some parts like that we had JavaScript of course because we need to
+JavaScript of course because we need to program chromium somehow we also had
+program chromium somehow we also had some JavaScript toolkits
+some JavaScript toolkits I think we had a bunch of them angular
+I think we had a bunch of them angular was one but I think we had react there
+was one but I think we had react there at some point
+at some point some other JavaScript toolkit too we had
+some other JavaScript toolkit too we had WebSockets to handle the communication
+WebSockets to handle the communication between the engine and tools so this is
+between the engine and tools so this is a really deep heavy tech stack and as a
+a really deep heavy tech stack and as a result of that tools took even longer to
+result of that tools took even longer to rewrite because now there's all these
+rewrite because now there's all these all these components that we need we
+all these components that we need we need to take care of and it ended up
+need to take care of and it ended up being that we never completed this
+being that we never completed this rewrite either so not only did we not
+rewrite either so not only did we not rewrite or win from students to WPF we
+rewrite or win from students to WPF we didn't rewrite all WPF tools or all
+didn't rewrite all WPF tools or all WinForms tools to the web platform
+WinForms tools to the web platform either so at the end of sort of the
+either so at the end of sort of the Stingray area we had this mix where some
+Stingray area we had this mix where some tools were in WinForms some tools were
+tools were in WinForms some tools were still in WPF in some tools were in the
+still in WPF in some tools were in the web interface so even more complicated
+web interface so even more complicated at that point so to be to be honest bit
+at that point so to be to be honest bit Sweden stingray never had good tools the
+Sweden stingray never had good tools the tools were always suffering and as we
+tools were always suffering and as we started out with the machinery that was
+started out with the machinery that was one of the problems with that we really
+one of the problems with that we really wanted to fix cuz I think that every
+wanted to fix cuz I think that every time you you start writing in you and in
+time you you start writing in you and in you try to want you you kind of want to
+you try to want you you kind of want to like atone for the mistakes that you
+like atone for the mistakes that you made in your last onion and find a way
+made in your last onion and find a way of addressing them and fixing them and
+of addressing them and fixing them and that's sort of the drive to for for
+that's sort of the drive to for for making a new engine
+making a new engine so we enta phi this as sort of a core
+so we enta phi this as sort of a core problem so what were the big problems
+problem so what were the big problems one problem of course is we keep kept
+one problem of course is we keep kept changing the frameworks the underlying
+changing the frameworks the underlying UI framework and that caused us lots of
+UI framework and that caused us lots of delays and and lots of extra work yeah
+delays and and lots of extra work yeah but there is also so that cost made us
+but there is also so that cost made us lose a lot of time writing tools but
+lose a lot of time writing tools but there was another problem that tools
+there was another problem that tools just in general took too long to write I
+just in general took too long to write I remember on on a number of occasions
+remember on on a number of occasions where I would add a feature to the onion
+where I would add a feature to the onion and it would take me maybe four hours or
+and it would take me maybe four hours or a workday to as a feature to the onion
+a workday to as a feature to the onion and then to add tooling for that feature
+and then to add tooling for that feature it could be like a week or two week two
+it could be like a week or two week two weeks just to do the work it also need
+weeks just to do the work it also need to be scheduled into the sort of
+to be scheduled into the sort of pipeline for the tools programmers which
+pipeline for the tools programmers which means there
+means there the amount through something before the
+the amount through something before the before the you I was actually there and
+before the you I was actually there and I always felt like there was like this
+I always felt like there was like this weird disconnect here how was it that it
+weird disconnect here how was it that it was so much easier to add stuff to the
+was so much easier to add stuff to the runtime than to add stuff to the tools
+runtime than to add stuff to the tools and it always felt like the tools were
+and it always felt like the tools were slowing us down and like holding us back
+slowing us down and like holding us back from from writing in awesome onion so we
+from from writing in awesome onion so we need to fix that somehow a third problem
+need to fix that somehow a third problem that we also had with with the bit squid
+that we also had with with the bit squid and stingrays especially as we got into
+and stingrays especially as we got into the web technology was bad performance
+the web technology was bad performance so I mean writing a gammon game engine
+so I mean writing a gammon game engine is all about performance it's all about
+is all about performance it's all about how many characters how much animation
+how many characters how much animation and physics and so on rendering can you
+and physics and so on rendering can you push and it's kind of sad if your editor
+push and it's kind of sad if your editor doesn't reflect that so if you have
+doesn't reflect that so if you have really long start up for your editor or
+really long start up for your editor or if it doesn't just feel snappy when you
+if it doesn't just feel snappy when you click on things it's not nice so we
+click on things it's not nice so we wanted to make sure that the performance
+wanted to make sure that the performance of the tools match the performance of
+of the tools match the performance of the onion so how do we fix this what
+the onion so how do we fix this what what are the actual problems that we
+what are the actual problems that we need to address so one of them changing
+need to address so one of them changing frameworks so why does it happen to
+frameworks so why does it happen to begin with sometimes I would say we're
+begin with sometimes I would say we're changing frameworks because we made an
+changing frameworks because we made an initial bad decision and using like
+initial bad decision and using like platform specific technology like
+platform specific technology like winforms WPF could have could be
+winforms WPF could have could be considered a bad decision maybe would
+considered a bad decision maybe would have been better to go with QT instead
+have been better to go with QT instead using web technology maybe that was a
+using web technology maybe that was a bad decision too but it's kind of hard
+bad decision too but it's kind of hard to avoid all bad decisions you're
+to avoid all bad decisions you're probably likely at some point to make
+probably likely at some point to make one or two bad decisions that will
+one or two bad decisions that will result in you having to change
+result in you having to change frameworks also even if you don't make
+frameworks also even if you don't make any bad decisions yourself you sometimes
+any bad decisions yourself you sometimes get in a situation where technologies
+get in a situation where technologies that you've used and sort of depended on
+that you've used and sort of depended on gets outdated or abandoned so there's a
+gets outdated or abandoned so there's a number of different technologies that
+number of different technologies that that that they get obsolete and they get
+that that they get obsolete and they get put into it like the legacy scrap pile
+put into it like the legacy scrap pile so one of them that we used actually in
+so one of them that we used actually in stingray was the Native Client the
+stingray was the Native Client the Google Native Client and that cotton got
+Google Native Client and that cotton got abandoned or
+abandoned or deprecated and then we need to find
+deprecated and then we need to find another way of handling that now in
+another way of handling that now in theory if a piece of technology gets
+theory if a piece of technology gets sort of abandoned you could keep running
+sort of abandoned you could keep running on it because you have the latest
+on it because you have the latest version of it and you probably can still
+version of it and you probably can still use it but in practice that's kind of
+use it but in practice that's kind of troublesome because it means that since
+troublesome because it means that since it's not being maintained anymore by by
+it's not being maintained anymore by by the people who actually made the
+the people who actually made the technology it means that you now have
+technology it means that you now have the full responsibility of maintaining
+the full responsibility of maintaining this framework and that can be a big
+this framework and that can be a big burden I mean say you have an engine
+burden I mean say you have an engine with like $300,000 or five hundred
+with like $300,000 or five hundred thousand lines of code you have to
+thousand lines of code you have to maintain that but but suddenly you now
+maintain that but but suddenly you now also have to maintain like an old
+also have to maintain like an old version of chromium because you want to
+version of chromium because you want to keep Native Client and that's got like a
+keep Native Client and that's got like a million or a million a half lines of
+million or a million a half lines of codes and do you really want to keep
+codes and do you really want to keep fixing bugs in that and and also missing
+fixing bugs in that and and also missing out on on any new features that come
+out on on any new features that come into like the main branch of chromium so
+into like the main branch of chromium so sometimes this just forces you to to
+sometimes this just forces you to to change technology through through no
+change technology through through no fault of your own and the only way of
+fault of your own and the only way of sort of avoiding that is to be rest less
+sort of avoiding that is to be rest less reliant on these frameworks and be
+reliant on these frameworks and be really careful about what frameworks you
+really careful about what frameworks you rely on and a durability of switching
+rely on and a durability of switching them out if necessary another question
+them out if necessary another question why did what did it take us so long to
+why did what did it take us so long to write tools compared to writing any
+write tools compared to writing any encode well we identified a number of
+encode well we identified a number of factors one is just like that every
+factors one is just like that every every little thing you add to your onion
+every little thing you add to your onion needs UI so you add a new parameter
+needs UI so you add a new parameter somewhere then it needs someone needs to
+somewhere then it needs someone needs to design of a UI for that that piece it
+design of a UI for that that piece it needs to be coded it needs to be tested
+needs to be coded it needs to be tested and so on
+and so on so every little every it's just a lot of
+so every little every it's just a lot of work to do every little thing there's
+work to do every little thing there's also a lot of features that you sort of
+also a lot of features that you sort of expect in a modern UI things like undo
+expect in a modern UI things like undo redo unlimited undo redo you want copy
+redo unlimited undo redo you want copy and paste to work you want to drag and
+and paste to work you want to drag and drop to work it needs to work with
+drop to work it needs to work with serialization and saving and loading and
+serialization and saving and loading and migrating of data and stuff like that
+migrating of data and stuff like that and all of these all of these little
+and all of these all of these little things each each little thing takes time
+things each each little thing takes time to add and it also adds to your the size
+to add and it also adds to your the size of your code so every time you add a new
+of your code so every time you add a new UI box and then you add undo and copy
+UI box and then you add undo and copy paste for that you add more code to your
+paste for that you add more code to your to your project and generally the more
+to your project and generally the more code you have to lug around the less
+code you have to lug around the less agile you can you become and the more
+agile you can you become and the more slower everything becomes because you
+slower everything becomes because you have to manage out all that code and if
+have to manage out all that code and if you want to make some kind of
+you want to make some kind of refactoring you have more code to
+refactoring you have more code to refactor more code to debug in profile
+refactor more code to debug in profile and so on another problem specifically
+and so on another problem specifically with the way the stingray technology was
+with the way the stingray technology was built was that we have this deep tech
+built was that we have this deep tech stack and when you have a deep tech
+stack and when you have a deep tech stack like that it's hard to understand
+stack like that it's hard to understand where bugs are happening if you run into
+where bugs are happening if you run into a bug you don't really know well this is
+a bug you don't really know well this is this a bargain in angular is it in the
+this a bargain in angular is it in the JavaScript code is in the WebSocket is
+JavaScript code is in the WebSocket is an in chromium or C sharp or Lua or the
+an in chromium or C sharp or Lua or the C++ there's just so many different
+C++ there's just so many different places to look so so the problem here is
+places to look so so the problem here is really one of complexity the more
+really one of complexity the more complexity you add to project the more
+complexity you add to project the more work you have to do for everything like
+work you have to do for everything like for finding bugs becomes more work and
+for finding bugs becomes more work and finding performance issues becomes more
+finding performance issues becomes more work refactoring becomes more work
+work refactoring becomes more work adding features becomes more work so
+adding features becomes more work so complexity is really your your big enemy
+complexity is really your your big enemy that's really what you want to minimize
+that's really what you want to minimize and having all these layers and all
+and having all these layers and all these components that are not really
+these components that are not really ours and that we don't control really
+ours and that we don't control really adds to the complexity another problem
+adds to the complexity another problem with this complexity too was that since
+with this complexity too was that since there were so many different components
+there were so many different components here only the tool people really had a
+here only the tool people really had a good understanding of the tool stack and
+good understanding of the tool stack and that means that if a rendering engineer
+that means that if a rendering engineer for instance added a new feature to the
+for instance added a new feature to the renderer they couldn't just go in and
+renderer they couldn't just go in and add that feature to the UI because if
+add that feature to the UI because if you I was too complex for them to to do
+you I was too complex for them to to do things like that quickly
+things like that quickly so the development got very siloed and
+so the development got very siloed and you got the the tools team and the
+you got the the tools team and the runtime team and they were completely
+runtime team and they were completely separate which when you do stuff like
+separate which when you do stuff like that it often leads to friction between
+that it often leads to friction between the teams and it also means that
+the teams and it also means that stuff that's important for one team like
+stuff that's important for one team like like a feature that's important to the
+like a feature that's important to the rendering team might not be as important
+rendering team might not be as important to the tools team so it ends up being
+to the tools team so it ends up being queued on some queue somewhere and you
+queued on some queue somewhere and you don't know actually when it's gonna be
+don't know actually when it's gonna be implemented and stuff like that and I
+implemented and stuff like that and I just think things run a lot more
+just think things run a lot more efficient when everybody is sort of able
+efficient when everybody is sort of able to touch all the code so the rendering
+to touch all the code so the rendering engineer can actually go in here and add
+engineer can actually go in here and add it to the UI and then maybe some UI
+it to the UI and then maybe some UI programmer needs to come in later and
+programmer needs to come in later and sort of pretty things up a little bit
+sort of pretty things up a little bit but at least the features there and and
+but at least the features there and and can be accessed so people don't
+can be accessed so people don't constantly keep getting blocked by by
+constantly keep getting blocked by by other people third issue the performance
+other people third issue the performance problems why did that happen
+problems why did that happen I think a big part of that is that
+I think a big part of that is that standard web practices didn't always
+standard web practices didn't always work so so the way when you have web
+work so so the way when you have web programmers in they have their usual way
+programmers in they have their usual way of doing things and that doesn't always
+of doing things and that doesn't always work when you're building a game editor
+work when you're building a game editor because game development has way more
+because game development has way more stuff than your typical HTML application
+stuff than your typical HTML application like like I said when when it comes to
+like like I said when when it comes to making game engines or games we always
+making game engines or games we always try to push performance as far as it
+try to push performance as far as it will go
+will go and that means you're always sort of
+and that means you're always sort of running it at the brink of what your
+running it at the brink of what your computer is able to handle and if you do
+computer is able to handle and if you do things like and and that this doesn't
+things like and and that this doesn't mean that you necessarily it's not
+mean that you necessarily it's not possible to do this in the web browser
+possible to do this in the web browser web browser can do amazing things and if
+web browser can do amazing things and if you write things the right way for the
+you write things the right way for the web browser it might work but if you
+web browser it might work but if you write it sort of the regular the usual
+write it sort of the regular the usual way of doing it it might not work so
+way of doing it it might not work so what would open happen is that some some
+what would open happen is that some some of our UI programmers would create a
+of our UI programmers would create a tool and it would look pretty and it
+tool and it would look pretty and it would run nice with like a hundred
+would run nice with like a hundred objects in it but then as soon as you
+objects in it but then as soon as you put a thousand or 10,000 objects in it
+put a thousand or 10,000 objects in it it would would like break down and run
+it would would like break down and run on it nice and fixing that was not just
+on it nice and fixing that was not just an issue of like finding little
+an issue of like finding little performance like profiling at them
+performance like profiling at them finding level performance hotspots it
+finding level performance hotspots it often required a complete rewrite of the
+often required a complete rewrite of the system like controls had to be
+system like controls had to be virtualized data had to be stored in a
+virtualized data had to be stored in a completely different ways maybe we had
+completely different ways maybe we had to bypass some JavaScript framework
+to bypass some JavaScript framework because that framework wasn't didn't
+because that framework wasn't didn't have a performance mindset so the
+have a performance mindset so the rewrite hood was often the cost of the
+rewrite hood was often the cost of the rewrite was similar to writing the
+rewrite was similar to writing the system from scratch also the deep tech
+system from scratch also the deep tech stack again complicates everything it
+stack again complicates everything it also complicates finding these
+also complicates finding these performance issues and the browser when
+performance issues and the browser when it comes to performance issues and the
+it comes to performance issues and the browser it's more or less a black box
+browser it's more or less a black box you don't know oh I've wrote my
+you don't know oh I've wrote my JavaScript code this way and it's end
+JavaScript code this way and it's end digit into this bad path so now
+digit into this bad path so now everything runs ten times slower than
+everything runs ten times slower than before and these things can be really
+before and these things can be really hard to know they can also change from
+hard to know they can also change from worsen to version of the web browser so
+worsen to version of the web browser so if you update chromium because you need
+if you update chromium because you need access to some new features then
+access to some new features then suddenly you might have completely new
+suddenly you might have completely new performance problems and you need to
+performance problems and you need to investigate everything again which make
+investigate everything again which make this really tricky to keep keep it good
+this really tricky to keep keep it good control of the performance so how do we
+control of the performance so how do we fix all these things all these problems
+fix all these things all these problems well the thing with too much stuff to
+well the thing with too much stuff to write our idea there was we can automate
+write our idea there was we can automate the lost of this stuff so stuff like
+the lost of this stuff so stuff like undo copy/paste and stuff like that if
+undo copy/paste and stuff like that if we define a standardized data model
+we define a standardized data model which is the way we represent the data
+which is the way we represent the data in our application we can define a lot
+in our application we can define a lot of these operations on that data model
+of these operations on that data model and that means that the UI doesn't
+and that means that the UI doesn't really have to be bothered with it that
+really have to be bothered with it that much it doesn't have to do anything
+much it doesn't have to do anything specific to do undo redo it can just
+specific to do undo redo it can just talk to the data representation and say
+talk to the data representation and say well undo this action and then the the
+well undo this action and then the the data model can do it so that cuts down
+data model can do it so that cuts down drastically the amount of work that
+drastically the amount of work that needs to go into the UI step two what we
+needs to go into the UI step two what we did we really didn't like this deep tech
+did we really didn't like this deep tech stack and all the complexity and the
+stack and all the complexity and the problems with changing frameworks that
+problems with changing frameworks that came with that so we decided to mean
+came with that so we decided to mean the texts are completely used as few
+the texts are completely used as few frameworks as possible and also owned as
+frameworks as possible and also owned as much of the tech stack as possible so
+much of the tech stack as possible so it's actually running on our code not
+it's actually running on our code not everybody else codes that means we know
+everybody else codes that means we know the code we can debug it we can profile
+the code we can debug it we can profile it and we can understand everything that
+it and we can understand everything that goes on with it make things explicit so
+goes on with it make things explicit so instead of these black boxes where you
+instead of these black boxes where you don't know what's happening you can
+don't know what's happening you can actually see what's what's going on in
+actually see what's what's going on in there finally again to handle this sort
+there finally again to handle this sort of busy work instead of writing you guys
+of busy work instead of writing you guys for every little thing we try to as far
+for every little thing we try to as far as possible sort of auto-generate and
+as possible sort of auto-generate and all to populate the you guys from data
+all to populate the you guys from data and so for example a graph view or a
+and so for example a graph view or a tree view or a property view we try to
+tree view or a property view we try to reuse them from between different
+reuse them from between different systems and just have them be generated
+systems and just have them be generated from the data so that way as a
+from the data so that way as a programmer you don't actually have to
+programmer you don't actually have to write the UI it's sort of created for
+write the UI it's sort of created for you if you can use one of these
+you if you can use one of these standardized views and components so
+standardized views and components so I'll explain all these parts as we go on
+I'll explain all these parts as we go on through this presentation but that cuts
+through this presentation but that cuts away a lot of the busy work of just
+away a lot of the busy work of just creating you guys for everything and
+creating you guys for everything and also cuts down the size of the code
+also cuts down the size of the code which is really nice too
+which is really nice too so start first with this data model our
+so start first with this data model our way of representing data and how we can
+way of representing data and how we can use that to do things like undo and
+use that to do things like undo and stuff like that
+stuff like that so our data model we call it the truth
+so our data model we call it the truth can you quickly because it's we
+can you quickly because it's we considered it's the truth about the
+considered it's the truth about the state of the project
+state of the project it's where where you go to find out
+it's where where you go to find out anything about what the editor is doing
+anything about what the editor is doing so all the data all the data that's
+so all the data all the data that's handled by the editor is represented in
+handled by the editor is represented in a uniform way and then we can define
+a uniform way and then we can define operations on it so the way the truth is
+operations on it so the way the truth is set up it's based on objects of certain
+set up it's based on objects of certain types so each object has a type
+types so each object has a type each type is a number of properties and
+each type is a number of properties and each of those properties has a type so
+each of those properties has a type so for example a person object and might
+for example a person object and might have a name property that is a string
+have a name property that is a string and H property that's an integer and
+and H property that's an integer and then a flag
+then a flag it's specifies what it's registered or
+it's specifies what it's registered or something like that so this is kind of a
+something like that so this is kind of a it's kind of a JSON like model model
+it's kind of a JSON like model model with the way these properties work
+with the way these properties work except we have sort of a schema for
+except we have sort of a schema for these different objects we also have way
+these different objects we also have way well-defined ways of representing
+well-defined ways of representing references between objects so and all
+references between objects so and all they can refer to another object and
+they can refer to another object and also sub objects so the difference here
+also sub objects so the difference here is that sub objects are objects that are
+is that sub objects are objects that are owned by this object whereas references
+owned by this object whereas references are external objects that this object
+are external objects that this object just points to and that changes how
+just points to and that changes how things work when you copy and paste for
+things work when you copy and paste for instance for example when you copy and
+instance for example when you copy and paste you copy all the sub objects but
+paste you copy all the sub objects but you don't copy the references so it's
+you don't copy the references so it's nice to have that explicit in the data
+nice to have that explicit in the data model too so our data model supports
+model too so our data model supports multi-threading automatically and we do
+multi-threading automatically and we do this actually in a in a lock free way
+this actually in a in a lock free way and I spend a little bit about the
+and I spend a little bit about the detail of this because it's important to
+detail of this because it's important to other things that we do in our data
+other things that we do in our data model too so the way we implement
+model too so the way we implement lock-free multi-threaded access is by
+lock-free multi-threaded access is by dividing change the step of changing the
+dividing change the step of changing the data into two distinct steps so first
+data into two distinct steps so first you you call write on the object that
+you you call write on the object that you want to change and by doing that you
+you want to change and by doing that you will actually obtain a copy of the
+will actually obtain a copy of the object that you can modify and all those
+object that you can modify and all those changes are local to this copy of the
+changes are local to this copy of the object so it doesn't affect any readers
+object so it doesn't affect any readers of the data they still see the old old
+of the data they still see the old old object and once you're done with all
+object and once you're done with all your changes you call commit on the
+your changes you call commit on the object and it will atomically switch out
+object and it will atomically switch out the old object for the new one with by
+the old object for the new one with by just doing an atomic pointer switch and
+just doing an atomic pointer switch and then all the readers after that all the
+then all the readers after that all the readers would see the new object so this
+readers would see the new object so this way the readers can read the data
+way the readers can read the data without without locking and eventually
+without without locking and eventually we clean up all the old copies with a
+we clean up all the old copies with a garbage collection procedure so undo in
+garbage collection procedure so undo in our system it's actually based on this
+our system it's actually based on this too which is why I presented this sort
+too which is why I presented this sort of complicated multi-threading
+of complicated multi-threading approach first so undo works in a
+approach first so undo works in a similar way the only thing we do
+similar way the only thing we do different for undo is that when we do an
+different for undo is that when we do an when we perform like an undoable right
+when we perform like an undoable right we save the old object and the new
+we save the old object and the new object so both these versions in our
+object so both these versions in our current undo scope and we can save these
+current undo scope and we can save these for multiple objects because one
+for multiple objects because one undoable action might affect multiple
+undoable action might affect multiple objects and when the user wants to undo
+objects and when the user wants to undo something we simply reinstate the old
+something we simply reinstate the old data that we saved in this undo scope we
+data that we saved in this undo scope we also have a system for prototyping
+also have a system for prototyping that's bill or prefabs that's built into
+that's bill or prefabs that's built into our data model and the way this works is
+our data model and the way this works is that any object in the truth can specify
+that any object in the truth can specify another object to act as its prototype
+another object to act as its prototype and what this means is that the instance
+and what this means is that the instance of the prototype will inherit all
+of the prototype will inherit all objects of all properties of the
+objects of all properties of the prototype but if it want to it can
+prototype but if it want to it can override some of them locally so we
+override some of them locally so we could create an another instance of a
+could create an another instance of a person object here that just overrides
+person object here that just overrides the age for instance so this concept is
+the age for instance so this concept is similar to the way like prefabs work in
+similar to the way like prefabs work in in unity for instance for you you can
+in unity for instance for you you can use a prefab and you can override
+use a prefab and you can override properties on it but the important thing
+properties on it but the important thing here is it's actually built in into our
+here is it's actually built in into our data model so it works with everything
+data model so it works with everything it's not just with entities but any kind
+it's not just with entities but any kind of data in the onion can be given this
+of data in the onion can be given this like prototype treatment which is nice
+like prototype treatment which is nice so other things we can do sort of
+so other things we can do sort of because we have this and well-defined
+because we have this and well-defined beta model is we can do really advanced
+beta model is we can do really advanced things such as real time collaboration
+things such as real time collaboration so multiple people on the network can be
+so multiple people on the network can be working in the same project and the way
+working in the same project and the way this works is that when someone does a
+this works is that when someone does a commit so they changed something in the
+commit so they changed something in the data we just computed Delta between the
+data we just computed Delta between the old and the new version of the object
+old and the new version of the object and then we transmit this Delta over the
+and then we transmit this Delta over the wire to our other collaborators in the
+wire to our other collaborators in the session and then they will get those
+session and then they will get those changes and they will
+changes and they will act enact those changes on their data
+act enact those changes on their data model and the data mode will be
+model and the data mode will be replicated so this is an example of this
+replicated so this is an example of this we have two people working together here
+we have two people working together here over the network a host and a client and
+over the network a host and a client and you can see that any action that's
+you can see that any action that's performed by by either the host or the
+performed by by either the host or the client here in this level is
+client here in this level is automatically reflected over to the
+automatically reflected over to the other person and again since this is
+other person and again since this is built into the data model it works with
+built into the data model it works with everything and it also works with if you
+everything and it also works with if you extend our onion with your own data
+extend our onion with your own data types and your own your own kind of your
+types and your own your own kind of your own data representation and your own UI
+own data representation and your own UI switch you can do with plugins all of
+switch you can do with plugins all of this will work automatically for for
+this will work automatically for for your stuff too so sort of analyze this
+your stuff too so sort of analyze this this approach of using a data model in
+this approach of using a data model in this way
+this way what are the advantages and
+what are the advantages and disadvantages that we see well the big
+disadvantages that we see well the big advantage of course is we get all this
+advantage of course is we get all this functionality for free we get undo we
+functionality for free we get undo we get copy/paste we get serialization it
+get copy/paste we get serialization it just works automatically not just with
+just works automatically not just with our data but with other people's data
+our data but with other people's data and plugins too and as we saw her it's
+and plugins too and as we saw her it's not just these simple operations like
+not just these simple operations like I'm doing copy/paste it also works for
+I'm doing copy/paste it also works for really advanced features such as
+really advanced features such as prototyping or real-time collaboration
+prototyping or real-time collaboration so what are the drawbacks one drawback
+so what are the drawbacks one drawback is that this way of representing the
+is that this way of representing the data the sort of key value format with
+data the sort of key value format with objects and properties it doesn't work
+objects and properties it doesn't work well for all kinds of data so an example
+well for all kinds of data so an example of data that's not that well represented
+of data that's not that well represented in this model would be long pieces of
+in this model would be long pieces of text I mean you could do it you could
+text I mean you could do it you could have an object with a string property
+have an object with a string property and that string properties just like 200
+and that string properties just like 200 pages of text but it's not really a nice
+pages of text but it's not really a nice way of representing that data because
+way of representing that data because the way our undo system works means like
+the way our undo system works means like if you change one character of that that
+if you change one character of that that big document you have to make a complete
+big document you have to make a complete copy of all those 200 pages of text to
+copy of all those 200 pages of text to do the undo operation so it gets pretty
+do the undo operation so it gets pretty efficient for that kind of data but
+efficient for that kind of data but luckily that's not really the kind of
+luckily that's not really the kind of data that we deal with a lot in ingame
+data that we deal with a lot in ingame onions
+onions but yeah it's a drawback of the system
+but yeah it's a drawback of the system another drawback I would say is that
+another drawback I would say is that it's a pretty complex system because it
+it's a pretty complex system because it needs to handle all these different
+needs to handle all these different things prototype being multi-threading
+things prototype being multi-threading and it also sits at the center of
+and it also sits at the center of everything like because because the
+everything like because because the whole point the whole point of having a
+whole point the whole point of having a single system that works with all the
+single system that works with all the data is that everything will use it so
+data is that everything will use it so everything will work the same way so
+everything will work the same way so there's really no way for other system
+there's really no way for other system to opt out of using the truth so if you
+to opt out of using the truth so if you wanted to write for example a text
+wanted to write for example a text editor in the machinery it would have to
+editor in the machinery it would have to use the truth to be able to interrupt
+use the truth to be able to interrupt nicely with all these other systems and
+nicely with all these other systems and so you would have to figure out you
+so you would have to figure out you could probably massage it some way to
+could probably massage it some way to find a way to use the truth to still
+find a way to use the truth to still represent your your text object so that
+represent your your text object so that it would kind of work but yeah you you
+it would kind of work but yeah you you can't really opt out using this system
+can't really opt out using this system and it's also the complexity of the
+and it's also the complexity of the system makes it kind of scary to modify
+system makes it kind of scary to modify the truth and add new features to it
+the truth and add new features to it because everything depends on it and the
+because everything depends on it and the serial s the serialized data that's
+serial s the serialized data that's stored on disk depends on it so you
+stored on disk depends on it so you might if you mess up you might destroy
+might if you mess up you might destroy people's saved projects so it's kind of
+people's saved projects so it's kind of a scary system to change you can't get
+a scary system to change you can't get out of it even if you would like to and
+out of it even if you would like to and and it sits in the center of everything
+and it sits in the center of everything I would say those are the drawbacks
+I would say those are the drawbacks that's sort of the price that you have
+that's sort of the price that you have to pay to get all this nice stuff for
+to pay to get all this nice stuff for free so next I'll talk a little about
+free so next I'll talk a little about our tech stack as I said we really want
+our tech stack as I said we really want to avoid being dependent on on
+to avoid being dependent on on frameworks so we built most of our tech
+frameworks so we built most of our tech stack ourselves we also want to keep the
+stack ourselves we also want to keep the tech stack itself as simple as possible
+tech stack itself as simple as possible if you remember from the Stingray tech
+if you remember from the Stingray tech stack we had a lot of different language
+stack we had a lot of different language him languages enrolled C++ and C sharp
+him languages enrolled C++ and C sharp Lua and JavaScript and we also have like
+Lua and JavaScript and we also have like scrapes written in in Ruby and Python
+scrapes written in in Ruby and Python so big ball of things so for the
+so big ball of things so for the machinery we decided to change that
+machinery we decided to change that completely and write everything in C
+completely and write everything in C even our Little Helper scripts are
+even our Little Helper scripts are written in C to the external libraries
+written in C to the external libraries we use is very limited so we basically
+we use is very limited so we basically just use Vulcan when it comes to the UI
+just use Vulcan when it comes to the UI we use Vulcan for rendering and then we
+we use Vulcan for rendering and then we have the platform SDK that we need to
+have the platform SDK that we need to access to to get access to input events
+access to to get access to input events like such as keyboard and mouse events
+like such as keyboard and mouse events and then we have our own API
+and then we have our own API abstractions on top of that a 2d layer
+abstractions on top of that a 2d layer for doing 2d drawing and an input layer
+for doing 2d drawing and an input layer which is our abstraction over the OS
+which is our abstraction over the OS input layers it's common for all
+input layers it's common for all operating systems and then we have our
+operating systems and then we have our you a system on top of that which is an
+you a system on top of that which is an immediate mode UI and then we build our
+immediate mode UI and then we build our applications and editors on top of that
+applications and editors on top of that so our 2d drawing library it has regular
+so our 2d drawing library it has regular 2d drawing operations such as stroke
+2d drawing operations such as stroke react and fill direct etc whatever you
+react and fill direct etc whatever you need for for drawing the UI but the way
+need for for drawing the UI but the way it's implemented is kind of interesting
+it's implemented is kind of interesting we actually all these drawing operations
+we actually all these drawing operations actually write data directly into a
+actually write data directly into a single vertex buffer and a single index
+single vertex buffer and a single index buffer that will contain all the things
+buffer that will contain all the things that we want to draw in the UI like regs
+that we want to draw in the UI like regs and text and so on and at the end we
+and text and so on and at the end we just render these buffers with a single
+just render these buffers with a single draw call and if you want to learn more
+draw call and if you want to learn more about that I've got a link to our blog
+about that I've got a link to our blog that kind of explains how we actually do
+that kind of explains how we actually do this but the end result is our drawing
+this but the end result is our drawing is really really performant since it's
+is really really performant since it's just one draw called to draw the entire
+just one draw called to draw the entire UI
+clipping is is done by the pixel shader so when we want to do clipping we write
+so when we want to do clipping we write our click breaks to the vertex buffer -
+our click breaks to the vertex buffer - and then the pixel shader will refer to
+and then the pixel shader will refer to these clipping rights and and click the
+these clipping rights and and click the data against it as it's written so we we
+data against it as it's written so we we do no clipping on the CPU it's all
+do no clipping on the CPU it's all happening in the shaders which makes
+happening in the shaders which makes that really efficient to
+so overlays this is this is kind of a neat trick which is why I wanted to
+neat trick which is why I wanted to mention that so when we're drawing
+mention that so when we're drawing something in an immediate mode UI it
+something in an immediate mode UI it will sort of appear in the order that
+will sort of appear in the order that it's drawn but sometimes we have a
+it's drawn but sometimes we have a desire to make stuff appear on top of
+desire to make stuff appear on top of stuff that will be drawn later for
+stuff that will be drawn later for example if we have a pop-up menu or a
+example if we have a pop-up menu or a context menu we want that stuff to sort
+context menu we want that stuff to sort of float on top of the stuff that we
+of float on top of the stuff that we draw after it and the way we handle that
+draw after it and the way we handle that it's not really by doing some
+it's not really by doing some complicated layering procedure stuff
+complicated layering procedure stuff like that we just keep two separate
+like that we just keep two separate index buffers so we have one index
+index buffers so we have one index buffer that control contains all sort of
+buffer that control contains all sort of our main layered roll call and then we
+our main layered roll call and then we have a separate index buffer which we
+have a separate index buffer which we call the overlay index buffer where all
+call the overlay index buffer where all the popups drawing happens and then at
+the popups drawing happens and then at the end when we want to so we just keep
+the end when we want to so we just keep a single vertex buffer or a single
+a single vertex buffer or a single primitive buffer we called it vertex
+primitive buffer we called it vertex buffer primitive buffer where all the
+buffer primitive buffer where all the vertices go into but we keep two
+vertices go into but we keep two separate index buffers and then at the
+separate index buffers and then at the end when we're ready to draw anything we
+end when we're ready to draw anything we just concatenate these two index buffers
+just concatenate these two index buffers so we just put all the overlay stuff at
+so we just put all the overlay stuff at the end after all the the regular stuff
+the end after all the the regular stuff has been drawn and since the index
+has been drawn and since the index buffers sort of contains all the actual
+buffers sort of contains all the actual stuff that's being drawn by
+stuff that's being drawn by concatenating the index buffer at the
+concatenating the index buffer at the end the effect will be that all the
+end the effect will be that all the overlay stuff appears on top of all the
+overlay stuff appears on top of all the regular stuff so it's kind of a
+regular stuff so it's kind of a interesting way that we use the the fact
+interesting way that we use the the fact that we're withdrawing everything
+that we're withdrawing everything straight two buffers to do this overlay
+straight two buffers to do this overlay effect one thing to note here is that
+effect one thing to note here is that there are since we're drawing everything
+there are since we're drawing everything including our overlays with a single
+including our overlays with a single draw called our overlays can't actually
+draw called our overlays can't actually protrude outside your main window as
+protrude outside your main window as they can in Windows for example so popup
+they can in Windows for example so popup menu will always be clipped to them to
+menu will always be clipped to them to the main window if you want to do if you
+the main window if you want to do if you wanted to show it outside your sort of
+wanted to show it outside your sort of main rendering when you have to spawn
+main rendering when you have to spawn new a new window to hold your pop up so
+new a new window to hold your pop up so that's kind of a different technique but
+that's kind of a different technique but this is an interesting interesting way
+this is an interesting interesting way of doing it the way a way you can do it
+of doing it the way a way you can do it for just a single draw call even the
+for just a single draw call even the overlays so our UI as I said before it's
+overlays so our UI as I said before it's an immediate mode UI so that means we're
+an immediate mode UI so that means we're not like explicitly creating or
+not like explicitly creating or destroying UI objects that's kind of
+destroying UI objects that's kind of what we mean by immediate mode instead
+what we mean by immediate mode instead we have like a single call to draw a
+we have like a single call to draw a control and handle the interaction so
+control and handle the interaction so for a button in for instance we have a
+for a button in for instance we have a draw call and we call it with a
+draw call and we call it with a rectangle and text and it will draw a
+rectangle and text and it will draw a button with that text in that rectangle
+button with that text in that rectangle and if the button was clicked in this
+and if the button was clicked in this frame it will return true and otherwise
+frame it will return true and otherwise it will return false similar with the
+it will return false similar with the check box we call the check box I call
+check box we call the check box I call the function to draw check box we pass
+the function to draw check box we pass in a flag if the check box was toggled
+in a flag if the check box was toggled this frame this frame that flag will be
+this frame this frame that flag will be toggled by the function so the important
+toggled by the function so the important thing to know here about the immediate
+thing to know here about the immediate mode device is that these buttons and
+mode device is that these buttons and checkboxes that we are drawing here
+checkboxes that we are drawing here they're not saved anywhere after we've
+they're not saved anywhere after we've called this function there's no memory
+called this function there's no memory that there ever was a button or a
+that there ever was a button or a checkbox in this place so these controls
+checkbox in this place so these controls that were drawing they don't really have
+that were drawing they don't really have any existence no permanent existence
+any existence no permanent existence like the next frame we might draw a
+like the next frame we might draw a complete different set of controls
+complete different set of controls so the way we sort of keep track of what
+so the way we sort of keep track of what what's happening with the controls is
+what's happening with the controls is that each control is given a unique ID
+that each control is given a unique ID and that way we can sort of keep track
+and that way we can sort of keep track of which control the mouse is currently
+of which control the mouse is currently hovering over or which control the users
+hovering over or which control the users interact and interacting with when these
+interact and interacting with when these controls don't really exist permanently
+controls don't really exist permanently so pros and cons of this approach using
+so pros and cons of this approach using immediate mode yeah I would say the big
+immediate mode yeah I would say the big advantage is that you get completely
+advantage is that you get completely straightforward code flow so if you want
+straightforward code flow so if you want to know know if you have like a debug
+to know know if you have like a debug somewhere like a control is showing the
+somewhere like a control is showing the wrong state or a control is being too
+wrong state or a control is being too slow you can just step through the code
+slow you can just step through the code and see
+and see everything that's happening from the
+everything that's happening from the call to button to every peep part of the
+call to button to every peep part of the button being drawn and the function
+button being drawn and the function returning you can see the performance of
+returning you can see the performance of it you can see any bugs in it and it's
+it you can see any bugs in it and it's just you just go in there and do it
+just you just go in there and do it whereas if you have a retained mode UI
+whereas if you have a retained mode UI which is like the alternative to
+which is like the alternative to immediate mode you have some part of the
+immediate mode you have some part of the code over here that is setting things up
+code over here that is setting things up creating controls destroying controls
+creating controls destroying controls and then you have some part over here
+and then you have some part over here which is probably deep inside the
+which is probably deep inside the framework where the interaction of the
+framework where the interaction of the controller the drawing of the control
+controller the drawing of the control actually happens and these parts are
+actually happens and these parts are kind of separate but what you do over
+kind of separate but what you do over here affects what happens over here so
+here affects what happens over here so if you have a performance problems you
+if you have a performance problems you kind of need to figure out or a bug you
+kind of need to figure out or a bug you need to figure out like how these
+need to figure out like how these different parts work together which is
+different parts work together which is way more complicated another advantage
+way more complicated another advantage of immediate mode is that there's no
+of immediate mode is that there's no need to synchronize state so so where is
+need to synchronize state so so where is retain mode you have to have like events
+retain mode you have to have like events getting sent from controls and then you
+getting sent from controls and then you have to process those events to change
+have to process those events to change your your data whereas here we're just
+your your data whereas here we're just drawing the data when we draw the
+drawing the data when we draw the control we pass in when we draw the
+control we pass in when we draw the checks box we packs in the current state
+checks box we packs in the current state so we send the data directly from the
+so we send the data directly from the application there's no need of
+application there's no need of processing events or anything like that
+processing events or anything like that which i think is a big advantage a
+which i think is a big advantage a disadvantage that people often bring up
+disadvantage that people often bring up is that you have to redraw everything
+is that you have to redraw everything and that that can be expensive just
+and that that can be expensive just redrawing the UI every frame
+redrawing the UI every frame I think that's less of a concern for a
+I think that's less of a concern for a 3d application like a game editor
+3d application like a game editor because you typically have a viewport in
+because you typically have a viewport in there and that viewport typically wants
+there and that viewport typically wants to render every frame anyway at least if
+to render every frame anyway at least if you have some kind of animation or
+you have some kind of animation or anything going on there so you're not
+anything going on there so you're not really wasting any any resources but by
+really wasting any any resources but by also rendering the UI every frame there
+also rendering the UI every frame there are also ways to get around rendering
+are also ways to get around rendering every Fame if you need to for example
+every Fame if you need to for example you can render only when you have actual
+you can render only when you have actual input actions that would change the UI
+input actions that would change the UI so if the user move the mouse or if the
+so if the user move the mouse or if the user press the keyboard you Yury render
+user press the keyboard you Yury render the UI and otherwise you don't do it I
+the UI and otherwise you don't do it I actually find that that way
+actually find that that way immediate mode you guys is kind of
+immediate mode you guys is kind of easier to get good performance because
+easier to get good performance because you can easily match you don't have to
+you can easily match you don't have to deal with anything that's not visible on
+deal with anything that's not visible on the screen for example if you have a
+the screen for example if you have a long list of items like a thousand items
+long list of items like a thousand items in a list it's very easy to like just
+in a list it's very easy to like just figure out like which items are actually
+figure out like which items are actually visible right now on the screen like in
+visible right now on the screen like in the wreck that I'm drawing this listing
+the wreck that I'm drawing this listing right now what items can be seen and
+right now what items can be seen and then you just processed those items you
+then you just processed those items you don't have to care about anything else
+don't have to care about anything else whereas when you're doing retain mode
+whereas when you're doing retain mode like if you're doing retain mode in the
+like if you're doing retain mode in the default setup if you have a list of
+default setup if you have a list of 10,000 items you have to somewhere
+10,000 items you have to somewhere create these 10,000 items and that might
+create these 10,000 items and that might be really expensive and the processing
+be really expensive and the processing of those 10,000 items might be really
+of those 10,000 items might be really expensive so to speed up performance you
+expensive so to speed up performance you might have to resort to some trick like
+might have to resort to some trick like I have to use virtualized items where I
+I have to use virtualized items where I don't actually create the items until
+don't actually create the items until they're really shown on screen or
+they're really shown on screen or something like that and and you have to
+something like that and and you have to resort to tricks like that in order to
+resort to tricks like that in order to get the performance back whereas wind
+get the performance back whereas wind immediate mode your it's very easy to do
+immediate mode your it's very easy to do this kind of clipping and just to just
+this kind of clipping and just to just do the processing for the thing that's
+do the processing for the thing that's actually shown on screen so I find it a
+actually shown on screen so I find it a lot easier to get a good performance out
+lot easier to get a good performance out of an immediate mode UI
+of an immediate mode UI and then a lot of easier to actually
+and then a lot of easier to actually find where your performance is going to
+find where your performance is going to but it is a new mindset and it can it
+but it is a new mindset and it can it can take time to get used to and the big
+can take time to get used to and the big thing with a new mindset this that there
+thing with a new mindset this that there aren't actually any objects to talk to
+aren't actually any objects to talk to you because that's what you're used from
+you because that's what you're used from used to from a retain mode you have a
+used to from a retain mode you have a button somewhere and you can sort of
+button somewhere and you can sort of message this button and get it to do
+message this button and get it to do something but in the medium mode that
+something but in the medium mode that doesn't exist so one example of that is
+doesn't exist so one example of that is for example if the user selects copy in
+for example if the user selects copy in the main menu if you have retained mode
+the main menu if you have retained mode UI you would find out which is the
+UI you would find out which is the current focused window or text field or
+current focused window or text field or whatever and you would send that copy
+whatever and you would send that copy event to that object now you can't do
+event to that object now you can't do that in retain mode cuz there's or in
+that in retain mode cuz there's or in immediate mode because there
+immediate mode because there no object ascended to so how do you do
+no object ascended to so how do you do things like that you have to like sort
+things like that you have to like sort of wrap your mind around it this this
+of wrap your mind around it this this shows here the state synchronization
+shows here the state synchronization which is which is really nice we have a
+which is which is really nice we have a number of different views here that are
+number of different views here that are all showing the name of this object and
+all showing the name of this object and to sort of synchronize the name between
+to sort of synchronize the name between this different views we don't have to do
+this different views we don't have to do anything because all these views are
+anything because all these views are drawing it straight from the data so
+drawing it straight from the data so whenever it's changed in one view it
+whenever it's changed in one view it automatically gets updated into all
+automatically gets updated into all these other views and they will
+these other views and they will automatically show this change without
+automatically show this change without the need for processing any events or
+the need for processing any events or having any observer observable patterns
+having any observer observable patterns or anything like that which i think is a
+or anything like that which i think is a great advantage of using this model as
+great advantage of using this model as an example of God chess you run into and
+an example of God chess you run into and have you how you sort of need to change
+have you how you sort of need to change your thinking when you're dealing with
+your thinking when you're dealing with immediate mode a problem that pops up
+immediate mode a problem that pops up sometimes is if you have overlapping
+sometimes is if you have overlapping objects so suppose that we have sort of
+objects so suppose that we have sort of a graph editor where that space don't
+a graph editor where that space don't nodes and you can drag these notes
+nodes and you can drag these notes around and suppose that you have two
+around and suppose that you have two nodes two overlapping nodes like this
+nodes two overlapping nodes like this and you want to process mouse clicks now
+and you want to process mouse clicks now if this was in retained mode we would
+if this was in retained mode we would probably just loop over all these graph
+probably just loop over all these graph objects that would exist in the UI and
+objects that would exist in the UI and and check for mouse interactions but we
+and check for mouse interactions but we can't do that because the objects don't
+can't do that because the objects don't really exist instead we sort of we have
+really exist instead we sort of we have to process these events as we are
+to process these events as we are drawing each object and the problem here
+drawing each object and the problem here is that when we're drawing node one here
+is that when we're drawing node one here which happens before node two because
+which happens before node two because we're throwing everything on orders so
+we're throwing everything on orders so the things we draw later appear on top
+the things we draw later appear on top so when we're drawing node one here in
+so when we're drawing node one here in our immediate mode we don't know that
+our immediate mode we don't know that we're going to draw node two later so
+we're going to draw node two later so node one can't just do a test like well
+node one can't just do a test like well if the mouse is inside my rectangle and
+if the mouse is inside my rectangle and the button is pressed I should
+the button is pressed I should this event because we might draw no.2
+this event because we might draw no.2 later on top of note 1 in which case no
+later on top of note 1 in which case no 2 should actually process this Mouse
+2 should actually process this Mouse event so how can we fix this this when
+event so how can we fix this this when you're like stuck in this retained mode
+you're like stuck in this retained mode object thinking this might seem super
+object thinking this might seem super super tricky but we can actually fix
+super tricky but we can actually fix this by introducing a frame delay so the
+this by introducing a frame delay so the way we do it in in the machinery is that
+way we do it in in the machinery is that we we keep track of which object which
+we we keep track of which object which objects the mouse is hovering over so
+objects the mouse is hovering over so and we do it we assign it at the end of
+and we do it we assign it at the end of the frame so we check when we're drawing
+the frame so we check when we're drawing this this node here we check if the
+this this node here we check if the mouse is in the record of the node and
+mouse is in the record of the node and if this we says well the hover for next
+if this we says well the hover for next frame should be our ID remember our
+frame should be our ID remember our unique ID is how we identify this
+unique ID is how we identify this control in the UI and then we checked
+control in the UI and then we checked well if the Harvard object is our object
+well if the Harvard object is our object and the button is down then we should
+and the button is down then we should process the event so let's see how this
+process the event so let's see how this works when we have two nodes here like
+works when we have two nodes here like this so in this case the first node
+this so in this case the first node would go here it would see oh the
+would go here it would see oh the rectangle is in in the mouse's in my
+rectangle is in in the mouse's in my rect and it would set next hover the
+rect and it would set next hover the hover that we should use for the next
+hover that we should use for the next frame - my ID then it would get then we
+frame - my ID then it would get then we get to this check is the hover my ID and
+get to this check is the hover my ID and the button is down the hover is not the
+the button is down the hover is not the idea of this control yet because we only
+idea of this control yet because we only set the next our variable not the hover
+set the next our variable not the hover variable then it gets to know to the
+variable then it gets to know to the node to text is the mouse in my rect and
+node to text is the mouse in my rect and it is which means no two updates needs
+it is which means no two updates needs next hour to now point - no - so it
+next hour to now point - no - so it overwrites what no one did and now next
+overwrites what no one did and now next hour is no - then we get to the end of
+hour is no - then we get to the end of the frame which means we assign next
+the frame which means we assign next hover over to hover
+hover over to hover so however is now assigned - no - which
+so however is now assigned - no - which means the next frame when we go through
+means the next frame when we go through this code again no - we'll see you will
+this code again no - we'll see you will hover is actually my ID and the button
+hover is actually my ID and the button is down so I should process process the
+is down so I should process process the event so we had to do a frame delay here
+event so we had to do a frame delay here where the mouse click is not detected
+where the mouse click is not detected the first event or the hover is not
+the first event or the hover is not detected the first frame it only happens
+detected the first frame it only happens in the second frame and this is
+in the second frame and this is basically the only way we can do this
+basically the only way we can do this because since node one doesn't know what
+because since node one doesn't know what might be drawn after it we have to go
+might be drawn after it we have to go through an entire frame in order to
+through an entire frame in order to discover all the things that that can
+discover all the things that that can potentially be drawn after it so it's
+potentially be drawn after it so it's it's a different way of thinking and
+it's a different way of thinking and lots of times this it's a different way
+lots of times this it's a different way of thinking if you use to retain mode
+of thinking if you use to retain mode and I've seen I've seen a lot of people
+and I've seen I've seen a lot of people claim like well immediate mode UI seems
+claim like well immediate mode UI seems great but they can't do this and this
+great but they can't do this and this can be a lot of things sometimes it's
+can be a lot of things sometimes it's like drag and drop sometimes it's like
+like drag and drop sometimes it's like other stuff and and I find that that's
+other stuff and and I find that that's not true at all there's always a way to
+not true at all there's always a way to do it in immediate mode but you have you
+do it in immediate mode but you have you might have to do a trick like that there
+might have to do a trick like that there like this like introducing a frame delay
+like this like introducing a frame delay like saving some data somewhere you have
+like saving some data somewhere you have to retain some data like we're we're
+to retain some data like we're we're retaining the hover hover variable here
+retaining the hover hover variable here but you don't have to retain the whole
+but you don't have to retain the whole state of controls and stuff that you
+state of controls and stuff that you just have to figure out what kind of
+just have to figure out what kind of data you have to retain and do then do
+data you have to retain and do then do this sort of frame delay trick and then
+this sort of frame delay trick and then you can solve all these problems it's my
+you can solve all these problems it's my my experience I haven't run into
+my experience I haven't run into anything that I wanted to do that that
+anything that I wanted to do that that can't be done in an immediate mode so if
+can't be done in an immediate mode so if someone says that to you immediate mode
+someone says that to you immediate mode can't do that I encourage you to
+can't do that I encourage you to challenge that there are lots of stuff
+challenge that there are lots of stuff that's that's really nice in immediate
+that's that's really nice in immediate mode that's the sort of problematic in
+mode that's the sort of problematic in retain mode one thing is layouting
+retain mode one thing is layouting I really don't like layout managers that
+I really don't like layout managers that you have in lots of UI frameworks I find
+you have in lots of UI frameworks I find them really painful to work with usually
+them really painful to work with usually trying to get CSS to put controls in the
+trying to get CSS to put controls in the right place is is it's a pain in the ass
+right place is is it's a pain in the ass whereas if we're working in immediate
+whereas if we're working in immediate mode we don't really need a layout
+mode we don't really need a layout manager to do any kind of layouting
+manager to do any kind of layouting we're just working directly with the
+we're just working directly with the rectangles here so we can just split
+rectangles here so we can just split them ourselves and you do whatever fancy
+them ourselves and you do whatever fancy algorithm we want to split it like if
+algorithm we want to split it like if want to equally-sized columns we don't
+want to equally-sized columns we don't have to like come up with some way of
+have to like come up with some way of tricking our layout manager into doing
+tricking our layout manager into doing that be a split split direct in half and
+that be a split split direct in half and we have two equally sized column so it's
+we have two equally sized column so it's an example of here of this here we want
+an example of here of this here we want to do a layout like this we just split
+to do a layout like this we just split off a rectangle at the top to hold our
+off a rectangle at the top to hold our header here we split up split off
+header here we split up split off another rect off that top rect for the
+another rect off that top rect for the search field and we split off a rect at
+search field and we split off a rect at the bottom to hold the footer and then
+the bottom to hold the footer and then we use sort of a dynamic splitter to do
+we use sort of a dynamic splitter to do this split between the two two areas
+this split between the two two areas here so this is super straightforward in
+here so this is super straightforward in my mind super straightforward super easy
+my mind super straightforward super easy to understand super easy to debug
+to understand super easy to debug compared to trying to get like a layout
+compared to trying to get like a layout manager to get do this kind of behavior
+manager to get do this kind of behavior doing custom controls super easy to in
+doing custom controls super easy to in an immediate mode you are to do a custom
+an immediate mode you are to do a custom control all you have to do is to
+control all you have to do is to implement the drawing of the custom
+implement the drawing of the custom control using all these draw commands
+control using all these draw commands and Stroke reg Phil rigs and so on and
+and Stroke reg Phil rigs and so on and then implement sort of the input
+then implement sort of the input interactions like handle mouse clicks
+interactions like handle mouse clicks keyboard clicks and so on and in fact
+keyboard clicks and so on and in fact there's no distinction really between
+there's no distinction really between building and custom controls our our
+building and custom controls our our building controls are written in exactly
+building controls are written in exactly the same way as as a custom control
+the same way as as a custom control would be and just to show you an example
+would be and just to show you an example this is how this drag number control
+this is how this drag number control would be implemented I won't go through
+would be implemented I won't go through this in detail because it's it's a bunch
+this in detail because it's it's a bunch of code but just to show that it doesn't
+of code but just to show that it doesn't need a lot of code to implement
+need a lot of code to implement something like this you can do it pretty
+something like this you can do it pretty easily
+easily so in summary having the full control of
+so in summary having the full control of the tech stack like this it's really
+the tech stack like this it's really nice it reduces the complexity a lot we
+nice it reduces the complexity a lot we don't have to worry about framework
+don't have to worry about framework changes we can step through and debug
+changes we can step through and debug anything there's the same language and
+anything there's the same language and API is used everywhere in the onion so
+API is used everywhere in the onion so there's no artificial barriers
+there's no artificial barriers separating tools programmers from any
+separating tools programmers from any programmers anyone can go in and do
+programmers anyone can go in and do anything pretty much which I
+anything pretty much which I which I like a lot the cons of doing
+which I like a lot the cons of doing things this way building your own
+things this way building your own framework you have to start from scratch
+framework you have to start from scratch like we started with nothing and then we
+like we started with nothing and then we implement the drawing primitives so
+implement the drawing primitives so that's really starting from scratch I
+that's really starting from scratch I will say that it's about six months of
+will say that it's about six months of work or something before before you're
+work or something before before you're up and running with like a UI that you
+up and running with like a UI that you can actually use but we found that that
+can actually use but we found that that initial cost is soon recuperated just in
+initial cost is soon recuperated just in how much time saving we have from not
+how much time saving we have from not dealing having to deal with wrestling
+dealing having to deal with wrestling with the framework like wrestling with
+with the framework like wrestling with an external framework and trying to
+an external framework and trying to force it to do what you do at what you
+force it to do what you do at what you needed to do you could start with an
+needed to do you could start with an existing immediate mode UI like there
+existing immediate mode UI like there there in GUI for example that would be a
+there in GUI for example that would be a way of getting started way quicker so
+way of getting started way quicker so that might might be a good choice for
+that might might be a good choice for you depending on what your situation
+you depending on what your situation looks like another con that you might
+looks like another con that you might not think about is that I have doing
+not think about is that I have doing things your own like implementing
+things your own like implementing everything your own framework actually
+everything your own framework actually requires a lot of design decisions when
+requires a lot of design decisions when you use an existing framework everything
+you use an existing framework everything is sort of decided for you you have a
+is sort of decided for you you have a checkbox and it works the way it should
+checkbox and it works the way it should work whereas when you write everything
+work whereas when you write everything yourself you kind of have to sit down
+yourself you kind of have to sit down and think well how do I want a checkbox
+and think well how do I want a checkbox to work how does it make sense for a
+to work how does it make sense for a menu to work and so on you have to make
+menu to work and so on you have to make all these design decisions which
+all these design decisions which depending on whether that's something
+depending on whether that's something you're attracted to doing or not
+you're attracted to doing or not attractive doing that might not be the
+attractive doing that might not be the right decision for you but you should be
+right decision for you but you should be aware that there's a fair amount of
+aware that there's a fair amount of thinking and work that goes into that
+thinking and work that goes into that and also as I said it kind of requires
+and also as I said it kind of requires to rewrite rewire your brain a lot to
+to rewrite rewire your brain a lot to think about UI this way to do immediate
+think about UI this way to do immediate mode so the final thing we're doing here
+mode so the final thing we're doing here generating you eyes as I said before the
+generating you eyes as I said before the idea here is we want to reduce the work
+idea here is we want to reduce the work we don't want to create you guys for
+we don't want to create you guys for everything we want to try that
+everything we want to try that automatically somehow a typical example
+automatically somehow a typical example of that is a properties panels and I
+of that is a properties panels and I think this is something that a lot of
+think this is something that a lot of editors would do they would drive
+editors would do they would drive property panel they would they wouldn't
+property panel they would they wouldn't implement it for each object it will
+implement it for each object it will sort of drive it from data and and
+sort of drive it from data and and that's what we do and we use a property
+that's what we do and we use a property panel as sort of our default object
+panel as sort of our default object editor and the way it works is that we
+editor and the way it works is that we loop over all the properties of an
+loop over all the properties of an object and we draw an appropriate
+object and we draw an appropriate control for each of these properties so
+control for each of these properties so for boolean might be a checkbox for a
+for boolean might be a checkbox for a string it might be a text box and so on
+string it might be a text box and so on and now using the default control might
+and now using the default control might not work for everything for example
+not work for everything for example things like color you might want to have
+things like color you might want to have a custom control for that and so how do
+a custom control for that and so how do we do that
+we do that and we get the we get all these
+and we get the we get all these properties from the truth by the way
+properties from the truth by the way since we have a standard data model for
+since we have a standard data model for that so to handle custom properties we
+that so to handle custom properties we use the system that we called aspects
+use the system that we called aspects and basically it's just a callback a
+and basically it's just a callback a function callback identified by an ID so
+function callback identified by an ID so each system can define an aspect like
+each system can define an aspect like this so the property the property tab
+this so the property the property tab has defined a callback that's identified
+has defined a callback that's identified by an aspect called aspect custom
+by an aspect called aspect custom properties so we can if we want an
+properties so we can if we want an object in the truth to be drawn in a
+object in the truth to be drawn in a special way in the property panel all it
+special way in the property panel all it has to do is to implement this aspect
+has to do is to implement this aspect and then when we go through all the
+and then when we go through all the objects here we check them all does this
+objects here we check them all does this object have a special aspect for
+object have a special aspect for interacting with the property panel and
+interacting with the property panel and if it does that aspect will be called
+if it does that aspect will be called and if it doesn't it will get the
+and if it doesn't it will get the default panel so this is an example of
+default panel so this is an example of that for a vector3 again I won't go
+that for a vector3 again I won't go through the code it's just showing that
+through the code it's just showing that it's pretty easy to to do this and the
+it's pretty easy to to do this and the nice thing is about this is that every
+nice thing is about this is that every control every everything gets a UI by
+control every everything gets a UI by default because we map the standard
+default because we map the standard controls to the UI but then you can go
+controls to the UI but then you can go in and customize it with a special
+in and customize it with a special control if you really need to but we
+control if you really need to but we take this this approach of using
+take this this approach of using generated uisce even further not it's
+generated uisce even further not it's not just for properties we use it for
+not just for properties we use it for previews for instance so this is
+previews for instance so this is controlled by an aspect again so any
+controlled by an aspect again so any object that want to be able to be
+object that want to be able to be previewed just adds a preview aspect to
+previewed just adds a preview aspect to the archetype in the truth and then that
+the archetype in the truth and then that preview aspect takes care of drawing the
+preview aspect takes care of drawing the object in this preview window spawning
+object in this preview window spawning entities drawing you I playing sounds
+entities drawing you I playing sounds and so on whatever is needed to preview
+and so on whatever is needed to preview that kind of object we use the same
+that kind of object we use the same thing for trees so by default here we
+thing for trees so by default here we would render by default to render a tree
+would render by default to render a tree view of an object we would just render
+view of an object we would just render all sub objects as children but if a
+all sub objects as children but if a knobby ponds customize that it can int
+knobby ponds customize that it can int it can implement the tree view aspect
+it can implement the tree view aspect and do its own custom tree drawing so
+and do its own custom tree drawing so here's an example of a full UI using all
+here's an example of a full UI using all of this so this is our animation state
+of this so this is our animation state machine editor as you can see there's a
+machine editor as you can see there's a lot of pieces of UI here but all these
+lot of pieces of UI here but all these pieces are actually standardized so we
+pieces are actually standardized so we have a tree view here that's our
+have a tree view here that's our standardized tree view control we didn't
+standardized tree view control we didn't implement anything special for the state
+implement anything special for the state machine we have a graph view that's our
+machine we have a graph view that's our standard graph view control and the
+standard graph view control and the state machine is just implementing an
+state machine is just implementing an aspect of it to define how its objects
+aspect of it to define how its objects get represented in this graph view same
+get represented in this graph view same with the property substantive properties
+with the property substantive properties control and we have a preview control
+control and we have a preview control here which is our standard preview
+here which is our standard preview window as I mentioned earlier so this
+window as I mentioned earlier so this way we can put together a really complex
+way we can put together a really complex UI by just reusing all these different
+UI by just reusing all these different parts which is really nice so conclusion
+parts which is really nice so conclusion here I would say that creating UIs in
+here I would say that creating UIs in this way in this system feels a lot
+this way in this system feels a lot faster we no longer feel blocked by UI
+faster we no longer feel blocked by UI task and in fact we could build our
+task and in fact we could build our entire onion with the UI with the editor
+entire onion with the UI with the editor and everything by two people in two
+and everything by two people in two years which I think it's really good our
+years which I think it's really good our data model it's awesome to get all this
+data model it's awesome to get all this stuff for free but it's also a little
+stuff for free but it's also a little bit scary how it's a central piece of
+bit scary how it's a central piece of technology that's kind of complex and
+technology that's kind of complex and it's getting more complex with every
+it's getting more complex with every piece of functionality that gets added
+piece of functionality that gets added to it I think using aspects the way we
+to it I think using aspects the way we are it's a really great way of
+are it's a really great way of customizing our big behavior and I
+customizing our big behavior and I definitely recommend that implementing
+definitely recommend that implementing things yourself is a lot of work
+things yourself is a lot of work functional design as I said but I think
+functional design as I said but I think the payoff payoff is great
+the payoff payoff is great not being dependent of frameworks being
+not being dependent of frameworks being able to debug and profile everything and
+able to debug and profile everything and being in control I would say that we're
+being in control I would say that we're missing some features that you would
+missing some features that you would find in a full fledge toolkit we don't
+find in a full fledge toolkit we don't have supported for right-to-left text
+have supported for right-to-left text for instance for localization but I
+for instance for localization but I don't worry so much that we don't have a
+don't worry so much that we don't have a ton of features as long as these
+ton of features as long as these features would be would be easy to add
+features would be would be easy to add when we need them so at the point where
+when we need them so at the point where we start needing this I'm pretty sure we
+we start needing this I'm pretty sure we could implement it easily that's the
+could implement it easily that's the whole point of keys to keeping things
+whole point of keys to keeping things simple and being agile and I think
+simple and being agile and I think there's a danger of having lots of
+there's a danger of having lots of features but having a complex system
+features but having a complex system that is so complex that you don't
+that is so complex that you don't actually have time to use these features
+actually have time to use these features as an example in stingray we design we
+as an example in stingray we design we use web technology and stuff to be
+use web technology and stuff to be platform independent but they never had
+platform independent but they never had time to support any other platform than
+time to support any other platform than Windows and we had right-to-left text if
+Windows and we had right-to-left text if we need it but we never had time to
+we need it but we never had time to really start on localization of the
+really start on localization of the editor at all so I think like you have
+editor at all so I think like you have to be really careful about how you're
+to be really careful about how you're spending your time and it's more
+spending your time and it's more important to be simple and to be agile
+important to be simple and to be agile than to have features that you're not
+than to have features that you're not using yet and all in all we're really
+using yet and all in all we're really super happy with the way things are
+super happy with the way things are going and the speed with which we've
+going and the speed with which we've been able to develop you eyes and it
+been able to develop you eyes and it feels fun to make tools and you guys for
+feels fun to make tools and you guys for the onion which it didn't really do
+the onion which it didn't really do before and I'm really pleased and happy
+before and I'm really pleased and happy with that so this would be the time
+with that so this would be the time where I would ask for questions I can't
+where I would ask for questions I can't really do that now since we're in
+really do that now since we're in lockdown mode but if you have any
+lockdown mode but if you have any questions tweet me and my twitter handle
+questions tweet me and my twitter handle there we have a podcast and our
+there we have a podcast and our machinery podcasts that I recommend you
+machinery podcasts that I recommend you can listen to if you want to find out
+can listen to if you want to find out more stuff that we're doing we also have
+more stuff that we're doing we also have a blog available at our website our
+a blog available at our website our machinery calm and feel happy to read
+machinery calm and feel happy to read that and contact us if you're interested
+that and contact us if you're interested in looking at the onion or using it

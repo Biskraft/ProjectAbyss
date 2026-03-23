@@ -1,0 +1,3 @@
+# Category:Outfits
+
+Category: Items

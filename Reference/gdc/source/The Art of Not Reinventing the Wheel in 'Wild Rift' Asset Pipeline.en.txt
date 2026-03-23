@@ -1,0 +1,995 @@
+[Music] hi everyone welcome to gdc
+hi everyone welcome to gdc and today our topic is the art of not
+and today our topic is the art of not reinventing the will in wildlife asset
+reinventing the will in wildlife asset pipeline
+pipeline hi my name is sean low technical art
+hi my name is sean low technical art director at wright games
+director at wright games so happy to be back again
+so happy to be back again to gdc this year
+to gdc this year last year i gave a talk about ux of r2
+last year i gave a talk about ux of r2 development in general
+development in general so this year i thought maybe we can talk
+so this year i thought maybe we can talk more about pipeline
+more about pipeline and specifically on what happened in
+and specifically on what happened in baltimore
+and before that quick intro about myself
+quick intro about myself i started working on games when i first
+i started working on games when i first joined disney interactive and worked on
+joined disney interactive and worked on disney infinity 2 and 3 as a technical
+disney infinity 2 and 3 as a technical hard disk in the tools department
+hard disk in the tools department infinity is a massive project where we
+infinity is a massive project where we got to work with studios like disney
+got to work with studios like disney marvel
+marvel and lucasfilm in everything relates to
+and lucasfilm in everything relates to the ip
+the ip and i learned a lot from these projects
+and i learned a lot from these projects as you can see there's still a lot of
+as you can see there's still a lot of toys that i collected
+toys that i collected during infinity times
+during infinity times those are sweet memories and it's so
+those are sweet memories and it's so great to have them working alongside
+great to have them working alongside with me throughout these years
+with me throughout these years all right
+all right and there were also many amazing
+and there were also many amazing prototypes and ideas that i worked on
+prototypes and ideas that i worked on but those belongs to the unpublished
+but those belongs to the unpublished titles
+titles here i then joined unity technologies
+here i then joined unity technologies serving several several internal demo
+serving several several internal demo teams before i got pulled into the adam
+teams before i got pulled into the adam project
+project it was a very ambitious project because
+it was a very ambitious project because we want to prove that we can use game
+we want to prove that we can use game engine to produce high graphicality film
+engine to produce high graphicality film and after the success of adam our team
+and after the success of adam our team got to work with disney tv this time
+got to work with disney tv this time we want to prove that we can use game
+we want to prove that we can use game engine for long form animated content
+engine for long form animated content like baymax dreams
+like baymax dreams my last project at unity was overhaul
+my last project at unity was overhaul the entire unity editors interface which
+the entire unity editors interface which is official starting 2019.
+is official starting 2019. another super ambitious task
+another super ambitious task where i got to work closely with many
+where i got to work closely with many engineering and designer teams
+engineering and designer teams it's a long process but i'm glad that we
+it's a long process but i'm glad that we put it off successfully
+put it off successfully it is now officious and default in the
+it is now officious and default in the unity you download today
+unity you download today so hope you all enjoyed it
+so hope you all enjoyed it now i'm with riot games working on
+now i'm with riot games working on ballroom
+ballroom which
+which i wasn't fully aware when i first joined
+i wasn't fully aware when i first joined so if this is also your first time
+so if this is also your first time hearing about well reef please allow me
+hearing about well reef please allow me to briefly explain it here
+to briefly explain it here wall reef is league of legends but on
+wall reef is league of legends but on mobile
+mobile it is a 5v5 moba or multiplayer online
+it is a 5v5 moba or multiplayer online better arena genre
+better arena genre here you log in the game and form a team
+here you log in the game and form a team of five
+of five so does your opponent team
+so does your opponent team everybody got to pick a champion to play
+everybody got to pick a champion to play then the 10 will get sent to a
+then the 10 will get sent to a battlefield or we call it sumner reef
+battlefield or we call it sumner reef battle
+battle you work as a team and fight for the
+you work as a team and fight for the objective that's to take down enemies
+objective that's to take down enemies base
+base or just as fun fighting each other
+or just as fun fighting each other very straightforward
+very straightforward but because each champions that you
+but because each champions that you choose is so unique with their abilities
+choose is so unique with their abilities there's a lot of time you can sort off
+there's a lot of time you can sort off your 200 iq gameplay and skillful
+your 200 iq gameplay and skillful control mechanism
+control mechanism and when you outplay your opponent
+and when you outplay your opponent successfully it becomes the highlight
+successfully it becomes the highlight but when you don't
+but when you don't it goes to the funny moment compilation
+it goes to the funny moment compilation then
+then and all these memorable moments is the
+and all these memorable moments is the reason why players are engaged within
+reason why players are engaged within these games
+these games enjoy playing it as well as enjoy
+enjoy playing it as well as enjoy watching pro players they meet in the
+watching pro players they meet in the e-sport events
+e-sport events i myself love this trailer very much
+i myself love this trailer very much because i think it captures the light
+because i think it captures the light tone the fun
+tone the fun long time we hope players can enjoy it
+long time we hope players can enjoy it here in huawei
+all right so to reiterate worry it is on mobile
+so to reiterate worry it is on mobile and we rebuild it entirely the art the
+and we rebuild it entirely the art the code on you
+code on you this means we got the opportunity to
+this means we got the opportunity to revisit many parts of the games like the
+revisit many parts of the games like the design and gameplay to make it
+design and gameplay to make it refreshing and fun
+refreshing and fun but this also means we got tons of work
+but this also means we got tons of work to do because not only we have to do the
+to do because not only we have to do the new works
+new works we also need to ramp up our content to
+we also need to ramp up our content to match with what we have in league of
+match with what we have in league of legends pc
+legends pc whenever makes sense
+and for myself joining this theme while it is scaling
+joining this theme while it is scaling or exploded from a handy prototype to
+or exploded from a handy prototype to global live games
+global live games presented one huge problems that i need
+presented one huge problems that i need to solve
+to solve which is
+which is how do we keep thousands of art assets
+how do we keep thousands of art assets each
+each with huge dependency in a trackable
+with huge dependency in a trackable state
+state so for today i'd like to share my
+so for today i'd like to share my experience in solving these problems
+experience in solving these problems we'll go through the context
+we'll go through the context scopes
+scopes actual implementations and finally
+actual implementations and finally the learnings
+all right first i'd like to explain about wildly
+first i'd like to explain about wildly champion assets
+champion assets uh because it's a pretty unique
+uh because it's a pretty unique structure to serve this mobile genre
+structure to serve this mobile genre for
+for a champion asset it mainly consists of
+a champion asset it mainly consists of the icon
+the icon splashart
+splashart in-game model and turntable model
+in-game model and turntable model the icon splash turntable
+the icon splash turntable other one player will see before
+other one player will see before an actual games or battle
+an actual games or battle but when a battle start is all about the
+but when a battle start is all about the in-game asset here
+in-game asset here that's why it is the most complicated
+that's why it is the most complicated asset we have
+asset we have and also the one that we will spend most
+and also the one that we will spend most time talking about for today's topic
+time talking about for today's topic and
+and when inside the game
+when inside the game each champion has four abilities to
+each champion has four abilities to learn and level up
+learn and level up you can think of this ability as the
+you can think of this ability as the champion's power
+champion's power for example
+for example fire cannon
+fire cannon causing aoe damage or heal
+causing aoe damage or heal and for each ability we will have a
+and for each ability we will have a dedicated set of animations effects and
+dedicated set of animations effects and sound to pair with it
+take leona our support tank for example her first ability is shield of daybreak
+her first ability is shield of daybreak so you'll see her animations and the
+so you'll see her animations and the effects i said that we need to play when
+effects i said that we need to play when it got triggered
+second ability eclipse
+and the third ability will be jennifer blade
+and the fourth or her ultimate solar flare
+flare you'll see over here when triggered
+you'll see over here when triggered her animations of
+her animations of her pointing the sword up to the skies
+her pointing the sword up to the skies followed by the
+followed by the declines that we need to project onto
+declines that we need to project onto the round
+the round and that's for a champion as a base
+and that's for a champion as a base to further expand the fantasy of a
+to further expand the fantasy of a champion we will have skins that
+champion we will have skins that visualize the champions with different
+visualize the champions with different thematic or sound
+thematic or sound for example here we have leona the
+for example here we have leona the radiant dawn as a base champion
+radiant dawn as a base champion well we have barbecue leona as a skin
+well we have barbecue leona as a skin which we re-imagine her as a chef
+which we re-imagine her as a chef now her sword becomes a huge fork and
+now her sword becomes a huge fork and her shield becomes a grill
+her shield becomes a grill and to do the skin technically we will
+and to do the skin technically we will have to rebind the new bbq leona mesh
+have to rebind the new bbq leona mesh onto the base leona skeleton so the
+onto the base leona skeleton so the animation files can be shed
+animation files can be shed there will be also time that we need to
+there will be also time that we need to add bones for unique animations or
+add bones for unique animations or effects designed specifically only for a
+effects designed specifically only for a particular scheme
+so basically when we look at a champion headset hierarchy it will be something
+headset hierarchy it will be something like this
+like this we have animations and effects as set
+we have animations and effects as set for each ability
+for each ability for a base champion
+for a base champion and for skin
+and for skin we might reuse everything on the base
+we might reuse everything on the base but do a special ability for the
+but do a special ability for the ultimate like what we see here for skin
+and for skin 2 we might reuse more than one base asset
+we might reuse more than one base asset or we might even create a whole new set
+or we might even create a whole new set for everything like what happened here
+for everything like what happened here for skin free
+for skin free also bear in mind this is only a
+also bear in mind this is only a simplified version we showed here
+simplified version we showed here in the actual full asset hierarchy we
+in the actual full asset hierarchy we will have more skins as well as more
+will have more skins as well as more animations and effects set for different
+animations and effects set for different actions that we need in the game
+actions that we need in the game therefore
+therefore if we want to track an asset of a skin
+if we want to track an asset of a skin in our game
+in our game it could be really confusing and tricky
+yes just for a champion currently as we speak we have over
+currently as we speak we have over hundreds of skins in our game
+hundreds of skins in our game when we zoom out it will be more like
+when we zoom out it will be more like this
+this well
+well again this is also a very simple version
+again this is also a very simple version of the reality uh in the productions
+all right moving on expanded scope
+expanded scope wall roof started as a small r d project
+wall roof started as a small r d project in the beginning
+in the beginning our main goal is just to figure out what
+our main goal is just to figure out what uh figure
+uh figure how should we what are the things that
+how should we what are the things that we need to do
+we need to do uh if we want to put league of legends
+uh if we want to put league of legends on mobile
+on mobile uh how do we make
+uh how do we make it
+it right
+right from there
+from there one features after another
+one features after another one milestone after another
+one milestone after another suddenly
+suddenly we were released
+we were released and moved to close alpha
+and moved to close alpha and open beta at several regions
+and open beta at several regions in the world
+in the world and start to serve millions of players
+and start to serve millions of players now
+now so in order to live up to our player
+so in order to live up to our player expectations we have to pump up more
+expectations we have to pump up more content
+content meaning more champions and more skin
+meaning more champions and more skin for example during alpha we only have 40
+for example during alpha we only have 40 champions
+champions with no skin
+with no skin now we have 68 champions and 189
+now we have 68 champions and 189 skins in our recent release
+skins in our recent release and the number is still counting
+and the number is still counting so as we need to produce more content we
+so as we need to produce more content we also need a whole lot more people to
+also need a whole lot more people to help us in doing this
+help us in doing this and now our teams also got scaled up
+and now our teams also got scaled up rapidly
+rapidly but in a relative small ind skills team
+but in a relative small ind skills team members were able to manually
+members were able to manually track and update the current state of a
+track and update the current state of a particular asset and keep communications
+particular asset and keep communications consistent through regular income
+consistent through regular income however with current state of war with
+however with current state of war with size
+size to coordinate the production works with
+to coordinate the production works with multiple internal and external teams
+multiple internal and external teams the previous method immediately becomes
+the previous method immediately becomes unsustainable
+to illustrate the situations clearly this is a very true conversation i have
+this is a very true conversation i have with team members
+with team members happen
+happen so many times especially especially with
+so many times especially especially with those
+those outside of the core death thing
+outside of the core death thing so say someone will come and ask me
+so say someone will come and ask me hey
+hey uh can i get the remodel
+uh can i get the remodel i would say yeah of course which one
+i would say yeah of course which one the latest
+the latest then normally i will ask i mean do you
+then normally i will ask i mean do you want an in-game or turntable model
+want an in-game or turntable model ah the turntable
+ah the turntable got it
+got it just a base skin right
+just a base skin right oh
+oh actually i need the kda skin
+actually i need the kda skin guess what
+guess what okay but which one
+okay but which one kda the og or kda or the new one
+kda the og or kda or the new one yeah we have two versions of kds inline
+yeah we have two versions of kds inline the original one in 2018 for pc
+the original one in 2018 for pc and the new one that we released in 2020
+and the new one that we released in 2020 both for pc and wow
+both for pc and wow so confusing
+so confusing so hopefully now you can understand the
+so hopefully now you can understand the pin and why we absolutely need to solve
+pin and why we absolutely need to solve these problems
+and how things could be worse well endemic
+well endemic bye bye office and hello working from
+bye bye office and hello working from home
+imagine having to deal with this crazy amount of information while the working
+amount of information while the working environment have changed
+environment have changed from
+from everyone working in a closed office
+everyone working in a closed office environment like a part of 10 people
+environment like a part of 10 people to everybody working from home
+to everybody working from home no longer you can lean over to your
+no longer you can lean over to your teammate beside you
+teammate beside you less than six feet apart for a quick
+less than six feet apart for a quick answer
+answer now everything needs to needs to
+now everything needs to needs to need to go through slap messages video
+need to go through slap messages video calls like google me or zoom meetings
+calls like google me or zoom meetings this makes the process of getting a
+this makes the process of getting a simple yet derivable answer suddenly
+simple yet derivable answer suddenly become so much harder and time consuming
+so to summarize our problem space wall reef has a complicated asset
+wall reef has a complicated asset hierarchy to deal with
+hierarchy to deal with our teams got scaled up rapidly
+our teams got scaled up rapidly more human more questions needing more
+more human more questions needing more answers
+answers and
+and working from home just make
+working from home just make complications
+complications harder than how we used to
+harder than how we used to in the end
+in the end simple
+simple yet crucial tasks like tracking a state
+yet crucial tasks like tracking a state of our asset is a huge pain
+and now to the goal what we need is a tool
+what we need is a tool that can quickly help us to get all art
+that can quickly help us to get all art asset information
+asset information above broad and deep
+above broad and deep brought as in things like how many
+brought as in things like how many champions uh we have now
+champions uh we have now or say
+or say how many support tanks we have for the
+how many support tanks we have for the current build
+current build deep as in
+deep as in what are the list of animations
+what are the list of animations that we use say for bbq leonard ultimate
+that we use say for bbq leonard ultimate skills for example
+skills for example then
+then for the restrictions
+for the restrictions the big caveat of this task is that we
+the big caveat of this task is that we can afford to
+can afford to revamp the current workflow
+revamp the current workflow because production is full stream ahead
+because production is full stream ahead we have deliveries to meet
+we have deliveries to meet we can't afford to ask parties or pm to
+we can't afford to ask parties or pm to help us fill up those data
+help us fill up those data through their daily routine
+through their daily routine or even train them to use some new tools
+or even train them to use some new tools to help us gather information
+to help us gather information that means reinventing the will
+that means reinventing the will or introducing new process at this point
+or introducing new process at this point is a big no no
+so to start what do we need to know now
+what do we need to know now and where can we find those answers
+and where can we find those answers this is our discovery phase
+this is our discovery phase my first approach is to survey existing
+my first approach is to survey existing tech that we have in the project
+tech that we have in the project this is an very important step
+this is an very important step i need to know what we already have
+i need to know what we already have or even what we might
+or even what we might have in the near future
+have in the near future and then not to make any assumption here
+and then not to make any assumption here so
+so through reading a lot of documents
+through reading a lot of documents uh and checking in with team leaders
+uh and checking in with team leaders from art engineering and even design
+from art engineering and even design i was able to capture a broad knowledge
+i was able to capture a broad knowledge of where
+of where and how our art assets are being used in
+and how our art assets are being used in the project
+so one important thing that i learned is that we have an internal game logic
+that we have an internal game logic system that is used to set up every
+system that is used to set up every champion in our game
+champion in our game for example
+for example which character animation clips and
+which character animation clips and effects are supposed to play
+effects are supposed to play during a champion ability
+during a champion ability or which model is supposed to load when
+or which model is supposed to load when players select a champion skin
+players select a champion skin the systems were separated into few
+the systems were separated into few different places for different usage
+different places for different usage like we mentioned just now
+like we mentioned just now but that's okay i just need to know
+but that's okay i just need to know where to look for them
+where to look for them and guess what the best part is
+and guess what the best part is these data are serialized in separate
+these data are serialized in separate json files
+json files which means
+which means i can pass them directly without any
+i can pass them directly without any additional truth
+additional truth therefore
+therefore in this case
+in this case a very specific and custom made tools in
+a very specific and custom made tools in our project helps me in verifying the
+our project helps me in verifying the first and major parts of my hypothesis
+and i'd like to emphasize that this kind of very niche
+of very niche deeply integrated systems is typically
+deeply integrated systems is typically very hard to understand at first
+very hard to understand at first documentation might not be available
+documentation might not be available and even if they exist
+and even if they exist they might be outdated because how fast
+they might be outdated because how fast things have changed to meet the
+things have changed to meet the production's needs
+production's needs so
+so whenever a document is not available i
+whenever a document is not available i have to check in with relevant teams or
+have to check in with relevant teams or even individuals to find the answer
+even individuals to find the answer and when both document and person is not
+and when both document and person is not available
+available what should i do
+what should i do yes we have the code
+yes we have the code the answer is right inside the code
+the answer is right inside the code what i will do is deep dive into the
+what i will do is deep dive into the code you know set a breakpoint followed
+code you know set a breakpoint followed each step
+each step to prove my guesses and get the answer
+to prove my guesses and get the answer by myself
+by myself it is tough
+it is tough but it's definitely rewarding too
+but it's definitely rewarding too if you can make it through the steep
+if you can make it through the steep learning curve
+learning curve of this kind of in-house tools
+of this kind of in-house tools the benefit will
+the benefit will definitely avoid the cost
+definitely avoid the cost at least for me
+all right next is what i got for free
+next is what i got for free the established asset system within
+the established asset system within unity
+unity uh for example in this case what helped
+uh for example in this case what helped me
+me are the prefix systems and the meta
+are the prefix systems and the meta files
+files and since this is universal i mean same
+and since this is universal i mean same rules apply for all unity projects out
+rules apply for all unity projects out there
+there therefore i can safely rely on these
+therefore i can safely rely on these generic systems and use it to build my
+generic systems and use it to build my tools around it
+tools around it in a unity prefab file
+in a unity prefab file it actually stores a game object
+it actually stores a game object complete with all its component property
+complete with all its component property values and even the child games objects
+values and even the child games objects in it
+in it is like a template
+is like a template and we use it to configure many assets
+and we use it to configure many assets in value including our champion
+in value including our champion and as for the meta files
+and as for the meta files it is created alongside with each asset
+it is created alongside with each asset file which is used to store the uni a
+file which is used to store the uni a unique id
+unique id or gui id that unity assigned to it from
+or gui id that unity assigned to it from the beginning
+the beginning these two unity
+these two unity files
+files helps me in developing the solutions
+helps me in developing the solutions which we will explain it in more details
+which we will explain it in more details later
+later and
+and good things about this kind of
+good things about this kind of established system is that they are is
+established system is that they are is that their level knowledge is publicly
+that their level knowledge is publicly available either from the official
+available either from the official documentation or community forum
+documentation or community forum therefore the learning curve of this is
+therefore the learning curve of this is much lower than the in-house tools that
+much lower than the in-house tools that we discussed before
+and the last part of discovery is the naming conventions
+naming conventions you probably heard this million times
+you probably heard this million times already but it is still a very true
+already but it is still a very true thing
+thing and since and since what i'm trying to
+and since and since what i'm trying to solve here is related to asset the
+solve here is related to asset the naming convention is even more important
+naming convention is even more important here
+here and the way i build it is from two
+and the way i build it is from two categories
+categories one is system facing like the folder and
+one is system facing like the folder and file names
+file names the other one is more for asset like how
+the other one is more for asset like how the rig animations and effects object is
+the rig animations and effects object is being named inside a file
+being named inside a file for example
+for example for rig we might have prefix like l
+for rig we might have prefix like l r or c to indicate which side of a root
+r or c to indicate which side of a root control or skeletons belongs to
+control or skeletons belongs to animations might have like in out trends
+animations might have like in out trends while effects might have things like hit
+while effects might have things like hit above
+above to explain their usage
+to explain their usage with a strong and clear naming
+with a strong and clear naming convention a lot of questions can be
+convention a lot of questions can be answered right away
+answered right away however we must also admit that this is
+however we must also admit that this is extremely weak
+extremely weak because if anyone in the team is not
+because if anyone in the team is not committed to these conventions you know
+committed to these conventions you know like wrong folder inconsistent names or
+like wrong folder inconsistent names or even like typo
+even like typo it will immediately break
+it will immediately break and make things worse and confusing
+and make things worse and confusing i'm just super grateful that our team
+i'm just super grateful that our team did a very good job in this
+did a very good job in this so whenever i have to relying on these
+so whenever i have to relying on these naming conventions did help me to solve
+naming conventions did help me to solve the other parts of the problems when the
+the other parts of the problems when the previous two methods were not able to
+all right so now that
+so now that we already did our homework survey and
+we already did our homework survey and gather enough information
+gather enough information let's get to work for a solution
+and the solution is an asset analysis tool which is able to scrap the entire
+tool which is able to scrap the entire game project for relevant champion asset
+game project for relevant champion asset data
+data and in this process
+and in this process we will first ingest all json files that
+we will first ingest all json files that we use to set up our champions through
+we use to set up our champions through the logic system that we discussed
+the logic system that we discussed before
+before and these stage 1 files contain a
+and these stage 1 files contain a general champion info like their name
+general champion info like their name their attack range or lane
+their attack range or lane we can also know their skin and skill
+we can also know their skin and skill names along with their 2d and 3d asset
+names along with their 2d and 3d asset and more importantly their path in our
+and more importantly their path in our project
+project because with this asset path stored in
+because with this asset path stored in the json file here we can now use it to
+the json file here we can now use it to load the asset for more details
+load the asset for more details information maybe something like the
+information maybe something like the mesh
+mesh and animation data in a fbx file
+then based on this raw data the two will then create containers for each asset
+then create containers for each asset type with proper structures that reflect
+type with proper structures that reflect our asset hierarchy as we discussed
+our asset hierarchy as we discussed before
+before so we have the top levels
+so we have the top levels which is the entire project right then
+which is the entire project right then we break it down into the champion
+we break it down into the champion levels then we have uh the skin level
+levels then we have uh the skin level with their respective asset
+with their respective asset for example again you know like their
+for example again you know like their animations and effects list for each
+animations and effects list for each actions that we have
+actions that we have again
+again idle run recall things like that
+idle run recall things like that pretty standard oop here
+pretty standard oop here but
+but with these structures we can treat each
+with these structures we can treat each container like an actual asset object we
+container like an actual asset object we should make the next steps so much
+should make the next steps so much easier and user friendly
+easier and user friendly yes the next step is an easy api for the
+yes the next step is an easy api for the user to interface with
+user to interface with we really want this tool to serve as an
+we really want this tool to serve as an easy data point for user to access
+easy data point for user to access so
+so just import the module you know call it
+just import the module you know call it aet
+aet is our asset analysis tool
+is our asset analysis tool and point it to the project report
+and point it to the project report and basically you are good to go
+and basically you are good to go so for example once we set up we can ask
+so for example once we set up we can ask for a very specific
+for a very specific champion like ari here after that we can
+champion like ari here after that we can get uh continue to gather details data
+get uh continue to gather details data like her specific skin
+like her specific skin say get me the first one
+say get me the first one or even all her skills in a list form
+or even all her skills in a list form the nice thing about this method is that
+the nice thing about this method is that now
+now data could be obtained in an organized
+data could be obtained in an organized format
+format and at the same time it is easy to
+and at the same time it is easy to customize for many different purposes
+customize for many different purposes the possibility is quite endless here
+the possibility is quite endless here and
+and we will look at some examples later on
+we will look at some examples later on too
+and the reason uh we can achieve this kind of result is through many
+kind of result is through many integrations you might already notice
+integrations you might already notice that we write these two using python
+that we write these two using python so first
+so first what we did was integrate packages like
+what we did was integrate packages like unity puzzle and yemo to help passing
+unity puzzle and yemo to help passing the unity side of system files so in
+the unity side of system files so in this case
+this case unity puzzles is for us to pass the
+unity puzzles is for us to pass the prefab
+prefab so
+so now i can know which components are
+now i can know which components are contained in that
+contained in that prevent for example like the mesh or
+prevent for example like the mesh or material
+material with that we can continue to trace the
+with that we can continue to trace the actual asset that is being used uh
+actual asset that is being used uh within that prevail
+within that prevail this is where we will use the yaml
+this is where we will use the yaml package to help us in verifying the gui
+package to help us in verifying the gui id
+id of the
+of the asset that we are looking for
+so once the asset is verified we can now safely ingest or load the
+we can now safely ingest or load the asset
+asset for example we have a lot of fbx files
+for example we have a lot of fbx files that we use for models and animations
+that we use for models and animations so what we did was having this tool to
+so what we did was having this tool to integrate with the fbx sdk
+integrate with the fbx sdk this enables us to get detailed data
+this enables us to get detailed data inside
+inside fbx
+fbx like the mesh data
+like the mesh data animation curve and even other custom
+animation curve and even other custom properties that we store
+properties that we store in there
+in there this is so great because now we can
+this is so great because now we can query the state of an art asset entirely
+query the state of an art asset entirely this even give
+this even give gives us the ability to qa the art asset
+gives us the ability to qa the art asset if we want to
+if we want to for example we can ask the tool to scan
+for example we can ask the tool to scan for any model with a word count that
+for any model with a word count that sits
+sits certain limits
+so you might ask why python then
+why python then your project is in unity
+your project is in unity why don't you stick with unity's c sharp
+why don't you stick with unity's c sharp yes
+yes that would be the straightforward choice
+that would be the straightforward choice but
+but launching a unity project at this skills
+launching a unity project at this skills it normally takes about 5 to 10 minutes
+it normally takes about 5 to 10 minutes before we can even start navigating
+before we can even start navigating inside the project for an answer
+inside the project for an answer so
+so what i really wish for is something that
+what i really wish for is something that is light and fast
+is light and fast basically i just hate waiting when i
+basically i just hate waiting when i need an answer
+need an answer also i like to keep these two as
+also i like to keep these two as standalone
+standalone so what that means is it doesn't need
+so what that means is it doesn't need any tech dependency from our actual
+any tech dependency from our actual projects
+projects we don't even need to install unity in
+we don't even need to install unity in order to run these tools for example
+order to run these tools for example what i just need is a python ide you
+what i just need is a python ide you know and outside
+know and outside of the project
+of the project and start coding
+and start coding not to mention iterations times is
+not to mention iterations times is faster as well since we don't have to
+faster as well since we don't have to wait for unity to compile the script
+wait for unity to compile the script every single time
+every single time having these extra layers of
+having these extra layers of flexibilities makes our two development
+flexibilities makes our two development a lot more efficient
+and this is our final result now tech artists have the abilities
+now tech artists have the abilities to track asset dependency easily
+to track asset dependency easily provide quick and accurate answers to
+provide quick and accurate answers to anyone who need it directly
+anyone who need it directly and
+and it can be customized to fit any specific
+it can be customized to fit any specific need
+need and to find any specific answer
+and to find any specific answer for example
+for example it can allow us to do a project-wide
+it can allow us to do a project-wide asset analysis like what's shown here
+asset analysis like what's shown here we can get all champions available in
+we can get all champions available in the current project
+the current project look through the list and ask for
+look through the list and ask for maybe just a base model in this case we
+maybe just a base model in this case we just have to throw in the id of zero
+just have to throw in the id of zero and that will give us access to every
+and that will give us access to every base model fbx files immediately
+base model fbx files immediately from here we can do many analysis like
+from here we can do many analysis like hey just calculate the max or mean uh
+hey just calculate the max or mean uh word count in the mesh
+word count in the mesh or get me the keyframes data in
+or get me the keyframes data in animations uh clip
+so one real scenarios i mean share here uh is in a zoom meeting that we had
+uh is in a zoom meeting that we had someone asked the group
+someone asked the group hey
+hey which champions has the highest poly
+which champions has the highest poly count in our project now
+count in our project now so what i did
+so what i did was quickly launch visual code and write
+was quickly launch visual code and write a few lines
+a few lines similar to what we saw just now
+similar to what we saw just now get our champion right go through all
+get our champion right go through all skins and for each skin grab the in-game
+skins and for each skin grab the in-game model word count append it in a
+model word count append it in a dictionary sort it and tell me the max
+dictionary sort it and tell me the max and all this was done
+and all this was done while the group is still talking
+while the group is still talking and
+and before the topic changed i was able to
+before the topic changed i was able to inform the group and say seraphine has
+inform the group and say seraphine has the highest polycount
+the highest polycount i guess thanks to her long hair and
+i guess thanks to her long hair and floating stage
+floating stage imagine if i were to do this directly in
+imagine if i were to do this directly in our unity project
+our unity project first i'll have to launch unity
+first i'll have to launch unity five minutes in
+five minutes in say even if i have some tools ready to
+say even if i have some tools ready to scan or champion fbx
+scan or champion fbx but i'll still have to modify the c
+but i'll still have to modify the c sharp script to get me the max word
+sharp script to get me the max word count model
+count model and wait for it to compound
+and wait for it to compound now compiling even and a simple editor
+now compiling even and a simple editor script like this in a project of this
+script like this in a project of this skill is going to take maybe like a few
+skill is going to take maybe like a few minutes
+minutes therefore having this standalone tool is
+therefore having this standalone tool is definitely easy to modify and faster to
+definitely easy to modify and faster to get a answer
+get a answer so
+so with the data that we gather from these
+with the data that we gather from these two we can now output it in whichever
+two we can now output it in whichever format we want like a spreadsheet a csv
+format we want like a spreadsheet a csv or excel for other teams
+or excel for other teams to use
+to use since not everyone in our team is able
+since not everyone in our team is able to write a python stream
+to write a python stream but that's okay
+but that's okay they can still benefit from these two
+they can still benefit from these two with the data provided in the format
+with the data provided in the format that they are familiar with to continue
+that they are familiar with to continue their work
+their work not only that we can even directly
+not only that we can even directly connect this data or these two to any
+connect this data or these two to any framework or applications that we need
+framework or applications that we need like perforce maya
+like perforce maya or other standalone tools that we have
+or other standalone tools that we have for example
+for example we actually use this tool to populate
+we actually use this tool to populate our shotgun asset database when we
+our shotgun asset database when we started using it early this year
+started using it early this year it was a breeze to see how easy and
+it was a breeze to see how easy and accurate the asset data can be migrated
+accurate the asset data can be migrated over the new venue
+over the new venue all in all
+all in all these two help us in getting the single
+these two help us in getting the single source of truth for internal use as well
+source of truth for internal use as well as help us in
+as help us in team collaborations
+team collaborations uh with
+uh with because now uh we can share info and
+because now uh we can share info and tech easily with other teams like
+tech easily with other teams like console and pc
+console and pc or basically any
+or basically any team in riot or even even with our
+team in riot or even even with our partners
+looking back what are the lessons that i've learned
+so in order not to reinvent the will the first thing i learned is to understand
+first thing i learned is to understand your playground
+your playground and here's the pictures of a playground
+and here's the pictures of a playground that i took during pandemi
+that i took during pandemi just in case some of us already forget
+just in case some of us already forget what the playground looks like
+what the playground looks like okay now
+okay now the playground i'm referring here is the
+the playground i'm referring here is the existing data and tools
+existing data and tools there will be tons of data linked around
+there will be tons of data linked around in a massive project like this
+in a massive project like this some data is ready to be used
+some data is ready to be used like in my case the json files are
+like in my case the json files are already there to be ingested
+already there to be ingested there are also data that are not existed
+there are also data that are not existed so we'll need to find a way to formulate
+so we'll need to find a way to formulate that and fill in the blank
+that and fill in the blank so in my case naming conventions and
+so in my case naming conventions and those tribal knowledge helped me to
+those tribal knowledge helped me to bridge the missing gap
+bridge the missing gap also understanding what tools
+also understanding what tools are at your expense is equally important
+are at your expense is equally important some tools are custom made
+some tools are custom made like the
+like the game logics that we discussed before
+game logics that we discussed before and some tools are generic just like the
+and some tools are generic just like the unity system file
+unity system file once we have gathered
+once we have gathered this kind of information
+this kind of information it will not only provide a broader view
+it will not only provide a broader view of your playground but more importantly
+of your playground but more importantly it will reduce the urge of build
+it will reduce the urge of build something from scratch
+something from scratch yes we prefer to build
+yes we prefer to build something on existing foundations rather
+something on existing foundations rather than start from zero
+than start from zero not an inventions but accent
+not an inventions but accent integrations
+integrations the pro of doing this is definitely
+the pro of doing this is definitely faster development since the amount of
+faster development since the amount of work and code that we need to do is
+work and code that we need to do is normally broad but thin
+normally broad but thin we are linking many working parts
+we are linking many working parts together and drive from there
+together and drive from there the con of this approach is that you
+the con of this approach is that you might have to upfront a lot of
+might have to upfront a lot of communication cost to fully understand
+communication cost to fully understand the overall pictures
+the overall pictures like what we discussed before
+like what we discussed before this really depends on how easy you can
+this really depends on how easy you can obtain the information from assisting
+obtain the information from assisting documentation or code base
+documentation or code base but even in the worst case scenario
+but even in the worst case scenario i would still believe that the cost is
+i would still believe that the cost is absolutely worth it when we look at the
+absolutely worth it when we look at the benefit we gain in long term
+second thing that i learned is choosing the right tool and construct a plan that
+the right tool and construct a plan that is future proving
+is future proving we want to make sure the tag that we
+we want to make sure the tag that we choose can be easily supported in long
+choose can be easily supported in long term rather than something that might
+term rather than something that might not be even relevant in the next five
+not be even relevant in the next five years
+years we also want to make sure something that
+we also want to make sure something that is flexible uh to make necessary
+is flexible uh to make necessary adjustments if we need to
+adjustments if we need to it would be nice uh if it is easy for us
+it would be nice uh if it is easy for us to pivot to accommodate any future
+to pivot to accommodate any future production scope
+production scope along these lines we are looking for
+along these lines we are looking for something that has very little
+something that has very little dependency so we can move things around
+dependency so we can move things around without too much
+without too much restrictions
+restrictions travel life is what came in mind when
+travel life is what came in mind when i'm thinking about this
+i'm thinking about this again
+again i think i really need to get out from
+i think i really need to get out from this house because i got stuck in here
+this house because i got stuck in here during pandemi for more than a year now
+okay so for our case here this is so true uh that when we choose
+this is so true uh that when we choose to use python to write
+to use python to write this analysis
+this analysis first reason is because they are already
+first reason is because they are already many python users within riot
+many python users within riot which mean is is a relatively low
+which mean is is a relatively low barrier in terms of the learning curve
+barrier in terms of the learning curve but this also means that it is easier
+but this also means that it is easier for us to get help uh in working on
+for us to get help uh in working on these tools whenever we need to just
+these tools whenever we need to just have to call someone from other things
+have to call someone from other things and we can learn them
+and we can learn them so we have sufficient support in terms
+so we have sufficient support in terms of both
+of both tech and people
+tech and people and talking about support python also
+and talking about support python also has a lot of publicly available
+has a lot of publicly available resources and an active community
+resources and an active community this makes the development a lot more
+this makes the development a lot more easier when we have this level of
+easier when we have this level of confidence
+confidence and at last
+and at last even before working on the actual code
+even before working on the actual code base i know that it is best for us to
+base i know that it is best for us to make these two with less dependency
+make these two with less dependency in terms of tech
+in terms of tech meaning we want it to be more of a plug
+meaning we want it to be more of a plug and play kind of easy mechanism
+and play kind of easy mechanism also with this loosely attached
+also with this loosely attached interface we are able to change or
+interface we are able to change or expand so these two can connect to other
+expand so these two can connect to other applications or engine
+applications or engine so we need to pivot in the future
+last but also the most important lessons
+but also the most important lessons at least for me
+at least for me is to start small so we could start fast
+is to start small so we could start fast and possibly also feel fast
+and possibly also feel fast keeping your goal too ambitious
+keeping your goal too ambitious sometimes make things really sluggish to
+sometimes make things really sluggish to even kickstart
+even kickstart by sculpting
+by sculpting things accordingly you can at least
+things accordingly you can at least focus on a well-defined area to start
+focus on a well-defined area to start with
+with prototype something really fast so your
+prototype something really fast so your result to team members and stakeholders
+result to team members and stakeholders make sure everything is aligned and
+make sure everything is aligned and informed
+informed then go back
+then go back read the rate and keep building the next
+read the rate and keep building the next block
+block with this approach i was able to keep
+with this approach i was able to keep expanding the features while fixing the
+expanding the features while fixing the box
+box or even remove some features that we
+or even remove some features that we thought was a must in the beginning
+another thing that i benefit from this approach is it keeps reminding me to
+approach is it keeps reminding me to make sure the code plays that way right
+make sure the code plays that way right is always modularized
+is always modularized smaller lego blocks that are put
+smaller lego blocks that are put together to form bigger blocks then fit
+together to form bigger blocks then fit into other moving parts
+into other moving parts we can reuse and even it is easier for
+we can reuse and even it is easier for us to take out the blocks if we need to
+us to take out the blocks if we need to uh in the future
+uh in the future and talking about uh pivoting
+and talking about uh pivoting we are currently in the phase of
+we are currently in the phase of evolving this analysis tool into
+evolving this analysis tool into something bigger and even more
+something bigger and even more integrated
+integrated remember we talked about using this tool
+remember we talked about using this tool to build the foundations of our shotgun
+to build the foundations of our shotgun database
+database so now we want to use it to extend our
+so now we want to use it to extend our shotgun workflow
+shotgun workflow and this will let us build a more
+and this will let us build a more streamlined workflow
+streamlined workflow by layering this analysis tool on top of
+by layering this analysis tool on top of the shotgun database
+the shotgun database give it a tour of knowledge and of our
+give it a tour of knowledge and of our asset conventions
+asset conventions and rules integrate many processors and
+and rules integrate many processors and automations via the shotgun api
+automations via the shotgun api i'm confident that while rif art
+i'm confident that while rif art production is going to have even more
+production is going to have even more potentials after this
+so to summarize the art of not reinventing the will
+the art of not reinventing the will for me
+for me it is all about integration
+it is all about integration you might heard me saying this
+you might heard me saying this repeatedly already throughout today's
+repeatedly already throughout today's presentations
+presentations yes the way i view this integration is
+yes the way i view this integration is like a partnership
+like a partnership and partnership is more important than
+and partnership is more important than ownership
+ownership i like to think of our code base like
+i like to think of our code base like having many people working and
+having many people working and collaborating together each person has a
+collaborating together each person has a dedicated task to complete
+dedicated task to complete but it also needs to work well with
+but it also needs to work well with other people
+other people and this is so true for our wildlife
+and this is so true for our wildlife team
+team we work with many partners around the
+we work with many partners around the world and only with this kind of strong
+world and only with this kind of strong relationships we are able to achieve
+relationships we are able to achieve such a wild project and bring the best
+such a wild project and bring the best mobile mobile experience to our players
+mobile mobile experience to our players and as for 10 hour people this
+and as for 10 hour people this partnership genetics lives deeply in our
+partnership genetics lives deeply in our blood we are the bridge and our job is
+blood we are the bridge and our job is to bring the tech and the art together
+to bring the tech and the art together in order to make things better
+in order to make things better and also because working together is
+and also because working together is more valuable and more fun than working
+more valuable and more fun than working in our own silo
+in our own silo especially when we are all working from
+especially when we are all working from home for more than a year now
+home for more than a year now i just hope to take this opportunity to
+i just hope to take this opportunity to encourage everybody to actively reach
+encourage everybody to actively reach out to each other
+out to each other even in the virtual format just like
+even in the virtual format just like this one we are all here in gdc
+this one we are all here in gdc virtually
+virtually these temporarily physical separations
+these temporarily physical separations won't be the reason we stop working
+won't be the reason we stop working together to solve difficult problems
+together to solve difficult problems i want to believe this
+i want to believe this and
+and we are not found
+we are not found when the pandemic is over we will be
+when the pandemic is over we will be able to hang out together again and come
+able to hang out together again and come to gdc together in person this time
+to gdc together in person this time lastly
+lastly and truly
+and truly one plus one is more than two we are
+one plus one is more than two we are better when together
+better when together so hope this presentation helps you all
+so hope this presentation helps you all either in your works pipeline
+either in your works pipeline game
+game or even working relationship with your
+or even working relationship with your team members and partners people around
+team members and partners people around you
+you let's make more awesome more fun and
+let's make more awesome more fun and more well-gained
+more well-gained thank you all
+thank you all stay safe and see you around
+[Music]
+you

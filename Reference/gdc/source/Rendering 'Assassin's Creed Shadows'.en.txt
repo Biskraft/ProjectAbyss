@@ -1,0 +1,1885 @@
+[MUSIC PLAYING]
+So welcome to my talk.
+I'm Nicolas Lopez.
+And today, we're going to
+talk about "A Sanskrit Shadows."
+So today is also the
+launch date of the game.
+And you have no idea what it means for me
+to be here for this special day.
+We made it.
+[APPLAUSE]
+Thank you.
+[APPLAUSE]
+So I won't ask you
+who has played the game.
+I guess nobody yet.
+But I want to take a minute
+to thank the whole Enville
+rendering team.
+They've been awesome.
+And we made a ton of tech.
+And a lot of it is missing in this talk,
+because it would have been a day long.
+I also want to thank the "A
+Sanskrit Shadows" production
+team.
+And everything discussed
+today is really a team effort.
+So first, if you want to find me online,
+this is probably the photo
+you want to take with Twitter,
+Blue Sky, and Mr. Noor tags.
+And these are some of
+the games that I worked on.
+And I will show a trailer of the game to
+give a bit of context
+to this talk.
+How can we build a land of peace
+on the backs of 1,000 dead?
+You'll have to kill them all.
+Do you understand?
+[MUSIC PLAYING] Huh?
+Fight for what is right, for
+the freedom to seek justice.
+Together, we will be unstoppable.
+[MUSIC PLAYING]
+So today, I'm going to
+introduce you to the Envil engine,
+or reintroduce you to this engine.
+Then I will dive into
+"A Sanskrit Shadows"
+and some of its rendering pillars.
+And finally, I will talk about our
+approach, scalability,
+and performances in
+this game and in the engine
+before concluding this talk.
+So let's start with Envil.
+So Envil was born with
+Assassin's Creed 1 in 2007.
+Actually, 2004, if you
+consider the development time.
+It's an engine designed for large
+systemic open worlds
+and long-range rendering
+and systemic gameplay as well.
+So Envil is mostly known for being used
+in Assassin's Creed,
+but it has also shipped
+many other big franchises,
+such as "Gustricon," "For
+Honor," and "RnB usage."
+And you probably wonder what a
+competitive FPS, a meteor
+shooter, and an SS screen are in common.
+And me too.
+It's complicated.
+So over time at UVsoft, we
+developed many variations
+of forks of the same engine.
+It all started with C-meter, the
+Assassin's Creed engine.
+Then it forked into "Blacksmiths,"
+mostly known for "RnB
+usage," and "Silix,"
+and that is well-known
+for "Gustricon open worlds."
+So eventually, we
+made several observations
+that will change the
+way we work at UVsoft.
+We had so many engines at UVsoft between
+Envil, Stodrop, Dunia,
+Voyager, UB, Art, and I'm probably
+forgetting many more.
+But we also had too
+many forks of each engine.
+Like you see, there
+were three for C-meter,
+the same amount for Dunia, and even more.
+And so it led to a multiplication
+of effort and developments.
+And we started
+realizing that big developments
+have a long life.
+It takes multiple years
+to develop big systems,
+and they can survive up
+to a decade in a code base.
+So we don't have many opportunities
+for fully right of big systems.
+And ultimately, we believe the
+multiplication of efforts
+made us less competitive.
+So working on the same
+feature or system in so many engines
+didn't make sense really anymore.
+So today, when we work
+with Envil as a shared engine
+across multiple
+games, genres, and brands,
+we work in a monorepo,
+one single code base,
+and our teams are
+scattered across the world
+between the tech teams
+and the production teams
+working all together.
+So now, let's dive into
+our SaaS code shadows.
+So when we started working on shadows,
+Valle had just shipped
+and was our benchmark
+for open world AC RPGs.
+AC shadows would be
+the first truly next-gen
+essence-free game.
+So Valle was a cross-gen
+title with little scalability
+already.
+Quality and performance mode
+had two very similar frames.
+And the main driving
+factor for scalability
+was its standard resolution.
+As you can see on Xbox
+Series 6 in 4K native,
+we were only using barely above 20
+milliseconds of the GPU
+at 30 FPS.
+So looking at this, when we
+started working on shadows,
+we knew we wanted to push the scalability
+to the next level.
+So what is the scope of shadows?
+So it's made with Envil, obviously.
+It's 16 by 16 kilometers open
+world and has a time of day.
+So far, so good.
+It's Valle alone.
+Then it has also massive
+destruction, retressing,
+virtual geometry, and I'm not finished.
+Also, systemic weather and seasons.
+And I swear I don't
+work for this guy here.
+But when I saw this list
+at the start of the project,
+I probably made the same face.
+So it turns out it wasn't so crazy
+because we shipped it.
+And here, you can see various dimensions
+of this complexity with
+time of day, systemic weather,
+and seasons with the winter.
+So in another view of the same thing
+with a different time of
+day snapshots, some weather
+states, and finally, the four seasons.
+So AC shadows is a Gen
+5 only title, as I said.
+And we have three modern consoles
+between performance,
+balanced, and quality modes
+with various target
+resolutions, as you can see here
+in this spreadsheet.
+We decided very early in development
+that retressing would be
+favored in quality modes.
+So now let's dive into rendering.
+Envil is built for long-range
+rendering from the ground up.
+The world is partitioned in cells,
+and the engine is built for
+multi-user editing in mind.
+The data itself is
+organized as streaming grid layers.
+We have several of these
+grids, and their definition
+is fully data driven.
+So this is, as a large
+summary, how the grids organized
+in our AC shadows could be
+different in any other game
+with our engine.
+In a nutshell, we have what we call
+LO-degrades with the short-range main
+grid and long-range grid.
+And the difference
+between these is basically
+most of the assets
+will go to the main grid.
+Short-range will have many props that
+can disappear closer to the player
+because they don't really
+matter for the general rendering
+and gameplay.
+And the long-range rendering is mainly
+for big assets or point of interest
+that we want to retain
+for a longer distance.
+So loading grids can be
+specified at the entity level.
+And the distances are driven
+by what we call LOD selectors.
+And they are
+constrained by loading grids.
+So you have to have them matching,
+otherwise you could
+have objects disappearing
+with the wrong setups.
+And so beyond the LO-degrades, we
+have the fake entity grid
+that contains decimated assets
+and aggregated assets.
+Can go up to four kilometers.
+And above that, we have
+what we call point clouds.
+That is our mass imposter rendering
+and renders until eight kilometers.
+And finally, above that,
+beyond eight kilometers,
+you will only have the
+terrain vista with many details
+baked into it.
+So here you can see the
+naked terrain of shadows
+with absolutely nothing.
+Then we have the LOD
+meshes, so the short, main,
+and long-range grid.
+And finally, the fake
+entities and point clouds.
+So in reverse order, we
+have the fake entities
+that are not supposed
+to be seen that close,
+then the corresponding LOD meshes.
+So I mentioned our point cloud renderer
+that is a mass quad renderer that we
+use to render trees up
+to eight kilometers away.
+This is without it.
+This is with it.
+So I will go back and
+forth because with the fading,
+it can be hard to see,
+but it's really everywhere.
+And this is a debug view to
+show the amount of imposters
+around there.
+It's really like a
+lightning-fast quad renderer.
+So GPU-driven pipelines
+have been the cornerstone
+of Nvil in Assassin's
+Creed Unity in 2014.
+It shipped many games and went through
+multiple iterations.
+From left to right,
+Unity introduced GPU cluster
+culling and indirect draw calls.
+In the middle, Valala
+pushed this even further
+with mass instancing and batching.
+We added the support
+for virtualized geometry.
+So in AC Unity, the batch
+renderer, as we call it,
+was a DRX11 class API
+GPU-driven pipeline.
+I said it.
+The main goal of the batch renderer
+was to reduce the cost of
+expensive DRX11 draw calls.
+But it relied on
+multi-dram indirect for that
+to cull and render cluster meshes.
+And it introduced fine
+culling at the instance cluster
+and triangle level.
+So the batch renderer had still a
+significant part of it
+still on the CPU.
+It didn't support by less textures,
+which limited the amount
+of batching we could do.
+And it was only really
+per-material batching.
+And it also didn't
+support the same computes,
+as you can see in this capture.
+So it had a
+significant cost in was delaying
+the render of the meshes.
+So this one version of our GPU pipeline
+is called the GPU
+instance renderer or GPU error.
+It is designed for DRX12 class APIs.
+It is fully mindless, and batching
+is now performed
+per-shutter instead of per-material.
+And the GPU error
+performs batching at low time
+and is designed to cull millions of
+instances per frame.
+As you can see, many more
+steps were moved from the CPU
+to the GPU with this new pipeline.
+And to achieve that, the GPU error
+relies on something we called database.
+So I know what you are thinking.
+Where am I now talking about database?
+But it's not what you think.
+Database is a
+container for data structures
+that can be shared
+between the CPU and the GPU.
+It follows data-oriented design with a
+referencing mechanism.
+I think of it as a
+super-structured buffer,
+really.
+We rely on shader input
+groups, or SIG, as we call it,
+our internal compiler for shader bindings
+to generate all the upper
+functions and the binding
+code.
+So we augmented this SIG
+language to also declare tables.
+So in the context of
+the GPU-driven pipeline,
+database is used to share
+the full scene description
+between the CPU and the GPU.
+And we use database analogies--
+it's where the name comes from--
+to structure our data.
+In this example, for an
+example, a row my object
+is just the equivalent
+of a pointer to my object.
+So this is an example of how
+we declare a table in our SIG
+format in the top.
+And how we access the
+same numbers in C++ and HLSL.
+All the interface,
+again, getters, setters,
+are generated.
+So it's very easy to manipulate.
+You don't have to write that.
+One of the key features of database
+is the support of relations.
+Relations link different
+tables between each other.
+So a one-to-one relation
+is the database equivalent
+of a pointer, really.
+While a one-to-one relation is an
+extension of this concept,
+and it simulates a
+pointer with a size for an apple
+to point to multiple children.
+And now you see where I'm going.
+We are going to be able to have a full
+C++-like description
+of mesh relations and properties.
+So different table instances
+on the CPU and GPU storage.
+And we support a
+different mode of data application
+to ensure that the data is
+propagated from one instance
+to another.
+And it's generally from CPU to GPU,
+but you can do more than that.
+So we have the copy mode
+that is the most simple one.
+And we'll copy the whole
+data from the CPU to the GPU
+into a byte address buffer.
+Then we have a dirty row
+and dirty pages update.
+And this maintains a
+dirty mask at the row
+or the page level.
+And it replicates
+dirty rows or dirty pages,
+following what you decided to
+do, to the destination table.
+And finally, for very large tables
+that we don't want to
+store fully on the CPU,
+because it would saturate the memory,
+we have a mode where we only
+store dirty rows on the CPU
+until they are flushed out to the GPU.
+So this is what our scene description
+looks like on the GPU.
+And it's quite close
+to the CPU presentation.
+It's not identical, because we don't
+need exactly the same parameter.
+So we optimize it.
+But you see, it could be the same.
+We could have a similar thing on the CPU.
+In a nutshell, CalMesh
+has up to five loads.
+And each load has two LOD
+distances, one for the menu view
+and one for shadows,
+two LOD customization
+for shadow LOD distances.
+And the association of
+geometry with the PSO
+is made at the sub-mesh
+level with a batch hash,
+as we call it.
+We make sure we only
+have one batch per PSO,
+so they are absolutely easy to duplicate.
+And this is how we declare
+all that with tables in SIG.
+So it really looks like
+structure buffers, really.
+And each table are linked
+by row and range relations.
+So if we zoom out even
+more, you see the previous slide
+is in the little
+square at the bottom right.
+Now we want to focus on leaf
+nodes and Cal instances here.
+So we also see the world
+is organized as a core tree.
+And to achieve good Caling performances,
+it relies on hierarchical
+structure made of entity groups
+and leaf nodes.
+And leaf nodes really
+is a group of instances.
+And probably we should
+rename it in the engine.
+So we gather instances that are
+especially close to each other
+in the same leaf node to
+minimize their burning volumes
+and to make core scaling more efficient,
+because this step is done on the CPU.
+In terms of code, this
+is roughly the lifecycle
+of tables.
+So first we declare CPU
+tables and GPU tables separately.
+Then we populate tables.
+In this case, we create a
+mesh entry in the Calmesh table.
+And we set various
+properties to this mesh entry.
+Then eventually, we'll
+trigger an update of these tables
+to the GPU.
+So I don't show the
+underlying code behind that.
+But it's an implementation of the
+replication policies
+I described before.
+And finally, on the
+GPU, we fetch this data
+and use it as we like.
+So the interface is very C++-like.
+But it also maintains
+maximum cache efficiency
+in data access patterns.
+Because we can use
+annotations with this language
+to decide if a table
+is a structure of arrays
+or of structures and
+even do mix and match.
+So really, database is a sort
+of a super structured buffer
+that I would like to have in the ethics.
+So finally, this is what the entire GPU
+and central hardware pipeline looks like.
+And I would like you to
+the GPUs and three articles
+if you want to have all
+the details about that.
+But I will still describe
+the most important ones.
+Because there are some steps that are
+very specific to our engines
+anyways, like maintenance code.
+So on the CPU, there is
+a course for some calling
+to call leaf nodes,
+basically group of instances,
+as I described.
+On the GPU, if you look
+at the two next columns,
+there is frame culling
+and per-pass culling.
+So the frame culling culling instances
+that pass the CPU
+culling against all the view
+frustums of all passes.
+And then a lot of this
+selection and blending logic
+is also performed at this stage.
+The per-pass culling performs
+pass-specific frustum
+and depletion culling.
+And for example, for sun shadows,
+we do anti-forsum culling per cascade.
+It also prepares instance data that
+is required by the
+vertex shader and pixel shader
+to access geometry and
+material data for a given instance.
+Because we work with
+unified buffers and for vertices
+and also for materials and constants.
+So we need to maintain a form of
+description for that
+to know where to access the data.
+And finally, at runtime,
+we support optional cluster
+and angle culling before the
+final is continued to occur.
+So additionally, to the
+GPU instance renderer,
+we did support for micro
+polygon geometry pipeline.
+It's based on the night from Brian Caris.
+It was presented in 21.
+It's an evolution of discrete cluster
+mesh pipelines, really.
+In this pipeline, a mesh
+is made of cluster hierarchy
+with continuous level of details.
+So we stream clusters individually
+based on their visibility.
+And polygons are
+either hardware or software
+asterisked based on their size.
+So micropoly is used for G buffer and
+shadow rasterization.
+And in this pipeline, geometry takes
+roughly half the memory
+of the same geometry in a GPU layer.
+It's just similarities
+with other techniques.
+For example, we use
+the same Metis library
+to perform cluster partitioning.
+We either use mesh shaders or software
+asterisked depending
+on the triangle size.
+It also has two-pass
+hierarchical buffer gludent system.
+It renders different
+materials from a visit to buffer
+to a G buffer.
+And also, clusters are
+made of 128 triangles,
+as opposed to 64 triangles for older
+GPU-driven pipelines,
+such as AC Unity.
+So some differences, though.
+In our case for mesh simplification,
+we still rely on SimpliGol
+to generate the cluster group
+simplification.
+It does a good job at that.
+We support user custom
+code shaders with manual API
+to allow for custom shader
+code in the shader graph.
+Our pipeline is also fully mindless,
+as it is with the GPU instance renderer.
+And during software asterization,
+one thing we did as well is
+to swap X and Y coordinates,
+depending on the triangle configuration.
+So basically, if it's
+horizontal or vertical,
+to improve branch currency.
+Because this algorithm
+basically performs scanlines,
+algorithm to asterisk
+the triangle in software.
+And usually, it's performed horizontally.
+But if you end up
+with a vertical triangle,
+flipping it would improve
+branch currency and workload
+balancing.
+So some stats.
+We currently only support micro-polynom
+for static opaque geometry.
+In this game, it's really
+the main city architecture
+and static geometry renderer.
+And GPU instance
+renderer on the other side
+is our massive
+alpha-tested vegetation renderer.
+So in Q2, we have around 28,000
+micro-polynom instances
+for 34 million triangles rendered.
+And as you can see, in this precise case,
+90% of the triangles are
+software-authorized.
+But this, of course,
+depends on your geometry,
+the session level, and
+also the render resolution
+that will change the coverage of pixels
+you can have per polygon.
+For the GPU instance
+renderer, in this scene,
+it's mostly trees.
+And we have around 9,000 instances
+spread across all passes for
+close to 2 million triangles
+with it.
+So the reverse scenario now in a forest.
+Micro-polygon is less
+solid city in this scene,
+as you can imagine.
+But it still renders
+some buildings and rocks
+here and there.
+I'm actually standing on a building here.
+And it's really the GPU instance renderer
+doing the heavy lifting in this forest.
+So we have-- we cut 3
+million instances to finally
+render 30,000 of them.
+And the scene before
+culling has 1.5 billion triangles.
+And we're rendering 7 million of them.
+So really, we had no pressure to support
+alpha test with a micro-polygon,
+even if it's definitely something we're
+going to do in the future.
+So now let's dive into my favorite topic,
+global illumination.
+So let's be in the first
+class citizen in the SSSCUBE games
+and also in my heart.
+In AC Unity on the left, we developed
+volumetric open world
+GI.
+In AC origins in the
+middle, we made it sparse
+to adapt it to very large open worlds
+like 16 by 16 kilometers open world.
+And finally, in shadows, we
+had to support for seasons
+and also developed a new
+ray-tressed global illumination
+pipeline.
+So for shadows, we
+targeted a scalable GI pipeline
+from the beginning.
+We know ray-tressing is costly.
+And we didn't want to
+sacrifice other parts of the game
+to ship it at all
+costs, especially at 60 FPS.
+And moreover,
+considering the hardware landscape,
+it made sense to give
+more choice to the players.
+And we can see it's
+generally well received
+to give this choice.
+Our GI pipeline is more of a spectrum
+going from fully
+baked diffuse and specular
+to ray-tressed
+diffuse and specular again.
+So ray-tressing can be
+either rendered in hardware
+and software with compute shaders.
+And there is one
+special case in this game.
+We have the hideout that is a fully
+dynamic kind of SIM CT
+construction.
+And it requires ray-tressing,
+otherwise it will have no GI.
+So the first version of
+our baked volumetric GI
+is from AC Unity.
+It was baked on the
+GPU using ray bundles.
+And I will refer you to
+the great talk of Josh Opson
+about inter-acalating in God of War.
+It's based on a work done in ACU,
+and it describes very well the pipeline.
+The main difference with
+Unity is the overall structure.
+So the stem went
+through multiple iterations.
+For example, we didn't
+support time of day at first.
+It was added later in an SGM syndicate.
+So in AC Unity, the world was covered
+with a uniform mipmap
+to radiance volumes.
+And mipmaps acted as a level
+of detail at further distances.
+It didn't support
+dynamic time of day, as I said,
+and it was faked with
+four fixed static ambiances.
+Later, syndicate
+added dynamic time of day
+by blending between
+two fixed GI keyframes.
+So as you probably know, ACEN script
+pivoted to more RPG-like experiences
+with larger open-world
+games since our agents.
+And if we naively extrapolate numbers
+from Unity or syndicate,
+we see that the tech
+GI technique would never
+have scaled to 16 by 16 open-world games.
+And you can see it would
+have made up to 500 gigs.
+If we push this even
+further, shadows adds four seasons.
+And now we're close
+to two terabytes of GI
+and over 600 days of bake time.
+And even if we consider we
+have an infinite computing
+farm, which we could have today with
+Google, Microsoft, Cloud,
+and everything, we
+still have to make the space
+on the Blu-ray for this.
+So we had to do something about it.
+So the first thing we did
+was to shift to a CPU processor
+backend, and for several reasons.
+The GPU baking requires a lot of VRAM,
+and memory cliff was a
+real issue, especially
+at the time of origins.
+And there are also less variations
+due to drivers and
+diverse GPUs on the build farms.
+And it makes our inputs deterministic
+so we can know exactly what
+to bake and what not to bake.
+So it's faster to dispatch
+because less work is performed
+on the local machine.
+And we also introduced
+the concept of a density map
+and sparse probe placement.
+So in bake GI solutions,
+textile and probe density
+is everything.
+It's really where the details come from.
+But it doesn't need to be
+uniform across the whole world,
+and this is the key to saving space.
+So we use a density map
+to paint the GI resolutions
+where-- to ensure we have
+the right amount of details
+where it matters the most.
+And with this, only a fraction of the map
+is at the resolution of
+older games, such as Unity.
+AC Unity had 50
+centimeters of access everywhere
+in the world, whereas
+in this map, you can see,
+it's only the blue areas, many cities,
+that are at this resolution.
+But these areas are
+still larger than the areas
+of those games, previous games.
+So data is still too big.
+So what can we do to address this?
+So to further decrease
+the size of the bake GI,
+we distribute probes
+in a sparse of three.
+And another is subdivided
+only if it contains surface.
+We also discard probes
+that are inside geometry
+to save even more space.
+And in average, we
+end up with roughly 10%
+of the probes we would have with a
+uniform distribution.
+So to support time of
+day, we store 11 key frames,
+1 for local lights, and 10 for different
+positions of the sun.
+Yeah, as I said, it's a free data driven,
+so you could imagine you
+have more for your needs.
+We store the sun, the local
+lights, and sky separately
+in a YCOCG format.
+And so the Lumen value is--
+the Y value, basically,
+is directional and stored
+as very calorimonic.
+Well, the chroma values are scalar.
+And for seasons, we aim at a
+minimal bake size overhead,
+even though we have to
+bake the GI multiple times.
+So we made two assumptions that we know
+are fundamentally wrong.
+First, spring and summer
+will be the same season
+as far as inter-clating is concerned.
+And to be honest, it's
+not such an approximation
+because the LBDOs are almost
+identical, if not identical.
+And the variation of these seasons
+comes more from asset
+changes and fog and weather.
+And second, the Lumen
+remains the same for all seasons
+and is stored only once while we store
+separate chroma values per season.
+It's clearly an approximation.
+If you want to break it, you can break it
+because there can be
+mismatch between Lumen chroma values
+for an upper-level
+geometry changes between seasons
+or doesn't exist in each season.
+But in practice, many vegetations
+are heavily affected by seasons.
+And problematic
+geometries can be flagged out
+and skipped in the bakes.
+So a tech artist can just remove
+problematic objects.
+In practice, we
+didn't have many problems.
+So at runtime, sparse voxels are inserted
+in a cascaded 3D volumes.
+So those cascades are uniform
+with sample uniform cascades
+at runtime.
+So it goes through a decompression step
+to make the sparse data not sparse
+and then it's inserted in cascades.
+So we perform cross-cascade blending
+and in place GI block LOD blending
+when the block is loaded to avoid
+popping with new LODs.
+So on the left, we had the
+discrete GI grid of GI block,
+as you can see in AC Unity.
+And the midmaps are loaded
+stream with the view distance.
+So in a discrete fashion,
+exactly as we do for distance
+based 2D structure streaming.
+It's exactly the same
+thing, but with 3D volumes.
+And it worked well.
+Honestly, the game was beautiful.
+On the right, it's the sparse
+GI blocks that are inserted.
+It's in a cascaded GI
+volumes to create a much more
+continuous level of detail.
+So for some numbers, here in the back,
+you can see that a stage
+of the bake for AC shadows
+is a top left of the voxels.
+Bottom left shows the
+cascaded grids density at runtime
+and the final rating at the bottom right.
+So as I said, if we had
+followed an approach similar
+to a sense of unity, we would have
+ended up with two terabytes of GI data.
+So it would really
+have blown up the space.
+But in the end, we end
+up with roughly 9 gigs,
+many relying on the
+density map and the sparse grid.
+So for some results, as you can see,
+we didn't go for full
+exactitude or accuracy.
+It's clearly an approximation.
+But in the end, it gives
+a plausible and believable
+results.
+And we are pretty happy with it
+considering the size.
+So for specular reflections,
+we use in the following order
+screen space
+reflections, relatable GBFR Q-maps,
+and a dynamic Q-map
+at the player position
+to act as a regional
+Q-map, as a full bake.
+So GBFR Q-maps are not something new.
+We provide albedo, normal, depth,
+and dynamically read it at runtime.
+Shadows are also baked in these Q-maps.
+And to do so, we store eight key frames
+in the eight-bit
+texture, one bit per key.
+And then at runtime, we
+select two key frames closest
+to the current time of day,
+and we blend them accordingly.
+It works very well.
+It's surprising.
+It's a nice trick.
+And really, because the Q-map's
+resolution is not so high,
+you don't even see there is no filtering.
+For seasons, we use what
+we call variation states.
+And variation states allow for
+data-driven game-specific logic
+at the entity level, and we
+use it mainly for seasons.
+In practice, we store
+three variations per Q-map,
+and I will remind you
+spring and summer are considered
+the same for inter-acclating.
+In total, we have
+16,000 Q-maps in the game.
+So it's a city.
+And I'm not counting the variations.
+So not all of them have variations.
+There are some interiors where we can
+keep having for an upper
+low inter-variation, but most do.
+Our dynamic Q-map is
+written to be very, very cheap
+to render fake entities,
+so basically decimated,
+aggregated level of details.
+And it uses lower resolution for shadows.
+And as you can see, a
+comparison on the left
+with the dynamic Q-map on the right
+is the same local
+Q-map, the same position.
+And they are pretty close.
+So finally, just to show some variations
+of some local Q-maps
+to see why there's a spectrum of what
+we can render with it is.
+So now, as I said in the beginning,
+we're also super-retressing.
+It was a big development in our game.
+And we are particularly inspired by the
+work done by the Standrup
+folks at Ubisoft.
+And we decided to follow a similar design
+for varying inline retracing and
+supporting both hardware
+and software retracing.
+But we are lacking data to back this up.
+And we weren't sure
+if it would fly or not.
+So we wanted to keep our options open.
+And for this, we went
+for complete abstraction
+of inline and inline
+software and hardware retracing.
+So our retracing stack is abstracted
+under hardware abstraction layer
+that we call Fusion that
+is shared at Ubisoft across
+multiple engines.
+And it's developed
+following an insourcing model.
+So this library is
+basically in our internal GitLab.
+And following the insourcing model,
+we can contribute and make
+it better for many projects
+at Ubisoft.
+So we developed a unified retracing API
+to abstract platform-specific APIs, which
+is fairly common, I think.
+But also hardware and software retracing,
+primarily as common,
+and inline and non-inline.
+So we wanted switching back and forth
+to require minimal effort.
+So on the right, in the green square,
+you can see our retracing
+loop with a callback interface.
+And in more details,
+this callback interface
+serves as inline and
+non-inline abstraction.
+When using inline retracing,
+depending on the high-cry state,
+it will invoke the corresponding
+callback, so heat, any heat,
+and miss.
+And so it's the
+responsibility of the user
+code to write these
+callbacks as if they acted
+as the different shader stages we get in
+a non-inline retracing
+code.
+So in the case of
+non-inline, you can do the same thing.
+You can just call the same callback
+in the corresponding shader stage.
+So for an app in the mid shader, you
+will just call the
+same function and so on.
+But of course, for
+each shader, you probably
+want to use shader tables.
+Otherwise, you
+wouldn't be using non-inline.
+But for us, we think it's
+very practical in practice,
+because switching back and
+forth between the two pipelines
+can help validating assumptions, testing
+new functionalities,
+and seeing what works best for your game.
+In terms of C++ code, switching between
+software and hardware
+is super easy, simply done with an enum.
+And actually, we even support CPU
+retracing the same way
+on some platforms.
+And the difference to set up inline and
+non-inline retracing
+is also minimal.
+I showed in the bottom some code.
+Probably we'll read it at home.
+Read many comes to setting
+up the shader table, really.
+So our hybrid retracing
+GI combined two steps.
+First, there is a per-pixel retracing
+made of a screen space
+rays and workspace rays.
+And a DDGI-like probe
+cascade made of five cascades
+for a total of 10,000 probes.
+And we update 1,000
+probes per frame, more or less.
+So our retracing hits are
+stored as a set of PBR properties
+in a retracing G buffer.
+And then we relate the
+hits in a defilating pass.
+So this is what our
+retracing pipeline looks like.
+So we first trace
+similar rays in a screen space.
+And this acts as an acceleration,
+because everybody knows
+hardware rays are very expensive.
+So we want to avoid using
+them without any approximation
+without them in the screen space.
+So if we find a hit, we
+store it in the hit buffer.
+And if we don't, we keep
+this ray with the same T value.
+And we fall back to workspace retracing
+that is basically tracing with other
+hardware rays the BBH.
+So continuing the T value and continuing
+stepping in a world.
+So all those hits end up in a hit buffer.
+Then we then relate in a
+hit-lating pass in defilter.
+And if there is no
+hit for the given pixel,
+then we'll trigger a miss event and
+sample a probe cache.
+So this gives us the
+first bounce, basically.
+And to get the subsequent bounce,
+we sample the DDGI
+cascade to bring back the rest.
+So then everything is denoised.
+And we can add an optional
+RT-AO term, as I called it.
+That is artistic driven.
+And that is specular if
+it's available to produce
+the final image.
+So you will ask me, why do we add AO-D-R,
+because it's supposed to be
+part of the light integration.
+So there are multiple
+good reasons for that.
+First, we sum two systems
+with different frequencies
+with perfect cell rays,
+but also with red resprobes.
+And so red resprobes can
+attenuate some details,
+especially in AO.
+We also trace rays at
+quarter resolution in screen space
+on most platforms to add performances,
+so we can lose F frequency details.
+And finally, there
+can be some disparities
+between the raster world
+and the red tracing world.
+For example, we don't have the grass in
+the red tracing world,
+because again, for first reasons.
+So if we reapply some RT-AO at the end,
+you can see-- I go back and forth--
+it helps a lot the large
+objects, like houses, trees,
+and so on, to run them to the frame.
+And we also still
+evaluate very subtle SSO terms
+to make up for the fact
+that we trace in quarter rays
+and bring back centimeter level details.
+And you can see, when I add this term,
+it helps a lot--
+the crown and the leaves and so on.
+So this is the final image.
+So our acceleration
+structure works as follows.
+We support both band-less
+textures or average color
+for metal textures, for
+example, for very low end platforms.
+We can measure by size or type.
+And we use a global
+LED offset to determine
+what to put in a BVH.
+And for micro poly, we base the section
+on a LED error metric
+to output proximations, as was
+mentioned by NVIDIA yesterday
+for these techniques.
+It is the best way to do it currently
+without mega geometry
+or these kind of things.
+So of course,
+everything can be overridden
+per asset or per
+material to address local issues
+or if you want more details locally.
+So this is an example of our acceleration structure. At the top right, what we shipped in shadows with band-less textures.
+At the bottom right, the G
+overhead, everything was
+already available because
+of our GPU pipeline.
+But we ended up with
+either one of these two issues.
+So if we want a precise result, any heat
+is very costly with many overlaps.
+So it's a bit of a deal
+breaker in the kind of forests
+we have in the game that are stylish.
+And if you try to limit number of hits,
+then you end up with
+way too much occlusion.
+And we've tried things like trying
+to compensate for that
+only in the vegetation,
+but we are not satisfied.
+It's more of a hack.
+So in the end, we set up for another way
+that we think is a bit--
+we didn't believe in it, but we tried it,
+and it worked very well.
+So basically, we scaled triangles
+according to the average opacity,
+as you can see in the bottom right image.
+And in practice, it's 30%
+faster to trace than any hit.
+And the diffuse GI
+looks actually quite close
+to the reference.
+And it works very well in practice
+because closest hits are
+resolved in screen space,
+and this is really accurate.
+So you get the best of two worlds,
+pixel-perfect result for screen space,
+and you have all the layers of
+consistency at the same time.
+And as a bonus, it's a
+very good approximation
+for specular retracing
+as well, even though you
+are undoing disconnected sets of
+triangles for leaves.
+So because we use inline retracing,
+we rely on the Yuber shader
+approach for retrace materials.
+And to be honest, I panicked a bit
+when I watched the
+Capcom talk about remapping
+shadows with JSON files.
+So I was really hoping we
+wouldn't have to do that,
+and we didn't because at Ubisoft, we
+are very strict with the
+shader variety and management.
+We have a Loomaster,
+Master, shader count,
+and it's mainly for
+GPU-driven pipeline reasons
+who want to reduce
+the number of executing
+direct we have to do in the frame.
+So in the end, it was relatively easy
+to write a one-fist demo Yuber shader.
+But of course, there were
+some epic fails there always are.
+But as I said, it can be
+easily mitigated with overrides.
+You can override anything in the BVH, LOD
+machines, the material that reboot,
+shaders, everything.
+So as I said before, we
+use a unified representation
+of materials.
+They are stored inside the material table
+that we access with the
+hit geometry ID at a time.
+And seasons are handled with a material
+version in this table
+to account for fallen leaves to not
+create too much occlusion
+and also the use of fluke
+up tables for leaf colors.
+Differed weather is fully evaluated
+for specular
+retracing, but not for diffuse
+because it'd be too costly
+to evaluate it multiple times.
+It's probably something we are going to
+solve in the future.
+Static snow is baked
+in the terrain vista,
+so it's still accessible for diffuse.
+And this is what our assertion structure
+looks like for each
+season in the same scene.
+So in a typical urban
+scene, this is an Xbox Series 6.
+We end up with roughly 2,000
+blesses for 30,000 instances
+and a total of BVH data of 320 megs.
+It's bigger on PC, of course, because
+there are more things
+that play with the other abstraction.
+Our software retracing stack is very
+similar to Snowdrops.
+It's part of our
+low-level abstraction fusion.
+It is mainly aimed at
+lower-end platforms,
+so it's not something we shipped on a
+console for an ample.
+It's more like for very
+low-end PCs, like 1070s and so on.
+So it's structured as a three-level BVH
+that we also have tried
+to do in our low-level API.
+And relying on space
+partition to perform partial updates
+only when something has been
+loaded in a cell or an object
+is moving.
+So we still rely on indoor volumes
+to have a leak in interiors.
+And they are made on a list of planes.
+And it's the same data we use for big GI,
+but also for many other
+systems, such as deferred weather,
+but even sound.
+And they are used to classify probes.
+So at sample time, at
+the sample position,
+we find eight surrounding probes.
+And then we sample weighted probes
+with the same classification.
+Our light probes are convoluted into a
+near-radiance cache,
+pretty much as a DDGI from a maguire,
+and also as a radiance
+cache that acts as a fallback.
+And to stabilize the
+signal, we trace shorter rays
+and fall back to the radiance cache,
+which is top-level stable.
+And as you can see in the
+video, before and after,
+in a very challenging
+scene, because this many indirect
+elites and openings are
+very narrow, actually.
+The result with and
+without it is pretty telling.
+So the output is a bit less precise.
+And it's clearly a
+trade-off between a piece of perfect
+precision and stability.
+So for transducers, we stochastically
+fully-praise on translucent surfaces.
+And also, if a so-gadare ray eats its
+translucent surface,
+such as a sojitter--
+so a sojitter is a Japanese paper dough--
+we sample probes on
+both sides of the surface
+and blend accordingly
+using the translucent factor.
+So local lights are inserted in what
+we call an omnidirectional
+cluster, the lighting structure.
+It's based on a regular
+cluster lighting code.
+So this is something that is usually
+in every modern engine.
+And the main difference is
+that the clustered volume
+is mapped on a uniform
+grid around the camera.
+So you can see in this video the
+difference between frog cells
+here and the omnidirectional
+structure that comes after.
+So the difference is in this structure,
+we have a two-level hierarchy.
+We have I clusters and clusters.
+And I clusters contain
+16 by 16 by 16 clusters
+for a total of 260k clusters.
+And we first perform a
+coarse cluster culling and then
+a finer ganglion
+culling at the cluster level.
+So I discussed mainly ray-tress diffuse,
+but also support specular retressing.
+It was really a last minute
+effort at the end of the game
+after it was delayed.
+So it's a bit crazy.
+We managed to ship it, honestly.
+It follows roughly the same design as
+ray-tress diffuse GI.
+We mainly target ion
+platforms with it, so PS5 Pro and PC.
+It was a relatively
+easy development, honestly,
+leveraging most of the
+work we've done for diffuse,
+and we suffered to get it right.
+And we had to run many
+BVH quality issues that
+were not really noticeable with low
+frequency diffuse GI,
+but also denoising.
+So for denoising, speaking of denoising,
+we have three of them in the engine.
+We have a true denoiser that
+is similar to a SVGF family
+class of algorithm.
+We also have energy rebler from NVIDIA.
+And we have MSD from Sondrop,
+and this is what we shipped.
+So it is a special anthropological filter
+based on a recurrent blur approach,
+exactly like a blur.
+But what we do, we also
+support a material masking
+for characters,
+vegetations, and dynamic objects
+for specific heuristics to handle
+disocclusion challenges and so on.
+And we also support a
+spherical harmonics denoising.
+And for this, we store
+the signal in the YCOCG
+with Y being a spherical harmonics.
+So this is the raw output we
+get from ray-trace diffuse.
+This is after denoising.
+And this is with
+spherical harmonics denoising.
+So I'll go back and forth to show you
+how much of a difference it makes.
+Final lighting, and the final image.
+So this is with big GI, an entire scene.
+It's not too bad.
+This is with ray-trace diffuse, and this
+is with ray-trace specular on top.
+So I will go back and forth.
+Even though the scene
+is not very reflective,
+you can see ray-trace
+specular, apps, grounding,
+the whole image.
+So it sees the un-order
+with ray-trace diffuse,
+and now with ray-trace specular.
+You can see everything
+that is out of the store
+is still reflected properly.
+So for performances, the
+cost of our ray-trace probes,
+so basically, it's one
+millisecond on most consoles,
+except of PS5 Pro that
+has a better ray-trace
+scene performances and hardware.
+And for per-pixel ray-trace seeing,
+we are roughly around
+4 and 5 milliseconds,
+again, except the Pro.
+So we arrive at a total of
+between 5 and 6 milliseconds
+for diffuse.
+That is spread across the graphics
+queue and the ACQ.
+For specular, it's another story.
+It's quite expensive, and
+the main reason for that
+is because we shipped
+it at half resolution,
+so half divided by 2, but full height.
+And the idea was to ship it in half-race
+because it looked significantly better,
+and we had a budget for it.
+We still managed to maintain our target
+resolution on PS5 Pro
+because everything was a bit cheaper,
+and also we divided the
+cost of diffuse ray-trace
+significantly.
+So now about weather and seasons.
+We adopt a systemic
+approach for weather and seasons
+with Atmos, a sweet
+simulation, and an Amiens graph.
+Our ray and slow are
+rendered in deferred,
+and we also introduced the concept of
+multi-state entities
+that I mentioned before.
+So Atmos, we deserve a
+world talk by itself.
+It simulates and
+propagates atmospheric factors
+with a fleet simulation, such as vapor,
+temperature, humidity,
+and it collides the wind using
+low-resolution voxel data
+at runtime around the player.
+These quantities are
+fed to valve systems,
+such as volumetric
+clouds, to drive their formation
+and dissipation, but also wind and rain.
+And on the right, you
+can see some quantities
+that we simulate a
+function of the attitude.
+So in previous games, we relied mainly
+on an Amiens manager system, and we
+used it to drive time of day lighting
+features, post-effects,
+and so on.
+It's mostly made of
+curves and has limited logic.
+But for shadows, we
+developed an Amiens graph system
+that is based on our
+another graph system,
+and fully data-driven.
+The Amiens graph will
+consume inputs from the engine,
+from Atmos, and drive the whole weather
+incidence tech logic.
+And it's really tech art-driven.
+The tech art can decide who wants
+everything to behave.
+So our Defhard rain rendering
+is based on Sebastian Lagarde's
+Red Block Post series.
+It's very well known.
+We used to maintain our
+under-wetness and pedal
+level by darkening our bedoes and
+decreasing roughness based
+on wetness levels.
+So this is an
+illustration of how it works.
+In the first road, you
+have the final under function
+of the wetness and pedals.
+In the middle is the wetness mask
+that we store in a G-Befire.
+It's a single float.
+And in red is the
+things, many characters,
+that are not under-wetness system,
+because characters have
+a dynamic character layer
+system for this.
+So this is a step-by-step with a dry
+scene, then the wet scene,
+and then with the pedals.
+So also, snow is an
+important part of our game.
+And for this, we have
+first what we call deep snow.
+It relies on the data-driven stomper
+that we can stamp captures and textures.
+And we can use it to deform
+the terrain or any height map.
+So next, we have different snow with a
+dynamic accumulation.
+And it's like a Defhard rain, really.
+It works the same way and
+we define better inputs.
+And we have the concept of
+cold and warm zones driven
+by a static dynamic snow
+mask painted by a tech artist.
+So as I said before, the Defhard snow
+modifies the material inputs.
+So it laps albedos
+toward the snow albedo,
+and generally, it's white.
+According to the current snow level,
+it does the same for roughness.
+And it also lowers transducers and sees,
+mainly for vegetation, the
+higher the snow level is.
+Then we mask it out
+with micro visibility.
+And finally, you threshold it with snow
+based on normal
+orientation to simulate the fact
+that the snow doesn't
+accumulate on vertical surfaces.
+So this is the whole sequence
+of dynamic snow accumulation.
+What I don't show here is that when the
+snowstorm dissipates,
+the snow will slowly
+decay in the reverse of what's
+happening here, and then turn into
+wetness and puddles,
+and to finally melt and dry.
+And the logic is really
+driven by the Ampere's graph.
+It's doing everything there.
+So to exclude Defhard
+snow and rain from interiors,
+we use the same indoor volumes again
+from big GI and red-traced GI and so on.
+We rasterize them in an indoor depth map,
+and we use it to
+determine the occlusion factor
+when we play the weather.
+It's very cheap to
+understand the depth map.
+It's just planes, basically.
+For particles, we render the surrounding
+in a depth map orientated
+with the rain direction,
+and we use it to occlude
+the rain particles and rips.
+So basically, the rain particles can
+penetrate through a window
+in the interiors.
+So now we'll talk about
+how we approach scalability
+and performances.
+So mainly due to the fact that we ship
+different GI systems
+in performance and quality, our frame
+looks very different from in the normal.
+So to manage all that, we developed what
+we call the Platform Manager.
+And so we implement data-driven
+performance settings
+per platform and context.
+It's mostly but not only used for engine
+and graphic systems.
+And UI is auto-generated, and
+everything is live editable.
+So profiles are basically
+performance mode, quality
+modes, and so on.
+Profile settings
+require holding the world,
+while profile boot settings require
+relaunching the executable.
+And you can see some
+examples on the right.
+So Air
+Context is triggered by gameplay and can
+be found on the pull
+when you go to menus or photo mode
+or go back to the game world.
+And it's a way to fine-tune all the
+features and performances
+for specific scenarios
+you may want in photo mode
+due to crunk up your hair
+rendering for an example.
+Modifiers are triggered by data,
+and they can be painted
+or triggered by 3D volumes.
+And it's mainly to address
+localized performance issues
+or specific needs.
+Imagine you are in a cavern.
+It's very different from an open world.
+So you can maybe even
+disable some other systems.
+So to summarize, the Platform Manager
+is a first-class citizen in Enville.
+It's great for
+facilitation and profiling.
+And it's very useful to iterate with
+vendors according to them.
+So I trust them.
+We can simulate console
+settings in the editor,
+even though it's a bit limited.
+You cannot really
+anticipate what you will get,
+but you get the idea.
+So to track transport
+resources, we use two internal tools.
+We have a high-level view available
+to track resource
+lifetime and also find a memory
+peak in the frame.
+And we also have a low-level tool
+to inspect our allocators and debug
+for an Enville memory waste or
+memory-aliasing patterns that
+might be undesired.
+We also have a lot of
+telemetry in the game
+to track performance regression.
+And all these counters
+are stored in a database
+and everything.
+So there are a few
+examples to track, for example,
+dynamic resolution
+factor at the bottom right,
+given in every position
+possible in the world,
+compared to builds on
+PS5 to track GPU regression
+on the top right and so on.
+So to conclude, AC
+Shadows is the first game
+we shipped with a
+Monoray Po and a Shard engine.
+It's the largest AC game we've ever made
+and uses the most scalable
+version of Enville to date.
+So what would we improve?
+So we developed a lot of
+technology in this game,
+and we had to anticipate
+many things, like a poly budget
+and everything, to avoid--
+to where to be a bit conservative,
+to avoid having to rework
+all the assets in the end
+because we made a huge mistake.
+But in the future, we really want
+to use micro polygon even more, support
+it in more pipelines,
+and increase geometric details.
+GI-- big GI and retro GI is hard.
+It's really hard.
+It's good for players, but it's really
+difficult for developers.
+And so we really want to
+make Red Hat Sing more prevalent
+to simplify our life on our pipelines.
+But we think giving just
+to players is always good.
+And the game was insanely hard to QA
+with all these different
+time of day, seasons, and so on.
+And so the upscaler--
+the upscaler world is very fragmented
+and makes everything
+even more complicated.
+So yeah, I wish we could do
+something a bit simpler here
+in the industry.
+But I think it's time to
+rethink how we approach
+this complexity in general,
+QA, and also how we present it
+to the player.
+And finally,
+graph-based seasons and weather
+made it very easy to prototype and find
+the right recipe for the game.
+But again, difficult
+to QA and repo issues.
+And we think it's an idea
+that requires more iteration
+and maturity.
+But we definitely want to
+push frame modularization
+and customization further, especially
+in the context of a
+monorepo and a shard engine.
+So for some bibliography--
+and I will be taking some questions
+if we still have time.
+[APPLAUSE]
+[END PLAYBACK]
+Great talk.
+Thank you.
+Hello.
+I saw that recently you also
+launched for the macOS and iOS
+platforms.
+How different was to
+work on those compared
+to PCs and consoles?
+And basically, what tire do you order to
+assign those devices?
+So the scale of platforms is
+very large between M1 and M4.
+And low-end platforms
+were a bit of a challenge.
+But we managed to run it by
+really compromising things
+that are not necessarily things that
+would break the game
+on those platforms.
+I think the main
+challenge was working on the Mac
+environment, I think,
+to work directly in Xcode
+and these kind of things.
+It's always where I
+used to be in the studio.
+Also, it helped.
+We had software addressing, because I
+think it's what we
+shipped on the lower-end Mac.
+But I would have to check to be sure,
+because with-- I spoke
+about the platform manager.
+It's so dynamic that sometimes you
+strike on what you ship on what platform.
+But I think it's what we
+used for lower-end Macs.
+Thank you.
+Hi.
+Hi, great talk.
+Thank you.
+I would like to ask, I think for Nanite,
+this challenge is that the foliage is
+quite hard to compress.
+For Nanite?
+Yeah, for the cheese.
+Did you have any optimization to use
+micro-program for cheese?
+Actually, as I said, we
+don't support alpha test
+at the moment.
+And really, the main idea behind that
+is that we don't have
+any pressure to do it,
+because we have a
+super-efficient GPU-driven
+pipeline for alpha test.
+And as you can see, it renders millions
+of triangles with no problem.
+You see the forest we have.
+So we're like, OK, we're
+going to focus on opaque geometry,
+get it right, and after,
+we'll work on alpha test.
+But we know it's a challenge, and we
+want to take time to get it right.
+Cool.
+And my second question is that you
+have to support many
+platforms, like 33 milliseconds and 16
+milliseconds.
+Do you have a plan for
+the frame time budget,
+or just on my
+[INAUDIBLE]?
+The main issue was the
+difference between frames
+that didn't have RTGI
+versus frames that had RTGI.
+So performance mode and quality modes
+are two different frames.
+And so we tried to keep GPU
+scheduling as close as possible
+to avoid very specific bugs in each mode.
+It was a headache,
+honestly, and I think probably we
+won't escape having
+tailored scheduling per mode
+unless we try to bring
+back those frames closer.
+And there is also a
+challenge to work in a mono report.
+So there are different
+games in the same context.
+So anyways, we are going to need more
+customization for this.
+And we started having
+data-driven frame graph
+scheduling and these kind of things.
+We were a bit scared to
+push it a lot for this game.
+Cool.
+Thank you, sir.
+OK.
+If that's all, thank you.
+[APPLAUSE]
+[MUSIC PLAYING]

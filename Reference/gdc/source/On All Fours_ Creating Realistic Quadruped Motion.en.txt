@@ -1,0 +1,652 @@
+[Music] all right yesterday we learned that I
+all right yesterday we learned that I should have a picture of a cat
+should have a picture of a cat fortunately today I'm only gonna show
+fortunately today I'm only gonna show you dogs anyway my name is Tobias Carson
+you dogs anyway my name is Tobias Carson I work at Microsoft and today I'm gonna
+I work at Microsoft and today I'm gonna talk about corbels locomotion first a
+talk about corbels locomotion first a little bit of background for the past
+little bit of background for the past year or so I've been working on project
+year or so I've been working on project Fang which is about bringing a virtual
+Fang which is about bringing a virtual pet to the microsoft hololens however
+pet to the microsoft hololens however this is not a whole new specific talk
+this is not a whole new specific talk but some of our data will perhaps look a
+but some of our data will perhaps look a little bit peculiar and that is because
+little bit peculiar and that is because we're on the hololens so as I said we're
+we're on the hololens so as I said we're going to talk about quarter pet
+going to talk about quarter pet locomotion today but not just any kind
+locomotion today but not just any kind of quarter for locomotion the Canon of
+of quarter for locomotion the Canon of techniques I'm going to show you here
+techniques I'm going to show you here today are techniques that you're mostly
+today are techniques that you're mostly probably already familiar with and these
+probably already familiar with and these are also techniques that you work in any
+are also techniques that you work in any sort of kind of real time constraint
+sort of kind of real time constraint situation like a game or similar
+situation like a game or similar applications so first I'm gonna show you
+applications so first I'm gonna show you a video of what flying our dog
+a video of what flying our dog I should look like in a virtual
+I should look like in a virtual environment and this is essentially the
+environment and this is essentially the aspiration outward talk this is what we
+aspiration outward talk this is what we want to create in the end so here we got
+want to create in the end so here we got fine walking and in this environment and
+fine walking and in this environment and I hope you agree that it's a realistic
+I hope you agree that it's a realistic looking for a pet locomotion so how did
+looking for a pet locomotion so how did we do this first we generate a smooth
+we do this first we generate a smooth realistic clipping path for the dog to
+realistic clipping path for the dog to follow and as it turns out the quality
+follow and as it turns out the quality of the path is much more important for
+of the path is much more important for quarter pet locomotion than it is for
+quarter pet locomotion than it is for normal bipod locomotion and then we use
+normal bipod locomotion and then we use a mixture of procedural and canned
+a mixture of procedural and canned animations to create a realistic looking
+animations to create a realistic looking locomotion pattern at the end of this
+locomotion pattern at the end of this talk I'm also going to cover a few tips
+talk I'm also going to cover a few tips and tricks that we found very useful
+and tricks that we found very useful when we implemented or quarter pet and
+when we implemented or quarter pet and hopefully you will find it useful as
+hopefully you will find it useful as well first though a word about popping a
+well first though a word about popping a size so we use a paw finding radius on
+size so we use a paw finding radius on our dog that is roughly equal to half
+our dog that is roughly equal to half the dog's shoulder width this allows the
+the dog's shoulder width this allows the dog
+dog to park between obstacles that are quite
+to park between obstacles that are quite close together and however it also means
+close together and however it also means that the dog needs to follow the path
+that the dog needs to follow the path going straight going forward or
+going straight going forward or potentially backward along the path you
+potentially backward along the path you cannot move back and sideways or strafe
+cannot move back and sideways or strafe along the path this is obviously
+along the path this is obviously different from what we used to you will
+different from what we used to you will bipedal locomotion where we just used
+bipedal locomotion where we just used the projector in bounding radius on the
+the projector in bounding radius on the ground of the character and doesn't
+ground of the character and doesn't really matter which direction the
+really matter which direction the character is facing it will always be
+character is facing it will always be able to fit in on the path normally in a
+able to fit in on the path normally in a situation with this we need to take turn
+situation with this we need to take turn radius into account for the powerful
+radius into account for the powerful build fortunately for us though our dog
+build fortunately for us though our dog has a very good turning radius and
+has a very good turning radius and because we do the smoothing
+because we do the smoothing post-processing step on our path that
+post-processing step on our path that removes all the sharp corners and
+removes all the sharp corners and finally as it turns out in real-world
+finally as it turns out in real-world situations there just aren't any really
+situations there just aren't any really really nasty corners so this is what the
+really nasty corners so this is what the world looks like and the hololens this
+world looks like and the hololens this is the kind of mesh that the hololens
+is the kind of mesh that the hololens creates of the world as you can see it's
+creates of the world as you can see it's quite noisy if you squint a little bit
+quite noisy if you squint a little bit you may be able to notice that this is
+you may be able to notice that this is actually a living room there's a TV in
+actually a living room there's a TV in here a sofa and some other furniture
+here a sofa and some other furniture what's important to know about this mesh
+what's important to know about this mesh is that it's constantly being refined by
+is that it's constantly being refined by the hololens that means it's constantly
+the hololens that means it's constantly changing on us and even worse there's
+changing on us and even worse there's nothing preventing the user from just
+nothing preventing the user from just turning around looking in a completely
+turning around looking in a completely different direction and which you have
+different direction and which you have not looked before or just walking into
+not looked before or just walking into in different room which means that all
+in different room which means that all of a sudden this mesh can grow very
+of a sudden this mesh can grow very quickly and we need to be able to create
+quickly and we need to be able to create paths on the data on the fly pretty much
+paths on the data on the fly pretty much immediately so the way we do that is we
+immediately so the way we do that is we have a very simplified representation of
+have a very simplified representation of the poor finding data it consists of a
+the poor finding data it consists of a bunch of nodes each has a position and a
+bunch of nodes each has a position and a radius and then they are connected
+radius and then they are connected through a minimal tree this picture here
+through a minimal tree this picture here in the slide shows a example of some
+in the slide shows a example of some geometry that we have covered
+geometry that we have covered power finding data and you may think
+power finding data and you may think that it's a little bit unusual to use
+that it's a little bit unusual to use this kind of representation when we
+this kind of representation when we start off with a good mesh covering and
+start off with a good mesh covering and representing the world we wanted to do
+representing the world we wanted to do why don't we use in our mesh well the
+why don't we use in our mesh well the reason for that is first of all
+reason for that is first of all nominations are expensive to compute and
+nominations are expensive to compute and the raw data that we had is not suitable
+the raw data that we had is not suitable for doing polygons and so this
+for doing polygons and so this representation is very quick to compute
+representation is very quick to compute unlike denominator that's one of the big
+unlike denominator that's one of the big benefits the second benefit is that we
+benefits the second benefit is that we can do search of certain spatial queries
+can do search of certain spatial queries very effectively in this representation
+very effectively in this representation that would be much more expensive and
+that would be much more expensive and Paulo finding mesh so now we got some
+Paulo finding mesh so now we got some Pampanga data and we need to generate a
+Pampanga data and we need to generate a path so we start out by creating a rough
+path so we start out by creating a rough path using any star and then we optimize
+path using any star and then we optimize that path using string pulling and this
+that path using string pulling and this point this is generally where people
+point this is generally where people would say this is enough for my biped
+would say this is enough for my biped and we have a good path it's very
+and we have a good path it's very optimal path and will get us where we
+optimal path and will get us where we want to go Harbin for Korra paid these
+want to go Harbin for Korra paid these paths don't look very good and I'm now
+paths don't look very good and I'm now going to show you a video of Fang
+going to show you a video of Fang following one of these biped style paths
+following one of these biped style paths as you can see the turns become very
+as you can see the turns become very very sharp and that does not look very
+very sharp and that does not look very very good so we need to deal with this
+very good so we need to deal with this so we need to create a better path and
+so we need to create a better path and the way we do that is that we smooth the
+the way we do that is that we smooth the path but before we smooth the path we
+path but before we smooth the path we need to subdivide subdivide a path and
+need to subdivide subdivide a path and the reason for that is once we have
+the reason for that is once we have optimized the path the path contains
+optimized the path the path contains very few waypoints because it's an
+very few waypoints because it's an optimized powerful just take direct
+optimized powerful just take direct routes wherever we can and the number of
+routes wherever we can and the number of waypoints and segments of the path is
+waypoints and segments of the path is essentially the resolution of the path
+essentially the resolution of the path that we have to work with we'll miss
+that we have to work with we'll miss move it so this is the same motion but
+move it so this is the same motion but with a smooth path and as you can see
+with a smooth path and as you can see this makes a very large difference to
+this makes a very large difference to how would receive thanks motion so we
+how would receive thanks motion so we started smoothing thank or the pull off
+started smoothing thank or the pull off using a physics-based model what we
+using a physics-based model what we would have was a collection of spring
+would have was a collection of spring torsion springs to sort of even out the
+torsion springs to sort of even out the path and linear Springs to make sure
+path and linear Springs to make sure that the Tartan really loose its shape
+that the Tartan really loose its shape and then we would iterate over these
+and then we would iterate over these paths our these Springs as we simulate
+paths our these Springs as we simulate them and where the springs came to rest
+them and where the springs came to rest that would be our smooth path some of
+that would be our smooth path some of you may be already familiar with this
+you may be already familiar with this technique it's been used for creating
+technique it's been used for creating racing lines in racing games and this
+racing lines in racing games and this worked great for us most of the time
+worked great for us most of the time have a certain paths usually a little
+have a certain paths usually a little bit longer but not much longer like 10
+bit longer but not much longer like 10 20 percent longer than our average path
+20 percent longer than our average path would produce paths with Kingston Arts
+would produce paths with Kingston Arts in them and even if we increased our
+in them and even if we increased our number of iterations that we ran a
+number of iterations that we ran a simulation even tenfold these knots and
+simulation even tenfold these knots and things wouldn't necessarily be worked
+things wouldn't necessarily be worked out so we needed a better solution
+out so we needed a better solution and one of my colleagues Mark Lang Rex
+and one of my colleagues Mark Lang Rex suggested that we should think of off
+suggested that we should think of off smoothing as an optimization problem and
+smoothing as an optimization problem and the good news about optimization
+the good news about optimization problems is that there are plenty of
+problems is that there are plenty of well known algorithms out there for
+well known algorithms out there for solving optimization problem mark
+solving optimization problem mark further suggested that would use Shambo
+further suggested that would use Shambo port or Shambo for parks first or a
+port or Shambo for parks first or a primal-dual algorithm and this was a
+primal-dual algorithm and this was a great solution suggestion
+great solution suggestion Shambo Park was almost an order of
+Shambo Park was almost an order of magnitude more effective than the
+magnitude more effective than the physics simulation just due to passes
+physics simulation just due to passes over the data per iteration these are
+over the data per iteration these are very simple process well optimized code
+very simple process well optimized code no burnishing or anything and also a
+no burnishing or anything and also a shamble part worked well with
+shamble part worked well with constraints and the reason why we're
+constraints and the reason why we're concerned with constraints is when we
+concerned with constraints is when we did this moving we took each Waypoint in
+did this moving we took each Waypoint in the path and assigned it to a path on
+the path and assigned it to a path on your node and remember the Pawnee nodes
+your node and remember the Pawnee nodes had a position in the radius so we said
+had a position in the radius so we said that the Waypoint was not allowed to be
+that the Waypoint was not allowed to be moved outside its corresponding power
+moved outside its corresponding power finding node this had two big benefits
+finding node this had two big benefits for us first of all it reduced amount of
+for us first of all it reduced amount of movement for the waypoints and that
+movement for the waypoints and that meant that we can find a good solution
+meant that we can find a good solution quicker because there were less dynamic
+quicker because there were less dynamic things happening
+things happening a smoothing operation secondly it
+a smoothing operation secondly it allowed us to guarantee that the path
+allowed us to guarantee that the path that we created from his moving was
+that we created from his moving was still a valid path because all the
+still a valid path because all the waypoints were on valid path finding
+waypoints were on valid path finding notes so many getting back to
+notes so many getting back to optimization so many of my section
+optimization so many of my section algorithms they use Delta's between
+algorithms they use Delta's between their iterations and sometimes even
+their iterations and sometimes even tells us with deltas and if we were to
+tells us with deltas and if we were to move a waypoint back into a par find a
+move a waypoint back into a par find a node that had been moved outside during
+node that had been moved outside during an iteration that could create an
+an iteration that could create an infinite Delta so that would obviously
+infinite Delta so that would obviously spell troubles for your calculations
+spell troubles for your calculations Shambu Park does not have that problem
+Shambu Park does not have that problem because it just works on the data it has
+because it just works on the data it has with his current iteration it doesn't
+with his current iteration it doesn't keep any history now as I said Campbell
+keep any history now as I said Campbell Park is an optimization algorithm and
+Park is an optimization algorithm and what precisely is optimized is the
+what precisely is optimized is the output of two functions simultaneously
+output of two functions simultaneously on a set of data let's set a data in our
+on a set of data let's set a data in our case as the path now these functions are
+case as the path now these functions are called objective functions and in order
+called objective functions and in order for Shambu park to deliver on the
+for Shambu park to deliver on the promises that they make when it comes to
+promises that they make when it comes to effectiveness and time complexity these
+effectiveness and time complexity these objective functions are required to be
+objective functions are required to be complex and for because of that we can't
+complex and for because of that we can't no longer use the springs so we need new
+no longer use the springs so we need new objective functions so the first
+objective functions so the first objective function its goal is to ensure
+objective function its goal is to ensure that the path the smooth Bob doesn't
+that the path the smooth Bob doesn't deviate too far from the optimal path
+deviate too far from the optimal path because you know optimal path is optimal
+because you know optimal path is optimal so that's good but it's still not smooth
+so that's good but it's still not smooth and the way we do that is that the first
+and the way we do that is that the first function trying to minimize the distance
+function trying to minimize the distance a waypoint has moved from his original
+a waypoint has moved from his original position on the optimized path so if we
+position on the optimized path so if we look at this picture the gray line would
+look at this picture the gray line would be the original optimized path and the
+be the original optimized path and the black line would be where the path is
+black line would be where the path is now in his current origin current
+now in his current origin current iteration and the green line then as the
+iteration and the green line then as the distance the waypoint has moved from its
+distance the waypoint has moved from its original position and that is what
+original position and that is what function one is trying to mean
+function one is trying to mean so if we look at an entire path what
+so if we look at an entire path what function wine is trying to minimise is
+function wine is trying to minimise is the sum of all these distances that all
+the sum of all these distances that all the way points and moved away from the
+the way points and moved away from the original optimal path the second
+original optimal path the second function is a little bit more
+function is a little bit more complicated so what we do is we look at
+complicated so what we do is we look at the path segments that meets in our
+the path segments that meets in our waypoints so we look at the first pause
+waypoints so we look at the first pause segment and then we copied out like that
+segment and then we copied out like that take the second part of settlement and
+take the second part of settlement and copied out like that go back to the
+copied out like that go back to the first one and put another copy out there
+first one and put another copy out there and then finally the second one we put a
+and then finally the second one we put a copy up there so we created this
+copy up there so we created this rhomboid now what we're trying to do
+rhomboid now what we're trying to do here with function two is minimize the
+here with function two is minimize the height of the rhomboid and the reason
+height of the rhomboid and the reason why that works is it minimized the angle
+why that works is it minimized the angle between the two path segments and made
+between the two path segments and made in this way point and that is because of
+in this way point and that is because of if the two segments that made in this
+if the two segments that made in this way point would have facing in this same
+way point would have facing in this same direction the height of a rhomboid would
+direction the height of a rhomboid would be zero and that is the optimal non
+be zero and that is the optimal non turning Waypoint in on top about the
+turning Waypoint in on top about the because we use a square height rather
+because we use a square height rather than just the height directly it is
+than just the height directly it is better to distribute any curvature that
+better to distribute any curvature that we do have to have in our path over
+we do have to have in our path over multiple waypoints rather than just
+multiple waypoints rather than just collect them in one way point and that
+collect them in one way point and that is essentially the definition of a
+is essentially the definition of a smooth path so that is why we use the
+smooth path so that is why we use the square and again if we look at the
+square and again if we look at the entire path we build these rhomboids for
+entire path we build these rhomboids for all of the waypoints in the pot and then
+all of the waypoints in the pot and then what function to tries to do is minimize
+what function to tries to do is minimize the sum of the square of those Heights
+the sum of the square of those Heights which would be the green lines in this
+which would be the green lines in this picture so this is a screenshot from our
+picture so this is a screenshot from our pot finding testing tool and what I'm
+pot finding testing tool and what I'm going to do next is show you 12
+going to do next is show you 12 iterations of shambo pork running on
+iterations of shambo pork running on this path this path has already been
+this path this path has already been optimized as are divided so as you can
+optimized as are divided so as you can see the paths are all looking a little
+see the paths are all looking a little bit crazy but as the algorithm
+bit crazy but as the algorithm progresses we get a smoother and
+progresses we get a smoother and smoother path and eventually wind up
+smoother path and eventually wind up with this which is a
+with this which is a nicely curved pause at the end so now we
+nicely curved pause at the end so now we have a good path and we need to follow
+have a good path and we need to follow it how about we can't just follow the
+it how about we can't just follow the path just like we did do with bipeds
+path just like we did do with bipeds so normally in biped PAH following what
+so normally in biped PAH following what we do is we take the character and move
+we do is we take the character and move it along the path and put it where it
+it along the path and put it where it should be on the path on this particular
+should be on the path on this particular frame and then rotate it to face along
+frame and then rotate it to face along the path and and then we're done if we
+the path and and then we're done if we were to do that with a quarter pad it
+were to do that with a quarter pad it would look something like this and not
+would look something like this and not very good so the problem here is that
+very good so the problem here is that only the root position of the dog is
+only the root position of the dog is actually following the path well the
+actually following the path well the entire character needs to follow the
+entire character needs to follow the path in order to do that we need to
+path in order to do that we need to animate the spine we started out by
+animate the spine we started out by trying to use canned animation so we
+trying to use canned animation so we would have a bunch of animations with
+would have a bunch of animations with the dog spine being bent more or less
+the dog spine being bent more or less and then we would blend them together
+and then we would blend them together this however had a couple of problems
+this however had a couple of problems first of all it didn't look very good
+first of all it didn't look very good when we're transitioning from left to
+when we're transitioning from left to right turn or from a very sharp turn
+right turn or from a very sharp turn that suddenly straightened out and
+that suddenly straightened out and secondly it was very very hard if not
+secondly it was very very hard if not near impossible to get the blend
+near impossible to get the blend parameter right so that we managed to
+parameter right so that we managed to put the dog on the path and not a little
+put the dog on the path and not a little bit too far and a little bit too little
+bit too far and a little bit too little so what we ended up doing was
+so what we ended up doing was procedurally animate the spine instead
+procedurally animate the spine instead this was something that we're internally
+this was something that we're internally called spine flicks and because I'm so
+called spine flicks and because I'm so used to that I'm going to call spine
+used to that I'm going to call spine flex here as well so what spine flick is
+flex here as well so what spine flick is trying to do is to make the dog looks
+trying to do is to make the dog looks like the entitled Falls the path so the
+like the entitled Falls the path so the root position of the dog is placed
+root position of the dog is placed between these rear feeds so they are
+between these rear feeds so they are rendered on the path and we're good
+rendered on the path and we're good there but we need to have the rest of
+there but we need to have the rest of the part a character sort of lead the
+the part a character sort of lead the root position on the path and the way we
+root position on the path and the way we do that is make sure that the front feet
+do that is make sure that the front feet are also placed on the path so to do
+are also placed on the path so to do that the first thing we do is we figure
+that the first thing we do is we figure out where the spine would end if it was
+out where the spine would end if it was perfectly following that path that will
+perfectly following that path that will give us a position and then we try to
+give us a position and then we try to figure out the direction from the root
+figure out the direction from the root position to that position and compare
+position to that position and compare that to the root positions direction
+that to the root positions direction that kraid gives us this and
+that kraid gives us this and next we'll look at spine and we assume
+next we'll look at spine and we assume this bones in the spine are uniformly
+this bones in the spine are uniformly and that we're gonna rotate them at a
+and that we're gonna rotate them at a uniform angle if we look at this
+uniform angle if we look at this illustration here the blue lines there
+illustration here the blue lines there are our spine and we have four spines
+are our spine and we have four spines and at four bones in our spines and if
+and at four bones in our spines and if you notice they form a polygon in our
+you notice they form a polygon in our case a Pentagon because we got four
+case a Pentagon because we got four bones with the line from the root
+bones with the line from the root position to the target position on the
+position to the target position on the path now this is interesting because we
+path now this is interesting because we knew the angle B and then and we also
+knew the angle B and then and we also know the internal angles are some of the
+know the internal angles are some of the internal angles of any Pentagon that is
+internal angles of any Pentagon that is convex so you can set up this easy
+convex so you can set up this easy little equation and figure out how much
+little equation and figure out how much we need to rotate each bone the reason
+we need to rotate each bone the reason I'm showing you this is because this is
+I'm showing you this is because this is clearly a very simple function to solve
+clearly a very simple function to solve so what we need to do in order to the
+so what we need to do in order to the spine flex working is only figure this
+spine flex working is only figure this one out and then rotate the bones we
+one out and then rotate the bones we don't need I K or any other complicated
+don't need I K or any other complicated thing however spine flex is not enough
+thing however spine flex is not enough we need to lead with the head any
+we need to lead with the head any character that is walking anywhere will
+character that is walking anywhere will look where it's going on bipeds the is
+look where it's going on bipeds the is very hard to see where you're looking at
+very hard to see where you're looking at least on a human because the human's
+least on a human because the human's profile doesn't change much when it
+profile doesn't change much when it turns his head if you don't look
+turns his head if you don't look directly at the character's eyes or
+directly at the character's eyes or you're very close to clarity you don't
+you're very close to clarity you don't know where it's looking and with our dog
+know where it's looking and with our dog its head is sticking out quite far in
+its head is sticking out quite far in front of his head is body so even at a
+front of his head is body so even at a glance you can see what it's looking so
+glance you can see what it's looking so leading with a head becomes very
+leading with a head becomes very important and something that is worth
+important and something that is worth noting is how far you're going to look
+noting is how far you're going to look ahead on the path with your head is
+ahead on the path with your head is dependent on the character speed the
+dependent on the character speed the reason for this is that the character
+reason for this is that the character doesn't actually look at certain
+doesn't actually look at certain distance ahead it looks at certain time
+distance ahead it looks at certain time ahead and that's the time it needs in
+ahead and that's the time it needs in order to react to any obstacle appearing
+order to react to any obstacle appearing on the path another curious thing about
+on the path another curious thing about spine flicks is that if you crank up the
+spine flicks is that if you crank up the spine flicks
+spine flicks it's start changing how the character is
+it's start changing how the character is perceived when we turn up this plant act
+perceived when we turn up this plant act on our dog far enough it start to look
+on our dog far enough it start to look more and more like a cat fortunately for
+more and more like a cat fortunately for us dogs are still quite flexible
+us dogs are still quite flexible creatures so we could use a lot of spine
+creatures so we could use a lot of spine flex but if you are going to work with a
+flex but if you are going to work with a lisp and a character like a horse for
+lisp and a character like a horse for instance you may want to take this into
+instance you may want to take this into consideration finally if you ever try to
+consideration finally if you ever try to play a full body animation or even many
+play a full body animation or even many partial body animations on a character
+partial body animations on a character with a bend spine you will very quickly
+with a bend spine you will very quickly realize that the results are horrific so
+realize that the results are horrific so it's great to have spine flex working
+it's great to have spine flex working when we're locomoting but we really
+when we're locomoting but we really really do not want to have it once we
+really do not want to have it once we download imodium so we need to be able
+download imodium so we need to be able to get in and out so when we're getting
+to get in and out so when we're getting into spine flex we boost the dogs front
+into spine flex we boost the dogs front paws onto the paws a reason for that is
+paws onto the paws a reason for that is we start our paw finding from this root
+we start our paw finding from this root position so the root is already on the
+position so the root is already on the path and also it's a very natural thing
+path and also it's a very natural thing to just turn to see where you're going
+to just turn to see where you're going before you start moving if we're lucky
+before you start moving if we're lucky though we don't need much spine flex in
+though we don't need much spine flex in the starting in which case we justices
+the starting in which case we justices on in early start walking animation
+on in early start walking animation getting out of spine together we need to
+getting out of spine together we need to do the very opposite and the reason for
+do the very opposite and the reason for that is that generally when we create a
+that is that generally when we create a pause there's something at the end of
+pause there's something at the end of the part that we're interesting the
+the part that we're interesting the infested in there's a target there and
+infested in there's a target there and when we done locomoting to the end of
+when we done locomoting to the end of the path dog's front paws and his head
+the path dog's front paws and his head will be facing to us towards that target
+will be facing to us towards that target so if we were to turn the front of the
+so if we were to turn the front of the dog in order to straighten it out we
+dog in order to straighten it out we would turn away from the target and
+would turn away from the target and that's not a good idea so instead we
+that's not a good idea so instead we slide out the dog's rear and probably
+slide out the dog's rear and probably for the very same reasons this is
+for the very same reasons this is exactly what real dogs do in those
+exactly what real dogs do in those situations so now we come to the tips
+situations so now we come to the tips and tricks section I'm going to talk
+and tricks section I'm going to talk about local motion animation footprints
+about local motion animation footprints and finally breadcrumbs and back
+and finally breadcrumbs and back tracking so local motion is a system
+tracking so local motion is a system that was created by another one of my
+that was created by another one of my colleagues his name is thought heckle
+colleagues his name is thought heckle and it
+and it it covers an area between standing still
+it covers an area between standing still and moving that poor fine doesn't do
+and moving that poor fine doesn't do very well so poor finding is great for
+very well so poor finding is great for long distance locomotion but when we
+long distance locomotion but when we want to do short that move or just a
+want to do short that move or just a position adjustment there's a
+position adjustment there's a significant amount of set-up cost
+significant amount of set-up cost involved in the PAS finding and it's not
+involved in the PAS finding and it's not helped by us using spinal flex and then
+helped by us using spinal flex and then we have the start of stopped animation
+we have the start of stopped animation which has a limited range in which it
+which has a limited range in which it will look good so instead we use this
+will look good so instead we use this local motion system and the ways
+local motion system and the ways implemented is that we had a very
+implemented is that we had a very complicated blend node in our animation
+complicated blend node in our animation free and this blend node or rubber blend
+free and this blend node or rubber blend tree contains multiple movement
+tree contains multiple movement animations and then we have a lookup
+animations and then we have a lookup table so what we say is I want to talk
+table so what we say is I want to talk to how a particular relative position
+to how a particular relative position and facing to my current position and
+and facing to my current position and facing what are they correct blend
+facing what are they correct blend parameters to say it's a set and we
+parameters to say it's a set and we looked them up and we set them on the
+looked them up and we set them on the animation graph and then we'll just play
+animation graph and then we'll just play the animation so this is a local motion
+the animation so this is a local motion in action as you can see it's very
+in action as you can see it's very flexible contains a wide range of
+flexible contains a wide range of different movements which would have
+different movements which would have been very difficult to do in normal
+been very difficult to do in normal pounding if not impossible so next we
+pounding if not impossible so next we got animation footprint checking so we
+got animation footprint checking so we don't have any collision with or world
+don't have any collision with or world so before we start playing an animation
+so before we start playing an animation we want to make sure that that animation
+we want to make sure that that animation can be successfully played and we don't
+can be successfully played and we don't move through any geometry like walking
+move through any geometry like walking through a wall or something like that
+through a wall or something like that and so the way we do that is we project
+and so the way we do that is we project where the animations trajectory will go
+where the animations trajectory will go that and then we test what the position
+that and then we test what the position of certain key bones along that
+of certain key bones along that trajectory in our case we test the head
+trajectory in our case we test the head shoulder and root bones unfortunately we
+shoulder and root bones unfortunately we couldn't ask our animation engine about
+couldn't ask our animation engine about this data because it was a third party
+this data because it was a third party animation engine that definitely didn't
+animation engine that definitely didn't like telling us anything so we had to
+like telling us anything so we had to recreate a significant portion of the
+recreate a significant portion of the animation
+animation outside of animation engine which was a
+outside of animation engine which was a lot of work but in the end it turns out
+lot of work but in the end it turns out to be worth it
+to be worth it apart from being able to just test our
+apart from being able to just test our animations we could use it as a stand-in
+animations we could use it as a stand-in for Paul finding for our local motion
+for Paul finding for our local motion that I just showed you and also it
+that I just showed you and also it allowed us to do other things in the
+allowed us to do other things in the area of examining certain animations so
+area of examining certain animations so for instance what we want were
+for instance what we want were locomoting and we needed to play a stop
+locomoting and we needed to play a stop in animation to come to a halt that was
+in animation to come to a halt that was actually blend of multiple animations
+actually blend of multiple animations and the exact result of those animations
+and the exact result of those animations and how the blended depended on the
+and how the blended depended on the character speed and that meant that the
+character speed and that meant that the distance we needed in order to stop was
+distance we needed in order to stop was speed dependence so we could use this
+speed dependence so we could use this system to figure out how far and we
+system to figure out how far and we needed in order to stop and we could
+needed in order to stop and we could stop very precisely so this is a video
+stop very precisely so this is a video of fine playing his role over animation
+of fine playing his role over animation good boy thing and this is the animation
+good boy thing and this is the animation footprint checking of that animation
+footprint checking of that animation from two different views the white
+from two different views the white spheres his route position there weren't
+spheres his route position there weren't his shoulders and the clear ones his
+his shoulders and the clear ones his head as you can see they do not
+head as you can see they do not intersect with any of the geometry here
+intersect with any of the geometry here so that is a animation that's safe to
+so that is a animation that's safe to play and done a particular position
+play and done a particular position finally we got bread crumbs and
+finally we got bread crumbs and backtracking so when the dog is out
+backtracking so when the dog is out moving because it can move into areas
+moving because it can move into areas that are narrower when the dog is wide
+that are narrower when the dog is wide may find itself in an area where it kind
+may find itself in an area where it kind of turn around and this gets even worse
+of turn around and this gets even worse if it happens to walk into your dead-end
+if it happens to walk into your dead-end so in order to figure out again this we
+so in order to figure out again this we keep track of where the dog came from by
+keep track of where the dog came from by dropping a virtual breadcrumbs in the
+dropping a virtual breadcrumbs in the environment and then if we ever find
+environment and then if we ever find herself in a situation where we cannot
+herself in a situation where we cannot get out of we just reverse along the
+get out of we just reverse along the path of breadcrumbs until there's enough
+path of breadcrumbs until there's enough room to turn around
+room to turn around so this is a screenshot from our test
+so this is a screenshot from our test environment the green line here is
+environment the green line here is thanks current path and in general those
+thanks current path and in general those behind them if you can see them is the
+behind them if you can see them is the breadcrumbs
+breadcrumbs that is dropped from previous movements
+that is dropped from previous movements and this is a video of us
+and this is a video of us fine to walk into a dead end and once
+fine to walk into a dead end and once you get in there we ask him to go back
+you get in there we ask him to go back out again
+out again he realized it's not enough room they
+he realized it's not enough room they start backing out and eventually finds a
+start backing out and eventually finds a spot where there's enough for him to
+spot where there's enough for him to turn around which it turns around
+turn around which it turns around counting G on walking like normal
+counting G on walking like normal towards his targets so if you want more
+towards his targets so if you want more information Microsoft is going to make
+information Microsoft is going to make the source code available online at some
+the source code available online at some point this will happen at some point in
+point this will happen at some point in the future the date I unfortunately do
+the future the date I unfortunately do not know that today it is most likely
+not know that today it is most likely going to be on github exactly where is
+going to be on github exactly where is also some information I don't have today
+also some information I don't have today but keep your eyes open it will turn up
+but keep your eyes open it will turn up if you have some questions I believe we
+if you have some questions I believe we have a few more minutes for questions
+have a few more minutes for questions and I will be available outside here or
+and I will be available outside here or if you're too shy to speak up in this
+if you're too shy to speak up in this setting you can email me for general
+setting you can email me for general questions if you want to talk about
+questions if you want to talk about sample POC you should email mark lying
+sample POC you should email mark lying iraq and if you want to talk about local
+iraq and if you want to talk about local motion then tell heckle is your man
+motion then tell heckle is your man thank you
+hi is there a reason that you decided to put the route between the dog's rear
+put the route between the dog's rear legs instead of the front legs it's
+legs instead of the front legs it's partly a legacy reason and partly this
+partly a legacy reason and partly this was because it turn on regardless where
+was because it turn on regardless where we put the root position if we put it on
+we put the root position if we put it on the front paws behind the rear paws or
+the front paws behind the rear paws or in the centre of the character it gives
+in the centre of the character it gives some various problems and there's no
+some various problems and there's no perfect place to put it and essentially
+perfect place to put it and essentially we ended up putting it between the rear
+we ended up putting it between the rear feet because that gave us the least
+feet because that gave us the least amount of problems Alex if you guys
+amount of problems Alex if you guys considered making two different splines
+considered making two different splines one for the front and one for the
+one for the front and one for the anyways sorry okay so like if we're how
+anyways sorry okay so like if we're how to train with two bogies on it sort of
+to train with two bogies on it sort of thing going on well the short answer is
+thing going on well the short answer is no we did not consider doing that and
+no we did not consider doing that and also a dog when the it moves the front
+also a dog when the it moves the front of the dog in the rear of the dog does
+of the dog in the rear of the dog does not move independently of each other so
+not move independently of each other so I don't think that would necessarily
+I don't think that would necessarily look any good though I'm just guessing
+look any good though I'm just guessing right now I got that if you actually
+right now I got that if you actually watch a dog move or even a cat for that
+watch a dog move or even a cat for that matter
+matter they will often put their back foot
+they will often put their back foot right where their front foot left and so
+right where their front foot left and so they are following their own path it's
+they are following their own path it's very very if anything it's a variation
+very very if anything it's a variation of used to degree I have three dogs and
+of used to degree I have three dogs and three cats
+three cats I watched them walk a lot and this is
+I watched them walk a lot and this is cool do you think this would work for
+cool do you think this would work for other animals for example like maybe
+other animals for example like maybe soare elephants or horses or lizards or
+soare elephants or horses or lizards or things like that they can squeeze into
+things like that they can squeeze into small areas so I think this works in
+small areas so I think this works in general well for any kind of quarter ped
+general well for any kind of quarter ped that is relatively well known I mean we
+that is relatively well known I mean we can come up with an alien that moves
+can come up with an alien that moves completely differently and obviously
+completely differently and obviously everything is void here but there are
+everything is void here but there are two issues first of all it's turning
+two issues first of all it's turning radius and the amount of spine flex so
+radius and the amount of spine flex so if we have a limit in turning radius and
+if we have a limit in turning radius and spine flex at some point we need to take
+spine flex at some point we need to take that into consideration when we build a
+that into consideration when we build a path so all the other stuff will work
+path so all the other stuff will work fine I'm pretty confident about that but
+fine I'm pretty confident about that but at some point you need to start doing
+at some point you need to start doing poor finding that takes turn radius into
+poor finding that takes turn radius into your account and that is much harder
+your account and that is much harder than just doing normal a star
+than just doing normal a star unfortunately and lucky for us we could
+unfortunately and lucky for us we could just skip that fort and I apologize to
+just skip that fort and I apologize to anyone who came here to figure out how
+anyone who came here to figure out how to do that

@@ -1,0 +1,1409 @@
+[Music] can everyone hear me all right that
+can everyone hear me all right that sounds good
+sounds good hi everyone thanks for coming my name is
+hi everyone thanks for coming my name is Andre arsenault and I'm from Creative
+Andre arsenault and I'm from Creative Assembly and I'm here today to talk to
+Assembly and I'm here today to talk to you about the AI for our siege battles
+you about the AI for our siege battles in total war Warhammer a little bit
+in total war Warhammer a little bit about me before we get started I'm a 21
+about me before we get started I'm a 21 year veteran of the games industry
+year veteran of the games industry making games for a long time I got my
+making games for a long time I got my start designing levels for Doom
+start designing levels for Doom specifically final doom but most of my
+specifically final doom but most of my career has been focused on gameplay
+career has been focused on gameplay programming for MMO and RTS titles I've
+programming for MMO and RTS titles I've also spent a few years in project
+also spent a few years in project leadership and production roles and
+leadership and production roles and you'll see a little bit of that
+you'll see a little bit of that influence in this presentation today and
+influence in this presentation today and I joined Creative Assembly in 2014 and
+I joined Creative Assembly in 2014 and now I'm responsible for the battle AI in
+now I'm responsible for the battle AI in the Total War series for those of you
+the Total War series for those of you who may not be familiar total war is an
+who may not be familiar total war is an award winning strategy series with over
+award winning strategy series with over 15 years of history it's been set in
+15 years of history it's been set in various historical time periods ranging
+various historical time periods ranging from the Japanese Shogunate through the
+from the Japanese Shogunate through the Napoleonic Empire it features a sandbox
+Napoleonic Empire it features a sandbox style turn-based campaign map with
+style turn-based campaign map with real-time battles and all of the
+real-time battles and all of the resource management and recruiting is
+resource management and recruiting is done in the turn-based campaign so the
+done in the turn-based campaign so the battles themselves don't have any
+battles themselves don't have any resource gathering or unit recruitment
+resource gathering or unit recruitment which means it doesn't fit the typical
+which means it doesn't fit the typical RTS formula that you might think of so
+RTS formula that you might think of so when I talk about battle AI in this talk
+when I talk about battle AI in this talk what I mean is the AI for the real-time
+what I mean is the AI for the real-time battles portion during those battles
+battles portion during those battles players control armies of thousands of
+players control armies of thousands of men in real-time to defeat the AI and
+men in real-time to defeat the AI and we've supported various different types
+we've supported various different types of battles throughout the series from
+of battles throughout the series from open field land battles to ambushes
+open field land battles to ambushes river crossings and siege battles and
+river crossings and siege battles and this talk will focus exclusively on
+this talk will focus exclusively on those siege battles
+total war Warhammer brings together the gameplay style of the total war series
+gameplay style of the total war series with the amazing world of Warhammer
+with the amazing world of Warhammer Fantasy battles it's the first non
+Fantasy battles it's the first non historical setting for the Total War
+historical setting for the Total War series and as such it presents some
+series and as such it presents some pretty unique challenges to the AI that
+pretty unique challenges to the AI that we haven't had to deal with before
+we haven't had to deal with before things such as totally new unit types
+things such as totally new unit types like individual heroes flying units and
+like individual heroes flying units and crazy mechanical contraptions we have
+crazy mechanical contraptions we have some very different unit rosters
+some very different unit rosters perfection for example the dwarfs don't
+perfection for example the dwarfs don't have cavalry and the vampire accounts
+have cavalry and the vampire accounts don't have any ranged units we also have
+don't have any ranged units we also have a very wide range of unit power
+a very wide range of unit power capabilities and upgrades and finally
+capabilities and upgrades and finally there's a cool new spell system that
+there's a cool new spell system that brings a dramatic new element to the
+brings a dramatic new element to the battles themselves so in this talk I'm
+battles themselves so in this talk I'm going to cover a number of different
+going to cover a number of different subjects and I wanted to bring this talk
+subjects and I wanted to bring this talk to GDC this year because it covers a
+to GDC this year because it covers a number of topics that are different than
+number of topics that are different than the typical agent based AI that you're
+the typical agent based AI that you're all familiar with and that's a good
+all familiar with and that's a good thing for us to broaden our horizons and
+thing for us to broaden our horizons and learn a little something about different
+learn a little something about different disciplines so during this talk I'll be
+disciplines so during this talk I'll be covering the context of siege battles in
+covering the context of siege battles in total world Warhammer
+total world Warhammer what they are why they're important and
+what they are why they're important and how our game play goals changed for this
+how our game play goals changed for this type of battle in this particular title
+type of battle in this particular title well then cover an overview of the AI
+well then cover an overview of the AI architecture in general for the
+architecture in general for the real-time battles of the total war
+real-time battles of the total war series then we'll dig in to reviewing
+series then we'll dig in to reviewing some AI related design hints that are
+some AI related design hints that are used on every siege battle map in order
+used on every siege battle map in order for the AI to behave correctly but the
+for the AI to behave correctly but the bulk of the talk will be spent diving
+bulk of the talk will be spent diving into the details of the attacking cji we
+into the details of the attacking cji we won't get into any depth on defending so
+won't get into any depth on defending so that we can really get into some the
+that we can really get into some the nitty-gritty of attacking AI and finally
+nitty-gritty of attacking AI and finally we'll end by covering a little bit about
+we'll end by covering a little bit about our team process and collaboration with
+our team process and collaboration with some conclusions and general advice so
+some conclusions and general advice so let's get into it
+let's get into it siege battles
+siege battles let's talk about what they are and how
+let's talk about what they are and how our goals changed so siege battles are
+our goals changed so siege battles are major battles over a well defended
+major battles over a well defended walled city that shows off some of the
+walled city that shows off some of the biggest and coolest cities of each
+biggest and coolest cities of each faction and the siege battles are
+faction and the siege battles are intended to be a high-stakes battle with
+intended to be a high-stakes battle with significant strategic impact on the
+significant strategic impact on the campaign sieges are triggered when an
+campaign sieges are triggered when an army attacks the capital of the province
+army attacks the capital of the province on the campaign map the defenders can
+on the campaign map the defenders can hold out for several turns before
+hold out for several turns before beginning to suffer losses due to
+beginning to suffer losses due to attrition being starved out essentially
+attrition being starved out essentially the attacker can spend multiple turns
+the attacker can spend multiple turns building siege equipment before they
+building siege equipment before they initiate the battle and when that
+initiate the battle and when that attacker chooses to start the battle
+attacker chooses to start the battle they'll take that siege equipment with
+they'll take that siege equipment with them into the map but you can't carry
+them into the map but you can't carry the siege equipment with you as your
+the siege equipment with you as your army moves around in the campaign so
+army moves around in the campaign so within the siege battle there's always
+within the siege battle there's always an attacker and a defender the attacker
+an attacker and a defender the attacker always brings the army from the campaign
+always brings the army from the campaign map which was laying siege this
+map which was laying siege this settlement including any siege equipment
+settlement including any siege equipment that they may have built the defender
+that they may have built the defender always has some free garrison units with
+always has some free garrison units with which to mounted defense the amount and
+which to mounted defense the amount and type of those garrison units can be
+type of those garrison units can be increased and changed by building
+increased and changed by building various city upgrades on the campaign
+various city upgrades on the campaign map the defender might also have an
+map the defender might also have an entire army of units stationed in the
+entire army of units stationed in the city if they were able to do so before
+city if they were able to do so before the city was besieged each side can
+the city was besieged each side can bring multiple armies of reinforcements
+bring multiple armies of reinforcements with them but this is wholly dependent
+with them but this is wholly dependent on positioning at the campaign level so
+on positioning at the campaign level so if you had a friendly army nearby it can
+if you had a friendly army nearby it can be pulled into the battle with you as a
+be pulled into the battle with you as a set of reinforcements those
+set of reinforcements those reinforcements may be either player
+reinforcements may be either player controlled in the case of the player
+controlled in the case of the player having two armies nearby or it could be
+having two armies nearby or it could be AI controlled if an AI player is near
+AI controlled if an AI player is near the city while you as a player attack it
+the city while you as a player attack it within the battle itself that army
+within the battle itself that army always deploys its
+always deploys its mieze outside of the city walls and the
+mieze outside of the city walls and the defender always deploys either on the
+defender always deploys either on the walls or inside the city and the
+walls or inside the city and the attacker always deploys first without
+attacker always deploys first without knowledge of where the defender is the
+knowledge of where the defender is the battle is over once either you've
+battle is over once either you've managed to destroy or route all of your
+managed to destroy or route all of your enemies or the attacker has managed to
+enemies or the attacker has managed to capture the central victory point of the
+capture the central victory point of the city so in our previous Total War titles
+city so in our previous Total War titles our goals for siege battles were to be
+our goals for siege battles were to be historically authentic or at least
+historically authentic or at least believable to allow the attacker to
+believable to allow the attacker to physically surround the city to really
+physically surround the city to really get that feel of laying siege and then
+get that feel of laying siege and then to begin with a deliberate bombardment
+to begin with a deliberate bombardment phase where the attacker is trying to
+phase where the attacker is trying to inflict a lot of damage into the city
+inflict a lot of damage into the city before entering once they manage to
+before entering once they manage to enter this city there should be an
+enter this city there should be an intricate street battle once the
+intricate street battle once the attackers may have passed the walls and
+attackers may have passed the walls and in Rome - and the Atilla which were our
+in Rome - and the Atilla which were our two previous titles these goals were
+two previous titles these goals were executed by having the attacking cji use
+executed by having the attacking cji use a single tactic which used one finite
+a single tactic which used one finite state machine to control the entire
+state machine to control the entire attacking army but our goals for
+attacking army but our goals for Warhammer were slightly different we
+Warhammer were slightly different we wanted fast high-intensity battles as
+wanted fast high-intensity battles as opposed to deliberate phases we wanted a
+opposed to deliberate phases we wanted a single attack direction to ensure that
+single attack direction to ensure that the battle was focused on the city walls
+the battle was focused on the city walls instead of surrounding the city so he
+instead of surrounding the city so he couldn't just slip past unnoticed
+couldn't just slip past unnoticed holding those city walls is the key to
+holding those city walls is the key to defending a settlement correctly and
+defending a settlement correctly and there should be a quick resolution to
+there should be a quick resolution to the battle once you've made it past the
+the battle once you've made it past the walls
+walls so therefore pressing the defender
+so therefore pressing the defender quickly and broadly is important for the
+quickly and broadly is important for the attacking AI to do its job well because
+attacking AI to do its job well because of these different gameplay goals the a
+of these different gameplay goals the a I needed to attack cities in a very
+I needed to attack cities in a very different way than we did before well we
+different way than we did before well we had solid functionality to build on from
+had solid functionality to build on from total war attila significant effort was
+total war attila significant effort was spent to reorganize this functionality
+spent to reorganize this functionality in order to suit our new goal
+in order to suit our new goal and we did this by executing many
+and we did this by executing many specialized tactics simultaneously most
+specialized tactics simultaneously most of it we'll cover today is the result of
+of it we'll cover today is the result of that reorganization process so let's
+that reorganization process so let's talk a bit about the general battle AI
+talk a bit about the general battle AI architecture and the Total War series
+architecture and the Total War series there's many tiers of game objects that
+there's many tiers of game objects that are present in the battle hierarchy
+are present in the battle hierarchy starting with the smallest we have an
+starting with the smallest we have an entity which represents either a single
+entity which represents either a single man or a composite entity such as a
+man or a composite entity such as a horse and rider we then have squads
+horse and rider we then have squads which is a collection of entities and a
+which is a collection of entities and a unit which is a collection of squads and
+unit which is a collection of squads and generally a unit has only one squad but
+generally a unit has only one squad but through various game mechanics the unit
+through various game mechanics the unit can get chopped into multiple squads for
+can get chopped into multiple squads for example if they're in different
+example if they're in different pathfinding areas and a typical unit is
+pathfinding areas and a typical unit is composed of between 80 and 120
+composed of between 80 and 120 individual entities above that we have
+individual entities above that we have an army which is a collection of units
+an army which is a collection of units and generally there's up to 20 units in
+and generally there's up to 20 units in one army but then you can also have
+one army but then you can also have alliances which are sets of multiple
+alliances which are sets of multiple armies this typically happens when you
+armies this typically happens when you bring reinforcements into a battle and
+bring reinforcements into a battle and can control more than one army at a time
+can control more than one army at a time orders however are always issued to
+orders however are always issued to units and the AI uses the exact same set
+units and the AI uses the exact same set of orders that players can issue orders
+of orders that players can issue orders are things like move to that location
+are things like move to that location change your width attack that particular
+change your width attack that particular target pick up this piece of siege
+target pick up this piece of siege equipment or activate that ability
+equipment or activate that ability etcetera effectively then battle AI in
+etcetera effectively then battle AI in total war is game logic that acts
+total war is game logic that acts similar to a player by issuing the same
+similar to a player by issuing the same set of orders those orders are defined
+set of orders those orders are defined and implemented by the battle team which
+and implemented by the battle team which is essentially our gameplay team for the
+is essentially our gameplay team for the battle mode therefore anything that
+battle mode therefore anything that happens as a result of player action is
+happens as a result of player action is the responsibility of that battle team
+the responsibility of that battle team and not the AI team this includes some
+and not the AI team this includes some things that would classically be
+things that would classically be considered a eyes such as pathfinding
+considered a eyes such as pathfinding and Abbey
+and Abbey datian there's a separate campaign team
+datian there's a separate campaign team that's responsible for all of the
+that's responsible for all of the gameplay and a eye on the turn-based
+gameplay and a eye on the turn-based campaign map so the battle AI team is
+campaign map so the battle AI team is focused just solely on providing an
+focused just solely on providing an enjoyable computer opponent that can
+enjoyable computer opponent that can play against the player using the same
+play against the player using the same set of tools so let's look at how that's
+set of tools so let's look at how that's accomplished by examining the
+accomplished by examining the architecture of the battle AI the AI
+architecture of the battle AI the AI architecture for these battles in total
+architecture for these battles in total war is well established and has been
+war is well established and has been used for many years it uses a top-down
+used for many years it uses a top-down set of strategic layers going from
+set of strategic layers going from high-level strategy down to group
+high-level strategy down to group tactics we call it the objective
+tactics we call it the objective detachment tactics system there isn't
+detachment tactics system there isn't any individual unit AI at all in this
+any individual unit AI at all in this system even individual orders are only
+system even individual orders are only executing after considering what other
+executing after considering what other units on the field are doing so starting
+units on the field are doing so starting at the top we have alliance which we've
+at the top we have alliance which we've touched on before each alliance in the
+touched on before each alliance in the battle is capable of running the AI
+battle is capable of running the AI that's useful when you have a
+that's useful when you have a reinforcing army that enters the
+reinforcing army that enters the battlefield on the players side or if
+battlefield on the players side or if the player decides to place some of his
+the player decides to place some of his units under simplified AI control each
+units under simplified AI control each Alliance owns an object called the grand
+Alliance owns an object called the grand tactical analyzer or of GTA for short
+tactical analyzer or of GTA for short and this decides whether the entire
+and this decides whether the entire Alliance should be attacking or
+Alliance should be attacking or defending depending on the battlefield
+defending depending on the battlefield circumstances it's also then responsible
+circumstances it's also then responsible for creating the set of objectives to be
+for creating the set of objectives to be executed and assigning units to each
+executed and assigning units to each objective the objectives themselves
+objective the objectives themselves represent the set of units that's
+represent the set of units that's matched to a high-level goal for example
+matched to a high-level goal for example if the enemy splits his forces into two
+if the enemy splits his forces into two groups the GTA might generate a separate
+groups the GTA might generate a separate objective for each set of units to go
+objective for each set of units to go and attack them and this would cause the
+and attack them and this would cause the AI to divide its forces as well
+detachments are responsible for figuring out how to accomplish the goal in
+out how to accomplish the goal in practice each objective just has one
+practice each objective just has one detachment the detachments have a set of
+detachment the detachments have a set of tactics that they can use to choose from
+tactics that they can use to choose from in order to accomplish the objective
+in order to accomplish the objective that list of tactics is specific to a
+that list of tactics is specific to a type of detachment
+type of detachment although the tactics themselves can be
+although the tactics themselves can be reused in multiple detachments the
+reused in multiple detachments the detachment may assign units to any of
+detachment may assign units to any of its child tactics as desired tactics
+its child tactics as desired tactics themselves usually represent a manoeuvre
+themselves usually represent a manoeuvre to be executed such as advancing in
+to be executed such as advancing in formation outflanking or holding a
+formation outflanking or holding a position its goal is generally to get
+position its goal is generally to get its set of assigned units into an
+its set of assigned units into an engagement distance with the enemy where
+engagement distance with the enemy where the melee manager takes over the
+the melee manager takes over the mentally manager is responsible for the
+mentally manager is responsible for the micromanagement of individual AI units
+micromanagement of individual AI units such as performing the evaluation of
+such as performing the evaluation of potential targets and issuing individual
+potential targets and issuing individual attack orders this system is the core of
+attack orders this system is the core of the low-level AI logic when the mela
+the low-level AI logic when the mela manager decides to issue an order to a
+manager decides to issue an order to a unit it steals control away from the
+unit it steals control away from the unit's assigns tactic for the duration
+unit's assigns tactic for the duration of those orders and when it no longer
+of those orders and when it no longer wants control of the unit it
+wants control of the unit it relinquishes it back to the tactic all
+relinquishes it back to the tactic all of these systems are owned and processed
+of these systems are owned and processed by the battle model and when we say
+by the battle model and when we say model we mean basically the typical
+model we mean basically the typical model view controller architecture this
+model view controller architecture this battle model is completely deterministic
+battle model is completely deterministic for networking and replay requirements
+for networking and replay requirements and those replays are really useful
+and those replays are really useful during development to reproduce bugs
+during development to reproduce bugs that people find the battle model itself
+that people find the battle model itself is ticked 10 times per second meaning
+is ticked 10 times per second meaning that we have up to a maximum of 100
+that we have up to a maximum of 100 milliseconds per tick to do all of our
+milliseconds per tick to do all of our calculations but in practice faster is a
+calculations but in practice faster is a lot better because we have a
+lot better because we have a fast-forward feature and if you're
+fast-forward feature and if you're running at the maximum of 100
+running at the maximum of 100 milliseconds per tick then it doesn't go
+milliseconds per tick then it doesn't go any faster than that so in practice our
+any faster than that so in practice our model tic is about 20 milliseconds
+model tic is about 20 milliseconds tactics themselves can hold state
+tactics themselves can hold state between model ticks and they typically
+between model ticks and they typically do so in a finite state machine but
+do so in a finite state machine but objectives and detachments recalculate
+objectives and detachments recalculate everything every tick that means there's
+everything every tick that means there's no guarantee that a tactic will still be
+no guarantee that a tactic will still be running on the
+running on the Tech or even that a tactic that
+Tech or even that a tactic that continues to execute will have the same
+continues to execute will have the same set of units at did last time the
+set of units at did last time the strength of a system like this though is
+strength of a system like this though is its responsiveness to player action so
+its responsiveness to player action so getting into the details of the siege AI
+getting into the details of the siege AI in particular there's a single objective
+in particular there's a single objective detachment pair for attacking and a
+detachment pair for attacking and a different objective detachment pair for
+different objective detachment pair for defending the grand tactical analyser
+defending the grand tactical analyser intentionally keeps these pairs alive
+intentionally keeps these pairs alive for the entire duration of the battle
+for the entire duration of the battle meaning that for siege battles we can
+meaning that for siege battles we can safely hold more state in the detachment
+safely hold more state in the detachment than we typically could the various
+than we typically could the various tasks and tactics in the lower right
+tasks and tactics in the lower right portion of this diagram are defined and
+portion of this diagram are defined and carried out by a highly specialized
+carried out by a highly specialized subsystem called the settlement AI which
+subsystem called the settlement AI which deals exclusively with the interior of
+deals exclusively with the interior of the city in order to have those
+the city in order to have those compelling street battles and it does so
+compelling street battles and it does so using a specialized settlement graph and
+using a specialized settlement graph and various influenced graphs which we'll
+various influenced graphs which we'll get into in a little while but this talk
+get into in a little while but this talk will focus primarily on the tactics
+will focus primarily on the tactics which are highlighted in red and how the
+which are highlighted in red and how the attack settlement detachment coordinates
+attack settlement detachment coordinates between them but before we can get into
+between them but before we can get into those details we first have to discuss
+those details we first have to discuss the AI hints data that has to be present
+the AI hints data that has to be present on every siege map the first tenth
+on every siege map the first tenth that's worth discussing is the
+that's worth discussing is the settlement perimeter this is a closed
+settlement perimeter this is a closed polygon that defines which parts of the
+polygon that defines which parts of the map are considered to be inside the city
+map are considered to be inside the city and anything else is considered outside
+and anything else is considered outside of the city it doesn't have to be
+of the city it doesn't have to be perfectly decided drawn but there should
+perfectly decided drawn but there should never be any point outside of the
+never be any point outside of the polygon that's actually inside the city
+polygon that's actually inside the city including the walls of the settlement
+including the walls of the settlement and this polygon is manually drawn by a
+and this polygon is manually drawn by a designer and I should repeat the same
+designer and I should repeat the same disclaimers the previous talk this is
+disclaimers the previous talk this is obviously not indicative of the final
+obviously not indicative of the final product clearly a test that the next
+product clearly a test that the next hint are deployment lines these are
+hint are deployment lines these are manually placed at by designers just
+manually placed at by designers just like the previous settlement perimeter
+like the previous settlement perimeter and these lines indicate where the AI
+and these lines indicate where the AI might choose to deploy a portion of its
+might choose to deploy a portion of its forces when attacking the width of the
+forces when attacking the width of the lines doesn't really matter just their
+lines doesn't really matter just their positions and orientations from those
+positions and orientations from those deployment lines we trace a line forward
+deployment lines we trace a line forward until we contact the settlement
+until we contact the settlement perimeter and this yellow line is this
+perimeter and this yellow line is this is called the assault designation each
+is called the assault designation each assault designation represents a channel
+assault designation represents a channel or a lane that the AI can use to focus
+or a lane that the AI can use to focus on part of the city's defenses the AI
+on part of the city's defenses the AI will generate these hints when the map
+will generate these hints when the map loads each assault designation has an
+loads each assault designation has an attack focus which is the point where
+attack focus which is the point where the assault designation makes contact
+the assault designation makes contact with the settlement perimeter this is
+with the settlement perimeter this is typically used to define which walled
+typically used to define which walled buildings are relevant to each assault
+buildings are relevant to each assault designation by doing quick distance
+designation by doing quick distance tests along the settlement perimeter
+tests along the settlement perimeter from the attack focus each assault
+from the attack focus each assault designation is scored from zero to one
+designation is scored from zero to one for each possible method of getting into
+for each possible method of getting into the city of which there are three and
+the city of which there are three and we'll get into a lot of detail on this a
+we'll get into a lot of detail on this a bit later but for the three scores the
+bit later but for the three scores the first one is assault walls and we
+first one is assault walls and we determine that score based on how many
+determine that score based on how many dockable wall pieces there are near the
+dockable wall pieces there are near the attack focus then we have assaulting
+attack focus then we have assaulting gates and we generate that score based
+gates and we generate that score based on how close the nearest gate is to the
+on how close the nearest gate is to the attack focus and then the breach walls
+attack focus and then the breach walls which is scored based on how many
+which is scored based on how many destroyable walls are near the attack
+destroyable walls are near the attack focus these scores are first calculated
+focus these scores are first calculated when the map loads and as mentioned
+when the map loads and as mentioned earlier we have a settlement graph which
+earlier we have a settlement graph which is a complex graph of nodes and edges
+is a complex graph of nodes and edges which are used to define the a i's
+which are used to define the a i's usable space within the city it's used
+usable space within the city it's used for navigation and spatial awareness and
+for navigation and spatial awareness and it's manually drawn by a designer but it
+it's manually drawn by a designer but it can be dynamically modified at runtime
+can be dynamically modified at runtime if parts of the city walls have been
+if parts of the city walls have been destroyed for example the shape of that
+destroyed for example the shape of that settlement graph also defines the shape
+settlement graph also defines the shape of the corresponding influenced graphs
+of the corresponding influenced graphs that the AI uses to perform tactical
+that the AI uses to perform tactical spatial reasoning within the city we
+spatial reasoning within the city we have a No
+have a No of such influence graphs with different
+of such influence graphs with different values for threat the strategic value
+values for threat the strategic value for capturing an area which is what's
+for capturing an area which is what's shown here with the victory point in red
+shown here with the victory point in red the strategic value for defending an
+the strategic value for defending an area each areas exposure to missile fire
+area each areas exposure to missile fire the current friendly occupation strength
+the current friendly occupation strength and the current enemy occupation
+and the current enemy occupation strength we can refer to any of the
+strength we can refer to any of the values from these influence graphs when
+values from these influence graphs when determining where to position our units
+determining where to position our units within the city and where they should
+within the city and where they should move to get and get to their next
+move to get and get to their next objective on previous titles each siege
+objective on previous titles each siege battle map is handcrafted and due to
+battle map is handcrafted and due to their complexity they were a common
+their complexity they were a common source of AI behavior issues the prefab
+source of AI behavior issues the prefab system which is new to total war
+system which is new to total war Warhammer allows us to reuse those
+Warhammer allows us to reuse those logical layouts and therefore we use the
+logical layouts and therefore we use the AI hints and settlement graphs but still
+AI hints and settlement graphs but still give each map a dramatically different
+give each map a dramatically different look and feel between factions the
+look and feel between factions the quality of that settlement graph
+quality of that settlement graph authoring has a huge impact on the ai's
+authoring has a huge impact on the ai's performance within the settlement as you
+performance within the settlement as you can imagine this is one of the major
+can imagine this is one of the major benefits of switching to the prefab
+benefits of switching to the prefab system for city building we got to
+system for city building we got to author fewer settlement graphs which
+author fewer settlement graphs which means we get better test reading
+means we get better test reading coverage and therefore a better quality
+coverage and therefore a better quality AI behavior and in Warhammer we have
+AI behavior and in Warhammer we have many such logical layouts for each
+many such logical layouts for each faction now let's dive into the
+faction now let's dive into the specifics of the CJI strategy and
+specifics of the CJI strategy and tactics the strategy for attacking a
+tactics the strategy for attacking a walled city is pretty simple get past
+walled city is pretty simple get past the walls capture the victory point
+the walls capture the victory point executing that strategy however is not
+executing that strategy however is not so simple
+so simple step one is carried out by a set of
+step one is carried out by a set of special-purpose tactics all executing in
+special-purpose tactics all executing in parallel each tactic is attempting to
+parallel each tactic is attempting to get its units on top of or past the city
+get its units on top of or past the city walls
+walls step two is carried out by a highly
+step two is carried out by a highly specialized sub system called the
+specialized sub system called the settlement AI which controls all of the
+settlement AI which controls all of the AI units within the city walls using the
+AI units within the city walls using the settlement graph and its associated
+settlement graph and its associated influence graphs that we spoke about
+influence graphs that we spoke about earlier units are transferred to that
+earlier units are transferred to that settlement AI system
+settlement AI system once they reach the settlement graph
+once they reach the settlement graph itself and can be attached to it
+itself and can be attached to it therefore the goal of all the
+therefore the goal of all the specialized tactics in step one is to
+specialized tactics in step one is to create entry points into the city
+create entry points into the city through which we can send the rest of
+through which we can send the rest of our attacking units notice that since
+our attacking units notice that since units are handed off to the settlement
+units are handed off to the settlement AI as soon as they attach to the
+AI as soon as they attach to the settlement graph that means that both
+settlement graph that means that both steps of this attacking strategy are
+steps of this attacking strategy are also executing in parallel the units
+also executing in parallel the units outside the walls are in controls of the
+outside the walls are in controls of the tactic when units on or inside the walls
+tactic when units on or inside the walls are kin under control of the settlement
+are kin under control of the settlement AI so how can we actually get past the
+AI so how can we actually get past the walls well we can destroy the walls
+walls well we can destroy the walls which is pretty much the easiest option
+which is pretty much the easiest option you just blow them up shoot them with
+you just blow them up shoot them with artillery or we could climb over the
+artillery or we could climb over the walls we have a couple of tools for this
+walls we have a couple of tools for this which can dock a siege tower or you can
+which can dock a siege tower or you can place some ladders or we could destroy
+place some ladders or we could destroy the gates there's a number of tools
+the gates there's a number of tools available for this but some of these
+available for this but some of these options are not available to some
+options are not available to some factions so understanding your enemy's
+factions so understanding your enemy's capabilities is important for mounting
+capabilities is important for mounting and effective defense against them as is
+and effective defense against them as is true with all battles in total war the
+true with all battles in total war the battle AI cannot choose to surrender or
+battle AI cannot choose to surrender or withdraw so attacking the gates serves
+withdraw so attacking the gates serves as the direct fallback option which is
+as the direct fallback option which is always available to the AI since any
+always available to the AI since any unit can attack the gates I mentioned
+unit can attack the gates I mentioned earlier that the goal of each tactic is
+earlier that the goal of each tactic is to enter this city by creating entry
+to enter this city by creating entry points well an entry point is an actual
+points well an entry point is an actual game object representation that's
+game object representation that's created dynamically at runtime which
+created dynamically at runtime which represents an available method of
+represents an available method of getting into the city or an attempt
+getting into the city or an attempt currently in progress by the AI each
+currently in progress by the AI each entry point has an estimated time to
+entry point has an estimated time to completion a progress percentage and a
+completion a progress percentage and a fulfillment score which roughly
+fulfillment score which roughly corresponds to the number of units that
+corresponds to the number of units that is currently assigned to the entry point
+is currently assigned to the entry point internally each entry point also holds a
+internally each entry point also holds a pointer to the tactic which is currently
+pointer to the tactic which is currently responsible for that entry point the
+responsible for that entry point the entry points can be created via player
+entry points can be created via player actions as well
+actions as well that if an attacking player creates a
+that if an attacking player creates a way to climb the walls the AI
+way to climb the walls the AI reinforcements will know about it in
+reinforcements will know about it in order to determine which tactics we
+order to determine which tactics we should employ to get past the walls we
+should employ to get past the walls we have to organize our available units
+have to organize our available units into specialized groups this process
+into specialized groups this process will normally occur during deployment
+will normally occur during deployment and the attacker always deploys first so
+and the attacker always deploys first so while organizing these groups we have no
+while organizing these groups we have no information about how the defender has
+information about how the defender has arranged their forces on the city walls
+arranged their forces on the city walls so we have to first identify from the
+so we have to first identify from the available units which ones can lead each
+available units which ones can lead each type of tactics and then form
+type of tactics and then form hypothetical groups around them with
+hypothetical groups around them with supporting units that will give us the
+supporting units that will give us the set of ideal groups from the main
+set of ideal groups from the main attacking army we then match those ideal
+attacking army we then match those ideal groups to the AI hints that are placed
+groups to the AI hints that are placed on the map according to the result
+on the map according to the result designation scores and then finally we
+designation scores and then finally we send any groups that we weren't able to
+send any groups that we weren't able to match with AI hints to the reserves
+match with AI hints to the reserves along with any ungrouped units so now
+along with any ungrouped units so now that we essentially have our set of
+that we essentially have our set of initial tactics in place we can move on
+initial tactics in place we can move on to examining each type of attacking
+to examining each type of attacking siege tactic in greater detail starting
+siege tactic in greater detail starting with the gate assault tactic so the goal
+with the gate assault tactic so the goal of this tactic is to destroy a specific
+of this tactic is to destroy a specific gate so that we can get into the city
+gate so that we can get into the city the functionality for this tactic was
+the functionality for this tactic was extracted from that single tactic that
+extracted from that single tactic that was used to control the whole army in
+was used to control the whole army in the historical version and was turned
+the historical version and was turned into a standalone tactic in its own
+into a standalone tactic in its own right so given an assault designation to
+right so given an assault designation to use the gate assault tactic identifies
+use the gate assault tactic identifies the target gate by choosing the closest
+the target gate by choosing the closest one to the attack focus note that there
+one to the attack focus note that there has to be a gate within a reasonable
+has to be a gate within a reasonable distance otherwise this assault
+distance otherwise this assault designation would have received a zero
+designation would have received a zero score for gate assaults in order to
+score for gate assaults in order to destroy that gate we have a number of
+destroy that gate we have a number of tools at our disposal we can use
+tools at our disposal we can use battering rams which are definitely the
+battering rams which are definitely the right tool for the job but they need to
+right tool for the job but they need to be manned by an infantry unit and would
+be manned by an infantry unit and would do anything by themselves or a new thing
+do anything by themselves or a new thing in Warhammer we could use monstrous
+in Warhammer we could use monstrous creatures
+creatures like giants some factors some sorry some
+like giants some factors some sorry some factions have those types of creatures
+factions have those types of creatures and some of them are really well-suited
+and some of them are really well-suited to bashing things but that's not to say
+to bashing things but that's not to say that all monsters creatures are
+that all monsters creatures are well-suited to bashing things so we have
+well-suited to bashing things so we have a bit of a dilemma here and time for a
+a bit of a dilemma here and time for a quick diversion let's talk about unit
+quick diversion let's talk about unit classification what is this thing
+classification what is this thing so in historical games unit
+so in historical games unit classification was pretty
+classification was pretty straightforward we had sword infantry
+straightforward we had sword infantry spear infantry missile units cavalry and
+spear infantry missile units cavalry and artillery it's a nice and simple
+artillery it's a nice and simple classification system so as a result the
+classification system so as a result the AI succumb to the temptation of making
+AI succumb to the temptation of making behavioral decisions based on the type
+behavioral decisions based on the type of the unit but in Warhammer we have all
+of the unit but in Warhammer we have all of those things plus flying units war
+of those things plus flying units war machines monsters like Giants trolls and
+machines monsters like Giants trolls and gigantic spiders and individual heroic
+gigantic spiders and individual heroic characters and at first those might just
+characters and at first those might just seem like new unit categories but the
+seem like new unit categories but the unit's themselves within those
+unit's themselves within those categories can have very different
+categories can have very different strengths and weaknesses especially with
+strengths and weaknesses especially with the individual heroic characters as a
+the individual heroic characters as a result we needed a better way to
+result we needed a better way to describe each units role on the
+describe each units role on the battlefield to the AI so essentially the
+battlefield to the AI so essentially the AI code was asking the wrong question it
+AI code was asking the wrong question it doesn't matter what a unit is it matters
+doesn't matter what a unit is it matters how we should use it is it excellent in
+how we should use it is it excellent in melee for example or should try to avoid
+melee for example or should try to avoid combat altogether is it a great choice
+combat altogether is it a great choice for breaking down the gates or maybe it
+for breaking down the gates or maybe it excels at flanking instead is it a
+excels at flanking instead is it a high-value unit that should be protected
+high-value unit that should be protected even at the cost of another unit well
+even at the cost of another unit well each unit can have more than one use so
+each unit can have more than one use so we created a set of AI usage flags that
+we created a set of AI usage flags that the designers can place on each unit
+the designers can place on each unit record to help identify how the AI
+record to help identify how the AI should use them correctly those flags
+should use them correctly those flags are effectively combined into a bit
+are effectively combined into a bit field structure that we can
+field structure that we can anywhere so now getting back to the gate
+anywhere so now getting back to the gate assault tactic we can now examine the
+assault tactic we can now examine the units AI usage flag to determine if it's
+units AI usage flag to determine if it's a gate crusher or not instead of
+a gate crusher or not instead of checking whether it's a monstrous
+checking whether it's a monstrous creature and that gives us a lot better
+creature and that gives us a lot better results and then finally bashing the
+results and then finally bashing the gate is the ultimate fallback as I
+gate is the ultimate fallback as I mentioned earlier if there aren't any
+mentioned earlier if there aren't any other options for the AI we can always
+other options for the AI we can always fall back to trying to break the gates
+fall back to trying to break the gates down so the way that this tactic works
+down so the way that this tactic works is the first thing we do is we form up
+is the first thing we do is we form up into a group formation ensuring that our
+into a group formation ensuring that our units our best units for destroying the
+units our best units for destroying the gates are at the front and center of
+gates are at the front and center of that formation we then advance that
+that formation we then advance that formation together towards the gate and
+formation together towards the gate and we choose the best unit once we've
+we choose the best unit once we've reached the staging position to destroy
+reached the staging position to destroy the gate by sending it forth to attack
+the gate by sending it forth to attack in order to make the decision as to
+in order to make the decision as to which unit to send we perform a time to
+which unit to send we perform a time to destruction calculation for each unit in
+destruction calculation for each unit in the tactic which factors in the time it
+the tactic which factors in the time it would take to reach the target from our
+would take to reach the target from our staging position and then the time it
+staging position and then the time it would take to destroy the gate once it
+would take to destroy the gate once it arrives essentially doing an estimate of
+arrives essentially doing an estimate of their DPS versus buildings which we
+their DPS versus buildings which we perform at run time at the same time as
+perform at run time at the same time as we're attacking the gate if possible we
+we're attacking the gate if possible we can periodically relinquish a unit to
+can periodically relinquish a unit to climb the walls and attack any defenders
+climb the walls and attack any defenders who might be up there firing at us or if
+who might be up there firing at us or if we're lucky enough we might be able to
+we're lucky enough we might be able to get over the walls and capture the gate
+get over the walls and capture the gate from the inside instead of trying to
+from the inside instead of trying to bash it down if at any time during this
+bash it down if at any time during this attack process the attacking unit isn't
+attack process the attacking unit isn't validated such as it was forced to flee
+validated such as it was forced to flee or it was killed then we just choose the
+or it was killed then we just choose the next best one and send it in during that
+next best one and send it in during that process we also try to use all the
+process we also try to use all the supporting units in the tactic to defend
+supporting units in the tactic to defend that main attacking unit from the enemy
+that main attacking unit from the enemy excuse me
+excuse me once we destroy or capture the gate we
+once we destroy or capture the gate we can then record it as an accessible
+can then record it as an accessible entry point and the tactic is
+entry point and the tactic is accomplished in this goal the next
+accomplished in this goal the next tactic that's worth examining is the
+tactic that's worth examining is the assault tactic and here our goal is to
+assault tactic and here our goal is to create a way for our unknown mounted
+create a way for our unknown mounted units or our footmen to scale the walls
+units or our footmen to scale the walls this functionality was also extracted
+this functionality was also extracted from the single tactic in the historical
+from the single tactic in the historical games which used to control the whole
+games which used to control the whole army at once and turned into a
+army at once and turned into a standalone tactic in its own right so
+standalone tactic in its own right so given us best sorry a specific assault
+given us best sorry a specific assault designation to use the wall assault
+designation to use the wall assault tactic identifies the set of allowable
+tactic identifies the set of allowable wall targets by scanning the wall pieces
+wall targets by scanning the wall pieces that are close to the attack focus and
+that are close to the attack focus and note that there has to be at least some
+note that there has to be at least some valid ones otherwise the assault
+valid ones otherwise the assault designation would have a zero score for
+designation would have a zero score for this attack type and some of the tools
+this attack type and some of the tools that we can use in order to accomplish
+that we can use in order to accomplish our objective our siege towers which are
+our objective our siege towers which are the perfect tool for the job they offer
+the perfect tool for the job they offer excellent protection from missile fire
+excellent protection from missile fire for the unit while it's approaching the
+for the unit while it's approaching the walls and then they're quite easy to
+walls and then they're quite easy to climb the downside is that they have to
+climb the downside is that they have to be built while besieging the city on the
+be built while besieging the city on the campaign map and also we can use ladders
+campaign map and also we can use ladders so any footman unit can raise ladders
+so any footman unit can raise ladders and scale the walls however they don't
+and scale the walls however they don't have any protection during the approach
+have any protection during the approach and they'll incur fatigue penalties
+and they'll incur fatigue penalties while climbing which leaves them less
+while climbing which leaves them less fit for combat once they crest the walls
+fit for combat once they crest the walls so only certain types of units can climb
+so only certain types of units can climb those siege towers and ladders so while
+those siege towers and ladders so while it's a great tactic to employ it won't
+it's a great tactic to employ it won't necessarily work for all of our units
+necessarily work for all of our units such as our vehicles or our cavalry so
+such as our vehicles or our cavalry so the way that this tactic progresses is
+the way that this tactic progresses is first we form some groups within the
+first we form some groups within the tactic itself so we form groups around
+tactic itself so we form groups around units that have siege Tower currently
+units that have siege Tower currently equipped or a unit that we want to place
+equipped or a unit that we want to place ladders and then we assign to each of
+ladders and then we assign to each of those groups some remaining support
+those groups some remaining support units we're going to try to protect that
+units we're going to try to protect that leader as it approaches the walls and
+leader as it approaches the walls and they're going to return fire on the
+they're going to return fire on the defenders who are on top of the walls
+defenders who are on top of the walls then each group independently selects
+then each group independently selects which wall piece they want to talk with
+which wall piece they want to talk with and then we validate those target
+and then we validate those target choices within the tactic itself to
+choices within the tactic itself to ensure that none of the groups are going
+ensure that none of the groups are going to cross paths as they approach the
+to cross paths as they approach the walls and then each group advances
+walls and then each group advances independently towards their selected
+independently towards their selected target once they reach their target wall
+target once they reach their target wall piece they'll either dock the tower or
+piece they'll either dock the tower or place the ladder onto that wall piece
+place the ladder onto that wall piece and once that's happens we can mark that
+and once that's happens we can mark that section of wall as an accessible entry
+section of wall as an accessible entry point and that group has accomplished
+point and that group has accomplished its goal and the third tactic that's
+its goal and the third tactic that's worth talking about in detail is the
+worth talking about in detail is the wall breach tactic and its goal is to
+wall breach tactic and its goal is to destroy a part of the city walls so that
+destroy a part of the city walls so that our units can run through this
+our units can run through this functionality was also extracted from
+functionality was also extracted from that single monolithic tactic from the
+that single monolithic tactic from the historical games so given a specific
+historical games so given a specific assault designation to use the wall
+assault designation to use the wall breach tactic identifies a target wall
+breach tactic identifies a target wall piece to destroy by scanning the walls
+piece to destroy by scanning the walls near the attack focus and there must be
+near the attack focus and there must be a valid target for it to choose
+a valid target for it to choose otherwise we would have received a zero
+otherwise we would have received a zero score for this assault designation in
+score for this assault designation in order to do this to actually destroy the
+order to do this to actually destroy the walls we bring out the big guns
+walls we bring out the big guns so anything that has a weapon big enough
+so anything that has a weapon big enough or a missile weapon specifically to
+or a missile weapon specifically to damage buildings while it's only a small
+damage buildings while it's only a small subset of units that can do this any
+subset of units that can do this any unit can walk through the breach created
+unit can walk through the breach created so it's actually quite a valuable tactic
+so it's actually quite a valuable tactic the way that it works is given that
+the way that it works is given that small set of artillery units and some
+small set of artillery units and some support units to defend them from attack
+support units to defend them from attack we've formed them up into a group
+we've formed them up into a group formation ensuring that any direct fire
+formation ensuring that any direct fire artillery such as cannons are placed in
+artillery such as cannons are placed in the front rank and any indirect fire
+the front rank and any indirect fire units like catapults can go in the rear
+units like catapults can go in the rear we then select a section of walls to
+we then select a section of walls to destroy and advance the group towards
+destroy and advance the group towards that target until all of our artillery
+that target until all of our artillery pieces are within their effective firing
+pieces are within their effective firing range we then focus fire all the units
+range we then focus fire all the units on that wall target until it's destroyed
+on that wall target until it's destroyed and then once it is destroyed we can
+and then once it is destroyed we can record that wall section as an
+record that wall section as an accessible entry point and the tactic is
+accessible entry point and the tactic is complete now that we know about all of
+complete now that we know about all of the climb above walls the destroyed or
+the climb above walls the destroyed or captured gates and all the wall breaches
+captured gates and all the wall breaches we're ready to storm the city right
+we're ready to storm the city right well actually we're not because we only
+well actually we're not because we only know about the entry points that the AI
+know about the entry points that the AI created but what about the ones that the
+created but what about the ones that the player might have created since the AI
+player might have created since the AI can act as a friendly reinforcement for
+can act as a friendly reinforcement for the attacking player army we also have
+the attacking player army we also have to consider the entry points that they
+to consider the entry points that they have created in order to do that we need
+have created in order to do that we need to go back to our architecture diagram
+to go back to our architecture diagram and we have to add a missing element
+and we have to add a missing element which was the entry point manager so we
+which was the entry point manager so we can detect entry points that were
+can detect entry points that were created through player actions by
+created through player actions by periodically scanning the city walls for
+periodically scanning the city walls for any docked towers placed ladders
+any docked towers placed ladders captured or destroyed gates and
+captured or destroyed gates and destroyed sections of wall that the AI
+destroyed sections of wall that the AI doesn't already know about and for each
+doesn't already know about and for each one that we find we can just create an
+one that we find we can just create an entry point object that is marked as
+entry point object that is marked as already accessible to represent that new
+already accessible to represent that new way of entering the city the entry point
+way of entering the city the entry point manager owned by the grand tactical
+manager owned by the grand tactical analyser is responsible not only for
+analyser is responsible not only for storing all of the AI created entry
+storing all of the AI created entry points but also for performing this
+points but also for performing this scanning process this ensures that all
+scanning process this ensures that all entry points regardless of source are
+entry points regardless of source are accessed and treated the same way by the
+accessed and treated the same way by the rest of the AI so now we're ready to
+rest of the AI so now we're ready to storm the city the storm entry points
+storm the city the storm entry points tactic is responsible for sending units
+tactic is responsible for sending units into the city via the accessible entry
+into the city via the accessible entry points it starts by forming a storming
+points it starts by forming a storming group for each accessible entry point
+group for each accessible entry point it's perfectly fine to have empty groups
+it's perfectly fine to have empty groups at this point as units can be allocated
+at this point as units can be allocated to those groups in the future generally
+to those groups in the future generally the units that were responsible for
+the units that were responsible for creating an entry point should be
+creating an entry point should be allocated to that entry point group
+allocated to that entry point group first so that they can exploit the
+first so that they can exploit the opening that they've created so for each
+opening that they've created so for each group we queue up our units in front of
+group we queue up our units in front of the entry point and then we send them
+the entry point and then we send them through one at a time in the historical
+through one at a time in the historical titles this tactic the tactics
+titles this tactic the tactics themselves were responsible for sending
+themselves were responsible for sending the units through into the city but
+the units through into the city but we've changed that for Warhammer the
+we've changed that for Warhammer the storm entry point
+storm entry point dick is new for Warhammer and it was
+dick is new for Warhammer and it was created because the process of using the
+created because the process of using the entry points is very similar regardless
+entry points is very similar regardless of the type of entry point and so this
+of the type of entry point and so this created a nice separation of
+created a nice separation of responsibilities for us the assault
+responsibilities for us the assault tactics always create the entry points
+tactics always create the entry points and the storm entry points tactic uses
+and the storm entry points tactic uses them once the AI has broken past the
+them once the AI has broken past the walls into the interior of the city its
+walls into the interior of the city its goal becomes to capture the city's
+goal becomes to capture the city's victory point and as mentioned before
+victory point and as mentioned before the special purpose settlement AI is
+the special purpose settlement AI is used to identify threats within the city
+used to identify threats within the city and direct the attacking units to their
+and direct the attacking units to their goal as the system is quite complex and
+goal as the system is quite complex and remains mostly unchanged from the
+remains mostly unchanged from the previous titles we won't be diving too
+previous titles we won't be diving too deep into that today so how do the
+deep into that today so how do the reserves fit in well if a tactic or an
+reserves fit in well if a tactic or an entry point group can no longer
+entry point group can no longer accomplish its goal for example if the
+accomplish its goal for example if the wall breach tactic youth loses all of
+wall breach tactic youth loses all of its artillery units because the
+its artillery units because the defenders sallied out to meet them then
+defenders sallied out to meet them then we have to abandon that tactic and
+we have to abandon that tactic and reallocate its units elsewhere but where
+reallocate its units elsewhere but where should we reallocate them well we've
+should we reallocate them well we've created a new tactic for that and it's
+created a new tactic for that and it's called the reserves for the first time
+called the reserves for the first time in the Total War series the battle AI is
+in the Total War series the battle AI is making use of reserves this is a pool of
+making use of reserves this is a pool of Units that's held back to see how the
+Units that's held back to see how the battle unfolds before we commit all of
+battle unfolds before we commit all of our resources for the attacking cji this
+our resources for the attacking cji this is a group of units that examines the
+is a group of units that examines the entry points either in progress or
+entry points either in progress or already completed before deciding where
+already completed before deciding where to commit its units so effectively the
+to commit its units so effectively the reserves tactic has become the mechanism
+reserves tactic has become the mechanism to transfer units between tactics as the
+to transfer units between tactics as the battle progresses depending on the
+battle progresses depending on the starting Army composition we might
+starting Army composition we might already have some units in the reserve
+already have some units in the reserve straight away during employment any
+straight away during employment any tactics that are abandoned will send
+tactics that are abandoned will send their units to the reserves and the
+their units to the reserves and the reserves periodically scans those entry
+reserves periodically scans those entry points in order to decide where to
+points in order to decide where to allocate them this whole process can
+allocate them this whole process can occur within the same model tick so we
+occur within the same model tick so we don't necessarily have to wait for the
+don't necessarily have to wait for the units to physically move from
+units to physically move from where they were to the reserves before
+where they were to the reserves before being assigned to the next tactic when
+being assigned to the next tactic when considering which units should be
+considering which units should be assigned to which entry points we have
+assigned to which entry points we have to consider each units capabilities and
+to consider each units capabilities and the current set of options a unit might
+the current set of options a unit might be better suited to one type of entry
+be better suited to one type of entry point than another and it might be worth
+point than another and it might be worth waiting for progress on a highly
+waiting for progress on a highly desirable entry point instead of making
+desirable entry point instead of making a suboptimal assignment now highly
+a suboptimal assignment now highly desirable entry points though might
+desirable entry points though might already have enough units assigned to
+already have enough units assigned to them so we use a simple scoring
+them so we use a simple scoring heuristic to ensure that a unit is
+heuristic to ensure that a unit is always assigned to an entry point for
+always assigned to an entry point for which it is well suited but that we
+which it is well suited but that we don't perform any overcrowded
+don't perform any overcrowded allocations to those entry points once
+allocations to those entry points once an assignment decision is made its
+an assignment decision is made its passed up to the parent detachment for
+passed up to the parent detachment for execution if the entry point is already
+execution if the entry point is already accessible this will result in the unit
+accessible this will result in the unit being transferred to the storm' entry
+being transferred to the storm' entry points tactic but if the entry point is
+points tactic but if the entry point is still in progress then it will result in
+still in progress then it will result in the unit being transferred to the tactic
+the unit being transferred to the tactic that's currently attempting to create
+that's currently attempting to create the entry point note that since the
+the entry point note that since the Reserve's tactic is making its
+Reserve's tactic is making its assignment decisions based on the set of
+assignment decisions based on the set of entry points held by the entry point
+entry points held by the entry point manager there's no direct dependency
+manager there's no direct dependency between tactics introduced because of
+between tactics introduced because of this process and the assignments will
+this process and the assignments will consider entry methods created by player
+consider entry methods created by player actions as well so let's move on to
+actions as well so let's move on to talking about how the battle AI
+talking about how the battle AI coordinates between tactics within a
+coordinates between tactics within a detachment in general by design our AI
+detachment in general by design our AI architecture dictates that the tactics
+architecture dictates that the tactics should be as encapsulated and modular as
+should be as encapsulated and modular as possible so that tactics can be reused
+possible so that tactics can be reused between different detachments in various
+between different detachments in various contexts for example the same tactic
+contexts for example the same tactic might be used in a land battle and a
+might be used in a land battle and a naval battle or maybe while attacking
+naval battle or maybe while attacking and while defending sometimes limited
+and while defending sometimes limited coordination between those tactics is
+coordination between those tactics is performed by the parent detachment in
+performed by the parent detachment in the general purpose battle AI
+the general purpose battle AI detachments allocate units to tactics
+detachments allocate units to tactics using a prioritized bidding process
+but in the case of the attacking cji the detachment does quite a lot of
+detachment does quite a lot of coordination actually by managed
+coordination actually by managed manually managing the process of
+manually managing the process of allocating units to tactics so let's get
+allocating units to tactics so let's get specific on the tactical coordination by
+specific on the tactical coordination by going through a few examples the first
+going through a few examples the first is the gate assault tactic choosing to
+is the gate assault tactic choosing to relinquish some of its units in order to
+relinquish some of its units in order to place a ladder on the walls near the
+place a ladder on the walls near the gate a wall assault tactic wouldn't
+gate a wall assault tactic wouldn't normally be able to do this because the
+normally be able to do this because the gate assault tactic would have claimed
+gate assault tactic would have claimed that assault designation and therefore
+that assault designation and therefore all of the wall pieces near its attack
+all of the wall pieces near its attack focus the tactical coordination process
+focus the tactical coordination process unfolds as follows the gate assault
+unfolds as follows the gate assault tactic determines the list of units that
+tactic determines the list of units that it's willing to relinquish in order to
+it's willing to relinquish in order to climb the walls near the gate it passes
+climb the walls near the gate it passes that list of units up to the detachment
+that list of units up to the detachment the detachment verifies that the assault
+the detachment verifies that the assault designation has a high enough score to
+designation has a high enough score to warrant an attempt at climbing the walls
+warrant an attempt at climbing the walls the detachment then if that is true will
+the detachment then if that is true will start a new wall assault tactic on the
+start a new wall assault tactic on the same assault designation as the gate
+same assault designation as the gate assault tactic the detachment will then
+assault tactic the detachment will then transfer control of those units from the
+transfer control of those units from the gate tactic to the wall tactic and since
+gate tactic to the wall tactic and since none of those units will have any wall
+none of those units will have any wall assault equipment they won't have siege
+assault equipment they won't have siege towers because they were just a negate
+towers because they were just a negate tactic the new wall assault tactic forms
+tactic the new wall assault tactic forms ladder groups as opposed to siege tower
+ladder groups as opposed to siege tower groups and uses the unit's ability to
+groups and uses the unit's ability to place ladders to accomplish its goal and
+place ladders to accomplish its goal and finally the new group will then select a
+finally the new group will then select a wall target which is definitely near the
+wall target which is definitely near the gate and proceeds as normal a second
+gate and proceeds as normal a second example of tactical coordination would
+example of tactical coordination would be when a tower docks with the walls and
+be when a tower docks with the walls and it is therefore accomplished its goal so
+it is therefore accomplished its goal so the group within the tactic which was
+the group within the tactic which was responsible for docking that tower
+responsible for docking that tower should be removed from the tactic and
+should be removed from the tactic and its units should be assigned to the
+its units should be assigned to the storm entry points tactic in order to
+storm entry points tactic in order to climb that specific tower thereby
+climb that specific tower thereby exploiting the end
+exploiting the end your point that it just created the way
+your point that it just created the way that this process unfolds is the first
+that this process unfolds is the first the wall assault tactic marks that entry
+the wall assault tactic marks that entry point representing that wall section as
+point representing that wall section as accessible the tactic then relinquishes
+accessible the tactic then relinquishes the set of units that were in that
+the set of units that were in that specific tower group along with the
+specific tower group along with the entry point for that tower group to the
+entry point for that tower group to the detachment and the detachment assigns
+detachment and the detachment assigns those units to the storm entry points
+those units to the storm entry points tactic indicating that they should be
+tactic indicating that they should be assigned to that specific entry group
+assigned to that specific entry group the storm entry points tactic then
+the storm entry points tactic then assigns those units to that particular
+assigns those units to that particular group and since that group knows that
+group and since that group knows that the entry point represents a docked
+the entry point represents a docked tower because each entry point has a
+tower because each entry point has a type it's able to issue the appropriate
+type it's able to issue the appropriate unit orders for those units to climb to
+unit orders for those units to climb to the top of the walls using that specific
+the top of the walls using that specific tower and then finally if the wall
+tower and then finally if the wall assault tactic no longer has any units
+assault tactic no longer has any units assigned to it and therefore has no
+assigned to it and therefore has no groups remaining its destroyed by the
+groups remaining its destroyed by the detachment because it's accomplished all
+detachment because it's accomplished all of its goals and as a final example of
+of its goals and as a final example of tactical coordination we can look at the
+tactical coordination we can look at the process of allocating the reserves so
+process of allocating the reserves so units and the reserves are being held
+units and the reserves are being held until there's a good opportunity to
+until there's a good opportunity to bolster an existing tactic and progress
+bolster an existing tactic and progress or to enter the city through an
+or to enter the city through an accessible entry point each entry point
+accessible entry point each entry point whether completed or not has that
+whether completed or not has that fulfillment score which ensures that we
+fulfillment score which ensures that we don't allocate too many units to a
+don't allocate too many units to a single location each unit in the
+single location each unit in the reserves is then scored for each entry
+reserves is then scored for each entry point to determine how valuable it would
+point to determine how valuable it would be to that entry point we can then
+be to that entry point we can then determine if any units can be allocated
+determine if any units can be allocated to an entry point which would fully
+to an entry point which would fully utilize the unit's potential but not
+utilize the unit's potential but not become over fulfilled in the process the
+become over fulfilled in the process the way that that works is periodically the
+way that that works is periodically the reserves scans for matches between its
+reserves scans for matches between its units and the set of entry points note
+units and the set of entry points note that we don't have sorry not all units
+that we don't have sorry not all units can use all entry points for example
+can use all entry points for example mounted units can't climb ladders
+mounted units can't climb ladders obviously and we only have to inspect
+obviously and we only have to inspect the set of entry points that are below
+the set of entry points that are below their maximum fulfillment scores
+their maximum fulfillment scores so the reserves tactic then
+so the reserves tactic then is that set of mappings of unit 2 entry
+is that set of mappings of unit 2 entry point pairs up to the parent attachment
+point pairs up to the parent attachment for assignment
+for assignment the detachment iterates that set of
+the detachment iterates that set of mappings and moves the units to the
+mappings and moves the units to the appropriate tactics note that since we
+appropriate tactics note that since we create accessible entry points as a
+create accessible entry points as a result of Allied human player actions
+result of Allied human player actions this process allows the assignment of AI
+this process allows the assignment of AI units to use entry points that were
+units to use entry points that were created by the player so at this point
+created by the player so at this point we have a complete view of how the
+we have a complete view of how the attacking cji functions everything from
+attacking cji functions everything from the initial organization to the
+the initial organization to the execution coordination and adaptation
+execution coordination and adaptation through to completion so the final
+through to completion so the final remaining topic is that of additional
+remaining topic is that of additional armies or reinforcements a reinforcing
+armies or reinforcements a reinforcing army is a friendly player army that
+army is a friendly player army that enters the battlefield sorry not player
+enters the battlefield sorry not player a friendly army that enters the
+a friendly army that enters the battlefield after it's already begun
+battlefield after it's already begun this happens when an allied army is
+this happens when an allied army is nearby on the campaign map when the
+nearby on the campaign map when the siege is initiated the reinforcing army
+siege is initiated the reinforcing army may either be player controlled or it
+may either be player controlled or it could be AI controlled if it's player
+could be AI controlled if it's player controlled we don't need to do anything
+controlled we don't need to do anything special
+special they'll just control up to 40 units then
+they'll just control up to 40 units then instead of a normal 20 in the case of AI
+instead of a normal 20 in the case of AI controlled reinforcements they're not
+controlled reinforcements they're not necessarily of the same faction as the
+necessarily of the same faction as the players army so for example an AI
+players army so for example an AI army of dwarfs could reinforce a player
+army of dwarfs could reinforce a player army of the Empire when being west sorry
+army of the Empire when being west sorry when besieging a city held by the
+when besieging a city held by the vampire accounts if the dwarf and the
+vampire accounts if the dwarf and the Empire factions are military allies on
+Empire factions are military allies on the campaign map this can lead to some
+the campaign map this can lead to some pretty cool combinations so in this
+pretty cool combinations so in this image the enemy defenders are in red the
+image the enemy defenders are in red the players army is in yellow and a
+players army is in yellow and a reinforcing army of AI controlled units
+reinforcing army of AI controlled units is just entering the field in blue so by
+is just entering the field in blue so by definition the reinforcing army doesn't
+definition the reinforcing army doesn't bring any siege equipment with it into
+bring any siege equipment with it into the battle so they might be ill-equipped
+the battle so they might be ill-equipped to fight a siege battle when an AI
+to fight a siege battle when an AI controlled army of reinforcements joins
+controlled army of reinforcements joins the siege battles they're all added to
+the siege battles they're all added to the existing reserves
+the existing reserves tactic which means that they mostly rely
+tactic which means that they mostly rely on the original staging army to create
+on the original staging army to create the entry points as the entry points are
+the entry points as the entry points are created the units from the reinforcing
+created the units from the reinforcing army are sent into the city using the
+army are sent into the city using the normal process for allocating the
+normal process for allocating the reserves so that wraps it up for all the
+reserves so that wraps it up for all the details of attacking cji now let's
+details of attacking cji now let's switch gears a little bit and discuss a
+switch gears a little bit and discuss a change in process that we made for the
+change in process that we made for the warhammer project that increased
+warhammer project that increased collaboration between disciplines for
+collaboration between disciplines for siege battles so in addition to our
+siege battles so in addition to our daily stand-ups I initiated a one-hour
+daily stand-ups I initiated a one-hour siege AI meeting for war hammer I know
+siege AI meeting for war hammer I know that everyone hates meetings but this
+that everyone hates meetings but this one proved a have proved vital to the
+one proved a have proved vital to the success of our siege battles so
+success of our siege battles so represented in each meeting where the
+represented in each meeting where the battle AI team which consists of myself
+battle AI team which consists of myself responsible for sieges and two other AI
+responsible for sieges and two other AI programmers who are responsible for the
+programmers who are responsible for the general battle AI we also have the
+general battle AI we also have the designer who is responsible for siege
+designer who is responsible for siege battles we have the designer responsible
+battles we have the designer responsible for both vital and campaign AI we had
+for both vital and campaign AI we had the lead battle programmer three
+the lead battle programmer three representatives from QA including the
+representatives from QA including the lead QA an embedded battle tester and an
+lead QA an embedded battle tester and an embedded siege tester and a producer and
+embedded siege tester and a producer and the game director himself so essentially
+the game director himself so essentially everyone was in the room who needed to
+everyone was in the room who needed to be there in order for us to make
+be there in order for us to make actionable decisions so yes it was a big
+actionable decisions so yes it was a big meeting but it was by far our most
+meeting but it was by far our most productive during each meeting we would
+productive during each meeting we would review the status of action items from
+review the status of action items from the previous meeting of course and then
+the previous meeting of course and then we would play the build specifically to
+we would play the build specifically to demonstrate any AI changes since last
+demonstrate any AI changes since last week we would then discuss whether or
+week we would then discuss whether or not those changes looked good if they
+not those changes looked good if they were working out as expected or if
+were working out as expected or if something needs to be changed whether it
+something needs to be changed whether it was in the AI itself or potentially a
+was in the AI itself or potentially a feature in the game that wasn't panning
+feature in the game that wasn't panning out as we expected or something that was
+out as we expected or something that was particularly challenging for the AI to
+particularly challenging for the AI to use we would then demonstrate any
+use we would then demonstrate any updates to the debugging tools to
+updates to the debugging tools to visualize any of these new behaviors and
+visualize any of these new behaviors and then would bring up any changes or
+then would bring up any changes or decisions that might have occurred
+decisions that might have occurred outside of the siege team that could
+outside of the siege team that could have impact on the sieges and then
+have impact on the sieges and then finally we would generate a list of
+finally we would generate a list of relevant tasks
+relevant tasks that we intended to complete for the
+that we intended to complete for the next meeting speaking personally this
+next meeting speaking personally this process was invaluable to me as an AI
+process was invaluable to me as an AI programmer and to all the other
+programmer and to all the other participants as well it formed the core
+participants as well it formed the core of our collaborative process which got
+of our collaborative process which got everyone invested in the success of the
+everyone invested in the success of the siege battles and critically this
+siege battles and critically this collaboration provided a mutual
+collaboration provided a mutual understanding of challenges and it
+understanding of challenges and it prevented surprises as the project
+prevented surprises as the project progressed so if you'll indulge me as a
+progressed so if you'll indulge me as a result of those changes in process and
+result of those changes in process and my experience in the past I'd like to
+my experience in the past I'd like to offer some general advice now this stuff
+offer some general advice now this stuff might seem pretty basic but it's
+might seem pretty basic but it's shockingly shockingly rare to find
+shockingly shockingly rare to find people who actually follow it sometimes
+people who actually follow it sometimes so it bears repeating first play your
+so it bears repeating first play your game understand your game and watch
+game understand your game and watch other people play it as well talk to
+other people play it as well talk to your expert players if you're lucky
+your expert players if you're lucky enough to be in a situation like us
+enough to be in a situation like us where we all have a very established fan
+where we all have a very established fan base understanding your game means
+base understanding your game means noticing things that design documents
+noticing things that design documents won't tell you explicitly and it should
+won't tell you explicitly and it should be obvious that in order to program a
+be obvious that in order to program a competent computer opponent you should
+competent computer opponent you should understand the game that is trying to
+understand the game that is trying to play be the champion for the AI no one
+play be the champion for the AI no one will understand the AI better than you
+will understand the AI better than you do it's easier for someone outside of
+do it's easier for someone outside of the AI team to make a decision that
+the AI team to make a decision that impacts AI without even realizing it
+impacts AI without even realizing it since you're responsible for the AI
+since you're responsible for the AI you're also responsible for educating
+you're also responsible for educating the rest of the team about the AI
+the rest of the team about the AI encourage questions and be available to
+encourage questions and be available to answer them be the expert as the AI
+answer them be the expert as the AI programmer you know how the AI works or
+programmer you know how the AI works or I certainly hope you do if you
+I certainly hope you do if you understand how your game works then you
+understand how your game works then you should also be able to anticipate
+should also be able to anticipate scenarios where the a I might do a bad
+scenarios where the a I might do a bad job don't rely on other people to find
+job don't rely on other people to find those edge cases for you just think
+those edge cases for you just think about it and if you can anticipate it
+about it and if you can anticipate it you can probably come up with a plan to
+you can probably come up with a plan to mitigate it but resist the temptation to
+mitigate it but resist the temptation to work on theoretical problems instead you
+work on theoretical problems instead you should identify it discuss it with your
+should identify it discuss it with your team and prioritize it maybe it's not a
+team and prioritize it maybe it's not a big deal
+big deal be organized having your own private
+be organized having your own private to-do list is important but buddy up
+to-do list is important but buddy up with a producer to get those tasks
+with a producer to get those tasks tracked
+tracked appropriate it's really easy to let
+appropriate it's really easy to let things slip through the cracks because
+things slip through the cracks because these games are so complicated
+these games are so complicated and if you don't quantify and track
+and if you don't quantify and track discovered work you're either going to
+discovered work you're either going to work yourself into the ground fixing
+work yourself into the ground fixing them or you're gonna let the quality of
+them or you're gonna let the quality of the game suffer don't let that happen
+the game suffer don't let that happen show your work subject the AI to
+show your work subject the AI to critique on a regular basis people will
+critique on a regular basis people will have ideas about how to improve it and
+have ideas about how to improve it and you don't need to act on every
+you don't need to act on every suggestion but two heads are better than
+suggestion but two heads are better than one especially when they're from
+one especially when they're from different disciplines you might get some
+different disciplines you might get some really great suggestions invest in tools
+really great suggestions invest in tools they'll save you time in the long run I
+they'll save you time in the long run I know they're not sexy but they're so
+know they're not sexy but they're so useful especially visualization tools
+useful especially visualization tools that help you understand what's going
+that help you understand what's going wrong make sure those tools can be
+wrong make sure those tools can be enabled on anyone's machine you don't
+enabled on anyone's machine you don't have to do something special so that you
+have to do something special so that you can diagnose weird behavior when someone
+can diagnose weird behavior when someone ambushes you as you walk by in the
+ambushes you as you walk by in the hallway and if you train other people to
+hallway and if you train other people to use the tools they can potentially
+use the tools they can potentially diagnose issues for you and lead to
+diagnose issues for you and lead to better quality bug reports and finally
+better quality bug reports and finally don't take it personally it's not a
+don't take it personally it's not a personal insult if someone says the AI
+personal insult if someone says the AI is doing something stupid so your ego
+is doing something stupid so your ego aside during development and put the
+aside during development and put the game first so to wrap up the CJI on
+game first so to wrap up the CJI on Total War Warhammer is remarkably
+Total War Warhammer is remarkably different than previous games in this
+different than previous games in this series due to a different set of design
+series due to a different set of design goals we started with a proven set of
+goals we started with a proven set of functionality from total war attila and
+functionality from total war attila and iterated towards a style of gameplay
+iterated towards a style of gameplay that we wanted in close collaboration
+that we wanted in close collaboration with the battle and design teams the
+with the battle and design teams the breadth of the player facing AI
+breadth of the player facing AI behaviors is driven by the variety of
+behaviors is driven by the variety of unit types and army compositions that
+unit types and army compositions that are brought to the battle not by
+are brought to the battle not by randomization within the battle within
+randomization within the battle within the behaviors themselves and for the
+the behaviors themselves and for the first time we're now holding back units
+first time we're now holding back units and reserves instead of committing the
+and reserves instead of committing the entire force at the start of the battle
+entire force at the start of the battle and also for the first time the Friendly
+and also for the first time the Friendly AI is able to follow the players lead
+AI is able to follow the players lead instead of just forging its own path so
+instead of just forging its own path so creative assembly is located in sunny
+creative assembly is located in sunny England and we're hiring for positions
+England and we're hiring for positions across all disciplines we have lots of
+across all disciplines we have lots of opportunities so if you're ever
+opportunities so if you're ever interested in moving
+interested in moving please come find me at the conference or
+please come find me at the conference or talk to me after the chat thanks very
+talk to me after the chat thanks very much
+alright folks we've got about four minutes for questions I know it's not a
+minutes for questions I know it's not a lot of time and obviously you can also
+lot of time and obviously you can also ambush Andrzej outside just don't break
+ambush Andrzej outside just don't break down any walls because I think that's
+down any walls because I think that's against our contract so if anybody has
+against our contract so if anybody has questions always please use the
+questions always please use the microphones one in each aisle anybody
+hey so can entry points be closed down as in ladders being kicked down and so
+as in ladders being kicked down and so on and if so how does the units actually
+on and if so how does the units actually reorganize in accordance to that and how
+reorganize in accordance to that and how did the reserves if they're heading for
+did the reserves if they're heading for it reorganize yeah good question so it
+it reorganize yeah good question so it is possible but it's very unlikely which
+is possible but it's very unlikely which means we have to handle that so the way
+means we have to handle that so the way that that works typically the entry
+that that works typically the entry points are permanent but it's entirely
+points are permanent but it's entirely possible that for example that section
+possible that for example that section of wall is destroyed and so the siege
+of wall is destroyed and so the siege Tower attached to it is worthless now so
+Tower attached to it is worthless now so the way that that works is just the same
+the way that that works is just the same as a tactic being abandoned the entry
+as a tactic being abandoned the entry point will be shut down all of the units
+point will be shut down all of the units that were assigned to it will be
+that were assigned to it will be immediately transferred to the reserves
+immediately transferred to the reserves tactic and from there they go back into
+tactic and from there they go back into the typical process of the reserve
+the typical process of the reserve scanning for other entry points so if
+scanning for other entry points so if there's something else for them to do
+there's something else for them to do immediately they'll get transferred to
+immediately they'll get transferred to another tactic right away and then
+another tactic right away and then they'll go off and do that everything
+they'll go off and do that everything I'm curious how the game difficulty
+I'm curious how the game difficulty affects the battle AI in these games all
+affects the battle AI in these games all right Andy somewhere I'm ER that's a
+right Andy somewhere I'm ER that's a good question
+good question the short answer is it's very indirect
+the short answer is it's very indirect it happens as a result of the unit
+it happens as a result of the unit balance we have some pretty
+balance we have some pretty sophisticated systems called like the
+sophisticated systems called like the combat outcome prediction which features
+combat outcome prediction which features quite a heavily in the way that the
+quite a heavily in the way that the Mallee manager works and so the AI
+Mallee manager works and so the AI doesn't make any different tactical
+doesn't make any different tactical decisions but it'll certainly make a lot
+decisions but it'll certainly make a lot of different targeting choices within
+of different targeting choices within the low-level behaviors as a result of
+the low-level behaviors as a result of the unit balance shifting
+the unit balance shifting Thanks what did you with flying units
+Thanks what did you with flying units during a siege huh good question I
+during a siege huh good question I didn't touch on that because they don't
+didn't touch on that because they don't feature into any of these particular
+feature into any of these particular assault tactics so what we do with them
+assault tactics so what we do with them instead is they have a separate
+instead is they have a separate objective which is just attack enemy and
+objective which is just attack enemy and they will wait and scan the entry points
+they will wait and scan the entry points into the settlement and decide to fly
+into the settlement and decide to fly towards one of them once it's about
+towards one of them once it's about reaching its it's a accessibility point
+reaching its it's a accessibility point and so at that point we can get some
+and so at that point we can get some flying units dive in and attack the guys
+flying units dive in and attack the guys on the walls just as your guys are
+on the walls just as your guys are cresting the ladders and like chaos
+cresting the ladders and like chaos erupts and is pretty crazy fun whenever
+erupts and is pretty crazy fun whenever here
+here you mentioned visualization tools could
+you mentioned visualization tools could you just describe in a couple words what
+you just describe in a couple words what exactly are you visualizing sure well
+exactly are you visualizing sure well our visualizers are pretty rudimentary
+our visualizers are pretty rudimentary it's just lines and text but using them
+it's just lines and text but using them appropriately is the hard part right so
+appropriately is the hard part right so the way that we do it for most of our
+the way that we do it for most of our tactics is we'll draw like bounding
+tactics is we'll draw like bounding boxes around all of the units assigned
+boxes around all of the units assigned to a tactic and then if that tactic has
+to a tactic and then if that tactic has subgroups like the wall assault tactic
+subgroups like the wall assault tactic does then we identify those and then we
+does then we identify those and then we will draw like pegs to say these are the
+will draw like pegs to say these are the leading units and therefore anything
+leading units and therefore anything else includes that by that bounding box
+else includes that by that bounding box is the support unit and what we can see
+is the support unit and what we can see like how that progresses and when the
+like how that progresses and when the bounding box goes like giant then
+bounding box goes like giant then obviously something over there just got
+obviously something over there just got allocated to it and then on each
+allocated to it and then on each individual unit we can print out a bunch
+individual unit we can print out a bunch of text saying which tactic is it
+of text saying which tactic is it currently in which state is that tactic
+currently in which state is that tactic currently in as well and what are its
+currently in as well and what are its priorities what's it trying to do so
+priorities what's it trying to do so fairly simple stuff but really useful
+okay last one in the middle okay you mentioned that the eya is not permitted
+mentioned that the eya is not permitted to retreat currently that's a game
+to retreat currently that's a game design decision at the highest levels
+design decision at the highest levels but basically it comes down to
+but basically it comes down to preventing the campaign AI and the
+preventing the campaign AI and the battle AI from disagreeing so if you
+battle AI from disagreeing so if you enter a battle and the battle AI goes I
+enter a battle and the battle AI goes I can't win this crap I'm gonna retreat
+can't win this crap I'm gonna retreat and the campaign ad goes well I told you
+and the campaign ad goes well I told you to talk for a reason go attack again and
+to talk for a reason go attack again and then you can get stuck in these loops
+then you can get stuck in these loops and there really isn't any coordination
+and there really isn't any coordination between the campaign AI and the battle
+between the campaign AI and the battle AI currently in the Total War series but
+AI currently in the Total War series but that's something that I think is a great
+that's something that I think is a great target for improvement in the future
+target for improvement in the future cool thanks a lot everybody that was
+cool thanks a lot everybody that was really great
+really great [Applause]

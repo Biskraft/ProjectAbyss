@@ -1,0 +1,530 @@
+ah hello and welcome today we're going to be talking about randomness in game
+to be talking about randomness in game programming if game development is like
+programming if game development is like baking pastries then random numbers are
+baking pastries then random numbers are the delicious cinnamon I'm doctor cat
+the delicious cinnamon I'm doctor cat and I've been making games
+and I've been making games professionally for 34 years now I'm also
+professionally for 34 years now I'm also a game designer so we'll be covering
+a game designer so we'll be covering some design considerations as well as
+some design considerations as well as code samples today it's good to be able
+code samples today it's good to be able to clearly understand and communicate
+to clearly understand and communicate what options you can provide to the
+what options you can provide to the designers on your team and I know a lot
+designers on your team and I know a lot of programmers are also involved in
+of programmers are also involved in design as I've always been
+design as I've always been I kind of flip back and forth but I
+I kind of flip back and forth but I found game programming pays better than
+found game programming pays better than being creative director a lot of places
+being creative director a lot of places so also you're harder to fire but we
+so also you're harder to fire but we have three parts to our talk today first
+have three parts to our talk today first I'm going to rush through some basic
+I'm going to rush through some basic best practices because I think a lot of
+best practices because I think a lot of you are already know those then I'm
+you are already know those then I'm going to cover how you can come control
+going to cover how you can come control result distributions with some example
+result distributions with some example code from a live game I worked on and
+code from a live game I worked on and finally there's a set of tips and tricks
+finally there's a set of tips and tricks mostly focused around taking advantage
+mostly focused around taking advantage of what recorded random number seeds can
+of what recorded random number seeds can do for you there's a few other ideas too
+do for you there's a few other ideas too I won't be explaining the code snippets
+I won't be explaining the code snippets very much because they're short and
+very much because they're short and simple and we can cover more ground that
+simple and we can cover more ground that way
+way so you can review the code and the funny
+so you can review the code and the funny animal photos later these slides are all
+animal photos later these slides are all available at tinyurl.com slash GDC -
+available at tinyurl.com slash GDC - random like it says there they'll be
+random like it says there they'll be repeated again on the last slide so that
+repeated again on the last slide so that further ado let's get started best
+further ado let's get started best practices the first thing I'm going to
+practices the first thing I'm going to recommend is that you have your own
+recommend is that you have your own pseudo-random number generator code
+pseudo-random number generator code instead of using any random number
+instead of using any random number function that's provided by your OS a
+function that's provided by your OS a language or platform API there's
+language or platform API there's multiple reasons for this one is you
+multiple reasons for this one is you can't guarantee the quality of the
+can't guarantee the quality of the randomness or the CPU efficiency if
+randomness or the CPU efficiency if you're if you don't know what's in the
+you're if you don't know what's in the black box that you're calling that was
+black box that you're calling that was provided to you some web browser
+provided to you some web browser javascript our NGS have very uneven
+javascript our NGS have very uneven distribution and you don't want to get
+distribution and you don't want to get stuck with junk like that more
+stuck with junk like that more importantly if you use our own code you
+importantly if you use our own code you can guarantee matching results on
+can guarantee matching results on multiple platforms giving the same
+multiple platforms giving the same starting seed even if you have to port
+starting seed even if you have to port your game to a different language you
+your game to a different language you can port the RNG math and still achieve
+can port the RNG math and still achieve this that's very valuable as it enables
+this that's very valuable as it enables a lot of the tricks we'll be covering in
+a lot of the tricks we'll be covering in part 3 of the talk for the vast majority
+part 3 of the talk for the vast majority of games I'm going to recommend X or
+of games I'm going to recommend X or shift 128 plus I've been using something
+shift 128 plus I've been using something called Mersenne twister for the last 20
+called Mersenne twister for the last 20 years in a lot of my games it's it's
+years in a lot of my games it's it's more than you need it's this is fast
+more than you need it's this is fast it's small and it passes popular
+it's small and it passes popular statistical tests like big crush if
+statistical tests like big crush if you're trying to program professional
+you're trying to program professional quality encryption or maybe doing real
+quality encryption or maybe doing real money casino games you might want to
+money casino games you might want to look at something fancier like Mersenne
+look at something fancier like Mersenne twister otherwise just use this little
+twister otherwise just use this little gem for everything and you should be
+gem for everything and you should be fine I do want to mention a couple of
+fine I do want to mention a couple of common mistakes to avoid the big one is
+common mistakes to avoid the big one is improper seating for most purposes you
+improper seating for most purposes you want to seed your RNG once on game
+want to seed your RNG once on game launch and never again I've seen
+launch and never again I've seen somebody seed the RNG before every
+somebody seed the RNG before every request they made at which point your
+request they made at which point your quality is not equal to the quality of
+quality is not equal to the quality of your RNG it's equal to the quality of
+your RNG it's equal to the quality of your seeding source so don't be that guy
+your seeding source so don't be that guy I recommend seeding from a high
+I recommend seeding from a high resolution system clock millisecond
+resolution system clock millisecond precision at least if you can get it one
+precision at least if you can get it one that has microsecond or nanosecond
+that has microsecond or nanosecond precision and that's even better
+precision and that's even better although milliseconds is really fine if
+although milliseconds is really fine if you only have a 64 bit timer you'll
+you only have a 64 bit timer you'll notice this wants 128 bit seed value you
+notice this wants 128 bit seed value you can put something in the high word like
+can put something in the high word like the date or you can just put a second
+the date or you can just put a second copy of the timer in there that's fine
+copy of the timer in there that's fine some lower quality RMG's have a flaw
+some lower quality RMG's have a flaw where if you have a seed with a lot of
+where if you have a seed with a lot of zeros like you stuff the high word full
+zeros like you stuff the high word full of zeros it can take a number of calls
+of zeros it can take a number of calls before they start producing results with
+before they start producing results with variety to them so it's a good habit
+variety to them so it's a good habit you know fill your whole seat up with
+you know fill your whole seat up with with some bits other common mistake that
+with some bits other common mistake that people make is very imperceptible and
+people make is very imperceptible and impact but but let's avoid it anyway
+impact but but let's avoid it anyway and again if you ever go into real money
+and again if you ever go into real money gambling you're gonna have to do this
+gambling you're gonna have to do this right I've done a little of that in some
+right I've done a little of that in some high volume applications this could
+high volume applications this could actually matter in your game if you have
+actually matter in your game if you have an rng that's 16 bits or less it can
+an rng that's 16 bits or less it can matter quite a lot more so this is a
+matter quite a lot more so this is a common way you might take that output of
+common way you might take that output of an RNG and use it to roll an n-sided
+an RNG and use it to roll an n-sided dice that looks fine the top one doesn't
+dice that looks fine the top one doesn't it but you know thousands of games do it
+it but you know thousands of games do it that way they get away with it but
+that way they get away with it but imagine you're rolling hundred sided
+imagine you're rolling hundred sided dice with a 16-bit RNG so the numbers go
+dice with a 16-bit RNG so the numbers go up to 65535 and then you add your 1 so
+up to 65535 and then you add your 1 so we're going to get six hundred and fifty
+we're going to get six hundred and fifty five groups of 100 numbers and one
+five groups of 100 numbers and one little group left over that goes from 1
+little group left over that goes from 1 to 36 so now our re dice are slightly
+to 36 so now our re dice are slightly biased towards numbers from 1 to 36 so
+biased towards numbers from 1 to 36 so this second version here is just a nice
+this second version here is just a nice clean way to fix that it's almost always
+clean way to fix that it's almost always going to make only one call to your car
+going to make only one call to your car RNG occasionally it'll make 2 and you'll
+RNG occasionally it'll make 2 and you'll probably never see 3 in your lifetime so
+probably never see 3 in your lifetime so you're not paying a lot of CPU cycles to
+you're not paying a lot of CPU cycles to make this fix and finally if you want to
+make this fix and finally if you want to randomly reorder a list of things like I
+randomly reorder a list of things like I don't know cards here's the fishery 8
+don't know cards here's the fishery 8 shuffle also known as the canoes shuffle
+shuffle also known as the canoes shuffle it does an optimal randomization in
+it does an optimal randomization in optimal oh of n time and if you think
+optimal oh of n time and if you think this code sample has a deck size of 60
+this code sample has a deck size of 60 because I like to play Magic the
+because I like to play Magic the Gathering well you got me you can use
+Gathering well you got me you can use this for any type of result pool of
+this for any type of result pool of course it doesn't have to be cards you
+course it doesn't have to be cards you can find some more variants and in font
+can find some more variants and in font fishery eights on the Wikipedia link
+fishery eights on the Wikipedia link there and the second link gives
+there and the second link gives implementations in a hundred and four
+implementations in a hundred and four different programming languages because
+different programming languages because that amuses me
+our next section is entitled controlling your distribution sorry I don't have a
+your distribution sorry I don't have a slide with that title I ran out of
+slide with that title I ran out of pixels at the last moment but I do have
+pixels at the last moment but I do have this slide so I'd like to introduce this
+this slide so I'd like to introduce this topic with the story that inspired me to
+topic with the story that inspired me to do this talk back when I was working on
+do this talk back when I was working on Ultima 5 at origin back in the caveman
+Ultima 5 at origin back in the caveman pace Lord British mentioned to me how
+pace Lord British mentioned to me how the invisibility ring had worked in
+the invisibility ring had worked in Ultima 4 each turn of use there was a 1
+Ultima 4 each turn of use there was a 1 in 256 chance it would get used up and
+in 256 chance it would get used up and vanish this way he could give it a
+vanish this way he could give it a limited duration without having to use
+limited duration without having to use up a bite or two of storage for a
+up a bite or two of storage for a duration value back in the days of 64k
+duration value back in the days of 64k games we were pretty serious about
+games we were pretty serious about saving bytes wherever we could he decide
+saving bytes wherever we could he decide to do invisibility rings the same way in
+to do invisibility rings the same way in Ultima 5 which I was working on with him
+Ultima 5 which I was working on with him so I thought about this a little bit was
+so I thought about this a little bit was this a case of carefully crafting the
+this a case of carefully crafting the range of variation of gameplay
+range of variation of gameplay experiences or was it a matter of
+experiences or was it a matter of finding a solution that was fairly easy
+finding a solution that was fairly easy to implement and seemed to be in the
+to implement and seemed to be in the ballpark of the desired experience you
+ballpark of the desired experience you could easily figure out all 1 in 256 the
+could easily figure out all 1 in 256 the ring will probably last 100 200 300
+ring will probably last 100 200 300 turns you know surely surely it was the
+turns you know surely surely it was the latter surely that's what he was
+latter surely that's what he was thinking I didn't ask
+thinking I didn't ask but given the minor importance of this
+but given the minor importance of this one item in the game this was a
+one item in the game this was a perfectly reasonable design approach but
+perfectly reasonable design approach but being an inquisitive feline I couldn't
+being an inquisitive feline I couldn't help but ask myself design questions
+help but ask myself design questions about this especially mathematical ones
+about this especially mathematical ones how would you characterize the duration
+how would you characterize the duration of invisibility games of visibility
+of invisibility games of visibility rings in Ultima games what other options
+rings in Ultima games what other options could a game designer be given there if
+could a game designer be given there if we wanted to put more work into it well
+we wanted to put more work into it well the simplest way to think about random
+the simplest way to think about random results in a game is with averages you
+results in a game is with averages you could calculate the average number of
+could calculate the average number of returns this ring would last if you
+returns this ring would last if you wanted to I want to encourage all of you
+wanted to I want to encourage all of you to believe as I do that averages suck
+to believe as I do that averages suck abstractions that simplify reality can
+abstractions that simplify reality can be useful to help us get an overview and
+be useful to help us get an overview and understand a subject but you can go too
+understand a subject but you can go too far with that
+far with that what if you tell your development team
+what if you tell your development team that the average payout of a minigame is
+that the average payout of a minigame is seven coins they're going to focus their
+seven coins they're going to focus their imagination on what the player
+imagination on what the player experience is like when they get seven
+experience is like when they get seven or something near seven and you know if
+or something near seven and you know if you have a distribution that someone
+you have a distribution that someone will somewhere close to a bell-shaped
+will somewhere close to a bell-shaped curve that's not the worst way to think
+curve that's not the worst way to think about it but what if we have a flat
+about it but what if we have a flat distribution now the very low results
+distribution now the very low results and the very high results are common
+and the very high results are common rather than rare some people would look
+rather than rare some people would look at average plus standard deviation to
+at average plus standard deviation to get an idea of a game result I'm sorry
+get an idea of a game result I'm sorry but I think that still sucks what if you
+but I think that still sucks what if you have a distribution like this or like
+have a distribution like this or like this or this you could have a
+this or this you could have a distribution where the average is seven
+distribution where the average is seven but the numbers six seven and eight
+but the numbers six seven and eight never actually occur at all so I
+never actually occur at all so I recommend thinking instead about a
+recommend thinking instead about a distribution graph of your results of a
+distribution graph of your results of a random outcome in your game
+random outcome in your game those can show you clearly what blend of
+those can show you clearly what blend of experiences players are going to have
+experiences players are going to have when they run into a particular random
+when they run into a particular random element in your game so I'd encourage
+element in your game so I'd encourage you all encourage you all to get
+you all encourage you all to get comfortable the charting options in your
+comfortable the charting options in your spreadsheet if you aren't already so the
+the ultimate visibility ring distribution of total turns of use
+distribution of total turns of use before it expires is an exponential
+before it expires is an exponential decay just like our mu on the decay
+decay just like our mu on the decay graph at the upper right and I thought
+graph at the upper right and I thought to myself that's great if that's exactly
+to myself that's great if that's exactly how you want to sculpt your range of
+how you want to sculpt your range of player experiences mathematically but
+player experiences mathematically but what if you wanted something else
+what if you wanted something else well I knew what you would get from
+well I knew what you would get from various combinations of dice rolls and
+various combinations of dice rolls and other common mechanisms in real-world
+other common mechanisms in real-world randomized games we could simulate those
+randomized games we could simulate those but since we're making software here
+but since we're making software here what about something more flexible
+that's when it occurred to me why not just draw the bar graph of the
+just draw the bar graph of the distribution pattern you want with a
+distribution pattern you want with a table of numbers and work backwards
+table of numbers and work backwards write a piece of code
+write a piece of code looks at that table and generates random
+looks at that table and generates random results in those exact proportions now
+results in those exact proportions now you could have any style of probability
+you could have any style of probability distribution you want neat
+distribution you want neat so I promptly filed that idea away for
+so I promptly filed that idea away for the next 25 years
+the next 25 years and got back to finishing Ultima 5 and
+and got back to finishing Ultima 5 and then some squirrel invited me to give a
+then some squirrel invited me to give a talk in this math track I thought well I
+talk in this math track I thought well I could give a nice talk on randomness and
+could give a nice talk on randomness and code up that idea I had in the 1980s
+code up that idea I had in the 1980s then I realized the bonus games in 1up
+then I realized the bonus games in 1up casino which I've been working on the
+casino which I've been working on the last two years have exactly that code
+last two years have exactly that code already written I love saving time so
+already written I love saving time so here it is you'll note here I could just
+here it is you'll note here I could just return the value of I rather than
+return the value of I rather than returning values of AI if I wanted a
+returning values of AI if I wanted a continuous range of results like numbers
+continuous range of results like numbers from 1 to 6 having a lookup table lets
+from 1 to 6 having a lookup table lets me have gaps in the range or you know
+me have gaps in the range or you know whatever kind of result you want I could
+whatever kind of result you want I could also return a more complex object rather
+also return a more complex object rather than an integer to get a random floating
+than an integer to get a random floating point result you might want to specify
+point result you might want to specify ranges of numbers in your table and then
+ranges of numbers in your table and then as a last step pick a random point
+as a last step pick a random point within the interval you chose would be
+within the interval you chose would be one way you could approach that or you
+one way you could approach that or you could return a pointer to any kind of
+could return a pointer to any kind of relevant game object that exists in your
+relevant game object that exists in your game in our casino game we use this
+game in our casino game we use this logic to choose one of several sub pools
+logic to choose one of several sub pools of bonus prizes for instance now this
+of bonus prizes for instance now this function is an example of what we call
+function is an example of what we call sampling with replacement it's like
+sampling with replacement it's like picking multiple letters from a bag of
+picking multiple letters from a bag of 100 Scrabble tiles putting your chosen
+100 Scrabble tiles putting your chosen letter back in after each pick and then
+letter back in after each pick and then choosing again that means the odds of
+choosing again that means the odds of each letter are exactly the same on
+each letter are exactly the same on every pick other obvious alternative is
+every pick other obvious alternative is sampling without replacement which is
+sampling without replacement which is how actual Scrabble works if you pick
+how actual Scrabble works if you pick the Z tile on your first pick the odds
+the Z tile on your first pick the odds of the Z on the second pick are 0 you've
+of the Z on the second pick are 0 you've taken it out of the bag already that's
+taken it out of the bag already that's how we actually pick our final set of
+how we actually pick our final set of in one-up casino after this picker has
+in one-up casino after this picker has selected our sub cool when you play
+selected our sub cool when you play games with a deck of cards
+games with a deck of cards that's generally sampling without
+that's generally sampling without replacement as well generally speaking
+replacement as well generally speaking sampling sorry sampling without
+sampling sorry sampling without replacement gives you more consistent
+replacement gives you more consistent results as later picks will have a
+results as later picks will have a tendency to correct early variants back
+tendency to correct early variants back towards the mean and unusual outliers
+towards the mean and unusual outliers like a Scrabble hand of Z zzzzzz are
+like a Scrabble hand of Z zzzzzz are impossible choosing with replacement
+impossible choosing with replacement gives you both more short-term variants
+gives you both more short-term variants and in the longer term it takes more
+and in the longer term it takes more trials before your player will have
+trials before your player will have experienced all the possible items in
+experienced all the possible items in the pool it's common in choosing without
+the pool it's common in choosing without replacement to keep going until the pool
+replacement to keep going until the pool is exhausted and then generate a fresh
+is exhausted and then generate a fresh copy of the pool like reshuffling cards
+copy of the pool like reshuffling cards after the deck runs out so if you have
+after the deck runs out so if you have 52 cards or 52 potions or 52 magic
+52 cards or 52 potions or 52 magic weapons players will have seen them all
+weapons players will have seen them all after 52 picks one up bonus games fall
+after 52 picks one up bonus games fall somewhere in between we give you three
+somewhere in between we give you three to five prizes out of a pool of twenty
+to five prizes out of a pool of twenty and then we generate a fresh prize pool
+and then we generate a fresh prize pool for the next play so you're not
+for the next play so you're not guaranteed to see the jackpot
+guaranteed to see the jackpot after just 20 plays this is done with a
+after just 20 plays this is done with a ship a simple fishery 8 shuffle for
+ship a simple fishery 8 shuffle for sampling without replacement you can
+sampling without replacement you can iterate through the whole pool or just
+iterate through the whole pool or just the first end choices and then reshuffle
+another nice use for a randomly sampled pool is random messages such as Tips &
+pool is random messages such as Tips & Tricks flavorful background or whatever
+Tricks flavorful background or whatever you like in Ultima Underworld 2 I had
+you like in Ultima Underworld 2 I had blogged the troll play a game called
+blogged the troll play a game called white rock black rock with the player
+white rock black rock with the player while entertaining to his miniscule
+while entertaining to his miniscule brain it's a little doll for a typical
+brain it's a little doll for a typical human I added 10 random you win messages
+human I added 10 random you win messages and 10 random you lose messages to make
+and 10 random you lose messages to make it a little more entertaining if I use
+it a little more entertaining if I use sampling without replacement you'd
+sampling without replacement you'd exhaust all the game's varieties after
+exhaust all the game's varieties after 10 wins or 10 losses but trust me it's
+10 wins or 10 losses but trust me it's very easy to win this game if anyone
+very easy to win this game if anyone likes I'll play some white rock black
+likes I'll play some white rock black rock with you in the lunch break
+I have since after 20 years of thought simplified the game down to one rock
+simplified the game down to one rock which I felt was a real design
+which I felt was a real design breakthrough for me you can you can ask
+breakthrough for me you can you can ask me about that after the talk so sampling
+me about that after the talk so sampling with replacement gives a much larger
+with replacement gives a much larger number of plays before the player stops
+number of plays before the player stops encountering new results
+encountering new results note that this average number of trials
+note that this average number of trials is lowest if you give each choice equal
+is lowest if you give each choice equal probability and it's higher if you bias
+probability and it's higher if you bias it towards some poison sorts towards
+it towards some poison sorts towards some choices and away from others but
+some choices and away from others but they'll see less short-term variety if
+they'll see less short-term variety if you use a biased pool the main problem
+you use a biased pool the main problem here is the very real chance of seeing
+here is the very real chance of seeing the same message twice in a row which
+the same message twice in a row which often feels bad the nice little variant
+often feels bad the nice little variant I use for blog the troll is sample or
+I use for blog the troll is sample or the replacement but reap ick if your
+the replacement but reap ick if your choice matches the last choice you made
+choice matches the last choice you made you can generalize that and say re pick
+you can generalize that and say re pick if you match any of the last n elements
+if you match any of the last n elements chosen some games will feel better with
+chosen some games will feel better with n equals 2 or 3 rather than an equals 1
+n equals 2 or 3 rather than an equals 1 anyway this is fairly easy to code so I
+anyway this is fairly easy to code so I will leave that as an exercise for the
+will leave that as an exercise for the viewer before we move on to our last
+viewer before we move on to our last part I have a grab bag of terms you can
+part I have a grab bag of terms you can google if you don't already know them I
+google if you don't already know them I imagine you'll know a lot of these
+imagine you'll know a lot of these already but if you spot some new ones
+already but if you spot some new ones then enjoy I wanted to list a random
+then enjoy I wanted to list a random walk as drunkards walk by the way the
+walk as drunkards walk by the way the name I learned goodbye but apparently
+name I learned goodbye but apparently somebody wrote a novel with that title
+somebody wrote a novel with that title and ruined Google for everyone anyway
+and ruined Google for everyone anyway having a better grasp of the range of
+having a better grasp of the range of likely results of a random walk is
+likely results of a random walk is helpful for doing good ran in this
+helpful for doing good ran in this design so it's worth learning about and
+design so it's worth learning about and if you're interested in combinations and
+if you're interested in combinations and permutations Nason will be discussing
+permutations Nason will be discussing those in his talk
+those in his talk it's either 210 or 240 I'm not sure I
+it's either 210 or 240 I'm not sure I have the right time written down here
+have the right time written down here squirrel will check for me 210 ok I did
+squirrel will check for me 210 ok I did write it down wrong he tells me he's got
+write it down wrong he tells me he's got a cool ranking algorithm to present as
+a cool ranking algorithm to present as well that's in the same room here
+well that's in the same room here and speaking of statistical significance
+and speaking of statistical significance I feel the amount of time and effort
+I feel the amount of time and effort it's worth spending on ranma's design
+it's worth spending on ranma's design for a given element of your game should
+for a given element of your game should be related to factors such as how often
+be related to factors such as how often the out of the event occurs how high is
+the out of the event occurs how high is the variance and how big is the impact
+the variance and how big is the impact of the different results know how to
+of the different results know how to choose your battles wisely and now it's
+choose your battles wisely and now it's time for fun with seeds okay I told you
+time for fun with seeds okay I told you at the start only see your RNG once now
+at the start only see your RNG once now I'm going to tell you when to break that
+I'm going to tell you when to break that rule because RNG seeds are secretly one
+rule because RNG seeds are secretly one of the most powerful forces in the
+of the most powerful forces in the universe if you're a true Jedi see the
+universe if you're a true Jedi see the master
+master example one how long do invisibility
+example one how long do invisibility rings in ultima and four and five tend
+rings in ultima and four and five tend to last with optimal gameplay well I
+to last with optimal gameplay well I don't have to give you a distribution
+don't have to give you a distribution graph to avoid the evils of averages on
+graph to avoid the evils of averages on this one because the answer is forever
+this one because the answer is forever what's that you say before using the
+what's that you say before using the invisibility ring to get through a tough
+invisibility ring to get through a tough battle a hardcore player saves the game
+battle a hardcore player saves the game if the ring expires reload the save play
+if the ring expires reload the save play it again hope for better dice rolls you
+it again hope for better dice rolls you never save the game when you have an
+never save the game when you have an expired invisibility ring and you just
+expired invisibility ring and you just never have to find another one you never
+never have to find another one you never use that thing up solution save the rng
+use that thing up solution save the rng seed in your save game file when people
+seed in your save game file when people load a save game take that saved value
+load a save game take that saved value recede your random number generator now
+recede your random number generator now if they saved a game where they were
+if they saved a game where they were four steps away from their invisibility
+four steps away from their invisibility ring expiring they're gonna load a game
+ring expiring they're gonna load a game where they're still four steps away from
+where they're still four steps away from it expiring of course if players can
+it expiring of course if players can vary the flow of random numbers to
+vary the flow of random numbers to different game systems by saying oh I'm
+different game systems by saying oh I'm going to make zero one or two attacks
+going to make zero one or two attacks before I take my next step of womyn then
+before I take my next step of womyn then they can cheat around that so you might
+they can cheat around that so you might want to have multiple R and G's in a
+want to have multiple R and G's in a game where that might be an issue one
+game where that might be an issue one four player attacks one four monster
+four player attacks one four monster attacks one for invisibility ring
+attacks one for invisibility ring expires and so forth of course if you
+expires and so forth of course if you think this is a cool trick for your
+think this is a cool trick for your players to be able to do you can
+players to be able to do you can deliberately build it into your system
+deliberately build it into your system that oh I'm going to receive my RNG
+that oh I'm going to receive my RNG every time they go to save games so they
+every time they go to save games so they can have a chance at a different result
+can have a chance at a different result that's a valid design decision also
+so that's a small trick procedurally generated content is a big one the old
+generated content is a big one the old Bunton crawler telling guard figured out
+Bunton crawler telling guard figured out what each square of the dungeon had in
+what each square of the dungeon had in the way of walls doors magic fountains
+the way of walls doors magic fountains traps and stairs by taking the x y&z ake
+traps and stairs by taking the x y&z ake a dungeon level combining them into a
+a dungeon level combining them into a seed and then calling the RNG to
+seed and then calling the RNG to generate what was in that square this
+generate what was in that square this let the game put an enormous dungeon
+let the game put an enormous dungeon into even the 8k version guess there
+into even the 8k version guess there were 8k games back in back in the early
+were 8k games back in back in the early days where the map remained constant if
+days where the map remained constant if you left an area and came back you'd
+you left an area and came back you'd find the same thing there again
+find the same thing there again but there was no storage space required
+but there was no storage space required and the designer only had to design and
+and the designer only had to design and tweak their content generation algorithm
+tweak their content generation algorithm rather than laying out enormous amounts
+rather than laying out enormous amounts of map data by hand a more current
+of map data by hand a more current example of seeded procedurally generated
+example of seeded procedurally generated content would be the upcoming no man's
+content would be the upcoming no man's sky where they have a whole enormous
+sky where they have a whole enormous galaxy that multiple players can explore
+galaxy that multiple players can explore and find the same things that every
+and find the same things that every planet consistently and repeatedly of
+planet consistently and repeatedly of course you'll want a separate dedicated
+course you'll want a separate dedicated RNG for world generation apart from the
+RNG for world generation apart from the one you lose for combat results and loot
+one you lose for combat results and loot and such on a simpler level I used an XY
+and such on a simpler level I used an XY seeded algorithm for Acadia my my online
+seeded algorithm for Acadia my my online game
+game plug plug Guinness world record holder
+plug plug Guinness world record holder so as to keep large patches of grass and
+so as to keep large patches of grass and trees from looking too monotonous
+trees from looking too monotonous we're a user created content game one of
+we're a user created content game one of the first and I didn't want to require
+the first and I didn't want to require all players to hand scatter all the
+all players to hand scatter all the extra grass and tree shapes to make
+extra grass and tree shapes to make their maps look good or count on them to
+their maps look good or count on them to do so so that other players wouldn't see
+do so so that other players wouldn't see boring maps that our users made so I
+boring maps that our users made so I made our map planner call this randoms
+made our map planner call this randoms org function I wasn't as good at
+org function I wasn't as good at function naming back in the 1990's I
+function naming back in the 1990's I will freely admit you'll also note I
+will freely admit you'll also note I coded this to require power of two
+coded this to require power of two values for the range parameter you could
+values for the range parameter you could use modulus rather than a bitwise and to
+use modulus rather than a bitwise and to fix this in my code here for historical
+fix this in my code here for historical reasons I want a fat intact for you all
+reasons I want a fat intact for you all in my defense and 1980s 8-bit CPUs bit
+in my defense and 1980s 8-bit CPUs bit masking was a much cheaper CPU operation
+masking was a much cheaper CPU operation and
+and and old habits die hard so here's before
+and old habits die hard so here's before and after photos to show you how many
+and after photos to show you how many pounds of boredom were shed by this
+pounds of boredom were shed by this simple piece of code another thing I do
+simple piece of code another thing I do in 4k dia is to keep the level map
+in 4k dia is to keep the level map synched up even when modified by player
+synched up even when modified by player written scripts in real time by just
+written scripts in real time by just sending instructions to every client
+sending instructions to every client indicating scripting line 87 just
+indicating scripting line 87 just triggered do that stuff if that's it if
+triggered do that stuff if that's it if that section of scripting contains
+that section of scripting contains random effects I send the current seed
+random effects I send the current seed to every client in that same packet that
+to every client in that same packet that way I know they'll all get the same
+way I know they'll all get the same random results of the server and all the
+random results of the server and all the other clients everyone stays in sync and
+other clients everyone stays in sync and a large amount of interesting changes to
+a large amount of interesting changes to the map can happen in an identical way
+the map can happen in an identical way for every player with a very small
+for every player with a very small amount of bandwidth used another great
+amount of bandwidth used another great use of random number of seeds is the
+use of random number of seeds is the ability to play back game sequences
+ability to play back game sequences precisely given a

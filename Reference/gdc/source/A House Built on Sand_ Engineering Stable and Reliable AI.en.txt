@@ -1,0 +1,880 @@
+[Music]
+let's get the shame out of the way early everybody think of an example of bad a.i
+everybody think of an example of bad a.i you got it okay i think a lot of you are
+you got it okay i think a lot of you are thinking of something like this
+thinking of something like this and the first thing i'd like to convince
+and the first thing i'd like to convince you of during this talk
+you of during this talk is that this is not bad ai
+is that this is not bad ai i mean it's not good but what we're
+i mean it's not good but what we're really looking at here is a failure of
+really looking at here is a failure of production of management
+production of management resourcing because here's the thing if
+resourcing because here's the thing if your ai
+your ai isn't very good you know what you can do
+isn't very good you know what you can do you can hide it
+you can hide it put these guys on rails because of that
+put these guys on rails because of that bug put disabled grenades in that room
+bug put disabled grenades in that room stuff like that actual bad ai in a
+stuff like that actual bad ai in a competently developed game doesn't
+competently developed game doesn't usually
+usually directly impact the player experience
+directly impact the player experience what it impacts is the overall
+what it impacts is the overall game quality by sapping the efficiency
+game quality by sapping the efficiency of everyone else
+of everyone else you end up with more pressure on the
+you end up with more pressure on the iterative qa process
+iterative qa process your level designers spend more time
+your level designers spend more time working around quirks in the pathfinder
+working around quirks in the pathfinder and less time working on tweaking for
+and less time working on tweaking for balance and fun
+balance and fun you spend less time well you spend more
+you spend less time well you spend more time then you eventually end up dialing
+time then you eventually end up dialing down your ambitions for like say
+down your ambitions for like say tactical ai
+tactical ai you might cut down some emergent tactics
+you might cut down some emergent tactics and just move towards something more
+and just move towards something more like on rails shootouts
+like on rails shootouts the most sinister thing about bad ai
+the most sinister thing about bad ai real bad ai is that it doesn't look like
+real bad ai is that it doesn't look like bad ai
+bad ai it just looks disappointing it looks
+it just looks disappointing it looks like something less than it could have
+like something less than it could have been
+been it looks like the team didn't try hard
+it looks like the team didn't try hard enough
+so what i'd like to do with this talk is help you
+help you think about ai development in a way that
+think about ai development in a way that leads to solid and dependable systems
+leads to solid and dependable systems this is not going to be an exciting talk
+this is not going to be an exciting talk because it's not about being creative
+because it's not about being creative it's about supporting and enabling
+it's about supporting and enabling creativity
+creativity it's about building something you can
+it's about building something you can build on
+the first topic i'll touch on is layering and the closely related talk
+layering and the closely related talk topic of interface design now rodney
+topic of interface design now rodney brooks described this idea of a
+brooks described this idea of a subsumption architecture
+subsumption architecture a bottom approach a bottom-up approach
+a bottom approach a bottom-up approach to ai where high-level competencies
+to ai where high-level competencies depend on lower-level skills
+depend on lower-level skills and we do this in ai without really
+and we do this in ai without really thinking about it in regards search
+thinking about it in regards search behavior you'll have something like
+behavior you'll have something like run to the last place you saw the player
+run to the last place you saw the player but that behavior
+but that behavior depends on a lower level locomotion
+depends on a lower level locomotion system which might defend on an even
+system which might defend on an even lower level pathfinder
+lower level pathfinder and what you'll notice when you look at
+and what you'll notice when you look at these layers of course is that the
+these layers of course is that the creative aspect of ai
+creative aspect of ai the content what makes this guard
+the content what makes this guard different from that villager
+different from that villager is all up in the top layer and as you go
+is all up in the top layer and as you go down
+down the layers become generic they're
+the layers become generic they're services not content and what you want
+services not content and what you want is for the lower levels to be rock solid
+is for the lower levels to be rock solid and boring so you can ignore them
+and boring so you can ignore them and concentrate on the content which is
+and concentrate on the content which is where your game really is
+where your game really is well that's the ideal anyway and i think
+well that's the ideal anyway and i think it's useful to look at
+it's useful to look at what happens when layering starts to rot
+what happens when layering starts to rot and there's two ways this can happen
+and there's two ways this can happen and the really bad one is this first one
+and the really bad one is this first one when your creativity and your content
+when your creativity and your content starts to leak down
+starts to leak down into your services the prime symptom of
+into your services the prime symptom of downwards leakage
+downwards leakage is when your service interface suddenly
+is when your service interface suddenly gets more semantically specific
+gets more semantically specific more use case specific when it starts
+more use case specific when it starts thinking about things that it shouldn't
+thinking about things that it shouldn't need to think about
+need to think about here's an example you're making a game
+here's an example you're making a game whose levels include some farms
+whose levels include some farms and there's some feral chickens
+and there's some feral chickens wandering around just you know randomly
+wandering around just you know randomly picking gold points around them and the
+picking gold points around them and the problem is
+problem is the chickens keep wandering away from
+the chickens keep wandering away from the farm over time because they're just
+the farm over time because they're just picking random points
+picking random points but you want to keep the chickens
+but you want to keep the chickens tightly clustered there for set dressing
+tightly clustered there for set dressing so you take your pathfinding system and
+so you take your pathfinding system and you add an option to the find path query
+you add an option to the find path query called
+called is chicken and then your pathfinder
+is chicken and then your pathfinder if is chicken is set doesn't allow paths
+if is chicken is set doesn't allow paths that go say
+that go say more than 20 meters from the nearest
+more than 20 meters from the nearest farm
+so now your pathfinder has this concept of a chicken if you want to do
+of a chicken if you want to do similar things for other characters
+similar things for other characters you'll have to edit the pathfinder again
+you'll have to edit the pathfinder again and add more options
+and add more options that 20 meter limit i mentioned is not
+that 20 meter limit i mentioned is not with the rest of the chicken's behavior
+with the rest of the chicken's behavior it's somewhere deep down in the
+it's somewhere deep down in the pathfinding code
+pathfinding code what it means to be a chicken is no
+what it means to be a chicken is no longer local and what it means to find a
+longer local and what it means to find a path has now become more complicated and
+path has now become more complicated and confusing since
+confusing since previously you are worried about nodes
+previously you are worried about nodes and edges and now you're still worried
+and edges and now you're still worried about nodes and edges and also farms and
+about nodes and edges and also farms and chickens
+chickens now that example is trivial to the point
+now that example is trivial to the point of being manifestly unfair i think most
+of being manifestly unfair i think most of us would
+of us would would have done it a different way by
+would have done it a different way by having the pathfinder say take a call
+having the pathfinder say take a call back
+back which filters which faces are allowed or
+which filters which faces are allowed or not then the filter for chickens
+not then the filter for chickens would apply those same limits i talked
+would apply those same limits i talked about but the code for that would be
+about but the code for that would be part of the chicken system it would be
+part of the chicken system it would be part of the chicken codebase
+part of the chicken codebase the pathfinding system sticks to what
+the pathfinding system sticks to what it's good at finding paths
+it's good at finding paths and the extension to its interface just
+and the extension to its interface just adding this generic filter interface
+adding this generic filter interface makes a lot of sense
+makes a lot of sense but now we have the opposite problem
+but now we have the opposite problem because a piece of code that was
+because a piece of code that was previously concerned with pecking and
+previously concerned with pecking and clocking
+clocking is now also calculating the distance
+is now also calculating the distance between points and nav mesh faces
+between points and nav mesh faces it's scanning through the game level to
+it's scanning through the game level to try to find all the farms
+try to find all the farms all this knowledge of the underlying
+all this knowledge of the underlying structure is going into the chicken's
+structure is going into the chicken's mind
+mind so now say if you want to change how
+so now say if you want to change how navmesh faces are stored
+navmesh faces are stored now you need to edit how chickens work
+now you need to edit how chickens work so this is the
+so this is the opposite problem with upwards layer
+opposite problem with upwards layer leakage because the service refused to
+leakage because the service refused to give the content
+give the content what it needed and now service-like code
+what it needed and now service-like code is going
+is going into the content this happens when you
+into the content this happens when you have a layered system
+have a layered system both layers start saying not my job it's
+both layers start saying not my job it's not the pathfinder's job to care about
+not the pathfinder's job to care about chickens
+chickens and it's certainly not the chicken's job
+and it's certainly not the chicken's job to care about navmesh geometry
+to care about navmesh geometry what you generally end up if you're
+what you generally end up if you're doing your job correctly is a set of
+doing your job correctly is a set of utilities built around the lower level
+utilities built around the lower level which offer slightly higher level
+which offer slightly higher level services to the upper level
+services to the upper level so if you see this sort of pattern where
+so if you see this sort of pattern where you've got two layers
+you've got two layers and you can't decide where to put a
+and you can't decide where to put a piece of functionality consider whether
+piece of functionality consider whether you need a third layer
+you need a third layer mapping gameplay concepts to mechanical
+mapping gameplay concepts to mechanical queries
+queries is a type of functionality it's a kind
+is a type of functionality it's a kind of
+of code itself it deserves to go somewhere
+code itself it deserves to go somewhere it deserves to be recognized as a
+it deserves to be recognized as a separate system
+separate system the other thing to notice about these
+the other thing to notice about these examples is that the risks
+examples is that the risks differ depending on who's programming
+differ depending on who's programming what
+what if it's the same programmer in charge of
+if it's the same programmer in charge of both layers doing both say
+both layers doing both say pathfinding and behaviors you're a
+pathfinding and behaviors you're a particular risk for things leaking
+particular risk for things leaking through the layers because
+through the layers because why not he's an expert in both whereas
+why not he's an expert in both whereas if it's different people in different
+if it's different people in different layers
+layers there's more likely to be separation
+there's more likely to be separation but it's also more likely that that
+but it's also more likely that that separation will be in the wrong place
+separation will be in the wrong place because it's more difficult for the two
+because it's more difficult for the two programmers to work together
+programmers to work together to refactor the layer design
+so let's change gears a bit you get a bug report where
+bug report where during a cutscene in the middle of the
+during a cutscene in the middle of the scene a goblin runs in and starts
+scene a goblin runs in and starts hitting
+hitting one of the characters with a stick which
+one of the characters with a stick which rather detracts from the drama of the
+rather detracts from the drama of the moment
+moment now the background characters the
+now the background characters the goblins need to keep doing
+goblins need to keep doing goblin stuff so you can't just turn off
+goblin stuff so you can't just turn off their ai during the scene so you try
+their ai during the scene so you try various things various approaches and
+various things various approaches and eventually
+eventually you find a solution you happen to
+you find a solution you happen to already have a utility which checks
+already have a utility which checks whether a character is playing a
+whether a character is playing a scripted animation sequence which is a
+scripted animation sequence which is a thing in your animation system
+thing in your animation system so in the target selection system you
+so in the target selection system you exclude characters who are currently
+exclude characters who are currently playing
+playing these pre-canned animation systems their
+these pre-canned animation systems their sequences
+sequences and this is a practical solution it's
+and this is a practical solution it's simple and it's straightforward and it
+simple and it's straightforward and it happens to actually work
+happens to actually work and it it feels right like you know you
+and it it feels right like you know you guys know what i mean by feels right
+guys know what i mean by feels right because like if a target can't respond
+because like if a target can't respond to combat if it
+to combat if it characters off doing their own thing
+characters off doing their own thing then they shouldn't be participating in
+then they shouldn't be participating in combat including as
+combat including as as a target fast forward the game is
+as a target fast forward the game is released and players start noticing that
+released and players start noticing that if they keep
+if they keep sheathing and drawing their broad sword
+sheathing and drawing their broad sword constantly
+constantly the player is invisible to enemies
+the player is invisible to enemies because
+because late in the dev cycle the act of drawing
+late in the dev cycle the act of drawing or putting away a broadsword
+or putting away a broadsword got implemented as a scripted animation
+got implemented as a scripted animation sequence
+sequence to work around say some camera issues so
+to work around say some camera issues so if you keep
+if you keep doing the broadsword thing enemies keep
+doing the broadsword thing enemies keep ignoring you
+what happened in this example well what happened is you mistook
+happened is you mistook functionality for intent the attribute
+functionality for intent the attribute you were
+you were looking at was called is playing
+looking at was called is playing sequence it was not called
+sequence it was not called in a cut scene and it certainly wasn't
+in a cut scene and it certainly wasn't called in a scripted cutscene where
+called in a scripted cutscene where people are talking to each other and
+people are talking to each other and everyone else should go do their own
+everyone else should go do their own thing
+thing it worked at that moment in time because
+it worked at that moment in time because at that moment in time
+at that moment in time nobody was using these canned animation
+nobody was using these canned animation sequences for anything
+sequences for anything else but it wasn't testing what it
+else but it wasn't testing what it wanted to test
+wanted to test it was testing a proxy of that
+it was testing a proxy of that in the moment of implementation this
+in the moment of implementation this felt like a small
+felt like a small unimportant fix to a minor bug and what
+unimportant fix to a minor bug and what i want to convey
+i want to convey is that little decisions like this can
+is that little decisions like this can have huge far-reaching future
+have huge far-reaching future impacts you took the concept of scripted
+impacts you took the concept of scripted animation
+animation and you added to its definition before
+and you added to its definition before it was a detail of the animation system
+it was a detail of the animation system now it's a rule of gameplay but it still
+now it's a rule of gameplay but it still has to be a detail of the animation
+has to be a detail of the animation system
+system so let's imagine the same scenario a
+so let's imagine the same scenario a different way because i've known some
+different way because i've known some really good qa testers
+really good qa testers and constantly drawing their broadsword
+and constantly drawing their broadsword is exactly the sort of crap they'd try
+is exactly the sort of crap they'd try so this never got released it got
+so this never got released it got reported a day after they made the
+reported a day after they made the broadsword thing a scripted sequence
+broadsword thing a scripted sequence and the combat programmer says oh i
+and the combat programmer says oh i guess we can't use scripted sequences
+guess we can't use scripted sequences for that because it breaks the ai
+for that because it breaks the ai you the ai programmer just made the
+you the ai programmer just made the animation system worse
+animation system worse because you got there first and you
+because you got there first and you imposed definition on something and you
+imposed definition on something and you did not do a good job of it
+did not do a good job of it now this is a particularly egregious
+now this is a particularly egregious example because it involves multiple
+example because it involves multiple systems but this sort of thing happens
+systems but this sort of thing happens on a smaller scale all the time and it
+on a smaller scale all the time and it usually happens in ai
+usually happens in ai because ai has exactly the sort of
+because ai has exactly the sort of semantically rich concepts
+semantically rich concepts with corner cases that nobody thinks
+with corner cases that nobody thinks about until the bugs are reported
+the other thing to take away from these examples is that you should be wary of
+examples is that you should be wary of when something feels right
+when something feels right i'm not saying ignore your instincts but
+i'm not saying ignore your instincts but what felt right in this example
+what felt right in this example was not just your solution but the whole
+was not just your solution but the whole context
+context in which you imagined the solution
+in which you imagined the solution existing
+existing when there's ambiguity there's a
+when there's ambiguity there's a tendency to come to an understanding
+tendency to come to an understanding which is based on your own
+which is based on your own current needs a sort of wishful thinking
+current needs a sort of wishful thinking repurposing an existing tool to solve a
+repurposing an existing tool to solve a new problem
+new problem it feels really rewarding because it's
+it feels really rewarding because it's clever and being clever
+clever and being clever is rewarding but when you feel happiness
+is rewarding but when you feel happiness at your own cleverness make sure to feel
+at your own cleverness make sure to feel some worry as well
+all right so moving on who here has experienced bugs caused by floating
+experienced bugs caused by floating point and precision
+point and precision yeah yeah okay everybody it's sort of a
+yeah yeah okay everybody it's sort of a rite of passage right looking at this
+rite of passage right looking at this number and wondering why it isn't one
+number and wondering why it isn't one okay so here's an example of a bug so
+okay so here's an example of a bug so you have an enemy ai for a melee
+you have an enemy ai for a melee character
+character where the character tries to navigate to
+where the character tries to navigate to be exactly one meter away from the
+be exactly one meter away from the player
+player because that's what the animations are
+because that's what the animations are built for and
+built for and the character measures distance from
+the character measures distance from their own frame of reference which
+their own frame of reference which involves you know a number of
+involves you know a number of calculations various additions and
+calculations various additions and multiplications
+multiplications and due to floating point imprecision
+and due to floating point imprecision you find that the character
+you find that the character actually ends up navigating to a point
+actually ends up navigating to a point 0.99997 meters away
+that's not a really compelling example it's barely a bug nobody reported this
+it's barely a bug nobody reported this because nobody cared
+because nobody cared and if you think about it why should
+and if you think about it why should floating point
+floating point imprecision matter in ai because ai is
+imprecision matter in ai because ai is all about
+all about uncertainty and fuzziness exact numbers
+uncertainty and fuzziness exact numbers aren't generally
+aren't generally important when we tweak our ai we do it
+important when we tweak our ai we do it through sliders not text boxes
+but playing with curves and fuzziness is only the first half of ai
+only the first half of ai and the second half of ai is about
+and the second half of ai is about taking these uncertainties and
+taking these uncertainties and fuzzinesses and probabilities and such
+fuzzinesses and probabilities and such and making distinct behavioral
+and making distinct behavioral decisions based on them
+there's this related concept in math and computational math of a predicate
+computational math of a predicate a predicate is a procedure that takes
+a predicate is a procedure that takes some data say
+some data say like the vertices of a polygon and makes
+like the vertices of a polygon and makes a discrete judgment based on that like
+a discrete judgment based on that like is that polygon convex based on the real
+is that polygon convex based on the real valued vertex positions
+valued vertex positions or like when you take data like how far
+or like when you take data like how far away is somebody
+away is somebody and you make a discreet decision based
+and you make a discreet decision based on that like should i start fighting
+on that like should i start fighting them
+them both predicates so let's try that bug
+both predicates so let's try that bug again you've got a character that wants
+again you've got a character that wants to be one meter away
+to be one meter away it does its calculation and it says oh
+it does its calculation and it says oh no i'm slightly more than one meter away
+no i'm slightly more than one meter away i'd better get closer so it asks the
+i'd better get closer so it asks the navigation system
+navigation system please take me to this place i've
+please take me to this place i've calculated that it's exactly one meter
+calculated that it's exactly one meter away from the player
+away from the player and let me know when i've arrived and
+and let me know when i've arrived and the navigation system does its own
+the navigation system does its own calculations in a different part of the
+calculations in a different part of the code base and
+code base and says good news you've arrived you're one
+says good news you've arrived you're one meter away at that goal point you gave
+meter away at that goal point you gave me
+me and then the combat system the following
+and then the combat system the following frame redoes its calculation system and
+frame redoes its calculation system and says oh no i'm 1.002 meters away i'd
+says oh no i'm 1.002 meters away i'd better get closer
+better get closer i'll get there i'm at my goal etc and
+i'll get there i'm at my goal etc and from the player's point of view of
+from the player's point of view of course what's happening
+course what's happening is that the kids just sitting there
+is that the kids just sitting there twitching a little
+twitching a little now that feels like a bug right but it's
+now that feels like a bug right but it's not like
+not like a scary bug so okay first of the
+a scary bug so okay first of the audience
+audience how should i fix this bug anybody
+how should i fix this bug anybody add an absolute tolerance yes this was
+add an absolute tolerance yes this was still not a great example this was way
+still not a great example this was way too easy to fix
+too easy to fix let's talk about that tolerance value i
+let's talk about that tolerance value i heard the word epsilon what should the
+heard the word epsilon what should the tolerance be
+tolerance be well there's float epsilon which is not
+well there's float epsilon which is not something you should be using
+something you should be using for anything unless you fully understand
+for anything unless you fully understand how to do forward error analysis i see
+how to do forward error analysis i see this being misused
+this being misused so often this is not a magic value that
+so often this is not a magic value that means two numbers are
+means two numbers are close enough
+close enough yeah all right
+yeah all right [Applause]
+[Applause] we'll call this one centimeter and one
+we'll call this one centimeter and one centimeter off
+centimeter off is going to be fine visually and so you
+is going to be fine visually and so you test with one centimeter and
+test with one centimeter and it works ship it here's the problem
+it works ship it here's the problem though
+though you tested this in your test level which
+you tested this in your test level which is maybe 50 meters on the side
+is maybe 50 meters on the side and your your characters are nearly at
+and your your characters are nearly at the origin now the basic nature of
+the origin now the basic nature of floating
+floating point error is that it is mag is
+point error is that it is mag is relative to the magnitude of the numbers
+relative to the magnitude of the numbers involved when you do math with large
+involved when you do math with large numbers
+numbers particularly when you are subtracting
+particularly when you are subtracting large numbers from each other
+large numbers from each other you end up with an error which is much
+you end up with an error which is much higher
+higher than when all your numbers are small
+than when all your numbers are small now an example of small numbers is the
+now an example of small numbers is the coordinates of all the objects in your
+coordinates of all the objects in your test level
+test level this sets up this tragically common
+this sets up this tragically common pattern where everything works fine when
+pattern where everything works fine when you test it
+you test it and then much later you have to fix it
+and then much later you have to fix it again because you tested it so close to
+again because you tested it so close to the origin
+the origin and then the game happens far far away
+and then the game happens far far away it's very tricky to
+it's very tricky to experimentally determine the proper
+experimentally determine the proper value for tolerance
+value for tolerance but a good first step is to do your
+but a good first step is to do your tests
+tests as far from the origin as you're going
+as far from the origin as you're going to get
+to get so tolerance solved that last problem
+so tolerance solved that last problem which is fine that is a good enough
+which is fine that is a good enough solution but i still want to drill into
+solution but i still want to drill into it a little bit more
+it a little bit more now i was talking about predicates and
+now i was talking about predicates and in this last example we have two
+in this last example we have two predicates now we've got the navigation
+predicates now we've got the navigation systems predicate
+systems predicate am i one meter away and we've i'm sorry
+am i one meter away and we've i'm sorry the combat system is predicate and
+the combat system is predicate and navigation systems predicate is
+navigation systems predicate is am i at my goal point and the assumption
+am i at my goal point and the assumption is
+is if navigation says yes i'm at the goal
+if navigation says yes i'm at the goal then combat is expected to agree
+then combat is expected to agree yes i'm ready to start meleeing that's
+yes i'm ready to start meleeing that's mathematically reasonable
+mathematically reasonable but throw in floating point error and
+but throw in floating point error and you lose that consistency
+you lose that consistency what we did with the tolerance the
+what we did with the tolerance the reason this was an acceptable solution
+reason this was an acceptable solution was that we made this logical con
+was that we made this logical con consequence
+consequence more robust so that when navigation says
+more robust so that when navigation says yes you've arrived
+yes you've arrived combat will definitely say yes i'm
+combat will definitely say yes i'm approximately one meter away
+all right so another example squad combat um you've got a squad of two
+combat um you've got a squad of two enemies
+enemies uh let's just say this is a squad and
+uh let's just say this is a squad and you want to avoid overwhelming the
+you want to avoid overwhelming the player with two enemies at once
+player with two enemies at once so only the closest one engages the
+so only the closest one engages the player and the other one
+player and the other one say waits his turn you know like if
+say waits his turn you know like if you've watched a kung fu action film
+you've watched a kung fu action film that sort of thing
+that sort of thing so each enemy in their behavior measures
+so each enemy in their behavior measures their own distance to the player
+their own distance to the player and then it measures the other enemies
+and then it measures the other enemies distance to the player
+distance to the player and if it's the one that's closer then
+and if it's the one that's closer then it attacks and if it isn't then it waits
+it attacks and if it isn't then it waits around
+around and tries to look action-packed but now
+and tries to look action-packed but now let's say that both
+let's say that both enemies are about the same distance to
+enemies are about the same distance to the player and each one does the
+the player and each one does the calculation in a different frame of
+calculation in a different frame of reference and each one thinks
+reference and each one thinks my squad mate is a little closer and
+my squad mate is a little closer and waits its turn and the result
+waits its turn and the result is much the same as with the last
+is much the same as with the last example two enemies standing around
+example two enemies standing around checking their watches
+checking their watches so let's try adding some tolerance to
+so let's try adding some tolerance to that so let's say if an enemy calculates
+that so let's say if an enemy calculates that he's 10 percent closer than the
+that he's 10 percent closer than the squad mate he says yes i'm definitely
+squad mate he says yes i'm definitely closer
+closer if he's 10 percent farther away he says
+if he's 10 percent farther away he says yes i'm definitely farther
+yes i'm definitely farther in those two cases if he's definitely
+in those two cases if he's definitely closer he attacks definitely farther he
+closer he attacks definitely farther he waits
+waits and what about if it's in between what
+and what about if it's in between what then
+we're seeing a different kind of tolerance here in the goal reached case
+tolerance here in the goal reached case it was simply identifying the region
+it was simply identifying the region in which it was good enough
+in which it was good enough here we're using to a tolerance to
+here we're using to a tolerance to express that in this
+express that in this zone the predicate might not be giving
+zone the predicate might not be giving the correct answer
+the correct answer but we still need an answer right
+but we still need an answer right because the enemy still has to attack
+because the enemy still has to attack or not attack we still have to make this
+or not attack we still have to make this binary decision
+binary decision what if we added a tie breaker that
+what if we added a tie breaker that applied just in that error zone if he's
+applied just in that error zone if he's definitely closer he attacks
+definitely closer he attacks he's definitely farther he waits in the
+he's definitely farther he waits in the middle
+middle he say he'll fall back on a tie breaker
+he say he'll fall back on a tie breaker select look at your object id and your
+select look at your object id and your squadmates object id
+squadmates object id if yours is lower you are closer you get
+if yours is lower you are closer you get to attack
+to attack and you know this is obviously
+and you know this is obviously consistent so does this work
+consistent so does this work no you have just moved the bug over
+no you have just moved the bug over you've just made it more complex to
+you've just made it more complex to reproduce
+reproduce now there's a situation where one enemy
+now there's a situation where one enemy thinks
+thinks i'm definitely farther so i'll wait just
+i'm definitely farther so i'll wait just outside that tolerance
+outside that tolerance and the other one calculates i'm in the
+and the other one calculates i'm in the error zone and my id is higher
+error zone and my id is higher so i'll wait so they both wait
+you cannot use tolerance and a tiebreaker you cannot use this sort of
+tiebreaker you cannot use this sort of escalation
+escalation of uh um
+of uh um complexity to fix floating point
+complexity to fix floating point problems that are caused by
+problems that are caused by inconsistent predicates it doesn't work
+inconsistent predicates it doesn't work this is a real life problem by the way
+this is a real life problem by the way this is not just games so here's another
+this is not just games so here's another example
+example two cars come to a four-way stop now the
+two cars come to a four-way stop now the law says at least in california
+law says at least in california that the driver on the right goes first
+that the driver on the right goes first but if
+but if i'm sorry the driver who gets there
+i'm sorry the driver who gets there first goes first but if two drivers get
+first goes first but if two drivers get there at the same time
+there at the same time the driver on the right goes first which
+the driver on the right goes first which i'm sure they had the best of intentions
+i'm sure they had the best of intentions when they made this law but it doesn't
+when they made this law but it doesn't help anything
+help anything because now instead of wondering whether
+because now instead of wondering whether you whether you were there first or
+you whether you were there first or second
+second you're wondering whether you were there
+you're wondering whether you were there at the same enough time
+at the same enough time so you get exactly the same problems
+so you get exactly the same problems this is another bug
+this is another bug caused by inconsistent predicates
+caused by inconsistent predicates so let's revert all that uh enough with
+so let's revert all that uh enough with tolerances
+tolerances two enemies the closer one attacks and
+two enemies the closer one attacks and there's a much cleaner solution right
+there's a much cleaner solution right so they can just both measure from the
+so they can just both measure from the same frame of reference right
+same frame of reference right because then they're both asking
+because then they're both asking consistent questions
+consistent questions so of course they'll get consistent
+so of course they'll get consistent answers they might get the wrong answer
+answers they might get the wrong answer they might say that a is slightly closer
+they might say that a is slightly closer when really
+when really truly b was slightly closer but that's
+truly b was slightly closer but that's that's the sort of bug we don't care
+that's the sort of bug we don't care about that's a 0.99997 meters away sort
+about that's a 0.99997 meters away sort of bug
+of bug once we have this consistency in fact if
+once we have this consistency in fact if we detect a tie
+we detect a tie then we can fall back on the tiebreaker
+then we can fall back on the tiebreaker because it'll only apply in the actual
+because it'll only apply in the actual case of exact ties
+case of exact ties of course we can make the solution even
+of course we can make the solution even cleaner don't make the enemies
+cleaner don't make the enemies make the decision separately have a
+make the decision separately have a squad behavior which handles this
+squad behavior which handles this and again we're restoring consistency in
+and again we're restoring consistency in this example
+this example not by having two consistent predicates
+not by having two consistent predicates but by chopping the number of predicates
+but by chopping the number of predicates down to one
+now i want to disabuse you of the idea that floating point math
+that floating point math is the only source of inconsistent
+is the only source of inconsistent predicates it happens at stop signs for
+predicates it happens at stop signs for instance
+instance it's a common one with floating point
+it's a common one with floating point math simply because we have all these
+math simply because we have all these intuitions about how math is supposed to
+intuitions about how math is supposed to work which actually can kind of go out
+work which actually can kind of go out the window but there's a danger
+the window but there's a danger of inconsistent predicates whenever you
+of inconsistent predicates whenever you are making decisions
+are making decisions based on multiple concepts whose
+based on multiple concepts whose relationship might be a little more
+relationship might be a little more complicated than it first
+complicated than it first seemed
+all right so changing gears a bit let's talk about documentation
+talk about documentation which is a huge topic and it's not
+which is a huge topic and it's not necessarily ai specific
+necessarily ai specific but i think there is an ai specific bit
+but i think there is an ai specific bit of this because
+of this because i want to go back to something i touched
+i want to go back to something i touched on earlier i mentioned in an earlier
+on earlier i mentioned in an earlier slide
+slide about this is the one with the cutscene
+about this is the one with the cutscene thing with the goblin
+thing with the goblin i said that the source of the bug was
+i said that the source of the bug was that the programmer confused
+that the programmer confused functionality with intent
+functionality with intent there's various kinds of documentation
+there's various kinds of documentation there's different reasons that you might
+there's different reasons that you might need to document something
+need to document something but one crucial reason for ai is to
+but one crucial reason for ai is to document
+document intent all right
+intent all right take a look at this function
+i will keep you in suspense anybody know what this is
+what this is this is bubble sort if ever there was
+this is bubble sort if ever there was self-documenting code it's this
+self-documenting code it's this all right so keep that one in mind
+all right so keep that one in mind here's another function
+here's another function yes that is identical code no these are
+yes that is identical code no these are not the same function
+not the same function they have the same functionality but
+they have the same functionality but they have different intent
+they have different intent this first function is intended to sort
+this first function is intended to sort any array of characters by the
+any array of characters by the character's age
+character's age it has a bug if the array has length 0
+it has a bug if the array has length 0 it reads out of bounds and probably
+it reads out of bounds and probably crashes
+crashes this second function is an intent is
+this second function is an intent is intended to sort
+intended to sort any non-empty array of characters by
+any non-empty array of characters by their age
+their age it's only used when the array is not
+it's only used when the array is not empty it does not have a bug
+and the only difference is the intent this is why the most crucial
+this is why the most crucial documentation is documenting intent
+documentation is documenting intent because nothing else indicates intent
+because nothing else indicates intent this code is self
+this code is self documenting for most things everything
+documenting for most things everything except the intent
+imagine that you saw that function crash read out of bounds of memory well where
+read out of bounds of memory well where is the problem
+is the problem is the bug here in this function or is
+is the bug here in this function or is the bug in whatever code produced
+the bug in whatever code produced an empty array of characters which is
+an empty array of characters which is never supposed to happen
+never supposed to happen and if the bug is here if empty arrays
+and if the bug is here if empty arrays are reasonable
+are reasonable where did it come from why did this code
+where did it come from why did this code use not equals instead of less than
+use not equals instead of less than was the programmer not paying attention
+was the programmer not paying attention is there some subtlety maybe there's a
+is there some subtlety maybe there's a range issue
+range issue with signed integers maybe there's it's
+with signed integers maybe there's it's designed for a platform where that's
+designed for a platform where that's faster
+faster is this code stupid or smart for that
+is this code stupid or smart for that matter speaking of stupid or smart
+matter speaking of stupid or smart why bubble sort n squared time why not
+why bubble sort n squared time why not use quick sort but maybe the programmer
+use quick sort but maybe the programmer doesn't know about quicksort or maybe
+doesn't know about quicksort or maybe they do but they wanted a stable sort
+they do but they wanted a stable sort which quicksort is not but then
+which quicksort is not but then maybe they should have used merge sort
+maybe they should have used merge sort maybe not maybe they're worried about
+maybe not maybe they're worried about branch prediction maybe they tuned this
+branch prediction maybe they tuned this very specifically for the use case
+very specifically for the use case who knows you know what this code is it
+who knows you know what this code is it is uncooperative
+is uncooperative it refuses to tell you what you need to
+it refuses to tell you what you need to know and through that refusal
+know and through that refusal it refuses to change this is code that
+it refuses to change this is code that you leave alone if you
+you leave alone if you are not absolutely forced to not leave
+are not absolutely forced to not leave it alone
+it alone because if you touch it something might
+because if you touch it something might break
+the other reason to document intent is to standardize it let's say your
+to standardize it let's say your character has an is alive method
+character has an is alive method what does alive mean here suppose you
+what does alive mean here suppose you add a death animation while the death
+add a death animation while the death animation is playing should isalive
+animation is playing should isalive return true or false
+return true or false the documentation of is alive helps you
+the documentation of is alive helps you answer that question by telling you what
+answer that question by telling you what it's meant to be used for
+it's meant to be used for because the process of documenting a
+because the process of documenting a concept
+concept involves exploring that concept defining
+involves exploring that concept defining that shape
+maybe assuming we thought of that when we were making the documentation
+we were making the documentation but suppose we didn't think about it
+but suppose we didn't think about it because we didn't even think of the
+because we didn't even think of the aspect of
+aspect of something somebody being neither alive
+something somebody being neither alive nor dead
+nor dead that's still an example of a reason to
+that's still an example of a reason to document your intent even if we have to
+document your intent even if we have to go back and fix the documentation
+go back and fix the documentation because when you fix the documentation
+because when you fix the documentation when you change the intent or clarify it
+when you change the intent or clarify it which is a kind of change
+which is a kind of change you're potentially cutting off certain
+you're potentially cutting off certain usages
+the update to the documentation forces you to think
+you to think about that action you're taking it
+about that action you're taking it forces you to think about all the use
+forces you to think about all the use cases you might be ruining
+cases you might be ruining all the uh all the future use cases even
+all the uh all the future use cases even ones not currently using this function
+ones not currently using this function that you might be cutting off
+now documenting your intent isn't just about writing essays
+about writing essays think about an architectural drawing you
+think about an architectural drawing you know this this is not
+know this this is not a single picture it's multiple pictures
+a single picture it's multiple pictures you get redundant overlapping
+you get redundant overlapping information to resolve ambiguities in
+information to resolve ambiguities in a single diagram similarly
+a single diagram similarly if long comments are one view another
+if long comments are one view another view is tests and assertions
+view is tests and assertions now i'm not going to talk very much
+now i'm not going to talk very much about tests and assertions because i
+about tests and assertions because i don't think i'm the right person to do
+don't think i'm the right person to do it other people have thought about it a
+it other people have thought about it a lot more than i have
+lot more than i have but i will say that one of the most
+but i will say that one of the most useful aspects of tests
+useful aspects of tests for me is as a form of documentation
+for me is as a form of documentation they document what you are thinking
+they document what you are thinking about what you are worried about they
+about what you are worried about they highlight the difficult or
+highlight the difficult or underspecified cases
+underspecified cases they help someone understand why you had
+they help someone understand why you had to make the decisions you made
+to make the decisions you made though while we're at it if we're making
+though while we're at it if we're making an automated test
+an automated test maybe we should document the intent of
+maybe we should document the intent of that test is this something that you
+that test is this something that you never
+never think will happen but you just put it in
+think will happen but you just put it in just in case is it the common case is it
+just in case is it the common case is it an
+an edge case is it why you didn't use
+edge case is it why you didn't use quicksort
+now a corollary of tests and document of tests and assertions being a kind of
+tests and assertions being a kind of documentation is that they don't have to
+documentation is that they don't have to break in order to be useful
+break in order to be useful i will often use assertions that i know
+i will often use assertions that i know will never ever ever fail
+will never ever ever fail for two reasons first of all sometimes
+for two reasons first of all sometimes they fail
+they fail secondly an assertion is inherently
+secondly an assertion is inherently reliable
+reliable look at this comment x will never be
+look at this comment x will never be zero well
+zero well says you but the reason i'm even looking
+says you but the reason i'm even looking at this code is because there's a bug so
+at this code is because there's a bug so someone's wrong about something
+someone's wrong about something but if it's an assertion well okay
+but if it's an assertion well okay you're right it's not zero the princess
+you're right it's not zero the princess is in another
+is in another castle otherwise this assertion would
+castle otherwise this assertion would have fired and because it's an assertion
+have fired and because it's an assertion and not a comma
+and not a comma comment i don't have to spend any time
+comment i don't have to spend any time any brainpower
+any brainpower second guessing it it's documentation
+second guessing it it's documentation you can believe in
+i don't think document your code is a very controversial opinion
+very controversial opinion but it's one of those ideals we
+but it's one of those ideals we sometimes opt out from
+sometimes opt out from like we try to eat healthy get plenty of
+like we try to eat healthy get plenty of vegetables and then we see a burger and
+vegetables and then we see a burger and some steamed carrots and we don't really
+some steamed carrots and we don't really feel like the steamed carrots
+feel like the steamed carrots and what feels like in the moment
+and what feels like in the moment good to do is not documenting your code
+good to do is not documenting your code maybe maybe what you feel like doing is
+maybe maybe what you feel like doing is writing the code
+writing the code because ai
+because ai programming what feels good is getting
+programming what feels good is getting stuff done
+not to mention in a situation where you're experimenting and iterating and
+you're experimenting and iterating and redesigning if you document something
+redesigning if you document something while you're doing all that it feels
+while you're doing all that it feels like you're trying to
+like you're trying to paint an oil painting of a football game
+paint an oil painting of a football game while the football game is still going
+while the football game is still going on
+on so documentation is often done as a post
+so documentation is often done as a post pass
+pass the good thing about documentation as a
+the good thing about documentation as a post pass is you don't need to redo it
+post pass is you don't need to redo it the bad thing about it is that it feels
+the bad thing about it is that it feels like such a chore
+like such a chore because you already did what you wanted
+because you already did what you wanted to do you fixed the bug you got
+to do you fixed the bug you got everything done and now you have to go
+everything done and now you have to go back and write a book report
+back and write a book report sorts the characters by age there
+sorts the characters by age there documented
+documented i want to advise you how to write good
+i want to advise you how to write good documentation and i think to do that i
+documentation and i think to do that i need to advise you how to want to write
+need to advise you how to want to write good documentation
+good documentation because there's no objective metric of
+because there's no objective metric of documentation quality
+documentation quality if you just want to get it out of the
+if you just want to get it out of the way you can do that you can convince
+way you can do that you can convince yourself that you documented everything
+yourself that you documented everything you needed to
+you needed to so here's my advice in the moment want
+so here's my advice in the moment want to share that moment if you did
+to share that moment if you did something clever
+something clever want to tell other people about it not
+want to tell other people about it not not to brag but to share your joy
+not to brag but to share your joy if something was a huge pain to write
+if something was a huge pain to write tell them about it tell them about the
+tell them about it tell them about the journey that it took
+journey that it took you through tell them why you were
+you through tell them why you were forced into this weird solution
+forced into this weird solution explain to them the dilemmas you faced
+explain to them the dilemmas you faced document to share
+document to share sometimes that'll happen while you're
+sometimes that'll happen while you're writing the code sometimes it'll happen
+writing the code sometimes it'll happen afterwards
+afterwards but always with the same intent which is
+but always with the same intent which is to help your team
+to help your team because the goal of your process is to
+because the goal of your process is to help your team
+i want to have some big inspiring conclusion for this talk but i think
+conclusion for this talk but i think that would be a little dishonest
+that would be a little dishonest you're still going to write some bugs i
+you're still going to write some bugs i hope i've helped you write fewer
+hope i've helped you write fewer thank you

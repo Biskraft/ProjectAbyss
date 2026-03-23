@@ -1,0 +1,1236 @@
+[Music] welcome to the talk plot and parcel
+welcome to the talk plot and parcel procedural level design in XCOM - here's
+procedural level design in XCOM - here's some stuff you haven't heard this week
+some stuff you haven't heard this week please silence your cellphone's also if
+please silence your cellphone's also if you would be so kind as to fill out your
+you would be so kind as to fill out your review forms I would appreciate it my
+review forms I would appreciate it my name is Bryan Hess I've been a level
+name is Bryan Hess I've been a level designer for over 20 years I got to
+designer for over 20 years I got to start making mods for first-person
+start making mods for first-person shooter games in the late 90s like doom
+shooter games in the late 90s like doom and quake I've worked on multiple genres
+and quake I've worked on multiple genres first-person shooters adventure games
+first-person shooters adventure games mmo's
+mmo's and tactical strategy games my most
+and tactical strategy games my most recent work is as the lead level
+recent work is as the lead level designer on XCOM 2 and its expansion war
+designer on XCOM 2 and its expansion war of the chosen I design the procedural
+of the chosen I design the procedural level system for these titles here's a
+level system for these titles here's a brief outline for what we'll be
+brief outline for what we'll be discussing in today's talk first we will
+discussing in today's talk first we will go through the history of XCOM and XCOM
+go through the history of XCOM and XCOM level design then we'll walk through the
+level design then we'll walk through the development of the procedural level
+development of the procedural level design system in XCOM 2 i'd like to then
+design system in XCOM 2 i'd like to then briefly touch on some of the tools we
+briefly touch on some of the tools we use to help us in development then speak
+use to help us in development then speak about some of the challenges we faced
+about some of the challenges we faced with the system during production after
+with the system during production after evaluating that we will discuss
+evaluating that we will discuss extending the system in the word that
+extending the system in the word that shows an expansion and finally we will
+shows an expansion and finally we will step back and draw some conclusions
+step back and draw some conclusions about what we've learned
+XCOM is a tactical strategy game that is the game has a tactical combat component
+the game has a tactical combat component and a global strategy component in
+and a global strategy component in playing the game you alternate between
+playing the game you alternate between these two modes the ExCom franchise
+these two modes the ExCom franchise started in 1993 with XCOM UFO defense
+started in 1993 with XCOM UFO defense which was released by Microprose for
+which was released by Microprose for exuses predecessor this is one of my
+exuses predecessor this is one of my favorite games in high school and I have
+favorite games in high school and I have to admit I was pretty bad at it until I
+to admit I was pretty bad at it until I downloaded the unlimited money cheat
+downloaded the unlimited money cheat from CompuServe
+from CompuServe I would never have imagined being able
+I would never have imagined being able to work in a game like this at that time
+to work in a game like this at that time what I was playing it so when the
+what I was playing it so when the opportunity to do so arose for me in
+opportunity to do so arose for me in 2012 I jumped on it for axises first
+2012 I jumped on it for axises first XCOM game was enemy Unknown released in
+XCOM game was enemy Unknown released in 2012 and its expansion enemy within
+2012 and its expansion enemy within in 2013 it was followed by XCOM - in
+in 2013 it was followed by XCOM - in 2016 and were the chosen in 2017 this
+2016 and were the chosen in 2017 this talk is about the Firaxis XCOM titles
+talk is about the Firaxis XCOM titles more specifically the tactical combat
+more specifically the tactical combat part of the game at its core XCOM is a
+part of the game at its core XCOM is a game about hiding behind stuff and
+game about hiding behind stuff and shooting aliens here is a brief crash
+shooting aliens here is a brief crash course on the components of an ex-con
+course on the components of an ex-con level three fundamental components are
+level three fundamental components are the grid cover and fog of war levels are
+the grid cover and fog of war levels are created on a grid of square tiles
+created on a grid of square tiles objects in the world either occupy or
+objects in the world either occupy or straddle these tiles provide things to
+straddle these tiles provide things to hide behind an effect line-of-sight
+hide behind an effect line-of-sight standing next to these objects causes
+standing next to these objects causes you to take cover behind them
+you to take cover behind them providing a defensive bonus there are
+providing a defensive bonus there are two types of cover based on the height
+two types of cover based on the height of the object low cover the half shield
+of the object low cover the half shield which grants a small bonus and high
+which grants a small bonus and high cover the full shield which grants a
+cover the full shield which grants a large bonus player controlled units can
+large bonus player controlled units can only see a certain number of tiles in
+only see a certain number of tiles in each direction high cover objects also
+each direction high cover objects also block line-of-sight players are only
+block line-of-sight players are only aware of enemies that their units have
+aware of enemies that their units have line of sight to and the map is revealed
+line of sight to and the map is revealed as players navigate through the level
+as players navigate through the level exposing groups of enemies so what makes
+exposing groups of enemies so what makes a good XCOM level map layouts have a
+a good XCOM level map layouts have a considerable amount of control over the
+considerable amount of control over the challenge level that a tactical mission
+challenge level that a tactical mission provides the same mission with the same
+provides the same mission with the same number of enemies played on two
+number of enemies played on two differently arranged bases can range
+differently arranged bases can range from a cakewalk to a rage inducing
+from a cakewalk to a rage inducing fiasco the three primary factors that we
+fiasco the three primary factors that we need to consider our object spacing
+need to consider our object spacing cover density and line of sight
+cover density and line of sight if cover objects are too sparse then it
+if cover objects are too sparse then it is impossible to engage enemies with
+is impossible to engage enemies with your entire squad while in cover and
+your entire squad while in cover and this creates a difficulty spike
+this creates a difficulty spike if cover objects are too dense then map
+if cover objects are too dense then map readability becomes an issue
+readability becomes an issue this increases playtime and
+this increases playtime and frustrating in addition we observe a one
+frustrating in addition we observe a one wide rule when constructing XCOM levels
+wide rule when constructing XCOM levels that is there must be two empty tiles
+that is there must be two empty tiles between each cluster of objects this
+between each cluster of objects this guarantees that cover even at maximum
+guarantees that cover even at maximum density still allows for freedom of
+density still allows for freedom of movement and minimizes camera blocking
+movement and minimizes camera blocking issues a good XCOM level has a sea of
+issues a good XCOM level has a sea of low cover and a smattering of high cover
+low cover and a smattering of high cover a successful XCOM player will maintain
+a successful XCOM player will maintain high cover with all of their units
+high cover with all of their units towards the enemies they are engaging
+towards the enemies they are engaging high cover also blocks line-of-sight too
+high cover also blocks line-of-sight too much line-of-sight restriction has
+much line-of-sight restriction has negative effects players will often
+negative effects players will often travel past encounters they were
+travel past encounters they were intended to engage this results in
+intended to engage this results in engaging multiple encounters at once
+engaging multiple encounters at once another difficult despite the occasional
+another difficult despite the occasional multi encounter engagement can prove to
+multi encounter engagement can prove to be a challenging and memorable
+be a challenging and memorable experience but we'd rather have this
+experience but we'd rather have this happen intentionally that have them
+happen intentionally that have them occur accidentally as a result of bad
+occur accidentally as a result of bad level design now that we know what makes
+level design now that we know what makes a good map let's take a look at the maps
+a good map let's take a look at the maps that shipped with XCOM enemy Unknown
+that shipped with XCOM enemy Unknown enemy Unknown ship with around 80 unique
+enemy Unknown ship with around 80 unique maps and the enemy within expansion
+maps and the enemy within expansion added around 30 more most of these maps
+added around 30 more most of these maps were divided into two categories urban
+were divided into two categories urban maps were abduction missions took place
+maps were abduction missions took place and wilderness maps where UFO missions
+and wilderness maps where UFO missions took place vast amounts of custom art
+took place vast amounts of custom art was created for each level custom
+was created for each level custom sidewalks and roads were sized to fit
+sidewalks and roads were sized to fit maps had unique signage and cover props
+maps had unique signage and cover props one of the most expensive aspects was
+one of the most expensive aspects was that each building was custom build
+that each building was custom build buildings were easily the most resource
+buildings were easily the most resource intensive part of tactical maps
+internally we were pleased with the look and feel of these maps however they took
+and feel of these maps however they took quite a long time to put together the
+quite a long time to put together the average EU abduction map took a number
+average EU abduction map took a number of man months to complete in a single
+of man months to complete in a single campaign playthrough you could play so
+campaign playthrough you could play so many tactical missions that you would
+many tactical missions that you would start seeing the same maps over again on
+start seeing the same maps over again on your second playthrough everything
+your second playthrough everything started seeming very familiar in a game
+started seeming very familiar in a game with a lot of replayability repeat
+with a lot of replayability repeat were one of the top reasons people
+were one of the top reasons people burned out on the game the dlcs raised
+burned out on the game the dlcs raised the art bar on the maps if we sold 80
+the art bar on the maps if we sold 80 maps for 60 bucks and we're charging
+maps for 60 bucks and we're charging seven bucks for three maps these better
+seven bucks for three maps these better be pretty fancy maps and our expansion
+be pretty fancy maps and our expansion maps can't look worse than our DLC ones
+maps can't look worse than our DLC ones it was an arms race this just put us
+it was an arms race this just put us further in the hole timewise the image
+further in the hole timewise the image on this slide is one of our DLC maps
+on this slide is one of our DLC maps called deluge it was beautiful and
+called deluge it was beautiful and iconic but aside the vehicles it was
+iconic but aside the vehicles it was almost entirely custom one-off art and
+almost entirely custom one-off art and it took a considerable amount of time to
+it took a considerable amount of time to create one of the positive advancements
+create one of the positive advancements of the expansion came as a result of an
+of the expansion came as a result of an experiment in an attempt to extend
+experiment in an attempt to extend content cheaply an enemy with him we
+content cheaply an enemy with him we took some of the base game maps move the
+took some of the base game maps move the player star to the other side and
+player star to the other side and altered the time of day
+altered the time of day enemy Unknown levels were mostly large
+enemy Unknown levels were mostly large enough that the player never made it to
+enough that the player never made it to the other corner of the map before the
+the other corner of the map before the mission ended you start in this space
+mission ended you start in this space you've never been in before and
+you've never been in before and eventually you get to places you
+eventually you get to places you recognize but from the opposite
+recognize but from the opposite direction they played like totally new
+direction they played like totally new levels recognizes recognizing these
+levels recognizes recognizing these faces again in a different way often
+faces again in a different way often added to the experience not taking away
+added to the experience not taking away from it as we had feared both of these
+from it as we had feared both of these concepts that is randomized player
+concepts that is randomized player starts and multiple times of day for
+starts and multiple times of day for each map were added to the pool of ideas
+each map were added to the pool of ideas for the sequel as ways to increase
+for the sequel as ways to increase variety now that we've gone over the
+variety now that we've gone over the history of XCOM previous to the
+history of XCOM previous to the introduction of procedural level design
+introduction of procedural level design I'd like to shift over to its
+I'd like to shift over to its incorporation into the XCOM tactical
+incorporation into the XCOM tactical game starting with pre-production on
+game starting with pre-production on XCOM 2 in 2013 we establish some goals
+XCOM 2 in 2013 we establish some goals for what we wanted out of the procedural
+for what we wanted out of the procedural system before we started developing it
+system before we started developing it and pre-production the first goal was to
+and pre-production the first goal was to remove expensive environment art as a
+remove expensive environment art as a bottleneck from getting more maps in the
+bottleneck from getting more maps in the game we're not staffing up to make the
+game we're not staffing up to make the sequel but we need to ship more maps to
+sequel but we need to ship more maps to the game this time around another goal
+the game this time around another goal was the pursuit of a concept we called
+was the pursuit of a concept we called play forever which is that you'd never
+play forever which is that you'd never see the same map twice while playing
+see the same map twice while playing we'd like to remove Matt fatigue as a
+we'd like to remove Matt fatigue as a source of player burnout finally we
+source of player burnout finally we wanted to switch to using modular
+wanted to switch to using modular building kits which allowed the assembly
+building kits which allowed the assembly of structures using a generic library
+of structures using a generic library this is an old concept that has been
+this is an old concept that has been discussed in detail and a number of
+discussed in detail and a number of excellent GBC talks this wasn't directly
+excellent GBC talks this wasn't directly related to the procedural system but we
+related to the procedural system but we knew that we were going to need a lot
+knew that we were going to need a lot more buildings and since they were so
+more buildings and since they were so expensive we had to find some way to
+expensive we had to find some way to speed up that process this was the
+speed up that process this was the original idea of how to do procedural
+original idea of how to do procedural maps before we actually started working
+maps before we actually started working on it we would start with a large map
+on it we would start with a large map and cut holes where the buildings were
+and cut holes where the buildings were we would create the multiple buildings
+we would create the multiple buildings and separate mat files and stream them
+and separate mat files and stream them in were the holes in the other map work
+in were the holes in the other map work we called the master map with the holes
+we called the master map with the holes in it a plot and the streamed in
+in it a plot and the streamed in building maps as parcels in the image on
+building maps as parcels in the image on the screen the blue and grey
+the screen the blue and grey checkerboard boxes each represent
+checkerboard boxes each represent individual parcels you're going to see a
+individual parcels you're going to see a few more checkered board boxes during
+few more checkered board boxes during this talk as I mentioned earlier enemy
+this talk as I mentioned earlier enemy Unknown shipped with two major plot
+Unknown shipped with two major plot types urban and wilderness we wanted to
+types urban and wilderness we wanted to expand the number of plot types to five
+expand the number of plot types to five for XCOM - the plot types we wanted to
+for XCOM - the plot types we wanted to make for city center wilderness small
+make for city center wilderness small towns shanty towns and alien facilities
+towns shanty towns and alien facilities the images on the screen are what these
+the images on the screen are what these plot types ended up looking like when
+plot types ended up looking like when they shipped with XCOM - the additional
+they shipped with XCOM - the additional plot types were added to help flesh out
+plot types were added to help flesh out the universe and tell the story of the
+the universe and tell the story of the alien occupation of Earth in the last 20
+alien occupation of Earth in the last 20 years since enemy Unknown we were
+years since enemy Unknown we were betting that we could get all of this
+betting that we could get all of this additional content done much faster than
+additional content done much faster than the previous game due to our shiny new
+the previous game due to our shiny new procedural system even though we had not
+procedural system even though we had not yet proven it could work now that we had
+yet proven it could work now that we had our expanded list of plot types we came
+our expanded list of plot types we came up with some initial rules and how these
+up with some initial rules and how these plots would be constructed because there
+plots would be constructed because there was still a significant art cost in
+was still a significant art cost in creating a plot even with the buildings
+creating a plot even with the buildings removed the goal was to have as few
+removed the goal was to have as few plots as possible to support that goal
+plots as possible to support that goal plots needed to support all missions
+plots needed to support all missions they also need
+they also need to be large enough to support the
+to be large enough to support the mission that demanded the most amount of
+mission that demanded the most amount of real estate ballooning their size the
+real estate ballooning their size the original plan for enemy reinforcements
+original plan for enemy reinforcements was that they would walk in from a road
+was that they would walk in from a road on the edge of the map this required
+on the edge of the map this required roads exiting the gameplay space at
+roads exiting the gameplay space at regular intervals we also plan to add
+regular intervals we also plan to add large units which occupied multiple
+large units which occupied multiple tiles and needed paths free from cover
+tiles and needed paths free from cover objects in order to travel around the
+objects in order to travel around the map which meant no buildings in these
+map which meant no buildings in these spaces this means roads around every
+spaces this means roads around every structure as well as the edge of the map
+structure as well as the edge of the map large unit and reinforcements support
+large unit and reinforcements support made the maps mostly roads roads were in
+made the maps mostly roads roads were in the plot and required an art pass in
+the plot and required an art pass in every plot more roads on a plot meant
+every plot more roads on a plot meant more art time per plot created the image
+more art time per plot created the image on the screen was one of our first
+on the screen was one of our first prototype city plots note the
+prototype city plots note the preponderance of roads and the
+preponderance of roads and the significant square footage here are some
+significant square footage here are some rules that we came up with for our first
+rules that we came up with for our first round of parcels parcels were divided
+round of parcels parcels were divided into three buckets based on size small
+into three buckets based on size small parcels were 12 tiles squared medium
+parcels were 12 tiles squared medium parcels were 12 by 24 tiles and large
+parcels were 12 by 24 tiles and large parcels for 24 tile squared on the right
+parcels for 24 tile squared on the right are three shipping city center parcels
+are three shipping city center parcels one of each size the idea behind this
+one of each size the idea behind this was that since our plan involved
+was that since our plan involved punching holes in the plot for just
+punching holes in the plot for just buildings we needed more granularity
+buildings we needed more granularity over the sizes the buildings could
+over the sizes the buildings could occupy so that we weren't wasting any
+occupy so that we weren't wasting any space the buildings that we evaluated
+space the buildings that we evaluated from the enemy Unknown levels were all
+from the enemy Unknown levels were all slightly different sizes but could fit
+slightly different sizes but could fit within one of the three buckets we could
+within one of the three buckets we could ensure the buildings could both occupy
+ensure the buildings could both occupy almost all of a given parcel and be
+almost all of a given parcel and be consistent sizes by using our modular
+consistent sizes by using our modular building kit which was based three now
+building kit which was based three now we had three separate buckets of
+we had three separate buckets of buildings to make sure we had enough of
+buildings to make sure we had enough of because large parcels had four times the
+because large parcels had four times the real estate of a small parcel it stood
+real estate of a small parcel it stood to reason that they would take four
+to reason that they would take four times as long to create in the interest
+times as long to create in the interest of replayability we wanted to make more
+of replayability we wanted to make more smaller parcels and fewer larger ones we
+smaller parcels and fewer larger ones we also wanted a large parcel to have the
+also wanted a large parcel to have the potential to appear on every plot to try
+potential to appear on every plot to try and accommodate this we added the
+and accommodate this we added the concept
+concept parcel subdivision a large parcel slot
+parcel subdivision a large parcel slot on a plot could spawn instead as two
+on a plot could spawn instead as two mediums or as a medium and two smalls
+mediums or as a medium and two smalls this way we could worry less about which
+this way we could worry less about which building sizes we needed more of since
+building sizes we needed more of since the building slots were somewhat
+the building slots were somewhat interchangeable to maximize
+interchangeable to maximize replayability we also had parcels
+replayability we also had parcels loading into spaces at a random cardinal
+loading into spaces at a random cardinal orientation so we've made our first set
+orientation so we've made our first set of plots and we have to evaluate our
+of plots and we have to evaluate our work before moving forward dressing up
+work before moving forward dressing up all of the rows on each plot was very
+all of the rows on each plot was very time-consuming most missions required
+time-consuming most missions required less space than the plots were built to
+less space than the plots were built to this was bad because players use the
+this was bad because players use the edge of the map to help them figure out
+edge of the map to help them figure out which direction to go and in a large map
+which direction to go and in a large map you never see the edge putting the onus
+you never see the edge putting the onus on the mission UI
+on the mission UI to keep players heading in the right
+to keep players heading in the right direction it also made load times longer
+direction it also made load times longer memory footprints higher and performance
+memory footprints higher and performance worse even with the building's cut out
+worse even with the building's cut out and able to be shared between plots this
+and able to be shared between plots this still wasn't a huge time savings and
+still wasn't a huge time savings and tactical map creation because the
+tactical map creation because the parcels were all roughly the same size
+parcels were all roughly the same size and shape as the other parcels in that
+and shape as the other parcels in that bucket combat wasn't much different when
+bucket combat wasn't much different when one building was substituted in place of
+one building was substituted in place of another we weren't there yet we started
+another we weren't there yet we started looking for solutions to some of the
+looking for solutions to some of the plot problems that we were having what
+plot problems that we were having what if we took the parts of the plot that
+if we took the parts of the plot that weren't parcels and procedural eyes them
+weren't parcels and procedural eyes them in a similar fashion we were already
+in a similar fashion we were already building road networks from modular Road
+building road networks from modular Road kits what if we saved off a few
+kits what if we saved off a few variations of each piece from the kit as
+variations of each piece from the kit as a separate map rearrange the cover
+a separate map rearrange the cover layout and sent it through our art
+layout and sent it through our art pipeline thus the idea of plot covered
+pipeline thus the idea of plot covered parcels or pcps was born
+parcels or pcps was born the rules were slightly different than
+the rules were slightly different than parcels though unlike parcels it was
+parcels though unlike parcels it was okay to reuse a PCP multiple times in a
+okay to reuse a PCP multiple times in a tactical map they were small and generic
+tactical map they were small and generic enough that unless two identical ones
+enough that unless two identical ones were side-by-side and facing the same
+were side-by-side and facing the same direction you couldn't tell that we were
+direction you couldn't tell that we were recycling content furthermore by
+recycling content furthermore by divorcing the art from the map layout we
+divorcing the art from the map layout we could create any number of plot layouts
+could create any number of plot layouts without additional art cost this was the
+without additional art cost this was the first major breakthrough
+first major breakthrough cedral development the images on this
+cedral development the images on this slide were the results of the first PCP
+slide were the results of the first PCP prototype plot they were screenshots of
+prototype plot they were screenshots of the same section of a single plot loaded
+the same section of a single plot loaded six times we were pretty excited about
+six times we were pretty excited about the variety we could get out of a single
+the variety we could get out of a single plot with all of these new systems in
+plot with all of these new systems in place PCP has resulted in a massive time
+place PCP has resulted in a massive time savings for the environment artists as
+savings for the environment artists as they could Metis make a set of one to
+they could Metis make a set of one to three dozen pcps to populate in any
+three dozen pcps to populate in any number of plots it also allowed level
+number of plots it also allowed level design the freedom to experiment much
+design the freedom to experiment much more with level layouts as assembling a
+more with level layouts as assembling a plot of parcels and PCPs could be done
+plot of parcels and PCPs could be done in about an hour each plot type had its
+in about an hour each plot type had its own PCP sets for example the small town
+own PCP sets for example the small town Street set had 24 pieces four courts two
+Street set had 24 pieces four courts two corners eight straightaways of two
+corners eight straightaways of two different lengths and ten intersections
+different lengths and ten intersections of various types with streets boulevards
+of various types with streets boulevards and train tracks the picture shows one
+and train tracks the picture shows one of our first stabs at a complete set of
+of our first stabs at a complete set of PC ps4 the wilderness plot type there is
+PC ps4 the wilderness plot type there is a set of dirt roads divided highways
+a set of dirt roads divided highways streams and woods DCP piece variations
+streams and woods DCP piece variations allowed for a variety of gameplay as
+allowed for a variety of gameplay as well as visual variation as the cover
+well as visual variation as the cover layout was different in each very
+layout was different in each very variation after the initial round of
+variation after the initial round of building construction we took stock of
+building construction we took stock of the buildings we had made and how they
+the buildings we had made and how they were working in game level designers
+were working in game level designers were struggling to build building
+were struggling to build building interiors that had enough space to sell
+interiors that had enough space to sell a particular theme while obeying all of
+a particular theme while obeying all of our gameplay restrictions on layout and
+our gameplay restrictions on layout and the space provided it wasn't so hard to
+the space provided it wasn't so hard to fill out a large parcel but it was sure
+fill out a large parcel but it was sure hard to make a coherent space out of a
+hard to make a coherent space out of a small or medium one because we had to
+small or medium one because we had to leave unoccupied tiles on the edge of
+leave unoccupied tiles on the edge of each map in order to observe the one
+each map in order to observe the one wide rule a 12 by 12 parcel could only
+wide rule a 12 by 12 parcel could only support a nine by nine building
+support a nine by nine building okay so let's retrofit all the parcels
+okay so let's retrofit all the parcels to be base 14 well we can fit a 12 by 12
+to be base 14 well we can fit a 12 by 12 building and a small parcel now so the
+building and a small parcel now so the buildings are easier to make coherent
+buildings are easier to make coherent spaces out of but the gameplay still
+spaces out of but the gameplay still isn't there the picture shows one of our
+isn't there the picture shows one of our early prototype buildings using some old
+early prototype buildings using some old XCOM one assets and test pieces
+XCOM one assets and test pieces there's nothing to hide behind next to
+there's nothing to hide behind next to the building while moving down the
+the building while moving down the street
+street gameplay testing was showing that
+gameplay testing was showing that buildings played better with cover
+buildings played better with cover objects on the outside of them in order
+objects on the outside of them in order for you to be able to fight down the
+for you to be able to fight down the more open spaces adjacent to them in
+more open spaces adjacent to them in order to accommodate that we would have
+order to accommodate that we would have to shrink a building on a 14 by 14
+to shrink a building on a 14 by 14 parcel back from 12 by 12 to 9 by 9 with
+parcel back from 12 by 12 to 9 by 9 with our base 3 modular building kit ok so
+our base 3 modular building kit ok so what if the parcels got bigger again so
+what if the parcels got bigger again so we went up to base 16 and this proved to
+we went up to base 16 and this proved to be big enough the buildings could be
+be big enough the buildings could be large enough to convincingly sell a
+large enough to convincingly sell a space and there was enough room and the
+space and there was enough room and the parcel around the building to support
+parcel around the building to support cover arrangements as well another thing
+cover arrangements as well another thing we noticed is that while our parcel
+we noticed is that while our parcel subdivision tech was making deciding the
+subdivision tech was making deciding the right number of builds to buildings to
+right number of builds to buildings to build of each size easier it looked
+build of each size easier it looked really weird to have all these unrelated
+really weird to have all these unrelated buildings all adjacent in this way every
+buildings all adjacent in this way every time we loaded a map with the subdivided
+time we loaded a map with the subdivided parcel on it it felt more like a
+parcel on it it felt more like a hodgepodge of assets than an arranged
+hodgepodge of assets than an arranged space we never did find a way to do this
+space we never did find a way to do this in a way that didn't feel off and we
+in a way that didn't feel off and we turned it off it did however it get us
+turned it off it did however it get us thinking about the relationship of a
+thinking about the relationship of a building to its surrounding space we had
+building to its surrounding space we had stores coming in with their storefronts
+stores coming in with their storefronts facing away from the roads and this
+facing away from the roads and this didn't make much sense either in order
+didn't make much sense either in order to address these issues we came up with
+to address these issues we came up with some ideas the first was that of a
+some ideas the first was that of a parcel facing when a parcel was defined
+parcel facing when a parcel was defined the side that was meant to be adjacent
+the side that was meant to be adjacent to the road was identified as the face
+to the road was identified as the face each parcel and a plot had all of the
+each parcel and a plot had all of the sides adjacent to the roads marked as
+sides adjacent to the roads marked as facings these were represented by yellow
+facings these were represented by yellow arrows in the image when a parcel was
+arrows in the image when a parcel was chosen to load into a plot it would only
+chosen to load into a plot it would only come in at the rotation where it's
+come in at the rotation where it's defined facing would match those allowed
+defined facing would match those allowed on the plot the original design was that
+on the plot the original design was that a parcel could come in at any rotation
+a parcel could come in at any rotation to maximize variety while the new design
+to maximize variety while the new design was certainly less random than the
+was certainly less random than the original design the proper orientation
+original design the proper orientation of a building was pretty critical in
+of a building was pretty critical in creating a believable space we had a
+creating a believable space we had a number of parcels that included parking
+number of parcels that included parking lots or other vehicle access having
+lots or other vehicle access having these areas ringed in by sidewalk was
+these areas ringed in by sidewalk was pretty weird where all of these cars
+pretty weird where all of these cars hopping curbs every time they wanted to
+hopping curbs every time they wanted to park driveways existed in the plot not
+park driveways existed in the plot not the parcel however so they would have to
+the parcel however so they would have to be spawned in only where they were
+be spawned in only where they were appropriate
+appropriate so driveways became part of the parcel
+so driveways became part of the parcel definition as well and parcels would
+definition as well and parcels would only come into a plot in a space that
+only come into a plot in a space that had all the driveways available that it
+had all the driveways available that it needed as the driveway had to connect to
+needed as the driveway had to connect to a road in the plot the picture is what a
+a road in the plot the picture is what a parcel looks like in a plot in our
+parcel looks like in a plot in our editor excused the programmer art the
+editor excused the programmer art the arrows represent acceptable facings and
+arrows represent acceptable facings and the smaller squares are where the
+the smaller squares are where the driveways show up after placing a parcel
+driveways show up after placing a parcel in a plot you can then toggle these
+in a plot you can then toggle these settings per parcel based on the
+settings per parcel based on the surrounding road networks this
+surrounding road networks this technology was delicate however as it
+technology was delicate however as it was easy to define a parcel so strictly
+was easy to define a parcel so strictly that it rarely if ever showed up if a
+that it rarely if ever showed up if a given parcel had a specific facing as
+given parcel had a specific facing as well as multiple driveway requirements
+well as multiple driveway requirements there may be only one or two plots that
+there may be only one or two plots that would accommodate it and in those plots
+would accommodate it and in those plots it had to win the role against the other
+it had to win the role against the other parcels that would also fit into that
+parcels that would also fit into that slot there wasn't much point in building
+slot there wasn't much point in building a parcel that no one would see so these
+a parcel that no one would see so these concepts had to be used carefully in
+concepts had to be used carefully in order minim to minimize this typically a
+order minim to minimize this typically a parcel either had a driveway if it had a
+parcel either had a driveway if it had a parking lot or a facing if it didn't but
+parking lot or a facing if it didn't but never both we also added markup to each
+never both we also added markup to each parcel and PCP in the game to provide
+parcel and PCP in the game to provide eligible locations for the exocomp squad
+eligible locations for the exocomp squad to faster up down from the sky Ranger at
+to faster up down from the sky Ranger at the beginning of the mission the number
+the beginning of the mission the number of player starts in each map was
+of player starts in each map was determined by its size providing a
+determined by its size providing a uniform density of start locations for
+uniform density of start locations for the greatest amount of flexibility and
+the greatest amount of flexibility and variation another iteration on parcel
+variation another iteration on parcel development was to introduce the concept
+development was to introduce the concept of zones now that we had a lot of
+of zones now that we had a lot of buildings for each plot type they were
+buildings for each plot type they were coming in in strange ways small towns
+coming in in strange ways small towns had two components neighborhoods and
+had two components neighborhoods and downtown retail stores it was weird to
+downtown retail stores it was weird to see a single-family home on the same
+see a single-family home on the same block as a shopping center these
+block as a shopping center these buildings made more sense when they were
+buildings made more sense when they were clustered up homes around other homes
+clustered up homes around other homes shops all in a row by zoning parcels
+shops all in a row by zoning parcels inside of plots we could guarantee this
+inside of plots we could guarantee this outcome zones facing and driveways
+outcome zones facing and driveways helped immensely with the believer
+helped immensely with the believer ability of a space buildings now
+ability of a space buildings now appeared on screen as you would expect
+appeared on screen as you would expect them to in real life they were oriented
+them to in real life they were oriented towards the road were grounded with
+towards the road were grounded with driveways and were surrounded with
+driveways and were surrounded with similar structures however this came at
+similar structures however this came at a cost
+a cost we had significantly reduced the number
+we had significantly reduced the number of parcels that could appear at any
+of parcels that could appear at any given spot and a plot in order to
+given spot and a plot in order to achieve the same amount of variation in
+achieve the same amount of variation in each plot we would have to create more
+each plot we would have to create more parcels of each type zones were paying
+parcels of each type zones were paying dividends and directing future future
+dividends and directing future future parcel authoring once we had added zones
+parcel authoring once we had added zones to all of our parcel definitions they
+to all of our parcel definitions they generally fell within one of two
+generally fell within one of two categories per plot type and we focused
+categories per plot type and we focused on that zone specific plots were created
+on that zone specific plots were created for each plot type for example the image
+for each plot type for example the image on the left is a small town neighborhood
+on the left is a small town neighborhood zone plot and the right is a downtown
+zone plot and the right is a downtown retail zone plot both of these zones
+retail zone plot both of these zones were considered small town they shared
+were considered small town they shared pcps and most of their art maps shrunk
+pcps and most of their art maps shrunk in size from initial estimates as
+in size from initial estimates as missions came online and we experimented
+missions came online and we experimented with how far we wanted the XCOM squad to
+with how far we wanted the XCOM squad to travel in order to reach their
+travel in order to reach their objectives this kind of experimentation
+objectives this kind of experimentation was much easier now that we no longer
+was much easier now that we no longer had to involve an artist in order to
+had to involve an artist in order to accomplish it through iteration our
+accomplish it through iteration our parcel sizes were now 16 by 16 16 by 32
+parcel sizes were now 16 by 16 16 by 32 and 32 by 32 nice base 8 numbers initial
+and 32 by 32 nice base 8 numbers initial PCPs were sized to the dimensions of
+PCPs were sized to the dimensions of their contents however we had six tile
+their contents however we had six tile wide roads ten tile wide roads and
+wide roads ten tile wide roads and sixteen tile wide roads none of these
+sixteen tile wide roads none of these numbers were compatible and it was
+numbers were compatible and it was impossible to assemble an asymmetrical
+impossible to assemble an asymmetrical plot with all of these elements we
+plot with all of these elements we settled on base 8 and changed the sizes
+settled on base 8 and changed the sizes of all the PCPs to match our parcels
+of all the PCPs to match our parcels this greatly eased plot assembly and
+this greatly eased plot assembly and allowed for significantly increased
+allowed for significantly increased layout variation reinforcements that
+layout variation reinforcements that walked in from the side often took a few
+walked in from the side often took a few turns to reach the combat minimizing
+turns to reach the combat minimizing their impact a troop transport system
+their impact a troop transport system was developed so that reinforcements
+was developed so that reinforcements could now fly into any at any point on
+could now fly into any at any point on the map which made pacing combat easier
+the map which made pacing combat easier troops could land at
+troops could land at any of the player starts we had placed
+any of the player starts we had placed in each man because we had placed so
+in each man because we had placed so many we knew there would always be a
+many we knew there would always be a valid location nearby for this to happen
+valid location nearby for this to happen it had a great side benefit for us as
+it had a great side benefit for us as well as it eliminated the need for road
+well as it eliminated the need for road networks around the edge of the map
+networks around the edge of the map large unit support was also cut as we
+large unit support was also cut as we solved their pathing issues by having
+solved their pathing issues by having them travel through and destroy objects
+them travel through and destroy objects instead which made them feel more
+instead which made them feel more powerful as well without the need for
+powerful as well without the need for roads around the edge of the map and
+roads around the edge of the map and around every building we could alter the
+around every building we could alter the layout of our plots to have more
+layout of our plots to have more buildings in fewer roads this was a big
+buildings in fewer roads this was a big improvement to both the visuals and the
+improvement to both the visuals and the gameplay for these maps as visual
+gameplay for these maps as visual interest and better gameplay was in
+interest and better gameplay was in parcels not road networks the picture on
+parcels not road networks the picture on the left was one of our older plots it
+the left was one of our older plots it had eight parcels and 40 PCPs the plot
+had eight parcels and 40 PCPs the plot on the right was shrunk after the rules
+on the right was shrunk after the rules change it contained only four parcels
+change it contained only four parcels and twenty pcps
+and twenty pcps with fewer parcels and PCPs loading per
+with fewer parcels and PCPs loading per plot we were getting more variation out
+plot we were getting more variation out of the same number of maps that we had
+of the same number of maps that we had created as players were only seeing half
+created as players were only seeing half as many each time they loaded a map I've
+as many each time they loaded a map I've spent a lot of time so far talking about
+spent a lot of time so far talking about the development of plot and parcel maps
+the development of plot and parcel maps I'd like to briefly shift to mention
+I'd like to briefly shift to mention some of the tools that we developed in
+some of the tools that we developed in order to make development easier asset
+order to make development easier asset swapping was another procedural
+swapping was another procedural component that we developed during
+component that we developed during production that ended up saving a lot of
+production that ended up saving a lot of our time as well we ended up shipping
+our time as well we ended up shipping around 40 persons and around a hundred
+around 40 persons and around a hundred and thirty pcps for the wilderness plot
+and thirty pcps for the wilderness plot type which was a temperate forest the
+type which was a temperate forest the original plan was to have a similar
+original plan was to have a similar suite of maps for a pair of sister plot
+suite of maps for a pair of sister plot types the arid wilderness and the tundra
+types the arid wilderness and the tundra wilderness we have the arid and Tundra
+wilderness we have the arid and Tundra meshes and materials created already so
+meshes and materials created already so we started by creating a set of
+we started by creating a set of temperate pcps manually swapping the
+temperate pcps manually swapping the materials and meshes in each map to the
+materials and meshes in each map to the arid and tundra versions then saving
+arid and tundra versions then saving them out as separate files this was
+them out as separate files this was really time consuming as was the
+really time consuming as was the maintenance of these additional hundreds
+maintenance of these additional hundreds of maps I managed to convince a
+of maps I managed to convince a programmer to write a system that would
+programmer to write a system that would automatically do these predefined
+automatically do these predefined material and mesh wha
+material and mesh wha during load-in game temperate arid and
+during load-in game temperate arid and tundra were defined as biomes all maps
+tundra were defined as biomes all maps were constructed as tempered and swapped
+were constructed as tempered and swapped on-the-fly as the game requested a level
+on-the-fly as the game requested a level of a different biome now we only had to
+of a different biome now we only had to maintain a third of the maps we had
+maintain a third of the maps we had originally scheduled for which saved man
+originally scheduled for which saved man months of work while the environment
+months of work while the environment artist got out of an art passed on
+artist got out of an art passed on hundreds of additional maps they had to
+hundreds of additional maps they had to make arid and Tundra versions of all of
+make arid and Tundra versions of all of the cover assets and deco that we had
+the cover assets and deco that we had made for the temperate wilderness that
+made for the temperate wilderness that were the same size and shape which was
+were the same size and shape which was challenging the picture is the original
+challenging the picture is the original test map that we used to plan out which
+test map that we used to plan out which assets we plan to swap and their
+assets we plan to swap and their equivalent for each biome the assets
+equivalent for each biome the assets that we weren't able to find swaps for
+that we weren't able to find swaps for would live in a biome only deco layer in
+would live in a biome only deco layer in each map while this required the
+each map while this required the aforementioned dreaded comprehensive
+aforementioned dreaded comprehensive pass through all maps to add there's
+pass through all maps to add there's just no erred replacement for something
+just no erred replacement for something like icicles you can't swap everything
+like icicles you can't swap everything we eventually expanded this system to
+we eventually expanded this system to include map swaps as well we couldn't
+include map swaps as well we couldn't make our stream PC pset work in arid it
+make our stream PC pset work in arid it looked more like a ditch however one of
+looked more like a ditch however one of our environment artists created a
+our environment artists created a beautiful riverbed set that swapped in
+beautiful riverbed set that swapped in when a wilderness map with a stream
+when a wilderness map with a stream loaded into an arid biome the images on
+loaded into an arid biome the images on the screen are the same wilderness
+the screen are the same wilderness stream plot in all three biomes as you
+stream plot in all three biomes as you can see the arid version has a slightly
+can see the arid version has a slightly different layout and there are elements
+different layout and there are elements of biome specific deco in all three this
+of biome specific deco in all three this system also worked on maps for other
+system also worked on maps for other plot types now we had arid small towns
+plot types now we had arid small towns and Tundra shanty towns for very little
+and Tundra shanty towns for very little extra effort it wasn't part of the
+extra effort it wasn't part of the original plan but it came free with the
+original plan but it came free with the technology this asset swap system was
+technology this asset swap system was further extended to provide visual
+further extended to provide visual variation in a number of different ways
+variation in a number of different ways recreated a number of color variations
+recreated a number of color variations for each civilian vehicle that the game
+for each civilian vehicle that the game would randomly choose between unload
+would randomly choose between unload that kept things looking fresh we were
+that kept things looking fresh we were also able to swap out posters and signs
+also able to swap out posters and signs and other miscellaneous deco our
+and other miscellaneous deco our original method for testing new parcels
+original method for testing new parcels that we
+that we created in game was to pick a plot that
+created in game was to pick a plot that they were eligible to appear in and
+they were eligible to appear in and reload it until the parcel that we
+reload it until the parcel that we wanted to test appeared this wasn't
+wanted to test appeared this wasn't terribly efficient as we created more
+terribly efficient as we created more and more parcels the strategy became too
+and more parcels the strategy became too low the plot a few times to see if you
+low the plot a few times to see if you got lucky
+got lucky then get impatient enough to edit the
+then get impatient enough to edit the parcel definitions locally to comment
+parcel definitions locally to comment out all of the other parcels except for
+out all of the other parcels except for the one that you wanted our heroic
+the one that you wanted our heroic systems programmer rose to meet this
+systems programmer rose to meet this challenge and created tactical quick
+challenge and created tactical quick launch or tql tql could load the plot
+launch or tql tql could load the plot without launching a tactical game the
+without launching a tactical game the plot would then load all of the
+plot would then load all of the component parcel and PCP maps as you
+component parcel and PCP maps as you watched on slower computers you could
+watched on slower computers you could see the individual Maps winkin to
+see the individual Maps winkin to existence this gave the people working
+existence this gave the people working on the tactical game an appreciation for
+on the tactical game an appreciation for what was going on under the hood one of
+what was going on under the hood one of the key features of tql was that after
+the key features of tql was that after the plot had loaded you could select any
+the plot had loaded you could select any parcel on the map and change it from a
+parcel on the map and change it from a menu to any other parcel that would be
+menu to any other parcel that would be eligible to fill in that slot parcel
+eligible to fill in that slot parcel testing just got a lot easier eventually
+testing just got a lot easier eventually a rudimentary menu was added that would
+a rudimentary menu was added that would allow you to change a number of
+allow you to change a number of variables before loading the map you
+variables before loading the map you could select the time of day the biome
+could select the time of day the biome the mission you wanted to go on the
+the mission you wanted to go on the squad you were playing with how
+squad you were playing with how difficult the enemy should be etc once
+difficult the enemy should be etc once you hit start it would launch the
+you hit start it would launch the tactical game on the map you had just
+tactical game on the map you had just constructed this was a huge boon to
+constructed this was a huge boon to testing and improving the game in
+testing and improving the game in general I don't think we could have
+general I don't think we could have pulled it off without tql now that we've
+pulled it off without tql now that we've had a glimpse at the tools I'd like to
+had a glimpse at the tools I'd like to talk about some of the challenges we ran
+talk about some of the challenges we ran into later in production on XCOM tube
+into later in production on XCOM tube once we had the entire game in place and
+once we had the entire game in place and were able to start doing complete
+were able to start doing complete campaign playthroughs we started picking
+campaign playthroughs we started picking up on an issue with how our tactical
+up on an issue with how our tactical missions were playing out being able to
+missions were playing out being able to go on any mission in any of our five
+go on any mission in any of our five plot types really genericized the spaces
+plot types really genericized the spaces no place really had an identity our
+no place really had an identity our solution to this issue was to Paris
+solution to this issue was to Paris Pacific plot types with specific
+Pacific plot types with specific missions previous to the iteration you
+missions previous to the iteration you could have
+could have gone on a guerilla Ops mission on any of
+gone on a guerilla Ops mission on any of the six plot types now you would only go
+the six plot types now you would only go on guerilla ops in small towns this
+on guerilla ops in small towns this required rebuilding all of the plots in
+required rebuilding all of the plots in the game while this was a pretty major
+the game while this was a pretty major reconfiguration it was actually a good
+reconfiguration it was actually a good thing it allowed us to once again shrink
+thing it allowed us to once again shrink our plots and tailor their size to be
+our plots and tailor their size to be mission specific as some missions
+mission specific as some missions required more space than others and
+required more space than others and previously all plots had to be big
+previously all plots had to be big enough to accommodate the mission that
+enough to accommodate the mission that required the most amount of real estate
+required the most amount of real estate this help with player navigation as it
+this help with player navigation as it was much easier which was much clearer
+was much easier which was much clearer which direction to go when you started
+which direction to go when you started next to I ran up against the edge of the
+next to I ran up against the edge of the map it also reduced memory footprint
+map it also reduced memory footprint loading times and prefer improved
+loading times and prefer improved performance thanks to our map setup we
+performance thanks to our map setup we lost zero art in this conversion it took
+lost zero art in this conversion it took me a week to reconstruct everything and
+me a week to reconstruct everything and the game was better off for it if this
+the game was better off for it if this was done on enemy Unknown it would have
+was done on enemy Unknown it would have required emergency surgery on every
+required emergency surgery on every tactical map and it couldn't have been
+tactical map and it couldn't have been done at that point in production without
+done at that point in production without slipping the ship date being able to
+slipping the ship date being able to address this quickly was a good
+address this quickly was a good indication that we had improved our
+indication that we had improved our pipeline significantly now that we were
+pipeline significantly now that we were doing regular full game playthroughs it
+doing regular full game playthroughs it came it became apparent that having all
+came it became apparent that having all tactical missions be random left
+tactical missions be random left something missing an enemy unknown we
+something missing an enemy unknown we had a series of what we called ten poll
+had a series of what we called ten poll missions they advanced the story and
+missions they advanced the story and keep places and usually involve
+keep places and usually involve cinematics we needed something like this
+cinematics we needed something like this for XCOM - but these were big-budget
+for XCOM - but these were big-budget affairs and we were fairly late in
+affairs and we were fairly late in production
+production perhaps we can leverage our procedural
+perhaps we can leverage our procedural system to cut down on the amount of work
+system to cut down on the amount of work it takes to put one of these together
+it takes to put one of these together what if we made the map lead-up
+what if we made the map lead-up procedural but the final destination was
+procedural but the final destination was a static parcel with narrative elements
+a static parcel with narrative elements including cinematics and vo this proved
+including cinematics and vo this proved to be a good hybrid as the levels came
+to be a good hybrid as the levels came together relatively quickly instead of
+together relatively quickly instead of making an entire map for these custom
+making an entire map for these custom narrative missions we created a single
+narrative missions we created a single 32 by 32 parcel for them and poured all
+32 by 32 parcel for them and poured all the effort into that one small space
+the effort into that one small space they went together rather smoothly the
+they went together rather smoothly the images on the screen are a black site
+images on the screen are a black site our first Golden Path mission
+our first Golden Path mission and the sigh gate which was our third
+and the sigh gate which was our third apologies if either of these were
+apologies if either of these were spoilers
+when the final ratio of missions was established this put 1/3 of the missions
+established this put 1/3 of the missions into one of the five plot types people
+into one of the five plot types people playing the game were reporting that
+playing the game were reporting that they were seeing a lot of small-town way
+they were seeing a lot of small-town way more than the other plot types what if
+more than the other plot types what if we added another plot type to the game
+we added another plot type to the game to split the load of guerrilla ops
+to split the load of guerrilla ops missions okay but our other plot types
+missions okay but our other plot types typically have three dozen parcels and
+typically have three dozen parcels and six dozen PCPs to support them and we
+six dozen PCPs to support them and we don't have enough time to build that
+don't have enough time to build that many new maps the obvious question that
+many new maps the obvious question that we hadn't considered to that point was
+we hadn't considered to that point was well do we really need that many maps to
+well do we really need that many maps to sell a new plot type we only had enough
+sell a new plot type we only had enough time in the schedule to build half that
+time in the schedule to build half that amount without crunching we decided to
+amount without crunching we decided to cross our fingers and take a chance than
+cross our fingers and take a chance than the reduced number of maps being enough
+the reduced number of maps being enough slums came in real hot but we got it all
+slums came in real hot but we got it all done in time to be place ested and
+done in time to be place ested and shipped with the title as it turns out
+shipped with the title as it turns out the more plot types you have the less
+the more plot types you have the less content you need for each one there was
+content you need for each one there was enough slums content to support a single
+enough slums content to support a single playthrough without getting any repeat
+playthrough without getting any repeat content only our most hardcore fans
+content only our most hardcore fans noticed that the slums was a lest robots
+noticed that the slums was a lest robots robust F and the others because we built
+robust F and the others because we built the plot type with all the knowledge and
+the plot type with all the knowledge and experience of building the others we
+experience of building the others we were able to take it farther more
+were able to take it farther more quickly and ended up being one of the
+quickly and ended up being one of the most iconic spaces and was featured in a
+most iconic spaces and was featured in a lot of marketing I was happy to have
+lot of marketing I was happy to have been wrong on this one okay so now that
+been wrong on this one okay so now that we've shipped XCOM - how did we do XCOM
+we've shipped XCOM - how did we do XCOM - shipped with around 80 plots a
+- shipped with around 80 plots a comparable number to the 80 tactical
+comparable number to the 80 tactical maps that ship with enemy Unknown
+maps that ship with enemy Unknown however these plots had over 200 parcels
+however these plots had over 200 parcels and 450 pcps to support them while we
+and 450 pcps to support them while we had technically the same number of map
+had technically the same number of map layouts between all the content loading
+layouts between all the content loading procedurally inside of them each layout
+procedurally inside of them each layout could provide a dramatically different
+could provide a dramatically different visual appearance in gameplay experience
+visual appearance in gameplay experience watching people play and talk about the
+watching people play and talk about the game tactical maps were generally well
+game tactical maps were generally well regarded and people were playing through
+regarded and people were playing through the game multiple times without
+the game multiple times without complaining about them which is one of
+complaining about them which is one of our main goals also we were all playing
+our main goals also we were all playing the
+the game over and over internally and I
+game over and over internally and I would occasionally hear from a co-worker
+would occasionally hear from a co-worker about how he had come across some
+about how he had come across some negative content in his third
+negative content in his third playthrough that he had never seen
+playthrough that he had never seen before and marveled at how much stuff we
+before and marveled at how much stuff we had made well that's cool but wait a
+had made well that's cool but wait a second did we make too much stuff how
+second did we make too much stuff how many play throughs are okay before
+many play throughs are okay before content is repeated we underestimated
+content is repeated we underestimated how much we could stretch our content
+how much we could stretch our content and as a result we built more than we
+and as a result we built more than we needed to
+needed to we planned on playing through a campaign
+we planned on playing through a campaign without seeing any individual building
+without seeing any individual building twice with all of the other visual
+twice with all of the other visual variation going on the location of the
+variation going on the location of the building inside the plot the rotation
+building inside the plot the rotation that came in at and the different
+that came in at and the different objectives associated with it it was
+objectives associated with it it was okay to see a building more than once
+okay to see a building more than once sometimes it was cooler to recognize a
+sometimes it was cooler to recognize a building then play through it in a
+building then play through it in a different way the takeaway is that
+different way the takeaway is that future content could involve fewer Maps
+future content could involve fewer Maps which was a valuable lesson for
+which was a valuable lesson for expansion planning
+not long after XCOM 2 was out the door we began planning for an expansion pack
+we began planning for an expansion pack a traditional video game expansion pack
+a traditional video game expansion pack is typically a discrete set of content
+is typically a discrete set of content that lives alongside the base game
+that lives alongside the base game campaign what makes a Firaxis expansion
+campaign what makes a Firaxis expansion pack so exciting is that they often
+pack so exciting is that they often involve revisiting elements of the core
+involve revisiting elements of the core game the XCOM 2 expansion was no
+game the XCOM 2 expansion was no exception to this as a level designer
+exception to this as a level designer I've had very few opportunities to alter
+I've had very few opportunities to alter content posts yet yet it's a fairly
+content posts yet yet it's a fairly common occurrence to look back on old
+common occurrence to look back on old work with the benefit of distance and
+work with the benefit of distance and hindsight and come up with ways to
+hindsight and come up with ways to improve upon it in addition no amount of
+improve upon it in addition no amount of internal testing and evaluation will
+internal testing and evaluation will substitute for the feedback you get from
+substitute for the feedback you get from reading forums and watching twitch post
+reading forums and watching twitch post launch one of what I thought was the
+launch one of what I thought was the more valuable and actionable pieces of
+more valuable and actionable pieces of feedback that bubbled up from all of our
+feedback that bubbled up from all of our post launch playthroughs and from
+post launch playthroughs and from observing the internet was regarding our
+observing the internet was regarding our plot types while the various plot types
+plot types while the various plot types we had created from XCOM 2 were visually
+we had created from XCOM 2 were visually distinct they didn't very much in
+distinct they didn't very much in gameplay this was something that we
+gameplay this was something that we wanted to address in the expansion but
+wanted to address in the expansion but before we could address this we had a
+before we could address this we had a bunch of new missions plan that required
+bunch of new missions plan that required a bunch of new plot types we now had a
+a bunch of new plot types we now had a much better understanding of how
+much better understanding of how everything fit together and we could use
+everything fit together and we could use this knowledge
+this knowledge take the procedural system farther than
+take the procedural system farther than we had on the bass game I'd like to walk
+we had on the bass game I'd like to walk through a few of these now the idea for
+through a few of these now the idea for the abandoned city spawned from a
+the abandoned city spawned from a conversation lamenting the cost of
+conversation lamenting the cost of building interiors building interiors
+building interiors building interiors are the most expensive custom part of an
+are the most expensive custom part of an ex-con map and took the longest time to
+ex-con map and took the longest time to create however the game encourages
+create however the game encourages players to travel via the rooftop in
+players to travel via the rooftop in order to gain the aiming bonuses against
+order to gain the aiming bonuses against units on the ground and fewer chances of
+units on the ground and fewer chances of being surprised by the more open lines
+being surprised by the more open lines of sight on the rooftops I postulated
+of sight on the rooftops I postulated that we could address the problem
+that we could address the problem without changing the gameplay mechanics
+without changing the gameplay mechanics or the art what if we built a city
+or the art what if we built a city without any ruse obviously the
+without any ruse obviously the building's themselves had to have roofs
+building's themselves had to have roofs but they didn't have to be accessible to
+but they didn't have to be accessible to the player will make them go inside by
+the player will make them go inside by going exploring this idea led to the
+going exploring this idea led to the discovery that it was tough to make a
+discovery that it was tough to make a believable dense urban environment out
+believable dense urban environment out of standalone buildings that were all 16
+of standalone buildings that were all 16 by 16 16 by 32 and 32 by 32 the
+by 16 16 by 32 and 32 by 32 the building's felt like they needed to be
+building's felt like they needed to be larger but the best gameplay coming out
+larger but the best gameplay coming out of the plot type was the fighting into
+of the plot type was the fighting into and out of buildings I wanted to
+and out of buildings I wanted to procedural eyes our buildings but all of
+procedural eyes our buildings but all of our visibility and other technical
+our visibility and other technical markup required the entire building to
+markup required the entire building to exist within a single map file we wrote
+exist within a single map file we wrote some tech to allow a single building to
+some tech to allow a single building to span multiple parcels this way we could
+span multiple parcels this way we could have buildings the size and shape that
+have buildings the size and shape that we needed without losing the visual and
+we needed without losing the visual and gameplay variety of the procedural
+gameplay variety of the procedural system armed with our previous
+system armed with our previous conclusion that we could make the system
+conclusion that we could make the system out of fewer maps the entire block
+out of fewer maps the entire block building system is only 16 pieces there
+building system is only 16 pieces there were for each of building endcaps
+were for each of building endcaps corners straights and T intersections
+corners straights and T intersections because each plot had a differently
+because each plot had a differently sized and shaped block building no two
+sized and shaped block building no two buildings feel the same tunnels were
+buildings feel the same tunnels were another attempt to extend the game in a
+another attempt to extend the game in a different direction tunnels is an
+different direction tunnels is an entirely interior plot type with limited
+entirely interior plot type with limited sight lines and negative space the
+sight lines and negative space the visual focus of the tunnels is on the
+visual focus of the tunnels is on the PCPs and not the parcels
+PCPs and not the parcels the parcels are mostly generic
+the parcels are mostly generic mechanical spaces and the art love went
+mechanical spaces and the art love went into the expansive subway tunnels
+into the expansive subway tunnels cathedral-like sewers because they are
+cathedral-like sewers because they are procedural they share a lot of filler
+procedural they share a lot of filler content which save quite a bit on our
+content which save quite a bit on our time the sewer tunnels are wide and open
+time the sewer tunnels are wide and open and have a pit running down the center
+and have a pit running down the center which cannot be entered but is regularly
+which cannot be entered but is regularly crossed by bridges which frequently
+crossed by bridges which frequently became trip points this produces an
+became trip points this produces an interesting difference in combat from
+interesting difference in combat from the limited sight lines and verticality
+the limited sight lines and verticality of the subway tunnels chosen strongholds
+of the subway tunnels chosen strongholds respond by the idea of creating a
+respond by the idea of creating a procedural dungeon crawl in XCOM
+procedural dungeon crawl in XCOM continuing with the idea of creating as
+continuing with the idea of creating as few maps as possible to support this how
+few maps as possible to support this how many unique 16 by 16 rooms do we need to
+many unique 16 by 16 rooms do we need to support three dungeon runs of seven room
+support three dungeon runs of seven room dungeons after a lot of experimentation
+dungeons after a lot of experimentation we ended up creating 15 rooms because
+we ended up creating 15 rooms because the majority of the combat occurred
+the majority of the combat occurred between two rooms randomizing the order
+between two rooms randomizing the order of the rooms appeared had a profound
+of the rooms appeared had a profound effect upon the gameplay this spawned an
+effect upon the gameplay this spawned an interesting conversation with the
+interesting conversation with the environment artist I was paired with on
+environment artist I was paired with on this plot type he was upset that the
+this plot type he was upset that the layout of the base made no logical sense
+layout of the base made no logical sense he was expecting the player to start at
+he was expecting the player to start at the entrance to the base and fight to
+the entrance to the base and fight to the rooms in the order that a guy
+the rooms in the order that a guy building a functioning base would place
+building a functioning base would place them in we could have built that dungeon
+them in we could have built that dungeon procedurally but I expect we would have
+procedurally but I expect we would have had to have make 3 times the number of
+had to have make 3 times the number of rooms in order to have them in a
+rooms in order to have them in a sensible order and still get the
+sensible order and still get the gameplay variation we were looking for
+gameplay variation we were looking for it raises an interesting question how
+it raises an interesting question how much do these phases need to make sense
+much do these phases need to make sense I pointed out all the other shortcuts
+I pointed out all the other shortcuts and liberties we took on the other plot
+and liberties we took on the other plot types for the sake of gameplay has
+types for the sake of gameplay has anyone noticed that there isn't a single
+anyone noticed that there isn't a single bathroom in all of XCOM personally I
+bathroom in all of XCOM personally I think there's a lot of leeway available
+think there's a lot of leeway available in the in-game representation of reality
+in the in-game representation of reality that you have before you actually break
+that you have before you actually break immersion for the player and no one
+immersion for the player and no one playing the game will pay as much
+playing the game will pay as much attention to it as the people who are
+attention to it as the people who are working on the xena form biome was
+working on the xena form biome was originally conceived as its own plot
+originally conceived as its own plot type similar to the idea of having arid
+type similar to the idea of having arid and tundra versions of the wilderness
+and tundra versions of the wilderness just like the other two the procedural
+just like the other two the procedural solution to implementing this was to
+solution to implementing this was to create a fourth swap type for wilderness
+create a fourth swap type for wilderness assets
+assets we made a fourth set of rocks trees
+we made a fourth set of rocks trees ground deco and terrain materials that
+ground deco and terrain materials that simulated alien flora that had been
+simulated alien flora that had been released into the terrestrial wild
+released into the terrestrial wild corrupting it we created new times of
+corrupting it we created new times of day with unusual colors and effects that
+day with unusual colors and effects that would only load with the new biome type
+would only load with the new biome type furthering the visual difference this
+furthering the visual difference this swap could be applied to hundreds of
+swap could be applied to hundreds of maps that we had created for the base
+maps that we had created for the base game in this way the procedural system
+game in this way the procedural system opened up new avenues of development for
+opened up new avenues of development for an expansion as we could alter base game
+an expansion as we could alter base game content without editing any of it the
+content without editing any of it the two screenshots are of the same base
+two screenshots are of the same base game wilderness lake parcel the left is
+game wilderness lake parcel the left is the temperate version as it was
+the temperate version as it was constructed in the editor the right is
+constructed in the editor the right is after going a swamp to this uniform
+after going a swamp to this uniform biome fairly dramatic visual departure
+one of our goals in the expansion was to add gameplay variation to the base game
+add gameplay variation to the base game plot types to match their distinct
+plot types to match their distinct visual variation to solve this we added
+visual variation to solve this we added a unique PCP set to each plot type to
+a unique PCP set to each plot type to help change the way they played there
+help change the way they played there was a focus on adding verticality and
+was a focus on adding verticality and negative space to plots with each plot
+negative space to plots with each plot type getting its own unique take on the
+type getting its own unique take on the theme wilderness and Cheney got coastal
+theme wilderness and Cheney got coastal cliffs city center got canals slums got
+cliffs city center got canals slums got washes retaining walls and modular
+washes retaining walls and modular overpasses and small town got ravines in
+overpasses and small town got ravines in an order in order to incorporate these
+an order in order to incorporate these new items of their appearance would be
+new items of their appearance would be balanced I had to redo all 80 plots in
+balanced I had to redo all 80 plots in the game it only took a couple of weeks
+the game it only took a couple of weeks and its benefits were twofold the plots
+and its benefits were twofold the plots now centered around the gameplay
+now centered around the gameplay defining PCP sets for that plot type
+defining PCP sets for that plot type creating the gameplay variety we were
+creating the gameplay variety we were looking for plots could now be shrunk
+looking for plots could now be shrunk even further due to Mitter
+even further due to Mitter mission iteration that took place after
+mission iteration that took place after the original plots were constructed the
+the original plots were constructed the new plots were as tight as we could get
+new plots were as tight as we could get them and they were playing better than
+them and they were playing better than ever we also wanted to coax players back
+ever we also wanted to coax players back into buildings something we had
+into buildings something we had addressed in the abandoned city but
+addressed in the abandoned city but needed attention every needed attention
+needed attention every needed attention everywhere else building interiors were
+everywhere else building interiors were interfering with our concealment system
+interfering with our concealment system jumping through windows an ex-con
+jumping through windows an ex-con soldiers preferred method of building
+soldiers preferred method of building entry would break concealment a lot of
+entry would break concealment a lot of new our new missions were on
+new our new missions were on timers and players had to spend extra
+timers and players had to spend extra turns moving to an opening doors in
+turns moving to an opening doors in order to make a concealed squad go
+order to make a concealed squad go through the interior we gain the ability
+through the interior we gain the ability to set the starting state of doors and
+to set the starting state of doors and took a pass to the base game buildings
+took a pass to the base game buildings setting a bunch of them to start open
+setting a bunch of them to start open this significantly improved the
+this significantly improved the efficiency of concealed movement and
+efficiency of concealed movement and building interiors now that you've heard
+building interiors now that you've heard where we've taken our procedural system
+where we've taken our procedural system it's time to take a step back and look
+it's time to take a step back and look at the advantages and disadvantages of
+at the advantages and disadvantages of switching to using this system
+switching to using this system I think the talk thus far has
+I think the talk thus far has demonstrated the specifics of most of
+demonstrated the specifics of most of the advantages it's also worth noting
+the advantages it's also worth noting the benefit that the procedural system
+the benefit that the procedural system had for modders the long war two guys
+had for modders the long war two guys our flagship total conversion mod were
+our flagship total conversion mod were able to rearrange quite a few things to
+able to rearrange quite a few things to suit their own ends without creating
+suit their own ends without creating very many new parcels or PCPs
+very many new parcels or PCPs they mostly focused on creating new plat
+they mostly focused on creating new plat layouts to suit the mission types they
+layouts to suit the mission types they had created it's worth going through
+had created it's worth going through some of the disadvantages as well the
+some of the disadvantages as well the environment artists almost all preferred
+environment artists almost all preferred making static Maps they felt like they
+making static Maps they felt like they lost a lot of control over the
+lost a lot of control over the appearance of a seen through the
+appearance of a seen through the procedural system and they were right
+procedural system and they were right for access prioritizes gameplay over
+for access prioritizes gameplay over visuals but this is not true from any
+visuals but this is not true from any studios and it may be a hard sell for a
+studios and it may be a hard sell for a more artist centric environment
+more artist centric environment cinematics were more difficult to create
+cinematics were more difficult to create in a procedural environment a fun
+in a procedural environment a fun conversation to have with a cinematic
+conversation to have with a cinematic artist is to tell them that the framing
+artist is to tell them that the framing and background other shop will change
+and background other shop will change every time they watch it we also never
+every time they watch it we also never developed the technology to write out a
+developed the technology to write out a procedurally generated map as a static
+procedurally generated map as a static map so cinematic artists often had no
+map so cinematic artists often had no idea how much space they had to work
+idea how much space they had to work with it was hard to fit a lot of visual
+with it was hard to fit a lot of visual storytelling into the smaller map chunks
+storytelling into the smaller map chunks this was a staple of the enemy Unknown
+this was a staple of the enemy Unknown Maps and we lost it to some degree with
+Maps and we lost it to some degree with the switch this is not necessarily a
+the switch this is not necessarily a disadvantage of going procedural it was
+disadvantage of going procedural it was just one that we ended up with as a
+just one that we ended up with as a result of choosing to use smaller map
+result of choosing to use smaller map sizes the initial idea behind taking
+sizes the initial idea behind taking XCOM procedural was it's better because
+XCOM procedural was it's better because it's different every time for access has
+it's different every time for access has a long history of procedural content
+a long history of procedural content development with the civilization series
+development with the civilization series but that doesn't necessarily translate
+but that doesn't necessarily translate into every genre outside of scenarios
+into every genre outside of scenarios civilization doesn't even have level
+civilization doesn't even have level designers if I had to approach a
+designers if I had to approach a procedural level design system again I
+procedural level design system again I would be more careful with what I was
+would be more careful with what I was willing to leave to chance there's a lot
+willing to leave to chance there's a lot to be said for handcrafted content and
+to be said for handcrafted content and there's something to be lost for
+there's something to be lost for abandoning it entirely the question that
+abandoning it entirely the question that comes out of it is how procedural does
+comes out of it is how procedural does your game need to be there's a sliding
+your game need to be there's a sliding scale between replayability and
+scale between replayability and character more a smaller match provide
+character more a smaller match provide the most variety but can lack soul fewer
+the most variety but can lack soul fewer larger Maps allows for more visual
+larger Maps allows for more visual storytelling at the expense of
+storytelling at the expense of replayability where do you want to land
+replayability where do you want to land on the spectrum that's all I got
+so it looks like we have a few minutes for questions if anyone has one wants to
+for questions if anyone has one wants to come up to the mic
+come up to the mic hi I'm wondering of the admission
+hi I'm wondering of the admission contents of the replacement where the
+contents of the replacement where the objective are was working with using
+objective are was working with using only procedural generated map was it
+only procedural generated map was it metadata in the platter first of
+metadata in the platter first of themself or there was something that the
+themself or there was something that the level designer was adding afterwards all
+level designer was adding afterwards all of the mission specific metadata was
+of the mission specific metadata was added to all of the parcels and PCPs
+added to all of the parcels and PCPs each map new what's missions it was
+each map new what's missions it was allowed for and that was added to the
+allowed for and that was added to the definition and so that was covering all
+definition and so that was covering all all the potential variation of valid
+all the potential variation of valid mission in in in the map okay
+mission in in in the map okay there was a lot of markup perfect banks
+there was a lot of markup perfect banks were here how did you deal with more
+were here how did you deal with more global issues such as lighting and
+global issues such as lighting and performance well one of the downsides of
+performance well one of the downsides of switching to the procedural system was
+switching to the procedural system was that in enemy Unknown we were using
+that in enemy Unknown we were using pre-rendered lighting that was baked out
+pre-rendered lighting that was baked out into the maps but that was no longer an
+into the maps but that was no longer an option with the procedural system so we
+option with the procedural system so we switched to a deferred system which you
+switched to a deferred system which you know have the lighting rendering in real
+know have the lighting rendering in real time and that didn't look quite as good
+time and that didn't look quite as good and it was more expensive but the
+and it was more expensive but the variety that we got from being able to
+variety that we got from being able to load any map with a different time of
+load any map with a different time of day I think more than made up for it
+day I think more than made up for it over here did you support tools for say
+over here did you support tools for say I'm a level designer and for this one
+I'm a level designer and for this one story mission I want guys to spawn this
+story mission I want guys to spawn this way and run around the right side of
+way and run around the right side of this building did you support that kind
+this building did you support that kind of specific scripting you mean for
+of specific scripting you mean for enemies yeah for enemies or allies we
+enemies yeah for enemies or allies we didn't do a lot of direct control over
+didn't do a lot of direct control over enemies via scripting most of that was
+enemies via scripting most of that was handled by the system we could call for
+handled by the system we could call for additional enemies but the game decided
+additional enemies but the game decided on the on-the-fly where it wanted to put
+on the on-the-fly where it wanted to put them based on them where the player was
+them based on them where the player was gotcha thanks all right well I think
+gotcha thanks all right well I think we're out of questions thanks for coming
+we're out of questions thanks for coming you

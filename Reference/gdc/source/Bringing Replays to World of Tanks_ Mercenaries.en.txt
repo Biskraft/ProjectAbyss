@@ -1,0 +1,1030 @@
+[Music] welcome to virtual GDC and my talk
+welcome to virtual GDC and my talk bringing replays to World of Tanks
+bringing replays to World of Tanks mercenaries this talk will discuss what
+mercenaries this talk will discuss what it took to get a full replay system
+it took to get a full replay system working on World of Tanks mercenaries on
+working on World of Tanks mercenaries on the consoles and how we replicate our
+the consoles and how we replicate our full match on a live client
+full match on a live client I'm Andrew cava lead software engineer
+I'm Andrew cava lead software engineer wargaming Sydney and I was part of the
+wargaming Sydney and I was part of the team that developed this system along
+team that developed this system along with our colleagues in wargaming Chicago
+with our colleagues in wargaming Chicago Baltimore who developed World of Tanks
+Baltimore who developed World of Tanks mercenaries so what we're going to go
+mercenaries so what we're going to go over today is a grounding of how we
+over today is a grounding of how we record how we make sure our recordings
+record how we make sure our recordings are ready to play on the client and then
+are ready to play on the client and then the majority of the talk will be on how
+the majority of the talk will be on how all of the challenges we had in getting
+all of the challenges we had in getting the replays to actually function on the
+the replays to actually function on the client and then we'll do a quick
+client and then we'll do a quick overview of how replays will help you in
+overview of how replays will help you in development and the future challenges
+development and the future challenges that we decided we weren't going to do
+that we decided we weren't going to do due to the complexity so a World of
+due to the complexity so a World of Tanks mercenaries is a tactical arena
+Tanks mercenaries is a tactical arena tanks combat game on the consoles the
+tanks combat game on the consoles the console version of World of Tanks on PC
+console version of World of Tanks on PC and it been live for approximately four
+and it been live for approximately four years by the time we decided to
+years by the time we decided to integrate integrate the replays feature
+integrate integrate the replays feature and this meant a build up of a lot of
+and this meant a build up of a lot of assumptions and workarounds in the code
+assumptions and workarounds in the code that meant replays really challenged
+that meant replays really challenged them and broke them the integration took
+them and broke them the integration took about three and a half years three and a
+about three and a half years three and a half months and sorry for a three-person
+half months and sorry for a three-person team and it was mostly an engine we
+team and it was mostly an engine we hadn't actually worked with before so I
+hadn't actually worked with before so I hope that this talk will really help to
+hope that this talk will really help to allow you to get do that faster and move
+allow you to get do that faster and move forward quicker so what is a replay our
+forward quicker so what is a replay our replay is more than just a video
+replay is more than just a video recording
+recording it's where the players can watch that
+it's where the players can watch that sick flip from that where they jumped
+sick flip from that where they jumped off that cliff at any time at any point
+off that cliff at any time at any point it's not just this but also everyone
+it's not just this but also everyone else's so any sick flips or multi kills
+else's so any sick flips or multi kills that happen during the game they can
+that happen during the game they can watch anytime
+watch anytime anywhere from any perspective and this
+anywhere from any perspective and this is really distinct from the consoles
+is really distinct from the consoles built-in recording functionality in that
+built-in recording functionality in that it allows you to view from everywhere
+it allows you to view from everywhere it's not just what you did previously
+it's not just what you did previously but what everyone did everywhere so why
+but what everyone did everywhere so why do we want replays well they're great
+do we want replays well they're great for reminiscing about the past people
+for reminiscing about the past people love to win see how they dominated a
+love to win see how they dominated a match and its really good for driving
+match and its really good for driving engagement outside of the gameplay loop
+engagement outside of the gameplay loop so getting videos up to YouTube or
+so getting videos up to YouTube or twitch and also eSports is another
+twitch and also eSports is another really big area where replays can really
+really big area where replays can really help in driving that player engagement
+help in driving that player engagement and if none of that is of importance to
+and if none of that is of importance to you then in just the in-house
+you then in just the in-house development testing that can really help
+development testing that can really help from replays is worth it alone so before
+from replays is worth it alone so before we get into integrating all this cool
+we get into integrating all this cool stuff into our client let's get a bit of
+stuff into our client let's get a bit of understanding of how we record the
+understanding of how we record the replays and how we play them back and
+replays and how we play them back and distribute them so there are two types
+distribute them so there are two types of recording you can do
+of recording you can do there's server side which is what we did
+there's server side which is what we did which is where we have a single
+which is where we have a single recording per match recorder on the
+recording per match recorder on the server that has the entire world saved
+server that has the entire world saved into the replay this of course lacks a
+into the replay this of course lacks a bit of the player context because you
+bit of the player context because you don't understand what exactly what the
+don't understand what exactly what the player was doing this is where
+player was doing this is where client-side replays come in and they
+client-side replays come in and they know the understanding of the full
+know the understanding of the full player context but there's no
+player context but there's no understanding what happens in the wider
+understanding what happens in the wider world a well designed network game won't
+world a well designed network game won't have the greater understanding what's
+have the greater understanding what's happening outside of what the player can
+happening outside of what the player can actually view so we want server side
+actually view so we want server side recordings and that's primarily what
+recordings and that's primarily what were we talking about here but a lot of
+were we talking about here but a lot of the things we discuss actually work with
+the things we discuss actually work with playing back on client side replays as
+playing back on client side replays as well so when we do the recording we have
+well so when we do the recording we have a very common capture technique in that
+a very common capture technique in that we grab the properties and the events
+we grab the properties and the events before we send them from the server to
+before we send them from the server to the client this is opposed to capturing
+the client this is opposed to capturing data as it comes into the server and
+data as it comes into the server and using determinism to play it back
+using determinism to play it back primarily due to the fact the World of
+primarily due to the fact the World of Tanks is not deterministic
+Tanks is not deterministic and it also means that we can create
+and it also means that we can create better debugging tools in order to read
+better debugging tools in order to read those sort of replays from that
+those sort of replays from that perspective I want going to really into
+perspective I want going to really into the how we record because it's a rather
+the how we record because it's a rather common technique so if you need more
+common technique so if you need more information there are GDC talks on this
+information there are GDC talks on this already or just look up how unreal does
+already or just look up how unreal does its recording because this techniques
+its recording because this techniques very similar for the rest of it the
+very similar for the rest of it the recording is backed up to an extra
+recording is backed up to an extra service so our recordings are always
+service so our recordings are always fairly stable and once the match is done
+fairly stable and once the match is done we upload it to a Amazon like CDN using
+we upload it to a Amazon like CDN using CPH service and once that's completed we
+CPH service and once that's completed we add native to our catalogue so therefore
+add native to our catalogue so therefore it's searchable by all the players once
+it's searchable by all the players once the players want to have to find it they
+the players want to have to find it they send an elastic search query through the
+send an elastic search query through the server to the catalog the catalogue then
+server to the catalog the catalogue then returns the link to the location on the
+returns the link to the location on the CDN and the players are able to download
+CDN and the players are able to download that straight to their machines playback
+that straight to their machines playback is the simple part all we're doing is
+is the simple part all we're doing is creating a fax server connection to the
+creating a fax server connection to the replay file so the replay file just
+replay file so the replay file just sends the messages is read and sends a
+sends the messages is read and sends a message is through to the real game and
+message is through to the real game and the game doesn't actually really
+the game doesn't actually really understand that a replay is playing for
+understand that a replay is playing for all its concerned it's actually playing
+all its concerned it's actually playing back live messages from a server this
+back live messages from a server this means that we're not having to affect
+means that we're not having to affect the client very much at all and
+therefore we get the playback almost for free but that doesn't solve all of the
+free but that doesn't solve all of the problems this is where all of the
+problems this is where all of the challenges we had to wherever come came
+challenges we had to wherever come came in and that's getting the client to work
+in and that's getting the client to work with the replays playing back in a whole
+with the replays playing back in a whole bunch of different circumstances based
+bunch of different circumstances based on assumptions that no longer hold true
+on assumptions that no longer hold true so I hope that if you have a game then
+so I hope that if you have a game then this will be a sort of cheat sheet that
+this will be a sort of cheat sheet that allows you to know exactly what to do
+allows you to know exactly what to do should you encounter a problem and if
+should you encounter a problem and if you're just starting out then this is
+you're just starting out then this is really advice on how to defensively code
+really advice on how to defensively code your systems so that you can have a much
+your systems so that you can have a much smoother integration so the first point
+smoother integration so the first point I'll make is our goal is to edit the
+I'll make is our goal is to edit the client as little as possible
+client as little as possible so the replays aren't a specialized
+so the replays aren't a specialized thing that weren't always hold true
+thing that weren't always hold true rules we'll find out but in general
+rules we'll find out but in general we're trying to make it so that replays
+we're trying to make it so that replays aren't something the client knows about
+aren't something the client knows about it's just something that happens so what
+it's just something that happens so what did we support while we supported being
+did we support while we supported being able to access all of the replays by
+able to access all of the replays by browsing for them such as a Netflix
+browsing for them such as a Netflix style system speeding up and slowing
+style system speeding up and slowing down time as well as jumping forwards
+down time as well as jumping forwards and backwards through time we have our
+and backwards through time we have our free cameras as well as our cameras that
+free cameras as well as our cameras that attach around the player and we also
+attach around the player and we also support being able to see through the
+support being able to see through the players vision so we do have partial
+players vision so we do have partial player context there on our server side
+player context there on our server side replays we also have a highlight system
+replays we also have a highlight system and entire feature parity across all of
+and entire feature parity across all of our supported consoles so let's get some
+our supported consoles so let's get some definitions down first time flow is the
+definitions down first time flow is the playback rate at which we're playing the
+playback rate at which we're playing the replay so we go from about 10% speed up
+replay so we go from about 10% speed up to about 800 percent speed and that's
+to about 800 percent speed and that's important because having limits is
+important because having limits is really important if you go too fast as
+really important if you go too fast as we found going beyond 800 percent is
+we found going beyond 800 percent is that you set up stuff like your physic
+that you set up stuff like your physic systems will break when you do that the
+systems will break when you do that the main thing that this requires is that
+main thing that this requires is that your update loops have variable deltas
+your update loops have variable deltas so that you can change the flow of time
+so that you can change the flow of time playing to your systems any assumptions
+playing to your systems any assumptions built around a certain frame rate will
+built around a certain frame rate will not work properly once you scale time
+not work properly once you scale time time jumping on the other hand is
+time jumping on the other hand is ability to go directly from time at a
+ability to go directly from time at a time be without playing without showing
+time be without playing without showing the intervening frames so jumping
+the intervening frames so jumping forward here this is where most problems
+forward here this is where most problems occur the flow is fine when you're just
+occur the flow is fine when you're just got your update Delta's going but
+got your update Delta's going but jumping through time as a concept that's
+jumping through time as a concept that's not really something that's totally
+not really something that's totally supported if you have a joining progress
+supported if you have a joining progress mechanic the ideas are similar but you
+mechanic the ideas are similar but you will still probably mostly encounter
+will still probably mostly encounter your issues around jumping through time
+your issues around jumping through time so let's get into it our first problem
+so let's get into it our first problem straight off the bat we had the replays
+straight off the bat we had the replays playing back we started playing one
+playing back we started playing one thought it was good we paused we hit the
+thought it was good we paused we hit the menu
+menu and we couldn't do anything this is down
+and we couldn't do anything this is down to the fact that the pause was affecting
+to the fact that the pause was affecting the entire game the from the moving
+the entire game the from the moving through the menu system to everything
+through the menu system to everything else there was no concept of a split so
+else there was no concept of a split so what we needed to do was to split up how
+what we needed to do was to split up how our updates were affected so any so
+our updates were affected so any so anything for gameplay was modified by
+anything for gameplay was modified by our playback rate Delta things like
+our playback rate Delta things like animations particles physics all of they
+animations particles physics all of they all needed to be able to be slowed down
+all needed to be able to be slowed down but things like our UI and in the system
+but things like our UI and in the system timers first things like resource
+timers first things like resource loading or spawning or wanted to flow at
+loading or spawning or wanted to flow at the original rate so the idea is to
+the original rate so the idea is to split between gameplay and systems and
+split between gameplay and systems and this will get around that problem
+the next problem was entities sliding and this is something that happens when
+and this is something that happens when you really slow down your game to very
+you really slow down your game to very slow speeds so what's happening here is
+slow speeds so what's happening here is the tank is sliding straight after we
+the tank is sliding straight after we come out of a jump because our network
+come out of a jump because our network mitigation lag code was always forward
+mitigation lag code was always forward predicting so as soon as that came out
+predicting so as soon as that came out of the jump there was no extra frames so
+of the jump there was no extra frames so it was just lighting the way it was
+it was just lighting the way it was going before we started the jump and a
+going before we started the jump and a 10% speed this is especially exacerbated
+10% speed this is especially exacerbated due to the fact we're only running a 10
+due to the fact we're only running a 10 Hertz server at 10% speed which means
+Hertz server at 10% speed which means we're only getting movement updates
+we're only getting movement updates every second so that's illustrated here
+every second so that's illustrated here so the top one is how the real game
+so the top one is how the real game works in World of Tanks we have the
+works in World of Tanks we have the benefit of a slow game and that means we
+benefit of a slow game and that means we can sit slightly behind with a natural
+can sit slightly behind with a natural idea of built-in lag so we're always two
+idea of built-in lag so we're always two point two seconds behind where the
+point two seconds behind where the server would assume it is and we can
+server would assume it is and we can move towards that ensuring a specific
+move towards that ensuring a specific flow that follows exactly where we
+flow that follows exactly where we should in a replay we don't have those
+should in a replay we don't have those extra two frame buffer there we're
+extra two frame buffer there we're playing at the exact same position as
+playing at the exact same position as we're reading the messages from so it's
+we're reading the messages from so it's always forward interpolating and as you
+always forward interpolating and as you can see by the yellow line it's always
+can see by the yellow line it's always slightly off from where it
+slightly off from where it would be now react attempting this would
+would be now react attempting this would have been quite a significant overhaul
+have been quite a significant overhaul and we have our idea that we don't want
+and we have our idea that we don't want to touch the client so much to support
+to touch the client so much to support replays so instead we had to come up
+replays so instead we had to come up with a new solution and that was to
+with a new solution and that was to effectively mimic what the real world
+effectively mimic what the real world does so when we're reading from our tick
+does so when we're reading from our tick frames from the file we don't just take
+frames from the file we don't just take the movement from the frame we're
+the movement from the frame we're processing we look two frames ahead and
+processing we look two frames ahead and we grab the movement from that and then
+we grab the movement from that and then add that in to the movement filters this
+add that in to the movement filters this allows for the interpolation to have
+allows for the interpolation to have that information to look forward and it
+that information to look forward and it always flows through correctly if you
+always flows through correctly if you have a game where you're always running
+have a game where you're always running at the bleeding edge of your time and
+at the bleeding edge of your time and you're relying on forward error
+you're relying on forward error prediction or interpolation you can
+prediction or interpolation you can still use this technique to make sure it
+still use this technique to make sure it smooths out and you don't have any
+smooths out and you don't have any differences between what the service saw
+differences between what the service saw and what the replay is actually playing
+and what the replay is actually playing back so our next one is a jump backwards
+back so our next one is a jump backwards so a jump forwards is relatively simple
+so a jump forwards is relatively simple we just play the messages between time a
+we just play the messages between time a and time B and that's what we get and we
+and time B and that's what we get and we get up to exactly where we need to be we
+get up to exactly where we need to be we can't really go from time B to time a
+can't really go from time B to time a because we can't roll back what we've
+because we can't roll back what we've done so the solution here is more to
+done so the solution here is more to make the jump backwards just to jump
+make the jump backwards just to jump forwards but we do any entire world
+forwards but we do any entire world reset therefore shifted the issue from
+reset therefore shifted the issue from being able to do it to the amount of
+being able to do it to the amount of time it takes to do it
+time it takes to do it so reloading the world naively if we
+so reloading the world naively if we just completely reload means that we're
+just completely reload means that we're going to have to pay the cost of a full
+going to have to pay the cost of a full reload and that's something we didn't
+reload and that's something we didn't want to have to do so we had originally
+want to have to do so we had originally had a 30-second load and we got that
+had a 30-second load and we got that down to about four seconds with some
+down to about four seconds with some mitigation steps those beings things
+mitigation steps those beings things like making sure we kept all of our
+like making sure we kept all of our assets around between a reload so
+assets around between a reload so specializing that so any Maps textures
+specializing that so any Maps textures anything is kept in memory it's not
+anything is kept in memory it's not destroyed like the usual path would and
+destroyed like the usual path would and also we made sure that as our world can
+also we made sure that as our world can be destroyed and
+be destroyed and things can change and State is different
+things can change and State is different we made sure that when we loaded the
+we made sure that when we loaded the world we kept a vanilla copy just stored
+world we kept a vanilla copy just stored off to the side ready to go so that when
+off to the side ready to go so that when we did a reset all we had to do was a
+we did a reset all we had to do was a simple dump of that vanilla world over
+simple dump of that vanilla world over the top of the modified world and we're
+the top of the modified world and we're immediately back to the starting state
+immediately back to the starting state we needed so this cut down our low
+we needed so this cut down our low reload times so relatively very quickly
+reload times so relatively very quickly we'd have to make sure that if you have
+we'd have to make sure that if you have any caching going on such as putting
+any caching going on such as putting decals in your world or animations
+decals in your world or animations playing or anything else
+playing or anything else that effects well visually that these
+that effects well visually that these things are cleared otherwise you come
+things are cleared otherwise you come back from your reset and your decals are
+back from your reset and your decals are still all over the ground of your map so
+once we've got our reload properly optimized we need to do the four jump
+optimized we need to do the four jump and optimize that so what we can see
+and optimize that so what we can see here is off to the left of the graph
+here is off to the left of the graph there is a massive frame spike and we
+there is a massive frame spike and we see that that directly correlates to the
+see that that directly correlates to the amount of messages we're processing
+amount of messages we're processing because during a time jump for words we
+because during a time jump for words we are processing all of those messages
+are processing all of those messages that are in between the two times and if
+that are in between the two times and if this is a jump backwards from the end of
+this is a jump backwards from the end of the replay that's a lot of messages that
+the replay that's a lot of messages that we have to process so in order to get
+we have to process so in order to get around this we want to limit the amount
+around this we want to limit the amount of messages we have to actually process
+of messages we have to actually process during a jump so what we did was to
+during a jump so what we did was to break up the messages into special
+break up the messages into special categories the first one was dropping
+categories the first one was dropping all so these were four messages that we
+all so these were four messages that we didn't really need to process anything
+didn't really need to process anything that didn't have a lasting impact on the
+that didn't have a lasting impact on the game such as any shot traces or flashy
+game such as any shot traces or flashy particles that are only there for a
+particles that are only there for a couple seconds keep last is more for
+couple seconds keep last is more for events that have discrete property
+events that have discrete property updates things like movement or health
+updates things like movement or health updates that are sent to the client as
+updates that are sent to the client as absolute numbers the final one is the
+absolute numbers the final one is the unfortunate category of always and their
+unfortunate category of always and their messages we always have to play any of
+messages we always have to play any of updates that happen via Delta's or any
+updates that happen via Delta's or any events that required future events we'll
+events that required future events we'll need to reference are things that will
+need to reference are things that will have to always process so in order to
+have to always process so in order to illustrate that
+illustrate that here we have an example of a whole bunch
+here we have an example of a whole bunch of messages over a couple of frames so
+of messages over a couple of frames so we see that with this we can drop any of
+we see that with this we can drop any of the shot fired messages they're not
+the shot fired messages they're not important to play so that gets rid of a
+important to play so that gets rid of a few messages then we get to our key
+few messages then we get to our key blasts which is where a lot of our
+blasts which is where a lot of our benefits come from and this is we see
+benefits come from and this is we see the bottom few messages both position
+the bottom few messages both position updates and asset health so as their
+updates and asset health so as their absolute we don't have to play any of
+absolute we don't have to play any of the previous messages and with all those
+the previous messages and with all those gone we get to our always so anything
+gone we get to our always so anything that's adding score is a delta score
+that's adding score is a delta score time so we have to play that or setting
+time so we have to play that or setting various you know the light related flag
+various you know the light related flag state we have to play that but we see
+state we have to play that but we see we've gone from about nineteen to around
+we've gone from about nineteen to around six messages so it's a significant
+six messages so it's a significant increase in performance because we'd
+increase in performance because we'd have to process all of those messages
+have to process all of those messages unfortunately this is the level of
+unfortunately this is the level of optimization we had to stop a World of
+optimization we had to stop a World of Tanks due to existing architectural
+Tanks due to existing architectural decisions but there are more you can do
+decisions but there are more you can do checkpointing is probably the best way
+checkpointing is probably the best way of optimizing this so that's copying
+of optimizing this so that's copying your state current state of the world
+your state current state of the world into a certain location and being able
+into a certain location and being able to immediately dump that so in between
+to immediately dump that so in between our world reset we would dump the world
+our world reset we would dump the world we will take the world state put that
+we will take the world state put that there then we would take the checkpoint
+there then we would take the checkpoint State overlay that and then just have to
+State overlay that and then just have to play the small amount of frames between
+play the small amount of frames between where the checkpoint was and where we
+where the checkpoint was and where we actually want to be so that frame spike
+actually want to be so that frame spike is more consistent because it's directly
+is more consistent because it's directly related to how big a gap there is
+related to how big a gap there is between your checkpoints which means you
+between your checkpoints which means you if you have excessively long hour-long
+if you have excessively long hour-long replays you're not getting massive
+replays you're not getting massive spikes because your checkpoints could be
+spikes because your checkpoints could be approximately every minute and therefore
+approximately every minute and therefore it's more of constant in order to make
+it's more of constant in order to make full use of checkpoints we have to make
+full use of checkpoints we have to make sure that our worldís state is set up in
+sure that our worldís state is set up in a certain way so there are two methods
+a certain way so there are two methods of sending stuff from the client server
+of sending stuff from the client server to the client and it's either by
+to the client and it's either by replicating properties or by sending
+replicating properties or by sending events so in order to support
+events so in order to support checkpointing better making sure that
+checkpointing better making sure that your
+your State on your server is representative
+State on your server is representative of what's on your client means you can
+of what's on your client means you can actually save your state properly so
+actually save your state properly so something like decals is not something
+something like decals is not something that's traditionally you would need to
+that's traditionally you would need to store on a server because it doesn't
+store on a server because it doesn't really need to know about it
+really need to know about it but in the case of replays it is better
+but in the case of replays it is better to have them actually just listed on the
+to have them actually just listed on the server so that we can store that out as
+server so that we can store that out as a checkpoint at some point and therefore
+a checkpoint at some point and therefore recreate the decals immediately upon
+recreate the decals immediately upon just as a memory copy rather than having
+just as a memory copy rather than having to play back every message of an ad
+to play back every message of an ad decal every time we want to add one and
+decal every time we want to add one and therefore creating more messages and a
+therefore creating more messages and a larger spike when we do jump forwards so
+larger spike when we do jump forwards so a next problem is how we can see players
+a next problem is how we can see players jumping forward as you can see in this
+jumping forward as you can see in this video we jump forward a bunch of times
+video we jump forward a bunch of times we zoom out and then all the trees
+we zoom out and then all the trees collapse I mean it's really cool in a
+collapse I mean it's really cool in a samurai movie when someone sneaks
+samurai movie when someone sneaks through everyone and then everyone
+through everyone and then everyone collapses at the same time but in a
+collapses at the same time but in a replay that's not entirely accurate the
+replay that's not entirely accurate the problem here is that our tree system was
+problem here is that our tree system was not designed to operate
+not designed to operate midway through and this is not just
+midway through and this is not just specific to that the animations your
+specific to that the animations your effects like shot particles anything on
+effects like shot particles anything on your HUD if you have timers that show
+your HUD if you have timers that show reloads or cooldown affects our
+reloads or cooldown affects our destruction and even initialization such
+destruction and even initialization such as spawning in resources all of these
+as spawning in resources all of these are not can sometimes not be designed to
+are not can sometimes not be designed to be able to start midway through the
+be able to start midway through the redesign to start and then they take
+redesign to start and then they take control of their own timers or they're
+control of their own timers or they're in one state or another so what we did
+in one state or another so what we did to fix this was to make sure that each
+to fix this was to make sure that each of these systems understood when they
+of these systems understood when they started so when the event happens we
+started so when the event happens we store the time that we currently started
+store the time that we currently started which means we have to get the time that
+which means we have to get the time that the replay is currently processing not
+the replay is currently processing not necessarily the wall clock which can
+necessarily the wall clock which can either be the start or the end of the
+either be the start or the end of the jump then we hit the end of the jump we
+jump then we hit the end of the jump we make sure that we fire off an event to
+make sure that we fire off an event to each of these managers of these systems
+each of these managers of these systems so that we can adjust the duration of
+so that we can adjust the duration of that event based on the start time and
+that event based on the start time and therefore set the tree to where it would
+therefore set the tree to where it would be as we jumped out so trees can start
+be as we jumped out so trees can start falling over or they can start
+falling over or they can start completely on the ground already so this
+completely on the ground already so this solves that problem of not being able to
+solves that problem of not being able to of watching everything for happen at
+of watching everything for happen at once related to that is having things
+once related to that is having things happen in the wrong position so here we
+happen in the wrong position so here we see a time jump and we see the
+see a time jump and we see the explosions start back where the tank was
+explosions start back where the tank was not where the tank actually is being
+not where the tank actually is being destroyed this is because these paddles
+destroyed this is because these paddles are meant to attach to the tank but they
+are meant to attach to the tank but they don't know where the tank is during the
+don't know where the tank is during the time jump so similar how we needed to
+time jump so similar how we needed to get the time the replay was currently
+get the time the replay was currently processing we also need to get the
+processing we also need to get the position of where the entity is as the
+position of where the entity is as the replay is jumping through so this is
+replay is jumping through so this is where we have a bit of a deviation from
+where we have a bit of a deviation from the rule of not modifying the client
+the rule of not modifying the client specific for replays so what we need to
+specific for replays so what we need to do here is we need to store where the
+do here is we need to store where the entities are just off to the side not
+entities are just off to the side not necessarily in our actual interpolation
+necessarily in our actual interpolation code and when we want a reference or
+code and when we want a reference or attach to something at a certain
+attach to something at a certain position we pull from there during a
+position we pull from there during a jump only we could process all of the
+jump only we could process all of the move messages but that's going to
+move messages but that's going to increase a spike because it makes the
+increase a spike because it makes the position and always message that has to
+position and always message that has to always play so this is a trade-off we're
+always play so this is a trade-off we're having to modify the client but the
+having to modify the client but the benefits of being able to do that and
+benefits of being able to do that and not having to play all of those move
+not having to play all of those move messages significantly improves the
+messages significantly improves the performance and then all the particles
+performance and then all the particles and everything that happens at is meant
+and everything that happens at is meant to happen at a certain point can
+to happen at a certain point can actually happen at that certain point
+so when it comes to architecture when we're playing a real game a client
+we're playing a real game a client really only needs to know about its own
+really only needs to know about its own player controller it doesn't need to
+player controller it doesn't need to know about other player controllers and
+know about other player controllers and therefore unless you are doing a
+therefore unless you are doing a split-screen game in which case this is
+split-screen game in which case this is probably not going to be a problem for
+probably not going to be a problem for you for us we had a singleton that
+you for us we had a singleton that connected to the server as the authority
+connected to the server as the authority of controlling avatar when we play a
+of controlling avatar when we play a replay that doesn't hold up anymore as
+replay that doesn't hold up anymore as your player controller is suddenly all
+your player controller is suddenly all of the play controllers for every player
+of the play controllers for every player in the game and as a single turn every
+in the game and as a single turn every time we tried to create a new play
+time we tried to create a new play controller we would override our
+controller we would override our existing one and things would not work
+existing one and things would not work properly because it had no idea who it
+properly because it had no idea who it was meant to be in control of for us
+was meant to be in control of for us rewriting this would have been a massive
+rewriting this would have been a massive architectural undertaking so we had to
+architectural undertaking so we had to find a way around it so what we did was
+find a way around it so what we did was to take advantage of an existing reserve
+to take advantage of an existing reserve a mode so a World of Tanks has the
+a mode so a World of Tanks has the ability to view and observe a match via
+ability to view and observe a match via an external observer and we leverage
+an external observer and we leverage that functionality to do that here so
+that functionality to do that here so during the recording of the replay right
+during the recording of the replay right at the beginning we attack we sill
+at the beginning we attack we sill insert a fake player and this player
+insert a fake player and this player represents that observer even though
+represents that observer even though they weren't actually playing in the
+they weren't actually playing in the match as far as the replay concerned
+match as far as the replay concerned they were so when we're playing it back
+they were so when we're playing it back on the client it just creates a player
+on the client it just creates a player without any knowledge that player didn't
+without any knowledge that player didn't actually exist in the game and then
+actually exist in the game and then follows our existing code paths in order
+follows our existing code paths in order to make use of this observer
+to make use of this observer functionality so if you have something
+functionality so if you have something like this in your game you can easily
+like this in your game you can easily get around this can issue by inserting a
+get around this can issue by inserting a fake player into the game and therefore
+fake player into the game and therefore you don't have to touch a replay code at
+you don't have to touch a replay code at all this also the concept of this
+all this also the concept of this recording only message also helps with
+recording only message also helps with other issues as well for instance when
+other issues as well for instance when we're recording our shot events this
+we're recording our shot events this could happen multiple times so as you
+could happen multiple times so as you can see here every time we send out a
+can see here every time we send out a shot to one of our clients we have to
+shot to one of our clients we have to record it to a replay so if three people
+record it to a replay so if three people see a shot then we recall
+see a shot then we recall that message three times into the replay
+that message three times into the replay to one or even zero so we can get to the
+to one or even zero so we can get to the point where we don't actually record
+point where we don't actually record this into the replay and this isn't
+this into the replay and this isn't great because especially we were thirty
+great because especially we were thirty play again you're recording the same
+play again you're recording the same message 30 times so instead what we did
+message 30 times so instead what we did is we don't actually record certain
+is we don't actually record certain messages such as firing shots what we do
+messages such as firing shots what we do is we specialized that and record that
+is we specialized that and record that to our replay only entity that we talked
+to our replay only entity that we talked about earlier this way we're only
+about earlier this way we're only recording it once and even then if no
+recording it once and even then if no one actually saw it we still end up
+one actually saw it we still end up recording it so in this case if a tree
+recording it so in this case if a tree falls in the forest and nobody hears it
+falls in the forest and nobody hears it it does in fact actually make us out so
+it does in fact actually make us out so this gets us to a point where we're
+this gets us to a point where we're going to need some feature requests and
+going to need some feature requests and one of those feature requests was being
+one of those feature requests was being able to see where the player viewed from
+so we see here that as we were in the free camp we saw every one but now
+free camp we saw every one but now things are popping in as we view from
+things are popping in as we view from the player's perspective the problem
+the player's perspective the problem here is the replay has no player context
+here is the replay has no player context it doesn't have the concept of what the
+it doesn't have the concept of what the player could see so the first thing we
+player could see so the first thing we have to do here is to actually record
+have to do here is to actually record that information so the server is
+that information so the server is sending which people the player can
+sending which people the player can actually see so we record that off to
+actually see so we record that off to the side so we can play that messages
+the side so we can play that messages back as the replay comes in then we get
+back as the replay comes in then we get to the client side and have to deal with
+to the client side and have to deal with that and there are two methods for this
+that and there are two methods for this the first way we can do it aligns with
+the first way we can do it aligns with our don't modify the client for replays
+our don't modify the client for replays paradigm in that at the level of
+paradigm in that at the level of processing the messages if we are
+processing the messages if we are viewing from a certain perspective we
+viewing from a certain perspective we don't actually play those messages so if
+don't actually play those messages so if therefore an entity that that player
+therefore an entity that that player can't see we don't play that message at
+can't see we don't play that message at all we just lock it off and the client
+all we just lock it off and the client plays as normal now this works really
+plays as normal now this works really well but it does have some caveats in
+well but it does have some caveats in that if you want to switch players or
+that if you want to switch players or you want to switch to free cam you're
+you want to switch to free cam you're always gonna have to do a reset because
+always gonna have to do a reset because certain messages have been played and
+certain messages have been played and therefore you can't guarantee the state
+therefore you can't guarantee the state of the world is actually consistent it
+of the world is actually consistent it also means you can't do something such
+also means you can't do something such as ghost
+as ghost where you show what players couldn't see
+where you show what players couldn't see but you actually want to show a visual
+but you actually want to show a visual representation of where that player was
+representation of where that player was so what we did do instead was we did it
+so what we did do instead was we did it a lot bit lower down so we let the
+a lot bit lower down so we let the messages come through and reprocess them
+messages come through and reprocess them but if that other entity wasn't visible
+but if that other entity wasn't visible to that player then we hit it and it
+to that player then we hit it and it only became visible when we received the
+only became visible when we received the message telling us that the visibility
+message telling us that the visibility was actually true so in effect we're
+was actually true so in effect we're modifying the client to make the replays
+modifying the client to make the replays work properly using visibility but it
+work properly using visibility but it gives us the ability to instantly switch
+gives us the ability to instantly switch between other players and all we're
+between other players and all we're doing is toggling visibility flags or
+doing is toggling visibility flags or switching to full view of everything and
+switching to full view of everything and all the other features that we can
+all the other features that we can support based on having this information
+support based on having this information so this is another example of you have
+so this is another example of you have to make the call on whether the trade
+to make the call on whether the trade off is worth it
+off is worth it in order to change what the client is
+in order to change what the client is doing for tree players so similar to
+doing for tree players so similar to what we did before was we wanted to see
+what we did before was we wanted to see what the player could see then the
+what the player could see then the request was we want to actually see
+request was we want to actually see exactly how the player saw that which is
+exactly how the player saw that which is viewing from the camera of the player if
+viewing from the camera of the player if you have a first-person game or
+you have a first-person game or something where the cameras generally
+something where the cameras generally lock to a bone this is relatively simple
+lock to a bone this is relatively simple but for us we have a free moving camera
+but for us we have a free moving camera so the only real solution would be to
+so the only real solution would be to send the camera data up to the server
+send the camera data up to the server and this has this has no tangible
+and this has this has no tangible benefits to the game so you can go to
+benefits to the game so you can go to your server engineers and please sir can
+your server engineers and please sir can I have some more bandwidth there's a
+I have some more bandwidth there's a chance you'll get a No so the next
+chance you'll get a No so the next option is just faking to you make it we
+option is just faking to you make it we attach to our camera to our bone at the
+attach to our camera to our bone at the front of our turret so we actually we're
+front of our turret so we actually we're seeing where the player was looking and
+seeing where the player was looking and when the player fires we see exactly
+when the player fires we see exactly where the player fired of course we
+where the player fired of course we don't have any information about where
+don't have any information about where they're free looking but there's been no
+they're free looking but there's been no complaints about that not being there
+complaints about that not being there once the sniper mode went in that seemed
+once the sniper mode went in that seemed to work properly so it's not really that
+to work properly so it's not really that important if you don't have the exact
+important if you don't have the exact players experience then if you if that's
+players experience then if you if that's 100% important for you then there are
+100% important for you then there are client-side replays that do that as well
+so one another feature is our highlight system and this requires metadata so we
+system and this requires metadata so we need to be able to store when the
+need to be able to store when the highlight happens we had a few things
+highlight happens we had a few things that we wanted to do and one of those
+that we wanted to do and one of those was we wanted to keep everything in one
+was we wanted to keep everything in one single file so we had one replay file to
+single file so we had one replay file to store to and distribute so we didn't
+store to and distribute so we didn't want to be I have to be able to modify
+want to be I have to be able to modify the header on the fly and rewrite out
+the header on the fly and rewrite out the file while it's still being recorded
+the file while it's still being recorded we didn't want any processing after the
+we didn't want any processing after the match had finished which takes up time
+match had finished which takes up time on the server before we uploaded it so
+on the server before we uploaded it so we needed the ability to insert that
+we needed the ability to insert that metadata into the file while it was
+metadata into the file while it was still recording and the way we do this
+still recording and the way we do this is to leave the metadata in with the
+is to leave the metadata in with the other tick box so whenever we want to
+other tick box so whenever we want to write out a piece of metadata we have
+write out a piece of metadata we have our tix and then we'll insert the
+our tix and then we'll insert the metadata then when we're playing it back
+metadata then when we're playing it back because we're reading things into memory
+because we're reading things into memory and larger chunks we're able to
+and larger chunks we're able to pre-process that metadata before it
+pre-process that metadata before it would actually hit it as it is playing
+would actually hit it as it is playing back while faking the messages that come
+back while faking the messages that come in from the server so for us our replays
+in from the server so for us our replays are only around seven megabytes so we
+are only around seven megabytes so we can fit that entirely in memory
+can fit that entirely in memory pre-process the whole thing and strip
+pre-process the whole thing and strip out all the metadata before we start
+out all the metadata before we start playing back through the file and then
+playing back through the file and then just you know the matter that metadata
+just you know the matter that metadata and we get there this also works for
+and we get there this also works for live streaming because it's not reading
+live streaming because it's not reading from a separate file as the messages are
+from a separate file as the messages are pulled into memory you can still pull
+pulled into memory you can still pull your metadata out and place your
+your metadata out and place your highlights on your timeline as that
+highlights on your timeline as that plays back so feature parity we had to
+plays back so feature parity we had to support this bad boy but something like
+support this bad boy but something like this is important for things if you have
+this is important for things if you have a mobile game that runs across multiple
+a mobile game that runs across multiple platforms or even if you're running your
+platforms or even if you're running your main game on mobile memory limitations
+main game on mobile memory limitations and processing limit
+and processing limit meaning you may have to make some
+meaning you may have to make some trade-offs but it's important to have
+trade-offs but it's important to have feature parity as having everything work
+feature parity as having everything work across all of your systems means that
+across all of your systems means that people don't have to wonder whether
+people don't have to wonder whether something is working or something is not
+something is working or something is not both for your players and for your
+both for your players and for your testers so we've made some trade-offs so
+testers so we've made some trade-offs so when it comes to memory specifically on
+when it comes to memory specifically on the 360 we had none left so we had to
+the 360 we had none left so we had to disable something like our world
+disable something like our world instancing it meant longer load times
+instancing it meant longer load times but it meant we still supported rewinds
+but it meant we still supported rewinds which is really important for replays we
+which is really important for replays we also had to deactivate some
+also had to deactivate some optimizations that would run in the game
+optimizations that would run in the game as when you're playing back a replay
+as when you're playing back a replay you're less concerned about maybe slight
+you're less concerned about maybe slight hitches in your framerate when your k/d
+hitches in your framerate when your k/d ratio isn't dependent on it it's less of
+ratio isn't dependent on it it's less of a concern and we also had to put the
+a concern and we also had to put the replay file on the hard drive and stream
+replay file on the hard drive and stream it from there as on the Xbox one and ps4
+it from there as on the Xbox one and ps4 we could just store all our memory cuz
+we could just store all our memory cuz we had the room we had to put it on the
+we had the room we had to put it on the hard drive for the 360 and that meant a
+hard drive for the 360 and that meant a whole bunch of extra TSA requirements we
+whole bunch of extra TSA requirements we had to support there's also some slight
+had to support there's also some slight processing changes such as dealing with
+processing changes such as dealing with fog and loading especially when you took
+fog and loading especially when you took a free cam and you could suddenly view
+a free cam and you could suddenly view the entire map we had to make sure it
+the entire map we had to make sure it worked in that situation a situation
+worked in that situation a situation hadn't really come up before so the main
+hadn't really come up before so the main theme of what we've been talking about
+theme of what we've been talking about all about through our client is
+all about through our client is assumptions and that there are a lot of
+assumptions and that there are a lot of assumptions that can be violated by
+assumptions that can be violated by replays so for the instance in this
+replays so for the instance in this specific video no one noticed during
+specific video no one noticed during when you're playing gameplay that your
+when you're playing gameplay that your tank explodes slightly before your shot
+tank explodes slightly before your shot can go out to it but in a replay at a
+can go out to it but in a replay at a slope playback rate it is incredibly
+slope playback rate it is incredibly obvious and that's something no one
+obvious and that's something no one really picked up on so what you have to
+really picked up on so what you have to make sure is that you check all of your
+make sure is that you check all of your symptoms here is a list of a bunch of
+symptoms here is a list of a bunch of assumptions I'm not going to go through
+assumptions I'm not going to go through all of them but just make sure that if
+all of them but just make sure that if you have an assumption if you've said
+you have an assumption if you've said that can never happen make sure in
+that can never happen make sure in replays you test that that can never
+replays you test that that can never happen
+and that brings us to the end of the game integration section so we just have
+game integration section so we just have to make sure that when you're
+to make sure that when you're integrating into your client you make
+integrating into your client you make sure you take into account the flow of
+sure you take into account the flow of time and how we jump through time how
+time and how we jump through time how the networking beautiful Asian logic
+the networking beautiful Asian logic works and how your entities move around
+works and how your entities move around and to stop sliding in for error
+and to stop sliding in for error prediction problems how you represent
+prediction problems how you represent your world and the state so we can do
+your world and the state so we can do things like checkpointing how you
+things like checkpointing how you control your player controller controls
+control your player controller controls our avatars whether that's a singleton
+our avatars whether that's a singleton or whether you can actually do multiple
+or whether you can actually do multiple controllers at once
+controllers at once and also how these entities all handle
+and also how these entities all handle time as well and especially your menus
+time as well and especially your menus in external areas and just make sure you
+in external areas and just make sure you check all your assumptions so now we
+check all your assumptions so now we have replays replays working fine
+have replays replays working fine they're great for players but how can
+they're great for players but how can they help us in development and the
+they help us in development and the answer is quite a lot actually before we
+answer is quite a lot actually before we can actually use these sort of replays
+can actually use these sort of replays in development we have to make sure that
+in development we have to make sure that our replays are trusted and tested and
+our replays are trusted and tested and they can be a difficult thing to
+they can be a difficult thing to diagnose issues like this because
+diagnose issues like this because there's very time-sensitive concerns
+there's very time-sensitive concerns going on it's very hard to debug
+going on it's very hard to debug something that is time critical so what
+something that is time critical so what we did do was we made sure that we had
+we did do was we made sure that we had the ability to output a replay file as
+the ability to output a replay file as something that's human readable pending
+something that's human readable pending all our messages and the parameters so
+all our messages and the parameters so we can read it this not only allows you
+we can read it this not only allows you to spot things such as that duplicate
+to spot things such as that duplicate event processing that I talked about
+event processing that I talked about earlier but it also allows you to diff
+earlier but it also allows you to diff two different replays to see where
+two different replays to see where something could be different SIF
+something could be different SIF messages are in and out of order causing
+messages are in and out of order causing different problems and you can also pass
+different problems and you can also pass this sort of thing external to over half
+this sort of thing external to over half a team to play it in the game something
+a team to play it in the game something like if you want to do machine learning
+like if you want to do machine learning or check the hot spots on maps
+or check the hot spots on maps so once you're suddenly in development
+so once you're suddenly in development and using these they're great for
+and using these they're great for reliable reproductions so your QA you
+reliable reproductions so your QA you can do something you don't have to
+can do something you don't have to replicate their ninja skills in order to
+replicate their ninja skills in order to replicate the problem they had you just
+replicate the problem they had you just have to grab the replay file from what
+have to grab the replay file from what they did and automatically your client
+they did and automatically your client will play it back without having you
+will play it back without having you having to actually do it
+having to actually do it and because the replays are playing back
+and because the replays are playing back through the client is normal this means
+through the client is normal this means that you actually get that benefit you
+that you actually get that benefit you can also sharing accesses replays from
+can also sharing accesses replays from anywhere and therefore don't have to
+anywhere and therefore don't have to attach files around and potentially lose
+attach files around and potentially lose them and you can also insert the
+them and you can also insert the metadata into the replays so that it's
+metadata into the replays so that it's all straight there you can jump directly
+all straight there you can jump directly to where the issue occurred rather than
+to where the issue occurred rather than having to deal with time codes and
+having to deal with time codes and scrubbing and trying to find where the
+scrubbing and trying to find where the problem was it's also really beneficial
+problem was it's also really beneficial for performance testing and regression
+for performance testing and regression testing any form of automatic testing
+testing any form of automatic testing replays go hand-in-hand with so you're
+replays go hand-in-hand with so you're able to play the exact same thing time
+able to play the exact same thing time and again without running into issues
+and again without running into issues and or as I mentioned earlier it also
+and or as I mentioned earlier it also represents the real game so it's a lot
+represents the real game so it's a lot better than any spin testing or just
+better than any spin testing or just placing cameras in the world and looking
+placing cameras in the world and looking at a generic thing because you actually
+at a generic thing because you actually can see what your players are actually
+can see what your players are actually doing and looking at so you're getting
+doing and looking at so you're getting real-world performance data as opposed
+real-world performance data as opposed to just generic data it also means that
+to just generic data it also means that you can take your replays used for smoke
+you can take your replays used for smoke testing and use them for your
+testing and use them for your performance testing so this is a caveat
+performance testing so this is a caveat in that replays which we'll discuss soon
+in that replays which we'll discuss soon go out of date very quickly and so the
+go out of date very quickly and so the scenarios need to be reproducible via
+scenarios need to be reproducible via either an automatic creation method or
+either an automatic creation method or by a manual creation in order to be able
+by a manual creation in order to be able to do consistently over several days
+to do consistently over several days they're also helpful in life so once
+they're also helpful in life so once your game has gone live you can use
+your game has gone live you can use replays to help deal with players so if
+replays to help deal with players so if the replace if a player finds an error
+the replace if a player finds an error in a game in there
+in a game in there they're one in a billion era you can
+they're one in a billion era you can just grab their replay and see how that
+just grab their replay and see how that happens rather than trying to reproduce
+happens rather than trying to reproduce it a million times yourself it's also
+it a million times yourself it's also great for identifying if anyone's
+great for identifying if anyone's cheating you see how they manage to get
+cheating you see how they manage to get underneath the map and get behind that
+underneath the map and get behind that zone where only they could shoot out
+zone where only they could shoot out from and also if there are any
+from and also if there are any complaints about balance issues you can
+complaints about balance issues you can see from a replay where potential map
+see from a replay where potential map problems might be or where a tank or
+problems might be or where a tank or anything can be overpowered it's also
+anything can be overpowered it's also great for post-processed analytics so if
+great for post-processed analytics so if you come up with some stat that you want
+you come up with some stat that you want to be tracking then you're able to just
+to be tracking then you're able to just write that process a whole bunch of
+write that process a whole bunch of replays and get that information
+replays and get that information immediately rather than having to wait
+immediately rather than having to wait two weeks for your players to play
+two weeks for your players to play through it and this also works for
+through it and this also works for something like machine learning if you
+something like machine learning if you want to be able to have your bots learn
+want to be able to have your bots learn from how other players play you can just
+from how other players play you can just process your replays and done that so
+process your replays and done that so now we've discovered how they help us in
+now we've discovered how they help us in development and how to get things into
+development and how to get things into the client we're going to briefly just
+the client we're going to briefly just go over some of the things we decided
+go over some of the things we decided not to do because we considered them
+not to do because we considered them either to be too complicated or not
+either to be too complicated or not worth our time so I'd be feel free to
+worth our time so I'd be feel free to try and do some one of these things
+try and do some one of these things they're probably GDC talks on their own
+they're probably GDC talks on their own and I'd love to be in the front row to
+and I'd love to be in the front row to hear how you actually overcame these
+hear how you actually overcame these problems so the first one is playback in
+problems so the first one is playback in Reverse so what you're seeing on the
+Reverse so what you're seeing on the screen is me faking it by playing a
+screen is me faking it by playing a video back in Reverse we don't actually
+video back in Reverse we don't actually support something like this because of
+support something like this because of how complicated it is events all have
+how complicated it is events all have this start position so when you're
+this start position so when you're playing the replays start to end you're
+playing the replays start to end you're hitting the correct points but the
+hitting the correct points but the server very rarely knows where event
+server very rarely knows where event would end such as playing a particle
+would end such as playing a particle effect it has no idea where the event
+effect it has no idea where the event would end so when we're playing back it
+would end so when we're playing back it doesn't know where to start so in order
+doesn't know where to start so in order to support something like this you would
+to support something like this you would have to pre-process your replay before
+have to pre-process your replay before you play it in order to calculate the
+you play it in order to calculate the end times on the client and store that
+end times on the client and store that somewhere so that when you play
+somewhere so that when you play backwards you can actually hit that
+backwards you can actually hit that point spawn the particle effect jump it
+point spawn the particle effect jump it to its endpoint yeah I mean you've
+to its endpoint yeah I mean you've already set up your duration
+already set up your duration so you can start from any point and then
+so you can start from any point and then play it backwards but I probably haven't
+play it backwards but I probably haven't touched the surface of all the problems
+touched the surface of all the problems here because there are all be other
+here because there are all be other problems with your network latency
+problems with your network latency interpolation movement code not being
+interpolation movement code not being able to support negative times and
+able to support negative times and jumping between negative and positive
+jumping between negative and positive it's it's something you should probably
+it's it's something you should probably talk to your excited designer about and
+talk to your excited designer about and just temper them to say it's probably
+just temper them to say it's probably not worth it the next big one is
+not worth it the next big one is versioning and this is something we
+versioning and this is something we talked about quite a lot right at the
+talked about quite a lot right at the beginning the main problem being that
+beginning the main problem being that it's something that will be nice to have
+it's something that will be nice to have but it's very difficult to support so
+but it's very difficult to support so replays get out of date quite often
+replays get out of date quite often because as soon as you change your map
+because as soon as you change your map move a rock somewhere or make a asset
+move a rock somewhere or make a asset slightly wider you're certainly gonna
+slightly wider you're certainly gonna get clipping in your replays because
+get clipping in your replays because that wasn't like that when the replay
+that wasn't like that when the replay was recorded same thing for any entity
+was recorded same thing for any entity properties or definitions and how they
+properties or definitions and how they operate or even any code that just
+operate or even any code that just controls behavior as these things change
+controls behavior as these things change the replays will not function
+the replays will not function appropriately
+appropriately there are mitigation steps that fix this
+there are mitigation steps that fix this such as for our assets our maps and our
+such as for our assets our maps and our entity assets we can download them on
+entity assets we can download them on demand so we use a hash to look up what
+demand so we use a hash to look up what we actually need and then we're playing
+we actually need and then we're playing back with the appropriate assets of
+back with the appropriate assets of course this is a cost factor in that you
+course this is a cost factor in that you have to store the assets in an
+have to store the assets in an accessible location to be downloaded as
+accessible location to be downloaded as required and slows down how quickly you
+required and slows down how quickly you can start your replay for properties we
+can start your replay for properties we can always create redirect errs that
+can always create redirect errs that redirect old properties to new
+redirect old properties to new properties or break things up into what
+properties or break things up into what they should be but then we're paying a
+they should be but then we're paying a performance cost of not only doing that
+performance cost of not only doing that conversion but also how accurate it
+conversion but also how accurate it actually is going to end up being we can
+actually is going to end up being we can get around all of this and just download
+get around all of this and just download the entire old client and play a replay
+the entire old client and play a replay file on that that's a very heavyweight
+file on that that's a very heavyweight you're now storing the entire versions
+you're now storing the entire versions of your game somewhere they can be
+of your game somewhere they can be downloaded and it's not exactly
+downloaded and it's not exactly something you can do on a console
+something you can do on a console you can't fire up another executable so
+you can't fire up another executable so again you could change to
+again you could change to yourself how necessary something like
+yourself how necessary something like this is we keep our replays around for
+this is we keep our replays around for two weeks so once we relate to any patch
+two weeks so once we relate to any patch update even Belle leads to replays but
+update even Belle leads to replays but we've set that expectation with players
+we've set that expectation with players that two weeks is as long as replays are
+that two weeks is as long as replays are going to hang around for and they
+going to hang around for and they understand that when there's a title
+understand that when there's a title update that they will be invalidated
+so that's replace that's everything we did to get replays into a game if you
+did to get replays into a game if you take away anything from this talk then
+take away anything from this talk then make sure that it's try keeping your
+make sure that it's try keeping your replays code and your clients code so
+replays code and your clients code so that they're the same thing so you're
+that they're the same thing so you're not specializing client just for replays
+not specializing client just for replays unless of course there are certain
+unless of course there are certain situations where the trade-off is worth
+situations where the trade-off is worth it make sure you consider the flow of
+it make sure you consider the flow of time time is where most of your issues
+time time is where most of your issues will could happen especially time
+will could happen especially time jumping so think about how a system or a
+jumping so think about how a system or a new system will handle how time changes
+new system will handle how time changes and make sure when you're storing data
+and make sure when you're storing data or writing systems that access data that
+or writing systems that access data that you consider how the server will send to
+you consider how the server will send to the client and what you actually need to
+the client and what you actually need to play back should we be jumping through
+play back should we be jumping through time and if you're asked if someone asks
+time and if you're asked if someone asks you why you possibly need this feature
+you why you possibly need this feature well even if it's not just because
+well even if it's not just because players are asking for it it's really
+players are asking for it it's really important for when you're in development
+important for when you're in development because it can really speed up for as a
+because it can really speed up for as a valuable tool for getting reliable
+valuable tool for getting reliable testing and performance analysis and if
+testing and performance analysis and if anything it makes for just bulletproof
+anything it makes for just bulletproof systems design that works in a whole lot
+systems design that works in a whole lot more situations than what a non replay
+more situations than what a non replay system design would be so thank you for
+system design would be so thank you for watching I hope you've learned something
+watching I hope you've learned something this is the point where I would normally
+this is the point where I would normally ask for questions but there's nobody
+ask for questions but there's nobody here so if you have any questions just
+here so if you have any questions just send it off to my email and I'll gladly
+send it off to my email and I'll gladly be happy to respond so thanks for
+be happy to respond so thanks for watching and I hope to see you at a
+watching and I hope to see you at a later point just

@@ -1,0 +1,435 @@
+hi everyone it's me Tim today I want to
+talk about loading and saving games
+gotten a lot of questions about this so
+I'm going to answer it but I want you to
+know this is a very high level answer I
+think some people are literally asking
+me how to load and save their game which
+I cannot answer because one it's highly
+dependent on what language you're
+writing in
+what engine you're using even if it's
+your
+own and what decisions you've made about
+how you want load and save to work
+so instead I'm going to describe a lot
+of the high level stuff including the
+decisions you have to make before you
+even write a line of code if you want to
+know the low-l stuff look up
+serialization for whatever your language
+and engine is there should be a lot of
+tutorials on how to to do serialization
+that's what you want so let's talk first
+about what kinds of save game systems
+there are and kind of the pros and cons
+for those so the first one and the one
+i' I've liked using a lot is you can
+save anywhere
+anytime these are the hardest ones to
+write because you have to save the state
+of many many things and sometimes things
+that it's hard for you to get the state
+for for example if you can save anywhere
+in an RPG can you save when a character
+is in the middle of an animation maybe
+he's being knocked back and you hit safe
+maybe they're falling and you hit safe
+maybe they're in the middle of casting a
+spell which has an animation and they're
+surrounded by particle
+effects and there's AI that is reacting
+to it safe so these are the hardest ones
+to write because
+literally every
+system in your game will be required to
+be able to load and save it State and
+many of those will be systems maybe you
+didn't write maybe you brought down a
+third- party physics engine but you want
+to load and save everywhere so you need
+to know how to interrogate that physics
+engine and say where is this character
+located what state are they in what you
+know what's what are every detail about
+that state I would need so I can
+recreate it in your engine by the way
+some of them don't provide that so you
+won't be saving during a fall because
+the physics engine doesn't give you
+either all the ability to read the state
+or more common doesn't give you all the
+ability to set the state so sometimes
+depending on choices that have been made
+that have nothing to do with load and
+save you are now restricted to what kind
+of load and save you're going to do so
+probably a more common load save system
+will be you can save in some places
+and at sometimes but not everywhere
+anytime examples of restrictions like
+that I've seen are you can save whenever
+the game isn't in combat that's a common
+one that avoids a lot of State variables
+that only have to do with combat
+especially in
+AI um where you have NPCs deciding what
+they're doing moment to moment as
+opposed to their very high level AI
+which is I was walking here or I was
+going to stop and look
+around I've also seen games where you
+can only save when you're back in town
+so that not only presupposes you're not
+in combat but
+also you can only save in certain
+locations in the world that probably
+don't have a lot of State
+change especially if you're not allowed
+to fight in town or the NPCs are marked
+as essential there saving back in town
+really restricts a lot more of what the
+save game has to understand how to save
+the state for and then there are other
+ones that say you can only save when you
+go to rest so when your character rests
+or camps or sleeps or whatever your game
+calls it you're also given the option do
+you want to save at this point this is a
+really restrictive way of doing it but
+if you think about it it guarantees you
+won't be in the middle of a dialogue you
+won't be casting a spell nobody's in the
+middle of falling so you can literally
+ignore and not have to interrogate or
+reset your physics engine your animation
+system your particle effect system
+there's just a bunch of systems that
+won't ever need to know about load and
+save some other systems I've seen and
+these are real common in consoles you
+have checkpoints where the game
+automatically saves when you reach a
+certain spot it can be a physical
+location it could be the an end of a
+story act or something like that
+checkpoints make it really easy
+because you're defining exactly when and
+where a save can even happen and there
+is even more modules then that will
+never need to know anything about save
+because it's known that you can only
+save at this particular spot so not all
+story variables basically just it's the
+end of the ACT what story variables will
+carry over to next Acts or in two end
+slides all the rest you can throw away
+now a subset of checkpoints are Autos
+saves so you may have a game that lets
+you save anywhere or save in a lot of
+places but it also has an autosave
+system especially like you're going to
+talk to a boss or maybe when you
+transition Maps it Autos saves Auto
+saves are kind of like
+checkpoints in the sense of usually less
+can be
+saved but they're more of a way of
+making sure that the player doesn't end
+up in a bad state if the map transition
+messes up or they die when they
+encounter the boss
+and then related to Autos saves are
+quick saves quick saves
+are when the player says I want to make
+a save and hit a button and it's legal
+to do so because you can even have quick
+save systems and systems where you can't
+save everywhere and then the quick save
+would just go can't save here but if you
+can quick saves are just go ahead and
+make a save I don't want to go through
+UI I don't want to ask answer any
+questions just make a
+save this is important for the next
+stage of what you have to think about
+for load and saves which are UI choices
+several of UI choices you have to make
+for save games are how many slots can
+you have is it an infinite number of
+slots or by infinite I mean until you
+run out of hard disk space or Cloud save
+space or wherever your save games are
+being
+stored or is it a predefined limited
+number of save
+slots this can be different for the
+different kinds of saves maybe you're
+when you the player chooses to save and
+goes through the UI they can have as
+many as their memory will
+allow but maybe Autos saves and quick
+saves are limited to maybe a rolling
+list of three so every time you hit
+quick save it saves one and then saves
+two and then saves three if you quick
+saved again it would right over quick
+save one a lot of games do that they
+kind of have to
+because they're not going to bring up ey
+to ask you any questions so the quick
+save has to have some way of knowing
+where to
+save there are other things such as do
+you get to name the save game do you get
+to type something in like just entered
+the Dungeon of Doom or first time at
+RiverTown those are great a lot of games
+though do
+autogenerated save game names with
+things like here's your the map location
+and the sublocation you are in and maybe
+a date
+stamp well for auto s saves and quick
+saves that don't bring up a UI you kind
+of have to have those so a lot of people
+just decide let's just do them for all
+of them to make them consistent and then
+finally you have to decide whether or
+not your save game is going to have an
+image associated with it we didn't used
+to do that because that was very
+expensive usually the image was bigger
+than the save game size in the modern
+era taking a screenshot slapping it up
+as part of the save game is easy and it
+also makes it easy for you to figure out
+what save game is which even if you have
+multiple save games in the same dungeon
+on the same
+level and you weren't very careful what
+the name or the autogenerated names are
+just a Tim stamp you can look at that
+image and go oh I remember what I was
+doing so those are UI decisions you have
+to make now let's talk about the save
+code load and save code itself again I'm
+not going to show you how to serialize
+you need to look that up for your
+specific engine and language but I will
+tell you like first I'll tell you what I
+do and then decisions you're going to
+have to make yourself so in general what
+I tend to do for load save is for every
+module if I was doing it in C or every
+class if I was doing it in C++ or
+C I would write a load method and a save
+method that understands how to load and
+save that module War class's particular
+data I'm just going to say class from
+now on it's collection of thing of
+relevant things so what tends to happen
+with this method it's past a file
+pointer
+and if you're saving then you write out
+your data at that with that file pointer
+and return if you're loading then you
+load in your data from that file pointer
+and you
+return now some decisions you have to
+make if you're going to do this is well
+there's several first of
+all is that file pointer at the right
+spot in other words has the parent
+passed into you the file pointer aimed
+at your section of
+data if yes then you can do this and
+it's usually a really fast way of doing
+it because you can just grab that fep
+pointer load your data return but it
+requires you to follow a very specific
+rule of it better be at the right spot
+and when you're done you better have
+left it at the correct spot past you if
+you don't do that that because nobody
+besides you knows what the data should
+be bugs will propagate so if you read in
+the data but don't leave it at the very
+next section after yours the next load
+will fail because the file pointer is
+not pointing correctly these are really
+hard to debug because a bug will show up
+in a save game not loading and it will
+show up in load methods that aren't the
+one that has the problem in fact if
+you're lucky and it shows up in the very
+first load method that follows the one
+that messed up you can easily go oh this
+load method isn't pointing at the right
+section it must be the previous guy's
+fault but they're trust me they're hard
+to
+find if you say no if you decide no I
+will have each method reposition the
+pointer that solves that problem of
+propagating errors because it makes it
+very self-contained it also makes it
+easy to add new sections if you add a
+new module a new class and it needs to
+write out its
+data it can just put it in there and
+then it Finds Its correct section when
+it's past the file
+pointer however this method is always
+slower than assuming the file pointer is
+in the right place because you are
+literally calling out to
+your save device whether it's hard drive
+or
+cloud and having it move that file
+pointer having it search through your
+data for something whether you know how
+many bytes in it is you if there's an
+index somewhere you have to look up in
+the index you're going to do extra work
+and it will slow down your load and save
+process maybe that doesn't matter maybe
+your load save process is so nearly fast
+that you don't have to worry about it
+but I've worked on games where it's
+really slowed it down a lot the next
+decision you have to make is do you save
+out the data as raw data meaning if you
+have an INT do you just write out you
+know the four bytes that are in your int
+with an fite and then you frre in that
+int you know from your load sa if you
+were doing it in
+see this saving it with raw data makes
+it super fast and gives you the smallest
+possible save file you're going to get
+but you will need to learn how to
+serialize everything by hand you will
+have to know how to serialize not only
+your base data ins floats
+doubles but you're going to have to
+figure out how to handle pointers
+because because if you have an array of
+pointers to items you're going to have
+to save those
+items and then reconstruct that array of
+pointers during the load so you're going
+to be doing memory allocation you're
+going to be then setting pointers to the
+memory that you've allocated you're
+going to have to do all this by hand
+it's a lot of work but it'll give you
+the fastest smallest save files you ever
+have now let's say you don't want to do
+that because like Json got really
+popular basically string based object
+saving in fact Json is human readable um
+the nice thing about this doing it that
+way is it is very easy
+to write code for it like if the
+sections have a string at the beginning
+saying here's combat code and your
+combat module goes find that string
+that's like bracket combat code you find
+it you know you're in the right section
+and then you can read in your variable
+it's like hey Here Comes an array of 10
+objects
+um here's the name of each object you
+know string here's the the data on each
+object stored as a string you know
+here's the you know health value of them
+store to Strings makes it very easy to
+read very easy to write but your save
+game will be very big and very slow
+again if that size and speed isn't a
+concern to you rock on if it
+is
+now it also has a impact what decisions
+you just made on versioning versioning
+is when you have a save game either from
+a previous version of the game like you
+put out a patch for your game so now you
+have a 1.1 can that 1.1 read 1.0 saves
+also if you had a save that was made
+with a DLC let's say you played your
+whole game you bought a DLC you kept
+playing and you made a save with that
+DLC can the base game if you reinstall
+the base game without the DLC can you
+load that save game um if a mod if you
+support
+modding if
+you play a modded game can the base game
+load it if you play a modded game can
+does it know what mod it is so if it
+goes to load a modded game and that mod
+isn't on your game anymore will it know
+that some games just fail some games
+detect that and say I can't read this
+sorry some games detect that and go I
+don't know how to read data
+for this mod or for this DLC so I'm
+going to load the base game version of
+this save game there's a whole bunch of
+decisions you have to make and that's
+basically how you do versioning I will
+tell you if you went with the human
+readable Json string based it's a lot
+easier to do versioning because if you
+get to a section you don't recognize you
+can have a default like I don't know
+what this is what section this is my
+default is to not have an item like this
+so if you recogn if there's an item you
+don't recognize because it's only in the
+DLC you simply don't have it anymore
+it's not in your
+inventory harder to do that with the raw
+data you can still do it also it's
+something you need to keep in uh in mind
+for how you're going to handle when you
+patch your game if a 1.1 generates a
+save game that 1.0 can't read you need
+to decide is that something you can see
+in the UI when you look at it that this
+is a save game for 1.1 and you're
+playing a 1.0 version how does it
+display that is it will it try to load
+it and fail or will it actually display
+in the UI this is an unloadable save
+game to load it you need to go to a
+newer version will it tell you what to
+do or will it just mark it and like will
+it gray it out and say I I don't know
+how to load this these are all decisions
+you have to make as part of your load
+save game data if you want to support
+versioning I told you this is really
+complicated and I haven't even mentioned
+a line of
+code I think that is most of what you
+need to think about
+so to sum it up um think of how what
+kind of save game system you want to
+support think about the UI choices you
+want to make for that save game system
+and then when you're actually writing
+the code think about how you want that
+code to work with data is it going to be
+raw data is it going to be serialized
+into a string or some other human
+readable format those are things you
+need to think about for load
+saves good luck it is a comp at thing to
+do and I'm sure people are going to
+weigh in with far better ideas than I
+had here but this is in general the way
+I did it and the scope of what I did so
+I hope that answers people's load save
+questions

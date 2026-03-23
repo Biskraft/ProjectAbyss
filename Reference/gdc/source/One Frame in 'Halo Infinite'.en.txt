@@ -1,0 +1,1852 @@
+[Music] hello everyone
+hello everyone thank you for joining me this afternoon
+thank you for joining me this afternoon for this dive in hello infinite
+for this dive in hello infinite before we begin i just want to remind
+before we begin i just want to remind you everyone to silence your phones or
+you everyone to silence your phones or turn them off
+turn them off so that we can have a smooth ride
+so that we can have a smooth ride i'm gonna gonna go pretty fast
+i'm gonna gonna go pretty fast so
+so try hang on till the end it's going to
+try hang on till the end it's going to be worth it hopefully and
+be worth it hopefully and who knows they might even be cake
+my name is daniela gennetti my pronouns are here in him and i'm a
+my pronouns are here in him and i'm a principal architect at 343 industries
+principal architect at 343 industries what does mean what i mean practically
+what does mean what i mean practically is that i help on a lot of topics
+is that i help on a lot of topics related to simulation in halo games
+related to simulation in halo games mainly performance threading game engine
+mainly performance threading game engine architecture
+architecture physics navigation some streaming some
+physics navigation some streaming some other stuff probably a bit too many
+other stuff probably a bit too many things tributary industries is the house
+things tributary industries is the house of halo and uh over there we all we deal
+of halo and uh over there we all we deal with all things related to the franchise
+with all things related to the franchise and the shooter team at liberty
+and the shooter team at liberty industries is the team that delivered
+industries is the team that delivered halo infinite the biggest title from the
+halo infinite the biggest title from the company yeah
+company yeah and previous titles from the team
+and previous titles from the team include halo 4 and halo 5 guardians
+before we jump in i just wanted to show a quick video of the game so that we
+a quick video of the game so that we understand what we're talking about
+understand what we're talking about enjoy
+it's enough
+[Music]
+flame the enemy flag return it to base
+so yeah hello infinite is a first person online multiplayer shooter
+online multiplayer shooter and it's it's a competitive game with a
+and it's it's a competitive game with a lot of with some casual friendly modes
+lot of with some casual friendly modes as well
+as well and at the same time the hello infinite
+and at the same time the hello infinite campaign is analytically driven
+campaign is analytically driven experience
+experience that bring play brings players into a
+that bring play brings players into a the largest open environment that we
+the largest open environment that we ever built
+ever built today we're going to be focusing on some
+today we're going to be focusing on some of the changes that we did on the halo
+of the changes that we did on the halo engine going from hilo 5 to halo
+engine going from hilo 5 to halo infinite and specifically how we
+infinite and specifically how we transform the engine from a single
+transform the engine from a single platform fixed frame rate engine tightly
+platform fixed frame rate engine tightly optimized for xbox one at 60 fps to a
+optimized for xbox one at 60 fps to a multi-platform viable framerate engine
+multi-platform viable framerate engine the
+the hello internet was always shipping on
+hello internet was always shipping on xbox one we knew that from the beginning
+xbox one we knew that from the beginning but this time we're also targeting
+but this time we're also targeting series x series s and windows pc
+series x series s and windows pc obviously there is a large variability
+obviously there is a large variability of hardware power on the right of the
+of hardware power on the right of the slide there and we wanted to make sure
+slide there and we wanted to make sure the game scaled naturally and
+the game scaled naturally and consistently across all their hardware
+consistently across all their hardware and for pc players specifically we
+and for pc players specifically we wanted to make sure that they could
+wanted to make sure that they could really tune the experience the way they
+really tune the experience the way they wanted and play the frame rate that they
+wanted and play the frame rate that they wanted depending on their vsync and
+wanted depending on their vsync and other things like that
+other things like that so our agenda is going to start with a
+so our agenda is going to start with a deep dive
+deep dive in halo 5 tech our legacy and
+in halo 5 tech our legacy and specifically we're going to be
+specifically we're going to be dissecting the two big challenges with
+dissecting the two big challenges with that approach to execution specifically
+that approach to execution specifically what aspects of it made it a fixed
+what aspects of it made it a fixed framework engine
+framework engine and
+and what
+what concerns we had scaling that execution
+concerns we had scaling that execution to cpus of different size
+to cpus of different size this is not a graphic stock
+this is not a graphic stock and i'm mainly going to be focusing on
+and i'm mainly going to be focusing on simulation workloads on the cpu however
+simulation workloads on the cpu however i'm going to be touching on some of the
+i'm going to be touching on some of the changes that we did to our renderer
+changes that we did to our renderer specifically on the cpu side of our
+specifically on the cpu side of our renderer because they're crucial to
+renderer because they're crucial to understand the scalability solutions
+understand the scalability solutions that we implemented
+that we implemented after all that and dissecting our
+after all that and dissecting our solutions to those problems we're going
+solutions to those problems we're going to walk through together through one
+to walk through together through one frame in the engine across a variety of
+frame in the engine across a variety of hardware targets
+hardware targets and then we're going to want some q a
+and then we're going to want some q a okay let's start with our legacy halo 5
+okay let's start with our legacy halo 5 engine
+engine so the halo 5 engine being so tightly
+so the halo 5 engine being so tightly optimized for xbox one i'm showing an
+optimized for xbox one i'm showing an approximate high level frame on the xbox
+approximate high level frame on the xbox one cpu
+one cpu xbox one has eight physical cores
+xbox one has eight physical cores however seven only seven of them are
+however seven only seven of them are accessible to the title with the seventh
+accessible to the title with the seventh core cpu six being half share with the
+core cpu six being half share with the system so only roughly 50 percent of its
+system so only roughly 50 percent of its bandwidth is guaranteed to the game
+bandwidth is guaranteed to the game the hilo 5 engine had two principal
+the hilo 5 engine had two principal threads the main thread and the render
+threads the main thread and the render thread that were
+thread that were responsible respectively for bringing
+responsible respectively for bringing for moving forward simulation and
+for moving forward simulation and rendering work on the cpu
+rendering work on the cpu and they were affinitized to cpu zero
+and they were affinitized to cpu zero and one
+and one and we also had a set of four worker
+and we also had a set of four worker threads that were advertised to cpu two
+threads that were advertised to cpu two through five and they were mostly
+through five and they were mostly helping out on simulation work and they
+helping out on simulation work and they were specialized in the sense that they
+were specialized in the sense that they were only picking up specific kinds of
+were only picking up specific kinds of work depending on the thread
+work depending on the thread on cpu 6 we relegated all of our latency
+on cpu 6 we relegated all of our latency tolerant workloads like streaming io and
+tolerant workloads like streaming io and things like that
+things like that and
+and in classic two-threaded engine fashion
+in classic two-threaded engine fashion we are pipelining execution so that we
+we are pipelining execution so that we are simulation simulating frame n at the
+are simulation simulating frame n at the same time as we render
+same time as we render frame n minus one
+frame n minus one the simulation frame starts with input
+the simulation frame starts with input sampling right there
+sampling right there and after a few other things
+and after a few other things after a few more things we move on to
+after a few more things we move on to the core of the simulation which we
+the core of the simulation which we called game tick
+called game tick the game tick includes
+the game tick includes um a bunch of stuff in like design
+um a bunch of stuff in like design scripting updates this the object update
+scripting updates this the object update which updates the logical state of all
+which updates the logical state of all of our objects physics stepping
+of our objects physics stepping animation updates and transform updates
+animation updates and transform updates for all the objects
+for all the objects after the simulation is done we publish
+after the simulation is done we publish the results to the renderer and in our
+the results to the renderer and in our case this was a large mem copy of game
+case this was a large mem copy of game state to the renderer so the renderer
+state to the renderer so the renderer can operate on it and render it at the
+can operate on it and render it at the same time as we simulate the next frame
+same time as we simulate the next frame okay but what made the halo 5 engine a
+okay but what made the halo 5 engine a fixed frame rate engine then well the
+fixed frame rate engine then well the game tick just like i showed it
+game tick just like i showed it it always consumed a fixed amount of
+it always consumed a fixed amount of time 16 points is how many seconds of
+time 16 points is how many seconds of time precisely
+time precisely so the engine was
+so the engine was hardwired to run at 60fps
+hardwired to run at 60fps so this ran reasonably well for hilo 5
+so this ran reasonably well for hilo 5 where that was our only target on xbox
+where that was our only target on xbox one
+one and this is how execution at a high
+and this is how execution at a high level could have been on the console
+level could have been on the console here in red i have drawn the real world
+here in red i have drawn the real world time splitting sensible system in the
+time splitting sensible system in the second chunks
+second chunks and in blue here we have the simulation
+and in blue here we have the simulation executing on the cpu
+executing on the cpu as you can see if the simulation runs
+as you can see if the simulation runs fast enough and we're able to publish
+fast enough and we're able to publish the results to the renderer in our
+the results to the renderer in our allotted amount of time for the frame
+allotted amount of time for the frame and the renderer is able to complete the
+and the renderer is able to complete the rendering work on the cpu in that same
+rendering work on the cpu in that same amount of time or 16 how many seconds
+amount of time or 16 how many seconds and the gpu frame can finish in that
+and the gpu frame can finish in that exact amount of time
+exact amount of time then we're able to maintain our
+then we're able to maintain our throughput of 60 fps
+throughput of 60 fps so
+so this was most of the time the case in
+this was most of the time the case in hello five and also let's keep an eye on
+hello five and also let's keep an eye on that green box that shows up at the
+that green box that shows up at the beginning of the simulation frame this
+beginning of the simulation frame this is how i'm gonna represent input
+is how i'm gonna represent input sampling from now on and it's important
+sampling from now on and it's important for future discussions down in the slide
+for future discussions down in the slide so
+so keep an eye on it
+keep an eye on it okay so this is what happened when
+okay so this is what happened when execution was working as intended but
+execution was working as intended but what happened in halo 5 if we had an
+what happened in halo 5 if we had an execution delay maybe a big explosion or
+execution delay maybe a big explosion or some unexpected workload coming into the
+some unexpected workload coming into the simulation since our sandbox is very
+simulation since our sandbox is very physic-driven soon
+physic-driven soon well we had a strategy in l5 to catch up
+well we had a strategy in l5 to catch up on the lost time we called it
+on the lost time we called it multi-ticking and it's important to
+multi-ticking and it's important to understand how this works because
+understand how this works because it's we pretty much built our viable
+it's we pretty much built our viable frame rate model on top of this
+frame rate model on top of this the idea is
+the idea is let's accumulate enough
+let's accumulate enough delay
+delay so that we're able to consume that time
+so that we're able to consume that time that we have accumulated and we have to
+that we have accumulated and we have to catch up on in an entire additional game
+catch up on in an entire additional game tick like an additional 16 percent
+tick like an additional 16 percent milliseconds of delay
+milliseconds of delay and
+and when that happens then we can we're able
+when that happens then we can we're able to come to perform multiple game ticks
+to come to perform multiple game ticks in a single frame so for instance here's
+in a single frame so for instance here's a long frame this this frame lasts
+a long frame this this frame lasts longer than 60 percent how many seconds
+longer than 60 percent how many seconds of time and assuming that we have a
+of time and assuming that we have a community enough delay then here is a
+community enough delay then here is a multi-tick frame in this case a double
+multi-tick frame in this case a double tick frame we are doing two game ticks
+tick frame we are doing two game ticks and consuming system processing
+and consuming system processing milliseconds of time times two 33.33
+milliseconds of time times two 33.33 milliseconds
+milliseconds great so there was no clear
+great so there was no clear it wasn't a guarantee that we were able
+it wasn't a guarantee that we were able to catch up on the lost time using this
+to catch up on the lost time using this strategy there was an assumption that
+strategy there was an assumption that the simulation was fast enough most of
+the simulation was fast enough most of the time and therefore the occasionals
+the time and therefore the occasionals with the occasional spike we were able
+with the occasional spike we were able to recover on the lost time using a
+to recover on the lost time using a additional game ticks
+additional game ticks but obviously if if the game tick itself
+but obviously if if the game tick itself is it takes longer to run on the cpu
+is it takes longer to run on the cpu than the time is able to consume since
+than the time is able to consume since this is how many seconds then we would
+this is how many seconds then we would have accumulated even more delay but
+have accumulated even more delay but this assumption held through most of the
+this assumption held through most of the time so this works well enough for halo
+time so this works well enough for halo 5. but what is the effect of this
+5. but what is the effect of this approach to catching up on lost time
+approach to catching up on lost time well if you focus on those black lines
+well if you focus on those black lines towards the bottom that's the time that
+towards the bottom that's the time that elapses from input sampling for a frame
+elapses from input sampling for a frame to the end of the gpu work for that
+to the end of the gpu work for that frame which is when we do our present
+frame which is when we do our present while this is not exactly the same as
+while this is not exactly the same as our input to image on screen latency
+our input to image on screen latency it's representative of the quantity
+it's representative of the quantity so as you can see when we have a spike
+so as you can see when we have a spike like the first frame a longer frame
+like the first frame a longer frame and when we also do multiple ticks like
+and when we also do multiple ticks like in the second frame on this slide
+in the second frame on this slide the total
+the total input to image on screen time is longer
+input to image on screen time is longer so effectively the result on players
+so effectively the result on players employer experience was a small jitter
+employer experience was a small jitter in input latency but if our
+in input latency but if our if our delays were seldom and we were
+if our delays were seldom and we were able to quickly catch up and recover
+able to quickly catch up and recover then this this this was fine and it
+then this this this was fine and it worked it wasn't easy to to detect for
+worked it wasn't easy to to detect for the players
+the players even professional players and we were
+even professional players and we were happy with this for halo 5.
+happy with this for halo 5. so here's a
+so here's a an x-ray of what happens in the case of
+an x-ray of what happens in the case of a game double tick frame
+a game double tick frame as you can see we are doing two game
+as you can see we are doing two game ticks and
+ticks and it's it's approximate but as you can see
+it's it's approximate but as you can see we're duplicating most of our core
+we're duplicating most of our core workloads we are doing the design
+workloads we are doing the design scripting update twice
+scripting update twice we are updating the logical state for
+we are updating the logical state for all of our objects twice we are breaking
+all of our objects twice we are breaking physics twice we are updating the
+physics twice we are updating the transform through all of our object
+transform through all of our object twice
+twice and
+and obviously this is expensive
+obviously this is expensive but obviously we weren't doing
+but obviously we weren't doing everything twice we were simply input
+everything twice we were simply input once we were also some other workloads
+once we were also some other workloads were only done once and also we were
+were only done once and also we were publishing the simulation only once to
+publishing the simulation only once to the renderer of course
+the renderer of course okay so great so we understand we have
+okay so great so we understand we have game ticks we can double tick but we
+game ticks we can double tick but we still have the same core problem we are
+still have the same core problem we are simulating in discrete synthesis and
+simulating in discrete synthesis and millisecond intervals
+millisecond intervals and for halo infinite this was just not
+and for halo infinite this was just not good enough
+good enough yes we were shipping at 60fps on series
+yes we were shipping at 60fps on series x at least by default but we also wanted
+x at least by default but we also wanted to enable a 120 fps performance mode on
+to enable a 120 fps performance mode on the console
+the console and for pc we wanted to be able to scale
+and for pc we wanted to be able to scale naturally to the to the player rigs and
+naturally to the to the player rigs and if they had a massive machine then we
+if they had a massive machine then we wanted to scale up to 144 plus fps
+wanted to scale up to 144 plus fps with arbitrarily configurable frame rate
+with arbitrarily configurable frame rate and we really wanted to show as much the
+and we really wanted to show as much the smooth motion at all those rates
+smooth motion at all those rates we didn't we didn't want to be
+we didn't we didn't want to be constrained by this 360 fps simulation
+constrained by this 360 fps simulation upgrade
+upgrade on top of that we also had another
+on top of that we also had another requirement which was a design
+requirement which was a design requirement that the physics-driven halo
+requirement that the physics-driven halo sandbox had to feel the same across all
+sandbox had to feel the same across all of our targets
+of our targets and not only that it was a design and
+and not only that it was a design and design equipment was actually a
+design equipment was actually a technical requirement
+technical requirement because
+because our
+our gameplay networking model for halo
+gameplay networking model for halo infinite actually relies on near
+infinite actually relies on near determinism for all of our physics
+determinism for all of our physics driven sandbox the core of our
+driven sandbox the core of our simulation
+simulation this is in order to do something that we
+this is in order to do something that we call deterministic reproduction and i'm
+call deterministic reproduction and i'm not going to get into details of how
+not going to get into details of how that that
+of halo 5 gamepl which we
+which we we named tetris scheduling
+we named tetris scheduling so this is the same picture that i
+so this is the same picture that i showed at the beginning of the
+showed at the beginning of the presentation
+presentation the approximate halo 5 frame on the xbox
+the approximate halo 5 frame on the xbox one cpu
+one cpu if we focus on that box there we see
+if we focus on that box there we see some workloads running on the worker
+some workloads running on the worker threads we have audio simulation the ai
+threads we have audio simulation the ai pre-update a few other things
+pre-update a few other things so the ai pre-update specifically was
+so the ai pre-update specifically was scheduled early on by the main thread by
+scheduled early on by the main thread by the main loop it would say okay let's do
+the main loop it would say okay let's do the ap update now on this worker let's
+the ap update now on this worker let's say worker two
+say worker two and then it would do some more stuff and
+and then it would do some more stuff and sometime later it would synchronize with
+sometime later it would synchronize with the end of that work and continue ai
+the end of that work and continue ai execution on the main thread with the ai
+execution on the main thread with the ai update
+update this was scheduled this way because we
+this was scheduled this way because we knew that early on in the simulation
+knew that early on in the simulation frame in that specific spot on the xbox
+frame in that specific spot on the xbox one cpu we would have had idle time that
+one cpu we would have had idle time that that core would have been able to
+that core would have been able to execute that workload at least in an
+execute that workload at least in an average frame and this was not the only
+average frame and this was not the only case a lot of workloads were
+case a lot of workloads were scheduled this way where we hand crafted
+scheduled this way where we hand crafted this manual schedule of game systems to
+this manual schedule of game systems to try and maximize the utilization of the
+try and maximize the utilization of the xbox one cpu
+xbox one cpu but obviously
+but obviously this solution does not scale well at all
+this solution does not scale well at all to cpus of different sizes if you
+to cpus of different sizes if you consider the scenario where we have a pc
+consider the scenario where we have a pc cpu with 20 logical cores then we can
+cpu with 20 logical cores then we can either change the number of threads but
+either change the number of threads but then we also have to change this
+then we also have to change this handcrafted schedule of game systems on
+handcrafted schedule of game systems on the various threads or we cannot change
+the various threads or we cannot change the number of threads and leave this
+the number of threads and leave this xbox one configuration only which means
+xbox one configuration only which means that we're gonna dramatically
+that we're gonna dramatically underutilize the hardware
+underutilize the hardware similarly if you have a small pc cpu
+similarly if you have a small pc cpu with only four logical cores then either
+with only four logical cores then either we have to change the number of threads
+we have to change the number of threads and reschedule everything again or we
+and reschedule everything again or we can leave this the same number of
+can leave this the same number of threads but there's an assumption here
+threads but there's an assumption here that we can run all these threads
+that we can run all these threads simultaneously and that's just not true
+simultaneously and that's just not true if you only have four logical cores so
+if you only have four logical cores so you're gonna interfere with your own
+you're gonna interfere with your own workloads
+workloads so this didn't scale well at all for us
+so this didn't scale well at all for us but it was also an additional problem
+but it was also an additional problem which was a maintenance problem with
+which was a maintenance problem with this solution so let's get into that
+so this is pseudocode that shows what i just described early on in the main loop
+just described early on in the main loop we will schedule the ai pre-update then
+we will schedule the ai pre-update then we do some more stuff at some point we
+we do some more stuff at some point we wait for it and then we perform the ai
+wait for it and then we perform the ai update on the main loop great
+update on the main loop great so for hello infinite let's say that
+so for hello infinite let's say that there's a new engineer they're writing a
+there's a new engineer they're writing a system the system is updating the player
+system the system is updating the player aim vector just making things up here
+aim vector just making things up here and they need to take the system every
+and they need to take the system every frame so they find a spot in the main
+frame so they find a spot in the main loop they stick it right there
+loop they stick it right there everything works great
+now someone else comes along and they're looking at the system and it turns out
+looking at the system and it turns out that the player aim update system is
+that the player aim update system is pretty long and because sitting on the
+pretty long and because sitting on the main loop is making our simulation long
+main loop is making our simulation long pole longer so we want to we want to
+pole longer so we want to we want to move it to a threaded to a thread and
+move it to a threaded to a thread and and parallelize it with the rest of the
+and parallelize it with the rest of the stuff that is happening on the main loop
+stuff that is happening on the main loop so i'm looking at i'm looking at this
+so i'm looking at i'm looking at this code and i'm like
+code and i'm like okay does the player aim update system
+okay does the player aim update system have to finish
+have to finish or have to start after the pre-update is
+or have to start after the pre-update is done
+done does it have to finish before the ai
+does it have to finish before the ai update on the main thread can execute
+update on the main thread can execute it's really impossible to tell just
+it's really impossible to tell just looking at this code
+looking at this code and there were a lot of implicit
+and there were a lot of implicit dependencies that were just implicit in
+dependencies that were just implicit in the way the code was written or
+the way the code was written or the code was scheduled
+the code was scheduled and in order for me to do this operation
+and in order for me to do this operation safely of moving the
+safely of moving the that workload on a thread i need to do a
+that workload on a thread i need to do a deep inspection of all the systems
+deep inspection of all the systems involved or have that tribal knowledge
+involved or have that tribal knowledge somehow
+somehow but this is obviously extremely
+but this is obviously extremely simplified our situation was much more
+simplified our situation was much more complicated than this but this is more
+complicated than this but this is more representative multiple systems were
+representative multiple systems were being added to halo infinite or
+being added to halo infinite or rewritten to implement new gameplay
+rewritten to implement new gameplay functionality
+functionality and
+and we also had branching code paths that
+we also had branching code paths that were scheduling workloads differently
+were scheduling workloads differently depending on the game mode
+depending on the game mode so
+so this was quickly becoming
+this was quickly becoming a maintenance nightmare for us
+a maintenance nightmare for us it was very hard to maintain this code
+it was very hard to maintain this code efficient as systems were being added or
+efficient as systems were being added or written and new engineers writing new
+written and new engineers writing new systems
+systems were very hard to onboard
+were very hard to onboard on on how to write efficient code so
+on on how to write efficient code so they would default to doing the simplest
+they would default to doing the simplest thing possible which was just adding the
+thing possible which was just adding the systems to the main main loop
+systems to the main main loop long pole
+long pole because they were also completely thrown
+because they were also completely thrown off by all the overhead of this step
+off by all the overhead of this step this this um
+this this um this threaded this cabinet works in a
+this threaded this cabinet works in a threaded manner
+threaded manner and by these implicit dependencies they
+and by these implicit dependencies they just didn't have that knowledge required
+just didn't have that knowledge required so this led to a massive bowl of
+so this led to a massive bowl of spaghetti nightmare maintenance i wanted
+spaghetti nightmare maintenance i wanted to bring for this light i wanted to
+to bring for this light i wanted to bring a really ugly bowl of spaghetti to
+bring a really ugly bowl of spaghetti to to carry the message but
+to carry the message but you should know that i'm italian and i
+you should know that i'm italian and i grew up in italy so i i would never
+grew up in italy so i i would never disrespect spaghetti
+disrespect spaghetti so
+so here's a very inviting plate of pasta
+here's a very inviting plate of pasta for you instead
+for you instead but believe me this was actually a
+but believe me this was actually a really big problem for us
+really big problem for us okay so now we can finally move on to
+okay so now we can finally move on to hello infinite
+we're going to start discussing how we solve the problem of achieving viable
+solve the problem of achieving viable frame rate
+remember we only had the game tick the game tick was consuming 16 millisecond
+game tick was consuming 16 millisecond intervals of time every time and we
+intervals of time every time and we didn't want to be stuck with this
+didn't want to be stuck with this stuttery simulation of 16 percent
+stuttery simulation of 16 percent semi-second intervals
+semi-second intervals so what do we do
+so what do we do we split the time consumed by the engine
+we split the time consumed by the engine in two different kinds of time
+in two different kinds of time we kept the concept of fixed update time
+we kept the concept of fixed update time that is still consumed in 60 percent
+that is still consumed in 60 percent millisecond intervals inside the game
+millisecond intervals inside the game tick just like it happened in halo 5.
+tick just like it happened in halo 5. now systems that
+now systems that require a fixed update rate to maintain
+require a fixed update rate to maintain their behavior
+their behavior consistent or that are part of our
+consistent or that are part of our feminist network simulation
+feminist network simulation framework and sandbox
+framework and sandbox they are then called fixed update
+they are then called fixed update systems and they are they consume fixed
+systems and they are they consume fixed update time and they're still updating
+update time and they're still updating inside the game tick just like you
+inside the game tick just like you happen in halo 5.
+this includes for instance our physics simulation which is the core of the halo
+simulation which is the core of the halo sandbox
+sandbox but we also introduced the concept of
+but we also introduced the concept of viable update time this is the actual
+viable update time this is the actual time delta since the beginning of the
+time delta since the beginning of the previous frame
+previous frame and
+and for systems that are able to maintain
+for systems that are able to maintain their behavior more or less consistent
+their behavior more or less consistent when consuming a different amount of
+when consuming a different amount of time and this time could change every
+time and this time could change every frame potentially
+frame potentially and systems that are pretty much eye
+and systems that are pretty much eye candy are not really affecting the the
+candy are not really affecting the the deterministic sandbox simulation of halo
+deterministic sandbox simulation of halo then we can convert them to
+then we can convert them to consuming this time this kind of time
+consuming this time this kind of time and we call them viable frame rate
+and we call them viable frame rate systems
+systems these systems are still updated as part
+these systems are still updated as part of the
+of the simulation loop but they're updated
+simulation loop but they're updated outside of the game tick
+outside of the game tick also note in hello infinite terminology
+also note in hello infinite terminology i'm going to use game tick and fix
+i'm going to use game tick and fix updates interchangeably since there are
+updates interchangeably since there are synonyms for us so i'm going to use them
+synonyms for us so i'm going to use them interchangeably for the rest of the
+interchangeably for the rest of the presentation
+presentation okay so let's look at an example
+okay so let's look at an example if the engine is configuring the
+if the engine is configuring the contrived way to run a 40 fps which i
+contrived way to run a 40 fps which i know never nobody would ever do this but
+know never nobody would ever do this but just as an example
+just as an example then
+then every frame if we don't have any
+every frame if we don't have any performance issues is 25 milliseconds
+performance issues is 25 milliseconds that is going to be the amount of viable
+that is going to be the amount of viable update time that variable frame rate
+update time that variable frame rate systems will consume every frame
+systems will consume every frame but for fixed update systems that they
+but for fixed update systems that they have to keep on par with the viable
+have to keep on par with the viable update timeline they are going to update
+update timeline they are going to update they're going to have to update three
+they're going to have to update three times in two frames because three times
+times in two frames because three times 16 percent milliseconds is 50
+16 percent milliseconds is 50 milliseconds
+milliseconds and so we end up with this really
+and so we end up with this really interesting execution pattern of one or
+interesting execution pattern of one or two game ticks in alternating frames
+so this is all well and good and we
+this is all well and good and we understand now that variable frame rate
+understand now that variable frame rate systems because they're updating every
+systems because they're updating every frame and they're consuming the right
+frame and they're consuming the right amount of time but regardless of the
+amount of time but regardless of the frame rate they're going to be able to
+frame rate they're going to be able to show smooth progress but what about
+show smooth progress but what about fixed update systems those are still
+fixed update systems those are still some of the systems that we care the
+some of the systems that we care the most about like our physical simulation
+most about like our physical simulation well we what we did is we introduced an
+well we what we did is we introduced an additional systems that we call twinning
+additional systems that we call twinning and it's an interpolation system whose
+and it's an interpolation system whose job is to project the result of fixed
+job is to project the result of fixed update systems from the fixed update
+update systems from the fixed update timeline into the viable update timeline
+timeline into the viable update timeline and this is in order to give the player
+and this is in order to give the player the illusion of smooth motion even
+the illusion of smooth motion even though the simulation is not actually
+though the simulation is not actually advancing at that rate
+advancing at that rate let's look at an example
+let's look at an example so here's the game configured to run at
+so here's the game configured to run at 120 fps so this could be
+120 fps so this could be xbox series x for instance in
+xbox series x for instance in performance
+performance mode and assuming that we don't have any
+mode and assuming that we don't have any performance issue just for simplicity
+performance issue just for simplicity then each frame is 8.33 milliseconds of
+then each frame is 8.33 milliseconds of time and that's the amount of time that
+time and that's the amount of time that viable update systems are going to
+viable update systems are going to consume every frame
+so because fixed update systems only
+because fixed update systems only consume time in in discrete intervals or
+consume time in in discrete intervals or sixty-four design with seconds of time
+sixty-four design with seconds of time then we only need one fixed update every
+then we only need one fixed update every two frames
+two frames which makes this impossible so many
+which makes this impossible so many seconds
+seconds and so we end up with this pattern of
+and so we end up with this pattern of one or zero fixed updates in alternating
+one or zero fixed updates in alternating frames at 120 fps
+frames at 120 fps and so after our simulation is complete
+and so after our simulation is complete before we publish the results to the
+before we publish the results to the renderer what we're going to do is we're
+renderer what we're going to do is we're going to interpolate in memory the
+going to interpolate in memory the results of the two most recent fixed
+results of the two most recent fixed updates that we have
+updates that we have completed
+completed and this is in order to project on the
+and this is in order to project on the bible update timeline at the right time
+bible update timeline at the right time so here's an example frame just let's
+so here's an example frame just let's focus on that for a second so this frame
+focus on that for a second so this frame doesn't actually have any fixed update
+doesn't actually have any fixed update or even we're not going to step in
+or even we're not going to step in physics this frame at all but we still
+physics this frame at all but we still have a memory the results for fix update
+have a memory the results for fix update one and fix a bit too so we can use them
+one and fix a bit too so we can use them and we're going to interpolate
+and we're going to interpolate at the right time before producing the
+at the right time before producing the results that we're gonna we're gonna
+results that we're gonna we're gonna send to the renderer
+send to the renderer so in this slide i have used dark blue
+so in this slide i have used dark blue and light blue as a blend to show the
+and light blue as a blend to show the blending going into the render cpu frame
+okay great so this we understand the strategy
+strategy but let's focus on the input for a
+but let's focus on the input for a second this is the input for this frame
+second this is the input for this frame so this input is consumed normally by
+so this input is consumed normally by viable framerate systems updating this
+viable framerate systems updating this frame
+frame but because we're not updating any fixed
+but because we're not updating any fixed update systems
+update systems they can't consume this input and the
+they can't consume this input and the fixed update system results that we're
+fixed update system results that we're using to draw the frame this frame
+using to draw the frame this frame are actually coming from previous frames
+are actually coming from previous frames so we definitely didn't consume this
+so we definitely didn't consume this input for those fixed update
+input for those fixed update so effectively what this approach
+so effectively what this approach materialism does is it adds an
+materialism does is it adds an additional latency to any input that is
+additional latency to any input that is affecting fixed update system results
+affecting fixed update system results and that latency has the minimum of the
+and that latency has the minimum of the symposium milliseconds of time which is
+symposium milliseconds of time which is our update rate for fixed update systems
+our update rate for fixed update systems another interesting thing is
+another interesting thing is notice how some frames have a fixed
+notice how some frames have a fixed update and some frames do not on the
+update and some frames do not on the simulation this means that we have every
+simulation this means that we have every frame we have a variable amount of cpu
+frame we have a variable amount of cpu work to do in the simulation which could
+work to do in the simulation which could be a performance concern
+be a performance concern now in practice this wasn't an issue for
+now in practice this wasn't an issue for us because in all the platforms where we
+us because in all the platforms where we were aiming for more than 60 fps we were
+were aiming for more than 60 fps we were not cpu bound typically so this slight
+not cpu bound typically so this slight oscillation of workload was not a big
+oscillation of workload was not a big problem for us in practice
+problem for us in practice okay so going back to that contrived
+okay so going back to that contrived example of 40fps
+example of 40fps then the situation is identical
+then the situation is identical we are still going to interpolate
+we are still going to interpolate between the results of the two most
+between the results of the two most recent fixed updates that we have in
+recent fixed updates that we have in memory
+memory so focusing on that frame there for
+so focusing on that frame there for instance we're going to interpolate
+instance we're going to interpolate between the results of 62 and 63 before
+between the results of 62 and 63 before publishing the results to the renderer
+publishing the results to the renderer and it just so happens that this frame
+and it just so happens that this frame these two fixed updates are within the
+these two fixed updates are within the simulation frame
+simulation frame that we are in but that's just because
+that we are in but that's just because the the engine is running slower because
+the the engine is running slower because we're 40 fps instead of 120 fps but the
+we're 40 fps instead of 120 fps but the strategy is exactly the same
+strategy is exactly the same okay so we chose to interpolate
+okay so we chose to interpolate but we could have extrapolated instead
+but we could have extrapolated instead so with extrapolation basically what
+so with extrapolation basically what that means is we start from the fixed
+that means is we start from the fixed update system results of the latest game
+update system results of the latest game tick and then we project them forward in
+tick and then we project them forward in time instead of interpolating between
+time instead of interpolating between past results
+past results so if we do that then we're able to
+so if we do that then we're able to recover some of that
+recover some of that additional input literacy that i talked
+additional input literacy that i talked about for fix of the system results
+about for fix of the system results however we can even
+however we can even we can produce incorrect results and so
+we can produce incorrect results and so we need to have a strategy to recover on
+we need to have a strategy to recover on the incorrect extrapolation so it is a
+the incorrect extrapolation so it is a choice but we chose to interpolate and
+choice but we chose to interpolate and never extrapolate
+never extrapolate also what is that we interpolate where
+also what is that we interpolate where we interpolate all object transforms and
+we interpolate all object transforms and the transforms of all their nodes which
+the transforms of all their nodes which are basically the
+are basically the limbs of character and things that
+limbs of character and things that represent poses of characters
+represent poses of characters and we
+and we always do linear interpolation even for
+always do linear interpolation even for rotations because we know that the two
+rotations because we know that the two samples that we're we're interpreting
+samples that we're we're interpreting between are always exactly just imposing
+between are always exactly just imposing significance apart
+significance apart and so it turns out that we didn't
+and so it turns out that we didn't actually need that additional accuracy
+actually need that additional accuracy of slurp for rotations
+of slurp for rotations also we only process objects that are
+also we only process objects that are actually actively moving in the
+actually actively moving in the simulation
+simulation and so objects that are asleep on the
+and so objects that are asleep on the ground that are not really moving we
+ground that are not really moving we don't process at all so there's some
+don't process at all so there's some acquisitions in place
+acquisitions in place okay so focus on xbox one then
+okay so focus on xbox one then because xbox one was a 30 fps platform
+because xbox one was a 30 fps platform or target platform
+or target platform then we have to do two fixed updates
+then we have to do two fixed updates every frame in the simulation
+every frame in the simulation but xbox one was also one of our hardest
+but xbox one was also one of our hardest cpu targets for optimization because
+cpu targets for optimization because it's a very slow cpu nowadays
+it's a very slow cpu nowadays so what we did in our optimization
+so what we did in our optimization efforts is we focused on converting into
+efforts is we focused on converting into viable frame rate as many heavy hitting
+viable frame rate as many heavy hitting cpu systems as possible that were
+cpu systems as possible that were previously inside the game tick and we
+previously inside the game tick and we successfully converted a bunch of them
+successfully converted a bunch of them and there's an incomplete list on the
+and there's an incomplete list on the slide but mainly we brought out of the
+slide but mainly we brought out of the game tick
+game tick design scripting updates ai logic
+design scripting updates ai logic updates a bunch of player updates audio
+updates a bunch of player updates audio lights effects and more
+and for the systems that had to remain inside the game tick because they were
+inside the game tick because they were part of the deterministic network
+part of the deterministic network simulation of the game
+simulation of the game then we focus on shrinking their
+then we focus on shrinking their workloads as much as possible until they
+workloads as much as possible until they fit into the fit until we were able to
+fit into the fit until we were able to fit two fixed updates inside the xbox
+fit two fixed updates inside the xbox one frame in our worst case scenarios
+okay so we understand our variable frame rate model a little bit now we're gonna
+rate model a little bit now we're gonna get to look at it in practice when we
+get to look at it in practice when we dissect together one frame towards the
+dissect together one frame towards the end
+end in hello infinite but before we go there
+in hello infinite but before we go there let's look at these are our solutions
+let's look at these are our solutions around
+around achieving maintainable scalability
+achieving maintainable scalability across cpus of different size
+across cpus of different size okay
+okay so
+so you remember we had a territory
+you remember we had a territory scheduling problem where
+scheduling problem where we had specialized worker threads we
+we had specialized worker threads we were trying to handcraft the schedule of
+were trying to handcraft the schedule of game systems to try and fill up the xbox
+game systems to try and fill up the xbox one cpu
+one cpu and it was just not scaling for us it
+and it was just not scaling for us it was giving a lot of maintenance grief
+was giving a lot of maintenance grief so what did we do
+so what did we do well
+well what we thought what we did is instead
+what we thought what we did is instead of explicitly scheduling the work
+of explicitly scheduling the work and creating these implicit dependencies
+and creating these implicit dependencies that we talked about
+that we talked about let's declare the work up front the work
+let's declare the work up front the work items up front and call them jobs and
+items up front and call them jobs and declare their dependencies up front
+declare their dependencies up front which are job dependencies and then let
+which are job dependencies and then let the system implicitly schedule it
+the system implicitly schedule it and so we wrote a new job system for
+and so we wrote a new job system for this
+this and here's a small pseudocode example
+and here's a small pseudocode example for him the job system is a singleton
+for him the job system is a singleton we can create a job graph within the job
+we can create a job graph within the job system and i'm adding two jobs to it job
+system and i'm adding two jobs to it job a and job b
+a and job b and then i can create a dependency
+and then i can create a dependency between these two jobs specifying that
+between these two jobs specifying that job a has to complete before job b can
+job a has to complete before job b can start
+start and an estimated for execution the job
+and an estimated for execution the job system's
+system's role is to take this job graph and run
+role is to take this job graph and run it execute it on the available execution
+it execute it on the available execution resources according to the dependencies
+resources according to the dependencies so looking at a quick example
+so looking at a quick example here's a
+here's a simple job
+simple job graph if the job system is given this
+graph if the job system is given this job graph to execute it's gonna be able
+job graph to execute it's gonna be able to start job one immediately because
+to start job one immediately because there's no dependencies on it and then
+there's no dependencies on it and then when jump one is complete job two and
+when jump one is complete job two and job four will be able to start
+job four will be able to start to start and run potentially
+to start and run potentially simultaneously if there is enough
+simultaneously if there is enough execution resources
+execution resources and so on and so forth
+and so on and so forth but because we were adding these systems
+but because we were adding these systems to an existing code base and we still
+to an existing code base and we still had a lot of legacy thread driven work
+had a lot of legacy thread driven work specifically from the main thread the
+specifically from the main thread the render thread we didn't want to have to
+render thread we didn't want to have to rewrite all that we didn't have the time
+rewrite all that we didn't have the time so what we did is we added a mechanism
+so what we did is we added a mechanism to synchronize legacy thread driven work
+to synchronize legacy thread driven work with new style jobified work and we call
+with new style jobified work and we call this mechanism sync points
+this mechanism sync points the idea is you can add sync points to a
+the idea is you can add sync points to a job graph and jobs can take predecessor
+job graph and jobs can take predecessor or successor dependencies on sync points
+or successor dependencies on sync points just like they do with other jobs
+just like they do with other jobs and effectively what happens when i'm
+and effectively what happens when i'm executing this job graph here is main
+executing this job graph here is main thread is executing happily and the main
+thread is executing happily and the main thread gets to hits the sync point one
+thread gets to hits the sync point one on its execution path
+on its execution path main thread is not gonna be able to to
+main thread is not gonna be able to to move beyond that sync point until job
+move beyond that sync point until job two is also completed and similarly job
+two is also completed and similarly job six will not be able to start until
+six will not be able to start until main threads execution has moved beyond
+main threads execution has moved beyond 6.1
+6.1 we can look at a quick code example for
+we can look at a quick code example for that so we still have the job graph here
+that so we still have the job graph here and this time i'm adding a sync point
+and this time i'm adding a sync point called syn point x
+called syn point x and as you can see from the box on the
+and as you can see from the box on the bottom right that seem point is
+bottom right that seem point is triggered as part of the main threads
+triggered as part of the main threads execution so it's effectively splitting
+execution so it's effectively splitting the main threads execution loop into two
+the main threads execution loop into two logical workloads workload one and
+logical workloads workload one and workload two
+workload two and on top of that i'm just i'm then
+and on top of that i'm just i'm then adding two jobs job and job b and then
+adding two jobs job and job b and then creating dependencies like this job a to
+creating dependencies like this job a to sync point x
+sync point x and sim point x to job b
+and sim point x to job b so what i've done with this job graph is
+so what i've done with this job graph is i created a dependency chain where
+i created a dependency chain where workload one has to complete before job
+workload one has to complete before job b can start and similarly job a has to
+b can start and similarly job a has to complete before workload 2 can start so
+complete before workload 2 can start so we're able to take this mixed
+we're able to take this mixed legacy and new style dependencies with
+legacy and new style dependencies with this system
+this system okay so armed with this
+okay so armed with this with these new tools then for the
+with these new tools then for the simulation we introduced two kinds of
+simulation we introduced two kinds of job graph the frame drop graph is
+job graph the frame drop graph is responsible
+responsible for
+for updating all viable frame rate systems
+updating all viable frame rate systems so it's get it gets created and submit
+so it's get it gets created and submit for execution at the beginning of every
+for execution at the beginning of every frame and it updates all the valuable
+frame and it updates all the valuable framework systems
+framework systems and on top of that that job graph is
+and on top of that that job graph is also responsible for building and
+also responsible for building and submitting for execution a number of
+submitting for execution a number of fixed update job graphs depending on how
+fixed update job graphs depending on how many fixed updates we want to do this
+many fixed updates we want to do this frame
+frame so for instance in the case of a frame
+so for instance in the case of a frame with two game ticks we're going to have
+with two game ticks we're going to have the frame job graph doing wearable
+the frame job graph doing wearable update systems work and then that's
+update systems work and then that's going to submit sorry construct and
+going to submit sorry construct and submit two fixed stage of graphs to
+submit two fixed stage of graphs to perform the two game ticks
+okay so job graph systems adoption for us was very good it was indeed used as
+us was very good it was indeed used as intended to re-implement
+intended to re-implement a lot of our tetris schedule systems
+a lot of our tetris schedule systems this included all of our ai systems our
+this included all of our ai systems our scripting our design scripting systems
+scripting our design scripting systems physics systems fx and light simulation
+physics systems fx and light simulation and more
+and more but even better it was consistently
+but even better it was consistently adopted for new systems that were
+adopted for new systems that were being added to halo infinite
+an iceberg of this system is because engineers had to write had to add all
+engineers had to write had to add all the items of work and their dependencies
+the items of work and their dependencies up front
+up front then
+then they would also would often end up
+they would also would often end up adding all these jobs and dependencies
+adding all these jobs and dependencies for a very high level system inside a
+for a very high level system inside a single file for instance we had this ai
+single file for instance we had this ai job schedule the cpp that contained all
+job schedule the cpp that contained all of our high-level ai workloads and their
+of our high-level ai workloads and their dependencies so an engineer was able to
+dependencies so an engineer was able to crack open this file and understand at a
+crack open this file and understand at a high level how execution of this
+high level how execution of this overarching system worked
+overarching system worked so this was this was a nice perk for us
+so this was this was a nice perk for us but an even better result of introducing
+but an even better result of introducing this system is that it was actually used
+this system is that it was actually used to
+to implement our new multi-threaded
+implement our new multi-threaded renderer
+renderer so
+so halo 5 had a mostly single threaded
+halo 5 had a mostly single threaded renderer and used a lot of
+renderer and used a lot of console specific tricks to achieve
+console specific tricks to achieve extremely high execution efficiency with
+extremely high execution efficiency with very low cpu bandwidth
+very low cpu bandwidth but for in for halo infinite we are
+but for in for halo infinite we are moving away from console only
+moving away from console only and direct3d for pc has a lot more
+and direct3d for pc has a lot more overhead and on top of that we also
+overhead and on top of that we also wanted to reintroduce prescreen in the
+wanted to reintroduce prescreen in the franchise which obviously means a lot
+franchise which obviously means a lot more cpu work in the renderer and we
+more cpu work in the renderer and we were also adding a whole slew of new
+were also adding a whole slew of new rendering techniques
+rendering techniques so we realized early on that we had to
+so we realized early on that we had to lean heavily on multi-threaded rendering
+lean heavily on multi-threaded rendering for hello infinite to work and be
+for hello infinite to work and be performant so we use the job system to
+performant so we use the job system to implement this and halo infinite now has
+implement this and halo infinite now has no render thread at all it's just jobs
+no render thread at all it's just jobs here's an in-game visualization
+here's an in-game visualization it's a debug tool that shows job graphs
+it's a debug tool that shows job graphs and here's showing the render geograph
+and here's showing the render geograph it's kind of hard to see
+it's kind of hard to see but each box here is a job and the lines
+but each box here is a job and the lines between them are dependencies between
+between them are dependencies between jobs for the render job graph
+jobs for the render job graph even though you probably can't read
+even though you probably can't read anything in here you can you can note
+anything in here you can you can note that there is quite a lot of potential
+that there is quite a lot of potential parallelism between these jobs in the
+parallelism between these jobs in the language of graph so you know this
+language of graph so you know this is it can go pretty parallel depending
+is it can go pretty parallel depending on how much
+on how much availability there is on the cpu
+availability there is on the cpu and the blue boxes here in the picture
+and the blue boxes here in the picture are part of the
+are part of the render job graph critical path so those
+render job graph critical path so those are the jobs that you may want to focus
+are the jobs that you may want to focus on if you're trying to optimize
+on if you're trying to optimize end-to-end time
+end-to-end time so yeah in this jobified world then our
+so yeah in this jobified world then our optimization effort became optimizing
+optimization effort became optimizing jobs that are along the critical path or
+jobs that are along the critical path or if we have available
+if we have available execution resources because we're not
+execution resources because we're not using the cpu as efficiently as we could
+using the cpu as efficiently as we could then we can also focus on
+either achieving better parallelism by either
+achieving better parallelism by either reshuffling these jobs or relaxing their
+reshuffling these jobs or relaxing their dependencies
+dependencies if we're able to
+if we're able to and another note is another thing to
+and another note is another thing to note is that other than
+note is that other than online inspection tools in-game we also
+online inspection tools in-game we also had offline inspection tools that
+had offline inspection tools that allowed us to dump out a job graph and
+allowed us to dump out a job graph and then look at its topology in our in our
+then look at its topology in our in our in on our own time without running the
+in on our own time without running the game
+game okay so
+okay so i mentioned that the job systems
+i mentioned that the job systems role
+role was to schedule jobs
+was to schedule jobs on the available execution resources but
+on the available execution resources but what are those resolution resources in
+what are those resolution resources in practice
+practice so halo 5 as i showed before had a set
+so halo 5 as i showed before had a set of worker threads and they were
+of worker threads and they were specialized so they were able to pick up
+specialized so they were able to pick up specific kinds of work depending on the
+specific kinds of work depending on the worker thread
+worker thread for halo infinite we don't have
+for halo infinite we don't have specialized workflows anymore we only
+specialized workflows anymore we only have generic worker threads and the real
+have generic worker threads and the real we call we have a pool of these worker
+we call we have a pool of these worker threads that run a high priority and we
+threads that run a high priority and we call them real-time worker threads and
+call them real-time worker threads and these threads are the ones responsible
+these threads are the ones responsible for picking up and executing all
+for picking up and executing all simulation and rendering jobs in the
+simulation and rendering jobs in the engine
+engine so together with the main thread that is
+so together with the main thread that is still doing simulation work for us then
+still doing simulation work for us then these jobs are sorry these threads are
+these jobs are sorry these threads are the ones that are responsible for
+the ones that are responsible for upkeeping the frame rate of the game
+upkeeping the frame rate of the game and these are mainly the execution
+and these are mainly the execution resources that the job system targets
+resources that the job system targets for for its dispatch on jobs
+for for its dispatch on jobs other than these threads we also have a
+other than these threads we also have a set of background workers that are that
+set of background workers that are that run a lower priority and we use them for
+for more latency cloud work like disguise and some streaming stuff
+disguise and some streaming stuff and beyond this we also have a set of
+and beyond this we also have a set of third party and legacy threads that we
+third party and legacy threads that we like to call spurious we call them
+like to call spurious we call them spurious because we wish they didn't
+spurious because we wish they didn't exist
+exist in practice when you use a lot of
+in practice when you use a lot of third-party software there's a lot of
+third-party software there's a lot of third-party software that likes to
+third-party software that likes to create their own threads
+create their own threads and but unfortunately for us because we
+and but unfortunately for us because we are running these real-time workers at
+are running these real-time workers at high priority and they are so
+high priority and they are so they need to continue executing in order
+they need to continue executing in order for us to keep our frame rate stable
+for us to keep our frame rate stable then we really we really have to be
+then we really we really have to be careful about interference on these
+careful about interference on these real-time workers like context switch
+real-time workers like context switch and other threats coming and stealing
+and other threats coming and stealing our cores
+our cores because they are responsible for
+because they are responsible for executing all of our all of our
+executing all of our all of our simulation rendering works competitively
+simulation rendering works competitively like the jobs around cooperative
+like the jobs around cooperative scheduling
+scheduling so what we do for these spurious threads
+so what we do for these spurious threads is we configure them very carefully one
+is we configure them very carefully one like one by one to try and maximize
+like one by one to try and maximize their disruption with on real-time
+their disruption with on real-time workers depending on the case some of
+workers depending on the case some of them need some real-time constraints
+them need some real-time constraints some of them can can wait a long time so
+some of them can can wait a long time so we can be more aggressive on those
+we can be more aggressive on those okay so we're gonna now look at this
+okay so we're gonna now look at this threading model and how it adapts to
+threading model and how it adapts to various platforms
+various platforms so we're gonna start with xbox one
+so we're gonna start with xbox one so again xbox one eight physical cores
+so again xbox one eight physical cores seven accessible to the game with cpu
+seven accessible to the game with cpu six the last score
+six the last score or seventh core being half share with
+or seventh core being half share with the system
+the system so we still have the main thread up
+so we still have the main thread up maintains cpu zero
+maintains cpu zero and in hello infinite we have now five
+and in hello infinite we have now five real-time workers generic real-time
+real-time workers generic real-time workers that
+workers that help out on simulation and rendering
+help out on simulation and rendering work
+work they
+they are athleticized to their own core cpu
+are athleticized to their own core cpu one through cpu five
+one through cpu five and they're on a high priority as i said
+and they're on a high priority as i said on top of that they also
+on top of that they also when they run out of jobs to execute
+when they run out of jobs to execute immediately we actually don't
+immediately we actually don't immediately yield the core we spin for a
+immediately yield the core we spin for a few microseconds around 200 microseconds
+few microseconds around 200 microseconds just in case there's other jobs that are
+just in case there's other jobs that are about to be scheduled because the
+about to be scheduled because the dependencies are satisfied we do this
+dependencies are satisfied we do this because
+because turns out that the cost of putting one
+turns out that the cost of putting one of these threads to sleep and then
+of these threads to sleep and then rewick it when additional jobs come
+rewick it when additional jobs come along is higher than just
+along is higher than just most of the time spin for a little bit
+most of the time spin for a little bit and wait for jobs to come in
+and wait for jobs to come in so we use this trick on console because
+so we use this trick on console because we know that the hardware is dedicated
+we know that the hardware is dedicated to us so we don't have to worry about
+to us so we don't have to worry about interference
+interference then we have a set of background worker
+then we have a set of background worker threads these are actually able to roam
+threads these are actually able to roam across cpus but they're on a lower
+across cpus but they're on a lower priority so they're never gonna
+priority so they're never gonna interrupt real-time workers and often
+interrupt real-time workers and often they're gonna find space to run on cpu
+they're gonna find space to run on cpu six which is our half share core
+six which is our half share core and then we have a set of spurious
+and then we have a set of spurious worker threads that are configured on a
+worker threads that are configured on a case-by-case basis
+series x is similar but interestingly different so first of all series x also
+different so first of all series x also exposes eight physical cores
+exposes eight physical cores but this time
+but this time cpu6 the seventh core is exclusive to
+cpu6 the seventh core is exclusive to the title so that's good
+the title so that's good on top of that the console
+on top of that the console ns offer a
+ns offer a optional mode of execution called
+optional mode of execution called simultaneous multithreading which allows
+simultaneous multithreading which allows the game to run two threads
+the game to run two threads simultaneously on each physical course
+simultaneously on each physical course effectively leveraging
+effectively leveraging two logical core two logical cores for
+two logical core two logical cores for each physical core
+the price you pay then is that the clock rate slows down a little bit from 3.8 to
+rate slows down a little bit from 3.8 to 3.6 gigahertz
+3.6 gigahertz but it's it's quite common to get a
+but it's it's quite common to get a performance boost using smt
+performance boost using smt so we tested both and we ended up
+so we tested both and we ended up deciding not to use it at least for now
+deciding not to use it at least for now so here infinite runs without smt
+so here infinite runs without smt enabled
+enabled but we still create an additional real
+but we still create an additional real time worker thread on cpu 6
+time worker thread on cpu 6 because this time the cpu is dedicated
+because this time the cpu is dedicated to us so we can or exclusive to us so we
+to us so we can or exclusive to us so we can actually use it as a regular
+can actually use it as a regular dedicated core
+and just like on series just like on xbox one we even see
+xbox one we even see even on csx spin for a little bit after
+even on csx spin for a little bit after we run out of jobs to execute
+we run out of jobs to execute and this allows us to avoid needless
+and this allows us to avoid needless content switch or need less and frequent
+content switch or need less and frequent content conflict context switches
+content conflict context switches and allows us to achieve very high
+and allows us to achieve very high execution efficiency on the console
+on windows pc the situation is very different so windows pc is not a
+different so windows pc is not a dedicated platform it's a shared
+dedicated platform it's a shared platform and there's other programs
+platform and there's other programs running on it and the os may decide at
+running on it and the os may decide at any point to shrink our available
+any point to shrink our available execution resources
+execution resources so what that means is that for our cpu
+so what that means is that for our cpu execution we try to be as flexible as
+execution we try to be as flexible as possible and
+possible and if in practice that means that we never
+if in practice that means that we never affinitize we allow any thread to run on
+affinitize we allow any thread to run on any core we still prioritize the threads
+any core we still prioritize the threads relative to one another
+relative to one another and we also try and avoid spinning as
+and we also try and avoid spinning as much as possible and yield the cpus as
+much as possible and yield the cpus as quickly as we can and we do this
+quickly as we can and we do this because
+because if we are in that scenario where
+if we are in that scenario where the operating system is reducing our
+the operating system is reducing our available execution resources and we
+available execution resources and we have fewer cpu for fewer cores available
+have fewer cpu for fewer cores available for executing
+for executing then we really want to make sure that
+then we really want to make sure that any work that we get in and executing on
+any work that we get in and executing on the cpus is used for work so we don't
+the cpus is used for work so we don't want to burn that time spinning and
+want to burn that time spinning and potentially shooting ourselves in the
+potentially shooting ourselves in the foot
+foot other than that we obviously still have
+other than that we obviously still have the main thread and a set of real-time
+the main thread and a set of real-time workers and we create one real-time
+workers and we create one real-time worker for each logical core available
+worker for each logical core available on the machine minus one for the main
+on the machine minus one for the main thread and up to nine
+thread and up to nine that number nine was chosen empirically
+that number nine was chosen empirically by just scaling up the number of worker
+by just scaling up the number of worker threads that we were creating and simply
+threads that we were creating and simply noticing that when we scaled execution
+noticing that when we scaled execution beyond that then we started seeing
+beyond that then we started seeing negative returns on overall performance
+negative returns on overall performance because of overhead intrinsic to our
+because of overhead intrinsic to our scheduling systems so we settled for
+scheduling systems so we settled for nine
+okay so now finally we have all the tools that we need to dissect together
+tools that we need to dissect together one frame in hello infinite
+one frame in hello infinite we're going to start with xbox one
+okay so this is a tool called pix and pix come up with the xbox gdk for
+and pix come up with the xbox gdk for any xbox one or xbox developers it's
+any xbox one or xbox developers it's also a version for
+also a version for windows it's called pix4 windows and i'm
+windows it's called pix4 windows and i'm just showing a screenshot of of the gdk
+just showing a screenshot of of the gdk version here it's very similar
+version here it's very similar and we used it for all of our profiling
+and we used it for all of our profiling on the cpu side
+on the cpu side consoles of course but also windows pcs
+consoles of course but also windows pcs and even dedicated servers which run on
+and even dedicated servers which run on logic on um on windows vms for us video
+logic on um on windows vms for us video machines on the azure cloud
+machines on the azure cloud so xbox one being a 30 fps target i'm
+so xbox one being a 30 fps target i'm showing that 33.33 milliseconds at the
+showing that 33.33 milliseconds at the top of the slide there and then we have
+top of the slide there and then we have one lane for each of our main threads so
+one lane for each of our main threads so we have the main thread at the top we
+we have the main thread at the top we have our five real-time workers just
+have our five real-time workers just below it the big lanes and then at the
+below it the big lanes and then at the bottom of the slide i'm showing a lane
+bottom of the slide i'm showing a lane for cpu 6 which shows some some lower
+for cpu 6 which shows some some lower priority threads executing
+okay let's start from the beginning of the simulation then
+the simulation then in this phase this is where we construct
+in this phase this is where we construct and submit for execution are our frame
+and submit for execution are our frame job graph
+job graph and that green narrow workload inside
+and that green narrow workload inside the circle is our input sampling just as
+the circle is our input sampling just as promised at the beginning of the
+promised at the beginning of the simulation
+right after that job start starts start up for the simulation and
+starts start up for the simulation and we have here's an example of a
+we have here's an example of a of a streaming job this is called
+of a streaming job this is called simulation controller it's basically a
+simulation controller it's basically a streaming system
+streaming system a system that is part of our streaming
+a system that is part of our streaming systems that is responsible for
+systems that is responsible for it's responsible for
+it's responsible for evaluating and computing relevancy for a
+evaluating and computing relevancy for a bunch of game objects
+and in this scenario it happens to run on cpu 2 and 4
+on cpu 2 and 4 just because
+just because those worker threads were the ones
+those worker threads were the ones available for execution but any frame it
+available for execution but any frame it could be different these these real-time
+could be different these these real-time workers are generic so they can pick up
+workers are generic so they can pick up any work
+any work as as they become available
+as as they become available here's some additional jobs to to to
+here's some additional jobs to to to check out in ping here there's part of
+check out in ping here there's part of our ai update work
+our ai update work and
+and this is all jobified of course but in
+this is all jobified of course but in this scenario specifically the main
+this scenario specifically the main thread is trying to get through a sync
+thread is trying to get through a sync point but it can't because the
+point but it can't because the dependencies are not satisfied so what
+dependencies are not satisfied so what it does instead is it joins execution
+it does instead is it joins execution and it starts picking up some ai jobs to
+and it starts picking up some ai jobs to to continue moving forward the
+to continue moving forward the simulation
+these green workloads here are part of our ui update this is where we update
+our ui update this is where we update the logical state of our ui and
+the logical state of our ui and construct some of our our command lists
+construct some of our our command lists necessary for ui rendering
+necessary for ui rendering okay so we're still part of the we're
+okay so we're still part of the we're still in the viable frame rate part of
+still in the viable frame rate part of the frame and now we move on to the game
+the frame and now we move on to the game simulation the core game simulation
+simulation the core game simulation which is our fixed updates
+which is our fixed updates because we run at 30fps on xbox one we
+because we run at 30fps on xbox one we have to do two fixed updates per frame
+have to do two fixed updates per frame which should not be a surprise at this
+which should not be a surprise at this point
+point and the main workloads inside the game
+and the main workloads inside the game ticks
+ticks are
+are object update where we update the
+object update where we update the logical state of all of our
+logical state of all of our active objects in simulation this
+active objects in simulation this includes stuff like vehicle simulation
+includes stuff like vehicle simulation and whatnot
+and whatnot then we have our physics update that in
+then we have our physics update that in the halo engine
+the halo engine happens simultaneously as the animation
+happens simultaneously as the animation sample and blend which is the green
+sample and blend which is the green workload that you can see there
+workload that you can see there not too much this frame
+not too much this frame and then we have our object move phase
+and then we have our object move phase where we
+where we effectively update all the transforms
+effectively update all the transforms for all of our objects and all their
+for all of our objects and all their poses
+poses after we are done with the core
+after we are done with the core simulation and the two game ticks we
+simulation and the two game ticks we move on to an additional viable update
+move on to an additional viable update phase of the frame where we update
+phase of the frame where we update additional systems and there's a lot of
+additional systems and there's a lot of systems that is inside these circles but
+systems that is inside these circles but i'm just going to cloud a few you can
+i'm just going to cloud a few you can see some additional pink work there
+see some additional pink work there which are additional ai jobs
+which are additional ai jobs and the light blue system on worker 3 is
+and the light blue system on worker 3 is is doing our time of day update and then
+is doing our time of day update and then in grey on the main thread towards the
+in grey on the main thread towards the end of that circle is
+end of that circle is our design scripting update which
+our design scripting update which as promised is available from a system
+as promised is available from a system now
+now then we do our publish to the render our
+then we do our publish to the render our publish
+publish operation on as i said is a big copy of
+operation on as i said is a big copy of game of game states to render on xbox
+game of game states to render on xbox one and export series x and s
+one and export series x and s on our consoles we use
+on our consoles we use efficient dma hardware
+efficient dma hardware to try and maximize memory utilization
+to try and maximize memory utilization for this operation and complete the copy
+for this operation and complete the copy as quickly as we can
+as quickly as we can xbox offers a nice api to do this so we
+xbox offers a nice api to do this so we leverage it and this gets the copy as
+leverage it and this gets the copy as done as quickly as we could
+done as quickly as we could and then we wait a little bit
+and then we wait a little bit we wait because in this scenario in this
+we wait because in this scenario in this specific frame that i took a picture of
+specific frame that i took a picture of we are actually a little under budget
+we are actually a little under budget we're not using all of the 33
+we're not using all of the 33 milliseconds that we have at our
+milliseconds that we have at our disposal for the simulation
+disposal for the simulation so in order for us to keep consistent
+so in order for us to keep consistent input sampling we have to wait a little
+input sampling we have to wait a little bit before we start the next frame and
+bit before we start the next frame and input sample again
+input sample again and we do we do this through a software
+and we do we do this through a software timer that we call metronome it's a high
+timer that we call metronome it's a high precision software timer and so this is
+precision software timer and so this is where we wait for it for the next frame
+where we wait for it for the next frame beat
+beat as we were doing all that we also had
+as we were doing all that we also had all these red workloads running on the
+all these red workloads running on the same threads and at the same time these
+same threads and at the same time these are part of the render job graph coming
+are part of the render job graph coming down from last frame so this is the last
+down from last frame so this is the last frame render job graph completing
+frame render job graph completing execution
+execution also at the same time as we were doing
+also at the same time as we were doing all that simulation we also had this hot
+all that simulation we also had this hot pink workload
+pink workload which
+which is our audio rendering
+is our audio rendering audio rendering is actually a pretty
+audio rendering is actually a pretty interesting workload on slow cpus
+interesting workload on slow cpus because it's actually pretty cpu hungry
+because it's actually pretty cpu hungry depending on the case and for us it was
+depending on the case and for us it was crucial to schedule this competitively
+crucial to schedule this competitively just like we do with any other job so
+just like we do with any other job so here it is running on a worker that runs
+here it is running on a worker that runs any other job as well
+any other job as well we don't take any context switch for
+we don't take any context switch for audi rendering either
+audi rendering either and
+and after we publish our simulation to the
+after we publish our simulation to the render we see here the render job graph
+render we see here the render job graph starting up for this frame that we just
+starting up for this frame that we just finished publishing and even though the
+finished publishing and even though the simulation is not running at the same
+simulation is not running at the same time you can see that there is quite a
+time you can see that there is quite a lot of potential parallelism in our
+lot of potential parallelism in our renderer alone
+renderer alone but overall when the hardware is soaked
+but overall when the hardware is soaked we run
+we run pretty much like the left side of the
+pretty much like the left side of the slide which as you can see we achieve a
+slide which as you can see we achieve a pretty decent utilization of the xbox
+pretty decent utilization of the xbox one cpu so we're pretty happy about it
+one cpu so we're pretty happy about it [Music]
+[Music] okay xbox series x
+okay xbox series x it's similar but i'm gonna call out some
+it's similar but i'm gonna call out some of the differences so first of all it
+of the differences so first of all it has two modes you can run the game in
+has two modes you can run the game in performance mode or quality mode the
+performance mode or quality mode the default is quality mode at 60fps so this
+default is quality mode at 60fps so this is what i'm going to show here and you
+is what i'm going to show here and you can know this you can see that 167
+can know this you can see that 167 milliseconds of time at the top of the
+milliseconds of time at the top of the slide
+slide there's calling out some differences we
+there's calling out some differences we have an additional worker thread because
+have an additional worker thread because that cpu is now dedicated on this
+that cpu is now dedicated on this console so we create it and we use it
+console so we create it and we use it just like any other real-time worker
+just like any other real-time worker also because we're only at 60 we only
+also because we're only at 60 we only had to do one game tick every frame and
+had to do one game tick every frame and here it is should not be a surprise now
+here it is should not be a surprise now and also note that our weight for the
+and also note that our weight for the next frame is actually very long in this
+next frame is actually very long in this frame at least
+frame at least and effectively we were done with the
+and effectively we were done with the simulation stuff in just a handful of
+simulation stuff in just a handful of milliseconds
+milliseconds so
+so first of all i should point out that we
+first of all i should point out that we do scale up a lot of our cpu workloads
+do scale up a lot of our cpu workloads on series x when compared to the lower
+on series x when compared to the lower end platforms like xbox one
+end platforms like xbox one and you can probably notice that there's
+and you can probably notice that there's a lot more relative green here we
+a lot more relative green here we animate a lot more we do a lot more
+animate a lot more we do a lot more rendering of course we spawn a bunch of
+rendering of course we spawn a bunch of critters through the environments that
+critters through the environments that don't exist on xbox one and so on and so
+don't exist on xbox one and so on and so forth but even then we are
+forth but even then we are we are usually under budget on expo csx
+we are usually under budget on expo csx at 60fps
+at 60fps but this slack is not all bad because it
+but this slack is not all bad because it allows us to ingest smaller spikes
+allows us to ingest smaller spikes without dropping a frame so that's good
+without dropping a frame so that's good but also it's crucial for us to obtain
+but also it's crucial for us to obtain our 120 fps performance mode so
+our 120 fps performance mode so we're happy about this about having all
+we're happy about this about having all this time available to us
+on pc the topology of how a frame looks in pix is going to be completely
+in pix is going to be completely different depending on how the player
+different depending on how the player configures it
+configures it players can
+players can configure arbitrary
+configure arbitrary target frame rates
+target frame rates and usually they're going to want to
+and usually they're going to want to align with their monitor vsync rate but
+align with their monitor vsync rate but they can also configure unlocked frame
+they can also configure unlocked frame rate and what unlock framework means is
+rate and what unlock framework means is that they we're gonna simulate and then
+that they we're gonna simulate and then as soon as we finish the simulation
+as soon as we finish the simulation frame we're gonna carry on and do the
+frame we're gonna carry on and do the next simulation frame even if the
+next simulation frame even if the renderer is not ready to receive the
+renderer is not ready to receive the data
+data so we never wait for a metronome and
+so we never wait for a metronome and even though most of the time that's not
+even though most of the time that's not kind of how there's no how you're going
+kind of how there's no how you're going to want to configure the game
+to want to configure the game this we're looking at it as an example
+this we're looking at it as an example here to understand how it works
+here to understand how it works so
+so in this scenario i have an 8 logical
+in this scenario i have an 8 logical core machine and i can tell because i
+core machine and i can tell because i have the main thread at the top and then
+have the main thread at the top and then seven lanes for seven real-time workers
+seven lanes for seven real-time workers so that's eight logical course total
+so that's eight logical course total focusing on some interesting differences
+focusing on some interesting differences here's inside the circle we can see that
+here's inside the circle we can see that the line on top of the work is changing
+the line on top of the work is changing color
+color and that is because the thread is indeed
+and that is because the thread is indeed migrating from cpu to cpu because it's
+migrating from cpu to cpu because it's not affinitized like i mentioned before
+not affinitized like i mentioned before and
+and also this light contains three different
+also this light contains three different frames
+frames the first two frames are shorter and
+the first two frames are shorter and here they are
+here they are and they actually don't contain a game
+and they actually don't contain a game tick
+tick and this is because we are in this
+and this is because we are in this scenario running at much higher than 60
+scenario running at much higher than 60 fps so not every frame is going to
+fps so not every frame is going to contain a game tick however these frames
+contain a game tick however these frames are still going to run our tweening
+are still going to run our tweening systems our interpolation systems to
+systems our interpolation systems to show a smooth result on screen
+show a smooth result on screen using the two most recent game ticks
+using the two most recent game ticks that they have stored the result the
+that they have stored the result the results in memory for
+results in memory for and here's a frame that does contain a
+and here's a frame that does contain a game tick where we recognize all of our
+game tick where we recognize all of our users use usual workloads
+users use usual workloads another important difference on pc
+another important difference on pc versus console is the way we publish the
+versus console is the way we publish the simulation to the renderer it's still a
+simulation to the renderer it's still a large copy of game state but this time
+large copy of game state but this time we do not have access to high efficiency
+we do not have access to high efficiency dma hardware so instead we perform a
+dma hardware so instead we perform a parallel mem copy using multiple threads
+parallel mem copy using multiple threads to
+to to make this copy as fast as possible
+to make this copy as fast as possible this is in an attempt to maximize our
+this is in an attempt to maximize our memory bandwidth utilization and it
+memory bandwidth utilization and it works reasonably well
+here are infinite dedicated servers as i said before they're windows virtual
+said before they're windows virtual machines hosted on the azure cloud
+machines hosted on the azure cloud and
+and they run slightly differently depending
+they run slightly differently depending on the game mode
+on the game mode arena
+arena 4v4 servers run at 60hz which is our
+4v4 servers run at 60hz which is our more competitive mode and bigtime battle
+more competitive mode and bigtime battle servers which is our
+servers which is our more casual modes run assist at 30 hertz
+more casual modes run assist at 30 hertz and
+and this is a screenshot from pix on a
+this is a screenshot from pix on a dedicated server and as you can see
+dedicated server and as you can see the workload would look very similar
+the workload would look very similar and this specifically it's a big team
+and this specifically it's a big team battle server because i'm showing the
+battle server because i'm showing the 32.33 target at the top
+32.33 target at the top so it's running at 30hz
+so it's running at 30hz but
+but some differences with
+some differences with with a normal client is that obviously
+with a normal client is that obviously we have no rendering to do so there's no
+we have no rendering to do so there's no renderer there's no audio work at all
+renderer there's no audio work at all or most of the work is disabled there's
+or most of the work is disabled there's no ui work to do and there's also no
+no ui work to do and there's also no publish we don't publish a simulation
+publish we don't publish a simulation because nobody is consuming the
+because nobody is consuming the published data so
+published data so so all those workloads are gone but the
+so all those workloads are gone but the core of the simulation the game ticks
+core of the simulation the game ticks are still there and they look exactly
+are still there and they look exactly the same
+the same there is some additional networking
+there is some additional networking stuff to do on the liquid servers so you
+stuff to do on the liquid servers so you can probably spot some additional
+can probably spot some additional networking jobs here
+networking jobs here [Music]
+[Music] okay so we concluded our tour through
+okay so we concluded our tour through one frame in hello infinite and let's
+one frame in hello infinite and let's are some conclusions
+are some conclusions so overall we're pretty happy with how a
+so overall we're pretty happy with how a viable framerate model worked and how
+viable framerate model worked and how it's scaled how how sorry how it allowed
+it's scaled how how sorry how it allowed us to achieve smooth motion of any
+us to achieve smooth motion of any variable any frame rate that we could
+variable any frame rate that we could configure
+configure while keeping the core the feministic
+while keeping the core the feministic halo sandbox
+halo sandbox consistent
+consistent and at the same time we're very happy
+and at the same time we're very happy with how the job system allowed us to
+with how the job system allowed us to scale
+scale to cpus of different sizes without
+to cpus of different sizes without having to weave a massive bowl of
+having to weave a massive bowl of spaghetti code
+if i wasn't happy about it i wouldn't be here we're talking about it
+here we're talking about it but it's not all good this isn't bad too
+but it's not all good this isn't bad too so first of all for the viable frame it
+so first of all for the viable frame it migration that we did we should have
+migration that we did we should have done a better job teaching engineers
+done a better job teaching engineers across the studio
+across the studio and this is because there was a lot of
+and this is because there was a lot of confusion early on as we were migrating
+confusion early on as we were migrating systems from fixed from fixed updates to
+systems from fixed from fixed updates to viable framerate
+viable framerate and in terms of what the job system well
+and in terms of what the job system well the job system fell short
+the job system fell short we we were able to define defendances
+we we were able to define defendances between jobs and their execution
+between jobs and their execution dependencies but we were not able to
+dependencies but we were not able to define data dependencies for jobs which
+define data dependencies for jobs which what that means is that we're not able
+what that means is that we're not able to define that two jobs are using the
+to define that two jobs are using the same piece of data in a way that could
+same piece of data in a way that could interfere with one another and in
+interfere with one another and in practice that meant that during
+practice that meant that during development we have to track down a fair
+development we have to track down a fair amount of
+amount of of race conditions between jobs
+of race conditions between jobs and once we figure them out we solve
+and once we figure them out we solve them by introducing additional execution
+them by introducing additional execution dependencies
+dependencies so in future we definitely want to
+so in future we definitely want to introduce data dependencies in the job
+introduce data dependencies in the job system we want to treat them as a native
+system we want to treat them as a native concept that works together with
+concept that works together with execution dependencies to schedule the
+execution dependencies to schedule the work in a safe manner always and the
+work in a safe manner always and the idea here is reduce bugs and simplify
+idea here is reduce bugs and simplify onboarding for new engineers
+onboarding for new engineers on top of that we also want to continue
+on top of that we also want to continue the work on converting systems to viable
+the work on converting systems to viable frame rate that could be converted to
+frame rate that could be converted to whatever frame rate and it's not always
+whatever frame rate and it's not always that simple because some systems have
+that simple because some systems have portions of themselves that could be
+portions of themselves that could be converted to variable frames so we have
+converted to variable frames so we have to decouple them first but there's still
+to decouple them first but there's still quite a few things inside the game tick
+quite a few things inside the game tick that we could convert
+that we could convert and moreover we want to fully jobify our
+and moreover we want to fully jobify our main thread and get rid of it just like
+main thread and get rid of it just like we did on the thread
+we did on the thread and also at this point at that point we
+and also at this point at that point we could also get rid of sync points
+could also get rid of sync points altogether because we wouldn't need them
+altogether because we wouldn't need them anymore
+anymore okay so i want to thank all of you for
+okay so i want to thank all of you for three for allowing me to be here today
+three for allowing me to be here today and specifically the people on this
+and specifically the people on this slide they were either massive parts of
+slide they were either massive parts of implementing these changes or they had
+implementing these changes or they had to deal with me chasing them around to
+to deal with me chasing them around to do optimization work so they deserve a
+do optimization work so they deserve a special thank you
+special thank you [Applause]
+thank you we are hiring so if you're interested in joining us and be part of
+interested in joining us and be part of whatever's next in hell internet please
+whatever's next in hell internet please check out our website
+check out our website and
+and also we have a couple more sessions on
+also we have a couple more sessions on hillary infinite going on this year at
+hillary infinite going on this year at gdc uh the first one there was actually
+gdc uh the first one there was actually yesterday but the other two are going to
+yesterday but the other two are going to be tomorrow so if you're interested be
+be tomorrow so if you're interested be sure not to miss them and we can now do
+sure not to miss them and we can now do some q a
+some q a so i have
+so i have while people walk up to the mic i have
+while people walk up to the mic i have this video i'm gonna have this video
+this video i'm gonna have this video playing this is a
+playing this is a video of bloopers from our internal
+video of bloopers from our internal database so it should be pretty fun
+database so it should be pretty fun hopefully
+hopefully maybe
+yes what's up when designing the job system what made
+when designing the job system what made you go towards bi-directional
+you go towards bi-directional synchronization points instead of a
+synchronization points instead of a model like using fences to signal one
+model like using fences to signal one side or the other well um
+side or the other well um i mean a sink point is just a
+i mean a sink point is just a nomenclature it's not that different
+nomenclature it's not that different from a regular fence or barrier in any
+from a regular fence or barrier in any in other
+in other threading systems
+threading systems so
+so but
+but we call the scene points and basically
+we call the scene points and basically we implemented just to work just the way
+we implemented just to work just the way we wanted to we didn't look at like
+we wanted to we didn't look at like other third parties
+other third parties third-party packages to figure out they
+third-party packages to figure out they have the constructs that we need exactly
+have the constructs that we need exactly because we were our job system was all
+because we were our job system was all in-house anyway so we couldn't really
+in-house anyway so we couldn't really easily adapt it and it needed to be
+easily adapt it and it needed to be efficient for obvious reasons so thanks
+a cool cool system uh i've seen things like this before and the the
+things like this before and the the thing which we hit was um
+thing which we hit was um priority necessary between the jobs uh
+priority necessary between the jobs uh on the ai side which is like the fixed
+on the ai side which is like the fixed update and because they're you know
+update and because they're you know basically a real-time system and you're
+basically a real-time system and you're rendering which is kind of not as much
+rendering which is kind of not as much did you have any priority systems on
+did you have any priority systems on yours yeah so i left this out of the
+yours yeah so i left this out of the home of the presentation but our jobs
+home of the presentation but our jobs have priorities and
+have priorities and basically we had a
+basically we had a various levels of priorities for
+various levels of priorities for simulation work and various levels of
+simulation work and various levels of priority for rendering work
+priority for rendering work and we also are threads by generic so
+and we also are threads by generic so they were able to pick up any work on
+they were able to pick up any work on any thread but
+any thread but some threads preferred rendering work
+some threads preferred rendering work versus some other preferred simulation
+versus some other preferred simulation work so they were able to like nicely
+work so they were able to like nicely spread on the available execution
+spread on the available execution resources ah thank you very much that's
+resources ah thank you very much that's totally what i thought you'd do
+uh thanks for the presentation that was great um it's more of a curiosity i
+great um it's more of a curiosity i guess in a question i remember
+guess in a question i remember there was an issue with animations that
+there was an issue with animations that was has been solved
+was has been solved um
+um animations would play at a different
+animations would play at a different frame rate than the rest of the things
+frame rate than the rest of the things going on in the scene i was curious
+going on in the scene i was curious about to do with the interpolation
+about to do with the interpolation describing so you're talking about the
+describing so you're talking about the halo 5 animation jitteriness issue or
+halo 5 animation jitteriness issue or why in my head i'm thinking of the halo
+why in my head i'm thinking of the halo infinite um the clamber the first person
+infinite um the clamber the first person animations yeah the first person yeah so
+animations yeah the first person yeah so that was actually completely independent
+that was actually completely independent from anything i've talked about in the
+from anything i've talked about in the presentation and it's a interpolation
+presentation and it's a interpolation system that is within a built inside our
+system that is within a built inside our animation framework right and it was
+animation framework right and it was yeah there was a bug in there and we
+yeah there was a bug in there and we didn't know this until it was too late
+didn't know this until it was too late and we fixed it but took a while to get
+and we fixed it but took a while to get it out so i was just curious thank you
+hello uh you mentioned that a part of your
+uh you mentioned that a part of your optimization process was moving as much
+optimization process was moving as much as possible out of the fixed tick and
+as possible out of the fixed tick and into the variable tick
+into the variable tick and it seems
+and it seems like it would be easy to
+like it would be easy to move things into the variable tick that
+move things into the variable tick that still need fixed tick and you only
+still need fixed tick and you only discover that later and i'm wondering
+discover that later and i'm wondering how hard it was to
+how hard it was to uh
+uh debug that kind of thing and or if new
+debug that kind of thing and or if new features got added to variable tick that
+features got added to variable tick that should have been added to
+should have been added to things like that
+things like that so
+so it's a good question so i i'm trying to
+it's a good question so i i'm trying to think and i don't think i remember
+think and i don't think i remember any scenario where we basically ended up
+any scenario where we basically ended up implementing a system available from it
+implementing a system available from it and realized that oh geez this needed to
+and realized that oh geez this needed to be an actual fix of the system because
+be an actual fix of the system because it's part of the demystic simulation now
+it's part of the demystic simulation now it probably happened during development
+it probably happened during development um
+um but i think the the practical situation
+but i think the the practical situation here is because our determinants our
+here is because our determinants our game ticks are supporting the
+game ticks are supporting the deterministic network simulation for the
+deterministic network simulation for the game so if there is a system that is
+game so if there is a system that is part of that update that is not part of
+part of that update that is not part of the game ticks they're gonna it's gonna
+the game ticks they're gonna it's gonna cause really bad desyncs for us so it
+cause really bad desyncs for us so it would be it would have been easy for us
+would be it would have been easy for us to detect that case unless it was a very
+to detect that case unless it was a very subtle system
+subtle system um
+um but for instance ai is
+but for instance ai is sorry ai is an example where um
+is an example of systems that um it doesn't have to be part of the
+it doesn't have to be part of the feministic network simulation for the
+feministic network simulation for the game because it runs most most of the
+game because it runs most most of the stuff runs server side so as long as
+stuff runs server side so as long as it's able to maintain more or less the
+it's able to maintain more or less the same behavior then we can keep it
+same behavior then we can keep it valuable from it
+valuable from it but
+but but portions of that had to be fixed
+but portions of that had to be fixed update and we were able to immediately
+update and we were able to immediately tell that because those were directly
+tell that because those were directly changing the unit properties and the
+changing the unit properties and the units is part of our core
+units is part of our core sandbox
+sandbox concept so
+concept so overall it was pretty clear it was it's
+overall it was pretty clear it was it's i guess it was the other opposite side
+i guess it was the other opposite side was less clear for us how
+was less clear for us how to take this system that definitely has
+to take this system that definitely has some stuff that doesn't have to be fixed
+some stuff that doesn't have to be fixed update but some parts of it are fixed
+update but some parts of it are fixed update and how to bring it out safely so
+update and how to bring it out safely so gotcha we're currently struggling with
+gotcha we're currently struggling with trying to move a variable tick system
+trying to move a variable tick system into fixed and so it's
+into fixed and so it's kind of kind of the same problem in the
+kind of kind of the same problem in the opposite direction yeah
+opposite direction yeah thank you yeah you're welcome
+thank you yeah you're welcome so
+so why did you not set thread affinity on
+why did you not set thread affinity on windows
+windows so as i mentioned before
+so as i mentioned before the
+the on windows pc our main goal is to be as
+on windows pc our main goal is to be as flexible as possible and so with thread
+flexible as possible and so with thread affinity if you restrict
+affinity if you restrict in any way
+in any way what
+what threads or what cpus threads want to run
+threads or what cpus threads want to run on then you're intrinsically less
+on then you're intrinsically less flexible and so what that means is that
+flexible and so what that means is that if the operating system decides that you
+if the operating system decides that you know what this core that you really
+know what this core that you really liked and you wanted to be frantized to
+liked and you wanted to be frantized to i'm gonna use it for some other programs
+i'm gonna use it for some other programs then
+then you know you lose one of your assumed
+you know you lose one of your assumed resources so that we have different
+resources so that we have different authentication is just in order for us
+authentication is just in order for us to to try and be as flexible as possible
+to to try and be as flexible as possible in the case of the operating system
+in the case of the operating system reducing our execution resources on the
+reducing our execution resources on the cpu
+cpu you're still going to have variable uh
+you're still going to have variable uh amounts of compute even if like
+amounts of compute even if like you know if you have thread affinity
+you know if you have thread affinity it's better actually right because if
+it's better actually right because if you don't have third affinity you're
+you don't have third affinity you're going to end up with two things on the
+going to end up with two things on the same like you're gonna have two logical
+same like you're gonna have two logical cores right so if you're the same worker
+cores right so if you're the same worker thread yeah so if you're
+thread yeah so if you're yeah so if you're if you're trying to
+yeah so if you're if you're trying to run multiple threads on a smaller number
+run multiple threads on a smaller number of cpus is that what you're saying yeah
+of cpus is that what you're saying yeah so we still had priority between threads
+so we still had priority between threads so we could still decide which things
+so we could still decide which things had to come first even in the scenario
+had to come first even in the scenario where windows had taken away some of our
+where windows had taken away some of our cpus so
+cpus so yeah and then how did your gameplay
+yeah and then how did your gameplay scripting not cause desync you moved
+scripting not cause desync you moved that variable frame rate yeah so the
+that variable frame rate yeah so the gameplay scripting
+gameplay scripting is it usually doesn't touch any state
+is it usually doesn't touch any state that is directly part of the fixed
+that is directly part of the fixed update it's it's doing instructions and
+update it's it's doing instructions and changing stuff that is going to
+changing stuff that is going to influence fixed updates but
+influence fixed updates but at the end of the story most of our
+at the end of the story most of our scripting is either server-side and the
+scripting is either server-side and the server is doing i don't know like
+server is doing i don't know like a progress of the multiplayer match and
+a progress of the multiplayer match and things like that
+things like that or if it is client-side it's
+or if it is client-side it's and so if for the server side we
+and so if for the server side we basically that the script is just
+basically that the script is just changing some variables and then the
+changing some variables and then the server is replicating them to the client
+server is replicating them to the client inside our guard defense network
+inside our guard defense network simulation from the client side we're
+simulation from the client side we're only doing like visual things in the
+only doing like visual things in the scripting site so yeah
+[Music]
+i um i have a something about me is that i have a past at havoc and so i really
+i have a past at havoc and so i really lean towards physics bugs
+lean towards physics bugs also yes the cake was a lie sorry about
+also yes the cake was a lie sorry about that so with the introduction of the um
+that so with the introduction of the um variable frame rates on the clients is
+variable frame rates on the clients is the server able to account for that for
+the server able to account for that for hit detection
+hit detection yeah so yeah heat detection would
+yeah so yeah heat detection would probably deserve a presentation on its
+probably deserve a presentation on its own but
+own but yeah so
+yeah so so on the server side
+so on the server side so hit registration is a very
+so hit registration is a very interesting topic but yes the server is
+interesting topic but yes the server is doing game takes just like the clients
+doing game takes just like the clients are so the game ticks are the basic way
+are so the game ticks are the basic way in which we advance our network
+in which we advance our network simulation okay
+simulation okay and when the server or sorry when the
+and when the server or sorry when the client shoots at someone and we want to
+client shoots at someone and we want to do hit validation or his registration on
+do hit validation or his registration on the server side the server side is able
+the server side the server side is able to emulate the client view at the time
+to emulate the client view at the time where the shot happened through that
+where the shot happened through that registration and confirm the hit and we
+registration and confirm the hit and we do that throughout basically we rewind
+do that throughout basically we rewind the time on the server for the systems
+the time on the server for the systems that are required to do the the shot
+that are required to do the the shot registration so that it matches the
+registration so that it matches the timeline
+timeline at the time the client actually shot so
+at the time the client actually shot so does that mean that each client has to
+does that mean that each client has to also send what like the
+also send what like the their frame rate as well so that the
+their frame rate as well so that the server knows how far into each frame
+server knows how far into each frame yeah so we do um so the clients don't
+yeah so we do um so the clients don't send their frame rate directly but we do
+send their frame rate directly but we do um we do keep track of the
+um we do keep track of the of the round trip time for per client so
+of the round trip time for per client so we're able to like bring them to the
+we're able to like bring them to the right time when doing shot registration
+right time when doing shot registration okay thank you yeah
+for for monitors with like variable refresh rate and if you have a fixed
+refresh rate and if you have a fixed update that takes a very long time maybe
+update that takes a very long time maybe compared to the
+compared to the variable updates
+variable updates does that create like some jank where
+does that create like some jank where you might have very fast frames and then
+you might have very fast frames and then a long one that's visible on the monitor
+a long one that's visible on the monitor yeah so this is what would happen if you
+yeah so this is what would happen if you configure the pc in unlocked frame rate
+configure the pc in unlocked frame rate but that's why i said that most of the
+but that's why i said that most of the time you're not going to want to do it
+time you're not going to want to do it that way you're going to want to specify
+that way you're going to want to specify okay i want to play at i don't know 80
+okay i want to play at i don't know 80 fps or 110 fps or whatever depending on
+fps or 110 fps or whatever depending on your range of vrr and um
+your range of vrr and um um
+um and yeah so as long as the game is able
+and yeah so as long as the game is able to come to maintain that and then if you
+to come to maintain that and then if you have a really long fixed update or game
+have a really long fixed update or game take or even a long viable frame rate
+take or even a long viable frame rate update you're eventually gonna burst
+update you're eventually gonna burst through that but as long as you're able
+through that but as long as you're able to fall within the ranges then that
+to fall within the ranges then that should be totally fine and the metronome
+should be totally fine and the metronome which is the thing that is keeping your
+which is the thing that is keeping your intended frame rate is gonna be the
+intended frame rate is gonna be the thing that slows us down the most
+okay that's it thank you everyone [Music]
+[Music] you

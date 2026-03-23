@@ -1,0 +1,749 @@
+[Music]
+they wanted me to remind you guys to turn off cell phones and to fill out
+turn off cell phones and to fill out your evaluation forms when this is all
+your evaluation forms when this is all over so my name is Chad barb I'm here to
+over so my name is Chad barb I'm here to talk about some texture work I did for
+talk about some texture work I did for titanfall too and hopefully there's some
+titanfall too and hopefully there's some fresh techniques here that might be
+fresh techniques here that might be useful for people and then also it's a
+useful for people and then also it's a bit of a case study in adding streaming
+bit of a case study in adding streaming to a triple-a game so what is texture
+to a triple-a game so what is texture streaming I mean broadly speaking
+streaming I mean broadly speaking texture streaming is dynamically loading
+texture streaming is dynamically loading and unloading texture data as necessary
+and unloading texture data as necessary to render what you're trying to do is
+to render what you're trying to do is get the most use out of a fixed amount
+get the most use out of a fixed amount of memory on your GPU or you know shared
+of memory on your GPU or you know shared memory and so it kind of is a form of
+memory and so it kind of is a form of compression and like most compression if
+compression and like most compression if you notice that it's happening it's not
+you notice that it's happening it's not really working so a lot of games have
+really working so a lot of games have texture streaming in some capacity but
+texture streaming in some capacity but they don't you don't see it so you don't
+they don't you don't see it so you don't even realize it it's pretty pervasive um
+even realize it it's pretty pervasive um some of the broad common approaches
+some of the broad common approaches there's a manual segmentation approach
+there's a manual segmentation approach which is sort of the default thing where
+which is sort of the default thing where you divide your world into various areas
+you divide your world into various areas and as the player wanders around you
+and as the player wanders around you maybe drop or load those areas or sets
+maybe drop or load those areas or sets of assets associated with those areas
+of assets associated with those areas that's kind of like the jak and daxter
+that's kind of like the jak and daxter approach but lots of games do similar
+approach but lots of games do similar things
+things there's bounding geometry tests that's
+there's bounding geometry tests that's where you have some sort of
+where you have some sort of approximation of your geometry
+approximation of your geometry visibility of your highest mid levels
+visibility of your highest mid levels and you can rapidly evaluate that on the
+and you can rapidly evaluate that on the CPU I mean that the simplest example of
+CPU I mean that the simplest example of that would be a model radius where once
+that would be a model radius where once you get within a certain distance from a
+you get within a certain distance from a model you load higher mid levels but you
+model you load higher mid levels but you can do more complicated things abb trees
+can do more complicated things abb trees arbitrary sorts of geometry that you can
+arbitrary sorts of geometry that you can test rapidly and then finally and more
+test rapidly and then finally and more an increasingly popular is GPU feedback
+an increasingly popular is GPU feedback approaches where you have some sort of
+approaches where you have some sort of either a separate pass or some sort of
+either a separate pass or some sort of additional part of your texture or your
+additional part of your texture or your shader that takes notes on what MIT
+shader that takes notes on what MIT levels are being actually used and what
+levels are being actually used and what needs to be loaded and once it what's
+needs to be loaded and once it what's important
+important isn't and i mean the extreme version of
+isn't and i mean the extreme version of that is like it's mega textures of
+that is like it's mega textures of course they're also doing there's kind
+course they're also doing there's kind of two parts to it there's the there's
+of two parts to it there's the there's the part where you figure out what to
+the part where you figure out what to load and then the part where you
+load and then the part where you actually you know load it in so there's
+actually you know load it in so there's a lot more to make textures than just
+a lot more to make textures than just deciding what's visible but that's all
+deciding what's visible but that's all I'm talking about with these three these
+I'm talking about with these three these three points titanfall - titanfall - is
+three points titanfall - titanfall - is a fast-paced first-person shooter that
+a fast-paced first-person shooter that means that the camera is located inside
+means that the camera is located inside the players head and the flavor can move
+the players head and the flavor can move quickly they can turn quickly they can
+quickly they can turn quickly they can hide behind cover come out of cover
+hide behind cover come out of cover there's vertical gameplay they can eject
+there's vertical gameplay they can eject vertically rapidly they can fall rapidly
+vertically rapidly they can fall rapidly obviously there's the game itself is
+obviously there's the game itself is semi linear it's not really an
+semi linear it's not really an open-world game though the multiplayer
+open-world game though the multiplayer is a little more open than the
+is a little more open than the single-player so that that means because
+single-player so that that means because the multiplayer is relatively open and
+the multiplayer is relatively open and you can get around quickly you know a
+you can get around quickly you know a fixed scripted approach wouldn't
+fixed scripted approach wouldn't necessarily work there there and also in
+necessarily work there there and also in multiplayer we had a requirement of
+multiplayer we had a requirement of wanting a lot of customized skins and
+wanting a lot of customized skins and weapons so you could be wandering around
+weapons so you could be wandering around and see someone else carrying a gun you
+and see someone else carrying a gun you could see 20 people carrying 20
+could see 20 people carrying 20 different guns and if any of those
+different guns and if any of those people dropped that gun and you go pick
+people dropped that gun and you go pick it up you want that to be clear when it
+it up you want that to be clear when it comes up on your first-person view and
+comes up on your first-person view and we run at 60 Hertz so we don't we have a
+we run at 60 Hertz so we don't we have a busy CPU a GPU we don't want to add work
+busy CPU a GPU we don't want to add work to that and we also have a rather busy
+to that and we also have a rather busy render thread that we don't want to add
+render thread that we don't want to add work to so we want to do this as
+work to so we want to do this as efficiently as possible and all this is
+efficiently as possible and all this is running on top of a very mutated by this
+running on top of a very mutated by this point 4k valve source that we forked
+point 4k valve source that we forked around 2010 so what platforms are we on
+around 2010 so what platforms are we on well we're on modern consoles most
+well we're on modern consoles most important aspect of those for streaming
+important aspect of those for streaming is that they have hard drives so you get
+is that they have hard drives so you get a lot better seek and bandwidth than
+a lot better seek and bandwidth than optical media also they have modern feed
+optical media also they have modern feed API is for dealing with loading and
+API is for dealing with loading and unloading textures and you can do more
+unloading textures and you can do more direct memory access you don't
+direct memory access you don't necessarily have to go through an API
+necessarily have to go through an API all the time on Windows we're a little
+all the time on Windows we're a little bit more in the past we target DirectX
+bit more in the past we target DirectX 11 because we wanted
+11 because we wanted as inclusive of mints Peck as possible
+as inclusive of mints Peck as possible so we're missing out on some of the new
+so we're missing out on some of the new goodness and of course PC players have a
+goodness and of course PC players have a variety of GPUs they have a variety of
+variety of GPUs they have a variety of display resolutions and they of course
+display resolutions and they of course have a variety of GPU Ram amounts to
+have a variety of GPU Ram amounts to work with so whatever we do needs to be
+work with so whatever we do needs to be able to handle these kind of dynamic
+hardware specs so another requirement was we didn't want to add a bunch of
+was we didn't want to add a bunch of work for our designers and artists we
+work for our designers and artists we wanted artists to be able to map their
+wanted artists to be able to map their textures freely on models so we didn't
+textures freely on models so we didn't want to have a rule set don't you know
+want to have a rule set don't you know don't do that don't have a don't you
+don't do that don't have a don't you have a fixed density or we also didn't
+have a fixed density or we also didn't want to let them we did it sorry we
+want to let them we did it sorry we didn't feel like all right so we wanted
+didn't feel like all right so we wanted them to be able to add as many mith
+them to be able to add as many mith levels as they want to a texture without
+levels as they want to a texture without hurting other textures so that we can
+hurting other textures so that we can ship with the highest levels available
+ship with the highest levels available so people on PC that have the best rig
+so people on PC that have the best rig can see the best textures and it's not
+can see the best textures and it's not hurting people that are on lower-end
+hurting people that are on lower-end computers if we did pre-processing we
+computers if we did pre-processing we wanted it to be stable we wanted it we
+wanted it to be stable we wanted it we didn't want the case where if you
+didn't want the case where if you recompile a map it would break
+recompile a map it would break everything and make everything blurry
+everything and make everything blurry and look bad for a while so they should
+and look bad for a while so they should be able to do pre-processing like weekly
+be able to do pre-processing like weekly or or with some latency on a separate
+or or with some latency on a separate machine and we were ok with some manual
+machine and we were ok with some manual hitting and if necessary though that
+hitting and if necessary though that turned out that didn't really it wasn't
+turned out that didn't really it wasn't really necessary and we had all needed
+really necessary and we had all needed to work with our asset pipeline which
+to work with our asset pipeline which includes the ability to do hot swap so
+includes the ability to do hot swap so our strategy our overview our strategy
+our strategy our overview our strategy is any mid level below 64 kilobytes is
+is any mid level below 64 kilobytes is permanent MIPS can be added or dropped
+permanent MIPS can be added or dropped one by one so that's in furtherance of
+one by one so that's in furtherance of the goal that artists can create
+the goal that artists can create arbitrary number of nipples so that we
+arbitrary number of nipples so that we just won't use them if they're not
+just won't use them if they're not needed we use precomputed information to
+needed we use precomputed information to build a list of what's important and
+build a list of what's important and unimportant and we work toward that list
+unimportant and we work toward that list each frame
+each frame so the goal with precomputed information
+so the goal with precomputed information being saved GPU saves cpu so core to
+being saved GPU saves cpu so core to this algorithm is the idea of a
+this algorithm is the idea of a histogram so a histogram in this context
+histogram so a histogram in this context is a coverage metric permit level of a
+is a coverage metric permit level of a material so we wanted to be able to
+material so we wanted to be able to prioritize mid levels by how many pixels
+prioritize mid levels by how many pixels on the screen they actually cover and
+on the screen they actually cover and not just are they visible or not so an
+not just are they visible or not so an example of a problem that solves is if
+example of a problem that solves is if you have like a doorway and you have
+you have like a doorway and you have brick behind the doorway and stone
+brick behind the doorway and stone around the doorway you'd much rather low
+around the doorway you'd much rather low the height up levels for the stone
+the height up levels for the stone around the door than the brick so
+around the door than the brick so coverage gives you an idea of how many
+coverage gives you an idea of how many pixels the player is going to see in our
+pixels the player is going to see in our case we pre compute the coverage per MIT
+case we pre compute the coverage per MIT per material and the comp look the part
+per material and the comp look the part that complicates that is that the end
+that complicates that is that the end the player can have a fine different
+the player can have a fine different final screen resolutions and a material
+final screen resolutions and a material can have a variety of textures that each
+can have a variety of textures that each have their own resolution so we assume a
+have their own resolution so we assume a nominal 4k texture resolution and a
+nominal 4k texture resolution and a nominal 256 by 256 screen resolution and
+nominal 256 by 256 screen resolution and our histogram then is just a value of
+our histogram then is just a value of coverage purchased to the 16 mil evel's
+coverage purchased to the 16 mil evel's at that resolution and so most the
+at that resolution and so most the operations then just become shifting and
+operations then just become shifting and scaling those histograms to accommodate
+scaling those histograms to accommodate changing circumstances which I'll talk
+changing circumstances which I'll talk about in a minute another problem that
+about in a minute another problem that solves with related related to not being
+solves with related related to not being able to text your models wrong is for
+able to text your models wrong is for example if the artists use fewer texels
+example if the artists use fewer texels on an unimportant part of a model like
+on an unimportant part of a model like the bottom of a character's shoe we
+the bottom of a character's shoe we don't want an automated algorithm to
+don't want an automated algorithm to decide hey we need the finest level
+decide hey we need the finest level available because this tag this this
+available because this tag this this portion is using the highest mid level
+portion is using the highest mid level even though really it's just unimportant
+even though really it's just unimportant so having coverage gives you the ability
+so having coverage gives you the ability to make smarter decisions so the pre
+to make smarter decisions so the pre computation for static geometry we
+computation for static geometry we divide the world into a number of
+divide the world into a number of columns and we use the GPU to render
+columns and we use the GPU to render that into a file and that information is
+that into a file and that information is then streamed dynamically to drive the
+then streamed dynamically to drive the texture streaming for dynamic models at
+texture streaming for dynamic models at load time we compute texture gradients
+load time we compute texture gradients for each
+for each triangle so we know what mid-level they
+triangle so we know what mid-level they use we add the area of each triangle to
+use we add the area of each triangle to the histogram bin
+the histogram bin so rather than projecting the triangle
+so rather than projecting the triangle we just use the area we had we had
+we just use the area we had we had originally thought about maybe
+originally thought about maybe projecting it based on various rotations
+projecting it based on various rotations of the model but it didn't turn out to
+of the model but it didn't turn out to be much of a benefit it actually
+be much of a benefit it actually introduced bugs where a model will turn
+introduced bugs where a model will turn around rapidly and it wouldn't be
+around rapidly and it wouldn't be streamed with something wouldn't be
+streamed with something wouldn't be streamed in so we just go with area
+streamed in so we just go with area metric and then from there you take you
+metric and then from there you take you can take the GPU data and combine it
+can take the GPU data and combine it with the dynamic data to get your final
+with the dynamic data to get your final values and we use a manually tweak scale
+values and we use a manually tweak scale factor to bring that area metric into
+factor to bring that area metric into the same domain as the offline GPU
+the same domain as the offline GPU number of pixels visible metric so each
+number of pixels visible metric so each frame then we make sure we've streamed
+frame then we make sure we've streamed in the players column from the disk we
+in the players column from the disk we add the model coverage to it we take
+add the model coverage to it we take that coverage and we divide it by the
+that coverage and we divide it by the Texel count for the particular MIT level
+Texel count for the particular MIT level that it's associated with to get a
+that it's associated with to get a metric of cost versus benefit and from
+metric of cost versus benefit and from there we can generate a list of the most
+there we can generate a list of the most important levels that we don't have
+important levels that we don't have loaded and the least important levels
+loaded and the least important levels that we do have loaded and we try to
+that we do have loaded and we try to drop less important tip levels in order
+drop less important tip levels in order to load important ones and this is
+to load important ones and this is capped at a some rate so that we don't
+capped at a some rate so that we don't burden the GPU too much oh yeah an
+burden the GPU too much oh yeah an important so so the metric we use we
+important so so the metric we use we divide by the textile count and that has
+divide by the textile count and that has a really good property where if you have
+a really good property where if you have like a likes let's say a painting on a
+like a likes let's say a painting on a wall and the artists were to divide that
+wall and the artists were to divide that painting into four sections and make
+painting into four sections and make each one of those its own texture the
+each one of those its own texture the metric would remain the same because the
+metric would remain the same because the texts are smaller and the coverage is
+texts are smaller and the coverage is smaller so that's that's the that that
+smaller so that's that's the that that was an early thing that we discovered
+was an early thing that we discovered they could they we could unwittingly try
+they could they we could unwittingly try to make something look better by putting
+to make something look better by putting it in a smaller by making a smaller
+it in a smaller by making a smaller texture so we kind of afford that by
+texture so we kind of afford that by having a proper cost-benefit metric with
+having a proper cost-benefit metric with that property so as far as choosing
+that property so as far as choosing probes you run the tool it instantiates
+probes you run the tool it instantiates all the static models it computes the
+all the static models it computes the bounds of the level it chops the
+bounds of the level it chops the geometry into 16 foot square columns the
+geometry into 16 foot square columns the probes are placed at every above every
+probes are placed at every above every upward facing trying
+upward facing trying so this is everywhere the player could
+so this is everywhere the player could be standing we add in any hint probes
+be standing we add in any hint probes that the level designers have placed and
+that the level designers have placed and then we use k-means to combine that into
+then we use k-means to combine that into at most eight probes per column it's
+at most eight probes per column it's often there's fewer than eight already
+often there's fewer than eight already and we also log those locations so that
+and we also log those locations so that goes so we upload the Stata geometry the
+goes so we upload the Stata geometry the GP once and then for each of those
+GP once and then for each of those probes we render a cube map we don't
+probes we render a cube map we don't have a frame buffer we're rendering in
+have a frame buffer we're rendering in two we do have a depth buffer but we
+two we do have a depth buffer but we render directly to the histogram using
+render directly to the histogram using an unordered access view so once per
+an unordered access view so once per cube face we yeah we render I won't go
+cube face we yeah we render I won't go through the code but the the I don't
+through the code but the the I don't know to access view is basically an
+know to access view is basically an array per material permit level and it
+array per material permit level and it just gets built and it's fairly compact
+just gets built and it's fairly compact so that doesn't take a lot of bandwidth
+so that doesn't take a lot of bandwidth the pulled us back down from the GPU
+the pulled us back down from the GPU from there we can take all of the probes
+from there we can take all of the probes in that particular column and we can max
+in that particular column and we can max them to generate final data for the
+them to generate final data for the column take the 512 most important
+column take the 512 most important records and then put that in the file
+records and then put that in the file bundle those up so that they can be you
+bundle those up so that they can be you can page in a 4x4 group at once and
+can page in a 4x4 group at once and that's all indexed to stable IDs and
+that's all indexed to stable IDs and that goes into a file that sits
+that goes into a file that sits alongside our level files as far as
+alongside our level files as far as texture assets are managed we have a
+texture assets are managed we have a pipeline that generates a single file
+pipeline that generates a single file per texture assets so the Nats
+per texture assets so the Nats compressed and Swizzle if necessary and
+compressed and Swizzle if necessary and as part of our load as part of our level
+as part of our load as part of our level our PAC process which is how we load we
+our PAC process which is how we load we bundle everything into a big file that
+bundle everything into a big file that we can just blast into the you know Ram
+we can just blast into the you know Ram from disk we peel off the myth the
+from disk we peel off the myth the streamable portion of those textures and
+streamable portion of those textures and we put them into a separate star pack
+we put them into a separate star pack file and for shipping there's a single
+file and for shipping there's a single star pack file for the entire game and
+star pack file for the entire game and one side benefit of this for as far as
+one side benefit of this for as far as fitting on disk goes is that you only
+fitting on disk goes is that you only have to duplicate the low be permanently
+have to duplicate the low be permanently resident nip levels across your levels
+resident nip levels across your levels so if a texture is used in two levels
+so if a texture is used in two levels only the nips below 64 kilobytes will be
+only the nips below 64 kilobytes will be shared across those will be will be
+shared across those will be will be starting out shared duplicated across
+starting out shared duplicated across so this is the crediting code broadly
+so this is the crediting code broadly speaking this is just shifting and
+speaking this is just shifting and scaling the histogram to accommodate
+scaling the histogram to accommodate varying fov and varying screen
+varying fov and varying screen resolution and varying texture
+resolution and varying texture resolutions for the material for models
+resolutions for the material for models it's the same thing except we also have
+it's the same thing except we also have to deal with a model getting closer and
+to deal with a model getting closer and further away from you so to handle that
+further away from you so to handle that obviously the coverage of a model goes
+obviously the coverage of a model goes down as it goes further away and then
+down as it goes further away and then it's going to be using coarser nip
+it's going to be using coarser nip levels to finally we can divide that
+levels to finally we can divide that accumulated coverage by our textile
+accumulated coverage by our textile count to get the metric which we sort by
+count to get the metric which we sort by and then that drives our our loading and
+and then that drives our our loading and unloading which has some subtleties
+unloading which has some subtleties especially handling dynamic changing
+especially handling dynamic changing buffer sizes so if if it's trying to
+buffer sizes so if if it's trying to target an amount of memory and we reduce
+target an amount of memory and we reduce the amount of memory available it needs
+the amount of memory available it needs to be able to handle handle that change
+to be able to handle handle that change or if we increase the amount so the is
+or if we increase the amount so the is turn in terms of the actual texture
+turn in terms of the actual texture resizing our original approach was we
+resizing our original approach was we would have a cpu writable texture so we
+would have a cpu writable texture so we did do kind of the by-the-book thing of
+did do kind of the by-the-book thing of create a CPU writable texture map it a
+create a CPU writable texture map it a synchronously load into it on map it
+synchronously load into it on map it copy it to the new GPU texture copy the
+copy it to the new GPU texture copy the old GPU texture to the new GPU texture
+old GPU texture to the new GPU texture and then get rid of those the old GPU
+and then get rid of those the old GPU texture and the CPU texture however this
+texture and the CPU texture however this turned this extra creation of a CPU
+turned this extra creation of a CPU writable texture turned out to cost a
+writable texture turned out to cost a lot of an unpredictable amount of driver
+lot of an unpredictable amount of driver time so we changed to just calling
+time so we changed to just calling create texture and passing it ordinary
+create texture and passing it ordinary heat memory so we load into heap and we
+heat memory so we load into heap and we pass it into create texture it's
+pass it into create texture it's technically that means we're doing an
+technically that means we're doing an extra copy but it performs better and
+extra copy but it performs better and then on the console life's a lot easier
+then on the console life's a lot easier we can just read things straight into
+we can just read things straight into where they'll be used our synchronous
+where they'll be used our synchronous i/o is its own thread it has two
+i/o is its own thread it has two requests in flight and textures of the
+requests in flight and textures of the lowest priority item and we carve up
+lowest priority item and we carve up those texture reads into 64 K chunks so
+those texture reads into 64 K chunks so that we can inter interrupt the reads to
+that we can inter interrupt the reads to load sound if we need to
+load sound if we need to since the sound is a lot more important
+since the sound is a lot more important to get low latency on
+to get low latency on so this is a really useful debugging
+so this is a really useful debugging tool this is the at-a-glance debug
+tool this is the at-a-glance debug shader and on the right I have reduced
+shader and on the right I have reduced the amount of texture RAM available and
+the amount of texture RAM available and on the Left we have plenty of RAM
+on the Left we have plenty of RAM available and on the Left you're seeing
+available and on the Left you're seeing mostly green and aqua
+mostly green and aqua so there's green here and there's aqua
+so there's green here and there's aqua around here green means that for that
+around here green means that for that particular pixel we are using the
+particular pixel we are using the highest mid level that's currently
+highest mid level that's currently loaded so that's good
+loaded so that's good aqua means that in some sense we're kind
+aqua means that in some sense we're kind of wasting space because we're using a
+of wasting space because we're using a mid level below what's loaded but of
+mid level below what's loaded but of course that could be used in elsewhere
+course that could be used in elsewhere on the screen and red as you can see on
+on the screen and red as you can see on this gun means that that texture my
+this gun means that that texture my level that it would like to use just
+level that it would like to use just doesn't exist
+doesn't exist on the right you notice if you're not
+on the right you notice if you're not colorblind that it's yellow so that
+colorblind that it's yellow so that means that we have a lot of pixels that
+means that we have a lot of pixels that aren't getting as high resolution as
+aren't getting as high resolution as they'd like
+they'd like this is really great tool for just
+this is really great tool for just running around a level and quickly
+running around a level and quickly checking to make sure that everything's
+checking to make sure that everything's streaming in well and then for debugging
+streaming in well and then for debugging the offline process we can wander around
+the offline process we can wander around we can see the nodes that the probes
+we can see the nodes that the probes from which the pre computed data was
+from which the pre computed data was rendered we can also get the XYZ
+rendered we can also get the XYZ coordinates and we can feed those XYZ
+coordinates and we can feed those XYZ coordinates into a special mode of the
+coordinates into a special mode of the offline tool that will actually generate
+offline tool that will actually generate a directory full of PNG files one per
+a directory full of PNG files one per material showing which where that
+material showing which where that particular material is visible from and
+particular material is visible from and in yellow it's visible and in red it's
+in yellow it's visible and in red it's occluded so that's really useful for
+occluded so that's really useful for trying to find out why a particular
+trying to find out why a particular material isn't loading like you're
+material isn't loading like you're standing somewhere and the material is
+standing somewhere and the material is not loading you can look at its cube map
+not loading you can look at its cube map and you can see okay it's occluded or
+and you can see okay it's occluded or you can see that the probe is in a bad
+you can see that the probe is in a bad place then there's just a bunch of
+place then there's just a bunch of different debugging modes we can set we
+different debugging modes we can set we can tell it to load all the textures
+can tell it to load all the textures data we can tell it to load none of it
+data we can tell it to load none of it we can change the memory limit and
+we can change the memory limit and that's exposed to PC players we can add
+that's exposed to PC players we can add noise on loaded data which doesn't
+noise on loaded data which doesn't actually turn out to be that useful
+actually turn out to be that useful because all
+because all everything is going to be noisy then the
+everything is going to be noisy then the the the at-a-glance shaders a lot more
+the the at-a-glance shaders a lot more useful than that and also very useful is
+useful than that and also very useful is we have a window that runs alongside the
+we have a window that runs alongside the game showing you a report and here you
+game showing you a report and here you can see at the top we have links you can
+can see at the top we have links you can click to change the modes the unvarying
+click to change the modes the unvarying operating various operations modes and
+operating various operations modes and the amount of texture memory are
+the amount of texture memory are actually using you can see the number of
+actually using you can see the number of mips loaded you can see below it what
+mips loaded you can see below it what columns are loaded we have a four
+columns are loaded we have a four element LRU cache for those bundled
+element LRU cache for those bundled together four by four columns and then
+together four by four columns and then below that you can see sorted list of
+below that you can see sorted list of what it thinks is important the the
+what it thinks is important the the records of the coverage for each myth
+records of the coverage for each myth level for each material and you can
+level for each material and you can explore that list and you can also see a
+explore that list and you can also see a mode where you see what is currently
+mode where you see what is currently loaded in total so this is the object is
+loaded in total so this is the object is the objective and then you can also see
+the objective and then you can also see that the current actual and also very
+that the current actual and also very useful is an i/o overview showing you
+useful is an i/o overview showing you the amount of reads you've been doing in
+the amount of reads you've been doing in the last second ten seconds hundred
+the last second ten seconds hundred seconds and the average bandwidth you're
+seconds and the average bandwidth you're using as well as the mean standard
+using as well as the mean standard deviation and maximum latency you're
+deviation and maximum latency you're encountering between and making a
+encountering between and making a request and getting it serviced so how
+request and getting it serviced so how long did it take our game was in
+long did it take our game was in development for two years this took
+development for two years this took about ten months there was related work
+about ten months there was related work to like especially handling PC auto
+to like especially handling PC auto detection min spec and talking to driver
+detection min spec and talking to driver people and trying to figure out
+people and trying to figure out performance issues of that there was
+performance issues of that there was also the asset pipeline work including
+also the asset pipeline work including being able to patch these and then there
+being able to patch these and then there was work on console to figure out how
+was work on console to figure out how much memory we have because texture
+much memory we have because texture streaming is is the the thing that gets
+streaming is is the the thing that gets the rest of the RAM so anything that
+the rest of the RAM so anything that affects memory is going to affect the
+affects memory is going to affect the texture streaming budget pretty much so
+texture streaming budget pretty much so how much RAM do we need well empirically
+how much RAM do we need well empirically it seemed to work pretty well with about
+it seemed to work pretty well with about 600 megabytes and once you get up to a
+600 megabytes and once you get up to a gigabyte it's pretty hard to find fault
+gigabyte it's pretty hard to find fault at all on PC we shipped with a variety
+at all on PC we shipped with a variety of settings based on a card database
+of settings based on a card database which we later shifted to use an actual
+which we later shifted to use an actual API to tell us the RAM available
+API to tell us the RAM available and then on the console it's just fixed
+and then on the console it's just fixed at 928 megabytes and that's in addition
+at 928 megabytes and that's in addition to about 400 megabytes of permanent MIPS
+to about 400 megabytes of permanent MIPS which are the 64 the below 64 K levels
+which are the 64 the below 64 K levels as well as effects UI and some
+as well as effects UI and some environment distant environment maps
+environment distant environment maps that didn't make sense to stream and
+that didn't make sense to stream and then there's about half a mega
+then there's about half a mega performance over again overhead I'm
+performance over again overhead I'm sorry housekeeping overhead like those
+sorry housekeeping overhead like those pages from the SD PSP and tables and
+pages from the SD PSP and tables and that kind of stuff as far as what ends
+that kind of stuff as far as what ends up on the disk
+up on the disk our entire stream level set is 21 Giga
+our entire stream level set is 21 Giga bytes for the affecting cause level
+bytes for the affecting cause level which is the one where you travel
+which is the one where you travel through time you can use up to 12 Giga
+through time you can use up to 12 Giga bytes of that that's 14,000 MIPS and the
+bytes of that that's 14,000 MIPS and the file that contains the static
+file that contains the static precomputed data with columns is 37
+precomputed data with columns is 37 megabytes 4 MP Eden which is a sort of
+megabytes 4 MP Eden which is a sort of an average multiplayer level for us it's
+an average multiplayer level for us it's about the same but the column file is
+about the same but the column file is bigger because the playing area is
+bigger because the playing area is bigger that doesn't really matter though
+bigger that doesn't really matter though for the runtime because it only keeps a
+for the runtime because it only keeps a several K of at it at resident any port
+several K of at it at resident any port at any time so if you think about the 12
+at any time so if you think about the 12 gigabytes that we can load combined with
+gigabytes that we can load combined with the 4 gigabytes that are loaded from the
+the 4 gigabytes that are loaded from the are pack and then you think about the
+are pack and then you think about the gigabyte buffer with the 4 gigabytes
+gigabyte buffer with the 4 gigabytes that are permanently resident you get
+that are permanently resident you get about a nine to one compression ratio so
+about a nine to one compression ratio so back in the napkin you have about one
+back in the napkin you have about one and a half one with levels which is nice
+this is our cruncher for AMD radeon r9 fury nanos and then a cpu that really
+fury nanos and then a cpu that really doesn't matter because this process
+doesn't matter because this process barely uses the cpu but lest you think
+barely uses the cpu but lest you think you can run it on your workstation while
+you can run it on your workstation while you're trying to do something else it
+you're trying to do something else it bogs down the windows UI because windows
+bogs down the windows UI because windows u is GPU for compositing so it makes
+u is GPU for compositing so it makes your computer unusable so we have a
+your computer unusable so we have a cruncher and that guy just pulls things
+cruncher and that guy just pulls things from perforce does a gen can uses
+from perforce does a gen can uses Jenkins to render the sorry well Jenkins
+Jenkins to render the sorry well Jenkins drives it but it pulls things down for
+drives it but it pulls things down for perforce runs our XD on it and then
+perforce runs our XD on it and then commits the results pretty widely
+commits the results pretty widely varying amount of time it takes for
+varying amount of time it takes for single-player levels from 15 minutes to
+single-player levels from 15 minutes to 2 hours though an hour is average for
+2 hours though an hour is average for multiplayer it's closer to 20 minutes
+multiplayer it's closer to 20 minutes and it's an embarrassingly parallel
+and it's an embarrassingly parallel problem so if you divide you can sense
+problem so if you divide you can sense you only upload the geometry once to
+you only upload the geometry once to these cards and that's fast you can then
+these cards and that's fast you can then just divide the probes up across the
+just divide the probes up across the cards and there really isn't a huge
+cards and there really isn't a huge bandwidth constraint pulling those
+bandwidth constraint pulling those histograms back down so it it's about 4
+histograms back down so it it's about 4 X with 4 GPUs as far as the actual game
+X with 4 GPUs as far as the actual game run time it's about a millisecond will
+run time it's about a millisecond will less than a millisecond in a like kind
+less than a millisecond in a like kind of a typical busy scene about half of
+of a typical busy scene about half of that's doing the BSP crediting there's
+that's doing the BSP crediting there's sometimes crediting models and the other
+sometimes crediting models and the other half is sorting and and compiling the
+half is sorting and and compiling the lit the final list there's some
+lit the final list there's some optimization opportunities we'd like to
+optimization opportunities we'd like to maybe push things on to some job threads
+maybe push things on to some job threads we'd like to maybe amortize across
+we'd like to maybe amortize across multiple frames because you really don't
+multiple frames because you really don't need to have an up-to-date list every
+need to have an up-to-date list every frame because your hard drive can't
+frame because your hard drive can't possibly keep up with that so how did
+possibly keep up with that so how did this effect artists like I said they
+this effect artists like I said they disabled it for certain textures for
+disabled it for certain textures for effects and for distant level geometry
+effects and for distant level geometry where it just didn't make sense to
+where it just didn't make sense to stream they liked that there were 4k
+stream they liked that there were 4k textures available on all platforms so
+textures available on all platforms so you know PC people with their amazing
+you know PC people with their amazing displays and GPUs can enjoy their art
+displays and GPUs can enjoy their art there wasn't a wrong way to make models
+there wasn't a wrong way to make models there wasn't busy work one thing that
+there wasn't busy work one thing that became increasingly obvious as the
+became increasingly obvious as the effort went on was that they really
+effort went on was that they really weren't happy when the guns or the Titan
+weren't happy when the guns or the Titan cockpits weren't completely loaded in so
+cockpits weren't completely loaded in so we call this view models and we had to
+we call this view models and we had to handle view model specially we put a
+handle view model specially we put a special bump for them that they almost
+special bump for them that they almost always will completely load in if
+always will completely load in if they're visible so that breaks the
+they're visible so that breaks the artist can't affect the budget
+artist can't affect the budget requirement so now anytime they had a
+requirement so now anytime they had a nip level to a gun or a Titan it's going
+nip level to a gun or a Titan it's going to definitely take memory and definitely
+to definitely take memory and definitely reduce the amount of memory available to
+reduce the amount of memory available to other textures but that's okay we just
+other textures but that's okay we just have to be careful there and we try to
+have to be careful there and we try to encourage artists not to use all mode
+encourage artists not to use all mode all the time like they like to use all
+all the time like they like to use all mode because it loads everything in and
+mode because it loads everything in and it looks as good as a can but we want
+it looks as good as a can but we want them to see what the players going to
+them to see what the players going to see as far as designers we didn't really
+see as far as designers we didn't really use very many hints ultimately
+use very many hints ultimately the it's saved designer time because
+the it's saved designer time because usually they have to do is kind of a
+usually they have to do is kind of a past late in the project where they look
+past late in the project where they look for textures that aren't used that often
+for textures that aren't used that often and get rid of them but now it just
+and get rid of them but now it just doesn't matter because those not used
+doesn't matter because those not used very often textures will only take 64k
+very often textures will only take 64k or a bit more than 64 km Emery and we
+or a bit more than 64 km Emery and we did achieve the goal of having lots of
+did achieve the goal of having lots of customized skins and guns for
+customized skins and guns for multiplayer we want to add the ability
+multiplayer we want to add the ability to hint that they're going to load in a
+to hint that they're going to load in a model so we don't have it we don't have
+model so we don't have it we don't have a a pre cache kind of facility so we had
+a a pre cache kind of facility so we had to do some hacks where maybe they had a
+to do some hacks where maybe they had a model behind a wall so that when they
+model behind a wall so that when they spawned another one in in front of the
+spawned another one in in front of the player it would already be loaded and
+player it would already be loaded and that wasn't great but that'll get better
+that wasn't great but that'll get better next game the cruncher stopped a lot so
+next game the cruncher stopped a lot so we need to improve our we're working on
+we need to improve our we're working on improving our build process a bit and
+improving our build process a bit and for these kinds of automatic processes
+for these kinds of automatic processes so that people are aware when they break
+so that people are aware when they break because we would get bugs and the real
+because we would get bugs and the real cause of the bug was just that it hadn't
+cause of the bug was just that it hadn't run in a week so something like a model
+run in a week so something like a model or a geometry that had been added
+or a geometry that had been added recently would be blurry and it's just
+recently would be blurry and it's just because they hadn't run the tool so it
+because they hadn't run the tool so it had no way of knowing that thing was
+had no way of knowing that thing was even there and on console also we had to
+even there and on console also we had to use extra memory for development
+use extra memory for development so console bugs were kind of invalid
+so console bugs were kind of invalid because the buffer was so much smaller
+because the buffer was so much smaller than it was going to be it was going to
+than it was going to be it was going to end up being so on PC then we used the
+end up being so on PC then we used the same size we were using on a console so
+same size we were using on a console so the PC was the kind of definitive how's
+the PC was the kind of definitive how's it going to look experienced and in the
+it going to look experienced and in the amount of Emery we had available was
+amount of Emery we had available was about a normal GPU so it worked out
+about a normal GPU so it worked out pretty well and of course because PC
+pretty well and of course because PC players with really good cards will see
+players with really good cards will see even better textures so affecting cause
+even better textures so affecting cause that's that that's where you go through
+that's that that's where you go through time you're really going through Z so we
+time you're really going through Z so we pop you up and down and that just worked
+pop you up and down and that just worked because we have columns and we max
+because we have columns and we max between the the probes so you'd get a
+between the the probes so you'd get a probe down here and a probe in the other
+probe down here and a probe in the other time and it would just pull in the data
+time and it would just pull in the data that would uh that would be needed even
+that would uh that would be needed even you know they would take a little
+you know they would take a little additional load on the cache because
+additional load on the cache because you're loading two sets of textures but
+you're loading two sets of textures but that
+that really be avoided ship to ship that's
+really be avoided ship to ship that's massive moving geometry so in that level
+massive moving geometry so in that level you have these four ships that are laid
+you have these four ships that are laid out or more than four but giant ships
+out or more than four but giant ships laid out in the level and we then sort
+laid out in the level and we then sort of translate them at the last minute in
+of translate them at the last minute in the renderer so that worked pretty well
+the renderer so that worked pretty well but we had to add a hook whereas the
+but we had to add a hook whereas the scripters could tell us which ship
+scripters could tell us which ship you're on so we could reverse transform
+you're on so we could reverse transform the players camera position back to
+the players camera position back to where that ship was back when we did the
+where that ship was back when we did the pre computation it's a bit of a hack but
+pre computation it's a bit of a hack but that worked out on PC some surprises
+that worked out on PC some surprises we ended up shipping with a Louis buffer
+we ended up shipping with a Louis buffer size of zero which doesn't look great
+size of zero which doesn't look great but we wanted to be as inclusive as
+but we wanted to be as inclusive as possible we also ended up with some
+possible we also ended up with some hitching due to kind of unpredictable
+hitching due to kind of unpredictable drivers so we've been improving that we
+drivers so we've been improving that we a move texture creation to its own
+a move texture creation to its own thread and we also have a limit where we
+thread and we also have a limit where we won't create more than two textures a
+won't create more than two textures a frame on console at some point we
+frame on console at some point we decided maybe we were gonna try to make
+decided maybe we were gonna try to make it so that you play the game while you
+it so that you play the game while you were installing it but that was just way
+were installing it but that was just way too much bandwidth to expect out of the
+too much bandwidth to expect out of the optical drive some we ended up
+optical drive some we ended up abandoning that and of course the
+abandoning that and of course the buffers needing the space for
+buffers needing the space for development like I mentioned and we also
+development like I mentioned and we also borrow memory for loading we borrow
+borrow memory for loading we borrow memory for movie playback too which is
+memory for movie playback too which is not which so behind the scenes it's
+not which so behind the scenes it's dynamically changing the the buffer and
+dynamically changing the the buffer and that's fine so where does this break
+that's fine so where does this break down when you start to talk about having
+down when you start to talk about having less buffer memory
+less buffer memory well the biggest one is signage so in
+well the biggest one is signage so in this case we have a high contrast sharp
+this case we have a high contrast sharp texture and it kind of looks bad once
+texture and it kind of looks bad once you reduced the texture budget all this
+you reduced the texture budget all this other stuff is reduced too but it does
+other stuff is reduced too but it does okay how are we gonna address that we've
+okay how are we gonna address that we've talked about using distance fields
+talked about using distance fields that's what we use for our our normal
+that's what we use for our our normal you I wrote like text and you know menus
+you I wrote like text and you know menus and we also talked about maybe
+and we also talked about maybe generating some kind of an error metric
+generating some kind of an error metric when we do the mid map generation to
+when we do the mid map generation to somehow detect when a texture is the
+somehow detect when a texture is the kind of thing that degenerates badly and
+multiply its its metric by some constant the other issue we run into is when they
+the other issue we run into is when they make something out of pieces here you
+make something out of pieces here you can see this little part here and it
+can see this little part here and it comes from this texture but because this
+comes from this texture but because this coverage is relatively small and because
+coverage is relatively small and because we're dividing by this entire count of
+we're dividing by this entire count of texels for this entire texture that
+texels for this entire texture that doesn't load in eventually in this case
+doesn't load in eventually in this case we just created a texture map for the
+we just created a texture map for the entire sign so this was kind of a
+entire sign so this was kind of a temporary problem but it's sort of worth
+temporary problem but it's sort of worth exploring that as well some code bugs we
+exploring that as well some code bugs we encountered there's a lot of ways to
+encountered there's a lot of ways to draw models in our engine so a couple
+draw models in our engine so a couple times things wouldn't be streaming in
+times things wouldn't be streaming in and it turned out that there was some
+and it turned out that there was some path we hadn't quite explored to get a
+path we hadn't quite explored to get a model into the render list without also
+model into the render list without also doing the accounting and then having to
+doing the accounting and then having to deal with hot-swap because when you have
+deal with hot-swap because when you have a will for our hot-swap system you have
+a will for our hot-swap system you have multiple copies of the same texture
+multiple copies of the same texture resident only ones live but they're all
+resident only ones live but they're all residents so the streaming management
+residents so the streaming management code had to kind of keep a pointer to
+code had to kind of keep a pointer to the currently live one and that was
+the currently live one and that was additional work an opportunity to kind
+additional work an opportunity to kind of get into a messed up state and Nance
+of get into a messed up state and Nance love Nance so what's next moving to more
+love Nance so what's next moving to more modern API is on PC augmenting some of
+modern API is on PC augmenting some of this with some GPU feedback if we can
+this with some GPU feedback if we can add cheap instructions to our shader to
+add cheap instructions to our shader to kind of take some notes on what's
+kind of take some notes on what's visible and sort of mix that in that
+visible and sort of mix that in that would be nice and then looking into
+would be nice and then looking into texture compression beyond kind of you
+texture compression beyond kind of you know GPU DXE compression and seeing if
+know GPU DXE compression and seeing if that's worth the CPU cost and working
+that's worth the CPU cost and working better with you moving geometry
+better with you moving geometry streaming more of our textures and
+streaming more of our textures and streaming geometry as well like actual
+streaming geometry as well like actual vertices and then finally addressing
+vertices and then finally addressing signage making it look better alright
+signage making it look better alright thank you

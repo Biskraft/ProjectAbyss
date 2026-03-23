@@ -1,0 +1,2167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Halo Infinite 무기 샌드박스 밸런스 시스템 역기획서</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #fafbfc;
+      --bg-card: #f6f8fa;
+      --bg-card-alt: #f0f2f5;
+      --bg-card-hover: #edf0f4;
+      --bg-surface: #f8f9fb;
+      --text-primary: #1a1f36;
+      --text-secondary: #4a5568;
+      --text-muted: #8492a6;
+      --accent-blue: #1e3a5f;
+      --accent-purple: #4a3f6b;
+      --accent-pink: #9b2c3f;
+      --accent-green: #1a6b4a;
+      --accent-orange: #8b5e34;
+      --accent-cyan: #1a5c6b;
+      --accent-blue-dim: rgba(30, 58, 95, 0.06);
+      --accent-purple-dim: rgba(74, 63, 107, 0.06);
+      --accent-pink-dim: rgba(155, 44, 63, 0.06);
+      --accent-green-dim: rgba(26, 107, 74, 0.06);
+      --accent-orange-dim: rgba(139, 94, 52, 0.06);
+      --accent-cyan-dim: rgba(26, 92, 107, 0.06);
+      --border-color: #e2e8f0;
+      --border-color-strong: #cbd5e1;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+      --radius-xl: 16px;
+      --sidebar-width: 264px;
+      --font-serif: 'Source Serif 4', 'Georgia', serif;
+      --font-mono: 'IBM Plex Mono', 'Menlo', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      font-size: 14.5px;
+      line-height: 1.75;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    ::selection {
+      background: rgba(30, 58, 95, 0.15);
+      color: var(--text-primary);
+    }
+
+    ::-webkit-scrollbar { width: 7px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+    /* Scroll Progress */
+    .scroll-progress {
+      position: fixed;
+      top: 0; left: 0;
+      width: 0%;
+      height: 2px;
+      background: var(--accent-blue);
+      z-index: 9999;
+      transition: width 0.1s linear;
+    }
+
+    /* Back to Top */
+    .back-to-top {
+      position: fixed;
+      bottom: 28px; right: 28px;
+      width: 40px; height: 40px;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid var(--border-color-strong);
+      color: var(--accent-blue);
+      font-size: 18px;
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .back-to-top:hover {
+      background: var(--accent-blue);
+      color: #fff;
+    }
+    .back-to-top.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* TOC Sidebar */
+    .toc-sidebar {
+      position: fixed;
+      left: 0; top: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      z-index: 100;
+      padding: 24px 0 32px;
+    }
+    .toc-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 20px 18px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 12px;
+    }
+    .toc-brand-icon {
+      width: 28px; height: 28px;
+      background: var(--accent-blue);
+      color: #fff;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .toc-brand-text {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+    }
+    .toc-sidebar a {
+      display: block;
+      padding: 6px 20px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .toc-sidebar a:hover {
+      background: rgba(0, 0, 0, 0.02);
+    }
+    .toc-sidebar a.depth-2 {
+      padding-left: 36px;
+      font-size: 11.5px;
+    }
+    .toc-sidebar a.active {
+      border-left-color: var(--accent-blue);
+      background: var(--accent-blue-dim);
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+    .toc-sidebar a.active[data-section="sec2"],
+    .toc-sidebar a.active[data-section="sec7"] { border-left-color: var(--accent-purple); color: var(--accent-purple); background: var(--accent-purple-dim); }
+    .toc-sidebar a.active[data-section="sec3"],
+    .toc-sidebar a.active[data-section="sec9"] { border-left-color: var(--accent-green); color: var(--accent-green); background: var(--accent-green-dim); }
+    .toc-sidebar a.active[data-section="sec4"],
+    .toc-sidebar a.active[data-section="sec10"] { border-left-color: var(--accent-orange); color: var(--accent-orange); background: var(--accent-orange-dim); }
+    .toc-sidebar a.active[data-section="sec5"],
+    .toc-sidebar a.active[data-section="sec8"] { border-left-color: var(--accent-cyan); color: var(--accent-cyan); background: var(--accent-cyan-dim); }
+    .toc-sidebar a.active[data-section="sec6"] { border-left-color: var(--accent-pink); color: var(--accent-pink); background: var(--accent-pink-dim); }
+
+    /* Main Content */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      padding: 48px 56px 100px;
+      max-width: calc(1100px + var(--sidebar-width) + 112px);
+    }
+
+    /* Header */
+    .doc-header {
+      padding-bottom: 28px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .game-badge {
+      display: inline-block;
+      background: var(--accent-blue);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 4px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--accent-blue);
+      line-height: 1.3;
+      margin-bottom: 14px;
+    }
+    .doc-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .doc-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .doc-meta span::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+    }
+    .meta-ver::before { background: var(--accent-green) !important; }
+    .meta-date::before { background: var(--accent-orange) !important; }
+    .meta-scope::before { background: var(--accent-cyan) !important; }
+
+    /* Typography */
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 40px 0 18px;
+      padding-top: 20px;
+    }
+    h3 {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 28px 0 12px;
+    }
+    h4 {
+      font-family: 'Pretendard Variable', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 20px 0 8px;
+    }
+    p {
+      margin: 8px 0;
+      color: var(--text-secondary);
+    }
+    ul, ol {
+      margin: 8px 0 8px 20px;
+      color: var(--text-secondary);
+    }
+    li { margin: 4px 0; }
+
+    /* Section Number Badge */
+    .section-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #fff;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    .num-def { background: var(--accent-blue); }
+    .num-struct { background: var(--accent-purple); }
+    .num-flow { background: var(--accent-green); }
+    .num-detail { background: var(--accent-orange); }
+    .num-data { background: var(--accent-cyan); }
+    .num-except { background: var(--accent-pink); }
+    .num-compare { background: var(--accent-purple); }
+    .num-research { background: var(--accent-cyan); }
+    .num-numerical { background: var(--accent-green); }
+    .num-genre { background: var(--accent-orange); }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 13px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    th {
+      background: var(--bg-card);
+      color: var(--accent-blue);
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border-color-strong);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      text-align: left;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: top;
+      color: var(--text-secondary);
+    }
+    tr:hover td { background: rgba(30, 58, 95, 0.02); }
+    tbody tr:nth-child(even) td { background: rgba(0, 0, 0, 0.01); }
+    .table-scroll { overflow-x: auto; margin: 12px 0; }
+
+    /* Card */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 12px 0;
+    }
+    .card:hover {
+      border-color: var(--border-color-strong);
+    }
+    .card-alt { background: var(--bg-card-alt); }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+      margin: 14px 0;
+    }
+    .card-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      padding-left: 10px;
+      border-left: 3px solid var(--accent-blue);
+    }
+    .label-info { color: var(--accent-blue); border-left-color: var(--accent-blue); }
+    .label-user { color: var(--accent-green); border-left-color: var(--accent-green); }
+    .label-biz { color: var(--accent-orange); border-left-color: var(--accent-orange); }
+    .label-warn { color: var(--accent-pink); border-left-color: var(--accent-pink); }
+
+    /* Intent Card */
+    .intent-card {
+      background: var(--bg-primary);
+      border-radius: 6px;
+      padding: 18px 22px;
+      margin: 10px 0;
+      border-left: 3px solid;
+      border-top: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .intent-card .intent-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .intent-revenue { border-left-color: var(--accent-pink); }
+    .intent-retention { border-left-color: var(--accent-orange); }
+    .intent-ux { border-left-color: var(--accent-blue); }
+    .intent-balance { border-left-color: var(--accent-green); }
+    .intent-social { border-left-color: var(--accent-purple); }
+
+    /* Tag */
+    .tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+    .tag-required { color: var(--accent-pink); background: var(--accent-pink-dim); border-color: rgba(155, 44, 63, 0.15); }
+    .tag-optional { color: var(--accent-green); background: var(--accent-green-dim); border-color: rgba(26, 107, 74, 0.15); }
+    .tag-pk { color: var(--accent-blue); background: var(--accent-blue-dim); border-color: rgba(30, 58, 95, 0.15); }
+    .tag-fk { color: var(--accent-purple); background: var(--accent-purple-dim); border-color: rgba(74, 63, 107, 0.15); }
+    .tag-high { color: var(--accent-pink); background: var(--accent-pink-dim); border-color: rgba(155, 44, 63, 0.15); }
+    .tag-mid { color: var(--accent-orange); background: var(--accent-orange-dim); border-color: rgba(139, 94, 52, 0.15); }
+    .tag-low { color: var(--accent-green); background: var(--accent-green-dim); border-color: rgba(26, 107, 74, 0.15); }
+
+    /* Formula */
+    .formula {
+      background: var(--bg-card);
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--accent-blue);
+      padding: 16px 20px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      line-height: 1.9;
+      margin: 12px 0;
+      white-space: pre-wrap;
+    }
+
+    /* Matrix */
+    .matrix-possible { color: var(--accent-green); font-weight: 600; }
+    .matrix-impossible { color: var(--text-muted); font-style: italic; }
+
+    /* Mermaid */
+    .mermaid-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 24px;
+      margin: 18px 0;
+      overflow-x: auto;
+      text-align: center;
+      position: relative;
+    }
+    .mermaid-wrapper::before {
+      content: 'DIAGRAM';
+      position: absolute;
+      top: 8px; right: 12px;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+    .mermaid-wrapper.mermaid-tall { overflow-x: hidden; }
+    .mermaid-wrapper.mermaid-tall .mermaid { width: 100%; display: block; }
+    .mermaid-wrapper.mermaid-tall .mermaid svg {
+      width: 100% !important;
+      max-width: 100%;
+      height: auto !important;
+    }
+
+    /* Chart.js */
+    .chart-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 24px;
+      margin: 18px 0;
+      position: relative;
+    }
+    .chart-wrapper::before {
+      content: 'CHART';
+      position: absolute;
+      top: 8px; right: 12px;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+    .chart-label {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      margin-bottom: 12px;
+    }
+    .chart-description {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .chart-footnote {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 12px;
+      font-style: italic;
+    }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 18px;
+      margin: 18px 0;
+    }
+    .chart-wrapper canvas {
+      max-height: 400px;
+      width: 100% !important;
+    }
+
+    /* Analysis Card */
+    .analysis-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 18px 22px;
+      border-top: 3px solid var(--accent-blue);
+    }
+    .analysis-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .analysis-value {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      margin-bottom: 4px;
+    }
+    .analysis-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Section divider */
+    section {
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 10px;
+    }
+    section:last-of-type {
+      border-bottom: none;
+    }
+
+    /* Footer */
+    .doc-footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .doc-footer p { color: var(--text-muted); }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .toc-sidebar { display: none; }
+      .main-content { margin-left: 0; padding: 24px 20px 60px; }
+      h1 { font-size: 26px; }
+      h2 { font-size: 19px; }
+    }
+    @media (max-width: 600px) {
+      .main-content { padding: 16px 14px 48px; }
+      h1 { font-size: 22px; }
+      .card-grid { grid-template-columns: 1fr; }
+      .chart-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Print */
+    @media print {
+      .toc-sidebar, .scroll-progress, .back-to-top { display: none; }
+      .main-content { margin-left: 0; padding: 20px; }
+      body { background: #fff; color: #111; font-size: 11px; }
+      h1, h2, h3, h4 { color: #111; }
+      h1 { font-size: 24px; }
+      .card, .intent-card, .mermaid-wrapper, .formula {
+        border: 1px solid #ccc;
+        box-shadow: none;
+        background: #fafafa;
+      }
+      table { border: 1px solid #ccc; }
+      th { background: #f0f0f0; color: #222; }
+      td { color: #333; }
+      section { animation: none; }
+      a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="scroll-progress" id="scrollProgress"></div>
+<button class="back-to-top" id="backToTop" aria-label="맨 위로 이동">&#8593;</button>
+
+<!-- TOC Sidebar -->
+<nav class="toc-sidebar">
+  <div class="toc-brand">
+    <div class="toc-brand-icon">HI</div>
+    <div class="toc-brand-text">Weapon Sandbox<br>역기획서</div>
+  </div>
+  <a href="#sec1" data-section="sec1">01 정의서</a>
+  <a href="#sec1-overview" class="depth-2" data-section="sec1">시스템 개요</a>
+  <a href="#sec1-scope" class="depth-2" data-section="sec1">분석 범위</a>
+  <a href="#sec2" data-section="sec2">02 구조도</a>
+  <a href="#sec2-main" class="depth-2" data-section="sec2">메인 구조도</a>
+  <a href="#sec3" data-section="sec3">03 플로우차트</a>
+  <a href="#sec3-main" class="depth-2" data-section="sec3">메인 플로우</a>
+  <a href="#sec3-damage" class="depth-2" data-section="sec3">데미지 계산</a>
+  <a href="#sec4" data-section="sec4">04 상세 명세서</a>
+  <a href="#sec4-ui" class="depth-2" data-section="sec4">UI 레이아웃</a>
+  <a href="#sec4-interaction" class="depth-2" data-section="sec4">인터랙션 명세</a>
+  <a href="#sec4-state" class="depth-2" data-section="sec4">상태 전이</a>
+  <a href="#sec5" data-section="sec5">05 데이터 테이블</a>
+  <a href="#sec5-weapon" class="depth-2" data-section="sec5">WeaponStats</a>
+  <a href="#sec5-dmgtype" class="depth-2" data-section="sec5">DamageType</a>
+  <a href="#sec5-er" class="depth-2" data-section="sec5">ER 다이어그램</a>
+  <a href="#sec6" data-section="sec6">06 예외 처리</a>
+  <a href="#sec6-edge" class="depth-2" data-section="sec6">엣지 케이스</a>
+  <a href="#sec6-concurrency" class="depth-2" data-section="sec6">동시성 이슈</a>
+  <a href="#sec7" data-section="sec7">07 비교 분석</a>
+  <a href="#sec7-matrix" class="depth-2" data-section="sec7">비교 매트릭스</a>
+  <a href="#sec7-insight" class="depth-2" data-section="sec7">인사이트</a>
+  <a href="#sec7-intent" class="depth-2" data-section="sec7">설계 의도 분석</a>
+  <a href="#sec8" data-section="sec8">08 리서치 브리프</a>
+  <a href="#sec9" data-section="sec9">09 수치 분석</a>
+  <a href="#sec10" data-section="sec10">10 장르별 분석</a>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+
+<header class="doc-header">
+  <div class="game-badge">HALO INFINITE</div>
+  <h1>무기 샌드박스 밸런스 시스템 역기획서</h1>
+  <div class="doc-meta">
+    <span class="meta-ver">v1.0</span>
+    <span class="meta-date">2026-03-19</span>
+    <span class="meta-scope">Season 5 기준 | 무기 밸런스 + 데미지 타입 + TTK 분석</span>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<!-- SEC 1: 정의서 -->
+<!-- ============================================================ -->
+<section id="sec1">
+  <h2><span class="section-num num-def">01</span> 정의서 (Definition)</h2>
+
+  <h3 id="sec1-overview">1. 시스템 개요</h3>
+  <table>
+    <thead><tr><th>항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>시스템명</td><td>Halo Infinite 무기 샌드박스 밸런스 시스템</td></tr>
+      <tr><td>한 줄 정의</td><td>4속성 무기로 실드를 깨고 정밀 사격으로 마무리하는 전투 체계</td></tr>
+      <tr><td>분석 버전</td><td>Season 5 (2024 최종 패치)</td></tr>
+      <tr><td>분석일</td><td>2026-03-19</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2. 핵심 목적</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-label label-user">유저 관점</div>
+      <p>맵 위의 무기를 전략적으로 선택하고 숙련도를 높여 상대를 제압하는 성취감 제공. 동일 조건에서 시작해 실력으로 승부하는 공정한 경쟁 경험</p>
+    </div>
+    <div class="card">
+      <div class="card-label label-biz">사업 관점</div>
+      <p>무기 스킨/코팅 등 외형 커스터마이징을 통한 코스메틱 수익화. Battle Pass 시즌 콘텐츠 순환으로 장기 리텐션 확보. 경쟁 랭크 시스템으로 e-스포츠 생태계 확장</p>
+    </div>
+  </div>
+
+  <h3>3. 용어 정의</h3>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>용어</th><th>정의</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>TTK (Time to Kill)</td><td>첫 발 명중부터 적 처치까지 소요되는 시간. 무기 밸런스의 핵심 지표</td><td>일반적으로 최적 사거리, 전탄 명중 기준으로 측정</td></tr>
+      <tr><td>Damage Type</td><td>무기가 가하는 피해의 속성 분류. Kinetic, Plasma, Shock, Hardlight 4종</td><td>각 타입은 실드/체력에 대한 효율이 다름</td></tr>
+      <tr><td>Headshot Multiplier</td><td>머리 부위 명중 시 기본 데미지에 곱해지는 추가 배율</td><td>실드가 깨진 후에만 적용</td></tr>
+      <tr><td>Bloom</td><td>연사 시 십자선이 점진적으로 확대되어 명중률이 하락하는 메커니즘</td><td>연사 속도 제어 및 사거리 밸런싱 수단</td></tr>
+      <tr><td>Bullet Magnetism</td><td>십자선이 대상에 근접할 때 발사체가 대상 방향으로 미세하게 보정되는 시스템</td><td>컨트롤러/키보드마우스 별도 튜닝</td></tr>
+      <tr><td>Shield Gate</td><td>실드가 깨지는 순간 초과 데미지가 체력에 전이되지 않는 보호 메커니즘</td><td>원킬 무기 외 일반 무기에 적용</td></tr>
+      <tr><td>Golden Triangle</td><td>Halo 핵심 전투 설계 원칙: 총기 + 수류탄 + 근접 공격의 3요소 순환</td><td>모든 무기 밸런스가 이 삼각형 내에서 설계</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 id="sec1-scope">4. 분석 범위</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-label label-info">이 문서에서 다루는 것</div>
+      <ul>
+        <li>무기별 데미지, 연사속도, 탄창, 사거리 등 수치 밸런스</li>
+        <li>4가지 Damage Type의 상호작용</li>
+        <li>실드/체력 이중 HP 시스템과 Headshot 메커니즘</li>
+        <li>맵 내 무기 스폰 등급 체계 (Weapon Pad/Rack)</li>
+        <li>Bloom, Bullet Magnetism, Aim Assist 등 명중률 보정 시스템</li>
+        <li>무기 간 TTK 비교 및 커뮤니티 티어 분석</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-label label-warn">이 문서에서 다루지 않는 것</div>
+      <ul>
+        <li>캠페인 모드 무기 밸런스</li>
+        <li>장비(Equipment) 시스템 (Grappleshot, Repulsor 등)</li>
+        <li>차량(Vehicle) 전투 밸런스</li>
+        <li>맵 레이아웃 및 레벨 디자인</li>
+        <li>코스메틱 스킨/코팅 상세</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>5. 관련 시스템</h3>
+  <table>
+    <thead><tr><th>시스템</th><th>관계 유형</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td>실드/체력 시스템</td><td><span class="tag tag-required">의존</span></td><td>데미지 계산의 기반. 실드 ~150HP + 체력 ~70HP 구조 참조</td></tr>
+      <tr><td>맵 무기 스폰 시스템</td><td><span class="tag tag-pk">연동</span></td><td>무기 등급에 따라 스폰 위치/타이머 결정. 맵 컨트롤 전략의 핵심</td></tr>
+      <tr><td>수류탄 시스템</td><td><span class="tag tag-pk">연동</span></td><td>Golden Triangle의 한 축. 실드 깎기 + 무기 마무리 콤보</td></tr>
+      <tr><td>근접 공격 시스템</td><td><span class="tag tag-pk">연동</span></td><td>Golden Triangle의 한 축. Melee 90dmg + 무기 콤보</td></tr>
+      <tr><td>Aim Assist/Bullet Magnetism</td><td><span class="tag tag-required">의존</span></td><td>명중률 보정 수치가 무기별로 상이. 실질 TTK에 직접 영향</td></tr>
+      <tr><td>랭크/매치메이킹 시스템</td><td><span class="tag tag-mid">영향</span></td><td>무기 밸런스가 경쟁전 메타/랭크 분포에 직접 영향</td></tr>
+      <tr><td>수익화 시스템</td><td><span class="tag tag-mid">영향</span></td><td>무기 스킨 판매 수익. P2W 없이 코스메틱만 제공</td></tr>
+    </tbody>
+  </table>
+
+  <h4>분석 범위 &amp; 관련 시스템 마인드맵</h4>
+  <div class="mermaid-wrapper mermaid-tall">
+    <div class="mermaid">
+mindmap
+  root((무기 샌드박스 밸런스))
+    분석 범위
+      무기별 수치 밸런스
+      4종 데미지 타입
+      실드/체력 HP 시스템
+      맵 무기 스폰 등급
+      명중률 보정 시스템
+      TTK 비교 분석
+    범위 밖
+      캠페인 밸런스
+      장비 시스템
+      차량 전투
+    관련 시스템
+      의존
+        실드/체력 시스템
+        Aim Assist
+      영향
+        랭크/매치메이킹
+        수익화 시스템
+      연동
+        맵 무기 스폰
+        수류탄 시스템
+        근접 공격
+    </div>
+  </div>
+
+  <h3>6. 대상 유저 행동</h3>
+  <table>
+    <thead><tr><th>#</th><th>유저 행동</th><th>빈도</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>맵에서 무기를 획득한다</td><td>매 라운드 다수</td><td>Weapon Pad/Rack에서 상위 등급 무기 픽업</td></tr>
+      <tr><td>2</td><td>조준하여 사격한다</td><td>상시 (전투 중)</td><td>줌인/힙파이어로 대상에 데미지 적용</td></tr>
+      <tr><td>3</td><td>실드를 깨고 헤드샷으로 마무리한다</td><td>매 교전</td><td>2단계 킬: 실드 제거 후 정밀 타격</td></tr>
+      <tr><td>4</td><td>무기를 교체한다</td><td>교전 중/후</td><td>탄약 소진 또는 상황에 맞는 무기로 전환</td></tr>
+      <tr><td>5</td><td>수류탄/근접과 무기를 조합한다</td><td>매 교전</td><td>Golden Triangle 활용</td></tr>
+    </tbody>
+  </table>
+
+  <h4>핵심 인터랙션 요약</h4>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+sequenceDiagram
+    actor Player as 플레이어
+    participant WS as 무기 샌드박스
+    participant DMG as 데미지 계산
+    participant SHP as 실드/체력 시스템
+
+    Player->>WS: 무기 획득 (Weapon Pad)
+    activate WS
+    WS-->>Player: 무기 장착 완료
+    deactivate WS
+
+    Player->>WS: 조준 + 사격
+    activate WS
+    WS->>DMG: 데미지 타입 + 수치 전달
+    DMG->>SHP: 실드 데미지 적용
+    SHP-->>DMG: 실드 잔량 반환
+    DMG-->>WS: 히트 결과
+    WS-->>Player: 히트마커 + 데미지 피드백
+    deactivate WS
+
+    Player->>WS: 헤드샷 사격 (실드 파괴 후)
+    activate WS
+    WS->>DMG: 헤드샷 배율 적용
+    DMG->>SHP: 체력 데미지 적용
+    SHP-->>DMG: 처치 확인
+    DMG-->>WS: 킬 확정
+    WS-->>Player: 킬 피드 + 사운드
+    deactivate WS
+    </div>
+  </div>
+
+  <h3>7. 시스템 배경 맥락</h3>
+  <div class="card">
+    <p>Halo Infinite는 26세기 미래 전쟁을 배경으로, UNSC(인류군), Banished(외계 연합), Forerunner(고대 문명)의 세 진영이 각자의 기술 체계에 기반한 무기를 사용한다. 멀티플레이어에서는 모든 플레이어가 동일한 기본 무기(AR + Sidekick)로 시작하며, 맵에 배치된 상위 무기를 쟁탈하는 것이 전략의 핵심이다.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SEC 2: 구조도 -->
+<!-- ============================================================ -->
+<section id="sec2">
+  <h2><span class="section-num num-struct">02</span> 구조도 (Architecture)</h2>
+
+  <h3 id="sec2-main">메인 구조도</h3>
+  <div class="mermaid-wrapper mermaid-tall">
+    <div class="mermaid">
+graph LR
+    subgraph DamageTypes["데미지 타입 시스템"]
+        direction LR
+        DT1[Kinetic 데미지]
+        DT2[Plasma 데미지]
+        DT3[Shock 데미지]
+        DT4[Hardlight 데미지]
+    end
+
+    subgraph ShieldHP["실드/체력 시스템"]
+        direction LR
+        SH[실드 ~150HP]
+        HP[체력 ~70HP]
+        SH -->|파괴 시 전환| HP
+    end
+
+    subgraph WeaponCat["무기 카테고리 시스템"]
+        direction LR
+        W1[UNSC 무기군]
+        W2[Banished 무기군]
+        W3[Forerunner 무기군]
+        W4[근접 무기군]
+    end
+
+    subgraph SpawnSys["맵 무기 스폰 시스템"]
+        direction LR
+        SP1[Weapon Rack 일반]
+        SP2[Weapon Pad 파워]
+    end
+
+    subgraph AimSys["조준 보정 시스템"]
+        direction LR
+        AM1[Bloom 확산]
+        AM2[Bullet Magnetism]
+    end
+
+    W1 -->|발사한다| DT1
+    W2 -->|발사한다| DT2
+    W3 -->|발사한다| DT4
+    DT1 -->|적용한다| SH
+    DT2 -->|효과적으로 깎는다| SH
+    DT3 -->|연쇄 충격한다| SH
+    SP1 -->|배치한다| W1
+    SP2 -->|배치한다| W4
+    AM1 -->|명중률 제어| W1
+
+    style DamageTypes fill:#eaf5f0,stroke:#1a6b4a
+    style ShieldHP fill:#e8edf3,stroke:#1e3a5f
+    style WeaponCat fill:#edebf3,stroke:#4a3f6b
+    style SpawnSys fill:#f3eaeb,stroke:#9b2c3f
+    style AimSys fill:#e8f0f3,stroke:#1a5c6b
+    </div>
+  </div>
+
+  <h3>노드 상세 설명</h3>
+  <table>
+    <thead><tr><th>노드</th><th>역할</th><th>주요 기능</th></tr></thead>
+    <tbody>
+      <tr><td>Kinetic 데미지</td><td>UNSC 무기의 기본 속성</td><td>체력에 효과적, 실드에 표준 데미지</td></tr>
+      <tr><td>Plasma 데미지</td><td>Banished 에너지 무기 속성</td><td>실드에 효과적, 체력에 저효율</td></tr>
+      <tr><td>Shock 데미지</td><td>전기 계열 속성</td><td>연쇄 피해, 차량 EMP 효과</td></tr>
+      <tr><td>Hardlight 데미지</td><td>Forerunner 무기 속성</td><td>실드/체력 균등 효과, 반사 가능</td></tr>
+      <tr><td>실드 ~150HP</td><td>첫 번째 방어층</td><td>자동 재생, 헤드샷 배율 무효화</td></tr>
+      <tr><td>체력 ~70HP</td><td>두 번째 방어층</td><td>재생 없음, 헤드샷 배율 적용</td></tr>
+      <tr><td>Weapon Rack</td><td>일반 무기 스폰 지점</td><td>짧은 리스폰 타이머, 중하위 티어</td></tr>
+      <tr><td>Weapon Pad</td><td>파워 무기 스폰 지점</td><td>긴 리스폰 타이머, 상위 티어</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ -->
+<!-- SEC 3: 플로우차트 -->
+<!-- ============================================================ -->
+<section id="sec3">
+  <h2><span class="section-num num-flow">03</span> 플로우차트 (Flowchart)</h2>
+
+  <h3 id="sec3-main">메인 플로우 (Happy Path)</h3>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+flowchart TD
+    classDef userAction fill:#4CAF50,color:#fff
+    classDef systemProcess fill:#2196F3,color:#fff
+    classDef condition fill:#FF9800,color:#fff
+
+    Start(게임 시작: 기본 무기 지급) --> A
+    A[/맵 이동 및 무기 획득/]:::userAction
+    A --> B[무기 장착 처리]:::systemProcess
+    B --> C[/조준 및 사격/]:::userAction
+    C --> D[[데미지 계산 서브 플로우]]:::systemProcess
+    D --> E{실드 잔량 확인}:::condition
+    E -->|실드 남음| F[실드 데미지 적용]:::systemProcess
+    F -->|계속 사격| C
+    E -->|실드 파괴| G[Shield Pop 이펙트]:::systemProcess
+    G --> H{헤드샷 여부}:::condition
+    H -->|헤드샷| I[헤드샷 배율 적용]:::systemProcess
+    H -->|바디샷| J[기본 데미지 적용]:::systemProcess
+    I --> K{체력 0 이하}:::condition
+    J --> K
+    K -->|처치| L[킬 피드 표시]:::systemProcess
+    K -->|생존| C
+    L --> End(교전 종료)
+    </div>
+  </div>
+
+  <h4>범례</h4>
+  <table>
+    <thead><tr><th>요소</th><th>모양</th><th>색상</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>유저 액션</td><td>평행사변형</td><td style="color:#4CAF50;font-weight:600">#4CAF50</td><td>플레이어가 직접 수행하는 행동</td></tr>
+      <tr><td>시스템 처리</td><td>사각형</td><td style="color:#2196F3;font-weight:600">#2196F3</td><td>시스템이 자동 수행하는 처리</td></tr>
+      <tr><td>조건 분기</td><td>다이아몬드</td><td style="color:#FF9800;font-weight:600">#FF9800</td><td>조건에 따른 분기점</td></tr>
+      <tr><td>서브 프로세스</td><td>이중 사각형</td><td>기본</td><td>별도 플로우로 분리된 처리</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="sec3-damage">서브 플로우: 데미지 계산</h3>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+flowchart TD
+    classDef systemProcess fill:#2196F3,color:#fff
+    classDef condition fill:#FF9800,color:#fff
+
+    SA(데미지 계산 시작) --> SB[발사체 히트 판정]:::systemProcess
+    SB --> SC{명중 부위 판정}:::condition
+    SC -->|머리| SD[헤드 데미지 후보 등록]:::systemProcess
+    SC -->|몸통/사지| SE[바디 데미지 확정]:::systemProcess
+    SD --> SF{대상 실드 상태}:::condition
+    SF -->|실드 있음| SG[헤드샷 배율 미적용]:::systemProcess
+    SF -->|실드 없음| SH[헤드샷 배율 적용]:::systemProcess
+    SG --> SI[Damage Type 효율 적용]:::systemProcess
+    SH --> SI
+    SE --> SI
+    SI --> SJ[최종 데미지 확정]:::systemProcess
+    SJ --> SK(메인 플로우로 복귀)
+    </div>
+  </div>
+
+  <h4>데미지 계산 공식 (추정)</h4>
+  <div class="formula">최종 데미지 = 기본 데미지 x 부위 배율 x 타입 효율 계수
+
+- 부위 배율: 실드 있을 때 헤드 = 1.0x (배율 무효), 실드 없을 때 헤드 = Headshot Multiplier
+- 타입 효율 계수: Plasma vs 실드 = ~1.15x, Kinetic vs 체력 = ~1.0x (기준값)</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SEC 4: 상세 명세서 -->
+<!-- ============================================================ -->
+<section id="sec4">
+  <h2><span class="section-num num-detail">04</span> 상세 명세서 (Detailed Spec)</h2>
+
+  <h3 id="sec4-ui">1. UI 레이아웃</h3>
+  <table>
+    <thead><tr><th>영역</th><th>위치</th><th>구성 요소</th><th>비율/크기</th></tr></thead>
+    <tbody>
+      <tr><td>크로스헤어</td><td>화면 정중앙</td><td>십자선, 히트마커, Bloom 인디케이터</td><td>약 3-5% 영역</td></tr>
+      <tr><td>무기 표시기</td><td>우측 하단</td><td>무기 아이콘, 탄약 수, 여분 탄약</td><td>약 8x5%</td></tr>
+      <tr><td>실드/체력 바</td><td>상단 중앙 (피격 시)</td><td>실드 게이지, 체력 바, 방향 인디케이터</td><td>약 15x3%</td></tr>
+      <tr><td>킬 피드</td><td>우측 상단</td><td>처치 로그, 메달 표시</td><td>약 20x15%</td></tr>
+      <tr><td>수류탄 표시</td><td>좌측 하단</td><td>수류탄 종류 아이콘, 보유 수량</td><td>약 5x5%</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="sec4-interaction">2. 인터랙션 명세</h3>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>대상 요소</th><th>입력 방식</th><th>동작</th><th>피드백</th></tr></thead>
+    <tbody>
+      <tr><td>사격</td><td>RT / 마우스 좌클릭</td><td>현재 무기 발사. 탄약 1발 소모</td><td>시각: 총구 화염 + 히트마커 / 청각: 발사음 / 촉각: 진동</td></tr>
+      <tr><td>조준(ADS)</td><td>LT / 마우스 우클릭</td><td>줌 조준. FOV 축소, 정확도 증가</td><td>시각: 줌 오버레이 / 청각: 줌 사운드</td></tr>
+      <tr><td>재장전</td><td>X / R키</td><td>현재 무기 탄창 재장전</td><td>시각: 재장전 애니메이션 / 청각: 탄창 교체음</td></tr>
+      <tr><td>무기 교체</td><td>Y / 1,2키</td><td>주무기-보조무기 전환</td><td>시각: 무기 내리기-올리기 / 청각: 꺼내는 소리</td></tr>
+      <tr><td>무기 획득</td><td>X(길게) / E키(길게)</td><td>바닥/Rack의 무기 픽업</td><td>시각: 픽업 애니메이션 / 청각: 획득음</td></tr>
+      <tr><td>근접 공격</td><td>RB / V키</td><td>무기로 근접 타격. 90 데미지</td><td>시각: 근접 애니메이션 / 청각: 타격음 / 촉각: 강한 진동</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>3. 애니메이션 명세</h3>
+  <table>
+    <thead><tr><th>트리거</th><th>애니메이션</th><th>재생 시간</th><th>이징</th></tr></thead>
+    <tbody>
+      <tr><td>사격</td><td>총기 반동 + 총구 화염</td><td>무기별 상이 (0.1~0.8초)</td><td>ease-out</td></tr>
+      <tr><td>재장전</td><td>탄창 분리-삽입-장전</td><td>1.5~3.0초</td><td>linear</td></tr>
+      <tr><td>무기 교체</td><td>현재 무기 내리기 + 새 무기 올리기</td><td>약 0.5초</td><td>ease-in-out</td></tr>
+      <tr><td>실드 파괴</td><td>Shield Pop 이펙트 (전신 전기 방전)</td><td>0.3초</td><td>ease-out</td></tr>
+      <tr><td>헤드샷 킬</td><td>머리 스냅백 + 킬 이펙트</td><td>0.5초</td><td>ease-out</td></tr>
+      <tr><td>실드 재충전</td><td>실드 복구 이펙트</td><td>4.0초 대기 후 1.5초</td><td>linear</td></tr>
+    </tbody>
+  </table>
+
+  <h4>레이어 간 타이밍 시퀀스</h4>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+sequenceDiagram
+    participant UI as UI 레이어
+    participant FX as 이펙트 레이어
+    participant SND as 사운드
+    participant SYS as 전투 시스템
+
+    SYS->>FX: 발사 트리거
+    activate FX
+    FX->>SND: 발사음 재생
+    FX-->>UI: 총구 화염 + 반동
+    deactivate FX
+    SYS->>UI: 히트 판정 결과 전달
+    activate UI
+    UI->>SND: 히트 사운드 재생
+    UI-->>UI: 히트마커 표시
+    deactivate UI
+    SYS->>FX: 실드 파괴 트리거
+    activate FX
+    FX->>SND: Shield Pop 사운드
+    FX-->>UI: 전기 방전 이펙트
+    deactivate FX
+    SYS->>UI: 킬 확정 전달
+    activate UI
+    UI->>SND: 킬 사운드 + 메달 사운드
+    UI-->>UI: 킬 피드 + 메달 팝업
+    deactivate UI
+    </div>
+  </div>
+
+  <h3>4. 사운드 명세</h3>
+  <table>
+    <thead><tr><th>트리거</th><th>유형</th><th>설명</th><th>볼륨</th></tr></thead>
+    <tbody>
+      <tr><td>사격 (Kinetic)</td><td>SFX</td><td>금속성 폭발음. 무기별 고유 음색</td><td>100%</td></tr>
+      <tr><td>사격 (Plasma)</td><td>SFX</td><td>에너지 방출음. 전자적 웅웅거림</td><td>100%</td></tr>
+      <tr><td>사격 (Shock)</td><td>SFX</td><td>전기 방전음. 고주파</td><td>100%</td></tr>
+      <tr><td>사격 (Hardlight)</td><td>SFX</td><td>결정체 파열음</td><td>100%</td></tr>
+      <tr><td>히트 (헤드샷)</td><td>SFX</td><td>높은 톤의 "핑" 사운드</td><td>120%</td></tr>
+      <tr><td>Shield Pop</td><td>SFX</td><td>전기 방전 + 파열음</td><td>130%</td></tr>
+      <tr><td>킬 확정</td><td>SFX</td><td>저주파 둔탁한 확인음</td><td>110%</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="sec4-state">5. 상태 전이 명세</h3>
+  <h4>상태 목록</h4>
+  <table>
+    <thead><tr><th>상태</th><th>설명</th><th>진입 조건</th></tr></thead>
+    <tbody>
+      <tr><td>대기 (Idle)</td><td>무기를 들고 이동 가능한 기본 상태</td><td>게임 시작 또는 다른 상태 종료</td></tr>
+      <tr><td>조준 (Aiming)</td><td>ADS 줌 상태. 이동속도 감소, 정확도 증가</td><td>LT/우클릭 유지</td></tr>
+      <tr><td>사격 (Firing)</td><td>발사 중. 반동/Bloom 적용</td><td>RT/좌클릭</td></tr>
+      <tr><td>재장전 (Reloading)</td><td>탄창 교체 중. 사격 불가</td><td>X/R키 또는 탄약 0 자동</td></tr>
+      <tr><td>교체 (Switching)</td><td>무기 전환 중. 사격 불가</td><td>Y/1,2키 입력</td></tr>
+      <tr><td>근접 (Melee)</td><td>근접 공격 모션 중</td><td>RB/V키 입력</td></tr>
+      <tr><td>픽업 (Picking Up)</td><td>바닥 무기 획득 중</td><td>X/E키 길게 입력</td></tr>
+    </tbody>
+  </table>
+
+  <h4>상태 전이 다이어그램</h4>
+  <div class="mermaid-wrapper mermaid-tall">
+    <div class="mermaid">
+stateDiagram-v2
+    direction LR
+    [*] --> Idle: 게임 시작
+    Idle --> Aiming: ADS 입력
+    Aiming --> Idle: ADS 해제
+    Idle --> Firing: 사격 입력
+    Aiming --> Firing: 사격 입력
+    Firing --> Idle: 사격 중단
+    Firing --> Aiming: 사격 중단 + ADS 유지
+    Firing --> Reloading: 탄약 0 자동 전환
+    Idle --> Reloading: 재장전 입력
+    Reloading --> Idle: 재장전 완료
+    Idle --> Switching: 교체 입력
+    Switching --> Idle: 교체 완료
+    Idle --> Melee: 근접 입력
+    Melee --> Idle: 모션 완료
+    Idle --> PickingUp: 픽업 입력
+    PickingUp --> Idle: 획득 완료
+    note right of Reloading
+        스프린트 입력으로 재장전 취소 가능
+    end note
+    </div>
+  </div>
+
+  <h4>상태 전이 매트릭스</h4>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>From \ To</th><th>대기</th><th>조준</th><th>사격</th><th>재장전</th><th>교체</th><th>근접</th><th>픽업</th></tr></thead>
+    <tbody>
+      <tr><td>대기</td><td>-</td><td class="matrix-possible">ADS</td><td class="matrix-possible">사격</td><td class="matrix-possible">R키/자동</td><td class="matrix-possible">Y키</td><td class="matrix-possible">V키</td><td class="matrix-possible">E키</td></tr>
+      <tr><td>조준</td><td class="matrix-possible">ADS해제</td><td>-</td><td class="matrix-possible">사격</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td class="matrix-possible">V키</td><td class="matrix-impossible">X</td></tr>
+      <tr><td>사격</td><td class="matrix-possible">중단</td><td class="matrix-possible">중단+ADS</td><td>-</td><td class="matrix-possible">탄약0</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td></tr>
+      <tr><td>재장전</td><td class="matrix-possible">완료/취소</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td>-</td><td class="matrix-possible">Y키</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td></tr>
+      <tr><td>교체</td><td class="matrix-possible">완료</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td>-</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td></tr>
+      <tr><td>근접</td><td class="matrix-possible">완료</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td>-</td><td class="matrix-impossible">X</td></tr>
+      <tr><td>픽업</td><td class="matrix-possible">완료</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td class="matrix-impossible">X</td><td>-</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SEC 5: 데이터 테이블 -->
+<!-- ============================================================ -->
+<section id="sec5">
+  <h2><span class="section-num num-data">05</span> 데이터 테이블 (Data Tables)</h2>
+
+  <h3>1. 테이블 목록</h3>
+  <table>
+    <thead><tr><th>#</th><th>테이블명</th><th>설명</th><th>레코드 수</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>WeaponStats</td><td>전체 무기의 데미지, 연사속도, 탄창, 사거리 등 핵심 수치</td><td>~20행</td></tr>
+      <tr><td>2</td><td>DamageTypeEfficiency</td><td>4종 Damage Type의 실드/체력 대상 효율 계수</td><td>4행</td></tr>
+      <tr><td>3</td><td>HeadshotMultipliers</td><td>무기별 헤드샷 배율 및 적용 조건</td><td>~20행</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="sec5-weapon">2. WeaponStats</h3>
+  <div class="card">
+    <div class="card-label label-info">용도</div>
+    <p>모든 무기의 핵심 전투 수치를 관리하는 마스터 테이블. TTK 계산 및 밸런스 조정의 기준 데이터.</p>
+  </div>
+
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>Weapon_ID</th><th>Display_Name</th><th>Faction</th><th>Damage_Type</th><th>Body_Dmg</th><th>Head_Dmg</th><th>HS_Mult</th><th>Fire_Rate/s</th><th>Mag</th><th>TTK_s</th><th>Range</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag tag-pk">PK</span> WEP_UNSC_AR</td><td>MA40 AR</td><td>UNSC</td><td>Kinetic</td><td>14.4</td><td>21.6</td><td>1.5</td><td>10.0</td><td>36</td><td>1.50</td><td>Mid</td></tr>
+      <tr><td>WEP_UNSC_BR</td><td>BR75</td><td>UNSC</td><td>Kinetic</td><td>20.0</td><td>28.0</td><td>1.4</td><td>4.16</td><td>36</td><td>1.55</td><td>Mid-Long</td></tr>
+      <tr><td>WEP_UNSC_COMMANDO</td><td>VK78 Commando</td><td>UNSC</td><td>Kinetic</td><td>18.0</td><td>27.0</td><td>1.5</td><td>7.8</td><td>20</td><td>1.54</td><td>Mid</td></tr>
+      <tr><td>WEP_UNSC_SIDEKICK</td><td>MK50 Sidekick</td><td>UNSC</td><td>Kinetic</td><td>20.0</td><td>30.0</td><td>1.5</td><td>6.0</td><td>12</td><td>1.50</td><td>Close-Mid</td></tr>
+      <tr><td>WEP_UNSC_SNIPER</td><td>S7 Sniper</td><td>UNSC</td><td>Kinetic</td><td>150.0</td><td>300.0</td><td>2.0</td><td>0.83</td><td>4</td><td>0.00</td><td>Long</td></tr>
+      <tr><td>WEP_UNSC_BULLDOG</td><td>CQS48 Bulldog</td><td>UNSC</td><td>Kinetic</td><td>105.0</td><td>105.0</td><td>0.0</td><td>1.55</td><td>7</td><td>1.29</td><td>Close</td></tr>
+      <tr><td>WEP_UNSC_SPNKR</td><td>M41 SPNKr</td><td>UNSC</td><td>Kinetic</td><td>250.0</td><td>250.0</td><td>0.0</td><td>1.2</td><td>2</td><td>0.00</td><td>All</td></tr>
+      <tr><td>WEP_BAN_MANGLER</td><td>Mangler</td><td>Banished</td><td>Kinetic</td><td>60.0</td><td>84.0</td><td>1.4</td><td>2.5</td><td>8</td><td>1.20</td><td>Close-Mid</td></tr>
+      <tr><td>WEP_BAN_NEEDLER</td><td>Needler</td><td>Banished</td><td>Plasma</td><td>10.0</td><td>10.0</td><td>0.0</td><td>13.33</td><td>26</td><td>0.90</td><td>Close</td></tr>
+      <tr><td>WEP_BAN_STALKER</td><td>Stalker Rifle</td><td>Banished</td><td>Plasma</td><td>42.0</td><td>59.0</td><td>1.4</td><td>2.2</td><td>12</td><td>2.27</td><td>Long</td></tr>
+      <tr><td>WEP_BAN_DISRUPTOR</td><td>Disruptor</td><td>Banished</td><td>Shock</td><td>12.0</td><td>12.0</td><td>0.0</td><td>5.0</td><td>10</td><td>1.60</td><td>Mid</td></tr>
+      <tr><td>WEP_BAN_SHOCKRIFLE</td><td>Shock Rifle</td><td>Banished</td><td>Shock</td><td>80.0</td><td>160.0</td><td>2.0</td><td>1.25</td><td>12</td><td>0.00</td><td>Long</td></tr>
+      <tr><td>WEP_BAN_SKEWER</td><td>Skewer</td><td>Banished</td><td>Kinetic</td><td>250.0</td><td>500.0</td><td>2.0</td><td>0.4</td><td>1</td><td>0.00</td><td>All</td></tr>
+      <tr><td>WEP_FOR_HEATWAVE</td><td>Heatwave</td><td>Forerunner</td><td>Hardlight</td><td>90.0</td><td>90.0</td><td>0.0</td><td>1.34</td><td>8</td><td>1.49</td><td>Close-Mid</td></tr>
+      <tr><td>WEP_FOR_SENTINEL</td><td>Sentinel Beam</td><td>Forerunner</td><td>Hardlight</td><td>11.0</td><td>11.0</td><td>0.0</td><td>20.0</td><td>100</td><td>1.00</td><td>Mid</td></tr>
+      <tr><td>WEP_FOR_CINDERSHOT</td><td>Cindershot</td><td>Forerunner</td><td>Hardlight</td><td>90.0</td><td>90.0</td><td>0.0</td><td>1.6</td><td>6</td><td>1.25</td><td>Mid-Long</td></tr>
+      <tr><td>WEP_MEL_SWORD</td><td>Energy Sword</td><td>Banished</td><td>Plasma</td><td>220.0</td><td>220.0</td><td>0.0</td><td>1.0</td><td>10</td><td>0.00</td><td>Melee</td></tr>
+      <tr><td>WEP_MEL_HAMMER</td><td>Gravity Hammer</td><td>Banished</td><td>Kinetic</td><td>220.0</td><td>220.0</td><td>0.0</td><td>0.8</td><td>0</td><td>0.00</td><td>Melee</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 id="sec5-dmgtype">3. DamageTypeEfficiency</h3>
+  <div class="card">
+    <div class="card-label label-info">용도</div>
+    <p>4종 Damage Type이 실드/체력에 대해 적용하는 효율 계수. 데미지 계산 시 최종 배율로 사용.</p>
+  </div>
+  <table>
+    <thead><tr><th>Type_ID</th><th>Description</th><th>Shield_Efficiency</th><th>Health_Efficiency</th><th>Special_Effect</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag tag-pk">PK</span> DMG_KINETIC</td><td>물리 탄환 데미지. UNSC 표준</td><td>1.0</td><td>1.0</td><td>없음</td></tr>
+      <tr><td>DMG_PLASMA</td><td>에너지 데미지. 실드에 효과적</td><td>1.15</td><td>0.85</td><td>실드 추가 데미지</td></tr>
+      <tr><td>DMG_SHOCK</td><td>전기 데미지. 연쇄 효과</td><td>1.0</td><td>1.0</td><td>근접 적 연쇄 피해, 차량 EMP</td></tr>
+      <tr><td>DMG_HARDLIGHT</td><td>빛 결정 데미지. 균등 효율</td><td>1.0</td><td>1.0</td><td>벽/바닥 반사 가능</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4. HeadshotMultipliers</h3>
+  <table>
+    <thead><tr><th>Weapon_ID</th><th>Description</th><th>HS_Mult</th><th>Shield_Active</th><th>Shield_Broken</th><th>OneShot?</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag tag-fk">FK</span> WEP_UNSC_AR</td><td>MA40 돌격소총</td><td>1.5</td><td>1.0</td><td>1.5</td><td>0</td></tr>
+      <tr><td>WEP_UNSC_BR</td><td>BR75 전투소총</td><td>1.4</td><td>1.0</td><td>1.4</td><td>0</td></tr>
+      <tr><td>WEP_UNSC_COMMANDO</td><td>VK78 특무소총</td><td>1.5</td><td>1.0</td><td>1.5</td><td>0</td></tr>
+      <tr><td>WEP_UNSC_SIDEKICK</td><td>MK50 보조권총</td><td>1.5</td><td>1.0</td><td>1.5</td><td>0</td></tr>
+      <tr><td>WEP_UNSC_SNIPER</td><td>S7 저격소총</td><td>2.0</td><td>2.0</td><td>2.0</td><td><span class="tag tag-high">1</span></td></tr>
+      <tr><td>WEP_BAN_MANGLER</td><td>맹글러 권총</td><td>1.4</td><td>1.0</td><td>1.4</td><td>0</td></tr>
+      <tr><td>WEP_BAN_SHOCKRIFLE</td><td>쇼크 라이플</td><td>2.0</td><td>2.0</td><td>2.0</td><td><span class="tag tag-high">1</span></td></tr>
+      <tr><td>WEP_FOR_HEATWAVE</td><td>히트웨이브</td><td>0.0</td><td>1.0</td><td>1.0</td><td>0</td></tr>
+      <tr><td>WEP_FOR_SENTINEL</td><td>센티넬 빔</td><td>0.0</td><td>1.0</td><td>1.0</td><td>0</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="sec5-er">5. ER 다이어그램</h3>
+  <div class="mermaid-wrapper mermaid-tall">
+    <div class="mermaid">
+erDiagram
+    WEAPON_STATS ||--|| HEADSHOT_MULTIPLIERS : "1:1 배율 정보"
+    WEAPON_STATS {
+        string Weapon_ID PK
+        string Display_Name
+        string Faction
+        string Damage_Type FK
+        float Body_Damage
+        float Fire_Rate_per_s
+        int Magazine_Size
+        float Optimal_TTK_s
+    }
+    WEAPON_STATS }o--|| DAMAGE_TYPE_EFFICIENCY : "N:1 타입 참조"
+    DAMAGE_TYPE_EFFICIENCY {
+        string Type_ID PK
+        float Shield_Efficiency
+        float Health_Efficiency
+        string Special_Effect
+    }
+    HEADSHOT_MULTIPLIERS {
+        string Weapon_ID FK
+        float HS_Multiplier
+        float Shield_Active_Mult
+        float Shield_Broken_Mult
+        bool Can_OneShot_Head
+    }
+    </div>
+  </div>
+
+  <h3>6. 밸런싱 공식</h3>
+  <h4>공식 1: 최적 TTK 계산 (단순화)</h4>
+  <div class="formula">TTK = (Total_HP - First_Shot_Damage) / (Body_Damage x Fire_Rate)
+
+Total_HP = Shield(~150) + Health(~70) = ~220HP
+First_Shot_Damage = 첫 발 데미지 (TTK는 첫 발 명중 시점부터 측정)</div>
+
+  <h4>검증 데이터</h4>
+  <table>
+    <thead><tr><th>무기</th><th>공식 결과</th><th>게임 측정값</th><th>오차</th></tr></thead>
+    <tbody>
+      <tr><td>MA40 AR (바디만)</td><td>1.43초</td><td>~1.50초</td><td>~4.7%</td></tr>
+      <tr><td>BR75 (바디만)</td><td>2.40초</td><td>~1.55초 (헤드 마무리)</td><td>바디 only vs 헤드 마무리 차이</td></tr>
+      <tr><td>MK50 Sidekick</td><td>1.67초</td><td>~1.50초</td><td>~10.2% (헤드샷 마무리 반영 시 일치)</td></tr>
+      <tr><td>Needler</td><td>1.58초</td><td>~0.90초</td><td>Supercombine 폭발 메커니즘</td></tr>
+    </tbody>
+  </table>
+
+  <h4>TTK 비교 시각화 (Mermaid)</h4>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+xychart-beta
+    title "무기별 최적 TTK 비교 (초)"
+    x-axis ["AR", "BR75", "VK78", "Sidekick", "Bulldog", "Mangler", "Needler", "Sentinel", "Heatwave", "Cindershot"]
+    y-axis "TTK (초)" 0 --> 2.5
+    bar [1.50, 1.55, 1.54, 1.50, 1.29, 1.20, 0.90, 1.00, 1.49, 1.25]
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SEC 6: 예외 처리 -->
+<!-- ============================================================ -->
+<section id="sec6">
+  <h2><span class="section-num num-except">06</span> 예외 처리 (Edge Cases)</h2>
+
+  <h3 id="sec6-edge">1. 엣지 케이스</h3>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>#</th><th>예외 상황</th><th>발생 조건</th><th>시스템 반응</th><th>유저 피드백</th><th>우선순위</th></tr></thead>
+    <tbody>
+      <tr><td>E1</td><td>동시 처치 (Trade Kill)</td><td>두 플레이어가 동일 프레임에 상대를 처치</td><td>양쪽 모두 킬 인정. 동시 사망 허용</td><td>양쪽 모두 킬 피드 표시 + 사망 화면</td><td><span class="tag tag-high">높음</span></td></tr>
+      <tr><td>E2</td><td>실드 파괴 정확 타이밍</td><td>실드 잔량 1 이하에서 피격</td><td>Shield Gate 적용: 초과 데미지 체력 미전이</td><td>Shield Pop + 체력 바 온전 유지</td><td><span class="tag tag-high">높음</span></td></tr>
+      <tr><td>E3</td><td>재장전 중 무기 픽업</td><td>재장전 진행 중 픽업 시도</td><td>재장전 취소 + 새 무기 교체</td><td>재장전 중단 → 픽업 애니메이션 전환</td><td><span class="tag tag-mid">중간</span></td></tr>
+      <tr><td>E4</td><td>근접 공격 상호 교환</td><td>두 플레이어 동시 근접 공격</td><td>양쪽 90 데미지 적용</td><td>양쪽 타격 이펙트 + 사운드</td><td><span class="tag tag-high">높음</span></td></tr>
+      <tr><td>E5</td><td>탄약 0 사격 시도</td><td>탄창/여분 모두 0</td><td>발사 불가. 빈 탄창 클릭음</td><td>탄약 빨간색 깜빡임</td><td><span class="tag tag-mid">중간</span></td></tr>
+      <tr><td>E6</td><td>파워 무기 동시 픽업</td><td>동일 프레임 Weapon Pad 접근</td><td>서버 기준 선착순 지급</td><td>실패 측 피드백 없음</td><td><span class="tag tag-mid">중간</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>2. 사이드 이펙트</h3>
+  <table>
+    <thead><tr><th>#</th><th>트리거</th><th>영향 시스템</th><th>사이드 이펙트</th><th>처리 순서</th></tr></thead>
+    <tbody>
+      <tr><td>S1</td><td>파워 무기 획득</td><td>맵 스폰 시스템</td><td>Weapon Pad 리스폰 타이머 시작 (~120초)</td><td>동기</td></tr>
+      <tr><td>S2</td><td>무기 드롭</td><td>맵 오브젝트</td><td>바닥에 무기 오브젝트 생성. 탄약 유지</td><td>동기</td></tr>
+      <tr><td>S3</td><td>킬 확정</td><td>통계/메달</td><td>킬 카운트 증가, 메달 조건 판정</td><td>비동기</td></tr>
+      <tr><td>S4</td><td>Shock 데미지</td><td>차량 시스템</td><td>3발 누적 시 EMP 효과</td><td>비동기</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="sec6-concurrency">3. 동시성 이슈</h3>
+  <table>
+    <thead><tr><th>#</th><th>시나리오</th><th>위험도</th><th>대응 방법</th></tr></thead>
+    <tbody>
+      <tr><td>C1</td><td>Desync (비동기화)</td><td><span class="tag tag-high">높음</span></td><td>서버 권위 모델. 서버 판정 우선. 클라이언트 보간 보정</td></tr>
+      <tr><td>C2</td><td>동시 데미지 적용</td><td><span class="tag tag-mid">중간</span></td><td>서버 순차 처리. Last Hit 킬 크레딧</td></tr>
+      <tr><td>C3</td><td>래그 보상 (Lag Compensation)</td><td><span class="tag tag-high">높음</span></td><td>서버 측 되감기(Rewind). 공격자 관점 히트 판정</td></tr>
+      <tr><td>C4</td><td>무기 픽업 경합</td><td><span class="tag tag-mid">중간</span></td><td>서버 타임스탬프 선착순</td></tr>
+    </tbody>
+  </table>
+
+  <h4>예외 우선순위 매트릭스</h4>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+quadrantChart
+    title 예외 우선순위 매트릭스
+    x-axis "낮은 빈도" --> "높은 빈도"
+    y-axis "낮은 영향도" --> "높은 영향도"
+    quadrant-1 "즉시 대응"
+    quadrant-2 "모니터링 강화"
+    quadrant-3 "예방 조치"
+    quadrant-4 "일반 처리"
+    E1-Trade-Kill: [0.3, 0.7]
+    E2-Shield-Gate: [0.8, 0.8]
+    E4-Melee-Trade: [0.4, 0.6]
+    C1-Desync: [0.7, 0.9]
+    C3-Lag-Comp: [0.6, 0.85]
+    ER1-Ghost-Hit: [0.65, 0.75]
+    ER4-Disconnect: [0.2, 0.95]
+    E5-Empty-Mag: [0.9, 0.2]
+    </div>
+  </div>
+
+  <h3>4. 리소스 한계</h3>
+  <table>
+    <thead><tr><th>#</th><th>리소스</th><th>하한</th><th>상한</th><th>도달 시 처리</th></tr></thead>
+    <tbody>
+      <tr><td>R1</td><td>탄약 (탄창)</td><td>0</td><td>무기별 Magazine_Size</td><td>0 도달 시 자동 재장전</td></tr>
+      <tr><td>R2</td><td>탄약 (여분)</td><td>0</td><td>무기별 Max_Reserve</td><td>무기 사용 불가, 드롭/교체 유도</td></tr>
+      <tr><td>R3</td><td>무기 슬롯</td><td>1</td><td>2</td><td>새 무기 픽업 시 현재 무기와 강제 교환</td></tr>
+      <tr><td>R4</td><td>수류탄</td><td>0</td><td>타입별 2개</td><td>최대 보유 시 추가 획득 불가</td></tr>
+      <tr><td>R5</td><td>실드</td><td>0</td><td>~150</td><td>0 시 체력 직접 피격. 4초 후 자동 재충전</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Lag Compensation 에러 처리 시퀀스</h4>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+sequenceDiagram
+    actor Attacker as 공격자
+    participant CL as 클라이언트
+    participant SV as 서버
+    participant TGT as 피격자
+
+    Attacker->>CL: 사격 입력
+    activate CL
+    CL->>CL: 로컬 히트 판정
+    CL->>+SV: 사격 데이터 (타임스탬프)
+    CL-->>Attacker: 히트마커 표시 (즉시)
+    deactivate CL
+
+    Note over SV: Lag Compensation
+    SV->>SV: 타임스탬프로 월드 되감기
+    SV->>SV: 되감긴 상태에서 히트 판정
+
+    alt 서버 히트 확인
+        SV-->>-CL: 히트 확정
+        SV->>TGT: 데미지 적용
+    end
+    </div>
+  </div>
+
+  <h4>예외 상황별 플로우</h4>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+flowchart TD
+    classDef error fill:#f44336,color:#fff
+    classDef recovery fill:#4CAF50,color:#fff
+    classDef condition fill:#FF9800,color:#fff
+
+    A[예외 발생] --> B{예외 유형}:::condition
+    B -->|Desync 히트 불일치| C[서버 판정 우선 적용]:::error
+    B -->|Trade Kill 동시 처치| D[양쪽 킬 동시 인정]:::error
+    B -->|Shield Gate 초과 데미지| E[초과 데미지 흡수]:::error
+    B -->|서버 연결 끊김| F[매치 무효 처리]:::error
+    C --> G[클라이언트 상태 보정]:::recovery
+    D --> H[양쪽 리스폰 처리]:::recovery
+    E --> I[체력 온전 유지]:::recovery
+    F --> J[/메인 메뉴 복귀/]:::recovery
+    G --> K(정상 플로우 복귀)
+    H --> K
+    I --> K
+    J --> K
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SEC 7: 비교 분석 -->
+<!-- ============================================================ -->
+<section id="sec7">
+  <h2><span class="section-num num-compare">07</span> 비교 분석 (Comparative Analysis)</h2>
+
+  <h3 id="sec7-matrix">1. 비교 대상</h3>
+  <table>
+    <thead><tr><th>항목</th><th>Halo Infinite</th><th>Destiny 2</th><th>Valorant</th></tr></thead>
+    <tbody>
+      <tr><td>장르</td><td>Arena FPS</td><td>Looter Shooter FPS</td><td>Tactical FPS</td></tr>
+      <tr><td>플랫폼</td><td>Xbox, PC</td><td>Xbox, PS, PC</td><td>PC</td></tr>
+      <tr><td>출시일</td><td>2021-12-08</td><td>2017-09-06</td><td>2020-06-02</td></tr>
+      <tr><td>분석 시스템</td><td>무기 샌드박스 밸런스</td><td>무기 아키타입 밸런스</td><td>무기 경제 밸런스</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2. 기능 비교 매트릭스</h3>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>비교 항목</th><th>Halo Infinite</th><th>Destiny 2</th><th>Valorant</th></tr></thead>
+    <tbody>
+      <tr><td>핵심 메카닉</td><td>실드 파괴 후 헤드샷 마무리 (2단계 킬)</td><td>아키타입별 TTK 차등 + 능력 콤보</td><td>원샷 헤드샷 + 반동 패턴 마스터리</td></tr>
+      <tr><td>무기 획득 방식</td><td>맵 픽업 (Equal Start)</td><td>로드아웃 장착 (PvE 파밍)</td><td>라운드별 구매 (경제 시스템)</td></tr>
+      <tr><td>데미지 타입 수</td><td>4종</td><td>3종 + 원소 3종</td><td>없음 (순수 물리)</td></tr>
+      <tr><td>실드/체력 구조</td><td>~150 + ~70 = ~220HP</td><td>가변 186~201HP</td><td>100HP + 보조실드 0/25/50</td></tr>
+      <tr><td>TTK 범위</td><td>0.9~1.6초</td><td>0.67~1.0초</td><td>0.1~0.5초</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>3. 트레이드오프 분석</h3>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>관점</th><th>Halo Infinite</th><th>Destiny 2</th><th>Valorant</th><th>트레이드오프</th></tr></thead>
+    <tbody>
+      <tr><td>TTK 설계</td><td>높은 TTK (1.0~1.6초)</td><td>중간 (0.67~1.0초)</td><td>초저 (0.1~0.5초)</td><td>반격 기회 vs 순간 판단력</td></tr>
+      <tr><td>헤드샷 역할</td><td>실드 파괴 후에만 보너스</td><td>상시 크리티컬 (배율 낮음)</td><td>상시 원킬 가능</td><td>전략적 깊이 vs 에이밍 스킬</td></tr>
+      <tr><td>무기 획득</td><td>맵 픽업 (Equal Start)</td><td>로드아웃 사전 장착</td><td>라운드 경제 구매</td><td>맵 컨트롤 vs 빌드 다양성 vs 경제 전략</td></tr>
+      <tr><td>데미지 다양성</td><td>4종 타입 상성</td><td>원소 5종 빌드 시너지</td><td>단일 물리</td><td>전략적 판단 vs 단순명쾌</td></tr>
+      <tr><td>공정성</td><td>Equal Start + 맵 무기 경쟁</td><td>SBMM + 파워 정규화</td><td>라운드 경제 평등</td><td>최고 공정성 vs 경제적 불리함</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h4>설계 포지셔닝</h4>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+quadrantChart
+    title 설계 포지셔닝: TTK 속도 vs 스킬 표현 방식
+    x-axis "느린 TTK (생존 중심)" --> "빠른 TTK (원샷 중심)"
+    y-axis "메카닉 스킬 (조작/전략)" --> "에이밍 스킬 (정확도)"
+    quadrant-1 "에이밍 아레나"
+    quadrant-2 "택티컬 슈터"
+    quadrant-3 "전략 슈터"
+    quadrant-4 "액션 슈터"
+    Halo-Infinite: [0.25, 0.55]
+    Destiny-2: [0.45, 0.40]
+    Valorant: [0.85, 0.90]
+    CoD-MW3: [0.80, 0.50]
+    </div>
+  </div>
+
+  <h3 id="sec7-insight">4. 인사이트</h3>
+
+  <div class="card" style="border-left: 3px solid var(--accent-blue);">
+    <h4>인사이트 1: 실드 기반 헤드샷 게이트는 TTK 편차를 압축하는 핵심 장치</h4>
+    <p>Halo Infinite의 일반 무기 TTK 범위는 0.9~1.6초로, 최고/최저 차이가 약 0.7초에 불과하다. 실드가 활성화된 동안 헤드샷 배율이 무효화되므로, 모든 무기가 실드를 깨는 데 유사한 시간을 소비한다. 이 "공통 구간"이 TTK를 평탄화하는 자연스러운 밸런싱 장치로 작동한다.</p>
+  </div>
+
+  <div class="card" style="border-left: 3px solid var(--accent-green);">
+    <h4>인사이트 2: 맵 픽업 시스템은 "무기 밸런스 /= 무기 공평"이라는 설계를 가능하게 한다</h4>
+    <p>맵 픽업 시스템은 강력한 무기에 "접근 비용"(맵 이동, 타이밍, 전투 리스크)을 부과한다. 무기의 강함이 곧 불공정이 아닌 "쟁탈 보상"으로 인식된다. 높은 파워의 무기는 높은 획득 비용과 반드시 짝을 이루어야 한다.</p>
+  </div>
+
+  <div class="card" style="border-left: 3px solid var(--accent-orange);">
+    <h4>인사이트 3: 데미지 타입 상성은 무기 선택을 강제하지 않으면 형식적 시스템이 된다</h4>
+    <p>Halo Infinite의 4종 Damage Type은 실드/체력 효율 차이가 약 15% 수준으로, 실전에서는 무시해도 되는 수준이다. 맵 픽업 기반 게임에서는 상성보다 사거리/용도 기반 차등이 더 효과적이다.</p>
+  </div>
+
+  <div class="card" style="border-left: 3px solid var(--accent-purple);">
+    <h4>인사이트 4: Bloom/Magnetism은 크로스플레이 밸런스의 핵심이지만 경쟁성을 희석한다</h4>
+    <p>Bullet Magnetism은 컨트롤러 유저의 조준 보조를 자연스럽게 구현하지만, 숙련 유저의 에이밍 정확도 차이를 압축한다. 크로스플레이 환경에서 입력 장치별 분리 큐가 현실적 해결책이다.</p>
+  </div>
+
+  <h3>5. 개선안 제시</h3>
+  <table>
+    <thead><tr><th>#</th><th>개선 영역</th><th>현재 방식</th><th>개선안</th><th>기대 효과</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>데미지 타입 효율</td><td>타입 간 ~15% 차이</td><td>Plasma 실드 효율 1.3x, Kinetic 실드 0.85x로 차등 확대</td><td>무기 선택에 전략적 깊이 추가</td></tr>
+      <tr><td>2</td><td>Bloom 시스템</td><td>무작위 탄 퍼짐</td><td>고정 반동 패턴으로 대체</td><td>스킬 천장 상승, 경쟁 씬 활성화</td></tr>
+      <tr><td>3</td><td>무기 스폰 시각화</td><td>오디오 + 텍스트 알림</td><td>홀로그램 타이머 + 단계별 시각 알림</td><td>맵 컨트롤 접근성 향상</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="sec7-intent">설계 의도 분석 종합 (5대 관점)</h3>
+
+  <div class="intent-card intent-revenue">
+    <div class="intent-label" style="color: var(--accent-pink);">수익화 (Revenue)</div>
+    <p>Halo Infinite는 멀티플레이어를 F2P로 전환하면서 코스메틱 전용 수익화를 채택했다. 무기 스킨, 코팅, 키트 등 외형 아이템만 판매하며 게임플레이에 영향을 주는 유료 요소는 존재하지 않는다. Battle Pass는 시즌마다 갱신되며, 만료 없이 이전 시즌 패스도 구매 가능한 유저 친화적 모델이다. 높은 스킨 가격($10~20)과 번들 강제 구매에 대한 커뮤니티 반발이 코스메틱 ARPU를 기대 이하로 만든 주요 원인이다.</p>
+  </div>
+
+  <div class="intent-card intent-retention">
+    <div class="intent-label" style="color: var(--accent-orange);">리텐션 (Retention)</div>
+    <p>무기 숙련도의 학습 곡선이 리텐션의 핵심 드라이버다. BR75의 4-shot kill 패턴 마스터, 실드 파괴 타이밍에 맞춘 헤드샷 전환 등 "쉽게 배우고 어렵게 마스터하는" 구조가 장기 플레이를 유도한다. 시즌별 신규 무기 추가와 밸런스 조정으로 메타 변화를 통해 환경을 신선하게 유지한다.</p>
+  </div>
+
+  <div class="intent-card intent-ux">
+    <div class="intent-label" style="color: var(--accent-blue);">UX (User Experience)</div>
+    <p>Equal Start는 초보 유저의 진입 장벽을 크게 낮춘다. "장비 때문에 졌다"는 좌절감이 원천 차단되며, 모든 패배를 실력 향상의 동기로 전환할 수 있다. Shield Pop의 명확한 시청각 피드백, 헤드샷 핑 사운드, 히트마커 색상 변화 등은 전투의 가독성을 극대화한다.</p>
+  </div>
+
+  <div class="intent-card intent-balance">
+    <div class="intent-label" style="color: var(--accent-green);">밸런싱 (Balancing)</div>
+    <p>4종 Damage Type 시스템, 실드 기반 헤드샷 게이트, Bloom/Bullet Magnetism의 3중 구조가 밸런싱의 근간이다. 실드 게이트는 원킬 무기 외의 모든 무기에서 TTK 편차를 압축하고, Bloom은 사거리를 간접 제어하며, Damage Type은 무기 선택에 미세한 전략적 차등을 부여한다.</p>
+  </div>
+
+  <div class="intent-card intent-social">
+    <div class="intent-label" style="color: var(--accent-purple);">소셜 (Social)</div>
+    <p>경쟁 랭크 시스템(CSR)은 무기 숙련도를 스킬 표현의 척도로 만든다. "BR만으로 Onyx 달성" 같은 성취가 커뮤니티에서 존중받으며, 관전자 모드에서 무기 교전의 가독성(Shield Pop 시각화, 긴 TTK로 인한 교전 시청 가능성)은 e-스포츠 방송에 유리한 구조이다.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SEC 8: 리서치 브리프 -->
+<!-- ============================================================ -->
+<section id="sec8">
+  <h2><span class="section-num num-research">08</span> 리서치 브리프 (Research Brief)</h2>
+
+  <h3>데이터 수집 출처 요약</h3>
+  <table>
+    <thead><tr><th>출처 유형</th><th>소스</th><th>수집 내용</th><th>신뢰도</th></tr></thead>
+    <tbody>
+      <tr><td>위키/가이드</td><td>Halopedia, Halo Wiki</td><td>무기 수치 데이터 (데미지, 연사속도, 탄창 등)</td><td><span class="tag tag-mid">B</span></td></tr>
+      <tr><td>커뮤니티</td><td>Reddit r/CompetitiveHalo</td><td>TTK 분석, 티어 리스트, 메타 논의</td><td><span class="tag tag-low">C-D</span></td></tr>
+      <tr><td>패치노트</td><td>343 Industries 공식</td><td>밸런스 변경 이력, 시즌별 조정 내역</td><td><span class="tag tag-high">A</span></td></tr>
+      <tr><td>경쟁작 데이터</td><td>Destiny 2 / Valorant 공식 + 커뮤니티</td><td>크로스 게임 비교용 TTK, 밸런스 데이터</td><td><span class="tag tag-mid">B-C</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="card">
+    <div class="card-label label-info">데이터 검증 방법</div>
+    <p>무기 수치 데이터는 최소 2개 이상의 소스(위키 + 커뮤니티 테스트)에서 교차 검증하여 사용했다. TTK 데이터는 커뮤니티 측정값과 공식 기반 계산값을 비교하여 오차 범위 내 일치 여부를 확인했다. 패치노트는 Season 5 기준 최종 밸런스 상태를 반영했다.</p>
+  </div>
+
+  <div class="card card-alt">
+    <div class="card-label label-warn">신뢰도 한계</div>
+    <p>커뮤니티 소스(Reddit, YouTube)의 데이터는 주관적 해석이 포함될 수 있으며, 특히 티어 리스트와 메타 평가는 랭크/스킬 구간에 따라 크게 달라진다. 본 문서의 수치 데이터는 343 Industries 공식 패치노트와 위키 데이터를 우선 참조했다.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SEC 9: 수치 분석 -->
+<!-- ============================================================ -->
+<section id="sec9">
+  <h2><span class="section-num num-numerical">09</span> 수치 분석 (Numerical Analysis)</h2>
+
+  <h3>핵심 지표 요약</h3>
+  <div class="card-grid">
+    <div class="analysis-card">
+      <div class="analysis-label">AVERAGE TTK</div>
+      <div class="analysis-value">1.32s</div>
+      <div class="analysis-desc">일반 무기 10종 평균 최적 TTK</div>
+    </div>
+    <div class="analysis-card" style="border-top-color: var(--accent-green);">
+      <div class="analysis-label">FASTEST TTK</div>
+      <div class="analysis-value">0.90s</div>
+      <div class="analysis-desc">Needler (Supercombine 메커니즘)</div>
+    </div>
+    <div class="analysis-card" style="border-top-color: var(--accent-orange);">
+      <div class="analysis-label">TOTAL HP</div>
+      <div class="analysis-value">~220HP</div>
+      <div class="analysis-desc">Shield 150 + Health 70</div>
+    </div>
+    <div class="analysis-card" style="border-top-color: var(--accent-purple);">
+      <div class="analysis-label">DAMAGE TYPES</div>
+      <div class="analysis-value">4</div>
+      <div class="analysis-desc">Kinetic / Plasma / Shock / Hardlight</div>
+    </div>
+  </div>
+
+  <h3>Chart.js 차트 분석</h3>
+
+  <!-- Chart 1 & 2: 2-column grid -->
+  <div class="chart-grid">
+    <div class="chart-wrapper">
+      <div class="chart-label">차트 1: 무기별 최적 TTK 비교</div>
+      <div class="chart-description">일반 무기 10종의 최적 TTK(초). 1.5초 기준선 표시.</div>
+      <canvas id="ttk-bar-chart"></canvas>
+      <div class="chart-footnote">* 전탄 명중 + 최적 사거리 기준 측정값</div>
+    </div>
+    <div class="chart-wrapper">
+      <div class="chart-label">차트 2: DPS vs TTK 산점도</div>
+      <div class="chart-description">X축 TTK, Y축 DPS(Body_Damage x Fire_Rate). 고DPS+저TTK 무기가 우상좌측에 위치.</div>
+      <canvas id="dps-ttk-scatter-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 3 & 4: 2-column grid -->
+  <div class="chart-grid">
+    <div class="chart-wrapper">
+      <div class="chart-label">차트 3: 헤드샷 어드밴티지 비교</div>
+      <div class="chart-description">무기별 바디 데미지 vs 헤드 데미지 (실드 파괴 후).</div>
+      <canvas id="headshot-grouped-bar-chart"></canvas>
+    </div>
+    <div class="chart-wrapper">
+      <div class="chart-label">차트 4: 무기 특성 레이더 차트</div>
+      <div class="chart-description">대표 무기 4종의 다차원 특성 비교 (정규화 0~100).</div>
+      <canvas id="weapon-radar-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 5 & 6: 2-column grid -->
+  <div class="chart-grid">
+    <div class="chart-wrapper">
+      <div class="chart-label">차트 5: 데미지 타입별 실드/체력 효율</div>
+      <div class="chart-description">4종 데미지 타입의 Shield_Efficiency vs Health_Efficiency.</div>
+      <canvas id="dmgtype-efficiency-bar-chart"></canvas>
+    </div>
+    <div class="chart-wrapper">
+      <div class="chart-label">차트 6: 크로스 게임 TTK 비교</div>
+      <div class="chart-description">Halo Infinite vs Destiny 2 vs Valorant의 TTK 범위 비교.</div>
+      <canvas id="crossgame-ttk-bar-chart"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SEC 10: 장르별 분석 -->
+<!-- ============================================================ -->
+<section id="sec10">
+  <h2><span class="section-num num-genre">10</span> 장르별 분석 (Genre Analysis)</h2>
+
+  <h3>프레임 데이터 분석 (60fps 기준)</h3>
+  <div class="card">
+    <div class="card-label label-info">아레나 FPS 프레임 분석</div>
+    <p>무기별 TTK를 60fps 프레임 단위로 변환하여 프레임 레벨의 정밀 비교를 수행한다.</p>
+  </div>
+  <table>
+    <thead><tr><th>무기</th><th>TTK (초)</th><th>프레임 (60fps)</th><th>프레임 데이터 등급</th></tr></thead>
+    <tbody>
+      <tr><td>Needler</td><td>0.90</td><td>54</td><td><span class="tag tag-high">Fast</span></td></tr>
+      <tr><td>Sentinel Beam</td><td>1.00</td><td>60</td><td><span class="tag tag-high">Fast</span></td></tr>
+      <tr><td>Mangler</td><td>1.20</td><td>72</td><td><span class="tag tag-mid">Mid</span></td></tr>
+      <tr><td>Cindershot</td><td>1.25</td><td>75</td><td><span class="tag tag-mid">Mid</span></td></tr>
+      <tr><td>Bulldog</td><td>1.29</td><td>77</td><td><span class="tag tag-mid">Mid</span></td></tr>
+      <tr><td>Heatwave</td><td>1.49</td><td>89</td><td><span class="tag tag-low">Slow</span></td></tr>
+      <tr><td>MA40 AR</td><td>1.50</td><td>90</td><td><span class="tag tag-low">Slow</span></td></tr>
+      <tr><td>MK50 Sidekick</td><td>1.50</td><td>90</td><td><span class="tag tag-low">Slow</span></td></tr>
+      <tr><td>VK78 Commando</td><td>1.54</td><td>92</td><td><span class="tag tag-low">Slow</span></td></tr>
+      <tr><td>BR75</td><td>1.55</td><td>93</td><td><span class="tag tag-low">Slow</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>TTK 벤치마크: 아레나 FPS 장르 내 포지셔닝</h3>
+  <div class="card">
+    <p>Halo Infinite의 평균 TTK(1.32초)는 아레나 FPS 장르 내에서 가장 높은 축에 속한다. 이는 의도적인 설계 선택으로, 긴 TTK가 다음을 보장한다:</p>
+    <ul>
+      <li>반격 기회: 피격자가 반응하고 대응할 시간 확보 (54~93프레임)</li>
+      <li>팀 협업: 크로스파이어로 TTK를 단축하는 팀 전략 유도</li>
+      <li>스킬 표현: 지속적 트래킹 에임 + 실드 파괴 타이밍 판단 + 헤드샷 전환의 복합 스킬 표현</li>
+      <li>관전 가독성: 교전이 충분히 길어 e-스포츠 관전 시 상황 파악 용이</li>
+    </ul>
+  </div>
+
+  <h3>무기 DPS 효율 비교 (카테고리별)</h3>
+  <table>
+    <thead><tr><th>카테고리</th><th>대표 무기</th><th>Body DPS</th><th>Head DPS (실드 파괴 후)</th><th>DPS 효율 등급</th></tr></thead>
+    <tbody>
+      <tr><td>Assault Rifle</td><td>MA40 AR</td><td>144.0</td><td>216.0</td><td><span class="tag tag-mid">Mid</span></td></tr>
+      <tr><td>Battle Rifle</td><td>BR75</td><td>83.2</td><td>116.5</td><td><span class="tag tag-low">Low</span></td></tr>
+      <tr><td>Tactical Rifle</td><td>VK78</td><td>140.4</td><td>210.6</td><td><span class="tag tag-mid">Mid</span></td></tr>
+      <tr><td>Pistol</td><td>MK50 Sidekick</td><td>120.0</td><td>180.0</td><td><span class="tag tag-mid">Mid</span></td></tr>
+      <tr><td>Shotgun</td><td>Bulldog</td><td>162.8</td><td>162.8</td><td><span class="tag tag-mid">Mid</span></td></tr>
+      <tr><td>Tracking</td><td>Needler</td><td>133.3</td><td>133.3</td><td><span class="tag tag-mid">Mid</span></td></tr>
+      <tr><td>Beam</td><td>Sentinel Beam</td><td>220.0</td><td>220.0</td><td><span class="tag tag-high">High</span></td></tr>
+      <tr><td>Explosive</td><td>Cindershot</td><td>144.0</td><td>144.0</td><td><span class="tag tag-mid">Mid</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="card card-alt">
+    <div class="card-label label-info">DPS 분석 요약</div>
+    <p>Raw DPS가 높은 무기(Sentinel Beam 220.0 DPS)가 반드시 높은 티어를 의미하지 않는다. Sentinel Beam은 DPS가 가장 높지만 빔 트래킹의 높은 에임 요구, 사거리 제한, 히트스캔이 아닌 특성으로 인해 실전 효율은 BR75보다 낮게 평가된다. 이는 Halo의 밸런스가 단순 DPS가 아닌 "실전 적중률 x 사거리 x 조작 난이도"의 복합 변수로 조율됨을 보여준다.</p>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="doc-footer">
+  <p>본 문서는 역기획 학습 및 포트폴리오 목적으로 작성되었습니다.</p>
+  <p>Halo Infinite &copy; 343 Industries / Xbox Game Studios. All rights reserved.</p>
+  <p style="margin-top: 8px; font-size: 11px;">v1.0 | 2026-03-19 | 무기 샌드박스 밸런스 시스템 역기획서 (Corporate Whitepaper Edition)</p>
+</footer>
+
+</div><!-- .main-content -->
+
+<script>
+// ============================================================
+// Mermaid 초기화
+// ============================================================
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#e8edf3',
+    primaryTextColor: '#1a1f36',
+    primaryBorderColor: '#1e3a5f',
+    lineColor: '#8492a6',
+    secondaryColor: '#f0f2f5',
+    tertiaryColor: '#fafbfc',
+    fontFamily: 'Pretendard Variable, sans-serif',
+    fontSize: '12px',
+    noteBkgColor: '#f6f8fa',
+    noteTextColor: '#4a5568',
+    noteBorderColor: '#cbd5e1',
+    actorBkg: '#e8edf3',
+    actorBorder: '#1e3a5f',
+    actorTextColor: '#1a1f36',
+    signalColor: '#4a5568',
+    activationBkgColor: '#edf0f4',
+    activationBorderColor: '#1e3a5f',
+    sequenceNumberColor: '#fff',
+    pie1: '#1e3a5f',
+    pie2: '#4a3f6b',
+    pie3: '#1a6b4a',
+    pie4: '#8b5e34',
+    pie5: '#9b2c3f',
+    pie6: '#1a5c6b',
+    pieStrokeColor: '#e2e8f0',
+    pieTitleTextColor: '#1a1f36',
+    pieStrokeWidth: '1px',
+    pieSectionTextColor: '#fff',
+    labelColor: '#1a1f36',
+    altBackground: '#f0f2f5'
+  },
+  flowchart: { curve: 'basis', useMaxWidth: true, htmlLabels: true, padding: 16 },
+  er: { useMaxWidth: true, layoutDirection: 'LR' },
+  sequence: { mirrorActors: false, messageAlign: 'center', wrap: true },
+  state: { useMaxWidth: true },
+  pie: { useMaxWidth: true, textPosition: 0.75 },
+  xyChart: { titleColor: '#1a1f36', xAxisLabelColor: '#4a5568', yAxisLabelColor: '#4a5568' },
+  quadrantChart: { useMaxWidth: true },
+  mindmap: { useMaxWidth: true }
+});
+
+// ============================================================
+// TOC + Scroll Progress + Back to Top
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  const tocLinks = document.querySelectorAll('.toc-sidebar a');
+  const progressBar = document.getElementById('scrollProgress');
+  const backToTop = document.getElementById('backToTop');
+  const sections = [];
+
+  backToTop.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  tocLinks.forEach(link => {
+    const id = link.getAttribute('href');
+    if (id && id.startsWith('#')) {
+      const el = document.querySelector(id);
+      if (el) sections.push({ el, link });
+    }
+  });
+
+  let ticking = false;
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      progressBar.style.width = progress + '%';
+      backToTop.classList.toggle('visible', scrollTop > 600);
+
+      let current = null;
+      for (let i = sections.length - 1; i >= 0; i--) {
+        if (sections[i].el.getBoundingClientRect().top <= 100) {
+          current = sections[i];
+          break;
+        }
+      }
+      tocLinks.forEach(l => l.classList.remove('active'));
+      if (current) {
+        current.link.classList.add('active');
+        const sidebar = document.querySelector('.toc-sidebar');
+        const linkRect = current.link.getBoundingClientRect();
+        const sidebarRect = sidebar.getBoundingClientRect();
+        if (linkRect.top < sidebarRect.top + 60 || linkRect.bottom > sidebarRect.bottom - 60) {
+          current.link.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
+      ticking = false;
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  tocLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.pushState(null, '', this.getAttribute('href'));
+      }
+    });
+  });
+
+  // ============================================================
+  // Chart.js 초기화
+  // ============================================================
+  if (typeof Chart !== 'undefined') {
+    Chart.defaults.font.family = "'Pretendard Variable', 'Pretendard', sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#4a5568';
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  }
+
+  function getColor(varName) {
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  }
+  function withAlpha(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  const COLORS = {
+    blue:   getColor('--accent-blue')   || '#1e3a5f',
+    purple: getColor('--accent-purple') || '#4a3f6b',
+    green:  getColor('--accent-green')  || '#1a6b4a',
+    orange: getColor('--accent-orange') || '#8b5e34',
+    pink:   getColor('--accent-pink')   || '#9b2c3f',
+    cyan:   getColor('--accent-cyan')   || '#1a5c6b',
+  };
+
+  const COMMON_OPTIONS = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          font: { family: 'Pretendard Variable, sans-serif', size: 11 },
+          color: '#4a5568',
+          padding: 16,
+          usePointStyle: true,
+          pointStyleWidth: 8
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1a1f36',
+        titleFont: { family: 'Pretendard Variable', size: 12, weight: '600' },
+        bodyFont: { family: 'IBM Plex Mono', size: 11 },
+        cornerRadius: 4,
+        padding: 10,
+        displayColors: true,
+        boxPadding: 4
+      }
+    },
+    scales: {
+      x: {
+        ticks: { font: { family: 'Pretendard Variable', size: 11 }, color: '#4a5568' },
+        grid: { color: 'rgba(0,0,0,0.04)' }
+      },
+      y: {
+        ticks: { font: { family: 'Pretendard Variable', size: 11 }, color: '#4a5568' },
+        grid: { color: 'rgba(0,0,0,0.06)' }
+      }
+    },
+    animation: { duration: 800, easing: 'easeOutQuart' }
+  };
+
+  function mergeOptions(custom) {
+    return {
+      ...COMMON_OPTIONS,
+      ...custom,
+      plugins: { ...COMMON_OPTIONS.plugins, ...(custom.plugins || {}) },
+      scales: { ...COMMON_OPTIONS.scales, ...(custom.scales || {}) }
+    };
+  }
+
+  // ============================================================
+  // Chart 1: 무기별 최적 TTK 비교 (Bar)
+  // ============================================================
+  new Chart(document.getElementById('ttk-bar-chart'), {
+    type: 'bar',
+    data: {
+      labels: ['MA40 AR', 'BR75', 'VK78', 'Sidekick', 'Bulldog', 'Mangler', 'Needler', 'Sentinel Beam', 'Heatwave', 'Cindershot'],
+      datasets: [{
+        label: '최적 TTK (초)',
+        data: [1.50, 1.55, 1.54, 1.50, 1.29, 1.20, 0.90, 1.00, 1.49, 1.25],
+        backgroundColor: [
+          COLORS.blue, COLORS.blue, COLORS.blue, COLORS.blue, COLORS.blue,
+          COLORS.orange, COLORS.orange,
+          COLORS.cyan, COLORS.cyan, COLORS.cyan
+        ],
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: mergeOptions({
+      plugins: {
+        legend: { display: false },
+        annotation: {
+          annotations: {
+            baseline: {
+              type: 'line',
+              yMin: 1.5,
+              yMax: 1.5,
+              borderColor: COLORS.pink,
+              borderWidth: 2,
+              borderDash: [6, 4],
+              label: {
+                display: true,
+                content: '1.5s 기준선',
+                position: 'end',
+                backgroundColor: COLORS.pink,
+                color: '#fff',
+                font: { size: 10, family: 'Pretendard Variable' },
+                padding: 4
+              }
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 2.0,
+          title: { display: true, text: 'TTK (초)', font: { family: 'Pretendard Variable', size: 11 } },
+          ticks: { font: { family: 'Pretendard Variable', size: 11 }, color: '#4a5568' },
+          grid: { color: 'rgba(0,0,0,0.06)' }
+        },
+        x: {
+          ticks: { font: { family: 'Pretendard Variable', size: 10 }, color: '#4a5568', maxRotation: 45 },
+          grid: { color: 'rgba(0,0,0,0.04)' }
+        }
+      }
+    })
+  });
+
+  // ============================================================
+  // Chart 2: DPS vs TTK Scatter
+  // ============================================================
+  const weaponData = [
+    { name: 'MA40 AR', ttk: 1.50, dps: 14.4 * 10.0 },
+    { name: 'BR75', ttk: 1.55, dps: 20.0 * 4.16 },
+    { name: 'VK78', ttk: 1.54, dps: 18.0 * 7.8 },
+    { name: 'Sidekick', ttk: 1.50, dps: 20.0 * 6.0 },
+    { name: 'Bulldog', ttk: 1.29, dps: 105.0 * 1.55 },
+    { name: 'Mangler', ttk: 1.20, dps: 60.0 * 2.5 },
+    { name: 'Needler', ttk: 0.90, dps: 10.0 * 13.33 },
+    { name: 'Sentinel Beam', ttk: 1.00, dps: 11.0 * 20.0 },
+    { name: 'Heatwave', ttk: 1.49, dps: 90.0 * 1.34 },
+    { name: 'Cindershot', ttk: 1.25, dps: 90.0 * 1.6 }
+  ];
+
+  const scatterColors = [COLORS.blue, COLORS.blue, COLORS.blue, COLORS.blue, COLORS.blue,
+                          COLORS.orange, COLORS.orange, COLORS.cyan, COLORS.cyan, COLORS.cyan];
+
+  new Chart(document.getElementById('dps-ttk-scatter-chart'), {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: '무기별 DPS vs TTK',
+        data: weaponData.map(w => ({ x: w.ttk, y: w.dps })),
+        backgroundColor: scatterColors,
+        pointRadius: 7,
+        pointHoverRadius: 10
+      }]
+    },
+    options: mergeOptions({
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...COMMON_OPTIONS.plugins.tooltip,
+          callbacks: {
+            label: function(ctx) {
+              const w = weaponData[ctx.dataIndex];
+              return w.name + ' | TTK: ' + w.ttk + 's | DPS: ' + w.dps.toFixed(1);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'TTK (초)', font: { family: 'Pretendard Variable', size: 11 } },
+          min: 0.5, max: 1.8,
+          ticks: { font: { family: 'Pretendard Variable', size: 11 }, color: '#4a5568' },
+          grid: { color: 'rgba(0,0,0,0.04)' }
+        },
+        y: {
+          title: { display: true, text: 'DPS (Body)', font: { family: 'Pretendard Variable', size: 11 } },
+          beginAtZero: true,
+          ticks: { font: { family: 'Pretendard Variable', size: 11 }, color: '#4a5568' },
+          grid: { color: 'rgba(0,0,0,0.06)' }
+        }
+      }
+    })
+  });
+
+  // ============================================================
+  // Chart 3: Headshot Advantage Grouped Bar
+  // ============================================================
+  new Chart(document.getElementById('headshot-grouped-bar-chart'), {
+    type: 'bar',
+    data: {
+      labels: ['MA40 AR', 'BR75', 'VK78', 'Sidekick', 'Mangler', 'Stalker Rifle'],
+      datasets: [
+        {
+          label: 'Body Damage',
+          data: [14.4, 20.0, 18.0, 20.0, 60.0, 42.0],
+          backgroundColor: COLORS.blue,
+          borderRadius: 4
+        },
+        {
+          label: 'Head Damage',
+          data: [21.6, 28.0, 27.0, 30.0, 84.0, 59.0],
+          backgroundColor: COLORS.pink,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: mergeOptions({
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Damage per Hit', font: { family: 'Pretendard Variable', size: 11 } },
+          ticks: { font: { family: 'Pretendard Variable', size: 11 }, color: '#4a5568' },
+          grid: { color: 'rgba(0,0,0,0.06)' }
+        },
+        x: {
+          ticks: { font: { family: 'Pretendard Variable', size: 10 }, color: '#4a5568' },
+          grid: { color: 'rgba(0,0,0,0.04)' }
+        }
+      }
+    })
+  });
+
+  // ============================================================
+  // Chart 4: Weapon Radar Chart
+  // ============================================================
+  // Normalized to 0-100 scale
+  new Chart(document.getElementById('weapon-radar-chart'), {
+    type: 'radar',
+    data: {
+      labels: ['데미지', '연사속도', '탄창', '사거리', 'TTK (역순)'],
+      datasets: [
+        {
+          label: 'MA40 AR',
+          data: [10, 75, 72, 60, 47],
+          borderColor: COLORS.blue,
+          backgroundColor: withAlpha(COLORS.blue, 0.15),
+          borderWidth: 2,
+          pointRadius: 3
+        },
+        {
+          label: 'BR75',
+          data: [14, 31, 72, 85, 45],
+          borderColor: COLORS.purple,
+          backgroundColor: withAlpha(COLORS.purple, 0.15),
+          borderWidth: 2,
+          pointRadius: 3
+        },
+        {
+          label: 'Needler',
+          data: [7, 100, 52, 20, 90],
+          borderColor: COLORS.orange,
+          backgroundColor: withAlpha(COLORS.orange, 0.15),
+          borderWidth: 2,
+          pointRadius: 3
+        },
+        {
+          label: 'Bulldog',
+          data: [75, 12, 14, 20, 60],
+          borderColor: COLORS.green,
+          backgroundColor: withAlpha(COLORS.green, 0.15),
+          borderWidth: 2,
+          pointRadius: 3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: COMMON_OPTIONS.plugins.legend,
+        tooltip: COMMON_OPTIONS.plugins.tooltip
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            stepSize: 20,
+            font: { family: 'Pretendard Variable', size: 10 },
+            color: '#4a5568',
+            backdropColor: 'transparent'
+          },
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          pointLabels: {
+            font: { family: 'Pretendard Variable', size: 12 },
+            color: '#4a5568'
+          }
+        }
+      },
+      animation: { duration: 800, easing: 'easeOutQuart' }
+    }
+  });
+
+  // ============================================================
+  // Chart 5: Damage Type Shield/Health Efficiency
+  // ============================================================
+  new Chart(document.getElementById('dmgtype-efficiency-bar-chart'), {
+    type: 'bar',
+    data: {
+      labels: ['Kinetic', 'Plasma', 'Shock', 'Hardlight'],
+      datasets: [
+        {
+          label: 'Shield Efficiency',
+          data: [1.0, 1.15, 1.0, 1.0],
+          backgroundColor: COLORS.blue,
+          borderRadius: 4
+        },
+        {
+          label: 'Health Efficiency',
+          data: [1.0, 0.85, 1.0, 1.0],
+          backgroundColor: COLORS.green,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: mergeOptions({
+      scales: {
+        y: {
+          min: 0.5, max: 1.5,
+          title: { display: true, text: 'Efficiency Multiplier', font: { family: 'Pretendard Variable', size: 11 } },
+          ticks: { font: { family: 'Pretendard Variable', size: 11 }, color: '#4a5568' },
+          grid: { color: 'rgba(0,0,0,0.06)' }
+        },
+        x: {
+          ticks: { font: { family: 'Pretendard Variable', size: 11 }, color: '#4a5568' },
+          grid: { color: 'rgba(0,0,0,0.04)' }
+        }
+      }
+    })
+  });
+
+  // ============================================================
+  // Chart 6: Cross-Game TTK Comparison
+  // ============================================================
+  new Chart(document.getElementById('crossgame-ttk-bar-chart'), {
+    type: 'bar',
+    data: {
+      labels: ['Halo Infinite', 'Destiny 2', 'Valorant'],
+      datasets: [
+        {
+          label: 'TTK Min (초)',
+          data: [0.90, 0.67, 0.10],
+          backgroundColor: withAlpha(COLORS.blue, 0.5),
+          borderRadius: 4
+        },
+        {
+          label: 'TTK Max (초)',
+          data: [1.60, 1.00, 0.50],
+          backgroundColor: COLORS.blue,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: mergeOptions({
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 2.0,
+          title: { display: true, text: 'TTK (초)', font: { family: 'Pretendard Variable', size: 11 } },
+          ticks: { font: { family: 'Pretendard Variable', size: 11 }, color: '#4a5568' },
+          grid: { color: 'rgba(0,0,0,0.06)' }
+        },
+        x: {
+          ticks: { font: { family: 'Pretendard Variable', size: 12 }, color: '#4a5568' },
+          grid: { color: 'rgba(0,0,0,0.04)' }
+        }
+      }
+    })
+  });
+
+});
+</script>
+
+</body>
+</html>

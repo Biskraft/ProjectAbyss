@@ -1,0 +1,863 @@
+[Music] my name is
+my name is matt heinecker i am a technical artist
+matt heinecker i am a technical artist at undead labs and today i'm going to be
+at undead labs and today i'm going to be talking to you about the
+talking to you about the photogrammetry workflow that i developed
+photogrammetry workflow that i developed for state of decay 2.
+for state of decay 2. over the last couple years there have
+over the last couple years there have been a number of really great gdc talks
+been a number of really great gdc talks about
+about photogrammetry companies are pushing the
+photogrammetry companies are pushing the bounds farther every year
+bounds farther every year and the quality ceiling is always
+and the quality ceiling is always getting higher
+getting higher this talk is not about that instead this
+this talk is not about that instead this is a talk about
+is a talk about lowering the floor reducing barrier to
+lowering the floor reducing barrier to entry and making photogrammetry
+entry and making photogrammetry available to everyone
+available to everyone whether you have a triple a budget or an
+whether you have a triple a budget or an indie budget
+indie budget so i'm going to be walking you through
+so i'm going to be walking you through the pipeline that i developed over the
+the pipeline that i developed over the last two years
+last two years and i'll give you an in-depth look at
+and i'll give you an in-depth look at the rig that i created and used to scan
+the rig that i created and used to scan over 200 people for state of decay 2.
+over 200 people for state of decay 2. i will also be offering some tips and
+i will also be offering some tips and tricks to help you get the best out of
+tricks to help you get the best out of your own scans
+your own scans so before i dive too deep in this i'd
+so before i dive too deep in this i'd like to start by giving you some of our
+like to start by giving you some of our project history so you have a little bit
+project history so you have a little bit of context for what i'm talking about
+of context for what i'm talking about back in early 2016 state of decay 2 went
+back in early 2016 state of decay 2 went through an engine change mid production
+through an engine change mid production which as you can imagine had a huge
+which as you can imagine had a huge negative impact on our development
+negative impact on our development schedule
+schedule so while i waited for some
+so while i waited for some infrastructure things to get set up with
+infrastructure things to get set up with our artists i decided to take some time
+our artists i decided to take some time and see
+and see what i could do to speed up our
+what i could do to speed up our production pipeline and maybe get some
+production pipeline and maybe get some of that time back
+of that time back and photogrammetry was one of the things
+and photogrammetry was one of the things on my list to research
+now at the time there were a couple games released that had used
+games released that had used photogrammetry to great effect
+photogrammetry to great effect but it was still fairly new to games and
+but it was still fairly new to games and there weren't a whole lot of practical
+there weren't a whole lot of practical guides on getting usable scans
+guides on getting usable scans so i just started doing it to see what i
+so i just started doing it to see what i could get out of it
+could get out of it i began by scanning some props quality
+i began by scanning some props quality ranged from so-so to completely unusable
+ranged from so-so to completely unusable there was a lot of lighting baked into
+there was a lot of lighting baked into the textures there was a lot of
+the textures there was a lot of noise in the meshes and they just
+noise in the meshes and they just generally weren't that great i ended up
+generally weren't that great i ended up spending more time cleaning up the mesh
+spending more time cleaning up the mesh than i did just modeling that same prop
+than i did just modeling that same prop by hand
+by hand so after about a dozen scans i was about
+so after about a dozen scans i was about to write off the technology as being
+to write off the technology as being unfit for our needs and then on a whim i
+unfit for our needs and then on a whim i scanned a co-worker's face
+scanned a co-worker's face i brought this face to our only
+i brought this face to our only character artist at the time
+character artist at the time and he was absolutely thrilled he turned
+and he was absolutely thrilled he turned that scan into a playable character that
+that scan into a playable character that day
+day and our character pipeline has been
+and our character pipeline has been using photogrammetry ever since
+so for those of you who are unfamiliar with photogrammetry let's take a look at
+with photogrammetry let's take a look at how it actually works
+how it actually works now this isn't going to be a
+now this isn't going to be a step-by-step guide on which buttons to
+step-by-step guide on which buttons to push in which software those guides do
+push in which software those guides do actually exist on the internet these
+actually exist on the internet these days
+days this is going to be more of a high level
+this is going to be more of a high level overview just so that we're all on the
+overview just so that we're all on the same page
+what is photogrammetry a photography uses a series of photos to reconstruct a
+uses a series of photos to reconstruct a 3d object
+3d object or of a physical object
+or of a physical object basically it's 3d scanning with the
+basically it's 3d scanning with the camera
+i begin by having my subject sit in a chair with even lighting and i take a
+chair with even lighting and i take a series of photos from different angles
+series of photos from different angles for a face i do four rows of photos at
+for a face i do four rows of photos at different heights generating
+different heights generating roughly 40 photos
+i then feed these photos into our photogrammetry software there are a
+photogrammetry software there are a couple of good options out there
+couple of good options out there meta shape and reality capture are the
+meta shape and reality capture are the two most common ones
+two most common ones i personally prefer meta shape it's a
+i personally prefer meta shape it's a lot slower but it gives
+lot slower but it gives more fine tuning control
+once the photos are in the software it analyzes these photos for
+analyzes these photos for key features
+it then tries to match these points in multiple photos
+using these matches the software uses perspective distortion to determine the
+perspective distortion to determine the camera's location
+camera's location in 3d space
+when the camera locations are determined the software projects those
+the software projects those point matches and where the points meet
+point matches and where the points meet it creates a point cloud
+it creates a point cloud next the software does this projection
+next the software does this projection again at a higher resolution to create a
+again at a higher resolution to create a much more dense point cloud
+much more dense point cloud this cloud was about 17 million points
+the software then converts the point cloud into a surface about
+cloud into a surface about 2 million polys
+the photos are then projected back onto the mesh
+the mesh and blended together to create the
+and blended together to create the texture
+the resulting model is not quite suitable for suitable for a game just
+suitable for suitable for a game just yet
+yet uh the mesh is too high poly there's
+uh the mesh is too high poly there's some noise in the
+some noise in the in the model and some lighting
+in the model and some lighting information that still does remain
+information that still does remain so at this point the model gets passed
+so at this point the model gets passed off to our character artists
+off to our character artists they do smoothing sculpting painting out
+they do smoothing sculpting painting out some of the artifacts
+some of the artifacts they also split open the mouth add teeth
+they also split open the mouth add teeth align the eyeballs and the back of the
+align the eyeballs and the back of the head
+after that cleanup is done it essentially converges with the
+essentially converges with the traditional character pipeline
+traditional character pipeline decimation re-topology unwrapping and
+decimation re-topology unwrapping and projecting onto the low-poly mesh to
+projecting onto the low-poly mesh to generate the textures
+generate the textures and this is that final scan in unreal
+four so what makes this process so great for
+so what makes this process so great for our faces
+our faces well the same results can be achieved
+well the same results can be achieved with a 3d scanner
+with a 3d scanner but classic 3d scanning uses specialized
+but classic 3d scanning uses specialized equipment
+equipment photogrammetry on the other hand
+photogrammetry on the other hand requires a camera
+requires a camera not many people have a 3d scanner just
+not many people have a 3d scanner just lying around but chances are you or
+lying around but chances are you or someone in your studio has a camera
+someone in your studio has a camera capable of doing this
+capable of doing this photogrammetry is also more versatile
+photogrammetry is also more versatile than 3d scanner it is very difficult to
+than 3d scanner it is very difficult to find a 3d scanner in this price point
+find a 3d scanner in this price point that can scan both a face and a cliff
+that can scan both a face and a cliff wall but photogrammetry can do both with
+wall but photogrammetry can do both with ease
+scanning a face and cleaning up the model is considerably faster than
+model is considerably faster than modeling a new head from scratch
+modeling a new head from scratch our head pipeline went from about one
+our head pipeline went from about one week per head to one day per head
+not only is it faster but the quality results are better
+results are better this is a comparison of our last hand
+this is a comparison of our last hand modeled face on the left and our very
+modeled face on the left and our very first scan face on the right
+the models that are sped up by this process are the models that need it
+process are the models that need it most organic complex shapes that take a
+most organic complex shapes that take a long time to model by hand
+long time to model by hand usually scan really well hard surface
+usually scan really well hard surface models
+models not as much you can get a 3d model of
+not as much you can get a 3d model of like a pile of laundry in about 20
+like a pile of laundry in about 20 minutes but you wouldn't want to scan
+minutes but you wouldn't want to scan say a bar stool you'll spend more time
+say a bar stool you'll spend more time cleaning up the model than you would
+cleaning up the model than you would just modeling it by scratch
+just modeling it by scratch this process allows us to exaggerate
+this process allows us to exaggerate facial features much more than we could
+facial features much more than we could with hand modeled faces
+with hand modeled faces which sounds kind of counterintuitive if
+which sounds kind of counterintuitive if you're modeling by hand you can
+you're modeling by hand you can exaggerate as much as you want
+exaggerate as much as you want but when you're targeting realistic
+but when you're targeting realistic proportions it's often hard to find the
+proportions it's often hard to find the line of what is unrealistically
+line of what is unrealistically exaggerated
+exaggerated a nose that may look fine on one face
+a nose that may look fine on one face will be completely ridiculous on another
+will be completely ridiculous on another you can very quickly cross over the line
+you can very quickly cross over the line and go full dreamworks with exaggerated
+and go full dreamworks with exaggerated features
+features so our artists tend to be conservative
+so our artists tend to be conservative and as a result our models all start
+and as a result our models all start looking the same
+looking the same but when you use scan models suddenly
+but when you use scan models suddenly you can get these great adrian brody
+you can get these great adrian brody noses or
+noses or angelina lips leno chins it's impossible
+angelina lips leno chins it's impossible to cross over the line into unrealistic
+to cross over the line into unrealistic proportions because your scans are based
+proportions because your scans are based on reality
+on reality you just have to find subjects with
+you just have to find subjects with these features
+this is one of my favorite scans this is officer diaz of the seattle pd
+officer diaz of the seattle pd he came in for one of our most recent
+he came in for one of our most recent scanning sessions and it's a great
+scanning sessions and it's a great example
+example of the kind of face we just wouldn't
+of the kind of face we just wouldn't have tried to do with traditional
+have tried to do with traditional modeling
+so next i'd like to talk about the equipment and setup that i used for
+equipment and setup that i used for stato decay 2.
+stato decay 2. there's a wide range of hardware that
+there's a wide range of hardware that you can use for this
+you can use for this and quality definitely scales with cost
+this is the quality that is achievable with the phone that is in your pocket
+with the phone that is in your pocket right now
+right now no lighting rig no fancy camera i
+no lighting rig no fancy camera i literally pulled dave into a conference
+literally pulled dave into a conference room and spent 30 seconds scanning him
+room and spent 30 seconds scanning him with my iphone
+and then there's the other end of the spectrum big budget studios and
+spectrum big budget studios and specialized companies like pixel light
+specialized companies like pixel light effects
+effects build an elaborate camera rig with
+build an elaborate camera rig with between 30 and 64 cameras that all fire
+between 30 and 64 cameras that all fire in unison
+in unison these rigs can catch facial expressions
+these rigs can catch facial expressions flawlessly in real time
+companies like infinite realities are pushing the boundaries even further
+pushing the boundaries even further they can use metered light bursts to
+they can use metered light bursts to extract specular and subsurface data to
+extract specular and subsurface data to give a full pbr texture set right out of
+give a full pbr texture set right out of the scan
+the scan it's possible to spend several hundreds
+it's possible to spend several hundreds of thousands of dollars on a rig like
+of thousands of dollars on a rig like this
+this 64 cameras shutter synchronization
+64 cameras shutter synchronization measured lighting permanent facilities
+measured lighting permanent facilities it adds up
+it adds up now undead labs is a fairly small studio
+now undead labs is a fairly small studio and we don't have the space
+and we don't have the space or the funding to dedicate to something
+or the funding to dedicate to something like that so i set out to find the sweet
+like that so i set out to find the sweet spot between cost and quality
+i endeavored to build the cheapest functional rig that i could
+functional rig that i could and after several iterations this is
+and after several iterations this is what i came up with
+what i came up with six led light strips attached to some
+six led light strips attached to some light stands using some clamps
+light stands using some clamps a tripod to give our subject a fixed
+a tripod to give our subject a fixed focal point
+focal point and a single handheld camera it provides
+and a single handheld camera it provides even lighting without sacrificing
+even lighting without sacrificing comfort of the subject
+comfort of the subject the setup time takes about 15 minutes
+the setup time takes about 15 minutes and the entire rig collapses to fit in a
+and the entire rig collapses to fit in a duffel bag
+and this model of dave that we've been seeing a couple times showcases the
+seeing a couple times showcases the quality we are able to achieve
+quality we are able to achieve using this setup there's very little
+using this setup there's very little shadowing and mesh noise
+shadowing and mesh noise it's not a perfect scan but it gives our
+it's not a perfect scan but it gives our character artists a huge jump start
+character artists a huge jump start without breaking the bank
+so what are the advantages of my rig over a multi-camera professional
+over a multi-camera professional photogrametry rig why not just go all in
+photogrametry rig why not just go all in and build
+and build an expensive rig well
+an expensive rig well my rig is cheap the total cost of my
+my rig is cheap the total cost of my setup including my own personal camera
+setup including my own personal camera was just over twenty five hundred
+was just over twenty five hundred dollars
+dollars if you filter out the cost of the camera
+if you filter out the cost of the camera that i already own it was about 500
+that i already own it was about 500 bucks to do this
+it's portable i can set up and tear down my rig at will
+my rig at will it takes about 15 minutes to set up and
+it takes about 15 minutes to set up and measure it doesn't require any permanent
+measure it doesn't require any permanent space in our tiny office
+space in our tiny office i can take my rig over to the microsoft
+i can take my rig over to the microsoft campus i can bring it home and scan my
+campus i can bring it home and scan my neighbors i can take it anywhere in the
+neighbors i can take it anywhere in the world
+and the whole thing fits in a duffel bag next to my desk
+the quality bar is good enough for what we needed
+we needed state of decay 2 is a third person
+state of decay 2 is a third person action multiplayer game
+action multiplayer game we weren't creating any up close
+we weren't creating any up close cinematic nathan drake
+cinematic nathan drake cut scenes that kind of micro detail was
+cut scenes that kind of micro detail was overkill for us
+this process doesn't always recreate exact look-alikes
+exact look-alikes when an area of a scan is particularly
+when an area of a scan is particularly noisy our artists have to do some
+noisy our artists have to do some guesswork in shaping features
+guesswork in shaping features but our characters needed to be
+but our characters needed to be believable not identifiable
+believable not identifiable we weren't scanning famous people our
+we weren't scanning famous people our audience would be expected to recognize
+audience would be expected to recognize so even if there's some distortion in
+so even if there's some distortion in the model and scanned jeff doesn't quite
+the model and scanned jeff doesn't quite look like real jeff
+look like real jeff it's still a completely usable scan
+now this particular method is not without its downsides
+without its downsides there's more cleanup time involved the
+there's more cleanup time involved the cost savings on the rig
+cost savings on the rig is not completely free more artifacts in
+is not completely free more artifacts in the model means more cleanup time for
+the model means more cleanup time for character artists
+character artists we average about two and a half hours of
+we average about two and a half hours of cleanup time that we wouldn't have to do
+cleanup time that we wouldn't have to do if we were using a multi-camera
+if we were using a multi-camera high-end setup
+high-end setup some scans just don't work we've got
+some scans just don't work we've got about a three percent failure rate where
+about a three percent failure rate where the scan is
+the scan is completely unusable and no amount of
+completely unusable and no amount of manipulating the settings can recover
+manipulating the settings can recover the data
+the data this can be caused by a variety of
+this can be caused by a variety of reasons maybe the camera focus wasn't on
+reasons maybe the camera focus wasn't on point
+point perhaps the subject moved too much
+perhaps the subject moved too much during the scan maybe their skin was too
+during the scan maybe their skin was too oily or a combination of these things
+oily or a combination of these things we compensated by volume of scans
+we compensated by volume of scans we intentionally scanned significantly
+we intentionally scanned significantly more people than we needed
+more people than we needed to account for scans that didn't work
+to account for scans that didn't work and to give us more options on which
+and to give us more options on which faces we wanted to use
+faces we wanted to use in the future now there were some cases
+in the future now there were some cases where the scan
+where the scan had to work we held a contest for five
+had to work we held a contest for five of our fans to be
+of our fans to be in the game and microsoft held a charity
+in the game and microsoft held a charity auction where appearing in state of
+auction where appearing in state of decay was one of the things up for bid
+decay was one of the things up for bid now those scans had to work failure was
+now those scans had to work failure was not an option
+not an option so when i was doing those important
+so when i was doing those important scans what i did was i brought in
+scans what i did was i brought in just that one person to scan on that day
+just that one person to scan on that day i scanned them and then i brought them
+i scanned them and then i brought them back to my desk
+back to my desk and sat them down and had them watch me
+and sat them down and had them watch me process the scan
+process the scan it was neat for them to see how the
+it was neat for them to see how the sausage gets made and it kept them on
+sausage gets made and it kept them on site in case the scan failed
+site in case the scan failed when you take all of the photos in
+when you take all of the photos in unison with a multi-camera rig it takes
+unison with a multi-camera rig it takes an instant
+an instant but taking 40 plus photos from different
+but taking 40 plus photos from different angles
+angles one at a time takes time our volunteers
+one at a time takes time our volunteers have been pretty good at sitting still
+have been pretty good at sitting still during these scans but no matter how
+during these scans but no matter how good you are at sitting still
+good you are at sitting still eyes tend to move and blink and so eyes
+eyes tend to move and blink and so eyes are
+are often problematic in our scans and
+often problematic in our scans and usually require a lot of cleanup
+usually require a lot of cleanup i did have one subject who didn't know
+i did have one subject who didn't know he was allowed to blink
+he was allowed to blink he spent several minutes trying his
+he spent several minutes trying his hardest not to blank and
+hardest not to blank and by the end of the second row of photos
+by the end of the second row of photos he had tears streaming down the side of
+he had tears streaming down the side of his face we had to clean him up and
+his face we had to clean him up and start the whole scan back over from
+start the whole scan back over from scratch
+scratch the comfort of the subject is definitely
+the comfort of the subject is definitely a concern
+a concern the lights are bright and sitting in
+the lights are bright and sitting in front of them for several minutes can
+front of them for several minutes can get uncomfortable
+get uncomfortable and people who are more light sensitive
+and people who are more light sensitive tend to squint which gets baked into the
+tend to squint which gets baked into the look of the character
+look of the character so my particular setup is designed to be
+so my particular setup is designed to be a compromise between comfort and even
+a compromise between comfort and even lighting
+lighting there's a space directly in front of the
+there's a space directly in front of the subject that has no lighting and it's
+subject that has no lighting and it's got a tripod that they stare at
+got a tripod that they stare at so they're not looking directly into a
+so they're not looking directly into a bulb when in doubt i prioritized comfort
+bulb when in doubt i prioritized comfort over even lighting
+over even lighting it's a lot easier to paint out lighting
+it's a lot easier to paint out lighting artifacts than it is to account for a
+artifacts than it is to account for a squint
+getting a subject to relax can also be difficult we needed neutral expressions
+difficult we needed neutral expressions now people instinctively smile when they
+now people instinctively smile when they get their picture taken especially by a
+get their picture taken especially by a stranger
+stranger and scans with smiles are unusable
+and scans with smiles are unusable these subjects are often strangers in an
+these subjects are often strangers in an awkward situation sometimes i kind of
+awkward situation sometimes i kind of feel like a dentist having a one-sided
+feel like a dentist having a one-sided conversation with a captive stranger who
+conversation with a captive stranger who isn't allowed to respond
+isn't allowed to respond so i find it helps to throw on some
+so i find it helps to throw on some music or talk to your subject about what
+music or talk to your subject about what you're doing
+you're doing keep them engaged just make sure you
+keep them engaged just make sure you don't make them laugh
+don't make them laugh i had one group of college kids come in
+i had one group of college kids come in all at the same time
+all at the same time and after the first scan they decided it
+and after the first scan they decided it would be fun to try and make the kid in
+would be fun to try and make the kid in the chair laugh
+the chair laugh and even holding back a laugh your
+and even holding back a laugh your muscles tense up and it changes the
+muscles tense up and it changes the shape of your face so i ended up having
+shape of your face so i ended up having to kick the whole group out of the room
+to kick the whole group out of the room and bring them back in one at a time
+and bring them back in one at a time so if you do catch your subject moving
+so if you do catch your subject moving during the scan
+during the scan wait until they're done and they're
+wait until they're done and they're ready to start again hold up your camera
+ready to start again hold up your camera like you're gonna start shooting again
+like you're gonna start shooting again but wait
+but wait about five to ten seconds for muscles to
+about five to ten seconds for muscles to settle because when someone thinks
+settle because when someone thinks they're relaxed
+they're relaxed they're still tensed a little bit and it
+they're still tensed a little bit and it takes time for muscles to settle
+we've had tremendous difficulty with scanning facial hair it's
+scanning facial hair it's simply a limitation of the process the
+simply a limitation of the process the camera estimation step evaluates all the
+camera estimation step evaluates all the contrast points and averages them to
+contrast points and averages them to find the camera's location
+find the camera's location short facial hair throws in a large
+short facial hair throws in a large collection of faulty matches
+collection of faulty matches it may find one hair and one photo a
+it may find one hair and one photo a different hair in the next photo
+different hair in the next photo and think they are the same hair as a
+and think they are the same hair as a match which gives us incorrect location
+match which gives us incorrect location data
+on the left we have dave with four days worth of stubble and on the right he's
+worth of stubble and on the right he's clean-shaven
+clean-shaven you can see there's much more noise in
+you can see there's much more noise in the model without or with facial hair
+the model without or with facial hair and not just in the beard area but
+and not just in the beard area but everywhere because the camera locations
+everywhere because the camera locations are being incorrectly calculated
+thicker beards often turn into a giant pillow of noise if they even scan at all
+pillow of noise if they even scan at all oftentimes they just turn into a hole in
+oftentimes they just turn into a hole in the face
+the face and this limitation on facial hair made
+and this limitation on facial hair made it harder harder for us to find
+it harder harder for us to find volunteers because
+volunteers because beards are in fashion right now i did
+beards are in fashion right now i did have
+have one subject come in on a saturday i was
+one subject come in on a saturday i was doing a saturday session
+doing a saturday session and he was my last one for the day and i
+and he was my last one for the day and i started getting texts about five minutes
+started getting texts about five minutes before he was supposed to arrive okay
+before he was supposed to arrive okay i missed my bus but i'm on the next one
+i missed my bus but i'm on the next one i promise i'll be there don't leave
+i promise i'll be there don't leave and so i ended up sitting there waiting
+and so i ended up sitting there waiting around for an hour on a saturday for
+around for an hour on a saturday for this guy to show
+this guy to show up he arrives at our building i go down
+up he arrives at our building i go down to let him through the elevator the
+to let him through the elevator the elevator door is open just
+elevator door is open just gigantic lumberjack beard and i told him
+gigantic lumberjack beard and i told him it says right in the listing we can't
+it says right in the listing we can't scan that he says okay hang on don't
+scan that he says okay hang on don't leave
+leave and he goes across the street to a
+and he goes across the street to a corner shop and buys a can of barbasol
+corner shop and buys a can of barbasol and a razor and comes back and shaves in
+and a razor and comes back and shaves in our bathroom
+our bathroom to be in the game
+but ultimately this constraint is not a huge issue for us
+huge issue for us because of the game we were building we
+because of the game we were building we wanted to reuse faces for randomized
+wanted to reuse faces for randomized characters and we could add a beard to a
+characters and we could add a beard to a character later
+character later a lot easier than we could paint out the
+a lot easier than we could paint out the beard on a scan because you can't see
+beard on a scan because you can't see the underlying facial structure
+the underlying facial structure underneath the beard
+underneath the beard so let's take a look at the final
+so let's take a look at the final results of all of this
+results of all of this we ship state of decay 2 with 75 unique
+we ship state of decay 2 with 75 unique faces
+faces every single one of them is generated
+every single one of them is generated using this method
+and this is some of our heads in context we swap out different hairstyles and
+we swap out different hairstyles and clothing to
+clothing to reuse faces for different random
+reuse faces for different random encounters
+so now we get to the practical portion of this talk i'd like to share with you
+of this talk i'd like to share with you some
+some general advice to help you get the best
+general advice to help you get the best possible scans you can
+first of all you always want to shoot in manual
+manual exposure adjustments from one shot to
+exposure adjustments from one shot to another will make it much harder for the
+another will make it much harder for the software to find matches
+software to find matches and it will cause a lot of problems with
+and it will cause a lot of problems with texture blending when you have two
+texture blending when you have two different exposures
+different exposures when they try and blend together you're
+when they try and blend together you're going to get very patchy uneven
+going to get very patchy uneven textures
+shooting in raw allows for global exposure correction
+exposure correction and helps avoid compression artifacts
+i often get questions about you know is my camera good enough for this is it
+my camera good enough for this is it enough megapixels all that kind of stuff
+enough megapixels all that kind of stuff don't worry
+don't worry too much about the resolution of the
+too much about the resolution of the camera more pixels is good but up to a
+camera more pixels is good but up to a point
+point the final textures are generated from a
+the final textures are generated from a series of photos stitched together so
+series of photos stitched together so after a certain point
+after a certain point more pixels is just wasted disk space
+more pixels is just wasted disk space more important than resolution is
+more important than resolution is sharpness a 12 megapixel photo that is
+sharpness a 12 megapixel photo that is tac
+tac sharp will provide better results than a
+sharp will provide better results than a 40 megapixel photo out of focus
+40 megapixel photo out of focus that being said you never want to
+that being said you never want to sharpen your photos artificially in post
+sharpen your photos artificially in post unless you know exactly what you're
+unless you know exactly what you're doing you don't want to adjust your
+doing you don't want to adjust your images at all in post
+images at all in post because this has the potential for
+because this has the potential for nullifying point matches and
+nullifying point matches and can seriously mess up your scans
+shiny surfaces do not scan well specular highlights confuse the software
+specular highlights confuse the software because a specular highlight
+because a specular highlight moves across the surface depending on
+moves across the surface depending on viewing angle the software doesn't know
+viewing angle the software doesn't know the difference between a moving specular
+the difference between a moving specular highlight
+highlight and a fixed point and so it throws in a
+and a fixed point and so it throws in a large collection of faulty matches
+large collection of faulty matches but skin is shiny and particularly oily
+but skin is shiny and particularly oily skin
+skin does not scan very well a polarizing
+does not scan very well a polarizing filter can help a lot with this
+filter can help a lot with this on the left i just took a normal photo
+on the left i just took a normal photo of dave and on the right i took the same
+of dave and on the right i took the same shot again
+shot again with a polarizing filter over the lens
+with a polarizing filter over the lens you can see the large highlight on the
+you can see the large highlight on the forehead goes away
+forehead goes away but it does get all the highlights but
+but it does get all the highlights but it helps
+polarizing does a polarizing filter does reduce the amount of light reaching your
+reduce the amount of light reaching your camera sensor so you're going to want to
+camera sensor so you're going to want to increase your camera settings up by a
+increase your camera settings up by a couple stops
+you can also use anti-shine powder we've had tremendous success with this
+had tremendous success with this but it requires your subject to be
+but it requires your subject to be comfortable with a stranger putting
+comfortable with a stranger putting makeup on their face
+state of decay 2 takes place during the zombie apocalypse and having female
+zombie apocalypse and having female characters all dolled up in full makeup
+characters all dolled up in full makeup doesn't really fit the narrative of the
+doesn't really fit the narrative of the world we were building so we wanted to
+world we were building so we wanted to scan faces without makeup
+scan faces without makeup but we quickly discovered that not all
+but we quickly discovered that not all females are super happy with someone
+females are super happy with someone taking 40 photos of their face without
+taking 40 photos of their face without any makeup on
+any makeup on so we quickly changed the listing to
+so we quickly changed the listing to request natural colored makeup
+request natural colored makeup which helped a lot with reducing skin
+which helped a lot with reducing skin shine as well
+shine as well so on average our female scans ended up
+so on average our female scans ended up more reliable than our male scans
+before you start a scan take a photo of your subject holding up their name
+your subject holding up their name at one point i could name every single
+at one point i could name every single one of the 206
+one of the 206 faces that i scanned but i wasn't the
+faces that i scanned but i wasn't the only one working with these photos
+only one working with these photos and we needed a way to identify these
+and we needed a way to identify these faces folders can get renamed tables can
+faces folders can get renamed tables can get sorted
+get sorted this identifier photo is a great way to
+this identifier photo is a great way to keep things organized that can't get
+keep things organized that can't get decoupled
+decoupled it's also super helpful when you're
+it's also super helpful when you're processing a full day's worth of
+processing a full day's worth of photogrammetry
+photogrammetry i can dump 30 scans into one folder and
+i can dump 30 scans into one folder and use the thumbnail view
+use the thumbnail view and look for this name photo as a
+and look for this name photo as a delimiter for where one
+delimiter for where one session ends and the next one begins
+lastly there's a lot of debate within the photogrammetry community about
+the photogrammetry community about whether to
+whether to rotate the subject or to move the camera
+rotate the subject or to move the camera and we've tried both
+the first approach is to have the subject sit still while you move the
+subject sit still while you move the camera around and take photos from
+camera around and take photos from different angles
+different angles the subject is able to sit very still
+the subject is able to sit very still and focus on a fixed point
+and focus on a fixed point there is however potential for blur in
+there is however potential for blur in the camera you want to take these photos
+the camera you want to take these photos as quickly as you can and having the
+as quickly as you can and having the camera on a tripod or even a monopod
+camera on a tripod or even a monopod gets in the way with all of the the legs
+gets in the way with all of the the legs from the lighting equipment
+the other approach is to put the camera on a fixed tripod and rotate the subject
+on a fixed tripod and rotate the subject put in put them in a swivel chair and
+put in put them in a swivel chair and rotate them
+rotate them sorry around the camera this approach
+sorry around the camera this approach gave much more even lighting
+gave much more even lighting a feature that may be shadowed in one
+a feature that may be shadowed in one shot can be directly lit in another and
+shot can be directly lit in another and those
+those values average out but without a single
+values average out but without a single fixed focal point
+fixed focal point there's a much higher probability of
+there's a much higher probability of your subject not quite lining up right
+your subject not quite lining up right they may look a little higher or lower
+they may look a little higher or lower on each turn
+on each turn and just the physical act of rotating
+and just the physical act of rotating your subject causes
+your subject causes muscles to tend and shift and they put
+muscles to tend and shift and they put their weight differently
+their weight differently so the best gain we ever got was
+so the best gain we ever got was actually using this method
+actually using this method but ultimately we decided on moving the
+but ultimately we decided on moving the camera
+camera rather than the subject i have no idea
+rather than the subject i have no idea what that was
+what that was all right so the quality ceiling was
+all right so the quality ceiling was lower but the average was a lot higher
+so there it is photogrametry can be a great tool for
+great tool for boosting your production regardless of
+boosting your production regardless of your budget i hope you've learned
+your budget i hope you've learned something here that is helpful for you
+something here that is helpful for you to get your own scans
+to get your own scans uh i'd like to thank you all for coming
+uh i'd like to thank you all for coming looks like we've got some time for
+looks like we've got some time for questions
+questions i could take some of those now otherwise
+i could take some of those now otherwise we can meet across the hall
+we can meet across the hall in the atrium for further questions
+yes thanks for that talk it's really cool stuff
+cool stuff thank you my question is when you were
+thank you my question is when you were rotating the model
+rotating the model did you ever use like a headrest or even
+did you ever use like a headrest or even some sort of brace
+some sort of brace that you could see only from the back to
+that you could see only from the back to help eliminate some of the movement
+help eliminate some of the movement uh we didn't go too far into that
+uh we didn't go too far into that um we were experimenting with a whole
+um we were experimenting with a whole bunch of different setups all at the
+bunch of different setups all at the same time
+same time basically i i took one of our swivel
+basically i i took one of our swivel office chairs i pulled the wheels off
+office chairs i pulled the wheels off and i fixed it to the floor so there was
+and i fixed it to the floor so there was some backing on the chair up to about
+some backing on the chair up to about the upper neck we haven't tried to like
+the upper neck we haven't tried to like get them completely braced into the
+get them completely braced into the chair comfort is definitely
+chair comfort is definitely an issue and having strangers come in
+an issue and having strangers come in and get
+and get strapped to a chair is a little awkward
+strapped to a chair is a little awkward yeah because i've seen setups where they
+yeah because i've seen setups where they have
+have some type of not restrictive
+some type of not restrictive movement but just something that the
+movement but just something that the subject can press their head into
+subject can press their head into yeah that would definitely help right
+yeah that would definitely help right yeah yeah i i have a question about uh
+yeah yeah i i have a question about uh photoscanning but not particularly faces
+photoscanning but not particularly faces so i'm not sure you have
+so i'm not sure you have experience with that but i scanned many
+experience with that but i scanned many models last year
+models last year and uh i ended up failing in the
+and uh i ended up failing in the different kind of stuff for example a
+different kind of stuff for example a lemon it's it's
+lemon it's it's very tough because even colors and you
+very tough because even colors and you know shiny surface i know
+know shiny surface i know i started to use a different kind of
+i started to use a different kind of markers
+markers for example barcodes visible on the
+for example barcodes visible on the photos
+photos and then even using different kind of
+and then even using different kind of markers red and
+markers red and black markers on the model itself
+black markers on the model itself and didn't work at all so i'm just
+and didn't work at all so i'm just wondering if you have any experience
+wondering if you have any experience with that
+with that with shiny and the flat colors using
+with shiny and the flat colors using markers because
+markers because none of the actual ticks i draw
+none of the actual ticks i draw drew on a lemon or using those
+drew on a lemon or using those barcodes yeah we haven't tried
+barcodes yeah we haven't tried too much with markers i've used a couple
+too much with markers i've used a couple markers when scanning
+markers when scanning larger outdoor objects like boulders and
+larger outdoor objects like boulders and stuff
+stuff for something the scale of a face i
+for something the scale of a face i don't tend to use markers for it
+don't tend to use markers for it if you're trying to scan something like
+if you're trying to scan something like a lemon that's got a bit of a shine to
+a lemon that's got a bit of a shine to it
+it if it's something you don't care about
+if it's something you don't care about there's anti-shine spray you can put on
+there's anti-shine spray you can put on things we've tried
+things we've tried scanning shoes that have like reflective
+scanning shoes that have like reflective you know for
+you know for seeing people in the dark when they go
+seeing people in the dark when they go out running putting
+out running putting some of the the anti-shine spray on
+some of the the anti-shine spray on those as long as you don't care about
+those as long as you don't care about the shoe is fine but if it's something
+the shoe is fine but if it's something you want to keep that
+you want to keep that becomes a bit of a problem a polarizing
+becomes a bit of a problem a polarizing filter would definitely help in a lot of
+filter would definitely help in a lot of those cases
+those cases spray that sounds cool thank you very
+spray that sounds cool thank you very much
+much i think they're all on that side today
+i think they're all on that side today hi so my question is also not regarding
+hi so my question is also not regarding facial scan so
+facial scan so um i mean we've been trying uh doing
+um i mean we've been trying uh doing photogrammetry for a few objects
+photogrammetry for a few objects so how do you deal with the objects
+so how do you deal with the objects which are made with glasses so is there
+which are made with glasses so is there any way we can scan them and
+any way we can scan them and use productivity for that uh scanning
+use productivity for that uh scanning with glasses yeah i mean the object yeah
+with glasses yeah i mean the object yeah so some artifacts which are
+so some artifacts which are pretty complex but made of glasses yeah
+pretty complex but made of glasses yeah uh
+uh generally we have them remove glasses
+generally we have them remove glasses and i find it helps to have them remove
+and i find it helps to have them remove their glasses for
+their glasses for about 10 minutes beforehand because like
+about 10 minutes beforehand because like the the red marks you get
+the the red marks you get on the bridge of the nose no no so i
+on the bridge of the nose no no so i didn't mean the faces
+didn't mean the faces uh objects so for example a glass
+uh objects so for example a glass artifact
+artifact a glass object yeah yeah i wouldn't know
+a glass object yeah yeah i wouldn't know of a way to scan that
+of a way to scan that well okay um if anything transparent is
+well okay um if anything transparent is even worse than a shiny surface the
+even worse than a shiny surface the the software is not going to be able to
+the software is not going to be able to pick that up very well
+pick that up very well okay cool so i mean um does um
+okay cool so i mean um does um depth sensing and depth cameras help in
+depth sensing and depth cameras help in that or that also uh
+that or that also uh potentially there there might be some
+potentially there there might be some hardware out there that can do that kind
+hardware out there that can do that kind of stuff i don't think photogrammetry
+of stuff i don't think photogrammetry will ever work very well with that
+will ever work very well with that thank you
+hey so i remember you mentioned uh earlier not to uh do any post-processing
+earlier not to uh do any post-processing to the images
+to the images unless you knew what you were doing um
+unless you knew what you were doing um do you do any post-processing or you
+do you do any post-processing or you just throw the raw photo into agisoft
+just throw the raw photo into agisoft uh i do minimal post processing on
+uh i do minimal post processing on occasion
+occasion um there's you know
+um there's you know sorry the triangle of how much light you
+sorry the triangle of how much light you have your camera exposure
+have your camera exposure and like the the film iso and stuff like
+and like the the film iso and stuff like that um
+that um trying to get enough exposure on the
+trying to get enough exposure on the image so that you can see what you're
+image so that you can see what you're looking at
+looking at generally when you're trying to get
+generally when you're trying to get enough exposure you can always just
+enough exposure you can always just throw more light at it but that gets
+throw more light at it but that gets very uncomfortable for people standing
+very uncomfortable for people standing under very bright lights for a long time
+under very bright lights for a long time and so we had to limit how much light we
+and so we had to limit how much light we pour onto our subjects
+pour onto our subjects and so occasionally i had to
+and so occasionally i had to artificially increase the exposure but i
+artificially increase the exposure but i do it on
+do it on the exact same settings for all of the
+the exact same settings for all of the photos so that they don't get mismatched
+photos so that they don't get mismatched usually where the disconnect comes from
+usually where the disconnect comes from if you're doing
+if you're doing post-processing stuff is when one photo
+post-processing stuff is when one photo ends up diverging from the others so you
+ends up diverging from the others so you never want to do
+never want to do like exposure correction on one photo
+like exposure correction on one photo and not the others okay cool thank you
+hi matt all right so my question is what kind of lenses will be needed for
+what kind of lenses will be needed for scan because i think
+scan because i think if you're if you use a different lens
+if you're if you use a different lens or a special lens the there will be some
+or a special lens the there will be some distortion of the official
+distortion of the official features uh different lenses don't make
+features uh different lenses don't make a huge amount of difference other than
+a huge amount of difference other than you know how sharp your lenses can
+you know how sharp your lenses can definitely help
+definitely help whether you're using wide angle or if
+whether you're using wide angle or if you're using a tighter
+you're using a tighter lens it doesn't matter so much
+lens it doesn't matter so much because the software takes into
+because the software takes into consideration the
+consideration the focal length of the lens so if you're
+focal length of the lens so if you're getting a lot of distortion from a
+getting a lot of distortion from a single image from a
+single image from a wide a wide angle lens the software can
+wide a wide angle lens the software can read in that data
+read in that data and so no matter which angle you look at
+and so no matter which angle you look at it it reconstructs
+it it reconstructs the the actual object that you're
+the the actual object that you're scanning
+scanning okay ah sorry i have another question
+okay ah sorry i have another question yeah go ahead so well some small details
+yeah go ahead so well some small details like eyelash be scanned well or
+like eyelash be scanned well or you have to manually model that after
+you have to manually model that after the scanning
+the scanning eyelashes you said uh eyelid or eyelid
+eyelashes you said uh eyelid or eyelid um because of the nature of
+um because of the nature of scanning someone with a single camera
+scanning someone with a single camera over multiple minutes
+over multiple minutes people are going to blink and so the
+people are going to blink and so the eyes almost always require cleanup
+eyes almost always require cleanup um there's not really much we can do
+um there's not really much we can do about that with this
+about that with this single camera setup if you're doing a
+single camera setup if you're doing a multi-camera rig that all fire in unison
+multi-camera rig that all fire in unison then you're gonna get that kind of
+then you're gonna get that kind of detail out of the eyelids
+detail out of the eyelids okay okay thank you we have one on this
+okay okay thank you we have one on this side
+side yeah did you have any experience with
+yeah did you have any experience with flashes or strobes
+flashes or strobes um we did um
+we found that constant lighting tended to be a little bit better
+to be a little bit better especially with people not kind of
+especially with people not kind of wincing when the flash goes off
+wincing when the flash goes off and so having slightly dimmer but
+and so having slightly dimmer but consistent lighting made the people
+consistent lighting made the people relax more
+relax more yeah thanks um you mentioned last one
+yeah thanks um you mentioned last one okay uh you mentioned that some of the
+okay uh you mentioned that some of the higher end rigs
+higher end rigs can generate textures like glossiness
+can generate textures like glossiness and subsurface and stuff
+and subsurface and stuff um what sort of pipeline steps did you
+um what sort of pipeline steps did you guys do to
+guys do to get those maps it was just up to the
+get those maps it was just up to the artist discretion or did you have
+artist discretion or did you have automated tools yeah it was mostly up to
+automated tools yeah it was mostly up to the artist they did a lot of painting
+the artist they did a lot of painting just to
+just to recreate that sort of thing gotcha okay
+recreate that sort of thing gotcha okay all right thank you everyone if we've
+all right thank you everyone if we've got more questions we can meet me across
+got more questions we can meet me across the atrium

@@ -1,0 +1,382 @@
+hi everyone it's me Tim today I want to
+talk about stress testing games this is
+another question from thequiz who when
+giving me a few topic suggestions for
+upcoming videos recommended stress
+testing games now let me tell you what
+that is
+um this is about it's mostly about
+testing games against mspec machines but
+a little more than that it is not
+QA I I've talked about quality assurance
+testing uh I have a couple videos I'll
+link below about how we did QA for the
+outer worlds but this is about when I
+talk about stress testing a game it's
+about making sure they work with a wide
+variety of machines Beyond just mspec
+but frequently it is mspec so the two
+are related I do have a video about mpec
+as well um it's linked below
+stress testing games you have to think
+of all the variety of ways that you
+could make a game slow you could make a
+game unreliable and yes even
+crashy so I will divide this into the
+part of the machine that you Target and
+then how you kind of handle that so
+let's start with
+CPUs there's always been a wide variety
+of computer central processing units
+motherboards when I'm talking about CPU
+I'm really talking about the motherboard
+having
+a you know a main computer chip a bus
+and
+RAM there's so many ways that that can
+vary you could have a fast chip on a
+motherboard with a slow bus meaning the
+interaction between it and RAM is very
+slow and it and the other cards and
+peripherals are slow you could have a
+slow CPU with a fast fast bus you could
+have lots of ram you could have a little
+bit of ram you could have lots of slow
+Ram or you could have lots of fast Ram
+there's a lot of ways that that can vary
+and you need to test all these
+configurations especially you try to
+look for the worst configuration what's
+a low CPU with a slow bus and the
+smallest amount of ram you can run on
+and it's very slow Ram to
+boot sometimes you even want to test bug
+Ram um meaning you have memory that
+occasionally malfunctions like you store
+zero in it and you get back a
+one I've even tested against buggy CPUs
+there was a a chip that came out that
+didn't do division correctly this is
+really hard to deal with and when you
+have uh bad Hardware like that the best
+you can hope for is to fail gracefully
+that when an error occurs caused by a
+CPU malfunctioning or or a or Ram report
+giving back a bad value the best you can
+do is like hey I saw this interrupt fire
+I got this bad value I sometimes you can
+get something from a CPU called Nan not
+a number or you got a number that's well
+outside the range like you're like hey I
+need to know how big this piece of art
+is and it's like it's 4 billion bytes
+wide no just fail you just try to fail
+gracefully there's a lot of other things
+you want to test um to make sure that
+your game works well you want to test
+how long it takes to load a save game or
+make a save game you want to test how
+long it changes to switch Maps you know
+load different instances you want to
+look at frame rate you want to look at
+UI speed UI speed is really important
+because one of the things that humans
+respond to is if they click a button on
+the keyboard or on the controller or on
+the mouse they want to see something
+happen they want to have an a very fast
+response so I've worked with uh in the
+past sometimes with UI designers that
+make such complex design that it's hard
+to get that up quickly so you end up
+either pre-loading the UI like the art
+associated with it which is usually the
+biggest thing you have to load or you
+make it so that when you press the
+button you immediately get an audio and
+often a video feedback like it go dtin
+and maybe something pops up a frame pops
+up and then it fills in with art that's
+just something you have to do similarly
+with game startup Time games used to
+take there was a period where they were
+very small so you you click the
+executable and would just start right up
+then we got into this period where we
+had big games that were slow to load and
+even now occasionally you start up a
+game that's takes a while to load so
+what happens is you make a launcher that
+La a very tiny executable that launches
+quickly puts up a splash screen and then
+loads your game that's why sometimes you
+start a game and it will just pop up
+something and it's saying we're loading
+and that's so that you get instant
+feedback when you say when you click on
+a game and say I want to play that
+similarly to the CPU let's talk about
+gpus which is your video card
+all the same things can happen there you
+can have fast gpus you can have slow
+gpus you can have gpus uh video cards
+that don't have a lot of RAM on them you
+can end up with gpus that allow varying
+various resolutions and of course the
+higher resolution you have the more
+pixels it has to draw and the longer
+that takes you can also have multiple
+amounts of pipelines uh gpus in recent
+years not even that recent um last 20
+years have gotten multiple pipelines so
+they can do Graphics processing in
+parallel sometimes you can have a car
+that's got a decently fast GPU but has a
+lot of pipelines meaning it can handle a
+lot of Graphics work in
+parallel the pipelines matter sometimes
+as much as of as the speed of the GPU
+and how much RAM is on the
+GPU gpus are often used now for
+offloading work from the CPU which is
+why you hear about it a lot for um
+mining Bitcoin and other stuff like that
+cyber or um um sorry the dog sleeping
+when people are are mining digital
+currency because a lot of that gets
+offloaded onto your GPU because it's got
+a lot of RAM and a lot of pipelines and
+you can parallelize
+it the hard drive is another piece of
+Hardware you need to look at because
+there are a lot of bad ones out there
+there are a lot of ones that run at a
+very low speed a very low
+RPM uh even the fastest hard drive is
+kind of slow compared to a solid state
+drive and SSD you've got to com check
+your game on all of them you do have to
+make sure too that things can't load too
+quickly this is something that you've
+probably played a game where an older
+game where if you play on a a machine
+that's too fast and the frame rate's too
+high sometimes physics gets off and all
+that same thing can happen with a hard
+drive if things load faster than they
+thought they would load it maybe that a
+game was written to start loading art
+and then would go off and do some other
+calculations thinking it could EAS
+finish those calculations before that
+stuff could get loaded and then on newer
+machines that's not true back in the day
+in addition to hard drives we had to
+sometimes load your game off of a floppy
+or even a CD ROM and let me just tell
+you that was painstakingly slow so you
+you you really really tried to encourage
+people when they installed the game to
+move it onto their hard drive let me
+tell you that floppies and CD ROMs often
+had read errors and some brands of CD
+ROMs were so bad with this that they
+would literally literally get 5 10 20
+read errors in a row and then finally go
+okay here's you wanted to read that data
+here it is it was so bad that when we
+shipped stonekeep at interplay I wrote
+an assembly level critical error
+handling routine to handle the problems
+we were having with some brands of CD
+drives CD ROM drives that would I think
+I ended up having to put an upper limit
+of a 100 reads before it would give up
+because some of were that bad again just
+a way of of where how Hardware it can
+throw errors at your game that have
+nothing to do with your game your game
+can be Flawless but still encounter
+errors related to uh what I've just
+talked about with both hard drives and
+gpus especially monitors back in the day
+we had to deal with CRT versus LCD
+basically cathode ray 2 monitors versus
+LCD monitors because they had different
+aspect ratios they could had wildly
+different resolutions even today you end
+up with the same thing happen happening
+with some monitors can't support the
+resolutions that your GPU can do or vice
+versa or your monitor uses a different
+input then your GPU has plugs for it
+this is especially true with older
+Hardware standards change you may end up
+with a a DVI plug and your monitor
+doesn't have that as an in or your GPU
+doesn't have that as an or your video
+card doesn't have that as an out
+you can end up with monitors that have
+different aspect ratios they make those
+big curved monitors now monitors have
+different color reproduction different
+gamma levels different black levels so
+the literally when you say I just want a
+black pixel some monitors will display
+that as a very dark gray so things can
+look very different you have to test all
+those you have to stress test to make
+sure your game still looks good and is
+viewable on those monitors with those
+gpus under varying lighting conditions
+in
+offices a thing that used to be a bigger
+problem than it is now is sound back in
+the day horrible so many sound cards
+even machines that didn't have sound
+cards machines that just had a speaker
+and you had to do all the sound with
+beeps and boops through that speaker or
+try to do something called pulse with
+modulation to try to get really awful
+sounding voice and digital music to come
+out of that speaker Sound Processing can
+also be really expensive and you had
+limited CPU saes back then so you tried
+to offload as much of the card as you
+could but different cards did different
+things and then when you threw on top of
+that that these cards ran on interrupts
+that sometimes you couldn't know you
+couldn't ask the card what interrupt it
+was on the uh the human had to know the
+game player had to know when your game
+started up you had to say uh I think you
+got a sound blaster card but you're
+going to have to tell me what interrupt
+it's it's put on it's just and then you
+had to test when you stress testing you
+had to take those all those cards that
+could work on different interrupts and
+put them on different interrupts to make
+sure it all worked now mostly that stuff
+is is standardized there even onboard
+sound most of the time you don't even
+think about it anymore but you still
+think about it a little uh now let's
+talk about peripherals there's a lot of
+things that get connected into your
+computer that your game has to know
+about mice keyboards controllers and you
+may think a lot of that has been
+standardized and a lot of the input from
+them has been standardized but you still
+have some mice that don't have Center
+clicks if you're on a Mac sometimes you
+we have a right click there are Mouse
+Wheels there are side Wheels there are
+extra buttons on mice there are extra
+button on buttons on keyboards on
+controllers you have to worry about
+click speed some mice can be clicked
+faster than others some keyboards can be
+typed on faster than others that's even
+true for controllers Apple had this
+great human machine interaction
+guideline that we used to follow so that
+when you when a human would double click
+you knew what a double click meant how
+fast and how slow the Gap could be
+between those two clicks before it
+counted as a double click or two
+separate clicks you also have to worry
+about what happens when those
+peripherals get disconnected you see
+that in consoles all the time especially
+with wireless controllers how does your
+game handle it when the wireless
+controller loses its battery or just for
+whatever loses it connection or a
+plugged in pereral gets unplugged how do
+you handle that a lot of that is part of
+the um when you submit a game for
+certification that's part of the
+certification they will test they will
+in the middle of your game and they just
+unplug the keyboard or the controller or
+the mouse and make sure you react
+correctly a lot of that is standardized
+now but it's still stuff you have to do
+in stress testing online has um once you
+decide you want to make a multiplayer
+game you're going to make uh it be
+online you've got a bunch more stress
+testing you have to do you have to deal
+with bad internet speeds you can have
+inter internet speeds that are variable
+you can have high speed ones which means
+the Ping is low but the the bandwidth is
+is Tiny meaning you you get lots of
+packets but they're very tiny you can
+also have the reverse happen where you
+can have really big bandwidth but a very
+low ping meaning it you you you you you
+get very large packets of information
+but you don't get them very often or
+worse you don't get them consistently
+which just makes games that are trying
+to deal with human input very hard to
+make um smooth you also have to deal
+with Dropout what happens when people
+lose Internet sometimes people used to
+do that deliberately they were losing a
+multiplayer games so they un plug their
+net card you have to deal with that the
+when we were doing WildStar and we
+wanted to test it with lots of players
+online one of the programmers made what
+we called a headless client which would
+Connect into our server and just mimic a
+player logging in running around
+attacking things picking up and dropping
+items basically just anything that
+required serers side interaction so we
+could stress test our server we didn't
+worry about client we gave the client A
+Min spec and we tested the client
+separately but you would also have to to
+stress test your server luckily you
+could control the server specs so if you
+were like wo we really need a more
+powerful server that would be something
+the programmers would tell us and we'd
+buy more powerful servers usually with
+uh more powerful CPUs and much much
+bigger uh much greater amounts of ram
+servers didn't have Graphics that was
+all handled on the client side um keep
+in mind the client side would have to do
+all the previous testing I mentioned and
+then the server side would have to do
+all the previous stuff except
+probably the traffics and peripheral
+testing so the quiz I hope that answered
+your question that's a lot of the stress
+testing I I tried to think of everything
+I could and as you can see it it's
+related to mspec but it's not quite
+mspec testing so I don't know I I'm
+surprised I've never talked about this
+before but again it's one of those
+things that it never occurred to me to
+talk about because it's just so baked in
+to game development process and
+something that surprises I think a lot
+of Indies when they're quote done with
+their game and then they put it out
+there they discover it doesn't work on a
+lot of combinations of of peripherals
+and gpus and CPUs and everything that
+people have on different appears out
+there anyway I hope this answered your
+question to quiz and hope you liked it

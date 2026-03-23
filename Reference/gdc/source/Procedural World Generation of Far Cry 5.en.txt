@@ -1,0 +1,1238 @@
+[Music]
+so welcome to for cry 5 procedure all world generation
+world generation my name is it's in Cali I've been a
+my name is it's in Cali I've been a technical artists at Ubisoft Montreal
+technical artists at Ubisoft Montreal for about three years now and I joined
+for about three years now and I joined at the beginning of the far cry 5
+at the beginning of the far cry 5 project and well I haven't worked on any
+project and well I haven't worked on any triple-a titles before but I I joined
+triple-a titles before but I I joined however when I joined USF I had a secret
+however when I joined USF I had a secret weapon and my sleeve and that is my
+weapon and my sleeve and that is my experience with the procedural tool
+experience with the procedural tool development I've been passionate about
+development I've been passionate about that for about six years now and before
+that for about six years now and before joining us F was working on indie games
+joining us F was working on indie games and that's where I started introducing
+and that's where I started introducing procedural work flow into my pipeline so
+procedural work flow into my pipeline so today I am happy to share with you the
+today I am happy to share with you the the procedural pipeline we developed for
+the procedural pipeline we developed for for cry 5 well quick reminder tour
+for cry 5 well quick reminder tour enough your cellphone put it on mute and
+enough your cellphone put it on mute and avoid taking too much pictures if you do
+avoid taking too much pictures if you do so do it this quickly because it can be
+so do it this quickly because it can be annoying for people sitting behind you
+annoying for people sitting behind you seeing a cell phone or iPad up in the
+seeing a cell phone or iPad up in the air so anyway the whole thing's gonna be
+air so anyway the whole thing's gonna be available and on the vault afterwards
+available and on the vault afterwards before we start this is the the content
+before we start this is the the content will be seen today during the
+will be seen today during the presentation I'll start with an
+presentation I'll start with an introduction part with some of the
+introduction part with some of the challenge we wanted to tackle and then
+challenge we wanted to tackle and then the objective for the pipeline itself
+the objective for the pipeline itself and we'll take a look at the procedural
+and we'll take a look at the procedural tools that we develop for it then all
+tools that we develop for it then all those tools are used from a user point
+those tools are used from a user point of view and after this we'll dive a bit
+of view and after this we'll dive a bit more in depth into the pipeline itself
+more in depth into the pipeline itself and we'll also look at all the the cliff
+and we'll also look at all the the cliff and the the biome tool or working on the
+and the the biome tool or working on the David unfortunately
+David unfortunately I didn't have enough time in my
+I didn't have enough time in my presentation to go in detail in every
+presentation to go in detail in every tool that we made but we'll see those
+tool that we made but we'll see those two at least and then a quick section
+two at least and then a quick section things that we changed along the way and
+things that we changed along the way and finally a conclusion part so what was
+finally a conclusion part so what was our initial challenge we wanted to
+our initial challenge we wanted to tackle first we we had a tearing that
+tackle first we we had a tearing that was changing constantly this is the Far
+was changing constantly this is the Far Cry 5 tear in evolution over two years
+Cry 5 tear in evolution over two years and a half how do we manage or content
+and a half how do we manage or content when there are so many iteration like
+when there are so many iteration like this will have the same evolution here
+this will have the same evolution here and a smaller portion of the terrain we
+and a smaller portion of the terrain we have a forest that has been applied
+have a forest that has been applied manually and its distribution is
+manually and its distribution is initially coherent with the terraforming
+initially coherent with the terraforming and however over times it becomes really
+and however over times it becomes really in current as the the tearing change so
+in current as the the tearing change so how do we solve issue like that it would
+how do we solve issue like that it would be for sure tedious work to repaint the
+be for sure tedious work to repaint the forest every time the tearing change
+forest every time the tearing change also if this was done and if it was
+also if this was done and if it was managed by several different users how
+managed by several different users how consistent with the result be should we
+consistent with the result be should we like terraforming early in the project
+like terraforming early in the project to avoid problem like this
+to avoid problem like this I don't think so because this all
+I don't think so because this all iterative process is vital to the game
+iterative process is vital to the game quality Indian it is with those
+quality Indian it is with those challenge in mind that we built a
+challenge in mind that we built a procedural pipeline or first objective
+procedural pipeline or first objective was to develop a macro management tool
+was to develop a macro management tool to fill up the world with
+to fill up the world with natural-looking content then this
+natural-looking content then this content needs to be consistent with the
+content needs to be consistent with the terrain topology as well here we have
+terrain topology as well here we have the same example as before however this
+the same example as before however this time the forest distribution is that
+time the forest distribution is that that adapting to the latarian shape so
+that adapting to the latarian shape so as we can see the the result remains
+as we can see the the result remains coherent with any of the terraforming
+coherent with any of the terraforming change then the whole pipeline needs to
+change then the whole pipeline needs to be automated as well we used with xenian
+be automated as well we used with xenian with an engine as well as a nightly
+with an engine as well as a nightly generation on-bill machine to fully
+generation on-bill machine to fully refresh the world every night
+refresh the world every night robell machine that will process
+robell machine that will process different part of the world one by one
+different part of the world one by one until the food world is generated and
+until the food world is generated and this process ensures us that the user
+this process ensures us that the user will have updated world data every
+will have updated world data every morning then all the data Jenner is
+morning then all the data Jenner is generated also needs to be deterministic
+generated also needs to be deterministic which means that the generation needs to
+which means that the generation needs to yield the same result given the same
+yield the same result given the same inputs so by using different build
+inputs so by using different build machines whether we bake the left or
+machines whether we bake the left or right chunk of the terrain here the
+right chunk of the terrain here the middle part will always give the same
+middle part will always give the same result and this is quite important
+result and this is quite important because for the navmesh generation among
+because for the navmesh generation among other things well we have the nightly
+other things well we have the nightly build that makes the world map per map
+build that makes the world map per map so the junction between those maps needs
+so the junction between those maps needs to be seamless and finally your last
+to be seamless and finally your last objective we wanted the whole thing to
+objective we wanted the whole thing to be user-friendly just the nightly build
+be user-friendly just the nightly build alone is not enough to ensure user have
+alone is not enough to ensure user have up-to-date data you need to be you need
+up-to-date data you need to be you need to be able to bake the procedural
+to be able to bake the procedural generation as they work as well so of
+generation as they work as well so of course we have all the tools available
+course we have all the tools available indeed stir now let's take a quick look
+indeed stir now let's take a quick look at the available procedural tools we
+at the available procedural tools we develop initially our mandate was just
+develop initially our mandate was just to tackle the biome distribution develop
+to tackle the biome distribution develop a biome tool but we ended up extending
+a biome tool but we ended up extending way beyond that first we have the
+way beyond that first we have the freshwater tool that generates lakes
+freshwater tool that generates lakes rivers streams and waterfalls we have a
+rivers streams and waterfalls we have a fence and power line tool we have the
+fence and power line tool we have the cleft generation and steep terrain
+cleft generation and steep terrain surfaces then the biome tool that spans
+surfaces then the biome tool that spans all the vegetation we also have a fog
+all the vegetation we also have a fog density map generation that is then used
+density map generation that is then used by the fog shader and finally we also
+by the fog shader and finally we also generate the terrain there sorry the
+generate the terrain there sorry the wall map terrain mesh along with the
+wall map terrain mesh along with the scattering of miniature trees on top of
+scattering of miniature trees on top of it but I was it like using those tools
+it but I was it like using those tools from a user point of view in this next
+from a user point of view in this next section we'll take a quick glimpse at
+section we'll take a quick glimpse at how it is like to fill up an empty
+how it is like to fill up an empty with the procedural tools so first off
+with the procedural tools so first off user will terraform the Turing using the
+user will terraform the Turing using the leads to tools and then the artists can
+leads to tools and then the artists can lay down a freshwater network that is
+lay down a freshwater network that is achieved by using curves and spline that
+achieved by using curves and spline that will be used as input for the freshwater
+will be used as input for the freshwater tool for rivers we have control and on
+tool for rivers we have control and on the spline for the web and once we're
+the spline for the web and once we're happy with our inputs the user just have
+happy with our inputs the user just have to take the freshwater tool and this
+to take the freshwater tool and this will produce water surface as a lesson
+will produce water surface as a lesson Tarun texturing and scattering of some
+Tarun texturing and scattering of some asset under water then the user can
+asset under water then the user can generate the cliffs the tool is simply
+generate the cliffs the tool is simply based on the terrain slope so you
+based on the terrain slope so you basically just have to run the
+basically just have to run the generation and the desired terrain area
+generation and the desired terrain area we also have a few extra control like
+we also have a few extra control like exclusion masks and stuff but we'll see
+exclusion masks and stuff but we'll see more detail on this later then the
+more detail on this later then the artists can add the vegetation so this
+artists can add the vegetation so this is done using the the biome painter here
+is done using the the biome painter here we just said I can apply a Maine biome
+we just said I can apply a Maine biome to the terrain then run the procedural
+to the terrain then run the procedural generation so the the main biome will
+generation so the the main biome will naturally distribute grass and forest
+naturally distribute grass and forest biome and the the recipe will also react
+biome and the the recipe will also react to water proximity spawning specific
+to water proximity spawning specific asset it will also avoid spawning
+asset it will also avoid spawning vegetation on the cliff erosion line
+vegetation on the cliff erosion line that was generated by the curse tool and
+that was generated by the curse tool and also in this case altitude also affect
+also in this case altitude also affect all their recipe behaves spawning
+all their recipe behaves spawning smaller and sparser trees up in altitude
+so this is nice but the user will certainly want to
+but the user will certainly want to customize the location so what the
+customize the location so what the artist can do is he can start by
+artist can do is he can start by clearing out an area by painting as a
+clearing out an area by painting as a biome like grass then laying down a road
+biome like grass then laying down a road spline so so far our result was quite
+spline so so far our result was quite natural but that's all we will bring
+natural but that's all we will bring man's influence in the environment and
+man's influence in the environment and override mother nature so once we're
+override mother nature so once we're happy with their input we in this case
+happy with their input we in this case we baked the roads and refresh the biome
+we baked the roads and refresh the biome and now we get our updated result so the
+and now we get our updated result so the trees are cleared out of the road here
+trees are cleared out of the road here and of course we there will still be
+and of course we there will still be some asset that will be need to be
+some asset that will be need to be placed by hand like a house shed and
+placed by hand like a house shed and vehicle here
+vehicle here yeah the level artists are not out of
+yeah the level artists are not out of work yet based on those perhaps we need
+work yet based on those perhaps we need to readjust the background painting a
+to readjust the background painting a little bit so some biome brush that we
+little bit so some biome brush that we have they don't do any asset scattering
+have they don't do any asset scattering but simply apply a terrain texture so
+but simply apply a terrain texture so the user can use that to create some
+the user can use that to create some kind of driveway and then we can also
+kind of driveway and then we can also add back some trees and forest using the
+add back some trees and forest using the the forest biome so we can apply that
+the forest biome so we can apply that here and there so once or a key happy
+here and there so once or a key happy with our setup we just refreshed the
+with our setup we just refreshed the biome here and we see that our driveway
+biome here and we see that our driveway is not here at any grass and we have our
+is not here at any grass and we have our little patch of forest where we paint in
+little patch of forest where we paint in them and now just to cover all our tools
+them and now just to cover all our tools let's take a look at how we can add a
+let's take a look at how we can add a fence the input for that is once again
+fence the input for that is once again the spline
+the spline so the user will send please set the
+so the user will send please set the defense type he wants to generate on the
+defense type he wants to generate on the spline perimeter then run the generation
+spline perimeter then run the generation so here we get a nice wooden fence user
+so here we get a nice wooden fence user can also add powerlines network in the
+can also add powerlines network in the world the electric poles will spawn on
+world the electric poles will spawn on each control point of the spline in this
+each control point of the spline in this example we had three different types of
+example we had three different types of power lines that will automatically
+power lines that will automatically connect with one another so we added a
+connect with one another so we added a standard line a single line and then two
+standard line a single line and then two hours connectors we make sure to snap
+hours connectors we make sure to snap the splines together then we run the
+the splines together then we run the generation and the tool will nicely add
+generation and the tool will nicely add the transformer transformer box were
+the transformer transformer box were required and also you're the user didn't
+required and also you're the user didn't snap the splines together but the system
+snap the splines together but the system will will do that automatically within a
+will will do that automatically within a certain distance threshold here we have
+certain distance threshold here we have a bit of problem I've got trees in the
+a bit of problem I've got trees in the way of the power line so easy enough to
+way of the power line so easy enough to fix we just have to refresh the volume
+fix we just have to refresh the volume tool to take the power line to account
+tool to take the power line to account and the trees will be removed because
+and the trees will be removed because the systems they can speak with one
+the systems they can speak with one another
+so that that covers up the the tool from a user point of view but so just to
+a user point of view but so just to illustrate the non-destructive workflow
+illustrate the non-destructive workflow the the terrain can be registered at any
+the the terrain can be registered at any time the user will simply have to like
+time the user will simply have to like rebate the affected procedural tools so
+rebate the affected procedural tools so back there I lowered the terrain quite a
+back there I lowered the terrain quite a bit and I didn't adding an aisle in the
+bit and I didn't adding an aisle in the middle of the lake so in this case I
+middle of the lake so in this case I just have to remake the the cliff and
+just have to remake the the cliff and biomes and voila we all did the
+biomes and voila we all did the vegetation is updated according to the
+vegetation is updated according to the new terrain shape and we get our nice
+new terrain shape and we get our nice little island in the lake so now let's
+little island in the lake so now let's take a look at how this is working under
+take a look at how this is working under the hood we have a new Disney engine and
+the hood we have a new Disney engine and ployment a ssin with our in-house engine
+ployment a ssin with our in-house engine and it's der dunia and what is opening
+and it's der dunia and what is opening doors and possibilities with this
+doors and possibilities with this pipeline really is the available inputs
+pipeline really is the available inputs and outputs the data exchange between
+and outputs the data exchange between the two and well quickly for those who
+the two and well quickly for those who don't know what zinnias it's a 3d
+don't know what zinnias it's a 3d software with a node-based workflow that
+software with a node-based workflow that allows you to develop tools that we call
+allows you to develop tools that we call digital asset or HDA in short then those
+digital asset or HDA in short then those tools can be run in the woods in the
+tools can be run in the woods in the engine API when implemented as a plug-in
+engine API when implemented as a plug-in with a specific application like a game
+with a specific application like a game in stirrer
+some of the inputs are sent from dunya to whitney true Python script so we have
+to whitney true Python script so we have the world information a well name the
+the world information a well name the size of it because we didn't have only
+size of it because we didn't have only one world during production we also add
+one world during production we also add the gem for testing purposes then we'll
+the gem for testing purposes then we'll stand over the file paths also because
+stand over the file paths also because we can expect all pcs to have their
+we can expect all pcs to have their stuff installed at the same pad and then
+stuff installed at the same pad and then the Turin sector which is basically just
+the Turin sector which is basically just the area of the terrain we we want to
+the area of the terrain we we want to generate I will see more detail about
+generate I will see more detail about this in the moment then the splines and
+this in the moment then the splines and shapes along with metadata as geometry
+shapes along with metadata as geometry attribute for instance the
+attribute for instance the spline would have defense-type as a as a
+spline would have defense-type as a as a geometry attribute then other inputs are
+geometry attribute then other inputs are simply extracted and Zisk and available
+simply extracted and Zisk and available to read from Houdini with the file path
+to read from Houdini with the file path provided by dunya so we have d---eight
+provided by dunya so we have d---eight maps the biome painter PNG is to DT rain
+maps the biome painter PNG is to DT rain mask we also have access to with the new
+mask we also have access to with the new geometry that might have been generated
+geometry that might have been generated by specific procedural tools but the
+by specific procedural tools but the main input for the procedure all is is
+main input for the procedure all is is the terrain itself because the
+the terrain itself because the generation is is always linked to a
+generation is is always linked to a specific area of the terrain in our case
+specific area of the terrain in our case and so this is how the terrain is
+and so this is how the terrain is subdivided in indeed stir for us our
+subdivided in indeed stir for us our smallest granularity is a sector which
+smallest granularity is a sector which is a 64 by 64 meter which means it is
+is a 64 by 64 meter which means it is the smallest area a user can bake what
+the smallest area a user can bake what happens when someone wants to rebec the
+happens when someone wants to rebec the procedural data he will select this
+procedural data he will select this generation area so it's either all
+generation area so it's either all basically everything that is loaded it's
+basically everything that is loaded it's worth noting that in dunya the old world
+worth noting that in dunya the old world is not loaded at at all time indeed stir
+is not loaded at at all time indeed stir the world is divided into several maps
+the world is divided into several maps and when opening the instr we we select
+and when opening the instr we we select which map we want to load then the other
+which map we want to load then the other actions are the local map section or
+actions are the local map section or sectors the local being the the one
+sectors the local being the the one located right under the camera and our
+located right under the camera and our last option a frustum mode where we will
+last option a frustum mode where we will simply bitbake all sectors visible by
+simply bitbake all sectors visible by the camera so now let's take a look at
+the camera so now let's take a look at the data that Whitney can send back to
+the data that Whitney can send back to the editor we have the entity point
+the editor we have the entity point cloud there in textures there a night
+cloud there in textures there a night map to determine that either RGB or
+map to determine that either RGB or grayscale and procedurally generated
+grayscale and procedurally generated geometry as well as Tarun logic zones
+geometry as well as Tarun logic zones which is basically just IDs on the
+which is basically just IDs on the terrain to specify an environment preset
+terrain to specify an environment preset and past process then all of these are
+and past process then all of these are saved as a buffer in a special format on
+saved as a buffer in a special format on this
+this and that gifts time today it's to to
+and that gifts time today it's to to lock the data at its own pace and that
+lock the data at its own pace and that avoids sending one big buffer and that
+avoids sending one big buffer and that takes a lot of memory some quick
+takes a lot of memory some quick specification concerning the entity
+specification concerning the entity point cloud it could really be anything
+point cloud it could really be anything that as a position in the edster
+that as a position in the edster so vegetation has said rocks
+so vegetation has said rocks collectibles decals VFX prefabs could
+collectibles decals VFX prefabs could even be animals and their favorite type
+even be animals and their favorite type of environment the points will be
+of environment the points will be exported with the object ID of the asset
+exported with the object ID of the asset to spawn in the instr then the exported
+to spawn in the instr then the exported data is also key to the tools
+data is also key to the tools interconnectivity the procedural
+interconnectivity the procedural generation is sequential so the bill
+generation is sequential so the bill machine will always bake them in
+machine will always bake them in disorder so each tool can export data
+disorder so each tool can export data with the goal to influence the following
+with the goal to influence the following ones
+ones so some tools only write new masks and
+so some tools only write new masks and others will read masks generated by
+others will read masks generated by previous ones as an easy example we have
+previous ones as an easy example we have the the freshwater tool that will
+the the freshwater tool that will generate a water mask that is then used
+generate a water mask that is then used later by the biome tool to drive the
+later by the biome tool to drive the spawning behavior or some some specific
+spawning behavior or some some specific species so now for the cliff so the
+species so now for the cliff so the purpose of this tool is to generate
+purpose of this tool is to generate clicked geometry on large terrain
+clicked geometry on large terrain surfaces it acts as a detail skin on top
+surfaces it acts as a detail skin on top of the terrain so this is quite a large
+of the terrain so this is quite a large section so just to give an overview the
+section so just to give an overview the content we'll see in there we'll take a
+content we'll see in there we'll take a look at the previous deck the tool input
+look at the previous deck the tool input stratification geometry shape shading
+stratification geometry shape shading method the Terran data erosion
+method the Terran data erosion vegetation growing surface and the the
+vegetation growing surface and the the exported data bein so or pre stack well
+exported data bein so or pre stack well there was none
+there was none on on previous part dry beside the
+on on previous part dry beside the endless rock the cliffs were only like
+endless rock the cliffs were only like bare terrain wasn't there back then but
+bare terrain wasn't there back then but I was told that the world used to be
+I was told that the world used to be designed to design to avoid having too
+designed to design to avoid having too much large cliff surface but now on for
+much large cliff surface but now on for cry 5 I don't know what happened but we
+cry 5 I don't know what happened but we stood in the other world with like a
+stood in the other world with like a large amount of cliff surface they were
+large amount of cliff surface they were they were much bigger and than before
+they were much bigger and than before and invisible from much shrewder as well
+and invisible from much shrewder as well so that's the reason why we decided to
+so that's the reason why we decided to develop attack to improve the situation
+develop attack to improve the situation about that so this is a shot from the
+about that so this is a shot from the famous fc5 without the cliff deck and
+famous fc5 without the cliff deck and with the new cliff geometry on top of it
+with the new cliff geometry on top of it so how does that work in you easily we
+so how does that work in you easily we use the terrain slope attribute as a
+use the terrain slope attribute as a starting point and then delete all
+starting point and then delete all surfaces below a certain slope trestle
+surfaces below a certain slope trestle and this becomes our cliff input
+and this becomes our cliff input geometry as an additional note doing
+geometry as an additional note doing that is interesting as well because it
+that is interesting as well because it also serves as a visual cue for the
+also serves as a visual cue for the player to know which which terrain is
+player to know which which terrain is too steep to navigate and this is
+too steep to navigate and this is exactly the right slope threshold that
+exactly the right slope threshold that we used to generate the cliffs since we
+we used to generate the cliffs since we start from the terrain mesh we get
+start from the terrain mesh we get stretched quads on the slope as we see
+stretched quads on the slope as we see here so we get rid of those by doing a
+here so we get rid of those by doing a remission pass on the Jeremy tree to get
+remission pass on the Jeremy tree to get uniform triangles and then there's an
+uniform triangles and then there's an interesting phenomenon that we want to
+interesting phenomenon that we want to reproduce with the tool and it is the
+reproduce with the tool and it is the geological stratification the visible
+geological stratification the visible result all lines that were formed by the
+result all lines that were formed by the the accumulation of a sentiment every
+the accumulation of a sentiment every rock and soil all the time to create
+rock and soil all the time to create this effect we we have a tool that
+this effect we we have a tool that sliced the input geometry into strata
+sliced the input geometry into strata chance each strata as a random thickness
+chance each strata as a random thickness it will assign a strata ID to each slice
+it will assign a strata ID to each slice which we can use to randomize the strata
+which we can use to randomize the strata color as a debug view as we see here and
+color as a debug view as we see here and then in the editor we also have a preset
+then in the editor we also have a preset to control the strata angles the user
+to control the strata angles the user will control them with this RGB input
+will control them with this RGB input painted on the terrain then Whitney will
+painted on the terrain then Whitney will use that to to drive the stratification
+use that to to drive the stratification and gold parameter in as a result we get
+and gold parameter in as a result we get the strata lines strata slice in three
+the strata lines strata slice in three different angles here the angles that we
+different angles here the angles that we chose were some that bested the
+chose were some that bested the terraforming of our world however just
+terraforming of our world however just just like this the strata lines are a
+just like this the strata lines are a bit too perfect and unnatural so to
+bit too perfect and unnatural so to break to break them up and bring some
+break to break them up and bring some chaos we do something else so we start
+chaos we do something else so we start by generating a noise that will be used
+by generating a noise that will be used to split the input mesh into two groups
+to split the input mesh into two groups the noise is generated on a lower
+the noise is generated on a lower resolution mesh and and transferred to
+resolution mesh and and transferred to the iris one and we do that to get
+the iris one and we do that to get larger and block your patterns using
+larger and block your patterns using that noise we split the cliff surface
+that noise we split the cliff surface into two group like this and then we run
+into two group like this and then we run the stratification to on both groups
+the stratification to on both groups with just a different seed value so that
+with just a different seed value so that breaks up the destroyed lines after this
+breaks up the destroyed lines after this the geometry is ready to get some volume
+the geometry is ready to get some volume so each strata is extruded at various
+so each strata is extruded at various thickness and this place using a
+thickness and this place using a combination of a displacement map then
+combination of a displacement map then at this point the geometry still fairly
+at this point the geometry still fairly arrests so we do have a sensation pass
+arrests so we do have a sensation pass and we reduce the triangle count and
+and we reduce the triangle count and before export the geometry is also split
+before export the geometry is also split into several individual mesh and the
+into several individual mesh and the that is with one mesh per sector to be
+that is with one mesh per sector to be more precise and that's for better
+more precise and that's for better loading and stream streaming and game so
+loading and stream streaming and game so all these different different colors
+all these different different colors represent a different sector now that we
+represent a different sector now that we actually don't cut the the geometry at
+actually don't cut the the geometry at this at the step each triangle already
+this at the step each triangle already knows in which sector it resides so we
+knows in which sector it resides so we just have to use that to split the mesh
+just have to use that to split the mesh apart so that that covers that for the
+apart so that that covers that for the cliff mesh part but the cliff tool does
+cliff mesh part but the cliff tool does other cool things as well and before
+other cool things as well and before going further I kinda need to explain
+going further I kinda need to explain how the cliffs are shaded in game we use
+how the cliffs are shaded in game we use what we call the tearing shader some of
+what we call the tearing shader some of you might have seen the talk of my
+you might have seen the talk of my colleague Jeremy more yesterday on the
+colleague Jeremy more yesterday on the Terran tech we developed for sd5 if not
+Terran tech we developed for sd5 if not and if you're interested you know you
+and if you're interested you know you should look it up what's in it once it's
+should look it up what's in it once it's available on the vault anyway what the
+available on the vault anyway what the shader does is that it will render the
+shader does is that it will render the object in the same path as the terrain
+object in the same path as the terrain so the cliff will use the same texture
+so the cliff will use the same texture as the terrain directly under needed so
+as the terrain directly under needed so if we have grass underneath the cliff
+if we have grass underneath the cliff will be partially texture with grass too
+will be partially texture with grass too as we see here so to avoid this we need
+as we see here so to avoid this we need to make sure that the cliff well we have
+to make sure that the cliff well we have cliff there in texture right under the
+cliff there in texture right under the extruded cliff mesh as well so for that
+extruded cliff mesh as well so for that reason we use the final extruded cliff
+reason we use the final extruded cliff mesh and we recast down some cliff
+mesh and we recast down some cliff attribute back to the terrain so we do a
+attribute back to the terrain so we do a cliff mask and Astra we transferred it
+cliff mask and Astra we transferred it to the strata attribute as well from the
+to the strata attribute as well from the strata attribute we just transferred we
+strata attribute we just transferred we first generate a color layer that will
+first generate a color layer that will create a macro tent variation in the
+create a macro tent variation in the world as an added additional note here
+world as an added additional note here this color could have been on the mesh
+this color could have been on the mesh vertex color but we didn't do that for
+vertex color but we didn't do that for two reasons first because we want to
+two reasons first because we want to maintain the tent on the terrain you
+maintain the tent on the terrain you even in far distance when the the cliff
+even in far distance when the the cliff smash is actually unloaded because
+smash is actually unloaded because because of the the kill distance and
+because of the the kill distance and also at the same time we wanted to
+also at the same time we wanted to really reduce the cliff mesh memory cost
+really reduce the cliff mesh memory cost as much as possible plus we already have
+as much as possible plus we already have the color modulation layer in our
+the color modulation layer in our terrain layer intact on which we merge
+terrain layer intact on which we merge this color then from the cliff mask we
+this color then from the cliff mask we transferred to the terrain we further
+transferred to the terrain we further extend the cliff by running a flow
+extend the cliff by running a flow simulation the points scattered on the
+simulation the points scattered on the cliff surface will flow down the slope
+cliff surface will flow down the slope to create this erosion effect and it's
+to create this erosion effect and it's worth noting that the original strata
+worth noting that the original strata color is retain on the erosion area as
+color is retain on the erosion area as well then using that erosion data we
+well then using that erosion data we also scatter crumble rock entities on
+also scatter crumble rock entities on the terrain those will be exported later
+the terrain those will be exported later as a point cloud to the it stir then
+as a point cloud to the it stir then from our mask we generate the terrain
+from our mask we generate the terrain texture IDs we we also use a noise to
+texture IDs we we also use a noise to mix two different cliff texture and we
+mix two different cliff texture and we do that just basically just to break out
+do that just basically just to break out the texture tiling another feature of
+the texture tiling another feature of the tool is that we can also scan a
+the tool is that we can also scan a scatter of vegetation on top of the
+scatter of vegetation on top of the viable cliff surface in order to find
+viable cliff surface in order to find which surfaces viable we isolate the
+which surfaces viable we isolate the polygons facing upwards and simply check
+polygons facing upwards and simply check if it's clear above or not using a
+if it's clear above or not using a recast and quick result in game of those
+recast and quick result in game of those cliff edge with vegetation and at the
+cliff edge with vegetation and at the end this is the data exported to date
+end this is the data exported to date story we we send a cliff jump tree along
+story we we send a cliff jump tree along with our collisions and hence the point
+with our collisions and hence the point clouds for the rocks and vegetation we
+clouds for the rocks and vegetation we Center in texture IDs of color and a
+Center in texture IDs of color and a cliff mask and this is some interesting
+cliff mask and this is some interesting procedure octave shots from from the
+procedure octave shots from from the game
+okay for the biome tool now so the goal of this guy's - is to populate the world
+of this guy's - is to populate the world with biological content bear with me
+with biological content bear with me here this is probably the largest
+here this is probably the largest section of the of the presentation
+section of the of the presentation there's a lot of feature to cover mainly
+there's a lot of feature to cover mainly because there's so much adulty in nature
+because there's so much adulty in nature and so many various phenomena to
+and so many various phenomena to reproduce so the first step that we do
+reproduce so the first step that we do in the in the biome tools is we generate
+in the in the biome tools is we generate the terrain from the right map so easy
+the terrain from the right map so easy enough
+enough then from the topology we generate a
+then from the topology we generate a biotic data which are basically the
+biotic data which are basically the physical features of the land so we
+physical features of the land so we generate an occlusion flow map the slope
+generate an occlusion flow map the slope a curvature illumination or sometimes
+a curvature illumination or sometimes it's called a slope aspect then others
+it's called a slope aspect then others like the altitude let stood and also a
+like the altitude let stood and also a wind vector map so something important
+wind vector map so something important to note here is that all those tearing
+to note here is that all those tearing attributes will become the the pillars -
+attributes will become the the pillars - most biome recipes then after that we
+most biome recipes then after that we impart other - to the data that do new
+impart other - to the data that do new extracted for forests on disk so we have
+extracted for forests on disk so we have the the bottom painting done by the
+the the bottom painting done by the users and procedural data generated by
+users and procedural data generated by previous tools such as the freshwater
+previous tools such as the freshwater road fans power line and cliff masks and
+road fans power line and cliff masks and then we're ready to roll with the fun
+then we're ready to roll with the fun stuff so first off something really cool
+stuff so first off something really cool that the biome tool does is that it does
+that the biome tool does is that it does not simply spawn forests where the users
+not simply spawn forests where the users painted for us we have what we called
+painted for us we have what we called main biomes and sub biomes the main
+main biomes and sub biomes the main biomes are covering probably well the
+biomes are covering probably well the most part of the world probably like 75
+most part of the world probably like 75 to 85% and the main biomes will
+to 85% and the main biomes will automatically process where the sub
+automatically process where the sub biome should be based on the abiotic
+biome should be based on the abiotic terrain data that we just saw and it is
+terrain data that we just saw and it is this part of the tool that gives us this
+this part of the tool that gives us this natural looking macro the detail in the
+natural looking macro the detail in the in the biome distribution
+so and then this meant by on also process other fancy things like
+process other fancy things like replacing forests with your ass man
+replacing forests with your ass man where the user placed power lines after
+where the user placed power lines after this process we have our sub by own
+this process we have our sub by own recipes they're processed and chain and
+recipes they're processed and chain and each of them contains all the
+each of them contains all the ingredients that define this recipe so
+ingredients that define this recipe so trees saplings bush grass etc and at the
+trees saplings bush grass etc and at the course the biome recipe all of these
+course the biome recipe all of these note are the generate Terran entities
+note are the generate Terran entities HDA and this guy among other things do
+HDA and this guy among other things do the vegetation scattering and can modify
+the vegetation scattering and can modify and create terran attributes but a key
+and create terran attributes but a key part of it is that it defines viability
+part of it is that it defines viability for each species so each species is
+for each species so each species is fighting for its ground to grow and
+fighting for its ground to grow and drive on the viability is define by
+drive on the viability is define by setting up a favorite Terran attribute
+setting up a favorite Terran attribute for each species and the species that
+for each species and the species that accumulates the the most viability at a
+accumulates the the most viability at a location will win over the others as an
+location will win over the others as an example we have a species a here that
+example we have a species a here that likes to grow on this range of occlusion
+likes to grow on this range of occlusion terrain that as we see on the button
+terrain that as we see on the button level with a power of one and then we
+level with a power of one and then we have a species B that likes to grow on
+have a species B that likes to grow on this range of flow map with the power of
+this range of flow map with the power of two so the species B will win over
+two so the species B will win over species a where the flow map value is
+species a where the flow map value is high enough but to determine the winner
+high enough but to determine the winner there is also a ridges that is involved
+there is also a ridges that is involved here we have a species
+species as our viability than the species be so we see the radius in color
+species be so we see the radius in color on the terrain
+on the terrain if species being ends up inside species
+if species being ends up inside species a radius will be removed like the one in
+a radius will be removed like the one in red that we see here so this is nice we
+red that we see here so this is nice we keep at this our ball spacing between
+keep at this our ball spacing between our tree like this however what if you
+our tree like this however what if you would we would like to allow bushes or
+would we would like to allow bushes or grass to spawn underneath those trees we
+grass to spawn underneath those trees we wouldn't want those to be removed so for
+wouldn't want those to be removed so for this we also have the priority with the
+this we also have the priority with the priority ranges the priority will
+priority ranges the priority will actually be evaluated first and then if
+actually be evaluated first and then if two entities priority are equal then we
+two entities priority are equal then we will then evaluate the viability instead
+will then evaluate the viability instead the previous example has been extended
+the previous example has been extended ear however now or green tree priority
+ear however now or green tree priority radius is smaller than its viability
+radius is smaller than its viability ridges all our tree are set with
+ridges all our tree are set with priority of ten and we added the bush
+priority of ten and we added the bush species in yellow with a priority of
+species in yellow with a priority of zero the the yellow bush will be allowed
+zero the the yellow bush will be allowed to grow closer to the trunk of the green
+to grow closer to the trunk of the green tree now which has a small priority
+tree now which has a small priority raises of two but if we want to we can
+raises of two but if we want to we can still prevent them to grow to close from
+still prevent them to grow to close from the blue tree which this one has a
+the blue tree which this one has a larger priority radius of ten so we saw
+larger priority radius of ten so we saw that viability as a big role and
+that viability as a big role and vegetation distribution so now let's
+vegetation distribution so now let's take a look at some natural phenomena
+take a look at some natural phenomena here on the left you can observe that we
+here on the left you can observe that we don't have any vegetation growing on the
+don't have any vegetation growing on the flow lines in the steep slopes and on
+flow lines in the steep slopes and on the right we also have almost no
+the right we also have almost no vegetation growing on the South face of
+vegetation growing on the South face of those mountains so well to mimic similar
+those mountains so well to mimic similar phenomena we kinda need to be able to
+phenomena we kinda need to be able to combine different abiotic tearing data
+combine different abiotic tearing data together it is by mixing various tearing
+together it is by mixing various tearing attribute that we can create very
+attribute that we can create very specific patterns or a species
+specific patterns or a species distribution and accumulate a
+distribution and accumulate a fluctuating viability as well so here as
+fluctuating viability as well so here as an example I
+an example I I multiply clusion by a range of
+I multiply clusion by a range of altitude and in parallel we can also mix
+altitude and in parallel we can also mix another set multiplying flow flow map
+another set multiplying flow flow map with a different range of altitude and
+with a different range of altitude and then we can add the result of those two
+then we can add the result of those two sets together and additionally to create
+sets together and additionally to create extra chaos we can combine noises with
+extra chaos we can combine noises with the Turing data on the right ear we well
+the Turing data on the right ear we well this is a standard problem noise with
+this is a standard problem noise with control option for scale and a set
+control option for scale and a set however it can also be warped by the
+however it can also be warped by the Turing normal to create more interesting
+Turing normal to create more interesting patterns as we see here then we will we
+patterns as we see here then we will we would also bring in various exclusion
+would also bring in various exclusion masks generated by previous tool such as
+masks generated by previous tool such as a fresh water road or cliff mask and
+a fresh water road or cliff mask and apply that on top as well and for this
+apply that on top as well and for this example that's what we would use as
+example that's what we would use as viability for the species so as we see
+viability for the species so as we see combining turn that noise at the core of
+combining turn that noise at the core of the biome generation were true
+the biome generation were true however the viability also drives other
+however the viability also drives other effects like the species size in
+effects like the species size in previous production the the asset size
+previous production the the asset size was just well it was limited but it was
+was just well it was limited but it was also just randomly selected it had no
+also just randomly selected it had no car egrants
+car egrants with the terrain or the likeliness for
+with the terrain or the likeliness for species to grow in a specific area
+species to grow in a specific area now our tool can handle multiple styles
+now our tool can handle multiple styles for the same species if we take a step
+for the same species if we take a step back here there's there's various thing
+back here there's there's various thing that can affect the tree size we'll have
+that can affect the tree size we'll have like a small and young trees they will
+like a small and young trees they will tend to be at the edge of a forest and
+tend to be at the edge of a forest and at all in all trees will be more present
+at all in all trees will be more present at the core of a large forest patch
+at the core of a large forest patch there's also other factors that that
+there's also other factors that that come in play
+come in play like the altitude that can affect the
+like the altitude that can affect the tree size so a quick example of that
+tree size so a quick example of that here so how do we manage our tree size
+here so how do we manage our tree size in the tool
+in the tool well we link the asset size selection to
+well we link the asset size selection to our viability so here we have a gradient
+our viability so here we have a gradient viability on the terrain and we start
+viability on the terrain and we start with one conifer of 50 meters and if we
+with one conifer of 50 meters and if we add the second one 40 meters 30 meters
+add the second one 40 meters 30 meters and so on we see that each size will be
+and so on we see that each size will be positioned to the proper proper veloute
+positioned to the proper proper veloute range on the terrain and this will give
+range on the terrain and this will give us a nice tapering effect at the border
+us a nice tapering effect at the border bar for us however we have one more
+bar for us however we have one more problem and it is some kind of a
+problem and it is some kind of a staircase effect so to get rid of that
+staircase effect so to get rid of that we we can allow each size to scale up or
+we we can allow each size to scale up or down by a certain percentage just to
+down by a certain percentage just to bridge bridge the gap between sizes and
+bridge bridge the gap between sizes and then the next additional option we can
+then the next additional option we can also play with a random scale if we
+also play with a random scale if we don't want to mess with our viability
+don't want to mess with our viability too much to create more chaos and of
+too much to create more chaos and of course two trees of the same size are
+course two trees of the same size are not necessarily alight so we can have
+not necessarily alight so we can have several variation and the example here
+several variation and the example here we have a living tree in the deck a dead
+we have a living tree in the deck a dead tree variation and were just playing
+tree variation and were just playing with the probability of the dead tree to
+with the probability of the dead tree to shift the violence between the two let's
+shift the violence between the two let's take a step back once more and look at
+take a step back once more and look at another phenomenon the forest canopy and
+another phenomenon the forest canopy and the ecological succession
+the ecological succession as I mentioned earlier young trees will
+as I mentioned earlier young trees will tend to be growing at the edge of our s
+tend to be growing at the edge of our s and then the old ones will be deeper
+and then the old ones will be deeper inside but there's also a younger grow
+inside but there's also a younger grow possible inside the forest so how can we
+possible inside the forest so how can we achieve that we said of the viability
+achieve that we said of the viability can affect the tree size selection
+can affect the tree size selection however depending on the tearing data
+however depending on the tearing data that we use we don't always end up with
+that we use we don't always end up with a smooth gradient on our viability which
+a smooth gradient on our viability which can result of having our tallest tree at
+can result of having our tallest tree at the edge of the forest for instance so
+the edge of the forest for instance so for this reason we added the the H
+for this reason we added the the H parameter which is basically just
+parameter which is basically just assigned distance field generated from
+assigned distance field generated from our viability and well we have various
+our viability and well we have various options to control how it will affect
+options to control how it will affect the size distribution we can either add
+the size distribution we can either add multiply or interpolate with the
+multiply or interpolate with the viability so we we can easily tweak the
+viability so we we can easily tweak the level of influence it as like this and
+level of influence it as like this and by adjusting the age maximum distance on
+by adjusting the age maximum distance on the Sanga Stansfield
+the Sanga Stansfield this gives us a nice control and all the
+this gives us a nice control and all the the the border of our forest will be and
+the the border of our forest will be and as a bonus side effect by using a ramp
+as a bonus side effect by using a ramp on the edge we can also profile the
+on the edge we can also profile the shape of our forest
+there's there's another important thing we need to control and that is the
+we need to control and that is the scattering density if our density is
+scattering density if our density is uniform well we might have a good
+uniform well we might have a good spacing between our small trees however
+spacing between our small trees however we can we will have a really bad overlap
+we can we will have a really bad overlap on our large ones and also the number of
+on our large ones and also the number of asset we spawn is a matter of
+asset we spawn is a matter of performance of course the small trees
+performance of course the small trees they don't have the same GPU cast as the
+they don't have the same GPU cast as the large one so it is very important to
+large one so it is very important to keep a tight control on that a sample
+keep a tight control on that a sample ramp ear will give us that control by
+ramp ear will give us that control by default the density ramp is based on the
+default the density ramp is based on the size of our species however we also have
+size of our species however we also have other options to base it on the edge or
+other options to base it on the edge or viability if we if we have a species
+viability if we if we have a species that don't not have like several size
+that don't not have like several size variation then we can also mix in
+variation then we can also mix in teheran attributes like elimination or
+teheran attributes like elimination or slope aspect to affect the density of
+slope aspect to affect the density of spc so an example of that year and
+spc so an example of that year and example was the same thing in game
+jumping to another feature now some of the biomes we wanted to recreate add a
+the biomes we wanted to recreate add a lot of color variation here the grass
+lot of color variation here the grass and bush color is varying a lot in this
+and bush color is varying a lot in this reference picture so to do that without
+reference picture so to do that without duplicating our asset texture or
+duplicating our asset texture or material we have the option to tense the
+material we have the option to tense the the scattered instance individually so
+the scattered instance individually so the input value that drives the gradient
+the input value that drives the gradient color ramp can be either viable te age
+color ramp can be either viable te age or a combination of any terrain data and
+or a combination of any terrain data and here in this example were using the the
+here in this example were using the the water sign the sign distance field data
+water sign the sign distance field data - just to give a rust attends to the
+- just to give a rust attends to the grass growing in our wetland biome and
+grass growing in our wetland biome and well the the result in gain here that
+well the the result in gain here that that's where this rust color variation
+that's where this rust color variation comes from the scatter density also
+comes from the scatter density also needs to have their own specific
+needs to have their own specific rotation by default they have their
+rotation by default they have their forward access
+forward access oriented towards that are in slope and
+oriented towards that are in slope and this is interesting because it it allows
+this is interesting because it it allows us to do things like having this u.s.
+us to do things like having this u.s. asset that we see on the left ear
+asset that we see on the left ear leaning toward the water and that's
+leaning toward the water and that's because of the slope so either it's on
+because of the slope so either it's on well it's on either side of the if it
+well it's on either side of the if it was on either side of the the river here
+was on either side of the the river here the grass would be always being toward
+the grass would be always being toward the water
+the water another example is a prebend that tree
+another example is a prebend that tree trunks that that rose in slow
+trunks that that rose in slow unfortunately we didn't do that in our
+unfortunately we didn't do that in our game but I wish we did it's kind of cool
+game but I wish we did it's kind of cool but we could ask the system would allow
+but we could ask the system would allow it we did other cool things Oliver and
+it we did other cool things Oliver and well not sure if any player will notice
+well not sure if any player will notice that in the game if I was not mentioning
+that in the game if I was not mentioning it but this this grass acid that we see
+it but this this grass acid that we see here well it is oriented on the wind
+here well it is oriented on the wind vector map so this is another
+vector map so this is another orientation option that we have the wind
+orientation option that we have the wind map is just based on overall wind
+map is just based on overall wind direction but it is fluctuating slightly
+direction but it is fluctuating slightly based on the terrain there in shape as
+based on the terrain there in shape as well
+well so it might be a bit hard to see here
+so it might be a bit hard to see here but well when blowing against the hill
+but well when blowing against the hill it will tend to flow around it a little
+it will tend to flow around it a little bit then now just to finish with the
+bit then now just to finish with the rotation options in all cases the acid
+rotation options in all cases the acid can be horizontal or aligned to the
+can be horizontal or aligned to the latarian slope that's controllable with
+latarian slope that's controllable with a percentage and we have a rotation
+a percentage and we have a rotation jitter on all axis where for we use that
+jitter on all axis where for we use that a lot on oral or vegetation essen now we
+a lot on oral or vegetation essen now we we have covered most of the parameters
+we have covered most of the parameters to control the entity generation itself
+to control the entity generation itself however the biomes are not limited to
+however the biomes are not limited to the asset placement only because the
+the asset placement only because the position of asset can also have an
+position of asset can also have an effect on some of the terrain properties
+effect on some of the terrain properties and it can also have an effect on their
+and it can also have an effect on their surrounding asset as well here in this
+surrounding asset as well here in this picture I see four different things that
+picture I see four different things that the present of those trees and influence
+the present of those trees and influence visually in the surrounding
+visually in the surrounding first the terrain is covered with pine
+first the terrain is covered with pine needles
+needles so the tearing texture is affected we
+so the tearing texture is affected we have a slight tear in elevation around
+have a slight tear in elevation around the trunk of those trees so the the
+the trunk of those trees so the the Terry Knight map would be affected as
+Terry Knight map would be affected as well
+well we have pine cones and that branch on
+we have pine cones and that branch on the ground around the tree and for sure
+the ground around the tree and for sure the the shadow provided by the by the
+the the shadow provided by the by the trees might encourage or prevent the
+trees might encourage or prevent the growth of other species so to do that in
+growth of other species so to do that in our system after the entities
+our system after the entities distribution is done we have the option
+distribution is done we have the option of transferring some data back to the
+of transferring some data back to the terrain from the scatter densities and
+terrain from the scatter densities and we use we use this process for four
+we use we use this process for four different things terrain deformation
+different things terrain deformation basically just affecting the ID map
+basically just affecting the ID map tearing textures tearing data output
+tearing textures tearing data output which is a mass that can be used in
+which is a mass that can be used in following species and then a tear in
+following species and then a tear in color this is just a team that gets mix
+color this is just a team that gets mix in with our order in texture and all
+in with our order in texture and all four all four of these are independent
+four all four of these are independent from one another let's start with a
+from one another let's start with a certain example with the Terran
+certain example with the Terran deformation we can generate a mask from
+deformation we can generate a mask from the scatter densities position and then
+the scatter densities position and then optionally we can combine it with the
+optionally we can combine it with the the Apple available Terran data as we
+the Apple available Terran data as we saw earlier for example I might want to
+saw earlier for example I might want to mask out any any terrain deformation
+mask out any any terrain deformation close to the road so I'd be using the
+close to the road so I'd be using the the road mask in this case and once we
+the road mask in this case and once we have our mass we said the the
+have our mass we said the the displacement ID for the terrain here it
+displacement ID for the terrain here it will be raised by one meter and this
+will be raised by one meter and this will deform the terrain accordingly so
+will deform the terrain accordingly so this is the for the deformation we get
+this is the for the deformation we get from a user point of view and I think
+from a user point of view and I think this is a really interesting feature to
+this is a really interesting feature to have because most of the time in games
+have because most of the time in games the trees are just taking the ground
+the trees are just taking the ground they they they don't have any effect on
+they they they don't have any effect on the terrain around them but in nature
+the terrain around them but in nature like the tree roots will be lifting the
+like the tree roots will be lifting the ground a little bit and also by holding
+ground a little bit and also by holding the soil together that would that will
+the soil together that would that will limit the erosion
+limit the erosion and then create a shape like this in the
+and then create a shape like this in the forest now let's take a closer look at
+forest now let's take a closer look at those tree roots we will want them to
+those tree roots we will want them to blend seamlessly with the terrain to do
+blend seamlessly with the terrain to do that we can generate a matching pair in
+that we can generate a matching pair in texture underneath
+texture underneath once again we generate a mask from the
+once again we generate a mask from the scattered entities and we set the number
+scattered entities and we set the number of texture we want to generate from this
+of texture we want to generate from this mask select the desired texture from the
+mask select the desired texture from the world
+world roll down menu which will actually fetch
+roll down menu which will actually fetch the available tearing texture from these
+the available tearing texture from these two via Python and then or mask
+two via Python and then or mask grayscale value will determine which
+grayscale value will determine which texture is applied where and well we
+texture is applied where and well we said so we set the second texture here
+said so we set the second texture here to appear where the mask value is 0.5
+to appear where the mask value is 0.5 and above once the texture IDs are some
+and above once the texture IDs are some - its - this is the same kind of result
+- its - this is the same kind of result we would get and now our roots are the
+we would get and now our roots are the ending well with the terrain underneath
+ending well with the terrain underneath next perhaps we want to add the extra
+next perhaps we want to add the extra ingredients around those trees so what
+ingredients around those trees so what we can do is generate a new terrain that
+we can do is generate a new terrain that attribute from our trees but this time
+attribute from our trees but this time this mask will be actually stored on the
+this mask will be actually stored on the terrain to be reused as viable tea by
+terrain to be reused as viable tea by the following species once we're happy
+the following species once we're happy with our mask setup or ready to go over
+with our mask setup or ready to go over to our next node forest rocks in this
+to our next node forest rocks in this case so we define this asset viability
+case so we define this asset viability by using the Ponderosa mask we produce
+by using the Ponderosa mask we produce with the previous node and as a result
+with the previous node and as a result we get those asset scattered around
+we get those asset scattered around those trees and so that the position of
+those trees and so that the position of those will always be linked to the
+those will always be linked to the position of the other species so that's
+position of the other species so that's that's quite convenient if we go back to
+that's quite convenient if we go back to our Panda house a tree node we can also
+our Panda house a tree node we can also output the edge data for a species and
+output the edge data for a species and which will allow us to for instance to
+which will allow us to for instance to spawn a new ingredients just at the edge
+spawn a new ingredients just at the edge of the forest for instance or if you
+of the forest for instance or if you guys remember as we observed earlier we
+guys remember as we observed earlier we can also use that to create the young
+can also use that to create the young effect for the ecological succession
+effect for the ecological succession then we would just keep adding further
+then we would just keep adding further ingredients to build a full recipe like
+ingredients to build a full recipe like this and on the 1:1 map of one kilometer
+this and on the 1:1 map of one kilometer square in the game that's over 600,000
+square in the game that's over 600,000 and steez generated by the volume tool
+and steez generated by the volume tool and for SC 5 we add about 70 maps in
+and for SC 5 we add about 70 maps in total like this in the world one last
+total like this in the world one last feature this is Google Earth picture and
+feature this is Google Earth picture and the phenomenon were interested in here
+the phenomenon were interested in here is the the Terran humidity the color
+is the the Terran humidity the color variation between the dry brown and lush
+variation between the dry brown and lush green so as we suffer the the cliff's
+green so as we suffer the the cliff's rata color we in the biome tool we also
+rata color we in the biome tool we also generate their in their intent error
+generate their in their intent error that is that will get mixed with our
+that is that will get mixed with our organic Terran texture distribution and
+organic Terran texture distribution and this gives us further variation and at
+this gives us further variation and at the same time we limit the amount of
+the same time we limit the amount of texture tearing texture we need to use
+texture tearing texture we need to use in-game note that the the neutral color
+in-game note that the the neutral color for this color layer is an average gray
+for this color layer is an average gray which allows us to either the darken or
+which allows us to either the darken or lighten the terran texture and you're
+lighten the terran texture and you're just zoomed out view of the terrain in
+just zoomed out view of the terrain in game just to see the texture and color
+game just to see the texture and color variation generated from the biomes it's
+variation generated from the biomes it's also worth noting that all the Terran
+also worth noting that all the Terran texture and procedure alton can also
+texture and procedure alton can also transpire through the grass and that is
+transpire through the grass and that is because the grass shader will will pick
+because the grass shader will will pick up the tear in color and well the amount
+up the tear in color and well the amount of calorie picks up is also controllable
+of calorie picks up is also controllable with a mask of the grass asset itself so
+with a mask of the grass asset itself so it can be either like picking up on red
+it can be either like picking up on red percent of the terran color or just as a
+percent of the terran color or just as a gradient or onion specific part of the
+gradient or onion specific part of the plant and at the end this is the the
+plant and at the end this is the the data exported to the in store density
+data exported to the in store density point clouds there in text released
+point clouds there in text released arena
+arena Taron color and also a forest mask that
+Taron color and also a forest mask that will be used later by the fog and the
+will be used later by the fog and the wall map tool so in this section I want
+wall map tool so in this section I want to share some stuff that we changed
+to share some stuff that we changed along the way while things don't always
+along the way while things don't always go as planned some ideas might be fine
+go as planned some ideas might be fine on paper but it might not be so good in
+on paper but it might not be so good in the end so a first example of that is
+the end so a first example of that is for our biome painter initially the plan
+for our biome painter initially the plan was to support like a gradient painting
+was to support like a gradient painting so that we could blend blend the biomes
+so that we could blend blend the biomes together it is it was supported in the
+together it is it was supported in the you Disney tool because the viability
+you Disney tool because the viability system would would kick in to merge all
+system would would kick in to merge all the all the biomes together but from an
+the all the biomes together but from an editor and a user point of view it was
+editor and a user point of view it was not such a good idea
+not such a good idea turns out we we had so much biomes that
+turns out we we had so much biomes that could be mixed together it would have
+could be mixed together it would have been a nightmare to debug so on the left
+been a nightmare to debug so on the left here we only have three biomes and it it
+here we only have three biomes and it it gets really difficult to tell all the
+gets really difficult to tell all the surface on which the red biome is
+surface on which the red biome is painted for instance we we could have a
+painted for instance we we could have a mode to visualize one biome at a time
+mode to visualize one biome at a time for sure but it was it was great for the
+for sure but it was it was great for the user to be able to see all of them
+user to be able to see all of them painted on the terrain at the same time
+painted on the terrain at the same time and really in the end that trust fade
+and really in the end that trust fade blending was not needed at all to get
+blending was not needed at all to get good result so here on the right even
+good result so here on the right even though it looks strange this is the
+though it looks strange this is the input format that we use for the biome
+input format that we use for the biome painter another example is the Terran
+painter another example is the Terran abiotic data generation we saw that at
+abiotic data generation we saw that at the beginning of the
+the beginning of the the biome told earlier but it is
+the biome told earlier but it is actually using multiple tools so at
+actually using multiple tools so at first we had a button a separate button
+first we had a button a separate button - to generate that and cache it on disk
+- to generate that and cache it on disk and then if there was a terraforming
+and then if there was a terraforming change the user had to remake it before
+change the user had to remake it before generating other tools like the biome
+generating other tools like the biome tool but what happened is that people
+tool but what happened is that people got confused about when it was required
+got confused about when it was required to bake it and as a result it was not
+to bake it and as a result it was not always rebec after terraforming change
+always rebec after terraforming change which led to
+which led to different result and the real final
+different result and the real final result given by the bill machines which
+result given by the bill machines which was actually remaking everything
+was actually remaking everything properly so well they're the reason why
+properly so well they're the reason why we separated this process initially was
+we separated this process initially was was really just to say that the tough
+was really just to say that the tough time when making these other tools but
+time when making these other tools but in the end this was an extra step that
+in the end this was an extra step that brought complexity for the user and it
+brought complexity for the user and it was not worth it so I will simply
+was not worth it so I will simply decided to incorporate that inside the
+decided to incorporate that inside the tool that that required that data that
+tool that that required that data that we were sure it's always it's always up
+we were sure it's always it's always up to date finally a conclusion some
+to date finally a conclusion some lessons learned with great power comes
+lessons learned with great power comes great responsibility
+great responsibility I always wanted to say that procedural
+I always wanted to say that procedural tool can generate a lot of data this
+tool can generate a lot of data this gives us a great control over
+gives us a great control over performance but also for gameplay and
+performance but also for gameplay and art and s5 the art direction they wanted
+art and s5 the art direction they wanted like crazy dance for us however from a
+like crazy dance for us however from a gameplay well gameplay wise it was not
+gameplay well gameplay wise it was not interesting at all because the AI and
+interesting at all because the AI and the larger animals they could not
+the larger animals they could not navigate in the forest so on our side
+navigate in the forest so on our side with control over the the procedural
+with control over the the procedural vegetation distribution we have to make
+vegetation distribution we have to make the right call and it was just to ship
+the right call and it was just to ship with the most density without impacting
+with the most density without impacting gameplay another lesson
+gameplay another lesson make sure to design elegant tools that
+make sure to design elegant tools that opens up possibilities a good example of
+opens up possibilities a good example of that is or biome tool it's it is a
+that is or biome tool it's it is a system that allows so much possibility
+system that allows so much possibility honestly I think we barely scratch the
+honestly I think we barely scratch the surface of what we can do with that and
+surface of what we can do with that and that's good then make sure to keep keep
+that's good then make sure to keep keep things simple well any new systems are
+things simple well any new systems are often often open engineered and that is
+often often open engineered and that is because we figured out each of them and
+because we figured out each of them and each element of that system at first but
+each element of that system at first but once everything is in place we have a
+once everything is in place we have a clear view of the whole thing and we can
+clear view of the whole thing and we can most likely do a clean a pass and a
+most likely do a clean a pass and a simpler more
+simpler more design can emerge then make sure to
+design can emerge then make sure to listen and observe your your user they
+listen and observe your your user they might prefer to have manual control over
+might prefer to have manual control over an automated process and a good example
+an automated process and a good example of that is or freshwater tool the rivers
+of that is or freshwater tool the rivers they could actually carve their their
+they could actually carve their their own riverbed automatically but but it
+own riverbed automatically but but it was optional but actually during
+was optional but actually during production like almost no level artists
+production like almost no level artists use that at all they just prefer to do
+use that at all they just prefer to do the terraforming manually and then place
+the terraforming manually and then place the river so which leads me to my next
+the river so which leads me to my next point like make sure to be flexible
+point like make sure to be flexible initial plans are not always the best
+initial plans are not always the best and then make sure to keep a good
+and then make sure to keep a good balance between control and automation
+balance between control and automation too much automation and really things
+too much automation and really things can get out of control if you have like
+can get out of control if you have like many systems that are independent from
+many systems that are independent from one another and then just changing one
+one another and then just changing one thing here is actually affecting
+thing here is actually affecting something else elsewhere that might be
+something else elsewhere that might be really bad and on the other hand too
+really bad and on the other hand too much manual control and things can
+much manual control and things can became become really time-consuming and
+became become really time-consuming and difficult to manage and after all this
+difficult to manage and after all this is why we're building procedural tools
+is why we're building procedural tools just finish I want to give credit to all
+just finish I want to give credit to all these people for their small or big
+these people for their small or big contribution to the pipeline and well I
+contribution to the pipeline and well I hope you enjoyed the presentation if you
+hope you enjoyed the presentation if you have friends friends that they didn't
+have friends friends that they didn't get the chance to get in or you think
+get the chance to get in or you think that they might be interested to see the
+that they might be interested to see the representation now I'll be giving the
+representation now I'll be giving the talk again tonight at the Ubisoft lounge
+talk again tonight at the Ubisoft lounge from 5:00 to 6:00 p.m. so thank you
+from 5:00 to 6:00 p.m. so thank you everyone
+everyone [Applause]
+any questions don't be shy
+well hello okay there you go can you give us an idea of the resolution at
+give us an idea of the resolution at which you're storing a lot of these
+which you're storing a lot of these masts and terrain data like Iike topes
+masts and terrain data like Iike topes for example yes are the pilings so the
+for example yes are the pilings so the resolution of the mass is actually one
+resolution of the mass is actually one pixel per meter on the terrain right
+pixel per meter on the terrain right sorry
+sorry that's about resolution of the train
+that's about resolution of the train itself yes exactly the the terrain ID
+itself yes exactly the the terrain ID maps is actually 50 centimeters okay
+testing incredible time stuff thank you I had a question about the point clouds
+I had a question about the point clouds yes does that what are you writing out
+yes does that what are you writing out of Houdini's is like a big file full of
+of Houdini's is like a big file full of it's like vector data and then the
+it's like vector data and then the engine reads it in yeah well actually we
+engine reads it in yeah well actually we have like a proprietary format that we
+have like a proprietary format that we call game X and it is its use across
+call game X and it is its use across different engine at youssef and yeah
+different engine at youssef and yeah it's just a file format that which we
+it's just a file format that which we will start the the points and the
+will start the the points and the position and all the the attributes
+position and all the the attributes required for for the engine that's going
+required for for the engine that's going all right thanks hey good question about
+all right thanks hey good question about the users I was wondering if you had a
+the users I was wondering if you had a system to compensate for the errors made
+system to compensate for the errors made by the users in terms of the terrain
+by the users in terms of the terrain let's say for example you you're talking
+let's say for example you you're talking about those squares of like one killed
+about those squares of like one killed in a war on kill Manor
+in a war on kill Manor yeah what if I sculpt the edge there and
+yeah what if I sculpt the edge there and I don't have the other to shake a place
+I don't have the other to shake a place and there's some source control what if
+and there's some source control what if I change the edge of this terrain and
+I change the edge of this terrain and the other edge doesn't match anymore or
+the other edge doesn't match anymore or I put a river there or like and it
+I put a river there or like and it doesn't match like every field that
+doesn't match like every field that afterwards or what
+afterwards or what very clever question well first and to
+very clever question well first and to do discuss actually the the tool in the
+do discuss actually the the tool in the editor will well prevent you to paint
+editor will well prevent you to paint too close to the edge just to avoid the
+too close to the edge just to avoid the getting scenes but let's see if you
+getting scenes but let's see if you would just hold one map and then raise
+would just hold one map and then raise the terrain and then note that the next
+the terrain and then note that the next map and then you would have a really
+map and then you would have a really like they didn't gap between the two but
+like they didn't gap between the two but actually you're not allowed to paint
+actually you're not allowed to paint like to the very edge of the
+like to the very edge of the okay thank you hey can you give us an
+okay thank you hey can you give us an idea about how many people and about how
+idea about how many people and about how long all this work took for to develop
+long all this work took for to develop the tools yeah good question well we
+the tools yeah good question well we were like one-and-a-half person over
+were like one-and-a-half person over like two and a half years then at some
+like two and a half years then at some point that the tools were fairly stable
+point that the tools were fairly stable but we just kept adding new tools over
+but we just kept adding new tools over time too because some some were already
+time too because some some were already quite stable and yeah cool thanks
+oh hello thank you for your talk I have two questions one is about the cliff
+two questions one is about the cliff mm-hmm
+mm-hmm how did you prepare like the mess did
+how did you prepare like the mess did you like have a module cliffs and then
+you like have a module cliffs and then you input them into make the cliff tool
+you input them into make the cliff tool or something like how do you make the
+or something like how do you make the cliff edge tourism
+cliff edge tourism oh yeah well as we saw is just we just
+oh yeah well as we saw is just we just start from the the tear in mesh and then
+start from the the tear in mesh and then just modify the geometry from there so
+just modify the geometry from there so at first the the input mesh is just is
+at first the the input mesh is just is just the terrain and we delete some
+just the terrain and we delete some polygons of it and just keep the actual
+polygons of it and just keep the actual slope range that we want and then by
+slope range that we want and then by doing like a drunk geometry operation on
+doing like a drunk geometry operation on that extrusion displacement this becomes
+that extrusion displacement this becomes our actual mesh when working with height
+our actual mesh when working with height fields it intends to like rivers go from
+fields it intends to like rivers go from up to down but then yeah time is you
+up to down but then yeah time is you like when you do the wrong path it goes
+like when you do the wrong path it goes down to up yeah you um control that it
+down to up yeah you um control that it was up to the user to make sure they
+was up to the user to make sure they they set up the terrain properly to have
+they set up the terrain properly to have like the the water flow down in a in a
+like the the water flow down in a in a proper way
+proper way it was not a big deal if well we made
+it was not a big deal if well we made sure that this didn't happen but if it
+sure that this didn't happen but if it was the case it was it wouldn't break
+was the case it was it wouldn't break anything it was just it would it would
+anything it was just it would it would be weird on the on the flow map itself
+be weird on the on the flow map itself then you would have a point where the
+then you would have a point where the water would flow down flowing down into
+water would flow down flowing down into different their opposite direction but
+different their opposite direction but yeah we didn't have any like check
+yeah we didn't have any like check system to to avoid this with just the
+system to to avoid this with just the like the level artists they just did a
+like the level artists they just did a good knock terraforming job and make
+good knock terraforming job and make sure it was always logical
+that nothing was really wrong yeah and we also had the the debug tools to to
+we also had the the debug tools to to check the actual well to display did the
+check the actual well to display did the flow map direction so it would display
+flow map direction so it would display arrows on the water so it was easy to
+arrows on the water so it was easy to visualize I can if it was flowing
+visualize I can if it was flowing properly or not thank you welcome you
+properly or not thank you welcome you spoke a little bit about avoiding lucky
+spoke a little bit about avoiding lucky and anything in the terrain so that the
+and anything in the terrain so that the iterative process can continue um just
+iterative process can continue um just wondering a little bit about artificial
+wondering a little bit about artificial things like roads and buildings would
+things like roads and buildings would you bring why certain types of terrain
+you bring why certain types of terrain to be placed mm-hmm um how do you deal
+to be placed mm-hmm um how do you deal with that workflow and when we need to
+with that workflow and when we need to lock in the terrain before adding those
+lock in the terrain before adding those yeah well any any terraforming with
+yeah well any any terraforming with while altering was done indeed Styrian
+while altering was done indeed Styrian yes the the roads would also affect the
+yes the the roads would also affect the terraforming but that was like done
+terraforming but that was like done indeed stir as well had because we have
+indeed stir as well had because we have the the road tool that it's actually uh
+the the road tool that it's actually uh needs to to but then for the procedural
+needs to to but then for the procedural the like the procedural tool would
+the like the procedural tool would receive all the terraforming what the
+receive all the terraforming what the right map would be extracted with the
+right map would be extracted with the the terraforming of the road and any
+the terraforming of the road and any back like a flattening for a location to
+back like a flattening for a location to set up a house and stuff like that soon
+set up a house and stuff like that soon so if you're planning a village it the
+so if you're planning a village it the planning would be completely different
+planning would be completely different depending on the terrain location and
+depending on the terrain location and would you plan the village after making
+would you plan the village after making sure everything is finalized there sorry
+sure everything is finalized there sorry would you plan a village layout after
+would you plan a village layout after you make sure that everything is
+you make sure that everything is finalized I'm not sure understand the
+finalized I'm not sure understand the person can their chat afterward okay
+person can their chat afterward okay more in detail okay alright well thanks
+more in detail okay alright well thanks everyone
+everyone [Music]
+[Music] [Applause]

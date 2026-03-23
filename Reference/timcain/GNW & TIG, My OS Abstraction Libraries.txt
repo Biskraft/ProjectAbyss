@@ -1,0 +1,331 @@
+hi it's me Tim
+today I want to talk about
+gnaw and Tig
+that's gnaw gnw and Tig t-i-g
+these are operating system abstraction
+libraries that I wrote in the 90s
+to basically
+hide away all the ugliness and and
+inconsistencies and
+just kind of dumbness of the operating
+systems on various microcomputers at the
+time
+so let me explain why I'm talking about
+this I know I mentioned yesterday when I
+was talking about Rags to Riches I
+mentioned you know
+I've done I've mentioned going on taking
+previous uh
+videos so I kind of want to walk through
+what I did and I promise you there are
+fun anecdotes that have nothing to do
+with programming
+so back when I was doing my gerps apps
+I did them in super VGA and it was my
+first foray into it it wasn't you know
+professional but I wanted to learn how
+it worked
+that's when I first started having to do
+the bank switching
+to remind you is the way memory is
+mapped on a PC you could write into PC
+memory and would appear on the screen
+but the size of the memory was only 64k
+but you needed a lot more than that for
+super VGA so they invented Bank
+switching so you'd write into that 64k
+memory it would go up on the screen in a
+certain portion and then you could Bank
+switch and it would move
+where the memory on the PC was mapped to
+the screen so you could that that's the
+only way you could draw anywhere on the
+screen you wanted
+Bank switching was a pain
+it required assembly code it was
+different for every video card I just
+really wanted it to not be something I
+had to think about every day so I wrote
+a little Library called grlib for
+graphics library and grlib and
+encapsulated the bank switching and I
+used that for my gerps apps so when I
+started doing Rags to Riches I already
+had something like that
+and I started expanding it because
+for the gerps apps I think I used the
+mic the windows
+Mouse
+drawing routines but on Rags to Riches
+we wanted our own Mouse
+so I had to draw it myself Mouse pointer
+on the screen so
+this meant that when I went to go draw
+the mouse pointer it also had to
+understand Bank switching and so I'm
+like
+so I moved all the mouse routines into
+this Library I had
+well that was for moving mouse and
+drawing it well when you press the mouse
+it and it would you'd get a you know a
+click or double click I moved that in
+there as well so that meant there was an
+input event
+Q There was a
+whenever I would see one of these events
+I throw in the queue so the game could
+then look at that queue and go oh look
+there's a mouse click here at this
+location or double click at this
+location
+well once I had that it occurred to me
+well I should probably do keyboard
+events the same way
+and for keyboard events it was like you
+know if you hold a key down I wanted to
+know that if you released it I wanted to
+know that if
+the key was held down so it started
+repeating the letter I wanted to know
+that so I put all that in there
+and that all went into this event queue
+so now this library is more than just
+video drawing Bank switching it was
+mouse and keyboard abstraction and an
+event queue and
+then that's when I realized I'm dos
+which is what all this was written for
+they only provided
+a timer that I did think did a tenth of
+a second
+which was not enough to do animations if
+you wanted a 30 frames per second game
+or 60 frames per second game a tenth of
+a second timer is not enough there was a
+millisecond timer but it needed assembly
+I didn't want ugly assembly in my
+beautiful C code so again
+that library was expanded and now there
+was a millisecond timer in there
+that's pretty much the state it was when
+I did Rags to Riches
+it was a library that
+I just tried to hide things in so my
+game code for Rags to Riches
+what didn't look messy
+when I started making engines after Rags
+shipped engine one of which would become
+Fallout
+I actually formalized all this I took
+all those different abstractions and I
+smooshed them together in one Library
+called Ganahl gnw it stood for ganas not
+Windows
+yes it was front-end recursive because
+that's how programmer humor rolls
+I was really excited about ganoa because
+suddenly
+once I had everything in there and you
+can always by itself compiling it it had
+all the Dos stuff in there my code
+looked very clean and operating system
+independent
+to test this uh Krista Salvo the guy who
+stayed up all night with me while we
+were doing well I was coding rags to
+riches and he was helping me
+he said I'll do a Mac version
+or test your theory he took ganah home
+over one weekend came back in with
+pretty much ninety percent of gnaw Mac I
+think I remember color cycling wasn't
+working because Max handled color
+palettes differently but most of it was
+and we took that Mackinaw and we
+recompiled
+what was then the very early Fallout
+code to run
+on a Mac and it worked we had
+Fallout running on a Mac like that
+Chris Jones later took
+The Gnome code
+and made a Windows version of it so we
+could run on Windows 95.
+and he did that in a few weeks which
+meant we now had Fallout running on Mac
+and windows and dos and I don't say it
+was free but it was a lot easier to make
+those extra ones
+than what other people had dealt with in
+the past so I started sharing and all
+with other teams I know the Star Trek
+team used it Max uh the mecca mechanized
+armored exploration
+game there are several of the Sim game
+simant sim Earth SimCity we were making
+SimCity 2000 and those all used them
+it was interesting because I had regular
+meetings with the executive producer and
+he told me not to waste my time
+because no one reused software
+and I said well you've already got five
+or six projects here that are using it
+and are dependent on my library so I'm
+gonna keep doing it
+now
+a lot of funny things happened about
+um
+but one of the funniest ones was
+I think it was marketing someone decided
+we should have a Windows 95 sticker on
+the box for Fallout
+I know I've told this story in the GDC
+talk
+so we submitted it and I was like this
+is gonna pass easy because we are
+completely Windows 95 in fact we're
+generic Windows compliant so I was
+shocked when it came back unapproved
+and I read through the report and the
+reason for the unapproval was it ran on
+Windows NT
+like what does that have to do with
+anything
+so I remember talking I called the uh
+testing place and I talked to someone
+and she told me
+yes you're being
+you're disqualified from the Windows 95
+logo or sticker or whatever it was on
+the front of the box
+because you are supposed to degrade
+gracefully on Windows NT to get that
+logo you have to degrade gracefully on
+Windows and T and I said we degrade the
+most gracefully of all we run flawlessly
+she said nope that's not what we mean
+it's not supposed to work
+I was like why would you want it not to
+work because if you want the logo
+you have to make it not work and I was
+like I don't really care about the logo
+so oh well so I was just prepared to Let
+It Go but someone and I don't remember
+who someone in interplay was like no
+we're getting that logo
+so I didn't want to put anything in the
+game that would go like your windows and
+T don't work so I asked Chris Jones to
+put that code in the installer so if
+you're attempted to install Fallout
+on Windows NT it would go nope that's an
+invalid Target operating system
+here's where it got funny
+my experience writing critical error
+handlers on stonekeep had shown me that
+there were some CD-ROMs out there that
+were terrible they would just not read
+data or they'd sometimes read it and
+sometimes not especially if near the
+edges the outer edge or the inner edge
+of the CD or the outer rim or the area
+near the spindle sometimes it wouldn't
+read it correctly
+so you'd have to read it multiple times
+and I had that code in Fallout
+but I realized that if people ever
+had trouble during installation with
+data reading it would be a lot easier if
+there was some method of just doing it
+by hand
+so there was a way of installing Fallout
+by bypassing the installer by just
+taking the DAT file and copying it by
+hand to your hard drive and then copying
+over the executable for dos or Windows
+or Mac whatever you're going to run and
+just run that and that would work
+turns out we could do that we suggested
+that to people for NT we're like oh is
+the installer not working for you just
+copy it by hand it'll work
+so we got the logo people with winning T
+had an alternative way of installing it
+everybody was happy
+the irony was
+Windows 95 got phased out and all the
+windows starting with Windows 2000 going
+forward were all Windows NT based so the
+installer wouldn't work for them
+luckily you could just hand copy it and
+Fallout continues to be run to this day
+later when I was running my own company
+at Troika I learned my lesson and I
+remember I left all the code behind I
+rewrote an entire Library called TIG TIG
+which stood for TIG isn't Ganahl
+So Not only was it forward and back for
+front letter and back letter recursive
+but
+TIG did a lot more than what Ganahl did
+TIG handled bit debts any bit depth you
+wanted so you could do 640 40 24 bit
+32-bit color it handled memory
+you could have it handle memory for you
+or you could say hey I've made my own
+buffers here they are for my windows it
+just did a lot more stuff
+um side note at one point when interplay
+thought I had stolen code I invited them
+over Fergus came over with a programmer
+and they went through
+all my TIG code and the pro I still
+remember the programmer looked at Ferg
+and said this is totally brand new this
+isn't anything from Ganahl in fact it's
+better I kind of wish we could do some
+of this stuff
+funny time
+but here's the thing I just want to
+throw out there
+because of taking all it's very easy to
+Port
+games like Fallout and Arcanum because
+they're not operating system dependent
+I was curious about this a few months
+ago
+so I took Arcanum because I have the
+source code
+and I recompiled it on a modern C
+compiler
+for Windows 10 and whatever version of
+DirectX we're up to now
+and it works I have
+Arcanum running
+on Windows 10 as a native app
+if I can do that to Arcanum anybody can
+do that
+to fall out
+because fallout's based on Ganahl you
+make you bring all up to
+modern spec and you should be able to
+recompile the whole thing
+for whatever operating system you want
+Windows 11 Windows 12 whatever's coming
+down the pipe that's why I made that
+because I didn't want to have to deal
+with
+operating systems and they're being
+upgraded
+so
+I'm hoping something like that happens
+I'm not going to do it but my experiment
+with Arcanum proves that it's possible
+so going forward whenever I talk about
+Fallout or Rags to Riches or Arcanum or
+Temple you're going to hear me throw out
+the words Ganahl and Tig that's what I'm
+talking about
+and that's my programming video for a
+while

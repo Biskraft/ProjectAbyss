@@ -1,0 +1,815 @@
+[Music]
+my talk today is going to be about vehicle
+talk today is going to be about vehicle physics and tire dynamics
+physics and tire dynamics my name is hamish young i'm i was the
+my name is hamish young i'm i was the lead mechanic designer on just cause 4
+lead mechanic designer on just cause 4 and today we're going to talk a little
+and today we're going to talk a little bit about
+bit about tires in particular on wheels but let's
+tires in particular on wheels but let's quickly just have a reminder of
+quickly just have a reminder of what just cause four is so
+what just cause four is so just cause four is a big uh open world
+just cause four is a big uh open world game
+game open world action game uh we have a lot
+open world action game uh we have a lot a wide range of vehicles
+a wide range of vehicles uh over a hundred different types of
+uh over a hundred different types of vehicle um
+vehicle um and a lot of them have wheels uh not all
+and a lot of them have wheels uh not all but a lot of them do and wheels and
+but a lot of them do and wheels and tires are really going to be the focus
+tires are really going to be the focus of this talk
+of this talk obviously we could talk about many
+obviously we could talk about many different types of bits of physics but
+different types of bits of physics but that's going to be the focus but some of
+that's going to be the focus but some of these principles can be applied to other
+these principles can be applied to other phenomena
+phenomena a little kind of note the code is
+a little kind of note the code is deliberately hard to read because
+deliberately hard to read because it will take you time to read it uh if
+it will take you time to read it uh if you want to read it through
+you want to read it through obviously get the notes afterwards um
+obviously get the notes afterwards um but
+but i put it up there just as reference
+i put it up there just as reference okay so one of the things we want to do
+okay so one of the things we want to do is obviously set out what the goals what
+is obviously set out what the goals what we're trying to achieve
+we're trying to achieve so we have some limitations we we've got
+so we have some limitations we we've got a limited cpu budget we're making a big
+a limited cpu budget we're making a big open world game
+open world game and there's a lot of things going on
+and there's a lot of things going on tornadoes all sorts of things going on
+tornadoes all sorts of things going on so we're going to have to
+so we're going to have to you know keep performance pretty good uh
+you know keep performance pretty good uh alongside that uh we're running our sim
+alongside that uh we're running our sim at 30 hertz
+at 30 hertz um and so we need to unlike a kind of
+um and so we need to unlike a kind of dedicated driving game we're going to
+dedicated driving game we're going to have a
+have a limited uh frame rate uh
+limited uh frame rate uh we want it to be believable uh now this
+we want it to be believable uh now this is in quotes
+is in quotes uh because obviously we don't want it to
+uh because obviously we don't want it to be actually
+be actually realistic like a driving sim but we do
+realistic like a driving sim but we do want cars to kind of feel like they
+want cars to kind of feel like they behave like cars
+behave like cars and um and related to that is this idea
+and um and related to that is this idea of limited cognitive load
+of limited cognitive load so when you're driving at high speed you
+so when you're driving at high speed you want to be able to do
+want to be able to do other things and think about other
+other things and think about other things and not just driving
+things and not just driving and even when you have complex
+and even when you have complex environments so that's one of the big
+environments so that's one of the big design
+design goals for what we were doing
+we also have a very wide range of vehicles small large
+vehicles small large and everything in between and we want
+and everything in between and we want one system that can cope with all those
+one system that can cope with all those different types of vehicle
+different types of vehicle and then obviously it's an open world we
+and then obviously it's an open world we have a huge diverse
+have a huge diverse uh environment to drive in and we want
+uh environment to drive in and we want uh for the for that to work in all those
+uh for the for that to work in all those environments
+environments so let's talk a little bit about the
+so let's talk a little bit about the different kind of choices you can make
+different kind of choices you can make in range of handling
+in range of handling um you kind of got the kind of cart
+um you kind of got the kind of cart racing uh
+racing uh end which a lot of indie
+end which a lot of indie developers tend to have games kind of
+developers tend to have games kind of heading in this direction
+heading in this direction there's no tire model it's all just
+there's no tire model it's all just forces
+forces uh built on that kind of core rigid body
+uh built on that kind of core rigid body um as you head through you know arcade
+um as you head through you know arcade races
+races and some extent there's a range where
+and some extent there's a range where you might use a vehicle sdk from one of
+you might use a vehicle sdk from one of the
+the physics providers and they have a kind
+physics providers and they have a kind of constraint based system
+of constraint based system and then you head into more sim card and
+and then you head into more sim card and driving simulations at the far end of
+driving simulations at the far end of driving simulations
+driving simulations you end up with this really kind of
+you end up with this really kind of accurate tire model
+accurate tire model with large complexity and
+with large complexity and what i'm going to talk about today is
+what i'm going to talk about today is how to get here
+how to get here so how do you move either up this way
+so how do you move either up this way or down the other way to hit the sweet
+or down the other way to hit the sweet spot that i'm
+spot that i'm going to be talking about so to give you
+going to be talking about so to give you a sense of the order of operations
+a sense of the order of operations uh i'm going to talk about what we did
+uh i'm going to talk about what we did for just cause
+for just cause uh we have gonna have similar input
+uh we have gonna have similar input parameters
+parameters to the simulation models so we're gonna
+to the simulation models so we're gonna take uh some elements from the
+take uh some elements from the simulation
+simulation but we want much higher grip than is
+but we want much higher grip than is real uh for that kind of
+real uh for that kind of uh use of arcade kind of physics
+uh use of arcade kind of physics we're going to i'm going to talk quite a
+we're going to i'm going to talk quite a bit about friction clamps
+bit about friction clamps to stay physically stable and this is
+to stay physically stable and this is kind of similar to how
+kind of similar to how the constraints based driving models
+the constraints based driving models work
+work and then i'm going to talk about how you
+and then i'm going to talk about how you can draw friction curves
+can draw friction curves uh and then scale down the pitch and
+uh and then scale down the pitch and roll components
+roll components to compensate for the grip and then we
+to compensate for the grip and then we can talk about the driver assist
+can talk about the driver assist stuff which is actually very similar to
+stuff which is actually very similar to the kart racing
+the kart racing kind of physics you might see at that
+kind of physics you might see at that end so what we're really trying to do is
+end so what we're really trying to do is bring all those elements together into
+bring all those elements together into something that works as a whole
+something that works as a whole so let's talk a little bit about the
+so let's talk a little bit about the kind of
+kind of semi-empirical forza gran turismo end of
+semi-empirical forza gran turismo end of things
+things um the models actually take real tight
+um the models actually take real tight you take a real tire
+you take a real tire and you put it in a real machine and you
+and you put it in a real machine and you vary the input parameters and you
+vary the input parameters and you measure the outcome
+measure the outcome and then you curve fit that outcome to
+and then you curve fit that outcome to replicate it in your game and the more
+replicate it in your game and the more accurately you can do that and the
+accurately you can do that and the higher frequency you can run that at
+higher frequency you can run that at the more accurate you're going to be
+the downside is that if you want to modify what those tyres do
+modify what those tyres do you don't want real it gets pretty hard
+you don't want real it gets pretty hard to modify
+to modify and there are real reasons why you may
+and there are real reasons why you may not want real tires
+not want real tires for a start if you want to run at 30
+for a start if you want to run at 30 hertz well you're going to get terrible
+hertz well you're going to get terrible feedback
+feedback especially when you have weight transfer
+especially when you have weight transfer uh
+uh you're not going to feel it and the car
+you're not going to feel it and the car is just going to be um
+is just going to be um unpredictable in its behavior you also
+unpredictable in its behavior you also i mean anyone who's gone from an arcade
+i mean anyone who's gone from an arcade game to tour
+game to tour to a driving simulator is understeer is
+to a driving simulator is understeer is a big deal
+a big deal if you break and you understand you
+if you break and you understand you don't hit the corner it's kind of
+don't hit the corner it's kind of unacceptable in open world game i need
+unacceptable in open world game i need to come up to a t-junction and get
+to come up to a t-junction and get around that corner
+around that corner and oversteer can be an issue but
+and oversteer can be an issue but actually it's not such a big issue
+actually it's not such a big issue um but if you do want to kind of correct
+um but if you do want to kind of correct oversteer in a very
+oversteer in a very physical correct way you need complex
+physical correct way you need complex traction control and stability control
+traction control and stability control and that's difficult to get right
+and that's difficult to get right so i'm going to talk a little bit about
+so i'm going to talk a little bit about the tire setup um there are some basic
+the tire setup um there are some basic parameters we're going to need
+parameters we're going to need to assume we've generated the wheel has
+to assume we've generated the wheel has a position
+a position an orientation which includes the steer
+an orientation which includes the steer you've got a linear velocity
+you've got a linear velocity of the wheel and then you've got its
+of the wheel and then you've got its angular velocity in the direction of the
+angular velocity in the direction of the spin
+spin and then you've got some sort of ground
+and then you've got some sort of ground position and normal
+position and normal where the tire is hitting the ground
+so this is the the tyre reference frame i'm going to be talking about
+i'm going to be talking about and we're splitting the velocity into
+and we're splitting the velocity into things that go along
+things that go along the line of the wheel with things that
+the line of the wheel with things that going lateral to the wheel
+going lateral to the wheel and then you've got the angular velocity
+and then you've got the angular velocity of the wheels spin
+of the wheels spin so slip ratio this is one of the input
+so slip ratio this is one of the input parameters that we're going to be using
+parameters that we're going to be using and i'm going to take you through the
+and i'm going to take you through the kind of different phases of it
+kind of different phases of it so wheel spin is defined in the slip
+so wheel spin is defined in the slip ratios when the wheel is spinning faster
+ratios when the wheel is spinning faster than it's moving forward
+than it's moving forward there's a kind of intuitive thing here
+there's a kind of intuitive thing here where the point on the rim
+where the point on the rim that's going round if it's if it's
+that's going round if it's if it's perfectly
+perfectly gripping then you actually end up with
+gripping then you actually end up with zero so you're following the road so
+zero so you're following the road so wheel spin is when it's going faster
+wheel spin is when it's going faster than the road
+than the road and then when you're locked the wheel is
+and then when you're locked the wheel is completely locked and you're sliding
+completely locked and you're sliding forwards
+forwards and that's negative and the reason why
+and that's negative and the reason why we are in this space is because
+we are in this space is because when you're breaking your your in this
+when you're breaking your your in this negative value
+negative value up to -1 and that means you get a you
+up to -1 and that means you get a you know get a breaking force
+know get a breaking force and if you've got a positive direction
+and if you've got a positive direction then you're going to have acceleration
+then you're going to have acceleration and it's going to be a positive force
+and it's going to be a positive force and
+and this slip ratio is now defined between
+this slip ratio is now defined between -1 when you're fully locked
+-1 when you're fully locked and up to essentially infinity positive
+and up to essentially infinity positive infinity when the wheel
+infinity when the wheel is stationary but spinning fast
+is stationary but spinning fast so if you like mathematics uh this is
+so if you like mathematics uh this is the equation you'll see in books um
+the equation you'll see in books um which is
+which is literally the what i've just shown you
+literally the what i've just shown you there um and there's a little bit of
+there um and there's a little bit of code which is pretty hard to read
+code which is pretty hard to read which does the same thing but in the
+which does the same thing but in the game engine
+game engine actually it's a little bit more
+actually it's a little bit more complicated there's a little bit of a
+complicated there's a little bit of a gotcha here
+gotcha here if i actually go back what happens is if
+if i actually go back what happens is if the wheel spin is positive and you're
+the wheel spin is positive and you're going backwards so it's
+going backwards so it's negative uh you actually get a minus
+negative uh you actually get a minus sign on this first
+sign on this first uh piece you actually end up something
+uh piece you actually end up something that's
+that's kind of more negative than minus one
+kind of more negative than minus one that's something you don't want
+that's something you don't want um so in reality you want to
+um so in reality you want to make a modification we've got a little
+make a modification we've got a little bit of a more complicated bit of code
+bit of a more complicated bit of code here which you can potentially look at
+here which you can potentially look at later
+later just to cope with those edge cases and
+just to cope with those edge cases and those edge cases are things that you
+those edge cases are things that you might want to try and avoid
+might want to try and avoid okay let's talk about slip angle so slip
+okay let's talk about slip angle so slip angle
+angle is literally an angle um and
+is literally an angle um and it is the angle where the direction of
+it is the angle where the direction of the wheel is
+the wheel is essentially sliding um it's it's just
+essentially sliding um it's it's just basically as simple as that so all
+basically as simple as that so all you're working out is what that angle is
+you're working out is what that angle is in the two directions of the wheel
+in the two directions of the wheel velocity
+velocity and you know it's a pretty simple piece
+and you know it's a pretty simple piece of code
+of code we also have camber so this is how much
+we also have camber so this is how much the wheel is rolling over
+the wheel is rolling over relative to the relative to the ground
+relative to the relative to the ground and uh once again it's a relatively
+and uh once again it's a relatively simple
+simple equation and this is a kind of a core
+equation and this is a kind of a core piece of understanding uh how the wheel
+piece of understanding uh how the wheel is relating to the ground patch
+and finally you have wheel load now in a sim uh case the suspension is very high
+sim uh case the suspension is very high frequency you're going to get a lot of
+frequency you're going to get a lot of detail
+detail in how that wheel load works and the
+in how that wheel load works and the thai model is going to
+thai model is going to kind of react to that in a very dynamic
+kind of react to that in a very dynamic way a 30 hertz that's not really
+way a 30 hertz that's not really very possible to get of great results
+very possible to get of great results out of
+out of and also you basically don't want too
+and also you basically don't want too much weight transfer
+much weight transfer so to keep everything kind of realistic
+so to keep everything kind of realistic what actually
+what actually happens is the suspension force at rest
+happens is the suspension force at rest when the thing isn't moving
+when the thing isn't moving you can blend that in to the suspension
+you can blend that in to the suspension force with the dynamics
+force with the dynamics and you can end it up some with
+and you can end it up some with something that's scaled right and can
+something that's scaled right and can give you a wheel load that's kind of
+give you a wheel load that's kind of reliable
+so if you want more grip
+we have an issue
+the grip can cause things to diverge so if i've got a velocity of a wheel
+if i've got a velocity of a wheel and i put it through my tire model and i
+and i put it through my tire model and i end up with a big force
+end up with a big force i'm going to end up with something that
+i'm going to end up with something that actually ends up going the wrong way
+actually ends up going the wrong way and even faster than the way it started
+and even faster than the way it started which means a bigger force
+which means a bigger force which means it starts going the other
+which means it starts going the other way you get the model can diverge
+way you get the model can diverge um and so the drag from the grip uh
+um and so the drag from the grip uh is flipping the sign of velocity is
+is flipping the sign of velocity is something you should never want
+something you should never want it's actually one of the reasons why
+it's actually one of the reasons why these things can be unstable
+these things can be unstable so we're going to introduce this idea of
+so we're going to introduce this idea of a friction clamp
+a friction clamp the friction clamp is a way of
+the friction clamp is a way of essentially enforcing
+essentially enforcing the fact that the friction is only going
+the fact that the friction is only going to behave like a friction
+to behave like a friction it's not going to uh go wrong and
+it's not going to uh go wrong and actually this
+actually this principle is used all over the place so
+principle is used all over the place so for aerodynamics when you have a
+for aerodynamics when you have a a v squared term and it's unbounded
+a v squared term and it's unbounded having a friction clamp to prevent it
+having a friction clamp to prevent it from
+from firing your thing backwards when you're
+firing your thing backwards when you're going too fast is
+going too fast is a pretty good thing to have the danger
+a pretty good thing to have the danger here is that the mass
+here is that the mass in this equation so the uh the kind of a
+in this equation so the uh the kind of a applicable
+applicable mass you're trying to use uh if you have
+mass you're trying to use uh if you have more than one tyre which is pretty much
+more than one tyre which is pretty much every vehicle you can't apply all to the
+every vehicle you can't apply all to the same
+same mass and so it's a little bit more
+mass and so it's a little bit more complicated
+complicated but in a solver so in a in an iterative
+but in a solver so in a in an iterative solver like the log of the physics
+solver like the log of the physics engines
+engines this is essentially how they're doing
+this is essentially how they're doing their vehicle physics they're taking the
+their vehicle physics they're taking the clamp and they're
+clamp and they're scaling down how much force you're going
+scaling down how much force you're going to get out relative to that clamp
+to get out relative to that clamp which keeps it always in the middle but
+which keeps it always in the middle but it it has a downside
+it it has a downside in terms of if you wanted any effects
+in terms of if you wanted any effects based on wheel spin
+based on wheel spin like losing grip because of wheel spin
+like losing grip because of wheel spin it doesn't model that at all
+it doesn't model that at all so instead of doing that what we're
+so instead of doing that what we're talking about is actually
+talking about is actually actually providing the friction clamping
+actually providing the friction clamping code but
+code but introducing this idea of useful mass so
+introducing this idea of useful mass so it goes back to this idea of wheel load
+it goes back to this idea of wheel load so if you have all of the wheels
+so if you have all of the wheels with the correct load and everything is
+with the correct load and everything is stationary
+stationary then the relative mass that's going to
+then the relative mass that's going to be uh relative to that wheel
+be uh relative to that wheel is the heuristic is that you end up with
+is the heuristic is that you end up with this wheel load divided by all those
+this wheel load divided by all those uh wheel loads and that kind of gives
+uh wheel loads and that kind of gives you the ratio of the vehicle mess you
+you the ratio of the vehicle mess you should be representing by that one tires
+should be representing by that one tires friction clamp now it's not completely
+friction clamp now it's not completely perfect
+perfect but it's a pretty good heuristic and it
+but it's a pretty good heuristic and it works very very well
+works very very well up to tiny tiny velocities and
+up to tiny tiny velocities and it's what i'm going to be using for the
+it's what i'm going to be using for the rest of the talk
+rest of the talk okay so longitudinal friction clamps so
+okay so longitudinal friction clamps so the different dimensions in which we
+the different dimensions in which we need these clamps the first one is the
+need these clamps the first one is the wheel sliding forwards
+wheel sliding forwards and we just want to prevent it from
+and we just want to prevent it from going back on itself in a completely
+going back on itself in a completely linear sense
+linear sense so uh we have this useful mass and we're
+so uh we have this useful mass and we're trying to prevent the
+trying to prevent the the the forward force from being bigger
+the the forward force from being bigger than to require to stop that wheel
+than to require to stop that wheel um the only complication here is the
+um the only complication here is the wheel is actually putting power in if
+wheel is actually putting power in if it's if it's got torque
+it's if it's got torque so you you want to take that into
+so you you want to take that into account as well and that's what the
+account as well and that's what the second term here is
+second term here is for the angular clamp you're trying to
+for the angular clamp you're trying to prevent the wheel spinning the wrong way
+prevent the wheel spinning the wrong way and changing the sign
+and changing the sign of the slip um and so your reaction
+of the slip um and so your reaction force needs to
+force needs to not be too big itself and that's a
+not be too big itself and that's a little bit more complicated you're
+little bit more complicated you're ending up trying to work out what the
+ending up trying to work out what the new velocity needs to be relative to the
+new velocity needs to be relative to the slip
+slip and so the code is a little bit more
+and so the code is a little bit more complicated
+complicated but it ends up generating what the
+but it ends up generating what the maximum force should be
+maximum force should be to prevent the wheel actually spinning
+to prevent the wheel actually spinning the wrong way relative to the road speed
+and the third thing is this lateral clamp
+clamp and likewise you might think that was
+and likewise you might think that was simple um
+simple um but it's just the mass you know going
+but it's just the mass you know going sideways
+sideways but you've got to worry about um the
+but you've got to worry about um the angular considerations and
+angular considerations and theoretically longitudinal clamps should
+theoretically longitudinal clamps should do the same thing i'm not going to get
+do the same thing i'm not going to get you to read this code but essentially
+you to read this code but essentially it's taking into account the inertia
+it's taking into account the inertia and not just the linear uh force
+and not just the linear uh force so once your programmer has sorted out
+so once your programmer has sorted out the friction clamps
+the friction clamps uh let's let's take a look at what what
+uh let's let's take a look at what what it does so this is with the friction
+it does so this is with the friction clamp on
+clamp on um the car's gonna accelerate you may
+um the car's gonna accelerate you may see the curves uh
+see the curves uh and you can see that the the markers on
+and you can see that the the markers on the curves are smooth
+the curves are smooth and they're not jumping around and
+and they're not jumping around and there's no uh jitter
+there's no uh jitter whereas if i show you with the clamp off
+whereas if i show you with the clamp off you should be able to see that the the
+you should be able to see that the the actual markers as the
+actual markers as the the car drives away the car is shaking
+the car drives away the car is shaking and so
+and so is the the values they're jittering all
+is the the values they're jittering all over the place because
+over the place because they're not getting clamped you're
+they're not getting clamped you're getting this divergence
+getting this divergence obviously you don't want this in your in
+obviously you don't want this in your in your game
+your game so once you've got your clamps in place
+so once you've got your clamps in place now you can turn up the friction as much
+now you can turn up the friction as much as you like
+as you like because you're never going to break it
+because you're never going to break it your designers can go
+your designers can go absolutely wild they can do whatever
+absolutely wild they can do whatever they like
+they like but if you really want to set things up
+but if you really want to set things up in a way that is
+in a way that is controllable in a without having to
+controllable in a without having to record real tie data
+record real tie data you really want to be able to find the
+you really want to be able to find the right friction curves for your for your
+right friction curves for your for your game
+game so we actually literally draw the
+so we actually literally draw the friction curves in the spline tool as
+friction curves in the spline tool as as you can see and we have a like a
+as you can see and we have a like a three-phase model
+three-phase model so any of the curves you end up
+so any of the curves you end up with zero relative to a peak
+with zero relative to a peak and then you saturate out at the far end
+and then you saturate out at the far end um
+um and the reason why we do this so the
+and the reason why we do this so the curve can have as many points as you
+curve can have as many points as you like
+like the difficulty is that um for the
+the difficulty is that um for the working out what the
+working out what the uh the curves in each direction need to
+uh the curves in each direction need to do
+do in a more complicated model you end up
+in a more complicated model you end up with these complicated mathematical
+with these complicated mathematical relationships between these these uh
+relationships between these these uh different
+different parameters and we're trying to simplify
+parameters and we're trying to simplify that down to something that ends up
+that down to something that ends up being only a few graphs
+being only a few graphs so this is possibly the difficult most
+so this is possibly the difficult most difficult part of the talk
+difficult part of the talk but essentially if you're talking about
+but essentially if you're talking about the force of which you're going forwards
+the force of which you're going forwards so this is about forward force here
+so this is about forward force here if you are not slipping sideways at all
+if you are not slipping sideways at all then when you accelerate you're going to
+then when you accelerate you're going to get a certain curve
+get a certain curve and when you break you're going to get a
+and when you break you're going to get a certain curve but when you're
+certain curve but when you're sliding sideways and you want to go
+sliding sideways and you want to go forwards you may get more wheel spins so
+forwards you may get more wheel spins so you you want to
+you you want to you're reducing the the kind of the
+you're reducing the the kind of the shape of the curve
+shape of the curve um and it's something that lets you
+um and it's something that lets you have things like doughnuting so if you
+have things like doughnuting so if you want to donut
+want to donut then you want the side slip to actually
+then you want the side slip to actually let you
+let you wheel spin and likewise the other way
+wheel spin and likewise the other way around
+around so now you're thinking about lateral
+so now you're thinking about lateral force so
+force so these curves are the force relative to
+these curves are the force relative to the slip angle
+the slip angle um you're going to have five of them for
+um you're going to have five of them for each of the slips of the wheels
+each of the slips of the wheels so this is how you can get uh effects
+so this is how you can get uh effects like drifting naturally
+like drifting naturally where if you um slam the handbrake on
+where if you um slam the handbrake on this bottom graph kicks in because
+this bottom graph kicks in because you're getting a a negative slip
+you're getting a a negative slip angle that's going to mean you have low
+angle that's going to mean you have low lateral grip
+lateral grip so you're going to slide sideways and
+so you're going to slide sideways and then you're going to pump the
+then you're going to pump the accelerator so now you're in the
+accelerator so now you're in the saturated
+saturated you know unsaturated slip angle and
+you know unsaturated slip angle and you're you're
+you're you're you're getting that wheel spin which
+you're getting that wheel spin which then gives you low
+then gives you low uh low lateral force as well so the
+uh low lateral force as well so the bottom
+bottom graph and the top graph skip all the
+graph and the top graph skip all the middle middle ground and you
+middle middle ground and you you get that change of behavior so
+you get that change of behavior so the relationship between the lateral
+the relationship between the lateral graphs and the longitudinal graphs
+graphs and the longitudinal graphs is something that can be a little
+is something that can be a little counter-intuitive but it's still
+counter-intuitive but it's still simpler than trying to modify a
+simpler than trying to modify a complicated mathematical function
+complicated mathematical function like you would have for a magic formula
+like you would have for a magic formula tyre
+tyre it takes a little while to get your head
+it takes a little while to get your head around but actually it's very powerful
+around but actually it's very powerful once once you get your head around it
+once once you get your head around it and
+and it's really this that is the basis of
+it's really this that is the basis of the model
+the model so if you uh head back between here
+so if you uh head back between here you really want to understand that the
+you really want to understand that the the
+the the angle uh that you have uh and the
+the angle uh that you have uh and the steepness of the curve
+steepness of the curve kind of represents the feel in in a
+kind of represents the feel in in a different way than you might expect
+different way than you might expect so the steepness of the curve is really
+so the steepness of the curve is really how much grip you feel it's not the
+how much grip you feel it's not the it's not the actual height it's the
+it's not the actual height it's the steepness that matters
+steepness that matters and as you go up the curve you're going
+and as you go up the curve you're going to have feel it's grippy and as it
+to have feel it's grippy and as it levels off
+levels off you're going to feel like actually it's
+you're going to feel like actually it's sliding and if it drops
+sliding and if it drops it actually feels like the slide is
+it actually feels like the slide is getting faster
+getting faster and so as you're going gain intuition
+and so as you're going gain intuition about what these curves feel like
+about what these curves feel like you can really begin to play with when
+you can really begin to play with when you get wheel spin how does the car feel
+you get wheel spin how does the car feel when it's turning
+when it's turning when you uh when you're drifting how
+when you uh when you're drifting how does it feel and you can balance this
+does it feel and you can balance this out
+out now in our engine all of these curves
+now in our engine all of these curves were normalized so
+were normalized so actually in the final game we only had
+actually in the final game we only had pretty much two or three sets of tires
+pretty much two or three sets of tires for the whole all vehicles in the whole
+for the whole all vehicles in the whole game um
+game um because they basically did the right
+because they basically did the right things and it meant that
+things and it meant that we only had to set up the actual uh grip
+we only had to set up the actual uh grip value themselves so i'm going to move on
+value themselves so i'm going to move on to that in a second
+to that in a second the actual grip uh which was authored
+the actual grip uh which was authored front for the front and rear wheels
+front for the front and rear wheels was just essentially a value and we were
+was just essentially a value and we were trying to balance the front and rear
+trying to balance the front and rear grip
+grip and that was multiplied by this graph
+and that was multiplied by this graph this set of graphs that i mentioned
+this set of graphs that i mentioned earlier
+earlier obviously multiplied by the wheel load
+obviously multiplied by the wheel load so it's scaled correctly
+so it's scaled correctly uh and then we multiplied the time step
+uh and then we multiplied the time step to get the impulse
+to get the impulse um it once you got to basically a grip
+um it once you got to basically a grip level
+level multiplied by this graph multiplied by
+multiplied by this graph multiplied by the wheel load multiplied
+the wheel load multiplied by the time step you really have quite a
+by the time step you really have quite a simple equation of these forces
+simple equation of these forces but and here's a big thing if you want
+but and here's a big thing if you want something to be believable and you turn
+something to be believable and you turn the grip
+the grip up all that's going to happen is your
+up all that's going to happen is your car is suddenly going to
+car is suddenly going to wallow and roll and do horrible things
+wallow and roll and do horrible things now you can
+now you can add kind of anti-damp like suspension
+add kind of anti-damp like suspension and stiffen the suspension all those
+and stiffen the suspension all those things but if you want those values to
+things but if you want those values to be vaguely realistic
+be vaguely realistic you're actually the best thing to do is
+you're actually the best thing to do is to modify how you're going to apply the
+to modify how you're going to apply the force to begin with
+force to begin with so if you reduce the pitch and roll
+so if you reduce the pitch and roll components of the forces you were going
+components of the forces you were going to apply to the wheel
+to apply to the wheel you can really turn this down in a very
+you can really turn this down in a very controllable way you don't have to
+controllable way you don't have to redo your suspension setup so in this
+redo your suspension setup so in this case we just decompose the impulse of
+case we just decompose the impulse of the point
+the point back into the linear angular components
+back into the linear angular components and then we we just
+and then we we just multiply by linear factor into the roll
+multiply by linear factor into the roll and pitch
+and pitch and that and that just made it so the
+and that and that just made it so the suspension setup could be completely
+suspension setup could be completely kind of realistic and the extra grip
+kind of realistic and the extra grip didn't cause too many problems
+okay so just as a as a high level summary so we've got some input
+summary so we've got some input parameters we've got slip ratio and slip
+parameters we've got slip ratio and slip angle
+angle um we're turning the grip up higher than
+um we're turning the grip up higher than real
+real and we're preventing it from getting too
+and we're preventing it from getting too big with the friction clamps
+big with the friction clamps and so that element of the friction
+and so that element of the friction clamps is
+clamps is is keeping us physically stable whatever
+is keeping us physically stable whatever graph i draw
+graph i draw uh and then we can draw friction uh
+uh and then we can draw friction uh friction curves
+friction curves and actually you have tremendous amount
+and actually you have tremendous amount of freedom here so once you've got the
+of freedom here so once you've got the clamp in place
+clamp in place you have a lot of freedom and for our
+you have a lot of freedom and for our planes
+planes and non-cars we actually just had a
+and non-cars we actually just had a linear ramp and a
+linear ramp and a and a saturation and we didn't have this
+and a saturation and we didn't have this complicated
+complicated uh wheel spin effect because the clamps
+uh wheel spin effect because the clamps meant that whatever happened we would
+meant that whatever happened we would stay physically believable
+stay physically believable and it would be fine if you then have
+and it would be fine if you then have too much group you can scale down the
+too much group you can scale down the pitch and roll components
+pitch and roll components and then you get to the final step which
+and then you get to the final step which is uh like driver assist drift control
+is uh like driver assist drift control and that actually goes back to that kind
+and that actually goes back to that kind of cart racer type physics you're really
+of cart racer type physics you're really controlling the car
+controlling the car from the basis of a rigid body and the
+from the basis of a rigid body and the forces
+forces and there are many many ways of doing
+and there are many many ways of doing this
+this and it really is a talk in its own right
+and it really is a talk in its own right and i'm not going to dive too deep into
+and i'm not going to dive too deep into it although if people have questions
+it although if people have questions obviously uh that's important um
+obviously uh that's important um but the real thing is if you come from
+but the real thing is if you come from that kind of cart racer feel actually
+that kind of cart racer feel actually you'll be very familiar with the kinds
+you'll be very familiar with the kinds of forces you might want to do here
+of forces you might want to do here the way that we triggered drift is
+the way that we triggered drift is either by
+either by obviously button press and and control
+obviously button press and and control but you can also trigger it by um if the
+but you can also trigger it by um if the slip angle of the rear wheels gets
+slip angle of the rear wheels gets beyond a limit
+beyond a limit you can then get into that kind of drift
+you can then get into that kind of drift phase and you start controlling the
+phase and you start controlling the vehicle
+vehicle at the whole vehicle stage and not about
+at the whole vehicle stage and not about the tires
+the tires so in our model we've actually ended up
+so in our model we've actually ended up using
+using all parts of the spectrum of that kind
+all parts of the spectrum of that kind of cart racer handling for drift
+of cart racer handling for drift the kind of physics sdk
+the kind of physics sdk style friction clamp model for keeping
+style friction clamp model for keeping us
+us inbound and then a slightly
+inbound and then a slightly semi-realistic
+semi-realistic tire model modified uh in the heading
+tire model modified uh in the heading off in the more
+off in the more sim direction and all these things come
+sim direction and all these things come together means that we can run at 30
+together means that we can run at 30 hertz
+hertz you can go around a corner very fast
+you can go around a corner very fast unrealistically fast
+unrealistically fast you can control in the drift and you can
+you can control in the drift and you can really bring these things together
+really bring these things together and so the the kind of final point i'd
+and so the the kind of final point i'd like to make
+like to make uh before i would kind of go off this
+uh before i would kind of go off this topic
+topic is that the people who are building
+is that the people who are building indie games with
+indie games with uh the kind of cart racer mechanics if
+uh the kind of cart racer mechanics if you want to go a bit more physical and
+you want to go a bit more physical and you want to add tires
+you want to add tires the next step along that path would be
+the next step along that path would be to
+to get your friction clamps right for the
+get your friction clamps right for the wheels and then you can do whatever you
+wheels and then you can do whatever you like with your tire model
+like with your tire model it isn't that hard to move from one to
+it isn't that hard to move from one to the other
+the other so that's my talk thank you very much
+any questions
+hello hi thank you for the talk my question is
+question is how did you decide where to place the
+how did you decide where to place the tires on the ground
+tires on the ground and how did that interact with your
+and how did that interact with your calculation of suspension forces
+calculation of suspension forces sure uh so the question was uh how do we
+sure uh so the question was uh how do we decide where to put the tyres on the
+decide where to put the tyres on the ground
+ground and how does that interact interact with
+and how does that interact interact with suspension forces
+suspension forces uh so we did line tests uh to place the
+uh so we did line tests uh to place the wheel on the ground
+wheel on the ground um and then the suspension force held
+um and then the suspension force held the vehicle
+the vehicle off off the uh off the ground um
+off off the uh off the ground um it's very similar to like lots of
+it's very similar to like lots of simplistic
+simplistic behaviors the line tests were linear so
+behaviors the line tests were linear so we weren't doing anything
+we weren't doing anything sophisticated like if you wanted to
+sophisticated like if you wanted to model more sophisticated
+model more sophisticated suspension geometry you would actually
+suspension geometry you would actually put it on a
+put it on a on a circle to change how the raw center
+on a circle to change how the raw center worked
+worked but we kept it very simple just had line
+but we kept it very simple just had line tests so that's how we placed the wheel
+tests so that's how we placed the wheel uh quick follow-up then if debris flew
+uh quick follow-up then if debris flew under your line test what would you do
+under your line test what would you do if debris fell onto the line test yeah
+if debris fell onto the line test yeah would that push the car up
+would that push the car up uh it depended so uh we have a physics
+uh it depended so uh we have a physics model where you have layers
+model where you have layers um and so the collision with a raycast
+um and so the collision with a raycast depends on whether something was tagged
+depends on whether something was tagged to be in the layer or not
+to be in the layer or not um so in the case of debris it depended
+um so in the case of debris it depended on
+on which layer that debris was if it was
+which layer that debris was if it was big enough then yes absolutely it would
+big enough then yes absolutely it would it would climb up on it but we could
+it would climb up on it but we could for very small things we could not put
+for very small things we could not put them in that physics layer and so they'd
+them in that physics layer and so they'd be ignored by the line test
+be ignored by the line test okay thank you okay
+okay thank you okay anybody else
+hey i was uh wondering i thought that just cause went through the havoc engine
+just cause went through the havoc engine once you've done the calculations for
+once you've done the calculations for the forces due to the tyres how did you
+the forces due to the tyres how did you integrate that back into
+integrate that back into havoc or did you have your own solver so
+havoc or did you have your own solver so uh we can uh we used havoc to uh
+uh we can uh we used havoc to uh there's an api and havoc to apply forces
+there's an api and havoc to apply forces so once we calculated what force we
+so once we calculated what force we wanted to apply we applied it
+wanted to apply we applied it the solve happened in in the havoc
+the solve happened in in the havoc solver
+solver thanks
+hey yeah kind of related to the first question uh since you did
+question uh since you did line test down you said i was just
+line test down you said i was just curious because i've hit this problem
+curious because i've hit this problem do you have any issues with like going
+do you have any issues with like going over a curb and having you know it
+over a curb and having you know it immediately changes
+immediately changes uh you know in all that the suspension
+uh you know in all that the suspension and i pretty much have things where cars
+and i pretty much have things where cars fly when i hit curves did you do
+fly when i hit curves did you do anything to address that or did you even
+anything to address that or did you even have that issue
+have that issue yeah so the question is about um line
+yeah so the question is about um line tests and the compression of a wheel
+tests and the compression of a wheel based on a time step
+based on a time step and finding a surface that that wasn't
+and finding a surface that that wasn't there before right exactly
+there before right exactly yeah yeah i figured you'd get it and you
+yeah yeah i figured you'd get it and you can rephrase it yeah yeah
+can rephrase it yeah yeah um so uh so there's two issues here so
+um so uh so there's two issues here so one is
+one is being loads uh uh kind of insensitive
+being loads uh uh kind of insensitive we didn't get side forces based on that
+we didn't get side forces based on that right so
+right so the only issue is the suspension force
+the only issue is the suspension force itself um
+itself um so we didn't suddenly gain grip just
+so we didn't suddenly gain grip just because we we
+because we we hit the hit a curb um essentially the
+hit the hit a curb um essentially the idea is you're gonna
+idea is you're gonna have to damp uh those those those forces
+have to damp uh those those those forces um uh and there are multiple ways of
+um uh and there are multiple ways of doing that
+doing that um we we took a pretty basic approach to
+um we we took a pretty basic approach to that
+that um and you can tell when you've moved
+um and you can tell when you've moved the suspension a long way in one frame
+the suspension a long way in one frame that you you need to damp so gotcha
+that you you need to damp so gotcha right thanks
+cool okay thanks very much

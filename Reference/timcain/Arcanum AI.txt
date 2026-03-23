@@ -1,0 +1,362 @@
+hi everyone it's me Tim today I want to
+answer some questions that have come up
+about how the AI worked in Arcanum
+before I start though I should think it
+it's funny I just got a
+Google or YouTube analytics email
+because I've been doing this for more
+than 90 days where it was telling me
+what videos were popular and what
+weren't to try to give me advice of what
+to do
+and
+the advice seems to be skewed towards
+doing things that get more people to
+watch ads
+because it told me these technical ones
+well those attracted less viewers and
+according to YouTube they don't think
+people want that which ones do they want
+why I quit Fallout 2 why I quit WildStar
+they want all the gossipy ones which I
+think is funny because the the YouTube
+algorithm is pushing me to doing
+negative gossipy videos
+uh because it says that's what people
+consume yet when you actually look at
+the comments what people are asking for
+are more of these technical ones so
+I'm gonna do these fewer people watch
+so be it
+so a lot of the questions around our
+canons AI came up after I explained
+how procedural generation and prototypes
+uh and things like that worked
+you may want to go and look at those
+videos
+um I'm going to assume you already know
+about
+sectors and maps and things like that
+so probably one of the most interesting
+things about riding arcanum's AI was
+when you were out in the world when you
+weren't in an instance like in a dungeon
+or an instance building
+in theory everything's there the entire
+world is there but of course we can't
+keep that all in memory even with
+prototypes we couldn't keep all the
+creatures in memory
+so what we did
+and I thought this was kind of clever
+if you know the sectors are arranged on
+a grid what that means is when you're in
+the center of a sector by Design that's
+the only sector you can see
+that we deliberately made sectors big
+enough in the viewport of the game
+small enough that when you were in the
+middle of a sector that sector is the
+only one that had to be loaded then what
+we did is as you move towards a side or
+a corner of a sector it would load up to
+those three adjoining sectors bear in
+mind that at no point can you ever see
+more than four sectors at a time in
+Arcanum and that would occur when you're
+standing near
+a grid point where there's one two three
+four sectors that's the only time you
+can see four
+often you can just see one
+that what that meant is we knew we never
+had to have more than four sectors
+loaded at once
+so that's what we did as you went
+towards one corner we would unload the
+sectors you were getting far away from
+and pre-load the ones you were getting
+close to
+when we loaded them in addition to all
+the art and everything
+we loaded the creatures and they would
+get heartbeats everything in AI except
+for the animation system which got its
+own ticks all the AI was based on
+heartbeats
+and these heartbeats were every two or
+three seconds I thought there were two
+seconds I looked in the code and looked
+like they were three a heartbeat
+interval was defined as three seconds so
+let's go with three seconds
+what that means is
+when the creature is activated it gets
+its first heartbeat and it's labeled
+first heartbeat because sometimes you
+want to do something special
+on that by the way if this reminds you
+of unity it's very much what Unity does
+we just did this in 1998. I think it's
+just a standard way of handling this so
+when creatures would activate because
+they're sector loaded they would get a
+first heartbeat that would tell them
+things like you're awake you're active
+you should be doing things and this is
+the first time I've told you that so if
+there's anything special you need to set
+up so like if you're a creature you
+might want to wield something you might
+want to check your inventory you might
+want to look around you anything you
+want to do do that now
+you are pretty much guaranteed to be off
+screen because even when you load into
+an instance we distributed those first
+heartbeats before we fade it in
+when you're approaching a sector it's
+guaranteed to be off screen so you can
+do things that might look weird like if
+you need to teleport to a particular
+position or you need to start an
+animation or you need to pull out a
+weapon you can do that and be assured no
+one's seeing you do it
+now what's interesting about heartbeats
+I said they were every three seconds not
+really
+what we did is based on your distance
+away we would lower your
+heart rate
+and we did this over the number of tiles
+away and I think the maximum Beyond 30
+tiles we stopped lowering it but what
+that meant was you only got that higher
+heart rate
+when you were
+near the player and past that you would
+start getting a slower heart rate and a
+slower heart rate and a slower heart
+rate and the reason for this is we
+literally didn't have the CPU Cycles to
+spare
+giving full heart rates to all the
+creatures that could potentially be in
+all that space around you so we slowed
+it down and that was fine if if a
+character was supposed to be walking and
+they got a slower heart rate they would
+jump across where they were supposed to
+be walking which was fine because you
+couldn't see them
+if they were trying to decide what to do
+they would only make decisions at a
+slower and slower rate they would only
+look around themselves less often and
+that's okay because you're not there to
+see it happen
+now there were four basic AI States for
+any creature it was not fighting
+fighting fleeing
+and surrendered I think fighting and not
+fighting makes sense fleeing is what
+happens
+um when you
+most creatures had a flee state which
+was what percent Health you would drop
+below and then you'd run away some of
+them that was set to zero so they would
+never flee and then the fleeing was you
+would Flee for a certain number of
+seconds and then you'd stop you wouldn't
+come back to fight but you'd stop and
+you'd go into not fighting
+surrender with something different
+surrender was different things to put
+you in the surrender state
+spells could do it
+um I believe there was a
+a
+uh something based on your charisma that
+could do it but in any case once you
+went into surrender mode you would just
+stop fighting
+you would not
+start fighting unless a you were
+attacked or B
+your health got above a certain amount
+and I think it was like 80 and then you
+were like well I feel healthy again
+I don't need to uh I don't I will go
+from being surrendered to not fighting
+and the interesting thing about fighting
+this is where all the interesting stuff
+happens at least in my opinion in AI so
+when
+someone's attacked let's call it
+attacker and victim when an attacker
+attacks a victim
+that attack is reported
+there are two radiuses one around the
+attacker
+and one around the victim
+it's based on the loudness of the attack
+so
+that's why stealth attacks were better
+because they were labeled as quiet the
+um every attack was labeled quiet normal
+and loud
+and quite had a very small radius normal
+had a regular radius and Loud had a
+really big radius so when you attack
+someone it would do radii around both
+the attacker and the victim
+saying hey
+uh it would send out an event either I'm
+attacking victim from the attacker or
+I'm being attacked by
+by attacker by the victim
+actually I believe it only reported who
+the attacker was if the victim could see
+the
+attacker otherwise it just said I was
+attacked from and it gave a location but
+no object that was way if you shot
+someone from really far away things
+would run in your direction but until
+they could see you they didn't know it
+was you
+the cool thing about having those two
+was when uh the attacker sat on hey I'm
+attacking this that's what tells your
+followers or anybody who's on if it's an
+NPC anybody on their faction I'm
+attacking this guy do you want to help
+me
+for the victim it was like I'm being
+attacked does anybody want to help me
+people like guards would always help
+victims otherwise they'd look for people
+on your faction and knows who would help
+and who wouldn't
+when we first made this we had the
+funniest bug
+where
+I forgot that traps were implemented as
+just doing an attack
+on whoever triggered the Trap so the
+first time this happened
+the
+trap went off and I think it was a
+companion
+they got attacked by like an arrow trap
+and then they went over and they started
+punching the arrow trap because they
+were angry at it for attacking them and
+it was attackable it had hell Health it
+could be destroyed took that out and
+said hey people realize that inanimate
+objects don't have intention
+and also by the way this um this
+announcement thing was the same thing
+was done whenever you tampered and
+tampered was picking a lock
+picking a pocket or whatever that was
+tampering in the AI system and tampering
+was also done with a report nearby Mo
+usually tampering when I think was
+marked as being quiet
+and that way if anybody nearby cared
+about you doing it if they were on the
+faction of the person being pickpocketed
+or I believe the lock had an owner
+and they were on the faxing keep in mind
+guards helped every faction
+then they would go in and see what was
+going on with the tampering
+and then what other interesting thing
+about our AI
+was bodies
+if you killed someone
+the body remembered who killed them
+they stored it away
+remember that in Fallout we let you drag
+bodies
+so you could get in your body and click
+something it would drag to you and you
+click and drag it so you could get it
+away from if there was like a guard
+walking around or during the day there
+was a street people walked up down you
+could get it off that area and here's
+why
+whenever
+an NPC saw a dead body
+they would look to see if they cared and
+they cared if again they were on the
+same faction as the dead body so
+friends uh other shopkeepers or whatever
+or like I said guards always care
+so they would look and if they were if
+they cared about that body being dead
+then they would look to see who killed
+them
+and they would start looking for them
+now
+the killer the the it was called the
+combat focus it was white after a period
+of time
+I believe it's about 15 game minutes
+unless the player was still nearby
+so it was only wiped it was only checked
+if the players if the if if the player
+walked away and it had been a certain
+amount of time it was wiped the players
+stayed nearby it stayed on the on the
+dead body so if a guard saw it
+so-and-so was the Killer and they start
+walking around looking for the Killer
+the way we made sure if the player
+wanted to hang out in one area corpses
+would decay in 24 hours automatically
+they would turn into a blood splatter
+or if there's already a blood splatter
+there the cork should just be deleted
+the blood splatter would go away in two
+days
+so no matter what in two days all
+evidence of the crime would be gone
+but that is one of the reasons we put in
+there is we wanted to let people be able
+to take out an NPC take out a guard
+whatever and then drag the body to an
+out of the way place so no one would see
+it
+I thought that was pretty cool
+I'm not sure how often people used it
+I'd love to hear if you ever made use of
+that I think we had a lot of people in
+QA that I would constantly remind them
+they could do that and they're like oh
+yeah I forgot it was part of the testing
+plan but I've already gone in about how
+testing plans back in the 90s and early
+2000s were seen as a
+set of fun suggestions but not always
+followed
+anyway
+that's pretty much a big high level view
+of how AI worked in Arcanum
+the
+the heartbeat drove what the player
+normally what the NPC did walked around
+their shop whatever they were supposed
+to be doing by the usually by their
+social class and then combat was driven
+by either turn based or real time
+the NPC moved through those different
+states so I hope that gave you some idea
+of how we did Ai and despite what the
+YouTube algorithm thinks I hope people
+liked it

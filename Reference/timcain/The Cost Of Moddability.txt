@@ -1,0 +1,378 @@
+hi everyone it's me Tim today I want to
+talk about the cost of modability
+specifically the cost of making your
+video game modable by end users and this
+is a really good topic and it came from
+a really good question by pelicano 1987
+who asked how much in time money does it
+cost to make a game modable usually
+players just think that releasing the
+dev tools is enough but it isn't when is
+it viable to think of allowing easy to
+mod even something like custom maps or
+Sprites 3D models rules and mechanics
+how much does a game lose when it
+changes Focus to allow for player
+generated
+content I'm going to talk about this I
+can't go into specific cost because it
+it varies are you making a an RPG are
+you making a platformer is it just one
+Indie solo Dev is it an entire team so I
+will talk about what goes into making
+modability but the reason this is such a
+good question is there a so many game
+players out there that think along this
+line why didn't they just make it
+modable all they had to do is and then
+it's something like
+duh let me just tell you that the answer
+to this is the same as so many questions
+that come up in this channel time and
+there
+money you don't it is not as easy to
+make it as modable as you say whenever
+anyone says just do this my immediate
+gut reaction is they have absolutely no
+idea what they're talking about
+frequently this is you know from manager
+hey Tim why don't you just do this
+because that would just take this long
+which would just cost you this much
+money do you still want me to just do
+that that kind of thing and they're like
+no I can't you just do this right now
+and I'm like nope um and then we talk
+about why it would take that long which
+I usually have a good reason for saying
+why something would take two weeks it's
+not just me going and it takes two weeks
+cuz I don't feel like doing it which
+I've run into so first I'm going to talk
+about what it takes to make a game
+modable and let me caveat this cuz I
+have caveats on everything now it helps
+to do this from the very beginning when
+you first
+start designing the game preferably but
+before you lay down a single line of
+code you really want to have decided how
+the game is modable and how you're going
+to make it modable because retroactive
+retroactively converting a game to be
+modable is really hard and by hard I
+mean time and by time I mean money you
+will be rewriting things that already
+work you'll be rewriting code that
+already Works flawlessly just so they
+all go through a choke point so that you
+can check for modifications and I will
+talk about
+that at the very highest level there are
+three stages to making a game modable
+and they are making the systems
+exposable and then exposing them and
+then making the resulting exposed part
+changeable and preferably easy to change
+by a modder although that latter part is
+completely optional as long as it's
+exposed and they can get at
+it at some point your job is done
+anything you do to make it easy for them
+to modify it is you being nice and
+pleasant and hoping that you have a big
+modding Community which may not be the
+goal of your game keep in mind every
+time you ride a game you have goals for
+it and is one of your goals easy
+modability if it's not if mod ability is
+even even a goal why are you doing this
+so let's talk about those three stages
+uh one at a time so let's start with the
+first one making systems exposable you
+can do this in two
+ways you can
+either have a method that uses data and
+you expose that data or the method
+itself can be exposable and I'll talk
+about that the former where your the
+method uses data it means you have some
+kind of way of calculating something
+that uses
+parameters the values and those values
+are read in somewhere and you could that
+therefore ultimately down the line could
+be modable by the players an example of
+this would be weight of items you can
+make the weight of any item exposed it's
+somewhere in a data file so when you're
+when when items are being read in part
+of their data is how much they weigh
+this means means if you the player are
+playing this game and go ah I wish ammo
+was weightless you could you could solve
+that by finding where that data is and
+just setting all the weights of ammo to
+zero contrast this with that second
+method which is the entire method itself
+is
+exposed this is um it could be function
+or method I'll just pick one and I'm
+just going to call it a
+method you expose that so in this case
+there's an encumbrance calculation
+somewhere and the player in a mod can
+override the calculation the entire
+calculation not just parameters which
+means instead of making ammo items have
+a weight of zero you just skip them when
+calculating encumbrance the encumbrance
+method no longer looks at ammo they both
+uh do the same thing in that case but
+the latter method of exposing the the
+all the methods in the game is way more
+powerful because you can actually change
+on the Fly let's say you wanted ammo to
+you know certain kinds of ammo to weigh
+double or you wanted it to only uh make
+ammo count if you're playing on hard
+mode really hard to do that with the
+data method uh very easy to do that with
+the method
+method okay so that's stage one you've
+decided to make your systems exposable
+so stage two is exposing them how do you
+actually expose them if it's parameter
+data it's pretty easy they're in files
+that get read in so now those files
+exist somewhere and we're talking about
+stage three how does the player actually
+get a hold of those the method one is
+harder depending on your engine and this
+is another reason I can't go into too
+much detail on this because depending on
+what engine you're using putting in
+overrides are very different so let me
+talk about what I did in Arcanum and I
+will link that below if you want more
+details in Arcanum there were for any
+system there were two places where I
+checked to see if there was a script
+override when you're asking can I do
+this thing and then do this thing so for
+example for items can I pick it up pick
+it up can I wield it wield it can I take
+it off take it off can I drop it drop it
+there are a ton of other ones too there
+are you know can the player be seen by
+this creature they see
+them can they go into combat with the
+player start combat with the player the
+reason you have these that way is a
+couple things the override on the cans
+let you override the game and say they
+can't they can't pick this item up like
+you let's say you make an item and
+you're like Orcs can't pick it up boom
+that sword cannot be picked up at all by
+an
+orc let's say you want to say if an orc
+picks it up they take damage then on the
+pickup you override and say so you you
+you let them pick it up but when they
+pick it up you're like are you an orc
+take some damage
+on the can see in combat you may say
+something like I want to make a ring of
+invisibility and no one can see through
+it it's the most it's an artifact it's
+artifact level invisibility so even C
+invisible spells won't see it you just
+put on the can C function are they
+wearing this player wearing this ring
+can't be seen and that will override
+everything in the game you may also want
+an NPC to do something special when
+combat starts like y you know everyone
+come to me we're
+attacking you can do that easily by on
+the combat start on that creature you
+just have them say that
+thing this made it very easy for people
+to do all kinds of things in the Arcanum
+method but it was something we had to do
+when we made the engine we had to make
+sure if you want all the all of those
+can they do this it means every way of
+picking up an item had to go through a
+single choke point in the code so we
+could check the script there and then
+every way of picking it up had
+to go through another choke point so
+that if it overrode the pickup function
+everybody used the
+override not super hard if you haven't
+written a line of code potentially very
+difficult if you've written a lot of
+code and that brings me to this third
+step which is now that you've exposed
+all that stuff how do you make that
+exposed part
+changeable if it's data and files you
+have to make sure those files can be
+edited by the player and
+then the edited files take priority over
+whatever is in
+your database
+file somehow this has to because that
+data has to get connected back in and
+has to take precedence over what was
+there preferably you also let the player
+bundle all these files if they make a
+bunch of different files and they want
+to put it into a mod you give them a way
+to bundle it into that mod so so the
+when they want to deliver their mod
+they're like here is a file that you
+drop into your mod folder and that will
+override all this other stuff now
+hopefully these use all the same tools
+that your developers use maybe they can
+maybe they can't I've used a number of
+tools at different companies that assume
+they're on the network of the company
+the internal Network so they can do
+things like check files into per force
+uh check status of things uh put bugs
+into jira so they're they're
+interconnected with a lot of other
+things maybe they can be made Standalone
+or maybe you make a different set of
+tools for home users but again that
+would take you time and that costs
+money one thing to bear in mind is once
+a player mods the game they have to be
+able to test it and that's a whole other
+thing that depends on the engine a
+modable game May crash and you may not
+be able to do anything about that it may
+be the whatever off the shelf engine
+you're using doesn't handle bad data
+well it also may depend on tools like if
+they want to to mod something that
+you're letting them override a c script
+with another C script it may need to be
+compiled so the end user may need to
+have a c compiler May Maybe not maybe
+you can come up with a different way of
+doing it or that may be a restriction to
+the engine you're using you also want to
+think about the kind of error messages
+you want or even can produce for mods
+like I said if there's an error some of
+the games we've had in inserted into jir
+and said hey this game just crashed and
+here's the stack you can't do that for a
+mo a modder because they won't have all
+those internal
+networking um features available to
+them so you may need to make different
+error messages for mods again more time
+more money and just just as a side note
+I've worked on several games where an
+error message said something like this
+illegal script code see Dave and we just
+knew what it meant because there you
+shouldn't ever be able to have a bad
+script op code in there so if you ever
+saw one that's catastrophic it does not
+know what to do with that and so you
+should go see Dave because probably
+something was wrong with the tools or
+somebody made a change to an enumeration
+in code and didn't keep it aligned with
+something else that they were supposed
+to there were also a lot of cases where
+I've worked on a game where an artist
+could and did crash the game by checking
+in a a bad model or bad
+texture bulletproofing all of that takes
+a lot of time which means a lot lot of
+money it also slows the game down to
+always check as you load in every piece
+of data check that it's in certain
+parameters so many of my games after we
+we went from our debug game to our
+release prototype we turned all those
+checks off to G to gain speed usually
+loading speed but sometimes running
+speed guess what are you going to leave
+those mod checks in or are you going to
+make a special parameter like you can
+run the game in mod test mode and those
+checks are re-enabled again time money
+and you now have to explain this to
+modders I assume you have someone who's
+writing some documentation so modders
+will know what to
+do in addition just adding something
+like a model occurred to me that models
+may need like a certain model like a
+creature model may require certain
+animation States certain labels that can
+be searched for by the game engine
+certain data that has to be there it
+just can't work how if you put a
+creature in there has to be a you know a
+way for it to walk around or is it is it
+flying only and is that labl flying and
+does your game know what flying is and
+what kind of combat attacks does it have
+and where is that data kept is it kept
+on the creature is it kept somewhere
+else all this stuff has to be done
+textures usually have to be a certain
+size that used to be they had to be a
+power of two or boom now they don't have
+to be but potentially it's way less
+efficient if they're not so all that is
+documentation that you might have
+internal that may not be appropriate to
+externalize some will be some won't the
+ones that aren't have to be Rewritten
+time and
+money also I've already mentioned
+modability depends on your engine Unity
+unreal and all the others they handle
+modding differently some allow you to
+handle it differently yourself even on
+the same engine so you have decisions to
+make decisions means time decision time
+means
+money for a f for a game with a fixed
+time and budget adding modability then
+means you won't be adding other features
+I talk about this in my video for design
+fallbacks if you want to put in
+something you may have to not put in
+something else just because you don't
+have the time to do both and your time
+is fixed and your budget is fixed so you
+have to think about
+that in fact for all of this I just want
+to say think about it
+carefully adding modability is not a
+no-brainer and anybody who claims
+otherwise is either inexperienced or
+trying to talk you into doing something
+that they want
+um I don't want to say they're lying but
+they're basically trying to convince you
+of something that isn't true so just
+remember if you want to add modability
+you need those three stages you need to
+make systems exposable expose them and
+then make the resulting exposed data
+something that moders can change so I
+hope this answered your question
+pelicano 1987

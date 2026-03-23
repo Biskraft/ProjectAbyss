@@ -1,0 +1,977 @@
+[Music] my name is Mario CRO and to there I will
+my name is Mario CRO and to there I will be talking about ranking systems let me
+be talking about ranking systems let me give you a little bit about my
+give you a little bit about my background first
+background first I'm originally from Spain in case you're
+I'm originally from Spain in case you're wondering what is accent come from I am
+wondering what is accent come from I am I'm very competitive you may have heard
+I'm very competitive you may have heard of the important is to participate know
+of the important is to participate know the important is to win don't forget if
+the important is to win don't forget if you're like me you project stand Y
+you're like me you project stand Y ranking systems are so important I back
+ranking systems are so important I back in the day I practiced a lot of
+in the day I practiced a lot of competitive sports in particular rowing
+competitive sports in particular rowing you know this racing with boats I was
+you know this racing with boats I was pretty good at it I also play some
+pretty good at it I also play some online games like a Starcraft I was
+online games like a Starcraft I was pretty terrible at it
+pretty terrible at it multitasking is not my thing seems like
+multitasking is not my thing seems like then moved to the US started working on
+then moved to the US started working on the major leads gaming where I got
+the major leads gaming where I got experience on US ports later work on
+experience on US ports later work on games for about five years and Linden
+games for about five years and Linden Lab and others live here in San
+Lab and others live here in San Francisco and I work for twitch
+Francisco and I work for twitch interactive you know the cool video
+interactive you know the cool video platform but I didn't really get to dig
+platform but I didn't really get to dig deep into ranking systems and till I was
+deep into ranking systems and till I was working in one of my side projects which
+working in one of my side projects which is jump craft this is like a tiny
+is jump craft this is like a tiny experiment think of it as a mario maker
+experiment think of it as a mario maker but with simple pixel graphics which are
+but with simple pixel graphics which are super cool and in this game players make
+super cool and in this game players make their own maps which are pixelated and
+their own maps which are pixelated and just in just draw around but then the
+just in just draw around but then the system will estimate what is the actual
+system will estimate what is the actual difficulty of the map the system knows
+difficulty of the map the system knows of them eventually the system knows if
+of them eventually the system knows if the map is hard or easy how does it well
+the map is hard or easy how does it well it has a ranking where it will match
+it has a ranking where it will match players versus map the player gets to
+players versus map the player gets to play a random map if the player is able
+play a random map if the player is able to get to the end player wins if the
+to get to the end player wins if the player dies before getting to the end
+player dies before getting to the end then it has to realize but if he loses
+then it has to realize but if he loses all the lives then player loses in the
+all the lives then player loses in the map wins for the ranking system they are
+map wins for the ranking system they are both the same thing I did it using a
+both the same thing I did it using a true skill implementation in Ruby which
+true skill implementation in Ruby which is what I was coding and for the system
+is what I was coding and for the system there's only one rank but I saw
+there's only one rank but I saw different ranks for both players and
+different ranks for both players and maps so if I'm up
+maps so if I'm up if many players keep dying in the same
+if many players keep dying in the same map the map is slowly goes up up the
+map the map is slowly goes up up the ladder of difficulty this talk is gonna
+ladder of difficulty this talk is gonna be about 30 minutes and I'm going to
+be about 30 minutes and I'm going to talk about elope system true skill
+talk about elope system true skill building on top of Hilo's ideas and at
+building on top of Hilo's ideas and at the end practical considerations to
+the end practical considerations to build your on I'm afraid I'm not gonna
+build your on I'm afraid I'm not gonna give like the super awesome answer to
+give like the super awesome answer to all your problems with yellow as a
+all your problems with yellow as a player or as a designer if any
+player or as a designer if any I probably raised even more questions in
+I probably raised even more questions in your head hopefully one of those
+your head hopefully one of those questions lead to an answer that solves
+questions lead to an answer that solves your specific problem let's start with
+your specific problem let's start with the first example the yellow rating
+the first example the yellow rating system Annihilus start by introducing
+system Annihilus start by introducing the man who started it all with the
+the man who started it all with the serbs less no less than this amazing
+serbs less no less than this amazing confetti animation our padilha animation
+confetti animation our padilha animation is awesome well our Pattillo born
+is awesome well our Pattillo born hungarian came to the United States it
+hungarian came to the United States it was a physics professor and master chess
+was a physics professor and master chess player while playing chess he identified
+player while playing chess he identified problems with a previous ranking system
+problems with a previous ranking system called harness which was a little a
+called harness which was a little a little bit subjective in some sense and
+little bit subjective in some sense and the pendulum which tsunamis you play on
+the pendulum which tsunamis you play on how so he proposed a a new system with
+how so he proposed a a new system with more sound statistical basis called the
+more sound statistical basis called the elo rating system I would put my name as
+elo rating system I would put my name as well on it I will call the mario system
+well on it I will call the mario system well that system was adopted by the
+well that system was adopted by the World Chess Federation quickly in the
+World Chess Federation quickly in the 70s and he ended up probably seen the
+70s and he ended up probably seen the rating of chess players past and present
+rating of chess players past and present in 78 which you all can read if you want
+in 78 which you all can read if you want Oh fun fact up until the mid eighties
+Oh fun fact up until the mid eighties yellow himself was running all the
+yellow himself was running all the calculations for all the players
+calculations for all the players manually wasn't the heart because back
+manually wasn't the heart because back then they were like no more than 2,000
+then they were like no more than 2,000 players but still thanks hello later
+players but still thanks hello later computers to cover as they will with all
+computers to cover as they will with all of us at some point
+so yellow system is all based on their normal distribution
+normal distribution assuming that Chet's players performance
+assuming that Chet's players performance are at random distributed variable Oh in
+are at random distributed variable Oh in the eyes of L oh you are all as lines
+the eyes of L oh you are all as lines yes you are all slime pool everybody
+yes you are all slime pool everybody yeah
+yeah which just like a slime your skill is
+which just like a slime your skill is not here not there is somewhere in
+not here not there is somewhere in between
+between and the system is not really sure what
+and the system is not really sure what it is but has some idea is more or less
+it is but has some idea is more or less here in the center now if you are more
+here in the center now if you are more to the right you are a better this line
+to the right you are a better this line you are more to the left you're worse at
+you are more to the left you're worse at line so sorry blues line the formula and
+line so sorry blues line the formula and nothing that the formula in allows for
+nothing that the formula in allows for 1vs1 players because that's the only
+1vs1 players because that's the only thing in supports and nowadays there are
+thing in supports and nowadays there are many different ways of approaching this
+many different ways of approaching this problem but this is the simplest the
+problem but this is the simplest the simplest possible ways so it's the start
+simplest possible ways so it's the start from here after a given match when two
+from here after a given match when two players played there will be a transfer
+players played there will be a transfer of points from the the player that lost
+of points from the the player that lost in to the player that wins this rate in
+in to the player that wins this rate in difference is the score which is a
+difference is the score which is a number is zero you lose one for the win
+number is zero you lose one for the win - the spective and respect that is from
+- the spective and respect that is from 0 to 1 the probability that the system
+0 to 1 the probability that the system is expecting to happen before so is what
+is expecting to happen before so is what is expected but what happened - what was
+is expected but what happened - what was expected to happen before and then I
+expected to happen before and then I multiplied by the K factor which is this
+multiplied by the K factor which is this an randomness is not under number sorry
+an randomness is not under number sorry is this a number is a constant and that
+is this a number is a constant and that you have to assign to the system this is
+you have to assign to the system this is just because without the K factor you
+just because without the K factor you will always be transferring points
+will always be transferring points between 0 and 1 so we'd like transfer
+between 0 and 1 so we'd like transfer points from R if seen 71 so you make a
+points from R if seen 71 so you make a bigger slower K factor it's also used
+bigger slower K factor it's also used for adjusting the speed of transfer so
+for adjusting the speed of transfer so inside the same ladder you can make that
+inside the same ladder you can make that lower players have a higher K factor and
+lower players have a higher K factor and then towards the up upper paths of the
+then towards the up upper paths of the ranking a smaller k k factor but think
+ranking a smaller k k factor but think about it as an update speed much of the
+about it as an update speed much of the trick here is in figuring perspective
+trick here is in figuring perspective and that's what the system is doing is
+and that's what the system is doing is predicting what will happen then
+predicting what will happen then adjusting based on what actually
+adjusting based on what actually happened the original elog system
+happened the original elog system assumes this formula what is that
+assumes this formula what is that formula came from well it came from the
+formula came from well it came from the union of these lines where the two
+union of these lines where the two slimes totes together does an area there
+slimes totes together does an area there that you can integrate and you can know
+that you can integrate and you can know what is the actual probability that
+what is the actual probability that player is actually better than player B
+player is actually better than player B élow suggested like shape for like the
+élow suggested like shape for like the same shape for design for everybody
+same shape for design for everybody assuming some standard deviation
+assuming some standard deviation assuming that
+assuming that chess players were in the performance
+chess players were in the performance were under a normal distribution but you
+were under a normal distribution but you could use any other distribution you
+could use any other distribution you will get a different formula re another
+will get a different formula re another day you get that expected probability of
+day you get that expected probability of player a of winning is is based on the
+player a of winning is is based on the difference only which will player a and
+difference only which will player a and B as an example well this is what the
+B as an example well this is what the this is the kind of numbers you will get
+this is the kind of numbers you will get with this formula let's assume player E
+with this formula let's assume player E is 0 points better than player B he will
+is 0 points better than player B he will have a 50% chance of winning which is
+have a 50% chance of winning which is obvious if he has hundred points and
+obvious if he has hundred points and this all comes from that 400 number in
+this all comes from that 400 number in there which you can use a different
+there which you can use a different scale but it Alaura generally as you
+scale but it Alaura generally as you know in chess it goes from 1500 to like
+know in chess it goes from 1500 to like 2,000 you can use a different scale but
+2,000 you can use a different scale but in Moody's scale 100 points will be new
+in Moody's scale 100 points will be new 64 percent chance of winning 200 give
+64 percent chance of winning 200 give you seventy six and so on this is what
+you seventy six and so on this is what the system predicts this is an example
+the system predicts this is an example with Bob analyse Bob is a new player he
+with Bob analyse Bob is a new player he has 1500 points
+has 1500 points Elise is one more experience and has
+Elise is one more experience and has 1900 the system believes that the
+1900 the system believes that the spected probability of both of winning
+spected probability of both of winning is nine percent Annelise is the other
+is nine percent Annelise is the other the other part 91 percent well what
+the other part 91 percent well what happens using a key factor of three two
+happens using a key factor of three two and you would use either ten thirty
+and you would use either ten thirty depending on the case this is the amount
+depending on the case this is the amount of points that you will be transferring
+of points that you will be transferring if Bob wins he will get 29 points
+if Bob wins he will get 29 points because that was a big surprise for the
+because that was a big surprise for the system it Bob loses he will only lose
+system it Bob loses he will only lose three points and this means that the
+three points and this means that the system is self adjusting in theory you
+system is self adjusting in theory you can match anybody of different
+can match anybody of different difficulties and amount of points will
+difficulties and amount of points will be transferred based on on the actual
+be transferred based on on the actual difference of a score in practice we'll
+difference of a score in practice we'll see later
+see later is is not a usually one of much players
+is is not a usually one of much players are actually closer to each other to
+are actually closer to each other to avoid those outliers a few comments on
+avoid those outliers a few comments on Ehlo and we'll wrap up here is a very
+Ehlo and we'll wrap up here is a very well understood system means there's an
+well understood system means there's an advantage whatever you use it other
+advantage whatever you use it other people will know to expect what happens
+people will know to expect what happens with it it only works for one versus one
+with it it only works for one versus one it also means team versus team but you
+it also means team versus team but you do can only track the team points not
+do can only track the team points not every individual player unless you do
+every individual player unless you do yourself some kind of distribution
+yourself some kind of distribution inside it it's simple body simplicity is
+inside it it's simple body simplicity is also great the strength is still widely
+also great the strength is still widely used nowadays also if players understand
+used nowadays also if players understand how it works and they can run their
+how it works and they can run their numbers in the calculator like you know
+numbers in the calculator like you know used to do himself is a it also feels
+used to do himself is a it also feels the k-factor is some sort of like
+the k-factor is some sort of like incognito that you have to find out what
+incognito that you have to find out what is the good one for you there are many
+is the good one for you there are many many different ways that will be its own
+many different ways that will be its own hook and nowadays there are many
+hook and nowadays there are many different implementations almost nobody
+different implementations almost nobody uses exactly as as originally stated
+uses exactly as as originally stated because obviously we have more data
+because obviously we have more data even for chests we have more data and
+even for chests we have more data and right now but what is the actual
+right now but what is the actual standard deviation and what illo assume
+standard deviation and what illo assume at at the beginning also new players can
+at at the beginning also new players can take a long time to converge to the
+take a long time to converge to the correct skill is rating with this means
+correct skill is rating with this means that they need to play many many games
+that they need to play many many games in order to get to something that
+in order to get to something that reflects their actual skill let's move
+reflects their actual skill let's move on into the next ranking system that I'm
+on into the next ranking system that I'm describing today which is true skill I'm
+describing today which is true skill I'm talking about rascal specifically
+talking about rascal specifically because it builds on top of the ideas of
+because it builds on top of the ideas of alone true skill ranking system was
+alone true skill ranking system was developed by Microsoft Research design
+developed by Microsoft Research design originally for allowing to have a more
+originally for allowing to have a more general system for xbox live game games
+general system for xbox live game games I think the first one that that when
+I think the first one that that when life implementing this was halo 2 online
+life implementing this was halo 2 online improves of open yellow ideas well I
+improves of open yellow ideas well I think Microsoft Research acid is a
+think Microsoft Research acid is a terrible jobs terrible job so they
+terrible jobs terrible job so they deserve amazing comfort animation yeah
+deserve amazing comfort animation yeah this is awesome - talk I'm gonna use
+this is awesome - talk I'm gonna use this animation for every single slide
+this animation for every single slide make it so much better
+make it so much better so the difference the main difference
+so the difference the main difference there are many difference with your
+there are many difference with your scale it could a little later will come
+scale it could a little later will come when compared with yellow but the main
+when compared with yellow but the main difference is that there are two
+difference is that there are two variables now one is a new operator
+variables now one is a new operator skill and that is pretty much what he'll
+skill and that is pretty much what he'll have like I'm countin on the million on
+have like I'm countin on the million on the sorry on the average of the of the
+the sorry on the average of the of the standard deviation of on the average of
+standard deviation of on the average of the gospel or this this line curve sine
+the gospel or this this line curve sine curve is much easier and Sigma which is
+curve is much easier and Sigma which is a degree of uncertainty so now you can
+a degree of uncertainty so now you can model not only what is your belief on
+model not only what is your belief on the player skill but also how much you
+the player skill but also how much you believe it like do you believe is here
+believe it like do you believe is here with many a certainty or not so in the
+with many a certainty or not so in the eyes of true skills you're also is limes
+eyes of true skills you're also is limes and if you going to explain this is that
+and if you going to explain this is that the new players lines will be sword and
+the new players lines will be sword and fight like the blue one and more
+fight like the blue one and more advanced players will look more like a
+advanced players will look more like a tall and thin lines where the system is
+tall and thin lines where the system is a lot more certain their skill actually
+a lot more certain their skill actually belongs somewhere in that area
+belongs somewhere in that area now if you have two variables what did
+now if you have two variables what did you sow to the players can you tell
+you sow to the players can you tell players like well this is your ranking
+players like well this is your ranking this is your new and this is your Sigma
+this is your new and this is your Sigma well you gotta come up with a single
+well you gotta come up with a single number trueskill suggests a very
+number trueskill suggests a very conservative rating of MU minus 3 times
+conservative rating of MU minus 3 times the Sigma which gets 90 98 percent
+the Sigma which gets 90 98 percent coverage of the whole area of the curve
+coverage of the whole area of the curve that is very conservative in meaning
+that is very conservative in meaning that you the system actually believe
+that you the system actually believe that the actual skill of the player is
+that the actual skill of the player is nineteen ninety-eight percent likely to
+nineteen ninety-eight percent likely to be more than what you saw which also
+be more than what you saw which also means when you do updates is likely to
+means when you do updates is likely to go up no likely to hold them which is a
+go up no likely to hold them which is a this is just like to improve the
+this is just like to improve the perception with using Sigma's and news
+perception with using Sigma's and news as well aus the blue slam down there
+as well aus the blue slam down there will show himself a rating of zero so
+will show himself a rating of zero so this was just a very good way to start
+this was just a very good way to start players on the ranking when they say see
+players on the ranking when they say see themselves would run in zero instead of
+themselves would run in zero instead of Anila where they start with 1500 which
+Anila where they start with 1500 which it feels like Warren would be the number
+it feels like Warren would be the number coming from at least for them it's an
+coming from at least for them it's an example with the simplest cases simplest
+example with the simplest cases simplest case I mean because in true skills you
+case I mean because in true skills you can model multiplayer games a person
+can model multiplayer games a person says 16 versus 16 even even teams of
+says 16 versus 16 even even teams of three versus three versus three versus
+three versus three versus three versus three you don't need to do any tricks
+three you don't need to do any tricks you just feed that data into true skill
+you just feed that data into true skill true skill fills out every individual
+true skill fills out every individual skill update based on what happening in
+skill update based on what happening in those teams and the simplest case is one
+those teams and the simplest case is one versus one which is very similar if it
+versus one which is very similar if it was with two players that have exactly
+was with two players that have exactly same standard deviation that would be
+same standard deviation that would be equivalent to elope very much but you
+equivalent to elope very much but you can you can count with different with
+can you can count with different with different different levels of of the
+different different levels of of the Sigma Natalya for example here we'll see
+Sigma Natalya for example here we'll see herself as first game will have that new
+herself as first game will have that new and Sigma Eric in the other hand has
+and Sigma Eric in the other hand has been playing for a while and has a much
+been playing for a while and has a much smaller Sigma which means less
+smaller Sigma which means less uncertainty
+uncertainty what happens if Natalya wins big
+what happens if Natalya wins big surprise for the system which allows to
+surprise for the system which allows to give her a very big update she he goes
+give her a very big update she he goes astray for and rating zero to fifteen or
+astray for and rating zero to fifteen or how it would be used in an expose life
+how it would be used in an expose life is the Cole level now that I'm using the
+is the Cole level now that I'm using the same a sexual life from one or from zero
+same a sexual life from one or from zero to fifty which is which is why they use
+to fifty which is which is why they use 51 you can get sometimes I'm gonna go
+51 you can get sometimes I'm gonna go back and forth with this animation so
+back and forth with this animation so you can see that data later
+you can see that data later so you see Natalia gets a big update in
+so you see Natalia gets a big update in her new but Eric only gets like a tiny
+her new but Eric only gets like a tiny update down that is because he has a lot
+update down that is because he has a lot more certainty natalia also gets a big
+more certainty natalia also gets a big decrease in the Sigma and Eric also gets
+decrease in the Sigma and Eric also gets a pretty much no not no difference in
+a pretty much no not no difference in reality he's getting like a molest small
+reality he's getting like a molest small tiny down but it's rounded to 125 so
+tiny down but it's rounded to 125 so once the Sigma is a small it doesn't
+once the Sigma is a small it doesn't change that much but at first it changed
+change that much but at first it changed fast this allows the system to quickly
+fast this allows the system to quickly convert to the true skill to get very
+convert to the true skill to get very very fast to what you're actually
+very fast to what you're actually working what is your actual skill as a
+working what is your actual skill as a player again for the simplest case those
+player again for the simplest case those are the formulas you can find online
+are the formulas you can find online there are public we're kind of
+there are public we're kind of complicated obviously they are really
+complicated obviously they are really not that complicated I'm not going to go
+not that complicated I'm not going to go over because we have limited time here
+over because we have limited time here if you wanna see them Microsoft Research
+if you wanna see them Microsoft Research published them there are so which you
+published them there are so which you can find from a link from the Wikipedia
+can find from a link from the Wikipedia a few comments about true skill it is
+a few comments about true skill it is more flexible at least when compared
+more flexible at least when compared with yellow you can model many different
+with yellow you can model many different types of competitive games what I mean
+types of competitive games what I mean with this it allows you to model not
+with this it allows you to model not only one versus one but also
+only one versus one but also multiplayers it has a parameter for the
+multiplayers it has a parameter for the chances of drawing which in some case
+chances of drawing which in some case you can draw more like in other cases
+you can draw more like in other cases like god and racing you do not roll you
+like god and racing you do not roll you will always get at some point it also
+will always get at some point it also models the luck versus a skill which is
+models the luck versus a skill which is very important in some games like
+very important in some games like trading card games have more luck
+trading card games have more luck involved chess has less lag which you
+involved chess has less lag which you know usually you will have to come up
+know usually you will have to come up with your own gauss bell formation for
+with your own gauss bell formation for for getting more close to the actual
+for getting more close to the actual probability of winning or losing it as
+probability of winning or losing it as quickly converts at least morph
+quickly converts at least morph way faster than ello as example as i was
+way faster than ello as example as i was mentioning before eight or sixteen
+mentioning before eight or sixteen players playing against each other
+players playing against each other randomize the system will need about
+randomize the system will need about three to five games to not to get a very
+three to five games to not to get a very good prediction of of their skill if you
+good prediction of of their skill if you are talking about teams like League of
+are talking about teams like League of Legends for example five versus five
+Legends for example five versus five that means a lot more games even even if
+that means a lot more games even even if you randomize the team for informations
+you randomize the team for informations will need about 50 games in order to get
+will need about 50 games in order to get a good a good prediction this is because
+a good a good prediction this is because ill oh sorry through skills Amos Hilo it
+ill oh sorry through skills Amos Hilo it only counts wins and losses he doesn't
+only counts wins and losses he doesn't track in
+track in performance of players inside teams but
+performance of players inside teams but it works calculations are very complex
+it works calculations are very complex as as you saw before fools fools but
+as as you saw before fools fools but today's not a problem with computers you
+today's not a problem with computers you don't need you know to run the numbers
+don't need you know to run the numbers game by game although if they are
+game by game although if they are complex
+complex that also means players sometimes don't
+that also means players sometimes don't understand what's going on and when
+understand what's going on and when things don't go the way they expect
+things don't go the way they expect they'll be like it's unfair it's broken
+they'll be like it's unfair it's broken has a bug this using the Sigma makes
+has a bug this using the Sigma makes easy to model new players whether in
+easy to model new players whether in yellow is usually a problem and downside
+yellow is usually a problem and downside is that is proprietary you may have to
+is that is proprietary you may have to pay Microsoft although there are greater
+pay Microsoft although there are greater great alternatives are there are some
+great alternatives are there are some free implementations or at least I think
+free implementations or at least I think they're free to to be used which don't
+they're free to to be used which don't model exactly the same astro skill but
+model exactly the same astro skill but they are close enough there is also the
+they are close enough there is also the glucose system which has a lot of the
+glucose system which has a lot of the benefits of use interest skill but it's
+benefits of use interest skill but it's also modeled after one versus one
+also modeled after one versus one players it's also simpler but it also
+players it's also simpler but it also converges to the true skill of the
+converges to the true skill of the player very fast now after seeing some
+player very fast now after seeing some of the theory let's move on into the
+of the theory let's move on into the considerations if you want to build your
+considerations if you want to build your own just just doing math is not enough
+own just just doing math is not enough for having a good ranking system out
+for having a good ranking system out there so what makes for a good ranking
+there so what makes for a good ranking system well it needs to be credible I
+system well it needs to be credible I think this is the most important thing
+think this is the most important thing if players is all about player
+if players is all about player perception at the end if they don't
+perception at the end if they don't perceive that this thing is doing the
+perceive that this thing is doing the right thing it doesn't work in is too
+right thing it doesn't work in is too easy to implement this also obvious but
+easy to implement this also obvious but thatís implies that if your system is
+thatís implies that if your system is too complicated
+too complicated it'll be problematic both for players to
+it'll be problematic both for players to track what's going on and also treatment
+track what's going on and also treatment which also means easy to to to do box to
+which also means easy to to to do box to find box to supply the system depending
+find box to supply the system depending on the case there are many other things
+on the case there are many other things different games have different
+different games have different requirements ranking systems are used
+requirements ranking systems are used everywhere so let's review a few
+everywhere so let's review a few practical issues here I'm gonna go over
+practical issues here I'm gonna go over one of those one by one there are more
+one of those one by one there are more but those are the ones that I can fit in
+but those are the ones that I can fit in this time start from complexity food
+this time start from complexity food again foods they are clearly love Jackie
+again foods they are clearly love Jackie Chan is great well the more precise and
+Chan is great well the more precise and flexible your system is the more complex
+flexible your system is the more complex it is if he is too complex is hard to
+it is if he is too complex is hard to understand and also complex systems are
+understand and also complex systems are easier to cheat never forget that
+easier to cheat never forget that simplicity goes a long way
+simplicity goes a long way after all you know still widely news
+after all you know still widely news work why not ease subjectivity well the
+work why not ease subjectivity well the more subjective elements into your
+more subjective elements into your system the more complexity you can
+system the more complexity you can digest that's it probably the best ways
+digest that's it probably the best ways to do that the extreme example will be a
+to do that the extreme example will be a gymnastics tournament where the research
+gymnastics tournament where the research that says seven point seven nine point
+that says seven point seven nine point one five nine nine point nine they just
+one five nine nine point nine they just say a number and that's it that is that
+say a number and that's it that is that yes all that complexity is super simple
+yes all that complexity is super simple this just need one person say that well
+this just need one person say that well still is important that the players or
+still is important that the players or the or the disinter sport people that is
+the or the disinter sport people that is competing beliefs and believes that the
+competing beliefs and believes that the rating is credible if they trusted yes
+rating is credible if they trusted yes then then it's fine actually also it's
+then then it's fine actually also it's important to tell that system like you
+important to tell that system like you know more more mathematical they also
+know more more mathematical they also have a lot of subjectivity involved but
+have a lot of subjectivity involved but is more subtle for example you know you
+is more subtle for example you know you have to guess what is the best K factor
+have to guess what is the best K factor for for your case also you know assume
+for for your case also you know assume what is the standard deviation
+what is the standard deviation inside the players but those things are
+inside the players but those things are more subtle in flexion in the flexion of
+more subtle in flexion in the flexion of a scores well as course may keep going
+a scores well as course may keep going up over time why why is this this is
+up over time why why is this this is because the prediction of the system
+because the prediction of the system gives you even if it gives you a very
+gives you even if it gives you a very good estimation I mean may have like a
+good estimation I mean may have like a one percent error that one percent error
+one percent error that one percent error cannot over time you do you thinking
+cannot over time you do you thinking about centralized chess what's being
+about centralized chess what's being player played over hundreds of years
+player played over hundreds of years they can adapt over time well in most
+they can adapt over time well in most cases games done last 400 years
+cases games done last 400 years unfortunately and so it's usually not an
+unfortunately and so it's usually not an issue for you you shouldn't have to
+issue for you you shouldn't have to worry about these too much but if it
+worry about these too much but if it happens there are things you can do like
+happens there are things you can do like in chess nowadays sometimes there give
+in chess nowadays sometimes there give bonus points after tournaments which
+bonus points after tournaments which helped feed points into the system to to
+helped feed points into the system to to make them grow that they can actually
+make them grow that they can actually make for example new player to start
+make for example new player to start with less a score so there's less points
+with less a score so there's less points into the system you can you can try to
+into the system you can you can try to control that some hard well hello there
+control that some hard well hello there new players when you have a new player
+new players when you have a new player into your game your system what is
+into your game your system what is skilled you don't know they may be an
+skilled you don't know they may be an expert already somebody that was playing
+expert already somebody that was playing and created a new account the most of
+and created a new account the most of the time there will be new players also
+the time there will be new players also the trick is usually isn't to guess what
+the trick is usually isn't to guess what is the average of all of the new players
+is the average of all of the new players already starting
+already starting and also what is the update that you
+and also what is the update that you give your players well crew skilling and
+give your players well crew skilling and glucose is they have explicitly model
+glucose is they have explicitly model the uncertainty of the players with a
+the uncertainty of the players with a Sigma they make a big Sigma they make
+Sigma they make a big Sigma they make them those lines fat and short but Ino
+them those lines fat and short but Ino doesn't have that so Alok and Pattillo
+doesn't have that so Alok and Pattillo can work out with having a bigger K
+can work out with having a bigger K factor on the lower ranks this of Y
+factor on the lower ranks this of Y placement matches are very useful around
+placement matches are very useful around 10 games is usually enough to have a
+10 games is usually enough to have a decent estimation of the starting point
+decent estimation of the starting point of of those players even if it's just
+of of those players even if it's just for matching them better against others
+for matching them better against others on those initially engine didn't want on
+on those initially engine didn't want on your game to have the initial few games
+your game to have the initial few games to be about experience time decay
+to be about experience time decay happens between game you waiting there
+happens between game you waiting there like the Frog
+like the Frog well returning players may be out of
+well returning players may be out of sales in ello this is a problem because
+sales in ello this is a problem because Hilo doesn't doesn't doesn't model time
+Hilo doesn't doesn't doesn't model time decay at all you may spend like a few
+decay at all you may spend like a few months without playing you go back and
+months without playing you go back and you're first you're actually skill is
+you're first you're actually skill is below what the weather system believes
+below what the weather system believes it is your first games will be bad
+it is your first games will be bad experience because you need to lose a
+experience because you need to lose a bunch of times until you get back to
+bunch of times until you get back to your original place interest clearing
+your original place interest clearing gleeko since they model uncertainty
+gleeko since they model uncertainty again the decision to solve it true
+again the decision to solve it true skill at least they're the the algorithm
+skill at least they're the the algorithm that describe microsoft desert research
+that describe microsoft desert research suggests that after every single game
+suggests that after every single game you just increase the uncertainty a
+you just increase the uncertainty a little more that usually helps
+little more that usually helps gleeko models precisely increase the
+gleeko models precisely increase the Sigma based on how long pass since the
+Sigma based on how long pass since the previous game with biggest uncertainty
+previous game with biggest uncertainty the system updates way faster back to to
+the system updates way faster back to to the original skills so you will also
+the original skills so you will also lose the first games but maybe two games
+lose the first games but maybe two games instead of six teams in order to get
+instead of six teams in order to get back to your to your skill I had fun
+back to your to your skill I had fun once and it was awful that's what the
+once and it was awful that's what the grumpy cat says probably when a play on
+grumpy cat says probably when a play on the ranking well ranking can be brutally
+the ranking well ranking can be brutally honest
+honest it tells you how bad you are do they
+it tells you how bad you are do they want to know that most players
+want to know that most players realistically they just want to feel
+realistically they just want to feel progressing they just want to feel the
+progressing they just want to feel the improve over time well for four games I
+improve over time well for four games I believe this is the most important slide
+believe this is the most important slide of it all so you have mathematics behind
+of it all so you have mathematics behind but at the end is again the ranking
+but at the end is again the ranking system doesn't have to be so their score
+system doesn't have to be so their score doesn't have necessary to be what they
+doesn't have necessary to be what they see in fact many many games do
+see in fact many many games do a system like trueskill formats making
+a system like trueskill formats making the players but they saw them a
+the players but they saw them a different different score the score is a
+different different score the score is a cumulative there are many accumulative
+cumulative there are many accumulative systems I'm not covering them in here
+systems I'm not covering them in here but there may be a great solution for
+but there may be a great solution for for some cases a cumulative means that
+for some cases a cumulative means that they just get points as they win this
+they just get points as they win this means also that players can play play
+means also that players can play play play play - Congrats
+play play - Congrats but in some cases this is fine for
+but in some cases this is fine for example in actual chess tournaments how
+example in actual chess tournaments how many systems you can play during a year
+many systems you can play during a year is not that easy to actually do this you
+is not that easy to actually do this you know in other words that could work
+know in other words that could work better for circle cases the recite
+better for circle cases the recite missions like hurts and ass with some
+missions like hurts and ass with some some loot to to get so you feel you want
+some loot to to get so you feel you want something even if you lose the game
+something even if you lose the game localities employed important play
+localities employed important play against your friends so it's not as
+against your friends so it's not as scary you can also do divisions like in
+scary you can also do divisions like in some starcraft ladder would you play
+some starcraft ladder would you play against the same hundred people for for
+against the same hundred people for for for the season hierarchy is important so
+for the season hierarchy is important so it's more fun to be a goal player than
+it's more fun to be a goal player than saying I'm a player with 773 points so
+saying I'm a player with 773 points so you can talk with other people never
+you can talk with other people never forget the fun factor is important game
+forget the fun factor is important game in the system like the most interesting
+in the system like the most interesting man in the world
+man in the world well much making should be random in
+well much making should be random in general at least if you wanna this is
+general at least if you wanna this is the easiest way to avoid people game in
+the easiest way to avoid people game in your system when I was young I could
+your system when I was young I could play against my little brother Starcraft
+play against my little brother Starcraft and I will win every single time mine in
+and I will win every single time mine in one point at a time mining one point at
+one point at a time mining one point at time but the system didn't allow me to
+time but the system didn't allow me to explicitly target him that is that is
+explicitly target him that is that is mostly why those assignments on random
+mostly why those assignments on random well it happens that usually in
+well it happens that usually in tournaments since the pool of players is
+tournaments since the pool of players is small there is no targeting players but
+small there is no targeting players but that gives the players a good idea of
+that gives the players a good idea of who they are playing against and that
+who they are playing against and that sometimes can be problematic for example
+sometimes can be problematic for example in Magic the Gathering they used to use
+in Magic the Gathering they used to use yellow before but the actual
+yellow before but the actual distribution of yellow gives a heart
+distribution of yellow gives a heart like between the best player and the
+like between the best player and the worst player ela says others like a 99%
+worst player ela says others like a 99% of chance for the best player to win
+of chance for the best player to win maybe in reality magic is more like 70%
+maybe in reality magic is more like 70% only because there is still more random
+only because there is still more random factor which means they don't they don't
+factor which means they don't they don't want to play against when they're on the
+want to play against when they're on the top they don't want to play to don't
+top they don't want to play to don't lose their their ranking and this could
+lose their their ranking and this could be a problem that that led them to
+be a problem that that led them to change a more cumulative system call
+change a more cumulative system call please please work at points which was
+please please work at points which was varies for them margin of victory this
+varies for them margin of victory this is a an easy one this is just why why
+is a an easy one this is just why why does these systems count for victories
+does these systems count for victories only
+only and they don't count for how many points
+and they don't count for how many points you make inside well this will be very
+you make inside well this will be very useful especially for team games so you
+useful especially for team games so you can track who who's contributing to the
+can track who who's contributing to the team victory more but it's always
+team victory more but it's always problematic every time you put a metric
+problematic every time you put a metric that that players can maximize without
+that that players can maximize without thinking other team that that can lead
+thinking other team that that can lead to unhealthy matches as well so it's
+to unhealthy matches as well so it's usually best to stay keep it simple
+usually best to stay keep it simple unless you have a very good reason not
+unless you have a very good reason not to now if you do keep the margin of
+to now if you do keep the margin of victory and that gives you more
+victory and that gives you more information your system can be even even
+information your system can be even even more accurate
+more accurate I guess this callback goes back again to
+I guess this callback goes back again to complexity pursue simplicity in in many
+complexity pursue simplicity in in many games there's really no place at home
+games there's really no place at home for example in basketball is is well
+for example in basketball is is well known in a study that there is an actual
+known in a study that there is an actual home advantage like the referee may be
+home advantage like the referee may be biased having the crowd cheering for you
+biased having the crowd cheering for you is empowering there are things that make
+is empowering there are things that make and definitely their basketball ranking
+and definitely their basketball ranking rating a skill rating systems that that
+rating a skill rating systems that that take this into account and with a very
+take this into account and with a very decent chance of winning this is just
+decent chance of winning this is just another variable that you could use in
+another variable that you could use in your in your rating system is it is an
+your in your rating system is it is an easy one to use this one doesn't
+easy one to use this one doesn't increase complexity much and English
+increase complexity much and English could be you know the favorite maps or
+could be you know the favorite maps or something that you find out what you
+something that you find out what you believe these players have a higher
+believe these players have a higher chance to to win already and here the
+chance to to win already and here the dreaded 50% win ratio well by by
+dreaded 50% win ratio well by by definition much making systems like ello
+definition much making systems like ello and true skill they're they're trying if
+and true skill they're they're trying if you well they what they do is to predict
+you well they what they do is to predict try to track the skill of players
+try to track the skill of players therefore you can create high quality
+therefore you can create high quality matches and high quality matches means
+matches and high quality matches means some games were both players have
+some games were both players have roughly the same chance of winning
+roughly the same chance of winning because that makes it more interesting
+because that makes it more interesting remember that in a ranking ranking
+remember that in a ranking ranking itself is a zero-sum game if you give
+itself is a zero-sum game if you give more wins top player
+more wins top player they're moving more wins from the other
+they're moving more wins from the other players so the best you can have is 50%
+players so the best you can have is 50% radio realistically many players
+radio realistically many players actually they they like to win more
+actually they they like to win more often I wouldn't put my hand in the fire
+often I wouldn't put my hand in the fire but I would say this is even so more
+but I would say this is even so more true for Millennials they they need to
+true for Millennials they they need to win all the time well know that how do
+win all the time well know that how do you defeat this well you cannot defeat
+you defeat this well you cannot defeat this with a ranking system you can offer
+this with a ranking system you can offer side activities like the star graphic a
+side activities like the star graphic a non-competitive Wiggles you just need to
+non-competitive Wiggles you just need to give them some
+give them some some someplace where they can have fine
+some someplace where they can have fine wit more often maybe maybe have fake
+wit more often maybe maybe have fake eyes synthetize winner strikes when they
+eyes synthetize winner strikes when they are happy and then have them many losses
+are happy and then have them many losses to counter for that that's definitely
+to counter for that that's definitely something you have to take into account
+something you have to take into account going beyond games MP John well rankings
+going beyond games MP John well rankings are everywhere
+are everywhere you know Amazon Google search everything
+you know Amazon Google search everything that is putting different items together
+that is putting different items together is using ranking system well most of the
+is using ranking system well most of the time this is not a matchmaking system
+time this is not a matchmaking system like you know there are many other many
+like you know there are many other many other algorithms there too to find out
+other algorithms there too to find out certain works a famous example of doing
+certain works a famous example of doing phase mass site before than Facebook to
+phase mass site before than Facebook to run Harvard students only based on which
+run Harvard students only based on which one of then are more cool that was using
+one of then are more cool that was using yellow behind and an item any item that
+yellow behind and an item any item that can be compared can be ranked for
+can be compared can be ranked for example player versus map that's all for
+example player versus map that's all for now keep calm I love cats or kitty
+now keep calm I love cats or kitty Raptors thank you so much
+you have any question at all please try to use a mic
+[Applause]
+I prepared this worked okay there we go what do you think about systems like you
+what do you think about systems like you have wizards overwatch system where
+have wizards overwatch system where it'll hide the different ranking so I'll
+it'll hide the different ranking so I'll show you one rank but your rank may be
+show you one rank but your rank may be something else what do you think it's
+something else what do you think it's appropriate and I feel it depends oh it
+appropriate and I feel it depends oh it wasn't ok I'm gonna repeat the question
+wasn't ok I'm gonna repeat the question when it's more appropriate to hide the
+when it's more appropriate to hide the actual rank and just keep them something
+actual rank and just keep them something that they can different right so this is
+that they can different right so this is a design question more than than an
+a design question more than than an actual mathematical programming question
+actual mathematical programming question but I believe it's better in more casual
+but I believe it's better in more casual games you usually don't care that much
+games you usually don't care that much about that because you just want the
+about that because you just want the casual players to win more often or not
+casual players to win more often or not to be more often but to feel the
+to be more often but to feel the progression sort of feeling the
+progression sort of feeling the progression whether like more hardcore
+progression whether like more hardcore games they as far as they understand
+games they as far as they understand what's going on and maybe you need to
+what's going on and maybe you need to make sure that you're sewing before the
+make sure that you're sewing before the game you're actually sort of even if
+game you're actually sort of even if it's not just the chances like oh you're
+it's not just the chances like oh you're playing much against this other player
+playing much against this other player which is gold and your silver that is
+which is gold and your silver that is probably good so they know what respect
+probably good so they know what respect is always usually about setting the
+is always usually about setting the expectations now for casual games don't
+expectations now for casual games don't expect a lot of your players would not
+expect a lot of your players would not understand how the system works even so
+understand how the system works even so if you have a very good system right
+if you have a very good system right like true skill and they play three
+like true skill and they play three games there the rating goes from zero to
+games there the rating goes from zero to 25 and then stays there forever and
+25 and then stays there forever and maybe even goes down sometimes that's
+maybe even goes down sometimes that's and that's not fun so in those cases
+and that's not fun so in those cases when you can identify that is good to do
+when you can identify that is good to do so you may still use a ranking system
+so you may still use a ranking system behind the Sims just to make sure that
+behind the Sims just to make sure that they have fun matches that they they're
+they have fun matches that they they're not ranked against somebody that is much
+not ranked against somebody that is much better or worse or much worse than them
+better or worse or much worse than them and this is great that you can get there
+and this is great that you can get there in three games so you know as soon as
+in three games so you know as soon as possible thank you no words so online
+possible thank you no words so online games always have a problem with
+games always have a problem with cheaters and exploiters people who buy
+cheaters and exploiters people who buy boosted accounts etc and obviously when
+boosted accounts etc and obviously when you catch the cheaters you reset through
+you catch the cheaters you reset through ello and banned
+ello and banned or whatever you want to do but I haven't
+or whatever you want to do but I haven't seen minigames or a game companies try
+seen minigames or a game companies try to tackle the issue of having inflated
+to tackle the issue of having inflated like players with inflated ego ello from
+like players with inflated ego ello from either cheating or botting inflating
+either cheating or botting inflating other players points by losing after
+other players points by losing after they have cheated up to a certain rank
+they have cheated up to a certain rank so you might have players that played
+so you might have players that played against the cheater you know ten plus
+against the cheater you know ten plus times in a single day
+times in a single day and now their ranking is too high and
+and now their ranking is too high and you punish the cheater but you don't
+you punish the cheater but you don't actually tackle a problem of this kind
+actually tackle a problem of this kind of point inflation that has been
+of point inflation that has been introduced by cheating or exploiting
+introduced by cheating or exploiting okay so the question is yet how how do
+okay so the question is yet how how do these ranking system fight cheaters when
+these ranking system fight cheaters when there are many different ways they can
+there are many different ways they can do to exploit like losing purposely and
+do to exploit like losing purposely and things like that what the increase the
+things like that what the increase the unpredictability in the equation when a
+unpredictability in the equation when a player has fought against yeah so this
+player has fought against yeah so this in this ranking system we saw here both
+in this ranking system we saw here both yellow and true skill and gleeko and
+yellow and true skill and gleeko and they do not try to solve this problem
+they do not try to solve this problem what they do is they give you tools so
+what they do is they give you tools so you can work with that
+you can work with that you don't define the cheaters cause
+you don't define the cheaters cause outside of this algorithm at all you
+outside of this algorithm at all you only can do the season really never
+only can do the season really never really knows if the player suddenly was
+really knows if the player suddenly was training on the side or now it's so good
+training on the side or now it's so good or why is he losing he is the motivated
+or why is he losing he is the motivated the what what you can do with true skill
+the what what you can do with true skill is as you mentioned play without
+is as you mentioned play without certainty you need to have some
+certainty you need to have some detectors and identity sometimes it's a
+detectors and identity sometimes it's a problem if you don't have a good system
+problem if you don't have a good system for if I can just break an account and
+for if I can just break an account and make anyone that that will lead to
+make anyone that that will lead to problems into into the ranking but
+problems into into the ranking but unfortunately through these algorithms
+unfortunately through these algorithms there's really nothing you can do the
+there's really nothing you can do the only thing you can do really is detect
+only thing you can do really is detect when this is - authe he's just he's been
+when this is - authe he's just he's been winning and I just look we're do you do
+winning and I just look we're do you do you can try to increase the Sigma change
+you can try to increase the Sigma change it penalize the son something like some
+it penalize the son something like some things like that but I warn you the more
+things like that but I warn you the more things you can try to add into it the
+things you can try to add into it the more complex the system will become
+more complex the system will become after all and generally speaking the
+after all and generally speaking the more complex the easier is to assist as
+more complex the easier is to assist as well they will constantly find so they
+well they will constantly find so they are unfortunate it is a constant fight
+they're wooden alright thanks so much so you mentioned that one of the
+you mentioned that one of the disadvantages with systems like these is
+disadvantages with systems like these is that the top players don't really want
+that the top players don't really want to play and you mentioned a couple
+to play and you mentioned a couple different ways to deal with that like
+different ways to deal with that like progression other any others they are
+progression other any others they are aware sorry there are other other ways
+aware sorry there are other other ways that you know have to encourage the top
+that you know have to encourage the top players to still want to keep playing
+players to still want to keep playing okay so the question is going back to
+okay so the question is going back to the players not wanting to play ranked
+the players not wanting to play ranked well in the case of of DSi with mighty
+well in the case of of DSi with mighty together in another competitive against
+together in another competitive against they did they introduced a totally
+they did they introduced a totally different system the plains worker in
+different system the plains worker in this case which was better for them
+this case which was better for them because at the end of the day you need
+because at the end of the day you need to think helo was the sign for chess the
+to think helo was the sign for chess the way chess is being played the more
+way chess is being played the more different it is from that the less
+different it is from that the less probably will matter in your game for
+probably will matter in your game for them making humility if makes more sense
+them making humility if makes more sense both for fun in terms of progression and
+both for fun in terms of progression and also because is not that easy to play to
+also because is not that easy to play to repeat many many games of magic and so
+repeat many many games of magic and so there's some also correlation between
+there's some also correlation between the amount of games you play the more
+the amount of games you play the more you improve your deck if you're not
+you improve your deck if you're not doing that I didn't want to radically
+doing that I didn't want to radically change something they could do maybe is
+change something they could do maybe is to create a new expected formula into
+to create a new expected formula into their illo by changing the assumptions
+their illo by changing the assumptions they were assuming that goes well like
+they were assuming that goes well like originally created for chess and for
+originally created for chess and for magic maybe a different one I'm guessing
+magic maybe a different one I'm guessing it'll be like a shorter one and
+it'll be like a shorter one and certainty will always stay higher they
+certainty will always stay higher they may be by changing that will give them
+may be by changing that will give them the better players a more accurate
+the better players a more accurate estimate so they they will be more
+estimate so they they will be more willing to play but it's very it's very
+willing to play but it's very it's very common lately to not pick your when
+common lately to not pick your when you're going to play the world the world
+you're going to play the world the world champion see if not not pick just a top
+champion see if not not pick just a top player from from your frontier a
+player from from your frontier a low-ranking or the true skill ranking by
+low-ranking or the true skill ranking by doing some other way more based on
+doing some other way more based on achievements and things that you need to
+achievements and things that you need to do and that usually works well I believe
+do and that usually works well I believe in in terms of exports and exports as
+in in terms of exports and exports as well this the illo is not it's not going
+well this the illo is not it's not going to help you that much at the end of the
+to help you that much at the end of the day to to be so it's it's probably one
+day to to be so it's it's probably one of the places what you should look as
+of the places what you should look as well for solutions look at how her stone
+well for solutions look at how her stone is doing it which starts doing it quite
+is doing it which starts doing it quite quite different for choosing the
+quite different for choosing the tournaments
+tournaments Thanks I don't know if I have time for
+Thanks I don't know if I have time for this question but just real quick
+this question but just real quick because you made a game with kind of a
+because you made a game with kind of a non-traditional use of yellow you had
+non-traditional use of yellow you had the maps and the players ranked kind of
+the maps and the players ranked kind of the same way
+the same way was there anything kind of interesting
+was there anything kind of interesting the fella from that did anything weird
+the fella from that did anything weird come up that you didn't expect on the on
+come up that you didn't expect on the on the on the prototype like having yeah
+the on the prototype like having yeah having to rank the maps did that yes
+having to rank the maps did that yes yeah there's definitely when you try
+yeah there's definitely when you try different things it'll do which will
+different things it'll do which will find things and that is why it's
+find things and that is why it's important to understand Oh gonna repeat
+important to understand Oh gonna repeat the question did I find more interesting
+the question did I find more interesting things when playing when matching
+things when playing when matching players versus versus maps so yeah um
+players versus versus maps so yeah um that's why you need to understand how
+that's why you need to understand how the model works so you can adapt it to
+the model works so you can adapt it to your case and in this case it was
+your case and in this case it was surprising first that you have two
+surprising first that you have two populations for this they are both the
+populations for this they are both the same maps and players but you have to
+same maps and players but you have to publisher what they never played each
+publisher what they never played each other maps never play against maps
+other maps never play against maps players never play in Spader they play
+players never play in Spader they play each other and it still works because
+each other and it still works because they influence each other through
+they influence each other through through in indirect in indirectly they
+through in indirect in indirectly they influence each other so that was
+influence each other so that was surprising it actually works quite well
+surprising it actually works quite well especially when using through skin layer
+especially when using through skin layer pricing is well when a player makes a
+pricing is well when a player makes a new map what is the initial score going
+new map what is the initial score going back to the coldest heart problem in
+back to the coldest heart problem in this case I instead of using the default
+this case I instead of using the default initial I just applied the same score of
+initial I just applied the same score of the player I was assuming if you're and
+the player I was assuming if you're and obviously you have to beat your map much
+obviously you have to beat your map much like in many other user generated maps
+like in many other user generated maps you have to show that your map is
+you have to show that your map is beatable and therefore that will so
+beatable and therefore that will so later I I realized that most of the time
+later I I realized that most of the time is not the same skill of the player but
+is not the same skill of the player but actually better because players these
+actually better because players these good when they are playing other maps
+good when they are playing other maps they die on three lives but when they
+they die on three lives but when they are doing the wrong map they can play
+are doing the wrong map they can play over and over and over again now what is
+over and over and over again now what is the number it doesn't really match and
+the number it doesn't really match and again if you think about progression
+again if you think about progression making it fun it's probably okay to give
+making it fun it's probably okay to give to make them up a little worse so the
+to make them up a little worse so the first few games will will kind of more
+first few games will will kind of more likely be won there are there are there
+likely be won there are there are there are other other implications like that
+are other other implications like that by the end you also need up quite a few
+by the end you also need up quite a few maps you need also to make tutorials
+maps you need also to make tutorials where the first few units like some
+where the first few units like some placement matches in which it would saw
+placement matches in which it would saw your own map so you don't want to send
+your own map so you don't want to send players in into that pool right away and
+players in into that pool right away and things like that yeah thank you thanks
+things like that yeah thank you thanks so I had a question so chests okay sure
+so I had a question so chests okay sure so chess is a game that you have balance
+so chess is a game that you have balance changes with but we do that with live
+changes with but we do that with live games where we might introduce new
+games where we might introduce new troops they have new stats or even
+troops they have new stats or even changing the status with troops how do
+changing the status with troops how do you incorporate that with the elo system
+you incorporate that with the elo system or a true skill system do you mean find
+or a true skill system do you mean find out the new troop is just so P and
+out the new troop is just so P and they're just using that and then we
+they're just using that and then we nerve them sorry I don't think they boys
+nerve them sorry I don't think they boys you do mean Hanukah maybe or not know
+you do mean Hanukah maybe or not know I'd tell them or something notes yeah I
+I'd tell them or something notes yeah I guess just adding new troops that new
+guess just adding new troops that new players or existing players use and just
+players or existing players use and just kind of impacts and fine that's what's
+kind of impacts and fine that's what's amazing though I'm gonna sort maybe
+amazing though I'm gonna sort maybe maybe we can talk right after yes
+maybe we can talk right after yes alright so that was all more questions
+alright so that was all more questions I'll be around here and you can find me
+I'll be around here and you can find me thank you
+thank you [Applause]

@@ -1,0 +1,1451 @@
+So, thank you for coming. Uh, my name is Barry Goenova. I'm the platform
+Barry Goenova. I'm the platform technical lead at Bungie. I'm going to
+technical lead at Bungie. I'm going to talk about multi-threading the Destiny
+talk about multi-threading the Destiny engine. To start off, um, this talk is
+engine. To start off, um, this talk is not about multi-threaded primitives.
+not about multi-threaded primitives. We're not going to be talking about
+We're not going to be talking about atomics. We're not going to be talking
+atomics. We're not going to be talking about semaphors. It's more about the
+about semaphors. It's more about the engine structure and strategies to
+engine structure and strategies to increase parallelization in the engine.
+increase parallelization in the engine. And we're also going to describe our our
+And we're also going to describe our our system to help program in multi-threaded
+system to help program in multi-threaded ways to prove that it's
+ways to prove that it's safe. So this section's a brief overview
+safe. So this section's a brief overview and I'm going to talk a little bit about
+and I'm going to talk a little bit about multi-threading. I'm going to follow it
+multi-threading. I'm going to follow it up with how we did multi-threading in
+up with how we did multi-threading in Destiny, what our our philosophies are,
+Destiny, what our our philosophies are, and then how we ended up mapping that to
+and then how we ended up mapping that to the hardware for the different platforms
+the hardware for the different platforms that we shipped. I'm going to talk a
+that we shipped. I'm going to talk a little bit about how we proved that our
+little bit about how we proved that our code codebase was thread safe and then
+code codebase was thread safe and then how we deployed that into our engine and
+how we deployed that into our engine and then the lessons learned from that.
+then the lessons learned from that. Finally, I'll just wrap that
+up. So, Destiny is a shared world shooter. Uh we want to provide low
+shooter. Uh we want to provide low latency action that's a fast-paced game.
+latency action that's a fast-paced game. It's basically the start of a new
+It's basically the start of a new generation for us. Uh we're suns setting
+generation for us. Uh we're suns setting Halo. We're starting with new two two
+Halo. We're starting with new two two new consoles, the PS4 and Xbox One. And
+new consoles, the PS4 and Xbox One. And then of course we're still shipping on
+then of course we're still shipping on 360 and
+360 and PS3. Um there's a little bit of gameplay
+PS3. Um there's a little bit of gameplay footage in case you're one of the people
+footage in case you're one of the people who aren't the 16 million people who've
+who aren't the 16 million people who've played our game
+yet. Of course,
+So, I'm going to talk a bit about multi-threading, uh, why we needed to do
+multi-threading, uh, why we needed to do um how we knew it was going to be hard.
+um how we knew it was going to be hard. Uh basically, we determined that we
+Uh basically, we determined that we couldn't ship without multi-threading.
+couldn't ship without multi-threading. The gameplay needs to be the same across
+The gameplay needs to be the same across all of our platforms. We want everybody
+all of our platforms. We want everybody to have the same experience regardless
+to have the same experience regardless where they're playing it. Um if they're
+where they're playing it. Um if they're playing it on last gen or current gen.
+playing it on last gen or current gen. Uh but we've already shipped on last
+Uh but we've already shipped on last gen. uh this workload is now much more
+gen. uh this workload is now much more than we've done in the past because
+than we've done in the past because we're both we're doing both AI and
+we're both we're doing both AI and networking in the same game modes
+networking in the same game modes instead of just networking for PVP and
+instead of just networking for PVP and PVE being single player or PVE is now
+PVE being single player or PVE is now shared. And so we have to basically be
+shared. And so we have to basically be able to extract as much CPU as we can
+able to extract as much CPU as we can out of the whole system, especially on
+out of the whole system, especially on those last gen platforms like PS3 with
+those last gen platforms like PS3 with the the two PPUs that aren't very
+the the two PPUs that aren't very powerful.
+powerful. But we knew multi-threading was going to
+But we knew multi-threading was going to be hard. So we had to figure out a good
+be hard. So we had to figure out a good way to do it. Um you know there's
+way to do it. Um you know there's basically three big hard things in it.
+basically three big hard things in it. Splitting the workloads. You never
+Splitting the workloads. You never really know what uh what the right way
+really know what uh what the right way is to split things. Uh preventing the
+is to split things. Uh preventing the data dependency misses. Uh knowing how
+data dependency misses. Uh knowing how your data is going to interact with each
+your data is going to interact with each other and then tracking down those
+other and then tracking down those issues when you've missed all of that
+issues when you've missed all of that and figuring it out.
+and figuring it out. So as an example for splitting the
+So as an example for splitting the workload, uh I'll take a look at our
+workload, uh I'll take a look at our object move. Uh basically object move
+object move. Uh basically object move calculating the positions and the
+calculating the positions and the skeleton uh positions by combining, you
+skeleton uh positions by combining, you know, physics update, animation, IK,
+know, physics update, animation, IK, etc. And so this is usually difficult to
+etc. And so this is usually difficult to parallelize code. It tends to be very
+parallelize code. It tends to be very branchy. You want it to be branchy
+branchy. You want it to be branchy because you want to be able to improve
+because you want to be able to improve the responsiveness, but you have that
+the responsiveness, but you have that trade-off. Maybe you don't want to do
+trade-off. Maybe you don't want to do that. Maybe you want to make it so it's
+that. Maybe you want to make it so it's easier to to thread by making everything
+easier to to thread by making everything the same uh and getting rid of those
+the same uh and getting rid of those branches. But you know, at the end of
+branches. But you know, at the end of the day, each each object is going to
+the day, each each object is going to want to do something different. Uh the
+want to do something different. Uh the objects are interacting with the other
+objects are interacting with the other objects in the system. How do you deal
+objects in the system. How do you deal with that across the the threads? And
+with that across the the threads? And then as they're moving through the
+then as they're moving through the system, the things that they're
+system, the things that they're interacting with are changing all the
+interacting with are changing all the time.
+time. It's just a difficult problem to
+It's just a difficult problem to actually figure out the right way to
+actually figure out the right way to split. And then you're missing data
+split. And then you're missing data dependencies. So let's say you have some
+dependencies. So let's say you have some workloads that you've got here like your
+workloads that you've got here like your AI update which triggers raycasts and
+AI update which triggers raycasts and triggers the physics update. Um physics
+triggers the physics update. Um physics updates can then trigger the audio
+updates can then trigger the audio update because maybe you've got
+update because maybe you've got obstruction or occluders that needs to
+obstruction or occluders that needs to be aware of what's going on in the
+be aware of what's going on in the physics world. And so you can see this
+physics world. And so you can see this this part here with the physics box
+this part here with the physics box that's moving back and forth. I mean
+that's moving back and forth. I mean that that job can start late. It can run
+that that job can start late. It can run long. You don't really know what it's
+long. You don't really know what it's going to actually overlap with,
+going to actually overlap with, especially if you're just dependency
+especially if you're just dependency bound here. And so there's this this
+bound here. And so there's this this missing dep data dependency on the
+missing dep data dependency on the raycast reading your physics world
+raycast reading your physics world versus the physics world actually being
+updated. And then the rare bugs, you know, you get a a bug from QA, they send
+know, you get a a bug from QA, they send you a video, that's all you got. It's
+you a video, that's all you got. It's not a crash. You don't have a core dump.
+not a crash. You don't have a core dump. You can't inspect anything. You just get
+You can't inspect anything. You just get this video that says, "Hey, the rocket
+this video that says, "Hey, the rocket effect on this player is is the wrong
+effect on this player is is the wrong one. It's the same as this other player.
+one. It's the same as this other player. Uh what's going on here?" And that's
+Uh what's going on here?" And that's another bug that's just how are you ever
+another bug that's just how are you ever going to debug that? You know, you don't
+going to debug that? You know, you don't know if it's ever being reproduced in
+know if it's ever being reproduced in house. You don't know how many times
+house. You don't know how many times it's actually gone on. And then QA can't
+it's actually gone on. And then QA can't really tell you anything. Maybe they
+really tell you anything. Maybe they told you, "Hey, there join in progress
+told you, "Hey, there join in progress happened.
+So I'm going to talk a little bit about the multi-threading that we built for
+the multi-threading that we built for Destiny
+Destiny principles. First and foremost, we
+principles. First and foremost, we wanted to keep it simple. Uh we wanted
+wanted to keep it simple. Uh we wanted our complexity to be necessary and
+our complexity to be necessary and there's definitely complexity that we
+there's definitely complexity that we have, but anything that we could keep
+have, but anything that we could keep simple definitely helped us out. We
+simple definitely helped us out. We wanted to keep everything as
+wanted to keep everything as crossplatform as possible. with the four
+crossplatform as possible. with the four platforms that we're shipping on, it's
+platforms that we're shipping on, it's just it's a nightmare to have to keep
+just it's a nightmare to have to keep separate implementations and keep
+separate implementations and keep maintenance on those. It just doesn't
+maintenance on those. It just doesn't make sense. And then the big biggest
+make sense. And then the big biggest important thing was having to understand
+important thing was having to understand our data access patterns. If you don't
+our data access patterns. If you don't know what your data is doing, it's just
+know what your data is doing, it's just going to be really difficult to to
+going to be really difficult to to multi-thread. Uh we also didn't want to
+multi-thread. Uh we also didn't want to wait for
+wait for synchronization. Synchronization just
+synchronization. Synchronization just takes time. We don't necessarily have
+takes time. We don't necessarily have the CPU time to actually do that. Uh
+the CPU time to actually do that. Uh basically we shied away from using
+basically we shied away from using synchronization primitives wherever we
+synchronization primitives wherever we could. We just wanted to express
+could. We just wanted to express everything via dependencies. So work
+everything via dependencies. So work that could start would start and if it
+that could start would start and if it wasn't ready to start yet, we would just
+wasn't ready to start yet, we would just start some other piece of
+work. Uh like many other engines, it's basically the flow of the of the system
+basically the flow of the of the system is running from simulation to rendering.
+is running from simulation to rendering. You want your game world to be
+You want your game world to be simulated. You want to put it on screen.
+simulated. You want to put it on screen. uh we pipeline that so our rendering is
+uh we pipeline that so our rendering is overlapping our simulation but you'll
+overlapping our simulation but you'll have the previous frames rendering
+have the previous frames rendering finishing off while your next frame
+finishing off while your next frame simulation is going vice
+versa we use a job system they're pretty well described by now definitely seen
+well described by now definitely seen lots of talks on them Ron's talk from
+lots of talks on them Ron's talk from GDC 2010 definitely a good one um a job
+GDC 2010 definitely a good one um a job if you're unfamiliar it's just a
+if you're unfamiliar it's just a self-contained task it's got some
+self-contained task it's got some parameters tells you what to do for our
+parameters tells you what to do for our system We have them at half a
+system We have them at half a millisecond to 2 milliseconds and that
+millisecond to 2 milliseconds and that reflects that our jobs do not get
+reflects that our jobs do not get preempted and that we have a
+preempted and that we have a significantly high overhead on the jobs.
+significantly high overhead on the jobs. It's not like making a bunch of SPU jobs
+It's not like making a bunch of SPU jobs where you have that sea of jobs because
+where you have that sea of jobs because you can run two microscond jobs and not
+you can run two microscond jobs and not really worry about
+it. It's uh priority based first in first out. Nothing really fancy there.
+first out. Nothing really fancy there. Um our job graph again it's takes into
+Um our job graph again it's takes into account all the different types of cores
+account all the different types of cores that we have. So on PS3 that's going to
+that we have. So on PS3 that's going to be both the CPU and the SPU jobs and we
+be both the CPU and the SPU jobs and we use dependencies between our jobs. We
+use dependencies between our jobs. We don't do fences. So in this example we
+don't do fences. So in this example we have our AI kickoff and AI finish
+have our AI kickoff and AI finish bookends that have the dependencies for
+bookends that have the dependencies for those actor update jobs that would be
+those actor update jobs that would be running in parallel there.
+What we did find though is most systems tend to do the same work every frame.
+tend to do the same work every frame. You're just going to run that code over
+You're just going to run that code over and over again and it's basically pretty
+and over again and it's basically pretty linear uh kind of reflective from olden
+linear uh kind of reflective from olden days where you're using a single thread
+days where you're using a single thread to to do that work. And then most of
+to to do that work. And then most of that work is using the same data and
+that work is using the same data and that data access pattern is going to be
+that data access pattern is going to be the same across frames. So we formalized
+the same across frames. So we formalized this into a first- class
+this into a first- class citizen which we call the fiber system.
+citizen which we call the fiber system. So we took this industry standard word
+So we took this industry standard word fiber and totally corrupted it. I'm
+fiber and totally corrupted it. I'm sorry. Uh for us a fiber means a set of
+sorry. Uh for us a fiber means a set of jobs that are going to run in sequence.
+jobs that are going to run in sequence. They will not run in parallel with each
+They will not run in parallel with each other. They can run with other fibers
+other. They can run with other fibers but these ones will always run. And
+but these ones will always run. And we'll call that that sequence of jobs.
+we'll call that that sequence of jobs. So in this case, network update, network
+So in this case, network update, network send, network receive. Those would be
+send, network receive. Those would be three jobs that that form an iteration
+three jobs that that form an iteration for our fibers. And then the other piece
+for our fibers. And then the other piece that goes with our fiber system is
+that goes with our fiber system is there's a set of data that's associated
+there's a set of data that's associated with it. So in this case, the network
+with it. So in this case, the network state that's accessible by all of the
+state that's accessible by all of the network jobs inside that
+fiber. For Destiny, we have uh three to four fibers. Basically, uh our
+four fibers. Basically, uh our simulation contains all the game logic
+simulation contains all the game logic as you would expect. Uh similarly the
+as you would expect. Uh similarly the networking is all of the networking code
+networking is all of the networking code and then we have a couple of fibers for
+and then we have a couple of fibers for rendering that covers all of our all all
+rendering that covers all of our all all of the work of extracting that game
+of the work of extracting that game state from simulation and pushing it all
+state from simulation and pushing it all the way into the GPU getting it on
+screen. Fibers really are are acting as a convenience for us here. Um, it's not
+a convenience for us here. Um, it's not like they're really buying us anything
+like they're really buying us anything apart from having jobs because the
+apart from having jobs because the underlying representation is just a
+underlying representation is just a sequence of jobs. But what it does allow
+sequence of jobs. But what it does allow us to do is communicate with people. Um,
+us to do is communicate with people. Um, when you look at a big job graph and you
+when you look at a big job graph and you want to know and you want to talk to
+want to know and you want to talk to other people about it, if you're not on
+other people about it, if you're not on the same page, then it's really
+the same page, then it's really difficult to talk about, oh, this
+difficult to talk about, oh, this specific job over here, we need to work
+specific job over here, we need to work about this. and getting somebody ramped
+about this. and getting somebody ramped up to understand that is a lot easier if
+up to understand that is a lot easier if you basically say, "Hey, in the render
+you basically say, "Hey, in the render fiber when we're kicking off the work to
+fiber when we're kicking off the work to extract things out of the frame, people
+extract things out of the frame, people can catch that very quickly. Um, it
+can catch that very quickly. Um, it gives us common ground basically to talk
+gives us common ground basically to talk about. It also gives you an expectation
+about. It also gives you an expectation of how the data is going to be used
+of how the data is going to be used because you know what data is associated
+because you know what data is associated with it. So there's that general feel of
+with it. So there's that general feel of of this data is owned by this fiber
+of this data is owned by this fiber versus I'm never going to touch the
+versus I'm never going to touch the network data inside the rendering fiber.
+network data inside the rendering fiber. And then the other big key thing that it
+And then the other big key thing that it gave us is because all of our our big
+gave us is because all of our our big systems are fibers, the cross-system
+systems are fibers, the cross-system dependencies can be documented in one
+dependencies can be documented in one location in our code. I don't know if
+location in our code. I don't know if you've ever had to work in a codebase
+you've ever had to work in a codebase where the dependencies between the
+where the dependencies between the systems are spread through the hundreds
+systems are spread through the hundreds of CPP files that you've got, but it's a
+of CPP files that you've got, but it's a big pain to try to figure out what's
+big pain to try to figure out what's going on, especially after the fact. So
+going on, especially after the fact. So being able to have that in a single
+being able to have that in a single function as you know 20 to 30 lines is
+function as you know 20 to 30 lines is is a great way to be able to look and
+is a great way to be able to look and and see where that's all
+and see where that's all going. Uh time control is the only real
+going. Uh time control is the only real thread that we have in our system. It's
+thread that we have in our system. It's responsible for kicking off all the
+responsible for kicking off all the iterations of the fibers. It's queued
+iterations of the fibers. It's queued off of VSYNC for the different
+off of VSYNC for the different platforms.
+platforms. Um, we had tried to do this as a job to
+Um, we had tried to do this as a job to keep the entire system as a job, but it
+keep the entire system as a job, but it basically added a bunch of overhead into
+basically added a bunch of overhead into our job manager. Was the only job that
+our job manager. Was the only job that was trying to execute with accurate
+was trying to execute with accurate timing and so cutting that out just cut
+timing and so cutting that out just cut out a lot of overhead in our job
+out a lot of overhead in our job system. It's also responsible for
+system. It's also responsible for serializing all the fibers, which
+serializing all the fibers, which basically just means draining the
+basically just means draining the current iterations. You wait for them
+current iterations. You wait for them all to complete. You're going to do this
+all to complete. You're going to do this if you need to run something in a single
+if you need to run something in a single threaded type context. So for us that
+threaded type context. So for us that basically means hey we're changing
+basically means hey we're changing destinations. You're going to Mars,
+destinations. You're going to Mars, you're going to Venus. Uh we basically
+you're going to Venus. Uh we basically need to do a few things where the rest
+need to do a few things where the rest of the game can't run at that time. Uh
+of the game can't run at that time. Uh we'll also use it for system events like
+we'll also use it for system events like suspend resume or some of our debugging
+suspend resume or some of our debugging events where we're doing patching and
+events where we're doing patching and developer mode patching. We don't really
+developer mode patching. We don't really care if it works multi-threaded. We just
+care if it works multi-threaded. We just want to have it work.
+So, how do we map this to the hardware? Well, first off, this is a
+hardware? Well, first off, this is a picture of one of our job graphs. This
+picture of one of our job graphs. This is from Cosmo Drrome on Xbox One. It's
+is from Cosmo Drrome on Xbox One. It's pretty much an average frame. It gets a
+pretty much an average frame. It gets a lot more complicated. Uh, I grabbed this
+lot more complicated. Uh, I grabbed this frame from Natasha's talk and it's
+frame from Natasha's talk and it's basically a lot of rendering and a
+basically a lot of rendering and a little bit of simulation. Here we've got
+little bit of simulation. Here we've got over a 100 types of jobs.
+over a 100 types of jobs. uh basically hard to really see what's
+uh basically hard to really see what's going on unless you can zoom in and and
+going on unless you can zoom in and and move around, which again comes back to
+move around, which again comes back to that the fibers being easier to describe
+that the fibers being easier to describe what's going
+on. So for us, we wanted to keep all the platforms as similar as we could and
+platforms as similar as we could and that goes in with our hardware
+that goes in with our hardware utilization as well. Basically, most of
+utilization as well. Basically, most of the principles apply to all of the
+the principles apply to all of the platforms. We usually have one job
+platforms. We usually have one job thread per core. Um, and the simulation
+thread per core. Um, and the simulation fiber, we want to keep that latency
+fiber, we want to keep that latency really low. We're particular about our
+really low. We're particular about our input latency. So, we need to make sure
+input latency. So, we need to make sure that we get our simulation work done as
+that we get our simulation work done as fast as possible with as little
+fast as possible with as little interrupts as we possibly can. So, we're
+interrupts as we possibly can. So, we're going to try to put this on a high
+going to try to put this on a high priority job thread across the
+platforms. So, we also have async job threads. A lot of the platforms have
+threads. A lot of the platforms have tasks that we don't really have control
+tasks that we don't really have control over. They go to sleep. You want to
+over. They go to sleep. You want to query for your network friends list.
+query for your network friends list. Hey, that might take 20 seconds. You're
+Hey, that might take 20 seconds. You're sending an HTTP request to log into a
+sending an HTTP request to log into a server or you're loading data off of
+server or you're loading data off of disk. And so these ones run in our async
+disk. And so these ones run in our async job threads which are allowed to run
+job threads which are allowed to run across the the serialization events. Uh
+across the the serialization events. Uh they can go to sleep, they can take
+they can go to sleep, they can take locks. It's basically just calling OS
+locks. It's basically just calling OS level stuff. And then of course we try
+level stuff. And then of course we try to keep that data self-contained so that
+to keep that data self-contained so that if it does need to get serialized we
+if it does need to get serialized we don't want to wait for those 20 second
+don't want to wait for those 20 second second
+jobs. So I'll start with PS3. Um basically this is a layout of what we've
+basically this is a layout of what we've done for the the hardware threads. Um
+done for the the hardware threads. Um there's no affinity on PS3. So it's not
+there's no affinity on PS3. So it's not like we could say hey this job thread
+like we could say hey this job thread only runs on ppu zero. So we kind of
+only runs on ppu zero. So we kind of cheated a little bit and we just cranked
+cheated a little bit and we just cranked up the priority as high as we possibly
+up the priority as high as we possibly could and that helps minimize a lot of
+could and that helps minimize a lot of the preeemption that we're seeing on it.
+the preeemption that we're seeing on it. And then that job thread is only allowed
+And then that job thread is only allowed to run the simulation jobs most of the
+to run the simulation jobs most of the time. Uh the other pu thread is another
+time. Uh the other pu thread is another job thread. Uh but that job thread has
+job thread. Uh but that job thread has the lowest priority that we could put in
+the lowest priority that we could put in the system. And we basically crammed all
+the system. And we basically crammed all the other threads, the middleware and
+the other threads, the middleware and the async jobs in between there so that
+the async jobs in between there so that they can take up time when they need to.
+they can take up time when they need to. And then across all of the SPUs, we use
+And then across all of the SPUs, we use the six SPUs. They're just running job
+the six SPUs. They're just running job threads to consume those
+jobs. So here's a capture from Tuner. Uh this is job thread
+zero. You can see here that the preeemption, there's not a lot of
+preeemption, there's not a lot of preeemption events. There's still some,
+preeemption events. There's still some, but it gets a pretty good
+but it gets a pretty good utilization. And that allows us to keep
+utilization. And that allows us to keep that that high priority set of
+that that high priority set of simulation jobs going which essentially
+simulation jobs going which essentially are are these jobs here. So it's
+are are these jobs here. So it's the
+the the
+the second these red jobs that have been
+second these red jobs that have been marked off here are all the simulation
+marked off here are all the simulation work that's either simulation fiber work
+work that's either simulation fiber work or uh jobs kicked off from simulation.
+or uh jobs kicked off from simulation. And so they're all running during this
+And so they're all running during this time frame up to here. And then this red
+time frame up to here. And then this red line that goes down marks the end where
+line that goes down marks the end where the simulation is completed for that
+the simulation is completed for that frame. And so we've now opened it up so
+frame. And so we've now opened it up so that other jobs or other work can run on
+that other jobs or other work can run on this hardware thread. And so you can see
+this hardware thread. And so you can see a rendering job sneaked in here on the
+a rendering job sneaked in here on the as this red job
+here. On the other job thread, uh you can see up top
+can see up top here, this job thread is preempted a
+here, this job thread is preempted a lot. uh totally reflecting what I said
+lot. uh totally reflecting what I said earlier where we put everything else in
+between. The SPUs are fairly fairly well utilized. We get about 50 to 70%
+utilized. We get about 50 to 70% utilization which I think is actually
+utilization which I think is actually pretty good for our first shipped PS3
+pretty good for our first shipped PS3 title and we're a little bit behind uh
+title and we're a little bit behind uh given that other people are on their
+given that other people are on their like seventh or eighth PS3 title. But,
+like seventh or eighth PS3 title. But, uh, this one's our first one, and I
+uh, this one's our first one, and I think we've done a a pretty solid job on
+think we've done a a pretty solid job on moving work to the SPUs. We've got about
+moving work to the SPUs. We've got about 20 different job types that cover most
+20 different job types that cover most of most of the code base. I mean, we've
+of most of the code base. I mean, we've got audio, AI, animation, physics,
+got audio, AI, animation, physics, networking, all running on the the SPUs.
+networking, all running on the the SPUs. And of course, we have graphics going
+And of course, we have graphics going there, too. Uh, SP8, lighting, uh, other
+there, too. Uh, SP8, lighting, uh, other other aspects of the graphics. I think
+other aspects of the graphics. I think the entire graphics pipeline is running
+the entire graphics pipeline is running on the SPU for the most part.
+Moving on to 360. So you've got your three cores uh with the two hardware
+three cores uh with the two hardware threads each. Uh the interesting one is
+threads each. Uh the interesting one is the first core. So this one's not being
+the first core. So this one's not being preempted by ZAM. You don't have that 1
+preempted by ZAM. You don't have that 1 millisecond time that's getting in. So
+millisecond time that's getting in. So we're putting all of our simulation jobs
+we're putting all of our simulation jobs there. And then we've gone one step
+there. And then we've gone one step further and hardware thread one is idle
+further and hardware thread one is idle for most of the time. And that allows
+for most of the time. And that allows the the contended hardware elements not
+the the contended hardware elements not to be used by hardware thread one,
+to be used by hardware thread one, enabling a little bit of a speed up on
+enabling a little bit of a speed up on some of the code for hardware thread
+some of the code for hardware thread zero. That allows our simulation to
+zero. That allows our simulation to finish just a little bit earlier.
+finish just a little bit earlier. Hardware threads two and three are just
+Hardware threads two and three are just regular job threads. Uh all our
+regular job threads. Uh all our middleware is crammed onto hardware
+middleware is crammed onto hardware thread 4 with the ZAM update. And then
+thread 4 with the ZAM update. And then hardware thread 5 is also a job thread
+hardware thread 5 is also a job thread and some asynchronous jobs.
+and some asynchronous jobs. These threads don't move around because
+These threads don't move around because 360 has Affinity that we can lock the
+360 has Affinity that we can lock the threads to the hardware
+threads to the hardware threads. So, this is a capture from Rad
+threads. So, this is a capture from Rad Game tools telemetry, uh, one of their
+Game tools telemetry, uh, one of their older versions. This is a frame from the
+older versions. This is a frame from the 360. Uh, it's a little bit harder to see
+360. Uh, it's a little bit harder to see what's going on here because we're not
+what's going on here because we're not zooming in and whatnot, but this red
+zooming in and whatnot, but this red circled section here, this is all the
+circled section here, this is all the simulation work. uh everything past that
+simulation work. uh everything past that is is moving on to different jobs where
+is is moving on to different jobs where we finished the sim frame for
+we finished the sim frame for 360. You can see in these circled spots
+360. You can see in these circled spots here, this is the spots where we've left
+here, this is the spots where we've left the the second CPU idle so that we can
+the the second CPU idle so that we can actually get the better performance on
+actually get the better performance on the first CPU. And then this red line
+the first CPU. And then this red line over here again marking where simulation
+over here again marking where simulation is complete for that frame and we've
+is complete for that frame and we've opened it up for the rest the rest of
+opened it up for the rest the rest of the the jobs to be able to execute on
+the the jobs to be able to execute on that thread.
+So on PS4 and Xbox One, uh there's the two clusters. Basically use cluster one.
+two clusters. Basically use cluster one. So core zero through three to run all of
+So core zero through three to run all of our jobs. Again, core zero, it's our
+our jobs. Again, core zero, it's our simulation jobs. That's the only jobs
+simulation jobs. That's the only jobs that's going to be running. Want to keep
+that's going to be running. Want to keep those as high priority as possible just
+those as high priority as possible just like on all the other platforms. Uh
+like on all the other platforms. Uh we're able to set the affinity so we
+we're able to set the affinity so we don't have to worry about the threads
+don't have to worry about the threads moving around. And on the second
+moving around. And on the second cluster, we basically run all of our
+cluster, we basically run all of our middleware and any of our async
+jobs. So here's a again a telemetry capture. This is from Xbox One. The PS4
+capture. This is from Xbox One. The PS4 is fairly similar, although it's uh a
+is fairly similar, although it's uh a little bit more idle than than the the
+little bit more idle than than the the Xbox One
+Xbox One is. You can see again at the top here,
+is. You can see again at the top here, these jobs are a simulation workload. On
+these jobs are a simulation workload. On nextG, we are able to complete the frame
+nextG, we are able to complete the frame relatively quickly and then we've got
+relatively quickly and then we've got our rendering that starts in after that
+our rendering that starts in after that and we actually finish the rendering
+and we actually finish the rendering almost within 33 milliseconds. We almost
+almost within 33 milliseconds. We almost don't need to pipeline for
+nextg. So you're going to move on a little bit. Uh you're going to see how
+little bit. Uh you're going to see how we prove that our codebase is thread
+we prove that our codebase is thread safe because all that that job graph is
+safe because all that that job graph is fairly complicated. We basically want to
+fairly complicated. We basically want to be able to say, "Hey, this is totally
+be able to say, "Hey, this is totally safe,
+safe, right?" Um, so the big requirements here
+right?" Um, so the big requirements here to be able to say that is we need to be
+to be able to say that is we need to be able to get actionable bugs when we're
+able to get actionable bugs when we're getting it. We can't have those bugs
+getting it. We can't have those bugs like I talked about earlier where it's
+like I talked about earlier where it's like here's a video that says that the
+like here's a video that says that the rocket looks the same. We need to be
+rocket looks the same. We need to be able to know when that's actually
+able to know when that's actually happening, how often it's happening, and
+happening, how often it's happening, and then why it's actually happening. And
+then why it's actually happening. And then we need the tools to actually be
+then we need the tools to actually be able to debug it.
+And really we need to enforce our data patterns. So I bring up this this
+patterns. So I bring up this this picture that we had at the beginning and
+picture that we had at the beginning and you see the the physics going where it's
+you see the the physics going where it's it's conflicting with the raycasts.
+it's conflicting with the raycasts. Again, we want to be able to robustly
+Again, we want to be able to robustly detect this this bug and how do we do
+detect this this bug and how do we do that? And we need to do that because we
+that? And we need to do that because we have 50 client engineers all banging on
+have 50 client engineers all banging on the
+code. So we came up with our execution environment. This is our solution to
+environment. This is our solution to this, the thing that let us ship across
+this, the thing that let us ship across all of our platforms and it's really a
+all of our platforms and it's really a system to validate resources and make
+system to validate resources and make sure that the patterns used with those
+sure that the patterns used with those resources are actually going to be
+resources are actually going to be thread safe. Um, our goal is really to
+thread safe. Um, our goal is really to satisfy those multi-threaded
+satisfy those multi-threaded requirements that I just
+said. So, it's going to be identifying unsafe patterns, but it's going to be
+unsafe patterns, but it's going to be doing it during development. You're not
+doing it during development. You're not going to be waiting to find out later
+going to be waiting to find out later after you've checked in. It's not going
+after you've checked in. It's not going to be three months later. It's going to
+to be three months later. It's going to be before you've actually submitted and
+be before you've actually submitted and unleashed it upon the rest of the people
+unleashed it upon the rest of the people who are de developing in that code. Um,
+who are de developing in that code. Um, it's also going to find the potential
+it's also going to find the potential issues without you actually having to
+issues without you actually having to hit them. So, we want to make sure that
+hit them. So, we want to make sure that if it's possible to have this race
+if it's possible to have this race condition, we found it, not only when
+condition, we found it, not only when the race condition
+the race condition occurs. It's going to detect any of the
+occurs. It's going to detect any of the patterns that lead to the weirdness that
+patterns that lead to the weirdness that you're going to see that's hard to
+you're going to see that's hard to debug. like those things where hey if
+debug. like those things where hey if this job runs in a different order from
+this job runs in a different order from this job you get a different result but
+this job you get a different result but you can't tell and you can't really
+you can't tell and you can't really debug that because how do you control
+debug that because how do you control which jobs run in the different order
+which jobs run in the different order without having putting dependencies
+without having putting dependencies between them and then if you did put
+between them and then if you did put dependencies between them then you've
+dependencies between them then you've already fixed the problem. Uh it'll also
+already fixed the problem. Uh it'll also catch any of the data race conditions or
+catch any of the data race conditions or any of the other crazy bugs that you're
+any of the other crazy bugs that you're trying to find that are all based off of
+trying to find that are all based off of code running at the same time banging on
+code running at the same time banging on the same data.
+the same data. But I do want to stress that this is
+But I do want to stress that this is verification only. We don't ship with
+verification only. We don't ship with this. It's totally compiled out inside
+this. It's totally compiled out inside of our release builds. Uh we're not
+of our release builds. Uh we're not doing any synchronization as a result of
+doing any synchronization as a result of what we find. It's strictly we're going
+what we find. It's strictly we're going to assert when we've detected that
+to assert when we've detected that you're able to do some sort of access
+you're able to do some sort of access that's not
+good. So I'll talk a little bit of terminology. We have a resource. It's
+terminology. We have a resource. It's just really a theoretical concept. It's
+just really a theoretical concept. It's nothing specific. It's not a data
+nothing specific. It's not a data structure, but it's it's anything that
+structure, but it's it's anything that you would want to have protected. So,
+you would want to have protected. So, you know, anything from our havoc world
+you know, anything from our havoc world to uh actor data, uh maybe your input
+to uh actor data, uh maybe your input controller, anything that would be used
+controller, anything that would be used in a multi-threaded
+in a multi-threaded fashion. We have policies and these
+fashion. We have policies and these policies describe what you can do with a
+policies describe what you can do with a resource. We want to be able to say,
+resource. We want to be able to say, hey, this job is allowed to pull the
+hey, this job is allowed to pull the controller. this job is allowed to read
+controller. this job is allowed to read physics. Um those policies are
+physics. Um those policies are associated with a job and it's really
+associated with a job and it's really just explicit markup that you have to
+just explicit markup that you have to add into the
+code. And then we have to provide resource access checks for everything.
+resource access checks for everything. Any resource that you want to have
+Any resource that you want to have protected needs to be able to look up
+protected needs to be able to look up into that policy to see if it has
+into that policy to see if it has permission to do that work. And so you
+permission to do that work. And so you need to be able to put in all of the
+need to be able to put in all of the hooks. And then of course you have to
+hooks. And then of course you have to actually have a lot of code coverage to
+actually have a lot of code coverage to be able to go through all of those if
+be able to go through all of those if statements and all the different
+statements and all the different pathways through your code to make sure
+pathways through your code to make sure that your policies are actually properly
+that your policies are actually properly protecting that
+protecting that data. And then for our access checks,
+data. And then for our access checks, we're going to assert as I mentioned
+we're going to assert as I mentioned before when you don't have access. And
+before when you don't have access. And that's going to be a clear assert that
+that's going to be a clear assert that basically says, hey, no, you can't read
+basically says, hey, no, you can't read game time from here. You're the renderer
+game time from here. You're the renderer thread. You have to get it some other
+thread. You have to get it some other way.
+the policies can overlap. This is when you have resource usage that conflicts.
+you have resource usage that conflicts. So maybe you're like the example before
+So maybe you're like the example before ray casting but you're also updating the
+ray casting but you're also updating the havoc world at the same time. That's not
+havoc world at the same time. That's not a good thing. Uh these also trigger an
+a good thing. Uh these also trigger an assert and it's going to be a clear
+assert and it's going to be a clear assert that says hey your raycast job is
+assert that says hey your raycast job is trying to read the physics world but
+trying to read the physics world but you're also writing to the physics world
+you're also writing to the physics world from your havoc update job.
+These are really to detect potential race conditions. You didn't necessarily
+race conditions. You didn't necessarily hit the race condition. Maybe it was
+hit the race condition. Maybe it was totally safe to read the havoc world and
+totally safe to read the havoc world and and do those raycasts when you were
+and do those raycasts when you were updating it because the jobs that or the
+updating it because the jobs that or the parts in the physics world that you were
+parts in the physics world that you were updating weren't the parts that the
+updating weren't the parts that the raycast was actually looking at. But it
+raycast was actually looking at. But it could happen in the future.
+could happen in the future. And then we're going to check this
+And then we're going to check this against all of the jobs in the job
+against all of the jobs in the job graph. We basically integrated the
+graph. We basically integrated the execution environment to be able to know
+execution environment to be able to know the dependencies between those jobs so
+the dependencies between those jobs so that we can actually tell which jobs are
+that we can actually tell which jobs are capable of running at the same
+time. And this basically makes us provably safe. So, as long as you have
+provably safe. So, as long as you have instrumented all of your data
+instrumented all of your data access, exercised all the pathways
+access, exercised all the pathways through your code, and you're only using
+through your code, and you're only using jobs, then it's perfectly proven. I
+jobs, then it's perfectly proven. I realize that that's, you know, a hard
+realize that that's, you know, a hard tall order to ask for, but it's not as
+tall order to ask for, but it's not as bad as you
+bad as you think. So, I'm going to talk a little
+think. So, I'm going to talk a little bit about how we actually implemented
+bit about how we actually implemented that, got it into our engine.
+that, got it into our engine. to start off writing code. You know,
+to start off writing code. You know, this is how we basically write all of
+this is how we basically write all of our code. And you're going to start off
+our code. And you're going to start off doing your your planning. You're going
+doing your your planning. You're going to plan what data access you're going to
+to plan what data access you're going to have. You're going to add access checks
+have. You're going to add access checks for all the resources that you're going
+for all the resources that you're going to need. And then you're going to add
+to need. And then you're going to add policies to all the new code that you're
+policies to all the new code that you're writing that basically expresses what
+writing that basically expresses what you're going to do and how you're going
+you're going to do and how you're going to access that data. You're going to run
+to access that data. You're going to run through all the code pathways and then
+through all the code pathways and then you're going to resolve any of the
+you're going to resolve any of the overlaps that it's found. So, I'm going
+overlaps that it's found. So, I'm going to talk about these pieces in a little
+to talk about these pieces in a little more
+more detail. The first part, catching every
+detail. The first part, catching every resource. You know, you can't really
+resource. You know, you can't really just say, "Hey, everybody, mark up every
+just say, "Hey, everybody, mark up every single pointer dreference that you're
+single pointer dreference that you're going to do." That's kind of crazy talk.
+going to do." That's kind of crazy talk. Uh, nobody's going to do it unless
+Uh, nobody's going to do it unless you're forced to actually do it. And if
+you're forced to actually do it. And if you don't have compiler support to force
+you don't have compiler support to force those people, you pretty much have to
+those people, you pretty much have to put a wrapper around every every piece
+put a wrapper around every every piece of data inside your engine. But
+of data inside your engine. But thankfully for us uh from previous
+thankfully for us uh from previous titles, we actually use handles for all
+titles, we actually use handles for all of our our data access. So we had a
+of our our data access. So we had a single point that we were able to put
+single point that we were able to put those access checks in and be able to
+those access checks in and be able to verify that we had the the safe spot. Uh
+verify that we had the the safe spot. Uh handles have been great for us. It's
+handles have been great for us. It's used for every piece of data in our
+used for every piece of data in our engine. We just found cache pointers are
+engine. We just found cache pointers are are very often causing bugs. you know,
+are very often causing bugs. you know, you can't tell that this thing has been
+you can't tell that this thing has been deleted frames ago. But with handles,
+deleted frames ago. But with handles, we're able to actually see that we have
+we're able to actually see that we have salt in the handle that basically says
+salt in the handle that basically says this is this has been deleted. It's not
+this is this has been deleted. It's not the same one as when you took the handle
+the same one as when you took the handle from before it. So, we can have a nice
+from before it. So, we can have a nice easy assert that says, "Hey, this
+easy assert that says, "Hey, this simulation object that you dreferenced
+simulation object that you dreferenced is no longer up to date."
+So the data types that we have global data this is your standard structure
+data this is your standard structure that you would normally use. We've
+that you would normally use. We've wrapped it with a handle. The only piece
+wrapped it with a handle. The only piece that's actually really global in this
+that's actually really global in this case is the pointer into the data
+case is the pointer into the data structure that we've backed in the fiber
+structure that we've backed in the fiber memory area. And so that's that area
+memory area. And so that's that area that I said the network state at the
+that I said the network state at the beginning where we had that associated
+beginning where we had that associated with the fibers. And that helps group
+with the fibers. And that helps group the memory that's used a little bit more
+the memory that's used a little bit more cache coherent as well. And this
+cache coherent as well. And this accounts for about 10% of all of the
+accounts for about 10% of all of the data in our game
+data in our game state. We also have arrays. These are
+state. We also have arrays. These are our typical C style array. We call them
+our typical C style array. We call them DATM arrays. The only difference between
+DATM arrays. The only difference between this is it's got an element of sparity
+this is it's got an element of sparity to it. You can have different elements
+to it. You can have different elements that are not allocated. So in this
+that are not allocated. So in this example, DATMS three and four, the gray
+example, DATMS three and four, the gray ones are not allocated, but DATM 5 is.
+ones are not allocated, but DATM 5 is. So there are holes in there. These are
+So there are holes in there. These are also accessed with handles. And this
+also accessed with handles. And this accounts for the bulk of our game state
+accounts for the bulk of our game state about
+80%. Data array with heap is our solution for variable size data. Uh the
+solution for variable size data. Uh the big usage case of this is all of our
+big usage case of this is all of our content memory. All of the resources
+content memory. All of the resources that you're going to see of course are
+that you're going to see of course are different different sizes throughout the
+different different sizes throughout the game. And it's really just a data marray
+game. And it's really just a data marray that indirects into a heap.
+So with those data resources, these are the access checks that we've actually
+the access checks that we've actually chosen to provide. There's your basic
+chosen to provide. There's your basic protection which is just read and write
+protection which is just read and write which is exactly what you would expect.
+which is exactly what you would expect. We provide array protection for the data
+We provide array protection for the data arrays and the data array with heap.
+arrays and the data array with heap. It's array modify, array iterate which
+It's array modify, array iterate which I'll talk about shortly. And then
+I'll talk about shortly. And then there's some advanced protection
+there's some advanced protection producer consumer and whitelisting that
+producer consumer and whitelisting that I'll talk about after that.
+I'll talk about after that. So array modify is really protecting the
+So array modify is really protecting the life cycle of data. It's about whether
+life cycle of data. It's about whether or not that allocated status can be
+or not that allocated status can be changed or written to. And so in this
+changed or written to. And so in this example, it's hey datim zero going from
+example, it's hey datim zero going from unallocated to allocated. And it covers
+unallocated to allocated. And it covers the destruction side as well going the
+the destruction side as well going the other
+other way. Array iterate is the read side of
+way. Array iterate is the read side of this allocated status. It's anything
+this allocated status. It's anything that you can do to discover data. So,
+that you can do to discover data. So, it's meant for the typical loop that
+it's meant for the typical loop that you're going to have where you're
+you're going to have where you're walking over all of your data doing
+walking over all of your data doing something for every single element, but
+something for every single element, but it also covers being able to count or
+it also covers being able to count or query whether or not a data a piece of
+query whether or not a data a piece of data inside that data array is available
+data inside that data array is available for
+usage. The producer consumer is our solution to allow things to create and
+solution to allow things to create and remove elements while other jobs are
+remove elements while other jobs are capable of reading or writing from that
+capable of reading or writing from that data.
+data. And so this is the case where you
+And so this is the case where you typically you're loading all of your
+typically you're loading all of your assets into the game. You need to still
+assets into the game. You need to still be able to read every other asset when
+be able to read every other asset when you're loading new ones or creating new
+you're loading new ones or creating new ones. U in this example, the object
+ones. U in this example, the object update is running. The actor update
+update is running. The actor update rendering objects. They're all going to
+rendering objects. They're all going to read into the the the content. And so
+read into the the the content. And so they still need to be able to read that
+they still need to be able to read that content when your assets are loading. Or
+content when your assets are loading. Or another example, you've got AI. Maybe
+another example, you've got AI. Maybe you have a job that's spawning new AI
+you have a job that's spawning new AI while you've got other jobs in parallel
+while you've got other jobs in parallel that are updating the existing AI.
+that are updating the existing AI. You're going to want to be able to do
+You're going to want to be able to do that without having to serialize those
+that without having to serialize those operations. And the producer consumer
+operations. And the producer consumer allows us to represent that in the
+allows us to represent that in the execution
+environment. Whitelisting is our solution for data parallel jobs. It's
+solution for data parallel jobs. It's about breaking up one data array and
+about breaking up one data array and allowing different access for each
+allowing different access for each element within it. So you can see here
+element within it. So you can see here we have three actor update jobs that are
+we have three actor update jobs that are taking two actors from the data array
+taking two actors from the data array above it. Um it doesn't need to have the
+above it. Um it doesn't need to have the exact same thing. It's not saying hey
+exact same thing. It's not saying hey these ones all have right access. It
+these ones all have right access. It could be that the actor 2 and actor 3
+could be that the actor 2 and actor 3 are only read access in this case
+are only read access in this case whereas the actor zero actor one is
+whereas the actor zero actor one is right
+access. So you take all of these permissions. Here's an example of what a
+permissions. Here's an example of what a policy looks like in our engine. I
+policy looks like in our engine. I apologize for showing code but uh gets
+apologize for showing code but uh gets the point across. Basically, we have a
+the point across. Basically, we have a policy builder. You add access to it
+policy builder. You add access to it with writes or reads for the different
+with writes or reads for the different pieces of data and then you associate it
+pieces of data and then you associate it at the end with one of your
+jobs. So, you've taken all of that and we get to the point where we have to
+we get to the point where we have to exercise all of our code. So, this is a
+exercise all of our code. So, this is a picture of our stress lab or one of the
+picture of our stress lab or one of the parts inside of our stress lab. We do a
+parts inside of our stress lab. We do a lot of automation in our in our
+lot of automation in our in our building. We have 150 machines that are
+building. We have 150 machines that are dedicated just to doing stress for PC
+dedicated just to doing stress for PC side of things. We've got 200 machines
+side of things. We've got 200 machines that are dedicated to doing builds
+that are dedicated to doing builds across the studio. And then another 200
+across the studio. And then another 200 machines that are doing content builds
+machines that are doing content builds for
+for us. In addition to that, we've got 600
+us. In addition to that, we've got 600 different consoles inside there that's
+different consoles inside there that's running test cases on it as well. And so
+running test cases on it as well. And so every time you check in code, we
+every time you check in code, we actually run a stress run for your
+actually run a stress run for your build. And then we have overnight stress
+build. And then we have overnight stress runs or sometimes longer that run a more
+runs or sometimes longer that run a more exhaustive test suite on it. And this is
+exhaustive test suite on it. And this is to cover all of those cases. And those
+to cover all of those cases. And those stress things aren't just, hey, run the
+stress things aren't just, hey, run the same test over and over again. Some of
+same test over and over again. Some of them are monkey scripts where we
+them are monkey scripts where we basically just provide random input to
+basically just provide random input to controllers that you are capable of
+controllers that you are capable of exercising code paths that you wouldn't
+exercising code paths that you wouldn't normally use.
+normally use. In our last month, I think we've done
+In our last month, I think we've done about 12,000 hours of stress run and
+about 12,000 hours of stress run and then 2,000 runs of just check-ins where
+then 2,000 runs of just check-ins where we've done stress against
+we've done stress against those. So, you found the overlaps, you
+those. So, you found the overlaps, you need to resolve them in some way.
+need to resolve them in some way. There's really only four ways to resolve
+There's really only four ways to resolve these issues, and they're the standard
+these issues, and they're the standard ones that you're used to. You can add a
+ones that you're used to. You can add a dependency between the jobs. If the two
+dependency between the jobs. If the two jobs are dependent on each other, then
+jobs are dependent on each other, then they're not going to run at the same
+they're not going to run at the same time. The data is not going to be
+time. The data is not going to be overlapping. You can double buffer cache
+overlapping. You can double buffer cache your data. So maybe you want to read at
+your data. So maybe you want to read at the same time. Maybe you duplicate that
+the same time. Maybe you duplicate that data in a prejob and pass that in to the
+data in a prejob and pass that in to the jobs that read it while you've got the
+jobs that read it while you've got the other jobs updating it. You can do the
+other jobs updating it. You can do the opposite. You can cue write messages so
+opposite. You can cue write messages so you know you want to update the actors.
+you know you want to update the actors. So you build up a big list of operations
+So you build up a big list of operations to proceed and you do that at a point
+to proceed and you do that at a point where the actors aren't being used
+where the actors aren't being used else-wise. You're basically making it a
+else-wise. You're basically making it a single threaded part in the in the
+single threaded part in the in the future of that frame. Or the worst case
+future of that frame. Or the worst case scenario, you have to restructure your
+scenario, you have to restructure your algorithm. You just fundamentally can't
+algorithm. You just fundamentally can't do it. And that's the hard part. And
+do it. And that's the hard part. And those are the parts that you want to
+those are the parts that you want to find early on where it's just not going
+find early on where it's just not going to
+work. I'm going to talk a little bit about the overlap algorithm.
+about the overlap algorithm. It's a fairly simple algorithm, but it's
+It's a fairly simple algorithm, but it's not really obvious until you've really
+not really obvious until you've really thought about it. And so in our case,
+thought about it. And so in our case, we're going to take this this example
+we're going to take this this example frame where we've got our AI kickoff and
+frame where we've got our AI kickoff and finish with our actor update jobs in
+finish with our actor update jobs in between. We've got another job that's
+between. We've got another job that's not part of this dependency chain, the
+not part of this dependency chain, the network send. And then after the AI is
+network send. And then after the AI is finished updating, we're going to update
+finished updating, we're going to update the rest of the objects in the frame. So
+the rest of the objects in the frame. So the question here is which jobs can
+the question here is which jobs can overlap with this actor update job here
+overlap with this actor update job here at the
+top. And so step one, we're going to traverse down the dependency tree. We're
+traverse down the dependency tree. We're going to mark all of the children of
+going to mark all of the children of this job. So all the jobs that can't run
+this job. So all the jobs that can't run until this job is completed, those ones
+until this job is completed, those ones clearly can't overlap.
+clearly can't overlap. So in this case, AI finish is dependent
+So in this case, AI finish is dependent on the actor update job and then
+on the actor update job and then afterwards the object update is
+afterwards the object update is dependent on the AI
+finish. Step two, we're going to go the opposite way in the dependency graph.
+opposite way in the dependency graph. Going to make sure that all of our
+Going to make sure that all of our parents, so the jobs that need to
+parents, so the jobs that need to complete before we can run have been
+complete before we can run have been marked off as non-over overlapping as
+marked off as non-over overlapping as well.
+that case. This is just the AI
+kickoff. For the third step, we're going to union all of the jobs that we haven't
+to union all of the jobs that we haven't marked and we're going to take the
+marked and we're going to take the policy from each of those jobs and build
+policy from each of those jobs and build one big giant global policy that
+one big giant global policy that encompasses all of the access that those
+encompasses all of the access that those jobs can
+jobs can have. In that case, this is the two
+have. In that case, this is the two actor update jobs and the network send
+actor update jobs and the network send job that we've got here.
+For step four, we check that policy to see if that policy has any conflicts
+see if that policy has any conflicts with our current actor update. And so
+with our current actor update. And so for this example, we're going to say,
+for this example, we're going to say, hey, maybe the actor update job just
+hey, maybe the actor update job just gave full write access to all of the
+gave full write access to all of the actors instead of doing a white list. So
+actors instead of doing a white list. So in that case, there will be a
+in that case, there will be a conflict. and we take the conflict and
+conflict. and we take the conflict and we're going to walk all of the jobs that
+we're going to walk all of the jobs that we just finished unioning the policies
+we just finished unioning the policies for that to check those individually so
+for that to check those individually so that we can get finer detail information
+that we can get finer detail information about what's actually
+overlapping. So we walk it. We see that the actor update as I mentioned before
+the actor update as I mentioned before it's conflicting with the first actor
+it's conflicting with the first actor update. So we take note of that.
+update. So we take note of that. Likewise with the other actor update,
+Likewise with the other actor update, it's also
+it's also conflicting, but the network send job
+conflicting, but the network send job isn't. It's not using any data that the
+isn't. It's not using any data that the actor update job is. So we can mark that
+actor update job is. So we can mark that as not
+as not conflicting. And so for the final step
+conflicting. And so for the final step here, we basically just report the
+here, we basically just report the errors and assert out. So you're going
+errors and assert out. So you're going to get those nice clear errors that I
+to get those nice clear errors that I was mentioning before that says, hey,
+was mentioning before that says, hey, the actor update is busy writing to the
+the actor update is busy writing to the actors while the other actor update is
+actors while the other actor update is also busy writing to the actors. So you
+also busy writing to the actors. So you know what to go and look for from the
+know what to go and look for from the get-go.
+get-go. and you didn't spend time trying to
+and you didn't spend time trying to figure out later why your actors were
+figure out later why your actors were being clobbered by other
+jobs and talk about the lessons that we learned from actually implementing
+this. Retrofitting this system into an existing codebase takes a long time. We
+existing codebase takes a long time. We should not account for how much time it
+should not account for how much time it was going to take to mark up our
+was going to take to mark up our codebase. Um, it was actually longer to
+codebase. Um, it was actually longer to write markup for jobs that already
+write markup for jobs that already existed and the multi-threading that was
+existed and the multi-threading that was already there than new jobs. You just
+already there than new jobs. You just don't know all of the nuances of what's
+don't know all of the nuances of what's going on in the code. You haven't looked
+going on in the code. You haven't looked at it for who knows when. You may not
+at it for who knows when. You may not have even been the person who wrote the
+have even been the person who wrote the code in the first place. So you end up
+code in the first place. So you end up with this tale of bugs that you get
+with this tale of bugs that you get where you're getting those asserts that
+where you're getting those asserts that say you don't have permission to read
+say you don't have permission to read this piece of data because you didn't
+this piece of data because you didn't realize that it reads this piece of data
+realize that it reads this piece of data on the off chance that your player is
+on the off chance that your player is looking up while
+jumping. And then you know it was just this unending feel where we kept going
+this unending feel where we kept going at it and kept going at it. I'm pretty
+at it and kept going at it. I'm pretty sure it took us multiple months with
+sure it took us multiple months with multiple people to do
+multiple people to do it. So, we learned we really needed a
+it. So, we learned we really needed a relief valve. As soon as we put the
+relief valve. As soon as we put the stuff in, we were getting asserts all
+stuff in, we were getting asserts all over the place. We had issues in our
+over the place. We had issues in our codebase that we've been skating by for
+codebase that we've been skating by for a while now. And then that workload just
+a while now. And then that workload just explodes on all the other people's teams
+explodes on all the other people's teams because you're saying, "Hey, oh, maybe
+because you're saying, "Hey, oh, maybe there's an issue in rendering. Maybe
+there's an issue in rendering. Maybe there's an issue in in the AI update or
+there's an issue in in the AI update or animation." And you're basically saying,
+animation." And you're basically saying, "Hey, you now need to stop what you're
+"Hey, you now need to stop what you're doing and fix this multi-threaded bug."
+doing and fix this multi-threaded bug." But you can't really do that and you
+But you can't really do that and you can't really do that all at once across
+can't really do that all at once across your entire studio. So you need to have
+your entire studio. So you need to have a way to ignore the issues or filter out
+a way to ignore the issues or filter out the issues so that you can basically add
+the issues so that you can basically add a bug, forget about it, let the game
+a bug, forget about it, let the game run, and then at least know that it's
+run, and then at least know that it's going to get fixed when you triage your
+going to get fixed when you triage your bugs
+later. We also had this great experience where we thought we were smart. We're
+where we thought we were smart. We're going to roll this out in phases. We're
+going to roll this out in phases. We're going to start off by adding all of our
+going to start off by adding all of our resource protection to every piece of
+resource protection to every piece of data that we've got and we're going to
+data that we've got and we're going to enable resource checks first. We won't
+enable resource checks first. We won't enable overlaps. We can deal with that
+enable overlaps. We can deal with that later. It'll be our second phase of
+later. It'll be our second phase of rolling it out. But if you don't educate
+rolling it out. But if you don't educate your team on what's going to happen,
+your team on what's going to happen, then your team goes ahead and just gives
+then your team goes ahead and just gives full permission to every single
+full permission to every single job. And then you turn on overlaps later
+job. And then you turn on overlaps later thinking it's going to be an easy time.
+thinking it's going to be an easy time. and every single job in your system
+and every single job in your system overlaps with every other job even
+overlaps with every other job even though the data is not being used. And
+though the data is not being used. And so that's comes back to trying to keep
+so that's comes back to trying to keep your policies tight with what you're
+your policies tight with what you're actually doing because the issue may not
+actually doing because the issue may not be a real issue. It may just be that
+be a real issue. It may just be that you've overs subscribed that job to
+you've overs subscribed that job to different data that it can use even if
+different data that it can use even if it's not using that
+data. And there's a balance there. You can't protect all of your
+You can't protect all of your resources. I suppose you could if you
+resources. I suppose you could if you really wanted to spend all of the time,
+really wanted to spend all of the time, but it's hard to represent all of the
+but it's hard to represent all of the safe operations that you can do. There's
+safe operations that you can do. There's a lot of things that's really easy. You
+a lot of things that's really easy. You can be clever and try to pack data into
+can be clever and try to pack data into different fields. You can try to do
+different fields. You can try to do substructure allocations and think that
+substructure allocations and think that it's safe for two jobs to be able to
+it's safe for two jobs to be able to write to a different field inside of a
+write to a different field inside of a structure when really it's not because
+structure when really it's not because it's going to clobber it from some weird
+it's going to clobber it from some weird read from the compiler because you
+read from the compiler because you didn't do it on a atomic level for the
+didn't do it on a atomic level for the the
+the chip. And so this really helped
+chip. And so this really helped discourage that cleverness. But you
+discourage that cleverness. But you really do need to figure out what level
+really do need to figure out what level you're willing to go to actually
+you're willing to go to actually protect. And we did that by restricting
+protect. And we did that by restricting what programmers could actually do in
+what programmers could actually do in some cases just to make it
+simpler. Validation is not fast. It gets slower and slower every time you add
+slower and slower every time you add another job. Those overlap checks are
+another job. Those overlap checks are essentially n
+essentially n squ. And so we really just do the full
+squ. And so we really just do the full validation steps inside automation. when
+validation steps inside automation. when you're checking in, you're doing you're
+you're checking in, you're doing you're doing a validation, but it's not the
+doing a validation, but it's not the full exhaustive validation that you're
+full exhaustive validation that you're getting from our automated
+farms. But we also found that it improved communication with within our
+improved communication with within our studio. You think that you've planned
+studio. You think that you've planned out your data well and everything seems
+out your data well and everything seems fine, but then you go and you implement
+fine, but then you go and you implement it and it just doesn't work. Somebody's
+it and it just doesn't work. Somebody's using that data in a way that you didn't
+using that data in a way that you didn't know. The person who originally designed
+know. The person who originally designed it didn't know that people were using
+it didn't know that people were using the data that way. And then of course
+the data that way. And then of course the engineer who originally wrote the
+the engineer who originally wrote the code and thought that the data was only
+code and thought that the data was only going to be used in one way now finally
+going to be used in one way now finally has a way to assert that that's going to
+has a way to assert that that's going to happen. You don't have to wait for some
+happen. You don't have to wait for some bug that you get 6 months down the road
+bug that you get 6 months down the road that says hey Joe Blow decided to use
+that says hey Joe Blow decided to use this data and I don't want him to use it
+this data and I don't want him to use it right now because I'm busy I'm busy
+right now because I'm busy I'm busy writing to it. So really engineers ended
+writing to it. So really engineers ended up talking to other engineers. you ran
+up talking to other engineers. you ran into an assert from this, you got an
+into an assert from this, you got an overlap and you wanted to find the right
+overlap and you wanted to find the right solution. So, you ended up working with
+solution. So, you ended up working with the people who architected the original
+the people who architected the original system and that was fantastic,
+system and that was fantastic, especially for new hires or contractors
+especially for new hires or contractors because those people have just come into
+because those people have just come into your codebase and they don't really know
+your codebase and they don't really know anything. They're trying to get in and
+anything. They're trying to get in and they're trying to do the best that they
+they're trying to do the best that they can and sometimes that just turns into
+can and sometimes that just turns into I'm just going to make it work. And this
+I'm just going to make it work. And this system was a good way of saying you
+system was a good way of saying you think it's working but it's not and
+think it's working but it's not and we're not going to let you keep that
+we're not going to let you keep that code checked
+in. It's actually faster than fixing it later. It seems like the up upfront time
+later. It seems like the up upfront time is huge. It feels like you're spending
+is huge. It feels like you're spending more time overall, but you're really
+more time overall, but you're really not. You're actually doing the fixes for
+not. You're actually doing the fixes for this right away. right? When you're
+this right away. right? When you're doing the the code in the first place,
+doing the the code in the first place, you actually know what's going on. It's
+you actually know what's going on. It's not the three months later I've come
+not the three months later I've come back. What the hell was I thinking? I
+back. What the hell was I thinking? I don't know what I did in this function
+don't know what I did in this function and I'm never going to remember it
+and I'm never going to remember it without reading through the whole thing.
+without reading through the whole thing. But you haven't even check the code in
+But you haven't even check the code in at this point. And it's telling you that
+at this point. And it's telling you that it doesn't run because it has data
+it doesn't run because it has data conflicts over here or data conflicts
+conflicts over here or data conflicts over there.
+over there. But it also has the the advantage that
+But it also has the the advantage that when you walk away from the system, you
+when you walk away from the system, you can actually walk away from the system.
+can actually walk away from the system. The bug tail ends. You get all of the
+The bug tail ends. You get all of the issues up front. It's not going to last
+issues up front. It's not going to last for the next 2 years of your life when
+for the next 2 years of your life when you try to figure out why the renderer
+you try to figure out why the renderer can't work with the particle
+system. The other interesting piece that we had is reorganizing our frame was
+we had is reorganizing our frame was actually really easy. We had multiple
+actually really easy. We had multiple occasions where people just decided,
+occasions where people just decided, hey, I want to be able to get more use
+hey, I want to be able to get more use of the CPU during this area. So, let's
+of the CPU during this area. So, let's just figure out what runs over here. And
+just figure out what runs over here. And the easiest way to do that now is by
+the easiest way to do that now is by trial and error. You can try 20
+trial and error. You can try 20 different places where this piece of
+different places where this piece of code can run. And the system will just
+code can run. And the system will just tell you, no, you can't run there, you
+tell you, no, you can't run there, you can't run here, or it'll let you through
+can't run here, or it'll let you through for the one place that's there. And you
+for the one place that's there. And you know that you can just leave it there
+know that you can just leave it there without having to think about it. And
+without having to think about it. And so, you're not in those meetings trying
+so, you're not in those meetings trying to discuss maybe it'll work here. let's
+to discuss maybe it'll work here. let's try this out. And then you've got those
+try this out. And then you've got those three or four days when you have tests
+three or four days when you have tests banging on it to hope that you find some
+banging on it to hope that you find some crash. But you can actually do something
+crash. But you can actually do something crazy like change it just before
+beta. So to wrap things up in conclusion, we shipped four
+up in conclusion, we shipped four platforms. We didn't have any threading
+platforms. We didn't have any threading issues that we were aware of. We had
+issues that we were aware of. We had fewer threading bugs overall coming out
+fewer threading bugs overall coming out of test than we had on our previous
+of test than we had on our previous titles. And those previous titles were
+titles. And those previous titles were only on one platform. So four four
+only on one platform. So four four platforms with fewer bugs than one
+platforms with fewer bugs than one platform was pretty awesome. We're
+platform was pretty awesome. We're pretty confident that we wouldn't have
+pretty confident that we wouldn't have been able to ship without the execution
+been able to ship without the execution environment. But the execution
+environment. But the execution environment can't actually protect
+environment can't actually protect everything in the
+system. Was it worth it? Absolutely. We had to do it. No
+questions. We have some other Bungee talks. Uh Natasha's talk on the
+talks. Uh Natasha's talk on the rendering architecture is next at 5:30
+rendering architecture is next at 5:30 room
+room 3005. Butcher has a talk tomorrow on uh
+3005. Butcher has a talk tomorrow on uh the core architecture of Destiny and the
+the core architecture of Destiny and the learnings that we had from it, which was
+learnings that we had from it, which was fairly interesting. And Justin Truman
+fairly interesting. And Justin Truman has a talk on how we did our mission
+has a talk on how we did our mission architecture for
+architecture for multiplayer. We're hiring. Come work on
+multiplayer. We're hiring. Come work on the platform team, work in this
+the platform team, work in this environment. It's
+environment. It's awesome. Any questions?
+awesome. Any questions? [Applause]
+Hey, that was really cool. What uh language features do you use to declare
+language features do you use to declare the dependencies of jobs when you write
+the dependencies of jobs when you write jobs? So it was just in C++. Uh so a
+jobs? So it was just in C++. Uh so a dependency from one job. We had a
+dependency from one job. We had a command A depends on B and you pass in
+command A depends on B and you pass in the handle for the A job and the B job.
+the handle for the A job and the B job. And do you I'm assuming you do this uh
+And do you I'm assuming you do this uh like via some sort of dynamic analysis
+like via some sort of dynamic analysis that tries to just
+that tries to just Yes. At at runtime we check the job
+Yes. At at runtime we check the job graph. That was the the overlap
+graph. That was the the overlap algorithm. Um and then every time the
+algorithm. Um and then every time the handle references it's checking whether
+handle references it's checking whether or not you have a policy permission.
+or not you have a policy permission. Have you explored doing uh like static
+Have you explored doing uh like static analysis or something instead?
+analysis or something instead? There's a certain element that you can
+There's a certain element that you can do in static analysis, but you can't
+do in static analysis, but you can't cover everything. So you end up needing
+cover everything. So you end up needing the dynamic analysis as well. So at the
+the dynamic analysis as well. So at the end of the day, it's you can cover 80%
+end of the day, it's you can cover 80% one way, but you really do need that
+one way, but you really do need that final 20%. So there's an area that you
+final 20%. So there's an area that you can explore so you can catch it at
+can explore so you can catch it at compile time, but you know, you catch it
+compile time, but you know, you catch it pretty fast at runtime. Thank you.
+pretty fast at runtime. Thank you. Did uh threading your client in this way
+Did uh threading your client in this way uh present any like challenges trying to
+uh present any like challenges trying to share gameplay code between the client
+share gameplay code between the client and the server?
+and the server? It's a good question.
+It's a good question. Um we certainly had issues for you know
+Um we certainly had issues for you know pretty much everything that we did
+pretty much everything that we did right. Um any threading had consequences
+right. Um any threading had consequences from one place or another. As for the
+from one place or another. As for the server side, I mean, most of that
+server side, I mean, most of that stuff's already serialized via the
+stuff's already serialized via the networking code. You're sending packets
+networking code. You're sending packets to it. It's a big buffer. So, I don't
+to it. It's a big buffer. So, I don't know of anything that comes to my mind
+know of anything that comes to my mind is this was a real big issue for the
+is this was a real big issue for the server client architecture doing it this
+server client architecture doing it this way.
+Hello. This side, this side. And I I I have two questions. First, how to define
+have two questions. First, how to define a complete code path? Sorry. How do you
+a complete code path? Sorry. How do you define the a complete code path to test?
+That's this the same problem that you have with any case where you're trying
+have with any case where you're trying to get full coverage over your codebase.
+to get full coverage over your codebase. Uh for us, most of that was done via
+Uh for us, most of that was done via explicit testing where we knew, hey, if
+explicit testing where we knew, hey, if you do this, this covers all of this. Uh
+you do this, this covers all of this. Uh getting rid of branches that seem
+getting rid of branches that seem unnecessary if you don't need them. our
+unnecessary if you don't need them. our stress farm again with the monkeys that
+stress farm again with the monkeys that I mentioned earlier where it's just a
+I mentioned earlier where it's just a big stream of random input that helps
+big stream of random input that helps get that coverage. I can't guarantee
+get that coverage. I can't guarantee that we hit 100%. But how long machine
+that we hit 100%. But how long machine hours will you test?
+hours will you test? How long in hours was the unit test? Um,
+How long in hours was the unit test? Um, it depends on the level of testing that
+it depends on the level of testing that you're doing, but like a check-in job is
+you're doing, but like a check-in job is probably about one to two hours. The
+probably about one to two hours. The full BVT test suite is easily you know
+full BVT test suite is easily you know 20 hours if not more. Okay. And another
+20 hours if not more. Okay. And another question uh we are putting our engine to
+question uh we are putting our engine to the multip thread architecture and we
+the multip thread architecture and we face the same problem that there are a
+face the same problem that there are a lot of old systems they doing multi-
+lot of old systems they doing multi- threading in older ways and we found
+threading in older ways and we found that it's better to port the entire
+that it's better to port the entire system uh to the new architecture in one
+system uh to the new architecture in one time. So we open up a branch and when we
+time. So we open up a branch and when we finished doing this when and porting
+finished doing this when and porting back we find uh a lot of new bugs uh
+back we find uh a lot of new bugs uh flyed out. So I want to know how do you
+flyed out. So I want to know how do you change your old systems to this new
+change your old systems to this new architecture step by step or any other
+architecture step by step or any other suggestions?
+suggestions? So if I get the question right, as
+So if I get the question right, as you're adding this to an existing
+you're adding this to an existing architecture, how do you catch all the
+architecture, how do you catch all the bugs without older systems? You just
+bugs without older systems? You just mentioned that the the older systems.
+mentioned that the the older systems. Yeah. So I mean for us it was mark up
+Yeah. So I mean for us it was mark up all the data and make sure that the the
+all the data and make sure that the the access checks are going. As you find
+access checks are going. As you find that you're going to see overlaps. We
+that you're going to see overlaps. We had a system to filter out those
+had a system to filter out those overlaps. So we would know about it.
+overlaps. So we would know about it. we'd create a bug in our database and
+we'd create a bug in our database and basically just say don't report this
+basically just say don't report this overlap to any user who's doing it until
+overlap to any user who's doing it until the person who's gone responsible for
+the person who's gone responsible for that bug actually fixes it. So that's
+that bug actually fixes it. So that's allowed us to basically turn it on for
+allowed us to basically turn it on for the old systems without without
+the old systems without without exploding it everywhere. Okay. So you
+exploding it everywhere. Okay. So you have uh two system running
+have uh two system running simultaneously at certain points the
+simultaneously at certain points the older system and the new system. So, I
+older system and the new system. So, I mean you you have a toggle in in some
+mean you you have a toggle in in some way to switch between those systems,
+way to switch between those systems, right? Like um you're just going to hit
+right? Like um you're just going to hit that as you toggle between the systems.
+that as you toggle between the systems. Okay. Thank you. Thank you. All right.
+Okay. Thank you. Thank you. All right. So, if you had all these really nice
+So, if you had all these really nice systems for determining when data
+systems for determining when data contention happened, uh why did you
+contention happened, uh why did you build this like gigantic uh validation
+build this like gigantic uh validation test system?
+test system? Well, the validation test system is the
+Well, the validation test system is the thing that's telling us about data
+thing that's telling us about data contention. Well, doesn't it doesn't it
+contention. Well, doesn't it doesn't it just tell you upfront whether or not you
+just tell you upfront whether or not you have contention? It does, but it's the
+have contention? It does, but it's the only piece of our system that is telling
+only piece of our system that is telling us about that contention. It's not. So,
+us about that contention. It's not. So, the handles would tell you whether or
+the handles would tell you whether or not they've been deleted. The handles
+not they've been deleted. The handles don't tell you whether or not somebody
+don't tell you whether or not somebody else is accessing it. This is the piece
+else is accessing it. This is the piece that takes that information from the
+that takes that information from the handles and then cross references what
+handles and then cross references what every other piece of data is doing.
+every other piece of data is doing. So it's doing that at like after the
+So it's doing that at like after the fact. It's doing part of it is is
+fact. It's doing part of it is is upfront. So every time that you access
+upfront. So every time that you access the data, it's checking dynamically
+the data, it's checking dynamically right there and then for whether or not
+right there and then for whether or not you have permission. And then the
+you have permission. And then the overlap checking is after the fact. We
+overlap checking is after the fact. We keep about three frames queued up so
+keep about three frames queued up so that you can see uh which jobs within
+that you can see uh which jobs within there could be running long. And that
+there could be running long. And that piece is just done whenever the jobs are
+piece is just done whenever the jobs are being added to the graph. it'll go
+being added to the graph. it'll go across all of the other jobs that are
+across all of the other jobs that are previously there.
+previously there. Thanks.
+Thanks. Um, hi. So, also related to this uh
+Um, hi. So, also related to this uh question that was just asked. Um, so
+question that was just asked. Um, so once you have handles, once you have
+once you have handles, once you have policies that specify what data you can
+policies that specify what data you can access and how and handles that let you
+access and how and handles that let you track the data as you access it.
+track the data as you access it. um how do you deal with like normally
+um how do you deal with like normally every engine is going to have a certain
+every engine is going to have a certain amount of third party software that is
+amount of third party software that is not going to have handles in the code.
+not going to have handles in the code. So like once you have a some some
+So like once you have a some some components that just use row pointers.
+components that just use row pointers. Yes. Um there is lots of middleware that
+Yes. Um there is lots of middleware that just use raw pointers. Um we've done
+just use raw pointers. Um we've done things where we've embedded like our raw
+things where we've embedded like our raw pointers for the user data is just
+pointers for the user data is just pointing into a handle. Uh we've had
+pointing into a handle. Uh we've had other parts where inside that actual
+other parts where inside that actual call back that you might get you
+call back that you might get you actually are explicitly calling into the
+actually are explicitly calling into the execution environment saying hey check
+execution environment saying hey check this access. Uh there's a few spots
+this access. Uh there's a few spots where you know I've simplified some of
+where you know I've simplified some of the details where it's not just in the
+the details where it's not just in the handle access. There's there are those
+handle access. There's there are those places where that thread that's running
+places where that thread that's running in havoc that's calling your code is not
+in havoc that's calling your code is not actually a job and so the system does
+actually a job and so the system does handle that via other mechanisms. Okay.
+handle that via other mechanisms. Okay. So it's like on a case by case basis
+So it's like on a case by case basis basically pretty much. Okay, cool.
+basically pretty much. Okay, cool. Thanks.
+Thanks. I had a question. Um, what types of data
+I had a question. Um, what types of data did you end up double buffering?
+did you end up double buffering? What types of data did we end up double
+What types of data did we end up double buffering?
+buffering? Um, you know, there's a lot of stuff
+Um, you know, there's a lot of stuff that we ended up doing. There was the
+that we ended up doing. There was the the weirder esoteric ones like a bunch
+the weirder esoteric ones like a bunch of simulation state for timing
+of simulation state for timing information for networking because of
+information for networking because of the time frame when networking ran. It
+the time frame when networking ran. It ran where simulation was going but it
+ran where simulation was going but it could have lagged over the frame. So it
+could have lagged over the frame. So it couldn't actually directly access that.
+couldn't actually directly access that. That was most of the time that we were
+That was most of the time that we were doing the caching. Uh if you go and you
+doing the caching. Uh if you go and you see Natasha's talk, you'll find a big
+see Natasha's talk, you'll find a big section that we double buffered from the
+section that we double buffered from the game state for rendering. uh not the
+game state for rendering. uh not the entire game state but portions that went
+entire game state but portions that went out and that probably encompasses the
+out and that probably encompasses the bulk of what's there. Yeah, it seems
+bulk of what's there. Yeah, it seems like if you're updating game entities
+like if you're updating game entities all in parallel, don't you need to
+all in parallel, don't you need to double buffer their states? So that so
+double buffer their states? So that so in that case we actually the way that we
+in that case we actually the way that we update those entities we have families
+update those entities we have families uh object families. So if an object is
+uh object families. So if an object is likely to touch another object, it's
+likely to touch another object, it's going to be updated in the same job.
+going to be updated in the same job. Okay. And then furthermore, if it has to
+Okay. And then furthermore, if it has to touch a job or an object that's outside
+touch a job or an object that's outside of that job, it'll just cue a message
+of that job, it'll just cue a message and we have a a final message drain at
+and we have a a final message drain at the end that can process interactions
+the end that can process interactions like that so that we don't have those
+like that so that we don't have those problems. Okay.
+problems. Okay. Okay. Um, so do you only detect bad
+Okay. Um, so do you only detect bad accesses on um like dynamic tests or do
+accesses on um like dynamic tests or do you do it on like commit as well? So we
+you do it on like commit as well? So we don't need to do it on commit because
+don't need to do it on commit because the scope of a policy is within the
+the scope of a policy is within the entire job. So in order to actually
+entire job. So in order to actually commit you need to dreference the handle
+commit you need to dreference the handle and in order to read you have to
+and in order to read you have to dreference the handle. We do
+dreference the handle. We do differentiate those with different
+differentiate those with different functions so that we can choose whether
+functions so that we can choose whether or not it's a read or a write but that's
+or not it's a read or a write but that's just done at the time that you're
+just done at the time that you're dreferencing it and it's safe because
+dreferencing it and it's safe because later in the scope you still have the
+later in the scope you still have the same e policy. So by commit I meant like
+same e policy. So by commit I meant like a git commit.
+a git commit. Oh, I see. Um, so yes, uh, for our our
+Oh, I see. Um, so yes, uh, for our our submission process runs through the
+submission process runs through the automation, uh, and that's our our
+automation, uh, and that's our our gauntlet process, and that's done where
+gauntlet process, and that's done where you'll get kicked back. You won't be
+you'll get kicked back. You won't be able to to submit if, uh, your code
+able to to submit if, uh, your code doesn't run. So, this is um, a pretty
+doesn't run. So, this is um, a pretty inherently complex uh, system and you
+inherently complex uh, system and you acknowledge that. has this add a what do
+acknowledge that. has this add a what do you guys do for code like how do you
+you guys do for code like how do you code review code like fabricator or
+code review code like fabricator or GitHub or so on and has it added a lot
+GitHub or so on and has it added a lot of uh overhead or time on your people on
+of uh overhead or time on your people on your team having to review a lot of code
+your team having to review a lot of code for people that aren't as familiar with
+for people that aren't as familiar with the system as you guys are so I mean
+the system as you guys are so I mean depending on the time frame where we're
+depending on the time frame where we're in within the production cycle the
+in within the production cycle the amount of code review that we do is
+amount of code review that we do is different uh the closer we are to our
+different uh the closer we are to our release po point we have more code
+release po point we have more code reviews going on
+reviews going on But for the added amount of code review,
+But for the added amount of code review, for the extra policy, it's not usually
+for the extra policy, it's not usually too much. There was definitely a lot
+too much. There was definitely a lot right up front when we were rolling out
+right up front when we were rolling out the system. And it did add a lot of work
+the system. And it did add a lot of work for a lot of teams, but in the current
+for a lot of teams, but in the current state, it's basically, hey, did you run
+state, it's basically, hey, did you run this in the test build? Did you actually
+this in the test build? Did you actually check that it's it's working? They say
+check that it's it's working? They say yes. You generally look through their
+yes. You generally look through their policy to make sure that it looks like
+policy to make sure that it looks like it's doing the right thing. You know,
+it's doing the right thing. You know, it's it's not a huge amount of time. And
+it's it's not a huge amount of time. And uh this might be a naive question, but
+uh this might be a naive question, but if you uh if all of your jobs
+if you uh if all of your jobs declaratively declare what their uh data
+declaratively declare what their uh data dependencies are, why do you need to uh
+dependencies are, why do you need to uh dynamically run them?
+dynamically run them? So you don't need to dynamically run
+So you don't need to dynamically run them in order for that portion because
+them in order for that portion because you've got that piece already running.
+you've got that piece already running. Um that piece is actually statically
+Um that piece is actually statically checked. Um it just happens to be that
+checked. Um it just happens to be that some of the jobs are run in different
+some of the jobs are run in different orders on different frames. So we do
+orders on different frames. So we do check that at the frame level. But for
+check that at the frame level. But for the pieces like the question earlier
+the pieces like the question earlier where it's like hey what do you do when
+where it's like hey what do you do when middleware is calling into this code
+middleware is calling into this code that actually needs a dynamic check
+that actually needs a dynamic check going on it because you don't know the
+going on it because you don't know the dependencies between that piece with the
+dependencies between that piece with the rest of your game frame.
+rest of your game frame. Cool. Cool.
+Cool. Cool. Hi. Hey, I was wondering if uh in
+Hi. Hey, I was wondering if uh in addition to your sort of built-in system
+addition to your sort of built-in system that you tried using uh third party
+that you tried using uh third party thread checking software like thread
+thread checking software like thread sanitizer with clang or Intel inspector.
+sanitizer with clang or Intel inspector. Sorry, can you repeat the question a
+Sorry, can you repeat the question a little bit louder? Sorry. Uh I was
+little bit louder? Sorry. Uh I was wondering if you tried using third party
+wondering if you tried using third party thread checking software in addition to
+thread checking software in addition to what you've been doing. So clang's
+what you've been doing. So clang's thread sanitizer or Intel's inspector
+thread sanitizer or Intel's inspector which will do runtime checks for so we
+which will do runtime checks for so we do have some uh static analysis that we
+do have some uh static analysis that we run offline. Uh we didn't investigate a
+run offline. Uh we didn't investigate a huge amount of the other pieces. Um a
+huge amount of the other pieces. Um a lot of those times you get a big bucket
+lot of those times you get a big bucket of work items that you know filtering
+of work items that you know filtering the signal through the noise is really
+the signal through the noise is really hard in that those systems. Yep. Okay.
+hard in that those systems. Yep. Okay. Thank you.
+Thanks everybody for coming. Please fill out your uh form survey thing.

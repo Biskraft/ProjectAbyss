@@ -1,0 +1,409 @@
+Hi everyone, it's me Tim. Today I want
+to talk about Fallout Footsliding,
+which I think is a good case study of
+R&D, especially in game development in
+the 1980s and 1990s.
+I've talked about the Fallout foot
+sliding problem a lot in a number of
+different videos. Most recently, I did
+it in a video about the difference
+between first and third person.
+And Koala Brownie asked if I would be
+said, "I would be interested to know why
+the foot slip took so much programming
+time if there's any story to tell. As a
+TV animator, that would seem like more
+of an art issue." You're right. And but
+I want to talk about it. I have to give
+a lot of context before I dive into the
+exact problem, which was Thorny. And I
+decided to make a video because people
+have asked about this foot sighting
+problem a lot because I bring it up a
+lot and I wanted a video that I could
+point to and go here. I talk about it
+all here. It's also such a good example
+of illustrating what it was like to be a
+game developer, especially like in the
+90s and of course in the 80s as well.
+But it's it's it was it was a
+quintessential game development thorny
+issue in Fallout. And I will end by
+talking about whether we even should
+have fixed it. So before I can start,
+let me describe
+development in the 90s and of course in
+the 80s before that it was it was a time
+of what I call figure it out.
+There was
+there were no engines you could buy off
+the shelf. There weren't a lot of books
+and especially there weren't books
+specifically about the issues you were
+facing. There was there was nothing
+online written or video. No tutorials
+walking you through. Here's exactly how
+you do this. You basically had to figure
+it out. Didn't matter whether you were a
+programmer, an artist, a designer, or
+doing sound or anything. You had to
+figure it out.
+There were some books, I will put a
+caveat out there, there were some books
+that were first principles, like a lot
+of math. Like I still remember there
+were these gem series that I liked
+called graphics gems.
+They would explain how to do a lot of
+things, but they were very much in first
+principle. If you were a programmer and
+you didn't know, you know, vector and
+matrix operations, good luck reading
+some of those graphics gems. You
+basically had to know that and then it
+would explain how to solve a very
+general problem that then you had to
+figure out how to solve in your in your
+game using the hardware that was
+available. Nothing nothing more specific
+than that.
+Now, I would say, and I think I can say
+this definitively, most if not all game
+developers in the 80s and 90s were
+figure it out folks. You wouldn't be in
+the industry if you had to have
+everything explained to you. The
+hardware, the problems that were being
+faced. These were it was being faced for
+the first time by a lot of people. So,
+almost everybody on the team would be
+figure it out folks. Okay. So, that's
+general context for what the industry
+was like. Now, let me explain the
+context for Fallout itself before I can
+even jump into the foot sliding. In
+Fallout, we were using 3D software
+called Alias. And at the time, it ran on
+SGIs that were running a an operating
+system called IRIX. And I've mentioned
+that because I knew it. I is a flavor of
+Unix. Because I knew Unix, the 3D artist
+would often call me in if they were
+having problems with those machines and
+I would try to help them because the IT
+department at Interplay was used to
+dealing with PCs and Macs.
+So that was unique right there. Three,
+the use of 3D software was brand new in
+the early 90s.
+We were doing it on we were using it on
+Fallout to make sprites and no one had
+done that before. In in all the previous
+Interplay games, sprites were made with
+2D software with a 2D artist anim, you
+know, drawing the models and hand
+animating them in every direction that
+you wanted to show the sprite move in.
+We weren't doing that. We were using
+alias to make one 3D model of a
+character and then there would be one
+walk cycle. They would walk, boom, boom,
+boom. Then you could rotate the camera.
+we were doing uh six rotations hex based
+in Fallout. So then you'd rotate the
+camera to six different
+uh orientations and you'd get from one
+model and one walk cycle you could get
+all six animations.
+Now keep in mind what we would do is we
+would
+record the walk cycles. It would be on a
+video we that which was now flattened 2D
+and then we would use that to generate
+the sprites as a 2D sprite that was
+animated and the offset in the direction
+it would have to go. So the sprites were
+stored if you would run it would just
+look like a a character doing this in
+place because the offset how far to move
+them at each frame was stored in each
+frame. So they they didn't actually
+move. It was just a character doing this
+with offsets.
+We thought it looked cool. It really let
+us leverage the small team because one
+model, one
+animation could get you all the
+rotations. It was easier for them to
+change by putting different items in the
+person's hand or armor on them. Um,
+they could add it and remove it easier
+than redrawing everything. And then you
+just reran it and you got the walk cycle
+of the guy in leather armor and the guy
+in power armor and the guy with a gun.
+this a one-handed gun and a guy with
+two-handed gun. So, you could do all
+those things faster, but we had to
+figure that all out. There was no one to
+explain to us what to do. We just had to
+figure it out. But we were all, like I
+said, we were all figure it out, people.
+So, we figured it out until in early 95,
+according to my notes, we ran into the
+foot sliding issue. And what this was
+specifically was when the character
+would walk d when he got to one cycle,
+he would hiccup. and there was a
+noticeable hiccup as they walked in the
+game when they got to the end of the
+cycle. Um, just so you know, one cycle
+would be they'd be standing if they
+started walking, let's say they put
+their left foot out first, the full
+cycle was left foot out, swing the right
+foot all the way in, and then when the
+left foot swung back in, so it was even
+even with the right foot, that was one
+cycle.
+We were having a massive hiccup problem
+with that. So every time they would
+walk, they would hiccup. Also, the their
+feet were sliding on the ground as we
+were attempting to get the correct
+offset. We couldn't seem to get the
+right offset. They were always moving
+and then they'd hiccup and sometimes
+slide over a little bit. So, there was
+always this foot motion in addition to
+that hiccup. We thought it was one
+problem and we thought the problem was
+imperfect looping.
+What that means is when the character is
+moving, and it's not just their feet,
+their legs and feet moving, their upper
+body is moving too. Their head's moving
+a little bit, their arms are moving a
+lot. All of those have to get back into
+the same state at the end of one loop or
+there will be a little bit of a jerk. If
+their arms aren't exactly synced, you
+may see a a motion of one arm that's
+really far when you get to the loop. So,
+we thought the problem was with the
+imperfect looping. spent a lot of time
+trying to get that looping correct.
+Even when we were positive we were
+looping correctly, like you could look
+at it in 3D and see that the you you've
+got their hands, their head, everything
+is pixel perfect with where they were at
+the start. Remember in 3D though, they'd
+be moving off in a in the distance. So
+when they got here, they looked exactly
+the same as the as they did here. We
+still got a hiccup in the game, which of
+course everyone's like, the programmers
+are doing this wrong. There's something
+wrong with your math. There's something
+wrong with the tool that's taking the
+video that we make in 3D and converting
+it to 2D. Programmer problem, programmer
+problem, programmer problem. We spent a
+long time looking for this, and I'm
+going to come back to that later. We
+spent, man, months, I think we spent
+weeks looking at it, but was at least me
+and another programmer and at least two
+artists. So, it turned out to be man
+months. I'm saying man months cuz it was
+four guys, but there because there was a
+second problem, and I didn't mean to say
+that in that Lord of the Rings, there
+was another ring made, but there was a
+second problem and that problem was
+lack of orthographic projection. Okay,
+I'll see you guys later. If you're
+wondering what I mean, I have a video on
+the different kinds of projection and
+tiling and walking and how and I'll link
+it below. In general though, the problem
+was this. Alias in the early 90s only
+supported parallel projection, meaning
+things got smaller as they moved away
+from the camera. Parallel lines
+intersected. We needed orthographic
+projection, which is what the game was
+running in. The a tile down here on the
+screen had the same angles and and you
+know, edges as a tile up here. It was
+orthographic. Parallel lines did not
+meet as they went out in the in the
+distance. We had to have that. That is
+how the game ran. Turns out you can't
+take a parallel projection sprite and
+throw it in to a uh I'm sorry, you can't
+take a perspective generated sprite and
+throw it in to a parallel projection
+game. You need it to be done
+orthographic. But they did not support
+it. At that point, we were scratching
+our head. Once we figured out that's
+what the problem was, that became a
+problem with the software. It wasn't
+something that I could fix. It didn't
+look like it was on Autodesk's horizon
+to put that in. And we needed this fixed
+right now. And if I remember correctly,
+and I'm sure I hear from someone if I'm
+not, Jason Anderson solved this in a
+very, very clever way. He determined
+that if you pulled the camera out to a
+near infinite distance,
+effectively
+the edges of a if you looked at a tile
+they were in, the edges looked parallel
+because it was so far away. Any
+perspective was lost. And then you could
+take the camera's magnification and zoom
+it nearly infinitely back. Bear in mind,
+with a physical camera, this would not
+work. Everything would be blurry. But
+this wasn't a physical camera. It's a
+virtual camera. So he moved the distance
+of the camera to near nearly infinite
+distance away and then the magnification
+to nearly infinite zoom.
+Solved. Our hiccups were gone. We had
+perfect walk animations.
+But this took a lot of time, art time,
+programmer time. Like I said,
+individually we all lost weeks.
+Collectively we lost months to fix this
+bug in 95. In 1996, Diablo came out and
+had foot sliding like you were watching
+a ice capes. No one cared. I defy you to
+find me one review in 1996 where anyone
+mentions it, cares about it, talks about
+it, even on online groups, which even
+back then could be full of people who
+would nitpick a game to death. I didn't
+hear a word about it. And since we were
+still a year out, I was like, great, we
+just spent all that time fixing a
+feature that no one cares about. Now,
+when I bring it up today and I talk
+about was it worth it, there are people
+in the comment section go, "Oh, no,
+that's really important to me. I noticed
+it. It was super important to me." I
+guess my question is really it would
+have made you not buy the game. I don't
+think that's true and I'm glad you like
+it. But what I always bring up is look
+at all the other problems that Fallout
+shipped with that might have been fixed
+if those artists and those programmers
+had devoted themselves to that. I'm not
+saying this wasn't a bug. I'm saying the
+priority was probably set too high to
+fix it and too many resources were spent
+fixing it and then other things got put
+in. Can I prove that? No. But it
+certainly is my feeling having worked on
+that game for three and a half years
+that we spent way too much time on the
+foot sliding problem.
+Then let me talk about why this matters
+today. These days, a lot of developers
+work on engines and tools that are
+provided to them. And that is perfectly
+fine. And it's why you see much more
+games go out, especially in solo
+development, because they can get an
+engine off the shelf that does a lot of
+what they need to do. And they don't
+need to be an expert in animation or
+lighting or
+user interface because a lot of that is
+provided as settings in the engine.
+But if you're working on a game, a big
+game today, and you're working in the
+stages I talk about in the stages video,
+which I'll link below, when you get to
+the prototype stage, you need more
+figure it out folks than, hey, I like
+having the everything provided to me so
+I know what I'm I'm supposed to do,
+folks. You need more fix it. Figure it
+out, folks, in the prototype stage
+because that's when you're working out
+what different features you want and how
+they're going to work and how they're
+going to work together. And that's the
+whole point of the prototype is to see
+those features in action. And if you
+have people that are just waiting for
+you to tell them what to do, they're not
+very useful in that stage. You want more
+of the figure it out folks. And I'm not
+saying those people don't exist anymore.
+But I am saying back in the 80s and 90s
+almost every developer was a figure it
+out person. These days you have people
+who are just like just tell me what to
+do I want to do it or I work on this
+section of the game. I have no idea
+what's going on over here. So those
+people are hard to have in your game at
+the prototype stage. They're very much
+the people you want later when you're
+trying to like I want everything to be
+beautiful. I'm making a beautiful
+corner. I'm doing the vertical slice.
+That's when you desperately need those
+people. And by the way, I have a whole
+video on how you pick a project based on
+your team, and I'll link it below. So,
+if you don't have a lot of figured out
+folks, you probably are going to have
+trouble with your prototype stage, and
+you may not even have one.
+And also, let me just say here, it's
+great that because of things like Unity
+and Unreal, you can hire people and they
+can immediately get started in your game
+because they already know Unity or
+Unreal or any of the other engines that
+are out there.
+But if you make your own engine, it's
+hard to hire people who won't need time
+to catch up and figure things out. And
+those people probably need to be figured
+out, folks, because you have your own
+in-house internal engine. It may be
+documented, but there are things they're
+going to have to figure out. So, these
+days, that's why I think game engines
+are used more frequently. It's just the
+spread of knowledge. It's easy to find
+things online to explain to you exactly
+what to do. But if you do that too much
+and you you can't be a figure it out
+person, I don't think you're as useful
+with the prototype stage. Anyway, that
+is why I think the foot sliding problem
+is interesting to me. It's a case study
+of how development went in the 80s and
+90s, and it's a perfect example of here
+was a problem that we fixed, but should
+we have fixed it? What did we miss out
+by fixing it? Who knows? It's an
+interesting thing to talk about. It's an
+interesting case study because there's a
+lot of different viewpoints you can have
+on it. I thought I'd throw all that in
+right here. And now, whenever I talk
+about the fallout foot sliding problem,
+I just point to this video. So, I hope
+you like that.

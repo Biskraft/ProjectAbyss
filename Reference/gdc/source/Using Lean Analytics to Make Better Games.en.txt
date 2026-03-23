@@ -1,0 +1,1890 @@
+[Music]
+my name is aviv stern and i'm the director of analytics at
+and i'm the director of analytics at socialpoints
+socialpoints and i've been a gamer since the 80s
+and i've been a gamer since the 80s i started with dnd the gateway game and
+i started with dnd the gateway game and then i matured into xcom
+then i matured into xcom unlike today where i played dnd and xcom
+unlike today where i played dnd and xcom i've been doing analytics since the 90s
+i've been doing analytics since the 90s we had many names we called it business
+we had many names we called it business intelligence we call the data science
+intelligence we call the data science data mining
+data mining edit score it's always about the same
+edit score it's always about the same thing we're trying to answer questions
+thing we're trying to answer questions and we're trying to find insights that
+and we're trying to find insights that can help the business
+can help the business i'm currently answering questions and
+i'm currently answering questions and finding insights at socialpoint which is
+finding insights at socialpoint which is a take to company in barcelona
+a take to company in barcelona all right
+all right why are we here
+why are we here less of a philosophical question more of
+less of a philosophical question more of a specific question
+a specific question we're here to
+we're here to equip you with analytics examples
+equip you with analytics examples things that we've done mainly at social
+things that we've done mainly at social point and things that you can use
+point and things that you can use in your games now
+in your games now these examples that we chose for the
+these examples that we chose for the presentation are examples you can use in
+presentation are examples you can use in any size studio they can work with a
+any size studio they can work with a single game studio whether you're indie
+single game studio whether you're indie or not
+or not multi-game studios i've done this
+multi-game studios i've done this at social points some of these things
+at social points some of these things i've also implemented at plarium which
+i've also implemented at plarium which is another gaming company i've worked at
+is another gaming company i've worked at and i've even implemented some of these
+and i've even implemented some of these best practices in companies that do
+best practices in companies that do mobile apps and didn't do games
+mobile apps and didn't do games we are here to learn from some of our
+we are here to learn from some of our mistakes hopefully i can save you guys
+mistakes hopefully i can save you guys some headache and some money
+some headache and some money and we'll talk about some of the things
+and we'll talk about some of the things that we've done at social point that
+that we've done at social point that didn't work too well or things that we
+didn't work too well or things that we are doing differently
+are doing differently and we are not here to make you
+and we are not here to make you analytics expert
+analytics expert i'm sorry but that might take a bit more
+i'm sorry but that might take a bit more than an hour
+than an hour all right
+all right our story begins as many stories begin
+our story begins as many stories begin with a company
+with a company take two acquired social point
+take two acquired social point at 2017
+at 2017 then social point began a strong focus
+then social point began a strong focus on growth
+on growth they brought in heads of product from
+they brought in heads of product from rovio from king the roster of heads of
+rovio from king the roster of heads of product which is basically our
+product which is basically our equivalent of our studio head
+equivalent of our studio head has grown a lot
+has grown a lot i joined the company on march
+i joined the company on march about a year ago this is me on my first
+about a year ago this is me on my first day so happy
+day so happy and the events that we will be focusing
+and the events that we will be focusing on for this presentation are the events
+on for this presentation are the events that transpire between my joining
+that transpire between my joining and this here presentation
+and this here presentation all right
+all right okay
+okay what will we talk about
+what will we talk about we will be talking about
+we will be talking about the dark side of analytics
+the dark side of analytics analytics can be very valuable
+analytics can be very valuable i'm a data person of course i believe in
+i'm a data person of course i believe in analytics but there also can be
+analytics but there also can be a very negative side if you do it wrong
+a very negative side if you do it wrong and it has a cost
+and it has a cost for example one of the discussions we're
+for example one of the discussions we're currently having in social point is
+currently having in social point is about should we be a b testing
+about should we be a b testing a b testing is a practice for those who
+a b testing is a practice for those who do not know is the practice of
+do not know is the practice of for example taking a game
+for example taking a game implementing changes and then releasing
+implementing changes and then releasing the game
+the game with the unchanged version and the
+with the unchanged version and the change version and randomly sampling
+change version and randomly sampling people into one of the two versions this
+people into one of the two versions this lets you compare side by side what is
+lets you compare side by side what is the real impact of the changes are
+the real impact of the changes are people in the new version
+people in the new version buying more retaining better converting
+buying more retaining better converting better that's an a b test
+better that's an a b test why not a b test everything
+why not a b test everything because it costs money and time when i
+because it costs money and time when i put out a new version i need to wait
+put out a new version i need to wait i need to wait for the results i need to
+i need to wait for the results i need to wait for enough users to come in
+wait for enough users to come in for my analysis to be significant
+for my analysis to be significant and that means that i'm slowing down the
+and that means that i'm slowing down the game
+game if the game wants to run very quickly if
+if the game wants to run very quickly if the game wants to release versions and
+the game wants to release versions and move on to the next thing
+move on to the next thing sometimes more data is not the answer
+sometimes more data is not the answer so that is the dark side of analytics we
+so that is the dark side of analytics we will talk mainly about mistakes we've
+will talk mainly about mistakes we've done
+done and things you can avoid
+and things you can avoid all right
+all right tracking user actions we will talk about
+tracking user actions we will talk about tracking user action by tracking i mean
+tracking user action by tracking i mean collecting information about logins
+collecting information about logins purchases battles level ups all those
+purchases battles level ups all those events that happen in the game
+events that happen in the game and we collect that information so that
+and we collect that information so that we can analyze what happens
+we can analyze what happens now this
+now this can be less painful
+can be less painful if we do some of the things that i will
+if we do some of the things that i will show you today
+show you today playing levels without players it can be
+playing levels without players it can be done you can have a level played without
+done you can have a level played without users it can actually be very beneficial
+users it can actually be very beneficial and i will show you how we did it at
+and i will show you how we did it at social point and why we had to do it
+social point and why we had to do it basically we had a problem we needed to
+basically we had a problem we needed to solve
+solve and i will talk about testing
+and i will talk about testing specifically a b testing i will talk
+specifically a b testing i will talk about testing with small audiences it
+about testing with small audiences it can be a new game that you're releasing
+can be a new game that you're releasing and doesn't have three million downloads
+and doesn't have three million downloads or it can be a new feature that you're
+or it can be a new feature that you're doing for levels that will level players
+doing for levels that will level players at level 24
+at level 24 on the third dragon
+on the third dragon so you might have a small audience and
+so you might have a small audience and statistics doesn't like small audiences
+statistics doesn't like small audiences so i'll show you some hacks that you can
+so i'll show you some hacks that you can implement
+implement so you can still use a b tests in those
+so you can still use a b tests in those scenarios
+scenarios okay about the cases that i will discuss
+okay about the cases that i will discuss these are cases from my personal
+these are cases from my personal experience
+experience they apply like i said to many studios
+they apply like i said to many studios and many games
+and many games i will try to speak mainly english
+i will try to speak mainly english i'll try to avoid any terms that are too
+i'll try to avoid any terms that are too technical too deep
+technical too deep but i will be touching on many
+but i will be touching on many frameworks
+frameworks from business
+from business and from data and analytics is a very
+and from data and analytics is a very quickly evolving field when i do
+quickly evolving field when i do introduce a concept i will try to
+introduce a concept i will try to explain what it is
+explain what it is i will not go too deeply into it my
+i will not go too deeply into it my presentation will have a deep reference
+presentation will have a deep reference when we upload it onto the website you
+when we upload it onto the website you can go there and you can find
+can go there and you can find descriptions of most of the things that
+descriptions of most of the things that we'll discuss today
+we'll discuss today all right
+all right lastly
+lastly there may be some assembly required
+there may be some assembly required what i want to do today is to equip you
+what i want to do today is to equip you with things
+with things that you can do in your games and i want
+that you can do in your games and i want you to be able to go to your analytics
+you to be able to go to your analytics teams whether they're in-house or vendor
+teams whether they're in-house or vendor and say build me this
+and say build me this but you will still need to work with
+but you will still need to work with analytics people to get this done
+analytics people to get this done or in the immortal words of ikea
+or in the immortal words of ikea screwdriver screwdriver hammer
+screwdriver screwdriver hammer all right let's get cooking
+all right let's get cooking this is by the way thanks to the tasty
+this is by the way thanks to the tasty town art team that's one of our games
+town art team that's one of our games and they made sure to splash some color
+and they made sure to splash some color into the presentation
+into the presentation we'll also have some dragons
+we'll also have some dragons okay social point why did we have to
+okay social point why did we have to start this why do we have to go into
+start this why do we have to go into this adventure and find ways to use data
+this adventure and find ways to use data differently socialpoint was using data
+differently socialpoint was using data long before i came socialboin has been
+long before i came socialboin has been around for about 10 years even more now
+around for about 10 years even more now so data was there why did we have to
+so data was there why did we have to change things where did all these
+change things where did all these challenges come from
+challenges come from social point during 2018 after the
+social point during 2018 after the acquisition with the new roster of heads
+acquisition with the new roster of heads of products faced
+of products faced several dramatic changes that really had
+several dramatic changes that really had to we had to redefine a lot of the ways
+to we had to redefine a lot of the ways we were doing things
+we were doing things first thing that happened was we had
+first thing that happened was we had five games going into 2018 and during
+five games going into 2018 and during 2018 we had 23 games launched
+2018 we had 23 games launched some were in development some were
+some were in development some were launching and dying some were being
+launching and dying some were being replaced but we had
+replaced but we had pretty much
+pretty much five times the amount of games that we
+five times the amount of games that we were ready to handle
+were ready to handle and i'll give you a hint analytics did
+and i'll give you a hint analytics did not have five time the head count
+not have five time the head count or the budget so we had to find a way to
+or the budget so we had to find a way to make it work
+make it work another thing that happened is we
+another thing that happened is we switched from having a company that's
+switched from having a company that's very well optimized on live games social
+very well optimized on live games social point had games they had millions of
+point had games they had millions of users they had money
+users they had money and we were trying to do something that
+and we were trying to do something that was very different which is released a
+was very different which is released a lot of games with very small teams two
+lot of games with very small teams two people teams sometimes those two people
+people teams sometimes those two people were engineers they didn't even have an
+were engineers they didn't even have an artist or a designer
+artist or a designer and do things very quickly
+and do things very quickly have an assembly line of games that keep
+have an assembly line of games that keep launching and learning and improving
+launching and learning and improving the other thing we needed to do was
+the other thing we needed to do was really change how quickly we answer
+really change how quickly we answer questions
+questions we have to be able to answer questions
+we have to be able to answer questions when you have a game that has three
+when you have a game that has three major versions in a week and launches
+major versions in a week and launches and next week launches globally and then
+and next week launches globally and then goes from ios to android you have to be
+goes from ios to android you have to be able to keep up with the game you cannot
+able to keep up with the game you cannot be
+be demanding the game to slow down so that
+demanding the game to slow down so that you can give them answers you have to
+you can give them answers you have to find a way to work within that
+find a way to work within that constraint
+constraint which was something that was quite new
+which was something that was quite new to us
+to us we had
+we had games that were much bigger and we had
+games that were much bigger and we had much more data it was usually
+much more data it was usually a different case
+a different case the last thing we had to do was
+the last thing we had to do was like i said the team didn't expand as
+like i said the team didn't expand as the portfolio expanded so we had a lot
+the portfolio expanded so we had a lot more games
+more games before that
+before that before 2018 every game had an analyst
+before 2018 every game had an analyst which by the way i strongly recommend if
+which by the way i strongly recommend if you can do it always have someone in
+you can do it always have someone in your game team that is doing data if
+your game team that is doing data if that person goes to bed at night
+that person goes to bed at night thinking about the questions in the game
+thinking about the questions in the game living the game playing the game playing
+living the game playing the game playing the competitor games that will bring you
+the competitor games that will bring you a lot of value
+a lot of value we data people work best when we're part
+we data people work best when we're part of the product team that's when we
+of the product team that's when we understand the real problems that need
+understand the real problems that need to be solved but when you have 23 games
+to be solved but when you have 23 games some of them have two people teams and
+some of them have two people teams and some of them run and have multiple
+some of them run and have multiple versions every week
+versions every week you don't have an analyst per game
+you don't have an analyst per game we had to change the structure we had to
+we had to change the structure we had to create a pool
+create a pool of analysts that work like internal
+of analysts that work like internal consultants
+consultants just to be able to keep up and that's
+just to be able to keep up and that's something
+something that was
+that was a compromise we had a very hard time
+a compromise we had a very hard time with that we really wanted
+with that we really wanted to leave the games we wanted to be
+to leave the games we wanted to be living in the games going to
+living in the games going to everything that the game was doing and
+everything that the game was doing and being forced to work on multiple games
+being forced to work on multiple games at the same time was something that was
+at the same time was something that was a bit of a compromise but it was also
+a bit of a compromise but it was also something that was very agile and made a
+something that was very agile and made a lot of sense for the company
+lot of sense for the company all right
+all right so why why did all this happen why did
+so why why did all this happen why did the games
+the games so many games come out why do we have to
+so many games come out why do we have to work in this way
+work in this way the reason behind it is that socialpoint
+the reason behind it is that socialpoint adopted a lean startup approach
+adopted a lean startup approach to games those of you who are not
+to games those of you who are not familiar with the lean startup the lean
+familiar with the lean startup the lean startup is a methodology
+startup is a methodology it's a lot of things it's probably one
+it's a lot of things it's probably one of the most impactful movements
+of the most impactful movements in how we do startups or how we build
+in how we do startups or how we build businesses
+businesses with
+with big
+big variants
+variants but in game terms it's this i joined
+but in game terms it's this i joined social point on my first month there i
+social point on my first month there i met my colleagues from take two and we
+met my colleagues from take two and we had this conversation they were talking
+had this conversation they were talking about launching red dead redemption
+about launching red dead redemption the pro the way you create a red dead
+the pro the way you create a red dead redemption
+redemption a lot of the decisions about design
+a lot of the decisions about design about difficulty about content those
+about difficulty about content those decisions are made before the game is
+decisions are made before the game is shipped
+shipped all of my games i make the decisions
+all of my games i make the decisions after i hit the market
+after i hit the market theme difficulty levels balancing
+theme difficulty levels balancing content
+content all of these things are things that i
+all of these things are things that i can change and i should change and i do
+can change and i should change and i do change
+change after the game launches
+after the game launches lean startup is a methodology that
+lean startup is a methodology that really helps when you're creating a
+really helps when you're creating a product that you're going to learn by
+product that you're going to learn by having it being used
+having it being used that's a very good framework for that
+that's a very good framework for that another thing that it does is really
+another thing that it does is really helps you minimize the cost of failure
+helps you minimize the cost of failure if you don't know about the lean startup
+if you don't know about the lean startup i strongly recommend you read these
+i strongly recommend you read these books
+books if you have the time i think it's going
+if you have the time i think it's going to be worth your while these are the two
+to be worth your while these are the two books i buy
+books i buy everyone on my team has them everything
+everyone on my team has them everything that i join these are the first two
+that i join these are the first two books that i buy everyone
+books that i buy everyone the idea is in its core
+the idea is in its core to have a lot of focus there's going to
+to have a lot of focus there's going to be links to this in the reference as
+be links to this in the reference as well
+well sadly i don't have any equity in the
+sadly i don't have any equity in the books but they do
+books but they do they have impacted a lot how i do my job
+they have impacted a lot how i do my job and how we work
+and how we work as a company
+as a company i'm going to do a very short explanation
+i'm going to do a very short explanation of what lean startup is in our industry
+of what lean startup is in our industry the
+the most prominent voice of doing lean
+most prominent voice of doing lean startup in the games industry is
+startup in the games industry is supercell
+supercell supercell have a lot of
+supercell have a lot of speeches about this a lot of public
+speeches about this a lot of public talks this is a strategy that they have
+talks this is a strategy that they have adopted and they know better than me to
+adopted and they know better than me to say how so this is a link for what they
+say how so this is a link for what they do
+do the idea is when you're doing a lean
+the idea is when you're doing a lean startup approach to product design you
+startup approach to product design you have a loop of stages that you keep
+have a loop of stages that you keep doing very quickly you build something
+doing very quickly you build something like a new maze
+like a new maze then you release it you measure how
+then you release it you measure how people are playing that maze or a new
+people are playing that maze or a new level or a new game
+level or a new game and then you learn
+and then you learn you see if people are enjoying this if
+you see if people are enjoying this if people are not enjoying this where it
+people are not enjoying this where it works then you build something else and
+works then you build something else and you keep that going
+you keep that going where analytics comes into this is
+where analytics comes into this is analytics really helps you find out what
+analytics really helps you find out what doesn't work the key thing about being
+doesn't work the key thing about being lean
+lean is not having the secret to success it
+is not having the secret to success it doesn't necessarily mean all your games
+doesn't necessarily mean all your games will be amazing what it does mean is
+will be amazing what it does mean is you'll find out very quickly what
+you'll find out very quickly what doesn't work
+doesn't work and this is really really important
+and this is really really important you can take a game
+you can take a game that runs for two years development with
+that runs for two years development with a 20 people team
+a 20 people team and we had this happen in social point
+and we had this happen in social point is released and then we found some of
+is released and then we found some of the problems we had or you can find that
+the problems we had or you can find that out with two people in three months
+out with two people in three months and then if that doesn't work try
+and then if that doesn't work try something else we're trying new genres
+something else we're trying new genres we're trying match threes we're trying
+we're trying match threes we're trying different themes
+different themes that doesn't work you want to switch to
+that doesn't work you want to switch to a different genre you want to do word
+a different genre you want to do word puzzles take the same team and do that
+puzzles take the same team and do that but find out very quickly if you're not
+but find out very quickly if you're not reaching that whatever your goal is day
+reaching that whatever your goal is day one 60 retention conversion of two
+one 60 retention conversion of two percent
+percent whatever you're aiming for the lean
+whatever you're aiming for the lean startup is a way to find out very
+startup is a way to find out very quickly are you getting there are you
+quickly are you getting there are you getting closer or not
+getting closer or not and if not then you kill it and you move
+and if not then you kill it and you move to something else
+to something else so the idea is to fail fast
+so the idea is to fail fast saves you time and saves you money
+saves you time and saves you money all right
+all right lean analytics
+lean analytics lean analytics is a school within the
+lean analytics is a school within the lean startup
+lean startup and this is what we're going to talk
+and this is what we're going to talk about today
+about today i'm going to say a few very trivial
+i'm going to say a few very trivial things now what i'm going to say now in
+things now what i'm going to say now in this part of the talk is going to be
+this part of the talk is going to be things that are very common sense none
+things that are very common sense none of this is rocket science all of these
+of this is rocket science all of these things that i'm saying will sound very
+things that i'm saying will sound very reasonable and i'm not telling you
+reasonable and i'm not telling you anything new but this is the part where
+anything new but this is the part where i'm talking about things we did wrong
+i'm talking about things we did wrong all of these things are based
+all of these things are based on things that we did not implement
+on things that we did not implement correctly things that we failed to do at
+correctly things that we failed to do at social point and other companies that
+social point and other companies that i've worked at so it's really worthwhile
+i've worked at so it's really worthwhile to take these things and adopt them this
+to take these things and adopt them this is a discipline
+is a discipline that you have to keep and i'll show you
+that you have to keep and i'll show you in a minute how we keep ourselves very
+in a minute how we keep ourselves very disciplined
+measure what matters this is
+this is a very nice philosophical saying but
+a very nice philosophical saying but what's behind it is this social point at
+what's behind it is this social point at the beginning of 2018 had more than a
+the beginning of 2018 had more than a thousand metrics
+thousand metrics we were using more than a thousand
+we were using more than a thousand metrics to measure if the game was doing
+metrics to measure if the game was doing well
+well we had too much data we had so much data
+we had too much data we had so much data when you asked a game designer what they
+when you asked a game designer what they look at every game designer was looking
+look at every game designer was looking at different things
+at different things what we did was we really narrowed it
+what we did was we really narrowed it down we asked what really is important
+down we asked what really is important of all these things what makes the cut
+of all these things what makes the cut what are the super kpis the quark apis
+what are the super kpis the quark apis that we have to know
+that we have to know when you're driving a car
+when you're driving a car you only know what you need to know the
+you only know what you need to know the dashboard doesn't give you everything
+dashboard doesn't give you everything you need to know air pressure the heat
+you need to know air pressure the heat of the ground you don't need to know
+of the ground you don't need to know these things when you're doing that if
+these things when you're doing that if there's a problem
+there's a problem we drill down but we've been able to
+we drill down but we've been able to narrow it down to
+narrow it down to retention conversion
+retention conversion ltv
+ltv we've been able to
+we've been able to talk about revenues and when we talk
+talk about revenues and when we talk about a very specific cost by the way
+about a very specific cost by the way some things that didn't make the cut
+some things that didn't make the cut second session retention
+second session retention we actually don't have that on the first
+we actually don't have that on the first view of a game when we talk about is the
+view of a game when we talk about is the game good we talk about day one
+game good we talk about day one retention day three retention but we
+retention day three retention but we don't talk about a session granularity
+don't talk about a session granularity sometimes we don't even talk about a
+sometimes we don't even talk about a daily granularity we look at it on a
+daily granularity we look at it on a weekly basis
+weekly basis this was a system that was designed for
+this was a system that was designed for the executive team
+the executive team and really created a different
+and really created a different conversation and he changed the mode
+conversation and he changed the mode from
+from bombarded with million reports a million
+bombarded with million reports a million metrics to really focusing on what's
+metrics to really focusing on what's important
+important the other thing is
+the other thing is don't develop what you can buy
+don't develop what you can buy now this is really true for small
+now this is really true for small companies and it's also true for big
+companies and it's also true for big companies
+companies we have a very strong data engineering
+we have a very strong data engineering team and we do do a lot of our tools
+team and we do do a lot of our tools in-house we also have scientists when i
+in-house we also have scientists when i do a b tests it's my scientists who
+do a b tests it's my scientists who create the tools for that
+create the tools for that and my analysts benefit from that
+and my analysts benefit from that but even with that there's things that i
+but even with that there's things that i don't develop one of the things one of
+don't develop one of the things one of the problems that we had at social point
+the problems that we had at social point we had kpis that were misbehaving
+we had kpis that were misbehaving we had a process that was getting data
+we had a process that was getting data for example apps fire data about user
+for example apps fire data about user attribution this was data that was
+attribution this was data that was telling us which user came into the game
+telling us which user came into the game through which came marketing campaign
+through which came marketing campaign which was really key because we spent a
+which was really key because we spent a lot of money in marketing so we want to
+lot of money in marketing so we want to know
+know absolutely had a bug
+absolutely had a bug our process was the same process we
+our process was the same process we didn't get any notice about the process
+didn't get any notice about the process failing but appslier had a bug i think
+failing but appslier had a bug i think about four months ago
+about four months ago and they just gave us double the data so
+and they just gave us double the data so we ran the same process nothing failed
+we ran the same process nothing failed no red flags and we got double the
+no red flags and we got double the installations
+installations so either way we're doing our job really
+so either way we're doing our job really really good at marketing or something
+really good at marketing or something was wrong this is called the business
+was wrong this is called the business anomaly by the way business anomalies
+anomaly by the way business anomalies can happen for a good reason it could be
+can happen for a good reason it could be that
+that a new
+a new market opens up for you and users are
+market opens up for you and users are really liking what you do but it means
+really liking what you do but it means that the kpi is behaving not in the way
+that the kpi is behaving not in the way you'd expect you can develop this
+you'd expect you can develop this in-house or you can use a tool that does
+in-house or you can use a tool that does that and we're using anodot for that by
+that and we're using anodot for that by the way we're working with king we have
+the way we're working with king we have a center in barcelona which is the
+a center in barcelona which is the business incident management center i
+business incident management center i believe it's called and working with the
+believe it's called and working with the people there to learn how they're doing
+people there to learn how they're doing it now this is king and social point
+it now this is king and social point these are big companies and we're still
+these are big companies and we're still benefiting
+benefiting from buying things and not developing
+from buying things and not developing them in-house so
+them in-house so if you're a small studio and you want to
+if you're a small studio and you want to have analytics but you don't have an
+have analytics but you don't have an analytics team and it doesn't make sense
+analytics team and it doesn't make sense for you to have analytics team use
+for you to have analytics team use something like delta dna you can still
+something like delta dna you can still have analytics you don't need to create
+have analytics you don't need to create everything in-house there's enough
+everything in-house there's enough services
+services use a cloud you don't need to develop a
+use a cloud you don't need to develop a cloud the world's come a long way
+cloud the world's come a long way all right
+all right focus on value pmf product market fit
+focus on value pmf product market fit product market fit is a very fancy way
+product market fit is a very fancy way to say in lean startup
+to say in lean startup terms that
+terms that work on things that people care about
+work on things that people care about i'll give you an example
+i'll give you an example one of the things one of the first
+one of the things one of the first researches that i saw from the data
+researches that i saw from the data science team i came into social point
+science team i came into social point what are we working on and i talked to
+what are we working on and i talked to the scientists one of them presented a
+the scientists one of them presented a model that was very clever he was
+model that was very clever he was analyzing
+analyzing sentiment analysis so how people were
+sentiment analysis so how people were reacting
+reacting to our games to our versions he took
+to our games to our versions he took data from story views
+data from story views social media customer center he built a
+social media customer center he built a very robust system that shows if people
+very robust system that shows if people have a positive or negative response to
+have a positive or negative response to versions to changes that we're making
+versions to changes that we're making amazing
+amazing super interesting no one ever used it
+super interesting no one ever used it for anything
+for anything he did that analysis it took a lot of
+he did that analysis it took a lot of time it took a lot of data it was very
+time it took a lot of data it was very clever no one in the games was waiting
+clever no one in the games was waiting for that
+for that no one in the games was using that as
+no one in the games was using that as part of the decision making he just sat
+part of the decision making he just sat there and became a very good article for
+there and became a very good article for the university but that's it
+the university but that's it so when you work on things
+so when you work on things make sure there's a value attached to
+make sure there's a value attached to that
+that there is a caveat to that a lot of the
+there is a caveat to that a lot of the things you do in analytics are a leap of
+things you do in analytics are a leap of faith
+faith i'm not sure this will move
+i'm not sure this will move the money needle i'm not sure whether
+the money needle i'm not sure whether this will be something that is going to
+this will be something that is going to major impact on the game
+major impact on the game but even though you choose sometimes
+but even though you choose sometimes things that are a bit of a risk make
+things that are a bit of a risk make sure that you ask yourself
+sure that you ask yourself is this something is this the best thing
+is this something is this the best thing i could be doing now
+i could be doing now this is true when you have 26 people
+this is true when you have 26 people like we have and it's more true when you
+like we have and it's more true when you have one
+have one what is the most important answer
+what is the most important answer i should be working on right now because
+i should be working on right now because if i'm working on the impact of the new
+if i'm working on the impact of the new maze or the new island or the new dragon
+maze or the new island or the new dragon i'm not working on how to monetize
+i'm not working on how to monetize existing users so always make sure that
+existing users so always make sure that you're very disciplined and i'll show
+you're very disciplined and i'll show you how we do that
+you how we do that in social points
+in social points one last thing another trivial bit
+one last thing another trivial bit remember the big picture
+remember the big picture when you're working on problems we have
+when you're working on problems we have a very strong tendency as people
+a very strong tendency as people to focus on that problem
+to focus on that problem we were doing a virality analysis for
+we were doing a virality analysis for one of our games
+one of our games we had to intervene and make sure that
+we had to intervene and make sure that analysis applies to other games we were
+analysis applies to other games we were doing a new game with match threes we
+doing a new game with match threes we had a game a version that we launched
+had a game a version that we launched for a game that we killed
+for a game that we killed the only reason we did that was not
+the only reason we did that was not because that game would benefit from
+because that game would benefit from that but we would get some learning for
+that but we would get some learning for things we do in the future even if you
+things we do in the future even if you only have one game in your life i really
+only have one game in your life i really hope you'll be making more games always
+hope you'll be making more games always remember take something from it
+remember take something from it always try to do things in a way
+always try to do things in a way that benefits
+that benefits other games when you answer a question
+other games when you answer a question who buys try to answer that question in
+who buys try to answer that question in a way that you can rewrite or rerun it
+a way that you can rewrite or rerun it in other games this is really important
+in other games this is really important when you're running analytics in a
+when you're running analytics in a company
+company all right
+all right so how do we at social point make sure
+so how do we at social point make sure that we don't lose focus how do we make
+that we don't lose focus how do we make sure that when we're working on
+sure that when we're working on something
+something it's something interesting now i will
+it's something interesting now i will say this due diligence i had two
+say this due diligence i had two startups that were amazing and would
+startups that were amazing and would have changed the world i created an ai
+have changed the world i created an ai that plays games and does everything for
+that plays games and does everything for you and was remarkable and no one bought
+you and was remarkable and no one bought it
+it both of my startups ended
+both of my startups ended as being very very good experiences but
+as being very very good experiences but no one used them just because you think
+no one used them just because you think something is interesting just because
+something is interesting just because you think someone is going to use this
+you think someone is going to use this that's not the way you need to make sure
+that's not the way you need to make sure that you measure if someone is using
+that you measure if someone is using this and this is how we do that at
+this and this is how we do that at social points
+social points the chart that you're seeing here
+the chart that you're seeing here remember i told you we took the super
+remember i told you we took the super kpis
+kpis and we created a dashboard for the super
+and we created a dashboard for the super kpis it was originally intended for 20
+kpis it was originally intended for 20 people just in the executive team and a
+people just in the executive team and a bit more and it was very widely adopted
+bit more and it was very widely adopted in the company
+in the company just to keep in mind the whole company
+just to keep in mind the whole company is about 300 people so we had
+is about 300 people so we had a very wide adoption of the tool now
+a very wide adoption of the tool now this is an internal product
+this is an internal product i don't really have monetization other
+i don't really have monetization other than my salary but i am looking all the
+than my salary but i am looking all the time at how many active users are there
+time at how many active users are there and when i release a new version for
+and when i release a new version for something that i develop internally i
+something that i develop internally i make sure that people use it and if they
+make sure that people use it and if they don't i ask why
+don't i ask why what did i miss
+what did i miss the other thing we do is and this is
+the other thing we do is and this is specifically for analysis this is
+specifically for analysis this is actually
+actually the same classification tree that we use
+the same classification tree that we use i know it's a bit small but basically it
+i know it's a bit small but basically it starts with
+starts with is it actionable
+is it actionable first thing you want to do when you
+first thing you want to do when you start this is this actionable is someone
+start this is this actionable is someone going to use this is this going to tie
+going to use this is this going to tie into a process sentiment analysis is
+into a process sentiment analysis is brilliant is it actionable no don't do
+brilliant is it actionable no don't do it
+it if you know someone is going to use it
+if you know someone is going to use it if customer service is going to use it
+if customer service is going to use it if marketing is going to use it
+if marketing is going to use it community managers yes but first
+community managers yes but first validate that it's actionable
+validate that it's actionable then
+then ask does this affect a core kpi
+the focus that we got because we defined a very close group
+a very close group of kpis
+of kpis is a focus that serves us for everything
+is a focus that serves us for everything now whenever i have a conversation with
+now whenever i have a conversation with anyone in the company the first thing we
+anyone in the company the first thing we will ask is this
+will ask is this what are you aiming to do is this
+what are you aiming to do is this something that's going to affect a core
+something that's going to affect a core kpi if it doesn't affect conversion ltv
+kpi if it doesn't affect conversion ltv retention revenues why are we having
+retention revenues why are we having this conversation
+this conversation cpi
+cpi so this is basically how we do this we
+so this is basically how we do this we go through these stages and we classify
+go through these stages and we classify all our work in analytics across the
+all our work in analytics across the teams engineering analysts data
+teams engineering analysts data scientists everything we do we work
+scientists everything we do we work around this and we always try to
+around this and we always try to maximize
+maximize how much of what we're doing is high
+how much of what we're doing is high impact
+impact and it's a lot harder than it sounds
+and it's a lot harder than it sounds it would sound trivial just put people
+it would sound trivial just put people in the game teams and let the game teams
+in the game teams and let the game teams work the game teams sometimes ask
+work the game teams sometimes ask questions that are very not interesting
+questions that are very not interesting some game designer will ask is the
+some game designer will ask is the halloween dragon better because it's
+halloween dragon better because it's orange or not
+orange or not say i find an answer for that what are
+say i find an answer for that what are you gonna change
+you gonna change next year you're gonna do a different
+next year you're gonna do a different dragon let's talk about it when we get
+dragon let's talk about it when we get to the next halloween right now it's not
+to the next halloween right now it's not applicable
+applicable so always make sure that there's
+so always make sure that there's something behind what you're doing
+something behind what you're doing a lot harder than it sounds
+a lot harder than it sounds okay let's talk a bit about things that
+okay let's talk a bit about things that we're doing things that were high impact
+we're doing things that were high impact things that did qualify as relevant
+things that did qualify as relevant and change how we work in the company
+and change how we work in the company so
+so take you back a few slides we had a big
+take you back a few slides we had a big problem
+problem the company was basically going 5x
+the company was basically going 5x on the number of games
+on the number of games things had to happen very quickly
+things had to happen very quickly and one of the things that happened was
+and one of the things that happened was we had a big problem with how we do
+we had a big problem with how we do tracking the company was already doing
+tracking the company was already doing tracking it was doing it very well the
+tracking it was doing it very well the technology was there architecture was
+technology was there architecture was there was not a problem of architecture
+there was not a problem of architecture we had to change how we collect user
+we had to change how we collect user data i'm going to give you two things
+data i'm going to give you two things that we did
+that we did to help that
+to help that the first one is what we did at social
+the first one is what we did at social point the second one one quart pack to
+point the second one one quart pack to rule them all is based on something we
+rule them all is based on something we did at plarium
+did at plarium all right
+all right tracking so how does tracking work and
+tracking so how does tracking work and this is true for most games it's a bit
+this is true for most games it's a bit of a simplification but bear with me
+of a simplification but bear with me the game has a new feature or there's a
+the game has a new feature or there's a new game someone wants to release
+new game someone wants to release something they want to do something
+something they want to do something seasonal halloween special so we design
+seasonal halloween special so we design it we say this is design two
+it we say this is design two bring in new users through virality this
+bring in new users through virality this is designed to convert or convert to a
+is designed to convert or convert to a second purchase
+second purchase users who are buying we align on a
+users who are buying we align on a primary goal
+primary goal and based on that we define what we're
+and based on that we define what we're going to track
+going to track this is really important what you track
+this is really important what you track is a result of what you ask
+is a result of what you ask if you don't know what you're trying to
+if you don't know what you're trying to achieve don't start talking about what
+achieve don't start talking about what you want to track because you will fall
+you want to track because you will fall back into
+back into collecting everything if someone tells
+collecting everything if someone tells you collect everything we'll sort it out
+you collect everything we'll sort it out later
+later don't all right
+don't all right i just angered half of my data people
+i just angered half of my data people community all right
+community all right i hope none of them are here
+i hope none of them are here okay
+okay game implements the tracking so we had a
+game implements the tracking so we had a feature we had a definition we defined
+feature we had a definition we defined the events then the game divs every time
+the events then the game divs every time the user buys this seasonal dragon they
+the user buys this seasonal dragon they write a row and they put that row
+write a row and they put that row somewhere there's a file that gets sent
+somewhere there's a file that gets sent specifically for us it was some folder
+specifically for us it was some folder in the cloud
+in the cloud then the data engineering team takes
+then the data engineering team takes that group of files and make it into a
+that group of files and make it into a table
+table so the people can actually use it
+so the people can actually use it there's a lot of ways to do this that's
+there's a lot of ways to do this that's not the goal of this conversation but
+not the goal of this conversation but this was the process that we were doing
+this was the process that we were doing the problem with this process is
+the problem with this process is everything that the game does has to go
+everything that the game does has to go through data engineering
+through data engineering every time the game team wants to have a
+every time the game team wants to have a new feature a new measure a new event
+new feature a new measure a new event they have to go through data engineering
+they have to go through data engineering which is a small team
+which is a small team and works
+and works for design for five games
+for design for five games so that created a major bottleneck we
+so that created a major bottleneck we were actually delaying the launches of
+were actually delaying the launches of game there were games that were coming
+game there were games that were coming out and not knowing what's happening
+out and not knowing what's happening they had features that were being used
+they had features that were being used and it wasn't written anywhere how many
+and it wasn't written anywhere how many times it was being used because the
+times it was being used because the tracking wasn't there and my engineers
+tracking wasn't there and my engineers were super frustrated because all they
+were super frustrated because all they were doing was this
+were doing was this putting wires together they had nothing
+putting wires together they had nothing that was interesting
+that was interesting no projects that had high impact they
+no projects that had high impact they were just there to configure
+were just there to configure wires so we changed it
+wires so we changed it what we did was we implemented a change
+what we did was we implemented a change that i'm going to mention in a minute
+that i'm going to mention in a minute and i'm going to use some
+and i'm going to use some tech terms but what we did was we just
+tech terms but what we did was we just let the games run
+let the games run anything that the game reports any data
+anything that the game reports any data any event that the game collects is
+any event that the game collects is automatically exposed as a table
+automatically exposed as a table and that was very big that let the games
+and that was very big that let the games run very very quickly and it freed up
+run very very quickly and it freed up the engineers what we did behind the
+the engineers what we did behind the scenes and if you want to hear more
+scenes and if you want to hear more about this
+about this it will be in the references or you can
+it will be in the references or you can catch up to me but what we did was we
+catch up to me but what we did was we implemented
+implemented a game specific data lake we just
+a game specific data lake we just created a database where they can get
+created a database where they can get data and something that parses
+data and something that parses from raw events into tables which is
+from raw events into tables which is really not hard it took us about two
+really not hard it took us about two weeks
+weeks okay
+okay what did we do what did we achieve we
+what did we do what did we achieve we eliminated a major bottleneck
+eliminated a major bottleneck this is super simple this is not
+this is super simple this is not something that's we didn't implement a
+something that's we didn't implement a new patent we didn't change how the
+new patent we didn't change how the cloud works we just took that process
+cloud works we just took that process added some automation at the end and
+added some automation at the end and made that very less painful games still
+made that very less painful games still need to develop code games they still
+need to develop code games they still need to code tracking
+need to code tracking if they want something to be recorded
+if they want something to be recorded they still need to sue to add that
+they still need to sue to add that record to the action but they don't
+record to the action but they don't longer depend on anyone else parsing
+longer depend on anyone else parsing that for them
+that for them data engineering became very very happy
+data engineering became very very happy because they were able to do dashboards
+because they were able to do dashboards like the one i just showed you for the
+like the one i just showed you for the executive team they were able to create
+executive team they were able to create new dashboards for video ads to help our
+new dashboards for video ads to help our marketing teams and the games and they
+marketing teams and the games and they were working on projects that had a much
+were working on projects that had a much higher impact
+one thing to remember game independence is really good and i have as this as we
+is really good and i have as this as we speak here i have multiple games in
+speak here i have multiple games in barcelona creating tables that i know
+barcelona creating tables that i know nothing about as the data guy in the
+nothing about as the data guy in the company have no idea what they're doing
+company have no idea what they're doing they could create anything they want
+they could create anything they want they could be doing it for word puzzles
+they could be doing it for word puzzles match threes they could be creating it
+match threes they could be creating it for strategy games
+for strategy games i don't need to know
+i don't need to know i will need to know when they have
+i will need to know when they have traction when they get to a point where
+traction when they get to a point where they work launch and they have enough
+they work launch and they have enough users that's when we have to bring them
+users that's when we have to bring them back into the fold and make sure that we
+back into the fold and make sure that we do everything in an organized manner
+do everything in an organized manner then i can guarantee they have quality
+then i can guarantee they have quality that their data is secured that i'm
+that their data is secured that i'm logging what they're doing that i can
+logging what they're doing that i can create things for them
+create things for them until that point they have independence
+until that point they have independence now this democracy is really good
+now this democracy is really good but you have to be
+but you have to be it's not
+it's not not my problem anymore it's still my
+not my problem anymore it's still my problem it's still my responsibility i
+problem it's still my responsibility i don't go out of the picture for that
+don't go out of the picture for that last thing
+last thing some things you don't do with yourself
+some things you don't do with yourself don't diy everything
+don't diy everything it's really good that the games can
+it's really good that the games can create their own tracking and collect
+create their own tracking and collect user actions this is fantastic this is a
+user actions this is fantastic this is a very good example for something you want
+very good example for something you want to have the game do because they can run
+to have the game do because they can run as fast as they can
+as fast as they can the thing that you don't want them to do
+the thing that you don't want them to do is you don't want them to set up their
+is you don't want them to set up their own architecture
+own architecture to collect information in the cloud
+to collect information in the cloud for offline events so if their game can
+for offline events so if their game can be played offline you don't want them to
+be played offline you don't want them to have to solve that
+have to solve that it's completely okay if i have to build
+it's completely okay if i have to build any care chair
+any care chair if you ask me to build a golden gate
+if you ask me to build a golden gate bridge i'm probably going to consult
+bridge i'm probably going to consult someone
+someone all right you have to
+all right you have to that independence is not absolute
+that independence is not absolute all right based on a true story we had a
+all right based on a true story we had a game that wanted to implement a beating
+game that wanted to implement a beating system
+system for the programmatic bidding we had a
+for the programmatic bidding we had a team in the company it wasn't a game but
+team in the company it wasn't a game but it was a team in marketing they wanted
+it was a team in marketing they wanted to develop our own beating system
+to develop our own beating system and this is another example for don't
+and this is another example for don't develop what you can buy this is not the
+develop what you can buy this is not the core competency for the company we are
+core competency for the company we are game developers
+game developers all
+all right
+right one core pack to rule them all
+one core pack to rule them all the idea behind this is
+the idea behind this is we had a problem i was working at
+we had a problem i was working at clarium the main problem we had at
+clarium the main problem we had at tharium was had nothing to do with this
+tharium was had nothing to do with this clarion was switching from facebook to
+clarion was switching from facebook to mobile
+mobile switching from facebook to mobile
+switching from facebook to mobile basically forced us to rewrite all the
+basically forced us to rewrite all the data architecture we had to bring in
+data architecture we had to bring in some very clever people with very fancy
+some very clever people with very fancy titles and we had to build a big data
+titles and we had to build a big data system but we saw an opportunity
+system but we saw an opportunity to organize and bring some order into
+to organize and bring some order into how we do tracking and the thing that we
+how we do tracking and the thing that we did at plarium was we sat with the
+did at plarium was we sat with the studios and we had studios in the
+studios and we had studios in the ukraine in the us in tel aviv we even
+ukraine in the us in tel aviv we even had two studios in the ukraine within
+had two studios in the ukraine within hours of each other one in sinful opal
+hours of each other one in sinful opal and one in kharkov and they weren't
+and one in kharkov and they weren't talking to each other each of them had
+talking to each other each of them had their own data collecting system their
+their own data collecting system their own database two game specific
+own database two game specific and then the gm asked how much money did
+and then the gm asked how much money did i make today and that was a bit of a
+i make today and that was a bit of a problem
+problem all the pieces of the puzzle were
+all the pieces of the puzzle were basically scattered
+basically scattered so when we recreated the system at
+so when we recreated the system at plarium what we did was we sat down
+plarium what we did was we sat down with every head of studio and we said
+with every head of studio and we said okay
+okay what happens all the time what are the
+what happens all the time what are the things that you always repeat
+things that you always repeat now keep in mind some of these games
+now keep in mind some of these games were strategies some of these games were
+were strategies some of these games were racing
+racing they have very different very distinct
+they have very different very distinct styles but there are things that they
+styles but there are things that they all do so some events we found are
+all do so some events we found are always re-implemented
+always re-implemented like login like purchase
+some of the things that we saw were they were not using the same definitions so
+were not using the same definitions so there could be someone tracking a login
+there could be someone tracking a login and writing a timestamp that is local
+and writing a timestamp that is local and someone would be writing a timestamp
+and someone would be writing a timestamp that is cet and then when you need to
+that is cet and then when you need to try to understand who did what and how
+try to understand who did what and how many active users i had a very basic
+many active users i had a very basic question
+question you get lost
+you get lost a problem that we had at social point
+a problem that we had at social point was this was
+was this was those new games that i mentioned all
+those new games that i mentioned all those new games that keep launching
+those new games that keep launching every week and making a mess of my life
+every week and making a mess of my life a lot of them were launching without
+a lot of them were launching without events even when they had their own
+events even when they had their own personal ability to do it they were
+personal ability to do it they were missing some data from the stores
+missing some data from the stores about the purchases still some of the
+about the purchases still some of the configurations some of the wires weren't
+configurations some of the wires weren't always there
+always there and there's a set of things that every
+and there's a set of things that every game needs and there's a set of
+game needs and there's a set of configurations you can do for everyone
+configurations you can do for everyone so what we did was we just decided
+so what we did was we just decided to create one
+to create one universal component that every game can
+universal component that every game can plug in
+plug in and just have all the tracking instead
+and just have all the tracking instead of each game developing their own
+of each game developing their own approach to what do i track how do i
+approach to what do i track how do i track we said okay here's something all
+track we said okay here's something all you need to do is call this component in
+you need to do is call this component in your code it's an sdk
+your code it's an sdk if you don't know what it is that's
+if you don't know what it is that's perfectly okay if you do fantastic we
+perfectly okay if you do fantastic we created a component in our system
+created a component in our system that everyone used in the same way and
+that everyone used in the same way and we standardized how we collect events
+we standardized how we collect events this was
+this was quite a challenge from a business
+quite a challenge from a business perspective because once you have that
+perspective because once you have that distributed freedom and everyone does
+distributed freedom and everyone does what they want you want them to change
+what they want you want them to change what they do just so everyone can be
+what they do just so everyone can be aligned it's not always easy but there's
+aligned it's not always easy but there's a lot of benefits one benefit was that
+a lot of benefits one benefit was that the number of problems we had with games
+the number of problems we had with games launching
+launching and things not working
+and things not working like for example data from apple store
+like for example data from apple store it was gone almost every game now when
+it was gone almost every game now when they launch is just a lot simpler they
+they launch is just a lot simpler they know they call this component they know
+know they call this component they know how they're supposed to call it they
+how they're supposed to call it they don't need to think too much or reinvent
+don't need to think too much or reinvent the wheel
+the wheel every time there's a new game also it
+every time there's a new game also it saves some time
+saves some time and my analysts have an easier time when
+and my analysts have an easier time when they need to do an analysis on several
+they need to do an analysis on several games and they can know that
+games and they can know that an event for login always has the user
+an event for login always has the user id and this is how you calculate a user
+id and this is how you calculate a user id and it always has a date
+id and it always has a date and it has a location and that location
+and it has a location and that location is a coordinates or it's a country code
+is a coordinates or it's a country code if you standardize those things which is
+if you standardize those things which is very simple and very common sense i'm
+very simple and very common sense i'm not saying anything here that is
+not saying anything here that is complicated but if you get to that point
+complicated but if you get to that point you'll make your life a lot easier
+you'll make your life a lot easier by the way if you are using an external
+by the way if you are using an external tool like delta dna you are using an sdk
+tool like delta dna you are using an sdk all right
+playing levels without having players how do you go about
+how do you go about getting play data for your game without
+getting play data for your game without having players
+having players again we had a problem
+again we had a problem we had a game that was a match three
+we had a game that was a match three game dogs home
+game dogs home very nice game
+very nice game developed by a guy who came in for king
+developed by a guy who came in for king and he was trying to understand what the
+and he was trying to understand what the hell was going on we were creating
+hell was going on we were creating versions
+versions and those versions had a specific
+and those versions had a specific learning curve in mind we were trying to
+learning curve in mind we were trying to create a learning curve that goes along
+create a learning curve that goes along certain pathways this should be a harder
+certain pathways this should be a harder point this should be a monetization
+point this should be a monetization trigger this should be a relaxed area
+trigger this should be a relaxed area and what happened was most of the time
+and what happened was most of the time it was just too easy
+it was just too easy just users were breezing through it
+just users were breezing through it we also had another game legends at war
+we also had another game legends at war that users just made it to level 20
+that users just made it to level 20 without any challenge like the first
+without any challenge like the first time they had any problems would be
+time they had any problems would be level 10
+level 10 and we would tweak it and we would
+and we would tweak it and we would re-release the game and this time will
+re-release the game and this time will be too hard and user would churn so we
+be too hard and user would churn so we were trying to aim for a certain playing
+were trying to aim for a certain playing experience
+experience but
+but to get there every time we did it we
+to get there every time we did it we released the version we had users play
+released the version we had users play it we lost those users which cost us
+it we lost those users which cost us money in marketing spend and we lost a
+money in marketing spend and we lost a lot of money
+lot of money the idea was can we solve this problem
+the idea was can we solve this problem can we have a level played
+can we have a level played as we design it while we're designing
+as we design it while we're designing the game get data for what this level
+the game get data for what this level will be played how this level will be
+will be played how this level will be played so
+played so this is scissypus by the way with a rock
+this is scissypus by the way with a rock very simple we just got a machine to do
+very simple we just got a machine to do it
+it what you're seeing here is actually a
+what you're seeing here is actually a screenshot from the mech
+screenshot from the mech of my one of my guys in my team this is
+of my one of my guys in my team this is actually a unity environment that's the
+actually a unity environment that's the game
+game and you're seeing the ai that we created
+and you're seeing the ai that we created play the game you're literally seeing
+play the game you're literally seeing the game being played
+the game being played as you're designing it so the game
+as you're designing it so the game designer and this goes back to what i
+designer and this goes back to what i said about fit we were trying to solve a
+said about fit we were trying to solve a problem
+problem and we knew exactly how this would work
+and we knew exactly how this would work it was actionable we knew who's going to
+it was actionable we knew who's going to use it we knew what the value is
+use it we knew what the value is and we knew which process we would be
+and we knew which process we would be helping so
+helping so we sat down with the team and we created
+we sat down with the team and we created for the game designer with a click of a
+for the game designer with a click of a button he can test any level that he had
+button he can test any level that he had he'd have a certain seed for the level
+he'd have a certain seed for the level and he would play it and he will get the
+and he would play it and he will get the result you will be played 100 times
+result you will be played 100 times about 10 seconds
+about 10 seconds by the way the version we just saw this
+by the way the version we just saw this version with the graphics takes about
+version with the graphics takes about three hours because of all the graphics
+three hours because of all the graphics we have a headless version where you
+we have a headless version where you don't see anything and you just get the
+don't see anything and you just get the results that take 10 seconds so
+results that take 10 seconds so the idea was
+the idea was create an ai
+create an ai which may sound like a super complex
+which may sound like a super complex nasa project but it took us a few weeks
+nasa project but it took us a few weeks with one person
+with one person none of the things that i'm using today
+none of the things that i'm using today is something that is insurmountable for
+is something that is insurmountable for a small team you do need a data
+a small team you do need a data scientist but you need one and a mac
+scientist but you need one and a mac none of this was done with pentagon
+none of this was done with pentagon computing
+computing we created an ai this ai that we're
+we created an ai this ai that we're talking about here was specifically for
+talking about here was specifically for match threes we had ai's for other types
+match threes we had ai's for other types of games in the company rpgs for example
+of games in the company rpgs for example he does a hundred plays in a matter of
+he does a hundred plays in a matter of seconds and we're proving that even more
+seconds and we're proving that even more so the game designer would have a level
+so the game designer would have a level he would say okay play this
+he would say okay play this as if you're really good we call that
+as if you're really good we call that explosive mode explosive mode is the
+explosive mode explosive mode is the mode that goes for the maximum
+mode that goes for the maximum explosions always looks for four of a
+explosions always looks for four of a kind or something that really is going
+kind or something that really is going to bright up the screen
+and we can also say play this as a normal user so you can simulate user
+normal user so you can simulate user playing it and you can get a lot of
+playing it and you can get a lot of information for that
+information for that one thing to keep in mind this ai that
+one thing to keep in mind this ai that we created doesn't tell you what's fun
+we created doesn't tell you what's fun it also doesn't predict retention it
+it also doesn't predict retention it doesn't tell you if the users will buy
+doesn't tell you if the users will buy what they will buy yet
+what they will buy yet we're only simulating the playing
+we're only simulating the playing but that was very beneficial
+but that was very beneficial for what we were trying to do
+for what we were trying to do all right and it can be done
+all right and it can be done by very many teams you do need a
+by very many teams you do need a scientist it is a prerequisite for this
+scientist it is a prerequisite for this but
+but okay
+okay testing for small audiences
+testing for small audiences my last example that i want to share
+my last example that i want to share with you is something that for us was a
+with you is something that for us was a main point of pain this was something
+main point of pain this was something that was driving us crazy because
+that was driving us crazy because the analytics people we want to test
+the analytics people we want to test everything
+everything and when you ask me did a version work
+and when you ask me did a version work i don't want to say yes or no i want to
+i don't want to say yes or no i want to say well
+say well the theme worked that feature generated
+the theme worked that feature generated a lot of conversion but at the cost of
+a lot of conversion but at the cost of churn
+churn and that feature was completely useless
+and that feature was completely useless no one tried it that's what i want to
+no one tried it that's what i want to say when you ask me about a version but
+say when you ask me about a version but to do that i need to collect
+to do that i need to collect very detailed information i need to do a
+very detailed information i need to do a lot of focus on learning i want to learn
+lot of focus on learning i want to learn as much as i can
+as much as i can the problem is
+the problem is if that makes the game run very very
+if that makes the game run very very slow and everything that they do i want
+slow and everything that they do i want to have a statistical test and i want to
+to have a statistical test and i want to analyze it i want it to be significant
+analyze it i want it to be significant so i need a lot of users in my samples
+so i need a lot of users in my samples that becomes a big problem for the
+that becomes a big problem for the business
+business that was something that we had to solve
+that was something that we had to solve now this also
+now this also was
+was exacerbated by the fact we had so many
+exacerbated by the fact we had so many new games but i can tell you honestly
+new games but i can tell you honestly between us we have this problem with the
+between us we have this problem with the big games too where i had millions of
+big games too where i had millions of dows even there i had this problem even
+dows even there i had this problem even there would take me sometimes a month
+there would take me sometimes a month to give results on a feature that
+to give results on a feature that feature is for level 27 people of
+feature is for level 27 people of specific country who played a specific
+specific country who played a specific thing
+thing on an alliance on a specific liveops
+on an alliance on a specific liveops that would also take a very long time
+that would also take a very long time so we wanted to have a b testing run
+so we wanted to have a b testing run more quickly
+more quickly we had a lot of new games
+we had a lot of new games time was very critical
+time was very critical and we wanted to stop slowing them down
+and we wanted to stop slowing them down now
+now socialpoint is so smart about data that
+socialpoint is so smart about data that when we had these discussions they would
+when we had these discussions they would still do this
+still do this some companies that i worked at if a b
+some companies that i worked at if a b testing is slowing you down you would
+testing is slowing you down you would just not be doing a b testing you just
+just not be doing a b testing you just drop that you'll do something else
+drop that you'll do something else but we did
+but we did and what we did was
+and what we did was we changed how we a b test now i'm going
+we changed how we a b test now i'm going to explain this in a very simple way and
+to explain this in a very simple way and this is something that everyone can do i
+this is something that everyone can do i will mention a bit the math behind what
+will mention a bit the math behind what we did
+we did but in in one sentence what we did was
+but in in one sentence what we did was we just applied what we know
+we just applied what we know when we did testing instead of coming to
+when we did testing instead of coming to a b test
+a b test completely naive and say okay let's see
+completely naive and say okay let's see what is the likelihood of someone buying
+what is the likelihood of someone buying this dragon
+this dragon of someone playing this new type of
+of someone playing this new type of battle
+battle what we did was we took what we know
+what we did was we took what we know about users we had a conversion percent
+about users we had a conversion percent that we know we said okay given that we
+that we know we said okay given that we know users tend to convert for example
+know users tend to convert for example on the first session
+on the first session and users tend to buy the first dragon
+and users tend to buy the first dragon by level seven given that
+by level seven given that what can we do and this is in
+what can we do and this is in statistical terms this is a switch i
+statistical terms this is a switch i apologize in advance for the chinese
+apologize in advance for the chinese it's a switch from a frequentist
+it's a switch from a frequentist approach to a bayesian approach it just
+approach to a bayesian approach it just means given what i know what is the
+means given what i know what is the likelihood of something happening
+likelihood of something happening in business terms what it meant was we
+in business terms what it meant was we took something that took a month
+took something that took a month and a million users and we made it take
+and a million users and we made it take a thousand users in a week
+a thousand users in a week it also means we took a lot of
+it also means we took a lot of assumptions
+assumptions it means that when i have a new game and
+it means that when i have a new game and i say well i know my conversion is
+i say well i know my conversion is usually
+usually and happens on the first session
+and happens on the first session i assume that game is like my other game
+i assume that game is like my other game which may or may not be the case so when
+which may or may not be the case so when you do these things please consult an
+you do these things please consult an expert
+expert okay please make sure that you work with
+okay please make sure that you work with someone who can verify or validate if
+someone who can verify or validate if this applies but if you can take your
+this applies but if you can take your learnings and take what you know
+learnings and take what you know you can do a b testing much more quickly
+you can do a b testing much more quickly with a lot less users significantly less
+with a lot less users significantly less so we use what we know
+so we use what we know another thing that i really recommend
+another thing that i really recommend that you do is run what's called an aa
+that you do is run what's called an aa test take the same version don't change
+test take the same version don't change anything randomly sample two groups
+anything randomly sample two groups fifty percent go here fifty percent go
+fifty percent go here fifty percent go here and check what is the difference
+here and check what is the difference you will be surprised we found five to
+you will be surprised we found five to ten percent difference with nothing
+ten percent difference with nothing different between them
+different between them just because of volatility in the market
+just because of volatility in the market just because some whale came into one
+just because some whale came into one group and made some crazy noise so one
+group and made some crazy noise so one thing you want to know about your games
+thing you want to know about your games if you are going to be testing is what's
+if you are going to be testing is what's the natural occurring variance that you
+the natural occurring variance that you can expect
+can expect and if you know by the way that five to
+and if you know by the way that five to ten percent occurs naturally
+ten percent occurs naturally this is what you would do differently
+this is what you would do differently you would try something you put
+you would try something you put something in a store
+something in a store you put a new offer in the store and you
+you put a new offer in the store and you would say okay
+would say okay this offer i only showed it to some
+this offer i only showed it to some users but the ones that i showed it to
+users but the ones that i showed it to are five percent more likely to buy it
+are five percent more likely to buy it if you know you already have a five
+if you know you already have a five percent or ten percent variance that
+percent or ten percent variance that means nothing
+means nothing because then what will happen and this
+because then what will happen and this happened to us in social point we
+happened to us in social point we released it and nothing happened
+released it and nothing happened and the test said five percent so what
+and the test said five percent so what the hell
+the hell so be careful with what you assume the
+so be careful with what you assume the idea of an a b test
+idea of an a b test is again to try to explain what will
+is again to try to explain what will work
+work and how much effect you can work how
+and how much effect you can work how much effect you can expect by the way
+much effect you can expect by the way one of the biggest debates we have right
+one of the biggest debates we have right now in social point is
+now in social point is what good
+what good is an a b test that shows you something
+is an a b test that shows you something would not work
+would not work we have a big argument about this i have
+we have a big argument about this i have a lot of tests that i'm doing
+a lot of tests that i'm doing and what i'm saying is forget the ones
+and what i'm saying is forget the ones that i'm seeing damaged and i'm saying
+that i'm seeing damaged and i'm saying it's going to destroy
+it's going to destroy a user base that's easy i do a defensive
+a user base that's easy i do a defensive test i see that it's going to be badly
+test i see that it's going to be badly recepted received by the community
+recepted received by the community easy
+easy the other thing is i have some tests
+the other thing is i have some tests where someone has a great idea they
+where someone has a great idea they change something we test it and we see
+change something we test it and we see that there's no impact
+that there's no impact if you ask me i will tell you i think
+if you ask me i will tell you i think that's very useful
+that's very useful because you can avoid releasing that if
+because you can avoid releasing that if you know there's not going to be an
+you know there's not going to be an impact
+impact and most of the time
+and most of the time they listen to us and they don't
+they listen to us and they don't sometimes
+sometimes game designers still release it and
+game designers still release it and guess what
+guess what no impact
+no impact just more noise in the versions just
+just more noise in the versions just more distractions
+more distractions it's not always a bad thing but
+it's not always a bad thing but innovation is also good okay so aa
+innovation is also good okay so aa and be very careful about
+and be very careful about what you see consider the variance
+what you see consider the variance another thing you can do and this is
+another thing you can do and this is just a basic business side of testing
+just a basic business side of testing try to use things
+try to use things that are zero or one
+that are zero or one you can have a test and say okay what
+you can have a test and say okay what will be the impact on users spend
+will be the impact on users spend and then you have anywhere between they
+and then you have anywhere between they will spend a dollar more a day two
+will spend a dollar more a day two dollars 2.5 10 more that's a continuous
+dollars 2.5 10 more that's a continuous spectrum
+spectrum statistically that makes it harder to
+statistically that makes it harder to classify a group if you say what is the
+classify a group if you say what is the likelihood that someone would buy
+likelihood that someone would buy just conversion one or zero it's a lot
+just conversion one or zero it's a lot easier to design a test for that with
+easier to design a test for that with less users
+less users retention will they stay in the game the
+retention will they stay in the game the next day or not
+next day or not that's something that's a lot easier to
+that's something that's a lot easier to do with smaller user bases so i strongly
+do with smaller user bases so i strongly recommend
+recommend binary variables
+binary variables we achieved with this
+we achieved with this was like i said we just cut down
+was like i said we just cut down by magnitudes how many users we need
+by magnitudes how many users we need and how much time we take
+and how much time we take now one thing i'm going to leave you
+now one thing i'm going to leave you with
+with this is an amazing success we were very
+this is an amazing success we were very happy it made the new games able to use
+happy it made the new games able to use a b testing as part of the work
+a b testing as part of the work do we do a b testing in all the new
+do we do a b testing in all the new games
+games no
+no this is actually an argument that i had
+this is actually an argument that i had and i lost and i think it was good that
+and i lost and i think it was good that i lost it
+i lost it sometimes what you want to do is you
+sometimes what you want to do is you just want to measure a big impact like i
+just want to measure a big impact like i said we have a new game that new game is
+said we have a new game that new game is aiming for 3x
+aiming for 3x if that new version doesn't achieve 3x
+if that new version doesn't achieve 3x on its retention it doesn't matter
+on its retention it doesn't matter it just doesn't matter which parts of
+it just doesn't matter which parts of the version worked or what of it worked
+the version worked or what of it worked or not
+or not you can just throw the kitchen sink at
+you can just throw the kitchen sink at it
+it did it work no okay try something else
+did it work no okay try something else but try something drastically different
+but try something drastically different don't just change tweak
+don't just change tweak for optimization for tweaks a b testing
+for optimization for tweaks a b testing i think are a must but when you try to
+i think are a must but when you try to make huge changes or measure things
+make huge changes or measure things measure things very quickly like in a
+measure things very quickly like in a new game
+new game maybe more data is not the right answer
+maybe more data is not the right answer all right
+all right so
+so what did we talk about
+what did we talk about we talked about the dark side of
+we talked about the dark side of analytics i told you a bit
+analytics i told you a bit about some of the problems we had or
+about some of the problems we had or some of the things
+some of the things we did that we could have done
+we did that we could have done differently or we're doing differently
+differently or we're doing differently now
+now specifically just keep focused
+specifically just keep focused be very disciplined in how you apply
+be very disciplined in how you apply data
+data when you apply data make sure that
+when you apply data make sure that there's
+there's an answer that someone is waiting for
+an answer that someone is waiting for make sure that you're solving something
+make sure that you're solving something or you're going to change a process in
+or you're going to change a process in how the games are made otherwise maybe
+how the games are made otherwise maybe this is not the most important thing to
+this is not the most important thing to do
+do we talked about tracking user actions
+we talked about tracking user actions and the benefits of letting the games do
+and the benefits of letting the games do it on their own do-it-yourself tracking
+it on their own do-it-yourself tracking if you empower the games if you let the
+if you empower the games if you let the product teams run at the pace that they
+product teams run at the pace that they want to run
+want to run you can change a lot of things you can
+you can change a lot of things you can remove a lot of bottlenecks
+remove a lot of bottlenecks okay
+okay playing levels without players i showed
+playing levels without players i showed you what we did to solve a very big
+you what we did to solve a very big design question that we had
+design question that we had and some tips about how you can take a b
+and some tips about how you can take a b testing and still apply it to small
+testing and still apply it to small studios small audiences small features
+studios small audiences small features all right thank you
+questions yep all right thanks for the talk that
+yep all right thanks for the talk that was great um i understand the concept of
+was great um i understand the concept of you automatically throwing something
+you automatically throwing something into your data lake once you implement
+into your data lake once you implement it
+it in one of your games etc but somebody
+in one of your games etc but somebody has to consume that eventually somebody
+has to consume that eventually somebody has to create a report that's going to
+has to create a report that's going to show that to them right how do you
+show that to them right how do you diminish the bottleneck between
+diminish the bottleneck between you
+you showing a new feature to somebody
+showing a new feature to somebody when you have already probably some
+when you have already probably some humongous backlog of more important
+humongous backlog of more important things
+things so the question is i just for so far
+so the question is i just for so far everyone to hear
+everyone to hear i have this data lake i have this
+i have this data lake i have this personal game specific database that
+personal game specific database that they can dump things into and analyze
+they can dump things into and analyze but someone needs to visualize that data
+but someone needs to visualize that data or someone needs to do an analysis about
+or someone needs to do an analysis about it
+it and
+and that usually happens as a prioritization
+that usually happens as a prioritization in the game so we have an analyst for
+in the game so we have an analyst for the game or they have a set
+the game or they have a set amount of resources from my pool that
+amount of resources from my pool that they can use and we work with them we
+they can use and we work with them we usually do that with a self-service tool
+usually do that with a self-service tool as well so the analyst doesn't work with
+as well so the analyst doesn't work with engineering in the main dashboards that
+engineering in the main dashboards that i do okay they use something like table
+i do okay they use something like table or chartaio okay but then again like i
+or chartaio okay but then again like i have ten dozens of the same ten versions
+have ten dozens of the same ten versions of the same dashboard right now hanging
+of the same dashboard right now hanging around that i need to
+around that i need to wrangle yeah yep but you have to do the
+wrangle yeah yep but you have to do the same for the visualization otherwise it
+same for the visualization otherwise it doesn't work that's right yeah thanks
+doesn't work that's right yeah thanks okay
+all right yes hello um in our studio we have a really passionate player base
+have a really passionate player base they're quite closely knit and we were
+they're quite closely knit and we were against doing a b testing for a while
+against doing a b testing for a while because we're concerned that players are
+because we're concerned that players are going to compare the data
+going to compare the data and they have in the past with something
+and they have in the past with something so do you have any tips against that or
+so do you have any tips against that or for us how to work with that issue
+for us how to work with that issue yeah so
+yeah so the question is about a b testing not as
+the question is about a b testing not as a statistical experiment but you're
+a statistical experiment but you're affecting the community and some of the
+affecting the community and some of the communities exposed to things did i get
+communities exposed to things did i get it right yeah so before i came to the
+it right yeah so before i came to the studio when i suggested if we could do a
+studio when i suggested if we could do a b testing i was recommended it might not
+b testing i was recommended it might not be worth doing because the players will
+be worth doing because the players will compare the data and go oh why does this
+compare the data and go oh why does this person have something that i don't in my
+person have something that i don't in my game so you have to be very careful
+game so you have to be very careful about how we do it we
+about how we do it we were very limited some of the tests i
+were very limited some of the tests i want to do in my long-running games
+want to do in my long-running games there's an implicit contract
+there's an implicit contract with the players there's things like
+with the players there's things like price sensitivity or economy that are
+price sensitivity or economy that are really hard for me to change
+really hard for me to change it's a lot easier for me to do in a new
+it's a lot easier for me to do in a new game but one of the things we do with
+game but one of the things we do with when we do roll out something and we
+when we do roll out something and we know some users will see it especially
+know some users will see it especially when you do it with wales or heavily
+when you do it with wales or heavily paying users
+paying users we usually communicate with them before
+we usually communicate with them before we have our community managers
+we have our community managers involve them in the process and we say
+involve them in the process and we say we're gonna choose or we're gonna test a
+we're gonna choose or we're gonna test a new type of warchief or a new type of
+new type of warchief or a new type of legendary item
+legendary item and they know it's coming they're
+and they know it's coming they're usually quite excited to it and they're
+usually quite excited to it and they're like who's gonna get it
+like who's gonna get it but you really have to manage that like
+but you really have to manage that like if you don't manage the expectations it
+if you don't manage the expectations it can become
+can become it's quite easy with new games new games
+it's quite easy with new games new games where the community is changing you can
+where the community is changing you can pretty much change anything
+pretty much change anything and most of the cohorts there's still
+and most of the cohorts there's still not a community established
+not a community established yeah
+yeah but it's true it limits whatever tests
+but it's true it limits whatever tests we do thank you
+we do thank you all right hi
+all right hi first very very good very good
+first very very good very good presentation pretty insightful i've got
+presentation pretty insightful i've got a question about a b testing when you a
+a question about a b testing when you a b testing and you've got many things to
+b testing and you've got many things to a b test do you a b test them separately
+a b test do you a b test them separately or do a b test multiple changes at the
+or do a b test multiple changes at the same time and if so how do you manage
+same time and if so how do you manage the
+the you know
+you know so if i understand correctly the
+so if i understand correctly the question is do we do a b test and a b
+question is do we do a b test and a b test or a b c d test
+test or a b c d test yeah or if you have multiple
+yeah or if you have multiple multiple a b tests happening at the same
+multiple a b tests happening at the same time exactly yeah because they they
+time exactly yeah because they they interact with each other and how do you
+interact with each other and how do you manage yeah well we have
+manage yeah well we have invested a lot into having a system that
+invested a lot into having a system that samples and really isolates users and we
+samples and really isolates users and we always have a group of users that is
+always have a group of users that is very big that we don't touch for a few
+very big that we don't touch for a few versions even that group would not even
+versions even that group would not even see new versions that we rolled out and
+see new versions that we rolled out and we're not testing
+we're not testing because you
+because you it in small user bases we just run
+it in small user bases we just run multiple a b tests and we just make sure
+multiple a b tests and we just make sure that users are not into groups but when
+that users are not into groups but when you have a long running game and you're
+you have a long running game and you're testing something for advanced level
+testing something for advanced level like level 10 and you're testing
+like level 10 and you're testing something for new users
+something for new users some of the new users might end up level
+some of the new users might end up level 10 and we make
+10 and we make very
+very strong efforts to make sure that
+strong efforts to make sure that technically that doesn't happen it
+technically that doesn't happen it almost never does it all right
+almost never does it all right one more but do you allow one user to be
+one more but do you allow one user to be you know involved in two ap tests of
+you know involved in two ap tests of two no usually we don't usually we don't
+two no usually we don't usually we don't the fact that we have tests now that
+the fact that we have tests now that conclude within a week or two usually
+conclude within a week or two usually that's a lot easier because they can
+that's a lot easier because they can just block them for a while okay cool
+just block them for a while okay cool yep
+yes i was confused at one point where you
+i was confused at one point where you said
+said the answer was not to save everything
+the answer was not to save everything yes and then you said the answer was to
+yes and then you said the answer was to save everything and the question there
+save everything and the question there was your bottleneck so
+was your bottleneck so you sort of said two different sounded
+you sort of said two different sounded like two different it depends when i say
+like two different it depends when i say don't save everything i think when
+don't save everything i think when you're approaching a situation where
+you're approaching a situation where you're deciding to implement tracking
+you're deciding to implement tracking be very sure that you know why you're
+be very sure that you know why you're tracking this
+tracking this i've seen too many cases where someone
+i've seen too many cases where someone takes a database just fills it up with
+takes a database just fills it up with data what is called the data swamp
+data what is called the data swamp instead of a data lake and they just
+instead of a data lake and they just just it sits there
+just it sits there no one uses it because someone once
+no one uses it because someone once asked the question so they implemented
+asked the question so they implemented it
+it and now when they come to use it a year
+and now when they come to use it a year later it's unusable it's missing user
+later it's unusable it's missing user ids the dates are not there so when i
+ids the dates are not there so when i say don't save everything i'm trying to
+say don't save everything i'm trying to refer to
+refer to when you approach a question and you're
+when you approach a question and you're not sure try to refine the question
+not sure try to refine the question don't just say yeah you know what i'll
+don't just say yeah you know what i'll take that and that and that
+take that and that and that because every one of those fields is
+because every one of those fields is going to be a pain in the ass when you
+going to be a pain in the ass when you have to do data quality later
+have to do data quality later if you start
+if you start adding
+adding country codes to something that is
+country codes to something that is global
+global you'll need to do the country codes and
+you'll need to do the country codes and when you work with marketing and they
+when you work with marketing and they have specific regions for campaigns that
+have specific regions for campaigns that becomes a bit of a hassle so
+becomes a bit of a hassle so be
+be specific and surgical about what you're
+specific and surgical about what you're tracking that's what i mean when i say
+tracking that's what i mean when i say don't track everything
+don't track everything the other thing is let the game track
+the other thing is let the game track whatever they need
+whatever they need so if a game needs something or they
+so if a game needs something or they think they need something i usually
+think they need something i usually don't get involved in that decision
+don't get involved in that decision i just let them run and sometimes it
+i just let them run and sometimes it makes sense sometimes not so much
+makes sense sometimes not so much but they know not to come to me when
+but they know not to come to me when there's a problem all right that makes
+there's a problem all right that makes sense that answer your question right
+sense that answer your question right first of all thank you for the great
+first of all thank you for the great talk i i felt the same like pain and
+talk i i felt the same like pain and same ideas because we provide more than
+same ideas because we provide more than like 20 pcs and mobile games at the same
+like 20 pcs and mobile games at the same time and i'm doing the analytics there
+time and i'm doing the analytics there so
+so i have basically have two questions uh
+i have basically have two questions uh first one is in the decision making
+first one is in the decision making process the first one was is it
+process the first one was is it actionable and i was wondering
+actionable and i was wondering if you take the time into account for
+if you take the time into account for example if is it actionable in like a
+example if is it actionable in like a week or a month
+week or a month so if something that takes more than
+so if something that takes more than like three months but that benefit can
+like three months but that benefit can be really high but also that must be
+be really high but also that must be some kind of probability of making a
+some kind of probability of making a success could be a little bit low so i
+success could be a little bit low so i just wonder like how you
+just wonder like how you take those
+take those aspects into account when you're making
+aspects into account when you're making decisions so the question is
+decisions so the question is how do i know if something is actionable
+how do i know if something is actionable when i decide whether to work on it or
+when i decide whether to work on it or not it's a bit of a philosophical
+not it's a bit of a philosophical question because you can define
+question because you can define a lot of things but usually
+a lot of things but usually my goal in having that is avoiding
+my goal in having that is avoiding things that i don't have a sponsor
+things that i don't have a sponsor my simple my litmus test is if there is
+my simple my litmus test is if there is no sponsor from the business there's no
+no sponsor from the business there's no game designer behind this there's no vp
+game designer behind this there's no vp involved
+involved why am i doing this like is it an
+why am i doing this like is it an architecture thing that i'm doing
+architecture thing that i'm doing because i know we need to
+because i know we need to and i just do it then it's okay but
+and i just do it then it's okay but otherwise if i'm trying to answer a
+otherwise if i'm trying to answer a question for the business why isn't
+question for the business why isn't business in this meeting when i go into
+business in this meeting when i go into a meeting and there's no one from
+a meeting and there's no one from product there
+product there that's what i mean by actionable i
+that's what i mean by actionable i usually try to make sure there's a
+usually try to make sure there's a sponsor i know will use at least one
+sponsor i know will use at least one game will use this
+game will use this my second question is about the lean
+my second question is about the lean startup approach we have uh games that
+startup approach we have uh games that have like dozens of programmers and
+have like dozens of programmers and dozens of artists and loads of people
+dozens of artists and loads of people involved
+involved and
+and i really like the idea of like fast
+i really like the idea of like fast iterative approach but sometimes you
+iterative approach but sometimes you analytics guys would have to wait until
+analytics guys would have to wait until the game is hitting the market with
+the game is hitting the market with massive marketing budget so usually i
+massive marketing budget so usually i see a lot of people in the first week
+see a lot of people in the first week but then it will diminish
+but then it will diminish so once it is released then there are
+so once it is released then there are not many things i can do in terms of
+not many things i can do in terms of like analyzing sometimes yeah so i just
+like analyzing sometimes yeah so i just wonder like how you deal with that kind
+wonder like how you deal with that kind of
+of we we really try
+we we really try to make a case with the hazel product
+to make a case with the hazel product and we had september we had a road show
+and we had september we had a road show and look socialpoint was very
+and look socialpoint was very data-driven so it was very easy but
+data-driven so it was very easy but still i had i was sitting down with
+still i had i was sitting down with directors of products
+directors of products and vps and i was trying to explain to
+and vps and i was trying to explain to them
+them why before they even start developing
+why before they even start developing not the a b test when they think about a
+not the a b test when they think about a feature i want to be there and do an
+feature i want to be there and do an estimate of the impact because i want to
+estimate of the impact because i want to make sure that as soon as i can i can
+make sure that as soon as i can i can cancel something that i don't think will
+cancel something that i don't think will have an impact
+have an impact and it's a it's a process it's a process
+and it's a it's a process it's a process you need to go through
+you need to go through thanks
+thanks it's education and it's uh but when you
+it's education and it's uh but when you do it and you say this pricing would not
+do it and you say this pricing would not work and they don't listen and the
+work and they don't listen and the pricing doesn't work next time they
+pricing doesn't work next time they listen thank you very much good
+listen thank you very much good yes thank you
+yes thank you uh in talking about the low number of
+uh in talking about the low number of users and testing them early on you had
+users and testing them early on you had mentioned as the first bullet point uh
+mentioned as the first bullet point uh using something that you already knew
+using something that you already knew yeah
+yeah i want to make sure i understand
+i want to make sure i understand correctly are you talking about
+correctly are you talking about basically verifying an assumption you
+basically verifying an assumption you already have or measuring the effect of
+already have or measuring the effect of it how exactly is that helping you user
+it how exactly is that helping you user data what i mean using something you
+data what i mean using something you know when you come to a test if this is
+know when you come to a test if this is the first game you've done and you have
+the first game you've done and you have no user data it's not very applicable
+no user data it's not very applicable but
+but you know if you have already a baseline
+you know if you have already a baseline for the conversion rates you have a
+for the conversion rates you have a baseline for what people spend their
+baseline for what people spend their money on
+money on or where your best users are coming from
+or where your best users are coming from you can integrate that into the model
+you can integrate that into the model and it would really lower the number of
+and it would really lower the number of users you need to collect to have a
+users you need to collect to have a statistical conclusion so it's just
+statistical conclusion so it's just taking the numbers you have the kpis
+taking the numbers you have the kpis into the model as a factor you change
+into the model as a factor you change the model from being
+the model from being naive in every case is its own case
+naive in every case is its own case to taking answers you already have
+to taking answers you already have that's what i mean make sense okay all
+that's what i mean make sense okay all right a second question too um
+right a second question too um in getting your company to adopt the
+in getting your company to adopt the lean startup model um was that something
+lean startup model um was that something that came from a top-down approach or
+that came from a top-down approach or did you meet a lot of resistance in
+did you meet a lot of resistance in getting your company to adopt it so
+getting your company to adopt it so this is a funny story because i was
+this is a funny story because i was sitting with the ceos and the founders
+sitting with the ceos and the founders and i was trying to pitch them on this
+and i was trying to pitch them on this they've been doing this for a year
+they've been doing this for a year i was just trying to say and they were
+i was just trying to say and they were very polite because they're spanish and
+very polite because they're spanish and they were like yeah yeah they're
+they were like yeah yeah they're listening to me but the company was
+listening to me but the company was already doing lean startup
+already doing lean startup what i did was
+what i did was really change how analytics can become
+really change how analytics can become the champion of this
+the champion of this i think a big part of lean startup is
+i think a big part of lean startup is the experiments
+the experiments and the measuring
+and the measuring and the biggest problem you have if
+and the biggest problem you have if you're trying to be lean is when data
+you're trying to be lean is when data doesn't run as fast as the business this
+doesn't run as fast as the business this is why so much of what we did was just
+is why so much of what we did was just make it a lot faster make it a lot more
+make it a lot faster make it a lot more lean
+lean but it was coming from the top down like
+but it was coming from the top down like they were already doing being before i
+they were already doing being before i started
+started thank you
+thank you hi question on the topic you talked
+hi question on the topic you talked about the aaa variants instead of doing
+about the aaa variants instead of doing a b um and you said serving the two
+a b um and you said serving the two different aaa models to two different
+different aaa models to two different populations suitable for variants um
+populations suitable for variants um i don't know if i missed it but
+i don't know if i missed it but um how random are those two populations
+um how random are those two populations so for example like do you control for
+so for example like do you control for something at least for those two like
+something at least for those two like for example does one a like a1 for
+for example does one a like a1 for example is you know a population of um
+example is you know a population of um whales and then a2 is maybe a population
+whales and then a2 is maybe a population of players that have never spent like do
+of players that have never spent like do you control for anything at all or is it
+you control for anything at all or is it just completely random so
+just completely random so excellent question we'll just repeat so
+excellent question we'll just repeat so the question is when i
+the question is when i say you go to that group you go to that
+say you go to that group you go to that group how much
+group how much thought is behind that am i just
+thought is behind that am i just randomly assigning people to groups or
+randomly assigning people to groups or do i take what i know about them before
+do i take what i know about them before i sign i don't assign usually by wales
+i sign i don't assign usually by wales when i analyze i look at how many whales
+when i analyze i look at how many whales were there to gain context from my
+were there to gain context from my analysis but i don't
+analysis but i don't control for wells if one group it's when
+control for wells if one group it's when you do it with a big enough audience
+you do it with a big enough audience statistically you should get somewhat
+statistically you should get somewhat balanced unless you deal with a very
+balanced unless you deal with a very small group
+small group the other thing is i do
+the other thing is i do factor that into my analysis i don't say
+factor that into my analysis i don't say do it by demographics or i make sure
+do it by demographics or i make sure that we have a good representation of
+that we have a good representation of all the countries
+all the countries unless i think country is super specific
+unless i think country is super specific for that feature if i think
+for that feature if i think this is going to be something that's
+this is going to be something that's highly paid and it's less
+highly paid and it's less meaningful to test in the philippines
+meaningful to test in the philippines than in canada and the u.s i might
+than in canada and the u.s i might control for that but most of the time i
+control for that but most of the time i don't i can if i want to most of the
+don't i can if i want to most of the time i don't when i do the analysis it's
+time i don't when i do the analysis it's one of the main things i look at
+one of the main things i look at all right
+all right thank you okay cool i think we have time
+thank you okay cool i think we have time for one more question yes and one more
+for one more question yes and one more questionnaire thank you for presentation
+questionnaire thank you for presentation uh actually
+uh actually my question pretty similar to the
+my question pretty similar to the previous person uh
+previous person uh when you do the analysis well before you
+when you do the analysis well before you do the analysis uh you gotta understand
+do the analysis uh you gotta understand how do you build the
+how do you build the audience for
+audience for variation a and variation b yeah so that
+variation a and variation b yeah so that they would be similar uh like in terms
+they would be similar uh like in terms of geo in terms of serve
+of geo in terms of serve source
+source but uh as i understood you were talking
+but uh as i understood you were talking about testing on uh old users
+about testing on uh old users so how do you build how do you build
+so how do you build how do you build audience uh among old users
+audience uh among old users uh
+uh because well usually there are not
+because well usually there are not enough users to make a representative
+enough users to make a representative analysis
+analysis it depends on you so the question is if
+it depends on you so the question is if i understand correctly when i do this
+i understand correctly when i do this with old users
+with old users how do you build audiences uh among old
+how do you build audiences uh among old users when you run a b tests so
+users when you run a b tests so for me at social point my life is pretty
+for me at social point my life is pretty good in that regard because i have users
+good in that regard because i have users who have been playing the game since
+who have been playing the game since 2012 and they're still paying so
+2012 and they're still paying so actually my active user base is very
+actually my active user base is very high i i
+high i i really do things differently and one of
+really do things differently and one of the things we're doing right now with
+the things we're doing right now with the team is to try to distinguish
+the team is to try to distinguish when you do a test for new users
+when you do a test for new users and when you do a test for existing
+and when you do a test for existing users what are the things you need to
+users what are the things you need to pay attention to this is actually
+pay attention to this is actually something that we're trying to
+something that we're trying to expand on right now
+expand on right now but at social point that problem of
+but at social point that problem of not having enough existing users is
+not having enough existing users is usually not the case the problem is that
+usually not the case the problem is that we'll be trying something that is level
+and you have had to play an alliance in the last live ops and that really
+the last live ops and that really narrows it down so those who might run
+narrows it down so those who might run longer those are the ones where actually
+longer those are the ones where actually take a lot longer to run yeah
+take a lot longer to run yeah okay thank you all right thanks everyone
+okay thank you all right thanks everyone [Applause]

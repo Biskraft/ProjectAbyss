@@ -1,0 +1,1399 @@
+[Music] morning everybody thank you for being
+morning everybody thank you for being here very early this Thursday morning I
+here very early this Thursday morning I hope everybody's kind of recovered from
+hope everybody's kind of recovered from that party if you guys could make sure
+that party if you guys could make sure you turn off your cell phones or put
+you turn off your cell phones or put them on silent or whatever doing the
+them on silent or whatever doing the mics to pick them up
+mics to pick them up I'm will Armstrong was Patrick
+I'm will Armstrong was Patrick I'm Patrick I was the lead programmer
+I'm Patrick I was the lead programmer over on fire watch I was a tools and
+over on fire watch I was a tools and gameplay programmer on fire watch and
+gameplay programmer on fire watch and we're here to tell you about the tools
+we're here to tell you about the tools and systems that we wrote for sort of
+and systems that we wrote for sort of all the dialogue and fire watch and
+all the dialogue and fire watch and localization and just sort of how we
+localization and just sort of how we built tools for a pretty ambitious game
+built tools for a pretty ambitious game with a very small team so in a previous
+with a very small team so in a previous life I was at - Cameron worked on
+life I was at - Cameron worked on Bioshock 2 in the bureau these days I'm
+Bioshock 2 in the bureau these days I'm over at Unity I was amazed sorry an
+over at Unity I was amazed sorry an early engineer at Twitter and an
+early engineer at Twitter and an engineering manager mostly focusing on
+engineering manager mostly focusing on the web team and Firewatch is my first
+the web team and Firewatch is my first game so everything that we're gonna tell
+game so everything that we're gonna tell you about here is built off of previous
+you about here is built off of previous work that we've learned about it other
+work that we've learned about it other GDC s so kind of going all the way back
+GDC s so kind of going all the way back to GDC 2012
+to GDC 2012 Ilan Ruskin gave a very good talk about
+Ilan Ruskin gave a very good talk about how valve used this sort of bark system
+how valve used this sort of bark system to do all of their dialogue and left 4
+to do all of their dialogue and left 4 dead 2 and our work is very heavily
+dead 2 and our work is very heavily based off of that in what was it 2016
+based off of that in what was it 2016 the valve gat 2016 yeah 2014 the valve
+the valve gat 2016 yeah 2014 the valve guys gave a talk on how they used
+guys gave a talk on how they used dynamic dialogue system to turn that
+dynamic dialogue system to turn that sort of back and forth bark systems into
+sort of back and forth bark systems into big long conversations in and is it
+big long conversations in and is it there is that a zombie one or the Nathan
+there is that a zombie one or the Nathan Drake one and they didn't drink what I
+Drake one and they didn't drink what I guess and then we took a lot of our
+guess and then we took a lot of our design cues for the radio from the 2008
+design cues for the radio from the 2008 Prince of Persia reboot that game
+Prince of Persia reboot that game featured a dedicated button for an air
+featured a dedicated button for an air there was just a button you can hit
+there was just a button you can hit anytime and have your AI companions
+anytime and have your AI companions start to sort of chat with you about
+start to sort of chat with you about what had happened in the game or what
+what had happened in the game or what you were looking at or where you were
+you were looking at or where you were and then informed a lot of our early
+and then informed a lot of our early work on the radio so this is this all
+work on the radio so this is this all built on sort of the shoulders of giants
+built on sort of the shoulders of giants here the initial prototype we were
+here the initial prototype we were making was a little different than the
+making was a little different than the game we shipped the way we first started
+game we shipped the way we first started thinking about fire watch was that Henry
+thinking about fire watch was that Henry was going to be driving all of the
+was going to be driving all of the conversations everything was going to be
+conversations everything was going to be started by Henry interruptible at any
+started by Henry interruptible at any time by Henry he could stop any
+time by Henry he could stop any conversation he had started to switch
+conversation he had started to switch topics you could always talk about
+topics you could always talk about everything every conversation was
+everything every conversation was started by him and that sounded does a
+started by him and that sounded does a lot like barks combat barks they could
+lot like barks combat barks they could start at any time stop at any time come
+start at any time stop at any time come from anywhere
+from anywhere very very reactive very very dynamic so
+very very reactive very very dynamic so that's sort of how we landed on Valve's
+that's sort of how we landed on Valve's bark system as sort of the way to start
+bark system as sort of the way to start for those of you who aren't familiar
+for those of you who aren't familiar with fire watch it's sort of a game
+with fire watch it's sort of a game about wandering around the woods is a
+about wandering around the woods is a sort of sad middle-aged man having long
+sort of sad middle-aged man having long conversations with your boss Delilah
+conversations with your boss Delilah over a radio and the whole game is sort
+over a radio and the whole game is sort of built around these big conversations
+of built around these big conversations that you have while going on a hike
+that you have while going on a hike through the woods so what we actually
+through the woods so what we actually built when we were still you know having
+built when we were still you know having Henry be able to interrupt at any time
+Henry be able to interrupt at any time talk about anything was a generic event
+talk about anything was a generic event system and generic event system meant
+system and generic event system meant that any system of the game could fire
+that any system of the game could fire events and then we would have
+events and then we would have blackboards to store gameplay state and
+blackboards to store gameplay state and we would figure out how to respond to
+we would figure out how to respond to every event by that so what that really
+every event by that so what that really looked like was we have a bunch of
+looked like was we have a bunch of events a bunch of requirements and a
+events a bunch of requirements and a bunch of responses you can think of this
+bunch of responses you can think of this as like when something happens
+as like when something happens interrogate the current state of the
+interrogate the current state of the game with the requirements and then use
+game with the requirements and then use the responses to alter to a new game
+the responses to alter to a new game state relatively straightforward thing
+state relatively straightforward thing happens at some time change the game in
+happens at some time change the game in some way what that really looked like
+some way what that really looked like for us was event name and then a bunch
+for us was event name and then a bunch of boolean tests and then a whole bunch
+of boolean tests and then a whole bunch of responses
+ideally this would be just of you know the your boolean test could be anything
+the your boolean test could be anything and you can interrogate any kind of game
+and you can interrogate any kind of game state we were a small team we had to
+state we were a small team we had to make some special cases we didn't bring
+make some special cases we didn't bring strings into our blackboard system we
+strings into our blackboard system we kept it very simple and very very lean
+kept it very simple and very very lean so we added a couple of special cases
+so we added a couple of special cases for what who triggered the event and
+for what who triggered the event and then who was the target of the event the
+then who was the target of the event the sort of context of the event and we let
+sort of context of the event and we let designer you string for those and
+designer you string for those and everything else was just little Bleen
+everything else was just little Bleen tests on floating points so for a very
+tests on floating points so for a very concrete example if I say you know toss
+concrete example if I say you know toss the beer can then you would get the
+the beer can then you would get the event on tossed who tossed it the player
+event on tossed who tossed it the player what was tossed the beer can if the
+what was tossed the beer can if the context of the world is I haven't said
+context of the world is I haven't said this line then say the line [ __ ] it I'm
+this line then say the line [ __ ] it I'm not the maid when I talk about an event
+not the maid when I talk about an event what that is is just a string it's a set
+what that is is just a string it's a set by the designers and it can be very
+by the designers and it can be very systemic like on tossed it can be
+systemic like on tossed it can be extremely special case like you know
+extremely special case like you know quest seven-day 3-step to finished it
+quest seven-day 3-step to finished it really just is up to the designer to
+really just is up to the designer to sort of decide what that concept is that
+sort of decide what that concept is that they're trying to do and what sort of
+they're trying to do and what sort of moment in the game they're trying to
+moment in the game they're trying to capture
+capture it's very open-ended and allows for a
+it's very open-ended and allows for a lot of flexibility when I talk about a
+lot of flexibility when I talk about a target or a sender the target is context
+target or a sender the target is context of the event so what did I throw what am
+of the event so what did I throw what am I looking at Who am I talking to and the
+I looking at Who am I talking to and the sender is what triggered the event the
+sender is what triggered the event the first place so often the player
+first place so often the player sometimes Delilah and then a lot of
+sometimes Delilah and then a lot of times in level objects so you would have
+times in level objects so you would have like on opened on a lock box or a door
+like on opened on a lock box or a door and then when I talk about facts facts
+and then when I talk about facts facts are sort of arbitrarily designer created
+are sort of arbitrarily designer created strings they end up being stored in
+strings they end up being stored in blackboards blackboards are just
+blackboards blackboards are just dictionaries we use a bunch of different
+dictionaries we use a bunch of different dictionaries to kind of scope the number
+dictionaries to kind of scope the number of facts that we have at any one time
+of facts that we have at any one time down to a reasonable number this is for
+down to a reasonable number this is for both designer sanity and performance you
+both designer sanity and performance you know as dictionaries get big they do get
+know as dictionaries get big they do get slow
+slow specifically we'd have blackboards for
+specifically we'd have blackboards for every individual game object so that you
+every individual game object so that you could track how many times I through
+could track how many times I through this specific beer can without having to
+this specific beer can without having to have a different fact name for every
+have a different fact name for every beer can in the game we would have a
+beer can in the game we would have a blackboard for the player which was
+blackboard for the player which was going to be used to scope things that we
+going to be used to scope things that we only cared about in context of Henry we
+only cared about in context of Henry we ended up not actually using this because
+ended up not actually using this because performance ended up being a problem we
+performance ended up being a problem we would have days specific blackboards and
+would have days specific blackboards and this ended up being extremely useful for
+this ended up being extremely useful for designers we could track things like
+designers we could track things like have you left the tower today without
+have you left the tower today without having to worry about leaving the tower
+having to worry about leaving the tower on day one automatically triggering
+on day one automatically triggering logic that should only happen outside on
+logic that should only happen outside on day two and then we had the global
+day two and then we had the global blackboard which is where almost
+blackboard which is where almost everything in the game actually went the
+everything in the game actually went the global blackboard was used for you know
+global blackboard was used for you know like I said very very designer specific
+like I said very very designer specific things anything that we needed to
+things anything that we needed to remember from day to day today over the
+remember from day to day today over the course of the game what you named your
+course of the game what you named your dog and systemic things like how long it
+dog and systemic things like how long it has been since the last time you decided
+has been since the last time you decided to have a conversation so I'm gonna walk
+to have a conversation so I'm gonna walk through our workflow at our tool chain
+through our workflow at our tool chain so these are all the tools we've built
+so these are all the tools we've built these are real screenshots taken just
+these are real screenshots taken just from right from our editor and so this
+from right from our editor and so this is definitely gonna be a little bit of
+is definitely gonna be a little bit of sausage being made here the example I'm
+sausage being made here the example I'm going to use is the first time you sort
+going to use is the first time you sort of run into the turtle in the game I
+of run into the turtle in the game I don't know how many of you actually
+don't know how many of you actually managed to find him he's kind of in whoa
+managed to find him he's kind of in whoa I found a turtle maybe it's a tortoise
+I found a turtle maybe it's a tortoise it's a thing with a shell actually
+it's a thing with a shell actually pretty cute now what do I call it looks
+pretty cute now what do I call it looks like a mmm so you'll see the first week
+like a mmm so you'll see the first week after you're named after your dog bucket
+after you're named after your dog bucket Junior it has sentimental value and then
+Junior it has sentimental value and then we changed the pickup text once that's
+we changed the pickup text once that's ones that choice is the name
+so the first thing to know about how we did the turtle is it's a little bit of a
+did the turtle is it's a little bit of a lie there's actually six six turtles in
+lie there's actually six six turtles in the game is a six turts
+the game is a six turts sprinkled around the world of Firewatch
+sprinkled around the world of Firewatch and whichever one you see first that's
+and whichever one you see first that's the canonical Turk that's your Turk for
+the canonical Turk that's your Turk for the game plan
+the game plan we did this using kind of a big ugly
+we did this using kind of a big ugly playmaker we used playmaker and fire
+playmaker we used playmaker and fire watch it's a unity plugin for visual
+watch it's a unity plugin for visual scripting we used it for any sort of
+scripting we used it for any sort of level design II thing that we need to do
+level design II thing that we need to do one-off content while this is a little
+one-off content while this is a little bit ugly it was also made very late in
+bit ugly it was also made very late in the game it was a brand new feature it
+the game it was a brand new feature it was a kind of a workaround for the
+was a kind of a workaround for the problem of nobody never finding one
+problem of nobody never finding one perfect spot to put Turk and we wired it
+perfect spot to put Turk and we wired it up the Nell's wired it up without really
+up the Nell's wired it up without really any help from the rest of the team so it
+any help from the rest of the team so it was it was a pretty big win and the
+was it was a pretty big win and the flexibility of the tools we had built to
+flexibility of the tools we had built to that point how this actually functions
+that point how this actually functions is we have the event system hooked into
+is we have the event system hooked into our various gameplay systems in this
+our various gameplay systems in this case it's the targetable component
+case it's the targetable component anything you can target anything that
+anything you can target anything that will display targeting text will have
+will display targeting text will have the ability to when you first start
+the ability to when you first start seeing it or when you stop seeing it to
+seeing it or when you stop seeing it to fire events to the event system we then
+fire events to the event system we then have the play maker listen for that
+have the play maker listen for that event so not only was our event system
+event so not only was our event system talking to all the responses that I've
+talking to all the responses that I've already shown you the dialogue system it
+already shown you the dialogue system it was also completely wired into all of
+was also completely wired into all of our level scripting so you could tell a
+our level scripting so you could tell a play maker to listen for events and then
+play maker to listen for events and then any event that get fired through the
+any event that get fired through the event system would be forwarded to play
+event system would be forwarded to play maker as though it were a play maker
+maker as though it were a play maker global event and that meant that any
+global event and that meant that any level designer any Content producer in
+level designer any Content producer in the entire game could hook up any
+the entire game could hook up any one-off custom content they needed to
+one-off custom content they needed to any other system that was triggering
+any other system that was triggering events whether it be the dialogue system
+events whether it be the dialogue system or targetable or opening a door or the
+or targetable or opening a door or the quest system or anything once that state
+quest system or anything once that state got entered it would then interact with
+got entered it would then interact with our blackboard so same thing we exposed
+our blackboard so same thing we exposed all of our level designer tools to the
+all of our level designer tools to the event system to the blackboard system we
+event system to the blackboard system we had created special actions to read and
+had created special actions to read and write facts from any blackboard that you
+write facts from any blackboard that you wanted
+wanted this is a screenshot of our actual event
+this is a screenshot of our actual event editor tool this was all made in M GUI
+editor tool this was all made in M GUI that sort of built in unity UI system
+that sort of built in unity UI system the and was plugged right into the
+the and was plugged right into the runtime you can see we've got a big list
+runtime you can see we've got a big list of event lists an event list is kind of
+of event lists an event list is kind of grouped by conversation or category
+grouped by conversation or category concept topic of the game then there's a
+concept topic of the game then there's a sort of top middle there's the big list
+sort of top middle there's the big list of events inside of that list every
+of events inside of that list every event shows the event name the number of
+event shows the event name the number of requirements it has the number of types
+requirements it has the number of types of responses that's got and then
+of responses that's got and then underneath that is where we actually do
+underneath that is where we actually do all of the hard work of editing you've
+all of the hard work of editing you've got a list of requirements and then a
+got a list of requirements and then a list of responses all of that's done
+list of responses all of that's done with custom drawers this is all just a
+with custom drawers this is all just a reflect basically just a 1:1 reflection
+reflect basically just a 1:1 reflection of the actual public variables inside
+of the actual public variables inside all of this data the we could have done
+all of this data the we could have done this with the default unity inspector
+this with the default unity inspector but because of the amount of data that
+but because of the amount of data that we're trying to show here we needed it
+we're trying to show here we needed it much more condensed so this is an
+much more condensed so this is an example of a dialog response all dialog
+example of a dialog response all dialog in our game is an event that triggers a
+in our game is an event that triggers a sound has a caption attached to it it
+sound has a caption attached to it it pulls that information from a database
+pulls that information from a database and then fires an unfinished event that
+and then fires an unfinished event that starts the next line it's all just
+starts the next line it's all just chains of events event dialogue dialogue
+chains of events event dialogue dialogue fires event event fires dialogue
+fires event event fires dialogue dialogue fires event until you're done
+dialogue fires event until you're done talking dialogue tree works almost the
+talking dialogue tree works almost the same way dialogue tree is actually just
+same way dialogue tree is actually just three two to five different event
+three two to five different event responses that the user can choose we
+responses that the user can choose we have a different system that knows you
+have a different system that knows you know how to display a dialogue choice
+know how to display a dialogue choice and listen to input all the response
+and listen to input all the response does is store what are the possible
+does is store what are the possible events that could fire when we bring up
+events that could fire when we bring up the event when we bring up the dialogue
+the event when we bring up the dialogue we go take each event and basically fire
+we go take each event and basically fire it but don't trigger the responses just
+it but don't trigger the responses just interrogate them and use that to figure
+interrogate them and use that to figure out what response is going to be
+out what response is going to be triggered and what line is going to be
+triggered and what line is going to be played and thus what caption to show as
+played and thus what caption to show as your choice if we go the previous slide
+your choice if we go the previous slide you can see one of the response types
+you can see one of the response types there's dialogue caption that's where we
+there's dialogue caption that's where we store that information
+store that information no dialogue choice tree was compiled
+no dialogue choice tree was compiled ahead of time it's all on-demand when
+ahead of time it's all on-demand when you bring it up that's when we figure
+you bring it up that's when we figure out what your choices are and what each
+out what your choices are and what each of those choices is going to be so for
+of those choices is going to be so for example if you chose to name your dog
+example if you chose to name your dog mayhem in the beginning of the game
+mayhem in the beginning of the game there would be a requirement and says
+there would be a requirement and says dog is mayhem a response type that
+dog is mayhem a response type that brings up the caption name the turtle
+brings up the caption name the turtle after your dog may have if we don't meet
+after your dog may have if we don't meet that requirement we didn't name your dog
+that requirement we didn't name your dog mayhem that doesn't we don't find that
+mayhem that doesn't we don't find that response we find the second response
+response we find the second response there that says name your dog bucket
+there that says name your dog bucket junior or named a turtle after your dog
+junior or named a turtle after your dog bucket responses we use responses for a
+bucket responses we use responses for a lot of different things in this game we
+lot of different things in this game we use them to trigger achievements sound
+use them to trigger achievements sound effects particle effects all the play
+effects particle effects all the play maker stuff that I've already mentioned
+maker stuff that I've already mentioned changing the icon on your save file and
+changing the icon on your save file and yeah firing off photos so we knew we
+yeah firing off photos so we knew we were going to need to be able to make a
+were going to need to be able to make a lot of these and we were going to need
+lot of these and we were going to need to be able to make them quickly if
+to be able to make them quickly if you're making sort of this event
+you're making sort of this event response system you need to make your
+response system you need to make your responses as light as possible this is
+responses as light as possible this is all of the code for displaying
+all of the code for displaying triggering a dialogue tree from the
+triggering a dialogue tree from the event system and this is all of the code
+event system and this is all of the code that actually does any real work all any
+that actually does any real work all any response type does is grab information
+response type does is grab information from the event system and pass it off to
+from the event system and pass it off to some other manager the event system
+some other manager the event system knows about events the event system
+knows about events the event system knows about senders and receivers and
+knows about senders and receivers and that sort of context around where the
+that sort of context around where the event was fired and nothing else in this
+event was fired and nothing else in this case it calls the dialogue tree manager
+case it calls the dialogue tree manager passes off the dialogue definition and
+passes off the dialogue definition and who said who sent the event who were
+who said who sent the event who were sending the to and where it can find any
+sending the to and where it can find any localized data it needs that all lives
+localized data it needs that all lives on the event system the rest this code
+on the event system the rest this code here is debugging we're a small team we
+here is debugging we're a small team we were constantly building and changing
+were constantly building and changing this game as we went that meant lots of
+this game as we went that meant lots of things were broken all the time for
+things were broken all the time for example we at one point changed the UI
+example we at one point changed the UI entirely we went from the old in GUI
+entirely we went from the old in GUI system to the new you GUI system so for
+system to the new you GUI system so for a while we couldn't display like
+a while we couldn't display like subtitles we can't let the level
+subtitles we can't let the level designers and the narrative
+designers and the narrative stop working when that happens so you
+stop working when that happens so you have to keep your systems usable even if
+have to keep your systems usable even if nothing else is working so a big part of
+nothing else is working so a big part of any event system is going to be logging
+any event system is going to be logging everything that the event system does
+everything that the event system does every event that fires every response
+every event that fires every response that matches every requirement
+that matches every requirement requirement the matches and why that all
+requirement the matches and why that all worked you should be able to go into
+worked you should be able to go into your log and scroll back through it and
+your log and scroll back through it and see an exact playthrough of your game
+see an exact playthrough of your game even if nothing is showing up on screen
+even if nothing is showing up on screen other than the debug output by building
+other than the debug output by building all of these tools on top of unity in
+all of these tools on top of unity in our game engine integrate it tightly
+our game engine integrate it tightly with our runtime we got a lot of big
+with our runtime we got a lot of big benefits for a small team these tools
+benefits for a small team these tools were very cheap to make we didn't have
+were very cheap to make we didn't have to worry about you know setting up new
+to worry about you know setting up new input handlers or grabbing Windows
+input handlers or grabbing Windows contexts unity was handling at all for
+contexts unity was handling at all for us we were you know sort of already
+us we were you know sort of already showing pixels on screen immediately it
+showing pixels on screen immediately it was extremely flexible we had access to
+was extremely flexible we had access to every system we had written we didn't
+every system we had written we didn't have to write wrapper layers or in
+have to write wrapper layers or in transport functions to move data from
+transport functions to move data from our big managers out to our tools and it
+our big managers out to our tools and it was all just sort of automatically
+was all just sort of automatically integrated with the runtime all
+integrated with the runtime all narrative designers could sit there and
+narrative designers could sit there and tune out dialogue timing as the game was
+tune out dialogue timing as the game was playing without having to stop restart
+playing without having to stop restart save anything like that you could just
+save anything like that you could just go into the event data make changes add
+go into the event data make changes add new requirements add new responses and
+new requirements add new responses and then play through the segment again and
+then play through the segment again and again and again until it worked
+again and again until it worked the downside of building all of your big
+the downside of building all of your big sort of dialogue heavy data-driven tools
+sort of dialogue heavy data-driven tools in your editor is those tools were ugly
+in your editor is those tools were ugly I don't know if you noticed that they're
+I don't know if you noticed that they're extremely complex like that was not easy
+extremely complex like that was not easy to go over is a huge screen full of
+to go over is a huge screen full of information that the event editor took
+information that the event editor took over the entire editor most people just
+over the entire editor most people just had it on an entire second monitor blown
+had it on an entire second monitor blown out full size and their ever changing
+out full size and their ever changing like I said you're you know constantly
+like I said you're you know constantly building new systems constantly adding
+building new systems constantly adding new response types and that means every
+new response types and that means every time you go look at the event editor
+time you go look at the event editor it's gonna be a little different so if
+it's gonna be a little different so if your narrative designers are not you
+your narrative designers are not you know sort of okay with the challenge of
+know sort of okay with the challenge of managing that you know maybe this isn't
+managing that you know maybe this isn't the right way to go
+the right way to go yeah hmm so what we'll just laid out was
+yeah hmm so what we'll just laid out was the system we had for the entirety of
+the system we had for the entirety of Firewatch and he built it basically in
+Firewatch and he built it basically in that form that you saw very early on but
+that form that you saw very early on but this was just the beginning right we had
+this was just the beginning right we had a working proof of concept for our game
+a working proof of concept for our game for our vertical slice but we needed to
+for our vertical slice but we needed to fill this game with four to six hours of
+fill this game with four to six hours of content like massively branching content
+content like massively branching content and we also had a creative process at
+and we also had a creative process at Campo Santo where we were constantly
+Campo Santo where we were constantly revving constantly doing rewrites
+revving constantly doing rewrites cutting dialogue rewriting it so we
+cutting dialogue rewriting it so we needed a content pipeline for that
+needed a content pipeline for that that's what I want to talk about so
+that's what I want to talk about so first one will look at the teens this is
+first one will look at the teens this is one of the earliest scenes we wrote or
+one of the earliest scenes we wrote or I'm fully implemented in the game and
+I'm fully implemented in the game and it's also one that never stopped growing
+it's also one that never stopped growing we kept changing it we kept adding
+we kept changing it we kept adding things to it every time we did a play
+things to it every time we did a play test someone would want to interact with
+test someone would want to interact with the teens in a new way and we always
+the teens in a new way and we always wanted to support that basically
+wanted to support that basically anything that people tried to do we
+anything that people tried to do we tried to make work so complexity balloon
+tried to make work so complexity balloon as you can imagine let's take a look at
+as you can imagine let's take a look at one playthrough
+one playthrough [Music]
+[Music] there are empties much I don't want to
+there are empties much I don't want to say that word again why cuz you're
+say that word again why cuz you're trying there's a yes
+there are two naked ladies out here can you that come on
+you that come on I like naked ladies same as anyone but
+I like naked ladies same as anyone but there's you know ya know be tough for
+there's you know ya know be tough for you but try to make your tongue up off
+you but try to make your tongue up off the ground and do your job I know you
+the ground and do your job I know you guys are setting up bottle rockets out
+guys are setting up bottle rockets out here okay you don't know a damn thing
+here okay you don't know a damn thing about me
+about me we know you're a peeping tom standing
+we know you're a peeping tom standing over there
+[Music] [ __ ] cool it with the fireworks bite
+[ __ ] cool it with the fireworks bite another firework and it won't be your
+another firework and it won't be your stereo Iraq yeah yo [ __ ] pay for this
+stereo Iraq yeah yo [ __ ] pay for this you can't just harass girls in the woods
+you can't just harass girls in the woods let's get out of here okay
+let's get out of here okay so that was only one of literally
+so that was only one of literally thousands of playthroughs you could see
+thousands of playthroughs you could see through here and I just want to like
+through here and I just want to like highlight how crazy this was from event
+highlight how crazy this was from event an event-driven standpoint right when I
+an event-driven standpoint right when I approached those teens I was already
+approached those teens I was already talking to Delilah they overheard me
+talking to Delilah they overheard me talking to Delilah they engaged with me
+talking to Delilah they engaged with me Delilah hears them she engages with me
+Delilah hears them she engages with me then I'm going through dialogue trees
+then I'm going through dialogue trees the whole time I'm doing that they keep
+the whole time I'm doing that they keep going they keep talking while I'm
+going they keep talking while I'm deciding what I'm gonna say next or if
+deciding what I'm gonna say next or if I'm not gonna say anything and I'm just
+I'm not gonna say anything and I'm just gonna go throw their crap in the lake I
+gonna go throw their crap in the lake I could you know withdraw from this scene
+could you know withdraw from this scene I could try to sneak past them this was
+I could try to sneak past them this was a scene that kept growing and it really
+a scene that kept growing and it really drove out all of our tools as we had to
+drove out all of our tools as we had to support this really really complex like
+support this really really complex like ever-growing graph of events and to make
+ever-growing graph of events and to make the teens sort of react to whatever the
+the teens sort of react to whatever the player could possibly do this was only
+player could possibly do this was only like a tiny set of what our event data
+like a tiny set of what our event data looks like I didn't actually want to
+looks like I didn't actually want to show the teens here because it looks
+show the teens here because it looks like a bowl of spaghetti it's it gets
+like a bowl of spaghetti it's it gets really crazy really fast now there are
+really crazy really fast now there are benefits to this right the the system
+benefits to this right the the system that will describe is so flexible that
+that will describe is so flexible that we really didn't have to write any new
+we really didn't have to write any new code when we needed to add anything to
+code when we needed to add anything to the teen scene the cons though were that
+the teen scene the cons though were that things were really brittle all those
+things were really brittle all those change we see a red box that's a node
+change we see a red box that's a node you have to hit for the game to
+you have to hit for the game to essentially continue playing and if you
+essentially continue playing and if you if you interrupt any one of those chains
+if you interrupt any one of those chains if you fire an event that prevents the
+if you fire an event that prevents the next one from firing game
+next one from firing game you're you're sort of broken at this
+you're you're sort of broken at this point so we needed to find a way to
+point so we needed to find a way to manage this basically this creative
+manage this basically this creative content pipeline so the writers could
+content pipeline so the writers could reason about what they were writing feel
+reason about what they were writing feel confident making doing rewrites like
+confident making doing rewrites like this game is massively branching it's
+this game is massively branching it's it's nonlinear right this is not a
+it's nonlinear right this is not a script everything every line is
+script everything every line is independent could be fired from any way
+independent could be fired from any way anywhere it can trigger any other line
+anywhere it can trigger any other line based on context in the game you know
+based on context in the game you know are the teens aware of me yet have I
+are the teens aware of me yet have I been be nice to them have I thrown their
+been be nice to them have I thrown their boom box into the water yet all of these
+boom box into the water yet all of these things change the entire shape of the
+things change the entire shape of the conversation interruptions make this
+conversation interruptions make this even more complicated and the dirty
+even more complicated and the dirty secret with a lot of this sort of
+secret with a lot of this sort of branching dialogue in the industry is
+branching dialogue in the industry is that Excel is the tool that people are
+that Excel is the tool that people are using I mean I've seen talks at GDC this
+using I mean I've seen talks at GDC this year where people talk have shown their
+year where people talk have shown their massive Excel databases and I I get it
+massive Excel databases and I I get it you know this is a way to give lines a
+you know this is a way to give lines a unique ID and to sort of track content
+unique ID and to sort of track content in a program istic way but it's not a
+in a program istic way but it's not a creative tool it's very very hard to
+creative tool it's very very hard to think like a writer using that so to
+think like a writer using that so to that end I built a tool called magpie
+that end I built a tool called magpie this was our dialogue CMS it's a
+this was our dialogue CMS it's a web-based tool which meant that
+web-based tool which meant that basically all writing would get wood
+basically all writing would get wood would flow into this system where it
+would flow into this system where it could be tagged edited it could drive
+could be tagged edited it could drive our voice recording pipeline and then
+our voice recording pipeline and then the event system in unity would pull
+the event system in unity would pull from a JSON API and keep the data there
+from a JSON API and keep the data there fresh and local so magpies goals were
+fresh and local so magpies goals were that the the writers could use whatever
+that the the writers could use whatever creative tools they wanted to that it
+creative tools they wanted to that it would be bulk imported into this
+would be bulk imported into this database we could have checks on the
+database we could have checks on the validity of data basically no no no like
+validity of data basically no no no like incorrect lines and that changes could
+incorrect lines and that changes could be made non destructively so we would
+be made non destructively so we would never lose work and and and basically
+never lose work and and and basically like eventually we hope this would grow
+like eventually we hope this would grow to a localization tool which I'm going
+to a localization tool which I'm going to talk about in a little bit I want to
+to talk about in a little bit I want to speak to how great web-based tools were
+speak to how great web-based tools were are for something like this like this is
+are for something like this like this is a content management system and when it
+a content management system and when it lives on the web that means any team
+lives on the web that means any team member can access it from any anyplace
+member can access it from any anyplace in the world they can access it on their
+in the world they can access it on their phone read through data make edits you
+phone read through data make edits you can hand logins to other team members
+can hand logins to other team members who aren't necessarily on unity maybe
+who aren't necessarily on unity maybe they're in another country and and plus
+they're in another country and and plus you can build these great dashboards so
+you can build these great dashboards so this shows this let us track our
+this shows this let us track our recording progress on the Left our
+recording progress on the Left our progress towards wiring the game in on
+progress towards wiring the game in on the right each of those event lists that
+the right each of those event lists that you've seen purple down below has a
+you've seen purple down below has a localization tracker on it so it let us
+localization tracker on it so it let us kind of reason about the progress we're
+kind of reason about the progress we're making towards a complete game we also
+making towards a complete game we also use this tool called status board that
+use this tool called status board that panic panic is like the the goddaddy of
+panic panic is like the the goddaddy of fire watch they publish the game with us
+fire watch they publish the game with us and they make this create tool for iPads
+and they make this create tool for iPads which gives you all these great widgets
+which gives you all these great widgets and I just wanted to show that we have
+and I just wanted to show that we have the bus time so San Francisco Muni bus
+the bus time so San Francisco Muni bus times in the left and the low upper left
+times in the left and the low upper left and the lower left we have the number of
+and the lower left we have the number of times every fire--which team member has
+times every fire--which team member has been fired for making bad puns
+been fired for making bad puns yeah well Williams at zero there I guess
+yeah well Williams at zero there I guess he was actually doing work the whole
+he was actually doing work the whole time well we were making bad puns in
+time well we were making bad puns in slack and but if you would enhance the
+slack and but if you would enhance the photo you can see that we're also
+photo you can see that we're also tracking our line data so basically
+tracking our line data so basically every time you come in the morning you
+every time you come in the morning you could see okay are we recording
+could see okay are we recording are we wiring like are we did we just
+are we wiring like are we did we just like write a whole bunch of new content
+like write a whole bunch of new content that made our our lines move in the
+that made our our lines move in the wrong direction we definitely saw that a
+wrong direction we definitely saw that a few times okay so this is the process
+few times okay so this is the process for getting written content into magpie
+for getting written content into magpie first a writer delivers a plain text
+first a writer delivers a plain text document Shawn vanaman the head writer
+document Shawn vanaman the head writer and Firewatch uses Scrivener but this
+and Firewatch uses Scrivener but this could be any tool you choose and
+could be any tool you choose and basically it's a lightweight syntax for
+basically it's a lightweight syntax for denoting like what's the name of this
+denoting like what's the name of this conversation
+conversation what's a dialogue choice who's the
+what's a dialogue choice who's the speaker etc so they deliver that magpie
+speaker etc so they deliver that magpie has an import form it parses all those
+has an import form it parses all those lines into individual basically grows in
+lines into individual basically grows in a my sequel database
+a my sequel database that's that lives in the cloud it's like
+that's that lives in the cloud it's like a Heroku based app and and it adds the
+a Heroku based app and and it adds the notes and adds the speaker and it puts
+notes and adds the speaker and it puts them all into an organized list and oh
+them all into an organized list and oh and most importantly it gives every line
+and most importantly it gives every line a unique ID like this is what really was
+a unique ID like this is what really was is required for managing a pipeline is a
+is required for managing a pipeline is a single identifier that you can track a
+single identifier that you can track a line from start to finish once it's in
+line from start to finish once it's in the system we got full-text search
+the system we got full-text search through lines and sections you can just
+through lines and sections you can just go right in and edit a caption inline we
+go right in and edit a caption inline we also had a free-form tagging system so
+also had a free-form tagging system so you could say this is a line that could
+you could say this is a line that could happen on day two or day three you can
+happen on day two or day three you can also add a you know a separate tag for
+also add a you know a separate tag for this is about Brian Goodwin or this is
+this is about Brian Goodwin or this is about relationships
+about relationships basically any ways that you could
+basically any ways that you could organize this content in an like it
+organize this content in an like it didn't all have to be in a single list
+didn't all have to be in a single list as basically I'm trying to say
+as basically I'm trying to say then for recording you have one button
+then for recording you have one button on the upper right that downloads gives
+on the upper right that downloads gives you a CSV export of your lines that
+you a CSV export of your lines that could then be brought into Google sheets
+could then be brought into Google sheets if anyone's doing voiceover on their
+if anyone's doing voiceover on their games I cannot speak to how amazing this
+games I cannot speak to how amazing this tool ended up being just because we'd
+tool ended up being just because we'd have our - well basically you can see
+have our - well basically you can see the line IDs on the left there right and
+the line IDs on the left there right and then the session takes and chosen reads
+then the session takes and chosen reads what that basically means is rich summer
+what that basically means is rich summer and [ __ ] Jones our lead actors would be
+and [ __ ] Jones our lead actors would be in their home Studios all recording in
+in their home Studios all recording in their own like voice setup right me Sean
+their own like voice setup right me Sean rich [ __ ] would all be on a Skype call
+rich [ __ ] would all be on a Skype call together and we would they would be
+together and we would they would be recording but this this you can't use
+recording but this this you can't use Skype you can't use Skype for obvious
+Skype you can't use Skype for obvious like quality reasons right so what we
+like quality reasons right so what we need instead is all of us to be on our
+need instead is all of us to be on our own setups but rich and sissy's little
+own setups but rich and sissy's little icons are sorry they're little like
+icons are sorry they're little like their colored boxes are moving around
+their colored boxes are moving around and we're all on the same shooting
+and we're all on the same shooting script they're recording they're keying
+script they're recording they're keying off of each other's VOC vocal
+off of each other's VOC vocal performances that reacting to each
+performances that reacting to each other's emotions and and then they're
+other's emotions and and then they're delivering separate wav files a intern
+delivering separate wav files a intern is chopping those wav files up into
+is chopping those wav files up into using the chosen reads that Sean has
+using the chosen reads that Sean has identified you know he's like okay take
+identified you know he's like okay take three was great on
+three was great on line 21100 take 4 is great on 2200 and
+line 21100 take 4 is great on 2200 and then they're just delivering these wave
+then they're just delivering these wave files that could be imported into into
+files that could be imported into into magpie and into the system hello Henry
+magpie and into the system hello Henry are you there
+are you there once we're hungry having a nice
+once we're hungry having a nice afternoon you can easily parse like
+afternoon you can easily parse like listen to the lines as recorded updating
+listen to the lines as recorded updating the captions because this is a very
+the captions because this is a very common occurrence where the voice actor
+common occurrence where the voice actor does their own interpretation changes
+does their own interpretation changes the phrasing to make it read better so
+the phrasing to make it read better so you need to go back in and collect the
+you need to go back in and collect the captions and this is something you could
+captions and this is something you could do from anywhere thanks to magpie you
+do from anywhere thanks to magpie you didn't have to have source control
+didn't have to have source control access you didn't have to have a unity
+access you didn't have to have a unity install running so I want to speak a
+install running so I want to speak a little bit before I move on to what we
+little bit before I move on to what we originally wanted to do with the system
+originally wanted to do with the system where it landed originally we want to
+where it landed originally we want to have one unified content pipeline that
+have one unified content pipeline that would do all the event data that will
+would do all the event data that will shown with you know what triggers what
+shown with you know what triggers what every event response possible in the
+every event response possible in the game along with all of the written
+game along with all of the written content we ended up focusing on two
+content we ended up focusing on two tools one for content generation and
+tools one for content generation and recording and localization which is
+recording and localization which is magpie and one for wiring this really
+magpie and one for wiring this really did help us focus although ultimately I
+did help us focus although ultimately I think that's that's the dream ultimately
+think that's that's the dream ultimately a CMS that could manage all all of your
+a CMS that could manage all all of your data in one searchable place would be a
+data in one searchable place would be a would be the way to go it would just
+would be the way to go it would just have taken the entirety of our
+have taken the entirety of our development cycle so that wasn't going
+development cycle so that wasn't going to happen so this next case study is the
+to happen so this next case study is the julia conversations this happens on day
+julia conversations this happens on day two this is Henry and Delilah starting
+two this is Henry and Delilah starting to talk about relationships why is Henry
+to talk about relationships why is Henry out here is he married why isn't his
+out here is he married why isn't his wife here etc this is when we have the
+wife here etc this is when we have the system more in place we had magpie we've
+system more in place we had magpie we've done several revs on the event system
+done several revs on the event system and we had all the tools we needed to to
+and we had all the tools we needed to to create this so I want to show one quick
+create this so I want to show one quick example of one possible playthrough of
+example of one possible playthrough of this four part very context dependent
+this four part very context dependent conversation
+trust me I know how it is so did you break any hearts back in Colorado when
+break any hearts back in Colorado when you took this job I myself has chosen to
+you took this job I myself has chosen to never get attached to anyone who would
+never get attached to anyone who would miss me but I know I'm a bit of an
+miss me but I know I'm a bit of an outlier I don't mean that the way it
+outlier I don't mean that the way it sounds I mean I care about people and I
+sounds I mean I care about people and I like companionship as much as the next
+like companionship as much as the next person but why does it have to come from
+person but why does it have to come from the same person for your whole life we
+the same person for your whole life we don't really need to talk about this
+don't really need to talk about this stuff right well what would you prefer
+stuff right well what would you prefer literally anything do I know about the
+literally anything do I know about the homeopathic remedy for yeast infections
+homeopathic remedy for yeast infections I came up with last summer okay never
+I came up with last summer okay never mind so this is an example of Henry kind
+mind so this is an example of Henry kind of shutting Delilah down right he
+of shutting Delilah down right he doesn't want to talk about relationships
+doesn't want to talk about relationships he just wants to do his job and wander
+he just wants to do his job and wander out in the woods right let's compare
+out in the woods right let's compare that to how differently it can be if
+that to how differently it can be if you've shared more earlier in the
+you've shared more earlier in the earlier in the game and earlier in the
+earlier in the game and earlier in the day
+same conversation same game oh you know if it makes you feel any better you're a
+if it makes you feel any better you're a member of a diverse Club of lookouts
+member of a diverse Club of lookouts that have come to the thoroughfare after
+that have come to the thoroughfare after a breakup there was Vernon whose wife
+a breakup there was Vernon whose wife got put away for running cocaine Becca
+got put away for running cocaine Becca who was widowed after her husband the
+who was widowed after her husband the jockey was trampled by his horse and
+jockey was trampled by his horse and Sharon whose boyfriend had his own
+Sharon whose boyfriend had his own boyfriend
+boyfriend maybe he boned the neighbor maybe she
+maybe he boned the neighbor maybe she boned the neighbor maybe he both did I
+boned the neighbor maybe he both did I don't judge if you ever want to talk
+don't judge if you ever want to talk breakups I'm here go it wasn't anyone's
+breakups I'm here go it wasn't anyone's fault you know neither of us boned the
+fault you know neither of us boned the neighbor so he doesn't real a part we
+neighbor so he doesn't real a part we just couldn't be together anymore how
+just couldn't be together anymore how does that make you feel
+not very good sorry yeah what are you gonna do
+[Music]
+so this moment has so much going on again it's a four-part conversation it's
+again it's a four-part conversation it's triggered by many areas in the world
+triggered by many areas in the world that you sort of walk through but each
+that you sort of walk through but each one of those doesn't necessarily trigger
+one of those doesn't necessarily trigger the same conversation it's dependent on
+the same conversation it's dependent on how long has it been since the last time
+how long has it been since the last time you spoke we wanted to space these out
+you spoke we wanted to space these out what have you shared with delilah so far
+what have you shared with delilah so far have you kind of indicated to her that
+have you kind of indicated to her that you like talking about this stuff or
+you like talking about this stuff or does Delilah sort of need to wheedle in
+does Delilah sort of need to wheedle in on you this was also the conversation
+on you this was also the conversation where we introduced the idea of a [ __ ]
+where we introduced the idea of a [ __ ] path conversation or a non interruptible
+path conversation or a non interruptible conversation there's some of these
+conversation there's some of these chains which once they're started we
+chains which once they're started we just can't let them break because the
+just can't let them break because the game state depends on it we need Delilah
+game state depends on it we need Delilah to know the full truth about your wife
+to know the full truth about your wife once you've decided to change it we
+once you've decided to change it we can't have Henry just going and saying
+can't have Henry just going and saying oh hey I'm bird and interrupting that in
+oh hey I'm bird and interrupting that in these moments even though generally that
+these moments even though generally that was the case that was always possible in
+was the case that was always possible in the in the game so this is not a lot
+the in the game so this is not a lot like to you know goons yelling at each
+like to you know goons yelling at each other about needing more ammo while
+other about needing more ammo while hiding behind crates anymore like we've
+hiding behind crates anymore like we've kind of drifted of pretty far away from
+kind of drifted of pretty far away from the origins of the system the you know
+the origins of the system the you know this is more like a independent film or
+this is more like a independent film or romantic comedy or something going on
+romantic comedy or something going on and the complexity started to balloon
+and the complexity started to balloon pretty quickly here this is all of those
+pretty quickly here this is all of those are on Delilah's calling you on day two
+are on Delilah's calling you on day two that's the only event that's triggered
+that's the only event that's triggered there those are all different variants
+there those are all different variants for that and this was one of them you
+for that and this was one of them you know the big things we've learned from
+know the big things we've learned from valve is that you can handle this
+valve is that you can handle this complexity pretty simply by sorting your
+complexity pretty simply by sorting your event lists if you just have your event
+event lists if you just have your event list sorted by number of requirements
+list sorted by number of requirements you're going to go through them in order
+you're going to go through them in order until you find one that matches every
+until you find one that matches every we're every requirement and that's going
+we're every requirement and that's going to be your best match that's going to be
+to be your best match that's going to be the most specific thing you could be
+the most specific thing you could be talking about the you know the best
+talking about the you know the best choice at that exact moment so you know
+choice at that exact moment so you know here's an example of like the
+here's an example of like the requirement list for a conversation
+requirement list for a conversation where Delilah doesn't know much
+where Delilah doesn't know much she doesn't know you've had a breakup
+she doesn't know you've had a breakup she doesn't know about Julius she
+she doesn't know about Julius she doesn't know that you had a wife she
+doesn't know that you had a wife she doesn't know that you're right too sick
+doesn't know that you're right too sick she knows almost nothing but you're
+she knows almost nothing but you're still friendly and chit-chatting and so
+still friendly and chit-chatting and so she's trying to still pull information
+she's trying to still pull information out of you the absence of facts being
+out of you the absence of facts being said is still you know context that's
+said is still you know context that's still it that's still a valid match
+still it that's still a valid match that's still something that you care
+that's still something that you care about and delilah will assume things
+about and delilah will assume things about you she'll just start making
+about you she'll just start making things up you haven't ever talked about
+things up you haven't ever talked about having a breakup and here she is talking
+having a breakup and here she is talking about you having a great plan to get
+about you having a great plan to get back together with your ex because she's
+back together with your ex because she's like why else would you have decided to
+like why else would you have decided to come out here in the wilderness for a
+come out here in the wilderness for a summer you've got to be lonely or sad or
+summer you've got to be lonely or sad or something she's projecting it makes her
+something she's projecting it makes her seem like a very real person and really
+seem like a very real person and really the player hasn't done anything to earn
+the player hasn't done anything to earn that it's just a clever use of the lack
+that it's just a clever use of the lack of context of being context in in itself
+of context of being context in in itself the flip side of this is if Delilah
+the flip side of this is if Delilah knows almost everything about Julius she
+knows almost everything about Julius she knows knows who Julia is know that she's
+knows knows who Julia is know that she's sick knows you know that you had a
+sick knows you know that you had a breakup the whole nine yards now she can
+breakup the whole nine yards now she can ask very targeted questions what does
+ask very targeted questions what does she have she's trying to pull
+she have she's trying to pull information from the player she's trying
+information from the player she's trying to get you as the player to engage and
+to get you as the player to engage and you know kind of respond to this so that
+you know kind of respond to this so that first requirement up there knows your
+first requirement up there knows your partner has Alzheimer's that's like the
+partner has Alzheimer's that's like the most specific information you could have
+most specific information you could have if that's set to true we know if he
+if that's set to true we know if he knows everything else because you've
+knows everything else because you've already gone through all of this
+already gone through all of this conversation we know that she knows you
+conversation we know that she knows you have a partner that your partner is sick
+have a partner that your partner is sick better name is Julia like the designer
+better name is Julia like the designer knows all of that so if we were to make
+knows all of that so if we were to make one of these that set that required her
+one of these that set that required her to know that Delilah is sick then we
+to know that Delilah is sick then we would need that to be the most precise
+would need that to be the most precise match even though it only had one
+match even though it only had one requirement so that's what that pad up
+requirement so that's what that pad up there is for you know this the nice easy
+there is for you know this the nice easy clean oh just sort by the number of
+clean oh just sort by the number of requirements and you'll always get the
+requirements and you'll always get the most specific is only true as long as
+most specific is only true as long as your black boards or black board facts
+your black boards or black board facts are not dependent on each other once you
+are not dependent on each other once you get that you need to let your designers
+get that you need to let your designers be able to cheat the priority of things
+be able to cheat the priority of things because if you know you've got this bomb
+because if you know you've got this bomb of a line you want that to hit in the
+of a line you want that to hit in the right if if it's valid at all
+this long multi-part Frost day conversation also sort of taught us that
+conversation also sort of taught us that we had a major problem in the system we
+we had a major problem in the system we had built kind of you know the
+had built kind of you know the conversation problem conversations are
+conversation problem conversations are linear you know they say they seem
+linear you know they say they seem linear they sound linear to the player
+linear they sound linear to the player but under the hood they're branching
+but under the hood they're branching like crazy but if we want you to not be
+like crazy but if we want you to not be able to interrupt if we want to like
+able to interrupt if we want to like pull in black bars or bring up a musical
+pull in black bars or bring up a musical cue or have any other sort of like modal
+cue or have any other sort of like modal game state go on we need to make sure
+game state go on we need to make sure that every possible way that you leave
+that every possible way that you leave that conversation undoes all of that
+that conversation undoes all of that modal State this you know is fine when
+modal State this you know is fine when you only have a linear conversation the
+you only have a linear conversation the second you enter introduced branching
+second you enter introduced branching though you can come in find content that
+though you can come in find content that was perfectly working add a nice little
+was perfectly working add a nice little choice to it and you can no longer radio
+choice to it and you can no longer radio about anything ever again in the rest of
+about anything ever again in the rest of the game until you load from a safe so
+the game until you load from a safe so it's not really ideal the yeah at the
+it's not really ideal the yeah at the end of the day flexible tools are
+end of the day flexible tools are fragile if you can do anything you kind
+fragile if you can do anything you kind of have to do everything right so when
+of have to do everything right so when you build these really really flexible
+you build these really really flexible really expressive tools for your
+really expressive tools for your designers you also need to make sure
+designers you also need to make sure that you're supporting them with all of
+that you're supporting them with all of the debugging they could possibly need
+the debugging they could possibly need you need to make sure that they can
+you need to make sure that they can continue to experiment even when things
+continue to experiment even when things have gone horribly wrong like it took me
+have gone horribly wrong like it took me way too long to add a debug option to
+way too long to add a debug option to just turn back on the radio no matter
+just turn back on the radio no matter what the hell it happened or bring down
+what the hell it happened or bring down the black bars no matter what the hell
+the black bars no matter what the hell it happened you if you're going to give
+it happened you if you're going to give designers and their designers and
+designers and their designers and writers the power to break your game you
+writers the power to break your game you have to give them the power to fix it in
+have to give them the power to fix it in editor while playing with minimal
+editor while playing with minimal minimal minimal friction and then as
+minimal minimal friction and then as you're doing that you'll sort of learn
+you're doing that you'll sort of learn best practices you'll figure out oh
+best practices you'll figure out oh these are the tools I need to keep
+these are the tools I need to keep people working either to automate those
+people working either to automate those tools so
+tools so we had everything more or less working
+we had everything more or less working and we had a Vince going off we had
+and we had a Vince going off we had conversations happening big long
+conversations happening big long complicated ones and then about a week
+complicated ones and then about a week before we shipped the game we decided
+before we shipped the game we decided that we should probably localize it
+that we should probably localize it world out there so this is actually the
+world out there so this is actually the first screen shot the screen shot I took
+first screen shot the screen shot I took of my desktop of the first time that our
+of my desktop of the first time that our Russian localization was not obviously
+Russian localization was not obviously broken we shipped February 9th the clock
+broken we shipped February 9th the clock at the top February 8 8:00 p.m. so this
+at the top February 8 8:00 p.m. so this was coming in hot to say the least yeah
+was coming in hot to say the least yeah so here's our quick advice for how to do
+so here's our quick advice for how to do a like turn on a dime localization first
+a like turn on a dime localization first before you ever start localizing your
+before you ever start localizing your text or approach a localization house
+text or approach a localization house use a pseudo language so we had a script
+use a pseudo language so we had a script that would run through all our dialogue
+that would run through all our dialogue and make these two pseudo languages
+and make these two pseudo languages metal is English but more metal which
+metal is English but more metal which tests UTF support unicode and wide is a
+tests UTF support unicode and wide is a wider version of english that tests
+wider version of english that tests languages like German which tend to be
+languages like German which tend to be much longer and too like awkwardly break
+much longer and too like awkwardly break your slide in a weird spot so we had
+your slide in a weird spot so we had done that luckily so we knew pretty well
+done that luckily so we knew pretty well that our UI could support
+that our UI could support other languages and then we need to get
+other languages and then we need to get the content so this is where magpie came
+the content so this is where magpie came in handy again we quickly added a new
+in handy again we quickly added a new field and a new interface to let so
+field and a new interface to let so basically we could give a login to Slava
+basically we could give a login to Slava our amazing Russian translator and he
+our amazing Russian translator and he delivered a full Russian localization of
+delivered a full Russian localization of Firewatch within a week which was just
+Firewatch within a week which was just so awesome and then the benefit of that
+so awesome and then the benefit of that is for later Lok's translators could go
+is for later Lok's translators could go through and see other other translators
+through and see other other translators work right so it kind of became this
+work right so it kind of became this rosetta stone or if you weren't quite
+rosetta stone or if you weren't quite sure about the meaning of something you
+sure about the meaning of something you could you could look at the work of
+could you could look at the work of others so this is all localization tools
+others so this is all localization tools were sort of built with the same mindset
+were sort of built with the same mindset that we built our event tools on which
+that we built our event tools on which is be flexible early build as fast as
+is be flexible early build as fast as possible
+possible get things up and running as quickly as
+get things up and running as quickly as you possibly can we didn't have a ton
+you possibly can we didn't have a ton programmers we did you know we had two
+programmers we did you know we had two programmers for most of the project
+programmers for most of the project actually in the editor so it needed to
+actually in the editor so it needed to be really really trivial to add to
+be really really trivial to add to localize any strings in the game we use
+localize any strings in the game we use c-sharp reflection to just add a little
+c-sharp reflection to just add a little string tat a little tag to any string in
+string tat a little tag to any string in the game would dump it out to a JSON
+the game would dump it out to a JSON file and a little dictionary very very
+file and a little dictionary very very very simple we just used dumped
+very simple we just used dumped everything to English key English value
+everything to English key English value dictionary and then localized the
+dictionary and then localized the English values this if you've ever
+English values this if you've ever localized a game you can probably figure
+localized a game you can probably figure out why this didn't go super well every
+out why this didn't go super well every time you fix a typo in your English you
+time you fix a typo in your English you break every translation that has already
+break every translation that has already been made we've handled this just by you
+been made we've handled this just by you know going in doing local dumps
+know going in doing local dumps frequently every time that you built the
+frequently every time that you built the game it actually dumped all of your
+game it actually dumped all of your localization out and then you could just
+localization out and then you could just pull for magpie and it would fix it so
+pull for magpie and it would fix it so it really wasn't too bad just required
+it really wasn't too bad just required you know kind of dotting your eyes the
+you know kind of dotting your eyes the right way to do this is to do what's
+right way to do this is to do what's called a look lock I highly recommend
+called a look lock I highly recommend the sort of English English key value
+the sort of English English key value pair translation scheme it's very simple
+pair translation scheme it's very simple it lets you hand it off to other people
+it lets you hand it off to other people very quickly originally we were actually
+very quickly originally we were actually going to do only fan loke so the idea
+going to do only fan loke so the idea was that we would generate these English
+was that we would generate these English English dictionaries put them make them
+English dictionaries put them make them available on the Internet people could
+available on the Internet people could translate you know the value side of it
+translate you know the value side of it and upload it back up and it would all
+and upload it back up and it would all work once we were doing professional
+work once we were doing professional localization of course this became a
+localization of course this became a little bit more of a problem we were
+little bit more of a problem we were getting dumps as we were still fixing
+getting dumps as we were still fixing bugs in our English the way that you
+bugs in our English the way that you handled that problem is do you do a
+handled that problem is do you do a local lock at some point you say nope
+local lock at some point you say nope English is a translated language too
+English is a translated language too just like everything else we're
+just like everything else we're translating from programmer English to
+translating from programmer English to actual English and that's fine we were
+actual English and that's fine we were originally going to do that and then
+originally going to do that and then turned it off during a pax demo because
+turned it off during a pax demo because of performance problems and we never
+of performance problems and we never turned it back on so yeah do the right
+turned it back on so yeah do the right thing if you want to do the really
+thing if you want to do the really really right thing every string in your
+really right thing every string in your game should get a unique ID those unique
+game should get a unique ID those unique IDs should be persistent for forever or
+IDs should be persistent for forever or they should handle copy and pasting you
+they should handle copy and pasting you should never have a duplicate key you
+should never have a duplicate key you should not be able to break them with
+should not be able to break them with prefabs
+prefabs that's really hard you have to build
+that's really hard you have to build that into your editor in a really
+that into your editor in a really fundamental way we didn't have that
+fundamental way we didn't have that engineering support so we went with the
+engineering support so we went with the English English dictionary if you find
+English English dictionary if you find yourself with you know unlimited time or
+yourself with you know unlimited time or money locked string IDs the way to go
+money locked string IDs the way to go so yeah clearly we had a localization
+so yeah clearly we had a localization success in with just about a one week to
+success in with just about a one week to go more or less so again Lok Lak really
+go more or less so again Lok Lak really really important I'm we're really proud
+really important I'm we're really proud that we managed to ship Russian and but
+that we managed to ship Russian and but yeah like there's a lot of stuff you can
+yeah like there's a lot of stuff you can do early on to save yourself that pain
+do early on to save yourself that pain oh so yeah just some closing thoughts
+oh so yeah just some closing thoughts just so we'll have some time for
+just so we'll have some time for questions what do we learn we learned
+questions what do we learn we learned that a small team by investing in tools
+that a small team by investing in tools that are flexible and also writer
+that are flexible and also writer friendly can deliver a triple-a
+friendly can deliver a triple-a production with an indie scope we were
+production with an indie scope we were between 8 and 12 people most of the time
+between 8 and 12 people most of the time on the project so about right we learned
+on the project so about right we learned that an iterative design process can
+that an iterative design process can deliver a game that feels much more
+deliver a game that feels much more cinematic and human not like a bunch of
+cinematic and human not like a bunch of lines in a spreadsheet like actual two
+lines in a spreadsheet like actual two people talking back and forth and that a
+people talking back and forth and that a super flexible system can be very
+super flexible system can be very changed tolerant and can support this
+changed tolerant and can support this growing to organic complexity as the
+growing to organic complexity as the project goes along yeah make your tools
+project goes along yeah make your tools general early you don't know the game
+general early you don't know the game you're making I mean unless you know you
+you're making I mean unless you know you maybe you're awesome and you do but in
+maybe you're awesome and you do but in general you you're gonna be exploring
+general you you're gonna be exploring and finding out what game it is that
+and finding out what game it is that you're really making as you're starting
+you're really making as you're starting so make your tools general make them
+so make your tools general make them flexible make make them you know survive
+flexible make make them you know survive the sort of birthing pains of early
+the sort of birthing pains of early production the biggest win for our event
+production the biggest win for our event system is every single system in the
+system is every single system in the game that triggers a new event
+game that triggers a new event immediately gets the power to fire any
+immediately gets the power to fire any response in the game whether it's
+response in the game whether it's something that was wired up in playmaker
+something that was wired up in playmaker or any of those response nights any
+or any of those response nights any dialogue anything and vice-versa
+dialogue anything and vice-versa every time we add a new response type
+every time we add a new response type every single system that fires it
+every single system that fires it then gets access to that power as well
+then gets access to that power as well its multiplicative but in a good way you
+its multiplicative but in a good way you know normally you have that problem in
+know normally you have that problem in design where oh we need to everything to
+design where oh we need to everything to work with everything so we've got to
+work with everything so we've got to write a special case for everything in
+write a special case for everything in that grid this is the opposite you have
+that grid this is the opposite you have no special cases you don't make any
+no special cases you don't make any assumptions every one of your response
+assumptions every one of your response types can happen at any time from
+types can happen at any time from anywhere any event can trigger from any
+anywhere any event can trigger from any system and any event can trigger any
+system and any event can trigger any response type so you just get it all all
+response type so you just get it all all that matrix for free however as you
+that matrix for free however as you start to finalize your game you're gonna
+start to finalize your game you're gonna figure out what what specific problems
+figure out what what specific problems you are trying to solve you can make
+you are trying to solve you can make tools for those specific problems
+tools for those specific problems usually customize your tools for the
+usually customize your tools for the exact problem you're trying to solve the
+exact problem you're trying to solve the tricky bit is scheduling time for that
+tricky bit is scheduling time for that work up front like we knew about the
+work up front like we knew about the conversation problem you know halfway
+conversation problem you know halfway through development and we just didn't
+through development and we just didn't ever have the time to bring me Patrick
+ever have the time to bring me Patrick Shawn Jake Nels all in the room all sit
+Shawn Jake Nels all in the room all sit down and all figure out what the right
+down and all figure out what the right solution for the problem we had right in
+solution for the problem we had right in front of us really looked like we were
+front of us really looked like we were all too busy making the game as fast as
+all too busy making the game as fast as humanly possible yeah so just briefly -
+humanly possible yeah so just briefly - one more like a piece of further work if
+one more like a piece of further work if you were to pick up this system and keep
+you were to pick up this system and keep going with something like it is
+going with something like it is we should structure we should have
+we should structure we should have structured our data around conversations
+structured our data around conversations making them a first-class citizen we
+making them a first-class citizen we talked about the crib path conversation
+talked about the crib path conversation problem where you know we need to make
+problem where you know we need to make dialogue not interrupted well that's a
+dialogue not interrupted well that's a modal state that was turned on at the
+modal state that was turned on at the beginning of conversation and had to be
+beginning of conversation and had to be turned off at the end of the
+turned off at the end of the conversation problem being conversations
+conversation problem being conversations have multiple exit points multiple entry
+have multiple exit points multiple entry points and so for every one of those you
+points and so for every one of those you had to be absolutely sure that you were
+had to be absolutely sure that you were reaching a place where the right where
+reaching a place where the right where the where the conversation was turned
+the where the conversation was turned off this was just the kind of thing that
+off this was just the kind of thing that we didn't need to change the event
+we didn't need to change the event system in order to accommodate this all
+system in order to accommodate this all we really needed was a bubble a box
+we really needed was a bubble a box around that long chain of conversations
+around that long chain of conversations where we could say oh very nice well
+where we could say oh very nice well we're where we could say that guarantee
+we're where we could say that guarantee lives on the conversation and is not
+lives on the conversation and is not dependent on any single line or single
+dependent on any single line or single exit point of that that chain so that's
+exit point of that that chain so that's that's our talk we'd love to take some
+that's our talk we'd love to take some questions don't forget to fill out your
+questions don't forget to fill out your GC evaluations evaluation the web
+GC evaluations evaluation the web evaluation and here's our contact
+evaluation and here's our contact information if you ever need to send us
+information if you ever need to send us an email or find us on Twitter questions
+an email or find us on Twitter questions along I really enjoyed your talk thank
+along I really enjoyed your talk thank you
+you I'm thinking about the graph that you
+I'm thinking about the graph that you had of the conversation with the
+had of the conversation with the multiple red boxes of what you had to
+multiple red boxes of what you had to hit at least one for the game to not
+hit at least one for the game to not break how did you make sure that you
+break how did you make sure that you ended up hitting at least one of them we
+ended up hitting at least one of them we had a tool for visualizing them which is
+had a tool for visualizing them which is what that screen shot came from so we
+what that screen shot came from so we could check it against that but other
+could check it against that but other than that we had no like programmatic
+than that we had no like programmatic guarantees we had to play test right
+guarantees we had to play test right well we eventually put in a few safeties
+well we eventually put in a few safeties that get-out-of-jail-free card if you
+that get-out-of-jail-free card if you just want her to like win once you
+just want her to like win once you started any of the team conversations we
+started any of the team conversations we spawned a volume around where we knew
+spawned a volume around where we knew you had triggered like a larger volume
+you had triggered like a larger volume that would trigger the oh you've walked
+that would trigger the oh you've walked away you have chosen not to have this
+away you have chosen not to have this conversation we're going to yell at you
+conversation we're going to yell at you as you flee as sort of a yeah right get
+as you flee as sort of a yeah right get in jail yeah in that case we we used
+in jail yeah in that case we we used yeah smart like editor hacks to work
+yeah smart like editor hacks to work around that fact right where you could
+around that fact right where you could create these guarantees yeah all right
+create these guarantees yeah all right thank you hi my question is about the
+thank you hi my question is about the voice acting and again thank you so much
+voice acting and again thank you so much for having this is really amazing
+for having this is really amazing um how did you manage to or how would
+um how did you manage to or how would the designers able to pull together
+the designers able to pull together maybe different takes or readings of the
+maybe different takes or readings of the voice acting so that it didn't sound
+voice acting so that it didn't sound like you know to AI is talking to each
+like you know to AI is talking to each other so yeah it's it's all about
+other so yeah it's it's all about recording oh sure sorry the question was
+recording oh sure sorry the question was how do you record voice actors so it
+how do you record voice actors so it doesn't sound like to AIS and how do you
+doesn't sound like to AIS and how do you pull them together the best the it's all
+pull them together the best the it's all about getting to actors in real time who
+about getting to actors in real time who can play off of each other
+can play off of each other and then basically hand tuning the
+and then basically hand tuning the timings of them right so you like Shawn
+timings of them right so you like Shawn would pick the takes that sounded best
+would pick the takes that sounded best but then after we sort of dehydrated
+but then after we sort of dehydrated those wav files rehydrate them back into
+those wav files rehydrate them back into unity we had to like specifically hand
+unity we had to like specifically hand at it okay 200 milliseconds after this
+at it okay 200 milliseconds after this one 600 milliseconds after that one yeah
+one 600 milliseconds after that one yeah thank you
+thank you I'm curious it seemed like a lot of your
+I'm curious it seemed like a lot of your tools were kind of a linear list of
+tools were kind of a linear list of events but you also had some sort of
+events but you also had some sort of tree views how often when people were
+tree views how often when people were editing dialog did they work in a tree
+editing dialog did they work in a tree view and how often do they work in a
+view and how often do they work in a flat State the question was how often
+flat State the question was how often did people use the list view or the tree
+did people use the list view or the tree previewer that we had shown the tree
+previewer that we had shown the tree previewer was actually just read-only
+previewer was actually just read-only data so it would take the sort of full
+data so it would take the sort of full conversation system and parse it and
+conversation system and parse it and figure out what the what the nodes
+figure out what the what the nodes looked like because the Aravind system
+looked like because the Aravind system was all interrupt-driven you could
+was all interrupt-driven you could interrupt him anytime
+interrupt him anytime heavily branching very you know a
+heavily branching very you know a context to where the tree graph ends up
+context to where the tree graph ends up not being a very good visualization for
+not being a very good visualization for it because it's not how the system works
+it because it's not how the system works under the hood it really is sort of a
+under the hood it really is sort of a linear list and they anything get
+linear list and they anything get interrupt and it just goes through the
+interrupt and it just goes through the search and finds a match so it ended up
+search and finds a match so it ended up working better to look at it look at the
+working better to look at it look at the data in the format that it was that was
+data in the format that it was that was closer to the metaphor it was actually
+closer to the metaphor it was actually using the event editor there had full
+using the event editor there had full text search inside of any field you
+text search inside of any field you could search by a lot of different
+could search by a lot of different things so that you could scope down what
+things so that you could scope down what you were looking for it lets you do
+you were looking for it lets you do multi select and let you head buttons to
+multi select and let you head buttons to automatically follow up to what the next
+automatically follow up to what the next event was going to be so for
+event was going to be so for conversations where is like play line
+conversations where is like play line wait play next line you could just jump
+wait play next line you could just jump to that follow-up and follow those
+to that follow-up and follow those chains manually very very quickly and
+chains manually very very quickly and that ended up being sort of more usable
+that ended up being sort of more usable than a giant web thank you so if I
+than a giant web thank you so if I understand the ways you're editing data
+understand the ways you're editing data you've got narrative designers or
+you've got narrative designers or writers writing stuff in a like
+writers writing stuff in a like essentially a text document they there's
+essentially a text document they there's no none of the
+no none of the tagging information is present there and
+tagging information is present there and then you have the separate you you add
+then you have the separate you you add the tagging in the editor did you have
+the tagging in the editor did you have any friction between these sources of
+any friction between these sources of information where maybe the writer goes
+information where maybe the writer goes back and changes something in the text
+back and changes something in the text document and maybe now it doesn't fit
+document and maybe now it doesn't fit the context that's been prescribed by
+the context that's been prescribed by the tags that have been added in the
+the tags that have been added in the editor and now all of a sudden you know
+editor and now all of a sudden you know this this dialogue this plain doesn't
+this this dialogue this plain doesn't seem to fit right so the question is did
+seem to fit right so the question is did we have a problem with writers changing
+we have a problem with writers changing contents in its original text document
+contents in its original text document before or a it no longer matching that
+before or a it no longer matching that way it had been tagged and built-in
+way it had been tagged and built-in editor so the text document is sort of a
+editor so the text document is sort of a throwaway as soon as we imported into
+throwaway as soon as we imported into magpie the text document is considered
+magpie the text document is considered just history you know then we also had a
+just history you know then we also had a tool where we could consider a line
+tool where we could consider a line locked so basically you could freely
+locked so basically you could freely edit content until we recorded it or
+edit content until we recorded it or until we recorded it and updated the
+until we recorded it and updated the caption and then there was a little lock
+caption and then there was a little lock icon you click and saying this is done
+icon you click and saying this is done because after that point if a writer
+because after that point if a writer were to change something they would be
+were to change something they would be they should be aware that they're
+they should be aware that they're causing a lot of re of new work to be
+causing a lot of re of new work to be created so that was our solution around
+created so that was our solution around it is just having a pipeline where we
+it is just having a pipeline where we just say after this point it's done we
+just say after this point it's done we did also have some some real serious
+did also have some some real serious issues with this when we did things like
+issues with this when we did things like major level redesigns or major rewrites
+major level redesigns or major rewrites so at one point we changed the map
+so at one point we changed the map around and we had a bunch of lines that
+around and we had a bunch of lines that were like go north where the North was
+were like go north where the North was no longer North so when you do major
+no longer North so when you do major changes to your game you also have to
+changes to your game you also have to make major changes to your text content
+make major changes to your text content and vice versa so we just provided good
+and vice versa so we just provided good tools for tracking these things down you
+tools for tracking these things down you could as you edited a line in magpie you
+could as you edited a line in magpie you could find the take the ID search for it
+could find the take the ID search for it in the event system and find every line
+in the event system and find every line that referenced that very very quickly
+that referenced that very very quickly Thanks hi can you talk a little bit
+Thanks hi can you talk a little bit about your QA system was that mostly
+about your QA system was that mostly when you were making changes was that
+when you were making changes was that designer internal play test
+designer internal play test external play tests or automated testing
+external play tests or automated testing the question was about our QA and what
+the question was about our QA and what do we used internal external or
+do we used internal external or automated testing we used internal
+automated testing we used internal testing until very very late in the
+testing until very very late in the project we would get people to come in
+project we would get people to come in and play the game we would record their
+and play the game we would record their playthroughs we had some
+playthroughs we had some my analytics data as well like heat maps
+my analytics data as well like heat maps and stuff like that though we didn't
+and stuff like that though we didn't make the best use of that and then as we
+make the best use of that and then as we got towards shipping we switched over to
+got towards shipping we switched over to using Research Center and they would
+using Research Center and they would give us log fight like the editor would
+give us log fight like the editor would editor and standalone player would both
+editor and standalone player would both dump out the log files to a place that
+dump out the log files to a place that they could track them down and then they
+they could track them down and then they would send those along with any bug that
+would send those along with any bug that we got so we could just go through the
+we got so we could just go through the event system you like oh okay that's
+event system you like oh okay that's nope that needs to play a Vince six not
+nope that needs to play a Vince six not event seven yeah
+event seven yeah and rewind things pretty easily from
+and rewind things pretty easily from that we oh another like thing I would
+that we oh another like thing I would I'd love to explore more in an another
+I'd love to explore more in an another game as we we briefly had a debug data
+game as we we briefly had a debug data where the game would actually shoot
+where the game would actually shoot lines that were played to magpie and so
+lines that were played to magpie and so then it could keep track of lines that
+then it could keep track of lines that had never been played so we're in early
+had never been played so we're in early steam beta we could actually see like oh
+steam beta we could actually see like oh crap there's like 20 lines that are
+crap there's like 20 lines that are unreachable and so we could track that
+unreachable and so we could track that down so that was helpful but yeah really
+down so that was helpful but yeah really was all about Reacher Research Center
+was all about Reacher Research Center and internal testing yep thanks from hey
+and internal testing yep thanks from hey guys great talk I was just thinking
+guys great talk I was just thinking about the the event system and how it's
+about the the event system and how it's all string based and I was wondering if
+all string based and I was wondering if you did anything to kind of prevent like
+you did anything to kind of prevent like misspellings or fat fingering or things
+misspellings or fat fingering or things like that because I seem like it could
+like that because I seem like it could break things we complained about it a
+break things we complained about it a lot oh sorry there the the question was
+lot oh sorry there the the question was did we do anything to prevent fat
+did we do anything to prevent fat fingering or misspellings given how many
+fingering or misspellings given how many strings were were used in our game again
+strings were were used in our game again honestly the the answer to that question
+honestly the the answer to that question is mostly the search function by putting
+is mostly the search function by putting in quick string search into the end of
+in quick string search into the end of the tool from the get-go if you were
+the tool from the get-go if you were worried that you were misspelling
+worried that you were misspelling something just start typing it in the
+something just start typing it in the search field and if it matches you
+search field and if it matches you spelled it right and if it doesn't you
+spelled it right and if it doesn't you didn't we did have a fact browser so
+didn't we did have a fact browser so every blackboard fact that ever got
+every blackboard fact that ever got created by any system that you know at
+created by any system that you know at data time so there were a few facts that
+data time so there were a few facts that were created at runtime but any any fact
+were created at runtime but any any fact that got created at a time was in a big
+that got created at a time was in a big list also searchable so you could go
+list also searchable so you could go find the one you meant we pretty quickly
+find the one you meant we pretty quickly established some naming conventions
+established some naming conventions about what facts intimate names should
+about what facts intimate names should be to try and minimize this problem and
+be to try and minimize this problem and then we changed those I think three
+then we changed those I think three times during the course of development
+times during the course of development so yeah we mostly complain
+so yeah we mostly complain about it a lot um we wanted autocomplete
+about it a lot um we wanted autocomplete and it ended up just being out of scope
+and it ended up just being out of scope for the time we had but it was something
+for the time we had but it was something we it was you know okay well if I have a
+we it was you know okay well if I have a week free I'll do that okay I'll have I
+week free I'll do that okay I'll have I have a leaf written yeah
+have a leaf written yeah two years later we didn't have it also
+two years later we didn't have it also since it's all JSON you can always have
+since it's all JSON you can always have a tools programmer you know basically
+a tools programmer you know basically write a big tree search function that
+write a big tree search function that says are there any requirements that are
+says are there any requirements that are not found anywhere in the fact setting
+not found anywhere in the fact setting tables you know which we did a couple
+tables you know which we did a couple times basically that would feed like a
+times basically that would feed like a bug burn down list yeah and that's
+bug burn down list yeah and that's actually a really good tip always make
+actually a really good tip always make sure your data formats are human
+sure your data formats are human readable always for everything is
+readable always for everything is ideally being able to go and just insert
+ideally being able to go and just insert them and use regular expressions on them
+them and use regular expressions on them is it gets you out of jams like that
+is it gets you out of jams like that very very quickly cool thank you all
+very very quickly cool thank you all right um I think we are just about out
+right um I think we are just about out of time for questions
+of time for questions we're gonna go to will be at the
+we're gonna go to will be at the breakout room just around the corner
+breakout room just around the corner here down the other hallway if anybody
+here down the other hallway if anybody has any other questions I want to ask us
+has any other questions I want to ask us we'll be there in two minutes
+we'll be there in two minutes [Applause]

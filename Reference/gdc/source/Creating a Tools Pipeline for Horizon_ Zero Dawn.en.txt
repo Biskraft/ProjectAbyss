@@ -1,0 +1,1623 @@
+[Music] so my name is Dan Somali I'm a tools
+so my name is Dan Somali I'm a tools programmer at guerrilla games and
+programmer at guerrilla games and together with my colleague Sandra I
+together with my colleague Sandra I understand I'm going to talk about how
+understand I'm going to talk about how we rebuilt our tools pipeline during the
+we rebuilt our tools pipeline during the development of horizon zero dawn so for
+development of horizon zero dawn so for those of you who might be unfamiliar
+those of you who might be unfamiliar with the game let's take a quick look at
+with the game let's take a quick look at a trailer
+[Music]
+[Applause]
+all right so now everybody knows exactly what the game is about it's continue so
+what the game is about it's continue so prior to creating horizon we worked on
+prior to creating horizon we worked on on Killzone which is a series of
+on Killzone which is a series of first-person shooters and when we were
+first-person shooters and when we were gonna make the jump from building
+gonna make the jump from building shooters to creating the vast open world
+shooters to creating the vast open world of horizon it was gonna be a big big
+of horizon it was gonna be a big big challenge for all disciplines within our
+challenge for all disciplines within our company and the tools team was no
+company and the tools team was no exception so we'll cover a few main a
+exception so we'll cover a few main a few different areas of interest but I
+few different areas of interest but I guess the main takeaways of this talk
+guess the main takeaways of this talk are that you'll get a bit of insight
+are that you'll get a bit of insight into why we decided to rebuild our tools
+into why we decided to rebuild our tools and learn a little bit about how we
+and learn a little bit about how we approached to do this while we were
+approached to do this while we were already in production and will show a
+already in production and will show a few ways in which we think that it paid
+few ways in which we think that it paid off so if you're somebody who is
+off so if you're somebody who is responsible for maintaining a legacy
+responsible for maintaining a legacy toolset or you're just somebody who uses
+toolset or you're just somebody who uses one on a daily basis this will hopefully
+one on a daily basis this will hopefully inspire you to do something about that
+inspire you to do something about that situation so yeah to begin with I'll
+situation so yeah to begin with I'll talk a little bit about the tools that
+talk a little bit about the tools that we use on Killzone Shadowfall followed
+we use on Killzone Shadowfall followed by a bit of background on the process of
+by a bit of background on the process of actually rebuilding our tool chain and
+actually rebuilding our tool chain and then we'll go into some detail about our
+then we'll go into some detail about our level editor or 3d editor and how actual
+level editor or 3d editor and how actual data editing works and if there's time
+data editing works and if there's time I'll cover a few other tools we have and
+I'll cover a few other tools we have and friendly share a couple of learnings
+friendly share a couple of learnings from our projects and a bit about our
+from our projects and a bit about our future plans so at the start of horizon
+future plans so at the start of horizon we had a pretty fragmented toolset it
+we had a pretty fragmented toolset it was built upon like a mixture of
+was built upon like a mixture of different languages and frameworks we
+different languages and frameworks we had very long iteration times I mean in
+had very long iteration times I mean in a really bad case it could be like
+a really bad case it could be like between a designer making a change and
+between a designer making a change and actually being able to see it in-game
+actually being able to see it in-game was like 20 or 30 minutes and to be
+was like 20 or 30 minutes and to be frank we had a lot of pretty unhappy
+frank we had a lot of pretty unhappy users I mean at this time unity and
+users I mean at this time unity and unreal were becoming much more popular
+unreal were becoming much more popular and visible so we had some pretty strong
+and visible so we had some pretty strong dissatisfaction with our users when when
+dissatisfaction with our users when when they were comparing their workflows and
+they were comparing their workflows and features in guerrilla tools and
+features in guerrilla tools and comparing it to you like Unreal and
+comparing it to you like Unreal and unity so just a quick technical detail
+unity so just a quick technical detail at guerrilla we use an intermediate
+at guerrilla we use an intermediate storage format which is called core text
+storage format which is called core text and we said for all of our game data
+and we said for all of our game data almost everything except for textures in
+almost everything except for textures in audio and before the data is loaded and
+audio and before the data is loaded and we transform it through a into an
+we transform it through a into an optimized binary representation through
+optimized binary representation through a process that we call conversion
+a process that we call conversion so the primary editor that we had for a
+so the primary editor that we had for a core text was the core text editor
+core text was the core text editor here's an image of the thing in all of
+here's an image of the thing in all of its glory it's pretty pretty old-school
+its glory it's pretty pretty old-school core text editor displays the contents
+core text editor displays the contents of a court text file is a 2d graph so
+of a court text file is a 2d graph so objects within Philo resources within
+objects within Philo resources within the file are represented as notes on the
+the file are represented as notes on the on the canvas and references between
+on the canvas and references between those objects are represented as wires
+those objects are represented as wires so we use this to create and configure a
+so we use this to create and configure a lot of our game data but in terms of
+lot of our game data but in terms of actual data editing it's pretty
+actual data editing it's pretty low-level it's it's basically one step
+low-level it's it's basically one step removed from just editing your core text
+removed from just editing your core text files directly in a text editor which
+files directly in a text editor which incidentally is how a lot of the
+incidentally is how a lot of the configuration for earlier Killzone game
+configuration for earlier Killzone game was actually done so much of the users
+was actually done so much of the users energy was spent on the busy work of
+energy was spent on the busy work of kind of creating and understanding these
+kind of creating and understanding these complicated resource structures instead
+complicated resource structures instead of just being free to focus on the
+of just being free to focus on the actual creative process the still was
+actual creative process the still was written in C sharp and WinForms and a
+written in C sharp and WinForms and a Sony framework called ATF which was
+Sony framework called ATF which was recently open sourced and additionally
+recently open sourced and additionally the code base for this tool was
+the code base for this tool was fantastically complicated there was
+fantastically complicated there was required a really a lot of effort to
+required a really a lot of effort to make even trivial changes in this tool
+make even trivial changes in this tool so there was only a handful of
+so there was only a handful of programmers in the company who could
+programmers in the company who could actually even work on it and there was
+actually even work on it and there was basically nobody who enjoyed working on
+basically nobody who enjoyed working on it at all the next major piece of our
+it at all the next major piece of our pipeline was Maya specifically our
+pipeline was Maya specifically our in-house Maya plugin so the the plugin
+in-house Maya plugin so the the plugin allows us to edit our game environments
+allows us to edit our game environments inside of Maya and then export them into
+inside of Maya and then export them into core text and the plugin uses decimas
+core text and the plugin uses decimas renderer in the viewport so you get an
+renderer in the viewport so you get an accurate representation of how your
+accurate representation of how your assets are going to look in the game
+assets are going to look in the game however it doesn't run the entire game
+however it doesn't run the entire game movement so and also it leaves a lot of
+movement so and also it leaves a lot of the game systems in an uninitialized
+the game systems in an uninitialized state which means that you miss a lot of
+state which means that you miss a lot of things that actually bring life to the
+things that actually bring life to the game world this was built in C++ and
+game world this was built in C++ and Python and also uses the my API very
+Python and also uses the my API very heavily and much like the core text
+heavily and much like the core text editor there was only a handful of
+editor there was only a handful of people who actually were able to work on
+people who actually were able to work on it and also willing to work on it so the
+it and also willing to work on it so the last last piece was a state machine
+last last piece was a state machine editor called SMED and SMED is a tool
+editor called SMED and SMED is a tool that generates Lua script which is then
+that generates Lua script which is then executed in game and this was used by
+executed in game and this was used by designers for much of the level
+designers for much of the level scripting with logic within Killzone so
+scripting with logic within Killzone so smeb begun life is a prototype actually
+smeb begun life is a prototype actually it was created by a technical designer
+it was created by a technical designer to see if it would be possible to
+to see if it would be possible to produce a visual script editor for our
+produce a visual script editor for our game the deal was that if the products
+game the deal was that if the products I've worked out and was proven to be
+I've worked out and was proven to be okay then the tools team would to take
+okay then the tools team would to take ownership of this thing and make it into
+ownership of this thing and make it into a real tool and then yeah we would go
+a real tool and then yeah we would go forward but even though the prototype
+forward but even though the prototype was successful that
+was successful that transfer ownership thing never really
+transfer ownership thing never really really happened and so at some point
+really happened and so at some point this tool gained critical mass and the
+this tool gained critical mass and the technical designer that made the
+technical designer that made the original prototype was now responsible
+original prototype was now responsible for maintaining an important part of the
+for maintaining an important part of the tool chain and this tool was written in
+tool chain and this tool was written in Python so with this setup designer who's
+Python so with this setup designer who's aiming to accomplish a simple task is
+aiming to accomplish a simple task is forced to navigate between this sort of
+forced to navigate between this sort of like Bermuda Triangle of lost
+like Bermuda Triangle of lost productivity which involves like
+productivity which involves like flipping between these three different
+flipping between these three different applications manually copying string
+applications manually copying string identifiers file names and values
+identifiers file names and values between them and the tools also didn't
+between them and the tools also didn't talk to each other so it meant that
+talk to each other so it meant that mistakes were only indicated way after
+mistakes were only indicated way after the fact and usually by some kind of
+the fact and usually by some kind of impenetrable error message when you try
+impenetrable error message when you try to load the game which is not not ideal
+to load the game which is not not ideal there were so many other tools and
+there were so many other tools and utilities that were part of the daily
+utilities that were part of the daily guerilla workflow but there isn't really
+guerilla workflow but there isn't really time to go into them here so one kind of
+time to go into them here so one kind of tangential thing is that during shadow
+tangential thing is that during shadow fall possibly out of just sheer
+fall possibly out of just sheer frustration with the way that the tools
+frustration with the way that the tools pipeline was was set up the debug UI was
+pipeline was was set up the debug UI was created and debug UI was an in-game user
+created and debug UI was an in-game user interface framework it's it's pretty
+interface framework it's it's pretty feature-rich framework but most
+feature-rich framework but most importantly for what I'm talking about
+importantly for what I'm talking about right now it was something the
+right now it was something the programmers found very easy to use and
+programmers found very easy to use and because of that we ended up with a large
+because of that we ended up with a large number of very useful endgame tools so
+number of very useful endgame tools so I'm gonna show one of those quickly just
+I'm gonna show one of those quickly just you can get an idea of what I'm talking
+you can get an idea of what I'm talking about so this is our in-game GPU
+about so this is our in-game GPU profiler and you can see it displaying
+profiler and you can see it displaying timing values for various draw calls
+timing values for various draw calls during a frame and it allows you to jump
+during a frame and it allows you to jump to different points in the frame to
+to different points in the frame to examine like the render targets or the
+examine like the render targets or the the back buffer you can also see like
+the back buffer you can also see like the inputs for the different samplers
+the inputs for the different samplers and so on and it has an x-ray view which
+and so on and it has an x-ray view which you can move over the the scene and get
+you can move over the the scene and get an idea of which intermediate buffers
+an idea of which intermediate buffers are contributing to the final aim and
+are contributing to the final aim and what put there to look like yeah so that
+what put there to look like yeah so that comes a little bit about the tools and
+comes a little bit about the tools and some of the technology but what about
+some of the technology but what about the the game itself so when starting out
+the the game itself so when starting out when you that horizon was gonna be very
+when you that horizon was gonna be very very different to Killzone we hadn't
+very different to Killzone we hadn't made an RPG before we hadn't made an
+made an RPG before we hadn't made an open-world game before and aside from
+open-world game before and aside from that this game was gonna include new
+that this game was gonna include new types of content which we just hadn't
+types of content which we just hadn't built before like quests and interactive
+built before like quests and interactive conversations and additionally the tools
+conversations and additionally the tools team at gorilla is relatively small so
+team at gorilla is relatively small so depending on how you counted we had like
+depending on how you counted we had like four to six four or six full-time tools
+four to six four or six full-time tools programmers for a team size of about 220
+programmers for a team size of about 220 people so we had to be really efficient
+people so we had to be really efficient about how we used our time and are we
+All Things Considered it was pretty clear that our extent tools pipeline
+clear that our extent tools pipeline would not easily scale to meet the
+would not easily scale to meet the demands of horizon so we decided to
+demands of horizon so we decided to start again so at this point we were
+start again so at this point we were ready to define some initial goals for
+ready to define some initial goals for the new tool chain and we decided to
+the new tool chain and we decided to start by building a tools framework
+start by building a tools framework which was gonna act as the basis of all
+which was gonna act as the basis of all of our future tools development and this
+of our future tools development and this was intended mainly to mitigate the
+was intended mainly to mitigate the arbitrary linguistic and technological
+arbitrary linguistic and technological differences between the tools and just
+differences between the tools and just enforce like some consistency between
+enforce like some consistency between all of them decima which I'll cover a
+all of them decima which I'll cover a little bit later on is our in-house
+little bit later on is our in-house engine and we wanted to leverage as much
+engine and we wanted to leverage as much of it as possible while building the new
+of it as possible while building the new tools and lastly the the debug UI had
+tools and lastly the the debug UI had shown us that if it's easy to do so and
+shown us that if it's easy to do so and programmers will happily make tools for
+programmers will happily make tools for the game systems so by using the engine
+the game systems so by using the engine libraries and keeping the others codes
+libraries and keeping the others codes simple we would increase the chances of
+simple we would increase the chances of getting buy-in from other teams and most
+getting buy-in from other teams and most importantly help from other teams and
+importantly help from other teams and yep so in terms of our goals for an
+yep so in terms of our goals for an editing environment we wanted to make
+editing environment we wanted to make sure that we would build tools that
+sure that we would build tools that would fit our content creators needs so
+would fit our content creators needs so to that end we decided to build like
+to that end we decided to build like specific editors for each discipline and
+specific editors for each discipline and we would call these editing contexts and
+we would call these editing contexts and we were building from reusable
+we were building from reusable components so that we could then create
+components so that we could then create new ones for other teams as they needed
+new ones for other teams as they needed them and these editing contexts would
+them and these editing contexts would sit inside of a single application where
+sit inside of a single application where the content creator would be able to do
+the content creator would be able to do all their work and this would become the
+all their work and this would become the integrated game development environment
+integrated game development environment which we now call the decimator so
+which we now call the decimator so before continuing I want to provide a
+before continuing I want to provide a little bit of background on décima
+little bit of background on décima itself decima as I said our in-house
+itself decima as I said our in-house game engine and most recently was used
+game engine and most recently was used for Killzone Shadowfall rigs mechanized
+for Killzone Shadowfall rigs mechanized combat league horizon zero dawn and is
+combat league horizon zero dawn and is being used for the upcoming Kojima
+being used for the upcoming Kojima Productions titled death stranding and
+Productions titled death stranding and like most engines it's separated into
+like most engines it's separated into layers so at the base we have platform
+layers so at the base we have platform independent game systems just above the
+independent game systems just above the OS and this insulates the layers above
+OS and this insulates the layers above from the operating system which makes it
+from the operating system which makes it just easier to port between different
+just easier to port between different platforms it's also important to note
+platforms it's also important to note that our engine has always had a full PC
+that our engine has always had a full PC built for development purposes
+built for development purposes Nexus core this as rendering and mesh
+Nexus core this as rendering and mesh primitives lights particles and so on
+primitives lights particles and so on and then game code on top of that which
+and then game code on top of that which adds more specific game features such as
+adds more specific game features such as entities and crowds and cinematics so we
+entities and crowds and cinematics so we wanted to put the tools framework on top
+wanted to put the tools framework on top of that stack so that we would have
+of that stack so that we would have access to everything below
+decima is a very mature codebase and it contained many libraries that would be
+contained many libraries that would be useful for tools development so here you
+useful for tools development so here you can see the kind of things that we were
+can see the kind of things that we were interested taking advantage of one of
+interested taking advantage of one of the most important features was the
+the most important features was the engine super optimized our TTI system or
+engine super optimized our TTI system or a runtime type introspection system
+a runtime type introspection system which is exactly what we need to be able
+which is exactly what we need to be able to manipulate data in an editor so aside
+to manipulate data in an editor so aside from getting a lot of well written code
+from getting a lot of well written code for free using the decima engine
+for free using the decima engine libraries would also mean that we the
+libraries would also mean that we the Edit code would prevent present a lower
+Edit code would prevent present a lower barrier to entry for the other
+barrier to entry for the other programmers in the company when compared
+programmers in the company when compared to the core text editor and SMED and the
+to the core text editor and SMED and the maya plugin so to fast forward a little
+maya plugin so to fast forward a little bit here's the decimator is it exists
+bit here's the decimator is it exists today and this is our level editor
+today and this is our level editor context which is a 3d viewport onto the
+context which is a 3d viewport onto the game and an asset browser at the bottom
+game and an asset browser at the bottom hierarchical outliner on the left and an
+hierarchical outliner on the left and an attribute editor on the right pretty
+attribute editor on the right pretty standard stuff that you would expect to
+standard stuff that you would expect to see this is a shot of our visual script
+see this is a shot of our visual script editor which is used for almost all of
+editor which is used for almost all of our in game designer driven logic it has
+our in game designer driven logic it has a 2d diagram renderer which displays the
+a 2d diagram renderer which displays the logic graph of the script and on the
+logic graph of the script and on the right you can see it uses the same
+right you can see it uses the same attribute editor as the previous slide
+attribute editor as the previous slide and finally is a shot of our
+and finally is a shot of our conversation editor or dialogue editor
+conversation editor or dialogue editor so it uses the same diagram render as
+so it uses the same diagram render as the last view but to show the logic
+the last view but to show the logic graph of the the conversation and this
+graph of the the conversation and this time there's two new components so on
+time there's two new components so on the bottom left there is a timeline for
+the bottom left there is a timeline for a positioning stuff inside of a
+a positioning stuff inside of a sequencer and a screenplay editor for
+sequencer and a screenplay editor for writers who work on the in-game dialogue
+writers who work on the in-game dialogue which is on the bottom right so we would
+which is on the bottom right so we would establish some initial goals and we
+establish some initial goals and we actually needed to start moving at this
+actually needed to start moving at this point but the thing is
+point but the thing is killzone was already finished and aside
+killzone was already finished and aside from a few people who were remaining on
+from a few people who were remaining on the project to support multiplayer in
+the project to support multiplayer in DLC everybody was moving on to horizon
+DLC everybody was moving on to horizon so production was already starting and
+so production was already starting and despite the fact there was many issues
+despite the fact there was many issues with the killzone tool chain it did work
+with the killzone tool chain it did work you know you could make a game with it
+you know you could make a game with it and the content creators were familiar
+and the content creators were familiar with those tools so they didn't
+with those tools so they didn't necessarily even want anything to change
+necessarily even want anything to change which seems illogical but that's just
+which seems illogical but that's just how it was and we also had no way to
+how it was and we also had no way to gauge how successful we'd be in this
+gauge how successful we'd be in this endeavor so we're gonna have to start
+endeavor so we're gonna have to start really small
+really small minimize risks we couldn't disrupt the
+minimize risks we couldn't disrupt the production of the game and therefore we
+production of the game and therefore we would need to continue supporting the
+would need to continue supporting the old tools while we did this this drive
+old tools while we did this this drive for new stuff so with that in mind we
+for new stuff so with that in mind we decided to focus on a single team which
+decided to focus on a single team which was our audio team and it represents a
+was our audio team and it represents a pretty small group of users at this time
+pretty small group of users at this time it was around four people and they have
+it was around four people and they have a very specific set of needs for their
+a very specific set of needs for their workflow so by essentially porting this
+workflow so by essentially porting this workflow from the court
+workflow from the court editor into the fledgling decima editor
+editor into the fledgling decima editor we would have an isolated test case for
+we would have an isolated test case for the viability of the framework as a
+the viability of the framework as a whole so our deity works primarily with
+whole so our deity works primarily with no graphs and node graph is a
+no graphs and node graph is a high-performance visual scripting
+high-performance visual scripting language that we developed in-house and
+language that we developed in-house and this was a technology that we it
+this was a technology that we it generates C++ by the way which runs
+generates C++ by the way which runs natively on the target and this was
+natively on the target and this was something we use very heavily in shadow
+something we use very heavily in shadow fall and it was being proposed as a
+fall and it was being proposed as a replacement for SMED and Lua so this
+replacement for SMED and Lua so this meant that if we were successful in
+meant that if we were successful in porting this audio team's workflow then
+porting this audio team's workflow then later it would have benefits for other
+later it would have benefits for other teams in production if you're interested
+teams in production if you're interested in learning more about this technology
+in learning more about this technology there's actually talk from GDC 2014 by
+there's actually talk from GDC 2014 by andreas Varga and Anton voltic and they
+andreas Varga and Anton voltic and they go into some detail about how our audio
+go into some detail about how our audio system works so as a reminder this is
+system works so as a reminder this is the thing that we were trying to replace
+the thing that we were trying to replace and this is our first prototype which we
+and this is our first prototype which we built in C++ and cute
+built in C++ and cute it used cutest cue painter class for the
+it used cutest cue painter class for the diagram display the nose and a similar
+diagram display the nose and a similar visual style to the old editor at this
+visual style to the old editor at this point it wasn't very usable it was very
+point it wasn't very usable it was very basically just like a read-only display
+basically just like a read-only display for no graphs that already existed we
+for no graphs that already existed we also had some performance issues with
+also had some performance issues with cute so we decided that now we had
+cute so we decided that now we had access to decimals renderer we could
+access to decimals renderer we could just rewrite the diagram rendering using
+just rewrite the diagram rendering using that so that allowed us to write the
+that so that allowed us to write the diagram renderer as a single it draws a
+diagram renderer as a single it draws a single quad and then it has some pixel
+single quad and then it has some pixel shader magic to draw the entire thing it
+shader magic to draw the entire thing it was super fast and it can handle a huge
+was super fast and it can handle a huge amounts of data wasn't very useful
+amounts of data wasn't very useful though because you still couldn't like
+though because you still couldn't like edit or save or anything but it look
+edit or save or anything but it look pretty good and this is what we have
+pretty good and this is what we have today kind of skipping through forward a
+today kind of skipping through forward a few steps so once we added an attribute
+few steps so once we added an attribute editor and a way to browse for files and
+editor and a way to browse for files and save them and edit them and so on we
+save them and edit them and so on we managed to convince wanted to have
+managed to convince wanted to have members of the audio team to just like
+members of the audio team to just like try it out and this was a really really
+try it out and this was a really really painful process actually it required
+painful process actually it required many iterations and every time they came
+many iterations and every time they came up against something that wasn't
+up against something that wasn't possible in the new editor they would
+possible in the new editor they would just immediately go back to using the
+just immediately go back to using the old tools but we focused a lot of our
+old tools but we focused a lot of our energy on implementing features that
+energy on implementing features that they were missing and eventually
+they were missing and eventually achieved feature parity with the old
+achieved feature parity with the old editor and these guys started working in
+editor and these guys started working in the decimator every day so it was our
+the decimator every day so it was our initial test case and it worked out
+initial test case and it worked out pretty well
+pretty well we reached feature parity with the old
+we reached feature parity with the old editor much more quickly than we
+editor much more quickly than we anticipated and because we shed this
+anticipated and because we shed this like onerous complexity of the old
+like onerous complexity of the old editor it meant that we could implement
+editor it meant that we could implement new features very easily and most
+new features very easily and most importantly programmers from other teams
+importantly programmers from other teams were comfortable enough with the code
+were comfortable enough with the code that
+that were able to contribute some pretty
+were able to contribute some pretty awesome features but I'll come back to
+awesome features but I'll come back to that later for now I'll hand over to to
+that later for now I'll hand over to to Sondra okay thank you Dan so the node
+Sondra okay thank you Dan so the node graph editor gave the tools team the
+graph editor gave the tools team the necessary confidence to pick up the next
+necessary confidence to pick up the next larger project and that would be
+larger project and that would be creating a level editor or 3d adder as
+creating a level editor or 3d adder as we call it so in the next section I'll
+we call it so in the next section I'll explain some of the early design
+explain some of the early design decisions that led to this new editor so
+decisions that led to this new editor so why create a 3d editor at this stage you
+why create a 3d editor at this stage you might wonder as Dan mentioned we were
+might wonder as Dan mentioned we were already in production and so this is
+already in production and so this is fairly ambitious why did we not just
+fairly ambitious why did we not just simply invest more into our maya plugin
+simply invest more into our maya plugin so first of all the main way of the
+so first of all the main way of the sorry the first reason was that horizon
+sorry the first reason was that horizon zero dawn needed a lot of quest content
+zero dawn needed a lot of quest content which is a somewhat new content type
+which is a somewhat new content type coming from the Killzone series so the
+coming from the Killzone series so the game design workflow that we have we had
+game design workflow that we have we had in place in Maya was really the worst
+in place in Maya was really the worst part of our maya plugin in terms of
+part of our maya plugin in terms of usability maya is simply not designed to
+usability maya is simply not designed to do any any level editing so secondly the
+do any any level editing so secondly the 3d editor a 3d editor like unreal unity
+3d editor a 3d editor like unreal unity would eventually benefit our workflows
+would eventually benefit our workflows as well it is a formidable task and if
+as well it is a formidable task and if we hadn't started it back then it would
+we hadn't started it back then it would have never been able to finish it in
+have never been able to finish it in time for horizon in the first place and
+time for horizon in the first place and finally the game design team offered a
+finally the game design team offered a very achievable starting point for us to
+very achievable starting point for us to work on a 3d editor if we could
+work on a 3d editor if we could facilitate only object placement in the
+facilitate only object placement in the game we would already provide a user
+game we would already provide a user workflow improvement for the game design
+workflow improvement for the game design team so now that we've established why
+team so now that we've established why we wanted this 3d editor let's have a
+we wanted this 3d editor let's have a look at how we can actually achieve this
+look at how we can actually achieve this looking at what we have available a
+looking at what we have available a tools framework in its infancy and a
+tools framework in its infancy and a game executable we are immediately
+game executable we are immediately presented with the first choice do we
+presented with the first choice do we integrate the desired games this game
+integrate the desired games this game subsistence into our editor as
+subsistence into our editor as illustrated on the left or do we
+illustrated on the left or do we actually merge the full game into our
+actually merge the full game into our editor environment so let's let's zoom
+editor environment so let's let's zoom into using only game subsystems so this
+into using only game subsystems so this is the advantage of being able to tailor
+is the advantage of being able to tailor make your game loop based specifically
+make your game loop based specifically on your editor needs this leads to a
+on your editor needs this leads to a very controllable viewport
+very controllable viewport skipping I want to gain subsystems
+skipping I want to gain subsystems however doing this will introduce a
+however doing this will introduce a second code path where these systems
+second code path where these systems will be used leading to code complexity
+will be used leading to code complexity and potentially disparity between what
+and potentially disparity between what you'll see in your editor versus what
+you'll see in your editor versus what you see in the final game because more
+you see in the final game because more code is required it will also take
+code is required it will also take longer to develop so the alternative
+longer to develop so the alternative then is integrating the full game in the
+then is integrating the full game in the editor game systems would truly function
+editor game systems would truly function as they would in game and as an added
+as they would in game and as an added bonus we can use the earlier discussed
+bonus we can use the earlier discussed debug UI for free to give us a head
+debug UI for free to give us a head start we would we'd also be able to play
+start we would we'd also be able to play in the other and just like we would be
+in the other and just like we would be able to do in game as a disadvantage
+able to do in game as a disadvantage though it does introduce more overhead
+though it does introduce more overhead as a lot of game subsystems are usually
+as a lot of game subsystems are usually not required for certain editing
+not required for certain editing operations an example of this would be a
+operations an example of this would be a weather system it's typically not very
+weather system it's typically not very useful for the game to be raining when
+useful for the game to be raining when you're actually just placing an object
+you're actually just placing an object it's both for hindrance for performance
+it's both for hindrance for performance and usability so given the time
+and usability so given the time considerations that we had at hand
+considerations that we had at hand remember that we were already in
+remember that we were already in production we just really felt that
+production we just really felt that integrating the full game would be our
+integrating the full game would be our best option so now that we want the full
+best option so now that we want the full game in running in the editor how do we
+game in running in the editor how do we actually achieve that we're faced with
+actually achieve that we're faced with another decision do we run the game in
+another decision do we run the game in the same process as the editor or as we
+the same process as the editor or as we depict on the left here or do we attach
+depict on the left here or do we attach the editor to the game executable and
+the editor to the game executable and using out of process solution again we
+using out of process solution again we examine our options an imprecise game is
+examine our options an imprecise game is faster to set up and easier to debug
+faster to set up and easier to debug because all data changes are direct and
+because all data changes are direct and synchronous a crash in the game is
+synchronous a crash in the game is problematic though as it will inevitably
+problematic though as it will inevitably take down the editor which will cause
+take down the editor which will cause loss of work and lots of frustration it
+loss of work and lots of frustration it also makes it easy to modify in-game
+also makes it easy to modify in-game data directly as you can access game
+data directly as you can access game objects file pointers over time you
+objects file pointers over time you could end up with a situation where many
+could end up with a situation where many different systems in the editor would
+different systems in the editor would access different systems in the game we
+access different systems in the game we felt that this would lead to an
+felt that this would lead to an unmanageable situation but enforcing
+unmanageable situation but enforcing this separation we figured that would be
+this separation we figured that would be hard because due to time constraints is
+hard because due to time constraints is ever so tempting to just directly access
+ever so tempting to just directly access a game system an out of process solution
+a game system an out of process solution on the other hand offers more stability
+on the other hand offers more stability primarily because you would be able to
+primarily because you would be able to from a crashing game because the game is
+from a crashing game because the game is a separate process coders are forced to
+a separate process coders are forced to work in a clear way as the editor cannot
+work in a clear way as the editor cannot directly modify game objects five
+directly modify game objects five pointers finally UI updates are not tied
+pointers finally UI updates are not tied to the frame updates in the game and so
+to the frame updates in the game and so your eye will be more responsive even
+your eye will be more responsive even though the game might not be so the
+though the game might not be so the downside of this is that you had to
+downside of this is that you had to write a communication layer resulting in
+write a communication layer resulting in a longer initial development time this
+a longer initial development time this communication layer would also be
+communication layer would also be asynchronous which make it quite tricky
+asynchronous which make it quite tricky for debugging so similar to the decision
+for debugging so similar to the decision on integrating full game we went for an
+on integrating full game we went for an in process solution because of the time
+in process solution because of the time constraints and pressure from production
+constraints and pressure from production we did decide in an out of process
+we did decide in an out of process solution should always remain an option
+solution should always remain an option later on and so wanted to ensure code
+later on and so wanted to ensure code separation to enforce this code
+separation to enforce this code separation we developed the 3d other as
+separation we developed the 3d other as if the game was running in a separate
+if the game was running in a separate process no data was to be shared between
+process no data was to be shared between the editor and the game because of this
+the editor and the game because of this separation that we quite strictly
+separation that we quite strictly enforced I'll continue to use the word
+enforced I'll continue to use the word process to describe to describe like
+process to describe to describe like editor process meaning code executing in
+editor process meaning code executing in the editor and game process for code
+the editor and game process for code executing again anyway luckily for for
+executing again anyway luckily for for us making these early quick quick gains
+us making these early quick quick gains paid off quite well so I have a video
+paid off quite well so I have a video I'm about to show you here from roughly
+I'm about to show you here from roughly a year into into after starting the
+a year into into after starting the theater and it demonstrates how a game
+theater and it demonstrates how a game designer uses the ability to play in the
+designer uses the ability to play in the editor for its workflow so to start off
+editor for its workflow so to start off design designer explore some section of
+design designer explore some section of the world in in play mode decides this
+the world in in play mode decides this is a nice spot for an encounter and so
+is a nice spot for an encounter and so it goes into edit mode now there are
+it goes into edit mode now there are some trees in the middle here so what
+some trees in the middle here so what we're going to do is we're going to
+we're going to do is we're going to paint them out to clear the area a bit
+paint them out to clear the area a bit and we also want to paint some more
+and we also want to paint some more trees in the surroundings so we're just
+trees in the surroundings so we're just going to do that then in the center of
+going to do that then in the center of the screen where you want to place this
+the screen where you want to place this encounter we want to flatten the terrain
+encounter we want to flatten the terrain out a bit so we'll use some some terrain
+out a bit so we'll use some some terrain sculpting magic for that
+and so this looks like now we can actually place our encounter so we use
+actually place our encounter so we use the content hierarchy on the left to
+the content hierarchy on the left to create an encounter give it a name
+create an encounter give it a name created in the middle use the asset
+created in the middle use the asset browser also on the left to create some
+browser also on the left to create some robots so now I have two robots and we
+robots so now I have two robots and we want to add a rock in the middle provide
+want to add a rock in the middle provide some player cover perhaps I'm not a game
+some player cover perhaps I'm not a game designer so I wouldn't really know but
+designer so I wouldn't really know but I'm yeah so we just use the tools to
+I'm yeah so we just use the tools to drag drop the rock in place it save it
+drag drop the rock in place it save it gonna try it out so an hour immediately
+gonna try it out so an hour immediately back into edit mode and yeah a low it
+back into edit mode and yeah a low it can shoot some robots and see if this
+can shoot some robots and see if this actually works out well pretty sweet so
+actually works out well pretty sweet so with our high level design now discussed
+with our high level design now discussed let's look into some subsystems that we
+let's look into some subsystems that we required for this 3d editor to actually
+required for this 3d editor to actually work so in this section we also see how
+work so in this section we also see how we deal with the separation between
+we deal with the separation between editor code and game code so a problem
+editor code and game code so a problem that you encounter quite early on when
+that you encounter quite early on when diving into into this solution is that
+diving into into this solution is that the data that is in the game is not
+the data that is in the game is not necessarily the same as the data that is
+necessarily the same as the data that is on disk this is caused by the process
+on disk this is caused by the process called conversion that then explained
+called conversion that then explained earlier examples of what can happen in
+earlier examples of what can happen in conversion or shader compilation and
+conversion or shader compilation and math optimization that's cetera so
+math optimization that's cetera so having this optimized game data is a
+having this optimized game data is a fairly common situation in games but it
+fairly common situation in games but it provides a problem for editing as
+provides a problem for editing as information is lost saving out cortex
+information is lost saving out cortex based objects that are read by the
+based objects that are read by the editor is not always possible once
+editor is not always possible once you're in the binary game data so
+you're in the binary game data so luckily we already stated that we did
+luckily we already stated that we did not want the editor to operate directly
+not want the editor to operate directly on the data in the game as a result the
+on the data in the game as a result the editor works on the cortex counterpart
+editor works on the cortex counterpart if you will from the loaded binary data
+if you will from the loaded binary data in the game each process therefore has
+in the game each process therefore has its own copy of the data and it cannot
+its own copy of the data and it cannot access the copy of the other process so
+access the copy of the other process so data in the editor is not identical nor
+data in the editor is not identical nor shared between editor and game a central
+shared between editor and game a central concept in dealing with this problem is
+concept in dealing with this problem is something that we call the editor node
+something that we call the editor node so editor nodes provide all editing
+so editor nodes provide all editing functionality for an object in the game
+functionality for an object in the game an editor node knows about a game object
+an editor node knows about a game object but this is one
+but this is one one direction one directional
+one direction one directional relationship so this is a convenient way
+relationship so this is a convenient way of keeping the game code clean the
+of keeping the game code clean the editor node lives in a separate project
+editor node lives in a separate project and code file from the game and so the
+and code file from the game and so the game code stays very clean there's no a
+game code stays very clean there's no a shift F editor in our code base second
+shift F editor in our code base second problem caused by the game operating on
+problem caused by the game operating on the converted data is hierarchy for
+the converted data is hierarchy for performance reasons the game has little
+performance reasons the game has little hierarchy of objects left remaining
+hierarchy of objects left remaining resulting in a long flat list of objects
+resulting in a long flat list of objects that are all in world space this is very
+that are all in world space this is very fast and efficient for rendering in the
+fast and efficient for rendering in the game but not very good for editing as
+game but not very good for editing as often we want to edit in local space so
+often we want to edit in local space so in order to restore some hierarchy of
+in order to restore some hierarchy of objects for editing in game we built a
+objects for editing in game we built a hierarchical tree structure of these
+hierarchical tree structure of these editor nodes so this is done and this is
+editor nodes so this is done and this is done once the game is loaded and user
+done once the game is loaded and user enters to edit mode the tree is
+enters to edit mode the tree is constructed top-down starting at the
+constructed top-down starting at the content route and reflects the content
+content route and reflects the content that is currently loaded in the game so
+that is currently loaded in the game so having a single editor node tree as
+having a single editor node tree as shown on the image here would violate
+shown on the image here would violate our earlier stated goal that the editor
+our earlier stated goal that the editor cannot directly modify game data the
+cannot directly modify game data the tree structure is build up in game and
+tree structure is build up in game and so should only be used by the by the
+so should only be used by the by the code living in the game so in order to
+code living in the game so in order to facilitate editing hierarchical data we
+facilitate editing hierarchical data we actually have to editor node trees so
+actually have to editor node trees so this allows both the editor and the game
+this allows both the editor and the game to reason about content hierarchy and
+to reason about content hierarchy and the world our local space conversions
+the world our local space conversions etc so these two trees are structurally
+etc so these two trees are structurally identical but referenced different data
+identical but referenced different data changes made in the other are mapped
+changes made in the other are mapped onto the node tree and community
+onto the node tree and community communicated to the game so what we
+communicated to the game so what we actually communicate in our editor is
+actually communicate in our editor is the next part of this presentation and
+the next part of this presentation and for which I'll hand over back to Dan
+alright so making changes to objects when defining goals or requirements that
+when defining goals or requirements that sometimes important to list things that
+sometimes important to list things that you know you don't want and in our case
+you know you don't want and in our case after working with the core text editor
+after working with the core text editor and to a lesser extent the other legacy
+and to a lesser extent the other legacy tools we had a pretty good idea of what
+tools we had a pretty good idea of what we didn't want so we didn't want to have
+we didn't want so we didn't want to have any kind of proxy representations for
+any kind of proxy representations for game objects or stream based accessors
+game objects or stream based accessors or editors specific boilerplate in a
+or editors specific boilerplate in a code or any kind of like code generator
+code or any kind of like code generator steps in the build pipeline that would
+steps in the build pipeline that would make the editor work and that helps us
+make the editor work and that helps us to define some goals when it came to how
+to define some goals when it came to how we wanted to actually write the editor
+we wanted to actually write the editor code so in the editor Cody wanted to
+code so in the editor Cody wanted to just work directly with the concrete
+just work directly with the concrete objects that the simplist was classes
+objects that the simplist was classes and structs that were defined in the
+and structs that were defined in the engine and data modification by the code
+engine and data modification by the code should just be performed with direct
+should just be performed with direct member access or via accessor functions
+member access or via accessor functions and mostly as a corollary of these two
+and mostly as a corollary of these two goals we should be able to reuse any
+goals we should be able to reuse any kind of existing data transformation
+kind of existing data transformation utilities that already existed within
+utilities that already existed within the engine code and within our
+the engine code and within our conversion pipeline so doing these
+conversion pipeline so doing these things would mean that our game and
+things would mean that our game and engine programmers would also understand
+engine programmers would also understand the editor code and would find it easy
+the editor code and would find it easy to work with so being able to make
+to work with so being able to make changes is good but what is best in life
+changes is good but what is best in life in any kind of data editing environment
+in any kind of data editing environment it's critical to be able to undo changes
+it's critical to be able to undo changes that have been made and this allows
+that have been made and this allows users to experiments to recover from
+users to experiments to recover from their mistakes and generally feel like
+their mistakes and generally feel like they're in control over what's actually
+they're in control over what's actually going on so looking at this slide it
+going on so looking at this slide it like the first goal seems almost
+like the first goal seems almost redundant to state but it is actually
+redundant to state but it is actually important the code for the undo system
+important the code for the undo system had to be as simple and reliable as
+had to be as simple and reliable as possible and in the interest of
+possible and in the interest of accomplishing these goals we decided to
+accomplishing these goals we decided to avoid the kind of common command pattern
+avoid the kind of common command pattern which involves a virtual do an undo
+which involves a virtual do an undo function because well there's two
+function because well there's two reasons for this like the first is we
+reasons for this like the first is we didn't think the undo system or anything
+didn't think the undo system or anything related to it should need to change in
+related to it should need to change in order to support new editor features and
+order to support new editor features and we wanted to remove the possibility of
+we wanted to remove the possibility of having asymmetric data transformations
+having asymmetric data transformations that is to say an undo implementation
+that is to say an undo implementation that isn't the exact inverse of its do
+that isn't the exact inverse of its do implementation so given that we're
+implementation so given that we're approaching this whole thing from a
+approaching this whole thing from a completely clean slate we may as well
+completely clean slate we may as well consider a totally ideal scenario and in
+consider a totally ideal scenario and in our case that would be a system that
+our case that would be a system that just sees all the changes that are being
+just sees all the changes that are being made in the editor knows how to undo
+made in the editor knows how to undo those changes automatically so we
+those changes automatically so we investigated this a little bit but
+investigated this a little bit but quickly found that such a system
+quickly found that such a system involved way too much overhead and it
+involved way too much overhead and it was also pretty difficult to delineate
+was also pretty difficult to delineate when complicated changes were starting
+when complicated changes were starting and ending so the compromise that we
+and ending so the compromise that we settle for is that the for modifying
+settle for is that the for modifying data programmer will provide some hints
+data programmer will provide some hints to the undo system about which objects
+to the undo system about which objects are going to be modified and then
+are going to be modified and then perform some modifications and later
+perform some modifications and later indicate when those modifications are
+indicate when those modifications are complete so it's actually described
+complete so it's actually described changed in the editor we use a
+changed in the editor we use a transaction system and the transactions
+transaction system and the transactions consists of all commands and you can see
+consists of all commands and you can see a pretty simplistic example of such a
+a pretty simplistic example of such a thing here but
+thing here but each command describes a simple
+each command describes a simple individual change such as the addition
+individual change such as the addition or removal of an object or an individual
+or removal of an object or an individual change to an attribute value and these
+change to an attribute value and these changes are annotated with our TTI so
+changes are annotated with our TTI so that we have enough information to
+that we have enough information to actually use these transactions to
+actually use these transactions to transform the editor data and the
+transform the editor data and the transaction system also has a subscriber
+transaction system also has a subscriber mechanism which allows you to receive
+mechanism which allows you to receive notifications for all data changes that
+notifications for all data changes that are happening in the editor and the
+are happening in the editor and the system is mostly used to update the user
+system is mostly used to update the user interface inside of the tool have the
+interface inside of the tool have the visual representation of the data remain
+visual representation of the data remain in sync with the backend data so when a
+in sync with the backend data so when a transaction is created or applied
+transaction is created or applied against the data it is sent around to
+against the data it is sent around to all the registered listeners in the
+all the registered listeners in the editor so in this case that would be the
+editor so in this case that would be the individual components that have
+individual components that have subscribed for notifications and each
+subscribed for notifications and each listener is free to respond to the data
+listener is free to respond to the data change however it likes but typically a
+change however it likes but typically a controller will inspect the transaction
+controller will inspect the transaction to see if any of the data which is being
+to see if any of the data which is being changed is represented in the in the
+changed is represented in the in the view and then it will just update its
+view and then it will just update its visual representation for our views we
+visual representation for our views we follow the Model View controller pattern
+follow the Model View controller pattern quite strictly which has a few
+quite strictly which has a few advantages in such a system
+advantages in such a system mostly code separation in that our
+mostly code separation in that our components don't need to know about each
+components don't need to know about each other or even communicate with each
+other or even communicate with each other they're only interested in
+other they're only interested in representing data modifying data and
+representing data modifying data and responding to modifications in data it
+responding to modifications in data it also means that the components support
+also means that the components support changes from anywhere so they can be
+changes from anywhere so they can be representing a change that's made by
+representing a change that's made by themselves or by other components or
+themselves or by other components or even framework level operations such as
+even framework level operations such as reloading of files or what-have-you and
+reloading of files or what-have-you and it also means that because of this
+it also means that because of this there's no notion of directionality and
+there's no notion of directionality and the any of the edits of code so views
+the any of the edits of code so views aren't concerned if this operation is a
+aren't concerned if this operation is a do or an undo or redo they just respond
+do or an undo or redo they just respond to the data changes so one of things we
+to the data changes so one of things we tried in the early days when we were
+tried in the early days when we were playing around with a system is
+playing around with a system is especially build these transactions by
+especially build these transactions by hand and then apply them against the
+hand and then apply them against the data in order to effect a change and
+data in order to effect a change and this is it's possible but it actually
+this is it's possible but it actually proved very quickly to be way too
+proved very quickly to be way too cumbersome to be viable and it didn't
+cumbersome to be viable and it didn't fit with our East of use goals encoding
+fit with our East of use goals encoding encoding terms so instead we built in
+encoding terms so instead we built in utility class which would just analyze
+utility class which would just analyze changes after they'd already happened
+changes after they'd already happened and generate a transaction that
+and generate a transaction that described all the changes that it had
+described all the changes that it had observed so before making a change the
+observed so before making a change the programmer will use this diff util to
+programmer will use this diff util to take a snapshot of the object state and
+take a snapshot of the object state and a snapshot is just a shallow attribute
+a snapshot is just a shallow attribute wise copy of the original object and
+wise copy of the original object and after that the code is free to me
+after that the code is free to me any kind of modifications to that object
+any kind of modifications to that object and once those changes are complete the
+and once those changes are complete the programmer will tell the different tool
+programmer will tell the different tool that he or she is finished with changes
+that he or she is finished with changes and the diffuser will compare the
+and the diffuser will compare the original snapshot against the current
+original snapshot against the current state and this works by using our our
+state and this works by using our our TTI system so it reads the optimum
+TTI system so it reads the optimum values and therefore we only see changes
+values and therefore we only see changes on data this is actually expose the our
+on data this is actually expose the our TTI system so it's more fine-grained
+TTI system so it's more fine-grained than just doing direct memory
+than just doing direct memory comparisons so how does this actually
+comparisons so how does this actually look in code as you can see here we have
+look in code as you can see here we have a super handy function that's gonna give
+a super handy function that's gonna give us a pointer to a spot light that we
+us a pointer to a spot light that we intend to modify so we call the function
+intend to modify so we call the function and then we create a diff you till on
+and then we create a diff you till on the stack and we use it to take a
+the stack and we use it to take a snapshot of the spot lights current
+snapshot of the spot lights current state so then we just perform some kind
+state so then we just perform some kind of modification in this case we use an
+of modification in this case we use an accessor function to set the cone angle
+accessor function to set the cone angle to 30 degrees and then afterwards we
+to 30 degrees and then afterwards we tell the diffuser that we're done by
+tell the diffuser that we're done by calling commit changes and we also
+calling commit changes and we also supply a human readable description of
+supply a human readable description of what we just did which can be shown to
+what we just did which can be shown to the user and the user interface for
+the user and the user interface for example and then the diffuser will
+example and then the diffuser will compare the snapshot against the current
+compare the snapshot against the current state and it will produce a transaction
+state and it will produce a transaction that describes that change and that's
+that describes that change and that's that's the only interaction that a
+that's the only interaction that a programmer of his writing edits code
+programmer of his writing edits code actually has to do with the undo has to
+actually has to do with the undo has to perform to work with the undo system so
+perform to work with the undo system so once we have a system that describes
+once we have a system that describes changes in this super granular fashion
+changes in this super granular fashion it means that writing code to undo those
+it means that writing code to undo those changes is actually trivial so to revert
+changes is actually trivial so to revert a change we take our original
+a change we take our original transaction and we reverse the order of
+transaction and we reverse the order of the commands and then we replace each
+the commands and then we replace each command with its inverse so for example
+command with its inverse so for example an add object command becomes they
+an add object command becomes they remove object command asset value
+remove object command asset value command will use the old value instead
+command will use the old value instead of the new value and once we have this
+of the new value and once we have this transaction we just apply it against the
+transaction we just apply it against the data and the data is now back in its
+data and the data is now back in its original state easy so in the same ways
+original state easy so in the same ways before when we have in a new transaction
+before when we have in a new transaction we just send a notification about that
+we just send a notification about that transaction to all the subscribers and
+transaction to all the subscribers and the whole system just works without any
+the whole system just works without any kind of code changes so what went well
+kind of code changes so what went well with the system well it was very very
+with the system well it was very very reliable and it's a transparent system
+reliable and it's a transparent system at least to the programmers who are
+at least to the programmers who are using it and you can represent any kind
+using it and you can represent any kind of complicated changes because our in
+of complicated changes because our in editor views are only ever responding to
+editor views are only ever responding to transactions there is no distinction
+transactions there is no distinction between do and undo in any of our editor
+between do and undo in any of our editor view code and I guess what's most
+view code and I guess what's most telling about this code is the fact that
+telling about this code is the fact that it hasn't really changed all that much
+it hasn't really changed all that much the last couple of years I mean we wrote
+the last couple of years I mean we wrote it of course there was some things that
+it of course there was some things that we didn't figure out in the beginning so
+we didn't figure out in the beginning so we had to tweak it a little bit but at
+we had to tweak it a little bit but at some point it worked and it just has
+some point it worked and it just has continued working for like two and a
+continued working for like two and a half years or three years or something
+half years or three years or something that said there are a couple of things
+that said there are a couple of things that are not super great so the system
+that are not super great so the system realized very heavily on having
+realized very heavily on having transactions which describe all data
+transactions which describe all data changes that are occurring however as a
+changes that are occurring however as a programmer it's pretty easy to forget to
+programmer it's pretty easy to forget to surround your changes in AD if you told
+surround your changes in AD if you told before you actually start directly
+before you actually start directly modifying the object and this can lead
+modifying the object and this can lead to some very subtle irregularities and
+to some very subtle irregularities and the timeline of the history stack we
+the timeline of the history stack we perform some validation on transactions
+perform some validation on transactions and debug bills to try and check the
+and debug bills to try and check the changes and make sure that everything
+changes and make sure that everything makes sense but of course we can't catch
+makes sense but of course we can't catch everything and lastly the system doesn't
+everything and lastly the system doesn't support any file system changes which
+support any file system changes which means that if a user moves files around
+means that if a user moves files around using our refactoring tools the system
+using our refactoring tools the system doesn't support undoing those changes
+doesn't support undoing those changes but this is something that were actually
+but this is something that were actually looking into fixing right now and we'll
+looking into fixing right now and we'll try to get it working for our next title
+try to get it working for our next title but actually now I'm gonna hand back to
+but actually now I'm gonna hand back to sander who will describe how this works
+sander who will describe how this works with the 3d editor so let's map this
+with the 3d editor so let's map this onto an everything I explained about the
+onto an everything I explained about the 3d editor before so when we make a day
+3d editor before so when we make a day to change in the editor it results in a
+to change in the editor it results in a transaction being broadcast so the
+transaction being broadcast so the editor node tree living in the editor
+editor node tree living in the editor listens for these changes and picks up
+listens for these changes and picks up this change it determines which node in
+this change it determines which node in the tree is affected by the change and
+the tree is affected by the change and sends this information to the game along
+sends this information to the game along with the data change itself so the
+with the data change itself so the corresponding editor node in the game
+corresponding editor node in the game then receives the change and modifies
+then receives the change and modifies the game object and thereby completing
+the game object and thereby completing the edit so with the information I've
+the edit so with the information I've given before about having to editor node
+given before about having to editor node trees in our process and the data
+trees in our process and the data differences between the editor and a
+differences between the editor and a game the previous diagram is also a bit
+game the previous diagram is also a bit of a simplification for starters data in
+of a simplification for starters data in the editor is in local space and objects
+the editor is in local space and objects in a game are in world space let's have
+in a game are in world space let's have a look at how the node trees allow us to
+a look at how the node trees allow us to deal with these changes so let's say we
+deal with these changes so let's say we modified the local space of the
+modified the local space of the spotlight object my spotlight in this
+spotlight object my spotlight in this little hierarchy you see here the
+little hierarchy you see here the spotlight has a parent object my prefab
+spotlight has a parent object my prefab which for this example will be the root
+which for this example will be the root of the tree each node in the tree can
+of the tree each node in the tree can act as an adapter for transactions
+act as an adapter for transactions flowing through it to facilitate this
+flowing through it to facilitate this all transactions are applied at the root
+all transactions are applied at the root of the tree
+of the tree in this case when the local space
+in this case when the local space changes passes through the prefab it
+changes passes through the prefab it depends its own local matrix to the
+depends its own local matrix to the transaction so the transaction then
+transaction so the transaction then being passed to the next object which is
+being passed to the next object which is the final object and the spot light that
+the final object and the spot light that it can do its modification and because
+it can do its modification and because the data has flown through its parent
+the data has flown through its parent you need data transaction will now be in
+you need data transaction will now be in real space so because these steps are
+real space so because these steps are recursive we return back to the prefab
+recursive we return back to the prefab after successful application of the
+after successful application of the change in spotlight should an ancestor
+change in spotlight should an ancestor node need to respond to changes of its
+node need to respond to changes of its children this is the place where you
+children this is the place where you could do it more advanced objects might
+could do it more advanced objects might trigger updates to vegetation placement
+trigger updates to vegetation placement or terrain as we'll see in the following
+or terrain as we'll see in the following video so in this video that I borrowed
+video so in this video that I borrowed borrowed from my from my colleague there
+borrowed from my from my colleague there we're actually moving a road node and
+we're actually moving a road node and Road nodes are part of the content
+Road nodes are part of the content hierarchy and its parent node is a road
+hierarchy and its parent node is a road system and that actually knows how to
+system and that actually knows how to modify the terrain so moving these roads
+modify the terrain so moving these roads if you see actually updates the
+if you see actually updates the vegetation and the terrain systems in
+vegetation and the terrain systems in the game this is a good example of how
+the game this is a good example of how the editor node tree actually
+the editor node tree actually facilitates this so to observe the fewer
+facilitates this so to observe the fewer there is a piece of information missing
+there is a piece of information missing here tools like the ones we just shown
+here tools like the ones we just shown actually draw a gizmo in the game and
+actually draw a gizmo in the game and allow the user to interactively operate
+allow the user to interactively operate on it plenty of tools work this way for
+on it plenty of tools work this way for such as example moving but also painting
+such as example moving but also painting etc so how did we implement this in the
+etc so how did we implement this in the framework because we already know how to
+framework because we already know how to describe the data change using
+describe the data change using transactions and add a few tool in an
+transactions and add a few tool in an Eevee implemented we would simply
+Eevee implemented we would simply reverse the order of the transaction and
+reverse the order of the transaction and support the following data flow as well
+support the following data flow as well so reading the diagram from right to
+so reading the diagram from right to left the tool sends a transaction to the
+left the tool sends a transaction to the node tree in the game which then
+node tree in the game which then transmits its change back to the editor
+transmits its change back to the editor where we do the same modification on the
+where we do the same modification on the cortex data that we have just done in
+cortex data that we have just done in game so we did not do this because this
+game so we did not do this because this is problematic for various reasons first
+is problematic for various reasons first of all it becomes unclear which
+of all it becomes unclear which processes authority of the data secondly
+processes authority of the data secondly because of data loss in conversion it
+because of data loss in conversion it might be impossible to have this code
+might be impossible to have this code path in the first place and thirdly and
+path in the first place and thirdly and lastly you would need some system to
+lastly you would need some system to prevent transaction being generated
+prevent transaction being generated in the editor to flow back to the game
+in the editor to flow back to the game again and then create a cycle so because
+again and then create a cycle so because of these problems we implement a tool
+of these problems we implement a tool support or gizmos support somewhat
+support or gizmos support somewhat differently the key here is that the
+differently the key here is that the tools do not actually modify the data
+tools do not actually modify the data they simply broadcast an intention to
+they simply broadcast an intention to the editor telling the editor what
+the editor telling the editor what they'd like to change it's up to the
+they'd like to change it's up to the editor to actually make the data
+editor to actually make the data modification itself this data
+modification itself this data modification is then processed in
+modification is then processed in exactly the same way as any other
+exactly the same way as any other transaction and that way the editor
+transaction and that way the editor keeps authority over the data at all
+keeps authority over the data at all time so it also automatically works with
+time so it also automatically works with undo as the input for the editor data
+undo as the input for the editor data modification on the left is then the
+modification on the left is then the undo system instead of the tool it is
+undo system instead of the tool it is still the editor node in the game that
+still the editor node in the game that modifies the game object as a result of
+modifies the game object as a result of a transaction in the editor the game
+a transaction in the editor the game itself has no notion of the undo system
+itself has no notion of the undo system at all so there's one part in updating a
+at all so there's one part in updating a running game that we have not looked at
+running game that we have not looked at at all and that is structural changes to
+at all and that is structural changes to the node tree itself adding and removing
+the node tree itself adding and removing objects so this is done by a separate
+objects so this is done by a separate system that we call game sync so game
+system that we call game sync so game sync is a continuation of a system that
+sync is a continuation of a system that we had in place before we started
+we had in place before we started working on 3d editor and was written for
+working on 3d editor and was written for hot loading particles into a running
+hot loading particles into a running game the system has been heavily
+game the system has been heavily expanded during the development of
+expanded during the development of horizon and it works by tracking all
+horizon and it works by tracking all changes in the editor creating a patch
+changes in the editor creating a patch file and then inserting that into the
+file and then inserting that into the game since we like working with
+game since we like working with spotlights let's copy the spot line in
+spotlights let's copy the spot line in this hierarchy and see our game sync
+this hierarchy and see our game sync works
+works so first the incoming change is analyzed
+so first the incoming change is analyzed the analysis phase determines which
+the analysis phase determines which objects are modified and what other
+objects are modified and what other dependencies are required for successful
+dependencies are required for successful application of the patch so these
+application of the patch so these dependencies are extra objects that are
+dependencies are extra objects that are required for the conversion process or
+required for the conversion process or extra objects that might be required for
+extra objects that might be required for the targeted game subsystem the analysis
+the targeted game subsystem the analysis phase writes out a single core text file
+phase writes out a single core text file containing all required objects so in
+containing all required objects so in this example it contains the prefab as
+this example it contains the prefab as it will contain a reference to this new
+it will contain a reference to this new spotlight and obviously the file will
+spotlight and obviously the file will contain a new spotlight itself so this
+contain a new spotlight itself so this core text file is then converted into a
+core text file is then converted into a binary file and safe to disk
+binary file and safe to disk ready to be loaded and inserted into the
+ready to be loaded and inserted into the game
+game the game is then paused at the same
+the game is then paused at the same point meaning no streaming is happening
+point meaning no streaming is happening and all threats are posed effectively so
+and all threats are posed effectively so applying the patch means copying the
+applying the patch means copying the objects in a patch file to the affected
+objects in a patch file to the affected game systems the target object in target
+game systems the target object in target objects in the game are overwritten
+objects in the game are overwritten meaning that any cached pointers in the
+meaning that any cached pointers in the game actually will remain valid finally
+game actually will remain valid finally after applying the patch the game and
+after applying the patch the game and all of its subsystems Arabs are resumed
+recapping on how game sync worked from a tools team we have mixed feelings on the
+tools team we have mixed feelings on the one hand we have a solution that accepts
+one hand we have a solution that accepts all changes throughout the editor and
+all changes throughout the editor and even changes on disc can be tracked by
+even changes on disc can be tracked by monitoring the file system it can also
+monitoring the file system it can also sync patch files to a deaf kid allowing
+sync patch files to a deaf kid allowing a user to see edits on the target
+a user to see edits on the target without having to restart the game on
+without having to restart the game on the other hand getting game sync fully
+the other hand getting game sync fully reliable proved impossible throughout
+reliable proved impossible throughout the project because game subsystems are
+the project because game subsystems are sorry because game seems to predate game
+sorry because game seems to predate game sync game sync try to respect these
+sync game sync try to respect these systems as much as possible and thereby
+systems as much as possible and thereby avoiding work for other Co teams this
+avoiding work for other Co teams this led to special case code creeping into
+led to special case code creeping into these systems and very complex analysis
+these systems and very complex analysis code these complexities further than
+code these complexities further than complicated or generated performance
+complicated or generated performance problems where worse cased applying a
+problems where worse cased applying a relatively simple change could take as
+relatively simple change could take as much as five to ten seconds
+much as five to ten seconds breaking a user's workflow all of these
+breaking a user's workflow all of these complexities also led to inconsistencies
+complexities also led to inconsistencies in the results as well
+in the results as well games Inc could crash or produce
+games Inc could crash or produce incorrect results such as objects being
+incorrect results such as objects being not placed incorrectly placed in the
+not placed incorrectly placed in the world and this done that to a very low
+world and this done that to a very low level of confidence from the users
+level of confidence from the users making it high on our wish list to
+making it high on our wish list to rewrite for a next project but let's not
+rewrite for a next project but let's not end here for the final part of this
+end here for the final part of this presentation I would like to give the
+presentation I would like to give the word back to Dan so you can give an
+word back to Dan so you can give an overview of other tools that we that we
+overview of other tools that we that we have developed
+nope no sound okay as I mentioned earlier we managed to get some help from
+earlier we managed to get some help from another team while working working on
+another team while working working on the new graph editor and the most
+the new graph editor and the most significant contribution came in the
+significant contribution came in the form of a fully featured debugger which
+form of a fully featured debugger which was able to show debug information in
+was able to show debug information in real time from active instances of a
+real time from active instances of a graph which were was running within the
+graph which were was running within the editor or just within a connected
+editor or just within a connected instance of the game running on target
+instance of the game running on target and so the debugger had all the kind of
+and so the debugger had all the kind of usual features that you'd expect to see
+usual features that you'd expect to see such as variable inspection execution
+such as variable inspection execution visualization and it was also gathering
+visualization and it was also gathering this information over time so this meant
+this information over time so this meant that the editor could then facilitate
+that the editor could then facilitate historical debugging and it would
+historical debugging and it would highlight previous executions on on a
+highlight previous executions on on a timeline which had where the execution
+timeline which had where the execution flow had changed so it meant it was very
+flow had changed so it meant it was very easy for users to kind of scrub back in
+easy for users to kind of scrub back in time and figure out when some particular
+time and figure out when some particular condition was met or some condition had
+condition was met or some condition had changed so this debug functionality
+changed so this debug functionality turned out to be super useful during the
+turned out to be super useful during the development of horizon zero dawn and it
+development of horizon zero dawn and it spawns them similar debuggers for other
+spawns them similar debuggers for other systems and all of those debuggers and
+systems and all of those debuggers and visualizations were made with very
+visualizations were made with very minimal involvement from the tools team
+minimal involvement from the tools team which for us was a pretty good indicator
+which for us was a pretty good indicator that we were successful in making the
+that we were successful in making the tools framework something that could be
+tools framework something that could be used by the rest of the programmers in
+used by the rest of the programmers in the company there's a video of the new
+the company there's a video of the new graph debugger I was talking about you
+graph debugger I was talking about you can see how the graph is currently
+can see how the graph is currently executing this is actually the graph
+executing this is actually the graph sound for the main characters breathing
+sound for the main characters breathing you can hover over inputs on the graph
+you can hover over inputs on the graph and see what is actually going on how
+and see what is actually going on how the value is changing over time you can
+the value is changing over time you can see the execution path being visualized
+see the execution path being visualized but you can also pause the execution of
+but you can also pause the execution of the graph in-game and then start to look
+the graph in-game and then start to look at previous executions and you can see
+at previous executions and you can see how long they were taking in
+how long they were taking in microseconds and so on and you can
+microseconds and so on and you can actually then step through those
+actually then step through those executions and see like when the control
+executions and see like when the control flow changed and flip back and forth and
+flow changed and flip back and forth and see how the values are actually working
+see how the values are actually working in this graph something else that was
+in this graph something else that was completely new for horizon was
+completely new for horizon was interactive conversations and with this
+interactive conversations and with this feature we were not beholden to any kind
+feature we were not beholden to any kind of existing workflow so it meant that we
+of existing workflow so it meant that we were free to just build a new editor
+were free to just build a new editor editing context from scratch to meet the
+editing context from scratch to meet the specialized needs of the teams that were
+specialized needs of the teams that were going to be using this tool so that
+going to be using this tool so that would be the writers and the quest
+would be the writers and the quest designers and cinematic artists who
+designers and cinematic artists who would actually make the conversations
+would actually make the conversations within horizon
+within horizon so here's an overview of the editor
+so here's an overview of the editor itself it's kind of hard to read to be
+itself it's kind of hard to read to be honest but we have a graph that just
+honest but we have a graph that just controls the flow of the conversation so
+controls the flow of the conversation so the main character is speaking to
+the main character is speaking to somebody and they are presented with
+somebody and they are presented with dialogue choices and the graph can also
+dialogue choices and the graph can also check for conditions like have you
+check for conditions like have you accomplished a particular quest
+accomplished a particular quest objective and so on the secular cat a
+objective and so on the secular cat a conversation in horizon gave them the
+conversation in horizon gave them the best work he'd ever do and look at it
+best work he'd ever do and look at it now
+now they defaced it because they hated what
+they defaced it because they hated what it stood for they defaced a thing slaves
+it stood for they defaced a thing slaves like him lived and died for slaves
+like him lived and died for slaves they've already forgotten short-sighted
+they've already forgotten short-sighted bastards a lot if they thought their Sun
+bastards a lot if they thought their Sun set off this bridge they'd jump after it
+set off this bridge they'd jump after it I thank you for honoring my wish I hope
+I thank you for honoring my wish I hope you can find peace ok so that was
+you can find peace ok so that was actually from quite a while ago in in
+actually from quite a while ago in in production but what's interesting about
+production but what's interesting about this conversation is that it's
+this conversation is that it's completely auto-generated so I mean
+completely auto-generated so I mean aside from the the audio all of the
+aside from the the audio all of the animations and camera cuts and gesture
+animations and camera cuts and gesture beats and so on were selected by a
+beats and so on were selected by a data-driven rule-based system and the
+data-driven rule-based system and the auto generation system will also
+auto generation system will also generate Robo voice and facial
+generate Robo voice and facial animations we're required so basically
+animations we're required so basically it means that a designer can just
+it means that a designer can just produce game ready content by typing in
+produce game ready content by typing in a few sentences for a conversation and
+a few sentences for a conversation and then immediately see it in the game or
+then immediately see it in the game or even just game sink it into an active
+even just game sink it into an active instance of the game and get quick
+instance of the game and get quick feedback on how their actual flow of the
+feedback on how their actual flow of the conversation is actually gonna be the
+conversation is actually gonna be the system was pretty heavily inspired by
+system was pretty heavily inspired by the work of CD Projekt RED and and
+the work of CD Projekt RED and and Bioware who've both delivered talks in
+Bioware who've both delivered talks in the last several years about how their
+the last several years about how their conversation systems work if you have
+conversation systems work if you have any interest in the subject I highly
+any interest in the subject I highly recommend you check out a talk from last
+recommend you check out a talk from last year's GDC which is shown shown here
+year's GDC which is shown shown here about the Witcher 3 dialogue systems but
+about the Witcher 3 dialogue systems but this is something we were only able to
+this is something we were only able to do because we'd built this new framework
+do because we'd built this new framework that meant it was easy for us to
+that meant it was easy for us to experiment and just try out new ideas so
+experiment and just try out new ideas so something else is the profiler framework
+something else is the profiler framework so at the beginning of this talk I
+so at the beginning of this talk I showed a video of our GPU profiler and
+showed a video of our GPU profiler and this is a video of our global profiler
+this is a video of our global profiler which is for profiling on larger
+which is for profiling on larger segments of time more
+segments of time more of milliseconds but we had this profile
+of milliseconds but we had this profile framework already running in game and we
+framework already running in game and we were able to expose it to the editors
+were able to expose it to the editors that we be able to start getting profile
+that we be able to start getting profile data back from any tools basically so we
+data back from any tools basically so we can see like how much time is being
+can see like how much time is being spent in certain areas we can drill in
+spent in certain areas we can drill in really quite - quite small timescales
+really quite - quite small timescales and get an overview and what's actually
+and get an overview and what's actually being done in the editor or the game so
+being done in the editor or the game so we expose this profiler framework to the
+we expose this profiler framework to the editor and this allowed us to build a
+editor and this allowed us to build a front end for the profiler which can
+front end for the profiler which can show profile data in real time from from
+show profile data in real time from from any tool and this of course includes the
+any tool and this of course includes the game but it also applies to the
+game but it also applies to the executables that we use to run our
+executables that we use to run our conversion process and any of our kind
+conversion process and any of our kind of demons that are running - to
+of demons that are running - to facilitate our other tools framework
+facilitate our other tools framework stuff and it's interesting to note that
+stuff and it's interesting to note that the editor also runs the profiler
+the editor also runs the profiler framework which means that it can
+framework which means that it can profile itself in real time which is
+profile itself in real time which is super handy for being able to
+super handy for being able to investigate performance issues quickly
+investigate performance issues quickly or just figure out why the editor is
+or just figure out why the editor is running slowly on like one guy's machine
+so something else we were telling you is a world map and one of the things about
+a world map and one of the things about working on an open-world game is that
+working on an open-world game is that can be pretty hard to get an overview
+can be pretty hard to get an overview over where things are happening so to
+over where things are happening so to that end we started working on a
+that end we started working on a two-dimensional map representation of
+two-dimensional map representation of our game data and displaying game data
+our game data and displaying game data on the world map let's use the game is a
+on the world map let's use the game is a pretty logical progression and thanks to
+pretty logical progression and thanks to a pluggable overlay system it's possible
+a pluggable overlay system it's possible to create visualizations for whatever we
+to create visualizations for whatever we we want basically so right now we use it
+we want basically so right now we use it for showing stuff like the locations of
+for showing stuff like the locations of quests or the location of JIRA bugs and
+quests or the location of JIRA bugs and it's pretty handy to get a quick quick
+it's pretty handy to get a quick quick eye on what's actually happening in the
+eye on what's actually happening in the game but unfortunately they came on
+game but unfortunately they came on pretty online very late in the project
+pretty online very late in the project and it wasn't really widely used but
+and it wasn't really widely used but it's something we'll probably continue
+it's something we'll probably continue to work on pretty heavily for the next
+to work on pretty heavily for the next project
+project so here's a quick video of that this is
+so here's a quick video of that this is just a view that shows some world
+just a view that shows some world encounters so you're able to kind of
+encounters so you're able to kind of filter and see where you might run into
+filter and see where you might run into particular types of robots within the
+particular types of robots within the world and again there's like filtering
+world and again there's like filtering so you can you can get a quick overview
+so you can you can get a quick overview of what you actually want to see there's
+of what you actually want to see there's another overlay that we have which shows
+another overlay that we have which shows our performance stats for each tile
+our performance stats for each tile which is gathered on a daily basis and
+which is gathered on a daily basis and this shows what our tiles are in memory
+this shows what our tiles are in memory and within CPU budgets and GPU budget
+and within CPU budgets and GPU budget and so on it shows tiles that are in
+and so on it shows tiles that are in budget as green and tiles that are out
+budget as green and tiles that are out of budget is red and a fourth one
+of budget is red and a fourth one fortunately this screenshot is from very
+fortunately this screenshot is from very late in production I think right before
+late in production I think right before gold master so everything is green
+gold master so everything is green because we were in in budget but we can
+because we were in in budget but we can drill into that that tile and then get
+drill into that that tile and then get an overview on like the the different
+an overview on like the the different parts of performance stats that have
+parts of performance stats that have been happening over time of like very
+been happening over time of like very long periods of time because we gather
+long periods of time because we gather these stats always so yeah so the last
+these stats always so yeah so the last thing that actually came up was now that
+thing that actually came up was now that all of our tools are written in C++ it
+all of our tools are written in C++ it meant it but a few of programs that
+meant it but a few of programs that guerilla had the idea of creating a C
+guerilla had the idea of creating a C API for the tools framework so we could
+API for the tools framework so we could use this to expose certain areas of the
+use this to expose certain areas of the tools frameworks functionality to other
+tools frameworks functionality to other languages and so with that in mind we
+languages and so with that in mind we exposed stuff like file loading and
+exposed stuff like file loading and saving and object manipulations and then
+saving and object manipulations and then we wrote a wrapper in Python for the
+we wrote a wrapper in Python for the decima a P I which allows tech artists
+decima a P I which allows tech artists and designers and anybody who knows most
+and designers and anybody who knows most Python basically to create scripts that
+Python basically to create scripts that will like create game content or modify
+will like create game content or modify existing game content and they use these
+existing game content and they use these the same tools framework functionality
+the same tools framework functionality that we actually used to build the
+that we actually used to build the editor so revisiting the C++ code
+editor so revisiting the C++ code example from earlier we can look at the
+example from earlier we can look at the same code which is written in Python and
+same code which is written in Python and yeah we retrieve the spotlight to edit
+yeah we retrieve the spotlight to edit and in Python we create a transaction so
+and in Python we create a transaction so that we can actually start modifying
+that we can actually start modifying data and then we just use some accesses
+data and then we just use some accesses to modify the the cone angle once again
+to modify the the cone angle once again and then we just commit the transaction
+and then we just commit the transaction and this is how somebody would do the
+and this is how somebody would do the same things that we do in the editor
+same things that we do in the editor with Python there's also a lot of other
+with Python there's also a lot of other really cool stuff that I would like to
+really cool stuff that I would like to show today but there just isn't enough
+show today but there just isn't enough time so I'll move on to two conclusions
+time so I'll move on to two conclusions so now that the game is finished and we
+so now that the game is finished and we have some time to kind of take stock and
+have some time to kind of take stock and we realize that we were much more
+we realize that we were much more successful in this whole endeavor than
+successful in this whole endeavor than we anticipated but there's still a lot
+we anticipated but there's still a lot of work left to do we'd like to bring
+of work left to do we'd like to bring more of our team's work flows into the
+more of our team's work flows into the new editor are a lot of our environment
+new editor are a lot of our environment are set dressing is still being done in
+are set dressing is still being done in maya some of our VFX work involving
+maya some of our VFX work involving particles is still involved in performed
+particles is still involved in performed in a standalone particle editor tool and
+in a standalone particle editor tool and so we'll start building you editor
+so we'll start building you editor context of all these different workflows
+context of all these different workflows and continue to move everybody in the
+and continue to move everybody in the company into our editor and it's non
+company into our editor and it's non dimension we'd like to rewrite the game
+dimension we'd like to rewrite the game sink system because I was a source of a
+sink system because I was a source of a lot of mind-boggling debugging problems
+lot of mind-boggling debugging problems throughout the project and we want to
+throughout the project and we want to take the 3dr out of process
+take the 3dr out of process we can stabilize the editor because even
+we can stabilize the editor because even though we had like a really quick start
+though we had like a really quick start with a 3d editor and a lot of progress
+with a 3d editor and a lot of progress it meant that when we came towards the
+it meant that when we came towards the end of the game and end of the project
+end of the game and end of the project story and the game was being optimized
+story and the game was being optimized very heavily that had a really big
+very heavily that had a really big impact on the stability of the editor so
+impact on the stability of the editor so we would like to separate this to
+we would like to separate this to persist so that we don't lose lose users
+persist so that we don't lose lose users work from crashes in the in the game and
+work from crashes in the in the game and although we made a lot of progress on
+although we made a lot of progress on this project for the tools the user
+this project for the tools the user interface building was done in like
+interface building was done in like let's say an organic fashion which means
+let's say an organic fashion which means that a lot of tools and concepts within
+that a lot of tools and concepts within the editor as user interface are kind of
+the editor as user interface are kind of confusing or irritating and users find
+confusing or irritating and users find it pretty hard to discover new features
+it pretty hard to discover new features and so we want to work on this stuff
+and so we want to work on this stuff quite a lot in the future let's say
+quite a lot in the future let's say thanks to everyone at guerilla who helps
+thanks to everyone at guerilla who helps out with this stuff and there's some
+out with this stuff and there's some special thanks to the people whose work
+special thanks to the people whose work you've you've seen here today and also
+you've you've seen here today and also we are we're hiring so if you're
+we are we're hiring so if you're interested in working with what is
+interested in working with what is frankly just a bunch of really awesome
+frankly just a bunch of really awesome people with a lot of talent then please
+people with a lot of talent then please click that link and send us your resume
+click that link and send us your resume and we'll take a look but yeah that's it
+and we'll take a look but yeah that's it so does anybody have any questions
+so does anybody have any questions [Applause]
+hi I have a question yep I'm a long time Kojima Productions fan and so I've been
+Kojima Productions fan and so I've been following the announcements follow about
+following the announcements follow about decima engine and how they've integrated
+decima engine and how they've integrated their workflow with the new coaching
+their workflow with the new coaching productions into decima so I after
+productions into decima so I after seeing some video content like just mass
+seeing some video content like just mass market content on how they were changing
+market content on how they were changing the workflow of decima engine in
+the workflow of decima engine in previous titles to fit the new death
+previous titles to fit the new death stranding title I was wondering is there
+stranding title I was wondering is there anything in particular that that you
+anything in particular that that you learned from that experience or that was
+learned from that experience or that was integrated as a result of that
+integrated as a result of that experience with the Kojima Productions
+experience with the Kojima Productions team once they came on yeah I mean those
+team once they came on yeah I mean those guys were working for many years on
+guys were working for many years on their their engine and Fox engine had a
+their their engine and Fox engine had a lot of cool capabilities so we learned a
+lot of cool capabilities so we learned a lot of technical stuff from those guys
+lot of technical stuff from those guys but in terms of workflow changes they
+but in terms of workflow changes they were they're much more focused on
+were they're much more focused on cinematics than we were so our
+cinematics than we were so our cinematics pipeline was something that
+cinematics pipeline was something that we analyzed quite heavily to understand
+we analyzed quite heavily to understand how we could improve it to fit their
+how we could improve it to fit their workflows where they wanted to have very
+workflows where they wanted to have very long sequences of like a lot of
+long sequences of like a lot of complicated interaction between many
+complicated interaction between many characters so that was like a pretty big
+characters so that was like a pretty big big part of it but yeah that's about it
+big part of it but yeah that's about it so a couple of questions yeah one would
+so a couple of questions yeah one would be how did you get buy-in from
+be how did you get buy-in from production of management or were there
+production of management or were there any problems with it and also in the
+any problems with it and also in the early days when you were working on
+early days when you were working on stuff that wasn't yet usable we're
+stuff that wasn't yet usable we're having to support two systems for people
+having to support two systems for people editing game yes so the question is like
+editing game yes so the question is like how do we get buy-in from from other
+how do we get buy-in from from other other teams and how do we actually like
+other teams and how do we actually like approach the first dealing with two
+approach the first dealing with two separate several parts of editing so
+separate several parts of editing so getting buy-in from from management
+getting buy-in from from management wasn't that difficult because we had the
+wasn't that difficult because we had the backing of our technical directorates
+backing of our technical directorates you just push forward with this that we
+you just push forward with this that we thought in a way that we thought made
+thought in a way that we thought made sense getting buying from our from our
+sense getting buying from our from our users was much harder because yeah the
+users was much harder because yeah the tools were really kind of crappy for
+tools were really kind of crappy for like a very long time and that meant
+like a very long time and that meant nobody wanted to use them so we had to
+nobody wanted to use them so we had to invest a lot of energy and just making
+invest a lot of energy and just making sure that we met all the demands of like
+sure that we met all the demands of like reaching feature parity for that stuff
+reaching feature parity for that stuff in terms of editing I think two
+in terms of editing I think two different systems of editing that was
+different systems of editing that was kind of a pretty tricky tricky thing is
+kind of a pretty tricky tricky thing is it's very hard to summarize shortly
+it's very hard to summarize shortly because there's like many different
+because there's like many different angles to that there's like all these
+angles to that there's like all these different systems and that we have in
+different systems and that we have in the game and moving on to new data
+the game and moving on to new data formats in the new editor would make
+formats in the new editor would make editing much easier but I can give you
+editing much easier but I can give you some specific examples in more detail
+some specific examples in more detail but it's a very very hard thing to
+but it's a very very hard thing to summarize I think mainly like all the
+summarize I think mainly like all the old tools pretty much had a feature stop
+old tools pretty much had a feature stop once this got rolling so we did support
+once this got rolling so we did support them I mean as then ended this
+them I mean as then ended this presentation not not all - all teams
+presentation not not all - all teams have moved over to the new editor but
+have moved over to the new editor but yet the new features for the old tools
+yet the new features for the old tools is zero or very little since we've
+is zero or very little since we've started this so hey thanks for the talk
+started this so hey thanks for the talk do you have any like deta messaging
+do you have any like deta messaging steps like you know like a pipeline step
+steps like you know like a pipeline step or something like that and how does that
+or something like that and how does that work with like you know the diff patch
+work with like you know the diff patch file that you do or is that actually
+file that you do or is that actually what you mean in the the game sync stuff
+what you mean in the the game sync stuff where it's actually done on the game
+where it's actually done on the game side where you know the the editor data
+side where you know the the editor data has to be kind of massaged like you know
+has to be kind of massaged like you know strings need to be hashed and all the
+strings need to be hashed and all the things need to be generated for the for
+things need to be generated for the for the runtime to work okay so you're
+the runtime to work okay so you're talking specifically about how the
+talking specifically about how the editor data is that you transferred into
+editor data is that you transferred into the game and how that transformation
+the game and how that transformation process works or yeah okay so we have a
+process works or yeah okay so we have a conversion pipeline that is basically
+conversion pipeline that is basically just lazily converting the graph of
+just lazily converting the graph of content that is going to be loaded into
+content that is going to be loaded into the game and that conversion processes
+the game and that conversion processes can involve basically anything I mean in
+can involve basically anything I mean in the simplest form it's just that we take
+the simplest form it's just that we take some pre converted data and write it to
+some pre converted data and write it to a binary stream in accordance with the
+a binary stream in accordance with the the RT TI schema but in complicated
+the RT TI schema but in complicated cases it can be things like where we do
+cases it can be things like where we do a lot of baking operations and then
+a lot of baking operations and then write out a stream in a certain way or
+write out a stream in a certain way or whatever but this is something which
+whatever but this is something which game systems and game objects are free
+game systems and game objects are free to implement however they want so
+to implement however they want so there's a lot of different things
+there's a lot of different things happening there basically but so that
+happening there basically but so that runs in the game process right it
+runs in the game process right it technically does but not not inside the
+technically does but not not inside the game instance so we use the same
+game instance so we use the same executable but it's it's a different
+executable but it's it's a different instance like we rename the executable
+instance like we rename the executable file and then we run
+file and then we run conversion process so that will
+conversion process so that will basically just eat up the core text
+basically just eat up the core text files and spit out core binary files and
+files and spit out core binary files and those core binary files are then
+those core binary files are then actually loaded by the game so this is
+actually loaded by the game so this is an essentially an offline process but
+an essentially an offline process but it's done on demand so as you're working
+it's done on demand so as you're working in the editor or whatever and you load
+in the editor or whatever and you load up the game the game will make a request
+up the game the game will make a request to a converted worker for this operation
+to a converted worker for this operation it will convert the data and then that
+it will convert the data and then that will get loaded into the game
+will get loaded into the game cool thanks a question about a little
+cool thanks a question about a little less technical I guess logistics of
+less technical I guess logistics of making this happen and so you guys
+making this happen and so you guys started out with one prototype was that
+started out with one prototype was that pushed from like engineers to higher
+pushed from like engineers to higher levels like did you pitch to pitch it or
+levels like did you pitch to pitch it or was it like a an in order from from up
+was it like a an in order from from up there somewhere like how did you guys we
+there somewhere like how did you guys we don't really have like sort of strong
+don't really have like sort of strong hierarchy or something that gorillas so
+hierarchy or something that gorillas so it was nobody saying like hey you need
+it was nobody saying like hey you need to make this or something it was more
+to make this or something it was more like as a tools team we discussed it
+like as a tools team we discussed it quite quite extensively and we looked at
+quite quite extensively and we looked at the options we were faced with and it
+the options we were faced with and it was kind of like the new game was so big
+was kind of like the new game was so big and complicated that while it would be
+and complicated that while it would be technically possible to make it with the
+technically possible to make it with the old tools it would just require so much
+old tools it would just require so much effort that we decided we should at
+effort that we decided we should at least explore making a new editor and
+least explore making a new editor and trying that out so that was something
+trying that out so that was something that we just sort of did and it was
+that we just sort of did and it was something we a conclusion that we
+something we a conclusion that we reached as consensus as a team basically
+reached as consensus as a team basically all right
+I had a quick question about the basic stuff like the menus and the docking
+stuff like the menus and the docking panels and the trees they were all
+panels and the trees they were all rewritten using this that's the
+rewritten using this that's the framework that was started there was
+framework that was started there was nothing reused from all West code or you
+nothing reused from all West code or you don't trying to say well for all of the
+don't trying to say well for all of the kind of like lower level stuff like file
+kind of like lower level stuff like file handles and what-have-you that was
+handles and what-have-you that was already present inside of the decima
+already present inside of the decima engine for the user interface we have
+engine for the user interface we have sort of two different parts we have our
+sort of two different parts we have our own custom control framework we call it
+own custom control framework we call it which is just you know simple things
+which is just you know simple things like buttons or any kind of
+like buttons or any kind of two-dimensional rendering and then for
+two-dimensional rendering and then for the most of like the bread and button
+the most of like the bread and button butter controls of like the user
+butter controls of like the user interface such as buttons and menus and
+interface such as buttons and menus and whatever we use a framework called cute
+whatever we use a framework called cute or QT depending on how you want to
+or QT depending on how you want to pronounce it but yeah that's it ok all
+pronounce it but yeah that's it ok all right Oh quick question so at what point
+right Oh quick question so at what point of the process did you decide to create
+of the process did you decide to create the decima API and how much of an
+the decima API and how much of an undertaking was it to create the Python
+undertaking was it to create the Python wrappers for your tech artists there was
+wrappers for your tech artists there was some that happened very recently
+some that happened very recently actually I don't recall the exact date
+actually I don't recall the exact date but I think it was within like the last
+but I think it was within like the last two or three months or something and in
+two or three months or something and in terms of getting it online it was a very
+terms of getting it online it was a very easy thing to make in a way like it took
+easy thing to make in a way like it took much much more time to really drill down
+much much more time to really drill down and like understand exactly what this
+and like understand exactly what this thing was going to do and like how each
+thing was going to do and like how each API call was gonna look and whatever and
+API call was gonna look and whatever and then one guy just said and wrote it and
+then one guy just said and wrote it and it took him I think like a couple of
+it took him I think like a couple of weeks to to make the thing go
+alright okay I think there's no more questions so thank you thank you
+questions so thank you thank you [Applause]

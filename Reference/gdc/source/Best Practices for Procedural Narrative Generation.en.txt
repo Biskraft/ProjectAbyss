@@ -1,0 +1,703 @@
+[music]
+Hello everybody. Um I'm Chris Martins and this is Roelio Cordona Rivera. Uh we
+and this is Roelio Cordona Rivera. Uh we are both at North Carolina State
+are both at North Carolina State University and we're both really excited
+University and we're both really excited to be here uh to tell you about some of
+to be here uh to tell you about some of the things that we've learned about as
+the things that we've learned about as uh researchers. So we are both
+uh researchers. So we are both researchers at NC State. Um I just
+researchers at NC State. Um I just started there as faculty in the fall and
+started there as faculty in the fall and Raelio is finishing up his PhD. Um, I do
+Raelio is finishing up his PhD. Um, I do work on tools for rapid prototyping of
+work on tools for rapid prototyping of interactive stories and Raelo does work
+interactive stories and Raelo does work on computational models of how players
+on computational models of how players think about interactive stories. Uh, so
+think about interactive stories. Uh, so this is our first GDC talk. We are
+this is our first GDC talk. We are really excited. Um, we're we're kind of
+really excited. Um, we're we're kind of motivated by um this idea that in
+motivated by um this idea that in academia we have a whole lot of
+academia we have a whole lot of techniques that people have explored and
+techniques that people have explored and debated over the years. Um, and when I
+debated over the years. Um, and when I come to conferences like GDC, um, I talk
+come to conferences like GDC, um, I talk to a lot of people who are who are
+to a lot of people who are who are saying like, I really want to create a
+saying like, I really want to create a procedural story and I have no idea how
+procedural story and I have no idea how to get started. So, uh, we're hoping
+to get started. So, uh, we're hoping that we can share with you some some
+that we can share with you some some interesting ideas and techniques that
+interesting ideas and techniques that you may be able to use in your designs.
+you may be able to use in your designs. So, um, a lot of academic work as well
+So, um, a lot of academic work as well as a lot of early game development work
+as a lot of early game development work started by sort of being inspired by
+started by sort of being inspired by this idea of the hollow deck from Star
+this idea of the hollow deck from Star Trek. Um, in other words, a simulated
+Trek. Um, in other words, a simulated reality that affords not only the
+reality that affords not only the experience, an immersive experience of a
+experience, an immersive experience of a story that you can enter and take part
+story that you can enter and take part in um as a a reader of sort of a script,
+in um as a a reader of sort of a script, but also a reality in which you can take
+but also a reality in which you can take improvised actions and have this the
+improvised actions and have this the system respond in a meaningful way to
+system respond in a meaningful way to those reactions. Um, in the early days,
+those reactions. Um, in the early days, this was kind of realized through some
+this was kind of realized through some of the uh early adventure games like the
+of the uh early adventure games like the Hobbit DOSs game from Beam Software in
+Hobbit DOSs game from Beam Software in 1983. Uh, and on the surface, adventure
+1983. Uh, and on the surface, adventure games like this sort of seem to offer
+games like this sort of seem to offer the promise of the hollow deck, sort of
+the promise of the hollow deck, sort of showing you these um first-person images
+showing you these um first-person images of spaces that you could inhabit and and
+of spaces that you could inhabit and and narrating story around you and allowing
+narrating story around you and allowing you to make some kind of choices. Um,
+you to make some kind of choices. Um, and ultimately these experiences
+and ultimately these experiences centered a particular kind of plot and
+centered a particular kind of plot and progression. They they really wanted you
+progression. They they really wanted you to in some sense follow the script of
+to in some sense follow the script of what the designer had in mind. Um, but
+what the designer had in mind. Um, but they're not very permissive of the kind
+they're not very permissive of the kind of spontaneity and improvisation that
+of spontaneity and improvisation that people initially sort of um fantasy
+people initially sort of um fantasy designed in the Star Trek holiday.
+designed in the Star Trek holiday. More recently, people have been very
+More recently, people have been very excited about the idea of emergent
+excited about the idea of emergent gameplay realized by games like Dwarf
+gameplay realized by games like Dwarf Fortress, um, in which there's a rich
+Fortress, um, in which there's a rich simulation underlying this game system
+simulation underlying this game system and players can play players and the
+and players can play players and the artificial agents within the system can
+artificial agents within the system can very much improvise and have the system
+very much improvise and have the system respond. Um, and then people perceive
+respond. Um, and then people perceive that sort of there are narratives that
+that sort of there are narratives that that get overlaid on top of these
+that get overlaid on top of these experiences. Uh, for example, many
+experiences. Uh, for example, many people like to post on Reddit uh
+people like to post on Reddit uh detailed descriptions of their narrative
+detailed descriptions of their narrative experiences within Dwarf Fortress that
+experiences within Dwarf Fortress that that they think are are really
+that they think are are really compelling.
+compelling. So, this is sort of representative of
+So, this is sort of representative of the other end of a spectrum in a sense.
+the other end of a spectrum in a sense. Um, these these experiences are very
+Um, these these experiences are very permissive of player and procedural
+permissive of player and procedural spontaneity, but on the other hand,
+spontaneity, but on the other hand, there is no enforcement of sort of
+there is no enforcement of sort of authored narrative arcs. So just as a
+authored narrative arcs. So just as a working definition for those of you who
+working definition for those of you who may not have encountered the term
+may not have encountered the term procedural narrative generation before,
+procedural narrative generation before, I'm including both of these things under
+I'm including both of these things under this umbrella term. Um, and basically
+this umbrella term. Um, and basically considering any kind of automatic
+considering any kind of automatic process that creates a narrative over
+process that creates a narrative over time where that narrative is not
+time where that narrative is not determined at the outset uh before the
+determined at the outset uh before the process begins to be procedural
+process begins to be procedural narrative generation. So, I've given a
+narrative generation. So, I've given a couple of examples and I'm listing a few
+couple of examples and I'm listing a few more here, including some that I think
+more here, including some that I think are a bit lesser known that I'm really
+are a bit lesser known that I'm really excited about um as examples in
+excited about um as examples in procedural narrative generation. And I
+procedural narrative generation. And I kind of have these, you know, loosely
+kind of have these, you know, loosely following a spectrum of prioritizing
+following a spectrum of prioritizing agent spontaneity uh to prioritizing
+agent spontaneity uh to prioritizing authoral structure. And largely what
+authoral structure. And largely what this talk is about is the challenge in
+this talk is about is the challenge in uh first of all introducing agent
+uh first of all introducing agent spontaneity in the first place. this
+spontaneity in the first place. this kind of improvisation and and
+kind of improvisation and and simulation, but also how to balance it
+simulation, but also how to balance it with author structure. [sighs]
+with author structure. [sighs] So, going forward, um I'm gonna show you
+So, going forward, um I'm gonna show you just a simple example that we can use to
+just a simple example that we can use to walk through a lot of the terminology
+walk through a lot of the terminology and ideas and then we're going to go
+and ideas and then we're going to go through in detail a couple of
+through in detail a couple of approaches, the simulation ccentric
+approaches, the simulation ccentric approach and the plot-centric approach
+approach and the plot-centric approach um that have been really thoroughly
+um that have been really thoroughly explored in academic research. Um and
+explored in academic research. Um and then Raelio is going to uh well Raelio
+then Raelio is going to uh well Raelio will will talk about the plot-centric
+will will talk about the plot-centric approach and he'll also conclude with
+approach and he'll also conclude with some of the ongoing challenges uh in
+some of the ongoing challenges uh in procedural narrative generation.
+procedural narrative generation. So the example that we're going to start
+So the example that we're going to start with is an ASUP fable um largely because
+with is an ASUP fable um largely because as fables tend to be relatively simple
+as fables tend to be relatively simple and small and they can fit in a talk
+and small and they can fit in a talk slide. Um so the uh so this is the the
+slide. Um so the uh so this is the the ant and the dove. So a dove saw an ant
+ant and the dove. So a dove saw an ant fell fall into a brook. The ant
+fell fall into a brook. The ant struggled in vain to reach the bank, and
+struggled in vain to reach the bank, and in pity, the dove dropped a blade of
+in pity, the dove dropped a blade of straw close beside it. Clinging to the
+straw close beside it. Clinging to the straw like a shipwrecked sailor to a
+straw like a shipwrecked sailor to a broken spar, the ant floated safely to
+broken spar, the ant floated safely to shore. Soon after, the ant saw a man
+shore. Soon after, the ant saw a man getting ready to kill the dove with a
+getting ready to kill the dove with a stone. But just as he cast the stone,
+stone. But just as he cast the stone, the ant stung him in the heel so that
+the ant stung him in the heel so that the pain made him miss his aim, and the
+the pain made him miss his aim, and the startled dove flew to safety in a
+startled dove flew to safety in a distant wood. Uh, the moral is at the
+distant wood. Uh, the moral is at the bottom. A kindness is never wasted. So
+bottom. A kindness is never wasted. So when we start to think about how to
+when we start to think about how to introduce some kind of generativity into
+introduce some kind of generativity into the story um or interactivity which
+the story um or interactivity which ideas are closely interrelated um one
+ideas are closely interrelated um one technique that underlies a lot of uh
+technique that underlies a lot of uh that opens up a lot of possibilities for
+that opens up a lot of possibilities for procedurality is logical modeling. So
+procedurality is logical modeling. So some kind of formal representation of
+some kind of formal representation of who the characters are and what
+who the characters are and what situations they're in and how those
+situations they're in and how those situations change across story events.
+situations change across story events. So if we first think about discretizing
+So if we first think about discretizing this story into kind of a comic book
+this story into kind of a comic book form uh where we show different
+form uh where we show different narrative situations in each panel, we
+narrative situations in each panel, we can start describing um each situation
+can start describing um each situation in a a sort of formal logical form. So
+in a a sort of formal logical form. So we can represent this first panel where
+we can represent this first panel where the ant is uh near the stream getting
+the ant is uh near the stream getting ready to fall into the stream as uh the
+ready to fall into the stream as uh the ant being thirsty and the ant being at
+ant being thirsty and the ant being at the left shore.
+the left shore. Uh the next panel
+Uh the next panel is uh where the ant falls into the
+is uh where the ant falls into the stream. So we can represent that as ant
+stream. So we can represent that as ant at ant stream and the dove is above the
+at ant stream and the dove is above the stream and so on for the rest of the
+stream and so on for the rest of the panels in kind of the first half of this
+panels in kind of the first half of this story.
+story. So that's our formal representation of a
+So that's our formal representation of a little example story. And now I'm going
+little example story. And now I'm going to go through the simulation ccentric
+to go through the simulation ccentric approach. So the basic idea with this is
+approach. So the basic idea with this is that you're going to design the author
+that you're going to design the author is going to design a bunch of characters
+is going to design a bunch of characters and sort of world elements and
+and sort of world elements and identities in terms of their uh
+identities in terms of their uh personalities, desires, and
+personalities, desires, and relationships to one another. Then give
+relationships to one another. Then give a whole bunch of rules describing how
+a whole bunch of rules describing how these entities can interact with one
+these entities can interact with one another and potentially change those
+another and potentially change those properties. Uh then you kind of throw
+properties. Uh then you kind of throw them into a world and press play and see
+them into a world and press play and see what they do. Uh so you have your
+what they do. Uh so you have your designer who's going to feed these
+designer who's going to feed these interaction rules and initial state into
+interaction rules and initial state into a story generator and then that whole
+a story generator and then that whole thing kind of gets packaged up and
+thing kind of gets packaged up and becomes an interactive narrative which
+becomes an interactive narrative which then the player can interact with in the
+then the player can interact with in the usual way by uh submitting actions and
+usual way by uh submitting actions and receiving responses.
+receiving responses. So we're going to zoom into specifically
+So we're going to zoom into specifically what the authoring process looks like uh
+what the authoring process looks like uh for this kind of approach and uh we're
+for this kind of approach and uh we're going to look at what's what interaction
+going to look at what's what interaction what it means to design interaction
+what it means to design interaction rules.
+rules. So an interaction rule is basically a
+So an interaction rule is basically a transition between story situations.
+transition between story situations. Basically going from the ant is beside
+Basically going from the ant is beside the stream and thirsty to the ant being
+the stream and thirsty to the ant being in the water. Um, we can label this
+in the water. Um, we can label this transition with a story event like the
+transition with a story event like the ant falls into the stream. And to make
+ant falls into the stream. And to make this formal, we simply have to think
+this formal, we simply have to think about our logical representation of each
+about our logical representation of each of these situations and then give a
+of these situations and then give a formal label to this transition event.
+formal label to this transition event. Um, the next thing that we do in order
+Um, the next thing that we do in order to start introducing generativity into
+to start introducing generativity into the story is to make the rule more
+the story is to make the rule more general. So I'm using a particular kind
+general. So I'm using a particular kind of quirky syntax with um this question
+of quirky syntax with um this question mark which designates a variable which
+mark which designates a variable which is an argument to the rule uh that can
+is an argument to the rule uh that can range over any character. Basically any
+range over any character. Basically any character can be substituted into this
+character can be substituted into this rule to have it apply to them. Um so we
+rule to have it apply to them. Um so we could say if someone is thirsty and
+could say if someone is thirsty and someone is at a location somewhere and
+someone is at a location somewhere and that somewhere happens to be near a
+that somewhere happens to be near a stream then one way their situation
+stream then one way their situation might transform is that they could fall
+might transform is that they could fall into the stream and become in the
+into the stream and become in the stream. Um, it's important to know that
+stream. Um, it's important to know that when we're representing things formally
+when we're representing things formally like this, we also have to uh make sure
+like this, we also have to uh make sure we're preserving information that
+we're preserving information that doesn't change. So, if our situation
+doesn't change. So, if our situation doesn't change the fact that this
+doesn't change the fact that this location is near the stream, we have to
+location is near the stream, we have to repeat it on the other side. Um, so
+repeat it on the other side. Um, so that's enough dense syntax for now.
+that's enough dense syntax for now. We're going to go back to pictures. Um
+We're going to go back to pictures. Um so we'll represent this kind of uh rule
+so we'll represent this kind of uh rule with a variable in it with this um you
+with a variable in it with this um you know outline of a person uh to say if
+know outline of a person uh to say if the person is thirsty and the person is
+the person is thirsty and the person is near a stream then the person can fall
+near a stream then the person can fall into the stream. So that's one way of
+into the stream. So that's one way of introducing generativity is sort of
+introducing generativity is sort of generalizing these interaction rules uh
+generalizing these interaction rules uh into things that can be instantiated
+into things that can be instantiated with multiple characters and entities.
+with multiple characters and entities. Another way is to introduce choices into
+Another way is to introduce choices into the world to sort of say that well if a
+the world to sort of say that well if a person is near a stream and thirsty then
+person is near a stream and thirsty then they might fall into the stream and we
+they might fall into the stream and we can label that rule drink fall. On the
+can label that rule drink fall. On the other hand we could have a rule called
+other hand we could have a rule called drink succeed in which they don't fall
+drink succeed in which they don't fall into the stream and simply stop being
+into the stream and simply stop being thirsty.
+Other kinds of interaction rules we can represent with this rulebased style
+represent with this rulebased style include movement for uh movement to
+include movement for uh movement to location. So if a character wants to
+location. So if a character wants to move to a particular location that they
+move to a particular location that they happen to be near, then they can simply
+happen to be near, then they can simply transition to being in that new
+transition to being in that new location. Uh more interestingly perhaps
+location. Uh more interestingly perhaps we can also represent social interaction
+we can also represent social interaction rules. So we can say something like if
+rules. So we can say something like if two characters X and Y are in a shared
+two characters X and Y are in a shared location and X doesn't like Y then um
+location and X doesn't like Y then um they can transition into a situation
+they can transition into a situation where they don't like each other and we
+where they don't like each other and we can call this this uh story event
+can call this this uh story event insulting X insulting Y.
+insulting X insulting Y. We can also represent social
+We can also represent social interactions like helping. So if
+interactions like helping. So if somebody uh has a cure for uh if
+somebody uh has a cure for uh if somebody named X has a cure for an
+somebody named X has a cure for an ailment that somebody named Y has um and
+ailment that somebody named Y has um and X happens to like Y then um perhaps they
+X happens to like Y then um perhaps they uh spend the cure to get rid of the
+uh spend the cure to get rid of the element and now Y is grateful to X.
+element and now Y is grateful to X. So those were just a few examples of the
+So those were just a few examples of the kinds of interaction rules that you can
+kinds of interaction rules that you can create in a simulation. And then I
+create in a simulation. And then I mentioned before that you also have to
+mentioned before that you also have to feed in an initial state. So what does
+feed in an initial state. So what does that look like? Initial state is simply
+that look like? Initial state is simply a uh sequence of logical operators
+a uh sequence of logical operators representing the situation that the
+representing the situation that the story is in before the simulation
+story is in before the simulation begins. Uh so for example the dove being
+begins. Uh so for example the dove being on the shore um sorry the the dove being
+on the shore um sorry the the dove being above uh above the shore at the street
+above uh above the shore at the street at the treetops the ant being at the
+at the treetops the ant being at the shore and um other properties of the
+shore and um other properties of the world that will be manipulated by these
+world that will be manipulated by these rules
+rules then when this is actually executed at
+then when this is actually executed at runtime um what happens okay so the
+runtime um what happens okay so the algorithmic concept is that our system
+algorithmic concept is that our system is going to randomly explore this state
+is going to randomly explore this state space and more concretely as an example
+space and more concretely as an example What that might mean is that uh we start
+What that might mean is that uh we start with some initial state including the
+with some initial state including the locations and relationships between the
+locations and relationships between the world entities and then we take a random
+world entities and then we take a random movement in a particular direction like
+movement in a particular direction like say the ant moves to the stream and note
+say the ant moves to the stream and note that the other part of the situation
+that the other part of the situation wherever the dove is and which locations
+wherever the dove is and which locations are near each other and so on uh doesn't
+are near each other and so on uh doesn't change across this transition.
+change across this transition. Then we can follow that with another
+Then we can follow that with another part of the sequence where the dove
+part of the sequence where the dove moves to the stream. Now both of the
+moves to the stream. Now both of the characters are in the same location and
+characters are in the same location and some interaction might take place
+some interaction might take place between them. On the other hand, we
+between them. On the other hand, we might start from the initial state and
+might start from the initial state and first move the dove and then move the
+first move the dove and then move the ant which takes us back to the uh same
+ant which takes us back to the uh same situation as doing so the other way
+situation as doing so the other way around. So in doing this, we are
+around. So in doing this, we are creating not what you may be more
+creating not what you may be more familiar with is sort of like a
+familiar with is sort of like a branching story tree but rather um a
+branching story tree but rather um a branching story graph where things might
+branching story graph where things might connect to the same node. Um, so a
+connect to the same node. Um, so a concept that we could consider for sort
+concept that we could consider for sort of generating stories includes randomly
+of generating stories includes randomly exploring the state space. Um, but a
+exploring the state space. Um, but a perhaps more useful way to think about
+perhaps more useful way to think about it as sort of interactive experience
+it as sort of interactive experience designers is that we can also include
+designers is that we can also include the player in the loop and allow them to
+the player in the loop and allow them to control some of the steps through the
+control some of the steps through the state space. uh and whether it's a
+state space. uh and whether it's a player or an or an automated uh decision
+player or an or an automated uh decision maker taking these steps we can consider
+maker taking these steps we can consider each traversal through the state space
+each traversal through the state space to be approximately a story. So
+to be approximately a story. So sometimes of course these things may not
+sometimes of course these things may not be very interesting stories uh but some
+be very interesting stories uh but some of them might be. So if uh you know the
+of them might be. So if uh you know the ant moves towards the stream and the
+ant moves towards the stream and the dove moves towards the stream um the ant
+dove moves towards the stream um the ant could insult the dove and then the dove
+could insult the dove and then the dove might eat the ant.
+might eat the ant. Uh in terms of interacting with
+Uh in terms of interacting with simulations, there are of course a lot
+simulations, there are of course a lot of design questions to ask for using
+of design questions to ask for using this technique. So uh one of the one of
+this technique. So uh one of the one of the biggest ones is where is the locus
+the biggest ones is where is the locus of control? How can the player intervene
+of control? How can the player intervene in the narrative? Are they playing as
+in the narrative? Are they playing as one character? Are they able to
+one character? Are they able to manipulate all of the characters in the
+manipulate all of the characters in the story and completely control what takes
+story and completely control what takes place in the simulation? um or are they
+place in the simulation? um or are they perhaps able only to um subtly
+perhaps able only to um subtly manipulate the world around the
+manipulate the world around the characters as they go about their you
+characters as they go about their you know daily activities um using these
+know daily activities um using these interaction rules and try to subtly
+interaction rules and try to subtly manipulate their behavior in that way.
+manipulate their behavior in that way. Uh there's a couple of examples I wanted
+Uh there's a couple of examples I wanted to highlight. One of which is the game
+to highlight. One of which is the game prom week uh which came out of research
+prom week uh which came out of research from UC Santa Cruz uh in which the
+from UC Santa Cruz uh in which the player does get to control all
+player does get to control all characters but kind of one at a time. So
+characters but kind of one at a time. So they select one character who's the
+they select one character who's the actor and then another character that
+actor and then another character that that first character will act upon uh
+that first character will act upon uh and they get to decide what kind of
+and they get to decide what kind of interaction will will be started but how
+interaction will will be started but how that second character responds is
+that second character responds is automated. Um, another example is Blood
+automated. Um, another example is Blood and Laurels, um, which uses the Versu
+and Laurels, um, which uses the Versu storytelling engine. And in that, uh, in
+storytelling engine. And in that, uh, in that case, it's it actually plays a lot
+that case, it's it actually plays a lot like a like a traditional choice-based
+like a like a traditional choice-based narrative, but all of the choices that
+narrative, but all of the choices that are presented to you are generated by
+are presented to you are generated by the simulation possibilities underlying
+the simulation possibilities underlying the world. Okay. And so with that, I am
+the world. Okay. And so with that, I am going to pass this off to Roelio, who's
+going to pass this off to Roelio, who's going to tell you how to actually
+going to tell you how to actually introduce some kind of control over your
+introduce some kind of control over your dramatic arcs that unfold.
+dramatic arcs that unfold. Hi everybody. I'm super excited to be
+Hi everybody. I'm super excited to be here. So in order to set up a specific
+here. So in order to set up a specific narrative progression, which you won't
+narrative progression, which you won't have in the simulationcentric approach
+have in the simulationcentric approach because you kind of get to decide where
+because you kind of get to decide where the narrative is going on the fly, you
+the narrative is going on the fly, you need a way of specifying and enforcing
+need a way of specifying and enforcing goals, which is again achieved through
+goals, which is again achieved through the techniques that I'm going to
+the techniques that I'm going to outline. However, the plot-centric
+outline. However, the plot-centric approach does build upon the
+approach does build upon the simulationcentric approach. So you you
+simulationcentric approach. So you you need to describe you know what is the
+need to describe you know what is the initial state of the narrative universe
+initial state of the narrative universe as well as what are the interaction
+as well as what are the interaction rules that allow the states of the
+rules that allow the states of the universe to change.
+universe to change. Additionally you require a narrative
+Additionally you require a narrative agenda. So the agenda represents the
+agenda. So the agenda represents the desired plot that you as a narrative
+desired plot that you as a narrative designer want to have happen in terms of
+designer want to have happen in terms of the trajectory through the state space
+the trajectory through the state space that Chris was describing. So to give
+that Chris was describing. So to give you a kind of diagrammatic
+you a kind of diagrammatic representation of what's going on, this
+representation of what's going on, this is the diagram that Chris finished upon.
+is the diagram that Chris finished upon. And we're going to just shift the story
+And we're going to just shift the story generator to the left. And in addition
+generator to the left. And in addition to specifying, like I said, the initial
+to specifying, like I said, the initial state and the interaction rules, you
+state and the interaction rules, you also have the narrative agenda. Now the
+also have the narrative agenda. Now the story generator in creating this story
+story generator in creating this story actually needs an additional
+actually needs an additional agent storytelling agent and one will
+agent storytelling agent and one will generate the partial story structure
+generate the partial story structure which is the generator and the other
+which is the generator and the other will try to enforce that story
+will try to enforce that story structure. So there's this idea that you
+structure. So there's this idea that you have the narrative agenda that you want
+have the narrative agenda that you want as a designer to have happen in the
+as a designer to have happen in the interactive narrative experience. You
+interactive narrative experience. You now need an additional agent that will
+now need an additional agent that will monitor what the player is doing and try
+monitor what the player is doing and try to get the player directed on that
+to get the player directed on that narrative trajectory.
+narrative trajectory. So the partial story is created, passes
+So the partial story is created, passes to this agent called a story mediator
+to this agent called a story mediator agent and the player once again takes
+agent and the player once again takes actions that the mediator interprets. It
+actions that the mediator interprets. It then requests story content from the
+then requests story content from the story generator which in turn in
+story generator which in turn in response to the player's actions creates
+response to the player's actions creates this partial story and then delivers
+this partial story and then delivers those responses to the player. So you
+those responses to the player. So you can think of it as an iterative process
+can think of it as an iterative process that takes place between the player and
+that takes place between the player and the story system. Essentially they're
+the story system. Essentially they're taking turns advancing the chronology.
+taking turns advancing the chronology. So the player takes a turn in the
+So the player takes a turn in the interactive environment and then the
+interactive environment and then the system responds in turn.
+system responds in turn. So like I said earlier you all you have
+So like I said earlier you all you have to describe the initial state as well as
+to describe the initial state as well as the interaction rules that can evolve
+the interaction rules that can evolve states. The way that we approach
+states. The way that we approach authorship in this plot-centric approach
+authorship in this plot-centric approach is again I have I have an idea as a
+is again I have I have an idea as a designer which of the states in that
+designer which of the states in that space are desirable and that is the
+space are desirable and that is the narrative agenda. So say for example
+narrative agenda. So say for example that at the end I want the ant to be at
+that at the end I want the ant to be at the shore right then what that does in
+the shore right then what that does in terms of the simulated world is
+terms of the simulated world is distinguish a state as desirable which
+distinguish a state as desirable which I've highlighted there in that
+I've highlighted there in that alternative color.
+alternative color. So as we specify more conditions in the
+So as we specify more conditions in the state space we get a more specific
+state space we get a more specific trajectory of the interactive narrative.
+trajectory of the interactive narrative. So the more that we specify the more we
+So the more that we specify the more we have in terms of constraints of things
+have in terms of constraints of things that we as designers would like to have
+that we as designers would like to have hit during the progression of the
+hit during the progression of the player. And this sets up nicely the
+player. And this sets up nicely the first technique in the plotcentric
+first technique in the plotcentric approach which is this notion of beats.
+approach which is this notion of beats. So the idea that you have some state you
+So the idea that you have some state you have the states of the state space and a
+have the states of the state space and a subset of those states which are the
+subset of those states which are the desired ones. And in the literature
+desired ones. And in the literature you'll find these referred to as beats.
+you'll find these referred to as beats. The second technique in the plot-centric
+The second technique in the plot-centric approach is this notion of turn taking
+approach is this notion of turn taking which I kind of alluded to and you can
+which I kind of alluded to and you can think of it through an analogy through
+think of it through an analogy through uh Dungeons and Dragons when you roll
+uh Dungeons and Dragons when you roll for initiative, right? You you the DM
+for initiative, right? You you the DM have players roll for initiative,
+have players roll for initiative, establish the turn order of players,
+establish the turn order of players, then the players go and the DM responds
+then the players go and the DM responds in kind. So the DM and the players take
+in kind. So the DM and the players take turns advancing the narrative arc. So
+turns advancing the narrative arc. So the same principle applies here. From
+the same principle applies here. From the initial state, the player is
+the initial state, the player is allotted or afforded the opportunity to
+allotted or afforded the opportunity to take action in the state space and then
+take action in the state space and then the system is allowed to respond in
+the system is allowed to respond in kind. And so this continues throughout
+kind. And so this continues throughout the progression of the plot structure.
+the progression of the plot structure. And the third technique is that idea of
+And the third technique is that idea of mediation which I talked about earlier,
+mediation which I talked about earlier, the notion that there are some actions
+the notion that there are some actions in that state space which essentially
+in that state space which essentially take us away from the desired plot
+take us away from the desired plot points. So we have the beats that we
+points. So we have the beats that we have specified in the narrative
+have specified in the narrative trajectory and any action that takes us
+trajectory and any action that takes us away from those beats from the systems
+away from those beats from the systems perspective constitutes an exception. We
+perspective constitutes an exception. We want to avoid those because we want to
+want to avoid those because we want to hit those plot points during the
+hit those plot points during the progression of the player's experience.
+progression of the player's experience. So those dotted arrows that I'm
+So those dotted arrows that I'm highlighting in the diagram represent
+highlighting in the diagram represent those exceptional actions. And so if we
+those exceptional actions. And so if we consider these beats to be hard
+consider these beats to be hard constraints, so we don't want the player
+constraints, so we don't want the player to deviate from these beats, then the
+to deviate from these beats, then the system must fail the user's action when
+system must fail the user's action when the player tries to take that or never
+the player tries to take that or never present the action in the first place
+present the action in the first place and otherwise the system will accept the
+and otherwise the system will accept the player's action during the experience.
+player's action during the experience. There's actually a third option here,
+There's actually a third option here, replanning, but this requires a story
+replanning, but this requires a story generator. In essence, if the player
+generator. In essence, if the player tries to deviate from the beat path and
+tries to deviate from the beat path and you have access to a story generation
+you have access to a story generation system, then you can request additional
+system, then you can request additional story content to try to replan the
+story content to try to replan the experience around the player's
+experience around the player's interaction
+interaction and find a story that gets us back on
+and find a story that gets us back on track. During runtime, the plot-centric
+track. During runtime, the plot-centric technique is all about deciding how to
+technique is all about deciding how to evolve the story in response to the
+evolve the story in response to the player's actions. So, like I said
+player's actions. So, like I said earlier, the player in the initial state
+earlier, the player in the initial state will decide what action to pursue for
+will decide what action to pursue for the narrative plot. Then when the
+the narrative plot. Then when the systems the systems turn is is is up, it
+systems the systems turn is is is up, it will suggest or the story manager will s
+will suggest or the story manager will s suggest which action will get us closer
+suggest which action will get us closer to a narrative beat. And so this
+to a narrative beat. And so this interaction, like I said, it's a turn-
+interaction, like I said, it's a turn- taking mechanism. And every time the
+taking mechanism. And every time the system is afforded the opportunity to
+system is afforded the opportunity to interact, it will choose an action that
+interact, it will choose an action that will get get us closer to the narrative
+will get get us closer to the narrative beats.
+beats. So, some plot- ccentric examples, and I
+So, some plot- ccentric examples, and I have to call out facade because it is an
+have to call out facade because it is an unstated rule in academic talks that
+unstated rule in academic talks that reference interactive narrative that
+reference interactive narrative that facade must appear at some point.
+facade must appear at some point. It's part of the PhD manual. Um, so
+It's part of the PhD manual. Um, so facade is an example where you have the
+facade is an example where you have the player afforded the opportunity to
+player afforded the opportunity to interact in the environment, but
+interact in the environment, but invariably you will hit some specific
+invariably you will hit some specific plot points. Of course, the trajectory
+plot points. Of course, the trajectory that you take to get to those beats will
+that you take to get to those beats will affect the way that the experience
+affect the way that the experience culminates.
+culminates. Another example is a game that was
+Another example is a game that was developed at North Carolina State by
+developed at North Carolina State by Justice Robertson called Base Case,
+Justice Robertson called Base Case, which in essence, the interactive
+which in essence, the interactive environment is procedurally generated in
+environment is procedurally generated in response to the player's actions. But
+response to the player's actions. But it's also with this notion of turn
+it's also with this notion of turn taking. So every time the player acts,
+taking. So every time the player acts, the system responds in kind and actually
+the system responds in kind and actually can manipulate things behind the scenes
+can manipulate things behind the scenes to try to make sure that the player's
+to try to make sure that the player's plot progression is as intended.
+plot progression is as intended. So that concludes the plot-centric
+So that concludes the plot-centric approach and I want to shift over to
+approach and I want to shift over to talking about some challenges in new
+talking about some challenges in new frontiers. So one big challenge that is
+frontiers. So one big challenge that is currently uh that we're currently facing
+currently uh that we're currently facing as an academic research community is
+as an academic research community is going from this plot-centric approach to
+going from this plot-centric approach to a more discoursecentric approach. So
+a more discoursecentric approach. So this is in service of what Emily Short
+this is in service of what Emily Short has called out before, which is there's
+has called out before, which is there's no need to simulate part of the
+no need to simulate part of the environment that ultimately will not be
+environment that ultimately will not be told to players because it's not
+told to players because it's not relevant. If it doesn't in some way
+relevant. If it doesn't in some way advance the interactive narrative
+advance the interactive narrative experience, there's no point in talking
+experience, there's no point in talking about it at the simulation level.
+about it at the simulation level. [snorts] So traditionally, systems have
+[snorts] So traditionally, systems have gone from this simulation approach where
+gone from this simulation approach where you generate the simulation of the story
+you generate the simulation of the story world and through its state space and
+world and through its state space and then you pick and choose and present
+then you pick and choose and present over that that state space and lay a
+over that that state space and lay a discourse above it. And that's
+discourse above it. And that's ultimately what is presented to players.
+ultimately what is presented to players. Ideally, we like to go the other way
+Ideally, we like to go the other way around. So, the simulation of an
+around. So, the simulation of an unnarrated part of the story is
+unnarrated part of the story is unnecessary. Uh Chris and I actually
+unnecessary. Uh Chris and I actually have been investigating new models of
+have been investigating new models of communication, understanding what is it
+communication, understanding what is it that we have to communicate to a player
+that we have to communicate to a player and then figuring out the simulation in
+and then figuring out the simulation in service of that. And I hope to continue
+service of that. And I hope to continue that. That's really exciting work. I
+that. That's really exciting work. I think another challenge is this idea of
+think another challenge is this idea of scaling. So, uh, Nano Genenmo, the
+scaling. So, uh, Nano Genenmo, the National Novel Generation Month, where
+National Novel Generation Month, where you have one month to create an AI
+you have one month to create an AI system that generates a 50,000word
+system that generates a 50,000word novel. That's correct. Um, clearly we
+novel. That's correct. Um, clearly we are not at a state as a as a community
+are not at a state as a as a community where we can do this automatically and
+where we can do this automatically and ideally we would want to scale our
+ideally we would want to scale our interactive narrative generation systems
+interactive narrative generation systems to encompass a wider story experience.
+to encompass a wider story experience. Um there's an interesting problem in
+Um there's an interesting problem in that in trying to write a small amount
+that in trying to write a small amount of interaction rules that generate a
+of interaction rules that generate a large body of text. So what is I guess
+large body of text. So what is I guess the minimal amount of authoring that we
+the minimal amount of authoring that we have to do in terms of input to these
+have to do in terms of input to these systems to get a wide array of output.
+systems to get a wide array of output. So some parting thoughts. One thing that
+So some parting thoughts. One thing that we feel procedural narrative generation
+we feel procedural narrative generation will get us toward is opening up the
+will get us toward is opening up the possibility in terms of interactive
+possibility in terms of interactive story experiences. So yes, for you talks
+story experiences. So yes, for you talks about this idea of progression versus
+about this idea of progression versus emergence in terms of the kinds of games
+emergence in terms of the kinds of games that exist. And the basic idea is that
+that exist. And the basic idea is that you have games in narrative about
+you have games in narrative about progression where you have a very linear
+progression where you have a very linear structured plot, something like what you
+structured plot, something like what you might find in the secret of Monkey
+might find in the secret of Monkey Island where you have some space to
+Island where you have some space to explore interactions, but the main plot
+explore interactions, but the main plot kind of progresses like checkpoints. you
+kind of progresses like checkpoints. you do some actions in the environment, you
+do some actions in the environment, you progress to the next plot point and the
+progress to the next plot point and the progression is very tied to your
+progression is very tied to your interactive experience. Contrast that
+interactive experience. Contrast that with a game of emergence
+with a game of emergence um where like for example in
+um where like for example in civilization where you can think of
+civilization where you can think of games of emergence as games that are
+games of emergence as games that are simple to learn and difficult to master.
+simple to learn and difficult to master. And so the narrative or the
+And so the narrative or the narrativization of your experience
+narrativization of your experience happens through the interactions that
+happens through the interactions that you have in that game. And Chris and I
+you have in that game. And Chris and I feel that procedural narrative
+feel that procedural narrative generation can help move story games
+generation can help move story games which have traditionally been games of
+which have traditionally been games of progression to explore games of
+progression to explore games of emergence. And this is not to say that
+emergence. And this is not to say that these story systems one is better than
+these story systems one is better than the other, but we feel that developing
+the other, but we feel that developing these tools and techniques allow us to
+these tools and techniques allow us to explore narrative games that exist
+explore narrative games that exist beyond the traditional mold.
+beyond the traditional mold. And lastly, uh this is um we're both
+And lastly, uh this is um we're both very excited about this. Uh we have a
+very excited about this. Uh we have a new resource to share with y'all. the
+new resource to share with y'all. the story genen.org website which should be
+story genen.org website which should be live and hopefully you won't give it a
+live and hopefully you won't give it a hug of death and then knock it out.
+hug of death and then knock it out. [laughter]
+[laughter] Uh but so we've compiled a list of
+Uh but so we've compiled a list of procedural narrative generators that
+procedural narrative generators that represent systems that you can download
+represent systems that you can download and play with and we recognize of course
+and play with and we recognize of course that this is some of it is still
+that this is some of it is still research software but hopefully that you
+research software but hopefully that you can actually play with and use to
+can actually play with and use to explore these interesting narrative
+explore these interesting narrative designs going forward.
+designs going forward. So as a recap, so we've covered you know
+So as a recap, so we've covered you know the simulationcentric approach and plot
+the simulationcentric approach and plot centric approaches and like I said just
+centric approaches and like I said just now what we have presented is not
+now what we have presented is not normative. You know designer designers
+normative. You know designer designers still have to decide what the experience
+still have to decide what the experience will be and hopefully the technology
+will be and hopefully the technology that we've developed in our community
+that we've developed in our community can help enable those experiences. We've
+can help enable those experiences. We've talked very briefly about some
+talked very briefly about some challenges and new frontiers and we
+challenges and new frontiers and we really encourage you to visit
+really encourage you to visit storyen.org. Hopefully you will be able
+storyen.org. Hopefully you will be able to suggest new systems. We'd love to
+to suggest new systems. We'd love to have that array of procedural narrative
+have that array of procedural narrative generators expanded. Um, and that's it.
+generators expanded. Um, and that's it. I'm Rael Cardono Rivera. This was Chris
+I'm Rael Cardono Rivera. This was Chris Martins. Thank you very much.
+Martins. Thank you very much. [applause]

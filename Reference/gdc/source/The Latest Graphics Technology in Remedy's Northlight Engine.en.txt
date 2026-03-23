@@ -1,0 +1,581 @@
+[Music] so many of you are here biggest crowd
+so many of you are here biggest crowd I've ever drawn
+I've ever drawn first things first so it says start to
+first things first so it says start to all to lead graphics programmers so
+all to lead graphics programmers so that's not me I'm Thomas poha from
+that's not me I'm Thomas poha from remedy totally still in the airplane
+remedy totally still in the airplane this was him last night with rest of the
+this was him last night with rest of the remedy crew they were stuck in Frankfurt
+remedy crew they were stuck in Frankfurt so 2:00 a.m. San Francisco time we were
+so 2:00 a.m. San Francisco time we were going through this presentation so I
+going through this presentation so I bear with me I haven't had a lot of time
+bear with me I haven't had a lot of time time to rehearse but excited to
+time to rehearse but excited to represent the team we got some really
+represent the team we got some really cool stuff to show and and and discuss
+cool stuff to show and and and discuss and thought oh should be here if you
+and thought oh should be here if you know security and immigration and
+know security and immigration and British Airways permits him to arrive at
+British Airways permits him to arrive at the end of the day so he can then answer
+the end of the day so he can then answer questions a bit better than I can
+questions a bit better than I can all right so let's go so this is the
+all right so let's go so this is the roundabout topic but as we all know not
+roundabout topic but as we all know not really true so what we're going to talk
+really true so what we're going to talk about here today is experiments with
+about here today is experiments with Direct X ray tracing in remedies
+Direct X ray tracing in remedies Northlight engine a lot more exciting
+Northlight engine a lot more exciting right okay yeah there you go
+right okay yeah there you go so a little bit quickly about remedy so
+so a little bit quickly about remedy so we're based back in Finland in Espoo
+we're based back in Finland in Espoo started in 1995 you might notice for max
+started in 1995 you might notice for max pain Alan Wake and quantum break and we
+pain Alan Wake and quantum break and we used to be a single project studio but
+used to be a single project studio but now we're working on multiple projects
+now we're working on multiple projects p7 across far versus our first
+p7 across far versus our first first-person shooter and of course since
+first-person shooter and of course since for Scandinavian we do do our own tech
+for Scandinavian we do do our own tech kind of because we're you know start
+kind of because we're you know start from the demo scene and all that so we
+from the demo scene and all that so we have a sizable team working on the
+have a sizable team working on the engine and tools ok enough advertising
+engine and tools ok enough advertising about the awesome company I work for so
+about the awesome company I work for so the agenda what are we going to talk
+the agenda what are we going to talk about here today well I'm gonna talk
+about here today well I'm gonna talk you're gonna listen hopefully so it'll
+you're gonna listen hopefully so it'll give you a quick introduction to Direct
+give you a quick introduction to Direct X ray tracing then talk about area
+X ray tracing then talk about area shadows ambient occlusion reflections
+shadows ambient occlusion reflections and indirect diffuse ok so in order to
+and indirect diffuse ok so in order to explore we created
+explore we created couple of months this moody scene that's
+couple of months this moody scene that's not from any of our games it's a
+not from any of our games it's a separate scene and I'll start off with
+separate scene and I'll start off with this demo and discuss the new technical
+this demo and discuss the new technical aspects after it so I'd recommend to
+aspects after it so I'd recommend to keep an eye on how the pieces fit
+keep an eye on how the pieces fit together and especially how the
+together and especially how the different aspects of the lighting work
+different aspects of the lighting work so we have audio I hope
+so we have audio I hope [Music]
+[Music] [Applause]
+all right pretty cool huh [Applause]
+okay so video just saw was captured from the engine with all the ray tracing
+the engine with all the ray tracing effects are enabled and with increased
+effects are enabled and with increased sample counts so kind of high quality
+sample counts so kind of high quality settings if you if you will I know
+settings if you if you will I know that's a bit vague but so let's start
+that's a bit vague but so let's start with a very high-level introduction on
+with a very high-level introduction on directs a DirectX ray tracing I will not
+directs a DirectX ray tracing I will not go through the API in this presentation
+go through the API in this presentation but I'll try to give you some background
+but I'll try to give you some background on what you need to know before you can
+on what you need to know before you can start shooting rays so ray tracing API
+start shooting rays so ray tracing API provides bottom and top level
+provides bottom and top level acceleration structures the idea is that
+acceleration structures the idea is that bottom level structure is constructed to
+bottom level structure is constructed to hold geometry while the top level
+hold geometry while the top level contains bottom level structures simple
+contains bottom level structures simple way to think about this is that each
+way to think about this is that each mesh should be a single bottom level
+mesh should be a single bottom level structure and top level tree is your
+structure and top level tree is your scene that contains bunch of bottom
+scene that contains bunch of bottom level structure instances with some
+level structure instances with some transformation first thing you're gonna
+transformation first thing you're gonna need is the bottom level structure for
+need is the bottom level structure for the static parts of your scene in this
+the static parts of your scene in this picture each red square represents
+picture each red square represents bounce of a single bottom level tree
+bounce of a single bottom level tree building bottom level tree is very
+building bottom level tree is very simple in API you'll have a function
+simple in API you'll have a function that takes normal DirectX GPU geometry
+that takes normal DirectX GPU geometry and index buffers and returns bottom
+and index buffers and returns bottom level tree built around the geometry so
+level tree built around the geometry so in here I have highlighted four
+in here I have highlighted four instances of a small chair that you saw
+instances of a small chair that you saw in the demo these for chairs share the
+in the demo these for chairs share the same geometry but have separate
+same geometry but have separate transformations the mid-size trees are
+transformations the mid-size trees are small sofas and the biggest ones are
+small sofas and the biggest ones are large round sofas
+in order to build a scene for ray-tracing you'll need to insert these
+ray-tracing you'll need to insert these bottom level structures into a top-level
+bottom level structures into a top-level structure this is again very simple
+structure this is again very simple thing to do the API provides you a
+thing to do the API provides you a function that takes in a number of
+function that takes in a number of bottom level three instances with
+bottom level three instances with transformations so building a top level
+transformations so building a top level tree is fast so you move static meshes
+tree is fast so you move static meshes every frame and then just build top
+every frame and then just build top level from scratch each frame supporting
+level from scratch each frame supporting deform geometry is a little bit more
+deform geometry is a little bit more trickier as the bottom level builder
+trickier as the bottom level builder eats only static buffers for us the
+eats only static buffers for us the easiest way to support deformation was
+easiest way to support deformation was to create a simple computer that takes
+to create a simple computer that takes in geometry and skinning matrices and
+in geometry and skinning matrices and writes out deform geometry this is still
+writes out deform geometry this is still very fast as you can keep everything on
+very fast as you can keep everything on GPU and just be the output from the
+GPU and just be the output from the computer to the bottom level of builder
+and that's it now you can start shooting race I'll start off by showing a couple
+race I'll start off by showing a couple of examples you can try out with data
+of examples you can try out with data only ambient occlusion so I mean
+only ambient occlusion so I mean occlusion is purely visibility based
+occlusion is purely visibility based algorithm that can be easily tested out
+algorithm that can be easily tested out with ray tracing image you see here is
+with ray tracing image you see here is taken by shooting four samples per pixel
+taken by shooting four samples per pixel using cosine distribution maximum length
+using cosine distribution maximum length of the race is set to four meters and
+of the race is set to four meters and hits to the geometry are considered
+hits to the geometry are considered black and others white this is added as
+black and others white this is added as direct replacement to what our screen
+direct replacement to what our screen space ambient occlusion outputs so it is
+space ambient occlusion outputs so it is easy to compare results of different
+easy to compare results of different algorithms so split screen we got screen
+algorithms so split screen we got screen space ambient occlusion on the left side
+space ambient occlusion on the left side and ray traced ambient occlusion on the
+and ray traced ambient occlusion on the right while the screen space technique
+right while the screen space technique does a pretty good job on rounding
+does a pretty good job on rounding things it's clearly lacking information
+things it's clearly lacking information screen space algorithms can't know
+screen space algorithms can't know what's outside the screen or behind the
+what's outside the screen or behind the surfaces that are directly visible to
+surfaces that are directly visible to the camera shooting Ray's is of course
+the camera shooting Ray's is of course more expensive that looking up screen
+more expensive that looking up screen space depth in our quick prototype
+space depth in our quick prototype shooting a single ray with maximum the
+shooting a single ray with maximum the stens of 4 meters cost roughly 5
+stens of 4 meters cost roughly 5 milliseconds the cost scales pretty much
+milliseconds the cost scales pretty much linearly so shooting 16 rays for Full HD
+linearly so shooting 16 rays for Full HD picture takes roughly 80 milliseconds
+picture takes roughly 80 milliseconds the picture you see here is shot with 16
+the picture you see here is shot with 16 rays finally here you can see a picture
+rays finally here you can see a picture with comparison of different Ray
+with comparison of different Ray accounts you should note that these are
+accounts you should note that these are all taken we just our basic temporal
+all taken we just our basic temporal anti-aliasing I'm sure it would be
+anti-aliasing I'm sure it would be possible to do a better job with
+possible to do a better job with filtering noise and you can't make it
+filtering noise and you can't make it very well in the image there's a lot of
+very well in the image there's a lot of noise on the left and far less on the
+noise on the left and far less on the right side of the image alright so
+right side of the image alright so moving on shadows we implemented a path
+moving on shadows we implemented a path to replace sunlight cascaded shadow maps
+to replace sunlight cascaded shadow maps by shooting Ray's if you happen to feel
+by shooting Ray's if you happen to feel the shadows of the directional light
+the shadows of the directional light into full screen buffer before actual
+into full screen buffer before actual lighting it's very easy to just replace
+lighting it's very easy to just replace cascade map lookup shader with ray
+cascade map lookup shader with ray tracing kernel that writes in to the
+tracing kernel that writes in to the same texture here you can see comparison
+same texture here you can see comparison using shadow maps on the left side and
+using shadow maps on the left side and ray tracing on the right side in order
+ray tracing on the right side in order to be fair I need try to tune up a
+to be fair I need try to tune up a resolution on the shadow map so this is
+resolution on the shadow map so this is just something we get out of the engine
+just something we get out of the engine with the default settings anyway the
+with the default settings anyway the amount of detail you can gain with
+amount of detail you can gain with accurate shadows is pretty remarkable in
+accurate shadows is pretty remarkable in addition to accuracy it's easy to do
+addition to accuracy it's easy to do real area shadows with retracing clip
+real area shadows with retracing clip here is using 8 samples sampling pattern
+here is using 8 samples sampling pattern is basic blue noise that's changing
+is basic blue noise that's changing between frames for each sample on the
+between frames for each sample on the pixel we offset the same blue noise with
+pixel we offset the same blue noise with Sobel sequence and rap the values on
+Sobel sequence and rap the values on disc so here you can see a close-up of
+disc so here you can see a close-up of the same effect as you can expect with
+the same effect as you can expect with ray tracing the contact points are
+ray tracing the contact points are accurate and you get a nice mix of sharp
+accurate and you get a nice mix of sharp and soft shadows well this is nothing
+and soft shadows well this is nothing new or radical on algorithm level it's
+new or radical on algorithm level it's very cool to be able to go and look at
+very cool to be able to go and look at your existing game scenes and can't
+your existing game scenes and can't to see how much detail is lost without
+to see how much detail is lost without accurate shadows
+and here's one more example so looking at the amount of detail added to a
+at the amount of detail added to a simple scene like this makes you wonder
+simple scene like this makes you wonder if there's any sense to keep increasing
+if there's any sense to keep increasing the output resolution before we can
+the output resolution before we can sample lower resolution with good
+sample lower resolution with good quality so in the demo the performance
+quality so in the demo the performance from shooting shadow rays is a bit
+from shooting shadow rays is a bit better than with ambient occlusion even
+better than with ambient occlusion even through the Rays are longer resolving
+through the Rays are longer resolving shadow visibility is more coherent lower
+shadow visibility is more coherent lower than AO getting something like this up
+than AO getting something like this up and running with existing dx12 engine
+and running with existing dx12 engine should take you something like a couple
+should take you something like a couple of days I can say that it's definitely
+of days I can say that it's definitely worth the effort even if you are just
+worth the effort even if you are just going to use it as reference so I've
+going to use it as reference so I've been talking about algorithms that can
+been talking about algorithms that can be implemented by knowing only
+be implemented by knowing only visibility between two points in the
+visibility between two points in the scene
+scene going beyond visibility requires access
+going beyond visibility requires access to additional data in this selection
+to additional data in this selection I'll quickly introduce how we expose
+I'll quickly introduce how we expose geometry materials and lighting to be
+geometry materials and lighting to be used in ray tracing kernels on a
+used in ray tracing kernels on a geometric hit the API provides you at
+geometric hit the API provides you at the intersection point in scene and
+the intersection point in scene and triangle base other geometric properties
+triangle base other geometric properties than position you will need to read in
+than position you will need to read in manually and interpolate based on
+manually and interpolate based on barycentric coordinate this means that
+barycentric coordinate this means that you will need to be able to access all
+you will need to be able to access all your geometry from shader new DirectX
+your geometry from shader new DirectX comes with a new binding API where you
+comes with a new binding API where you can set different resource bindings for
+can set different resource bindings for each instance of a bottom level piece in
+each instance of a bottom level piece in the scene so let's say I have two
+the scene so let's say I have two instances of a chair each chair has five
+instances of a chair each chair has five pieces for different materials like in
+pieces for different materials like in the diagram on this slide I can now
+the diagram on this slide I can now define separate resource bindings for
+define separate resource bindings for all the pieces so in total I have ten
+all the pieces so in total I have ten resource binding records each of the
+resource binding records each of the record can then have a custom binding
+record can then have a custom binding for vertex and index buffer for example
+it would be possible to bind material data using the same API but just before
+data using the same API but just before starting dxr we had completed a new
+starting dxr we had completed a new material binding system that works also
+material binding system that works also with basic DX 12 by packing all the
+with basic DX 12 by packing all the material parameters into a single buffer
+material parameters into a single buffer and reserving dedicated space on front
+and reserving dedicated space on front of the descriptor heap we could already
+of the descriptor heap we could already do draw calls without additional
+do draw calls without additional bindings this also means that we can
+bindings this also means that we can access everything related to materials
+access everything related to materials in a single shader called
+in a single shader called each index on this slide refers to a
+each index on this slide refers to a single material well I think happen to
+single material well I think happen to be pretty easy for us since quantum
+be pretty easy for us since quantum break we have already had all the
+break we have already had all the lighting data accessible to a single
+lighting data accessible to a single shader call this means that we pack all
+shader call this means that we pack all the shadow and projection maps in a few
+the shadow and projection maps in a few atlases we also keep the light
+atlases we also keep the light parameters packed in buffers that's it
+parameters packed in buffers that's it now we have geometry materials and Lodz
+now we have geometry materials and Lodz exposed in a way that we can access
+exposed in a way that we can access everything in a single ray trace kernel
+everything in a single ray trace kernel ok so let's get into trying out
+ok so let's get into trying out reflections next tamai is the pace the
+reflections next tamai is the pace the right now going too fast ok rapt
+right now going too fast ok rapt attention ok so following section is
+attention ok so following section is dedicated to implementing reflections
+dedicated to implementing reflections with ray tracing I'll start up a quick
+with ray tracing I'll start up a quick comparison to our screen space technique
+comparison to our screen space technique and continue to visualizing how the
+and continue to visualizing how the previously introduced data bindings are
+previously introduced data bindings are used as with the previous techniques
+used as with the previous techniques shown we implemented ray traced
+shown we implemented ray traced reflections as a direct replacement to
+reflections as a direct replacement to screen space technique this way it's
+screen space technique this way it's easy to compare the results again so
+easy to compare the results again so here you can see the split-screen
+here you can see the split-screen comparison with screen space reflections
+comparison with screen space reflections on the left side and ray tracing on the
+on the left side and ray tracing on the right side
+this is screen space only reflection regeneration works the exact same way in
+regeneration works the exact same way in both the screen space and raytrace
+both the screen space and raytrace technique for each sample on the screen
+technique for each sample on the screen you read properties of the surface from
+you read properties of the surface from the geometry buffer then based on
+the geometry buffer then based on smoothness you pick a random direction
+smoothness you pick a random direction from ggx distribution and transform it
+from ggx distribution and transform it according to geometry normal on-screen
+according to geometry normal on-screen space we treat reflection ray as a 2d
+space we treat reflection ray as a 2d line from a point on screen to a point
+line from a point on screen to a point on edge of the screen in order to figure
+on edge of the screen in order to figure out if the Ray hit geometry we take
+out if the Ray hit geometry we take number of depth samples along the line
+number of depth samples along the line it's possible to miss features along the
+it's possible to miss features along the way due to holes in sampling and due to
+way due to holes in sampling and due to having access to only directly visible
+having access to only directly visible surfaces also the hit position can be
+surfaces also the hit position can be outside of the screen I don't have any
+outside of the screen I don't have any backup solution in use on this picture
+backup solution in use on this picture the most obvious fallback would be the
+the most obvious fallback would be the sample sum cube map when the Ray heat is
+sample sum cube map when the Ray heat is out of the screen okay so getting back
+out of the screen okay so getting back to ray tracing so ray tracing doesn't
+to ray tracing so ray tracing doesn't miss any geometry that is out of the
+miss any geometry that is out of the screen behind visible surfaces or due to
+screen behind visible surfaces or due to lack of samples on a geometric heat we
+lack of samples on a geometric heat we need to figure out the radiance
+need to figure out the radiance transmitted towards reflection ray
+transmitted towards reflection ray origin for this we need to know the
+origin for this we need to know the material and the lighting at the heat
+material and the lighting at the heat location the XR provides the heat
+location the XR provides the heat distance position and barycentric
+distance position and barycentric position within a triangle as in shader
+position within a triangle as in shader intrinsic with this information we can
+intrinsic with this information we can interpolate UV is from the geometric
+interpolate UV is from the geometric buffers exposed earlier so the UV that
+buffers exposed earlier so the UV that reflection heat location will end up
+reflection heat location will end up looking a mess like this with UV and
+looking a mess like this with UV and other data we can sample the rest of the
+other data we can sample the rest of the material properties here you can see the
+material properties here you can see the diffuse albedo on the reflected surface
+diffuse albedo on the reflected surface next it's time to evaluate the lighting
+next it's time to evaluate the lighting and combined the results this is lining
+and combined the results this is lining at the reflected surface we can now
+at the reflected surface we can now combine this and material with Fresno
+combine this and material with Fresno term and here's what the result looks
+term and here's what the result looks like this is reflection only
+like this is reflection only visualization in order to get the final
+visualization in order to get the final image we combine this with diffuse and
+image we combine this with diffuse and specular component of direct lighting
+the final image as you can expect with the techniques like this the end result
+the techniques like this the end result will have some amount of noise we didn't
+will have some amount of noise we didn't have a lot of time to experiment with
+have a lot of time to experiment with noise filtering but I have a couple of
+noise filtering but I have a couple of image loops to visualize the problems
+image loops to visualize the problems the following loops are taken from a bit
+the following loops are taken from a bit harder lighting case and are using our
+harder lighting case and are using our basic temporal anti-aliasing so this is
+basic temporal anti-aliasing so this is the raw image you get when shooting a
+the raw image you get when shooting a single reflection ray per pixel without
+single reflection ray per pixel without any filtering the lining here is from
+any filtering the lining here is from sunlight it's pretty complicated hard
+sunlight it's pretty complicated hard case as the lighting has high contrast
+case as the lighting has high contrast and a lot of detail as we all know the
+and a lot of detail as we all know the variance in lining decreases when
+variance in lining decreases when shooting more rays per pixel while
+shooting more rays per pixel while shooting more rays for all the pixels is
+shooting more rays for all the pixels is expensive with ray tracing it's easy to
+expensive with ray tracing it's easy to pick a few locations to shoot more it's
+pick a few locations to shoot more it's almost free to shoot couple more Ray's 4
+almost free to shoot couple more Ray's 4 pixels that are over 2 times more bright
+pixels that are over 2 times more bright than the white point in the image in
+than the white point in the image in this loop you can see that we can remove
+this loop you can see that we can remove most of the fireflies with just this
+most of the fireflies with just this will be interesting to see we're using
+will be interesting to see we're using something more advanced like radiant
+something more advanced like radiant don't mind sampling would get us yeah
+don't mind sampling would get us yeah you can well you can kind of make it out
+you can well you can kind of make it out so in the demo we are also clamping the
+so in the demo we are also clamping the reflections that are over 10 times
+reflections that are over 10 times brighter than the white point on the
+brighter than the white point on the image is of course a hack and it's not
+image is of course a hack and it's not recommended you do this unless you're
+recommended you do this unless you're shipping
+great advice well it would be perfectly possible to use ray-tracing to resolve
+possible to use ray-tracing to resolve shadows that reflected surfaces we use
+shadows that reflected surfaces we use shadow maps for most of the lights in
+shadow maps for most of the lights in the demo the only exception is sunlight
+the demo the only exception is sunlight since we use cascaded shadow maps with
+since we use cascaded shadow maps with the Sun there is valid depth for only
+the Sun there is valid depth for only the pixels on the screen having to shoot
+the pixels on the screen having to shoot a single shadow ray for the Sun on every
+a single shadow ray for the Sun on every reflection ray almost doubles the cost
+reflection ray almost doubles the cost of the reflections okay that's all about
+of the reflections okay that's all about reflections so we're going to look at
+reflections so we're going to look at the diffuse lighting next so in this
+the diffuse lighting next so in this image I have diffused global
+image I have diffused global illumination interpolated from the
+illumination interpolated from the volume texture the approach you see here
+volume texture the approach you see here was implemented for quantum break and is
+was implemented for quantum break and is in use by default in our Northlight
+in use by default in our Northlight engine voxel resolution of the GI data
+engine voxel resolution of the GI data here is 25 centimeters we combined the
+here is 25 centimeters we combined the results with screen space ambient
+results with screen space ambient occlusion as I showed you earlier we
+occlusion as I showed you earlier we have a path to replace screen space AO
+have a path to replace screen space AO with a rarest one so let's have a look
+with a rarest one so let's have a look how that looks so this is the same data
+how that looks so this is the same data combined with Ray traced ambient
+combined with Ray traced ambient occlusion results are better but this
+occlusion results are better but this still looks like ambient occlusion
+still looks like ambient occlusion applied on top of volume later that
+applied on top of volume later that doesn't have enough resolution for the
+doesn't have enough resolution for the case scene here instead of just shooting
+case scene here instead of just shooting a lot of rays around to resolve indirect
+a lot of rays around to resolve indirect diffuse lighting I'll be talking a bit
+diffuse lighting I'll be talking a bit about improving sampling of volumetric
+about improving sampling of volumetric global illumination and resolving
+global illumination and resolving near-field global illumination so let's
+near-field global illumination so let's quickly break this down with a few
+quickly break this down with a few diagrams a pre computed global
+diagrams a pre computed global illumination is stored in sparse volume
+illumination is stored in sparse volume texture the grid on the screen
+texture the grid on the screen represents the data each crossing
+represents the data each crossing contains indirect lighting data that has
+contains indirect lighting data that has been calculated with a path with path
+been calculated with a path with path tracer the blue shape on top of the
+tracer the blue shape on top of the global illumination volume is static
+global illumination volume is static geometric that we use for calculating
+geometric that we use for calculating the data you can see that the dense
+the data you can see that the dense parts of the GI volume are on the areas
+parts of the GI volume are on the areas that overlap with geometry
+in addition to static geometry we have dynamic geometry the smaller green piece
+dynamic geometry the smaller green piece in the middle of the picture is dynamic
+in the middle of the picture is dynamic geometry dynami geometry is not used in
+geometry dynami geometry is not used in pre calculations so part of it resides
+pre calculations so part of it resides on low resolution area of the volume
+there are a couple of problems in using the lighting directly sampled from the
+the lighting directly sampled from the volume first we'll miss the dynamic
+volume first we'll miss the dynamic geometric completely we've been relying
+geometric completely we've been relying on the screen space ambient occlusion to
+on the screen space ambient occlusion to ground diamond dynamic geometric to the
+ground diamond dynamic geometric to the rest of the scene second problem is
+rest of the scene second problem is linear filtering of the volume data on
+linear filtering of the volume data on the surfaces that are not aligned to
+the surfaces that are not aligned to volume we get stair casing that can be
+volume we get stair casing that can be quite visible due to low volume
+quite visible due to low volume resolution finally low resolution will
+resolution finally low resolution will cause the lighting to leak through the
+cause the lighting to leak through the team geometry it's possible to try
+team geometry it's possible to try weighting the sampling so that it will
+weighting the sampling so that it will leak a bit less but ultimately you are
+leak a bit less but ultimately you are just moving the artifacts instead of
+just moving the artifacts instead of sampling the volume directly on the
+sampling the volume directly on the surface we can shoot rays and sample
+surface we can shoot rays and sample global illumination on the locations
+global illumination on the locations that didn't hit the geometry positions
+that didn't hit the geometry positions that are not on the surface are less
+that are not on the surface are less likely to contain leaked light in our
+likely to contain leaked light in our data this will reduce leaking and
+data this will reduce leaking and results in smoother interpolation
+results in smoother interpolation simplest thing to do when hitting
+simplest thing to do when hitting geometry is to consider the sample black
+geometry is to consider the sample black this is pretty close to calculating
+this is pretty close to calculating ambient occlusion without benefit that
+ambient occlusion without benefit that it helps with light leaking and results
+it helps with light leaking and results in better interplay interpolation of the
+in better interplay interpolation of the GI data so let's take a look at the
+GI data so let's take a look at the comparison between this and direct
+comparison between this and direct sampling of volume data with ambient
+sampling of volume data with ambient occlusion
+though this is the gr volume sample directly and combined with ray-traced
+directly and combined with ray-traced ambient occlusion if you look at the
+ambient occlusion if you look at the table or a magazine on the bottom left
+table or a magazine on the bottom left corner of the image you can clearly see
+corner of the image you can clearly see that there is something wrong going on
+that there is something wrong going on by modifying the way we use the
+by modifying the way we use the volumetric GI data we can fix many of
+volumetric GI data we can fix many of the issues that can be seen when using
+the issues that can be seen when using direct sampling I'll toggle a couple of
+direct sampling I'll toggle a couple of times back and forth and highlight the
+times back and forth and highlight the locations to look at so direct sampling
+locations to look at so direct sampling and ray-traced
+and ray-traced AO and ray-traced gather
+so this is our difficult location or example for volume data look at the dome
+example for volume data look at the dome on top of the scene now that is made of
+on top of the scene now that is made of team geometry so raytrace gather again
+so on the previous example we considered rays that heat any geometry to be black
+rays that heat any geometry to be black instead of darkening the image we can do
+instead of darkening the image we can do better than evaluate lighting and
+better than evaluate lighting and material like we did with reflections so
+material like we did with reflections so the same thing I showed you earlier
+so here I've added a single bounce near-field global illumination the
+near-field global illumination the accuracy on the first bounce is
+accuracy on the first bounce is something that you couldn't easily store
+something that you couldn't easily store in limited size volume also the indirect
+in limited size volume also the indirect lighting read from the volume is better
+lighting read from the volume is better filtered that you could do with a few
+filtered that you could do with a few rays this is the direct lighting that
+rays this is the direct lighting that was used for the near-field this is
+was used for the near-field this is direct lighting combined with indirect
+direct lighting combined with indirect diffuse and this is fine aligning with
+diffuse and this is fine aligning with specular and this is the final image
+alright so summary on this stuff so easy access to state-of-the-art GP or a
+access to state-of-the-art GP or a tracing via the X our performance is
+tracing via the X our performance is getting there yes that's very easy to
+getting there yes that's very easy to prototype algorithms that don't fit the
+prototype algorithms that don't fit the rasterization and possible to combine
+rasterization and possible to combine with existing low frequency structures
+with existing low frequency structures and of course shout out to the team back
+and of course shout out to the team back home in Espoo or people pond on the
+home in Espoo or people pond on the plane right now that worked really hard
+plane right now that worked really hard on this demo in the last last couple of
+on this demo in the last last couple of months of course thanks to the folks at
+months of course thanks to the folks at Nvidia
+Nvidia as well this was a fun thing to do then
+as well this was a fun thing to do then the absolute necessary thing that
+the absolute necessary thing that finland is an awesome country and we are
+finland is an awesome country and we are hiring at remedy
+hiring at remedy it's not called it's all a lie there's
+it's not called it's all a lie there's never a winter and we can answer some
+never a winter and we can answer some some questions I can but that will be
+some questions I can but that will be here by the end end of the day but write
+here by the end end of the day but write down that email and you probably should
+down that email and you probably should have said in the beginning so we have
+have said in the beginning so we have the entire slide deck with notes and
+the entire slide deck with notes and including the video on our website as I
+including the video on our website as I speak so you can you can go check that
+speak so you can you can go check that out
+out well we try to answer some questions or
+well we try to answer some questions or no yes okay well thank you very much
+no yes okay well thank you very much and questions please hi it looks really
+and questions please hi it looks really great but I think the obvious question
+great but I think the obvious question is that all the images are very noisy so
+is that all the images are very noisy so did you think about appliance I'm gene
+did you think about appliance I'm gene noise feeder yes we didn't have too much
+noise feeder yes we didn't have too much time to explore to be nothing but that's
+time to explore to be nothing but that's a very good question and I think that
+a very good question and I think that for many of these effects a working and
+for many of these effects a working and fast enough denouncing solution is
+fast enough denouncing solution is needed for a to ship something real but
+needed for a to ship something real but there might be some use cases where you
+there might be some use cases where you can go pretty far with only one sample
+can go pretty far with only one sample per pixel as well
+you see microphone please
+it's this hybrid fourth NGO versus for volumetric rate race I see some God
+volumetric rate race I see some God raised over there I'm assuming those are
+raised over there I'm assuming those are a traced and probably the dome is geo
+a traced and probably the dome is geo direct rendered is it a combination of
+direct rendered is it a combination of everything or is full seen either
+everything or is full seen either volumetric full scene is direct rendered
+volumetric full scene is direct rendered how does that work no sorry for if I
+how does that work no sorry for if I understood completely but the volumetric
+understood completely but the volumetric effects the cart race you saw here they
+effects the cart race you saw here they are not not ray-traced they are done
+are not not ray-traced they are done with the more traditional techniques
+same for the lighting effects that I see on the dome what do you mean by line the
+on the dome what do you mean by line the lines and the actual yeah the the bright
+lines and the actual yeah the the bright lines drawn on the dome yeah they are
+lines drawn on the dome yeah they are atmospheric effects yeah they are not
+atmospheric effects yeah they are not ray traced hi great talk
+ray traced hi great talk thanks for of this I have a question
+thanks for of this I have a question based on the video you should first and
+based on the video you should first and we can see there is a lot of flickering
+we can see there is a lot of flickering and fireflies and I was wondering if you
+and fireflies and I was wondering if you tried the technique that you you convert
+tried the technique that you you convert normal buffer to curvature curvature
+normal buffer to curvature curvature buffer and then convert modifying the
+buffer and then convert modifying the roughness based on this curvature to or
+roughness based on this curvature to or to having less fireflies like this one
+because it it happens on really smooth materials and when you have a really
+materials and when you have a really high curvature on smooth material so you
+high curvature on smooth material so you have this kind of artifacts that is
+have this kind of artifacts that is basically a specular arising and when
+basically a specular arising and when you want to avoid this kind of stuff you
+you want to avoid this kind of stuff you can use the normal to curvature and
+can use the normal to curvature and curvature to roughness modification
+curvature to roughness modification sorry for my question seem to be yeah
+sorry for my question seem to be yeah I'm sorry if I completely understand I
+I'm sorry if I completely understand I understand the question yeah basically
+understand the question yeah basically what did you try for avoiding speak
+what did you try for avoiding speak eulogizing yeah basically that there is
+eulogizing yeah basically that there is a reasonable amount of flickering due to
+a reasonable amount of flickering due to fireflies and we didn't do much more the
+fireflies and we didn't do much more the dose than what was described in the
+dose than what was described in the presentation adding shooting additional
+presentation adding shooting additional race on a / bright pixels and we did
+race on a / bright pixels and we did also experiment with some denoising
+also experiment with some denoising solutions but they were not included in
+solutions but they were not included in this video but it's obvious that that
+this video but it's obvious that that when you try to do the reflections with
+when you try to do the reflections with with a very limited ray raise her beak
+with a very limited ray raise her beak so you get noise and fireflies you have
+so you get noise and fireflies you have to do something about them okay thanks
+okay and we have this at the Nvidia both so you can go go check it out and really
+so you can go go check it out and really for like if there's additional questions
+for like if there's additional questions like please don't hesitate to email
+like please don't hesitate to email Totten we'll make sure he'll he'll get
+Totten we'll make sure he'll he'll get back to you thanks very much for your
+back to you thanks very much for your attention thank you very much
+attention thank you very much [Applause]

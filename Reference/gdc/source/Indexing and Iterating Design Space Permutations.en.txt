@@ -1,0 +1,835 @@
+[Music] okay thank you squirrel I feel like I'm
+okay thank you squirrel I feel like I'm really really lucky each time we get to
+really really lucky each time we get to come to GDC and I hope that what we have
+come to GDC and I hope that what we have here I think maybe will open your eyes
+here I think maybe will open your eyes to some more ways that you can do things
+to some more ways that you can do things and give you some ideas about how we
+and give you some ideas about how we might be able to do some indexing of our
+might be able to do some indexing of our spaces and what I'm going to start out
+spaces and what I'm going to start out is just a high-level overview what do I
+is just a high-level overview what do I expect you to get from this talk and so
+expect you to get from this talk and so there's a set of assumptions here and
+there's a set of assumptions here and then we're gonna get into the technical
+then we're gonna get into the technical details so the first assumption is that
+details so the first assumption is that there's a lot of design problems that we
+there's a lot of design problems that we see in games that are underlying can be
+see in games that are underlying can be modeled as combinations or permutations
+modeled as combinations or permutations so that's our first assumption and the
+so that's our first assumption and the second assumption is that for many of
+second assumption is that for many of these problems being able to do some pre
+these problems being able to do some pre computation can really help us you know
+computation can really help us you know solve the questions that we're trying to
+solve the questions that we're trying to answer and if I'm doing that sort of
+answer and if I'm doing that sort of computation then what I want is a
+computation then what I want is a perfect hash function because this will
+perfect hash function because this will allow me to do a direct mapping from
+allow me to do a direct mapping from these permutations to an efficient use
+these permutations to an efficient use of memory where I don't need to use
+of memory where I don't need to use chaining or other things in my hash
+chaining or other things in my hash tables it's just a one-to-one mapping
+tables it's just a one-to-one mapping from my combination to some sort of
+from my combination to some sort of thing in memory and so what you're going
+thing in memory and so what you're going to learn in this talk is how to use or
+to learn in this talk is how to use or how to build perfect hash functions for
+how to build perfect hash functions for combinations and permutations and the
+combinations and permutations and the structure of this here is we're gonna
+structure of this here is we're gonna look at both of these we're gonna look
+look at both of these we're gonna look at an example problem so what are some
+at an example problem so what are some problems that we're gonna look at that
+problems that we're gonna look at that would fall into this mapping and then
+would fall into this mapping and then we'll talk about how we count them
+we'll talk about how we count them counting is something you tend to do in
+counting is something you tend to do in your math classes growing up but the
+your math classes growing up but the things that you don't tend to do is how
+things that you don't tend to do is how do we do this ranking a none ranking
+do we do this ranking a none ranking that allow us to then build these tables
+that allow us to then build these tables and things and then we'll look at an
+and things and then we'll look at an application so we're going to do the
+application so we're going to do the structure twice once for combinations
+structure twice once for combinations and once for permutations so we're gonna
+and once for permutations so we're gonna start with combinations and combinations
+start with combinations and combinations an example combination problem would be
+an example combination problem would be say I have a deck of cards and with this
+say I have a deck of cards and with this deck of cards what I need to do is I
+deck of cards what I need to do is I need to select some hand that I'm going
+need to select some hand that I'm going to have here and when I select this hand
+to have here and when I select this hand my assumption is that I'm getting some
+my assumption is that I'm getting some group of cards but I don't care about
+group of cards but I don't care about the order in which I get them so
+the order in which I get them so combinations we don't care about order
+combinations we don't care about order but I just want to know what cards did I
+but I just want to know what cards did I get in the end okay so that's one
+get in the end okay so that's one example another problem might be like I
+example another problem might be like I have puzzles and I want to look at
+have puzzles and I want to look at puzzles that I could possibly design
+puzzles that I could possibly design what would be interesting what would not
+what would be interesting what would not be interesting and so this is an example
+be interesting and so this is an example puzzle
+puzzle that would fall in this category it's
+that would fall in this category it's something that I'm working on and here
+something that I'm working on and here what I'm going to do is I'm just going
+what I'm going to do is I'm just going to roll these guys against each other
+to roll these guys against each other I'm trying to knock them all off the
+I'm trying to knock them all off the edge of the board and there's lots of
+edge of the board and there's lots of different puzzles you can build from
+different puzzles you can build from this and we can ask questions about this
+this and we can ask questions about this and I'll talk about that at the end of
+and I'll talk about that at the end of this section so we could say for
+this section so we could say for instance what are solvable puzzles what
+instance what are solvable puzzles what are puzzles with one solution are there
+are puzzles with one solution are there other queries on top of that and knowing
+other queries on top of that and knowing how to do this ranking and ranking of
+how to do this ranking and ranking of permutations and combinations are
+permutations and combinations are crucial to being able to do that
+crucial to being able to do that efficiently so another way of looking at
+efficiently so another way of looking at combinations then from this example is
+combinations then from this example is that I'm trying to place pieces on the
+that I'm trying to place pieces on the board and I have lots of ways that I can
+board and I have lots of ways that I can put them now notice that every if every
+put them now notice that every if every board position here actually had a card
+board position here actually had a card on it you could see that putting four
+on it you could see that putting four pieces on the board would be equivalent
+pieces on the board would be equivalent to choosing four different cards so this
+to choosing four different cards so this is sort of where those are the exact
+is sort of where those are the exact same problem but we're going to use the
+same problem but we're going to use the board here because it's a little bit
+board here because it's a little bit easier to look at and reason about the
+easier to look at and reason about the board so as I said the first thing we're
+board so as I said the first thing we're gonna look at is counting this is stuff
+gonna look at is counting this is stuff I expect you probably have seen at some
+I expect you probably have seen at some point in your life but we can think
+point in your life but we can think about I'm gonna put this first piece
+about I'm gonna put this first piece down I could put it really anywhere on
+down I could put it really anywhere on the board and that means there's 20 ways
+the board and that means there's 20 ways I can do that a second piece what could
+I can do that a second piece what could go anywhere except that piece that is
+go anywhere except that piece that is already occupied so 19 ways for that one
+already occupied so 19 ways for that one the next one den has 18 ways that I
+the next one den has 18 ways that I could put it down and then 17 now the
+could put it down and then 17 now the thing about this though is that there's
+thing about this though is that there's many orders in which I could put these
+many orders in which I could put these pieces down that would result in the
+pieces down that would result in the same ordering or same board position at
+same ordering or same board position at the very end so I have to account for
+the very end so I have to account for the fact that I've actually over counted
+the fact that I've actually over counted the ways that I could do that but is the
+the ways that I could do that but is the first piece could have gone into any of
+first piece could have gone into any of these four locations and I could still
+these four locations and I could still generate exactly the same board in the
+generate exactly the same board in the end so we have to factor that out by
+end so we have to factor that out by dividing by four dividing by three for
+dividing by four dividing by three for the second piece that the third piece
+the second piece that the third piece could have gone into two possible
+could have gone into two possible locations and the last piece could go
+locations and the last piece could go into one and so that just gives us 20
+into one and so that just gives us 20 factorial over 16 factorial gives us a
+factorial over 16 factorial gives us a numerator and the denominator 16
+numerator and the denominator 16 factorial which is of course more
+factorial which is of course more commonly known as 20 choose 4 okay so
+commonly known as 20 choose 4 okay so that's the basic math of how we can do
+that's the basic math of how we can do the counting and now what we want to do
+the counting and now what we want to do is we're going to talk about a ranking
+is we're going to talk about a ranking so a ranking is more commonly known as a
+so a ranking is more commonly known as a perfect hash function but that's the
+perfect hash function but that's the mathematical term and it's a function
+mathematical term and it's a function that we're going to take a combination
+that we're going to take a combination so I'm going to give you a board pattern
+so I'm going to give you a board pattern and I'm going to say what is the integer
+and I'm going to say what is the integer that is that corresponds to this and
+that is that corresponds to this and this will be a
+this will be a between n minus one if there's n
+between n minus one if there's n possible combinations so let's look at
+possible combinations so let's look at how this works if the upper left-hand
+how this works if the upper left-hand corner I'm going to call this location 2
+corner I'm going to call this location 2 0 we just sort of have to establish how
+0 we just sort of have to establish how we're going to layout our board and the
+we're going to layout our board and the bottom right hand corner is going to be
+bottom right hand corner is going to be a location 19 so there's 20 possible
+a location 19 so there's 20 possible locations on the board and if I start by
+locations on the board and if I start by putting all my pieces in the far upper
+putting all my pieces in the far upper corner of the board then that's going to
+corner of the board then that's going to be rank 0 and if I put them in the far
+be rank 0 and if I put them in the far bottom of the board then that's gonna be
+bottom of the board then that's gonna be rank 20 choose 4 minus 1 in this case
+rank 20 choose 4 minus 1 in this case there's 4800 combinations and now that
+there's 4800 combinations and now that sort of build up on this to try and
+sort of build up on this to try and build an intuition of what happens when
+build an intuition of what happens when I'm trying to do this sort of ranking
+I'm trying to do this sort of ranking function so what I'm going to do is I'm
+function so what I'm going to do is I'm just going to take my last piece here
+just going to take my last piece here and we shifted over by one spot and what
+and we shifted over by one spot and what that does is it increases the rank of
+that does is it increases the rank of this particular board position by one so
+this particular board position by one so we went from rank 0 to rank 1 I move it
+we went from rank 0 to rank 1 I move it over again I get rank 2 I move it again
+over again I get rank 2 I move it again I get rank 3 and in general here at
+I get rank 3 and in general here at least for the last position what I can
+least for the last position what I can do is I can count the number of spaces
+do is I can count the number of spaces between the second-to-last piece and the
+between the second-to-last piece and the last piece and that will tell me the
+last piece and that will tell me the ranking of the life of the board at
+ranking of the life of the board at least when the first three position
+least when the first three position pieces are in those positions and so if
+pieces are in those positions and so if I jump the last piece down here I get
+I jump the last piece down here I get ranking 16 okay now the question is of
+ranking 16 okay now the question is of course how do I generalize this if I
+course how do I generalize this if I want to put the space at the beginning
+want to put the space at the beginning instead of at the end and the way we're
+instead of at the end and the way we're going to reason about this at least here
+going to reason about this at least here is going to be recursively and I'm going
+is going to be recursively and I'm going to think about you know when I moved all
+to think about you know when I moved all these pieces over we were just thinking
+these pieces over we were just thinking about how many possible ranks did I skip
+about how many possible ranks did I skip when I move the last piece down now I
+when I move the last piece down now I want to know how many ranks did I skip
+want to know how many ranks did I skip what I moved over on this first position
+what I moved over on this first position and so we're going to ask how many
+and so we're going to ask how many positions how many what is the count of
+positions how many what is the count of the number of positions that have a
+the number of positions that have a piece on the first spot in the board
+piece on the first spot in the board well if we think about that there's
+well if we think about that there's three pieces now that I'm going to place
+three pieces now that I'm going to place on the rest of the board if I'm fixing
+on the rest of the board if I'm fixing the first position there then really
+the first position there then really this is just a recursive sub-problem and
+this is just a recursive sub-problem and there's 19 choose 3 ways of putting the
+there's 19 choose 3 ways of putting the other three pieces on the board ok so
+other three pieces on the board ok so coming back to this problem here what
+coming back to this problem here what I'm going to ask is how many possible
+I'm going to ask is how many possible boards did I skip over that had a piece
+boards did I skip over that had a piece in that first position well as I said
+in that first position well as I said that's 19 2 3 19 factorial over 16
+that's 19 2 3 19 factorial over 16 factorial 3 factorial that's 969 and so
+factorial 3 factorial that's 969 and so that tells me that the
+that tells me that the this position is 969 now if you were
+this position is 969 now if you were following along with me then you should
+following along with me then you should be able to guess that if I move this
+be able to guess that if I move this bottom piece over by one then we're
+bottom piece over by one then we're going to see the same effect my ranks
+going to see the same effect my ranks gonna go from 969 to 970 okay now the
+gonna go from 969 to 970 okay now the question is well what happens if I move
+question is well what happens if I move the pieces around and I put the I put
+the pieces around and I put the I put the spot somewhere else
+the spot somewhere else but that is I put the gap here and we do
+but that is I put the gap here and we do the same computation what if I put the
+the same computation what if I put the first piece in the second position I put
+first piece in the second position I put another piece in that blank position
+another piece in that blank position that I'm skipping over and I want to
+that I'm skipping over and I want to know well how many ways could I arrange
+know well how many ways could I arrange the rest of the pieces
+the rest of the pieces well there's 17 remaining locations and
+well there's 17 remaining locations and there's two pieces that I would have to
+there's two pieces that I would have to put on the board and so that tells me
+put on the board and so that tells me there's a hundred and thirty-six ways
+there's a hundred and thirty-six ways that I've skipped of arranging pieces
+that I've skipped of arranging pieces when I didn't put a piece in the second
+when I didn't put a piece in the second that the position that's being pointed
+that the position that's being pointed to there by the arrow and so the rank of
+to there by the arrow and so the rank of this is 969 which is the first skipping
+this is 969 which is the first skipping and 136 which is that second hole that I
+and 136 which is that second hole that I skipped there and so the total rank is
+skipped there and so the total rank is 11:05 so the general procedure saying
+11:05 so the general procedure saying look here's a board and I want to know
+look here's a board and I want to know what the ranking of is of this
+what the ranking of is of this particular board is and again I'll show
+particular board is and again I'll show you some applications I can use this in
+you some applications I can use this in a moment is I'm simply going to go
+a moment is I'm simply going to go through and count how many locations or
+through and count how many locations or how many combinations did I skip in each
+how many combinations did I skip in each of these sub areas of the board and when
+of these sub areas of the board and when I count them all up and I sum them all
+I count them all up and I sum them all together then that will be the ranking
+together then that will be the ranking of this particular board so I'm going to
+of this particular board so I'm going to just go through this pseudocode here I
+just go through this pseudocode here I don't expect you to read it and
+don't expect you to read it and understand it I just want to show you
+understand it I just want to show you the structure of what's going on so this
+the structure of what's going on so this is a recursive implementation of a base
+is a recursive implementation of a base case if I have no pieces then the rank
+case if I have no pieces then the rank is zero if there's a piece in the first
+is zero if there's a piece in the first possible location then I just continue
+possible location then I just continue to rank the rest of the board in the
+to rank the rest of the board in the first possible location I basically
+first possible location I basically don't add anything to the rank otherwise
+don't add anything to the rank otherwise I count how many locations am I skipping
+I count how many locations am I skipping by not putting a particular piece in a
+by not putting a particular piece in a particular location and then I
+particular location and then I recursively say ok now I've got a
+recursively say ok now I've got a slightly smaller board and I continue to
+slightly smaller board and I continue to rank that um notice that this runs in
+rank that um notice that this runs in linear time because I have to go through
+linear time because I have to go through the entire board is linear in the board
+the entire board is linear in the board space if we do some special caching
+space if we do some special caching about the combinations here we can run
+about the combinations here we can run linear in the number of pieces and and
+linear in the number of pieces and and that's not too hard to do we just have
+that's not too hard to do we just have to do some caching in our code and this
+to do some caching in our code and this code will I'll give you URL for
+code will I'll give you URL for let's code a little bit later I'm
+let's code a little bit later I'm ranking is the is the is the reverse
+ranking is the is the is the reverse process to this that is I want to give
+process to this that is I want to give you an integer and I want to give you
+you an integer and I want to give you back get back from it the board position
+back get back from it the board position the way this works is I'm gonna really
+the way this works is I'm gonna really we're gonna reason about what we've been
+we're gonna reason about what we've been doing here so here I have my first board
+doing here so here I have my first board position we know this is rank 0 and we
+position we know this is rank 0 and we know my second board position right here
+know my second board position right here is rank 969 so given and I give you a
+is rank 969 so given and I give you a number that say 803 and I want to say
+number that say 803 and I want to say unranked this 803 and tell me what it is
+unranked this 803 and tell me what it is well I know that if it was in the first
+well I know that if it was in the first position if the rank would be somewhere
+position if the rank would be somewhere between 0 and then the second position
+between 0 and then the second position with the first piece being in the second
+with the first piece being in the second position would be somewhere higher than
+position would be somewhere higher than 969 and so since my value that I'm gonna
+969 and so since my value that I'm gonna and rank here is 803 it's between 0 and
+and rank here is 803 it's between 0 and 969 which means the first piece must
+969 which means the first piece must have gone in the first position and then
+have gone in the first position and then I'm going to recursively worry about
+I'm going to recursively worry about where I'm gonna put the rest of the
+where I'm gonna put the rest of the pieces so we'll put our first piece in
+pieces so we'll put our first piece in here and we're going to continue with a
+here and we're going to continue with a rank of 803 and we're gonna actually do
+rank of 803 and we're gonna actually do the same computation again recursively
+the same computation again recursively here so now because there's fewer pieces
+here so now because there's fewer pieces to place if I put the next piece in the
+to place if I put the next piece in the second position it would start with rank
+second position it would start with rank 153 but I'm looking for a rank 803 which
+153 but I'm looking for a rank 803 which is much larger so I know that the first
+is much larger so I know that the first piece doesn't go in this first position
+piece doesn't go in this first position with the left arrow there so what I'm
+with the left arrow there so what I'm going to do is I'm going to subtract 153
+going to do is I'm going to subtract 153 from my rank I'm going to get a rank of
+from my rank I'm going to get a rank of 650 and then I'm going to continue the
+650 and then I'm going to continue the process of the next step so I did here
+process of the next step so I did here the rank is it and I asked now is my
+the rank is it and I asked now is my rank of 650 is it between 0 136 the
+rank of 650 is it between 0 136 the answer is no so I've subtract 136 and I
+answer is no so I've subtract 136 and I move down the board I continue to
+move down the board I continue to subtract subtract and move down the
+subtract subtract and move down the board every time I'm doing this until
+board every time I'm doing this until I'm here I do my subtraction and I move
+I'm here I do my subtraction and I move down and now I find that my rank is 54
+down and now I find that my rank is 54 the ranks for the next position start at
+the ranks for the next position start at 55 and so my next board my next piece on
+55 and so my next board my next piece on the board is going to go right here and
+the board is going to go right here and now again I continue down the board now
+now again I continue down the board now there's very few pieces left to place so
+there's very few pieces left to place so these ranks are fairly small again I do
+these ranks are fairly small again I do the same process over and over again
+the same process over and over again until they get farther and farther down
+until they get farther and farther down the board every time I'm decreasing this
+the board every time I'm decreasing this rank and eventually I get down here I
+rank and eventually I get down here I have a rank of 0 the ranks are going to
+have a rank of 0 the ranks are going to start at 1 on the right hand side and in
+start at 1 on the right hand side and in fact actually have 2 pieces left to
+fact actually have 2 pieces left to place there's only two pieces left on
+place there's only two pieces left on the board
+the board so I put those last two pieces in and I
+so I put those last two pieces in and I finished the end ranking okay so the
+finished the end ranking okay so the code again here is recursive I is if my
+code again here is recursive I is if my count goes down to zero I'm done doing
+count goes down to zero I'm done doing the unranked that is I'm putting them
+the unranked that is I'm putting them inside the piece array I'm gonna count
+inside the piece array I'm gonna count how many pieces I would skip if I skip
+how many pieces I would skip if I skip the next location and then I say look if
+the next location and then I say look if my rank is higher than this range zero
+my rank is higher than this range zero to skipped then I'm going to just keep
+to skipped then I'm going to just keep going otherwise I'm going to place a
+going otherwise I'm going to place a piece on the board and then I'll
+piece on the board and then I'll recursively unranked the rest of the
+recursively unranked the rest of the board okay so the question is for a
+board okay so the question is for a position a board like this what does
+position a board like this what does that allow me to do in terms of design
+that allow me to do in terms of design decisions here and how did I actually
+decisions here and how did I actually come up with this level and it's
+come up with this level and it's actually one of a very few set of very
+actually one of a very few set of very interesting levels that happen when I
+interesting levels that happen when I define this sort of mechanics for this
+define this sort of mechanics for this level and here what we're gonna do is an
+level and here what we're gonna do is an idea called retrograde analysis what
+idea called retrograde analysis what we're going to do is we're going to work
+we're going to do is we're going to work backwards from all levels that we know
+backwards from all levels that we know are solvable are not subbable and we're
+are solvable are not subbable and we're going to work up towards wait until we
+going to work up towards wait until we get more and more complicated levels to
+get more and more complicated levels to use the solve levels as sort of guides
+use the solve levels as sort of guides to the solution to the higher level sub
+to the solution to the higher level sub so in particular here what we do is
+so in particular here what we do is we're going to go through all possible
+we're going to go through all possible States and what we're going to say is
+States and what we're going to say is look you give me a state number give me
+look you give me a state number give me the board that's associated with it and
+the board that's associated with it and here we're going to decide just what are
+here we're going to decide just what are the levels in my in my world that are
+the levels in my in my world that are solvable so I get my board out of this
+solvable so I get my board out of this particular ranking as I said in practice
+particular ranking as I said in practice this isn't a very compact hash table
+this isn't a very compact hash table it's just a hash it's just an array
+it's just a hash it's just an array sitting in memory and then for that
+sitting in memory and then for that particular board I'm gonna look at every
+particular board I'm gonna look at every single possible move and after I pie the
+single possible move and after I pie the move I'm then gonna get a new board
+move I'm then gonna get a new board state like I took some action and that
+state like I took some action and that board I have a new board state and so
+board I have a new board state and so now I'm going to get the ranking which
+now I'm going to get the ranking which is going to go look up somewhere in
+is going to go look up somewhere in memory it's gonna say is this board
+memory it's gonna say is this board state is it solvable or not and if it
+state is it solvable or not and if it that word state is solvable then I know
+that word state is solvable then I know that is the next state I got to by
+that is the next state I got to by taking an action then I know before I
+taking an action then I know before I take the action that if I take that
+take the action that if I take that action I'll actually be able to solve
+action I'll actually be able to solve that board and so if I'm looking for all
+that board and so if I'm looking for all the positions that could be solved by
+the positions that could be solved by taking you know that there is at least
+taking you know that there is at least one action that leads me to a solution
+one action that leads me to a solution then then this procedure here is going
+then then this procedure here is going to then store as I keep reading it I
+to then store as I keep reading it I have to run it over and over again until
+have to run it over and over again until basically the results subtle
+basically the results subtle it's going to give me all solvable
+it's going to give me all solvable positions and these are going to be
+positions and these are going to be positions that there is at least one
+positions that there is at least one action that causes them to be solved but
+action that causes them to be solved but I might want to ask much more
+I might want to ask much more interesting questions about how things
+interesting questions about how things work here for instance I might want to
+work here for instance I might want to say well what are the set of boards for
+say well what are the set of boards for which all moves lead to a solvable
+which all moves lead to a solvable position you might say well why is that
+position you might say well why is that interesting well if you're trying to
+interesting well if you're trying to train people to play your game if you
+train people to play your game if you give them levels that they can't
+give them levels that they can't actually make any wrong decisions in
+actually make any wrong decisions in then they're learning about the
+then they're learning about the mechanics of how your game work without
+mechanics of how your game work without actually ever being penalized for making
+actually ever being penalized for making incorrect decisions so I give this to
+incorrect decisions so I give this to people and they think wow I'm just
+people and they think wow I'm just playing this game so well actually I've
+playing this game so well actually I've just given you levels that you can't not
+just given you levels that you can't not solve as long as you take legal actions
+solve as long as you take legal actions and all legal actions lead to a solution
+and all legal actions lead to a solution so how do we do that we assume that this
+so how do we do that we assume that this board is going to be solvable and then
+board is going to be solvable and then we go through all moves as before and if
+we go through all moves as before and if we find that any move doesn't lead to a
+we find that any move doesn't lead to a solution then we say ah this isn't one
+solution then we say ah this isn't one of the states that I want this fully
+of the states that I want this fully solvable and so I say this isn't
+solvable and so I say this isn't solvable at all so this is a way that
+solvable at all so this is a way that you can take design problems like this
+you can take design problems like this and you can start to classify what's
+and you can start to classify what's going on and you could make a slightly
+going on and you could make a slightly different version that said you know
+different version that said you know what has two solutions or you know two
+what has two solutions or you know two unique solutions or different things
+unique solutions or different things like this or maybe I want you know one
+like this or maybe I want you know one solution all the way down but at the
+solution all the way down but at the very beginning of the board there's two
+very beginning of the board there's two solutions so you could sort of specify
+solutions so you could sort of specify anything like that is a design question
+anything like that is a design question and we could build a retrograde analysis
+and we could build a retrograde analysis to figure out what what puzzles met
+to figure out what what puzzles met those conditions now there's also a lot
+those conditions now there's also a lot of problems that are related to this
+of problems that are related to this that have to do with what's called multi
+that have to do with what's called multi sets and multi sets are combinations
+sets and multi sets are combinations where you allow duplicates I don't have
+where you allow duplicates I don't have any time today to talk about how to
+any time today to talk about how to handle multi sets but I wanted to show
+handle multi sets but I wanted to show an example of this and why you might be
+an example of this and why you might be interested in using these so let's say
+interested in using these so let's say that you're building an AI for a card
+that you're building an AI for a card game so I'm going to be dealt some cards
+game so I'm going to be dealt some cards but my cards may be like I've got lots
+but my cards may be like I've got lots of mana cards and so I might get
+of mana cards and so I might get multiple manors in my hand and I've got
+multiple manors in my hand and I've got to think about how am I going to like
+to think about how am I going to like what is it any particular hand going to
+what is it any particular hand going to be and my AI has to make a decision it
+be and my AI has to make a decision it says like you know it should I be make
+says like you know it should I be make this move or make this move and what is
+this move or make this move and what is my resulting hand gonna look like
+my resulting hand gonna look like afterwards so something you might want
+afterwards so something you might want to do is instead of trying to do
+to do is instead of trying to do extensive online alamos analysis and an
+extensive online alamos analysis and an offline phase you analyze all possible
+offline phase you analyze all possible five-card hands you say how good or how
+five-card hands you say how good or how bad they are and then when you get at
+bad they are and then when you get at runtime and
+runtime and stead of having to try and do that
+stead of having to try and do that analysis on the fly I just go look this
+analysis on the fly I just go look this up at a table i compute the the ranking
+up at a table i compute the the ranking of all the possible you know hands that
+of all the possible you know hands that I could get to and then I looked them up
+I could get to and then I looked them up and I get the answer there and so this
+and I get the answer there and so this could build a much stronger AI that was
+could build a much stronger AI that was actually much less expensive at runtime
+actually much less expensive at runtime to do the computation so if you're
+to do the computation so if you're interested in multi sets they can be
+interested in multi sets they can be built on top of everything we've been
+built on top of everything we've been doing so far I encourage you can look up
+doing so far I encourage you can look up some more data about that the next thing
+some more data about that the next thing then so that's that's combinations the
+then so that's that's combinations the next thing we're going to look at
+next thing we're going to look at permutations and permutations are like
+permutations and permutations are like combinations except they're ordered so
+combinations except they're ordered so we're going to go back to our deck
+we're going to go back to our deck example here I've got a deck of cards
+example here I've got a deck of cards but what I want to talk about is all the
+but what I want to talk about is all the ways that we can mix these cards around
+ways that we can mix these cards around that is these are all the ways that I
+that is these are all the ways that I could shuffle this and we mentioned
+could shuffle this and we mentioned shuffling algorithms this morning those
+shuffling algorithms this morning those exactly permutations and we'll see how
+exactly permutations and we'll see how this connection is made here a little
+this connection is made here a little bit later so from here we might talk
+bit later so from here we might talk about like dealing cards out there's
+about like dealing cards out there's some notable examples where people
+some notable examples where people writing poker programs have used broken
+writing poker programs have used broken methods for you know shuffling cards and
+methods for you know shuffling cards and people have been able to take advantage
+people have been able to take advantage of that to make a lot of money so we
+of that to make a lot of money so we want to avoid that sort of thing by
+want to avoid that sort of thing by making sure we're using very sound
+making sure we're using very sound techniques like permit like we're really
+techniques like permit like we're really careful about how we do our permutations
+careful about how we do our permutations to make sure that we are that we're
+to make sure that we are that we're truly getting a random permutation now
+truly getting a random permutation now there's games actually so this is the
+there's games actually so this is the game cogs that came out in 2009 this
+game cogs that came out in 2009 this game ends up that it's a it's basically
+game ends up that it's a it's basically a reworking of a classic sliding tile
+a reworking of a classic sliding tile puzzle we're trying to slide the tiles
+puzzle we're trying to slide the tiles and get them into the right locations
+and get them into the right locations and it ends up the neat sort of games
+and it ends up the neat sort of games you can actually use permutations again
+you can actually use permutations again I'll mention this at the end once we've
+I'll mention this at the end once we've gone through the details we can use them
+gone through the details we can use them to help us build solvers for these and
+to help us build solvers for these and so for instance if you look at Jessie
+so for instance if you look at Jessie shells book on game design what he says
+shells book on game design what he says is that when you're building puzzles is
+is that when you're building puzzles is very useful if you can help the player
+very useful if you can help the player out maybe even give them the solution
+out maybe even give them the solution and so if you can build a solver into
+and so if you can build a solver into your game that anywhere the user gets
+your game that anywhere the user gets stacked you can help them along in the
+stacked you can help them along in the solution then that's very very useful
+solution then that's very very useful and powerful to do and in order to do
+and powerful to do and in order to do that efficiently you're going to want to
+that efficiently you're going to want to know some of the math that we're doing
+know some of the math that we're doing here okay so we're going to go through
+here okay so we're going to go through all the math and I'll come back and talk
+all the math and I'll come back and talk about how we do that in practice so
+about how we do that in practice so again we're going to start out how do I
+again we're going to start out how do I count permutations and I'm just going to
+count permutations and I'm just going to use permutation of four items here so I
+use permutation of four items here so I have 0 1 2 3 and we're gonna say what
+have 0 1 2 3 and we're gonna say what are all that warders that we can put
+are all that warders that we can put this in or how many would is the count
+this in or how many would is the count to them and we think about there's 4
+to them and we think about there's 4 numbers here I could put any of the four
+numbers here I could put any of the four of them in the first location here but
+of them in the first location here but then when I put the first one in there's
+then when I put the first one in there's three remaining to go in the next
+three remaining to go in the next location and then to remain raining and
+location and then to remain raining and finally one remaining and so this is
+finally one remaining and so this is factorial here just so just a straight
+factorial here just so just a straight factorial and so you can see with
+factorial and so you can see with permutations there's many more ways that
+permutations there's many more ways that we can arrange them than a better
+we can arrange them than a better relatively equal size of combinations
+relatively equal size of combinations and that's because we if I think about
+and that's because we if I think about the same set of numbers it's because we
+the same set of numbers it's because we care about the order we're in
+care about the order we're in combinations we don't so here we're
+combinations we don't so here we're going to take the factorial to count
+going to take the factorial to count them now if we want to understand
+them now if we want to understand ranking and unranked I'm a have to
+ranking and unranked I'm a have to understand which is called mixed radix
+understand which is called mixed radix numbers it really helps us to understand
+numbers it really helps us to understand and get an intuition for what's going on
+and get an intuition for what's going on now probably most of you here haven't
+now probably most of you here haven't heard of mixed radix numbers but it ends
+heard of mixed radix numbers but it ends up that all of you do it every day all
+up that all of you do it every day all the time when you look at your watch
+the time when you look at your watch your count of the time it's actually a
+your count of the time it's actually a mixed radix number and the idea is we
+mixed radix number and the idea is we just have numbers that are in different
+just have numbers that are in different bases that we combine together so time
+bases that we combine together so time if I say it's 7 12:00 in the morning
+if I say it's 7 12:00 in the morning that 7 base 24 and 12 base 60 or we
+that 7 base 24 and 12 base 60 or we think about currency if I have 15
+think about currency if I have 15 dollars and 39 cents that's 15 really in
+dollars and 39 cents that's 15 really in an infinite base because ideally I could
+an infinite base because ideally I could have an infinite amount of money of
+have an infinite amount of money of course not in practice but and then I
+course not in practice but and then I have 39 cents and that 39 cents is never
+have 39 cents and that 39 cents is never gonna be more I'm never gonna have a
+gonna be more I'm never gonna have a hundred cents so that's really 39 base
+hundred cents so that's really 39 base 100 so we're familiar with that and
+100 so we're familiar with that and that's what's going to be sort of a tea
+that's what's going to be sort of a tea for part of this conversion process so
+for part of this conversion process so the first thing I'm going to talk about
+the first thing I'm going to talk about is how we do the conversion for mixed
+is how we do the conversion for mixed radix to mixed radix and then we'll
+radix to mixed radix and then we'll actually look at the ranking and
+actually look at the ranking and unranked and these do this as part of
+unranked and these do this as part of the process okay so the first thing
+the process okay so the first thing we're gonna look at here is what I want
+we're gonna look at here is what I want to do is separate out the left hand side
+to do is separate out the left hand side or the right hand side with the numbers
+or the right hand side with the numbers and the left hand side here and what I'm
+and the left hand side here and what I'm going to do is basically say look I want
+going to do is basically say look I want this zero to be base four but I want
+this zero to be base four but I want everything else on the right hand side
+everything else on the right hand side to be a lower base so I'm going to start
+to be a lower base so I'm going to start out by taking the zero making it base
+out by taking the zero making it base for everything on the right I'm going to
+for everything on the right I'm going to convert it to base three but I want this
+convert it to base three but I want this to be a permutation in base three and
+to be a permutation in base three and right now it's not because in base three
+right now it's not because in base three only of
+only of and to so I'm going to actually subtract
+and to so I'm going to actually subtract one from all of these numbers so that it
+one from all of these numbers so that it is then a permutation notice here that
+is then a permutation notice here that actually my number original numbers were
+actually my number original numbers were 0 1 2 3 which is sort of the most basic
+0 1 2 3 which is sort of the most basic permutation that you can have and so if
+permutation that you can have and so if you're working in lexicographical
+you're working in lexicographical ordering which is this natural alphabet
+ordering which is this natural alphabet ordering then that's actually the 0
+ordering then that's actually the 0 that's the 0 permutation and you'll see
+that's the 0 permutation and you'll see this as we finish that going through
+this as we finish that going through here ok so now I'm going to just take my
+here ok so now I'm going to just take my next number here I have 0 in base 3 and
+next number here I have 0 in base 3 and I want to take that and leave it in base
+I want to take that and leave it in base 3 and I want to make the 1 in to be in
+3 and I want to make the 1 in to be in base 2 again I need this to be a
+base 2 again I need this to be a permutation so I need 0 and 1 here so
+permutation so I need 0 and 1 here so I'm going to subtract 1 from each of
+I'm going to subtract 1 from each of those so then I have a permutation of
+those so then I have a permutation of the elements 0 to 1 and then the last
+the elements 0 to 1 and then the last one just becomes 0 your last digit space
+one just becomes 0 your last digit space 1 so that's all with 0 I also saw in the
+1 so that's all with 0 I also saw in the last section we talking about mod by 1
+last section we talking about mod by 1 we want to do that here too so this is
+we want to do that here too so this is what we're doing we're in converting to
+what we're doing we're in converting to mixed radix and let's look at how we do
+mixed radix and let's look at how we do this overall in the ranking process so I
+this overall in the ranking process so I have this permutation 2 1 3 4 and I want
+have this permutation 2 1 3 4 and I want to map it to a numerical value I'm going
+to map it to a numerical value I'm going to take 2 on the left and I'm going to
+to take 2 on the left and I'm going to do that first and we know I mean this is
+do that first and we know I mean this is very similar to binary where we would
+very similar to binary where we would take 2 to some power but now on the
+take 2 to some power but now on the right we don't have powers of 2 we
+right we don't have powers of 2 we actually have factorials so I'm going to
+actually have factorials so I'm going to take 2 and then there's three factorial
+take 2 and then there's three factorial values to the right so I get 2 times 3
+values to the right so I get 2 times 3 factorial and then I need to convert the
+factorial and then I need to convert the values to the right do the conversion to
+values to the right do the conversion to a mix in this mixed radix format then
+a mix in this mixed radix format then I'm going to continue this so I have 1
+I'm going to continue this so I have 1 and then there's 2 factorial
+and then there's 2 factorial combinations of values that I can have
+combinations of values that I can have to the right of there so 1 times 2
+to the right of there so 1 times 2 factorial and then again conversion to
+factorial and then again conversion to the mixed radix proper mix radix here
+the mixed radix proper mix radix here and finally 1 times 1 factorial and at
+and finally 1 times 1 factorial and at the end I always have 0 so once if I
+the end I always have 0 so once if I know how to do this conversion or if I
+know how to do this conversion or if I just have it mixed radix it's really
+just have it mixed radix it's really easy instead of multiplying by powers of
+easy instead of multiplying by powers of 2 which is we do in base 2 we're
+2 which is we do in base 2 we're multiplying by factorials because our
+multiplying by factorials because our bases are going 4 3 2 1 here the
+bases are going 4 3 2 1 here the pseudo-code is relatively easy I start
+pseudo-code is relatively easy I start out with a hash value of 0 I take my
+out with a hash value of 0 I take my first piece and I multiply it by the
+first piece and I multiply it by the factorial of the number of entries that
+factorial of the number of entries that are left and then I have to do this
+are left and then I have to do this conversion this mixed radix conversion
+conversion this mixed radix conversion and the problem here is that this loop
+and the problem here is that this loop makes this entire process run in n
+makes this entire process run in n square
+square time and so we're gonna continue looking
+time and so we're gonna continue looking at because that gives us an intuition
+at because that gives us an intuition for what's going on but then I'll show
+for what's going on but then I'll show you a really cool algorithm or at least
+you a really cool algorithm or at least I'm going to show you half of a really
+I'm going to show you half of a really cool algorithm that allows us to do this
+cool algorithm that allows us to do this in linear time with some trade offs okay
+in linear time with some trade offs okay so if we want to go backwards we just
+so if we want to go backwards we just reverse this process okay so how am I
+reverse this process okay so how am I going to reverse it
+going to reverse it I take 15 15s my rank I'm gonna look at
+I take 15 15s my rank I'm gonna look at the first digit here and I'm gonna mod
+the first digit here and I'm gonna mod it by 1 to get the first digit here well
+it by 1 to get the first digit here well the first digit is always 0 and then I'm
+the first digit is always 0 and then I'm going to divide it by 1 to get the next
+going to divide it by 1 to get the next rank that I'm going to work off of so
+rank that I'm going to work off of so that's 15 again now this is base 2 so
+that's 15 again now this is base 2 so I'm going to mod by 2 to get the next
+I'm going to mod by 2 to get the next digit here that gives me 1 and then I'm
+digit here that gives me 1 and then I'm going to divide by 2 to get the next
+going to divide by 2 to get the next rank which is 7 but notice here I'm in a
+rank which is 7 but notice here I'm in a mixed radix format I don't want to be I
+mixed radix format I don't want to be I don't want my result to be any mixed
+don't want my result to be any mixed radix format because this is not
+radix format because this is not generally what we want and so now I need
+generally what we want and so now I need to go here and make sure that this is a
+to go here and make sure that this is a valid permutation which it is so I just
+valid permutation which it is so I just leave that as it is so I get 2 1 0 there
+leave that as it is so I get 2 1 0 there now I'm going to take 7 I'm going to mod
+now I'm going to take 7 I'm going to mod by 3 to figure out the next digit that's
+by 3 to figure out the next digit that's going to be 1 and I'm going to divide by
+going to be 1 and I'm going to divide by 3 to get the next rank which is 2 and
+3 to get the next rank which is 2 and now I need to put this again into a I
+now I need to put this again into a I want us to be in a fixed base so I want
+want us to be in a fixed base so I want a base 3 all the way across and so this
+a base 3 all the way across and so this one here it's gonna have to be increased
+one here it's gonna have to be increased to actually be 2 okay and I do this one
+to actually be 2 okay and I do this one more time actually now I just have a
+more time actually now I just have a rank of 2 here and I take this digit
+rank of 2 here and I take this digit that's there already I increase it by 1
+that's there already I increase it by 1 and now I'm back to my original
+and now I'm back to my original permutation ok so the code looks almost
+permutation ok so the code looks almost identical to what I did in ranking but
+identical to what I did in ranking but here I'm going to say piece X is going
+here I'm going to say piece X is going to be basically my hash Bob a number of
+to be basically my hash Bob a number of entries I take my hash divided by the
+entries I take my hash divided by the number of entries and then I do this
+number of entries and then I do this conversion for mixed radix ok so as I
+conversion for mixed radix ok so as I said this is N squared what could we do
+said this is N squared what could we do to do a better job of this well there's
+to do a better job of this well there's this we all hopefully know this
+this we all hopefully know this algorithm for how do I randomize the
+algorithm for how do I randomize the deck you know I choose a random card and
+deck you know I choose a random card and I'm gonna put it at the end of the deck
+I'm gonna put it at the end of the deck I'll choose another random card I'll put
+I'll choose another random card I'll put it at the next space and I choose again
+it at the next space and I choose again my last card is gonna go in the last
+my last card is gonna go in the last space so myrrh building recipe they came
+space so myrrh building recipe they came up with this algorithm where they
+up with this algorithm where they basically said look I'm going to use my
+basically said look I'm going to use my ranking as my ribs my so-called random
+ranking as my ribs my so-called random number generator and as long as my
+number generator and as long as my ranking goes on the right range of
+ranking goes on the right range of values then I'll be perfectly fine there
+values then I'll be perfectly fine there so my rank here is going to be 4
+so my rank here is going to be 4 and what I'm going to do is I'm going to
+and what I'm going to do is I'm going to choose a card to put at the end there's
+choose a card to put at the end there's three cards to choose from so I'm going
+three cards to choose from so I'm going to mod it by three and that's going to
+to mod it by three and that's going to tell me take card number one and put it
+tell me take card number one and put it at the end and then move the next card
+at the end and then move the next card over okay then I'm going to say divide
+over okay then I'm going to say divide by three to get one and that's going to
+by three to get one and that's going to tell me my next rank so I'm going to mod
+tell me my next rank so I'm going to mod this by two to give me the next my next
+this by two to give me the next my next so-called random number and that's going
+so-called random number and that's going to put the next card in and then of
+to put the next card in and then of course the next the last card goes in
+course the next the last card goes in the last position so this algorithm
+the last position so this algorithm basically takes this shuffling algorithm
+basically takes this shuffling algorithm that computes the correct shuffling but
+that computes the correct shuffling but instead of just choosing a random number
+instead of just choosing a random number or doing this with random numbers we can
+or doing this with random numbers we can actually take a rank and we can do it
+actually take a rank and we can do it now the reverse process is more
+now the reverse process is more complicated you need to know something
+complicated you need to know something about dual representations of
+about dual representations of permutations and I don't have time in
+permutations and I don't have time in this lecture to go over it but there's
+this lecture to go over it but there's some I have a link to the paper which
+some I have a link to the paper which I'll give to you shortly and and there's
+I'll give to you shortly and and there's code as well but I can give you but the
+code as well but I can give you but the actual code for this is really simple I
+actual code for this is really simple I just swap particular piece for the piece
+just swap particular piece for the piece on the end and then I divide the rank by
+on the end and then I divide the rank by I so this is useful again going back to
+I so this is useful again going back to this Congress game or many of the other
+this Congress game or many of the other puzzles we might be working on I'm just
+puzzles we might be working on I'm just gonna use the siding tile puzzle as an
+gonna use the siding tile puzzle as an example what we would do for something
+example what we would do for something like this is if we want to solve that we
+like this is if we want to solve that we need a heuristic that guides us towards
+need a heuristic that guides us towards the solution until what we're going to
+the solution until what we're going to do is we're gonna basically ignore most
+do is we're gonna basically ignore most of the pieces on the board because
+of the pieces on the board because there's far too many combinations
+there's far too many combinations there's like ten trillion ways that you
+there's like ten trillion ways that you can arrange a 15 puzzle like this but I
+can arrange a 15 puzzle like this but I can choose a small subset of this that I
+can choose a small subset of this that I can actually solve this subset really
+can actually solve this subset really very quickly I can do it offline and it
+very quickly I can do it offline and it doesn't take very much space or even do
+doesn't take very much space or even do it on an online step and it's faster to
+it on an online step and it's faster to do this solving altogether
+do this solving altogether than it is to try and solve your
+than it is to try and solve your original problem so what I do is I solve
+original problem so what I do is I solve this subproblem and once i've solved
+this subproblem and once i've solved this subproblem i basically I completely
+this subproblem i basically I completely solve all ways that I could arrange this
+solve all ways that I could arrange this subset of tiles and then when I come
+subset of tiles and then when I come into the full problem and I'm trying to
+into the full problem and I'm trying to solve it at every location I look up
+solve it at every location I look up that subset of tiles and I know they're
+that subset of tiles and I know they're distance from that particular board
+distance from that particular board configuration to the goal and so that
+configuration to the goal and so that gives me a really really good estimate
+gives me a really really good estimate of what is actually the optimal path
+of what is actually the optimal path going to be to the goal there's a huge
+going to be to the goal there's a huge literature on how to do this efficiently
+literature on how to do this efficiently so I'm really just going to point to
+so I'm really just going to point to this here I'd be glad to talk to people
+this here I'd be glad to talk to people in fact about all of this stuff
+in fact about all of this stuff be glad to talk to people about it later
+be glad to talk to people about it later because it's just tons more I couldn't
+because it's just tons more I couldn't put in the talk here but but the
+put in the talk here but but the software that I've shown in the talk
+software that I've shown in the talk here is on this website and I haven't
+here is on this website and I haven't put all the software like I've
+put all the software like I've implemented all these things five
+implemented all these things five different times in five different
+different times in five different frameworks and what I'm doing is I'm in
+frameworks and what I'm doing is I'm in the process of extracting it all out and
+the process of extracting it all out and giving it in very clean formats and
+giving it in very clean formats and efficient formats to you so some of the
+efficient formats to you so some of the software is up here already I will be
+software is up here already I will be adding more software in the coming days
+adding more software in the coming days and this is to do permutations Kay
+and this is to do permutations Kay permutations lexicographical orderings
+permutations lexicographical orderings this merle dress key there's a number of
+this merle dress key there's a number of other algorithms that will all be here
+other algorithms that will all be here both for combinations permutations
+both for combinations permutations rankings and rankings and you're free to
+rankings and rankings and you're free to use this however you want wherever you
+use this however you want wherever you want so no license at all or you know
+want so no license at all or you know the most unrestricted license possible
+the most unrestricted license possible i'm using this code basically i want you
+i'm using this code basically i want you to be able to use it and to be able to
+to be able to use it and to be able to find power in using this to solve the
+find power in using this to solve the problems that you have in your design
+problems that you have in your design spaces the last thing i would just
+spaces the last thing i would just recommend there's this good book by
+recommend there's this good book by david missourah if i was trying to look
+david missourah if i was trying to look in this space there's just the depth of
+in this space there's just the depth of the work that could be done here is
+the work that could be done here is incredible and the amount that i know of
+incredible and the amount that i know of that is relatively small fraction but
+that is relatively small fraction but this is what i've used and found really
+this is what i've used and found really useful for my work and so if you're
+useful for my work and so if you're wanting to go you know even farther in
+wanting to go you know even farther in depth i would recommend this book and
+depth i would recommend this book and then again this is the URL where i'll be
+then again this is the URL where i'll be continuing to place my software thank
+continuing to place my software thank you
+and I think we have time for one or two

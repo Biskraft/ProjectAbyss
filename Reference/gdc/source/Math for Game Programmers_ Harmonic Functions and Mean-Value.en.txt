@@ -1,0 +1,737 @@
+[Music] very gratifying to see such an extremely
+very gratifying to see such an extremely large turnout for math for game
+large turnout for math for game programmers this is great we've had
+programmers this is great we've had lines up all outside today by great
+lines up all outside today by great speakers my job is to scare everybody
+speakers my job is to scare everybody back out of the room by doing vector
+back out of the room by doing vector calculus a few reminders before we begin
+calculus a few reminders before we begin first off if you have a phone please set
+first off if you have a phone please set it to silent second off if you are here
+it to silent second off if you are here and your badge is being scanned you will
+and your badge is being scanned you will get an email and the email contains
+get an email and the email contains surveys please do the survey the results
+surveys please do the survey the results go to me I will probably ignore them I
+go to me I will probably ignore them I did last year like these people said
+did last year like these people said really nice things it was really nice so
+really nice things it was really nice so please say nice things all right so I'm
+please say nice things all right so I'm Nicolas today I'm going to be talking
+Nicolas today I'm going to be talking about mic functions the mean value
+about mic functions the mean value coordinates the official description for
+coordinates the official description for this talks has a bunch of things but
+this talks has a bunch of things but really what this is sort of about is the
+really what this is sort of about is the problem of understanding shape shapes
+problem of understanding shape shapes are surprisingly difficult here is an
+are surprisingly difficult here is an example shape in computer graphics it's
+example shape in computer graphics it's the the famous stand for bunny we see it
+the the famous stand for bunny we see it all the time
+all the time and the question is if we're working
+and the question is if we're working with shapes say you're doing texture
+with shapes say you're doing texture generation or modeling or procedural
+generation or modeling or procedural content generation is the big one that
+content generation is the big one that is going to be an up-and-coming thing I
+is going to be an up-and-coming thing I think this year judging by the turnout
+think this year judging by the turnout the procedural session at 3:00 p.m. then
+the procedural session at 3:00 p.m. then you need to be able to take shape and
+you need to be able to take shape and you need to be able to meaningfully tell
+you need to be able to meaningfully tell the computer how to understand it and
+the computer how to understand it and you don't want to do this directly
+you don't want to do this directly because the the mathematical framework
+because the the mathematical framework of how you understand it a the overall
+of how you understand it a the overall structure of a shape the global
+structure of a shape the global structure of a shape involves a lot of
+structure of a shape involves a lot of heavy lifting from algebraic and
+heavy lifting from algebraic and differential topology and you don't want
+differential topology and you don't want to deal with that if you can help it
+to deal with that if you can help it we're also not going to be talking today
+we're also not going to be talking today about how you store the shape on a
+about how you store the shape on a computer that's Geno's talk it's coming
+computer that's Geno's talk it's coming up I hope you stick around for it
+up I hope you stick around for it because that should be really
+because that should be really interesting so here is the idea of
+interesting so here is the idea of today's talk instead of trying to
+today's talk instead of trying to understand a shape directly by looking
+understand a shape directly by looking at its triangles and vertices
+at its triangles and vertices want to put a function on a triangle
+want to put a function on a triangle mesh okay we want the function to have
+mesh okay we want the function to have certain properties that are desirable
+certain properties that are desirable for whatever the challenge is that we're
+for whatever the challenge is that we're facing we construct the function to have
+facing we construct the function to have these properties we put it on the mesh
+these properties we put it on the mesh then we can reason about the function
+then we can reason about the function instead and a function is a much nicer
+instead and a function is a much nicer thing in some senses than an arbitrary
+thing in some senses than an arbitrary triangle mesh so today I'm going to talk
+triangle mesh so today I'm going to talk about two standard tools in what I do
+about two standard tools in what I do which is geometric mesh processing for
+which is geometric mesh processing for doing this these are not original tools
+doing this these are not original tools I have not developed these tools these
+I have not developed these tools these are ideas from 90s onwards the math
+are ideas from 90s onwards the math itself goes all the way back to the 18th
+itself goes all the way back to the 18th and 19th century but like a lot of stuff
+and 19th century but like a lot of stuff which I do in my academic life it hasn't
+which I do in my academic life it hasn't really been highlighted by the game
+really been highlighted by the game development community and so that's what
+development community and so that's what we're going to do today so we're going
+we're going to do today so we're going to talk about two methods of working
+to talk about two methods of working with functions on shapes the first of
+with functions on shapes the first of which is harmonic functions and the
+which is harmonic functions and the second of which is mean early
+second of which is mean early coordinates so method one harmonic
+coordinates so method one harmonic functions so let's talk about what we
+functions so let's talk about what we would like I give you a triangle mesh M
+would like I give you a triangle mesh M and I would like to put a scalar
+and I would like to put a scalar function which just means that it's just
+function which just means that it's just a float it's not it's not a vector
+a float it's not it's not a vector function that could be GDC 2018 I have a
+function that could be GDC 2018 I have a scalar function on the shape I would
+scalar function on the shape I would like it to be smooth in this you know in
+like it to be smooth in this you know in sort of a an intuitive understanding of
+sort of a an intuitive understanding of that words right now and at some points
+that words right now and at some points on my mesh I would like to have some
+on my mesh I would like to have some control over what the values of the
+control over what the values of the function are so I define it in some
+function are so I define it in some places everywhere else I wanted to blend
+places everywhere else I wanted to blend smoothly across the mesh you could think
+smoothly across the mesh you could think the following analogy might fall so
+the following analogy might fall so here's a couple of bunnies you imagine
+here's a couple of bunnies you imagine that I have a an infinitely cold thing
+that I have a an infinitely cold thing that stays at a certain cold temperature
+that stays at a certain cold temperature I put on the ears of the bunny and you
+I put on the ears of the bunny and you imagine I have a thing that maintains a
+imagine I have a thing that maintains a certain constant hot temperature always
+certain constant hot temperature always stays you know 100 degrees and I put it
+stays you know 100 degrees and I put it on the tail of the bunny and then I wait
+on the tail of the bunny and then I wait and so over time what happens is that
+and so over time what happens is that areas near the hot point
+areas near the hot point come hotter areas near the cold point
+come hotter areas near the cold point become colder and heat transition
+become colder and heat transition smoothly from hot to cold through the
+smoothly from hot to cold through the mesh this is the effect we're trying to
+mesh this is the effect we're trying to achieve what basically happens over time
+achieve what basically happens over time in the real world is that you you reach
+in the real world is that you you reach an equilibrium State
+an equilibrium State and this is a course is known as the
+and this is a course is known as the heat equation this is an example of a
+heat equation this is an example of a partial differential equation it's
+partial differential equation it's probably the the first basic one that
+probably the the first basic one that you would study in a PD es course so we
+you would study in a PD es course so we want to create this effect on a computer
+want to create this effect on a computer with the triangle mesh so first let's
+with the triangle mesh so first let's talk about what we mean by smooth so
+talk about what we mean by smooth so because this is a math course we will
+because this is a math course we will use math to define what is meant by this
+use math to define what is meant by this we would like the function on the mesh
+we would like the function on the mesh to be continuous in the the standard
+to be continuous in the the standard sense that you may remember from first
+sense that you may remember from first year calculus we don't want any jumps we
+year calculus we don't want any jumps we don't want any point discontinuities we
+don't want any point discontinuities we don't want any weird transitions we'd
+don't want any weird transitions we'd like the change of the function to be
+like the change of the function to be smooth as well which means we'd like the
+smooth as well which means we'd like the pivot if so the function on the mesh to
+pivot if so the function on the mesh to exist and to be continuous we don't want
+exist and to be continuous we don't want any huge changes over small distances
+any huge changes over small distances and our function and we also don't want
+and our function and we also don't want to have any local maxima or minima which
+to have any local maxima or minima which is for instance a point that just
+is for instance a point that just randomly gets hot or cold for no good
+randomly gets hot or cold for no good reason all of these things are sort of
+reason all of these things are sort of undesirable because we can't control
+undesirable because we can't control them defining mean by no sudden changes
+them defining mean by no sudden changes if you think back to multiverse lists
+if you think back to multiverse lists you may learn about the gradient
+you may learn about the gradient operator in a greatly and operator on a
+operator in a greatly and operator on a vector valued function point in the
+vector valued function point in the direction of maximum change so in our
+direction of maximum change so in our case we aren't interested in the
+case we aren't interested in the direction as much as we're interested in
+direction as much as we're interested in the length of the gradient and so saying
+the length of the gradient and so saying that I don't want large changes means
+that I don't want large changes means that I want to minimize the length of
+that I want to minimize the length of that gradient vector of my function
+that gradient vector of my function everywhere on a mesh more formally we
+everywhere on a mesh more formally we can say okay how do i construct
+can say okay how do i construct oh my actually try as well each point on
+oh my actually try as well each point on the mesh I want to take the gradient I
+the mesh I want to take the gradient I want to take its length squared let's
+want to take its length squared let's say that's fine that's given by that
+say that's fine that's given by that inner product there and over the entire
+inner product there and over the entire mesh every little bit of area on the
+mesh every little bit of area on the mesh I want
+mesh I want to sum all those up and that's a surface
+to sum all those up and that's a surface integral and this is known as the der
+integral and this is known as the der clay energy of F I believe that's the
+clay energy of F I believe that's the correct pronunciation Germans be pardon
+correct pronunciation Germans be pardon me if I'm wrong and this was one of the
+me if I'm wrong and this was one of the first problems that was studied in the
+first problems that was studied in the calculus of variations I was going to
+calculus of variations I was going to say something here okay I did say it
+say something here okay I did say it good stating that we don't want any
+good stating that we don't want any local maxima or minima in our case means
+local maxima or minima in our case means that if we take the divergence of the
+that if we take the divergence of the gradient function on our mesh we would
+gradient function on our mesh we would like it to be zero the reason we'd like
+like it to be zero the reason we'd like it to be zero is because if there's a
+it to be zero is because if there's a point where the divergence is greater
+point where the divergence is greater than 0 or less than zero it means that
+than 0 or less than zero it means that the function is curving into or out of a
+the function is curving into or out of a local maxima or minima if we actually
+local maxima or minima if we actually write down what the divergence of the
+write down what the divergence of the gradient is the grid you end up with
+gradient is the grid you end up with this expression here which is the sum of
+this expression here which is the sum of the second order partial derivatives of
+the second order partial derivatives of the function on the mesh this is known
+the function on the mesh this is known as the Laplace equation typically it is
+as the Laplace equation typically it is written with this little Sun triangle
+written with this little Sun triangle and if F has a laplacian of zero
+and if F has a laplacian of zero everywhere then we call F a harmonic
+everywhere then we call F a harmonic function so very trivially obviously if
+function so very trivially obviously if this is zero and we integrate it that
+this is zero and we integrate it that integral on the previous slide is going
+integral on the previous slide is going to be a constant in fact trivially we
+to be a constant in fact trivially we can also say that if you have a constant
+can also say that if you have a constant function it also trivially minimizes the
+function it also trivially minimizes the the directly energy because the gradient
+the directly energy because the gradient everywhere is zero there we go so by
+everywhere is zero there we go so by itself directly energy is boring the
+itself directly energy is boring the laplacian is fairly boring where it gets
+laplacian is fairly boring where it gets exciting for us is if we do the
+exciting for us is if we do the following we take our triangle mesh
+following we take our triangle mesh because we're dealing with a real object
+because we're dealing with a real object here I know this just seems like math
+here I know this just seems like math from a snake we set some points on the
+from a snake we set some points on the mesh to be unknown values a and B we'd
+mesh to be unknown values a and B we'd like a to be less than B arbitrarily if
+like a to be less than B arbitrarily if you're a physicist or a mathematician
+you're a physicist or a mathematician you will call these dirkly boundary
+you will call these dirkly boundary conditions we don't really
+conditions we don't really they're just the points that we want to
+they're just the points that we want to set on the mesh to control the behavior
+set on the mesh to control the behavior of the function that we are generating
+of the function that we are generating there's a famous result in mathematics
+there's a famous result in mathematics called the strong maximum principle and
+called the strong maximum principle and what the strong maximum principle states
+what the strong maximum principle states is that F is a harmonic function
+is that F is a harmonic function everywhere except on its boundary and in
+everywhere except on its boundary and in this case its boundary or it just is
+this case its boundary or it just is just precisely where we took the mesh
+just precisely where we took the mesh and you can imagine that we took a pin
+and you can imagine that we took a pin everywhere we want to put one of these
+everywhere we want to put one of these control points we punctured the mesh
+control points we punctured the mesh repeatedly then the holes of the
+repeatedly then the holes of the boundary and everywhere else is the mesh
+boundary and everywhere else is the mesh so the strong maximum principle states
+so the strong maximum principle states that if F is a harmonic function
+that if F is a harmonic function everywhere else then you can take any
+everywhere else then you can take any disc on the mesh and by disc I mean you
+disc on the mesh and by disc I mean you just you just draw a little circle on it
+just you just draw a little circle on it and then the function will have its
+and then the function will have its maximum and its minimum on the boundary
+maximum and its minimum on the boundary of the disc so it won't ever obtain a
+of the disc so it won't ever obtain a maximum or a minimum inside the disc it
+maximum or a minimum inside the disc it will always be on the boundary you can
+will always be on the boundary you can draw that anywhere on the mesh and that
+draw that anywhere on the mesh and that property holds this is a very very
+property holds this is a very very strong thing we can say about a function
+strong thing we can say about a function on a mesh which is why this whole
+on a mesh which is why this whole strategy of analyzing meshes by looking
+strategy of analyzing meshes by looking at functions on them is so powerful so
+at functions on them is so powerful so in particular what this means for our
+in particular what this means for our case is that if I have some maximum and
+case is that if I have some maximum and minimum values a and B and I have a
+minimum values a and B and I have a harmonic function on the mesh that has
+harmonic function on the mesh that has those points at the boundary set to what
+those points at the boundary set to what I want them to be set to then it will
+I want them to be set to then it will only ever obtain them there and it will
+only ever obtain them there and it will smoothly transition between them
+smoothly transition between them everywhere else so how do we find this
+everywhere else so how do we find this thing we have a continuous thing which
+thing we have a continuous thing which means that is defined on arbitrary
+means that is defined on arbitrary surfaces which is the laplacian of my
+surfaces which is the laplacian of my function should be equal to zero the
+function should be equal to zero the good news is that I went to last year's
+good news is that I went to last year's talk that I gave because I was there and
+talk that I gave because I was there and there is a well-known discretized
+there is a well-known discretized equivalent to the laplacian operator
+equivalent to the laplacian operator called the National Plaza it basically
+called the National Plaza it basically tells you how to construct a discrete
+tells you how to construct a discrete version of this on a triangular mesh
+version of this on a triangular mesh then what you end up with is you end up
+then what you end up with is you end up with a system of linear equations a very
+with a system of linear equations a very large one but it's sparse you plug it
+large one but it's sparse you plug it into your favorite
+into your favorite standard sparse matrix solver and you
+standard sparse matrix solver and you find a solution I'm not gonna get too
+find a solution I'm not gonna get too much into how to discretize mesh
+much into how to discretize mesh laplacian is actually derived because to
+laplacian is actually derived because to be quite honest what you do is you just
+be quite honest what you do is you just you do this with a cookbook and we don't
+you do this with a cookbook and we don't want to get into any of the the
+want to get into any of the the mechanisms that you can use to actually
+mechanisms that you can use to actually derive it it's enough to know that it
+derive it it's enough to know that it exists and sort of have some idea of
+exists and sort of have some idea of when and where you would use it I might
+when and where you would use it I might put some notes in this and the slides to
+put some notes in this and the slides to go up on the website because that just
+go up on the website because that just seems to be what we do so the way that
+seems to be what we do so the way that you write it is you little fellow here
+you write it is you little fellow here and basically what it's saying is that
+and basically what it's saying is that if I take my my harmonic function and I
+if I take my my harmonic function and I look at every vertical every vertex on
+look at every vertical every vertex on the mesh then the discrete laplacian is
+the mesh then the discrete laplacian is given as a weighted sum of distances
+given as a weighted sum of distances along of in other function across the
+along of in other function across the mess edges you choose appropriate
+mess edges you choose appropriate weights for this to actually work it
+weights for this to actually work it turns out that for this particular
+turns out that for this particular application last year i said that you
+application last year i said that you could use uniform weights whatever this
+could use uniform weights whatever this do you have to use what are called
+do you have to use what are called cotangent weights cotangent weights come
+cotangent weights cotangent weights come from the observation that if you have
+from the observation that if you have triangle lying on its side and it's got
+triangle lying on its side and it's got a base here that the aspect ratio of the
+a base here that the aspect ratio of the triangle from width da is a function of
+triangle from width da is a function of the cotangent of the interior angles so
+the cotangent of the interior angles so here we're just taking an average of
+here we're just taking an average of those with the height ratios when we're
+those with the height ratios when we're actually constructing this to this
+actually constructing this to this discretization last year we use the
+discretization last year we use the laplacian in a matrix form where we
+laplacian in a matrix form where we basically said okay I'm going to take
+basically said okay I'm going to take the laplacian of my mesh I'm going to
+the laplacian of my mesh I'm going to construct this differential
+construct this differential representation I'm going to take some
+representation I'm going to take some anchor points I'm going to put them as
+anchor points I'm going to put them as bestest at specific locations I'm going
+bestest at specific locations I'm going to invert my matrix with anchor point
+to invert my matrix with anchor point conditions and then I'm going to do a
+conditions and then I'm going to do a least-squares optimization in order to
+least-squares optimization in order to actually create a new deformed mesh that
+actually create a new deformed mesh that is smooth this year we don't actually
+is smooth this year we don't actually need to do any of that but it is
+need to do any of that but it is important to remember from last year
+important to remember from last year that if you have a least squares problem
+that if you have a least squares problem where you have some some linear equation
+where you have some some linear equation say of the form ax equals B a is an
+say of the form ax equals B a is an is a matrix B is a vector of known
+is a matrix B is a vector of known constants Nexus your unknowns and you
+constants Nexus your unknowns and you want to come up with the solution where
+want to come up with the solution where each the sum of the difference between X
+each the sum of the difference between X and B squared sum of squared distances
+and B squared sum of squared distances rather is as small as possible then it
+rather is as small as possible then it is a well-known fact that you can do it
+is a well-known fact that you can do it by taking your matrix a transposing it
+by taking your matrix a transposing it multiplying both sides by the transpose
+multiplying both sides by the transpose the resulting linear equation is
+the resulting linear equation is actually guaranteed to have a solution
+actually guaranteed to have a solution furthermore it is guaranteed to be a
+furthermore it is guaranteed to be a symmetric matrix a transpose a it's also
+symmetric matrix a transpose a it's also guaranteed to be what is called positive
+guaranteed to be what is called positive definite which means that you can use
+definite which means that you can use specializes of linear algebra packages
+specializes of linear algebra packages to actually solve this thing don't write
+to actually solve this thing don't write your own linear algebra software kids
+your own linear algebra software kids use there's code out there that you can
+use there's code out there that you can use there's troll modest outs
+use there's troll modest outs there's library called eigen which is
+there's library called eigen which is compatible with most of the licensing
+compatible with most of the licensing needs we have as game developers I've
+needs we have as game developers I've had a few funny issues with it and it is
+had a few funny issues with it and it is very templated anyways going back to
+very templated anyways going back to what we're actually talking about I said
+what we're actually talking about I said that we have a we're trying to find this
+that we have a we're trying to find this harmonic function has known points so
+harmonic function has known points so points where it must hold water using a
+points where it must hold water using a solver this type this least square
+solver this type this least square solution does not give me any guarantee
+solution does not give me any guarantee that it will have those boundary points
+that it will have those boundary points that I so desperately love and need I
+that I so desperately love and need I don't know for this to work it will try
+don't know for this to work it will try to fit them but it will do so by
+to fit them but it will do so by distributing error all over the place so
+distributing error all over the place so we need to actually expand our least
+we need to actually expand our least squares solver in order to satisfy
+squares solver in order to satisfy constraints so there's two ways of doing
+constraints so there's two ways of doing this for this particular problem set up
+this for this particular problem set up system one as it turns out if you just
+system one as it turns out if you just construct the entire system of linear
+construct the entire system of linear equations you want for the laplacian and
+equations you want for the laplacian and for the boundary conditions you can
+for the boundary conditions you can actually get something that is solvable
+actually get something that is solvable without needing least squares
+without needing least squares optimization the problem is that this is
+optimization the problem is that this is just a little bit numerically unstable
+just a little bit numerically unstable which means that if you actually try to
+which means that if you actually try to run real linear algebra software on this
+run real linear algebra software on this matrix because it's condition number is
+matrix because it's condition number is so awful it will basically explode and
+so awful it will basically explode and then you're left holding a bunch of
+then you're left holding a bunch of pieces
+pieces wondering what happened not recommended
+wondering what happened not recommended what we do recommend typically for this
+what we do recommend typically for this is going back to another idea from
+is going back to another idea from multivariable calculus and another
+multivariable calculus and another friendship a petition the when you have
+friendship a petition the when you have a a function that you want to minimize
+a a function that you want to minimize subject to some constraint at some point
+subject to some constraint at some point what you traditionally use is use what
+what you traditionally use is use what is called a Lagrange multiplier maybe
+is called a Lagrange multiplier maybe you have heard of this maybe you haven't
+you have heard of this maybe you haven't the idea is that instead of minimizing f
+the idea is that instead of minimizing f such that some equality constraint holds
+such that some equality constraint holds is that you add a new variable lambda
+is that you add a new variable lambda and then you try to minimize a thing in
+and then you try to minimize a thing in three dimensions here which is X Y and
+three dimensions here which is X Y and lambda I our unknowns and you're
+lambda I our unknowns and you're minimizing F X and y - how far off I am
+minimizing F X and y - how far off I am from the constraint that I'm trying to
+from the constraint that I'm trying to achieve and if you need more constraints
+achieve and if you need more constraints you've got more boundary points you want
+you've got more boundary points you want to set specific things when you're doing
+to set specific things when you're doing a solve like this you just add more
+a solve like this you just add more lambdas you add one lambda and yes your
+lambdas you add one lambda and yes your your matrix gets larger and larger and
+your matrix gets larger and larger and larger but who cares still sparse so if
+larger but who cares still sparse so if you do this what you end up with is you
+you do this what you end up with is you end up building a system of linear
+end up building a system of linear equations top half says all my discrete
+equations top half says all my discrete Laplace ian's using the expression
+Laplace ian's using the expression before are zero second half says for
+before are zero second half says for each of my boundary conditions that I
+each of my boundary conditions that I want to be true for this these dirkly
+want to be true for this these dirkly boundary conditions I added a Lagrange
+boundary conditions I added a Lagrange multiplier then you minimize the
+multiplier then you minimize the resulting quadratic energy by taking
+resulting quadratic energy by taking that big matrix squaring it that's right
+that big matrix squaring it that's right finding its transpose multiplying a by
+finding its transpose multiplying a by the transpose multiplying the right-hand
+the transpose multiplying the right-hand side by the transpose dump that in your
+side by the transpose dump that in your sparse positive definite matrix solver
+sparse positive definite matrix solver and it will basically for every vertex
+and it will basically for every vertex on your mesh it will spit out a harmonic
+on your mesh it will spit out a harmonic function basically like magic so it's a
+function basically like magic so it's a lot of that's a lot of setup so here's
+lot of that's a lot of setup so here's what it actually looks like so here is a
+what it actually looks like so here is a here is a model from one of the papers
+here is a model from one of the papers that I referenced and this gives you an
+that I referenced and this gives you an idea of some of the useful effects you
+idea of some of the useful effects you can achieve and you can immediately see
+can achieve and you can immediately see how this would be useful so here we have
+how this would be useful so here we have a couple of control points we've got one
+a couple of control points we've got one of the top of the head one of the on the
+of the top of the head one of the on the base of this this statue of dancing
+base of this this statue of dancing children and at the top of it it
+children and at the top of it it achieves its maximum and a bottom and
+achieves its maximum and a bottom and achieves its minimum and you can see
+achieves its minimum and you can see that it smoothly interpolates the values
+that it smoothly interpolates the values everywhere so you can create stripe
+everywhere so you can create stripe effects on meshes that are
+effects on meshes that are intuitive and natural you can smoothly
+intuitive and natural you can smoothly blend textures along surfaces that are
+blend textures along surfaces that are very easy and natural so if you have a
+very easy and natural so if you have a an arbitrary shape like say a tank and
+an arbitrary shape like say a tank and you want to put rust on the tank in some
+you want to put rust on the tank in some areas that you can just imagine well is
+areas that you can just imagine well is your textures gonna obtain those maximum
+your textures gonna obtain those maximum areas in the areas where I want rust and
+areas in the areas where I want rust and minimum areas where I don't want rust
+minimum areas where I don't want rust and you just throw the whole thing in
+and you just throw the whole thing in the solver and it spits out smooth
+the solver and it spits out smooth blending for the entire shape of your
+blending for the entire shape of your tank in in whatever order you need and
+tank in in whatever order you need and if you aren't happy with this pattern
+if you aren't happy with this pattern another nice thing is a question is you
+another nice thing is a question is you can always add more constraints so here
+can always add more constraints so here if you put a constraint on the top of
+if you put a constraint on the top of the each of everybody's heads then you
+the each of everybody's heads then you can see you get the same striped pattern
+can see you get the same striped pattern you're getting before in this case but
+you're getting before in this case but now you're getting all of the walls and
+now you're getting all of the walls and you're getting all of the stripes
+you're getting all of the stripes exactly where you want them so it's an
+exactly where you want them so it's an it's a very powerful technique for
+it's a very powerful technique for smoothly and efficiently creating smooth
+smoothly and efficiently creating smooth functions on just arbitrary triangle
+functions on just arbitrary triangle meshes here's an application which is
+meshes here's an application which is very common in computer graphics and
+very common in computer graphics and whether this originally started is that
+whether this originally started is that if you have a a mesh and you want to
+if you have a a mesh and you want to very quickly slap a texture map on it
+very quickly slap a texture map on it how do you do this so one thing you can
+how do you do this so one thing you can do is okay you cut it so that it is the
+do is okay you cut it so that it is the mesh is homeomorphic into a disk but it
+mesh is homeomorphic into a disk but it means that if you had it and you you
+means that if you had it and you you flatten it you can imagine it's made of
+flatten it you can imagine it's made of rubber or paper or whatever your your
+rubber or paper or whatever your your your favorite material for topology is
+your favorite material for topology is that it has something which is
+that it has something which is deformable to the shape of a disk it
+deformable to the shape of a disk it doesn't need to be a disk
+doesn't need to be a disk parameterization itself as long as you
+parameterization itself as long as you can parameterize that edge if you take
+can parameterize that edge if you take that edge you create it you put UV
+that edge you create it you put UV coordinates on it somewhere in your
+coordinates on it somewhere in your standard 2d plane those are your
+standard 2d plane those are your boundary conditions one for each of you
+boundary conditions one for each of you and V and then you find two harmonic
+and V and then you find two harmonic functions and then what happens Shahla
+functions and then what happens Shahla Miguel amis OOP is that suddenly you
+Miguel amis OOP is that suddenly you have parameterize to your entire mesh by
+have parameterize to your entire mesh by magic to fit into the bounds of the of
+magic to fit into the bounds of the of the texture map that you were trying to
+the texture map that you were trying to create and in fact is guaranteed to in
+create and in fact is guaranteed to in this case be buy ejected so you can go
+this case be buy ejected so you can go from one to the other there are no
+from one to the other there are no inversions there are no triangles on top
+inversions there are no triangles on top of each other as you can see there's a
+of each other as you can see there's a great deal of
+great deal of an even distribution of texture
+an even distribution of texture information the top of the camels head
+information the top of the camels head which is farthest away from the disk has
+which is farthest away from the disk has a higher concentration of checkerboards
+a higher concentration of checkerboards on it then the bottom does so it is not
+on it then the bottom does so it is not perfect for all things but this will
+perfect for all things but this will basically get you up running very fast
+basically get you up running very fast so the sky is the limit here second
+so the sky is the limit here second technique I sort of want to talk to
+technique I sort of want to talk to about today is mean value coordinates so
+about today is mean value coordinates so many of you will have seen barycentric
+many of you will have seen barycentric coordinates in fact if you're in
+coordinates in fact if you're in computer graphics you must have seen
+computer graphics you must have seen them or use them at some point because
+them or use them at some point because they are the principle behind which
+they are the principle behind which basically all shading works and the idea
+basically all shading works and the idea is that if you have a triangle and it's
+is that if you have a triangle and it's hanging around in space you can write
+hanging around in space you can write any point on the triangle as a linear
+any point on the triangle as a linear combination of of the vertices of the
+combination of of the vertices of the triangle such that all the weights are
+triangle such that all the weights are greater than equal to zero and they sum
+greater than equal to zero and they sum to one and in fact at the coroners it's
+to one and in fact at the coroners it's exactly one and the nice thing for our
+exactly one and the nice thing for our problem here is that if you have a
+problem here is that if you have a function at the vertices like say color
+function at the vertices like say color information or lighting you can then
+information or lighting you can then smoothly blend that function across the
+smoothly blend that function across the triangle in order to define it on the
+triangle in order to define it on the interior of the triangle and that's
+interior of the triangle and that's basically how all of computer graphics
+basically how all of computer graphics works is this one thing we would like to
+works is this one thing we would like to generalize this to larger classes of
+generalize this to larger classes of polygons so for instance ones that
+polygons so for instance ones that aren't triangles like you know convex
+aren't triangles like you know convex polygons star-shaped polygons the star
+polygons star-shaped polygons the star shaped polygon is a polygon where there
+shaped polygon is a polygon where there is one central point sets that you can
+is one central point sets that you can can you can reach it via a straight line
+can you can reach it via a straight line from any other point in the polygon and
+from any other point in the polygon and it doesn't go through a boundary even
+it doesn't go through a boundary even just simple polygons in the plane or
+just simple polygons in the plane or even just polygons with holes what the
+even just polygons with holes what the heck let's just do them all so here's
+heck let's just do them all so here's sort of what we would like
+sort of what we would like we'd like to maintain this convexity
+we'd like to maintain this convexity property which is that our weights
+property which is that our weights should be positive when they're inside
+should be positive when they're inside the polygon and negative outside we'd
+the polygon and negative outside we'd like it to smoothly interpolate data
+like it to smoothly interpolate data thing like colors we'd like it to
+thing like colors we'd like it to satisfy this Lagrange property which is
+satisfy this Lagrange property which is that at a vertex only one weight is set
+that at a vertex only one weight is set to one and it's the wait for that vertex
+to one and it's the wait for that vertex and the rest of them should be set to
+and the rest of them should be set to zero ideally we would like it that all
+zero ideally we would like it that all weights sum to one
+the first stab at this might be to take the cotangent previously used for the
+the cotangent previously used for the harmonic functions and just try to use
+harmonic functions and just try to use those it turns out that those weights
+those it turns out that those weights actually violate the convexity the
+actually violate the convexity the weights that you want to use are
+weights that you want to use are invented by a very smart man
+invented by a very smart man Michael floater and they're called mean
+Michael floater and they're called mean valid coordinate weights and what he did
+valid coordinate weights and what he did is he took the harmonic map that we
+is he took the harmonic map that we looked at previous and he derived a
+looked at previous and he derived a piecewise linear approximation of it and
+piecewise linear approximation of it and then did a whole bunch of trig and what
+then did a whole bunch of trig and what happens is you end up with this weight
+happens is you end up with this weight in terms of the tangents the angles
+in terms of the tangents the angles around a given vertex for wherever
+around a given vertex for wherever you're trying to get to so you have a
+you're trying to get to so you have a point in a polygon V naught and you're
+point in a polygon V naught and you're interested in its in weight I for it
+interested in its in weight I for it which is one of the vertices the polygon
+which is one of the vertices the polygon you compute that function this will work
+you compute that function this will work like a barycentric coordinate any time
+like a barycentric coordinate any time you want to linearly interpolate colors
+you want to linearly interpolate colors or whatever if you make a slight
+or whatever if you make a slight generalization which is that you require
+generalization which is that you require the angles that you compute here to be
+the angles that you compute here to be signed and a sine angle in this case
+signed and a sine angle in this case means that if you actually compute it by
+means that if you actually compute it by taking the cross product of the vectors
+taking the cross product of the vectors in question if you remember from linear
+in question if you remember from linear algebra the length of a this really the
+algebra the length of a this really the cross product length is I believe length
+cross product length is I believe length of you like the V sine theta if you
+of you like the V sine theta if you actually take the sign of the cross
+actually take the sign of the cross product it will tell you what the sine
+product it will tell you what the sine of that angle should be this lets you
+of that angle should be this lets you actually generalize it to an polygon on
+actually generalize it to an polygon on a plane the good news is also the weight
+a plane the good news is also the weight of a vertex in this thing depends only
+of a vertex in this thing depends only on three vertex vertices itself in its
+on three vertex vertices itself in its neighbors the other good news is you can
+neighbors the other good news is you can do all of this in about 20 lines of code
+do all of this in about 20 lines of code provided that you have a function for
+provided that you have a function for computing the area of a triangle here's
+computing the area of a triangle here's why it's cool so here you've got a
+why it's cool so here you've got a planar polygons a bunch of you put color
+planar polygons a bunch of you put color on points and you can actually smoothly
+on points and you can actually smoothly inter plate all of these colors just by
+inter plate all of these colors just by pretending that the entire thing is one
+pretending that the entire thing is one big triangle and using these weights
+big triangle and using these weights this is guaranteed to be
+this is guaranteed to be smooth everywhere except at the vertices
+smooth everywhere except at the vertices where obviously you control the vertices
+where obviously you control the vertices you can screw things up as much as you
+you can screw things up as much as you like um other applications of this
+like um other applications of this technique with these coordinates include
+technique with these coordinates include for instance texture parameterization is
+for instance texture parameterization is if you have something and you can
+if you have something and you can project its boundary to a plane in a
+project its boundary to a plane in a meaningful way you can use mean value
+meaningful way you can use mean value coordinates to get all of the interior
+coordinates to get all of the interior points onto the plane so you can move a
+points onto the plane so you can move a big patch meaningfully from 3d space to
+big patch meaningfully from 3d space to 2d space work on the patch you can
+2d space work on the patch you can generalize this to handle 3d polyhedra
+generalize this to handle 3d polyhedra which means you can then do things like
+which means you can then do things like cage based deformation it's the same
+cage based deformation it's the same formula it's just more work to get there
+formula it's just more work to get there you can use it for smooth shading of 2d
+you can use it for smooth shading of 2d polygons if you wish again
+polygons if you wish again possibilities are and listen it's up to
+possibilities are and listen it's up to you so what I'd really like everybody
+you so what I'd really like everybody take away from this regardless of how
+take away from this regardless of how comfortable you are with you know
+comfortable you are with you know Laplace Ian's or or mean volley
+Laplace Ian's or or mean volley coordinates whatever it is a very
+coordinates whatever it is a very powerful technique to be able to take a
+powerful technique to be able to take a mesh and put a function on it and then
+mesh and put a function on it and then look at that function instead this is
+look at that function instead this is just the tip of the iceberg the two
+just the tip of the iceberg the two methods which I have hastily outlined
+methods which I have hastily outlined here and I don't expect everybody you
+here and I don't expect everybody you know don't expect to be able to go coat
+know don't expect to be able to go coat them I expect you to have sort of how to
+them I expect you to have sort of how to look at them so that you can now go and
+look at them so that you can now go and see ah okay these are the things that I
+see ah okay these are the things that I need to know in order to be able to
+need to know in order to be able to understand this and to have some
+understand this and to have some appreciation of what they can do
+appreciation of what they can do harmonic maps on a mesh are extremely
+harmonic maps on a mesh are extremely powerful because you can define boundary
+powerful because you can define boundary conditions anywhere you want and fairly
+conditions anywhere you want and fairly simple to implement if you're
+simple to implement if you're comfortable with linear algebra the
+comfortable with linear algebra the actual math behind it is scary because
+actual math behind it is scary because it comes from work being done by
+it comes from work being done by mathematicians in the 18th 19th century
+mathematicians in the 18th 19th century the implementation is fairly
+the implementation is fairly straightforward because we're working in
+straightforward because we're working in a discrete case and it's basically sums
+a discrete case and it's basically sums in a matrix mean value coordinates very
+in a matrix mean value coordinates very simple again you just find your formula
+simple again you just find your formula you work out your weights for for a
+you work out your weights for for a point that you're interested in and then
+point that you're interested in and then you can linearly interpolate colors
+you can linearly interpolate colors texture data whatever you feel like over
+texture data whatever you feel like over the surface of this thing I'll have a
+the surface of this thing I'll have a source code for these next week and I
+source code for these next week and I mean
+mean this year last year's source code is
+this year last year's source code is still not up I will try to rectify that
+still not up I will try to rectify that next week as well some references and
+next week as well some references and useful material if you decide that
+useful material if you decide that you're interested in this
+you're interested in this the Michael floater did a number of
+the Michael floater did a number of papers on mean belly coordinates he
+papers on mean belly coordinates he started with just the convex case the
+started with just the convex case the needed star shaped arbitrary polygons in
+needed star shaped arbitrary polygons in 3d and generalized barycentric
+3d and generalized barycentric coordinates probably the one for our
+coordinates probably the one for our purposes is called mean belly
+purposes is called mean belly coordinates for arbitrary película
+coordinates for arbitrary película polygons which is a joint paper with KY
+polygons which is a joint paper with KY hormone there are a number of papers on
+hormone there are a number of papers on harmonic fields this is a recent example
+harmonic fields this is a recent example of one which also talks about the
+of one which also talks about the fastest methods for updating a harmonic
+fastest methods for updating a harmonic field harmonic surface harmonic mesh
+field harmonic surface harmonic mesh might be useful to you if you are
+might be useful to you if you are interested in doing these in a real-time
+interested in doing these in a real-time context the set up for that is a little
+context the set up for that is a little fussy there is a public implementation
+fussy there is a public implementation of how harmonic of a harmonic mapping
+of how harmonic of a harmonic mapping function in a great library called lib
+function in a great library called lib eagle by alec jacobson at MIT and BSD
+eagle by alec jacobson at MIT and BSD licensed it includes everything that you
+licensed it includes everything that you need to go use to go and it is header
+need to go use to go and it is header based so you can try this stuff really
+based so you can try this stuff really quickly if you want to and and get a
+quickly if you want to and and get a feel for how powerful it is there's also
+feel for how powerful it is there's also a very good talk on the on loop ostians
+a very good talk on the on loop ostians in general which you might want to track
+in general which you might want to track down and finally CRC press has a select
+down and finally CRC press has a select books on the expo floor this is a recent
+books on the expo floor this is a recent book by Daniel Cohen or and a bunch of
+book by Daniel Cohen or and a bunch of other very talented author x' and it
+other very talented author x' and it includes all the material here on
+includes all the material here on laplacian x' and the Poisson equation
+laplacian x' and the Poisson equation for image processing bunch of other
+for image processing bunch of other useful stuff that you may want to have
+useful stuff that you may want to have in your life so I would encourage you to
+in your life so I would encourage you to track any of these things down and read
+track any of these things down and read about them alright questions
+[Applause] [Music]
+[Music] [Applause]
+[Applause] and I am impressed that you all stayed
+and I am impressed that you all stayed through the doctor Calculus give
+through the doctor Calculus give yourselves a hand sort of a ratio
+yourselves a hand sort of a ratio between the number of control points
+between the number of control points that you can set versus the number of
+that you can set versus the number of points you have Oh fun question short
+points you have Oh fun question short answer is that what I would what I would
+answer is that what I would what I would expect to happen is that of course you
+expect to happen is that of course you can over constrain your problem and over
+can over constrain your problem and over constraint can manifest itself in one of
+constraint can manifest itself in one of two ways first off what might happen is
+two ways first off what might happen is that your laplacian matrix may become
+that your laplacian matrix may become numerically unstable in the sense that
+numerically unstable in the sense that this condition number might simply be
+this condition number might simply be too high if you have too many points
+too high if you have too many points that are too close to everything else in
+that are too close to everything else in which case a direct linear algebra
+which case a direct linear algebra solver will just explode a an iterative
+solver will just explode a an iterative linear algebra solver linear algebra
+linear algebra solver linear algebra solvers come in two different forms
+solvers come in two different forms direct and iterative
+direct and iterative direct basically attempts to crunch the
+direct basically attempts to crunch the math and the thing directly and the
+math and the thing directly and the initiative one attempts to work by
+initiative one attempts to work by finding increasingly better and better
+finding increasingly better and better and better refinements to the solution
+and better refinements to the solution an iterative one will eventually make
+an iterative one will eventually make hay out of it but it will be slow as
+hay out of it but it will be slow as heck and of course you may just create
+heck and of course you may just create something where it's it's meaningless
+something where it's it's meaningless essentially so there isn't there's
+essentially so there isn't there's really a point at which you would
+really a point at which you would explode
+explode but I think I would encourage you to
+but I think I would encourage you to keep those control points fairly sparse
+anybody else
+nope beautiful all right Thank You Nicholas I don't
+you

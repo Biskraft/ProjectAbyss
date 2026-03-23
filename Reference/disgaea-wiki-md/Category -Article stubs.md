@@ -1,0 +1,7 @@
+# Category:Article stubs
+
+This category lists **stub articles** on this wiki.
+
+A stub is a short article that can be expanded with more information on a subject by any user. To mark an article as a "stub" add the code  to the end of any article.
+
+Category: Site maintenance

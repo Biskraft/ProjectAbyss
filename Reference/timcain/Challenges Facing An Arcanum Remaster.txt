@@ -1,0 +1,365 @@
+Hi everyone, it's me Tim. Today I want
+to talk about challenges
+facing an an Arcanum
+remaster. I did a video like this
+challenges facing a Fallout remaster
+couple months ago. It was popular. There
+was a lot of comments and many of them
+said, "Hey, I'd rather have an Arcanum
+remaster." And I thought, well, I made
+an Arcanum remake video, which I'll also
+link below, but this is a remaster. This
+is about, hey, let's take the original
+code and just fix bugs and make it work
+on modern hardware and get it optimized,
+not let's make a 3D version of Arcanum
+with
+lasers. H, let me write down lasers.
+Okay, this video is probably going to be
+kind of long because whoever chooses to
+do this remaster of Arcanum, you got
+your work cut out for you. Also, it's
+long because I can be very, very
+specific. I own the code. I've looked at
+the code. I looked at the code for a few
+hours before making this video because I
+wanted to make sure like, do I remember
+this correctly? I want to make sure I
+understand everything. And let me just
+tell you, because of the code and some
+other things, just remaking or
+remastering Arcanum is going to be a
+legally complex issue. Let me spell it
+out before I dive into the remaster
+specifics
+themselves. The IP,
+meaning everything that's Arcanum, the
+the name, the setting, the world, the
+stories, the characters, the mechanics,
+all that. All that was owned by Sierra
+who then went got purchased by Javis
+which got purchased by Activision which
+is now owned by Microsoft. And you must
+you guys may be going great Tim you're
+working at a Microsoft company but and
+this is a very big butt and you know I
+like big butts. The code is owned by
+Troa, which is now me and Leonard Barski
+and Jason
+Anderson. And we cannot by the original
+publishing agreement release it. We own
+it, but we can't just release it. And if
+somebody wanted to remaster, meaning I'm
+assuming they want the code. We're not
+talking a remake here. We're talking a
+remaster. They want to use that code.
+They will have to negotiate with me and
+Leonard Berski and Jason Anderson to all
+three of our satisfaction before they
+can use the code because they don't own
+it. Oh, you don't think you want the
+code? Great. You're probably making a
+remake. You want to go watch my thoughts
+on an Arcanum remake video. So, go watch
+that. So, now
+now that I've got that out of the way,
+by the way, since I own the code, I have
+recompiled it myself. I made it into a
+Windows 10 app. I've got a video about
+that. Um, some of the things I ran into
+was there was Seur ROM, which was the
+the stuff on disc to do copy protection.
+That was gone. First thing I wiped.
+Well, I didn't wipe it. I recompiled a
+fresh one that Securrom was not applied
+to. But then I ran into multiplayer,
+which was through Sierra's multiplayer
+network called Juan W. Not one, but
+Juan. I don't know why. Anyway, ripped
+that out
+because that doesn't exist anymore and I
+didn't want to deal with the network
+code. So, the one I remade wasn't um or
+the one I remastered wasn't a didn't
+have
+multiplayer. And let me just tell you,
+when I recompiled that code on a modern
+compiler, I mean it was made on Visual
+Studio, but I think back when Visual
+Studio was numbered six, and now it's up
+to like 17 or 18, it recompiles with a
+ton of warnings. Tons of warnings. So,
+just warning you programmers out there.
+We did a lot of stuff which it didn't
+complain about back then, like using an
+enum as an integer. Now, it's like,
+nope, you better cast that or we're
+going to throw a warning. It's trivial
+to cast it. And it works just fine to
+cast it. And then once you put it, you
+know, an
+intum, it's happy as a clam to do
+whatever it is you're asking. You've got
+to do that in literally thousands of
+lines of code because it didn't matter
+then, matters now. So once you've gotten
+over that horror, um, let's start with
+talking about bugs to fix. Arcanum ship,
+as I've said this, as kind of an alpha.
+There are lots of bugs. The bugs just
+aren't in code, although there are a lot
+in code. There's a lot of bugs in the
+scripts which was our own internally
+made script language which I called sock
+monkey. I looked at that. I couldn't
+find any bugs in the script code but I
+did find scripts that had bugs in them
+that scriptors had made with sock monkey
+script maker. There's also bugs in the
+dialogue files. Our dialogue files are
+very complex. I have a whole video on
+arcanum dialog files so you can go look
+at that.
+You can do lots of things in the
+dialogue. You can send out a lot of op
+codes which give the player which finish
+quests and adjust reputation and give
+money and items and all these things.
+And there are bugs in there that the
+people who wrote the dialogue did.
+That's going to have to be
+fixed. There's also a lot of assets that
+may need some fixing. Um maps. Um, I
+don't mean the map itself, but the map
+has embedded things like when you put a
+door in, you can say this door
+transitions to this. I think we have
+little bits and pieces that are mistaken
+there like some some seem to remember
+some place that had a bad transition
+condition. So, those will have to be
+checked. That gets you into
+optimization. Uh, we
+made optimizations that were good for
+the hardware in 2001, which was many,
+many years ago. Look how gray I am. You
+know that my computer I ran this on
+doesn't even work anymore. It exploded
+decades
+ago. So, just like things like the art
+blitter, a blitterous thing that writes
+pixels up. Yeah, Arcanum still worked
+with pixel was not 3D objects. That was
+optimized for the hardware back then.
+It's not how we would do it now. Memory
+management was optimized for us doing it
+ourselves and optimized for the size of
+memory we had back then for the minspec
+that would probably be made higher now.
+You could improve
+that. It ran on whatever version of
+DirectX was back then. Whatever version
+now probably has optimizations and
+improvements and extensions that you
+could take advantage of. I know we had
+to do things like just underlining text
+had to be done by ourselves manually and
+then blitted manually and not something
+you could you could throw out with a
+direct call going here's the string by
+the way I want it underlined. So that's
+stuff that could be done as
+well. Then we get into game balancing.
+Um there's a whole bunch of game
+balancing. Remember I mentioned that
+that Arcanum shipped in its alpha state.
+So we shipped with a lot of things we
+never intended it to ship with. We never
+made a balance pass through the spells.
+That's why harm is crazy powerful.
+There's also um I have a whole video on
+why I wanted to ship with attributes and
+spells and skills costing multiple
+points as they got higher. And we
+switched to a onepoint method. By the
+way, a lot of you convinced me in that
+video that you like the onepoint method.
+Well, that's good. I would still like to
+add the multi-point back. Maybe as
+there's a maybe there's a option
+somewhere going Tim's version of Arcanum
+and it would list a bunch of things that
+I felt needed to be changed from the
+base game which would definitely include
+this. Then we could talk all day about
+real time versus turn-based combat
+inside Arcanum and I do have a video
+about that as well. But let me just
+summarize it by saying real time was way
+too frenetic, way too crazy fast,
+bizarre, uncontrollable. I would fix
+that. I would also put in turn-based
+options. There's a lot of stuff in
+turn-based I wish I had the time to do,
+like um all the enemies that are
+sequenced adjacently get to go together
+in one turn. Or maybe just all the
+enemies only do one initiative roll and
+they all take the same turn. And that
+way things are just a lot faster.
+Turnbased could be a lot faster rather
+than you go and wait for all these other
+enemies to go. It's like you go, they
+all go, you go, they all go way faster.
+Um, you know what? I was going to talk
+about quality of life, but I will throw
+that
+into some UI stuff, but let's talk about
+art real fast. This is going to be short
+because I'm not an artist and I'm color
+blind and I didn't do any of the art for
+the base game, but let me just tell you
+a few things that caught my eye as I as
+I looking through the archives. I don't
+have a single piece of original art
+archived.
+Leonard and Jason archived all of that
+and I believe Jason Well, let me
+rephrase that. I know Jason had the
+backups. I do not know if those backups
+are still viable. I've moved all my
+backups years ago into the cloud where
+they are safe and they float around and
+I've even said if the cloud s uh if the
+cloud service I use goes under, well, I
+have it mirrored to a hard drive. If my
+hard drive explodes, I've got it in the
+cloud. The only way it can be lost now
+is if the cloud and my hard drive both
+go away at the same time. I don't know
+what's going on with art. And the reason
+I bring it up is
+to make an Arcanum remaster. I think it
+should work better in higher
+resolutions. And that would require just
+taking some the original source art and
+just rerendering it at a higher
+resolution so it look nicer. Especially
+you want to do that for the cinematics.
+But I would love to have that done for
+just everything in the game. The
+characters, the props,
+creatures. Speaking of that, I would
+love to get more variety in some
+places. I thought we had pretty good
+variety in the creatures, but scenery,
+like when you go walk around in the
+woods and stuff, we only had a few
+trees, and that's cuz we could only keep
+a few trees loaded. We could add a lot
+more of those trees, rocks, flowers,
+tile, tile patterns, and just keep a lot
+more in memory because we have a lot
+more memory these days. So, you'd see a
+lot more variety in the world. And I
+think that would make maps and
+especially the procedurally generated
+maps look a lot less
+sy. I in addition we had a bunch of
+really cool facades. I see video people
+now call them when people talk about our
+game they call them set pieces. We call
+them facades. That's things like a giant
+piece of artwork that you can't walk
+over. It's not tile tile but it's done
+as tiles. It's broken into tiles that
+look like a castle or the crashed blimp
+or a dragon skeleton lying on the
+ground. Those were done as facads. Not
+only would I want definitely want to
+upres those things, it would be fun to
+make more and just throw them into
+random encounters. So there's a more not
+more variety of places you can find in
+the world,
+but you have more of those facades. we
+literally didn't have time to make them
+and we didn't have the disk space to
+store them in and the memory to load
+them into, we'd have all that today. And
+I don't think that would dramatically
+change. I think that would qualify as a
+remaster. You just have a lot more
+interesting set
+pieces. That gets me into UI, which I do
+want to talk about quality of life at
+this point. There's a lot of things you
+can do with the user interface to make
+it feel more modern and smoother. The
+first thing I thought of was, I wish I
+put in hold down tab and it lights up
+all the items in the area. Things like
+making you user interface elements,
+making it easier for the player to do
+targeted attacks in combat or using fate
+points or controlling companions. Just
+make that easier. It's already in the
+game. It's just hidden under bad user
+interface
+elements. By the way, key rebinding
+standard now wasn't then. Would throw
+that in. Maybe you would like to play
+Arcanum with a controller. Maybe we
+could figure that out. Text resizing has
+to go in. We We only made it run in 800
+by 600 and we picked a decent text for
+the size of monitors that existed that
+in in the day. I would want to do text
+resizing. While we're talking about UI,
+I would definitely take the original UI
+and break it up into pieces so that they
+could
+be repositioned like pushed out. like if
+you increase the resolution of the
+screen, it would take the elements and
+push them out into the corners, things
+like that. It makes the the user
+interface not just something you can
+resize and reposition, but you could
+also choose to let people make it
+semi-transucent. We, by the way, use the
+UI to reduce the part of the screen we
+actually had to draw to every frame so
+we could get our frame rate higher.
+Don't really need that
+today. Some final things, sound. I went
+through the game and I realized we
+didn't have a lot of sound effects
+because we couldn't keep a lot of sound
+sound effects
+loaded way more sound effect variety
+especially in combat uh creature attacks
+just put in a lot more stuff there and
+also we didn't VO a lot of the
+characters and now because we could if
+we had the budget to do VO and the the
+dialogue is locked we're just doing a
+remaster we're not doing a remake it's
+locked dialogue it would be pretty
+straightforward to just have a voice
+actor come in, read the dialogue, and
+have more voiced characters in the game.
+Maybe even all the characters in the
+game are voiced. Have to figure out how
+to handle generated dialogue. Got a
+video on generated dialogue, but there
+are ways around that. And I think you
+could do it, especially if the company
+that was publishing it had a big
+budget. Anyway, wow. So, that's I went
+over optimization and art and UI and
+balancing and bug fixing. I think those
+are all the main challenges that would
+face someone who was trying to do an
+Arcanum remaster today. Anyway, hope you
+like this.

@@ -1,0 +1,686 @@
+[Music] hello and welcome to this presentation
+hello and welcome to this presentation about vfx learnings on return
+about vfx learnings on return my name is risto
+my name is risto and i'm the lead vfx artist at housemark
+and i'm the lead vfx artist at housemark and with me is sharman he's one of our
+and with me is sharman he's one of our senior graphics programmers
+senior graphics programmers and just a little bit about the company
+and just a little bit about the company as well osmar was established in 1995
+as well osmar was established in 1995 and before eternal we were best known
+and before eternal we were best known for arcade tile twin stick shooters such
+for arcade tile twin stick shooters such as deadness and rezagan and nex machina
+as deadness and rezagan and nex machina and
+and return
+return was by far our biggest project to date
+was by far our biggest project to date and that was released in april last year
+and that was released in april last year and we have been working with sony for
+and we have been working with sony for quite some time and since last june
+quite some time and since last june we've been part of the playstation
+we've been part of the playstation studios as well
+studios as well so um this presentation is about how we
+so um this presentation is about how we utilized our own vfx toolset to create
+utilized our own vfx toolset to create some unconventional stuff for eternal
+some unconventional stuff for eternal by unconventional i'm referring to
+by unconventional i'm referring to things like vegetation character effects
+things like vegetation character effects like tentacles and volumetric
+like tentacles and volumetric environment effects with fluid
+environment effects with fluid simulations
+simulations basically things that you wouldn't
+basically things that you wouldn't expect to be done with a particle system
+expect to be done with a particle system in addition to those things we also
+in addition to those things we also produced the huge amount of conventional
+produced the huge amount of conventional effects with regular billboards and
+effects with regular billboards and point particles and seeds those are
+point particles and seeds those are probably familiar to most of you in the
+probably familiar to most of you in the audience already will focus more on the
+audience already will focus more on the unusual stuff during this presentation
+okay a quick overview of what we're going to talk about
+going to talk about we'll introduce our proprietary vfx
+we'll introduce our proprietary vfx engine briefly i feel that the tool set
+engine briefly i feel that the tool set is quite unique so it's essential to
+is quite unique so it's essential to understand how things work before we
+understand how things work before we present what we did with them
+present what we did with them and after that i'll present particle
+and after that i'll present particle hierarchies and charman will present the
+hierarchies and charman will present the last segment about external resources
+last segment about external resources and simulations
+okay so
+so a little bit about the history of our
+a little bit about the history of our vfx engine
+vfx engine we have been developing our own particle
+we have been developing our own particle system since 2014
+system since 2014 back then we used to have our own game
+back then we used to have our own game engine as well
+engine as well already for resogun the team had made
+already for resogun the team had made some particle effects with compute
+some particle effects with compute shaders and based on that work we
+shaders and based on that work we started developing a particle system for
+started developing a particle system for alienation
+alienation we moved to unreal for the production of
+we moved to unreal for the production of matter full and boarded our vfx tool set
+matter full and boarded our vfx tool set to unreal at the same time as well
+to unreal at the same time as well and design wise we tried to focus on
+and design wise we tried to focus on flexibility and performance
+flexibility and performance all the effects run on tpu only and
+all the effects run on tpu only and everything is fully programmable in hlsl
+everything is fully programmable in hlsl um
+um while we're at it let's go through some
+while we're at it let's go through some definitions as well
+definitions as well so in our system when i say a particle
+so in our system when i say a particle that's a single particle it's just a
+that's a single particle it's just a text file with some hlso code in it so
+text file with some hlso code in it so in order to create effects for our ngox
+in order to create effects for our ngox we have to create an empty text file and
+we have to create an empty text file and start typing code
+start typing code an effect on the other hand it's a
+an effect on the other hand it's a system of particles um
+system of particles um that reference each other for example an
+that reference each other for example an emitter that emits other other particles
+emitter that emits other other particles the engine itself does not distinguish
+the engine itself does not distinguish between particles and emitters any
+between particles and emitters any particle can be any meter or not
+particle can be any meter or not and finally we have the vfx engine that
+and finally we have the vfx engine that runs the wholesale it keeps particles
+runs the wholesale it keeps particles alive and discards test particles and
+alive and discards test particles and does other useful things for you the vfx
+does other useful things for you the vfx engine itself is a plugin for unreal
+engine itself is a plugin for unreal previously we just called it a particle
+previously we just called it a particle engine but since it does so many other
+engine but since it does so many other things as well we decided to start
+things as well we decided to start calling it the vfx engine
+calling it the vfx engine so um there's going to be a bit of code
+so um there's going to be a bit of code i'll try to keep it as brief as possible
+i'll try to keep it as brief as possible since i'm aware that this is an art
+since i'm aware that this is an art summit
+summit so um
+so um let's create a simple particle effect
+let's create a simple particle effect for our engine just to give you an idea
+for our engine just to give you an idea how it actually happens
+how it actually happens as i mentioned you start by creating a
+as i mentioned you start by creating a text file and inside the text file we
+text file and inside the text file we need to define what particle is but we
+need to define what particle is but we also need to define what the particle
+also need to define what the particle does
+does and
+and what the particle is
+what the particle is is defined by implementing a thing
+is defined by implementing a thing called particle struct
+called particle struct those things that you see inside the
+those things that you see inside the struct are particle variables variables
+struct are particle variables variables are the data that the particle can store
+are the data that the particle can store and modify
+and modify you can add as many variables as you
+you can add as many variables as you want to and you're free to choose their
+want to and you're free to choose their data types and names typical variables
+data types and names typical variables would be what we have here like life
+would be what we have here like life lifetime but also position velocity size
+lifetime but also position velocity size color or whatever you can think of
+color or whatever you can think of there's
+there's no practical limit to those and also the
+no practical limit to those and also the naming is free as i mentioned earlier
+naming is free as i mentioned earlier but uh actually none of these are
+but uh actually none of these are required so basically you'd have to
+required so basically you'd have to you're going to survive with just the
+you're going to survive with just the dummy
+dummy variable there as well
+variable there as well and after we have defined what particle
+and after we have defined what particle is we can proceed and
+is we can proceed and define what the particle does
+define what the particle does this is done by implementing an update
+this is done by implementing an update function here you can see that the
+function here you can see that the particle we just created is passed to
+particle we just created is passed to the update function and we can modify it
+the update function and we can modify it there
+there in this simple example we just
+in this simple example we just accumulate the delta time to our
+accumulate the delta time to our particle's life variable
+particle's life variable and when it exceeds lifetime variable we
+and when it exceeds lifetime variable we choose to exit the update function not
+choose to exit the update function not and not to keep the particle alive
+and not to keep the particle alive anymore
+anymore and we're not even rendering the
+and we're not even rendering the particle here the render component is
+particle here the render component is optional and we'll have a look at that
+optional and we'll have a look at that later
+later the system supports all hls of features
+the system supports all hls of features branchings and all the intrinsics are
+branchings and all the intrinsics are there etc and this allows us a great
+there etc and this allows us a great deal of flexibility for example it's
+deal of flexibility for example it's trivial for the particle to handle
+trivial for the particle to handle multiple different states and execute
+multiple different states and execute update logic based on a given state
+update logic based on a given state okay
+okay what we have here is actually
+what we have here is actually considered a particle in our vfx engine
+considered a particle in our vfx engine so if we were editing this we could
+so if we were editing this we could press save and the system would create
+press save and the system would create an effect graphical user interface for
+an effect graphical user interface for us
+us this is a place where other team members
+this is a place where other team members and artists can do modifications for
+and artists can do modifications for effect
+effect for example you can do material
+for example you can do material assignments or you can edit animation
+assignments or you can edit animation curves for example if you want to have a
+curves for example if you want to have a curve or let's say color over lifetime
+curve or let's say color over lifetime you need to declare it in the shader
+you need to declare it in the shader code and it will be available for others
+code and it will be available for others via this asset
+via this asset and also you can add color pickers
+and also you can add color pickers custom tweakables and everything but
+custom tweakables and everything but everything has to be declared in the
+everything has to be declared in the code so we don't assume that anything
+code so we don't assume that anything exists unless you actually explicitly
+exists unless you actually explicitly announce it in the code basically what
+announce it in the code basically what we have is a small custom graphical user
+we have is a small custom graphical user interface per effect
+interface per effect in return we didn't have this so this is
+in return we didn't have this so this is part of the learnings from eternal and
+part of the learnings from eternal and not having this was actually a major
+not having this was actually a major bottleneck for the production because
+bottleneck for the production because all the modifications have to be done by
+all the modifications have to be done by people who understood the shader code
+people who understood the shader code okay so basically writing that file and
+okay so basically writing that file and editing this graphical user interface is
+editing this graphical user interface is the whole process of
+the whole process of doing an effect in house mock in its
+doing an effect in house mock in its simplicity
+simplicity you start with a blank file write some
+you start with a blank file write some code and the system produces an
+code and the system produces an interface that non-technical people can
+interface that non-technical people can tweak or modify
+okay okay now we can move on to particle
+okay now we can move on to particle hierarchies which is pretty much node
+hierarchies which is pretty much node particles in our system
+particles in our system let's talk about a bit about them when
+let's talk about a bit about them when we started developing return returno
+we started developing return returno node particles were a new thing for us
+node particles were a new thing for us they were developed for branching
+they were developed for branching vegetation in another project but they
+vegetation in another project but they turned out to be very useful for
+turned out to be very useful for ethernel as well
+ethernel as well the concept is really simple
+the concept is really simple node particles are just like any other
+node particles are just like any other particle in our engine but they can all
+particle in our engine but they can all read the parent data that the parent
+read the parent data that the parent actually has
+and parent can have multiple children but salt can only have one parent and
+but salt can only have one parent and parent and child need to be the same
+parent and child need to be the same particle type and we ended up using
+particle type and we ended up using these
+these nerd particles a lot we used them for
+nerd particles a lot we used them for ribbons vegetations tentacles and all
+ribbons vegetations tentacles and all kinds of stuff so as we're about to see
+so let's have a quick look at the node particle code let's create some of them
+particle code let's create some of them and see how we can utilize the parents
+and see how we can utilize the parents out relationship that they have our goal
+out relationship that they have our goal will be to create one of the tentacles
+will be to create one of the tentacles that we had on many of our enemies in
+that we had on many of our enemies in eternal
+first we need to tell the system that that particle is a node particle that's
+that particle is a node particle that's done in the header so that system knows
+done in the header so that system knows to include relevant code for it
+to include relevant code for it we can do the particle definition as
+we can do the particle definition as usual
+usual and then in the update code the engine
+and then in the update code the engine will provide us a function for getting
+will provide us a function for getting the parent particle
+the parent particle after that you're free to do whatever
+after that you're free to do whatever logic you want based on the parent
+logic you want based on the parent particle data
+in this case we're just checking if you look at the code
+look at the code we're just checking if the parent is
+we're just checking if the parent is more than 100 units away and then we
+more than 100 units away and then we move the child particle closer to the
+move the child particle closer to the parent if through
+parent if through okay
+okay next we're going to have a look at an
+next we're going to have a look at an animated example how this can be useful
+animated example how this can be useful for
+what we can see here is some node particles moving around
+particles moving around and spawning child particles
+and spawning child particles as we can read the parent particle data
+as we can read the parent particle data we can draw an epoch line from child
+we can draw an epoch line from child particle to the parent particle
+particle to the parent particle this looks a bit messy as all particles
+this looks a bit messy as all particles are moving independently
+are moving independently let's add some constraints to their
+let's add some constraints to their movement
+movement first we'll limit the distance that the
+first we'll limit the distance that the particles can move away from their
+particles can move away from their parent and that distance is visualized
+parent and that distance is visualized by those green circles around each
+by those green circles around each particle
+particle now let's apply uniform velocity to the
+now let's apply uniform velocity to the left of the screen
+left of the screen and start slowly rotating the velocity
+and start slowly rotating the velocity and damp it towards the end of the chain
+and finally we can apply some curl noise to the movement
+now we have something that we could use as a base for a
+that we could use as a base for a tentacle motion in return but it's still
+tentacle motion in return but it's still lacking on many areas
+lacking on many areas the rendering being the main offender
+the rendering being the main offender here so we have the motion but we need
+here so we have the motion but we need to be able to visualize it somehow we
+to be able to visualize it somehow we considered multiple options like quad
+considered multiple options like quad strips point particles and separate tube
+strips point particles and separate tube render
+render but ended up doing it all from a
+but ended up doing it all from a particle update function
+so how did we do that on top of the usual render types that
+on top of the usual render types that one might have in particle engine such
+one might have in particle engine such as brights oriented quads we also added
+as brights oriented quads we also added triangles
+the two key takeaway things here are we can define the triangular vertex
+we can define the triangular vertex locations freely
+locations freely and secondly we can render as many
+and secondly we can render as many triangles as we want per particle
+triangles as we want per particle in the in our engine we define render
+in the in our engine we define render types in the particle code
+types in the particle code by implementing a thing called render
+by implementing a thing called render struct it works similarly to the
+struct it works similarly to the particle struct we saw earlier but the
+particle struct we saw earlier but the user can't really choose what kind of
+user can't really choose what kind of variables they put there i'm not going
+variables they put there i'm not going to go too much into detail here but it's
+to go too much into detail here but it's enough to say with that kind of printer
+enough to say with that kind of printer struct that you see on the screen
+struct that you see on the screen the system already knows that i'm trying
+the system already knows that i'm trying to render a triangle
+to render a triangle and if the update don't function we
+and if the update don't function we currently have a loop just just creates
+currently have a loop just just creates 10 triangles and places them side by
+10 triangles and places them side by side
+side okay and there you go
+okay and there you go if we would execute that code what we
+if we would execute that code what we would get is 10 triangles
+would get is 10 triangles as promised it's not too exciting so
+as promised it's not too exciting so we'll have to dig a bit deeper
+we'll have to dig a bit deeper but so far we have established two
+but so far we have established two important things for us
+important things for us first one being we can read other
+first one being we can read other particle data and secondly we can render
+particle data and secondly we can render as many triangles as we want per
+as many triangles as we want per particle
+particle now we can proceed and build a
+now we can proceed and build a renderable mesh for our particles
+first we need to think up particles as control points for a curve
+control points for a curve and if you have a curve
+and if you have a curve you can also have tangents those are the
+you can also have tangents those are the red lines
+red lines if you have a tangent for a curve you
+if you have a tangent for a curve you can also have a normal for the curve as
+can also have a normal for the curve as well and those would be the green lines
+well and those would be the green lines the only thing we need to not do now is
+the only thing we need to not do now is rotate the normal around the tangent
+rotate the normal around the tangent we can use the blue dots resulting from
+we can use the blue dots resulting from this rotation as vertices for our
+this rotation as vertices for our tentacle mesh then we can just proceed
+tentacle mesh then we can just proceed adding triangles to those positions as
+adding triangles to those positions as vertex locations
+okay that's pretty close to what we have in the game just we just need to change
+in the game just we just need to change the thickness a bit and swap the
+the thickness a bit and swap the material i know this is a pretty
+material i know this is a pretty standard way to do tube rendering so
+standard way to do tube rendering so nothing new there
+nothing new there but the fact that we can do all of these
+but the fact that we can do all of these things per particle and on the gpu makes
+things per particle and on the gpu makes it perform really well
+it perform really well like here basically you can have all the
+like here basically you can have all the tentacles in the world and it's not
+tentacles in the world and it's not gonna cost you an arm and a leg in
+gonna cost you an arm and a leg in performance
+performance and since each tentacles is basically a
+and since each tentacles is basically a bunch of particles we can control their
+bunch of particles we can control their behavior and implement things like
+behavior and implement things like player collisions and fluid velocities
+player collisions and fluid velocities really easily
+really easily i can't recall how many tentacles this
+i can't recall how many tentacles this particular scene has but i think this
+particular scene has but i think this update cost something around a
+update cost something around a millisecond i think this is a bit of an
+millisecond i think this is a bit of an excess amount of tentacles i don't think
+excess amount of tentacles i don't think we ever have used that in the game
+okay so we ended up using these things in the game quite liberally since they
+in the game quite liberally since they performed well and we were able to
+performed well and we were able to program their behavior we attached them
+program their behavior we attached them to enemies and had the enemy ai drive
+to enemies and had the enemy ai drive the tentacle state
+the tentacle state so that they would for example grow and
+so that they would for example grow and become emissive before the attacks
+become emissive before the attacks and since they performed well we were
+and since they performed well we were able to use them as vegetation in some
+able to use them as vegetation in some rooms as well
+rooms as well and that was really nice because we were
+and that was really nice because we were able to use deployed sim and the player
+able to use deployed sim and the player collisions to drive the vegetation
+collisions to drive the vegetation behavior and each grass plate can have
+behavior and each grass plate can have its state so we didn't have to jump
+its state so we didn't have to jump through hoops trying to implement their
+through hoops trying to implement their behavior we have vertex offset or
+behavior we have vertex offset or something
+something in this last example
+in this last example we had the player head attract the pla
+we had the player head attract the pla the vegetation so it would look kind
+the vegetation so it would look kind like the vegetation is inspecting the
+like the vegetation is inspecting the player
+i think another good example of the flexibility of node particles is that we
+flexibility of node particles is that we also use them to do simple destructible
+also use them to do simple destructible objects for eternal
+objects for eternal destructibles had to be pre-processed in
+destructibles had to be pre-processed in houdini
+houdini in houdini we first split the object
+in houdini we first split the object into two pieces interior and exterior
+into two pieces interior and exterior and after that we do a simple voronoi
+and after that we do a simple voronoi chatter on both of the resulting meshes
+chatter on both of the resulting meshes then we export the mes2 unreal and in
+then we export the mes2 unreal and in game we create a single particle per
+game we create a single particle per mesh piece each of those particles can
+mesh piece each of those particles can have access to a lookup table that
+have access to a lookup table that contains the start vertex and vertex of
+contains the start vertex and vertex of that piece that way we can tell each
+that piece that way we can tell each particle to loop through those triangles
+particle to loop through those triangles and render them
+so in game we first showed the intact static mesh
+static mesh when the object is hit by a bullet
+when the object is hit by a bullet we hide the static mesh and so the
+we hide the static mesh and so the construct the mesh constructor of
+construct the mesh constructor of particles
+particles for visualization purposes we're solving
+for visualization purposes we're solving particles of screen dots here each of
+particles of screen dots here each of those particles render a segment of the
+those particles render a segment of the mess that is assigned to it
+mess that is assigned to it when the destructible object health
+when the destructible object health reaches zero it's destroyed and at that
+reaches zero it's destroyed and at that point we can start animating the
+point we can start animating the particles
+particles we make the particles that are below the
+we make the particles that are below the heat point fly away explosively and
+heat point fly away explosively and particles that are above the hit point
+particles that are above the hit point get grouped together under a single node
+get grouped together under a single node particle
+particle we can then animate that particle
+we can then animate that particle visualized by the green bounding box and
+visualized by the green bounding box and the child particles will animate with it
+the child particles will animate with it this gives an illusion of that the big
+this gives an illusion of that the big piece is actually a solid single solid
+piece is actually a solid single solid object
+and well let's see i'm gonna bring the video a bit
+video a bit again i'll let it play
+again i'll let it play so when the big piece is moving we can
+so when the big piece is moving we can query the sdf collisions in each of the
+query the sdf collisions in each of the child particles and detach them from the
+child particles and detach them from the group on collision
+okay i call this method scripted destruction it's not as generic as real
+destruction it's not as generic as real rbd but it's very fast i also think that
+rbd but it's very fast i also think that there are several interesting
+there are several interesting opportunities for improving it one could
+opportunities for improving it one could for example export the connectivity data
+for example export the connectivity data from houdini and simulate node particle
+from houdini and simulate node particle collisions with that information
+collisions with that information but basically we used it for
+but basically we used it for destroying mechanical enemies and lots
+destroying mechanical enemies and lots of statues and in the bottom
+of statues and in the bottom right hand corner we even did a whole
+right hand corner we even did a whole boss with this destruction system
+boss with this destruction system so it's just basically a bunch of pieces
+so it's just basically a bunch of pieces that you can move around with particle
+that you can move around with particle code
+okay that was the end of my part and next sermon is up and he will present us
+next sermon is up and he will present us external resources and simulators
+yes hello everybody thanks risto for doing the first part of this
+doing the first part of this presentation
+presentation and risto didn't leave me any tentacles
+and risto didn't leave me any tentacles but we'll be looking into some other
+but we'll be looking into some other other things such as fluid simulations
+other things such as fluid simulations and volumetric fog how we solve those
+and volumetric fog how we solve those things
+things we use external resources let me
+we use external resources let me elaborate
+elaborate by resource we mean a gpu resource it's
+by resource we mean a gpu resource it's something that the particle can read our
+something that the particle can read our particles are
+particles are explicit in nature
+explicit in nature they don't do anything
+they don't do anything on their own for example if you want to
+on their own for example if you want to emit something from a mesh
+emit something from a mesh you will need to bind that resource like
+you will need to bind that resource like mesh resource to the particle and then
+mesh resource to the particle and then manually
+manually look up the information from
+look up the information from uh from from those buffers
+uh from from those buffers so the buffers could be let's look at
+so the buffers could be let's look at what they could be
+what they could be we can have 2d textures 3d volumes
+we can have 2d textures 3d volumes and as i mentioned bone buffers vertex
+and as i mentioned bone buffers vertex buffers index buffers tangents and these
+buffers index buffers tangents and these kinds of things
+i think the best way is to approach this using a real example that we used quite
+using a real example that we used quite liberally in the game
+liberally in the game we have a real-time fluid simulation
+we have a real-time fluid simulation running at all times in the game
+running at all times in the game we've used this technique since alien
+we've used this technique since alien nation which was launched in 2016 so
+nation which was launched in 2016 so there's always at all times a grid-based
+there's always at all times a grid-based fluid simulation following the player
+fluid simulation following the player that the and the art artists are free to
+that the and the art artists are free to sample from that fluid simulation and
+sample from that fluid simulation and have the vegetation for example react or
+have the vegetation for example react or point particles or what they want to
+point particles or what they want to have there
+have there we can also have dedicated fluid
+we can also have dedicated fluid simulations for
+simulations for set-piece effects and throughout this
+set-piece effects and throughout this the rest of the remaining of this
+the rest of the remaining of this presentation we'll be watching a lot of
+presentation we'll be watching a lot of videos and i'll be commenting on the
+videos and i'll be commenting on the tech on those
+tech on those things
+things so we can start with the player
+so we can start with the player following fluid simulation those red
+following fluid simulation those red arrows
+arrows indicate how the velocity field is
+indicate how the velocity field is currently
+we can rasterize forces into the into the field we can also sample sdf and
+the field we can also sample sdf and rasterize objects
+into the field to get interesting motions
+motions here's an actual actual example from the
+here's an actual actual example from the game where the vegetation as as well as
+game where the vegetation as as well as the volumetric fog is using all of that
+the volumetric fog is using all of that as you can see when the enemy shoots at
+as you can see when the enemy shoots at you
+you the vegetation as well as the volumetric
+the vegetation as well as the volumetric fog will
+fog will move accordingly
+using resources is very very simple uh our our vfx systems are such that
+uh our our vfx systems are such that they you can think of them as modules
+they you can think of them as modules they are not coupled in code but they
+they are not coupled in code but they are coupled with data one module can
+are coupled with data one module can produce some data for example a
+produce some data for example a the fluid simulation gives you
+the fluid simulation gives you a volume which contains the velocities
+a volume which contains the velocities and you can feed that into the into the
+and you can feed that into the into the next
+next next module for example our particle
+next module for example our particle engine
+so in here can you see the mouse cursor i think you can but the idea is that you
+i think you can but the idea is that you set this kind of a we call it fluid vel
+set this kind of a we call it fluid vel so fluid velocity here and we grab it in
+so fluid velocity here and we grab it in that second line you can see that that's
+that second line you can see that that's what we call it and we use again our
+what we call it and we use again our meta language to expose these things to
+meta language to expose these things to the
+the gameplay side and we
+gameplay side and we we're free to sample from this velocity
+we're free to sample from this velocity field in fact we can even write to that
+field in fact we can even write to that velocity field from the particles
+velocity field from the particles and with this code well it's pretty
+and with this code well it's pretty simplistic but it actually doesn't take
+simplistic but it actually doesn't take too much to create this kind of an
+too much to create this kind of an effect
+effect uh we're just spawning a bunch of point
+uh we're just spawning a bunch of point particles in the middle
+particles in the middle and we have a constant it's kind of a
+and we have a constant it's kind of a repetitive
+repetitive fluid impulse
+fluid impulse blowing towards
+blowing towards that direction where you have that wall
+that direction where you have that wall and because we're automatically
+and because we're automatically rasterizing all of the
+rasterizing all of the all of the environments into the
+all of the environments into the obstacles you'll have very interesting
+obstacles you'll have very interesting looking motion there
+looking motion there it's super simple to do
+as i said we can or i don't know if i said but now i'll say we can use
+said but now i'll say we can use multiple resources we can have for
+multiple resources we can have for example a fluid velocity field as well
+example a fluid velocity field as well as a
+as a mesh buffer
+mesh buffer bound to the sim to the same particle
+bound to the sim to the same particle and you can do these kinds of things
+in this video you you will see white point particles attached to this
+white point particles attached to this mesh and once shot at
+mesh and once shot at they just get detached from the
+they just get detached from the uh from the
+uh from the uh from their positions and they follow
+uh from their positions and they follow the fluid velocity field and after some
+the fluid velocity field and after some kind of a cool down they will try to
+kind of a cool down they will try to figure out their way back to the
+figure out their way back to the original position
+original position we do have a
+example from the game we
+yeah there's trigger area you walk past that and you get these
+that and you get these we call these murals there's a better
+we call these murals there's a better term that i already forgot but the
+term that i already forgot but the i always call these by the
+i always call these by the names that we come up with them from a
+names that we come up with them from a technical point of view but well mural
+technical point of view but well mural isn't technical
+isn't technical anyway party goes look at
+them we let's talk a little bit about volumes because we use those
+volumes because we use those a lot
+a lot uh in resogun as well as next machina
+uh in resogun as well as next machina the whole world was constructed of
+the whole world was constructed of volumes here we take a different
+volumes here we take a different approach we use them using our resources
+approach we use them using our resources and we get volumes from uh fluid
+and we get volumes from uh fluid simulation we also have a real-time
+simulation we also have a real-time voxelizer that will be able to voxelize
+voxelizer that will be able to voxelize static measures and skeletal meshes
+static measures and skeletal meshes but we need to understand what volumes
+but we need to understand what volumes are they're basically 3d textures right
+are they're basically 3d textures right in a 2d texture have pixels here we have
+in a 2d texture have pixels here we have boxes
+boxes this video shows you how you can access
+this video shows you how you can access particles each point particle represents
+particles each point particle represents one voxel and they have an id
+one voxel and they have an id it's a flat number running from zero to
+it's a flat number running from zero to how however many voxels you have and
+how however many voxels you have and that can be converted into a voxel or a
+that can be converted into a voxel or a world position
+i'm not sure ken can you even can you read those numbers but there are numbers
+um we can use this for example for density
+we can use this for example for density fields
+fields so the particles again here in this case
+so the particles again here in this case we are writing to the gpu resource
+we are writing to the gpu resource previously previous examples showed how
+previously previous examples showed how we read from them here we are writing we
+we read from them here we are writing we are free to write to whatever boxes we
+are free to write to whatever boxes we just have to take care that we don't
+just have to take care that we don't have multiple multiple threads writing
+have multiple multiple threads writing into the same voxel
+this is an example showcasing how we use volumetric fog in our case on the right
+volumetric fog in our case on the right you can see a particle representation of
+you can see a particle representation of that volume and on the left you can see
+that volume and on the left you can see a volumetric fog that we make out of
+a volumetric fog that we make out of that
+that the idea is that you spawn some density
+the idea is that you spawn some density based on the
+based on the sdf and once you shoot at this thing the
+sdf and once you shoot at this thing the fluid simulation will advect the
+fluid simulation will advect the particles and you'll see particles
+particles and you'll see particles higher up also
+uh the artists were able to place these
+artists were able to place these volumetric fog components in the level
+volumetric fog components in the level using this kind of a very crude
+using this kind of a very crude visualization and once you press play it
+visualization and once you press play it looks something like that so the setup
+looks something like that so the setup was pretty simple
+was pretty simple and we use the player following fluid
+and we use the player following fluid simulation by the way in this so it's
+simulation by the way in this so it's very affordable just write your particle
+very affordable just write your particle code that does the advection and you
+code that does the advection and you for you basically read from the fluid
+for you basically read from the fluid velocity and affect the density simple
+velocity and affect the density simple right
+another use case we can of course make a mesh out of that density field we use
+mesh out of that density field we use marching cubes to extract the
+marching cubes to extract the extract the triangle mesh
+and we get that kind of a pie but we also have
+but we also have in return i think it was within the
+in return i think it was within the first five minutes if we're good you
+first five minutes if we're good you could reach this room which we call
+could reach this room which we call cavern there's a pit of fog and there's
+cavern there's a pit of fog and there's a sphere
+a sphere and
+and whenever i watch a video of people
+whenever i watch a video of people playing this game they just walk past
+playing this game they just walk past that sphere and it's i hate it there's
+that sphere and it's i hate it there's so much tech there's so much tech behind
+so much tech there's so much tech behind this thing
+this thing like there's okay i'll explain i'll just
+like there's okay i'll explain i'll just use the rest of the time on this slide
+use the rest of the time on this slide there's like there's a particle effect
+there's like there's a particle effect that spawns the density
+that spawns the density there's a fluid simulation dedicated one
+there's a fluid simulation dedicated one that drives i mean affects that density
+that drives i mean affects that density field that gets fed back to the fluid
+field that gets fed back to the fluid simulation that gets fed back to the
+simulation that gets fed back to the marching cubes and people walk past it
+marching cubes and people walk past it the gpu will perform
+the gpu will perform equally
+equally well if you shoot at it or don't
+respect the spear shoot at it
+as i mentioned we have a real-time voxelizer on the right-hand side we have
+voxelizer on the right-hand side we have a skeletal mesh on the left-hand side we
+a skeletal mesh on the left-hand side we have a particle present a representation
+have a particle present a representation of that thing and then we construct and
+of that thing and then we construct and this kind of isosurface out of it and we
+this kind of isosurface out of it and we just use a
+just use a translucent material on that
+translucent material on that it's very flexible again data only and
+it's very flexible again data only and the particle code i won't be showing it
+the particle code i won't be showing it here but it's super simple sample from
+here but it's super simple sample from this
+this voxel s result
+voxel s result spawn some density feed it to fit it to
+spawn some density feed it to fit it to fluid velocity
+fluid velocity make a marching cube surface out of it
+make a marching cube surface out of it done
+done and
+and as rista already mentioned in one of the
+as rista already mentioned in one of the bosses we
+bosses we used it on that skull that will appear
+used it on that skull that will appear three two one now
+three two one now and again shoot at that thing
+and again shoot at that thing you can shoot at it it has a dedicated
+you can shoot at it it has a dedicated fluid simulation there and if you shoot
+fluid simulation there and if you shoot at it you will be rewarded with
+at it you will be rewarded with this thing
+this thing it won't do any damage so you might
+it won't do any damage so you might actually die but it's worth it
+i'll wrap up now so the initial question was can we do it with particles
+was can we do it with particles i think we can
+thank you very much
+and let me say this one thing
+let me say this one thing we love to talk about this
+we love to talk about this our own vfx and bfx in general so we
+our own vfx and bfx in general so we invite all people who want to come into
+invite all people who want to come into was it
+was it to the wrap-up room it was maybe 204 or
+to the wrap-up room it was maybe 204 or seven four
+seven four either one
+either one will be in one of those
+will be in one of those okay thanks
+okay thanks [Music]
+[Music] you

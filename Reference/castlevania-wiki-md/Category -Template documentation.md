@@ -1,0 +1,5 @@
+# Category:Template documentation
+
+This category should contain all **template documentation pages**. See Template:Documentation for more details.
+
+Category: Templates

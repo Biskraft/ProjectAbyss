@@ -1,0 +1,826 @@
+[Music] hello welcome to bringing hell to life
+hello welcome to bringing hell to life AI and full body animation in Doom I
+AI and full body animation in Doom I want to thank you all for coming today I
+want to thank you all for coming today I really appreciate it my name is Jake
+really appreciate it my name is Jake Campbell I'm an AI developer I did
+Campbell I'm an AI developer I did software and for those who don't know
+software and for those who don't know Doom was released last year and it's our
+Doom was released last year and it's our reimagining and modernization of the
+reimagining and modernization of the series and since release it has gone on
+series and since release it has gone on to receive a number of awards and
+to receive a number of awards and nominations
+nominations now the underlying theme of this talk is
+now the underlying theme of this talk is how we have given our AI more direct
+how we have given our AI more direct control over their animations they eye
+control over their animations they eye does not drive the character with stick
+does not drive the character with stick input and button presses in our system
+input and button presses in our system there's not really a clear distinction
+there's not really a clear distinction between AI code and character code and
+between AI code and character code and along with that we rely heavily on
+along with that we rely heavily on full-body animation rather than a
+full-body animation rather than a partial body or layered approach this
+partial body or layered approach this presentation is split into three
+presentation is split into three segments first I'm going to explain some
+segments first I'm going to explain some of the reasons that we went with a
+of the reasons that we went with a direct control approach then I'm gonna
+direct control approach then I'm gonna provide four examples of how our AI
+provide four examples of how our AI makes use of this extra control and
+makes use of this extra control and finally I'm going to conclude with an
+finally I'm going to conclude with an example of how it all works together to
+example of how it all works together to influence the ways we implement certain
+influence the ways we implement certain behaviors now our most defining feature
+behaviors now our most defining feature which is a diverse cast of enemies was
+which is a diverse cast of enemies was the source of two primary factors that
+the source of two primary factors that influenced how much control we gave our
+influenced how much control we gave our AI RA our game contains 19 a types each
+AI RA our game contains 19 a types each with many custom behaviors that imply
+with many custom behaviors that imply custom animation solutions along with
+custom animation solutions along with that the game fiction and genre dictate
+that the game fiction and genre dictate that animation style is of utmost
+that animation style is of utmost importance so the goal of minimizing
+importance so the goal of minimizing constraints that inhibit animator
+constraints that inhibit animator creativity was one of the significant
+creativity was one of the significant factors over the duration of the project
+factors over the duration of the project if the AI requires things like shorter
+if the AI requires things like shorter animations multiple layers pose matching
+animations multiple layers pose matching etc those can quickly add up to have a
+etc those can quickly add up to have a net impact on a final result animators
+net impact on a final result animators can typically deliver the most stylish
+can typically deliver the most stylish and impressive results when they can
+and impressive results when they can focus on the animation itself rather
+focus on the animation itself rather than technicalities
+than technicalities and nothing looks as good as a well-made
+and nothing looks as good as a well-made full-body animation full of style and
+full-body animation full of style and personality a great example of how
+personality a great example of how successful an unconstrained
+successful an unconstrained straightforward approach can be is the
+straightforward approach can be is the response of REI to damage now there are
+response of REI to damage now there are four general categories of damage
+four general categories of damage response each being more severe than the
+response each being more severe than the previous and there are also different
+previous and there are also different severa T's within each category this
+severa T's within each category this ends up being a lot of animations
+ends up being a lot of animations twitches our additives animations that
+twitches our additives animations that are played in layers over whatever the
+are played in layers over whatever the AI is currently doing now they are not
+AI is currently doing now they are not full-body but I'm including them here
+full-body but I'm including them here for completeness and to illustrate that
+for completeness and to illustrate that we do use partial body solutions at
+we do use partial body solutions at times but anything more severe than
+times but anything more severe than twitches like a standard pain is just a
+twitches like a standard pain is just a straightforward full bloody animation an
+straightforward full bloody animation an hour pain animations often move to
+hour pain animations often move to characters and animators find great
+characters and animators find great enjoyment and authoring this kind of
+enjoyment and authoring this kind of content a special category of full-body
+content a special category of full-body animal full a special category of pain
+animal full a special category of pain animation is what we call a stagger and
+animation is what we call a stagger and the player can execute synchronized
+the player can execute synchronized glory kills against staggered enemies
+glory kills against staggered enemies standard deaths start out as full body
+standard deaths start out as full body animations but they blended to ragdoll
+animations but they blended to ragdoll physics as the model is falling and
+physics as the model is falling and classic deaths include multiple separate
+classic deaths include multiple separate skeletal meshes all animating in
+skeletal meshes all animating in sequence for example a hell night's limb
+sequence for example a hell night's limb being severed and animating along with
+being severed and animating along with the rest of his body
+the rest of his body now many classic deaths involve animated
+now many classic deaths involve animated gifs because we wanted to give the
+gifs because we wanted to give the animators control over every facet of
+animators control over every facet of the presentation all of this content was
+the presentation all of this content was manageable and successful across more
+manageable and successful across more than 10 unique character skeletons
+than 10 unique character skeletons because we just let the animators have
+because we just let the animators have at it
+at it the other significant factor in forming
+the other significant factor in forming our approach was the goal of adding
+our approach was the goal of adding sophisticated polish to characters in
+sophisticated polish to characters in order to make them feel as alive as
+order to make them feel as alive as possible this is kind of obvious right
+possible this is kind of obvious right but we wanted the ability to easily add
+but we wanted the ability to easily add or modify behaviors in ways that
+or modify behaviors in ways that increase responsiveness while
+increase responsiveness while maintaining the style and cadence of
+maintaining the style and cadence of full body animation an example is our
+full body animation an example is our imp
+imp performing the conceptually simple
+performing the conceptually simple behavior of throwing a fireball which
+behavior of throwing a fireball which ends up being quite sophisticated the
+ends up being quite sophisticated the projectile throws follow parabolic arcs
+projectile throws follow parabolic arcs and the m's lead their targets so
+and the m's lead their targets so validating these potential trajectory
+validating these potential trajectory paths entails a non-trivial
+paths entails a non-trivial set of tests that requires timing and
+set of tests that requires timing and pose information from the animations
+pose information from the animations themselves furthermore to improve
+themselves furthermore to improve presentation our amps try to release
+presentation our amps try to release their fireball not on a fixed frame but
+their fireball not on a fixed frame but when the tangent of the arc that their
+when the tangent of the arc that their hand joint follows matches the desired
+hand joint follows matches the desired launch angle just like they're on a
+launch angle just like they're on a baseball and since a target is typically
+baseball and since a target is typically moving throughout a wind-up this
+moving throughout a wind-up this essentially couples the animation with
+essentially couples the animation with the AI targeting systems then we wanted
+the AI targeting systems then we wanted to give the m4 the ability to throw
+to give the m4 the ability to throw during stop transitions and evasion hops
+during stop transitions and evasion hops which is coupling attack behavior and
+which is coupling attack behavior and locomotion animation selection on top of
+locomotion animation selection on top of all this we added stronger fast ball
+all this we added stronger fast ball throws that require a looping charge
+throws that require a looping charge animation shown there that can be
+animation shown there that can be aborted when the angle to the target
+aborted when the angle to the target exceeds a threshold so why give the AI
+exceeds a threshold so why give the AI more animation control though to sum up
+more animation control though to sum up the two goals or keep the animators from
+the two goals or keep the animators from being unnecessarily constrained the
+being unnecessarily constrained the thing that they do best is animate
+thing that they do best is animate straightforward full-body animations
+straightforward full-body animations that play out the way they see them in
+that play out the way they see them in their tools and second make it easier
+their tools and second make it easier for the AI to do more sophisticated
+for the AI to do more sophisticated things without needing to constantly
+things without needing to constantly refactor non-ai code in ways that only
+refactor non-ai code in ways that only the AI ultimately benefits from now both
+the AI ultimately benefits from now both goals are reached by shifting animation
+goals are reached by shifting animation control to the AI because then using
+control to the AI because then using full-body animations to construct and
+full-body animations to construct and improve behaviors is a straightforward
+improve behaviors is a straightforward and that's a known quantity they become
+and that's a known quantity they become the ideal building block for whatever we
+the ideal building block for whatever we want to do now the AI code can do extra
+want to do now the AI code can do extra work on its end to make better use of
+work on its end to make better use of full-body animations today I'm going to
+full-body animations today I'm going to talk about four examples our AI modify
+talk about four examples our AI modify animation translation and rotation using
+animation translation and rotation using a technique we call Delta correction
+a technique we call Delta correction their focus tracking involves modifying
+their focus tracking involves modifying animation pose our foot phase
+animation pose our foot phase synchronization requires being able to
+synchronization requires being able to modify playback rate and position and
+modify playback rate and position and the way our AI perform bad zone
+the way our AI perform bad zone avoidance is somewhat counterintuitive
+avoidance is somewhat counterintuitive way of modifying blend weights so the
+way of modifying blend weights so the first way our AI try to make the
+first way our AI try to make the animations more useful is by influencing
+animations more useful is by influencing the origin bone or root bone depending
+the origin bone or root bone depending on the engine you use translation and/or
+on the engine you use translation and/or rotation the primary use of this in our
+rotation the primary use of this in our code is what we call Delta correction
+code is what we call Delta correction and the basic idea is scaling or luring
+and the basic idea is scaling or luring the translation and/or rotation of a non
+the translation and/or rotation of a non bilenda full-body animation we take a
+bilenda full-body animation we take a single animation here and jumping
+single animation here and jumping forward and we make it usable and an
+forward and we make it usable and an infinite number of scenarios within
+infinite number of scenarios within reason and effectively this allows the
+reason and effectively this allows the AI to use far fewer animations yet
+AI to use far fewer animations yet retain the ability to move where it
+retain the ability to move where it wants when playing those animations now
+wants when playing those animations now in the following slides I focus mostly
+in the following slides I focus mostly on translation but the system is deeply
+on translation but the system is deeply powerful and is used just as much with
+powerful and is used just as much with rotation so here we have an M playing a
+rotation so here we have an M playing a gap jump animation but the animation
+gap jump animation but the animation doesn't automatically place them where
+doesn't automatically place them where we want in the world which is that the
+we want in the world which is that the red star so how do we fix that well if
+red star so how do we fix that well if the model is at point X at time T sub C
+the model is at point X at time T sub C you first want to define a reference
+you first want to define a reference point in the animation this is what you
+point in the animation this is what you want to align with the target position
+want to align with the target position by the time that time in the animation
+by the time that time in the animation is reached and here the time at the
+is reached and here the time at the reference point is T sub n we argue now
+reference point is T sub n we argue now what the target point is just label Z
+what the target point is just label Z the Delta between those defines the
+the Delta between those defines the remaining error that's going to need to
+remaining error that's going to need to be applied before the animation finishes
+be applied before the animation finishes but how much of this error should be
+but how much of this error should be applied on the next time slice of the
+applied on the next time slice of the animation well find the next time T sub
+animation well find the next time T sub C plus 1 and then the ratio of the next
+C plus 1 and then the ratio of the next time slice to the remaining time in the
+time slice to the remaining time in the animation to the reference point defines
+animation to the reference point defines the fraction to apply on the next game
+the fraction to apply on the next game frame so we do that and it moves the
+frame so we do that and it moves the model a little bit towards a target
+model a little bit towards a target point now applying the same equation
+point now applying the same equation each game frame will ensure the
+each game frame will ensure the animation point Y coincides with whirl
+animation point Y coincides with whirl point Z under a wide variety of
+point Z under a wide variety of conditions in particular if the
+conditions in particular if the conditions change such that the
+conditions change such that the reference point is prior to the window
+reference point is prior to the window of Correction the target point is before
+of Correction the target point is before the animation or behind the model and
+the animation or behind the model and even if the window of Correction ends
+even if the window of Correction ends before the animation the math stays
+before the animation the math stays exactly the same
+exactly the same applying the same equation gets a
+applying the same equation gets a different result in this case correction
+different result in this case correction is backwards and the math aligns the
+is backwards and the math aligns the model as if as if the animation has hit
+model as if as if the animation has hit the target point essentially correcting
+the target point essentially correcting to a point in the past rather than the
+to a point in the past rather than the future now given an animation like this
+future now given an animation like this traversal where the amp is leaping up to
+traversal where the amp is leaping up to grab hold of an overhanging climbing
+grab hold of an overhanging climbing over it and jumping off
+over it and jumping off can more effectively use Delta
+can more effectively use Delta correction if we restrict the
+correction if we restrict the application to discrete windows of the
+application to discrete windows of the animation for example to prevent sliding
+animation for example to prevent sliding and/or clipping we can apply the error
+and/or clipping we can apply the error correction only when the model is
+correction only when the model is completely free of world contacts in
+completely free of world contacts in this case in the air now defining
+this case in the air now defining windows like this where the correction
+windows like this where the correction will not cause foot sliding is
+will not cause foot sliding is absolutely essential in most cases you
+absolutely essential in most cases you can even use multiple windows if you
+can even use multiple windows if you want for example maybe you want to
+want for example maybe you want to separate translation correction from
+separate translation correction from rotation correction now the power of
+rotation correction now the power of using windows is that the AI is able to
+using windows is that the AI is able to treat a single animation as a sequence
+treat a single animation as a sequence of multiple parts without the animators
+of multiple parts without the animators needing to do the work of cutting it up
+needing to do the work of cutting it up some more subtleties in our approach if
+some more subtleties in our approach if you really want to minimize the
+you really want to minimize the perception of error correction you can
+perception of error correction you can scale the fractional amount of
+scale the fractional amount of correction each frame by the relative
+correction each frame by the relative velocity of the model in that frame in
+velocity of the model in that frame in other words you hide the correction
+other words you hide the correction behind a faster moving model and most
+behind a faster moving model and most importantly because the math is repeated
+importantly because the math is repeated each game frame rather than just once at
+each game frame rather than just once at the beginning of the animation a target
+the beginning of the animation a target point moving through the world is
+point moving through the world is automatically accounted for in this case
+automatically accounted for in this case assume that our target point is moving
+assume that our target point is moving upwards like that during the animation
+upwards like that during the animation well the system simply plays catch-up
+well the system simply plays catch-up and increasingly applies more error
+and increasingly applies more error correction each frame some examples of
+correction each frame some examples of where we use Delta correction
+where we use Delta correction extensively are traversals and attacks
+extensively are traversals and attacks now in all these videos the blue lines
+now in all these videos the blue lines correspond to windows of delta
+correspond to windows of delta correction we have a library of
+correction we have a library of traversal animations that is orders of
+traversal animations that is orders of magnitude smaller than they use cases
+magnitude smaller than they use cases and levels scaling the traversals lets
+and levels scaling the traversals lets the animators deliver highly stylized
+the animators deliver highly stylized and unique animations for them while
+and unique animations for them while also allowing designers nearly unlimited
+also allowing designers nearly unlimited use of those animations in their levels
+use of those animations in their levels and we also Delta correct melee attacks
+and we also Delta correct melee attacks such as the rotational yo of swipes the
+such as the rotational yo of swipes the forward translation of lunges the arc of
+forward translation of lunges the arc of leaps all of this helps the AI feel more
+leaps all of this helps the AI feel more engaged they can relentlessly pursue the
+engaged they can relentlessly pursue the target with less requirements to
+target with less requirements to reposition and orient themselves
+reposition and orient themselves properly prior to the next attack and
+properly prior to the next attack and scaling leaps in particular allows the
+scaling leaps in particular allows the AI to attack across a wider variety of
+AI to attack across a wider variety of level conditions in this case
+level conditions in this case hell night is able to leap up and down
+hell night is able to leap up and down the stairs by delta correcting the same
+the stairs by delta correcting the same animations that he uses on flat ground a
+animations that he uses on flat ground a second example of the controller I have
+second example of the controller I have over animation is changing their pose to
+over animation is changing their pose to track a target with their torso head or
+track a target with their torso head or weapons now the canonical name we use
+weapons now the canonical name we use for this is focus tracking we use a
+for this is focus tracking we use a hybrid indras kinematic and forward
+hybrid indras kinematic and forward kinematics solution but hereafter I'm
+kinematics solution but hereafter I'm gonna refer to it as AI K drink the
+gonna refer to it as AI K drink the basics of focus tracking is
+basics of focus tracking is straightforward first you find an
+straightforward first you find an effector transform in a reference pose
+effector transform in a reference pose now when I say effector I'm speaking of
+now when I say effector I'm speaking of the end effector and an IKE a joint
+the end effector and an IKE a joint chain and I'm going to explain this in a
+chain and I'm going to explain this in a few slides but how the reference pose is
+few slides but how the reference pose is composed is extremely important the next
+composed is extremely important the next step is finding a desired transform for
+step is finding a desired transform for the effector in this case it looks like
+the effector in this case it looks like the helmet wants to look to the right
+the helmet wants to look to the right using AI K calculate the rotation that
+using AI K calculate the rotation that bring the effector into the desired
+bring the effector into the desired transform then spread those rotations
+transform then spread those rotations across the desired joints in the ika
+across the desired joints in the ika chain underneath the effector now since
+chain underneath the effector now since the spreading like this will introduce
+the spreading like this will introduce inaccuracy if you desire perfect
+inaccuracy if you desire perfect alignment you can recalculate error at
+alignment you can recalculate error at each joints as you go up the chain or
+each joints as you go up the chain or just the final joint in the chain then
+just the final joint in the chain then we add the joint rotations to the
+we add the joint rotations to the current animation pose now notice that
+current animation pose now notice that this is identical to an additive
+this is identical to an additive animation conceptually we're just making
+animation conceptually we're just making an adaptive animation on the fly
+an adaptive animation on the fly I mentioned that calculating error once
+I mentioned that calculating error once and naively spreading it across multiple
+and naively spreading it across multiple joints introduces inaccuracy but that's
+joints introduces inaccuracy but that's exactly what our AI do and yet they are
+exactly what our AI do and yet they are accurate even at range so in practice
+accurate even at range so in practice the air isn't much on smaller characters
+the air isn't much on smaller characters especially the way we calculate angular
+especially the way we calculate angular error in rik is what we call the circle
+error in rik is what we call the circle trick given an eye-catching or a joint
+trick given an eye-catching or a joint chain rooted at P and a target T that
+chain rooted at P and a target T that you want to line with first create a
+you want to line with first create a sphere around P that intersects T then
+sphere around P that intersects T then simply extend the array from the
+simply extend the array from the effector and fly where intersects the
+effector and fly where intersects the sphere this case I've labeled at E those
+sphere this case I've labeled at E those two intersections
+two intersections on the sphere define an angle here
+on the sphere define an angle here labeled a and rotating the route by a is
+labeled a and rotating the route by a is going to align the effector like that
+going to align the effector like that now often we want to preserve animation
+now often we want to preserve animation content on the skeleton and while
+content on the skeleton and while tracking a target to do this we limit
+tracking a target to do this we limit the rotations visible to the eye K and
+the rotations visible to the eye K and it calculates air from a single pose of
+it calculates air from a single pose of the animation that stays constant here I
+the animation that stays constant here I have included a very embellished
+have included a very embellished thoughts from the hell night and an even
+thoughts from the hell night and an even more flavor for reaction from the
+more flavor for reaction from the revenant in both cases notice how
+revenant in both cases notice how animation rotations in the head and
+animation rotations in the head and torso are fully preserved as the
+torso are fully preserved as the characters tracked the target circling
+characters tracked the target circling around them a preserving animation
+around them a preserving animation content is just as useful for subtle
+content is just as useful for subtle embellishment in this case notice how
+embellishment in this case notice how the mane cubist appears to be glancing
+the mane cubist appears to be glancing back and forth a little as he is looking
+back and forth a little as he is looking at us that's actually part of the
+at us that's actually part of the animation that is not focus tracking and
+animation that is not focus tracking and being able to preserve animation like
+being able to preserve animation like this also makes it simple to implement
+this also makes it simple to implement behaviors like sweeps in this case the
+behaviors like sweeps in this case the hello razors focus tracking is merely
+hello razors focus tracking is merely adding some pitch to his lower back it
+adding some pitch to his lower back it is the animation itself that sweeps the
+is the animation itself that sweeps the beam back and forth i ka is not even
+beam back and forth i ka is not even aware that this guy's arm is moving so
+aware that this guy's arm is moving so when we talk about what rotations are
+when we talk about what rotations are visible to an effector when it generates
+visible to an effector when it generates a reference pose we're speaking of what
+a reference pose we're speaking of what information the joints in ni ke chain
+information the joints in ni ke chain inherit from their parents for example
+inherit from their parents for example the head effectors chain and this hell
+the head effectors chain and this hell night inherits only the icao tations
+night inherits only the icao tations from the torso joints underneath it the
+from the torso joints underneath it the debug arrows shown in the video display
+debug arrows shown in the video display the joint transforms visible to the eye
+the joint transforms visible to the eye K system as it builds a reference pose
+K system as it builds a reference pose for the head to calculate air I'll
+for the head to calculate air I'll observe how those transforms maintain a
+observe how those transforms maintain a constant position and orientation
+constant position and orientation despite the wildly changing animation on
+despite the wildly changing animation on the upper body in other words the
+the upper body in other words the reference pose is constant throughout
+reference pose is constant throughout the animation now this implies that the
+the animation now this implies that the rotations iCade generates to aim the
+rotations iCade generates to aim the head are going to be constant as well
+head are going to be constant as well the animation rotations are not
+the animation rotations are not counteracted in contrast if an effectors
+counteracted in contrast if an effectors chain inherits the animation rotations
+chain inherits the animation rotations that change from frame to frame it will
+that change from frame to frame it will calculate counter rotations and the
+calculate counter rotations and the animation will be counteracted
+animation will be counteracted for example look at the reference poses
+for example look at the reference poses calculated for the shoulder Canon
+calculated for the shoulder Canon effectors of the revenant they're moving
+effectors of the revenant they're moving like crazy with the animation they
+like crazy with the animation they inherit the actual animation rotations
+inherit the actual animation rotations the I cake counteracts those rotations
+the I cake counteracts those rotations and the guns are conceptually locked on
+and the guns are conceptually locked on target with almost all animation
+target with almost all animation rotation being removed because proper
+rotation being removed because proper usage of a system like this requires
+usage of a system like this requires reference poses that are fairly
+reference poses that are fairly representative of the current animation
+representative of the current animation behavior swapping effector datasets is
+behavior swapping effector datasets is common for example in a forward aiming
+common for example in a forward aiming animation the main kiba's uses an
+animation the main kiba's uses an effector that is conceptually forward
+effector that is conceptually forward while in another animation it might use
+while in another animation it might use an aim right now since the system
+an aim right now since the system generates a set of rotations that are
+generates a set of rotations that are essentially added to pose swapping is
+essentially added to pose swapping is easy simply generate the rotations for
+easy simply generate the rotations for each effector independently and then
+each effector independently and then blend from one set to another just like
+blend from one set to another just like you would blend any other set of
+you would blend any other set of additive animations this system also
+additive animations this system also easily handles multiple effectors in a
+easily handles multiple effectors in a tree topology as long as they are
+tree topology as long as they are evaluated in order of inheritance such
+evaluated in order of inheritance such that each child inherits the rotations
+that each child inherits the rotations of its parent the math just works in
+of its parent the math just works in this case the torso focus inherits
+this case the torso focus inherits nothing as parented to the origin this
+nothing as parented to the origin this is similar to the hybrid joint that the
+is similar to the hybrid joint that the previous talk mentioned the head focus
+previous talk mentioned the head focus is a child of the torso focus in terms
+is a child of the torso focus in terms of I K so it inherits the eye key
+of I K so it inherits the eye key rotations but for animation purposes it
+rotations but for animation purposes it is a child of the origin so it inherits
+is a child of the origin so it inherits no animation but we want the shoulder
+no animation but we want the shoulder guns to aim directly at you so they
+guns to aim directly at you so they inherit both the eye Caro tations from
+inherit both the eye Caro tations from the torso focus and the current pose
+the torso focus and the current pose from the animation the third control
+from the animation the third control mechanism available to the AI is access
+mechanism available to the AI is access to the playback rate and time in the
+to the playback rate and time in the animations themselves an example is the
+animations themselves an example is the way the RAI use foot face tracking to
+way the RAI use foot face tracking to synchronize animations now this is
+synchronize animations now this is important to us because we remove the
+important to us because we remove the need to match both footstep counts and
+need to match both footstep counts and poses amongst locomotion cycles and
+poses amongst locomotion cycles and animations that blend into such cycles
+animations that blend into such cycles for example this is ambiance and blend
+for example this is ambiance and blend space shown in the video on the left is
+space shown in the video on the left is composed of animations with different
+composed of animations with different footstep counts yet we are able to
+footstep counts yet we are able to seamlessly synchronize their playback
+seamlessly synchronize their playback forward is at least four cycles while
+forward is at least four cycles while left
+left and backward are two cycles each showing
+and backward are two cycles each showing the videos on the right now we use four
+the videos on the right now we use four markers to keep track of foot face why
+markers to keep track of foot face why four and not - because directionality is
+four and not - because directionality is encoded in a sequence of four but not in
+encoded in a sequence of four but not in two in other words the sequence 1 2 3 4
+two in other words the sequence 1 2 3 4 1 clearly defines a forward direction
+1 clearly defines a forward direction while the sequence 1 2 1 2 1 does not
+while the sequence 1 2 1 2 1 does not the four markers we use our left foot
+the four markers we use our left foot plant right knee cross left leg right
+plant right knee cross left leg right foot plant and left knee cross right leg
+foot plant and left knee cross right leg now suppose we have two animations that
+now suppose we have two animations that we want to play in sync animation a and
+we want to play in sync animation a and animation B further suppose that
+animation B further suppose that animation a has twice as many footsteps
+animation a has twice as many footsteps as animation B yet the time between
+as animation B yet the time between footsteps and animation B is longer
+footsteps and animation B is longer first get the current frame of each
+first get the current frame of each animation then advance each animation as
+animation then advance each animation as if they are not synchronized just
+if they are not synchronized just assuming they have the same playback
+assuming they have the same playback rate we'll come up with a contrived
+rate we'll come up with a contrived number 1.3 animation frames then you
+number 1.3 animation frames then you want to convert those frame deltas to
+want to convert those frame deltas to Fey's deltas now note since animation B
+Fey's deltas now note since animation B is a longer span between foot steps it's
+is a longer span between foot steps it's going to have a smaller fraction of the
+going to have a smaller fraction of the face then we want to find the weighted
+face then we want to find the weighted average weighted by blend contribution I
+average weighted by blend contribution I apologize that the number in the math
+apologize that the number in the math does not match the number in the picture
+does not match the number in the picture the essential thing is that we're
+the essential thing is that we're finding a single average phase amongst
+finding a single average phase amongst all the animations weighted by their
+all the animations weighted by their blend values in this case because
+blend values in this case because animation is B is 66 percent of the
+animation is B is 66 percent of the blend the end result point 1/9 is closer
+blend the end result point 1/9 is closer to its original value of 0.1 7 and then
+to its original value of 0.1 7 and then we take that single average phase and
+we take that single average phase and convert it back to animation frame
+convert it back to animation frame Delta's which are going to be different
+Delta's which are going to be different for each animation and then advance each
+for each animation and then advance each animation with the new numbers now they
+animation with the new numbers now they are synchronized
+are synchronized now observe how in this example
+now observe how in this example animation B will be cycling from start
+animation B will be cycling from start to finish much faster than animation a
+to finish much faster than animation a that's ok that's what it's supposed to
+that's ok that's what it's supposed to be doing
+be doing 1/4 control the AI makes use of is
+1/4 control the AI makes use of is manipulating blend values through a
+manipulating blend values through a number of means now one example is bad
+number of means now one example is bad zone avoidance here we have some
+zone avoidance here we have some hypothetical edges in a walking
+hypothetical edges in a walking revenants 360 degree blend
+revenants 360 degree blend space a bad zone is an area of this
+space a bad zone is an area of this blend space where the animations don't
+blend space where the animations don't work well together when played
+work well together when played simultaneously perhaps the blend here
+simultaneously perhaps the blend here colored in red now what do these bad
+colored in red now what do these bad blends look like well do may I does not
+blends look like well do may I does not suffer from bunny-hopping in bad zones
+suffer from bunny-hopping in bad zones because our foot phase synchronization
+because our foot phase synchronization prevents this instead we get foot
+prevents this instead we get foot mingling which is where the legs
+mingling which is where the legs interpenetrate during crossover events
+interpenetrate during crossover events in the animation and the hips just look
+in the animation and the hips just look awkward so I'm trying to find a decent
+awkward so I'm trying to find a decent solution of this we asked well what do
+solution of this we asked well what do humans do
+humans do well we our legs physically cannot
+well we our legs physically cannot mangle instead our bodies over are over
+mangle instead our bodies over are over run over or under rotate our hips
+run over or under rotate our hips relative our desired facing and
+relative our desired facing and relatives to our desired movement
+relatives to our desired movement heading and then we simply walk a little
+heading and then we simply walk a little differently to maintain those now the AI
+differently to maintain those now the AI used the same approach this is based on
+used the same approach this is based on the fact that the blend space is
+the fact that the blend space is conceptually parented to the models hips
+conceptually parented to the models hips meaning if you rotate the hips you will
+meaning if you rotate the hips you will rotate the blend space underneath them
+rotate the blend space underneath them given blend inputs in model space which
+given blend inputs in model space which is the desired facing of the hips and
+is the desired facing of the hips and the desired movement direction we simply
+the desired movement direction we simply rotate the hips and thus the blend space
+rotate the hips and thus the blend space like that until the move Direction is
+like that until the move Direction is out of the bad zone now unfortunately
+out of the bad zone now unfortunately this implies that the hips are no longer
+this implies that the hips are no longer going to align with the target the usual
+going to align with the target the usual reason we want hips to align with the
+reason we want hips to align with the target is just because the character
+target is just because the character wants to aim in that direction so we
+wants to aim in that direction so we just let the aim focus system fix the
+just let the aim focus system fix the difference now one additional item to
+difference now one additional item to note is that you should always over
+note is that you should always over rotate or under rotate the hips by the
+rotate or under rotate the hips by the minimum amount in other words find the
+minimum amount in other words find the nearest edge of the bad zone and always
+nearest edge of the bad zone and always rotate with that edge in mind in this
+rotate with that edge in mind in this first case since the desired move
+first case since the desired move direction was closer to the top of the
+direction was closer to the top of the bad zone we rotate clockwise but if the
+bad zone we rotate clockwise but if the desired movement direction is closer to
+desired movement direction is closer to the bottom edge we do the opposite some
+the bottom edge we do the opposite some subtleties about our particular
+subtleties about our particular implementation if the system did there
+implementation if the system did there is back and forth across a bad zone
+is back and forth across a bad zone rapidly it defeats the purpose of
+rapidly it defeats the purpose of avoiding them to solve this we treat the
+avoiding them to solve this we treat the system as a simple state machine and
+system as a simple state machine and simply prevent it from re-entering
+simply prevent it from re-entering States too quickly and then to refine
+States too quickly and then to refine the system even more we use foot phase
+the system even more we use foot phase to delay the switch across the zone
+to delay the switch across the zone until the ideal foot face has been
+until the ideal foot face has been reached in the animation now if used
+reached in the animation now if used correctly this kind of approach can help
+correctly this kind of approach can help prevent the brief foot mangling that
+prevent the brief foot mangling that would be inevitable if the if the bad
+would be inevitable if the if the bad zone was crossed at any arbitrary time
+zone was crossed at any arbitrary time in the animation so I've covered four
+in the animation so I've covered four examples of the ways that a I can
+examples of the ways that a I can improve the viability of a full-body
+improve the viability of a full-body solution and I want to conclude by going
+solution and I want to conclude by going a bit higher level and providing an
+a bit higher level and providing an example of how this can influence the
+example of how this can influence the behavior implementation and presentation
+behavior implementation and presentation as AI developers we have two goals that
+as AI developers we have two goals that we try to satisfy simultaneously we want
+we try to satisfy simultaneously we want the AI to feel as alive and responsive
+the AI to feel as alive and responsive as possible but at the same time we also
+as possible but at the same time we also want the player to enjoy their
+want the player to enjoy their experience and the combat in Doom is
+experience and the combat in Doom is critically acclaimed in large part
+critically acclaimed in large part because of how powerful it makes players
+because of how powerful it makes players feel they really enjoy beating up on the
+feel they really enjoy beating up on the enemies and we found that the cadence of
+enemies and we found that the cadence of the AI behavior is essential to this
+the AI behavior is essential to this power fantasy if the player understands
+power fantasy if the player understands enemy cadence they're able to avoid
+enemy cadence they're able to avoid attacks and exploit openings having so
+attacks and exploit openings having so many of our behaviors be structured as
+many of our behaviors be structured as sequences of discrete full-body
+sequences of discrete full-body animations means that the player is able
+animations means that the player is able to more easily read and understand this
+to more easily read and understand this cadence now you can really approach our
+cadence now you can really approach our enemies and sort of deeply dance with
+enemies and sort of deeply dance with them even the strongest demons because
+them even the strongest demons because of how clearly the animation is defying
+of how clearly the animation is defying their attacks
+their attacks now behaviors like this always work best
+now behaviors like this always work best in wide open areas and where the player
+in wide open areas and where the player stays in front of the enemies these are
+stays in front of the enemies these are ideal conditions but doom has a very
+ideal conditions but doom has a very dynamic player and all sorts of combat
+dynamic player and all sorts of combat spaces one approach we used to preserve
+spaces one approach we used to preserve as much of the rhythm of combat as we
+as much of the rhythm of combat as we could in less than ideal conditions is
+could in less than ideal conditions is that of driving behavior with animation
+that of driving behavior with animation sampling now conceptually this is the
+sampling now conceptually this is the practice of sampling animations against
+practice of sampling animations against a target and/or world to see which will
+a target and/or world to see which will work best the desired benefit is the
+work best the desired benefit is the ability to quickly transition to another
+ability to quickly transition to another attack without upsetting the cadence for
+attack without upsetting the cadence for longer than necessary as the debug
+longer than necessary as the debug output in his video shows at times we
+output in his video shows at times we like to go one step further and also
+like to go one step further and also sample multiple instances of the same
+sample multiple instances of the same animation against the world differing
+animation against the world differing from each other only in slight rotation
+from each other only in slight rotation elation offsets Dai then uses Delta
+elation offsets Dai then uses Delta correction to ensure that the animation
+correction to ensure that the animation playback mirrors those offsets in this
+playback mirrors those offsets in this way even if there's only a single attack
+way even if there's only a single attack animation that might reach the target
+animation that might reach the target our demons have a number of options to
+our demons have a number of options to choose amongst and there's almost always
+choose amongst and there's almost always at least one instance that they want
+at least one instance that they want that will fit on the navigation graph
+that will fit on the navigation graph and within world geometry driving AI
+and within world geometry driving AI decisions what sampling like this can
+decisions what sampling like this can really bring a behavior to life it feels
+really bring a behavior to life it feels extremely responsive but in all honesty
+extremely responsive but in all honesty being alive as an enemy in a game like
+being alive as an enemy in a game like doom has a lot to do with death and so
+doom has a lot to do with death and so coming full circle we return to damage
+coming full circle we return to damage response you know we perceive enemies as
+response you know we perceive enemies as the most alive when they react directly
+the most alive when they react directly to our actions in the game world and no
+to our actions in the game world and no player action is more deserving of a
+player action is more deserving of a reaction than causing damage so in an
+reaction than causing damage so in an ironic twist I think it can be argued
+ironic twist I think it can be argued that the best example of how we bring
+that the best example of how we bring hell to life is the way our heavy use of
+hell to life is the way our heavy use of pain and death animations makes hurting
+pain and death animations makes hurting and killing the enemies so satisfying so
+and killing the enemies so satisfying so giving all this control to our AI and
+giving all this control to our AI and building our behaviour with full-body
+building our behaviour with full-body animations worked out very well the
+animations worked out very well the animators really got to focus on their
+animators really got to focus on their craft and the animations in the game are
+craft and the animations in the game are just fantastic and the way those
+just fantastic and the way those animations are used helps the enemies
+animations are used helps the enemies feel like they are really living in this
+feel like they are really living in this game world an added bonus is that it was
+game world an added bonus is that it was really fun to develop these units you
+really fun to develop these units you know being able to easily and reliably
+know being able to easily and reliably get to AI to deal with animation content
+get to AI to deal with animation content having that amount of control on our end
+having that amount of control on our end made it super satisfying to offer the AI
+made it super satisfying to offer the AI that concludes the presentation I'd like
+that concludes the presentation I'd like to thank everyone again for coming here
+to thank everyone again for coming here today
+today GDC wants me to remind you do not forget
+GDC wants me to remind you do not forget to fill out the electronic evaluation
+to fill out the electronic evaluation for this talk if you have any questions
+for this talk if you have any questions I can answer it for you right now
+I can answer it for you right now otherwise I will be in the wrap-up rooms
+otherwise I will be in the wrap-up rooms afterwards to talk about whatever you
+afterwards to talk about whatever you guys want to chat about
+if
+let's go ahead great presentation by the way one of the questions I had is when
+way one of the questions I had is when you have a lot of a eyes who do a lunge
+you have a lot of a eyes who do a lunge melee at you and during those times do
+melee at you and during those times do you commit to the animations or force
+you commit to the animations or force especially for reactions do you have you
+especially for reactions do you have you considered or did you consider having
+considered or did you consider having additive pains during the melee lunges
+additive pains during the melee lunges to be able to continue have to have
+to be able to continue have to have reactions if the player shoots yeah yes
+reactions if the player shoots yeah yes so so the question is do we consider
+so so the question is do we consider having like a more additive paint
+having like a more additive paint approach so that the AI could continue
+approach so that the AI could continue their attacks while taking pain yes and
+their attacks while taking pain yes and no that's that's kind of what the twitch
+no that's that's kind of what the twitch pains ended up being and we did
+pains ended up being and we did experiment with sort of the idea of
+experiment with sort of the idea of pains being only a visual thing and not
+pains being only a visual thing and not interrupting the AI but it ended up
+interrupting the AI but it ended up being that the you know the feedback
+being that the you know the feedback that we got during play testing and
+that we got during play testing and iteration really suggested that people
+iteration really suggested that people like being able to stop the AI in their
+like being able to stop the AI in their tracks and in fact when we embrace that
+tracks and in fact when we embrace that decision to sort of make the pain this
+decision to sort of make the pain this discrete thing that you can put them in
+discrete thing that you can put them in it and then do whatever you want to them
+it and then do whatever you want to them that changed our gameplay from fee you
+that changed our gameplay from fee you know from kind of not knowing which
+know from kind of not knowing which direction wanted to go to this is
+direction wanted to go to this is absolutely what players are going to
+absolutely what players are going to enjoy and the game was made you know
+enjoy and the game was made you know much much better because of it now
+much much better because of it now that's not gonna work in everybody's
+that's not gonna work in everybody's situation but again because the power
+situation but again because the power fantasy of controlling the demons with
+fantasy of controlling the demons with your gun is kind of what makes the game
+your gun is kind of what makes the game so satisfying it really worked for us in
+so satisfying it really worked for us in our instance just a quick question on
+our instance just a quick question on the other part where you do the ika
+the other part where you do the ika correction for the upper body to be able
+correction for the upper body to be able to track the player yes do you give
+to track the player yes do you give control to the animators to control how
+control to the animators to control how much rotation based on the variations
+much rotation based on the variations within the animations for especially
+within the animations for especially because in some cases the hip looks good
+because in some cases the hip looks good and you know hands look good but in some
+and you know hands look good but in some other cases like you know the hands to
+other cases like you know the hands to not look as good so do you give control
+not look as good so do you give control very similar to the footsteps do you
+very similar to the footsteps do you give or do you give controls for the
+give or do you give controls for the windows or amount of angles
+windows or amount of angles or how much you are allowed to rotate
+or how much you are allowed to rotate procedure yes so the question is do we
+procedure yes so the question is do we what what level of control do we expose
+what what level of control do we expose for like the parameters that go into the
+for like the parameters that go into the I K so that the animators could say in
+I K so that the animators could say in this animation maybe constrain the
+this animation maybe constrain the angles a little more or or switch or
+angles a little more or or switch or whatever and yes we have full level of
+whatever and yes we have full level of control that's what I was talking about
+control that's what I was talking about in the slide about swapping effectors
+in the slide about swapping effectors our effector comes with a data set that
+our effector comes with a data set that defines all those attributes the clamp
+defines all those attributes the clamp values the rotation speeds which bones
+values the rotation speeds which bones it's parented to although we actually
+it's parented to although we actually use like a hybrid bone solution like I
+use like a hybrid bone solution like I said where we have an even an extra
+said where we have an even an extra layer of abstraction that we can specify
+layer of abstraction that we can specify in the tool and we can put an offset
+in the tool and we can put an offset from a bone for where the effector is
+from a bone for where the effector is and so all that kind of stuff is
+and so all that kind of stuff is encapsulated in the data set for a
+encapsulated in the data set for a single effector and we just swap back
+single effector and we just swap back and forth depending on which animation
+and forth depending on which animation we're playing or even multiple times in
+we're playing or even multiple times in the same animation depending on what the
+the same animation depending on what the needs are thank you very much welcome
+needs are thank you very much welcome hello I so first of all I would like to
+hello I so first of all I would like to thank you very much for providing this
+thank you very much for providing this incredibly insightful talk having all
+incredibly insightful talk having all the details that you provided about the
+the details that you provided about the nuances and selfies with regards to
+nuances and selfies with regards to effectors and also the use of planes in
+effectors and also the use of planes in order to dictate you know enemy movement
+order to dictate you know enemy movement and taking into account the diverse cast
+and taking into account the diverse cast of enemies that's kind of a hallmark of
+of enemies that's kind of a hallmark of the doom franchise I'm curious as to
+the doom franchise I'm curious as to what exactly Intel in terms of giving
+what exactly Intel in terms of giving each monster their unique traits and
+each monster their unique traits and personalities when it comes to you know
+personalities when it comes to you know animating in all of those different body
+animating in all of those different body parts and making them feel unique from
+parts and making them feel unique from my presentational standpoint and
+my presentational standpoint and addition to serving the gameplay through
+addition to serving the gameplay through their manifold combat functions I'm
+their manifold combat functions I'm sorry what what was the actual what what
+sorry what what was the actual what what question like you like basically in
+question like you like basically in terms of because each enemy has their
+terms of because each enemy has their own combat routines right and throwing
+own combat routines right and throwing the fireballs and
+the fireballs and you mentioned nuances Salty's like in
+you mentioned nuances Salty's like in terms of like how did you try to make
+terms of like how did you try to make them you know that much more
+them you know that much more distinguishable like from both a
+distinguishable like from both a presentational and gameplay standpoint
+presentational and gameplay standpoint given their diversity and also the fact
+given their diversity and also the fact that they add variety to the combat
+that they add variety to the combat right so the question is basically what
+right so the question is basically what did we do to really embrace the
+did we do to really embrace the diversity of the enemies and the simple
+diversity of the enemies and the simple answer is we gave a lot of that control
+answer is we gave a lot of that control to our animators you know we have
+to our animators you know we have previous videos where they sort of come
+previous videos where they sort of come up with ideas of what attacks might look
+up with ideas of what attacks might look like they are they are allowed to
+like they are they are allowed to basically make a character look
+basically make a character look animation wise however they think it
+animation wise however they think it should look and I mean there's you know
+should look and I mean there's you know there's feedback and iteration and
+there's feedback and iteration and meetings where things are rejected and
+meetings where things are rejected and things are embraced but at the end of
+things are embraced but at the end of the day it was mostly driven by giving a
+the day it was mostly driven by giving a lot of control to our animators and the
+lot of control to our animators and the awesome the thing about giving control
+awesome the thing about giving control to the animators is that as an AI
+to the animators is that as an AI developer or as anyone else on the team
+developer or as anyone else on the team you can come back the next day and maybe
+you can come back the next day and maybe you'll not even look at what an
+you'll not even look at what an animation looks like before the animator
+animation looks like before the animator plugs it in to replace a previous one
+plugs it in to replace a previous one and you'll play the game and all of a
+and you'll play the game and all of a sudden this thing will look amazing and
+sudden this thing will look amazing and have so much style and personality and
+have so much style and personality and it will surprise you and that's like you
+it will surprise you and that's like you know that's that's the moment when it's
+know that's that's the moment when it's really cool to be a game developer when
+really cool to be a game developer when like you're surprised by playing your
+like you're surprised by playing your own game just a day after you played it
+own game just a day after you played it because some content creator has put
+because some content creator has put something in that's just totally awesome
+something in that's just totally awesome and so I guess the short answer is we
+and so I guess the short answer is we let the animators Drive a lot of that
+let the animators Drive a lot of that all right well thank you very much I
+all right well thank you very much I again Congrats on the talk thank you

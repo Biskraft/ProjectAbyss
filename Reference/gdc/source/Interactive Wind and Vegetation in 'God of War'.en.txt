@@ -1,0 +1,1691 @@
+[Music] my name is sean feely
+my name is sean feely i'm a senior staff environment tech
+i'm a senior staff environment tech artist at sony santa monica studio
+artist at sony santa monica studio if you join our team and you want rosie
+if you join our team and you want rosie cheeks in your studio portrait just
+cheeks in your studio portrait just spend all weekend at the beach before
+spend all weekend at the beach before your first day like i did
+your first day like i did god of war is my first game which is
+god of war is my first game which is crazy to me
+crazy to me and for about eight years prior i worked
+and for about eight years prior i worked in film across the bay at pixar
+in film across the bay at pixar so if i over explain some obvious game
+so if i over explain some obvious game dev thing it's probably something that i
+dev thing it's probably something that i learned in my transition
+learned in my transition or if i underexplain and you have
+or if i underexplain and you have questions comments or a warning that
+questions comments or a warning that there's something in my teeth on camera
+there's something in my teeth on camera fire away at the real big feel on
+fire away at the real big feel on twitter
+so i hope you want to learn about our interactive wind system and god of war
+interactive wind system and god of war because that's what we're going to talk
+because that's what we're going to talk about today a lot
+about today a lot we're going to go deep enough that you
+we're going to go deep enough that you could go home and start implementing
+could go home and start implementing this but in case you're just getting
+this but in case you're just getting into tech art i've tried to make this
+into tech art i've tried to make this widely accessible
+widely accessible so let's dive in
+so let's dive in this talk has several chapters we will
+this talk has several chapters we will go over our goals for the system wind
+go over our goals for the system wind simulation wind motors wind receivers
+simulation wind motors wind receivers data and shader implementation tricks we
+data and shader implementation tricks we learned along the way and some extra
+learned along the way and some extra goodies like new approaches for
+goodies like new approaches for vegetation levels of detail and
+vegetation levels of detail and interactions
+interactions each of these chapters tries to answer a
+each of these chapters tries to answer a simple question
+simple question why are we doing this
+why are we doing this where is the wind
+where is the wind what makes it
+what makes it what reacts to it
+what reacts to it how does that work
+how does that work and how can we be better
+and how can we be better and after doing all of this work
+and after doing all of this work how can we reuse it to get further value
+how can we reuse it to get further value first let's get our bearings and talk
+first let's get our bearings and talk about the current state of the art
+about the current state of the art in a basic wind system you have wind
+in a basic wind system you have wind direction and speed
+direction and speed maybe it changes if you maintain state
+maybe it changes if you maintain state and accumulate texture movement
+and accumulate texture movement you have a noise texture or a procedural
+you have a noise texture or a procedural function that scrolls with the wind
+function that scrolls with the wind and then you move mesh vertices as the
+and then you move mesh vertices as the noise scrolls past
+noise scrolls past and you're done you've got yourself a
+and you're done you've got yourself a wind system go ahead and ship it
+wind system go ahead and ship it this is what most games seem to use
+this is what most games seem to use today and when we were in development
+today and when we were in development and if it does everything that you want
+and if it does everything that you want it's really all that you need
+it's really all that you need but i personally have been excited to
+but i personally have been excited to see some recent games pushing for more
+see some recent games pushing for more in this talk we are going to revisit
+in this talk we are going to revisit this system a few times as a
+this system a few times as a foundational point of reference and then
+foundational point of reference and then extend its concepts
+here's that simple wind system in one of our wind test scenes
+our wind test scenes now this looks fine it's certainly
+now this looks fine it's certainly shippable
+shippable but it's lacking a level of
+but it's lacking a level of interactivity and dynamism
+[Music] okay so what did we set out to do and
+okay so what did we set out to do and why what could a richer system get us
+why what could a richer system get us our player is powerful how can we extend
+our player is powerful how can we extend that to our environment
+that to our environment we have three goals for the shape of the
+we have three goals for the shape of the wind
+wind the players should be able to observe if
+the players should be able to observe if their actions affected wind and it
+their actions affected wind and it probably should they're playing as a god
+probably should they're playing as a god the player should be able to observe
+the player should be able to observe which way the wind is blowing
+which way the wind is blowing but at the same time the player should
+but at the same time the player should be able to observe spatial variety of
+be able to observe spatial variety of speed or direction
+speed or direction now a reminder that able to observe and
+now a reminder that able to observe and must observe are two different goals we
+must observe are two different goals we aimed for subtlety in an effort to avoid
+aimed for subtlety in an effort to avoid being distracting
+being distracting if we cannot achieve these goal three
+if we cannot achieve these goal three goals in most conditions i would say
+goals in most conditions i would say that the complexity increase of our
+that the complexity increase of our system is not worth it
+when developing our assets and workflows we need to respect those goals plus a
+we need to respect those goals plus a few more
+few more at a bare minimum i think we can do
+at a bare minimum i think we can do better if then if wind then wiggle
+better if then if wind then wiggle let's not just improve functionality but
+let's not just improve functionality but aim for better results even in
+aim for better results even in conditions that don't require a fully
+conditions that don't require a fully dynamic system
+dynamic system an isolated model should look good when
+an isolated model should look good when wind is blowing across it for all wind
+wind is blowing across it for all wind speeds
+speeds and a group of models should look good
+and a group of models should look good together when wind is blowing across
+together when wind is blowing across them
+them in other words neighboring models should
+in other words neighboring models should appear cohesive in their behavior
+appear cohesive in their behavior now that's a lot of constraints so given
+now that's a lot of constraints so given our fantasy setting and style
+our fantasy setting and style we didn't constrain ourselves to
+we didn't constrain ourselves to realistic behavior but believable
+realistic behavior but believable behavior
+behavior now i kind of made up that last one for
+now i kind of made up that last one for this presentation but it does reflect my
+this presentation but it does reflect my mindset during development this was
+mindset during development this was never pbr for
+never pbr for wind i like to think that what we
+wind i like to think that what we shipped achieves these goals let's jump
+shipped achieves these goals let's jump back to our test level and see what it
+back to our test level and see what it adds
+adds we can generate environmental effects
+we can generate environmental effects like the wind from that fan
+like the wind from that fan attacks can affect their surroundings
+attacks can affect their surroundings and you can throw the axe at or near
+and you can throw the axe at or near anything and watch as it reacts
+so let's get into how we built it first we need a place for the wind description
+we need a place for the wind description to live
+to live we're going to use what we already know
+we're going to use what we already know as a launch pad and modify it to achieve
+as a launch pad and modify it to achieve our established goals
+with that simple system we have a single wind vector for the environment
+wind vector for the environment and everything uses that value so the
+and everything uses that value so the wind is the same everywhere no matter
+wind is the same everywhere no matter where we are interested
+where we are interested we need wind to vary in space and time
+we need wind to vary in space and time alone this could be procedurally modeled
+alone this could be procedurally modeled with just a bunch of noise and if you
+with just a bunch of noise and if you can afford it more layers of noise
+can afford it more layers of noise almost always looks better
+almost always looks better but to highlight local effects and
+but to highlight local effects and player actions we need more control
+player actions we need more control we do this by storing and updating lots
+we do this by storing and updating lots of wind values within a volume of space
+of wind values within a volume of space [Music]
+[Music] now here's an in-game close-up of player
+now here's an in-game close-up of player attacks generating wind within this
+attacks generating wind within this volume
+volume here wind strength is in xyz and is
+here wind strength is in xyz and is visualized as rgb
+visualized as rgb viewed as horizontal slices of the
+viewed as horizontal slices of the volume texture
+volume texture now you could theoretically use any kind
+now you could theoretically use any kind of fluid simulation to update each frame
+of fluid simulation to update each frame 2d or 3d
+2d or 3d for our game it's a simple advection
+for our game it's a simple advection diffusion simulation in three dimensions
+diffusion simulation in three dimensions we render in the wind vectors we blur
+we render in the wind vectors we blur them and then we sample backwards to
+them and then we sample backwards to advance the wind forwards
+advance the wind forwards now if you saw rupert's talk earlier in
+now if you saw rupert's talk earlier in the week on implementation and
+the week on implementation and optimization you know how much i'm lying
+optimization you know how much i'm lying when i say that it's simple
+when i say that it's simple if you missed it and are interested in a
+if you missed it and are interested in a purely technical deep dive of our fluid
+purely technical deep dive of our fluid sim check it out when it gets posted on
+sim check it out when it gets posted on the gdc vault rupert was a great
+the gdc vault rupert was a great collaborator and made it easy to treat
+collaborator and made it easy to treat the sim volume as a black box that just
+the sim volume as a black box that just works
+a wind simulation volume covers a pretty large area its footprint is 32 by 32
+large area its footprint is 32 by 32 meters and its 16 meters tall you can
+meters and its 16 meters tall you can see kratos there for scale reference
+see kratos there for scale reference our 3d texture is at a one meter
+our 3d texture is at a one meter resolution
+resolution we aren't limited to cube voxels but
+we aren't limited to cube voxels but tests because
+tests because but test with uh flattened or tall
+but test with uh flattened or tall voxels didn't yield any strong winds for
+voxels didn't yield any strong winds for our use cases
+our use cases to get more out of our interactive area
+to get more out of our interactive area we center it on a point in front of the
+we center it on a point in front of the camera now we still need to simulate
+camera now we still need to simulate something behind the player so we only
+something behind the player so we only push forward about 25 percent to be
+push forward about 25 percent to be clear we also do this looking on the
+clear we also do this looking on the vertical axis as well so the portion of
+vertical axis as well so the portion of interactive volume on screen is
+interactive volume on screen is something like 24 by 24 by 12 meters
+something like 24 by 24 by 12 meters the goal in tuning these numbers is
+the goal in tuning these numbers is feature resolution and covering the
+feature resolution and covering the distances that the player can throw the
+distances that the player can throw the ax whether it's as far as high as
+ax whether it's as far as high as possible
+so now that we have a system that lets us control wind across space and time
+us control wind across space and time how do we actually manipulate that how
+how do we actually manipulate that how do we make something like that fan
+do we make something like that fan our wind primitive is called a wind
+our wind primitive is called a wind motor and there are a couple different
+motor and there are a couple different behaviors we have three basic shapes
+behaviors we have three basic shapes we have spheres
+we have spheres cylinders
+cylinders and cones
+and cones a cone is just a cylinder with one of
+a cone is just a cylinder with one of its radii set to zero
+its radii set to zero we can animate these shapes strengths
+we can animate these shapes strengths positions orientations and scales and
+positions orientations and scales and their wind output is rendered into the
+their wind output is rendered into the simulation volume
+simulation volume so what is their output well we have
+so what is their output well we have three simple distributions
+three simple distributions directional motors emit wind along their
+directional motors emit wind along their primary axis
+primary axis omni motors emit wind outwards from a
+omni motors emit wind outwards from a central point
+and vortex motors emit wind around the primary axis
+we also have a special fourth type of motor the wake motor
+motor the wake motor this outputs wind in the direction that
+this outputs wind in the direction that it travels proportional to its speed
+i'm going to pause here for a second these arrows are showing the pure
+these arrows are showing the pure direction of travel what we found works
+direction of travel what we found works better is to have the directions fan out
+better is to have the directions fan out a little bit
+a little bit so we combine the direction away from
+so we combine the direction away from the motor center
+the motor center and we do this with equal weight before
+and we do this with equal weight before scaling by speed
+scaling by speed this gives us a sort of pine cone shape
+this gives us a sort of pine cone shape for the wake motor
+for the wake motor and here's the output in motion
+and here's the output in motion this will be clear in a moment with an
+this will be clear in a moment with an in-game example using the full
+in-game example using the full simulation
+simulation and one last thing we use a two frame
+and one last thing we use a two frame average for the motion input now this
+average for the motion input now this gives us a little more outward angle on
+gives us a little more outward angle on tight curved paths like an axe swing
+tight curved paths like an axe swing now you might not need this and honestly
+now you might not need this and honestly we might not need this either it was not
+we might not need this either it was not intentional
+intentional late in the project we found that we
+late in the project we found that we were doing this accidentally by
+were doing this accidentally by computing the distance between the
+computing the distance between the current frame position and the previous
+current frame position and the previous frames previous position
+frames previous position i fixed the bug and well it looked
+i fixed the bug and well it looked better before and we'd authored most of
+better before and we'd authored most of our things so i ended the fix renamed
+our things so i ended the fix renamed the variable names to be more honest
+the variable names to be more honest game of the year
+so let's take a look at some in-game examples
+examples we get a lot of mileage out of wake
+we get a lot of mileage out of wake motors it's easily our most used wind
+motors it's easily our most used wind primitive we put them in effects that
+primitive we put them in effects that spawn on weapons
+spawn on weapons so we get a free ride from animation
+we create libraries of motors with animations to spawn like this large
+animations to spawn like this large burst instance
+here's a better look at that fan from our test level
+our test level now we didn't use directional motors
+now we didn't use directional motors quite as much as i thought we would
+quite as much as i thought we would i expected for example the dragon boss
+i expected for example the dragon boss fight to use them a lot but that battle
+fight to use them a lot but that battle was in a dead rocky area so there was
+was in a dead rocky area so there was nothing there to really blow around
+and i love this special attack this is textbook vortex motor
+so cool
+cool as the player levels up their gear we
+as the player levels up their gear we increase the wind strength of their
+increase the wind strength of their attacks it's a subtle effect but you can
+attacks it's a subtle effect but you can feel it
+and here's my best windy attack combo with late game items in total isolation
+with late game items in total isolation you can see how lots of moving wake
+you can see how lots of moving wake motors can begin to craft any of any of
+motors can begin to craft any of any of the other primitive shapes based on what
+the other primitive shapes based on what the animation is doing
+you can also make a huge directional motor larger than the volume itself
+motor larger than the volume itself and use that to shape wind for your
+and use that to shape wind for your level
+level at least that's what we thought and it
+at least that's what we thought and it was our initial approach e3 2016 used it
+was our initial approach e3 2016 used it but there's a problem with it it tends
+but there's a problem with it it tends to produce uneven results when you look
+to produce uneven results when you look in the direction wind is going it's very
+in the direction wind is going it's very strong
+strong but when you look back where it's coming
+but when you look back where it's coming from it's pretty weak
+from it's pretty weak tuning this is a series of painful
+tuning this is a series of painful compromises it just doesn't work
+compromises it just doesn't work so in that example you may have noticed
+so in that example you may have noticed that the simulation debug view shows a
+that the simulation debug view shows a gradient that matches the behavior that
+gradient that matches the behavior that we saw
+we saw why do we see this gradient
+why do we see this gradient well the fluid is accelerating as
+well the fluid is accelerating as expected but there's nothing outside the
+expected but there's nothing outside the box to push in from the edges so wind is
+box to push in from the edges so wind is slower on that side
+slower on that side we need this was something that we
+we need this was something that we needed to fix
+needed to fix so far we've been trying to use the
+so far we've been trying to use the simulation to replace the simple wind
+simulation to replace the simple wind system that i described in the intro
+system that i described in the intro but we can solve this gradient intro
+but we can solve this gradient intro issue by using the simple system to
+issue by using the simple system to define our ambient wind baseline
+define our ambient wind baseline we use this instead of comically large
+we use this instead of comically large motors and this lets wind exist outside
+motors and this lets wind exist outside the box and keeps the dynamic systems
+the box and keeps the dynamic systems tidy
+tidy plus we can use it to add an extra layer
+plus we can use it to add an extra layer of noise at the system level creating
+of noise at the system level creating localized pockets of gust and calm
+here's the same scene with the level wind altered using the ambient wind
+wind altered using the ambient wind component of our system
+component of our system with ambient wind handling the large
+with ambient wind handling the large far-reaching wind features combined with
+far-reaching wind features combined with dynamic wind handling the closer
+dynamic wind handling the closer interactive wind features we have a full
+interactive wind features we have a full enriched description of the movement of
+enriched description of the movement of air within our game world
+so we know where the wind is what reacts to it
+what reacts to it wind receivers
+wind receivers there are four receiver types that
+there are four receiver types that respond to wind and i've listed these in
+respond to wind and i've listed these in order of how excited i am to talk to you
+order of how excited i am to talk to you about them
+about them audio this is going to be quick because
+audio this is going to be quick because i don't know what i'm talking about
+i don't know what i'm talking about sometimes audio wants to know the wind
+sometimes audio wants to know the wind speed
+speed so we use a custom wise attribute so
+so we use a custom wise attribute so they can use this value to mix
+they can use this value to mix i told you it'd be quick
+i told you it'd be quick cloth not really thrilled to talk about
+cloth not really thrilled to talk about this one because
+this one because it didn't work for us but i'll tell you
+it didn't work for us but i'll tell you what we tried
+what we tried each cloth object would sample the wind
+each cloth object would sample the wind system once at its transform center
+system once at its transform center that force would be applied to each
+that force would be applied to each simulation point on the mesh
+simulation point on the mesh scaled down by the dot product of the
+scaled down by the dot product of the force direction and cloth normal
+force direction and cloth normal this is intended to give us variety of
+this is intended to give us variety of motion as cloth rotates and sways
+motion as cloth rotates and sways and as always we scroll some noise
+and as always we scroll some noise now why did this not ship
+now why did this not ship well we overhauled a lot of things for
+well we overhauled a lot of things for the new god of war you might have
+the new god of war you might have noticed
+noticed and we have to make compromises i think
+and we have to make compromises i think we made a lot of the right ones but the
+we made a lot of the right ones but the cloth system is one component that did
+cloth system is one component that did not get an upgrade
+not get an upgrade adding wind exposed a lot of problems
+adding wind exposed a lot of problems with it and we'd like to revisit wind on
+with it and we'd like to revisit wind on cloth and the cloth system as a whole
+cloth and the cloth system as a whole going forwards
+going forwards but that was a lower priority for this
+but that was a lower priority for this game because
+game because we're still able to have cloth moving in
+we're still able to have cloth moving in game
+game some of those are non-interactive
+some of those are non-interactive present elements
+present elements these are mostly in cinematics
+or objects that serve a design function like the flag for this boat dock
+we are also able to get interactivity by skipping the cloth system completely and
+skipping the cloth system completely and using mesh receivers i'll talk about
+using mesh receivers i'll talk about those shortly
+those shortly these objects don't collide but they do
+these objects don't collide but they do respond to wind and therefore to player
+respond to wind and therefore to player action
+particles each particle samples the wind speed and
+each particle samples the wind speed and direction at its location
+direction at its location artists can control how much a particle
+artists can control how much a particle reacts to this information
+reacts to this information conceptually particles respond in the
+conceptually particles respond in the same way that they do to drag but in a
+same way that they do to drag but in a moving fluid
+moving fluid so a slow or stationary particle will
+so a slow or stationary particle will speed up to match the fluid around it
+speed up to match the fluid around it while a fast moving particle will slow
+while a fast moving particle will slow down
+down each frame we compute the impulse each
+each frame we compute the impulse each particle would need to match the wind
+particle would need to match the wind and we apply that scaled by the
+and we apply that scaled by the particle's wind influence value you
+particle's wind influence value you could also think of this as a mass
+could also think of this as a mass the wind speed that it targets is the
+the wind speed that it targets is the full combination of both the ambient and
+full combination of both the ambient and the dynamic wind values
+the dynamic wind values and this showed a lot of promising tests
+and this showed a lot of promising tests early on
+this was an exciting test it's a pretty old one before particles moved to the
+old one before particles moved to the gpu and before the sun grew hair
+gpu and before the sun grew hair there's a lot of interesting movement
+there's a lot of interesting movement driven by interactions but i have to be
+driven by interactions but i have to be honest about it everything here is tuned
+honest about it everything here is tuned precisely to look good in this scene and
+precisely to look good in this scene and there's no level wind present to disrupt
+there's no level wind present to disrupt things
+we still ship this functionality but the wind motors and the settings that we
+wind motors and the settings that we used on axe attacks and within levels
+used on axe attacks and within levels they struck a balance that for particles
+they struck a balance that for particles well it works but it's missing some of
+well it works but it's missing some of the excitement of that early particle
+the excitement of that early particle test scene
+test scene now this is not a knock on the effects
+now this is not a knock on the effects team they were very engaged and
+team they were very engaged and enthusiastic towards getting everything
+enthusiastic towards getting everything that they could out of the system
+that they could out of the system but if the effect looks better without
+but if the effect looks better without responding to wind well
+responding to wind well you know i've got to agree ignoring the
+you know i've got to agree ignoring the force is the right decision on the tech
+force is the right decision on the tech art side we had oversimplified and we'd
+art side we had oversimplified and we'd lost some crucial control and this was
+lost some crucial control and this was my mistake
+so what do i wish that i had done differently how can we improve going
+differently how can we improve going forward
+forward well i want to explore two things
+well i want to explore two things first i think that if we had separate
+first i think that if we had separate controls for the ambient wind and
+controls for the ambient wind and dynamic wind influences we could have
+dynamic wind influences we could have let particle systems ignore the level
+let particle systems ignore the level wind and only respond to the dynamic
+wind and only respond to the dynamic effects
+effects now this seems like a hack and a bad
+now this seems like a hack and a bad idea it's why we didn't do it in the
+idea it's why we didn't do it in the first place
+first place but in practice effects artists tend to
+but in practice effects artists tend to bake some make in some ambient scale
+bake some make in some ambient scale shaping for their effects anyway
+shaping for their effects anyway and level wind isn't always finalized
+and level wind isn't always finalized before effects work is done
+before effects work is done also strong ambient wind speeds tended
+also strong ambient wind speeds tended to push particles off screen before they
+to push particles off screen before they could even fade in sometimes
+second our particle system already used noise fields before wind was added
+noise fields before wind was added the thinking was we could keep those
+the thinking was we could keep those components isolated
+components isolated but i think going forward that blending
+but i think going forward that blending between different turbulence turbulent
+between different turbulence turbulent settings for calm and windy scenarios
+settings for calm and windy scenarios could prevent some of that scrolling
+could prevent some of that scrolling particles look that we shipped under
+particles look that we shipped under strong wind conditions
+meshes
+a lot of refinement went into this one it's used widely across the game
+it's used widely across the game characters props faked cloth
+characters props faked cloth there are five components to this system
+there are five components to this system two of which are new for dynamic wind
+two of which are new for dynamic wind how do those five components relate to
+how do those five components relate to each other well art authors two of them
+each other well art authors two of them for each asset
+for each asset per vertex data defining which parts of
+per vertex data defining which parts of the model move and which parts don't
+the model move and which parts don't tools can help with authoring this
+tools can help with authoring this and model parameters which describe how
+and model parameters which describe how the moving parts behave
+the moving parts behave it's good to build up a library of these
+it's good to build up a library of these settings
+settings these are both used by the vertex shader
+these are both used by the vertex shader on the tech side and this is all that
+on the tech side and this is all that you need for a static wind system
+you need for a static wind system for dynamics we add state for each model
+for dynamics we add state for each model instance
+instance the vertex shader uses this
+the vertex shader uses this and we have a compute shader that grabs
+and we have a compute shader that grabs all of the states each frame
+all of the states each frame and updates them this mostly involves
+and updates them this mostly involves scrolling noise and smoothing the raw
+scrolling noise and smoothing the raw wind signal
+wind signal some of the model parameters are used to
+some of the model parameters are used to adjust this update behavior
+adjust this update behavior now we'll go over each of these
+now we'll go over each of these first let's start with the vertex data
+first let's start with the vertex data we use four floats to store two data
+we use four floats to store two data values
+values one float is for the wind mask this
+one float is for the wind mask this attenuates the movement due to wind it's
+attenuates the movement due to wind it's usually a gradient from zero to one
+usually a gradient from zero to one representing the normalized distance
+representing the normalized distance from the root vertices the verts that
+from the root vertices the verts that don't move
+don't move the other stores three floats or the
+the other stores three floats or the other three floats store the relative
+other three floats store the relative location of that root vertex this is
+location of that root vertex this is shown here as x y z as rgb
+shown here as x y z as rgb we store this as a delta rather than an
+we store this as a delta rather than an absolute position
+absolute position this allows for translation of the art
+this allows for translation of the art without recomputing colors and it means
+without recomputing colors and it means smaller numbers which helps with
+smaller numbers which helps with precision
+precision next we will look at the object level
+next we will look at the object level parameters
+parameters we have three categories of these we
+we have three categories of these we have leaf parameters which control model
+have leaf parameters which control model shaping and posing
+shaping and posing settle parameters which directly control
+settle parameters which directly control some broader movement over multiple
+some broader movement over multiple frames
+frames and tree parameters
+and tree parameters for models that activate these tree
+for models that activate these tree controls we get a second hierarchy level
+controls we get a second hierarchy level to our shaping centered at the object
+to our shaping centered at the object root
+root so we don't need additional vertex data
+so we don't need additional vertex data or skinning support from character tech
+or skinning support from character tech art
+art now this is a lot of control and it can
+now this is a lot of control and it can be overwhelming so we took extra care to
+be overwhelming so we took extra care to make sure the defaults were good
+make sure the defaults were good a new model should only need to change
+a new model should only need to change two or three of these settings
+two or three of these settings but honestly learning which ones is
+but honestly learning which ones is still kind of a challenge for the
+still kind of a challenge for the artists
+artists building up a library so that artists
+building up a library so that artists can use a similar model settings as a
+can use a similar model settings as a starting point has been very helpful
+now let's go over how each of those behave within the vertex shader
+movement scale is the total distance that the freest verts can move from the
+that the freest verts can move from the rest position
+rest position higher values mean more movement
+higher values mean more movement and we scale this value by the wind mass
+and we scale this value by the wind mass within the vertex shader
+within the vertex shader verts move by the average of the wind
+verts move by the average of the wind vector and the noise vector the wind
+vector and the noise vector the wind vector gives us the lean and the noise
+vector gives us the lean and the noise vector gives us some wiggle
+vector gives us some wiggle density controls the scale of those
+density controls the scale of those noise features
+noise features we actually allow this parameter to have
+we actually allow this parameter to have two values one for low speeds and one
+two values one for low speeds and one for high speeds and we blend between
+for high speeds and we blend between those settings as wind speeds increase
+those settings as wind speeds increase up to about 20 to 30 meters per second
+up to about 20 to 30 meters per second most models use the same value for both
+most models use the same value for both but some models really benefit from
+but some models really benefit from having those separate controls
+bend controls how straight the elements are when they lean
+are when they lean a higher value isolates movement to just
+a higher value isolates movement to just the tip vertices
+the tip vertices this is implemented as the exponent that
+this is implemented as the exponent that we raise the wind mask to it's basically
+we raise the wind mask to it's basically a gamma ramp on that grayscale wind mask
+a gamma ramp on that grayscale wind mask for example a value of 1 gives gives us
+for example a value of 1 gives gives us a straight piece while a value of 2 can
+a straight piece while a value of 2 can give us a parabolic bend
+now in the vertex shader we get movement by translating verts
+by translating verts we do not rotate them like i've seen
+we do not rotate them like i've seen some games do this avoids slow
+some games do this avoids slow trigonometric functions in the shader
+trigonometric functions in the shader but it can introduce some stretching so
+but it can introduce some stretching so we need to preserve lengths
+we need to preserve lengths we do this by checking the distance to
+we do this by checking the distance to the root before movement
+the root before movement and scaling back towards or away from
+and scaling back towards or away from the root to match the length
+the root to match the length this helps prevent ground penetration
+this helps prevent ground penetration and it gives us the appearance of a
+and it gives us the appearance of a resisted rotation under extreme forces
+resisted rotation under extreme forces now we don't have to scale all the way
+now we don't have to scale all the way back
+back we can use linear interpolation to
+we can use linear interpolation to correct the stretching by just a
+correct the stretching by just a fractional amount
+fractional amount and that's what our stretchiness
+and that's what our stretchiness parameter controls
+parameter controls some stretch usually looks better than a
+some stretch usually looks better than a rigid full correction
+rigid full correction our default is a 20 stretch
+our default is a 20 stretch now i goofed on this slide and i flipped
+now i goofed on this slide and i flipped the low and high videos the labels are
+the low and high videos the labels are correct sorry about that
+stiffness we can create the appearance of stiff
+we can create the appearance of stiff elements by scaling the vertex texture
+elements by scaling the vertex texture coordinates towards the element root
+coordinates towards the element root this is a lot like the adjusting noise
+this is a lot like the adjusting noise density but it keeps the effect centered
+density but it keeps the effect centered on the root
+on the root stiffer values can give low variation
+stiffer values can give low variation across an individual element and high
+across an individual element and high variation between elements
+now with these parameters i'm jumping ahead a little bit we have two sway
+ahead a little bit we have two sway parameters that adjust spring properties
+parameters that adjust spring properties of the object
+of the object these are stateful so the computation is
+these are stateful so the computation is done once in the compute shader and the
+done once in the compute shader and the result is passed to the vertex shader
+result is passed to the vertex shader when i said earlier that we lean verts
+when i said earlier that we lean verts by the wind vector
+by the wind vector i lied um it started out that way but we
+i lied um it started out that way but we actually lean verts by a third sway
+actually lean verts by a third sway vector which is just pushed around by
+vector which is just pushed around by the wind vector and pulled back to
+the wind vector and pulled back to center by a spring force this lets us
+center by a spring force this lets us smooth out that wind signal
+smooth out that wind signal the strength of that spring is this sway
+the strength of that spring is this sway spring parameter
+the other sway parameter controls the dampening of that spring which affects
+dampening of that spring which affects the settling time of the model
+okay back to the vertex shader if we activate tree mode we get that
+if we activate tree mode we get that extra layer of motion
+extra layer of motion trees pivot around the object root and
+trees pivot around the object root and we do an additional stretch fix for the
+we do an additional stretch fix for the tree movements just like we do for leaf
+tree movements just like we do for leaf movements
+trees also have an additional bend parameter
+parameter it behaves in the same way that the leaf
+it behaves in the same way that the leaf bend does it's a power function on the
+bend does it's a power function on the normalized distance a gamma curve
+normalized distance a gamma curve the straight trunk here makes it really
+the straight trunk here makes it really easy to see the differences between a
+easy to see the differences between a 1.0 linear bend and a 3.0 cubic bend
+tree movement scale is just like leaf movement scale it's the distance that
+movement scale it's the distance that the tip verts can move due to tree lean
+the tip verts can move due to tree lean at the highest wind speeds
+and lastly tree leaf lag is pretty interesting without it on the left you
+interesting without it on the left you can see that when the tree settles the
+can see that when the tree settles the leaves return straight to the rest pose
+leaves return straight to the rest pose as well
+as well but we can add a delayed secondary
+but we can add a delayed secondary motion for free by using the sway
+motion for free by using the sway momentum as though it's the sway
+momentum as though it's the sway position for the leaves
+position for the leaves now we already have this momentum
+now we already have this momentum computed because of the dampened spring
+computed because of the dampened spring model
+model and using momentum in this way works
+and using momentum in this way works because it's the derivative of the
+because it's the derivative of the position
+position and since the derivative of a sinusoidal
+and since the derivative of a sinusoidal motion is the same curve delayed by a
+motion is the same curve delayed by a quarter phase we can lurp towards it to
+quarter phase we can lurp towards it to dial in some delay
+dial in some delay now we only do this when the wind speed
+now we only do this when the wind speed is decreasing because that's when the
+is decreasing because that's when the branches are the ones that leading the
+branches are the ones that leading the motion
+okay it's time to get noisy what is our noise function
+what is our noise function our noise base is a three-dimensional
+our noise base is a three-dimensional texture computed at game startup filled
+texture computed at game startup filled with random xyz vectors that are bound
+with random xyz vectors that are bound within the unit sphere
+within the unit sphere you can use any noise base you like and
+you can use any noise base you like and the techniques we're about to just about
+the techniques we're about to just about to discuss should still apply
+so we extend that base function by using fractal noise
+fractal noise is usually a weighted sum of multiple noise samples at various
+of multiple noise samples at various scales
+scales these scaled samples are called octaves
+these scaled samples are called octaves the most common method is to reduce the
+the most common method is to reduce the scale by a power of two for each octave
+scale by a power of two for each octave and since the features are scaled down
+and since the features are scaled down we scale down their contribution weights
+we scale down their contribution weights as well
+as well here's a crude visualization of the
+here's a crude visualization of the contribution curve it's an exponential
+contribution curve it's an exponential falloff
+this combination of noise gives us a rich signal with features at a wide
+rich signal with features at a wide range of scales
+now usually scaling a noise is pretty straightforward you just scale the input
+straightforward you just scale the input coordinates
+coordinates but there's a problem with that if the
+but there's a problem with that if the scale is animated and ours is because we
+scale is animated and ours is because we blend scales based on wind speed which
+blend scales based on wind speed which is often changing
+on the left you can see naive scaling causes noise features to move
+causes noise features to move this effect is worse the farther you are
+this effect is worse the farther you are from the scale center
+from the scale center we do not want this unintended motion
+we do not want this unintended motion on the right is our solution
+on the right is our solution we lock noise samples to powers of two
+we lock noise samples to powers of two scales using a technique called
+scales using a technique called logarithmic binning
+logarithmic binning and we blend and fade between them to
+and we blend and fade between them to produce our complete noise result
+produce our complete noise result put another way instead of scaling the
+put another way instead of scaling the samples and keeping their contributions
+samples and keeping their contributions fixed
+fixed we keep the scales fixed and adjust
+we keep the scales fixed and adjust their contributions
+let's look at that in a little more detail
+detail here
+here we are viewing the continuum of all
+we are viewing the continuum of all noise octaves that have a power of 2
+noise octaves that have a power of 2 scale
+scale let's say the artist chooses a density
+let's say the artist chooses a density scale of something like 1.3
+scale of something like 1.3 the nearest power of 2 in this case 1.0
+the nearest power of 2 in this case 1.0 will be the noise scale with the most
+will be the noise scale with the most significant contribution
+significant contribution instead of an exponential falloff we use
+instead of an exponential falloff we use a triangle falloff centered at the input
+a triangle falloff centered at the input scale and we use four octaves for our
+scale and we use four octaves for our fractal noise weighted by that triangle
+fractal noise weighted by that triangle applying those weights and summing the
+applying those weights and summing the samples will give us our final result
+animated scales will smoothly fade octaves in and out to generate fractal
+octaves in and out to generate fractal noise that does not move
+noise that does not move a bonus to using these fixed logarithmic
+a bonus to using these fixed logarithmic scales is that neighboring models with
+scales is that neighboring models with similar but not equal scales will still
+similar but not equal scales will still share some noise features that can
+share some noise features that can scroll across them both
+now those are some of the ways we've tried to improve the look of individual
+tried to improve the look of individual objects
+objects next we're going to look at how we can
+next we're going to look at how we can improve the visual cohesion of multiple
+improve the visual cohesion of multiple objects
+objects for that we will focus on how the
+for that we will focus on how the compute shader moves noise around
+compute shader moves noise around to make some of these subtleties more
+to make some of these subtleties more easily identifiable for this discussion
+easily identifiable for this discussion i'm going to demo with some outrageous
+i'm going to demo with some outrageous settings
+i'm out of water like some really outrageous settings
+like some really outrageous settings we're zoomed out a bit here you can see
+we're zoomed out a bit here you can see kratos in the center he's very small
+kratos in the center he's very small wind is blowing in a steady direction at
+wind is blowing in a steady direction at a steady speed
+each object has a world space coordinate it's probably obvious it's where its
+it's probably obvious it's where its center is located in the world
+center is located in the world but it also has a texture space
+but it also has a texture space coordinate where its center is located
+coordinate where its center is located in the wind noise texture
+in the wind noise texture to create the effect of noise moving
+to create the effect of noise moving across the object we offset its texture
+across the object we offset its texture coordinates and we do this in the
+coordinates and we do this in the opposite direction that wind is going
+opposite direction that wind is going if you track the circle with your eyes
+if you track the circle with your eyes you will see that the noise features
+you will see that the noise features inside it appear to move down and to the
+inside it appear to move down and to the left relative to
+left relative to the circle's center
+the circle's center each object that receives wind keeps
+each object that receives wind keeps track of its texture offset the compute
+track of its texture offset the compute shader moves this coordinate each frame
+shader moves this coordinate each frame based on the wind speed and direction
+based on the wind speed and direction that the object is experiencing
+that the object is experiencing now this works great for coherent wind
+now this works great for coherent wind where wind is the same speed and
+where wind is the same speed and direction everywhere
+direction everywhere it also looks great for more complex
+it also looks great for more complex weather patterns
+weather patterns but only for a short time
+but only for a short time slowly things seem to get more and more
+slowly things seem to get more and more random until the notion of
+random until the notion of directionality is lost
+directionality is lost and when we switch back to a more
+and when we switch back to a more uniform wind pattern
+uniform wind pattern we don't recover from this damage
+we don't recover from this damage why could this be
+let's look at two neighboring objects their neighbors in world space and their
+their neighbors in world space and their neighbors in texture space
+neighbors in texture space where they overlap they share some noise
+where they overlap they share some noise features and they continue to share
+features and they continue to share these features even as they move through
+these features even as they move through the texture together
+the texture together but if their directions differ they
+but if their directions differ they spread apart in the texture
+spread apart in the texture now they're still neighbors in the world
+now they're still neighbors in the world this creates a disconnect though it's
+this creates a disconnect though it's distorting the noise texture
+distorting the noise texture they shared features at first but become
+they shared features at first but become isolated as time passes
+isolated as time passes the same problem occurs for objects at
+the same problem occurs for objects at different speeds
+different speeds one solution to this
+one solution to this could be to reset their texture position
+could be to reset their texture position periodically
+periodically and this already exists we've basically
+and this already exists we've basically rediscovered flow maps
+rediscovered flow maps we use them all the time on surface
+we use them all the time on surface materials and sky domes this vistaflow
+materials and sky domes this vistaflow was done by the amazing teemo pila
+was done by the amazing teemo pila hamaki one of our environment art leads
+hamaki one of our environment art leads on the project
+on the project you can see more of this kind of stuff
+you can see more of this kind of stuff on our team's art station drop
+so the gist of how it works is this at some rate we rewind to fix our
+at some rate we rewind to fix our texture distortion
+texture distortion unfortunately that naive approach can
+unfortunately that naive approach can cause pops but you can fix that by doing
+cause pops but you can fix that by doing it twice half out of phase
+it twice half out of phase fade back and forth between those two
+fade back and forth between those two samples and you can hide the pop by
+samples and you can hide the pop by resetting the sample that's fully faded
+resetting the sample that's fully faded out
+out now we're going to build on this concept
+now we're going to build on this concept so from now on i'll refer to this reset
+so from now on i'll refer to this reset as the flow flip event
+as the flow flip event so let's try that in 3d by tracking two
+so let's try that in 3d by tracking two texture coordinates for each object
+texture coordinates for each object sampling the texture with both of them
+sampling the texture with both of them and fading between those samples so we
+and fading between those samples so we can reset one coordinate at our flow
+can reset one coordinate at our flow flip event
+flip event you can see we no longer have distortion
+you can see we no longer have distortion accumulating
+but now there's a pretty noticeable loop loop
+loop loop loop
+loop loop if you didn't see it before you
+if you didn't see it before you definitely do now
+definitely do now we can improve on this
+we can improve on this so our white noise texture has the same
+so our white noise texture has the same spectral properties everywhere which
+spectral properties everywhere which means we don't need to reset the
+means we don't need to reset the coordinates to their starting value we
+coordinates to their starting value we can go anywhere
+can go anywhere now we still need neighbors to stay
+now we still need neighbors to stay neighbors so this randomization is
+neighbors so this randomization is computed once on each flow flip frame
+computed once on each flow flip frame and shared for all objects
+and shared for all objects back to that looping fade loop loop loop
+back to that looping fade loop loop loop in a moment we will randomize the global
+in a moment we will randomize the global offset whenever we flip flow
+offset whenever we flip flow and there it is
+and there it is you can see that the loop has gone away
+you can see that the loop has gone away which helps the fade from being
+which helps the fade from being noticeable
+noticeable in a way this is almost creating a
+in a way this is almost creating a four-dimensional noise texture but with
+four-dimensional noise texture but with only three dimensions of data
+oh thanks man um
+um so let's look at all this under that
+so let's look at all this under that hurricane wind shape at this speed it
+hurricane wind shape at this speed it looks good for our flip rate to be about
+looks good for our flip rate to be about half of a second but when we slow the
+half of a second but when we slow the wind down
+wind down that flip rate is too fast all the
+that flip rate is too fast all the motion we're seeing here is coming from
+motion we're seeing here is coming from the blend not from the scroll
+the blend not from the scroll at this speed it's slower for a single
+at this speed it's slower for a single texture voxel to scroll by than it is
+texture voxel to scroll by than it is for the textures to fade between each
+for the textures to fade between each other
+other so we can just increase the time it
+so we can just increase the time it takes for flip
+takes for flip now we're at about five seconds and it's
+now we're at about five seconds and it's working pretty well
+working pretty well let's test again at a faster speed
+um we're really just back to where we started
+started uh we need a better solution for this
+uh we need a better solution for this adjusting timings doesn't seem to be
+adjusting timings doesn't seem to be working for variable speeds
+so let's rethink this what does the flow map technique try to
+what does the flow map technique try to achieve
+achieve well we author some rate and time for
+well we author some rate and time for the effect to loop but is time really
+the effect to loop but is time really our core concept here how do we know
+our core concept here how do we know that we need to adjust it for example
+that we need to adjust it for example well we tweak it when there's too little
+well we tweak it when there's too little movement or when there's too much
+movement or when there's too much distortion
+distortion that's what we should try to tune for
+that's what we should try to tune for that's the parameter we should expose
+that's the parameter we should expose maximum distortion
+maximum distortion and we can define that as the distance
+and we can define that as the distance traveled in texture space since our last
+traveled in texture space since our last flow flip
+flow flip now there's still a problem here if
+now there's still a problem here if neighbors are drifting apart because of
+neighbors are drifting apart because of speed
+speed their flip timings will drift apart too
+their flip timings will drift apart too it's kind of like when your car's
+it's kind of like when your car's windshield wipers are in sync with the
+windshield wipers are in sync with the car in front of you
+car in front of you until it's not
+so we need a way to bundle similar speeds together and schedule their flip
+speeds together and schedule their flip to happen on the same frame
+to happen on the same frame if only we knew of a way to group
+if only we knew of a way to group numbers together across all scales
+numbers together across all scales do you guys remember longer the binning
+do you guys remember longer the binning i sure sure hope you do because it was
+i sure sure hope you do because it was like five minutes ago um we will only
+like five minutes ago um we will only consider the flow flip rate for wind
+consider the flow flip rate for wind speeds that are exactly one exactly a
+speeds that are exactly one exactly a power of two
+power of two and for every other wind speed we will
+and for every other wind speed we will make their behavior identical to the
+make their behavior identical to the nearest power of two's behavior
+nearest power of two's behavior fast speeds reset more often you can see
+fast speeds reset more often you can see that speeds in the same bin like point
+that speeds in the same bin like point eight and one point three in this
+eight and one point three in this example they flow flip at the exact same
+example they flow flip at the exact same time and rate
+time and rate point eight and
+point eight and point eight one point three flipped
+point eight one point three flipped now they flip again
+now they flip again and now they flip together
+and now they flip together what's nice about power of two
+what's nice about power of two logarithmic binning is that neighboring
+logarithmic binning is that neighboring bins will flow flip exactly twice or
+bins will flow flip exactly twice or half as often
+half as often this means that for half of their flips
+this means that for half of their flips they're perfectly in sync
+they're perfectly in sync this is important for speeds that are
+this is important for speeds that are close to each other but not closer to
+close to each other but not closer to powers of two themselves like point
+powers of two themselves like point seven and point eight here
+seven and point eight here here they both flip
+here they both flip and now just point eight flips
+and now just point eight flips here they both flip
+here they both flip and now just point eight smack my laptop
+and now just point eight smack my laptop um
+um if the wind speeds are varied but mostly
+if the wind speeds are varied but mostly unchanging all objects will stay in
+unchanging all objects will stay in their same speed group but that's rare
+their same speed group but that's rare if an object's wind speed changes it may
+if an object's wind speed changes it may find itself closer to a different power
+find itself closer to a different power of two changing groups and therefore out
+of two changing groups and therefore out of sync with its new group
+of sync with its new group to correct for this we adjust our fade
+to correct for this we adjust our fade rate for the object so that it will be
+rate for the object so that it will be in sync with its group by the time the
+in sync with its group by the time the flow flip occurs
+flow flip occurs so objects that are behind schedule
+so objects that are behind schedule briefly speed up
+briefly speed up while those that are ahead of schedule
+while those that are ahead of schedule briefly slow down
+briefly slow down now there is an exception to this
+now there is an exception to this if an object enters a group that is
+if an object enters a group that is about to flip but the object itself is
+about to flip but the object itself is very behind schedule
+very behind schedule we identify this as the group having
+we identify this as the group having completed more than 75 percent of its
+completed more than 75 percent of its fade while the object has completed less
+fade while the object has completed less than 25 of its own
+than 25 of its own for these we just target the next flow
+for these we just target the next flow flip time
+flip time essentially it's running late for the
+essentially it's running late for the bus so we tell it to catch the next one
+bus so we tell it to catch the next one this prevents sudden rapid fades which
+this prevents sudden rapid fades which are perceived as animation pops
+so with all of that implemented now our noise features will stay consistent for
+noise features will stay consistent for coherent flows
+coherent flows and they'll stay consistent for
+and they'll stay consistent for divergent flows
+divergent flows this works across all speeds whether we
+this works across all speeds whether we go slow
+go slow or whether we go fast
+or whether we go fast and any accumulated distortion will
+and any accumulated distortion will recover gracefully when we return to
+recover gracefully when we return to coherent flows
+coherent flows where that distortion would be most
+where that distortion would be most noticeable
+here's an old debug clip that may give you an idea of what the flow flip rate
+you an idea of what the flow flip rate looks like for that hurricane shape of
+looks like for that hurricane shape of wind
+wind and these objects are hacked to bounce
+and these objects are hacked to bounce their flip rate
+their flip rate you can see the faster flip rate of
+you can see the faster flip rate of objects on the perimeter and the slower
+objects on the perimeter and the slower rate of those in the center where there
+rate of those in the center where there are lower wind speeds
+are lower wind speeds you can also see at the group boundaries
+you can also see at the group boundaries that members of adjacent logarithmic
+that members of adjacent logarithmic bins will flip at exactly half or double
+bins will flip at exactly half or double the rate of their neighbors
+the rate of their neighbors and you may also notice that they are in
+and you may also notice that they are in phase with each other so that they can
+phase with each other so that they can reset on the same frame
+so that's our wind system up next is the grab bag section of the
+up next is the grab bag section of the talk
+talk what tricks have we learned over a full
+what tricks have we learned over a full development cycle with this system
+development cycle with this system artist education
+artist education as artists and managers and producers
+as artists and managers and producers come to understand the system and its
+come to understand the system and its limitations we can borrow from existing
+limitations we can borrow from existing intuitions by using lighting analogies
+intuitions by using lighting analogies the wind volume for example is like
+the wind volume for example is like shadow cascades if your motor is not in
+shadow cascades if your motor is not in the box it's not going to blow wind just
+the box it's not going to blow wind just like if a model is outside the shadow
+like if a model is outside the shadow map it won't cast any shadows
+map it won't cast any shadows wind motors are like
+wind motors are like point-and-spotlights they inject light
+point-and-spotlights they inject light and wind into the scene in a targeted
+and wind into the scene in a targeted way
+way ambient wind nodes are kind of like
+ambient wind nodes are kind of like directional or ambient lights it doesn't
+directional or ambient lights it doesn't matter where you put them they affect
+matter where you put them they affect everything all the same
+everything all the same also be careful about leaving stray ones
+also be careful about leaving stray ones laying around and seeing files
+and when receivers are to the wind system what materials are to the
+system what materials are to the lighting system
+lighting system the system tells you how much of it's
+the system tells you how much of it's coming in and the model material
+coming in and the model material properties describe how the models
+properties describe how the models respond to that
+we've landed on a workflow for authoring vertex data that works really well for
+vertex data that works really well for 90 of our models
+90 of our models we choose the mesh that we want to run
+we choose the mesh that we want to run we tag the vertices that we want to
+we tag the vertices that we want to anchor
+anchor and our vertex color tool will compute
+and our vertex color tool will compute the wind mask as the normalized distance
+the wind mask as the normalized distance from the closest connected root
+from the closest connected root we normalize separately for each
+we normalize separately for each connected piece across the entire model
+connected piece across the entire model artists can merge unconnected pieces
+artists can merge unconnected pieces just for this computation in case they
+just for this computation in case they have some floating elements that they
+have some floating elements that they want to combine
+want to combine sometimes we don't even need to manually
+sometimes we don't even need to manually select these root verts we can guess
+select these root verts we can guess them for each piece for example these
+them for each piece for example these implicit roots can be the vertex with
+implicit roots can be the vertex with the largest or smallest coordinate along
+the largest or smallest coordinate along the x y or z axis or even the u and v
+the x y or z axis or even the u and v texture axes
+texture axes for any connected piece
+for any connected piece or they can be the closest vertex to a
+or they can be the closest vertex to a specified surface or point in space
+we can also mix implicit and explicit roots if the implicit guess is good for
+roots if the implicit guess is good for 9 out of 10 pieces the artist can just
+9 out of 10 pieces the artist can just tag the roots on the pieces that need
+tag the roots on the pieces that need correction and run again travis slagel
+correction and run again travis slagel is a senior tools tech artist that did
+is a senior tools tech artist that did an amazing job taking this workflow that
+an amazing job taking this workflow that i described and creating a tool that
+i described and creating a tool that realized it
+so for a long time i got the same question over and over
+question over and over sean what's a good wind speed for
+sean what's a good wind speed for authoring my model
+authoring my model and my unhelpful answer was all of them
+and my unhelpful answer was all of them we need to look good at all speeds guys
+we need to look good at all speeds guys so to get everyone on this on the same
+so to get everyone on this on the same page we are inspired by something that
+page we are inspired by something that rupert discovered the beaufort scale
+rupert discovered the beaufort scale this was developed for sailors or by
+this was developed for sailors or by sailors in the early 19th century and it
+sailors in the early 19th century and it describes 12 distinct categories of wind
+describes 12 distinct categories of wind speeds and the land and sea behaviors
+speeds and the land and sea behaviors that identify them
+that identify them it's a great reference and should check
+it's a great reference and should check it out on wikipedia
+it out on wikipedia now 12 is more granularity than we need
+now 12 is more granularity than we need so we reduce this to five agreeable
+so we reduce this to five agreeable named speeds
+named speeds we would use these to direct wind
+we would use these to direct wind intensity in our levels and keep models
+intensity in our levels and keep models looking like they exist in the same
+looking like they exist in the same space
+space our speed categories are still
+our speed categories are still this is my favorite video
+this is my favorite video calm
+breezy
+strong
+and violent because it wouldn't be a god of war game
+because it wouldn't be a god of war game without a little violence
+we add named buttons to our wind speed override tool so that everyone can test
+override tool so that everyone can test their models under the same conditions
+their models under the same conditions and sanity check level settings
+and sanity check level settings you just click the named button and it
+you just click the named button and it pushes the slider to the respective
+pushes the slider to the respective value
+value after establishing this language the
+after establishing this language the wind speed questions disappeared
+wind speed questions disappeared and these are our speeds for those but a
+and these are our speeds for those but a reminder that the numbers here don't
+reminder that the numbers here don't matter because it's technically the
+matter because it's technically the texture scroll speed not the speed of
+texture scroll speed not the speed of the wind that it's supposed to look like
+the wind that it's supposed to look like again this is not pbr wind
+okay here's my weird tip of the day
+here's my weird tip of the day when you're tuning model parameters and
+when you're tuning model parameters and testing under different speeds
+testing under different speeds blow on your screen
+blow on your screen try to match the energy of the wind
+try to match the energy of the wind speed name
+speed name calm
+calm breezy
+breezy violent
+violent and then maybe wipe your screen
+and then maybe wipe your screen afterwards
+afterwards it's a pretty dumb idea you're going to
+it's a pretty dumb idea you're going to feel silly at first but i promise you
+feel silly at first but i promise you that it works
+that it works once the model feels like it's
+once the model feels like it's responding to you it just clicks and you
+responding to you it just clicks and you know you've got some good settings it's
+know you've got some good settings it's time to check in
+so some trees in our game are very large they wouldn't really sway too much
+they wouldn't really sway too much we found that for these we got a better
+we found that for these we got a better look by putting wind on the branches
+look by putting wind on the branches individually
+individually and activating the tree behavior on
+and activating the tree behavior on those branches this meant that each one
+those branches this meant that each one could sample the wind separately and
+could sample the wind separately and this was important because an axe throw
+this was important because an axe throw would otherwise make the whole tree
+would otherwise make the whole tree shake if they had shared a single sample
+shake if they had shared a single sample here's a look at one of those branches
+here's a look at one of those branches with three different settings on the top
+with three different settings on the top we've not activated the tree settings
+we've not activated the tree settings vertex paint is just a gradient from the
+vertex paint is just a gradient from the branch root to the leaf tips
+branch root to the leaf tips on the bottom we tuned with tree
+on the bottom we tuned with tree settings activated the left model is
+settings activated the left model is using the same gradient as the top while
+using the same gradient as the top while the one on the right uses a gradient
+the one on the right uses a gradient that radiates away from the branch core
+that radiates away from the branch core the bottom right model is the one that
+the bottom right model is the one that we shipped after i fixed that one wiggly
+we shipped after i fixed that one wiggly branch burt
+branch burt when modeling branches to use this extra
+when modeling branches to use this extra layer of tree movement
+layer of tree movement it's helpful to align your vertices with
+it's helpful to align your vertices with the branch's flow in the texture after
+the branch's flow in the texture after all if there's no vertex there you
+all if there's no vertex there you cannot pin it as a pivot
+using using this technique creates this radiant gradient away from the branch
+radiant gradient away from the branch core
+core whose behavior looks a little less
+whose behavior looks a little less rubbery than a linear gradient
+rubbery than a linear gradient but sometimes i like to blend the mask
+but sometimes i like to blend the mask of both while keeping the pivots from
+of both while keeping the pivots from the one on the left
+here are those kinds of gradients on the same model
+same model we can see the different plausible looks
+we can see the different plausible looks we can get just from playing with how we
+we can get just from playing with how we generate vertex colors
+generate vertex colors the one on the left is that radiant
+the one on the left is that radiant gradient
+gradient it's fun to say the one the right is
+it's fun to say the one the right is linear and the middle one is a blend for
+linear and the middle one is a blend for this model i believe that we ship the
+this model i believe that we ship the blend but the settings on the left look
+blend but the settings on the left look good too
+leaning further into if it's stupid but works it's not that stupid
+works it's not that stupid hanging banners and ropes are upside
+hanging banners and ropes are upside down trees
+down trees we stubbed in a setting for pendulum
+we stubbed in a setting for pendulum movements specifically for this purpose
+movements specifically for this purpose but we didn't complete the functionality
+but we didn't complete the functionality because springs looked good enough
+for hair especially flyaways it works well to have the pivot of every
+it works well to have the pivot of every hair vertex use the closest point on the
+hair vertex use the closest point on the scalp as its root
+scalp as its root to be clear this is different from the
+to be clear this is different from the workflow we've been describing
+workflow we've been describing the pivot is not a vertex on the hair
+the pivot is not a vertex on the hair mesh
+mesh we set the wind vertex mask value to the
+we set the wind vertex mask value to the distance between the vertex and the
+distance between the vertex and the scalp
+scalp then we normalize the mask for the
+then we normalize the mask for the entire hair mesh
+entire hair mesh in this video the left model uses this
+in this video the left model uses this technique while the right model uses the
+technique while the right model uses the hair origin as a pivot
+hair origin as a pivot and the one in the middle is a blend of
+and the one in the middle is a blend of the two
+the two for this character we ship the one on
+for this character we ship the one on the left
+fur can be tricky it's usually made of single quad cards
+it's usually made of single quad cards or triangles and this means that the
+or triangles and this means that the bend parameter doesn't do anything
+bend parameter doesn't do anything because both one and zero don't change
+because both one and zero don't change no matter the exponent you raise them to
+no matter the exponent you raise them to fur is usually laying flat against the
+fur is usually laying flat against the skin
+skin which means that it's easy for even
+which means that it's easy for even small movements to cause penetration
+small movements to cause penetration with the skin and we don't have bend to
+with the skin and we don't have bend to mitigate that
+mitigate that so for these we compute pivots with the
+so for these we compute pivots with the usual method
+usual method but we set the wind mask value for the
+but we set the wind mask value for the tips to be the distance to the skin
+tips to be the distance to the skin just like we do for hair and we
+just like we do for hair and we re-normalize for the whole fur mesh not
+re-normalize for the whole fur mesh not for each individual card
+for each individual card before normalizing we take the maximum
+before normalizing we take the maximum value and we use about 90 of that for
+value and we use about 90 of that for our model's wind movement parameter
+our model's wind movement parameter just a reminder that if you do this
+just a reminder that if you do this remember to set the bend to 1.0 for
+remember to set the bend to 1.0 for these otherwise you'll mute the effect
+these otherwise you'll mute the effect on short hairs since we're baking in
+on short hairs since we're baking in their absolute lengths
+their absolute lengths [Music]
+[Music] beards are a lot like fur
+beards are a lot like fur but we have a few more spans to work
+but we have a few more spans to work with at least our models do and i'm glad
+with at least our models do and i'm glad that they did
+that they did because it lets us use that bend bend
+because it lets us use that bend bend parameter and we go pretty high with the
+parameter and we go pretty high with the exponent kratos beard uses 3.0 and the
+exponent kratos beard uses 3.0 and the fur on his pelt has multiple spans and
+fur on his pelt has multiple spans and we use 3.3 for that
+we use 3.3 for that these high values keep the interior of
+these high values keep the interior of the beard stiff but it lets the tips
+the beard stiff but it lets the tips convey motion
+to let the beards shape the silhouette on the far cheek side it's ok to use
+on the far cheek side it's ok to use large enough movement values that just
+large enough movement values that just the tips penetrate on the side of the
+the tips penetrate on the side of the face getting hit by wind
+face getting hit by wind now it's possible this could poke into
+now it's possible this could poke into the mouth interior but we never saw this
+the mouth interior but we never saw this happening
+happening and some of our charac some of our
+and some of our charac some of our bearded characters have beard shells
+bearded characters have beard shells underneath the cards some of them don't
+underneath the cards some of them don't for wind my preferences for is for
+for wind my preferences for is for shells to be rigid and fairly tight to
+shells to be rigid and fairly tight to the skin or not exist at all if it looks
+the skin or not exist at all if it looks better
+better and this prevents them from being
+and this prevents them from being exposed as cards move around
+okay so for the rest of the talk we're going to talk about some adjacent
+going to talk about some adjacent vegetation work that we did
+vegetation work that we did for some of our vegetation levels of
+for some of our vegetation levels of detail and shadow proxies we use an
+detail and shadow proxies we use an imposter grade solution that works well
+imposter grade solution that works well with wind
+with wind this technique is known as billboard
+this technique is known as billboard clouds
+clouds now what's the first thing you think of
+now what's the first thing you think of when you hear that name
+when you hear that name is it fluffy textured quads that face
+is it fluffy textured quads that face the camera
+the camera yeah
+yeah me too
+me too everybody does
+everybody does but that's not what this is
+but that's not what this is these
+these these are essentially billboard clouds
+these are essentially billboard clouds we started calling them card clusters
+we started calling them card clusters and the confusion disappeared i suggest
+and the confusion disappeared i suggest the industry do the same but it's really
+the industry do the same but it's really up to you guys
+up to you guys [Music]
+[Music] so this technique is a bit more advanced
+so this technique is a bit more advanced than just a couple
+than just a couple world access aligned cards we reference
+world access aligned cards we reference two papers in our implementation i'll
+two papers in our implementation i'll post a slide again later so you can read
+post a slide again later so you can read up on it
+up on it this approach builds on the state of the
+this approach builds on the state of the art of the mid-1990s by asking two
+art of the mid-1990s by asking two questions
+questions hey what if we use more cards and what
+hey what if we use more cards and what if those were the best cards
+if those were the best cards for volume filling geometry like leafy
+for volume filling geometry like leafy vegetation the results are pretty good
+vegetation the results are pretty good one of these five models is the source
+one of these five models is the source mesh can you guys guess which one
+how about now
+so there's definitely a quality versus performance sweet spot you don't want to
+performance sweet spot you don't want to get yourself carried away
+for an input model we are going to make a cluster of cards one at a time
+a cluster of cards one at a time starting with the best one how do we
+starting with the best one how do we find that
+find that easy
+easy we test all card planes in the known
+we test all card planes in the known universe and we give a score to each one
+universe and we give a score to each one high score wins
+high score wins a potential card considers a thick slice
+a potential card considers a thick slice of the model it will flatten model
+of the model it will flatten model triangles that are close to the card
+triangles that are close to the card plane within some error metric
+plane within some error metric the other triangles would be left for
+the other triangles would be left for other cards
+other cards cards are scored by how much of the
+cards are scored by how much of the model they are able to capture and how
+model they are able to capture and how little those triangles distort
+little those triangles distort mathematically this is defined as the
+mathematically this is defined as the sum of their areas after projecting to
+sum of their areas after projecting to the plane
+the plane that's their world space area times the
+that's their world space area times the dot product
+dot product of the triangle and plane normals
+of the triangle and plane normals or you can think of this as the total
+or you can think of this as the total card texture coverage by those flattened
+card texture coverage by those flattened triangles
+triangles so the best card claims its faces
+so the best card claims its faces this is a greedy algorithm we then
+this is a greedy algorithm we then repeat the process on the remaining
+repeat the process on the remaining portion of the model until there's
+portion of the model until there's nothing left
+nothing left so that's a lot of computation
+so that's a lot of computation how can this be faster
+how can this be faster well the space of all possible cards is
+well the space of all possible cards is the six dimensional planoptic function
+the six dimensional planoptic function but we can reduce that down to two
+but we can reduce that down to two dimensions
+dimensions the directions the card faces
+the directions the card faces and how far it is from the center of the
+and how far it is from the center of the object
+object all the other planes are redundant
+all the other planes are redundant we can also space the candidate planes
+we can also space the candidate planes out
+out and this spacing interval can be
+and this spacing interval can be proportional to that error metric so if
+proportional to that error metric so if you're okay with more distortion you can
+you're okay with more distortion you can compute fewer card candidates
+compute fewer card candidates for directions we use the normals of a
+for directions we use the normals of a geodesic sphere we only need half of the
+geodesic sphere we only need half of the sphere since negative directions are
+sphere since negative directions are redundant and it's easy to subdivide if
+redundant and it's easy to subdivide if we want more candidates
+we want more candidates the geodesic distribution also works
+the geodesic distribution also works well to prevent oversampling at the
+well to prevent oversampling at the poles
+poles a fibonacci spiral would work well here
+a fibonacci spiral would work well here too
+the projected area of a face doesn't change if the plane orientation
+doesn't change if the plane orientation doesn't change so we pre-compute
+doesn't change so we pre-compute individual face areas for each
+individual face areas for each orientation batch and then it's just a
+orientation batch and then it's just a simple summation
+simple summation and of course we ignore cards that are
+and of course we ignore cards that are far away miles away they have to
+far away miles away they have to intersect the model bounding box
+once you have the cards then as you would with imposters we render the
+would with imposters we render the material channels from orthographic
+material channels from orthographic cameras
+cameras for each card we match the camera
+for each card we match the camera position orientation and bounds to the
+position orientation and bounds to the card and its contents
+card and its contents now this can include clipping planes the
+now this can include clipping planes the distance between near and far can match
+distance between near and far can match the closeness parameter the aerometric
+the closeness parameter the aerometric we use python image library and maya
+we use python image library and maya auto uv maya uv auto layout to generate
+auto uv maya uv auto layout to generate our final textures
+our final textures and lastly sometimes a face is close to
+and lastly sometimes a face is close to a card that scored highly but it's not a
+a card that scored highly but it's not a good pair for that face
+good pair for that face this face is a victim of the greedy
+this face is a victim of the greedy algorithm
+algorithm after we know which cards we will use
+after we know which cards we will use it's fast to retest if a face would be
+it's fast to retest if a face would be would score better with a different
+would score better with a different closed card
+closed card if we find a better card we just switch
+if we find a better card we just switch it over before rendering the textures
+it over before rendering the textures this helps prevent a large gap from
+this helps prevent a large gap from appearing around the first card we find
+appearing around the first card we find and it preserves the visual density of
+and it preserves the visual density of the model better than compensating by
+the model better than compensating by rendering faces into multiple cards
+so here in our test level we're looking at the card cluster versions of these
+at the card cluster versions of these trees
+trees as we approach we'll fade into the full
+as we approach we'll fade into the full models
+for shadow proxies we are always using the card cluster version even at close
+the card cluster version even at close range
+range we're looking at
+we're looking at card cluster shadows right now
+card cluster shadows right now we use card clusters instead of
+we use card clusters instead of imposters so that we can get wind
+imposters so that we can get wind movement in parallax because we have a
+movement in parallax because we have a few more verts to work with
+few more verts to work with this is done with a vertex attribute
+this is done with a vertex attribute transfer from the base model to the card
+transfer from the base model to the card cluster model it's nothing too complex
+cluster model it's nothing too complex it's not an exact match but it gives us
+it's not an exact match but it gives us some good movement especially in the
+some good movement especially in the shadows
+shadows now as the card cluster model got far
+now as the card cluster model got far away
+away we noticed some matte edge inaccuracy
+so we need to flood our textures this is often done by dilating or
+this is often done by dilating or blurring the image and putting the
+blurring the image and putting the original on top and repeating until
+original on top and repeating until you've flooded enough
+now this looks nice but your users and players are never going to see it
+players are never going to see it and it's pretty slow especially for
+and it's pretty slow especially for large images
+large images it's also biased towards the edge color
+it's also biased towards the edge color probably not noticeable except in
+probably not noticeable except in contrived situations but you know it
+contrived situations but you know it could be better
+could be better i wanted something that would resolve
+i wanted something that would resolve faster so i developed something i call
+faster so i developed something i call mip flooding which assumes power of two
+mip flooding which assumes power of two sized images
+sized images so for an image we use unpremultiplied
+so for an image we use unpremultiplied color
+color at each step we scale it down to half of
+at each step we scale it down to half of its size weighting the samples by their
+its size weighting the samples by their alpha coverage
+alpha coverage and we repeat until we get to one pixel
+and we repeat until we get to one pixel wide or tall
+wide or tall we remember these textures and then we
+we remember these textures and then we walk back up the mip chain using nearest
+walk back up the mip chain using nearest neighbor upscale
+neighbor upscale we composite the higher res mip on top
+we composite the higher res mip on top and we repeat all the way back up the
+and we repeat all the way back up the stack
+stack now this is fast to generate and it
+now this is fast to generate and it scales well because with image size
+scales well because with image size because of the logarithmic component to
+because of the logarithmic component to the algorithmic time complexity
+the algorithmic time complexity and on disk this will compress better
+and on disk this will compress better because of those large areas of constant
+because of those large areas of constant color
+color you could also use this for a fast
+you could also use this for a fast smooth hole filling if you use bilinear
+smooth hole filling if you use bilinear sampling in the up-res chain but the
+sampling in the up-res chain but the image result is going to be a little
+image result is going to be a little different depending on your alignment
+okay guys so i came here today
+for two reasons to chew bubble gum
+reasons to chew bubble gum and kick grass
+and bubble gum is beyond the scope of this presentation
+this presentation so let's talk about ground vegetation
+so let's talk about ground vegetation interaction how does it move when
+interaction how does it move when physical objects collide with it
+physical objects collide with it physical objects like characters
+physical objects like characters just chilling in the grass
+just chilling in the grass we want their presence to affect nearby
+we want their presence to affect nearby vegetation
+vegetation by moving it out of the way
+by moving it out of the way this is commonly done with a top-down
+this is commonly done with a top-down projected render texture
+projected render texture each collider can render into the
+each collider can render into the texture a simple representation of
+texture a simple representation of itself like a sprite of some directional
+itself like a sprite of some directional vectors
+vectors rendered with an additive blend so
+rendered with an additive blend so multiple shapes can mix in any order
+multiple shapes can mix in any order a vegetation model that wants to respond
+a vegetation model that wants to respond to collision would read this world space
+to collision would read this world space texture and move its vertices in the
+texture and move its vertices in the direction sampled
+direction sampled andrew maximov did this for uncharted 4.
+andrew maximov did this for uncharted 4. another method is to render collider
+another method is to render collider shapes into a height field instead of
+shapes into a height field instead of rendering explicit directions
+rendering explicit directions to blend these in any order a minimum
+to blend these in any order a minimum blend mode preserves the deepest
+blend mode preserves the deepest disturbances
+disturbances this could push verts down proportional
+this could push verts down proportional to the displacement and use that
+to the displacement and use that stretching fix that we described earlier
+stretching fix that we described earlier to make it look like rotation
+or we could compute the gradient of the field and use that to push away from the
+field and use that to push away from the collider now this is not the photoshop
+collider now this is not the photoshop gradient this is the calculus gradient
+gradient this is the calculus gradient it's the direction of greatest slope
+so after whipping up something simple you can see the grass here parting near
+you can see the grass here parting near the player's feet
+the player's feet it looks pretty good with this camera
+it looks pretty good with this camera but this is not our games camera
+but this is not our games camera this is our games camera
+this is our games camera you rarely see his feet so you will
+you rarely see his feet so you will rarely see this movement
+rarely see this movement and that's disappointing at least to me
+and that's disappointing at least to me we need something more my goal was to
+we need something more my goal was to figure out a way to extend this settling
+figure out a way to extend this settling so that the player could see a trail
+our first pass at the trail was to use two channels for xz direction offsets
+two channels for xz direction offsets and extend it with an extra channel for
+and extend it with an extra channel for effect age
+effect age we use a ribbon particle system to
+we use a ribbon particle system to create some trail geometry this extends
+create some trail geometry this extends the trailing edge of the sphere
+the trailing edge of the sphere and fades out all channels over its life
+and fades out all channels over its life span
+span the extra age channel shown here in the
+the extra age channel shown here in the blue channel would let us seek into a
+blue channel would let us seek into a procedural settling animation
+this technique showed some promise and we used it for e3 2017 but it did have
+we used it for e3 2017 but it did have some problems
+some problems it could only use sphere colliders
+it could only use sphere colliders multiple colliders could z-fight in the
+multiple colliders could z-fight in the render texture so the grass between a
+render texture so the grass between a troll's two feet would pop back and
+troll's two feet would pop back and forth and vibrate
+forth and vibrate and also since it was a top-down
+and also since it was a top-down projection it would move vegetation no
+projection it would move vegetation no matter the height of the effect this
+matter the height of the effect this meant that elevated colliders like
+meant that elevated colliders like leaping wolves lifted objects and tall
+leaping wolves lifted objects and tall high-stepping trolls
+high-stepping trolls would look like a ghost was moving
+would look like a ghost was moving through the grass beneath them
+so maybe we could use our footstep system to splat fading sprites into the
+system to splat fading sprites into the render texture
+render texture this would only happen when feet touch
+this would only happen when feet touch the ground
+the ground now this could work
+now this could work but it would also greatly increase the
+but it would also greatly increase the altering burden on our effects team who
+altering burden on our effects team who already had a lot of things scheduled
+already had a lot of things scheduled this would require a lot of extra
+this would require a lot of extra tagging of materials and animations in
+tagging of materials and animations in our pipeline
+our pipeline because of this extra workload i
+because of this extra workload i suggested we not pursue this approach
+suggested we not pursue this approach my gut told me there had to be a better
+my gut told me there had to be a better solution out there
+so it only took about seven months of thinking in the background about it
+thinking in the background about it before landing on a solution that would
+before landing on a solution that would meet the visual target and fit into the
+meet the visual target and fit into the performance and memory budgets i did
+performance and memory budgets i did work on other things um
+work on other things um we used approximate shapes like ragdolls
+we used approximate shapes like ragdolls and we render the height of their bottom
+and we render the height of their bottom side into two channels
+side into two channels one channel is held every frame and the
+one channel is held every frame and the other fades upwards
+other fades upwards how much that channel is faded can tell
+how much that channel is faded can tell us how much time has passed since the
+us how much time has passed since the collision was rendered
+collision was rendered and when verts lean out of the way we
+and when verts lean out of the way we use the slope of the unfading height
+use the slope of the unfading height field to determine the direction and
+field to determine the direction and magnitude of that lean
+magnitude of that lean here's another video with a more
+here's another video with a more detailed player collider you can see his
+detailed player collider you can see his feet there
+feet there now this render texture is double
+now this render texture is double buffered so that we can construct
+buffered so that we can construct accurate motion vectors for our vertex
+accurate motion vectors for our vertex movements and that's been true for all
+movements and that's been true for all the techniques we've described
+the techniques we've described we use a read modify right to blend the
+we use a read modify right to blend the minimum into the fading channel and we
+minimum into the fading channel and we replace the unfading channel only if
+replace the unfading channel only if that blend pushed the height field down
+that blend pushed the height field down except i couldn't use read modify right
+except i couldn't use read modify right it's slower and was not in my budget
+it's slower and was not in my budget but we can take advantage of the double
+but we can take advantage of the double buffering to read from the previous
+buffering to read from the previous frame letting us do the compositing in
+frame letting us do the compositing in the render texture pixel shader
+the render texture pixel shader now this does mean in some rare cases
+now this does mean in some rare cases draw orders would lead to negative
+draw orders would lead to negative height differences for one frame before
+height differences for one frame before correcting
+correcting but we fixed this in the vegetation
+but we fixed this in the vegetation vertex shader just by clamping the age
+vertex shader just by clamping the age to zero
+and lastly this works best for stationary or hive
+this works best for stationary or hive movement colliders
+movement colliders an idling player animation
+an idling player animation can cause vegetation to pop frequently
+can cause vegetation to pop frequently from its settling animation back into
+from its settling animation back into its trampled pose
+its trampled pose we mitigate this by reducing the fade
+we mitigate this by reducing the fade rate to zero where the player is
+rate to zero where the player is standing
+standing which is always underneath which is
+which is always underneath which is always the center of the texture because
+always the center of the texture because that follows the player around
+that follows the player around this slows the settling animation to
+this slows the settling animation to zero underneath their feet
+zero underneath their feet here's some work in progress testbed
+here's some work in progress testbed video
+video you can definitely see how as i got
+you can definitely see how as i got further and further down this rabbit
+further and further down this rabbit hole i started using more and more debug
+hole i started using more and more debug visualization
+uh forgive the z fighting there
+okay so we're gonna go through one more time because again debug visuals they
+time because again debug visuals they help on the left
+help on the left we're going to look at the dual height
+we're going to look at the dual height field texture and on the right we're
+field texture and on the right we're going to see the world view from its
+going to see the world view from its side
+side first we'll render in a sphere
+first we'll render in a sphere in the world view i'm going to add a
+in the world view i'm going to add a slice of the height field so that we can
+slice of the height field so that we can see it in space
+if we take away the sphere you can see that one channel of the height field
+that one channel of the height field fades up at a constant rate while the
+fades up at a constant rate while the other is held firm
+other is held firm adding the sphere back
+adding the sphere back let's move it
+let's move it and pause
+and pause so the differences in the height field
+so the differences in the height field channels divided by the fade rate
+channels divided by the fade rate tells us how much time has passed since
+tells us how much time has passed since the collider moved away from that
+the collider moved away from that position
+position we use a procedural animation for total
+we use a procedural animation for total lean it's a cosine times a fall off
+lean it's a cosine times a fall off and it goes negative to give us
+and it goes negative to give us overshooting as vegetation settles
+overshooting as vegetation settles we use that time past to seek a pose
+we use that time past to seek a pose from that animation curve
+now as we watch the sphere continue to move you can see how it overwrites the
+move you can see how it overwrites the held channel only when it's deeper than
+held channel only when it's deeper than the faded channel
+the faded channel this means that shallower collisions
+this means that shallower collisions need to wait for the vegetation to
+need to wait for the vegetation to settle somewhat before they can affect
+settle somewhat before they can affect it but deeper collisions can affect it
+it but deeper collisions can affect it right away
+right away let's watch that one more time but with
+let's watch that one more time but with some simple grass geometry reacting to
+some simple grass geometry reacting to it
+one last look at the ship technique in action for small characters like that
+action for small characters like that poor guy there
+poor guy there we use a simple mesh sphere as a
+we use a simple mesh sphere as a collider shape
+collider shape now i'm turning off those spheres on
+now i'm turning off those spheres on drawers so we can see the effect a bit
+drawers so we can see the effect a bit better
+better for our larger and hero characters we
+for our larger and hero characters we try to get more faithful collision
+try to get more faithful collision representation by attaching shapes to
+representation by attaching shapes to multiple joints
+[Music] and we're not limited to primitive
+and we're not limited to primitive shapes the troll totem has a custom
+shapes the troll totem has a custom collider shape and this works really
+collider shape and this works really well
+well we can also see here the importance of
+we can also see here the importance of separate foot colliders for large
+separate foot colliders for large characters
+and lastly the boat is another case where we use a custom mesh collider
+okay guys we made it through that was a lot to go over um i hope everything was
+lot to go over um i hope everything was clear and you were able to take
+clear and you were able to take something away from it even if you don't
+something away from it even if you don't plan to implement a system with all of
+plan to implement a system with all of these features
+these features we're not going to really have time for
+we're not going to really have time for questions but i'll be hanging around so
+questions but i'll be hanging around so if you want to join me later
+if you want to join me later we can talk about it or you can reach
+we can talk about it or you can reach out to me on twitter at the real big
+out to me on twitter at the real big feel and i'll post the references slide
+feel and i'll post the references slide there as well
+there as well now i've got to do a shout out because i
+now i've got to do a shout out because i really could not have built this without
+really could not have built this without the teamwork of some amazing people
+the teamwork of some amazing people by now you may know rupert bernard again
+by now you may know rupert bernard again he's one of our graphics programmers and
+he's one of our graphics programmers and was instrumental in co-developing the
+was instrumental in co-developing the system with me
+system with me florian strauss our technical director
+florian strauss our technical director developed the snow system that i was
+developed the snow system that i was able to borrow a lot of tooling from
+able to borrow a lot of tooling from when building the ground vegetation
+when building the ground vegetation collisions
+collisions paulo cerrichio one of our graphics
+paulo cerrichio one of our graphics programmers responsible for effects and
+programmers responsible for effects and rendering did a great job integrating
+rendering did a great job integrating and evolving wind influence in our
+and evolving wind influence in our particle workflow to my specifications
+particle workflow to my specifications travis slagel a tools tech artist built
+travis slagel a tools tech artist built the tools that we use to alter ninety
+the tools that we use to alter ninety percent of our vertex data on our wind
+percent of our vertex data on our wind meshes
+meshes and max ankar our effects lead for this
+and max ankar our effects lead for this project he set up wind on the vast
+project he set up wind on the vast majority of tax and was by far the wind
+majority of tax and was by far the wind system's biggest fan from day one
+and really i've got to thank the entire team at sony santa monica i see some of
+team at sony santa monica i see some of them in the audience so don't look at me
+them in the audience so don't look at me guys because i'm the gush
+guys because i'm the gush i could not have done my best work
+i could not have done my best work without them
+without them every single one of these people is so
+every single one of these people is so dialed into what they do it's an
+dialed into what they do it's an incredible place to be a part of
+incredible place to be a part of i love this crew and i'm grateful for
+i love this crew and i'm grateful for them
+them my point is this if you ever get a
+my point is this if you ever get a chance to work with any one of them
+chance to work with any one of them present or former you should absolutely
+present or former you should absolutely jump on the opportunity
+and what do you know the easiest way to do this may well be to reach out to us
+do this may well be to reach out to us we're hiring for a lot of positions
+we're hiring for a lot of positions including senior and lead tech art roles
+including senior and lead tech art roles art of all disciplines programming of
+art of all disciplines programming of all disciplines design of all
+all disciplines design of all disciplines animation you're seeing a
+disciplines animation you're seeing a pattern here
+pattern here if you don't see an open role for your
+if you don't see an open role for your talents but think you can make a strong
+talents but think you can make a strong contribution i suggest you go for it
+contribution i suggest you go for it anyway we can be flexible and we might
+anyway we can be flexible and we might have a place for you in the future
+have a place for you in the future thanks for joining me today guys

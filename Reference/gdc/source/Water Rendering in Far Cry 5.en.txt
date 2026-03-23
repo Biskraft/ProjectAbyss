@@ -1,0 +1,1160 @@
+[Music] okay so my name is a branislav you jerk
+okay so my name is a branislav you jerk and a 3d team lead programmer from
+and a 3d team lead programmer from youths of Toronto and had the pleasure
+youths of Toronto and had the pleasure of working with a Christian on the Far
+of working with a Christian on the Far Cry 5 yep hi guys I'm Christian Coto
+Cry 5 yep hi guys I'm Christian Coto Charis I'm part of Fame DS developer
+Charis I'm part of Fame DS developer Technology Group
+Technology Group I work with developers to make sure that
+I work with developers to make sure that their games are running smooth on Radeon
+their games are running smooth on Radeon on PC awesome so just a little agenda
+on PC awesome so just a little agenda what we'll cover today we did a little
+what we'll cover today we did a little introduction but then we'll talk about
+introduction but then we'll talk about the history of water and previous Parker
+the history of water and previous Parker games we'll talk about Montana as that's
+games we'll talk about Montana as that's where far cry 5 is located we'll look at
+where far cry 5 is located we'll look at the engine tools and rendering goals and
+the engine tools and rendering goals and we'll actually look through a full
+we'll actually look through a full render of frame of water and far cry 5
+render of frame of water and far cry 5 and then Christian will talk about how
+and then Christian will talk about how we optimized our compute shaders with
+we optimized our compute shaders with 1/2 precision math and we'll close it
+1/2 precision math and we'll close it off with problems how we actually debug
+off with problems how we actually debug these problems and the future so just to
+these problems and the future so just to get this started this is a screenshot of
+get this started this is a screenshot of far cry 5 rendering wise there was the
+far cry 5 rendering wise there was the old Blin specular rendering model water
+old Blin specular rendering model water was the same we had planar reflections I
+was the same we had planar reflections I can see here so we moved on to Far Cry 3
+can see here so we moved on to Far Cry 3 Far Cry 3 was the first introduction of
+Far Cry 3 was the first introduction of PBR and a far cry engine although water
+PBR and a far cry engine although water remained relatively non PBR they still
+remained relatively non PBR they still looked quite good far cry 4 we did PBR
+looked quite good far cry 4 we did PBR version 2 also water starting to look
+version 2 also water starting to look quite nice although we were starting to
+quite nice although we were starting to struggle with waterfalls in our game and
+struggle with waterfalls in our game and the reflections in the normal map it was
+the reflections in the normal map it was China distort the image a little bit too
+China distort the image a little bit too much which we didn't like and then Far
+much which we didn't like and then Far Cry primal is where we actually really
+Cry primal is where we actually really started to consider redoing the water
+started to consider redoing the water system as we were trying to hit the
+system as we were trying to hit the limits of what we wanted it to look like
+limits of what we wanted it to look like so this is a screenshot of our Chi 5 you
+so this is a screenshot of our Chi 5 you can tell everything has gotten an
+can tell everything has gotten an overhaul including fully PBR water with
+overhaul including fully PBR water with flow Maps reflections and refraction so
+flow Maps reflections and refraction so before we get started how we actually
+before we get started how we actually render this our first approach is to
+render this our first approach is to look at some reference images of Montana
+look at some reference images of Montana we're far cry 5 is located we knew that
+we're far cry 5 is located we knew that we could technically do this with the
+we could technically do this with the old water shader but that's not what we
+old water shader but that's not what we wanted to do as when you go to Montana
+wanted to do as when you go to Montana you'll see a lot of rivers that are
+you'll see a lot of rivers that are really fast and there's no way you can
+really fast and there's no way you can get this kind of displacement from just
+get this kind of displacement from just a normal map then we get the rapids if
+a normal map then we get the rapids if we want to do rapids you're gonna
+we want to do rapids you're gonna struggle with flat water so we really
+struggle with flat water so we really need a system that will handle sloped
+need a system that will handle sloped water waterfalls surprisingly there are
+water waterfalls surprisingly there are a lot of water waterfalls in Montana
+a lot of water waterfalls in Montana probably 50 or more and treating the
+probably 50 or more and treating the previous Parker games we made all these
+previous Parker games we made all these manual and we had to deal with the
+manual and we had to deal with the connections between the river for
+connections between the river for example in the waterfall which was quite
+example in the waterfall which was quite tedious and if we made any single change
+tedious and if we made any single change the terrain we'd have to go edit the
+the terrain we'd have to go edit the things we did before which was
+things we did before which was unacceptable Montana also has some
+unacceptable Montana also has some exotic locations such as sulfur ponds at
+exotic locations such as sulfur ponds at this point we already knew that a
+this point we already knew that a previous lighting model would not work
+previous lighting model would not work so we wanted to tackle this so in terms
+so we wanted to tackle this so in terms of our game engine there's three sides
+of our game engine there's three sides that play together to get our awesome
+that play together to get our awesome water system which is the engine side
+water system which is the engine side which deals with the data generation is
+which deals with the data generation is streaming in all the textures and we
+streaming in all the textures and we have a very simple water crazed API we
+have a very simple water crazed API we have an awesome tool which is
+have an awesome tool which is artist-driven and procedural and the
+artist-driven and procedural and the rendering I'll talk about this fully so
+rendering I'll talk about this fully so from the engine side we had many
+from the engine side we had many functions to handle the water level
+functions to handle the water level before but once we started doing this I
+before but once we started doing this I think I had about a 93 file change list
+think I had about a 93 file change list which went through the entire engine and
+which went through the entire engine and cleaned all of it up for it to be a
+cleaned all of it up for it to be a single function that returned the water
+single function that returned the water level and handled everything for you
+level and handled everything for you this deals with water quadtree for any
+this deals with water quadtree for any water that is moving and all the baked
+water that is moving and all the baked water height maps that are streamed in
+water height maps that are streamed in such as lakes rivers and waterfalls and
+such as lakes rivers and waterfalls and one thing to note is we also support the
+one thing to note is we also support the ocean for things we'll see you soon
+ocean for things we'll see you soon flow in physics everything we do in the
+flow in physics everything we do in the GPU we have to replicate on the CPU
+GPU we have to replicate on the CPU because we can have objects that are
+because we can have objects that are moving around in the world according to
+moving around in the world according to the flow map and last but not least it's
+the flow map and last but not least it's the base material map we need to do
+the base material map we need to do underwater so we need to know exactly
+underwater so we need to know exactly which material is where in the world
+which material is where in the world so just for reference this is how this
+so just for reference this is how this function looks like there's an engine
+function looks like there's an engine level in the render a render thread
+level in the render a render thread function which returns you the water
+function which returns you the water level and the get water flow directions
+level and the get water flow directions and from an epi perspective our entire
+and from an epi perspective our entire engine simply uses this and nothing more
+engine simply uses this and nothing more tools wise in the previous Far Cry games
+tools wise in the previous Far Cry games the Far Cry engine is a sector based
+the Far Cry engine is a sector based engine which means we have 64 by 64
+engine which means we have 64 by 64 sectors in the world and if an artist
+sectors in the world and if an artist wanted to place water they had to turn
+wanted to place water they had to turn on the water per sector and if you want
+on the water per sector and if you want to get a lake you have to do this
+to get a lake you have to do this probably 20 30 times change the material
+probably 20 30 times change the material in each one and if you want to slow
+in each one and if you want to slow water you're kind of ha too lucky to
+water you're kind of ha too lucky to have to tear from the terrain around the
+have to tear from the terrain around the water surface to actually get this to
+water surface to actually get this to work so for Far Cry Fire we went more of
+work so for Far Cry Fire we went more of a procedural generation route and this
+a procedural generation route and this is just a little video of how that works
+is just a little video of how that works so an artist would simply placed a bunch
+so an artist would simply placed a bunch of points on the terrain using our lake
+of points on the terrain using our lake creation tool and then we could switch
+creation tool and then we could switch to the river tool which places a spline
+to the river tool which places a spline which allows us to modify the width and
+which allows us to modify the width and the depth of the spline and this
+the depth of the spline and this actually modifies the terrain underneath
+actually modifies the terrain underneath it as well and then the artist simply
+it as well and then the artist simply clicks one button and he gets fully
+clicks one button and he gets fully procedural water generated one thing to
+procedural water generated one thing to know what in this video is we're
+know what in this video is we're actually doing this
+actually doing this in Houdini and this handles all the
+in Houdini and this handles all the materials and textures underneath the
+materials and textures underneath the water surface as well so you'll see here
+water surface as well so you'll see here there's rocks moss and the dirt that
+there's rocks moss and the dirt that connects to the rest of the terrain and
+connects to the rest of the terrain and we didn't have to do anything in terms
+we didn't have to do anything in terms of connecting the water bodies which was
+of connecting the water bodies which was quite painful in the previous Parker
+quite painful in the previous Parker games so this is kind of the bulk of the
+games so this is kind of the bulk of the work we did we wanted to experiment with
+work we did we wanted to experiment with a screen space distillation which is
+a screen space distillation which is what's going to give us this awesome
+what's going to give us this awesome look per pixel material we're moving
+look per pixel material we're moving towards with each pixel containing data
+towards with each pixel containing data from the material buffers so we don't
+from the material buffers so we don't actually have to deal with reading
+actually have to deal with reading things from world space and this allows
+things from world space and this allows us to do blending because now we have
+us to do blending because now we have all the data per pixel and we can know
+all the data per pixel and we can know what other materials are in this pixel
+what other materials are in this pixel we do everything to compute as much as
+we do everything to compute as much as we can - the depth test and
+we can - the depth test and rendering the depth out and we do floor
+rendering the depth out and we do floor maps with foam as previously in the
+maps with foam as previously in the parkour games we only had a scrolling UV
+parkour games we only had a scrolling UV texture so just a little bit of the
+texture so just a little bit of the things we achieved before we get into
+things we achieved before we get into actual rendering algorithm this is a
+actual rendering algorithm this is a simple water plane that artists can just
+simple water plane that artists can just place can move up and down particles
+place can move up and down particles also interact with it fully this is a
+also interact with it fully this is a more exotic Lake
+this is a wide river as you can see there's displacement at the bottom and
+there's displacement at the bottom and it will fade out in the distance we have
+it will fade out in the distance we have a nice LD transition between the height
+a nice LD transition between the height desolation and low distillation this is
+desolation and low distillation this is another example where we have a river
+another example where we have a river that is modulated by its depth and its
+that is modulated by its depth and its width which drives how the foam is
+width which drives how the foam is generated in this specific location and
+generated in this specific location and phone will also follow around any rocks
+phone will also follow around any rocks and the terrain started this tool we
+and the terrain started this tool we also have procedural waterfalls artists
+also have procedural waterfalls artists simply place a spline click that button
+simply place a spline click that button and just play it again and they also get
+and just play it again and they also get waterfalls with flow maps we talked
+waterfalls with flow maps we talked about some exotic locations but this is
+about some exotic locations but this is one example of where there's a
+one example of where there's a helicopter that's affecting the sulfur
+helicopter that's affecting the sulfur pond below it and you can see the
+pond below it and you can see the helicopter spawning displacement
+helicopter spawning displacement particles on top of it which are
+particles on top of it which are disturbing the water surface and
+disturbing the water surface and creating foam so on top of having to
+creating foam so on top of having to support all of this in the engine we
+support all of this in the engine we also have to support all these features
+also have to support all these features in the world map as you will see once
+in the world map as you will see once you play 405 and this is our Far Cry
+you play 405 and this is our Far Cry arcade in-game editor where we also
+arcade in-game editor where we also support ocean rendering not only do we
+support ocean rendering not only do we do all these things we also support a
+do all these things we also support a nice underwater effect and I really like
+nice underwater effect and I really like this light because it really shows you
+this light because it really shows you how much water there is in our world
+how much water there is in our world this actually brings us to one point
+this actually brings us to one point where we not only need to render water
+where we not only need to render water close to the player we actually need to
+close to the player we actually need to do it in the distance as well and this
+do it in the distance as well and this has to go really fast on a GPU ok so
+has to go really fast on a GPU ok so we're going to talk about how we do all
+we're going to talk about how we do all of this in screen space and how we
+of this in screen space and how we achieve a screen space tessellation the
+achieve a screen space tessellation the general idea behind this algorithm is
+general idea behind this algorithm is that an artist gives us a very low
+that an artist gives us a very low resolution mesh and they also give us a
+resolution mesh and they also give us a material which will guide how we
+material which will guide how we actually tessellate and from this we
+actually tessellate and from this we will create a screen space test lay the
+will create a screen space test lay the mesh so from the artist point of view
+mesh so from the artist point of view all they give us is simple parameters
+all they give us is simple parameters such as amplitude roughness each scale
+such as amplitude roughness each scale and we bake this out into a structure
+and we bake this out into a structure buffer
+buffer one problem with DirectX 11 is that we
+one problem with DirectX 11 is that we can't actually deal with textures if
+can't actually deal with textures if we're going towards a screen space
+we're going towards a screen space approach so instead artists are simply
+approach so instead artists are simply using indices into texture arrays for
+using indices into texture arrays for any texture they want per pixel and that
+any texture they want per pixel and that also gets baked out into a texture index
+also gets baked out into a texture index in a structure buffer so if you can
+in a structure buffer so if you can imagine when you're running around in an
+imagine when you're running around in an open world game there's materials
+open world game there's materials constantly being loaded so what we
+constantly being loaded so what we actually do is have one fairly large
+actually do is have one fairly large structure buffer which runs a computer
+structure buffer which runs a computer and takes the data out of that material
+and takes the data out of that material into a structure buffer and then from
+into a structure buffer and then from this point on we handle everything using
+this point on we handle everything using just an index per pixel and this at this
+just an index per pixel and this at this point we actually link everything using
+point we actually link everything using per pixel so this is the actual overall
+per pixel so this is the actual overall rendering algorithm we'll go through all
+rendering algorithm we'll go through all the stages and how we actually do this
+the stages and how we actually do this so don't worry about this large graph so
+so don't worry about this large graph so the first stage is always visibility how
+the first stage is always visibility how do you actually handle rendering water
+do you actually handle rendering water close by and in the distance for water
+close by and in the distance for water near the player we actually use a
+near the player we actually use a conditional rendering approach with a
+conditional rendering approach with a clusion queries and we simply store the
+clusion queries and we simply store the query permission since in the distance
+query permission since in the distance we actually do GPU pipeline where we
+we actually do GPU pipeline where we have two cases which is flat water and a
+have two cases which is flat water and a height map water both of this data is
+height map water both of this data is loaded from a quadtree on the GPU and we
+loaded from a quadtree on the GPU and we use this to do a secretary clusion and
+use this to do a secretary clusion and create the indirect draw arguments
+create the indirect draw arguments buffer and this part is fairly simple
+buffer and this part is fairly simple because the computer can just fetch from
+because the computer can just fetch from the height map and it can know whether
+the height map and it can know whether it's a flat piece of water or if it's a
+it's a flat piece of water or if it's a waterfall or river and once it does this
+waterfall or river and once it does this it will actually pass the data through
+it will actually pass the data through through the indirect arguments buffer
+through the indirect arguments buffer and give us a draw call now this is very
+and give us a draw call now this is very important it's a large open world game
+important it's a large open world game so in a typical scene you might have 80
+so in a typical scene you might have 80 to 90 draw calls but once you do
+to 90 draw calls but once you do occlusion you might end up only doing
+occlusion you might end up only doing ten there are some really heavy scenes
+ten there are some really heavy scenes where you might actually end up having
+where you might actually end up having 600 water bodies and this is why we
+600 water bodies and this is why we actually have to split the water into
+actually have to split the water into near rendering and far rendering where
+near rendering and far rendering where the far rendering is a single draw call
+the far rendering is a single draw call but
+but water bodies close fire actually
+water bodies close fire actually multiple juggles so if we want to do
+multiple juggles so if we want to do everything in screen space we kind of
+everything in screen space we kind of need a mini G buffer which is a little
+need a mini G buffer which is a little bit lower resolution and a higher FV
+bit lower resolution and a higher FV which defines the surface shape and as I
+which defines the surface shape and as I mentioned before artists do not give us
+mentioned before artists do not give us tessellated meshes we actually do screen
+tessellated meshes we actually do screen space tessellation so in the past we
+space tessellation so in the past we call the position pass we write out
+call the position pass we write out three textures which is the data texture
+three textures which is the data texture the mesh normal and deaf buff are only
+the mesh normal and deaf buff are only containing the water planes once you do
+containing the water planes once you do this for all the water nearby and in the
+this for all the water nearby and in the distance you get textures that look like
+distance you get textures that look like this now what do you actually store in
+this now what do you actually store in these textures in the data texture we
+these textures in the data texture we store the shader ID which is an 8-bit
+store the shader ID which is an 8-bit texture and that contains shader
+texture and that contains shader features which could be as a front face
+features which could be as a front face does the support lighting or not and is
+does the support lighting or not and is that a valid pixel or not we also store
+that a valid pixel or not we also store the material structure buffer index
+the material structure buffer index because from this point on everything is
+because from this point on everything is done per pixel and you'll notice also
+done per pixel and you'll notice also storing the map level of the algae and
+storing the map level of the algae and the phone because we are doing things in
+the phone because we are doing things in screen space we don't have access to D
+screen space we don't have access to D DX D UI so we kind of have to pack this
+DX D UI so we kind of have to pack this out in the early stage water is a very
+out in the early stage water is a very interactive thing so we implement as
+interactive thing so we implement as something called vector displacement
+something called vector displacement maps and this is a fairly simple
+maps and this is a fairly simple particle editor extension where we
+particle editor extension where we render projected box decals for each
+render projected box decals for each particle and the way that works is when
+particle and the way that works is when you render the box we sample the debt
+you render the box we sample the debt buffer that has water in it and we do
+buffer that has water in it and we do position from depth to project that onto
+position from depth to project that onto the water surface we also have to invert
+the water surface we also have to invert two object space replying to you these
+two object space replying to you these otherwise you will notice this torsion
+otherwise you will notice this torsion in screen space at this point we also
+in screen space at this point we also clip all the off-screen pixels sample
+clip all the off-screen pixels sample the displacement textures and also do
+the displacement textures and also do any sort of animation that the artist
+any sort of animation that the artist might want because if you're doing
+might want because if you're doing splashes it's probably multiple frames
+splashes it's probably multiple frames not a single frame the most important
+not a single frame the most important things from the slide is the fading of
+things from the slide is the fading of the displacement towards the edge edges
+the displacement towards the edge edges of the box if you're applying a
+of the box if you're applying a projected box decal on a for example a
+projected box decal on a for example a waterfall you will see displacement
+waterfall you will see displacement exploding as it gets to the edge of the
+exploding as it gets to the edge of the box which you don't want to do
+box which you don't want to do and how do you actually blend all of
+and how do you actually blend all of these we do a max alpha blend where we
+these we do a max alpha blend where we cleared the texture to a negative told
+cleared the texture to a negative told max and we do alpha blend max to get all
+max and we do alpha blend max to get all these textures so at the end we get a
+these textures so at the end we get a texture that has all the displacement
+texture that has all the displacement splashes in it we actually went away
+splashes in it we actually went away from giving control to artists to paint
+from giving control to artists to paint normal maps because we found that that
+normal maps because we found that that creates a lot of repetitions so instead
+creates a lot of repetitions so instead of that we create noise to get the
+of that we create noise to get the general surfer shape which is the high
+general surfer shape which is the high frequency noise and for that we use the
+frequency noise and for that we use the fractional Brownian motion with nine
+fractional Brownian motion with nine iterations per pixel if you don't know
+iterations per pixel if you don't know how that works basically each iteration
+how that works basically each iteration adds more frequency as you double the UV
+adds more frequency as you double the UV scale and this is one thing to remember
+scale and this is one thing to remember is this is fairly expensive because it's
+is this is fairly expensive because it's nine texture fetches per pixel so we
+nine texture fetches per pixel so we actually do an LED approach where in the
+actually do an LED approach where in the distance we do three fetches and close
+distance we do three fetches and close by we do nine and we don't want to go to
+by we do nine and we don't want to go to zero because otherwise the reflections
+zero because otherwise the reflections look really bad in the distance and
+look really bad in the distance and there's two errors on this diagram one
+there's two errors on this diagram one is that this texture is not cleared
+is that this texture is not cleared because we have many passes and we have
+because we have many passes and we have a valid mask on the screen which tells
+a valid mask on the screen which tells us where there is water there is no need
+us where there is water there is no need to clear these textures so in every pass
+to clear these textures so in every pass it will just simply check and check if
+it will just simply check and check if there is water or not if there is ill
+there is water or not if there is ill sample the valid data otherwise it does
+sample the valid data otherwise it does not and the last thing is the second
+not and the last thing is the second error is we combine the splashes with
+error is we combine the splashes with the high frequency surface shape so now
+the high frequency surface shape so now that we know the surface shape and all
+that we know the surface shape and all the displacement we actually need to do
+the displacement we actually need to do screen-space distillation but we don't
+screen-space distillation but we don't want to do this for tiles that don't
+want to do this for tiles that don't exist we need to do some sort of
+exist we need to do some sort of occlusion pass so the way this works is
+occlusion pass so the way this works is we divide the screen into 32 by 32 tiles
+we divide the screen into 32 by 32 tiles we found 32 by 32 is the best for all
+we found 32 by 32 is the best for all hardware we first started with 8 went up
+hardware we first started with 8 went up until we found the one that works and
+until we found the one that works and the way this works is we simply get a
+the way this works is we simply get a purl tile pixel count and you have two
+purl tile pixel count and you have two cases like the tile might have a pixel
+cases like the tile might have a pixel that has water or does not have water if
+that has water or does not have water if it has water we do an atomic add into a
+it has water we do an atomic add into a structure buffer but we also use the
+structure buffer but we also use the group shared memory to store this before
+group shared memory to store this before we actually write it out into destructor
+we actually write it out into destructor buffer one thing to remember is if
+buffer one thing to remember is if you're working on console or dx12 you
+you're working on console or dx12 you could actually use the ballot
+could actually use the ballot instruction
+instruction because we have a per pixel boolean we
+because we have a per pixel boolean we can test against to reduce this from 64
+can test against to reduce this from 64 atomic still single atomic because we
+atomic still single atomic because we run this in a grid of 8x8 threads once
+run this in a grid of 8x8 threads once all the threads are finished and the
+all the threads are finished and the group their ID is zero we actually write
+group their ID is zero we actually write out the total pixel count into a
+out the total pixel count into a structure buffer and then we do another
+structure buffer and then we do another pass where we simply iterate this list
+pass where we simply iterate this list and get the pixel count if it's greater
+and get the pixel count if it's greater than zero we increase the indirect draw
+than zero we increase the indirect draw arguments buffer by 1 and the last line
+arguments buffer by 1 and the last line there is very important because we will
+there is very important because we will write out the tile ID into a sector
+write out the tile ID into a sector second structure buffer and you can see
+second structure buffer and you can see from a render capture this specific of
+from a render capture this specific of you has 606 mesh instances on the screen
+you has 606 mesh instances on the screen with each one being 1536 indices so it's
+with each one being 1536 indices so it's highly tessellated so now we know what
+highly tessellated so now we know what water is visible which tiles are visible
+water is visible which tiles are visible need to actually render this mesh so
+need to actually render this mesh so from the previous pass we know exactly
+from the previous pass we know exactly which tiles will have water not have
+which tiles will have water not have water and we will render a mesh that's
+water and we will render a mesh that's tessellated per tile where it is visible
+tessellated per tile where it is visible how do you actually figure out the
+how do you actually figure out the density we in this example I'm using a
+density we in this example I'm using a 512 by 512 buffer which will get up
+512 by 512 buffer which will get up sample to the viewport and we just take
+sample to the viewport and we just take the 512 divided by 32 which is our
+the 512 divided by 32 which is our screen screen tile size and we get 16 by
+screen screen tile size and we get 16 by 16 quads and this actually gives us
+16 quads and this actually gives us constant density tessellation and we use
+constant density tessellation and we use draw index instance indirect to actually
+draw index instance indirect to actually draw each tile on the screen this is why
+draw each tile on the screen this is why we need to know which tile will have
+we need to know which tile will have water or not so just to run you by how
+water or not so just to run you by how each tile is rendered you'll see a
+each tile is rendered you'll see a renders a highly tessellated mesh but
+renders a highly tessellated mesh but how does it know what where to render
+how does it know what where to render this mesh from the previous pass we
+this mesh from the previous pass we wrote out the instance IDs or the tile
+wrote out the instance IDs or the tile IDs into our structure buffer and that
+IDs into our structure buffer and that maps to draw call and then for each
+maps to draw call and then for each vertex we can figure out which instance
+vertex we can figure out which instance it belongs to from each instance we can
+it belongs to from each instance we can figure out how to create the UVs because
+figure out how to create the UVs because our mesh is simply storing the a 16-bit
+our mesh is simply storing the a 16-bit position that's compressed and we can
+position that's compressed and we can convert that into
+convert that into a UV once we have the UV we could
+a UV once we have the UV we could actually sample the depth and compute
+actually sample the depth and compute the worldspace position in a larger
+the worldspace position in a larger field of view and then sample the
+field of view and then sample the displacement texture which contains the
+displacement texture which contains the FBM and splash and at this point we use
+FBM and splash and at this point we use we use an and to clip all of our
+we use an and to clip all of our vertices because there's no other way to
+vertices because there's no other way to clip in a vertex shader at that point we
+clip in a vertex shader at that point we also project into screen space with a
+also project into screen space with a regular F of E and do depth test with
+regular F of E and do depth test with the screen seeing the C buffer sorry and
+the screen seeing the C buffer sorry and what you get is this so as you can tell
+what you get is this so as you can tell there's no pixels that are black or
+there's no pixels that are black or there's the mesh because it's per pixel
+there's the mesh because it's per pixel tessellation again with the depth buffer
+tessellation again with the depth buffer test and again it's screen space so we
+test and again it's screen space so we have to write out to you V's to match
+have to write out to you V's to match this discrepancy between the larger
+this discrepancy between the larger field of view and the lower field of
+field of view and the lower field of view why are we doing this large field
+view why are we doing this large field of view example if anybody has done any
+of view example if anybody has done any ocean rendering you will know that when
+ocean rendering you will know that when the camera gets close to the water it
+the camera gets close to the water it will clip and we actually want to fix
+will clip and we actually want to fix this so when we do this in the larger
+this so when we do this in the larger field of view and do the tessellation we
+field of view and do the tessellation we up sample and we get this there is some
+up sample and we get this there is some amount of distortion between the large
+amount of distortion between the large field of view to the lower field of view
+field of view to the lower field of view but it's hardly noticeable with motion
+but it's hardly noticeable with motion so that's kind of the deferred pass for
+so that's kind of the deferred pass for a mini D buffer but as I mentioned
+a mini D buffer but as I mentioned before we don't actually give the artist
+before we don't actually give the artist the normal map so we need to generate a
+the normal map so we need to generate a screen space normal map without D D X D
+screen space normal map without D D X D Y which we use position from depth to do
+Y which we use position from depth to do this and one thing to notice because we
+this and one thing to notice because we are a first-person game when you get
+are a first-person game when you get close their water surface this will
+close their water surface this will actually create artifacts so we increase
+actually create artifacts so we increase the sampling radius as you get to the
+the sampling radius as you get to the water surface and we do mesh we do blend
+water surface and we do mesh we do blend with the mesh normal to remove any of
+with the mesh normal to remove any of the discontinuities because we do get a
+the discontinuities because we do get a low res mesh from the artist width which
+low res mesh from the artist width which is blended with the high frequency
+is blended with the high frequency displacement normal so this is probably
+displacement normal so this is probably my favorite slide because
+my favorite slide because before doing this we actually found that
+before doing this we actually found that we're getting a lot of specular aliasing
+we're getting a lot of specular aliasing and we actually do this for our offline
+and we actually do this for our offline textures as well but because we have a
+textures as well but because we have a reference normal that we're storing in
+reference normal that we're storing in screen space we need to filter it so
+screen space we need to filter it so we're doing a variance based approach
+we're doing a variance based approach where you simply compute the gaussian
+where you simply compute the gaussian normal per pixel and we solve for
+normal per pixel and we solve for smoothness based on the reference munis
+smoothness based on the reference munis and why is this important if you don't
+and why is this important if you don't do this you'll notice that actually the
+do this you'll notice that actually the the variance increases quite a lot so
+the variance increases quite a lot so you will lose some of your specular but
+you will lose some of your specular but lucky for us we have a per pixel
+lucky for us we have a per pixel material map so we could actually use
+material map so we could actually use that to scale it back into the range we
+that to scale it back into the range we expect water to be with the variance we
+expect water to be with the variance we actually need to fix the specular
+actually need to fix the specular aliasing and if you do this you'll see
+aliasing and if you do this you'll see your specular has come back so talk a
+your specular has come back so talk a little bit the foam foam is fairly
+little bit the foam foam is fairly straightforward it's just a noise
+straightforward it's just a noise texture modulated by a noise texture but
+texture modulated by a noise texture but the more complex portion of this is the
+the more complex portion of this is the flow map which is sample using a two
+flow map which is sample using a two different offset faces in order to avoid
+different offset faces in order to avoid pulsing and where do we actually show
+pulsing and where do we actually show this foam it's it's driven using a sine
+this foam it's it's driven using a sine distance field based on the shorelines
+distance field based on the shorelines and rocks and at this point we also
+and rocks and at this point we also blend in the displacement foam with the
+blend in the displacement foam with the shoreline foam so we are an open-world
+shoreline foam so we are an open-world game so we can't actually afford to do
+game so we can't actually afford to do with all this at runtime so we actually
+with all this at runtime so we actually bake up the entire world's flow map and
+bake up the entire world's flow map and run the generation at runtime in an
+run the generation at runtime in an offline process this is how it looks
+offline process this is how it looks some of you might think oh this is
+some of you might think oh this is flood-fill which it is so we run a flat
+flood-fill which it is so we run a flat fill algorithm but a flat field is kind
+fill algorithm but a flat field is kind of tricky because some pixels will
+of tricky because some pixels will arrive at the destination sooner than
+arrive at the destination sooner than others so we actually use a signed
+others so we actually use a signed distance field to guide the flood-fill
+distance field to guide the flood-fill around corners which also works for
+around corners which also works for rocks and out of this we get a flow map
+rocks and out of this we get a flow map texture atlas which we have two
+texture atlas which we have two variations one is a high resolution
+variations one is a high resolution texture and one is a world flow map
+texture and one is a world flow map the high-resolution close to player gets
+the high-resolution close to player gets streamed in as the player is running
+streamed in as the player is running around the world and the world flow map
+around the world and the world flow map is baked out once the way the world
+is baked out once the way the world flown up actually works is an old trick
+flown up actually works is an old trick where we based on a sector idea we can
+where we based on a sector idea we can figure out a UV remap table which is
+figure out a UV remap table which is stored in the texture itself which can
+stored in the texture itself which can help us figure out which portion of the
+help us figure out which portion of the Atlas to read and this is a
+Atlas to read and this is a self-contained texture so any feature
+self-contained texture so any feature that means the flow map could actually
+that means the flow map could actually read this simply based on the world
+read this simply based on the world position and this is also our world
+position and this is also our world height map which we also baked the low
+height map which we also baked the low resolution textures are eight meters per
+resolution textures are eight meters per pixel okay so we generated all the
+pixel okay so we generated all the things that we need for a water surface
+things that we need for a water surface but how do you actually like this
+but how do you actually like this because everything is in screen space so
+because everything is in screen space so there is one important thing is that I
+there is one important thing is that I mentioned earlier is our water right
+mentioned earlier is our water right does the right depth so at this point we
+does the right depth so at this point we need to sample the the depth with and
+need to sample the the depth with and without water and also all the material
+without water and also all the material IDs per pixel so you'll see in the
+IDs per pixel so you'll see in the screenshot on there on the right we get
+screenshot on there on the right we get the materiality we also get the blend
+the materiality we also get the blend material ID this is very important
+material ID this is very important because artists can place two rivers
+because artists can place two rivers with having very different materials and
+with having very different materials and we actually need to gradually blend from
+we actually need to gradually blend from one River to the other without any
+one River to the other without any discontinuities and we have a function
+discontinuities and we have a function that actually interpolates the material
+that actually interpolates the material properties we don't actually want to
+properties we don't actually want to blend all the material properties but
+blend all the material properties but only the specific ones that are required
+only the specific ones that are required because it's kind of a waste of they'll
+because it's kind of a waste of they'll used to do the rest so now that we've
+used to do the rest so now that we've actually blended all of our data we need
+actually blended all of our data we need to actually read all of this from the
+to actually read all of this from the structure buffer and compute the
+structure buffer and compute the lighting and the previous parker games
+lighting and the previous parker games the water simply supported the
+the water simply supported the directional light but now we do fold
+directional light but now we do fold full tiles even lighting on our water
+full tiles even lighting on our water surface which is pretty much the most
+surface which is pretty much the most expensive part of the the lighting path
+expensive part of the the lighting path and now we support GI reflections the
+and now we support GI reflections the directional point spotlights and we also
+directional point spotlights and we also support exposure lights so in terms of
+support exposure lights so in terms of actually lighting the water surface the
+actually lighting the water surface the way we do light transport is we went
+way we do light transport is we went away from giving control to artists to
+away from giving control to artists to give
+give a specific color but instead they
+a specific color but instead they actually deal with the scattering
+actually deal with the scattering coefficients so we have a table of water
+coefficients so we have a table of water types that the artists can pick from or
+types that the artists can pick from or they can create their own the way that
+they can create their own the way that works has just got RGB scattering
+works has just got RGB scattering coefficients with a turbidity value at
+coefficients with a turbidity value at the end which is based on the physical
+the end which is based on the physical properties of the water so with this you
+properties of the water so with this you can create oceans rivers that are quiet
+can create oceans rivers that are quiet muddy or clear we also sampled the foam
+muddy or clear we also sampled the foam from fractioning caustics buffer in
+from fractioning caustics buffer in order to compose the final image and
+order to compose the final image and this is just kind of gonna show you how
+this is just kind of gonna show you how these buffers might look like if you did
+these buffers might look like if you did this so this was the refraction this is
+this so this was the refraction this is the light transport this is the screen
+the light transport this is the screen space local reflections this is a low
+space local reflections this is a low res environment map 64 by 64 and once
+res environment map 64 by 64 and once you combine all of these you get
+you combine all of these you get something that looks like this which
+something that looks like this which handles everything physically based so
+handles everything physically based so you'll see we have the splashes we have
+you'll see we have the splashes we have the particles interacting with the water
+the particles interacting with the water you have refraction there's foam and it
+you have refraction there's foam and it works great with the rest of the terrain
+works great with the rest of the terrain but I did mention that this is a very
+but I did mention that this is a very bgp are heavy pass so you have to be
+bgp are heavy pass so you have to be very careful how you actually handle
+very careful how you actually handle this that's what actually christian is
+this that's what actually christian is going to talk about alright so looks
+going to talk about alright so looks like we're doing very good on time i was
+like we're doing very good on time i was planning to speak to my optimization is
+planning to speak to my optimization is pretty fast but thank you Bane for
+pretty fast but thank you Bane for mentioning about the V GPR usage of this
+mentioning about the V GPR usage of this shader so what I'm here to talk about is
+shader so what I'm here to talk about is about a way in which you can optimize
+about a way in which you can optimize your shaders by using half precision
+your shaders by using half precision which is 16-bit precision by saving v
+which is 16-bit precision by saving v GPRS and this relates to Ben's talk
+GPRS and this relates to Ben's talk because the material the material
+because the material the material blending done in the surface composite
+blending done in the surface composite pass is well it's but it's V GPR heavy
+pass is well it's but it's V GPR heavy just like you mentioned you can see
+just like you mentioned you can see there are a lot of different attributes
+there are a lot of different attributes being sampled and these are very easy to
+being sampled and these are very easy to optimize just with the change list you
+optimize just with the change list you see here in this slide so if you look at
+see here in this slide so if you look at the yellow font that was the only chain
+the yellow font that was the only chain that was needed to be done in hlsl to
+that was needed to be done in hlsl to actually save 9v GPRS of this path this
+actually save 9v GPRS of this path this resulted in an increase sort of
+resulted in an increase sort of occupancy the shader went up to three
+occupancy the shader went up to three waves per Cindy from two weeks per same
+waves per Cindy from two weeks per same D so the role world result was that this
+D so the role world result was that this pass was running 25 percent faster when
+pass was running 25 percent faster when from this simple change now no actual
+from this simple change now no actual change needs to be done c++ site so this
+change needs to be done c++ site so this is everything that really needs to be
+is everything that really needs to be done and now I know you're all I know
+done and now I know you're all I know exactly what you're thinking seeing this
+exactly what you're thinking seeing this what is min sixteen float right so luck
+what is min sixteen float right so luck we have a slide for that
+we have a slide for that it's an SSL basic data type so there are
+it's an SSL basic data type so there are no extensions needed for this
+no extensions needed for this optimization it just lets the compiler
+optimization it just lets the compiler know that it can reduce the precision
+know that it can reduce the precision down to sixteen bits and this stands for
+down to sixteen bits and this stands for integer as well so there's a min 16 and
+integer as well so there's a min 16 and data type in there as well
+data type in there as well but then it's up to the software and the
+but then it's up to the software and the hardware stack to decide whether it can
+hardware stack to decide whether it can take advantage of the lower precision to
+take advantage of the lower precision to actually speed up the performance of the
+actually speed up the performance of the shader right so this doesn't actually
+shader right so this doesn't actually force the shader to use that precision
+force the shader to use that precision like I just mentioned and it's it's very
+like I just mentioned and it's it's very important to note that the this doesn't
+important to note that the this doesn't specify the resource format in memory it
+specify the resource format in memory it actually just allows the GPU to use
+actually just allows the GPU to use 16-bit precision when it stores the
+16-bit precision when it stores the values to V GPRS and when it actually
+values to V GPRS and when it actually performs the math this is why no c++
+performs the math this is why no c++ changes are necessary it's just because
+changes are necessary it's just because this is like internal to the GPU
+this is like internal to the GPU execution not to the resource itself and
+execution not to the resource itself and please don't confuse this with the half
+please don't confuse this with the half key word in hlsl because it's that's
+key word in hlsl because it's that's like 32-bit and counterparts exist for
+like 32-bit and counterparts exist for GLSL so this is not an HLSL only thing
+GLSL so this is not an HLSL only thing you know you can implement this on
+you know you can implement this on different platforms as well and you know
+different platforms as well and you know precision lowering cannot be automatic
+precision lowering cannot be automatic that's why we have the keyword in the
+that's why we have the keyword in the first place it the software stack cannot
+first place it the software stack cannot possibly guess when it can lower
+possibly guess when it can lower precision without actually impacting
+precision without actually impacting quality so then it's up to the developer
+quality so then it's up to the developer and actually the Quality Assurance
+and actually the Quality Assurance department to make sure there are no
+department to make sure there are no quality issues and it's up to you to
+quality issues and it's up to you to find those particular variables and
+find those particular variables and those particular bits of math that can
+those particular bits of math that can be safely lowered to down to 16 bit and
+be safely lowered to down to 16 bit and you see here listed
+you see here listed few examples typical examples when this
+few examples typical examples when this is not safe which I will not go over and
+is not safe which I will not go over and I'm not trying to bore everybody but
+I'm not trying to bore everybody but just trying to remind you you know
+just trying to remind you you know register pressure is the common
+register pressure is the common bottleneck and the way you optimize for
+bottleneck and the way you optimize for it is that you're really trying to
+it is that you're really trying to increase occupancy on the GPU and that
+increase occupancy on the GPU and that occupancy increases these screed
+occupancy increases these screed thresholds of vgp are usage so if you
+thresholds of vgp are usage so if you narrowly miss one of these thresholds
+narrowly miss one of these thresholds it's not ideal right so you really want
+it's not ideal right so you really want to spend that effort to get on the right
+to spend that effort to get on the right side of the threshold and obviously if
+side of the threshold and obviously if you target shaders that are particularly
+you target shaders that are particularly vgp are heavy you probably are targeting
+vgp are heavy you probably are targeting the right bottleneck there and you're
+the right bottleneck there and you're you're likely to see higher percent
+you're likely to see higher percent gains on that and there are multiple
+gains on that and there are multiple sources of VG peer pressure one is I
+sources of VG peer pressure one is I call the main source of VG peer pressure
+call the main source of VG peer pressure which is what everybody is thinking
+which is what everybody is thinking mostly when they talk about VG peer
+mostly when they talk about VG peer pressure is just how many maximum number
+pressure is just how many maximum number of live registers you have at the same
+of live registers you have at the same time so basically how many temporary
+time so basically how many temporary values need to be stored cash however
+values need to be stored cash however you want to thank it during the actual
+you want to thank it during the actual execution of the shader and pertaining
+execution of the shader and pertaining to this material blending example the
+to this material blending example the reason why it's particularly VG PR heavy
+reason why it's particularly VG PR heavy is because every material has a lot of
+is because every material has a lot of attributes and to reduce each waves
+attributes and to reduce each waves latency it's often optimal to have all
+latency it's often optimal to have all the memory read in at the beginning of
+the memory read in at the beginning of the shader execution and then all those
+the shader execution and then all those values are cached basically in V GPRS
+values are cached basically in V GPRS until they're actually used and now
+until they're actually used and now think of having to sample multiple
+think of having to sample multiple materials per pixel like in case of fire
+materials per pixel like in case of fire PI 5 they sample up to two materials per
+PI 5 they sample up to two materials per pixel so then those attributes need to
+pixel so then those attributes need to be cached twice you've caching twice the
+be cached twice you've caching twice the number of attributes and even though a
+number of attributes and even though a certain pixel is not using both the
+certain pixel is not using both the materials the shaders still needs to
+materials the shaders still needs to allocate the full VG PR in case it needs
+allocate the full VG PR in case it needs to allocate twice right so that's a real
+to allocate twice right so that's a real concern they're obviously packed map
+concern they're obviously packed map hips helps the average VGA occupancy
+hips helps the average VGA occupancy case because with pack math you can
+case because with pack math you can store two 16-bit values in the same
+store two 16-bit values in the same space you require to store a single
+space you require to store a single 32-bit value but there's a different
+32-bit value but there's a different dimension to VG PR pressure which is
+dimension to VG PR pressure which is actually the focus of my talk today not
+actually the focus of my talk today not a lot of people are actually familiar
+a lot of people are actually familiar with the fact that there is allocation
+with the fact that there is allocation overhead for V GPRS and you can think of
+overhead for V GPRS and you can think of this is just like waist like v GPRS that
+this is just like waist like v GPRS that are really used wastefully and that
+are really used wastefully and that cannot be avoided and it's because of
+cannot be avoided and it's because of certain restrictions and these
+certain restrictions and these restrictions are related to the way
+restrictions are related to the way memory operations work so if you look
+memory operations work so if you look mid slide you can see in mah no space
+mid slide you can see in mah no space font an actual hardware instruction that
+font an actual hardware instruction that loads four components from a buffer you
+loads four components from a buffer you can see buffer load format X Y Z W and
+can see buffer load format X Y Z W and the first parameter is the actual output
+the first parameter is the actual output it reads for these four components X Y Z
+it reads for these four components X Y Z and W into the registers one to four V
+and W into the registers one to four V one to four and that's an actual
+one to four and that's an actual registered range and that's a key
+registered range and that's a key concept so the the actual components
+concept so the the actual components need to be read in two consecutive
+need to be read in two consecutive registers you cannot spread them out
+registers you cannot spread them out over like arbitrary registers and the
+over like arbitrary registers and the order of the components and the
+order of the components and the registers has to be exactly that order
+registers has to be exactly that order so V one will contain X and V four will
+so V one will contain X and V four will contain W there is no way to Swizzle the
+contain W there is no way to Swizzle the components at the instruction level so
+components at the instruction level so these are significant constraints that
+these are significant constraints that that end up causing allocation overhead
+that end up causing allocation overhead and in ways which we'll show next and
+and in ways which we'll show next and this also would stand for texture
+this also would stand for texture dimensions so if you look at the I set
+dimensions so if you look at the I set example here you can see the texture
+example here you can see the texture coordinate is the second parameter is V
+coordinate is the second parameter is V zero this is because it's a buffer but
+zero this is because it's a buffer but if this would be a 3d texture the same
+if this would be a 3d texture the same sort of constraints would apply so how
+sort of constraints would apply so how do you know if your shader is actually
+do you know if your shader is actually suffering from allocation overhead right
+suffering from allocation overhead right for that you need to perform live
+for that you need to perform live register analysis and on PC we have the
+register analysis and on PC we have the Radeon GP analyzer which is our open
+Radeon GP analyzer which is our open source tool that allows you to do just
+source tool that allows you to do just that
+that amongst many other things it basically
+amongst many other things it basically takes in HLSL as input and it will
+takes in HLSL as input and it will generate a bunch of helpful outputs
+generate a bunch of helpful outputs amongst which the live register analysis
+amongst which the live register analysis and you really need this to be able to
+and you really need this to be able to optimize your shader and especially to
+optimize your shader and especially to detect the allocation overhead so I'll
+detect the allocation overhead so I'll be showing two examples of I will be
+be showing two examples of I will be showing two shaders one shader which
+showing two shaders one shader which features an allocation overhead
+features an allocation overhead is on this slide and that the next slide
+is on this slide and that the next slide will show a shader that actually suffers
+will show a shader that actually suffers from one VTR allocation overhead and is
+from one VTR allocation overhead and is a slight modification of this shader so
+a slight modification of this shader so at the bottom right and the red box you
+at the bottom right and the red box you can see the HLSL listing for the shader
+can see the HLSL listing for the shader with a bit of pseudocode added to make
+with a bit of pseudocode added to make it easy to read and at the top you can
+it easy to read and at the top you can see the RGA output which is the actual
+see the RGA output which is the actual live live vgp analysis and if you look
+live live vgp analysis and if you look at the HLS a listing you can see this is
+at the HLS a listing you can see this is a very simple shader that reads from an
+a very simple shader that reads from an input buffer it reads four components
+input buffer it reads four components and it performs some math of the
+and it performs some math of the components and then the result is a
+components and then the result is a three component vector of the initial
+three component vector of the initial four components so you can see in yellow
+four components so you can see in yellow font you can see that that is all the
+font you can see that that is all the math that is performed on the input
+math that is performed on the input contained right there in pseudocode so
+contained right there in pseudocode so at the top what is the live vgp analysis
+at the top what is the live vgp analysis you can see the RG output the leftmost
+you can see the RG output the leftmost column it's just a line number which is
+column it's just a line number which is still useful so I can refer to it the
+still useful so I can refer to it the second column is the actual number of
+second column is the actual number of maximum V GPRS use that specific
+maximum V GPRS use that specific location in execution so it matches the
+location in execution so it matches the particular instruction and then the
+particular instruction and then the third column actually contains a matrix
+third column actually contains a matrix and the matrix has its own lines and
+and the matrix has its own lines and columns and it encodes the live vgp our
+columns and it encodes the live vgp our state of each individual vgp are at each
+state of each individual vgp are at each individual location and the instruction
+individual location and the instruction timeline so without this matrix the
+timeline so without this matrix the lines correspond to the instructions of
+lines correspond to the instructions of the columns they correspond to the
+the columns they correspond to the actual V GPR so v GP r 0 would be the
+actual V GPR so v GP r 0 would be the leftmost column and the VG p r4 with the
+leftmost column and the VG p r4 with the rightmost column the characters encode
+rightmost column the characters encode the states so we have the carrots you
+the states so we have the carrots you can see for carrots at the top a carrot
+can see for carrots at the top a carrot means that a particular V GPR is written
+means that a particular V GPR is written into a third location by the instruction
+into a third location by the instruction and the obviously is a valuable we have
+and the obviously is a valuable we have will have to be stored for later and
+will have to be stored for later and then the V letter which you can see four
+then the V letter which you can see four V's at the bottom that means that value
+V's at the bottom that means that value has just been read by that instruction
+has just been read by that instruction and the value is no longer needed
+and the value is no longer needed and then the X character the X letter
+and then the X character the X letter there means it's a combination of the
+there means it's a combination of the carrot and the V so it means that that
+carrot and the V so it means that that particular instruction read a value from
+particular instruction read a value from that register and it's over over brought
+that register and it's over over brought that register with a new value and when
+that register with a new value and when you see a column character that just
+you see a column character that just means the register is live so the
+means the register is live so the particular instruction might be reading
+particular instruction might be reading from it we're not doing anything with
+from it we're not doing anything with that register but in any case it's value
+that register but in any case it's value is needed for a later time and when you
+is needed for a later time and when you see a space character a blank space
+see a space character a blank space character that just means that the GPR
+character that just means that the GPR is free for usage like it stores no
+is free for usage like it stores no value of consequence at that point so
+value of consequence at that point so how does the shader get compiled into
+how does the shader get compiled into actual machine instructions you can see
+actual machine instructions you can see the first instruction is reading the
+the first instruction is reading the four components it's exactly the
+four components it's exactly the instruction we looked at earlier and
+instruction we looked at earlier and then the second instruction is just
+then the second instruction is just waiting for the memory operation to
+waiting for the memory operation to finish at which point we have the actual
+finish at which point we have the actual math and now if you look at the actual
+math and now if you look at the actual math that needs to be performed you will
+math that needs to be performed you will see that if the hardware is to be
+see that if the hardware is to be efficient about the way in which it goes
+efficient about the way in which it goes and computes all the three components of
+and computes all the three components of the result as it actually can do this
+the result as it actually can do this with only three additions if they are
+with only three additions if they are done in this order if the X plus y is at
+done in this order if the X plus y is at at first if the Zed component is at it
+at first if the Zed component is at it afterwards and then if the W component
+afterwards and then if the W component is at at last to all these intermediate
+is at at last to all these intermediate results
+results so all these intermediary results will
+so all these intermediary results will have to be stored in V GPRS for both
+have to be stored in V GPRS for both purposes of computing further math and
+purposes of computing further math and also for the purpose of them actually
+also for the purpose of them actually being output now if we skip straight to
+being output now if we skip straight to bind 6 where the output is actually
+bind 6 where the output is actually stored it's written out we can see again
+stored it's written out we can see again when it's written out it has to be
+when it's written out it has to be written out in a range where again the V
+written out in a range where again the V GPR is 1 2 3 are written out and they
+GPR is 1 2 3 are written out and they have to be consecutive and they have to
+have to be consecutive and they have to be in that exact order so this creates
+be in that exact order so this creates constraints on the map for the math to
+constraints on the map for the math to be efficient so we see the first
+be efficient so we see the first addition at line 3 that it has to add
+addition at line 3 that it has to add the x and y components and obviously it
+the x and y components and obviously it has to read V 1 and V 2 and you can see
+has to read V 1 and V 2 and you can see in yellow font you can see that the
+in yellow font you can see that the output is V 1 and the compiler only has
+output is V 1 and the compiler only has a choice of V 1 or V 2 at that point
+a choice of V 1 or V 2 at that point because it just read those values so now
+because it just read those values so now those registers are available to store
+those registers are available to store intermediary values so in this case it
+intermediary values so in this case it stores the value of V 1 and then it's a
+stores the value of V 1 and then it's a with the second addition that now the
+with the second addition that now the output in order to avoid any inefficient
+output in order to avoid any inefficient swaps it will actually have to be
+swaps it will actually have to be allocated that value into v2 because
+allocated that value into v2 because remember it has to be all output in
+remember it has to be all output in consecutive registers so it's actually
+consecutive registers so it's actually able to compute to the math and the
+able to compute to the math and the proper order and to store it in v1 v2
+proper order and to store it in v1 v2 and v3 so everything is good here
+and v3 so everything is good here no allocation overhead 5v GPRS I've used
+no allocation overhead 5v GPRS I've used five Ichi are V GPRS are allocated
+five Ichi are V GPRS are allocated everything is good the math is done in
+everything is good the math is done in place and now we're going to slightly
+place and now we're going to slightly modify the hlsl for our second example
+modify the hlsl for our second example and these can see the hlsl has been
+and these can see the hlsl has been modified just by changing the component
+modified just by changing the component order in which the math is done so now
+order in which the math is done so now the math is done on the WN set
+the math is done on the WN set components first and then it has to add
+components first and then it has to add Y and then it has to add X to be
+Y and then it has to add X to be efficient so it's exactly backwards and
+efficient so it's exactly backwards and this really affects the way the shader
+this really affects the way the shader runs on the machine because the first
+runs on the machine because the first addition now it has to read from W and
+addition now it has to read from W and Zed but those are stored at VG PR 3 and
+Zed but those are stored at VG PR 3 and 4 because remember when they come in
+4 because remember when they come in they have to come in and consecutive
+they have to come in and consecutive registers so now this means that the
+registers so now this means that the result of this addition can only be
+result of this addition can only be stored in v3 or before because v1 is
+stored in v3 or before because v1 is still busy with X and v2 is still busy
+still busy with X and v2 is still busy with Y so once that's done once the
+with Y so once that's done once the compiler actually uses v3 to store an
+compiler actually uses v3 to store an intermediate results to be able to
+intermediate results to be able to actually now store the output and
+actually now store the output and consecutive registers it's forced to go
+consecutive registers it's forced to go on to store the next results in v4 and
+on to store the next results in v4 and v5 and when it actually allocates v5 we
+v5 and when it actually allocates v5 we can see on the third column the one with
+can see on the third column the one with the matrix with that encodes the VG PR
+the matrix with that encodes the VG PR register States we can see in red
+register States we can see in red highlights VG p r2 and VG p r5 and we
+highlights VG p r2 and VG p r5 and we can see VG p r5 with a caret it just
+can see VG p r5 with a caret it just becomes allocated to store the
+becomes allocated to store the intermediate value and then it quickly
+intermediate value and then it quickly because the alligator is is written to
+because the alligator is is written to output but we notice that throughout its
+output but we notice that throughout its lifetime
+lifetime we noticed that VG p r2 is completely
+we noticed that VG p r2 is completely empty right so this is what allocation
+empty right so this is what allocation overhead is it's the fact that the
+overhead is it's the fact that the compiler has to allocate an additional
+compiler has to allocate an additional bgp are even though one would have been
+bgp are even though one would have been free because of additional constraints
+free because of additional constraints and this can further degenerates in a
+and this can further degenerates in a complex shader to cause further
+complex shader to cause further allocation fragmentation because once
+allocation fragmentation because once the actual ordering of the
+the actual ordering of the GPRS matter it can all cascade from
+GPRS matter it can all cascade from there so how does half precision
+there so how does half precision actually help allocation overhead well
+actually help allocation overhead well the answer is actually very simple to V
+the answer is actually very simple to V GPRS only to V GPRS are needed
+GPRS only to V GPRS are needed consecutively so when and memory
+consecutively so when and memory operation is loaded it it's only needs
+operation is loaded it it's only needs those two consecutive V GPRS that
+those two consecutive V GPRS that creates a lot less opportunity for
+creates a lot less opportunity for fragmentation and that's the simple
+fragmentation and that's the simple story of it so basically if you are able
+story of it so basically if you are able to identify the locations where you have
+to identify the locations where you have significant allocation overhead you will
+significant allocation overhead you will be able to very effectively counter it
+be able to very effectively counter it by using half precision and that's it
+by using half precision and that's it from optimization back to bein for
+from optimization back to bein for further water discussions ok so
+further water discussions ok so basically we spent a lot of time
+basically we spent a lot of time experimenting with this and we were
+experimenting with this and we were shipping Fargo fives coming on next week
+shipping Fargo fives coming on next week so I thought it would be interesting to
+so I thought it would be interesting to talk about a lot of the problems we had
+talk about a lot of the problems we had trying to do the screen space
+trying to do the screen space distillation and water writing depth so
+distillation and water writing depth so yeah first line is water right steps the
+yeah first line is water right steps the moment you make this decision you're
+moment you make this decision you're setting yourself up for a lot of bugs
+setting yourself up for a lot of bugs and I say it a lot I mean a lot this is
+and I say it a lot I mean a lot this is kind of a a little bit of a curse
+kind of a a little bit of a curse because you essentially have to have two
+because you essentially have to have two def buffers in your engine at this point
+def buffers in your engine at this point and everything has to decide whether
+and everything has to decide whether it's gonna sample the one with or
+it's gonna sample the one with or without water and you really need to
+without water and you really need to actually think about how to actually
+actually think about how to actually implement this because in some systems
+implement this because in some systems you can actually copy the DEP offer
+you can actually copy the DEP offer after you have the depth buffer with no
+after you have the depth buffer with no water but on some of them you can't and
+water but on some of them you can't and what do you do with the stencil if you
+what do you do with the stencil if you copy it without the stencil and all the
+copy it without the stencil and all the passes that require the depth width
+passes that require the depth width stencil you can't actually do that or
+stencil you can't actually do that or you might even have one pass that does
+you might even have one pass that does down res multisample which you could
+down res multisample which you could potentially fix this where you write out
+potentially fix this where you write out the depth read it back in and write it
+the depth read it back in and write it out through your chain of dead buffers
+out through your chain of dead buffers we have a lot of small textures on
+we have a lot of small textures on console this is not really an issue
+console this is not really an issue because we do a lot of packing between
+because we do a lot of packing between passes so we'll know exactly the layout
+passes so we'll know exactly the layout over
+over structure we can pass one textures value
+structure we can pass one textures value from one to another and we do a lot of
+from one to another and we do a lot of ping pong simply because this allows us
+ping pong simply because this allows us to pack the textures and we do a frame
+to pack the textures and we do a frame allocator so you know and during the
+allocator so you know and during the frame when de texture is gonna be free
+frame when de texture is gonna be free so we can release the texture and regain
+so we can release the texture and regain it when we actually need it so we don't
+it when we actually need it so we don't use up a lot of memory screen space
+use up a lot of memory screen space desolation there are two major issues
+desolation there are two major issues with this the vertex shader is quite
+with this the vertex shader is quite slow and on the current GPUs if you're
+slow and on the current GPUs if you're actually launching a lot of large vertex
+actually launching a lot of large vertex shaders a very small pixel shaders you
+shaders a very small pixel shaders you actually end up stalling the GPU so we
+actually end up stalling the GPU so we did a lot of optimizations where the
+did a lot of optimizations where the vertex buffer is actually just a 16-bit
+vertex buffer is actually just a 16-bit integer which is encoded for UV s but it
+integer which is encoded for UV s but it basically has to be the lightest
+basically has to be the lightest possible vertex shader you can imagine
+possible vertex shader you can imagine but lucky for us in the future because
+but lucky for us in the future because we are doing per pixel to vertex
+we are doing per pixel to vertex tessellation we could do a compute pass
+tessellation we could do a compute pass which does all the ALU operations
+which does all the ALU operations beforehand and then we simply do a fetch
+beforehand and then we simply do a fetch from a buffer instead of actually
+from a buffer instead of actually computing everything in the vertex
+computing everything in the vertex buffer we also had a lot of edges I'll
+buffer we also had a lot of edges I'll show you a picture of what this might
+show you a picture of what this might look like so if you do things in screen
+look like so if you do things in screen space you could actually end up with two
+space you could actually end up with two connecting water bodies which ends up
+connecting water bodies which ends up stretching the mesh in the distance
+stretching the mesh in the distance which is not really ideal but we
+which is not really ideal but we actually did end up fixing this and the
+actually did end up fixing this and the way we fixed it is we simply ran a
+way we fixed it is we simply ran a computer that actually tracks where the
+computer that actually tracks where the two water bodies connect and lowers the
+two water bodies connect and lowers the displacement this is actually a result
+displacement this is actually a result of the FBM displacement being in screen
+of the FBM displacement being in screen space we do plan to actually move that
+space we do plan to actually move that into world space FBM generation into
+into world space FBM generation into some sort of alice that we can fetch and
+some sort of alice that we can fetch and fill a fixed decision issue later but
+fill a fixed decision issue later but for now this is what we did so we figure
+for now this is what we did so we figure out the edges and then we blur using
+out the edges and then we blur using your computer the way you actually do
+your computer the way you actually do this is it's very simple to do just like
+this is it's very simple to do just like you would down sample a cube map okay
+you would down sample a cube map okay the other really annoying thing we have
+the other really annoying thing we have to deal with is in Far Cry 5 we have a
+to deal with is in Far Cry 5 we have a fishing
+fishing mini-game which is quite nice but this
+mini-game which is quite nice but this creates a fishing rod which is actually
+creates a fishing rod which is actually a mere Z and far Z so it's partially UI
+a mere Z and far Z so it's partially UI and partially 3d and if you have spring
+and partially 3d and if you have spring space reflections you're gonna get this
+space reflections you're gonna get this nasty line that's created by this line
+nasty line that's created by this line and this line also changes color
+and this line also changes color so as you're fishing you'll see the
+so as you're fishing you'll see the water is constantly flickering and we
+water is constantly flickering and we did actually manage to fix that by
+did actually manage to fix that by running a post-processing pass after we
+running a post-processing pass after we do the ray tracing for the screen space
+do the ray tracing for the screen space reflections just some little debugging
+reflections just some little debugging tools we use to debug this when you're
+tools we use to debug this when you're generating a lot of data you might want
+generating a lot of data you might want to create tools that help you debug this
+to create tools that help you debug this in this case we're showing the world
+in this case we're showing the world flow map in a specific location along
+flow map in a specific location along with the water level and this is how the
+with the water level and this is how the two materials would blend in screen
+two materials would blend in screen space you'll see also on the left side
+space you'll see also on the left side there's a there's a little map for
+there's a there's a little map for artists to know which material is which
+artists to know which material is which and the colors essentially indicate the
+and the colors essentially indicate the blending range in screen space and they
+blending range in screen space and they have control over controlling this range
+have control over controlling this range so an artist can say I want these two
+so an artist can say I want these two water bodies to blend over three meters
+water bodies to blend over three meters six meters twelve meters we typically
+six meters twelve meters we typically use six meters
+use six meters and we also show the signed distance
+and we also show the signed distance field which we used to debug all the
+field which we used to debug all the water flow problems around rocks and
+water flow problems around rocks and shorelines so I know somebody's thinking
+shorelines so I know somebody's thinking here how much is this take our budget
+here how much is this take our budget was two milliseconds on the GPU these
+was two milliseconds on the GPU these are all the passes listed and how long
+are all the passes listed and how long they take the things in green are
+they take the things in green are actually running a scene compute in our
+actually running a scene compute in our game but if they're actually running on
+game but if they're actually running on the main pipe this is what the
+the main pipe this is what the performance would be like and if you
+performance would be like and if you look at the numbers the two most
+look at the numbers the two most expensive things are the tessellation
+expensive things are the tessellation which is at point two two milliseconds
+which is at point two two milliseconds and composite passes actually is 0.87
+and composite passes actually is 0.87 which is mostly done by the tiles even
+which is mostly done by the tiles even lighting so once we actually run this on
+lighting so once we actually run this on a sink compute our time goes down to one
+a sink compute our time goes down to one point three three seven milliseconds
+point three three seven milliseconds however this assumes that you actually
+however this assumes that you actually have gaps
+have gaps you're acing compute pipeline in our
+you're acing compute pipeline in our case we did because we have full control
+case we did because we have full control over when our acing passes run so we got
+over when our acing passes run so we got that large win and this is just a little
+that large win and this is just a little video to demonstrate all of this in
+video to demonstrate all of this in action
+[Music]
+so just before we have two more slides just before we finish so there's
+just before we finish so there's actually a bunch of other farcry 4
+actually a bunch of other farcry 4 farcry 5 talks happening at this week
+farcry 5 talks happening at this week the first one is terrine rendering by
+the first one is terrine rendering by jeremy moore the next one is the acid
+jeremy moore the next one is the acid build system of far cry 5 by Remy and
+build system of far cry 5 by Remy and the last one is the procedural urgent
+the last one is the procedural urgent world generation of far cry 5 these
+world generation of far cry 5 these talks are all really good to attend
+talks are all really good to attend because they are all kind of
+because they are all kind of counterparts to our water system
+counterparts to our water system especially the procedural world
+especially the procedural world generation because it feeds all the data
+generation because it feeds all the data into our system that we use to render
+into our system that we use to render and last but not least a big thank you
+and last but not least a big thank you to the far cry 5 team
+to the far cry 5 team [Applause]

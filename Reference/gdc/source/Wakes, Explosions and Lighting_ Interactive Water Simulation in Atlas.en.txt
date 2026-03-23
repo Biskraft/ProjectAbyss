@@ -1,0 +1,1191 @@
+[Music]
+my name is tim chavlakov i'm senior developer technology engineer at nvidia
+developer technology engineer at nvidia and let mark introduce himself and
+and let mark introduce himself and introduce us to atlas
+introduce us to atlas my name is mark mahelich i'm a
+my name is mark mahelich i'm a engine programmer at grapeshot games
+and we're currently working on a game called atlas
+and uh what is atlas uh alice is a pirate fantasy mmo but it's made by the
+pirate fantasy mmo but it's made by the people who made uh
+people who made uh arc survival evolved so there's some
+arc survival evolved so there's some survival aspect to it as well
+survival aspect to it as well we're currently in early access you can
+we're currently in early access you can get it on steam
+get it on steam and i have a little video here
+and i have a little video here it's an intro so we can play
+[Music]
+so as you can see um a lot of your time in the game is spent
+in the game is spent uh on the ocean and looking at the the
+uh on the ocean and looking at the the water surface so
+water surface so we really wanted to get the most
+we really wanted to get the most realistic possible uh water simulation
+realistic possible uh water simulation and rendering
+and rendering um so we enlisted the help of nvidia
+um so we enlisted the help of nvidia and uh we're you know the game is still
+and uh we're you know the game is still under development but we feel pretty
+under development but we feel pretty proud of
+proud of what we've achieved so far a way to get
+what we've achieved so far a way to get a lot of things right um
+a lot of things right um first we obviously had to simulate the
+first we obviously had to simulate the ocean state
+ocean state we have to handle the physics of
+we have to handle the physics of buoyancy uh of course rendering the
+buoyancy uh of course rendering the ocean surface
+ocean surface and then other interactive features such
+and then other interactive features such as wakes explosions
+as wakes explosions and detail particles so those four
+and detail particles so those four components are basically what the
+components are basically what the agenda is for today for this talk and
+agenda is for today for this talk and i'll let
+i'll let tim start by talking about simulation
+tim start by talking about simulation thank you
+thank you so in order to keep you guys not
+so in order to keep you guys not distracted by the rendering
+distracted by the rendering this screenshot and the following
+this screenshot and the following screenshots are just black and white so
+screenshots are just black and white so it's just the fresnel term rendered
+it's just the fresnel term rendered so you can focus on the displacements we
+so you can focus on the displacements we start with the simulation of the sea
+start with the simulation of the sea states
+we use vanilla spectrum-based approach evolved from
+evolved from famous tessendorf's paper called
+famous tessendorf's paper called simulating ocean water
+simulating ocean water and essentially what you do there is you
+and essentially what you do there is you generate the wind wave spectrum
+generate the wind wave spectrum you evolve it in a frequency space and
+you evolve it in a frequency space and you
+you transform the data to the spatial domain
+transform the data to the spatial domain using reverse fft steps
+using reverse fft steps then you just rinse and repeat for any
+then you just rinse and repeat for any moment in time you can just
+moment in time you can just calculate the c state and frequency
+calculate the c state and frequency space and convert it to the
+space and convert it to the spatial domain this simulation has a
+spatial domain this simulation has a bunch of good properties first of all
+bunch of good properties first of all it only depends on the time and the
+it only depends on the time and the spectrum state so at any moment in time
+spectrum state so at any moment in time you can
+you can know uh the
+know uh the displacements of the ocean surface it is
+displacements of the ocean surface it is very good for us because
+very good for us because we are working on mmo game so the
+we are working on mmo game so the simulation has to be similar for
+simulation has to be similar for the server and all the clients
+the server and all the clients so we can run the simulation
+so we can run the simulation independently using those uh properties
+independently using those uh properties of the simulation
+of the simulation and what is more important is that all
+and what is more important is that all the servers on the grid
+the servers on the grid can simulate the same c state so the
+can simulate the same c state so the transitioning of the player from the
+transitioning of the player from the server to server
+server to server uh can be uh seamless uh why is that
+uh can be uh seamless uh why is that important because the
+important because the uh online portion of the game the
+uh online portion of the game the servers
+servers are forming the grid and each server
+are forming the grid and each server simulates a
+simulates a square of this much square
+square of this much square thousands of square kilometers of the
+thousands of square kilometers of the ocean with all the
+ocean with all the uh players and islands and actions
+uh players and islands and actions happening
+happening and when the player moves to another
+and when the player moves to another server this transition
+server this transition happens seamlessly so the results are
+happens seamlessly so the results are tiles with periodic displacement data
+tiles with periodic displacement data and the results can cover infinite
+and the results can cover infinite planes of the ocean surface which is
+planes of the ocean surface which is also good for us
+also good for us but there are some issues with this
+but there are some issues with this simulation it's not good enough for us
+simulation it's not good enough for us and there are a few reasons for this
+and there are a few reasons for this first of all it uses fft
+first of all it uses fft and ffts as you know are expensive so
+and ffts as you know are expensive so if we use larger 50s we sacrifice the
+if we use larger 50s we sacrifice the performance if you use smaller ffts
+performance if you use smaller ffts then we either see the repeats that you
+then we either see the repeats that you can see on the right
+can see on the right portion of the screenshot or if we
+portion of the screenshot or if we increase the world space area that our
+increase the world space area that our tiles are covering we don't see enough
+tiles are covering we don't see enough details
+details and this is clearly visible on the left
+and this is clearly visible on the left portion of the screenshot
+portion of the screenshot to fix that we use a
+advanced approach so what we do is we still use small ffts
+still use small ffts but we do split our spectra to several
+but we do split our spectra to several frequency frequency bands we decided to
+frequency frequency bands we decided to go with four frequency bands
+go with four frequency bands and each frequency band for us
+and each frequency band for us stores the wavelengths of
+stores the wavelengths of a certain range
+a certain range so to simulate the ocean surface in this
+so to simulate the ocean surface in this case we split our spectrum we evolved
+case we split our spectrum we evolved the
+the frequency band in the frequency space
+frequency band in the frequency space independently
+independently and then we just convert the simulation
+and then we just convert the simulation results back to the spatial domain
+results back to the spatial domain using the reverse of inverse fft steps
+using the reverse of inverse fft steps then we post process
+then we post process the results to get an isotropic brdf
+the results to get an isotropic brdf we're going to talk about this
+we're going to talk about this a little later and then we just combine
+a little later and then we just combine all the
+all the uh displacements from all the frequency
+uh displacements from all the frequency bands
+bands to get nice displaced ocean surface this
+to get nice displaced ocean surface this is how it looks
+is how it looks from left to right are the frequency
+from left to right are the frequency band from the lowest resolution one
+band from the lowest resolution one number zero
+number zero then goes number one then goes number
+then goes number one then goes number three and then on the right portion
+three and then on the right portion you see all the frequency bands combined
+you see all the frequency bands combined and if you are attentive enough on a
+and if you are attentive enough on a frequency band number three you will see
+frequency band number three you will see that there are some repeats and it's
+that there are some repeats and it's kind of weird isn't it
+kind of weird isn't it we tried to solve the problem and we
+we tried to solve the problem and we introduced the very same problem
+introduced the very same problem it's not something good right and if you
+it's not something good right and if you take a look at the uvs for those
+take a look at the uvs for those frequency bands
+frequency bands in a world space which are marked
+in a world space which are marked white for the most uh higher detailed
+white for the most uh higher detailed frequency band then goes uh blue then
+frequency band then goes uh blue then goes green then then goes red
+goes green then then goes red you will see that the white cascades are
+you will see that the white cascades are pretty small
+pretty small and obviously they will show some
+and obviously they will show some repeats but in fact
+repeats but in fact they not they are not showing the
+they not they are not showing the repeats because
+repeats because the lower frequency bands the
+the lower frequency bands the larger waves do distort or displace
+larger waves do distort or displace those small cascades small frequency
+those small cascades small frequency bands
+enough so that we just don't see the repeats at all
+repeats at all another thing that we didn't like about
+another thing that we didn't like about the vanilla tesendorf's approach was the
+the vanilla tesendorf's approach was the phillips spectrum
+phillips spectrum it is the spectrum that defines or
+it is the spectrum that defines or describes the c
+describes the c state for the fully evolved c which
+state for the fully evolved c which means the wind
+means the wind was blowing over the ocean surface for
+was blowing over the ocean surface for infinite amount of time so that the
+infinite amount of time so that the waves fully evolved
+waves fully evolved and what would happen
+and what would happen if you try to apply this phillips
+if you try to apply this phillips spectrum formula for a
+spectrum formula for a puddle with the wind blowing with like
+puddle with the wind blowing with like 100 miles an hour speed over it
+100 miles an hour speed over it you will get something like 20 meters
+you will get something like 20 meters wave or something like that
+wave or something like that it's obviously not something that you
+it's obviously not something that you would see in nature
+would see in nature to fix that we just use better spectras
+to fix that we just use better spectras we use dual john swap spectra and john
+we use dual john swap spectra and john swap is a d
+swap is a d abbreviated as joint north c wave
+abbreviated as joint north c wave project a bunch of scientists just
+project a bunch of scientists just gathered together
+gathered together and measured the wave displacements in
+and measured the wave displacements in the north seas
+the north seas in northern northern atlantic using the
+in northern northern atlantic using the boys
+boys satellite data and they generate the
+satellite data and they generate the formulas for us that we can use
+formulas for us that we can use so we use dual john swap spectra
+why dual because it will allow us uh to simulate uh like two spectras for
+uh to simulate uh like two spectras for the cost of one
+the cost of one so the first spectre will simulate uh
+so the first spectre will simulate uh for instance if we want to simulate the
+for instance if we want to simulate the small
+small medium local waves generated by the
+medium local waves generated by the local winds and the large decaying waves
+local winds and the large decaying waves generated by the
+generated by the storms like 100 miles
+storms like 100 miles away long time ago uh these uh
+away long time ago uh these uh long waves will be generated uh will be
+long waves will be generated uh will be simulated by the
+simulated by the second drone swap and this is how it
+second drone swap and this is how it looks it's
+looks it's uh uh artificially emphasized so that
+uh uh artificially emphasized so that the long waves are too
+the long waves are too long and the short waves the the local
+long and the short waves the the local waves are too too small
+waves are too too small but you can see uh what i'm talking
+but you can see uh what i'm talking about
+about now these john swapp spectras uh allow a
+now these john swapp spectras uh allow a lot of artistic control compared to
+lot of artistic control compared to phillips spectrum
+phillips spectrum so it's wind speed wind direction wind
+so it's wind speed wind direction wind fetch this is the parameter that defines
+fetch this is the parameter that defines how long the wind was blowing over the
+how long the wind was blowing over the ocean surface or
+ocean surface or how big was the area that the wind was
+how big was the area that the wind was blowing over
+blowing over then the spectrum peaking that tells us
+then the spectrum peaking that tells us how dominant are the dominant
+how dominant are the dominant wavelengths so that the
+wavelengths so that the uh the peaks the wave tops are more
+uh the peaks the wave tops are more pronounced more pronounced than the
+pronounced more pronounced than the directional distribution which
+directional distribution which which tells us how chaotic are the
+which tells us how chaotic are the uh waves so how big is the portion of
+uh waves so how big is the portion of the waves that
+the waves that do follow the wind direction then if you
+do follow the wind direction then if you want you can override the amplitude
+want you can override the amplitude you're going to be not physically
+you're going to be not physically correct but for like
+correct but for like artistic purposes you can emphasize the
+artistic purposes you can emphasize the heights of the waves or dampen them down
+heights of the waves or dampen them down if you want
+if you want and then low pass filter it's pretty
+and then low pass filter it's pretty useful for uh swells
+useful for uh swells you don't want the swells to have the
+you don't want the swells to have the smaller wavelengths
+and mark we'll talk about the beyonce buoyancy
+buoyancy and not beyonce
+so we've covered how you generate the ocean displacement data
+ocean displacement data um so now i'll cover how um
+um so now i'll cover how um we can use that data to have objects in
+we can use that data to have objects in the ocean interact with
+the ocean interact with the ocean simulation and that
+the ocean simulation and that interaction is basically
+interaction is basically physics of buoyancy
+now you may be familiar with our community's principle
+community's principle basically it states that body and fluid
+basically it states that body and fluid experiences a buoyant force equal to the
+experiences a buoyant force equal to the weight of the fluid
+weight of the fluid it displaces and the direction of that
+it displaces and the direction of that force is opposite to the direction of
+force is opposite to the direction of gravity
+now if you notice in this formula here the main
+the main unknown that we have here is displaced
+unknown that we have here is displaced volume or v
+volume or v and with our complex ocean simulation
+and with our complex ocean simulation calculating that can be kind of
+calculating that can be kind of complicated
+so how might you approach it um you might take
+might take a bunch of uh you might take a bunch of
+a bunch of uh you might take a bunch of discrete um
+displacement samples and uh along the whole of the boat
+whole of the boat and um oops excuse me
+and um oops excuse me then you can use each sample assume it
+then you can use each sample assume it represents a cross-section of displaced
+represents a cross-section of displaced volume
+volume and apply it back to the previous
+and apply it back to the previous formula to generate force
+formula to generate force the corresponding buoyancy for each
+the corresponding buoyancy for each sample can then
+sample can then be applied back to the rigid body
+be applied back to the rigid body simulation
+simulation uh your game's in your game engine's
+uh your game's in your game engine's rigid body uh physics simulation can
+rigid body uh physics simulation can handle all that
+handle all that um so here's what that kind of looks
+um so here's what that kind of looks like you have um oh
+like you have um oh it's going really fast so you have
+it's going really fast so you have your discrete samples here discrete
+your discrete samples here discrete displacement samples and
+displacement samples and each one of these red arrows represents
+each one of these red arrows represents a
+a independent force acting on the whole of
+independent force acting on the whole of the boat
+the boat and obviously this is a 2d
+and obviously this is a 2d representation we would actually have an
+representation we would actually have an array of
+array of 3d forces and then
+3d forces and then here's what that looks like in code it's
+here's what that looks like in code it's um it's actually fairly straightforward
+um it's actually fairly straightforward as you can see you would basically call
+as you can see you would basically call it this is happening on the cpu you call
+it this is happening on the cpu you call this in your
+this in your your physics update loop each tick
+your physics update loop each tick for each boat in the um each relevant
+for each boat in the um each relevant boat i guess let's just say
+um so we had we came across some issues
+so we had we came across some issues when uh just using pure physics
+when uh just using pure physics simulation
+simulation um one of the main things we found was
+um one of the main things we found was that the discrete wave height samples
+that the discrete wave height samples can be quite noisy
+can be quite noisy um and this is because we're we're just
+um and this is because we're we're just sampling uh
+sampling uh instantaneous uh instantaneous location
+instantaneous uh instantaneous location in it at an instantaneous time
+in it at an instantaneous time so um we're not you know our
+so um we're not you know our wave simulation doesn't allow us to
+wave simulation doesn't allow us to integrate over
+integrate over time or space
+time or space so ultimately we're not able to take
+so ultimately we're not able to take enough samples fast enough especially
+enough samples fast enough especially for
+for uh server simulation which can run quite
+uh server simulation which can run quite slow
+uh the other issue we came across is just not being able to control the
+just not being able to control the dynamics very well and we found that
+dynamics very well and we found that using just physics alone creates some
+using just physics alone creates some instability and latency
+instability and latency and then finally maybe most importantly
+and then finally maybe most importantly we have quite epic waves but we don't
+we have quite epic waves but we don't necessarily want our players playing the
+necessarily want our players playing the game to get c6 so
+game to get c6 so we decided against doing a pure physics
+we decided against doing a pure physics simulation
+simulation instead our solution we still use the
+instead our solution we still use the indiscreet wavefight samples
+indiscreet wavefight samples but instead we feed those samples into
+but instead we feed those samples into a plane fitting algorithm
+a plane fitting algorithm i'm not going to cover how to do a plane
+i'm not going to cover how to do a plane fitting algorithm but i just want to
+fitting algorithm but i just want to call out that
+call out that david eberle's geometric tools has a
+david eberle's geometric tools has a symmetric eigen solver that might be a
+symmetric eigen solver that might be a good place to start
+good place to start and that's under the boost license so
+so once once your plane fitting algorithm outputs um a target plane
+algorithm outputs um a target plane uh you can use this as your your targ uh
+uh you can use this as your your targ uh your target
+your target transform for your ship and that's what
+transform for your ship and that's what we do with each frame
+we do with each frame um and we also apply a simple
+um and we also apply a simple spring as a filter to help filter the
+spring as a filter to help filter the noise and also mimic
+noise and also mimic the physics of buoyancy and inertia
+but before we want to before we move on i just wanted to um call out something
+i just wanted to um call out something about
+about one of these previous slides here um
+one of these previous slides here um this function get water height at point
+this function get water height at point which is something that we do quite a
+which is something that we do quite a bit in the game both in on the cpu and
+bit in the game both in on the cpu and the gpu
+the gpu it's actually not as simple as it seems
+it's actually not as simple as it seems because of the way that we
+because of the way that we represent the ocean displacement it's
+represent the ocean displacement it's represented
+represented as a 3d displacement relative to
+as a 3d displacement relative to imaginary plane
+imaginary plane and so we actually are just looking for
+and so we actually are just looking for the height at a specific world location
+the height at a specific world location and one way we could potentially achieve
+and one way we could potentially achieve that is
+that is to have an intermediary step where we
+to have an intermediary step where we output
+output a height map in world space but we
+a height map in world space but we decided to just use a iterative
+decided to just use a iterative approximation instead
+approximation instead and here's what that looks like in code
+and here's what that looks like in code this is basically
+this is basically newton's approximation method
+we're just doing multiple iterations on this
+this and it should converge over time or over
+and it should converge over time or over a number of iterations
+a number of iterations you could potentially uh stop when
+you could potentially uh stop when subsequent sample locations are within a
+subsequent sample locations are within a specific 2d distance
+but for optimization reasons sometimes it's faster just to do a fixed number of
+it's faster just to do a fixed number of iterations
+iterations now i hand back to tim to talk about
+now i hand back to tim to talk about actual rendering
+actual rendering thank you so we
+thank you so we figured out the physics the buoyancy
+figured out the physics the buoyancy beyonce buoyancy
+beyonce buoyancy and uh
+and uh [Music]
+[Music] physics of the rigid bodies floating in
+physics of the rigid bodies floating in the water let's get to the rendering so
+the water let's get to the rendering so we want the ocean to be rendered
+we want the ocean to be rendered as beautiful as possible this photo is
+as beautiful as possible this photo is actually not a photo it's the
+actually not a photo it's the our rendering and the screenshot is
+our rendering and the screenshot is taken with the camera
+taken with the camera located at roughly like half a mile
+located at roughly like half a mile above the ocean surface so
+above the ocean surface so by the way even here you can see the
+by the way even here you can see the large swell waves and shorter like the
+large swell waves and shorter like the local wind waves
+to get to this level of realism we need to uh
+to uh treat our c as a micro facet surface
+treat our c as a micro facet surface this is schematic
+this is schematic drawing i'm not very good at drawing so
+drawing i'm not very good at drawing so my micro facets are just all around they
+my micro facets are just all around they do not touch each other but
+do not touch each other but you get the idea right uh this is
+you get the idea right uh this is another
+another nice screenshot which is not correct at
+nice screenshot which is not correct at all because those micro facets are not
+all because those micro facets are not microphone sets
+microphone sets but you see those as the facets
+so let's start with rendering equation the light that comes to our eye
+the light that comes to our eye consists of three portions three
+consists of three portions three parts first is scattered light the light
+parts first is scattered light the light that
+that uh came through the uh water body and
+uh came through the uh water body and refracted towards our eyes then the
+refracted towards our eyes then the specular component from the sun
+specular component from the sun and then the environment mapping
+and then the environment mapping component the light that was
+component the light that was uh that came from skies and surrounding
+uh that came from skies and surrounding geometry and whatnot
+geometry and whatnot and this fr function that we need to
+and this fr function that we need to integrate is the brdf
+integrate is the brdf everybody familiar with the pbr should
+everybody familiar with the pbr should know what is that
+know what is that right and microphone said brdf model in
+right and microphone said brdf model in our case
+our case and this is the vanilla case is
+and this is the vanilla case is it depends on the fresnel reflectance
+it depends on the fresnel reflectance we're going to talk about this a little
+we're going to talk about this a little later
+later than the normal distribution function d
+than the normal distribution function d and the masking function it's pretty
+and the masking function it's pretty important we're going to talk about this
+important we're going to talk about this later as well
+later as well all these formulas look scary but you
+all these formulas look scary but you shouldn't focus on those
+shouldn't focus on those you should focus on what those mean and
+you should focus on what those mean and i'm going to explain this stuff so
+i'm going to explain this stuff so our micro facet surface is defined by
+our micro facet surface is defined by ndf normal distribution function uh it's
+ndf normal distribution function uh it's the function
+the function that shows how our norm how our normal
+that shows how our norm how our normal normals are distributed within the pixel
+normals are distributed within the pixel and this little egg-shaped thing
+and this little egg-shaped thing on the bottom is the distribution of the
+on the bottom is the distribution of the normals and
+normals and in this case for instance the
+the vertical normals will be most likely i mean you will most likely see the
+i mean you will most likely see the normals oriented vertically and the
+normals oriented vertically and the normals
+normals uh pointing at other directions have
+uh pointing at other directions have less chance to appear
+less chance to appear and if you unwrap this x-shaped thing to
+and if you unwrap this x-shaped thing to a uh 2d plane where our angle is on
+a uh 2d plane where our angle is on x-axis you will see
+x-axis you will see the familiar bell-shaped curve
+now the ndf normal distribution function for us we use background distribution is
+for us we use background distribution is defined as a function of pdf
+defined as a function of pdf probability density function these
+probability density function these formulas are quite scary
+formulas are quite scary these are these are here just for the
+these are these are here just for the reference but they mean
+reference but they mean that our pdf defines our
+that our pdf defines our surface roughnesses along the x and y
+surface roughnesses along the x and y axis because we are rendering the waves
+axis because we are rendering the waves and we need to use the an isotropic
+and we need to use the an isotropic uh prgf right
+uh prgf right so uh what's important and this is the
+so uh what's important and this is the thing that you probably should focus on
+thing that you probably should focus on on is that we use uh
+on is that we use uh our surface moments to calculate the pdf
+our surface moments to calculate the pdf just like uh
+just like uh they do in leather paper leather is
+they do in leather paper leather is linear
+linear efficient anti-aliased displacement and
+efficient anti-aliased displacement and reflectance mapping it's pretty cool
+reflectance mapping it's pretty cool paper you should read that
+paper you should read that so using the moments allows us to
+so using the moments allows us to calculate those variances
+calculate those variances uh just from the moment
+uh just from the moment and uh the moments the first and second
+and uh the moments the first and second order moments
+order moments uh can be stored in texture and what is
+uh can be stored in texture and what is cool about those moments is that they do
+cool about those moments is that they do survive the linear operators
+survive the linear operators and those linear operators are the
+and those linear operators are the mipmapping and texture filtering
+mipmapping and texture filtering and that that is something that we will
+and that that is something that we will gladly use right
+so how do we calculate the moments after we
+we get our displacements using the reverse
+get our displacements using the reverse fft step
+fft step we calculate those first order moments
+we calculate those first order moments which are essentially
+which are essentially the gradients the slopes of the ocean
+the gradients the slopes of the ocean surface and the second order moments
+surface and the second order moments which are essentially the squares of the
+which are essentially the squares of the first order moments
+first order moments the squares of those slopes and then the
+the squares of those slopes and then the covariance which is just cross
+covariance which is just cross multiplication of those and we just
+multiplication of those and we just store this in textures and this is how
+store this in textures and this is how it looks schematically
+it looks schematically we get our displacement textures in the
+we get our displacement textures in the first texture array
+first texture array which has four slices because we have
+which has four slices because we have four uh
+four uh frequency band we store those
+frequency band we store those displacements in rgb channels of those
+displacements in rgb channels of those slices then we using the compute shaders
+slices then we using the compute shaders we get the
+we get the first order moment and store them to
+first order moment and store them to another texture array
+another texture array and then the second order moments are
+and then the second order moments are stored in the third texture array
+stored in the third texture array and the three channels we use in those
+and the three channels we use in those textures we use
+textures we use to store the foam intensity displacement
+to store the foam intensity displacement jacobian
+jacobian and other things i'll talk about those a
+and other things i'll talk about those a little later
+now since we have multiple frequency band we need to carefully and
+band we need to carefully and mathematically correctly combine all
+mathematically correctly combine all those moments the first order moments
+those moments the first order moments the slopes or the gradients
+the slopes or the gradients are very easy to combine you just sum
+are very easy to combine you just sum those up
+those up and the second order moments just a
+and the second order moments just a little more complicated to combine
+little more complicated to combine okay we figured out the moments we
+okay we figured out the moments we combined all those moments
+combined all those moments we got our uh roughness values
+we got our uh roughness values now we can calculate the specular
+now we can calculate the specular reflection we are very lucky the
+reflection we are very lucky the specular reflection integral over the
+specular reflection integral over the hemisphere
+hemisphere is just analytic right because we only
+is just analytic right because we only have one light source
+have one light source it's the sun and uh the
+it's the sun and uh the integral is just analytic we take this
+integral is just analytic we take this pdf we take in account those masking and
+pdf we take in account those masking and shadowing factors that we
+shadowing factors that we are going to talk about a little later
+are going to talk about a little later and we calculate this scary formula
+this is how the specular reflection looks with the
+looks with the simple uh calculation
+simple uh calculation just vanilla uh reflect uh specular
+just vanilla uh reflect uh specular and with pbr on the right and the
+and with pbr on the right and the picture on the right is obviously much
+picture on the right is obviously much much much
+much much more correct and what is also good about
+more correct and what is also good about it is
+it is just the uh is that the uh
+just the uh is that the uh specular does not uh
+sparkle it's not noisy it's anti-aliased and it's smooth at any
+anti-aliased and it's smooth at any distance to the ocean surface
+distance to the ocean surface now the environment reflection it is a
+now the environment reflection it is a little more complicated
+little more complicated because we don't have a single light
+because we don't have a single light source we have entire
+source we have entire environment map so in order to calculate
+environment map so in order to calculate it we just sum up few samples
+it we just sum up few samples just like in this liader paper we use a
+just like in this liader paper we use a set of samples
+set of samples which are effectively the cones which is
+which are effectively the cones which is simple
+simple our environment maps with the cones and
+our environment maps with the cones and i'm not going to go
+i'm not going to go into much details about it it's all
+into much details about it it's all explained in the leather paper it's not
+explained in the leather paper it's not the point of this presentation
+the point of this presentation the thing is that we cannot afford
+the thing is that we cannot afford full full-blown calculation for those
+full full-blown calculation for those samples for instance
+samples for instance we it's just too expensive we do not
+we it's just too expensive we do not calculate
+calculate the fresnel term or masculine shadowing
+the fresnel term or masculine shadowing for each of those
+for each of those environment samples we're going to talk
+environment samples we're going to talk about the fresnel and
+about the fresnel and masking shadowing terms just a little
+masking shadowing terms just a little later and this is how it looks
+later and this is how it looks on the left you see the simple
+on the left you see the simple reflection
+reflection is just one sample per point
+is just one sample per point and it's pretty noisy and what is more
+and it's pretty noisy and what is more annoying is that the
+annoying is that the as the normals do degrade to pure
+as the normals do degrade to pure vertical
+vertical distance your reflection is just a
+distance your reflection is just a simple planar reflection at distance it
+simple planar reflection at distance it just doesn't look right
+just doesn't look right and on the right uh portion of the
+and on the right uh portion of the screenshot you see
+screenshot you see nice environment reflection that does
+nice environment reflection that does use the
+use the statistical properties of the surface
+statistical properties of the surface now the masking and shadowing we are
+now the masking and shadowing we are rendering the waves
+rendering the waves and it's quite obvious that at the
+and it's quite obvious that at the distance or at the grazing angles the
+distance or at the grazing angles the waves will obstruct each other
+waves will obstruct each other right and this schematic drawing
+right and this schematic drawing shows this
+shows this with waves obstructing uh obstructing
+with waves obstructing uh obstructing each other right did i say it right uh
+each other right did i say it right uh you don't have uh
+you don't have uh as much light as you would think at the
+as much light as you would think at the distance
+distance and lucky for us the approximation for
+and lucky for us the approximation for this for rb or df
+this for rb or df exists so we just use this walters
+exists so we just use this walters approximation for us
+approximation for us this scary formula in blue on this
+this scary formula in blue on this picture
+picture and what it actually gives us uh as
+and what it actually gives us uh as i just told uh on the distance you will
+i just told uh on the distance you will see
+see that the specular light from the sun
+that the specular light from the sun gets
+gets too bright on the left portion of the
+too bright on the left portion of the screenshot
+screenshot and it's just about right on the right
+and it's just about right on the right portion of the screenshot
+portion of the screenshot and if it wasn't clear enough let's just
+and if it wasn't clear enough let's just decrease the intensity of our sun
+decrease the intensity of our sun and pretend that it's moon so you will
+and pretend that it's moon so you will see that
+see that on the left is just incorrect it's too
+on the left is just incorrect it's too bright and on the right it's
+bright and on the right it's looking much much better
+looking much much better now the fresnel reflectance again waves
+now the fresnel reflectance again waves do obstruct each other so the
+do obstruct each other so the distribution of normals that you would
+distribution of normals that you would see
+see that uh that will uh
+that uh that will uh combine and uh project to your pixel
+combine and uh project to your pixel will be
+will be just tilted so you will see not that the
+just tilted so you will see not that the normal distribution is not
+normal distribution is not uh what did i say so it's not
+uh what did i say so it's not uh ever it does not average to vertical
+uh ever it does not average to vertical anymore
+anymore and again we are lucky the approximation
+and again we are lucky the approximation for this microphone set
+for this microphone set brdf fresnel does exist so we just use
+brdf fresnel does exist so we just use it in our case
+it in our case and this is how it looks this
+and this is how it looks this on the left portion you see the planar
+on the left portion you see the planar uh
+uh fresnel that does not use the micro
+fresnel that does not use the micro facet properties of the surface
+facet properties of the surface and as you can see as the normals do
+and as you can see as the normals do degrade to a vertical at distance
+degrade to a vertical at distance the fresnel term will degrade to just
+the fresnel term will degrade to just one which is obviously not correct
+one which is obviously not correct and on the right portion of the
+and on the right portion of the screenshot you will see the fresnel with
+screenshot you will see the fresnel with the microfacet properties
+the microfacet properties it's obviously more much more uh closer
+it's obviously more much more uh closer to nature
+to nature now the last but not least scattered
+now the last but not least scattered light
+light it's hard calculating scattered light in
+it's hard calculating scattered light in real time is too time consuming you have
+real time is too time consuming you have to kind of trace to the
+to kind of trace to the water body it's too much for the real
+water body it's too much for the real time we cannot afford that so we just
+time we cannot afford that so we just came up
+came up with a bunch of hugs and fudge numbers
+with a bunch of hugs and fudge numbers this formula looks scary but let me just
+this formula looks scary but let me just explain
+explain it step by step so what we do there is
+it step by step so what we do there is we just multiply the chances
+we just multiply the chances this uh blue portion on the left
+this uh blue portion on the left just tells us that the chance to see the
+just tells us that the chance to see the scattered light
+scattered light is higher as we get
+is higher as we get closer to the wave top so the higher are
+closer to the wave top so the higher are the waves
+the waves the and the closer we are to the wave
+the and the closer we are to the wave tops the chance to see the scattered
+tops the chance to see the scattered light is
+light is uh higher then the next one the blue
+uh higher then the next one the blue portion shows us that the
+portion shows us that the chance to get the scattered light to see
+chance to get the scattered light to see the scattered light is
+the scattered light is higher when we look at the oceans that
+higher when we look at the oceans that are located between us and the source of
+are located between us and the source of light the sun in our case
+light the sun in our case then this third the red portion shows us
+then this third the red portion shows us that
+that uh the chance to see scattered light
+uh the chance to see scattered light is much higher if we see just straight
+is much higher if we see just straight at the ocean surface uh
+at the ocean surface uh if the normal of the ocean surface
+if the normal of the ocean surface coincides with our view vector
+coincides with our view vector and there is a couple uh the blue and
+and there is a couple uh the blue and the yellow terms
+the yellow terms these are just uh fudge factors to take
+these are just uh fudge factors to take in account the bubbles that are spread
+in account the bubbles that are spread in the
+in the in the water and uh the shallow
+in the water and uh the shallow uh scatter we render the ocean surface
+uh scatter we render the ocean surface just a bit
+just a bit like a diffuse surface so so it behaves
+like a diffuse surface so so it behaves just like a diffuse uh surface
+just like a diffuse uh surface of some kind and this allows us to
+of some kind and this allows us to simulate the shallow scatter
+simulate the shallow scatter and this is how it looks luckily this
+and this is how it looks luckily this projector will allow you to see the
+projector will allow you to see the scatter
+scatter it's on the right top portion of the
+it's on the right top portion of the screenshot but the next screenshot will
+screenshot but the next screenshot will show it better
+show it better so on the left you see no scatter at all
+so on the left you see no scatter at all on the right
+on the right you see the sun scatter with the sun
+you see the sun scatter with the sun elevate with sun elevation of 5 degrees
+elevate with sun elevation of 5 degrees then 15 degrees and then 45 degrees
+then 15 degrees and then 45 degrees it's kind of nice it's kind of cool it
+it's kind of nice it's kind of cool it gives nice pictures and what's important
+gives nice pictures and what's important is that
+is that scatter of the light in the water body
+scatter of the light in the water body is the thing that defines the color of
+is the thing that defines the color of the water surface
+the water surface the turbidity the algae what not
+the turbidity the algae what not everything that is in the water surface
+everything that is in the water surface defines its color and scatter is what
+defines its color and scatter is what you
+you is what defines its color
+now let's put it all together we did use fresnel term for our specular
+did use fresnel term for our specular reflection
+reflection it's all good we did not use the fresnel
+it's all good we did not use the fresnel for environment reflection we have to
+for environment reflection we have to use it now
+use it now and of course we have to use the fresnel
+and of course we have to use the fresnel for scattered light
+for scattered light so we can sum up all those components
+so we can sum up all those components and get to
+and get to render the ocean surface
+render the ocean surface one thing we forgot is the foam so we
+one thing we forgot is the foam so we need to calculate foam color
+need to calculate foam color and just learn between the foam color
+and just learn between the foam color and the ocean surface color
+and the ocean surface color in the foamed areas and of course we
+in the foamed areas and of course we need to increase the roughness just a
+need to increase the roughness just a little for the foam
+little for the foam uh big formed areas because the foam
+uh big formed areas because the foam bubbles are
+bubbles are bumpy
+to calculate the foam uh we use a pretty simple approach we calculate the display
+simple approach we calculate the display uh jacobian of the displacements
+uh jacobian of the displacements jacobian sounds scary but it's just the
+jacobian sounds scary but it's just the measure of how much
+measure of how much our water surface was squeezed or
+our water surface was squeezed or stretched
+stretched and if it's squeezed then obviously we
+and if it's squeezed then obviously we on a wave top
+on a wave top and if we are on a wave top we inject
+and if we are on a wave top we inject just the float value we call it
+just the float value we call it turbulent energy
+turbulent energy into the corresponding textiles and let
+into the corresponding textiles and let them leave
+them leave evolve over time spread over over space
+evolve over time spread over over space and just dissipate over time then of
+and just dissipate over time then of course we need to mix
+course we need to mix or add all those foam energies from all
+or add all those foam energies from all the frequency bands and use to modulate
+the frequency bands and use to modulate the foam textures and this is how it
+the foam textures and this is how it looks
+looks kind of nice
+kind of nice a couple final tweaks we did not realize
+a couple final tweaks we did not realize that
+that our famous formula that allows us to
+our famous formula that allows us to get the variances from the moments
+get the variances from the moments does not survive bilinear magnification
+does not survive bilinear magnification because
+because guess what the bilinear magnification
+guess what the bilinear magnification even if it sounds kind of linear it's
+even if it sounds kind of linear it's not a linear operator
+not a linear operator because it's bilinear so
+because it's bilinear so we had to detect the cases or the areas
+we had to detect the cases or the areas where we do magnify our textures
+where we do magnify our textures using using ddx and ddy
+using using ddx and ddy and then if we end up being
+and then if we end up being magnifying the textures we just learn
+magnifying the textures we just learn the second order moments
+the second order moments that we get from those textures with the
+that we get from those textures with the second order moment that we calculate
+second order moment that we calculate just in place
+just in place just as the squares of the first order
+just as the squares of the first order moments that we get from those textures
+moments that we get from those textures this effectively lerps our variance to
+this effectively lerps our variance to zero and
+zero and makes us makes our ocean surface
+makes us makes our ocean surface perfectly
+perfectly mirror a perfect mirror in close-ups but
+mirror a perfect mirror in close-ups but this is probably what we want to do
+this is probably what we want to do right
+right and this is how it looks on the left you
+and this is how it looks on the left you see
+see kind of weird artifacts where we are
+kind of weird artifacts where we are trying to magnify the micro facet
+trying to magnify the micro facet surface
+surface and obviously it's something wrong to do
+and obviously it's something wrong to do because we are trying to use this method
+because we are trying to use this method outside of its applicable domain
+outside of its applicable domain and on the right you see the fix oh and
+and on the right you see the fix oh and plus
+plus plus we use the bicubic filtering for
+plus we use the bicubic filtering for the normals for those gradients in
+the normals for those gradients in close-ups so
+close-ups so this will give us gives us smaller
+this will give us gives us smaller normals
+now we didn't talk about the geometry but the geometry is pretty simple we use
+but the geometry is pretty simple we use quad tree approach there
+quad tree approach there and quad 3 with lods
+does have smaller density of those vertices
+vertices uh in the distance so we obviously under
+uh in the distance so we obviously under sample
+sample our displacements with the geometry and
+our displacements with the geometry and this could lead to uh crawling geometry
+this could lead to uh crawling geometry and like
+and like all kind of weird artifacts and to avoid
+all kind of weird artifacts and to avoid that we just
+that we just damped down our displacements at some
+damped down our displacements at some distance and we empirically figured out
+distance and we empirically figured out that
+that that 30 world spaces of a frequency band
+that 30 world spaces of a frequency band uh is good for us so after that uh
+uh is good for us so after that uh distance in a world space we just start
+distance in a world space we just start damping down those
+damping down those individual frequency bands displacements
+now mark
+so as we just mentioned we output uh foam and wave hat data basically to
+foam and wave hat data basically to render the ocean surface
+render the ocean surface and uh this works really well and um
+and uh this works really well and um obviously you could see in that previous
+obviously you could see in that previous slide
+slide right there that just that alone is
+right there that just that alone is really good at representing the
+really good at representing the turbulence of the ocean under high winds
+turbulence of the ocean under high winds but we wanted to add some more detail by
+but we wanted to add some more detail by adding particles that come off the top
+adding particles that come off the top the the white caps
+the the white caps of the waves
+and one of the our our game is in unreal engine so one of the most important
+engine so one of the most important things that we wanted to do
+things that we wanted to do was allow the the artist to have some
+was allow the the artist to have some control of these particles so
+control of these particles so we wanted to work inside of unreal's
+we wanted to work inside of unreal's cascade particle system
+cascade particle system and we're using the gpu particles there
+and we're using the gpu particles there but unfortunately we can't spawn from
+but unfortunately we can't spawn from the gpu in that system
+um so our solution is to create a custom emitter
+emitter that emits a triangle basically
+that emits a triangle basically projected down onto the
+projected down onto the ocean plane uh that that represents the
+ocean plane uh that that represents the camera frustum
+camera frustum and we're randomly emitting particles
+and we're randomly emitting particles everywhere in that
+everywhere in that in that triangle but these particles
+in that triangle but these particles that we emit are just tracer particles
+that we emit are just tracer particles and they're not actually simulating or
+and they're not actually simulating or rendering yet
+rendering yet and then the particles in their
+and then the particles in their simulation
+simulation shader will just basically look for the
+shader will just basically look for the foam texture
+foam texture or the white cap features and
+or the white cap features and start the regular simulation and
+start the regular simulation and rendering when they detect that they're
+rendering when they detect that they're inside of a white cap
+inside of a white cap on top of the wave and then the normal
+on top of the wave and then the normal uh
+uh cascade particle system simulation
+cascade particle system simulation dynamics and whatnot we'll we'll kick in
+so here's what the modification to unreal's
+unreal's particle simulation shaders looks like
+particle simulation shaders looks like these functions get displaced vertex
+these functions get displaced vertex that function is exactly the same
+that function is exactly the same function we call in our
+function we call in our vertex shader or domain shader when
+vertex shader or domain shader when we're rendering our ocean surface
+we're rendering our ocean surface and that just gives us our displacement
+and that just gives us our displacement information and then the git surface
+information and then the git surface parameters that's just the exact same
+parameters that's just the exact same function we call for our pixel shader
+function we call for our pixel shader when we're rendering our
+when we're rendering our uh ocean surface but we're doing it here
+uh ocean surface but we're doing it here in
+in inside the particle simulation and we
+inside the particle simulation and we use that information
+use that information just to do a simple check to see if our
+just to do a simple check to see if our foam wave hats
+foam wave hats value is high enough it's larger than
+value is high enough it's larger than our threshold and then we
+our threshold and then we kick off our normal particle simulation
+kick off our normal particle simulation and rendering
+and rendering otherwise we might come back around for
+otherwise we might come back around for a few frames and
+a few frames and keep looking and then after some time
+keep looking and then after some time this this particle if it's not on a wave
+this this particle if it's not on a wave top then it will basically get killed
+top then it will basically get killed and never be seen
+so that was the wavehead particles we do have other
+have other particles and um effects that interact
+particles and um effects that interact with the ocean surface in our game
+with the ocean surface in our game currently we our cascade particle system
+currently we our cascade particle system outputs
+outputs uh particle sprites for our wakes from
+uh particle sprites for our wakes from our
+our ships and these are displaced by the
+ships and these are displaced by the ocean surface
+ocean surface displacement and you can see they're
+displacement and you can see they're kind of
+kind of like decals on top of the ocean surface
+like decals on top of the ocean surface our explosions are just normal cascade
+our explosions are just normal cascade particle systems
+particle systems but none of these things actually affect
+but none of these things actually affect the ocean surface displacement itself
+the ocean surface displacement itself so they are just kind of on top of the
+so they are just kind of on top of the ocean surface
+and it's kind of misses some of the detail that way but so we're working the
+detail that way but so we're working the game is in development still so we're
+game is in development still so we're working on some prototypes for the
+working on some prototypes for the future
+future and uh tim can talk about something he's
+and uh tim can talk about something he's working on thank you
+so uh yes we need the waves uh the ocean surface to be displaced by
+uh the ocean surface to be displaced by the local objects
+the local objects like ships and boats and explosions and
+like ships and boats and explosions and whatnot
+whatnot and that leads us to need to introduce
+and that leads us to need to introduce some
+some local kind of simulation for this we do
+local kind of simulation for this we do use another tessendorf's paper it's
+use another tessendorf's paper it's called e-wave solver it's exponential
+called e-wave solver it's exponential solver
+solver and the idea is quite the same as
+and the idea is quite the same as we used for the wind wave simulation so
+we used for the wind wave simulation so what happens there
+what happens there is that you have a grid of displacements
+is that you have a grid of displacements and velocity potentials like i don't
+and velocity potentials like i don't know like 1k by 1k
+know like 1k by 1k uh grid of these guys then you convert
+uh grid of these guys then you convert those
+those displacements and velocity potentials to
+displacements and velocity potentials to the frequency domain
+the frequency domain then you evolve those guys in frequency
+then you evolve those guys in frequency domain using evolving operators
+domain using evolving operators that do depend on the
+that do depend on the size of this domain in world space and
+size of this domain in world space and delta t
+delta t then those evolved displacement and
+then those evolved displacement and velocity potentials just get converted
+velocity potentials just get converted back to spatial domain
+back to spatial domain and rendered and this is how it's
+and rendered and this is how it's supposed to look
+supposed to look kind of nice right you see the
+kind of nice right you see the almost perfect kelvin wig and it looks
+almost perfect kelvin wig and it looks really nice
+really nice okay the solution is good
+okay the solution is good and all but it's not good for us
+and all but it's not good for us i mean we need it to be improved first
+i mean we need it to be improved first of all the solution is periodic
+of all the solution is periodic because it uses the inverse fft steps
+because it uses the inverse fft steps and periodicity is not something that we
+and periodicity is not something that we want
+want to right so we introduced exponential
+to right so we introduced exponential dampening on the edges of the frequency
+dampening on the edges of the frequency of the
+of the simulation domain so that we don't get
+simulation domain so that we don't get repeats we don't have
+repeats we don't have rain gain or some weird artifacts
+rain gain or some weird artifacts caused by the dampening then this
+caused by the dampening then this simulation does not
+simulation does not simulate foam we use the very same logic
+simulate foam we use the very same logic we just detect the areas where the
+we just detect the areas where the displacements are large and jacobian
+displacements are large and jacobian is enough so that we can inject some
+is enough so that we can inject some turbulent energy
+turbulent energy and we simulate the foam in those areas
+and we simulate the foam in those areas so
+so overall we get to forward the 50s
+overall we get to forward the 50s to convert those uh displacements and
+to convert those uh displacements and velocity potentials to frequency space
+velocity potentials to frequency space then applying those uh evolving
+then applying those uh evolving operators is just a per component
+operators is just a per component multiplication
+multiplication in frequency space it's pretty cheap and
+in frequency space it's pretty cheap and then for inverse ffts
+then for inverse ffts to get the data back to spatial domain
+to get the data back to spatial domain why four because
+why four because uh uh two more inverse fft
+uh uh two more inverse fft are adding because we're gonna have the
+are adding because we're gonna have the lateral displacements the x
+lateral displacements the x displacements and y displacements as
+displacements and y displacements as well
+well so it's two more and this is how it
+so it's two more and this is how it looks
+looks looks kind of nice but it's boring
+looks kind of nice but it's boring because it doesn't move let us move
+because it doesn't move let us move it move the thing
+okay as you can see as our virtual non-existing boat
+non-existing boat starts to accelerate it starts forming
+starts to accelerate it starts forming perfect kalvin wake
+perfect kalvin wake that looks awesome and you can also see
+that looks awesome and you can also see that it does respect the dispersion
+that it does respect the dispersion relation so that the
+relation so that the longer waves move faster and the smaller
+longer waves move faster and the smaller waves move
+waves move slower and after the boat stopped
+slower and after the boat stopped the waves continue to propagate beyond
+the waves continue to propagate beyond that point so you can clearly see it's
+that point so you can clearly see it's not a combination of textures or kind of
+not a combination of textures or kind of hacks that we used there
+hacks that we used there and it looks kind of nice and it looks
+and it looks kind of nice and it looks really great
+okay the waves do propagate after beyond that point
+that point it looks really good so let's look at
+it looks really good so let's look at the thing
+the thing closer
+this time taking uh pay more attention to those to the
+pay more attention to those to the rendering so as we can see
+rendering so as we can see the foam is simulated quite nicely the
+the foam is simulated quite nicely the foam appears on the wave tops of this
+foam appears on the wave tops of this wake uh it evolves it spreads over time
+wake uh it evolves it spreads over time it disappears over time and the
+it disappears over time and the gradients and moments from the wind wave
+gradients and moments from the wind wave simulation
+simulation and from the local wave simulation blend
+and from the local wave simulation blend together nicely
+together nicely so we don't see any disconnections and
+so we don't see any disconnections and whatnot
+whatnot so it looks good it's a perfect
+so it looks good it's a perfect candidate for us to
+candidate for us to introduce in atlas right
+and as you can see as the boat moves and turns
+turns the kelvin wake kind of changes
+it's good
+okay so calling wakes gradients it's all nice but it's boring we're pirates here
+nice but it's boring we're pirates here right so let's explode something
+right so let's explode something something like i don't know like a
+something like i don't know like a barrel of gunpowder
+barrel of gunpowder on a raft ready
+on a raft ready boom so this
+boom so this explosion consists of three phases the
+explosion consists of three phases the first phase you noticed that was a shock
+first phase you noticed that was a shock wave it's just a random
+wave it's just a random displacement added on a expanding
+displacement added on a expanding circular area
+circular area then the major uh displacement area that
+then the major uh displacement area that formed the the
+formed the the the the major like explosion area and
+the the major like explosion area and then
+then just random debris falling uh here and
+there
+okay so time to wrap up uh the simulation while
+simulation while uh sounding scary and too expensive and
+uh sounding scary and too expensive and whatnot it's not expensive at all
+whatnot it's not expensive at all so the wind wave simulation and local
+so the wind wave simulation and local waves or interactive wave simulation
+waves or interactive wave simulation combined together
+combined together barely take more than a millisecond on
+barely take more than a millisecond on contemporary gpus
+contemporary gpus and if it's too much for lower end gpus
+and if it's too much for lower end gpus we can always scale down the sizes of
+we can always scale down the sizes of those ffts
+those ffts lacking some details but still running
+lacking some details but still running the full-blown simulation
+that's it thank you
+questions uh hi is there any hope that you will be putting all this
+hope that you will be putting all this beautiful work into a ue4 plug-in
+beautiful work into a ue4 plug-in for me yes yes yes the
+for me yes yes yes the uh plugin i'm not sure
+we may want to have some branch or something
+something but yes we want the public to see it oh
+but yes we want the public to see it oh wow okay awesome thank you
+um how do you keep the uh the water from showing up inside a boat
+showing up inside a boat water for from showing up inside the
+water for from showing up inside the boat mark what if you have a real
+boat mark what if you have a real or something yeah popping up and down in
+or something yeah popping up and down in your waves how do you keep the
+your waves how do you keep the you know the water from leaking in yeah
+you know the water from leaking in yeah we um so we use the
+we um so we use the distance fields that are generated from
+distance fields that are generated from the static mesh of the boat hole so
+the static mesh of the boat hole so and then in the shader we just basically
+and then in the shader we just basically don't render whether it's the
+don't render whether it's the you're inside the distance field of the
+you're inside the distance field of the boat so it's pretty cheap
+boat so it's pretty cheap actually okay thanks
+hi how how do do simulate coast lines breaking waves and
+coast lines breaking waves and this is this part of water simulation
+this is this part of water simulation and the second question when you combine
+and the second question when you combine the wakes uh how
+the wakes uh how you recalculate lighting because you
+you recalculate lighting because you have a moment
+have a moment for wind waves and
+for wind waves and you integrate different type of
+you integrate different type of waves kelvin waves and how you combine
+waves kelvin waves and how you combine the lighting
+the lighting normals okay okay
+normals okay okay you should recalculate roughness make
+you should recalculate roughness make transition good question okay so i'll
+transition good question okay so i'll answer the question uh the second
+answer the question uh the second question first so
+question first so since uh we
+since uh we so the idea for us was not to use
+so the idea for us was not to use physically based rendering or the pbr
+physically based rendering or the pbr or brdf for the local simulation because
+or brdf for the local simulation because this thing is not going to be observed
+this thing is not going to be observed at the large distance we will only
+at the large distance we will only simulate like the local
+simulate like the local uh wakes and what not for ships that are
+uh wakes and what not for ships that are like in local battle right it doesn't
+like in local battle right it doesn't make sense to
+make sense to simulate this on the horizon so uh
+simulate this on the horizon so uh the second order moments are not
+the second order moments are not calculated for the local waves
+calculated for the local waves but the first order moments the
+but the first order moments the gradients do calculate right
+gradients do calculate right so uh to combine this stuff and be still
+so uh to combine this stuff and be still physically correct we just combined the
+physically correct we just combined the first order moments
+first order moments from the wind wave simulation just add
+from the wind wave simulation just add those
+those the first order moments from the wind
+the first order moments from the wind simulation and the local wave simulation
+simulation and the local wave simulation and the second order moments for the
+and the second order moments for the local simulation
+local simulation are just zeros this thing does not bring
+are just zeros this thing does not bring any more
+any more roughness that's
+roughness that's it breaking waves mark oh yeah for the
+it breaking waves mark oh yeah for the so for the shoreline currently um we
+so for the shoreline currently um we actually just kind of taper down the
+actually just kind of taper down the water to the shoreline
+water to the shoreline that was kind of a decision based on
+that was kind of a decision based on game play we want rafts to be able to
+game play we want rafts to be able to dock near the
+dock near the uh near the shore and and also be able
+uh near the shore and and also be able to
+to put those wraps to sleep in terms of
+put those wraps to sleep in terms of physics updated and whatnot
+physics updated and whatnot for the server so it's not constantly
+for the server so it's not constantly having to process those but um
+having to process those but um we did have a prototype it may actually
+we did have a prototype it may actually end up in the game in the future
+end up in the game in the future of just kirsten or wave
+of just kirsten or wave shoreline waves that looked pretty good
+shoreline waves that looked pretty good and we had particles coming off then and
+and we had particles coming off then and whatnot so
+whatnot so but the gameplay aspect that is
+but the gameplay aspect that is difficult just because of transitioning
+difficult just because of transitioning from
+from on land to the water
+on land to the water [Music]
+so yeah long story short it's just uh for the shorelines it's just a bunch of
+for the shorelines it's just a bunch of gerstner
+gerstner waves with phases and amplitudes and
+waves with phases and amplitudes and wavelengths
+wavelengths calculated based on the spectral
+calculated based on the spectral parameters it's pretty easy to calculate
+parameters it's pretty easy to calculate but we decided not to put it in the game
+but we decided not to put it in the game yet because the players will not be
+yet because the players will not be happy
+happy uh trying to undock a raft or something
+uh trying to undock a raft or something uh with the giant curse or short waves
+uh with the giant curse or short waves just
+just yeah we're working on a solution for
+yeah we're working on a solution for that but yeah it's not in there yet
+more questions
+one two three sold sweet thank you

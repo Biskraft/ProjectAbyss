@@ -1,0 +1,645 @@
+[Music]
+I'm gonna have a lot of stuff to cover so I'm gonna go quickly my intention
+so I'm gonna go quickly my intention here is mostly to plant a bunch of seeds
+here is mostly to plant a bunch of seeds and hopefully some of them will take
+and hopefully some of them will take root on you'll have some takeaways from
+root on you'll have some takeaways from this so my the title of talk is fast and
+this so my the title of talk is fast and funky 1d nonlinear transformations but
+funky 1d nonlinear transformations but really this is easing functions on
+really this is easing functions on steroids what we're going to talk about
+steroids what we're going to talk about or what the people in the AI summit
+or what the people in the AI summit would call normalize utility functions
+would call normalize utility functions right these are all the same thing so
+right these are all the same thing so first I want to start by establishing
+first I want to start by establishing the motivations of why we care about
+the motivations of why we care about this so I want to see a show of hands
+this so I want to see a show of hands has anyone seen the talk on YouTube
+has anyone seen the talk on YouTube juice it or lose it by martin johansson
+juice it or lose it by martin johansson awesome anyone who has not I strongly
+awesome anyone who has not I strongly recommend the talk it's a really simple
+recommend the talk it's a really simple talk by some indie game developers who
+talk by some indie game developers who really make the case brilliantly for how
+really make the case brilliantly for how important it is to really think about is
+important it is to really think about is this thing linear or non-linear does
+this thing linear or non-linear does this thing feel mechanical or organic
+this thing feel mechanical or organic and how to introduce those elements of
+and how to introduce those elements of what they call juice into your game so
+what they call juice into your game so and then this talk on the right has
+and then this talk on the right has anyone seen this one the art of screen
+anyone seen this one the art of screen shake by one of the guys from Vlambeer
+shake by one of the guys from Vlambeer ok not many people both excellent talks
+ok not many people both excellent talks there are every YouTube list of videos
+there are every YouTube list of videos that every game designer should see has
+that every game designer should see has at least these two talks on them so I
+at least these two talks on them so I recommend them so I'm going to talk
+recommend them so I'm going to talk about these easing functions so first of
+about these easing functions so first of all raise your hand if you know what an
+all raise your hand if you know what an easing function is and you've used one
+easing function is and you've used one okay raise your hand if you know what
+okay raise your hand if you know what smooth step is okay about half raise
+smooth step is okay about half raise your hand if you know how to derive that
+your hand if you know how to derive that if you were to invent smooth stuff
+if you were to invent smooth stuff yourself perfect okay good
+yourself perfect okay good raise your hand if you use pal okay so
+raise your hand if you use pal okay so we're talking about what I'm again
+we're talking about what I'm again calling fast and funky 1d nonlinear
+calling fast and funky 1d nonlinear transformation so first let me talk
+transformation so first let me talk about the 1d part which is the
+about the 1d part which is the parametric nature of this so very
+parametric nature of this so very quickly there's a difference but
+quickly there's a difference but doing types of equations and I call the
+doing types of equations and I call the the main difference being implicit
+the main difference being implicit equations versus parametric equations so
+equations versus parametric equations so this is the implicit equation for a
+this is the implicit equation for a circle x squared plus y squared equals
+circle x squared plus y squared equals 25 it's a rule
+25 it's a rule you either pass the rule or you fail the
+you either pass the rule or you fail the rule right so points are either true or
+rule right so points are either true or they're not true if my x squared plus my
+they're not true if my x squared plus my y squared equals 25
+y squared equals 25 I am on the circle if not I'm not it's
+I am on the circle if not I'm not it's just a pass/fail test comparatively a
+just a pass/fail test comparatively a parametric function is one where we
+parametric function is one where we would have some number typically one
+would have some number typically one number as the ones I'm going to be
+number as the ones I'm going to be talking about today that I'll shove into
+talking about today that I'll shove into a Kuei ssin and I'll get something out
+a Kuei ssin and I'll get something out in this case it's little it's small on
+in this case it's little it's small on the bottom here but if we took the
+the bottom here but if we took the function cosine comma sine that's the
+function cosine comma sine that's the coordinates of a point moving around a
+coordinates of a point moving around a circle right and so as I crank up time
+circle right and so as I crank up time or whatever this argument is this
+or whatever this argument is this parameter I'm passing and eventually I'm
+parameter I'm passing and eventually I'm gonna travel around the whole circle so
+gonna travel around the whole circle so any given value I put in for time or T
+any given value I put in for time or T as a generic thing is going to be
+as a generic thing is going to be somewhere in the circle and all of the
+somewhere in the circle and all of the points on the circle can be reachable by
+points on the circle can be reachable by some T we can make all kinds of other
+some T we can make all kinds of other things parametric this is from a talk I
+things parametric this is from a talk I did a couple years ago here but just
+did a couple years ago here but just about curves our parametric this is a
+about curves our parametric this is a parametric equation for a spiral that's
+parametric equation for a spiral that's getting bigger and going out along the x
+getting bigger and going out along the x axis right you can see on the X it's
+axis right you can see on the X it's just moving steadily forward with time
+just moving steadily forward with time but on y&z it's going in a circle cosine
+but on y&z it's going in a circle cosine comma sine and the circles getting
+comma sine and the circles getting bigger as it goes right as T increases
+bigger as it goes right as T increases it's like the radius of the circle is
+it's like the radius of the circle is increasing so you get this spiraling
+increasing so you get this spiraling cone but we don't have to have such
+cone but we don't have to have such fancy parametric things really anything
+fancy parametric things really anything that we drive a float into conceptually
+that we drive a float into conceptually and get some answer back out is of
+and get some answer back out is of interest to us for this talk so it could
+interest to us for this talk so it could be as something as simple as just a
+be as something as simple as just a point moving from A to B right we're at
+point moving from A to B right we're at a T the parametric variable is zero and
+a T the parametric variable is zero and then T reaches one at the other end so
+then T reaches one at the other end so really anything you can express in terms
+really anything you can express in terms of a single float as input we can
+of a single float as input we can actually have multivariable parametric
+actually have multivariable parametric equations but I'm just talking about sin
+equations but I'm just talking about sin parametric's and of course my
+parametric's and of course my presumption is that we use tea because
+presumption is that we use tea because it originates from time primarily I
+it originates from time primarily I don't know if that's true but that is
+don't know if that's true but that is one of the most common ways we decide to
+one of the most common ways we decide to turn the knob that drives the thing to
+turn the knob that drives the thing to move or whatever so let's say we have a
+move or whatever so let's say we have a parametric function any function could
+parametric function any function could be any one of those that we saw called P
+be any one of those that we saw called P so one of the first big points here is
+so one of the first big points here is what we're manipulating and how we're
+what we're manipulating and how we're going to manipulate it specifically if
+going to manipulate it specifically if I'm interpolating say colors or anything
+I'm interpolating say colors or anything else like a I state or something like
+else like a I state or something like that the point of this talk is to avoid
+that the point of this talk is to avoid having to deal with any of that code
+having to deal with any of that code right you do not care what P is it could
+right you do not care what P is it could be anything it could be that spiral
+be anything it could be that spiral doesn't matter it's not your problem
+doesn't matter it's not your problem your problem is just the thing you're
+your problem is just the thing you're passing into P so we're just going to
+passing into P so we're just going to talk about messing with T the parameter
+talk about messing with T the parameter into any parametric equation and so
+into any parametric equation and so we're going to make these functions
+we're going to make these functions these parametric functions like P or
+these parametric functions like P or whatever they are more interesting but
+whatever they are more interesting but we're going to do it on the outside
+we're going to do it on the outside we're gonna be doing it by virtue of
+we're gonna be doing it by virtue of messing with T itself right so we look
+messing with T itself right so we look for opportunities to do this pretty much
+for opportunities to do this pretty much anytime you have a single float anywhere
+anytime you have a single float anywhere you can apply this stuff anything you
+you can apply this stuff anything you can express in terms of a single float
+can express in terms of a single float and pretty much anytime there's time
+and pretty much anytime there's time involved at any level this is an
+involved at any level this is an opportunity so again the take the big
+opportunity so again the take the big idea here is you can make any parametric
+idea here is you can make any parametric equation much more cool and interesting
+equation much more cool and interesting without modifying the equation or
+without modifying the equation or knowing anything about it you're just
+knowing anything about it you're just messing with T okay so we're going to be
+messing with T okay so we're going to be manipulating to you that's the
+manipulating to you that's the transformations part of this and so it's
+transformations part of this and so it's fairly self-evident in computer science
+fairly self-evident in computer science and in mathematics in general there's
+and in mathematics in general there's two number ranges that I would say are
+two number ranges that I would say are the most significant most important of
+the most significant most important of all time and that's their number range
+all time and that's their number range from 0 to 1 and the range from negative
+from 0 to 1 and the range from negative 1 to 1 so these are useful for all kinds
+1 to 1 so these are useful for all kinds of stuff like how much am I in shadow
+of stuff like how much am I in shadow how much brightness do I have is their
+how much brightness do I have is their fall off at the edge of a spotlight is
+fall off at the edge of a spotlight is something you know 65% complete how much
+something you know 65% complete how much damage am i doing in a day
+damage am i doing in a day curved or damaged potential how much
+curved or damaged potential how much experience do I have how much does
+experience do I have how much does something cost is there penalty is there
+something cost is there penalty is there fog how aggressive is my AI and a scale
+fog how aggressive is my AI and a scale from zero to one what's my chance to hit
+from zero to one what's my chance to hit my chance to drop loot my time complete
+my chance to drop loot my time complete AI response curves right fuzzy logic
+AI response curves right fuzzy logic there's all kinds of things potential
+there's all kinds of things potential things we can mess with to get juice
+things we can mess with to get juice into the system through this negative
+into the system through this negative one to one is also cool it's useful for
+one to one is also cool it's useful for noise in general and perturbation for
+noise in general and perturbation for terrain and map generation in general
+terrain and map generation in general when you have negative one to one
+when you have negative one to one those tend to be used where you have
+those tend to be used where you have some baseline and then you're gonna be
+some baseline and then you're gonna be varying up and down from there right so
+varying up and down from there right so let's say we're doing 2d Perlin noise to
+let's say we're doing 2d Perlin noise to generate Heights for a Minecraft game we
+generate Heights for a Minecraft game we could say by default the ground is at 64
+could say by default the ground is at 64 plus or minus some right we could use
+plus or minus some right we could use this for distribution or like say in a
+this for distribution or like say in a population we have a thousand orcs and
+population we have a thousand orcs and we want them to all be about six foot
+we want them to all be about six foot three plus or minus a few inches right
+three plus or minus a few inches right so we could use functions in the
+so we could use functions in the negative one to one range and of course
+negative one to one range and of course anything sinusoidal whether it's going
+anything sinusoidal whether it's going to be pulsing or fluctuating or just
+to be pulsing or fluctuating or just kind of hovering like that and then also
+kind of hovering like that and then also a eye response curves tend to use this
+a eye response curves tend to use this as well where we have both the positive
+as well where we have both the positive or negative reaction to something like a
+or negative reaction to something like a disposition towards another actor but
+disposition towards another actor but today we're gonna focus on 0 to 1 so I
+today we're gonna focus on 0 to 1 so I should have called this fast and funky 1
+should have called this fast and funky 1 be normalized nonlinear transformations
+be normalized nonlinear transformations functions that are in the 0 to 1 range
+functions that are in the 0 to 1 range so when I say normalized I mean a couple
+so when I say normalized I mean a couple things something where if you put in a 0
+things something where if you put in a 0 as your input value you get out a 0 so 0
+as your input value you get out a 0 so 0 is 0 and if you put in a 1 you get out
+is 0 and if you put in a 1 you get out of 1 but if you put out something in
+of 1 but if you put out something in between that's where the interesting
+between that's where the interesting stuff happens right so specifically I
+stuff happens right so specifically I want I'm interested in talking about
+want I'm interested in talking about functions where the function of 0 is 0
+functions where the function of 0 is 0 the function of 1 is 1 but specifically
+the function of 1 is 1 but specifically it's more interesting than linear right
+it's more interesting than linear right if I plug in a point 3 it's tends to not
+if I plug in a point 3 it's tends to not be a point 3 on the way so that's the
+be a point 3 on the way so that's the non-linearity part of this and so some
+non-linearity part of this and so some simple example this would be like moving
+simple example this would be like moving up
+up over time a UI widget could come in
+over time a UI widget could come in right or a missile could come in or
+right or a missile could come in or something like that
+something like that scaling something up alpha in especially
+scaling something up alpha in especially in 2d games we could be interpolating
+in 2d games we could be interpolating color or strength or aggression writing
+color or strength or aggression writing these things typically over time or
+these things typically over time or something so I've got a demo that's
+something so I've got a demo that's hopefully running here okay so here I've
+hopefully running here okay so here I've got because we're gonna be going back to
+got because we're gonna be going back to this a couple times on the bottom I have
+this a couple times on the bottom I have a runway just shows the ball going from
+a runway just shows the ball going from left to right and it's moving at a
+left to right and it's moving at a linear speed and you can see on the top
+linear speed and you can see on the top is the graph where as I move to the
+is the graph where as I move to the right I'm also moving up by the same
+right I'm also moving up by the same amount the right is input up its output
+amount the right is input up its output and then next to it I have a double ring
+and then next to it I have a double ring that's scaling up using that the result
+that's scaling up using that the result of the function and then next to it is
+of the function and then next to it is something that's alpha fading in you'll
+something that's alpha fading in you'll notice something interesting the fading
+notice something interesting the fading in it looks like it fades in most of it
+in it looks like it fades in most of it right away
+right away it's actually a linear fade in right
+it's actually a linear fade in right this talks to back to Jim's point about
+this talks to back to Jim's point about the perception of alpha being non linear
+the perception of alpha being non linear which is very interesting and then
+which is very interesting and then lastly you have this thing on the right
+lastly you have this thing on the right that's moving and then of course if I
+that's moving and then of course if I square it now I have things that are
+square it now I have things that are just a little more interesting like the
+just a little more interesting like the thing on the right starts off slow and
+thing on the right starts off slow and then it goes faster that's not super
+then it goes faster that's not super cool yet but certainly x squared is
+cool yet but certainly x squared is better than just X all right we're at
+better than just X all right we're at least starting to get some sort of
+least starting to get some sort of interest one interesting thing of note
+interest one interesting thing of note two things have no I'll say is when you
+two things have no I'll say is when you square something normally we think of
+square something normally we think of that making it bigger but of course we
+that making it bigger but of course we all know when you square something
+all know when you square something that's fractional it gets smaller right
+that's fractional it gets smaller right so if you take 1/2 times 1/2 it actually
+so if you take 1/2 times 1/2 it actually goes down to 1/4 and so that's kind of
+goes down to 1/4 and so that's kind of unique is that through this entire range
+unique is that through this entire range that we care about from zero to one
+that we care about from zero to one squaring reduces values another thing
+squaring reduces values another thing that's unique is when I have a x squared
+that's unique is when I have a x squared it looks like a parabola right and I
+it looks like a parabola right and I have X cubed it looks sort of like this
+have X cubed it looks sort of like this and then X to the fourth looks like this
+and then X to the fourth looks like this and then X to the fifth looks like this
+and then X to the fifth looks like this we have odd and even functions that
+we have odd and even functions that doesn't exist that distinction in the 0
+doesn't exist that distinction in the 0 to 1 range right so there are lot of
+to 1 range right so there are lot of special exceptions here that we're going
+special exceptions here that we're going to be making and we're going to be able
+to be making and we're going to be able to do some sort of funky things like
+to do some sort of funky things like this right
+this right as we play with this okay so we said
+as we play with this okay so we said these are also called easing functions
+these are also called easing functions that's if you're an artist or an
+that's if you're an artist or an animator they're called filter functions
+animator they're called filter functions looping functions which I find funny
+looping functions which I find funny because specifically LARPing means
+because specifically LARPing means linear interpolation and they're not
+linear interpolation and they're not linear and tweening functions which is
+linear and tweening functions which is like more of an animation term for
+like more of an animation term for in-betweening so and a lot of those
+in-betweening so and a lot of those terms are referring to the same kinds of
+terms are referring to the same kinds of things but they have a bias for where
+things but they have a bias for where they're coming from right
+they're coming from right so we said tweening is creating
+so we said tweening is creating animation frames that don't exist
+animation frames that don't exist between keyframes the inbetweening but
+between keyframes the inbetweening but really these the math is super Universal
+really these the math is super Universal in this and like we said you could use
+in this and like we said you could use it anywhere I'm for going forward gonna
+it anywhere I'm for going forward gonna use the word easing a lot because it's
+use the word easing a lot because it's short and tweening sounds like something
+short and tweening sounds like something your 13 year old would do so one of
+your 13 year old would do so one of first of many examples is if you're
+first of many examples is if you're doing something as simple as a range
+doing something as simple as a range mapping right if you have an input and
+mapping right if you have an input and output ranges let's say I have a
+output ranges let's say I have a strength from 3 to 18 and I have a
+strength from 3 to 18 and I have a damage modifier that at street 3
+damage modifier that at street 3 strength I do half damage and at 18
+strength I do half damage and at 18 strength I do double damage a range map
+strength I do double damage a range map would be I have a seven strength what
+would be I have a seven strength what should my damage be right or Celsius to
+should my damage be right or Celsius to Fahrenheit conversion anything like that
+Fahrenheit conversion anything like that whenever you do these kinds of
+whenever you do these kinds of conversions and and typically throughout
+conversions and and typically throughout all kinds of game code math almost
+all kinds of game code math almost always there's some moment where the
+always there's some moment where the math is in a temporarily in a zero to
+math is in a temporarily in a zero to one range and that's your opportunity to
+one range and that's your opportunity to do arrange some sort of nonlinear easing
+do arrange some sort of nonlinear easing function on it right and usually that
+function on it right and usually that comes at no cost or any or no additional
+comes at no cost or any or no additional cost
+cost okay so let's build up a library of a
+okay so let's build up a library of a couple functions we can use here let's
+couple functions we can use here let's start with smooth start and that's just
+start with smooth start and that's just x squared right that was the first one
+x squared right that was the first one we tried and of course we can make this
+we tried and of course we can make this beast x squared X cubed x to the fourth
+beast x squared X cubed x to the fourth to make that curve be as dramatic as we
+to make that curve be as dramatic as we want it to be and obviously we would
+want it to be and obviously we would actually write this with T times T not
+actually write this with T times T not how maybe the compiler would do the
+how maybe the compiler would do the right thing but probably
+right thing but probably not and if we look at that
+not and if we look at that here our smooth start second order third
+here our smooth start second order third order and fourth order smooth starts
+order and fourth order smooth starts together you can see them on the bottom
+together you can see them on the bottom in the racetrack they all start at the
+in the racetrack they all start at the same time they all end at the same time
+same time they all end at the same time but the curve is more exaggerated for
+but the curve is more exaggerated for the blue one so the blue one has a much
+the blue one so the blue one has a much slower start and which means that he has
+slower start and which means that he has to go much faster at the end to catch up
+to go much faster at the end to catch up to be on time with everyone else and
+to be on time with everyone else and there's no like fancy solutions to make
+there's no like fancy solutions to make this happen you just go from zero to one
+this happen you just go from zero to one and they just will be on time always
+and they just will be on time always right automatically so again they're all
+right automatically so again they're all based on the same parameter in this case
+based on the same parameter in this case and they're all going from zero to one
+and they're all going from zero to one and the higher the power the more
+and the higher the power the more exaggerated this particular one this one
+exaggerated this particular one this one I'm calling smooth start is sometimes
+I'm calling smooth start is sometimes called ease in I find that to be a
+called ease in I find that to be a confusing term so let me take a quick
+confusing term so let me take a quick pop quiz when I say the prefix quad what
+pop quiz when I say the prefix quad what number comes in everyone's head right
+number comes in everyone's head right quadrilateral quadropod no except
+quadrilateral quadropod no except quadratic equation is second order right
+okay so wait if quadratic is second order in cubic is third order what are
+order in cubic is third order what are the terms for fourth and fifth order who
+the terms for fourth and fifth order who knows them six people know them yeah
+knows them six people know them yeah quadratic cubic quartic quintic right
+quadratic cubic quartic quintic right whatever so when you see especially I
+whatever so when you see especially I mean there's a roomful of game
+mean there's a roomful of game programmers and we only sort of know
+programmers and we only sort of know some of them you have your artist
+some of them you have your artist looking at ease in quad ease in cubic of
+looking at ease in quad ease in cubic of course it's very easy to assume that
+course it's very easy to assume that quad is bigger than cubic right but it
+quad is bigger than cubic right but it isn't so these are terrible names
+isn't so these are terrible names they're actually worse names than that
+they're actually worse names than that if you imagine a train easing into the
+if you imagine a train easing into the station right the train is coming to a
+station right the train is coming to a stop and it eases in and then when it's
+stop and it eases in and then when it's time to go out it eases it back out of
+time to go out it eases it back out of the station right that's what it means
+the station right that's what it means actually that's exactly the opposite of
+actually that's exactly the opposite of what it means easing in means the
+what it means easing in means the beginning of the curve an easing out is
+beginning of the curve an easing out is at the end I think they're terrible
+at the end I think they're terrible terms for a bunch of reasons so I
+terms for a bunch of reasons so I strongly discourage the use of them so I
+strongly discourage the use of them so I mean you smooth start
+mean you smooth start let's say we wanted to add another
+let's say we wanted to add another function now smooth stop right this is
+function now smooth stop right this is the same idea except we want it to start
+the same idea except we want it to start quickly and then stop at a nice smooth
+quickly and then stop at a nice smooth stop so how would we do this well our
+stop so how would we do this well our math intuition might be to say well
+math intuition might be to say well let's do the opposite of smooth start
+let's do the opposite of smooth start right smooth start was x squared let's
+right smooth start was x squared let's do square root right that's the inverse
+do square root right that's the inverse but that's not the right curve smooth
+but that's not the right curve smooth square root actually doesn't even have a
+square root actually doesn't even have a smooth stop right and it's expensive why
+smooth stop right and it's expensive why would we do that
+would we do that so that's not the right thing and one of
+so that's not the right thing and one of the things we want these to be is fast
+the things we want these to be is fast right part of why part of this is
+right part of why part of this is because we want to be able to say sure
+because we want to be able to say sure let's do that on a million particles no
+let's do that on a million particles no problem right we want to just be able to
+problem right we want to just be able to willy-nilly have this as a ready to grab
+willy-nilly have this as a ready to grab tool in our arsenal so how do we go
+tool in our arsenal so how do we go about building and discovering these new
+about building and discovering these new functions smooth stop it's not going to
+functions smooth stop it's not going to be that complicated but let's go through
+be that complicated but let's go through it and see if we can learn anything from
+it and see if we can learn anything from it so we have something in a 0 to 1
+it so we have something in a 0 to 1 range there's a lot of stuff we can do
+range there's a lot of stuff we can do to it right we already said squaring is
+to it right we already said squaring is one of those things and squaring is cool
+one of those things and squaring is cool because 0 squared is 0 and 1 squared is
+because 0 squared is 0 and 1 squared is 1 so it keeps it in the range right what
+1 so it keeps it in the range right what else did we do we could flip it 1 minus
+else did we do we could flip it 1 minus X what if we flip it and then square
+X what if we flip it and then square that and then flip it back that's smooth
+that and then flip it back that's smooth step so let's do that math wise so
+step so let's do that math wise so that's flipped Square flip so if we
+that's flipped Square flip so if we start with X we do 1 minus X to flip it
+start with X we do 1 minus X to flip it and then we square that and then we do 1
+and then we square that and then we do 1 minus that so that's the equation for
+minus that so that's the equation for smooth step right crazy fast way faster
+smooth step right crazy fast way faster than the square root and was easier for
+than the square root and was easier for us to invent it ourselves
+us to invent it ourselves and of course in this form now it makes
+and of course in this form now it makes perfect sense
+perfect sense I can easily express smooth stop 2 3 4 4
+I can easily express smooth stop 2 3 4 4 5 6 different powers just by increasing
+5 6 different powers just by increasing the exponent right so again if we look
+the exponent right so again if we look at that
+at that comparatively here you've got a bunch of
+comparatively here you've got a bunch of different smooth stoppers and the one on
+different smooth stoppers and the one on the left comes to a
+the left comes to a was stopped and that his velocity is
+was stopped and that his velocity is zero by the time he reaches there but
+zero by the time he reaches there but that's actually kind of like somebody
+that's actually kind of like somebody slamming on the brakes really really
+slamming on the brakes really really hard until they come to a stop at the
+hard until they come to a stop at the stoplight like yep you arrived at the
+stoplight like yep you arrived at the right place at zero miles an hour and it
+right place at zero miles an hour and it was not pleasant smooth stop three would
+was not pleasant smooth stop three would be you arrive there and your
+be you arrive there and your acceleration or in this case
+acceleration or in this case deceleration comes to zero right when
+deceleration comes to zero right when your velocity comes to zero that's the
+your velocity comes to zero that's the good driver who feathers off the brake
+good driver who feathers off the brake right until the last second and you just
+right until the last second and you just kind of roll to a stop but you still
+kind of roll to a stop but you still have this sensation of jerk right if
+have this sensation of jerk right if it's happening very quickly in fact that
+it's happening very quickly in fact that is the the next order after acceleration
+is the the next order after acceleration and smooth stop four has no jerk either
+and smooth stop four has no jerk either at the end okay so mathematicians
+at the end okay so mathematicians probably since they love polynomials
+probably since they love polynomials would be tempted to multiply these
+would be tempted to multiply these things out right we had these beautiful
+things out right we had these beautiful terms here and they would probably go
+terms here and they would probably go and ruin them which is really dumb first
+and ruin them which is really dumb first of all because the 1 minus 1 minus X is
+of all because the 1 minus 1 minus X is cleaner and and actually is going to be
+cleaner and and actually is going to be less code to compute and in fact this is
+less code to compute and in fact this is true with a lot of things like Bezier
+true with a lot of things like Bezier curves and stuff that you can get some
+curves and stuff that you can get some really fast forms if you think of 1
+really fast forms if you think of 1 minus T as a separate expression so it's
+minus T as a separate expression so it's faster it's clearer it shows its
+faster it's clearer it shows its evolutionary form so we sort of know how
+evolutionary form so we sort of know how we got it there so so far we've got
+we got it there so so far we've got smooth start 2 3 4 5 smooth stop 2 3 4 5
+smooth start 2 3 4 5 smooth stop 2 3 4 5 so let's build a library of some more of
+so let's build a library of some more of these things and we're going to invent
+these things and we're going to invent them ourselves right so we're also going
+them ourselves right so we're also going to be building a library or a collection
+to be building a library or a collection of techniques that we can use to explore
+of techniques that we can use to explore and discover these cool easing functions
+and discover these cool easing functions so so far we've tried squaring things
+so so far we've tried squaring things and flipping them and already that's
+and flipping them and already that's been pretty successful alright let's get
+been pretty successful alright let's get some more of those obviously when I say
+some more of those obviously when I say squaring I mean raising it to a power
+squaring I mean raising it to a power right so what else could we do let's say
+right so what else could we do let's say we took two different functions and did
+we took two different functions and did a mix of them like a 50/50 blend or at
+a mix of them like a 50/50 blend or at 70/30 blend we could do that right
+70/30 blend we could do that right for example let's say we had smooth
+for example let's say we had smooth start
+start and we're cross-fading it or blending it
+and we're cross-fading it or blending it with smooth stop what would that be like
+with smooth stop what would that be like I think I have yeah okay so hopefully
+I think I have yeah okay so hopefully this will read yeah so if you look at
+this will read yeah so if you look at just the top left curve for a moment the
+just the top left curve for a moment the red curve that smooth start right I'm
+red curve that smooth start right I'm starting smooth but as I move the mouse
+starting smooth but as I move the mouse now I can easily change it the mix
+now I can easily change it the mix between smooth start and smooth stop
+between smooth start and smooth stop that's pretty trivial to do right it's
+that's pretty trivial to do right it's just a crossfade and so one of the cool
+just a crossfade and so one of the cool things we can do oh and by the way
+things we can do oh and by the way halfway through that crossfade happens
+halfway through that crossfade happens to be linear so we'll come back to that
+to be linear so we'll come back to that in a second there's some other
+in a second there's some other interesting things we can do here for
+interesting things we can do here for example let's say we wanted to use POW
+example let's say we wanted to use POW like in gyms gamma example right where
+like in gyms gamma example right where we want to raise something to an odd
+we want to raise something to an odd power like two point two or two point
+power like two point two or two point six or something like that or maybe even
+six or something like that or maybe even like two of large power like for a
+like two of large power like for a glassy glare and specular or something
+glassy glare and specular or something like that
+like that well obviously POW is slow right how
+well obviously POW is slow right how slow is it well it's guaranteed to be at
+slow is it well it's guaranteed to be at least as slow as square root because it
+least as slow as square root because it can do square root right and you can
+can do square root right and you can raise something to the one-half power so
+raise something to the one-half power so by definition it must be at least as
+by definition it must be at least as slow and practice on my machine it's ten
+slow and practice on my machine it's ten times slower like 200 220 cycle latency
+times slower like 200 220 cycle latency okay so can we hack that well we know a
+okay so can we hack that well we know a smooth start to is x squared we know
+smooth start to is x squared we know smooth start three is X cubed so in
+smooth start three is X cubed so in general we're saying smooth start n is X
+general we're saying smooth start n is X to the N what would smooth start to
+to the N what would smooth start to point to be well obviously we're just
+point to be well obviously we're just going to raise it to the two point two
+going to raise it to the two point two power right but that's using pal so I'm
+power right but that's using pal so I'm trying to avoid that is there a way we
+trying to avoid that is there a way we can avoid that turns out that there is
+can avoid that turns out that there is with smooth start say two point two I
+with smooth start say two point two I can do a mix an 80/20 blend of 20%
+can do a mix an 80/20 blend of 20% smooth start and 80% smooth start three
+smooth start and 80% smooth start three and get something or a 4060 blend of
+and get something or a 4060 blend of smooth start two and three and actually
+smooth start two and three and actually get something that's 99% better actually
+get something that's 99% better actually much more accurate than that in the zero
+much more accurate than that in the zero to one range and way way faster 10x is
+to one range and way way faster 10x is conservative or I could just write fake
+conservative or I could just write fake POW as a blend of x squared X cubed okay
+POW as a blend of x squared X cubed okay we could also do a crossfade where we're
+we could also do a crossfade where we're going to do like a mix but we're gonna
+going to do like a mix but we're gonna use as the blend weight itself the
+use as the blend weight itself the parameter so now T is the mix weight
+parameter so now T is the mix weight between the start and the stop functions
+between the start and the stop functions so now if you look at the red at the
+so now if you look at the red at the start it's totally smooth start and to
+start it's totally smooth start and to the end it's totally smooth stop so it
+the end it's totally smooth stop so it gets the benefits at both ends of those
+gets the benefits at both ends of those right and it's changing on the fly as it
+right and it's changing on the fly as it does a crossfade a live crossfade
+does a crossfade a live crossfade between those and actually that is
+between those and actually that is smooth step we just derived it right if
+smooth step we just derived it right if you look at the red and the green balls
+you look at the red and the green balls on the runway together they're totally
+on the runway together they're totally in sync with each other so that is one
+in sync with each other so that is one way you can derive smooth step and
+way you can derive smooth step and smooth step itself has that same problem
+smooth step itself has that same problem where your velocity comes to zero but
+where your velocity comes to zero but your acceleration is still abrupt so you
+your acceleration is still abrupt so you could have a smoother step etc like
+could have a smoother step etc like those shown in the third picture okay so
+those shown in the third picture okay so what else can we do that's interesting
+what else can we do that's interesting we can scale things like just multiply
+we can scale things like just multiply them by T on top of whatever else if as
+them by T on top of whatever else if as long as we have them in the zero one
+long as we have them in the zero one range right that should be harmless we
+range right that should be harmless we have zero to one times another zero to
+have zero to one times another zero to one we could multiply it by 1 minus T
+one we could multiply it by 1 minus T which I'll call a reverse scale in fact
+which I'll call a reverse scale in fact if we do T times 1 minus T we can get
+if we do T times 1 minus T we can get this sort of arch feel like that that's
+this sort of arch feel like that that's just T times 1 minus T normalized and
+just T times 1 minus T normalized and see the bread ball goes out and back
+see the bread ball goes out and back right and I can go further with that I
+right and I can go further with that I can say well I'm gonna take that scale
+can say well I'm gonna take that scale it with T so there's an extra sort of
+it with T so there's an extra sort of smooth darkness to it and that's this
+smooth darkness to it and that's this green one where it's kind of like
+green one where it's kind of like smoothing in from the left and sort of a
+smoothing in from the left and sort of a lopsided thing or I could have it where
+lopsided thing or I could have it where I'm doing it reverse scaling the arch
+I'm doing it reverse scaling the arch again
+again so now it's coming in and it's biased
+so now it's coming in and it's biased from the other side I could reverse
+from the other side I could reverse scale the scale of the arch I can smooth
+scale the scale of the arch I can smooth stop time smooth start I can start
+stop time smooth start I can start multiplying any of these functions times
+multiplying any of these functions times any of these other functions and start
+any of these other functions and start getting really interesting things for
+getting really interesting things for example this bell curve six is a sixth
+example this bell curve six is a sixth order function which is just smooth
+order function which is just smooth stopped three times smooth start three
+stopped three times smooth start three and that looks like the green one in the
+and that looks like the green one in the middle there so that's a bell curve that
+middle there so that's a bell curve that has really really nice velocity and
+has really really nice velocity and acceleration at the endpoints and I can
+acceleration at the endpoints and I can start nesting these things too right
+start nesting these things too right calling a function nested within a
+calling a function nested within a function within function and so there's
+function within function and so there's all kinds of cool stuff I can discover
+all kinds of cool stuff I can discover that way one thing I can do is have
+that way one thing I can do is have bouncing like this is a really simple
+bouncing like this is a really simple function bounce clamp bottom this is a
+function bounce clamp bottom this is a zero to one function that returns zero
+zero to one function that returns zero to one all this does is absolute value
+to one all this does is absolute value so if I go negative it feels like I
+so if I go negative it feels like I bounced off the bottom right and I could
+bounced off the bottom right and I could write one that's like bounce off the top
+write one that's like bounce off the top two in random order apparently right and
+two in random order apparently right and I could bounce off the top and the
+I could bounce off the top and the bottom and so I could easily have
+bottom and so I could easily have something like this blue one here where
+something like this blue one here where the function just goes out of range and
+the function just goes out of range and comes back in range but since I'm doing
+comes back in range but since I'm doing 1 minus the value and then absolute
+1 minus the value and then absolute valuing that and then 1 minus it back I
+valuing that and then 1 minus it back I get a bouncing off the top feel last but
+get a bouncing off the top feel last but not least we can always go back to my
+not least we can always go back to my favorite friend busy a curves and we can
+favorite friend busy a curves and we can use cubic quartic quintic however we
+use cubic quartic quintic however we want and we can actually optimize them
+want and we can actually optimize them in in we don't need the general case we
+in in we don't need the general case we can say we assume that they go from 0 to
+can say we assume that they go from 0 to 1 so if you have a busy a that goes
+1 so if you have a busy a that goes through points ABCD control points you
+through points ABCD control points you could just say a is 0 so those terms are
+could just say a is 0 so those terms are just erased from the code and D is 1 and
+just erased from the code and D is 1 and the code simplifies right you can even
+the code simplifies right you can even have a seventh order busy a like that so
+have a seventh order busy a like that so that's it I think I'm out of time
+that's it I think I'm out of time already is that true so I'll take any
+already is that true so I'll take any questions if we have time for a little
+questions if we have time for a little bit yeah
+yeah you can get 99% accurate sigmoid Gaussian everything you care about
+Gaussian everything you care about unless it's like hyper precise don't use
+unless it's like hyper precise don't use the raise to an awkward power underneath
+the raise to an awkward power underneath the thing right this is like 20 times
+the thing right this is like 20 times faster yeah oh I'm sorry the question
+faster yeah oh I'm sorry the question was he likes to use Gaussian
+was he likes to use Gaussian distributions which is the the official
+distributions which is the the official perfect bell curve but in practice
+perfect bell curve but in practice unless it has to be official and perfect
+unless it has to be official and perfect then don't you don't have to use the
+then don't you don't have to use the real thing yeah it's what Oh he's
+real thing yeah it's what Oh he's correcting me that gamma is raised to
+correcting me that gamma is raised to the 0.45 it's like a square root the
+the 0.45 it's like a square root the correction yes but to get the curve
+correction yes but to get the curve itself yes okay any other questions or
+itself yes okay any other questions or comments okay thank you
+comments okay thank you [Applause]

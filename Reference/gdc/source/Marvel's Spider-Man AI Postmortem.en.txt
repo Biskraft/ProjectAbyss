@@ -1,0 +1,1650 @@
+[Music] good morning and welcome to
+good morning and welcome to marvel's spider-man nai post-mortem my
+marvel's spider-man nai post-mortem my name is adam noonchester and i'm one of
+name is adam noonchester and i'm one of the lead gameplay
+the lead gameplay programmers at insomniac games over the
+programmers at insomniac games over the past 11 years i've been fortunate to
+past 11 years i've been fortunate to work on eight great games at insomniac
+work on eight great games at insomniac and for the majority of these i've been
+and for the majority of these i've been an ai programmer
+an ai programmer on marvel's spider-man i led the team of
+on marvel's spider-man i led the team of gameplay programmers that developed
+gameplay programmers that developed combat
+combat let's take a quick look my team worked
+let's take a quick look my team worked on both stealth and melee combat
+on both stealth and melee combat we helped create spider-man's combat
+we helped create spider-man's combat moves and all of his gadgets
+moves and all of his gadgets we also worked on the enemies and bosses
+we also worked on the enemies and bosses and i'd like to take this opportunity
+and i'd like to take this opportunity to tell you about some of the biggest
+to tell you about some of the biggest changes and challenges
+changes and challenges that we encountered on the ai side
+that we encountered on the ai side developing this game
+developing this game so let me give you a quick preview of
+so let me give you a quick preview of the topics i'm going to discuss today
+the topics i'm going to discuss today i'll start with some high level trends
+i'll start with some high level trends related to how we author behaviors
+related to how we author behaviors and build ai characters then i'll move
+and build ai characters then i'll move into how we use sync animations to get a
+into how we use sync animations to get a marvel feel in a game
+marvel feel in a game from there i'll give an overview of a
+from there i'll give an overview of a few core problems and how we iterated on
+few core problems and how we iterated on them with our combat
+them with our combat after that we'll look at some procedural
+after that we'll look at some procedural animation techniques that we developed
+animation techniques that we developed specifically for spider-man
+specifically for spider-man and then finally time permitting i'll
+and then finally time permitting i'll briefly discuss a few of the places
+briefly discuss a few of the places where i feel we fell
+where i feel we fell short so let's begin with a high-level
+short so let's begin with a high-level trend
+trend that occurred over the course of
+that occurred over the course of development that i expect to continue
+development that i expect to continue and that is less use of complex behavior
+and that is less use of complex behavior trees
+trees and more use of data-driven hierarchical
+and more use of data-driven hierarchical finite state machines
+finite state machines this happened for several reasons but
+this happened for several reasons but the largest was simply that marvel
+the largest was simply that marvel spider-man
+spider-man was the largest game that insomniac
+was the largest game that insomniac games has made to date
+games has made to date spider-man has five major factions and a
+spider-man has five major factions and a few minor ones
+few minor ones we've also got eight archetypes that are
+we've also got eight archetypes that are common to all the factions
+common to all the factions and the majority of these archetypes
+and the majority of these archetypes have variations per faction
+have variations per faction there are also several faction exclusive
+there are also several faction exclusive types and 11 boss fights
+types and 11 boss fights this all meant that we had to create 64
+this all meant that we had to create 64 ai classes
+ai classes and the majority of these had to have
+and the majority of these had to have some unique attacks reactions
+some unique attacks reactions or other behaviors we also had to do
+or other behaviors we also had to do this with a slightly smaller gameplay
+this with a slightly smaller gameplay team than our last big game sunset
+team than our last big game sunset overdrive
+overdrive in which we only made 19 classes
+in which we only made 19 classes let me begin by briefly describing how
+let me begin by briefly describing how we organize our ai behavior at insomniac
+we organize our ai behavior at insomniac we have our own proprietary engine and
+we have our own proprietary engine and the vast majority of our code is written
+the vast majority of our code is written in c
+in c plus this is the general architecture
+plus this is the general architecture that's been in use since about 2012.
+that's been in use since about 2012. from here on i'm going to also use the
+from here on i'm going to also use the term ai and bots
+term ai and bots interchangeably at the top level we have
+interchangeably at the top level we have a behavior tree
+a behavior tree and that decides on a behavior to run
+and that decides on a behavior to run a behave behaviors can have an arbitrary
+a behave behaviors can have an arbitrary number of sub behaviors
+number of sub behaviors but eventually a behavior will
+but eventually a behavior will instantiate a state
+instantiate a state these are our leaf nodes and they
+these are our leaf nodes and they control animation motion
+control animation motion and perform other player facing actions
+and perform other player facing actions when we first implemented behavior trees
+when we first implemented behavior trees into our engine a lot of them tended to
+into our engine a lot of them tended to have a structure like this
+have a structure like this this is one corner of the behavior tree
+this is one corner of the behavior tree that drove the behavior of ranged
+that drove the behavior of ranged enemies in sunset overdrive
+enemies in sunset overdrive this simple sub tree uses 34 discrete
+this simple sub tree uses 34 discrete nodes
+nodes and many of them just map to a simple ai
+and many of them just map to a simple ai state such as playing an animation
+state such as playing an animation shuffling around meleeing or aiming
+shuffling around meleeing or aiming the parameters for the state were
+the parameters for the state were largely configured by the behavior tree
+largely configured by the behavior tree and passed through a behavior that only
+and passed through a behavior that only instantiated a single state
+instantiated a single state in order for our ai to function as
+in order for our ai to function as desired things tended to get really
+desired things tended to get really complicated
+complicated nodes often had to utilize numerous
+nodes often had to utilize numerous kinds of callback functions
+kinds of callback functions for example let's look at a simple node
+for example let's look at a simple node that is trying to use a
+that is trying to use a a state to aim at a target over a
+a state to aim at a target over a railing that node will need to be able
+railing that node will need to be able to decide if it has to run
+to decide if it has to run so we have a callback for that the bot
+so we have a callback for that the bot state that we're using doesn't ever end
+state that we're using doesn't ever end so the tree needs to decide if that
+so the tree needs to decide if that state should continue to run
+state should continue to run so we add another callback the state
+so we add another callback the state we're using also doesn't
+we're using also doesn't or this behavior tree nodes shouldn't
+or this behavior tree nodes shouldn't change state until they are entered
+change state until they are entered so since we need to notify another
+so since we need to notify another system when we start aiming over a
+system when we start aiming over a railing
+railing we add a callback the state that we're
+we add a callback the state that we're using doesn't do any weapon management
+using doesn't do any weapon management so we have a callback to do all of that
+so we have a callback to do all of that from the tree and we need to notify that
+from the tree and we need to notify that same system when we're done using the
+same system when we're done using the railing so
+railing so we add a fifth callback
+furthermore in order to get the correct node to activate at the correct time
+node to activate at the correct time we often needed to consider how a node's
+we often needed to consider how a node's parents selected which of its children
+parents selected which of its children to run
+to run we call that the group policy and there
+we call that the group policy and there are three types
+are three types the order of the children could be a
+the order of the children could be a priority ranking or the order could be a
+priority ranking or the order could be a sequence with each node running one
+sequence with each node running one after the other
+after the other or the the node whose decider callback
+or the the node whose decider callback returns the highest value would be the
+returns the highest value would be the one to run
+one to run and if your behavior tree implementation
+and if your behavior tree implementation is anything like ours
+is anything like ours you have plenty of decorators and flags
+you have plenty of decorators and flags and other confusing options
+and other confusing options all of this led to trees that worked but
+all of this led to trees that worked but were complicated
+were complicated and difficult to debug when they broke
+and difficult to debug when they broke furthermore
+furthermore one of the advantages to behavior trees
+one of the advantages to behavior trees is that the trees are supposed to be
+is that the trees are supposed to be composable
+composable and nodes should be reusable we found
+and nodes should be reusable we found the opposite to be true when the tree is
+the opposite to be true when the tree is complicated
+complicated we often needed to think about how both
+we often needed to think about how both a node's siblings and its ancestors
+a node's siblings and its ancestors functioned
+functioned for marvel spider-man we recognized that
+for marvel spider-man we recognized that we could not have unique behavior trees
+we could not have unique behavior trees or even sub-trees
+or even sub-trees for each of the 50-plus bot classes we
+for each of the 50-plus bot classes we gradually started moving towards trees
+gradually started moving towards trees that were smaller
+that were smaller and more straightforward with behaviors
+and more straightforward with behaviors that contained a lot of the complexity
+that contained a lot of the complexity and logic that was previously entangled
+and logic that was previously entangled in the callback functions
+in the callback functions this meant that we could share structure
+this meant that we could share structure and behaviors
+and behaviors nearly all of our standard enemies use
+nearly all of our standard enemies use exactly the same behavior tree and set
+exactly the same behavior tree and set of behaviors
+of behaviors as a quick example we have a single node
+as a quick example we have a single node in our behavior tree that handles all of
+in our behavior tree that handles all of melee combat
+melee combat and while the previous subtree that i
+and while the previous subtree that i showed you still exists
+showed you still exists the most complicated chunk of transition
+the most complicated chunk of transition logic was moved into a behavior
+logic was moved into a behavior so what do we do instead as our
+so what do we do instead as our behaviors became more robust
+behaviors became more robust we began to data drive more of them i
+we began to data drive more of them i want to discuss
+want to discuss two of these examples the first is a
+two of these examples the first is a simple behavior that is used when
+simple behavior that is used when designers need explicit control over
+designers need explicit control over bots
+bots the second is more complicated and is
+the second is more complicated and is used for the majority of our combat
+used for the majority of our combat both of these behaviors take a piece of
+both of these behaviors take a piece of polymorphic data
+polymorphic data configured in our editor and transform
+configured in our editor and transform it into a state or sub-behavior
+it into a state or sub-behavior they do this while encapsulating a large
+they do this while encapsulating a large portion of the complicated logic
+portion of the complicated logic inherent to action game ai
+inherent to action game ai so rather than have a bunch of behavior
+so rather than have a bunch of behavior tree nodes that respond to designer
+tree nodes that respond to designer scripting
+scripting we made a more data-driven solution
+we made a more data-driven solution let's take a look at the high-level
+let's take a look at the high-level architecture script will begin by
+architecture script will begin by creating what we call a bot command
+creating what we call a bot command and these commands go into a bot command
+and these commands go into a bot command q
+q when the queue exists the behavior tree
+when the queue exists the behavior tree has a node which instantiates behavior
+has a node which instantiates behavior scripted
+scripted this behavior pulls commands one at a
+this behavior pulls commands one at a time out of the queue
+time out of the queue and uses them to create sub-behaviors or
+and uses them to create sub-behaviors or states
+states let's take a look at the individual
+let's take a look at the individual components starting with our command
+components starting with our command queue
+queue all it really does is provide storage
+all it really does is provide storage for designer commands
+for designer commands that a bot is going to execute and a
+that a bot is going to execute and a simple interface for accessing them
+simple interface for accessing them next i want to touch on the bot commands
+next i want to touch on the bot commands themselves
+themselves the basis command itself is really just
+the basis command itself is really just an interface
+an interface an actual command will use this method
+an actual command will use this method to start whatever behavior or state
+to start whatever behavior or state it needs to and attach it to the
+it needs to and attach it to the provided parent behavior
+provided parent behavior and here's an implementation of that
+and here's an implementation of that method in a play anim command
+method in a play anim command it sets up some play atoms sets up some
+it sets up some play atoms sets up some data for a play annum state
+data for a play annum state and then requests that state to be added
+and then requests that state to be added to the provided
+to the provided behavior all bot commands follow this
+behavior all bot commands follow this format they're created by script and
+format they're created by script and added to the bot command queue
+added to the bot command queue finally let's take a quick look at
+finally let's take a quick look at behavior scripted itself
+behavior scripted itself if a bot command q exists and has any
+if a bot command q exists and has any commands in it the behavior tree will
+commands in it the behavior tree will instantiate this behavior
+instantiate this behavior it has an update function a consume next
+it has an update function a consume next command function
+command function and a handle to access the command queue
+and a handle to access the command queue the behavior update is simple
+the behavior update is simple if the current command is done we pop it
+if the current command is done we pop it from the queue
+from the queue and try to consume the next one the
+and try to consume the next one the consume next command function is also
+consume next command function is also straightforward it gets the command q
+straightforward it gets the command q checks to see if it has a command
+checks to see if it has a command if there is no command we're done but if
+if there is no command we're done but if there is one then we tell that command
+there is one then we tell that command to start
+to start and attach ourselves as the parent
+and attach ourselves as the parent behavior when the command is done the
+behavior when the command is done the previous update function will just call
+previous update function will just call this function again
+this function again and we'll continue executing commands
+and we'll continue executing commands here's what issuing commands looks like
+here's what issuing commands looks like from script
+from script we first request control of a bot and
+we first request control of a bot and tell them to go to a position
+tell them to go to a position face their target and play an animation
+face their target and play an animation and here's what things look like in game
+and here's what things look like in game you can see the bot command queue here
+you can see the bot command queue here you can see the bot move to a position
+you can see the bot move to a position then face the player
+then face the player and then finally play the provided
+and then finally play the provided action
+some of you may be wondering why don't we data drive more and this
+we data drive more and this is an example of why there are many
+is an example of why there are many times when an ai should not immediately
+times when an ai should not immediately respond to requests for script control
+respond to requests for script control they could be jumping through the air
+they could be jumping through the air they could be in a cinematic playing a
+they could be in a cinematic playing a hit react animation or any number of
+hit react animation or any number of other things
+other things our goal is to data drive the
+our goal is to data drive the interesting player-facing problems but
+interesting player-facing problems but also handle the
+also handle the difficult squirrely and bug-prone parts
+difficult squirrely and bug-prone parts reliably in code
+reliably in code so let me talk about a place where
+so let me talk about a place where things can get squirrely melee combat in
+things can get squirrely melee combat in marvel's spider-man is data driven
+marvel's spider-man is data driven and i want to first give you another
+and i want to first give you another overview of the architecture of this
+overview of the architecture of this system before we dive into some of the
+system before we dive into some of the details
+details let's look at the data first at the top
+let's look at the data first at the top level each bot has a combo config
+level each bot has a combo config that combo config contains a list of
+that combo config contains a list of combo entries
+combo entries each combo entry contains one or more
+each combo entry contains one or more combo move containers
+combo move containers and each of these contains a single
+and each of these contains a single combo move base
+combo move base and this is the polymorphic data all of
+and this is the polymorphic data all of this data
+this data is owned by a component called bot
+is owned by a component called bot combos on the behavior side we have our
+combos on the behavior side we have our behavior tree
+behavior tree which can instantiate for example
+which can instantiate for example behavior melee
+behavior melee when it is time to attack this behavior
+when it is time to attack this behavior will pass data from bot combos into a
+will pass data from bot combos into a behavior
+behavior use combo which will then use that data
+use combo which will then use that data to start a sub behavior or state
+to start a sub behavior or state let's start looking at the bottom of the
+let's start looking at the bottom of the data for the next several slides
+data for the next several slides i will be showing examples of structs
+i will be showing examples of structs written in a proprietary c
+written in a proprietary c plus like data definition language i'll
+plus like data definition language i'll mark any usage of it with ddl
+mark any usage of it with ddl all attack actions in combat will
+all attack actions in combat will ultimately
+ultimately derive from a bot combo move base
+derive from a bot combo move base these these structs can represent
+these these structs can represent all of the static data needed to execute
+all of the static data needed to execute for example a melee attack
+for example a melee attack this combo move has an animation to play
+this combo move has an animation to play as well as some data
+as well as some data describing the timing for the attack it
+describing the timing for the attack it could also represent
+could also represent throwing a projectile this struct has
+throwing a projectile this struct has data for the projectile asset to throw
+data for the projectile asset to throw what animation to use where on the bot
+what animation to use where on the bot the shot should spawn
+the shot should spawn and some additional timing data the
+and some additional timing data the point is that each of these derived
+point is that each of these derived types
+types contain all of the static data needed to
+contain all of the static data needed to start either a behavior or a state to
+start either a behavior or a state to perform the desired attack
+perform the desired attack that is to say that these contain the
+that is to say that these contain the static data to make these
+static data to make these let's move one level up the data
+let's move one level up the data hierarchy and talk about the move
+hierarchy and talk about the move container
+container here's the definition for bot combo move
+here's the definition for bot combo move container you can see the combo move
+container you can see the combo move here at the bottom
+here at the bottom but this struct contains other data that
+but this struct contains other data that data is parameters for defining
+data is parameters for defining how to prepare the to execute the move
+how to prepare the to execute the move these are things like
+these are things like does the bot need line of sight with
+does the bot need line of sight with their target to perform the attack
+their target to perform the attack does the bot need to be on screen or how
+does the bot need to be on screen or how close does the bot need to be
+close does the bot need to be in other words this the combo move
+in other words this the combo move container contains not only the combo
+container contains not only the combo move but also has data that drives the
+move but also has data that drives the behavior of this
+behavior of this behavior use combo so let's briefly look
+behavior use combo so let's briefly look at it
+at it it's really just a state machine it can
+it's really just a state machine it can choose to wait to perform an attack it
+choose to wait to perform an attack it can go to its target
+can go to its target it can perform a combo move and at some
+it can perform a combo move and at some point it will end
+point it will end it has its own functions for determining
+it has its own functions for determining what state it should be in based on the
+what state it should be in based on the data in the move container
+data in the move container and it also does things for us like
+and it also does things for us like setting hit react immunities
+setting hit react immunities while the attack is active or starting
+while the attack is active or starting cooldowns at the correct time
+cooldowns at the correct time however the relevant code happens once
+however the relevant code happens once behavior use combo has determined that
+behavior use combo has determined that it is in position
+it is in position and ready to execute an attack it calls
+and ready to execute an attack it calls a transition combo function
+a transition combo function this function takes the move container
+this function takes the move container and then retrieves some metadata in the
+and then retrieves some metadata in the container about the type of combo
+container about the type of combo move that it contains if it's a melee
+move that it contains if it's a melee move we prep some state data and start a
+move we prep some state data and start a melee attack
+melee attack or if or if it's a throw projectile move
+or if or if it's a throw projectile move we we prep some different state data and
+we we prep some different state data and start a throw projectile state
+start a throw projectile state in the full version of this function
+in the full version of this function this if else cascades for the other
+this if else cascades for the other 37 combo move types that we have
+37 combo move types that we have there might be a little bit of cleanup
+there might be a little bit of cleanup work for us to do here
+work for us to do here so we've discussed the bottom half of
+so we've discussed the bottom half of this diagram so next we're going to look
+this diagram so next we're going to look at the actual combo entries themselves
+at the actual combo entries themselves because behavior use combo may want to
+because behavior use combo may want to perform more than one move in a sequence
+perform more than one move in a sequence the combo entry contains
+the combo entry contains a list of them to execute one after the
+a list of them to execute one after the other
+other it also contains all of the data for
+it also contains all of the data for determining when a combo is valid
+determining when a combo is valid for example a cooldown for how often it
+for example a cooldown for how often it can be used a weighting value to be used
+can be used a weighting value to be used when selecting between
+when selecting between valid combos a pair of distances that
+valid combos a pair of distances that define the range
+define the range in which a combo is valid as well as
+in which a combo is valid as well as a list of other arbitrary data-driven
+a list of other arbitrary data-driven conditions the final piece of the data
+conditions the final piece of the data is the combo config
+is the combo config and this is just a simple struct that
+and this is just a simple struct that contains a list of combos
+contains a list of combos every single one of our ai classes has a
+every single one of our ai classes has a unique one of these
+unique one of these i want to briefly touch on the owner of
+i want to briefly touch on the owner of all of this data bot combos
+all of this data bot combos it is responsible for not only owning
+it is responsible for not only owning the combo config
+the combo config but also for selecting the best combo to
+but also for selecting the best combo to use from that config
+use from that config versus a provided target it will use all
+versus a provided target it will use all of the data contained in the combo
+of the data contained in the combo entries to make a list of valid combos
+entries to make a list of valid combos and return one based on their weights
+and return one based on their weights finally we'll briefly take a look at an
+finally we'll briefly take a look at an example
+example user of behavior use combo behavior
+user of behavior use combo behavior melee
+melee it's a fairly standard state machine
+it's a fairly standard state machine that has a bunch of states that it
+that has a bunch of states that it handles
+handles transitioning between encode one of them
+transitioning between encode one of them is using a combo
+is using a combo if it's the bot's turn to attack and bot
+if it's the bot's turn to attack and bot combos has a valid combo entry
+combos has a valid combo entry this behavior will just start using this
+this behavior will just start using this behavior will start behavior use combo
+behavior will start behavior use combo here's a brief look at combos in action
+here's a brief look at combos in action there's some debug display up here
+there's some debug display up here this character has five combos and
+this character has five combos and active will be drawn next to each of the
+active will be drawn next to each of the combos that he is currently using
+combos that he is currently using each of these uses different states
+each of these uses different states whose static parameters are configured
+whose static parameters are configured entirely in data
+so that's a high level review of how we data drove two large
+data drove two large sections of our ai melee combat and
+sections of our ai melee combat and script control
+script control we had two other significant behaviors
+we had two other significant behaviors that were data driven one for handling
+that were data driven one for handling hit reacts
+hit reacts and another for responding to incoming
+and another for responding to incoming attacks by blocking dodging
+attacks by blocking dodging attacking etc we felt we got a lot of
+attacking etc we felt we got a lot of mileage out of working in this paradigm
+mileage out of working in this paradigm for three main reasons
+for three main reasons the first is that new moves are easy to
+the first is that new moves are easy to add since you didn't need to change
+add since you didn't need to change complex transition logic
+complex transition logic the second is that we were able to
+the second is that we were able to loosely couple our states with data
+loosely couple our states with data that is a single bot combo move could
+that is a single bot combo move could potentially map to multiple states
+potentially map to multiple states or multiple moves could map to the same
+or multiple moves could map to the same state if it was appropriate
+state if it was appropriate and third this allowed us to pick and
+and third this allowed us to pick and choose what data was presented to the
+choose what data was presented to the designer and then
+designer and then handled the messy logic and code
+handled the messy logic and code working this way allowed us to make a
+working this way allowed us to make a large number of classes who only
+large number of classes who only differed in data
+that said there are some definite disadvantages with our current approach
+disadvantages with our current approach most of these behaviors organically grew
+most of these behaviors organically grew into this pattern so parts of them can
+into this pattern so parts of them can be a little bit of a mess
+be a little bit of a mess you saw an example of this with the
+you saw an example of this with the giant list of if else's in our melee
+giant list of if else's in our melee example
+example but the real big problem we had for us
+but the real big problem we had for us was that our
+was that our tools only allowed us to express the
+tools only allowed us to express the data in a properties panel
+data in a properties panel and let me briefly show you why this is
+and let me briefly show you why this is such a problem
+such a problem here's the data definition for the heavy
+here's the data definition for the heavy enemies three hit combo
+enemies three hit combo first we have all of the data for how he
+first we have all of the data for how he can select to use the move
+can select to use the move then we have all of the data for how
+then we have all of the data for how behavior use combo will prepare to
+behavior use combo will prepare to execute the move
+execute the move then we have a bunch of data that every
+then we have a bunch of data that every single attack needs so that it can
+single attack needs so that it can properly register with spider sense
+properly register with spider sense then we have the actual data for the
+then we have the actual data for the melee attack itself
+melee attack itself however remember that i said this was a
+however remember that i said this was a three hit combo
+three hit combo all of this data is repeated twice more
+all of this data is repeated twice more and it eventually looks like this this
+and it eventually looks like this this character also has
+character also has four more combos a shock wave a grapple
+four more combos a shock wave a grapple a throw and another multi-hit combo
+a throw and another multi-hit combo so yeah the amount of data needed to be
+so yeah the amount of data needed to be configured made the system
+configured made the system intimidating and difficult to understand
+intimidating and difficult to understand improving on this is one of our next big
+improving on this is one of our next big goals
+so let's move on to a section where i can finally start showing a bunch of
+can finally start showing a bunch of screenshots and videos
+screenshots and videos synced animations our creative director
+synced animations our creative director gave the team a goal that he wanted
+gave the team a goal that he wanted spider-man to have a comic book movie
+spider-man to have a comic book movie feel
+feel early on in development we decided that
+early on in development we decided that we wanted a high degree of fidelity in
+we wanted a high degree of fidelity in our combat animations and reactions
+our combat animations and reactions in order to do this we determined that
+in order to do this we determined that we would need to have a system that
+we would need to have a system that allowed us to play back
+allowed us to play back those animations of spider-man and his
+those animations of spider-man and his foes interacting
+foes interacting our system at its root has the concept
+our system at its root has the concept of a host
+of a host usually spider-man the attacker and a
+usually spider-man the attacker and a guest usually his victim
+guest usually his victim the whole thing hinges on something we
+the whole thing hinges on something we call a sink joint
+call a sink joint it's shown as the white debug sphere in
+it's shown as the white debug sphere in this video
+this video the sink joint is a is a joint on the
+the sink joint is a is a joint on the host which has a position and
+host which has a position and orientation that will match that of the
+orientation that will match that of the guests when the animations are played
+guests when the animations are played back in synced
+back in synced we use joint on the attacker because
+we use joint on the attacker because this allows spider-man to perform a
+this allows spider-man to perform a synced attack versus a character that
+synced attack versus a character that hasn't yet
+hasn't yet played a synced react
+played a synced react in this video you can see both the
+in this video you can see both the current position of the sink joint drawn
+current position of the sink joint drawn in front of spider-man as well as the
+in front of spider-man as well as the sink joint's target position drawn on
+sink joint's target position drawn on the enemy
+the enemy as the time of impact draws near you can
+as the time of impact draws near you can see spider-man blend into position to
+see spider-man blend into position to hit his target
+hit his target spider-man doesn't know if his victim
+spider-man doesn't know if his victim will play the corresponding synced
+will play the corresponding synced reaction
+reaction or if he will block dodge or play some
+or if he will block dodge or play some non-synced reaction
+non-synced reaction we actually support several different
+we actually support several different options for how spider-man accomplishes
+options for how spider-man accomplishes this blending
+this blending these can be selected independently for
+these can be selected independently for rotation and translation
+rotation and translation the most common case for lining up
+the most common case for lining up orientation is called host to guest or
+orientation is called host to guest or center line
+center line in this case both the host and the
+in this case both the host and the guests rotate to face each other along a
+guests rotate to face each other along a line drawn between them
+line drawn between them we also have support for only using the
+we also have support for only using the host orientation or only using the
+host orientation or only using the guests
+guests neither of these modes are actually used
+neither of these modes are actually used in the shipping game
+in the shipping game the other kind of rotation alignment we
+the other kind of rotation alignment we use is what we call an external anchor
+use is what we call an external anchor this is when another piece of code sets
+this is when another piece of code sets the target orientation for the system
+the target orientation for the system in this video when you see debug draw on
+in this video when you see debug draw on screen both characters are rotating
+screen both characters are rotating towards the external actor orientation
+towards the external actor orientation we use this here because the player is
+we use this here because the player is able to push in any direction
+able to push in any direction on the movement stick while executing
+on the movement stick while executing this kick throw
+this kick throw and the enemy will be thrown in that
+and the enemy will be thrown in that direction so that is
+direction so that is the direction is set as the sync
+the direction is set as the sync animation system's rotational alignment
+animation system's rotational alignment target
+target for translation alignment we have two
+for translation alignment we have two common options the first is when the
+common options the first is when the guest moves into position
+guest moves into position this is called host as anchor and it is
+this is called host as anchor and it is used in situations like this where
+used in situations like this where spider-man is unable to move
+spider-man is unable to move you'll be able to see the sink joint
+you'll be able to see the sink joint here on spider-man and then you can
+here on spider-man and then you can notice the enemy move to it
+the other kind of alignment is when spider-man performs all of the
+spider-man performs all of the translation himself
+translation himself this is called guest as anchor and is
+this is called guest as anchor and is the translation alignment technique for
+the translation alignment technique for the vast majority of
+the vast majority of attacks since spider-man is the one
+attacks since spider-man is the one moving into position
+moving into position there is an external anchor option for
+there is an external anchor option for translational alignment similar to
+translational alignment similar to rotation
+rotation isn't actually used in the shipping game
+a problem we frequent that frequently came up for us was that the attacker and
+came up for us was that the attacker and the victim could be at heights different
+the victim could be at heights different from how they were animated or mocapped
+from how they were animated or mocapped we have a few strategies for how we
+we have a few strategies for how we handle this all synced attacks have an
+handle this all synced attacks have an annotated
+annotated sync point and a release point for
+sync point and a release point for stealth takedowns
+stealth takedowns and combat finishers that use animated
+and combat finishers that use animated cameras we can hide floating characters
+cameras we can hide floating characters by pulling the camera in
+by pulling the camera in before we reach the sink point and
+before we reach the sink point and waiting until after the release point to
+waiting until after the release point to push it back
+push it back out in other cases
+out in other cases we can make use of webbing to handle the
+we can make use of webbing to handle the fact that the characters aren't at
+fact that the characters aren't at matching heights
+matching heights in this case the webs are animated and
+in this case the webs are animated and then we procedurally alter them
+then we procedurally alter them joint by joint so that they match where
+joint by joint so that they match where their final transforms would be
+their final transforms would be if our sync joint was properly aligned
+another thing that helps with certain situations is that our character
+situations is that our character movement system remains active
+movement system remains active if one member of the synced animation
+if one member of the synced animation begins to collide with something they
+begins to collide with something they can pass the translation they failed to
+can pass the translation they failed to move
+move over to the other participant in this
+over to the other participant in this case spider-man begins to hit the step
+case spider-man begins to hit the step is unable to fully align with his target
+is unable to fully align with his target and when this happens the enemy then
+and when this happens the enemy then bursts and slides backwards and the two
+bursts and slides backwards and the two manage to sync up
+manage to sync up however we can't always fix things up
+however we can't always fix things up and in many cases we just deal with
+and in many cases we just deal with things being off
+things being off this is what happens for most regular
+this is what happens for most regular melee attacks as well as a few finishers
+enemies can use the system to play sync attack animations versus spider-man as
+attack animations versus spider-man as well
+well however we found that the sync alignment
+however we found that the sync alignment options usually felt unfair
+options usually felt unfair the more common use of sync attacks was
+the more common use of sync attacks was for an enemy to use a non-synced attack
+for an enemy to use a non-synced attack and then if it connected to immediately
+and then if it connected to immediately start a synced reaction animation
+there are two big drawbacks to our synced animation system
+synced animation system the first is that it only supports two
+the first is that it only supports two characters a host and a guest
+characters a host and a guest one of the most requested features
+one of the most requested features towards the end of development
+towards the end of development was finishers that allowed spider-man to
+was finishers that allowed spider-man to take down multiple foes at the same time
+take down multiple foes at the same time i do want to point out a more general
+i do want to point out a more general drawback to using synced animations
+drawback to using synced animations is that it quickly becomes very time
+is that it quickly becomes very time consuming to add new attacks
+consuming to add new attacks or skeletons to your game you usually
+or skeletons to your game you usually have to make an attack animation
+have to make an attack animation and a react animation for every victim
+and a react animation for every victim skeleton
+skeleton how we make use of a sink joint allows
+how we make use of a sink joint allows us to mitigate
+us to mitigate this if we want to but fidelity will
+this if we want to but fidelity will suffer
+suffer we had a goal of combat for spider-man
+we had a goal of combat for spider-man that was fast fluid and dynamic
+that was fast fluid and dynamic on the combat team we frequently talked
+on the combat team we frequently talked about play play style flow and
+about play play style flow and improvisation as being very important
+improvisation as being very important things to us
+things to us having enemies that felt dangerous but
+having enemies that felt dangerous but gave the player opportunities to flow
+gave the player opportunities to flow was going to be the linchpin to our
+was going to be the linchpin to our combat the topics i'm going to discuss
+combat the topics i'm going to discuss today
+today are probably very familiar to many of
+are probably very familiar to many of you however as programmers
+you however as programmers we often want to create a system
+we often want to create a system verified that it's working as designed
+verified that it's working as designed and then move on and this is not how you
+and then move on and this is not how you make good games
+make good games i want to share with you some examples
+i want to share with you some examples of the iterations we went through to get
+of the iterations we went through to get our
+our combat fundamentals right we needed to
+combat fundamentals right we needed to manage attacks and mitigate cheap hits
+manage attacks and mitigate cheap hits or else the game was going to turn into
+or else the game was going to turn into this
+we have two combat managers that control when ranged and melee enemies are able
+when ranged and melee enemies are able to attack
+to attack and they occasionally coordinate with
+and they occasionally coordinate with each other but they mostly operate
+each other but they mostly operate independently
+independently you'll hear me say the word job a lot in
+you'll hear me say the word job a lot in this section in this case
+this section in this case the job is just a token that allows a
+the job is just a token that allows a bot to attack spider-man
+bot to attack spider-man our manager for melee started out simple
+our manager for melee started out simple we wanted there to be one attack job
+we wanted there to be one attack job unless the player had recently dodged
+unless the player had recently dodged and then we wanted to give him a quick
+and then we wanted to give him a quick break to fight back
+break to fight back we had a simple scheme getting which bot
+we had a simple scheme getting which bot received the attack job we calculated a
+received the attack job we calculated a priority that was the sum of the time
+priority that was the sum of the time the job
+the job that the bot had spent waiting for a job
+that the bot had spent waiting for a job plus how close that bot was to his ideal
+plus how close that bot was to his ideal attack range
+attack range plus a bonus value for high priority
+plus a bonus value for high priority mini boss style enemies
+mini boss style enemies here's what that system looks like in
+here's what that system looks like in action there's a blue line drawn from
+action there's a blue line drawn from the enemy who has the attack job to
+the enemy who has the attack job to spider-man
+spider-man in the top left corner you can see an
+in the top left corner you can see an idle timer
+idle timer when i dodge that timer becomes non-zero
+when i dodge that timer becomes non-zero this gives me a momentary chance to
+this gives me a momentary chance to attack
+attack this works alright but there are still a
+this works alright but there are still a number of issues the first
+number of issues the first is that i don't get attacked nearly as
+is that i don't get attacked nearly as aggressively as the timer
+aggressively as the timer says i should here's why
+says i should here's why the enemy that has been given the attack
+the enemy that has been given the attack job is too far away to quickly execute
+job is too far away to quickly execute it
+it now i do want to emphasize that players
+now i do want to emphasize that players weren't actually doing this
+weren't actually doing this but due to spider-man's agility this
+but due to spider-man's agility this kind of situation could arise naturally
+kind of situation could arise naturally as they bounce back and forth between
+as they bounce back and forth between enemies
+enemies we implemented two solutions the first
+we implemented two solutions the first was that if there was a bot that could
+was that if there was a bot that could immediately start an attack
+immediately start an attack and a bot who had been chasing their
+and a bot who had been chasing their target for too long
+target for too long we'd allow the job to be stolen by the
+we'd allow the job to be stolen by the bot who is ready to attack
+bot who is ready to attack the second thing we added was the
+the second thing we added was the ability for the manager to occasionally
+ability for the manager to occasionally create an attack job if the player stood
+create an attack job if the player stood too close to a bot for more than a split
+too close to a bot for more than a split second
+second here's what it looks like with those
+here's what it looks like with those features enabled you'll see that as i
+features enabled you'll see that as i run past enemies the blue line
+run past enemies the blue line shifts to me shifts to a nearby enemy
+shifts to me shifts to a nearby enemy and they quickly try to attack me
+and they quickly try to attack me the two concepts of job stealing and
+the two concepts of job stealing and proximity attacks were critical for
+proximity attacks were critical for addressing times when our combat would
+addressing times when our combat would suddenly feel dead
+suddenly feel dead then we noticed that things started to
+then we noticed that things started to feel too predictable in protracted
+feel too predictable in protracted encounters
+encounters so we added an intensity meter this
+so we added an intensity meter this meter fills as the enemies attack and is
+meter fills as the enemies attack and is spent by the manager to either
+spent by the manager to either simultaneously give out a few attack
+simultaneously give out a few attack jobs
+jobs or rapidly give them out in sequence
+or rapidly give them out in sequence here's what that looks like in action
+here's what that looks like in action you can see the current intensity value
+you can see the current intensity value here
+here and below that you can see how much we
+and below that you can see how much we need to accrue in order to perform the
+need to accrue in order to perform the next
+next special attack you can see up here
+special attack you can see up here uh what the next special attack type is
+uh what the next special attack type is and then you can see the jobs
+and then you can see the jobs as they are given out down here
+as they are given out down here so let's talk about ranged combat it
+so let's talk about ranged combat it also started out simple
+also started out simple there was going to be a cooldown window
+there was going to be a cooldown window where no shooters could receive attack
+where no shooters could receive attack jobs
+jobs followed by an attack window where
+followed by an attack window where shooters could receive attack jobs
+shooters could receive attack jobs during the attack window we had a
+during the attack window we had a maximum number of simultaneous attack
+maximum number of simultaneous attack jobs
+jobs and there was a delay that prevented the
+and there was a delay that prevented the manager from giving out jobs too rapidly
+manager from giving out jobs too rapidly here's what that looks like up at the
+here's what that looks like up at the top you can see the manager switch back
+top you can see the manager switch back and forth
+and forth between cool down and active and then
+between cool down and active and then you can see the status of the jobs here
+you can see the status of the jobs here for this case i've restricted the
+for this case i've restricted the manager from giving out more than one
+manager from giving out more than one job
+job this kept things from being completely
+this kept things from being completely crazy but there are still a lot of
+crazy but there are still a lot of places where things felt unfair
+places where things felt unfair and the biggest was being shot from off
+and the biggest was being shot from off screen
+screen so we started by saying we're going to
+so we started by saying we're going to prioritize giving jobs only to on-screen
+prioritize giving jobs only to on-screen bots as we can
+bots as we can you can see that in action here you'll
+you can see that in action here you'll notice that as
+notice that as enemies leave the edge of the screen
+enemies leave the edge of the screen that they stop being selected as
+that they stop being selected as attackers
+however there were still times when all valid shooters were off screen
+valid shooters were off screen so we made enemies take longer to fire
+so we made enemies take longer to fire when they are off screen
+when they are off screen this gives the player more time to
+this gives the player more time to notice the spider sense warning in this
+notice the spider sense warning in this video you can see
+video you can see that when enemies are off screen it
+that when enemies are off screen it lasts for 1.5 seconds
+lasts for 1.5 seconds when they are on screen the warning only
+when they are on screen the warning only lasts for 0.75 seconds
+by now things were starting to feel decent when fighting only shooter
+decent when fighting only shooter enemies
+enemies but things could still be overwhelming
+but things could still be overwhelming when enemy enemies
+when enemy enemies that used melee were present so
+that used melee were present so we allowed design to specify an entirely
+we allowed design to specify an entirely new set of values if melee enemies were
+new set of values if melee enemies were present
+present if you look here you can see that not
+if you look here you can see that not only is the active time slightly shorter
+only is the active time slightly shorter but the cooldown period is nearly
+but the cooldown period is nearly doubled
+this felt pretty good until the players started using air combat
+started using air combat then with the slower timing values it
+then with the slower timing values it felt like enemies became unresponsive
+felt like enemies became unresponsive for nearly five seconds at a time
+for nearly five seconds at a time we tried disabling the second set of
+we tried disabling the second set of values when the player was in the air
+values when the player was in the air but players then felt like they were
+but players then felt like they were being punished for using air combat
+being punished for using air combat which was not what we wanted
+which was not what we wanted so we added something that we called air
+so we added something that we called air aggression
+aggression here it is an action once the player
+here it is an action once the player performs enough actions in the air
+performs enough actions in the air you can see the air aggression chance
+you can see the air aggression chance change from 0 to 0.5
+change from 0 to 0.5 this means that for each additional
+this means that for each additional action the player performs while in the
+action the player performs while in the air
+air there is a 50 chance that the manager
+there is a 50 chance that the manager will immediately exit cooldown
+will immediately exit cooldown when that happens you'll see error
+when that happens you'll see error aggression active
+aggression active here
+even after all of this iteration players still felt that there were times when
+still felt that there were times when being attacked was
+being attacked was cheap so we made a list performing any
+cheap so we made a list performing any action from this list
+action from this list would cause the managers to cancel all
+would cause the managers to cancel all attack jobs that hadn't actually started
+attack jobs that hadn't actually started the attack
+the attack web throwing an environmental
+web throwing an environmental interactable web striking a new target
+interactable web striking a new target using an air launcher on a target
+using an air launcher on a target dodging an attack
+dodging an attack perfect dodging an attack using a
+perfect dodging an attack using a finisher
+finisher jumping off an enemy jumping landing
+jumping off an enemy jumping landing being hit and so in all of these cases
+being hit and so in all of these cases we cancel incoming attacks
+we cancel incoming attacks unless you abused the action repeatedly
+unless you abused the action repeatedly and then we'd allow the attack jobs to
+and then we'd allow the attack jobs to persist
+persist unless that action was a dodge in which
+unless that action was a dodge in which case we'd still cancel the jobs
+case we'd still cancel the jobs unless it was a boss fight and then the
+unless it was a boss fight and then the jobs wouldn't be cancelled
+and that still wasn't enough players still felt that there were times that
+still felt that there were times that enemies would knock spider-man
+enemies would knock spider-man out of an attack in a way that felt
+out of an attack in a way that felt cheap this is the specific case that was
+cheap this is the specific case that was causing a lot of frustration
+causing a lot of frustration players would properly identify an
+players would properly identify an attacking enemy and then they'd try to
+attacking enemy and then they'd try to attack that enemy to interrupt them
+attack that enemy to interrupt them but because of animation timing they'd
+but because of animation timing they'd get hit
+get hit we created a system we called beat to
+we created a system we called beat to the punch which guarantees that
+the punch which guarantees that spider-man will win these interactions
+spider-man will win these interactions when the red sphere is visible the
+when the red sphere is visible the system is active beat to the punch
+system is active beat to the punch activates as spider-man's attacks get
+activates as spider-man's attacks get close to the impact frame
+close to the impact frame while active we examine each incoming
+while active we examine each incoming attack and see if spider-man's attack
+attack and see if spider-man's attack would force a reaction
+would force a reaction if it would then spider-man is granted
+if it would then spider-man is granted immunity from that enemy's attack
+immunity from that enemy's attack until he's passed his own impact frame
+until he's passed his own impact frame you can see it in action here
+you can see it in action here and as you can see the system will
+and as you can see the system will ensure that in cases where spider-man
+ensure that in cases where spider-man and an enemy are attacking each other at
+and an enemy are attacking each other at the same time
+the same time spider-man beats the enemy to the punch
+spider-man beats the enemy to the punch this simple system was the last thing
+this simple system was the last thing that we needed to clear up the vast
+that we needed to clear up the vast majority of our remaining complaints
+majority of our remaining complaints about cheap hits
+so let's move on to every ai programmer's other favorite problem
+programmer's other favorite problem positioning we've made a lot of shooters
+positioning we've made a lot of shooters at insomniac and how our ai decided
+at insomniac and how our ai decided where they would move to was based on
+where they would move to was based on the needs of that genre
+the needs of that genre we annotated positions for bots to fight
+we annotated positions for bots to fight from using fire points and we marked
+from using fire points and we marked large pieces of occlusion by wrapping
+large pieces of occlusion by wrapping them in volumes
+them in volumes this allowed our ranged enemies to take
+this allowed our ranged enemies to take up positions in cover or at places that
+up positions in cover or at places that are interesting
+are interesting furthermore melee enemies in a shooter
+furthermore melee enemies in a shooter typically just try to get close to the
+typically just try to get close to the player and attack as often as possible
+player and attack as often as possible and managing the horde and the space is
+and managing the horde and the space is part of the gameplay
+part of the gameplay in spider-man we wanted the player to
+in spider-man we wanted the player to fight a large crowd of enemies
+fight a large crowd of enemies but we didn't want them to feel like
+but we didn't want them to feel like they were continuously being mobbed
+they were continuously being mobbed nor did we limit want to limit our
+nor did we limit want to limit our combat just to large arenas
+combat just to large arenas we also wanted the more interesting ai
+we also wanted the more interesting ai classes to be in position to attack more
+classes to be in position to attack more and we needed to do all of this while
+and we needed to do all of this while looking good
+looking good we started by using a fight circle like
+we started by using a fight circle like this we divide the area around the
+this we divide the area around the player into wedges and then we'd repeat
+player into wedges and then we'd repeat with more wedges
+with more wedges for additional rings as needed we do
+for additional rings as needed we do some nav tests to see
+some nav tests to see that each wedge is on nav and then we'd
+that each wedge is on nav and then we'd assign each enemy to the wedge
+assign each enemy to the wedge as closest to this didn't work
+as closest to this didn't work for two main reasons the first is easily
+for two main reasons the first is easily visible in this video
+visible in this video simply moving around the space could
+simply moving around the space could easily cause the wedges to become
+easily cause the wedges to become invalid
+invalid this led to enemies frequently
+this led to enemies frequently repositioning when it wasn't when there
+repositioning when it wasn't when there wasn't a clear reason to the player
+wasn't a clear reason to the player why they should do so the other reason
+why they should do so the other reason why this failed was because it tended to
+why this failed was because it tended to look very robotic and choreographed
+look very robotic and choreographed we tried adding in some random variation
+we tried adding in some random variation but we were never able to get it to feel
+but we were never able to get it to feel good
+good i'm going to quickly diagram our
+i'm going to quickly diagram our solution
+solution let's say we have an enemy standing here
+let's say we have an enemy standing here who's engaged with spider-man standing
+who's engaged with spider-man standing here
+here then suppose there are some enemies here
+then suppose there are some enemies here and let's pretend like each bot and
+and let's pretend like each bot and spider-man have kind of a little circle
+spider-man have kind of a little circle around them that is their personal space
+around them that is their personal space we call these bot reservations finally
+we call these bot reservations finally the edges of nav mesh are here
+the edges of nav mesh are here our goal is to find the best position
+our goal is to find the best position for our bot to stand that is outside of
+for our bot to stand that is outside of all this red
+all this red we did this with a simple algorithm for
+we did this with a simple algorithm for finding local minima
+finding local minima a gradient descent hill climber this
+a gradient descent hill climber this algorithm will iteratively follow the
+algorithm will iteratively follow the gradient of steepest descent in order to
+gradient of steepest descent in order to minimize an energy function
+minimize an energy function in our case energy will increase as we
+in our case energy will increase as we move towards
+move towards the center of the circle and as we move
+the center of the circle and as we move off of nav mesh it will be
+off of nav mesh it will be zero everywhere else another way to look
+zero everywhere else another way to look at this
+at this is that we will iteratively push points
+is that we will iteratively push points that lie
+that lie in one of the circles radially out of
+in one of the circles radially out of the circles like so
+the circles like so and those points that are off nav will
+and those points that are off nav will be pushed back towards nav
+be pushed back towards nav like so in our game each of our bots
+like so in our game each of our bots will actually feed
+will actually feed five positions through the hill climber
+five positions through the hill climber his current position
+his current position and then based on a line from the bot to
+and then based on a line from the bot to his target
+his target and an ideal distance we can compute a
+and an ideal distance we can compute a position in front
+position in front and a position behind the target then a
+and a position behind the target then a line segment perpendicular
+line segment perpendicular to the first segment is used to select a
+to the first segment is used to select a position to the left in a position to
+position to the left in a position to the right
+the right here's how the hill climber would modify
+here's how the hill climber would modify these positions
+these positions for the one at the bot's current
+for the one at the bot's current position it will do nothing but
+position it will do nothing but already outside of the circles and
+already outside of the circles and inside nav mesh
+inside nav mesh for the two lower points they each lie
+for the two lower points they each lie in a circle
+in a circle so we'll just push them radially out of
+so we'll just push them radially out of the circle
+the circle for the point on the far right we'll
+for the point on the far right we'll push it back towards nav mesh
+push it back towards nav mesh like so the last point lies between two
+like so the last point lies between two circles
+circles we'll try to simultaneously push it out
+we'll try to simultaneously push it out of both by adding these two vectors
+of both by adding these two vectors together to get this
+together to get this however because that won't work we'll
+however because that won't work we'll need to iterate a couple times
+need to iterate a couple times and get to our final position so at the
+and get to our final position so at the end we wind up with five potential
+end we wind up with five potential positions for an enemy to choose between
+positions for an enemy to choose between and here's what that looks like in game
+and here's what that looks like in game this video is showing the results of
+this video is showing the results of this enemy's hill climber
+this enemy's hill climber our bot reservations are shown in red
+our bot reservations are shown in red and the results of the hill climber are
+and the results of the hill climber are shown as trails of little blue spheres
+shown as trails of little blue spheres we cap the number of iterations the hill
+we cap the number of iterations the hill climber can perform at 30.
+climber can perform at 30. we did try using more complicated
+we did try using more complicated algorithms like sim
+algorithms like sim simulated annealing but we didn't find
+simulated annealing but we didn't find them to be of any qualitative benefit
+them to be of any qualitative benefit once we've generated those five
+once we've generated those five positions the hill climber
+positions the hill climber creates a score for each based on the
+creates a score for each based on the distance to our current position
+distance to our current position and the distance to our target we then
+and the distance to our target we then apply additional penalties if that point
+apply additional penalties if that point is
+is too close to the target too far from the
+too close to the target too far from the target or if moving there from our
+target or if moving there from our current position would likely cause us
+current position would likely cause us to cross too close to our target
+to cross too close to our target we then pick the position with the
+we then pick the position with the smallest score
+smallest score this worked pretty well for small to
+this worked pretty well for small to medium-sized encounters however in large
+medium-sized encounters however in large encounters we noticed that standard
+encounters we noticed that standard melee enemies
+melee enemies could prevent the more interesting
+could prevent the more interesting classes from being able to get close
+classes from being able to get close to the player this was particularly
+to the player this was particularly evident if those classes appeared in a
+evident if those classes appeared in a backup wave
+backup wave so we partially resurrected the concept
+so we partially resurrected the concept of a fight circle however this time
+of a fight circle however this time instead of giving out positions we
+instead of giving out positions we handed out distances
+handed out distances these distances are used to compute the
+these distances are used to compute the initial positions that were fed into the
+initial positions that were fed into the hill climber
+hill climber this lets us buy us those more important
+this lets us buy us those more important enemies without blowing up the algorithm
+enemies without blowing up the algorithm in our game there's just two rings an
+in our game there's just two rings an inner high priority ring in which about
+inner high priority ring in which about six guys can stand
+six guys can stand and an outer low priority ring where
+and an outer low priority ring where everyone else gets assigned
+everyone else gets assigned in frantic pro in frantic combat though
+in frantic pro in frantic combat though we still had issues with enemies
+we still had issues with enemies repositioning when it felt unnatural
+repositioning when it felt unnatural so we added a final check at the
+so we added a final check at the behavior level first
+behavior level first we checked that we aren't already too
+we checked that we aren't already too close to our new position
+close to our new position if that check succeeded we'd compute the
+if that check succeeded we'd compute the distance to our ideal attack
+distance to our ideal attack position then compute the distance
+position then compute the distance between the new position and the attack
+between the new position and the attack position
+position subtracting these values tells us how
+subtracting these values tells us how much repositioning will incur
+much repositioning will incur will improve our current situation
+will improve our current situation based on if we would be moving forward
+based on if we would be moving forward or backwards we compare that value with
+or backwards we compare that value with different thresholds to determine if we
+different thresholds to determine if we should move
+should move those threshold values change over time
+those threshold values change over time so that a character who has been
+so that a character who has been stationary for a long time
+stationary for a long time is more likely to move
+is more likely to move we also have a similar scheme for
+we also have a similar scheme for deciding if an ai should update their
+deciding if an ai should update their weight position
+weight position while in motion we compute the distance
+while in motion we compute the distance to our current position
+to our current position we compute the distance to our new
+we compute the distance to our new position we then compute the distance
+position we then compute the distance from our current
+from our current to our new and all of these must be
+to our new and all of these must be larger than a threshold value
+larger than a threshold value in order for us to update the
+in order for us to update the destination
+let's move on to a few uses of procedural animation in marvel's
+procedural animation in marvel's spider-man
+spider-man we wanted mar we wanted spider-man to be
+we wanted mar we wanted spider-man to be able to use his webs to stick guys to
+able to use his webs to stick guys to surfaces
+surfaces unfortunately we have a lot of uneven
+unfortunately we have a lot of uneven and weird surfaces
+and weird surfaces and the ai may be in an unexpected pose
+and the ai may be in an unexpected pose because of ragdoll
+because of ragdoll we couldn't just naively spawn a model
+we couldn't just naively spawn a model or a decal
+or a decal everything starts with the game
+everything starts with the game generating an
+generating an ideal world space orientation and then
+ideal world space orientation and then passing that into something we call a
+passing that into something we call a web blanket
+web blanket the blanket itself is a model of a web
+the blanket itself is a model of a web with a 6x6
+with a 6x6 lattice of joints you can see it here
+lattice of joints you can see it here fully extended and locked in place
+fully extended and locked in place when spawned the the blanket will
+when spawned the the blanket will project rays from a position above the
+project rays from a position above the initial position
+through the position of each joint on the model if
+the model if the model was naively placed at the
+the model was naively placed at the initial position
+initial position where that ray hits is where the joint
+where that ray hits is where the joint will be attached in this video the
+will be attached in this video the raycasts are shown in orange
+raycasts are shown in orange if you look closely you can see that the
+if you look closely you can see that the blanket is compact when it's first
+blanket is compact when it's first spawned
+spawned and then each of the joints interpol
+and then each of the joints interpol into the position found by its
+into the position found by its corresponding ray cast
+if a raycast doesn't hit anything we rotate that ray towards the blanket's
+rotate that ray towards the blanket's initial point
+initial point this will usually cause the blanket to
+this will usually cause the blanket to wrap around whatever it is attaching to
+wrap around whatever it is attaching to additionally joints are allowed to
+additionally joints are allowed to rescan for a period of time before they
+rescan for a period of time before they lock in place
+lock in place this allows the blanket to adapt to a
+this allows the blanket to adapt to a settling ragdoll or animating character
+settling ragdoll or animating character without bunching up on itself
+we have another case where we allow joints to rescan and that is if the
+joints to rescan and that is if the thing they are attached to
+thing they are attached to moves too far from the blanket's initial
+moves too far from the blanket's initial position this prevents the blanket from
+position this prevents the blanket from being
+being stretched across the entire level as the
+stretched across the entire level as the door is torn off here
+we'd plan to have several enemies able to use whip style weapons versus
+to use whip style weapons versus spider-man
+spider-man unfortunately we found that a regular
+unfortunately we found that a regular cloth sim didn't give us the results we
+cloth sim didn't give us the results we wanted
+wanted we also couldn't just animate the whips
+we also couldn't just animate the whips because we needed to be able to reuse
+because we needed to be able to reuse animations from other classes
+animations from other classes this was especially important for
+this was especially important for locomotion and hit react animations
+locomotion and hit react animations because they're so numerous
+because they're so numerous we needed a procedural solution that
+we needed a procedural solution that could be fully animation controlled when
+could be fully animation controlled when necessary
+necessary the whips are part of the base model and
+the whips are part of the base model and they look like this
+they look like this in any animation in which they haven't
+in any animation in which they haven't actually been animated
+actually been animated when the sim is fully engaged things
+when the sim is fully engaged things look like this
+look like this for each joint in the chain we will
+for each joint in the chain we will track its position from frame to frame
+track its position from frame to frame and then we'll naively apply the host
+and then we'll naively apply the host motion to each of those joints
+motion to each of those joints then we begin to apply constraints
+then we begin to apply constraints apply a distance constraint to correct
+apply a distance constraint to correct for this
+for this the constraint uses a zero to one
+the constraint uses a zero to one stiffness parameter
+stiffness parameter and is performed in two passes forwards
+and is performed in two passes forwards down the chain and then backwards up it
+down the chain and then backwards up it we perform
+we perform half of the error correction on each
+half of the error correction on each pass
+pass without a curvature constraint the chain
+without a curvature constraint the chain falls through tombstone's hand
+falls through tombstone's hand even though the chain's root is oriented
+even though the chain's root is oriented horizontally
+horizontally the first pass keeps each child joint
+the first pass keeps each child joint aligned with its parent
+aligned with its parent the second curvature pass constrains
+the second curvature pass constrains each joint to both its parent
+each joint to both its parent and its child this prevents kinks in the
+and its child this prevents kinks in the chain
+chain the curvature pass was extremely
+the curvature pass was extremely important for making sure that the
+important for making sure that the simmed joints
+simmed joints blended smoothly out of the animated
+blended smoothly out of the animated ones
+ones here you can see tombstone walking
+here you can see tombstone walking normally
+we apply a gravity constraint to keep the chain from floating
+the chain from floating and we apply a ground constraint to keep
+and we apply a ground constraint to keep it from sinking through the floor like
+it from sinking through the floor like it is here
+it is here this character or this constraint uses
+this character or this constraint uses the normal of the ground that the
+the normal of the ground that the character is standing on which we assume
+character is standing on which we assume just defines a flat plane
+just defines a flat plane the final constraint ensures that each
+the final constraint ensures that each of the joints is outside of the
+of the joints is outside of the character's move capsule
+character's move capsule without it you can see the wet you can
+without it you can see the wet you can see the whip clipping through his legs
+see the whip clipping through his legs but with it you can see that the chain
+but with it you can see that the chain will move around his body
+the actual order that we apply constraints is gravity
+constraints is gravity then curvature then move pill then
+then curvature then move pill then distance
+distance then ground then we iterate over all of
+then ground then we iterate over all of those
+those up to eight times but depending on how
+up to eight times but depending on how close the character is to the camera
+close the character is to the camera for controlling if the chain is driven
+for controlling if the chain is driven by animation or the sim
+by animation or the sim we start by assuming that it is always
+we start by assuming that it is always simulated then we place events on
+simulated then we place events on animation clips when the chain is
+animation clips when the chain is supposed to transition from being
+supposed to transition from being animate or transition to being animated
+animate or transition to being animated and then again when it transitions back
+and then again when it transitions back to being simmed
+to being simmed these events just contain a blend speed
+these events just contain a blend speed that speed is used to change a zero to
+that speed is used to change a zero to one value that represents what percent
+one value that represents what percent of the chain is simmed
+of the chain is simmed no joint is ever driven by both sim and
+no joint is ever driven by both sim and animation
+animation we had planned to give a lot more
+we had planned to give a lot more control to animation but we found that
+control to animation but we found that we got very good results with just this
+we got very good results with just this and that more wasn't necessary one of
+and that more wasn't necessary one of our main goals for this enemy class was
+our main goals for this enemy class was to either hold spider-man in place
+to either hold spider-man in place or pull him out of the air therefore we
+or pull him out of the air therefore we needed to be able to blend
+needed to be able to blend the whip during his attack animations to
+the whip during his attack animations to arbitrary
+arbitrary world space positions and have them look
+world space positions and have them look good
+good for each joint in the whip we compute
+for each joint in the whip we compute where it would be if the enemy was
+where it would be if the enemy was perfectly aligned with their target
+perfectly aligned with their target the difference between these two
+the difference between these two positions is the error
+positions is the error we then apply a portion of that error to
+we then apply a portion of that error to take the animated joint
+take the animated joint to its procedurally aligned position the
+to its procedurally aligned position the portion of that error we apply increases
+portion of that error we apply increases linearly
+linearly as we move down the chain
+as we move down the chain and here's what that looks like in
+and here's what that looks like in action
+this procedural alignment is controlled with four events we start blending on
+with four events we start blending on finish blending on we start blending off
+finish blending on we start blending off and we finish blending off
+for the last section i'd like to briefly talk about some of the things that gave
+talk about some of the things that gave us a lot of trouble
+us a lot of trouble we didn't have a lot of time to spend on
+we didn't have a lot of time to spend on developing tech for flying enemies and
+developing tech for flying enemies and this really hurt us when it came time to
+this really hurt us when it came time to develop disabled jetpack troopers and
+develop disabled jetpack troopers and our two flying bosses electro and
+our two flying bosses electro and vulture
+vulture we wound up having the jetpack troopers
+we wound up having the jetpack troopers just hover over nav
+just hover over nav we then gave them the ability to go off
+we then gave them the ability to go off nav if they could see their destination
+nav if they could see their destination while off nav they kept a list of points
+while off nav they kept a list of points that would allow them to breadcrumb
+that would allow them to breadcrumb their way
+their way back however even with both of these
+back however even with both of these there are still times when you can see
+there are still times when you can see them steering around stuff
+them steering around stuff at ground level and here's an example of
+at ground level and here's an example of how that happened
+how that happened this jetpacker wants to go to spider-man
+this jetpacker wants to go to spider-man the red capsule indicates the physics
+the red capsule indicates the physics query he performed to see if he could
+query he performed to see if he could fly directly to him
+fly directly to him however because it clips the wall he's
+however because it clips the wall he's going to have to follow
+going to have to follow this path this blue path along the
+this path this blue path along the ground until he
+ground until he around the fence until he can actually
+around the fence until he can actually see spider-man
+oops our flying boss for our flying boss enemies electro and
+for our flying boss enemies electro and vulture
+vulture they used a collection of volumes that
+they used a collection of volumes that were linked by splines
+were linked by splines inside the volumes the characters could
+inside the volumes the characters could move freely
+move freely and they could use the splines to
+and they could use the splines to transfer between the volumes
+transfer between the volumes however all of these had to be hand
+however all of these had to be hand authored so it was not a usable solution
+authored so it was not a usable solution for the whole game
+for the whole game both of these solutions got our game
+both of these solutions got our game shipped but i hope you can see why
+shipped but i hope you can see why they're far from ideal
+we had one mission that had a lot of combat on top of a moving truck
+combat on top of a moving truck and it was a never-ending source of pain
+and it was a never-ending source of pain our nav mesh currently can't move and so
+our nav mesh currently can't move and so we had to make the space as simple as
+we had to make the space as simple as possible so that bosch could reliably
+possible so that bosch could reliably straight-line to spider-man
+straight-line to spider-man additionally many space many states and
+additionally many space many states and components
+components do their did their calculations in world
+do their did their calculations in world space and this would cause bugs when
+space and this would cause bugs when positions wouldn't line up from frame to
+positions wouldn't line up from frame to frame
+frame furthermore our engine doesn't support
+furthermore our engine doesn't support attachment as well as something like
+attachment as well as something like unity or unreal and so we had to use
+unity or unreal and so we had to use specific components to manually update
+specific components to manually update all of the attached entities
+the final problem we had was that was with enemies or the player that got
+with enemies or the player that got thrown off the truck being shoved
+thrown off the truck being shoved through geometry
+through geometry by the truck if they were standing next
+by the truck if they were standing next to it we
+to it we solved this by placing kill volumes
+solved this by placing kill volumes along the side of the truck as it moves
+along the side of the truck as it moves navmesh was another challenge that we
+navmesh was another challenge that we underestimated we did get some new
+underestimated we did get some new features for this project
+features for this project such as the ability to perform dynamic
+such as the ability to perform dynamic cutouts from nav
+cutouts from nav and this was instrumental in getting
+and this was instrumental in getting parked cards and many crimes functional
+parked cards and many crimes functional however there was a creative push to
+however there was a creative push to change spider to change manhattan with
+change spider to change manhattan with the story
+the story as things got worse for spider-man we
+as things got worse for spider-man we wanted to reflect that in the world
+wanted to reflect that in the world sable international would set up
+sable international would set up checkpoints prisoners
+checkpoints prisoners escaped prisoners would erect bases
+escaped prisoners would erect bases across the island and garbage and debris
+across the island and garbage and debris would begin to pile up as things went
+would begin to pile up as things went from bad to worse
+from bad to worse our nav mess is built and loaded on a
+our nav mess is built and loaded on a per-tile basis
+per-tile basis we did not have the time to rework this
+we did not have the time to rework this because we would have needed the ability
+because we would have needed the ability to load different meshes based on
+to load different meshes based on various game
+various game state and we'd need the ability to
+state and we'd need the ability to express all of that state at build time
+express all of that state at build time we evaluated generating nav mesh at
+we evaluated generating nav mesh at runtime but we found the cpu performance
+runtime but we found the cpu performance to be a non-starter
+to be a non-starter our solution was to generate nav in its
+our solution was to generate nav in its most complicated state and then try and
+most complicated state and then try and just disable parts of it from script
+just disable parts of it from script here's an example space this is what it
+here's an example space this is what it looks like during act 1 when things are
+looks like during act 1 when things are normal
+normal you can see patches of nav mess floating
+you can see patches of nav mess floating in the air
+in the air and the yellow patches you can see are
+and the yellow patches you can see are places where the designer is going to
+places where the designer is going to try and toggle the mesh on and off from
+try and toggle the mesh on and off from script
+script you'll also be able to see holes cut in
+you'll also be able to see holes cut in the mesh by objects that will be present
+the mesh by objects that will be present in act 3
+in act 3 but are not currently present now
+and here's what it looks like in act 3 once the base is actually active
+once the base is actually active while this scheme worked well enough for
+while this scheme worked well enough for us to make the base it was oftentimes
+us to make the base it was oftentimes buggy enough that we had to remove
+buggy enough that we had to remove crimes or other open world activities
+crimes or other open world activities from happening in a space like this
+from happening in a space like this during act one and two
+i'm sure it's a big surprise to most of you but we actually had performance
+you but we actually had performance problems running all of our complex ai
+problems running all of our complex ai in an open world we ultimately had a
+in an open world we ultimately had a limit of around 30 enemies active and
+limit of around 30 enemies active and engaged
+engaged once you factored in spider-man traffic
+once you factored in spider-man traffic and all the pedestrians
+and all the pedestrians we typically saw two large reasons for
+we typically saw two large reasons for this
+this the first is physics here's a typical
+the first is physics here's a typical frame where things have gotten bad
+frame where things have gotten bad and i'm gonna highlight the parts of the
+and i'm gonna highlight the parts of the frame where physics creeps up as the bot
+frame where physics creeps up as the bot count rises
+count rises here it is on the main thread and then
+here it is on the main thread and then here it is on two of our four
+here it is on two of our four worker threads it's many many
+worker threads it's many many milliseconds spread out over all the
+milliseconds spread out over all the cores and while it isn't all directly
+cores and while it isn't all directly resulting from bots it does grow
+resulting from bots it does grow proportionally
+proportionally as the bot count rises the other thing
+as the bot count rises the other thing is that a lot of our core ai logic still
+is that a lot of our core ai logic still runs on the main thread
+runs on the main thread here's a capture of our main thread
+here's a capture of our main thread during a normal frame
+during a normal frame the highlighted sections are bot
+the highlighted sections are bot specific logic and they're consuming
+specific logic and they're consuming well over four milliseconds of time
+well over four milliseconds of time there's even more time when you consider
+there's even more time when you consider that neither the character move system
+that neither the character move system nor the animation system are included
+nor the animation system are included here
+alright i hope that you've learned a few things today and i'd like to leave you
+things today and i'd like to leave you with a few high-level thoughts
+with a few high-level thoughts the first is that iteration is king i
+the first is that iteration is king i hope it's obvious but it took quite a
+hope it's obvious but it took quite a few tries to get the things that you've
+few tries to get the things that you've seen in this presentation to where they
+seen in this presentation to where they are now
+are now we almost never got things right on the
+we almost never got things right on the first try and that was okay
+first try and that was okay because we kept pushing with marvel
+because we kept pushing with marvel spider-man we had to pivot
+spider-man we had to pivot from making shooters to making character
+from making shooters to making character action games when your problem
+action games when your problem fundamentally changes like that you need
+fundamentally changes like that you need a fundamental change in your solutions
+a fundamental change in your solutions i know it sounds obvious when i say it
+i know it sounds obvious when i say it like that but it's actually harder than
+like that but it's actually harder than it sounds
+it sounds in just this talk we've seen how this
+in just this talk we've seen how this affected behavior authoring
+affected behavior authoring positioning and combat management and
+positioning and combat management and there were many many others
+there were many many others finally focus on your game's core i
+finally focus on your game's core i believe that marvel's spider-man was a
+believe that marvel's spider-man was a success
+success because everybody mentions how the game
+because everybody mentions how the game makes you feel like spider-man
+makes you feel like spider-man and this wasn't an accident this
+and this wasn't an accident this happened because we took the time to get
+happened because we took the time to get our fundamentals right
+our fundamentals right be these player controls attack pacing
+be these player controls attack pacing enemy hit reacts
+enemy hit reacts or just the feel of using your web
+or just the feel of using your web shooters you'll get the best game
+shooters you'll get the best game when you focus on your core first
+when you focus on your core first real quick i'd like to thank a few
+real quick i'd like to thank a few people that helped me put this
+people that helped me put this presentation together
+presentation together alicia light ecker andrew richter brad
+alicia light ecker andrew richter brad fitzgerald
+fitzgerald david kim elon ruskin seth englund
+david kim elon ruskin seth englund sean mccabe as well as a very big thank
+sean mccabe as well as a very big thank you to everyone at insomniac games
+you to everyone at insomniac games marvel and sony i'd like to
+marvel and sony i'd like to remind you all to please fill out your
+remind you all to please fill out your speaker evaluations
+speaker evaluations and thank you for listening and if there
+and thank you for listening and if there are any questions i think we've got
+are any questions i think we've got two mics set up here
+hi this game was ridiculously awesome so uh
+uh thank you very much and uh so one thing
+thank you very much and uh so one thing i'm struggling with a lot in my game
+i'm struggling with a lot in my game um and uh i'm one of the people who like
+um and uh i'm one of the people who like to torture myself and played it on hard
+to torture myself and played it on hard mode the first time
+mode the first time so uh so what sort of parameters do you
+so uh so what sort of parameters do you have to change the difficulty level
+have to change the difficulty level in like hard and normal mode um
+in like hard and normal mode um so if you remember i pointed we had the
+so if you remember i pointed we had the whole section on timings that all of
+whole section on timings that all of those timings can be changed per
+those timings can be changed per difficulty
+difficulty level per faction and per act of the
+level per faction and per act of the story so
+story so the the rate at which enemies attack the
+the the rate at which enemies attack the amount of time that the game gives you
+amount of time that the game gives you in between
+in between successful dodges all of that changes
+successful dodges all of that changes additionally
+additionally we would usually go through on a per
+we would usually go through on a per enemy to enemy
+enemy to enemy basis and identify one or two parameters
+basis and identify one or two parameters that we could tune
+that we could tune to to make things much more difficult an
+to to make things much more difficult an example of this would be uh
+example of this would be uh ranged enemies tend to fire in like a
+ranged enemies tend to fire in like a five to seven round
+five to seven round burst and on easy they will deliberately
+burst and on easy they will deliberately miss with like the first
+miss with like the first six of those and then on hard they'll
+six of those and then on hard they'll only deliberately miss with the first
+only deliberately miss with the first two or three so it kind of
+two or three so it kind of further requires the player to react a
+further requires the player to react a little bit faster
+little bit faster yeah cool thanks you're welcome oh
+yeah cool thanks you're welcome oh hi great presentation thank you um so
+hi great presentation thank you um so um during when you're playing game
+um during when you're playing game there are different factions that come
+there are different factions that come across each other so how is the ai setup
+across each other so how is the ai setup for that
+for that and how do different factions react when
+and how do different factions react when spider-man jumps into play
+so we have a kind of aggro based targeting
+we have a kind of aggro based targeting solution for how
+solution for how enemies choose which targets to attack
+enemies choose which targets to attack like usually in a multi-faction fight
+like usually in a multi-faction fight one set of enemies
+one set of enemies is aware of the other set of enemies as
+is aware of the other set of enemies as potential targets and spider-man and
+potential targets and spider-man and then there are rules based on
+then there are rules based on how close spider-man is to the target
+how close spider-man is to the target versus how close other targets are that
+versus how close other targets are that cause
+cause what we call a proximity aggro amount to
+what we call a proximity aggro amount to increase
+increase and then every time those enemies take
+and then every time those enemies take damage from another target that also
+damage from another target that also adds additional aggro on top of
+adds additional aggro on top of on top of that and whoever has the
+on top of that and whoever has the highest aggro is a bots target
+highest aggro is a bots target thanks you're welcome um
+thanks you're welcome um hi hello uh so what exactly was the
+hi hello uh so what exactly was the moment when
+moment when uh you guys realized that the system you
+uh you guys realized that the system you had for sunset overdrive and ratcheting
+had for sunset overdrive and ratcheting flank and such
+flank and such wasn't going to work
+wasn't going to work um it was probably about a year and a
+um it was probably about a year and a half
+half into production as we were finishing
+into production as we were finishing pre-production and looked at
+pre-production and looked at how many enemy classes we had made and
+how many enemy classes we had made and how many enemy classes we still need
+how many enemy classes we still need needed to make and we're like well we've
+needed to make and we're like well we've made about four
+made about four we've got somewhere in the realm of 60
+we've got somewhere in the realm of 60 to go
+to go we need we need to pick up the pace
+we need we need to pick up the pace thank you you're welcome hi
+thank you you're welcome hi um similar to her question uh how do you
+um similar to her question uh how do you know when you need to design a more
+know when you need to design a more complex system or what
+complex system or what uh you're talking a lot about the model
+uh you're talking a lot about the model and data architecture that you guys had
+and data architecture that you guys had created and how do you know that you
+created and how do you know that you needed to iterate from the previous one
+needed to iterate from the previous one and get to there and then how do you
+and get to there and then how do you know when you got there that that would
+know when you got there that that would be good enough
+be good enough to not need to iterate further to your
+to not need to iterate further to your uh even potentially better architecture
+uh even potentially better architecture um honestly trial and error
+um honestly trial and error it kind of happened because we would be
+it kind of happened because we would be getting feedback from our design
+getting feedback from our design team about hey we want to be able to x y
+team about hey we want to be able to x y and z
+and z um and they would constantly come back
+um and they would constantly come back to us wanting to be
+to us wanting to be wanting to say things like hey can you
+wanting to say things like hey can you move this attack from this character to
+move this attack from this character to this other character
+this other character or can we have them play this animation
+or can we have them play this animation instead or can they
+instead or can they can they select between all of these
+can they select between all of these things and just looking at
+things and just looking at okay the kind of requests that we're
+okay the kind of requests that we're getting are this
+getting are this therefore we should figure out a way to
+therefore we should figure out a way to do
+do all of that in data so it's as quick as
+all of that in data so it's as quick as possible to do the iteration that
+possible to do the iteration that they're asking us to do
+they're asking us to do and when we kind of got to the point
+and when we kind of got to the point that okay we're actually able to handle
+that okay we're actually able to handle 75 80 percent of the stuff that um
+75 80 percent of the stuff that um design is asking us for that's around
+design is asking us for that's around where we stopped
+where we stopped thank you how are we on time
+uh hi uh really awesome talk thank you thank you uh
+thank you uh i'm wondering what would you say is the
+i'm wondering what would you say is the the difference between
+the difference between like those uh systemic uh enemies in the
+like those uh systemic uh enemies in the world
+world and between them and the boss fights
+and between them and the boss fights that you guys
+that you guys made it's like are the boss fights are
+made it's like are the boss fights are mainly
+mainly like heavily scripted authored or um
+like heavily scripted authored or um the boss fights still use the uh kind of
+the boss fights still use the uh kind of combo
+combo systems that we have they
+systems that we have they they typically have so we had we had 39
+they typically have so we had we had 39 combo moves
+combo moves and probably about half of those are for
+and probably about half of those are for regular combat and the other half
+regular combat and the other half are boss specific attacks um and bosses
+are boss specific attacks um and bosses usually had their own
+usually had their own engaged behaviors so we talked about
+engaged behaviors so we talked about behavior melee
+behavior melee which is what the normal enemies use
+which is what the normal enemies use most of the bosses would have their own
+most of the bosses would have their own uh engaged behavior like rhino had his
+uh engaged behavior like rhino had his own and scorpion had his own what's
+own and scorpion had his own what's kind of described how they would move
+kind of described how they would move about the environment but then wherever
+about the environment but then wherever they
+they whenever they got into position to use
+whenever they got into position to use an attack
+an attack they would reuse the kind of combo stuff
+they would reuse the kind of combo stuff that was driven by a designer to say
+that was driven by a designer to say you know do a charge or throw something
+you know do a charge or throw something or jump to another position
+or jump to another position thank you you're welcome
+thank you you're welcome how do you divide the work between your
+how do you divide the work between your designers and your programmers
+designers and your programmers do the designers work in behavior trees
+do the designers work in behavior trees or in the
+or in the finite state machines or just in data
+finite state machines or just in data they just work with data they don't
+they just work with data they don't our designers don't work with behavior
+our designers don't work with behavior trees or finite state machines

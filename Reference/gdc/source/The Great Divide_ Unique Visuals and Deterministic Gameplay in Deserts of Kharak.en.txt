@@ -1,0 +1,1628 @@
+[Music] today I'm gonna be talking about a bunch
+today I'm gonna be talking about a bunch of work we did a blackbirds I'm the CTO
+of work we did a blackbirds I'm the CTO for Blackbird interactive and was one of
+for Blackbird interactive and was one of the lead programmers on deserts of
+the lead programmers on deserts of Kharak
+Kharak I'm covering quite a bit of ground which
+I'm covering quite a bit of ground which gave me some grief picking a title
+gave me some grief picking a title because there's sort of like four little
+because there's sort of like four little presentations in one so I wasn't exactly
+presentations in one so I wasn't exactly sure what to call it I don't know if the
+sure what to call it I don't know if the thin attendance is because I picked a
+thin attendance is because I picked a weird confusing abstract title I thought
+weird confusing abstract title I thought about calling it how to make a
+about calling it how to make a multiplayer RTS game using unity and
+multiplayer RTS game using unity and c-sharp but then RTS is so Denisha I was
+c-sharp but then RTS is so Denisha I was worried that would turn people away too
+worried that would turn people away too so I didn't do that either how many
+so I didn't do that either how many people know what actually S stands for
+people know what actually S stands for show hands how many people have played
+show hands how many people have played RTS games on the PC in the past year
+RTS games on the PC in the past year have you played our game yeah thank you
+have you played our game yeah thank you okay so we're gonna talk a little bit
+okay so we're gonna talk a little bit about how we did what we did but for the
+about how we did what we did but for the people that may not have seen the game
+people that may not have seen the game I'm gonna show a short video just to
+I'm gonna show a short video just to give a sense of what this is all about
+[Music] [Applause]
+[Music] so that's a quick taste of deserts of
+so that's a quick taste of deserts of Kharak I think 80% of that video was
+Kharak I think 80% of that video was shot in engine so it's all unity there's
+shot in engine so it's all unity there's some hand animated cutscenes but most of
+some hand animated cutscenes but most of that's happening in real-time using
+that's happening in real-time using unity as our rendering engine my agenda
+unity as our rendering engine my agenda is kind of a here's a breakdown of the
+is kind of a here's a breakdown of the title that leads us into the agenda I'm
+title that leads us into the agenda I'm going to talk about what I mean by the
+going to talk about what I mean by the Great Divide and how we separated our
+Great Divide and how we separated our simulation layer from our presentation
+simulation layer from our presentation layer I'm gonna get into kind of some of
+layer I'm gonna get into kind of some of how we achieve the unique visual look of
+how we achieve the unique visual look of the game it's quite painterly we put a
+the game it's quite painterly we put a lot of work into the train system which
+lot of work into the train system which is what I'll talk about more and also
+is what I'll talk about more and also aesthetic physics how we decorated the
+aesthetic physics how we decorated the presentation layer with unity physics
+presentation layer with unity physics without letting them interfere with the
+without letting them interfere with the simulation I'll talk a bit about
+simulation I'll talk a bit about deterministic gameplay why that's
+deterministic gameplay why that's important why we'd want to do that how
+important why we'd want to do that how we architected it and how we got rid of
+we architected it and how we got rid of floating-point numbers and then at the
+floating-point numbers and then at the end I'm gonna dig a little bit into some
+end I'm gonna dig a little bit into some c-sharp code and talk about how we got
+c-sharp code and talk about how we got performance out of the system this is
+performance out of the system this is the programming track but I've got lots
+the programming track but I've got lots of pictures so hopefully it won't be
+of pictures so hopefully it won't be super boring for everyone who's not a
+super boring for everyone who's not a programmer I'll do my best
+programmer I'll do my best let's see so the great divide what do I
+let's see so the great divide what do I mean by that
+mean by that it's how we separated the game
+it's how we separated the game simulation from the visual presentation
+simulation from the visual presentation so you can sort of think of it as
+so you can sort of think of it as gameplay versus graphics what's the core
+gameplay versus graphics what's the core heart of the game and how it plays
+heart of the game and how it plays versus how do we make it look pretty
+versus how do we make it look pretty with pixels on screen so core game logic
+with pixels on screen so core game logic and systems which were in kind of pure
+and systems which were in kind of pure c-sharp code and then a rich
+c-sharp code and then a rich audio-visual presentation layer that we
+audio-visual presentation layer that we used unity for so kind of in an abstract
+used unity for so kind of in an abstract sense it looks a bit like this it's very
+sense it looks a bit like this it's very much like the the MVC pattern in the
+much like the the MVC pattern in the large for us we instead of calling it
+large for us we instead of calling it the model and our business layer we call
+the model and our business layer we call it the simulation in our gameplay layer
+it the simulation in our gameplay layer instead of calling it the view it's the
+instead of calling it the view it's the presentation layer it's where user
+presentation layer it's where user inputs get pulled in it's where pixels
+inputs get pulled in it's where pixels go to the screen it's where sound comes
+go to the screen it's where sound comes out of the speakers and then we connect
+out of the speakers and then we connect the two with a little controller layer
+the two with a little controller layer the controller takes user input turns it
+the controller takes user input turns it into commands that drive the simulation
+into commands that drive the simulation the simulation updates its internal
+the simulation updates its internal state and then pushes that state and
+state and then pushes that state and event triggers back to the presentation
+event triggers back to the presentation layer to be visualized
+layer to be visualized the simulation is pure c-sharp code with
+the simulation is pure c-sharp code with very few external dependencies and then
+very few external dependencies and then the presentation is where all the the
+the presentation is where all the the Unity magic happens so that that theme
+Unity magic happens so that that theme of separating those two is gonna play
+of separating those two is gonna play out throughout every aspect of the
+out throughout every aspect of the presentation and I'll keep coming back
+presentation and I'll keep coming back to that so it's just a little bit of
+to that so it's just a little bit of background we'll get deeper into it
+background we'll get deeper into it later so the train system I'm gonna talk
+later so the train system I'm gonna talk a little bit about the different layers
+a little bit about the different layers of our terrain and how we built up our
+of our terrain and how we built up our Maps and worlds I'm gonna do a little
+Maps and worlds I'm gonna do a little bit deeper dive on our differe deckle
+bit deeper dive on our differe deckle system which was how the artists kind of
+system which was how the artists kind of painted over everything and made it look
+painted over everything and made it look nice talked a little bit about how we
+nice talked a little bit about how we authored those decals and then a little
+authored those decals and then a little bit about what terrain meant or didn't
+bit about what terrain meant or didn't mean in the simulation layer there's a
+mean in the simulation layer there's a lot of sand ahead it's a desert planet
+lot of sand ahead it's a desert planet there's sand everywhere we didn't have
+there's sand everywhere we didn't have to deal with trees or water or all that
+to deal with trees or water or all that other yucky crap it did simplify certain
+other yucky crap it did simplify certain things but we also put a lot of work
+things but we also put a lot of work into making the sand look really good
+into making the sand look really good but this particular brown area of the
+but this particular brown area of the palette is going to be in view a lot
+palette is going to be in view a lot over the next few slides here's a bird's
+over the next few slides here's a bird's eye view of one of our maps the outer
+eye view of one of our maps the outer layer there's a big flat ground plane
+layer there's a big flat ground plane it's sort of like a horizontal skybox
+it's sort of like a horizontal skybox basically if if the camera accidentally
+basically if if the camera accidentally looks off into the distance let's make
+looks off into the distance let's make sure it's still brown is basically what
+sure it's still brown is basically what that bits doing there's a progressive
+that bits doing there's a progressive detail skirting area surrounding the
+detail skirting area surrounding the game play region this area it's artists
+game play region this area it's artists are sculpting it in Mudbox we also use
+are sculpting it in Mudbox we also use world machine for an erosion pass to
+world machine for an erosion pass to give it more realism and then we pass
+give it more realism and then we pass this through a custom pipeline that
+this through a custom pipeline that breaks everything up into chunks and
+breaks everything up into chunks and decimates the height map into a mesh and
+decimates the height map into a mesh and decimates the vertices on that mesh if
+decimates the vertices on that mesh if you look at the the chunk in the corner
+you look at the the chunk in the corner facing you you can see some sort of grid
+facing you you can see some sort of grid like artifacting that's because the the
+like artifacting that's because the the progressive mesh decimation is
+progressive mesh decimation is preserving vertices along the edges of
+preserving vertices along the edges of those grid layers to avoid seeming when
+those grid layers to avoid seeming when we go from one level of detail to
+we go from one level of detail to another so that shows up a little bit
+another so that shows up a little bit when you see the wireframe you don't
+when you see the wireframe you don't really see it in the yard itself in the
+really see it in the yard itself in the middle is a high detail
+middle is a high detail chunked gameplay region again same basic
+chunked gameplay region again same basic pipeline Mudbox world machine and then
+pipeline Mudbox world machine and then running through our custom process for
+running through our custom process for breaking everything up into chunks so
+breaking everything up into chunks so that
+that mesh's don't exceed the 65,000 vertices
+mesh's don't exceed the 65,000 vertices you're allowed to have in unity and
+you're allowed to have in unity and things are broken up into pieces for for
+things are broken up into pieces for for culling so you can only draw what's on
+culling so you can only draw what's on camera and then there's a layer of
+camera and then there's a layer of set-dressing and props our art team has
+set-dressing and props our art team has an interesting idea of what constitutes
+an interesting idea of what constitutes a prop so some of the props are several
+a prop so some of the props are several kilometers long I think they did this
+kilometers long I think they did this because the the height map didn't always
+because the the height map didn't always do a great job on cliffs so if you
+do a great job on cliffs so if you wanted a real detailed cliff you
+wanted a real detailed cliff you probably want to hand paint it and bring
+probably want to hand paint it and bring it in and then the gameplay region is
+it in and then the gameplay region is overlaid with over a thousand deferred
+overlaid with over a thousand deferred decals which I'll talk more about what
+decals which I'll talk more about what that looks like
+that looks like scale wise the skirt region in this
+scale wise the skirt region in this particular map is about 45 kilometers
+particular map is about 45 kilometers 45,000 units in unity and the gameplay
+45,000 units in unity and the gameplay region is about 15 kilometers square so
+region is about 15 kilometers square so it's a pretty big map obviously
+it's a pretty big map obviously everything's kind of relative our
+everything's kind of relative our vehicles are pretty big too so what is a
+vehicles are pretty big too so what is a level 4 ounce anyway there's there's
+level 4 ounce anyway there's there's scale is always a relative thing but the
+scale is always a relative thing but the maps are pretty big and you get to drive
+maps are pretty big and you get to drive around and do cool stuff in them and
+around and do cool stuff in them and there's a banana for scale getting down
+there's a banana for scale getting down closer to the world here's kind of a
+closer to the world here's kind of a base terrain layer so you know it's kind
+base terrain layer so you know it's kind of undulate looks okay
+of undulate looks okay not much detail there here's the prop
+not much detail there here's the prop layer coming in so we throw down rocks
+layer coming in so we throw down rocks and other things to break it up a bit
+and other things to break it up a bit and then the the decals are really what
+and then the the decals are really what come in and enrich it I mean I think
+come in and enrich it I mean I think it's easy to think of a deckle is like
+it's easy to think of a deckle is like this extra little sticker that gets
+this extra little sticker that gets stuck on top of the real art but in the
+stuck on top of the real art but in the case of our levels there was a lot more
+case of our levels there was a lot more invested into those decals and they they
+invested into those decals and they they really brought out the detail so
+really brought out the detail so toggling back and forth base layer
+toggling back and forth base layer decals base layer decals so you can see
+decals base layer decals so you can see we're bringing in a lot of like natural
+we're bringing in a lot of like natural erosion in there we're modulating the
+erosion in there we're modulating the lighting we're bringing some detail into
+lighting we're bringing some detail into the ripples of the sand and trying to
+the ripples of the sand and trying to make it look a lot better than we could
+make it look a lot better than we could do with a simple height map not that the
+do with a simple height map not that the base layer is that simple either there's
+base layer is that simple either there's this sort of monster shader on it that
+this sort of monster shader on it that it actually I think has 15 different
+it actually I think has 15 different texture samplers and basically there's a
+texture samplers and basically there's a kind of to control textures that are
+kind of to control textures that are then blending in combinations of five
+then blending in combinations of five times bump map plus diffuse and kind of
+times bump map plus diffuse and kind of giving the artists an ability to
+giving the artists an ability to kind of raise and lower different
+kind of raise and lower different elements of the terrain as they across
+elements of the terrain as they across the map but I'm not going to go much
+the map but I'm not going to go much into that I just wanted to say that the
+into that I just wanted to say that the base layer isn't that simple either so
+base layer isn't that simple either so for decals let's get into that a little
+for decals let's get into that a little more
+more here's my super-awesome programmer art
+here's my super-awesome programmer art of a piece of terrain that you want to
+of a piece of terrain that you want to render on a camera so I'm gonna quick
+render on a camera so I'm gonna quick overview of what I mean by a deferred
+overview of what I mean by a deferred deckle basically you render all the
+deckle basically you render all the terrain first so you've you've built up
+terrain first so you've you've built up rendered your scene you've got your
+rendered your scene you've got your depth buffer populated with the distance
+depth buffer populated with the distance to each pixel and now you want to go and
+to each pixel and now you want to go and splat a deckle on top of that that
+splat a deckle on top of that that rendered terrain so this little dash
+rendered terrain so this little dash line here represents the bounding box of
+line here represents the bounding box of a deckle volume that I want to draw as
+a deckle volume that I want to draw as that volume is drawn what actually
+that volume is drawn what actually happens is the shader is sampling the
+happens is the shader is sampling the distance from the camera basically
+distance from the camera basically sampling the depth buffer at that pixel
+sampling the depth buffer at that pixel point and deciding whether that
+point and deciding whether that represents a depth that's inside the
+represents a depth that's inside the bounding box of the deckle or not so in
+bounding box of the deckle or not so in this case point 1 is inside the box
+this case point 1 is inside the box point 2 isn't so a point 1 we do draw
+point 2 isn't so a point 1 we do draw the deco a point 2 we don't and so you
+the deco a point 2 we don't and so you get your deckle in the little pink
+get your deckle in the little pink region here when you're drawing it the
+region here when you're drawing it the deckle has a texture associated with it
+deckle has a texture associated with it and the texture coordinates of that
+and the texture coordinates of that deckle come basically from the the model
+deckle come basically from the the model space of the bounding box so it's it's
+space of the bounding box so it's it's relatively simple and that's the basic
+relatively simple and that's the basic idea of how it works the game base
+idea of how it works the game base terrain I want to add a new deckle so I
+terrain I want to add a new deckle so I dropped that in I've got our my gizmos
+dropped that in I've got our my gizmos showing me what's there
+showing me what's there I can move rotate and scale it into
+I can move rotate and scale it into place I can adjust the position and get
+place I can adjust the position and get it lined up right where I want
+it lined up right where I want ridgelines like this on sand dunes we're
+ridgelines like this on sand dunes we're a thing that we use the decals for a lot
+a thing that we use the decals for a lot because if you try and do a a nice crisp
+because if you try and do a a nice crisp Ridgeline in a height map you're going
+Ridgeline in a height map you're going to get a lot of artifacting based on the
+to get a lot of artifacting based on the the kind of geometry of the height map
+the kind of geometry of the height map being all on squares and you get a lot
+being all on squares and you get a lot of artifacting as a result but if you
+of artifacting as a result but if you can go in and hand paint a nice crisp
+can go in and hand paint a nice crisp line the vertices can be pretty smooth
+line the vertices can be pretty smooth and it still looks good here's all the
+and it still looks good here's all the decals in that particular little region
+decals in that particular little region all over drawn as you see all their
+all over drawn as you see all their bounding volumes stacking up and here's
+bounding volumes stacking up and here's how it looks when you put it all
+how it looks when you put it all together so base layer with all the
+together so base layer with all the decals so it makes quite a big
+decals so it makes quite a big difference in the look of them out
+and here's how it looks in gameplay this is a shot in the level with a lot of
+is a shot in the level with a lot of depth fog going on
+depth fog going on so everything's kind of D saturated at
+so everything's kind of D saturated at this point there's a storm coming you
+this point there's a storm coming you can see some of the decals here so the
+can see some of the decals here so the ridge lines the sand ripples we also use
+ridge lines the sand ripples we also use decals dynamically for anytime something
+decals dynamically for anytime something blew up it would leave a deco behind it
+blew up it would leave a deco behind it and that we had a dynamic decals system
+and that we had a dynamic decals system that could kind of add up these decals
+that could kind of add up these decals as the game was running the ones I've
+as the game was running the ones I've talked about so far we're all statically
+talked about so far we're all statically done and baked into the unity scene so
+done and baked into the unity scene so what does this look like in unity a
+what does this look like in unity a couple pieces there's the our deferred
+couple pieces there's the our deferred deco controller which is a amana
+deco controller which is a amana behavior script with a bunch of
+behavior script with a bunch of properties you can see here the
+properties you can see here the transform was the thing driving the
+transform was the thing driving the bounding volume of the deckle so
+bounding volume of the deckle so basically we would just take instead of
+basically we would just take instead of having extra data to represent the
+having extra data to represent the bounding volume we just use the size and
+bounding volume we just use the size and position of the transform the scale of
+position of the transform the scale of the transform because it's really no
+the transform because it's really no geometry associated with the deckle it's
+geometry associated with the deckle it's just sort of this virtual object with
+just sort of this virtual object with some editor hooks to draw the gizmos on
+some editor hooks to draw the gizmos on the bounding box but the box isn't
+the bounding box but the box isn't really there it's a it's a virtual box
+really there it's a it's a virtual box and then we had an overall preferences
+and then we had an overall preferences thing that let you control how the
+thing that let you control how the selected decals look like and how the
+selected decals look like and how the unselected ones look like I found myself
+unselected ones look like I found myself toggling this off and on as I use the
+toggling this off and on as I use the system because if you have all the
+system because if you have all the unselected decals and they're bounding
+unselected decals and they're bounding block going you get like a huge mass of
+block going you get like a huge mass of blue boxes and you can't see what's
+blue boxes and you can't see what's going on taking you to these settings a
+going on taking you to these settings a little bit more the material associated
+little bit more the material associated with the deckle chooses which shader
+with the deckle chooses which shader you're going to use in this case it's
+you're going to use in this case it's our decals alpha bump diffuse shader
+our decals alpha bump diffuse shader it's got a couple texture inputs diffuse
+it's got a couple texture inputs diffuse texture and bump map so we can modulate
+texture and bump map so we can modulate lighting there's also a checkbox for
+lighting there's also a checkbox for normals only so if you want to deckle
+normals only so if you want to deckle that's only affecting the lighting you
+that's only affecting the lighting you turn that on and don't bother supplying
+turn that on and don't bother supplying a main texture there's a tint color that
+a main texture there's a tint color that you could use to color shift the deckle
+you could use to color shift the deckle oh the generally that was just used as
+oh the generally that was just used as an alpha blend so that you could kind of
+an alpha blend so that you could kind of dial up and down how much of that tuckle
+dial up and down how much of that tuckle you wanted to appear there's a flag
+you wanted to appear there's a flag whether or not you want to draw over the
+whether or not you want to draw over the set dressing layer so basically you
+set dressing layer so basically you could have decals that go over the rocks
+could have decals that go over the rocks or decals that stay under the rocks and
+or decals that stay under the rocks and to do that we used
+to do that we used a stencil mask and that was actually a
+a stencil mask and that was actually a property of the shader and toggling set
+property of the shader and toggling set dressing on and off was actually
+dressing on and off was actually choosing a slightly different variant on
+choosing a slightly different variant on the shader one thing of interest we
+the shader one thing of interest we called front facing polygons and drew
+called front facing polygons and drew the back facing ones instead the reason
+the back facing ones instead the reason for that was that if the camera got too
+for that was that if the camera got too close to a big deckle box you'd start to
+close to a big deckle box you'd start to clip into that box and you'd be losing
+clip into that box and you'd be losing the deckle where it clipped so instead
+the deckle where it clipped so instead of LED clipping the front facing or
+of LED clipping the front facing or clipping those polygons that are closer
+clipping those polygons that are closer towards you we don't even draw those and
+towards you we don't even draw those and we draw the back face you can sort of
+we draw the back face you can sort of think of it as a little bounding bowl
+think of it as a little bounding bowl rather than a bounding box and because
+rather than a bounding box and because you're not actually drawing the polygons
+you're not actually drawing the polygons you're just using it to decide kind of
+you're just using it to decide kind of where in the scene to run the shader it
+where in the scene to run the shader it doesn't it doesn't really matter it all
+doesn't it doesn't really matter it all kind of works out there's a transparency
+kind of works out there's a transparency setting this was used procedurally under
+setting this was used procedurally under the hood so we had a budget for how many
+the hood so we had a budget for how many decals could be on screen at a time and
+decals could be on screen at a time and we wanted to be able to fade things in
+we wanted to be able to fade things in and out gracefully so rather than just
+and out gracefully so rather than just toggling snapping them on and off when
+toggling snapping them on and off when we go over budget
+we go over budget they'd fade out over a short period and
+they'd fade out over a short period and that's what the transparency would do
+that's what the transparency would do and then this shader is really just kind
+and then this shader is really just kind of at the high level
+of at the high level set up the state for the shader the
+set up the state for the shader the actual work was in this include file I'm
+actual work was in this include file I'm not going to dig into the details of
+not going to dig into the details of that but basically it just samples the
+that but basically it just samples the depth buffer does the calculation to
+depth buffer does the calculation to determine whether or not that that depth
+determine whether or not that that depth is inside or outside the bounding volume
+is inside or outside the bounding volume and then does the normal sort of
+and then does the normal sort of lighting and color pass from the width
+lighting and color pass from the width using its normal map and and diffuse map
+using its normal map and and diffuse map and then blends the pixel into the edge
+and then blends the pixel into the edge of the frame buffer all of this
+of the frame buffer all of this nothing super original here the main
+nothing super original here the main thing was kind of getting in into unity
+thing was kind of getting in into unity and getting it performant poped Kim from
+and getting it performant poped Kim from relic also Vancouver a couple years ago
+relic also Vancouver a couple years ago at SIGGRAPH gave an awesome paper on all
+at SIGGRAPH gave an awesome paper on all the details of deferred decals so if you
+the details of deferred decals so if you want to know more definitely look that
+want to know more definitely look that up he's got a SlideShare online and then
+up he's got a SlideShare online and then one of the render engineers at Unity
+one of the render engineers at Unity wrote a blog post and did a demo of
+wrote a blog post and did a demo of different decals in unity using command
+different decals in unity using command buffers which kind of got us going as to
+buffers which kind of got us going as to seeing how to integrate it into unity
+seeing how to integrate it into unity how to set up the shader in the unity
+how to set up the shader in the unity environment that kind of thing we then
+environment that kind of thing we then did a bunch of work on optimizing how we
+did a bunch of work on optimizing how we sorted them and culling and things like
+sorted them and culling and things like that to kind of integrate it into the
+that to kind of integrate it into the engine
+engine and into our game and get it performing
+and into our game and get it performing a quick aside if all the sand you've
+a quick aside if all the sand you've been seeing looks sort of familiar you
+been seeing looks sort of familiar you may have seen similar sand on NASA
+may have seen similar sand on NASA galleries because of course our nearest
+galleries because of course our nearest dusty desert planet we were going to
+dusty desert planet we were going to look at that for reference recently we
+look at that for reference recently we came full circle and JPL actually
+came full circle and JPL actually approached us about doing a
+approached us about doing a visualization of a Mars base of the
+visualization of a Mars base of the future so over the past month a bunch of
+future so over the past month a bunch of guys at work in there mostly in their
+guys at work in there mostly in their spare time kind of put together this
+spare time kind of put together this this quick visualization project which
+this quick visualization project which was a reimagining of a Mars base of the
+was a reimagining of a Mars base of the future using terrain data and texture
+future using terrain data and texture data from from NASA putting it into our
+data from from NASA putting it into our terrain engine decking it up to make it
+terrain engine decking it up to make it look pretty and then building some some
+look pretty and then building some some crazy futuristic Mars bases this was
+crazy futuristic Mars bases this was presented at dice about a week or two
+presented at dice about a week or two ago and we've been getting a lot of good
+ago and we've been getting a lot of good press coverage out of it since that's
+press coverage out of it since that's also built in unity we're still trying
+also built in unity we're still trying to decide if we're gonna make it
+to decide if we're gonna make it available or what happens next to this
+available or what happens next to this project but it was a fun little thing to
+project but it was a fun little thing to do okay so that's train on the
+do okay so that's train on the presentation side what about in the
+presentation side what about in the simulation do we have train they're
+simulation do we have train they're almost not the simulation is 2d for all
+almost not the simulation is 2d for all unit movement mostly this is a home rule
+unit movement mostly this is a home rule game homeworld was renowned as being the
+game homeworld was renowned as being the first 3d RTS ski and when people heard
+first 3d RTS ski and when people heard that we were gonna bring it down to
+that we were gonna bring it down to ground level and make it a 2-d game
+ground level and make it a 2-d game again they were like oh my god what are
+again they were like oh my god what are you doing you can't do that so we needed
+you doing you can't do that so we needed some sort of 3d in there here's what
+some sort of 3d in there here's what that looked like we took a course height
+that looked like we took a course height map brought that into the simulation so
+map brought that into the simulation so there's a notion of how high or low
+there's a notion of how high or low units are the white you can think of as
+units are the white you can think of as being high ground and the dark is being
+being high ground and the dark is being low ground we gave the designers a
+low ground we gave the designers a mechanism for drawing in ridge lines
+mechanism for drawing in ridge lines which are basically along the crest of
+which are basically along the crest of dunes ridge lines block line of fire so
+dunes ridge lines block line of fire so you can't shoot over a dune you need to
+you can't shoot over a dune you need to get up on the dune to shoot and the
+get up on the dune to shoot and the higher unit a higher unit firing on a
+higher unit a higher unit firing on a lower unit will deal more damage so
+lower unit will deal more damage so there's a height advantage there so it
+there's a height advantage there so it brings in 3d elements of gameplay but
+brings in 3d elements of gameplay but all the math is pretty much 2d under the
+all the math is pretty much 2d under the hood so the units are driving around on
+hood so the units are driving around on a flat plane the ridge lines act like
+a flat plane the ridge lines act like sort of these infinitely high walls that
+sort of these infinitely high walls that you can't shoot through and when two
+you can't shoot through and when two units are in battle you'll just sample
+units are in battle you'll just sample the height map see which one's higher
+the height map see which one's higher and give him an advantage
+and give him an advantage so it kept all the calculations pretty
+so it kept all the calculations pretty simple unique visuals let's move on to
+simple unique visuals let's move on to the next step aesthetic physics what do
+the next step aesthetic physics what do I mean by that key part of our game was
+I mean by that key part of our game was to convey a really rich vehicle fantasy
+to convey a really rich vehicle fantasy of these giant vehicles lumbering around
+of these giant vehicles lumbering around in the desert and leaping off sand dunes
+in the desert and leaping off sand dunes and getting air and all the rest of it
+and getting air and all the rest of it but we needed to reconcile that with our
+but we needed to reconcile that with our 2d simulation layer so what we did was
+2d simulation layer so what we did was we have a fairly simple driving model a
+we have a fairly simple driving model a fairly complicated two-dimensional
+fairly complicated two-dimensional driving model which is deterministic so
+driving model which is deterministic so we can use it within the RTS framework
+we can use it within the RTS framework that I'll get into more and then on the
+that I'll get into more and then on the presentation side is where the jumps
+presentation side is where the jumps happen the vehicle suspension happens
+happen the vehicle suspension happens and all the cool stuff like that I'll
+and all the cool stuff like that I'll talk a little bit about how we did this
+talk a little bit about how we did this here's a scene from the game and here's
+here's a scene from the game and here's another scene sort of stuff blowing up
+another scene sort of stuff blowing up there's vehicles getting air how do we
+there's vehicles getting air how do we do it
+do it if movement is 2d what does that mean so
+if movement is 2d what does that mean so if you give a unit of a move order you
+if you give a unit of a move order you give queue up a set of waypoints what we
+give queue up a set of waypoints what we do is the the driving model understands
+do is the the driving model understands the top speed of the vehicle and it's
+the top speed of the vehicle and it's how fast stick and turn and things like
+how fast stick and turn and things like that and so we can take the turning
+that and so we can take the turning radius kind of lay it onto the Waypoint
+radius kind of lay it onto the Waypoint and figure out the tangents that bring
+and figure out the tangents that bring us into the Waypoint turn as tightly as
+us into the Waypoint turn as tightly as possible given the mechanics of the
+possible given the mechanics of the vehicle still hit the Waypoint and then
+vehicle still hit the Waypoint and then move on to the next Waypoint so in this
+move on to the next Waypoint so in this image here let's see if I can do this
+image here let's see if I can do this laser pointer thing that would be cool
+laser pointer thing that would be cool so basically we've got a straight line
+so basically we've got a straight line segment a curved segment another
+segment a curved segment another straight line another curve another
+straight line another curve another straight line what we get is an
+straight line what we get is an analytical solution for where the
+analytical solution for where the vehicle is going to move given a set of
+vehicle is going to move given a set of waypoints it's kind of like a control
+waypoints it's kind of like a control curve that the vehicle follows along
+curve that the vehicle follows along there's also a bunch of subtly in there
+there's also a bunch of subtly in there like the as we're coming into a corner
+like the as we're coming into a corner there's a mechanism for skidding and
+there's a mechanism for skidding and drifting and things like that so the
+drifting and things like that so the model isn't totally simple but it is a
+model isn't totally simple but it is a 2d analytical model of where the vehicle
+2d analytical model of where the vehicle is going to go it's not we're not
+is going to go it's not we're not throwing into physics or rigid bodies or
+throwing into physics or rigid bodies or doing discrete time step simulation or
+doing discrete time step simulation or anything like that you're thinking but
+anything like that you're thinking but but I saw that vehicle get air how did
+but I saw that vehicle get air how did that happen
+that happen here's kind of how we approach it so the
+here's kind of how we approach it so the presentation layer is this gorgeous
+presentation layer is this gorgeous butterfly that flaps this way
+butterfly that flaps this way the same as a pin that just stabs
+the same as a pin that just stabs through the butterfly and holds it in
+through the butterfly and holds it in where it wants to be so that the sim can
+where it wants to be so that the sim can move the butterfly around and the
+move the butterfly around and the butterfly can flap its wings and look
+butterfly can flap its wings and look pretty but it's under control of the sim
+pretty but it's under control of the sim as far as positioning goes if you don't
+as far as positioning goes if you don't like killing butterflies we could talk
+like killing butterflies we could talk about carousel horses there's the
+about carousel horses there's the carousel across the street
+carousel across the street same kind of idea you've got the
+same kind of idea you've got the beautiful painted horse and the sim is
+beautiful painted horse and the sim is the rod that holds the horse in place
+the rod that holds the horse in place and forces it to go round and round in a
+and forces it to go round and round in a circle so let's talk a little bit about
+circle so let's talk a little bit about how we rigged the vehicles to make this
+how we rigged the vehicles to make this work and to get the kind of the richest
+work and to get the kind of the richest thetic vehicle fantasy look without
+thetic vehicle fantasy look without having to simulate every little piece of
+having to simulate every little piece of it and have it affect gameplay we've got
+it and have it affect gameplay we've got our vehicle set up with wheel colliders
+our vehicle set up with wheel colliders so there's a fairly complex rig on the
+so there's a fairly complex rig on the vehicle there's also a rigid body on the
+vehicle there's also a rigid body on the vehicle itself if you look here you'll
+vehicle itself if you look here you'll see that that rigid body is constrained
+see that that rigid body is constrained so the physics doesn't affect X or Z
+so the physics doesn't affect X or Z position or Y rotation that's basically
+position or Y rotation that's basically the pin that's those are the degrees of
+the pin that's those are the degrees of freedom that the simulation controls and
+freedom that the simulation controls and what's left over is the ability for the
+what's left over is the ability for the presentation layer physics to bounce the
+presentation layer physics to bounce the vehicle up and down on the y axis roll
+vehicle up and down on the y axis roll it side to side on the z axis and pitch
+it side to side on the z axis and pitch it up and down on the you said to be the
+it up and down on the you said to be the x axis or something like that
+x axis or something like that but any way that we sort of split the
+but any way that we sort of split the rigid body down the middle and let the
+rigid body down the middle and let the same control half the degrees of freedom
+same control half the degrees of freedom and the presentation layer control the
+and the presentation layer control the other half also those wheel colliders
+other half also those wheel colliders there's no geometry associated with them
+there's no geometry associated with them so we're not letting the wheel collide
+so we're not letting the wheel collide with the ground and then having that
+with the ground and then having that move geometry directly what we do
+move geometry directly what we do instead is we have this little magical
+instead is we have this little magical animated suspension script what it's
+animated suspension script what it's doing is monitoring the position of the
+doing is monitoring the position of the wheel Collider and the compression
+wheel Collider and the compression forces acting on the springs of that
+forces acting on the springs of that wheel Collider basically how much
+wheel Collider basically how much tension is it under and how how far out
+tension is it under and how how far out of its rest position is it and feeding
+of its rest position is it and feeding those parameters into a blend tree and
+those parameters into a blend tree and then there's a whole pile of one frame
+then there's a whole pile of one frame animations on every unit that then get
+animations on every unit that then get blended together based on the steering
+blended together based on the steering parameters and the the position of the
+parameters and the the position of the wheel colliders and the orientation of
+wheel colliders and the orientation of the wheels to just steer left and right
+the wheels to just steer left and right so those poses look something like this
+so those poses look something like this there's basically different positions of
+there's basically different positions of the suspension of the front end of the
+the suspension of the front end of the vehicle in this case and they get
+vehicle in this case and they get together in different degrees to give
+together in different degrees to give the illusion that the vehicle is
+the illusion that the vehicle is compressing and the shocks are moving in
+compressing and the shocks are moving in and out and all the rest of it
+we also I don't have a very good picture for this that arrow is supposed to
+for this that arrow is supposed to represent an impulse force being applied
+represent an impulse force being applied to the rigid body of the vehicle so we
+to the rigid body of the vehicle so we have those forces are applied to give
+have those forces are applied to give the vehicle air what it when all four
+the vehicle air what it when all four wheel colliders go off the ground we
+wheel colliders go off the ground we detect that point and give it a bit of
+detect that point and give it a bit of force to lift it up in the air and kind
+force to lift it up in the air and kind of bring it back down on a decent
+of bring it back down on a decent parabola we also have to deal with six
+parabola we also have to deal with six wheeled vehicles and treaded vehicles
+wheeled vehicles and treaded vehicles and hover vehicles so there's a whole
+and hover vehicles so there's a whole bunch of different variations on this
+bunch of different variations on this theme and each of those units has a
+theme and each of those units has a fairly complex rig that uses the
+fairly complex rig that uses the techniques I've just shown when it works
+techniques I've just shown when it works it's great and every now and then
+it's great and every now and then there's some super weird bugs when the
+there's some super weird bugs when the salmon presentation they are kind of
+salmon presentation they are kind of disagree about what's going on we also
+disagree about what's going on we also had a long-standing bug with the carrier
+had a long-standing bug with the carrier is this like massive land crawler in our
+is this like massive land crawler in our game every now and then we never did
+game every now and then we never did fully resolve it we'd give it a huge
+fully resolve it we'd give it a huge impulse force upwards of the carry word
+impulse force upwards of the carry word like fly way up in the air and then come
+like fly way up in the air and then come crashing back down again fortunately the
+crashing back down again fortunately the Sims still chugging along fine like the
+Sims still chugging along fine like the vehicles are in the right Ex dead
+vehicles are in the right Ex dead position and they're facing the right
+position and they're facing the right way so it doesn't care game plays fine
+way so it doesn't care game plays fine but it made for some pretty amusing bugs
+but it made for some pretty amusing bugs and outtakes okay so that's the
+and outtakes okay so that's the aesthetic physics next I want to talk
+aesthetic physics next I want to talk about deterministic gameplay and how we
+about deterministic gameplay and how we structured the RTS game to work well in
+structured the RTS game to work well in multiplayer which is the reason for
+multiplayer which is the reason for being deterministic so we've got we've
+being deterministic so we've got we've got this rich game and we want to
+got this rich game and we want to replicate the state of that game across
+replicate the state of that game across multiple peers over these thin little
+multiple peers over these thin little series of pipes that makes up the
+series of pipes that makes up the internet so bandwidth in a first-person
+internet so bandwidth in a first-person shooter
+shooter there's a limited amount of state but in
+there's a limited amount of state but in an RTS game we've got position speed
+an RTS game we've got position speed health power turret orientations amount
+health power turret orientations amount of ammunition potentially in multiple
+of ammunition potentially in multiple weapons the position of projectiles in
+weapons the position of projectiles in flight which abilities are active on
+flight which abilities are active on which units and what state of the
+which units and what state of the cooldowns are on those those abilities
+cooldowns are on those those abilities each unit can have a queued up set of
+each unit can have a queued up set of goals and move orders as to where it's
+goals and move orders as to where it's going and then which other units are of
+going and then which other units are of interest that it's supposed to be
+interest that it's supposed to be targeting and then buffs all of the
+targeting and then buffs all of the attributes in the game pretty much
+attributes in the game pretty much be modified when you go into a zone or
+be modified when you go into a zone or get hit by a by a weapon or like there's
+get hit by a by a weapon or like there's constant attribute values changing and
+constant attribute values changing and fluctuating ideally times 800 plus units
+fluctuating ideally times 800 plus units depending on how many players are in the
+depending on how many players are in the game and the pipes cannot cope we can't
+game and the pipes cannot cope we can't we didn't feel confident that we could
+we didn't feel confident that we could send that much data and have an
+send that much data and have an authoritative server feeding out that
+authoritative server feeding out that ginormous amount of state to all the
+ginormous amount of state to all the different clients so we followed a
+different clients so we followed a pattern that was established eight years
+pattern that was established eight years ago and went with determinism the basic
+ago and went with determinism the basic idea being that you run the same program
+idea being that you run the same program on every computer you give each computer
+on every computer you give each computer the same inputs and then they produce
+the same inputs and then they produce the same outputs and everyone stays
+the same outputs and everyone stays synchronized because you're all running
+synchronized because you're all running the same procedures so it's great when
+the same procedures so it's great when it works basically you have this
+it works basically you have this simulation presentation split happening
+simulation presentation split happening on each player's computer you're
+on each player's computer you're gathering commands from each player you
+gathering commands from each player you share those commands over the network
+share those commands over the network the commands are nice and small so
+the commands are nice and small so that's good on bandwidth and then each
+that's good on bandwidth and then each simulation runs those that same set of
+simulation runs those that same set of commands and produces the same results
+commands and produces the same results and everyone experiences the same world
+and everyone experiences the same world at least that's the hope
+at least that's the hope so what could possibly go wrong being
+so what could possibly go wrong being deterministic has a bunch of
+deterministic has a bunch of implications it means that your
+implications it means that your simulation can't expose any state
+simulation can't expose any state changing API to the presentation layer
+changing API to the presentation layer that red line is super important it's
+that red line is super important it's like the we called it the Great Firewall
+like the we called it the Great Firewall you've got to be really careful how you
+you've got to be really careful how you cross that boundary ideally your let
+cross that boundary ideally your let commands in you let state out and
+commands in you let state out and there's no other way to interact with
+there's no other way to interact with the sim you need to run the simulation
+the sim you need to run the simulation at a fixed update rate so you want to
+at a fixed update rate so you want to make sure that you're you're running
+make sure that you're you're running commands at a predictable interval and
+commands at a predictable interval and the interval is the same on every
+the interval is the same on every computer the commands you run at each
+computer the commands you run at each ticket are the same on each computer no
+ticket are the same on each computer no floating-point numbers because FP use
+floating-point numbers because FP use are prone to optimizing things in ways
+are prone to optimizing things in ways that cause differences and the low order
+that cause differences and the low order bits so we wanted to be able to do cross
+bits so we wanted to be able to do cross play between different architectures and
+play between different architectures and AMD Intel 32-bit 64-bit and not have
+AMD Intel 32-bit 64-bit and not have things diverge so we didn't trust
+things diverge so we didn't trust floating-point numbers which then has a
+floating-point numbers which then has a side effect of throwing away all kinds
+side effect of throwing away all kinds of other stuff like physics like
+of other stuff like physics like unity pretty much all of unity because
+unity pretty much all of unity because it's all its transforms are all
+it's all its transforms are all floating-point basically the simulation
+floating-point basically the simulation has to be sort of very pure and clean
+has to be sort of very pure and clean and in order to remain deterministic so
+and in order to remain deterministic so no unity here you ready up here
+no unity here you ready up here great not so much in the sim how do we
+great not so much in the sim how do we get this to work what do we do here's
+get this to work what do we do here's our visual studio solution the
+our visual studio solution the simulation there's there's a whole lot
+simulation there's there's a whole lot of projects all together I think we had
+of projects all together I think we had yeah 36 it says the main the core of the
+yeah 36 it says the main the core of the game was BBI dot game that was the
+game was BBI dot game that was the simulation layer BBI dot unity dot game
+simulation layer BBI dot unity dot game was kind of the unity presentation layer
+was kind of the unity presentation layer and the dependencies are very different
+and the dependencies are very different if you look at the references from each
+if you look at the references from each of those projects the simulation layer
+of those projects the simulation layer is referencing BBI core which was some
+is referencing BBI core which was some useful helper utilities we had and BBI
+useful helper utilities we had and BBI game data which was a small assembly
+game data which was a small assembly containing data types and dotnet system
+containing data types and dotnet system and that's it over on presentation land
+and that's it over on presentation land we've got all kinds of stuff in there
+we've got all kinds of stuff in there there's n gooey and playmaker and unity
+there's n gooey and playmaker and unity engine which doesn't appear in the sim
+engine which doesn't appear in the sim and then all of our other project
+and then all of our other project references so by separating assemblies
+references so by separating assemblies we kept it more clear what belong to
+we kept it more clear what belong to where by setting up the references
+where by setting up the references properly we made sure that you couldn't
+properly we made sure that you couldn't accidentally call unity from the sim
+accidentally call unity from the sim because it's not even in scope so visual
+because it's not even in scope so visual studio won't let you do it
+studio won't let you do it another thing we did a lot was a lot of
+another thing we did a lot was a lot of the stuff in the game assembly uses
+the stuff in the game assembly uses what's called internal scope I don't
+what's called internal scope I don't know how familiar you guys are with
+know how familiar you guys are with c-sharp but basically internal scope
+c-sharp but basically internal scope means you can only call it from within
+means you can only call it from within the same assembly so that way you can
+the same assembly so that way you can effectively have something that's public
+effectively have something that's public for the sim but out of scope for the
+for the sim but out of scope for the presentation so you can't someone
+presentation so you can't someone presentations I can't accidentally call
+presentations I can't accidentally call into that that same piece there's always
+into that that same piece there's always sort of these like deep call stack
+sort of these like deep call stack threads where you you have an API on the
+threads where you you have an API on the sim say the sim controller that you
+sim say the sim controller that you intended to be called from presentation
+intended to be called from presentation and then later you accidentally added
+and then later you accidentally added more stuff and it dives way down into
+more stuff and it dives way down into the salmon call something is not
+the salmon call something is not supposed to so you've got to make sure
+supposed to so you've got to make sure that doesn't happen and get rid of it as
+that doesn't happen and get rid of it as it comes up
+it comes up Tim Ford used a neat expression the
+Tim Ford used a neat expression the other day when he was talking about
+other day when he was talking about overwatch she talks about digging a pit
+overwatch she talks about digging a pit of success like basically make it easy
+of success like basically make it easy to do the right thing so put your
+to do the right thing so put your programmers in in a place where they
+programmers in in a place where they sink down into the thing that works so
+sink down into the thing that works so by setting up things in the
+by setting up things in the way it was pretty easy not to screw up
+way it was pretty easy not to screw up was basically what we were trying to
+was basically what we were trying to achieve with our project architecture
+achieve with our project architecture multi-threading I wanted to touch on
+multi-threading I wanted to touch on unity uses a ton of threads internally
+unity uses a ton of threads internally for all of its rendering physics audio
+for all of its rendering physics audio asset loading etc etc but it only gives
+asset loading etc etc but it only gives one to us as c-sharp developers we get
+one to us as c-sharp developers we get one thread everything's running on that
+one thread everything's running on that one thread all the mana behavior updates
+one thread all the mana behavior updates are on that thread etc etc however we're
+are on that thread etc etc however we're in c-sharp we can create new threads
+in c-sharp we can create new threads so for us we create a new thread for the
+so for us we create a new thread for the simulation again because unity is single
+simulation again because unity is single threaded in there I don't know if it's
+threaded in there I don't know if it's debug definitely in the editor there's
+debug definitely in the editor there's thread guards against calling a unity
+thread guards against calling a unity API from the wrong thread so this
+API from the wrong thread so this actually had a side benefit where by
+actually had a side benefit where by putting the the simulation into another
+putting the the simulation into another thread we were pretty much prevented
+thread we were pretty much prevented from calling unity even if we tried
+from calling unity even if we tried really hard
+really hard also being multi-threaded comes with a
+also being multi-threaded comes with a its own set of pain points and
+its own set of pain points and conventions and guidelines as I'm sure
+conventions and guidelines as I'm sure you're well aware so by by putting
+you're well aware so by by putting presentation and simulation and separate
+presentation and simulation and separate threads it made it that much harder like
+threads it made it that much harder like you you really had to scrutinize how
+you you really had to scrutinize how things were coordinating between them so
+things were coordinating between them so multi-threading actually again
+multi-threading actually again encouraged the divide and help help keep
+encouraged the divide and help help keep things separated and we had some other
+things separated and we had some other threads too but the the same one was the
+threads too but the the same one was the main one too and the original idea was
+main one too and the original idea was to take advantage of CPU performance
+to take advantage of CPU performance obviously and squeeze out as much CPU as
+obviously and squeeze out as much CPU as we could but it had some of these
+we could but it had some of these interesting architectural side of side
+interesting architectural side of side effects as well that we're beneficial
+how do we make the sim run deterministically here's a quick
+deterministically here's a quick overview of presentation layer feeding
+overview of presentation layer feeding in some commands the command scheduler
+in some commands the command scheduler is deciding which Simtek each command is
+is deciding which Simtek each command is going to run on and putting those into a
+going to run on and putting those into a buffer accordingly so here you got the
+buffer accordingly so here you got the simulation running over at a specific
+simulation running over at a specific tick rate it's got commands queued up
+tick rate it's got commands queued up and this is happening on every player's
+and this is happening on every player's machine the schedulers are communicating
+machine the schedulers are communicating over those pipes and the as long as we
+over those pipes and the as long as we have commands from every player by the
+have commands from every player by the time we get to the tick we want to
+time we get to the tick we want to execute so take K or whatever we need to
+execute so take K or whatever we need to make sure we have a command packet from
+make sure we have a command packet from each player you'll see a couple no ops
+each player you'll see a couple no ops in there so in this particular tick
+in there so in this particular tick player two didn't do anything in that
+player two didn't do anything in that tick that's fine but we still need to
+tick that's fine but we still need to know that they didn't do anything so
+know that they didn't do anything so we have this sort of empty command
+we have this sort of empty command packet to represent that so once
+packet to represent that so once everyone's got all the commands you'll
+everyone's got all the commands you'll notice that player 3 doesn't have as
+notice that player 3 doesn't have as many commands as player 1 that's okay as
+many commands as player 1 that's okay as long as he catches up in time for take K
+long as he catches up in time for take K + 1 so the commands can be kind of
++ 1 so the commands can be kind of flying over the pipes in the background
+flying over the pipes in the background while we're executing the the commands
+while we're executing the the commands for the current tic on the sim tic we
+for the current tic on the sim tic we execute all the commands we run a bunch
+execute all the commands we run a bunch of entity processors to update the state
+of entity processors to update the state of the sim and then we feedback game
+of the sim and then we feedback game state and events to the presentation
+state and events to the presentation layer again these are queued up on a per
+layer again these are queued up on a per tick so the the presentation sort of
+tick so the the presentation sort of doesn't care what tick things happen but
+doesn't care what tick things happen but it also it does a bunch of interpolation
+it also it does a bunch of interpolation and things like that so it needs to know
+and things like that so it needs to know that the the state at a certain tick in
+that the the state at a certain tick in the state of the following tick and then
+the state of the following tick and then when it goes to render it sort of needs
+when it goes to render it sort of needs to know where it is in between those
+to know where it is in between those ticks also the events it was sometimes
+ticks also the events it was sometimes important to know definitely what order
+important to know definitely what order the events happened in but also what
+the events happened in but also what tick they happened on so we'd have a
+tick they happened on so we'd have a little packet of events to go with each
+little packet of events to go with each each sim tick update we'd also the state
+each sim tick update we'd also the state of the game at each tick would be check
+of the game at each tick would be check summed and we'd use those check sums
+summed and we'd use those check sums those will be communicated around the
+those will be communicated around the network and if two players if their
+network and if two players if their state diverged the check sums would
+state diverged the check sums would differ and we throw up a horrible screen
+differ and we throw up a horrible screen that we never want to see saying the
+that we never want to see saying the game is d synced you know please send
+game is d synced you know please send your logs to the developer and curse
+your logs to the developer and curse their name forever D sinks are actually
+their name forever D sinks are actually pretty rare we were pretty fortunate I
+pretty rare we were pretty fortunate I think in part due to the way we set up
+think in part due to the way we set up the architecture and kept things pretty
+the architecture and kept things pretty clean we kept thinking we do like
+clean we kept thinking we do like hierarchical check sums and you know
+hierarchical check sums and you know debugging tools to help analyze and
+debugging tools to help analyze and figure out exactly what D synced but I
+figure out exactly what D synced but I think we literally had like four or five
+think we literally had like four or five decent bugs over the course of
+decent bugs over the course of development so it wasn't a big deal and
+development so it wasn't a big deal and we didn't invest in not tooling although
+we didn't invest in not tooling although this has been done before - so 2001
+this has been done before - so 2001 there's an awesome Gama sutra article
+there's an awesome Gama sutra article from the guys who did Age of Empires
+from the guys who did Age of Empires about lockstep deterministic RTS games
+about lockstep deterministic RTS games command scheduling all the rest of it we
+command scheduling all the rest of it we pretty much followed their model we do
+pretty much followed their model we do some stuff I'm not sure if they did like
+some stuff I'm not sure if they did like we have an adaptive scheduling horizon
+we have an adaptive scheduling horizon so if the internet starts going to hell
+so if the internet starts going to hell and we're not we're frequently not
+and we're not we're frequently not getting all the commands we need for a
+getting all the commands we need for a given tick we can we can schedule
+given tick we can we can schedule further into the future and so we
+further into the future and so we we take on some additional latency in
+we take on some additional latency in that case so it's going to be longer
+that case so it's going to be longer between issuing a move order and seeing
+between issuing a move order and seeing the vehicle move but at least you're not
+the vehicle move but at least you're not going to be hiccupping waiting for those
+going to be hiccupping waiting for those packed command packets to come in and
+packed command packets to come in and then if the network improves we can
+then if the network improves we can bring the scheduling horizon back down
+bring the scheduling horizon back down again
+again but other than that I think I think the
+but other than that I think I think the guys pretty much did it all like 15
+guys pretty much did it all like 15 years ago
+years ago okay floating-point numbers this was a
+okay floating-point numbers this was a kind of an annoying part of building the
+kind of an annoying part of building the sim because floating point math is
+sim because floating point math is pretty handy and there's a lot of stuff
+pretty handy and there's a lot of stuff you'd like to use it for we decided it
+you'd like to use it for we decided it was necessary to go with fixed point I
+was necessary to go with fixed point I talked to a friend of mine who works at
+talked to a friend of mine who works at Intel on chip design he said it's
+Intel on chip design he said it's getting more and more likely for FB use
+getting more and more likely for FB use to do different things not less likely
+to do different things not less likely there is an I Triple E standard for how
+there is an I Triple E standard for how floating-point should work but a lot of
+floating-point should work but a lot of the time the the bi Triple E standard
+the time the the bi Triple E standard bit gets turned off on an FPU because
+bit gets turned off on an FPU because you get a little more performance out of
+you get a little more performance out of it and then you may get different order
+it and then you may get different order bits you may get different not an and
+bits you may get different not an and result or not a number results so we
+result or not a number results so we ended up deciding to take the plunge and
+ended up deciding to take the plunge and convert all of our math to fixed point
+convert all of our math to fixed point so we wrote our own deterministic fixed
+so we wrote our own deterministic fixed point math library and no unity
+point math library and no unity dependencies no third party floats you
+dependencies no third party floats you can make fixed point numbers you know
+can make fixed point numbers you know look and feel a lot like floating point
+look and feel a lot like floating point numbers he can still declare them as
+numbers he can still declare them as simple variables he can initialize them
+simple variables he can initialize them with constants he can add them whatever
+with constants he can add them whatever do operators here's a little bit of what
+do operators here's a little bit of what that looks like our fixed point numbers
+that looks like our fixed point numbers were a pretty simple struct that wraps a
+were a pretty simple struct that wraps a 64 bit long if I can show that here so
+64 bit long if I can show that here so here's the actual long value that we're
+here's the actual long value that we're representing we're using this field
+representing we're using this field offset trick to split the long into its
+offset trick to split the long into its upper and lower parts because some
+upper and lower parts because some operations like multiplication or easier
+operations like multiplication or easier to do if you've got access to those
+to do if you've got access to those pieces but it's kind of like a a C++
+pieces but it's kind of like a a C++ Union that data is on top of each other
+Union that data is on top of each other so it's it's all the Umrah
+so it's it's all the Umrah lower and Umrah upper just aliases for
+lower and Umrah upper just aliases for the upper and lower part of the raw
+the upper and lower part of the raw value here I'm showing fixed operator
+value here I'm showing fixed operator Plus this is how you overload operators
+Plus this is how you overload operators in c-sharp and so this is doing the
+in c-sharp and so this is doing the addition operation on two fixed point
+addition operation on two fixed point numbers you can see some extra logic in
+numbers you can see some extra logic in there to handle overflow if you're
+there to handle overflow if you're building a fixed point math library you
+building a fixed point math library you need to decide are you gonna go as fast
+need to decide are you gonna go as fast as possible and leave it up to the user
+as possible and leave it up to the user of the math
+of the math to deal with edge cases or are you going
+to deal with edge cases or are you going to deal with the edge cases yourself and
+to deal with the edge cases yourself and be diligent about infinity and not a
+be diligent about infinity and not a number and divide by zero and all the
+number and divide by zero and all the rest of it we erred on the side of
+rest of it we erred on the side of handling all the edge cases and later
+handling all the edge cases and later regretted it and wish we've gone for
+regretted it and wish we've gone for pure performance and I think next time
+pure performance and I think next time around what we'd probably do is make all
+around what we'd probably do is make all the the simple math operators be as
+the the simple math operators be as quick as possible and then have slow
+quick as possible and then have slow precise versions of things for the
+precise versions of things for the occasional time when you you actually
+occasional time when you you actually care about infinity I'm also showing a
+care about infinity I'm also showing a conversion operator here the this guy at
+conversion operator here the this guy at the bottom is how you convert from an
+the bottom is how you convert from an integer to a fixed point number using
+integer to a fixed point number using this implicit operator implicit means
+this implicit operator implicit means you don't need a typecast which is how I
+you don't need a typecast which is how I got it to work on the previous page of
+got it to work on the previous page of just saying X equal 42 and so it's going
+just saying X equal 42 and so it's going to take that integer value shift it up
+to take that integer value shift it up into the right range and then give you a
+into the right range and then give you a fixed point number our representation
+fixed point number our representation was 32 32 so we had 32 bits of integer
+was 32 32 so we had 32 bits of integer 32 bits of fraction so the biggest
+32 bits of fraction so the biggest number we could represent was 2 to the
+number we could represent was 2 to the 31 which sounds like a pretty big number
+31 which sounds like a pretty big number but the square root of 2 to the 31 is
+but the square root of 2 to the 31 is 46,000 and if that number sounds
+46,000 and if that number sounds familiar
+familiar we had maps that were so big that the
+we had maps that were so big that the squared distance between two points on
+squared distance between two points on the map was too big a number for our
+the map was too big a number for our fixed point numbers to represent and
+fixed point numbers to represent and that's a problem because in game game
+that's a problem because in game game code you often use squared distances
+code you often use squared distances because why would you do a square root
+because why would you do a square root that's stupid so in this particular case
+that's stupid so in this particular case the fact that we implemented infinity
+the fact that we implemented infinity properly sort of saved us because then
+properly sort of saved us because then you'd always have you know if my weapon
+you'd always have you know if my weapon range is 300 meters and my distance to
+range is 300 meters and my distance to target is infinity then of course 300
+target is infinity then of course 300 meters is less than infinity sorry
+meters is less than infinity sorry 300 squared is less than infinity so
+300 squared is less than infinity so we're golden
+we're golden but yeah we kind of wish we'd done maybe
+but yeah we kind of wish we'd done maybe 48 bits of integer and 16 bits of
+48 bits of integer and 16 bits of fraction and then we could have had way
+fraction and then we could have had way bigger numbers and 16 bits of fractions
+bigger numbers and 16 bits of fractions should still have been plenty
+did it work so if you look at our game on Steam we do windows we do Mac we do
+on Steam we do windows we do Mac we do 32-bit we do 64-bit we do AMD we do
+32-bit we do 64-bit we do AMD we do Intel and we haven't had any reports of
+Intel and we haven't had any reports of people having going out of sync because
+people having going out of sync because of anyway processor architecture which
+of anyway processor architecture which is
+is our EP is particularly proud that we got
+our EP is particularly proud that we got Mac versus PC cross-play working because
+Mac versus PC cross-play working because he used to work at relic and they could
+he used to work at relic and they could never figure that out was it necessary
+never figure that out was it necessary we had very few cases to prove that
+we had very few cases to prove that floating point divergence would have
+floating point divergence would have been an issue but there was one
+been an issue but there was one interesting one that came up where we
+interesting one that came up where we were getting D syncs between 32-bit and
+were getting D syncs between 32-bit and 64-bit systems right at the start of
+64-bit systems right at the start of game and what was going at a sync was
+game and what was going at a sync was the position of a resource point and it
+the position of a resource point and it turned out what had happened was that we
+turned out what had happened was that we we gave the designers a way to place
+we gave the designers a way to place resource points in a scene in unity and
+resource points in a scene in unity and so of course the unity is positioning
+so of course the unity is positioning that as a transform I'm not just a
+that as a transform I'm not just a transform with three numbers in it but a
+transform with three numbers in it but a transform with like eight matrices in it
+transform with like eight matrices in it and for some reason the designers took a
+and for some reason the designers took a whole resource field and rotated it by
+whole resource field and rotated it by like 53 degrees or something so there is
+like 53 degrees or something so there is a non non identity transform down that
+a non non identity transform down that hierarchy and the math that was being
+hierarchy and the math that was being done was coming out different on 32-bit
+done was coming out different on 32-bit systems and 64-bit systems the resource
+systems and 64-bit systems the resource point was landing in a slightly
+point was landing in a slightly different place on the map and then our
+different place on the map and then our check sums were going into sync because
+check sums were going into sync because the the thing wasn't in the same place
+the the thing wasn't in the same place on different games what we ended up
+on different games what we ended up doing about it was kind of doing in a
+doing about it was kind of doing in a cheese ball floating-point quantization
+cheese ball floating-point quantization on the resource point position before we
+on the resource point position before we fed it to the sim and that that worked
+fed it to the sim and that that worked in theory even the quantization could
+in theory even the quantization could have gone wrong depending what exact
+have gone wrong depending what exact floating point numbers we had in
+floating point numbers we had in practice it got us out of the hole what
+practice it got us out of the hole what we would do in future is is position
+we would do in future is is position those things using fixed point numbers
+those things using fixed point numbers in the first place and just give
+in the first place and just give designers a way to edit the fixed point
+designers a way to edit the fixed point numbers in in unity performance how do
+numbers in in unity performance how do we make all this run fast enough our min
+we make all this run fast enough our min spec machine was a relatively modest
+spec machine was a relatively modest 32-bit system with three gigs of RAM
+32-bit system with three gigs of RAM performance was an issue it's not the
+performance was an issue it's not the absolute buttery smooth this experience
+absolute buttery smooth this experience we'd like but we got to a pretty good
+we'd like but we got to a pretty good place a big part of it was using pretty
+place a big part of it was using pretty aggressive level of detail settings for
+aggressive level of detail settings for the presentation layer because
+the presentation layer because presentation doesn't need to be
+presentation doesn't need to be synchronized we can sort of dial it way
+synchronized we can sort of dial it way back and as long as the player still
+back and as long as the player still knows what's going on then it's great
+knows what's going on then it's great and of course you want to be able to let
+and of course you want to be able to let the
+the the hardcore people go up to like 4k or
+the hardcore people go up to like 4k or whatever and try and max out every
+whatever and try and max out every possible system most of this is pretty
+possible system most of this is pretty standard stuff that would be show up in
+standard stuff that would be show up in any game there's a couple interesting
+any game there's a couple interesting ones so the deckle system a game we had
+ones so the deckle system a game we had kind of a budget on how many decals we
+kind of a budget on how many decals we could draw and gave the user setting to
+could draw and gave the user setting to control how many decals to help with
+control how many decals to help with performance there we also had a physics
+performance there we also had a physics option so because our physics is
+option so because our physics is aesthetic we can turn it off and we what
+aesthetic we can turn it off and we what that would mean is the the wheel
+that would mean is the the wheel colliders would get turned off and the
+colliders would get turned off and the vehicles would just kind of be in a
+vehicles would just kind of be in a fixed pose and they sort of slide around
+fixed pose and they sort of slide around we normally use that for the the really
+we normally use that for the the really low LOD ones that are off in the
+low LOD ones that are off in the distance so you really couldn't tell the
+distance so you really couldn't tell the difference but by adjusting this quality
+difference but by adjusting this quality setting you could kind of pull in how
+setting you could kind of pull in how far away that started happening and save
+far away that started happening and save a bunch of work on the the animation
+a bunch of work on the the animation blending and the wheel colliders and
+blending and the wheel colliders and things like that so that helped with
+things like that so that helped with performance of course we tried to make
+performance of course we tried to make everything run as fast as we could so we
+everything run as fast as we could so we I mentioned the terrain chunking system
+I mentioned the terrain chunking system and the culling of the decals and things
+and the culling of the decals and things like that but once we squeezed out all
+like that but once we squeezed out all the performance we could we turn to
+the performance we could we turn to quality settings once talked a bit about
+quality settings once talked a bit about c-sharp as well I'm guessing a lot of
+c-sharp as well I'm guessing a lot of people here are probably C++ programmers
+people here are probably C++ programmers more than c-sharp we think C++ is better
+more than c-sharp we think C++ is better than c-sharp showing hands who thinks
+than c-sharp showing hands who thinks c-sharp is better than C++ okay fight
+c-sharp is better than C++ okay fight all right I know there's a there's some
+all right I know there's a there's some skepticism around c-sharp and rightly so
+skepticism around c-sharp and rightly so by performance I really mean memory
+by performance I really mean memory because that's where we usually found
+because that's where we usually found performance to be an issue with c-sharp
+performance to be an issue with c-sharp and that's mostly what I'm going to
+and that's mostly what I'm going to concentrate on c-sharp uses manage
+concentrate on c-sharp uses manage memory so you can new things to create
+memory so you can new things to create new objects but you can't delete them
+new objects but you can't delete them and all the C++ programmers cringe
+and all the C++ programmers cringe because that just sounds really dirty
+because that just sounds really dirty this the Seafarer programmer is like I
+this the Seafarer programmer is like I don't worry about it'll be fine that's
+don't worry about it'll be fine that's what Microsoft did have you if you
+what Microsoft did have you if you believe this fancy shiny garbage truck
+believe this fancy shiny garbage truck is the dotnet garbage collector he's
+is the dotnet garbage collector he's super high-tech and modern he can do all
+super high-tech and modern he can do all kinds of cool stuff he can collect more
+kinds of cool stuff he can collect more garbage in an hour than you would
+garbage in an hour than you would imagine
+imagine unfortunately unity isn't on an older
+unfortunately unity isn't on an older version of c-sharp and they have an
+version of c-sharp and they have an older garbage collector here's old man
+older garbage collector here's old man Boehm he's going around picking up the
+Boehm he's going around picking up the trash for the week there's a good reason
+trash for the week there's a good reason for that unity has done a lot of custom
+for that unity has done a lot of custom work on
+work on their version of mono because they've
+their version of mono because they've got it running on like 6,000 different
+got it running on like 6,000 different platforms so they're a long way behind
+platforms so they're a long way behind the master branch it's kind of cool that
+the master branch it's kind of cool that they're all github and you can see just
+they're all github and you can see just how far behind they are and how much
+how far behind they are and how much extra work they've done I know they've
+extra work they've done I know they've got plans to kind of upgrade to a newer
+got plans to kind of upgrade to a newer version of mono and bring in the new
+version of mono and bring in the new garbage collector so we can look forward
+garbage collector so we can look forward to that but in the meantime too much
+to that but in the meantime too much garbage is always a bad idea you don't
+garbage is always a bad idea you don't want to do this no matter how good your
+want to do this no matter how good your garbage collector is so what can we do
+garbage collector is so what can we do how can we avoid generating garbage and
+how can we avoid generating garbage and c-sharp an avoid allocating memory and
+c-sharp an avoid allocating memory and therefore help things run faster we
+therefore help things run faster we spend a lot of time with the unity
+spend a lot of time with the unity profiler which has a column showing how
+profiler which has a column showing how much memory is allocated as you're going
+much memory is allocated as you're going through each stage we often found that
+through each stage we often found that the the amount of memory allocated was
+the the amount of memory allocated was very highly correlated with the
+very highly correlated with the performance or lack thereof of a given
+performance or lack thereof of a given system and so we generally got in the
+system and so we generally got in the habit of focusing first on reducing
+habit of focusing first on reducing memory allocations ideally to zero and
+memory allocations ideally to zero and then looking at the the raw performance
+then looking at the the raw performance if there were still things that were too
+if there were still things that were too slow
+slow I think what's probably happening under
+I think what's probably happening under the hood is that the bone garbage
+the hood is that the bone garbage collector is chewing through a bunch of
+collector is chewing through a bunch of memory and then coming back quite a bit
+memory and then coming back quite a bit later to reclaim it and so in the
+later to reclaim it and so in the meantime you're basically killing your
+meantime you're basically killing your cache constantly if you're if you're
+cache constantly if you're if you're allocating new objects so I've got a few
+allocating new objects so I've got a few little c-sharp tips and tricks to kind
+little c-sharp tips and tricks to kind of help with managing memory collection
+of help with managing memory collection capacity if you want a list of things
+capacity if you want a list of things you create a new list of things you add
+you create a new list of things you add some things you add a bunch more things
+some things you add a bunch more things and at some point you're going to
+and at some point you're going to allocate
+allocate beyond you're going to add an item
+beyond you're going to add an item beyond the capacity of that list
+beyond the capacity of that list the default reallocation strategy and
+the default reallocation strategy and net is to take the array that's backing
+net is to take the array that's backing that list allocate a new array that's
+that list allocate a new array that's twice as big and then copy over the old
+twice as big and then copy over the old array into the new array and then drop
+array into the new array and then drop the old array into the garbage collector
+the old array into the garbage collector 16 was my guess I think the default
+16 was my guess I think the default capacity is 16 when you hit 16 it
+capacity is 16 when you hit 16 it doubles to 32 when you go beyond 32 it
+doubles to 32 when you go beyond 32 it doubles to 64 etc so again if it's not
+doubles to 64 etc so again if it's not 16 it might be 10 it might be 8 it
+16 it might be 10 it might be 8 it depends on the implementation but
+depends on the implementation but regardless if you know how many things
+regardless if you know how many things you need ahead of time or you can put an
+you need ahead of time or you can put an upper bound on that you're always better
+upper bound on that you're always better pre allocating it to that size so now I
+pre allocating it to that size so now I can add the 17 things and there
+can add the 17 things and there any allocation you may need to over
+any allocation you may need to over allocate in order to do this but it's
+allocate in order to do this but it's probably worth it because you're better
+probably worth it because you're better off allocating once at your max then
+off allocating once at your max then continuously allocating and reallocating
+continuously allocating and reallocating also consider writing your own
+also consider writing your own collection classes like you could write
+collection classes like you could write a version of list that has a force
+a version of list that has a force capacity and can't exceed it it's
+capacity and can't exceed it it's basically an invalid operation to go
+basically an invalid operation to go over the end of it we did a bunch of
+over the end of it we did a bunch of stuff like that temporary list but often
+stuff like that temporary list but often you find you want a little temporary
+you find you want a little temporary collection of things that you can then
+collection of things that you can then hand off to some method to do stuff on
+hand off to some method to do stuff on those things here's the obvious way to
+those things here's the obvious way to do it and of course you're setting your
+do it and of course you're setting your max capacity because you know better
+max capacity because you know better so you allocate your list you add a
+so you allocate your list you add a bunch of stuff and then you do things
+bunch of stuff and then you do things but you had to allocate a new list and
+but you had to allocate a new list and that's gonna take memory and when you go
+that's gonna take memory and when you go out of scope in this method you're gonna
+out of scope in this method you're gonna drop that list into the garbage
+drop that list into the garbage collector one thing we ended up doing
+collector one thing we ended up doing quite a bit was this kind of dirty trick
+quite a bit was this kind of dirty trick of having static temporary lists that we
+of having static temporary lists that we would add some things to we'd perform
+would add some things to we'd perform the operation on the group of things and
+the operation on the group of things and then we clear the list when we're done
+then we clear the list when we're done with it and leave it for the next method
+with it and leave it for the next method that needs a list of things obviously
+that needs a list of things obviously there's issues if deeper down your call
+there's issues if deeper down your call stack they want to do things with things
+stack they want to do things with things as well and they start reusing your
+as well and they start reusing your temporary lists that you're in the
+temporary lists that you're in the process of using you'll generally get
+process of using you'll generally get like an invalid operation as you attempt
+like an invalid operation as you attempt to iterate the list if you're modifying
+to iterate the list if you're modifying it at the same time so again it's a
+it at the same time so again it's a little bit dirty but it's a way of
+little bit dirty but it's a way of avoiding allocations you get a one time
+avoiding allocations you get a one time allocation instead I put this little
+allocation instead I put this little comment here if you're looking at this
+comment here if you're looking at this line where we clear the list and you're
+line where we clear the list and you're wondering if that reset the capacity we
+wondering if that reset the capacity we said initially you can either test it
+said initially you can either test it and see you can also go look at the
+and see you can also go look at the Microsoft reference source which is a
+Microsoft reference source which is a really handy way of looking at what's
+really handy way of looking at what's going on under the hood and a lot of net
+going on under the hood and a lot of net collections
+collections you could also I guess go on github and
+you could also I guess go on github and look at mono cuz that's probably what
+look at mono cuz that's probably what you're actually running anyway having
+you're actually running anyway having having source to the dotnet framework is
+having source to the dotnet framework is pretty cool and helps you learn some
+pretty cool and helps you learn some stuff and is really good for educating
+stuff and is really good for educating yourself on how to build your own
+yourself on how to build your own collections object pools so instead of
+collections object pools so instead of allocating and freeing objects all the
+allocating and freeing objects all the time just pre allocate a bunch of them
+time just pre allocate a bunch of them and reuse them super-important in unity
+and reuse them super-important in unity if anyone's a unity developer you're
+if anyone's a unity developer you're probably well aware instantiating a
+probably well aware instantiating a prefab has a bunch of costs to it as
+prefab has a bunch of costs to it as unity creates those objects and gets
+unity creates those objects and gets some bounty and
+some bounty and into the engine if you instead just pre
+into the engine if you instead just pre instantiate an instance of that prefab
+instantiate an instance of that prefab and then disable it and then enable it
+and then disable it and then enable it when you want to use it that's much
+when you want to use it that's much better
+better but you can use this concept for other
+but you can use this concept for other c-sharp object types as well it doesn't
+c-sharp object types as well it doesn't it's not nothing new to be specific
+it's not nothing new to be specific about it just make sure to clean stuff
+about it just make sure to clean stuff up before you put them back in the pool
+up before you put them back in the pool here's a quick little framework of what
+here's a quick little framework of what an object pool might look like so you
+an object pool might look like so you have a couple lists you pre allocate
+have a couple lists you pre allocate them to a max capacity one list is
+them to a max capacity one list is what's available one list is what's in
+what's available one list is what's in use and you give an API for reserving
+use and you give an API for reserving objects and returning them to the pool
+objects and returning them to the pool and I mean this is just bare-bones you
+and I mean this is just bare-bones you may need like some extra stuff around
+may need like some extra stuff around you know predefined callbacks um on what
+you know predefined callbacks um on what to do at cleanup time on those objects
+to do at cleanup time on those objects and stuff but it gives you an idea of
+and stuff but it gives you an idea of how this how this might look this line
+how this how this might look this line of code has a bunch of problems how many
+of code has a bunch of problems how many objects are being allocated here here's
+objects are being allocated here here's the API so string dot format takes a
+the API so string dot format takes a format string and then an open-ended
+format string and then an open-ended list of parameters there's actually one
+list of parameters there's actually one allocation to box X X is an integer but
+allocation to box X X is an integer but string dot for Matt wants objects in.net
+string dot for Matt wants objects in.net everything is an object except you got
+everything is an object except you got to be careful because any value type
+to be careful because any value type which is to say primitives like integers
+which is to say primitives like integers and floats or any struct in order to
+and floats or any struct in order to treat it as an object you need to take
+treat it as an object you need to take it off the stack allocate a little blob
+it off the stack allocate a little blob of space in the heap create a pointer to
+of space in the heap create a pointer to point to it so that you now have a
+point to it so that you now have a reference type you can deal with and
+reference type you can deal with and that pointer is now the reference you
+that pointer is now the reference you can pass into an API that wants an
+can pass into an API that wants an object so you had to take that X that
+object so you had to take that X that was sitting on the stack allocate four
+was sitting on the stack allocate four bytes of memory off the heap copy the 42
+bytes of memory off the heap copy the 42 into it and then take that as a
+into it and then take that as a reference and pass it into string dot
+reference and pass it into string dot format there's another allocation for
+format there's another allocation for the params object array it's a temporary
+the params object array it's a temporary array that if you look at the you can
+array that if you look at the you can disassemble dotnet code really easily so
+disassemble dotnet code really easily so you can look at I'll spy or something
+you can look at I'll spy or something like that and see what's going on and
+like that and see what's going on and you'll see that temporary allocation of
+you'll see that temporary allocation of an array copying of the object reference
+an array copying of the object reference into the array and then passing the
+into the array and then passing the array to the to the API there's going to
+array to the to the API there's going to be another allocation because under the
+be another allocation because under the hood string dot format is going to call
+hood string dot format is going to call to string on X so that's going to
+to string on X so that's going to allocate a temporary string
+allocate a temporary string the string 42 and of course you're
+the string 42 and of course you're making a new string so you're gonna have
+making a new string so you're gonna have to to allocate that as well with unsafe
+to to allocate that as well with unsafe code you can do some fancy stuff with
+code you can do some fancy stuff with string cooling but it's tricky to get it
+string cooling but it's tricky to get it to work right so mostly just be careful
+to work right so mostly just be careful with strings this is a little bit better
+with strings this is a little bit better so instead of using string dot format if
+so instead of using string dot format if you're just doing something simply you
+you're just doing something simply you could just concatenate strings instead
+could just concatenate strings instead and if you call to string yourself then
+and if you call to string yourself then there's no need to box X because the
+there's no need to box X because the compiler knows that you're calling to
+compiler knows that you're calling to string on a value type so it can just go
+string on a value type so it can just go ahead and do the right thing you're
+ahead and do the right thing you're still going to call X dot to string and
+still going to call X dot to string and allocate that temporary string and then
+allocate that temporary string and then create the new string s but it's a lot
+create the new string s but it's a lot better than the previous slide so I
+better than the previous slide so I mentioned boxing there's a number of
+mentioned boxing there's a number of things you can do to avoid boxing here's
+things you can do to avoid boxing here's the sort of canonical example you've
+the sort of canonical example you've declared a value type you've got a
+declared a value type you've got a structure it's gonna be a value type
+structure it's gonna be a value type sitting generally on the stack but when
+sitting generally on the stack but when you pass it to an API that wants an
+you pass it to an API that wants an object you need to do the boxing
+object you need to do the boxing operation allocated on the heap copy it
+operation allocated on the heap copy it get the reference past the reference to
+get the reference past the reference to the to the API so this will be boxing
+the to the API so this will be boxing here so you think okay no problem maybe
+here so you think okay no problem maybe I'll if I use an interface that'll be
+I'll if I use an interface that'll be cleaner and objects they're kind of
+cleaner and objects they're kind of dirty anyway it's like void star so I'm
+dirty anyway it's like void star so I'm going to declare an interface that has a
+going to declare an interface that has a size getter and a name getter I'm gonna
+size getter and a name getter I'm gonna have my struct implement the interface
+have my struct implement the interface which is fine stroke scan implement
+which is fine stroke scan implement interfaces no problem there I'm gonna
+interfaces no problem there I'm gonna change my API to take an eye thing but
+change my API to take an eye thing but it still boxes because I think when the
+it still boxes because I think when the compiler is compiling that method do the
+compiler is compiling that method do the thing it doesn't know that I think is
+thing it doesn't know that I think is going to be a struct thing so it's going
+going to be a struct thing so it's going to assume that it's a reference type and
+to assume that it's a reference type and treated accordingly and you're
+treated accordingly and you're effectively gonna have to box your
+effectively gonna have to box your struct in order to call that API there
+struct in order to call that API there is an escape hatch though if you do this
+is an escape hatch though if you do this you can use generics and say that you're
+you can use generics and say that you're going to do the thing on a thing of type
+going to do the thing on a thing of type T where that type implements the
+T where that type implements the interface you want so because you've put
+interface you want so because you've put the where constraint on there the code
+the where constraint on there the code in the do the thing method can treat it
+in the do the thing method can treat it as an i thing and the API will work and
+as an i thing and the API will work and because you've used the generic when the
+because you've used the generic when the compiler compiles the call to do the
+compiler compiles the call to do the thing with a struct thing it knows that
+thing with a struct thing it knows that you need to be able to handle that
+you need to be able to handle that particular value type and it will emit
+particular value type and it will emit code to handle struct things in the do
+code to handle struct things in the do the thing call so you're trading off
+the thing call so you're trading off you're generating a bit more code but
+you're generating a bit more code but it's probably not that much and you're
+it's probably not that much and you're not having to box your struct things in
+not having to box your struct things in order to pass them to the API
+enumerators get some special treatment CTR programmers like to say for each
+CTR programmers like to say for each thing and things do a bunch of stuff on
+thing and things do a bunch of stuff on the thing
+the thing how many allocations to do it for each
+how many allocations to do it for each in this case we're allocating over a
+in this case we're allocating over a custom collection type so the answer is
+custom collection type so the answer is it depends how did my collection
+it depends how did my collection implement ienumerable
+implement ienumerable here's sort of the standard way you
+here's sort of the standard way you might have a private class that
+might have a private class that implements your enumerator you've got
+implements your enumerator you've got your getenumerator method that's
+your getenumerator method that's satisfying the the ienumerable interface
+satisfying the the ienumerable interface and you're just returning a new instance
+and you're just returning a new instance of that enumerator however we back up so
+of that enumerator however we back up so here you've allocated a new class so
+here you've allocated a new class so clearly you're allocating every time you
+clearly you're allocating every time you do it for each you're gonna allocate so
+do it for each you're gonna allocate so you're thinking okay I don't to do that
+you're thinking okay I don't to do that what if I make my enumerator a struct
+what if I make my enumerator a struct then it's a value type and it won't get
+then it's a value type and it won't get allocated that's fine but you're going
+allocated that's fine but you're going to box when you return it as an
+to box when you return it as an interface because of the reasons we just
+interface because of the reasons we just talked about what you can do instead is
+talked about what you can do instead is have a method called get enumerator that
+have a method called get enumerator that returns a my enumerator that is a struct
+returns a my enumerator that is a struct and this doesn't directly satisfy
+and this doesn't directly satisfy ienumerable so you're gonna need a
+ienumerable so you're gonna need a couple other overloads to keep that guy
+couple other overloads to keep that guy happy and make the compiler compile your
+happy and make the compiler compile your code but there's a technique called duck
+code but there's a technique called duck typing which is an optimization in the
+typing which is an optimization in the c-sharp compiler where when they're
+c-sharp compiler where when they're compiling up for each they'll look at
+compiling up for each they'll look at the thing you're iterating over and if
+the thing you're iterating over and if it looks like it enumerable and it
+it looks like it enumerable and it quacks like it enumerable then by God it
+quacks like it enumerable then by God it must be an enumerable and we'll let you
+must be an enumerable and we'll let you enumerate it so that they'll recognize
+enumerate it so that they'll recognize that there's a an optimization they can
+that there's a an optimization they can take they can grab the struct enumerator
+take they can grab the struct enumerator and iterate over that and avoid the
+and iterate over that and avoid the boxing unfortunately if your collection
+boxing unfortunately if your collection if you've declared your collection by
+if you've declared your collection by the interface the compiler no longer
+the interface the compiler no longer knows that you're iterating over this
+knows that you're iterating over this custom type that has that custom
+custom type that has that custom enumerator and it can't duck type
+enumerator and it can't duck type anymore which makes you sad I'm gonna
+anymore which makes you sad I'm gonna give a super quick look at our entity
+give a super quick look at our entity component system and this is gonna be
+component system and this is gonna be unsatisfying Lee brief and it probably
+unsatisfying Lee brief and it probably deserves the talk of its own
+deserves the talk of its own but there were couple talks earlier in
+but there were couple talks earlier in the week that mentioned any components
+the week that mentioned any components so I wanted to mention it as well
+so I wanted to mention it as well and it also puts together a lot of the
+and it also puts together a lot of the the c-sharp lessons I've just been
+the c-sharp lessons I've just been talking about
+talking about so our entity component system we used
+so our entity component system we used it in the simulation layer it's somewhat
+it in the simulation layer it's somewhat analogous to game objects and components
+analogous to game objects and components in unity so it's kind of like Unity game
+in unity so it's kind of like Unity game objects of components or the
+objects of components or the presentation equivalent of the entity
+presentation equivalent of the entity component system but in the game we're
+component system but in the game we're not using unity so we can't do that we
+not using unity so we can't do that we also have the we do it a bit more I
+also have the we do it a bit more I guess purely so entity component system
+guess purely so entity component system rather than having update methods on
+rather than having update methods on components we leave the state in the
+components we leave the state in the components we pull the behavior into
+components we pull the behavior into processors and we run processors over
+processors and we run processors over entities that meet constraints so this
+entities that meet constraints so this is a genuine bit of code out of our code
+is a genuine bit of code out of our code base where we we query the entity system
+base where we we query the entity system to get all the components that have the
+to get all the components that have the position component that have a mover
+position component that have a mover component that do not have the mobile a
+component that do not have the mobile a mobile component which might have been
+mobile component which might have been they may have been stunned by an attack
+they may have been stunned by an attack or something do not have the DEF
+or something do not have the DEF component because we had a bunch of pain
+component because we had a bunch of pain around making units die and we had to
+around making units die and we had to throw a component on there at some point
+throw a component on there at some point in there to avoid a bunch of other
+in there to avoid a bunch of other processing for all the all the entities
+processing for all the all the entities that satisfy those those those
+that satisfy those those those constraints do the movement process
+constraints do the movement process which looks something like this so we
+which looks something like this so we have a static class for the movement
+have a static class for the movement processor it's got no internal state
+processor it's got no internal state it's got a static method that processes
+it's got a static method that processes entities and that method can get
+entities and that method can get components off the entity and do stuff
+components off the entity and do stuff with those components so this is kind of
+with those components so this is kind of the flavor of what it looks like how
+the flavor of what it looks like how it's implemented our entities are
+it's implemented our entities are structs and they basically just wrap an
+structs and they basically just wrap an ID all they really are is an index into
+ID all they really are is an index into some bookkeeping data in the entity
+some bookkeeping data in the entity system basically this stuff here so
+system basically this stuff here so we've got this struct collection was a
+we've got this struct collection was a thing we wrote that allows you to add
+thing we wrote that allows you to add and remove structs from an array without
+and remove structs from an array without actually moving anything around and
+actually moving anything around and keeping track of what's free and what's
+keeping track of what's free and what's not free so we had custom collections
+not free so we had custom collections and their custom iterators etc etc we
+and their custom iterators etc etc we pre allocate to the max number of
+pre allocate to the max number of entities in the system which I think we
+entities in the system which I think we shipped with five thousand was our max I
+shipped with five thousand was our max I don't know what we actually had anyway
+don't know what we actually had anyway probably several thousand what else the
+probably several thousand what else the the entity query is also a struct to
+the entity query is also a struct to avoid allocating and it does this duck
+avoid allocating and it does this duck typing friendly struct enumerator
+typing friendly struct enumerator that I talked about and all the pieces
+that I talked about and all the pieces kind of come together that the the basic
+kind of come together that the the basic plumbing of the entity system once
+plumbing of the entity system once you've initialized it there's basically
+you've initialized it there's basically no additional allocations required to
+no additional allocations required to use the entity system other than what
+use the entity system other than what you might be doing yourself in terms of
+you might be doing yourself in terms of you know whether or not you pulled
+you know whether or not you pulled components and that kind of thing but
+components and that kind of thing but the core of the system itself is is
+the core of the system itself is is pretty tight and doesn't allocate memory
+pretty tight and doesn't allocate memory it's also pretty quick we we end up
+it's also pretty quick we we end up iterating through the entire entity
+iterating through the entire entity system probably a couple dozen times per
+system probably a couple dozen times per frame which we always thought would be a
+frame which we always thought would be a problem we'd have to come back to but it
+problem we'd have to come back to but it kind of worked out huh so much code all
+kind of worked out huh so much code all right so in summary just a few quick key
+right so in summary just a few quick key takeaways some people sort of criticize
+takeaways some people sort of criticize unity games for looking a little bit the
+unity games for looking a little bit the same I think that's that's unfair
+same I think that's that's unfair criticism I think really it's up to all
+criticism I think really it's up to all of us as creatives to kind of take the
+of us as creatives to kind of take the engine we're working with and make
+engine we're working with and make things look amazing and I think unity is
+things look amazing and I think unity is just as capable of other engines as
+just as capable of other engines as doing awesome stuff if you've got the
+doing awesome stuff if you've got the right content and the right shaders and
+right content and the right shaders and the right techniques to really push it
+the right techniques to really push it to the limit deterministic simulation I
+to the limit deterministic simulation I know there have been some experiments to
+know there have been some experiments to actually state sharing from an
+actually state sharing from an authoritative server but we concluded
+authoritative server but we concluded that deterministic sim is still kind of
+that deterministic sim is still kind of state-of-the-art for RTS multiplayer and
+state-of-the-art for RTS multiplayer and the best way to do things there's some
+the best way to do things there's some challenges there around anti-cheat
+challenges there around anti-cheat because if you're you're effectively
+because if you're you're effectively trusting all the clients and so we're
+trusting all the clients and so we're thinking about ways of kind of maybe we
+thinking about ways of kind of maybe we run some of the simulation on a server
+run some of the simulation on a server and leave most of it on the client
+and leave most of it on the client haven't quite cracked that yet and I
+haven't quite cracked that yet and I think C sharp is pretty much ready for a
+think C sharp is pretty much ready for a triple a game development it's
+triple a game development it's definitely taking the world by storm and
+definitely taking the world by storm and mobile development I think it's now got
+mobile development I think it's now got a place on console and PC as well there
+a place on console and PC as well there may be some diehard C++ programmers in
+may be some diehard C++ programmers in the room and you're free to disagree
+the room and you're free to disagree with me C++ clearly has this place too
+with me C++ clearly has this place too but C sharp is actually getting to a
+but C sharp is actually getting to a pretty good spot and you can do some
+pretty good spot and you can do some pretty neat stuff with it so thanks to
+pretty neat stuff with it so thanks to everyone at Blackbird I certainly didn't
+everyone at Blackbird I certainly didn't do all this myself there were ton of
+do all this myself there were ton of people involved in making it all happen
+people involved in making it all happen thanks to gearbox for supporting us in
+thanks to gearbox for supporting us in our development the people we referenced
+our development the people we referenced and other people we didn't whose
+and other people we didn't whose techniques we took and built upon and
+techniques we took and built upon and thanks to you guys for coming on a
+thanks to you guys for coming on a Friday afternoon and watching
+so we're just about out of time but I think hope we can take a couple
+think hope we can take a couple questions yeah go ahead insuring the
+questions yeah go ahead insuring the same state on different clients with a
+same state on different clients with a transmitted curves over the net and then
+we did consider it and when I showed you the the way we compute curves across
+the the way we compute curves across waypoints we basically have a sort of an
+waypoints we basically have a sort of an analytic solution for where units are
+analytic solution for where units are going to be in the future so in theory
+going to be in the future so in theory we could take that set of curves pass it
+we could take that set of curves pass it off to the presentation layer and let it
+off to the presentation layer and let it just interpolate its way along there the
+just interpolate its way along there the biggest problem we found with that was
+biggest problem we found with that was not that that didn't work it did but
+not that that didn't work it did but when units got into close proximity and
+when units got into close proximity and high combat the their immediate
+high combat the their immediate short-term goals were changing so
+short-term goals were changing so rapidly that we were constantly sending
+rapidly that we were constantly sending new curve data and so we weren't getting
+new curve data and so we weren't getting the optimization we would have liked out
+the optimization we would have liked out of it I definitely like to know more
+of it I definitely like to know more about how planetary annihilation did all
+about how planetary annihilation did all their stuff under the hood because I
+their stuff under the hood because I think they're they're the ones who come
+think they're they're the ones who come closest to doing what I've just said
+closest to doing what I've just said isn't the best way to do it okay cool
+isn't the best way to do it okay cool yeah I'll check it out sorry for what -
+for the for the simulation to diverge because of oh it wouldn't cause
+because of oh it wouldn't cause divergence it would cause like basically
+divergence it would cause like basically we've got the the simulations right on
+we've got the the simulations right on the presentation thread running
+the presentation thread running independently and so the if the
+independently and so the if the simulation doesn't meet its deadline it
+simulation doesn't meet its deadline it it's bad but it doesn't really matter
+it's bad but it doesn't really matter basically we can catch up so if a if one
+basically we can catch up so if a if one tick of the sim takes twice as long as
+tick of the sim takes twice as long as it should as long as on average we're
+it should as long as on average we're under the deadline we'll be able to
+under the deadline we'll be able to catch up again and the commands will
+catch up again and the commands will just queue up in the meantime and then
+just queue up in the meantime and then we'll kind of grab them quickly and
+we'll kind of grab them quickly and catch up we did have some problems where
+catch up we did have some problems where a prolonged period of being too slow
+a prolonged period of being too slow would then accumulate a lot of commands
+would then accumulate a lot of commands and then you get this like weird little
+and then you get this like weird little like racy thing happening
+like racy thing happening we're units would slow down and then
+we're units would slow down and then they suddenly speed up again so
+they suddenly speed up again so definitely don't want to be missing your
+definitely don't want to be missing your deadline too much but if you miss every
+deadline too much but if you miss every now and then it's it's not the end of
+now and then it's it's not the end of the world any other questions okay
+the world any other questions okay thanks guys
+thanks guys [Applause]

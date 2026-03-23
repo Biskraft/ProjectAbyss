@@ -1,0 +1,1076 @@
+[Music] [Applause]
+[Applause] hello and
+hello and welcome to control lessons in procedural
+welcome to control lessons in procedural destruction
+destruction my name is johannes victor i'm principal
+my name is johannes victor i'm principal the effects artist at remedy
+the effects artist at remedy i used to work in film as a fact
+i used to work in film as a fact supervisor and artist for more than 10
+supervisor and artist for more than 10 years
+years and i have moved into games um in 2019
+and i have moved into games um in 2019 now i don't really have to introduce
+now i don't really have to introduce remedy because it's quite well known
+remedy because it's quite well known already but for the ones who don't we
+already but for the ones who don't we are based in
+are based in espo in finland that would be up there
+espo in finland that would be up there and uh remedy has been known
+and uh remedy has been known for over 20 years for iconic uh
+for over 20 years for iconic uh narrative driven action
+narrative driven action so max payne would be a thing max payne
+so max payne would be a thing max payne too will and wait quantum break and of
+too will and wait quantum break and of course not at least
+course not at least most recently control um
+most recently control um introducing control uh control is a
+introducing control uh control is a supernatural third person action
+supernatural third person action adventure and
+adventure and you play as jesse faden director of the
+you play as jesse faden director of the federal bureau of control
+federal bureau of control which you suddenly become right at the
+which you suddenly become right at the beginning of the game
+beginning of the game and you take over this government agency
+and you take over this government agency that is investigating that
+that is investigating that supernatural the agenda for my talk
+supernatural the agenda for my talk today
+today is uh well i'm going to talk about the
+is uh well i'm going to talk about the mission the challenge that we have put
+mission the challenge that we have put out
+out uh and i'm going to introduce sort of
+uh and i'm going to introduce sort of our core principle for a lot of the
+our core principle for a lot of the effects that we've been doing uh on
+effects that we've been doing uh on controls or the principle of granularity
+controls or the principle of granularity i'm going to talk about workflow and
+i'm going to talk about workflow and implementation and then
+implementation and then highlight some lessons learned and a
+highlight some lessons learned and a little bit of an outlook
+little bit of an outlook on things that we probably would like to
+on things that we probably would like to do better in the future
+do better in the future and to start here a little destruction
+and to start here a little destruction background breakdown of control
+[Music] to the challenges that we faced uh a lot
+to the challenges that we faced uh a lot of the mission statement was about
+of the mission statement was about the location so the whole game plays
+the location so the whole game plays inside this government agency's building
+inside this government agency's building which is a bit of a supernatural
+which is a bit of a supernatural building so they're both the walls are
+building so they're both the walls are moving and everything is
+moving and everything is a little bit different than uh than what
+a little bit different than uh than what you expect and it's almost a character
+you expect and it's almost a character in itself
+in itself and um it's key it's sort of it's very
+and um it's key it's sort of it's very well it's the brutalist architecture
+well it's the brutalist architecture it's very suitable for government
+it's very suitable for government building
+building um and another key was the believability
+um and another key was the believability because it's a government agency that
+because it's a government agency that thousands of agents all about and it had
+thousands of agents all about and it had to feel like a place
+to feel like a place that was sort of inhabited by so many
+that was sort of inhabited by so many agents that go
+agents that go you know about the day-to-day work they
+you know about the day-to-day work they have telephones and coffee mugs
+have telephones and coffee mugs and their copy machines and they have
+and their copy machines and they have their desks in their places where they
+their desks in their places where they are in the different departments
+are in the different departments and that was quite crucial to sell that
+and that was quite crucial to sell that and to tell that
+and to tell that uh story of that place um the lighting
+uh story of that place um the lighting had
+had um a very cinematic look to it and that
+um a very cinematic look to it and that was the desired style
+was the desired style control is very big in the whole rtx ray
+control is very big in the whole rtx ray tracing
+tracing um and uh well obviously the lighting
+um and uh well obviously the lighting educator for that and had to be
+educator for that and had to be quite cinematic and uh well brutalism is
+quite cinematic and uh well brutalism is all about
+all about exposed materials so you have that
+exposed materials so you have that boarded concrete you have lots of wooden
+boarded concrete you have lots of wooden glass and you know the sort of very
+glass and you know the sort of very suitable agency
+suitable agency building kind of style now obviously uh
+building kind of style now obviously uh when we talk about destruction we talk
+when we talk about destruction we talk about the haptics
+about the haptics so we wanted to sell a rich reactive
+so we wanted to sell a rich reactive environment conveying the sense of being
+environment conveying the sense of being able to consistently
+able to consistently interact with anything inside and
+interact with anything inside and um obviously limitations uh are another
+um obviously limitations uh are another challenge because
+challenge because you know we have target platforms we
+you know we have target platforms we have to hit so we were after realistic
+have to hit so we were after realistic rewarding physical impact
+rewarding physical impact and we were no go wild create havoc
+and we were no go wild create havoc wherever you go but please don't do that
+wherever you go but please don't do that all too much
+all too much because obviously there's performance
+because obviously there's performance and memory that we have to hit and the
+and memory that we have to hit and the ai requirements
+ai requirements and um while we're a very very small
+and um while we're a very very small team to achieve all that
+team to achieve all that there's sort of an overarching um
+there's sort of an overarching um principle
+principle that i just coined the principle of
+that i just coined the principle of granularity and that is really
+granularity and that is really that uh we decide to represent every
+that uh we decide to represent every level of natural detail and every effect
+level of natural detail and every effect that you create and it's actually not a
+that you create and it's actually not a thing that's specific to what we did in
+thing that's specific to what we did in control
+control um this is also a very very common
+um this is also a very very common principle for any of the effects work
+principle for any of the effects work for film
+for film and you try to sort of capture nature
+and you try to sort of capture nature because nature isn't quantified
+because nature isn't quantified nature is sort of a continuum from very
+nature is sort of a continuum from very big objects
+big objects down to dust and very very thin veils of
+down to dust and very very thin veils of smoke and those kind of things and all
+smoke and those kind of things and all that
+that you always want to encapsulate to create
+you always want to encapsulate to create this richness
+this richness this rich gradient across all those
+this rich gradient across all those different um
+different um scales to it now if you look at that how
+scales to it now if you look at that how to do this in a game engine
+to do this in a game engine uh we're looking at an overlapping
+uh we're looking at an overlapping representation in three different layers
+representation in three different layers and the first one is well you can do
+and the first one is well you can do rigid body simulations you have chunks
+rigid body simulations you have chunks and parts of props and props and
+and parts of props and props and environments
+environments and all that is rbds and the
+and all that is rbds and the environments are you know like a big
+environments are you know like a big static kind of mesh you can collide with
+static kind of mesh you can collide with and objects are like chairs or tables
+and objects are like chairs or tables and then you've got to start maybe
+and then you've got to start maybe representing them with something else
+representing them with something else because the smaller you get the more of
+because the smaller you get the more of them you will have on screen so you know
+them you will have on screen so you know looking at something like
+looking at something like mesh particles or rigid body hierarchies
+mesh particles or rigid body hierarchies or material decals even is to sort of
+or material decals even is to sort of sell
+sell a certain material richness on those
+a certain material richness on those layers
+layers so we're now moving you know from
+so we're now moving you know from objects to chunks and almost into the
+objects to chunks and almost into the debris already and then the last layer
+debris already and then the last layer actually is pure particles particle
+actually is pure particles particle sprite mass particles
+sprite mass particles for ember spark smoke fire splinters
+for ember spark smoke fire splinters gravel sand all that kind of stuff
+gravel sand all that kind of stuff that plays a big role when filling
+that plays a big role when filling filling all that kind of gradient
+filling all that kind of gradient now for control i chose this sort of
+now for control i chose this sort of particular angle
+particular angle inside our research sector um and
+inside our research sector um and to sort of demonstrate the the different
+to sort of demonstrate the the different aspects of this gradient how we
+aspects of this gradient how we fulfilled it or how we filled it
+fulfilled it or how we filled it in in our vfx work and now what you're
+in in our vfx work and now what you're looking at here is the static
+looking at here is the static environment this is like all the stuff
+environment this is like all the stuff that can't actually move
+that can't actually move and um it looks like okay cool you know
+and um it looks like okay cool you know it's a bit empty and a bit fast
+it's a bit empty and a bit fast and then there's sort of another layer
+and then there's sort of another layer and it's a bit underrepresented in this
+and it's a bit underrepresented in this particular angle but you see like that
+particular angle but you see like that the railings have been added for example
+the railings have been added for example and
+and this would be sort of concrete parts of
+this would be sort of concrete parts of your environment that you sort of can
+your environment that you sort of can interact with and you actually see
+interact with and you actually see actually not all that much it's quite
+actually not all that much it's quite surprising
+surprising and then the big difference comes in
+and then the big difference comes in when you start adding all the props
+when you start adding all the props um and really for that kind of part it
+um and really for that kind of part it just shows
+just shows the richness the game had to sort of
+the richness the game had to sort of have in terms of like filling everything
+have in terms of like filling everything with bits that you can actually interact
+with bits that you can actually interact with and move
+with and move which are the props and all those kind
+which are the props and all those kind of additional items
+of additional items that can be placed and kudos to our
+that can be placed and kudos to our environments team they've done a
+environments team they've done a marvelous job to sell
+marvelous job to sell uh sort of the richness of the place by
+uh sort of the richness of the place by using all those kind of elements
+using all those kind of elements and um for our workflow it is actually
+and um for our workflow it is actually quite a standard thing how you would
+quite a standard thing how you would expect it you have an environment build
+expect it you have an environment build you have
+you have environment artists that sort of provide
+environment artists that sort of provide level geometry modules kits and props
+level geometry modules kits and props and then
+and then that goes into the effects department
+that goes into the effects department for destruction setup and we had a lot
+for destruction setup and we had a lot of systemic setups at proper x and
+of systemic setups at proper x and also there was cinematic animation for
+also there was cinematic animation for specific aspects of what we were doing
+specific aspects of what we were doing and that then goes into northlight which
+and that then goes into northlight which is our in-house
+is our in-house engine where everything is sort of
+engine where everything is sort of running on and
+running on and but we had to choose a certain approach
+but we had to choose a certain approach to this and we went procedural
+to this and we went procedural and like what does it mean what does
+and like what does it mean what does procedural mean everyone says talks
+procedural mean everyone says talks about it all the time what does it mean
+about it all the time what does it mean it's a rule-based processing and
+it's a rule-based processing and interpretation of real data
+interpretation of real data that's really all it is you get some
+that's really all it is you get some data you have some rules you apply the
+data you have some rules you apply the rules and change the data that's sort of
+rules and change the data that's sort of the
+the uh the key of this and how that looked
+uh the key of this and how that looked like for us
+like for us and for this kind of environment process
+and for this kind of environment process well we got the art models in the world
+well we got the art models in the world and that was our data and the data was
+and that was our data and the data was actually amended or augmented with a bit
+actually amended or augmented with a bit of extra stuff
+of extra stuff extra metadata that basically told us
+extra metadata that basically told us what everything is made of so we could
+what everything is made of so we could say hey those cushions are fabric and
+say hey those cushions are fabric and that
+that concrete is well concrete and the plant
+concrete is well concrete and the plant is made out of plant and
+is made out of plant and once you know that for an object then
+once you know that for an object then you can start actually applying rules on
+you can start actually applying rules on those based on
+those based on what those objects are made of so you
+what those objects are made of so you could say well grass spawns bits of
+could say well grass spawns bits of leaves when you shoot it or concrete
+leaves when you shoot it or concrete breaks into sort of smaller concrete
+breaks into sort of smaller concrete bits when you shoot it
+bits when you shoot it and spawns dust and you shoot a metal
+and spawns dust and you shoot a metal pipe it spawns like a water that drips
+pipe it spawns like a water that drips out of the hole and then you add like a
+out of the hole and then you add like a bend decal you sort of sell a little bit
+bend decal you sort of sell a little bit of a
+of a deformation on there and you have a
+deformation on there and you have a finite set of rules that sort of
+finite set of rules that sort of encapsulates
+encapsulates um that whole process and sort of make
+um that whole process and sort of make sure that everything sort of has a
+sure that everything sort of has a reaction
+reaction to whatever can happen in the world and
+to whatever can happen in the world and then that is fed into the engine
+then that is fed into the engine um and then they impact vfx and breaking
+um and then they impact vfx and breaking the effects and rigid body behavior that
+the effects and rigid body behavior that is sort of driven by the material
+is sort of driven by the material and that sort of creates that
+and that sort of creates that interactable environment
+interactable environment now why would you do that why would you
+now why would you do that why would you go procedural because setting all that
+go procedural because setting all that up is a little bit
+up is a little bit uh more difficult a little bit harder
+uh more difficult a little bit harder than just sort of kind of doing it
+than just sort of kind of doing it but the thing is you need a consistent
+but the thing is you need a consistent and fast turnaround and we also needed a
+and fast turnaround and we also needed a predictable behavior within very clear
+predictable behavior within very clear defined matrix
+defined matrix metrics so we needed to know like how
+metrics so we needed to know like how many things uh something can break into
+many things uh something can break into etc
+etc and uh we had hundreds of assets and
+and uh we had hundreds of assets and variations
+variations so at the top in that top image you kind
+so at the top in that top image you kind of see like all kinds of building blocks
+of see like all kinds of building blocks that make out
+that make out rooms and walls and pillars and concrete
+rooms and walls and pillars and concrete railings and all that kind of stuff and
+railings and all that kind of stuff and all the
+all the lots of astroplane things in there and
+lots of astroplane things in there and at the bottom you see a
+at the bottom you see a selection of props which is like desks
+selection of props which is like desks and toilet cubicles and
+and toilet cubicles and walls and dividers and planters and
+walls and dividers and planters and plants and computers and telephones and
+plants and computers and telephones and all that kind of stuff
+all that kind of stuff and we had so much of them but we only
+and we had so much of them but we only had a team for well you could see on
+had a team for well you could see on average one to three people
+average one to three people actually working on all of that so we
+actually working on all of that so we needed something that we could just
+needed something that we could just unleash on certain things that come
+unleash on certain things that come through the pipe and when they attacked
+through the pipe and when they attacked in a certain way something specific
+in a certain way something specific would happen to them that we have
+would happen to them that we have predetermined
+predetermined but he couldn't do it per item because
+but he couldn't do it per item because it was just not possible
+it was just not possible and it doesn't scale so if you look at
+and it doesn't scale so if you look at the material driven behavior now
+the material driven behavior now what you would want to do is on the left
+what you would want to do is on the left you see the concrete you know you should
+you see the concrete you know you should concrete concrete stuff happens and you
+concrete concrete stuff happens and you um look at the middle and that's sort of
+um look at the middle and that's sort of like wood uh
+like wood uh wood when you shoot wood it breaks into
+wood when you shoot wood it breaks into chunks so it breaks into those the
+chunks so it breaks into those the splinter pieces and then they're like
+splinter pieces and then they're like splinters on the floor and on the right
+splinters on the floor and on the right you see what happens when you shoot
+you see what happens when you shoot glass and that's sort of like three
+glass and that's sort of like three different
+different uh uh materials are demonstrated here
+uh uh materials are demonstrated here uh so the material-based interactions on
+uh so the material-based interactions on dynamic objects and then you see the
+dynamic objects and then you see the particles and decals sort of reacting
+particles and decals sort of reacting also to what the material is and i'm
+also to what the material is and i'm going to go a little bit more into
+going to go a little bit more into detail on this
+detail on this so the first part of this is the
+so the first part of this is the geometry layer um we
+geometry layer um we are looking at a piece of railing here
+are looking at a piece of railing here and it's made out of concrete at the
+and it's made out of concrete at the bottom and then a bit of metal in the
+bottom and then a bit of metal in the middle and then there's
+middle and then there's a wood on top and from the left to right
+a wood on top and from the left to right it's sort of you see a hierarchy
+it's sort of you see a hierarchy of how that stuff breaks um so you see
+of how that stuff breaks um so you see level a
+level a that is sort of broken up the concrete
+that is sort of broken up the concrete it doesn't have decals on it because you
+it doesn't have decals on it because you don't want to see
+don't want to see all the cracks when you break an object
+all the cracks when you break an object and then you see the wood is sort of
+and then you see the wood is sort of going onto longer kind of splintery
+going onto longer kind of splintery things and the metal is a bit bent
+things and the metal is a bit bent and then level b already doesn't have
+and then level b already doesn't have metal anymore it doesn't break any
+metal anymore it doesn't break any further but the wood does and the
+further but the wood does and the concrete does and then even level c
+concrete does and then even level c also optional uh depending on the
+also optional uh depending on the material would break even further
+material would break even further and now it might look a little bit funny
+and now it might look a little bit funny because they're like oh that's like
+because they're like oh that's like super regular kind of you know this like
+super regular kind of you know this like screams voronoi right there
+screams voronoi right there but you've got to imagine that you're
+but you've got to imagine that you're not actually breaking all the parts of
+not actually breaking all the parts of the object
+the object at all times so you're literally
+at all times so you're literally shooting a certain corner of it and
+shooting a certain corner of it and that's where it would break into all the
+that's where it would break into all the pieces
+pieces now we had different simulation entity
+now we had different simulation entity entities and this is like nothing new
+entities and this is like nothing new like we had rigid bodies that's just you
+like we had rigid bodies that's just you know the physical objects that can be
+know the physical objects that can be flying around the world
+flying around the world and then we had a system that we call
+and then we had a system that we call chunks and trunks could have bonds and
+chunks and trunks could have bonds and really what that is that is rigid bodies
+really what that is that is rigid bodies that
+that sort of share a compound collision and
+sort of share a compound collision and in some cases it's called a composite
+in some cases it's called a composite some call it aggregate
+some call it aggregate it depends a little bit and then we were
+it depends a little bit and then we were using joints as regular
+using joints as regular and uh so chunks as i just described
+and uh so chunks as i just described chunks are sort of just a compound
+chunks are sort of just a compound and they're created at initialization
+and they're created at initialization time so like those two things belong
+time so like those two things belong together in the share collider and they
+together in the share collider and they sort of move as one
+sort of move as one until they break so close proximity leaf
+until they break so close proximity leaf nodes are basically bonded together
+nodes are basically bonded together and um if you look at joins uh they were
+and um if you look at joins uh they were just created on geometry hierarchy
+just created on geometry hierarchy based on the metadata description so
+based on the metadata description so this rigid body and this body are
+this rigid body and this body are connected by something like a
+connected by something like a revolute or a hinge joint to be a door
+revolute or a hinge joint to be a door or to be a
+or to be a drawer or you know whatever else we
+drawer or you know whatever else we needed structurally to represent
+needed structurally to represent a prop or part of the environment in the
+a prop or part of the environment in the game
+game and they were dynamically breakable
+and they were dynamically breakable based again on an impulse
+based again on an impulse strength and there's something special
+strength and there's something special about the breaking of the joints because
+about the breaking of the joints because uh
+uh internally when you create uh sort of a
+internally when you create uh sort of a joint between two rigid bodies what we
+joint between two rigid bodies what we actually wanted to do where we actually
+actually wanted to do where we actually did is that we actually connected
+did is that we actually connected the two lowest level chunks uh uh inside
+the two lowest level chunks uh uh inside of that which essentially means that you
+of that which essentially means that you can break a door
+can break a door um and there's a big hole in the door
+um and there's a big hole in the door but the door is still
+but the door is still attached to it on an inch it's not like
+attached to it on an inch it's not like that the joints would actually break as
+that the joints would actually break as soon as the
+soon as the the parent box like the rb1 box as soon
+the parent box like the rb1 box as soon as it breaks into parts it wouldn't
+as it breaks into parts it wouldn't actually
+actually fall off the hinges it would stay on the
+fall off the hinges it would stay on the hinges as long as the chunk
+hinges as long as the chunk that is on the hinges is still around
+that is on the hinges is still around and that actually allowed us to have a
+and that actually allowed us to have a little bit richer interaction because
+little bit richer interaction because you can punch a hole in the door and the
+you can punch a hole in the door and the door still
+door still opens and closes like a door for example
+opens and closes like a door for example and then uh
+and then uh help to not create this kind of you know
+help to not create this kind of you know fall apart on impact
+fall apart on impact scenarios but uh which is quite
+scenarios but uh which is quite prominent in in in some games where you
+prominent in in in some games where you sort of feel like okay as soon as you
+sort of feel like okay as soon as you touch a thing once it sort of just
+touch a thing once it sort of just disassembles into all its pieces so it
+disassembles into all its pieces so it retains a bit of structure and that is
+retains a bit of structure and that is sort of how that was achieved
+sort of how that was achieved and on the simulator on the simulation
+and on the simulator on the simulation site inside the engine it was sort of
+site inside the engine it was sort of all north light driven all in-house uh
+all north light driven all in-house uh software driven basically the data and
+software driven basically the data and hierarchy handling
+hierarchy handling the breaking logic and what events and
+the breaking logic and what events and particles respond
+particles respond around all that kind of process and then
+around all that kind of process and then internally it was physics
+internally it was physics that did the simulation of the rigid
+that did the simulation of the rigid bodies and the constrained as
+bodies and the constrained as constraints
+constraints now the destruction tool chain how to
+now the destruction tool chain how to create all that was again you wouldn't
+create all that was again you wouldn't say like that's kind of pretty standard
+say like that's kind of pretty standard so we have the geometry that comes in we
+so we have the geometry that comes in we had to do a bit of model prep in some
+had to do a bit of model prep in some cases we created some sort of bonding
+cases we created some sort of bonding geometry that would say hey these parts
+geometry that would say hey these parts here of the thing can break and these
+here of the thing can break and these parts can't break
+parts can't break and that went then into a destruction
+and that went then into a destruction tool inside houdini that's a
+tool inside houdini that's a pretty big sort of hda kind of setup
+pretty big sort of hda kind of setup that would then do the whole material
+that would then do the whole material based breaking of everything
+based breaking of everything and write out the data to disk and
+and write out the data to disk and sometimes you had to manually patch some
+sometimes you had to manually patch some of the physics metadata to just make
+of the physics metadata to just make sure some of the settings are correct
+sure some of the settings are correct especially whenever you
+especially whenever you did more complex things that contained
+did more complex things that contained joints and this kind of stuff
+joints and this kind of stuff certain values had to be set manually in
+certain values had to be set manually in there and then that went into the engine
+there and then that went into the engine that metadata and the mesh
+that metadata and the mesh data sort of was used by the engine to
+data sort of was used by the engine to then create the world and
+then create the world and uh simulate it and the destruction tool
+uh simulate it and the destruction tool looked a bit like this so you had an
+looked a bit like this so you had an input geo that comes in like this
+input geo that comes in like this concrete kind of block
+concrete kind of block and then we were sort of defining which
+and then we were sort of defining which areas can break which is those two wing
+areas can break which is those two wing shape
+shape kind of things on the side and then uh
+kind of things on the side and then uh we decided oh yeah it's concrete it's
+we decided oh yeah it's concrete it's tagged as concrete so it would do the
+tagged as concrete so it would do the concrete breaking and operate it through
+concrete breaking and operate it through and sort of create all the different
+and sort of create all the different hierarchies that come out of that in
+hierarchies that come out of that in terms of render and collision geometry
+terms of render and collision geometry and make sure that this is sort of all
+and make sure that this is sort of all um within the metrics and the style that
+um within the metrics and the style that we kind of wanted to it would add all
+we kind of wanted to it would add all the decals and
+the decals and 2000 would add like rebars in terms of
+2000 would add like rebars in terms of for the concrete part for example etc
+for the concrete part for example etc and it would do that for wood glass
+and it would do that for wood glass concrete and all the other materials
+concrete and all the other materials that were supported by it and they would
+that were supported by it and they would export into engine
+export into engine and then engine it looks like this you
+and then engine it looks like this you end up with a hierarchy it's literally a
+end up with a hierarchy it's literally a hierarchy of notes and they are
+hierarchy of notes and they are you know abc level uh under a chunk and
+you know abc level uh under a chunk and the name
+the name drove with the material would be and
+drove with the material would be and also other things about if they were
+also other things about if they were static or not and
+static or not and some things about the joints and the
+some things about the joints and the type of joints and all those kind of
+type of joints and all those kind of things
+things and uh so yeah so the hierarchy was
+and uh so yeah so the hierarchy was represented by the by the layers by the
+represented by the by the layers by the by the sort of the depth
+by the sort of the depth um in the hierarchy and the physics
+um in the hierarchy and the physics properties were different by naming
+properties were different by naming conventional material assignments and
+conventional material assignments and all the physics then would be driven off
+all the physics then would be driven off that kind of stuff by the engine when it
+that kind of stuff by the engine when it was set up named
+was set up named correctly as well um and you know that's
+correctly as well um and you know that's something i'm going to get back to later
+something i'm going to get back to later on
+on um yeah and then it looked like this
+um yeah and then it looked like this basically uh
+basically uh this is the uh oh sorry this is the
+this is the uh oh sorry this is the rigid body video
+rigid body video um showing that scenario again
+um showing that scenario again just uh with the rigid body simulations
+just uh with the rigid body simulations so uh jesse's doing the shooting and
+so uh jesse's doing the shooting and then we have this little tool you click
+then we have this little tool you click on things and then they just explode so
+on things and then they just explode so that's what i'm doing here
+that's what i'm doing here i'm basically just
+destroying everything and you kind of see this is sort of you know physics sim
+see this is sort of you know physics sim is happening
+is happening looks a little bit empty but this is all
+looks a little bit empty but this is all the rigid body stuff that is actually
+the rigid body stuff that is actually happening in the scenario
+happening in the scenario so now some things about optimizations
+so now some things about optimizations uh
+uh uh on the side especially when it comes
+uh on the side especially when it comes to rigid bodies what any point in time
+to rigid bodies what any point in time we only had about 200 active rigid
+we only had about 200 active rigid bodies on screen because that's
+bodies on screen because that's our our sort of the the budget we had to
+our our sort of the the budget we had to operate on uh to make it run on consoles
+operate on uh to make it run on consoles etc etc
+etc etc and that meant that we sort of kind of
+and that meant that we sort of kind of started culling things that were off
+started culling things that were off screen
+screen and make them uh disappear um there was
+and make them uh disappear um there was a collision delay on big events so
+a collision delay on big events so whenever there were big forces
+whenever there were big forces sort of impulse waves implemented that
+sort of impulse waves implemented that would essentially disable the
+would essentially disable the self-collision objects for a bunch of
+self-collision objects for a bunch of frames
+frames um to make sure that you don't do two
+um to make sure that you don't do two crazy collision
+crazy collision calculations of objects that are fast
+calculations of objects that are fast moving in very close proximity to one
+moving in very close proximity to one another
+another because you don't really need it because
+because you don't really need it because if you put an impulse somewhere
+if you put an impulse somewhere it usually means it's quite clear where
+it usually means it's quite clear where things are moving and mostly in an
+things are moving and mostly in an explosion they move apart
+explosion they move apart so you're not really interested in those
+so you're not really interested in those collisions so that's why i've used
+collisions so that's why i've used collision delay um
+collision delay um while the term collision delay itself i
+while the term collision delay itself i know from the film world as well we did
+know from the film world as well we did about the same things
+about the same things it helps a lot with other issues like
+it helps a lot with other issues like self-interest sections and stuff as well
+self-interest sections and stuff as well um and then we use the sleeping
+um and then we use the sleeping thresholds a lot so
+thresholds a lot so um and well luckily if things made of
+um and well luckily if things made of concrete and
+concrete and drop onto the floor they can fall asleep
+drop onto the floor they can fall asleep really quickly no one would expect them
+really quickly no one would expect them to bounce around a lot
+to bounce around a lot and funnily enough the more realistic
+and funnily enough the more realistic you go the more you can actually
+you go the more you can actually bank on the whole sleepiness so you
+bank on the whole sleepiness so you don't have a lot of bounce when you drop
+don't have a lot of bounce when you drop something on the floor it really has to
+something on the floor it really has to be
+be marbles to really have them sort of do
+marbles to really have them sort of do do a longer longer lifetime across the
+do a longer longer lifetime across the floor or something and so we had a
+floor or something and so we had a really really high
+really really high sleeping threshold and it's also the
+sleeping threshold and it's also the reason that we could reliably stack
+reason that we could reliably stack objects on top of each other which is
+objects on top of each other which is actually quite fun
+actually quite fun when you do that in game well and then
+when you do that in game well and then of course
+of course we filled in the blanks with a lot of
+we filled in the blanks with a lot of particles which brings me to the next
+particles which brings me to the next section
+section um which is uh the particle simulation
+um which is uh the particle simulation that we did is everything is systemic
+that we did is everything is systemic and event driven right so
+and event driven right so the particle events that we have a
+the particle events that we have a bullet impact so you should think
+bullet impact so you should think something happens that's what that is
+something happens that's what that is driven by the material what will happen
+driven by the material what will happen what particles to sort of play back
+what particles to sort of play back we had one breaking so when chunks
+we had one breaking so when chunks disconnect rigid body turns to
+disconnect rigid body turns to disconnect they would have
+disconnect they would have a bone breaking event where particles
+a bone breaking event where particles would be released which is nice because
+would be released which is nice because then you have like cracking
+then you have like cracking uh you know cracking concrete sort of
+uh you know cracking concrete sort of pebbles and all that kind of stuff you
+pebbles and all that kind of stuff you can do with it and then
+can do with it and then the d spawning so whenever we actually
+the d spawning so whenever we actually made objects disappear we didn't just
+made objects disappear we didn't just pop them off we actually made them
+pop them off we actually made them disappear um in sort of
+disappear um in sort of by breaking into into particles that
+by breaking into into particles that were predetermined based on their
+were predetermined based on their material
+material which if you would see them despawn on
+which if you would see them despawn on screen you would actually see them sort
+screen you would actually see them sort of
+of feel like they're breaking apart and
+feel like they're breaking apart and that was very very effective to sort of
+that was very very effective to sort of hide that kind of optimization
+hide that kind of optimization and this is here
+and this is here just a quick view on how we edited
+just a quick view on how we edited particles this was all done uh sort of
+particles this was all done uh sort of it's a live edit it's a hot loaded live
+it's a live edit it's a hot loaded live edit this is the game running and you
+edit this is the game running and you can place down a specific
+can place down a specific uh particle system and then you can go
+uh particle system and then you can go in and change things and i'm really just
+in and change things and i'm really just going in here
+going in here changing like the emission frequency for
+changing like the emission frequency for the sparks and i think i'm like oh
+the sparks and i think i'm like oh maybe that is actually too many sparks
+maybe that is actually too many sparks maybe i go down on that and then i
+maybe i go down on that and then i change that
+change that um a lot more rocks to the simulation uh
+um a lot more rocks to the simulation uh and the cool thing is you can literally
+and the cool thing is you can literally play it back
+play it back uh live uh uh so you really get an
+uh live uh uh so you really get an instant feedback
+instant feedback and then you can go around and through
+and then you can go around and through the thing and see how it feels like and
+the thing and see how it feels like and then go
+then go back and keep iterating and that that
+back and keep iterating and that that really fast-paced iteration loop
+really fast-paced iteration loop really allowed us to polish that kind of
+really allowed us to polish that kind of stuff very very very
+stuff very very very much um until it really sort of felt
+much um until it really sort of felt about right and that was very very
+about right and that was very very beneficial
+beneficial another especially specific part about
+another especially specific part about the particles is
+the particles is standard simulation but we also hijacked
+standard simulation but we also hijacked the rendering sdf at times so you could
+the rendering sdf at times so you could optionally collide
+optionally collide with the sdf which is while so much
+with the sdf which is while so much faster than colliding with anything else
+faster than colliding with anything else and that sort of took care of a lot of
+and that sort of took care of a lot of the particle collisions not to have
+the particle collisions not to have things either fall through the floor
+things either fall through the floor look really weird
+look really weird um so we use that
+um so we use that now uh this part here now would be the
+now uh this part here now would be the particles
+particles uh and the rigid bodies at the same time
+uh and the rigid bodies at the same time um
+um so now it's the same thing as before i
+so now it's the same thing as before i was shooting and then i'm going around
+was shooting and then i'm going around and just exploding everything and you
+and just exploding everything and you you notice instantly oh my god this is
+you notice instantly oh my god this is like so much more responsive and so much
+like so much more responsive and so much more fun because there's stuff happening
+more fun because there's stuff happening there's dust in the air
+there's dust in the air it makes it instantly much richer and
+it makes it instantly much richer and that sort of uh well
+that sort of uh well it's all for the additional particle
+it's all for the additional particle layers so that fills in that missing
+layers so that fills in that missing that gap in that gradient of granularity
+that gap in that gradient of granularity that is now covered by that and the last
+that is now covered by that and the last aspect is material decals uh so
+aspect is material decals uh so we have a lot of them we dynamically
+we have a lot of them we dynamically spawn them so if something breaks it
+spawn them so if something breaks it would sort of spawn
+would sort of spawn sort of ground decal of like broken
+sort of ground decal of like broken sharks or the kind of stuff on the floor
+sharks or the kind of stuff on the floor or if you slam the floor it would crack
+or if you slam the floor it would crack the floor by decal
+the floor by decal uh they were generally generated sort of
+uh they were generally generated sort of in houdini
+in houdini or substance or things like that and we
+or substance or things like that and we could dynamically spawn them based on
+could dynamically spawn them based on the material they happened on as well
+the material they happened on as well and that sort of helped to really also
+and that sort of helped to really also include that
+include that quite big portion of static geometry you
+quite big portion of static geometry you saw it in the beginning there's like a
+saw it in the beginning there's like a lot of kind of static stuff around
+lot of kind of static stuff around but as soon as you provide an impact on
+but as soon as you provide an impact on that it really makes a difference and
+that it really makes a difference and this is how that looks like right so
+this is how that looks like right so you know if you hit the floor it still
+you know if you hit the floor it still is just a single single polygon
+is just a single single polygon like a single quad but it really looks
+like a single quad but it really looks uh much difference when uh when you
+uh much difference when uh when you start adding decals i mean
+start adding decals i mean decals are kind of awesome in general
+decals are kind of awesome in general and uh yeah we could sell all kinds of
+and uh yeah we could sell all kinds of effects on that and
+effects on that and it's quite surprising how much you get
+it's quite surprising how much you get away with although you don't really have
+away with although you don't really have a lot of texture budget
+a lot of texture budget even just a few of them really instantly
+even just a few of them really instantly make something sort of connect to
+make something sort of connect to a destructive element like throwing
+a destructive element like throwing something on the wall and then you kind
+something on the wall and then you kind of have a dent in there although you
+of have a dent in there although you know it's concrete it wouldn't really
+know it's concrete it wouldn't really make a dent but it sort of
+make a dent but it sort of helps with making it feel just about
+helps with making it feel just about right and we're talking superpowers
+right and we're talking superpowers right
+right so and that's now when everything comes
+so and that's now when everything comes together so we have the particles the
+together so we have the particles the rbds and the decals
+rbds and the decals and i had to trick a little bit because
+and i had to trick a little bit because just the explosion tool wouldn't
+just the explosion tool wouldn't actually spawn that many decals
+actually spawn that many decals so i think i started to launch uh uh
+so i think i started to launch uh uh something up in the air like i think i
+something up in the air like i think i take a chair and throw it
+take a chair and throw it and then you kind of see that i make a
+and then you kind of see that i make a dent in the floor and the floor still is
+dent in the floor and the floor still is just static dormitory but the decals
+just static dormitory but the decals make it so much better
+make it so much better and uh yeah this is sort of filling the
+and uh yeah this is sort of filling the last bit on that missing gradient
+last bit on that missing gradient and the other part is custom props and
+and the other part is custom props and hazards there are a lot of like things
+hazards there are a lot of like things you can throw around like computers and
+you can throw around like computers and lamps and stuff like that that wouldn't
+lamps and stuff like that that wouldn't be fully procedurally generated they
+be fully procedurally generated they needed some more custom events and
+needed some more custom events and custom things that
+custom things that sort of artists created to make
+sort of artists created to make uh just feel rich so you have the fire
+uh just feel rich so you have the fire extinguisher that you know obviously
+extinguisher that you know obviously can't be
+can't be kind of missing same as a computer
+kind of missing same as a computer having sparks and all those kind of
+having sparks and all those kind of things and the cable attached to it and
+things and the cable attached to it and stuff like that
+stuff like that so lessons learned the four main things
+so lessons learned the four main things i want to talk about is the
+i want to talk about is the quality of geometry of input data
+quality of geometry of input data because procedural is driven by data so
+because procedural is driven by data so it's all about that
+it's all about that name based convention kind of the same
+name based convention kind of the same the alley really monolithic destruction
+the alley really monolithic destruction tools and performance monitoring are
+tools and performance monitoring are the four items i really want to pick and
+the four items i really want to pick and the first thing quality of geometry well
+the first thing quality of geometry well that is a problem i've dealt with uh my
+that is a problem i've dealt with uh my entire career in film and now in games
+entire career in film and now in games inconsistent incoming geometry and it
+inconsistent incoming geometry and it can go with
+can go with while it's scaled the wrong way the
+while it's scaled the wrong way the orientation is wrong but it can also be
+orientation is wrong but it can also be the material assignments are wrong you
+the material assignments are wrong you know something that is actually looks
+know something that is actually looks like wood but it's sort of tagged as
+like wood but it's sort of tagged as planned or is tagged as flash or
+planned or is tagged as flash or something um
+something um but sometimes also the mesh quality
+but sometimes also the mesh quality being too low and that could mean
+being too low and that could mean that the subdivisions aren't nice or
+that the subdivisions aren't nice or it's sort of really single-sided and
+it's sort of really single-sided and that kind of stuff
+that kind of stuff sometimes you break things and realize
+sometimes you break things and realize well there's nothing inside
+well there's nothing inside but there should be something inside
+but there should be something inside because we can break it and that's
+because we can break it and that's that's sort of a
+that's sort of a difficult part of communicating
+difficult part of communicating standards and making that all work and
+standards and making that all work and obviously we're using procedural tools
+obviously we're using procedural tools to break that kind of stuff
+to break that kind of stuff so it has to be of a certain way and
+so it has to be of a certain way and what can you do to fix it is improve the
+what can you do to fix it is improve the incoming data standardize across the ccc
+incoming data standardize across the ccc geometry pipeline making sure that
+geometry pipeline making sure that everything is sanity checked
+everything is sanity checked and export so at export the the exporter
+and export so at export the the exporter would say hey this doesn't fulfill the
+would say hey this doesn't fulfill the criteria it needs to fulfill please fix
+criteria it needs to fulfill please fix it before you export and that would sort
+it before you export and that would sort of help a lot
+of help a lot uh to avoid that that constant feedback
+uh to avoid that that constant feedback loop between different departments even
+loop between different departments even and sort of put the problems exactly
+and sort of put the problems exactly where they actually coursed it can be
+where they actually coursed it can be fixed at the same time
+fixed at the same time um also it would be good to have
+um also it would be good to have embedded tools to simplify the setup so
+embedded tools to simplify the setup so you literally have someone who's
+you literally have someone who's modeling a prop
+modeling a prop being able to instantly see what it
+being able to instantly see what it would look like if it gets destroyed
+would look like if it gets destroyed but obviously that puts a lot of strain
+but obviously that puts a lot of strain on creating more tools with more
+on creating more tools with more user-friendly
+user-friendly interfaces and all that kind of stuff
+interfaces and all that kind of stuff and that is a lot of work
+and that is a lot of work and then you sort of have to find the
+and then you sort of have to find the right trader for that but we're
+right trader for that but we're definitely looking into that kind of
+definitely looking into that kind of thing
+thing name-based conventions uh well we name
+name-based conventions uh well we name things that then get interpreted to be
+things that then get interpreted to be something specific
+something specific um and the issue with that is names can
+um and the issue with that is names can be wrong there are
+be wrong there are obviously apparently there are 17
+obviously apparently there are 17 different ways how you can spell
+different ways how you can spell concrete
+concrete for example and and it's not really to
+for example and and it's not really to blame anyone
+blame anyone because if it's a manual thing that
+because if it's a manual thing that artists have to do it just
+artists have to do it just it's a given that there will always be a
+it's a given that there will always be a certain percentage of data that is just
+certain percentage of data that is just not correct
+not correct and you can also not express a lot of
+and you can also not express a lot of the range that you need in
+the range that you need in especially physics definition stuff uh
+especially physics definition stuff uh with just naming things
+with just naming things and uh yeah and then the mesh hierarchy
+and uh yeah and then the mesh hierarchy might not be standard confirmed because
+might not be standard confirmed because you know what happens if you do things
+you know what happens if you do things in maya you shuffle things around and
+in maya you shuffle things around and you
+you do all kinds of operations on it and
+do all kinds of operations on it and then you higher you just goes bust
+then you higher you just goes bust um so while all i can say about this is
+um so while all i can say about this is don't ever do name-based conventions
+don't ever do name-based conventions abandon them use
+abandon them use physics authors straight in the dcc so
+physics authors straight in the dcc so make people tag things directly where
+make people tag things directly where they need to be tagged
+they need to be tagged um and for that you probably need some
+um and for that you probably need some kind of unified metadata api so from
+kind of unified metadata api so from whatever tool the artists are using to
+whatever tool the artists are using to creating their props they are able to
+creating their props they are able to actually author that type of data and
+actually author that type of data and information as well
+information as well so you don't have a translation process
+so you don't have a translation process in between you literally export the data
+in between you literally export the data that you want to export
+that you want to export straight where it's being created
+straight where it's being created monolithic destruction tool that's more
+monolithic destruction tool that's more almost like a houdini specific thing but
+almost like a houdini specific thing but in general well you don't want to have
+in general well you don't want to have the one tool that does it all um
+the one tool that does it all um and quite quite often it happens when
+and quite quite often it happens when you start with one thing and then you
+you start with one thing and then you start adding something you start getting
+start adding something you start getting something and
+something and the more you add the more powerful it
+the more you add the more powerful it gets and the slower and harder it gets
+gets and the slower and harder it gets to maintain
+to maintain and very inflexible uh the answer to
+and very inflexible uh the answer to that is you've got to be more granular
+that is you've got to be more granular but more granular comes with lots of
+but more granular comes with lots of challenges because
+challenges because we're looking we're looking at a lot of
+we're looking we're looking at a lot of individual interchangeable components
+individual interchangeable components and the problem is you have to maintain
+and the problem is you have to maintain them somehow you need to make sure that
+them somehow you need to make sure that you version them correctly you need to
+you version them correctly you need to make sure that
+make sure that even two years into a project you can
+even two years into a project you can open something from the beginning of the
+open something from the beginning of the project and you're still able to sort of
+project and you're still able to sort of work with that
+work with that uh although the tool might have changed
+uh although the tool might have changed 20 times in between
+20 times in between so for us it means an improved
+so for us it means an improved standardized hda management that we're
+standardized hda management that we're now operating on and making sure that
+now operating on and making sure that everything is namespace and everything
+everything is namespace and everything is properly
+is properly sort of distributed within the artist so
+sort of distributed within the artist so you will never actually lose any type of
+you will never actually lose any type of version of a tool you will always be
+version of a tool you will always be able to rerun something that you did in
+able to rerun something that you did in the past
+the past especially for long production cycles
+especially for long production cycles that's very crucial and also what is
+that's very crucial and also what is important that you're making tools that
+important that you're making tools that you can fully automate and you just run
+you can fully automate and you just run them but actually use exactly the same
+them but actually use exactly the same tool if you would do it manually
+tool if you would do it manually um so there aren't actually any
+um so there aren't actually any differences in them and that will really
+differences in them and that will really that is very flexible then for you to
+that is very flexible then for you to say
+say hey actually this is automated really
+hey actually this is automated really nice but then i go in and tweak it and
+nice but then i go in and tweak it and do something different to it
+do something different to it in the places where you need it those 10
+in the places where you need it those 10 of the cases where you kind of need to
+of the cases where you kind of need to do something with it but
+do something with it but as long as they have the same back end
+as long as they have the same back end everything should be consistent and that
+everything should be consistent and that is quite important
+is quite important now performance and testing is almost
+now performance and testing is almost the biggest aspect of it
+the biggest aspect of it we had no automated testing a
+we had no automated testing a functionality so it was really like you
+functionality so it was really like you put something in the level run around
+put something in the level run around you shoot it a bunch of times and you
+you shoot it a bunch of times and you see if it works and it's kind of nice
+see if it works and it's kind of nice but then something changes in the engine
+but then something changes in the engine the backend changes something's being
+the backend changes something's being optimized and all of a sudden you have
+optimized and all of a sudden you have to kind of retest
+to kind of retest and that is very dangerous because you
+and that is very dangerous because you will always forget something to test
+will always forget something to test and the effort is quite big so you will
+and the effort is quite big so you will have a potential aggression over time
+have a potential aggression over time and that is something that needs to be
+and that is something that needs to be improved
+improved to make sure that we don't run into this
+to make sure that we don't run into this kind of problem the second part
+kind of problem the second part is performance testing uh so we don't
+is performance testing uh so we don't have any tangible metrics like what do
+have any tangible metrics like what do you it's like you know you can't really
+you it's like you know you can't really go by fps
+go by fps uh it's not as easy as that or like
+uh it's not as easy as that or like milliseconds spend on calculation
+milliseconds spend on calculation because it's not a thing that you
+because it's not a thing that you constantly do in every frame
+constantly do in every frame right so it's a you gotta you can
+right so it's a you gotta you can optimize for a specific scenario but it
+optimize for a specific scenario but it doesn't really cover what everything is
+doesn't really cover what everything is and so quite often performance issues
+and so quite often performance issues only flared up when they were spotted
+only flared up when they were spotted has to do with well we make the props
+has to do with well we make the props breakable and then they're being put
+breakable and then they're being put into the level and you know sometimes
+into the level and you know sometimes the props are so nice they're being put
+the props are so nice they're being put into the level a lot
+into the level a lot and all of a sudden you end up with
+and all of a sudden you end up with areas that have
+areas that have sort of lots of props desks computers
+sort of lots of props desks computers placed and then well
+placed and then well someone in gameplay it's a bunch of
+someone in gameplay it's a bunch of enemies that throw grenades and then you
+enemies that throw grenades and then you earn a pickle
+earn a pickle and but you don't want to actually make
+and but you don't want to actually make everything break a little bit less nice
+everything break a little bit less nice just because of that so somehow you need
+just because of that so somehow you need to find a way how to deal with this
+to find a way how to deal with this especially then that you can only back
+especially then that you can only back to the full picture very late in the
+to the full picture very late in the project and the
+project and the the two things that we kind of can do
+the two things that we kind of can do about this maybe is better performance
+about this maybe is better performance metrics uh
+metrics uh so be able to sort of even if it's magic
+so be able to sort of even if it's magic numbers something that falls out of the
+numbers something that falls out of the system that gives you some number which
+system that gives you some number which means if it's bigger it's worse if it's
+means if it's bigger it's worse if it's lower it's better you can then start
+lower it's better you can then start optimizing against that kind of stuff
+optimizing against that kind of stuff and also to use those magic numbers to
+and also to use those magic numbers to establish production boundaries sort of
+establish production boundaries sort of like a physics bandwidth
+like a physics bandwidth because saying oh it's 200 rigid bodies
+because saying oh it's 200 rigid bodies it's too coarse it doesn't necessarily
+it's too coarse it doesn't necessarily mean it's bad if you have more than 200
+mean it's bad if you have more than 200 it's only bad if you have more than 203
+it's only bad if you have more than 203 hand grenades
+hand grenades and that's that kind of stuff is
+and that's that kind of stuff is something that needs to be balanced out
+something that needs to be balanced out correctly but if you have that kind of
+correctly but if you have that kind of metrics you can push the boundaries a
+metrics you can push the boundaries a little bit more
+little bit more and the second part is automated testing
+and the second part is automated testing that will help with that as well and an
+that will help with that as well and an automated assessment of assets through a
+automated assessment of assets through a testing environment
+testing environment um so you can div outputs and see the
+um so you can div outputs and see the impact of engine changes
+impact of engine changes another thing that can be done is just
+another thing that can be done is just performance issue counter measures
+performance issue counter measures so maybe something that can adjust the
+so maybe something that can adjust the physics performance at one time and
+physics performance at one time and obviously you can't change those
+obviously you can't change those destruction hierarchies necessarily but
+destruction hierarchies necessarily but you could say hey maybe this guy
+you could say hey maybe this guy goes from breaking into level two
+goes from breaking into level two straight into breaking into particles
+straight into breaking into particles and despawn and not into another level
+and despawn and not into another level because
+because oh my god mayhem is already happening
+oh my god mayhem is already happening hand grenades everywhere
+hand grenades everywhere and um so that's one part of it uh but
+and um so that's one part of it uh but for that actually it would be good to
+for that actually it would be good to actually have better
+actually have better physics performance metrics because
+physics performance metrics because right now it's very hard to get
+right now it's very hard to get that kind of information really out of
+that kind of information really out of physics for example and then the second
+physics for example and then the second part well zoning of area is basically
+part well zoning of area is basically expected to look that's an idea sort of
+expected to look that's an idea sort of to say hey
+to say hey you know you might not have known that
+you know you might not have known that in the beginning but now we have an area
+in the beginning but now we have an area with lots of really awesome breakable
+with lots of really awesome breakable props and we have guys in hand grenades
+props and we have guys in hand grenades and what do we like enemies and
+and what do we like enemies and anthony's what do we do
+anthony's what do we do and maybe you could put a box around
+and maybe you could put a box around this and say hey in here you know heavy
+this and say hey in here you know heavy load physics maybe you know ignore the
+load physics maybe you know ignore the last level of destruction hierarchy or
+last level of destruction hierarchy or stuff like that
+stuff like that and that would sort of help us to
+and that would sort of help us to manually zone certain things where we
+manually zone certain things where we know
+know things could get bad um to avoid having
+things could get bad um to avoid having to downgrade all the assets
+to downgrade all the assets for the entire game just because of a
+for the entire game just because of a certain area
+certain area and that could be another thing that
+and that could be another thing that could be done about this
+could be done about this well to a conclusion to come to the end
+well to a conclusion to come to the end well control's reception was very well
+well control's reception was very well it has generally been quite liked and
+it has generally been quite liked and especially being quite liked for its
+especially being quite liked for its destructive environments and for the
+destructive environments and for the feel
+feel of launching an object into a bunch of
+of launching an object into a bunch of desks and enemies and have everything go
+desks and enemies and have everything go to bits
+to bits um so i think we are quite happy uh that
+um so i think we are quite happy uh that we achieved this
+we achieved this um the workflow held up better than
+um the workflow held up better than expected almost so it is
+expected almost so it is it went really really well considering
+it went really really well considering the small team that we had
+the small team that we had and uh we are quite happy that this
+and uh we are quite happy that this actually worked and we are quite
+actually worked and we are quite inspired and excited to see
+inspired and excited to see where we can take this one next and uh
+where we can take this one next and uh what remains for me to say is thank you
+what remains for me to say is thank you uh to matty hemline and who did the
+uh to matty hemline and who did the greater part of the destruction
+greater part of the destruction for the destruction tool and all that
+for the destruction tool and all that kind of stuff and then samyakiran on the
+kind of stuff and then samyakiran on the northlight side doing all the physics uh
+northlight side doing all the physics uh programming and then your first work for
+programming and then your first work for the particles and also the render side
+the particles and also the render side but also the
+but also the entire vfx department um at remedy that
+entire vfx department um at remedy that sort of
+sort of obviously partook in all the different
+obviously partook in all the different moving parts of control and mated
+moving parts of control and mated made it what it is today so thank you to
+made it what it is today so thank you to them and thank you for tuning in
+them and thank you for tuning in [Applause]
+[Applause] you

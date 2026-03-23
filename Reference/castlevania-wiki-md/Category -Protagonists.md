@@ -1,0 +1,3 @@
+# Category:Protagonists
+
+Category: Characters

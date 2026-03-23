@@ -1,0 +1,1254 @@
+[Music]
+hello i'm ed thombush and today i present a recipe for mixed reality in
+present a recipe for mixed reality in mario kart live
+mario kart live now i've been making video games for
+now i've been making video games for around 15 years now and i currently work
+around 15 years now and i currently work for valence studios a newer startup
+for valence studios a newer startup located in upstate new york
+located in upstate new york mario kart live was the first game
+mario kart live was the first game released by baylid and this was a game
+released by baylid and this was a game that i worked on along with a small team
+that i worked on along with a small team for three odd years
+for three odd years so what is mario kart live home circuit
+so what is mario kart live home circuit well first off it's a game for the
+well first off it's a game for the nintendo switch
+nintendo switch and when you purchase the game it comes
+and when you purchase the game it comes with a remote controlled cart and you
+with a remote controlled cart and you get to choose between mario and luigi
+get to choose between mario and luigi when you power up the cart it connects
+when you power up the cart it connects to the game software running on the
+to the game software running on the switch
+switch and the game allows the player to
+and the game allows the player to control the cart using the switch
+control the cart using the switch controllers
+controllers the carts have an onboard camera where a
+the carts have an onboard camera where a live video feed is sent back to the
+live video feed is sent back to the switch and shown on screen giving the
+switch and shown on screen giving the player a first person view of driving
+the game also comes with four gates and the gates are important as they help
+and the gates are important as they help to define the play space
+to define the play space after a player has connected the cart
+after a player has connected the cart for the first time the game guides them
+for the first time the game guides them to place the gates around the room to
+to place the gates around the room to form a circuit
+form a circuit and this lets the player create any sort
+and this lets the player create any sort of track that they would like inside
+of track that they would like inside their house using the space that they
+their house using the space that they have available
+have available and even at its core the driving
+and even at its core the driving experience is super fun
+experience is super fun in fact this is how we started
+in fact this is how we started experimenting in this space
+experimenting in this space in the beginning we used drone parts
+in the beginning we used drone parts like cameras and video transmitters and
+like cameras and video transmitters and cobbled them together on some rc cars
+cobbled them together on some rc cars and we found early on that it's really
+and we found early on that it's really fun to drive around your house from the
+fun to drive around your house from the point of view of a tiny cart
+point of view of a tiny cart and the sense of speed that you get from
+and the sense of speed that you get from a toy cart zipping around your living
+a toy cart zipping around your living room is pretty amazing
+but of course we're making a mario kart game and we need more than just that
+game and we need more than just that first person driving
+first person driving and this brings us to the mixed reality
+and this brings us to the mixed reality experience that we created
+experience that we created where we combine the digital content and
+where we combine the digital content and interactions of the video game with the
+interactions of the video game with the physical play space of the player's home
+physical play space of the player's home and hopefully seamlessly integrate the
+and hopefully seamlessly integrate the two
+two it's really the digital content that we
+it's really the digital content that we place in the player's home that turns
+place in the player's home that turns the experience into mario kart live
+the experience into mario kart live content like item boxes that you collect
+content like item boxes that you collect at the gates the bananas that you drop
+at the gates the bananas that you drop on the track for your enemies
+on the track for your enemies coins that you collect the red shells
+coins that you collect the red shells that chase after other racers the ai
+that chase after other racers the ai competitors
+competitors and it's extremely important that all of
+and it's extremely important that all of this content feels like it belongs it
+this content feels like it belongs it needs to feel as if it's in the same
+needs to feel as if it's in the same room you're erasing it like it's part of
+room you're erasing it like it's part of the video feed that you see on screen
+the video feed that you see on screen and here's the interesting bit
+and here's the interesting bit when you get it right nobody notices it
+when you get it right nobody notices it feels like it belongs
+feels like it belongs but it's when you get it wrong that it
+but it's when you get it wrong that it stands out
+stands out and that's the point of this talk to
+and that's the point of this talk to explain the tools and techniques we use
+explain the tools and techniques we use to get everything just right
+to get everything just right to make the user feel like they're
+to make the user feel like they're playing in the world of mario kart
+playing in the world of mario kart inside their home
+inside their home and unlike a lot of augmented or mixed
+and unlike a lot of augmented or mixed reality experiences that you see this is
+reality experiences that you see this is not a tech demo we're making a game that
+not a tech demo we're making a game that needs to have replayability and it needs
+needs to have replayability and it needs to be robust to normal gameplay patterns
+to be robust to normal gameplay patterns it needs to just work all of the time
+it needs to just work all of the time as we started this project we did look
+as we started this project we did look for existing tech that could help us
+for existing tech that could help us but nothing quite matched our use case
+but nothing quite matched our use case so we ended up rolling our own solutions
+so we ended up rolling our own solutions to the problems that we needed to solve
+to the problems that we needed to solve and that had some advantages we have
+and that had some advantages we have control over the entire pipeline
+control over the entire pipeline there are no black boxes we understand
+there are no black boxes we understand all the bits
+all the bits and it allowed us to build technology
+and it allowed us to build technology tailored to gameplay
+tailored to gameplay and conversely gameplay tailored to what
+and conversely gameplay tailored to what our technology is good at
+now i'm going to talk about the ingredients
+ingredients all the tools and techniques that let us
+all the tools and techniques that let us execute on the content that we just saw
+and we start with a model of how we represent the physical world in our game
+represent the physical world in our game now everything is measured exactly
+now everything is measured exactly we have a rig in game that matches the
+we have a rig in game that matches the exact dimensions of the cart
+exact dimensions of the cart we assume its pivot is dead center on
+we assume its pivot is dead center on the floor
+the floor it has a camera with an offset and a
+it has a camera with an offset and a rotation from that pivot
+rotation from that pivot everything is modeled in the game in
+everything is modeled in the game in understandable real units
+understandable real units distances are measured in centimeters
+distances are measured in centimeters velocities centimeters per second
+velocities centimeters per second acceleration in centimeters per second
+acceleration in centimeters per second squared and this is going to be a
+squared and this is going to be a reoccurring theme everything in game is
+reoccurring theme everything in game is modeled to match the real world as
+modeled to match the real world as precisely as we can
+the same is true for the play space i'm going to show you how we generate a
+i'm going to show you how we generate a map of the user's course
+map of the user's course and everything in this map is modeled in
+and everything in this map is modeled in real world units
+real world units the gates positions are estimated in
+the gates positions are estimated in centimeters the same as the cart's
+centimeters the same as the cart's position
+position and all the content that we put in the
+and all the content that we put in the world is modeled at that same centimeter
+world is modeled at that same centimeter scale
+scale so when all this comes together in the
+so when all this comes together in the physical world our digital
+physical world our digital representation of the world and the
+representation of the world and the content that we put in it when it all
+content that we put in it when it all agrees on the scale and units well
+agrees on the scale and units well that's when things start to feel as if
+that's when things start to feel as if they fit together
+just as we strive to model the physical world in game we also need to model our
+world in game we also need to model our in-game camera to match the physical
+in-game camera to match the physical camera on the cart
+camera on the cart now we have a video feed coming to the
+now we have a video feed coming to the game and we want to draw digital content
+game and we want to draw digital content over that video feed
+over that video feed we need that content to feel as if it's
+we need that content to feel as if it's in the same space those item boxes need
+in the same space those item boxes need to feel like they belong in front of the
+to feel like they belong in front of the gate
+gate and in order to do this our cameras need
+and in order to do this our cameras need to match
+to match we need to make the digital camera in
+we need to make the digital camera in game match the physical camera on the
+game match the physical camera on the cart
+there's two main parts to matching the cameras
+cameras a physical lens will often add barrel
+a physical lens will often add barrel distortion
+distortion and this can be observed as straight
+and this can be observed as straight lines that appear to be curved
+lines that appear to be curved especially when you move towards the
+especially when you move towards the edges of the frame of course this
+edges of the frame of course this distortion isn't present in the game
+distortion isn't present in the game camera so we need to remove this from
+camera so we need to remove this from the video image and we call this
+the video image and we call this undistortion
+undistortion this will make the image rectilinear
+this will make the image rectilinear where straight lines remain straight and
+where straight lines remain straight and we can very closely align it with our
+we can very closely align it with our game camera
+game camera but we need one other thing
+but we need one other thing we also need to calculate the field of
+we also need to calculate the field of view of the physical camera so that we
+view of the physical camera so that we can apply the same field of view to the
+can apply the same field of view to the game camera
+game camera now these screenshots show an image from
+now these screenshots show an image from the physical camera
+the physical camera the first image on the left is the raw
+the first image on the left is the raw view with the barrel distortion still
+view with the barrel distortion still present
+present the image on the right shows an
+the image on the right shows an undistorted view
+undistorted view now after we understood
+now after we understood we're actually left with some extra
+we're actually left with some extra pixel data that we end up cropping from
+pixel data that we end up cropping from the view and that's kind of highlighted
+the view and that's kind of highlighted by that blue rectangle in the right
+by that blue rectangle in the right image we only end up drawing what's
+image we only end up drawing what's inside that blue box but this example it
+inside that blue box but this example it helps to show what the distortion is
+helps to show what the distortion is actually doing
+actually doing in order to remove distortion and
+in order to remove distortion and calculate the field of view we need to
+calculate the field of view we need to calibrate the camera
+so we capture images a lot of images of a chess board
+a chess board and you need at least 20 images probably
+and you need at least 20 images probably more with the chessboard near far
+more with the chessboard near far different parts of the frame different
+different parts of the frame different angles before you start to get
+angles before you start to get a good some good results
+a good some good results and we use opencv for the calibration
+first we use opencv to find the chessboard corners in each of the images
+chessboard corners in each of the images with a set of images in corresponding
+with a set of images in corresponding chessboard corners we can use opencv to
+chessboard corners we can use opencv to calculate the intrinsic parameters of
+calculate the intrinsic parameters of the camera
+the camera now these are the parameters that
+now these are the parameters that numerically describe the camera such as
+numerically describe the camera such as the distortion coefficients projection
+the distortion coefficients projection matrix and in turn the field of view
+now with the distortion coefficients we can now undistort the video image from
+can now undistort the video image from the camera
+the camera and in addition we could set the field
+and in addition we could set the field of view of the in-game camera to match
+of view of the in-game camera to match that of the video image
+that of the video image and so here's an example of a scene
+and so here's an example of a scene switching between a raw underst a raw
+switching between a raw underst a raw distorted image here
+to an undistorted final image here which again this is the raw image
+again this is the raw image this is the undistorted image
+there are a lot of resources online that describe camera calibration and i've
+describe camera calibration and i've given some useful search terms to help
+given some useful search terms to help find them
+find them and it's worth noting that we often use
+and it's worth noting that we often use python tools that are python for tools
+python tools that are python for tools that are external to the game and this
+that are external to the game and this is one great example
+is one great example so we have a simple tool for extracting
+so we have a simple tool for extracting good chessboard images from a video
+good chessboard images from a video another tool for finding chessboard
+another tool for finding chessboard corners and running the calibration
+corners and running the calibration we have scripts for undistorting still
+we have scripts for undistorting still images that allow us to preview and
+images that allow us to preview and evaluate the results
+evaluate the results and it's very easy to get started in
+and it's very easy to get started in experimenting with these concepts in
+experimenting with these concepts in python
+the next thing to understand is what kind of data we exchange with the curt
+kind of data we exchange with the curt and it's pretty straightforward overall
+and it's pretty straightforward overall from the game to the cart we send
+from the game to the cart we send steering and throttle information
+steering and throttle information we sample and condition the user input
+we sample and condition the user input from the controllers
+from the controllers and send that as commands to the cart
+and send that as commands to the cart for driving
+for driving now from the cart to the game we get a
+now from the cart to the game we get a stream of video data
+stream of video data in addition we get a stream of data from
+in addition we get a stream of data from the imu
+what is the imu well the imu stands for inertial measurement unit and it's a
+inertial measurement unit and it's a sensor that can measure the movement of
+sensor that can measure the movement of the car in 3d space
+the car in 3d space rimu is what call is
+rimu is what call is is what is called a six axis sensor
+is what is called a six axis sensor which is the combination of a three axis
+which is the combination of a three axis accelerometer and a three axis gyro
+accelerometer and a three axis gyro the accelerometer measures the linear
+the accelerometer measures the linear acceleration on the three axes x y and z
+acceleration on the three axes x y and z and the gyro measures the angular
+and the gyro measures the angular velocity or rotation of the cart on
+velocity or rotation of the cart on those same axes
+those same axes so it's important to note that our imu
+so it's important to note that our imu samples are time stamped
+samples are time stamped and that the imu data is sampled at 160
+and that the imu data is sampled at 160 hertz
+and of course we receive a stream of video data as well which as you might
+video data as well which as you might expect consists of a series of images
+expect consists of a series of images and maybe the most interesting thing
+and maybe the most interesting thing about the video frames is that they're
+about the video frames is that they're time stamped just like the imu and
+time stamped just like the imu and importantly they're time stamped from
+importantly they're time stamped from the same clock as the imu samples
+the same clock as the imu samples unlike the imu data which is sampled at
+unlike the imu data which is sampled at 160 hertz
+160 hertz the video data comes in at 30 hertz or
+the video data comes in at 30 hertz or 30 fps
+30 fps now because of this difference in
+now because of this difference in frequency we end up receiving about five
+frequency we end up receiving about five to six imu samples per video frame
+to six imu samples per video frame but with a timestamp video in the imu
+but with a timestamp video in the imu stream
+stream we can correlate the imu samples that
+we can correlate the imu samples that belong
+belong to a video frame
+to a video frame now for each frame that we process we
+now for each frame that we process we want to know what imu samples occurred
+want to know what imu samples occurred in that same time slice that the video
+in that same time slice that the video frame captured
+frame captured and this is basically our unit of work
+and this is basically our unit of work in our mixed reality pipeline
+now it's worth pointing out that sometimes this data stream can be
+sometimes this data stream can be imperfect and we can lose data
+imperfect and we can lose data after all we're using wi-fi for
+after all we're using wi-fi for communicating between the cart and the
+communicating between the cart and the switch
+switch and we can often drop data especially as
+and we can often drop data especially as the cart moves far from the switch or
+the cart moves far from the switch or even if the user is in a noisy network
+even if the user is in a noisy network environment
+environment most commonly we lose video frames in
+most commonly we lose video frames in that case we still want to process the
+that case we still want to process the imu samples that correlated to the
+imu samples that correlated to the missing frames
+missing frames now the imu samples are very important
+now the imu samples are very important we don't want to miss any of those
+we don't want to miss any of those now can we miss some yes we can but
+now can we miss some yes we can but because of their smaller size relative
+because of their smaller size relative to the video data it's less likely
+to the video data it's less likely and we also have mechanisms in place for
+and we also have mechanisms in place for reconstructing missing imu data should
+reconstructing missing imu data should we lose a small amount
+we lose a small amount and we have larger fail-safes for when
+and we have larger fail-safes for when we miss significant portions of data
+we miss significant portions of data so what do we get from this data
+well first we'll talk about banner detection our computer vision pass
+detection our computer vision pass anytime we have a gate banner in the
+anytime we have a gate banner in the video frame
+video frame we need to try to find it
+we need to try to find it why do we want to find it well there's
+why do we want to find it well there's two good reasons
+the first is so we can place content around the gate
+around the gate now the gate is a great place to put
+now the gate is a great place to put content we can have high confidence in
+content we can have high confidence in their location and they're fairly stable
+their location and they're fairly stable once we detect them
+once we detect them they also provide great information
+they also provide great information about the world around the cart and they
+about the world around the cart and they actually help us to build our digital
+actually help us to build our digital model of the play space
+now i'm going to give a high level overview of how we find and identify the
+overview of how we find and identify the banners
+banners and our goal is to find the eight points
+and our goal is to find the eight points that define the inner and outer
+that define the inner and outer rectangles of the banner
+rectangles of the banner and to find those eight points we're
+and to find those eight points we're going to try to identify the black
+going to try to identify the black border around the market
+we're going to start by trying to find the sides of the banner so let's keep
+the sides of the banner so let's keep that in mind as we go through this
+that in mind as we go through this process
+process the first few steps of the algorithm are
+the first few steps of the algorithm are going to be searching for the
+going to be searching for the vertical-ish sides of the banner
+vertical-ish sides of the banner so how do we find those
+well we progressively scan the image from left to right looking pixel by
+from left to right looking pixel by pixel
+pixel we're looking for high contrast
+we're looking for high contrast transitions and those transitions are
+transitions and those transitions are represented by circles in this image
+represented by circles in this image here
+here and we don't scan every row we scan at a
+and we don't scan every row we scan at a fixed interval so we don't have to look
+fixed interval so we don't have to look at every pixel
+at every pixel and in this result the green circles
+and in this result the green circles represent a transition from light to
+represent a transition from light to dark
+dark and the red circles represent a
+and the red circles represent a transition from dark to light
+and once we have found these transitions we walk the lines that define them
+we walk the lines that define them so when walking these transitions we
+so when walking these transitions we want the results to be mostly straight
+want the results to be mostly straight and mostly vertical
+and mostly vertical remember we're searching for the sides
+remember we're searching for the sides of the banner
+now we have a large set of straight lines and we know that they define a
+lines and we know that they define a transition in contrast from light to
+transition in contrast from light to dark or dark to light
+dark or dark to light we search these lines and look for pairs
+we search these lines and look for pairs line pairs that could possibly form
+line pairs that could possibly form either the left or the right side of the
+either the left or the right side of the banner
+as we can see that removes quite a few potential transitions
+potential transitions we're left with possible edges
+we're left with possible edges pairs that could form the left or the
+pairs that could form the left or the right of a banner
+right of a banner and we know that a banner is going to
+and we know that a banner is going to have a left and a right edge
+have a left and a right edge so we look for pairs of edges that could
+so we look for pairs of edges that could potentially form a banner
+and these edge pairs form quads we can see that there are only two
+we can see that there are only two possible quads remaining in this image
+possible quads remaining in this image and we can refine these results a bit
+and we can refine these results a bit more
+we could walk which should be the top and the bottom borders
+and the bottom borders we can confirm that there are straight
+we can confirm that there are straight horizontal-ish transitions where we
+horizontal-ish transitions where we expect
+expect the top and the bottom of the banner to
+the top and the bottom of the banner to be
+be now you can see this process by the blue
+now you can see this process by the blue and red hash marks on the top and bottom
+and red hash marks on the top and bottom of the quads
+of the quads the red hash marks in that top quad
+the red hash marks in that top quad indicate a miss
+indicate a miss that top quad is probably not a banner
+that top quad is probably not a banner it couldn't find this top and bottom
+it couldn't find this top and bottom edges
+and that leaves us with one result in this image
+so we think we have found a banner now we have to try and identify it
+now we have to try and identify it we want to know what gate it is we're
+we want to know what gate it is we're looking at and whether or not it's the
+looking at and whether or not it's the front or the back of the gate
+front or the back of the gate well we start by unwarping the found
+well we start by unwarping the found banner that's where we take it from a
+banner that's where we take it from a skewed perspective shape to a flat
+skewed perspective shape to a flat rectangular shape
+and then we threshold the image we take all the pixels that are closer
+we take all the pixels that are closer to white bring them to full white and
+to white bring them to full white and all of the pixels closer to black and
+all of the pixels closer to black and bring them to full black
+and we could do a fuzzy comparison against a set of reference images and
+against a set of reference images and these are shown on the right
+these are shown on the right this lets us determine what gate it is
+this lets us determine what gate it is we are looking at
+now we know what banner we're looking at we need to estimate what we call the
+we need to estimate what we call the pose of the banner or the camera
+pose of the banner or the camera relative translation in rotation
+relative translation in rotation we know the eight points in screen space
+we know the eight points in screen space that represent the banner we also know
+that represent the banner we also know because we can measure it with a ruler
+because we can measure it with a ruler the physical dimensions of the banner
+the physical dimensions of the banner and how the points in screen space
+and how the points in screen space relate to the physical cardboard gate
+now this association of 2d screen space points
+points to 3d object points from the physical
+to 3d object points from the physical banner
+banner we can use opencv's solve pnp or
+we can use opencv's solve pnp or perspective in point
+perspective in point to calculate the 3d translation and
+to calculate the 3d translation and rotation of the banner with respect to
+rotation of the banner with respect to the camera
+so that's what we do for every frame that comes through the pipeline
+that comes through the pipeline we search the image for banners and for
+we search the image for banners and for each banner that's found we identify it
+each banner that's found we identify it and calculate the camera relative
+and calculate the camera relative translation and rotation
+translation and rotation and we call this cb results and every
+and we call this cb results and every frame gets its own set
+now while our system works well most of the time it's worth showing off one of
+the time it's worth showing off one of our extreme failure cases
+our extreme failure cases the dreaded dog crate
+the dreaded dog crate now the dog crate has a lot of contrasty
+now the dog crate has a lot of contrasty transitions so our algorithm finds a ton
+transitions so our algorithm finds a ton of edges
+of edges and in turn some quads
+and in turn some quads here's one
+here's one and a few more
+and a few more and more
+and more okay that's a lot of quads
+okay that's a lot of quads and that's over 600 potential quads
+and that's over 600 potential quads and iterated over this many quads can
+and iterated over this many quads can have a noticeable impact on the
+have a noticeable impact on the processing time
+processing time and it was situations like this that
+and it was situations like this that forced us to come up with some scoring
+forced us to come up with some scoring and early out techniques to avoid the
+and early out techniques to avoid the processing overhead that these kind of
+processing overhead that these kind of situations can present
+and while we use a custom implementation for finding the banners
+for finding the banners there are open source solutions
+there are open source solutions available in fact our first prototype we
+available in fact our first prototype we used what are called aruco markers these
+used what are called aruco markers these are large pixelated markers in this
+are large pixelated markers in this image here
+image here opencv has an implementation for
+opencv has an implementation for detecting the orico markers in an image
+detecting the orico markers in an image and returning their corners
+and returning their corners and the pixels in the aruco markers
+and the pixels in the aruco markers allow opencv to uniquely identify them
+allow opencv to uniquely identify them once we know the corners of those
+once we know the corners of those markers it's the same call to solve pnp
+markers it's the same call to solve pnp to estimate their poses
+now we know about the gates that are present in any frame we know their id
+present in any frame we know their id and we know their pose relative to the
+and we know their pose relative to the camera
+camera and those banners they provide really
+and those banners they provide really good information
+good information but we want to interact with content at
+but we want to interact with content at the gates even when we can't see it like
+the gates even when we can't see it like when we're driving past them
+when we're driving past them and we want to interact with other
+and we want to interact with other things in the world even when we don't
+things in the world even when we don't see any gates
+see any gates so in addition to gates we really want
+so in addition to gates we really want an estimation of the world around the
+an estimation of the world around the cart
+cart and the cart's position within that
+and the cart's position within that world
+we need slam so what's slam
+so what's slam slam stands for simultaneous
+slam stands for simultaneous localization and mapping
+localization and mapping and it's a very common field of robotics
+and it's a very common field of robotics so i was looking for a nice and concise
+so i was looking for a nice and concise definition for slam and wikipedia had a
+definition for slam and wikipedia had a pretty good one
+pretty good one they say that slam is the computational
+they say that slam is the computational problem of constructing or updating a
+problem of constructing or updating a map of an unknown environment while
+map of an unknown environment while simultaneously keeping track of an
+simultaneously keeping track of an agent's location within it
+so basically slam is building a map of the world
+slam is building a map of the world and figuring out where you are in that
+and figuring out where you are in that world
+world at the same time
+at the same time so this is what we're going to do we're
+so this is what we're going to do we're going to build a map of a user's play
+going to build a map of a user's play space
+and there are many approaches to the slam problem this chart shows many slam
+slam problem this chart shows many slam techniques as they've evolved over the
+techniques as they've evolved over the years
+years and if i had to place our method on this
+and if i had to place our method on this timeline it would fall close to the 2007
+timeline it would fall close to the 2007 or even pre-history time frame now there
+or even pre-history time frame now there are few reasons to use older methods
+are few reasons to use older methods often newer methods are struggling to
+often newer methods are struggling to run real time
+run real time let alone alongside a game that has its
+let alone alongside a game that has its own processing needs
+own processing needs and while creating our own solution was
+and while creating our own solution was a big lift it allowed for a custom
+a big lift it allowed for a custom implementation that exactly fit our use
+implementation that exactly fit our use case
+and i couldn't talk about our slam solution without mentioning klaus
+solution without mentioning klaus brenner's amazing youtube tutorial on
+brenner's amazing youtube tutorial on slam
+slam in the beginning his tutorial gave us
+in the beginning his tutorial gave us the baseline understanding to even go
+the baseline understanding to even go down this path
+down this path we actually started by following the
+we actually started by following the tutorial modifying it to match some of
+tutorial modifying it to match some of our differing assumptions
+our differing assumptions and while our solution is greatly
+and while our solution is greatly evolved as development went on there's
+evolved as development went on there's still plenty of inspiration in there
+still plenty of inspiration in there from klaus's tutorial
+from klaus's tutorial it's a great
+it's a great introduction to the slam problem he uses
+introduction to the slam problem he uses python and provides code samples for the
+python and provides code samples for the entire implementation so this is if this
+entire implementation so this is if this is something you're interested in
+is something you're interested in learning about this is a great place to
+learning about this is a great place to start
+so we ended up with our own slam solution heavily inspired by klaus
+solution heavily inspired by klaus we don't really have a name for it maybe
+we don't really have a name for it maybe valence slam b slam
+valence slam b slam now if we wanted to get cute like with
+now if we wanted to get cute like with the acronym like many other
+the acronym like many other implementations do we might call it
+implementations do we might call it sli ekf slam
+sli ekf slam well what would that stand for
+well what would that stand for we stand for sparse landmark
+we stand for sparse landmark inertial extended common filter
+inertial extended common filter simultaneous localization and mapping
+simultaneous localization and mapping so let's break that down
+so let's break that down sparse landmark
+sparse landmark we use the four gates and only the four
+we use the four gates and only the four gates as our landmarks and that's very
+gates as our landmarks and that's very sparse as far as slam and
+sparse as far as slam and implementations go
+implementations go most methods track thousands of world
+most methods track thousands of world features while we only consider the four
+features while we only consider the four gates
+gates inertial we use the imu to help make
+inertial we use the imu to help make predictions about our motion
+predictions about our motion in fact this is what allows us to use
+in fact this is what allows us to use such sparse landmarks our motion
+such sparse landmarks our motion estimation alone is very good
+estimation alone is very good and it allows us to keep a consistent
+and it allows us to keep a consistent map even with only the four gates
+map even with only the four gates extended common filter
+extended common filter now at the very highest level the
+now at the very highest level the extended common filter gives us a
+extended common filter gives us a probabilistic estimation of the state of
+probabilistic estimation of the state of the world and the cart's position within
+the world and the cart's position within it and this is a huge topic it could
+it and this is a huge topic it could span its own talk so i'm not going to go
+span its own talk so i'm not going to go very deep into this but i will give a
+very deep into this but i will give a high level overview and provide some
+high level overview and provide some resources
+resources and finally slam simultaneous
+and finally slam simultaneous localization and mapping we talked about
+localization and mapping we talked about that it's building a map of the world
+that it's building a map of the world and figuring out where we are
+now the one thing i will talk about with a common filter is its update loop
+a common filter is its update loop a common filter contains a set of state
+a common filter contains a set of state variables that it's continuously
+variables that it's continuously estimating
+estimating in our case things like the position
+in our case things like the position orientation
+orientation and velocities of the cart
+and velocities of the cart and anytime you're working with a common
+and anytime you're working with a common filter you would expect to see it in two
+filter you would expect to see it in two see it update in two phases
+see it update in two phases predict
+predict and measure
+and measure now during the prediction phase the
+now during the prediction phase the filter is updated given the current
+filter is updated given the current state
+state and optionally some
+and optionally some input after the prediction is made the
+input after the prediction is made the filter has an updated probabilistic view
+filter has an updated probabilistic view of the state variables that it's
+of the state variables that it's estimating
+the second phase is measurement any observations that can be made about
+any observations that can be made about the state can be applied or measured
+the state can be applied or measured now these measurements to the state help
+now these measurements to the state help the state variables become more accurate
+the state variables become more accurate and hopefully converge towards reality
+when we update our filter we predict the new state using the imu
+we predict the new state using the imu data stream
+data stream we make measurements against the state
+we make measurements against the state using some assumptions about the vehicle
+using some assumptions about the vehicle motion the way that we expect the cart
+motion the way that we expect the cart to move
+to move and additionally we make measurements
+and additionally we make measurements against this state given our gate
+against this state given our gate observations the cv results that we
+observations the cv results that we talked about
+so i'm going to show some example output from our slam system that will
+from our slam system that will demonstrate how it works and i'm going
+demonstrate how it works and i'm going to be using real data from the game
+to be using real data from the game as the game is running we could save off
+as the game is running we could save off the stream of imu data along with the cv
+the stream of imu data along with the cv results for the banners that we found
+results for the banners that we found outside of the game we have a set of
+outside of the game we have a set of tools that let us run our slam
+tools that let us run our slam simulation in a python environment and
+simulation in a python environment and we're going to be looking at the output
+we're going to be looking at the output for those tools
+for those tools now i've captured data from a real
+now i've captured data from a real session while driving a five lap circuit
+session while driving a five lap circuit around my living room
+around my living room this video shows the path that i
+this video shows the path that i followed while collecting the data and
+followed while collecting the data and you can see the minimap shows the
+you can see the minimap shows the trajectory that we'll hopefully see in
+trajectory that we'll hopefully see in the simulated output
+so let's start by thinking about how we predict the motion of the cart given the
+predict the motion of the cart given the imu data
+imu data naively we can observe our stream of imu
+naively we can observe our stream of imu samples
+samples and integrate our accelerometer data and
+and integrate our accelerometer data and hope for a good estimation of our
+hope for a good estimation of our position over time
+position over time the accelerometer has an inherent bias
+the accelerometer has an inherent bias and a bias is a consistent offset in the
+and a bias is a consistent offset in the output from the true value
+output from the true value if we knew the bias we could subtract it
+if we knew the bias we could subtract it from our imu readings to calculate the
+from our imu readings to calculate the actual acceleration along an axis
+actual acceleration along an axis with standard motion equations we could
+with standard motion equations we could estimate the velocity and in turn
+estimate the velocity and in turn the position of the cart over time
+the position of the cart over time there are some pretty significant
+there are some pretty significant problems that begin to show up
+problems that begin to show up now in general data from an imu is very
+now in general data from an imu is very noisy to begin with
+noisy to begin with and now we have that imu strapped to a
+and now we have that imu strapped to a moving vibrating vehicle
+moving vibrating vehicle and as i mentioned the data is biased
+and as i mentioned the data is biased and i talked about how we might remove
+and i talked about how we might remove it but in order to remove it you need a
+it but in order to remove it you need a good estimation of the bias which may
+good estimation of the bias which may even change over time
+even change over time and because we're integrating from an
+and because we're integrating from an acceleration to a velocity
+acceleration to a velocity and then from a velocity to a position
+and then from a velocity to a position any error that is present grows
+any error that is present grows exponentially integration alone will
+exponentially integration alone will quickly drift away from the actual
+quickly drift away from the actual trajectory
+we can observe this drift in our python simulation
+simulation as i mentioned
+as i mentioned this output represents a
+this output represents a a simulation driven by data from a five
+a simulation driven by data from a five lap circuit in my living room
+lap circuit in my living room and in this example we only show the
+and in this example we only show the integration of the imu data from our
+integration of the imu data from our data set
+data set now i must admit i cheated a bit here i
+now i must admit i cheated a bit here i actually had to fudge things for this
+actually had to fudge things for this example to get a trajectory that looked
+example to get a trajectory that looked even close to something that was
+even close to something that was recognizable
+recognizable anything less and i had an estimated
+anything less and i had an estimated position that quickly drifted from the
+position that quickly drifted from the origin without any recognizable motion
+origin without any recognizable motion and that's kind of the point
+and that's kind of the point with imu integration alone
+with imu integration alone the estimated position quickly diverges
+the estimated position quickly diverges from the origin and the results aren't
+from the origin and the results aren't very useful
+very useful so integration alone just isn't enough
+so integration alone just isn't enough but we have some tricks up our sleeve
+but we have some tricks up our sleeve now while the imu can tell us when the
+now while the imu can tell us when the cart is moving
+cart is moving it can also tell us when it's not moving
+it can also tell us when it's not moving we can look at a sliding window of imu
+we can look at a sliding window of imu data and determine when the car is at
+data and determine when the car is at rest
+rest now our sam simulation is continuously
+now our sam simulation is continuously estimating the velocities on each axis
+estimating the velocities on each axis if we know we aren't moving
+if we know we aren't moving we can make measurements on the slam
+we can make measurements on the slam filter that both the linear velocities
+filter that both the linear velocities and angular velocities should be zero
+and angular velocities should be zero we're basically asserting that the cart
+we're basically asserting that the cart shouldn't be moving or rotating when we
+shouldn't be moving or rotating when we know it's at rest
+we also know that the vehicle is a cart and that a cart drives in a certain way
+and that a cart drives in a certain way we can assume that the velocity on the
+we can assume that the velocity on the up axis is going to be close to zero
+up axis is going to be close to zero most of the time
+most of the time we can assume we can also assume that
+we can assume we can also assume that the lateral left right axis is going to
+the lateral left right axis is going to be zero most of the time
+be zero most of the time definitely when moving in a straight
+definitely when moving in a straight line
+line and even when the cart is turning if it
+and even when the cart is turning if it isn't sliding
+isn't sliding now we can use these assumptions to
+now we can use these assumptions to measure that the velocity is zero on the
+measure that the velocity is zero on the up and lateral axes
+up and lateral axes even when the car is moving
+even when the car is moving now these constraints are a bit more
+now these constraints are a bit more fragile since they aren't always
+fragile since they aren't always guaranteed to be true we have to be
+guaranteed to be true we have to be careful about how competently we make
+careful about how competently we make these measurements
+these measurements these measurements certainly won't be
+these measurements certainly won't be true if the card has been picked up if
+true if the card has been picked up if it's not driving on the floor
+it's not driving on the floor now in order to combat this we have a
+now in order to combat this we have a state machine that is evaluating if we
+state machine that is evaluating if we think the cart is driving or if it's
+think the cart is driving or if it's been picked up
+been picked up now this is where the magic of common
+now this is where the magic of common filters comes in
+filters comes in when we make these measurements that put
+when we make these measurements that put some constraints on the velocities
+some constraints on the velocities the filter is actually converging on
+the filter is actually converging on better estimates about its entire state
+better estimates about its entire state like what
+like what well like the estimated imu biases
+well like the estimated imu biases like the estimated position within the
+like the estimated position within the world
+world let's see what that looks like
+this example shows the same imu integration on the same five lap data
+integration on the same five lap data set that we saw before
+set that we saw before the only addition here are the
+the only addition here are the previously mentioned measurements the
+previously mentioned measurements the motion constraints that we just talked
+motion constraints that we just talked about
+about and this is a pretty significant
+and this is a pretty significant improvement
+improvement once again there's no additional
+once again there's no additional information provided here just imu data
+information provided here just imu data with measurements that constrain the
+with measurements that constrain the velocities
+velocities but we have more data available
+but we have more data available now if you recall our computer vision
+now if you recall our computer vision pass provides us with information about
+pass provides us with information about the gates
+the gates we know about gates that we currently
+we know about gates that we currently see by id
+see by id and we know the camera relative
+and we know the camera relative translation and rotation of the gate
+translation and rotation of the gate we can combine this data with our
+we can combine this data with our estimated cart position to calculate
+estimated cart position to calculate where a gate is positioned in world
+where a gate is positioned in world space
+space and we can make measurements on our
+and we can make measurements on our filter about a gate's position
+filter about a gate's position so let's see what that looks like
+now once again this is the same data as before five laps around my living room
+before five laps around my living room but this time we make measurements about
+but this time we make measurements about the gates when we see them
+the gates when we see them imagine we see a gate on a particular
+imagine we see a gate on a particular frame
+frame if we haven't seen the gate before we
+if we haven't seen the gate before we add its estimated position to the state
+add its estimated position to the state if we have seen the gate before
+if we have seen the gate before we use its prior estimate
+we use its prior estimate and current observation to refine both
+and current observation to refine both its position
+its position the cart's position
+the cart's position and to further refine all the other
+and to further refine all the other variables we're estimating and now we're
+variables we're estimating and now we're doing slam
+doing slam simultaneous localization and mapping
+so what do we get out of all this well we get an estimation of the cart's
+we get an estimation of the cart's position in orientation within the world
+position in orientation within the world we get an estimation of the cart's
+we get an estimation of the cart's velocities along all axes x y and z
+velocities along all axes x y and z we get an estimation of the angular
+we get an estimation of the angular velocities or turn rates along all three
+velocities or turn rates along all three axes
+axes we also get an estimation of the
+we also get an estimation of the accelerometer biases on each of those
+accelerometer biases on each of those axes
+additionally we get an estimate of the physical camera's rotation
+physical camera's rotation relative to the cart
+relative to the cart now this is really interesting because
+now this is really interesting because while the camera is fixed to the
+while the camera is fixed to the physical cart
+physical cart there can be some variation to the
+there can be some variation to the camera angle both because of
+camera angle both because of manufacturing tolerances
+manufacturing tolerances and the fact that it's in a mount that's
+and the fact that it's in a mount that's not completely rigid
+not completely rigid so this estimation of the camera's angle
+so this estimation of the camera's angle helps to improve the overall accuracy of
+helps to improve the overall accuracy of the slam model
+the slam model and we even use this estimate to adjust
+and we even use this estimate to adjust our in-game camera rig to better align
+our in-game camera rig to better align the digital world to the physical world
+the digital world to the physical world as we see it through the camera
+as we see it through the camera and finally we get an estimate estimated
+and finally we get an estimate estimated positions of all of the gates in the
+positions of all of the gates in the world
+world so put a different way we get an
+so put a different way we get an estimated view of a user-generated play
+estimated view of a user-generated play space
+space and the location and orientation of the
+and the location and orientation of the cart within that world
+now slam is a large field with multiple solutions using different techniques and
+solutions using different techniques and tons of resources online so if you want
+tons of resources online so if you want to dive into some of this stuff there's
+to dive into some of this stuff there's plenty of places to look
+plenty of places to look and as i mentioned klaus brenner's slam
+and as i mentioned klaus brenner's slam lecture playlist on youtube is amazing
+lecture playlist on youtube is amazing and it heavily inspired our approach
+and it heavily inspired our approach additionally udacity has a course titled
+additionally udacity has a course titled artificial intelligence for robots
+artificial intelligence for robots for robotics which has some great
+for robotics which has some great resources specifically a great
+resources specifically a great introduction to the common filter
+so now we're able to understand the world around us we have a pretty good
+world around us we have a pretty good estimation of where the card is in that
+estimation of where the card is in that world but there's one more piece to this
+world but there's one more piece to this puzzle and that is information about the
+puzzle and that is information about the shape of the track that the user intends
+shape of the track that the user intends to race on
+to race on after all we intend to host a race on a
+after all we intend to host a race on a course that the player has constructed
+course that the player has constructed so we need some information about the
+so we need some information about the shape of the course and the path that it
+shape of the course and the path that it takes through the user's play space
+takes through the user's play space and we call that track space
+and we call that track space this video shows the user facing track
+this video shows the user facing track building experience
+building experience the in-game fantasy is that lock-it tube
+the in-game fantasy is that lock-it tube pours paint on your tires and instructs
+pours paint on your tires and instructs you to drive a pace lap leaving a pane
+you to drive a pace lap leaving a pane of trail a trail of paint as you go
+of trail a trail of paint as you go so basically we're looking for one good
+so basically we're looking for one good continuous run around the whole track
+continuous run around the whole track that will help define the shape of the
+that will help define the shape of the user's course
+now as the user drives the paste lab we sample their position over time
+sample their position over time the green dots here represent what we
+the green dots here represent what we call breadcrumbs
+call breadcrumbs we add the breadcrumbs based on how
+we add the breadcrumbs based on how you're driving
+you're driving long straightaways only need a few
+long straightaways only need a few breadcrumbs to define them
+breadcrumbs to define them when turning we add more breadcrumbs to
+when turning we add more breadcrumbs to help further define any curves
+the bread crumbs are defined as a sequence of 2d points
+and we can traverse this sequence of breadcrumbs to get line segments
+and from the line segments we can measure their distances
+and by summing all of the distances we can determine the length of the entire
+can determine the length of the entire track
+so now we could think about a user-generated course in terms of a
+user-generated course in terms of a distance around the track
+distance around the track so let's imagine that this course is 800
+so let's imagine that this course is 800 centimeters long
+centimeters long as you traverse the course you start at
+as you traverse the course you start at a distance of zero when you pass through
+a distance of zero when you pass through the start gate
+the start gate your distance along the course will
+your distance along the course will increase as you eventually reach a
+increase as you eventually reach a distance of 800 centimeters as you cross
+distance of 800 centimeters as you cross the start gate again to finish a lap
+now all of the gates can be represented in terms of a track space distance
+in fact any arbitrary point along the course can
+any arbitrary point along the course can be described in terms of attract
+be described in terms of attract distance
+and we can easily convert any distance along the track
+along the track to a world position
+to a world position we have an api convert distance to slam
+we have an api convert distance to slam position to do just that
+and this track distance is actually two-dimensional
+two-dimensional we can provide an offset parameter to
+we can provide an offset parameter to get a position to the left or right of
+get a position to the left or right of the center line of the track
+and we can do the opposite if we know the world position of an
+if we know the world position of an entity
+entity we can calculate the track distance and
+we can calculate the track distance and offset of that entity
+offset of that entity we'll often do this in the context of a
+we'll often do this in the context of a race
+race we can compare the relative race
+we can compare the relative race positions of different competitors
+positions of different competitors by comparing their track distances to
+by comparing their track distances to determine who's in first second third
+determine who's in first second third and so on
+and so on and getting this in was a big win for us
+and getting this in was a big win for us we went for quite some time with only
+we went for quite some time with only considering the gate crosses for racer
+considering the gate crosses for racer position
+position as in the person in the lead was the
+as in the person in the lead was the first person to pass a particular gate
+first person to pass a particular gate but with this conversion to track space
+but with this conversion to track space we can continuously estimate estimate
+we can continuously estimate estimate the race position of all racers
+the race position of all racers even between the gates
+we can think about the track in other ways as well
+ways as well we could think about it in terms of a
+we could think about it in terms of a normalized distance and we call this
+normalized distance and we call this track progress
+track progress where zero is the beginning of the track
+where zero is the beginning of the track and one is the end
+and we can easily convert between track progress
+progress and our track distance
+additionally we could think about the track in terms of gate progress
+track in terms of gate progress get gate progress lets us imagine that
+get gate progress lets us imagine that the whole numbers 0 1 2 3 4
+the whole numbers 0 1 2 3 4 represent gate positions
+represent gate positions with normalized distances as the decimal
+with normalized distances as the decimal between them
+between them now gate 1 the start gate is represented
+now gate 1 the start gate is represented as 0.0
+as 0.0 gate 2 as 1.0 gate 3 is 2.0 and so on
+gate 2 as 1.0 gate 3 is 2.0 and so on until we return to the start gate again
+until we return to the start gate again for a gate progress of 4.0
+and we primarily use gate progress to think about the space in between the
+think about the space in between the gates
+gates for example we can get a point on the
+for example we can get a point on the course directly between gates two and
+course directly between gates two and three with a gate progress of 1.5
+and like track progress we can easily convert between gate progress and track
+convert between gate progress and track distance
+now up until now we've only been dealing with our estimation of the world and how
+with our estimation of the world and how we rationalize a user divine course
+we rationalize a user divine course well now we're going to look at how we
+well now we're going to look at how we use these results for gameplay
+use these results for gameplay before we dive in let's recap all the
+before we dive in let's recap all the data that we have access to
+data that we have access to we have video and imu data stream from
+we have video and imu data stream from the cart associated with timestamps
+the cart associated with timestamps we have cv results that contain gates
+we have cv results that contain gates with id and camera relative positional
+with id and camera relative positional information for all the banners that we
+information for all the banners that we that are on screen at any frame
+that are on screen at any frame and we have slam results that contain an
+and we have slam results that contain an estimation about the cart's motion along
+estimation about the cart's motion along with its whirl position estimation of
+with its whirl position estimation of the gates and additionally the track
+the gates and additionally the track space information
+so how do we use all this
+well first we move the cart so in the game as you might imagine
+so in the game as you might imagine there is an entity that represents the
+there is an entity that represents the player in their digital version of the
+player in their digital version of the cart
+cart and the important thing to know is that
+and the important thing to know is that we're actually moving that envy through
+we're actually moving that envy through the game world
+the game world we use the estimated velocities and turn
+we use the estimated velocities and turn rate from slam to update its position in
+rate from slam to update its position in orientation in game
+orientation in game and you'll note we're not directly
+and you'll note we're not directly consuming slam's estimated world
+consuming slam's estimated world position or orientation here
+position or orientation here and that's because the slam simulation
+and that's because the slam simulation and game simulation don't really run in
+and game simulation don't really run in lockstep
+lockstep we might drop video frames have late or
+we might drop video frames have late or delayed frames or have other hitches in
+delayed frames or have other hitches in the video feed
+the video feed our game simulation on the other hand is
+our game simulation on the other hand is continuously updating and we want our
+continuously updating and we want our in-game representation of the cart's
+in-game representation of the cart's motion to update smoothly and
+motion to update smoothly and consistently
+consistently in addition slam is continuously
+in addition slam is continuously updating its estimate of the cart's
+updating its estimate of the cart's position
+position based on gate observations
+based on gate observations and there can be cases cases where a
+and there can be cases cases where a measurement from a gate causes a large
+measurement from a gate causes a large correction to that position
+correction to that position and we want to hide that from the game
+and we want to hide that from the game simulation
+so we do consider slam's estimate of the card's position in orientation
+card's position in orientation whenever the game simulation receives
+whenever the game simulation receives updated slam information we interpolate
+updated slam information we interpolate towards that estimated world position
+towards that estimated world position and rotation
+and rotation so this two-step process allows for
+so this two-step process allows for smooth updates to the game entity
+smooth updates to the game entity while still maintaining consistency
+while still maintaining consistency between the game and slam's view of the
+between the game and slam's view of the world
+world as we'll see this concept that the cart
+as we'll see this concept that the cart is moving through the game world is very
+is moving through the game world is very important and it's basically the
+important and it's basically the backbone of our entire mixed reality
+backbone of our entire mixed reality system
+so let's talk about the content that we put at the gates
+we want our gate content to look as if it's part of the world it needs to be
+it's part of the world it needs to be locked and aligned with the video stream
+locked and aligned with the video stream each frame we don't want it to jitter
+each frame we don't want it to jitter drift or pop in and out of existence
+drift or pop in and out of existence and it needs to be robust to imperfect
+and it needs to be robust to imperfect information there are cases where we
+information there are cases where we don't find the marker maybe it was
+don't find the marker maybe it was occluded by a chair leg or a cat
+occluded by a chair leg or a cat and by design the user is encouraged to
+and by design the user is encouraged to drive through the gate and underneath
+drive through the gate and underneath the banner
+the banner while you're driving through the gate we
+while you're driving through the gate we can no longer see the banner but we
+can no longer see the banner but we still want that content that is being
+still want that content that is being drawn inside the gate opening to remain
+drawn inside the gate opening to remain stable and convincing in these
+stable and convincing in these situations
+situations we could see an example in this video
+we could see an example in this video interacting with the item boxes as we
+interacting with the item boxes as we pass through the gates
+pass through the gates even when there's no banner in the frame
+even when there's no banner in the frame so let's take a look at how this works
+so let's take a look at how this works remember that for every gate that's
+remember that for every gate that's detected in a video frame we have a cv
+detected in a video frame we have a cv result that represents gate its id and
+result that represents gate its id and its camera relative translation and
+its camera relative translation and rotation
+rotation we also know the world position of the
+we also know the world position of the cart
+cart and from our cart rig we know the
+and from our cart rig we know the relative offset and rotation of the
+relative offset and rotation of the camera on the cart
+we can concatenate these transforms to arrive at a world position in
+arrive at a world position in orientation for the gate that perfectly
+orientation for the gate that perfectly matches the banner that we detect in the
+matches the banner that we detect in the video frame
+video frame and we can place digital content at this
+and we can place digital content at this location in our game simulation it has a
+location in our game simulation it has a world space in position
+world space in position just like our in-game cart does
+now the next frame remove the card again we update the position and rotation of
+we update the position and rotation of the cart based on our slam estimation
+the cart based on our slam estimation just as we did before
+just as we did before and if we happen to see grade 3 again
+and if we happen to see grade 3 again great
+great we can use the cv results to update its
+we can use the cv results to update its position to match our new estimate
+position to match our new estimate and in fact we add a bit of
+and in fact we add a bit of interpolation to this update to keep
+interpolation to this update to keep things looking smooth sometimes the cv
+things looking smooth sometimes the cv results can be a bit noisy and the
+results can be a bit noisy and the interpolation helps to hide some of that
+but what if we didn't see gate 3 again this frame
+this frame well that's okay the cart has moved in
+well that's okay the cart has moved in the world
+the world the digital gate has moved relative to
+the digital gate has moved relative to the cart
+the cart and because we're estimating the motion
+and because we're estimating the motion of the physical cart this is hopefully
+of the physical cart this is hopefully very similar to how the gate is moved
+very similar to how the gate is moved relative to the gate in the real world
+once again here's the result
+so next we're going to talk about world items
+items items that exist around the track in the
+items that exist around the track in the space between the gates
+and there's plenty of content that appears simply through the course of
+appears simply through the course of playing the game there are bananas
+playing the game there are bananas thrown on the course the bombs dropped
+thrown on the course the bombs dropped on the track coins that you drop when
+on the track coins that you drop when you get hit
+you get hit but let's focus on a thrown banana peel
+but let's focus on a thrown banana peel how do we make it look as if it's
+how do we make it look as if it's sitting on the floor of your room
+sitting on the floor of your room how do we make it appear as if it's
+how do we make it appear as if it's stuck in one spot in the ground as you
+stuck in one spot in the ground as you drive past it
+drive past it how do we make it look as if it's in the
+how do we make it look as if it's in the same spot when you see it again the next
+same spot when you see it again the next lap
+lap well really took all of the tools that
+well really took all of the tools that we've talked about to make this possible
+we've talked about to make this possible so let's look at how it all comes
+so let's look at how it all comes together
+well we know the cart's position in the world
+world when we throw a banana peel we can
+when we throw a banana peel we can calculate its world position as an
+calculate its world position as an offset from the cart
+and of course in game the cart is moving through the world by updating its world
+through the world by updating its world position
+position and this world position is constantly
+and this world position is constantly updated to match slams estimated world
+updated to match slams estimated world position in your house
+and because our game camera matches our physical camera
+physical camera the banana looks as if it's anchored in
+the banana looks as if it's anchored in the world as we drive past it
+the world as we drive past it and it appears to be in the same spot
+and it appears to be in the same spot where we left it when we see it again in
+where we left it when we see it again in the future
+so next we'll look at track space items or content that we want spawned relative
+or content that we want spawned relative to the track
+to the track and typically these are items that we
+and typically these are items that we want to think about at design time
+want to think about at design time we need to be able to put things like
+we need to be able to put things like hazards and coins around the course in a
+hazards and coins around the course in a meaningful way and depending on what
+meaningful way and depending on what kind of race a user is engaged with
+kind of race a user is engaged with but here's the catch we don't know about
+but here's the catch we don't know about the course we didn't define it the user
+the course we didn't define it the user did when they placed their gates
+did when they placed their gates so we need a method to think about the
+so we need a method to think about the course and how we're going to place
+course and how we're going to place objects and hazards along it at design
+objects and hazards along it at design time absent any knowledge of what it
+time absent any knowledge of what it might look like
+might look like this video shows a great example with
+this video shows a great example with track coins for certain races we want to
+track coins for certain races we want to place a cluster of coins on the course
+place a cluster of coins on the course between each of the gates
+so let's focus on that cluster that we want to spawn between gates two and
+want to spawn between gates two and three
+three well we can use our track space api
+well we can use our track space api for a spawn position between gates 2 and
+we first use our convert gate to distance function with 1.5 as the gate
+distance function with 1.5 as the gate progress parameter
+progress parameter that call to convert gate to distance
+that call to convert gate to distance will return the actual track distance in
+will return the actual track distance in centimeters to that point on the track
+centimeters to that point on the track halfway between the gates
+halfway between the gates and we use that track distance to
+and we use that track distance to determine a world position using the
+determine a world position using the convert distance to slam position call
+convert distance to slam position call and that's it that's the bridge we
+and that's it that's the bridge we needed to cross
+needed to cross now our newly spawned coin cluster has a
+now our newly spawned coin cluster has a world position
+world position and everything from the banana example
+and everything from the banana example applies here as well
+applies here as well we can drive the cart through the world
+we can drive the cart through the world and the coins appear to be anchored
+and the coins appear to be anchored within that world relative to the cart
+using trackspace we could think about the track in meaningful ways at design
+the track in meaningful ways at design time and we could place content anywhere
+time and we could place content anywhere we'd like on a user generated course
+we'd like on a user generated course now dan doptus the game director on
+now dan doptus the game director on mario kart live
+mario kart live did a talk on this as well titled mixed
+did a talk on this as well titled mixed reality racing fuses deeper ar
+reality racing fuses deeper ar experiences with physical gameplay
+experiences with physical gameplay and he talks a lot about this how we
+and he talks a lot about this how we think about user-generated content
+think about user-generated content or user-generated courses at design time
+finally we'll talk about dynamic items items that need to interact with the
+items that need to interact with the court course itself
+court course itself and two good examples of dynamic items
+and two good examples of dynamic items are ai and red shells
+are ai and red shells now these things need to move and behave
+now these things need to move and behave intelligently on the course that the
+intelligently on the course that the user defines
+we'll look at a red shell for this example
+example as a red shell traverses the chorus it
+as a red shell traverses the chorus it tends to operate primarily in track
+tends to operate primarily in track space
+space it holds a track space distance that
+it holds a track space distance that represents a point along the course
+and to move the red shell we can increase that distance by some amount
+increase that distance by some amount given the shell speed
+our track space api allows us to convert that distance to a slam position which
+that distance to a slam position which gives us the new world position of the
+gives us the new world position of the shell
+we can even have the shell or an ai eraser moved left or right on the course
+eraser moved left or right on the course with our offset parameter
+and that's really it using our track space api we can make dynamic items like
+space api we can make dynamic items like ai racers and red shells move
+ai racers and red shells move intelligently on a user-defined course
+intelligently on a user-defined course course that we had no prior knowledge of
+the final thing we need to do is to get everything on screen
+we have a lot of data that we have accumulated the data for the video frame
+accumulated the data for the video frame and ime data our cv results the slam
+and ime data our cv results the slam results with track information and of
+results with track information and of course the output from our game
+course the output from our game simulation
+simulation and now we need to render it
+and now we need to render it functionally we're rendering the
+functionally we're rendering the undistorted video image
+undistorted video image and we're drawing all of the game
+and we're drawing all of the game content on top of that video image using
+content on top of that video image using a game camera that matches the physical
+a game camera that matches the physical camera
+and one thing i haven't really talked about is latency and that could be a
+about is latency and that could be a talk of its own
+talk of its own when we measure our latency in terms of
+when we measure our latency in terms of the amount of time it takes to get a
+the amount of time it takes to get a video frame that's captured on the cart
+video frame that's captured on the cart under the screen of the switch
+under the screen of the switch and as you can imagine the processing
+and as you can imagine the processing that we do takes time
+that we do takes time from the computer vision algorithm to
+from the computer vision algorithm to the slam update to the update of the
+the slam update to the update of the game simulation
+often we even get a new video frame before we're able to get the last frame
+before we're able to get the last frame on screen
+on screen you might be tempted as we were to try
+you might be tempted as we were to try and render that frame as quickly as
+and render that frame as quickly as possible maybe with the game simulation
+possible maybe with the game simulation results from the prior image
+results from the prior image and we've tried this
+and we've tried this many different ways and we failed many
+many different ways and we failed many times
+times the simple fact is that any discrepancy
+the simple fact is that any discrepancy between the video frame and the results
+between the video frame and the results from the game simulation will be seen
+from the game simulation will be seen things will be out of sync and it will
+things will be out of sync and it will break the illusion
+this is a really important bit everything needs to be rendered together
+everything needs to be rendered together as one unit
+as one unit and yes that means that there is latency
+and yes that means that there is latency built into this approach
+built into this approach and for that reason we spend a lot of
+and for that reason we spend a lot of time on optimization and techniques for
+time on optimization and techniques for further reducing the latency in other
+further reducing the latency in other ways
+so that's it an overview of our pipeline and a lot of the tools and techniques
+and a lot of the tools and techniques that went into making mario kart live
+that went into making mario kart live i'll leave you with a closing thought a
+i'll leave you with a closing thought a thing i said hundreds of times during
+thing i said hundreds of times during development
+development and that's we need to lean into our
+and that's we need to lean into our strengths and avoid our weaknesses
+strengths and avoid our weaknesses making a mixed reality game is hard
+making a mixed reality game is hard and there are a lot of things that we
+and there are a lot of things that we tried and content that just doesn't work
+tried and content that just doesn't work well with mixed reality
+well with mixed reality and that was a big part of development
+and that was a big part of development finding the things that work well and
+finding the things that work well and leaning into those
+leaning into those while avoiding the things that don't
+while avoiding the things that don't work well
+work well content that emphasizes the flaws in the
+content that emphasizes the flaws in the system
+be sure to check out valence studios online you can learn more about what we
+online you can learn more about what we are up to and explore our job listings
+are up to and explore our job listings and that's it for now thanks for your
+and that's it for now thanks for your time
+time [Music]

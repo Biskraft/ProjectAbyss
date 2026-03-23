@@ -1,0 +1,1328 @@
+[Music] okay
+okay thanks for tuning in this is minding
+thanks for tuning in this is minding your own design
+your own design crafting the crafting system in
+crafting the crafting system in astroneer
+astroneer let's get right into it so first just a
+let's get right into it so first just a couple of quick introductions
+couple of quick introductions i'm aaron bittelcom i'm a technical
+i'm aaron bittelcom i'm a technical designer with system era
+designer with system era and i've been in games for about eight
+and i've been in games for about eight years and been working on astroneer for
+years and been working on astroneer for the last three of those
+the last three of those before that i worked on galaxy this 2d
+before that i worked on galaxy this 2d roguelike shooter
+roguelike shooter and on envelope vr which was a desktop
+and on envelope vr which was a desktop vr platform
+vr platform most of my career has been focused on
+most of my career has been focused on gameplay and interaction design
+gameplay and interaction design especially features that are highly
+especially features that are highly physical and tactile
+physical and tactile but i've also worked on everything from
+but i've also worked on everything from system design to engine architecture
+system design to engine architecture i'm sure any indie devs listening are
+i'm sure any indie devs listening are familiar with wearing lots of different
+familiar with wearing lots of different hats
+hats and i'm elijah o'reir a gameplay
+and i'm elijah o'reir a gameplay programmer at system era
+programmer at system era i started in games around the same time
+i started in games around the same time as aaron but i worked in mobile casino
+as aaron but i worked in mobile casino games before making the jump to pc and
+games before making the jump to pc and console
+console in addition to programming i also have a
+in addition to programming i also have a design background that's been part of my
+design background that's been part of my work
+work i've often worked in ui and ux and large
+i've often worked in ui and ux and large gameplay systems
+gameplay systems i made the absurd seagull simulator
+i made the absurd seagull simulator sploot to try my hand at vr
+sploot to try my hand at vr and mess around with its tactile
+and mess around with its tactile interactions
+interactions and i did independent work for a while
+and i did independent work for a while after that also wore many hats and
+after that also wore many hats and joined system air about three years ago
+joined system air about three years ago all right
+all right so what is this talk actually about well
+so what is this talk actually about well we wanted to give you a look at some of
+we wanted to give you a look at some of the lessons that we learned while
+the lessons that we learned while working on our crafting update
+working on our crafting update which came out near the end of our early
+which came out near the end of our early access period
+access period we'd identified that the crafting loop
+we'd identified that the crafting loop was kind of struggling to scale up with
+was kind of struggling to scale up with the additions that we'd made to most of
+the additions that we'd made to most of the other systems in the game
+the other systems in the game but to improve it we had to make big
+but to improve it we had to make big changes to widely integrated parts of
+changes to widely integrated parts of the game
+the game it was kind of like trying to perform
+it was kind of like trying to perform open heart surgery
+open heart surgery but on a conscious patient once we got
+but on a conscious patient once we got into working on it we
+into working on it we quickly started second guessing
+quickly started second guessing ourselves and it was kind of a red flag
+ourselves and it was kind of a red flag that we didn't understand
+that we didn't understand something about astroneer
+mining your own design is really just a way to describe the process that we
+way to describe the process that we developed to overcome that paralysis
+developed to overcome that paralysis we treated astroneer kind of like an
+we treated astroneer kind of like an archaeology dig site
+archaeology dig site digging into it and deepening our
+digging into it and deepening our understanding of how it worked
+understanding of how it worked it allowed us to make changes that could
+it allowed us to make changes that could be almost seamless
+be almost seamless as a new player you'd be hard-pressed to
+as a new player you'd be hard-pressed to spot the new from the old
+spot the new from the old this meant reconciling some conflicting
+this meant reconciling some conflicting ideas about the core aspects of our game
+ideas about the core aspects of our game which made our goals seem mutually
+which made our goals seem mutually exclusive at first
+exclusive at first that conflict only really became
+that conflict only really became apparent when elijah and i
+apparent when elijah and i started pushing forward what at least
+started pushing forward what at least felt like competing visions for the game
+felt like competing visions for the game we didn't really set out to use this
+we didn't really set out to use this back and forth process it's just what
+back and forth process it's just what emerged over the course of putting this
+emerged over the course of putting this update together
+update together mining your own design happens whenever
+mining your own design happens whenever we were in conflict with each other
+we were in conflict with each other i was coming at the crafting system with
+i was coming at the crafting system with more of an outsider's perspective well
+more of an outsider's perspective well aaron was really familiar with the
+aaron was really familiar with the existing gameplay and how players were
+existing gameplay and how players were engaging with it
+engaging with it soon after we started working on the
+soon after we started working on the update we both accepted that
+update we both accepted that uh we both had valid points and diving
+uh we both had valid points and diving into ashnea's mechanics to
+into ashnea's mechanics to break them down and understand them
+break them down and understand them wasn't so much to prove who was right
+wasn't so much to prove who was right but to find some sort of missing or
+but to find some sort of missing or misunderstood
+misunderstood piece of the design that could reconcile
+piece of the design that could reconcile our perspectives
+our perspectives we didn't realize it at the time but
+we didn't realize it at the time but this is going to change our
+this is going to change our understanding of astroneer and
+understanding of astroneer and how we build it working together also
+how we build it working together also revealed holes in the design process we
+revealed holes in the design process we were using
+were using and advanced it further it established
+and advanced it further it established the immense value of
+the immense value of bringing the engineer into the design
+bringing the engineer into the design process early on
+process early on so if you're not familiar with it
+so if you're not familiar with it astroneer is an
+astroneer is an exploration crafting and survival game
+exploration crafting and survival game set in space
+set in space it focuses on ground-based exploration
+it focuses on ground-based exploration rather than spaceship travel and it's
+rather than spaceship travel and it's limited to a small set of planets in a
+limited to a small set of planets in a fixed solar system
+fixed solar system by this point in development we had a
+by this point in development we had a lot of things that already worked great
+lot of things that already worked great and made our game really unique
+and made our game really unique our planets were procedural but each of
+our planets were procedural but each of them had a distinct
+them had a distinct identity and this made exploration both
+identity and this made exploration both beautiful and unexpected
+beautiful and unexpected our terrain was fully deformable and you
+our terrain was fully deformable and you could sculpt it like plato
+could sculpt it like plato item interaction was extremely tactile
+item interaction was extremely tactile and diegetic
+and diegetic which made it not only charming and toy
+which made it not only charming and toy like but it also was intuitive for new
+like but it also was intuitive for new players
+players and we had this chill low stakes vibe
+and we had this chill low stakes vibe that emphasized
+that emphasized relaxed problem solving with only the
+relaxed problem solving with only the occasional moments of danger to kind of
+occasional moments of danger to kind of spice things up
+spice things up all of this was presented in a vibrant
+all of this was presented in a vibrant aerospace fantasy package
+aerospace fantasy package so what was the problem well player
+so what was the problem well player engagement dropped off after just a
+engagement dropped off after just a couple hours
+couple hours we were in early access and the opinion
+we were in early access and the opinion of the player base hovered around
+of the player base hovered around hey great concept can't wait to see the
+hey great concept can't wait to see the full game
+full game this had not shifted despite months of
+this had not shifted despite months of updates
+updates it was clear that there was something in
+it was clear that there was something in astroneer that was sapping player
+astroneer that was sapping player motivation or
+motivation or just not really keeping their interest
+just not really keeping their interest there were a lot of fun and interesting
+there were a lot of fun and interesting things
+things especially what we had added recently to
+especially what we had added recently to the game that players just never even
+the game that players just never even got to see i believe that it was the
+got to see i believe that it was the crafting system that was kind of the
+crafting system that was kind of the main offender for all this
+main offender for all this it was flat compared to the new drift of
+it was flat compared to the new drift of experiences you got from spelunking
+experiences you got from spelunking unlocking items and visiting different
+unlocking items and visiting different worlds baseballing and exploration both
+worlds baseballing and exploration both generated resources that followed into
+generated resources that followed into crafting it was kind of the end point of
+crafting it was kind of the end point of almost all steps of your game play
+almost all steps of your game play nothing
+nothing changed how crafting worked though past
+changed how crafting worked though past the first hour of the game
+the first hour of the game it lacked a big moment where mechanic
+it lacked a big moment where mechanic got introduced that
+got introduced that changed some part of the crafting system
+changed some part of the crafting system you're familiar with and
+you're familiar with and gave you this totally new experience
+gave you this totally new experience with new opportunities
+i like the cadence of crafting games how they
+they managed to fold in new resources new
+managed to fold in new resources new steps new ways of building the longer
+steps new ways of building the longer you play
+you play these are big important beats in the
+these are big important beats in the experience that
+experience that give you something new and interesting
+give you something new and interesting to play with and they make me excited to
+to play with and they make me excited to see what's going to come next
+see what's going to come next it felt like astronomy was really
+it felt like astronomy was really missing this opportunity
+missing this opportunity i thought that we should have more
+i thought that we should have more resources in the game but just
+resources in the game but just not make them all available from the
+not make them all available from the outset i wanted to add a few new modules
+outset i wanted to add a few new modules that combined or transform the existing
+that combined or transform the existing resources into entirely new ones
+resources into entirely new ones this would give us a couple new resource
+this would give us a couple new resource sets unlocked by these modules
+sets unlocked by these modules to divide the crafted items up in
+to divide the crafted items up in between
+between each module would feed into the next
+each module would feed into the next giving us a nice
+giving us a nice natural progression so that we could
+natural progression so that we could divvy up the recipes between
+divvy up the recipes between early mid and late game pretty
+early mid and late game pretty effectively
+effectively i didn't actually disagree with elijah
+i didn't actually disagree with elijah at least in principle
+at least in principle but i was having trouble squaring it
+but i was having trouble squaring it with that same laid back low stakes 5
+with that same laid back low stakes 5 that
+that felt like a core part of astroneer's
+felt like a core part of astroneer's identity
+identity the team had often talked about
+the team had often talked about simplicity and minimalism as watchwords
+simplicity and minimalism as watchwords for the game
+for the game and i was worried that the various
+and i was worried that the various additions we'd made to the crafting
+additions we'd made to the crafting system already
+system already had moved us away from those concepts
+had moved us away from those concepts despite the fact that the overall
+despite the fact that the overall crafting loop was shallow and repetitive
+crafting loop was shallow and repetitive it also had a lot of moving parts that
+it also had a lot of moving parts that completed for the player's attention
+completed for the player's attention on top of that after the smelter each of
+on top of that after the smelter each of our crafting modules only got more
+our crafting modules only got more complex in their interactions
+complex in their interactions involving things like reusable
+involving things like reusable containers which were needed to hold
+containers which were needed to hold resources
+resources even though players use these modules
+even though players use these modules less often than the smelter
+less often than the smelter their complexity took a lot more focus
+their complexity took a lot more focus and it wasn't clear how much the game
+and it wasn't clear how much the game had actually benefited from it
+the more elijah and i battled over this the more we started to realize that we
+the more we started to realize that we were really arguing over the issue of
+were really arguing over the issue of cognitive load in our game
+cognitive load in our game normally when you hear that term it's in
+normally when you hear that term it's in a negative context as in
+a negative context as in you have too much of it but you can just
+you have too much of it but you can just as easily end up with not enough
+as easily end up with not enough which results in losing player
+which results in losing player engagement
+engagement this was the problem that elijah was
+this was the problem that elijah was pointing to with our crafting system
+pointing to with our crafting system its core loop centered around just three
+its core loop centered around just three simple steps that the player repeated ad
+simple steps that the player repeated ad nauseam
+nauseam you mine resources out of the ground
+you mine resources out of the ground toss them into the smelter
+toss them into the smelter and use the output to print new items
+and use the output to print new items on top of that all but one of these
+on top of that all but one of these resources
+resources was available on your starting planet
+was available on your starting planet and there were no choices in how to use
+and there were no choices in how to use them
+them outside of what you wanted to print but
+outside of what you wanted to print but at the same time
+at the same time we had added several additional crafting
+we had added several additional crafting stations
+stations and instead of creating a stable
+and instead of creating a stable long-term loop they'd started chipping
+long-term loop they'd started chipping away at the simple elegance that players
+away at the simple elegance that players had found appealing to begin with
+had found appealing to begin with from my perspective i felt like we were
+from my perspective i felt like we were already placing too much cognitive load
+already placing too much cognitive load on players
+on players to the point that we were losing them to
+to the point that we were losing them to frustrating complexity
+frustrating complexity you run into an apparent contradiction
+you run into an apparent contradiction of opinions like this you know
+of opinions like this you know too much cognitive load versus too
+too much cognitive load versus too little don't be too quick to just
+little don't be too quick to just discard one argument
+discard one argument and take the other it's easy to use a
+and take the other it's easy to use a common language that is actually
+common language that is actually obfuscating what you're really talking
+obfuscating what you're really talking about
+about here and i both had an opinion about the
+here and i both had an opinion about the crafting system
+crafting system but it was only when we laid out the
+but it was only when we laid out the specifics of our positions that we
+specifics of our positions that we realized we were talking about different
+realized we were talking about different subsets of the crafting system aaron was
+subsets of the crafting system aaron was talking about the visceral
+talking about the visceral moment-to-moment
+moment-to-moment interactions that the player had with
+interactions that the player had with crafting you did have a really good
+crafting you did have a really good point about how these modules were
+point about how these modules were complicated to players
+complicated to players for players to use which i hadn't
+for players to use which i hadn't concerned myself with very much
+concerned myself with very much instead i was focusing on the systemic
+instead i was focusing on the systemic interactions within the crafting system
+interactions within the crafting system and
+and how to beef those up we were both right
+how to beef those up we were both right but
+but my relative distance from working on the
+my relative distance from working on the crafting system day in and day out
+crafting system day in and day out gave me a pretty clear view of the core
+gave me a pretty clear view of the core loop of astroneer's crafting and its
+loop of astroneer's crafting and its deficiencies
+deficiencies and speaking of the choreograph crafting
+and speaking of the choreograph crafting loop
+this diagram illustrates it and kind of how it works
+how it works to start with players use the deform
+to start with players use the deform tool to mine resource nuggets from
+tool to mine resource nuggets from deposits
+deposits embedded in the soil two of those mined
+embedded in the soil two of those mined resources could be fed through the
+resources could be fed through the smelter which would
+smelter which would turn them into metals and the final
+turn them into metals and the final crafting step
+crafting step was using uh the resources that you
+was using uh the resources that you would mined and that
+would mined and that you would converted with the smelter in
+you would converted with the smelter in order to make printed items
+order to make printed items a printer would consume a couple nuggets
+a printer would consume a couple nuggets and output some kind of item like a
+and output some kind of item like a solar panel or an oxygenator
+solar panel or an oxygenator you know something that's sort of useful
+you know something that's sort of useful in space
+the smelter was the only module that created new resources in the game
+created new resources in the game and it was also the first crafting
+and it was also the first crafting module that players would unlock after
+module that players would unlock after about 30 minutes of play
+about 30 minutes of play it only created two new resources that
+it only created two new resources that had to use
+had to use oars didn't have any of their use other
+oars didn't have any of their use other than to be smelted they weren't used in
+than to be smelted they weren't used in any crafting recipes directly
+any crafting recipes directly so the player wasn't facing many
+so the player wasn't facing many trade-offs when they were engaging with
+trade-offs when they were engaging with the crafting system
+using it was very simple you can see in this video over here that all you have
+this video over here that all you have to do is
+to do is take an ore place it onto the smelter
+take an ore place it onto the smelter and then it turns it into a nugget of
+and then it turns it into a nugget of metal
+metal it's a one-to-one conversion um
+it's a one-to-one conversion um and again you can't use the or for
+and again you can't use the or for anything else
+anything else so the smelter being so simple in its
+so the smelter being so simple in its form
+form and having such a simple ux it really
+and having such a simple ux it really felt
+felt more like a beginner crafting module in
+more like a beginner crafting module in order to kind of ease players into the
+order to kind of ease players into the concept of using them
+concept of using them but you could make literally every item
+but you could make literally every item in the game using just a sponsor and
+in the game using just a sponsor and printers
+printers so let's take another look at that
+so let's take another look at that crafting diagram
+crafting diagram as we said in addition to the core loop
+as we said in addition to the core loop there were these three other modules
+there were these three other modules that were involved in crafting
+that were involved in crafting but were on their own separate track
+but were on their own separate track we'll call this track
+we'll call this track the spur because it kind of poked out
+the spur because it kind of poked out the side from the core loop
+the side from the core loop the first of these was the soil
+the first of these was the soil centrifuge and it was
+centrifuge and it was practically the module equivalent of
+practically the module equivalent of your terrain tool is it produced all the
+your terrain tool is it produced all the same resources as it
+same resources as it branching out from that were the chem
+branching out from that were the chem lab and the condenser
+lab and the condenser both of which made the same single
+both of which made the same single resource
+resource hydrazine which served as astroneers
+hydrazine which served as astroneers rocket fuel but wasn't actually used in
+rocket fuel but wasn't actually used in crafting
+the soil centrifuge worked by taking a sample resource that you would have
+sample resource that you would have mined out of the ground
+mined out of the ground and effectively cloning it in exchange
+and effectively cloning it in exchange for the soil that was collected when you
+for the soil that was collected when you deform terrain
+deform terrain there were a few parts to it that can
+there were a few parts to it that can make it confusing to use which is
+make it confusing to use which is probably a little easier to understand
+probably a little easier to understand if we see it in action
+if we see it in action so the orange buttons that you're seeing
+so the orange buttons that you're seeing would allow you to select whatever
+would allow you to select whatever output you wanted
+output you wanted but it also made it clear which
+but it also made it clear which resources could be cloned
+resources could be cloned but you could also just select your
+but you could also just select your output by placing any valid sample
+output by placing any valid sample resource which would automatically set
+resource which would automatically set it as the selection
+it as the selection the amount of resources that you got
+the amount of resources that you got back depends on how much soil you
+back depends on how much soil you provide and
+provide and different resources have different
+different resources have different exchange rates
+exchange rates all of this presented a bit of a
+all of this presented a bit of a learning curve without adding anything
+learning curve without adding anything fundamentally new to the crafting loop
+in the case of the condenser in the chem lab like we said both of them only
+lab like we said both of them only produced that single resource hydrazine
+produced that single resource hydrazine originally hydrazine could be either
+originally hydrazine could be either mined out of the ground or produced from
+mined out of the ground or produced from nothing but the atmosphere and
+nothing but the atmosphere and electricity through the condenser
+electricity through the condenser mining something as complex as rocket
+mining something as complex as rocket fuel felt kind of bizarre
+fuel felt kind of bizarre but the condenser was way too
+but the condenser was way too overpowered and unbounded to serve as
+overpowered and unbounded to serve as the only way to produce hydrazine
+the only way to produce hydrazine so to address both of these issues we
+so to address both of these issues we previously previously added the chem lab
+previously previously added the chem lab which crafted hydrazine from a new
+which crafted hydrazine from a new resource that we used to replace the
+resource that we used to replace the hydrazine deposits
+hydrazine deposits at the same time we changed hydrazine to
+at the same time we changed hydrazine to depend on the same
+depend on the same reusable canisters that were also used
+reusable canisters that were also used to store soil
+to store soil this introduced a constraint on the
+this introduced a constraint on the previously unbounded production in the
+previously unbounded production in the condenser
+condenser as players now needed to manually supply
+as players now needed to manually supply it with fresh canisters
+it with fresh canisters but the downside was a finicky and kind
+but the downside was a finicky and kind of tedious ux
+of tedious ux these players had to juggle their
+these players had to juggle their canister use between soil and hydrazine
+canister use between soil and hydrazine and while we had intended for the chem
+and while we had intended for the chem lab to eventually produce an entire set
+lab to eventually produce an entire set of complex resources
+of complex resources in the meantime we were presenting
+in the meantime we were presenting players with two ways of doing exactly
+players with two ways of doing exactly the same thing
+the same thing without a clear trade-off between them
+so let's see how those both worked with the condenser
+the condenser using it was actually pretty simple you
+using it was actually pretty simple you just attached an empty canister and
+just attached an empty canister and started it running as long as it
+started it running as long as it remained powered
+remained powered it would slowly fill up the canister
+it would slowly fill up the canister until it was complete
+until it was complete you could also put empty canisters in
+you could also put empty canisters in storage next to it and they'd be pulled
+storage next to it and they'd be pulled in automatically when the
+in automatically when the previous one was full for the catalyzer
+previous one was full for the catalyzer that thing that looks like a pizza oven
+that thing that looks like a pizza oven hold the mind resource ammonium
+hold the mind resource ammonium for every nugget of ammonium you also
+for every nugget of ammonium you also needed an empty canister if you had a
+needed an empty canister if you had a mismatch between those
+mismatch between those the machine wouldn't even start
+the machine wouldn't even start otherwise you'd set it going and
+otherwise you'd set it going and a few seconds later you'd have some
+a few seconds later you'd have some hydrazine
+hydrazine the issues with the sperm modules was
+the issues with the sperm modules was more subtle than just an overtly broken
+more subtle than just an overtly broken design
+design it wasn't that players didn't enjoy
+it wasn't that players didn't enjoy using them at all outside of that
+using them at all outside of that initial
+initial learning curve it was actually full of
+learning curve it was actually full of the
+the the kind of tactile and dynamic
+the kind of tactile and dynamic interactions that astroneer
+interactions that astroneer was so special for the real problems
+was so special for the real problems only manifested in the interactions
+only manifested in the interactions between these modules and the rest of
+between these modules and the rest of the game
+the game in one of two ways either they were too
+in one of two ways either they were too cut off from other systems
+cut off from other systems kind of acting like a mini-game or they
+kind of acting like a mini-game or they were redundant with other systems and
+were redundant with other systems and ended up undercutting them
+ended up undercutting them we found that these kinds of design
+we found that these kinds of design challenges can be especially difficult
+challenges can be especially difficult to address
+to address since things often seem to be working up
+since things often seem to be working up close
+close this not only leads to an urge to defend
+this not only leads to an urge to defend them from
+them from valid critique but it can also obscure
+valid critique but it can also obscure problems until much later on
+problems until much later on after those systems have become
+after those systems have become entrenched confronting issues like this
+entrenched confronting issues like this require you to look at your game
+require you to look at your game holistically and evaluate individual
+holistically and evaluate individual parts of your design as
+parts of your design as gears in the larger machine
+in the case of the condenser in the soil centrifuge
+centrifuge both of them had been built around
+both of them had been built around testing out different sinks
+testing out different sinks the condenser was a power sink and the
+the condenser was a power sink and the soil centrifuge
+soil centrifuge naturally enough was a soil sink in
+naturally enough was a soil sink in order to demonstrate each of these ideas
+order to demonstrate each of these ideas we'd use existing resources to serve as
+we'd use existing resources to serve as their output
+their output mostly just as a convenient proof of
+mostly just as a convenient proof of concept
+concept but in each case this had led to the
+but in each case this had led to the same unintended consequence
+same unintended consequence both functioned as resource gathering
+both functioned as resource gathering shortcuts that started to undercut the
+shortcuts that started to undercut the need to collect resources from the wild
+need to collect resources from the wild mining resources served as the backbone
+mining resources served as the backbone for exploration
+for exploration and it helped establish the alternating
+and it helped establish the alternating rhythm between exploration and base
+rhythm between exploration and base management
+management the chem lab was the least problematic
+the chem lab was the least problematic of the three
+of the three and mostly it just suffered from being
+and mostly it just suffered from being underutilized
+underutilized we still felt like there was a great
+we still felt like there was a great opportunity to expand its use with new
+opportunity to expand its use with new resources
+resources but this was stymied by the problems we
+but this was stymied by the problems we were having with the other two
+with the strain that these modules placed on the rest of the loop
+placed on the rest of the loop the obvious question was why not just
+the obvious question was why not just cut them and start over
+cut them and start over aside from the fact that we were a live
+aside from the fact that we were a live game
+game oh the problem was that from the
+oh the problem was that from the player's perspective
+player's perspective they had real value the instant
+they had real value the instant gratification that they provided
+gratification that they provided sidestepped a lot of potential
+sidestepped a lot of potential frustrations that arose when needed
+frustrations that arose when needed deposits came up short
+deposits came up short in a way they functioned kind of like
+in a way they functioned kind of like player junk food
+player junk food in small doses there wasn't a problem
+in small doses there wasn't a problem but without any limits placed on them
+but without any limits placed on them they soon took over the more balanced
+they soon took over the more balanced diet of the mining loop
+diet of the mining loop players gorge themselves until they
+players gorge themselves until they started to feel sick
+started to feel sick and ultimately started burning out
+and ultimately started burning out we saw this pretty clearly with the soil
+we saw this pretty clearly with the soil centrifuge
+centrifuge i had actually anticipated the impact
+i had actually anticipated the impact that it might have on resource mining
+that it might have on resource mining and i tried to mitigate it by making it
+and i tried to mitigate it by making it less efficient than mining deposits
+less efficient than mining deposits it also required that sample resource of
+it also required that sample resource of whatever you wanted to produce
+whatever you wanted to produce so you couldn't just skip ahead without
+so you couldn't just skip ahead without doing some of the initial exploration
+doing some of the initial exploration the idea was that it would function
+the idea was that it would function great as a supplement to mining
+great as a supplement to mining since you could collect soil in the
+since you could collect soil in the process and get a double return for your
+process and get a double return for your efforts
+efforts but players started to just grind for
+but players started to just grind for the soil itself
+the soil itself digging up the terrain around their base
+digging up the terrain around their base instead of continuing to explore for
+instead of continuing to explore for deposits that they could just clone
+deposits that they could just clone instead
+instead we'd made some attempts to tune our way
+we'd made some attempts to tune our way out of the problem but it didn't really
+out of the problem but it didn't really seem like there was a sweet spot
+seem like there was a sweet spot we were kind of in a stalemate with our
+we were kind of in a stalemate with our players
+players so over time we really lost sight of why
+so over time we really lost sight of why these modules were introduced in the
+these modules were introduced in the first place
+first place the design intent was to provide new
+the design intent was to provide new resource syncs and engagement with base
+resource syncs and engagement with base building
+building we paired those things with these potent
+we paired those things with these potent resource shortcuts as an incentive for
+resource shortcuts as an incentive for players
+players to generate power and collect soil but
+to generate power and collect soil but over time
+over time in our minds the intent incentive became
+in our minds the intent incentive became a single inseparable assumption
+a single inseparable assumption about how these modules just had to be
+about how these modules just had to be we felt stuck
+we felt stuck in trying to balance a resource cloner
+in trying to balance a resource cloner in this infinite rocket fuel generator
+in this infinite rocket fuel generator was
+was not working this is why i'm mining your
+not working this is why i'm mining your own design
+own design and doing it with someone else can be so
+and doing it with someone else can be so important in really decomposing how your
+important in really decomposing how your design works and figuring out what parts
+design works and figuring out what parts are actually necessary and what parts
+are actually necessary and what parts are not
+are not and i brought the perspective to aaron
+and i brought the perspective to aaron that we needed a new resource set that
+that we needed a new resource set that expanded
+expanded over time with the crafting gameplay he
+over time with the crafting gameplay he started to look at the existing crafting
+started to look at the existing crafting system
+system in a totally new light my proposal
+in a totally new light my proposal provided a new set of incentives for
+provided a new set of incentives for players to engage with crafting
+players to engage with crafting and prompted him to look at their
+and prompted him to look at their existing modules and the instances they
+existing modules and the instances they provided and asked
+provided and asked wait a minute maybe these modules don't
+wait a minute maybe these modules don't have the right incentives at all
+this is the sign we needed to know that we were on the right track with this
+we were on the right track with this redesign
+redesign the experience that we intended the
+the experience that we intended the player to have started lining up with
+player to have started lining up with how we were incentivizing them to play
+how we were incentivizing them to play astroneer
+astroneer if you find yourself struggling to align
+if you find yourself struggling to align your designs incentives
+your designs incentives and intent challenge the assumptions
+and intent challenge the assumptions that you're making on each half of that
+that you're making on each half of that divide
+divide this can reveal a hidden or flawed
+this can reveal a hidden or flawed assumption
+assumption if you're still struggling to challenge
+if you're still struggling to challenge your assumptions then collaborate with
+your assumptions then collaborate with someone who has a very different vision
+someone who has a very different vision for the design
+for the design it's easy to get attached to the way
+it's easy to get attached to the way things are and to take it personally but
+things are and to take it personally but let it go this can be difficult to
+let it go this can be difficult to practice but it's a powerful way to get
+practice but it's a powerful way to get through problems that
+through problems that have got you totally stopped in
+have got you totally stopped in hindsight
+hindsight the solution to these three was actually
+the solution to these three was actually pretty straightforward
+pretty straightforward since all we needed was to prevent these
+since all we needed was to prevent these modules from being redundant with each
+modules from being redundant with each other then
+other then the answer was to make all of their
+the answer was to make all of their outputs unique
+outputs unique as soon as we landed on this idea it
+as soon as we landed on this idea it immediately clicked for us
+immediately clicked for us having more modules that made unique
+having more modules that made unique resources
+resources gave us a way to expand the resource
+gave us a way to expand the resource table without adding tons of new
+table without adding tons of new deposits which was
+deposits which was pretty disruptive to the game resource
+pretty disruptive to the game resource acquisition could tie into additional
+acquisition could tie into additional game systems
+game systems in a more fundamental way and most
+in a more fundamental way and most pressingly
+pressingly it would expand the depth of the
+it would expand the depth of the crafting system without even
+crafting system without even needing new modules while simultaneously
+needing new modules while simultaneously reducing the cognitive load
+reducing the cognitive load caused by the current disjointed system
+caused by the current disjointed system the result of this was a distinct
+the result of this was a distinct purpose for each of the three modules
+purpose for each of the three modules that actually strengthen their existing
+that actually strengthen their existing conceptual identities
+first up we have the soil centrifuge instead of cloning our mind resources
+instead of cloning our mind resources we clean coined the idea of trace
+we clean coined the idea of trace minerals that could only be produced
+minerals that could only be produced from soil
+from soil this leaned into the fact that soil
+this leaned into the fact that soil could be collected anywhere
+could be collected anywhere making these resources more reliably
+making these resources more reliably available than their mined counterparts
+available than their mined counterparts this also did away with the idea of the
+this also did away with the idea of the confusing sample mechanic which
+confusing sample mechanic which made it much easier to select what you
+made it much easier to select what you wanted
+for the condenser we embraced the idea that you were collecting resources
+that you were collecting resources out of the atmosphere itself and going
+out of the atmosphere itself and going further with that idea and giving every
+further with that idea and giving every planet a different set of gases
+planet a different set of gases that could be produced and since that
+that could be produced and since that meant it no longer
+meant it no longer took the place in of other systems there
+took the place in of other systems there wasn't as much
+wasn't as much need to constrain it which allowed us to
+need to constrain it which allowed us to do away with the reusable canisters that
+do away with the reusable canisters that players were finding kind of tedious
+players were finding kind of tedious and finally for the chemistry lab we
+and finally for the chemistry lab we could finally expand it into a
+could finally expand it into a multi-purpose crafting station
+multi-purpose crafting station to differentiate the complex resources
+to differentiate the complex resources that it would produce
+that it would produce from the smelter we introduced the idea
+from the smelter we introduced the idea of composite resources which would be
+of composite resources which would be made up for mixed ingredients
+made up for mixed ingredients this had a secondary benefit and that it
+this had a secondary benefit and that it allowed us to
+allowed us to compact multiple resources into one
+compact multiple resources into one which was particularly important in a
+which was particularly important in a game with a diegetic inventory
+game with a diegetic inventory where your inventory space was actually
+where your inventory space was actually physical
+physical and could take up real space in the game
+taken altogether these changes not only addressed the existing issues that we'd
+addressed the existing issues that we'd had with these modules
+had with these modules they opened up new opportunities for us
+they opened up new opportunities for us the condenser and the centrifuge
+the condenser and the centrifuge could provide new challenge factors for
+could provide new challenge factors for resource scarcity
+resource scarcity planet travel and large-scale terrain
+planet travel and large-scale terrain deformation
+deformation and the chem lab created a huge
+and the chem lab created a huge multiplier on our raw resources
+multiplier on our raw resources adding any number of permutations
+adding any number of permutations between them
+between them for the first time it felt like our
+for the first time it felt like our goals for this update actually seemed to
+goals for this update actually seemed to be in sight
+be in sight you can kind of see with the graph there
+you can kind of see with the graph there how this would work
+how this would work the three different um sources for our
+the three different um sources for our raw resources
+raw resources could funnel through the other crafting
+could funnel through the other crafting stations into
+stations into finally a complex one at the end so
+finally a complex one at the end so fixing these modules required us to take
+fixing these modules required us to take a step bass
+a step bass back and ask two questions vital in this
+back and ask two questions vital in this process of mining our own design
+process of mining our own design what do we want the player to do and why
+what do we want the player to do and why is the player willing to do it
+is the player willing to do it the first is about examining your intent
+the first is about examining your intent as a developer how does your economy
+as a developer how does your economy enemy ai
+enemy ai and counter design all come together to
+and counter design all come together to make the gameplay experience for the
+make the gameplay experience for the player
+player what possibilities and challenges are
+what possibilities and challenges are you trying to introduce to them
+you trying to introduce to them the second question is about what your
+the second question is about what your player is actually doing in your game
+player is actually doing in your game players can come up with shortcuts you
+players can come up with shortcuts you never anticipated that subvert your
+never anticipated that subvert your intent
+intent they can also put up with boring or
+they can also put up with boring or bucky gameplay to accomplish their own
+bucky gameplay to accomplish their own personal goals
+personal goals motivations can vary wildly they can be
+motivations can vary wildly they can be pursuing mastery
+pursuing mastery joy item rewards fantasy fulfillment
+joy item rewards fantasy fulfillment but what matters is that your player
+but what matters is that your player wants it insists have
+wants it insists have shaped the desire path that players take
+shaped the desire path that players take through your game to get to what they
+through your game to get to what they really want
+you're playing the game wrong as kind of a classic designer complaint
+a classic designer complaint but this is more about spotting negative
+but this is more about spotting negative player motivation that's enticing them
+player motivation that's enticing them to suffer for what they really want
+to suffer for what they really want the goal is to alleviate player fatigue
+the goal is to alleviate player fatigue and make sure they're not putting up
+and make sure they're not putting up with clunky ux or in gameplay
+with clunky ux or in gameplay this is a factor in our big game lol
+this is a factor in our big game lol that i didn't totally appreciate at the
+that i didn't totally appreciate at the outset
+outset i kind of thought it was all about
+i kind of thought it was all about systemic design right
+systemic design right but once you've identified these
+but once you've identified these negative player motivations fixing them
+negative player motivations fixing them is going to lead you back to that
+is going to lead you back to that question of
+question of what do we want the player to do every
+what do we want the player to do every time you
+time you iterate those two questions you bring
+iterate those two questions you bring your designs incentives and the player's
+your designs incentives and the player's desires
+desires into tighter alignment this probably
+into tighter alignment this probably doesn't sound like a totally revelatory
+doesn't sound like a totally revelatory process to you but
+process to you but it can be easy to forget to do it at the
+it can be easy to forget to do it at the right time and more importantly
+right time and more importantly to consider both these questions fully
+so at this point we had kind of assumed that the hard part was
+that the hard part was really behind us uh astroneer uses
+really behind us uh astroneer uses reward materials
+reward materials partly this is for the aerospace fantasy
+partly this is for the aerospace fantasy aesthetic but we also felt made the
+aesthetic but we also felt made the printer recipes more intuitive
+printer recipes more intuitive we assumed that this real-world
+we assumed that this real-world connection would make it very easy to
+connection would make it very easy to pick additional ingredients
+pick additional ingredients aaron did some research and came up with
+aaron did some research and came up with potential set
+potential set and it was too large and he struggled to
+and it was too large and he struggled to narrow it down
+narrow it down thinking that maybe we just didn't
+thinking that maybe we just didn't understand them well enough to uh to
+understand them well enough to uh to leverage these new resources aaron
+leverage these new resources aaron invited me to take a look over the
+invited me to take a look over the potential ingredients with them
+potential ingredients with them i have an interest in engineering and
+i have an interest in engineering and manufacturing
+manufacturing these were real-world ingredients they
+these were real-world ingredients they had real-world properties that were
+had real-world properties that were useful in the manufacture of various
+useful in the manufacture of various goods
+goods things like electric wood conductor
+things like electric wood conductor light structural material
+light structural material shock absorber we thought tagging all
+shock absorber we thought tagging all these new resources with these
+these new resources with these properties was
+properties was going to make it obvious to pick instead
+going to make it obvious to pick instead we
+we found it no easier to judge it was
+found it no easier to judge it was no easier to judge if astronaut needed
+no easier to judge if astronaut needed another electrical conductor or shock
+another electrical conductor or shock absorber
+absorber versus if it needed tungsten carbide or
+versus if it needed tungsten carbide or carbon fiber
+so running around in circles like this was an
+was an indication that we didn't totally
+indication that we didn't totally understand something about our design
+understand something about our design maybe an entire pillar of our design
+maybe an entire pillar of our design that hadn't been identified yet
+that hadn't been identified yet we had to do some mining to discover the
+we had to do some mining to discover the missing connection
+missing connection between astronomers resources and kind
+between astronomers resources and kind of the recipes
+of the recipes from the outset we assumed we need more
+from the outset we assumed we need more resources was the problem that we were
+resources was the problem that we were solving
+solving it was but mostly in service of adding a
+it was but mostly in service of adding a crafting progression to our game
+crafting progression to our game we kept asking what are these materials
+we kept asking what are these materials used for in the real world to try and
+used for in the real world to try and understand them better
+understand them better but that's not used as a useful question
+but that's not used as a useful question as what are these materials used for in
+as what are these materials used for in astroneer
+astroneer to print items is the answer to that
+to print items is the answer to that question half of their purpose
+question half of their purpose was unexamined our exhaustive research
+was unexamined our exhaustive research on the new resources made us pretty sure
+on the new resources made us pretty sure we had a good grasp on them
+we had a good grasp on them but maybe we didn't understand the
+but maybe we didn't understand the anatomy of a printed item itself well
+anatomy of a printed item itself well enough
+enough it was easy to forget about printed
+it was easy to forget about printed items because we weren't really adding
+items because we weren't really adding many to this new update
+so we took all the resources off of the board and put up all the items you could
+board and put up all the items you could print instead
+print instead we went through each of them and started
+we went through each of them and started asking
+asking what would matter if you tried to build
+what would matter if you tried to build this a shuttle would need to be
+this a shuttle would need to be light strong and heat resistant a rover
+light strong and heat resistant a rover would need to be tough and have good
+would need to be tough and have good shock absorption the sign of questioning
+shock absorption the sign of questioning made us focus on the output of the
+made us focus on the output of the crafting system and it generated the
+crafting system and it generated the same set of material properties that
+same set of material properties that would come up with for the resources
+would come up with for the resources this is an exciting moment up until this
+this is an exciting moment up until this point we never thought about our printed
+point we never thought about our printed items in this way
+items in this way we had such a small set of ingredients
+we had such a small set of ingredients in the game that we'd made all of our
+in the game that we'd made all of our recipes on intuition
+recipes on intuition there was an underlying logic to the
+there was an underlying logic to the system we had just never articulated
+system we had just never articulated before unfortunately with astroneer late
+before unfortunately with astroneer late in its early access development there
+in its early access development there were a lot of printed items to do this
+were a lot of printed items to do this mapping exercise on
+mapping exercise on it gave us a very clear road map of the
+it gave us a very clear road map of the material properties that would be most
+material properties that would be most useful for printing
+useful for printing astroneer type items knowing that made
+astroneer type items knowing that made the set of resources
+the set of resources that best match those material
+that best match those material properties quickly emerge
+properties quickly emerge so part of the problem here was that we
+so part of the problem here was that we were really relying too much on
+were really relying too much on our design intuitions especially on a
+our design intuitions especially on a small indie game
+small indie game it was pretty effective for a long time
+it was pretty effective for a long time to just
+to just kind of run off of our gut feelings on
+kind of run off of our gut feelings on what the game needed and how things
+what the game needed and how things worked
+worked in the early stages of development
+in the early stages of development having good design intuition is an
+having good design intuition is an effective way to build up a foundation
+effective way to build up a foundation but as the game becomes more complex
+but as the game becomes more complex those same intuitions can start to get
+those same intuitions can start to get murky
+murky rather than relying solely on your fight
+rather than relying solely on your fight on your gut feelings
+on your gut feelings try to try to identify the underlying
+try to try to identify the underlying rules guiding your intuitions
+rules guiding your intuitions and make them explicit this makes it
+and make them explicit this makes it possible to quickly iterate on concepts
+possible to quickly iterate on concepts with confidence
+with confidence instead of spending weeks trying to
+instead of spending weeks trying to understand why something feels
+understand why something feels off so we were in a pretty good place
+off so we were in a pretty good place every new ingredient in the revised
+every new ingredient in the revised crafting system had a purpose
+crafting system had a purpose except for the gases gases were tough to
+except for the gases gases were tough to think about
+think about they are used in manufacturing but more
+they are used in manufacturing but more often
+often than being just like a direct ingredient
+than being just like a direct ingredient in making something more like a part of
+in making something more like a part of the manufacturing environment that you
+the manufacturing environment that you have to control for
+have to control for for instance oxygen oxidizes materials
+for instance oxygen oxidizes materials and so if you're making something and
+and so if you're making something and you do not want it to oxidize
+you do not want it to oxidize don't make it in an oxygen-rich
+don't make it in an oxygen-rich environment the only gas that made sense
+environment the only gas that made sense as an
+as an ingredient was hydrogen for making
+ingredient was hydrogen for making hydrazine but we needed six useful gases
+hydrazine but we needed six useful gases to spread across all the different
+to spread across all the different planets that had our progression
+planets that had our progression we considered using the gases as part of
+we considered using the gases as part of the recipe for the crafting modules to
+the recipe for the crafting modules to try and capture that concept of their
+try and capture that concept of their you know component of the manufacturing
+you know component of the manufacturing environment but
+environment but it ended up being a weak comparison an
+it ended up being a weak comparison an alloying furnace
+alloying furnace isn't made out of nitrogen it just kind
+isn't made out of nitrogen it just kind of needs it to run
+of needs it to run um more importantly than that we wanted
+um more importantly than that we wanted players to build a lot
+players to build a lot of atmospheric condensers not just get a
+of atmospheric condensers not just get a gas
+gas once and then never have to worry about
+once and then never have to worry about it again
+as before it wasn't that we hadn't thoroughly researched and considered the
+thoroughly researched and considered the gases
+gases carefully but that we were failing
+carefully but that we were failing to consider how they were actually being
+to consider how they were actually being used in the game
+used in the game we just rolled with the assumption that
+we just rolled with the assumption that gases would be used to print items like
+gases would be used to print items like any other resource
+any other resource but there was a question to be asked of
+but there was a question to be asked of what are the printer recipes for
+what are the printer recipes for they're there to give players items yeah
+they're there to give players items yeah but they're also there to take the
+but they're also there to take the players resources
+players resources printer recipes are the resource sink in
+printer recipes are the resource sink in the game
+the game but they don't have to be the only one
+but they don't have to be the only one we were chasing the powers into the
+we were chasing the powers into the atmospheric condenser
+atmospheric condenser we could just come up with a new sink
+we could just come up with a new sink that could keep pace with its output
+that could keep pace with its output maybe the alloy furnace could require
+maybe the alloy furnace could require certain gases to run
+certain gases to run thinking about it this way made sense
+thinking about it this way made sense for the gas to only be partly consumed
+for the gas to only be partly consumed and add like a fuel for many of our
+and add like a fuel for many of our different crafting recipes
+different crafting recipes reframing the role gases played in
+reframing the role gases played in crafting led to a new sort of item
+crafting led to a new sort of item a canister of gas that would get
+a canister of gas that would get gradually consumed to run crafting
+gradually consumed to run crafting modules
+modules this shift into contextual framing for
+this shift into contextual framing for the gases allowed us to think about them
+the gases allowed us to think about them differently and break the constraints
+differently and break the constraints that we'd always had
+that we'd always had around printer ingredients where they
+around printer ingredients where they were fully consumed and you know they
+were fully consumed and you know they were competing with all the other
+were competing with all the other printer ingredients in their input slots
+printer ingredients in their input slots it made us more comfortable with putting
+it made us more comfortable with putting the gases in
+the gases in all kinds of recipes for making
+all kinds of recipes for making composite resources
+composite resources that maybe may not have been a major
+that maybe may not have been a major player in otherwise
+player in otherwise this idea of what's this for that we
+this idea of what's this for that we asked with the gases
+asked with the gases isn't just an arbitrary question we've
+isn't just an arbitrary question we've talked about
+talked about several design problems that were only
+several design problems that were only solved for us after we challenged
+solved for us after we challenged a constraint that we had previously
+a constraint that we had previously assumed was essential
+assumed was essential what's this for is kind of a thought
+what's this for is kind of a thought exercise
+exercise and it's actually one of my favorite
+and it's actually one of my favorite design tools it's a simple way to
+design tools it's a simple way to effectively take a step back
+effectively take a step back when you find yourself spinning your
+when you find yourself spinning your wheels and remind yourself of what it is
+wheels and remind yourself of what it is that your ultimate goal is
+that your ultimate goal is what do you want the player to do and
+what do you want the player to do and why is the player willing to do it
+why is the player willing to do it are really just specialized versions of
+are really just specialized versions of this idea
+this idea asking what's this for forces you to
+asking what's this for forces you to articulate what it is you're trying to
+articulate what it is you're trying to accomplish
+accomplish without focusing on the particular
+without focusing on the particular approach that you've been taking to get
+approach that you've been taking to get there
+there so for instance if we used it on the
+so for instance if we used it on the soil centrifuge
+soil centrifuge it revealed that we just wanted a sink
+it revealed that we just wanted a sink for soil and simply needed to provide
+for soil and simply needed to provide something of value to do so if we
+something of value to do so if we employed it on the resource table
+employed it on the resource table it revealed that we needed to know how
+it revealed that we needed to know how our ingredients would be used in
+our ingredients would be used in estrogeneer
+estrogeneer not in the real world and of course with
+not in the real world and of course with the gases
+the gases it got us past trying to confine them to
+it got us past trying to confine them to the same conceptual uses or other
+the same conceptual uses or other resources
+resources from here on things went pretty smoothly
+from here on things went pretty smoothly we'd realize the value of mineral and
+we'd realize the value of mineral and design and we got into the practice of
+design and we got into the practice of challenging each other's assumptions on
+challenging each other's assumptions on the fly
+the fly our last problem to tackle was how the
+our last problem to tackle was how the player would make the view composite
+player would make the view composite resources
+resources you see we'd already identified five or
+you see we'd already identified five or so manufacturing techniques that
+so manufacturing techniques that i had convinced everyone that we were
+i had convinced everyone that we were going to turn into new crafting modules
+going to turn into new crafting modules but once we parceled the recess of
+but once we parceled the recess of resources out between them
+resources out between them a few were severely underutilized we
+a few were severely underutilized we collapsed the
+collapsed the crafting manufacturing techniques into
+crafting manufacturing techniques into two generalized concepts both of which
+two generalized concepts both of which could justifiably
+could justifiably use gases as fuel
+use gases as fuel heat processes relying on inert gases
+heat processes relying on inert gases and chemical relying on fossil gases
+and chemical relying on fossil gases this resulted in
+this resulted in two composite resource machines the
+two composite resource machines the alloying furnace
+alloying furnace and the chemistry lab we prototyped
+and the chemistry lab we prototyped these and places them with the team
+these and places them with the team but they were so similar the team found
+but they were so similar the team found it very difficult to guess
+it very difficult to guess which one they needed to use to make any
+which one they needed to use to make any particular resource
+particular resource the only difference was the type of gas
+the only difference was the type of gas used volatile versus invert
+used volatile versus invert otherwise they have the exact same ux
+otherwise they have the exact same ux and basically the same thing
+and basically the same thing people don't have a great intuition
+people don't have a great intuition about volatile and inert gas as it turns
+about volatile and inert gas as it turns out
+out um it just wasn't a strong enough
+um it just wasn't a strong enough distinction and it was departure from
+distinction and it was departure from how
+how unique all the other crafting modules
+unique all the other crafting modules felt from each other
+felt from each other in the end we combined these two and
+in the end we combined these two and kept the more conceptually open-ended
+kept the more conceptually open-ended one
+one the chemistry lab aaron had really
+the chemistry lab aaron had really challenged me and be like come on man
+challenged me and be like come on man what are these really for and i was like
+what are these really for and i was like all right you're right
+all right you're right this replaced the old chemistry lab and
+this replaced the old chemistry lab and it brought us full circle
+it brought us full circle um we'd always imagined that kim lab
+um we'd always imagined that kim lab could be the station for combining
+could be the station for combining complex resources and now it finally was
+complex resources and now it finally was it's left us with a final set of modules
+it's left us with a final set of modules that kind of had a surprising twist to
+that kind of had a surprising twist to them
+them not a single brand new module was
+not a single brand new module was necessary with all the changes to our
+necessary with all the changes to our existing modules that we
+existing modules that we already talked about we had everything
+already talked about we had everything that we needed for this crafting update
+that we needed for this crafting update not only did this preserve existing save
+not only did this preserve existing save files which is a godsend and a live game
+files which is a godsend and a live game but it made onboarding the player to the
+but it made onboarding the player to the new crafting system incredibly fluid
+new crafting system incredibly fluid while the inputs and outputs changed the
+while the inputs and outputs changed the overall ux heard each item was familiar
+overall ux heard each item was familiar it had been improved somewhat but it was
+it had been improved somewhat but it was remained largely the same
+remained largely the same this was true too of their visual
+this was true too of their visual language which
+language which a lot of these modules were kind of
+a lot of these modules were kind of older and so
+older and so really when we visually updated it from
+really when we visually updated it from up when we upgraded them for the update
+up when we upgraded them for the update it felt more like that just visual
+it felt more like that just visual updates not a total rework of the
+updates not a total rework of the modules
+modules we managed to address both of our
+we managed to address both of our concerns about cognitive load that had
+concerns about cognitive load that had plagued this at the outset of this
+plagued this at the outset of this project
+project being able to keep that familiar ux and
+being able to keep that familiar ux and visual language
+visual language kept the cognitive load manageable we
+kept the cognitive load manageable we didn't have to teach players how to use
+didn't have to teach players how to use these things
+these things but redesigning their output totally
+but redesigning their output totally added this depth of crafting system that
+added this depth of crafting system that gave it some more staying power
+gave it some more staying power it was as though we had uncovered the
+it was as though we had uncovered the true form of our existing modules and
+true form of our existing modules and our
+our ugly ducklings that proven to be
+ugly ducklings that proven to be beautiful swans
+beautiful swans so this had taken us pretty much to the
+so this had taken us pretty much to the finish line with this presumably all
+finish line with this presumably all that was left was to actually
+that was left was to actually implement these modules in game and ship
+implement these modules in game and ship the update
+the update so far we've mostly talked about this
+so far we've mostly talked about this idea of mining your own design
+idea of mining your own design in the context of identifying the broken
+in the context of identifying the broken or incomplete parts of your game
+or incomplete parts of your game and finding solutions that still stay
+and finding solutions that still stay true to it
+true to it but as we learned at the end of this
+but as we learned at the end of this update it's also an important piece of
+update it's also an important piece of protecting the parts of your design that
+protecting the parts of your design that do work or critical
+do work or critical parts of the new solution while the
+parts of the new solution while the crafting update
+crafting update was on the whole a significant success
+was on the whole a significant success for us
+for us it wasn't without some key mistakes that
+it wasn't without some key mistakes that ended up compromising some of the goals
+ended up compromising some of the goals that we had set out with
+that we had set out with most of these came right at the tail end
+most of these came right at the tail end of development
+of development at this point elijah had been pulled
+at this point elijah had been pulled away from direct collaboration with me
+away from direct collaboration with me in order to start actually implementing
+in order to start actually implementing these new features
+these new features ostensibly the design had already been
+ostensibly the design had already been locked
+locked but as the features started coming
+but as the features started coming online ongoing feedback from the team
+online ongoing feedback from the team made it clear that further iteration was
+made it clear that further iteration was needed
+needed unfortunately we had neglected to buffer
+unfortunately we had neglected to buffer the schedule sufficiently to absorb
+the schedule sufficiently to absorb these
+these absorb these setbacks resulting in some
+absorb these setbacks resulting in some hasty last minute changes to the design
+hasty last minute changes to the design and without the benefit of elijah's
+and without the benefit of elijah's counter perspective that
+counter perspective that i had relied on throughout the rest of
+i had relied on throughout the rest of the development process
+the development process we were missing one of the key
+we were missing one of the key ingredients to this idea of mining our
+ingredients to this idea of mining our own design
+i want to take a closer look at one of the mistakes that we made here
+the mistakes that we made here and discuss how better using the concept
+and discuss how better using the concept of mining our own design
+of mining our own design could have prevented or at the very
+could have prevented or at the very least mitigated it
+least mitigated it play testing the new version of the soil
+play testing the new version of the soil centrifuge had revealed two
+centrifuge had revealed two overlapping issues previously
+overlapping issues previously the overlap between the centrifuge and
+the overlap between the centrifuge and mined resources
+mined resources provided a kind of release valve on the
+provided a kind of release valve on the persistent need for
+persistent need for the common resources without that
+the common resources without that overlap
+overlap players started to chafe against that
+players started to chafe against that constant need
+constant need which crowded out their limited personal
+which crowded out their limited personal inventory space
+inventory space and forced them to make multiple trips
+and forced them to make multiple trips to collect all the different kinds of
+to collect all the different kinds of resources that they needed
+resources that they needed and as they depleted the local deposits
+and as they depleted the local deposits of those common resources
+of those common resources this meant tedious expeditions in search
+this meant tedious expeditions in search of a resource that had once been
+of a resource that had once been plentiful
+plentiful on the other hand this the exclusive
+on the other hand this the exclusive nature of the centrifuge
+nature of the centrifuge meant that soil collection was now an
+meant that soil collection was now an unavoidable part of the crafting system
+unavoidable part of the crafting system this was of course intended but the
+this was of course intended but the prevalence of the
+prevalence of the soil extracted resources in our new
+soil extracted resources in our new recipes
+recipes meant that players had trouble keeping
+meant that players had trouble keeping up using only the soil that they got
+up using only the soil that they got while mining deposits
+while mining deposits we kind of had pushed into the soil
+we kind of had pushed into the soil grind instead of alleviating it
+grind instead of alleviating it with the clock running down toward our
+with the clock running down toward our release we needed to figure out how to
+release we needed to figure out how to address these issues fast
+address these issues fast the simplest solution at least on the
+the simplest solution at least on the surface was to just restore some of the
+surface was to just restore some of the mine deposits to the centrifuge
+mine deposits to the centrifuge and at the same time make deposit
+and at the same time make deposit versions of its new exclusive ones
+versions of its new exclusive ones this did solve the immediate problem but
+this did solve the immediate problem but it also removed the centrifuge from the
+it also removed the centrifuge from the crafting progression
+crafting progression and now the mid game rested solely on
+and now the mid game rested solely on the shoulders of the chem lab in the
+the shoulders of the chem lab in the condenser
+condenser spread out across six different planets
+so what could we have done instead importantly the two issues that had
+importantly the two issues that had shown up in play testing
+shown up in play testing had a serious impact on the pacing of
+had a serious impact on the pacing of the crafting loop
+the crafting loop having a solid progression was
+having a solid progression was definitely important
+definitely important but it wouldn't matter much if players
+but it wouldn't matter much if players tired of the loop before they had moved
+tired of the loop before they had moved through it
+through it doing nothing wasn't really an option
+doing nothing wasn't really an option here
+here as before the real failure on our part
+as before the real failure on our part was in not asking ourselves
+was in not asking ourselves the right questions what do we want the
+the right questions what do we want the player to do
+player to do and why is the player willing to do it
+and why is the player willing to do it more simply
+more simply what's this for asking those questions
+what's this for asking those questions would have reminded us of the critical
+would have reminded us of the critical role the centrifuge played in our new
+role the centrifuge played in our new progression
+progression and redirected our attention on other
+and redirected our attention on other areas that were more flexible
+areas that were more flexible such as the exchange ratio on the
+such as the exchange ratio on the centrifuge or the frequency with which
+centrifuge or the frequency with which its resources showed up in recipes
+its resources showed up in recipes but it had been all too easy to see the
+but it had been all too easy to see the new paradigm that we were introducing is
+new paradigm that we were introducing is the actual problem
+the actual problem and fall back on aspects of the old
+and fall back on aspects of the old system that were at least a known
+system that were at least a known quantity
+quantity ideally we would have had time to
+ideally we would have had time to iterate on these issues
+iterate on these issues but even with the most forward-looking
+but even with the most forward-looking production schedules
+production schedules the reality of development sometimes
+the reality of development sometimes means that you have less that
+means that you have less that less time than you'd like to make
+less time than you'd like to make decisions
+decisions mining your own design allows you to
+mining your own design allows you to isolate the most
+isolate the most important core principles of your game
+important core principles of your game and better adhere to them when you're
+and better adhere to them when you're making these kinds of tough calls
+making these kinds of tough calls ultimately the crafting update was still
+ultimately the crafting update was still a major success for astroneer
+a major success for astroneer it not only filled out our mid game but
+it not only filled out our mid game but it also paved the way for another year
+it also paved the way for another year and a half of updates
+and a half of updates since release the number of crafted and
+since release the number of crafted and items in the game has more than
+items in the game has more than doubled and it's done so without adding
+doubled and it's done so without adding a single new resource or crafting module
+a single new resource or crafting module we haven't touched this crafting system
+we haven't touched this crafting system at all since we introduced it
+at all since we introduced it year and a half ago but more importantly
+year and a half ago but more importantly the process that we went through on this
+the process that we went through on this update
+update greatly improved our understanding of
+greatly improved our understanding of astroneer allowing us to make future
+astroneer allowing us to make future updates with more confidence and
+updates with more confidence and efficient iteration
+efficient iteration earlier this summer we released the
+earlier this summer we released the automation update something we've
+automation update something we've planned for the game for a really long
+planned for the game for a really long time
+time it was one of the most major features
+it was one of the most major features that we've released
+that we've released made a number of improvements to the
+made a number of improvements to the crafting providing new ways to
+crafting providing new ways to counteract the tedium of manually
+counteract the tedium of manually upkeeping a functional phase
+upkeeping a functional phase but thanks to the stable foundation we
+but thanks to the stable foundation we built
+built we were able to layer these new features
+we were able to layer these new features on top of the existing crafting system
+on top of the existing crafting system without having to overhaul it at all
+so mining your own design is not just a technique that's specific to astroneer
+technique that's specific to astroneer it's about asking the right questions
+it's about asking the right questions about your game to avoid
+about your game to avoid sticking to familiar design patterns
+sticking to familiar design patterns that are failing you
+that are failing you asking these questions that challenge
+asking these questions that challenge even your deeply held assumptions can
+even your deeply held assumptions can allow you to
+allow you to mine the texts for hidden rules and a
+mine the texts for hidden rules and a deeper understanding of what makes your
+deeper understanding of what makes your game tick
+game tick bringing in someone from a different
+bringing in someone from a different discipline can invite a totally new
+discipline can invite a totally new vision for the design that's able to
+vision for the design that's able to generate the sort of questions that are
+generate the sort of questions that are tough to ask yourself when you're really
+tough to ask yourself when you're really close to it on a daily basis
+close to it on a daily basis it's all about nudging yourself into
+it's all about nudging yourself into asking those fundamental
+asking those fundamental powerful questions what do you want the
+powerful questions what do you want the player to do
+player to do why is the player willing to do it wtf
+why is the player willing to do it wtf what is this for all right that is our
+what is this for all right that is our talk
+talk once again thank you very much for
+once again thank you very much for tuning in um
+tuning in um we've put up our email addresses if you
+we've put up our email addresses if you have any questions that you want to send
+have any questions that you want to send us
+us and i hope very much that you enjoy the
+and i hope very much that you enjoy the rest of gdc
+rest of gdc [Applause]

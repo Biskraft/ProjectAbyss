@@ -1,0 +1,799 @@
+[Music] all right uh hello everyone welcome to
+all right uh hello everyone welcome to the science of off-roading my name is Ed
+the science of off-roading my name is Ed Pera I'm a programmer at nauy dog during
+Pera I'm a programmer at nauy dog during this talk we'll be going uh bouncing
+this talk we'll be going uh bouncing between the high and lowlevel topics as
+between the high and lowlevel topics as we fa uh going uh as we go through the
+we fa uh going uh as we go through the set of challenges we faced while
+set of challenges we faced while developing the car that Drake drives
+developing the car that Drake drives around Madagascar in Uncharted
+4 let me start with some of the goals we had in mind we set out to work on the
+had in mind we set out to work on the 4x4 at its core we felt it needed to be
+4x4 at its core we felt it needed to be fun to drive for as many people as
+fun to drive for as many people as possible un4 is an adventure game that
+possible un4 is an adventure game that we felt that anyone should be able to
+we felt that anyone should be able to pick up and enjoy and since the 4x4 is a
+pick up and enjoy and since the 4x4 is a critical part of the story we need to
+critical part of the story we need to make sure everyone enjoys driving it
+make sure everyone enjoys driving it secondly we wanted a sense of realism to
+secondly we wanted a sense of realism to keep the player grounded in Drake's
+keep the player grounded in Drake's Adventure finally we needed to make sure
+Adventure finally we needed to make sure whatever we designed would work on the
+whatever we designed would work on the rockier muddy terrain found when driving
+rockier muddy terrain found when driving around the mountains of
+around the mountains of Madagascar to accomplish these goals we
+Madagascar to accomplish these goals we had to figure out what kind of
+had to figure out what kind of simulation we wanted
+simulation we wanted when making a vehicle simulation you
+when making a vehicle simulation you kind of have to figure out where in the
+kind of have to figure out where in the Spectrum you want to fall you can choose
+Spectrum you want to fall you can choose the real side with a game like Gran
+the real side with a game like Gran Turismo the tagline is literally the
+Turismo the tagline is literally the real driving simulator in games like
+real driving simulator in games like this you can have a very realistic Tire
+this you can have a very realistic Tire grip simulation maybe the rubber wears
+grip simulation maybe the rubber wears down and the tire loses friction your
+down and the tire loses friction your motor can be complex with details like
+motor can be complex with details like how much power is generated with when
+how much power is generated with when each cylinder fires the shape of the
+each cylinder fires the shape of the chassis can change airf flow uh giving
+chassis can change airf flow uh giving you a different handling and efficiency
+you a different handling and efficiency on the other end you have games like
+on the other end you have games like Super Mario Kart where simple fun is
+Super Mario Kart where simple fun is much more important there are aspects of
+much more important there are aspects of racing introduced but they are largely
+racing introduced but they are largely game mechanics rather than simulation
+game mechanics rather than simulation the best example is drifting where you
+the best example is drifting where you end up hopping around so you don't take
+end up hopping around so you don't take a penalty and play a can spinning out
+a penalty and play a can spinning out animation another aspect is the fairly
+animation another aspect is the fairly simple motor uh with the ad mechanics of
+simple motor uh with the ad mechanics of boosts like when you use a mushroom or
+boosts like when you use a mushroom or rev the engine just right at the start
+rev the engine just right at the start of a race so where we end up with a
+of a race so where we end up with a 4x4 we end up somewhere in the middle in
+4x4 we end up somewhere in the middle in my opinion when you're dealing with an
+my opinion when you're dealing with an environment that's going for realism
+environment that's going for realism it's actually easier to run simulation
+it's actually easier to run simulation on the more real side if you try to
+on the more real side if you try to model it as simple as possible the
+model it as simple as possible the complexities of a realistic environment
+complexities of a realistic environment require you to add several hacks to get
+require you to add several hacks to get the simulation to look right with a more
+the simulation to look right with a more realistic simulation you can throw
+realistic simulation you can throw really varied terrain at it in it should
+really varied terrain at it in it should remain stable you might still need to
+remain stable you might still need to tweak some of the parameters to make it
+tweak some of the parameters to make it feel good but you won't need to
+feel good but you won't need to fundamentally change the underlying
+fundamentally change the underlying physical
+physical model I'm going to be going over the
+model I'm going to be going over the physical model in three parts we're
+physical model in three parts we're going to be talking about Collision
+going to be talking about Collision detection so that's the chassis in the
+detection so that's the chassis in the wheels and how that responds to
+wheels and how that responds to Collision we'll quickly go over motor
+Collision we'll quickly go over motor simulation and how it generates torque
+simulation and how it generates torque then we'll talk about how that torque is
+then we'll talk about how that torque is applied to the wheels and how that
+applied to the wheels and how that generates forces apply to the
+generates forces apply to the vehicle so let's go over how the Drake
+vehicle so let's go over how the Drake mobile stands on its feet stated simply
+mobile stands on its feet stated simply the vehicle is built out of rigid bodies
+the vehicle is built out of rigid bodies held together using constraints we start
+held together using constraints we start off with a single rigid body for the
+off with a single rigid body for the chassis a rigid body for each wheel and
+chassis a rigid body for each wheel and constraints that keep everything
+constraints that keep everything together we use Havoc as a solver for
+together we use Havoc as a solver for these constraints but Prov provide many
+these constraints but Prov provide many of our own inputs we turned off
+of our own inputs we turned off Collision on the wheels in favor of
+Collision on the wheels in favor of havoc's Point constraint system this
+havoc's Point constraint system this system allows us to pass a point that we
+system allows us to pass a point that we want the tires to stick to and it also
+want the tires to stick to and it also generates a normal force based on the
+generates a normal force based on the motion and mass of the chassis and the
+motion and mass of the chassis and the wheels later I'll go over how this
+wheels later I'll go over how this normal force is used to compute
+normal force is used to compute friction in order to find the point of
+friction in order to find the point of contact we use a ray cast for each wheel
+contact we use a ray cast for each wheel from what we call the hard point to the
+from what we call the hard point to the furthest point the suspension can extend
+furthest point the suspension can extend the hard point is the point where the
+the hard point is the point where the suspension is attached to the chassis
+suspension is attached to the chassis and provides a nice reference point for
+and provides a nice reference point for the math we'll be doing on the wheels I
+the math we'll be doing on the wheels I turn off the tire display so you can get
+turn off the tire display so you can get a better look at at the ray cast in this
+a better look at at the ray cast in this image the yellow sphere at the bottom is
+image the yellow sphere at the bottom is is the dedicated uh is the detected
+is the dedicated uh is the detected Collision point so let's take a look at
+Collision point so let's take a look at how that all works driving on flat
+ground so this is a great start make we can make some turns start driving I'm a
+can make some turns start driving I'm a huge fan of getting something up and
+huge fan of getting something up and running as fast as possible first and
+running as fast as possible first and add features as they go so so this is
+add features as they go so so this is flat ground how does it handle on our
+flat ground how does it handle on our test track of rough
+terrain it's obviously not so good we seem to have hit an invisible wall I
+seem to have hit an invisible wall I checked the level file the designer
+checked the level file the designer definitely didn't put one there so we
+definitely didn't put one there so we need to break down the issues first and
+need to break down the issues first and foremost the unpredict unpredictable
+foremost the unpredict unpredictable Collision response here is a big
+Collision response here is a big problem second Collision response
+problem second Collision response doesn't happen fast enough in the
+doesn't happen fast enough in the screenshot you can clearly see that the
+screenshot you can clearly see that the wheels P that the wheels penetrating the
+wheels P that the wheels penetrating the bumps and the that definitely does not
+bumps and the that definitely does not meet our standards so how do we fix
+meet our standards so how do we fix these
+these issues first thing it's obvious that a
+issues first thing it's obvious that a ray cast just won't cut it we consider
+ray cast just won't cut it we consider options like moving the ray cast forward
+options like moving the ray cast forward if the car is moving but it just didn't
+if the car is moving but it just didn't seem accurate enough instead we replace
+seem accurate enough instead we replace the ray cast with the shape cast using
+the ray cast with the shape cast using using the tire Dimensions as a cylinder
+using the tire Dimensions as a cylinder for our shape another tweak was to cast
+for our shape another tweak was to cast The Ray from above the hard point in
+The Ray from above the hard point in this case well above the hard point
+this case well above the hard point there are cases where the nose of the
+there are cases where the nose of the vehicle would spend a frame already in
+vehicle would spend a frame already in collision and get stuck moving the start
+collision and get stuck moving the start of the cast up made sure that never
+of the cast up made sure that never happens this screenshot shows the first
+happens this screenshot shows the first Collision Point detected by the shape
+Collision Point detected by the shape cast on this round bump there are
+cast on this round bump there are actually several points returned by the
+actually several points returned by the shape cast as a first step we take the
+shape cast as a first step we take the closest return point which looks fairly
+accurate this is a vast Improvement we're getting much less visible
+we're getting much less visible penetration but it's not quite there
+penetration but it's not quite there yet as you can see under certain
+yet as you can see under certain circumstances it can be very unstable
+circumstances it can be very unstable response when where you see a lot of
+response when where you see a lot of jittering this is caused by the fact
+jittering this is caused by the fact that we're only taking the first
+that we're only taking the first Collision point so it's ping ponging
+Collision point so it's ping ponging between which plank to put the P the put
+between which plank to put the P the put to put the tire on top of we now need to
+to put the tire on top of we now need to take more Collision points and pass them
+take more Collision points and pass them to the point constraint system this
+to the point constraint system this allows us to have this uh this allows us
+allows us to have this uh this allows us to have the tire sit on multiple planks
+to have the tire sit on multiple planks which stabilizes the response we limited
+which stabilizes the response we limited the number of points we used to three
+the number of points we used to three per wheel since we felt more than that
+per wheel since we felt more than that would have diminishing
+returns so this looks pretty good one thing we discovered we don't like is how
+thing we discovered we don't like is how rough the Collision response is to
+rough the Collision response is to surfaces who's not uh whose normal is
+surfaces who's not uh whose normal is not aligned with the suspension
+not aligned with the suspension Direction you can see from the start of
+Direction you can see from the start of this that hitting that first bump you
+this that hitting that first bump you completely lose all momentum this is an
+completely lose all momentum this is an implementation detail of Havoc that we
+implementation detail of Havoc that we wanted to work around so we fake it and
+wanted to work around so we fake it and tell Havoc that all normals are in the
+tell Havoc that all normals are in the direction of the
+suspension smooth as butter we really liked how player favoring the response
+liked how player favoring the response is here if you run into any situations
+is here if you run into any situations like this we know the 4x4 will keep
+like this we know the 4x4 will keep momentum nice and not frustrate the
+momentum nice and not frustrate the player this is obviously quite
+player this is obviously quite unrealistic but this is one of the many
+unrealistic but this is one of the many times we leaned away from realism to
+times we leaned away from realism to make for a more fun Driving
+make for a more fun Driving Experience there's an unfortunate side
+Experience there's an unfortunate side effect though in that the wheels do not
+effect though in that the wheels do not respond perfectly to Collision anymore
+respond perfectly to Collision anymore you can kind of see the the wheels
+you can kind of see the the wheels penetrating the bumps now our solution
+penetrating the bumps now our solution is to reimplement wheel Collision
+is to reimplement wheel Collision response ourselves using the highest
+response ourselves using the highest point from before we place the wheel so
+point from before we place the wheel so that it tangents the
+that it tangents the point the first thing we need to do here
+point the first thing we need to do here is figure out where P1 and P2 are these
+is figure out where P1 and P2 are these represent two potential points furthest
+represent two potential points furthest penetrating into geometry because the
+penetrating into geometry because the wheel uh could be at an angle we have to
+wheel uh could be at an angle we have to consider either side as the deepest
+consider either side as the deepest point to compute the points we take the
+point to compute the points we take the wheels orientation vectors up and right
+wheels orientation vectors up and right and offset from the center
+and offset from the center point now we need to see which point is
+point now we need to see which point is deepest we do this using D products
+deepest we do this using D products there are two vectors one from C to P1
+there are two vectors one from C to P1 and one from C to P2 if we dot these
+and one from C to P2 if we dot these within our surface's normal Vector we
+within our surface's normal Vector we produce two scalers S1 and S2
+produce two scalers S1 and S2 S1 and S2 represent scalar distances
+S1 and S2 represent scalar distances meaning how far cp1 and cp2 travel in
+meaning how far cp1 and cp2 travel in the direction of n you can see these
+the direction of n you can see these scalers in their geometric sense in this
+scalers in their geometric sense in this image whichever these scalers is larger
+image whichever these scalers is larger determines which of the associated
+determines which of the associated points is deeper in this example P1 is
+points is deeper in this example P1 is deeper now we can't use S1 directly
+deeper now we can't use S1 directly since that's the distance from the
+since that's the distance from the center to the corner we have to compute
+center to the corner we have to compute another scaler S3 that represents the
+another scaler S3 that represents the distance from the contact point to the
+distance from the contact point to the contact to the corner along the contact
+contact to the corner along the contact normal
+normal we do this by taking the vector from the
+we do this by taking the vector from the contact point to c to cp1 and dotting
+contact point to c to cp1 and dotting that with n this resultant scalar is the
+that with n this resultant scalar is the final distance we have to move the Wheel
+final distance we have to move the Wheel by in order to have the wheel's Corner
+by in order to have the wheel's Corner rest on the
+rest on the surface now obviously if we just
+surface now obviously if we just separate along the contact normal the
+separate along the contact normal the wheel will be pulled out of alignment
+wheel will be pulled out of alignment with a suspension so the next step is
+with a suspension so the next step is projecting the separation Vector onto
+projecting the separation Vector onto the suspension Direction and moving
+the suspension Direction and moving along that Vector now let's let's take a
+along that Vector now let's let's take a look at how that math works out
+so responding to low penetration distances we have a stable and correct
+distances we have a stable and correct looking Collision response which is
+looking Collision response which is unfortunate for
+unfortunate for Drake he's probably asking if we can go
+Drake he's probably asking if we can go around at this point unfortunately you
+around at this point unfortunately you quickly run into an issue when you have
+quickly run into an issue when you have to spend when you have to move the wheel
+to spend when you have to move the wheel so far along the suspension direction
+so far along the suspension direction that it goes past the hard point and
+that it goes past the hard point and into the 4x4's
+chassis to avoid clipping the wheel well we limit the distance the wheel can
+we limit the distance the wheel can travel upwards though it never passes
+travel upwards though it never passes the hard point to counteract the fact
+the hard point to counteract the fact that you would now see the wheel
+that you would now see the wheel penetrating the ground we apply an
+penetrating the ground we apply an upward force on the hard point and it
+upward force on the hard point and it Nets us two benefits first it will get
+Nets us two benefits first it will get the 4x4 out of collision secondly when
+the 4x4 out of collision secondly when you slam it to the ground hard and it
+you slam it to the ground hard and it creates a nice jerk that the player can
+creates a nice jerk that the player can feel side note this force is then
+feel side note this force is then delivered to
+delivered to Nate sorry
+Nate by the way if you're interested in how our character animations are
+how our character animations are affected by physics and you didn't catch
+affected by physics and you didn't catch it this morning you can check out
+it this morning you can check out mikel's uh talk in the vault after the
+mikel's uh talk in the vault after the show
+show so with the wheels colliding properly we
+so with the wheels colliding properly we ran into another
+issue as you can see we need to tweak what we consider valid points of contact
+what we consider valid points of contact because our cast will detect any
+because our cast will detect any Collision these walls count as points
+Collision these walls count as points the place the tires on top of the limit
+the place the tires on top of the limit we made was based on the angle of the
+we made was based on the angle of the surface the wheel probe detected taking
+surface the wheel probe detected taking the angle between the vertical vector
+the angle between the vertical vector and the normal of the surface we ignore
+and the normal of the surface we ignore surfaces whose angle exceeds a designer
+surfaces whose angle exceeds a designer tuned maximum angle so what does that
+tuned maximum angle so what does that look like
+with the wheel with the wall Collis safely ignored the 4x4 bumps the wall
+safely ignored the 4x4 bumps the wall and continues on and now another
+and continues on and now another case okay apparently sometimes you do
+case okay apparently sometimes you do want to drive on the
+want to drive on the wall to solve this we gave design the
+wall to solve this we gave design the ability to turn off the angle check in
+ability to turn off the angle check in script last issue regarding collision
+script last issue regarding collision and Chassis movement is when you drive
+and Chassis movement is when you drive off of a cliff into a place that is
+off of a cliff into a place that is still a drivable space we wanted to
+still a drivable space we wanted to avoid flipping onto the 4x4 side or roof
+avoid flipping onto the 4x4 side or roof as this would disrupt the player's
+as this would disrupt the player's Driving Experience the quickest solution
+Driving Experience the quickest solution is to counter the Jeep's rotation using
+is to counter the Jeep's rotation using forces based on what direction the
+forces based on what direction the vehicle is currently rotating let's see
+vehicle is currently rotating let's see what that looks
+like so as you can see it's a little unrealistic but it's very important to
+unrealistic but it's very important to keep the player happily driving around
+keep the player happily driving around in fact for fun we added some air
+in fact for fun we added some air control where we'd apply forces to the
+control where we'd apply forces to the forit before if it's in the air and
+forit before if it's in the air and you're pushing on a direction of the
+you're pushing on a direction of the steering stick constantly keeping the
+steering stick constantly keeping the player feeling like they have some
+player feeling like they have some control so now we now that we have
+control so now we now that we have Collision detection settled let's talk
+Collision detection settled let's talk about powering the Beast with our motor
+about powering the Beast with our motor simulation we decided to go with a
+simulation we decided to go with a manual transmission it ends up being a
+manual transmission it ends up being a simp simpler simulation when you don't
+simp simpler simulation when you don't have to deal with the torque converter
+have to deal with the torque converter who wants to deal with viscosity anyway
+who wants to deal with viscosity anyway am I
+am I right simulium motor requires a
+right simulium motor requires a differential equation because the speed
+differential equation because the speed of which you're traveling feeds back
+of which you're traveling feeds back into the motor's power curve we
+into the motor's power curve we implement this by breaking the problem
+implement this by breaking the problem into two parts the motor and the
+into two parts the motor and the wheels so in this chart we're looking at
+wheels so in this chart we're looking at how much power and torque are generated
+how much power and torque are generated by Any Given RPM this curve is tuned by
+by Any Given RPM this curve is tuned by designers using the X Y coordinates
+designers using the X Y coordinates based on the size of the space and how
+based on the size of the space and how responsive they want the 4x4 to be
+responsive they want the 4x4 to be basically the way this curve works is
+basically the way this curve works is your power grows as your motor spins
+your power grows as your motor spins faster and faster up to a peak power at
+faster and faster up to a peak power at which point you start losing efficiency
+which point you start losing efficiency and the power starts
+and the power starts dropping in the simulation the motor
+dropping in the simulation the motor starts at a minimum idle RPM and how
+starts at a minimum idle RPM and how much gas pedal is pressed applies a
+much gas pedal is pressed applies a similar percentage of uh torque
+similar percentage of uh torque generated at the current motor RPM it's
+generated at the current motor RPM it's a big simplification of how gas is
+a big simplification of how gas is applied to a real motor but it's very
+applied to a real motor but it's very effective so the second part as I
+effective so the second part as I mentioned is how torque is generated
+mentioned is how torque is generated from the motor and transfers to the
+from the motor and transfers to the wheels to understand how that works I
+wheels to understand how that works I need to mention another aspect of our
+need to mention another aspect of our transmission this is a differential this
+transmission this is a differential this allows the attached wheels to rotate at
+allows the attached wheels to rotate at a different at different RS so if you
+a different at different RS so if you slam on the gas and uh one of the wheels
+slam on the gas and uh one of the wheels is stuck and locked in place the other
+is stuck and locked in place the other wheel will spin freely and you won't
+wheel will spin freely and you won't flood or stall the engine during
+flood or stall the engine during development with we took a look at a lot
+development with we took a look at a lot of different elements of a real car and
+of different elements of a real car and considered which ones to simulate
+considered which ones to simulate looking at the benefit of differentials
+looking at the benefit of differentials this seemed like a good element to
+this seemed like a good element to include the primary reason we wanted
+include the primary reason we wanted this is to improve handling when the
+this is to improve handling when the wheels are free to turn at different
+wheels are free to turn at different rates you get more grip on the outside
+rates you get more grip on the outside tires to understand this imagine one
+tires to understand this imagine one side of the car carving one Circle the
+side of the car carving one Circle the yellow circle here and another side
+yellow circle here and another side carving another Circle the blue circle
+carving another Circle the blue circle these two circles are obviously have
+these two circles are obviously have different circumferences so if the
+different circumferences so if the wheels were fixed to turn at the same
+wheels were fixed to turn at the same rate there would be there would
+rate there would be there would necessarily be sliding because the
+necessarily be sliding because the wheels are traveling different
+wheels are traveling different distances the secondary benefit is we
+distances the secondary benefit is we get big amounts of wheel spin so our FX
+get big amounts of wheel spin so our FX and foreground team have plenty of
+and foreground team have plenty of opportunity to send mud and rocks flying
+opportunity to send mud and rocks flying now with a differential torque applied
+now with a differential torque applied to the wheel torque uh now with a
+to the wheel torque uh now with a differential torque appli to it will be
+differential torque appli to it will be divided evenly between the wheels
+divided evenly between the wheels attached so assuming a forward and rear
+attached so assuming a forward and rear differential and a differential between
+differential and a differential between these two we now have a system where
+these two we now have a system where torque is divided evenly among all four
+torque is divided evenly among all four wheels since each wheel is allowed to
+wheels since each wheel is allowed to sprin freely we then calculate the next
+sprin freely we then calculate the next frames RPM using the fastest Spinning
+frames RPM using the fastest Spinning Wheel because in a manual transmission
+Wheel because in a manual transmission with the clutch applied the wheels in
+with the clutch applied the wheels in the motor are directly
+the motor are directly linked with the motor generating torque
+linked with the motor generating torque I'm going to be talk about how that
+I'm going to be talk about how that torque ends up putting a force on the
+torque ends up putting a force on the vehicle to get it moving
+vehicle to get it moving forward so let's talk about friction we
+forward so let's talk about friction we have power transferred from the motor to
+have power transferred from the motor to the wheel now we need to transfer the
+the wheel now we need to transfer the power from the wheel to the ground so
+power from the wheel to the ground so the 4x4 moves forward friction dictates
+the 4x4 moves forward friction dictates how much force can be applied to before
+how much force can be applied to before there is slip and how much slip there is
+there is slip and how much slip there is since friction is between two surfaces
+since friction is between two surfaces we have to define the friction for the
+we have to define the friction for the tires and the friction for the geometric
+tires and the friction for the geometric surfaces the tires will be driving on in
+surfaces the tires will be driving on in order to accomplish the second part we
+order to accomplish the second part we break the environment up into several
+break the environment up into several surface types each with a tuned amount
+surface types each with a tuned amount of friction the the designers and
+of friction the the designers and artists work together to lay out all the
+artists work together to lay out all the friction types to make for a fun and
+friction types to make for a fun and interesting Driving Experience let's
+interesting Driving Experience let's take a look at how that surface is
+take a look at how that surface is blocked out we have our grass here with
+blocked out we have our grass here with very high friction indicated by the
+very high friction indicated by the yellow in this picture a money
+yellow in this picture a money transition Point here with what would be
+transition Point here with what would be an inet amount of friction then a very
+an inet amount of friction then a very little friction in a muddy riverbed as
+little friction in a muddy riverbed as you can see it's really broken up very
+you can see it's really broken up very roughly we didn't go into fine details
+roughly we didn't go into fine details of little bits of higher friction here
+of little bits of higher friction here and there and it still feels really good
+and there and it still feels really good to drive
+to drive across we spent a lot of time tuning
+across we spent a lot of time tuning friction on some of these surface types
+friction on some of these surface types to make these money climbs challenging
+to make these money climbs challenging while still being fun you really have to
+while still being fun you really have to keep throwing uh throwing at a plate
+keep throwing uh throwing at a plate tester with fresh eyes to see how
+tester with fresh eyes to see how difficult they find it
+so let's get into some of the details about friction and torque the first
+about friction and torque the first thing we need is the normal force n
+thing we need is the normal force n applied to the tire this we get back out
+applied to the tire this we get back out of Havoc for each wheel uh once we've
+of Havoc for each wheel uh once we've applied the point of contact we let the
+applied the point of contact we let the solver give us this information because
+solver give us this information because the pressure on the wheel is dependent
+the pressure on the wheel is dependent on the downward momentum of the chassis
+on the downward momentum of the chassis and the forces gen generated by the
+and the forces gen generated by the suspension so doing this is needlessly
+suspension so doing this is needlessly gritty for the coefficient of friction
+gritty for the coefficient of friction we multiply the friction of the tire
+we multiply the friction of the tire with the friction of the surface it's in
+with the friction of the surface it's in contact with this coefficient is then
+contact with this coefficient is then multiplied with the four Force returned
+multiplied with the four Force returned from Havoc to generate a maximum
+from Havoc to generate a maximum friction
+friction Force torque is then the rotational
+Force torque is then the rotational Force applied to the wheel with the
+Force applied to the wheel with the friction resisting this rotation the
+friction resisting this rotation the opposite Force pushes the wheel
+opposite Force pushes the wheel forward our maximum friction force is
+forward our maximum friction force is split into two directions we take the
+split into two directions we take the torque applied to the wheel divided by
+torque applied to the wheel divided by the radius and that gives us a linear
+the radius and that gives us a linear forward Force our lateral force is a
+forward Force our lateral force is a little bit more complicated we create a
+little bit more complicated we create a lateral slip coefficient based on the
+lateral slip coefficient based on the lateral velocity divided by the forward
+lateral velocity divided by the forward velocity multiplying this by the normal
+velocity multiplying this by the normal force return from Havoc we get a nice
+force return from Havoc we get a nice simulation where you regain control in a
+simulation where you regain control in a reasonable amount of time no matter how
+reasonable amount of time no matter how fast you're
+fast you're sliding combining the two directions we
+sliding combining the two directions we get a total Force Vector shown here the
+get a total Force Vector shown here the length of this Vector must be below the
+length of this Vector must be below the maximum friction Force we calculated
+maximum friction Force we calculated earlier dividing the two gives us a
+earlier dividing the two gives us a scalar to apply to the input vectors so
+scalar to apply to the input vectors so that our total Force Falls below the
+that our total Force Falls below the maximum we apply this scalar to both
+maximum we apply this scalar to both directions so the resultant total Force
+directions so the resultant total Force Falls below the max
+Falls below the max force so leral friction force is applied
+force so leral friction force is applied to the lateral velocity to slow the
+to the lateral velocity to slow the vehicle down when sliding side to side
+vehicle down when sliding side to side in the forward direction we apply up to
+in the forward direction we apply up to the maximum friction to the wheel the
+the maximum friction to the wheel the leftover difference is then applied back
+leftover difference is then applied back to the wheel as extra rotational
+to the wheel as extra rotational velocity because the tire is slipping in
+velocity because the tire is slipping in this case in the other direction however
+this case in the other direction however if the torque applied is less than the
+if the torque applied is less than the maximum friction Force we apply an
+maximum friction Force we apply an opposite braking force on the angle of
+opposite braking force on the angle of velocity of the wheel so it slows to
+velocity of the wheel so it slows to meet the friction if the wheel is over
+meet the friction if the wheel is over spinning and
+spinning and slipping one final request from design
+slipping one final request from design was of course being able to power slide
+was of course being able to power slide tossing around some ideas most
+tossing around some ideas most importantly we wanted to make it easy to
+importantly we wanted to make it easy to use we decided to implement a big fake
+use we decided to implement a big fake with a hint of realism when you hit the
+with a hint of realism when you hit the handbrake button we simply reduce the
+handbrake button we simply reduce the friction on the back tires this lets the
+friction on the back tires this lets the rear kick out but in a way we can easily
+rear kick out but in a way we can easily tune so that concludes the driving and
+tune so that concludes the driving and physical aspects of the 4x4 design would
+physical aspects of the 4x4 design would give me a layout that they wanted the
+give me a layout that they wanted the 4x4 to drive on and we'd work together
+4x4 to drive on and we'd work together to get the vehicle to feel and look
+to get the vehicle to feel and look right for the space now with that
+right for the space now with that working nicely what do you do if a
+working nicely what do you do if a designer comes to you and says Hey it'
+designer comes to you and says Hey it' be kind the car drove
+be kind the car drove itself okay then that sounds like fun so
+itself okay then that sounds like fun so the reason for this Tech is so that NPCs
+the reason for this Tech is so that NPCs like Civ Elena can hop into the driver's
+like Civ Elena can hop into the driver's seat and drive to Drake if he got too
+seat and drive to Drake if he got too far from the
+far from the 4x4 thankfully some of the AI work is
+4x4 thankfully some of the AI work is already done for me I have to tweak some
+already done for me I have to tweak some things but the nav search code used by
+things but the nav search code used by NPCs can be converted over pretty easily
+NPCs can be converted over pretty easily so we have static paths generated almost
+so we have static paths generated almost immediately the interesting bit comes
+immediately the interesting bit comes with we talk about how to make a car on
+with we talk about how to make a car on Four Wheels drive towards the nextnav
+Four Wheels drive towards the nextnav Waypoint questions to answer how do you
+Waypoint questions to answer how do you actually turn to face the point how fast
+actually turn to face the point how fast should you be traveling what if the next
+should you be traveling what if the next W Waypoint is behind you how do you even
+W Waypoint is behind you how do you even know it's behind you how do you know if
+know it's behind you how do you know if there's a physical object in front of
+there's a physical object in front of you that you need to drive around how do
+you that you need to drive around how do you drive around
+you drive around it some basic principles cars have a
+it some basic principles cars have a defined turn radius like we talked about
+defined turn radius like we talked about earlier this is the radius of the
+earlier this is the radius of the smallest circular turn the vehicle is
+smallest circular turn the vehicle is capable of making the size of the
+capable of making the size of the Turning Circle changes based on half
+Turning Circle changes based on half fast you're traveling because the wheels
+fast you're traveling because the wheels won't necessarily grip the ground hard
+won't necessarily grip the ground hard enough to make the given turn the circle
+enough to make the given turn the circle also expands the further the steering
+also expands the further the steering wheel gets from the furthest Edge
+wheel gets from the furthest Edge understanding these aspects of your
+understanding these aspects of your physical model lets you make decisions
+physical model lets you make decisions like how far do I have to turn the wheel
+like how far do I have to turn the wheel to make the
+to make the target let's go over how to calculate
+target let's go over how to calculate the turn radius based on the physical
+the turn radius based on the physical dimensions of the car I base my I based
+dimensions of the car I base my I based my math on the acan steering geometry in
+my math on the acan steering geometry in this image Theta is the maximum angle
+this image Theta is the maximum angle the wheel uh the wheels can rotate left
+the wheel uh the wheels can rotate left to right
+to right W is the width of the 4x4 and L is the
+W is the width of the 4x4 and L is the length putting it all together gives us
+length putting it all together gives us the radius of the Turning Circle I'm
+the radius of the Turning Circle I'm uncertain if this is the perfect
+uncertain if this is the perfect calculation of a tightest turning Circle
+calculation of a tightest turning Circle the fourway could drive along but it was
+the fourway could drive along but it was close enough of an estimate that it
+close enough of an estimate that it worked well for our AI
+worked well for our AI logic okay so now we're able to
+logic okay so now we're able to calculate if we can make a turn towards
+calculate if we can make a turn towards the Waypoint we obviously know the
+the Waypoint we obviously know the location of these circles since they are
+location of these circles since they are attached to the car assuming they're
+attached to the car assuming they're infinite cylinders we use 2D algebra to
+infinite cylinders we use 2D algebra to figure out if the way point is inside of
+figure out if the way point is inside of either
+either Circle if the way point is insided by
+Circle if the way point is insided by the circle we turn uh we need to put the
+the circle we turn uh we need to put the four4 into res into reverse turn the
+four4 into res into reverse turn the wheel in the opposite direction so now
+wheel in the opposite direction so now now our nose will turn towards the
+now our nose will turn towards the target once our nose is facing close
+target once our nose is facing close enough to the Target that the target uh
+enough to the Target that the target uh is outside of the Turning Circle we can
+is outside of the Turning Circle we can switch back to drive and complete the
+switch back to drive and complete the turn this logic also applies to whether
+turn this logic also applies to whether the target is behind us reverse until we
+the target is behind us reverse until we make the turn and continue
+make the turn and continue on now let's take a closer look at what
+on now let's take a closer look at what following a path ends up looking like
+nice next up let's talk about obstacle avoidance our navm search uh gives us a
+avoidance our navm search uh gives us a really good path to follow to avoid
+really good path to follow to avoid things like bolt buildings or big
+things like bolt buildings or big boulders but what do we do if another
+boulders but what do we do if another car is in the way and that car does not
+car is in the way and that car does not affect a nav
+affect a nav mesh to detect this we need several Ray
+mesh to detect this we need several Ray casts one per Corner forward and back
+casts one per Corner forward and back whose length is based on the speed the
+whose length is based on the speed the for before is driving when one of the
+for before is driving when one of the casts detected some detects something we
+casts detected some detects something we simply push the steering wheel in the
+simply push the steering wheel in the opposite direction based on how close
+opposite direction based on how close the ray cast detected
+the ray cast detected Collision we never forget that we
+Collision we never forget that we eventually want to steer towards the
+eventually want to steer towards the target again but the probe tells us when
+target again but the probe tells us when we're clear to start that turn the
+we're clear to start that turn the direction the probe cast is
+direction the probe cast is tunable in these videos the probes are
+tunable in these videos the probes are directly in front and behind but
+directly in front and behind but depending on the environment you're
+depending on the environment you're dealing with you might want these probes
+dealing with you might want these probes to shoot out at an angle to give more
+to shoot out at an angle to give more consideration to what's around the
+consideration to what's around the vehicle for Simplicity we assume that
+vehicle for Simplicity we assume that design is not caused some kind of
+design is not caused some kind of traffic jam that we could we could never
+traffic jam that we could we could never Ste around this is obviously wouldn't
+Ste around this is obviously wouldn't work in a city full of cars but driving
+work in a city full of cars but driving around the hills of Madagascar this is
+around the hills of Madagascar this is an effective
+an effective simplification a small feature requested
+simplification a small feature requested by Design was spline following for this
+by Design was spline following for this we turn off nav M search and simply get
+we turn off nav M search and simply get a point on the spline curve some
+a point on the spline curve some distance away from us based on how how
+distance away from us based on how how fast we're traveling obstacle avoidance
+fast we're traveling obstacle avoidance is still on in this case since other
+is still on in this case since other objects can get in the way we want to
+objects can get in the way we want to steer around the obstacle and continue
+steer around the obstacle and continue to use the nearest point on this blind
+to use the nearest point on this blind as our Target so with navigation
+as our Target so with navigation steering and obstacle avoidance put
+steering and obstacle avoidance put together you've got a pretty good system
+together you've got a pretty good system for getting around most
+for getting around most spaces so to wrap up first we went over
+spaces so to wrap up first we went over Collision detection using rigid bodies
+Collision detection using rigid bodies constraints and our own implementation
+constraints and our own implementation of wheel response we created a vehicle
+of wheel response we created a vehicle that moves around rough terrain
+that moves around rough terrain smoothly our motor with a mix of realism
+smoothly our motor with a mix of realism some glass over details we created a
+some glass over details we created a nice balance between a tunal realistic
+nice balance between a tunal realistic motor and avoiding the grittiness of a
+motor and avoiding the grittiness of a deeper
+deeper simulation our tire friction simulation
+simulation our tire friction simulation allows us to actually drive the vehicle
+allows us to actually drive the vehicle and make turns in an easy to use way
+and make turns in an easy to use way that most players can grasp
+that most players can grasp we took new requirements from design
+we took new requirements from design where we had to add AI to the car and
+where we had to add AI to the car and brought over navigation from existing
+brought over navigation from existing systems and we layered on steering
+systems and we layered on steering behaviors so the 4x4 can follow the
+behaviors so the 4x4 can follow the generated navigation
+generated navigation paths I want to give a quick thanks to
+paths I want to give a quick thanks to some of the folks in na dog who helped
+some of the folks in na dog who helped put the 4x4 together but actually took
+put the 4x4 together but actually took quite a few people to put all the bells
+quite a few people to put all the bells and whistles on it so these are just a
+and whistles on it so these are just a few of the names Ino made the beautiful
+few of the names Ino made the beautiful visual model that we all came to love
+visual model that we all came to love Christof helped with some of the rigging
+Christof helped with some of the rigging Rob is an audio designer and Jonathan is
+Rob is an audio designer and Jonathan is an audio programmer and together they
+an audio programmer and together they work to get things like the motor
+work to get things like the motor purring just right y Alis and Travis are
+purring just right y Alis and Travis are programmers who helped with the
+programmers who helped with the simulation Curt and James are designers
+simulation Curt and James are designers who helped on tuning and level layout so
+who helped on tuning and level layout so that's the 4x4 the development is really
+that's the 4x4 the development is really about problem solving we took a very
+about problem solving we took a very design oriented approach to development
+design oriented approach to development and always Focus changes on the needs
+and always Focus changes on the needs for making the game fun thanks for
+for making the game fun thanks for [Music]
+[Music] [Applause]
+[Applause] [Music]
+[Music] listening so we have about five minutes
+listening so we have about five minutes for questions if anybody has anything
+mention if you want to come to the microphone
+please uh uh sorry sorry uh you mentioned about the rigid body I imagine
+mentioned about the rigid body I imagine you're allow to using Unity right no we
+you're allow to using Unity right no we we use Havoc but it's our own game
+we use Havoc but it's our own game engine okay thank you
+mhm uh so I had a similar Simulator for driving okay and I found an issue was do
+driving okay and I found an issue was do you gloss over this real quick when
+you gloss over this real quick when you're falling down and you need to take
+you're falling down and you need to take that wheel and push it up so it doesn't
+that wheel and push it up so it doesn't go through the ground using Force now
+go through the ground using Force now you don't want to do that instantly or
+you don't want to do that instantly or you just suddenly pop up so you need to
+you just suddenly pop up so you need to add force over time but if you're
+add force over time but if you're falling really far that's a lot of force
+falling really far that's a lot of force and it would bounce my car up fairly
+and it would bounce my car up fairly high and I'm wondering how you guys
+high and I'm wondering how you guys handle that so CU it's a lot of force in
+handle that so CU it's a lot of force in a very short amount of time cuz that
+a very short amount of time cuz that Collision when you just hit is very is
+Collision when you just hit is very is very quick so to like move that I just
+very quick so to like move that I just wondering how you guys handle that so
+wondering how you guys handle that so the the question is well how did we
+the the question is well how did we handle uh the force applying to the
+handle uh the force applying to the vehicle to get it out of collision if it
+vehicle to get it out of collision if it actually is already in um we I'm
+actually is already in um we I'm actually okay with it being in Collision
+actually okay with it being in Collision for a little bit so we don't push so
+for a little bit so we don't push so hard that it flies out of collision and
+hard that it flies out of collision and so I actually have a a tuning where
+so I actually have a a tuning where there's a maximum amount of force that
+there's a maximum amount of force that it's actually allowed to be applied on
+it's actually allowed to be applied on it so that it doesn't ever get pushed
+it so that it doesn't ever get pushed out that far
+out that far okay thank you over here hi uh did you
+okay thank you over here hi uh did you have any trouble like if the vehicle
+have any trouble like if the vehicle bottoms out and then the Collision of
+bottoms out and then the Collision of the chassis gets snagged on some small
+the chassis gets snagged on some small rock or something like that uh it the
+rock or something like that uh it the the vehicle does bottom out a lot but um
+the vehicle does bottom out a lot but um the Havoc rigid body system is pretty
+the Havoc rigid body system is pretty good at making sure
+good at making sure the that ites doesn't cause a problem
+the that ites doesn't cause a problem there are there are some cases and you
+there are there are some cases and you can still see them in the shipped game
+can still see them in the shipped game though where you the like the the rocks
+though where you the like the the rocks and stuff will go like will go flying
+and stuff will go like will go flying because um because the chassis like hits
+because um because the chassis like hits that hits that rock in a bad way um
+that hits that rock in a bad way um that's not like it is something I looked
+that's not like it is something I looked into a little bit but it's not something
+into a little bit but it's not something we cared enough about to have to like
+we cared enough about to have to like fix is the 4x4 a one off or is naughty
+fix is the 4x4 a one off or is naughty dog going to look into more vehicle play
+dog going to look into more vehicle play in the future oh we had the boat oh
+in the future oh we had the boat oh yeah uh yeah I mean we are we are
+yeah uh yeah I mean we are we are definitely always exploring what other
+definitely always exploring what other things we can do like having having the
+things we can do like having having the having the 4way 4 in there was was a
+having the 4way 4 in there was was a starting off point for making the boat
+starting off point for making the boat and so that's they share a lot of the
+and so that's they share a lot of the same code so it's obviously a really
+same code so it's obviously a really good jumping off point for making any
+good jumping off point for making any other vehicle simulation thanks
+other vehicle simulation thanks MH uh uh I was developing like an VR
+MH uh uh I was developing like an VR truck simulator one of the problem I I
+truck simulator one of the problem I I got into is like when you got a trailer
+got into is like when you got a trailer behind your car uh while you're trying
+behind your car uh while you're trying like driving forward of course uh the
+like driving forward of course uh the like motor belongs to like a rear wheels
+like motor belongs to like a rear wheels of the like the truck head but how do
+of the like the truck head but how do you manage to like balance those initial
+you manage to like balance those initial like uh uh you know the power when
+like uh uh you know the power when you're trying to do some color uh the
+you're trying to do some color uh the power uh uh on inner tile and outer tile
+power uh uh on inner tile and outer tile they are different how do you like
+they are different how do you like balance that out I got a lot of problem
+balance that out I got a lot of problem with
+with that uh
+uh I'm not what's what is the what's the problem you're having I'm not sure uh
+problem you're having I'm not sure uh when you driving your car too fast yeah
+when you driving your car too fast yeah you know uh uh when doing color in fact
+you know uh uh when doing color in fact the uh uh the friction on on your uh
+the uh uh the friction on on your uh inner tile and the outer tire they are
+inner tile and the outer tire they are different okay uh that's where with my
+different okay uh that's where with my like uh simulator went not wrong a lot
+like uh simulator went not wrong a lot of ties I like uh the way I'm solving it
+of ties I like uh the way I'm solving it is that we tuned a lot to make it feels
+is that we tuned a lot to make it feels better I wonder how you like a man solve
+better I wonder how you like a man solve that and uh in Uncharted for the car is
+that and uh in Uncharted for the car is also running on like uneven uh uneven
+also running on like uneven uh uneven path sometimes it's like uh on the brink
+path sometimes it's like uh on the brink of like getting contact with the ground
+of like getting contact with the ground a lot how do you like try try to make
+a lot how do you like try try to make them like in that like uh very B uh
+them like in that like uh very B uh boundary moment to make the C still like
+boundary moment to make the C still like getting the force moving forward like
+getting the force moving forward like correctly yeah so the the question
+correctly yeah so the the question summarize is uh the all four tires are
+summarize is uh the all four tires are running on different friction most of
+running on different friction most of the time um as you're going from the
+the time um as you're going from the river bed to the grass one side is still
+river bed to the grass one side is still slipping other side catches um the uh
+slipping other side catches um the uh the differential actually helps in this
+the differential actually helps in this case um because we we're splitting the
+case um because we we're splitting the the torque to all four tires that makes
+the torque to all four tires that makes it so that um it it's actually a
+it so that um it it's actually a smoother transition um because you don't
+smoother transition um because you don't have a sudden like very hard grip on one
+have a sudden like very hard grip on one of the tires and cause it to just like
+of the tires and cause it to just like stop um and other than that like we
+stop um and other than that like we didn't really have any issues in that
+didn't really have any issues in that area I think may possibly because of how
+area I think may possibly because of how stable the point constraint system is in
+stable the point constraint system is in Havoc um we basically told it the
+Havoc um we basically told it the lateral lateral friction we wanted um
+lateral lateral friction we wanted um and how much force is being applied
+and how much force is being applied there and it would do a decent job of
+there and it would do a decent job of stabilizing okay thank you
+stabilizing okay thank you mhm um my question was just also about
+mhm um my question was just also about the the chase sequence and other cars in
+the the chase sequence and other cars in the Chas sequence and the Motorcycle do
+the Chas sequence and the Motorcycle do they use the same model um a lot of that
+they use the same model um a lot of that is um faked with splines um there I
+is um faked with splines um there I think I think there's uh some of the
+think I think there's uh some of the same like the the way the tires work and
+same like the the way the tires work and detect Collision I think is the same but
+detect Collision I think is the same but the actual driving and movement is on a
+the actual driving and movement is on a spline and they didn't run like obstacle
+spline and they didn't run like obstacle avoidance or anything no no
+okay thank you very much [Applause]

@@ -1,0 +1,695 @@
+[Music] hello my name is fabinho and today i
+hello my name is fabinho and today i will present final fantasy 7 remake
+will present final fantasy 7 remake automating quality actions and the tools
+automating quality actions and the tools for the future but before a small
+for the future but before a small warning
+warning most of the developments that i would
+most of the developments that i would present here
+present here have been done at the end of final
+have been done at the end of final fantasy 7 remake project
+fantasy 7 remake project and only part of it has been used before
+and only part of it has been used before the master
+the master but the development teams allow us to
+but the development teams allow us to use their game to continue to develop
+use their game to continue to develop our tools and maybe use it for another
+our tools and maybe use it for another project
+project first i'd like to talk a little bit
+first i'd like to talk a little bit about the problematic of qa4game and
+about the problematic of qa4game and focus on the main part of this talk that
+focus on the main part of this talk that is a replay system with an overview of
+is a replay system with an overview of the system what kind of data we use how
+the system what kind of data we use how we synchronize them what kind of
+we synchronize them what kind of workflow we are using and some ways that
+workflow we are using and some ways that what that we got
+what that we got i will also talk about uh
+i will also talk about uh small extensions that is expressions to
+small extensions that is expressions to allows again the bot to explore the game
+allows again the bot to explore the game and conclude on some future works
+but first game development is evolving more content more interactions
+more content more interactions greater freedoms a lot of play styles
+greater freedoms a lot of play styles and also the game is not finished when
+and also the game is not finished when you release it you have now passwords
+you release it you have now passwords content dlc
+content dlc patch and so on
+patch and so on so
+so this will is to
+this will is to go into a cost
+go into a cost and you have to test it again and again
+and you have to test it again and again what we can do to improve that we can
+what we can do to improve that we can improve reporting tools so you have some
+improve reporting tools so you have some graduates talk about that
+graduates talk about that we can feel part of the bug report
+we can feel part of the bug report automatically
+automatically we can completely automatically
+we can completely automatically report crash and asset for example
+report crash and asset for example we can add telemetry to the game so we
+we can add telemetry to the game so we can gather data and evaluate the quality
+can gather data and evaluate the quality of it
+of it we can also try to
+we can also try to make
+make some in some way
+some in some way we play or play the game
+we play or play the game automatically so with scripting
+automatically so with scripting or
+or with rippling
+with rippling already play
+already play data or with
+data or with explorations
+but first let's focus on replay and even in
+first let's focus on replay and even in replay we can
+replay we can divide it into two big categories
+divide it into two big categories things that are done without game change
+things that are done without game change so what you can do to control your input
+so what you can do to control your input is basically the screen
+is basically the screen and you can control time
+and you can control time you can
+you can control the game through the gamepad
+control the game through the gamepad driver
+driver and the good things
+and the good things you can test the final release of your
+you can test the final release of your game the one that your user will be you
+game the one that your user will be you dina
+dina so
+so the bad thing that it will be really
+the bad thing that it will be really hard to support non-deterministic
+hard to support non-deterministic actions and level change will probably
+actions and level change will probably need to rewrite part of the script
+need to rewrite part of the script so this technique is generally used at
+so this technique is generally used at the end of the
+developments you can also uh try to add autoqa and replay feature on the game
+autoqa and replay feature on the game engine side
+engine side that allow you to access the world code
+that allow you to access the world code but probably you want to restrict you to
+but probably you want to restrict you to something that is more near what the
+something that is more near what the user can do
+user can do and especially in our case we want to
+and especially in our case we want to register in fact the game state
+we can also control everything but you want probably to restrict you on the
+want probably to restrict you on the gamepad emulator even if time two times
+gamepad emulator even if time two times you may want to what's the command maybe
+you are restricted to the test period but
+but the good thing is that you can now try
+the good thing is that you can now try to spot non-deterministic actions
+to spot non-deterministic actions and you can be robust to some level
+and you can be robust to some level change
+change see that allow you to
+see that allow you to start to use this kind of techniques
+start to use this kind of techniques as soon as you have a first vertical
+as soon as you have a first vertical slice
+slice this is where we will focus our talk
+this is where we will focus our talk but first a small example
+but first a small example so i will first record a
+so i will first record a small gameplay by using my gamepad
+small gameplay by using my gamepad and
+and we record not only the gamepad input
+we record not only the gamepad input that we are using during the menu but
+that we are using during the menu but also the game stat that we will use
+also the game stat that we will use after to absolutely here we will have a
+after to absolutely here we will have a tutorial and a game
+tutorial and a game a battle
+a battle battle are typically something that is
+battle are typically something that is not deterministic and just to
+not deterministic and just to personalize my replay i go for one and
+personalize my replay i go for one and go back
+go back okay let's stop it for now
+okay let's stop it for now and replay it
+so as i said we record not only game input but also game stats so once the
+input but also game stats so once the game screen open we can
+game screen open we can push the button there is no additional
+push the button there is no additional wait time basically
+wait time basically and here we have the tutorials keep it
+and here we have the tutorials keep it and now we use a battle bot to control
+and now we use a battle bot to control the game so we will have different
+the game so we will have different battle on the battlebot but can even
+battle on the battlebot but can even test all the command randomly to be sure
+test all the command randomly to be sure that we didn't break anything in the
+that we didn't break anything in the battle system
+battle system when we go back to
+when we go back to where we play and now we can go forward
+where we play and now we can go forward and back as i have done in my recording
+and back as i have done in my recording data
+and i finish by a
+a replay success that the game has
+replay success that the game has detected
+so what is the step we will have this kind of ui the launcher
+kind of ui the launcher but we can also have command line for uh
+but we can also have command line for uh jenkins
+jenkins that will start
+that will start uh
+uh two process one is the autoq server that
+two process one is the autoq server that we call it that
+we call it that will be used to supervise and control
+will be used to supervise and control the game
+the game the second one is a watchdog that will
+the second one is a watchdog that will be platform dependent
+be platform dependent and
+and can
+can start to unmonitor the game
+the autoq server will ask the watchdog to start the game
+ask the watchdog to start the game so again the watchdog will really start
+so again the watchdog will really start the process
+the process the washer can also be responsible for
+the washer can also be responsible for recording videos and so on screenshot
+recording videos and so on screenshot and detecting garden
+and detecting garden on the game start you will try to ping
+on the game start you will try to ping the watched watchdog to be sure that we
+the watched watchdog to be sure that we hang or not
+and the game will also send a
+the game will also send a generic game state
+generic game state that the auto q server will use to
+that the auto q server will use to control
+control the game by giving some requests
+the game by giving some requests we will have also some ui command like
+we will have also some ui command like stop and so on
+stop and so on that we can send to the qr server
+inside the game in fact we can split into two parts so to qa one that will be
+into two parts so to qa one that will be in fact a
+in fact a game engine specific
+game engine specific that
+that will be in charge of communication some
+will be in charge of communication some default behavior
+default behavior and another part that will be specific
+and another part that will be specific to this game
+to this game we will have this kind of bot
+we will have this kind of bot and we will say what are the game stats
+and we will say what are the game stats basically so just like
+basically so just like take a look at this game specific
+take a look at this game specific part
+part so in final fantasy 7 remake we had a
+so in final fantasy 7 remake we had a few bots so just give me
+few bots so just give me some examples of them
+some examples of them in the left side you have some bots
+in the left side you have some bots where in fact you are
+where in fact you are managing but usage with replay because
+managing but usage with replay because the control of your character is
+the control of your character is completely different from what you are
+completely different from what you are we are seeking first
+we are seeking first either you control your robot arm
+either you control your robot arm or
+or you are
+you are on the ceiling
+on the ceiling but basically you are using replay to
+but basically you are using replay to control where to go
+control where to go the middle part is a battle but one of
+the middle part is a battle but one of the most complex one that meets in fact
+the most complex one that meets in fact both replay under a battle just to be
+both replay under a battle just to be able to be sure that some battle
+able to be sure that some battle techniques are if you want to climb
+techniques are if you want to climb during a battle or two things during
+during a battle or two things during battles can be still replay if needed
+battles can be still replay if needed the last part are very small
+the last part are very small minigame
+minigame that
+that generally we implement about in one day
+generally we implement about in one day just to be able to pass successfully
+just to be able to pass successfully because synchronizations will be a
+because synchronizations will be a little bit too
+little bit too precise
+precise on this part which just
+on this part which just we play data for this replay data
+okay so we have talked about the game specifically now let's talk about the
+specifically now let's talk about the generic game state what kind of data we
+generic game state what kind of data we are using
+are using so
+so generic game stat will be
+generic game stat will be will contain where we are so the
+will contain where we are so the positions the level id
+positions the level id the orientations and also the velocity
+the orientations and also the velocity of the characters
+of the characters when we are we will have in fact several
+when we are we will have in fact several times because depending of what kind of
+times because depending of what kind of game statue are you care about different
+game statue are you care about different times you may have like we have seen the
+times you may have like we have seen the battle some slowdown that
+battle some slowdown that are used to
+are used to activate the debug menu and so on so
+activate the debug menu and so on so the control menu
+the control menu and time will flow in different speed
+and time will flow in different speed during the game so
+during the game so we are that beauty time will be mostly
+we are that beauty time will be mostly used for video sequence frame count is
+used for video sequence frame count is generally the default behavior that
+generally the default behavior that works basically everywhere
+after you have some
+you have some [Music]
+[Music] action and event that you want to know
+action and event that you want to know what you are doing
+what you are doing and also you want to know why you are
+and also you want to know why you are doing it and this is done by knowing the
+doing it and this is done by knowing the game state
+game state and we said not game step but game stick
+and we said not game step but game stick stack
+stack why
+why because we cannot replay data and for
+because we cannot replay data and for example we can start a follow mode so if
+example we can start a follow mode so if you go too far from
+you go too far from the npc that you are following you may
+the npc that you are following you may have a one in and make you go back this
+have a one in and make you go back this is one of the game mode
+is one of the game mode and you may have a battle that started
+and you may have a battle that started while you are still in photo mode
+while you are still in photo mode and during the battle you can have a
+and during the battle you can have a tutorial that in terms of the battle and
+tutorial that in terms of the battle and sound
+sound so
+so you will have always one step but you
+you will have always one step but you have the other ones that are continuing
+have the other ones that are continuing inside the background so this way we
+inside the background so this way we have a game state stack
+and what we will do to identify each text is an id that will be based on the
+text is an id that will be based on the type and the cinematic cities the game
+type and the cinematic cities the game generate specific that will specify
+generate specific that will specify those values
+those values so game id is generally a
+so game id is generally a fixed id for battle or
+fixed id for battle or cinematics maybe each of one of the
+cinematics maybe each of one of the different names
+different names something like that
+something like that we can still also use this does that
+we can still also use this does that will
+will go back when we are doing replay
+and we will cancel so synchronization flags and timeout overrides that we'll
+flags and timeout overrides that we'll just talk from now on that is used to
+just talk from now on that is used to synchronize in factory plane
+synchronize in factory plane so we will not explain all the
+so we will not explain all the synchronous flags during this
+synchronous flags during this presentation but let's take a look at a
+presentation but let's take a look at a few of them
+few of them so let's suppose that you have a game
+so let's suppose that you have a game stat and you want to go to it
+stat and you want to go to it you are replaying your data
+you are replaying your data and now you are supposed to get to the
+and now you are supposed to get to the game set but maybe it's not
+game set but maybe it's not popping up
+popping up so if you have a non-we look at ball
+so if you have a non-we look at ball flag it means that you need in fact to
+flag it means that you need in fact to be at these positions to be able to
+be at these positions to be able to start this game state
+start this game state so what you will do is first set
+so what you will do is first set that
+that start to timeout to say okay i i will
+start to timeout to say okay i i will have given time to to
+have given time to to succeed
+succeed and
+and you will start to to continue to
+you will start to to continue to to do some
+to do some play or motions
+play or motions to be able to be sure at these positions
+to be able to be sure at these positions or maybe
+or maybe it can be either motion also maybe wait
+and if you reach it
+you can synchronize again and after
+and after because you succeed during your start
+because you succeed during your start time mode you have a success and you
+time mode you have a success and you start to end time out
+and you will you must be sure to finish this replay
+you must be sure to finish this replay during this time out
+during this time out before the end of the time
+let's see another flags in that case
+in that case is very similar we go to the system but
+is very similar we go to the system but it didn't start okay
+it didn't start okay but now it's a hello catabol flag so we
+but now it's a hello catabol flag so we want in fact to continue on replay
+want in fact to continue on replay because maybe it's not exactly at this
+because maybe it's not exactly at this position that the game state can start
+position that the game state can start so let's continue and we push a little
+so let's continue and we push a little bit the data
+bit the data but if we push that much at one point we
+but if we push that much at one point we cannot push more so we have also to
+cannot push more so we have also to decay to push everything together
+decay to push everything together not only the start
+and if we start the synchronizations we can now
+we can now again compute
+again compute anti-mode
+anti-mode which is based on the original
+which is based on the original recorded timer not only on the current
+recorded timer not only on the current one
+one and we will try to replace the data
+so let's go on again and
+let's go on again and maybe we can go we we can go on the next
+maybe we can go we we can go on the next part of the replay
+other example skippable skippable means that when you are
+skippable means that when you are replaying you have a new game
+replaying you have a new game state that you were not expecting
+state that you were not expecting it can be a new cinematics that has been
+it can be a new cinematics that has been added to the game a new battle i don't
+added to the game a new battle i don't know
+know and what the replay system will say
+and what the replay system will say about
+about if this one is keepable
+if this one is keepable let's try to skip it and ask a skip
+let's try to skip it and ask a skip request if not we may finally fail this
+request if not we may finally fail this replay
+[Music] most of our replay detailing fire is
+most of our replay detailing fire is capable
+capable we can also have star table it means
+we can also have star table it means that now
+that now we have a
+we have a [Music]
+[Music] session that the uh game stats that is
+session that the uh game stats that is inside the record editor that if it's
+inside the record editor that if it's not there in size or play we will not
+not there in size or play we will not want it to go to move we will ask a good
+want it to go to move we will ask a good quest to start it to the game
+quest to start it to the game this is typically used for uh
+this is typically used for uh interactions
+interactions and so on
+because they those ones are very essential for
+essential for the game for
+the game for flow so we wanted to to be sure that we
+flow so we wanted to to be sure that we start all of them at the right
+time we can also have optional flag that is very
+also have optional flag that is very simple
+simple we try to replay if we get
+we try to replay if we get a
+game set that is find the future after some optional which you skip them
+some optional which you skip them so typically
+so typically optional flies can be tutorials that can
+optional flies can be tutorials that can happen
+happen only the first time for example or
+only the first time for example or all the
+all the other games
+now let's start to talk about the move to
+let's start to talk about the move to part
+part so we say that we move but in fact we
+so we say that we move but in fact we don't use directly navigation mesh in
+don't use directly navigation mesh in fact we mostly not use navigation mesh
+fact we mostly not use navigation mesh we create in fact a 3d map
+we create in fact a 3d map 3d grid map
+3d grid map during the replay you will use both the
+during the replay you will use both the recorded data so or previously predator
+recorded data so or previously predator so
+so we can create a person saying that we
+we can create a person saying that we are able to connect them
+are able to connect them but also
+but also we will have the current replay
+we will try to detect wall when we are not moving uh in the desired
+not moving uh in the desired direction so for example we wanted to go
+direction so for example we wanted to go in these directions and we go on the
+in these directions and we go on the other side
+other side probably have a wall
+probably have a wall this is still probability probabilistica
+this is still probability probabilistica only
+only and
+and if we are lost we can try to do past
+if we are lost we can try to do past fanning
+fanning we will also assume at first that
+we will also assume at first that the
+the going back is possible even if it's not
+going back is possible even if it's not a necessity
+a necessity we will also use simple heuristics to
+we will also use simple heuristics to extend the map if we are blocked we can
+extend the map if we are blocked we can we can even
+we can even in some cases or first simple objective
+in some cases or first simple objective didn't succeed
+didn't succeed try to recast
+try to recast to the game
+to the game a pathfinding
+a pathfinding that may help us to go out on some
+that may help us to go out on some situations
+but the important part is that in fact
+the player may go to some place where you don't have a navigation mesh we
+you don't have a navigation mesh we don't assume that navigation mess is
+don't assume that navigation mess is ready for us
+ready for us okay so
+okay so we have talked about game generous text
+we have talked about game generous text and in fact
+and in fact we can find out that
+we can find out that a lot of things can be shared between
+a lot of things can be shared between different projects
+different projects so not the game specifically but as long
+so not the game specifically but as long as you have the same game engines even
+as you have the same game engines even though the qst tools can be shared
+though the qst tools can be shared between projects
+now let's go to the workflow you will have someone that will try to
+you will have someone that will try to record a replay like you have seen
+record a replay like you have seen that will
+that will give a database of replay data
+give a database of replay data we will have the game
+we will have the game build a system that will
+build a system that will trigger war jenkins
+trigger war jenkins that will ask a set of pin machines to
+that will ask a set of pin machines to build the corresponding
+build the corresponding executable
+executable and ask a setup of test machine or
+and ask a setup of test machine or consoles to test the game
+consoles to test the game we will
+we will update everything to a test with the
+update everything to a test with the database
+database to do some test monitoring
+to do some test monitoring but we will also send it to a system to
+but we will also send it to a system to do
+do some bug classifications
+some bug classifications some of them will be sent directly
+some of them will be sent directly to the
+to the qr team
+qr team or to the game team because
+or to the game team because they are assert and crash and we are
+they are assert and crash and we are sure that they are
+sure that they are relative to the game
+relative to the game and some of them will go to some auto qa
+and some of them will go to some auto qa specialist
+specialist so you may have some real prefigures
+so you may have some real prefigures that can be in fact a change in the data
+that can be in fact a change in the data that is too strong for us to be able to
+that is too strong for us to be able to uh to cope with
+uh to cope with so we need to record the data
+so we need to record the data it can be also
+it can be also some problem in on workflow so we will
+some problem in on workflow so we will try to analyze it and debug it
+try to analyze it and debug it and we will report
+and we will report what we need to do on the other teams
+so what kind of advantages we got with this
+what kind of advantages we got with this system we were able to find where we are
+system we were able to find where we are bugs wear bugs logics beauty threat
+bugs wear bugs logics beauty threat something that happens even less than uh
+something that happens even less than uh 0.3 percent of the times so 7000's of
+0.3 percent of the times so 7000's of replay to get it
+replay to get it we were able to
+we were able to test
+test levels
+levels about
+about three
+three three thousand chapter by days basically
+three thousand chapter by days basically we were able to test a large
+we were able to test a large large code change so we will get some
+large code change so we will get some requests to test some champions
+requests to test some champions and test it maybe for one week to be
+and test it maybe for one week to be sure to have a stable wizard
+sure to have a stable wizard we can test the game with also bad frame
+we can test the game with also bad frame rate so if you want to have a
+rate so if you want to have a memory
+memory analyzer on
+analyzer on the game may be really slow and really
+the game may be really slow and really painful to play for human player but the
+painful to play for human player but the system is able to cope with that
+system is able to cope with that we were able to perform tests 24 hours a
+we were able to perform tests 24 hours a day
+day and even a aging test that were
+and even a aging test that were generally about 18 hours for one test by
+generally about 18 hours for one test by playing the game in fact several tiny
+playing the game in fact several tiny loop
+the main disadvantages is
+main disadvantages is probably because we
+probably because we test only
+test only what we have recorded we don't go
+what we have recorded we don't go outside your path
+outside your path so if you want to do a complete test you
+so if you want to do a complete test you need to create a lot of levels
+so now let's go to look at another example exploration example so this one
+example exploration example so this one has been developed on ue4
+has been developed on ue4 basically before
+basically before and we have uh
+and we have uh in fact two adjuncts that are playing
+in fact two adjuncts that are playing together the game to try to
+together the game to try to create a map like i said we are able to
+create a map like i said we are able to create these 3d maps this 3d greens map
+create these 3d maps this 3d greens map and
+and the goal now is to find where we were
+the goal now is to find where we were not
+where we didn't go so
+so here once we have explored part of the
+here once we have explored part of the room we can see that we try to find
+room we can see that we try to find another way out
+another way out and
+and together we can start to
+together we can start to explore in fact the world map
+so the advantage of expression is that we
+the advantage of expression is that we can find the bugs outside of the
+can find the bugs outside of the normally tested probes that we add
+normally tested probes that we add we can capture performance so fps memory
+we can capture performance so fps memory usage everywhere on the map
+usage everywhere on the map we can check for collisions
+the problem is that by trying randomly a lot of things we
+by trying randomly a lot of things we will not go very far quest and game are
+will not go very far quest and game are too complex for that we'll not be able
+too complex for that we'll not be able to clear any game
+to clear any game any level
+so what we have done is mix both
+mix both so here we have in final fantasy
+so here we have in final fantasy some
+some replays and explorations
+replays and explorations mesh together so currently we are
+mesh together so currently we are exploring the map
+exploring the map so as you can see
+so as you can see we try to go everywhere and
+we try to go everywhere and we cannot try to detect where our walls
+we cannot try to detect where our walls the first time of the expression is
+the first time of the expression is random so we go
+random so we go there and there
+there and there but as
+but as more as we are exploring we will start
+more as we are exploring we will start to fill up the map
+to fill up the map and we will need now to find where
+and we will need now to find where are other edges that we didn't explore
+are other edges that we didn't explore and in blue you can see some pathfinding
+and in blue you can see some pathfinding that we are doing to try to test other
+that we are doing to try to test other edge case
+by doing that we will finish by filling up all the map
+will finish by filling up all the map so here we are finishing
+so here we are finishing the last holes that are left
+the last holes that are left and when we fill all the walls we can
+and when we fill all the walls we can start to explore new eras
+start to explore new eras that we have not yet explored
+but sometimes you can have game events that pop up
+that pop up for example here we have a battle
+for example here we have a battle what we will do is when we have new game
+what we will do is when we have new game sequence at pop-up we'll synchronize
+sequence at pop-up we'll synchronize with the replay data so we'll try to go
+with the replay data so we'll try to go to use a replay editor of these petals
+to use a replay editor of these petals if there are one
+if there are one and we continue the explosions until we
+and we continue the explosions until we time out
+time out of it and we will go back to the replay
+of it and we will go back to the replay so we are doing again past finance to go
+so we are doing again past finance to go back to the end of the replay detail
+back to the end of the replay detail that is after the battle that we have
+that is after the battle that we have done during our explosion step because
+done during our explosion step because we are able to
+we are able to to do it and they are uh
+to do it and they are uh real donable
+real donable so now let's try to go back to the
+so now let's try to go back to the player we have uh
+player we have uh some cinematics and so on and we had
+some cinematics and so on and we had another
+another exploration there so
+exploration there so how we do we do it we generally
+how we do we do it we generally [Music]
+[Music] re record a replay and if we want to add
+re record a replay and if we want to add respirations
+respirations we look at the movie we synchronize uh
+we look at the movie we synchronize uh we add some replay
+we add some replay exploration event inside the play based
+exploration event inside the play based on
+on when
+when we are compared to the movies
+we are compared to the movies and
+and after we can
+after we can explore
+explore where to explore in fact a different
+where to explore in fact a different part of the map
+part of the map okay so we go back again to the replay
+okay so we go back again to the replay data now
+data now so still with pathfinding
+so still with pathfinding above the
+above the navigation data
+navigation data and now we can find out with the
+and now we can find out with the repeater that we need to press this
+repeater that we need to press this button to continue again
+one other thing that we can have is we can have telemetry so here is an
+we can have telemetry so here is an example of
+example of replay data it's a 14 replay that's the
+replay data it's a 14 replay that's the same path so each time that we are
+same path so each time that we are replaying the data without expressions
+replaying the data without expressions we are basically have one only path that
+we are basically have one only path that we follow
+we follow if we use
+if we use expressions that will take more time but
+expressions that will take more time but now we can see that we have a more wider
+now we can see that we have a more wider range of views
+range of views our sure expression is not necessarily
+our sure expression is not necessarily used everywhere in the game
+used everywhere in the game but
+but for example if you have a bomb that will
+for example if you have a bomb that will explode you probably don't want to
+explode you probably don't want to explore now you want to go down
+explore now you want to go down but so this way we have also this kind
+but so this way we have also this kind of events
+of events but it can be used really to increase
+but it can be used really to increase the range of
+the range of the part of the game that we can test
+the part of the game that we can test and uh
+and uh and get data from
+and get data from with for example this telemetry tool
+so the advantages is that
+the advantages is that we were presenting in fact
+we were presenting in fact an automation system that avoided a lot
+an automation system that avoided a lot of report repetitive testing
+we were able to show how to share development through several projects
+development through several projects by making this
+by making this this part
+this part as more common as possible and trying to
+as more common as possible and trying to have a generic game stat
+have a generic game stat in which we can store a lot of data even
+in which we can store a lot of data even some user data like
+some user data like what kind of objects we want to interact
+what kind of objects we want to interact with so in the replay we can use this
+with so in the replay we can use this kind of id to look for these objects and
+kind of id to look for these objects and not go
+not go to the
+to the recorded data but to the new position of
+recorded data but to the new position of this object this allows us to have some
+this object this allows us to have some margin with a
+margin with a level change
+level change we were also showing that we have a
+we were also showing that we have a navigation system that is outside the
+navigation system that is outside the game that can
+game that can allow you also to have something that is
+allow you also to have something that is less game specific
+less game specific and with
+and with mixing expressions you can start to have
+mixing expressions you can start to have also support for some
+also support for some variety inside the game level even if
+variety inside the game level even if you have new obstacles during your own
+you have new obstacles during your own path you may be able to explore once and
+path you may be able to explore once and go
+go and go and go on these obstacles
+the problem is that we are not able to do any qualitative create so graphic
+do any qualitative create so graphic issue and so on the replay system was
+issue and so on the replay system was perfectly defined to say that
+perfectly defined to say that the game was working when there was a
+the game was working when there was a black screen all over the place
+black screen all over the place which is because he was able to complete
+which is because he was able to complete the level
+the level but
+but we have still some graphical issues the
+we have still some graphical issues the graphical movies and so on that we can
+graphical movies and so on that we can export to
+export to to help create in fact to make some
+to help create in fact to make some decisions about that
+decisions about that so
+what we want to do is in fact add
+in fact add more
+more of this
+of this extract video on screenshot
+extract video on screenshot to in fact
+to in fact for example gather all cinematics
+for example gather all cinematics that are inside the game
+that are inside the game and have a creator that just checks the
+and have a creator that just checks the cinematics doesn't have to run the games
+cinematics doesn't have to run the games several times to gather all the possible
+several times to gather all the possible cutscene cutscene depending of these
+cutscene cutscene depending of these different actions
+and we want to maybe use expressions on other things at
+maybe use expressions on other things at positions for example on menu
+positions for example on menu or maybe on minigame
+and things that i have said that we the expressions may be able to
+expressions may be able to detect collisions but this is some scene
+detect collisions but this is some scene something that we have to work on
+something that we have to work on we want also tools to find large change
+we want also tools to find large change in level collisions
+okay so if you have any more questions you
+so if you have any more questions you can always contact me and thank you for
+can always contact me and thank you for listening
+listening [Music]
+[Music] you

@@ -1,0 +1,769 @@
+[Music] welcome everyone so my name is Daniel
+welcome everyone so my name is Daniel Breuer and this is my co-presenter res
+Breuer and this is my co-presenter res gram here at the summit over the years
+gram here at the summit over the years we've spent a lot of time discussing how
+we've spent a lot of time discussing how agents make decisions all the sexy
+agents make decisions all the sexy different algorithms but one thing that
+different algorithms but one thing that we don't spend enough time on is the
+we don't spend enough time on is the data that is used to make these
+data that is used to make these decisions by these algorithms and the
+decisions by these algorithms and the quality of these decisions is far more
+quality of these decisions is far more dependent on the starter than it is on
+dependent on the starter than it is on whatever algorithm you're using so today
+whatever algorithm you're using so today we're going to talk about knowledge
+we're going to talk about knowledge representation and I can see some of you
+representation and I can see some of you nodding already at the back there but
+nodding already at the back there but stay with us so we're going to provide
+stay with us so we're going to provide an overview of some common techniques
+an overview of some common techniques used to provide data to agents and show
+used to provide data to agents and show how richer behaviors can be crafted by
+how richer behaviors can be crafted by paying attention to this data so if the
+paying attention to this data so if the slides will work there we go when the
+slides will work there we go when the players are playing your game this is
+players are playing your game this is what they see right and the human brain
+what they see right and the human brain is amazing at taking this input
+is amazing at taking this input identifying the important bits and then
+identifying the important bits and then deciding what to do but this is what our
+deciding what to do but this is what our agency when they're playing your game
+agency when they're playing your game right or maybe it's a little bit more
+right or maybe it's a little bit more like like this our our game worlds are
+like like this our our game worlds are made up of structs and pointers and
+made up of structs and pointers and polygons and textures and we need our
+polygons and textures and we need our agents to interpret all of this to
+agents to interpret all of this to identify the important bits to see the
+identify the important bits to see the patterns in the matrix right blonde
+patterns in the matrix right blonde brunette redhead and so we need to
+brunette redhead and so we need to provide our agents with the information
+provide our agents with the information they need to allow them to make better
+they need to allow them to make better decisions and exhibit the behavior that
+decisions and exhibit the behavior that the designer wants and it's helpful to
+the designer wants and it's helpful to think about this behavior falling into
+think about this behavior falling into three broad categories static
+three broad categories static environment data dynamic spatial data
+environment data dynamic spatial data and then entity information so a static
+and then entity information so a static environment data as the name suggests is
+environment data as the name suggests is kind of representing the physical world
+kind of representing the physical world to your agents this daughter typically
+to your agents this daughter typically does not change a hell of a lot at
+does not change a hell of a lot at runtime and your agents use this really
+runtime and your agents use this really predominant
+predominant to find their way around or search for
+to find their way around or search for positions navigation and pathfinding are
+positions navigation and pathfinding are some of a is eternal problem spaces as
+some of a is eternal problem spaces as environments grow more complex and the
+environments grow more complex and the movement requirements get more crazy the
+movement requirements get more crazy the representation of the navigable space
+representation of the navigable space needs to get more complex - it's a bit
+needs to get more complex - it's a bit of an arms race between graphics
+of an arms race between graphics programmers and AI programmers so agents
+programmers and AI programmers so agents are no longer just merely required to
+are no longer just merely required to wander around the level in open boxes if
+wander around the level in open boxes if we take this kind of simple environment
+we take this kind of simple environment here it's an open square but our
+here it's an open square but our designers will usually throw a challenge
+designers will usually throw a challenge at us right so we need to have a way for
+at us right so we need to have a way for our agents to know that they can stay on
+our agents to know that they can stay on the pathways but they shouldn't go in
+the pathways but they shouldn't go in the grass however if a student is late
+the grass however if a student is late for class and there's no professors
+for class and there's no professors around or maybe the school is under
+around or maybe the school is under attack by space aliens then they're
+attack by space aliens then they're going to run across their cross anyway
+going to run across their cross anyway because who gives a damn
+because who gives a damn so if using a grid for your navigation
+so if using a grid for your navigation representation it's relatively simple
+representation it's relatively simple right you you can mark up each cell in
+right you you can mark up each cell in your grid with the I at the terrain type
+your grid with the I at the terrain type and then you can construct a cost
+and then you can construct a cost function that will guide your agent
+function that will guide your agent along the pathways when you're using a
+along the pathways when you're using a nav mesh however things are a little bit
+nav mesh however things are a little bit different a typical nav mesh might look
+different a typical nav mesh might look like this but this this isn't good
+like this but this this isn't good enough because we don't know where
+enough because we don't know where anything is here so we need to provide
+anything is here so we need to provide some tools to our designers to allow
+some tools to our designers to allow them to mark up this environment so that
+them to mark up this environment so that they can tell the agents where the grass
+they can tell the agents where the grass is and where the walkways are and then
+is and where the walkways are and then we're good to go from there right this
+we're good to go from there right this is adding more complexity to our
+is adding more complexity to our navigation graph but as we've seen from
+navigation graph but as we've seen from the horizon talked earlier in Nathan's
+the horizon talked earlier in Nathan's talk adding this extra weight and markup
+talk adding this extra weight and markup does help with the behaviors we use this
+does help with the behaviors we use this technique in the darkness - back in the
+technique in the darkness - back in the day we actually created cutting volumes
+day we actually created cutting volumes from the light cones and cut on avnish
+from the light cones and cut on avnish with those volumes and then we measured
+with those volumes and then we measured the elimination and mocked it up and
+the elimination and mocked it up and that allowed our darkling character to
+that allowed our darkling character to remain in the shadows and avoid the
+remain in the shadows and avoid the lights and then once you have this
+lights and then once you have this information in your representation
+it's relatively easy then to can construct a different choose a different
+construct a different choose a different cost function depending on what the
+cost function depending on what the heavy you want to run if you use an ID
+heavy you want to run if you use an ID to represent your your terrain you kind
+to represent your your terrain you kind of restricted to only using a single
+of restricted to only using a single type of consideration at a time whereas
+type of consideration at a time whereas if you use a bitmask
+if you use a bitmask to represent the your terrain types you
+to represent the your terrain types you can then start combining these different
+can then start combining these different weighting factions together now moving
+weighting factions together now moving along a smart object or one of the
+along a smart object or one of the unsung heroes of a game AI knowledge
+unsung heroes of a game AI knowledge representation the sims is really the
+representation the sims is really the poster child here for how Smart Objects
+poster child here for how Smart Objects can be used to extend the capabilities
+can be used to extend the capabilities of agents and make them seem much more
+of agents and make them seem much more aware of their environment but we can
+aware of their environment but we can use them all over the place in other
+use them all over the place in other games to write Thea use this to great
+games to write Thea use this to great great effect at the essence a smart
+great effect at the essence a smart object is an abstraction and it
+object is an abstraction and it encapsulates some arbitrarily complex
+encapsulates some arbitrarily complex logic behind a simple interface and it
+logic behind a simple interface and it ties that to a particular location or
+ties that to a particular location or entity in the world and now your agents
+entity in the world and now your agents don't need to know any of that complex
+don't need to know any of that complex information they just need to know they
+information they just need to know they just need to select which smart object
+just need to select which smart object to use and all the dodge all that logic
+to use and all the dodge all that logic is embedded in that in that smart object
+is embedded in that in that smart object so all you need to do to make your your
+so all you need to do to make your your games have rating route AI reviews is
+games have rating route AI reviews is just add smart objects to your game now
+just add smart objects to your game now a lot of decisions in action and
+a lot of decisions in action and strategy games revolve around where
+strategy games revolve around where should the agent move and how we should
+should the agent move and how we should get there so it's beneficial to have an
+get there so it's beneficial to have an understanding of the overall flow and
+understanding of the overall flow and structure of the level what are the main
+structure of the level what are the main regions of the map how are these regions
+regions of the map how are these regions connected where are the choke points so
+connected where are the choke points so your navigation representation can
+your navigation representation can certainly help you but it's often too
+certainly help you but it's often too detailed it's like trying to find the
+detailed it's like trying to find the forest amidst all the trees so it's
+forest amidst all the trees so it's useful to have a higher level
+useful to have a higher level representation in warframe we use a
+representation in warframe we use a rough corridor map as our structure to
+rough corridor map as our structure to represent this information we called it
+represent this information we called it our tactical map and it represents the
+our tactical map and it represents the the flow of the level at runtime we add
+the flow of the level at runtime we add a whole lot of extra markup into this
+a whole lot of extra markup into this graph we know we all the doors are
+graph we know we all the doors are what state they're in we had our cover
+what state they're in we had our cover points and spawn points in there a whole
+points and spawn points in there a whole lot of different systems use it I
+lot of different systems use it I directly uses it the NPC's use this to
+directly uses it the NPC's use this to find cover and to patrol the designers
+find cover and to patrol the designers can write scripts that'll search through
+can write scripts that'll search through this graph to find located locations
+this graph to find located locations it's a very useful abstract
+it's a very useful abstract representation for the level now a
+representation for the level now a dynamic spatial data is used for
+dynamic spatial data is used for representing spatial relationships that
+representing spatial relationships that are affected by the environment and
+are affected by the environment and change over time so even though the
+change over time so even though the physical structure of your your level
+physical structure of your your level may be static the positioning of units
+may be static the positioning of units can change at runtime and this will
+can change at runtime and this will create a lot of dynamic situations and
+create a lot of dynamic situations and it's useful to be able to predict and
+it's useful to be able to predict and react to these situations so this is
+react to these situations so this is where it's useful to have some map of
+where it's useful to have some map of values tied to specific areas on the map
+values tied to specific areas on the map that represent information and allow
+that represent information and allow that to flow through your map through
+that to flow through your map through the environment and respond to it
+the environment and respond to it influence maps are really the go-to
+influence maps are really the go-to algorithm here and Dave is going to give
+algorithm here and Dave is going to give a huge talk tomorrow about it that's an
+a huge talk tomorrow about it that's an hour and three minutes I think so I'm
+hour and three minutes I think so I'm not going to go into detail on them but
+not going to go into detail on them but I'm just going to cover a couple of uses
+I'm just going to cover a couple of uses that we found useful in warframe firstly
+that we found useful in warframe firstly instead of just spreading out influence
+instead of just spreading out influence from your characters you can insert
+from your characters you can insert influence where characters take damage
+influence where characters take damage or where they die and now you've got a
+or where they die and now you've got a danger map and you can use this to draw
+danger map and you can use this to draw enemies into the conflict zone as
+enemies into the conflict zone as reinforcements or you can push enemies
+reinforcements or you can push enemies away characters away from their conflict
+away characters away from their conflict zone you can also simulate
+zone you can also simulate environmental hazards like a hull breach
+environmental hazards like a hull breach and a spaceship right when when you get
+and a spaceship right when when you get a window blown out you can source some
+a window blown out you can source some influence from that window and spread
+influence from that window and spread that out through your influence map we
+that out through your influence map we run our influence maps on our tactical
+run our influence maps on our tactical map so we know where the doors are we
+map so we know where the doors are we know what state the doors are in and
+know what state the doors are in and then we can modify our spread of this
+then we can modify our spread of this influence so that the doors will contain
+influence so that the doors will contain that vacuum in in those areas and you
+that vacuum in in those areas and you can use this for fire or floods or any
+can use this for fire or floods or any other environmental feature that that
+other environmental feature that that can spread through the map an objective
+can spread through the map an objective distance map is useful for knowing where
+distance map is useful for knowing where the objectives are you can seed all the
+the objectives are you can seed all the objectives in the level
+objectives in the level with a distance of zero and then use
+with a distance of zero and then use Dijkstra to flood fill out the distance
+Dijkstra to flood fill out the distance from any point in the map to that
+from any point in the map to that objective now I even got a table lookup
+objective now I even got a table lookup and you know how far away you are an
+and you know how far away you are an approximation for how far away you are
+approximation for how far away you are from the closest objective you know
+from the closest objective you know which direction to go to get to that
+which direction to go to get to that objective
+objective you can make your NPCs take cover
+you can make your NPCs take cover between the players and the objective we
+between the players and the objective we use this a huge number of different ways
+use this a huge number of different ways and now you can also pay attention to
+and now you can also pay attention to the changes in influence and start to
+the changes in influence and start to make predictions
+make predictions so if influence is spreading out from
+so if influence is spreading out from from your characters as your characters
+from your characters as your characters move the influence is going to be rising
+move the influence is going to be rising up in the areas ahead of where they
+up in the areas ahead of where they moving and it'll be dropping down behind
+moving and it'll be dropping down behind them so by looking for areas that I have
+them so by looking for areas that I have a positive change in influence you can
+a positive change in influence you can predict where the player is headed and
+predict where the player is headed and that is also quite useful entity data is
+that is also quite useful entity data is data that's used to make decisions about
+data that's used to make decisions about the other active entities in your game
+the other active entities in your game and this is the broadest and most varied
+and this is the broadest and most varied type of knowledge that you have to deal
+type of knowledge that you have to deal with and it's also highly dependent on
+with and it's also highly dependent on the type of game you're making in an
+the type of game you're making in an action game this is usually information
+action game this is usually information about the possible targets in a racing
+about the possible targets in a racing game it's going to be information about
+game it's going to be information about the other race cars in a high strategy
+the other race cars in a high strategy game this could be information about the
+game this could be information about the other civilizations what technologies
+other civilizations what technologies they've developed what resources they
+they've developed what resources they have to trade from my background I've
+have to trade from my background I've been focusing more on action games so
+been focusing more on action games so that's what I'm going to talk about here
+that's what I'm going to talk about here and here you'll want to track
+and here you'll want to track information about possible targets and
+information about possible targets and usually you'll have some perception
+usually you'll have some perception system that feeds you information about
+system that feeds you information about which targets your agent is aware of and
+which targets your agent is aware of and what he knows about them and you can
+what he knows about them and you can maintain this information in a target
+maintain this information in a target list and this is basically just an array
+list and this is basically just an array of structs with the information that you
+of structs with the information that you know about those targets now there's two
+know about those targets now there's two important reasons why you'd want to
+important reasons why you'd want to separate your knowledge like this and
+separate your knowledge like this and firstly caching this information from
+firstly caching this information from the world allows you to separate your AI
+the world allows you to separate your AI systems from your world and it allows
+systems from your world and it allows you to run things asynchronously more
+you to run things asynchronously more easily because then you know you don't
+easily because then you know you don't have that dependency of your AI system
+have that dependency of your AI system pulling stuff directly from the world
+pulling stuff directly from the world and secondly if your agent only has
+and secondly if your agent only has access to the information he has
+access to the information he has perceived it allows you allows your
+perceived it allows you allows your players to play tricks on your agents
+players to play tricks on your agents right you can manipulate them and that's
+right you can manipulate them and that's starting to get where the fun in game
+starting to get where the fun in game designers so what information should you
+designers so what information should you store well at the very least you need to
+store well at the very least you need to know that your target is visible or not
+know that your target is visible or not but it's last-known position is Splinter
+but it's last-known position is Splinter Cell does a great job of that it can be
+Cell does a great job of that it can be useful to have the time since scene as
+useful to have the time since scene as well because that allows you to have a
+well because that allows you to have a little bit of extra robustness against
+little bit of extra robustness against them like a temporary obstruction
+them like a temporary obstruction additionally it's useful to keep track
+additionally it's useful to keep track of the type of information perceived
+of the type of information perceived right if an agent hears a noise you
+right if an agent hears a noise you don't want it to go straight into combat
+don't want it to go straight into combat or run for the alarm you want them to
+or run for the alarm you want them to first turn around and react to see the
+first turn around and react to see the source of that noise first and we saw an
+source of that noise first and we saw an example of that in the previous talk if
+example of that in the previous talk if you sharing information amongst agents
+you sharing information amongst agents it's useful to know whether the
+it's useful to know whether the information you have is firsthand or
+information you have is firsthand or secondhand because a hidden agent that
+secondhand because a hidden agent that the player can't see if he ran for the
+the player can't see if he ran for the for the alarm based on the second-hand
+for the alarm based on the second-hand information it wouldn't feel fair to the
+information it wouldn't feel fair to the player the player has no idea that that
+player the player has no idea that that other agent was there so it would be
+other agent was there so it would be better for the the first agent who does
+better for the the first agent who does see the player firsthand to run for the
+see the player firsthand to run for the alarm this is more believable to the
+alarm this is more believable to the player and it also allows you a player
+player and it also allows you a player the opportunity to stop that guy from
+the opportunity to stop that guy from triggering the alarm which which is a
+triggering the alarm which which is a slightly better gameplay arguably it's
+slightly better gameplay arguably it's useful to have an is reachable flag as
+useful to have an is reachable flag as well so that you know whether the the
+well so that you know whether the the target that you're trying to reach has
+target that you're trying to reach has you can actually reach him your
+you can actually reach him your pathfinding has succeeded if your part
+pathfinding has succeeded if your part find fails you can mark him as
+find fails you can mark him as unreachable stories position and then
+unreachable stories position and then you don't need to part find to him again
+you don't need to part find to him again until the situation has changed
+until the situation has changed significantly
+significantly then once things have changed you can
+then once things have changed you can then clear your flag and try again you
+then clear your flag and try again you can also build in fallback behaviors and
+can also build in fallback behaviors and melee focused enemy might choose a
+melee focused enemy might choose a different target or he might switch
+different target or he might switch weapons and sacrum distance some other
+weapons and sacrum distance some other information is use that's useful is the
+information is use that's useful is the targets aim and what weapon he's
+targets aim and what weapon he's wielding right you don't need to dodge
+wielding right you don't need to dodge someone who's aiming at you with a sword
+someone who's aiming at you with a sword but a ranged weapon would be a pro
+but a ranged weapon would be a pro and we can take this further if we
+and we can take this further if we making a swashbuckling game and the
+making a swashbuckling game and the target has a flintlock single-shot
+target has a flintlock single-shot pistol the one agent might who's been
+pistol the one agent might who's been targeted by the player might want to
+targeted by the player might want to kind of hang back and be cautious while
+kind of hang back and be cautious while his teammate could flank around and once
+his teammate could flank around and once the player has fired his shot and
+the player has fired his shot and switched to his sword then everyone can
+switched to his sword then everyone can just rush in and finally since I'm on
+just rush in and finally since I'm on warframe and we work with our directors
+warframe and we work with our directors a lot I'd like to touch on a subject
+a lot I'd like to touch on a subject here that has to do with pacing and
+here that has to do with pacing and intensity measurement so over the years
+intensity measurement so over the years we've been looking at warframe in the
+we've been looking at warframe in the intensity of measurement of the game
+intensity of measurement of the game because we want to manage the pacing
+because we want to manage the pacing dynamically at runtime and I've been
+dynamically at runtime and I've been thinking more and more about this
+thinking more and more about this intention that intensity measurement and
+intention that intensity measurement and coming up with a different metric so
+coming up with a different metric so firstly as the players progressed
+firstly as the players progressed through the level there'll be a varying
+through the level there'll be a varying amount of threat and this is the
+amount of threat and this is the potential for harm to be done to the
+potential for harm to be done to the player so more enemies means more threat
+player so more enemies means more threat the tougher the enemies are the more
+the tougher the enemies are the more threat and the closer the enemies are
+threat and the closer the enemies are the more threat now players have a
+the more threat now players have a certain amount of resources that they
+certain amount of resources that they use to handle threat you've got
+use to handle threat you've got defensive resources and these are health
+defensive resources and these are health and shields and then you've also got
+and shields and then you've also got offensive resources which is your ammo
+offensive resources which is your ammo your magic power level and so resources
+your magic power level and so resources can be spent to overcome threat so
+can be spent to overcome threat so losing health when the player gets shot
+losing health when the player gets shot is effectively spending defensive
+is effectively spending defensive resources spending ammo to shoot back is
+resources spending ammo to shoot back is effectively spending offensive resources
+effectively spending offensive resources and now we have a measure of intensity
+and now we have a measure of intensity so if the player is reducing threat by
+so if the player is reducing threat by only a small loss of resources then the
+only a small loss of resources then the encounter is a little bit too easy it's
+encounter is a little bit too easy it's not challenging enough
+not challenging enough however if lots of resources are being
+however if lots of resources are being spent to overcome that threat then that
+spent to overcome that threat then that means that that encounter is quite hard
+means that that encounter is quite hard and challenging and more intense
+and challenging and more intense encounter now an interesting situation
+encounter now an interesting situation happens if the player is sneaking around
+happens if the player is sneaking around or hiding right then you have a high
+or hiding right then you have a high threat level but no resources are being
+threat level but no resources are being spent but here the potential for the
+spent but here the potential for the intensity
+intensity is growing over time right the potential
+is growing over time right the potential for conflict is there and this is a
+for conflict is there and this is a situation of rising tension and so
+situation of rising tension and so intensity is directly related to
+intensity is directly related to spending resources to overcome threat
+spending resources to overcome threat however while the threat is high it
+however while the threat is high it represents the potential for conflict
+represents the potential for conflict and hence a situation of rising tension
+and hence a situation of rising tension and so this is the model that we're
+and so this is the model that we're currently using on warframe and we're
+currently using on warframe and we're tweaking it still but it gives the AR
+tweaking it still but it gives the AR director Richard information about what
+director Richard information about what is going on around the players at
+is going on around the players at runtime and that's what this talk is
+runtime and that's what this talk is about right providing richer information
+about right providing richer information to your AI systems so that they can make
+to your AI systems so that they can make better decisions and now I'll hand you
+better decisions and now I'll hand you off to raise all right okay so I'm gonna
+off to raise all right okay so I'm gonna slow it down a little bit and talk about
+slow it down a little bit and talk about representing long term knowledge so
+representing long term knowledge so everything we just heard was about
+everything we just heard was about representing some of the more short-term
+representing some of the more short-term knowledge for combat encounters and that
+knowledge for combat encounters and that kind of stuff so I'm gonna focus more on
+kind of stuff so I'm gonna focus more on long-term stuff so if that might be more
+long-term stuff so if that might be more appropriate for simulation RPG strategy
+appropriate for simulation RPG strategy games that kind of stuff it can be used
+games that kind of stuff it can be used for anything for a long-term you know
+for anything for a long-term you know relationships and things like that the
+relationships and things like that the two major things I'm going to talk about
+two major things I'm going to talk about our stats and tags so those are the I
+our stats and tags so those are the I think we get a lot of mileage out of out
+think we get a lot of mileage out of out of those two things and everything that
+of those two things and everything that Dan said applies to these types of games
+Dan said applies to these types of games as well so you know go nuts okay so
+as well so you know go nuts okay so number one stats stats are there really
+number one stats stats are there really just fuzzy values there their values
+just fuzzy values there their values that represent some kind of fuzzy state
+that represent some kind of fuzzy state you know how hungry am i how much fun am
+you know how hungry am i how much fun am I having how much social have I got and
+I having how much social have I got and that kind of stuff or I like you buy
+that kind of stuff or I like you buy this amount or really any of these
+this amount or really any of these things my skill is this is this hi my
+things my skill is this is this hi my relationship my diplomatic relationships
+relationship my diplomatic relationships are at this point you know my people
+are at this point you know my people have these types of needs so stats are
+have these types of needs so stats are almost always either normalized or
+almost always either normalized or clamped in some way so there's some some
+clamped in some way so there's some some normalized value and that could be
+normalized value and that could be literally normalized 0 to 1 on the Sims
+literally normalized 0 to 1 on the Sims they were typically negative 100 a
+they were typically negative 100 a positive 100 and this gives you a range
+positive 100 and this gives you a range of comparison so you can easily compare
+of comparison so you can easily compare and contrast them and have them mean
+and contrast them and have them mean various different things they can be
+various different things they can be ticked so that's another thing that you
+ticked so that's another thing that you can do and what I mean by that is they
+can do and what I mean by that is they they can decay so on the sims often your
+they can decay so on the sims often your motors would be K there can be timeouts
+motors would be K there can be timeouts cooldown simple things like that which
+cooldown simple things like that which also means of course that they can be as
+also means of course that they can be as simple as literally float and then some
+simple as literally float and then some value or some identifier or they can be
+value or some identifier or they can be larger complex for like big objects
+larger complex for like big objects which is what they were on the Sims and
+which is what they were on the Sims and many of these other types of games they
+many of these other types of games they can also be calculated values and what I
+can also be calculated values and what I mean by that is truly derived from a
+mean by that is truly derived from a variety of other things and I'll get
+variety of other things and I'll get into that more when I talk about things
+into that more when I talk about things like tags and how you can derive this
+like tags and how you can derive this kind of stuff and this is one of our
+kind of stuff and this is one of our major things using decision making if
+major things using decision making if you're using utility or whatever method
+you're using utility or whatever method that you're having to be using under the
+that you're having to be using under the covers we spend a lot of time using that
+covers we spend a lot of time using that to integrate that into whatever are our
+to integrate that into whatever are our decision making system is so as I said
+decision making system is so as I said they're numbers that represent fuzzy
+they're numbers that represent fuzzy values oh and I said all this stuff
+values oh and I said all this stuff sometimes clancer is right so I missed
+sometimes clancer is right so I missed this um
+this um the last two points on this little slide
+the last two points on this little slide are they want to provide they're good
+are they want to provide they're good for providing very subtle behavior so
+for providing very subtle behavior so I'm like micro changes and I'll give you
+I'm like micro changes and I'll give you an example if you look at something like
+an example if you look at something like The Sims or other such games a lot of
+The Sims or other such games a lot of the core interactions on the sims are
+the core interactions on the sims are these small micro interactions socials
+these small micro interactions socials for example I'm gonna go up and I'm
+for example I'm gonna go up and I'm going to say hello to this particular
+going to say hello to this particular sim I'm going to give this image that
+sim I'm going to give this image that kind of stuff and so that can be very
+kind of stuff and so that can be very very those are like that's the inner
+very those are like that's the inner loop you're doing these small
+loop you're doing these small interactions which slowly increment this
+interactions which slowly increment this value over time that along with many
+value over time that along with many values go into larger calculations and
+values go into larger calculations and so you get and in my opinion get much
+so you get and in my opinion get much more emergent type behavior I'll give
+more emergent type behavior I'll give you a direct example from a game that
+you a direct example from a game that I'm sure a hundred percent of you have
+I'm sure a hundred percent of you have heard of Barbie Diaries high school
+heard of Barbie Diaries high school mystery let the jealousy wash over you
+mystery let the jealousy wash over you it's fine back in 2005 many many moons
+it's fine back in 2005 many many moons ago I worked on this game and believe it
+ago I worked on this game and believe it or not there's a little simulation that
+or not there's a little simulation that happens under the covers there's a
+happens under the covers there's a little like utility based AI thing
+little like utility based AI thing happening and the reason that I created
+happening and the reason that I created this is because it's a high school
+this is because it's a high school simulation or a high school adventure
+simulation or a high school adventure game really so we formed little cliques
+game really so we formed little cliques and the way we did that was it was
+and the way we did that was it was just basically a hash-table of entity ID
+just basically a hash-table of entity ID two floats that determine how much I
+two floats that determine how much I wanted to talk to particular people of
+wanted to talk to particular people of particular types so you had the jocks
+particular types so you had the jocks and the Goths and the popular girls and
+and the Goths and the popular girls and the Nerds and they rarely interacted
+the Nerds and they rarely interacted with others of their of opposite kinds
+with others of their of opposite kinds and it was a trivial thing I mean I did
+and it was a trivial thing I mean I did this in like two hours or something but
+this in like two hours or something but it created enough behavior that other
+it created enough behavior that other people like hey what happened to the AI
+people like hey what happened to the AI something happened some subtle thing
+something happened some subtle thing happened that made it significantly
+happened that made it significantly better
+better so through through small things like
+so through through small things like this you can get significant behavior on
+this you can get significant behavior on a game like The Sims you can is a good
+a game like The Sims you can is a good example of taking this even further so
+example of taking this even further so we did have a relationship score from
+we did have a relationship score from negative 100 a positive 100 but we
+negative 100 a positive 100 but we actually had several of them so if you
+actually had several of them so if you look down there at Kourtney we have two
+look down there at Kourtney we have two different tracks so one is a green meter
+different tracks so one is a green meter and one is a pink meter that's
+and one is a pink meter that's friendship and romance which are two
+friendship and romance which are two totally different axes and mixing and
+totally different axes and mixing and matching these axes becomes very
+matching these axes becomes very interesting because the common path is
+interesting because the common path is friendship and romance march forward
+friendship and romance march forward together mostly but you can get some
+together mostly but you can get some really interesting behaviors when you do
+really interesting behaviors when you do interactions that sort of lower one and
+interactions that sort of lower one and then do interactions that raise the
+then do interactions that raise the other and so you can get like what does
+other and so you can get like what does it look like when you have something
+it look like when you have something like high friendship low romance or low
+like high friendship low romance or low friendship high romance so high
+friendship high romance so high friendship low romance maybe your your
+friendship low romance maybe your your friends really good friends and you
+friends really good friends and you tried something but it didn't quite work
+tried something but it didn't quite work out whereas low friendship high romance
+out whereas low friendship high romance there's some is there some kind of like
+there's some is there some kind of like codependency happening or are you actual
+codependency happening or are you actual bitter enemies that sleep together so
+bitter enemies that sleep together so you can get some really interesting
+you can get some really interesting subtle behavior and you can add you can
+subtle behavior and you can add you can sort of multiply this behavior
+sort of multiply this behavior considerably and get all sorts of crazy
+considerably and get all sorts of crazy stuff okay
+stuff okay the other thing that I want to talk
+the other thing that I want to talk about the other kind of big thing are
+about the other kind of big thing are tags and I'm gonna use this so tags are
+tags and I'm gonna use this so tags are chunks of information that you hang on
+chunks of information that you hang on entities sort of like ornaments on a
+entities sort of like ornaments on a Christmas tree you know X is this type
+Christmas tree you know X is this type of thing that sort of stuff and so they
+of thing that sort of stuff and so they let you say like oh it's this race
+let you say like oh it's this race these are elves and that's what this is
+these are elves and that's what this is what elves mean so it's what kind of
+what elves mean so it's what kind of like a runtime type information or
+like a runtime type information or I belong to this faction and tags are
+I belong to this faction and tags are really cool and they're very contextual
+really cool and they're very contextual so it's hard to give very I'll give some
+so it's hard to give very I'll give some examples because you can do things like
+examples because you can do things like history right because of this history I
+history right because of this history I very much am trying to find the
+very much am trying to find the six-fingered man who killed my father
+six-fingered man who killed my father right and so you can use tags to like
+right and so you can use tags to like like this is his Drive this is his
+like this is his Drive this is his entire purpose and fascinating at the
+entire purpose and fascinating at the end of the movie when he says you know
+end of the movie when he says you know i-i've been in the revenge business for
+i-i've been in the revenge business for so long and now that I'm out I don't
+so long and now that I'm out I don't know what to do with the rest of my life
+know what to do with the rest of my life so what happens when those tags are
+so what happens when those tags are removed it can define your whole life
+removed it can define your whole life you can be the chosen one and then then
+you can be the chosen one and then then what happens or curse or States or
+what happens or curse or States or anything right these tags can be used
+anything right these tags can be used for just about anything they can even
+for just about anything they can even drive short-term behavior maybe you're
+drive short-term behavior maybe you're looking for the antidote to the poison
+looking for the antidote to the poison that you just drank so so tags are ways
+that you just drank so so tags are ways of just identifying pieces of
+of just identifying pieces of information and pieces of things that we
+information and pieces of things that we want to keep track of and I'll give
+want to keep track of and I'll give several examples but first similar to
+several examples but first similar to stats they can be it can just be an enum
+stats they can be it can just be an enum somewhere or it can be full-fledged
+somewhere or it can be full-fledged full-on classes which you know they are
+full-on classes which you know they are on games like The Sims so I want to talk
+on games like The Sims so I want to talk and also bring back the deriving stats
+and also bring back the deriving stats from tags thing with a game called
+from tags thing with a game called Crusader Kings 2 because I think they do
+Crusader Kings 2 because I think they do this masterfully I think this is they
+this masterfully I think this is they because they also solve another
+because they also solve another interesting AI problem so first this is
+interesting AI problem so first this is Earl Lawrence this is one of my vassals
+Earl Lawrence this is one of my vassals in this particular game and he's being
+in this particular game and he's being kind of a dick at negative 18 so why why
+kind of a dick at negative 18 so why why is he being a dick well they solve the
+is he being a dick well they solve the first rule of AI pretty trivially right
+first rule of AI pretty trivially right the first rule of AI is show the player
+the first rule of AI is show the player what you're doing so there's a lot of
+what you're doing so there's a lot of stuff here you know we we generally if
+stuff here you know we we generally if you look at the last three for example
+you look at the last three for example we generally believe the same things and
+we generally believe the same things and and so we're generally nice guys but oh
+and so we're generally nice guys but oh look at this
+look at this I hold a lot of dutchies and he's super
+I hold a lot of dutchies and he's super wants one of them so you know I can
+wants one of them so you know I can manipulate him by doing that but that's
+manipulate him by doing that but that's gonna drive a lot of his interactions a
+gonna drive a lot of his interactions a lot of his his desires and I can see it
+lot of his his desires and I can see it right here and it all boils down to
+right here and it all boils down to one number which I can look at derived
+one number which I can look at derived from these different tags that come into
+from these different tags that come into play so so they do it really well I
+play so so they do it really well I think we do something similar on the
+think we do something similar on the Sims so there are these things called
+Sims so there are these things called emotions so this sim is very sad and
+emotions so this sim is very sad and there's two little things down there
+there's two little things down there that tell you why and I'll show a
+that tell you why and I'll show a different example because I found a
+different example because I found a screenshot for it this sim is playful
+screenshot for it this sim is playful and why is this sim play full well I can
+and why is this sim play full well I can hover over these little things and
+hover over these little things and they'll tell me this thing says plus
+they'll tell me this thing says plus three because there's playful decor so
+three because there's playful decor so because the sim happens to be in a room
+because the sim happens to be in a room that has playful decor we can detect
+that has playful decor we can detect that oh okay there's playful decor we're
+that oh okay there's playful decor we're gonna give this buff or tag we called
+gonna give this buff or tag we called them buffs and all we do is we sum up
+them buffs and all we do is we sum up all of the different emotional weights
+all of the different emotional weights on each of the different tags that they
+on each of the different tags that they have and the one that has the highest
+have and the one that has the highest value wins that's the emotion the sim is
+value wins that's the emotion the sim is in if this sim were to leave this room
+in if this sim were to leave this room one of those others might take place
+one of those others might take place there's a couple of sort of more happy /
+there's a couple of sort of more happy / playful emotions on the right this then
+playful emotions on the right this then unlocked other interactions that you can
+unlocked other interactions that you can do which can even further drive more
+do which can even further drive more playful buffs and tags and stuff like
+playful buffs and tags and stuff like that so you can sort of go down this
+that so you can sort of go down this rabbit hole and we've all experienced
+rabbit hole and we've all experienced that right how many times have we been
+that right how many times have we been sad or depressed and like we're our own
+sad or depressed and like we're our own worst enemy when we get into that state
+worst enemy when we get into that state or happy and you go around other people
+or happy and you go around other people who are happy and now even more happy
+who are happy and now even more happy and then you drink and you're even more
+and then you drink and you're even more happy or sometimes not you can you can
+happy or sometimes not you can you can also kind of go the other way around or
+also kind of go the other way around or like really combine them in more ways so
+like really combine them in more ways so I'm gonna kind of blast through this
+I'm gonna kind of blast through this little part this these two these two
+little part this these two these two guys are our lovers and they're best
+guys are our lovers and they're best friends and all of these came from the
+friends and all of these came from the stats so they did a bunch of
+stats so they did a bunch of interactions with each other and that
+interactions with each other and that raised their stat to a certain point so
+raised their stat to a certain point so they went from acquaintances to friends
+they went from acquaintances to friends to best friends and so on but also
+to best friends and so on but also there's down there at the bottom you'll
+there's down there at the bottom you'll see promised so that's basically like
+see promised so that's basically like we're going steady or I'm gonna or we're
+we're going steady or I'm gonna or we're going to get engaged and marriage has
+going to get engaged and marriage has nothing to do with how high or low your
+nothing to do with how high or low your romance is like you don't reach a
+romance is like you don't reach a certain part in the romance track and
+certain part in the romance track and like instantly become married so we have
+like instantly become married so we have both we call them relationship
+both we call them relationship but they were just tags okay
+but they were just tags okay now against all wonderful medical advice
+now against all wonderful medical advice I'm going to do a little demo I want to
+I'm going to do a little demo I want to show you something it's really nice and
+show you something it's really nice and we're gonna see if this actually works
+we're gonna see if this actually works oh cool it doesn't there we go
+oh cool it doesn't there we go let's see great now showing everything
+let's see great now showing everything on this monitor and the thing anywhere
+on this monitor and the thing anywhere else that's fine
+else that's fine I'll make this work so this is a little
+I'll make this work so this is a little town and while this is happening I'm
+town and while this is happening I'm gonna try and see if I can get back to
+gonna try and see if I can get back to what is duplicate which one is it that
+what is duplicate which one is it that it okay yay okay I totally practice this
+it okay yay okay I totally practice this in the speaker lounge too and it worked
+in the speaker lounge too and it worked okay so we have this nice little spot
+okay so we have this nice little spot here
+here and none of my input is working which is
+and none of my input is working which is also cool so if I just look at some of
+also cool so if I just look at some of these guys oh it crashed I think that's
+these guys oh it crashed I think that's what happened sweet okay great
+what happened sweet okay great we're back so I have these you know this
+we're back so I have these you know this is a little stimulated town there's
+is a little stimulated town there's little green things are little houses
+little green things are little houses where people live and these are where
+where people live and these are where people work and this is the inn and
+people work and this is the inn and there's like a little blacksmith shop so
+there's like a little blacksmith shop so I can like click on these and I can see
+I can like click on these and I can see blacksmith's forge and so they kind of
+blacksmith's forge and so they kind of all have their own little schedule
+all have their own little schedule they'll go back and forth for a while
+they'll go back and forth for a while doing their thing and if I click on one
+doing their thing and if I click on one oh no you left come back and I click on
+oh no you left come back and I click on one of these people and there's like
+one of these people and there's like tons of information here
+tons of information here so I have like stats and things like
+so I have like stats and things like that that mostly I just made up but in
+that that mostly I just made up but in terms of actually driving behavior
+terms of actually driving behavior I have things like I'll pause this and
+I have things like I'll pause this and kind of draw on my little thing here I
+kind of draw on my little thing here I have things like object ownership so
+have things like object ownership so they will choose specifically this desk
+they will choose specifically this desk this bed this table to do their work in
+this bed this table to do their work in you know their schedule and all that
+you know their schedule and all that stuff is relying on that you know these
+stuff is relying on that you know these are their various different you know
+are their various different you know their various different like
+their various different like relationships and stuff like that and so
+relationships and stuff like that and so you know as as they kind of go about
+you know as as they kind of go about their day you know you can kind of see
+their day you know you can kind of see that all of this stuff can really drive
+that all of this stuff can really drive behavior in some fairly significant ways
+behavior in some fairly significant ways this guy's moving I don't know what this
+this guy's moving I don't know what this guy's doing
+sneak out sneak out it in table oh this person has a traitor trait which I just
+person has a traitor trait which I just injected oh this guy is this girl
+injected oh this guy is this girl jasmine is our traitor so if we look at
+jasmine is our traitor so if we look at like data and see what's going on we can
+like data and see what's going on we can see that because of this demo I hacked
+see that because of this demo I hacked in this little traitor trait and if we
+in this little traitor trait and if we look at what the trader trait does and
+look at what the trader trait does and notice I'm showing no code this is all
+notice I'm showing no code this is all data I have this little trader trait and
+data I have this little trader trait and all it does is it says hey your decision
+all it does is it says hey your decision do this thing on top of this as well and
+do this thing on top of this as well and if I go here I can say oh look and I'll
+if I go here I can say oh look and I'll zoom this way in I can say oh look here
+zoom this way in I can say oh look here we go from 1:00 a.m. to 2:00 a.m. do
+we go from 1:00 a.m. to 2:00 a.m. do this action I haven't set a higher
+this action I haven't set a higher priority because I'm doing a demo at GDC
+priority because I'm doing a demo at GDC and maybe you want to see that actually
+and maybe you want to see that actually happen but you could have this at any
+happen but you could have this at any priority that you want so that it
+priority that you want so that it doesn't happen every night it happens
+doesn't happen every night it happens some nights and trivially with three
+some nights and trivially with three small data entries that you could have
+small data entries that you could have easily added in whatever significant XML
+easily added in whatever significant XML tool that you've added you now have this
+tool that you've added you now have this this fancy behavior and this person's
+this fancy behavior and this person's back so that is basically it where is my
+back so that is basically it where is my slide thing we're gonna be tended to
+slide thing we're gonna be tended to this Oh No I've lost it great this will
+this Oh No I've lost it great this will work years starting conclusion fuzzy
+work years starting conclusion fuzzy values provide subtle and emergent
+values provide subtle and emergent behavior they're really good for things
+behavior they're really good for things like micro changes and tags are really
+like micro changes and tags are really different chunks of information like you
+different chunks of information like you vent based things that happen I've gone
+vent based things that happen I've gone to war with you and all that kind of
+to war with you and all that kind of stuff
+stuff so they can be used together for great
+so they can be used together for great effect that's it that's us thank you so
+effect that's it that's us thank you so much

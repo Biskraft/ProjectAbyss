@@ -1,0 +1,596 @@
+[Music] okay so let's get started welcome it's
+okay so let's get started welcome it's changing okay there we go
+changing okay there we go welcome my name is les I'm a Senior
+welcome my name is les I'm a Senior Programmer at played at games some of
+Programmer at played at games some of you may be familiar with the previous
+you may be familiar with the previous title published by the company it's
+title published by the company it's called limbo today I'm going to talk
+called limbo today I'm going to talk about temple reprojection anti-aliasing
+about temple reprojection anti-aliasing in our upcoming game inside a little bit
+in our upcoming game inside a little bit of background before we get started
+of background before we get started inside is a side-scrolling game its a
+inside is a side-scrolling game its a mix between puzzle solving platforming
+mix between puzzle solving platforming exploitation in inside we have lots of
+exploitation in inside we have lots of geometric detail and we have many
+geometric detail and we have many interleaved layers of transparency our
+interleaved layers of transparency our camera is always slightly moving so if
+camera is always slightly moving so if we don't have any sort of temporal
+we don't have any sort of temporal stabilization and we get lots of
+stabilization and we get lots of crawling we wanted to have really clean
+crawling we wanted to have really clean and stable images for this game and in
+and stable images for this game and in early 2014 we began looking into
+early 2014 we began looking into temporal anti-aliasing and I whipped up
+temporal anti-aliasing and I whipped up a quick first implementation of this
+a quick first implementation of this based on what was available and the
+based on what was available and the Internet and in my own head and it
+Internet and in my own head and it quickly became our primary anti-aliasing
+quickly became our primary anti-aliasing solution during production so what is
+solution during production so what is temporal anti-aliasing maybe not
+temporal anti-aliasing maybe not everyone is familiar with this term it's
+everyone is familiar with this term it's a spatial temporal post-processing
+a spatial temporal post-processing technique what does that mean it means
+technique what does that mean it means that it uses a spatial relationship
+that it uses a spatial relationship between fragments in multiple frames to
+between fragments in multiple frames to to to make a correlation and use some
+to to make a correlation and use some information from the past time to
+information from the past time to refined fragments that we have just
+refined fragments that we have just rendered in in the current restoration
+rendered in in the current restoration path
+path it's a
+it's a inserted in the post process chain as a
+inserted in the post process chain as a as a pass after we do it after opaque
+as a pass after we do it after opaque transparency and pretty much everything
+transparency and pretty much everything except the last distortion effects so
+except the last distortion effects so and it's a feedback loop it it reads
+and it's a feedback loop it it reads from a history buffer and it writes to
+from a history buffer and it writes to at the same history buffer in a double
+at the same history buffer in a double buffered fashion with temporal
+buffered fashion with temporal anti-aliasing sub-pixel information is
+anti-aliasing sub-pixel information is recovered over time which is really nice
+recovered over time which is really nice for for having stable images here's what
+for for having stable images here's what it looks like on the Left we have like a
+it looks like on the Left we have like a raw output from the engine with no a and
+raw output from the engine with no a and under on the right we have our temporal
+under on the right we have our temporal solution in action and notice that like
+solution in action and notice that like we have like the edges of the fence here
+we have like the edges of the fence here can cross pixel boundaries without just
+can cross pixel boundaries without just jumping across them in one go it's it's
+jumping across them in one go it's it's a stable output here's another example
+a stable output here's another example here it's interesting to note that noise
+here it's interesting to note that noise from a sparsely sampled directional
+from a sparsely sampled directional occlusion is sort of vacuum by the
+occlusion is sort of vacuum by the temporal solution that we are employing
+temporal solution that we are employing creating like a much smoother image on
+creating like a much smoother image on the right another example here was the
+the right another example here was the boring sensor and it's yeah I think the
+boring sensor and it's yeah I think the results are obvious so I'm gonna go
+results are obvious so I'm gonna go through every step of the technique and
+through every step of the technique and I want to start with some basic
+I want to start with some basic intuition so let's forget about pixels
+intuition so let's forget about pixels for a moment and think about cameras
+for a moment and think about cameras between frames and if we have some
+between frames and if we have some surface in space and we have camera
+surface in space and we have camera looking at a local region like a local
+looking at a local region like a local surface region and then we have another
+surface region and then we have another camera in the past that's also looking
+camera in the past that's also looking at this region but from a slightly
+at this region but from a slightly different perspective then we are having
+different perspective then we are having then we with rasterization we obtain
+then we with rasterization we obtain some slightly different information
+some slightly different information about this local region on a surface so
+about this local region on a surface so in a sense rasterization it has this on
+in a sense rasterization it has this on place these on place and artifacts and
+place these on place and artifacts and aliasing artifacts but this could also
+aliasing artifacts but this could also just be viewed as our variation and if
+just be viewed as our variation and if we can make the correlation and step
+we can make the correlation and step back in time then we can use this
+back in time then we can use this variation to refine the current frame so
+variation to refine the current frame so to step back in time we want to make a
+to step back in time we want to make a correlation between current frame
+correlation between current frame fragments and fragments in previous
+fragments and fragments in previous frames and we can do this spatially with
+frames and we can do this spatially with a reprojection and reprojection is known
+a reprojection and reprojection is known technique like it relies on depth buffer
+technique like it relies on depth buffer information so it's limited to the
+information so it's limited to the closest written fragment and but it's
+closest written fragment and but it's not always possible sometimes their data
+not always possible sometimes their data just isn't there and this is the case
+just isn't there and this is the case when we have this occlusion so like we
+when we have this occlusion so like we see some fragment and it's just not in
+see some fragment and it's just not in our history we can do a reprojection but
+our history we can do a reprojection but we are going to see a different surface
+we are going to see a different surface from the previous perspective and if we
+from the previous perspective and if we just like blend those together then we
+just like blend those together then we are doing something well it's a false
+are doing something well it's a false rejection additionally if we don't have
+rejection additionally if we don't have any change in the relationship between
+any change in the relationship between the viewer and the subject then we don't
+the viewer and the subject then we don't gain any extra information from stepping
+gain any extra information from stepping back in time there's no variance so like
+back in time there's no variance so like step one shit'll your view frustum if
+step one shit'll your view frustum if your camera is studying and you have a
+your camera is studying and you have a static scene and you are effectively
+static scene and you are effectively losing information so every frame prior
+losing information so every frame prior to rendering pick some offset from a
+to rendering pick some offset from a sample distribution and use this offset
+sample distribution and use this offset to share your view frustum like just
+to share your view frustum like just refer to GL frustum for this I'll get
+refer to GL frustum for this I'll get back to a sample distributions laid out
+back to a sample distributions laid out there of course super important then the
+there of course super important then the temporal pass it looks like this so it's
+temporal pass it looks like this so it's a it's a full-screen pass and the inputs
+a it's a full-screen pass and the inputs to this eye are the history buffer so a
+to this eye are the history buffer so a temporarily stable image containing
+temporarily stable image containing anti-aliased
+colors and an input frame which is the raw output from from the rest riser and
+raw output from from the rest riser and all of those passes and that's called a
+all of those passes and that's called a depth and velocity
+depth and velocity I'm gonna go into reprojection first so
+I'm gonna go into reprojection first so we have some fragment that we are in in
+we have some fragment that we are in in our full-screen post pass let's just
+our full-screen post pass let's just start in this texture coordinate puv if
+start in this texture coordinate puv if we look at it on the boundary of the
+we look at it on the boundary of the view frustum it looks something like
+view frustum it looks something like this and then we can sample the depth
+this and then we can sample the depth buffer and reconstruct the worldspace
+buffer and reconstruct the worldspace position by just in circulating a corner
+position by just in circulating a corner a and then scaling by the the linear
+a and then scaling by the the linear depth once we have the well spaced
+depth once we have the well spaced position we can reproject this into the
+position we can reproject this into the previous frame and just by using the
+previous frame and just by using the previous frame modelview matrix when we
+previous frame modelview matrix when we do this we obtain some normalized device
+do this we obtain some normalized device coordinates and we can transform the
+coordinates and we can transform the rows into a texture space again and then
+rows into a texture space again and then we have this qub that we can use to look
+we have this qub that we can use to look up in our history buffer and then we
+up in our history buffer and then we have completed our V projection so for
+have completed our V projection so for dynamic scenes it's a little bit more
+dynamic scenes it's a little bit more complicated and we cannot rely that on
+complicated and we cannot rely that on just a depth buffer we use velocity
+just a depth buffer we use velocity buffer which in rate this in a separate
+buffer which in rate this in a separate path before the temporal pass and we
+path before the temporal pass and we initialize it to camera motion vectors
+initialize it to camera motion vectors just using the same approach us with
+just using the same approach us with reprojection same thing the depth buffer
+reprojection same thing the depth buffer and then we render the dynamic objects
+and then we render the dynamic objects on top with that just a like a biasing
+on top with that just a like a biasing test once we have a velocity buffer the
+test once we have a velocity buffer the rear projection becomes a read and a
+rear projection becomes a read and a subtract in the in the temporal pass
+subtract in the in the temporal pass because we just look up the velocity in
+because we just look up the velocity in in the current fragment and then we step
+in the current fragment and then we step negatively to obtain where we should
+negatively to obtain where we should sample our history buffer so should I
+sample our history buffer so should I that we don't actually sample the
+that we don't actually sample the velocity directly and the current
+velocity directly and the current fragment because if we do then fragments
+fragment because if we do then fragments on edges or objects they won't travel
+on edges or objects they won't travel with their occluders we use the velocity
+with their occluders we use the velocity of the closest depth by sample within
+of the closest depth by sample within our 3x3 region and this is similar to
+our 3x3 region and this is similar to our suggestion by carries
+our suggestion by carries and the result is nice or H is in motion
+and the result is nice or H is in motion here's an example of this on the Left we
+here's an example of this on the Left we have velocity from the current fragment
+have velocity from the current fragment being used to to do the reprojection and
+being used to to do the reprojection and on the right we have velocity from the
+on the right we have velocity from the closest fragment in a 3x3 region so now
+closest fragment in a 3x3 region so now we have our
+we have our reprojection completed and we have a
+reprojection completed and we have a history sample we have to constrain this
+history sample we have to constrain this history sample because as I mentioned we
+history sample because as I mentioned we may have a false reprojection
+may have a false reprojection and I will talk about this now so
+and I will talk about this now so sometimes the reprojection is false and
+sometimes the reprojection is false and the history example is essentially
+the history example is essentially invalid and it can be because of this
+invalid and it can be because of this occlusion and objects moving around and
+occlusion and objects moving around and it can also be because of transparency
+it can also be because of transparency layers in front of like in the line of
+layers in front of like in the line of sight in one from one perspective and
+sight in one from one perspective and these layers being absent in the next
+these layers being absent in the next perspective if we truly accept the
+perspective if we truly accept the history a sample then we get this
+history a sample then we get this ghosting like effect and smearing like
+ghosting like effect and smearing like I've Illustrated on the right so we have
+I've Illustrated on the right so we have to constrain our history sample the
+to constrain our history sample the various ways to do this depth based
+various ways to do this depth based rejection velocity ring susur's Venus
+rejection velocity ring susur's Venus described this very well I spend a bit
+described this very well I spend a bit of time implementing velocity weighing
+of time implementing velocity weighing and trying to get this right but found
+and trying to get this right but found that it was really fragile the threshold
+that it was really fragile the threshold itself was sliding in history and it was
+itself was sliding in history and it was difficult to get it right and it doesn't
+difficult to get it right and it doesn't really like it doesn't do anything about
+really like it doesn't do anything about transparency layers so you could like we
+transparency layers so you could like we don't have velocities for transparency
+don't have velocities for transparency layers and we have a lot of them in
+layers and we have a lot of them in Salif between our layers of opaque
+Salif between our layers of opaque geometry due to where volume metrics and
+geometry due to where volume metrics and art is placed like sun rays stuff like
+art is placed like sun rays stuff like that so and we didn't want to just run
+that so and we didn't want to just run temporal after they will take pass we
+temporal after they will take pass we needed something that would handle these
+needed something that would handle these cases so I went back to the brick wall
+cases so I went back to the brick wall for a while
+for a while and then I read this
+and then I read this these slides from from from Sousa and
+these slides from from from Sousa and that was like a big rescue this
+that was like a big rescue this neighborhood clamping concept for us
+neighborhood clamping concept for us so just to to recap what is neighborhood
+so just to to recap what is neighborhood clamping it's a it's like a pure Carlos
+clamping it's a it's like a pure Carlos based operation and it's like you plant
+based operation and it's like you plant you expand local color space around the
+you expand local color space around the current fragment from from the raw
+current fragment from from the raw rasterization and then you take your
+rasterization and then you take your history sample and you smash it into
+history sample and you smash it into that space and what Sousa did in in this
+that space and what Sousa did in in this slice of what was written there I said
+slice of what was written there I said you would use forceps and a central
+you would use forceps and a central section and you would clamp your history
+section and you would clamp your history sample to the local color space and that
+sample to the local color space and that enveloped these samples yeah quick tests
+enveloped these samples yeah quick tests showed that this gave a big improvement
+showed that this gave a big improvement in stability or lost surveying and we
+in stability or lost surveying and we could we could work with that and so and
+could we could work with that and so and you don't have to use our GP to do this
+you don't have to use our GP to do this operation you can also do the clamping
+operation you can also do the clamping to an a box in a different color space
+to an a box in a different color space if you want to rotate that around in
+if you want to rotate that around in relation to a TV the first
+relation to a TV the first implementation of neighborhood lemming
+implementation of neighborhood lemming for inside was like a dynamic variation
+for inside was like a dynamic variation of sources for approach I used the
+of sources for approach I used the variable distance to for sample points
+variable distance to for sample points decided for pixel where a higher
+decided for pixel where a higher velocity in in in the in in the current
+velocity in in in the in in the current fragment would result in the forceps
+fragment would result in the forceps being like inching closer to the center
+being like inching closer to the center section and this meant that it was
+section and this meant that it was pretty strict on motion when stock was
+pretty strict on motion when stock was moving fast and we wouldn't allow a
+moving fast and we wouldn't allow a large variation from from the sensor
+large variation from from the sensor sexual this cave was pretty decent
+sexual this cave was pretty decent results without having a velocity buffer
+results without having a velocity buffer for per object velocities and we didn't
+for per object velocities and we didn't have this at that time we use this
+have this at that time we use this approach for about a year and it enabled
+approach for about a year and it enabled artists and
+artists and and yeah artists to tail effects and
+and yeah artists to tail effects and content to the unique properties of
+content to the unique properties of having a simple algorithm that also in
+having a simple algorithm that also in eliminates noise from stochastic effects
+eliminates noise from stochastic effects then later in the production we got a
+then later in the production we got a bit more Headroom and I decided to ask
+bit more Headroom and I decided to ask the dynamic fall type approach and try
+the dynamic fall type approach and try to improve the image quality and it's
+to improve the image quality and it's kind of coincided with another
+kind of coincided with another presentation being published by carries
+presentation being published by carries who is suggest use a 3 by 3 neighborhood
+who is suggest use a 3 by 3 neighborhood and and and just eat the extra cost from
+and and and just eat the extra cost from doing those same samples so carries uses
+doing those same samples so carries uses a like a larger and rounded neighborhood
+a like a larger and rounded neighborhood and then just clipping instead of
+and then just clipping instead of clamping and it's not just like a 3 by 3
+clamping and it's not just like a 3 by 3 neighborhood it's also blended with a
+neighborhood it's also blended with a minimum maximum 5 steps in a plus person
+minimum maximum 5 steps in a plus person and it's more expensive to do this but
+and it's more expensive to do this but the image quality is better and like I
+the image quality is better and like I loved the dynamic Ford server process
+loved the dynamic Ford server process that we had going but there was just ok
+that we had going but there was just ok this this was just better so so so we
+this this was just better so so so we exited also clipping is really
+exited also clipping is really interesting at least when you look at it
+interesting at least when you look at it geometrically and I like I experimented
+geometrically and I like I experimented with it a lot and I felt like it had
+with it a lot and I felt like it had faster convergence and because clipping
+faster convergence and because clipping doesn't exhibit this problem of the
+doesn't exhibit this problem of the constraint sample ending up in corners
+constraint sample ending up in corners of the local color space and I've
+of the local color space and I've Illustrated that in the bottom left here
+Illustrated that in the bottom left here so clipping is in this era can be a
+so clipping is in this era can be a little bit slow and doing the parabola
+little bit slow and doing the parabola and clip between like an arbitrary size
+and clip between like an arbitrary size bounding box and two points that there
+bounding box and two points that there are problems with this and of course
+are problems with this and of course there is a stable algorithm but it's
+there is a stable algorithm but it's tedious to to run this for every
+tedious to to run this for every fragment so we just flip towards the
+fragment so we just flip towards the center of the bounding box and because
+center of the bounding box and because we do this we can just do the calculator
+we do this we can just do the calculator divisor for the rate so what's the
+divisor for the rate so what's the history on constraint history example in
+history on constraint history example in unit
+unit cube space we transform the vector to
+cube space we transform the vector to the history sample from the centre of
+the history sample from the centre of the bounding box into unit space then we
+the bounding box into unit space then we calculate divisor there and then we
+calculate divisor there and then we apply that in the actual clip space so
+apply that in the actual clip space so now we have our constraint history
+now we have our constraint history sample and the next step is to weigh
+sample and the next step is to weigh that and use some history and use some
+that and use some history and use some amount of data from the raw input and
+amount of data from the raw input and when we do this weighing we use the
+when we do this weighing we use the unfiltered input color buffer there
+unfiltered input color buffer there until during is by stern by just
+until during is by stern by just subtracting the data from the texture
+subtracting the data from the texture coordinates so we rely on bilinear
+coordinates so we rely on bilinear filtering for this and I mean that works
+filtering for this and I mean that works for us it's nice because we don't
+for us it's nice because we don't introduce any jittering into the into
+introduce any jittering into the into the feedback loop so we calculate our
+the feedback loop so we calculate our feedback color by doing a blend between
+feedback color by doing a blend between their their entirety input and the
+their their entirety input and the constraint history sample and then we
+constraint history sample and then we copy this to the output in calculating
+copy this to the output in calculating the feedback color we have to use a
+the feedback color we have to use a feedback factor obviously and we want to
+feedback factor obviously and we want to use a feedback factor that is as high as
+use a feedback factor that is as high as possible to increase retention because
+possible to increase retention because everything that is nice and clean
+everything that is nice and clean ideally is in our history sample
+ideally is in our history sample constraint history sample M but I have
+constraint history sample M but I have to be aware of artifacts also when
+to be aware of artifacts also when choosing the feedback factor like you
+choosing the feedback factor like you want to set it pretty high but right
+want to set it pretty high but right there there's going to be cases where
+there there's going to be cases where you'll see some trading artifacts I am a
+you'll see some trading artifacts I am a case in point the silhouette of the boy
+case in point the silhouette of the boy I was looking at on my workstation it
+I was looking at on my workstation it runs pretty slow and I was looking at
+runs pretty slow and I was looking at the boy had really low frame rates and
+the boy had really low frame rates and at a low resolution and I notice this
+at a low resolution and I notice this for anything else effects on this edge
+for anything else effects on this edge when he was doing like fast motion
+when he was doing like fast motion sources turns landings etc and of course
+sources turns landings etc and of course this is a property of neighborhood
+this is a property of neighborhood claiming clipping that history fragments
+claiming clipping that history fragments killing I've
+killing I've none of the neighbors forced them out
+none of the neighbors forced them out and they that's the case for one frame
+and they that's the case for one frame when this happens the image and it's
+when this happens the image and it's only really this thing that are
+only really this thing that are sufficiently low resolution and frame
+sufficiently low resolution and frame rate but I looked at this and I was
+rate but I looked at this and I was really annoyed by it I wanted to do
+really annoyed by it I wanted to do something about it anyway and I said
+something about it anyway and I said with an Ola graphics programmer in a
+with an Ola graphics programmer in a company and we were running back and
+company and we were running back and forth this is power-on in a high current
+forth this is power-on in a high current contrast area and just thinking about
+contrast area and just thinking about what can we do and then but these
+what can we do and then but these fragments have like high motion vectors
+fragments have like high motion vectors and so I thought why don't we just
+and so I thought why don't we just conceal it with a little bit of motion
+conceal it with a little bit of motion blur in those cases so adding motion
+blur in those cases so adding motion blur to the temporal pass and to conceal
+blur to the temporal pass and to conceal this type of as effects looks a bit like
+this type of as effects looks a bit like this so we update history buffer just
+this so we update history buffer just like before and then for the output
+like before and then for the output targets where we are seeing the
+targets where we are seeing the artifacts so the screen basically we
+artifacts so the screen basically we blend the feedback that what we are
+blend the feedback that what we are writing in through history with another
+writing in through history with another color which is an ocean blurred sample
+color which is an ocean blurred sample so and we apply the same on chittering
+so and we apply the same on chittering to the texture coordinates where we
+to the texture coordinates where we where we do this the amount of motion
+where we do this the amount of motion blur we introduce in each fragment is
+blur we introduce in each fragment is depending on the pixel velocity and we
+depending on the pixel velocity and we begin introducing a little bit of motion
+begin introducing a little bit of motion blur and met when the velocity has
+blur and met when the velocity has magnitude of two or above and we stop
+magnitude of two or above and we stop like we are only motion blur motion blur
+like we are only motion blur motion blur information when when the magnitude is
+information when when the magnitude is 15 it's just a linear scale so this
+15 it's just a linear scale so this forces transition to motion blur but not
+forces transition to motion blur but not in the feedback loop for really fast
+in the feedback loop for really fast moving fragments and it includes the
+moving fragments and it includes the immediate neighbors of the current
+immediate neighbors of the current fragment due to the velocity sample
+fragment due to the velocity sample relying on their closest depth wise
+relying on their closest depth wise fragment so just like an illustration of
+fragment so just like an illustration of what that looks like for the poor it's a
+what that looks like for the poor it's a kind of in
+kind of in exaggerated example you have to run it
+exaggerated example you have to run it like sub 20 frames per second and have a
+like sub 20 frames per second and have a really terrible resolution to notice
+really terrible resolution to notice this because it's for frame or two but
+this because it's for frame or two but yeah it kind of it it's not pleasant
+yeah it kind of it it's not pleasant either way but fringing fragments on the
+either way but fringing fragments on the left I find them really distracting
+left I find them really distracting excuse me
+excuse me so putting it all together
+the game looks like this
+yeah so I mentioned that I would get back to the sample distribution thing
+back to the sample distribution thing this first took a lot of trial and error
+this first took a lot of trial and error and I took a very practical approach
+and I took a very practical approach I spent some weeks with my head really
+I spent some weeks with my head really close to my screen in the office with
+close to my screen in the office with the windows magnifying glass fully
+the windows magnifying glass fully zoomed in and I would look at all the
+zoomed in and I would look at all the pixels and obsess over high contrast
+pixels and obsess over high contrast regions I wanted to find a really good
+regions I wanted to find a really good balance between quality and speed of
+balance between quality and speed of convergence at the time we were
+convergence at the time we were targeting 30 frames per second and now
+targeting 30 frames per second and now we had 1080p 60 so that was hugely
+we had 1080p 60 so that was hugely important back then and also considering
+important back then and also considering heuristics that would be interesting
+heuristics that would be interesting because we have this side scrolling
+because we have this side scrolling behavior and mostly horizontal movement
+behavior and mostly horizontal movement there was this scene in the game I think
+there was this scene in the game I think it was caught where there would be a
+it was caught where there would be a very low inclination and the boy would
+very low inclination and the boy would be able to run on the slope and there
+be able to run on the slope and there was this lamp that when you ran down
+was this lamp that when you ran down this loom it would sort of fade into
+this loom it would sort of fade into view and then you would run back up the
+view and then you would run back up the slope and the light would hide under
+slope and the light would hide under this shade and I would run up and down
+this shade and I would run up and down this slope again and again with
+this slope again and again with different distributions and officers
+different distributions and officers from this sex census just to see where I
+from this sex census just to see where I would get like a really nice transition
+would get like a really nice transition for that single or like half pixel line
+for that single or like half pixel line under the lampshade this is like an
+under the lampshade this is like an artificial reconstruction of this
+artificial reconstruction of this happening it's not the actual scene but
+happening it's not the actual scene but and I think I was more zoomed in also
+and I think I was more zoomed in also but yeah that's how it went
+but yeah that's how it went the crowd loves it
+so we are using history buffer that is exponential and the samples weigh less
+exponential and the samples weigh less over time and that is the reason why we
+over time and that is the reason why we need to use a high feedback factor
+need to use a high feedback factor otherwise we get a like a visible cycle
+otherwise we get a like a visible cycle and I like it's interesting to see that
+and I like it's interesting to see that if we use 90% of history compared to 10%
+if we use 90% of history compared to 10% of the earth the of the actual output of
+of the earth the of the actual output of the rasterize are in a frame than
+the rasterize are in a frame than six-inch frames later
+six-inch frames later that information that was history at
+that information that was history at that time it's down to eighteen and a
+that time it's down to eighteen and a half percent so I mean things fade out
+half percent so I mean things fade out fast and for the same old distribution
+fast and for the same old distribution it's nice to revisit I found that it's
+it's nice to revisit I found that it's nice to revisit same subpixels regions
+nice to revisit same subpixels regions often because they're both figure on the
+often because they're both figure on the right here assumes that we are just like
+right here assumes that we are just like trivially excepting every every single
+trivially excepting every every single history sample and that's not the case
+history sample and that's not the case because we do a clipping pick based on
+because we do a clipping pick based on the neighborhood and this will compress
+the neighborhood and this will compress the tale of the history in the frame
+the tale of the history in the frame that we are doing applying and
+that we are doing applying and constraint and that further like reduces
+constraint and that further like reduces how how how long history lives on as
+how how how long history lives on as they as the frames go on so we want to
+they as the frames go on so we want to quickly return to some data within a
+quickly return to some data within a single pixel so that if we are
+single pixel so that if we are constraining our way out of it because
+constraining our way out of it because of some sudden motion in one direction
+of some sudden motion in one direction or the other we get back to that and
+or the other we get back to that and obtain some information about that
+obtain some information about that particular part of a surface that we can
+particular part of a surface that we can reconstruct a nice edge or smoothen out
+reconstruct a nice edge or smoothen out a bit of aliasing from theta aliasing
+a bit of aliasing from theta aliasing whatever so initially use very few
+whatever so initially use very few sample points in our sampling
+sample points in our sampling distributions so here are some of the
+distributions so here are some of the sequences i tested some of them are like
+sequences i tested some of them are like a bit brain-dead and i just wanted to
+a bit brain-dead and i just wanted to pick something and get going
+pick something and get going interestingly for a year we used second
+interestingly for a year we used second one on the top row which i called
+one on the top row which i called uniform for helix in the code and it
+uniform for helix in the code and it worked really well despite the
+worked really well despite the rectangular person and just being four
+rectangular person and just being four samples for us because it crosses the
+samples for us because it crosses the horizontal line in the pixel in every
+horizontal line in the pixel in every frame so you can imagine like going from
+frame so you can imagine like going from left to right and it would stitch across
+left to right and it would stitch across hard edges I played around with them or
+hard edges I played around with them or some others as well and then when we did
+some others as well and then when we did the switch to the 3 by 3 neighborhood
+the switch to the 3 by 3 neighborhood and clipping then and there was also in
+and clipping then and there was also in Karis presentation of suggestions to use
+Karis presentation of suggestions to use the health and distribution
+the health and distribution a colleague of my nose is like let's try
+a colleague of my nose is like let's try and help okay let's try Hudson and we
+and help okay let's try Hudson and we did that and eventually settled on the
+did that and eventually settled on the sixteen first samples of the health and
+sixteen first samples of the health and two-three sequence so while using the
+two-three sequence so while using the false neighborhood as I said uniform he
+false neighborhood as I said uniform he leaves for helix was my favorite like
+leaves for helix was my favorite like the short cycle meant that you return to
+the short cycle meant that you return to the same subject little region quickly
+the same subject little region quickly which is nice and it does the stitching
+which is nice and it does the stitching thing and then switch to the sixteen
+thing and then switch to the sixteen illnesses of Helton and the coverage in
+illnesses of Helton and the coverage in this distribution is obviously much
+this distribution is obviously much better so like everything converges a
+better so like everything converges a lot more when the circumstances allow
+lot more when the circumstances allow this and it's pretty good at getting
+this and it's pretty good at getting back to the same subjects pixel regions
+back to the same subjects pixel regions even though this cycle length is a lot
+even though this cycle length is a lot longer because of the way of the way the
+longer because of the way of the way the sequence is then I also spent some time
+sequence is then I also spent some time looking at motion perpendicular pattern
+looking at motion perpendicular pattern I don't know if maybe you noticed on
+I don't know if maybe you noticed on previous slide that would be based on
+previous slide that would be based on the trajectory of camera motion in
+the trajectory of camera motion in screen space it didn't develop into
+screen space it didn't develop into thing any into anything that's going to
+thing any into anything that's going to be used in a release of our game but I
+be used in a release of our game but I think it's interesting to try and
+think it's interesting to try and squeeze the distribution along the line
+squeeze the distribution along the line of camera motion in this space that
+of camera motion in this space that needs more cooking time so a summary of
+needs more cooking time so a summary of our implementation I said well we did
+our implementation I said well we did our view frustum with sixteen first
+our view frustum with sixteen first samples of Health and two three then we
+samples of Health and two three then we generate a velocity buffer our engine
+generate a velocity buffer our engine doesn't provide one or the one we are
+doesn't provide one or the one we are using which is unity so we and we
+using which is unity so we and we initialize this to camera motion vectors
+initialize this to camera motion vectors and then we add in dynamic motion
+and then we add in dynamic motion vectors with manual tagging yeah
+vectors with manual tagging yeah and then we do reproduction by sampling
+and then we do reproduction by sampling or velocity buffer and we use the
+or velocity buffer and we use the closest depth wise fragment to to
+closest depth wise fragment to to identify where we should sample the
+identify where we should sample the velocity then we do a neighborhood
+velocity then we do a neighborhood clipping where we
+clipping where we a clip to the LGB minimum maximum of
+a clip to the LGB minimum maximum of around a 3x3 region like Harris and then
+around a 3x3 region like Harris and then we have this added motion blur fallback
+we have this added motion blur fallback that kicks in when the magnitude exceeds
+that kicks in when the magnitude exceeds two and it's in full effect at fifteen
+two and it's in full effect at fifteen and we don't apply this to the feedback
+and we don't apply this to the feedback loop we don't apply it to our history
+loop we don't apply it to our history and it it's not like the code I haven't
+and it it's not like the code I haven't a performance crunched on this code I
+a performance crunched on this code I think I spent a total of three two and a
+think I spent a total of three two and a half to three months over a couple of
+half to three months over a couple of years like going in and then doing other
+years like going in and then doing other stuff on the production so it's not I'm
+stuff on the production so it's not I'm sure there's stuff to optimize this one
+sure there's stuff to optimize this one around 1.7 milliseconds on Xbox one at
+around 1.7 milliseconds on Xbox one at st. ADP so of course this implementation
+st. ADP so of course this implementation is greatly inspired by a lot of people
+is greatly inspired by a lot of people and their work so yang su 30 minutes
+and their work so yang su 30 minutes carries my choir everything that was put
+carries my choir everything that was put online and other people's presentations
+online and other people's presentations like hugely appreciate this and my
+like hugely appreciate this and my slides are also going to be available it
+slides are also going to be available it simple anti-aliasing it also has some
+simple anti-aliasing it also has some really nice side effects so it's great
+really nice side effects so it's great at sucking up noise from stochastic
+at sucking up noise from stochastic effects so share those reflections while
+effects so share those reflections while your metrics all benefit from this
+your metrics all benefit from this greatly and we have a lot of these
+greatly and we have a lot of these effects in our game that are that are
+effects in our game that are that are sort of standing on top of temporal way
+sort of standing on top of temporal way being great and these are discussed in
+being great and these are discussed in detail in a in a talk about inside
+detail in a in a talk about inside rendering which is in a couple of hours
+rendering which is in a couple of hours by two of my colleagues making a big you
+by two of my colleagues making a big you should definitely go and see that it's
+should definitely go and see that it's awesome plated is hiring so if anyone
+awesome plated is hiring so if anyone wants to come and talk to us about
+wants to come and talk to us about having a job you can email us or job at
+having a job you can email us or job at play.com you're also welcome to talk to
+play.com you're also welcome to talk to me and I'll give you a card or something
+me and I'll give you a card or something mmm and that's the end of my talk thank
+mmm and that's the end of my talk thank you for coming as an extra note we are
+you for coming as an extra note we are releasing the full source code for
+releasing the full source code for implementation and it should be on
+implementation and it should be on github or it will be very soon it's Flag
+github or it will be very soon it's Flag private but I think it may be
+private but I think it may be public now and you can email me with
+public now and you can email me with questions and if we have time for it you
+questions and if we have time for it you can also ask questions now if you have
+can also ask questions now if you have any thank you
+any thank you [Applause]

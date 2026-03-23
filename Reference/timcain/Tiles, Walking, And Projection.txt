@@ -1,0 +1,404 @@
+Hi everyone, it's me Tim. Today I want
+to talk about tiles, walking, and
+projection.
+And just off the top, let me just say
+this is a I'm talking about 2D cuz in
+3D, you know, when everything's polygon,
+you can do whatever you want. You can
+choose whatever camera angle you want.
+You can let players do different angles.
+I'm talking about 2D games.
+how you pick how you want your tiles to
+work, which can be both the tiles that
+put down the terrain and then the tiles
+that you walk on. Frequently different,
+usually different. I'll talk about that.
+And then what projection method you
+chose, isometric, trimetric.
+I'll get into that. This is coming from
+a question. A lot of people have asked
+me this question in a variety of ways.
+Um, I've always put it off because I
+knew that I'd have to
+show some examples and my video editing
+skills are eh. So, the most recent
+person to ask was Lonard Breed, who
+asked, "Hi, Tim. Have you ever
+considered making a video about the
+different tile map projections used in
+your games? Isometric, trimetric,
+hexagons, etc. Why were they chosen and
+possibly how were they implemented?
+Thank you.
+Thank you. I will you you you made me do
+it and hopefully this will be useful. Um
+the way I want to do it is I want to
+talk first about how to do walking. Um,
+this will be interesting to designers,
+artists, and programmers because then
+that will lead into the different
+projection methods you can choose and
+then
+how you want to tile the game for
+as as opposed to what what pathing
+method you choose versus the tile to lay
+down the terrain.
+I've pulled a lot of different art
+pieces from here and there in the net
+and I will link them all below because I
+like giving credit to people. I didn't
+have any of this. So you ask where did
+you learn this? I learned this all in
+school. When you're in engineering
+school you learn all the projections
+when you are taking mechanical drawing
+which I did not do well in because I
+have terrible handwriting. But I learned
+all about the stuff. It's why I
+incorrectly called
+Fallout Cavalere oblique for years
+because I needed to remember we were
+doing a parallel projection and not a
+perspective. In any case, I'll get into
+that. Let's talk walking first. In most
+spritebased games, because of they were
+done earlier, they you had to choose
+between eight rotations and six. These
+days, you could do sprites with way more
+rotation, 16, 32, cuz you've got the
+memory and the processor power to store
+it. But back in the 80s and 90s, it was
+pretty much are you going to do it an
+eight rotation walk or a six rotation
+walk. The eight rotation one was based
+on squares because you basically
+walked in all the cardinal directions
+plus diagonal like this.
+This is a really good example of what
+you can do. And these are this is eight
+directions. There's up, down, left,
+right, and then all the diagonal
+directions.
+These are two more rotations you get if
+you go in hex uh walking, which I'll
+talk about in a second.
+The wonderful thing about choosing eight
+directions is you will get smooth
+walking in all those directions, up and
+down, left and right, and all the
+diagonals.
+The downside is distance is very easy to
+calculate up, down, and left, right?
+Because it's a if you make that one
+unit, great. It's one unit. But it's
+going to be harder to calculate that for
+the diagonal because if they walk to the
+next square,
+assuming you're walking from center of
+one square to center of another square,
+the diagonals are like 1.4. They're the
+square root of two. That is not a unit.
+And no matter what you make your units,
+you're not going to make that into an
+integer like your north, south, left,
+right
+there. This was described in this image
+which shows basically the the problem
+with calculating units for diagonals
+versus the cardinal directions.
+There's another advant. So that's a
+disadvantage of doing eight rotation
+walk. Eight rotation walk is very useful
+to use what I call 4545 projection. I'll
+talk about that when we get to
+projections below. So let's quickly look
+at the six rotation one. That's hex's.
+So already you have less rotations.
+You're going to have six rotations
+because you only can walk in six
+directions. You can either go and and
+depending on how you orient your hex's
+you either you're going to be zigzaggy
+either up down or left right. So, here's
+an example. Um,
+and you can see that because they made
+the
+flat part of the hex point up and down,
+you can go perfectly up down, but if you
+try to go left, right, like the bottom
+line is doing, it will zigzag up and
+down.
+You can try to smooth it like it's
+showing in the the one that's going up
+and to the right. There's a smoothed
+version of the line, but then you notice
+that it's going it's going along edges
+and going a little bit into different
+hexes. If you try to smooth the walk in
+a hex
+grided map, walking map, you are going
+to slightly move into other hexes and
+then you're going to clip objects
+because you're not entirely in that
+other hex. You were supposed to path to
+the other hex, but you're it's showing
+you move through that one. you're going
+to clip things. Now, a huge advantage to
+hex is distance is really easy to
+calculate in any direction you can go.
+Six directions, it's one unit. This is
+why hex's are used for battle maps and
+in a lot of strategy games because it's
+just easier to calculate distance.
+It's also very easy to use hex's if
+you're using what I call 30 projection,
+which again I'll talk about when we get
+below. Before I leave um
+walking, I do want to talk about um
+reflection. Reflection is something you
+use because since you have to store all
+these sprites in memory
+frequently you can avoid storing every
+rotation. If we look back at the eightw
+walk again, you can see that you the top
+walking up and walking down is its own
+image. Walking right is its own image.
+But when you go to walk left, you can
+just reflect the right walk over and it
+it will look fine. Similarly, for the
+upper uh for the rightmost diagonals
+going one going up and one going down,
+you can just reflect those do a mirror
+image reflection over to the left and
+you have those uh sprites to go in that
+direction. This is awesome. This can
+save you a lot of memory. Instead of
+storing five eight sprites, you're only
+storing five.
+Now, hex isn't quite as clean. It
+depends on how you orient it. If
+you do it with the fat flat edge
+pointing up, then you need one, two,
+three, four, and then you can reflect
+the other two. But if you do the pointy
+part up, then you can do 1 2 3 and
+reflect all of those. So hex's can be
+reflected either 42 or 33.
+If you go 3 3 because we did the pointy
+part up in in Fallout. We could have
+reflected in Fallout to save half the
+sprite memory. We ended up not doing
+that. But we did when we went to
+eight rotations in Arcanum, we did uh
+mirror the rotations because it just
+saved so much memory.
+If you're worried about people noticing
+reflection, many people think they will
+and many people won't. Uh there were a
+lot of games out there that did
+reflection that I I read reviews. I
+looked at all my stuff and no one ever
+mentioned it. No one ever commented on
+it. And then years later when they said,
+"Look, we reflected it." Suddenly people
+were like, "Oh, I noticed that." Well,
+didn't affect you buying it. Didn't seem
+to affect sales. Nobody mentioned it in
+reviews. So it it if it was something
+people noticed, they didn't care about
+it or at least they didn't vocally care
+about it. And all that memory that you
+save by doing those reflections meant
+you could either fit more memory, more
+different more variety of sprites into
+memory. And there was less frame rate
+hitch caused by when you had to go out
+to disk to load those sprites because
+you could keep more stuff in memory. So
+there we go. 8 versus six. Now let's
+talk about projection. Projection is
+interesting because it's hard to get
+this exactly right. There's a lot of
+math here.
+Most people call 2D non top-down games,
+you know, angled games isometric, but
+most of them are not. They're really
+aimetric.
+Um, what they all share in common is
+that they all use parallel projection
+instead of perspective projection, which
+means in perspective things get smaller
+with distance. Parallel lines don't
+converge. In parallel projection,
+um I'm sorry, in parallel projection,
+things don't get smaller and the
+parallel lines don't converge. In
+perspective, they do. So, obviously,
+because you want to just load one sprite
+and one wall segment and one tile, and
+it doesn't matter where you're going to
+put it on your screen, you want to do
+parallel projection. This looks okay
+because the angle is always picked. So,
+you can't see a horizon in that game. If
+you could see out to the horizon, it
+would look very strange that things were
+not shrinking in the distance. In fact,
+I'm not sure you can even do parallel
+projection and show a horizon. But let's
+walk through the three types which I
+will show here. This is a very easy way
+of remembering isometric, diametric and
+trtric. So the way this works, let me
+see if I can bring that up myself so I
+can look at it. So isometric is all
+three angles there are the same 120
+degrees the the three XYZ axis join at a
+visual 120°
+people think most things are done
+isomemmetrically but that angle there
+the the the Z angle most games don't do
+that they do diametric
+diametric is two of the angles are the
+same but the other one isn't you can
+either go up or down and they do that to
+show into buildings better and I'll get
+into that. And then you have trimetric
+where the three angles are different.
+Fallout was time trimetric. I'll get
+into that.
+So
+isometric like I said is when all those
+three angles are the same. I have an
+image of all the
+of typical isometric. The reason this is
+the reason I call it 3030 is you can see
+at the that upper corner all the angles
+that are going in there are 120. But if
+you look down at the bottom the two
+walls hit the
+horizontal line with 30° on both of
+those.
+The
+this means that two of the angles are
+equally forcehortened.
+We did this in Arcanum.
+Oh, you know what? I'm just I just
+totally realized I I said that wrong.
+That first one is isometric. Most people
+don't do this. You can see you can't see
+in to that building very well.
+Most games are actually diametric. So
+only two of them are foreshortened and
+the third one or equally forcehortened
+and the third one is different. Here's
+diametric. This is Arcanum. You can see
+you can see down into the building
+better which is what we wanted. You can
+also see that where the walls hit the
+horizontal line are 45°.
+A huge advantage of going diametric is
+that works really well when you go to
+tile the game because all the tiles will
+have a nice
+forcehortening and you can lay them down
+equally and then you can reflect them.
+That reflection for the same reason you
+want to reflect sprites, you can reflect
+tiles and walls around the the vertical
+axis and you can show a lot more stuff.
+This is really, really common that
+people do this. Um, Arcanum did it. You
+can see it here. And you can see that
+the the walls that go up to the left and
+the walls that go up to the right, we
+could either swap those and just mirror
+image them back and forth and do
+wherever we want.
+Fallout was not done that way. Fallout
+was trtric like this one shows where it
+was all of them were at different
+angles. There was a 60° on the leftmost
+and a 30° on the rightmost where it
+intersected the horizontal line making
+the the topmost corner was really 90°
+120° 150°.
+The reason we did this, it works really
+well for hex's. Hex's project into that
+world, the walking hex map.
+You can uh line it up really well with
+the angle. So you can get a rise run
+calculation where going over one unit
+goes up exactly 1/2. Really easy to
+calculate 1/2 on even older computers.
+You can just do a bit shift. So it's
+very to to calculate divide by two. So
+it's very easy and fast to do this. You
+can't really do the wall reflection
+because the ang this wall angles
+differently than this wall.
+This isn't as common for games to use
+because most of them don't use hex
+walking. They use
+they don't use six directions, they use
+eight. So they tend to use
+the 4545 diametric.
+However, because it's less common,
+people sometimes are attracted to
+trimetric games and they don't know why.
+They can't put their finger on it.
+they're just like they're more
+comfortable looking at it. It also it
+might just be because less reflection is
+being used that there's more variety. I
+don't know what it is, but for the
+longest time people liked the look of
+Fallout more than say Balders's Gate and
+didn't know why. And they attributed it
+to art style or lighting or color
+palette. I think a lot of it was just
+trtric is just visually more interesting
+to your eyeball than diametric with all
+other things being the same. But of
+course, they weren't the same.
+Real quick, I'll talk about tiles. So,
+regardless of your walk choice, your
+tiles will be based on your projection.
+Isometric and diametric can be
+reflected. Trimetric, not so much you.
+So, deciding how you want to tile may
+inform how you want to do projection and
+vice versa. Square versus hex can
+determine tiles determine where you want
+to put doors and hallways because you
+want the character to path through the
+middle of a door and tend to walk up the
+middle of hallways. So this just to
+avoid clipping and things like that. So
+if you were going to use
+eight direction walking squares, I'd go
+diametric. If you were going to do 6030
+trimetric projection, I'd go hex's. What
+you want to use is going to depend on
+how you want it to look, how you want to
+make your sprites, how you want to do
+your calculations on moving sprites.
+These all vary, but you can see that it
+is a combination of factors. It's what
+do your designers want?
+What are your artists comfortable doing?
+And what do your programmers know how to
+do? I think mixing all that together,
+it's hard to just go, you know,
+diametric eight direction walking is the
+way to go. It's it's not always, but
+it's the most common. And it's just
+because you with between the reflection
+and the and it's easier to conceive and
+code and do all that stuff. And the only
+problem is the diagonal distance
+calculation. A lot of people just go
+diametric. But it's up for you to decide
+what to do. And I hope
+Leonard Breed this answered all your
+questions.

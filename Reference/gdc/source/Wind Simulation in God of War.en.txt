@@ -1,0 +1,847 @@
+[Music] all right everyone welcome to my talk
+all right everyone welcome to my talk my name is rupert renard i'm an
+my name is rupert renard i'm an australian game developer i'll be
+australian game developer i'll be talking about the wind simulation in god
+talking about the wind simulation in god of war today
+of war today i've been programming games for around
+i've been programming games for around 12 years now i've worked on 12 ship
+12 years now i've worked on 12 ship titles and half a dozen cancelled titles
+titles and half a dozen cancelled titles some of the games i've worked on you may
+some of the games i've worked on you may have heard about such as god of war the
+have heard about such as god of war the legend of zelda
+legend of zelda deus ex mass effect 3 de blop 2 and
+deus ex mass effect 3 de blop 2 and scooby doo
+scooby doo i've worked in a variety of programming
+i've worked in a variety of programming positions i'm currently at sony santa
+positions i'm currently at sony santa monica
+monica as a graphics and engine programmer
+as a graphics and engine programmer where we ship god of war in april 28
+where we ship god of war in april 28 2018 and it did pretty well
+wind is starting to become a standard feature in games these days most times
+feature in games these days most times the wind is just a generic sine wave
+the wind is just a generic sine wave animating some bushes back and forth
+animating some bushes back and forth and we decided to go a little deeper
+and we decided to go a little deeper while building our wind system
+while building our wind system over time we started to have a
+over time we started to have a reasonable decent amount of customers
+reasonable decent amount of customers wanting to dynamically change their
+wanting to dynamically change their state based on the winds around their
+state based on the winds around their location
+location our particle system was one of the early
+our particle system was one of the early adopters
+adopters particles getting pushed around the
+particles getting pushed around the world hair leaves and fur
+world hair leaves and fur were grouped together in another system
+were grouped together in another system able to bend and sway
+able to bend and sway in localized clusters audiometers
+in localized clusters audiometers changed the way they behaved based on
+changed the way they behaved based on the intensity of the wind
+the intensity of the wind and our cloth system also experiment
+and our cloth system also experiment experimented
+experimented with being affected by the wind the goal
+with being affected by the wind the goal was to have a dynamic living world where
+was to have a dynamic living world where nothing less than hard stone would
+nothing less than hard stone would susceptible from being affected by wind
+i've recorded some footage from the final game to demonstrate some of the
+final game to demonstrate some of the wind effects we have
+wind effects we have as well as demonstrate that the game can
+as well as demonstrate that the game can get pretty windy at times
+get pretty windy at times and it's a useful effect to have in
+and it's a useful effect to have in order to help set mood
+order to help set mood basically it looks like if it's moving
+basically it looks like if it's moving in the world and there's a really good
+in the world and there's a really good chance it's being animated dynamically
+chance it's being animated dynamically based on the wind simulation
+based on the wind simulation otherwise it might be a baked animation
+otherwise it might be a baked animation we wanted to
+we wanted to we wanted the wind to be subtle for most
+we wanted the wind to be subtle for most cases and be obvious than others
+cases and be obvious than others [Music]
+[Music] we prototype the fluid simulation on the
+we prototype the fluid simulation on the cpu we base that off an old tech paper
+cpu we base that off an old tech paper from gdc 2003 called real-time fluid
+from gdc 2003 called real-time fluid dynamics for games
+dynamics for games by joss starm the tech paper however
+by joss starm the tech paper however took a few shortcuts
+took a few shortcuts these shortcuts were beneficial at the
+these shortcuts were beneficial at the time the paper was written but created
+time the paper was written but created some very obvious quality issues
+some very obvious quality issues we felt like these quality issues
+we felt like these quality issues weren't acceptable anymore especially
+weren't acceptable anymore especially since we have the performance available
+since we have the performance available to avoid it
+to avoid it so now we have the ability to do a
+so now we have the ability to do a proper fluid simulation
+proper fluid simulation without these shortcuts and achieve high
+without these shortcuts and achieve high quality but the paper itself was an
+quality but the paper itself was an amazing source of information as a
+amazing source of information as a starting point and it still is today
+starting point and it still is today we have a three tiered system for most
+we have a three tiered system for most of our wind sampling systems
+of our wind sampling systems static wind is a global vector applied
+static wind is a global vector applied uniformly to everything in the scene
+uniformly to everything in the scene it's capable of changing over time and
+it's capable of changing over time and also as the player moves around the
+also as the player moves around the world
+world we feed static winds sometimes with a
+we feed static winds sometimes with a scrolling noise texture
+scrolling noise texture dynamic wind is the focus of this talk
+dynamic wind is the focus of this talk it's a
+it's a 3d volume that contains detailed fluid
+3d volume that contains detailed fluid simulation that surrounds the player
+simulation that surrounds the player it's always aligned to world coordinates
+it's always aligned to world coordinates and shifts as the player moves
+and shifts as the player moves counterwind is a simple mechanism used
+counterwind is a simple mechanism used to fake wind application on things that
+to fake wind application on things that are moving
+are moving it's simply the negative velocity vector
+it's simply the negative velocity vector of the object that is moving
+of the object that is moving if an object is moving roughly at the
+if an object is moving roughly at the same speed and direction as the static
+same speed and direction as the static or dynamic wind
+or dynamic wind this will counteract the wind hence the
+this will counteract the wind hence the name and give the appearance that the
+name and give the appearance that the object isn't being affected by wind
+object isn't being affected by wind this is ideal since the object is
+this is ideal since the object is roughly in sync with the static or
+roughly in sync with the static or dynamic wind itself
+dynamic wind itself so we combine these three tiers like so
+so we combine these three tiers like so for an object that is sampling
+for an object that is sampling the static wind vector is added the
+the static wind vector is added the dynamic wind volume is sampled with
+dynamic wind volume is sampled with the object's position and the object's
+the object's position and the object's velocity is subtracted
+velocity is subtracted our 3d volume is the 32 by 16 by 32
+our 3d volume is the 32 by 16 by 32 texels
+texels which covers around one meter per second
+which covers around one meter per second oh sorry one meter cubed per texel
+oh sorry one meter cubed per texel we had a very very strict time budget
+we had a very very strict time budget for simulation and and other wind
+for simulation and and other wind processing on the gpu
+processing on the gpu so our resolution is mostly tailored to
+so our resolution is mostly tailored to fit this budget
+fit this budget we opted for a uniform 3d volume out of
+we opted for a uniform 3d volume out of simplicity instead of a complicated
+simplicity instead of a complicated hierarchical volume
+hierarchical volume our volume also needed to be large
+our volume also needed to be large enough in world space to contain the
+enough in world space to contain the player interactions
+player interactions such as throwing the axe since our game
+such as throwing the axe since our game takes place mostly on a horizontal game
+takes place mostly on a horizontal game plane
+plane we opted for more resolution
+we opted for more resolution horizontally than vertically
+horizontally than vertically but we still wanted enough vertical
+but we still wanted enough vertical resolution to encompass
+resolution to encompass trees that the player sorry
+trees that the player sorry that the player can walk past or
+that the player can walk past or interact with via throwing the axe
+interact with via throwing the axe try throwing the axe directly up the
+try throwing the axe directly up the leaves will be affected by it
+leaves will be affected by it we have five iterations of diffusion
+we have five iterations of diffusion each frame diffusion can be tightly
+each frame diffusion can be tightly packed and highly performant
+packed and highly performant so we went with five iterations there's
+so we went with five iterations there's no real reason why we pick five
+no real reason why we pick five specifically
+specifically we just felt like we got a good quality
+we just felt like we got a good quality performance ratio with it
+we have several types of motors which are used to inject velocity into the
+are used to inject velocity into the volume
+volume some motor types were specifically
+some motor types were specifically crafted for certain scenarios in the
+crafted for certain scenarios in the game
+game we have full forward and reverse
+we have full forward and reverse advection these really do complement
+advection these really do complement each other well and i highly recommend
+each other well and i highly recommend taking the time to have both
+taking the time to have both and avoid preferring one one over the
+and avoid preferring one one over the other this is one of the shortcuts i
+other this is one of the shortcuts i mentioned earlier
+mentioned earlier we also used to simulate pressure which
+we also used to simulate pressure which was eventually scrapped
+was eventually scrapped some of the fx artists didn't like the
+some of the fx artists didn't like the way particles were moving
+way particles were moving we deduced it to pressure we turned
+we deduced it to pressure we turned pressure off for the whole
+pressure off for the whole studio and nobody complained simulating
+studio and nobody complained simulating pressure is actually one of the more
+pressure is actually one of the more difficult simulations to implement
+difficult simulations to implement since it's a finite quantity and cannot
+since it's a finite quantity and cannot go negative i was more than happy to
+go negative i was more than happy to remove it
+remove it but for the sake of this presentation i
+but for the sake of this presentation i will include pressure as a demonstration
+will include pressure as a demonstration that you can add extra attributes fairly
+that you can add extra attributes fairly easily
+we have a separate 3d volume textures for each attribute
+for each attribute i might just point out velocity is
+i might just point out velocity is considered a three-dimensional attribute
+considered a three-dimensional attribute so we have separate textures for each
+so we have separate textures for each axis this actually proved to be
+axis this actually proved to be incredibly beneficial for performance
+incredibly beneficial for performance you can see we have a very slim number
+you can see we have a very slim number of attributes this was mostly enforced
+of attributes this was mostly enforced by our tight timing budget
+by our tight timing budget but we weren't also weren't really
+but we weren't also weren't really willing to dive into any of the more
+willing to dive into any of the more exotic fluid simulation attributes such
+exotic fluid simulation attributes such as heat
+as heat in order to properly execute the
+in order to properly execute the simulation we needed to double buffer
+simulation we needed to double buffer each of the textures
+each of the textures combining all the textures needed for
+combining all the textures needed for simulation we ended up with about
+simulation we ended up with about kilobytes worth of storage
+we ended up swizzling the way we access the 3d textures
+the 3d textures textures have restrictions on their
+textures have restrictions on their width and height notably they must be a
+width and height notably they must be a multiple of four
+multiple of four however 3d textures are able to have
+however 3d textures are able to have finer control on the amount of slices
+finer control on the amount of slices aka depth that they have originally we
+aka depth that they have originally we took the naive approach
+took the naive approach in hell and had world x and y slices
+in hell and had world x and y slices along the z axis
+along the z axis but we preferred having our world x and
+but we preferred having our world x and z axis be treated uniformly
+z axis be treated uniformly and we wanted to find a control of the y
+and we wanted to find a control of the y axis this meant that the texture
+axis this meant that the texture restrictions
+restrictions led to our 3d volume to actually be
+led to our 3d volume to actually be world x and z slices along the world y
+world x and z slices along the world y axis
+axis you can see this in the diagram on the
+you can see this in the diagram on the right the texture is 2d slices
+right the texture is 2d slices along worldwide of world x and z
+along worldwide of world x and z dimensions
+dimensions the shader code needed to be adjusted in
+the shader code needed to be adjusted in order to sample and write to the
+order to sample and write to the textures
+textures i've provided some demonstration code
+i've provided some demonstration code for this
+for this diffusion is the step to spread the
+diffusion is the step to spread the attributes with neighboring cells over
+attributes with neighboring cells over time
+time think of it as a blur you can also think
+think of it as a blur you can also think of it
+of it as a mechanism to bring a fluid
+as a mechanism to bring a fluid simulation to an equilibrium
+simulation to an equilibrium it's used to transfer energy between
+it's used to transfer energy between neighboring cells as they
+neighboring cells as they directly affect one another due to
+directly affect one another due to proximity
+proximity diffusion requires double buffering as
+diffusion requires double buffering as you're diffusing one iteration at a time
+you're diffusing one iteration at a time to a separate buffer
+to a separate buffer multiple diffusion steps can be simply
+multiple diffusion steps can be simply ping-pong sorry ping-pong
+ping-pong sorry ping-pong between the double buffers we found that
+between the double buffers we found that by separating our velocity attribute
+by separating our velocity attribute into three separate textures
+into three separate textures we were able to achieve incredibly
+we were able to achieve incredibly efficient performance with diffusion
+while the overall bandwidth is the same regardless if you separate the axis or
+regardless if you separate the axis or not
+not we can achieve faster iteration with
+we can achieve faster iteration with separation without the separation you
+separation without the separation you would need to wait for the first
+would need to wait for the first diffusion iteration
+diffusion iteration to completely finish before you can
+to completely finish before you can start the second instead
+start the second instead this now only occurs per axis
+our shader ends up with dealing with less bandwidth per thread caused by less
+less bandwidth per thread caused by less data per thread which means fewer vgprs
+data per thread which means fewer vgprs per thread
+per thread which means better occupancy potential
+which means better occupancy potential having fewer vgprs is also highly
+having fewer vgprs is also highly preferred for shaders that want to run
+preferred for shaders that want to run asynchronously
+you can schedule the first diffusion iteration of the x-axis
+iteration of the x-axis cube behind that is the first iteration
+cube behind that is the first iteration of the y-axis
+of the y-axis behind that the z-axis behind that the
+behind that the z-axis behind that the set of secondary duration starts
+set of secondary duration starts the second iteration of the x-axis only
+the second iteration of the x-axis only has to wait for the first iteration of
+has to wait for the first iteration of the x-axis to complete
+the x-axis to complete we're able to fully utilize the gpu and
+we're able to fully utilize the gpu and minimize any stalling between
+minimize any stalling between iterations you absorb the stalls between
+iterations you absorb the stalls between iterations by doing more work on other
+iterations by doing more work on other axes
+motors are the main source of generating wind in our volume
+wind in our volume various motor types were supplied to the
+various motor types were supplied to the designers some were tailor made for
+designers some were tailor made for certain scenarios
+certain scenarios most of the motors were applied as anal
+most of the motors were applied as anal analytical shapes
+analytical shapes the directional motor simply generates
+the directional motor simply generates wind in certain direction
+wind in certain direction at a specified strength omni behaves
+at a specified strength omni behaves radially from a central point and can be
+radially from a central point and can be outwards or inwards
+outwards or inwards vortex behaves sort of like a tornado
+vortex behaves sort of like a tornado wind is generated around an axis
+wind is generated around an axis a moving motor generates wind purely
+a moving motor generates wind purely based on its movement
+based on its movement the direction of wind generated is a
+the direction of wind generated is a cone shape in the direction of movement
+cone shape in the direction of movement and the strength is scaled from the
+and the strength is scaled from the movement speed
+movement speed the cylinder was a very custom shape
+the cylinder was a very custom shape with multiple functions
+with multiple functions the radius at both ends of the cylinder
+the radius at both ends of the cylinder were customizable the direction could be
+were customizable the direction could be either unprojected
+either unprojected that is parallel to that cylinder axis
+that is parallel to that cylinder axis or the direction was projected
+or the direction was projected and deviate from the cylinder axis based
+and deviate from the cylinder axis based on the change of radius
+on the change of radius sort of like a perspective projection
+sort of like a perspective projection matrix
+matrix pressure motor we simply inject all
+pressure motor we simply inject all withdrew directly from the pressure
+withdrew directly from the pressure attribute
+attribute it could create nice explosion effects
+it could create nice explosion effects but was unfortunately dropped with the
+but was unfortunately dropped with the whole pressure simulation
+whole pressure simulation we had some aliasing problems along the
+we had some aliasing problems along the way very similar to aliasing problems
+way very similar to aliasing problems commonly found in rasterization
+commonly found in rasterization designers were creating very small
+designers were creating very small motors with a large one meter per cube
+motors with a large one meter per cube resolution of the wind volume
+resolution of the wind volume we couldn't properly handle it we had
+we couldn't properly handle it we had very few options uh sorry we had a few
+very few options uh sorry we had a few options to help this scenario
+options to help this scenario but we ended up with keeping the very
+but we ended up with keeping the very simple aliased version for performance
+simple aliased version for performance and continuity reasons
+and continuity reasons one solution we proposed was to simply
+one solution we proposed was to simply scale the intensity of the motor
+scale the intensity of the motor the further away it was from the textile
+the further away it was from the textile center but the preferred solution which
+center but the preferred solution which we will likely adopt in the future
+we will likely adopt in the future is to estimate how much of each text
+is to estimate how much of each text texel is contained within the motor and
+texel is contained within the motor and scale the intensity based on that
+scale the intensity based on that here i've supplied some sample code of
+here i've supplied some sample code of our wind motors
+advection is the process of transferring energy based on velocity
+energy based on velocity in this case between texels you would
+in this case between texels you would divect all the attributes by the
+divect all the attributes by the velocity attribute
+velocity attribute including a vecting velocity by itself
+including a vecting velocity by itself using advection velocity pushes the
+using advection velocity pushes the energy of the attributes around your
+energy of the attributes around your simulation
+simulation and behaves like momentum we can do
+and behaves like momentum we can do similar performance tricks on advection
+similar performance tricks on advection like we did with diffusion
+like we did with diffusion we're able to run this advection through
+we're able to run this advection through separation of axis and keep register
+separation of axis and keep register pressure low
+pressure low both forward and reverse are important
+both forward and reverse are important to our simulation quality
+to our simulation quality but both forward and reverse advection
+but both forward and reverse advection require being able to read write to
+require being able to read write to multiple textiles in one day duration
+multiple textiles in one day duration and this causes contention contention
+and this causes contention contention means multiple threads are trying to
+means multiple threads are trying to access the same resource at the same
+access the same resource at the same time
+time solving this on a single threaded cpu is
+solving this on a single threaded cpu is fairly trivial
+fairly trivial solving this on a multi-threaded gpu is
+solving this on a multi-threaded gpu is difficult
+difficult in our case we have potentially multiple
+in our case we have potentially multiple threads writing to the
+threads writing to the trying to write to the same text at the
+trying to write to the same text at the same time how to resolve these rights is
+same time how to resolve these rights is case specific
+case specific but in our case we simply need to sum
+but in our case we simply need to sum the results
+the results unfortunately the hardware doesn't let
+unfortunately the hardware doesn't let us do atomic arithmetic on floating
+us do atomic arithmetic on floating point values
+point values so the first solution i came up with was
+so the first solution i came up with was to spin on a compare and exchange
+to spin on a compare and exchange instruction
+instruction while not ideal this did work and
+while not ideal this did work and performance actually surprised me a bit
+performance actually surprised me a bit it wasn't too bad
+it wasn't too bad i would consider the performance to be
+i would consider the performance to be shippable
+you can see in the example code the first attempt is guessing the current
+first attempt is guessing the current value
+value of zero adding our value and attempting
+of zero adding our value and attempting to compare an exchange to update the
+to compare an exchange to update the value in memory
+value in memory if the compare and exchange fails we can
+if the compare and exchange fails we can use the old value it gave us
+use the old value it gave us as our new current value add again and
+as our new current value add again and compare and exchange again
+compare and exchange again but by borrowing some old school
+but by borrowing some old school technique we can do better
+technique we can do better as i said in the previous slides the
+as i said in the previous slides the hardware doesn't allow atomic arithmetic
+hardware doesn't allow atomic arithmetic on floating point values
+on floating point values floating point so why not try fix point
+floating point so why not try fix point as suggested by our tech director
+as suggested by our tech director florian strauss
+florian strauss we use 16.16 pixel point for up sorry
+we use 16.16 pixel point for up sorry fixed point format
+fixed point format which gave us plenty of precision in
+which gave us plenty of precision in both the upper and lower end
+both the upper and lower end all the shader alu ops would still
+all the shader alu ops would still behave in floating point
+behave in floating point but when it came to storing and loading
+but when it came to storing and loading the values to memory we would do the
+the values to memory we would do the conversion to and from fixed point
+conversion to and from fixed point while this wouldn't decrease the
+while this wouldn't decrease the contention itself that's out of our
+contention itself that's out of our hands here
+hands here but we're able to reduce the overhead of
+but we're able to reduce the overhead of trying to store these scatter rights
+trying to store these scatter rights we saved approximately 40 microseconds
+we saved approximately 40 microseconds right off the top and notice we got
+right off the top and notice we got significant improvements
+significant improvements in cases where we expect lots of
+in cases where we expect lots of contention approximately 130
+contention approximately 130 microseconds worth
+these time savings proved to be well worth precision loss which wasn't even
+worth precision loss which wasn't even noticeable
+on store we would simply scale the floating point values by the precision
+floating point values by the precision we needed
+we needed convert to integer and then use atomic
+convert to integer and then use atomic integer add
+integer add available to us and it worked great
+available to us and it worked great the wind simulation is quite literally
+the wind simulation is quite literally the first thing that is running in our
+the first thing that is running in our gpu frame
+gpu frame it takes about one tenth of a
+it takes about one tenth of a millisecond if it's run on the main
+millisecond if it's run on the main graphics pipe
+graphics pipe but it's actually run asynchronously at
+but it's actually run asynchronously at the same time as our post space
+the same time as our post space deformers
+deformers custom render targets and some particle
+custom render targets and some particle maintenance shaders
+maintenance shaders it's run first because some of the
+it's run first because some of the results are required for our depth pass
+results are required for our depth pass which is the first main pass used to
+which is the first main pass used to draw the scene
+here you can see the timing of our wind simulation please note all times were
+simulation please note all times were taken as if they were run on the main
+taken as if they were run on the main graphics pipe
+graphics pipe that is to say all compute work that
+that is to say all compute work that normally runs on the async pipes
+normally runs on the async pipes are being run on the graphics pipe here
+are being run on the graphics pipe here in blue we have our diffusion steps
+in blue we have our diffusion steps in red and motor application in orange
+in red and motor application in orange we set up the forwarded vection pass
+we set up the forwarded vection pass which is this clearing the memory which
+which is this clearing the memory which will accumulate the forward eviction
+will accumulate the forward eviction results
+results in yellow we do the forward advection
+in yellow we do the forward advection itself
+in green we set up the reverse advection pass but instead of clearing we
+pass but instead of clearing we duplicate the current
+duplicate the current advection results so in cyan we perform
+advection results so in cyan we perform the reverse infection itself
+the reverse infection itself finally in purple we export the results
+finally in purple we export the results for easy access on the gpu and cpu
+for easy access on the gpu and cpu you can see each pass has very low
+you can see each pass has very low amount of vgpr and sgpr pressure
+amount of vgpr and sgpr pressure ideal for running asynchronously a
+ideal for running asynchronously a reminder
+reminder that the diffusion pass is 5 iterations
+that the diffusion pass is 5 iterations so the total is 43.2 micros microseconds
+so the total is 43.2 micros microseconds it averages out
+it averages out to around 8.64 microseconds per
+to around 8.64 microseconds per iteration
+iteration you can also also see the diffusion has
+you can also also see the diffusion has very good scheduling
+very good scheduling this is the separation of access working
+this is the separation of access working for you i think if we had larger volume
+for you i think if we had larger volume than our 32 by 13
+than our 32 by 13 16 by 32 size we could achieve better
+16 by 32 size we could achieve better we could better demonstrate some of the
+we could better demonstrate some of the high performance this simulation can
+high performance this simulation can achieve
+achieve we simply don't have enough data to
+we simply don't have enough data to process in order to properly max out the
+process in order to properly max out the gpu
+gpu hopefully the visual results of the game
+hopefully the visual results of the game have proven we should
+have proven we should we should consider a large timing budget
+we should consider a large timing budget next time around
+next time around in hindsight i realized i could have
+in hindsight i realized i could have very easily absorbed
+very easily absorbed both of the setup steps for advection by
+both of the setup steps for advection by using a little bit more memory for an
+using a little bit more memory for an additional buffer
+additional buffer this could have also reduced some of the
+this could have also reduced some of the synchronization steps between the steps
+synchronization steps between the steps perhaps saving around 10 microseconds
+perhaps saving around 10 microseconds just for fun i decided to double the
+just for fun i decided to double the resolution on the each axis
+resolution on the each axis giving us eight times more resolution
+giving us eight times more resolution overall
+overall and to time it to see how it pans out
+and to time it to see how it pans out as you can see from the results it
+as you can see from the results it scales quite nicely
+scales quite nicely except for the export stage the export
+except for the export stage the export stage is heavily bound by the texture
+stage is heavily bound by the texture addressor unit
+addressor unit i didn't have much time to investigate
+i didn't have much time to investigate this any further but i suspect
+this any further but i suspect it's because it's effectively reading
+it's because it's effectively reading three lots of 32-bit textures
+three lots of 32-bit textures and writing two lots of 64-bit textures
+and writing two lots of 64-bit textures it's bandwidth heavy with very little
+it's bandwidth heavy with very little alu
+alu you can async that with some alu heavy
+you can async that with some alu heavy shader work
+shader work here i've shown the timing of our full
+here i've shown the timing of our full frame you can see
+frame you can see the wind section is tiny in comparison
+the wind section is tiny in comparison with the rest of the frame
+with the rest of the frame please note this is also with all async
+please note this is also with all async compute turned off
+compute turned off i've done this so you can see how it all
+i've done this so you can see how it all fits together this is also why post
+fits together this is also why post effect shows up twice
+effect shows up twice we kicked one lot of post effects to run
+we kicked one lot of post effects to run on top of our transparent pass
+on top of our transparent pass speaking of transparence this scene had
+speaking of transparence this scene had very little which is why it's a very
+very little which is why it's a very small sliver on the timeline
+small sliver on the timeline being able to temporarily cut out the
+being able to temporarily cut out the simulation and override it with a global
+simulation and override it with a global uniform vector was very useful
+uniform vector was very useful it lets us make sure that the different
+it lets us make sure that the different systems responding to the wind
+systems responding to the wind were all visually relative to each other
+were all visually relative to each other as much as possible altering assets to
+as much as possible altering assets to portray movement at x meters per second
+portray movement at x meters per second isn't easy
+isn't easy this helped us find the assets that
+this helped us find the assets that weren't correctly set up
+weren't correctly set up this may behave sorry they may behave
+this may behave sorry they may behave too strongly or weakly to the wind
+too strongly or weakly to the wind compared to the assets around
+compared to the assets around them we could also crank up the override
+them we could also crank up the override speed
+speed and easily find assets that hadn't been
+and easily find assets that hadn't been set up to be affected by wind at all yet
+set up to be affected by wind at all yet i wrote a small particle emission system
+i wrote a small particle emission system which would cause particles to emit
+which would cause particles to emit directly in front of the camera and
+directly in front of the camera and follow the wind
+follow the wind the goal was to mimic pluck plucking
+the goal was to mimic pluck plucking some grass from the ground and dropping
+some grass from the ground and dropping it
+it watching how the wind affects it sort of
+watching how the wind affects it sort of like what sportsmen do
+like what sportsmen do however i don't think anyone ever used
+however i don't think anyone ever used it being able to lock the volume in its
+it being able to lock the volume in its current position
+current position proved useful on several occasions
+being able to visualize the 3d volume as 2d slices was by far the most important
+2d slices was by far the most important debugging feature we had available
+debugging feature we had available it lets me sanity check the simulation
+it lets me sanity check the simulation as well as give peace of mind for when
+as well as give peace of mind for when artists or designers
+artists or designers say they think something may be wrong
+say they think something may be wrong with it designers also found the
+with it designers also found the visualization useful too
+visualization useful too here you can see the green fan and the
+here you can see the green fan and the scene that's a directional motor
+scene that's a directional motor it's blowing wind in the direction it's
+it's blowing wind in the direction it's facing we also here have a joe tune
+facing we also here have a joe tune whose attacks are able to generate when
+whose attacks are able to generate when generate wind
+generate wind kratos's axe wings also generate wind as
+kratos's axe wings also generate wind as do his axe throws
+do his axe throws as for the colors of the slices mid-gray
+as for the colors of the slices mid-gray means zero wind
+means zero wind strong red means strong positive x and
+strong red means strong positive x and no red at all means negative
+no red at all means negative strong negative x so red green blue
+strong negative x so red green blue indicate the x y z
+indicate the x y z axis
+we also have a second visualization mode where we show the magnitude of the wind
+where we show the magnitude of the wind as red the more red the larger the
+as red the more red the larger the magnitude
+magnitude and black means no wind
+we also supplied two methods for sampling the volume around the camera
+sampling the volume around the camera and display the results on screen
+and display the results on screen this was mostly used by myself and sean
+this was mostly used by myself and sean feely from our tech art department
+feely from our tech art department we used it to validate sampling and
+we used it to validate sampling and other obscure situations
+other obscure situations one method would sample a wind volume
+one method would sample a wind volume around kratos at a specified interval
+around kratos at a specified interval and draw the vectors in world space
+we can also draw the magnitude of the wind as text instead of a vector
+wind as text instead of a vector although that text might be a bit hard
+although that text might be a bit hard to read on this presentation
+we can also change how many samples we take as well as the spacing between them
+the second method draws vectors in the exact location the volume cells are in
+exact location the volume cells are in this can get a little overwhelming
+this can get a little overwhelming visually but you do get used to it
+visually but you do get used to it but it's not really meant to be used by
+but it's not really meant to be used by anyone other than myself
+there are various customers to the wind simulation results
+simulation results most read the simulation results on the
+most read the simulation results on the gpu in the same frame
+gpu in the same frame things such as hair leaves fur and
+things such as hair leaves fur and particles
+particles were all able to update their simulation
+were all able to update their simulation immediately after the wind
+immediately after the wind however there are a few systems on the
+however there are a few systems on the cpu which needed the wind simulation
+cpu which needed the wind simulation results too
+results too we don't want the wind customers to have
+we don't want the wind customers to have to sample the attribute textures
+to sample the attribute textures individually that's three separate
+individually that's three separate samples
+samples so we ran a shader to combine the
+so we ran a shader to combine the velocity attributes into a unified 16
+velocity attributes into a unified 16 bit per channel
+bit per channel texture and export it as xyz magnitude
+texture and export it as xyz magnitude but we really had two exported textures
+but we really had two exported textures one for the gpu in its gpu preferred
+one for the gpu in its gpu preferred tiled and swizzled form
+tiled and swizzled form and one as double buffered linear
+and one as double buffered linear texture for cpu access
+texture for cpu access the audio and cloth simulations which
+the audio and cloth simulations which ran on the cpu
+ran on the cpu had to read from the previous frame's
+had to read from the previous frame's wind results
+wind results but this was acceptable to us there is
+but this was acceptable to us there is another gdc talk which goes into more
+another gdc talk which goes into more details on how the hair
+details on how the hair leaves and fur behaves and i highly
+leaves and fur behaves and i highly recommend you check it out
+recommend you check it out the buford scale was of great help to us
+the buford scale was of great help to us it's generally considered a scale of 0
+it's generally considered a scale of 0 to 12
+to 12 where 0 is no wind and 12 is hurricane
+where 0 is no wind and 12 is hurricane force
+force it gives very nice descriptions of what
+it gives very nice descriptions of what you would expect to see visually on land
+you would expect to see visually on land and at sea at certain speeds of wind it
+and at sea at certain speeds of wind it would range
+would range from descriptions like leaves russell
+from descriptions like leaves russell for the buford scale of 2
+for the buford scale of 2 which is about 2 meters per second or
+which is about 2 meters per second or small trees begin to sway
+small trees begin to sway for bufoot 5 which is around 9 meters
+for bufoot 5 which is around 9 meters per second
+per second if you're going to author assets for
+if you're going to author assets for wind i highly recommend you check out
+wind i highly recommend you check out the buford scale
+so in conclusion i've hoped i've convinced you of several things
+convinced you of several things firstly wind is a good tool you can you
+firstly wind is a good tool you can you can use to help bring your world alive
+can use to help bring your world alive and add a little bit more interaction
+and add a little bit more interaction between the world and the player
+between the world and the player it doesn't have to cost you much either
+it doesn't have to cost you much either we achieved a lot in a fraction of a
+we achieved a lot in a fraction of a millisecond
+millisecond you can get pretty decent quality
+you can get pretty decent quality results and also keep the simulation
+results and also keep the simulation very stable
+very stable forward and reverse advection complement
+forward and reverse advection complement each other well please use both
+each other well please use both old school techniques like fixed point
+old school techniques like fixed point will never truly go away
+will never truly go away they always have a nice little niche to
+they always have a nice little niche to fit into
+fit into finally having good debugging tools will
+finally having good debugging tools will make the whole thing go a lot smoother
+make the whole thing go a lot smoother especially being able to visual
+especially being able to visual visualize their slices
+visualize their slices we've come a long way in 15 years what
+we've come a long way in 15 years what was once done on the cpu can now be
+was once done on the cpu can now be easily done on the gpu
+easily done on the gpu we have distinct advantages available to
+we have distinct advantages available to us on the gpu
+us on the gpu it's another tool to have on your belt
+it's another tool to have on your belt so use it
+so use it please go and see sean philly's talk on
+please go and see sean philly's talk on interactive wind and vegetation
+interactive wind and vegetation his talk starts when mine leaves off if
+his talk starts when mine leaves off if you like my talk i've managed to
+you like my talk i've managed to convince you to have wind in your own
+convince you to have wind in your own game
+game or maybe you're still on the fence and
+or maybe you're still on the fence and still still need a bit more convincing
+still still need a bit more convincing you must attend this talk sean stalk
+you must attend this talk sean stalk will focus a lot on the customers of
+will focus a lot on the customers of wind which i've only very lightly
+wind which i've only very lightly covered here
+covered here things such as foliage hair fur trees
+things such as foliage hair fur trees leaves and how they interact with the
+leaves and how they interact with the wind he'll cover things
+wind he'll cover things we worked on such as leveraging compute
+we worked on such as leveraging compute workloads to update the state of
+workloads to update the state of dynamically animated objects
+dynamically animated objects and logarithmically binned flow maps and
+and logarithmically binned flow maps and go into detail on what goes on in the
+go into detail on what goes on in the verdict shader for wind objects
+verdict shader for wind objects covering topics such as dual height
+covering topics such as dual height field grass interaction
+field grass interaction you will also speak on some of the
+you will also speak on some of the miscellaneous topics such as card
+miscellaneous topics such as card clustering
+clustering and big o log n flood fill and a bunch
+and big o log n flood fill and a bunch of other topics
+of other topics thanks everyone for attending i'd just
+thanks everyone for attending i'd just like to take a few moments to thank
+like to take a few moments to thank others who helped out in various ways
+others who helped out in various ways big thank you to sean philly he did more
+big thank you to sean philly he did more work than you can possibly imagine
+work than you can possibly imagine in making wind in god of war a success
+in making wind in god of war a success florian strauss
+florian strauss dale sun and the re and the rest of the
+dale sun and the re and the rest of the rendering team jack mulholland and
+rendering team jack mulholland and andreas frederick
+andreas frederick frederickson sorry uh we're hiring
+frederickson sorry uh we're hiring in a bunch of positions uh please check
+in a bunch of positions uh please check out our website
+out our website uh we have uh job openings and a lot of
+uh we have uh job openings and a lot of departments and you can help join us on
+departments and you can help join us on our next project
+our next project we also have a bunch of other talks
+we also have a bunch of other talks we're giving from the studio
+we're giving from the studio i believe we are currently around here
+i believe we are currently around here so we've got all these left to go
+so we've got all these left to go any questions
+please come up to the microphones
+hi okay good talk all right please i'm sorry
+sorry go ahead okay uh you talk about some
+go ahead okay uh you talk about some motors there
+motors there these motors are uh you got some some
+these motors are uh you got some some firmware or you developed it uh the
+firmware or you developed it uh the motors are applied in shader code
+motors are applied in shader code and we set them up sorry the question
+and we set them up sorry the question was about motors and how to place them
+was about motors and how to place them is that correct
+is that correct yeah yeah if you if you developed these
+yeah yeah if you if you developed these motors or
+motors or you you got it from the i don't know
+you you got it from the i don't know any tool that you already have online or
+any tool that you already have online or even from the
+even from the inside inside the the engine no
+inside inside the the engine no everything was inside our own engine and
+everything was inside our own engine and was custom built by ourselves
+was custom built by ourselves so uh we would place the motors inside
+so uh we would place the motors inside of maya scenes
+of maya scenes i think we could also place them in
+i think we could also place them in script and uh basically they would be
+script and uh basically they would be applied in shader code on the gpu at
+applied in shader code on the gpu at runtime
+runtime does that answer your question okay
+does that answer your question okay excellent so thank you
+excellent so thank you go ahead um yeah the area is not too big
+go ahead um yeah the area is not too big so how did you do the fade out that you
+so how did you do the fade out that you didn't see like pops or something like
+didn't see like pops or something like that
+that okay see this in the textures uh so the
+okay see this in the textures uh so the question is on the
+question is on the the range of the wind volume yes so we
+the range of the wind volume yes so we have the wind volume which
+have the wind volume which uh surrounds the player camera it's
+uh surrounds the player camera it's actually pushed a little bit forward
+actually pushed a little bit forward so it's not directly in the center of
+so it's not directly in the center of the camera it's push forward so you can
+the camera it's push forward so you can see most of it
+see most of it but the static wind is what covers
+but the static wind is what covers outside of that volume
+outside of that volume so that's why we have the three tiered
+so that's why we have the three tiered approach the static wind is mostly for
+approach the static wind is mostly for everything that you can see as far as
+everything that you can see as far as your your frustum plane will allow
+your your frustum plane will allow and the dynamic volume is what's
+and the dynamic volume is what's surrounding the player and follows the
+surrounding the player and follows the player
+player and that's the interactable part so yeah
+and that's the interactable part so yeah cool yeah
+cool yeah i had no problems with pops or something
+i had no problems with pops or something no okay good nice thanks no problem
+no okay good nice thanks no problem all right go ahead sorry do you handle
+all right go ahead sorry do you handle interaction with the rain or static
+interaction with the rain or static objects at all so
+objects at all so slope would push the wind upwards if if
+slope would push the wind upwards if if it was
+it was blowing in that direction uh sorry
+blowing in that direction uh sorry what's the question
+what's the question um do you handle interaction with
+um do you handle interaction with terrain or static
+terrain or static objects so if there's a slope or a
+objects so if there's a slope or a boulder it would push the
+boulder it would push the wind oh okay our interactions with the
+wind oh okay our interactions with the world
+world we thought about it um but ultimately we
+we thought about it um but ultimately we didn't really have any places to justify
+didn't really have any places to justify doing that
+doing that so the wind volume is actually
+so the wind volume is actually completely unobstructed
+completely unobstructed thanks no problem go ahead uh how much
+thanks no problem go ahead uh how much did you iterate
+did you iterate on the scale of the wind volume and
+on the scale of the wind volume and where did you just how did you decide to
+where did you just how did you decide to make that cut off
+make that cut off uh so the question is about the scale of
+uh so the question is about the scale of the wind volume and how we arrived at
+the wind volume and how we arrived at that
+that um that's a good question i guess it was
+um that's a good question i guess it was mostly tailored to
+mostly tailored to to make sure that how far the axe can be
+to make sure that how far the axe can be thrown by kratos
+thrown by kratos would be the limit because it's actually
+would be the limit because it's actually quite far and uh so that's also why we
+quite far and uh so that's also why we push the camera forward
+push the camera forward because the the axe throws is usually
+because the the axe throws is usually forward you know you can't really throw
+forward you know you can't really throw it behind you
+it behind you so the bound of the volume itself is
+so the bound of the volume itself is mostly defined by that
+mostly defined by that but also again the timing restrictions
+but also again the timing restrictions we had in the game so
+we had in the game so yeah go ahead hi great talk uh thank you
+yeah go ahead hi great talk uh thank you how did you send the motor information
+how did you send the motor information into the shaders was it via textures or
+into the shaders was it via textures or oh good question uh it was applied as a
+oh good question uh it was applied as a as um constance sorry
+as um constance sorry yes not textures not buffers it's in the
+yes not textures not buffers it's in the shade of constants
+shade of constants thanks
+hi sorry so related to that question um so where the motors
+so where the motors some motors like the the fan was that
+some motors like the the fan was that placed in the level by designers
+placed in the level by designers yes it was and how how so then if you
+yes it was and how how so then if you had like
+had like a lot of these in a level how would you
+a lot of these in a level how would you like only consider the relevant ones
+like only consider the relevant ones uh the actual volume that's a good
+uh the actual volume that's a good question so we basically just
+question so we basically just uh tested all of um all the motors on
+uh tested all of um all the motors on the cpu
+the cpu and we filled up the buffers that we had
+and we filled up the buffers that we had in the shader sorry i said buffers to
+in the shader sorry i said buffers to him but it's
+him but it's an array what i meant was an array so
+an array what i meant was an array so we would effectively pre-filter the
+we would effectively pre-filter the closest motors
+closest motors on the cpu then set them in the array on
+on the cpu then set them in the array on the shader
+the shader constants and then that's how the gpu
+constants and then that's how the gpu would find them
+would find them that makes sense thank you no problem
+that makes sense thank you no problem any final questions
+all right thank you everyone

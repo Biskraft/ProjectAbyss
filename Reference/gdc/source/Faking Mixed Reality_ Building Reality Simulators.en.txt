@@ -1,0 +1,932 @@
+[Music] my name is john austin uh i'm a lead
+my name is john austin uh i'm a lead engineer at phenomena um so we built a
+engineer at phenomena um so we built a lot of ar and vr projects among others
+lot of ar and vr projects among others also watoms coming out soon
+also watoms coming out soon in the past uh i worked at google so on
+in the past uh i worked at google so on the google lens project so our team was
+the google lens project so our team was responsible for largely taking these big
+responsible for largely taking these big computer vision models and crunching
+computer vision models and crunching them down and fitting them onto
+them down and fitting them onto smartphones so that's kind of how i got
+smartphones so that's kind of how i got into ar and vr stuff because a lot of
+into ar and vr stuff because a lot of the computer vision algorithms are very
+the computer vision algorithms are very similar um
+similar um on the side i work for a game
+on the side i work for a game development collective called a stranger
+development collective called a stranger graffiti
+graffiti and so we do a little bit of consulting
+and so we do a little bit of consulting work and some personal project work as
+work and some personal project work as well um so
+well um so um for phenomena we released uh luna
+um for phenomena we released uh luna mundus garden rather recently and this
+mundus garden rather recently and this was a magic leap project
+was a magic leap project it was a reinterpretation of our virtual
+it was a reinterpretation of our virtual reality game luna
+reality game luna for the magic leap
+for the magic leap and just in case you're not familiar
+and just in case you're not familiar with it
+with it here's a quick little teaser trailer we
+here's a quick little teaser trailer we released just so you have a sense of
+released just so you have a sense of what it looks like
+[Music]
+so
+[Music] so it's sort of a storybook adventure
+so it's sort of a storybook adventure about helping fox find his garden um and
+about helping fox find his garden um and it's uh yes um
+it's uh yes um but
+but so we
+so we at phenomenal we work on a lot of
+at phenomenal we work on a lot of experimental platforms
+experimental platforms and this was kind of not unlike any
+and this was kind of not unlike any others
+others and one of the biggest problems we face
+and one of the biggest problems we face with these platforms uh is iteration
+with these platforms uh is iteration time
+so here we go so iteration time so on
+here we go so iteration time so on experimental platforms one of the big
+experimental platforms one of the big problems is that they're generally a
+problems is that they're generally a separate piece of hardware so you might
+separate piece of hardware so you might have like the quest or the magic leap
+have like the quest or the magic leap and it's a separate device so
+and it's a separate device so if you want to build and design a game
+if you want to build and design a game to that device you really have to play
+to that device you really have to play it on the device
+it on the device you can't really use a mouse and
+you can't really use a mouse and keyboard to try out something that needs
+keyboard to try out something that needs controllers or you know augmented
+controllers or you know augmented reality
+reality and so because of that because phenomena
+and so because of that because phenomena practices a very iterative style of
+practices a very iterative style of design
+design iteration time becomes one of our
+iteration time becomes one of our biggest workflow bottlenecks
+biggest workflow bottlenecks and so for the magic leap project we
+and so for the magic leap project we designed a simulator for the magic leap
+designed a simulator for the magic leap in virtual reality to solve this issue
+in virtual reality to solve this issue so we sort of reconstructed the
+so we sort of reconstructed the experience of playing the magic leap
+experience of playing the magic leap on the rift
+on the rift so this clip here is all being rendered
+so this clip here is all being rendered in virtual reality um the background and
+in virtual reality um the background and all of the compositing is all happening
+all of the compositing is all happening on the rift um
+on the rift um and so this is a big benefit for us
+and so this is a big benefit for us because it not only did it cut down the
+because it not only did it cut down the iteration time from minutes that it
+iteration time from minutes that it might take to deploy all the way to the
+might take to deploy all the way to the magic leap to just playing it in editor
+magic leap to just playing it in editor and unity um
+and unity um but it also allowed us a lot more
+but it also allowed us a lot more freedom and flexibility about how we
+freedom and flexibility about how we worked because we didn't necessarily
+worked because we didn't necessarily need to have a headset for everyone or
+need to have a headset for everyone or it allowed us to like
+it allowed us to like work from home for instance uh so it was
+work from home for instance uh so it was a benefit in a number of different ways
+a benefit in a number of different ways and so what i wanted to talk about today
+and so what i wanted to talk about today a little bit was how we technically
+a little bit was how we technically implemented this simulator and some of
+implemented this simulator and some of the design decisions we went
+the design decisions we went through along the way
+through along the way and hopefully you should have a good
+and hopefully you should have a good idea of how you can make a simulator uh
+idea of how you can make a simulator uh and also how you can design it for your
+and also how you can design it for your custom platform whether it's the magic
+custom platform whether it's the magic leap or something else
+leap or something else um
+um so i kind of want to start off and think
+so i kind of want to start off and think a little bit about what makes a good
+a little bit about what makes a good simulator um
+simulator um so in my opinion the most important
+so in my opinion the most important thing a simulator can do especially as
+thing a simulator can do especially as an engineer is give you like confidence
+an engineer is give you like confidence in the changes you're making um
+in the changes you're making um what you really want is to be able to
+what you really want is to be able to work in the simulator and it's not it's
+work in the simulator and it's not it's never going to be perfect it's not going
+never going to be perfect it's not going to be a one-to-one
+to be a one-to-one match but you want to have the
+match but you want to have the confidence that when you make a change
+confidence that when you make a change that the change is going to reflect
+that the change is going to reflect itself in the way you expect on the
+itself in the way you expect on the target platform
+target platform um
+um and so that's what i think a really good
+and so that's what i think a really good sign that you should do and that means
+sign that you should do and that means we want to match like the visuals
+we want to match like the visuals because for artists and designers we
+because for artists and designers we want them to put in their art assets and
+want them to put in their art assets and know that it's going to be fairly
+know that it's going to be fairly representative of what's the final look
+representative of what's the final look is going to look like
+is going to look like we also want to match input for our
+we also want to match input for our gameplay designers and the engineers so
+gameplay designers and the engineers so that when they're designing interactions
+that when they're designing interactions and making them feel really juicy and
+and making them feel really juicy and they go take them onto the device it
+they go take them onto the device it still feels the same
+still feels the same and then lastly and maybe
+and then lastly and maybe counter-intuitively we actually want our
+counter-intuitively we actually want our simulator to incorporate bugs and quirks
+simulator to incorporate bugs and quirks of the target platform um
+of the target platform um you really want it to match as closely
+you really want it to match as closely as possible so in a good example of this
+as possible so in a good example of this um is on the magic leap sometimes the
+um is on the magic leap sometimes the controller doesn't connect for the first
+controller doesn't connect for the first frame or two um and so
+frame or two um and so well this was a big issue because a lot
+well this was a big issue because a lot of our gameplay engineers would set up a
+of our gameplay engineers would set up a little bit of gameplay and assume that
+little bit of gameplay and assume that they had input on frame one right at the
+they had input on frame one right at the beginning
+beginning and so it worked fine the simulator and
+and so it worked fine the simulator and then a week later we'd drop it on the
+then a week later we'd drop it on the device and everything would break and
+device and everything would break and we'd spend hours trying to use the
+we'd spend hours trying to use the platform specific tools to track down
+platform specific tools to track down the bug
+the bug and we ended up actually incorporating
+and we ended up actually incorporating this this quirk back into our simulator
+this this quirk back into our simulator and just had the simulator delay the
+and just had the simulator delay the input a little bit um when it started up
+input a little bit um when it started up um and this allowed us to move the sort
+um and this allowed us to move the sort of bug workload um from the end of the
+of bug workload um from the end of the line up front to the engine that's
+line up front to the engine that's actually implementing it and so this is
+actually implementing it and so this is a huge workflow issue for us and it
+a huge workflow issue for us and it really helps
+really helps give you that confidence that i'm
+give you that confidence that i'm talking about
+talking about um
+um so before we get into too many of the
+so before we get into too many of the technical details um
+technical details um i kind of want to give a brief overview
+i kind of want to give a brief overview of how the magic leap works because i'm
+of how the magic leap works because i'm not assuming that everyone necessarily
+not assuming that everyone necessarily knows
+knows kind of the pipeline
+kind of the pipeline and we need to kind of know what we want
+and we need to kind of know what we want to simulate when we're building our
+to simulate when we're building our simulator
+simulator so
+so at a base layer
+at a base layer when you put on the magic leap you see
+when you put on the magic leap you see the real world um which
+the real world um which is really you know that's the the thing
+is really you know that's the the thing that augmented reality is trying to do
+that augmented reality is trying to do it gives you the real world and your
+it gives you the real world and your virtual world so we need some way to
+virtual world so we need some way to simulate the real world because
+simulate the real world because there have been simulators for
+there have been simulators for augmentative reality that have been
+augmentative reality that have been built before and a lot of them use sort
+built before and a lot of them use sort of stand-in geometry ikea furniture
+of stand-in geometry ikea furniture models and it just doesn't feel like the
+models and it just doesn't feel like the experience of putting things in your
+experience of putting things in your world and so it's it's important if
+world and so it's it's important if we're going to be designing in this
+we're going to be designing in this simulator to actually recreate something
+simulator to actually recreate something that's going to to match the actual
+that's going to to match the actual experience of playing um
+experience of playing um so that's sort of the real world layer
+so that's sort of the real world layer when you want to simulate that
+when you want to simulate that um
+um we also there's so on the magic leap
+we also there's so on the magic leap there's a system of scanning the world
+there's a system of scanning the world so
+so all these augmented reality platforms um
+all these augmented reality platforms um kind of create a mesh of the world as
+kind of create a mesh of the world as you're looking around so it's constantly
+you're looking around so it's constantly building a geometry
+building a geometry and this is really crucial for a couple
+and this is really crucial for a couple of reasons because it provides the
+of reasons because it provides the ability to occlude objects so
+ability to occlude objects so unless you have this mesh um it doesn't
+unless you have this mesh um it doesn't know what um
+know what um where the table is and how to like block
+where the table is and how to like block um the rendering from
+um the rendering from from the table for instance um so we
+from the table for instance um so we want to find some way to simulate this
+want to find some way to simulate this in our simulator
+in our simulator and i'll simulate some of the quirks of
+and i'll simulate some of the quirks of it too because if we make a perfect scan
+it too because if we make a perfect scan mesh that's not really going to
+mesh that's not really going to be great
+be great uh
+uh and then the last thing we want to
+and then the last thing we want to simulate is just the virtual world so
+simulate is just the virtual world so this is just your normal gameplay
+this is just your normal gameplay kind of flow and rendering but with a
+kind of flow and rendering but with a couple of considerations to make it feel
+couple of considerations to make it feel a little bit more like the magic leap
+a little bit more like the magic leap because it's a fairly unique device in
+because it's a fairly unique device in the way that it renders to your eyes
+the way that it renders to your eyes um
+um so that's the kind of broad overview of
+so that's the kind of broad overview of kind of where we'll be going um so let's
+kind of where we'll be going um so let's start with the real world um
+start with the real world um so naturally when we talk about wanting
+so naturally when we talk about wanting to simulate the real world you probably
+to simulate the real world you probably think of photogrammetry um and so that's
+think of photogrammetry um and so that's that's what i ended up doing
+that's what i ended up doing but you know i wasn't about to go buy a
+but you know i wasn't about to go buy a professional photogrammetry rig i don't
+professional photogrammetry rig i don't have a dslr camera uh so i kind of came
+have a dslr camera uh so i kind of came up with a workflow that
+up with a workflow that it's kind of unique but i think it's
+it's kind of unique but i think it's pretty interesting to talk about um
+pretty interesting to talk about um so i ended up just using my phone um
+so i ended up just using my phone um which is my smartphone my pixel 2 to
+which is my smartphone my pixel 2 to take all the images i needed for this
+take all the images i needed for this scan uh
+scan uh um and so
+um and so essentially what i did was uh rather
+essentially what i did was uh rather than so normally when you're doing
+than so normally when you're doing photogrammetry you want a couple of
+photogrammetry you want a couple of really nice high resolution images um
+really nice high resolution images um but you know my phone's not going to
+but you know my phone's not going to give me that really so instead of
+give me that really so instead of quality i opted for quantity so i took
+quality i opted for quantity so i took this basically this long video of our
+this basically this long video of our office
+office uh
+uh just sort of panning slowly around
+just sort of panning slowly around and then i brought that into vlc and
+and then i brought that into vlc and chopped it down to one frame a second or
+chopped it down to one frame a second or so
+so and the nice thing about that is
+and the nice thing about that is it results in
+it results in a very evenly distributed
+a very evenly distributed set of images around the room so what
+set of images around the room so what you really want in photogrametry is is a
+you really want in photogrametry is is a nice uniform distribution so you can get
+nice uniform distribution so you can get a lot of different angles
+a lot of different angles i try i actually tried this manually at
+i try i actually tried this manually at first by just kind of walking around and
+first by just kind of walking around and taking singular images but while that
+taking singular images but while that kind of works if you're
+kind of works if you're taking a scan of something that you can
+taking a scan of something that you can that's like central and you can walk
+that's like central and you can walk around and be very careful about when
+around and be very careful about when you're taking a scan of an office you
+you're taking a scan of an office you really need to get into every nook and
+really need to get into every nook and cranny and so it's a lot harder to
+cranny and so it's a lot harder to figure out
+figure out how to where to take the images from and
+how to where to take the images from and so this technique actually worked really
+so this technique actually worked really well because i could just sort of
+well because i could just sort of quickly wipe my phone around
+quickly wipe my phone around and get a bunch of great images
+and get a bunch of great images at the end i actually had 2500 images
+at the end i actually had 2500 images from this process
+from this process which sounds like a lot
+which sounds like a lot but luckily
+but luckily the tool i chose to use for the
+the tool i chose to use for the photogrammetry was reality capture and
+photogrammetry was reality capture and reality capture is a little bit
+reality capture is a little bit different than maybe a more standard
+different than maybe a more standard photogrammetry tool so agisoft is
+photogrammetry tool so agisoft is probably i think the front runner for
+probably i think the front runner for photogrammetry
+photogrammetry but reality capture runs on the gpu so
+but reality capture runs on the gpu so it can handle
+it can handle just an order of magnitude more photos
+just an order of magnitude more photos and so
+and so this paired really nicely with my uh
+this paired really nicely with my uh quantity over quality technique uh
+quantity over quality technique uh because i could just pump in 2500 images
+because i could just pump in 2500 images and they would churn through it on the
+and they would churn through it on the gpu
+gpu and after a couple of hours of tweaking
+and after a couple of hours of tweaking the constraints and
+the constraints and you know munching with the settings
+you know munching with the settings i got to something that was
+i got to something that was looked like this
+looked like this which
+which rough um
+rough um so
+so uh i kind of fell into the trap well
+uh i kind of fell into the trap well okay the the phone technique was maybe a
+okay the the phone technique was maybe a little questionable but i also fell into
+little questionable but i also fell into the trap of um kind of blank walls and
+the trap of um kind of blank walls and disks so
+disks so uh the way that photogrammetry works
+uh the way that photogrammetry works right is that it's looking at these
+right is that it's looking at these images and it's finding feature points
+images and it's finding feature points on each of the images they're areas of
+on each of the images they're areas of high detail that it can then correlate
+high detail that it can then correlate with other images and then you can use
+with other images and then you can use trigonometry to kind of position those
+trigonometry to kind of position those points in 3d space um but on a big white
+points in 3d space um but on a big white wall you don't have any points for it to
+wall you don't have any points for it to find it can't it can't find any detail
+find it can't it can't find any detail points for it to use and so these are
+points for it to use and so these are actually really hard situations for
+actually really hard situations for photogrammetry really you want to use a
+photogrammetry really you want to use a depth sensor at this point but
+depth sensor at this point but i didn't have that
+i didn't have that my mesh really looked like a mess
+my mesh really looked like a mess but luckily i stumbled upon this
+but luckily i stumbled upon this technique
+technique from a guy on youtube who's a
+from a guy on youtube who's a photogrammetry person around in san
+photogrammetry person around in san francisco
+francisco which is
+which is it sounds crazy but you take your mesh
+it sounds crazy but you take your mesh back into oculus medium which happens to
+back into oculus medium which happens to be the perfect tool for this job and
+be the perfect tool for this job and i basically spent a couple of hours uh
+i basically spent a couple of hours uh you know reconstructing and patching up
+you know reconstructing and patching up my mesh i sort of you know built out
+my mesh i sort of you know built out some computer monitors and i filled in
+some computer monitors and i filled in the desks and tables um
+the desks and tables um and at the end you kind of get like this
+and at the end you kind of get like this sort of
+sort of you know it kind of looks like you went
+you know it kind of looks like you went to the dentist maybe i kind of filled in
+to the dentist maybe i kind of filled in the cavities um
+the cavities um uh but the nice thing is you can then
+uh but the nice thing is you can then send this back into reality capture and
+send this back into reality capture and it will happily reproject the textures
+it will happily reproject the textures onto it so after i've kind of done all
+onto it so after i've kind of done all these sort of fill-in steps
+these sort of fill-in steps um
+um we get something that looks like this
+we get something that looks like this which is this so this is the final mesh
+which is this so this is the final mesh coming out of reality capture
+coming out of reality capture and it's it's interesting to note
+and it's it's interesting to note because um you know we weren't really
+because um you know we weren't really going for a perfect scan we wanted
+going for a perfect scan we wanted something that was close enough to
+something that was close enough to reality that's going to give us a good
+reality that's going to give us a good simulation but you know we weren't going
+simulation but you know we weren't going to use this as like a production asset
+to use this as like a production asset but i think it's interesting to note
+but i think it's interesting to note that even though the geometry is not
+that even though the geometry is not perfect for this scan um it still feels
+perfect for this scan um it still feels pretty real because it's really the
+pretty real because it's really the textural aspects that make it feel real
+textural aspects that make it feel real you need the depth to kind of give you
+you need the depth to kind of give you the the groundedness um
+the the groundedness um but it's really the texture of being
+but it's really the texture of being able to read the writing on the walls
+able to read the writing on the walls that that makes it kind of just feel
+that that makes it kind of just feel like an actual office
+like an actual office um
+um and here's a shot of the
+and here's a shot of the the full thing kind of in in unity i
+the full thing kind of in in unity i sent it through a couple of poly
+sent it through a couple of poly reduction steps just to kind of clean it
+reduction steps just to kind of clean it up and get it something that could be
+up and get it something that could be rendered
+rendered um
+um yeah and all the textures came out as 8k
+yeah and all the textures came out as 8k which is high but you know it's not
+which is high but you know it's not production again and it renders on the
+production again and it renders on the rift fine so it wasn't a problem
+so uh we've kind of got our real world set up which is good enough for us um
+set up which is good enough for us um uh the next step is okay well we have
+uh the next step is okay well we have the real world but that's not really
+the real world but that's not really magic leap yet um next step is the
+magic leap yet um next step is the scanned room so
+scanned room so as it's looking around it's making this
+as it's looking around it's making this mesh like i was mentioning
+mesh like i was mentioning um and luckily we already have a mesh
+um and luckily we already have a mesh that we just made
+that we just made so this step is a little bit easier so
+so this step is a little bit easier so the only key consideration is the the
+the only key consideration is the the mesh that's being generated is not
+mesh that's being generated is not perfectly one to one with the real world
+perfectly one to one with the real world right um when you're using augmented
+right um when you're using augmented reality platforms
+reality platforms it's pretty accurate but you know
+it's pretty accurate but you know there's always some holes or some you
+there's always some holes or some you know geometry weirdness especially
+know geometry weirdness especially around the corners of objects and we
+around the corners of objects and we want to simulate that because if we just
+want to simulate that because if we just give you a perfect scan you're going to
+give you a perfect scan you're going to be building your game assuming you have
+be building your game assuming you have a perfect scan and then when you go into
+a perfect scan and then when you go into the real device and realize it's not a
+the real device and realize it's not a perfect scan uh that's gonna be a
+perfect scan uh that's gonna be a problem
+problem uh
+uh so basically what i did was i took our
+so basically what i did was i took our the full mesh here which you can see um
+the full mesh here which you can see um and then applied another
+and then applied another further poly reduction and added a
+further poly reduction and added a little bit of noise on top of it um and
+little bit of noise on top of it um and that ends up with something looks like
+that ends up with something looks like this which in my opinion having seen
+this which in my opinion having seen some of these scans that come out of
+some of these scans that come out of these devices is actually fairly
+these devices is actually fairly accurate um you can actually see sort of
+accurate um you can actually see sort of if you trace along the edge of the the
+if you trace along the edge of the the desk there
+desk there it doesn't quite line up with with it
+it doesn't quite line up with with it and that's what we want um you can see
+and that's what we want um you can see i've overlaid it here just a little bit
+i've overlaid it here just a little bit more opaquely so you can see how it sort
+more opaquely so you can see how it sort of penetrates and
+of penetrates and kind of
+kind of almost like has a spiderweb effect that
+almost like has a spiderweb effect that you can sometimes see with scanning
+you can sometimes see with scanning behavior
+behavior so this actually worked really well and
+so this actually worked really well and was pretty simple um
+was pretty simple um but the last thing for the scan mesh
+but the last thing for the scan mesh that is really important for gameplay
+that is really important for gameplay reasons
+reasons is that the the mesh doesn't actually
+is that the the mesh doesn't actually come in all at once so this is a common
+come in all at once so this is a common assumption by people who start working
+assumption by people who start working on
+inaudible objects in the world and it like just falls through the floor um
+like just falls through the floor um so
+so what actually happens is the mesh comes
+what actually happens is the mesh comes in and chunks so as you're looking
+in and chunks so as you're looking around it'll load in a chunk and then
+around it'll load in a chunk and then you sort of look over here and then
+you sort of look over here and then it'll pop in and it'll sort of keep
+it'll pop in and it'll sort of keep updating them over time and we really
+updating them over time and we really want to simulate this behavior because
+want to simulate this behavior because if you don't you start designing lots of
+if you don't you start designing lots of physics things that don't have backups
+physics things that don't have backups and back doors and things like that
+and back doors and things like that because you need to handle these cases
+because you need to handle these cases when
+when for instance in the in luna mundus
+for instance in the in luna mundus garden when any of the seeds fall
+garden when any of the seeds fall through the floor we have a customs like
+through the floor we have a customs like animation that pops them back up and
+animation that pops them back up and like make sure that they're
+like make sure that they're in a good place
+in a good place um
+um so in order to simulate this in our
+so in order to simulate this in our simulator
+simulator um i basically threw this through uh
+um i basically threw this through uh like a fracturing uh operation so i i
+like a fracturing uh operation so i i use houdini because it's i'm an engineer
+use houdini because it's i'm an engineer and so that's the natural for me it's a
+and so that's the natural for me it's a natural artist tool but there's a
+natural artist tool but there's a there's a foreign node and i just threw
+there's a foreign node and i just threw it through that
+it through that um
+um and it was pretty effective so this is
+and it was pretty effective so this is not exactly the way that it chunks in
+not exactly the way that it chunks in magic leap but it was enough for our
+magic leap but it was enough for our gameplay to to match up with the magic
+gameplay to to match up with the magic leap
+leap um and when we load this into the editor
+um and when we load this into the editor um we basically sort of stream these
+um we basically sort of stream these chunks in one at a time with a couple of
+chunks in one at a time with a couple of heuristics about uh where you're looking
+heuristics about uh where you're looking and which ones might pop in um so you
+and which ones might pop in um so you kind of get this nice chunky behavior
+kind of get this nice chunky behavior which is pretty close to the way the
+which is pretty close to the way the magic leap would work
+so now we have our scan mesh we've got our
+now we have our scan mesh we've got our real world um
+real world um the last thing we do is you need to
+the last thing we do is you need to figure out how to composite all of this
+figure out how to composite all of this stuff all of the game on top of it and
+stuff all of the game on top of it and make sure that looks accurate um
+make sure that looks accurate um so the biggest trick with sort of the
+so the biggest trick with sort of the the rendering of the magic leap um
+the rendering of the magic leap um is that the magic label actually renders
+is that the magic label actually renders in an additive manner so
+in an additive manner so uh it's not like a screen it's more like
+uh it's not like a screen it's more like a series of projectors that use mirrors
+a series of projectors that use mirrors and lenses beam light into your eyes
+and lenses beam light into your eyes but uh so we want to simulate this in
+but uh so we want to simulate this in our simulator
+our simulator uh
+uh and it's important for our artists
+and it's important for our artists because if the the way that additive uh
+because if the the way that additive uh rendering looks is going to be very
+rendering looks is going to be very different than a normal virtual world
+different than a normal virtual world if you have a little bit of darkness or
+if you have a little bit of darkness or shadows it's going to be almost
+shadows it's going to be almost transparent in the magic leap and so we
+transparent in the magic leap and so we want to make sure that the simulator is
+want to make sure that the simulator is useful for artists to do art tests and
+useful for artists to do art tests and things like that
+things like that so basically we split our rendering into
+so basically we split our rendering into two layers so we render the game in one
+two layers so we render the game in one layer and then we render our 3d scan in
+layer and then we render our 3d scan in a different layer and then composite
+a different layer and then composite them on top of each other
+them on top of each other which also gives us a nice spot to add
+which also gives us a nice spot to add some post-processing for things like the
+some post-processing for things like the field of view um so one thing to note on
+field of view um so one thing to note on the magic leap is that the field of view
+the magic leap is that the field of view is fairly small um
+is fairly small um and because of that you need to make
+and because of that you need to make sure your game play is all within those
+sure your game play is all within those sort of boundaries if you start putting
+sort of boundaries if you start putting your game play all out here it's going
+your game play all out here it's going to feel very different than when you
+to feel very different than when you then drop it on the device and it's all
+then drop it on the device and it's all in this kind of box um
+in this kind of box um so we actually simulate the magic leaps
+so we actually simulate the magic leaps field of view on in our simulator so you
+field of view on in our simulator so you in vr you kind of see this square you're
+in vr you kind of see this square you're looking through
+looking through which is i think pretty accurate
+which is i think pretty accurate uh and then
+uh and then sort of the last kind of consideration
+sort of the last kind of consideration and the side benefit of splitting it off
+and the side benefit of splitting it off into layers uh is that one of the
+into layers uh is that one of the sort of the subtle quirks about the
+sort of the subtle quirks about the magic leap is that
+magic leap is that the real world can't really interact
+the real world can't really interact with the virtual world so the whole
+with the virtual world so the whole purpose of having this sort of scan mesh
+purpose of having this sort of scan mesh layer
+layer is that that's the layer that the
+is that that's the layer that the virtual world interacts with and
+virtual world interacts with and understands
+understands but you know if you
+but you know if you disable the scan mesh and you take your
+disable the scan mesh and you take your magic leap and you look straight at a
+magic leap and you look straight at a blank wall
+blank wall and then you render a sphere five feet
+and then you render a sphere five feet into the wall the magic leap will
+into the wall the magic leap will happily render that sphere and give you
+happily render that sphere and give you like a fantastic headache um because
+like a fantastic headache um because your eyes think there's a wall but
+your eyes think there's a wall but there's also the sphere rendering there
+there's also the sphere rendering there and it's it's very disorienting um
+and it's it's very disorienting um so this is sort of a property of the way
+so this is sort of a property of the way that this device works because it's it's
+that this device works because it's it's basically just rendering something on
+basically just rendering something on top of the world as it exists
+top of the world as it exists um
+um but we want to we kind of want to
+but we want to we kind of want to recreate this because like i was
+recreate this because like i was mentioning earlier when the scan mesh
+mentioning earlier when the scan mesh has holes in it you can kind of have
+has holes in it you can kind of have some of these artifacts where objects
+some of these artifacts where objects like
+like that are virtually under the table will
+that are virtually under the table will actually sort of show through the table
+actually sort of show through the table if there's not scanned mesh there to
+if there's not scanned mesh there to block it
+block it so the nice thing about doing this
+so the nice thing about doing this compositing layer is it's we just ignore
+compositing layer is it's we just ignore depth and so we get these behaviors as
+depth and so we get these behaviors as well which is really good
+well which is really good uh and then just to sort of show how it
+uh and then just to sort of show how it looks overall um
+looks overall um this is sort of the same clip as earlier
+this is sort of the same clip as earlier and we can see how it kind of comes
+and we can see how it kind of comes together so we have the scan mesh as a
+together so we have the scan mesh as a base layer um
+base layer um and you can see how the the additive
+and you can see how the the additive compositing and sort of the field of
+compositing and sort of the field of view ends up looking
+view ends up looking and if you look closely you can see some
+and if you look closely you can see some of the grass there as it conforms to the
+of the grass there as it conforms to the scanned mesh
+scanned mesh but overall this was a huge benefit for
+but overall this was a huge benefit for us
+us it really worked out well
+it really worked out well i think so the things i wanted to talk
+i think so the things i wanted to talk about as well was
+about as well was kind of the input layer so
+kind of the input layer so that's kind of to talk about the
+that's kind of to talk about the rendering but
+rendering but we also want to make sure that the the
+we also want to make sure that the the input is simulated
+input is simulated so that when our gameplay designers are
+so that when our gameplay designers are are playing they can make juicy things
+are playing they can make juicy things that feel good on the device
+that feel good on the device and kind of over the course of
+and kind of over the course of development of the magic leap it went
+development of the magic leap it went through a couple of phases of input so
+through a couple of phases of input so early on it actually only had three
+early on it actually only had three degrees of freedom so it was more like a
+degrees of freedom so it was more like a laser pointer than a fully tracked
+laser pointer than a fully tracked controller
+controller and it was important to us that even
+and it was important to us that even though we were running this simulator on
+though we were running this simulator on the rift that you
+the rift that you only have that
+only have that level of fidelity so that when you're
+level of fidelity so that when you're designing interactions you keep in mind
+designing interactions you keep in mind that you really only have three degrees
+that you really only have three degrees of freedom
+of freedom so by having a simulator it allowed us
+so by having a simulator it allowed us to sort of like pick and choose
+to sort of like pick and choose and kind of closely match the the
+and kind of closely match the the properties of the magic leap um as it
+properties of the magic leap um as it sort of evolved and when they develop
+sort of evolved and when they develop six degrees of freedom we just enabled
+six degrees of freedom we just enabled that on the rift um
+that on the rift um we also did a little bit of things to
+we also did a little bit of things to add a little bit of noise especially
+add a little bit of noise especially early on there was more noise in the in
+early on there was more noise in the in the tracking and it meant that you
+the tracking and it meant that you couldn't do very precise interactions um
+couldn't do very precise interactions um and so we really wanted to actually the
+and so we really wanted to actually the noise is really important because uh
+noise is really important because uh otherwise you design these really
+otherwise you design these really precise vr sort of interactions and you
+precise vr sort of interactions and you take it to the leap and then it just
+take it to the leap and then it just doesn't really work because of the noise
+doesn't really work because of the noise and they've improved a lot of the input
+and they've improved a lot of the input now but it really helped us um in the
+now but it really helped us um in the development process to make sure we
+development process to make sure we weren't getting ahead of ourselves
+weren't getting ahead of ourselves um
+um uh then the last thing i kind of want to
+uh then the last thing i kind of want to talk about on the technical side uh is
+talk about on the technical side uh is just sort of like the way we structure
+just sort of like the way we structure our api um and
+our api um and i think this is an important point
+i think this is an important point because it helps kind of reign in the
+because it helps kind of reign in the scope of what we were trying to work on
+scope of what we were trying to work on um
+um we didn't try to make like a general
+we didn't try to make like a general simulator framework like we weren't
+simulator framework like we weren't we didn't try to design it that way we
+we didn't try to design it that way we basically took the magic leap api and we
+basically took the magic leap api and we one to one
+one to one built an abstraction layer over top of
+built an abstraction layer over top of it and that meant that as the magic leap
+it and that meant that as the magic leap api churned and moved
+api churned and moved it was very obvious to us what functions
+it was very obvious to us what functions needed to change so we just needed to go
+needed to change so we just needed to go implement their new mapping framework as
+implement their new mapping framework as opposed to have to recalibrate our own
+opposed to have to recalibrate our own design framework and make sure it fits
+design framework and make sure it fits into our simulator um
+into our simulator um so it really made the maintenance work
+so it really made the maintenance work of keeping up with an experimental
+of keeping up with an experimental platform much much better
+platform much much better um
+um [Music]
+[Music] so
+so uh
+uh kind of at the end um this is was a
+kind of at the end um this is was a extremely useful tool for us um we had a
+extremely useful tool for us um we had a very short timeline on this project it
+very short timeline on this project it was like six to eight months with a
+was like six to eight months with a fairly small team um and on experimental
+fairly small team um and on experimental hardware that's pretty crazy um
+hardware that's pretty crazy um we wanted to use a lot reuse a lot of
+we wanted to use a lot reuse a lot of the assets from luna but we actually
+the assets from luna but we actually ended up making them from scratch anyway
+ended up making them from scratch anyway just for a variety of other reasons so
+just for a variety of other reasons so being able to ship this in six to eight
+being able to ship this in six to eight months with just like uh was pretty
+months with just like uh was pretty incredible
+incredible uh a big point i think i'd like to make
+uh a big point i think i'd like to make also is that having a simulator lets you
+also is that having a simulator lets you insulate yourselves from an experimental
+insulate yourselves from an experimental platform so
+platform so uh one of the tricks of dealing with an
+uh one of the tricks of dealing with an experimental platform is that it's
+experimental platform is that it's moving really fast
+moving really fast and that means that if it hits a bug or
+and that means that if it hits a bug or even just like a software update
+even just like a software update that is kind of incompatible with what
+that is kind of incompatible with what you're working on that can just totally
+you're working on that can just totally tank your workflow because you have all
+tank your workflow because you have all these artists who are working and then
+these artists who are working and then all the headsets now need to update and
+all the headsets now need to update and like okay they don't work because now
+like okay they don't work because now we're hitting this bug because the new
+we're hitting this bug because the new os
+os so having a simulation layer means that
+so having a simulation layer means that everyone
+everyone who's not working directly on the device
+who's not working directly on the device can work in the simulator and even if
+can work in the simulator and even if the device hits a hot uh reload or um
+the device hits a hot uh reload or um gets a new os
+gets a new os you can keep working in your simulator
+you can keep working in your simulator until the engineers have time to to fix
+until the engineers have time to to fix it
+it um and so this is this is a huge deal
+um and so this is this is a huge deal for us because
+basically it allowed us to push a lot of these like bugs that you'd have to that
+these like bugs that you'd have to that would have been critical bugs otherwise
+would have been critical bugs otherwise um kind of later in our development to
+um kind of later in our development to sort of clean it up especially after the
+sort of clean it up especially after the platform has maybe moved on from some of
+platform has maybe moved on from some of those issues
+those issues so that installation was a really big
+so that installation was a really big deal for us another big deal was that
+deal for us another big deal was that it really allowed us flexibility about
+it really allowed us flexibility about how we worked so especially with a lot
+how we worked so especially with a lot of these platforms they're heavily
+of these platforms they're heavily restricted and you may only have like a
+restricted and you may only have like a couple of headsets um
+couple of headsets um so this meant that we could work from
+so this meant that we could work from home on our oculus rifts and our audio
+home on our oculus rifts and our audio folks in la didn't need a magic leap to
+folks in la didn't need a magic leap to do all the audio juice that they were
+do all the audio juice that they were kind of working on
+kind of working on and this was just a huge quality of life
+and this was just a huge quality of life improvement before we had this simulator
+improvement before we had this simulator everyone who was working on the device
+everyone who was working on the device had to be in a very small room with
+had to be in a very small room with 24-hour security um
+24-hour security um and it was
+and it was uh
+uh sad is the wrong word but you know it
+sad is the wrong word but you know it wasn't that great um
+wasn't that great um so this allowed us to basically kind of
+so this allowed us to basically kind of integrate it more into a normal
+integrate it more into a normal development workflow that you'd be used
+development workflow that you'd be used to with unity and your debuggers and
+to with unity and your debuggers and it's just vastly more comfortable
+it's just vastly more comfortable um
+um so then i kind of just want to wrap up
+so then i kind of just want to wrap up with a couple of more design thoughts um
+with a couple of more design thoughts um so i think
+so i think one of the tricks having seen a lot of
+one of the tricks having seen a lot of different kind of types of simulators
+different kind of types of simulators that people have built and actually
+that people have built and actually magic leap even has a couple of theirs
+magic leap even has a couple of theirs as well
+as well but one of the tricks of working with a
+but one of the tricks of working with a simulator is making sure not to design
+simulator is making sure not to design to the simulator
+to the simulator we spent a lot of time trying to make
+we spent a lot of time trying to make our simulator accurate so that when we
+our simulator accurate so that when we designed these very iterative
+designed these very iterative gameplay mechanics that the the people
+gameplay mechanics that the the people designing them wouldn't fall prey to
+designing them wouldn't fall prey to designing to the simulator one of the
+designing to the simulator one of the big issues we faced um like just as an
+big issues we faced um like just as an example
+example uh was when we were trying to figure out
+uh was when we were trying to figure out the scale of all the assets so we wanted
+the scale of all the assets so we wanted we're trying to decide okay do we want
+we're trying to decide okay do we want all these things to be six inches or 12
+all these things to be six inches or 12 inches like how big should the trees be
+inches like how big should the trees be um and we found that people would put
+um and we found that people would put things in virtual reality and be like oh
+things in virtual reality and be like oh yeah that's that's two feet tall and
+yeah that's that's two feet tall and then we'd drop it on the headset and it
+then we'd drop it on the headset and it would be like six inches because you
+would be like six inches because you could actually have a ruler and you'd be
+could actually have a ruler and you'd be like well that's much smaller um and we
+like well that's much smaller um and we were very careful in vr in virtual
+were very careful in vr in virtual reality to make sure that everything was
+reality to make sure that everything was measured precisely like i don't think
+measured precisely like i don't think this is a technical issue it's just that
+this is a technical issue it's just that in virtual reality it's just kind of
+in virtual reality it's just kind of hard to judge the scale of things it's
+hard to judge the scale of things it's it's it's great but it's not perfect um
+it's it's great but it's not perfect um and so we had we had this issue where
+and so we had we had this issue where they would design the scale to virtual
+they would design the scale to virtual reality and then it just didn't really
+reality and then it just didn't really work in the headset
+work in the headset um and so it's very important that you
+um and so it's very important that you your simulator is accurate in the right
+your simulator is accurate in the right ways um another example is kind of input
+ways um another example is kind of input if and i sort of already touched on this
+if and i sort of already touched on this already but
+already but yeah if you allow yourself full rift
+yeah if you allow yourself full rift input that's a very different experience
+input that's a very different experience than the way that the magic leap works
+than the way that the magic leap works um it's just like a slightly different
+um it's just like a slightly different set of behaviors and affordances um
+set of behaviors and affordances um so i i think and especially to me as as
+so i i think and especially to me as as the project goes on longer the simulator
+the project goes on longer the simulator becomes more useful um you run into less
+becomes more useful um you run into less of these pitfalls because you're not
+of these pitfalls because you're not doing as much design at that point
+doing as much design at that point um
+um but yeah anyway that's about it if you
+but yeah anyway that's about it if you have any questions feel free to ask or
+have any questions feel free to ask or i'll probably be in the wrap-up room
+i'll probably be in the wrap-up room hanging out so thanks
+hanging out so thanks [Applause]
+oh and fill out your surveys hi hey so it seems like a simulator is
+hi hey so it seems like a simulator is just sort of a really useful thing for
+just sort of a really useful thing for someone developing a product um it was
+someone developing a product um it was it something that the magic leap didn't
+it something that the magic leap didn't provide or the one they provided wasn't
+provide or the one they provided wasn't good enough no that's a really good
+good enough no that's a really good question and i have a slide on it uh but
+question and i have a slide on it uh but i ended up cutting it for time uh so the
+i ended up cutting it for time uh so the magic leap comes with two simulators um
+magic leap comes with two simulators um it comes with uh one that's
+it comes with uh one that's uh basically more uh you have some like
+uh basically more uh you have some like uh
+uh handles you can sort of be like okay i
+handles you can sort of be like okay i want the camera here and i want the
+want the camera here and i want the controllers here but it's not really
+controllers here but it's not really something you can play in real time it's
+something you can play in real time it's like sort of number input
+like sort of number input um but the more interesting simulator
+um but the more interesting simulator they have is zero iteration mode so zero
+they have is zero iteration mode so zero iteration mode is actually quite good it
+iteration mode is actually quite good it renders everything on the computer and
+renders everything on the computer and streams it to the device um
+streams it to the device um the only problems with that are is that
+the only problems with that are is that the streaming is at about 10 frames per
+the streaming is at about 10 frames per second so it's
+second so it's usable for debugging and that's what we
+usable for debugging and that's what we used it most for but it's not that great
+used it most for but it's not that great for gameplay design um
+for gameplay design um the other problem is that you still need
+the other problem is that you still need the device and so we had a team of like
+the device and so we had a team of like 10 folks and
+10 folks and we didn't have 10 devices so having a
+we didn't have 10 devices so having a simulator for the rift meant that
+simulator for the rift meant that everyone could work all at once um so
+everyone could work all at once um so that was a lot of the big reason we
+that was a lot of the big reason we built one
+um so
+so i guess that there we go
+i guess that there we go um this is more of a funny quirk of the
+um this is more of a funny quirk of the magic leap comment than a question sure
+magic leap comment than a question sure um i was building an augmented reality
+um i was building an augmented reality lab application so you could do
+lab application so you could do chemistry experiments worked perfectly
+chemistry experiments worked perfectly at home never worked in my office and
+at home never worked in my office and that's because my office has metal
+that's because my office has metal tables yes it's a magnetic controller
+tables yes it's a magnetic controller and it completely loses tracking yeah
+and it completely loses tracking yeah exactly yeah so yeah uh it took me a
+exactly yeah so yeah uh it took me a while to figure that out so if any of
+while to figure that out so if any of you
+you see your controller just hanging in the
+see your controller just hanging in the air
+air that's one of those things that i would
+that's one of those things that i would totally integrate into it just randomly
+totally integrate into it just randomly cause some dropouts you know
+hey so uh magically does dynamic remeshing right like so as you're going
+remeshing right like so as you're going along it's changing the mesh um did you
+along it's changing the mesh um did you incorporate that into your simulator at
+incorporate that into your simulator at all and how did that because you could
+all and how did that because you could probably drop some seeds through as it
+probably drop some seeds through as it re-meshes right yeah that's that's a
+re-meshes right yeah that's that's a good point and we didn't consider or we
+good point and we didn't consider or we didn't uh implement that directly um
+didn't uh implement that directly um we probably could have had like a couple
+we probably could have had like a couple of variations of the mesh and then
+of variations of the mesh and then swapped out those chunks um
+swapped out those chunks um it was more it was basically as a
+it was more it was basically as a pragmatic time versus how accurate can
+pragmatic time versus how accurate can we make this trade off um but yeah
+we make this trade off um but yeah that's a definitely a good suggestion
+that's a definitely a good suggestion yeah great thanks uh great presentation
+yeah great thanks uh great presentation thank you
+thank you hi uh great talk thank you very much um
+hi uh great talk thank you very much um quick question you said the the project
+quick question you said the the project itself took eight months how long did it
+itself took eight months how long did it take you to build the simulator or was
+take you to build the simulator or was that an ongoing thing uh it's so the
+that an ongoing thing uh it's so the simulator it's a little hard to estimate
+simulator it's a little hard to estimate i'd say we had it at a usable state
+i'd say we had it at a usable state after month one it wasn't honestly that
+after month one it wasn't honestly that much work it this sounds like it's a lot
+much work it this sounds like it's a lot more work but the main the main amount
+more work but the main the main amount of work was in in the the scanning like
+of work was in in the the scanning like and if i had bought like a proper rig
+and if i had bought like a proper rig maybe that would have been a lot quicker
+maybe that would have been a lot quicker okay so it was just you building that
+okay so it was just you building that yeah pretty much okay awesome thanks
+yeah pretty much okay awesome thanks yeah it was
+yeah it was basically the longest part was just like
+basically the longest part was just like matching the magic leap api so we just
+matching the magic leap api so we just kind of went through it and it was like
+kind of went through it and it was like okay for input we'll map that to the
+okay for input we'll map that to the rift and for you know gotcha yeah okay
+rift and for you know gotcha yeah okay thank you yep
+cool hey hey uh so i just want to check um so
+hey hey uh so i just want to check um so how did you make sure like because
+how did you make sure like because oculus rift has like their own like
+oculus rift has like their own like specs for like the hardware side and
+specs for like the hardware side and same with the magic leap
+same with the magic leap uh so how did you make sure that like
+uh so how did you make sure that like things i would want on the oculus rift
+things i would want on the oculus rift would like run like well on the map
+would like run like well on the map performance wise especially yeah yeah
+performance wise especially yeah yeah that was definitely a trick um we
+that was definitely a trick um we definitely fell a little bit prey to
+definitely fell a little bit prey to uh over
+uh over yeah uh
+yeah uh yeah not being careful enough with what
+yeah not being careful enough with what will perform well in the magic leap um
+will perform well in the magic leap um we were definitely like
+we were definitely like still using the device like every day
+still using the device like every day like and testing it so it's not like we
+like and testing it so it's not like we had like really big performance issues
+had like really big performance issues um
+um but it didn't mean that you know like if
+but it didn't mean that you know like if you're an artist and you're working on
+you're an artist and you're working on something you didn't necessarily have
+something you didn't necessarily have that immediate feedback that is going to
+that immediate feedback that is going to be laggy and so we had to do a couple of
+be laggy and so we had to do a couple of passes at the end on performance just to
+passes at the end on performance just to sort of like go back and be like okay
+sort of like go back and be like okay this mesh is too big or whatnot
+this mesh is too big or whatnot all right cool good job thanks
+great well thank you very much i'll be around
+thank you very much i'll be around [Applause]

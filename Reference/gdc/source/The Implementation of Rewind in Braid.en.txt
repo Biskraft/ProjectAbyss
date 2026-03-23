@@ -1,0 +1,747 @@
+[Music] okay we'll start whatever um so this
+okay we'll start whatever um so this talk is implementation of rewind and
+talk is implementation of rewind and braid uh it is a technical talk in case
+braid uh it is a technical talk in case you're thinking some kind of design
+you're thinking some kind of design implementation or something that's not
+implementation or something that's not it um when I submitted this talk I was
+it um when I submitted this talk I was like oh sure it's pretty simple I'll be
+like oh sure it's pretty simple I'll be able to talk about everything in 25
+able to talk about everything in 25 minutes it doesn't seem to be how it is
+minutes it doesn't seem to be how it is there's a lot of little details I won't
+there's a lot of little details I won't be able to get into may go a little bit
+be able to get into may go a little bit over time whatever feel free to ask me
+over time whatever feel free to ask me uh by email or something anyway uh who
+uh by email or something anyway uh who how many people in the room have not
+how many people in the room have not played the
+played the game all right that's enough Okay cool
+game all right that's enough Okay cool so I'll show you really quickly uh what
+so I'll show you really quickly uh what it's
+it's like it's pretty simple in some ways uh
+like it's pretty simple in some ways uh it's a little 2D platformer uh it's
+it's a little 2D platformer uh it's shipped on the Xbox 360 PS3 and PC and
+shipped on the Xbox 360 PS3 and PC and Mac you run around you know you can jump
+Mac you run around you know you can jump as you always can you can go into these
+as you always can you can go into these little worlds where things
+happen and you know a world this sort of a scrolling area with parallx and all
+a scrolling area with parallx and all that they can be from one screen to you
+that they can be from one screen to you know eight or 10 screens large there's
+know eight or 10 screens large there's all these objects that move you know you
+all these objects that move you know you can get killed and you can rewind like
+can get killed and you can rewind like this and uh the rewind is unlimited
+this and uh the rewind is unlimited right it's not a resource and
+right it's not a resource and so whoa all right um that was the first
+so whoa all right um that was the first of the design goals that I had was I
+of the design goals that I had was I wanted to find out what happens um when
+wanted to find out what happens um when you design a game where rewind is not a
+you design a game where rewind is not a resource and there's not a traditional
+resource and there's not a traditional sort of of uh death challenge you know
+sort of of uh death challenge you know gating the game I I knew that I wanted
+gating the game I I knew that I wanted to be able to run on consoles cuz I
+to be able to run on consoles cuz I wanted to maybe sell some copies um I
+wanted to maybe sell some copies um I knew that I was going to be the only
+knew that I was going to be the only programmer on the game that ended up not
+programmer on the game that ended up not quite being true I got a little help at
+quite being true I got a little help at the very end but um I really wanted to
+the very end but um I really wanted to limit the amount of programming work
+limit the amount of programming work that I would do because I was also the
+that I would do because I was also the designer and and you know Biz guy and
+designer and and you know Biz guy and all that stuff so uh you know if you
+all that stuff so uh you know if you spend all your time programming you
+spend all your time programming you won't have a game because those other
+won't have a game because those other elements are missing right um now this
+elements are missing right um now this is platformer and I knew it was going to
+is platformer and I knew it was going to involve puzzles okay so when you start
+involve puzzles okay so when you start talking about rewinding puzzles you
+talking about rewinding puzzles you start thinking um you know I don't want
+start thinking um you know I don't want my puzzles to be exploitable right like
+my puzzles to be exploitable right like a typical kind of puzzle might be you
+a typical kind of puzzle might be you can't get between point a and point B in
+can't get between point a and point B in less than a certain amount of time
+less than a certain amount of time unless you do something special right
+unless you do something special right but like maybe if your re rewind doesn't
+but like maybe if your re rewind doesn't put you back exactly where you were you
+put you back exactly where you were you could like rewind you could go forward
+could like rewind you could go forward two frames and Rewind one frame and
+two frames and Rewind one frame and stuff and and get little extra
+stuff and and get little extra centimeters and eventually exploit the
+centimeters and eventually exploit the puzzle or you could like somehow jump
+puzzle or you could like somehow jump over hurdle that you wouldn't have been
+over hurdle that you wouldn't have been able to jump over normally if you can
+able to jump over normally if you can mess with your momentum so um I wanted
+mess with your momentum so um I wanted to ensure that whatever time
+to ensure that whatever time manipulation is in the game it's non-
+manipulation is in the game it's non- exploitable and I wanted the game to run
+exploitable and I wanted the game to run at 60 frames per second which we usually
+at 60 frames per second which we usually think of as a CPU uh kind of issue but
+think of as a CPU uh kind of issue but when you start talking about remembering
+when you start talking about remembering things as you need to do for rewind or
+things as you need to do for rewind or recording videos or something as you
+recording videos or something as you raise your frame rate the amount of data
+raise your frame rate the amount of data that you have to deal with goes up right
+that you have to deal with goes up right but I felt that this was important for a
+but I felt that this was important for a fluid uh solid platforming experience
+fluid uh solid platforming experience right so now now if you're a programmer
+right so now now if you're a programmer who's been around for a while I hope
+who's been around for a while I hope these don't get cut off too bad we'll
+these don't get cut off too bad we'll see anyway there are some ways that you
+see anyway there are some ways that you might think of to implement rewind and
+might think of to implement rewind and they're generally grounded in
+they're generally grounded in optimization style thinking like what's
+optimization style thinking like what's the best way to implement rewind right
+the best way to implement rewind right uh one thing that we often do in game
+uh one thing that we often do in game engines in order to Repro and and fix
+engines in order to Repro and and fix bugs that that can be uh used for this
+bugs that that can be uh used for this kind of system is to record all the user
+kind of system is to record all the user input you know you kind of hook the
+input you know you kind of hook the input function in the engine and you
+input function in the engine and you record all the button presses that
+record all the button presses that happen and then you can run it again in
+happen and then you can run it again in playback mode and as long as your all
+playback mode and as long as your all your functions in your game are
+your functions in your game are deterministic then you'll get exactly
+deterministic then you'll get exactly the same result as you play back the
+the same result as you play back the events I've done that a few times I hate
+events I've done that a few times I hate it uh it's a pain in my ass all the time
+it uh it's a pain in my ass all the time because things break uh you know they're
+because things break uh you know they're not robust across revisions like a
+not robust across revisions like a recording that you make once is is not
+recording that you make once is is not going to work on a different revision
+going to work on a different revision you get revisions confused uh but even
+you get revisions confused uh but even worse it it places constraints on other
+worse it it places constraints on other parts of the code that live for the
+parts of the code that live for the duration of the thing so I didn't really
+duration of the thing so I didn't really explore this option until later in
+explore this option until later in development but it's lucky that I didn't
+development but it's lucky that I didn't because if I had gone this way I would
+because if I had gone this way I would have ended up designing a very different
+have ended up designing a very different game because the game play depends on
+game because the game play depends on having functionality that this would not
+having functionality that this would not have enabled and I'll go into that later
+have enabled and I'll go into that later um another wacky idea you might think of
+um another wacky idea you might think of is like reversible simulation right we
+is like reversible simulation right we usually have an engine with entities
+usually have an engine with entities that have a tick function and the tick
+that have a tick function and the tick function knows how to bring them forward
+function knows how to bring them forward in time what if that could also bring
+in time what if that could also bring them backward in time inside that
+them backward in time inside that function right well there's a question
+function right well there's a question of exactly how to do that you know we're
+of exactly how to do that you know we're used to just having discontinuous State
+used to just having discontinuous State changes in objects you know if you have
+changes in objects you know if you have differentiable functions that's easy to
+differentiable functions that's easy to reverse you know people who do physics
+reverse you know people who do physics know that but um if things if you have
+know that but um if things if you have discontinuities you have to start
+discontinuities you have to start recording weird data and and how do you
+recording weird data and and how do you do that and and you know gameplay code
+do that and and you know gameplay code is pretty complicated and it's a big
+is pretty complicated and it's a big source of bugs already and then if you
+source of bugs already and then if you make it twice as complicated it seems
+make it twice as complicated it seems like a bad idea uh and then if you can
+like a bad idea uh and then if you can only simulate in Reverse how do you get
+only simulate in Reverse how do you get random access to your time stream right
+random access to your time stream right if you want to go back to 10,000 frames
+if you want to go back to 10,000 frames ago how do you do that without
+ago how do you do that without simulating 10,000 frames backwards right
+simulating 10,000 frames backwards right so it's
+so it's not necessarily seeming like a good idea
+not necessarily seeming like a good idea to do it that way okay well uh what
+to do it that way okay well uh what started seeming like the the best option
+started seeming like the the best option to me was just to record the full state
+to me was just to record the full state of the world because you know that's
+of the world because you know that's robust you know you can reproduce that
+robust you know you can reproduce that and that's going to be a lot of data so
+and that's going to be a lot of data so maybe you drop frames so maybe you
+maybe you drop frames so maybe you record every H hundredth frame and and
+record every H hundredth frame and and in the frames in between that you
+in the frames in between that you interpolate between the end points uh
+interpolate between the end points uh but that's not really a good idea
+but that's not really a good idea because it's it's non-exact right your
+because it's it's non-exact right your interpolated frame has a very low
+interpolated frame has a very low probability of being what the actual
+probability of being what the actual frame was that you threw away right so
+frame was that you threw away right so there are quality questions about that
+there are quality questions about that and again that question of how to avoid
+and again that question of how to avoid exploits comes
+exploits comes up so uh I had to kind of suppress my my
+up so uh I had to kind of suppress my my impulse right so us guys wanting to be
+impulse right so us guys wanting to be star programmers you know our impulse is
+star programmers you know our impulse is man I'm going to do something that's
+man I'm going to do something that's awesome and fast and has a tiny Ram
+awesome and fast and has a tiny Ram footprint it's going to be better than
+footprint it's going to be better than anything anyone in history has ever done
+anything anyone in history has ever done and it's going to just be awesome right
+and it's going to just be awesome right um but my attitude at the time was
+um but my attitude at the time was different than that it was and it's I'm
+different than that it was and it's I'm lucky that I had this attitude because
+lucky that I had this attitude because it's what allowed me to actually finish
+it's what allowed me to actually finish and ship the game it's that you know
+and ship the game it's that you know I've been doing all this 3D Graphics
+I've been doing all this 3D Graphics high-tech stuff for years we kill
+high-tech stuff for years we kill ourselves to get 10% or 5% performance
+ourselves to get 10% or 5% performance differences we make massively
+differences we make massively complicated systems to get that
+complicated systems to get that performance boost and it breaks all the
+performance boost and it breaks all the time you know like games Crash and and
+time you know like games Crash and and they just go slowly when they're
+they just go slowly when they're supposed to go fast and uh since I'm
+supposed to go fast and uh since I'm going to be have to be designing this
+going to be have to be designing this game and I actually want to ship this
+game and I actually want to ship this game so that my independent developer
+game so that my independent developer career will succeed I'm going to do the
+career will succeed I'm going to do the most robust thing possible right so my
+most robust thing possible right so my focus was on robust enabled me to build
+focus was on robust enabled me to build the game right and so what is the most
+the game right and so what is the most robust thing it's not any of these
+robust thing it's not any of these things I talked about cuz those were
+things I talked about cuz those were concocted with the mindset of being
+concocted with the mindset of being tricky right and tricky means
+tricky right and tricky means complicated so usually and so what I
+complicated so usually and so what I came up with is a variant of that third
+came up with is a variant of that third idea but dead simple just record all the
+idea but dead simple just record all the world state every frame always don't
+world state every frame always don't drop any frames just record everything
+drop any frames just record everything and then figure out a way to compress it
+and then figure out a way to compress it and most people would not approach this
+and most people would not approach this problem this way but I believe it was by
+problem this way but I believe it was by far the best way to approach
+far the best way to approach it so
+it so uh how do you record game State well
+uh how do you record game State well you've got a world which has got some
+you've got a world which has got some objects in it and each object in the
+objects in it and each object in the world you know has a bunch of properties
+world you know has a bunch of properties this is pretty Universal games work this
+this is pretty Universal games work this way so this is a shot of the editor and
+way so this is a shot of the editor and the upper right there's sort of this
+the upper right there's sort of this panel for this entity that I had
+panel for this entity that I had highlighted and you know it's got a
+highlighted and you know it's got a bunch of member variables and there's uh
+bunch of member variables and there's uh types of them so some of them are
+types of them so some of them are integers some of them are vectors some
+integers some of them are vectors some of them are strings whatever right you
+of them are strings whatever right you have to have this somehow in your game
+have to have this somehow in your game if you're going to save the world file
+if you're going to save the world file so that you can you know edit it and and
+so that you can you know edit it and and load it in and play it right
+load it in and play it right um now you could think of other ways to
+um now you could think of other ways to store things like I could just take the
+store things like I could just take the entities in my world and clone them and
+entities in my world and clone them and have a little side World off to the side
+have a little side World off to the side and just do that every time I want to
+and just do that every time I want to record something but uh you know live
+record something but uh you know live entities in a game engine tend to be
+entities in a game engine tend to be individually allocated right and if
+individually allocated right and if you're playing a lot with memory that
+you're playing a lot with memory that way that creates fragmentation right you
+way that creates fragmentation right you allocate a bunch of memory you freeze
+allocate a bunch of memory you freeze something out of the middle there's a
+something out of the middle there's a that you may or may not be able to use
+that you may or may not be able to use and that's bad especially if you're
+and that's bad especially if you're running on a console
+running on a console right
+right um and the the second point off the
+um and the the second point off the bottom of the slide is that uh things
+bottom of the slide is that uh things that are serialized are easily
+that are serialized are easily compressible like if you want to do
+compressible like if you want to do entropy coating on them or something
+entropy coating on them or something like that it's a stream of btes right
+like that it's a stream of btes right you can feed a stream of bites into any
+you can feed a stream of bites into any generic compressor um and if you were to
+generic compressor um and if you were to think about like some kind of live
+think about like some kind of live entity scheme if you were going to
+entity scheme if you were going to compress that you have to eventually
+compress that you have to eventually turn it into a stream of btes so yeah
+turn it into a stream of btes so yeah you just serialize so the
+you just serialize so the um you know here's some list of
+um you know here's some list of properties from some very uh basic
+properties from some very uh basic object
+um and there's a bunch of these objects in a level you know how many I I don't
+in a level you know how many I I don't actually remember but there's a bunch
+actually remember but there's a bunch and if you look at the size of the
+and if you look at the size of the levels on dis right uh they're between
+levels on dis right uh they're between 25 kytes and 175 kytes and that's great
+25 kytes and 175 kytes and that's great that's a pretty good size for levels on
+that's a pretty good size for levels on disc but when you're recording 60 of
+disc but when you're recording 60 of those per second it adds up to a lot of
+those per second it adds up to a lot of memory really fast so you start doing
+memory really fast so you start doing the second part of what I said which is
+the second part of what I said which is figure out a way to compress it and
+figure out a way to compress it and that's basically what the rest of the
+that's basically what the rest of the talk from here on
+is so the most obvious thing and the first thing people will think of when
+first thing people will think of when they have programming experience is most
+they have programming experience is most of these entities aren't changing at all
+of these entities aren't changing at all they're constant we Factor them out we
+they're constant we Factor them out we only record the things that change right
+only record the things that change right and of course this is a massive win so
+and of course this is a massive win so in braid there's a cple sets of things
+in braid there's a cple sets of things that are constant uh on the left is
+that are constant uh on the left is Collision geometry which you don't ever
+Collision geometry which you don't ever see in the game but it determines where
+see in the game but it determines where you can go and where you can't go and on
+you can go and where you can't go and on the right is you know cosmetic stuff
+the right is you know cosmetic stuff it's layout that usually matches up to
+it's layout that usually matches up to the Collision geometry and just makes
+the Collision geometry and just makes the level look nice right those don't
+the level look nice right those don't change so you just keep them in a
+change so you just keep them in a separate array uh after you load the
+separate array uh after you load the level and anytime you want to seek
+level and anytime you want to seek through the timeline to a particular
+through the timeline to a particular time then you just copy these there
+time then you just copy these there there's one copy of these for all the
+there's one copy of these for all the frames right so you just make a copy of
+frames right so you just make a copy of those and then you go look into the data
+those and then you go look into the data that you recorded you uh extract the
+that you recorded you uh extract the changing entities right the only ones
+changing entities right the only ones that you actually needed to save and
+that you actually needed to save and then you mix them in and you have your
+then you mix them in and you have your final
+final State um now uh this third screen is
+State um now uh this third screen is particles in braid
+particles in braid um the the look of raid depends very
+um the the look of raid depends very heavily on particles there's a bunch of
+heavily on particles there's a bunch of particles everywhere uh they they fade
+particles everywhere uh they they fade in and out and and provide a very sort
+in and out and and provide a very sort of uh shifting uh feeling to the
+of uh shifting uh feeling to the graphics um
+graphics um and if you actually were to record these
+and if you actually were to record these in a naive way it's a gigantic amount of
+in a naive way it's a gigantic amount of data because there's thousands tens of
+data because there's thousands tens of thousands of particles on a level you
+thousands of particles on a level you need to record position color and
+need to record position color and probably about 17 other properties for
+probably about 17 other properties for each one it's gigantic right so what you
+each one it's gigantic right so what you do is you make the partical entities
+do is you make the partical entities constant right um and how do you do that
+constant right um and how do you do that well you make a function that is a sort
+well you make a function that is a sort of closed form kind of thing where you
+of closed form kind of thing where you feed it in a seed from a random number
+feed it in a seed from a random number generator and you feed in a bunch of
+generator and you feed in a bunch of properties describing how the particles
+properties describing how the particles should look like what texture is it and
+should look like what texture is it and what are the UV coordinates and what
+what are the UV coordinates and what color does it start at and what color
+color does it start at and what color does it end right all the usual particle
+does it end right all the usual particle system stuff but instead of those
+system stuff but instead of those properties evolving over time they're
+properties evolving over time they're fixed and then when it comes time to
+fixed and then when it comes time to generate the particles you uh you kind
+generate the particles you uh you kind of you know run the equations of physics
+of you know run the equations of physics and uh you know interpolate all the
+and uh you know interpolate all the colors and all that in closed form and
+colors and all that in closed form and just spit out a particle basically from
+just spit out a particle basically from nothing every frame now when you do this
+nothing every frame now when you do this it's slower than the way particles
+it's slower than the way particles usually happen because usually we're
+usually happen because usually we're tracing particles through space and just
+tracing particles through space and just modifying each property a little bit um
+modifying each property a little bit um in this case you have to regenerate a
+in this case you have to regenerate a bunch of random numbers uh every single
+bunch of random numbers uh every single for every particle every frame and
+for every particle every frame and that's slower and uh sort of the caveat
+that's slower and uh sort of the caveat to this is that I actually had to
+to this is that I actually had to optimize the particle inlo Loop
+optimize the particle inlo Loop relatively heavily compared to the rest
+relatively heavily compared to the rest of the game in order to get it to run
+of the game in order to get it to run well on consoles
+well on consoles uh yeah the current consoles there's no
+uh yeah the current consoles there's no problem on PCS because of out of order
+problem on PCS because of out of order processing anyway um
+wow I wish I could really see more of the slides but okay um the uh so you've
+the slides but okay um the uh so you've got this scheme where you're taking all
+got this scheme where you're taking all the state of the game and and or or all
+the state of the game and and or or all the changing state right so it was a
+the changing state right so it was a massive win to factor out the constant
+massive win to factor out the constant objects but it's still way too big right
+objects but it's still way too big right because we're talking about massive
+because we're talking about massive amounts of data so what do you do next
+amounts of data so what do you do next um you diff individual uh fields of an
+um you diff individual uh fields of an entity so that you don't have to save
+entity so that you don't have to save the whole entity right if you have a
+the whole entity right if you have a continuous gameplay experience then
+continuous gameplay experience then chances are that whatever the objects
+chances are that whatever the objects are in the world at frame n plus one
+are in the world at frame n plus one they're a lot like where they were at
+they're a lot like where they were at frame n with some minor differences
+frame n with some minor differences right so
+right so um wow what just
+um wow what just happened I don't okay oh thanks you're
+happened I don't okay oh thanks you're trying to fix it okay um now the sides
+trying to fix it okay um now the sides are gone if we can keep trying to fix it
+are gone if we can keep trying to fix it that would be good
+that would be good though um
+so so this diagram down here right is is sort of a diagram of of what happens in
+sort of a diagram of of what happens in this scheme uh when we try to seek to a
+this scheme uh when we try to seek to a certain frame in the timeline so we want
+certain frame in the timeline so we want to find where that red dot is right and
+to find where that red dot is right and so we've got these larger uh sort of
+so we've got these larger uh sort of yellowish blocks those are the base
+yellowish blocks those are the base frames which behave exactly like I
+frames which behave exactly like I explained before they contain data for
+explained before they contain data for all the entities in the world so if you
+all the entities in the world so if you wanted to seek exactly to that time that
+wanted to seek exactly to that time that point in the timeline you only decode
+point in the timeline you only decode what's in that block and you're done
+what's in that block and you're done right for anything in between those are
+right for anything in between those are smaller blocks that only contain diffs
+smaller blocks that only contain diffs so if I want to seek to where that red
+so if I want to seek to where that red spot is I have to decode the diffs um I
+spot is I have to decode the diffs um I have to decode what's in the base frame
+have to decode what's in the base frame and then I have to apply the diffs to
+and then I have to apply the diffs to the Bas frame right um now when I say
+the Bas frame right um now when I say diffs here I'm not actually doing Delta
+diffs here I'm not actually doing Delta encoding as people do in compression a
+encoding as people do in compression a lot like in Delta encoding if the value
+lot like in Delta encoding if the value used to be 100 and now it's 100.5 you
+used to be 100 and now it's 100.5 you store like plus5 and it's usually
+store like plus5 and it's usually smaller right but I didn't do that
+smaller right but I didn't do that because I didn't want to worry about
+because I didn't want to worry about rounding accumulation of error any of
+rounding accumulation of error any of that um I want it to be very very clean
+that um I want it to be very very clean so I just store 100.5 or whatever right
+so I just store 100.5 or whatever right and this again is another massive win uh
+and this again is another massive win uh you know um in braid uh I put base
+you know um in braid uh I put base frames every two seconds I believe in
+frames every two seconds I believe in the final builds so that's every 120
+the final builds so that's every 120 frames so you know this gets rid of
+frames so you know this gets rid of about uh you know probably 95% of the
+about uh you know probably 95% of the memory usage or something like that um
+memory usage or something like that um but it's not enough uh or at least wow
+but it's not enough uh or at least wow okay um how about if I do this
+there we go okay so um is it shift F5 to resume from
+so um is it shift F5 to resume from where you yeah Okay cool
+where you yeah Okay cool so what I found after I did this is that
+so what I found after I did this is that even though it was a massive memory
+even though it was a massive memory savings now these bass frames still took
+savings now these bass frames still took over half the memory of
+over half the memory of uh of uh you know I don't know if this
+uh of uh you know I don't know if this math works out but whatever they took
+math works out but whatever they took about half the memory uh of the system
+about half the memory uh of the system right and the Delta frames took the
+right and the Delta frames took the other half so one frame out of every 120
+other half so one frame out of every 120 was taking half the memory it's
+was taking half the memory it's obviously right for optimization so what
+obviously right for optimization so what do you do and you know all sorts of
+do you do and you know all sorts of schemes can be thought of like hey we'll
+schemes can be thought of like hey we'll diff the Bas frame from the previous Bas
+diff the Bas frame from the previous Bas frame so we'll have like a hierarchical
+frame so we'll have like a hierarchical thing and it's like log base 120 or
+thing and it's like log base 120 or something so you climb up a tree to
+something so you climb up a tree to decode but that's kind of that's too
+decode but that's kind of that's too non-local for me so uh what I did and it
+non-local for me so uh what I did and it worked great is I diff the base frames
+worked great is I diff the base frames again off the default constructed state
+again off the default constructed state of an entity right so if you're
+of an entity right so if you're programming in C++ or something you've
+programming in C++ or something you've got a Constructor for your object
+got a Constructor for your object it fills in especially if it's a live
+it fills in especially if it's a live object in a game engine it's going to
+object in a game engine it's going to fill in valid values for all the
+fill in valid values for all the properties of that object and often you
+properties of that object and often you won't change a lot of those properties
+won't change a lot of those properties right so
+right so um so in the base frames now they're not
+um so in the base frames now they're not diffed off any frame anymore but they're
+diffed off any frame anymore but they're diffed off of how is this entity
+diffed off of how is this entity different from if you just constructed
+different from if you just constructed it and didn't do anything to it and
+it and didn't do anything to it and didn't even add it into the
+didn't even add it into the world oh my friend hit
+world oh my friend hit shift
+Okay so after this you've done a bunch of high level optimization you start
+of high level optimization you start thinking about lowlevel optimization
+thinking about lowlevel optimization like an entropy coding layer you know
+like an entropy coding layer you know lzw on the stream of bites or something
+lzw on the stream of bites or something uh there isn't any in braid uh partially
+uh there isn't any in braid uh partially because it was not needed partially
+because it was not needed partially because I had speed concerns about that
+because I had speed concerns about that and I I needed as much speed as I could
+and I I needed as much speed as I could I I forget if I talk about that later in
+I I forget if I talk about that later in these slides or not I had to cut some
+these slides or not I had to cut some um but yeah it wasn't needed because for
+um but yeah it wasn't needed because for example on the Xbox 360 where you have
+example on the Xbox 360 where you have 52 Megs of ram total I dedicated about
+52 Megs of ram total I dedicated about 40 megabytes to rewind data which seems
+40 megabytes to rewind data which seems like a lot of memory but on a game
+like a lot of memory but on a game that's completely based on time
+that's completely based on time manipulation it totally makes sense
+manipulation it totally makes sense um so uh devoting 40 megabytes gave the
+um so uh devoting 40 megabytes gave the player between 30 and 60 Minutes of
+player between 30 and 60 Minutes of recording time on most levels which is
+recording time on most levels which is vastly more than you need uh usually it
+vastly more than you need uh usually it turns out some levels actually need that
+turns out some levels actually need that which is why it's good to
+which is why it's good to have um now if you're unpacking all
+have um now if you're unpacking all these frames all the time that's going
+these frames all the time that's going to be slow of course so uh you know for
+to be slow of course so uh you know for here's a screenshot showing a trail
+here's a screenshot showing a trail effect Behind These Little Monsters when
+effect Behind These Little Monsters when you rewind and the way that works is it
+you rewind and the way that works is it just samples the monster's actual
+just samples the monster's actual position over you know the last lots of
+position over you know the last lots of frames couple couple of seconds usually
+frames couple couple of seconds usually in Alpha Blends it right and I wanted to
+in Alpha Blends it right and I wanted to do that instead of some kind of
+do that instead of some kind of extrapolation because again accuracy
+extrapolation because again accuracy issues you get weirdness if you start
+issues you get weirdness if you start trying to guess where things were so uh
+trying to guess where things were so uh to do that you have to touch a lot of
+to do that you have to touch a lot of frames every time you want to render and
+frames every time you want to render and so it makes sense to have a frame cache
+so it makes sense to have a frame cache uh which raate is probably about um it's
+uh which raate is probably about um it's probably about 24 frames and uh those
+probably about 24 frames and uh those are totally live instantiated entities
+are totally live instantiated entities they're just not added to the main
+they're just not added to the main Universe they're just off to the side uh
+Universe they're just off to the side uh and um yeah it's it's what you would
+and um yeah it's it's what you would think
+think so uh some further implementation
+so uh some further implementation details uh you know I was talking about
+details uh you know I was talking about how let's say we're on frame 130 we want
+how let's say we're on frame 130 we want to seek to frame 137 and its base frame
+to seek to frame 137 and its base frame is frame 120 right off to the left not
+is frame 120 right off to the left not to scale and um you know the frame
+to scale and um you know the frame before that you actually constructed a
+before that you actually constructed a new object so it's in frame 136 it's in
+new object so it's in frame 136 it's in frame 137 it's not in frame 120 so if
+frame 137 it's not in frame 120 so if you go to apply this diff it's not there
+you go to apply this diff it's not there right and the simple solution to that is
+right and the simple solution to that is just anytime you constructed a new
+just anytime you constructed a new object and it's not on a base frame you
+object and it's not on a base frame you just store the state for that object
+just store the state for that object back in the Bas frame so everybody can
+back in the Bas frame so everybody can find it um now you don't want to store
+find it um now you don't want to store it in the same array that the actual
+it in the same array that the actual live data for the world is cuz when you
+live data for the world is cuz when you rewind to that time you don't want to
+rewind to that time you don't want to accidentally think that this object it
+accidentally think that this object it doesn't exist yet exist so you just
+doesn't exist yet exist so you just store it in two parallel
+store it in two parallel arrays
+arrays um so you know it still only takes two
+um so you know it still only takes two frames to decode regardless of what
+frames to decode regardless of what objects you knew or create or destroy if
+objects you knew or create or destroy if you destroy an object uh you just don't
+you destroy an object uh you just don't really worry about it because the way
+really worry about it because the way the way that it works is we start at the
+the way that it works is we start at the uh at the Target frame and so if the
+uh at the Target frame and so if the object doesn't exist there we won't try
+object doesn't exist there we won't try to diff it at all if it exists in the
+to diff it at all if it exists in the Bas frame we just ignore
+Bas frame we just ignore it okay so if you have a limited memory
+it okay so if you have a limited memory to work with then you have to forget
+to work with then you have to forget things or else you'll crash uh now
+things or else you'll crash uh now fragmentation like I said is a big issue
+fragmentation like I said is a big issue also so we want to somehow figure out
+also so we want to somehow figure out how to forget stuff without fragmenting
+how to forget stuff without fragmenting and I experimented uh with a bunch of
+and I experimented uh with a bunch of things and the thing I was happiest with
+things and the thing I was happiest with uh actually I think the only thing that
+uh actually I think the only thing that actually worked across all platforms um
+actually worked across all platforms um was to group all the frames into a big
+was to group all the frames into a big bucket like just for memory allocation
+bucket like just for memory allocation purposes and create a heap for that
+purposes and create a heap for that whole bucket and then destroy the Heap
+whole bucket and then destroy the Heap when I want to forget um all that stuff
+when I want to forget um all that stuff right and and the reason that I do that
+right and and the reason that I do that is because when you destroy a
+is because when you destroy a heap you know that the that the actual
+heap you know that the that the actual Pages uh get deallocated they get
+Pages uh get deallocated they get returned back to the operating system so
+returned back to the operating system so you're just not going to have
+you're just not going to have fragmentation there's no way
+fragmentation there's no way um so uh at the same time though if
+um so uh at the same time though if you're using say you're on Windows and
+you're using say you're on Windows and you're using Heap alic that's super slow
+you're using Heap alic that's super slow right you can't call Heap alic for every
+right you can't call Heap alic for every allocation that you want to make so what
+allocation that you want to make so what you do is you put a faster allocator in
+you do is you put a faster allocator in front of that that allocates chunks out
+front of that that allocates chunks out of the Heap and then hands little pieces
+of the Heap and then hands little pieces back to the application for this it's
+back to the application for this it's super simple it uses a pool which
+super simple it uses a pool which hopefully most of us know but it's just
+hopefully most of us know but it's just basically an array and you move a
+basically an array and you move a pointer along the array and if they say
+pointer along the array and if they say I want 10 bytes you give them 10 bytes
+I want 10 bytes you give them 10 bytes and you move the pointer 10 bytes and
+and you move the pointer 10 bytes and you know everything's totally packed
+you know everything's totally packed together there's no way to ever
+together there's no way to ever deallocate anything from a pool but you
+deallocate anything from a pool but you don't need to because you're just going
+don't need to because you're just going to destroy the Heap when you want to
+to destroy the Heap when you want to forget all this data the Heap size and
+forget all this data the Heap size and braid is about 24 seconds of gameplay so
+braid is about 24 seconds of gameplay so you know after I've recorded 30 minutes
+you know after I've recorded 30 minutes or 60 minutes and memory is full and I
+or 60 minutes and memory is full and I have to start forgetting I forget 24
+have to start forgetting I forget 24 second chunks at a time and that's about
+second chunks at a time and that's about you know at 60 frames per second that's
+you know at 60 frames per second that's about 1,000 or exactly 1,440 frames per
+about 1,000 or exactly 1,440 frames per Heap now There's a constraint on this
+Heap now There's a constraint on this number right it can't effectively be
+number right it can't effectively be smaller than the difference between base
+smaller than the difference between base frames right because if your first frame
+frames right because if your first frame isn't a base frame then you've got
+isn't a base frame then you've got frames at the beginning of your data
+frames at the beginning of your data that you don't know how to decode
+that you don't know how to decode because there's nowhere to go back to
+because there's nowhere to go back to when you want to do the diff right so uh
+when you want to do the diff right so uh you know it has to be a multiple of 2
+you know it has to be a multiple of 2 seconds cuz that's how long I put
+seconds cuz that's how long I put between Bas frames and 24 seconds seem
+between Bas frames and 24 seconds seem pretty good now this is still a lot of
+pretty good now this is still a lot of heaps um you know so if I've got 60
+heaps um you know so if I've got 60 Minutes of gameplay recorded right now
+Minutes of gameplay recorded right now and let's round it up to 30 seconds for
+and let's round it up to 30 seconds for easy math um that's 120 heaps live but
+easy math um that's 120 heaps live but you know in seems like a lot I've never
+you know in seems like a lot I've never done that before but it seemed fine on
+done that before but it seemed fine on all the target platform oh I did it
+all the target platform oh I did it again wait ah
+again wait ah okay I'm just going to maybe
+stay okay so that's kind of the basics of the system and now I'm going to talk
+of the system and now I'm going to talk about some special concerns that came up
+about some special concerns that came up uh that are more specific to this game
+uh that are more specific to this game but that might have analoges in other
+but that might have analoges in other games and how they were dealt with um
+games and how they were dealt with um yeah I'm going to stay all right so uh
+yeah I'm going to stay all right so uh sound effects whenever people ask me
+sound effects whenever people ask me about this they usually uh assume that I
+about this they usually uh assume that I did something really crazy for sound
+did something really crazy for sound effects when you're rewinding like I try
+effects when you're rewinding like I try to guess when a sound would have
+to guess when a sound would have finished and then started up going
+finished and then started up going backwards or something it's not how it
+backwards or something it's not how it works at all um sound effects are just
+works at all um sound effects are just invisible entities just like everything
+invisible entities just like everything else in the world um and then there's an
+else in the world um and then there's an audio layer that's a little more
+audio layer that's a little more asynchronous even than usual right the
+asynchronous even than usual right the audio layer is usually just streaming
+audio layer is usually just streaming samples out to the audio Hardware at its
+samples out to the audio Hardware at its own rate uh this one has a little layer
+own rate uh this one has a little layer that uh once per frame uh goes and looks
+that uh once per frame uh goes and looks at the world state looks at all the
+at the world state looks at all the entities that are supposed to be uh
+entities that are supposed to be uh creating sound and actually pulls the
+creating sound and actually pulls the data right so it's pretty autonomous
+data right so it's pretty autonomous it'll create or destroy a stream that
+it'll create or destroy a stream that you you know it'll create a stream if
+you you know it'll create a stream if there's an entity making sound that it
+there's an entity making sound that it hasn't got a stream for and vice versa
+hasn't got a stream for and vice versa and so the app never directly plays a
+and so the app never directly plays a sound
+sound um and I actually like this a lot more
+um and I actually like this a lot more even even not even considering rewind
+even even not even considering rewind but um this sort of sound in the world
+but um this sort of sound in the world database approach uh I found is actually
+database approach uh I found is actually really nice for everything and I I use
+really nice for everything and I I use it in my new game which doesn't even
+it in my new game which doesn't even have rewind so um now often if you're
+have rewind so um now often if you're gonna so you're G to call a sound effect
+gonna so you're G to call a sound effect like I've got the sound entity in my
+like I've got the sound entity in my world and I don't want to keep the
+world and I don't want to keep the memory for it or in this case I don't
+memory for it or in this case I don't want to keep storing it in in rewind all
+want to keep storing it in in rewind all the time so I want to know when the
+the time so I want to know when the sound's done so I can delete it you
+sound's done so I can delete it you might like check to see when all the
+might like check to see when all the samples are streamed out or you might
+samples are streamed out or you might look for an audio notification from your
+look for an audio notification from your sound Hardware that's not a good idea uh
+sound Hardware that's not a good idea uh because that is with respect to the
+because that is with respect to the software like your app that is kind of
+software like your app that is kind of non-deterministic right you don't you
+non-deterministic right you don't you don't exactly know when that's going to
+don't exactly know when that's going to happen and if you rewind and do
+happen and if you rewind and do something again and the sound has been
+something again and the sound has been deleted this time the audio clock might
+deleted this time the audio clock might go a little longer and you know it just
+go a little longer and you know it just doesn't match up so uh in braid sounds
+doesn't match up so uh in braid sounds actually have their own timer that is
+actually have their own timer that is tied to the game clock and not any kind
+tied to the game clock and not any kind of audio uh system clock um and if it's
+of audio uh system clock um and if it's supposed to be a second long sound I
+supposed to be a second long sound I just destroy it after a second plus a
+just destroy it after a second plus a safety margin of about 10% uh to account
+safety margin of about 10% uh to account for the fact that the clock on the audio
+for the fact that the clock on the audio Hardware is going to be a little bit
+Hardware is going to be a little bit different from your your idea of what
+different from your your idea of what the real-time clock
+the real-time clock is okay um
+is okay um so I talked before about how it was
+so I talked before about how it was really important that you make particles
+really important that you make particles constant because it's a huge amount of
+constant because it's a huge amount of data but there's a whole world in braid
+data but there's a whole world in braid where that's not true um in this world
+where that's not true um in this world you can drop this little ring that makes
+you can drop this little ring that makes this bubble and time go slowly inside
+this bubble and time go slowly inside the bubble proceeding faster and faster
+the bubble proceeding faster and faster as you radiate out from it and uh I felt
+as you radiate out from it and uh I felt it was very important for the coherency
+it was very important for the coherency of the world to
+of the world to um to ensure that this affects all
+um to ensure that this affects all moving objects right and through all the
+moving objects right and through all the other worlds there's all this background
+other worlds there's all this background particles that are uh noticeably moving
+particles that are uh noticeably moving and so here particles that are
+and so here particles that are noticeably moving should uh should be
+noticeably moving should uh should be you uh slowed by this as well and what
+you uh slowed by this as well and what that means is that you can't use that
+that means is that you can't use that approach I was talking about before
+approach I was talking about before where you just generate the particles
+where you just generate the particles from a seed because you don't know where
+from a seed because you don't know where the Ring's been for the past while and
+the Ring's been for the past while and so you try to apply that to the seed
+so you try to apply that to the seed data and like it breaks um you get a lot
+data and like it breaks um you get a lot of discontinuities whenever you pick up
+of discontinuities whenever you pick up and drop the ring and stuff so what do
+and drop the ring and stuff so what do you do um well uh you can kind of guess
+you do um well uh you can kind of guess uh I just record it all um but I I'm
+uh I just record it all um but I I'm trying to be careful again to make it
+trying to be careful again to make it small so I made a different kind of
+small so I made a different kind of particle system that is only present in
+particle system that is only present in this world where you have time dilation
+this world where you have time dilation and on those base frames I was talking
+and on those base frames I was talking about before it actually records the
+about before it actually records the positions of all the particles um these
+positions of all the particles um these particles don't have as much animation
+particles don't have as much animation as the particles in the earlier world so
+as the particles in the earlier world so there's not a lot of state to record um
+there's not a lot of state to record um just a position and then a number that
+just a position and then a number that you can get the other properties from
+you can get the other properties from right um because you don't like the the
+right um because you don't like the the ring doesn't affect uh you know the the
+ring doesn't affect uh you know the the color of the particle right it just
+color of the particle right it just affects the time and so you can
+affects the time and so you can reconstruct the color and rotation and
+reconstruct the color and rotation and all that as long as you can reconstruct
+all that as long as you can reconstruct the time um so on non-base frames
+the time um so on non-base frames though um I don't want to try to store
+though um I don't want to try to store diff somehow of all these particles
+diff somehow of all these particles because that's still a giant amount of
+because that's still a giant amount of data like one diff per particle so what
+data like one diff per particle so what I do is I distort where the ring is
+I do is I distort where the ring is because that's the only thing that can
+because that's the only thing that can distort time because the base frames are
+distort time because the base frames are 120 frames apart that's up to 120 frames
+120 frames apart that's up to 120 frames of data about where this time dilating
+of data about where this time dilating object is and when I implemented that
+object is and when I implemented that because I knew I was going to have to do
+because I knew I was going to have to do the next thing I'm about to say but I
+the next thing I'm about to say but I was like no I'm just going to try it and
+was like no I'm just going to try it and it it was a ton of data because on frame
+it it was a ton of data because on frame 119 you're storing 119 frames in that
+119 you're storing 119 frames in that one frame and on frame 18 you stored 118
+one frame and on frame 18 you stored 118 it's uh yeah it adds up real fast so um
+it's uh yeah it adds up real fast so um there's an rle run length encoding kind
+there's an rle run length encoding kind of mechanism in there like that ring
+of mechanism in there like that ring that you're carrying around it's allowed
+that you're carrying around it's allowed to uh I'm being told to cut off all
+to uh I'm being told to cut off all right um I'll take another one minute
+right um I'll take another one minute and then I'll cut cut off uh question
+and then I'll cut cut off uh question come on up to the mic if you got
+one nobody all right thank you very
+[Applause]
+much

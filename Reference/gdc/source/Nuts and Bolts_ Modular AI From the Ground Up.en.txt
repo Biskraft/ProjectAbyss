@@ -1,0 +1,1742 @@
+[Music]
+great thanks Dave okay so let's get started
+so what is modular AI well it's a way to structure your AI architecture it's not
+structure your AI architecture it's not a specific approach in fact you can take
+a specific approach in fact you can take a modular approach and you can apply it
+a modular approach and you can apply it to state machines behavior trees task
+to state machines behavior trees task networks whatever your decision-making
+networks whatever your decision-making structure is you can always make that
+structure is you can always make that more modular in general it emphasizes
+more modular in general it emphasizes small easily reused modules and if you
+small easily reused modules and if you do a good job if you have a nice modular
+do a good job if you have a nice modular architecture it can be absolutely
+architecture it can be absolutely transformative to your development
+transformative to your development process it can allow you to do things
+process it can allow you to do things like fast prototyping rapid iteration
+like fast prototyping rapid iteration it's even going to increase the
+it's even going to increase the stability of your codebase so the nuts
+stability of your codebase so the nuts and bolts what we're going to talk about
+and bolts what we're going to talk about today in this session first off we're
+today in this session first off we're going to go through some of the academic
+going to go through some of the academic underpinnings so we're going to present
+underpinnings so we're going to present some of the theory and talk about how
+some of the theory and talk about how this stuff works
+this stuff works next Kevin's going to come up and give
+next Kevin's going to come up and give some real specific implementation
+some real specific implementation details code samples and really explain
+details code samples and really explain what this looks like
+what this looks like and finally Troy Humphreys is going to
+and finally Troy Humphreys is going to come up and give an example from a from
+come up and give an example from a from a ship game and show what this looks
+a ship game and show what this looks like in practice along with some general
+like in practice along with some general architecture discussion so this is going
+architecture discussion so this is going to be a bit of a slow burn but by the
+to be a bit of a slow burn but by the time we get going hopefully we've lit a
+time we get going hopefully we've lit a nice fire and you're all going to be
+nice fire and you're all going to be encouraged to go out and try to make
+encouraged to go out and try to make your own architectures a little more
+your own architectures a little more modular so my name is Christopher
+modular so my name is Christopher dragger I'm in AI programmer at Ubisoft
+dragger I'm in AI programmer at Ubisoft Toronto my background I'm actually sort
+Toronto my background I'm actually sort of a software engineering engineer by
+of a software engineering engineer by training and it has a lot to say as a
+training and it has a lot to say as a field about modular reuse this is
+field about modular reuse this is something that people have been looking
+something that people have been looking at for 20 years there's lots of theories
+at for 20 years there's lots of theories there's lots of stuff in there what what
+there's lots of stuff in there what what we want to do and in fact what I did
+we want to do and in fact what I did during my own PhD research I took a lot
+during my own PhD research I took a lot of those sort of basic software
+of those sort of basic software engineering principles and I applied
+engineering principles and I applied them to modular AI in particular what I
+them to modular AI in particular what I want to do in my portion of this session
+want to do in my portion of this session is really show how these first
+is really show how these first principles can allow you to develop
+principles can allow you to develop techniques and create a good
+techniques and create a good modularization
+modularization for your own project in fact I'd like
+for your own project in fact I'd like you to be able to think deeply about
+you to be able to think deeply about this topic so that when you're making
+this topic so that when you're making choices about how to modularize things
+choices about how to modularize things you can be working right from first
+you can be working right from first principles and really understand the
+principles and really understand the choices that you're making one of the
+choices that you're making one of the biggest things here is understanding
+biggest things here is understanding modular complexity itself right where
+modular complexity itself right where does it come from what becomes harder
+does it come from what becomes harder and easier when you're doing modular
+and easier when you're doing modular approaches and importantly how to manage
+approaches and importantly how to manage that and how to reduce it because that's
+that and how to reduce it because that's what's going to make your modular
+what's going to make your modular ization successful so let's talk in
+ization successful so let's talk in general about complexity there's sort of
+general about complexity there's sort of breaks down into two main areas the
+breaks down into two main areas the first is essential complexity so this is
+first is essential complexity so this is the problem that you're trying to solve
+the problem that you're trying to solve this is what you're looking at this is
+this is what you're looking at this is what you want to but this is what you
+what you want to but this is what you want to do the other kind of complexity
+want to do the other kind of complexity is accidental complexity these are
+is accidental complexity these are problems created by us right when we say
+problems created by us right when we say oh I want to put this in a special
+oh I want to put this in a special framework and run it on another thread
+framework and run it on another thread and do this and then you know all those
+and do this and then you know all those problems are aside from the core thing
+problems are aside from the core thing that you want to solve so a good
+that you want to solve so a good solution is going to preserve that
+solution is going to preserve that essential complexity and make it so
+essential complexity and make it so you're just working on that and it's
+you're just working on that and it's going to limit the growth of accidental
+going to limit the growth of accidental so let's make this more specific now
+so let's make this more specific now let's get to the topic at hand what
+let's get to the topic at hand what drives modular complexity first first
+drives modular complexity first first big driver is the module itself so the
+big driver is the module itself so the more complex your module is the more
+more complex your module is the more complex your modular solution is going
+complex your modular solution is going to be the interface what do these
+to be the interface what do these modules look like from the outside how
+modules look like from the outside how do we how do we work with these how do
+do we how do we work with these how do we understand them and finally what's
+we understand them and finally what's the process for taking these modules and
+the process for taking these modules and piecing them together how complex is
+piecing them together how complex is that so for the remainder of my talk I'm
+that so for the remainder of my talk I'm going to go through each of those three
+going to go through each of those three areas and just talk about how complexity
+areas and just talk about how complexity grows at each level and how we can
+grows at each level and how we can manage it
+manage it so the first area of the module and if
+so the first area of the module and if there's one thing to take away from this
+there's one thing to take away from this from my portion I want it to be this
+from my portion I want it to be this good modules do not try to do too much
+good modules do not try to do too much the key to a good modular solution is to
+the key to a good modular solution is to have small concise modules one of the
+have small concise modules one of the biggest reasons is that a small module
+biggest reasons is that a small module hours you to more easily understand
+hours you to more easily understand what's going on it has a clear purpose
+what's going on it has a clear purpose if you go to reuse it you can be very
+if you go to reuse it you can be very clear and understanding this is what I'm
+clear and understanding this is what I'm reusing this is the functionality I'm
+reusing this is the functionality I'm getting so you want a good small module
+getting so you want a good small module one of the big ways to accomplish this
+one of the big ways to accomplish this is by limiting the scope of what you try
+is by limiting the scope of what you try to accomplish within a module so one
+to accomplish within a module so one thing you want to do is try to separate
+thing you want to do is try to separate cross-cutting concerns so that's a term
+cross-cutting concerns so that's a term from aspect oriented programming and the
+from aspect oriented programming and the idea is that there might be a
+idea is that there might be a functionality that gets repeated across
+functionality that gets repeated across a whole bunch of modules right so an
+a whole bunch of modules right so an example let's say we have a melee combat
+example let's say we have a melee combat module that selects a target and then
+module that selects a target and then our range combat module is also
+our range combat module is also selecting a target and our flee modules
+selecting a target and our flee modules deciding what target it wants to flee
+deciding what target it wants to flee from right the answer here is should be
+from right the answer here is should be pretty clear we need to take out that
+pretty clear we need to take out that target selection and actually put it in
+target selection and actually put it in its own module right so we need a target
+its own module right so we need a target selection module so we separate this
+selection module so we separate this sort of functional concerns target
+sort of functional concerns target selection is its own thing melee combat
+selection is its own thing melee combat is its own thing that just attacks
+is its own thing that just attacks whatever target its given and we make
+whatever target its given and we make all these modules sort of work from you
+all these modules sort of work from you know communicating with that other
+know communicating with that other target selection module what's great now
+target selection module what's great now is that when you do something like that
+is that when you do something like that you can then say you know what I want to
+you can then say you know what I want to reuse just the target selection module
+reuse just the target selection module and you have that clean separation
+and you have that clean separation another thing you want to do is control
+another thing you want to do is control the size of your modules so this is just
+the size of your modules so this is just a more general comment here we need to
+a more general comment here we need to do this stuff that we already do as AI
+do this stuff that we already do as AI programmers so traditional abstraction
+programmers so traditional abstraction techniques everything that we should
+techniques everything that we should already know and love if you're working
+already know and love if you're working with a state machine for instance you
+with a state machine for instance you want to use hierarchical approaches if
+want to use hierarchical approaches if you have a lot of events going through
+you have a lot of events going through your system you want submitting
+your system you want submitting approaches to help manage your different
+approaches to help manage your different modules if you're working with behavior
+modules if you're working with behavior trees use parallelism where appropriate
+trees use parallelism where appropriate you know all these kind of things that
+you know all these kind of things that we do it becomes doubly important in
+we do it becomes doubly important in modular approaches so that we can
+modular approaches so that we can control the size one thing that we don't
+control the size one thing that we don't think about as much as AI programmers is
+think about as much as AI programmers is a well-defined semantics so what did I
+a well-defined semantics so what did I mean by this well your AI logic should
+mean by this well your AI logic should operate in an understandable and
+operate in an understandable and well-defined fashion normally when we
+well-defined fashion normally when we program things we can often think about
+program things we can often think about you know how is this piece supposed to
+you know how is this piece supposed to work how does it fit into the rest of my
+work how does it fit into the rest of my AI we can kind of solve that problem
+AI we can kind of solve that problem it works but if you can't communicate
+it works but if you can't communicate that then you're going to fall apart to
+that then you're going to fall apart to the next step which is maybe moving that
+the next step which is maybe moving that module between engines or moving it to a
+module between engines or moving it to a different game and I'll give an example
+different game and I'll give an example that really clarifies this so let's say
+that really clarifies this so let's say we have a super simple state machine we
+we have a super simple state machine we have a combat state it receives a flee
+have a combat state it receives a flee event we transition over to the flee
+event we transition over to the flee behavior
+behavior ok now let's add some hierarchy now in
+ok now let's add some hierarchy now in the combat state you can see I've added
+the combat state you can see I've added this fire sub state and it actually has
+this fire sub state and it actually has a transition on the flee event as well
+a transition on the flee event as well so if we're in that fleece state or
+so if we're in that fleece state or sorry if we're in that fire state and we
+sorry if we're in that fire state and we flee what do we do right your
+flee what do we do right your implementation is going to make some
+implementation is going to make some choice do I follow the inner transition
+choice do I follow the inner transition or the outer one I'm not I'm not here to
+or the outer one I'm not I'm not here to talk about the right way to do state
+talk about the right way to do state machines the important thing is that
+machines the important thing is that when you go to reuse this wherever you
+when you go to reuse this wherever you put this we have to make the same choice
+put this we have to make the same choice right our new context our new engine it
+right our new context our new engine it has to make the same choice so we have
+has to make the same choice so we have to communicate what our exactly how
+to communicate what our exactly how these things work what our semantics are
+these things work what our semantics are this example also applies to custom
+this example also applies to custom decorator nodes and behavior trees if we
+decorator nodes and behavior trees if we want to reuse those we need to make sure
+want to reuse those we need to make sure that they're functioning correctly in
+that they're functioning correctly in the new context so moving on I'm gonna
+the new context so moving on I'm gonna talk about the modular interface now
+talk about the modular interface now what does it do well it should
+what does it do well it should communicate the context for the module
+communicate the context for the module so the expectation of that module what
+so the expectation of that module what is it trying to get from the rest of the
+is it trying to get from the rest of the AI what is it providing to the AI we
+AI what is it providing to the AI we should be able to understand that from
+should be able to understand that from the interface if you've done a good job
+the interface if you've done a good job making small concise modules then we
+making small concise modules then we should have a clear easy to understand
+should have a clear easy to understand interface the big step here is that
+interface the big step here is that we're raising the level of abstraction
+we're raising the level of abstraction now one when we have a good interface
+now one when we have a good interface and we can work from it we don't have to
+and we can work from it we don't have to worry about how exactly that module
+worry about how exactly that module operates anymore you can just work
+operates anymore you can just work directly at that interface level which
+directly at that interface level which means you can focus on the essential
+means you can focus on the essential problem of connecting our modules and
+problem of connecting our modules and not worry about sort of all the
+not worry about sort of all the accidental stuff of how that behavior
+accidental stuff of how that behavior works so I've said context a lot what do
+works so I've said context a lot what do I mean by that state machines for
+I mean by that state machines for instance they're an event-based
+instance they're an event-based formalism I'm just going to work through
+formalism I'm just going to work through this example here
+this example here generally they you tend to think about
+generally they you tend to think about input events they might be generated by
+input events they might be generated by other parts of the system they would get
+other parts of the system they would get consumed by our module they might also
+consumed by our module they might also generate output events that would go to
+generate output events that would go to other parts of the system so then our
+other parts of the system so then our interface should tell us what exactly
+interface should tell us what exactly this module is expecting so I'm just
+this module is expecting so I'm just going to build one out here this is for
+going to build one out here this is for a enemy position tracker module we might
+a enemy position tracker module we might want to include some metadata so a
+want to include some metadata so a description of the module this modules
+description of the module this modules parameterize that control the type of
+parameterize that control the type of the I can control the type of the enemy
+the I can control the type of the enemy entity that I want to track and that's
+entity that I want to track and that's about it we don't really need to worry
+about it we don't really need to worry about the functionality now as input
+about the functionality now as input it's going to be looking for a couple
+it's going to be looking for a couple specific events the first would be an
+specific events the first would be an enemy spotted event the second would be
+enemy spotted event the second would be an enemy lost so basically this is
+an enemy lost so basically this is telling it when to start and stop
+telling it when to start and stop tracking we don't really need to worry
+tracking we don't really need to worry about what it's doing to sort of
+about what it's doing to sort of maintain its own list that functionality
+maintain its own list that functionality it doesn't really matter those events
+it doesn't really matter those events are going to come from some other part
+are going to come from some other part of the system and we'll be able to use
+of the system and we'll be able to use them now as output we can then generate
+them now as output we can then generate this enemy position changed event so
+this enemy position changed event so maybe you have a cover module for
+maybe you have a cover module for instance it receives this and it decides
+instance it receives this and it decides whether or not it needs to reevaluate
+whether or not it needs to reevaluate cover so now we can see how we would
+cover so now we can see how we would take this position tracker and sort of
+take this position tracker and sort of situate it within a context moving on a
+situate it within a context moving on a second example here behavior trees so
+second example here behavior trees so these are a bit different in that
+these are a bit different in that they're primarily data-driven what we
+they're primarily data-driven what we want to think about here is sort of how
+want to think about here is sort of how our nodes are communicating with the
+our nodes are communicating with the rest of the behavior tree or the rest of
+rest of the behavior tree or the rest of your a eye architecture well primarily
+your a eye architecture well primarily they're going to be reading input off
+they're going to be reading input off the blackboard to you know understand
+the blackboard to you know understand the context and they're going to be
+the context and they're going to be writing output to that blackboard so
+writing output to that blackboard so when you think about building an
+when you think about building an interface here we want to capture that
+interface here we want to capture that data but a specific warning that's not
+data but a specific warning that's not the full story for behavior trees the
+the full story for behavior trees the reason is that there can be a lot of
+reason is that there can be a lot of different things going on especially in
+different things going on especially in newer behavior trees or we can have
+newer behavior trees or we can have nodes that instead of just returning
+nodes that instead of just returning success or failure they can also run
+success or failure they can also run over multiple frames
+over multiple frames well the question there becomes how do
+well the question there becomes how do we interrupt it where does that
+we interrupt it where does that interruption come from
+interruption come from in fact in other situations you can even
+in fact in other situations you can even have the tree structure itself which is
+have the tree structure itself which is providing this interrupt
+providing this interrupt so somehow we have to deal with this I'm
+so somehow we have to deal with this I'm going to give an example this is
+going to give an example this is something that I've seen in production
+something that I've seen in production code we have a parallel branch here it
+code we have a parallel branch here it goes to the top there and we get a
+goes to the top there and we get a infinitely repeating decorator this is
+infinitely repeating decorator this is just checking a conditional when that
+just checking a conditional when that conditional becomes false this branch is
+conditional becomes false this branch is going to fail out and we're going to
+going to fail out and we're going to move on to do something else but at the
+move on to do something else but at the same time we also have another
+same time we also have another infinitely repeating decorator and it's
+infinitely repeating decorator and it's going to be going through and performing
+going to be going through and performing some behavior at the bottom now say I
+some behavior at the bottom now say I really want that behavior at the bottom
+really want that behavior at the bottom I want to reuse that I want to put it
+I want to reuse that I want to put it somewhere else so then I trimmed that
+somewhere else so then I trimmed that and move it and move it away well what's
+and move it and move it away well what's gonna happen is that I'm gonna introduce
+gonna happen is that I'm gonna introduce a huge bug into my new system because
+a huge bug into my new system because that bottom branch it doesn't know how
+that bottom branch it doesn't know how to stop itself that was happening in the
+to stop itself that was happening in the top branch right so I have this sort of
+top branch right so I have this sort of functionality that's now split and
+functionality that's now split and there's a dependence between these two
+there's a dependence between these two branches if I want to get that to work
+branches if I want to get that to work correctly I'm gonna need to reuse the
+correctly I'm gonna need to reuse the whole thing right I need to include that
+whole thing right I need to include that that stopped case so these are the kind
+that stopped case so these are the kind of things that you need to look out for
+of things that you need to look out for when you're specifically trying to use
+when you're specifically trying to use behavior trees so I'm gonna move on to
+behavior trees so I'm gonna move on to the the third and final area which is
+the the third and final area which is just an overview of integration so this
+just an overview of integration so this is the process that we actually use to
+is the process that we actually use to fit these modules together if you've
+fit these modules together if you've done a good job in creating concise
+done a good job in creating concise modules clear interfaces then
+modules clear interfaces then integrations should be straightforward
+integrations should be straightforward right
+right if you've made mistakes if you have big
+if you've made mistakes if you have big complicated modules this part is going
+complicated modules this part is going to be really hard so a lot of your area
+to be really hard so a lot of your area errors are going to become apparent here
+errors are going to become apparent here essentially what we're trying to do is
+essentially what we're trying to do is connect the output from one module to
+connect the output from one module to the input in another right it's a fairly
+the input in another right it's a fairly straightforward thing and we should be
+straightforward thing and we should be able to focus explicitly on that
+able to focus explicitly on that everything else is accidental complexity
+everything else is accidental complexity so you really want to try and limit
+so you really want to try and limit anything that detracts from that core
+anything that detracts from that core problem the complexity of this we can
+problem the complexity of this we can manage it a lot by making sure that
+manage it a lot by making sure that module connections are derived will
+module connections are derived will solely from the interface so as
+solely from the interface so as programmers we need to treat this almost
+programmers we need to treat this almost like an API right and in fact the other
+like an API right and in fact the other thing this does is that this preserves
+thing this does is that this preserves modular encapsulation this is just like
+modular encapsulation this is just like object-oriented programming now where we
+object-oriented programming now where we want to make sure we're working
+want to make sure we're working our high-level interface and we're not
+our high-level interface and we're not creating spaghetti code and digging
+creating spaghetti code and digging inside so for all the same reasons that
+inside so for all the same reasons that you know encapsulation is good a normal
+you know encapsulation is good a normal code it's just as good in modular AI so
+code it's just as good in modular AI so if you do this consistently and if you
+if you do this consistently and if you do it well you can start to add tool
+do it well you can start to add tool support right and this can tell you
+support right and this can tell you things like I have an output from one
+things like I have an output from one module that's not consumed anywhere or I
+module that's not consumed anywhere or I have this data that I'm trying to read
+have this data that I'm trying to read off the blackboard that no one else
+off the blackboard that no one else writes you can start to see those errors
+writes you can start to see those errors really quickly and really easily and
+really quickly and really easily and then that will teach you okay I need to
+then that will teach you okay I need to add this module or I need to have
+add this module or I need to have something contributing that data one
+something contributing that data one last thing I want to talk about here is
+last thing I want to talk about here is module coupling the goal here is to
+module coupling the goal here is to create loosely coupled modules so these
+create loosely coupled modules so these are when you have a loosely coupled
+are when you have a loosely coupled system a missing module impaired impairs
+system a missing module impaired impairs only that behavior what do I mean by
+only that behavior what do I mean by that well if you think about our target
+that well if you think about our target selection example earlier where we had
+selection example earlier where we had our mealy module let's say we take that
+our mealy module let's say we take that target selection module and we pull it
+target selection module and we pull it out so there's now nothing in your AI
+out so there's now nothing in your AI that selects targets well I would want
+that selects targets well I would want my mealy module just to say oh I don't
+my mealy module just to say oh I don't have a target I'm not gonna do anything
+have a target I'm not gonna do anything but other functionality within that AI
+but other functionality within that AI so a wander behavior interacting with
+so a wander behavior interacting with environmental objects all of that should
+environmental objects all of that should still be able to happen right if you
+still be able to happen right if you have this approach then you can really
+have this approach then you can really quickly and easily start to add modules
+quickly and easily start to add modules to do fast prototyping you can change
+to do fast prototyping you can change your composition to rapidly iterate on
+your composition to rapidly iterate on this the alternative is a tightly
+this the alternative is a tightly coupled module so this is where maybe
+coupled module so this is where maybe one module is you know actually calling
+one module is you know actually calling a function that's written in another one
+a function that's written in another one if you pull one module out you're gonna
+if you pull one module out you're gonna have a compilation failure maybe we have
+have a compilation failure maybe we have our mealy module with no target it still
+our mealy module with no target it still tries to run in the crashes you know
+tries to run in the crashes you know these kind of things you don't want that
+these kind of things you don't want that that's what you need to try to avoid
+that's what you need to try to avoid everything should be as loosely coupled
+everything should be as loosely coupled as possible when you have problems like
+as possible when you have problems like this a lot of times it's caused by
+this a lot of times it's caused by broken encapsulation when you're not
+broken encapsulation when you're not working through the interface or you
+working through the interface or you could have a modular concern some kind
+could have a modular concern some kind of functionality that's spread across
+of functionality that's spread across multiple modules special cases in
+multiple modules special cases in general are really dangerous I'm just
+general are really dangerous I'm just going to go through one straightforward
+going to go through one straightforward example here let's say we have a sensor
+example here let's say we have a sensor module and
+module and every time our AI spots a new enemy it
+every time our AI spots a new enemy it creates this new enemy spotted event and
+creates this new enemy spotted event and then we have a reaction module and every
+then we have a reaction module and every time it receives that event it's going
+time it receives that event it's going to play in animation it's going to play
+to play in animation it's going to play some reaction but we actually run this
+some reaction but we actually run this and we find oh wait i'm seeing that
+and we find oh wait i'm seeing that reaction way way way too often i mean i
+reaction way way way too often i mean i need to turn that down
+need to turn that down so i want to add some hysteresis I'm
+so i want to add some hysteresis I'm gonna make my event system all the
+gonna make my event system all the events are going through there so I'm
+events are going through there so I'm just gonna add a filter it's gonna cap
+just gonna add a filter it's gonna cap generation of these new enemy spotted
+generation of these new enemy spotted events no more than one per minute so
+events no more than one per minute so now everything looks good but then I go
+now everything looks good but then I go to reuse it and I put my sensor and my
+to reuse it and I put my sensor and my reaction module in a new context and
+reaction module in a new context and that same bug is going to appear again
+that same bug is going to appear again right because I lost that filtering bit
+right because I lost that filtering bit and there's no obvious way about how
+and there's no obvious way about how this should work right I don't have a
+this should work right I don't have a filtering module I haven't created a
+filtering module I haven't created a filtered reaction or anything like that
+filtered reaction or anything like that so these kind of things they're kind of
+so these kind of things they're kind of dangerous a lot of times are because of
+dangerous a lot of times are because of broken module encapsulation here it's a
+broken module encapsulation here it's a functionality that's mixed across a few
+functionality that's mixed across a few things but let's say we do all this
+things but let's say we do all this right we're going to get a nice payoff
+right we're going to get a nice payoff the first is fast prototyping right we
+the first is fast prototyping right we can now quickly and easily add our
+can now quickly and easily add our modules we can fine-tune we can
+modules we can fine-tune we can parameterize these module interfaces so
+parameterize these module interfaces so that we can say this specific module in
+that we can say this specific module in this AI is going to have this set of
+this AI is going to have this set of parameters and this other ones going to
+parameters and this other ones going to be slightly different so we don't lose
+be slightly different so we don't lose that ability to polish our AI and
+that ability to polish our AI and probably the biggest thing here is that
+probably the biggest thing here is that the development process overall it's
+the development process overall it's gonna be better right we can reuse
+gonna be better right we can reuse existing behavior we can get to a
+existing behavior we can get to a baseline very quickly and that means the
+baseline very quickly and that means the bulk of our development time we can
+bulk of our development time we can spend innovating and we can spend
+spend innovating and we can spend creating new behaviors so that you can
+creating new behaviors so that you can really try to push the boundary of what
+really try to push the boundary of what your AI can do so I'm just going to
+your AI can do so I'm just going to summarize a good modular approach it's
+summarize a good modular approach it's gonna check all these boxes we're going
+gonna check all these boxes we're going to use small modules that do a nice job
+to use small modules that do a nice job separating functional concerns we're
+separating functional concerns we're gonna operate with a well-defined
+gonna operate with a well-defined semantics so we can always understand
+semantics so we can always understand how this thing should run it has a clear
+how this thing should run it has a clear interface so that people can understand
+interface so that people can understand how to connect it all of our connections
+how to connect it all of our connections are going to respect modular
+are going to respect modular encapsulation and we're going to use a
+encapsulation and we're going to use a loose coupling approach so that we can
+loose coupling approach so that we can really quickly and easily swap modules
+really quickly and easily swap modules and swap compositions so if you've done
+and swap compositions so if you've done all that if you
+all that if you checked all those boxes you're off to a
+checked all those boxes you're off to a great start thank you all right there we
+great start thank you all right there we go
+go so I'm Kevin dill I wanted to start with
+so I'm Kevin dill I wanted to start with a little bit of motivation from my point
+a little bit of motivation from my point of view some of what makes my floor AI
+of view some of what makes my floor AI so exciting to me so as I was thinking
+so exciting to me so as I was thinking about this talk and I was thinking about
+about this talk and I was thinking about why it works and what makes it powerful
+why it works and what makes it powerful I remember to talk to Chris Hector gave
+I remember to talk to Chris Hector gave back in 2008 called structure versus
+back in 2008 called structure versus style and he basically made the case
+style and he basically made the case that a lot of problems that we have made
+that a lot of problems that we have made great progress on have this sort of
+great progress on have this sort of structure versus style decomposition and
+structure versus style decomposition and Graphix is one example where you get the
+Graphix is one example where you get the texture map triangle which is your
+texture map triangle which is your structure and then your style is all the
+structure and then your style is all the ways you can use textures and triangles
+ways you can use textures and triangles and you get graphics right you get
+and you get graphics right you get scenes and beauty and and awesomeness
+scenes and beauty and and awesomeness and as a result of this decomposition
+and as a result of this decomposition graphics he argues has made huge
+graphics he argues has made huge bounding leaps over the last 30 years
+bounding leaps over the last 30 years and AI has not so his suggestion was
+and AI has not so his suggestion was part of the reason that AI has not made
+part of the reason that AI has not made these leaps is that we don't have a
+these leaps is that we don't have a structure versus style decomposition for
+structure versus style decomposition for AI so there was a lot of discussion back
+AI so there was a lot of discussion back and forth in the community some people
+and forth in the community some people said Chris's are in cracks when people
+said Chris's are in cracks when people said Chris is brilliant but I don't know
+said Chris is brilliant but I don't know what the structure versus tile
+what the structure versus tile decomposition is I'd like to suggest
+decomposition is I'd like to suggest that modular AI gives us the opportunity
+that modular AI gives us the opportunity to have the start of this sort of
+to have the start of this sort of structure versus style decomposition so
+structure versus style decomposition so I you know and I think that's why it
+I you know and I think that's why it allows us to work so much quicker and
+allows us to work so much quicker and hopefully will continue to progress
+hopefully will continue to progress forward for us so I should also mention
+forward for us so I should also mention that everything that I talk about is
+that everything that I talk about is going to be pulled out of ideas from the
+going to be pulled out of ideas from the game AI architecture the fact that it's
+game AI architecture the fact that it's game AI isn't interesting to this
+game AI isn't interesting to this community but I work for our military
+community but I work for our military simulation company Lockheed Martin so
+simulation company Lockheed Martin so that's an important distinction to them
+that's an important distinction to them as opposed to drew you know traditional
+as opposed to drew you know traditional more academic kinds of AI this
+more academic kinds of AI this architecture has been used across
+architecture has been used across probably six very different projects to
+probably six very different projects to solve different kinds of AI problems
+solve different kinds of AI problems right character
+right character versus flight simulators versus other
+versus flight simulators versus other stuff it's been integrated into a bunch
+stuff it's been integrated into a bunch of different engines at this point and
+of different engines at this point and something important to mention is I set
+something important to mention is I set out of course to create an architecture
+out of course to create an architecture I could reuse but I never was able to
+I could reuse but I never was able to just sit down and build the architecture
+just sit down and build the architecture ever all the work that I've done on this
+ever all the work that I've done on this architecture has been done in the
+architecture has been done in the context of working on a project and by
+context of working on a project and by just making sure that I keep my
+just making sure that I keep my architecture deep decoupled from the
+architecture deep decoupled from the simulation so I can carry it with me or
+simulation so I can carry it with me or from the game so I can carry it with me
+from the game so I can carry it with me from project to project I've got all of
+from project to project I've got all of this you know now large reusable code
+this you know now large reusable code base that's really powerful so what the
+base that's really powerful so what the agenda for my portion of the talk I'm
+agenda for my portion of the talk I'm going to talk about what I think my
+going to talk about what I think my jewelry is of course Chris just gave us
+jewelry is of course Chris just gave us a bunch of that I'm going to talk about
+a bunch of that I'm going to talk about some common conceptual abstractions and
+some common conceptual abstractions and you know what that means by the time I
+you know what that means by the time I get there I'm gonna give it just a brief
+get there I'm gonna give it just a brief example of a small portion of a sniper
+example of a small portion of a sniper character I'm gonna give a few
+character I'm gonna give a few implementation details as time permits
+implementation details as time permits and then I'll leave you with some
+and then I'll leave you with some parting thoughts so the big idea behind
+parting thoughts so the big idea behind modular behind modular architectures is
+modular behind modular architectures is that I want to be working at the right
+that I want to be working at the right level of granularity I want to be using
+level of granularity I want to be using sort of bite-sized pieces and by
+sort of bite-sized pieces and by bite-size that you know Kristen well
+bite-size that you know Kristen well they can't be too big and that's
+they can't be too big and that's definitely true if they're too big then
+definitely true if they're too big then I can't tune them and customize them to
+I can't tune them and customize them to the needs of this specific instance
+the needs of this specific instance where I'm sticking them in but they also
+where I'm sticking them in but they also can't be too small and lines of C++ code
+can't be too small and lines of C++ code are much too small as I'm defining
+are much too small as I'm defining behavior I don't want to be thinking
+behavior I don't want to be thinking about implementation details about how
+about implementation details about how do I get the position or should I use
+do I get the position or should I use distance or distance squared that kind
+distance or distance squared that kind of stuff I don't want to be worried
+of stuff I don't want to be worried about that when I'm defining behavior
+about that when I'm defining behavior that's just as distracting each piece
+that's just as distracting each piece that I plug in should ideally be sort of
+that I plug in should ideally be sort of a single human concept so something like
+a single human concept so something like how far away is here how long have I
+how far away is here how long have I been doing this or do I have any
+been doing this or do I have any grenades left right but it doesn't have
+grenades left right but it doesn't have to be just the decision-making part it
+to be just the decision-making part it could also be the actions right I want
+could also be the actions right I want to move over there I want to shoot at
+to move over there I want to shoot at that guy right that kind of stuff
+that guy right that kind of stuff so to get these bite-sized pieces we
+so to get these bite-sized pieces we start with what I've been calling
+start with what I've been calling conceptual abstractions conceptual
+conceptual abstractions conceptual abstractions are the different types of
+abstractions are the different types of pieces that we might plan together so
+pieces that we might plan together so for example a consideration is one
+for example a consideration is one conceptual abstraction considerations
+conceptual abstraction considerations evaluate some aspects of the situation
+evaluate some aspects of the situation and then I
+and then I combine the considerations together to
+combine the considerations together to get an overall decision actions are a
+get an overall decision actions are a different conceptual abstraction right
+different conceptual abstraction right actions are the things that I'm going to
+actions are the things that I'm going to do as a result of some decision that
+do as a result of some decision that I've made once I've got my conceptual
+I've made once I've got my conceptual abstractions then I start to build
+abstractions then I start to build modular components these are
+modular components these are implementations of the different
+implementations of the different abstractions so a distance consideration
+abstractions so a distance consideration measures the distance between two points
+measures the distance between two points and gives some evaluation of that a move
+and gives some evaluation of that a move action handles moving from one position
+action handles moving from one position to or moving to some specific distant
+to or moving to some specific distant position another thing just to keep in
+position another thing just to keep in mind is you know no surprise this is
+mind is you know no surprise this is data-driven right so my implementation
+data-driven right so my implementation is all the C++ side and then I've got a
+is all the C++ side and then I've got a configuration which I'll often call my
+configuration which I'll often call my behavior specification right where I'm
+behavior specification right where I'm defining the behavior for a particular
+defining the behavior for a particular character and I'm plugging in these
+character and I'm plugging in these modular components to create
+modular components to create decision-making algorithms so running
+decision-making algorithms so running through a few common conceptual
+through a few common conceptual abstractions the first one to talk about
+abstractions the first one to talk about is the reasoner the reasoner is the big
+is the reasoner the reasoner is the big thing that makes decisions so it could
+thing that makes decisions so it could be any decision making architecture that
+be any decision making architecture that you want it could be utility based it
+you want it could be utility based it could be rule based it could be a finite
+could be rule based it could be a finite state machine it could just be a
+state machine it could just be a sequence of actions that are always run
+sequence of actions that are always run in the same order no matter you know no
+in the same order no matter you know no considerations are used right if you
+considerations are used right if you want some scripted behavior or something
+want some scripted behavior or something like that and different reasoner's make
+like that and different reasoner's make sense in different places right even if
+sense in different places right even if I am doing you know fighting AI and a
+I am doing you know fighting AI and a shooting game right I might still have
+shooting game right I might still have some sequences where you know I aim fire
+some sequences where you know I aim fire and fire right that's just a sequence I
+and fire right that's just a sequence I don't need to make any decisions in
+don't need to make any decisions in there so I'm gonna stick in a sequence
+there so I'm gonna stick in a sequence reasoner just to do that one little bit
+reasoner just to do that one little bit considerations evaluate a single aspect
+considerations evaluate a single aspect of the current situation again there are
+of the current situation again there are lots of different kinds of
+lots of different kinds of considerations right a distance
+considerations right a distance consideration and execution history
+consideration and execution history consideration looks at how long I've
+consideration looks at how long I've been doing something or how long since I
+been doing something or how long since I last did it on the picker is a
+last did it on the picker is a particularly interesting consideration
+particularly interesting consideration it goes through all of the entities that
+it goes through all of the entities that I know about and it can apply some
+I know about and it can apply some filters or it can actually use it a
+filters or it can actually use it a reason or internally to pick among all
+reason or internally to pick among all of the entities so for instance if I
+of the entities so for instance if I want to pick a target to shoot at I
+want to pick a target to shoot at I could have a picker consideration that
+could have a picker consideration that picks its heart based on how far away it
+picks its heart based on how far away it is how much cover it
+is how much cover it has it been marked as an officer because
+has it been marked as an officer because if I'm a sniper I prefer to shoot at
+if I'm a sniper I prefer to shoot at officers is it firing at me is it
+officers is it firing at me is it looking at me whatever else I want to
+looking at me whatever else I want to put into that decision I put inside the
+put into that decision I put inside the picker and then the picker just handles
+picker and then the picker just handles picking the one entity and scoring based
+picking the one entity and scoring based on whether it finds something or not and
+on whether it finds something or not and it also by the way writes that entity on
+it also by the way writes that entity on the blackboard so that I can reuse it
+the blackboard so that I can reuse it when I want to shoot at it or chase it
+when I want to shoot at it or chase it or run away from it or whatever I'm
+or run away from it or whatever I'm gonna do actions are the things that I'm
+gonna do actions are the things that I'm actually gonna do once an option gets
+actually gonna do once an option gets selected so things like moving or firing
+selected so things like moving or firing a weapon again an interesting action is
+a weapon again an interesting action is the sub reason or action the sub reason
+the sub reason or action the sub reason interaction contains another reason er
+interaction contains another reason er so this is how I get my hierarchy right
+so this is how I get my hierarchy right I have a high level decision that picks
+I have a high level decision that picks I want it to shoot at enemies and then a
+I want it to shoot at enemies and then a lower level reason or inside of there
+lower level reason or inside of there that handles the aim fire aspects
+that handles the aim fire aspects perhaps targets are how I specify
+perhaps targets are how I specify positions or entities I need to use
+positions or entities I need to use those two things all over the place
+those two things all over the place right a distance consideration measures
+right a distance consideration measures the distance between two targets what
+the distance between two targets what are the targets well they could be
+are the targets well they could be anything right it could be me right the
+anything right it could be me right the character that's under control it could
+character that's under control it could be a named entity may be the name of the
+be a named entity may be the name of the entity is player right I want to measure
+entity is player right I want to measure the distance between myself and the
+the distance between myself and the player it could be a fixed position it
+player it could be a fixed position it could be the camera it could be an
+could be the camera it could be an entity that's been written to the
+entity that's been written to the blackboard right lots of different kinds
+blackboard right lots of different kinds of targets can just be plugged in you
+of targets can just be plugged in you know not only in the distance
+know not only in the distance consideration but in the move action or
+consideration but in the move action or the fire action or anywhere that I need
+the fire action or anywhere that I need that sort of thing
+that sort of thing weight functions are a good example of
+weight functions are a good example of the kind of cross-cutting concerns that
+the kind of cross-cutting concerns that Chris was talking about
+Chris was talking about so in considerations I found a lot of
+so in considerations I found a lot of considerations come down to they have a
+considerations come down to they have a floating-point number right a distance
+floating-point number right a distance consideration is a number right the the
+consideration is a number right the the number of the distance in meters
+number of the distance in meters execution history consideration also
+execution history consideration also gives me a number it's the amount of
+gives me a number it's the amount of times and something happened so I want a
+times and something happened so I want a standard way to convert from a number to
+standard way to convert from a number to whatever the output of my consideration
+whatever the output of my consideration is and I'm not going to tell you what
+is and I'm not going to tell you what that should be today because there's not
+that should be today because there's not time but the considerations that I use
+time but the considerations that I use return three different values so the job
+return three different values so the job of the weight function is to in some
+of the weight function is to in some standard way convert from a
+standard way convert from a floating-point number or an integer or
+floating-point number or an integer or recently I've added the ability to have
+recently I've added the ability to have entities so you can pass an end
+entities so you can pass an end to a weight function and it returns an
+to a weight function and it returns an evaluation on the basis of that to the
+evaluation on the basis of that to the output of the consideration so the
+output of the consideration so the boolean weight function for instance
+boolean weight function for instance just says it treats it as a boolean
+just says it treats it as a boolean right so for instance that picker is
+right so for instance that picker is going to return the number of entities
+going to return the number of entities that it finds typically it uses a
+that it finds typically it uses a boolean weight function which says if I
+boolean weight function which says if I find zero entities then return this set
+find zero entities then return this set of weight values and if I find one or
+of weight values and if I find one or more entities then use this other set of
+more entities then use this other set of weight values right did I find it or not
+weight values right did I find it or not the distance consideration could use
+the distance consideration could use something like a float sequence for
+something like a float sequence for instance if I want to say I do one set
+instance if I want to say I do one set of things if the distance is between 0
+of things if the distance is between 0 and 50 another if it's between 50 and
+and 50 another if it's between 50 and 100 and a third if it's over a hundred
+100 and a third if it's over a hundred right the float sequence breaks the
+right the float sequence breaks the float in two regions and then it returns
+float in two regions and then it returns a different set of weight functions for
+a different set of weight functions for each regions a simple curve is the kind
+each regions a simple curve is the kind of thing that you're dave mark talked
+of thing that you're dave mark talked about all the time where you want to
+about all the time where you want to take the number and maybe apply some
+take the number and maybe apply some sort of formula to it to turn it into an
+sort of formula to it to turn it into an s-shaped curved or a parabola and then
+s-shaped curved or a parabola and then you're going to take that maybe you want
+you're going to take that maybe you want to normalize it you're going to stick it
+to normalize it you're going to stick it into one of the weight values that
+into one of the weight values that you're gonna return the simple curve
+you're gonna return the simple curve weight function handles all of that kind
+weight function handles all of that kind of logic and there are other special
+of logic and there are other special purpose weight functions that get used
+purpose weight functions that get used in other places the last thing I'll
+in other places the last thing I'll mention is a region a region is just a
+mention is a region a region is just a standard way to define some space in the
+standard way to define some space in the world right it could be a spawnvolume it
+world right it could be a spawnvolume it could be for my sniper if he's firing
+could be for my sniper if he's firing down into a marketplace I could define
+down into a marketplace I could define the kill zone for him and you know I
+the kill zone for him and you know I might represent that as a circle or a
+might represent that as a circle or a rectangle or a polygon in the latest
+rectangle or a polygon in the latest work that I've been doing on flight
+work that I've been doing on flight simulators quite often the military has
+simulators quite often the military has a line and when an aircraft crosses the
+a line and when an aircraft crosses the line that changes their behavior they
+line that changes their behavior they change to a different stage of
+change to a different stage of engagement right so it could be here's a
+engagement right so it could be here's a line in the sand and in one side is one
+line in the sand and in one side is one region and one side the other side is
+region and one side the other side is the other right regions just have to be
+the other right regions just have to be able to know if you're in the region or
+able to know if you're in the region or not and maybe if you want to do
+not and maybe if you want to do something like a random wander it's used
+something like a random wander it's used to be useful to be able to pick a random
+to be useful to be able to pick a random position inside of the region so moving
+position inside of the region so moving on to the sniper example imagine that we
+on to the sniper example imagine that we have a sniper character and this is
+have a sniper character and this is drawn from a real character that we did
+drawn from a real character that we did build although it's not exactly out of
+build although it's not exactly out of that character
+that character and the sniper does a bunch of different
+and the sniper does a bunch of different things right he can move away he can
+things right he can move away he can whatever other things he needs to do but
+whatever other things he needs to do but one of the most important things he's
+one of the most important things he's going to do is he's going to be in this
+going to do is he's going to be in this sort of sniping behavior where
+sort of sniping behavior where periodically every minute or two this is
+periodically every minute or two this is military simulation now not games so
+military simulation now not games so every minute or two he wants to take a
+every minute or two he wants to take a shot at the enemy in games it would
+shot at the enemy in games it would probably be more often but also this is
+probably be more often but also this is military simulation so unlike most game
+military simulation so unlike most game characters our sniper wants to live so
+characters our sniper wants to live so if he doesn't have a line of retreat
+if he doesn't have a line of retreat he's not going to take a shot right and
+he's not going to take a shot right and that's pretty common for real-world
+that's pretty common for real-world snipers if they don't think they have a
+snipers if they don't think they have a way to get away then they're not going
+way to get away then they're not going to engage hopefully there a way to plug
+to engage hopefully there a way to plug in do you know you don't see why sorry I
+in do you know you don't see why sorry I just got a battery warning all right and
+just got a battery warning all right and also with each additional shot he wants
+also with each additional shot he wants to decrease the priority of taking
+to decrease the priority of taking further shots because every shot
+further shots because every shot increases the risk that the enemy will
+increases the risk that the enemy will figure out where he is so he's gonna
+figure out where he is so he's gonna have an option somewhere in some reason
+have an option somewhere in some reason or it's probably gonna be a utility
+or it's probably gonna be a utility based reasoner that's picking the high
+based reasoner that's picking the high level thing he's gonna do that is the
+level thing he's gonna do that is the take a shot option and that option is
+take a shot option and that option is going to have some considerations on it
+going to have some considerations on it that tell us when we should do this
+that tell us when we should do this thing and then some actions that say
+thing and then some actions that say what we should do in the case that it
+what we should do in the case that it gets picked after dodging we this is
+gets picked after dodging we this is great extra challenge I really know I
+great extra challenge I really know I blocked I probably shouldn't take any
+blocked I probably shouldn't take any shots so the first consideration we're
+shots so the first consideration we're gonna have is an execution history
+gonna have is an execution history consideration the job of this
+consideration the job of this consideration is to make sure that we
+consideration is to make sure that we only take a shot every minute or two so
+only take a shot every minute or two so execution history consideration can be
+execution history consideration can be configured in a couple of different ways
+configured in a couple of different ways in this case we're giving it a stopped
+in this case we're giving it a stopped weight function which is the weight
+weight function which is the weight function that gets used when the option
+function that gets used when the option is not currently running so this
+is not currently running so this consideration is going to do its work
+consideration is going to do its work when we're not in the process of taking
+when we're not in the process of taking a shot and that execution history
+a shot and that execution history consideration is going to just pass the
+consideration is going to just pass the amount of time since we were last
+amount of time since we were last executing into this wave function the
+executing into this wave function the weight function is a float sequence so
+weight function is a float sequence so it's going to divide
+it's going to divide that floating point possible values into
+that floating point possible values into in this case two areas one that's less
+in this case two areas one that's less than some random amount between 6000 you
+than some random amount between 6000 you guys can't argue you're not gonna be
+guys can't argue you're not gonna be able to see the mouse 60 and 120 and in
+able to see the mouse 60 and 120 and in the case that it's in between 773 is the
+the case that it's in between 773 is the number of the spectra say it's less than
+number of the spectra say it's less than 73 seconds then the weight values that
+73 seconds then the weight values that I'm gonna return are to set Vito to true
+I'm gonna return are to set Vito to true and Vito just says I don't care what any
+and Vito just says I don't care what any other consideration says you cannot do
+other consideration says you cannot do this right now
+this right now right it's an absolute veto otherwise if
+right it's an absolute veto otherwise if it's over 73 seconds then we're gonna
+it's over 73 seconds then we're gonna set Vito to false which is effectively
+set Vito to false which is effectively and no up it says you know what I don't
+and no up it says you know what I don't care right ask the other considerations
+care right ask the other considerations do it if you want it's up to you the
+do it if you want it's up to you the next consideration we're gonna have is
+next consideration we're gonna have is going to be a picker consideration this
+going to be a picker consideration this one is defined globally partly because
+one is defined globally partly because there's not space on the slide but also
+there's not space on the slide but also because this is picking a target and we
+because this is picking a target and we likely would have other behaviors that
+likely would have other behaviors that would also want to pick a target to
+would also want to pick a target to shoot at in different situations and the
+shoot at in different situations and the picker is gonna do the kinds of stuff I
+picker is gonna do the kinds of stuff I said before right it's gonna look at the
+said before right it's gonna look at the targets check that they're in the
+targets check that they're in the marketplace check the distance to them
+marketplace check the distance to them check how much cover they have look for
+check how much cover they have look for ones that it knows to be an officer if
+ones that it knows to be an officer if it happens to know that and use all of
+it happens to know that and use all of those values to pick the best target to
+those values to pick the best target to shoot at and then it's going to use a
+shoot at and then it's going to use a boolean weight function to say if I've
+boolean weight function to say if I've got something to shoot at then set Vito
+got something to shoot at then set Vito to false otherwise set Vito to true if I
+to false otherwise set Vito to true if I don't have anything to shoot at then I
+don't have anything to shoot at then I can't shoot and it's also going to write
+can't shoot and it's also going to write that target to the blackboard for use
+that target to the blackboard for use later the third consideration is a
+later the third consideration is a another picker that's defined globally
+another picker that's defined globally the names on these by the way so
+the names on these by the way so Global's are defined somewhere else and
+Global's are defined somewhere else and they're given a name and the name just
+they're given a name and the name just tells me which global to stick in this
+tells me which global to stick in this one is going to use a region to define
+one is going to use a region to define my area of retreat and it's going to use
+my area of retreat and it's going to use a picker just to check if there are any
+a picker just to check if there are any entities in that area even wait well
+entities in that area even wait well cheat and use all entities rather than
+cheat and use all entities rather than just using known entities in order to
+just using known entities in order to get the behavior to do what I really
+get the behavior to do what I really want and avoid it looking stupid when
+want and avoid it looking stupid when the when the player goes well you should
+the when the player goes well you should have known about that entity but he
+have known about that entity but he didn't and last but not least I'm gonna
+didn't and last but not least I'm gonna use an integer variable consideration
+use an integer variable consideration this just looks on the blackboard for
+this just looks on the blackboard for variable name num shots which should be
+variable name num shots which should be an integer and then it's going to pass
+an integer and then it's going to pass that integer into a basic curve the
+that integer into a basic curve the basic curve is going to transform that
+basic curve is going to transform that integer into something that decreases
+integer into something that decreases the priority of this option with each as
+the priority of this option with each as they as the number of shots increases
+they as the number of shots increases right so that's how I try and decrease
+right so that's how I try and decrease priority with each successive shot if
+priority with each successive shot if this option gets selected it's going to
+this option gets selected it's going to do things two things first it's going to
+do things two things first it's going to update that integer variable num shot so
+update that integer variable num shot so it's going to incur in this case the
+it's going to incur in this case the update we're gonna do is an increment
+update we're gonna do is an increment write this action could also just set it
+write this action could also just set it to a static value but that's not what we
+to a static value but that's not what we want to do here so this is how we keep
+want to do here so this is how we keep track of how many shots we fired each
+track of how many shots we fired each time this option gets selected this
+time this option gets selected this action increments the number of shots
+action increments the number of shots that have been fired and I also have a
+that have been fired and I also have a global action because other people might
+global action because other people might want to do the same thing that's going
+want to do the same thing that's going to fire at the target that we wrote to
+to fire at the target that we wrote to the blackboard and that probably has
+the blackboard and that probably has some more logic inside of it that
+some more logic inside of it that handles going through whatever sequence
+handles going through whatever sequence of fire actions making sure I'm in the
+of fire actions making sure I'm in the right animation and that sort of thing
+right animation and that sort of thing so what does all of this buy me the most
+so what does all of this buy me the most important thing is that as I'm doing my
+important thing is that as I'm doing my work right as I'm specifying behavior
+work right as I'm specifying behavior I'm thinking at the appropriate level of
+I'm thinking at the appropriate level of abstraction right not too big not too
+abstraction right not too big not too small
+small definitely not implementation details so
+definitely not implementation details so if you look at this execution history
+if you look at this execution history consideration for instance I enter about
+consideration for instance I enter about six values right its execution history
+six values right its execution history it's a float sequence the minimum and
+it's a float sequence the minimum and maximum values and what to set the vetos
+maximum values and what to set the vetos true and that expands out to probably a
+true and that expands out to probably a couple hundred lines of code and it's
+couple hundred lines of code and it's not just the obvious you know keeping
+not just the obvious you know keeping track of when the last time I did it is
+track of when the last time I did it is but also little things like getting that
+but also little things like getting that random number and making sure that that
+random number and making sure that that random number is updated at appropriate
+random number is updated at appropriate time so each time I take a shot I want
+time so each time I take a shot I want to pick a new random number for the next
+to pick a new random number for the next shot but I don't want to pick that every
+shot but I don't want to pick that every frame right because then it's quickly
+frame right because then it's quickly just going to be 60 because I'm picking
+just going to be 60 because I'm picking it you know over and over as it gets
+it you know over and over as it gets smaller or sooner or later it's gonna be
+smaller or sooner or later it's gonna be small enough that I fire so that's not
+small enough that I fire so that's not hard to do but it's a little bit tricky
+hard to do but it's a little bit tricky you can introduce a bug there right so
+you can introduce a bug there right so you'd rather implement at once and then
+you'd rather implement at once and then reuse it the other thing to notice is
+reuse it the other thing to notice is that the values that I'm specifying are
+that the values that I'm specifying are the relevant ones if I were describing
+the relevant ones if I were describing to you when the sniper takes a shot like
+to you when the sniper takes a shot like I just did the things that I would tell
+I just did the things that I would tell you are things like
+you are things like he's gonna take a shot every minute or
+he's gonna take a shot every minute or two right so what am i putting in here
+two right so what am i putting in here that you know the time since the last
+that you know the time since the last shot needs to be between one and two
+shot needs to be between one and two minutes right that's exactly the same
+minutes right that's exactly the same values that I gave it that I tell you in
+values that I gave it that I tell you in my human description of what I'm doing
+my human description of what I'm doing this also allows me to have really
+this also allows me to have really broadly use both of the code itself
+broadly use both of the code itself right this execution history
+right this execution history consideration gets used lots of places
+consideration gets used lots of places this weight function gets used even more
+this weight function gets used even more places but also the XML right if there's
+places but also the XML right if there's something that gets reused a lot then I
+something that gets reused a lot then I can define it globally and then just
+can define it globally and then just plug it in since I reusing something
+plug it in since I reusing something right I only have to implement it once
+right I only have to implement it once the time it takes to implement is a cost
+the time it takes to implement is a cost I pay one time instead of paying every
+I pay one time instead of paying every time I need to do it I also get fewer
+time I need to do it I also get fewer bugs right every time I write code
+bugs right every time I write code there's the chance of introducing a bug
+there's the chance of introducing a bug if I don't need to write some code I'm
+if I don't need to write some code I'm not going to introduce a bug and my code
+not going to introduce a bug and my code becomes much more mature it's much
+becomes much more mature it's much better tested because it's being
+better tested because it's being executed lots of different ways so it's
+executed lots of different ways so it's not only more tested but better tested
+not only more tested but better tested right it's tested lots of ways and it
+right it's tested lots of ways and it also becomes more feature-rich as I add
+also becomes more feature-rich as I add new features and new capabilities like
+new features and new capabilities like the ability to pick that random amount
+the ability to pick that random amount of time instead of just specifying a
+of time instead of just specifying a fixed amount of time now I have that
+fixed amount of time now I have that capability and I can reuse it going
+capability and I can reuse it going forward and if I wanted it to be an
+forward and if I wanted it to be an exact amount of time by the way in the
+exact amount of time by the way in the XML I would just put exact equals and
+XML I would just put exact equals and then I would put the exact time so the
+then I would put the exact time so the bottom line is the developer flow right
+bottom line is the developer flow right the developers sort of in this flow
+the developers sort of in this flow where he's thinking about the concepts
+where he's thinking about the concepts that he cares about or she cares about
+that he cares about or she cares about it in the specification that they're
+it in the specification that they're defining not about implementation
+defining not about implementation details in the low-level stuff that's
+details in the low-level stuff that's just a distraction so a few
+just a distraction so a few implementation details obviously the
+implementation details obviously the biggest thing is polymorphism right no
+biggest thing is polymorphism right no surprises here we're going to have a
+surprises here we're going to have a base class for each conceptual
+base class for each conceptual abstraction which defines the interface
+abstraction which defines the interface and then everybody else is doing is just
+and then everybody else is doing is just going to interact with a consideration
+going to interact with a consideration or an action on the basis of those base
+or an action on the basis of those base classes you probably eyes probably saw I
+classes you probably eyes probably saw I put the simplified versions of those
+put the simplified versions of those interfaces and those slides should you
+interfaces and those slides should you want to go back and find them this lets
+want to go back and find them this lets me decouple the interface from the
+me decouple the interface from the implementation right so nobody needs to
+implementation right so nobody needs to know that this is a
+know that this is a distance consideration or how the
+distance consideration or how the distance consideration is implemented
+distance consideration is implemented this also makes it possible for me to
+this also makes it possible for me to inject code from the simulation or from
+inject code from the simulation or from the game up into the the AI architecture
+the game up into the the AI architecture without the AI architecture knowing
+without the AI architecture knowing anything about that code so the move
+anything about that code so the move action for instance is going to be game
+action for instance is going to be game specific right how you go about moving a
+specific right how you go about moving a character around in game and deal with
+character around in game and deal with physics and collision and planning and
+physics and collision and planning and all of that that's going to be game
+all of that that's going to be game specific the AI doesn't need to know any
+specific the AI doesn't need to know any of those implementation details it just
+of those implementation details it just knows it has a move action it's supposed
+knows it has a move action it's supposed to give the move action the set of
+to give the move action the set of values you have to have factories which
+values you have to have factories which handle reading the XML and then creating
+handle reading the XML and then creating all of the objects inside of it so
+all of the objects inside of it so you'll have a consideration factory for
+you'll have a consideration factory for instance which pulls the type value off
+instance which pulls the type value off of each consideration and then creates
+of each consideration and then creates an object of the appropriate type what
+an object of the appropriate type what you pass to the the factory is not only
+you pass to the the factory is not only the xml mode but also some contextual
+the xml mode but also some contextual data and where the blackboard is what
+data and where the blackboard is what entity you belong to if you're
+entity you belong to if you're underneath an option what option you
+underneath an option what option you belong to because the execution history
+belong to because the execution history consideration for instance needs to know
+consideration for instance needs to know which option it belongs to one nice
+which option it belongs to one nice thing about the factories that we have
+thing about the factories that we have in Gaia because we want to be able to
+in Gaia because we want to be able to reuse it across multiple projects is
+reuse it across multiple projects is they have this notion of constructors so
+they have this notion of constructors so constructor is just an object that knows
+constructor is just an object that knows how to create some subset of that
+how to create some subset of that conceptual abstraction so a
+conceptual abstraction so a consideration constructor knows how to
+consideration constructor knows how to create a bunch of different kinds of
+create a bunch of different kinds of considerations the factory can have
+considerations the factory can have multiple constructors and it just asks
+multiple constructors and it just asks each one do you know how to create this
+each one do you know how to create this okay you don't next guy do you know how
+okay you don't next guy do you know how to create this until it finds one that
+to create this until it finds one that knows how to create the object that it
+knows how to create the object that it means this means that my simulation or
+means this means that my simulation or my game can pass a factory into the AI
+my game can pass a factory into the AI architecture so this is how we inject
+architecture so this is how we inject code into the AI last thing they'll say
+code into the AI last thing they'll say about factories it's really powerful to
+about factories it's really powerful to have a single implementation right I
+have a single implementation right I decided some time ago the duplicate code
+decided some time ago the duplicate code was of the devil and I was going to do
+was of the devil and I was going to do everything I can to get duplicate code
+everything I can to get duplicate code out and so far I had never regretted
+out and so far I had never regretted that decision so I'm gonna have lots of
+that decision so I'm gonna have lots of different factories one for
+different factories one for considerations one for regions one for
+considerations one for regions one for weight functions I want to make sure
+weight functions I want to make sure that I have one set of code that they
+that I have one set of code that they all execute so that I don't have this
+all execute so that I don't have this situation where I have this one factory
+situation where I have this one factory that's a little funky
+that's a little funky works in a slightly different way and I
+works in a slightly different way and I have to remember how it gets used or I
+have to remember how it gets used or I have a bug in one factory and I forget
+have a bug in one factory and I forget to fix it and the others or you know
+to fix it and the others or you know that kind of stuff I don't want to worry
+that kind of stuff I don't want to worry about that the other nice thing is if I
+about that the other nice thing is if I do it this way where I just have a macro
+do it this way where I just have a macro that creates the factory for me then
+that creates the factory for me then when I come up with some new kind of
+when I come up with some new kind of conceptual abstraction and that happens
+conceptual abstraction and that happens more often than you might think I just
+more often than you might think I just have to call the macro and all the
+have to call the macro and all the infrastructure is there it's all created
+infrastructure is there it's all created for me so this is roughly what that
+for me so this is roughly what that macro looks like for the factories I use
+macro looks like for the factories I use macros much more widely than this Matt
+macros much more widely than this Matt you know macros are a pain to debug
+you know macros are a pain to debug figure out how to get your compiler to
+figure out how to get your compiler to expand the macro out for you so that
+expand the macro out for you so that when you need to debug it you can do
+when you need to debug it you can do that as I said earlier I don't have time
+that as I said earlier I don't have time to talk about how we combine
+to talk about how we combine considerations but there's been a bunch
+considerations but there's been a bunch of good talks on this I gave a talk
+of good talks on this I gave a talk yesterday on the trigger system which
+yesterday on the trigger system which used a very simple boolean approach to
+used a very simple boolean approach to combining considerations Mike and Mike
+combining considerations Mike and Mike Lewis and Dave marked last year give a
+Lewis and Dave marked last year give a fantastic talk in which they talked
+fantastic talk in which they talked about how they combined considerations
+about how they combined considerations in their architecture I gave a talk with
+in their architecture I gave a talk with Dave a couple years ago where I
+Dave a couple years ago where I presented and do a utility based
+presented and do a utility based approach I really recommend the third
+approach I really recommend the third the duel utility based approach it's
+the duel utility based approach it's straightforward to implement right it's
+straightforward to implement right it's not hard to get it up and running it's
+not hard to get it up and running it's extremely flexible right it lets you do
+extremely flexible right it lets you do either really hardcore utility based AI
+either really hardcore utility based AI stuff or really simple yes-or-no stuff
+stuff or really simple yes-or-no stuff and you saw some examples of both of
+and you saw some examples of both of those in the sniper and it's probably
+those in the sniper and it's probably choose trying to say it completely
+choose trying to say it completely avoids the sort of combinatory problems
+avoids the sort of combinatory problems then Mike and Dave have because it's
+then Mike and Dave have because it's utility based so of course it doesn't
+utility based so of course it doesn't but they had a problem where the more
+but they had a problem where the more considerations you have the more it
+considerations you have the more it forced the values down when they
+forced the values down when they multiplied them together and the dual
+multiplied them together and the dual utility based approach gives you some
+utility based approach gives you some different options for how you combine
+different options for how you combine things to try and work around that in
+things to try and work around that in different ways but you don't have to
+different ways but you don't have to pick one way right so a consideration
+pick one way right so a consideration set is the thing that wraps a bunch of
+set is the thing that wraps a bunch of considerations and combines them
+considerations and combines them together it's all in data in the data
+together it's all in data in the data you can have a flag that says combined
+you can have a flag that says combined in some different way or you could have
+in some different way or you could have a different you could make a
+a different you could make a consideration set of conceptual
+consideration set of conceptual abstraction and have different
+abstraction and have different consideration sets that use different
+consideration sets that use different types of considerations if that's the
+types of considerations if that's the thing that you feel like you need to do
+thing that you feel like you need to do what I've done is I have a few flags
+what I've done is I have a few flags that change the way I combine the
+that change the way I combine the but I only have the one kind of the one
+but I only have the one kind of the one kind of weight value that I use
+kind of weight value that I use everywhere so final thoughts
+everywhere so final thoughts remember the what does this buy me right
+remember the what does this buy me right the important thing is it lets me think
+the important thing is it lets me think at the right level of abstraction it
+at the right level of abstraction it keeps me in that good flow so that I can
+keeps me in that good flow so that I can implement much more quickly I can
+implement much more quickly I can iterate much more quickly I've seen
+iterate much more quickly I've seen modular approaches pay off on projects
+modular approaches pay off on projects that are three months long right when we
+that are three months long right when we did the boss AI for Ironman we used the
+did the boss AI for Ironman we used the modular architecture and we were very
+modular architecture and we were very quickly getting to the point where you
+quickly getting to the point where you know it was a three month project and I
+know it was a three month project and I don't think we could have hit it if we
+don't think we could have hit it if we hadn't had that ability to iterate so
+hadn't had that ability to iterate so quickly and it also you get much more
+quickly and it also you get much more reuse so your code is better tested you
+reuse so your code is better tested you have fewer bugs and your code becomes
+have fewer bugs and your code becomes more feature-rich and it's easier to
+more feature-rich and it's easier to carry it with you to future projects you
+carry it with you to future projects you don't have to throw out your
+don't have to throw out your architecture and start over look for
+architecture and start over look for opportunities to do something in a
+opportunities to do something in a modular way in your architecture weapons
+modular way in your architecture weapons selection and target selection are
+selection and target selection are common cases of plugging in some
+common cases of plugging in some considerations in Red Dead I was
+considerations in Red Dead I was assigned to build the attention system
+assigned to build the attention system that got characters looking around in
+that got characters looking around in town and I decided even after Ironman
+town and I decided even after Ironman not to do it modular lis because I
+not to do it modular lis because I thought it was just going to be very
+thought it was just going to be very simple and we got eaten to death by
+simple and we got eaten to death by special cases you know I thought it was
+special cases you know I thought it was just gonna be picked something nearby at
+just gonna be picked something nearby at random and look at it for a little while
+random and look at it for a little while and then pick something that's not in
+and then pick something that's not in the same direction and look at that but
+the same direction and look at that but there was they well when this said you
+there was they well when this said you know when the player does this then you
+know when the player does this then you should look at them but if this event
+should look at them but if this event happens then you should look at that but
+happens then you should look at that but not if this other thing happens then do
+not if this other thing happens then do that right and so all of those special
+that right and so all of those special cases anus to death and I really wish I
+cases anus to death and I really wish I could go back in time that I couldn't
+could go back in time that I couldn't just build it in a modular way in the
+just build it in a modular way in the end Red Dead shipped with a pretty cool
+end Red Dead shipped with a pretty cool attention system but it was a lot more
+attention system but it was a lot more work than it could have been and if
+work than it could have been and if you're gonna do one thing start with
+you're gonna do one thing start with considerations considerations are a
+considerations considerations are a really really powerful way to layout to
+really really powerful way to layout to decisions last thing very quickly the
+decisions last thing very quickly the Mars game is out there I mentioned this
+Mars game is out there I mentioned this yesterday it's open source so if you
+yesterday it's open source so if you want to see code examples of how all
+want to see code examples of how all this works together you can go grab the
+this works together you can go grab the code from github it's a simpler modular
+code from github it's a simpler modular system but it has all of the big ideas
+system but it has all of the big ideas in it so that's it for me I'll try
+in it so that's it for me I'll try [Applause]
+all right how's it going my name is Troy Humphries I'm the lead AI programmer at
+Humphries I'm the lead AI programmer at Turtle Rock Studios I'm also going to
+Turtle Rock Studios I'm also going to talk about modular AI systems so why
+talk about modular AI systems so why this talk well I think game AI
+this talk well I think game AI architectures are pretty modular you
+architectures are pretty modular you know like we have behavior trees finite
+know like we have behavior trees finite state machines planners all these things
+state machines planners all these things are modular systems and modular systems
+are modular systems and modular systems come with a lot of benefits right we get
+come with a lot of benefits right we get code reuse flexibility ease of character
+code reuse flexibility ease of character creation and so on and on evolve on
+creation and so on and on evolve on evolve we used a beber tree but it
+evolve we used a beber tree but it wasn't giving us the modularity you want
+wasn't giving us the modularity you want we wanted it was still hard to get the
+we wanted it was still hard to get the AI out the door the BT word fine but we
+AI out the door the BT word fine but we simply weren't getting all the games we
+simply weren't getting all the games we should have been getting from modular
+should have been getting from modular system so we decided to fix this and we
+system so we decided to fix this and we decided to focus on two things first was
+decided to focus on two things first was figuring out why the modular baby tree
+figuring out why the modular baby tree that we were using wasn't giving us all
+that we were using wasn't giving us all the benefits that we wanted and we
+the benefits that we wanted and we needed to do this without breaking any
+needed to do this without breaking any of the legacy characters in systems
+of the legacy characters in systems because we were still developing a live
+because we were still developing a live game we still DLC characters coming down
+game we still DLC characters coming down the pipe
+the pipe we couldn't mess any of that stuff up so
+we couldn't mess any of that stuff up so how do you feel that modular right so
+how do you feel that modular right so well how about a little example to help
+well how about a little example to help illustrate this point given else okay
+illustrate this point given else okay that's better so in our example we had
+that's better so in our example we had before stroll and he's going to do a
+before stroll and he's going to do a very simple attack called the tree trunk
+very simple attack called the tree trunk tornado right he uplifts a tree and
+tornado right he uplifts a tree and spins around knocking everybody back I
+spins around knocking everybody back I think everyone can visualize how that
+think everyone can visualize how that would look in their minds but let's get
+would look in their minds but let's get into some details here first he should
+into some details here first he should only do this attack if he's currently
+only do this attack if he's currently surrounded by enemies if he is
+surrounded by enemies if he is surrounded by enemies he's gonna do a
+surrounded by enemies he's gonna do a point-blank and we knock back attack and
+point-blank and we knock back attack and after completion he's going to be tired
+after completion he's going to be tired we want to set some kind of state of
+we want to set some kind of state of tiredness to be used in some other
+tiredness to be used in some other behavior later down the line so we can
+behavior later down the line so we can simply just make a node in the behavior
+simply just make a node in the behavior tree to handle this stuff right on start
+tree to handle this stuff right on start we can check to see if there's enough
+we can check to see if there's enough enemies if not we can fill out if so we
+enemies if not we can fill out if so we can go on and go ahead and play the
+can go on and go ahead and play the animated attack part which is triggering
+animated attack part which is triggering anim
+anim Chin's playing sounds damage boxes and
+Chin's playing sounds damage boxes and things like that and on completion we
+things like that and on completion we can set some stage and like the
+can set some stage and like the blackboard for tired which we could use
+blackboard for tired which we could use later and I think this is a perfectly
+later and I think this is a perfectly reasonable implementation right this
+reasonable implementation right this could and it's it is modular I can
+could and it's it is modular I can find another situations my behavior tree
+find another situations my behavior tree where I might want to use the same
+where I might want to use the same attack but we all know what happens next
+attack but we all know what happens next right the designer comes to you and says
+right the designer comes to you and says alright I want to tornado in a
+alright I want to tornado in a completely different situation maybe in
+completely different situation maybe in a combo or getting up from a knockdown
+a combo or getting up from a knockdown or something like that and all of a
+or something like that and all of a sudden that is surrounded check is
+sudden that is surrounded check is causing trouble right because he doesn't
+causing trouble right because he doesn't care in those situations if he's
+care in those situations if he's surrounded or not sometimes the designer
+surrounded or not sometimes the designer might want the tornado to trigger
+might want the tornado to trigger without setting patrol tired right you
+without setting patrol tired right you might want to be able to use it in
+might want to be able to use it in different situations and all the sudden
+different situations and all the sudden our Marge nice little modular attack
+our Marge nice little modular attack isn't modular anymore so I'm sure you've
+isn't modular anymore so I'm sure you've seen similar examples and some formula
+seen similar examples and some formula or another and a lot of code bases we
+or another and a lot of code bases we had a lot of this and evolve it was
+had a lot of this and evolve it was getting as kind of a death by a thousand
+getting as kind of a death by a thousand cuts type of thing so I started thinking
+cuts type of thing so I started thinking a lot about what had worked on systems I
+a lot about what had worked on systems I using the past I've gotten lucky I've
+using the past I've gotten lucky I've gotten to work with ship games with her
+gotten to work with ship games with her called foreign state machines
+called foreign state machines I've we've shipped games with go p-- HTN
+I've we've shipped games with go p-- HTN and behavior trees and every time i
+and behavior trees and every time i think about all those systems they all
+think about all those systems they all had one thing in common when they worked
+had one thing in common when they worked really well they had a really good
+really well they had a really good separation of responsibilities so i
+separation of responsibilities so i think the separation responsibilities is
+think the separation responsibilities is something we can all get behind we talk
+something we can all get behind we talk about good abstractions all the time and
+about good abstractions all the time and software engineering but i want to talk
+software engineering but i want to talk about 3a i centric responsibilities that
+about 3a i centric responsibilities that i think are crucial to having a good
+i think are crucial to having a good modular system so let's user a tree
+modular system so let's user a tree trunk tornado example to help illustrate
+trunk tornado example to help illustrate these three areas the first
+these three areas the first responsibility is sensing this is where
+responsibility is sensing this is where we translate information about the game
+we translate information about the game into something that i can understand and
+into something that i can understand and our example it's the is surrounded
+our example it's the is surrounded question breaking the sensing logic out
+question breaking the sensing logic out of the tornado allows us to ask the same
+of the tornado allows us to ask the same question about different targets which
+question about different targets which can be useful for other behaviors it
+can be useful for other behaviors it also allows us to fire off the tornado
+also allows us to fire off the tornado if the trolls surround it or not which
+if the trolls surround it or not which helped solve the earlier problems we had
+helped solve the earlier problems we had with our designer the next
+with our designer the next responsibility is acting this is where
+responsibility is acting this is where we see the AI actually do something in
+we see the AI actually do something in our example it's the animated action
+our example it's the animated action part of
+part of our attack it's a logic that starts the
+our attack it's a logic that starts the animations plays effect sounds triggers
+animations plays effect sounds triggers damage zones and now that are sensing
+damage zones and now that are sensing logic is out of the attack we could use
+logic is out of the attack we could use that same animated attack action with
+that same animated attack action with different data to do all kinds of
+different data to do all kinds of different attacks the final
+different attacks the final responsibility is deciding and when we
+responsibility is deciding and when we think of most AI systems this is where
+think of most AI systems this is where they would live our financial state
+they would live our financial state machines planners and for us it's our
+machines planners and for us it's our behavior tree this is going to be the
+behavior tree this is going to be the spot where we assemble all the other
+spot where we assemble all the other responsibilities into a reasoning
+responsibilities into a reasoning character we do we do this by defining
+character we do we do this by defining the why the character will do the things
+the why the character will do the things it does and how we'll react to them in
+it does and how we'll react to them in our example we would use the animated
+our example we would use the animated attack action to do our tornado then we
+attack action to do our tornado then we could decorate that action with a
+could decorate that action with a condition using the sensing data that we
+condition using the sensing data that we got from our is surrounded since sensing
+got from our is surrounded since sensing logic and lastly we can add an effect
+logic and lastly we can add an effect that would set the state on successful
+that would set the state on successful completion attack this would satisfy the
+completion attack this would satisfy the making the troll tired part so betting a
+making the troll tired part so betting a lot of you are probably thinking mmm
+lot of you are probably thinking mmm this sounds a little familiar and you'd
+this sounds a little familiar and you'd be right this is sense plan act but I
+be right this is sense plan act but I don't want you to get hung up on the
+don't want you to get hung up on the planning part I'm not trying to push
+planning part I'm not trying to push planners on you I'll save that for
+planners on you I'll save that for another talk but I wanted to talk about
+another talk but I wanted to talk about how this could be a guide for better
+how this could be a guide for better modularity regardless of what
+modularity regardless of what architecture you're using so let's dive
+architecture you're using so let's dive into these areas more detail with some
+into these areas more detail with some guidelines and kind of what we did with
+guidelines and kind of what we did with our refactor and evolve but first let's
+our refactor and evolve but first let's talk about something that I think helps
+talk about something that I think helps make all these areas work in concert
+make all these areas work in concert something called the world state so the
+something called the world state so the rule states kind of like your glue if
+rule states kind of like your glue if the game state is the actual data in
+the game state is the actual data in your game the rule state is a simplified
+your game the rule state is a simplified representation of that state as far as
+representation of that state as far as the character is concerned I'm sure you
+the character is concerned I'm sure you all different flavors of this
+all different flavors of this blackboard's context if using planners
+blackboard's context if using planners would be a world state so some
+would be a world state so some guidelines for setting this stuff up oh
+guidelines for setting this stuff up oh the rule states really just a big block
+the rule states really just a big block of data it should be easy to write -
+of data it should be easy to write - easy to read from so some guidelines
+easy to read from so some guidelines every character should be able to have
+every character should be able to have their own set right different characters
+their own set right different characters need different information to be able to
+need different information to be able to make decisions
+make decisions keep the structure very simple right
+keep the structure very simple right fast access faster right to an array is
+fast access faster right to an array is a perfectly acceptable world state for
+a perfectly acceptable world state for evolve we split this concept into two
+evolve we split this concept into two things now first we use a blackboard as
+things now first we use a blackboard as used to represent the simplest
+used to represent the simplest enumeration of the world state required
+enumeration of the world state required for the decision system to make
+for the decision system to make decisions let's take the characters
+decisions let's take the characters health for example we could use the
+health for example we could use the characters help percentage as a value in
+characters help percentage as a value in our world state but zero to a hundred
+our world state but zero to a hundred percent is a lot of state right we
+percent is a lot of state right we aren't going to be making decisions on
+aren't going to be making decisions on 101 different states if we're using an
+101 different states if we're using an INT if it's a float it's even more right
+INT if it's a float it's even more right but if what we would like to make
+but if what we would like to make decisions on as if the characters
+decisions on as if the characters wounded if he's healthy if he's dying
+wounded if he's healthy if he's dying this is the type of say that we want to
+this is the type of say that we want to swarm a blackboard because that's the
+swarm a blackboard because that's the type of data we want to make decisions
+type of data we want to make decisions with the second part of our world state
+with the second part of our world state something we called the white board and
+something we called the white board and I was very clever but this is where we
+I was very clever but this is where we put all of our rich data in our world
+put all of our rich data in our world stage right all the extra data that
+stage right all the extra data that isn't used to make decisions but is used
+isn't used to make decisions but is used to run behaviors so this might be like
+to run behaviors so this might be like the best cover locations the biggest
+the best cover locations the biggest threats and so on so let's get the
+threats and so on so let's get the sensing this is where we translate the
+sensing this is where we translate the game state into world state this doesn't
+game state into world state this doesn't just mean hearing and vision and things
+just mean hearing and vision and things like that this can be as simple as
+like that this can be as simple as taking that health percentage and
+taking that health percentage and translating it into the healthy
+translating it into the healthy enumeration or as complexes picking good
+enumeration or as complexes picking good cover locations some guidelines that
+cover locations some guidelines that help you go modular and atomic you want
+help you go modular and atomic you want to keep these nice and small sensor
+to keep these nice and small sensor shouldn't know about each other no
+shouldn't know about each other no sensitive sensor dependencies you use
+sensitive sensor dependencies you use the world state to communicate if you
+the world state to communicate if you need to characters should be able to
+need to characters should be able to have their own sets of sensors right if
+have their own sets of sensors right if you're gonna have different world states
+you're gonna have different world states they're gonna need different sensors to
+they're gonna need different sensors to fill that world state translating game
+fill that world state translating game state in total speech can be very
+state in total speech can be very expensive right so we want to be able to
+expensive right so we want to be able to bend throttle defer our work anything we
+bend throttle defer our work anything we can do to handle that workload another
+can do to handle that workload another thing that you should keep in mind is to
+thing that you should keep in mind is to keep sensing out of your deciding loop
+keep sensing out of your deciding loop if it's possible we just said it's
+if it's possible we just said it's expensive we want to be able to quickly
+expensive we want to be able to quickly make decisions to try to keep that stuff
+make decisions to try to keep that stuff out for evolve we ended up making a new
+out for evolve we ended up making a new sensor manager to give us a formal and
+sensor manager to give us a formal and really easy place to do our sensing work
+really easy place to do our sensing work it allows us to install sensors
+it allows us to install sensors character type and allow sensors to have
+character type and allow sensors to have a different max sale time per character
+a different max sale time per character type meaning this is how long the sensor
+type meaning this is how long the sensor can go without getting an update this is
+can go without getting an update this is great because it shows the importance of
+great because it shows the importance of that sensor to that character type so as
+that sensor to that character type so as an example imagine you have a line of
+an example imagine you have a line of sight sensor and two characters arranged
+sight sensor and two characters arranged in melee character well the range
+in melee character well the range character is gonna need a higher refresh
+character is gonna need a higher refresh rate because he needs to constantly
+rate because he needs to constantly check to see if you can hit people from
+check to see if you can hit people from range right the melee guy not so much he
+range right the melee guy not so much he just needs to know the general location
+just needs to know the general location of where the guy is and that can be
+of where the guy is and that can be updated and slow because he just gonna
+updated and slow because he just gonna run up and smack you in the face anyway
+run up and smack you in the face anyway and to make it even simpler this time
+and to make it even simpler this time the way you started by the time is a
+the way you started by the time is a simple enumeration something like every
+simple enumeration something like every frame a lot often sometimes never why
+frame a lot often sometimes never why have our programmers come up with a
+have our programmers come up with a perfect floating-point time to do a
+perfect floating-point time to do a refresh rate when we're just really just
+refresh rate when we're just really just looking for what that sensors importance
+looking for what that sensors importance is to the character using it so our
+is to the character using it so our manager will just burn through as many
+manager will just burn through as many tenders as they can and it's a lot of
+tenders as they can and it's a lot of time at favorite sensors that are
+time at favorite sensors that are getting closer to their stale time and
+getting closer to their stale time and since we use an enumeration for time we
+since we use an enumeration for time we can tune those different frequencies
+can tune those different frequencies behind the scenes without breaking the
+behind the scenes without breaking the characters types needs we could also
+characters types needs we could also play with these two if we want to do
+play with these two if we want to do alibiing and stuff like that so acting
+alibiing and stuff like that so acting acting is what makes up what the AI
+acting is what makes up what the AI actually does right this is what the
+actually does right this is what the player is going to see these are your
+player is going to see these are your attacks or reloads your interactions
+attacks or reloads your interactions your tornados things like that different
+your tornados things like that different systems will have different terms for
+systems will have different terms for this right HTN uses operators dope users
+this right HTN uses operators dope users actions behavior she's use nodes states
+actions behavior she's use nodes states are in finite state machines some
+are in finite state machines some guidelines to keep in mind operations
+guidelines to keep in mind operations should be agnostic to the reason they're
+should be agnostic to the reason they're being done we saw this with a tornado
+being done we saw this with a tornado example if the reasons baked in it's
+example if the reasons baked in it's going to be harder to use that tornado
+going to be harder to use that tornado elsewhere if that is surrounded check is
+elsewhere if that is surrounded check is in there the only conditions that should
+in there the only conditions that should be baked in are what's actually needed
+be baked in are what's actually needed for that action from run of that
+for that action from run of that operation to run so let's say we had a
+operation to run so let's say we had a fire gun operation you need the gun to
+fire gun operation you need the gun to be able to fire it right so that's an OK
+be able to fire it right so that's an OK considering our condition to put in
+considering our condition to put in their operations should be agnostic to
+their operations should be agnostic to the world state at reference is let's
+the world state at reference is let's say the troll had a boulder throw right
+say the troll had a boulder throw right the bowl to throw operation shouldn't
+the bowl to throw operation shouldn't care if he's throwing it
+care if he's throwing it and then me a building or some other
+and then me a building or some other object it just needs a location or to
+object it just needs a location or to throw that Boulder operation shouldn't
+throw that Boulder operation shouldn't try to do more than one thing right
+try to do more than one thing right there just the more they do the harder
+there just the more they do the harder it's going to be to be able to find
+it's going to be to be able to find situations where you can reuse that
+situations where you can reuse that operation operations shouldn't change
+operation operations shouldn't change the world state right going back to our
+the world state right going back to our tornado example there were going to be
+tornado example there were going to be times that you want to be able to do a
+times that you want to be able to do a tornado without the troll getting tired
+tornado without the troll getting tired right so we want to keep that real state
+right so we want to keep that real state change out of your acting and why do it
+change out of your acting and why do it right if are deciding logic gives us a
+right if are deciding logic gives us a nice way to do this operation
+nice way to do this operation why hide the state change from the
+why hide the state change from the person looking at your decision logic or
+person looking at your decision logic or your decision structure so for evolve
+your decision structure so for evolve our acting as the number of BT nodes
+our acting as the number of BT nodes points which okay and what we ended up
+points which okay and what we ended up doing was refactoring a whole bunch of
+doing was refactoring a whole bunch of them ripping out the sensing logic and
+them ripping out the sensing logic and deciding logic out of those acting nodes
+deciding logic out of those acting nodes and if we didn't do that we just made
+and if we didn't do that we just made new nodes that just really focus on
+new nodes that just really focus on acting this gave us smaller and simpler
+acting this gave us smaller and simpler building blocks to work with going
+building blocks to work with going forward with our new characters the last
+forward with our new characters the last responsibility is deciding right this is
+responsibility is deciding right this is where we make decisions or better put
+where we make decisions or better put this is where we translate world state
+this is where we translate world state into action right it's the behavior
+into action right it's the behavior systems that we use it's HGN go behavior
+systems that we use it's HGN go behavior trees finite state machines kind of
+trees finite state machines kind of right this is typically the structural
+right this is typically the structural part of those systems right it's the
+part of those systems right it's the tree structure of behavior trees in HTN
+tree structure of behavior trees in HTN it's the grass structure of our finite
+it's the grass structure of our finite state machines go for the priorities of
+state machines go for the priorities of a utility based system some guidelines
+a utility based system some guidelines to keep in mind when you're building
+to keep in mind when you're building your deciding logic the something should
+your deciding logic the something should be fast that's hard to argue but I mean
+be fast that's hard to argue but I mean if you want to be able to react to
+if you want to be able to react to changes in a rural state as soon as
+changes in a rural state as soon as possible so trying to keep all the heavy
+possible so trying to keep all the heavy lifting outside of your decision system
+lifting outside of your decision system deciding should also allow us to define
+deciding should also allow us to define the conditions required to execute
+the conditions required to execute operations and the effects on succeeding
+operations and the effects on succeeding those operations it also should be fast
+those operations it also should be fast to edit and I don't mean you need an
+to edit and I don't mean you need an editor right you just need some clear
+editor right you just need some clear way of defining your structures and
+way of defining your structures and you're deciding logic for home we use a
+you're deciding logic for home we use a behavior tree described in build
+behavior tree described in build Merrill's
+Merrill's game AI Pro article it's now free on the
+game AI Pro article it's now free on the website it's a great article you should
+website it's a great article you should definitely check it out luckily we
+definitely check it out luckily we didn't need to change this at all I just
+didn't need to change this at all I just worked we'd have to change a lot of the
+worked we'd have to change a lot of the nodes and
+nodes and sensing logic so something I haven't
+sensing logic so something I haven't talked about is our blueprints evolved
+talked about is our blueprints evolved uses blueprints as to have one location
+uses blueprints as to have one location where they can set up a character this
+where they can set up a character this is the integration step that Chris was
+is the integration step that Chris was talking about earlier here we load our
+talking about earlier here we load our designer tunable data we define our
+designer tunable data we define our blackboards and install our whiteboards
+blackboards and install our whiteboards we installed the other different
+we installed the other different components that make up that character
+components that make up that character their sensors their behavior trees
+their sensors their behavior trees things like that and as we install our
+things like that and as we install our sensors and build our BTS
+sensors and build our BTS this is where we're going to do all our
+this is where we're going to do all our wire work right we're gonna tell the
+wire work right we're gonna tell the sensors where to dump their data and the
+sensors where to dump their data and the blackboard right we're gonna tell our
+blackboard right we're gonna tell our decision tree
+decision tree what blackboard variables or behaviors
+what blackboard variables or behaviors we what blackboard variables to look at
+this was an incredibly important step to us like this is where we were able to
+us like this is where we were able to build our new system side by side our
+build our new system side by side our own system if the a I had was a
+own system if the a I had was a blueprint AI we had a whole different
+blueprint AI we had a whole different initialization call stack to run through
+initialization call stack to run through if they weren't and went through the old
+if they weren't and went through the old legacy systems and once we had this set
+legacy systems and once we had this set up we could quickly start using the new
+up we could quickly start using the new systems without worrying about breaking
+systems without worrying about breaking any of our legacy code so let's talk
+any of our legacy code so let's talk about the different architectures and
+about the different architectures and how they we kind of fit in these areas
+how they we kind of fit in these areas responsibility because we all don't use
+responsibility because we all don't use the same things and hopefully you're
+the same things and hopefully you're already kind of thinking about your own
+already kind of thinking about your own systems at home how they would fit into
+systems at home how they would fit into this stuff
+this stuff maybe you're finding some that are
+maybe you're finding some that are crossing these boundaries that are
+crossing these boundaries that are giving you trouble so for evolve
+giving you trouble so for evolve Ouiser behaviors we've already kind of
+Ouiser behaviors we've already kind of talked about this so for our sensing
+talked about this so for our sensing we'll use our sensor manager we have our
+we'll use our sensor manager we have our surrounded sensor maybe any distance
+surrounded sensor maybe any distance sensor things like that for our deciding
+sensor things like that for our deciding our behavior trees gonna live there
+our behavior trees gonna live there right but if you look the nodes that
+right but if you look the nodes that we're going to be putting in this area
+we're going to be putting in this area are just the ones that help define the
+are just the ones that help define the structure of the behavior tree right
+structure of the behavior tree right it's our selectors or sequencers and our
+it's our selectors or sequencers and our decorators for acting is basically the
+decorators for acting is basically the rest of our behavior tree notes anything
+rest of our behavior tree notes anything that actually does things right that
+that actually does things right that fire node reload animated attack from
+fire node reload animated attack from navigate to the world States gonna have
+navigate to the world States gonna have our blackboard whiteboard if you were to
+our blackboard whiteboard if you were to follow the data how it flows through
+follow the data how it flows through this our sensory manager and retention
+this our sensory manager and retention logic are going to populate things in
+logic are going to populate things in our world State it also might reference
+our world State it also might reference some of that stuff to help to do more
+some of that stuff to help to do more sensing our behavior tree is going to
+sensing our behavior tree is going to pull data from our blackboard in order
+pull data from our blackboard in order to make the
+to make the and on the completion of different nodes
+and on the completion of different nodes and might apply different changes to
+and might apply different changes to that life board as well and then when
+that life board as well and then when our acting is running our behaviors
+our acting is running our behaviors running is going to pull all the data
+running is going to pull all the data whether from the black board or the
+whether from the black board or the white board in order to make those
+white board in order to make those behaviors work if we're going to do this
+behaviors work if we're going to do this with an HTM planner
+with an HTM planner very similar a go planner sensing kind
+very similar a go planner sensing kind of works the same for our designing for
+of works the same for our designing for HTM domain we'd have a different kind of
+HTM domain we'd have a different kind of structure here our compound TAS going to
+structure here our compound TAS going to help define the hierarchical structure
+help define the hierarchical structure of our domain while the primitive tasks
+of our domain while the primitive tasks going to help define the conditions and
+going to help define the conditions and effects in order to run the acting
+effects in order to run the acting operations HTN uses operators so the
+operations HTN uses operators so the operators are all sitting in our acting
+operators are all sitting in our acting side and the dataflow is going to work
+side and the dataflow is going to work roughly the same the world state they
+roughly the same the world state they actually use a world state which is a
+actually use a world state which is a very simple representation to do their
+very simple representation to do their planning Brennen state machines a little
+planning Brennen state machines a little trickier basically we'd want to do is
+trickier basically we'd want to do is have a finite state machine that kind of
+have a finite state machine that kind of goes over both sensing and acting and
+goes over both sensing and acting and deciding but the states that but we'll
+deciding but the states that but we'll have States specifically designed to
+have States specifically designed to help the sensing data help collecting
+help the sensing data help collecting that data and then the other states
+that data and then the other states would kind of work like a typical for an
+would kind of work like a typical for an state machine now but we want to do with
+state machine now but we want to do with those states is kind of treat those as
+those states is kind of treat those as wrappers to the operator concept that
+wrappers to the operator concept that we're going to borrow from the HT and
+we're going to borrow from the HT and stuff so if you look we have a navigate
+stuff so if you look we have a navigate to enemy state this thing will help to
+to enemy state this thing will help to find the transitions to other states and
+find the transitions to other states and the deedat who supplied to the navigate
+the deedat who supplied to the navigate to operator I still think of world
+to operator I still think of world States or great thing to have in a
+States or great thing to have in a finite state machine that gives you a
+finite state machine that gives you a nice snapshot about every with
+nice snapshot about every with everything that the AI understands at
+everything that the AI understands at that point and you can base all your
+that point and you can base all your transitions and stuff off this log data
+transitions and stuff off this log data anyway so in conclusion modular systems
+anyway so in conclusion modular systems doesn't really quite mean you're making
+doesn't really quite mean you're making modular characters even though you're
+modular characters even though you're using a modular system it may be
+using a modular system it may be implementing those modular pieces in a
+implementing those modular pieces in a very unmodulated really think in terms
+very unmodulated really think in terms of responsibilities when you find
+of responsibilities when you find something that is a modular I guarantee
+something that is a modular I guarantee you've got some sensing and you're
+you've got some sensing and you're deciding or some deciding and your
+deciding or some deciding and your acting crossing that responsibility
+acting crossing that responsibility boundary it's a sure way to shoot
+boundary it's a sure way to shoot yourself in the foot look for the
+yourself in the foot look for the friction in your system and improve it
+friction in your system and improve it make it easy to do you're sensing work
+make it easy to do you're sensing work in the right place make it easy to do
+in the right place make it easy to do your starting work in the right place
+your starting work in the right place make it easy to do your act and work in
+make it easy to do your act and work in the right place
+the right place you don't need to start a new project
+you don't need to start a new project and you could do it we were able to do
+and you could do it we were able to do it for the live game while making DLC
+it for the live game while making DLC and we're already seeing the benefits
+and we're already seeing the benefits from that this refactor OOP and you can
+from that this refactor OOP and you can do this thanks a lot to Kevin and Chris
+do this thanks a lot to Kevin and Chris Paul they're helping Justin sherry for
+Paul they're helping Justin sherry for the art and and my team's thank you
+the art and and my team's thank you [Applause]

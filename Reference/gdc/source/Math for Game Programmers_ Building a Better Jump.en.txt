@@ -1,0 +1,676 @@
+[Music] hi I'm Kyle Pitman I'm a graduate of the
+hi I'm Kyle Pitman I'm a graduate of the Guildhall SMU I worked at gearbox
+Guildhall SMU I worked at gearbox software for six years and in 2013 my
+software for six years and in 2013 my brother and I founded minor-key games
+brother and I founded minor-key games and now we do indie development today
+and now we do indie development today I'm going to be talking about jumping in
+I'm going to be talking about jumping in video games the principles I'll be
+video games the principles I'll be discussing can apply to platformers both
+discussing can apply to platformers both 2d and 3d but they can also apply to
+2d and 3d but they can also apply to first-person shooters or endless runners
+first-person shooters or endless runners or really any sort of game that has a
+or really any sort of game that has a jumping mechanic our goal is going to be
+jumping mechanic our goal is going to be to move away from the trial and error
+to move away from the trial and error that occurs when we start by defining
+that occurs when we start by defining physical constants upfront I've had this
+physical constants upfront I've had this experience in my own development maybe
+experience in my own development maybe some of y'all had a similar experience
+some of y'all had a similar experience where you're working on new project and
+where you're working on new project and you say alright let's let's start by
+you say alright let's let's start by defining gravity we'll say gravity is
+defining gravity we'll say gravity is 9.8 meters per second squared real-world
+9.8 meters per second squared real-world physics that's a good place to start and
+physics that's a good place to start and I will choose a jump velocity relative
+I will choose a jump velocity relative to that and maybe we'll tweak these
+to that and maybe we'll tweak these numbers a little bit get something that
+numbers a little bit get something that feels sort of in the ballpark of what we
+feels sort of in the ballpark of what we expect our characters jump to look and
+expect our characters jump to look and feel like but then maybe we send the
+feel like but then maybe we send the build to friends and get some feedback
+build to friends and get some feedback that says jumping feels floaty or
+that says jumping feels floaty or jumping feels heavy okay how do we
+jumping feels heavy okay how do we respond to this how do we tune the feel
+respond to this how do we tune the feel of our game without potentially breaking
+of our game without potentially breaking things you know five levels down the
+things you know five levels down the road because suddenly your character
+road because suddenly your character can't jump high enough to reach a
+can't jump high enough to reach a platform or can't jump far enough to
+platform or can't jump far enough to clear a gap and what we would like to do
+clear a gap and what we would like to do instead is start by describing a jump
+instead is start by describing a jump trajectory in terms that are familiar to
+trajectory in terms that are familiar to us as players and as designers I know
+us as players and as designers I know that I need to jump this high I know
+that I need to jump this high I know that I need to jump this far and from
+that I need to jump this far and from that description derive the mathematical
+that description derive the mathematical con a sorry to derive the mathematical
+con a sorry to derive the mathematical parameters that we need to model this in
+parameters that we need to model this in code so we'll start with a few
+code so we'll start with a few assumptions we're going to be modeling
+assumptions we're going to be modeling our player character as a massless
+our player character as a massless frictionless particle in the Bay Akuma's
+frictionless particle in the Bay Akuma's game programmers a lot of those right
+game programmers a lot of those right we're not going to worry about air
+we're not going to worry about air friction or drag yet we could bring this
+friction or drag yet we could bring this in later if we want to but we're going
+in later if we want to but we're going to keep things simple for right now
+to keep things simple for right now collision bounds don't matter whether
+collision bounds don't matter whether you use in a box or sphere or capsule
+you use in a box or sphere or capsule whatever the math is going to be exactly
+whatever the math is going to be exactly the same we're going to be representing
+the same we're going to be representing our player characters state as a
+our player characters state as a position in space of velocity that
+position in space of velocity that they're currently traveling
+they're currently traveling a constant downward acceleration due to
+a constant downward acceleration due to gravity so let's look at gravity gravity
+gravity so let's look at gravity gravity is the one and only external force
+is the one and only external force that's acting on our player character
+that's acting on our player character it's constant over time so if we graph
+it's constant over time so if we graph this out it's just a flat line and we
+this out it's just a flat line and we can write this as an equation f double
+can write this as an equation f double prime of T equals G G is our
+prime of T equals G G is our gravitational constant now from physics
+gravitational constant now from physics we know that acceleration velocity and
+we know that acceleration velocity and position are all related to each other
+position are all related to each other in that they are derivatives and
+in that they are derivatives and integrals of each other so if we know
+integrals of each other so if we know acceleration at any time we can
+acceleration at any time we can integrate with respect to time to find
+integrate with respect to time to find velocity so we'll go ahead and do that
+velocity so we'll go ahead and do that and this gives us a function for
+and this gives us a function for velocity F prime of T equals GT plus we
+velocity F prime of T equals GT plus we have to add an initial condition any
+have to add an initial condition any time we integrate and we call this V
+time we integrate and we call this V naught this is our initial velocity when
+naught this is our initial velocity when we graph this it's a descending line in
+we graph this it's a descending line in fact the slope of that line is our
+fact the slope of that line is our gravitational constant G we can
+gravitational constant G we can integrate once more with respect to time
+integrate once more with respect to time to find a function for position so we'll
+to find a function for position so we'll do that and this gives us a function for
+do that and this gives us a function for position F of T equals one-half GT
+position F of T equals one-half GT squared plus V naught T plus we add
+squared plus V naught T plus we add another initial condition when we
+another initial condition when we integrate P naught and this is our
+integrate P naught and this is our initial position and throughout the rest
+initial position and throughout the rest of this talk I'll be assuming that our
+of this talk I'll be assuming that our initial position is zero that we're
+initial position is zero that we're jumping from a ground height of zero and
+jumping from a ground height of zero and that term just sort of goes away but
+that term just sort of goes away but it's important to understand why that's
+it's important to understand why that's there and when we graph this one out you
+there and when we graph this one out you can see it sort of has a nice smooth
+can see it sort of has a nice smooth curve to it it's sort of what you would
+curve to it it's sort of what you would expect to see if you plotted your player
+expect to see if you plotted your player characters jump over time in fact this
+characters jump over time in fact this equation is just the textbook physics
+equation is just the textbook physics 101 projectile motion formula if you
+101 projectile motion formula if you were asked to solve a physics problem
+were asked to solve a physics problem about you know how high in the air is a
+about you know how high in the air is a baseball five seconds after being hit by
+baseball five seconds after being hit by a bear this is probably the equation you
+a bear this is probably the equation you would be using and all that we did to
+would be using and all that we did to get there is we started by saying
+get there is we started by saying gravity is the one thing that affects us
+gravity is the one thing that affects us and we integrated twice with respect to
+and we integrated twice with respect to time now this equation has another cool
+time now this equation has another cool property which is that this is a
+property which is that this is a parabola algebraically we can define a
+parabola algebraically we can define a parabola as f of X equals ax squared
+parabola as f of X equals ax squared plus BX plus C and substituting these
+plus BX plus C and substituting these values you can see that our projectile
+values you can see that our projectile motion formula does fit that description
+and what that tells us is that the position and the path our player
+position and the path our player character follows as they are traveling
+character follows as they are traveling through the air under the influence of
+through the air under the influence of gravity is a parabola so necessarily any
+gravity is a parabola so necessarily any properties of parabolas that we can
+properties of parabolas that we can identify would also hold true for that
+identify would also hold true for that path so let's look at some properties of
+path so let's look at some properties of parabolas next every parabola is
+parabolas next every parabola is symmetric about an axis of symmetry that
+symmetric about an axis of symmetry that intersects its vertex what we would
+intersects its vertex what we would think of as the peak of the jump so what
+think of as the peak of the jump so what that tells us is that the duration of
+that tells us is that the duration of time for when we leave the ground to
+time for when we leave the ground to when we reach the peak of a jump it's
+when we reach the peak of a jump it's going to be the same as the time from
+going to be the same as the time from the peak of jump back down to the ground
+the peak of jump back down to the ground again every parabola is geometrically
+again every parabola is geometrically self similar to every other parabola and
+self similar to every other parabola and what that tells us sort of intuitively
+what that tells us sort of intuitively is that if we can find a sufficient set
+is that if we can find a sufficient set of constraints to describe a parabolic
+of constraints to describe a parabolic jump trajectory for instance a vertical
+jump trajectory for instance a vertical axis of symmetry and desired height and
+axis of symmetry and desired height and distance there's only one parabola that
+distance there's only one parabola that could pass through that set of points
+could pass through that set of points that could fulfill those constraints and
+that could fulfill those constraints and finally the the shape of a parabola
+finally the the shape of a parabola whether it's very wide and flat or very
+whether it's very wide and flat or very tall and narrow this is entirely
+tall and narrow this is entirely dependent on the quadratic coefficient a
+dependent on the quadratic coefficient a which in our projectile motion formula
+which in our projectile motion formula is one-half G and hopefully that
+is one-half G and hopefully that intuitively makes sense as well that
+intuitively makes sense as well that this would depend on gravity as gravity
+this would depend on gravity as gravity gets stronger we expect to see a steeper
+gets stronger we expect to see a steeper sharper fall-off on that curve up for
+sharper fall-off on that curve up for reference the the B and C terms of this
+reference the the B and C terms of this parabola would be the initial velocity
+parabola would be the initial velocity what we could think of as the tangent to
+what we could think of as the tangent to the jump and the initial position which
+the jump and the initial position which is sort of just a translational offset
+is sort of just a translational offset on that graph so understanding that our
+on that graph so understanding that our players jump trajectory is a parabola
+players jump trajectory is a parabola and understand some of these properties
+and understand some of these properties of parabolas what we can do next is
+of parabolas what we can do next is start designing a jump on paper and for
+start designing a jump on paper and for right now we're going to be talking
+right now we're going to be talking about standing in place jumping straight
+about standing in place jumping straight up and falling straight down we aren't
+up and falling straight down we aren't jumping sideways through space yet but
+jumping sideways through space yet but we'll get there
+we'll get there so for right now our x axis is time so
+so for right now our x axis is time so we'll draw a graph of what we want our
+we'll draw a graph of what we want our players jump trajectory look like I'll
+players jump trajectory look like I'll say we have some height that we want
+say we have some height that we want we'll call this height H maybe you have
+we'll call this height H maybe you have a platform that's 50
+a platform that's 50 it's off the ground so you want your
+it's off the ground so you want your jump height to get a little bit above
+jump height to get a little bit above that next we need to answer the question
+that next we need to answer the question how long does it take us to reach that
+how long does it take us to reach that height and we'll call this duration T
+height and we'll call this duration T sub H now because we know every parabola
+sub H now because we know every parabola is symmetric we know that the time at
+is symmetric we know that the time at which we land back on the ground again
+which we land back on the ground again will be 2 T sub H now from this
+will be 2 T sub H now from this description what we would like to do is
+description what we would like to do is calculate the mathematical properties
+calculate the mathematical properties that we need to model this jump in code
+that we need to model this jump in code and we need two things we need to know
+and we need two things we need to know gravity and we need to know our initial
+gravity and we need to know our initial jump velocity so we'll start by looking
+jump velocity so we'll start by looking at velocity we go back to our graph from
+at velocity we go back to our graph from earlier and we say at time zero we have
+earlier and we say at time zero we have some initial velocity V naught we don't
+some initial velocity V naught we don't know what that is yet that's one of the
+know what that is yet that's one of the things we want to find at time T sub H
+things we want to find at time T sub H our velocity is zero this is the peak of
+our velocity is zero this is the peak of the jump this is when gravity has pulled
+the jump this is when gravity has pulled down hard enough that we are momentarily
+down hard enough that we are momentarily weightless
+weightless before we fall back to earth and then at
+before we fall back to earth and then at time two T sub H this is just as we're
+time two T sub H this is just as we're landing on the ground again our velocity
+landing on the ground again our velocity is equal in magnitude and opposite in
+is equal in magnitude and opposite in direction to our initial velocity so
+direction to our initial velocity so this is negative V nod so we'll look at
+this is negative V nod so we'll look at this point in the middle here where time
+this point in the middle here where time is T sub H and velocity is zero and
+is T sub H and velocity is zero and we'll substitute these values into our
+we'll substitute these values into our function for velocity and solve for V
+function for velocity and solve for V nod and start skipping skipping to the
+nod and start skipping skipping to the end there what this gives us is a
+end there what this gives us is a solution for our initial velocity V
+solution for our initial velocity V naught in terms of gravity which we
+naught in terms of gravity which we don't yet know and the duration to the
+don't yet know and the duration to the peak of the jump which we've defined in
+peak of the jump which we've defined in advance so next we need to find a
+advance so next we need to find a solution for gravity so to solve for
+solution for gravity so to solve for gravity we'll go to the graph of
+gravity we'll go to the graph of position that we just drew we start at a
+position that we just drew we start at a height of zero at time zero at time T
+height of zero at time zero at time T sub H we have some desired height H and
+sub H we have some desired height H and then at time two T sub H we've land on
+then at time two T sub H we've land on the ground again our height is zero from
+the ground again our height is zero from the previous slide we know that we can
+the previous slide we know that we can express our initial velocity as a
+express our initial velocity as a function of gravity and time so we'll
+function of gravity and time so we'll substitute these values into our
+substitute these values into our equation for position and again we'll
+equation for position and again we'll look at this point in the middle where
+look at this point in the middle where our height is H and our time is T sub H
+our height is H and our time is T sub H and we'll solve this for G and again
+and we'll solve this for G and again sort of skipping through all the math
+sort of skipping through all the math there what this gives us is a solution
+there what this gives us is a solution our gravitational constant G in terms of
+our gravitational constant G in terms of the height and disor in terms of height
+the height and disor in terms of height and the duration of the jump so that's
+and the duration of the jump so that's one of the two things we were wanting to
+one of the two things we were wanting to find now that we have a solution for
+find now that we have a solution for gravity we can go back to the previous
+gravity we can go back to the previous slide where we wrote initial velocity in
+slide where we wrote initial velocity in terms of gravity and we can substitute
+terms of gravity and we can substitute this in and this gives us a solution for
+this in and this gives us a solution for initial velocity also in terms of the
+initial velocity also in terms of the height and the duration of the jump so
+height and the duration of the jump so to review I know I'm skipping through a
+to review I know I'm skipping through a little bit of the math here quickly but
+little bit of the math here quickly but if you're taking notes or taking
+if you're taking notes or taking pictures in your cell phone this would
+pictures in your cell phone this would be probably one of the slides you'd want
+be probably one of the slides you'd want to remember what we've done here is
+to remember what we've done here is we've described a jump trajectory in
+we've described a jump trajectory in terms of the height and in terms of the
+terms of the height and in terms of the duration that takes to get us to that
+duration that takes to get us to that height and from that description we can
+height and from that description we can calculate the gravity and the initial
+calculate the gravity and the initial velocity that we need to model this jump
+velocity that we need to model this jump accurately in code so this is cool this
+accurately in code so this is cool this gets us some of the way to our goal but
+gets us some of the way to our goal but as long as we're speaking about the
+as long as we're speaking about the height of the jump it would also be
+height of the jump it would also be useful to speak about the distance of
+useful to speak about the distance of the jump and we can do that but we need
+the jump and we can do that but we need to introduce another parameter which is
+to introduce another parameter which is how fast we move side-to-side so I'll be
+how fast we move side-to-side so I'll be calling this laetrile speed or foot
+calling this laetrile speed or foot speed depending on your game the opinion
+speed depending on your game the opinion in your application this might not be a
+in your application this might not be a constant value you might have some ramp
+constant value you might have some ramp up and ramp down time in your foot speed
+up and ramp down time in your foot speed you might have a different horizontal
+you might have a different horizontal speed when you're running on the ground
+speed when you're running on the ground versus jumping through the air but for
+versus jumping through the air but for the purposes of this talk whatever the
+the purposes of this talk whatever the maximum horizontal speed that you could
+maximum horizontal speed that you could reach as you are moving through the air
+reach as you are moving through the air whatever that is that's the number we
+whatever that is that's the number we want to use it's also important to know
+want to use it's also important to know here that you need to keep the
+here that you need to keep the horizontal and vertical components of
+horizontal and vertical components of your player characters velocity separate
+your player characters velocity separate if you're making a 2d platformer this
+if you're making a 2d platformer this means keeping your x and y values
+means keeping your x and y values separate if you're making a 3d
+separate if you're making a 3d platformer whatever you're up X this is
+platformer whatever you're up X this is whether that's Y or Z you need to keep
+whether that's Y or Z you need to keep that separate from movement in the
+that separate from movement in the horizontal plane
+horizontal plane and when I say keep those separate what
+and when I say keep those separate what I mean is if your player is running
+I mean is if your player is running really fast sideways and they press the
+really fast sideways and they press the jump button you don't want to kill that
+jump button you don't want to kill that horizontal movement and jump straight up
+horizontal movement and jump straight up you want to keep the horizontal movement
+you want to keep the horizontal movement going and just add a vertical component
+going and just add a vertical component you there we also have this relationship
+you there we also have this relationship among three parameters now previously we
+among three parameters now previously we were speaking about the duration of the
+were speaking about the duration of the jump the time to reach the peak of the
+jump the time to reach the peak of the jump T sub H now we're going to start
+jump T sub H now we're going to start talking about the horizontal distance
+talking about the horizontal distance that we cover on the way to the peak of
+that we cover on the way to the peak of the jump and we're also going to be
+the jump and we're also going to be talking about our foot speed V sub X you
+talking about our foot speed V sub X you can pick two of these but the third one
+can pick two of these but the third one necessarily has to be a function of the
+necessarily has to be a function of the other two so for my money I think it
+other two so for my money I think it makes the most sense to define the
+makes the most sense to define the horizontal distance to the peak of the
+horizontal distance to the peak of the jump and to find the foot speed and
+jump and to find the foot speed and allow the duration of the jump to be a
+allow the duration of the jump to be a function of those just because when
+function of those just because when we're talking about the duration of a
+we're talking about the duration of a jump usually we're talking about
+jump usually we're talking about fractions of a second and that's not
+fractions of a second and that's not necessarily the most intuitive thing to
+necessarily the most intuitive thing to speak about or the most intuitive thing
+speak about or the most intuitive thing to design upfront so just as before
+to design upfront so just as before we're going to draw a graph of what we
+we're going to draw a graph of what we would like our jump trajectory to look
+would like our jump trajectory to look like only now we're jumping through
+like only now we're jumping through space so our x-axis is distance rather
+space so our x-axis is distance rather than time and in fact you could draw
+than time and in fact you could draw this graph over a representative scene
+this graph over a representative scene from your game especially if you're
+from your game especially if you're making a 2d platformer you could say
+making a 2d platformer you could say well I have a platform this high or I
+well I have a platform this high or I have a pit of spikes that's this long I
+have a pit of spikes that's this long I know that I need to jump that high or
+know that I need to jump that high or that far to cross those so we're
+that far to cross those so we're defining our jump now in terms of the
+defining our jump now in terms of the height but also the distance
+height but also the distance horizontally that we cover on the way to
+horizontally that we cover on the way to the peak of that jump and we call that X
+the peak of that jump and we call that X sub H and then we have our lateral foot
+sub H and then we have our lateral foot speed and we call that V sub X so just
+speed and we call that V sub X so just as before we want to find gravity and we
+as before we want to find gravity and we want to find initial velocity because
+want to find initial velocity because those are the things we need to model
+those are the things we need to model this in code and to do this we're going
+this in code and to do this we're going to take the equations we found
+to take the equations we found previously for those values and make
+previously for those values and make some substitutions so on the left here
+some substitutions so on the left here we have a substitution for T sub H the
+we have a substitution for T sub H the duration to the peak of the jump we can
+duration to the peak of the jump we can rewrite this as X sub H the horizontal
+rewrite this as X sub H the horizontal distance to the peak of the jump divided
+distance to the peak of the jump divided by our lateral foot speed V sub X on the
+by our lateral foot speed V sub X on the top row we have the equations we found
+top row we have the equations we found previously for initial velocity and
+previously for initial velocity and gravity and on the bottom row we've
+gravity and on the bottom row we've substituted that T sub H term with the
+substituted that T sub H term with the substitution from the side so again to
+substitution from the side so again to review this would probably be one of the
+review this would probably be one of the slides you don't get a picture of
+slides you don't get a picture of what we've done is we've started by
+what we've done is we've started by describing an ideal desire to jump
+describing an ideal desire to jump trajectory in terms of height in terms
+trajectory in terms of height in terms of distance and in terms of how fast our
+of distance and in terms of how fast our player character moves side to side and
+player character moves side to side and from that description we can calculate
+from that description we can calculate gravity and we can calculate initial
+gravity and we can calculate initial velocity and we have everything that we
+velocity and we have everything that we need to model this jump in code so this
+need to model this jump in code so this is pretty cool this gets us a little bit
+is pretty cool this gets us a little bit further but at this point we're still
+further but at this point we're still talking about very perfect parabolic
+talking about very perfect parabolic jumps and while that might be true to
+jumps and while that might be true to real-world physics in the case of this
+real-world physics in the case of this massless frictionless particle in a
+massless frictionless particle in a vacuum it's not necessarily the most fun
+vacuum it's not necessarily the most fun or interesting or good feeling thing for
+or interesting or good feeling thing for a video game so what we'd like to do
+a video game so what we'd like to do next is start looking for ways that we
+next is start looking for ways that we can break the rules a little bit while
+can break the rules a little bit while still relying on these properties and
+still relying on these properties and knowing that we can design our jump and
+knowing that we can design our jump and trust that we're going to reach a
+trust that we're going to reach a certain height in distance and to do
+certain height in distance and to do this we're going to start thinking about
+this we're going to start thinking about our jump trajectory not as a single
+our jump trajectory not as a single parabola but as multiple augments of
+parabola but as multiple augments of partial parabolas and to give you a real
+partial parabolas and to give you a real world example of a game that does this
+world example of a game that does this sort of rule breaking in in the original
+sort of rule breaking in in the original Super Mario Brothers I think this was
+Super Mario Brothers I think this was mentioned in Steve slinks book game feel
+mentioned in Steve slinks book game feel in the original Super Mario Brothers
+in the original Super Mario Brothers Mario runs and jumps and flies through
+Mario runs and jumps and flies through the air and he reaches the peak of his
+the air and he reaches the peak of his jump and suddenly gravity triples and
+jump and suddenly gravity triples and Mario falls like a brick now there's
+Mario falls like a brick now there's nothing real world physics about a
+nothing real world physics about a sudden increase in gravity at the peak
+sudden increase in gravity at the peak of a jump but that treatment is part of
+of a jump but that treatment is part of what gives Mario his characteristic
+what gives Mario his characteristic trademark sense of weight along with a
+trademark sense of weight along with a slow ramp up and ramp down time on this
+slow ramp up and ramp down time on this sideways movement it's what makes him
+sideways movement it's what makes him feel different than other videogame
+feel different than other videogame characters and we'd like to look for
+characters and we'd like to look for ways that we can bring those sorts of
+ways that we can bring those sorts of unique characteristics to our own game
+unique characteristics to our own game so let's look at an example what we'll
+so let's look at an example what we'll take the same example of falling faster
+take the same example of falling faster beyond the peak of a jump we can start
+beyond the peak of a jump we can start by drawing a jump trajectory exactly as
+by drawing a jump trajectory exactly as we have in the past in terms of height
+we have in the past in terms of height and distance and lateral foot speed but
+and distance and lateral foot speed but that's not shown here but once we get to
+that's not shown here but once we get to the peak of the jump we'll break it
+the peak of the jump we'll break it there and we'll draw a different curve
+there and we'll draw a different curve on the other side a different part of a
+on the other side a different part of a Jeff
+Jeff parabola one with the same height but a
+parabola one with the same height but a shorter distance now from the materials
+shorter distance now from the materials that we've already covered we have
+that we've already covered we have everything that we need to calculate an
+everything that we need to calculate an initial velocity and a gravity for each
+initial velocity and a gravity for each part of this trajectory we only need the
+part of this trajectory we only need the initial velocity for the first part as
+initial velocity for the first part as our character's taking off from the
+our character's taking off from the ground but what we do then is we would
+ground but what we do then is we would apply gravity over time for the first
+apply gravity over time for the first half of the curve and when we reach the
+half of the curve and when we reach the peak of the jump in code when the
+peak of the jump in code when the vertical component of our velocity goes
+vertical component of our velocity goes from positive to negative we would
+from positive to negative we would switch over and start applying the
+switch over and start applying the heavier gravity corresponding to the
+heavier gravity corresponding to the second half of this trajectory and when
+second half of this trajectory and when you play this back in real time you'd
+you play this back in real time you'd see your character followed stretch-out
+see your character followed stretch-out head trajectory just like this they
+head trajectory just like this they would fly through the air have sort of a
+would fly through the air have sort of a nice smooth descent and they would reach
+nice smooth descent and they would reach the peak of their jump and fall much
+the peak of their jump and fall much faster we can do a similar thing for
+faster we can do a similar thing for variable height jumping variable height
+variable height jumping variable height jumping tends to be communicated to the
+jumping tends to be communicated to the player in terms of hold the button down
+player in terms of hold the button down longer to jump higher but the way we
+longer to jump higher but the way we would think about this in code is we
+would think about this in code is we would treat the maximum height that the
+would treat the maximum height that the player could ever reach as the default
+player could ever reach as the default that's where we get our initial velocity
+that's where we get our initial velocity from and if the player releases the jump
+from and if the player releases the jump button early before they've reached the
+button early before they've reached the peak of the jump we switch over to a
+peak of the jump we switch over to a heavier gravity value to reach the peak
+heavier gravity value to reach the peak sooner so in this graph here where the
+sooner so in this graph here where the line goes from blue to red that's the
+line goes from blue to red that's the moment where the player has released the
+moment where the player has released the jump button you can see another outline
+jump button you can see another outline of blue an outline in blue in the back
+of blue an outline in blue in the back and that represents sort of that maximum
+and that represents sort of that maximum jump height that they could reach if
+jump height that they could reach if they kept the button held down you can
+they kept the button held down you can see another smaller outline in red and
+see another smaller outline in red and that's a minimum jump height if you were
+that's a minimum jump height if you were to just feather the button and off again
+to just feather the button and off again for a split second you would still want
+for a split second you would still want to cover some distance so that's where
+to cover some distance so that's where this minimum jump height comes from and
+this minimum jump height comes from and that's that corresponds to the gravity
+that's that corresponds to the gravity that we use to bring the player
+that we use to bring the player character to the peak of their jump
+character to the peak of their jump sooner now once we reach the peak of the
+sooner now once we reach the peak of the jump we have a few options in this graph
+jump we have a few options in this graph I show us reverting back to the original
+I show us reverting back to the original gravity so we have sort of a nice smooth
+gravity so we have sort of a nice smooth descent on the other side but you could
+descent on the other side but you could also remain at a heavier gravity value
+also remain at a heavier gravity value if the player had released the button
+if the player had released the button sooner
+sooner or you could even combine this technique
+or you could even combine this technique with the one from the previous slide and
+with the one from the previous slide and say regardless of whether the player
+say regardless of whether the player released the button early we always
+released the button early we always switch to a different falling gravity
+switch to a different falling gravity beyond the peak of the jump if you're
+beyond the peak of the jump if you're implementing double jumping or any
+implementing double jumping or any number of modes you could define each
+number of modes you could define each stage of the jump as a separate parabola
+stage of the jump as a separate parabola to find these in terms of height and
+to find these in terms of height and distance again just as we have in the
+distance again just as we have in the past and calculate an initial velocity
+past and calculate an initial velocity and a gravity for each stage of this
+and a gravity for each stage of this jump in this case you would need to know
+jump in this case you would need to know the initial velocity for that second
+the initial velocity for that second part because you would be treating that
+part because you would be treating that just like a jump from a standstill in
+just like a jump from a standstill in that case so throughout this talk I've
+that case so throughout this talk I've been mentioning that we need two things
+been mentioning that we need two things to model a jump in code we need gravity
+to model a jump in code we need gravity and we need initial velocity so let's
+and we need initial velocity so let's talk a little bit about how this works
+talk a little bit about how this works with initial velocity as soon as the
+with initial velocity as soon as the player presses the jump button we want
+player presses the jump button we want to apply that to the player characters
+to apply that to the player characters current state but again it's important
+current state but again it's important to note that you want to decouple your
+to note that you want to decouple your horizontal movement from your vertical
+horizontal movement from your vertical you don't want to kill horizontal
+you don't want to kill horizontal movement and just jump straight up you
+movement and just jump straight up you want to keep horizontal movement going
+want to keep horizontal movement going and apply a vertical component to that a
+and apply a vertical component to that a gravity needs to be applied over time so
+gravity needs to be applied over time so for that one we need to talk about
+for that one we need to talk about integration
+integration generally speaking integration solves
+generally speaking integration solves the problem of we have some previous
+the problem of we have some previous game state and then there's been some
+game state and then there's been some passage of time and we want to predict
+passage of time and we want to predict with as much accuracy as possible what
+with as much accuracy as possible what the next game state is going to be in
+the next game state is going to be in any engine or any framework you're going
+any engine or any framework you're going to have the same sort of integration
+to have the same sort of integration with this passage of time this might be
+with this passage of time this might be a variable amount of time it might be
+a variable amount of time it might be constant it might be sort of obscured a
+constant it might be sort of obscured a little bit but that's always there and
+little bit but that's always there and your math does need to account for that
+your math does need to account for that so the easiest way to do this is with
+so the easiest way to do this is with Euler integration we increment our
+Euler integration we increment our position by velocity multiplied by Delta
+position by velocity multiplied by Delta time we increment velocity by
+time we increment velocity by acceleration multiplied by Delta time so
+acceleration multiplied by Delta time so this is easy right but it's not very
+this is easy right but it's not very stable and in the worst case scenario
+stable and in the worst case scenario the player might perceive a difference
+the player might perceive a difference in the way their character handles for
+in the way their character handles for instance if a lot of stuff is happening
+instance if a lot of stuff is happening on screen and the framerate drops and
+on screen and the framerate drops and those are the sorts of inconsistencies
+those are the sorts of inconsistencies that we would like to avoid so on the
+that we would like to avoid so on the far end of the spectrum we have the
+far end of the spectrum we have the Rakata methods and rk4 in particular I
+Rakata methods and rk4 in particular I don't have pseudocode for this one
+don't have pseudocode for this one because it tends to be very wordy but I
+because it tends to be very wordy but I would point to the gaffer on game's
+would point to the gaffer on game's article integration basics as a really
+article integration basics as a really great overview of what this might look
+great overview of what this might look like in an actual game development
+like in an actual game development scenario however my takeaway from the
+scenario however my takeaway from the article and from some of the comments on
+article and from some of the comments on that article is that if all we're doing
+that article is that if all we're doing is dealing with this sort of projectile
+is dealing with this sort of projectile motion the runge-kutta methods are way
+motion the runge-kutta methods are way more complex than what we need we can
+more complex than what we need we can actually find an integration method that
+actually find an integration method that is every bit as accurate but much much
+is every bit as accurate but much much simpler to write so let's take a look at
+simpler to write so let's take a look at velocity relay next the wave velocity
+velocity relay next the wave velocity relay is written you start a similar to
+relay is written you start a similar to Euler integration you increment position
+Euler integration you increment position based on velocity but then we have this
+based on velocity but then we have this term one-half acceleration times the
+term one-half acceleration times the square of the Delta time then you
+square of the Delta time then you calculate a new acceleration value as a
+calculate a new acceleration value as a function of position you increment your
+function of position you increment your velocity by an interpolation halfway
+velocity by an interpolation halfway between the previous and new
+between the previous and new acceleration values and then you commit
+acceleration values and then you commit the change to acceleration so this is
+the change to acceleration so this is interesting it's definitely you know
+interesting it's definitely you know simpler to write than runge-kutta
+simpler to write than runge-kutta methods but it's not necessarily
+methods but it's not necessarily applicable to our situation because in
+applicable to our situation because in our case gravity is mostly constant
+our case gravity is mostly constant except for those few places where we've
+except for those few places where we've chosen to break the rules and increase
+chosen to break the rules and increase or decrease gravity so maybe we can
+or decrease gravity so maybe we can simplify this a little bit further
+simplify this a little bit further what's also interesting in noise here is
+what's also interesting in noise here is we have this one-half acceleration times
+we have this one-half acceleration times the square of the Delta time term and
+the square of the Delta time term and that sort of recalls our original
+that sort of recalls our original projectile motion formula and in fact if
+projectile motion formula and in fact if we think about in those terms we have
+we think about in those terms we have this projectile motion formula and that
+this projectile motion formula and that already answers the question of given
+already answers the question of given any set of initial conditions for
+any set of initial conditions for instance the previous game state we know
+instance the previous game state we know with 100% accuracy where our player is
+with 100% accuracy where our player is going to be at any time in the future
+going to be at any time in the future for instance after this delta time so if
+for instance after this delta time so if we were to simplify the lossy relay
+we were to simplify the lossy relay assuming a constant acceleration this
+assuming a constant acceleration this would actually correspond directly to
+would actually correspond directly to our projection and projectile motion
+our projection and projectile motion formula and we could trust that we are
+formula and we could trust that we are getting 100% accurate results
+getting 100% accurate results but what about those times when we do
+but what about those times when we do deliberately break the rules a little
+deliberately break the rules a little bit and we say we reach to the peak of
+bit and we say we reach to the peak of the jump we increase the gravity how
+the jump we increase the gravity how much error do we accumulate in those
+much error do we accumulate in those cases if we were to just naively
+cases if we were to just naively integrate this way assuming a constant
+integrate this way assuming a constant acceleration that error would be on the
+acceleration that error would be on the order of the change in acceleration from
+order of the change in acceleration from the previous frame to the new one
+the previous frame to the new one multiplied by the square of the Delta
+multiplied by the square of the Delta time now when I ran these numbers on one
+time now when I ran these numbers on one of my own games this error was about
+of my own games this error was about half a pixel and this isn't something
+half a pixel and this isn't something that would accumulate over an entire
+that would accumulate over an entire session and eventually throw things out
+session and eventually throw things out of whack this is a one time offset that
+of whack this is a one time offset that gets zeroed out the next time your
+gets zeroed out the next time your player character lands on the ground so
+player character lands on the ground so I would argue this is a perfectly
+I would argue this is a perfectly acceptable amount of error and if you've
+acceptable amount of error and if you've been using Euler integration and if
+been using Euler integration and if you're dealing with projectile motion I
+you're dealing with projectile motion I would recommend giving this simplified
+would recommend giving this simplified velocity relay integration method to try
+velocity relay integration method to try I think you'll be really happy with the
+I think you'll be really happy with the results so to review our goal has been
+results so to review our goal has been to move away from trial and error move
+to move away from trial and error move away from defining physical constants
+away from defining physical constants upfront and move in a direction where we
+upfront and move in a direction where we can describe a jump trajectory in terms
+can describe a jump trajectory in terms are familiar to us as players and as
+are familiar to us as players and as designers I know that I want to jump
+designers I know that I want to jump this high and this far and then we want
+this high and this far and then we want to lean on those abilities to craft a
+to lean on those abilities to craft a unique individually characteristic jump
+unique individually characteristic jump trajectory that can give our particular
+trajectory that can give our particular game its own unique feel and we still
+game its own unique feel and we still can trust that it's going to feel rooted
+can trust that it's going to feel rooted in the truth of gravity constantly
+in the truth of gravity constantly pulling our player character down so
+pulling our player character down so oops let's plug my own game here real
+oops let's plug my own game here real quick I have a game on Steam it's called
+quick I have a game on Steam it's called you have to win the game it's free like
+you have to win the game it's free like actually free not in-app purchases for
+actually free not in-app purchases for you and it uses most of the principles
+you and it uses most of the principles I've talked about here today so if you
+I've talked about here today so if you have a chance to try that hopefully
+have a chance to try that hopefully you'll like the way it feels and be
+you'll like the way it feels and be convinced that this is a good method to
+convinced that this is a good method to follow you can find me on Twitter as
+follow you can find me on Twitter as well at pirate hearts my websites are
+well at pirate hearts my websites are mine dirty Gamescom and gunmetal arcadia
+mine dirty Gamescom and gunmetal arcadia comm and other platformers I'm making
+comm and other platformers I'm making that uses all these same principles but
+that uses all these same principles but that's it for me thank you for your time
+all right I guess we do have time for some questions so if anyone wants to
+some questions so if anyone wants to come up to the mic there oh yeah
+come up to the mic there oh yeah absolutely yeah
+absolutely yeah I guess I wanted to ask for quickly um I
+I guess I wanted to ask for quickly um I know you briefly mentioned Super Mario
+know you briefly mentioned Super Mario Bros as a way of as an example of good
+Bros as a way of as an example of good jumping are there like any other games
+jumping are there like any other games when I mentioned to have examples of
+when I mentioned to have examples of good or bad jumping
+good or bad jumping I haven't analyzed others as
+I haven't analyzed others as specifically as that one but I would
+specifically as that one but I would point to Super Meat Boy is a really good
+point to Super Meat Boy is a really good example of having a unique
+example of having a unique characteristic sort of flakiness but you
+characteristic sort of flakiness but you know floatiness necessarily doesn't
+know floatiness necessarily doesn't always feel good but they managed to
+always feel good but they managed to make it feel good in that way I think it
+make it feel good in that way I think it was a combination of you know the way
+was a combination of you know the way the character moves but also interacts
+the character moves but also interacts with walls and has you know wall jumping
+with walls and has you know wall jumping and all those sorts of abilities thank
+and all those sorts of abilities thank you yeah thanks if anyone else has
+you yeah thanks if anyone else has another question I guess we have time
+another question I guess we have time for one more
+all right let's thank Kyle [Applause]

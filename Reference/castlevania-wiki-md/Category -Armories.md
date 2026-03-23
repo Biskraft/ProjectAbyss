@@ -1,0 +1,3 @@
+# Category:Armories
+
+Category: Environments

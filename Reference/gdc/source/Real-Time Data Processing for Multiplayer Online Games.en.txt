@@ -1,0 +1,431 @@
+[Music] hi
+hi everyone we are very glad to have you at
+everyone we are very glad to have you at our speech today
+our speech today our topic is real time that processing
+our topic is real time that processing for multiplayer online games
+for multiplayer online games i'm leicester a senior dead mining
+i'm leicester a senior dead mining engineer
+engineer from sound fire ux team of netherlands
+from sound fire ux team of netherlands games
+games this is my colleague certain shoe a
+this is my colleague certain shoe a senior project manager
+senior project manager also from sunfire
+also from sunfire before entering today's topic let's
+before entering today's topic let's think about
+think about such a scenario a new game is launched
+such a scenario a new game is launched today your boss is eager to
+today your boss is eager to know today's in-time new players and
+know today's in-time new players and cash flow
+cash flow can you give him this data in real time
+can you give him this data in real time or a batch of new items have been
+or a batch of new items have been launched
+launched can you let the boss knows which are the
+can you let the boss knows which are the five
+five best sellers now finally
+best sellers now finally these new items were copied illegally by
+these new items were copied illegally by some
+some players can you detect it in the first
+players can you detect it in the first time
+time before the boss goes crazy and yells at
+before the boss goes crazy and yells at you
+you why didn't we find them in time
+to solve these problems we need a real-time debt processing system
+a real-time debt processing system therefore we were many discussed three
+therefore we were many discussed three questions
+questions in today's presentation first
+in today's presentation first how to build a real-time debt processing
+how to build a real-time debt processing system
+system for online games second
+for online games second how do we process real-time data
+how do we process real-time data in netease games and third
+in netease games and third how to optimize real-time data
+how to optimize real-time data processing
+processing most of you probably have had little
+most of you probably have had little knowledge
+knowledge on big data so i'd like
+on big data so i'd like to introduce some big data tools that
+to introduce some big data tools that are frequently used
+are frequently used in practice before digging into today's
+in practice before digging into today's topic firstly
+topic firstly kafka kafka is a distributed
+kafka kafka is a distributed streaming platform which can be
+streaming platform which can be used for lock transferring and
+used for lock transferring and temporary storage storm and flink
+temporary storage storm and flink are systems for real-time data
+are systems for real-time data computations
+computations and druid is a real-time analytics
+and druid is a real-time analytics database the specific functions
+database the specific functions of these tools will be explained
+of these tools will be explained later in addition
+later in addition there's a commonly used eok system
+there's a commonly used eok system in order to search and query the logs
+in order to search and query the logs and eok is actually the abbreviation
+and eok is actually the abbreviation of the three words elastic search
+of the three words elastic search logstash and kibana
+logstash and kibana there are tools of log search log
+there are tools of log search log collection
+collection and visualization this picture presented
+and visualization this picture presented here
+here shows how elk works
+shows how elk works logstash collects passes and filters
+logstash collects passes and filters the data and then sends them to
+the data and then sends them to elasticsearch
+elasticsearch for indexing elasticsearch is used
+for indexing elasticsearch is used to index store and extract your data
+to index store and extract your data kibana allows you to visualize your data
+kibana allows you to visualize your data stored in elastic search helping
+stored in elastic search helping with data searching and data analysis
+with data searching and data analysis by far we have had an overview
+by far we have had an overview of the big data tools so now
+of the big data tools so now let's begin our first topic how to build
+let's begin our first topic how to build a real-time data processing system
+a real-time data processing system for online games corresponding
+for online games corresponding to the real-time data processing system
+to the real-time data processing system is the offline data processing system
+is the offline data processing system so you may ask what is the difference
+so you may ask what is the difference between these two systems
+a main difference is timeliness offline data processing system is not
+offline data processing system is not immediately and usually causes delay
+immediately and usually causes delay for hours or a day as
+for hours or a day as we often call it t plus one
+we often call it t plus one while real-time processing system
+while real-time processing system reduces
+reduces the delay to minute level second level
+the delay to minute level second level or even millisecond level secondly
+or even millisecond level secondly the processing modes are different
+the processing modes are different offline system uses batch calculation
+offline system uses batch calculation while real-time system uses micro batch
+while real-time system uses micro batch calculation or streaming calculation
+calculation or streaming calculation in terms of results consumption
+in terms of results consumption offline data processing has a higher
+offline data processing has a higher demand
+demand for disk and network io
+for disk and network io due to the relatively large amount of
+due to the relatively large amount of debt processed real-time data processing
+debt processed real-time data processing requires higher cpu and memory usage
+requires higher cpu and memory usage for processing real-time data finally
+for processing real-time data finally they each have different representative
+they each have different representative technology for offline data processing
+technology for offline data processing these hadoop hdfs
+these hadoop hdfs and mapreduce hive wire for real-time
+and mapreduce hive wire for real-time data processing their spark
+data processing their spark streaming storm flink and so on
+streaming storm flink and so on now let's look at a typical
+now let's look at a typical real-time data processing system as
+real-time data processing system as shown
+shown in the slide the source of it
+in the slide the source of it is log collections and the transmission
+is log collections and the transmission then transferring and a storage stands
+then transferring and a storage stands at the middle of the process while
+at the middle of the process while computation and application is a final
+computation and application is a final step the corresponding tools
+step the corresponding tools for this step are lockstash kafka
+for this step are lockstash kafka and flink this
+and flink this is a brief overview of the data
+is a brief overview of the data processing
+processing pipeline and we are going to have a more
+pipeline and we are going to have a more detailed
+detailed analysis of it players
+analysis of it players in the game will have a variety of
+in the game will have a variety of behaviors
+behaviors these behaviors will be recorded by the
+these behaviors will be recorded by the log system
+log system on a local game server for example
+on a local game server for example some typical behaviors such as login
+some typical behaviors such as login and logout duplicating a character
+and logout duplicating a character paying for items and the use
+paying for items and the use of items etc
+of items etc in addition to server-side behavior
+in addition to server-side behavior some client-side click behavior can also
+some client-side click behavior can also be recorded
+be recorded such as the operation of starting the
+such as the operation of starting the app
+app in order to achieve real time processing
+in order to achieve real time processing these logs needs to be
+these logs needs to be transmitted in real time
+transmitted in real time we can use log collection tools such as
+we can use log collection tools such as logstash or flume to transfer logs
+logstash or flume to transfer logs from local to a stream processing
+from local to a stream processing platform
+platform like kafka kafka is a transfer station
+like kafka kafka is a transfer station for the entire real-time data processing
+for the entire real-time data processing system it plays a key role
+system it plays a key role in the system on the right side of the
+in the system on the right side of the slide
+slide we can learn that kafka works as a
+we can learn that kafka works as a transfer station
+transfer station for their game data of all kinds
+for their game data of all kinds that are written into kafka
+that are written into kafka from producers after which
+from producers after which various applications start consume
+various applications start consume data from kafka through this
+data from kafka through this the whole data processing pipeline
+the whole data processing pipeline is built and the real-time data
+is built and the real-time data analysis is achieved kafka's advantage
+analysis is achieved kafka's advantage lies in its higher throughput
+lies in its higher throughput and low latency it can
+and low latency it can possess millions of messages at the same
+possess millions of messages at the same time
+time and has local storage and a data backup
+and has local storage and a data backup so it has a certain degree of fault
+so it has a certain degree of fault tolerance
+tolerance node failure is allowed
+node failure is allowed as a distributed system kafka is
+as a distributed system kafka is very easy to scale so
+very easy to scale so you can add new nodes without stopping
+you can add new nodes without stopping the server the last step
+the server the last step of the real-time data processing system
+of the real-time data processing system is computing and application
+is computing and application earlier in our presentation we have
+earlier in our presentation we have introduced the elk system
+introduced the elk system which is a typical log search
+which is a typical log search application however in daily bi
+application however in daily bi applications we will more often
+applications we will more often deal with database systems
+deal with database systems and encounter the following two
+and encounter the following two processing
+processing modes one is to process the data through
+modes one is to process the data through the
+the engine like flink or storm
+engine like flink or storm and then write into the database system
+and then write into the database system the other is to directly transfer
+the other is to directly transfer the data from kafka to real-time
+the data from kafka to real-time data analysis database like a druid
+data analysis database like a druid for online analytical processing
+for online analytical processing so called olap
+so called olap what is flink flink is a framework
+what is flink flink is a framework and distributed processing engine
+and distributed processing engine for stateful computations over unbounded
+for stateful computations over unbounded and bounded data streams flink
+and bounded data streams flink has been designed to run in all common
+has been designed to run in all common cluster environments perform
+cluster environments perform computations at in memory speed
+computations at in memory speed and at any scale
+and at any scale for the advantages of flink first of
+for the advantages of flink first of all it has the flexible windows
+all it has the flexible windows such as tumbling and sliding window
+such as tumbling and sliding window this will be explained to you in detail
+this will be explained to you in detail in the following cases with my
+in the following cases with my colleague secondly
+colleague secondly there's another important feature
+there's another important feature which is the exact ones
+which is the exact ones the exactly ones means that all data
+the exactly ones means that all data flows over
+flows over and the data will be processed only
+and the data will be processed only once this is very important
+once this is very important for in streaming systems to avoid
+for in streaming systems to avoid debt loss and repeated debt
+debt loss and repeated debt calculation finally
+calculation finally in order to deal with possible service
+in order to deal with possible service failures we may need recover to specific
+failures we may need recover to specific time
+time or data points the checkpoint and step
+or data points the checkpoint and step point mechanism
+point mechanism provided by splinc can solve such
+provided by splinc can solve such problems
+problems very well the flink
+very well the flink programming models as presented
+programming models as presented in a slide can be divided into three
+in a slide can be divided into three modules
+modules the source module receives various kinds
+the source module receives various kinds of data source
+of data source the same model is to output all kinds of
+the same model is to output all kinds of storage
+storage the transfer mission module in the
+the transfer mission module in the middle
+middle refers to various operations of data
+refers to various operations of data transformation
+transformation such as map reduce filter
+such as map reduce filter and so on now i will
+and so on now i will introduce you my colleague sergeant shi
+introduce you my colleague sergeant shi a senior project manager in sunderfire
+a senior project manager in sunderfire for the next part he will show you
+for the next part he will show you a lot of used cases in netherlands
+a lot of used cases in netherlands games
+thankfully let's start with the accomplishing case as an example
+accomplishing case as an example how to calculate the key measures such
+how to calculate the key measures such as new accounts
+as new accounts dlu and revenue
+dlu and revenue following what we have discussed before
+following what we have discussed before the first step
+the first step is to build a pipeline we use log dash
+is to build a pipeline we use log dash to collect log
+to collect log kafka to transfer it and link it to
+kafka to transfer it and link it to calculate
+calculate and analyze it the result of computation
+and analyze it the result of computation is
+is written into my circle database then we
+written into my circle database then we can get a desired result
+can get a desired result through carrying the bad database in
+through carrying the bad database in order to calculate
+order to calculate these indicators in real time the first
+these indicators in real time the first things we have to do is to record
+things we have to do is to record sound log behaviors and to give you an
+sound log behaviors and to give you an intuitive feeling
+intuitive feeling we have listed some log examples for
+we have listed some log examples for logging
+logging and logging out and paying
+and logging out and paying the very first step is to transfer logs
+the very first step is to transfer logs to kafka
+to kafka here we take logstash as an example
+here we take logstash as an example a standard logstash configurations
+a standard logstash configurations include
+include input and output on the slide
+input and output on the slide the input is a local file and the output
+the input is a local file and the output is kafka
+is kafka with such straightforward configuration
+with such straightforward configuration we can achieve our goal
+we can achieve our goal finally we use flink to consume the data
+finally we use flink to consume the data in
+in kafka and write the result in 3 my
+kafka and write the result in 3 my circle data tables
+circle data tables new accounts clu and revenue
+new accounts clu and revenue respectively
+respectively based on which we calculate the data we
+based on which we calculate the data we need
+need the example hopefully have has clearly
+the example hopefully have has clearly presented you with the way a real-time
+presented you with the way a real-time system is built up
+system is built up along with how it serves for our
+along with how it serves for our application
+application in the next part i will introduce some
+in the next part i will introduce some more complicated technology
+more complicated technology analysis based on flink programming
+analysis based on flink programming models
+models we can achieve real-time etl very
+we can achieve real-time etl very conveniently
+conveniently the so-called etl here refers to a
+the so-called etl here refers to a conditions that extract the transform
+conditions that extract the transform load
+load is in the exact match with the source
+is in the exact match with the source transform
+transform sync in flink through syncing the data
+sync in flink through syncing the data into
+into so creating external tables in hive we
+so creating external tables in hive we can create
+can create the tables for analysis in a very short
+the tables for analysis in a very short time
+time the example we gave before is a typical
+the example we gave before is a typical real-time bi application
+real-time bi application combined with fleeing tumbling time
+combined with fleeing tumbling time window function
+window function we can easily know some key elements
+we can easily know some key elements and monitor some in-game items and
+and monitor some in-game items and currency follows
+currency follows for instance if we want to monitor the
+for instance if we want to monitor the turtle coin acquisition
+turtle coin acquisition of each account every minute we can use
+of each account every minute we can use a fling programming
+a fling programming mode to achieve our growth
+mode to achieve our growth first group the data by account then use
+first group the data by account then use tumbling time window
+tumbling time window and set the time window at 1 minute and
+and set the time window at 1 minute and finally
+finally we calculate the sum of the coins
+we calculate the sum of the coins however if the time window changes to
+however if the time window changes to the latest hour by now
+the latest hour by now then we should choose sliding time
+then we should choose sliding time window rather than tumbling time window
+window rather than tumbling time window and then we calculate the total number
+and then we calculate the total number of each account
+of each account and make a top k so far we have clearly
+and make a top k so far we have clearly understanding
+understanding of how flinx programming models works
+of how flinx programming models works however we wonder whether we can achieve
+however we wonder whether we can achieve a real-time data analysis
+a real-time data analysis and query without flink here
+and query without flink here we will introduce another tool druid
+we will introduce another tool druid to give you another way to solve
+to give you another way to solve problems the data can be transformed
+problems the data can be transformed directly from kafka to three
+directly from kafka to three and then query based on trade so what
+and then query based on trade so what is drip drip is a real-time analytics
+is drip drip is a real-time analytics database that can store much larger data
+database that can store much larger data volume
+volume than my circle while still maintains
+than my circle while still maintains very fast query performance
+very fast query performance with read we can no longer need to write
+with read we can no longer need to write flink codes over
+flink codes over and over again to implement the previous
+and over again to implement the previous case
+case but only to use sql to query after the
+but only to use sql to query after the data is loaded into it
+data is loaded into it the analysis process becomes more
+the analysis process becomes more flexible
+flexible in this screenshot if we want to check
+in this screenshot if we want to check all
+all payment data in the latest day by far
+payment data in the latest day by far all we need to do is just to query the
+all we need to do is just to query the database directly
+database directly and we don't need to worry about issues
+and we don't need to worry about issues such as performance
+such as performance for this more complex top k accounts
+for this more complex top k accounts problem
+problem here we put the corresponding derivative
+here we put the corresponding derivative query
+query which is fast and direct
+which is fast and direct and has no need for programming ability
+and has no need for programming ability it is suitable for data analytics to
+it is suitable for data analytics to analyze
+analyze the data quickly finally let's look at
+the data quickly finally let's look at some more special case
+some more special case we need to monitor some special keywords
+we need to monitor some special keywords in the game
+in the game let's call them backwards here firstly
+let's call them backwards here firstly we can monitor the real-time chat data
+we can monitor the real-time chat data then with the water segmentation
+then with the water segmentation techniques and backward dictionary reset
+techniques and backward dictionary reset we can quickly monitor the bug message
+we can quickly monitor the bug message in the game
+thanks for certain wonderful speech by far we have solved two problems
+by far we have solved two problems i mentioned in the very beginning
+i mentioned in the very beginning how to build a real-time data processing
+how to build a real-time data processing system
+system for online games and the real-time data
+for online games and the real-time data processing
+processing in native games in the section to follow
+in native games in the section to follow i will present a more technical problem
+i will present a more technical problem how to optimize the current system
+how to optimize the current system how to tackle some detailed technical
+how to tackle some detailed technical issues an important indicator
+issues an important indicator of distributed services is high
+of distributed services is high availability which means how to
+availability which means how to automatically
+automatically restore services even after some kind of
+restore services even after some kind of node failure such as configuring flink
+node failure such as configuring flink on h.a young and setting up the system
+on h.a young and setting up the system checkpoint etc
+checkpoint etc also flink can guarantee processing
+also flink can guarantee processing exactly once but if the upstream data
+exactly once but if the upstream data is duplicated blink itself cannot
+is duplicated blink itself cannot avoid dealing with wk data
+avoid dealing with wk data we need to pay attention to the logical
+we need to pay attention to the logical deduplication which is
+deduplication which is the so-called idiom potential
+the so-called idiom potential calculation in addition
+calculation in addition there are some more detailed questions
+there are some more detailed questions for example what if
+for example what if flink's practicing exceeds the number of
+flink's practicing exceeds the number of partitions
+partitions in kafka well we should use rebalance
+in kafka well we should use rebalance option
+option also how to ensure the usability
+also how to ensure the usability if we restart or update flink
+if we restart or update flink then we should use save point
+then we should use save point the future or real-time data processing
+the future or real-time data processing system
+system might from my perspective
+might from my perspective focus on the following three points
+focus on the following three points firstly real-time olap
+firstly real-time olap is a very promising direction as it
+is a very promising direction as it can reduce the complexity of programming
+can reduce the complexity of programming secondly we would continue
+secondly we would continue to improve the performance and
+to improve the performance and efficiency of the real-time
+efficiency of the real-time processing system last but not
+processing system last but not the least we could work
+the least we could work on monitoring the real-time processing
+on monitoring the real-time processing system
+system so that abnormal alarming is
+so that abnormal alarming is issued in time thanks to you
+issued in time thanks to you all for listening our talk

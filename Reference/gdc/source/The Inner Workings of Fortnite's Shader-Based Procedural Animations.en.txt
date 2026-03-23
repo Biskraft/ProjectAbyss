@@ -1,0 +1,520 @@
+[Music] hi everyone my name is Jonathan linguist
+hi everyone my name is Jonathan linguist and today we'll be talking about some of
+and today we'll be talking about some of the challenges that we ran into on
+the challenges that we ran into on fortnight and how we came up with
+fortnight and how we came up with elegant solutions using vertex shaders
+elegant solutions using vertex shaders so I'm a technical artist at Epic Games
+so I'm a technical artist at Epic Games and I tend to author a lot of shaders
+and I tend to author a lot of shaders and generate art write scripts that are
+and generate art write scripts that are both online and offline and jump around
+both online and offline and jump around a bit and well before that I worked at
+a bit and well before that I worked at Raven software as a techno car it is for
+Raven software as a techno car it is for three years so for anyone that's not
+three years so for anyone that's not familiar with the project for tonight is
+familiar with the project for tonight is a cooperative action game with a
+a cooperative action game with a building mechanic as its focus and I put
+building mechanic as its focus and I put a quick video together to illustrate
+a quick video together to illustrate some of the effects that we'll be
+some of the effects that we'll be talking about today so this is a
+talking about today so this is a building shader it's used to build over
+building shader it's used to build over hundreds and hundreds of pieces each
+hundreds and hundreds of pieces each containing hundreds of sub objects this
+containing hundreds of sub objects this is our calling effect in the game and
+is our calling effect in the game and this is a bounce effect that we apply to
+this is a bounce effect that we apply to every interaction that the player makes
+every interaction that the player makes with the world so going through those
+with the world so going through those we'll start off with a very simple
+we'll start off with a very simple example and then move our way toward the
+example and then move our way toward the South building shader which is a bit
+South building shader which is a bit more complicated early on in the project
+more complicated early on in the project when we decided to get down a stylized
+when we decided to get down a stylized path we wanted damage to be equally
+path we wanted damage to be equally stylized so we also wanted to make it
+stylized so we also wanted to make it very rewarding for the player because
+very rewarding for the player because it's one of the main it's one of the is
+it's one of the main it's one of the is a piece of the foundation of the game
+a piece of the foundation of the game so having tried out fractured meshes and
+so having tried out fractured meshes and decals and a few other approaches we
+decals and a few other approaches we just felt like none of them was none of
+just felt like none of them was none of the approaches were really reaching the
+the approaches were really reaching the the look that we wanted so this video
+the look that we wanted so this video was sent out to the team as a early test
+was sent out to the team as a early test and we decided to go down this path and
+and we decided to go down this path and kind of incorporate vertex shaders into
+kind of incorporate vertex shaders into more of our effects in the future so
+more of our effects in the future so when examining how this works we have to
+when examining how this works we have to look at two components first a portion
+look at two components first a portion of the processes handle on that gameplay
+of the processes handle on that gameplay code side and then a process is handled
+code side and then a process is handled on the vertex shader in the vertex
+on the vertex shader in the vertex shader itself so first gameplay code
+shader itself so first gameplay code feeds the shader and impact location an
+feeds the shader and impact location an impact vector and a jiggle radius so
+impact vector and a jiggle radius so using that information right lets you
+using that information right lets you find the distance of the world position
+find the distance of the world position of every single vertice on the mesh and
+of every single vertice on the mesh and the world position that gameplay code
+the world position that gameplay code fetes and then we divide it by the
+fetes and then we divide it by the radius and invert it and it produces a
+radius and invert it and it produces a result like this and then we multiply it
+result like this and then we multiply it by an impact vector and what that does
+by an impact vector and what that does is it basically masks and edits have
+is it basically masks and edits have offset to the world position of every
+offset to the world position of every vertice and it produces a result like
+vertice and it produces a result like what you see here it makes the object
+what you see here it makes the object and should go back and forth and this
+and should go back and forth and this can be applied to any asset in the game
+can be applied to any asset in the game fire hydrant wall whatever so the
+fire hydrant wall whatever so the missing component that from the
+missing component that from the animation that we see here is the actual
+animation that we see here is the actual animation itself and that's generated
+animation itself and that's generated using a curve object which is a feature
+using a curve object which is a feature in ue4 obviously you're able to define a
+in ue4 obviously you're able to define a spline and that spline can be sampled
+spline and that spline can be sampled over time by either game play code or
+over time by either game play code or kismet code so as the value becomes
+kismet code so as the value becomes negative in the spline the impact vector
+negative in the spline the impact vector is multiplied by that negative value and
+is multiplied by that negative value and the wall moves away from the player and
+the wall moves away from the player and then as it as it becomes positive it
+then as it as it becomes positive it moves towards the player so you get this
+moves towards the player so you get this undulation back and forth now we can
+undulation back and forth now we can talk about the stylize calling we wanted
+talk about the stylize calling we wanted to the player to be able to explore the
+to the player to be able to explore the world and we wanted to populate the
+world and we wanted to populate the world with as many assets as we possibly
+world with as many assets as we possibly could so we needed a calling operation
+could so we needed a calling operation and I felt like this was another chance
+and I felt like this was another chance again to you add this stylization to the
+again to you add this stylization to the world so this is our first prototype
+world so this is our first prototype approach that we didn't end up using
+approach that we didn't end up using because it became a little bit too
+because it became a little bit too obnoxious for the player but we ended up
+obnoxious for the player but we ended up learning from that lesson and we applied
+learning from that lesson and we applied it to the approach that we eventually
+it to the approach that we eventually came up with which is basically a scale
+came up with which is basically a scale operation from the pivot point of the of
+operation from the pivot point of the of the model and we do this inside the
+the model and we do this inside the vertex shader because updating the
+vertex shader because updating the models transform without
+models transform without would be rather expensive we'd have to
+would be rather expensive we'd have to update every model on tick here we can
+update every model on tick here we can just feed feed a value into the shader
+just feed feed a value into the shader called the distance call fade which is
+called the distance call fade which is another ue4 feature that will animate
+another ue4 feature that will animate from 0 to 1 when the object is being
+from 0 to 1 when the object is being called so just before the object
+called so just before the object disappears this animation for this value
+disappears this animation for this value just animates and you can see that here
+just animates and you can see that here this graph represents the 0 to 1 value
+this graph represents the 0 to 1 value so it's great we have this 0 to 1 value
+so it's great we have this 0 to 1 value but now what do we do with it
+but now what do we do with it well we have to create it we can use
+well we have to create it we can use that 0 1 value to modulate the scale
+that 0 1 value to modulate the scale operation to scale an acid you just
+operation to scale an acid you just subtract the world position of the
+subtract the world position of the vertices from the actors pivot point
+vertices from the actors pivot point doing so will create a vector that's the
+doing so will create a vector that's the length of the distance between the two
+length of the distance between the two points so if you add that to the world
+points so if you add that to the world position of the vertices then basically
+position of the vertices then basically you'll pull all of the points on the
+you'll pull all of the points on the verge into a single point
+verge into a single point so modulating that by 0 to 1 value will
+so modulating that by 0 to 1 value will scale the model from 0 to 1 we use
+scale the model from 0 to 1 we use another node here called 3-point levels
+another node here called 3-point levels which basically remaps the black point
+which basically remaps the black point the white point and a midpoint to
+the white point and a midpoint to whatever values you want so here you can
+whatever values you want so here you can see the original values retrieved from
+see the original values retrieved from this node are 0 to 1 but after we're
+this node are 0 to 1 but after we're done processing and they becomes 1/2
+done processing and they becomes 1/2 negative 0.25 and then to 0 which will
+negative 0.25 and then to 0 which will effectively create a bounce
+effectively create a bounce so it'll scale up and then scale back to
+so it'll scale up and then scale back to 0 to 1 so now we're go on to something a
+0 to 1 so now we're go on to something a little bit more complicated the self
+little bit more complicated the self building walls represents a significant
+building walls represents a significant portion of the game as well we want to
+portion of the game as well we want to you we have we allow the player to build
+you we have we allow the player to build staircases floors and and other type of
+staircases floors and and other type of structures using this animation
+structures using this animation technique so from the beginning we set
+technique so from the beginning we set out a few goals for ourselves we wanted
+out a few goals for ourselves we wanted the it to be an engaging experience so
+the it to be an engaging experience so we thought the best way to do to achieve
+we thought the best way to do to achieve that would be
+that would be you build the structures in-game in
+you build the structures in-game in front of the players so they could see
+front of the players so they could see every single board or brick or a piece
+every single board or brick or a piece of metal fly into place and then we
+of metal fly into place and then we wanted to indicate the health of the
+wanted to indicate the health of the structure so when a monster comes by and
+structure so when a monster comes by and hits the wall we want several boards to
+hits the wall we want several boards to fly off and we want that the number of
+fly off and we want that the number of boards to indicate how much health the
+boards to indicate how much health the wall has and this had to be an efficient
+wall has and this had to be an efficient system because we we needed to place
+system because we we needed to place hundreds and hundreds of these walls
+hundreds and hundreds of these walls everywhere
+everywhere so first we need to approach the problem
+so first we need to approach the problem from a conceptual standpoint and we
+from a conceptual standpoint and we interested that but building a wall in
+interested that but building a wall in place is much like destroying it but in
+place is much like destroying it but in Reverse so you can see in this video we
+Reverse so you can see in this video we have a pre constructed wall and then
+have a pre constructed wall and then we're tearing all the boards off one by
+we're tearing all the boards off one by one
+one and this is the way that we need to
+and this is the way that we need to approach the problem the issue is how to
+approach the problem the issue is how to actually do that so initially if an
+actually do that so initially if an artist attempted to use skeletal
+artist attempted to use skeletal animations but they were too they were
+animations but they were too they were too costly so we went back to vertex
+too costly so we went back to vertex shaders the problem was that we had no
+shaders the problem was that we had no way of actually accessing a board or a
+way of actually accessing a board or a sub object in a mesh you have act in
+sub object in a mesh you have act in when you're working with a vertex shader
+when you're working with a vertex shader you have access to the location of the
+you have access to the location of the vertices the models transforms but you
+vertices the models transforms but you don't have access to you sub objects
+don't have access to you sub objects transforms and you can't store arbitrary
+transforms and you can't store arbitrary data in the objects themselves so we
+data in the objects themselves so we relied on some of the work that I did a
+relied on some of the work that I did a little bit earlier to pretty much do the
+little bit earlier to pretty much do the exact same thing basically a store
+exact same thing basically a store arbitrary information and vertices so in
+arbitrary information and vertices so in this video you can see that this model
+this video you can see that this model is a static mesh and it's animated with
+is a static mesh and it's animated with vertex shaders and the grass is actually
+vertex shaders and the grass is actually made up of only a few static meshes
+made up of only a few static meshes themselves but they act as several they
+themselves but they act as several they act as
+act as the severed objects in the vertex shader
+the severed objects in the vertex shader that's due to the script providing data
+that's due to the script providing data that we need and the vertex shader using
+that we need and the vertex shader using that data in animation and the script is
+that data in animation and the script is publicly available for anyone that's
+publicly available for anyone that's interested so now we know that we need
+interested so now we know that we need to do some scripting in order to make
+to do some scripting in order to make this effect work in the vertex shader so
+this effect work in the vertex shader so we'll first step into that and we'll
+we'll first step into that and we'll step into you ripping the boards off the
+step into you ripping the boards off the wall and then we'll talk about how game
+wall and then we'll talk about how game play actually controls the boards so
+play actually controls the boards so this is the overall workflow of of
+this is the overall workflow of of making animated assets inside a
+making animated assets inside a fortnight we model out the wall as a
+fortnight we model out the wall as a series of sub separate objects and we
+series of sub separate objects and we make sure that their pivot point is in
+make sure that their pivot point is in the center of the mesh and that the
+the center of the mesh and that the x-axis is going down the length of the
+x-axis is going down the length of the board because the script will actually
+board because the script will actually be storing the vector along the x-axis
+be storing the vector along the x-axis which will be useful for future
+which will be useful for future calculations so and this is what the
+calculations so and this is what the pivot painter tool looks like you
+pivot painter tool looks like you basically select all the objects so that
+basically select all the objects so that you press the paint button and it will
+you press the paint button and it will store the information and then we can
+store the information and then we can import the static mesh that we just
+import the static mesh that we just processed into unreal and then use the
+processed into unreal and then use the the pivot painter of material function
+the pivot painter of material function which will decode the information that
+which will decode the information that was stored inside the models vertices
+was stored inside the models vertices and return a X access vector and world
+and return a X access vector and world space and the position of the boards
+space and the position of the boards pivot points for anyone that's
+pivot points for anyone that's interested this is all available in the
+interested this is all available in the UDK
+UDK so it can be freely used that got us
+so it can be freely used that got us most the way there but didn't get us all
+most the way there but didn't get us all the way there
+the way there we started getting acid Smith like this
+we started getting acid Smith like this a bunch of twigs intertwined with each
+a bunch of twigs intertwined with each other there's no good way of
+other there's no good way of procedurally animating those boards in
+procedurally animating those boards in order so we really needed someone to
+order so we really needed someone to come in and specify an animation order
+come in and specify an animation order so we had to go back to the drawing
+so we had to go back to the drawing board a little bit and also using the
+board a little bit and also using the pivot pin here by itself we didn't have
+pivot pin here by itself we didn't have a way of knowing exactly how many boards
+a way of knowing exactly how many boards were attached to the wall and how many
+were attached to the wall and how many weren't on so what we did was they added
+weren't on so what we did was they added a few new features to the script and
+a few new features to the script and this is the animation process so what
+this is the animation process so what the user does is they
+the user does is they select boards in order that they should
+select boards in order that they should animate in then they press the animate
+animate in then they press the animate button and here you can see there's a
+button and here you can see there's a visualization a grayscale visualization
+visualization a grayscale visualization indicating which order the boards will
+indicating which order the boards will fly into place on and basically what
+fly into place on and basically what happens is behind the scenes as you're
+happens is behind the scenes as you're selecting objects in 3d studio max
+selecting objects in 3d studio max there's a selection array that's
+there's a selection array that's automatically generated so what this
+automatically generated so what this group does is it takes the selection
+group does is it takes the selection array and for every item inside that
+array and for every item inside that array it takes the integer that
+array it takes the integer that indicates the position of the object in
+indicates the position of the object in there right and it stores it inside the
+there right and it stores it inside the models of vertex information in one of
+models of vertex information in one of the UV channels and that way we can gain
+the UV channels and that way we can gain access to it inside of unreal so there
+access to it inside of unreal so there were a few more tools that were added
+were a few more tools that were added but they weren't used as meant as much
+but they weren't used as meant as much as the literal order that allows the
+as the literal order that allows the user to just select the objects in the
+user to just select the objects in the order that they'll be animated and this
+order that they'll be animated and this other modification to the script that
+other modification to the script that you saw just there is used to indicate
+you saw just there is used to indicate whether boards should fly in from the
+whether boards should fly in from the left or from the right we store a one
+left or from the right we store a one bit value to indicate the flight path of
+bit value to indicate the flight path of the boards in the case of floors we can
+the boards in the case of floors we can have boards flight and upward or they
+have boards flight and upward or they can fly downward so this information is
+can fly downward so this information is also referenced in the shader later and
+also referenced in the shader later and it allows us to do some of the crazier
+it allows us to do some of the crazier structures that I showed so this is
+structures that I showed so this is awesome we have we have all the
+awesome we have we have all the information that we need including some
+information that we need including some other data see that we can use to
+other data see that we can use to randomize the the appearance of the
+randomize the the appearance of the walls as they build up so just a few
+walls as they build up so just a few tips before we move on I definitely
+tips before we move on I definitely avoid unnecessary scripting talk to your
+avoid unnecessary scripting talk to your artists and make sure that everything
+artists and make sure that everything you're working on is exactly what they
+you're working on is exactly what they need and nothing more so that you can
+need and nothing more so that you can progress faster and make debugging as
+progress faster and make debugging as simple as possible add view modes to
+simple as possible add view modes to visualize the data or add data to the
+visualize the data or add data to the user defined variables in 3ds max you V
+user defined variables in 3ds max you V values are very inaccurate if you want
+values are very inaccurate if you want to store an int value inside
+to store an int value inside of a floating-point data type I would
+of a floating-point data type I would recommend putting a 0.5 value offset to
+recommend putting a 0.5 value offset to the data before you store it in the UV
+the data before you store it in the UV so that that way in the vertex shader
+so that that way in the vertex shader when you're actually referencing the
+when you're actually referencing the information you can use a seal or a
+information you can use a seal or a floor that way all the vertices on a
+floor that way all the vertices on a single board will return a solid int
+single board will return a solid int value as opposed to you a bunch of
+value as opposed to you a bunch of floating-point information that's not
+floating-point information that's not accurate and then make your efficient
+accurate and then make your efficient your data layout as efficient as
+your data layout as efficient as possible when you can possibly I would
+possible when you can possibly I would recommend storing two types of
+recommend storing two types of information two pieces of information in
+information two pieces of information in every channel so for instance restore a
+every channel so for instance restore a zero to one random value per board but
+zero to one random value per board but then we also wanted to store the flight
+then we also wanted to store the flight path and the flight path is really just
+path and the flight path is really just a 1 or a 0 so that could be stored as a
+a 1 or a 0 so that could be stored as a negative random number or a positive
+negative random number or a positive random number so that way we're able to
+random number so that way we're able to make our data storage a little bit more
+make our data storage a little bit more efficient
+so now we've covered scripting let's get into the fun part and start like ripping
+into the fun part and start like ripping boards apart so the first transformation
+boards apart so the first transformation is the simplest we simply add a downward
+is the simplest we simply add a downward vector and then modulated by an
+vector and then modulated by an animation amount so this will move all
+animation amount so this will move all the boards downward the next one is that
+the boards downward the next one is that we reference our 1 or a 0 or 1 or
+we reference our 1 or a 0 or 1 or negative 1 value that we stored using
+negative 1 value that we stored using the flight path and then modulated by a
+the flight path and then modulated by a vector that goes along the length of a
+vector that goes along the length of a flight path local vector and then
+flight path local vector and then finally what we do is we make another
+finally what we do is we make another offset to randomize it a bit more what
+offset to randomize it a bit more what we do is we subtract the pivot point of
+we do is we subtract the pivot point of the board from the center of the objects
+the board from the center of the objects bounds and then that creates a vector
+bounds and then that creates a vector outward and then we remove the Z
+outward and then we remove the Z component and we normalize that value
+component and we normalize that value and
+and and multiply that by an arbitrary amount
+and multiply that by an arbitrary amount so kind of push the board's outward so
+so kind of push the board's outward so what you see when you add all these
+what you see when you add all these values together is that they kind of
+values together is that they kind of create an offset like this which
+create an offset like this which indicates that we're going in the right
+indicates that we're going in the right direction and then finally when we do
+direction and then finally when we do our rotations it's rather simple now
+our rotations it's rather simple now that we've had all the that we have all
+that we've had all the that we have all the data that we needed so we can
+the data that we needed so we can reference the pivot point of the board
+reference the pivot point of the board that was stored and then the axis that
+that was stored and then the axis that we stored earlier along the x-axis and
+we stored earlier along the x-axis and that'll act as a rotation about access
+that'll act as a rotation about access rotation axis and then we can pipe a
+rotation axis and then we can pipe a animation value into you the rotation
+animation value into you the rotation angle and that'll make all the board
+angle and that'll make all the board spin along their axis so we have all the
+spin along their axis so we have all the transformations that we need but we
+transformations that we need but we don't have any way of animating them
+don't have any way of animating them efficiently and we don't have all the
+efficiently and we don't have all the tools that we need I won't go into
+tools that we need I won't go into exactly all the details as to how these
+exactly all the details as to how these steps work but the code is located right
+steps work but the code is located right here so one of the things that we need
+here so one of the things that we need to do in the game is that we needed the
+to do in the game is that we needed the boards to fly in one at a time when it
+boards to fly in one at a time when it the boards are building initially so
+the boards are building initially so what we do is we step through the
+what we do is we step through the animation order that was stored earlier
+animation order that was stored earlier and we simply subtract numbers and as we
+and we simply subtract numbers and as we subtract numbers you get an animated 1
+subtract numbers you get an animated 1 to 0 value per board and then it jumps
+to 0 value per board and then it jumps to the next board and then when we want
+to the next board and then when we want to rip multiple boards off the wall at
+to rip multiple boards off the wall at the same time what we do is we do an if
+the same time what we do is we do an if statement that says if your board number
+statement that says if your board number is higher than a set amount then pass
+is higher than a set amount then pass through an animation value and then we
+through an animation value and then we control both the area the number of
+control both the area the number of boards that are being ripped off and the
+boards that are being ripped off and the animation value that's being passed
+animation value that's being passed through and then finally when you want
+through and then finally when you want your wall to just be obliterated by a
+your wall to just be obliterated by a giant monster that's running through
+giant monster that's running through through several walls at a time you just
+through several walls at a time you just pipe in a solid value across the entire
+pipe in a solid value across the entire wall so
+wall so effectively what you do is you add these
+effectively what you do is you add these different white values all together and
+different white values all together and then you use that to modulate the
+then you use that to modulate the translations that we created earlier so
+translations that we created earlier so it looks a little flat at this point we
+it looks a little flat at this point we we're not getting the cartoony look so
+we're not getting the cartoony look so what we want to do is we're gonna added
+what we want to do is we're gonna added a little bit of warping to the boards as
+a little bit of warping to the boards as they find a place to make it more
+they find a place to make it more stylized so if what we did was what we
+stylized so if what we did was what we just did was the animation but now what
+just did was the animation but now what we can do is add secondary emotion
+we can do is add secondary emotion promotion or warping as a post process
+promotion or warping as a post process to that animation grayscale value so
+to that animation grayscale value so what we do to do that is we create a
+what we do to do that is we create a distance calculation from the world
+distance calculation from the world position of the vertices to the boards
+position of the vertices to the boards pivot located pivot point and then we
+pivot located pivot point and then we take the animation data that we stored
+take the animation data that we stored earlier that we created earlier which
+earlier that we created earlier which will be represented by this zero to one
+will be represented by this zero to one gradient and we make a few modifications
+gradient and we make a few modifications to it oops so what we do is we multiply
+to it oops so what we do is we multiply that value by ten and then clamp it and
+that value by ten and then clamp it and then we invert it and then multiply it
+then we invert it and then multiply it by ten and then clamp it and then we
+by ten and then clamp it and then we modulate those two by each other and
+modulate those two by each other and what that creates is a black value at
+what that creates is a black value at the start of the animation and a black
+the start of the animation and a black value at the beginning of the animation
+value at the beginning of the animation and then we modulate that by the
+and then we modulate that by the three-dimensional fall-off that we
+three-dimensional fall-off that we created and add it back to the previous
+created and add it back to the previous animation and effectively what that does
+animation and effectively what that does is as boards are falling off toward the
+is as boards are falling off toward the middle of their animation the center of
+middle of their animation the center of the board is pushed forward in time so
+the board is pushed forward in time so we're actually moving the boards the
+we're actually moving the boards the center of the boards forward in time and
+center of the boards forward in time and the animation this is something that
+the animation this is something that will only be possible with vertex
+will only be possible with vertex shaders so finally we'll go into what
+shaders so finally we'll go into what happens to the boards when they're
+happens to the boards when they're pulled off the wall well the answer is
+pulled off the wall well the answer is simple they get masked by the the pixel
+simple they get masked by the the pixel shader and they also get scaled down to
+shader and they also get scaled down to a single point in space so how is that
+a single point in space so how is that done well basically what we do is we
+done well basically what we do is we compare the location of the board to a
+compare the location of the board to a point in space that we define and
+point in space that we define and usually that's the
+usually that's the pivot point of the overall static mesh
+pivot point of the overall static mesh and then we also add in the animation
+and then we also add in the animation value so if a board is rather low on the
+value so if a board is rather low on the wall and it's fully in place then we
+wall and it's fully in place then we want to make it completely visible even
+want to make it completely visible even though it's rather low on the wall and
+though it's rather low on the wall and what we do is we use that to you to
+what we do is we use that to you to drive a masking value so a few points
+drive a masking value so a few points before we conclude collision does not
+before we conclude collision does not update when you use a vertex shader so
+update when you use a vertex shader so you have to design around it or use
+you have to design around it or use vertex shaders on assets that don't need
+vertex shaders on assets that don't need collision if you move a object outside
+collision if you move a object outside of the bounding box keep moving at
+of the bounding box keep moving at object outside of the bounding box
+object outside of the bounding box there's a possibility that the object
+there's a possibility that the object will be called if you're looking
+will be called if you're looking directly at it because the calling
+directly at it because the calling operation operates on the bounding box
+operation operates on the bounding box if the bounding box isn't on the screen
+if the bounding box isn't on the screen then you will not call the object but if
+then you will not call the object but if the object visually looks over like it's
+the object visually looks over like it's over here and you look at that static
+over here and you look at that static mesh and the bounding box is off-screen
+mesh and the bounding box is off-screen then the static mesh could just
+then the static mesh could just disappear when the bounding box is off
+disappear when the bounding box is off the screen and performance is actually
+the screen and performance is actually very strong using this method and one of
+very strong using this method and one of the things I didn't mention earlier is
+the things I didn't mention earlier is that the normals don't automatically
+that the normals don't automatically update so if you want to update the
+update so if you want to update the normals on your static mesh that's
+normals on your static mesh that's animating then you would have to do that
+animating then you would have to do that in an additional step in the vertex and
+in an additional step in the vertex and the pixel shader which is slightly
+the pixel shader which is slightly expensive so I just didn't do it because
+expensive so I just didn't do it because you don't really notice it for the most
+you don't really notice it for the most part and so vertex shaders are very cost
+part and so vertex shaders are very cost effective and they provide unique
+effective and they provide unique capabilities that aren't possible in any
+capabilities that aren't possible in any other way and there's a ton of
+other way and there's a ton of opportunity out there to use the vertex
+opportunity out there to use the vertex shaders and ways that aren't currently
+shaders and ways that aren't currently being used and generate to generate like
+being used and generate to generate like really exciting effects there are a few
+really exciting effects there are a few gameplay limitations but you can work
+gameplay limitations but you can work around it if you know what they are
+around it if you know what they are ahead of time so I'm not sure if I have
+ahead of time so I'm not sure if I have any time for questions or not but
+any time for questions or not but yeah let's talk Thanks
+[Applause]
+so you mentioned the performance is good did you do add any actual performance
+did you do add any actual performance testing like scriptcase object people
+testing like scriptcase object people ation versus the vertex shaders oh so
+ation versus the vertex shaders oh so one of the things that we haven't quite
+one of the things that we haven't quite evaluated that but we noticed that it
+evaluated that but we noticed that it didn't create much of a problem on
+didn't create much of a problem on fortnight we didn't see you perform like
+fortnight we didn't see you perform like major performance hitches or jumps like
+major performance hitches or jumps like that and one of the great things about
+that and one of the great things about using materials to create all this
+using materials to create all this animation is that as soon as you're done
+animation is that as soon as you're done with the most complex form of animation
+with the most complex form of animation you can switch out the materials to a
+you can switch out the materials to a very simple version so basically instead
+very simple version so basically instead of looking at maybe a hundred and eighty
+of looking at maybe a hundred and eighty instructions in your vertex shader which
+instructions in your vertex shader which is actually pretty cheap because there's
+is actually pretty cheap because there's a very few vertices on the model you can
+a very few vertices on the model you can switch it out for a vertex shader that
+switch it out for a vertex shader that has say 30 instructions that's you
+has say 30 instructions that's you actually so you do switch the shader out
+actually so you do switch the shader out one since we've done animating yeah
+one since we've done animating yeah that's actually what one of the items
+that's actually what one of the items that we have on the list for
+that we have on the list for optimization in the future but we're not
+optimization in the future but we're not 100 or something yet okay
+okey-dokey all right thank you guys [Applause]
+[Applause] [Music]
+[Music] [Applause]
+[Applause] [Music]

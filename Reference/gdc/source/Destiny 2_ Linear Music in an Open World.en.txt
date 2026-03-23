@@ -1,0 +1,557 @@
+[Music] [Applause]
+[Applause] [Music]
+thanks you guys Thanks I'm sky Lewin music director and
+I'm sky Lewin music director and composer at Bungie it's my pleasure to
+composer at Bungie it's my pleasure to introduce to my left
+introduce to my left Michael Sechrist our senior technical
+Michael Sechrist our senior technical audio designer who's also doing some
+audio designer who's also doing some composing and to my right good friend
+composing and to my right good friend 15-year Bungie veteran now an
+15-year Bungie veteran now an independent composer C Paul Johnson he's
+independent composer C Paul Johnson he's going to kick off our talk with a look
+going to kick off our talk with a look back at what the ambient music system
+back at what the ambient music system was in Destiny what we changed and
+was in Destiny what we changed and enhanced for destiny too and why alright
+enhanced for destiny too and why alright thanks ok so why are we here well we had
+thanks ok so why are we here well we had we had to modify our tools and our music
+we had to modify our tools and our music implementation and our scoring process
+implementation and our scoring process for destiny 2 in response to scope and
+for destiny 2 in response to scope and scale and gameplay changes and we
+scale and gameplay changes and we thought you might find our approach to
+thought you might find our approach to solving the particular problems that we
+solving the particular problems that we ran into interesting and helpful in your
+ran into interesting and helpful in your own music solutions why is this talk
+own music solutions why is this talk called linear music in an open-world
+called linear music in an open-world because during the development of
+because during the development of destiny 2 as we started to understand
+destiny 2 as we started to understand more and more about how much freedom the
+more and more about how much freedom the player would have and how the needs of
+player would have and how the needs of the gameplay of off from destiny both in
+the gameplay of off from destiny both in its destiny won both in explorable
+its destiny won both in explorable gameplay space and in the number of
+gameplay space and in the number of unique highly scripted linear activities
+unique highly scripted linear activities that we were building we realized we
+that we were building we realized we needed to find a more efficient way to
+needed to find a more efficient way to score our game that didn't compromise
+score our game that didn't compromise the musical experience we still wanted
+the musical experience we still wanted to retain so ok so before we look at
+to retain so ok so before we look at what we changed let's start by looking
+what we changed let's start by looking back at how our ambient music worked in
+back at how our ambient music worked in the original destiny game destiny and
+the original destiny game destiny and destiny 2 for that matter consisted of
+destiny 2 for that matter consisted of several different explorable
+several different explorable destinations here you can see a few the
+destinations here you can see a few the destinations in Destiny each destination
+destinations in Destiny each destination was given its own collection of linear
+was given its own collection of linear pieces that act as the locations
+pieces that act as the locations ambient music and 2 vines in the feel
+ambient music and 2 vines in the feel for each environment so it's a typical
+for each environment so it's a typical open-world solution
+open-world solution these pieces of music acted as a
+these pieces of music acted as a randomized playlist of music with
+randomized playlist of music with stretches of silence after each piece
+stretches of silence after each piece each piece consisted of a meat layer
+each piece consisted of a meat layer that was played and then an action layer
+that was played and then an action layer that would come and go based on
+that would come and go based on engagement with enemies in destiny when
+engagement with enemies in destiny when we wanted to custom score a mission or a
+we wanted to custom score a mission or a specific encounter we were required to
+specific encounter we were required to custom implement script all the music
+custom implement script all the music for that mission as a one-off event ok
+for that mission as a one-off event ok so what do we change for destiny - in
+so what do we change for destiny - in destiny - we have a multi-tool multitude
+destiny - we have a multi-tool multitude of activities in the destinations that
+of activities in the destinations that feel very linear but could be kicked off
+feel very linear but could be kicked off by players in the world or not and that
+by players in the world or not and that left us with a whole bunch of linear
+left us with a whole bunch of linear gameplay that it needed to be able to
+gameplay that it needed to be able to come out of the open of the destination
+come out of the open of the destination content those were also pretty easy for
+content those were also pretty easy for designers to set up and it left us with
+designers to set up and it left us with a whole bunch way more linear content
+a whole bunch way more linear content than we could reasonably support custom
+than we could reasonably support custom scoring everything so we needed to
+scoring everything so we needed to customs or we needed to support
+customs or we needed to support unscripted environmental gameplay more
+unscripted environmental gameplay more curated content and we needed to do both
+curated content and we needed to do both those things with high production values
+those things with high production values at the same time we didn't want to lose
+at the same time we didn't want to lose our tailored linear music experience
+our tailored linear music experience given the fact that a lot of the
+given the fact that a lot of the gameplay was still linear we were
+gameplay was still linear we were discovering that the original method we
+discovering that the original method we had in destiny of scripting out the
+had in destiny of scripting out the ambient music bring it back in wouldn't
+ambient music bring it back in wouldn't wouldn't a scale so our approach to
+wouldn't a scale so our approach to testing - how did we propose to move
+testing - how did we propose to move forward well we had a music playing
+forward well we had a music playing based on which environment already and
+based on which environment already and we had ways to turn it on/off when we
+we had ways to turn it on/off when we want to score something so we wondered
+want to score something so we wondered how much mileage we could get out of
+how much mileage we could get out of giving that ambient music more things
+giving that ambient music more things that could do once we did that could we
+that could do once we did that could we score whole story missions with this new
+score whole story missions with this new system could we set things up so
+system could we set things up so designers could easily experiment with
+designers could easily experiment with timing and in head intensities and
+timing and in head intensities and pacing without us getting involved could
+pacing without us getting involved could we build that designer tool in a way
+we build that designer tool in a way that would let us go back and fix what
+that would let us go back and fix what they did in a way that
+they did in a way that what I haven't touched the game scripts
+what I haven't touched the game scripts which is really important for us in the
+which is really important for us in the late stages of development creatively
+late stages of development creatively wanted to have the ambient music when
+wanted to have the ambient music when the player was wandering around
+the player was wandering around activated by AI like before custom music
+activated by AI like before custom music tailored or linear flagships content and
+tailored or linear flagships content and this middle layer of music that felt
+this middle layer of music that felt linear to score the rest of the gameplay
+linear to score the rest of the gameplay and we were asking ourselves could we
+and we were asking ourselves could we make that into one cohesive system I
+make that into one cohesive system I don't know can we make it all easy to
+don't know can we make it all easy to use those were our goals and now sky and
+use those were our goals and now sky and Michael are going to talk about where we
+Michael are going to talk about where we landed cool so this part of our music
+landed cool so this part of our music system we're really literally just
+system we're really literally just focusing in on is what we play in the
+focusing in on is what we play in the destinations when you're exploring in
+destinations when you're exploring in the game so our flagship content really
+the game so our flagship content really retains the same aesthetic as it always
+retains the same aesthetic as it always has and we're still scoring that the
+has and we're still scoring that the same way so this part of the talk is
+same way so this part of the talk is really focused on one piece of our
+really focused on one piece of our puzzle if you will so for destiny 2 we
+puzzle if you will so for destiny 2 we retained the same randomization the same
+retained the same randomization the same ambient playlist functionality that was
+ambient playlist functionality that was established in destiny with the same
+established in destiny with the same vertical ambient and action layers that
+vertical ambient and action layers that see Paul already mentioned but we
+see Paul already mentioned but we actually expanded it by composing
+actually expanded it by composing additional linear horizontal sections of
+additional linear horizontal sections of music for each of these ambient pieces
+music for each of these ambient pieces that play in a destination and these
+that play in a destination and these intensities such as action or high
+intensities such as action or high action actually expand what that music
+action actually expand what that music can do so that they can cover more
+can do so that they can cover more gameplay activities that traditionally
+gameplay activities that traditionally would have needed custom score and we
+would have needed custom score and we call each of these a music system and
+call each of these a music system and what a music system is is a single
+what a music system is is a single expanded piece of music or a collection
+expanded piece of music or a collection that contains all of the necessary
+that contains all of the necessary different intensities to play it the
+different intensities to play it the same key or related keys and tempos and
+same key or related keys and tempos and we build these different intensities out
+we build these different intensities out with transitions so that they can
+with transitions so that they can transition nicely from each piece to any
+transition nicely from each piece to any other piece and in in this system it
+other piece and in in this system it actually has to be able to go from
+actually has to be able to go from anywhere to anywhere or end at any time
+and this by itself is not necessarily unique
+this by itself is not necessarily unique what what makes this unique is the way
+what what makes this unique is the way we combine it with other aspects so each
+we combine it with other aspects so each system is effectively a queue in the
+system is effectively a queue in the destinations music the the music that
+destinations music the the music that defines the feel of the destination as
+defines the feel of the destination as see Paul mentioned earlier and so the
+see Paul mentioned earlier and so the suite of systems that goes into that
+suite of systems that goes into that destination includes several of these
+destination includes several of these these music systems so our music system
+these music systems so our music system contains a bunch of music systems if
+contains a bunch of music systems if that's not confusing enough that's how
+that's not confusing enough that's how we call it but again like I said none of
+we call it but again like I said none of these by themselves are unique but when
+these by themselves are unique but when we combine them together that gives us
+we combine them together that gives us this solid linear score in the
+this solid linear score in the destination game experience which is
+destination game experience which is exactly what we were trying to do with
+exactly what we were trying to do with this basically taking that linear feel
+this basically taking that linear feel of our flagship content that blueprint
+of our flagship content that blueprint and imposing it upon the feel of the
+and imposing it upon the feel of the activities in the destinations in our
+activities in the destinations in our game and basically one of the big
+game and basically one of the big benefits of this is that because this
+benefits of this is that because this suite of music systems contains music at
+suite of music systems contains music at a variety of different keys and tempos
+a variety of different keys and tempos we are able to keep ourselves from being
+we are able to keep ourselves from being limited to one or two keys and related
+limited to one or two keys and related tempos and that gives us a lot of
+tempos and that gives us a lot of mileage with this music so how did this
+mileage with this music so how did this change our scoring process of course the
+change our scoring process of course the big thing here is that none of this will
+big thing here is that none of this will work without good content so we still
+work without good content so we still try and focus on writing the music the
+try and focus on writing the music the same as we always have that part really
+same as we always have that part really hasn't changed we're just developing new
+hasn't changed we're just developing new ways to put it into the game and to play
+ways to put it into the game and to play it back when we're playing the game so
+it back when we're playing the game so in destiny we would spot an activity
+in destiny we would spot an activity with the designer we'd start composing
+with the designer we'd start composing or in some cases use that information to
+or in some cases use that information to alter what we were already composing if
+alter what we were already composing if something was already in flight and then
+something was already in flight and then we would go in and temp the activities
+we would go in and temp the activities as they were being built with temp music
+as they were being built with temp music so for those of you who are familiar
+so for those of you who are familiar with that you know what that means if
+with that you know what that means if you don't it's just temporary music
+you don't it's just temporary music that's not going to stay it's some
+that's not going to stay it's some placeholder to show what the
+placeholder to show what the functionality is going to be like excuse
+functionality is going to be like excuse me and then a designer or Michael would
+me and then a designer or Michael would script in the music into the activity we
+script in the music into the activity we would orchestrate and record
+would orchestrate and record and produce the music mix it and get it
+and produce the music mix it and get it all ready and then finalize it put that
+all ready and then finalize it put that real music into the game in place of the
+real music into the game in place of the temp music and polish review make tweaks
+temp music and polish review make tweaks as necessary and that was basically our
+as necessary and that was basically our process and that same process we carry
+process and that same process we carry forward for flagship content that more
+forward for flagship content that more or less doesn't change with a few tweaks
+or less doesn't change with a few tweaks but there's some benefits to this new
+but there's some benefits to this new process that actually streamline that
+process that actually streamline that and that's what I wanted to show you
+and that's what I wanted to show you here is it in destiny 2 we actually
+here is it in destiny 2 we actually start off with letting the designer
+start off with letting the designer script the activity and they're actually
+script the activity and they're actually building the activities score as they
+building the activities score as they build an activity whether it's a mission
+build an activity whether it's a mission or a strike or a raid or something that
+or a strike or a raid or something that might play in a destination and so we
+might play in a destination and so we are actually kind of skipping the temp
+are actually kind of skipping the temp step because they're able to temp while
+step because they're able to temp while they script and hear that music
+they script and hear that music immediately as they're building the
+immediately as they're building the activity and then our spotting session
+activity and then our spotting session really becomes more of a review and
+really becomes more of a review and tweak and change or update then you know
+tweak and change or update then you know that initial step that kicks the whole
+that initial step that kicks the whole process off for these activities and
+process off for these activities and then of course we record orchestrate or
+then of course we record orchestrate or orchestrate record in that order makes
+orchestrate record in that order makes get the music ready put in the game in
+get the music ready put in the game in review and the rest of the process is
+review and the rest of the process is more or less the same so once our music
+more or less the same so once our music systems are ready to go into the game
+systems are ready to go into the game there are three main steps we need to
+there are three main steps we need to take to get it implemented first we
+take to get it implemented first we build the music systems and wise and
+build the music systems and wise and then second we assign the music to the
+then second we assign the music to the various destinations and last the
+various destinations and last the designers can then use that music to
+designers can then use that music to score their content
+score their content esque I mentioned earlier each of our
+esque I mentioned earlier each of our music systems is composed as several
+music systems is composed as several different sections of music for the
+different sections of music for the various intensities that we have the way
+various intensities that we have the way that looks and wise as each music system
+that looks and wise as each music system becomes a switch with all the various
+becomes a switch with all the various sections composed for the system as the
+sections composed for the system as the different values or if you're familiar
+different values or if you're familiar the Y is a playlist within that switch
+the Y is a playlist within that switch once all of our music systems are built
+once all of our music systems are built as switches in wise they're ready to be
+as switches in wise they're ready to be assigned to the various destinations the
+assigned to the various destinations the way we do that is by grouping them into
+way we do that is by grouping them into something we call
+something we call music sets these are custom files we've
+music sets these are custom files we've created to act as collections of music
+created to act as collections of music which we then assign to destinations or
+which we then assign to destinations or parts of destinations to provide their
+parts of destinations to provide their music each of our destinations in our
+music each of our destinations in our game have at least one ambient music set
+game have at least one ambient music set while some may have more it all depends
+while some may have more it all depends on what the environment calls for for
+on what the environment calls for for example our destination Titan has - a
+example our destination Titan has - a music sets one for the exterior space
+music sets one for the exterior space and another for the interior once we've
+and another for the interior once we've assigned an ambien music set to a
+assigned an ambien music set to a location of the game we've achieved the
+location of the game we've achieved the same ambient playlist behavior we had in
+same ambient playlist behavior we had in destiny and that's that's done by
+destiny and that's that's done by randomly cycling through the various
+randomly cycling through the various music systems in the set and playing
+music systems in the set and playing their ambient sections but thanks to all
+their ambient sections but thanks to all the additional sections we've composed
+the additional sections we've composed into each music system that music can
+into each music system that music can now be used by designers to score their
+now be used by designers to score their content and the way they do that is by
+content and the way they do that is by using another one of our customs our
+using another one of our customs our custom files called a music score now
+custom files called a music score now these files are comprised of a series of
+these files are comprised of a series of sections that are added by the designer
+sections that are added by the designer to determine the flow of the music
+to determine the flow of the music through their content each section has a
+through their content each section has a name which is what the designer calls in
+name which is what the designer calls in script to trigger that section to play
+script to trigger that section to play and an intensity value which is
+and an intensity value which is literally get drop-down selection of all
+literally get drop-down selection of all the different switch values we use to
+the different switch values we use to build the music and why's so action high
+build the music and why's so action high action tension all the different
+action tension all the different intensities that we have now let's
+intensities that we have now let's pretend I'm a designer and I'm building
+pretend I'm a designer and I'm building an adventure for destiny - which is a
+an adventure for destiny - which is a essentially a side mission my music
+essentially a side mission my music score might look something like this
+score might look something like this here I've created three sections of
+here I've created three sections of music starting with light action going
+music starting with light action going to action and then ending with end which
+to action and then ending with end which will play the appropriate ending for
+will play the appropriate ending for whatever music is currently playing
+whatever music is currently playing that's all determined in the transition
+that's all determined in the transition as we've built and wise now that I have
+as we've built and wise now that I have my score I just need to do a little bit
+my score I just need to do a little bit of scripting in my adventure script to
+of scripting in my adventure script to make it all function and that could look
+make it all function and that could look a little like this
+a little like this this is totally real right here the
+this is totally real right here the first thing I do is I define my sections
+first thing I do is I define my sections at the top using their names then I
+at the top using their names then I simply call or activate those wherever
+simply call or activate those wherever it is I want them to play and that's the
+it is I want them to play and that's the whole process for implementing our music
+whole process for implementing our music systems before
+systems before I hand it back to sky let's go over a
+I hand it back to sky let's go over a quick graphical representation of this
+quick graphical representation of this entire process so you guys can have a
+entire process so you guys can have a little bit better understanding here's
+little bit better understanding here's another one of our destinations IO the
+another one of our destinations IO the first thing we do is we build iOS music
+first thing we do is we build iOS music systems and wise as switches we then
+systems and wise as switches we then assign those switches to in ambient
+assign those switches to in ambient music set which is then assigned to IO
+music set which is then assigned to IO at this point if a player lands on IO
+at this point if a player lands on IO the engine will randomly pick one of the
+the engine will randomly pick one of the music systems in the set and start
+music systems in the set and start playing its ambient section here you can
+playing its ambient section here you can see it's choosing the second system in
+see it's choosing the second system in the cassette now let's say the player
+the cassette now let's say the player comes across the adventure we just
+comes across the adventure we just created here you can see our adventures
+created here you can see our adventures music score and the script the player
+music score and the script the player kicks off that adventure that first
+kicks off that adventure that first music call for light action will be made
+music call for light action will be made by referencing the first sections name
+by referencing the first sections name at that point the first sections
+at that point the first sections intensity is sent to the engine and the
+intensity is sent to the engine and the piece of music that was playing its
+piece of music that was playing its ambient section transitions to the new
+ambient section transitions to the new intensity in this case light action and
+intensity in this case light action and one of the great in most powerful things
+one of the great in most powerful things about this system is if we decide that
+about this system is if we decide that that call for light action is not what
+that call for light action is not what we want it's super easy for us to go in
+we want it's super easy for us to go in there open up the music score click on
+there open up the music score click on that it's literally just a drop-down
+that it's literally just a drop-down selection of the different intensities
+selection of the different intensities we're gonna make it changed here we
+we're gonna make it changed here we don't have the touch wise and most
+don't have the touch wise and most importantly we don't have to touch the
+importantly we don't have to touch the script so therefore we can make these
+script so therefore we can make these changes as late in the game as we need
+changes as late in the game as we need to so let's take a look at what this
+to so let's take a look at what this actually sounds like in the game I'm
+actually sounds like in the game I'm gonna play you a couple examples here
+gonna play you a couple examples here but before I do let me give you a couple
+but before I do let me give you a couple heads up as to what we're gonna see so
+heads up as to what we're gonna see so first of all as we mentioned you can
+first of all as we mentioned you can actually hear this transition occur from
+actually hear this transition occur from either the silence between pieces of
+either the silence between pieces of music in a destination or from a piece
+music in a destination or from a piece that's playing so one of the videos the
+that's playing so one of the videos the first one we're gonna show is gonna
+first one we're gonna show is gonna actually demonstrate a transition from
+actually demonstrate a transition from music that's already playing the second
+music that's already playing the second one is going to start from the silence
+one is going to start from the silence in between the pieces so we're going to
+in between the pieces so we're going to look at that and the examples we're also
+look at that and the examples we're also gonna I want to point out that this
+gonna I want to point out that this because the system is actually randomly
+because the system is actually randomly cycling through different pieces of
+cycling through different pieces of music and a destinations playlist or
+music and a destinations playlist or we're actually randomly picking a queue
+we're actually randomly picking a queue and the activities then can be scored by
+and the activities then can be scored by different pieces of music but we can
+different pieces of music but we can actually choose to limb
+actually choose to limb that to a specific piece if we want so
+that to a specific piece if we want so if we say this activity needs this piece
+if we say this activity needs this piece of music every time then we just make a
+of music every time then we just make a bucket with that piece in it and it has
+bucket with that piece in it and it has its core but we can also let it
+its core but we can also let it randomize and pick and the great thing
+randomize and pick and the great thing about it is you can scale what it can
+about it is you can scale what it can pick from so it can be the whole
+pick from so it can be the whole destinations playlist or a sub playlist
+destinations playlist or a sub playlist from that destination or just a single
+from that destination or just a single piece another thing to point out here is
+piece another thing to point out here is that the the videos we're going to watch
+that the the videos we're going to watch are drastically shortened just for
+are drastically shortened just for digestibility so you're going to see the
+digestibility so you're going to see the burn ends on the screen that's a time
+burn ends on the screen that's a time cut that's where we cut a lot of time
+cut that's where we cut a lot of time out and in between those you're gonna
+out and in between those you're gonna see script calls on the screen you're
+see script calls on the screen you're not gonna hear the music transition
+not gonna hear the music transition right on the script call you're going to
+right on the script call you're going to hear it afterwards because obviously the
+hear it afterwards because obviously the transitions have to be musical and if
+transitions have to be musical and if you're familiar with wise that may in
+you're familiar with wise that may in some cases be next beat next bar or
+some cases be next beat next bar or whatever the next grid setting is or may
+whatever the next grid setting is or may be a custom cue but the transitions will
+be a custom cue but the transitions will follow as the music dictates and so on
+follow as the music dictates and so on the first one
+the first one we're gonna watch it's just gonna be
+we're gonna watch it's just gonna be music only I'll kind of talk through a
+music only I'll kind of talk through a couple of them and we can watch that and
+couple of them and we can watch that and in the second one we'll take a look at
+in the second one we'll take a look at it in context let's take a look
+[Music]
+so there's the script call for action when you hear the transmission starting
+when you hear the transmission starting and now we're actually in action there's
+and now we're actually in action there's a time cut transition to light action
+a time cut transition to light action and now we're actually in light action
+[Music]
+so in the next video we're gonna see the exact same activity but a different
+exact same activity but a different playthrough a different piece of music
+playthrough a different piece of music this one's gonna actually have the full
+this one's gonna actually have the full game mix sound design everything in
+game mix sound design everything in there but I'll point out that the music
+there but I'll point out that the music mix is a little hot just so you can hear
+mix is a little hot just so you can hear it a little more clearly in context
+hey Zavala guess we pinged our beacon near that fallen pike game fallen
+these vehicles aren't as maneuverable as a sparrow but they pack a punch keep
+a sparrow but they pack a punch keep punching
+punching you have a golden opportunity to put the
+you have a golden opportunity to put the red Legion down for the count
+red Legion down for the count I mean never to get into a boxing match
+I mean never to get into a boxing match with a tight left falling but gangsta
+with a tight left falling but gangsta mullet
+mullet the words right out of my mouth let's
+the words right out of my mouth let's not make this a habit huh
+those bikes will little scavenge technology
+picking up a big spike in college at least I'm pretty pissed
+[Music]
+break the picture like this will ensure a respite for us as well excellent so
+a respite for us as well excellent so some of the challenges that we had in
+some of the challenges that we had in actually making this work and building
+actually making this work and building it out is that it does require a large
+it out is that it does require a large amount of music now there's a sweet spot
+amount of music now there's a sweet spot at which the amount of music that doing
+at which the amount of music that doing this requires is actually less than
+this requires is actually less than doing it the way we did in destiny which
+doing it the way we did in destiny which is basically custom scoring every single
+is basically custom scoring every single activity in the game and the reason that
+activity in the game and the reason that it was beneficial for us is because we
+it was beneficial for us is because we were over that sweet spot so if your
+were over that sweet spot so if your team is gonna attempt something like
+team is gonna attempt something like this you may want to find where that is
+this you may want to find where that is for your project because it could be
+for your project because it could be that doing this actually requires more
+that doing this actually requires more content than you need to put in so
+content than you need to put in so depending on the needs of the game
+depending on the needs of the game that's something to be aware of another
+that's something to be aware of another big one that we found is that the
+big one that we found is that the designers need some education on this
+designers need some education on this you can't just put the tool they're
+you can't just put the tool they're always getting the result that you
+always getting the result that you expect because sometimes a designer is
+expect because sometimes a designer is going to maybe do transitions a little
+going to maybe do transitions a little too closely together or there's often a
+too closely together or there's often a misunderstanding of oh I called it it
+misunderstanding of oh I called it it didn't transition right away I want to
+didn't transition right away I want to hear it right there and then and so
+hear it right there and then and so making the making the understanding of
+making the making the understanding of how this thing works really clear was
+how this thing works really clear was important and there's also just the
+important and there's also just the basic need of making sure that the
+basic need of making sure that the script itself actually supports what the
+script itself actually supports what the mission is going to be doing and so
+mission is going to be doing and so that's what the spotting session is
+that's what the spotting session is incredibly important for is making sure
+incredibly important for is making sure that what the designers script is
+that what the designers script is calling and the music flow following the
+calling and the music flow following the mission is actually scoring the mission
+mission is actually scoring the mission the way it needs to and then of course
+the way it needs to and then of course there's the need for handcrafted moments
+there's the need for handcrafted moments and the ability to handcraft is still
+and the ability to handcraft is still incredibly necessary so we occasionally
+incredibly necessary so we occasionally need to combine using the system with
+need to combine using the system with custom scoring on the advantages side
+custom scoring on the advantages side there's there's quite a lot of great
+there's there's quite a lot of great things that we discovered with this and
+things that we discovered with this and the big one for us was that we were able
+the big one for us was that we were able to use this to score action in the
+to use this to score action in the familiar dramatic and linear fashion
+familiar dramatic and linear fashion that we set out to do it did what we
+that we set out to do it did what we wanted it to do as I pointed out earlier
+wanted it to do as I pointed out earlier the designers can easily tempt their own
+the designers can easily tempt their own activities and being able to immediately
+activities and being able to immediately hear the activity and the chain
+hear the activity and the chain in their music in their activities as
+in their music in their activities as they're building them is really huge and
+they're building them is really huge and it cuts down on iteration time for them
+it cuts down on iteration time for them and it it takes us out of that step in
+and it it takes us out of that step in the process almost entirely because they
+the process almost entirely because they can now use music from an older
+can now use music from an older destination or another destination to
+destination or another destination to temp an activity as they're building and
+temp an activity as they're building and it may not be the right piece of music
+it may not be the right piece of music but 10 music rarely is so that it really
+but 10 music rarely is so that it really worked in our favor there another big
+worked in our favor there another big one is that because the randomization
+one is that because the randomization aspect of this happens to be something
+aspect of this happens to be something we can control we can use the
+we can control we can use the randomization to enhance the
+randomization to enhance the replayability of some of these missions
+replayability of some of these missions when we want to and a really big one is
+when we want to and a really big one is that the implementation work is a lot
+that the implementation work is a lot less redundant so let's say we had a
+less redundant so let's say we had a piece of music that we wanted to use in
+piece of music that we wanted to use in three different activities and maybe
+three different activities and maybe part of it was going to be used here and
+part of it was going to be used here and another part there and this part
+another part there and this part overlaps if we did this by hand if the
+overlaps if we did this by hand if the way we used to do it we would have to
+way we used to do it we would have to basically implement each piece three
+basically implement each piece three times but with the system we just
+times but with the system we just implement at once and the script points
+implement at once and the script points to which part we're gonna play and so
+to which part we're gonna play and so it's a lot less work to set it up I mean
+it's a lot less work to set it up I mean it's still a lot of work but it's a lot
+it's still a lot of work but it's a lot less than doing it the other way yeah
+less than doing it the other way yeah it's of course it still work but it's
+it's of course it still work but it's it's like it's it's a much more
+it's like it's it's a much more efficient means of making that that
+efficient means of making that that music available to the game another big
+music available to the game another big one is that the more activities that are
+one is that the more activities that are added in a destination the more value we
+added in a destination the more value we actually gain from using this system
+actually gain from using this system approach since the randomization can
+approach since the randomization can stretch and cover more activities and
+stretch and cover more activities and the scalability ratio of music to
+the scalability ratio of music to activities is a huge asset for us but
+activities is a huge asset for us but the biggest one I think hands down is
+the biggest one I think hands down is that late changes to music have less
+that late changes to music have less risk associated with them because the
+risk associated with them because the content is already hooked up and
+content is already hooked up and functional and literally all we're doing
+functional and literally all we're doing is we're changing the music intensity
+is we're changing the music intensity values in a drop-down menu like Michael
+values in a drop-down menu like Michael mentioned we can do this completely on
+mentioned we can do this completely on our own as as late as the last check-in
+our own as as late as the last check-in in a mix and the script does not need to
+in a mix and the script does not need to change so there's no risk to the project
+change so there's no risk to the project and on that note we are going to be
+and on that note we are going to be moving to one of the wrap-up areas if
+moving to one of the wrap-up areas if you guys have any questions I just want
+you guys have any questions I just want to remind you please fill out your
+to remind you please fill out your surveys and I have to say that GDC has
+surveys and I have to say that GDC has been awesome is my first time here the
+been awesome is my first time here the game audio can
+game audio can unity is awesome you guys are all great
+unity is awesome you guys are all great please keep it up thank you

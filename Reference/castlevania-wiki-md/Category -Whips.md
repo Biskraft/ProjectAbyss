@@ -1,0 +1,3 @@
+# Category:Whips
+
+Category: Weapons

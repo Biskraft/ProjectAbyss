@@ -1,0 +1,562 @@
+[Music]
+hello everyone welcome to disintegrating meshes with
+welcome to disintegrating meshes with particles for god of war
+particles for god of war welcome to my talk my name is rupert
+welcome to my talk my name is rupert renard i'm an australian game developer
+renard i'm an australian game developer i bring programming games for over 12
+i bring programming games for over 12 years now
+years now i've worked on 12 ship titles and half a
+i've worked on 12 ship titles and half a dozen cancelled titles
+dozen cancelled titles some of the games i've worked on you may
+some of the games i've worked on you may have heard about such as god of war the
+have heard about such as god of war the legend of zelda deus ex mass effect 3 to
+legend of zelda deus ex mass effect 3 to blob 2 and scooby-doo
+blob 2 and scooby-doo i've worked in a variety of programming
+i've worked in a variety of programming positions i'm currently at sony santa
+positions i'm currently at sony santa monica as a graphics and engine
+monica as a graphics and engine programmer where we shipped god of war
+programmer where we shipped god of war in april 2018 and it did pretty well
+in previous god of all games kratos would plow through lots of enemies and
+would plow through lots of enemies and the new game wasn't going to differ too
+the new game wasn't going to differ too much
+much in that aspect
+in that aspect so back in around mid-2015 we held a
+so back in around mid-2015 we held a meeting to come up with in-theme method
+meeting to come up with in-theme method methods of removing defeated enemies
+methods of removing defeated enemies from the screen
+from the screen the method needed to fit into the god of
+the method needed to fit into the god of war world
+war world we couldn't just simply let the pile of
+we couldn't just simply let the pile of corpses stack up
+corpses stack up we needed to remove these bodies to
+we needed to remove these bodies to ensure that the frame rate wouldn't
+ensure that the frame rate wouldn't suffer
+suffer most games don't really take this into
+most games don't really take this into account they usually just do something
+account they usually just do something simple like let the body sink through
+simple like let the body sink through the floor or fade the body with alpha
+the floor or fade the body with alpha blending
+blending so i proposed a method to disintegrate
+so i proposed a method to disintegrate the body pixel by pixel i quickly
+the body pixel by pixel i quickly prototyped this and the results results
+prototyped this and the results results looked promising and it got implemented
+looked promising and it got implemented into the game
+i've prepared a short demonstration video from the final game to show you
+video from the final game to show you what to expect from the technique also
+what to expect from the technique also note that some other standard particle
+note that some other standard particle emission techniques are used in
+emission techniques are used in combination at times
+combination at times the disintegration technique can occur
+the disintegration technique can occur pretty quickly at times so please
+pretty quickly at times so please refrain from blinking
+refrain from blinking [Music]
+oh
+so [Music]
+[Music] this technique is applied in two major
+this technique is applied in two major parts the first part is to make the mesh
+parts the first part is to make the mesh disappear
+disappear to do this we simply we apply a simple
+to do this we simply we apply a simple alpha reference testing nothing really
+alpha reference testing nothing really new there
+new there the second part is to emit particles
+the second part is to emit particles from the mesh
+from the mesh we do this by emitting particles the
+we do this by emitting particles the frame immediately before the pixel will
+frame immediately before the pixel will be hidden from the alpha reference
+be hidden from the alpha reference testing this gives the illusion that the
+testing this gives the illusion that the pixels that make up the mesh are
+pixels that make up the mesh are disintegrating into small particles
+disintegrating into small particles the particles are then able to move and
+the particles are then able to move and animate independently
+animate independently as well as collide with the screen depth
+as well as collide with the screen depth buffer
+buffer the technique also conveniently has
+the technique also conveniently has built-in level of detail
+we start with a simple alpha reference comparison test
+comparison test for each fragment of the mesh being
+for each fragment of the mesh being drawn we sample a single channel texture
+drawn we sample a single channel texture we compare the sample against a
+we compare the sample against a reference value the reference value is
+reference value the reference value is shared globally for the mesh and changes
+shared globally for the mesh and changes over time
+over time the comparison results are used to
+the comparison results are used to determine whether or not the fragment is
+determine whether or not the fragment is visible
+visible if it's visible we continue on in the
+if it's visible we continue on in the shader if it's not visible we discard
+shader if it's not visible we discard the fragment
+the fragment here is a sample texture from one of the
+here is a sample texture from one of the enemies in the game it's obviously a
+enemies in the game it's obviously a noise texture that's used all over the
+noise texture that's used all over the character in a wrap sampling mode
+character in a wrap sampling mode the texture is used to demonstrate the
+the texture is used to demonstrate the character decaying away from random
+character decaying away from random parts on the body
+parts on the body that is to say its effect is to not
+that is to say its effect is to not decay in a specific manner just let it
+decay in a specific manner just let it be random and works quite well
+be random and works quite well other cases may be more case specific
+other cases may be more case specific tailored textures for certain models or
+tailored textures for certain models or scenarios
+scenarios here is a demo of an animated alpha
+here is a demo of an animated alpha reference i'm using the same texture for
+reference i'm using the same texture for the alpha reference as i am for diffuse
+the alpha reference as i am for diffuse i've done this so you can visually see
+i've done this so you can visually see where the alpha recedes from and to
+where the alpha recedes from and to you can see the mesh starts disappearing
+you can see the mesh starts disappearing at the dark sections and moves to the
+at the dark sections and moves to the brighter sections as the alpha reference
+brighter sections as the alpha reference level rises
+the particle mission is broken down into generally three phases
+generally three phases we need to leverage a depth pre-pass
+we need to leverage a depth pre-pass the depth pre-pass is required to
+the depth pre-pass is required to guarantee we only run one fragment
+guarantee we only run one fragment shader per pixel in the opaque pass
+shader per pixel in the opaque pass this prevents multiple particles from
+this prevents multiple particles from being emitted from the same pixel if
+being emitted from the same pixel if triangles were to overlap
+triangles were to overlap once we have populated the depth buffer
+once we have populated the depth buffer we run the opaque pass
+we run the opaque pass the opaque pass will potentially add to
+the opaque pass will potentially add to an append buffer the screen coordinates
+an append buffer the screen coordinates of the pixels that are emitting
+of the pixels that are emitting particles from this frame
+once we have populated the append buffer later in the frame we're going to read
+later in the frame we're going to read the contents we initiate a dispatch
+the contents we initiate a dispatch indirect to read the pen buffer and
+indirect to read the pen buffer and convert pixel coordinates into proper
+convert pixel coordinates into proper emitted particles
+emitted particles this is done by using screen coordinates
+this is done by using screen coordinates to look up information in the g buffer
+to look up information in the g buffer such as depth normal and lighting or
+such as depth normal and lighting or other surface information
+other surface information while also converting screen coordinates
+while also converting screen coordinates plus depth read from the depth depth
+plus depth read from the depth depth buffer to world space coordinates
+buffer to world space coordinates the next frame we're able to draw the
+the next frame we're able to draw the newly emitted particles and animate move
+newly emitted particles and animate move and collide all the particles as usual
+append buffer will obviously need to be emptied at the start of the frame
+emptied at the start of the frame while i say the depth pre-pass is
+while i say the depth pre-pass is required there are obvious ways around
+required there are obvious ways around it you just need to be careful with your
+it you just need to be careful with your drawing and utilization of this
+drawing and utilization of this technique
+technique in the opaque pass shader variations
+in the opaque pass shader variations were needed to emit the particles we
+were needed to emit the particles we didn't want the particle emission shadow
+didn't want the particle emission shadow code to be in shaders of materials that
+code to be in shaders of materials that never emitted particles for obvious
+never emitted particles for obvious performance reasons
+we do all this at native 1080p resolution for the base ps4
+resolution for the base ps4 or at the 4k checkerboard for ps4 pro
+or at the 4k checkerboard for ps4 pro the append buffer can pack all
+the append buffer can pack all information needed screen coordinates
+information needed screen coordinates etc into a single 32-bit entry the
+etc into a single 32-bit entry the append buffer has enough storage to emit
+append buffer has enough storage to emit 128 000 particles per frame but it's
+128 000 particles per frame but it's unlikely we'll ever use that
+here we're going to demonstrate the emission of particles that are coupled
+emission of particles that are coupled with alpha reference test
+with alpha reference test here you can see three segments of a
+here you can see three segments of a mesh
+mesh over three frames these three segments
+over three frames these three segments will disappear in a cascade from top to
+will disappear in a cascade from top to bottom
+at the start of frame n we draw the three segments of the mesh
+we draw the three segments of the mesh we start by drawing the segments in the
+we start by drawing the segments in the depth pass the top segment doesn't pass
+depth pass the top segment doesn't pass the reference test so it executes a
+the reference test so it executes a discard in the pixel shader of the depth
+discard in the pixel shader of the depth pass
+pass the other two segments pass the
+the other two segments pass the reference test so they don't discard and
+reference test so they don't discard and populate the depth buffer
+populate the depth buffer we have determined the middle segment
+we have determined the middle segment will not pass the reference test in the
+will not pass the reference test in the next frame so we need to emit particles
+next frame so we need to emit particles this frame to represent the invisible
+this frame to represent the invisible segment in the next frame we start by
+segment in the next frame we start by taking the pixel coordinates of each
+taking the pixel coordinates of each fragment in the middle section and add
+fragment in the middle section and add them to the append buffer
+later in the frame we need to read the append buffer full of pixel coordinates
+append buffer full of pixel coordinates and create particles from them
+and create particles from them we run a shader via dispatch indirect in
+we run a shader via dispatch indirect in order to process one particle per thread
+order to process one particle per thread in each thread we read the pixel
+in each thread we read the pixel coordinates
+coordinates linearly from the append buffer note we
+linearly from the append buffer note we don't need to use the consume buffer
+don't need to use the consume buffer here
+here now that we have pixel coordinates we
+now that we have pixel coordinates we can index into the g buffer and also the
+can index into the g buffer and also the depth buffer
+depth buffer we read the depth buffer and can now
+we read the depth buffer and can now combine the pixel coordinates with the
+combine the pixel coordinates with the depth value into world space coordinates
+depth value into world space coordinates we use the world space coordinates as
+we use the world space coordinates as the particle's spawning position
+the particle's spawning position this is also a great opportunity to read
+this is also a great opportunity to read other attributes that may be used
+other attributes that may be used by the particle such as normal from the
+by the particle such as normal from the normal buffer or material properties or
+normal buffer or material properties or final lighting values of the pixel but
+final lighting values of the pixel but make note the particles we're spawning
+make note the particles we're spawning in this frame are definitely to be not
+in this frame are definitely to be not drawn this frame the reason being the
+drawn this frame the reason being the mesh is still visible
+mesh is still visible there's no point drawing particles on
+there's no point drawing particles on top of the mesh since the mesh fragments
+top of the mesh since the mesh fragments supposed to turn into the particles
+we have now advanced forward a frame now is the time to start drawing the
+now is the time to start drawing the particles we spawned from the previous
+particles we spawned from the previous frame
+frame the segment that was visible in the
+the segment that was visible in the previous frame but not in this frame has
+previous frame but not in this frame has visually been replaced with particles we
+visually been replaced with particles we emitted but didn't draw in the previous
+emitted but didn't draw in the previous frame
+frame we also draw all other particles that
+we also draw all other particles that have spawned previously
+have spawned previously we're able to draw all the particles
+we're able to draw all the particles together and treat them uniformly
+together and treat them uniformly we can also animate the particle and
+we can also animate the particle and move the particle and collide the
+move the particle and collide the particle with other primitives or the
+particle with other primitives or the depth buffer
+i wanted to test that we could convincingly recreate a mesh entirely
+convincingly recreate a mesh entirely with part with particles
+with part with particles what you're seeing here in this video
+what you're seeing here in this video demonstrates exactly that
+demonstrates exactly that each of the kratos clones are fully
+each of the kratos clones are fully created from little particles every
+created from little particles every frame we emit particles from the mesh of
+frame we emit particles from the mesh of kratos as criter cradles flies around
+kratos as criter cradles flies around the test level the particles remain
+the test level the particles remain where they were spawned i had a fixed
+where they were spawned i had a fixed ring up particle ring buffer for this
+ring up particle ring buffer for this so the trails of kratos end where the
+so the trails of kratos end where the particle ring buffer size is full
+particle ring buffer size is full you can also see that segments of the
+you can also see that segments of the clones are missing pieces this is
+clones are missing pieces this is because they were obscured on a mission
+particles are easily able to collide with the depth buffer
+with the depth buffer start by taking the particles world
+start by taking the particles world space coordinates and project them onto
+space coordinates and project them onto screen space coordinates
+screen space coordinates you can now sample a depth buffer with
+you can now sample a depth buffer with these screens with these green space
+these screens with these green space coordinates
+coordinates compare the particle's projected z value
+compare the particle's projected z value with the depth buffer value
+with the depth buffer value if the particle is behind the depth
+if the particle is behind the depth buffer you can use the same screen space
+buffer you can use the same screen space coordinates to read the normal buffer
+coordinates to read the normal buffer and use that as your collision normal
+and use that as your collision normal then nudge the particle in front of the
+then nudge the particle in front of the depth buffer and update the particle
+depth buffer and update the particle velocity
+now here we have the first video of putting this technique into the hands of
+putting this technique into the hands of our lead character artist raf kraseti
+our lead character artist raf kraseti raph is playing with the decay animation
+raph is playing with the decay animation in on a loop
+in on a loop raf is also moving the model around
+raf is also moving the model around manually while the loop plays to inspect
+manually while the loop plays to inspect the effect from multiple angles
+the effect from multiple angles the animation changes the alpha
+the animation changes the alpha reference value over time causing the
+reference value over time causing the particles to emit and the mesh to
+particles to emit and the mesh to disappear
+you can also see that raph has added some material animations to help sell
+some material animations to help sell the effect raph has made the mesh burn
+the effect raph has made the mesh burn to ash before emitting the particle
+to ash before emitting the particle causing a pile of ashes to fall to the
+causing a pile of ashes to fall to the ground
+ground you can also see that the mesh is burned
+you can also see that the mesh is burned into a pile of ash in the shape of the
+into a pile of ash in the shape of the silhouette of the mesh very cool
+silhouette of the mesh very cool just as a note the character has its
+just as a note the character has its feet and waist missing this model was a
+feet and waist missing this model was a work in progress at the time of testing
+one of the key benefits of this technique is it has built-in level of
+technique is it has built-in level of detail
+detail the smaller the mesh appears on screen
+the smaller the mesh appears on screen the fewer particles it is able to emit
+the fewer particles it is able to emit however this relationship is not
+however this relationship is not obviously linear
+obviously linear sorry this relationship is obviously not
+sorry this relationship is obviously not linear if a mesh is unfortunate enough
+linear if a mesh is unfortunate enough to be close to the viewing camera it may
+to be close to the viewing camera it may occupy large portions of the screen this
+occupy large portions of the screen this can create the opportunity to emit a
+can create the opportunity to emit a large quantity of particles per frame
+large quantity of particles per frame however you can counteract this with the
+however you can counteract this with the authoring parameters such as ensuring
+authoring parameters such as ensuring you do not animate your reference value
+you do not animate your reference value too quickly
+too quickly with a smaller reference value speed you
+with a smaller reference value speed you create segments of particle
+create segments of particle you create smaller segments of particle
+you create smaller segments of particle emission
+emission our particle system programmer paolo
+our particle system programmer paolo also introduced a method of emission
+also introduced a method of emission randomization to help reduce particle
+randomization to help reduce particle emission count in certain scenarios
+by decoupling the reference value between emission and alpha reference
+between emission and alpha reference testing you can actually start emitting
+testing you can actually start emitting particles early before the mesh will
+particles early before the mesh will disappear
+disappear that is to say instead of emitting a
+that is to say instead of emitting a single particle the frame immediately
+single particle the frame immediately before the pixel of the mesh disappears
+before the pixel of the mesh disappears you'll meet one particle per frame over
+you'll meet one particle per frame over multiple frames right before the
+multiple frames right before the pixel mesh disappears
+pixel mesh disappears this gives you the ability to produce a
+this gives you the ability to produce a more substantial decay effect
+more substantial decay effect for example denser objects but a cost
+for example denser objects but a cost but at a cost of more particles
+but at a cost of more particles you can achieve this with a single lu
+you can achieve this with a single lu add instruction in the emission shader
+add instruction in the emission shader you add a uniform value to the result of
+you add a uniform value to the result of the texture sample right before you do
+the texture sample right before you do the alpha reference comparison
+the alpha reference comparison this detaches the emission of the
+this detaches the emission of the particle from the disappearing mesh by a
+particle from the disappearing mesh by a variable amount supplied
+here you can see a video of the particles emitting at pixels right as
+particles emitting at pixels right as the mesh is disappearing
+the mesh is disappearing when the little explosion occurs it will
+when the little explosion occurs it will change over to emitting particles
+change over to emitting particles earlier than when the mesh pixel
+earlier than when the mesh pixel disappears
+disappears now
+now it gives a nice effect of giving the
+it gives a nice effect of giving the emitting area a visually larger size
+[Applause]
+emission velocity is a useful feature to have available to designers
+have available to designers particles may want to just fall from the
+particles may want to just fall from the mesh or perhaps they may want to sample
+mesh or perhaps they may want to sample the normal buffer from the emission
+the normal buffer from the emission screen coordinates and explode off the
+screen coordinates and explode off the mesh instead
+particles have a range of options to choose from when picking their color
+choose from when picking their color the emitted color could be the final
+the emitted color could be the final lick color of the pixel or it could
+lick color of the pixel or it could derive a color from the material
+derive a color from the material rendered in in the g buffer or the color
+rendered in in the g buffer or the color could be a part of the particle system
+could be a part of the particle system attributes there's no reason it can't be
+attributes there's no reason it can't be a combination of these such as starting
+a combination of these such as starting off from the uh starting off as the same
+off from the uh starting off as the same color as the final lit pixel then blend
+color as the final lit pixel then blend towards the external colors supplied
+towards the external colors supplied with the particle system over time
+this technique also has some drawbacks if the mesh is not on screen it can't
+if the mesh is not on screen it can't emit particles
+so kratos's head and feet are off screen the rest of the body is onscreen
+the rest of the body is onscreen pixel shaders are only ever run on
+pixel shaders are only ever run on pixels that get rasterized
+pixels that get rasterized it can't be rasterized if it's outside
+it can't be rasterized if it's outside the viewport
+the viewport so this means kratos's head and feet
+so this means kratos's head and feet will not be able to emit particles
+will not be able to emit particles if we were to have an alpha reference
+if we were to have an alpha reference emit particles from kratos's head to
+emit particles from kratos's head to feet you would expect kratos's particles
+feet you would expect kratos's particles to fall from his head and into the
+to fall from his head and into the viewport but they won't
+viewport but they won't the head will gradually disappear
+the head will gradually disappear downwards even though you won't be able
+downwards even though you won't be able to tell
+to tell then the top of his shoulders and chest
+then the top of his shoulders and chest will start disappearing and
+will start disappearing and emitting particles
+some of our designers unfortunately fell into this trap a couple of times
+into this trap a couple of times one in particular was very impressed
+one in particular was very impressed with the technique
+with the technique he wanted to use it for revealing a
+he wanted to use it for revealing a hidden passageway from a fake wall
+hidden passageway from a fake wall he set the fake coil material up with a
+he set the fake coil material up with a decay option and was pleased with the
+decay option and was pleased with the visual result it was decaying like sand
+visual result it was decaying like sand from top to bottom right in front of
+from top to bottom right in front of your eyes however he noticed that when
+your eyes however he noticed that when triggering the effect from up close and
+triggering the effect from up close and looking around the wall just kind of cut
+looking around the wall just kind of cut off near the top of the screen as the
+off near the top of the screen as the particles were falling down
+particles were falling down this was caused by the mesh not being on
+this was caused by the mesh not being on screen in order to emit particles
+there are methods available to you to help counteract this such as
+to you to help counteract this such as rendering the mesh off screen at the
+rendering the mesh off screen at the same resolution or simply just resort to
+same resolution or simply just resort to your simple triangle emission techniques
+your simple triangle emission techniques but these are outside the scope of this
+but these are outside the scope of this technique
+the technique proved to be very valuable to the effects artists
+to the effects artists they wanted to use it in several other
+they wanted to use it in several other scenarios as well
+scenarios as well as described in the limitations section
+as described in the limitations section it was used for revealing hidden fake
+it was used for revealing hidden fake walls
+walls various magic effects were also
+various magic effects were also applicable to this technique and were
+applicable to this technique and were used extensively in one particular
+used extensively in one particular cutscene in the game
+cutscene in the game the cutscene shows a character being
+the cutscene shows a character being sucked into a portal the character is
+sucked into a portal the character is attempting to resist and little pieces
+attempting to resist and little pieces of the character end up falling away
+of the character end up falling away into the portal
+into the portal one setup of this technique was
+one setup of this technique was repeatedly asked for the reverse
+repeatedly asked for the reverse where particles were scattered around
+where particles were scattered around and are pulled together to form the mesh
+and are pulled together to form the mesh this is very doable but not with this
+this is very doable but not with this technique present here
+so as i said earlier this was all initially developed in 2015
+this was all initially developed in 2015 so this gdc presentation has been four
+so this gdc presentation has been four years in the making but we're occupied
+years in the making but we're occupied making the game itself
+making the game itself everything i presented to you was here
+everything i presented to you was here here was the core initial version of the
+here was the core initial version of the technique and it's everything you need
+technique and it's everything you need to get this technique up and running for
+to get this technique up and running for yourself
+yourself at the same time as this was being
+at the same time as this was being developed our gpu particle system was
+developed our gpu particle system was being developed by simone kulsitsky
+being developed by simone kulsitsky over the next few years some changes
+over the next few years some changes were made to the technique in order to
+were made to the technique in order to fit in nicely with our new particle
+fit in nicely with our new particle system
+system our particle system programmer paulo
+our particle system programmer paulo cerrico also added some new mechanisms
+cerrico also added some new mechanisms on how to animate the alpha reference
+on how to animate the alpha reference value originally you could just keyframe
+value originally you could just keyframe the alpha reference value through our
+the alpha reference value through our animation sequences he expanded on this
+animation sequences he expanded on this workflow and added mechanisms to animate
+workflow and added mechanisms to animate it through script and also hooked it up
+it through script and also hooked it up to our depth death system
+to our depth death system he also added a feature to ration out
+he also added a feature to ration out the particle spawning between different
+the particle spawning between different multiple disintegrating meshes depending
+multiple disintegrating meshes depending on their screen size
+one particular feature i was hoping some of our artists would explore was mesh
+of our artists would explore was mesh layering
+layering the character would have multiple layers
+the character would have multiple layers of mesh like a manchester doll also
+of mesh like a manchester doll also known as the russian nesting doll
+known as the russian nesting doll before the disintegrating disintegration
+before the disintegrating disintegration begins the inside layers would never be
+begins the inside layers would never be rendered for the sake of performance
+rendered for the sake of performance but once disintegration starts the inner
+but once disintegration starts the inner layers are rendered as the outer mesh
+layers are rendered as the outer mesh layer of the skin disintegrates it would
+layer of the skin disintegrates it would reveal a flesh mesh layer beneath it
+reveal a flesh mesh layer beneath it when the flesh mesh layer would
+when the flesh mesh layer would disintegrate it would reveal the bone
+disintegrate it would reveal the bone beneath it then the bone mesh would
+beneath it then the bone mesh would disintegrate
+thanks everyone for attending i'd just like to take a few moments to thank
+like to take a few moments to thank others who helped out in various ways
+others who helped out in various ways paolo cerico and the rest of the
+paolo cerico and the rest of the rendering team
+rendering team max ankar kevin hyun and the rest of the
+max ankar kevin hyun and the rest of the facts team jack mulholland and christina
+facts team jack mulholland and christina coffin
+we are hiring in very various positions please check out our website and come
+please check out our website and come join us on our next project
+we also have various other presentations that other members of the
+presentations that other members of the team are giving
+team are giving i think we're around
+i think we're around here so we've got all these talks to go
+here so we've got all these talks to go please attend them
+please attend them thanks
+thanks [Applause]
+[Applause] [Music]
+[Music] any questions
+any questions please step up to the microphone
+go ahead thank you it was an interesting
+thank you it was an interesting presentation um i have a question this
+presentation um i have a question this kind of technique is kind of resolution
+kind of technique is kind of resolution dependent so you
+dependent so you you should end up with different number
+you should end up with different number of particles for ps
+of particles for ps base ps version and ps4 versions
+base ps version and ps4 versions is this a thing that you somehow
+is this a thing that you somehow mitigated with your artist maybe no we
+mitigated with your artist maybe no we did not so the question was
+did not so the question was uh since there are multiple resolutions
+uh since there are multiple resolutions for multiple consoles how did we handle
+for multiple consoles how did we handle that we just let the higher resolution
+that we just let the higher resolution have more particles
+have more particles it had more hardware to handle it so
+it had more hardware to handle it so away went but i was curious if it
+away went but i was curious if it provides
+provides like if artists are
+like if artists are happy enough with different visuals on
+happy enough with different visuals on different platforms like slightly
+different platforms like slightly different okay no they liked it okay
+different okay no they liked it okay yeah thank you thank you
+good uh so you mentioned that the off uh parts of the character couldn't get
+uh parts of the character couldn't get any particles did you guys attempt any
+any particles did you guys attempt any solution to cover that up or was it just
+solution to cover that up or was it just not visible enough to
+not visible enough to be worth addressing it was used uh sorry
+be worth addressing it was used uh sorry the question was how did we handle uh
+the question was how did we handle uh the meshes being off screen and not
+the meshes being off screen and not emitting particles so we mostly com
+emitting particles so we mostly com handle this with kind of two mechanisms
+handle this with kind of two mechanisms one is restrict the camera particularly
+one is restrict the camera particularly in cut scenes to have the meshes on
+in cut scenes to have the meshes on screen the other method is just combine
+screen the other method is just combine it with other particle emission
+it with other particle emission techniques
+techniques yeah thanks no problem
+yeah thanks no problem go ahead all right great talk thank you
+go ahead all right great talk thank you thank you uh
+thank you uh i had a question about i know you said
+i had a question about i know you said that you divided the meshes into
+that you divided the meshes into segments and the segments would start
+segments and the segments would start fading away and emit particles
+fading away and emit particles was the segment
+was the segment definition
+definition artist defined or was that mesh
+artist defined or was that mesh dependent okay so the question is on
+dependent okay so the question is on segments what are segments segments is
+segments what are segments segments is something i just invented for this
+something i just invented for this presentation
+presentation so as the alpha references
+so as the alpha references are animating
+are animating the segment
+the segment is effectively uh pixels on the mesh
+is effectively uh pixels on the mesh that may that will appear this frame and
+that may that will appear this frame and not mix next frame
+not mix next frame so there are no real segments it's just
+so there are no real segments it's just a term i've used to describe pixels that
+a term i've used to describe pixels that are changing from being visible to not
+are changing from being visible to not being visible in the next frame
+being visible in the next frame thank you no problem
+thank you no problem any other questions
+any other questions yeah one last quick question this
+yeah one last quick question this technique looks like it was purely pixel
+technique looks like it was purely pixel bass did you investigate anything like
+bass did you investigate anything like pervert based for a similar technique or
+pervert based for a similar technique or no uh we wanted the higher resolution
+no uh we wanted the higher resolution for pixel shapes sorry the question was
+for pixel shapes sorry the question was uh did we investigate vertex emission
+uh did we investigate vertex emission techniques
+techniques is that correct yeah yes no we did not
+is that correct yeah yes no we did not investigate that
+investigate that that would probably be too low
+that would probably be too low resolution for us uh some of our
+resolution for us uh some of our character measures were pretty high in
+character measures were pretty high in the vertex count but probably not enough
+the vertex count but probably not enough to give the effect that we wanted
+to give the effect that we wanted yep thanks thank you
+yep thanks thank you any final questions
+any final questions right thank you everyone

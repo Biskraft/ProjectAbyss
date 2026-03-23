@@ -1,0 +1,1177 @@
+Good afternoon, everyone.
+Thank you for tipping the waiter before
+the meal. Uh Good afternoon, everyone. My name is Mi
+Svenson.
+About one console generation ago I worked on
+lighting water effects and uh the spoiler on
+play that's inside and even had the honor of doing a couple of talks about it.
+Uh Today I get to represent
+Geometric interactive and talk about our game Cocoon and show you some
+lighting water fog effects and even the warp into some orbs.
+Please silence your phones during the big sell of breath of the wild talk in 2017,
+someone in the front center row had their phone blast off at full
+volume in the middle of the talk and that someone was me.
+All right.
+Cocoon's development began with Jars
+in 2017 and together with fellow
+played alumni, Jacob Schmidt,
+they formed geometric interactive early on,
+they met our talented art director Irwin to
+who, who
+was brought on to solve some of the visual mysteries of the game's Cosic journey.
+Then in late 2018,
+I joined my nerd graphics to find solutions
+to the technical puzzles of the production.
+After years of hard work with a talented team of artists, designers and engineers.
+The game was Ford and it looks a little something like this.
+Normally, this is where I would switch from the opening shall of
+our trailer to my
+presentation slides
+today. I'm going to do something a little different.
+Still gonna talk about graphics and stuff. But instead of advancing slides,
+we'll zoom out.
+So
+here in this canyon where the game begins is
+the perfect place to show you the lighting.
+The indirect lighting is a big light probes or
+volumetric light maps or whatever you want to call sphere
+harmonics ira and
+stored in boxes by themselves, they look like this.
+The game was shipped on Unity 2020 LTs using Euro P 10.
+And our indirect lighting replaces the various
+global illumination techniques found within the engine.
+Before implementing our custom light baker, the game looked like this.
+The indirect was just two directional lights
+stored in a uniform uh spherical harmonic.
+But we didn't want to use light maps because of the lack of support
+for things for like transparent particles or fog or animated or skin meshes.
+Uh We still wanted higher fidelity than just a spa
+uniform directional ambient, you know lighting thing.
+So
+in ours,
+we have I radiance,
+which is a fancy term for incoming light or light that can be seen from a given point.
+This is then turned into radiance by materials,
+which is another fancy term for materials show
+the lighting they saw bounds into your eyes.
+Our ***
+are first order, meaning that they have two bands,
+one of an ambient component and another band of three directional components.
+We tried second order,
+but it showed diminishing returns on our mostly diffused surfaces.
+Uh Each of these four components is full sign HTR color which is a lot
+uh during baking,
+it's stored as half precision floating point which adds up to 192 bits per
+vel. That's a bit.
+Luckily, lighting is always positive, which means that uh well,
+the ambient part at least can be stored as BC six H
+which is a hardware texture compression for unsigned HDR color textures.
+This saves about 40 bits
+but uh that brings us down to 152 bits per axel,
+still quite a bit
+uh directions however, are signed.
+And while BC six H supports it,
+we can remove that sign by adding the ambient part to the directional part and
+use BC six H on the rest of them to get down to 32 bits per
+axel.
+Uh This is what that looks like. It's quite noisy and still quite J Pecky
+BC.
+One which is another hardware texture
+compression technique used for normalized ranges would
+help if the directional component was fixed range instead of floating range,
+you can do that just by dividing the directional part by the ambient part,
+making it normalized as we stored and
+then multiplying again while we're reading it.
+And that looks like this. It gets rid of most of the noise.
+It's quite tolerable at this point and we're all the way down to 24 bits per
+vel quite good.
+So another reason that we use Voxels is because it
+lets us avoid parameterizing our measures.
+We don't have to do light map UV or anything like that.
+Uh But light maps, uh we like light maps, we also use charts and
+atlases. So
+this is what one chart looks like.
+It's just a bounding box around a particular sub scene.
+And in the top right corner, you see what the data of that looks like.
+And as we zoom out, you can see that the charts are then
+you know,
+multiple charts are in each scene and they together make up a Atlas
+and you see what one ATLAS looks like on the right there.
+Now to make one of these charts, we need ray tracing,
+but I didn't want to implement and maintain an
+API like optics or DXR or something like that.
+Luckily, we already kind of have a ray tracer in the form of the
+restorer because restoration if you think about it is
+really just a ray tracer that traces a grid
+of rays uh that uh share an origin point
+in the prospective camera case or they share a direction
+in the orthographic camera case.
+So
+in order to do this ray tracing, we simply render a camera
+uh from an isometric
+point of view uh with a texture to the
+array.
+And then our view and projection matrices are simply
+defined by our charts transform and bounding volume.
+Uh And then we just have it rendered out with as many instances as we have slices in our
+Voxel texture.
+Then in the vertex
+shader, we simply just set the slice id to be the instance id
+and add the position uh sorry, offset the position by the slice id.
+So that each slice starts at that particular point.
+Now this generates a ray trace that they can just look forward.
+So we need to be able to, you know, store a direction and stuff like that,
+which is where our ray matrix comes in.
+This lets us uh control the ray direction
+as well as an offset. And ATM T max which are basically just edits to the
+near plane and far plane of this uh particular projection matrix.
+And yeah, then we just uh set one of these ray matrices with a random direction,
+a random jitter of about one Voxel
+and also use a
+near
+plane offset of about one voxel size to avoid any
+self shadowing. And that kind of problem that we don't really want to see.
+And yeah, we just multiply this matrix. That's the last thing in our vertex shader.
+So instead of maintaining DXR or Metta
+passes, we just have to include this one macro in the vertex program
+uh to make it compatible with the baker.
+Uh All this is just, you know, so that we get things to be out of the box.
+We don't need to have super complete
+chairs. We can just use one shader for
+everything,
+avoids copy paste errors.
+Anyway, finally, we have a little extra detail. You'll see,
+maybe now
+it looks good on the projector.
+I've removed our vertex exclusion. So if you look at sort of like the strip of uh
+what's it called rock down just below the surface, I'm gonna add it back now.
+So that's what that looks like.
+This is just um made using regular physics ray
+rays that are just distributed randomly across
+the triangle with some random directions.
+But in the way that they're added is of course, this little trick.
+So this is uh using a sper
+harmonic triple product which is just a multiplication
+product and a dot product that come together.
+I think it's a neat way to like compose multiple
+feral
+data together.
+Now,
+these little details about the vertex cu
+just means that we can like heavily reduce the resolution
+of our voxels and get away with a lot less.
+And we also allow them to be painted manually,
+which just gives a nice way to like darken the ambient if need be.
+Anyway, let's shift gears
+right then.
+So
+we now just jumped out of the world contained within this world.
+And we've been given this very bright and ponder
+orb,
+it's a bit of a church to light the way in our adventure.
+And naturally it has a point light in it,
+let me remove it and uh build that effect up again.
+So
+just turned off the point light and let's build up everything that makes the orb. Uh
+we're gonna start with the sun directional light and I think we're gonna have
+to zoom in a little bit just to see the details much better.
+So first of course, the
+just has to cast shadows and
+that sounds trivial. But yeah, that looks like this. Now, it can cast shadows.
+Uh The only trick that's applied here is that we make sure that
+we only cast with the back face of the glass so that it
+doesn't self shadow the interior and we get the interior next to the
+then of course, the dynamic can cast shadows.
+So there's no tricks there and then comes the point light.
+So the point light also has some shadows from the diorama in it.
+They're just made using a
+baked shadow texture that's just particularly used for this fog effect.
+Uh We don't want it to be casting on the environment around it that would be too noisy.
+Anyway, then let's turn around because we're going to look at some uh some feet.
+All right. So, uh
+we still want the character that cast shadows on the
+ground even though we don't have point light shadows.
+And that looks like this. That's a little too subtle.
+So let me just uh turn off the sunlight and try one more time.
+Pay attention to the, to the, to the feet.
+There you go.
+So now that's clear. So this is just our take on capsule shadows.
+Uh It's just two lines,
+one line going from one toe to the head and the
+other line going from the head from the other toe.
+Uh And then it's got some thickness to it and a little bit of feathering to it.
+So the way that this is done is we just project
+these lines from the light source down to the Gramling,
+get the distance to these lines and then add this feather blur.
+Uh This looks much better than what shadow maps could otherwise provide for us.
+And uh since they weren't supported in this particular version of the engine,
+that's nice.
+I don't think you have to sell anyone on the joy of a good capsule shadow
+anyway.
+So the mist that you find within the fog is uh this
+noisy height and depth fog that just gives the interior of that
+or some volume to it.
+So let's just try to like peel back those layers one
+more time and zoom in and now there's no fog.
+All right. So the height fog itself is just to like sync the diorama into it so that
+you know, hide where it stops.
+And then the depth fog is to make it totally opaque which looks like this.
+This is just because we don't want our orb
+to be actually transparent for performance reasons also.
+Uh So like that's just like,
+yeah, making sure that it's opaque at the way back
+and then we add some noise texture to that. And that's really it.
+This is the ray marched effect.
+The ray marching is simply done in, you know,
+a fixed number of steps and to account for the step length.
+When you're integrating this,
+you just need to take the alpha to the power of the step length
+in order to make sure that each step contributes a correct linear amount.
+Finally, let's talk about the reflective glass.
+So you know the drill by now,
+I'm just gonna peel away these effects and just
+build it up recipe step by recipe step.
+That's, that's my favorite way to go about it.
+All right.
+Zoom in and no glass.
+All right. So the first bit of it is just a specular highlight.
+It's the same specular high that you would
+expect on any other shader throughout the game.
+Just uh works with any sort of light type, nothing fancy.
+Then on the bottom, if you notice
+there's a tiny, little bit of a little, little
+fella going on there,
+uh these things just add to this contribution so far, it kind of just milkies
+a little bit reduces the contrast, makes it a bit less harsh.
+Uh And then we have one final component which is this uh
+fake screen space reflection.
+So it's basically just wrapping the environment texture in over the orb.
+We had real,
+you know, screen space reflections at some point.
+But this just uh look, the fake stuff looked a lot better than the real stuff.
+Anyway, this is then the total contribution of that class.
+And uh that's how it looks on the orb. Again. Now
+all these bits are just so that the orb fits into,
+you know, any environment, despite it being a very glo glowing emit
+based orb,
+I think it's nice that it just fits
+into any environment regardless of lighting situation.
+Now,
+uh about that world within that world as we charge it up, it milks up opens up,
+we jump through
+and we're back,
+right?
+And
+I was,
+and there's the orb.
+So
+uh
+that effect has a few steps. Let's break that down,
+stop.
+All right. So
+uh rendering a world within the world is you
+probably guessed it by now and in the camera
+and you probably also guessed this one and
+another camera and they're just composed with your,
+that's it. Nothing.
+Uh
+There is a few performance considerations to just rendering two cameras.
+So let's go about checking out the ways to optimize this one.
+All right.
+So for the in the camera, there's quite a lot going on.
+Uh as we zoom out,
+there's quite a lot of draw calls and quite a lot
+of small geometry that we really want to be hygienic about.
+So
+uh when we are just wandering around the world at normal zoom levels,
+the density of the world is perfectly fine.
+But out here, this is a lot of geometry. So um
+since we can't see behind the orbs edges,
+it's very simple to just take the color matrix of the orb
+and or sorry of the camera and
+crop them down to the orb. So we don't run anything outside.
+So now we don't have any draw calls that we can't see.
+Now, obviously, you can't see those pixels either.
+So you can just like um use a scissor rectangle
+to get rid of those as well. Now, we don't have any fragments out there,
+but you still see these little spiky sides there. Well, if we just take the
+orb and use that to render
+anything that's outside the orbs view
+to the near plane depth boom, then we get a crop
+tight crop and we don't render any fragments that we don't need.
+The same thing goes for the other camera.
+We just render the orb early in our depth prepa
+so that there aren't any fragments that are shaded,
+that don't need to be there and that looks like this.
+And then of course, uh these are just uh composed using,
+you know,
+when you render two cameras and you just don't clear between the two of them,
+that's what's going on.
+So that just gets rendered behind it,
+we rented the sub camera first and the other camera
+and they kind of come together with a single resolve or single post effect
+that
+saves post effects. We like not doing post effects twice.
+All right.
+That is sort of the,
+you know, essential performance hygiene, but there's just a couple more things.
+Also I need to get back.
+All right.
+So to get the player to render in both sides,
+we used to have a third camera but the third camera is bad.
+So what we did was simply have the player rendered in the main camera.
+And then we take the transform that's relative between the
+two cameras to teleport it over to the other camera.
+When we need it to be there,
+then there is uh the couple of shadows
+at this distance. That's an awful lot of shadow draw calls and shadow textiles. So
+specifically for this, in any foreign environment,
+we have this thing called the static shadow map, which is just um a very low
+shadow map for the entire world that stored as BC six PC four.
+And uh yeah, we, that doesn't change over the course of the whole game.
+It's just a regular serialized acid and we get to use that for, for example,
+in the uh in these orbs here.
+Uh And then we have this fish eye effect. What do you mean by that?
+Well, now it's off, let me turn it on again.
+So
+it's not just for looks, it's not just for the
+effect. It's also because it helps us get rid of some more fragments.
+So if I remove it again,
+you can see that this is all the fragments we could actually get rid of since they get,
+you know, outside the fish eye effect.
+So what we do is you guessed it,
+it's ac a rectangle.
+So now we don't need like half the fragments of any of it frankly at this point.
+And we can just get away with rendering just this part and then stretching that
+out to fill the rest of the screen.
+So that's another way we just like, I don't know, reduce the
+load on the GP U doing a good warp. Finally, we use 16 bit depth during our depth pre
+pass because some platforms that ran a lot faster.
+Uh This does mean that you would get a lot of artifacts with 16 bit depth.
+So we just move out the near plane
+quite far when we're warping.
+And the same thing goes for the fog. The fog is segway
+fruct solution.
+So we need lots of set depth in the fog and that's also
+why we move out the near plane when we're rendering this bit here.
+Um Yeah,
+I I
+there
+anyway, so
+about that fog.
+Uh Like I said,
+the fog is a foal
+solution. It's about uh 128 by 64 by 256.
+Uh It is doing single scattering in its shading.
+So that means that at each voxel,
+it is holding the color of the light and
+the material and the alpha of that given point.
+And that's just a regular shading function that you will find in any.
+So the transparent shader throughout the game,
+there's nothing fancy going on there.
+The sort of gacha about this fog is that it is pre integrated,
+meaning that we run a compute shader before we actually use anything. So that at any
+given point in this Vauxhall volume, you not only you don't have like what
+fog is at that point, you have all fog between that point and the eye.
+This then means that when you're rendering some geometry,
+either transparent or opaque,
+you just sample the fog once and you get the
+entire fog contribution between the eye and that point.
+This then means that it's compatible with say MS A a and
+all those types of things in sort of a naive implemented way,
+which is kind of neat.
+Anyway,
+it also receives Vauxhall
+lighting. This is a, this is another one of the motivations behind using Vauxhall
+based lighting is that it can be received by the fog.
+So it really helps to like grind it to the environment and stuff.
+Let me just like turn it off to the wrong lighting. That's what that looks like.
+It's subtle. But trust me, it really matters.
+Anyway, let's open this door real quick and uh look at some shadows.
+There are built in water bricks for me in this talk.
+All right.
+So sampling the shadows without in
+o or spatial filtering yields this sort of like shimmery
+box
+stuff that I don't really like looking at.
+So the way that we filter our fog is not temporarily,
+there's no feedback effect going on whatsoever.
+It's just pure spatial filtering which lets us do really like
+quick effects on the fog for gameplay reasons when we want to
+uh the spatial filtering is
+mid maps. So
+it's mid maps on shadows, which means you probably guess this,
+it's the nearest filtering because it's not moment shadows or anything like that.
+Um
+And these uh M maps are simply generated the same way that
+the classic or the kill zone two style stable cascades is done.
+But at each resolution is also stable across the board
+and they're sampled with ddxddy and DD set. The DD set isn't a hardware thing.
+You just gotta find that analytically
+anyway.
+Um across the bridge, you find these uh some crystals here.
+Let's not worry about those yet.
+Uh But as I'm a big fan of this Vauxhall, you know, light on Vauxhall
+fog. Let me just one more time like
+turn the, turn the wrong lighting on to that one for a hot second.
+If my,
+there we go.
+All right.
+Uh So now it's got some random ambient color on it.
+I don't like it here, this, with the right one. Anyway,
+flying into the clouds up here with this cool crane, we'll see the fog
+and for
+all right,
+so one more time, I'm gonna reiterate that. Uh, if you look at the,
+uh, part of the fog that's sort of under the cliff over there,
+it's currently like shadowed correctly by the voxel uh, lighting.
+And if I return to just a uniform lighting situation,
+you get this sort of like bright,
+you know, typical distance fog effect. I'm not too fond of. So I'm just really
+big old advocate of uh getting, you know, 3d spatial lighting on your fog.
+I think it's pretty good predictable lighting, especially in
+this world where fog makes up such a big part of the
+the photons hitting your eyes.
+Anyway,
+volumes are defined by a regular box transform.
+Let me zoom out and take a look at what I mean.
+So this is this particular boxful fog volume here,
+just a bounding box that you set up.
+And of course, as we sort of zoomed up into it, the uh
+the density increased,
+but you can also do other things.
+You can admit the color and you can add this like more turbulent noise to it,
+make it all
+crime
+and stuff and like the shadows.
+This is sampled with dvxddydd set for manual MP selection.
+This just means that there is no texture
+aliasing being produced by this particular effect,
+which is good
+now,
+like I said, it's a localized fog solution.
+So we have to vocalize these fog bounding volumes somehow.
+And as you know, by now, I'm a big fan of abusing the raster ir for naughty things.
+Uh Did you know that on top of being a great rate trace of the raster
+is also a really good box
+vizer?
+So
+when we are drawing the fog, what we do is um we render to a layer of buffer
+and uh
+we render out the boxes as quads instead.
+And we want to do them as sort of
+cross sections of a box essentially using these quads.
+So
+uh like our lighting
+rear, so we assign the slice id to be the instance ID, the ver here that makes sense.
+But now they sort of just draw us like full screen quads, which is not what we want,
+we want them to draw within
+the bounds of the box, of course.
+So to only draw within the lines, so to speak, what we do is we trace a line,
+we do a line trace from the back of the box to the front of the box.
+And we find where that particular line intersects the slice plane.
+And then we set our position to that and that then
+yields being able to draw on the inside the left,
+right top bottom side of the box.
+And uh now that still leaves the back and front of box uh to be spilled out of.
+So the way that we handle that is just to set the
+fragment, set position to be the uh T value of that line trace.
+And that then abuses the fact that the raster
+has built in plane clipping for well, the new plane and the
+plane of a camera
+and that's what we're using to make sure that we only color in
+the four sides of the box.
+This is a pretty neat method of only generating fragment threads where we need them.
+I think it's that the GP U is capable of just generating
+threads where we need them.
+It also lets us use the built in hardware blending, which I think is quite neat
+and yeah, that's how we've been multiple fog volumes together.
+Uh
+And
+this sort of concludes the base of our rendering
+so much
+more visual effects type stuff.
+After each world orb you gain a new ability and the orb takes on a second role.
+Well, at least if we had beaten the boss, I'm skipping all gameplay model
+for,
+you know, reasons
+anyway,
+from the orb, an asteroid belt appears and within it, you see within its orbit,
+this crystalline bridge is revealed and this
+isn't the first time we've seen this bridge
+through the gate and over the bridge,
+we saw these large deposits of crystals that I told you not to worry about.
+Anyway, out here, the orb reveals it and within it,
+you see these structures made up of cellular crystals.
+It's a volumetric von
+diagram which is made with a regular point grid. That regular point grid is then
+just orbited around with a pseudorandom value.
+What we can do is of course, we can find our nearest uh
+cell that we're inside and we can intersect the next
+cell that we would see along our view ray.
+And then the interior position is just shaded using our regular lighting function.
+And so is the exterior
+and then there's just a refraction and some blending
+going on between them to get this interior look.
+And finally, this is sort of like monotonous looking in terms of color.
+So to add a little bit of a splash,
+we use some I radiance that's just a
+scrolling texture along the Lambert and
+um F
+forel products of the uh of the um
+of the top products. Anyway,
+that's just multiply on top of the speculator and the diffuse color.
+Uh since we use the regular lighting function,
+it fits nicely nicely into the various worlds.
+And even even there a little bit of a cute reflection there and some cute
+a shadow drawing on the ground there could use of uh transparent cutouts.
+Now,
+the actual ability to reveal these bridges is an
+alpha dissolved circle that's driven by the asteroid built
+and it's quantized to just be per crystal.
+So the way that this is handled is it just you
+uh sample the alpha value just by intersecting the orbital plane
+and then you get the orbital distance to this orbital plane
+and then you move step at, at the range.
+But of course, you make sure to sample this value with the center of a cell.
+And that's really how that's done.
+So that's our first orb.
+And I think this trick of having interior rendering as an effect
+on geometry is something that we enjoy using quite a bit.
+Uh It's liberate
+used on various I missive effects such as like just throughout the game.
+But this is a particular like procedural example of it.
+Anyway, here's a second. No.
+All right now we splashed in here.
+So in
+this world is this baggish water that I just turned off and now it's back,
+it adds this refraction and this reflection effect on
+just the whole world.
+And also within this uh water, you find this fog which I've just removed,
+it's this mer that you see below and above.
+And the way it's made,
+it's just like with a regular fog volume that like the regular fog effect.
+There's a bright one on top of the water and a dark one below.
+And of course, the water surface itself starts with blurry refraction,
+which um is just using a standard like grab or opaque pass texture thing
+uh which works naively with the fog because the fog
+is applied during like regular opaque or transparent passes.
+So when that's when you grab a snapshot of that, that has the fog built into it.
+Uh So
+this is the pure perfection without any fog on it. And here it is with, I
+think it's just neat that the water doesn't have its own
+like bespoke fog system because it means that we get like
+the nice shadows and the nice indirect shadows of the,
+you know, built in fog system anyway.
+So the actual normals of that refraction are using a little bit of a cute trick.
+I wanted to do something to indicate the shore
+and help ground the water to the environment.
+But I didn't want to use like edge foam or something.
+So
+it's got these edge ripples which are made with something called a shore map,
+which is basically like an SDF to the nearest shore as a as a vector.
+Anyway, uh So you take the distance of that, you can animate the distance with a sign
+and fade it with the distance of that,
+that same SDF and then multiply the nearest direction onto it.
+And uh yeah,
+the texture is just an R GB texture with um
+red and green for direction.
+And in the blue channel, you find the fall off or distance.
+It looks like this.
+It's made with a offline tool that just generates it and compresses it.
+It's rendered with just a giant camera above the entire world uh which then
+uses a replacement shader uh geometry shader
+that at each intersection of a triangle,
+it generates a line that intersects and,
+you know, expands the quad and
+renders out the distance and direction of that particular point.
+Now,
+the actual like just wobbling normals on top of all,
+this is just too scrolling normal.
+It's kind of boring.
+Uh But with one little little trick, what it does is it
+stretches out the normals using the shore vector
+uh to create this like sort of an isotropic stretching effect along the
+shoreline which just slows down the scrolling along the beach line of it
+and sort of helps it integrate into the actual ripples that then get layered on top.
+So it doesn't just look like a linear blend between the two effects.
+Anyway,
+uh I think this contribution of like procedural ripples on top of like textured
+uh normals makes for a nice mix,
+especially with the an isotropic stretching along the side there.
+Anyway. Uh Now,
+naturally we have planar reflections and they're pretty normal, just a low res
+planar reflection thing
+with another camera. Uh And
+it's using a lot of MS A to hide the coarseness of this uh planar reflection
+and uh like the warps,
+it's also using static shadows to make sure that
+we don't do any shadow rendering in the reflections.
+Speaking of warps,
+I'm gonna avoid this guy
+I can see.
+So this diorama out here is also a plane of reflection.
+It's handmade for each war point with a little bit of
+diorama geometry that is made bespoke for this particular war point.
+And this is what that looks like.
+Um
+to flatten the look, it's rendered with a green skybox behind it,
+a green light and some fog.
+Here they are without
+the light in the fog just adds a bit of milkiness. So you can see the light.
+There we go.
+Add some colored milkiness and then the fog just sort of flattens
+it all out to like sort of not distract the image too much
+much like the warps. The reflections use the same sort of tricks like
+pruning in the color matrix a little bit.
+So we don't draw anything that's outside that boundary as well as ac a
+rectangle kind of makes sense and of course,
+a depth mask just to avoid any unnecessary graphics work.
+And, and yeah, this effect idea
+practically
+for this particular puzzle.
+So
+that was a good, that was a good use.
+Anyway, uh Let's see.
+I think that was the only puzzle spoiler during this whole talk. Uh
+Sorry about that.
+Let's walk through the door
+and it's
+just so worry about that later.
+All right, I'm gonna quickly touch on just like the specular light because um
+we don't use a skybox sun.
+Uh Instead we use an analytic specular light which I just removed.
+If you look in the lower left corner,
+you see a little bit of a shimmery shiny stuff that's now coming back there.
+It is.
+So
+the only kind of funny trick with this is that uh I didn't really want to
+sample the shadow texture.
+Uh I just wanted to sample something else uh for gypsies.
+And the trick here was just to
+sample the depth buffer of the reflection and use
+the sample comparison state on the far plane.
+And uh yeah, that gets you frankly correct shadows in that
+now ominously out here,
+it's a kind of started to rain,
+which is uh rippling out on the surface.
+And I think it is so subtle that a mix of projector and
+you know, impact compression has probably killed off no biggie
+that's isolated.
+So very similarly to the shore ripples, it's
+like
+this Verona
+diagram texture that ID the rain map
+uh where you can,
+you know, animate a distance with sign
+and then multiply direction on top of it.
+And then we've got just to randomize it all. We've got an index that we can just,
+you know, scatter around that animation a bunch
+much like the short. It's also just got like red and green for direction
+in the blue channel,
+you have the distance that the sign is animating using
+and that randomization index is in the alpha channel.
+Luckily, we have four of those channels
+anyway,
+so
+I kind of just thought it was fun that the crystalline bridges for Roni
+diagram and the SDF of the shore
+kind of come together for this one effect. Now, that box
+are there.
+It was really interesting.
+But uh you have notice we were kind of skipping all of that.
+All right.
+So we now have a second orb ability and this one is kind of a,
+a reversal of the last because instead of revealing crystalline bridges,
+this one is a vanishing trick on these columns which we can now use to ascend.
+So
+when cloaked as it's called
+the solid volumes,
+turn into this transparent fog effect that you can just go in and out of it will.
+And like the crystalline bridges, we've seen these things before, we saw them just
+uh just past the door in the wet world
+and out here uh they uh
+sorry,
+the shading is done in a similar way to the orbs
+uh like them, it's a ray
+March defect.
+But instead of ray marching inside of the sphere,
+this is ray marching inside of the bounding box,
+but with some little bit of distortion on it,
+which then also uh needs to have the bounding box, you know,
+expanded a little bit to fit that distortion.
+The shading is sporting much like the fog, a very simplified uh shading model
+with the non directional indirect lighting.
+So we don't have to sample the directional stuff
+uh as well as just sunlight.
+And of course, the orb light that's the most important, arguably speaking.
+as usual,
+I'm a big fan of visual effects that use the proper
+lighting model because it helps things fit into the environment.
+Uh Here you see that the indirect lighting being sampled
+correctly kind of like lets it fit into this,
+you know, sort of socket there.
+And out here the sunlight helps it really, you know,
+ground into this cliff face here.
+Anyway, back on track. So one final point about the transition between these things
+uh give it going from opa
+transparent comes in a few layers. So I'm just gonna peel back one by one.
+So let's go down again.
+All right.
+So
+now there's none of it. And then we of course, fade in that uh foggy column.
+There we go,
+the fading is simply just you have the height of
+this effect and do a smooth step kind of expected.
+Uh And then the column itself
+is uh comes in with a clipping plane. So this is uh
+SV clip distance. It's a pretty good way to do that,
+but then to hide that seam that weird cut there,
+uh We then fade in on top of that sort of like a glow that's using the same clip plane.
+It's just rendering the same mesh again. But now with a very simplified glowy shader
+and then to get the other side of that thing, we then render that again.
+But with the opposite clip plane and fade that on top of it,
+now we have sort of like this transitional stick that
+we can use to go between the solid and the
+uh transparent versions.
+And yeah,
+that's another orb I think this idea of using like the clip plane
+is a nice way to like do transitions between transparent and pick things.
+I haven't really found any hardware that like cares
+that you put a clip plane in there.
+Uh
+As long as you're not using it, you know, unlike something like
+SV coverage or
+discard or whatever, which the hardware does care if you use those things.
+Anyway,
+that is
+now time for a third or I wonder what's in there.
+So in
+this alien world covered in translucent skin membranes, it's all about refraction
+beneath its fleshy surface. You see this organic interior
+and the exterior is quite simple, supporting a normal map and some
+oscillating em missive textures for bioluminescence.
+Uh But the important part really is the interior.
+Uh it's partially using the same opaque grab pass as the
+water when we need to see the player inside of it.
+But when we want to see the player on top of it and avoid occlusion and dis
+Olu are the facts.
+It's using an offscreen texture
+and that offscreen texture looks like this. It just has
+like interior parts rendered into just this one part.
+And then the actual refraction is kind of standard, you know, you sample the,
+the offscreen texture
+with some
+uh refractive normals on top of it to sort of break it up a little bit
+and some uh directional blur.
+And this is to hide the fact that this is a heavily under or down sampled effect.
+What I mean by that is that the offscreen
+texture is rendered at a lower resolution because,
+well, it's offscreen, we don't really want to spend too many resources on that.
+And the
+graph pass is then of course, uh down sample just to give it like some initial blur.
+But this will create some inimitable uh bilinear artifacts if you don't
+like, try to like just hide that with a little bit of a directional blur. Anyway,
+um
+I quite like this trip downtown
+down here is one of the few places where there's no sunlight in the game.
+It's just this big glow at the center where we find the transporter
+and you see these organic interior membranes down
+below and the interiors are even lit up.
+I'm gonna make them dark.
+So to do this, the membranes on the exterior,
+just cast shadows with their back faces is nothing fancy.
+It's just important that the interior is not shadowed by the exterior.
+And of course, like above these things are things that the player can walk on top of.
+So it's important that they use the
+offscreen texture to avoid any occlusion artifacts.
+Anyway, I know we've just taken a lift but uh this one's real cool.
+So we're gonna take this one too.
+So we're out of the cave and back on the surface and oh, what's this?
+So foreshadowing the orb's ability
+uh just beyond the gate, we have a bunch of well orbs.
+Uh I'm, I'm gonna show you one more refraction thing just to knock the point home. So
+inside this refraction,
+the fact you also have this sort of like fog that's filling out this effect.
+You probably guess that this is, you know, a depth range with some color on top.
+And
+when you're sampling a depth range,
+especially an under or down sample depth range
+down sampled with like the Memex filter uh
+to get the depth range, you know, you'll normally do something with
+bilinear filtering here.
+If you just want something like a depth mask, you know,
+obviously you use something like sample comparison state to like get a nicely anti
+and filtered
+mask
+for shadows and stuff. But if you're doing something with a range, you know,
+typically you'll, you know, do like
+a linear sample of it and then do your smooth
+step or inverse step or whatever you want to do.
+But this creates this edge artifact around discontinuance of objects which
+I'm not a fan of. So
+uh the trick is instead to use gather red for those of you who are into that,
+you probably guessed it already and then do your uh range
+or smooth step or whatever operation and then interpolate it.
+This is sort of like, I guess you could call smooth PC F or something.
+Um And it's a tool that's come in hand in numerous times. Now, uh
+we use these depth masks quite a lot throughout the game.
+In this case, we're using it to ground reflections.
+And here you see an example where we're doing the naive implementation and you'll
+see some sort of stair steping artifacts around various places and I'm gonna do
+that
+to fix it.
+So
+uh here we just do the smooth step before we do any interpolation.
+The same thing counts for refraction. You might see sort of
+uh
+some like fringes around objects that you know, have a few pixel shimmers in them.
+And by doing the operation before we interpolate,
+they go away, I
+think in a game where MS A A is our only anti leasing.
+It's important not to introduce any a
+sampling effects.
+So for this orbs
+ability now the world is full of eggs
+uh which um contain our orb,
+all of them do. So this was what the foreshadowing from before was
+uh back outside. You see around here are these weird stacks of creatures
+and uh affectionately our speed runners call these guys bor
+bo. But um
+the canonical name,
+his work drivers,
+that's not a problem, but there's lots of X around so we can get it back.
+Um
+So if I hadn't skipped this bit,
+this is where you would see these guys foreshadowed from just beyond the,
+just before the door.
+Um This organic thief like its mechanical cousin are members of this funny klepto
+family
+uh who just really love our property. So
+before I hadn't really shown them how they steal our or
+there we go.
+It is now encased our key in amber. Uh But we can still see inside of it.
+It's using the same offscreen texture as
+the other refraction effects I showed earlier.
+Um But instead of a fog inside what you see is inside this,
+this volume light that's filling out the interior and you can
+see it sort of spilling into the surroundings a little bit.
+Uh This effect is ray marched inside a sphere and has two parts to it.
+One of course,
+the cookie texture naturally and the other part is the inverse square fall off
+and marching is done. And you probably guess this
+a angular fashion invented by Simon Brown,
+meaning that rather than stepping linearly,
+what we do is uh which would look like this is pretty noisy, pretty terrible.
+Uh What we do is step in
+angles along the line, of course
+doing so steps linearly
+uh in the cookies angular domain and important samples,
+the inverse squared fall off.
+Uh But I had a couple of texture and arithmetic optimizations to add to this.
+So firstly, the heterogeneous part is affected by which is affected by fall off,
+uh remains constant throughout the March.
+So we can just move that out of the,
+you know loop and just uh integrate the cookie alone in the loop which is kind of nice.
+The second part is that we want to avoid cookie noise even with our low step count
+uh by you know, tri
+linear, we could use tri
+linear but it's twice as expensive as bilinear.
+So we just uh use bilinear with the worst case map.
+And finally, uh since it's a linear rotation, we can actually avoid
+having any trigonometry in our loop.
+So we just, you know, move that out and do a linear rotation for each step,
+which is kind of nice.
+And yeah, we use volume lights for orbs or portals,
+keys tons of other things where we want more like pixels,
+sharp volume lighting than our
+Foxal fog would otherwise give us
+anyway.
+Out here,
+they've been fracking and processing this amber and storing it in these pools.
+It's basically just water, but without planar reflections, just pure refraction.
+But with a lot more fog and acting as an em missive during light B,
+I might argue that light em missive has a lot to do with it.
+So the this is not the first time we saw this either,
+it's kind of endemic to this world.
+And out here you see that they've, you know,
+turned it into these amber pods out here which use the same uh shader as
+our amber crystals that I just showed you with the volume light inside of them,
+which we've also seen light the way across our adventure.
+I'm especially fond of how it lights up the fog in
+this particular shot here in this cauldron of fog here.
+So far we've traveled to three
+worlds in our other. What if
+that wasn't
+each world including the one we just came out of
+take,
+which just jumped into New York to, uh,
+their rule.
+And if I hadn't skipped them, this wouldn't be the first time ever seen these, these
+during your adventure in Cantonese.
+Yes.
+And would any when you discover your world or and meet the?
+Let me break that, let me break down the fact that that affect that one by bit bit
+anyway. So back to neutral.
+And before awakening, these ancestors get this uh statue appearance on them,
+which is done with the same kind of shaded trick as the
+uh what's it called? Yeah, cloak effect. But instead of a glowy green
+Emis color, it's just using a dark blue lbi
+do.
+And as they prepare to jump in, uh
+once they're frozen in this material, they dissolve into this cloud of particles.
+Originally, this was done with two deadly shader s
+uh
+the turbulent dissolve was done using a geometry shader
+and uh it was fed by a tesselation shader.
+Uh The tessellation simply ensured equal particle size.
+Uh I want to confess to this because it didn't, it didn't ship.
+I wrote AC Pup processor that tessellates the mesh to avoid our Holland domain sins.
+But what about the geometry?
+Well, you can see that in the top of it, it's got this mid point
+where it's like just averaging the three vertices of the primitive
+and using that to drive the rest of the effect.
+So
+basically what, what I ended up doing was just in the preprocessor, I write this
+um vector to the mid into the tangent of the mesh which then
+even in the case of something like a skin
+mesh will be transformed correctly into worlds space.
+So whether we can just,
+you know,
+do this whole thing in the vertic shader without any geometry
+shade that needs because really we just need the midpoint.
+Uh anyway,
+first,
+this uh effect scales down each uh what's
+it called triangle into a little smaller point,
+then
+gives them a little bit of a fuzzy random spin around
+and then orbits them in some
+like turbulent cloud kind of thing going on there
+and then just translates them down to the point to like suck them into the orb there.
+And
+yeah, that's really how that works. So now where are we?
+Well, we are out of the gray world and into the sun world which has this, you know,
+faint warm glow in its the cold atmosphere.
+Uh It's a world that plays heavily with light and fog in a bigger role.
+It's kind of like we're floating somewhere
+anyway, throughout the world,
+you see these orbs that emanate this energy of like either light or in
+this case, these ripples from them,
+um
+that we're not gonna look into a little bit and each of these
+orbs also had a little bit of a secret inside of them.
+The material uses the same shader as the amber we saw before with the
+uh what's it called volume light.
+But instead of it being the center,
+the transform of that volume light is now an orb which I thought was a kind of a
+neat recycling of an effect there. Anyway,
+so the ripples on the ground here, uh They're done similarly to the water shore.
+It's an SDF but uh to the spheres instead of to the shore.
+So uh unlike the water surface,
+this isn't a texture instead much like forward lights.
+For example, this is done using a uniform array in the shader.
+So this isn't the first time we've done it this way.
+And it also won't be the last uh the waves emanating from the orb
+on this portal here are also done such with such a uniform array.
+And so the footsteps on the ground, in my opinion,
+this is a neat or nice alternative to
+something like an offscreen ripple or normal texture.
+Anyway, back out here, the world is starting to heat up a little bit.
+So let me just break down this lighting here that we got going on.
+Uh Here it is without any fog or any bespoke lighting, it's very dark and barren.
+You add the fog here is doing some of the heavy lifting,
+separating the playground and the foreground quite a bit
+and you add the lighting and
+it, it's kind of doing the same task. It's
+a big emits specifically for this world to get its hot under glow going
+and without the fog, uh, it gets a little bit jarring.
+So they definitely set up in tandem these two things.
+But, uh, you see the cold from above and the hot from below,
+that sort of helps separate playground and the
+foreground a little bit better.
+And we use this
+baked Emmis quite a lot for lighting scenes in various places.
+Uh In this case, we where we didn't have any sunlight,
+uh It's used to light up this place quite a bit here. This without any of these baked
+Emmis of things, it's quite jarring a little bit, uh a little bit dark.
+And here this back again,
+this is just two large soft boxes found on
+either like extreme side of this big cave here.
+Anyway, back out here again, once again, warmer, once again,
+brighter temperatures increasing.
+Now we're close to the end. So
+deep breaths
+for me.
+Um
+There's still one more big component of the worlds
+within worlds puzzle and to show it to you,
+we're gonna have to go on a small journey,
+but it's my favorite part. So we're just gonna take this lift over there.
+Things
+get
+here.
+So
+here is
+a structure which our enemy called
+yes,
+-- much like Boris has -- made
+cameras
+being in the camera. It looks like this. You can see the duplicated environment.
+On the other side, you have
+a little
+sand.
+Of course, we've also
+correctly
+that we put a
+rectangle
+and also
+mass
+edge.
+And the same thing on the other side, we make sure to do a nice depth
+great pass out here
+so that we don't
+render any fragments, we don't want to render
+this game did ship on the switch. So
+anyway,
+yeah,
+uh before composing them together, just naively like the warms as well.
+Anyway, bringing the worlds together,
+we have this uh shadowed fog that's coming through, which is then, of course,
+by this light that's also coming through the light.
+Uh is because you see how now without the light,
+the sun is uh being shadowed by the door and on the other side, it's also shadowed.
+This is sort of the, the one spotlight is the only thing that's coming
+in the sort of intersection to sort of hide the
+seams of the sun or the seams of lighting, I guess you could say.
+Anyway,
+uh the light is simply duplicated on either side.
+Uh
+We also have the door shadowed here. I remove the door shadows,
+the door shadows are simply done by having uh
+there you go. There's two, these two planes that sort of like stick to the door frame
+and yeah, just make sure that the duplicated light doesn't shadow around the sides.
+Uh Anyway,
+uh let's walk through naturally as we pass through the portal uh plane at some point,
+we actually teleport but you can't see which frame
+out here. Uh In the gray world is another bus that uh
+I skipped up ahead. It's um it's a can of worms,
+right?
+So
+let's uh let's get out of here. We have one more portal to look at,
+sorry if this transition.
+All right out here, once again,
+lot brighter, a lot warmer.
+None of our concern. We're just here on, let's stop to the other one
+back in the purple world
+and here's another door
+and oh, there's water on the other side too. I hate this door anyway.
+Um
+On the other side, yeah, the other water introduces yet another recursive camera.
+Luckily the coloring cropping all that masking really helps us a lot.
+Uh On the outside here we see these um refractive
+orbs and stuff just uh and ripples on the ground.
+Oh, and yeah, we got a crystalline bridge that we're walking through across as well.
+This, this scene was really the, the profiling benchmark of this game.
+Uh And
+Oh, sure, why not? I mean, we got the
+Misty Columns there as well. Just everything expensive in one scene,
+very nicely designed.
+Um
+As usually I won't spoil anything but uh over here is the final part
+of the game
+and I promise you it rules, it gets really, really weird,
+but let's wrap this up.
+Our cosmic journey is new.
+Ok
+in
+the desert.
+So it's quite foggy up here.
+What I did was I really concentrated the fog
+density around a number of the shadows to heavily
+exaggerate. That shadow
+are
+giving us
+at this time,
+I like my n I'm
+just trying to fill out the silence.
+This
+the
+information. Is it
+for the warning up front
+once again the document.
+So if you've seen our review trailer,
+this shot here
+and so
+on,
+the shot was actually worn in our rebe
+trailer before it became our ending
+back then we didn't have that world there
+abrupt anyway.
+So as things unfold, the sun's atmosphere is shadowed by the sun's architecture.
+You have disabled that particular shadow
+uh like the orbs, it's just shadowed with a regular,
+regular cookie texture of sorts.
+But instead of uh shadowing some bespoke Raymark defect,
+this is just the regular fog that you find throughout the game.
+Sorry, Jacob, this is rude
+uh
+cover is taken off of this planet representations made by Nikki
+uh to reveal the the spotlight effect that's going on here,
+that spotlight in particular.
+So uh it's not a point light,
+that's a spotlight because uh we really wanted these self shadows, I
+remove them now they're back.
+Uh
+And of course, if it was a point light, even if they had shadows at, at this distance,
+it would be like one degree.
+So I think the resolution would be have to
+be 2 million pixels to get anything done there.
+Anyway.
+Uh So anyway,
+the planet's atmosphere is this round fog volume
+that you find around the planet here.
+This without now it's back,
+it's shadow using a customs to the blob shadow function which uh now it's gone,
+now it's back
+and uh because our fog doesn't have any, you know,
+temporal uh sampling thing going on it.
+You know, we can just animate the fog like this.
+And it's, it's, it's not gonna fall behind or anything like that.
+It's not gonna ghost,
+won't he let that play now anyway, to exaggerate this space fog a bit.
+I added a shallow wall of higher density fog right at the intersection of the planet.
+Here it is. Without now it's back.
+The reason for this intersection is because then
+I know that it's going to be 100% shadowed
+on the left side and 100% not shadowed on the right side giving much higher contrast.
+Use that fake blob shadow gone again and now it's back again.
+I was
+that concludes our journey.
+Another war
+-- understanding -- means
+I
+know that story
+so
+good.
+Thank
+you
+so
+good.
+I would like to thank my colleagues for
+supporting me making the most elaborate talk.
+Uh I would like to thank ye
+for egging me on to do it and I would like to thank AJ G does things for egging ye
+on to egg
+meal to do this thing.
+Uh Thanks to Kisa and the advisory board for trusting me with content.
+And thank you to Tuki for letting me liberally liberally borrow her Macbook.
+And also thank you for saying yes. On Wednesday
+credits, music really gets people clapping. I thought that would work.
+All right.
+Um I can see on the time that I have two minutes and 30 seconds.
+So if anyone wants to be the brave soul to get the one question in,
+otherwise I will be outside talking to you all and
+so will the rest of the team over there?
+Thank you to coming. One last housekeeping thing. Please rate my talk.
+Give it five stars, you know. Thank you for coming. Have a great rest of your Friday.

@@ -1,0 +1,3 @@
+# Category:Earrings
+
+Category: Accessories

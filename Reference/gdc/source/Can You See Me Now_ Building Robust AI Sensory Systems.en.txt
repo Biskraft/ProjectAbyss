@@ -1,0 +1,851 @@
+[Music]
+hello everyone like dave said my name is eric martel
+like dave said my name is eric martel i'm a technical lead ai programmer at
+i'm a technical lead ai programmer at the ubisoft quebec city studio so we're
+the ubisoft quebec city studio so we're slightly different than montreal but
+slightly different than montreal but it's a
+it's a quite nice studio so come see me if you
+quite nice studio so come see me if you want to learn more about it
+want to learn more about it um so i programmed a little something as
+um so i programmed a little something as soon as the slides are done updating
+soon as the slides are done updating there should be a little camera in the
+there should be a little camera in the right side
+right side corner so that you guys don't take a
+corner so that you guys don't take a picture of a
+picture of a half animated slide it's a gimmick but
+half animated slide it's a gimmick but i've seen so many people take pictures
+i've seen so many people take pictures of slides that
+of slides that had only half the content that maybe
+had only half the content that maybe will help you guys so first
+will help you guys so first uh thank you to be to being here uh it's
+uh thank you to be to being here uh it's really appreciated to have
+really appreciated to have people coming and seeing uh the the kind
+people coming and seeing uh the the kind of work we do
+of work we do and also huge thanks to ubisoft quebec
+and also huge thanks to ubisoft quebec because they're
+because they're really supportive and i wouldn't be here
+really supportive and i wouldn't be here if it wasn't for them so
+if it wasn't for them so senses most of you know that
+senses most of you know that most human beings have five senses
+most human beings have five senses vision
+vision hearing smell touch and taste
+hearing smell touch and taste in video games sometimes we have what we
+in video games sometimes we have what we call a sixth sense
+call a sixth sense and that's not about seeing dead people
+and that's not about seeing dead people it's uh
+it's uh usually feeling stuff that that
+usually feeling stuff that that is not in direct perception of the npc
+is not in direct perception of the npc so for example
+so for example standing next to an npc in this little
+standing next to an npc in this little bubble it could trigger the sixth sense
+bubble it could trigger the sixth sense for the npc to
+for the npc to maybe do a little look at over the
+maybe do a little look at over the shoulder and see
+shoulder and see if the player is hiding there i'll be
+if the player is hiding there i'll be making the
+making the the differentiation between perception
+the differentiation between perception and detection
+and detection to me perception is really mechanical
+to me perception is really mechanical it's
+it's on or off you're either perceiving or
+on or off you're either perceiving or not it's the ability to
+not it's the ability to see hear or become aware of something
+see hear or become aware of something through the senses
+through the senses whereas detection is more about
+whereas detection is more about identifying what i'm perceiving a lot of
+identifying what i'm perceiving a lot of gameplay code works
+gameplay code works in the detection space
+in the detection space but in this talk we'll mostly talk about
+but in this talk we'll mostly talk about perception
+since it's a quite short talk i'll be mostly talking about vision
+mostly talking about vision i'll be explaining how to build
+i'll be explaining how to build geometric sensors how to do
+geometric sensors how to do point-to-point perception
+point-to-point perception and how to provide those sensors
+and how to provide those sensors behavior
+behavior basically those are the building blocks
+basically those are the building blocks to create a simple
+to create a simple two somewhat complex sensory system for
+two somewhat complex sensory system for the npcs
+the npcs for the people who are interested in
+for the people who are interested in seeing other senses
+seeing other senses in case of hearing most systems will
+in case of hearing most systems will simply use a spherical perception
+simply use a spherical perception so just a radius check if the sound is
+so just a radius check if the sound is emitted within a certain radius
+emitted within a certain radius higher it if you guys are dealing with
+higher it if you guys are dealing with interiors so
+interiors so basically complex buildings you might
+basically complex buildings you might need to implement some propagation
+need to implement some propagation that's something we did on assassin's
+that's something we did on assassin's creed syndicate by doing 3d path finding
+creed syndicate by doing 3d path finding using volumes and portals which were
+using volumes and portals which were already used by the audio designers
+already used by the audio designers to manage the sound that was being heard
+to manage the sound that was being heard by the player so reuse assets if you can
+by the player so reuse assets if you can but 3d pathfinding is the way to go for
+but 3d pathfinding is the way to go for for that
+for that for a sense of touch uh it's really rare
+for a sense of touch uh it's really rare that the npcs will need to receive
+that the npcs will need to receive feedback on what they're touching
+feedback on what they're touching on their own like the the decision they
+on their own like the the decision they made to
+made to go interact with something they don't
+go interact with something they don't really need feedback to it
+really need feedback to it uh and whenever something is touching
+uh and whenever something is touching them
+them in most of the cases you can simply
+in most of the cases you can simply forward the event that you
+forward the event that you receive directly from the physics engine
+receive directly from the physics engine it can be quite simple just
+it can be quite simple just a bump event or a hit and from that the
+a bump event or a hit and from that the the npc can
+the npc can do some deliberative decision making
+do some deliberative decision making for smell very little games use the
+for smell very little games use the sense of smell
+sense of smell but we played a bit with it in a
+but we played a bit with it in a very old far cry title where the player
+very old far cry title where the player was emitting
+was emitting some sort of breadcrumbs representing
+some sort of breadcrumbs representing his smell so
+his smell so it started with a really intense little
+it started with a really intense little breadcrumb
+breadcrumb and over time it would expand and lose
+and over time it would expand and lose intensity
+intensity so from there you could follow the
+so from there you could follow the breadcrumbs and find the player
+breadcrumbs and find the player for the sense of taste
+for the sense of taste until unless cooking mama requires
+until unless cooking mama requires an ai to test your recipe i don't see a
+an ai to test your recipe i don't see a real use for the taste but if you guys
+real use for the taste but if you guys have any ideas
+have any ideas just go for it i will also not be
+just go for it i will also not be talking about serious stuff right now
+talking about serious stuff right now the sensors are
+the sensors are quite trendy if you're talking about
+quite trendy if you're talking about real world sensors like
+real world sensors like smart homes or autonomous vehicles
+smart homes or autonomous vehicles they tend to use computer vision deep
+they tend to use computer vision deep learning all that kind of stuff
+learning all that kind of stuff i wish we could use that in video games
+i wish we could use that in video games but
+but in most of the cases we just don't have
+in most of the cases we just don't have the cpu to do it
+the cpu to do it and the computer vision would actually
+and the computer vision would actually solve quite a few issues that we'll be
+solve quite a few issues that we'll be discussing later on
+discussing later on in the talk so
+in the talk so hopefully by the end of the talk you'll
+hopefully by the end of the talk you'll have a better understanding on how to
+have a better understanding on how to create
+create sensors how to give them proper behavior
+sensors how to give them proper behavior how to be designer friendly
+how to be designer friendly how to be animator friendly tips to make
+how to be animator friendly tips to make it faster
+it faster and more flexible
+in my experience sensor systems is really a team effort
+really a team effort it's not just the programmers working on
+it's not just the programmers working on their own you need
+their own you need to have a good communication with the
+to have a good communication with the game designers and with the animators
+game designers and with the animators and this way you can achieve a better
+and this way you can achieve a better game
+game before we dive in everything that i'll
+before we dive in everything that i'll be showing you has been tried
+be showing you has been tried tested and shipped in some game
+tested and shipped in some game so it's stuff that's that works and
+so it's stuff that's that works and hopefully you can
+hopefully you can base your own implementations off of
+base your own implementations off of this
+this i'll be showing you a quick demo it's
+i'll be showing you a quick demo it's built with play canvas so it's an
+built with play canvas so it's an html5 webgl
+html5 webgl rendering framework with assets from
+rendering framework with assets from mixamo and cgtrader
+mixamo and cgtrader so you'll see it's quite simple my goal
+so you'll see it's quite simple my goal is to show that
+is to show that within a few hours you can build
+within a few hours you can build something that's simple that's easy to
+something that's simple that's easy to understand that shows off
+understand that shows off what the sensor system can be so
+what the sensor system can be so that's basically the target we're going
+that's basically the target we're going for
+for we'll be using agents they could be
+we'll be using agents they could be simple or animated
+simple or animated in our case they'll be animated because
+in our case they'll be animated because most games use
+most games use humanoids characters we'll be
+humanoids characters we'll be using point of interest so it's
+using point of interest so it's basically what we're trying to see
+basically what we're trying to see in the world in this case i'm not
+in the world in this case i'm not re-original i use the target
+re-original i use the target and finally for the environment it's
+and finally for the environment it's whatever's blocking
+whatever's blocking the vision of the npcs so in this case i
+the vision of the npcs so in this case i use the crate because
+use the crate because most games have crates um
+most games have crates um as gizabi was saying yesterday um
+as gizabi was saying yesterday um vision is quite simple there's a few
+vision is quite simple there's a few steps to follow and
+steps to follow and most of the times will be good enough
+most of the times will be good enough for your game so basically filter
+for your game so basically filter which entities you want to try to see
+which entities you want to try to see test to see if they're within the the
+test to see if they're within the the sensor range
+sensor range and or shape and then use a raycast
+and or shape and then use a raycast that's the expensive part that's the
+that's the expensive part that's the part you want to do the least
+part you want to do the least you will have multiple target types uh
+you will have multiple target types uh depending on the complexity of the game
+depending on the complexity of the game your npcs might be trying to see other
+your npcs might be trying to see other characters or
+characters or only the player it really depends on
+only the player it really depends on your gameplay
+your gameplay particle particular events so
+particle particular events so as was described earlier i think
+as was described earlier i think yesterday
+yesterday sometimes you want to try to see
+sometimes you want to try to see something that happens in
+something that happens in within one frame and sometimes it's
+within one frame and sometimes it's something that's not even there so
+something that's not even there so you just leave some piece of information
+you just leave some piece of information in the level and if the npc sees it
+in the level and if the npc sees it you can understand that something
+you can understand that something happened and
+happened and react on it some useful data whenever
+react on it some useful data whenever you're dealing with sensors
+you're dealing with sensors is to convert everything in local space
+is to convert everything in local space it makes the computation
+it makes the computation really simple and compute the relative
+really simple and compute the relative angles
+angles sometimes you'll want to do it on a top
+sometimes you'll want to do it on a top view
+view and sometimes a 3d angle
+so we'll dive in the anatomy of a vision cone
+cone but to me in most games i worked on it's
+but to me in most games i worked on it's more like a pie
+more like a pie so it's a triangular shape with some
+so it's a triangular shape with some sort of
+sort of height it can be quite simple
+height it can be quite simple if you're working on a top view game
+if you're working on a top view game maybe you can stick to simply have
+maybe you can stick to simply have an angle opening of how wide your sensor
+an angle opening of how wide your sensor is seeing
+is seeing and then a far distance for your sensor
+and then a far distance for your sensor describing how far the npc can see
+describing how far the npc can see then if you want something more complex
+then if you want something more complex you could add a near distance to control
+you could add a near distance to control which region of the the the environment
+which region of the the the environment in front of the npc is being seen by the
+in front of the npc is being seen by the sensor
+sensor if you're going 3d you will obviously
+if you're going 3d you will obviously need to control the height
+need to control the height by describing a top and a bottom cutoff
+by describing a top and a bottom cutoff for the sensor
+for the sensor so again it's something quite simple
+so again it's something quite simple and if you can make it dynamic for your
+and if you can make it dynamic for your designers to play with and see in real
+designers to play with and see in real time
+time how the sensor is being affected i think
+how the sensor is being affected i think everybody wins
+everybody wins obviously something simple as putting an
+obviously something simple as putting an offset on the
+offset on the referential for the sensor
+referential for the sensor and then attaching the sensor to a
+and then attaching the sensor to a specific bone
+specific bone you can either attach it by position or
+you can either attach it by position or position and orientation
+position and orientation in this case i'm showing off the same
+in this case i'm showing off the same sensor being attached
+sensor being attached to the root of the npc then to its hips
+to the root of the npc then to its hips and then to its head
+you can also control the shape in more complex ways by
+complex ways by for example pitching the near-end
+for example pitching the near-end pinching the near hand of the sensor
+pinching the near hand of the sensor to be able to drag it up or down so that
+to be able to drag it up or down so that you can have sensors that go
+you can have sensors that go upwards or downwards you can also smooth
+upwards or downwards you can also smooth the edges of the sensors using splines
+the edges of the sensors using splines so either to smooth out the sides of the
+so either to smooth out the sides of the sensor
+sensor or to have the the the close part of the
+or to have the the the close part of the sensor
+sensor detect less high than the far end
+detect less high than the far end and if you want to be really fancy you
+and if you want to be really fancy you could use some height maps
+could use some height maps to draw bitmaps describing what's the
+to draw bitmaps describing what's the height of the sensor at the given
+height of the sensor at the given x and y coordinate coordinate relative
+x and y coordinate coordinate relative to the npc
+you should try to build like a big library of shapes that your designers
+library of shapes that your designers can play with
+can play with so a sphere is quite simple and you
+so a sphere is quite simple and you might need one for your auditory system
+might need one for your auditory system anyway so it's a perception in all
+anyway so it's a perception in all directions
+directions cylinders that's quite useful for six
+cylinders that's quite useful for six senses
+senses you can have just a small cylinder
+you can have just a small cylinder around the npc and whenever something's
+around the npc and whenever something's entering that bubble the npc gets
+entering that bubble the npc gets notified
+notified and if perception is not
+and if perception is not if you're not building a stealth game or
+if you're not building a stealth game or a game where
+a game where the the complexity of the sim that's of
+the the complexity of the sim that's of the sensors
+the sensors uh have almost no impact you can simply
+uh have almost no impact you can simply use bounding boxes
+use bounding boxes so whenever something is within a box
+so whenever something is within a box either object aligned or access aligned
+either object aligned or access aligned you perceive it build
+you perceive it build anything you can think of the more tools
+anything you can think of the more tools you're providing your
+you're providing your game designers the better they can build
+game designers the better they can build and experience
+and experience for example a few years ago martin walsh
+for example a few years ago martin walsh presented the splinter cell sensors
+presented the splinter cell sensors they had success using coffin shapes
+they had success using coffin shapes sensors
+sensors just do it it's as long as you can build
+just do it it's as long as you can build a primitive that's
+a primitive that's easy for you to test whether our
+easy for you to test whether our position is inside or outside
+position is inside or outside just go for it and experiment
+just go for it and experiment spend some time with your game designers
+spend some time with your game designers and where with your animators and try to
+and where with your animators and try to think
+think of new ways you could provide them with
+of new ways you could provide them with tools and
+tools and simply do it um
+simply do it um more advanced systems will be using
+more advanced systems will be using multiple shapes
+multiple shapes so for example in this case you could
+so for example in this case you could have some metadata
+have some metadata on the closer sensor saying whenever
+on the closer sensor saying whenever something enters this sensor it's highly
+something enters this sensor it's highly dangerous
+dangerous whenever something is perceived in the
+whenever something is perceived in the yellow sensor it's not as dangerous so
+yellow sensor it's not as dangerous so maybe you can change your behavior
+maybe you can change your behavior accordingly
+the attachment of the sensor on an agent uh well usually your agent
+uh well usually your agent will use a skeletal component you can
+will use a skeletal component you can either attach it on the entity root
+either attach it on the entity root the hips or the head like i was
+the hips or the head like i was discussing before
+discussing before but you can have some weird results
+but you can have some weird results whenever you're starting to apply
+whenever you're starting to apply animation of the npcs
+animation of the npcs if you're um adjusting the rotation of
+if you're um adjusting the rotation of the sensors based off of it
+the sensors based off of it so right now i'm using assets that were
+so right now i'm using assets that were not meant to be
+not meant to be used as sensor providers
+used as sensor providers so in this case you see as soon as i'm
+so in this case you see as soon as i'm putting a more dynamic animation
+putting a more dynamic animation the sensor will be going all over the
+the sensor will be going all over the place
+place this could be the desired behavior but
+this could be the desired behavior but in most cases
+in most cases it just makes it harder for a player to
+it just makes it harder for a player to understand when he's getting detected
+understand when he's getting detected because the sensor keeps moving
+because the sensor keeps moving um what i prefer is to use some sort of
+um what i prefer is to use some sort of hybrid bone
+in your max scene you can simply parent the the hybrid bone to the root
+the the hybrid bone to the root so that whenever the root is turning the
+so that whenever the root is turning the bone will be following
+bone will be following but then to have some mac script for
+but then to have some mac script for example
+example allowing the animator to say for
+allowing the animator to say for particle or scene
+particle or scene i want the the bone to be following the
+i want the the bone to be following the orientation
+orientation of the head so the animator is in full
+of the head so the animator is in full control of
+control of where the the sensor is looking at any
+where the the sensor is looking at any time
+time and can allow you to create some
+and can allow you to create some handcrafted behavior so
+handcrafted behavior so you're not relying on the visual asset
+you're not relying on the visual asset you can create gameplay just through
+you can create gameplay just through your
+your animation and it's also really good to
+animation and it's also really good to delay some abrupt changes
+delay some abrupt changes sometimes players feel cheated when an
+sometimes players feel cheated when an npc does a 180
+npc does a 180 turn because the detection cone can turn
+turn because the detection cone can turn really swiftly in this case the animator
+really swiftly in this case the animator could simply
+could simply put a slight delay in the rotation of
+put a slight delay in the rotation of the detection bone
+the detection bone making it so that the player gets the
+making it so that the player gets the impression that he's about to be seen
+impression that he's about to be seen goes into cover and then the sensor
+goes into cover and then the sensor turns making it
+turns making it giving him the impression that he's
+giving him the impression that he's better than he actually is
+adaptable setup uh what what i like in some some system is to provide my
+some some system is to provide my animators with markups
+animators with markups so the animator themselves can control
+so the animator themselves can control whenever the sensor should be attached
+whenever the sensor should be attached to the head to the
+to the head to the the hybrid bone just let it so that
+the hybrid bone just let it so that data can control your sensors
+data can control your sensors also in some cases the sensors won't be
+also in some cases the sensors won't be able to
+able to well the animation selection won't allow
+well the animation selection won't allow the npc to properly
+the npc to properly track a target in some cases it can lead
+track a target in some cases it can lead to
+to behaviors where you have your sensor
+behaviors where you have your sensor toggling between i'm seeing the target
+toggling between i'm seeing the target i'm not seeing the target
+i'm not seeing the target because the target is moving next to the
+because the target is moving next to the npc and is trying to track it
+npc and is trying to track it in that case what i prefer simply
+in that case what i prefer simply putting a small state machine on the
+putting a small state machine on the sensor
+sensor and detaching it from from its
+and detaching it from from its referential
+referential from that point the sensor is simply
+from that point the sensor is simply following the target
+following the target and keeping a line of sight to it as
+and keeping a line of sight to it as soon as there's occlusion
+soon as there's occlusion the sun the the state machine goes back
+the sun the the state machine goes back to uh
+to uh following the referential making it that
+following the referential making it that the npc is simply
+the npc is simply following its target and never losing
+following its target and never losing track of it
+track of it whenever you're targeting something
+whenever you're targeting something depending on the type of entity
+depending on the type of entity sometimes you can
+sometimes you can simply use the entity position it's as
+simply use the entity position it's as simple as it gets but unfortunately
+simple as it gets but unfortunately it's usually on the floor making it so
+it's usually on the floor making it so that any rock
+that any rock any crate any anything on the floor can
+any crate any anything on the floor can occlude
+occlude the target making it less interesting
+the target making it less interesting for npcs
+for npcs if you're trying to see some i don't
+if you're trying to see some i don't know some loot on the floor
+know some loot on the floor maybe the entity position is good enough
+maybe the entity position is good enough but for most characters it's not
+but for most characters it's not then you could use an offset i've seen
+then you could use an offset i've seen many games
+many games using like a meter 60 offset from the
+using like a meter 60 offset from the route and looking
+route and looking roughly around the neck or head area and
+roughly around the neck or head area and that's what most games use and it works
+that's what most games use and it works unfortunately it requires that you need
+unfortunately it requires that you need to provide with a
+to provide with a static offset for every single stance
+static offset for every single stance your npcs might have
+your npcs might have so if they crouch you need to adjust the
+so if they crouch you need to adjust the offset
+offset but you also need not to forget ragdolls
+but you also need not to forget ragdolls in many games there's some stealth
+in many games there's some stealth aspect to it to
+aspect to it to hide dead bodies so that npcs don't see
+hide dead bodies so that npcs don't see them
+them if you have enough set sticking up a
+if you have enough set sticking up a meter 60
+meter 60 well it's really hard to conceal the
+well it's really hard to conceal the the ragdoll by using a bone from the
+the ragdoll by using a bone from the biped again we're tying our logic
+biped again we're tying our logic to art style and i don't like making it
+to art style and i don't like making it so that
+so that the animator needs to think of how the
+the animator needs to think of how the animation will look
+animation will look just so that the gameplay works right um
+just so that the gameplay works right um fortunately if you're going to do this
+fortunately if you're going to do this at least the changes in stance will work
+at least the changes in stance will work right away
+right away but i still prefer a dedicated bone a
+but i still prefer a dedicated bone a bit like the
+bit like the the sensor attachment on an npc
+the sensor attachment on an npc with the dedicated bone you can easily
+with the dedicated bone you can easily tweak for any
+tweak for any gameplay context so for example if the
+gameplay context so for example if the player goes into cover
+player goes into cover maybe you want to move the bone towards
+maybe you want to move the bone towards the wall make it so that
+the wall make it so that he's still detectable from behind but
+he's still detectable from behind but end pieces that are in front will have a
+end pieces that are in front will have a harder time
+harder time because the bone is closer to the wall
+because the bone is closer to the wall unfortunately it makes it harder for qa
+unfortunately it makes it harder for qa so work on your debug tools make sure
+so work on your debug tools make sure that it's easy for them to see where the
+that it's easy for them to see where the bone is located
+bone is located the more data you have the more chances
+the more data you have the more chances you have that an employee will create a
+you have that an employee will create a bug
+bug it's unfortunate but with that kind of
+it's unfortunate but with that kind of flexibility sometimes you have to
+flexibility sometimes you have to take more precautions
+take more precautions if your target is the player oftentimes
+if your target is the player oftentimes it's better to use multiple bones
+it's better to use multiple bones multi-sampling kind of works right
+multi-sampling kind of works right because the point-to-point perception is
+because the point-to-point perception is really easy to
+really easy to disrupt whenever you have even a twig
+disrupt whenever you have even a twig in between the npc's sensor position
+in between the npc's sensor position and the target position the twig could
+and the target position the twig could be occluding that position and the npc
+be occluding that position and the npc thinks
+thinks well i don't see my target when actually
+well i don't see my target when actually he sees like 99
+he sees like 99 of the target just not that little point
+of the target just not that little point he was looking at
+he was looking at by using multiple bones uh it's quite
+by using multiple bones uh it's quite easy to just go to another one if the
+easy to just go to another one if the one you're looking at is occluded um
+one you're looking at is occluded um as an example i sped it up a bit but you
+as an example i sped it up a bit but you can see an npc looking
+can see an npc looking looking at another one and just the fact
+looking at another one and just the fact that the animation
+that the animation is slightly moving on the npc makes it
+is slightly moving on the npc makes it so that
+so that the head bone and the hips bones
+the head bone and the hips bones sometimes get occluded sometimes they
+sometimes get occluded sometimes they they don't so by having multiple bones
+they don't so by having multiple bones then pc walking can
+then pc walking can always see the left hand and the end of
+always see the left hand and the end of the npc and know that he's seeing the
+the npc and know that he's seeing the target
+target warning whenever you're using bones you
+warning whenever you're using bones you can run into level of detail issues
+can run into level of detail issues if your skeletons stop being updated you
+if your skeletons stop being updated you need to be careful not to be using
+need to be careful not to be using its data anymore so in a lot of engines
+its data anymore so in a lot of engines whenever the npcs get far away
+whenever the npcs get far away only the root and maybe the hips get
+only the root and maybe the hips get updated so if you were
+updated so if you were trying to get the head position it's
+trying to get the head position it's possible that it's not there anymore
+possible that it's not there anymore so you need the fallback system to
+so you need the fallback system to potentially go back to a fixed offset on
+potentially go back to a fixed offset on the route
+using ranged weapons can also lead to some issues
+some issues and there's quite a difference between a
+and there's quite a difference between a line of sight and line of fire because
+line of sight and line of fire because most npcs
+most npcs will have their gun at the lower level
+will have their gun at the lower level than their
+than their eyes having two different
+eyes having two different referentials can can give different
+referentials can can give different results so the npc is seeing its target
+results so the npc is seeing its target he wants to shoot at it but there's no
+he wants to shoot at it but there's no line of fire therefore
+line of fire therefore he's going back to his decision making
+he's going back to his decision making and be like
+and be like well i would like to shoot at it but i
+well i would like to shoot at it but i don't see it
+don't see it so one of the solutions that i like that
+so one of the solutions that i like that i use in the past
+i use in the past into unif is to unify the referentials
+into unif is to unify the referentials as soon as the weapon comes out
+as soon as the weapon comes out so basically the npc starts seeing from
+so basically the npc starts seeing from its gun or shooting from its eyes
+its gun or shooting from its eyes most of the times it's better to just
+most of the times it's better to just see from the gun
+occlusion what's causing the occlusion well
+well in most games it's static geometry
+in most games it's static geometry dynamic geometry and see-through
+dynamic geometry and see-through geometry
+geometry i'll explain in detail what's the
+i'll explain in detail what's the difference between all of those
+difference between all of those for static geometry it's basically
+for static geometry it's basically anything that's
+anything that's building the static part of your level
+building the static part of your level so walls
+so walls roofs ground anything
+roofs ground anything from rocks to trees it's all static
+from rocks to trees it's all static geometry
+geometry it's detected using a raycast but the
+it's detected using a raycast but the good thing about it
+good thing about it is that as soon as the raycast it's one
+is that as soon as the raycast it's one of them you can stop the raycast you
+of them you can stop the raycast you know you won't see through it
+know you won't see through it so for as an example investing in some
+so for as an example investing in some debug display that's
+debug display that's some quite simple debug display but it's
+some quite simple debug display but it's really useful for your qa to be able to
+really useful for your qa to be able to identify
+identify why the behavior of an npc is changing
+why the behavior of an npc is changing based on
+based on the the occlusion if you can
+the the occlusion if you can do something real quick even just lines
+do something real quick even just lines is good enough especially when you have
+is good enough especially when you have multiple npcs
+multiple npcs dynamic geometry kind of
+dynamic geometry kind of depend on the context um you'll
+depend on the context um you'll be trying to occlude the vision of the
+be trying to occlude the vision of the npcs
+npcs using the characters in the environment
+using the characters in the environment the animals the moving objects
+the animals the moving objects for example in assassin's creed
+for example in assassin's creed syndicate we add the carriages block
+syndicate we add the carriages block the the line of sight but
+the the line of sight but the the the thing is uh sometimes the
+the the the thing is uh sometimes the rigid body of the uh
+rigid body of the uh the dynamic object is a bit too crude
+the dynamic object is a bit too crude and blocks too much
+and blocks too much so in that case you need to fall back on
+so in that case you need to fall back on the ballistic mesh which is much more
+the ballistic mesh which is much more expensive it's a much more detailed mesh
+expensive it's a much more detailed mesh but at least if there's like some sort
+but at least if there's like some sort of
+of slight hole between two parts of the
+slight hole between two parts of the objects the occlusion
+objects the occlusion won't be triggered the relevance also
+won't be triggered the relevance also depends on the context
+depends on the context by that i mean that if i go back to the
+by that i mean that if i go back to the example of assassin's creed syndicate
+example of assassin's creed syndicate then pcs could through could see through
+then pcs could through could see through vehicles as soon as they got into
+vehicles as soon as they got into conflict
+conflict otherwise it was way too easy for a
+otherwise it was way too easy for a player to just
+player to just go run the streets and cut the line of
+go run the streets and cut the line of sight and the end pieces would go into a
+sight and the end pieces would go into a search behavior
+search behavior so in our case whenever the the npcs
+so in our case whenever the the npcs were in a default behavior
+were in a default behavior they would be occluded by carriages but
+they would be occluded by carriages but as soon as they would get
+as soon as they would get excited and going to fight they would
+excited and going to fight they would simply
+simply ignore all of that
+ignore all of that see through geometry is a quite
+see through geometry is a quite interesting
+interesting whenever you're playing with smokes of
+whenever you're playing with smokes of clouds
+clouds tall grass and what makes it so that
+tall grass and what makes it so that that the occlusion happens is usually by
+that the occlusion happens is usually by computing
+computing how far you are within that see through
+how far you are within that see through geometry and sometimes you want to sum
+geometry and sometimes you want to sum all of the hits that that happen so for
+all of the hits that that happen so for example if you have a thick small
+example if you have a thick small cloud you might be detected if you're
+cloud you might be detected if you're just at the edge but if you're
+just at the edge but if you're right in the middle the the depth um
+right in the middle the the depth um that the raycast has go through makes it
+that the raycast has go through makes it so that you're not
+so that you're not detected so by having different
+detected so by having different thresholds for every type of
+thresholds for every type of see-through geometry could be quite
+see-through geometry could be quite useful
+useful also quick tip for that if you're using
+also quick tip for that if you're using transparent windows just make it so that
+transparent windows just make it so that npcs can
+npcs can actually go through some sort of door
+actually go through some sort of door and reach the other side of the room
+and reach the other side of the room because there's
+because there's nothing worse than having an npc stuck
+nothing worse than having an npc stuck into a room seeing a target on the other
+into a room seeing a target on the other side and not being able to go
+side and not being able to go environment modifiers sometimes you want
+environment modifiers sometimes you want to reduce the perception
+to reduce the perception perception range in certain conditions
+perception range in certain conditions heavy storms or thick fog could be
+heavy storms or thick fog could be modifiers that
+modifiers that make it so that the npc doesn't see as
+make it so that the npc doesn't see as far but these can be also applicable for
+far but these can be also applicable for auditory systems for example
+auditory systems for example on a previous game i worked on we had
+on a previous game i worked on we had heavy machinery
+heavy machinery so whenever the npc's was being close to
+so whenever the npc's was being close to the machinery
+the machinery its auditory system would be reduced
+its auditory system would be reduced making it easier for a player to create
+making it easier for a player to create noise in the environment and not get
+noise in the environment and not get perceived if it's possible
+perceived if it's possible please update the visual language of
+please update the visual language of your npcs to
+your npcs to explain to the player why the npc is not
+explain to the player why the npc is not perceiving
+perceiving as he should sometimes something as
+as he should sometimes something as simple as an additive animation make it
+simple as an additive animation make it make it so that the npc puts a hand over
+make it so that the npc puts a hand over his
+his eyes could be good enough
+the modifiers players tend to learn patterns so they play a game they learn
+patterns so they play a game they learn the rules of the game and they recognize
+the rules of the game and they recognize the patterns
+the patterns if you're breaking the patterns by
+if you're breaking the patterns by putting modifiers
+putting modifiers please just reduce the perception of the
+please just reduce the perception of the npcs if you're making it more punitive
+npcs if you're making it more punitive by making them see
+by making them see further the player won't understand
+further the player won't understand what's going on
+what's going on and whatever you learned just gets
+and whatever you learned just gets thrown out the window
+thrown out the window so if you reduce the the sensors
+so if you reduce the the sensors the player can still be safe within the
+the player can still be safe within the ranges that he learned
+ranges that he learned and he can exploit it a bit more because
+and he can exploit it a bit more because he realizes that the npcs are being
+he realizes that the npcs are being modified
+modified also make it a stack i unfortunately
+also make it a stack i unfortunately saw it a few times in game engines that
+saw it a few times in game engines that modifiers are global on an npc
+modifiers are global on an npc so a classic example the mission
+so a classic example the mission designer makes an npc blind
+designer makes an npc blind you go next to him you throw a flashbang
+you go next to him you throw a flashbang the flashbang
+the flashbang puts an effect on it blinds the npc
+puts an effect on it blinds the npc as soon as the effect expires the
+as soon as the effect expires the flashbang is like well
+flashbang is like well you're not blind anymore and you just
+you're not blind anymore and you just broke your setup
+broke your setup so if you're stacking modifiers it's
+so if you're stacking modifiers it's much easier
+much easier the flashbang will simply push a
+the flashbang will simply push a modifier pop it
+modifier pop it and whatever the mission designer put in
+and whatever the mission designer put in place is still there
+light and shadows um that's where it gets complicated
+gets complicated so if you can avoid it i would suggest
+so if you can avoid it i would suggest you to do so
+you to do so uh determining what is lit in an
+uh determining what is lit in an environment it's usually quite expensive
+environment it's usually quite expensive you have to go through all the nearby
+you have to go through all the nearby light sources and
+light sources and do a ton of raycasts and oftentimes it
+do a ton of raycasts and oftentimes it requires
+requires multi-sampling as we were discussing
+multi-sampling as we were discussing before with seeing a target with
+before with seeing a target with multiple bones
+multiple bones if you have a big thing that you're
+if you have a big thing that you're trying to see if it's lit or not
+trying to see if it's lit or not you probably should be sampling multiple
+you probably should be sampling multiple points on it
+though that solution simply won't fix the issues of having a dark shape in
+fix the issues of having a dark shape in the lit background it's possible that
+the lit background it's possible that the entity itself is receiving shadows
+the entity itself is receiving shadows from everywhere
+from everywhere but standing right in front of a
+but standing right in front of a fireplace for example
+fireplace for example making it quite obvious for anybody
+making it quite obvious for anybody looking at it that
+looking at it that there's something there maybe i don't
+there's something there maybe i don't see the detail of it but there's
+see the detail of it but there's something there and
+something there and the raycast solution won't fix it unless
+the raycast solution won't fix it unless you're
+you're adding even more raycasts at which point
+adding even more raycasts at which point your engine programmers will come and
+your engine programmers will come and hit you in the head
+hit you in the head and seeing light source moves and
+and seeing light source moves and seeing projection projection
+seeing projection projection projection projected shadows again
+projection projected shadows again it's uh it can all be fixed using
+it's uh it can all be fixed using raycasts
+raycasts but that's probably not something you
+but that's probably not something you want to do reflection is the same
+want to do reflection is the same problem
+problem raycasting could fix your issues but
+raycasting could fix your issues but it's really hard for a player to
+it's really hard for a player to understand what's going on
+understand what's going on especially if the player is not actually
+especially if the player is not actually looking at the reflective
+looking at the reflective surface some quick tips for optimization
+surface some quick tips for optimization vision request can be deferred so if you
+vision request can be deferred so if you can make it
+can make it that your npc simply put a request in a
+that your npc simply put a request in a system
+tweet the tweak a bit the priority and then maybe the distance of the npc
+and then maybe the distance of the npc from the camera its gameplay state or
+from the camera its gameplay state or its interactions with the players for
+its interactions with the players for example
+example an npc that's actively interacting with
+an npc that's actively interacting with the player
+the player might require the priority to be put up
+might require the priority to be put up through the roof
+through the roof at this way you can have uh you can sort
+at this way you can have uh you can sort your
+your your raycast requests and treat them
+your raycast requests and treat them accordingly
+accordingly and cache as much data as possible if
+and cache as much data as possible if you have multiple npcs testing the same
+you have multiple npcs testing the same position maybe you can reuse
+position maybe you can reuse some of that information so
+some of that information so just to wrap up go data driven game
+just to wrap up go data driven game designers and animators or your friend
+designers and animators or your friend just give them tools build a library of
+just give them tools build a library of components that's
+components that's classic tips that everybody everybody
+classic tips that everybody everybody should be using these kind of tips but
+should be using these kind of tips but specifically for the sensor systems it's
+specifically for the sensor systems it's useful
+useful and um let the the designers and
+and um let the the designers and animators take ownership
+animators take ownership they're not they're not separate from
+they're not they're not separate from the
+the the the ai programmer they need to work
+the the ai programmer they need to work with us into in order to create a great
+with us into in order to create a great experience
+experience and experiment and iterate you won't
+and experiment and iterate you won't nail it the first time
+nail it the first time it really takes a lot of play testing
+it really takes a lot of play testing and
+and iteration to find a good setup i'm
+iteration to find a good setup i'm trying to be fast because dave
+trying to be fast because dave wants me to stop and fail early and
+wants me to stop and fail early and avoid raycasts
+avoid raycasts raycasts are expensive so try to avoid
+raycasts are expensive so try to avoid them at all costs
+them at all costs test everything um sensors are
+test everything um sensors are really binary and they're at the root of
+really binary and they're at the root of everything so if an npc doesn't perceive
+everything so if an npc doesn't perceive you
+you it cannot act intelligently towards you
+it cannot act intelligently towards you so
+so unit test everything and only profile
+unit test everything and only profile and optimize when needed
+and optimize when needed uh i think that's it
+uh i think that's it i'm not sure if we have any time for
+i'm not sure if we have any time for questions
+awesome real quick the you said it was perhaps a disadvantage to have your
+perhaps a disadvantage to have your eye point wobbling around in the head
+eye point wobbling around in the head actually
+actually redstorm in fact found out that that was
+redstorm in fact found out that that was almost mandatory because the animator
+almost mandatory because the animator had a idle loop for a guard there was a
+had a idle loop for a guard there was a player
+player sneaking up on the guard with a knife
+sneaking up on the guard with a knife the guard has an m6
+the guard has an m6 has a ak-47 and the guard's idle loop
+has a ak-47 and the guard's idle loop includes the occasional
+includes the occasional the occasional glance over their
+the occasional glance over their shoulder right at the player who is like
+shoulder right at the player who is like five meters away and the and the guard
+five meters away and the and the guard is totally
+is totally not seeing them because the bone at the
+not seeing them because the bone at the chest was the perception bone and not
+chest was the perception bone and not the head
+the head exactly that's why i'm trying to have my
+exactly that's why i'm trying to have my teams
+teams always use some sort of hybrid approach
+always use some sort of hybrid approach where the animator can control
+where the animator can control when the bone is turning so the npc
+when the bone is turning so the npc never the player never feels cheated
+never the player never feels cheated that the npc randomly glanced over his
+that the npc randomly glanced over his shoulder but
+shoulder but if he does the player will see the
+if he does the player will see the glancing animation
+glancing animation and then the sensor will start turning
+and then the sensor will start turning making it easier for a player to avoid
+making it easier for a player to avoid these kind of situations
+these kind of situations and if you guys have any other questions
+and if you guys have any other questions i guess i'll be at the wrap-up room
+i guess i'll be at the wrap-up room or you can contact me on my work email
+or you can contact me on my work email address
+address thank you

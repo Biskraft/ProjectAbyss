@@ -1,0 +1,791 @@
+[Music] uh my name is Gwen I'm a tech artist I'm
+uh my name is Gwen I'm a tech artist I'm an animator and I'm a studio founder
+an animator and I'm a studio founder I've been an animator for about eight
+I've been an animator for about eight years
+now
+yeah why thank you two years ago I actually went Indie
+you two years ago I actually went Indie I left triaa and I started a small Indie
+I left triaa and I started a small Indie studio in Boston with five other people
+studio in Boston with five other people we just shipped our first title the
+we just shipped our first title the flame in the flood
+flame in the flood [Applause]
+[Applause] this is really good you should just do
+this is really good you should just do this the whole time I feel really good
+this the whole time I feel really good about this anyway so the flame of the
+about this anyway so the flame of the flood was very unique this was a this
+flood was very unique this was a this was a game where most of the characters
+was a game where most of the characters I was animating were not humanoids
+I was animating were not humanoids they're not bipeds most of the
+they're not bipeds most of the characters I was working on were
+characters I was working on were quadrupeds they're animals with four
+quadrupeds they're animals with four legs uh to worry about and I found that
+legs uh to worry about and I found that traditional biped animation techniques
+traditional biped animation techniques just didn't work very well for quadruped
+just didn't work very well for quadruped characters I found that there was uh the
+characters I found that there was uh the quadrupeds present unique problems that
+quadrupeds present unique problems that we needed to solve uh when working on a
+we needed to solve uh when working on a quadruped character I want to kind of go
+quadruped character I want to kind of go through my
+through my process I kind of want to go through my
+process I kind of want to go through my process I uh mostly try to solve three
+process I uh mostly try to solve three problems before I dive down into
+problems before I dive down into actually animating the character or
+actually animating the character or polishing any animation the three
+polishing any animation the three problems I want to solve are moving
+problems I want to solve are moving forward through the world you know your
+forward through the world you know your forward Locomotion I want to solve I
+forward Locomotion I want to solve I want to figure out how I'm going to get
+want to figure out how I'm going to get the character to turn which is extremely
+the character to turn which is extremely difficult for quadrupeds and I want to
+difficult for quadrupeds and I want to figure out how I'm going to transition
+figure out how I'm going to transition between moving and idle and back again
+between moving and idle and back again and I found if you can solve these three
+and I found if you can solve these three problems then after that it's mostly
+problems then after that it's mostly polishing up your animations and adding
+polishing up your animations and adding on whatever your gameplay layer
+is so for this talk I'm going to be demonstrating my solutions for these
+demonstrating my solutions for these problems using two characters the first
+problems using two characters the first character I'm going to show you is the
+character I'm going to show you is the boore this is a uh kind of cartoony
+boore this is a uh kind of cartoony Stumpy little character with short
+Stumpy little character with short little leg
+little leg it's a character that kind of idles for
+it's a character that kind of idles for a while and then charges the player
+a while and then charges the player really quickly like a battering ram and
+really quickly like a battering ram and then it returns to idle um I streamed
+then it returns to idle um I streamed the entire development process for the
+the entire development process for the boore so all the footage you're going to
+boore so all the footage you're going to see in this talk is from when I was
+see in this talk is from when I was actually working on it developing the
+actually working on it developing the boore uh and I'm supposed to tell you we
+boore uh and I'm supposed to tell you we used Unreal Engine 4 for development so
+used Unreal Engine 4 for development so a lot of the footage you're going to see
+a lot of the footage you're going to see is actually using the uh the in-game
+is actually using the uh the in-game animation Blueprints and such
+all right so let's get started the first thing I work on when I'm doing
+thing I work on when I'm doing Locomotion for a quadraped is forward
+Locomotion for a quadraped is forward Locomotion uh this is just moving
+Locomotion uh this is just moving forward through the world I think
+forward through the world I think everyone here is probably familiar with
+everyone here is probably familiar with um how you make a a bipad move forward
+um how you make a a bipad move forward through the world usually you animate a
+through the world usually you animate a walk and then you animate a jog and you
+walk and then you animate a jog and you animate a run and you do like a linear
+animate a run and you do like a linear blend between these animations you keep
+blend between these animations you keep the foot phasing roughly similar between
+the foot phasing roughly similar between these animations so that you know your
+these animations so that you know your linear blend will work properly
+linear blend will work properly um for quadrupeds a lot of people uh if
+um for quadrupeds a lot of people uh if if you're looking at a quadruped they
+if you're looking at a quadruped they generally have like a trot and a Gallop
+generally have like a trot and a Gallop so a linear blend like that wouldn't
+so a linear blend like that wouldn't work what I decided to do for the boore
+work what I decided to do for the boore because the boore pretty much always
+because the boore pretty much always moves at roughly the same rate I decided
+moves at roughly the same rate I decided to make it a linear blend and actually
+to make it a linear blend and actually use that biped style linear blend and
+use that biped style linear blend and just go between having a slow Trot a
+just go between having a slow Trot a slightly faster Trot and a super fast
+slightly faster Trot and a super fast Trot for the boore I thought I could get
+Trot for the boore I thought I could get away with this because his character is
+away with this because his character is really
+really cartoony and here you can see
+cartoony and here you can see the final result um I'm slowing this
+the final result um I'm slowing this down quite a bit for the slowest
+down quite a bit for the slowest animation for the boore and the fastest
+animation for the boore and the fastest animation for the boore and you can see
+animation for the boore and you can see it's it's the feet are hitting the
+it's it's the feet are hitting the ground at roughly the same time the
+ground at roughly the same time the footfalls happen at roughly the same
+footfalls happen at roughly the same percentage of the animation for both of
+percentage of the animation for both of these animations so if you're familiar
+these animations so if you're familiar with biped this should seem pretty uh
+with biped this should seem pretty uh pretty standard to
+pretty standard to you here you can see actually all four
+you here you can see actually all four animations for Locomotion for the boore
+animations for Locomotion for the boore and you'll notice that each animation
+and you'll notice that each animation the footfall
+the footfall uh line up pretty closely with the next
+uh line up pretty closely with the next slowest and the next fastest animation
+slowest and the next fastest animation and you this helps you really visualize
+and you this helps you really visualize and know that your animations are going
+and know that your animations are going to uh blend together properly when you
+to uh blend together properly when you set up your blend
+space all right and this is the actual blend space for the boore in game um
+blend space for the boore in game um what you see here on the the line are
+what you see here on the the line are the little the dots are those animations
+the little the dots are those animations that I demoed a minute ago um and you
+that I demoed a minute ago um and you what I'm doing is I drag the cursor from
+what I'm doing is I drag the cursor from left to right I'm manipula this speed
+left to right I'm manipula this speed variable this is the speed at which the
+variable this is the speed at which the character is moving through the world uh
+character is moving through the world uh and I'm just simulating what would
+and I'm just simulating what would happen if the character moves faster
+happen if the character moves faster through the world and you can see I'm
+through the world and you can see I'm blending through these animations again
+blending through these animations again this is probably really familiar to you
+this is probably really familiar to you you will notice that I have more
+you will notice that I have more animations when the character is moving
+animations when the character is moving slowly I find when a character is moving
+slowly I find when a character is moving slowly they um foot sliding and glitches
+slowly they um foot sliding and glitches are way more obvious than if a
+are way more obvious than if a character's moving quickly they you can
+character's moving quickly they you can get away with a lot more when uh
+get away with a lot more when uh flailing around when a character is
+flailing around when a character is moving quickly through the world
+all right so that was the boore I think this is a a good setup if you have a
+this is a a good setup if you have a character that's maybe more cartoony
+character that's maybe more cartoony like the bore was I think this is a
+like the bore was I think this is a setup that you're all familiar with so
+setup that you're all familiar with so you can do it pretty quickly it's really
+you can do it pretty quickly it's really easy to generate uh animations off of
+easy to generate uh animations off of existing animations like it's it's easy
+existing animations like it's it's easy to take a slow Trot and make it a fast
+to take a slow Trot and make it a fast Trot versus having a walk and a Gallop
+Trot versus having a walk and a Gallop which will be totally different
+which will be totally different animations so I think this is a really
+animations so I think this is a really fast setup but it is extremely
+fast setup but it is extremely unrealistic it's this is not what
+unrealistic it's this is not what happens in the natural
+world all right the other character I want to demonstrate today is this wolf
+want to demonstrate today is this wolf this is a character that always stays on
+this is a character that always stays on a perimeter near the player this is a
+a perimeter near the player this is a character that modulates its speed this
+character that modulates its speed this is a character with a a long spine and
+is a character with a a long spine and these really lanky Limbs and I really
+these really lanky Limbs and I really really wanted to differentiate the
+really wanted to differentiate the motion between these two characters um
+motion between these two characters um because this is a character that that uh
+because this is a character that that uh has much more Dynamic motion and moves
+has much more Dynamic motion and moves through the world in
+through the world in uh it it slows to a stop rather than
+uh it it slows to a stop rather than stopping suddenly it tends to run around
+stopping suddenly it tends to run around the player at any given time because
+the player at any given time because this is a character that does this I
+this is a character that does this I really wanted
+really wanted to uh have it properly transitioned
+to uh have it properly transitioned between having a walk and a gallop and
+between having a walk and a gallop and so
+so forth so when I started for the wolf I
+forth so when I started for the wolf I went ahead and I animated a walk and a
+went ahead and I animated a walk and a trot and a Gallop just like you would
+trot and a Gallop just like you would expect and the foot phasing for these is
+expect and the foot phasing for these is not the same they don't line up at all
+not the same they don't line up at all really if I was going to try to do a
+really if I was going to try to do a linear blend like here's a trot and a
+linear blend like here's a trot and a Gallop if I try to blend between them
+Gallop if I try to blend between them that's obviously not going to work
+that's obviously not going to work you're going to get into some kind of
+you're going to get into some kind of funky dance
+right so instead what I'm going to do is I'm going to take and I'm going to scale
+I'm going to take and I'm going to scale the play rate of those animations based
+the play rate of those animations based on the speed of the character so if the
+on the speed of the character so if the character is moving twice as fast as the
+character is moving twice as fast as the animation was authored at then I play
+animation was authored at then I play the animation twice as fast if the
+the animation twice as fast if the character is moving half as fast as the
+character is moving half as fast as the animation was offered at then I move
+animation was offered at then I move then I play uh the animation at half
+then I play uh the animation at half speed I what what I want to what I want
+speed I what what I want to what I want to do is when I move at a certain speed
+to do is when I move at a certain speed I want to transition from the walk to
+I want to transition from the walk to the Trot to the gallop this way you
+the Trot to the gallop this way you never actually see the walk playing at
+never actually see the walk playing at 2x speed you only ever see the walk
+2x speed you only ever see the walk playing at uh maybe 20% faster or 20%
+playing at uh maybe 20% faster or 20% slower I transition quickly between
+slower I transition quickly between these animations and each of these
+these animations and each of these animations has the play rate uh scaled
+animations has the play rate uh scaled based on the velocity of the pawn or I'm
+based on the velocity of the pawn or I'm sorry the velocity of the
+sorry the velocity of the character for this you will actually
+character for this you will actually notice there is a uh uh some foot
+notice there is a uh uh some foot slidding when I go between the Trot and
+slidding when I go between the Trot and the gallop if you look closely because
+the gallop if you look closely because they obviously don't line up in any way
+they obviously don't line up in any way but because the character is moving so
+but because the character is moving so quickly through the World by the time
+quickly through the World by the time that transition happens you really don't
+that transition happens you really don't notice that it's basically
+imperceptible so what should you take away from this I think both characters
+away from this I think both characters were successful I think the wolf feels
+were successful I think the wolf feels more like a quadrip I was actually
+more like a quadrip I was actually pleasantly surprised that I could just
+pleasantly surprised that I could just do a quick transition and I didn't have
+do a quick transition and I didn't have to offer an animation to transition
+to offer an animation to transition between TR and Galloping it actually
+between TR and Galloping it actually worked pretty well to just do a quick
+worked pretty well to just do a quick blend I think the the boore was
+blend I think the the boore was successful because it it mostly ever
+successful because it it mostly ever only ever moves at one speed um so I was
+only ever moves at one speed um so I was pretty happy with both
+pretty happy with both characters so after forward Locomotion
+characters so after forward Locomotion you tackle your next problem which is
+you tackle your next problem which is turning this is extremely difficult for
+turning this is extremely difficult for quadrip heads quadrupeds tend to have
+quadrip heads quadrupeds tend to have multiple points of the contact with the
+multiple points of the contact with the ground at any given time I can
+ground at any given time I can demonstrate just looking around being
+demonstrate just looking around being incredibly difficult for quadrupeds
+I mean imagine like it I'm here if I look around or if this biped character
+look around or if this biped character looks around it's pretty simple it's
+looks around it's pretty simple it's pretty straight forward you can manip uh
+pretty straight forward you can manip uh you can look behind you and you can
+you can look behind you and you can twist your spine in order to look behind
+twist your spine in order to look behind you whereas for a quadrip if you try to
+you whereas for a quadrip if you try to do the same thing if you try to twist
+do the same thing if you try to twist the spine you get some really ugly
+the spine you get some really ugly deformation you get a pose where the the
+deformation you get a pose where the the front limbs feel like they're they're
+front limbs feel like they're they're unnatural they they should be moving
+unnatural they they should be moving just to even look around
+so I knew that turning would be very difficult and I decided to break down
+difficult and I decided to break down turning into three steps I decided that
+turning into three steps I decided that the first thing a character does when
+the first thing a character does when they turn is they a quadraped should
+they turn is they a quadraped should look in the direction that it's going to
+look in the direction that it's going to turn and then I felt like the front legs
+turn and then I felt like the front legs should move in that direction and the
+should move in that direction and the spine should kind of Arc and then as the
+spine should kind of Arc and then as the quadrip continues to move in that
+quadrip continues to move in that direction I wanted the spine to
+direction I wanted the spine to straighten out and I wanted the back
+straighten out and I wanted the back legs to catch
+legs to catch up so here's a prototype early on
+up so here's a prototype early on this is after I had already had the
+this is after I had already had the forward Locomotion happening so the the
+forward Locomotion happening so the the character is walking forward obviously I
+character is walking forward obviously I haven't had a turning solution yet here
+haven't had a turning solution yet here uh and what I'm done is I've slowed the
+uh and what I'm done is I've slowed the turn rate of the character in engine so
+turn rate of the character in engine so that you can see the this wolf is not
+that you can see the this wolf is not snapping to turn in the direction it's
+snapping to turn in the direction it's moving it's moving a little bit slowly
+moving it's moving a little bit slowly what I'm going to do now is every frame
+what I'm going to do now is every frame I'm going to query the direction that
+I'm going to query the direction that the wolf is moving and and I'm going to
+the wolf is moving and and I'm going to query the direction that the wolf is
+query the direction that the wolf is facing I'm going to find the Ang that's
+facing I'm going to find the Ang that's the difference between those two
+the difference between those two directions if I take that angle and I
+directions if I take that angle and I apply it to the spine I can get the
+apply it to the spine I can get the front legs to kind of follow uh or to I
+front legs to kind of follow uh or to I can get the front legs to point in the
+can get the front legs to point in the direction that the wolf is moving so
+direction that the wolf is moving so here's a really early example of this
+here's a really early example of this all I'm doing is I'm taking that angle
+all I'm doing is I'm taking that angle that I'm getting every frame I'm
+that I'm getting every frame I'm dividing it by three because there's
+dividing it by three because there's three joints in my Wolf's spine and I'm
+three joints in my Wolf's spine and I'm adding that as a world space rotation to
+adding that as a world space rotation to the spine and what I get now is I get a
+the spine and what I get now is I get a character that has its front limbs
+character that has its front limbs always moving in the direction that the
+always moving in the direction that the wolf is is or always pointing in the
+wolf is is or always pointing in the direction that the wolf is facing and I
+direction that the wolf is facing and I get the back limbs to kind of catch up
+get the back limbs to kind of catch up as the wolf moves forward because the
+as the wolf moves forward because the pill is turning
+pill is turning slowly um I did this using skeletal
+slowly um I did this using skeletal controls but you can imagine once you
+controls but you can imagine once you get that angle you could solve this in
+get that angle you could solve this in many ways you could use that angle to
+many ways you could use that angle to drive an additive animation that that
+drive an additive animation that that off that curves the spine you could
+off that curves the spine you could drive a blend space that has a spine um
+drive a blend space that has a spine um arked in different directions there's
+arked in different directions there's any number of things you can do once you
+any number of things you can do once you have that
+have that angle I mean obviously there's a lot of
+angle I mean obviously there's a lot of foot slidding in this video it was still
+foot slidding in this video it was still pretty early
+pretty early on what we ended up doing finally in
+on what we ended up doing finally in game was I I worked with my programmer
+game was I I worked with my programmer at this point to manipulate the path of
+at this point to manipulate the path of the wolf slightly uh we we decided to
+the wolf slightly uh we we decided to take the turn rate of the character of
+take the turn rate of the character of the pill of the character and we set
+the pill of the character and we set that to Scale based on the speed of the
+that to Scale based on the speed of the character so if the wolf was ever
+character so if the wolf was ever stationary it couldn't twist its spine
+stationary it couldn't twist its spine but as the wolf moved faster it could
+but as the wolf moved faster it could twist its spine more um my programmer
+twist its spine more um my programmer Damon also went ahead and uh set the
+Damon also went ahead and uh set the wolf to never turn directly in place the
+wolf to never turn directly in place the wolf always moves forward just a little
+wolf always moves forward just a little bit in order to turn similar to a car
+bit in order to turn similar to a car like a car has to kind of be moving
+like a car has to kind of be moving forward a little bit in order to turn
+forward a little bit in order to turn and that's how we got the result that
+and that's how we got the result that you see
+here so I like that result a lot I thought it worked really well for the
+thought it worked really well for the wolf
+wolf uh I didn't think it would work very
+uh I didn't think it would work very well for the boar for the boar I wanted
+well for the boar for the boar I wanted this to be a character that I I didn't
+this to be a character that I I didn't want to have a separate looking with the
+want to have a separate looking with the head and looking with the spine I didn't
+head and looking with the spine I didn't want the separation there I wanted this
+want the separation there I wanted this to be one mass that was always focused
+to be one mass that was always focused on either uh looking in the direction
+on either uh looking in the direction it's moving or looking at the player I
+it's moving or looking at the player I also wanted to experiment with different
+also wanted to experiment with different solutions uh I knew that the boore would
+solutions uh I knew that the boore would mostly be moving in a straight line and
+mostly be moving in a straight line and not arcs so for the boore I decided to
+not arcs so for the boore I decided to try using a blend space instead I'm
+try using a blend space instead I'm going to take that same angle and I'm
+going to take that same angle and I'm going to use it to drive a blend space
+going to use it to drive a blend space here you can see I have my fastest Trot
+here you can see I have my fastest Trot my my medium Trot and at the top my
+my my medium Trot and at the top my slowest Trot and for each one I authored
+slowest Trot and for each one I authored a variant one where I'm looking 180° to
+a variant one where I'm looking 180° to the left and one where I'm looking 180°
+the left and one where I'm looking 180° to the right in order to do this I
+to the right in order to do this I actually in each of these animations the
+actually in each of these animations the board is facing forward but I'm kind of
+board is facing forward but I'm kind of creating a strafing motion at these
+creating a strafing motion at these extremes when you're looking completely
+extremes when you're looking completely behind you because I I didn't want the
+behind you because I I didn't want the bore to look like a u I wanted the bore
+bore to look like a u I wanted the bore to kind of strafe if it was looking
+to kind of strafe if it was looking completely behind
+it and here's the result of applying those animations to this blend space
+those animations to this blend space this is the same thing you saw earlier
+this is the same thing you saw earlier where I had when I was moving between
+where I had when I was moving between left and right I was manipulating the
+left and right I was manipulating the speed of the character I'm still doing
+speed of the character I'm still doing that now I've also added this turn
+that now I've also added this turn direction for the up and down Vector
+direction for the up and down Vector here right so whenever I move the cursor
+here right so whenever I move the cursor are up or down I'm simulating if that
+are up or down I'm simulating if that angle is 180° or if that angle is
+angle is 180° or if that angle is 180°. and I've created this blend space
+180°. and I've created this blend space where just by getting the angle between
+where just by getting the angle between the the direction the character is
+the the direction the character is moving and the direction the character
+moving and the direction the character is facing and by getting the speed I can
+is facing and by getting the speed I can uh completely blend between these
+uh completely blend between these different animations to get a final
+different animations to get a final result that'll work for the
+character all right so now we've handled turning we've handled forward local
+turning we've handled forward local motion and we get the hardest part about
+motion and we get the hardest part about quadrupeds which is stopping and
+quadrupeds which is stopping and starting again I find like I said
+starting again I find like I said earlier that a character glitches and
+earlier that a character glitches and foot sliding is way more obvious when a
+foot sliding is way more obvious when a character is moving slowly your
+character is moving slowly your character is never moving slower than
+character is never moving slower than when it's about to stop so this is where
+when it's about to stop so this is where you really need to focus your attention
+you really need to focus your attention on trying to make this look
+good for a bipad stopping and starting again is pretty trivial bipeds pretty
+again is pretty trivial bipeds pretty much only ever have one foot on the
+much only ever have one foot on the ground at a time you can see here I'm
+ground at a time you can see here I'm showing anytime the left or the right
+showing anytime the left or the right foot is hitting the ground um and
+foot is hitting the ground um and they're they're never both planted so if
+they're they're never both planted so if you really wanted to you you could do
+you really wanted to you you could do what most of you is do where you
+what most of you is do where you actually animate the transition between
+actually animate the transition between idle and or between Locomotion and idle
+idle and or between Locomotion and idle and back again uh you would only have to
+and back again uh you would only have to make two animations one when the left
+make two animations one when the left foot is planted one when the right foot
+foot is planted one when the right foot is planted and I think a lot of Studios
+is planted and I think a lot of Studios do this and I think this is a complete
+do this and I think this is a complete non-starter for quadrupeds quadrupeds
+non-starter for quadrupeds quadrupeds could have two feet on the ground at any
+could have two feet on the ground at any given time they could have three feet on
+given time they could have three feet on the ground um the the the feet could be
+the ground um the the the feet could be in different positions relative to each
+in different positions relative to each other if they're in a Gallop versus if
+other if they're in a Gallop versus if they're in a trot so offering animations
+they're in a trot so offering animations to transition between Locomotion and
+to transition between Locomotion and Idol seemed like a complete nightmare it
+Idol seemed like a complete nightmare it seemed like a complete non-starter to
+seemed like a complete non-starter to me you could always do what many games
+me you could always do what many games do which is just blend directly from
+do which is just blend directly from Locomotion to Idol I think this looks
+Locomotion to Idol I think this looks really bad I I think it it's uh it just
+really bad I I think it it's uh it just didn't hit my personal Quality Bar um um
+didn't hit my personal Quality Bar um um the when you animate your idol and you
+the when you animate your idol and you assume that the feet are going to be in
+assume that the feet are going to be in certain positions and then you're your
+certain positions and then you're your blending from a Locomotion where the
+blending from a Locomotion where the feet could be in completely different
+feet could be in completely different positions then when you do that blend
+positions then when you do that blend the feet will probably slide along the
+the feet will probably slide along the ground you'll get something that looks
+ground you'll get something that looks really wonky what I'm going to recommend
+really wonky what I'm going to recommend instead is what you see here on the
+instead is what you see here on the right where you assume with your idle
+right where you assume with your idle that you don't know where the feet are
+that you don't know where the feet are going to be you just pull them right
+going to be you just pull them right down to the ground and you idle wherever
+down to the ground and you idle wherever you are here's how I accomplished that
+you are here's how I accomplished that with the
+with the wolf so for the wolf I had this walking
+wolf so for the wolf I had this walking forward animation and what I did was I
+forward animation and what I did was I authored a second animation which is the
+authored a second animation which is the same thing it has the feet in the same
+same thing it has the feet in the same place but I any feet that were off the
+place but I any feet that were off the ground I just pull it to the ground on
+ground I just pull it to the ground on that at that point in the animation so I
+that at that point in the animation so I get this animation where the feet are
+get this animation where the feet are just kind of sliding around around on
+just kind of sliding around around on the ground right I also lowered the
+the ground right I also lowered the center of gravity for the wolf
+center of gravity for the wolf slightly if you recall from earlier for
+slightly if you recall from earlier for the wolf I'm scaling the play of the
+the wolf I'm scaling the play of the animation based on the velocity of the
+animation based on the velocity of the character so if the wolf is moving at
+character so if the wolf is moving at half the speed that the walk was ather
+half the speed that the walk was ather at then the walk is playing at half
+at then the walk is playing at half speed if the wolf is not moving at all
+speed if the wolf is not moving at all if velocity is zero then that walk
+if velocity is zero then that walk freezes because the play rate is zero at
+freezes because the play rate is zero at that moment I all I have a a blend on my
+that moment I all I have a a blend on my tree so I blend from a walk to an idle
+tree so I blend from a walk to an idle State this idle State uh is that
+State this idle State uh is that grounded animation that ground animation
+grounded animation that ground animation is set to sink with The Walking
+is set to sink with The Walking animation so what happens now is anytime
+animation so what happens now is anytime the wolf stops moving the walk freezes
+the wolf stops moving the walk freezes we blend the idle which is uh the same
+we blend the idle which is uh the same frame uh it's just that that the same
+frame uh it's just that that the same Frozen animation but with the feet down
+Frozen animation but with the feet down and uh the wolf will kind of freeze
+and uh the wolf will kind of freeze there in place it'll lower its body and
+there in place it'll lower its body and it'll kind of be Frozen with its feet on
+it'll kind of be Frozen with its feet on the ground when the wolf starts moving
+the ground when the wolf starts moving again when velocity increases the wolf
+again when velocity increases the wolf will blend back to walking it'll pick up
+will blend back to walking it'll pick up right where it was before just picking
+right where it was before just picking up any foot that it just put down on the
+up any foot that it just put down on the ground and it'll just resume
+walking I thought that was pretty cool so I decided to do the same thing
+cool so I decided to do the same thing for the boar however if you recall the
+for the boar however if you recall the boar is set up a little bit differently
+boar is set up a little bit differently there's three walking animations for the
+there's three walking animations for the boar so in order to do this for the boar
+boar so in order to do this for the boar I had to offer three feet planted
+I had to offer three feet planted animations and I had to create a blend
+animations and I had to create a blend space I would mirror what I was doing
+space I would mirror what I was doing with the walk and that's what you can
+with the walk and that's what you can see here
+and here's an earlier prototype when I was working in the boore this is where I
+was working in the boore this is where I was at this moment I had the boore
+was at this moment I had the boore moving forward through space um using
+moving forward through space um using its trotting blend space I had the
+its trotting blend space I had the boore turning in this case pretty much
+boore turning in this case pretty much always to face the player rather than
+always to face the player rather than facing move Direction and I have the
+facing move Direction and I have the boore stopping so anytime the B stops it
+boore stopping so anytime the B stops it pulls its feet it freezes and it pulls
+pulls its feet it freezes and it pulls its feet down to the ground
+this is all well and good but now your character is frozen anytime it stops
+character is frozen anytime it stops moving and we're animators so that's not
+moving and we're animators so that's not okay so the next thing I did was I
+okay so the next thing I did was I authored an additive Idol for these
+authored an additive Idol for these characters and I'm going to play this
+characters and I'm going to play this anytime the character is
+frozen this was the first additive Idol I made for the boar you can see here
+I made for the boar you can see here it's a very basic keep alive I'm mostly
+it's a very basic keep alive I'm mostly only animating the Torso and the head
+only animating the Torso and the head and the tail I'm very careful not to
+and the tail I'm very careful not to animate the feet because I don't know
+animate the feet because I don't know exactly where the feet are going to be
+exactly where the feet are going to be they could be in any position and the
+they could be in any position and the legs could be at any rotation when the
+legs could be at any rotation when the character
+stops and this is the result of applying that additive animation to that idle
+that additive animation to that idle state so now whenever the bore stops
+state so now whenever the bore stops moving it freezes in place it lowers its
+moving it freezes in place it lowers its legs and it in that Frozen poses it
+legs and it in that Frozen poses it plays this additive Idol you'll notice
+plays this additive Idol you'll notice here that the feet are kind of swimming
+here that the feet are kind of swimming around on the ground a little bit this
+around on the ground a little bit this is especially a apparent when the boore
+is especially a apparent when the boore turns because its hips are turned and
+turns because its hips are turned and its torso is also turned so I'm going to
+its torso is also turned so I'm going to zoom in in a second here and you'll see
+zoom in in a second here and you'll see there's a lot of foot swimming they're
+there's a lot of foot swimming they're kind of drifting around on the ground
+kind of drifting around on the ground they don't quite feel planted and
+grounded I think anybody that's worked with additive animation is familiar with
+with additive animation is familiar with this uh this is a result of the way a
+this uh this is a result of the way a computer sees additive animations when
+computer sees additive animations when you create an additive animation you
+you create an additive animation you give uh your engine a finished result
+give uh your engine a finished result and it breaks it down to a pose and an
+and it breaks it down to a pose and an and uh an animation if you take that
+and uh an animation if you take that same animation and you apply it to a
+same animation and you apply it to a pose where the the Bas is is turned or
+pose where the the Bas is is turned or moved in any way or I'm sorry if you
+moved in any way or I'm sorry if you apply that to a pose where the hips or
+apply that to a pose where the hips or your base is rotated then what you're
+your base is rotated then what you're going to get is a something that's
+going to get is a something that's mathematically correct but doesn't quite
+mathematically correct but doesn't quite look right the feeder is going to be
+look right the feeder is going to be swimming around on the
+swimming around on the ground so the way I fixed this for the
+ground so the way I fixed this for the boore was a little unorthodox I just
+boore was a little unorthodox I just went ahead and I parented the Hooves
+went ahead and I parented the Hooves directly underneath the root of the
+directly underneath the root of the character and I reversed the joint chain
+character and I reversed the joint chain so that the knees are underneath the
+so that the knees are underneath the ankles and the hips are underneath the
+ankles and the hips are underneath the knees I did this rather than use ik in
+knees I did this rather than use ik in order to kind of save some performance
+order to kind of save some performance because we couldn't run for ik at all
+because we couldn't run for ik at all times on all quadrupeds um but what this
+times on all quadrupeds um but what this is going to do because I did not move
+is going to do because I did not move the Hooves during the additive idle
+the Hooves during the additive idle there's no translation data on the
+there's no translation data on the Hooves so when I play the additive Idol
+Hooves so when I play the additive Idol the hoves are going to be locked down to
+the hoves are going to be locked down to the
+ground and you can see that here so now the hopes are locked down to the ground
+the hopes are locked down to the ground and technically there is still joint
+and technically there is still joint swimming but it's occurring at the
+swimming but it's occurring at the shoulders and at the hips which is very
+shoulders and at the hips which is very difficult to detect especially with this
+difficult to detect especially with this particular character this is a character
+particular character this is a character with a massive torso and our camera is
+with a massive torso and our camera is top down so you you never see what's
+top down so you you never see what's going on in the chest or in the hip
+going on in the chest or in the hip region of this
+region of this character I can get away with this cuz I
+character I can get away with this cuz I am you know the rigger and the animator
+am you know the rigger and the animator and everything in my studio but I know
+and everything in my studio but I know most Studios you probably can't re
+most Studios you probably can't re parent up your joints if you're in the
+parent up your joints if you're in the middle of production that's probably a
+middle of production that's probably a non-starter for most people so I think a
+non-starter for most people so I think a more typical response would be to run ik
+more typical response would be to run ik on each leg if you can afford it for
+on each leg if you can afford it for your game and I'm going to demonstrate
+your game and I'm going to demonstrate that now this is the additive Idol that
+that now this is the additive Idol that I made for the wolf it's just kind of
+I made for the wolf it's just kind of like an an aggressive motion I am
+like an an aggressive motion I am definitely moving the hips and the I'm
+definitely moving the hips and the I'm definitely changing the rotation on the
+definitely changing the rotation on the hips and on the Torso for this
+character and this is that additive applied in Engen and what I'm doing here
+applied in Engen and what I'm doing here is I'm going to or what I'm doing is I'm
+is I'm going to or what I'm doing is I'm taking the world space position of the
+taking the world space position of the Paw before the additive is applied and
+Paw before the additive is applied and I'm running an in-game ik on each paw
+I'm running an in-game ik on each paw that will end at that position and so
+that will end at that position and so this is just doing a bit of fix up to
+this is just doing a bit of fix up to keep the feet completely planted in
+keep the feet completely planted in place while that additive
+place while that additive [Music]
+runs all right so what should you take away from this I think there's three
+away from this I think there's three main things you should look into when
+main things you should look into when you're animating a quadruped I think the
+you're animating a quadruped I think the first thing you do is you figure out how
+first thing you do is you figure out how this specific character is going to look
+this specific character is going to look moving forward through space you solve
+moving forward through space you solve that because that's a lot of that's a
+that because that's a lot of that's a lot of the character and the feeling
+lot of the character and the feeling behind whatever it is you're animating
+behind whatever it is you're animating the next thing you do is you figure out
+the next thing you do is you figure out the technical problem of how you're
+the technical problem of how you're going to turn because that is a huge
+going to turn because that is a huge challenge quadrupeds and then you figure
+challenge quadrupeds and then you figure out how you're going to transition
+out how you're going to transition between moving and stopping and starting
+between moving and stopping and starting again what I did for this talk was I
+again what I did for this talk was I showed the boar using a linear blend for
+showed the boar using a linear blend for its forward Locomotion I showed the wolf
+its forward Locomotion I showed the wolf doing a kind of gated approach for its
+doing a kind of gated approach for its Locomotion and I showed how I solved
+Locomotion and I showed how I solved turning and how I personally solved
+turning and how I personally solved transitioning to idle and back again I
+transitioning to idle and back again I recommend when you transition to idle I
+recommend when you transition to idle I I think it's wise to not assume that the
+I think it's wise to not assume that the feet need to be in any specific place
+feet need to be in any specific place but to find a way in your engine or in
+but to find a way in your engine or in your game to pull the feet down directly
+your game to pull the feet down directly to the ground and animate wherever they
+to the ground and animate wherever they are I think that's an elegant solution
+are I think that's an elegant solution and it's one I I've personally enjoyed
+and it's one I I've personally enjoyed doing quite a
+bit all right so that was my talk I am on Twitter and on YouTube I do two
+on Twitter and on YouTube I do two minute technique videos two minute
+minute technique videos two minute animation technique videos on YouTube
+animation technique videos on YouTube that just show off whatever Tech
+that just show off whatever Tech animation stuff I'm working on at any
+animation stuff I'm working on at any given time so definitely you know check
+given time so definitely you know check that out I hope you enjoyed the talk
+that out I hope you enjoyed the talk thank you for coming I did just ship my
+thank you for coming I did just ship my first title as an indie the flame in the
+first title as an indie the flame in the flood so if you get a chance to I don't
+flood so if you get a chance to I don't know maybe Google it or something that
+know maybe Google it or something that would be cool it's kind of a big deal to
+would be cool it's kind of a big deal to me um what else was I supposed to remind
+me um what else was I supposed to remind them oh if you have any questions please
+them oh if you have any questions please come up to the mic and please say your
+come up to the mic and please say your name and uh I'm going to repeat the
+name and uh I'm going to repeat the question back at you thank you
+[Applause]
+no questions that's cool that makes this way
+way easy one question uh hi Garrett um okay
+easy one question uh hi Garrett um okay so I have a couple questions you talked
+so I have a couple questions you talked about your process but how does your
+about your process but how does your process fit in with everybody else so
+process fit in with everybody else so like did you have ai behavior for the
+like did you have ai behavior for the for the enemies before you started
+for the enemies before you started prototyping your animation blending and
+prototyping your animation blending and how that worked or was it kind of Al
+how that worked or was it kind of Al together or did you do that okay so
+together or did you do that okay so there I feel like there was two
+there I feel like there was two questions there you asked first I think
+questions there you asked first I think you you asked how what I'm doing here is
+you you asked how what I'm doing here is different from how other people approach
+different from how other people approach quadrupeds uh no um within your studio
+quadrupeds uh no um within your studio um how did you work with the people
+um how did you work with the people prototyping the actual enemy Behavior or
+prototyping the actual enemy Behavior or did you do that like as far as gameplay
+did you do that like as far as gameplay gotcha okay so our studio is six people
+gotcha okay so our studio is six people uh I do all the protot typing everything
+uh I do all the protot typing everything you saw up there up until until I said
+you saw up there up until until I said my programmer stepped in here was
+my programmer stepped in here was literally me I just used blueprint to
+literally me I just used blueprint to script the pond to move from one
+script the pond to move from one location to another uh we're we're a
+location to another uh we're we're a very small outfit so there isn't I don't
+very small outfit so there isn't I don't have to worry too much about working
+have to worry too much about working with other people
+with other people uh
+uh clearly um yeah so I I guess that would
+clearly um yeah so I I guess that would be
+be me um so you said with the bore that you
+me um so you said with the bore that you couldn't afford to apply ik to all fourt
+couldn't afford to apply ik to all fourt with you know potentially multiple
+with you know potentially multiple creatures and then you said with the
+creatures and then you said with the wolf that you then did that yeah I was
+wolf that you then did that yeah I was playing around sorry yeah I was playing
+playing around sorry yeah I was playing around I to be honest I did the the wolf
+around I to be honest I did the the wolf before the boar um and for the the wolf
+before the boar um and for the the wolf I wasn't sure if I could afford to have
+I wasn't sure if I could afford to have those 4 ik running at all times it was
+those 4 ik running at all times it was at that moment we had not yet done our
+at that moment we had not yet done our profiling and we were unclear on exactly
+profiling and we were unclear on exactly what platforms we would be on at that
+what platforms we would be on at that point the wolf was the very first AI we
+point the wolf was the very first AI we worked on so when I came time to do the
+worked on so when I came time to do the boore I was going I decided to use the
+boore I was going I decided to use the boore as a chance to experiment with
+boore as a chance to experiment with other solutions that would be maybe save
+other solutions that would be maybe save us some performance because it was
+us some performance because it was something I was personally a little bit
+something I was personally a little bit worried about I was looking at the time
+worried about I was looking at the time at this and I'm like that's 12 I is
+at this and I'm like that's 12 I is running at all times plus the dog so
+running at all times plus the dog so that's another four so I guess I'm not
+that's another four so I guess I'm not that good at
+that good at math uh and I I was concerned that that
+math uh and I I was concerned that that might be EXP expensive I didn't actually
+might be EXP expensive I didn't actually know yet sure so the for the wolves that
+know yet sure so the for the wolves that stayed in and then for the BS you found
+stayed in and then for the BS you found another solution or did you then
+another solution or did you then retrofit the wolf as well I have not yet
+retrofit the wolf as well I have not yet retrofitted the wolf I've decided to
+retrofitted the wolf I've decided to tackle that when it becomes a problem
+tackle that when it becomes a problem because it's a huge pain to change if
+because it's a huge pain to change if you're going to change the rig to and
+you're going to change the rig to and reverse the joint order that's that's a
+reverse the joint order that's that's a and then reexport all the animations and
+and then reexport all the animations and then like check it to make sure that
+then like check it to make sure that everything looks right that's a
+everything looks right that's a significant chunk of work and I'm one
+significant chunk of work and I'm one person so if we end up hitting a
+person so if we end up hitting a performance problem on the CPU I I will
+performance problem on the CPU I I will definitely look into that and see if
+definitely look into that and see if that's a place we could uh we could make
+that's a place we could uh we could make some
+savings um sorry uh oh sorry go yeah hi um so this might be a bit more of a
+um so this might be a bit more of a technical question in terms of like how
+technical question in terms of like how you doing specific things in unreal but
+you doing specific things in unreal but um you said you mentioned you're getting
+um you said you mentioned you're getting the the turn uh the AI characters
+the the turn uh the AI characters actually doing how how are you actually
+actually doing how how are you actually get in that cuz we don't seem to be able
+get in that cuz we don't seem to be able to have access to that to get access to
+to have access to that to get access to the turn rate of the character to the
+the turn rate of the character to the not not the rate but the actual turn
+not not the rate but the actual turn that is going to actually be making oh
+that is going to actually be making oh manipulating the path finding to AR yeah
+manipulating the path finding to AR yeah that's why I got a program invol oh
+that's why I got a program invol oh right yeah that was uh I tried scripting
+right yeah that was uh I tried scripting solutions for that it did I I did not
+solutions for that it did I I did not succeed in finding a scripting solution
+succeed in finding a scripting solution for that quite yet maybe uh sorry um I
+for that quite yet maybe uh sorry um I can answer that a little bit there was a
+can answer that a little bit there was a talk yesterday if you go look at the
+talk yesterday if you go look at the vault um and it was on quadruped motion
+vault um and it was on quadruped motion involving a dog yeah and so it was a
+involving a dog yeah and so it was a very similar solution so you can go look
+very similar solution so you can go look that up on the vault which will answer
+that up on the vault which will answer that question okay thank you cool that
+that question okay thank you cool that that's do my job for me I appreciate
+that's do my job for me I appreciate that hi um so it seems like you
+that hi um so it seems like you basically had two kinds of creatures the
+basically had two kinds of creatures the wolf were had a discret spine and you
+wolf were had a discret spine and you wanted to separate the motion of the
+wanted to separate the motion of the front and back legs versus the bore
+front and back legs versus the bore which didn't really have a spine you
+which didn't really have a spine you wanted the whole body to move as as one
+wanted the whole body to move as as one object uh would you foresee like a third
+object uh would you foresee like a third kind of creature we have to do something
+kind of creature we have to do something in between them or do you think that you
+in between them or do you think that you could pretty much separate all
+could pretty much separate all quadrupeds into these two categories um
+quadrupeds into these two categories um every time I do a character I do a
+every time I do a character I do a completely different solution because I
+completely different solution because I can so these aren't the only two
+can so these aren't the only two characters these are the just the two I
+characters these are the just the two I focused on cuz I only have half an hour
+focused on cuz I only have half an hour so there's also a bear that rears up on
+so there's also a bear that rears up on its H legs and that moves in a way
+its H legs and that moves in a way that's very different it's actually like
+that's very different it's actually like kind of like a rabbit for the bear I
+kind of like a rabbit for the bear I tried to I experimented with idea that
+tried to I experimented with idea that the front legs and the back legs
+the front legs and the back legs actually move completely differently and
+actually move completely differently and independently and I kind of solved in
+independently and I kind of solved in between um that was not the best
+between um that was not the best solution so it didn't make this
+solution so it didn't make this talk uh the dog I believe is the dog is
+talk uh the dog I believe is the dog is actually a pretty good hybrid between
+actually a pretty good hybrid between the two uh between my solution for the
+the two uh between my solution for the wolf and my solution for the boar uh the
+wolf and my solution for the boar uh the rabbit's obviously a totally different
+rabbit's obviously a totally different creature
+creature entirely okay thanks cool so you're
+entirely okay thanks cool so you're showing a lot of flat terrain and I
+showing a lot of flat terrain and I don't I don't know if you guys build the
+don't I don't know if you guys build the levels with this in mind but how do you
+levels with this in mind but how do you handle inclines and the change in slope
+handle inclines and the change in slope how would I handle that oh I'm sorry the
+how would I handle that oh I'm sorry the question was how I would handle inclines
+question was how I would handle inclines or a change of slope we don't have too
+or a change of slope we don't have too much of that in our game we do have
+much of that in our game we do have subtle inclines at times and that did
+subtle inclines at times and that did come online a little bit late if I was
+come online a little bit late if I was working at a tripa studio or somewhere
+working at a tripa studio or somewhere where I had to worry about that
+where I had to worry about that generally what you would do is you would
+generally what you would do is you would take the pill and you would adjust the
+take the pill and you would adjust the pill to kind of rotate to be um uh
+pill to kind of rotate to be um uh perpendicular to the to the whatever
+perpendicular to the to the whatever ground that it's over and then you would
+ground that it's over and then you would probably update the feet using ik
+probably update the feet using ik Solutions so that they're always on the
+Solutions so that they're always on the [Music]
+[Music] ground all right that's our time thank
+ground all right that's our time thank you everybody
+[Applause]

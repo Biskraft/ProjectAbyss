@@ -1,0 +1,660 @@
+[Music] thanks Dave
+thanks Dave get everyone to hear me okay you can
+get everyone to hear me okay you can have to excuse me I'm suffering I come
+have to excuse me I'm suffering I come from Montreal we have lots of snow there
+from Montreal we have lots of snow there I'm suffering from a coughing a bit of a
+I'm suffering from a coughing a bit of a cold
+cold my name is Chaddock Eclair I'm an AI
+my name is Chaddock Eclair I'm an AI programmer at Ubisoft Montreal I've
+programmer at Ubisoft Montreal I've worked on a number of games Rainbow Six
+worked on a number of games Rainbow Six Vegas or sup Prince Persia a number of
+Vegas or sup Prince Persia a number of Assassin's Creed games and of course
+Assassin's Creed games and of course watch dogs to wash dogs to you play
+watch dogs to wash dogs to you play Marcus you're a hacker you're fighting
+Marcus you're a hacker you're fighting social injustice the game has four
+social injustice the game has four pillars hacking combat stealth and
+pillars hacking combat stealth and navigation I'm going to show you know
+navigation I'm going to show you know yes so today I'm going to be talking
+yes so today I'm going to be talking about cover this is an agent in cover
+about cover this is an agent in cover behind a air ventilation unit most of
+behind a air ventilation unit most of the things that the agent does in combat
+the things that the agent does in combat involves cover so they could shoot over
+involves cover so they could shoot over the cover they could just protect
+the cover they could just protect themselves they could be throwing a
+themselves they could be throwing a grenade calling reinforcements so it
+grenade calling reinforcements so it becomes very important for them to
+becomes very important for them to position themselves ever looked at a
+position themselves ever looked at a good cover so that they have a good
+good cover so that they have a good distance and a range and a good field of
+distance and a range and a good field of fire I'm going to show you a video where
+fire I'm going to show you a video where Marcus is entering a layout it's called
+Marcus is entering a layout it's called home docks and the agents are going to
+home docks and the agents are going to react
+react take cover around him and try and kill
+take cover around him and try and kill him oh I have to do that
+so today I'm talking about two different things the first is how the agents
+things the first is how the agents position sums in cover and then second
+position sums in cover and then second the challenges that we faced as we put
+the challenges that we faced as we put this system into production and they
+this system into production and they started making levels and the problems
+started making levels and the problems that came up there are three types of
+that came up there are three types of characters in the game the first is the
+characters in the game the first is the main protagonist Marcus there can
+main protagonist Marcus there can actually be two or even four because the
+actually be two or even four because the game is played in co-op the second is
+game is played in co-op the second is the agents these are the main enemies of
+the agents these are the main enemies of the game they can do the full range of
+the game they can do the full range of actions and AI can do for example full
+actions and AI can do for example full combat investigate search those kinds of
+combat investigate search those kinds of things for that reason because they do
+things for that reason because they do so much there's a limited number of them
+so much there's a limited number of them there's only about a dozen in the game
+there's only about a dozen in the game I'm not not a dozen archetypes but a
+I'm not not a dozen archetypes but a dozen at one time the last category is
+dozen at one time the last category is civilians these perform a kind of more
+civilians these perform a kind of more lightweight version of the actions they
+lightweight version of the actions they might just shoot once they might just
+might just shoot once they might just hide behind cover or they run away
+hide behind cover or they run away Roxanne spoke yesterday about the
+Roxanne spoke yesterday about the civilians their reactions I just wanted
+civilians their reactions I just wanted to make a point about the agents and
+to make a point about the agents and their reactions combats a very tight
+their reactions combats a very tight loop and you don't want to interrupt it
+loop and you don't want to interrupt it so we actually don't handle many
+so we actually don't handle many reactions I think grenade reactions very
+reactions I think grenade reactions very important getting hit like a hurt
+important getting hit like a hurt reaction but most other things they just
+reaction but most other things they just continue their normal combat loop the
+continue their normal combat loop the agents can be a member of a number of
+agents can be a member of a number of factions law enforcement street gangs
+factions law enforcement street gangs organized crime what's important
+organized crime what's important watchdogs - or different projects - is
+watchdogs - or different projects - is that these factions can now fight
+that these factions can now fight against each other as in addition to one
+against each other as in addition to one of the four players
+of the four players this creates complexity terms of squad
+this creates complexity terms of squad which is our group coordination
+which is our group coordination detection and combat and cover selection
+detection and combat and cover selection this is the overhead view of the home
+this is the overhead view of the home docs than what we saw in the video it's
+docs than what we saw in the video it's a much larger layout than watch times
+a much larger layout than watch times one and so the distances are larger
+one and so the distances are larger makes it harder to choose good position
+makes it harder to choose good position to give you a perspective this is the
+to give you a perspective this is the rooftop that we were fighting on the
+rooftop that we were fighting on the video they say a normal combat range
+video they say a normal combat range this this blue square I want to draw
+this this blue square I want to draw your attention to that little red truck
+your attention to that little red truck but I'm gonna talk about it later so at
+but I'm gonna talk about it later so at the start of watchdogs 1 the game
+the start of watchdogs 1 the game designers the programmers and the
+designers the programmers and the artists sat down and negotiated what
+artists sat down and negotiated what does it cover what should look like it's
+does it cover what should look like it's one meter why to give room and it's one
+one meter why to give room and it's one meter high to 1.2 meters just to give it
+meter high to 1.2 meters just to give it a little bit of variance and it has to
+a little bit of variance and it has to be artistically very or visually very
+be artistically very or visually very identifiable as a cover so that the
+identifiable as a cover so that the player can say hey that's I can protect
+player can say hey that's I can protect myself there a normal cover you can
+myself there a normal cover you can shoot over or you can shoot to either
+shoot over or you can shoot to either side from when you're in cover behind it
+side from when you're in cover behind it there's also high cover which is 1.8
+there's also high cover which is 1.8 meters high you can't shoot over this
+meters high you can't shoot over this there's a dead zone in between the two
+there's a dead zone in between the two again to make sure they're recognizable
+again to make sure they're recognizable and if you look at the image it looks
+and if you look at the image it looks like the high cover looks like just to
+like the high cover looks like just to cover stacked on top that gives a
+cover stacked on top that gives a further clue of what kind of cover it is
+further clue of what kind of cover it is this is the covers in the map just drawn
+this is the covers in the map just drawn with the debug display you can see
+with the debug display you can see there's two different colors the pink
+there's two different colors the pink covers are just normal covers the purple
+covers are just normal covers the purple covers are what we call player only
+covers are what we call player only covers these are not really good covers
+covers these are not really good covers but they still exist for the benefit of
+but they still exist for the benefit of the player they might be unreachable
+the player they might be unreachable they might not provide any protection to
+they might not provide any protection to give you an example on the right solid
+give you an example on the right solid metal sheet that's a perfect cover so
+metal sheet that's a perfect cover so the end agent would go there on the Left
+the end agent would go there on the Left it's an open railing it would look
+it's an open railing it would look really dumb if the agent went there but
+really dumb if the agent went there but the player has an ability to stay in
+the player has an ability to stay in cover and move along a wall or move
+cover and move along a wall or move along a railing and so we need to
+along a railing and so we need to support that and have all these covers
+support that and have all these covers everywhere for the benefit of the player
+so as production went on and we started making more interiors and we need to
+making more interiors and we need to make furniture inside deaths a desk
+make furniture inside deaths a desk that's in 1 meter high is a bit high and
+that's in 1 meter high is a bit high and so they had to negotiate a low cover and
+so they had to negotiate a low cover and so we squished down the animation a
+so we squished down the animation a little bit and you can see examples in
+little bit and you can see examples in the park bench
+the park bench front of the car so there's three
+front of the car so there's three reasons why an agent might want to find
+reasons why an agent might want to find a cover the first is that combat has
+a cover the first is that combat has just started bullets are flying
+just started bullets are flying everywhere and they need to dive into
+everywhere and they need to dive into cover really quickly we call that first
+cover really quickly we call that first cover now they're in cover and they need
+cover now they're in cover and they need to shoot at the target and they shoot a
+to shoot at the target and they shoot a few times and then they want to move a
+few times and then they want to move a lot so they pop out somewhere else and
+lot so they pop out somewhere else and the player doesn't get a bead on them
+the player doesn't get a bead on them that's called neighboring cover the
+that's called neighboring cover the third second cover is you're leaving
+third second cover is you're leaving your cover to find a better cover either
+your cover to find a better cover either it's flanking the target provides better
+it's flanking the target provides better protection or it pro the range to the
+protection or it pro the range to the target is better this is the target this
+target is better this is the target this is the agent there's three criteria
+is the agent there's three criteria which the agents use to evaluate what a
+which the agents use to evaluate what a good cover is the first is distance to
+good cover is the first is distance to the target so if you have a pistol you
+the target so if you have a pistol you want to be very close it's usually based
+want to be very close it's usually based on the weapon you want to be very close
+on the weapon you want to be very close if you have a rifle or even a sniper
+if you have a rifle or even a sniper rifle you want a distance this much
+rifle you want a distance this much further away the second is the how far
+further away the second is the how far the agent wants to move to get to this
+the agent wants to move to get to this cover the you don't want to run across
+cover the you don't want to run across the battlefield to find your second
+the battlefield to find your second cover you want to go from cover to cover
+cover you want to go from cover to cover but also you don't want to find a cover
+but also you don't want to find a cover too close to you you want to if you're
+too close to you you want to if you're going to leave cover and move somewhere
+going to leave cover and move somewhere you want to least move like seven meters
+you want to least move like seven meters or something the third criteria is how
+or something the third criteria is how much it protects you so the ideal cover
+much it protects you so the ideal cover is perfectly flat 90-degree angle to
+is perfectly flat 90-degree angle to your target as you start twisting the
+your target as you start twisting the cover you start exposing more of your
+cover you start exposing more of your back to being shot there's more of a
+back to being shot there's more of a more percentage of your body that's
+more percentage of your body that's available to be shot the fourth it's not
+available to be shot the fourth it's not very criteria it's like more like a
+very criteria it's like more like a condition is a line of sight on the
+condition is a line of sight on the target and the line of sight is not
+target and the line of sight is not tested from the agent itself but from
+tested from the agent itself but from the cover there's six positions of which
+the cover there's six positions of which you can fire from he's firing from the
+you can fire from he's firing from the upper-right position so the covers on
+upper-right position so the covers on the to his left and he's actually
+the to his left and he's actually stepped out of the cover and is now
+stepped out of the cover and is now firing to the right each of these
+firing to the right each of these positions are tested towards the known
+positions are tested towards the known position of the target you can see three
+position of the target you can see three of them have good fields of fire and the
+of them have good fields of fire and the other three are blocked the top one the
+other three are blocked the top one the middle one is a blind fire so then we
+middle one is a blind fire so then we put this all together you take our three
+put this all together you take our three types of searches and our criteria I'm
+types of searches and our criteria I'm gonna cat table and we apply weights to
+gonna cat table and we apply weights to these criteria so some are more
+these criteria so some are more important in certain searches than
+important in certain searches than others when you're looking for your
+others when you're looking for your first cover the most important thing is
+first cover the most important thing is that's nearby to you you just want to
+that's nearby to you you just want to get into cover doesn't matter if you
+get into cover doesn't matter if you have line of sight or not just protect
+have line of sight or not just protect yourself then you want to move becomes
+yourself then you want to move becomes more important as you're moving to get
+more important as you're moving to get your ideal weapon range so that becomes
+your ideal weapon range so that becomes a high priority and you need a line of
+a high priority and you need a line of sight now right if you're gonna move
+sight now right if you're gonna move somewhere you need to be able to fire on
+somewhere you need to be able to fire on the target
+the target if this let's say the neighborhood cover
+if this let's say the neighborhood cover failed because it could be possible that
+failed because it could be possible that you don't find the line of sight where
+you don't find the line of sight where you are you'd switch to a second cover
+you are you'd switch to a second cover you're now going to leave where you are
+you're now going to leave where you are and go somewhere else the distance to
+and go somewhere else the distance to target is important the line of sight is
+target is important the line of sight is important it also becomes more important
+important it also becomes more important not like super important just medium
+not like super important just medium that the cover provides a better
+that the cover provides a better protection than where you are now again
+protection than where you are now again the top view of the roof the target and
+the top view of the roof the target and this is the agent this is what we call
+this is the agent this is what we call the donut it's the it's the distance to
+the donut it's the it's the distance to target so he wants to find a cover
+target so he wants to find a cover somewhere inside this donut ideally to
+somewhere inside this donut ideally to the middle ring of the donut this is the
+the middle ring of the donut this is the distance to agent note that there's no
+distance to agent note that there's no hole this is a first cover search
+hole this is a first cover search there's no hole so for first cover
+there's no hole so for first cover there's no cover to close you just want
+there's no cover to close you just want to find the closest cover and then you
+to find the closest cover and then you try and overlap them based on the
+try and overlap them based on the weights this is an exclusion zone you
+weights this is an exclusion zone you don't want to get close to the target so
+don't want to get close to the target so any covers that are too close you just
+any covers that are too close you just cut right away there's actually a
+cut right away there's actually a special behavior which we call emergency
+special behavior which we call emergency shooting
+shooting when the agent gets into this circle
+when the agent gets into this circle that's too close they just stop what
+that's too close they just stop what they're doing pull out their gun and
+they're doing pull out their gun and just empty the clip in a kind of like
+just empty the clip in a kind of like Last Stand either targets gonna die or
+Last Stand either targets gonna die or they're gonna die because they're just
+they're gonna die because they're just too close so if we zoom in a bit he
+too close so if we zoom in a bit he started at the yellow circle and he
+started at the yellow circle and he found a cover very close to him that has
+found a cover very close to him that has a good line of sight but each of these
+a good line of sight but each of these covers could have been equally good just
+covers could have been equally good just the waiting was slightly different for
+the waiting was slightly different for the red one that's the one they chose
+this is an example of neighboring cover search the agents on the far left far
+search the agents on the far left far right and they're just moving to the
+right and they're just moving to the left they're moving a certain amount of
+left they're moving a certain amount of distance if they if it had been longer
+distance if they if it had been longer they would have only moved 7 meters and
+they would have only moved 7 meters and they again I don't yes that's the cover
+they again I don't yes that's the cover they chose this one's a bit complicated
+they chose this one's a bit complicated all the debug display is now shown so
+all the debug display is now shown so there's lots of little circles there but
+there's lots of little circles there but you can kind of see that there's a blue
+you can kind of see that there's a blue circles the yellow circles this is an
+circles the yellow circles this is an example of a second cover search there's
+example of a second cover search there's an additional element is these purple
+an additional element is these purple circles these are other agents and you
+circles these are other agents and you want to stay away from them so any
+want to stay away from them so any covers that are within these purple
+covers that are within these purple circles we just ignore you don't want
+circles we just ignore you don't want them to clump up and I'll get killed by
+them to clump up and I'll get killed by an explosion or something so the agent
+an explosion or something so the agent what's special about this is they're
+what's special about this is they're underneath inside the building they're
+underneath inside the building they're not the same level so they're finding a
+not the same level so they're finding a cover on the roof and they're basing on
+cover on the roof and they're basing on our distance but this distance actually
+our distance but this distance actually goes through the building so when they
+goes through the building so when they come to move to the cover it's actually
+come to move to the cover it's actually quite a long path they have to go
+quite a long path they have to go outside the door of the building go up
+outside the door of the building go up the stairs come around the pathfinding
+the stairs come around the pathfinding is done last it's the most expensive
+is done last it's the most expensive thing we do the raycast for the lion
+thing we do the raycast for the lion sire expensive but the pathfinding is
+sire expensive but the pathfinding is the real bottleneck there's two out two
+the real bottleneck there's two out two outcomes because of this the first is
+outcomes because of this the first is that they're exposing themselves for
+that they're exposing themselves for much longer time and they're going in
+much longer time and they're going in front of the target making themselves
+front of the target making themselves easier to shoot
+easier to shoot in hindsight maybe what I should have
+in hindsight maybe what I should have done is hard to say but chosen five
+done is hard to say but chosen five covers and then a flood fill to those
+covers and then a flood fill to those five covers and then I could have just
+five covers and then I could have just really chosen the closest one based on
+really chosen the closest one based on path the second thing we tried to do
+path the second thing we tried to do during production is to arrange the path
+during production is to arrange the path so the points went from cover to cover
+so the points went from cover to cover what we call shadow paths so that it's
+what we call shadow paths so that it's always behind cover because he's
+always behind cover because he's actually walking around in front of the
+actually walking around in front of the cover here
+cover here but that would have required more path
+but that would have required more path finding and so we put that aside so you
+finding and so we put that aside so you spend months working on this you can't
+spend months working on this you can't see your desk you're working at the game
+see your desk you're working at the game designer working with the test or
+designer working with the test or animators and then it goes on to
+animators and then it goes on to production and all the levels I need to
+production and all the levels I need to start putting into their Maps
+start putting into their Maps and you're like whoa no no but uh all
+and you're like whoa no no but uh all these things come up right coming back
+these things come up right coming back to this little red truck in the corner
+to this little red truck in the corner this is actually a scissor lift so the
+this is actually a scissor lift so the player gets into it can go up in the air
+player gets into it can go up in the air there he's up there takes out a sniper
+there he's up there takes out a sniper rifle it just starts clearing the layout
+rifle it just starts clearing the layout it's not much the agents can do they
+it's not much the agents can do they can't path to him they can't shoot him
+can't path to him they can't shoot him because he was lying cover
+because he was lying cover we call this unreachable I just like the
+we call this unreachable I just like the scissor lift but it happens on buildings
+scissor lift but it happens on buildings other areas that they they don't have an
+other areas that they they don't have an access to that the player does so we had
+access to that the player does so we had to have a special unreachable mode
+to have a special unreachable mode that's kind of hidden you don't really
+that's kind of hidden you don't really see it and the ages start acting
+see it and the ages start acting differently in this case the first issue
+differently in this case the first issue was that the layout is so large then
+was that the layout is so large then they might not even be hearing the
+they might not even be hearing the gunshot from the sniper rifle however if
+gunshot from the sniper rifle however if the player misses all those bullet
+the player misses all those bullet misses are nearby them and so if there's
+misses are nearby them and so if there's two or more bullet misses they go into
+two or more bullet misses they go into combat and if someone dies they go into
+combat and if someone dies they go into combat too and the first thing they do
+combat too and the first thing they do in combat is going to cover this now
+in combat is going to cover this now protects them from this sniper rifle
+protects them from this sniper rifle even if they don't necessarily know
+even if they don't necessarily know exactly where it's coming from the
+exactly where it's coming from the second thing we did is give everyone
+second thing we did is give everyone grenades it's a bit brute force but the
+grenades it's a bit brute force but the grenades can be throw
+grenades can be throw in arc reach areas that they can't on
+in arc reach areas that they can't on because there's no navmesh and they
+because there's no navmesh and they disabled the scissor lift when the
+disabled the scissor lift when the agents are far from the player and now
+agents are far from the player and now this is very most the things I've been
+this is very most the things I've been talking about AB in generic target
+talking about AB in generic target because the agents can fight each other
+because the agents can fight each other but it's this very players specific if
+but it's this very players specific if the player is actively aiming and an
+the player is actively aiming and an agent is unreachable and as far away
+agent is unreachable and as far away they stay in their cover they won't try
+they stay in their cover they won't try it if they're out of cover they'll go to
+it if they're out of cover they'll go to cover they won't try and shoot they
+cover they won't try and shoot they won't try and change cover they'll just
+won't try and change cover they'll just stay there while they're being aimed
+stay there while they're being aimed that to kind of maximize their
+that to kind of maximize their survivability this mitigates that kind
+survivability this mitigates that kind of overpowered clearing the level with
+of overpowered clearing the level with the sniper rifle do is the large-sized
+the sniper rifle do is the large-sized the layout when you're far from a combat
+the layout when you're far from a combat the first thing you do is move towards
+the first thing you do is move towards the combat lynnster you're in 30 meters
+the combat lynnster you're in 30 meters you start doing the normal cover search
+you start doing the normal cover search that kind of thing but this creates a
+that kind of thing but this creates a behavior where the agents were far away
+behavior where the agents were far away just move directly towards the player
+just move directly towards the player right and makes them very easy to shoot
+right and makes them very easy to shoot so again in this unreachable behavior
+so again in this unreachable behavior they don't move directly towards the
+they don't move directly towards the combat they especially find a cover
+combat they especially find a cover around the player and move towards that
+around the player and move towards that cover instead that creates more of a
+cover instead that creates more of a lateral movement where they're moving
+lateral movement where they're moving across the players vision steps directly
+across the players vision steps directly towards them this is another example of
+towards them this is another example of layout in the in the city I think it's
+layout in the in the city I think it's called
+called hack the hacker there's a number of
+hack the hacker there's a number of agents of a particular faction let's say
+agents of a particular faction let's say FBI they're protecting a special target
+FBI they're protecting a special target which is a star in the house the layout
+which is a star in the house the layout is surrounded by walls these are the
+is surrounded by walls these are the entrances either gates or the one the
+entrances either gates or the one the left is just an opening so the player
+left is just an opening so the player goes in and they starts a combat he gets
+goes in and they starts a combat he gets seen everyone starts shooting they all
+seen everyone starts shooting they all start doing lots of pathfinding requests
+start doing lots of pathfinding requests to find a cover to find a second cover
+to find a cover to find a second cover to move towards the player that kind of
+to move towards the player that kind of thing but the layout also has a large
+thing but the layout also has a large number of civilians in it remember I
+number of civilians in it remember I mentioned that there's a limited number
+mentioned that there's a limited number of agents and large number of civilians
+of agents and large number of civilians all of these civilians all start
+all of these civilians all start pathfinding not sure you can see it well
+pathfinding not sure you can see it well they all
+they all pathlines same time this creates a huge
+pathlines same time this creates a huge pressure on the pathfinder and now
+pressure on the pathfinder and now there's a backlog of everyone in the
+there's a backlog of everyone in the game trying to pacify at the same time
+game trying to pacify at the same time ultimately it's good to get the
+ultimately it's good to get the civilians out of the way they leave all
+civilians out of the way they leave all the resources are freed up for the
+the resources are freed up for the combat it's the way we handle this and
+combat it's the way we handle this and the first step was that agents had
+the first step was that agents had priority and pathfinding over civilians
+priority and pathfinding over civilians because they were more actively engaged
+because they were more actively engaged in the combat and those who were closer
+in the combat and those who were closer those characters that were closer to the
+those characters that were closer to the player would have their pathfinding go
+player would have their pathfinding go first what this caused is that civilians
+first what this caused is that civilians who were far away never moved you know I
+who were far away never moved you know I used to think that like walking into a
+used to think that like walking into a wall was the worst thing that could
+wall was the worst thing that could happen that was like the typical AI bug
+happen that was like the typical AI bug but I got all these bugs about people
+but I got all these bugs about people not even path fighting not even move
+not even path fighting not even move they would just freeze and then agents
+they would just freeze and then agents who were far away also got stuck so we
+who were far away also got stuck so we had to modify the rule and anybody who
+had to modify the rule and anybody who had the first path mining request their
+had the first path mining request their first request would go before everybody
+first request would go before everybody else so we still did on distance but
+else so we still did on distance but before the people were close they got
+before the people were close they got into cover looked like they were doing
+into cover looked like they were doing combat and then they waited for the
+combat and then they waited for the civilians and the agents were far away
+civilians and the agents were far away to get their first request civilians
+to get their first request civilians would clear out the agents would far
+would clear out the agents would far away who move in and then combat could
+away who move in and then combat could continue as normal
+continue as normal so let's come back to our layout we have
+so let's come back to our layout we have these agents protecting their VIP just
+these agents protecting their VIP just so happen that up here there were some
+so happen that up here there were some gangsters Teske and they hear the
+gangsters Teske and they hear the gunshots too right and they become
+gunshots too right and they become interested and maybe they start shooting
+interested and maybe they start shooting because they can do factional and
+because they can do factional and faction fighting right and then the
+faction fighting right and then the police show up so now you have like four
+police show up so now you have like four parties involved in this combat and
+parties involved in this combat and they're all doing path fighting and
+they're all doing path fighting and maybe the player decides okay I'm going
+maybe the player decides okay I'm going to hide and kind of drop out of the
+to hide and kind of drop out of the combat so the test guys the orange guys
+combat so the test guys the orange guys are shooting out with the blue police to
+are shooting out with the blue police to the north right and the FBI are like hey
+the north right and the FBI are like hey we should go check out what's going on
+we should go check out what's going on so they have to leave their compound
+so they have to leave their compound through a door to go up there so they
+through a door to go up there so they find a gate they go through the gate
+find a gate they go through the gate they go all around the compound but this
+they go all around the compound but this compound is quite large
+compound is quite large and if you're familiar with a star you
+and if you're familiar with a star you have to flood the interior of the
+have to flood the interior of the compound before you can actually before
+compound before you can actually before you can actually get out this what
+you can actually get out this what happened is we're hitting our max path
+happened is we're hitting our max path mining cost and then path lines were
+mining cost and then path lines were failing and then it was just delaying
+failing and then it was just delaying everyone else because the failed one
+everyone else because the failed one took longer and again everyone was just
+took longer and again everyone was just freezing up so what I did is I asked the
+freezing up so what I did is I asked the level designer to add a door it seems so
+level designer to add a door it seems so obvious but the level designer was very
+obvious but the level designer was very unhappy with me because they spent a lot
+unhappy with me because they spent a lot of time playing the defense's placing
+of time playing the defense's placing people and then I just asked for a back
+people and then I just asked for a back door and I said it's really important
+door and I said it's really important the path line he's breaking so I had to
+the path line he's breaking so I had to go back and think about why the path
+go back and think about why the path line he was hitting his costs the first
+line he was hitting his costs the first is that I was stopping them from going
+is that I was stopping them from going through the walls it kind of looked dumb
+through the walls it kind of looked dumb when in combat when the agents taking so
+when in combat when the agents taking so much time to climb a wall they're
+much time to climb a wall they're exposed
+exposed it takes longer but I had to reduce the
+it takes longer but I had to reduce the cost of the walls because if you had two
+cost of the walls because if you had two walls it would just stop the path lying
+walls it would just stop the path lying right there
+right there the second thing was the gates the gates
+the second thing was the gates the gates especially these large gates take a long
+especially these large gates take a long time to open and but I still had to
+time to open and but I still had to reduce the cost of gates but I'll show
+reduce the cost of gates but I'll show you this
+[Music]
+so they have to go to the control panel first
+first [Music]
+they have to go to the control panel first wait for this gate to open and
+first wait for this gate to open and then they can go through and leave them
+then they can go through and leave them standing there in the open easy target
+standing there in the open easy target to shoot so we did is we kind of cheat
+to shoot so we did is we kind of cheat in combat and the agents they don't go
+in combat and the agents they don't go or the control panel they just kind of
+or the control panel they just kind of tell the gate to open and this makes it
+tell the gate to open and this makes it much easier from the use these gates
+much easier from the use these gates allows us to have a lower cost of
+allows us to have a lower cost of pathfinding and that kind of resolve
+pathfinding and that kind of resolve that unfortunately I was not able to go
+that unfortunately I was not able to go back to the level designer and tell him
+back to the level designer and tell him that he could remove his gate that I
+that he could remove his gate that I hate added this is another example it's
+hate added this is another example it's the cargo-ship there is one way onto the
+the cargo-ship there is one way onto the cargo ship and it's this long pathway so
+cargo ship and it's this long pathway so we had this issue that the testers the
+we had this issue that the testers the game designers would complain to me
+game designers would complain to me about the agents rushing the player the
+about the agents rushing the player the agents would just run up the player and
+agents would just run up the player and try and shoot him I was like what I
+try and shoot him I was like what I didn't code it like that doesn't exist
+[Music]
+so it's not the most challenging behavior right like they're just running
+behavior right like they're just running up to you and dying right and but I
+up to you and dying right and but I really I couldn't figure out what's
+really I couldn't figure out what's going on this is a side view of the same
+going on this is a side view of the same ramp they're doing a second cover search
+ramp they're doing a second cover search you can see all the circles and the
+you can see all the circles and the cover they're finding is right here at
+cover they're finding is right here at the bottom is the it's a really good
+the bottom is the it's a really good cover because it flanks to the target
+what was happening is the path was going right next to the player and as I
+right next to the player and as I mentioned before when you get close to
+mentioned before when you get close to the target you stop what you're doing
+the target you stop what you're doing and you just do this do-or-die last and
+and you just do this do-or-die last and shoot at the target but it created this
+shoot at the target but it created this effect that they're running up to you
+effect that they're running up to you and then just shooting at you so to
+and then just shooting at you so to address this we took three steps the
+address this we took three steps the first was that any covers that are
+first was that any covers that are behind the target like a 45-degree angle
+behind the target like a 45-degree angle we discard them you're gonna have to
+we discard them you're gonna have to cross against the the target to get
+cross against the the target to get there anyways right so don't take the
+there anyways right so don't take the risk the second is to just if we do find
+risk the second is to just if we do find out cover with a path that goes by the
+out cover with a path that goes by the target we just cut it it's kind of
+target we just cut it it's kind of wasteful we've wasted that path finding
+wasteful we've wasted that path finding but we need to address the problem the
+but we need to address the problem the third thing we did was if two or more
+third thing we did was if two or more agents died next to each other it was
+agents died next to each other it was probably a choke point and the product
+probably a choke point and the product the player is probably shooting them and
+the player is probably shooting them and killing them so we cut a hole in the
+killing them so we cut a hole in the navmesh
+navmesh for a minute patch it and then no more
+for a minute patch it and then no more agents can go down that ramp way this
+agents can go down that ramp way this forces them to they're seeing their
+forces them to they're seeing their friends die they don't go and it forces
+friends die they don't go and it forces them to go somewhere else that might be
+them to go somewhere else that might be more expensive or less optimal but it
+more expensive or less optimal but it changes the flow of the combat
+so as we started like realizing that we had these issues with approaches or
+had these issues with approaches or entrances into layouts we started going
+entrances into layouts we started going looking at each of these layouts and
+looking at each of these layouts and seeing what we could do about it so this
+seeing what we could do about it so this is the same cargo-ship we started the
+is the same cargo-ship we started the looking up the ramp we looked at side of
+looking up the ramp we looked at side of the ramp now we're looking down the ramp
+the ramp now we're looking down the ramp from the top and we and we looked where
+from the top and we and we looked where could we add cover that on their side of
+could we add cover that on their side of the ramp that they could use and so we
+the ramp that they could use and so we asked the level designers to add cover
+asked the level designers to add cover here it's more accessible and doesn't
+here it's more accessible and doesn't have to go near the next to the player
+have to go near the next to the player and then you can fire down the ramp so I
+and then you can fire down the ramp so I have a good idea and then you're licking
+have a good idea and then you're licking all these circles but I have a good idea
+all these circles but I have a good idea of what the decisions that the eye are
+of what the decisions that the eye are making right but the level designers
+making right but the level designers everybody else don't necessarily know
+everybody else don't necessarily know it's kind of a big complex you know with
+it's kind of a big complex you know with all these weights and circles it'd be
+all these weights and circles it'd be nice if there's some like in hindsight
+nice if there's some like in hindsight if there's some sort of tool that drew
+if there's some sort of tool that drew green or red on the ground and if it's
+green or red on the ground and if it's green on the ground that spot can be
+green on the ground that spot can be fired upon by several covers but if it
+fired upon by several covers but if it was red
+was red maybe there's no covers only one cover
+maybe there's no covers only one cover that could fire upon that position and
+that could fire upon that position and that way the level designers could just
+that way the level designers could just turn it on look at their map and say hey
+turn it on look at their map and say hey I have this entrance but it's red
+I have this entrance but it's red nobody can fire upon it and then they
+nobody can fire upon it and then they could say okay maybe I'll add some more
+could say okay maybe I'll add some more covers and it would change the green
+this is another example of a an entrance again it's a home docks it's it's just
+again it's a home docks it's it's just another way to get into the same layout
+another way to get into the same layout we asked them to add covers at the top
+we asked them to add covers at the top of this balcony here which they did
+of this balcony here which they did we're all happy and we come back later
+we're all happy and we come back later and someone has placed these blocks here
+and someone has placed these blocks here these crates right in front of the cover
+these crates right in front of the cover and if you can see from the red arrow it
+and if you can see from the red arrow it actually blocks the line of sight from
+actually blocks the line of sight from the agent to the
+the agent to the target so it's an ongoing process right
+target so it's an ongoing process right so we're like hey add these covers as I
+so we're like hey add these covers as I mentioned the the beginning there's
+mentioned the the beginning there's several pillars to the game right so
+several pillars to the game right so navigation is also an important pillar
+navigation is also an important pillar right so the player has to be able to
+right so the player has to be able to navigate up to get to this balcony
+navigate up to get to this balcony pretty easily right
+pretty easily right so there's passes done I'm doing my
+so there's passes done I'm doing my combat pass but they're also doing their
+combat pass but they're also doing their navigation pass it just happened at the
+navigation pass it just happened at the end navigation one out so to wrap it up
+end navigation one out so to wrap it up my advice is communicate to the team why
+my advice is communicate to the team why the agents make the choices they do as I
+the agents make the choices they do as I said before you're the expert on this
+said before you're the expert on this you understand all the logic and
+you understand all the logic and decision making they're making broadcast
+decision making they're making broadcast as much as possible even if you don't
+as much as possible even if you don't see in the game make sure everyone your
+see in the game make sure everyone your team like act like a publicist for the
+team like act like a publicist for the AI and then play the game go through the
+AI and then play the game go through the levels actually see how they're they're
+levels actually see how they're they're acting in the real world you know in
+acting in the real world you know in there in the real layouts and then maybe
+there in the real layouts and then maybe there's like small quick improvements
+there's like small quick improvements you can make that like change the way
+you can make that like change the way the the game is played right like that
+the the game is played right like that unreachable or the the rushing we were
+unreachable or the the rushing we were able to change those things and so it's
+able to change those things and so it's not really technical advice but I think
+not really technical advice but I think it is a vice that will help you make
+it is a vice that will help you make better games I don't know how much time
+better games I don't know how much time we have questions
+what's your name Neil did you guys consider using a hierarchical Pathfinder
+consider using a hierarchical Pathfinder at all in order to try and mitigate
+at all in order to try and mitigate those large-scale problems you can
+those large-scale problems you can easily that is such an awesome question
+easily that is such an awesome question we have a hierarchal Pathfinder okay it
+we have a hierarchal Pathfinder okay it doesn't take into account the things
+doesn't take into account the things that change States the gates things that
+that change States the gates things that can be breakable so we're like oh oh oh
+can be breakable so we're like oh oh oh we're so close we so we do do a
+we're so close we so we do do a hierarchal path it does make sure that
+hierarchal path it does make sure that the before wasting time on path finding
+the before wasting time on path finding but we couldn't use it in a more
+but we couldn't use it in a more advanced way because those links weren't
+advanced way because those links weren't there did you have the vehicles
+there did you have the vehicles interacting with the combats and did
+interacting with the combats and did they take that into account planning or
+they take that into account planning or have vehicle to vehicle like chase yeah
+have vehicle to vehicle like chase yeah yes I mean there's a whole other vehicle
+yes I mean there's a whole other vehicle combat when the player gets further away
+combat when the player gets further away and is it a vehicle they jump into their
+and is it a vehicle they jump into their vehicle and they drive after them the
+vehicle and they drive after them the vehicles have cover on them that
+vehicles have cover on them that actually makes it complex because the
+actually makes it complex because the covers are moving it's dynamic
+covers are moving it's dynamic but there is a whole vehicle section to
+but there is a whole vehicle section to the combat which I just didn't talk
+the combat which I just didn't talk about today we are we are out of time
+about today we are we are out of time [Applause]

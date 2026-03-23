@@ -1,0 +1,598 @@
+[Music] hi my name is Mario Palmero I'm lead
+hi my name is Mario Palmero I'm lead programmer in a small project at tequila
+programmer in a small project at tequila works and I'm going to talk you about
+works and I'm going to talk you about sampling Textures in vertex Shader and
+sampling Textures in vertex Shader and using that for some cool techniques okay
+using that for some cool techniques okay so the techniques I'm going to talk you
+so the techniques I'm going to talk you about have been developed by Norman sh
+about have been developed by Norman sh and me together or apart depending of
+and me together or apart depending of the
+the technique so let's get
+technique so let's get started this is a team of the project
+started this is a team of the project I'm working right now I'm as I said lead
+I'm working right now I'm as I said lead programmer here and also Tech art and
+programmer here and also Tech art and I'm going to talk to you about my te our
+I'm going to talk to you about my te our part in this
+part in this presentation so what is the vertx Shader
+presentation so what is the vertx Shader the vertex is a programmable part of the
+the vertex is a programmable part of the graphic Pipeline and that means that
+graphic Pipeline and that means that it's a part of uh the rendering of
+it's a part of uh the rendering of images where the vertices are
+images where the vertices are modified uh and we can modify
+modified uh and we can modify position
+position normal vertex color and UV
+normal vertex color and UV mapping
+mapping so before having Textures in the vertex
+so before having Textures in the vertex Shader what we had to do is use mesh
+Shader what we had to do is use mesh attributes to fit information into the
+attributes to fit information into the vertex
+vertex AER to modify for example the vert
+AER to modify for example the vert vertex position
+vertex position normals or creating pivot Points pivot
+normals or creating pivot Points pivot Points I'm going to talk about pivot
+Points I'm going to talk about pivot Points because we use them in several
+Points because we use them in several techniques pivot Points are
+techniques pivot Points are transformation points that we can use to
+transformation points that we can use to transform their uh position or rotation
+transform their uh position or rotation on several vertex H vertices at the same
+on several vertex H vertices at the same time on a
+time on a mesh so since there are text 11 we can
+mesh so since there are text 11 we can cheaply sample textes in the vertx a
+cheaply sample textes in the vertx a there and a typical use is this
+there and a typical use is this displacement
+displacement map that we have uh the original mesh
+map that we have uh the original mesh but with a texture we can create a morph
+but with a texture we can create a morph Target and blend from the original mesh
+Target and blend from the original mesh to that new
+to that new geometry displacing the vertices
+geometry displacing the vertices depending on an amount set in the in
+depending on an amount set in the in that
+that texture however I'm going to try to talk
+texture however I'm going to try to talk about more in cases for sampling
+about more in cases for sampling Textures in the vertx there if you think
+Textures in the vertx there if you think of textures as matrices of
+of textures as matrices of vectors pixels transform into cells of
+vectors pixels transform into cells of information like vectors of three or
+information like vectors of three or four elements and depending on the
+four elements and depending on the number of bits that you are using will
+number of bits that you are using will have different levels of
+have different levels of precision so let's get creative about
+precision so let's get creative about using those textures
+this is an example where we have a rain animated by vertx Shader we are Mo
+animated by vertx Shader we are Mo moving the vertices depending on the
+moving the vertices depending on the pivot point of each
+pivot point of each drop in the Z
+drop in the Z axis so from top to bottom they are
+axis so from top to bottom they are animated but how we know where to stop
+animated but how we know where to stop that drain in this example we have a
+that drain in this example we have a port and we don't get we don't want the
+port and we don't get we don't want the the drops to get uh beneath the port so
+the drops to get uh beneath the port so what we do is
+what we do is read to we map the drops into a
+read to we map the drops into a texture this
+texture this uh texture in the bottom of the slide we
+uh texture in the bottom of the slide we read the height of each drop and we know
+read the height of each drop and we know when we have to reset the position of
+when we have to reset the position of that drop and move and teleport that
+that drop and move and teleport that drop back to the top
+a similar sample is to fix
+fix um some meses to the ground and to get
+um some meses to the ground and to get them really tied to the ground so they
+them really tied to the ground so they can
+can deform with our ground
+deform with our ground level again we read the same height map
+level again we read the same height map in fact in this technique we are using
+in fact in this technique we are using the same height map to to read the
+the same height map to to read the position of each vertex correspond
+position of each vertex correspond responding to a pixel and we read that
+responding to a pixel and we read that pixel to know the offset that we have to
+pixel to know the offset that we have to apply to that vertex so it can fit
+apply to that vertex so it can fit perfectly to the
+perfectly to the ground so it's very easy to for artists
+ground so it's very easy to for artists to place their Assets in fact if there's
+to place their Assets in fact if there's any artist
+any artist here maybe he or she can recall doing
+here maybe he or she can recall doing something like in the left part of the
+something like in the left part of the slide well I think the right one is
+slide well I think the right one is easier for
+easier for everybody this is one of of my favorite
+everybody this is one of of my favorite use cases this is a
+use cases this is a smoke
+smoke uh I did collaborating with zimon
+uh I did collaborating with zimon trumer uh it's a smoke animation so we
+trumer uh it's a smoke animation so we are baking animation into a texture what
+are baking animation into a texture what we are baking right right here is the
+we are baking right right here is the hand
+hand position so we transform XY Z set into
+position so we transform XY Z set into RGB and each pixel is a frame of this
+RGB and each pixel is a frame of this animation in an uncompressed
+animation in an uncompressed texture so what we do is for each frame
+texture so what we do is for each frame we create a pixel in this texture and
+we create a pixel in this texture and record the hand
+record the hand animation we are normalizing the
+animation we are normalizing the position between 0 to one in the bonding
+position between 0 to one in the bonding of the whole
+of the whole animation and that is scal back in the
+animation and that is scal back in the Shader when when it's
+Shader when when it's played the smoke that you have seen has
+played the smoke that you have seen has several rings of height so from bottom
+several rings of height so from bottom to to top we are reading the
+to to top we are reading the current pixel in the bottom ring and as
+current pixel in the bottom ring and as we progress to the top of the smoke we
+we progress to the top of the smoke we are reading previous
+are reading previous frames so it propagates the
+frames so it propagates the movement along the smoke
+so that's cool but what if we want to bake particle animation and play it in
+bake particle animation and play it in game well maybe would say
+game well maybe would say alenik uh almic was created after or or
+alenik uh almic was created after or or at least published after this was made
+at least published after this was made this is a technique of Norman Shar and
+this is a technique of Norman Shar and we have 4,000 particles in this sample
+we have 4,000 particles in this sample and 180 frames of animation and what we
+and 180 frames of animation and what we do is each pixel of a texture is a
+do is each pixel of a texture is a position each row is a frame so in in a
+position each row is a frame so in in a in a in a row we have all the position
+in a in a row we have all the position of the particles in one frame and each
+of the particles in one frame and each column is the position of a Vertex a
+column is the position of a Vertex a long time so if we read that texture of
+long time so if we read that texture of a th 4,000 by
+a th 4,000 by 180 um if we read the column of that
+180 um if we read the column of that texture we could play one particle
+texture we could play one particle animation and if we read them all we
+animation and if we read them all we have the whole
+have the whole animation the thing is that using making
+animation the thing is that using making use of bilineal filtering of a texture
+use of bilineal filtering of a texture we can interpolate between
+we can interpolate between positions so an optimization of that
+positions so an optimization of that technique could make that we could delet
+technique could make that we could delet every other frame and probably nobody
+every other frame and probably nobody will
+will notice so again we are nor normalizing
+notice so again we are nor normalizing positions between 0 to one because it's
+positions between 0 to one because it's better for
+better for precision but even with that Precision
+precision but even with that Precision is so obviously
+is so obviously lost but what if we want to bake rigid
+lost but what if we want to bake rigid object animation of course we can do
+object animation of course we can do vertex cash but that would mean that we
+vertex cash but that would mean that we will be storing every pixel in this
+will be storing every pixel in this animation every vertex sorry but we
+animation every vertex sorry but we don't want that because we can create
+don't want that because we can create pivot
+Points we can group vertices sharing a pivot so every vertex in a group Sayes
+pivot so every vertex in a group Sayes the move shares the movement and the
+the move shares the movement and the memory improvement over a brute force is
+memory improvement over a brute force is a lot 32 objects just recording 32
+a lot 32 objects just recording 32 objects over the number of vertices that
+objects over the number of vertices that that M could have is a great
+that M could have is a great Improvement so you can see see the at
+Improvement so you can see see the at the left of the slide you can see the
+the left of the slide you can see the position texture and at the right is the
+position texture and at the right is the rotation texture over 128 frames of
+rotation texture over 128 frames of Animation here the rotation is being
+Animation here the rotation is being recorded as quaternion as
+RGV again we can delete every other frame using bilinear
+filtering so we have particles animations we have R
+have particles animations we have R bodies animations but what if we want to
+bodies animations but what if we want to have uh liquid
+have uh liquid simulation so again somebody could say
+simulation so again somebody could say almic but this technique was made by
+almic but this technique was made by Norman Shar
+Norman Shar again
+again um before it was
+um before it was published I thought about Norman Sher
+published I thought about Norman Sher before meeting him like the as the
+before meeting him like the as the chocolate man because of that GI
+chocolate man because of that GI if we split this hell of a long name
+if we split this hell of a long name into two morph targets means that we
+into two morph targets means that we have a morph Target a different morph
+have a morph Target a different morph Target for each frame and vertex count
+Target for each frame and vertex count agnostic means that we don't care of the
+agnostic means that we don't care of the number of
+number of vertices h of the Mes in a frame and
+vertices h of the Mes in a frame and that means that in a frame we can have
+that means that in a frame we can have 4,000 vertices and in the next frame we
+4,000 vertices and in the next frame we can have 3,000 vertices that that we
+can have 3,000 vertices that that we don't care about
+don't care about that what we have is this position
+that what we have is this position texture where we are recording the
+texture where we are recording the position in every frame again each row
+position in every frame again each row is a
+is a frame if we look
+frame if we look closely what we are doing is pairing
+closely what we are doing is pairing vertices as
+vertices as triangles so we know the position of
+triangles so we know the position of each triangle of this mass in every
+each triangle of this mass in every frame and if a frame has less triangles
+frame and if a frame has less triangles at the maximum at the right of the
+at the maximum at the right of the texture you can see those black gaps
+texture you can see those black gaps that means that the ver that the
+that means that the ver that the triangle is being collapsed to zero and
+triangle is being collapsed to zero and if the triangle is collapsed to zero the
+if the triangle is collapsed to zero the pixel say there won notice and won't
+pixel say there won notice and won't process that
+information so instead of the in step of interpolating between positions like in
+interpolating between positions like in the other techniques what we are doing
+the other techniques what we are doing here is teleporting triangles from one
+here is teleporting triangles from one position to to the other and that
+position to to the other and that position doesn't have to be coherent
+position doesn't have to be coherent with the previous uh
+with the previous uh frame so in the shade there we don't
+frame so in the shade there we don't linearly interpolate as I said we jump
+linearly interpolate as I said we jump from one morph to the
+from one morph to the other there's an optimization that we
+other there's an optimization that we can do that is triangle
+can do that is triangle pairing If instead the storing triangle
+pairing If instead the storing triangle by triangle we store pairs of triangles
+by triangle we store pairs of triangles we are saving up to
+we are saving up to 33% just restoring four vertices instead
+33% just restoring four vertices instead of six
+vertices but ideally we should have different options of geometri
+different options of geometri compression and as John carach stated
+compression and as John carach stated it's a little surprising that we don't
+it's a little surprising that we don't have any locality based vertex
+have any locality based vertex compression schemes for static Messes in
+compression schemes for static Messes in how
+how today maybe somebody will work on that
+today maybe somebody will work on that in the
+in the future so I have some those techniques
+future so I have some those techniques before getting to the last
+before getting to the last one uh but I want to talk before the
+one uh but I want to talk before the last one about advantages of these kind
+last one about advantages of these kind of techniques first of all the CPU
+of techniques first of all the CPU doesn't know anything about what's
+doesn't know anything about what's happening in the GPU so the CPU doesn't
+happening in the GPU so the CPU doesn't have to create buffers doesn't have to
+have to create buffers doesn't have to communicate in any way with the GPU to
+communicate in any way with the GPU to create that kind of technique
+create that kind of technique just a texture being fit into the
+just a texture being fit into the GPU second one is we are working with a
+GPU second one is we are working with a standard format this is not vertex cach
+standard format this is not vertex cach we don't we can't share our vertex cach
+we don't we can't share our vertex cach animation uh by WhatsApp or posting it
+animation uh by WhatsApp or posting it into Instagram but we can do that with
+into Instagram but we can do that with this and the third one is the order this
+this and the third one is the order this is an important one
+is an important one texus have an intrinsic SP spatial
+texus have an intrinsic SP spatial coverance that we can use in our favor
+coverance that we can use in our favor for example we always know
+for example we always know knew uh where the previous frame of a of
+knew uh where the previous frame of a of a Vertex will be just in the row
+a Vertex will be just in the row before but it has some
+before but it has some drawbacks we are lacking precision and
+drawbacks we are lacking precision and that's something that we can't avoid we
+that's something that we can't avoid we can try to Pate that uh normalizing as I
+can try to Pate that uh normalizing as I said but it's something that you have to
+said but it's something that you have to work
+work with uh the
+with uh the buing I can assure you that the first
+buing I can assure you that the first time that you try something like that
+time that you try something like that you won't see the mesh the mesh probably
+you won't see the mesh the mesh probably will be in the infinite or maybe
+will be in the infinite or maybe collapse to zero and it's a hell to the
+collapse to zero and it's a hell to the back that to know what's happening there
+back that to know what's happening there and
+and creation you have to have custom tools
+creation you have to have custom tools to create those Textures in your
+to create those Textures in your pipeline luckily enough Houdini is
+pipeline luckily enough Houdini is working
+working in has worked implementing those
+in has worked implementing those techniques the previous one at at least
+techniques the previous one at at least as far as I know and now you can play
+as far as I know and now you can play that into an real engine uh transparent
+that into an real engine uh transparent to the to the
+to the to the artist
+artist so we were thinking about in in this
+so we were thinking about in in this project I I told you Norman and I were
+project I I told you Norman and I were thinking about baking a lot of animation
+thinking about baking a lot of animation and cloth simulation
+and cloth simulation into textures using those techniques but
+into textures using those techniques but that meant that we have a huge amount of
+that meant that we have a huge amount of vertex data to handle so we were
+vertex data to handle so we were thinking about compressing data
+thinking about compressing data depending on the amount of movement
+depending on the amount of movement depending on the
+depending on the animation uh but during a break we had a
+animation uh but during a break we had a new idea and that's the last technique
+new idea and that's the last technique I'm going to talk you
+I'm going to talk you about the idea is what if we transform
+about the idea is what if we transform simulation into bone
+simulation into bone animation what if we put the bone
+animation what if we put the bone transformation data into a
+transformation data into a texture so the thing is we were fiddling
+texture so the thing is we were fiddling a little with hands got our solver
+a little with hands got our solver that's a pluging that transform
+that's a pluging that transform simulation into bone animation even
+simulation into bone animation even morph targets um
+morph targets um and blending targets into
+and blending targets into animation so into bone animation so if
+animation so into bone animation so if we store bone animation instead of
+we store bone animation instead of vertex animation we are saving a lot
+vertex animation we are saving a lot of data a lot of texture in in the
+of data a lot of texture in in the process can we actually do it well the
+process can we actually do it well the skinning of the mesh is already being
+skinning of the mesh is already being done in the GPU so theoretically yes but
+done in the GPU so theoretically yes but we need to have access to all the
+we need to have access to all the information in the
+information in the CPU uh in an unconventional way because
+CPU uh in an unconventional way because we were using a real four and I'm uh we
+we were using a real four and I'm uh we we didn't want
+we didn't want to modify the pipeline the the the
+to modify the pipeline the the the engine to have to to fit that
+engine to have to to fit that information into the Shader so through
+information into the Shader so through mes and texture information we achiev to
+mes and texture information we achiev to do
+everything we store the translation of the bones that we need in a
+the bones that we need in a texture we store the rotation of bones
+texture we store the rotation of bones in another texture as you can
+in another texture as you can guess but here we have to store the
+guess but here we have to store the weighting of the vertices if you know
+weighting of the vertices if you know animation how it works H each vertex has
+animation how it works H each vertex has some bones affecting them affecting it
+some bones affecting them affecting it so we have to store that information and
+so we have to store that information and we do that into extra two extra UV
+we do that into extra two extra UV channels that means that we only have
+channels that means that we only have four influences per
+four influences per vertex that's the limitation
+vertex that's the limitation for our implementation but can be
+for our implementation but can be improved where we store the index the
+improved where we store the index the indices of those bones into vertex color
+indices of those bones into vertex color again another limitation that means that
+again another limitation that means that we only can have
+we only can have 256 bones affecting each
+256 bones affecting each vertex uh I mean affecting all the
+vertex uh I mean affecting all the vertices in that
+vertices in that texture and where we start the initial
+texture and where we start the initial offset of those bones we need the
+offset of those bones we need the initial position of those bones and
+initial position of those bones and that's an easy one more textures but
+that's an easy one more textures but what we do what we really do is store
+what we do what we really do is store that in the first row of the position
+that in the first row of the position texture so the process how we actually
+texture so the process how we actually do it how we actually play animation
+do it how we actually play animation into textures we have a Vertex we have
+into textures we have a Vertex we have the a Vertex
+the a Vertex color four indices for that uh vertex
+color four indices for that uh vertex and two exra UV channels for waiting
+and two exra UV channels for waiting values we read the index of the bone
+values we read the index of the bone affecting that
+vertex we read the weighting of that
+bone we read the position and rotation of those bones from both textures
+of those bones from both textures knowing the index we know the column of
+knowing the index we know the column of the texture
+the texture that we have to read and with the time
+that we have to read and with the time being fed into the vertx we know the
+being fed into the vertx we know the current frame so we have the pixel
+current frame so we have the pixel position in both
+position in both textures to be able to transform that
+textures to be able to transform that vertex so we we have all what we need to
+vertex so we we have all what we need to apply the linear skinning
+apply the linear skinning algorithm and the result is this a full
+algorithm and the result is this a full animation baked into two simple textures
+here's those
+textures so here's the animation through another
+another lens but what are the numbers why why
+lens but what are the numbers why why would somebody do that instead of
+would somebody do that instead of animating per se well it had sense for
+animating per se well it had sense for us because we had
+us because we had simulation and we calculate the amount
+simulation and we calculate the amount of data that we could put into text
+of data that we could put into text without the CPU noticing and was worth
+without the CPU noticing and was worth it for us this techniques meant to be
+it for us this techniques meant to be inspirational not uh a technique that
+inspirational not uh a technique that everybody should
+everybody should follow so how much animation can we
+follow so how much animation can we store in a
+store in a texture can we handle facial animation
+texture can we handle facial animation for all the cinematics or which frame
+for all the cinematics or which frame rate are we talking about the numbers
+rate are we talking about the numbers for
+for us 166 minutes of facial animation
+us 166 minutes of facial animation in two k
+in two k textures 30 frames per
+textures 30 frames per second for us was a great
+second for us was a great Improvement but what if we want awesome
+Improvement but what if we want awesome facial animation 450 bones well 20
+facial animation 450 bones well 20 minutes 21 minute probably more that
+minutes 21 minute probably more that what you need in your project
+what you need in your project for uh oome facial emission and the same
+for uh oome facial emission and the same frame frame rate and the same size of
+textures and from here what can we do with that well our road map for this
+with that well our road map for this technique is to improve normal solving
+technique is to improve normal solving right now we are doing regular normal
+right now we are doing regular normal solving that means that we read the
+solving that means that we read the normal from the vertex and we are
+normal from the vertex and we are modifying it by the rotation of the
+modifying it by the rotation of the bone but uh there are more accurate
+bone but uh there are more accurate solutions to that that we want to
+solutions to that that we want to implement
+implementing animation blending what we are talking about here is about
+are talking about here is about cinematics or
+cinematics or simulations but could we use this
+simulations but could we use this technique for animation blending yes we
+technique for animation blending yes we can if we store all the animation uh
+can if we store all the animation uh different animations of a character into
+different animations of a character into a huge texture we can knowing the RW
+a huge texture we can knowing the RW that we have to offset to read different
+that we have to offset to read different animations we can blend between them
+animations we can blend between them just with one
+just with one sampling support bone scaling that's an
+sampling support bone scaling that's an easy one just some more math in the verx
+easy one just some more math in the verx there and another
+there and another texture and enhanc compression as I said
+texture and enhanc compression as I said probably we can with a smarter
+probably we can with a smarter compression system we can compress
+compression system we can compress animation depending on the amount of
+animation depending on the amount of movement of the character and uh
+movement of the character and uh interpolate between
+interpolate between rows
+rows so some final thoughts about those uh
+so some final thoughts about those uh techniques what we get as output for
+techniques what we get as output for those techniques when we were doing them
+those techniques when we were doing them is that you have to know your tools you
+is that you have to know your tools you have to know what textur in the vertx
+have to know what textur in the vertx there means because textur in the verx
+there means because textur in the verx is a powerful tool that most of uh
+is a powerful tool that most of uh people is
+people is ignoring text can be used as data
+ignoring text can be used as data containers and we can approach problems
+containers and we can approach problems from different
+from different perspectives so from here I want to
+perspectives so from here I want to thank Hans goar you should check this
+thank Hans goar you should check this video for his solver because that was
+video for his solver because that was the spark that ignite this
+idea and also thank Norman because uh we work together in those techniques but he
+work together in those techniques but he couldn't make it to be here today
+and more or less that's it thank you for listening so if you have any question go
+ahead anyway you can contact us for whatever you want about this you have
+whatever you want about this you have our emails
+there hi hi okay um I was wondering a lot of times uh you need the positions
+lot of times uh you need the positions of bones or uh vercies on the CPU uh for
+of bones or uh vercies on the CPU uh for gameplay stuff so do you have um a
+gameplay stuff so do you have um a parallel implementation for cases when
+parallel implementation for cases when you uh you do need to access stuff on
+you uh you do need to access stuff on the CPU or do you just make it work with
+the CPU or do you just make it work with textures so the question is if I have uh
+textures so the question is if I have uh some some kind of um metrics to know
+some some kind of um metrics to know when to use bones or when to use
+when to use bones or when to use texure uh we don't I I I Sly I don't
+texure uh we don't I I I Sly I don't have it I have I don't have them um I
+have it I have I don't have them um I would go for try both of them and see
+would go for try both of them and see what works better for you it depends of
+what works better for you it depends of the amount of Animation depends of the
+the amount of Animation depends of the amount of
+amount of Bones uh it depends on the
+Bones uh it depends on the implementation of both so it's like if
+implementation of both so it's like if you ask me would you use alambic or
+you ask me would you use alambic or these techniques it depends almic has
+these techniques it depends almic has several implementations different
+several implementations different implementations and it it depends a lot
+implementations and it it depends a lot for us made sense because we wanted to
+for us made sense because we wanted to implement simulation and we couldn't do
+implement simulation and we couldn't do that with bones right okay thank you
+that with bones right okay thank you thank you hi hey thank you so much for
+thank you hi hey thank you so much for the presentation uh it was really cool I
+the presentation uh it was really cool I had a question in regards to the height
+had a question in regards to the height map based pipelines save for object
+map based pipelines save for object population uh first of all obviously how
+population uh first of all obviously how do you guys deal with Precision because
+do you guys deal with Precision because whenever we try something like that on a
+whenever we try something like that on a landscape that's a little bit bigger we
+landscape that's a little bit bigger we get stuff that's floating around but the
+get stuff that's floating around but the other part of it is also workflow
+other part of it is also workflow because even though artists don't have
+because even though artists don't have to fit assets anymore to the terrain
+to fit assets anymore to the terrain every time anytime they change the
+every time anytime they change the terrain you have to make sure that the
+terrain you have to make sure that the height map is updated appropriately
+height map is updated appropriately otherwise you get weird artifacts so
+otherwise you get weird artifacts so have you had any workflow experience in
+have you had any workflow experience in that regard yeah our work is to have the
+that regard yeah our work is to have the tool ready for the last building it's
+tool ready for the last building it's like rebuilding light lighting every
+like rebuilding light lighting every time that you change something you have
+time that you change something you have to rebuild it um we wait we created a
+to rebuild it um we wait we created a tool and we wait till the last uh build
+tool and we wait till the last uh build to reild all the all the all the texture
+to reild all the all the all the texture the thing is uh you can iterate on that
+the thing is uh you can iterate on that and and and make it easier for artists
+and and and make it easier for artists to to work with
+that in our case the artists aren't changing the topology of the level too
+changing the topology of the level too much because anim animation comp
+much because anim animation comp complain about that and we had to make a
+complain about that and we had to make a compromise uh cool no that's good to
+compromise uh cool no that's good to know that you implemented as part of the
+know that you implemented as part of the build step thank you thank you hi um you
+build step thank you thank you hi um you said that uh when you're using like
+said that uh when you're using like rigid body back animation you had uh
+rigid body back animation you had uh instead of storing every vertx you store
+instead of storing every vertx you store a pivot point and you rotate around the
+a pivot point and you rotate around the Pivot Point um how do you where's the
+Pivot Point um how do you where's the data that relates the vertices to the
+data that relates the vertices to the pivot point is that um is that in the
+pivot point is that um is that in the texture itself or is that does it just
+texture itself or is that does it just use like the mesh origin or something
+use like the mesh origin or something can you repeat the question S I can hear
+can you repeat the question S I can hear you sure but so the um when you use
+you sure but so the um when you use uh when you're storing Pivot Point
+uh when you're storing Pivot Point animation rather than yeah each vertex
+animation rather than yeah each vertex how do you relate each vertex to the
+how do you relate each vertex to the pivot point is that in the texture or is
+pivot point is that in the texture or is that just just use the mesh origin okay
+that just just use the mesh origin okay the pipot point is being you are asking
+the pipot point is being you are asking about where the pipot point is being
+about where the pipot point is being stored don't you yeah pretty uh the peot
+stored don't you yeah pretty uh the peot point here at least is being stored in
+point here at least is being stored in the vertex color I think this is
+the vertex color I think this is Norman's technique as I said and and he
+Norman's technique as I said and and he did it by his own but I I would store it
+did it by his own but I I would store it probably in the vertex color or if I
+probably in the vertex color or if I feel that there's not enough Precision
+feel that there's not enough Precision you can do it extra UB
+you can do it extra UB channels uh you have no more option I
+channels uh you have no more option I think maybe Tex but I don't see it
+think maybe Tex but I don't see it happening awesome thanks um I just got
+happening awesome thanks um I just got one more quick question um you said you
+one more quick question um you said you st the index of bones in verx FS as well
+st the index of bones in verx FS as well why do you have 256 bone limit there
+why do you have 256 bone limit there sorry uh why do you have a 256 bone
+sorry uh why do you have a 256 bone limit when you store the vertex the
+limit when you store the vertex the index of the bones in the vertx
+colors um your question there the um like but would be 32
+like but would be 32 bits
+bits so I don't quite hear you well oh sorry
+so I don't quite hear you well oh sorry am I too quiet or no no no is my
+am I too quiet or no no no is my accent it's my English sorry okay um so
+accent it's my English sorry okay um so you store the bone index in vertx colors
+you store the bone index in vertx colors yeah um why do you you said that you
+yeah um why do you you said that you limited to 256 bones okay it was enough
+limited to 256 bones okay it was enough for us to do that but uh in later
+for us to do that but uh in later implementation of these techniques we
+implementation of these techniques we are thinking about
+are thinking about implementing that into another texture
+implementing that into another texture and a small and a small texture and that
+and a small and a small texture and that will give
+will give us virtually infinite uh ver H
+us virtually infinite uh ver H influences to have okay awesome thanks
+influences to have okay awesome thanks thank
+thank you uh I have a question and a comment
+you uh I have a question and a comment one question did you consider using uh
+one question did you consider using uh principal component analysis which is a
+principal component analysis which is a pretty common technique to compress
+pretty common technique to compress these types of vertx animations
+these types of vertx animations yeah uh is it common to compress vertex
+yeah uh is it common to compress vertex animation called component analysis it's
+animation called component analysis it's a technique mathematical technique um if
+a technique mathematical technique um if you haven't considered it it's I would
+you haven't considered it it's I would recommend looking it up it can be very
+recommend looking it up it can be very useful to compress this kind of lengthy
+useful to compress this kind of lengthy vertex animation into effectively a
+vertex animation into effectively a small number of morph targets that you
+small number of morph targets that you then just blend between and mix them in
+then just blend between and mix them in different ways um also I had a comment
+different ways um also I had a comment um you representing like using this or
+um you representing like using this or almic but I don't think it's necessarily
+almic but I don't think it's necessarily an either or because almic is more a
+an either or because almic is more a file form format for communicating
+file form format for communicating between tools and this is more of a
+between tools and this is more of a runtime format I could definitely
+runtime format I could definitely imagine a pipeline where you use a lmic
+imagine a pipeline where you use a lmic and at the end you bake it down into a
+and at the end you bake it down into a texture unless you specifically
+texture unless you specifically referring to using un reals Olympic
+referring to using un reals Olympic loading um yeah I I agree as I said this
+loading um yeah I I agree as I said this is meant to be inspirational just to
+is meant to be inspirational just to make the people think about the power of
+make the people think about the power of having Textures in the vert say there um
+having Textures in the vert say there um each one has to know their tools I I
+each one has to know their tools I I don't quite have
+don't quite have use
+use almic by now but I'm thinking about
+almic by now but I'm thinking about implementing some some hybrid techniques
+implementing some some hybrid techniques the the thing
+the the thing is it was meant to be inspirational not
+is it was meant to be inspirational not just you have to do it like this and
+just you have to do it like this and like that but thank you for the comment
+like that but thank you for the comment yeah really thank you thank you any more
+yeah really thank you thank you any more questions no well thank you for being
+questions no well thank you for being here

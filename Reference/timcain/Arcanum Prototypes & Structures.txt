@@ -1,0 +1,351 @@
+hi everyone it's me Tim today I want to
+talk about
+prototypes and structures in Arcanum I
+did the previous talk on how we did
+procedural generation
+in Arcanum
+and now I want to talk about
+how we actually stored objects uh that
+was a question several people had and
+then related to the procedural
+generation I mentioned that
+uh buildings were done a little
+differently so I'll explain that too
+so before I can explain how prototypes
+work I kind of have to explain how
+objects work and even why we did
+prototypes which was basically to save
+memory
+back in the late 90s there was not a lot
+of RAM on PCS and we had to conserve
+literally every bit
+so in the game World anything you saw on
+the game scene that wasn't a background
+tile was an object there were 18 object
+types which are walls portals portals
+are any kind of
+door
+containers which is anything they can
+hold in inventory scenery projectiles
+weapons ammo armor gold
+food
+Scrolls Keys key Rings written objects
+that aren't Scrolls generics
+PCS NPCs and traps
+we grouped those 18 objects into
+different categories so when I say
+Critter I mean a PC or an NPC
+when I say an item I mean a weapon ammo
+armor gold food Scrolls key key Rings
+written and the generics and then
+mobiles
+are projectiles containers Critters and
+items mobile doesn't mean it moves on
+its own but mobile means that this is an
+object that we expect
+to have its location
+changed during the game
+and then finally there were consumables
+which were food and Scrolls consumer
+bowls are anything that when you use
+them they're gone
+now all of those objects had Fields
+inside of them where we stored data some
+Fields were in every object those are
+things like their art ID
+or their location or their hit points in
+AC we gave every object hit points in AC
+in
+Arcanum just in case we wanted to
+you know make an explosive that could
+destroy scenery or there's a spell that
+targeted a container
+and if it wanted to damage it we weren't
+sure and as when I explained how we did
+prototypes you'll find out it was better
+to put them in and then have them never
+change than to not have them at all and
+then need them later
+so some fields are very specific to
+an object category uh or group of object
+types for example
+for portals and containers you might
+have lock difficulties and key IDs so
+this is the key ID that opens this lock
+and here's how hard this lock is to pick
+inventory exists inside of containers or
+Critters
+some Fields were only in one object type
+so items are a good example of that only
+items in the game had weight had value
+had a parent which is because items can
+go into inventory they can point to the
+parent object
+so every object in the world pointed to
+a prototype
+and so the way that worked was
+we would make a prototype for some
+object let's say we had the Prototype of
+a knife
+this would be a weapon object
+and then we'd have an art ID for a basic
+knife you'd have a damage range maybe
+one to six for the knife and what damage
+type it did and how much it weighed and
+how much it cost and all those values
+were filled out
+in a knife if you ever found a knife in
+the game it would just point to the
+Prototype and say I'm this and then
+anything that was different
+that particular object from the pro from
+its prototype would then be
+stored on the object itself things like
+something's always restored like the
+location because you knew that was
+always going to be unique for every item
+some things were stored frequently like
+current hit points that was something
+that it was when you first found an
+object it probably didn't have current
+hit points so it just inherited from the
+Prototype which is probably it had full
+health and then as soon as it took
+damage it said nope now I have a field
+that overrides the Prototype
+there are some
+things on items like charges for magic
+items or inventory and creatures and
+containers that were stored as a Delta
+of course from the Prototype you don't
+want every container in the world to
+point to the same set of inventory
+the reason we did that was there are
+then fields in
+I'm sorry bit fields in the object that
+says here are the
+of all the fields that could possibly
+exist in the Prototype here are the
+fields we're overriding
+so if you had
+an object which was identical to its
+prototype it would point to a prototype
+and then it's
+bit field
+bits would all be zero which and then
+there would be nothing stored after it
+if any of those bits were one it meant
+the corresponding field
+was
+in the object stored in order
+so that made it very very easy for us to
+have a lot a lot of objects in Arcanum
+but not take up a lot of space if you
+had a hundred knives in the game
+most of them only really need their
+location and their current hit points
+and their parent so they would have
+three fields and everything else there
+wouldn't be anything else stored so
+they'd say if you want to know about me
+get it from my prototype and we'd load
+all the prototypes whenever the game
+loaded and then for objects objects were
+stored by whatever sector they were in
+so when we loaded a sector when the
+player entered it or got near
+the sector because we didn't want
+the
+there to be a delay if the player walked
+too close to another sector so we
+pre-loaded sectors as you walked around
+these objects would get loaded in but
+they were very small
+and what was great about that is you
+only loaded this very small object you
+didn't really have the data it's just
+when whenever anyone asked for it if
+somebody said hey I need to know this I
+this knife's hit points you go
+here's the bit field for hit points it's
+a zero so give the prototypes hit points
+or it's a one and it's the third one we
+saw so go to the Third Field in the
+object and that will be its current hit
+points this worked really well uh Mark
+Harrison one of the programmers did the
+majority of the heavy lifting on this
+objects like this not only meant we had
+less we used less Ram in Arcanum but our
+save games were smaller too
+I do know that when people try to mod
+the game
+they were a little aggravated because
+the way objects and prototypes were
+interrelated made it hard to understand
+but wow did it help us when we were
+making the game
+and then the other thing I want to talk
+about with procedural generation I often
+talked about buildings and structures
+worked differently than
+almost any other object that was in the
+world and the reason for that was
+the way you made buildings or structures
+um because I'll talk about like Dungeons
+and caves were also structures
+they were made usually in top down views
+let me explain how that worked
+the game is normally isometric
+you for any structure you wanted to make
+there was a floor wall ceiling grouping
+meaning the artist would say here are
+the floors that go into the structure
+here's the basic wall type now there are
+lots of wall subtypes there are corners
+and
+where a window would go there's the left
+part there's the center part and there's
+the right part I'll explain that in a
+second and then there's a ceiling that
+would be stored for a dungeon or cave
+you wouldn't have a ceiling
+because you want to see all of it
+the way you would draw one of these is
+you'd switch to top down mode which
+would still do the we still have the
+same numbers for all the tiles but they
+were literally not
+at a 45 degree angle they were done top
+down and then you just draw a rectangle
+and that's the house
+if you Drew another rectangle it would
+merge them
+the perimeter of all of these rectangle
+or merged rectangles were the outer
+walls and we would
+know what you know do an outer corner or
+an inner Corner because those are the
+different Corner types and then walls
+along the perimeters
+if you had a rectangle drawn and it
+already had all the walls around it and
+you drew another rectangle that
+intersected it we would remove all those
+walls of in the intersection and just do
+the ones along the perimeter
+this did mean that
+if you wanted to add a interior wall
+later you had to go in and do it by hand
+but those were easy to do and didn't
+take much time
+the if you wanted to add a door or
+window what you did is you go back to
+isometric View and now you can see your
+house
+and you would
+click either on the door or the window
+and then you click on the wall and it
+would add a door
+there or window
+and for Windows it put a window where
+you clicked and then put the right
+closing part of it in the left closing
+part in the wall segments on either side
+so you couldn't put a window in a corner
+which was good couldn't put a door in a
+corner
+if you put then another window next to
+it it just extended it so you had a
+longer window so window window and then
+the bracket parts and you could do that
+all along all the way up to a corner
+doors were similar you could put down a
+door if you put a door next to it you're
+not a double door if you put down a
+third one it would check to see if there
+was a triple door if there wasn't it
+just didn't put anything so if you made
+a double door and you tried to make it a
+triple door you may not be able to but
+you could always go replace this with a
+wall and then click over here and now
+your double door is here instead of here
+this worked really well it let us make
+buildings super fast we laid out to rant
+really quickly but what's really good is
+because dungeons work the same way
+when you made a dungeon map you just
+made the entire background the solid
+rock background we had which I think was
+a bluish squiggly thing and then you
+would just draw in like here's a
+hallway I would put in the walls here's
+a room it would delete the wall segment
+at the end put in the perimeter of that
+room and the connector would be empty or
+that you could just walk right in and
+then you could go back to ISO and put a
+door there so this worked really well
+because we could make dungeons very
+quickly remember there were only like a
+dozen people on our Canon so this was
+super important
+this let us make
+any kind of structure a ruin a
+building a
+dungeon
+really really quickly the an nks work
+the same way this let us put it together
+really quickly with one person
+doing a lot of these things I think all
+the artists eventually made levels but
+one person could make an entire dungeon
+level really quickly then you just went
+in when you were back in isometric and
+you put the doors and then the interior
+walls you wanted then you'd place the
+props you'd you know Place bookcases and
+tables and chairs so this made the
+levels quick quick to add and because
+everything you were putting down were
+objects that had
+prototypes if you put down a table and a
+bunch of chairs nothing had to be stored
+other than this is the location this is
+in that there was a table out there a
+prototype table that stored all the
+important stuff you need to know about
+how the art ID and everything about that
+table
+this worked really well especially for
+because you did the floor and our
+footsteps depended on the floor
+texture it was very easy to change your
+footsteps and walked into a structure
+because you knew you were within the
+bounds of the structure and you knew
+what the floor was and the floor had
+like is it wood is it stone is it metal
+and you could get the corresponding
+footstep out of that
+structures also overrode the lighting so
+if you were outside and you went into a
+structure you were now inside and it
+knew also not to do the lighting
+using the outdoor lighting it would use
+whatever the structure had as lights
+inside of it this worked really well for
+us
+I know people who tried to mod Arcanum
+later were a little frustrated but both
+objects and their prototypes and
+structures were designed to minimize
+memory and make it possible for a dozen
+people to make
+the zillions of maps that we had in our
+kingdom
+so I hope this you know tickled your
+interest and
+brought to light some of the things that
+we did in Arcanum that was kind of cool

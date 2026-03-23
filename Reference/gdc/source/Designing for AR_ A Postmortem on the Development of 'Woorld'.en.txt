@@ -1,0 +1,643 @@
+[Music]
+hi everyone welcome to designing for AR postm on the development of world so
+postm on the development of world so before I get started I want to introduce
+before I get started I want to introduce you to myself what world is and possibly
+you to myself what world is and possibly what AR is for those who are
+what AR is for those who are unfamiliar so my name is Vu I'm a
+unfamiliar so my name is Vu I'm a software engineer at phenomena I work on
+software engineer at phenomena I work on world and wat um before that I was a
+world and wat um before that I was a software engineer at Maxis for 3 years I
+software engineer at Maxis for 3 years I worked on the Sim City that came out in
+worked on the Sim City that came out in 2013 and a bunch of gameplay prototypes
+2013 and a bunch of gameplay prototypes that probably won't see the L
+that probably won't see the L day uh before that I worked on an AR
+day uh before that I worked on an AR game called nerd herder where you try to
+game called nerd herder where you try to get office workers back into their
+get office workers back into their cubicles um you can kind of see it there
+cubicles um you can kind of see it there uh and even before that I worked on a
+uh and even before that I worked on a Rockham sakm AR game that was shown at
+Rockham sakm AR game that was shown at the release of the voria SDK back in
+the release of the voria SDK back in 2010 uh to clarify some things about
+2010 uh to clarify some things about this talk it's not going to be a
+this talk it's not going to be a technical talk where I'm going to show
+technical talk where I'm going to show code or anything like that it's going to
+code or anything like that it's going to be more about the lessons that we
+be more about the lessons that we learned and the techniques that worked
+learned and the techniques that worked for us in development developing
+world so what is Aug reality I'm sure a lot of you guys know otherwise you
+lot of you guys know otherwise you wouldn't be here but I'm going to
+wouldn't be here but I'm going to clarify just for those that might not
+clarify just for those that might not um in general I like to think that augy
+um in general I like to think that augy reality is like the layering of virtual
+reality is like the layering of virtual content onto the real world versus VR
+content onto the real world versus VR where it's more like immersing yourself
+where it's more like immersing yourself into another world taking you out of
+into another world taking you out of this reality
+this reality some of the examples of AR that you
+some of the examples of AR that you might have used in your current
+might have used in your current day-to-day could be like Pokémon go or
+day-to-day could be like Pokémon go or SnapChat lenses or the line of scrimmage
+SnapChat lenses or the line of scrimmage visualization in football just uh it's
+visualization in football just uh it's probably one of the most common versions
+probably one of the most common versions um so what is world world's a Whimsical
+um so what is world world's a Whimsical AR game designed by K Takahashi he's
+AR game designed by K Takahashi he's well known for games like Katamari Dy
+well known for games like Katamari Dy and Noby Noby boy is took about 3 to
+and Noby Noby boy is took about 3 to four months to develop and a small team
+four months to develop and a small team of about five people and a designer a
+of about five people and a designer a producer and audio designer and engineer
+producer and audio designer and engineer myself uh world's built on Unity using
+myself uh world's built on Unity using Tango as the augmentality platform uh
+Tango as the augmentality platform uh here's a video of world to get you guys
+here's a video of world to get you guys uh have a better understanding of what
+uh have a better understanding of what it
+[Music] is
+is [Music]
+[Music] for
+for [Music]
+for for
+[Music]
+all right so I hope that give you an idea of like how weird and silly this
+idea of like how weird and silly this game
+game is okay so let's move on to what is
+is okay so let's move on to what is Tango so Tango is Google's augmentality
+Tango so Tango is Google's augmentality platform that helps you do AR without
+platform that helps you do AR without the use of markers or GPS or anything
+the use of markers or GPS or anything like that it uses U an infrared
+like that it uses U an infrared technology similar to like connects or
+technology similar to like connects or Hollow lens to scan the environment and
+Hollow lens to scan the environment and let you do what you see here kind of
+let you do what you see here kind of imagining surfaces rather than um
+imagining surfaces rather than um discret
+images uh there are two devices that support Tango right now the Tango dev
+support Tango right now the Tango dev kit is one of them and the fabt pro by
+kit is one of them and the fabt pro by Lenovo that just came out this week for
+Lenovo that just came out this week for um consumer purchase they're both
+um consumer purchase they're both Android based devices um you hold them
+Android based devices um you hold them in your hand they're basically normal
+in your hand they're basically normal phones uh and that means you have a
+phones uh and that means you have a touchcreen so that gives us interaction
+touchcreen so that gives us interaction unlike Hollow or magic leap where you
+unlike Hollow or magic leap where you have to like do gestures or have some
+have to like do gestures or have some kind of
+controller when you start designing for Tango in general and AR in general
+Tango in general and AR in general there's some constraints you should
+there's some constraints you should think about uh such as the player having
+think about uh such as the player having full control of the camera a lot of
+full control of the camera a lot of people when they get it they'll just
+people when they get it they'll just stand there and like look at the floor
+stand there and like look at the floor for example because they don't know what
+for example because they don't know what to do they've never experienced it
+to do they've never experienced it before um so unlike normal games where
+before um so unlike normal games where they have the developer has control of
+they have the developer has control of like the ability to show cut scenes or
+like the ability to show cut scenes or animations um you can't really you have
+animations um you can't really you have to introduce players to look at things
+to introduce players to look at things and find ways to get them to pay
+and find ways to get them to pay attention to what you really want them
+attention to what you really want them to pay attention to uh I'm going to
+to pay attention to uh I'm going to guide you guys through some of the
+guide you guys through some of the techniques that we used and that worked
+techniques that we used and that worked for
+for us the next thing that uh you should
+us the next thing that uh you should consider is the environment itself so
+consider is the environment itself so unlike traditional VR games and AR
+unlike traditional VR games and AR traditional games and VR games the
+traditional games and VR games the content isn't complet authored like you
+content isn't complet authored like you to make a really good AR game you want
+to make a really good AR game you want to use the environment around you
+to use the environment around you directly um and Tango is capable of
+directly um and Tango is capable of mapping like everything including the
+mapping like everything including the ceilings the walls you know chairs
+ceilings the walls you know chairs tables
+tables whatever so you don't have any control
+whatever so you don't have any control so someone could play in a messy room
+so someone could play in a messy room like
+like that uh I'll be talking about some
+that uh I'll be talking about some visualizations and uh ways to use the
+visualizations and uh ways to use the environment to give a more meaningful AR
+environment to give a more meaningful AR experience in addition to camera
+experience in addition to camera controls and environments you have to
+controls and environments you have to deal with the regular limitations of um
+deal with the regular limitations of um Android devices and handle mobile
+Android devices and handle mobile devices today so that means like
+devices today so that means like worrying about uh performance from
+worrying about uh performance from physics straw calls and things like that
+physics straw calls and things like that but also thinking about how the tracking
+but also thinking about how the tracking algorithms and scanning algorithms
+algorithms and scanning algorithms meshing algorithms affect the total
+meshing algorithms affect the total performance of your application you had
+performance of your application you had to think about heat and Battery also
+to think about heat and Battery also since it's a handheld device this is
+since it's a handheld device this is someone's daily phone potentially so if
+someone's daily phone potentially so if you drain their battery in like 5
+you drain their battery in like 5 Seconds they're not going to play your
+Seconds they're not going to play your app ever
+app ever again um you also got to think about the
+again um you also got to think about the Comfort these current devices are pretty
+Comfort these current devices are pretty big like fa imagine a fablet so that's
+big like fa imagine a fablet so that's bigger than an iPhone 7 plus today um
+bigger than an iPhone 7 plus today um and they're
+and they're heavy okay so let's first talk about
+heavy okay so let's first talk about player
+player attention uh in world there's a story
+attention uh in world there's a story mode that we made that players have to
+mode that we made that players have to do specific actions and look at specific
+do specific actions and look at specific things or go to specific places uh to
+things or go to specific places uh to advance through the story so I'm going
+advance through the story so I'm going to give you guys some some of the
+to give you guys some some of the techniques that we use I break them up
+techniques that we use I break them up into two categories one is direct
+into two categories one is direct techniques or methods where they're
+techniques or methods where they're independent of where the player is
+independent of where the player is looking the other is indirect techniques
+looking the other is indirect techniques where it kind of helps guide the players
+where it kind of helps guide the players view to what you want them to
+view to what you want them to see the first technique is just
+see the first technique is just displaying um UI on the screen since we
+displaying um UI on the screen since we have a screen and people are already
+have a screen and people are already used to looking at it you have that uh
+used to looking at it you have that uh ability to just show flat
+ability to just show flat UI um we try to make it more effective
+UI um we try to make it more effective by showing uh animations as to grab
+by showing uh animations as to grab players attention in this case we have
+players attention in this case we have the menu person which is actually like a
+the menu person which is actually like a character that talks to you it kind of
+character that talks to you it kind of catches people off guard and so people
+catches people off guard and so people pay attention to it
+pay attention to it more uh the second me method we use is
+more uh the second me method we use is attaching objects to the camera so here
+attaching objects to the camera so here we have our character called person he's
+we have our character called person he's attached to the camera and giving
+attached to the camera and giving instructions to uh teach people how to
+instructions to uh teach people how to scan a room for the first time and we
+scan a room for the first time and we found this to be much more ganging than
+found this to be much more ganging than just like showing a text prompt uh
+just like showing a text prompt uh people like really respond to the
+people like really respond to the character's
+character's requests the next method is uh camera
+requests the next method is uh camera tracking so we have objects that fly
+tracking so we have objects that fly around and try to stay in front of the
+around and try to stay in front of the camera within view in this case we have
+camera within view in this case we have a rocket character that once you unlock
+a rocket character that once you unlock him he flies to the camera and delivers
+him he flies to the camera and delivers you some meaningful um dialogue about
+you some meaningful um dialogue about what to do next in the story in general
+what to do next in the story in general these methods convey like are used to
+these methods convey like are used to convey really important information
+convey really important information about how to even use Tango and devices
+about how to even use Tango and devices and and also Advance the story
+and and also Advance the story line the next set of methods are
+line the next set of methods are indirect methods the first one we use is
+indirect methods the first one we use is um teleportation into view where as the
+um teleportation into view where as the player is doing an action we teleport uh
+player is doing an action we teleport uh our main character next to that action
+our main character next to that action within view so that they get the proper
+within view so that they get the proper feedback they
+feedback they need um okay next we also use the
+need um okay next we also use the movement of characters to guide players
+movement of characters to guide players we found in our play test that people
+we found in our play test that people really like to look at these this little
+really like to look at these this little guy and just follow him everywhere like
+guy and just follow him everywhere like watch him climb walls and things like
+watch him climb walls and things like that so we use this to Advantage to
+that so we use this to Advantage to spawn meaning like the next steps nearby
+spawn meaning like the next steps nearby um this allowed people to kind of
+um this allowed people to kind of organically discover their space uh
+organically discover their space uh instead of just being told exactly where
+instead of just being told exactly where to
+to go okay finally we have um VFX trails
+go okay finally we have um VFX trails and this is kind of interesting because
+and this is kind of interesting because a lot since the viewp part is so small
+a lot since the viewp part is so small you have to guide the players to look at
+you have to guide the players to look at other things within that viewport so
+other things within that viewport so they could be looking at this flower for
+they could be looking at this flower for example and do an action in this case we
+example and do an action in this case we have the cloud that they've placed
+have the cloud that they've placed earlier produce these raindrops that
+earlier produce these raindrops that actually causes them to look up and
+actually causes them to look up and remember that they put the cloud there
+remember that they put the cloud there in the first
+place okay um so here's a example of all the techniques in
+the techniques in combination uh at first I'll let this
+combination uh at first I'll let this repeat the player is guided to this
+repeat the player is guided to this rocket by the character walk to it when
+rocket by the character walk to it when he uses the rocket it teleports a
+he uses the rocket it teleports a character so that the the action is
+character so that the the action is really meaningful and they know
+really meaningful and they know something's about to happen and then we
+something's about to happen and then we use a VFX Trail to help people see the
+use a VFX Trail to help people see the results of their actions and then you
+results of their actions and then you know move on to the next
+steps okay in addition to this we use the visual metaphor to show points of
+the visual metaphor to show points of interest like uh these question mark
+interest like uh these question mark textures appear on anything that has uh
+textures appear on anything that has uh interesting interactions that they
+interesting interactions that they haven't used before or forgot about so
+haven't used before or forgot about so to help remind them that these are
+to help remind them that these are interesting things that they could check
+interesting things that they could check out
+again so now that people are looking at the things you want them to look at uh
+the things you want them to look at uh we have to teach them how to interact
+we have to teach them how to interact with um those objects in real in 3D
+with um those objects in real in 3D space so the first thing we have is
+space so the first thing we have is tapping since we have a touchcreen
+tapping since we have a touchcreen tapping is a natural interaction that
+tapping is a natural interaction that people already understand so a lot of
+people already understand so a lot of objects have unique Behavior such as
+objects have unique Behavior such as breaking a rock to reveal a new item or
+breaking a rock to reveal a new item or uh maybe they'll play sound or let let
+uh maybe they'll play sound or let let you nudge them around the physics in the
+you nudge them around the physics in the world um we also have touch and drag
+world um we also have touch and drag which lets you move objects around
+which lets you move objects around really
+really intuitively you can just touch it and
+intuitively you can just touch it and drag it it's this immediate response
+drag it it's this immediate response that really effective to get people to
+that really effective to get people to see the virtual space that you've
+see the virtual space that you've created for
+them okay and then we also have um these magic hands that we tried early on that
+magic hands that we tried early on that kind of act as indirect placement
+kind of act as indirect placement mechanisms so you grab something by
+mechanisms so you grab something by tapping on the hand and then you tap the
+tapping on the hand and then you tap the hand again to place it down in the world
+hand again to place it down in the world we decided not to use this in the end
+we decided not to use this in the end because um it was kind of confusing for
+because um it was kind of confusing for people that are used to touch and drag
+people that are used to touch and drag they're not used to controller based
+they're not used to controller based games and things like
+that um we also have these grow and trink Rays we wanted to explore like uh
+trink Rays we wanted to explore like uh different mechanisms for interacting
+different mechanisms for interacting with objects so these Rays let you grow
+with objects so these Rays let you grow and Shrink things arbitrarily and it's
+and Shrink things arbitrarily and it's super fun to do just see like a giant
+super fun to do just see like a giant like pyramid in your
+room okay and then we also have this context menu that lets people easily
+context menu that lets people easily discover new abilities in items and
+discover new abilities in items and helped us design items so that you can
+helped us design items so that you can have super unique behaviors and multiple
+behaviors okay so let's look at some environmental interaction so when you're
+environmental interaction so when you're doing an AR game you don't want the
+doing an AR game you don't want the environment to just be static you don't
+environment to just be static you don't want them to just like float a Pokemon
+want them to just like float a Pokemon in space and have them not interact with
+in space and have them not interact with the world in any
+the world in any way so and also you want them to show
+way so and also you want them to show like you're using the space in a
+like you're using the space in a meaningful way so one of the things we
+meaningful way so one of the things we did is programmatically spawn objects
+did is programmatically spawn objects into the world and one of the techniques
+into the world and one of the techniques we use is you know relative placement to
+we use is you know relative placement to the camera a lot of uh since we know
+the camera a lot of uh since we know where the camera is and what you're
+where the camera is and what you're looking at and we also have a good idea
+looking at and we also have a good idea that you're looking at the person or
+that you're looking at the person or something nearby we can spawn another
+something nearby we can spawn another object using a r cast from the camera
+object using a r cast from the camera into the nearby location this kind of
+into the nearby location this kind of ensures that the player is able to see
+ensures that the player is able to see this
+object this image did not load
+load so okay hold
+so okay hold on I'm going to restart the okay so this
+on I'm going to restart the okay so this is using um relative placement so
+is using um relative placement so instead of using a rast from the camera
+instead of using a rast from the camera we're using rast from an object that the
+we're using rast from an object that the player recently placed into the world we
+player recently placed into the world we know that this is valid uh location
+know that this is valid uh location since they just did it and the only way
+since they just did it and the only way to actively play something is to put it
+to actively play something is to put it on a valid surface
+on a valid surface so where's my
+so where's my mouse okay next we have placement
+mouse okay next we have placement smoothing so normally if you just uh
+smoothing so normally if you just uh scan an environment it's super bumpy
+scan an environment it's super bumpy super noisy in many cases if you just
+super noisy in many cases if you just only use one recast you get this kind of
+only use one recast you get this kind of jittered movement where the object is
+jittered movement where the object is orienting all over the place so here on
+orienting all over the place so here on the bottom we're using ult sampling
+the bottom we're using ult sampling technique where we're casting a ray from
+technique where we're casting a ray from the center and also like four Rays at
+the center and also like four Rays at the perimeter to average out a better
+the perimeter to average out a better position for the
+objects okay um we also wanted to feel the let the player feel like they're
+the let the player feel like they're embodied in the space here we've
+embodied in the space here we've attached a collider to the camera
+attached a collider to the camera allowing players to push away physical
+allowing players to push away physical objects such as the cloud um this also
+objects such as the cloud um this also illustrates uh Presence by having the
+illustrates uh Presence by having the house open up as you get closer and all
+house open up as you get closer and all the flowers actually turn to look at you
+the flowers actually turn to look at you wherever you are
+so we also wanted the player to feel like it's really easy to hold the game
+like it's really easy to hold the game hold the device and play the game so one
+hold the device and play the game so one of the things we wanted to do was make
+of the things we wanted to do was make sure that any orientation worked so you
+sure that any orientation worked so you can play it in portrait or
+can play it in portrait or landscape and beyond that we also wanted
+landscape and beyond that we also wanted to teach players how to actually
+to teach players how to actually interact with ar in general and how to
+interact with ar in general and how to interact with our game um at first we
+interact with our game um at first we had all the interactions available with
+had all the interactions available with like simple text prompts to show like
+like simple text prompts to show like what did what and this was super
+what did what and this was super confusing for people and also paralyzing
+confusing for people and also paralyzing they just didn't know what to do because
+they just didn't know what to do because there's so
+there's so much so instead we made a staggered
+much so instead we made a staggered tutorial uh and I'm going to walk
+tutorial uh and I'm going to walk briefly through what we
+did why isn't it loading
+[Music]
+wonder if the internet I'm going to open up a different um slideshow
+okay so here we introduce the player to room scanning we use a uh texture that
+room scanning we use a uh texture that shows question marks to kind of show
+shows question marks to kind of show where they haven't been and a grid to
+where they haven't been and a grid to show where they have been and scanned
+show where they have been and scanned this is super effective because people
+this is super effective because people really like to try to get rid of all of
+really like to try to get rid of all of the the question marks we also use this
+the the question marks we also use this uh percentage to give an idea of like
+uh percentage to give an idea of like you've scanned enough so you're ready to
+you've scanned enough so you're ready to play um in addition to this we also did
+play um in addition to this we also did a first time user experience for people
+a first time user experience for people that have never tried AR and this is the
+that have never tried AR and this is the first time they've opened the app where
+first time they've opened the app where a person comes out and talks to you I
+a person comes out and talks to you I believe I showed an image
+earlier uh next we teach object placement so we intentionally give the
+placement so we intentionally give the player only one object at the bottom of
+player only one object at the bottom of their menu and show a drag indicator to
+their menu and show a drag indicator to help them understand that they can touch
+help them understand that they can touch and drag this and put it in their well
+and drag this and put it in their well when they do it we immediately
+when they do it we immediately instantiate it and it follows their
+instantiate it and it follows their finger around um you can see
+here next we also teach players that it's safe and okay to move around and so
+it's safe and okay to move around and so we first try to get the player to move
+we first try to get the player to move by just showing a cute animation of the
+by just showing a cute animation of the character popping out and enticing you
+character popping out and enticing you to come closer but a lot of people don't
+to come closer but a lot of people don't move they're like totally paralyzed like
+move they're like totally paralyzed like they don't know that they can move for
+they don't know that they can move for some
+some reason and so we show the move closer uh
+reason and so we show the move closer uh popup and that tends to always get them
+popup and that tends to always get them to
+to move next we show tapping as a common
+move next we show tapping as a common interaction this unlocks their first
+interaction this unlocks their first object which is a cloud and then we
+object which is a cloud and then we teach them that it's okay to drag things
+teach them that it's okay to drag things to any surface so part of the tutorial
+to any surface so part of the tutorial is we have them drag the cloud to the
+is we have them drag the cloud to the ceiling and this really opens up their
+ceiling and this really opens up their world to more than just playing on the
+floor and then at that point they have almost all they need to know except the
+almost all they need to know except the context menu where we teach them to use
+context menu where we teach them to use it to grow the Sprout so they tap the
+it to grow the Sprout so they tap the Sprout press the rain icon and then see
+Sprout press the rain icon and then see for the first time particles raining on
+for the first time particles raining on the Sprout and it's a a really um nice
+moment okay
+so I'm running out of time but I'm almost
+there okay so there's we wanted to really flexible gameplay uh Tango is
+really flexible gameplay uh Tango is kind of iffy sometimes when you're
+kind of iffy sometimes when you're scanning it can be really noisy it might
+scanning it can be really noisy it might miss areas and make holes in the mesh um
+miss areas and make holes in the mesh um and then objects can be lost all the
+and then objects can be lost all the time so we wanted super flexible and
+time so we wanted super flexible and easy to approach gameplay so first
+easy to approach gameplay so first there's no lose condition there's no
+there's no lose condition there's no wrong way to play you can place anything
+wrong way to play you can place anything anywhere um next is auto saving so if
+anywhere um next is auto saving so if you accidentally close your app or
+you accidentally close your app or something like that we do an auto saave
+something like that we do an auto saave so that you can easily recover
+so that you can easily recover then object recovery so we have a
+then object recovery so we have a mechanism for say if you lost an object
+mechanism for say if you lost an object behind a a wall somehow you can easily
+behind a a wall somehow you can easily bring it back in front of you and then
+bring it back in front of you and then place it again in the
+place it again in the world and then we have a sandbox mode
+world and then we have a sandbox mode that's completely free and lets people
+that's completely free and lets people explore AR for whatever they want to
+explore AR for whatever they want to do um virtual spaces so this is a early
+do um virtual spaces so this is a early rendering of our space we wanted to see
+rendering of our space we wanted to see if we could do something where we
+if we could do something where we generated like a virtual land but this
+generated like a virtual land but this really destroys the effect of AR this is
+really destroys the effect of AR this is much more a VR
+much more a VR so here's the same image with our
+so here's the same image with our current technique um we use a tripler
+current technique um we use a tripler texture uh Shader and so we shade
+texture uh Shader and so we shade different materials based on the surface
+different materials based on the surface of the the
+of the the mesh here we during gameplay we actually
+mesh here we during gameplay we actually only render a small radius around your
+only render a small radius around your cursor and around the player so that
+cursor and around the player so that it's not so noisy when you play we're
+it's not so noisy when you play we're also dynamically continuously meshing so
+also dynamically continuously meshing so that you can actually expand your play
+that you can actually expand your play space as you
+space as you play We also experimented with some
+play We also experimented with some subtraction techniques so here you can
+subtraction techniques so here you can see this hole is actually looks like
+see this hole is actually looks like it's cutting into the world uh and
+it's cutting into the world uh and here's a more extreme example where we
+here's a more extreme example where we have this huge cavernous space in the
+ceiling uh next we also experimented with tinting the image itself to give
+with tinting the image itself to give this Global lighting change effect which
+this Global lighting change effect which is really surprising to a lot of
+is really surprising to a lot of people um and further enhance the feel
+people um and further enhance the feel of the world we make sure the 3D cursor
+of the world we make sure the 3D cursor orients properly and also when you tap
+orients properly and also when you tap it shows an effect where it needs to
+it shows an effect where it needs to be oops do you want to take a picture
+be oops do you want to take a picture [Music]
+[Music] sorry right and also using the visual
+sorry right and also using the visual aesthetic that kada designed it's very
+aesthetic that kada designed it's very simple and St wise so it's really easy
+simple and St wise so it's really easy to accept this unrealistic movement of
+to accept this unrealistic movement of this character climbing walls and just
+this character climbing walls and just going up
+surfaces uh we also tried to do a lot of physicality to really Drive in the fact
+physicality to really Drive in the fact that this is in your real world so here
+that this is in your real world so here we have a cloud on a spring that reacts
+we have a cloud on a spring that reacts as if you expect it the same way you
+as if you expect it the same way you expect it to and we have some basic
+expect it to and we have some basic buoyancy simulation to further enhance
+buoyancy simulation to further enhance this
+feel um one thing we discovered pretty late was um thinking about object
+late was um thinking about object permanence so in a VR in an AR game you
+permanence so in a VR in an AR game you kind of want things to include virtual
+kind of want things to include virtual objects to make them feel more like
+objects to make them feel more like they're actually in the space but this
+they're actually in the space but this is adverse to gameplay because players
+is adverse to gameplay because players will lose the objects they place they
+will lose the objects they place they forget where they put it so we did this
+forget where they put it so we did this uh silhouette rendering to help them
+uh silhouette rendering to help them find
+find things all right so one of the technical
+things all right so one of the technical limitations of Tango was saving and
+limitations of Tango was saving and loading they wanted us to use their area
+loading they wanted us to use their area description file to save a an area but
+description file to save a an area but instead it didn't really give much
+instead it didn't really give much feedback that it was working and when it
+feedback that it was working and when it did work it just happened or not there's
+did work it just happened or not there's no percentage or anything like that so
+no percentage or anything like that so we came up with this technique where we
+we came up with this technique where we take an image of the place that you were
+take an image of the place that you were playing and then we do a um Edge
+playing and then we do a um Edge detection algorithm to let the player
+detection algorithm to let the player self-aligned their their world back in
+self-aligned their their world back in place and this was actually really
+place and this was actually really effective and people found it to be kind
+effective and people found it to be kind of
+fun um so quickly go over some optimization techniques for just mobile
+optimization techniques for just mobile and uh unity in general so make sure
+and uh unity in general so make sure you're doing pretty low poly this has
+you're doing pretty low poly this has just the same uh limitations of any 3D
+just the same uh limitations of any 3D game on mobile uh low poly share shaders
+game on mobile uh low poly share shaders and materials um also try to batch
+and materials um also try to batch objects to reduce rendering
+objects to reduce rendering draw calls
+oops and then also the newer devices have extremely high resolution so we're
+have extremely high resolution so we're actually rening the game in a much
+actually rening the game in a much smaller uh resolution and upscaling it
+smaller uh resolution and upscaling it to to gain a lot of
+to to gain a lot of performance so in unity we had issues
+performance so in unity we had issues with our load times it used to take like
+with our load times it used to take like 12 10 seconds and we discovered that if
+12 10 seconds and we discovered that if you set your audio to asynchronously
+you set your audio to asynchronously load it's much much faster uh you can
+load it's much much faster uh you can also Tech crunch textures to to reduce
+also Tech crunch textures to to reduce your APK size um this really helped us
+your APK size um this really helped us and then Atlas Sprites to get tons of
+and then Atlas Sprites to get tons of draw call back like a lot of games might
+draw call back like a lot of games might not do this for because it's not
+not do this for because it's not completely obvious and
+completely obvious and automatic and also use physics Slayers
+automatic and also use physics Slayers these are these will help you filter out
+these are these will help you filter out the hits you want and also improve
+the hits you want and also improve performance
+performance significantly okay uh one thing in unity
+significantly okay uh one thing in unity you can also modify it really well to
+you can also modify it really well to kind of simulate real world scanning um
+kind of simulate real world scanning um different orientations
+different orientations and we even added like a debug console
+and we even added like a debug console that lets you change languages and clear
+that lets you change languages and clear meshes and things like that it might be
+meshes and things like that it might be useful for you and iteration time and
+useful for you and iteration time and things like
+things like that so you basically can play the
+that so you basically can play the entire game in the
+entire game in the editor uh and also don't forget about
+editor uh and also don't forget about localization this is something we kind
+localization this is something we kind of left till the end but luckily we
+of left till the end but luckily we found a really good package on asset
+found a really good package on asset store to help us with
+this all right so some of the final takeaways just to remember be aware of
+takeaways just to remember be aware of the players presence and what they're
+the players presence and what they're looking at and the techniques that I
+looking at and the techniques that I just talked about to uh guide them to
+just talked about to uh guide them to see what they what you want them to
+see and then also be very adaptive to the environment you're not going to know
+the environment you're not going to know where your players is going to play they
+where your players is going to play they could be in a bathroom they could be in
+could be in a bathroom they could be in a plane and whatever you're doing needs
+a plane and whatever you're doing needs to work in anywhere
+basically and also remember to test like you don't know what's working in until
+you don't know what's working in until you give it to someone that's brand new
+you give it to someone that's brand new to this technology and have never played
+to this technology and have never played your game before you're always so close
+your game before you're always so close to it that you understand it intuitively
+to it that you understand it intuitively but other people will
+but other people will not and that's it do you guys have any
+questions the first slide okay oops
+what oh no I have to like go all the way
+the unity one or the mobile
+okay so Atlas price is like combining um all your 2D textures into one large
+all your 2D textures into one large texture to make it so it can do um
+texture to make it so it can do um basically all all your UI rendering in
+basically all all your UI rendering in one draw
+one draw call uh yes
+call uh yes what's very interesting about the the AR
+what's very interesting about the the AR script you're saying that Lo saving and
+script you're saying that Lo saving and loading was
+loading was unreliable and uh to do the overlay and
+unreliable and uh to do the overlay and then have play
+then have play manine how did that work was was that
+manine how did that work was was that fairly accurate accurate enough so it's
+fairly accurate accurate enough so it's not like super precise but uh since the
+not like super precise but uh since the game is so adaptable and we do a rescan
+game is so adaptable and we do a rescan anyways um the objects usually landed
+anyways um the objects usually landed close to where you originally put them
+close to where you originally put them and so because of our game's design it
+and so because of our game's design it was okay um but it also allowed you to
+was okay um but it also allowed you to just place things arbitrarily so you
+just place things arbitrarily so you could go load in a different room if you
+could go load in a different room if you wanted
+to yes yeah I have a question when you are developing in unity do you need to
+are developing in unity do you need to have a webcam and a scan every time or
+have a webcam and a scan every time or you have like a
+you have like a pregenerated so uh what we did was
+pregenerated so uh what we did was create a dynamic mesh that was
+create a dynamic mesh that was procedurally generated within the editor
+procedurally generated within the editor and so you could walk around and do
+and so you could walk around and do things within the editor so we simulated
+things within the editor so we simulated a real room instead of using a webcam or
+a real room instead of using a webcam or anything like that this isn't like a
+anything like that this isn't like a Euphoria where that would work um this
+Euphoria where that would work um this uses a different technology that emits
+uses a different technology that emits infrared Rays to scan the room so yeah
+infrared Rays to scan the room so yeah well I mean so you need to have
+well I mean so you need to have something pregenerated and how do you do
+something pregenerated and how do you do that in unity is part of your game or uh
+that in unity is part of your game or uh we did it procedurally but you could
+we did it procedurally but you could pull in a different model and have that
+pull in a different model and have that be on say a different layer or something
+be on say a different layer or something like that we're it's we're not using
+like that we're it's we're not using exactly the tech when we're doing it in
+exactly the tech when we're doing it in unity we're simulating a an
+unity we're simulating a an approximation um yeah and my final
+approximation um yeah and my final question is when you load the scene do
+question is when you load the scene do you have to be on the same room or what
+you have to be on the same room or what happens if you are in a very very
+happens if you are in a very very different room so like I said uh since
+different room so like I said uh since we're using not the area description
+we're using not the area description file you can just arbitrary load
+file you can just arbitrary load anywhere uh it won't align perfectly but
+anywhere uh it won't align perfectly but it'll let you have those objects again
+it'll let you have those objects again um yeah thank you no problem
+when you load into a new scene do you follow the physics of the room so that
+follow the physics of the room so that things will fall onto the ground or the
+things will fall onto the ground or the yes
+yes so I'm not sure if this picture really
+so I'm not sure if this picture really showed it but if you did have like
+showed it but if you did have like clouds and things they would rise again
+clouds and things they would rise again if they're uh in the balloon mode or if
+if they're uh in the balloon mode or if you had balls then they would fall into
+you had balls then they would fall into the water and things like that so
+the water and things like that so everything I save out the physics uh
+everything I save out the physics uh forces and everything too so they they
+forces and everything too so they they just kind of restore uh what middleware
+just kind of restore uh what middleware did you use other than unity and you
+did you use other than unity and you know the standard stuff that comes with
+know the standard stuff that comes with it um I only really use lean tween and a
+it um I only really use lean tween and a not lean yeah lean tween for a lot of
+not lean yeah lean tween for a lot of these like UI animations and um I2
+these like UI animations and um I2 localization for our localization
+localization for our localization support it has like integration with
+support it has like integration with Google Docs and uh Google Sheets
+Google Docs and uh Google Sheets everything else is custom like we even
+everything else is custom like we even wrote Our Own um audio system because wi
+wrote Our Own um audio system because wi wasn't working on the devices at the
+wasn't working on the devices at the time uh even the UI orientation stuff is
+time uh even the UI orientation stuff is custom because we wanted certain
+custom because we wanted certain elements to stay in place and didn't
+elements to stay in place and didn't want the software to the hardware to
+want the software to the hardware to handle that
+thanks I think we're almost out of time so
+uh I don't know I guess that's it w
+w [Applause]

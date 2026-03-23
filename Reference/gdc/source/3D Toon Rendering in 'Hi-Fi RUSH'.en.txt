@@ -1,0 +1,1089 @@
+[Music] hi everyone uh thanks for attending our
+hi everyone uh thanks for attending our session it's pretty late in the day but
+session it's pretty late in the day but thanks for making it out to hear our
+thanks for making it out to hear our talk uh this is tune rendering in Hi-Fi
+talk uh this is tune rendering in Hi-Fi rush and before we start uh GDC told us
+rush and before we start uh GDC told us to remind you to make sure your cell
+to remind you to make sure your cell phones don't make noise and uh fill up
+phones don't make noise and uh fill up the survey after the art
+talk okay we'd like to start off the talk with brief speaker introductions hi
+talk with brief speaker introductions hi I'm Kos I've been working as a graphics
+I'm Kos I've been working as a graphics programmer at Tango Gameworks since 2011
+programmer at Tango Gameworks since 2011 for high-fi rush I worked as lead
+for high-fi rush I worked as lead Graphics programmer working on our core
+Graphics programmer working on our core tune rendering I went from from bloody
+tune rendering I went from from bloody VFX for zombie head shot and Moody
+VFX for zombie head shot and Moody survival horror lighting to tune
+hi I takash I am a I am a graphics and
+takash I am a I am a graphics and physics
+physics programmer I've been working as a
+programmer I've been working as a programmer at Tang game marks since
+programmer at Tang game marks since 2016 on highi lash I was Graphics
+2016 on highi lash I was Graphics physics and animation programmer
+here's the agenda for today's talk I'll cover the core tune rendering topics in
+cover the core tune rendering topics in the blue frame and kada San will present
+the blue frame and kada San will present our tace shadow implementation in the
+our tace shadow implementation in the green
+frame okay I'm going to start off with a brief introduction of our
+game so before I start uh how many people here have played our game can you
+people here have played our game can you raise your hand oh wow that's that's a
+raise your hand oh wow that's that's a lot thank you
+lot thank you okay
+yeah okay okay great okay but some people didn't raise their hands so not
+people didn't raise their hands so not all of you have played our game so I'd
+all of you have played our game so I'd like to introduce our presentation popup
+like to introduce our presentation popup characters first the character on the
+characters first the character on the left kale is one of the enemy characters
+left kale is one of the enemy characters in the game since he's an evil guy he'll
+in the game since he's an evil guy he'll mostly be making difficult demands for
+mostly be making difficult demands for the graphics team the character
+the character in the middle chai is the main protagonist of the game since he's
+main protagonist of the game since he's our friendly hero he'll mostly be making
+our friendly hero he'll mostly be making enthusiastic comments and finally the
+enthusiastic comments and finally the robot on the John right is John despite
+robot on the John right is John despite not having a catchy food name John made
+not having a catchy food name John made a strong creative push for our TB
+a strong creative push for our TB visuals had a conveniently available
+visuals had a conveniently available texture and is high-fi Russ's creative
+texture and is high-fi Russ's creative director so I've included his
+comments okay it's the main topic of our talk today but high-fi Rush is a game
+talk today but high-fi Rush is a game utilizing tune rendering a lot of games
+utilizing tune rendering a lot of games use tune rendering for characters but
+use tune rendering for characters but not the environment in our game
+not the environment in our game everything is rendered in a tune style a
+everything is rendered in a tune style a big challenge for the graphics team was
+big challenge for the graphics team was how to utilize Unreal Engine fors modern
+how to utilize Unreal Engine fors modern Graphics Pipeline and make it work for a
+Graphics Pipeline and make it work for a 2d tune look
+another defining characteristic of our game is that we're a rhythm matching
+game is that we're a rhythm matching game that requires a rock solid 60fps in
+game that requires a rock solid 60fps in order to minimize input latency and
+order to minimize input latency and provide the best gameplay
+provide the best gameplay feel programmers and artists were told
+feel programmers and artists were told from the very start of development FPS
+from the very start of development FPS is top
+is top priority but at the same time we were
+priority but at the same time we were going to support the New Gen n hardware
+going to support the New Gen n hardware and the team wanted to pursue great
+and the team wanted to pursue great graphics that would do justice to the
+graphics that would do justice to the hardware with goals of great graphics
+hardware with goals of great graphics the keyword that are art director
+the keyword that are art director defined for the team were sharp clean
+defined for the team were sharp clean and
+and colorful I'll go over the technical
+colorful I'll go over the technical makeup of our attempt at great graphics
+makeup of our attempt at great graphics in more detail but notice that two of
+in more detail but notice that two of our key words were sharp and
+our key words were sharp and clean image quality was very important
+clean image quality was very important to us and in addition to high frame
+to us and in addition to high frame frame rate one of the key technical
+frame rate one of the key technical features of our game is its high
+features of our game is its high resolution we aim for Native resolutions
+resolution we aim for Native resolutions on our console targets for Sharp clean
+on our console targets for Sharp clean artifact free image quality we're aware
+artifact free image quality we're aware of super resolution Tech and we support
+of super resolution Tech and we support super resolution plugins for PC and
+super resolution plugins for PC and they're great because our resolution is
+they're great because our resolution is high to begin with they allowed us to
+high to begin with they allowed us to push the limits of our PC lowend specs
+push the limits of our PC lowend specs even further
+because we prioritize performance and image quality a nagging fear during
+image quality a nagging fear during development was that people would be
+development was that people would be disappointed by our technology in the
+disappointed by our technology in the end it was a great win for us that the
+end it was a great win for us that the game's Visual Arts was well received and
+game's Visual Arts was well received and we got great technical reviews balancing
+we got great technical reviews balancing performance resolution and rendering
+performance resolution and rendering features is hard as Graphics programmers
+features is hard as Graphics programmers were excited by new rendering Tech and
+were excited by new rendering Tech and want great graphics but our game
+want great graphics but our game emphasized performance and image quality
+emphasized performance and image quality and the rendering features we chose for
+and the rendering features we chose for the game were carefully considered so we
+the game were carefully considered so we could hit our
+goals if a graphics programmer were to introduce our game that would be it I'll
+introduce our game that would be it I'll now discuss our tune rendering starting
+now discuss our tune rendering starting off with an explanation of the cortech
+off with an explanation of the cortech our deferred tune
+our deferred tune renderer Hi-Fi Rush uses Unreal Engine
+renderer Hi-Fi Rush uses Unreal Engine for which out of the box it is a photo
+for which out of the box it is a photo realistic deferred renderer and not a
+realistic deferred renderer and not a tune renderer the lighting is forced but
+tune renderer the lighting is forced but this is what high-fi rush looks like
+this is what high-fi rush looks like when tune rendering features are
+when tune rendering features are disabled from the game the main pain
+disabled from the game the main pain point of the image is that if we were to
+point of the image is that if we were to use the default ue4 lighting there would
+use the default ue4 lighting there would be gradation everywhere and the image
+be gradation everywhere and the image ends up looking too much like it's
+ends up looking too much like it's rendered using a 3D engine
+this is the same scene rendered with tune rendering features re-enabled this
+tune rendering features re-enabled this is what we were going for as a tune look
+is what we were going for as a tune look Shadow gradation is replaced with
+Shadow gradation is replaced with sharper shadows and our comic Shader has
+sharper shadows and our comic Shader has been applied to the various 3D render
+been applied to the various 3D render passes adding a 2d touch to the image
+passes adding a 2d touch to the image this is what sharp clean and colorful
+this is what sharp clean and colorful looks like for
+us compared to past games with strictly Soul shaded environments we Inc
+Soul shaded environments we Inc incorporate a lot of 3D lighting
+incorporate a lot of 3D lighting rendering features into the game we
+rendering features into the game we added rendering passes like static
+added rendering passes like static Shadow maps and decal tune lights but we
+Shadow maps and decal tune lights but we also stylized and extended the excellent
+also stylized and extended the excellent based UE for graphics features such as
+based UE for graphics features such as ssao and SSR and made them work for cell
+ssao and SSR and made them work for cell shading it's possible to write a tune
+shading it's possible to write a tune renderer without engine modification in
+renderer without engine modification in ue4 in the simplest case of using U four
+ue4 in the simplest case of using U four post-process materials the TB
+post-process materials the TB postprocess is applied after the scene
+postprocess is applied after the scene lighting is finished and most of the
+lighting is finished and most of the rendering is
+rendering is complete it's the simplest approach and
+complete it's the simplest approach and we want it to do
+we want it to do better since we planned on supporting
+better since we planned on supporting many lighting features we wanted to be
+many lighting features we wanted to be able to apply tune stylization to each
+able to apply tune stylization to each lighting layer with their own
+lighting layer with their own stylization
+stylization parameters another thing we wanted to
+parameters another thing we wanted to improve on is that you for post-process
+improve on is that you for post-process materials are applied per camera we felt
+materials are applied per camera we felt that this was too restrictive and wanted
+that this was too restrictive and wanted to apply different tune colors and
+to apply different tune colors and stylizations to different areas within
+stylizations to different areas within the same
+the same camera to achieve our goal we customized
+camera to achieve our goal we customized Unreal Engine 4 and combined deferred
+Unreal Engine 4 and combined deferred lighting and TB post process into a
+lighting and TB post process into a single deferred tune rendering
+single deferred tune rendering pass here's a quick review a regular
+pass here's a quick review a regular deferred
+deferred rendering material information are
+rendering material information are rendered into g-buffer render targets
+rendered into g-buffer render targets and the lighting PA is decoupled from
+and the lighting PA is decoupled from the geometry pass Point lights are
+the geometry pass Point lights are rendered with sphere geometry and
+rendered with sphere geometry and spotlights are rendered with cone
+spotlights are rendered with cone geometry in a pass independent from the
+geometry in a pass independent from the geometry they are
+geometry they are Lighting in a similar fashion we want to
+Lighting in a similar fashion we want to decouple tune rendering into a pass
+decouple tune rendering into a pass separate from the mesh's actual geometry
+separate from the mesh's actual geometry rendering
+rendering our TB post-process volumes work like
+our TB post-process volumes work like deferred lights except the Shader is a
+deferred lights except the Shader is a postprocess light deferred lights our
+postprocess light deferred lights our artists can freely move around the toune
+artists can freely move around the toune postprocess volume to locally change the
+postprocess volume to locally change the tune
+rendering in the slide video when I move the billboard mesh inside the smaller
+the billboard mesh inside the smaller tune post process volume notice that its
+tune post process volume notice that its tune rendering changes at its core our t
+tune rendering changes at its core our t post-process volumes are using standard
+post-process volumes are using standard deferred rendering calculations we use
+deferred rendering calculations we use the scene depth to recreate the world
+the scene depth to recreate the world position and use g-buffer information to
+position and use g-buffer information to apply the volumes to postprocessing on
+apply the volumes to postprocessing on not the volume box geometry but the
+not the volume box geometry but the underlying scene
+geometry our environment artists Place many Tom post process box volumes
+many Tom post process box volumes throughout our Levels by placing these
+throughout our Levels by placing these volumes our artists adjust tune shading
+volumes our artists adjust tune shading locally per volume within each area of
+locally per volume within each area of the
+level the above is a PIX for Windows capture of the timeline for our deferred
+capture of the timeline for our deferred tune rendering pipeline I'm showing you
+tune rendering pipeline I'm showing you the render passes that are executed in
+the render passes that are executed in an actual scene in preparation for the
+an actual scene in preparation for the tomb postprocess pass the render pass of
+tomb postprocess pass the render pass of the Vox volumes in the previous
+slides quite a few render targets end up getting generated for the Tom post
+getting generated for the Tom post process past my earlier test map was
+process past my earlier test map was very simple looking but there are quite
+very simple looking but there are quite a bit more lighting layers in an actual
+a bit more lighting layers in an actual scene tune shaded environments tend to
+scene tune shaded environments tend to look simplified but there are a lot of
+look simplified but there are a lot of layers to our Environmental
+Lighting because our deferred tune rendering is a combination of tune
+rendering is a combination of tune lighting and tune post process notice
+lighting and tune post process notice that the scene color is completely
+that the scene color is completely except for emiss before the tune
+except for emiss before the tune postprocess rendering is applied a
+postprocess rendering is applied a regular deferred renderer has seene
+regular deferred renderer has seene depth and G buffers for deferred tune
+depth and G buffers for deferred tune rendering we have seen that g buffers
+rendering we have seen that g buffers plus the various individual lighting
+plus the various individual lighting pass results all waiting to be
+applied the TST process has available to it all these render targets what do we
+it all these render targets what do we do with them because we have all
+do with them because we have all lighting results as input textures as
+lighting results as input textures as was one of our initial goals we can
+was one of our initial goals we can apply comic stylization to each lighting
+apply comic stylization to each lighting layer with individual
+parameters because we apply all Shadow types to the scene inside the Tom post
+types to the scene inside the Tom post process pass we can easily control the
+process pass we can easily control the visual look when different Shadow types
+visual look when different Shadow types overlap for example when the player
+overlap for example when the player Shadow is drawn inside our cascaded
+Shadow is drawn inside our cascaded shadow Maps we can detect this overlap
+shadow Maps we can detect this overlap and adjust the player Shadow Darkness so
+and adjust the player Shadow Darkness so it doesn't appear too dark or light
+it doesn't appear too dark or light stylized shadows and side Shadows is a
+stylized shadows and side Shadows is a very cool tune thing and we want it to
+very cool tune thing and we want it to make it look
+good ue4 has a greatl looking deferred rendering implementation and it was a
+rendering implementation and it was a natural progression for us to extend it
+natural progression for us to extend it to a deferred tune
+to a deferred tune renderer we tried to utilize U for
+renderer we tried to utilize U for strengths but at the same time didn't
+strengths but at the same time didn't want to lose our own visual personality
+want to lose our own visual personality by using the engine to
+by using the engine to directly locally tun shading different
+directly locally tun shading different areas by placing T postprocess volumes
+areas by placing T postprocess volumes like deferred lights seemed like good
+like deferred lights seemed like good usability for our artists deferring all
+usability for our artists deferring all lighting and T post processes into a
+lighting and T post processes into a single pass made sense because we wanted
+single pass made sense because we wanted our artist to be able to control how
+our artist to be able to control how different lighting layers combine and
+different lighting layers combine and interact for
+tune okay that was an overview of our deferred tune rendering next I'd like to
+deferred tune rendering next I'd like to highlight unique aspects of our tune
+highlight unique aspects of our tune lighting during deferred tune rendering
+lighting during deferred tune rendering I'll cover Shadow color 3D textures and
+I'll cover Shadow color 3D textures and ambient CU Maps the major requirement
+ambient CU Maps the major requirement for our tune lighting was artists need
+for our tune lighting was artists need to be able to add color and adjust
+to be able to add color and adjust brightness but it can't look to
+brightness but it can't look to 3D to make the scene not look artificial
+3D to make the scene not look artificial for tune artist artists need to be a
+for tune artist artists need to be a able to paint the colors
+themselves environment artists need a way to give color to each location our
+way to give color to each location our art director's keywords were sharp clean
+art director's keywords were sharp clean and colorful so it was important that
+and colorful so it was important that artists be able to control the
+artists be able to control the environment Shadows with the colors they
+environment Shadows with the colors they wanted in the slide image the shadow
+wanted in the slide image the shadow color is a uniform
+color is a uniform black this is what the scene looks like
+black this is what the scene looks like with Shadow color volumes applied the
+with Shadow color volumes applied the black Shadows are now properly colored
+black Shadows are now properly colored with our artist authored shadow colors
+with our artist authored shadow colors I'll explain in more detail in the
+I'll explain in more detail in the following slides but Shadow color
+following slides but Shadow color volumes work by mapping a 3D texture to
+volumes work by mapping a 3D texture to a 3D World
+position here in the slide video I'm adding a new a new local Shadow color
+adding a new a new local Shadow color volume to the scene with a whiter grayer
+volume to the scene with a whiter grayer Shadow color 3D texture the rendering of
+Shadow color 3D texture the rendering of the Shadow color volumes is like our T
+the Shadow color volumes is like our T post process volume rendering the
+post process volume rendering the Shadows are not applied to the V volume
+Shadows are not applied to the V volume box geometry but are projected onto the
+box geometry but are projected onto the geometry enclosed by the
+geometry enclosed by the box if we look carefully the shadow
+box if we look carefully the shadow color volume colors gradually become
+color volume colors gradually become darker with increasing height this
+darker with increasing height this positional color change happens because
+positional color change happens because the enclosed surface W position is
+the enclosed surface W position is converted into the shadow color volume's
+converted into the shadow color volume's normalized local 3D coordinates and this
+normalized local 3D coordinates and this coinet is used to sample the 3D texture
+coinet is used to sample the 3D texture the gradually changing colors inside the
+the gradually changing colors inside the 3D textures are hand adjusted by artists
+3D textures are hand adjusted by artists to give the desired Shadow color Nuance
+to give the desired Shadow color Nuance our art director wants for the
+scene here's an interior scene and its corresponding Shadow color 3D texture
+corresponding Shadow color 3D texture for interior scenes our environment is
+for interior scenes our environment is initially unlit and in Shadow and we
+initially unlit and in Shadow and we light by adding lighting layers to this
+light by adding lighting layers to this state because the scene is initially in
+state because the scene is initially in Shadows artists can use Shadow color
+Shadows artists can use Shadow color volumes to adjust the overall base color
+volumes to adjust the overall base color makeup of the
+scene in addition to 3D textures for shadow colors we also use Cube maps for
+shadow colors we also use Cube maps for postprocess ambient brightness
+adjustments like with our shadow color volumes we apply ambient Q maps to the
+volumes we apply ambient Q maps to the underlying geometry using a box
+underlying geometry using a box volume as mentioned earlier our interior
+volume as mentioned earlier our interior scenes are initially unlit and to this
+scenes are initially unlit and to this state we add lighting layers one of
+state we add lighting layers one of which is ambient Cube
+which is ambient Cube Maps Cube Maps need a sampling Direction
+Maps Cube Maps need a sampling Direction because we are a deferred tune renderer
+because we are a deferred tune renderer we can use a world normal stored in the
+we can use a world normal stored in the G buffer for this
+G buffer for this purpose in the slide image the ambient
+purpose in the slide image the ambient Cube map volume is being toggled on and
+Cube map volume is being toggled on and off notice that in the scene the
+off notice that in the scene the underside of the surface is lit brighter
+underside of the surface is lit brighter than the top in the sides representing a
+than the top in the sides representing a difference in directional ambient
+difference in directional ambient brightness this this directional
+brightness this this directional brightness comes from the Cub map
+brightness comes from the Cub map texture which are environment artists
+texture which are environment artists create by
+hand okay I'd like in the next section I'd like to talk about our comic
+shaders it's a recognizable trait of our tune look but we implemented a comic
+tune look but we implemented a comic Shader for rendering half tone dots and
+Shader for rendering half tone dots and hatching
+hatching lines half tone dots are the round dots
+lines half tone dots are the round dots that we apply to the lip portions of our
+that we apply to the lip portions of our lighting hatching lines are the rotated
+lighting hatching lines are the rotated lines we apply to the dark shadowed
+lines we apply to the dark shadowed areas of
+lighting the goal of our tune renderer is to render a 3D world as 2D
+is to render a 3D world as 2D tune our comic Shader is a stylization
+tune our comic Shader is a stylization but at the same time it's an important
+but at the same time it's an important element in our deferred tune rendering
+element in our deferred tune rendering for making the world look less 3D and
+for making the world look less 3D and more 2D
+more 2D tune here's what a scene from our game
+tune here's what a scene from our game looks like with the comic Shader turned
+looks like with the comic Shader turned off ssao gii Bloom make the world look
+off ssao gii Bloom make the world look richer but since we're just applying 3D
+richer but since we're just applying 3D engine functionality the final image
+engine functionality the final image looks
+looks 3D also the performance oriented low
+3D also the performance oriented low sample count nature of some of our
+sample count nature of some of our rendering passes become especially
+rendering passes become especially noticeable on our clean tune
+textures here's what the scene looks like with the comic Shader
+like with the comic Shader enabled the scene is stylized but at the
+enabled the scene is stylized but at the same time gradation is removed making
+same time gradation is removed making everything look less 3D the dirty look
+everything look less 3D the dirty look of GI and ssao have been made sharper
+of GI and ssao have been made sharper with lines and dots and the image looks
+with lines and dots and the image looks much cleaner
+here's the comic Shader on off as an
+animation 2D sign distance functions are often used in procedural shaders for our
+often used in procedural shaders for our comic shaders programmers use sdfs to
+comic shaders programmers use sdfs to create the comic Shader half tones and
+create the comic Shader half tones and hatching lines procedurally inside our
+hatching lines procedurally inside our shaders we just B do basic stuff in
+shaders we just B do basic stuff in terms of SDF but for clarity I'll go
+terms of SDF but for clarity I'll go over an examp example half tone
+over an examp example half tone Shader my example is a postprocess which
+Shader my example is a postprocess which uses screen space
+uses screen space UVS the first step is to calculate the
+UVS the first step is to calculate the distance from the center of the screen
+distance from the center of the screen if this distance is below the half tone
+if this distance is below the half tone radius we draw a white color if the
+radius we draw a white color if the distance is above the half tone radius
+distance is above the half tone radius we draw a black
+we draw a black color we C we take into consideration
+color we C we take into consideration the aspect ratio to go from a ellipse to
+the aspect ratio to go from a ellipse to a
+a circle we want large we don't want large
+circle we want large we don't want large circular dots but want multiple smaller
+circular dots but want multiple smaller dots in a grid across the screen using
+dots in a grid across the screen using the Frack instruction we scale and wrap
+the Frack instruction we scale and wrap the screen space
+UVS art wanted half tones rotated 45° for this we just rotate the grid
+45° for this we just rotate the grid UV because we are using a simple 01 step
+UV because we are using a simple 01 step function for the distance function
+function for the distance function threshold aliasing can occur
+by using smooth step instead of step and Alpha blending the boundary regions of
+Alpha blending the boundary regions of the halone dots we can implement
+the halone dots we can implement anti-aliasing the area inside the Yellow
+anti-aliasing the area inside the Yellow Frame is the width of the smooth step
+Frame is the width of the smooth step function where AA is applied since we
+function where AA is applied since we want to apply anti-aliasing only on the
+want to apply anti-aliasing only on the threshold border pixel we use DDX ddy
+threshold border pixel we use DDX ddy instructions to calculate the per pixel
+instructions to calculate the per pixel rate of change of the distance function
+rate of change of the distance function and use this value as the basis for our
+width UE for's temporal AA blurs the half tones so the AA is only obviously
+half tones so the AA is only obviously noticeable on half tones applied after
+noticeable on half tones applied after TAA such as our Bloom half tones the
+TAA such as our Bloom half tones the difference also becomes not very
+difference also becomes not very noticeable with camera movement so the
+noticeable with camera movement so the benefits of AA is somewhat limited for
+benefits of AA is somewhat limited for us but we kept the calculations for the
+us but we kept the calculations for the moments that the user might notice the
+moments that the user might notice the difference
+difference so that was an explanation of half tones
+so that was an explanation of half tones are rendered using screen space UVS
+are rendered using screen space UVS hatching lines are the same Shader code
+hatching lines are the same Shader code just with uvy fixed to
+just with uvy fixed to zero for effects such as Bloom and
+zero for effects such as Bloom and volumetric fog we use screen space UV
+volumetric fog we use screen space UV coordinates in actual scenes we don't do
+coordinates in actual scenes we don't do anything complicated an example Shader
+anything complicated an example Shader is close to how we render actual in-game
+is close to how we render actual in-game screen space Hal tones
+screen space Hal tones screen space UVS work well for stuff
+screen space UVS work well for stuff without B such as Bloom and volumetric
+without B such as Bloom and volumetric fog but on actual polygonal surfaces we
+fog but on actual polygonal surfaces we want our half tones and lines to look as
+want our half tones and lines to look as though they are printed on the surface
+though they are printed on the surface and not attached to the front of the
+and not attached to the front of the camera for these cases we use World
+camera for these cases we use World space
+space UVS to calculate the world space UV we
+UVS to calculate the world space UV we use the G buffer World space normal to
+use the G buffer World space normal to calculate the dominant axis of the
+calculate the dominant axis of the surface and just project on to this
+surface and just project on to this axis's plane for example if the zv value
+axis's plane for example if the zv value is largest in the is the largest
+is largest in the is the largest direction of the world normal we want to
+direction of the world normal we want to project onto the XY plane and so we
+project onto the XY plane and so we simply use a scaled World position XY as
+simply use a scaled World position XY as our UV
+our UV coordinates for intersections of planes
+coordinates for intersections of planes we don't use tripler mapping we
+we don't use tripler mapping we experiment with it but blending
+experiment with it but blending artifacts were noticeable and we simply
+artifacts were noticeable and we simply project onto a single plane I didn't get
+project onto a single plane I didn't get complaints about the half tones and
+complaints about the half tones and lines cutting off at the plane
+lines cutting off at the plane intersections and the final
+intersections and the final implementation was kept
+simple one important one final important feature of our comic
+feature of our comic Shader because we prely generate our
+Shader because we prely generate our half tones in lines we can easily adjust
+half tones in lines we can easily adjust their look based on the scene lighting
+their look based on the scene lighting conditions we use seene luminance to
+conditions we use seene luminance to adjust half tone and hatching line sizes
+adjust half tone and hatching line sizes for the image in the slide the GI Hal
+for the image in the slide the GI Hal tones become larger the closer to the
+tones become larger the closer to the emissive light source and smaller the
+emissive light source and smaller the further away it's a simple technique
+further away it's a simple technique that allows us to express the lighting's
+that allows us to express the lighting's distance attenuation while avoiding
+distance attenuation while avoiding gradation which makes our scene look
+gradation which makes our scene look more computer
+generated okay the next section I'd like to move on to our tune
+lights HiFi rushes tune shading uses a simple two-tone Lich shade tune shading
+simple two-tone Lich shade tune shading model the tune shadings lit shade
+model the tune shadings lit shade calculation is not performed in a
+calculation is not performed in a deferred pass but is calculated by a
+deferred pass but is calculated by a global key light that is forward
+global key light that is forward rendered in UE fors base
+rendered in UE fors base pass we chose the Ford render our key
+pass we chose the Ford render our key lights because we could do so without
+lights because we could do so without ue4 engine
+ue4 engine modifications in later stages of
+modifications in later stages of development we began you utilizing ue4
+development we began you utilizing ue4 render commands for data passing and
+render commands for data passing and render thread delegates for render pass
+render thread delegates for render pass callbacks that would allow us to
+callbacks that would allow us to implement original render passes gam
+implement original render passes gam side we're now more experienced about
+side we're now more experienced about how to approach u4 engine modifications
+how to approach u4 engine modifications but that realization came after our core
+but that realization came after our core Tech was
+Tech was implemented we eventually needed to
+implemented we eventually needed to support two key lights and it may have
+support two key lights and it may have been more performant to associate the
+been more performant to associate the key light with a Tom post process volume
+key light with a Tom post process volume and render it in the later deferred past
+and render it in the later deferred past our lighting's mix of deferred and board
+our lighting's mix of deferred and board is probably something we can improve
+is probably something we can improve on besides key lights artists can use
+on besides key lights artists can use familiar light actors such as Point
+familiar light actors such as Point lights and spotlights to perform local
+lights and spotlights to perform local Environmental
+Environmental Lighting for placable lights again we
+Lighting for placable lights again we supported forward lights for the same
+supported forward lights for the same reason as key lights a lot of smaller
+reason as key lights a lot of smaller teams probably struggle with this but
+teams probably struggle with this but how much ue4 engine modification is safe
+how much ue4 engine modification is safe is something we struggled with
+is something we struggled with especially es in the earlier phases of
+especially es in the earlier phases of development we initially experimented
+development we initially experimented with forward lights but decal lights
+with forward lights but decal lights which run in an original deferred paths
+which run in an original deferred paths were easier to optimize and eventually
+were easier to optimize and eventually more useful for our artists my tlight
+more useful for our artists my tlight explanation will focus on decal lights
+explanation will focus on decal lights since they're more
+interesting usually with placeable light actors in a 3D engine light distance
+actors in a 3D engine light distance attenuation is ex is expressed with
+attenuation is ex is expressed with color gradation for Hi-Fi Rush this was
+color gradation for Hi-Fi Rush this was a big no because using gradation led to
+a big no because using gradation led to the scene looking
+the scene looking 3D in addition to half tones and
+3D in addition to half tones and hatching lines we use cutouts to 2D
+hatching lines we use cutouts to 2D stylize our tune light distance
+stylize our tune light distance attenuation the colors become darker the
+attenuation the colors become darker the F further away from the light source in
+F further away from the light source in cutout
+steps the scene in the slide looks unlit add a decal light with cutout light
+add a decal light with cutout light attenuation and the scene is lit by a 3D
+attenuation and the scene is lit by a 3D light without making the scene look
+light without making the scene look 3D decal lights support arbitrary cutout
+3D decal lights support arbitrary cutout textures our art director prepared seven
+textures our art director prepared seven cutout texture patterns to give
+cutout texture patterns to give variation to the decal lights used
+variation to the decal lights used throughout our
+Maps decal lights are Hi-Fi Russia's deferred lights and so when a decal
+deferred lights and so when a decal light is placed in the world they are
+light is placed in the world they are deferred rendered with a sphere or cone
+deferred rendered with a sphere or cone geometry just like regular deferred
+lights decal lights namesake and what makes them special is that they can be
+makes them special is that they can be assigned to a decal light decal volume
+assigned to a decal light decal volume to render as a
+to render as a decal environment artists can place
+decal environment artists can place lights as light sources in a traditional
+lights as light sources in a traditional way but they can limit the projection
+way but they can limit the projection volume of the light separately using
+volume of the light separately using decal volumes
+one obvious benefit of projecting to a decal volume is a smaller area to render
+decal volume is a smaller area to render and better
+and better performance in addition to Performance
+performance in addition to Performance decal lights provide finer artistic
+decal lights provide finer artistic control over which parts of the
+control over which parts of the environment the light affects for
+environment the light affects for example we can add a separate decal
+example we can add a separate decal light with its own projection texture
+light with its own projection texture specifically to light the
+specifically to light the wall the scene displays a star out
+wall the scene displays a star out projection for the ground but a tier
+projection for the ground but a tier cutout projection for the
+wall in The Evil Within too our PBR lights could use clip volumes to prevent
+lights could use clip volumes to prevent spotlights from light leaking to the
+spotlights from light leaking to the Next Room decal light decal volumes also
+Next Room decal light decal volumes also function as clip volumes and can prevent
+function as clip volumes and can prevent light
+leaking some of you might be wondering doesn't decal volumes mean characters
+doesn't decal volumes mean characters are properly lit let's try lighting our
+are properly lit let's try lighting our game's hero chai with a decal
+game's hero chai with a decal light in Hi-Fi Rush character lighting
+light in Hi-Fi Rush character lighting is a separate system from Environmental
+is a separate system from Environmental Lighting forward lights and decal lights
+Lighting forward lights and decal lights don't affect
+characters next I'd like to explain what we do for shadows in Hi-Fi Rush
+having proper Shadows for the environment and characters is extremely
+environment and characters is extremely important for Quality even in tune
+important for Quality even in tune rendering Shadows can be very
+rendering Shadows can be very performance in intensive if applied
+performance in intensive if applied without a strategy in ue4 Shadows look
+without a strategy in ue4 Shadows look good but can be costly to balance
+good but can be costly to balance quality and performance we were very
+quality and performance we were very careful in how we chose to render our
+shadows we limit Shadow casting lights for performance t lights are unable to
+for performance t lights are unable to cast
+cast Shadows for outdoor environmental
+Shadows for outdoor environmental Shadows we use ue4 standard cascaded
+Shadows we use ue4 standard cascaded Shadow Maps we have our own pre-bake
+Shadow Maps we have our own pre-bake static Shadow map system and use it for
+static Shadow map system and use it for parts of directional Light Shadows for
+parts of directional Light Shadows for performance but for the most part we
+performance but for the most part we needed the extra quality that Dynamic
+needed the extra quality that Dynamic shadow cascaded shadow Maps provide us
+shadow cascaded shadow Maps provide us with for dynamic Shadows other than
+with for dynamic Shadows other than cascaded Shadow Maps artists are
+cascaded Shadow Maps artists are required to use Shadow only Lights
+required to use Shadow only Lights Shadow only lights are customized ue4
+Shadow only lights are customized ue4 PBR lights specializing in only casting
+PBR lights specializing in only casting Dynamic Shadows because we were going
+Dynamic Shadows because we were going for a 2d tune look having different
+for a 2d tune look having different lights for lighting and shadowing was
+lights for lighting and shadowing was not a
+problem an exclusive Shadow only light was assigned to the player
+was assigned to the player character in outdoor areas the player
+character in outdoor areas the player Shadow is not drawn by by the cascaded
+Shadow is not drawn by by the cascaded shadow mod but by this separate player
+shadow mod but by this separate player exclusive Shadow only
+light giant bosses are allowed their own shadow only light because their Shadows
+shadow only light because their Shadows can look very
+can look very dramatic the character Shadow only light
+dramatic the character Shadow only light in the slide doesn't cast Shadows from
+in the slide doesn't cast Shadows from the player or the environment and only
+the player or the environment and only cast Shadows from the giant
+boss player shadows and some of our static Shadow maps are drawn with
+static Shadow maps are drawn with stylization for the shadow to light
+stylization for the shadow to light transition the hatching lines become
+transition the hatching lines become thinner the further away the shadow
+thinner the further away the shadow becomes from the shadow casting object
+becomes from the shadow casting object representing a 2d tun style light Shadow
+representing a 2d tun style light Shadow to light
+transition non-player characters use the more coste effective capsule Shadows for
+more coste effective capsule Shadows for their
+their shadowing capsule Shadows are standard
+shadowing capsule Shadows are standard ue4 functionality artists prepare
+ue4 functionality artists prepare capsule shapes to approximate the
+capsule shapes to approximate the character mes
+character mes and these shapes are used to calculate
+and these shapes are used to calculate per pixel visibility towards a global
+per pixel visibility towards a global Right light direction to approximate
+Right light direction to approximate soft Shadows it wouldn't work for a
+soft Shadows it wouldn't work for a photo realistic game but we can get away
+photo realistic game but we can get away with the Blobby look of capsule Shadows
+with the Blobby look of capsule Shadows because we are
+tuned because capsule Shadows don't require shadow shadow casting local
+require shadow shadow casting local lights we get coste effective character
+lights we get coste effective character shadows Outdoors indoors regardless of
+shadows Outdoors indoors regardless of lighting
+conditions capsule Shadows become too large and disperse for small characters
+large and disperse for small characters that are floating in the air far away
+that are floating in the air far away from the ground for these characters we
+from the ground for these characters we implemented a simple AO volume decal
+implemented a simple AO volume decal system CPU raycasts are used to find the
+system CPU raycasts are used to find the proper decal placement World
+proper decal placement World position finally we also allow a single
+position finally we also allow a single Shadow only Spotlight for the
+Shadow only Spotlight for the environment team and that's all they get
+environment team and that's all they get it's
+a they worked hard for the scene in the slide a shadow only light casts
+slide a shadow only light casts exclusively from the moving giant robot
+exclusively from the moving giant robot arms the only thing Shadow only lights
+arms the only thing Shadow only lights can do is cast Shadows but just like for
+can do is cast Shadows but just like for the character boss Shadows a well-placed
+the character boss Shadows a well-placed shadow Spotlight can be very dramatic in
+shadow Spotlight can be very dramatic in a tune
+look I've mentioned we have a static Shadow map system I'd like to explain
+Shadow map system I'd like to explain this system in more depth in this next
+this system in more depth in this next section static Shadow maps are offline
+section static Shadow maps are offline baked Shadow Maps they are important for
+baked Shadow Maps they are important for us both in terms of performance and
+us both in terms of performance and artist ease of use u4 has a static
+artist ease of use u4 has a static Shadow map system which is integrated
+Shadow map system which is integrated into light Mass baking but we created it
+into light Mass baking but we created it our own for better integration with our
+our own for better integration with our deferred tune rendering pipeline
+Shadow mapping is composed of two steps the first step is light SP space depth
+the first step is light SP space depth map generation from the perspective of
+map generation from the perspective of the Shadow casting light the second step
+the Shadow casting light the second step is comparing the pixel's light space
+is comparing the pixel's light space depth against the depth map to generate
+depth against the depth map to generate the actual Shadow map what we pre-bake
+the actual Shadow map what we pre-bake in static Shadow Maps is the first step
+in static Shadow Maps is the first step map capture
+map capture step in the slide image I'm toggling on
+step in the slide image I'm toggling on and off the static Shadow map display
+and off the static Shadow map display their environment team has strict
+their environment team has strict limitations on Dynamic Shadow map usage
+limitations on Dynamic Shadow map usage and interior environmental shadows will
+and interior environmental shadows will typically Disappear Completely without
+typically Disappear Completely without static Shadow
+static Shadow maps by placing static Shadow map actors
+maps by placing static Shadow map actors in the environment environment artists
+in the environment environment artists can use static Shadow Maps the static
+can use static Shadow Maps the static Shadow map actor is composed of two
+Shadow map actor is composed of two components a scene capture camera for
+components a scene capture camera for capturing the depth map and a deferred
+capturing the depth map and a deferred box volume for rendering The Shadow
+box volume for rendering The Shadow map when the static Shadow map actor is
+map when the static Shadow map actor is selected the captured depth map is
+selected the captured depth map is displayed in the lower right corner of
+displayed in the lower right corner of the screen in the
+the screen in the editor artists use the dep map preview
+editor artists use the dep map preview in the lower right portion of the screen
+in the lower right portion of the screen to manually maximize dep map coverage of
+to manually maximize dep map coverage of Shadow casters to sha to improve Shadow
+Shadow casters to sha to improve Shadow map
+map quality standard comparisons between the
+quality standard comparisons between the pixel's light space depth position and
+pixel's light space depth position and the depth map Maps light space depth
+the depth map Maps light space depth position are performed to render a
+position are performed to render a screen space Shadow map inside the
+screen space Shadow map inside the static Shadow map decal
+volume without AA our screen space Shadow Maps look very jaggy we use 4x4
+Shadow Maps look very jaggy we use 4x4 PCF for anti-aliasing our shadow
+PCF for anti-aliasing our shadow Maps here's a gif animation of 4x4 PCF
+Maps here's a gif animation of 4x4 PCF being toggled on and off as you can see
+being toggled on and off as you can see the algorithm does a pretty good job of
+the algorithm does a pretty good job of alleviating jaggies for
+us here's a screenshot of static Shadow map camera placements in an actual scene
+map camera placements in an actual scene many static Shadow map cameras with
+many static Shadow map cameras with small coverage are placed throughout our
+small coverage are placed throughout our levels each stat static Shadow map
+levels each stat static Shadow map camera renders its own depth map and its
+camera renders its own depth map and its Associated render volume owns that
+Associated render volume owns that static Shadow Maps depth map texture
+static Shadow Maps depth map texture data even the small handrail in the
+data even the small handrail in the slide image has its own static Shadow
+slide image has its own static Shadow map our artists use many static Shadow
+map our artists use many static Shadow map cameras not just for artistic
+map cameras not just for artistic reasons but for texture streaming
+reasons but for texture streaming efficiency as well one of the first
+efficiency as well one of the first concerns we had when we considered using
+concerns we had when we considered using static Shadow Maps was memory usage and
+static Shadow Maps was memory usage and streaming hitches we managed static
+streaming hitches we managed static Shadow map texture streaming workloads
+Shadow map texture streaming workloads by monit monitoring texture size and
+by monit monitoring texture size and focusing on being being able to
+focusing on being being able to efficiently distribute streaming across
+efficiently distribute streaming across multiple frames for this reason we can't
+multiple frames for this reason we can't have individual static static Shadow map
+have individual static static Shadow map textures being too large our static
+textures being too large our static Shadow maps are placed in their own
+Shadow maps are placed in their own streaming level and within the streaming
+streaming level and within the streaming level we distribute texture streaming
+level we distribute texture streaming across multiple frames by placing a per
+across multiple frames by placing a per frame streaming memory
+limit the final topic I'd like to talk about is how we handle Global
+illumination Global illumination is being toggled on and off in the slide
+being toggled on and off in the slide image we felt supporting standard 3D
+image we felt supporting standard 3D lighting features in our tune rendering
+lighting features in our tune rendering was important for quality and this
+was important for quality and this included
+included GI we decided early on that we wanted to
+GI we decided early on that we wanted to try to use ue4 light MK since we were
+try to use ue4 light MK since we were satisfied with its quality and baked
+satisfied with its quality and baked lighting is great in terms of
+lighting is great in terms of performance at the same time we also
+performance at the same time we also thought thought a workflow using light
+thought thought a workflow using light Mass light Maps was too costly for our
+Mass light Maps was too costly for our artists due to needing to deal with
+artists due to needing to deal with light map UVS and possibly long GI bake
+light map UVS and possibly long GI bake times tune assets require artist
+times tune assets require artist handcrafting for quality and all artists
+handcrafting for quality and all artists including our environment team were
+including our environment team were super busy throughout the
+project we had noticed that light Mass volumetric light Maps could be used for
+volumetric light Maps could be used for the
+the environment light Mass volumetric light
+environment light Mass volumetric light map light probes bake faster and don't
+map light probes bake faster and don't require light map UVS we decided we
+require light map UVS we decided we would customize the volumetric light map
+would customize the volumetric light map functionality with a focus on further
+functionality with a focus on further improving bake iteration speed and
+improving bake iteration speed and usability a big factor that allowed this
+usability a big factor that allowed this customization is the fact that our game
+customization is the fact that our game has a tune art Direction and we can be
+has a tune art Direction and we can be artistically selective in which parts of
+artistically selective in which parts of the map we apply Global Illumination in
+the map we apply Global Illumination in the slide image only a small area around
+the slide image only a small area around the window has Global illumination and
+the window has Global illumination and that can be okay for our
+look here the same level with the GI light probe debug display is
+light probe debug display is enabled the environment artist has
+enabled the environment artist has decided to bake probes around strong em
+decided to bake probes around strong em missives but in areas without a strong
+missives but in areas without a strong light source no probes are
+baked ue4 has a functionality called light Mass importance volumes that limit
+light Mass importance volumes that limit light probe baking to the area within
+light probe baking to the area within the volume we customize this
+the volume we customize this functionality to implement our own
+functionality to implement our own Global illumination lighting volume
+Global illumination lighting volume actor in vanilla ue4 light probe data is
+actor in vanilla ue4 light probe data is stored per level we customize ue4 so
+stored per level we customize ue4 so that in our game light probe data can be
+that in our game light probe data can be stored per
+actor I should mention that we did optimize the ue4 volumetric light map
+optimize the ue4 volumetric light map data to save memory because we only need
+data to save memory because we only need directionless ambient Global
+directionless ambient Global illumination we cut down the light probe
+illumination we cut down the light probe spherical harmonics 3D textures from 8
+spherical harmonics 3D textures from 8 to1 and it's a huge memory
+to1 and it's a huge memory saving since I emphasize bake iteration
+saving since I emphasize bake iteration speed and usability as key points I'll
+speed and usability as key points I'll give a quick overview of what our GI
+give a quick overview of what our GI bake workflow looks like we start by
+bake workflow looks like we start by enclosing the area we want to add Global
+enclosing the area we want to add Global illumination to with a GI writing
+illumination to with a GI writing volume after the volume is placed
+volume after the volume is placed artists select from the menu build
+artists select from the menu build selected volumes a customized light Mass
+selected volumes a customized light Mass GI baking code is executed and the GI
+GI baking code is executed and the GI bake is limited to the area enclosed by
+bake is limited to the area enclosed by the lighting volume bake times are
+the lighting volume bake times are dependent on light mass settings and PC
+dependent on light mass settings and PC specs but as a general idea for a
+specs but as a general idea for a standard de PC at our company a bake
+standard de PC at our company a bake should finish in a minute or
+should finish in a minute or two since the bake is isolated to the
+two since the bake is isolated to the selected actor artists can iterate
+selected actor artists can iterate baking on specific areas
+quickly the GI lighting volume contains parameter for for both baking and
+parameter for for both baking and rendering an often used parameter for
+rendering an often used parameter for baking is the detail cell size parameter
+baking is the detail cell size parameter which controls the distribution
+which controls the distribution granularity of the generated light
+granularity of the generated light probes our environment artists use this
+probes our environment artists use this parameter to balance bake quality and
+parameter to balance bake quality and memory
+usage finally the GI lighting volume not only defines the GI bake accent but also
+only defines the GI bake accent but also serves as a rendering volume here I'm
+serves as a rendering volume here I'm toggling on off the GI box rendering for
+toggling on off the GI box rendering for a specific volume note how all the other
+a specific volume note how all the other volumes in the scene are unaffected by
+volumes in the scene are unaffected by the toggling Deferred rendering a box
+the toggling Deferred rendering a box volume is a local lighting technique
+volume is a local lighting technique that is used throughout our game and
+that is used throughout our game and makes a final pres presentation
+makes a final pres presentation appearance in this
+appearance in this slide here are my main references now
+slide here are my main references now I'm going to hand it off to kadan for a
+I'm going to hand it off to kadan for a section on our Tech our tace shadow
+[Applause]
+Tech okay
+I'm going to explain the face shadow of highi rash in this
+section the self Shadows of the character in highi rash are in a s
+character in highi rash are in a s shaded
+shaded style the shadowed and non-shadowed
+style the shadowed and non-shadowed areas are clearly separated and the
+areas are clearly separated and the shadowed areas are given a specified
+shadowed areas are given a specified Shadow
+Shadow color with shadows like this the quality
+color with shadows like this the quality is all about the choice of the Shadow
+is all about the choice of the Shadow color and the shape of the Shadow
+color and the shape of the Shadow Area highi art concept was sharp clean
+Area highi art concept was sharp clean and colorful so the Shadows also needed
+and colorful so the Shadows also needed to always have clean
+shapes whether pixels in the inner Shadow area is determined by whether the
+Shadow area is determined by whether the dot product of the pixels normals and
+dot product of the pixels normals and the light Vector is less than the
+the light Vector is less than the threshold this is a typical method for
+threshold this is a typical method for cell
+cell shading the btic normal is used for the
+shading the btic normal is used for the normal however this method is not used
+normal however this method is not used on the
+face the face requires higher quality than other
+than other parts however there are problems in
+parts however there are problems in achieving the desired quality with btic
+achieving the desired quality with btic normal
+normal Shadows the first problem is that uh
+Shadows the first problem is that uh using btic normals makes it difficult to
+using btic normals makes it difficult to create a smooth
+create a smooth curve as showing in the image on the
+curve as showing in the image on the right depending on of the direction of
+right depending on of the direction of the light the shadow shapes can become
+the light the shadow shapes can become quite
+quite messy it it is because there is a limmit
+messy it it is because there is a limmit to how much geometry can be divided and
+to how much geometry can be divided and the shadow shape is affected by how it
+the shadow shape is affected by how it is
+divided the second problem is that the shape of the Shadow created by
+that the shape of the Shadow created by Vex MTH is easily broken by facial
+motion when the body bone orientation changes due to facial motion the Ori
+changes due to facial motion the Ori tion of the Vex normals also
+tion of the Vex normals also changes which unintentionally break the
+changes which unintentionally break the shadow
+shadow shape in this Chine where the facial
+shape in this Chine where the facial expression is Extreme the shadow shape
+expression is Extreme the shadow shape becomes considerably broken depending on
+becomes considerably broken depending on the direction of the
+light the third problem is that it is difficult for artists to make
+difficult for artists to make adjustments artists can just geometry
+adjustments artists can just geometry and vertic
+and vertic normals but it is very difficult for
+normals but it is very difficult for them to avoid problems one and two
+them to avoid problems one and two completely through manual
+completely through manual adjustments it is difficult to
+adjustments it is difficult to intuitively understand the resulting
+intuitively understand the resulting shape of the Vex normal and geometry
+shape of the Vex normal and geometry adjustments in all the various lighting
+directions even if you use a normal map in instead of B
+in instead of B normals problem one may be solved but
+normals problem one may be solved but problems two and three will not be
+solved to solve these Vex normal problems in highi rash we use the height
+problems in highi rash we use the height map height map like
+map height map like texture internally we call this texture
+texture internally we call this texture a thresold
+a thresold map I will explain how toite in later
+map I will explain how toite in later slides
+slides but we will first explain the
+but we will first explain the calculations
+involved first calculate the angle between the horizontal component of the
+between the horizontal component of the right direction and the forward
+right direction and the forward direction of the
+direction of the head the horizontal component here
+head the horizontal component here refers to the horizontal component in
+refers to the horizontal component in the C C systems of the head
+the C C systems of the head bones the threshold value is in is the
+bones the threshold value is in is the angle divided by pi and normalize to a
+angle divided by pi and normalize to a range of 0 to
+range of 0 to 1 then it is determined whether the area
+1 then it is determined whether the area is Shadow area or not based on whether
+is Shadow area or not based on whether the sample value with the threshold map
+the sample value with the threshold map is greater than the threshold
+value since only the horizontal component is considered
+component is considered the shadow can only be moved in the
+the shadow can only be moved in the horizontal
+Direction however this has enough for high highi
+rash in this video the light is shining on the right side of the face but when
+on the right side of the face but when it is on the left side the texture is
+it is on the left side the texture is reversed
+horizontally how to use this threshold map is a reproduction of the method
+map is a reproduction of the method introduced in the session by mhoo at
+introduced in the session by mhoo at Unity s
+2018 I will now explain how to auor a threshold
+threshold map first use a deat to bake the Shadows
+map first use a deat to bake the Shadows of the face into
+of the face into textures by moving a direction
+textures by moving a direction directional right at fixed angles 180
+directional right at fixed angles 180 deg around the character as shown in the
+image we move the light every 5° so we B to 36
+to 36 textures at this
+textures at this point Shadows Shadows are shaded using
+point Shadows Shadows are shaded using the vertic norals so the shape may not
+the vertic norals so the shape may not be smooth or Shadows may appear in
+be smooth or Shadows may appear in unnecessary
+areas these textures are then rached to the artist
+satisfaction this process create a clean shape so artist don't have to create
+shape so artist don't have to create perfect vertic
+perfect vertic normals as you can see retouching
+normals as you can see retouching textures is much more intuitive to
+textures is much more intuitive to adjust than vertic
+adjust than vertic normals artist can preview the final
+normals artist can preview the final look of the Shadows in our DCC to
+finally using a dedicated inhouse tool all textures are interpreted like a
+all textures are interpreted like a distance or field interpetation and
+distance or field interpetation and merged into a single
+merged into a single texture the threshold map is now
+complete I now review how thresold map solved solved our original verx normal
+solved solved our original verx normal problems
+problems regarding problem one the shape does not
+regarding problem one the shape does not become a smooth cve with a B normal but
+become a smooth cve with a B normal but with a thresher map it is always smooth
+with a thresher map it is always smooth as shown in the
+as shown in the video this is thanks to the artist
+video this is thanks to the artist adjusting the shadow shape through
+adjusting the shadow shape through retouching also since the texture the
+retouching also since the texture the connect
+connect uh textures are connected smoothly using
+uh textures are connected smoothly using distance field like interpolation
+distance field like interpolation the shape changes smoothly when the
+the shape changes smoothly when the direction of the light
+direction of the light changes as aside aside thr map have
+changes as aside aside thr map have similar characteristics to distance
+similar characteristics to distance field textures and are less PR to
+field textures and are less PR to artifacts even when the resolution is
+artifacts even when the resolution is lowered however in order to
+lowered however in order to maintain sharp shape even when zo camera
+maintain sharp shape even when zo camera camera zoomed in we use 2K textures
+problem two where the shape is broken due to facial motion does not occur with
+due to facial motion does not occur with a threshold
+a threshold map because in case of threshold map the
+map because in case of threshold map the shape is mapped with u v so it's not
+shape is mapped with u v so it's not affected by
+bones as an example let's change the direction of the light and compare
+direction of the light and compare when shading with a threshold map Shadow
+when shading with a threshold map Shadow shape are green in all right
+directions problem see is that shading using btic normals is difficult for
+using btic normals is difficult for artist to adjust again in the case of a
+artist to adjust again in the case of a threshold map artist can intuitively
+threshold map artist can intuitively modify the shape by raching the B
+modify the shape by raching the B textures when shading using vertic nor
+textures when shading using vertic nor the Vex norals were directly used for
+the Vex norals were directly used for shading when shading us a user using a
+shading when shading us a user using a thres map in between light light baking
+thres map in between light light baking and texture marging there is a step
+and texture marging there is a step where artist can make intuitively
+where artist can make intuitively quality
+adjustments this concludes the explanation of our face shadows in our
+explanation of our face shadows in our game thank you
+game thank you [Applause]
+okay that's it for the content of our presentation but I'd like to end our
+presentation but I'd like to end our talk with some final concluding
+talk with some final concluding words so our game wanted to do a
+words so our game wanted to do a stylized cell-shaded look for both
+stylized cell-shaded look for both characters in the environment and this
+characters in the environment and this presented unique rendering challenges
+presented unique rendering challenges unique problems call for Unique
+unique problems call for Unique Solutions and we developed an original
+Solutions and we developed an original deferred deferred post-process volume
+deferred deferred post-process volume approach for our attempt at tune
+approach for our attempt at tune rendering we're using ue4 and we adapted
+rendering we're using ue4 and we adapted many 3D graphics features for tune
+many 3D graphics features for tune rendering we use wellestablished
+rendering we use wellestablished Graphics techniques and build on the
+Graphics techniques and build on the great works of others we talked about
+great works of others we talked about tech today but it's tune rendering and
+tech today but it's tune rendering and as you can imagine there was a lot of
+as you can imagine there was a lot of crafting and optimizations by our
+crafting and optimizations by our artists not covered today that
+artists not covered today that ultimately determined the quality of the
+ultimately determined the quality of the tune Graphics we had goals of Rock Solid
+tune Graphics we had goals of Rock Solid 60 cfps high resolution and greatl
+60 cfps high resolution and greatl looking tune and the tech we talked
+looking tune and the tech we talked about today helped the Hi-Fi Rush team
+about today helped the Hi-Fi Rush team achieve these
+achieve these goals and we had more we had more Tech
+goals and we had more we had more Tech we wanted to share info about but uh
+we wanted to share info about but uh probably be too much of us talking so we
+probably be too much of us talking so we didn't do that and but we do have bonus
+didn't do that and but we do have bonus slides at the end of the presentation so
+slides at the end of the presentation so when the slides become available for
+when the slides become available for download uh everyone can read
+them and our final page is a our special thanks page we get to present this stuff
+thanks page we get to present this stuff but our tune rendering was made possible
+but our tune rendering was made possible by the hard work of everyone on the high
+by the hard work of everyone on the high fir Rush team our final slide is a
+fir Rush team our final slide is a special thanks space to give a shout out
+special thanks space to give a shout out to all the people who made today's talk
+to all the people who made today's talk possible okay that's it
+possible okay that's it [Applause]
+[Applause] so we have time for a little bit of time
+so we have time for a little bit of time for Q&A so if people have questions
+for Q&A so if people have questions please go to the
+Mike's hi uh I have a question um first of all fantastic talk uh second I um
+of all fantastic talk uh second I um when you were talking about all the The
+when you were talking about all the The More Physical 3D features um I couldn't
+More Physical 3D features um I couldn't help but notice that you didn't include
+help but notice that you didn't include um other PBR inputs like roughness um
+um other PBR inputs like roughness um and metalness do you think was that a
+and metalness do you think was that a conscious decision to exclude those cuz
+conscious decision to exclude those cuz they didn't add anything or um what was
+they didn't add anything or um what was the thought process and was am I right
+the thought process and was am I right that your final uh only texture inputs
+that your final uh only texture inputs to like the Deferred PBR workflow or
+to like the Deferred PBR workflow or deferred lighting workflow was just
+deferred lighting workflow was just color Yes we just use color in in fact
+color Yes we just use color in in fact oh we we do use roughness because we
+oh we we do use roughness because we have SSR so we use the standard UE for
+have SSR so we use the standard UE for SSR at its uh low lowest setting that's
+SSR at its uh low lowest setting that's about 1 millisecond but it's still u4
+about 1 millisecond but it's still u4 SSR is great at the low setting and it
+SSR is great at the low setting and it looks good and we apply uh a tun
+looks good and we apply uh a tun stylization to that SSR and use it so we
+stylization to that SSR and use it so we do use roughness but metallic we don't
+do use roughness but metallic we don't need and uh yeah we don't do standard
+need and uh yeah we don't do standard PBR I think it's mostly base color and
+PBR I think it's mostly base color and roughness for us got it thank you and uh
+roughness for us got it thank you and uh our bonus slides include a section on uh
+our bonus slides include a section on uh our G buffer stencils we actually use
+our G buffer stencils we actually use the the G buffer u4 GFF offer slots that
+the the G buffer u4 GFF offer slots that we don't use for uh stencil bits that we
+we don't use for uh stencil bits that we use in our tun rendering got it thank
+use in our tun rendering got it thank you
+y hi um how well did your artist receive this uh more unique lighting uh
+this uh more unique lighting uh pipeline I'm I'm sorry I couldn't guess
+pipeline I'm I'm sorry I couldn't guess yeah how well did your artist receive
+yeah how well did your artist receive this uh kind of unique lighting
+this uh kind of unique lighting pipeline well we made the pipeline with
+pipeline well we made the pipeline with artists so I worked with the environment
+artists so I worked with the environment lead environment artists to create the
+lead environment artists to create the pipeline and like our ambient our shadow
+pipeline and like our ambient our shadow color volumes and our ambient CU maps
+color volumes and our ambient CU maps that I wor part of that was suggested by
+that I wor part of that was suggested by them and they were they this is what
+them and they were they this is what they this was necessary for the look we
+they this was necessary for the look we were going for so they were all
+were going for so they were all in thank you does that answer your
+in thank you does that answer your questions sorry yeah yeah didn't answer
+questions sorry yeah yeah didn't answer the question okay
+the question okay hi I had a question about the threshold
+hi I had a question about the threshold Maps so if I'm understanding correctly
+Maps so if I'm understanding correctly are you creating a Sprite for merging
+are you creating a Sprite for merging all of them together and then are you
+all of them together and then are you doing any special processing for the
+doing any special processing for the base color textures to look
+base color textures to look sharp just show them
+up can can you ask can you come back with that question later okay
+sorry sorry uh hey I noticed that you guys use a lot of Shader code in uh like
+guys use a lot of Shader code in uh like in your presentation here uh I wanted to
+in your presentation here uh I wanted to ask if there was a an advantage over
+ask if there was a an advantage over using a Shader code over like node-based
+using a Shader code over like node-based uh Shader uh we use Shader code because
+uh Shader uh we use Shader code because our materials were all implemented by
+our materials were all implemented by programmers so it's it's actually more
+programmers so it's it's actually more confusing us for us to use Shader code
+confusing us for us to use Shader code and one of the benefits of using Shader
+and one of the benefits of using Shader code we we save all our Shader codes out
+code we we save all our Shader codes out into a text file and you know uh Le
+into a text file and you know uh Le manage it through perforce and we can
+manage it through perforce and we can search what other programmers you know
+search what other programmers you know Shader code easily so it's more it's
+Shader code easily so it's more it's easier for us to write and it's easier
+easier for us to write and it's easier for for us to you know check up on what
+for for us to you know check up on what what Co what the code that we wrote cool
+what Co what the code that we wrote cool thank
+you if there's no more questions thanks for attending our talk
+[Music]

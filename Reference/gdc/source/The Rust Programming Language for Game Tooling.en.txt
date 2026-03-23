@@ -1,0 +1,812 @@
+[Music] thank you
+hello and thank you for coming to my presentation this is the rust language
+presentation this is the rust language for game tooling my name is Dan Olson
+for game tooling my name is Dan Olson I'm a principal software architect at
+I'm a principal software architect at Treyarch
+Treyarch a little bit about me I've been working
+a little bit about me I've been working in games since 2004. I've been at church
+in games since 2004. I've been at church since 2008 I've shipped several Call of
+since 2008 I've shipped several Call of Duty titles in that time I work on
+Duty titles in that time I work on tracks core engine team which is a
+tracks core engine team which is a combined engine and tools team so we
+combined engine and tools team so we work on both most Engineers are
+work on both most Engineers are responsible for working on both tools
+responsible for working on both tools and engine
+and engine uh I've done a lot of things but most
+uh I've done a lot of things but most likely I've been focused on data
+likely I've been focused on data Pipeline and infrastructure tooling I
+Pipeline and infrastructure tooling I haven't dabbled too much in for instance
+haven't dabbled too much in for instance uh user interface programming or
+uh user interface programming or anything like that
+anything like that so that's just where I'm coming from
+so that's just where I'm coming from uh what is rust well rust is a
+uh what is rust well rust is a programming language it was started by
+programming language it was started by Mozilla
+Mozilla quite a while ago uh it had a first
+quite a while ago uh it had a first stable release in 2015.
+stable release in 2015. and uh that was the 1.0 release and
+and uh that was the 1.0 release and everything since then is backwards
+everything since then is backwards compatibility
+compatibility since then it's branched out a little
+since then it's branched out a little bit from just being backed by Mozilla to
+bit from just being backed by Mozilla to now being backed by several other
+now being backed by several other companies the three listed here have all
+companies the three listed here have all spun up internal compiler teams to try
+spun up internal compiler teams to try to advance the language
+to advance the language and there's also uh now a rust language
+and there's also uh now a rust language foundation for Financial Funding
+foundation for Financial Funding uh it's also the language is focused on
+uh it's also the language is focused on security and performance if you're
+security and performance if you're working on game tooling you might not
+working on game tooling you might not think of security as a very high
+think of security as a very high priority especially if all your tools
+priority especially if all your tools are internal
+are internal but we all like performance especially
+but we all like performance especially in the game industry so that's pretty
+in the game industry so that's pretty appealing
+this is uh just the outline of what I'm going to go over I'm going to try to
+going to go over I'm going to try to make a case for using rust to start out
+make a case for using rust to start out with
+with then I'm going to go over uh several
+then I'm going to go over uh several interesting usages of rust that uh that
+interesting usages of rust that uh that have been helpful to me in my tools uh
+have been helpful to me in my tools uh authoring then we're going to talk a
+authoring then we're going to talk a little bit about how we integrated rust
+little bit about how we integrated rust at Treyarch
+first I want to start out by talking about something that's not really rust
+about something that's not really rust at all this is a python snippet and it's
+at all this is a python snippet and it's going to be a
+going to be a uh implementation of an md5 sum
+uh implementation of an md5 sum algorithm so it's hashing a file and
+algorithm so it's hashing a file and printing out the md5 some to standard
+printing out the md5 some to standard out and I just want to rate it on a
+out and I just want to rate it on a couple different categories
+couple different categories over on the side here
+over on the side here um
+um this is python I think uh if you're if
+this is python I think uh if you're if you're trying to follow this code you'll
+you're trying to follow this code you'll have a pretty easy time so I think easy
+have a pretty easy time so I think easy to read
+to read and both easy to read and easy to write
+and both easy to read and easy to write we'll get smiley faces from me uh this
+we'll get smiley faces from me uh this was pretty straightforward to write
+was pretty straightforward to write didn't require much
+didn't require much thought or much work or even much typing
+thought or much work or even much typing errors are handled I give this a neutral
+errors are handled I give this a neutral face and the reason why is because
+face and the reason why is because python handles all errors by default
+python handles all errors by default through its exception handling
+through its exception handling but the error message is that it gives
+but the error message is that it gives are not always great for end users to
+are not always great for end users to to be able to figure out what's going on
+to be able to figure out what's going on a programmer can dig in there pretty
+a programmer can dig in there pretty well but maybe not end users
+well but maybe not end users and uh perform as well as kind of a
+and uh perform as well as kind of a mixed bag with python in general
+mixed bag with python in general it performs rather poorly but there's a
+it performs rather poorly but there's a lot of things affecting its performance
+lot of things affecting its performance um often Library functions are
+um often Library functions are implemented in C and then they can be
+implemented in C and then they can be quite efficient
+quite efficient however for the most part the
+however for the most part the performance of python is pretty low
+performance of python is pretty low if we look at this in C
+um I I pulled this uh implementation from stack Overflow and the reason I use
+from stack Overflow and the reason I use it is because uh not because I think
+it is because uh not because I think it's a really great piece of code but
+it's a really great piece of code but because
+because it is the highest of voted code and the
+it is the highest of voted code and the first link that you will get if you
+first link that you will get if you search for how to solve this problem and
+search for how to solve this problem and see
+see so if we start looking at this with the
+so if we start looking at this with the same things in mind uh easy to read I'll
+same things in mind uh easy to read I'll give this a the neutral face it's not
+give this a the neutral face it's not bad if you're familiar with c
+bad if you're familiar with c um I've admitted quite a large part of
+um I've admitted quite a large part of it
+it um just for brevity
+um just for brevity but it's pretty straightforward if you
+but it's pretty straightforward if you know what a map and M on map bar then
+know what a map and M on map bar then then you should be able to figure out
+then you should be able to figure out what this code is doing
+what this code is doing uh as for easy to write well this is
+uh as for easy to write well this is kind of a long story because this md5
+kind of a long story because this md5 function that we're relying on doesn't
+function that we're relying on doesn't exist in the standard Library it's it's
+exist in the standard Library it's it's pulled in from somewhere else
+pulled in from somewhere else and the process of pulling in
+and the process of pulling in dependencies in C and C plus plus
+dependencies in C and C plus plus despite everyone's best efforts towards
+despite everyone's best efforts towards this is still pretty hard to do
+this is still pretty hard to do so you have to download you have to
+so you have to download you have to locate the dependency you have to make
+locate the dependency you have to make sure it's suitably licensed for your
+sure it's suitably licensed for your program
+program you have to uh integrate it into your
+you have to uh integrate it into your build system
+build system and maybe even a link in the library so
+and maybe even a link in the library so there's a lot of steps there
+there's a lot of steps there that don't always work together cleanly
+that don't always work together cleanly with what you're trying to do
+with what you're trying to do and so I put a cry face here because
+and so I put a cry face here because dependencies and CNC plus plus make me
+dependencies and CNC plus plus make me cry
+cry as for other errors are handled well
+as for other errors are handled well you can see that the author attempted to
+you can see that the author attempted to do this uh the open is is is checked and
+do this uh the open is is is checked and will exit the program which doesn't
+will exit the program which doesn't really help the user very much to do it
+really help the user very much to do it silently but the they also missed the
+silently but the they also missed the fact that mmap can return an error and
+fact that mmap can return an error and if it does in this program
+if it does in this program then the program will crash because what
+then the program will crash because what mmap returns in the case of an error is
+mmap returns in the case of an error is a negative one casted to a pointer
+a negative one casted to a pointer uh as for whether this performs well
+uh as for whether this performs well yeah we'll we'll assume that it does c
+yeah we'll we'll assume that it does c is generally either
+is generally either while performing out of the box or it
+while performing out of the box or it has all the tools that you can use to
+has all the tools that you can use to make it perform well
+make it perform well so performance is is great in C and C
+so performance is is great in C and C plus plus that's one of the reasons we
+plus plus that's one of the reasons we love them and use them but I want to
+love them and use them but I want to focus on these two middle ones for a
+focus on these two middle ones for a second
+second um as I mentioned the dependencies
+um as I mentioned the dependencies problem C is still a very real thing and
+problem C is still a very real thing and C plus plus as well
+C plus plus as well and the error handling is tricky because
+and the error handling is tricky because all error handling and C is completely
+all error handling and C is completely opt-in the language doesn't care if you
+opt-in the language doesn't care if you want to overwrite memory or do whatever
+want to overwrite memory or do whatever um
+um read from an invalid buffer it just
+read from an invalid buffer it just doesn't care
+doesn't care also there's no real standardization as
+also there's no real standardization as as to how functions in CRC plus report
+as to how functions in CRC plus report errors
+errors and so if you're running this code I'm
+and so if you're running this code I'm sure you could do a lot better
+sure you could do a lot better but you still have these issues of how
+but you still have these issues of how do we handle dependencies and how do we
+do we handle dependencies and how do we make sure that all our errors are
+make sure that all our errors are handled when this is totally opt-in and
+handled when this is totally opt-in and it's actually pretty
+it's actually pretty uh hard to to validate that you've done
+uh hard to to validate that you've done everything correctly
+everything correctly so moving on to rust
+so moving on to rust this is our first bit of rust code that
+this is our first bit of rust code that we've seen maybe for some of you that
+we've seen maybe for some of you that for spit ever
+for spit ever um and I want to give this an easy to
+um and I want to give this an easy to read and an easy to write you'll have to
+read and an easy to write you'll have to take my word for it on easy to write
+take my word for it on easy to write um but pretty straightforward what this
+um but pretty straightforward what this code is doing I think even if the syntax
+code is doing I think even if the syntax is a little bit unfamiliar or maybe
+is a little bit unfamiliar or maybe strange
+strange you should be able to kind of figure out
+you should be able to kind of figure out what's going on here
+what's going on here as for whether errors are handled again
+as for whether errors are handled again you'll you'll need to take my word for
+you'll you'll need to take my word for it if you're on familiar with Ross but
+it if you're on familiar with Ross but yes they are
+yes they are we have the same problem as python here
+we have the same problem as python here where the errors are handled but they're
+where the errors are handled but they're not particularly well suited for end
+not particularly well suited for end users to to read and understand what's
+users to to read and understand what's going on
+going on we'll get into this a little bit more
+we'll get into this a little bit more later
+later as for whether the code performs well
+as for whether the code performs well well
+well rust has
+rust has um many of the same characteristics as C
+um many of the same characteristics as C and C plus plus it's compiled it's
+and C plus plus it's compiled it's optimized using llvm and uh it's not
+optimized using llvm and uh it's not running in any sort of uh VM or anything
+running in any sort of uh VM or anything like that so there's not even any
+like that so there's not even any garbage collection so there's no like
+garbage collection so there's no like potential stalls uh from that so rust is
+potential stalls uh from that so rust is a little bit like CNC Plus in that it
+a little bit like CNC Plus in that it either performs well out of the box or
+either performs well out of the box or you have the tools to make it perform
+you have the tools to make it perform well
+well so this is how we get to my rust sales
+so this is how we get to my rust sales pitch
+pitch efficiency of writing code in Rust uh
+efficiency of writing code in Rust uh it's a little bit closer to python in my
+it's a little bit closer to python in my opinion and the efficiency of running
+opinion and the efficiency of running code is a little bit closer to C plus
+code is a little bit closer to C plus so I feel like this is a kind of a happy
+so I feel like this is a kind of a happy medium between these two things but
+medium between these two things but we've got the high level and the low
+we've got the high level and the low level one you can kind of get the best
+level one you can kind of get the best of both worlds with rust
+of both worlds with rust um but that's not really all there's
+um but that's not really all there's more to this uh sales pitch
+more to this uh sales pitch with Russ we also get a large
+with Russ we also get a large centralized ecosystem of what they call
+centralized ecosystem of what they call crates which is just libraries it's a
+crates which is just libraries it's a rust term for libraries
+rust term for libraries and the centralized part is pretty
+and the centralized part is pretty important because that means you can
+important because that means you can have tooling that interacts with it it
+have tooling that interacts with it it also means it's very easy to search we
+also means it's very easy to search we actually indeed do have tooling
+actually indeed do have tooling that works with this it's an integrated
+that works with this it's an integrated build package and test tool called cargo
+build package and test tool called cargo which is part of every rust distribution
+which is part of every rust distribution and this is very nice to use let me give
+and this is very nice to use let me give you an example of the previous
+you an example of the previous program that we looked at
+program that we looked at if I want to make a new
+if I want to make a new um program I just use cargo new by
+um program I just use cargo new by default it makes a binary application
+default it makes a binary application I change that directory to add a
+I change that directory to add a dependency I can just do cargo add md5
+dependency I can just do cargo add md5 which is uh if I know what I want to add
+which is uh if I know what I want to add this takes about five ten seconds of
+this takes about five ten seconds of typing
+typing then I write my code and I can do cargo
+then I write my code and I can do cargo run
+run the code is basically what we saw on the
+the code is basically what we saw on the last slide except with some uh
+last slide except with some uh additional handling for command line
+additional handling for command line arguments and things like that
+arguments and things like that so I run it with cargo it downloads if
+so I run it with cargo it downloads if it needs to compile solid dependencies
+it needs to compile solid dependencies and I see the output here
+and I see the output here so this is very straightforward it's
+so this is very straightforward it's very simple to add dependencies some
+very simple to add dependencies some people might argue too simple I'm not
+people might argue too simple I'm not one of those people I think it's very
+one of those people I think it's very great aspect of using rust
+but this isn't really all either uh there's still more
+there's still more with rust you get static compile time
+with rust you get static compile time validation of common memory problems
+validation of common memory problems common memory problems might be things
+common memory problems might be things like use after free use after move if
+like use after free use after move if you've ever run into that and C plus
+you've ever run into that and C plus double three uh these things are are not
+double three uh these things are are not really possible in Rust by default
+really possible in Rust by default because the compiler will validate them
+because the compiler will validate them and how this works is extremely
+and how this works is extremely interesting I am not going to go into it
+interesting I am not going to go into it into this talk because there's other
+into this talk because there's other things I want to get uh to and because
+things I want to get uh to and because every other presentation on Rust starts
+every other presentation on Rust starts out with this so
+out with this so you can trust me for now this is static
+you can trust me for now this is static and it's compile time validated but
+and it's compile time validated but that's not all either
+that's not all either we also have static compile time
+we also have static compile time validation of multi-threading problems
+validation of multi-threading problems specifically what they call data races
+specifically what they call data races which is mutation of data from multiple
+which is mutation of data from multiple threads at the same time
+threads at the same time and this is very interesting because
+and this is very interesting because rust is the only language I know of
+rust is the only language I know of that's considered maybe a common
+that's considered maybe a common language that does this could be a real
+language that does this could be a real Time Saver
+Time Saver um so
+um so if you're not convinced let's look at an
+if you're not convinced let's look at an example
+example this is Trek's image Packer this is
+this is Trek's image Packer this is turning through all our images and
+turning through all our images and mastering them for disk
+mastering them for disk it was Rewritten in Rust and deployed in
+it was Rewritten in Rust and deployed in 2018.
+2018. that was two games ago if you're keeping
+that was two games ago if you're keeping track
+track uh it's a heavily multi-threaded tool
+uh it's a heavily multi-threaded tool because it's turning through a lot of
+because it's turning through a lot of data it needs to do it as fast as
+data it needs to do it as fast as possible and it's been an active
+possible and it's been an active development throughout its lifetime
+development throughout its lifetime especially this last title that we
+especially this last title that we shipped there are some several major
+shipped there are some several major developments uh on this tool
+developments uh on this tool and throughout all this for three years
+and throughout all this for three years the number of Crash bugs that we've
+the number of Crash bugs that we've encountered too and I put this in quotes
+encountered too and I put this in quotes because one of these was more of like an
+because one of these was more of like an unhandled exception type of thing an
+unhandled exception type of thing an unexpected stop
+unexpected stop wasn't really a crash
+wasn't really a crash the other crash was interfacing with a C
+the other crash was interfacing with a C library
+library so imagine for the rest of the career if
+so imagine for the rest of the career if you had to deal with on average less
+you had to deal with on average less than one crash a year I think we'd all
+than one crash a year I think we'd all be pretty happy
+be pretty happy so this is the full sales pitch all
+so this is the full sales pitch all these things work together to make a
+these things work together to make a pretty compelling package
+pretty compelling package and uh and I hope that you agree on that
+and uh and I hope that you agree on that now I'm going to
+now I'm going to go through kind of lighting quick
+go through kind of lighting quick um
+um a number of areas that I think Russ
+a number of areas that I think Russ really uh provides value to us as game
+really uh provides value to us as game programmers
+programmers and uh as tools programmers and this
+and uh as tools programmers and this these areas have certainly been helpful
+these areas have certainly been helpful to me in my in the tools that I've
+to me in my in the tools that I've written with rust
+written with rust so I hope you find something interesting
+so I hope you find something interesting here because we're going to go through
+here because we're going to go through it lighting quick
+airheading rust there's two methods of error handling uh one is a result which
+error handling uh one is a result which is uh basically anything that can fail
+is uh basically anything that can fail we'll return a result
+we'll return a result and it's encoded into the signature of
+and it's encoded into the signature of the function
+the function um it encodes exactly what errors can be
+um it encodes exactly what errors can be returned which is really interesting if
+returned which is really interesting if you're coming from
+you're coming from python or C plus plus where you really
+python or C plus plus where you really don't necessarily have any idea what's
+don't necessarily have any idea what's going to throw
+going to throw an exception
+an exception um
+um so this holds the success or failure
+so this holds the success or failure state of an operation and we can use it
+state of an operation and we can use it to either handle failure or pass failure
+to either handle failure or pass failure on
+on to eventually report it to the end user
+to eventually report it to the end user a panic is more like an instant program
+a panic is more like an instant program failure for an unrecovable error one
+failure for an unrecovable error one example is if you access outside of an
+example is if you access outside of an array balance this will instantly kill
+array balance this will instantly kill the program and this is part of rust
+the program and this is part of rust security Focus
+security Focus what they don't want is that to trigger
+what they don't want is that to trigger some sort of remote code execution uh
+some sort of remote code execution uh buffer overflow state so they just exit
+buffer overflow state so they just exit the program these are these are things
+the program these are these are things that you want to avoid in your coding
+that you want to avoid in your coding you want to you want to write Panic safe
+you want to you want to write Panic safe code basically in the best case the
+code basically in the best case the results you want to pass on and handle
+results you want to pass on and handle one way to do this is to use the
+one way to do this is to use the question mark operator we saw this a
+question mark operator we saw this a little bit earlier if you're paying
+little bit earlier if you're paying attention
+attention um then this what this does is it passes
+um then this what this does is it passes a failed result up the call stack
+a failed result up the call stack and if the result doesn't fail
+and if the result doesn't fail it will just return the the successful
+it will just return the the successful value to uh whatever you're assigning it
+value to uh whatever you're assigning it to so in this example if the read fails
+to so in this example if the read fails for any reason it will pass it up to
+for any reason it will pass it up to call stack which means that the calling
+call stack which means that the calling function also needs to return results
+function also needs to return results all the way up to Main and if you get
+all the way up to Main and if you get all the way up to main it will exit the
+all the way up to main it will exit the program and print a a useful message to
+program and print a a useful message to the user about what happened
+the user about what happened but the message isn't too useful as we
+but the message isn't too useful as we talked about with both Python and rust
+talked about with both Python and rust um these are just kind of short messages
+um these are just kind of short messages that don't really help the user all the
+that don't really help the user all the time
+time but we can use this anyhow crate to add
+but we can use this anyhow crate to add context to errors and I really enjoy
+context to errors and I really enjoy this crate let's see an example
+this crate let's see an example um
+um this is the the error message you would
+this is the the error message you would get if you were just just doing uh the
+get if you were just just doing uh the question mark operator like normal and
+question mark operator like normal and it's a good error message but it doesn't
+it's a good error message but it doesn't really tell you enough
+really tell you enough whereas if you add some context to
+whereas if you add some context to what's going on you can basically say
+what's going on you can basically say what you were doing when this era
+what you were doing when this era occurred and uh it produces a much
+occurred and uh it produces a much better uh error message and maybe the
+better uh error message and maybe the user has a chance of figuring out what's
+user has a chance of figuring out what's going on at this point
+going on at this point so I really like this it's very easy to
+so I really like this it's very easy to cover all the error paths in your in
+cover all the error paths in your in your program and to add context doesn't
+your program and to add context doesn't take that much time so I feel like this
+take that much time so I feel like this is
+is really valuable and gives you a really
+really valuable and gives you a really sense of a sense of peace that you've
+sense of a sense of peace that you've covered all the past
+covered all the past uh next you gotta look briefly at
+uh next you gotta look briefly at multi-threading
+multi-threading um there's this crate called rayon
+um there's this crate called rayon that is uh really amazing it makes
+that is uh really amazing it makes multi-threading very quick and easy
+multi-threading very quick and easy this uh example here is using kind of an
+this uh example here is using kind of an iterative style that's kind of popular
+iterative style that's kind of popular in Rust
+in Rust where we're iterating over a list of
+where we're iterating over a list of file names we're passing each file name
+file names we're passing each file name to a function called hash file
+to a function called hash file which is then returning the hash
+which is then returning the hash presumably and then we're collecting
+presumably and then we're collecting that into another container
+that into another container so this is a very popular way of
+so this is a very popular way of programming in Rust more functional
+programming in Rust more functional Style
+Style and if you've programmed in this way to
+and if you've programmed in this way to multi-thread this the only thing that
+multi-thread this the only thing that you have to do using the rayon crate is
+you have to do using the rayon crate is change this itter to pair editor and now
+change this itter to pair editor and now each hash file call will get farmed out
+each hash file call will get farmed out to a thread pool and the results will be
+to a thread pool and the results will be collected into a new container
+collected into a new container so ostensibly this will be much faster
+uh I mentioned that there's static multi-turning guarantees I just want to
+multi-turning guarantees I just want to demonstrate this really quick with a
+demonstrate this really quick with a with a simple example in here I've
+with a simple example in here I've added a mutable reference to the counter
+added a mutable reference to the counter that I pass into every hash file
+that I pass into every hash file function and ostensibly I would
+function and ostensibly I would increment this counter to maybe check
+increment this counter to maybe check how many files I've hashed
+how many files I've hashed but Russ won't let me compile this uh
+but Russ won't let me compile this uh because it knows that
+because it knows that this is is going to result in mutation
+this is is going to result in mutation that's not uh safe under across multiple
+that's not uh safe under across multiple threads if I change this back to an
+threads if I change this back to an enter
+enter uh rust will accept this code
+uh rust will accept this code so already it's it's preventing us from
+so already it's it's preventing us from from causing some serious mistakes
+I think is a pretty common uh use case especially for like config files and
+especially for like config files and things like that I use the survey crate
+things like that I use the survey crate I'm not sure I pronounced it correctly
+I'm not sure I pronounced it correctly but I say survey it stands for
+but I say survey it stands for serialized deserializer
+serialized deserializer um and this crate is really great for
+um and this crate is really great for generic serialization I do serialization
+generic serialization I do serialization I'm only going to demonstrate
+I'm only going to demonstrate deserialization here
+deserialization here uh here here I have a configuration
+uh here here I have a configuration struct and I have this little odd syntax
+struct and I have this little odd syntax update here derive deserialize and what
+update here derive deserialize and what this does is it tells the library to
+this does is it tells the library to take my structure
+take my structure and generate code behind the scenes to
+and generate code behind the scenes to deserialize my structure
+deserialize my structure uh and then if I need to actually do the
+uh and then if I need to actually do the deserialization I have to pull in a
+deserialization I have to pull in a specific formatting deserializer so in
+specific formatting deserializer so in this case Json I take a text string I
+this case Json I take a text string I pass it through this and I get a config
+pass it through this and I get a config a filled configuration structure out of
+a filled configuration structure out of it
+it if there's an error in the configuration
+if there's an error in the configuration I'm going to see if you feel they're
+I'm going to see if you feel they're about type or anything like that I'll
+about type or anything like that I'll get a decent error
+get a decent error and if I lose a bet and I have to change
+and if I lose a bet and I have to change my configuration to yaml
+my configuration to yaml that's a pretty simple change I just
+that's a pretty simple change I just switch out the
+switch out the the deserializer so this is very a
+the deserializer so this is very a really big Time Saver if you're keeping
+really big Time Saver if you're keeping track I think it's two lines of code
+track I think it's two lines of code to deserialize from a config file you
+to deserialize from a config file you can also serialize as well you just
+can also serialize as well you just changing it to two string instead of
+changing it to two string instead of from string
+from string very very nice very cool
+very very nice very cool I think
+I think command line interfaces this is pretty
+command line interfaces this is pretty similar to the last example
+similar to the last example um
+um here I have another derived I'm driving
+here I have another derived I'm driving instruct opt but in this case I also
+instruct opt but in this case I also have some uh interesting little
+have some uh interesting little directives that tell me uh that tell the
+directives that tell me uh that tell the library how to how to treat these
+library how to how to treat these arguments when it's generating the
+arguments when it's generating the command line interface
+command line interface and then when I want to get my options I
+and then when I want to get my options I just call this from RX function at this
+just call this from RX function at this top of my program
+top of my program and it will fill out this option
+and it will fill out this option structure with whatever people passed in
+structure with whatever people passed in from the command line interface
+from the command line interface and if there's an error it will it will
+and if there's an error it will it will just print this hell message I can also
+just print this hell message I can also get help and version for free
+get help and version for free uh one thing that I'd like to point out
+uh one thing that I'd like to point out just because it's awesome is that also
+just because it's awesome is that also my code comments got translated into
+my code comments got translated into help text in the in in the um
+help text in the in in the um in the dash dash help so that is pretty
+in the dash dash help so that is pretty cool
+parsing debug info this one is a little bit uh maybe something you don't do
+bit uh maybe something you don't do every day
+every day um I know I don't do it every day but
+um I know I don't do it every day but ever since I discovered these crates
+ever since I discovered these crates seems like every few days we come up
+seems like every few days we come up with a good usage for them and one of
+with a good usage for them and one of them is uh this example on the side
+them is uh this example on the side where I wrote a program that I've been
+where I wrote a program that I've been wanting to write for a very long time
+wanting to write for a very long time which examines an elf file pulls out all
+which examines an elf file pulls out all the debug information
+the debug information and gives me a list of all the
+and gives me a list of all the structures that could be padded more
+structures that could be padded more optimally to make them smaller
+optimally to make them smaller so you can see that like there's this
+so you can see that like there's this padding here which if the structure was
+padding here which if the structure was rearranged would be removed and we could
+rearranged would be removed and we could save eight bytes a bytes might not sound
+save eight bytes a bytes might not sound like much but if you have 70 000 of
+like much but if you have 70 000 of these things it can be pretty effective
+these things it can be pretty effective and uh along with this talk I just like
+and uh along with this talk I just like to to make a note that Activision has
+to to make a note that Activision has allowed us to open source this tool
+allowed us to open source this tool so if you happen to ship on a pro
+so if you happen to ship on a pro platform that uses elf files you can go
+platform that uses elf files you can go try this out on your own
+try this out on your own um I think it's a very useful program
+um I think it's a very useful program and uh I I want to note that I said I've
+and uh I I want to note that I said I've been wanting to write this program for a
+been wanting to write this program for a long time I've tried in various
+long time I've tried in various languages and I think that
+languages and I think that uh Python and C plus plus the ecosystem
+uh Python and C plus plus the ecosystem is actually a little bit behind in the
+is actually a little bit behind in the uh parsing debug info whereas whereas
+uh parsing debug info whereas whereas rust has some pretty pretty useful
+rust has some pretty pretty useful crates in that area
+cabi compatibility compatibility just quickly uh you can bind rust code to
+quickly uh you can bind rust code to other languages through C API uh python
+other languages through C API uh python is the the biggest one and here's an
+is the the biggest one and here's an example here of the pi 03 crate
+example here of the pi 03 crate um making a python module that does
+um making a python module that does something silly uh but we use this to
+something silly uh but we use this to bind uh our rust code to python which
+bind uh our rust code to python which has replaced a couple like uh parallel
+has replaced a couple like uh parallel implementations we had before
+implementations we had before you can also bind to node.js you can
+you can also bind to node.js you can bind to CNC plus plus obviously you can
+bind to CNC plus plus obviously you can also find a web assembly so this is
+also find a web assembly so this is really helpful uh if you're doing
+really helpful uh if you're doing something like replacing python modules
+something like replacing python modules with faster C or rust modules I guess
+with faster C or rust modules I guess rust in this case
+rust in this case uh and that's a big use case that a lot
+uh and that's a big use case that a lot of people are doing outside in The Wider
+of people are doing outside in The Wider Tech world
+web applications I know every once in a while I have to create a quick and dirty
+while I have to create a quick and dirty web apps uh usually using cherry pie or
+web apps uh usually using cherry pie or flask but there's a lot of work to make
+flask but there's a lot of work to make this uh work for rust and uh so there's
+this uh work for rust and uh so there's a couple crates that are
+a couple crates that are useful for this I like this one I'm not
+useful for this I like this one I'm not sure how to pronounce it I think it's
+sure how to pronounce it I think it's review uh it's French for rust
+review uh it's French for rust but
+but you can create really quick and dirty
+you can create really quick and dirty servers using this if you're going to do
+servers using this if you're going to do something a little bit more substantial
+something a little bit more substantial you might want to use tide or active
+you might want to use tide or active swab these are a little bit more mature
+swab these are a little bit more mature a little bit more full-featured
+a little bit more full-featured and uh I think that tide is my favorite
+and uh I think that tide is my favorite one I've seen but I haven't really
+one I've seen but I haven't really done much practical work in this area so
+done much practical work in this area so uh but I do want to caution as always if
+uh but I do want to caution as always if you're going to make anything externally
+you're going to make anything externally facing
+facing please please vet your dependencies
+please please vet your dependencies around safety guarantees
+around safety guarantees are really strong but at the same time
+are really strong but at the same time uh you need to take a look at what
+uh you need to take a look at what you're what you're putting out there in
+you're what you're putting out there in the wild
+the wild and lastly I want to look at gui's uh
+and lastly I want to look at gui's uh the GUI programming was behind in Rust
+the GUI programming was behind in Rust for a long time uh people were having a
+for a long time uh people were having a hard time wrapping their heads around
+hard time wrapping their heads around how to mix and match rust semantics
+how to mix and match rust semantics saying gooey needs
+saying gooey needs but a lot of uh useful libraries have
+but a lot of uh useful libraries have started to emerge ice is one of them
+started to emerge ice is one of them drew it igui this is just a quick
+drew it igui this is just a quick example of igui igui is a immediate mode
+example of igui igui is a immediate mode GUI
+GUI ice there's
+ice there's um using the elm architecture which is
+um using the elm architecture which is pretty popular in functional languages
+pretty popular in functional languages Druid is more of a influenced by flutter
+Druid is more of a influenced by flutter I I don't actually recommend the C plus
+I I don't actually recommend the C plus bindings but I want to list them here in
+bindings but I want to list them here in case you're tied to a specific UI
+case you're tied to a specific UI toolkit and you want to use that I think
+toolkit and you want to use that I think that there's a lot less friction
+that there's a lot less friction um using the rust native one
+um using the rust native one specifically igui is what I would
+specifically igui is what I would probably use for new stuff I've had the
+probably use for new stuff I've had the most success for it with it in my
+most success for it with it in my tinkering but I've also seen a really
+tinkering but I've also seen a really nice application in uh rust called
+nice application in uh rust called ajurer which is a World of Warcraft
+ajurer which is a World of Warcraft add-on manager and it uses ice and it's
+add-on manager and it uses ice and it's one of the slickest apps I've ever used
+one of the slickest apps I've ever used so uh rust is starting to get
+so uh rust is starting to get uh pretty powerful in the gooey space
+I want to talk uh now about integrating rusted Treyarch
+rusted Treyarch uh in our little journey our rust
+uh in our little journey our rust Journey we started working late 2017 I
+Journey we started working late 2017 I did some feasibility studies on a number
+did some feasibility studies on a number of different languages because I was
+of different languages because I was interested in
+interested in what was out there and if it was better
+what was out there and if it was better rusts kind of bubbled to the top as
+rusts kind of bubbled to the top as something that was worth looking into
+something that was worth looking into more
+more um and fast forward to today we have
+um and fast forward to today we have three major tools written in Rust and
+three major tools written in Rust and and several uh smaller one-off tools as
+and several uh smaller one-off tools as well kind of like the struck pack that I
+well kind of like the struck pack that I shared earlier
+shared earlier uh around 120k lines code uh all told
+uh around 120k lines code uh all told 27 individual contributors I want to
+27 individual contributors I want to make a note that
+make a note that um just because someone has contributed
+um just because someone has contributed to Russ doesn't mean that they would
+to Russ doesn't mean that they would consider this house a rust expert or
+consider this house a rust expert or even no rust but what you find is that
+even no rust but what you find is that when people are in a code base they have
+when people are in a code base they have examples of what to do around them and
+examples of what to do around them and if what they need to do is is uh you
+if what they need to do is is uh you know write some conditional statements
+know write some conditional statements and print a line of code like they can
+and print a line of code like they can do that or print a string they can
+do that or print a string they can usually do that without much trouble and
+usually do that without much trouble and that's the types of contributions that
+that's the types of contributions that people have made I don't want to
+people have made I don't want to minimize those contributions because
+minimize those contributions because they're all important
+they're all important but what I'm trying to get at is that
+but what I'm trying to get at is that just because something is in Rust and
+just because something is in Rust and Russ is an unfamiliar language doesn't
+Russ is an unfamiliar language doesn't mean that people can't contribute
+mean that people can't contribute um we've also had extremely high
+um we've also had extremely high stability as we saw with the previous
+stability as we saw with the previous example
+example downsides uh Russ has a very steep
+downsides uh Russ has a very steep learning curve I don't want to sugarcoat
+learning curve I don't want to sugarcoat it it can be pretty awful it puts a lot
+it it can be pretty awful it puts a lot of people off
+of people off um this is a very different language
+um this is a very different language from C plus plus and if you go and you
+from C plus plus and if you go and you actually read about how the static
+actually read about how the static guarantees work
+guarantees work you'll find very quick if that's true
+you'll find very quick if that's true uh it's a complicated language there's a
+uh it's a complicated language there's a lot of corners but I think this is kind
+lot of corners but I think this is kind of uh mitigated by the fact that we
+of uh mitigated by the fact that we already often most of us use a
+already often most of us use a complicated language in C plus plus and
+complicated language in C plus plus and and I don't think any of us know the
+and I don't think any of us know the whole thing uh so it's okay that it's
+whole thing uh so it's okay that it's complicated from my perspective but it
+complicated from my perspective but it does put a lot of people off
+does put a lot of people off it's heavily reliant on the ecosystem
+it's heavily reliant on the ecosystem this is really true of every language as
+this is really true of every language as well but it is mostly about how mature
+well but it is mostly about how mature is your ecosystem and I think that rust
+is your ecosystem and I think that rust is in several areas mature enough uh and
+is in several areas mature enough uh and in in a few areas still working on it
+in in a few areas still working on it compile times uh I don't really run up
+compile times uh I don't really run up against this much with the stuff I work
+against this much with the stuff I work on I think it's fine but uh this is a
+on I think it's fine but uh this is a very common complaint
+very common complaint about rust
+about rust so how we approach these downsides is
+so how we approach these downsides is going to be key to our integration
+going to be key to our integration some tips from our own experience
+some tips from our own experience communicate about what you're doing this
+communicate about what you're doing this is a big mistake I made I didn't
+is a big mistake I made I didn't communicate enough when I integrated
+communicate enough when I integrated rust and it caused a lot of strife
+rust and it caused a lot of strife uh you want to keep Russ it's kind of
+uh you want to keep Russ it's kind of siled off until you get more experience
+siled off until you get more experience in your company what I did is I found an
+in your company what I did is I found an unmaintained tool that was actually
+unmaintained tool that was actually probably written
+probably written and I made it better and and through
+and I made it better and and through that process it's been really
+that process it's been really interesting because
+interesting because people started to see the potential in
+people started to see the potential in the tool and it gained many more
+the tool and it gained many more contributions than it had before it was
+contributions than it had before it was written in Rust
+start with the best workflow I think this is Visual Studio code and rust
+this is Visual Studio code and rust analyzer plugin at this point
+analyzer plugin at this point uh these are also other ones are also
+uh these are also other ones are also tools I recommend to install clippy
+tools I recommend to install clippy especially as a linter and this is
+especially as a linter and this is extremely important to run as you're
+extremely important to run as you're learning Russ because it will tell you
+learning Russ because it will tell you when you're doing things not
+when you're doing things not idiomatically or or unexpectedly uh
+idiomatically or or unexpectedly uh wasting performance
+wasting performance and it catches a lot a lot of things and
+and it catches a lot a lot of things and it will teach you a lot about rust so I
+it will teach you a lot about rust so I recommend running clippy on everything
+recommend running clippy on everything that you write especially when you're
+that you write especially when you're starting out
+starting out the address code is really interesting
+the address code is really interesting because it has the same safety
+because it has the same safety guarantees
+guarantees so it's probably you know you want to
+so it's probably you know you want to avoid bad code but what I'm saying is
+avoid bad code but what I'm saying is that while you're learning it's not the
+that while you're learning it's not the end of the world if your code isn't
+end of the world if your code isn't perfect whereas in C plus
+perfect whereas in C plus if your code isn't perfect it can you
+if your code isn't perfect it can you know melt down a nuclear reactor or
+know melt down a nuclear reactor or something along those lines uh it's it's
+something along those lines uh it's it's very dangerous to have imperfect code in
+very dangerous to have imperfect code in C plus plus but it's not as dangerous in
+C plus plus but it's not as dangerous in Rust because of all the safety
+Rust because of all the safety guarantees
+guarantees the initial hurdles are high like I said
+the initial hurdles are high like I said but
+but I noticed that there are large
+I noticed that there are large productivity gains after you get over
+productivity gains after you get over those hurdles I find that I'm more
+those hurdles I find that I'm more productive and rust than in any other
+productive and rust than in any other language and I just enjoy programming in
+language and I just enjoy programming in it more these days and I think that's
+it more these days and I think that's pretty common sentiment around people
+pretty common sentiment around people who have pushed through the hurdles
+who have pushed through the hurdles but you want to provide time and space
+but you want to provide time and space to learn and teach the language uh this
+to learn and teach the language uh this this means making presentations doing
+this means making presentations doing courses giving people examples being
+courses giving people examples being available to to answer questions doing
+available to to answer questions doing code reviews all this stuff this is kind
+code reviews all this stuff this is kind of like the burden you have of pushing
+of like the burden you have of pushing forward on this
+forward on this is that you have to be available and you
+is that you have to be available and you have to make it as easy on other people
+have to make it as easy on other people as possible
+as possible these are some learning resources
+these are some learning resources um if you like to or if you're anything
+um if you like to or if you're anything like me uh you want to just get right in
+like me uh you want to just get right in and code I recommend you know going to
+and code I recommend you know going to lead code they have rust built in you
+lead code they have rust built in you can run some programs uh Avant of code
+can run some programs uh Avant of code is fun to work through in any language
+is fun to work through in any language these are just ways to to embed problems
+these are just ways to to embed problems to solve for yourself and uh you can get
+to solve for yourself and uh you can get quite a ways with those
+quite a ways with those uh if you like book learning
+uh if you like book learning um these are two of the more popular
+um these are two of the more popular rust books and I haven't read either of
+rust books and I haven't read either of these but I I've heard very good things
+these but I I've heard very good things about both of them
+about both of them if you just want to stay online the Russ
+if you just want to stay online the Russ language site has a good learning
+language site has a good learning section uh there's a playground as well
+section uh there's a playground as well where you can try rust out in your
+where you can try rust out in your browser and see if it compiles and what
+browser and see if it compiles and what what's generated and things like that
+what's generated and things like that so that's it for me uh thank you for for
+so that's it for me uh thank you for for listening to my talk I hope that you've
+listening to my talk I hope that you've learned something I hope that you're
+learned something I hope that you're interested in Rust
+interested in Rust I hope that I've made a compelling
+I hope that I've made a compelling argument for why rust is uh good in game
+argument for why rust is uh good in game tools and I I'm happy to have your
+tools and I I'm happy to have your feedback as well
+feedback as well and as always uh if you're interested in
+and as always uh if you're interested in Treyarch we're always hiring so thank
+Treyarch we're always hiring so thank you for paying attention
+[Music]

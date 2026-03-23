@@ -1,0 +1,1512 @@
+[Music] all right everybody welcome to this the
+all right everybody welcome to this the last talk in the last hour the last day
+last talk in the last hour the last day of EDC we have deployed smooth jazz to
+of EDC we have deployed smooth jazz to keep your resolute in the face of almost
+keep your resolute in the face of almost certain boredom by the way if there's a
+certain boredom by the way if there's a seat like closer to the middle from
+seat like closer to the middle from where you are you can kind of squeeze in
+where you are you can kind of squeeze in we can get more people in unfortunately
+we can get more people in unfortunately there sure are a lot of you here today
+there sure are a lot of you here today it's kind of hoping there wouldn't today
+it's kind of hoping there wouldn't today we are going to talk about dialogue and
+we are going to talk about dialogue and game is a really simple way to do
+game is a really simple way to do dialogue in games a really easy way to
+dialogue in games a really easy way to make writer is very awesome this game
+make writer is very awesome this game this talk is not really about code it is
+this talk is not really about code it is not really about programming it is about
+not really about programming it is about enabling writers and I don't mean like
+enabling writers and I don't mean like by handing them the Scotch although God
+by handing them the Scotch although God knows I've had to do that often enough
+by the way if you are the sort of person who freaks out taking lots of notes in
+who freaks out taking lots of notes in every slides taking a picture feel free
+every slides taking a picture feel free to take notes but the slides are all
+to take notes but the slides are all going to be up on the valve website
+going to be up on the valve website probably by Monday so there's no need to
+probably by Monday so there's no need to take pictures of every slide unless you
+take pictures of every slide unless you really want to this talk is about our
+really want to this talk is about our system for tracking lots and lots of
+system for tracking lots and lots of facts about the world and then picking
+facts about the world and then picking one rule from a gigantic database full
+one rule from a gigantic database full of lines based on criteria for all those
+of lines based on criteria for all those facts it's a system that we've used in
+facts it's a system that we've used in half-life 2 to import restore but for
+half-life 2 to import restore but for dead portal to dota 2 all of our games
+dead portal to dota 2 all of our games most of my examples are going to be from
+most of my examples are going to be from left 4 dead 2 just because it was easy
+left 4 dead 2 just because it was easy for me to capture video but it's the
+for me to capture video but it's the same tech in all of these games and we
+same tech in all of these games and we realized after the fact you can use it
+realized after the fact you can use it to drive some things that are not speech
+to drive some things that are not speech like animation and sound you will see a
+like animation and sound you will see a particular scene that will tip you off
+particular scene that will tip you off as to what other games uses this for for
+as to what other games uses this for for animation but really this talk is not
+animation but really this talk is not about code it is about writers it is
+about code it is about writers it is about empowering writers it is about a
+about empowering writers it is about a way to approach tracking state in the
+way to approach tracking state in the world in a way that enables writers to
+world in a way that enables writers to do what they do best which is making
+do what they do best which is making your characters say things that are
+your characters say things that are interesting it is as much as possible a
+interesting it is as much as possible a system that is simple general efficient
+system that is simple general efficient and friendly that is three things not
+and friendly that is three things not four I'm
+four I'm of the belief that's simple and friendly
+of the belief that's simple and friendly are the same thing because if a system
+are the same thing because if a system is simple to use people will use it if
+is simple to use people will use it if it is simple to build you can maintain
+it is simple to build you can maintain it if you can build a complicated system
+it if you can build a complicated system you can only do simple things with it
+you can only do simple things with it you have to build a simple system to
+you have to build a simple system to make complicated things and why stand up
+make complicated things and why stand up here and talk at you for an hour about
+here and talk at you for an hour about talking well there have been a bunch of
+talking well there have been a bunch of really cool games and the past couple
+really cool games and the past couple years that had done cool and interesting
+years that had done cool and interesting things with dialogue dialogue States
+things with dialogue dialogue States sitting or tracking the player tracking
+sitting or tracking the player tracking what you've done previously
+what you've done previously communicating character or just being
+communicating character or just being really fun personally I really enjoyed
+really fun personally I really enjoyed each and every one of these games so if
+each and every one of these games so if I can show you how to make similar games
+I can show you how to make similar games then hopefully you will and I will get
+then hopefully you will and I will get to play them my ulterior motive when I
+to play them my ulterior motive when I mean contextual dialogue I am referring
+mean contextual dialogue I am referring to any kind of like state or character
+to any kind of like state or character speech or behavior by character that
+speech or behavior by character that seems to be aware of what the state the
+seems to be aware of what the state the world is in and what the player has done
+world is in and what the player has done previously in the early days when games
+previously in the early days when games were nothing but dialogue this was
+were nothing but dialogue this was pretty easy but games got complicated
+pretty easy but games got complicated and so did dialogue pretty quickly
+and so did dialogue pretty quickly our PG said the notion of conversation
+our PG said the notion of conversation trees but you know you may occasionally
+trees but you know you may occasionally have a character who wants to remember
+have a character who wants to remember things like the fact that you blew up
+things like the fact that you blew up his hometown three missions previously
+his hometown three missions previously you know might respond to you
+you know might respond to you differently based on that you have to
+differently based on that you have to start storing explicit flags and closing
+start storing explicit flags and closing off branches of trees it gets really
+off branches of trees it gets really unwieldy if you have a bunch of stuff
+unwieldy if you have a bunch of stuff some games don't have conversation trees
+some games don't have conversation trees but they do have characters with bark to
+but they do have characters with bark to announce their state stealth games are a
+announce their state stealth games are a canonical example of this because it's
+canonical example of this because it's an important part of the game mechanic
+an important part of the game mechanic the player needs to be aware of what the
+the player needs to be aware of what the AI knows about the player what the AI is
+AI knows about the player what the AI is thinking where the AI is going to go
+thinking where the AI is going to go next it's actually how you play the game
+next it's actually how you play the game a great example of this I think is is
+a great example of this I think is is once again Batman I love this game
+once again Batman I love this game there's so much good stuff in this game
+there's so much good stuff in this game among the good stuff in this game is one
+among the good stuff in this game is one particular kind of AI guard who is so
+particular kind of AI guard who is so explicit so clear and what he is
+explicit so clear and what he is thinking that it's like he was
+thinking that it's like he was tailor-made for doing presentations
+target deployed smoke to escape target is now moving smoke target was a
+is now moving smoke target was a negative just blew the crap out of an
+negative just blew the crap out of an extinguisher okay so but you can see
+extinguisher okay so but you can see like it's this is how the AI tells
+like it's this is how the AI tells Batman how to play the game right the
+Batman how to play the game right the game is all about manipulating where the
+game is all about manipulating where the guards are moving it really is a good
+guards are moving it really is a good game I played for like a hundred hours
+game I played for like a hundred hours other games use it as an artistic or a
+other games use it as an artistic or a narrative device Bastian has an
+narrative device Bastian has an omniscient narrator who responds to
+omniscient narrator who responds to everything the player does with some
+everything the player does with some kind of specific speech this is not
+kind of specific speech this is not because the player needs to be told what
+because the player needs to be told what he is doing but because that's what the
+he is doing but because that's what the game is about it's about storytelling
+game is about it's about storytelling it's about creating the world through
+it's about creating the world through your actions that's the game let's you
+your actions that's the game let's you know that it's paying attention sports
+know that it's paying attention sports games somehow create tens of thousands
+games somehow create tens of thousands of possible utterances from I don't even
+of possible utterances from I don't even know how many lines and a sports game is
+know how many lines and a sports game is a really highly dynamic situation where
+a really highly dynamic situation where I think that all these different teams
+I think that all these different teams and players in the field
+and players in the field you can't just handle this by a gigantic
+you can't just handle this by a gigantic cascade of if else your brain would
+cascade of if else your brain would probably melt and modern RPGs track an
+probably melt and modern RPGs track an absurd amount of state think about all
+absurd amount of state think about all the stuff that's Chiron and NASA fact
+the stuff that's Chiron and NASA fact remember about what you've done
+remember about what you've done not just to control character outcomes
+not just to control character outcomes in mission outcomes and conversation
+in mission outcomes and conversation trees but also so that townspeople can
+trees but also so that townspeople can remember that you are the elf mage that
+remember that you are the elf mage that saved the town from the demon horde just
+saved the town from the demon horde just a few missions previously it's how they
+a few missions previously it's how they create the feeling of a living world
+create the feeling of a living world it's how they create the feeling the
+it's how they create the feeling the world actually responds to your actions
+world actually responds to your actions I have no clue how all those game oops
+I have no clue how all those game oops PowerPoint fail well while I'm waiting
+PowerPoint fail well while I'm waiting for PowerPoint to respond I have no clue
+for PowerPoint to respond I have no clue how all those games did their stuff but
+how all those games did their stuff but I can tell you how we did our stuff and
+I can tell you how we did our stuff and that's what I will be talking about
+that's what I will be talking about assuming PowerPoint gets back to me
+assuming PowerPoint gets back to me nightmare
+nightmare I'll move on to the next slide that I
+I'll move on to the next slide that I haven't got up in screen our system as
+haven't got up in screen our system as much as possible designed to be simple a
+much as possible designed to be simple a uniform one way to track all the state
+uniform one way to track all the state of the game in one place one way to find
+of the game in one place one way to find the right line for every possible
+the right line for every possible circumstance from a gigantic database of
+circumstance from a gigantic database of circumstances and as much as possible a
+circumstances and as much as possible a way for writers to to be able to create
+way for writers to to be able to create the rules database themselves I'm going
+the rules database themselves I'm going to reboot PowerPoint we start the
+to reboot PowerPoint we start the program please do not recover my
+program please do not recover my information and cancel
+so how's the fish
+and we're back Team Fortress for example a multiplayer game where you can play
+a multiplayer game where you can play one of nine different character classes
+one of nine different character classes we wanted to make a mechanism in this
+we wanted to make a mechanism in this game where you could hit a button and
+game where you could hit a button and speak in your character's voice if for
+speak in your character's voice if for example I am a soldier and injured need
+example I am a soldier and injured need medical attention I can push the button
+medical attention I can push the button and have the soldier save in his voice
+and have the soldier save in his voice it's not just for role-playing purposes
+it's not just for role-playing purposes although that's kind of the largest
+although that's kind of the largest purpose but it's also for international
+purpose but it's also for international play if I'm in the United States and I
+play if I'm in the United States and I push the button I will hear my soldiers
+push the button I will hear my soldiers being speaking medic in English but if
+being speaking medic in English but if you're in Spain you're going to hear
+you're in Spain you're going to hear them speaking in the localized voice
+them speaking in the localized voice it's a way for players to play it across
+it's a way for players to play it across international lines to communicate
+international lines to communicate simple orders and ideas to each other
+simple orders and ideas to each other and have a localization system take care
+and have a localization system take care of it for them needed to spread Zaheer
+there are other characters who have to automatically announce their state to
+automatically announce their state to the player that is so that if for
+the player that is so that if for example I'm next to a medic character
+example I'm next to a medic character and the medic is ready to heal me I know
+and the medic is ready to heal me I know that and I know it even if the player
+that and I know it even if the player has failed to actually push the button
+has failed to actually push the button or spoken over his headset to remind me
+sentry going up and we also have a contextual dialogue button where you put
+contextual dialogue button where you put your cursor over an object in the world
+your cursor over an object in the world push a button game tries to figure out
+push a button game tries to figure out what it was that you wanted to say about
+what it was that you wanted to say about that thing I'm a cop so this blogger
+that thing I'm a cop so this blogger thing we also use it to communicate
+thing we also use it to communicate rivalries between individual characters
+rivalries between individual characters that's part of the sort of role playing
+that's part of the sort of role playing in the in the story of the game
+in the in the story of the game the engineers is by the Scout is is fine
+the engineers is by the Scout is is fine the spy is a double agent
+so having finished the orange box and Team Fortress and all that Valve did
+Team Fortress and all that Valve did something kind of valve we really were
+something kind of valve we really were not ready to go on and make another huge
+not ready to go on and make another huge game straight away we're a little bit a
+game straight away we're a little bit a little bit crispy and we figured okay
+little bit crispy and we figured okay how about we take everybody who rolled
+how about we take everybody who rolled off the project put them on little teams
+off the project put them on little teams of like four or six people apiece and
+of like four or six people apiece and each of them comes up with some
+each of them comes up with some interesting design ideas some piece of
+interesting design ideas some piece of code some some feature that maybe we can
+code some some feature that maybe we can put into our next game do something
+put into our next game do something risky you know if it doesn't pan out you
+risky you know if it doesn't pan out you only spent a couple months in it yeah
+only spent a couple months in it yeah but if it is cool then it can become a
+but if it is cool then it can become a feature that we use from then on one of
+feature that we use from then on one of the teams ask themselves what can we do
+the teams ask themselves what can we do to improve companion characters in our
+to improve companion characters in our games what can we do to make up people
+games what can we do to make up people like Alex Vance
+like Alex Vance seem more real seem like they're aware
+seem more real seem like they're aware of their environment seem like they have
+of their environment seem like they have memory so we took a bunch of half-life 2
+memory so we took a bunch of half-life 2 art assets Bank together a couple
+art assets Bank together a couple characters had a programmer and an
+characters had a programmer and an artist record some voices and created a
+artist record some voices and created a project called two BOTS one wrench for
+project called two BOTS one wrench for reasons I will not describe I was going
+reasons I will not describe I was going to say by the way here seen for the
+to say by the way here seen for the first time ever outside of valve some
+first time ever outside of valve some internal video I am told that Jeff Keely
+internal video I am told that Jeff Keely and his a portal last our app has
+and his a portal last our app has already shown this video so here for the
+already shown this video so here for the second time ever
+second time ever outside valve two BOTS one wrench
+outside valve two BOTS one wrench starting up how can we make characters
+starting up how can we make characters aware of the environment you can do all
+aware of the environment you can do all kinds of crazy code but we we only had a
+kinds of crazy code but we we only had a couple months for like what's the
+couple months for like what's the easiest simplest way we can do this and
+easiest simplest way we can do this and we thought about that system that we had
+we thought about that system that we had in Team Fortress 2 or you can put your
+in Team Fortress 2 or you can put your cursor over an object and say something
+cursor over an object and say something contextual about that object what we
+contextual about that object what we said okay how about we just tag every
+said okay how about we just tag every single object in the world with a string
+single object in the world with a string name like its class name and then each
+name like its class name and then each of the characters in the game each of
+of the characters in the game each of the robots that we made automatically
+the robots that we made automatically pulls his field of vision every few
+pulls his field of vision every few seconds like you are pushing that
+seconds like you are pushing that vocalized button and if it finds an
+vocalized button and if it finds an object there it pulls a string name off
+object there it pulls a string name off the object it goes through its database
+the object it goes through its database it tries to find a line matching the
+it tries to find a line matching the name of the object and if there is one
+name of the object and if there is one it says the line super brain-dead simple
+it says the line super brain-dead simple you
+anyone want to see me break this in the clock with me ask anyone but you
+clock with me ask anyone but you someone's gonna [ __ ] miss this
+materials that does sound dangerous oh
+there's more not done yet so this is literally all the code that you need to
+literally all the code that you need to do that it is not even code it's barely
+do that it is not even code it's barely even the script it's a text file in
+even the script it's a text file in notepad all right you've got these rules
+notepad all right you've got these rules each of the rules has a list of criteria
+each of the rules has a list of criteria like why am I being polled oh I've seen
+like why am I being polled oh I've seen an object am i being shot at no what am
+an object am i being shot at no what am I looking at and there's the name of the
+I looking at and there's the name of the object if the writer wanted to create a
+object if the writer wanted to create a new rule for a particular kind of object
+new rule for a particular kind of object had some funny thing that occurred to
+had some funny thing that occurred to her to him about a shoe you would put in
+her to him about a shoe you would put in the shoe roll if not the rule would not
+the shoe roll if not the rule would not play all it takes to add a new line to
+play all it takes to add a new line to any object in the world is just like
+any object in the world is just like four pieces of text right there having
+four pieces of text right there having characters babble whatever pops into
+characters babble whatever pops into their head is well and good but we have
+their head is well and good but we have two of them and we would like them to
+two of them and we would like them to talk to each other once again what is
+talk to each other once again what is the easiest simplest laziest way that I
+the easiest simplest laziest way that I could possibly implement that can have
+could possibly implement that can have all kinds of ways to handle conversation
+all kinds of ways to handle conversation is you can have an entity that binds the
+is you can have an entity that binds the two characters you can have a scripted
+two characters you can have a scripted sequence you can lock both of them down
+sequence you can lock both of them down it sounds like a lot of programming to
+it sounds like a lot of programming to me you know it's a lot easier doing the
+me you know it's a lot easier doing the exact same thing we did before
+exact same thing we did before every time one character says a line he
+every time one character says a line he creates an event dispatches it to the
+creates an event dispatches it to the other character except this time the
+other character except this time the parameter instead of being the name of
+parameter instead of being the name of the object now what is the name of the
+the object now what is the name of the line that has just been said second
+line that has just been said second character looks in his database tries to
+character looks in his database tries to find a line corresponding to the thing
+find a line corresponding to the thing that was just sent to him and says that
+that was just sent to him and says that line when he's finished he may have a
+line when he's finished he may have a line of his own send it back to the
+line of his own send it back to the first one back and forth implementing
+first one back and forth implementing conversation in like three hours of code
+conversation in like three hours of code Oh PowerPoint and we've crashed
+right
+while powerpoints were starting I will send a video which either screen
+sorry show some current slide
+danger crane overhead cursor you're an idiot
+idiot one be so funny when you get Chris my
+one be so funny when you get Chris my booty Trey what kind of incidents a
+booty Trey what kind of incidents a trafficker in prison
+trafficker in prison it's uncomfortable it is leaving my
+it's uncomfortable it is leaving my sense is a Turkish test it's true I
+sense is a Turkish test it's true I wouldn't blink they were trying to keep
+wouldn't blink they were trying to keep something in oh not the easy prison
+something in oh not the easy prison mates yesterday it's a rather shabby
+mates yesterday it's a rather shabby great new dance every day
+great new dance every day ah accidentally looked at it again
+ah accidentally looked at it again stimulated incidentally the red bought
+stimulated incidentally the red bought Richard Lord the same artist who did the
+Richard Lord the same artist who did the original Wheatley voices may have heard
+original Wheatley voices may have heard on YouTube right so it's great to have
+on YouTube right so it's great to have characters babbling at each other but
+characters babbling at each other but you know what conversation really needs
+you know what conversation really needs it needs running gags we needed some way
+it needs running gags we needed some way for characters to remember what they had
+for characters to remember what they had said to each other to the said to
+said to each other to the said to themselves and what the player had done
+themselves and what the player had done to them
+to them once again what is the easiest possible
+once again what is the easiest possible way that we can do this well we have
+way that we can do this well we have this notion of every time a character
+this notion of every time a character says a line its evaluating all these
+says a line its evaluating all these criteria about the state of the world
+criteria about the state of the world that we passed in from the function what
+that we passed in from the function what if along with all the other state in
+if along with all the other state in this function we also pass in a table
+this function we also pass in a table that is stored in the character's head
+that is stored in the character's head we can just have the writer store
+we can just have the writer store arbitrary variables just a name and a
+arbitrary variables just a name and a number and it can update them so the
+number and it can update them so the first time this robot sees a barrel it's
+first time this robot sees a barrel it's going to go through its database it's
+going to go through its database it's going to find that first line and then
+going to find that first line and then it's going to set that scene barrels
+it's going to set that scene barrels parameter to one more than it was before
+parameter to one more than it was before so the next time it sees a barrel it's
+so the next time it sees a barrel it's going to go through the same thing
+going to go through the same thing except the scene barrels criterion will
+except the scene barrels criterion will match for the second row I don't feel me
+match for the second row I don't feel me now PowerPoint the second row it'll play
+now PowerPoint the second row it'll play the next line and that way you can get a
+the next line and that way you can get a whole series of lines about in about an
+whole series of lines about in about an event all right switching to emergency
+event all right switching to emergency backup laptop
+and we're back that is all the code it takes to do this kind of memory
+takes to do this kind of memory mechanism right you see that first rule
+mechanism right you see that first rule there for no seen barrels the first time
+there for no seen barrels the first time the character sees a barrel who's gonna
+the character sees a barrel who's gonna play that role and then it'll set that
+play that role and then it'll set that scene barrels criteria into one more for
+scene barrels criteria into one more for the second role that one has the
+the second role that one has the additional criterion there and then one
+additional criterion there and then one more time and then a trigger back to the
+more time and then a trigger back to the other robot the entire system must be
+other robot the entire system must be down what is wrong with you after we
+down what is wrong with you after we finish the project and kind of overcame
+finish the project and kind of overcame our laughter left4dead was going into
+our laughter left4dead was going into production and we realize that left 4
+production and we realize that left 4 dead again I'm showing you examples from
+dead again I'm showing you examples from left 4 dead 2 but it's the same tech
+left 4 dead 2 but it's the same tech left 4 dead is a game that would really
+left 4 dead is a game that would really benefit from this the thing about why if
+benefit from this the thing about why if you haven't played it it's about 4 human
+you haven't played it it's about 4 human survivors you and your friends against a
+survivors you and your friends against a zombie apocalypse it is a game that is
+zombie apocalypse it is a game that is designed to have high replay value there
+designed to have high replay value there are only about 5 campaigns that ship
+are only about 5 campaigns that ship with them about 1 hour long apiece but
+with them about 1 hour long apiece but every time you play the game it's
+every time you play the game it's different because an AI director throws
+different because an AI director throws different situations different
+different situations different characters different enemies at you each
+characters different enemies at you each time but you can see why this means that
+time but you can see why this means that we couldn't have pre-canned audio unlike
+we couldn't have pre-canned audio unlike environmental triggers for example Nick
+environmental triggers for example Nick the gambler cannot say the same line
+the gambler cannot say the same line about the hunter zombie every time he
+about the hunter zombie every time he sets foot in the warehouse for the first
+sets foot in the warehouse for the first time because the zombie may not be there
+time because the zombie may not be there may be a different zombie you may have
+may be a different zombie you may have seen the zombie earlier Nick may be dead
+seen the zombie earlier Nick may be dead moreover because you're playing the same
+moreover because you're playing the same mission a bunch of times if he played
+mission a bunch of times if he played the exact same line at the exact same
+the exact same line at the exact same location it would be rapidly very tiring
+location it would be rapidly very tiring and as I mentioned the game was about
+and as I mentioned the game was about getting to safety but not everyone makes
+getting to safety but not everyone makes it
+it we needed some kind of system that could
+we needed some kind of system that could cope with characters being dead at
+cope with characters being dead at certain points in the game and try to
+certain points in the game and try to figure out you know what can I say with
+figure out you know what can I say with whoever happens to be alive here's a
+whoever happens to be alive here's a little bit of what I mean about having
+little bit of what I mean about having variety in the game this is the exact
+variety in the game this is the exact same point in the exact same mission but
+same point in the exact same mission but two different playthroughs okay first we
+two different playthroughs okay first we look for supplies then we start the
+look for supplies then we start the Midnight Rider finale it's all kinds of
+Midnight Rider finale it's all kinds of fireworks smoke pots and lights and [ __ ]
+fireworks smoke pots and lights and [ __ ] that chopper pilot cake misses so we
+that chopper pilot cake misses so we gotta set up to rock and fi zombieland
+gotta set up to rock and fi zombieland it's been a long time since I've seen
+it's been a long time since I've seen the rise but if therefore now is the
+the rise but if therefore now is the same that'll signal the chopper pilot we
+same that'll signal the chopper pilot we just need to start coach that is the
+just need to start coach that is the stupidest idea I have ever agreed with
+stupidest idea I have ever agreed with then let's do it everybody grab a weapon
+then let's do it everybody grab a weapon and let's go in addition to canned
+and let's go in addition to canned conversations we also needed a way for
+conversations we also needed a way for AI characters to call out things they
+AI characters to call out things they saw in the world things like ammunition
+saw in the world things like ammunition caches and weapon caches are in a
+caches and weapon caches are in a different place in the world and on
+different place in the world and on every plate that we put weapons
+every plate that we put weapons differently it's part of the
+differently it's part of the replayability and if you're playing with
+replayability and if you're playing with human friends your friends will tell you
+human friends your friends will tell you oh there's a new weapons cache over here
+oh there's a new weapons cache over here this time but you may not always have
+this time but you may not always have three human co-players you may have
+three human co-players you may have robots in their place the game is
+robots in their place the game is designed to fill out your team if you're
+designed to fill out your team if you're playing alone so the robot player is
+playing alone so the robot player is needed to call these pieces of
+needed to call these pieces of information out in the same way and once
+information out in the same way and once we did it for the AI as we realized it's
+we did it for the AI as we realized it's pretty fun to have the human controlled
+pretty fun to have the human controlled characters talk automatically as well it
+characters talk automatically as well it helps the role-playing we have guns here
+[Music]
+and finally left4dead is a game that tells its story through in the
+tells its story through in the environment there's not a lot of
+environment there's not a lot of cutscenes or scripted sequences the
+cutscenes or scripted sequences the story of the zombie apocalypse is told
+story of the zombie apocalypse is told through the environments that you move
+through the environments that you move through and the objects you come across
+through and the objects you come across so the best opportunity for characters
+so the best opportunity for characters to express themselves for us to have
+to express themselves for us to have character moments was to have them
+character moments was to have them interact with and talk about the
+interact with and talk about the environment as well hey can we stop make
+environment as well hey can we stop make some cotton candy
+some cotton candy seriously holy [ __ ] guys I want to ride
+seriously holy [ __ ] guys I want to ride one just one just let me ride the
+one just one just let me ride the screaming oak once hey what are we ever
+screaming oak once hey what are we ever gonna be here again well looks like
+gonna be here again well looks like we're going through the tunnel of people
+we're going through the tunnel of people no Hagee Peggy the air-duct of love one
+no Hagee Peggy the air-duct of love one man cheeseburger together this kind of
+man cheeseburger together this kind of scale it is imperative that your writers
+scale it is imperative that your writers are the ones doing your writing you want
+are the ones doing your writing you want to give your writers tools not homework
+to give your writers tools not homework assignments and a lot of games like this
+assignments and a lot of games like this what happens is the AI programmer while
+what happens is the AI programmer while making the AI asks himself hmm
+making the AI asks himself hmm well at what moments with this character
+well at what moments with this character like to say something let me try to
+like to say something let me try to guess all the times a character would
+guess all the times a character would speak I'll put code hooks in for that
+speak I'll put code hooks in for that and give the right or this big
+and give the right or this big spreadsheet and tell her fill this out
+spreadsheet and tell her fill this out with Kings the character could say well
+with Kings the character could say well this reduces your writer to filling out
+this reduces your writer to filling out Madeline's which is not writing it also
+Madeline's which is not writing it also means your programmer is the one doing
+means your programmer is the one doing the writing and the intersection between
+the writing and the intersection between good programmers and good writers while
+good programmers and good writers while non zero is pretty small it's kind of
+non zero is pretty small it's kind of Vernor Vinge II really so as much as
+Vernor Vinge II really so as much as possible you really want the writers to
+possible you really want the writers to be the ones driving when lines get said
+be the ones driving when lines get said what are the circumstances what are the
+what are the circumstances what are the specific cases that need specific lines
+specific cases that need specific lines what are the general cases that need
+what are the general cases that need general lines
+general lines so on here's how we did it I should warn
+so on here's how we did it I should warn you the system is incredibly simple it
+you the system is incredibly simple it is brain dead facepalm why didn't I
+is brain dead facepalm why didn't I think of that simple that is the point
+think of that simple that is the point the system evolved by accretion it
+the system evolved by accretion it wasn't designed from the ground up it
+wasn't designed from the ground up it was we had this one thing in half-life
+was we had this one thing in half-life and then we added something and added
+and then we added something and added something if we had designed it from the
+something if we had designed it from the ground up there was no way we could have
+ground up there was no way we could have come up with something as simple here's
+come up with something as simple here's the general idea the big database full
+the general idea the big database full of rules a rule is a list of criteria
+of rules a rule is a list of criteria that have to be met about the world like
+that have to be met about the world like which map I'm on how many players are
+which map I'm on how many players are nearby each rule associated has a
+nearby each rule associated has a response it's just the thing that
+response it's just the thing that happens when the rule matches like a
+happens when the rule matches like a line playing when you want to say a line
+line playing when you want to say a line you build up a query of all the state in
+you build up a query of all the state in the world you take all the state in the
+the world you take all the state in the world you find the rule that best
+world you find the rule that best matches that state when you find one you
+matches that state when you find one you send that response over to the character
+send that response over to the character character says the line you have
+character says the line you have achieved dialogue a glossary for the
+achieved dialogue a glossary for the words I'm about to throw at you and they
+words I'm about to throw at you and they say context or fact it is just a piece
+say context or fact it is just a piece of state about the world like my hit
+of state about the world like my hit points query is a bunch of those all
+points query is a bunch of those all together all the state of the world
+together all the state of the world criterion is a single thing that has to
+criterion is a single thing that has to be true about the world like my hit
+be true about the world like my hit points are 5 rule is a bunch of those
+points are 5 rule is a bunch of those together and the response is the thing
+together and the response is the thing that happens to think about the way that
+that happens to think about the way that we assemble these queries programmers
+we assemble these queries programmers are used to thinking of the world as a
+are used to thinking of the world as a pile of facts tune hither and yon right
+pile of facts tune hither and yon right if I'm going to play a line about a
+if I'm going to play a line about a character when he's in the cave and he's
+character when he's in the cave and he's got a number of allies nearby I'm used
+got a number of allies nearby I'm used to like calling all these member
+to like calling all these member functions and looking at data things and
+functions and looking at data things and knowing where to find these things it's
+knowing where to find these things it's a few problems of this approach one is
+a few problems of this approach one is it's not discoverable it's hard to know
+it's not discoverable it's hard to know what information is available to you to
+what information is available to you to pick a pick a piece of behavior from
+pick a pick a piece of behavior from unless you kind of put it there yourself
+unless you kind of put it there yourself or you've read the docs or something
+or you've read the docs or something secondly it's kind of a palavra to get
+secondly it's kind of a palavra to get in the individual piece of information
+in the individual piece of information if I want the name of my ally I have to
+if I want the name of my ally I have to know that I have the current player
+know that I have the current player object from which I call the ally
+object from which I call the ally function I'm going to get the thing
+function I'm going to get the thing thoroughly kind of a mess right way
+thoroughly kind of a mess right way easier to think of the world is a flat
+easier to think of the world is a flat list of fact every time you want to do a
+list of fact every time you want to do a query you just pull all that information
+query you just pull all that information into one place it's always there makes
+into one place it's always there makes it way more discoverable right you can
+it way more discoverable right you can just look at the query and see what
+just look at the query and see what information you have available to write
+information you have available to write a rule from you don't have to go
+a rule from you don't have to go thinking very hard about where you're
+thinking very hard about where you're going to get this information from
+going to get this information from you have to do a little bit of extra
+you have to do a little bit of extra work to pull all the information
+work to pull all the information together in the first place but I'll
+together in the first place but I'll show you that's actually not that much
+show you that's actually not that much more work but there's so much more
+more work but there's so much more useable it is absolutely worth it so
+useable it is absolutely worth it so let's think about how we build up these
+let's think about how we build up these queries an individual fact is a piece of
+queries an individual fact is a piece of state might hit points 457 it is just a
+state might hit points 457 it is just a key value pair it's a name and the value
+key value pair it's a name and the value the name is a string by the way when I
+the name is a string by the way when I say string in this talk I do not mean
+say string in this talk I do not mean that you should use a Const CARSTAR like
+that you should use a Const CARSTAR like a newb I am assuming that you have some
+a newb I am assuming that you have some kind of in turn string or presentation
+kind of in turn string or presentation some kind of symbol table I'm just using
+some kind of symbol table I'm just using the word string to mean some kind of
+the word string to mean some kind of human and readable unique identifying
+human and readable unique identifying number a query is a pile of those
+number a query is a pile of those together it is not usually meaningful to
+together it is not usually meaningful to have the same key appear twice in the
+have the same key appear twice in the query hitpoints cannot be both 50 and 80
+query hitpoints cannot be both 50 and 80 so really it's a dictionary it's an
+so really it's a dictionary it's an associative array we have typically
+associative array we have typically queries that are hundreds of items long
+queries that are hundreds of items long because you pull together all the
+because you pull together all the possible state of the world every time
+possible state of the world every time we query the database that is so that if
+we query the database that is so that if our writer wakes up in the middle of the
+our writer wakes up in the middle of the night with this brilliant idea for line
+night with this brilliant idea for line that can be said when the zombie is on
+that can be said when the zombie is on the merry-go-round next to the ice-cream
+the merry-go-round next to the ice-cream machine for the third time you can you
+machine for the third time you can you can add this line without having to ask
+can add this line without having to ask the programmer to inject any additional
+the programmer to inject any additional state into the query it's just always
+state into the query it's just always there for performance reasons we have a
+there for performance reasons we have a couple of key names that are in every
+couple of key names that are in every query and every rule you'll see why in a
+query and every rule you'll see why in a sec we call them the concept the general
+sec we call them the concept the general idea of being said reloading I'm hit
+idea of being said reloading I'm hit andwho which is the person speaking
+andwho which is the person speaking makes no sense to load to play a line if
+makes no sense to load to play a line if you don't know who's talking to build a
+you don't know who's talking to build a query you start with the function that
+query you start with the function that decides it wants to speak for example
+decides it wants to speak for example let's say we have our on hit event
+let's say we have our on hit event function this is the thing that starts
+function this is the thing that starts the events in motion it creates this
+the events in motion it creates this query object it starts filling out the
+query object it starts filling out the first fields and the associative array
+first fields and the associative array based on the things the parameters to
+based on the things the parameters to the event and then it calls into the
+the event and then it calls into the base speak function starts to pull
+base speak function starts to pull together information about the world
+together information about the world the first wad of information we get is
+the first wad of information we get is about the player let's say it's Nick in
+about the player let's say it's Nick in this case there's a bunch of stuff that
+this case there's a bunch of stuff that we can procedurally calculate about Nick
+we can procedurally calculate about Nick that might be relevant for a line for
+that might be relevant for a line for example his hit points his ammunition
+example his hit points his ammunition who's nearby we simply go through all
+who's nearby we simply go through all the member functions all the state on
+the member functions all the state on Nick pull it together at
+Nick pull it together at the array then we take any of the
+the array then we take any of the arbitrary memory numbers that may have
+arbitrary memory numbers that may have missed organic the things that the
+missed organic the things that the writers may have give just given
+writers may have give just given arbitrary names to and triggered from
+arbitrary names to and triggered from rolls these two are pulled from mixed
+rolls these two are pulled from mixed memory and add it to the array we do the
+memory and add it to the array we do the same thing pulling in data from the
+same thing pulling in data from the world both procedural information like
+world both procedural information like what map are we on which allies are
+what map are we on which allies are alive have we encountered the crazy
+alive have we encountered the crazy hillbilly and so forth as well as once
+hillbilly and so forth as well as once again writers can store arbitrary state
+again writers can store arbitrary state in the world it's just a key and the
+in the world it's just a key and the value take all these sources information
+value take all these sources information you merge them all together into one
+you merge them all together into one gigantic table this is your query it's
+gigantic table this is your query it's also natural to think of dialog as a
+also natural to think of dialog as a pile of rules we're used to thinking of
+pile of rules we're used to thinking of like well in general if the henchman
+like well in general if the henchman sees Batman he says oh look Batman
+sees Batman he says oh look Batman unless he can kind of barely see the Hat
+unless he can kind of barely see the Hat Batman unless he works at the penguin
+Batman unless he works at the penguin unless works with the penguin and the
+unless works with the penguin and the penguin is dead unless you know unless
+penguin is dead unless you know unless unless unless unless it's really natural
+unless unless unless it's really natural to think in terms of general rules and
+to think in terms of general rules and specific exceptions and exceptions to
+specific exceptions and exceptions to the exceptions and exceptions to the
+the exceptions and exceptions to the exceptions to the exceptions kind of
+exceptions to the exceptions kind of like a like a pyramid to this end we
+like a like a pyramid to this end we represent each of those exceptions as a
+represent each of those exceptions as a criterion which is just a function that
+criterion which is just a function that tests a fact like is the speaker bill
+tests a fact like is the speaker bill our hit points between 30 and 60 in
+our hit points between 30 and 60 in computer science 'yes that's a predicate
+computer science 'yes that's a predicate function but in practice we don't really
+function but in practice we don't really use function pointers for this kind of
+use function pointers for this kind of thing you could but it's not much call
+thing you could but it's not much call for it a rule is a pile of those
+for it a rule is a pile of those together all the criteria in a rule must
+together all the criteria in a rule must match for the rule to be considered a
+match for the rule to be considered a match if a criterion mentions a key name
+match if a criterion mentions a key name that isn't in the query like there's a
+that isn't in the query like there's a killed 5 Bunny's criterion and the query
+killed 5 Bunny's criterion and the query doesn't even mention bunnies the
+doesn't even mention bunnies the criterion is considered a fail and
+criterion is considered a fail and because multiple rules may match a given
+because multiple rules may match a given query like if you see a zombie on the
+query like if you see a zombie on the merry-go-round you're gonna say oh look
+merry-go-round you're gonna say oh look at all exams aam be in the
+at all exams aam be in the merry-go-round
+merry-go-round but the oh look a zombie mine will also
+but the oh look a zombie mine will also match so you have to have some way to
+match so you have to have some way to take the specific rules over the more
+take the specific rules over the more general ones we tried a bunch of
+general ones we tried a bunch of different scoring functions as always
+different scoring functions as always the very simplest one imaginable was the
+the very simplest one imaginable was the one that worked best the more criteria a
+one that worked best the more criteria a rule has the more specific it is the
+rule has the more specific it is the higher it scores let's walk with really
+higher it scores let's walk with really fast through a simple example of how we
+fast through a simple example of how we might match a single rule to a query
+might match a single rule to a query let's say this is our query
+let's say this is our query Nik has been hit in the circus he's
+Nik has been hit in the circus he's partially injured he has to friend
+partially injured he has to friend he was hit by a zombie clone let's think
+he was hit by a zombie clone let's think about all the rules we might have in the
+about all the rules we might have in the seventh overall database first one has
+seventh overall database first one has nickman hit yes passes the next one the
+nickman hit yes passes the next one the concept criterion does not match fails
+concept criterion does not match fails next the health criterion doesn't match
+next the health criterion doesn't match fails next was a more specific criterion
+fails next was a more specific criterion does he have at least one ally he does
+does he have at least one ally he does passes next are we in the circus yes we
+passes next are we in the circus yes we are
+are was it a clown yes it was was it a clown
+was it a clown yes it was was it a clown in the circus yes it was so here are the
+in the circus yes it was so here are the rules that have passed to start with
+rules that have passed to start with we've got this one which has only two
+we've got this one which has only two criteria and this one has three so we
+criteria and this one has three so we can reject the first rule it's not
+can reject the first rule it's not specific it won't play up to this point
+specific it won't play up to this point each of these rules has a score of three
+each of these rules has a score of three they each have three criteria so to this
+they each have three criteria so to this point the engine would randomly pick
+point the engine would randomly pick from any of them to say a line here
+from any of them to say a line here they're all equally specific and we get
+they're all equally specific and we get more variety that way but in this case
+more variety that way but in this case we have one line that is more specific
+we have one line that is more specific it has a higher score that is the one
+it has a higher score that is the one that will play the response is an
+that will play the response is an arbitrary payload it's whatever happens
+arbitrary payload it's whatever happens there's not much to say about it
+there's not much to say about it other than that it's okay to have a bit
+other than that it's okay to have a bit of intelligence in your response what we
+of intelligence in your response what we have here are number of different minor
+have here are number of different minor variations in the same line that are all
+variations in the same line that are all considered the same response the game
+considered the same response the game will randomly pick between them saves us
+will randomly pick between them saves us the effort of having 12 parallel rules
+the effort of having 12 parallel rules for the same notion you can also have
+for the same notion you can also have responses that disabled themselves that
+responses that disabled themselves that move sequentially through a series of
+move sequentially through a series of lines it's totally cool to have
+lines it's totally cool to have arbitrary logic in your response however
+arbitrary logic in your response however you implement it let's think of a simple
+you implement it let's think of a simple example of how we handle right back in
+example of how we handle right back in conversations between characters one of
+conversations between characters one of those convos at the beginning of a
+those convos at the beginning of a mission every few seconds a character
+mission every few seconds a character just ask themselves do I have a line to
+just ask themselves do I have a line to say that's what we call the idle talk
+say that's what we call the idle talk this rule a match if that's happening
+this rule a match if that's happening and there are at least three living
+and there are at least three living survivors and the person speaking is
+survivors and the person speaking is that is Nick the gambler and he hasn't
+that is Nick the gambler and he hasn't said this line before and he's in the
+said this line before and he's in the swamp and he's in the start area all
+swamp and he's in the start area all these things match this rule will match
+these things match this rule will match before it says a line it's going to
+before it says a line it's going to write some state back to Nick's memory
+write some state back to Nick's memory in this particular case simply that this
+in this particular case simply that this line has been said and then that Nick is
+line has been said and then that Nick is speaking so that other characters don't
+speaking so that other characters don't talk over him
+talk over him you can set an expiry time on some
+you can set an expiry time on some contexts if you like that's how you can
+contexts if you like that's how you can prevent successive lines of a running
+prevent successive lines of a running gag planning too close to each other
+gag planning too close to each other then we will play the response there is
+then we will play the response there is three lines in this particular response
+three lines in this particular response we'll choose randomly between them if
+we'll choose randomly between them if the first one plays this one it's going
+the first one plays this one it's going to ruin my white suit after it's
+to ruin my white suit after it's finished the venn clause there will send
+finished the venn clause there will send this concept over to Rochelle the TV
+this concept over to Rochelle the TV producer she'll check her database to
+producer she'll check her database to see if she has a reply to that and she
+see if she has a reply to that and she does she'll say her reply and then after
+does she'll say her reply and then after that it sends an event back to Nick the
+that it sends an event back to Nick the gambler and back and forth could have
+gambler and back and forth could have come out differently second line could
+come out differently second line could have been played after he says these
+have been played after he says these swamps don't agree with me
+swamps don't agree with me the followup goes back to Nick it
+the followup goes back to Nick it creates the illusion that he's saying
+creates the illusion that he's saying one longer line rather than having a
+one longer line rather than having a back and forth conversation that way we
+back and forth conversation that way we can bail out of the conversation if we
+can bail out of the conversation if we need to
+need to after you said that second line once
+after you said that second line once again there's two choices he happens to
+again there's two choices he happens to pick the first one then the reply at the
+pick the first one then the reply at the end of that line goes over to the
+end of that line goes over to the mechanic mechanic checks his database
+mechanic mechanic checks his database he's got a line and so on this is a
+he's got a line and so on this is a brain-dead simple way to create
+brain-dead simple way to create branching conversations of as many
+branching conversations of as many different branches as you like with a
+different branches as you like with a minimum of effort because as you saw
+minimum of effort because as you saw each of these individual branches is
+each of these individual branches is maybe five lines of text in addition to
+maybe five lines of text in addition to sending a reply to a specific character
+sending a reply to a specific character we also have a way to ask all of the
+we also have a way to ask all of the characters nearby and do any of you have
+characters nearby and do any of you have something that you want to say for
+something that you want to say for example let us say that Nick is badly
+example let us say that Nick is badly injured and he's unhappy about that dead
+injured and he's unhappy about that dead yet but not exactly healthy after he
+yet but not exactly healthy after he finishes saying this line it's going to
+finishes saying this line it's going to dispatch that a lie dying concept to any
+dispatch that a lie dying concept to any character within earshot he's going to
+character within earshot he's going to ask every character do you have a reply
+ask every character do you have a reply that you want to say
+that you want to say Rochelle does not and this is kind of a
+Rochelle does not and this is kind of a general of applied but coach coach is
+general of applied but coach coach is different coach is a coach he coaches
+different coach is a coach he coaches people for their difficult times he has
+people for their difficult times he has a whole bunch of really specific lines
+a whole bunch of really specific lines for the particular case of there being
+for the particular case of there being an injured Ally and if coach happens to
+an injured Ally and if coach happens to be alive and nearby he's going to be
+be alive and nearby he's going to be with the one with the highest matching
+with the one with the highest matching response come on out put it behind you
+response come on out put it behind you good
+good you good in addition to those general
+you good in addition to those general replies he also has specific ones for
+replies he also has specific ones for specific characters hey Nick
+specific characters hey Nick Alicia dress for funeral come on Alice
+Alicia dress for funeral come on Alice you got it in you so he could play those
+you got it in you so he could play those specific lines but he still has the
+specific lines but he still has the general lines we play them one out of
+general lines we play them one out of sixty times for the sake of variety but
+sixty times for the sake of variety but moreover if we had picked up an entirely
+moreover if we had picked up an entirely new character and dropped her into
+new character and dropped her into left4dead
+left4dead if we had picked up Zoey from left her
+if we had picked up Zoey from left her dead one and put her in left 4 dead 2
+dead one and put her in left 4 dead 2 coach would still have something to say
+coach would still have something to say to her even though we never recorded
+to her even though we never recorded Zoey's specific lines for Coach he would
+Zoey's specific lines for Coach he would still just fall back to the general case
+still just fall back to the general case and we would have created the illusion
+and we would have created the illusion that they had known each other the whole
+that they had known each other the whole time it's also important to remember
+time it's also important to remember that every time we do one of these fall
+that every time we do one of these fall queries it is de novo if coach mentions
+queries it is de novo if coach mentions his favorite rock band and the reply
+his favorite rock band and the reply goes over to Ellis Ellis is not going to
+goes over to Ellis Ellis is not going to look up his line until coaches finished
+look up his line until coaches finished speaking the reason for this is let us
+speaking the reason for this is let us say that Coach mentions his favorite
+say that Coach mentions his favorite rock band but while he's saying this
+rock band but while he's saying this line is obvi interferes and starts
+line is obvi interferes and starts chewing on Ellis in this case we do not
+chewing on Ellis in this case we do not want Ellis to reply with some banal line
+want Ellis to reply with some banal line about a rock band we want him to say oh
+about a rock band we want him to say oh my god a zombie is chewing on me so
+my god a zombie is chewing on me so there are ways that you could have like
+there are ways that you could have like you know a scripted conversation object
+you know a scripted conversation object and interrupt it and so on but it's way
+and interrupt it and so on but it's way easier if Ellis doesn't even look up his
+easier if Ellis doesn't even look up his reply until coach is finished speaking
+reply until coach is finished speaking then the reply that he chooses will be
+then the reply that he chooses will be contingent on the criteria of the world
+contingent on the criteria of the world at that exact moment and at that exact
+at that exact moment and at that exact moment the not in danger criterion is no
+moment the not in danger criterion is no longer true so the conversation simply
+longer true so the conversation simply self terminates by virtue of its
+self terminates by virtue of its criteria no longer being that that means
+criteria no longer being that that means there's no cutscene in to get the grabs
+there's no cutscene in to get the grabs both characters there's nothing to lock
+both characters there's nothing to lock them down
+them down there's no kinds of cases where people
+there's no kinds of cases where people get involved in this big speech and the
+get involved in this big speech and the dragon comes and sets someone afire
+dragon comes and sets someone afire halfway through but they can't do
+halfway through but they can't do anything because they're talking to each
+anything because they're talking to each other it is also helpful if you have
+other it is also helpful if you have long speeches to cut them up into little
+long speeches to cut them up into little pieces where the character says
+pieces where the character says something and then sends a follow-up to
+something and then sends a follow-up to himself to himself that way if you have
+himself to himself that way if you have these long monologues they can
+these long monologues they can automatically bail out if something
+automatically bail out if something happens it also means that you've
+happens it also means that you've blurred the line between code and
+blurred the line between code and content here usually a good thing and
+content here usually a good thing and these writers can do work that otherwise
+these writers can do work that otherwise they would have had to have wait for
+they would have had to have wait for programmers to do for them thus
+programmers to do for them thus dependencies less merge conflicts no
+dependencies less merge conflicts no compile time typically it's easier to
+compile time typically it's easier to edit and continue script then
+edit and continue script then right already
+right already let us think for a moment about the
+let us think for a moment about the machine writer interface how do we make
+machine writer interface how do we make humans interact with this crazy system
+humans interact with this crazy system there is a bit of prior art here by the
+there is a bit of prior art here by the way a programming language called inform
+way a programming language called inform 7 designed expressly for the purpose of
+7 designed expressly for the purpose of writing text adventures which I'm now
+writing text adventures which I'm now supposed to call interactive fiction has
+supposed to call interactive fiction has this very mechanism of rule books of
+this very mechanism of rule books of general rules being overridden by more
+general rules being overridden by more specific ones by the way this is an
+specific ones by the way this is an actual source code this is what the
+actual source code this is what the source code for a text adventure looks
+source code for a text adventure looks like in form is designed to have a
+like in form is designed to have a language that resembles natural English
+language that resembles natural English as much as possible it's kind of
+as much as possible it's kind of suggests as to how intuitive this
+suggests as to how intuitive this concept is for the sake of writing
+concept is for the sake of writing stories a programming language that
+stories a programming language that exists for the sole purpose of creating
+exists for the sole purpose of creating dialogue as this very idea moreover when
+dialogue as this very idea moreover when designing the mechanism for writers to
+designing the mechanism for writers to get their dialogue into the system
+get their dialogue into the system assume that your writers are smart right
+assume that your writers are smart right writers are smart people they were not
+writers are smart people they were not smart people that would be vice
+smart people that would be vice presidents of marketing and smart people
+presidents of marketing and smart people know perfectly well what works for them
+know perfectly well what works for them Mark Twain did not have to be told by
+Mark Twain did not have to be told by his editor to either purchase or throw
+his editor to either purchase or throw out a typewriter let's think about
+out a typewriter let's think about different ways that we can specify these
+different ways that we can specify these rules just write the script directly our
+rules just write the script directly our script language happens to be the
+script language happens to be the recursive descent language it's kind of
+recursive descent language it's kind of human readable ish I mean I guess I
+human readable ish I mean I guess I could write some lines that way but it
+could write some lines that way but it would be really painful better to have
+would be really painful better to have more comfortable tools for example you
+more comfortable tools for example you can always have a more natural language
+can always have a more natural language representation of the rules and parse
+representation of the rules and parse from those into your script
+from those into your script this is pseudocode but you can see how
+this is pseudocode but you can see how each of these individual rules has a
+each of these individual rules has a pretty mechanical representation in the
+pretty mechanical representation in the corresponding script
+corresponding script similarly in form 7 remember this is not
+similarly in form 7 remember this is not English this is a parsable computer
+English this is a parsable computer grammar if you have a parsable grammar
+grammar if you have a parsable grammar you can always do a syntax tree
+you can always do a syntax tree transformation turn English rules and
+transformation turn English rules and descript rules or you could use excel on
+descript rules or you could use excel on dota we have a bunch of characters who
+dota we have a bunch of characters who have
+have Pacific rivalries when tidehunter gets
+Pacific rivalries when tidehunter gets kills kumki has a specific line to say
+kills kumki has a specific line to say the writer and dota happens to like
+the writer and dota happens to like excel you know what it's fine we have a
+excel you know what it's fine we have a script that exports from excel and to
+script that exports from excel and to our in engine script and it's actually
+our in engine script and it's actually really convenient because then we can
+really convenient because then we can use the same Excel spreadsheet to export
+use the same Excel spreadsheet to export from the the same Excel spreadsheet
+from the the same Excel spreadsheet exports not only the script that the
+exports not only the script that the engine loads but also the paper script
+engine loads but also the paper script that the actor takes down into the
+that the actor takes down into the recording booth and reads from its one
+recording booth and reads from its one stop for all the data we also could
+stop for all the data we also could build visual tools I've lost screenshots
+build visual tools I've lost screenshots but one summer I spent a few weeks
+but one summer I spent a few weeks building this complicated visual system
+building this complicated visual system that had nodes and arrows and things see
+that had nodes and arrows and things see here I fell into the trap that I was
+here I fell into the trap that I was mentioning earlier about thinking about
+mentioning earlier about thinking about your particular writers when I designed
+your particular writers when I designed this thing I was not thinking about my
+this thing I was not thinking about my writers I was thinking about writers and
+writers I was thinking about writers and ask myself what do writers like writers
+ask myself what do writers like writers are creative people creative people are
+are creative people creative people are visual visual people like bubbles and
+visual visual people like bubbles and arrows and things and I spent all these
+arrows and things and I spent all these weeks building this thing and then I
+weeks building this thing and then I showed it to our writers and they're
+showed it to our writers and they're like what the heck is this fisher-price
+like what the heck is this fisher-price toy because our writers and I forgot
+toy because our writers and I forgot this or DBAs in the previous life and
+this or DBAs in the previous life and for them the most comfortable interface
+for them the most comfortable interface was FoxPro
+you know works for them they built a relational database stored all their
+relational database stored all their lines it actually worked fantastic this
+lines it actually worked fantastic this is how we handled like 10,000 pieces of
+is how we handled like 10,000 pieces of dialogue and left for dead and it was
+dialogue and left for dead and it was great for them they were comfortable
+great for them they were comfortable with it the point of this is do not
+with it the point of this is do not design systems for arbitrary
+design systems for arbitrary hypothetical biters design for your
+hypothetical biters design for your writer that you have in your studio she
+writer that you have in your studio she is just down the hallway ask her what
+is just down the hallway ask her what she wants she's the only one that you
+she wants she's the only one that you have to make happy it's also possible if
+have to make happy it's also possible if you have a scripting language in your
+you have a scripting language in your engine like Lua or squirrel or whatnot
+engine like Lua or squirrel or whatnot you can always use the script files as a
+you can always use the script files as a way of loading data into the engine I
+way of loading data into the engine I don't mean to say that you're actually
+don't mean to say that you're actually going to write the database itself in
+going to write the database itself in script but like it the whole you know
+script but like it the whole you know you could have like a script add rule
+you could have like a script add rule function that sends the data over to the
+function that sends the data over to the C++ core which parses it and stuffs it
+C++ core which parses it and stuffs it away if you're designing a system like
+away if you're designing a system like this you must have a way to debug it
+this you must have a way to debug it here are some tools that you would
+here are some tools that you would pretty clearly need some non-obvious
+pretty clearly need some non-obvious ones you want a way to figure out where
+ones you want a way to figure out where individual facts come from for example
+individual facts come from for example if a query comes into the system and it
+if a query comes into the system and it has a line about or one of the one of
+has a line about or one of the one of the facts in the query are the dragon
+the facts in the query are the dragon has been slain and you're like but the
+has been slain and you're like but the dragon has not been slain why do you
+dragon has not been slain why do you think it has been you want to figure out
+think it has been you want to figure out what's sitting that fact if you have a
+what's sitting that fact if you have a whole bunch of rules matching you're
+whole bunch of rules matching you're going to want to print out which ones
+going to want to print out which ones match and what scores they had so you
+match and what scores they had so you can figure out inversions you want to be
+can figure out inversions you want to be able to put your cursor on any object in
+able to put your cursor on any object in the world and say if you were to speak
+the world and say if you were to speak right now what would your context be
+right now what would your context be that you add and it's really helpful to
+that you add and it's really helpful to have a way of dynamically hot swapping
+have a way of dynamically hot swapping your scripts so it really speeds up your
+your scripts so it really speeds up your iteration private reserve of urine
+iteration private reserve of urine a long-standing fascination with funny
+a long-standing fascination with funny robots all right that is all of this for
+robots all right that is all of this for how you can make your writers lives
+how you can make your writers lives easier we will have a moment here to
+easier we will have a moment here to talk about the the programming the guts
+talk about the the programming the guts of the system Sam - Goffin - nerd time
+of the system Sam - Goffin - nerd time before we begin allow me to remind you
+before we begin allow me to remind you this is not a relational database this
+this is not a relational database this is not the kind of thing that you can
+is not the kind of thing that you can represent as an SQL query if it were
+represent as an SQL query if it were relational every criterion would be its
+relational every criterion would be its own column whether a rule actually cared
+own column whether a rule actually cared about that criterion or not we'd have
+about that criterion or not we'd have all these null fields and that is
+all these null fields and that is neither efficient nor convenient
+neither efficient nor convenient computer scientists would say what you
+computer scientists would say what you have here is a monadic lookup database
+have here is a monadic lookup database it's a bunch of rows each row has
+it's a bunch of rows each row has exactly one key and one value except the
+exactly one key and one value except the key is a complex predicate function it
+key is a complex predicate function it is a couple of predicates each of which
+is a couple of predicates each of which has to be true for the whole goal to
+has to be true for the whole goal to match what does that mean it's a whole
+match what does that mean it's a whole bunch of functions that all of them have
+bunch of functions that all of them have to return true think about how we can
+to return true think about how we can implement this all right query is a list
+implement this all right query is a list of strings and variants it's an
+of strings and variants it's an associative array when you're go to
+associative array when you're go to query into the system you take all the
+query into the system you take all the sources of data you load them together
+sources of data you load them together you do the big copy the associative
+you do the big copy the associative array merge and the one gigantic
+array merge and the one gigantic dictionary that's your query then for
+dictionary that's your query then for each role in the database and for each
+each role in the database and for each criterion in that rule you look at the
+criterion in that rule you look at the corresponding fact in the query does it
+corresponding fact in the query does it match Google survives if it does not
+match Google survives if it does not match will rejects sort them sort the
+match will rejects sort them sort the survivors return the highest-scoring
+survivors return the highest-scoring rule that's your speech it works that
+rule that's your speech it works that works in cubic time also pronounced as
+works in cubic time also pronounced as you're fired
+you're fired so we can do better step 1
+so we can do better step 1 sort the criteria and your rules and the
+sort the criteria and your rules and the facts in the query alphabetically right
+facts in the query alphabetically right now you don't have to search back and
+now you don't have to search back and forth in the query it's really obvious
+forth in the query it's really obvious if a fact is missing from the query that
+if a fact is missing from the query that the criteria needs you have to do all
+the criteria needs you have to do all there's those half searches a little bit
+there's those half searches a little bit better give a quadratic time you're
+better give a quadratic time you're still fired
+still fired all right let's let's do a little bit
+all right let's let's do a little bit better we can skip the merge step you
+better we can skip the merge step you don't have to do that gigantic memory
+don't have to do that gigantic memory copy from when you're doing your query
+copy from when you're doing your query it's only important that theoretically
+it's only important that theoretically it's as if you had all these arrays
+it's as if you had all these arrays merge together so if you simply store
+merge together so if you simply store pointers into your data sources in
+pointers into your data sources in parallel when you're doing your search
+parallel when you're doing your search it has the exact same theoretical result
+it has the exact same theoretical result but you don't need to actually like copy
+but you don't need to actually like copy the arrays around these things up a
+the arrays around these things up a little bit you can partition your rules
+little bit you can partition your rules hierarchically if for example you always
+hierarchically if for example you always know that every rule has a criterion on
+know that every rule has a criterion on who is speaking you can chop up your big
+who is speaking you can chop up your big table of rules that when Nick talks Nick
+table of rules that when Nick talks Nick does not query every rule in the system
+does not query every rule in the system no no Nick only query his own rules and
+no no Nick only query his own rules and then you can further subdivide that by
+then you can further subdivide that by what map are you in what concept is he
+what map are you in what concept is he trying to say and so on if you do not
+trying to say and so on if you do not want to have like this set of
+want to have like this set of hierarchical subdivisions you know each
+hierarchical subdivisions you know each partition having multiple other
+partition having multiple other partitions you can also hash you can
+partitions you can also hash you can take speaker and concept and map and
+take speaker and concept and map and whatever else you like concatenate them
+whatever else you like concatenate them into a string from the criteria hash
+into a string from the criteria hash that string and then use that string to
+that string and then use that string to pick a bucket so you will have like one
+pick a bucket so you will have like one bucket that contains both Rochelle
+bucket that contains both Rochelle saying I'm reloading and Nick sitting
+saying I'm reloading and Nick sitting I'm hit
+I'm hit that way you can divide your your speech
+that way you can divide your your speech up into however many buckets you want
+up into however many buckets you want you can chop up your rules by region of
+you can chop up your rules by region of the world let us say that you have built
+the world let us say that you have built a globe-trotting European adventure well
+a globe-trotting European adventure well you're going to have quests that take
+you're going to have quests that take place in England and in quests that take
+place in England and in quests that take place in Spain I'm certain this being
+place in Spain I'm certain this being quests are fantastic but when you're in
+quests are fantastic but when you're in Spain you do not need to even query the
+Spain you do not need to even query the dialogue that is pertinent only to
+dialogue that is pertinent only to England so while I load it into memory
+England so while I load it into memory you can chop up all of your dialogue
+you can chop up all of your dialogue into multiple databases by region see
+into multiple databases by region see super simple databases by region you're
+super simple databases by region you're always going to have to have global ones
+always going to have to have global ones like ouch I'm hit but if you're in the
+like ouch I'm hit but if you're in the King Arthur map there's no reason to
+King Arthur map there's no reason to even test the Italy rules there is even
+even test the Italy rules there is even no reason to load them into memory you
+no reason to load them into memory you only have to load the ones for the
+only have to load the ones for the partition
+partition similarly when you are assembling the
+similarly when you are assembling the query when you're pulling together the
+query when you're pulling together the facts about the world you don't need to
+facts about the world you don't need to pull in the Italy facts when you're
+pull in the Italy facts when you're doing a query in England you can store
+doing a query in England you can store your your sources of fact in separate
+your your sources of fact in separate separate regions of memory and once
+separate regions of memory and once again you're only pulling in England
+again you're only pulling in England when you're in England next optimization
+when you're in England next optimization sort your rules by decreasing number of
+sort your rules by decreasing number of criteria by decreasing score if a six
+criteria by decreasing score if a six criterion rule matches there is no need
+criterion rule matches there is no need to test the five four three two one
+to test the five four three two one criterion rules you know that you've
+criterion rules you know that you've already found your winner so by simply
+already found your winner so by simply sorting them in descending order in each
+sorting them in descending order in each partition you can speed up your query
+partition you can speed up your query significantly the next optimization you
+significantly the next optimization you can speed up the individual comparison
+can speed up the individual comparison of each criterion all right like is
+of each criterion all right like is named Bob or hit coins I have found that
+named Bob or hit coins I have found that almost every single criterion in the
+almost every single criterion in the game can be represented as an interval
+game can be represented as an interval on a number line each one can be like a
+on a number line each one can be like a greater than less than comparison for
+greater than less than comparison for example hitpoints is obvious our
+example hitpoints is obvious our zombie's greater than five well it's
+zombie's greater than five well it's still an interval it's just an interval
+still an interval it's just an interval between a number and infinity on the
+between a number and infinity on the other side you can even represent a
+other side you can even represent a string comparison as an interval on a
+string comparison as an interval on a number line if you do not use strings
+number line if you do not use strings but symbols like I told you to then each
+but symbols like I told you to then each string becomes a unique integer and
+string becomes a unique integer and integer can be compared instantaneously
+integer can be compared instantaneously by the way you will notice that even
+by the way you will notice that even though we're doing an equality test here
+though we're doing an equality test here I'm still doing it as greater than or
+I'm still doing it as greater than or equal to and less than or equal to that
+equal to and less than or equal to that is so that each and every comparison can
+is so that each and every comparison can be represented with the exact same
+be represented with the exact same instruction stream you can store like
+instruction stream you can store like the type of a comparison of each
+the type of a comparison of each criterion and say okay this one is
+criterion and say okay this one is equals to this one is greater than this
+equals to this one is greater than this one is less than but now you've got all
+one is less than but now you've got all these additional branch penalties if you
+these additional branch penalties if you cook everything so that it is always
+cook everything so that it is always greater than less than comparison it's
+greater than less than comparison it's always X between a and B and you can
+always X between a and B and you can always do the exact same comparison but
+always do the exact same comparison but you're always doing the exact same
+you're always doing the exact same assembly you dramatically reduce the
+assembly you dramatically reduce the branch penalties that you're paying on
+branch penalties that you're paying on each criterion you can get each test
+each criterion you can get each test down to less than a nanosecond
+down to less than a nanosecond moreover if you're on a discrete number
+moreover if you're on a discrete number system which any computer is especially
+system which any computer is especially with floating-point numbers you can
+with floating-point numbers you can always turn a strict greater than
+always turn a strict greater than comparison into a greater than or equal
+comparison into a greater than or equal to comparison by adding epsilon Epsilon
+to comparison by adding epsilon Epsilon here is not like some vague ill-defined
+here is not like some vague ill-defined small number it has a very specific
+small number it has a very specific meaning
+meaning the terms of floating-point numbers it's
+the terms of floating-point numbers it's this number being exactly one bit higher
+this number being exactly one bit higher than this number you can also compare
+than this number you can also compare floating point numbers on the integer
+floating point numbers on the integer unit to speed things up significantly if
+unit to speed things up significantly if you know what you're doing Bruce Dawson
+you know what you're doing Bruce Dawson knows what he is doing so if you go to
+knows what he is doing so if you go to follow that link to his blog you will
+follow that link to his blog you will learn all there is to know about
+learn all there is to know about comparing floating point numbers quickly
+comparing floating point numbers quickly next you can go off and do some crazy
+next you can go off and do some crazy math in that science land right you've
+math in that science land right you've got all of these different number line
+got all of these different number line intervals you've got and many of them
+intervals you've got and many of them defines an n-dimensional space Q is
+defines an n-dimensional space Q is somewhere in your n-dimensional subspace
+somewhere in your n-dimensional subspace how do you find Q in subspace or you
+how do you find Q in subspace or you know you can do it as a spatial search
+know you can do it as a spatial search with the be SPE or an artery or sort
+with the be SPE or an artery or sort your criteria or use principal component
+your criteria or use principal component analysis to cluster your rules or I get
+analysis to cluster your rules or I get in fact you know don't I've tried this
+in fact you know don't I've tried this this way lies madness it is not even any
+this way lies madness it is not even any faster because all these data structures
+faster because all these data structures that I have tried involve chasing so
+that I have tried involve chasing so many pointers across large regions of
+many pointers across large regions of memory that you actually just blend up
+memory that you actually just blend up blowing your cache if you use the
+blowing your cache if you use the hierarchical partitioning method you can
+hierarchical partitioning method you can get it down so that you have a constant
+get it down so that you have a constant time lookup into a into a bucket of
+time lookup into a into a bucket of about 12 or 24 rules even across like a
+about 12 or 24 rules even across like a ten thousand-volt database once you've
+ten thousand-volt database once you've done that it's like you know 100
+done that it's like you know 100 nanoseconds that test 24 rules it's
+nanoseconds that test 24 rules it's perfectly fast if you are Google and you
+perfectly fast if you are Google and you have gigantic data sets you can always
+have gigantic data sets you can always reimplemented is something faster but
+reimplemented is something faster but the interface will be the same anyway so
+the interface will be the same anyway so start simple right simple is what works
+start simple right simple is what works one other corollary of the system it is
+one other corollary of the system it is purely additive if you have mods if you
+purely additive if you have mods if you have user-generated content you can add
+have user-generated content you can add new contents simply by adding new rules
+new contents simply by adding new rules you don't have to like go back and
+you don't have to like go back and change the old code if you're always
+change the old code if you're always packing along all the worlds state in
+packing along all the worlds state in every query you don't have to actually
+every query you don't have to actually write code that adds new states of the
+write code that adds new states of the query if you want a new more specific
+query if you want a new more specific rule so if a modder wanted to add a new
+rule so if a modder wanted to add a new character class to the game then all
+character class to the game then all that would have to do is add new rules
+that would have to do is add new rules pertinent to that class and even to the
+pertinent to that class and even to the other characters for how they respond to
+other characters for how they respond to this class in summary all this is is a
+this class in summary all this is is a pattern matching engine it's a big
+pattern matching engine it's a big database of criteria about the world
+database of criteria about the world it's a big pile of data about the world
+it's a big pile of data about the world you find which rule matches the criteria
+you find which rule matches the criteria in the best it is super simple that's
+in the best it is super simple that's why it works you want to you want to
+why it works you want to you want to when you're performing your query to
+when you're performing your query to build the context runtime from all the
+build the context runtime from all the state that you can possibly gather the
+state that you can possibly gather the more state you can throw at the system
+more state you can throw at the system whether you think of a rule that needs
+whether you think of a rule that needs it or not
+it or not the more specific your rules can be when
+the more specific your rules can be when you finally realize that you need them
+you finally realize that you need them you need some kind of follow-up
+you need some kind of follow-up mechanism when one character finishes
+mechanism when one character finishes speaking triggers a query on another
+speaking triggers a query on another it's much easier if you do this without
+it's much easier if you do this without having to glue both characters feet to
+having to glue both characters feet to the ground it is helpful to have some
+the ground it is helpful to have some kind of write back to the world that's
+kind of write back to the world that's how you quick conditional branches so
+how you quick conditional branches so the system becomes turing-complete
+the system becomes turing-complete say crate running gags memory gives you
+say crate running gags memory gives you a lot more flexibility but most
+a lot more flexibility but most importantly it has to be something that
+importantly it has to be something that your writer wants to use the person
+your writer wants to use the person creating dialogue in your game is your
+creating dialogue in your game is your writer and the whole point of the system
+writer and the whole point of the system is that it is convenient for writers the
+is that it is convenient for writers the more creative writers are the more
+more creative writers are the more easily they can iterate the more
+easily they can iterate the more autonomous they can be the more writing
+autonomous they can be the more writing they will do and the more writing they
+they will do and the more writing they will do the better dialogue you will
+will do the better dialogue you will have special thanks to everybody who
+have special thanks to everybody who helped me rehearse my talks gave me
+helped me rehearse my talks gave me slide everyone at valve except Doug and
+slide everyone at valve except Doug and I actually brought it in on time so are
+I actually brought it in on time so are there any questions
+all right let's go with this microphone first hi I'm one of the issues that I've
+first hi I'm one of the issues that I've heard a number of people raise for these
+heard a number of people raise for these kinds of dynamic dialogue sequencing
+kinds of dynamic dialogue sequencing systems is that writers want to see how
+systems is that writers want to see how dialogue might flow so they want to see
+dialogue might flow so they want to see all the ways that things might come
+all the ways that things might come before and come after the line I'm
+before and come after the line I'm writing now to make sure it always
+writing now to make sure it always presents the character the way I wanted
+presents the character the way I wanted to be presented do your writers express
+to be presented do your writers express that desire they did which is why I
+that desire they did which is why I decided I was going to go build that
+decided I was going to go build that visual tool it turns out what my
+visual tool it turns out what my particular writers wanted was actually
+particular writers wanted was actually an SQL query but it is absolutely
+an SQL query but it is absolutely possible to build a visual tool just ask
+possible to build a visual tool just ask your particular writer what she wants
+your particular writer what she wants before you build something because it's
+before you build something because it's not about writers it's about your writer
+not about writers it's about your writer okay
+okay stage right right so I'm trying to wrap
+stage right right so I'm trying to wrap my head around how you would implement
+my head around how you would implement it from an audio perspective what
+it from an audio perspective what middleware do you guys use to or do you
+middleware do you guys use to or do you use middleware to and so I didn't hear
+use middleware to and so I didn't hear what what we use do you use audio
+what what we use do you use audio middleware to get this stuff implemented
+middleware to get this stuff implemented how do you oh yeah the voice files the
+how do you oh yeah the voice files the voice files are like waves or mp3s and
+voice files are like waves or mp3s and we have a custom tool that just glues
+we have a custom tool that just glues them together with animations so that
+them together with animations so that when a scripting sequence decides to
+when a scripting sequence decides to play a character he plays the animation
+play a character he plays the animation and says the line at the same moment
+and says the line at the same moment there's really nothing special about it
+there's really nothing special about it it's just a sound file so you just
+it's just a sound file so you just dynamically loading packages yes yeah
+dynamically loading packages yes yeah when the level loads up we just loaded
+when the level loads up we just loaded in the the web apps by the way if you
+in the the web apps by the way if you are petitioning up your rules by region
+are petitioning up your rules by region you can use that as a hint for what
+you can use that as a hint for what lines you need to load into memory very
+lines you need to load into memory very cool Thanks Stage Left
+cool Thanks Stage Left uh-huh good talk thanks I had two
+uh-huh good talk thanks I had two questions one did anybody ever ask for
+questions one did anybody ever ask for an or I mean I know you can do rules and
+an or I mean I know you can do rules and simple is good but I was just wondering
+simple is good but I was just wondering about that yes you can have an or the
+about that yes you can have an or the easiest way to implement or actually is
+easiest way to implement or actually is just to have two different rules right
+just to have two different rules right two different rules that both match and
+two different rules that both match and they will play the same line even if you
+they will play the same line even if you represent or in the interface and the
+represent or in the interface and the friendly script specification I
+friendly script specification I recommend it's the way that you
+recommend it's the way that you implement it internally because it'll
+implement it internally because it'll make the branching a lot faster and like
+make the branching a lot faster and like the testing faster and then the other
+the testing faster and then the other thing I was owning about is with write
+thing I was owning about is with write back did you ever get sort of
+back did you ever get sort of official shortening of the number of
+official shortening of the number of criteria such that something else that
+criteria such that something else that had more would win out unintended then
+had more would win out unintended then we as I mentioned we tried a bunch of
+we as I mentioned we tried a bunch of different scoring functions and in our
+different scoring functions and in our system actually it's possible to give
+system actually it's possible to give different criteria different weight so
+different criteria different weight so that some of them score more of a
+that some of them score more of a particular rule in practice we used it
+particular rule in practice we used it very little it's at you can see it's
+very little it's at you can see it's really obvious for how to implement it
+really obvious for how to implement it it's just we never actually needed it
+it's just we never actually needed it okay thanks
+okay thanks um with that prototype we were showing
+um with that prototype we were showing with the robots running around the sewer
+with the robots running around the sewer it seemed like there is a lot more going
+it seemed like there is a lot more going on than just the audio because they were
+on than just the audio because they were pointing at the object in question and
+pointing at the object in question and they were playing specific animations
+they were playing specific animations and so forth so I was just wondering
+and so forth so I was just wondering what was going on there yes can I just
+what was going on there yes can I just use my question-and-answer slides this
+use my question-and-answer slides this is fantastic
+yes so you can trigger entire scripts rather than just animation in speech
+rather than just animation in speech right rather than just playing a WAV
+right rather than just playing a WAV file you can actually take the facts
+file you can actually take the facts that were presented in the query and
+that were presented in the query and bind them to parameters of a script that
+bind them to parameters of a script that plays so a Miss in those cases we had an
+plays so a Miss in those cases we had an actual little script for the robot it
+actual little script for the robot it wasn't the sound file I was like turn
+wasn't the sound file I was like turn play point animation bind to thing and
+play point animation bind to thing and the things that he was turning towards
+the things that he was turning towards were the same parameters that were used
+were the same parameters that were used for the voice query thank you what a
+for the voice query thank you what a great talk you explained that when there
+great talk you explained that when there cry tears are looked at you pull
+cry tears are looked at you pull information from games objects or States
+information from games objects or States I was wondering do you ever run into
+I was wondering do you ever run into problems that like threat problems or
+problems that like threat problems or that you have criterias that just flip
+that you have criterias that just flip in one frame like for instance when
+in one frame like for instance when entity is shooting is that only like on
+entity is shooting is that only like on for one frame but then when you evaluate
+for one frame but then when you evaluate the rules you know that that bit is not
+the rules you know that that bit is not on your thread or yes so on your frame
+on your thread or yes so on your frame we have a single threaded dialogue
+we have a single threaded dialogue system which solves a lot of those
+system which solves a lot of those problems but for things that are
+problems but for things that are transient like shooting you want a store
+transient like shooting you want a store not is he shooting this frame but when
+not is he shooting this frame but when is the last time that he has shot right
+is the last time that he has shot right has he shot with in the last quarter
+has he shot with in the last quarter second right then that can count as the
+second right then that can count as the same kind of thing it gives you sort of
+same kind of thing it gives you sort of a history
+a history in your query okay thanks yeah trying to
+in your query okay thanks yeah trying to think how to phrase it but do all of the
+think how to phrase it but do all of the key values evaluate to some boolean
+key values evaluate to some boolean state each criterion evaluates to a
+state each criterion evaluates to a boolean result that's what makes it a
+boolean result that's what makes it a predicate function in the fact the key
+predicate function in the fact the key is any string and the value can be any
+is any string and the value can be any kind of number string whatever variant
+kind of number string whatever variant type you want as long as the relevant
+type you want as long as the relevant predicate function takes that type as
+predicate function takes that type as its parameter but the predicate has to
+its parameter but the predicate has to return true or false okay was there ever
+return true or false okay was there ever any desire to add something with more
+any desire to add something with more waiting two or more individual state per
+waiting two or more individual state per key or would that defeat the purpose of
+key or would that defeat the purpose of kissable just add more keys left Doug
+kissable just add more keys left Doug says he's sorry but he was really sick
+says he's sorry but he was really sick that he missed your thing on Monday Mike
+that he missed your thing on Monday Mike left4dead
+left4dead is primarily a multiplayer game
+is primarily a multiplayer game wondering is there a concept of a host
+wondering is there a concept of a host that plays and then propagates like the
+that plays and then propagates like the song files what song finds to play
+song files what song finds to play across the network or do all the peers
+across the network or do all the peers play them individually it might be
+play them individually it might be random or like different things are you
+random or like different things are you asking like is all the logic one on the
+asking like is all the logic one on the host yeah I do or kind of finds
+host yeah I do or kind of finds themselves like play different dialogue
+themselves like play different dialogue to what the host years in our
+to what the host years in our implementation it is completely
+implementation it is completely client-server there's a left-footed
+client-server there's a left-footed server the clients are all done they're
+server the clients are all done they're just telling what the server tells them
+just telling what the server tells them to do and the server is doing all the
+to do and the server is doing all the logic that you can see it's actually not
+logic that you can see it's actually not hard to implement it in a peer-to-peer
+hard to implement it in a peer-to-peer way to have the clients independently
+way to have the clients independently pick lines
+pick lines sudden now you have the problem like you
+sudden now you have the problem like you know they may pick different minor
+know they may pick different minor variations in the line you have to find
+variations in the line you have to find some way to resolve those things we
+some way to resolve those things we didn't because we're client-server right
+didn't because we're client-server right so if you're doing the responses to
+so if you're doing the responses to someone else's line and you have a
+someone else's line and you have a number of characters that can all
+number of characters that can all respond to the same line and logic is
+respond to the same line and logic is per speaker how do you run them all from
+per speaker how do you run them all from responding at once so when we do the
+responding at once so when we do the then any query it's like querying all
+then any query it's like querying all the nearby characters to ask you know
+the nearby characters to ask you know which of you has a response it finds the
+which of you has a response it finds the highest-scoring one be
+highest-scoring one be the all the characters are being tested
+the all the characters are being tested simultaneously in that any query we only
+simultaneously in that any query we only pick the highest-scoring one if they're
+pick the highest-scoring one if they're equally scoring we'll pick one at random
+equally scoring we'll pick one at random because it's really kind of the
+because it's really kind of the character who has just said the line it
+character who has just said the line it was querying the neighbors to make them
+was querying the neighbors to make them speak Stage Left
+speak Stage Left a great talk by the way thank you I with
+a great talk by the way thank you I with all this dynamic content some lines are
+all this dynamic content some lines are going to get played a lot more than
+going to get played a lot more than others I know valve does a lot of data
+others I know valve does a lot of data tracking to see you know how much of the
+tracking to see you know how much of the game gets completed and such do you have
+game gets completed and such do you have any kind of metrics for that for how
+any kind of metrics for that for how some lines that are ultra specific get
+some lines that are ultra specific get played more or less often than others
+played more or less often than others and was feedback on do we have a
+and was feedback on do we have a database that stores how often each line
+database that stores how often each line gets said yes do I ever look at it no
+Stage Left hi I'm actually coming from the other
+hi I'm actually coming from the other side of the fencing that I am actually a
+side of the fencing that I am actually a writer so thank you so much for making
+writer so thank you so much for making this you know this code and this tool
+this you know this code and this tool that makes people like mine job easier
+that makes people like mine job easier but I am wondering you know in that
+but I am wondering you know in that you've taken the time to sort of help
+you've taken the time to sort of help the writers out with their job how can
+the writers out with their job how can writers help you out with your job how
+writers help you out with your job how can writers you know go and meet the
+can writers you know go and meet the programmers midway to you know to make
+programmers midway to you know to make your job easier well for one thing
+your job easier well for one thing simply thinking about dialogue in this
+simply thinking about dialogue in this way in terms of a series of general to
+way in terms of a series of general to more specific rules matching state about
+more specific rules matching state about the world right it's a lot more
+the world right it's a lot more convenient than having to think of a
+convenient than having to think of a whole bunch of explicit code hooks that
+whole bunch of explicit code hooks that are all super specific moreover being
+are all super specific moreover being clear about what is a useful workflow
+clear about what is a useful workflow because at the point that I made smart
+because at the point that I made smart writers you know what works for them if
+writers you know what works for them if you're clear about what works for you
+you're clear about what works for you then I can actually build the tool that
+then I can actually build the tool that works for you as opposed to simply
+works for you as opposed to simply guessing okay thank you if there are no
+guessing okay thank you if there are no further questions then I have the
+further questions then I have the prerogative of playing the last slide of
+prerogative of playing the last slide of GDC I have been waiting for this for
+GDC I have been waiting for this for days smooth jazz will be deployed in
+days smooth jazz will be deployed in three two
+three two you
+[Music] [Applause]

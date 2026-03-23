@@ -1,0 +1,3 @@
+# Category:Figures
+
+Category: Merchandise

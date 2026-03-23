@@ -1,0 +1,990 @@
+[Music]
+uh okay it's uh 300 p.m. now so I guess we'll just go ahead and get started uh
+we'll just go ahead and get started uh so welcome to level design with
+so welcome to level design with impossible geometry Oh and before we
+impossible geometry Oh and before we continue uh if you have cell phones or
+continue uh if you have cell phones or sound making devices uh be great if you
+sound making devices uh be great if you could turn them off
+could turn them off now so uh yeah my talk is level design
+now so uh yeah my talk is level design with G impossible geometry and uh my
+with G impossible geometry and uh my name is William cheer uh I am a
+name is William cheer uh I am a independent game developer based in
+independent game developer based in Chicago a bit about myself my background
+Chicago a bit about myself my background is in physics that's what I studied in
+is in physics that's what I studied in school and as a student I worked briefly
+school and as a student I worked briefly at the National Institute of nuclear
+at the National Institute of nuclear physics in Italy uh in a linear
+physics in Italy uh in a linear accelerator lab just outside of Padua
+accelerator lab just outside of Padua which is close to Venice that's a
+which is close to Venice that's a picture of me actually not what my
+picture of me actually not what my office look like I was just in front of
+office look like I was just in front of a computer but that's not as
+a computer but that's not as exciting after school I actually instead
+exciting after school I actually instead of going to physics I went into
+of going to physics I went into installation art and did that for about
+installation art and did that for about 4 years so the they were primarily large
+4 years so the they were primarily large scale installations made out of balloons
+scale installations made out of balloons commissioned by art centers and science
+commissioned by art centers and science museums and I did that for about four
+museums and I did that for about four years and basically became typ cast as
+years and basically became typ cast as the balloon guy uh which I didn't want
+the balloon guy uh which I didn't want to do and I actually didn't play games
+to do and I actually didn't play games before I started uh my current project
+before I started uh my current project and it I was looking for another medium
+and it I was looking for another medium I tried glass blowing and metal working
+I tried glass blowing and metal working none of them really worked out well been
+none of them really worked out well been games cuz I knew some programming I knew
+games cuz I knew some programming I knew a bit of design I thought it'd be a
+a bit of design I thought it'd be a really good
+really good medium uh so I started on a project to
+medium uh so I started on a project to learn Unity I thought it would take 3
+learn Unity I thought it would take 3 months it's been three and a half years
+months it's been three and a half years and here I am so the project is called
+and here I am so the project is called manifold
+manifold Garden what is manifold Garden it is a
+Garden what is manifold Garden it is a game it's a firstperson exploration
+game it's a firstperson exploration puzzle game it has unusual physics
+puzzle game it has unusual physics impossible geometry
+impossible geometry and crazy
+architecture these are screenshots from the game so the game I see it as a those
+the game so the game I see it as a those are kind of like the key features and I
+are kind of like the key features and I see the game as a metaphor for the last
+see the game as a metaphor for the last 400 years of physics because at the
+400 years of physics because at the beginning of the game you are learning
+beginning of the game you are learning how gravity works it's different from
+how gravity works it's different from gravity in the normal world and by the
+gravity in the normal world and by the end of it you get an understanding of
+end of it you get an understanding of the shape of the universe and that's
+the shape of the universe and that's where so the puzzles go from
+where so the puzzles go from inside a room working with weird gravity
+inside a room working with weird gravity to oh this is how the space folds upon
+to oh this is how the space folds upon itself so the key features of the game
+itself so the key features of the game there's a lot of stuff going on in the
+there's a lot of stuff going on in the game but the two key features I'm going
+game but the two key features I'm going to focus on for the purpose of this talk
+to focus on for the purpose of this talk are the traversal me mechanic which is
+are the traversal me mechanic which is gravity shifting and the geometry which
+gravity shifting and the geometry which is 3D world wrapping so let's talk about
+is 3D world wrapping so let's talk about the gravity shifting mechanic I'm sure
+the gravity shifting mechanic I'm sure many of you have seen this film
+many of you have seen this film Inception and this is a scene in the
+Inception and this is a scene in the film that takes place in the dream world
+film that takes place in the dream world and they take Paris and fold it upon
+and they take Paris and fold it upon itself like fold it in half and then
+itself like fold it in half and then later we see these two characters start
+later we see these two characters start walking up the wall and when I saw this
+walking up the wall and when I saw this scene I immediately had a ton of
+scene I immediately had a ton of questions I was like okay let's say Leo
+questions I was like okay let's say Leo is carrying his wallet and he drops it
+is carrying his wallet and he drops it does it fall in the direction of the
+does it fall in the direction of the surface he's currently walking on now
+surface he's currently walking on now which is the blue arrow or does it fall
+which is the blue arrow or does it fall in the direction of the surface he was
+in the direction of the surface he was previously on like how does his wallet
+previously on like how does his wallet know which gravity field it now belongs
+know which gravity field it now belongs to and what if I'm standing on the
+to and what if I'm standing on the previous surface he was on and I take
+previous surface he was on and I take his wallet does it still fall in the
+his wallet does it still fall in the direction of the blue arrow or does it
+direction of the blue arrow or does it transfer onto my gravity field the film
+transfer onto my gravity field the film unfortunately doesn't address these
+unfortunately doesn't address these issues these very important issues but
+issues these very important issues but that's where I thought a game would uh
+that's where I thought a game would uh be a very great medium to explore this
+be a very great medium to explore this now Inception takes a lot of visuals
+now Inception takes a lot of visuals from mcer work and that scene
+from mcer work and that scene specifically is based on relativity and
+specifically is based on relativity and originally manifold Garden was called
+originally manifold Garden was called relativity so let me tell you a bit
+relativity so let me tell you a bit about how that gravity shifting mechanic
+about how that gravity shifting mechanic works in the game so we're going to
+works in the game so we're going to start with a 2d example basically say
+start with a 2d example basically say we've got four surfaces each one of them
+we've got four surfaces each one of them has a different color blue red green
+has a different color blue red green yellow and all objects in the world
+yellow and all objects in the world belong to one of these four colors and
+belong to one of these four colors and they fall in the
+they fall in the direction of the wall so a blue object
+direction of the wall so a blue object falls in the direction of the blue wall
+falls in the direction of the blue wall a red object falls up in the direction
+a red object falls up in the direction of the red wall green falls to the right
+of the red wall green falls to the right yellow falls to the left or the other
+yellow falls to the left or the other way around I'm looking on my computer
+way around I'm looking on my computer screen so
+screen so now not all of these gravity fields are
+now not all of these gravity fields are on at the same time so when and which
+on at the same time so when and which one is on depends on the player
+one is on depends on the player orientation so right now the player is
+orientation so right now the player is oriented this way the blue gravity field
+oriented this way the blue gravity field is on and all the other gravities are
+is on and all the other gravities are off so there those objects are frozen
+off so there those objects are frozen and then the player can walk up to the
+and then the player can walk up to the yellow wall then the yellow gravity is
+yellow wall then the yellow gravity is on and all the other ones are frozen and
+on and all the other ones are frozen and so on and so forth this is now the game
+so on and so forth this is now the game is in first person so this is what it
+is in first person so this is what it looked like you can see the characters
+looked like you can see the characters walking forward they switch gravity and
+walking forward they switch gravity and whichever direction is down that surface
+whichever direction is down that surface becomes colored so the color helps the
+becomes colored so the color helps the player Orient and it also lets them know
+player Orient and it also lets them know which gravity field they're
+which gravity field they're in all right so that's the traversal
+in all right so that's the traversal mechanic now we're going to talk about
+mechanic now we're going to talk about the geometry which is 3D world wrapping
+the geometry which is 3D world wrapping So eventually you start you start off in
+So eventually you start you start off in the game inside and eventually you make
+the game inside and eventually you make it outside and when you fall off instead
+it outside and when you fall off instead of fading the screen to black or killing
+of fading the screen to black or killing the player and respawning
+the player and respawning them the world actually just repeats
+them the world actually just repeats itself infinitely so you could be you
+itself infinitely so you could be you could just keep forever you do have air
+could just keep forever you do have air control so this is what it looks like in
+control so this is what it looks like in one of levels and here's another level
+one of levels and here's another level where this is happening and we'll come
+where this is happening and we'll come back to this but first the title level
+back to this but first the title level design with impossible geometry what is
+design with impossible geometry what is impossible geometry so for the purpose
+impossible geometry so for the purpose of this talk we're just going to say
+of this talk we're just going to say impossible geometry is any weird
+impossible geometry is any weird geometry that we don't see in real life
+geometry that we don't see in real life it is very hard to generalize and also
+it is very hard to generalize and also this talk is not supposed to be you know
+this talk is not supposed to be you know the guy to work with impossible
+the guy to work with impossible geometry it the stuff I'm talking about
+geometry it the stuff I'm talking about they deal very specifically with the way
+they deal very specifically with the way the mechanics are implemented in
+the mechanics are implemented in manifold Garden so I just want to give
+manifold Garden so I just want to give you guys a taste of what it's like
+you guys a taste of what it's like working with it some of the problems and
+working with it some of the problems and challenges I faced and some of the
+challenges I faced and some of the techniques that I found to be useful but
+techniques that I found to be useful but you might you know your Mage may
+you might you know your Mage may vary one thing I want to clear up is
+vary one thing I want to clear up is that impossible geometry is not non-
+that impossible geometry is not non- ucan geometry I seen non ukian geometry
+ucan geometry I seen non ukian geometry kind of thrown around a lot every time
+kind of thrown around a lot every time people see anything weird and that's not
+people see anything weird and that's not always the cas
+always the cas so what is ukian geometry ukan geometry
+so what is ukian geometry ukan geometry is just flat space so that's kind of
+is just flat space so that's kind of space as we perceive it on the human
+space as we perceive it on the human scale some of the properties are that
+scale some of the properties are that the shortest distance between two points
+the shortest distance between two points is a line the sum of all angles in a
+is a line the sum of all angles in a triangle is 180 and parallel lines don't
+triangle is 180 and parallel lines don't intersect and non-clean geometry is just
+intersect and non-clean geometry is just everything
+everything else so you can have hyperbolic elliptic
+else so you can have hyperbolic elliptic but it's also not that unusual so the
+but it's also not that unusual so the surface of a sphere is actually non-
+surface of a sphere is actually non- ukian and if you were to draw a triangle
+ukian and if you were to draw a triangle on the surface of a sphere you would
+on the surface of a sphere you would find that the angles don't add up to be
+find that the angles don't add up to be 180 and a good example of this is the
+180 and a good example of this is the surface of the Earth now if you were to
+surface of the Earth now if you were to draw a triangle on the floor right now
+draw a triangle on the floor right now the angles would add up to be 180 but if
+the angles would add up to be 180 but if you were to draw a triangle the size of
+you were to draw a triangle the size of a continent then the non- ucum
+a continent then the non- ucum properties start to
+properties start to show all right so now we're going to
+show all right so now we're going to transition to start talking about world
+transition to start talking about world wrapping and we'll start with 2D world
+wrapping and we'll start with 2D world wrapping so you guys probably all know
+wrapping so you guys probably all know asteroids right you're shooting
+asteroids right you're shooting asteroids with a spaceship and when you
+asteroids with a spaceship and when you get to the bottom side of the screen
+get to the bottom side of the screen you're teleported to the top side and if
+you're teleported to the top side and if you hit the right side then you're
+you hit the right side then you're teleported to the
+teleported to the left so this is actually a two tourist
+left so this is actually a two tourist so it's on the surface of this and I'm
+so it's on the surface of this and I'm going to come back and explain what I
+going to come back and explain what I mean by this in a bit here's an example
+mean by this in a bit here's an example we see the spaceship go up comes back
+we see the spaceship go up comes back down from
+down from below um so now what we want to do is we
+below um so now what we want to do is we actually want to make that path seamless
+actually want to make that path seamless the path seamless so we want connect the
+the path seamless so we want connect the top and the bottom and the right and the
+top and the bottom and the right and the left so what we're going to do here is
+left so what we're going to do here is we'll start off and we'll take the top
+we'll start off and we'll take the top and the bottom sides and we'll glue them
+and the bottom sides and we'll glue them together and then what we'll do is we'll
+together and then what we'll do is we'll take the right and the left sides and
+take the right and the left sides and we'll glue them
+we'll glue them together so here on the right you can
+together so here on the right you can see that's happening so first we're
+see that's happening so first we're going to glue the top and the right side
+going to glue the top and the right side so that we form a connected Loop so you
+so that we form a connected Loop so you can see now why the why the ship is
+can see now why the why the ship is looping in that direction and then we'll
+looping in that direction and then we'll glue in the left and the right side so
+glue in the left and the right side so now we get the shape basically a donut
+now we get the shape basically a donut and the ship is on the surface of it so
+and the ship is on the surface of it so it's consist so we can see that it
+it's consist so we can see that it consists of two Loops in two different
+consists of two Loops in two different directions and that's how you get 2D
+directions and that's how you get 2D world
+world wrapping but we need to go deeper we're
+wrapping but we need to go deeper we're going to talk about 3D world wrapping so
+going to talk about 3D world wrapping so I explained here how by connecting the
+I explained here how by connecting the top and the bottom sides and the left
+top and the bottom sides and the left and the right sides this 2D surface is
+and the right sides this 2D surface is really the same as this two Taurus but
+really the same as this two Taurus but how do we work with a three Taurus so to
+how do we work with a three Taurus so to start with a three tourus it's 3D so
+start with a three tourus it's 3D so we're actually going to start with a box
+we're actually going to start with a box instead of a surface and in this case
+instead of a surface and in this case what we're going to do is we're going to
+what we're going to do is we're going to take the top and the bottom faces and
+take the top and the bottom faces and we're going to glue them together and
+we're going to glue them together and we're going to take the left and the
+we're going to take the left and the right faces and we'll glue them together
+right faces and we'll glue them together and then we'll take the front and the
+and then we'll take the front and the back faces and we'll glue them
+back faces and we'll glue them together how do we visualize this I
+together how do we visualize this I don't know it's actually it's very hard
+don't know it's actually it's very hard cuz it's in 4D but one good analogy I
+cuz it's in 4D but one good analogy I found is that in 2D world wrapping you
+found is that in 2D world wrapping you are a 2d character stuck on the 2D
+are a 2d character stuck on the 2D surface of a 3D donut and in 3D World w
+surface of a 3D donut and in 3D World w you are a 3D character on the 3D surface
+you are a 3D character on the 3D surface of a 4D
+of a 4D donut so while it's hard to visualize
+donut so while it's hard to visualize the structure the 4D donut we can
+the structure the 4D donut we can visualize what it's like to be inside
+visualize what it's like to be inside the surface so let's say the Earth we
+the surface so let's say the Earth we have the Earth and it's in flat ukan
+have the Earth and it's in flat ukan geometry this is what it would look like
+geometry this is what it would look like now if we were to put it we were to add
+now if we were to put it we were to add 3D world wrapping to this this is what
+3D world wrapping to this this is what it's going to look like because the
+it's going to look like because the light rays are going to loop back around
+light rays are going to loop back around so you'll see repetitions of the earth
+so you'll see repetitions of the earth they're all the same ones continued in
+they're all the same ones continued in infinitely and here is a version with
+infinitely and here is a version with the grid so you can see the
+the grid so you can see the partitions now this is a screenshot from
+partitions now this is a screenshot from the game that you can see this is what
+the game that you can see this is what it looks
+it looks like here is another version where the
+like here is another version where the distance between the instances is zero
+distance between the instances is zero so it just looks like one continuous
+so it just looks like one continuous building and here's what it looks like
+building and here's what it looks like when you're falling through it in motion
+when you're falling through it in motion so you can see that the level just keeps
+so you can see that the level just keeps repeating
+repeating itself now this leads to some very
+itself now this leads to some very interesting physical properties for
+interesting physical properties for example let's take a box and we'll drop
+example let's take a box and we'll drop it off the ledge now you'll actually see
+it off the ledge now you'll actually see that box come down from above because it
+that box come down from above because it Loops back around and when you you can
+Loops back around and when you you can the box is now simultaneously beneath
+the box is now simultaneously beneath you and above
+you and above you a lot of games have waterfalls this
+you a lot of games have waterfalls this is my drawing of a waterfall the
+is my drawing of a waterfall the direction it goes forward and then it
+direction it goes forward and then it falls off in our game in manifold Garden
+falls off in our game in manifold Garden there actually isn't waterfalls there's
+there actually isn't waterfalls there's water Loops because that water comes
+water Loops because that water comes back down from
+back down from above here's a screenshot of a water
+above here's a screenshot of a water loop in action so you can see it
+loop in action so you can see it basically forms one continuous
+basically forms one continuous strip now a really fantastic book if
+strip now a really fantastic book if you're interested in this subject is the
+you're interested in this subject is the shape of space by Jeffrey R weeks
+shape of space by Jeffrey R weeks actually have a copy of it so if after
+actually have a copy of it so if after the talk you want to come and check it
+the talk you want to come and check it out um it's written it's like an
+out um it's written it's like an advanced book but written for the lay
+advanced book but written for the lay person and really talks about how to
+person and really talks about how to visualize this stuff he also has a
+visualize this stuff he also has a website geometry games.org which has a
+website geometry games.org which has a bunch of small games to help you
+bunch of small games to help you visualize these stuff the this kind of
+visualize these stuff the this kind of geometry there's kind of 2D examples and
+geometry there's kind of 2D examples and 3D examples as well
+okay so how did 3D world wrapping get added to manifold
+added to manifold Garden originally the game was all about
+Garden originally the game was all about the gravity shifting mechanic it all
+the gravity shifting mechanic it all took place indoors and all you did was
+took place indoors and all you did was change gravity and put boxes on buttons
+change gravity and put boxes on buttons and solve puzzles the problem though was
+and solve puzzles the problem though was it's it's very hard in first person
+it's it's very hard in first person games to get a sense of depth and people
+games to get a sense of depth and people were having a hard time seeing when they
+were having a hard time seeing when they dropped the box where it was going to
+dropped the box where it was going to land so they said why don't you add
+land so they said why don't you add Shadows to the box so I said okay I
+Shadows to the box so I said okay I added a directional light so that you
+added a directional light so that you can you know there are shadows and then
+can you know there are shadows and then people were asking well where's the
+people were asking well where's the light coming from so I said okay I'll
+light coming from so I said okay I'll add Windows to you know provide an
+add Windows to you know provide an explanation for the source of the light
+explanation for the source of the light and as a result of the window people
+and as a result of the window people were able to see the outside this wasn't
+were able to see the outside this wasn't intentional on my part I just built a
+intentional on my part I just built a bunch of rooms together in one
+bunch of rooms together in one scene however everybody was very excited
+scene however everybody was very excited about what they what was going on
+about what they what was going on outside and they were asking hey can I
+outside and they were asking hey can I go outside and originally I didn't want
+go outside and originally I didn't want the player to because it would add all
+the player to because it would add all this complexity but everybody kept
+this complexity but everybody kept asking for it so I allowed them to go
+asking for it so I allowed them to go outside this was also at a time when I
+outside this was also at a time when I introduced The Edge detection
+introduced The Edge detection Shader now this of course introduced the
+Shader now this of course introduced the problem of players falling off the world
+problem of players falling off the world and the one thing I did not want to do
+and the one thing I did not want to do was I didn't want to add invisible
+was I didn't want to add invisible colliders cuz there are some games that
+colliders cuz there are some games that have it and it's it's very frustrating
+have it and it's it's very frustrating you want to explore and it's constantly
+you want to explore and it's constantly preventing you from going to places and
+preventing you from going to places and I also wanted everything you can see in
+I also wanted everything you can see in the world that you can get to uh cuz I
+the world that you can get to uh cuz I remember playing Skyrim and one of the
+remember playing Skyrim and one of the most magical moments in that game is
+most magical moments in that game is when you see a mountain in the distance
+when you see a mountain in the distance and then later on you're actually on
+and then later on you're actually on that
+that mountain
+mountain so so I couldn't put anything in the sky
+so so I couldn't put anything in the sky because that meant I'd have to create
+because that meant I'd have to create additional
+additional content and I got this problem of a very
+content and I got this problem of a very blank Sky which is very boring and I
+blank Sky which is very boring and I added a sky box and it just looked
+added a sky box and it just looked absolutely
+absolutely terrible however at some point I
+terrible however at some point I realized that by introducing 3D roll
+realized that by introducing 3D roll wrapping I've sort of solved all those
+wrapping I've sort of solved all those problems because now I can have things
+problems because now I can have things in the sky and it's not new content and
+in the sky and it's not new content and I can allow the player to get there and
+I can allow the player to get there and yeah it's not new content cuz it's the
+yeah it's not new content cuz it's the same thing so it solves the blank Sky
+same thing so it solves the blank Sky problem it ensures that everything you
+problem it ensures that everything you can see is still a place that you can
+can see is still a place that you can get to and it's also just a much more
+get to and it's also just a much more interesting level in general so these
+interesting level in general so these are some of the early screenshots of the
+are some of the early screenshots of the game when I introduced world wrapping
+game when I introduced world wrapping and this is one of the earliest
+and this is one of the earliest implementations in
+implementations in motion uh it is very slow here but you
+motion uh it is very slow here but you can
+can see in this case you've got the button
+see in this case you've got the button you press it drops a box and then you
+you press it drops a box and then you jump off the ledge and what you'll
+jump off the ledge and what you'll notice in this implementation is that
+notice in this implementation is that the distance between instances is very
+the distance between instances is very large it's very clear where one instance
+large it's very clear where one instance begins and where another
+ends uh this fall is going to take quite a while but basically it repeats so
+a while but basically it repeats so we're going to continue
+we're going to continue on or let's just watch it through
+on or let's just watch it through but okay we've landed now when I
+but okay we've landed now when I introduced world wrapping in it created
+introduced world wrapping in it created a lot of unexpected solutions to
+a lot of unexpected solutions to previous problems which is very nice
+previous problems which is very nice this is a image by mcer cubic space
+this is a image by mcer cubic space Division and you know the game the
+Division and you know the game the original inspiration for the game was I
+original inspiration for the game was I wanted to make a game based on mcer
+wanted to make a game based on mcer works and I wanted to put this level in
+works and I wanted to put this level in the game now here's an implementation of
+the game now here's an implementation of it in July 2013 so this was before World
+it in July 2013 so this was before World rapping got added world wrapping got
+rapping got added world wrapping got added about a year and a half into the
+added about a year and a half into the development now when I made thisel level
+development now when I made thisel level without world wrapping it was actually
+without world wrapping it was actually very painful to play so the game the
+very painful to play so the game the level basically consisted of all these
+level basically consisted of all these lates that repeat it and you went in and
+lates that repeat it and you went in and you just had to find an exit so very
+you just had to find an exit so very simple but the problem was it was very
+simple but the problem was it was very hard to orient yourself cuz everything
+hard to orient yourself cuz everything basically all parts of the level looked
+basically all parts of the level looked the same and also if you fell off the
+the same and also if you fell off the lattice structure you had to you landed
+lattice structure you had to you landed on the floor and there was a four
+on the floor and there was a four because it took place in a room and then
+because it took place in a room and then it was just like very tedious walk to
+it was just like very tedious walk to get back up to a lattice and another
+get back up to a lattice and another problem was that in order to have this
+problem was that in order to have this like in order to make the level look
+like in order to make the level look interesting it had to be it had to have
+interesting it had to be it had to have a certain scale but any increase in
+a certain scale but any increase in scale resulted in increase in
+scale resulted in increase in navigational complexity so I played it a
+navigational complexity so I played it a bit and it just really wasn't fun and I
+bit and it just really wasn't fun and I got rid of it after I introduced War
+got rid of it after I introduced War wrapping though all of those problems
+wrapping though all of those problems went away so this is December
+went away so this is December 2015 and now you can see the so one of
+2015 and now you can see the so one of those boxes is one instance of it and
+those boxes is one instance of it and you can go to any of those instances it
+you can go to any of those instances it doesn't matter so in this case what
+doesn't matter so in this case what happens is it removes you do not need to
+happens is it removes you do not need to orient yourself there is no way there's
+orient yourself there is no way there's literally it is literally impossible for
+literally it is literally impossible for the player to get lost because it
+the player to get lost because it doesn't matter which direction you go in
+doesn't matter which direction you go in you're stepping away and also towards
+you're stepping away and also towards the
+the objective and it also means that I can
+objective and it also means that I can increase the scale of it in this case
+increase the scale of it in this case it's basically infinite and it doesn't
+it's basically infinite and it doesn't any it doesn't add any navigational
+any it doesn't add any navigational complexity in fact it removes a lot of
+complexity in fact it removes a lot of navigational complexity and it's also
+navigational complexity and it's also again just a much more interesting level
+again just a much more interesting level for the player to experience cuz this is
+for the player to experience cuz this is not something you see often in games
+not something you see often in games here's another example of something that
+here's another example of something that I wanted to put in the game before but
+I wanted to put in the game before but couldn't these are Indian stepwells and
+couldn't these are Indian stepwells and I saw these and I thought well wouldn't
+I saw these and I thought well wouldn't it be amazing if these just went on
+it be amazing if these just went on forever once I introduced world wrapping
+forever once I introduced world wrapping this was something possible so this is
+this was something possible so this is in this space you can keep going down
+in this space you can keep going down these stairs or climbing up uh there is
+these stairs or climbing up uh there is an achievement if you get to the bottom
+an achievement if you get to the bottom but
+but so what is something that's very
+so what is something that's very interesting about this is that instead
+interesting about this is that instead of having the world wrapping happen on a
+of having the world wrapping happen on a grid it is actually offset so this is
+grid it is actually offset so this is the basic unit that's repeated so we
+the basic unit that's repeated so we have a set of stairs now if we just have
+have a set of stairs now if we just have normal world wrapping where right if you
+normal world wrapping where right if you go down like if you drop from the bottom
+go down like if you drop from the bottom right you'll come back up down from the
+right you'll come back up down from the bottom left because we have everything
+bottom left because we have everything on a
+on a grid in this infinite stepwell World
+grid in this infinite stepwell World when you drop down from the bottom right
+when you drop down from the bottom right you actually come back from the bot from
+you actually come back from the bot from the upper left and the reason why that's
+the upper left and the reason why that's happening is because instead of putting
+happening is because instead of putting everything on a grid we've offset them
+everything on a grid we've offset them slightly because when you're going down
+slightly because when you're going down these stairs you're not actually going
+these stairs you're not actually going straight down you're going down and
+forward and this is what it looks like when you're climbing
+when you're climbing up and then you can because of the
+up and then you can because of the gravity rotation mechanic you can also
+gravity rotation mechanic you can also choose to just fall down the level from
+choose to just fall down the level from the
+the side now of course adding W wrapping
+side now of course adding W wrapping also introduced a lot of new problems
+also introduced a lot of new problems one of the problems is gating basically
+one of the problems is gating basically when the player is outside the interior
+when the player is outside the interior level pretty much opens up you can go
+level pretty much opens up you can go anywhere and everyone would say like
+anywhere and everyone would say like isn't there you know can't the player
+isn't there you know can't the player just skip all these levels and get to
+just skip all these levels and get to the end and yeah so this is um let's
+the end and yeah so this is um let's talk about a 2d example so in this level
+talk about a 2d example so in this level we want the player to get to the star
+we want the player to get to the star and what we'll do this is too easy so
+and what we'll do this is too easy so we'll put a wall here and now maybe the
+we'll put a wall here and now maybe the players got to go get a key to open the
+players got to go get a key to open the lock or they have to learn double jump
+lock or they have to learn double jump when you introduce W wrapping though
+when you introduce W wrapping though that wool is no longer a barrier because
+that wool is no longer a barrier because the player can jump to the right and
+the player can jump to the right and land back in on the other side or they
+land back in on the other side or they can jump down and come back down from
+can jump down and come back down from above and the reason why that's
+above and the reason why that's happening is because of the
+repetitions and now I actually got so this caused a problem with pacing for a
+this caused a problem with pacing for a long time until I played Skyrim and in
+long time until I played Skyrim and in Skyrim you when you are outside you can
+Skyrim you when you are outside you can get to anywhere on the map but then once
+get to anywhere on the map but then once you go inside a dungeon it becomes a
+you go inside a dungeon it becomes a very very linear experience so the game
+very very linear experience so the game is open exploration and linear
+is open exploration and linear adventuring and I actually took that for
+adventuring and I actually took that for my game so when you are outside in the
+my game so when you are outside in the space I allow you to go anywhere there
+space I allow you to go anywhere there you know I just sort of embrace that but
+you know I just sort of embrace that but then there are these islands with
+then there are these islands with puzzles and once you get there then it's
+puzzles and once you get there then it's a linear path and once you're indoor you
+a linear path and once you're indoor you can't will wrap so that removes the
+can't will wrap so that removes the problem of players skipping areas
+problem of players skipping areas another problem you'll find is that
+another problem you'll find is that height and Direction basically become
+height and Direction basically become meaningless once you introduce wheel
+meaningless once you introduce wheel rear
+rear geometry a lot of games will have
+geometry a lot of games will have something like a tower right and you
+something like a tower right and you might get a that's meet me at the base
+might get a that's meet me at the base of the Tower so let's go back to our 2D
+of the Tower so let's go back to our 2D example and if I were to ask you where
+example and if I were to ask you where the star is you'd say it's you know near
+the star is you'd say it's you know near the base of the tower to the left once
+the base of the tower to the left once you introduce we wrapping though that
+you introduce we wrapping though that direction doesn't really make sense
+direction doesn't really make sense because the star is also to the right of
+because the star is also to the right of the Tower and now what if we started to
+the Tower and now what if we started to decrease the distance between the
+decrease the distance between the instances so that they start touching
+instances so that they start touching each other so now in this case base of
+each other so now in this case base of the tower doesn't make sense because
+the tower doesn't make sense because this Tower does not have a base just
+this Tower does not have a base just connected this is uh one implementation
+connected this is uh one implementation of it in manifold garden and here you
+of it in manifold garden and here you can see this is this is literally a
+can see this is this is literally a building without a
+building without a base um so once you introduce we're
+base um so once you introduce we're wrapping a lot of things you know words
+wrapping a lot of things you know words like NorthEast Southwest up down left
+like NorthEast Southwest up down left right that we use for directions they
+right that we use for directions they get tossed out the window now what I
+get tossed out the window now what I found is you want to embrace the
+found is you want to embrace the problems so you want to design with the
+problems so you want to design with the geometry instead of against it for
+geometry instead of against it for example what works really well is
+example what works really well is designing your levels to be radial
+designing your levels to be radial thinking of something as inside and then
+thinking of something as inside and then outside and allowing the players to get
+outside and allowing the players to get there between these two places from many
+there between these two places from many directions instead
+directions instead of this is much better than having
+of this is much better than having something that's just a single Direction
+something that's just a single Direction I just put directional as a word for
+I just put directional as a word for this now what I want to talk about now
+this now what I want to talk about now is a number of techniques that I found
+is a number of techniques that I found to have worked well and these fall under
+to have worked well and these fall under two
+two categories uh the first is macro which
+categories uh the first is macro which has to deal with the big picture the way
+has to deal with the big picture the way you organ organizer level and the second
+you organ organizer level and the second is micro the second group of techniques
+is micro the second group of techniques is micro which deal more with moment to
+is micro which deal more with moment to moment not necessar when the player is
+moment not necessar when the player is stopping to think but the when they're
+stopping to think but the when they're moving through levels how can you help
+moving through levels how can you help them how can you help guide them so in
+them how can you help guide them so in macro you want to have an iconic party
+macro you want to have an iconic party the word party is the layout of a
+the word party is the layout of a building I got that from Robert
+building I got that from Robert Yang's uh level design history talk last
+Yang's uh level design history talk last year which I highly recommend and you
+year which I highly recommend and you want to have logic to your level and
+want to have logic to your level and with micro you want to have intentional
+with micro you want to have intentional architecture and you want to utilize
+architecture and you want to utilize patterns architectural elements so let's
+patterns architectural elements so let's talk about the first macro technique
+talk about the first macro technique iconic party so these are some examples
+iconic party so these are some examples of architectural parties you got the
+of architectural parties you got the layout this is kind of roughly what the
+layout this is kind of roughly what the building looks like when you're
+building looks like when you're designing a game based on mcer work it's
+designing a game based on mcer work it's very tempting to kind of overwhelm the
+very tempting to kind of overwhelm the player with a lot of staircases and
+player with a lot of staircases and tunnels and weirds up and I think that
+tunnels and weirds up and I think that works very well in a print because you
+works very well in a print because you kind of want to you know look at it in
+kind of want to you know look at it in detail and discover things you didn't
+detail and discover things you didn't see
+see before however this does not work well
+before however this does not work well in the level so this is the very first
+in the level so this is the very first imp my very first attempt at the open
+imp my very first attempt at the open level of the world and you can see I was
+level of the world and you can see I was just putting staircases and tunnels
+just putting staircases and tunnels everywhere and it looks and feels very
+everywhere and it looks and feels very MCS sure this is another example but if
+MCS sure this is another example but if you were to draw if I were to if you
+you were to draw if I were to if you were ask me what the partti of this
+were ask me what the partti of this level is well this is what it is it's
+level is well this is what it is it's very messy there's
+very messy there's no clear structure to it this is the
+no clear structure to it this is the same level now and you can see in this
+same level now and you can see in this case what we have is a central tower
+case what we have is a central tower surrounded by four
+surrounded by four islands and what's really great about
+islands and what's really great about this shape is you can see that from any
+this shape is you can see that from any direction and also with the whir
+direction and also with the whir wrapping you can see the repetitions of
+wrapping you can see the repetitions of it in the distance so I don't have a
+it in the distance so I don't have a mini map in the world however because
+mini map in the world however because you can see the repetition of the world
+you can see the repetition of the world from where you are you can by looking at
+from where you are you can by looking at the other instances you can figure out
+the other instances you can figure out what the current shape uh what the
+what the current shape uh what the current structure of your world is and
+current structure of your world is and so it helps if you have like a very
+so it helps if you have like a very clear design instead of just a
+clear design instead of just a mess so comparison of the of how the
+mess so comparison of the of how the levels changed and these are examples of
+levels changed and these are examples of very of levels with very clear part like
+very of levels with very clear part like you can see this one and right away you
+you can see this one and right away you see that these are stairs that continue
+see that these are stairs that continue on forever I see very clearly now this
+on forever I see very clearly now this is just the lce structure and you don't
+is just the lce structure and you don't have to be simple you can get more
+have to be simple you can get more complex but you always want to have this
+complex but you always want to have this very clear overall design that the
+very clear overall design that the player can see and recognize very
+player can see and recognize very clearly now the second macro technique
+clearly now the second macro technique is you want to have logic to your
+is you want to have logic to your level now the opening level of the game
+level now the opening level of the game consists of a series of four rooms
+consists of a series of four rooms indoors to teach the player the
+indoors to teach the player the mechanics and then they go outside
+mechanics and then they go outside and when I was play testing you know
+and when I was play testing you know there are people that are really good at
+there are people that are really good at puzzle games and there are people that
+puzzle games and there are people that are not so good at puzzle games and the
+are not so good at puzzle games and the people that are good at it would finish
+people that are good at it would finish those four levels in about 10 minutes
+those four levels in about 10 minutes and others might struggle and take about
+and others might struggle and take about 30 to 40 minutes however when they got
+30 to 40 minutes however when they got outside and the outside consisted of two
+outside and the outside consisted of two rooms that they had to find there was no
+rooms that they had to find there was no consistency in how long it took people
+consistency in how long it took people to find those two rooms like some people
+to find those two rooms like some people would blast through the first four
+would blast through the first four puzzles and then they got outside and
+puzzles and then they got outside and stumble for 30 minutes until they found
+stumble for 30 minutes until they found a room and some people might struggle
+a room and some people might struggle for 40 minutes you know with the indoor
+for 40 minutes you know with the indoor puzzles and then they get outside and
+puzzles and then they get outside and come across the room right away and this
+come across the room right away and this was because there was no logic to the
+was because there was no logic to the way those two rooms were placed they
+way those two rooms were placed they were basically random so it it was
+were basically random so it it was basically a matter of luck in which how
+basically a matter of luck in which how you found these and they were also a lot
+you found these and they were also a lot like based on Sidelines so for example
+like based on Sidelines so for example you know this is what you saw when you
+you know this is what you saw when you first came out and there's a door at the
+first came out and there's a door at the very end and like you basically had to
+very end and like you basically had to get the box and go to the door and if
+get the box and go to the door and if you didn't do that if you kind of turned
+you didn't do that if you kind of turned around or jumped off or changed gravity
+around or jumped off or changed gravity you lost sight of it and there was no
+you lost sight of it and there was no way to figure out use logic to figure
+way to figure out use logic to figure out how to get
+out how to get back with the current level now there is
+back with the current level now there is a very clear sense of logic you have
+a very clear sense of logic you have this Tower and then the puzzles there
+this Tower and then the puzzles there are four islands with puzzles in them
+are four islands with puzzles in them and so you go to one you solve it and
+and so you go to one you solve it and you turn on a laser beam and then you
+you turn on a laser beam and then you can come
+can come back right so the way the level is laid
+back right so the way the level is laid out once you solve one puzzle you can
+out once you solve one puzzle you can figure out where the next ones are so as
+figure out where the next ones are so as you can see this is the kind of the
+you can see this is the kind of the center Tower and just from where the
+center Tower and just from where the laser beams are pointed you can deduce
+laser beams are pointed you can deduce okay in this I finished the blue and the
+okay in this I finished the blue and the red islands and there are these two
+red islands and there are these two other ones that are still
+other ones that are still missing so having a logic to your level
+missing so having a logic to your level is very important now we're going to
+is very important now we're going to talk about the micro techniques which
+talk about the micro techniques which are not dealing with the big picture but
+are not dealing with the big picture but with moment to moment as the player is
+with moment to moment as the player is navigating through the world how can you
+navigating through the world how can you help to guide them to the right
+places okay so we're going to go back to this opening level and there one of the
+this opening level and there one of the last things I
+last things I changed is this one piece of
+changed is this one piece of architecture at the the very edge of the
+architecture at the the very edge of the island so it used to be just this block
+island so it used to be just this block and I changed it to a bunch of stairs
+and I changed it to a bunch of stairs and with a platform at the
+end and the idea for this was because you're on that central tower and I need
+you're on that central tower and I need you to get to the Blue Island where the
+you to get to the Blue Island where the puzzle is in this case the star and in
+puzzle is in this case the star and in order to do that I needed the player to
+order to do that I needed the player to rotate gravity to get there like you had
+rotate gravity to get there like you had to jump so you can see this is it with
+to jump so you can see this is it with the block and the problem with this was
+the block and the problem with this was it was not very clear what it was doing
+it was not very clear what it was doing so this is the thinking I was thinking
+so this is the thinking I was thinking you'd walk up to this block and you
+you'd walk up to this block and you would rotate onto it change gravity and
+would rotate onto it change gravity and then you jump off onto the island below
+then you jump off onto the island below if you played Assassin's Creed it's sort
+if you played Assassin's Creed it's sort of like um those little things where you
+of like um those little things where you jump off into the pile of
+jump off into the pile of hay however what happened was a lot of
+hay however what happened was a lot of people just kind of walk up to this and
+people just kind of walk up to this and look around and then walk away and the
+look around and then walk away and the problem is that this piece of
+problem is that this piece of architecture does not communicate its
+architecture does not communicate its intention it's just this block it's not
+intention it's just this block it's not telling you what to do with it
+telling you what to do with it however what I did was I changed it to a
+however what I did was I changed it to a set of stairs with this platform at the
+set of stairs with this platform at the end and now
+end and now everybody like it becomes very clear oh
+everybody like it becomes very clear oh I see the stairs I'm supposed to walk up
+I see the stairs I'm supposed to walk up them and then when you walk up the
+them and then when you walk up the stairs then you rotate to the platform
+stairs then you rotate to the platform and then right away you see the island
+and then right away you see the island below so the difference between the
+below so the difference between the block and the stairs is that this tells
+block and the stairs is that this tells you how to use it how to walk on it the
+you how to use it how to walk on it the second micro micro technique is you want
+second micro micro technique is you want to utilize patterns in
+to utilize patterns in architecture so this is what hallways
+architecture so this is what hallways used to look like in the game and this
+used to look like in the game and this had a lot of problems basically you know
+had a lot of problems basically you know because you can change gravity we have
+because you can change gravity we have hallways that also Bend upwards the
+hallways that also Bend upwards the problem is in a lot of firstperson games
+problem is in a lot of firstperson games a lot of people don't tend to look up so
+a lot of people don't tend to look up so they players would come to this and then
+they players would come to this and then they turn around thinking it was a dead
+they turn around thinking it was a dead end so that was one problem and another
+end so that was one problem and another problem was if you started going
+problem was if you started going backwards the hallway looked exactly the
+backwards the hallway looked exactly the same and that happens a lot because of
+same and that happens a lot because of the gravity changing mechanic it's very
+the gravity changing mechanic it's very easy to get turned around so a lot of
+easy to get turned around so a lot of people would backtrack through an entire
+people would backtrack through an entire hallway until they got to the room they
+hallway until they got to the room they were in previously and then be like wait
+were in previously and then be like wait a minute this is where I wanted to go so
+a minute this is where I wanted to go so when I started adding windows in the
+when I started adding windows in the game I would put Windows in hallway to
+game I would put Windows in hallway to be equal in length directly opposite one
+be equal in length directly opposite one another and I showed this level to
+another and I showed this level to Brandon Chung who uh is a creator of 30
+Brandon Chung who uh is a creator of 30 Flights of Loving and also talked about
+Flights of Loving and also talked about wayf finding in levels
+wayf finding in levels uh last year here and I recommend that
+uh last year here and I recommend that talk highly as well and he suggested
+talk highly as well and he suggested taking one of the windows and sliding it
+taking one of the windows and sliding it down offsetting it so that it's like
+down offsetting it so that it's like this so you can see it you know it
+this so you can see it you know it touches the end of the hallway and this
+touches the end of the hallway and this immediately solved a ton of problems so
+immediately solved a ton of problems so now when you open the door and you're
+now when you open the door and you're looking down a hallway you see the
+looking down a hallway you see the brightest thing on the screen is the
+brightest thing on the screen is the window right and the window offers a
+window right and the window offers a Vista to the outside world which is much
+Vista to the outside world which is much more interesting than the blank walls so
+more interesting than the blank walls so it actually makes traversal through hway
+it actually makes traversal through hway feel a lot faster and it it attracts PE
+feel a lot faster and it it attracts PE players towards the end and then the the
+players towards the end and then the the window kind of guides your eyes into the
+window kind of guides your eyes into the direction of the bend and this solves
+direction of the bend and this solves the problem of hallways that bend
+the problem of hallways that bend upwards cuz now players guys are guided
+upwards cuz now players guys are guided to look up
+to look up and it also solves the problem of
+and it also solves the problem of players going backwards because now when
+players going backwards because now when you're going backwards the hallway looks
+you're going backwards the hallway looks very different you're no longer seeing
+very different you're no longer seeing this window of light at the end so just
+this window of light at the end so just the way the hallways are designed you
+the way the hallways are designed you can figure out the direction you're
+can figure out the direction you're supposed to go and I actually you know
+supposed to go and I actually you know sometimes in games they'll want to vary
+sometimes in games they'll want to vary you know uh corners and hallways and I
+you know uh corners and hallways and I actually have this in every single
+actually have this in every single hallway because having the player get
+hallway because having the player get lost inside hallways is not something
+lost inside hallways is not something that I want to do um so in summary
+that I want to do um so in summary you want to embrace the geometry don't
+you want to embrace the geometry don't work against it if you start using
+work against it if you start using impossible geometry you're going to find
+impossible geometry you're going to find unexpected solutions to previous
+unexpected solutions to previous problems you will need to rethink a lot
+problems you will need to rethink a lot of things like gating you'll need to
+of things like gating you'll need to rethink Direction NorthEast Southwest up
+rethink Direction NorthEast Southwest up down left right those all go out the
+down left right those all go out the window utilize a very clear layout for
+window utilize a very clear layout for your level the shape of it should be
+your level the shape of it should be easily recognizable you want to create
+easily recognizable you want to create logic in your level so the players can
+logic in your level so the players can figure out where they need to go next by
+figure out where they need to go next by looking at the
+looking at the architecture and you also want to have
+architecture and you also want to have intentional architecture everything you
+intentional architecture everything you put in the game needs to tell the player
+put in the game needs to tell the player how to use it and use established
+how to use it and use established patterns that the players can rely on to
+patterns that the players can rely on to figure out where they need to go and a
+figure out where they need to go and a lot of people will play the first level
+lot of people will play the first level of manful garden and say you know I
+of manful garden and say you know I thought this game was going to be very
+thought this game was going to be very confusing but it actually turned out to
+confusing but it actually turned out to be not
+be not bad so we've been sitting here talking
+bad so we've been sitting here talking about impossible geometry I just want to
+about impossible geometry I just want to leave you with one thing which is uh you
+leave you with one thing which is uh you must be afraid to dream a little
+must be afraid to dream a little bigger uh so all that has kind of helped
+bigger uh so all that has kind of helped me to make manifold Garden what it is
+me to make manifold Garden what it is and I just want to say manifold Garden
+and I just want to say manifold Garden is also playable here at GDC it's
+is also playable here at GDC it's actually just outside in the day of the
+actually just outside in the day of the devs area so if you want to check it out
+devs area so if you want to check it out or watch other people play and see how
+or watch other people play and see how they work their way through the level
+they work their way through the level and finally my name is William cheer
+and finally my name is William cheer here's all my contact
+here's all my contact information uh feel free to come up and
+information uh feel free to come up and ask questions now if we have time yeah I
+ask questions now if we have time yeah I think we have a little bit time if
+think we have a little bit time if anybody have questions you can come up
+anybody have questions you can come up to the mic
+to the mic well thank
+[Applause] you I am curious as to whether you did
+you I am curious as to whether you did any paper prototyping at points to check
+any paper prototyping at points to check assumptions or to or to play with how
+assumptions or to or to play with how something would fold or twist upon
+something would fold or twist upon itself uh so the question is whether I
+itself uh so the question is whether I did any paper
+did any paper prototyping and did initially did do
+prototyping and did initially did do paper prototyping for the puzzles but
+paper prototyping for the puzzles but then when it came to designing the
+then when it came to designing the levels I'm not a very good drawer and so
+levels I'm not a very good drawer and so even to do a 2d drawing is very
+even to do a 2d drawing is very difficult for me and this all these
+difficult for me and this all these levels have to be designed in 3D so I
+levels have to be designed in 3D so I just build them inside the game and then
+just build them inside the game and then walk through them and play test them and
+walk through them and play test them and figure out what where the issues are so
+figure out what where the issues are so I don't do yeah I haven't done paper
+I don't do yeah I haven't done paper prototyping in
+prototyping in years yes I think yeah hey that um who
+years yes I think yeah hey that um who else worked on your team did you work by
+else worked on your team did you work by yourself and how did other people get
+yourself and how did other people get involved in the later stages when you
+involved in the later stages when you were sort of defining an art style uh so
+were sort of defining an art style uh so I worked on the game alone for about two
+I worked on the game alone for about two and a half years and then I got backed
+and a half years and then I got backed by Indie fund about a year ago and I
+by Indie fund about a year ago and I brought on a programmer David who's
+brought on a programmer David who's actually in the audience David worked on
+actually in the audience David worked on the game parttime last year and joined
+the game parttime last year and joined full-time at the beginning of this year
+full-time at the beginning of this year and the art style actually was just a
+and the art style actually was just a lot of iterating over time um it it's
+lot of iterating over time um it it's there was never a clear Direction like I
+there was never a clear Direction like I wanted it to be inspired by architecture
+wanted it to be inspired by architecture so architectural drawings were an
+so architectural drawings were an influence but we an inspiration um but a
+influence but we an inspiration um but a lot of is just kind of tiny things added
+lot of is just kind of tiny things added up over time to get to where it is at
+up over time to get to where it is at now thank
+now thank you hi thanks for this um so there's
+you hi thanks for this um so there's like a recurring Trend in games that are
+like a recurring Trend in games that are based on like some TST of mathematics
+based on like some TST of mathematics which is that they're really really hard
+which is that they're really really hard to pitch you know like whenever whenever
+to pitch you know like whenever whenever you talk about a four-dimensional game
+you talk about a four-dimensional game of which there are any IMI one you're
+of which there are any IMI one you're like oh the four-dimensional game like
+like oh the four-dimensional game like that other one like migia CER so on so
+that other one like migia CER so on so I'm wondering how you deal with that
+I'm wondering how you deal with that when when you actually talk to people
+when when you actually talk to people about it and the other thing is uh what
+about it and the other thing is uh what would make it easier for you in a game
+would make it easier for you in a game engine uh to do what you did um so the
+engine uh to do what you did um so the question is how I how to pitch a game
+question is how I how to pitch a game that has a weird geometry weird twist I
+that has a weird geometry weird twist I actually so yeah I've been working on
+actually so yeah I've been working on the game for about three and a half
+the game for about three and a half years now and a lot of that is just
+years now and a lot of that is just talking to a lot of people in 2014 I
+talking to a lot of people in 2014 I went to about 14 different game
+went to about 14 different game conventions and the way I would used to
+conventions and the way I would used to talk about the game is I'd say okay you
+talk about the game is I'd say okay you know there are six gravity fields and
+know there are six gravity fields and each one is based on a different surface
+each one is based on a different surface normal and when you're going this it's
+normal and when you're going this it's red and you can just see people gloss
+red and you can just see people gloss over you know and when you mention
+over you know and when you mention surface normals they're like I'm done
+surface normals they're like I'm done but then I started to say okay have you
+but then I started to say okay have you seen Inception and you know that scene
+seen Inception and you know that scene where they full parison happened they
+where they full parison happened they start walking up and immediately people
+start walking up and immediately people are like oh yeah you know I know that
+are like oh yeah you know I know that and so I think it's about like
+and so I think it's about like communicating giving people clear visual
+communicating giving people clear visual imagery to help them imagine more the
+imagery to help them imagine more the consequences of that as opposed to
+consequences of that as opposed to explaining the
+explaining the math hi um you just said that you don't
+math hi um you just said that you don't draw much but uh I had the question
+draw much but uh I had the question concerning how do you uh go about
+concerning how do you uh go about designing your architectures how do you
+designing your architectures how do you what's your process to establish all
+what's your process to establish all this uh architectural language that you
+this uh architectural language that you have now in the game and we saw the
+have now in the game and we saw the evolution like we see the previous
+evolution like we see the previous prototypes very blocky simple cubes and
+prototypes very blocky simple cubes and stuff and now it's very much more on it
+stuff and now it's very much more on it sure wondering how you go about creating
+sure wondering how you go about creating those uh the two biggest Architects
+those uh the two biggest Architects who've influenced the game are Tad Ando
+who've influenced the game are Tad Ando he's a Japanese architect who works a
+he's a Japanese architect who works a lot with concrete so that helps with
+lot with concrete so that helps with kind of the the layout of the levels and
+kind of the the layout of the levels and then and Frank Lord right who kind of
+then and Frank Lord right who kind of helps fill in a lot of the ornaments and
+helps fill in a lot of the ornaments and the ornaments are there because I don't
+the ornaments are there because I don't have textures and so if you're moving
+have textures and so if you're moving through flat like a big chunk of flat
+through flat like a big chunk of flat space and you don't have textures
+space and you don't have textures players can't see stuff changing on the
+players can't see stuff changing on the screen so it feels very slow but once
+screen so it feels very slow but once you start adding kind of these
+you start adding kind of these variations in height um that that really
+variations in height um that that really helps speed things up I think their
+helps speed things up I think their earlier question was about engines how
+earlier question was about engines how engines can help uh I think providing
+engines can help uh I think providing you know the biggest problems that we
+you know the biggest problems that we have are now dealing with rendering so I
+have are now dealing with rendering so I think having kind of
+think having kind of lowlevel stuff in the pipeline that's
+lowlevel stuff in the pipeline that's opened up that we can tweak is most
+opened up that we can tweak is most helpful but just in terms of 3D and
+helpful but just in terms of 3D and scripting those are pretty standard for
+scripting those are pretty standard for yeah okay one just one more question hi
+yeah okay one just one more question hi um so yeah you just said something about
+um so yeah you just said something about uh rendering causing an issue I wanted
+uh rendering causing an issue I wanted to ask you guys are instantiating
+to ask you guys are instantiating everything right there all instances uh
+everything right there all instances uh yes so um how exactly were you guys
+yes so um how exactly were you guys getting around the rendering
+getting around the rendering issues well we we've actually Rewritten
+issues well we we've actually Rewritten that system and I'm probably not the
+that system and I'm probably not the best person to uh answer that but we we
+best person to uh answer that but we we do have a 3X3 by three and sometimes 5
+do have a 3X3 by three and sometimes 5 by 5 by five grid of the same level
+by 5 by five grid of the same level repeat
+it we actually do not have like one standard system it it sort of depends on
+standard system it it sort of depends on the geometry of the level we have
+the geometry of the level we have hijacked the play pipeline in unity now
+hijacked the play pipeline in unity now so when I hit play it actually creates
+so when I hit play it actually creates another level and merges all the meshes
+another level and merges all the meshes and deletes all the unnecessary stuff
+and deletes all the unnecessary stuff and creates an optimized version of that
+and creates an optimized version of that um but yeah David is in the audience and
+um but yeah David is in the audience and feel free to ask him technical questions
+feel free to ask him technical questions um yeah so thank you all very much and
+um yeah so thank you all very much and fill out the evaluation if there is one
+[Applause]

@@ -1,0 +1,1056 @@
+[Music] hi my name is Saul also never see
+hi my name is Saul also never see engineer at Unity Technologies in my
+engineer at Unity Technologies in my spare time are working to open source
+spare time are working to open source level editors that run in the unity
+level editors that run in the unity editor called builds mcg a chisel and we
+editor called builds mcg a chisel and we talk about an algorithm I'm implementing
+talk about an algorithm I'm implementing for chisel chisel which is still in
+for chisel chisel which is still in development will be successor to
+development will be successor to all-time CSG first let's quickly go over
+all-time CSG first let's quickly go over what C is he really is first you need to
+what C is he really is first you need to understand the concept of boolean
+understand the concept of boolean operations you basically take some
+operations you basically take some shapes called brushes perform a boolean
+shapes called brushes perform a boolean operation on them and you end up with a
+operation on them and you end up with a new shape the most common operations are
+new shape the most common operations are additive subtractive and intersection
+additive subtractive and intersection you can see here what these operations
+you can see here what these operations do so to make a level first you have a
+do so to make a level first you have a cup of Rush's then you use an
+cup of Rush's then you use an operational done and then you create
+operational done and then you create shapeless combination of both shapes
+shapeless combination of both shapes then use that shape on a lot of shape
+then use that shape on a lot of shape and if you do that with enough shapes
+and if you do that with enough shapes gained over the level and that's my talk
+gained over the level and that's my talk thank you for watching
+thank you for watching obviously there's more to ok quick
+obviously there's more to ok quick overview first I'll go over the history
+overview first I'll go over the history of constructive solid geometry and
+of constructive solid geometry and hopefully make the case why CT is
+hopefully make the case why CT is available technique in the game industry
+available technique in the game industry after that I'll describe the algorithm
+after that I'll describe the algorithm how to deter iterative updates how to
+how to deter iterative updates how to find intersections how to generate
+find intersections how to generate meshes how to categorize polygons to
+meshes how to categorize polygons to determine which polygons should be
+determine which polygons should be visible or not and finally how to put it
+visible or not and finally how to put it all together so first some history CSG
+all together so first some history CSG is an old technique to build geometry
+is an old technique to build geometry with it originated from outside the game
+with it originated from outside the game industry for instance in the cab
+industry for instance in the cab industry CSG is useful to determine the
+industry CSG is useful to determine the steps needed to cut chips from metal in
+steps needed to cut chips from metal in the game industry quake was the first
+the game industry quake was the first game to use it for a level design a lot
+game to use it for a level design a lot of game engines such as valves Source
+of game engines such as valves Source engine have been based on the quake
+engine have been based on the quake agent and inherited its use of CT other
+agent and inherited its use of CT other engines like unreal were inspired by
+engines like unreal were inspired by quake and also used CSG
+quake and also used CSG design most of the games making these
+design most of the games making these agents shipped with their little editors
+agents shipped with their little editors models quickly started making new levels
+models quickly started making new levels sometimes even modify these games into
+sometimes even modify these games into completely new experiences which
+completely new experiences which increased popularity and greatly
+increased popularity and greatly extended the lifetime of these games
+extended the lifetime of these games several these mods turned into retail
+several these mods turned into retail games themselves many of the people who
+games themselves many of the people who started out with models back then are
+started out with models back then are now the same people who make the levels
+now the same people who make the levels we all play today
+we all play today some of them in their spare time still
+some of them in their spare time still make levels for games like quake all fly
+make levels for games like quake all fly for thief just for the fun of it cg has
+for thief just for the fun of it cg has been used in many classic games and even
+been used in many classic games and even though CSUSB being with us for a long
+though CSUSB being with us for a long time it's still very much a life in the
+time it's still very much a life in the game industry all of these games and
+game industry all of these games and many many more have used cc summer in
+many many more have used cc summer in their development cycle early CSG
+their development cycle early CSG implementations all use binary space
+implementations all use binary space partition trees or BSP for short
+partition trees or BSP for short the problem with BSP is that it's
+the problem with BSP is that it's basically a monolithic bag of polygons
+basically a monolithic bag of polygons which are often split into multiple
+which are often split into multiple pieces every time a polygon is added it
+pieces every time a polygon is added it grows larger and larger and more and
+grows larger and larger and more and more complicated the more polygons you
+more complicated the more polygons you add the slower and slower it becomes you
+add the slower and slower it becomes you to these scalability issues it quickly
+to these scalability issues it quickly becomes unusable and usually slow even
+becomes unusable and usually slow even after a relatively small number of
+after a relatively small number of shapes a second problem is that the
+shapes a second problem is that the tooling around see if she hasn't evolved
+tooling around see if she hasn't evolved much over time Unreal Engine 4 for
+much over time Unreal Engine 4 for example still uses original PSP code
+example still uses original PSP code written by Tim Sweeney himself so some
+written by Tim Sweeney himself so some of you might be thinking why would you
+of you might be thinking why would you build your this way in the first place
+build your this way in the first place in a word workflow when you work with
+in a word workflow when you work with simple groups of primitives as you add
+simple groups of primitives as you add enable/disable and move around you can
+enable/disable and move around you can very quickly adjust your level you don't
+very quickly adjust your level you don't like where the stores place just drag it
+like where the stores place just drag it together with its own hole in the wall
+together with its own hole in the wall which would simply be subtractive brush
+which would simply be subtractive brush those windows that you created here
+those windows that you created here today interfere with your gameplay just
+today interfere with your gameplay just delete them and your windows including
+delete them and your windows including the hole in the wall or go
+the hole in the wall or go you can create in any just things in
+you can create in any just things in milliseconds
+milliseconds this makes prototyping and mocking a
+this makes prototyping and mocking a much more pleasant experience now you
+much more pleasant experience now you might have heard of this single box over
+might have heard of this single box over which was started by Michael Barclay
+which was started by Michael Barclay from Naughty Dog it's a yearly thing
+from Naughty Dog it's a yearly thing we're in October people in the game
+we're in October people in the game industry post images of the games that
+industry post images of the games that work on in an in development State this
+work on in an in development State this is great because it shows how the
+is great because it shows how the sausage is made so to speak now Naughty
+sausage is made so to speak now Naughty Dog doesn't actually use CSG but some
+Dog doesn't actually use CSG but some developers that do you see is he do post
+developers that do you see is he do post images that's October for example these
+images that's October for example these are screenshots of a level made by
+are screenshots of a level made by Andrews psycho I hope I pronounce that
+Andrews psycho I hope I pronounce that name correctly for a game warframe it
+name correctly for a game warframe it shows how the levels first blocked out
+shows how the levels first blocked out CSG the whole levels laid out in such a
+CSG the whole levels laid out in such a way that the game can be tested and
+way that the game can be tested and played before any investment is made
+played before any investment is made into making it look pretty it shows all
+into making it look pretty it shows all the line of sites all the places
+the line of sites all the places breaking can sake offer everywhere the
+breaking can sake offer everywhere the player and enemies can get to this is
+player and enemies can get to this is what the game looks like after pieces of
+what the game looks like after pieces of the level are replaced with art these
+the level are replaced with art these pieces are created in 3d modeling
+pieces are created in 3d modeling packages another example these are
+packages another example these are screenshots from a level made by Alex
+screenshots from a level made by Alex Greiner
+Greiner for the game apex legends here shows how
+for the game apex legends here shows how this levels first block size ECT and
+this levels first block size ECT and here we can see the final results after
+here we can see the final results after replacing some brushes with meshes and
+replacing some brushes with meshes and adding props here's another look at the
+adding props here's another look at the phase example and the final result since
+phase example and the final result since he forced you to consider the larger
+he forced you to consider the larger rough shape of a level before diving
+rough shape of a level before diving into the visual details we're starting
+into the visual details we're starting with rougher shapes you can quickly
+with rougher shapes you can quickly start playtesting and refine your
+start playtesting and refine your gameplay before you spend lots of
+gameplay before you spend lots of resources on making it look good at this
+resources on making it look good at this stage you should be more concerned with
+stage you should be more concerned with with things like line of sight where the
+with things like line of sight where the player and our characters can actually
+player and our characters can actually walk what a player and other characters
+walk what a player and other characters can interact with but the flow of your
+can interact with but the flow of your area is 3d modeling tools only your
+area is 3d modeling tools only your hands work on a much lower level we're
+hands work on a much lower level we're primitives like triangles and quads it's
+primitives like triangles and quads it's less forgiving environment and it's much
+less forgiving environment and it's much easier to shoot yourself in the foot
+easier to shoot yourself in the foot it's also much easier to get lost in
+it's also much easier to get lost in detailing instead of focusing on the
+detailing instead of focusing on the gameplay finally constructive solid
+gameplay finally constructive solid geometry is by its very nature solid
+geometry is by its very nature solid which is a nice property to have you
+which is a nice property to have you have to deal with physics you're not
+have to deal with physics you're not likely to have infinitely thin gaps
+likely to have infinitely thin gaps between your triangles which can mess up
+between your triangles which can mess up the collision detection it's not a
+the collision detection it's not a coincidence the games that do not use
+coincidence the games that do not use CSG for their level design sense are
+CSG for their level design sense are usually not just complicated physics in
+usually not just complicated physics in game play CG is also well suited for
+game play CG is also well suited for procedurally generated geometry all
+procedurally generated geometry all geometry created with CSG will always be
+geometry created with CSG will always be solid by its very nature and therefore
+solid by its very nature and therefore even with a procedure when a person view
+even with a procedure when a person view or algorithm fails it will still still
+or algorithm fails it will still still end up with physically possible shapes
+end up with physically possible shapes your collision mesh will still be valid
+your collision mesh will still be valid you never end up with a polygon soup you
+you never end up with a polygon soup you can easily combine layers of geometry by
+can easily combine layers of geometry by adding or removing geometry some of it
+adding or removing geometry some of it hand traded other parts created
+hand traded other parts created procedurally all seamlessly working
+procedurally all seamlessly working together it's important to consider the
+together it's important to consider the level design is not the same as 3d
+level design is not the same as 3d modeling level designers and 3d artists
+modeling level designers and 3d artists have different competencies the design
+have different competencies the design of a level is not just what it looks
+of a level is not just what it looks like and it really does help to have
+like and it really does help to have good tools for the task in hand after
+good tools for the task in hand after all sure you could mow your lawn with a
+all sure you could mow your lawn with a scissor is that really the best tool for
+scissor is that really the best tool for the job jarick tools are often not ideal
+the job jarick tools are often not ideal for most jobs specialized tools are
+for most jobs specialized tools are great for one particular job but not
+great for one particular job but not necessarily good at other jobs CSG is or
+necessarily good at other jobs CSG is or is he not going to be a solution for
+is he not going to be a solution for everything you'd ever want to do with
+everything you'd ever want to do with geometry I would never suggest you build
+geometry I would never suggest you build vegetation or characters with CG for
+vegetation or characters with CG for instance but it's a really good tool for
+instance but it's a really good tool for level design and architecture in general
+saathi sees he has perception problems artists often equate CSG with BSP and
+artists often equate CSG with BSP and all twinning most governor reason given
+all twinning most governor reason given so not just CST is it's slow or blocking
+so not just CST is it's slow or blocking yeah it doesn't have to be this way it
+yeah it doesn't have to be this way it doesn't have to be blocking you can be
+doesn't have to be blocking you can be used to drag-and-drop
+used to drag-and-drop prefabs including holes have tooling
+prefabs including holes have tooling that allows you to create more
+that allows you to create more complicated shapes like this this or
+complicated shapes like this this or this notice this image it's a little
+this notice this image it's a little scene with more than 7,000 brushes in it
+scene with more than 7,000 brushes in it and it's real time being able to draw on
+and it's real time being able to draw on any shape an extrude allows you to
+any shape an extrude allows you to quickly build your level and you can
+quickly build your level and you can still edit brushes like in the olden
+still edit brushes like in the olden days but with real-time feedback
+days but with real-time feedback hopefully I've got your attention so how
+hopefully I've got your attention so how do you influence a modern CSE algorithm
+do you influence a modern CSE algorithm let's start why this particular
+let's start why this particular algorithm is interesting in the first
+algorithm is interesting in the first place now suppose we perform CG in a
+place now suppose we perform CG in a couple brushes we combine those shapes
+couple brushes we combine those shapes together to create a mesh using a couple
+together to create a mesh using a couple of bleeding operations now if we look at
+of bleeding operations now if we look at the contributions from each individual
+the contributions from each individual brush on the final shape you can see
+brush on the final shape you can see that we only need to remove or flip the
+that we only need to remove or flip the orientation of pieces of polygons that
+orientation of pieces of polygons that already exist in our brushes by
+already exist in our brushes by determining which parts of our brushes
+determining which parts of our brushes need to be removed or flipped around we
+need to be removed or flipped around we can perform CG prayer brush at the end
+can perform CG prayer brush at the end of the final process we put all those
+of the final process we put all those pieces together and we have a final mesh
+pieces together and we have a final mesh the biggest advantage that this gives us
+the biggest advantage that this gives us is that it makes it possible to have
+is that it makes it possible to have iterative updates that makes this
+iterative updates that makes this possible so how do we perform iterative
+possible so how do we perform iterative updates take for example when we want to
+updates take for example when we want to move brushes around here we only need to
+move brushes around here we only need to update the brush that was moved the
+update the brush that was moved the versus it touched before the move and
+versus it touched before the move and those it touches after the move
+although the other brushes can be left untouched since we can catch the results
+untouched since we can catch the results of our per brush CSG process we can just
+of our per brush CSG process we can just reuse the previous results for those
+reuse the previous results for those brushes it works the same if you modify
+brushes it works the same if you modify the shape of a brush instead another
+the shape of a brush instead another example if you delete a brush you only
+example if you delete a brush you only need to update the brushes it touched
+need to update the brushes it touched before it was deleted and when you add a
+before it was deleted and when you add a brush you determine which brushes it
+brush you determine which brushes it touches and update update those together
+touches and update update those together with a new brush all of this essentially
+with a new brush all of this essentially turns brushes into the unit of
+turns brushes into the unit of computation and we can easily spit the
+computation and we can easily spit the work across multiple CPU cores the
+work across multiple CPU cores the worker brush never gets too expensive
+worker brush never gets too expensive and everything skills well with the
+and everything skills well with the number of brushes so how do we find
+number of brushes so how do we find those polygon pieces well first we need
+those polygon pieces well first we need to find the brushes that intersect with
+to find the brushes that intersect with each other then we find intersection
+each other then we find intersection vertices between the brushes and use
+vertices between the brushes and use those to form intersection polygons on
+those to form intersection polygons on top of the surface of our brush ensuring
+top of the surface of our brush ensuring that our purchase or convex makes this
+that our purchase or convex makes this simpler just in case you are not
+simpler just in case you are not familiar with or forgot what convex
+familiar with or forgot what convex means on the left is a convex shape on
+means on the left is a convex shape on the right is a concave shape what makes
+the right is a concave shape what makes the shape on the right concave is this
+the shape on the right concave is this invert bends into the shape in the
+invert bends into the shape in the contact shape each polygon never has any
+contact shape each polygon never has any vertices in front of it
+vertices in front of it there are always all the polygons or
+there are always all the polygons or behind it imagine slicing an infinitely
+behind it imagine slicing an infinitely sized cube multiple times and creating a
+sized cube multiple times and creating a shape this way just like animation on
+shape this way just like animation on the slide but obviously in 3d it could
+the slide but obviously in 3d it could be a cube become or even a sphere or a
+be a cube become or even a sphere or a million other simple shapes this is
+million other simple shapes this is essentially how complex brush is defined
+essentially how complex brush is defined you have a list of mathematical planes
+you have a list of mathematical planes that bound the shape now I'd like to
+that bound the shape now I'd like to just quickly mention it's not a
+just quickly mention it's not a requirement to use conference brushes
+requirement to use conference brushes it's possible to use non convex brushes
+it's possible to use non convex brushes if you really want to but using convex
+if you really want to but using convex shapes makes everything a lot simpler
+shapes makes everything a lot simpler too
+too elements and a lot faster you could
+elements and a lot faster you could still build any concave shape out of
+still build any concave shape out of multiple convex shapes in case of a
+multiple convex shapes in case of a convex pushes edges are where two planes
+convex pushes edges are where two planes intersect
+intersect first is vertices are where at least
+first is vertices are where at least three planes intersect take a cube for
+three planes intersect take a cube for example each corner only has three sides
+example each corner only has three sides touching it this is the most common case
+touching it this is the most common case however when you for instance have a
+however when you for instance have a cone as a shape it could have any number
+cone as a shape it could have any number of planes intersecting at the vertex
+of planes intersecting at the vertex that lies as at its peak with these
+that lies as at its peak with these edges and vertices we define polygons
+edges and vertices we define polygons these polygons are sites of our brushes
+these polygons are sites of our brushes each side polygons only has a single
+each side polygons only has a single plane going through it okay with that
+plane going through it okay with that out of the way the first thing we want
+out of the way the first thing we want to do is find all purposes that touch
+to do is find all purposes that touch your brush you can simply do this the
+your brush you can simply do this the moment we add a brush store this or
+moment we add a brush store this or update this information after a brush
+update this information after a brush moves keep in mind that when you
+moves keep in mind that when you determine if two brushes intersect you
+determine if two brushes intersect you can use this information for both
+can use this information for both brushes if a and B intersect or not it
+brushes if a and B intersect or not it will be the same as being a not
+will be the same as being a not intersecting or not there's no point in
+intersecting or not there's no point in duplicating our work here you could use
+duplicating our work here you could use an acceleration data structure like
+an acceleration data structure like hierarchical hatched grits to find the
+hierarchical hatched grits to find the most likely brushes that you might
+most likely brushes that you might intersect with then the simple access
+intersect with then the simple access align bounding box test and check if
+align bounding box test and check if each of the vertices of one brush or
+each of the vertices of one brush or outside of one of the planes of the
+outside of one of the planes of the other brush and there are probably
+other brush and there are probably better ways of doing this but honestly
+better ways of doing this but honestly this is not a bottleneck and I wouldn't
+this is not a bottleneck and I wouldn't try to be too smart about this part so
+try to be too smart about this part so now we find all unique pairs of brushes
+now we find all unique pairs of brushes that intersect and process each pair
+that intersect and process each pair together at the same time because there
+together at the same time because there are lots of calculations who can share
+are lots of calculations who can share between the brushes for each pair we
+between the brushes for each pair we figure out which sites of which brush
+figure out which sites of which brush intersects with the other brush you can
+intersects with the other brush you can use an acceleration data structure like
+use an acceleration data structure like an oak tree or something else to quickly
+an oak tree or something else to quickly find intersecting sites since the shape
+find intersecting sites since the shape of the brush is likely to be static this
+of the brush is likely to be static this data structure can be created the
+data structure can be created the creation time of the brush shape which
+creation time of the brush shape which could also be shared between multiple
+could also be shared between multiple brush instances now what we want to do
+brush instances now what we want to do is find polygons and talk over site
+is find polygons and talk over site polygons that are formed at the boundary
+polygons that are formed at the boundary between the two brushes where they
+between the two brushes where they intersect since we know these brushes
+intersect since we know these brushes are convex we know that these
+are convex we know that these intersections if they exist always
+intersections if they exist always convex themselves so these polygons
+convex themselves so these polygons would be convex as well these
+would be convex as well these intersections are all are also always
+intersections are all are also always bound by the shape of the side polygons
+bound by the shape of the side polygons their own they can touch the sides that
+their own they can touch the sides that they can never cross the sides of the
+they can never cross the sides of the polygon before we create intersection
+polygon before we create intersection polygons we need to find the
+polygons we need to find the intersection vertices there are three
+intersection vertices there are three types of vertices that form these
+types of vertices that form these intersection polygons vertices that are
+intersection polygons vertices that are inside both brushes vertices of the
+inside both brushes vertices of the other brushes that lie on one of our
+other brushes that lie on one of our services or intersections between the
+services or intersections between the edges of the other brush with a side
+edges of the other brush with a side polygon by calculating the intersections
+polygon by calculating the intersections once and we're using it for both brushes
+once and we're using it for both brushes we ensure they will be identical on both
+we ensure they will be identical on both brushes this prevents gaps first so one
+brushes this prevents gaps first so one brush that lie exactly on the other
+brush that lie exactly on the other brush will be copied over to the other
+brush will be copied over to the other brush
+at this point we just have a bunch of vertices some virtues we already know
+vertices some virtues we already know are only on one of the two brushes like
+are only on one of the two brushes like the vertices are inside the other brush
+the vertices are inside the other brush by keeping track which planes intersect
+by keeping track which planes intersect with each vertex we can find all the
+with each vertex we can find all the vertices per plane a back extension
+vertices per plane a back extension their side polygons because as I
+their side polygons because as I mentioned before each side polygon has
+mentioned before each side polygon has got exactly one plane going through it I
+got exactly one plane going through it I also mentioned then edges always have
+also mentioned then edges always have two planes going through them but
+two planes going through them but finding all the vs. on a plane that also
+finding all the vs. on a plane that also both intersect with another plane we
+both intersect with another plane we find our edges since we store our plane
+find our edges since we store our plane indices this is a matter of finding
+indices this is a matter of finding these indices since all polygons we form
+these indices since all polygons we form a convex each vertex will always have
+a convex each vertex will always have two edges that use it
+two edges that use it connecting the edges by finding a common
+connecting the edges by finding a common vertices allows us to create the
+vertices allows us to create the polygons reminder end up with a polygon
+polygons reminder end up with a polygon where all vertices are going in the
+where all vertices are going in the wrong direction in which case we just
+wrong direction in which case we just reverse the order of vertices you can
+reverse the order of vertices you can determine if it's facing the wrong way
+determine if it's facing the wrong way but calculating the normal of the
+but calculating the normal of the polygon and comparing it with the normal
+polygon and comparing it with the normal of the plane the polygon is all and see
+of the plane the polygon is all and see if they're pointing in the same
+if they're pointing in the same direction or not with each polygon we
+direction or not with each polygon we store which brush intersection created
+store which brush intersection created it you also need to start category with
+it you also need to start category with each polygon you just created which will
+each polygon you just created which will be used later on this category describes
+be used later on this category describes what the interior part of a polygon is
+what the interior part of a polygon is relative to the intersecting brush we
+relative to the intersecting brush we call this the interior category if all
+call this the interior category if all our vertices lie on top of a surface
+our vertices lie on top of a surface from the other brush then a category
+from the other brush then a category must be aligned to reverse aligned with
+must be aligned to reverse aligned with it otherwise the category is always in
+it otherwise the category is always in sight it can never be outside since this
+sight it can never be outside since this polygon represents an intersection with
+polygon represents an intersection with another brush so we already know there
+another brush so we already know there has to be an intersection the next stage
+has to be an intersection the next stage is to find all intersection polygons
+is to find all intersection polygons that overlap and find intersection
+that overlap and find intersection vertices between the polygons where they
+vertices between the polygons where they cross each other when you find
+cross each other when you find intersection vertex you need to insert
+intersection vertex you need to insert its into both polygons finally when an
+its into both polygons finally when an intersection polygon touches an edge of
+intersection polygon touches an edge of the side polygon we need to ensure that
+the side polygon we need to ensure that the vertex
+the vertex splits that edge on the site polygon as
+splits that edge on the site polygon as well keep in mind that the edges of a
+well keep in mind that the edges of a Sai polygon are shared between two side
+Sai polygon are shared between two side polygons so you need to make sure the
+polygons so you need to make sure the exact vertex exists on both of them but
+exact vertex exists on both of them but making sure that all the calculated in
+making sure that all the calculated in intersections are copied to all the
+intersections are copied to all the other brushes we ensure that these
+other brushes we ensure that these vertices very identical if you will if
+vertices very identical if you will if you recalculated them then the order of
+you recalculated them then the order of calculations are likely different which
+calculations are likely different which gives us slightly different floating
+gives us slightly different floating point values and you probably end up
+point values and you probably end up with tiny gaps between polygons of
+with tiny gaps between polygons of different brushes as an aside you might
+different brushes as an aside you might also want to snap the original vertices
+also want to snap the original vertices or brushes that are known to intersect
+or brushes that are known to intersect after this point we have all the
+after this point we have all the vertices we need we don't need to add
+vertices we need we don't need to add new ones anymore now you know next
+new ones anymore now you know next section in order to explain
+section in order to explain categorization I need to explain how we
+categorization I need to explain how we generate the final meshes so we'll start
+generate the final meshes so we'll start there so in order to generate our pair
+there so in order to generate our pair of brush meshes we process each brush
+of brush meshes we process each brush site separately processing the Sai
+site separately processing the Sai polygons together with insect
+polygons together with insect intersecting polygons that lie on it we
+intersecting polygons that lie on it we use a triangulation algorithm that
+use a triangulation algorithm that supports polygons with holes so it only
+supports polygons with holes so it only creates triangles for the areas of a
+creates triangles for the areas of a polygon that is not part of a whole when
+polygon that is not part of a whole when we use each intersection polygon we then
+we use each intersection polygon we then add it as both a hole in the side
+add it as both a hole in the side polygons but also as a new polygon
+polygons but also as a new polygon itself when a new intersection polygon
+itself when a new intersection polygon intersects a previously added polygon we
+intersects a previously added polygon we need to do a little bit more work if
+need to do a little bit more work if they intersect we find the common area
+they intersect we find the common area which will always be convex if both
+which will always be convex if both intersecting polygons are convex which
+intersecting polygons are convex which they always would be if they were
+they always would be if they were created by convex brushes and then we
+created by convex brushes and then we add that common area polygon as a whole
+add that common area polygon as a whole again to both the overlapping polygons
+again to both the overlapping polygons finally we also add this common area
+finally we also add this common area polygon is yet another point on by
+polygon is yet another point on by itself
+so in the end we end up with lots of convex polygons with convex holes in
+convex polygons with convex holes in them
+them we can then merge the holes at the ends
+we can then merge the holes at the ends by combining all edges and removing all
+by combining all edges and removing all the overlapping edges and when we
+the overlapping edges and when we combine the triangles from all the
+combine the triangles from all the triangle ated polygons we end up with a
+triangle ated polygons we end up with a final brush geometry keep in mind that
+final brush geometry keep in mind that all polygons are triangulated using
+all polygons are triangulated using vertex aneesa's all the vertices we need
+vertex aneesa's all the vertices we need already exists in our mesh so we can
+already exists in our mesh so we can compare vertices directly using their
+compare vertices directly using their indices all the vertices of all the
+indices all the vertices of all the triangles will match each other
+triangles will match each other perfectly how do we figure out what to
+perfectly how do we figure out what to do with each polygon piece if it should
+do with each polygon piece if it should be removed or not I flipped this is the
+be removed or not I flipped this is the heart of the algorithm and the most
+heart of the algorithm and the most complicated part to be able to turn what
+complicated part to be able to turn what polygon will be visible we need to
+polygon will be visible we need to categorize each polygon piece now
+categorize each polygon piece now imagine the final solid shape we want to
+imagine the final solid shape we want to create if our polygon is inside it it
+create if our polygon is inside it it will be invisible and would need to be
+will be invisible and would need to be removed if it's outside of it it's not
+removed if it's outside of it it's not part of the final shape and also needs
+part of the final shape and also needs to be removed if so light with it you
+to be removed if so light with it you want to keep it but if it's reverse
+want to keep it but if it's reverse aligned aligned but facing in the
+aligned aligned but facing in the opposite direction we need to flip it
+opposite direction we need to flip it these are the four categories we need to
+these are the four categories we need to determine but before we get to polygons
+determine but before we get to polygons let's start smaller how would you
+let's start smaller how would you categorize a single vertex against a
+categorize a single vertex against a single brush we simply compare the
+single brush we simply compare the verdicts against all the planes of our
+verdicts against all the planes of our brush if it's a site any of these planes
+brush if it's a site any of these planes it's outside otherwise it's in sight or
+it's outside otherwise it's in sight or aligned it can be aligned if it's near
+aligned it can be aligned if it's near one of the planes for brush when I say
+one of the planes for brush when I say near I mean within a certain tolerance
+near I mean within a certain tolerance you can't use exact values here due to
+you can't use exact values here due to floating point position to categorize a
+floating point position to categorize a single polygon against a brush it's a
+single polygon against a brush it's a matter of categorizing all the virtues
+matter of categorizing all the virtues vertices like before if all vertices are
+vertices like before if all vertices are the same category that's for category if
+the same category that's for category if some vertices are aligned but the rest
+some vertices are aligned but the rest is inside or outside then the whole
+is inside or outside then the whole polygon is inside or outside
+polygon is inside or outside if some purchases are in sight and
+if some purchases are in sight and others are outside then the polygons
+others are outside then the polygons will be intersected by brush but since
+will be intersected by brush but since we already found all the intersecting
+we already found all the intersecting pieces at the beginning we know this
+pieces at the beginning we know this won't happen at this point
+fine if a polygon is aligned that we can compare the norm of the polygons with
+compare the norm of the polygons with the norm of the plane will like with if
+the norm of the plane will like with if they both point in the same direction
+they both point in the same direction the polygon is aligned otherwise it's
+the polygon is aligned otherwise it's reverse aligned now remember this image
+reverse aligned now remember this image again what we want to know is what each
+again what we want to know is what each polygon piece is to the mesh for
+polygon piece is to the mesh for generating but we're essentially trying
+generating but we're essentially trying to figure out is which polygon polygons
+to figure out is which polygon polygons are part of the skin of the mess mesh
+are part of the skin of the mess mesh you're building but before we get to how
+you're building but before we get to how to categorize against the combination of
+to categorize against the combination of all the brushes in your level let's
+all the brushes in your level let's explain how to categorize a polygon
+explain how to categorize a polygon against two brushes and a boolean
+against two brushes and a boolean operation now when we categorize against
+operation now when we categorize against a brush we get a category if we do this
+a brush we get a category if we do this for both brushes we can look up what the
+for both brushes we can look up what the output category for the polygon would be
+output category for the polygon would be for a particular boolean operation on
+for a particular boolean operation on both brushes using a table like this
+both brushes using a table like this keep in mind that this polygon isn't
+keep in mind that this polygon isn't necessarily part of either of the two
+necessarily part of either of the two brushes we categorize against here but
+brushes we categorize against here but we'll get to that later now when you
+we'll get to that later now when you look at this table it's a category for
+look at this table it's a category for either brushes insights then our polygon
+either brushes insights then our polygon is in sight the combined shape of both
+is in sight the combined shape of both brushes so in this case the final
+brushes so in this case the final category is obviously inside if the
+category is obviously inside if the polygon is aligned with both brushes
+polygon is aligned with both brushes it's aligned if they're both reverse
+it's aligned if they're both reverse alights then our output category is
+alights then our output category is unsurprisingly reverse aligned in this
+unsurprisingly reverse aligned in this case both polygons are actually still
+case both polygons are actually still aligned with each other just with both
+aligned with each other just with both of them both of polygons flips around if
+of them both of polygons flips around if it's aligned with one brush but reversed
+it's aligned with one brush but reversed like with the other that means that
+like with the other that means that they're facing each other and we're
+they're facing each other and we're pretending they cancel each other out
+pretending they cancel each other out and we just consider that to be in sight
+and we just consider that to be in sight you wouldn't be able to see these
+you wouldn't be able to see these polygons from the outside of our final
+polygons from the outside of our final mesh they'd always be inside its
+mesh they'd always be inside its interior
+interior when either of both brushes give us the
+when either of both brushes give us the category outside we just take the
+category outside we just take the category from the other brush if both
+category from the other brush if both categories for both brushes are outside
+categories for both brushes are outside then the output category is always
+then the output category is always outside since the polygon is had sex the
+outside since the polygon is had sex the combined shape so that's our additive
+combined shape so that's our additive boolean operation table we'll use this
+boolean operation table we'll use this again later but for reference I've added
+again later but for reference I've added the other operation tables to the slides
+the other operation tables to the slides here's subtractive and here's
+here's subtractive and here's intersecting you can look at these
+intersecting you can look at these slides again later now remember this
+slides again later now remember this slide from the beginning of the
+slide from the beginning of the presentation this is essentially a CG
+presentation this is essentially a CG tree with each operation being a branch
+tree with each operation being a branch and the brushes speak being the leaves
+and the brushes speak being the leaves together they define the final mesh for
+together they define the final mesh for generating now here's an example CSG 3
+generating now here's an example CSG 3 you have a couple of brushes in blue a B
+you have a couple of brushes in blue a B C D and E we have a couple of additive
+C D and E we have a couple of additive and subtractive operations in gray I'm
+and subtractive operations in gray I'm showing this as a binary tree where
+showing this as a binary tree where every operation is exactly two children
+every operation is exactly two children but in practice it's better to use a
+but in practice it's better to use a tree with an unbounded number of
+tree with an unbounded number of children it's relatively straightforward
+children it's relatively straightforward to work with brushes chained together in
+to work with brushes chained together in a straight line the moment you have
+a straight line the moment you have deeper branches things get more
+deeper branches things get more complicated but I'll elaborate on that
+complicated but I'll elaborate on that later regardless of the tree structure
+later regardless of the tree structure we process each brush in isolation and
+we process each brush in isolation and our brush will not start every other
+our brush will not start every other brush so we want to build a CG tree pair
+brush so we want to build a CG tree pair brush which would be a subset of the
+brush which would be a subset of the entire CET tree to illustrate let's
+entire CET tree to illustrate let's assume that we're categorizing brush a
+assume that we're categorizing brush a and it's only touching brush E so we
+and it's only touching brush E so we flag those two notes and we go upwards
+flag those two notes and we go upwards from each flag node flagging each parent
+from each flag node flagging each parent as we go until we end up at the root of
+as we go until we end up at the root of a CSD tree all the categories for these
+a CSD tree all the categories for these and flag brushes can be considered
+and flag brushes can be considered outside we don't ever need to iterate to
+outside we don't ever need to iterate to the child nodes of the notes that are
+the child nodes of the notes that are not flagged so we can just pretend they
+not flagged so we can just pretend they don't exist maybe from CG with a node
+don't exist maybe from CG with a node that is not intersecting with our brush
+that is not intersecting with our brush we can just safely assume that our
+we can just safely assume that our polygon as the outside category
+polygon as the outside category for this leaf or branch we can use our
+for this leaf or branch we can use our little operation table onto brushes and
+little operation table onto brushes and this could be considered a simple CHT
+this could be considered a simple CHT tree with two brushes and a single
+tree with two brushes and a single pression but this would be very limiting
+pression but this would be very limiting however if multiple brushes are chained
+however if multiple brushes are chained together in a single row we can simply
+together in a single row we can simply apply each operation table on each pair
+apply each operation table on each pair of brushes hooking up the output
+of brushes hooking up the output category of the previous operation as a
+category of the previous operation as a last category and categorizing a polygon
+last category and categorizing a polygon against next brush because we could just
+against next brush because we could just apply a boolean look-up tables multiple
+apply a boolean look-up tables multiple times but instead we're going to create
+times but instead we're going to create a big table which we call our routing
+a big table which we call our routing table here we basically insert all the
+table here we basically insert all the operations we perform each brush it can
+operations we perform each brush it can be considered an operation table from
+be considered an operation table from multiple brushes the routing table
+multiple brushes the routing table allows us to Baker bake in our boolean
+allows us to Baker bake in our boolean operations perform optimizations on the
+operations perform optimizations on the entire table it also allows us to handle
+entire table it also allows us to handle more complicated cg trees as you will
+more complicated cg trees as you will see later on in practice however you
+see later on in practice however you want to use numbers instead of
+want to use numbers instead of symbolical names so here I converted all
+symbolical names so here I converted all the categories into the numbers 0 to 3
+the categories into the numbers 0 to 3 if you notice at each row its output
+if you notice at each row its output becomes an index into the row for the
+becomes an index into the row for the next brush this turns the routing table
+next brush this turns the routing table it's a simple in the indexable lookup
+it's a simple in the indexable lookup table we'll be modifying the
+table we'll be modifying the intermediate numbers a bit later on and
+intermediate numbers a bit later on and in intermediate values will no longer be
+in intermediate values will no longer be comfortable back to your categories as
+comfortable back to your categories as long as we don't modify the outputs of
+long as we don't modify the outputs of the last brush we'll end up with values
+the last brush we'll end up with values that we can safely convert back to
+that we can safely convert back to category when we categorize our polygons
+category when we categorize our polygons we store a current category on each
+we store a current category on each polygon with processing we iterate all
+polygon with processing we iterate all our intersecting brushes one by one and
+our intersecting brushes one by one and we look up each row using the index in
+we look up each row using the index in the polygon index column at the same
+the polygon index column at the same time we determine what category a
+time we determine what category a polygon has for a particular brush we
+polygon has for a particular brush we use this category to find the column
+use this category to find the column I'll go into more details about this
+I'll go into more details about this part later on the value where the round
+part later on the value where the round the column intersect is our output
+the column intersect is our output category we then store this category on
+category we then store this category on our polygon and proceed to the next
+our polygon and proceed to the next brush
+brush to illustrate let's assume we have a
+to illustrate let's assume we have a couple of categories for each brush
+couple of categories for each brush which we got where we categorize our
+which we got where we categorize our polygons against our brushes in the top
+polygons against our brushes in the top right corner you can see the example
+right corner you can see the example categories at the beginning our polygon
+categories at the beginning our polygon index is always zero so we started brush
+index is always zero so we started brush a and the first brush always has a
+a and the first brush always has a single row which is our own green in
+single row which is our own green in this example brush a is a category first
+this example brush a is a category first aligned which you can see here in red we
+aligned which you can see here in red we find a final category zero which as you
+find a final category zero which as you can see in a conversion table on the
+can see in a conversion table on the left is the category insight this means
+left is the category insight this means that the polygon is inside the CG tree
+that the polygon is inside the CG tree that our little table represents so as I
+that our little table represents so as I mentioned before we're not going to use
+mentioned before we're not going to use every brush in the entire CSG tree and
+every brush in the entire CSG tree and each brush only intersects with a subset
+each brush only intersects with a subset of the CSG tree we need to create a
+of the CSG tree we need to create a routing table for each individual brush
+routing table for each individual brush for example say we're making a routing
+for example say we're making a routing table for brush B and it only intersects
+table for brush B and it only intersects with brush a and Bercy only those
+with brush a and Bercy only those brushes will be represented in the table
+brushes will be represented in the table and again to reiterate when we
+and again to reiterate when we categorize the polygons for brush we'll
+categorize the polygons for brush we'll be working on the polygons that belong
+be working on the polygons that belong to that brush we're determining which
+to that brush we're determining which pieces to keep and which pieces to throw
+pieces to keep and which pieces to throw away so imagine the row that we've
+away so imagine the row that we've already cut up our brush into these
+already cut up our brush into these pieces and we process each piece
+pieces and we process each piece individually using a routing table to
+individually using a routing table to discover what we need to do with it so
+discover what we need to do with it so we'll be using the routing table of a
+we'll be using the routing table of a particular brush the polygons of that
+particular brush the polygons of that particular brush in this example the
+particular brush in this example the routing table belongs to crush B and
+routing table belongs to crush B and when we categorize the polygons of brush
+when we categorize the polygons of brush may there always be aligned this is
+may there always be aligned this is simply because the poisons of a
+simply because the poisons of a particular brush will always be aligned
+particular brush will always be aligned with itself and because of that we
+with itself and because of that we already know that for every output of
+already know that for every output of brush a we already know the output of
+brush a we already know the output of brush B so notice the pattern from top
+brush B so notice the pattern from top to bottom is 0 1 0 1 we might as well
+to bottom is 0 1 0 1 we might as well rewrite the outputs of brush a to at the
+rewrite the outputs of brush a to at the upwards of breasts B so as you notice 0
+upwards of breasts B so as you notice 0 1 0 1 pattern is now there as
+1 0 1 pattern is now there as put for brush a and Burt's bee has been
+put for brush a and Burt's bee has been removed
+removed I noticed that not all the inputs of
+I noticed that not all the inputs of berthsy are reference my brush a this
+berthsy are reference my brush a this means we can remove all the roads that
+means we can remove all the roads that will never be used just so you know
+will never be used just so you know sometimes we're modifying tables you'll
+sometimes we're modifying tables you'll end up with indices that don't start
+end up with indices that don't start with zero now a lack all numbers to
+with zero now a lack all numbers to start at zero for every brush and for
+start at zero for every brush and for every road to be sequential otherwise
+every road to be sequential otherwise we'd end up with the holes in our table
+we'd end up with the holes in our table so we go back and change one and three
+so we go back and change one and three to zero and one now there's a problem
+to zero and one now there's a problem here that has to do with deep branching
+here that has to do with deep branching let me illustrate we need to go through
+let me illustrate we need to go through each of our brushes in order building a
+each of our brushes in order building a routing table entry for each in turn
+routing table entry for each in turn branches are not directly part of our
+branches are not directly part of our routing table now so we started press a
+routing table now so we started press a and we get our current category let's
+and we get our current category let's begin site for example remember we store
+begin site for example remember we store this value on our polygon the next
+this value on our polygon the next brushing of CSG tree is fresh B so we
+brushing of CSG tree is fresh B so we find a new category here let's use that
+find a new category here let's use that site but we just kept an operation and
+site but we just kept an operation and we have nothing to compare against since
+we have nothing to compare against since this is a leaf brush so what are we
+this is a leaf brush so what are we going to do with our previous category
+going to do with our previous category maybe we could just overwrite it and
+maybe we could just overwrite it and continue so we continue and we continue
+continue so we continue and we continue but now we reach the point where we kind
+but now we reach the point where we kind of needed that category that we used to
+of needed that category that we used to have at brush a so what now the solution
+have at brush a so what now the solution is that the moment we determine that the
+is that the moment we determine that the next brush doesn't share the same parent
+next brush doesn't share the same parent we serve multiple paths obverse be every
+we serve multiple paths obverse be every possible path from brush B back to the
+possible path from brush B back to the parent operation of brush a will then
+parent operation of brush a will then have the brush a category builds into it
+have the brush a category builds into it and when I say multiple paths I mean
+and when I say multiple paths I mean four times once for each possible
+four times once for each possible category for each branching you multiply
+category for each branching you multiply our path I can hear you're thinking are
+our path I can hear you're thinking are you crazy
+you crazy if we're going to duplicate these paths
+if we're going to duplicate these paths and each time we have a branch like this
+and each time we have a branch like this we could dribble all paths inside that
+we could dribble all paths inside that branch the routing table would explode
+branch the routing table would explode in size
+in size it's not as bad as it may first seem
+it's not as bad as it may first seem I'll explain we don't have a lot of
+I'll explain we don't have a lot of screen space and keep things practical
+screen space and keep things practical I'll just put up a subsection of our
+I'll just put up a subsection of our entire CSG tree on the right now let's
+entire CSG tree on the right now let's take a look at the left branch over top
+take a look at the left branch over top additive operation we create a small
+additive operation we create a small routing table for it which has just one
+routing table for it which has just one entry and imagine we build another
+entry and imagine we build another routing table for a right branch if we
+routing table for a right branch if we combine them we notice that not all
+combine them we notice that not all output values of brush a lead to need to
+output values of brush a lead to need to roll inverse B as I mentioned before in
+roll inverse B as I mentioned before in order to do operations between brush a
+order to do operations between brush a and the right branch we need to encode
+and the right branch we need to encode multiple paths in our table from brush a
+multiple paths in our table from brush a to the right bank
+to the right bank we need to duplicate all the output rows
+we need to duplicate all the output rows of brush a and the rows of the right
+of brush a and the rows of the right branch four times except once for each
+branch four times except once for each possible category the brush egg could
+possible category the brush egg could possibly have so we duplicate the values
+possibly have so we duplicate the values and give each row or unique index and we
+and give each row or unique index and we an offset for each outputs to ensure
+an offset for each outputs to ensure each output is unique so in this case we
+each output is unique so in this case we increase each output on each subsequent
+increase each output on each subsequent one by four and we do the same for each
+one by four and we do the same for each possible path inverse see if the table
+possible path inverse see if the table contain more brushes we add offsets to
+contain more brushes we add offsets to the next to the kettle brushes here but
+the next to the kettle brushes here but considering the brush speeds the last
+considering the brush speeds the last brush will keep the values the same this
+brush will keep the values the same this ensures that the last values out of the
+ensures that the last values out of the routine set will always be between zero
+routine set will always be between zero or three can be converted back to our
+or three can be converted back to our categories
+categories notice now how for each output of brush
+notice now how for each output of brush a we go to a different path to brush B
+a we go to a different path to brush B each representing a different category
+each representing a different category for brush a and then for each output
+for brush a and then for each output path for brush B we continue taking a
+path for brush B we continue taking a path to bar see that it has the brush
+path to bar see that it has the brush use the brush a category built in here
+use the brush a category built in here you can see for insight aligned your
+you can see for insight aligned your first aligned and outside
+first aligned and outside now consider the output values of our
+now consider the output values of our table currently all the output values
+table currently all the output values are for this notes representing the
+are for this notes representing the outputs of the second routing table we
+outputs of the second routing table we combined into into this table what we
+combined into into this table what we want them to be output values for this
+want them to be output values for this node now remember I did a lookup table
+node now remember I did a lookup table we're going to use it again
+we're going to use it again well what we need to do is take all our
+well what we need to do is take all our built-in brush a categories on the left
+built-in brush a categories on the left and use that to find a column in our
+and use that to find a column in our table then take the output values from
+table then take the output values from breath C and use those to find the row
+breath C and use those to find the row in operation table and to make the
+in operation table and to make the output values of a routing table match
+output values of a routing table match the input of our additive operation
+the input of our additive operation table let's turn those categories into
+table let's turn those categories into numbers as well so we can more easy to
+numbers as well so we can more easy to use them now when we plug in the
+use them now when we plug in the built-in categories from brush a and the
+built-in categories from brush a and the original routing table output values the
+original routing table output values the operations would give us the values we
+operations would give us the values we need for the top node in our example but
+need for the top node in our example but to make a routing table actually usable
+to make a routing table actually usable we actually need to replace our values
+we actually need to replace our values in the routing table with the output of
+in the routing table with the output of the operation table we'll take a look at
+the operation table we'll take a look at the route of briseida would have been
+the route of briseida would have been taken if we have the inside category for
+taken if we have the inside category for rush a now if you notice every value in
+rush a now if you notice every value in this column as the output of zero so we
+this column as the output of zero so we take this outputs and write them back to
+take this outputs and write them back to our routing table now we look at the
+our routing table now we look at the category for breast a alliant as we take
+category for breast a alliant as we take a look at the column you notice a zero
+a look at the column you notice a zero and one state is saved but two or three
+and one state is saved but two or three turn into zero and one so in our routing
+turn into zero and one so in our routing table we changed twos into zeros to
+table we changed twos into zeros to freeze into once next traverse alight
+freeze into once next traverse alight here we can see that 0 and 2 remain the
+here we can see that 0 and 2 remain the same when a 3 becomes here well it's
+same when a 3 becomes here well it's here we write those changes back into a
+here we write those changes back into a routing table finally when we get to the
+routing table finally when we get to the outside column we can see that all the
+outside column we can see that all the values remain the same so nothing
+values remain the same so nothing actually changes for this part of the
+actually changes for this part of the right routing table
+so now the output values of a writing table contain two output values for the
+table contain two output values for the parent operation of brush eight like we
+parent operation of brush eight like we wanted but we ended up with quite a big
+wanted but we ended up with quite a big table for just a couple of brushes and
+table for just a couple of brushes and we can do better now when you look at
+we can do better now when you look at the output rose there's actually a lot
+the output rose there's actually a lot of repetition for example look at all
+of repetition for example look at all the rows for all the output values are
+the rows for all the output values are zero so these outputs of burst B lead to
+zero so these outputs of burst B lead to the identical rows in the routing table
+the identical rows in the routing table section of birth C we can combine all
+section of birth C we can combine all the indentical rows and go back and
+the indentical rows and go back and change the upwards inverse B to lead to
+change the upwards inverse B to lead to this one version of this row so we find
+this one version of this row so we find all the rows that are zero throw away
+all the rows that are zero throw away all the one they go back to brush B to
+all the one they go back to brush B to change all the duplicate outputs to the
+change all the duplicate outputs to the row we kept this case the row width
+row we kept this case the row width index is zero next we can see that these
+index is zero next we can see that these rows are also duplicated do the same
+rows are also duplicated do the same thing for bris B again then we find
+thing for bris B again then we find these duplicate duplicate rows fix them
+these duplicate duplicate rows fix them up finally we come back to row nieces
+up finally we come back to row nieces and fix those up inverse B as well and
+and fix those up inverse B as well and as you can see after optimizing your
+as you can see after optimizing your routing table everything is a lot
+routing table everything is a lot smaller you can do these optimizations
+smaller you can do these optimizations by creating the table by just finding
+by creating the table by just finding duplicates insertion time sometimes as
+duplicates insertion time sometimes as possible for vs. to completely disappear
+possible for vs. to completely disappear due to these optimizations incidentally
+due to these optimizations incidentally this reading table can be cached per
+this reading table can be cached per brush this took me a long time to figure
+brush this took me a long time to figure out but in the end you get a nice simple
+out but in the end you get a nice simple table very fast very efficient and don't
+table very fast very efficient and don't worry you can always go back to the
+worry you can always go back to the slides and go through them again there's
+slides and go through them again there's one last thing I need to mention that I
+one last thing I need to mention that I left out to keep things hopefully a
+left out to keep things hopefully a little bit easier to understand if you
+little bit easier to understand if you have multiple brushes that are lined a
+have multiple brushes that are lined a particular area you'd end up with every
+particular area you'd end up with every one of those brushes keeping those
+one of those brushes keeping those polygons on that area in this slide you
+polygons on that area in this slide you can see a brush with multiple surfaces
+can see a brush with multiple surfaces overlapping visible by the z-fighting
+overlapping visible by the z-fighting artifacts this is because every brush
+artifacts this is because every brush will determine at its polygon area it's
+will determine at its polygon area it's part of the CCP which is technically
+part of the CCP which is technically correct but we don't want every brush to
+correct but we don't want every brush to keep the overlapping area we only want
+keep the overlapping area we only want one of these surfaces to remain
+one of these surfaces to remain but we want that every Russian 'try
+but we want that every Russian 'try overrides the previous brush and removes
+overrides the previous brush and removes any overlapping polygons earlier in the
+any overlapping polygons earlier in the tree we can easily fix this by creating
+tree we can easily fix this by creating a variation of all bullying operation
+a variation of all bullying operation tables where you set all the categories
+tables where you set all the categories in the middle section which used to be
+in the middle section which used to be aligned or reverse aligned to outside we
+aligned or reverse aligned to outside we use this table instead of original
+use this table instead of original operation table after we pass the brush
+operation table after we pass the brush a routing table dark suit when it's
+a routing table dark suit when it's reading over the brushes while creating
+reading over the brushes while creating the routing table this changed the
+the routing table this changed the behavior of the operation tables to
+behavior of the operation tables to remove overlapping polygons instead of
+remove overlapping polygons instead of keeping them this works because all
+keeping them this works because all polygons that have the outset category
+polygons that have the outset category will be removed in the end keep in mind
+will be removed in the end keep in mind you should only use this on brushes we
+you should only use this on brushes we combined it to routing tables you should
+combined it to routing tables you should use original tables here you can see the
+use original tables here you can see the subtractive operation table variant and
+subtractive operation table variant and here's the intersection of pression
+here's the intersection of pression table variant you can look them up again
+table variant you can look them up again in the slides after presentation so
+in the slides after presentation so finally let's put everything together
+finally let's put everything together for each brush for processing we use its
+for each brush for processing we use its own personal routing table and look
+own personal routing table and look through all its brushes we do this for
+through all its brushes we do this for each side polygon of the brush for
+each side polygon of the brush for processing
+processing remember this intersection polygons and
+remember this intersection polygons and how they're all associated with a single
+how they're all associated with a single brush we we loop through all the words
+brush we we loop through all the words in the CSG tree we use the intersection
+in the CSG tree we use the intersection polygon associated with each brush and
+polygon associated with each brush and apply them one by one while we do this
+apply them one by one while we do this we need to categorize our polygons to
+we need to categorize our polygons to determine which ones need to be kept and
+determine which ones need to be kept and which ones need to be discarded at the
+which ones need to be discarded at the end now remember that each intersection
+end now remember that each intersection polygon has an interior categories
+polygon has an interior categories stored with it which we determined
+stored with it which we determined during the creation of the intersection
+during the creation of the intersection point for example let's say this
+point for example let's say this intersection polygon of brush a has an
+intersection polygon of brush a has an interior category of reverse' light for
+interior category of reverse' light for example let's say this intersection
+example let's say this intersection polygon of brush a that an interior
+polygon of brush a that an interior category of reverse aligned this means
+category of reverse aligned this means that the surface of this polygon piece
+that the surface of this polygon piece surface aligned relative to a surface on
+surface aligned relative to a surface on brush a
+brush a so when we look in our routing table at
+so when we look in our routing table at brush a we only have one row and it
+brush a we only have one row and it intersects the reversal and column we
+intersects the reversal and column we didn't look up that the index of a
+didn't look up that the index of a polygon should be zero we then add this
+polygon should be zero we then add this intersection polygon it's both the hole
+intersection polygon it's both the hole to her side polygon and that's a new
+to her side polygon and that's a new polygon everything outside intersection
+polygon everything outside intersection polygon needs categorized as well so we
+polygon needs categorized as well so we look at the outside column in our table
+look at the outside column in our table we find the value 1 in this case the
+we find the value 1 in this case the side polygon is completely outside
+side polygon is completely outside intersection bottom so we set the 1 when
+intersection bottom so we set the 1 when we add a new intersection polygon we
+we add a new intersection polygon we find it intersects with the previous
+find it intersects with the previous intersection polygon so we find a common
+intersection polygon so we find a common area between existing podem and the new
+area between existing podem and the new intersection polygon from brush B we add
+intersection polygon from brush B we add that as a whole to both polygons and as
+that as a whole to both polygons and as a new polygon we also add intersection
+a new polygon we also add intersection polygon itself at this point in time it
+polygon itself at this point in time it gave these two new polygons the same
+gave these two new polygons the same category as original polygon polygons
+category as original polygon polygons your own so the new common area polygon
+your own so the new common area polygon we give the value 0 and the new
+we give the value 0 and the new intersection polygon gets the value 1
+intersection polygon gets the value 1 let's save its interior categories
+let's save its interior categories inside if we look at the area that's not
+inside if we look at the area that's not overlapping it has the value 1 they
+overlapping it has the value 1 they gives us this row in the routing table
+gives us this row in the routing table we look up the new value in the routing
+we look up the new value in the routing terawatt in the section between row and
+terawatt in the section between row and column now do the same for the
+column now do the same for the overlapping area which has the index 0
+overlapping area which has the index 0 we look up 3 said it
+we look up 3 said it the rest is outside our intersection
+the rest is outside our intersection polygon so this includes the rest of the
+polygon so this includes the rest of the first bulletin we created and our side
+first bulletin we created and our side polygon so we look up the value for a
+polygon so we look up the value for a side polygon which which is 1 and we
+side polygon which which is 1 and we look up the value for the other polygon
+look up the value for the other polygon piece which is 0 now if we assume the
+piece which is 0 now if we assume the interior category for berthsy is aligned
+interior category for berthsy is aligned we end up with these final values
+we end up with these final values converting 0 to 3 to inside a lined
+converting 0 to 3 to inside a lined reverse aligned and outside gives us
+reverse aligned and outside gives us this result now remember that when a
+this result now remember that when a category is inside or outside or
+category is inside or outside or polygons are discarded we already need
+polygons are discarded we already need to keep the polygons they're aligned a
+to keep the polygons they're aligned a reverse aligned we flip those at our
+reverse aligned we flip those at our reverse light keep in mind even though
+reverse light keep in mind even though holes or polygons they are never
+holes or polygons they are never character
+character so don't throw those away the white
+so don't throw those away the white polygons are inside or outside and will
+polygons are inside or outside and will be removed this is what the surface
+be removed this is what the surface looks like without those polygons we can
+looks like without those polygons we can also combine all the polygons that have
+also combine all the polygons that have the same category this can remove some
+the same category this can remove some unnecessary vertices so we combined them
+unnecessary vertices so we combined them and this is what it looks like
+and this is what it looks like keep in mind we only triangulate the
+keep in mind we only triangulate the polygons that we want to keep you should
+polygons that we want to keep you should only triangulate after we merge poisons
+only triangulate after we merge poisons also refer select polygons need to be
+also refer select polygons need to be flipped around all of this work leads us
+flipped around all of this work leads us to this giving us the ability to build
+to this giving us the ability to build Chara tree using boolean operations in a
+Chara tree using boolean operations in a scalable way the most important part is
+scalable way the most important part is that we can now perform iterative
+that we can now perform iterative updates everything we can do per brush
+updates everything we can do per brush can cache for brush since most of the
+can cache for brush since most of the work is done per brush or per brush pair
+work is done per brush or per brush pair we can also we can also easily spit work
+we can also we can also easily spit work across multiple cores and that's my talk
+across multiple cores and that's my talk thank you

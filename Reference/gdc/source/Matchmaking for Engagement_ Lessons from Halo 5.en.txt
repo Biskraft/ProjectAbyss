@@ -1,0 +1,994 @@
+[Music] hi I'm Josh manky thanks for coming and
+hi I'm Josh manky thanks for coming and welcome to my talk on matchmaking for
+welcome to my talk on matchmaking for engagements hopefully you'll enjoy this
+engagements hopefully you'll enjoy this and they'll be engaging for you so let's
+and they'll be engaging for you so let's get into the talk so first let's define
+get into the talk so first let's define what matchmaking is we're talking about
+what matchmaking is we're talking about the kind of matchmaking
+the kind of matchmaking where players in multiplayer games want
+where players in multiplayer games want to get in matches to compete with each
+to get in matches to compete with each other so you have a group of players
+other so you have a group of players they want to play they submit some
+they want to play they submit some information to the matchmaker about
+information to the matchmaker about themselves that the matchmaker can use
+themselves that the matchmaker can use to create a good match the matchmaker
+to create a good match the matchmaker takes this information about many people
+takes this information about many people and then puts them into matches and
+and then puts them into matches and creates teams for them to play okay now
+creates teams for them to play okay now so what is engagement well the
+so what is engagement well the dictionary tells us that engagement
+dictionary tells us that engagement means to be greatly interested and so we
+means to be greatly interested and so we want our players to be greatly
+want our players to be greatly interested in our games and this is
+interested in our games and this is accomplished through game play
+accomplished through game play matchmaking is there to guarantee that
+matchmaking is there to guarantee that the gameplay is experienced as intended
+the gameplay is experienced as intended by the players so a lot of the time
+by the players so a lot of the time we're just preventing disengagement by
+we're just preventing disengagement by making sure that players can play the
+making sure that players can play the game play and have a good time with it
+you
+so now on a good question to ask is how is matchmaking then related to
+is matchmaking then related to engagement so we'll go back to our
+engagement so we'll go back to our players they want to get into a match
+players they want to get into a match here they are they jumped through
+here they are they jumped through matchmaking matchmaking puts them into a
+matchmaking matchmaking puts them into a game they enjoys your engaging gameplay
+game they enjoys your engaging gameplay and then afterwards they jump back into
+and then afterwards they jump back into matchmaking because they are engaged and
+matchmaking because they are engaged and they want to keep playing
+they want to keep playing now our matchmaking comes into this
+now our matchmaking comes into this though is what happens if they go into a
+though is what happens if they go into a game but the latency is so high on that
+game but the latency is so high on that server they're playing on that they
+server they're playing on that they can't really play the game right that
+can't really play the game right that could disengage them or maybe they're
+could disengage them or maybe they're just not good enough to enjoy the
+just not good enough to enjoy the gameplay they're so bad compared to the
+gameplay they're so bad compared to the other players in the match that they
+other players in the match that they aren't even able to play very much or
+aren't even able to play very much or what happens if they just wait so long
+what happens if they just wait so long that they never actually get to the
+that they never actually get to the gameplay so these are some things that
+gameplay so these are some things that we tend to try to prevent and avoid with
+we tend to try to prevent and avoid with matchmaking we want to cause those to
+matchmaking we want to cause those to not happen but a good question is how
+not happen but a good question is how important are each of these
+important are each of these characteristics latency fairness wait
+characteristics latency fairness wait times which ones are more important
+times which ones are more important that's what we're gonna get to next and
+that's what we're gonna get to next and what I'm gonna want to talk about a bit
+what I'm gonna want to talk about a bit but first of all a good question we can
+but first of all a good question we can ask is why do we care what's important
+ask is why do we care what's important can't we just throw it all in to the
+can't we just throw it all in to the matchmaker let the matchmaker just sort
+matchmaker let the matchmaker just sort it out and the answer is not really and
+it out and the answer is not really and here's why the creative situation if we
+here's why the creative situation if we do that called having too many buckets
+do that called having too many buckets so as a player we want to matchmake on
+so as a player we want to matchmake on skill say well that's already reducing
+skill say well that's already reducing the number of players that I can match
+the number of players that I can match make with let's say my skill bucket is
+make with let's say my skill bucket is only 15% of the whole population okay
+only 15% of the whole population okay but now and then we're like well we also
+but now and then we're like well we also need to be careful with latency so
+need to be careful with latency so that's another only 10% of players that
+that's another only 10% of players that I can match with because of my latency
+I can match with because of my latency and then we want to do some fun fancy
+and then we want to do some fun fancy cute reputation matchmaking I don't say
+cute reputation matchmaking I don't say there's only 5% of the players that my
+there's only 5% of the players that my reputation makes me able to match with
+reputation makes me able to match with once we've broken out all these
+once we've broken out all these different buckets of players we've
+different buckets of players we've reduced that player from being able to
+reduced that player from being able to match with the whole population to just
+match with the whole population to just point oh eight percent of the population
+point oh eight percent of the population suddenly a large and even large
+suddenly a large and even large population becomes very small if you do
+population becomes very small if you do that that's why you need to be careful
+that that's why you need to be careful about just letting the matchmaker
+about just letting the matchmaker do it at once because we used halo 5 for
+do it at once because we used halo 5 for the analysis in this presentation I'll
+the analysis in this presentation I'll quickly review what halo 5 is about so
+quickly review what halo 5 is about so halo 5 is a first-person shooter
+halo 5 is a first-person shooter it's the matches and data we used came
+it's the matches and data we used came from competitive matches it's most of
+from competitive matches it's most of them are team-based it's usually four
+them are team-based it's usually four versus four but it can go up to 12
+versus four but it can go up to 12 versus 12 well a lot of our matches are
+versus 12 well a lot of our matches are team deathmatch
+team deathmatch although there are some objective
+although there are some objective matches as well now because skill and
+matches as well now because skill and fairness are often some of the more
+fairness are often some of the more important characteristics we tend to
+important characteristics we tend to matchmake on I'll do a quick skill
+matchmake on I'll do a quick skill system review this talks not going to go
+system review this talks not going to go in-depth on skill systems because that
+in-depth on skill systems because that would take forever but is worth
+would take forever but is worth reviewing them to understand how they
+reviewing them to understand how they work into matchmaking so we have a
+work into matchmaking so we have a player but we want to know how good that
+player but we want to know how good that player is so we put a number on them
+player is so we put a number on them that number should represent their skill
+that number should represent their skill now we use the skill to compare players
+now we use the skill to compare players to other players so given to players we
+to other players so given to players we can then figure out the difference in
+can then figure out the difference in their skill from each other now a good
+their skill from each other now a good skill system if it's working right the
+skill system if it's working right the player with the higher skill should win
+player with the higher skill should win most of the time we also want to take
+most of the time we also want to take this same concept to the team level and
+this same concept to the team level and one way the simple way to do that for
+one way the simple way to do that for this talk at least is just to take the
+this talk at least is just to take the average of each team take their average
+average of each team take their average skilled average the numbers on both
+skilled average the numbers on both sides and then take the gap between them
+sides and then take the gap between them and I call this the team skill gap and
+and I call this the team skill gap and it helps it tell us which team is going
+it helps it tell us which team is going to win most of the time now we care
+to win most of the time now we care about that team skill gap because that
+about that team skill gap because that tells us how fair the match is if the
+tells us how fair the match is if the players have the perception that they
+players have the perception that they can win the match or not that is
+can win the match or not that is probably important to them but there's
+probably important to them but there's another type of fairness or another type
+another type of fairness or another type of skill gap we care about besides the
+of skill gap we care about besides the team skill gap and that focuses on a
+team skill gap and that focuses on a single player and their experience in
+single player and their experience in the match we want to know what's going
+the match we want to know what's going to happen when this player comes around
+to happen when this player comes around the corner and runs into another player
+the corner and runs into another player on the other team are they going to have
+on the other team are they going to have some success against that player are
+some success against that player are they going to feel overwhelmed and to
+they going to feel overwhelmed and to represent this we reduce the team the
+represent this we reduce the team the other team's skill again to an average
+other team's skill again to an average and we just compare the player on one
+and we just compare the player on one team to the other team's average
+team to the other team's average to get an average feel for what's gonna
+to get an average feel for what's gonna happen when the red player encounters a
+happen when the red player encounters a blue player and in this case again that
+blue player and in this case again that should feel pretty good because the blue
+should feel pretty good because the blue player has a skill that is higher than
+player has a skill that is higher than the other team's average and in this
+the other team's average and in this talk I'll call that the personal gap the
+talk I'll call that the personal gap the personal skill gap so have two pretty
+personal skill gap so have two pretty important skill gaps we care about the
+important skill gaps we care about the team's skill gap and the personal skill
+team's skill gap and the personal skill gap so now what we want to talk about is
+gap so now what we want to talk about is how important are these different
+how important are these different characteristics we've talked about skill
+characteristics we've talked about skill we've talked a little bit about latency
+we've talked a little bit about latency wait time and you've probably also heard
+wait time and you've probably also heard of people being worried about losing
+of people being worried about losing streaks these points here are some of
+streaks these points here are some of the more commonly used items in
+the more commonly used items in matchmaking or at least items that
+matchmaking or at least items that developers tend to think are important
+developers tend to think are important so the question is are they really
+so the question is are they really important and that's what this
+important and that's what this presentation is gonna try to find out so
+presentation is gonna try to find out so how do you find out if something is
+how do you find out if something is important the sort of industry standard
+important the sort of industry standard these days is to use something called a
+these days is to use something called a B testing but the problem is matchmaking
+B testing but the problem is matchmaking actually breaks a B testing I'll go it
+actually breaks a B testing I'll go it may be a little into that later but it
+may be a little into that later but it has an issue with it and so we can't
+has an issue with it and so we can't just use off-the-shelf a B testing to
+just use off-the-shelf a B testing to test test what's important but we can
+test test what's important but we can use something called an observational
+use something called an observational study in this case we could look in our
+study in this case we could look in our already existing data and find
+already existing data and find situations that match what we would like
+situations that match what we would like to test we find matches where the ping
+to test we find matches where the ping was really bad and see how players
+was really bad and see how players reacted or we find really unfair matches
+reacted or we find really unfair matches or really fair matches and see what the
+or really fair matches and see what the players did afterwards so we still have
+players did afterwards so we still have some very powerful tools to use and to
+some very powerful tools to use and to be honest a lot of the most important
+be honest a lot of the most important studies that have been done in science
+studies that have been done in science had been more observational than more
+had been more observational than more controlled experiments like a B testing
+controlled experiments like a B testing so let's start with the personal skill
+so let's start with the personal skill gap again that's where I'm a player I
+gap again that's where I'm a player I run around the corner I see an enemy and
+run around the corner I see an enemy and well I have any success against that
+well I have any success against that enemy when I have an encounter with them
+enemy when I have an encounter with them the idea being if personal skill gap is
+the idea being if personal skill gap is really important what can we observe in
+really important what can we observe in our data to see if it is important well
+our data to see if it is important well one theory is if it's really important
+one theory is if it's really important then players will play more matches when
+then players will play more matches when the personal skill gap is smaller as
+the personal skill gap is smaller as long as they have some success and
+long as they have some success and they're able to play the game they'll
+they're able to play the game they'll play more so to further illustrate this
+play more so to further illustrate this we have a player who plays a lot of
+we have a player who plays a lot of matches and he's playing a lot of
+matches and he's playing a lot of matches because the gap
+matches because the gap the personal gap from match to match was
+the personal gap from match to match was small so he was happy he kept playing we
+small so he was happy he kept playing we contrast this with a player who has
+contrast this with a player who has matches that have large personal gaps
+matches that have large personal gaps this players more angry he's going to
+this players more angry he's going to play less matches so we should be able
+play less matches so we should be able to construct an observation pull some
+to construct an observation pull some data out and see if we actually notice
+data out and see if we actually notice this in our data so we'll go into our
+this in our data so we'll go into our data and we'll see what actually happens
+data and we'll see what actually happens and see if players do play more matches
+and see if players do play more matches when those gaps are lower so we grab a
+when those gaps are lower so we grab a player grab all of our players but let's
+player grab all of our players but let's just for example show what happens with
+just for example show what happens with one player we get Bob Bob's played
+one player we get Bob Bob's played several matches so we know how many he's
+several matches so we know how many he's played here now we know Bob's played
+played here now we know Bob's played seven matches and now we want to see
+seven matches and now we want to see what was the gap in those matches right
+what was the gap in those matches right so we write down what the personal gap
+so we write down what the personal gap was for Bob in all those matches now if
+was for Bob in all those matches now if we do this for all of our players we can
+we do this for all of our players we can start to build a data set that data set
+start to build a data set that data set kind of looks like this we want to know
+kind of looks like this we want to know for every player what was the average
+for every player what was the average personal gap they experienced across all
+personal gap they experienced across all their matches that month like ideally
+their matches that month like ideally that would be low and then see how many
+that would be low and then see how many matches they actually played and see if
+matches they actually played and see if there's a connection between those so
+there's a connection between those so write down Bob we've already said that
+write down Bob we've already said that he's played seven matches we average
+he's played seven matches we average those gaps out and we see that the
+those gaps out and we see that the average across those values is 67 so bob
+average across those values is 67 so bob has had a gap of 67 and played seven
+has had a gap of 67 and played seven matches they then do this for other
+matches they then do this for other players like Alice Alice had a higher
+players like Alice Alice had a higher skill gap personal one in those matches
+skill gap personal one in those matches that she played and she tended to play
+that she played and she tended to play less matches maybe that's related so
+less matches maybe that's related so we'll keep doing that across everybody
+we'll keep doing that across everybody who played for the whole month and then
+who played for the whole month and then we want to bucket those to make it a bit
+we want to bucket those to make it a bit easier to graph so we can't just plot
+easier to graph so we can't just plot them on a graph it could but it could be
+them on a graph it could but it could be kind of confusing we want to find a
+kind of confusing we want to find a trend though so instead we take all the
+trend though so instead we take all the players who say had a personal average
+players who say had a personal average skill gap of 50 for that whole month and
+skill gap of 50 for that whole month and then we average how many matches to all
+then we average how many matches to all the players with a skill gap between say
+the players with a skill gap between say 50 and a hundred how many matches did
+50 and a hundred how many matches did they play while they played a hundred so
+they play while they played a hundred so we'll write that down and then we'll do
+we'll write that down and then we'll do that for all of the other buckets for
+that for all of the other buckets for each bucket we'll keep note of how many
+each bucket we'll keep note of how many matches of player played if they had an
+matches of player played if they had an average personal skill gap so where
+average personal skill gap so where again we're connecting what was my
+again we're connecting what was my personal skill gap experience that the
+personal skill gap experience that the number of matches I played and so we did
+number of matches I played and so we did that then we graphed it let's see what
+that then we graphed it let's see what it looked like
+it looked like so if you look at this graph you're like
+so if you look at this graph you're like wow you'll notice that as that average
+wow you'll notice that as that average skill gap goes close to zero meaning the
+skill gap goes close to zero meaning the perfect sort of matchmaking of perfect
+perfect sort of matchmaking of perfect fairness for the player the number of
+fairness for the player the number of games of players playing is going is the
+games of players playing is going is the highest they'll play more games if we
+highest they'll play more games if we keep that gap low so you might think
+keep that gap low so you might think well we're done we've we've shown that
+well we're done we've we've shown that personal skill gap is definitely
+personal skill gap is definitely important the problem is were not done
+important the problem is were not done this is bogus and let me explain why so
+this is bogus and let me explain why so whenever you do an observational study a
+whenever you do an observational study a good sort of trick you should try first
+good sort of trick you should try first is to reverse whatever your hypothesis
+is to reverse whatever your hypothesis was whatever your theory was and make
+was whatever your theory was and make sure that that reversed hypothesis can't
+sure that that reversed hypothesis can't also be a thing so in this case our
+also be a thing so in this case our original hypothesis was if the average
+original hypothesis was if the average gap is small players will play more
+gap is small players will play more matches so if we reverse that we ask if
+matches so if we reverse that we ask if players play more matches will that make
+players play more matches will that make the average skill gap that they play
+the average skill gap that they play smaller and the answer is yes it will
+smaller and the answer is yes it will because we are in Halo 5 we are skill
+because we are in Halo 5 we are skill matching so on average as you play more
+matching so on average as you play more matches the average will tend towards 0
+matches the average will tend towards 0 if you just get a one-off match here or
+if you just get a one-off match here or there it may be extreme you may have
+there it may be extreme you may have someone offs there and you say we may
+someone offs there and you say we may find players who have these random
+find players who have these random matches out there only played one game
+matches out there only played one game but we don't know if they only played
+but we don't know if they only played one game because the match was bad or if
+one game because the match was bad or if the match just happened to be an outlier
+the match just happened to be an outlier and they only just happened to play one
+and they only just happened to play one game and it's because they didn't play a
+game and it's because they didn't play a lot of games didn't average out so we
+lot of games didn't average out so we can't use this approach right now and
+can't use this approach right now and and that brings up a general thing to be
+and that brings up a general thing to be careful of you want to make sure that
+careful of you want to make sure that whatever your metric is it's the effect
+whatever your metric is it's the effect and not the cause so our metric is is an
+and not the cause so our metric is is an average matches played unfortunately
+average matches played unfortunately play more matches causes better
+play more matches causes better matchmaking so we can't use that
+matchmaking so we can't use that approach unfortunately so what can we do
+approach unfortunately so what can we do well let's go to a different approach we
+well let's go to a different approach we can maybe we can't average over a bunch
+can maybe we can't average over a bunch of matches but we can probably just look
+of matches but we can probably just look at one match and see what happens so
+at one match and see what happens so let's see if a bad match makes them quit
+let's see if a bad match makes them quit out of the match match and because if
+out of the match match and because if something is important to a player's
+something is important to a player's matchmaking experience
+matchmaking experience where will suppose that they will
+where will suppose that they will actually leave the match of its back and
+actually leave the match of its back and again we call this quitting quitting out
+again we call this quitting quitting out of a single match now I know there's
+of a single match now I know there's more to engagement than the player just
+more to engagement than the player just leaving one match but still players
+leaving one match but still players leaving matches is bad it's ruins the
+leaving matches is bad it's ruins the match for everyone else in the match not
+match for everyone else in the match not just a quitter and it probably leads to
+just a quitter and it probably leads to disengagement later so we'll start there
+disengagement later so we'll start there because that takes care of our issue
+because that takes care of our issue that we had with the correlating the two
+that we had with the correlating the two cause and effects
+cause and effects so if personal gap really is important
+so if personal gap really is important players will quit if it's too large
+players will quit if it's too large that's what we want to now show they'll
+that's what we want to now show they'll quit out of a match now how do we do
+quit out of a match now how do we do that so here this is what we're talking
+that so here this is what we're talking about just to review we have our players
+about just to review we have our players they go into the matchmakers they ask
+they go into the matchmakers they ask for match matchmaker puts them together
+for match matchmaker puts them together however that dark blue player his skill
+however that dark blue player his skill is way worse than the red team and so
+is way worse than the red team and so he's not even able to play really every
+he's not even able to play really every time he just tries to do anything he
+time he just tries to do anything he tries to go grab a weapon off the map
+tries to go grab a weapon off the map and he just gets killed so he's not
+and he just gets killed so he's not really actually able to enjoy the
+really actually able to enjoy the gameplay and he quits and we want to
+gameplay and he quits and we want to look in our data and see if this
+look in our data and see if this actually happens so let's let's again
+actually happens so let's let's again see how we would set that up so let's
+see how we would set that up so let's talk about what kind of data we're gonna
+talk about what kind of data we're gonna gather to do this study first we need to
+gather to do this study first we need to know what match it was so we're looking
+know what match it was so we're looking at individual matches now not a player
+at individual matches now not a player across a whole month so we need every
+across a whole month so we need every match we need to know the player because
+match we need to know the player because we're looking at did a individual player
+we're looking at did a individual player quit out of a match and what caused them
+quit out of a match and what caused them to quit well our theory is a high
+to quit well our theory is a high personal skill gap will cause them to
+personal skill gap will cause them to quit so be looking at the personal gap
+quit so be looking at the personal gap for this particular match and then we
+for this particular match and then we will look at did they actually quit the
+will look at did they actually quit the match did they leave the match early so
+match did they leave the match early so we'll have data kind of like this we'll
+we'll have data kind of like this we'll have a match ID some random number will
+have a match ID some random number will have a player's name in this case we've
+have a player's name in this case we've got Alice and Alice played a match and
+got Alice and Alice played a match and the personal skill gap she experienced
+the personal skill gap she experienced in that match was 100 and did Alice
+in that match was 100 and did Alice Alice leave them at Charlie no she
+Alice leave them at Charlie no she didn't
+didn't so Alice was ok with the gap of 100 in
+so Alice was ok with the gap of 100 in this particular match now we do that for
+this particular match now we do that for Bob also but say Bob was also in that
+Bob also but say Bob was also in that same match but Bob was much worse than
+same match but Bob was much worse than Alice and therefore he did leave them
+Alice and therefore he did leave them naturally and we continued doing that
+naturally and we continued doing that for all of the players for all of the
+for all of the players for all of the matches in the time paid were measuring
+matches in the time paid were measuring and again we're gonna bucket it just
+and again we're gonna bucket it just like before we're gonna take all of the
+like before we're gonna take all of the players who experienced a gap of up to
+players who experienced a gap of up to 50 throughout all their matches for
+50 throughout all their matches for every single match and see whether or
+every single match and see whether or not they quit and we'll do that for each
+not they quit and we'll do that for each of those skill gut bet and grab those
+of those skill gut bet and grab those skill buckets for personal skill and
+skill buckets for personal skill and then we will graph that and see if
+then we will graph that and see if personal skill does leave lead to
+personal skill does leave lead to quitting and it turns out it does it
+quitting and it turns out it does it turns out at least in Halo 5 for us the
+turns out at least in Halo 5 for us the higher the personal gap the more likely
+higher the personal gap the more likely a player will quit so that is important
+a player will quit so that is important to us and if you do the same study look
+to us and if you do the same study look in your data and you see a similar graph
+in your data and you see a similar graph that tells you that you can reduce
+that tells you that you can reduce quitting by matchmaking on that personal
+quitting by matchmaking on that personal skill gap by reducing that gap you know
+skill gap by reducing that gap you know you can reduce quitting so in fact in
+you can reduce quitting so in fact in this case it reduces the quit rate by
+this case it reduces the quit rate by over 20 percent which is a pretty big
+over 20 percent which is a pretty big deal another fun thing you can do with
+deal another fun thing you can do with this graph is you can pick out using
+this graph is you can pick out using this data what skill gaps are okay and
+this data what skill gaps are okay and which ones aren't this graph sort of
+which ones aren't this graph sort of suggests that at first players aren't as
+suggests that at first players aren't as sensitive for a few hundred worth of
+sensitive for a few hundred worth of that skill gap and has it increases
+that skill gap and has it increases though then they become more sensitive
+though then they become more sensitive so you can both use the graph to tell
+so you can both use the graph to tell you it is important and you can use the
+you it is important and you can use the graph to tune your matchmaking so the
+graph to tune your matchmaking so the takeaway here is that personal skill gap
+takeaway here is that personal skill gap is important to matchmaking and if you
+is important to matchmaking and if you tune that gap you can reduce quit rates
+tune that gap you can reduce quit rates to whatever you think is more important
+to whatever you think is more important for your players so we've spoken about
+for your players so we've spoken about the personal gap we've seen the personal
+the personal gap we've seen the personal skill gap is important but what about
+skill gap is important but what about the team gap we also spoke about so this
+the team gap we also spoke about so this is less about a player being able to
+is less about a player being able to engage in the match and more about as a
+engage in the match and more about as a player on a team do I feel like my team
+player on a team do I feel like my team even has a chance to win this match is
+even has a chance to win this match is that important to our players are they
+that important to our players are they okay playing matches that guess they can
+okay playing matches that guess they can run around and they can shoot people
+run around and they can shoot people they get some kills they can do some
+they get some kills they can do some objectives but they're not able they
+objectives but they're not able they know pretty early on in the match that
+know pretty early on in the match that they're just not gonna win this match
+they're just not gonna win this match what will happen right so if the team
+what will happen right so if the team skill gap is important then again we'd
+skill gap is important then again we'd expect something like this
+expect something like this players go into the matchmaker it puts
+players go into the matchmaker it puts them in teams and it turns out that the
+them in teams and it turns out that the blue team is worse than the red team so
+blue team is worse than the red team so much worse that they can feel pretty
+much worse that they can feel pretty early on that they're not going to win
+early on that they're not going to win and this causes them to disengage and
+and this causes them to disengage and they leave this is
+they leave this is actually even worse than the single
+actually even worse than the single player quitting out because now we can
+player quitting out because now we can have several players quitting out of a
+have several players quitting out of a match and we want to do a similar
+match and we want to do a similar observational study in our data to see
+observational study in our data to see if this happens as well to see if
+if this happens as well to see if players are going to leave early because
+players are going to leave early because they just can't win I might as well just
+they just can't win I might as well just leave so again let's get our data
+leave so again let's get our data together we want players and we want to
+together we want players and we want to know for this match what was the team
+know for this match what was the team skill gap and then did they leave so
+skill gap and then did they leave so it's very similar to our last one but
+it's very similar to our last one but instead of looking at the personal gap
+instead of looking at the personal gap for every player in every match we're
+for every player in every match we're looking at the team gap so we got Alice
+looking at the team gap so we got Alice again she played a match where there was
+again she played a match where there was a gap of 100 between her team and the
+a gap of 100 between her team and the other team and she did not leave where's
+other team and she did not leave where's Bob he played a match where the team gap
+Bob he played a match where the team gap between him his team and the other team
+between him his team and the other team was 250 his team had less of a chance of
+was 250 his team had less of a chance of winning and he did leave and again we're
+winning and he did leave and again we're going to bucket this so we can graph it
+going to bucket this so we can graph it conveniently well look at all cases all
+conveniently well look at all cases all matches and lock with alt per player
+matches and lock with alt per player where there was a gap of up to 50 and
+where there was a gap of up to 50 and see how often did players leave in that
+see how often did players leave in that gap now because it's now we're still
+gap now because it's now we're still looking at this per player per match a
+looking at this per player per match a match can have four players in it each
+match can have four players in it each of those players could have some chance
+of those players could have some chance of leaving and in theory that would be a
+of leaving and in theory that would be a similar around the same average chance
+similar around the same average chance of leaving so as a quick hack it's not
+of leaving so as a quick hack it's not the exact right map but it's close we
+the exact right map but it's close we multiplied the chance of a single player
+multiplied the chance of a single player leaving by the team size which gives us
+leaving by the team size which gives us a rough approximation of the chance of
+a rough approximation of the chance of any one player leaving the match and we
+any one player leaving the match and we graph that again to see if team fairness
+graph that again to see if team fairness is important and in fact it is and in
+is important and in fact it is and in fact it ends up being even more
+fact it ends up being even more important like the quit rate with just a
+important like the quit rate with just a hundred rating difference will double on
+hundred rating difference will double on our players in Halo 5 we can have a
+our players in Halo 5 we can have a guaranteed quitter when that rate quit
+guaranteed quitter when that rate quit when that skill gap gets up in the 400
+when that skill gap gets up in the 400 range so again this tells us here that
+range so again this tells us here that as the team skill gap increases the
+as the team skill gap increases the chance of players quitting out is going
+chance of players quitting out is going up very quickly and it's very important
+up very quickly and it's very important to our players so the takeaway here is
+to our players so the takeaway here is yes the team gap is important even more
+yes the team gap is important even more important in some ways than the personal
+important in some ways than the personal gap it will lead to more quits and we
+gap it will lead to more quits and we can use that graph again to tune
+can use that graph again to tune which team graphs team gaps are
+which team graphs team gaps are appropriate for our players so go ahead
+appropriate for our players so go ahead and do that in your own games find out
+and do that in your own games find out how important this is so that you can
+how important this is so that you can improve their matchmaking now some of
+improve their matchmaking now some of you may have actually done similar
+you may have actually done similar observational studies already and you
+observational studies already and you may say to me you know what we've
+may say to me you know what we've already tried that doesn't work skill
+already tried that doesn't work skill skill gap in our game at least we know
+skill gap in our game at least we know it doesn't matter and my answer to that
+it doesn't matter and my answer to that is maybe because there's something else
+is maybe because there's something else that we did that we were curious about
+that we did that we were curious about say we actually switched skill systems
+say we actually switched skill systems recently and our old skill system which
+recently and our old skill system which is closer to what is the standard today
+is closer to what is the standard today in the industry we still run that in
+in the industry we still run that in parallel with our new skill system so we
+parallel with our new skill system so we could go into our data and run the same
+could go into our data and run the same observation using our old skill system
+observation using our old skill system to see if when players have a high skill
+to see if when players have a high skill gap in our old system do they quit out
+gap in our old system do they quit out of matches because if they don't that
+of matches because if they don't that means that it's not that skilled doesn't
+means that it's not that skilled doesn't matter in our game it's that the skill
+matter in our game it's that the skill system doesn't capture what's important
+system doesn't capture what's important to players in terms of matchmaking so
+to players in terms of matchmaking so let's see what it looked like so as you
+let's see what it looked like so as you can see here the old skill system is
+can see here the old skill system is flat with respect to quitting as the
+flat with respect to quitting as the skill gap increased an old system
+skill gap increased an old system players didn't care they didn't quit
+players didn't care they didn't quit what that means is that skill is
+what that means is that skill is important because as the blue line shows
+important because as the blue line shows players do quit as it increases but it's
+players do quit as it increases but it's not being captured or controlled by the
+not being captured or controlled by the older skill system so don't just give up
+older skill system so don't just give up on skill because your data says that
+on skill because your data says that it's not important you need to first
+it's not important you need to first consider whether your skill system is
+consider whether your skill system is capturing what's important to your
+capturing what's important to your players and so you're asking what what
+players and so you're asking what what is important what's the difference
+is important what's the difference between these systems so let me discuss
+between these systems so let me discuss what the two systems were previously we
+what the two systems were previously we used classic true skill in classic true
+used classic true skill in classic true skill which is a solid system I've used
+skill which is a solid system I've used it for years in many games it only looks
+it for years in many games it only looks at the winning team though when it
+at the winning team though when it decides to evaluate how well the players
+decides to evaluate how well the players did which players are better and worse
+did which players are better and worse and it needs a lot of matches to do that
+and it needs a lot of matches to do that it can be up to 80 to 120 matches or
+it can be up to 80 to 120 matches or more when we're talking about four
+more when we're talking about four before true skill - also incredibly
+before true skill - also incredibly values the winning team it's a very
+values the winning team it's a very important part of how it decides who is
+important part of how it decides who is good but it also takes into account
+good but it also takes into account several other factors that enable it to
+several other factors that enable it to be much faster and more
+be much faster and more Kirra than the classic trueskill it
+Kirra than the classic trueskill it looks at how many plug games the players
+looks at how many plug games the players played so far it looks at the party size
+played so far it looks at the party size and maybe even more importantly it's
+and maybe even more importantly it's looking at kills and deaths which we owe
+looking at kills and deaths which we owe in Halo 5 are very important to player
+in Halo 5 are very important to player engagement so we have objects of events
+engagement so we have objects of events that are in our skill system that are
+that are in our skill system that are also important to how pleasures are able
+also important to how pleasures are able to engage within a match so and again
+to engage within a match so and again having this data available also makes
+having this data available also makes the system much more quickly figure out
+the system much more quickly figure out how good our players are so that when
+how good our players are so that when we're looking at those gaps in our data
+we're looking at those gaps in our data that are more likely to represent an
+that are more likely to represent an actual skill gap between our players now
+actual skill gap between our players now just to be clear here this is still just
+just to be clear here this is still just one number per system we're not like
+one number per system we're not like using a whole bunch of extra numbers
+using a whole bunch of extra numbers we're not matching we're not creating
+we're not matching we're not creating lots of extra buckets both of these
+lots of extra buckets both of these systems boil down skill to just one
+systems boil down skill to just one number so again the takeaway there is
+number so again the takeaway there is don't just discount skill gap being
+don't just discount skill gap being important to your players think about
+important to your players think about your skill system first because which
+your skill system first because which one you're using does matter so let's do
+one you're using does matter so let's do a recap of the importance of skill gap
+a recap of the importance of skill gap we've seen that personal skill gap is
+we've seen that personal skill gap is important in Halo 5 we found that we
+important in Halo 5 we found that we were able to get a four times drop in
+were able to get a four times drop in quit rates by matchmaking carefully on
+quit rates by matchmaking carefully on that personal skill gap also teen skill
+that personal skill gap also teen skill gap is important fairness is important
+gap is important fairness is important to our players so both of those both
+to our players so both of those both whether or not our players are able to
+whether or not our players are able to come around a corner and have a chance
+come around a corner and have a chance of a good encounter with an enemy
+of a good encounter with an enemy opponent and whether or not the match
+opponent and whether or not the match actually feels like I can win as a
+actually feels like I can win as a player those are important to our
+player those are important to our players we're able to have the quit
+players we're able to have the quit rates drop by about six that way now you
+rates drop by about six that way now you may ask which one matters more well the
+may ask which one matters more well the the data tends to suggest players are
+the data tends to suggest players are more sensitive to that team balance
+more sensitive to that team balance skill gap and luckily team balancing
+skill gap and luckily team balancing ends up being a little easier as long as
+ends up being a little easier as long as players aren't in full parties you can
+players aren't in full parties you can shuffle them around and get a good team
+shuffle them around and get a good team balance even if your initial matchmaking
+balance even if your initial matchmaking didn't come out as good so it's a little
+didn't come out as good so it's a little bit easier but yes players tend to be
+bit easier but yes players tend to be more sensitive you're more likely to get
+more sensitive you're more likely to get a quit out of a match with a bad team
+a quit out of a match with a bad team back team gap in their team skill gap so
+back team gap in their team skill gap so find out which is important to you go
+find out which is important to you go look in your data see which skill gap
+look in your data see which skill gap matters to your players and then use
+matters to your players and then use those graphs to tune how you're going to
+those graphs to tune how you're going to match make them and again
+match make them and again remember your choice the skill system
+remember your choice the skill system does matter don't just discount skill
+does matter don't just discount skill because your skill system isn't
+because your skill system isn't detecting any sensitivity think about
+detecting any sensitivity think about whether your skill system really is
+whether your skill system really is measuring what's important to your
+measuring what's important to your players so up to this point we've been
+players so up to this point we've been using whether a player will leave a
+using whether a player will leave a match to show us how important these
+match to show us how important these different characteristics are in this
+different characteristics are in this case skill so far the question is can we
+case skill so far the question is can we go beyond though just what happens in a
+go beyond though just what happens in a match because maybe a player quits and
+match because maybe a player quits and maybe he goes and plays again yes it
+maybe he goes and plays again yes it does kind of ruin the match for everyone
+does kind of ruin the match for everyone else but we still want to know can we go
+else but we still want to know can we go beyond just a player leaving a single
+beyond just a player leaving a single match and the answer is yeah we can take
+match and the answer is yeah we can take a player we can observe them going into
+a player we can observe them going into matchmaking they experience the gameplay
+matchmaking they experience the gameplay hopefully they're engaged that personal
+hopefully they're engaged that personal skill gap is small so they keep playing
+skill gap is small so they keep playing match after match now in theory if
+match after match now in theory if that's not the case they would stop
+that's not the case they would stop playing for the night they may finish
+playing for the night they may finish the match they may not even quit out of
+the match they may not even quit out of it but because of their experience in
+it but because of their experience in that match they may decide that they
+that match they may decide that they don't want to play anymore halo 5 that
+don't want to play anymore halo 5 that night and this is also important to us
+night and this is also important to us maybe even more important because if
+maybe even more important because if players are not quitting not just out of
+players are not quitting not just out of matches but out of your entire game it's
+matches but out of your entire game it's kind of ruining your population overall
+kind of ruining your population overall and just making the game worse so we
+and just making the game worse so we want to go and measure this basically we
+want to go and measure this basically we want to see our players not quitting
+want to see our players not quitting just the match but do they leave for the
+just the match but do they leave for the night because if say personal skill gap
+night because if say personal skill gap is important wouldn't they wouldn't they
+is important wouldn't they wouldn't they stop playing so how do we do that well
+stop playing so how do we do that well we set it up very similarly to our other
+we set it up very similarly to our other experiments already we give each of our
+experiments already we give each of our players they've got Alice here we know
+players they've got Alice here we know what her team skill gap was for that
+what her team skill gap was for that match or we know what her personal gap
+match or we know what her personal gap was for that match and instead of asking
+was for that match and instead of asking did they stop playing did they leave the
+did they stop playing did they leave the match early we asked did they stop
+match early we asked did they stop playing for eight hours what did they
+playing for eight hours what did they take off and not show up again and we
+take off and not show up again and we look in this case that Alice had a match
+look in this case that Alice had a match with a gap of 100 and she kept playing
+with a gap of 100 and she kept playing whereas Bob had a gap of 250 and he
+whereas Bob had a gap of 250 and he stopped playing and we want to average
+stopped playing and we want to average this over all of our population our
+this over all of our population our players our matches bucking it again and
+players our matches bucking it again and graph it and see if this skill gap not
+graph it and see if this skill gap not only causes quits out of matches but
+only causes quits out of matches but does it cause them to quit out of the
+does it cause them to quit out of the game and after and it turns out it does
+game and after and it turns out it does cause them to leave the game for the
+cause them to leave the game for the night as this personal skill gap that's
+night as this personal skill gap that's what this one is
+what this one is the personal skill gap increases so does
+the personal skill gap increases so does the chance that a player will not only
+the chance that a player will not only quit out of a match but they may leave
+quit out of a match but they may leave the game for the night and this can go
+the game for the night and this can go to be as high as a 40 40 percent chance
+to be as high as a 40 40 percent chance that a player is going to turn off the
+that a player is going to turn off the game for the night because of a large
+game for the night because of a large personal gap which means it's very
+personal gap which means it's very important to our players to not have
+important to our players to not have matches where they are so much worse
+matches where they are so much worse than the other team that they can't
+than the other team that they can't really engage so let's look at the
+really engage so let's look at the takeaway from that the takeaways are
+takeaway from that the takeaways are kind of the obvious ones right players
+kind of the obvious ones right players will disengage if the personal skill gap
+will disengage if the personal skill gap is too large and we can again use these
+is too large and we can again use these graphs to tune and pick what type of
+graphs to tune and pick what type of personal skill gaps our team skill gaps
+personal skill gaps our team skill gaps are okay for our players and again the
+are okay for our players and again the nice thing about this is we can go
+nice thing about this is we can go beyond just looking at one match now I
+beyond just looking at one match now I want to switch gears a little bit and
+want to switch gears a little bit and talk about a more controversial topic
+talk about a more controversial topic that comes up when once you start
+that comes up when once you start digging into this data and that deals
+digging into this data and that deals around stacked parties the question here
+around stacked parties the question here being you got what I call a premade
+being you got what I call a premade stacked party this is a group of four
+stacked party this is a group of four friends who are playing together in the
+friends who are playing together in the party when they go into matchmaking they
+party when they go into matchmaking they go in together and that's fine the issue
+go in together and that's fine the issue here is that these aren't just for
+here is that these aren't just for average players or even for very good
+average players or even for very good players these are like four of your best
+players these are like four of your best players they've decided they're friends
+players they've decided they're friends they're going to get together and play
+they're going to get together and play and what this causes is they will play
+and what this causes is they will play against another group potentially
+against another group potentially another premade group a party of friends
+another premade group a party of friends that are playing together and that party
+that are playing together and that party could be very good but they're just
+could be very good but they're just nowhere near as good as that stacked
+nowhere near as good as that stacked party and what happens is that the
+party and what happens is that the stacked party will stop that pre-made
+stacked party will stop that pre-made party I beat them very badly and this
+party I beat them very badly and this leads to if we believe our data already
+leads to if we believe our data already players disengaging and not just
+players disengaging and not just disengaging out of the match because and
+disengaging out of the match because and to be honest players do quit less out of
+to be honest players do quit less out of matches while they're in parties like
+matches while they're in parties like this good party here but it cause it
+this good party here but it cause it will still cause them to disengage out
+will still cause them to disengage out of the game entirely which is even worse
+of the game entirely which is even worse so what can you do about that because
+so what can you do about that because it's and I'll give you a hint that
+it's and I'll give you a hint that there's not a lot that's there's not a
+there's not a lot that's there's not a lot of great solutions at this point to
+lot of great solutions at this point to what you do you can ask yourself well
+what you do you can ask yourself well should we just not allow those
+should we just not allow those stacked parties because they're gonna be
+stacked parties because they're gonna be scaring players out of our games and if
+scaring players out of our games and if you do that you end up making some of
+you do that you end up making some of your best players so you're making it so
+your best players so you're making it so they can't play together and that's
+they can't play together and that's probably gonna make them sad but if you
+probably gonna make them sad but if you allow the stacked parties you're being
+allow the stacked parties you're being unfair potentially to everyone else they
+unfair potentially to everyone else they play against which is a much larger
+play against which is a much larger group than the small group of stacked
+group than the small group of stacked players that want to play together and
+players that want to play together and again there's no super great solution
+again there's no super great solution here but it will just demonstrate what
+here but it will just demonstrate what this can cause so if you allow these
+this can cause so if you allow these stacked parties at least I've observed
+stacked parties at least I've observed in our data I've gone and and just
+in our data I've gone and and just watched some specific stacked parties
+watched some specific stacked parties and seen what their effect on the
+and seen what their effect on the population has been you can actually
+population has been you can actually watch a single party of four players
+watch a single party of four players scare away up to twenty players per hour
+scare away up to twenty players per hour and the problem with that is it the math
+and the problem with that is it the math just doesn't work if you ask yourself is
+just doesn't work if you ask yourself is it okay that we allow four players to
+it okay that we allow four players to play at the expense of 20 players per
+play at the expense of 20 players per hour leaving your game entirely for the
+hour leaving your game entirely for the night the answer to that is usually
+night the answer to that is usually that's probably not a good idea so what
+that's probably not a good idea so what do people do about this so in Halo 5
+do people do about this so in Halo 5 what we do is we just set our matchmaker
+what we do is we just set our matchmaker to allow fair matches and it won't allow
+to allow fair matches and it won't allow unfair ones so if there's not a good
+unfair ones so if there's not a good match for that stacked player they'll
+match for that stacked player they'll end up with a very long wait this ends
+end up with a very long wait this ends up being better for our population
+up being better for our population overall but it can be very disappointing
+overall but it can be very disappointing to those players who'd like to play
+to those players who'd like to play together now other games have different
+together now other games have different I have similar solutions League of
+I have similar solutions League of Legends they you can also result in long
+Legends they you can also result in long wait times but if you're a solo or a
+wait times but if you're a solo or a dual player or just two of you you can
+dual player or just two of you you can go into a solo duo queue and play only
+go into a solo duo queue and play only against all the players or players of
+against all the players or players of two but this doesn't protect your
+two but this doesn't protect your players that are in larger parties that
+players that are in larger parties that also don't want to get stomped by those
+also don't want to get stomped by those and it does shard the population
+and it does shard the population resulting slightly longer matchmaking
+resulting slightly longer matchmaking for everybody
+for everybody overwatch has another interesting
+overwatch has another interesting solution they basically say no if you
+solution they basically say no if you are too good you cannot play with your
+are too good you cannot play with your friends they just won't even let you
+friends they just won't even let you match make they if you're a grandmaster
+match make they if you're a grandmaster and above in overwatch you're only
+and above in overwatch you're only allowed to queue either alone or with
+allowed to queue either alone or with one friend and this also has some
+one friend and this also has some relation to what sports leagues do in
+relation to what sports leagues do in order to keep matches more interesting
+order to keep matches more interesting they
+they add hard soft or hard or soft salary
+add hard soft or hard or soft salary caps to promote competition say they
+caps to promote competition say they they tell teams you can only spend so
+they tell teams you can only spend so much on your players in order to prevent
+much on your players in order to prevent these same types of issues so it's not
+these same types of issues so it's not without precedent in general and coming
+without precedent in general and coming in competing but again there's no great
+in competing but again there's no great solution here but it is something to
+solution here but it is something to think about what do you do with these
+think about what do you do with these stacked parties how do you let the match
+stacked parties how do you let the match mate how do they affect your population
+mate how do they affect your population is worth digging into that data okay so
+is worth digging into that data okay so we've covered skill probably to death at
+we've covered skill probably to death at this point we've looked at it from a lot
+this point we've looked at it from a lot of angles quits versus leaving the game
+of angles quits versus leaving the game and so let's get back to our other items
+and so let's get back to our other items we were curious about what about latency
+we were curious about what about latency does high latency cause players to leave
+does high latency cause players to leave the game or does it cause them to quit
+the game or does it cause them to quit for the night and you know the answer
+for the night and you know the answer and the data that was nope not really
+and the data that was nope not really turns out for our players they were not
+turns out for our players they were not we're not very sensitive to ping day we
+we're not very sensitive to ping day we didn't find a lot of quits we didn't
+didn't find a lot of quits we didn't seem players that are leaving the game
+seem players that are leaving the game for the night seem to be a pretty not
+for the night seem to be a pretty not that strong correlation now this may be
+that strong correlation now this may be because we have some safeguards on ping
+because we have some safeguards on ping globally already but it didn't we didn't
+globally already but it didn't we didn't find a lot of connections there all
+find a lot of connections there all right so we'll cross that one off for
+right so we'll cross that one off for now now what about wait time do players
+now now what about wait time do players get frustrated lots of long waits and
+get frustrated lots of long waits and with wait time you can't do a quick
+with wait time you can't do a quick thing most players don't tend to wait a
+thing most players don't tend to wait a while and that caused them and then quit
+while and that caused them and then quit out of a match but you can't see if
+out of a match but you can't see if having long wait after long wait causes
+having long wait after long wait causes them to leave the night early and it
+them to leave the night early and it turns out that no we did not observe
+turns out that no we did not observe that we our players didn't seem to mine
+that we our players didn't seem to mine even longer than usual wait times they
+even longer than usual wait times they would keep playing there the amount of
+would keep playing there the amount of time they've instead spent for the night
+time they've instead spent for the night did not seem very correlated with how
+did not seem very correlated with how long their wait times were and what
+long their wait times were and what about losing streaks cuz this is
+about losing streaks cuz this is something I hear a lot about almost
+something I hear a lot about almost anytime I join a company and we talked
+anytime I join a company and we talked about matchmaking someone brings up we
+about matchmaking someone brings up we got a break losing streaks but you know
+got a break losing streaks but you know it turns out we did not see players tend
+it turns out we did not see players tend to leave early
+to leave early because of a losing streak they would
+because of a losing streak they would the only thing that was we found that
+the only thing that was we found that was correlated with the player that
+was correlated with the player that would scared them away for the night was
+would scared them away for the night was whether or not the match itself was fair
+whether or not the match itself was fair a really unfair match would they would
+a really unfair match would they would leave the night leave for the night
+leave the night leave for the night because of that but they were not lucky
+because of that but they were not lucky if they had a string of matches where
+if they had a string of matches where they lost that didn't tend to correlate
+they lost that didn't tend to correlate with players leaving
+with players leaving early for the night for quitting so
+early for the night for quitting so maybe that our players are just more
+maybe that our players are just more concerned with how fun the match itself
+concerned with how fun the match itself was and the fact that they lost isn't as
+was and the fact that they lost isn't as big of a deal so it turns out at least
+big of a deal so it turns out at least for a halo 5 what our players really
+for a halo 5 what our players really seem to care about is that team skill
+seem to care about is that team skill gap which is do I have a shot at winning
+gap which is do I have a shot at winning this match and the personal skill gap
+this match and the personal skill gap which is I come around the corner and I
+which is I come around the corner and I see an enemy what will my success rate
+see an enemy what will my success rate be in that encounter can I can I
+be in that encounter can I can I experience the gameplay the other
+experience the gameplay the other aspects that are commonly thought of as
+aspects that are commonly thought of as important for matchmaking sort of fell
+important for matchmaking sort of fell off for us which kind of shows us that
+off for us which kind of shows us that at least in Halo 5 we should focus on
+at least in Halo 5 we should focus on those team and personal skill gaps now
+those team and personal skill gaps now that doesn't mean we let latency be
+that doesn't mean we let latency be ridiculously bad or wait times crazy
+ridiculously bad or wait times crazy long but it means that our current sort
+long but it means that our current sort of guidelines on those other objects are
+of guidelines on those other objects are pretty on latency in a wait time are
+pretty on latency in a wait time are already pretty good and you should be
+already pretty good and you should be able to discover this as well on your
+able to discover this as well on your own data so let's review the core
+own data so let's review the core approach that you would use to do that
+approach that you would use to do that so again choose a characteristic
+so again choose a characteristic something that you think is important or
+something that you think is important or maybe important to your players and you
+maybe important to your players and you want to find out
+want to find out then choose a metric what are you gonna
+then choose a metric what are you gonna measure against that characteristic we
+measure against that characteristic we used quit rates and we also used what
+used quit rates and we also used what players quit for the night so we
+players quit for the night so we compared you go ahead on your own and
+compared you go ahead on your own and compare whether I'll high paying results
+compare whether I'll high paying results in quits or results and players churning
+in quits or results and players churning out and create those types of data
+out and create those types of data points so for every player for every
+points so for every player for every match look at what that skill gap was
+match look at what that skill gap was did they quit or what was the ping and
+did they quit or what was the ping and did they stop playing for the night and
+did they stop playing for the night and pluck it those up and plot those
+pluck it those up and plot those characteristics and then use those plots
+characteristics and then use those plots to tell you if it's important and how
+to tell you if it's important and how important it is and at what points
+important it is and at what points you're ok matchmaking at what cut-offs
+you're ok matchmaking at what cut-offs do you have in skill and and in ping or
+do you have in skill and and in ping or whatever it may be and some overall sort
+whatever it may be and some overall sort of takeaways to think about first what
+of takeaways to think about first what you think is important what everyone's
+you think is important what everyone's been telling you is important to
+been telling you is important to matchmaking it might not be important it
+matchmaking it might not be important it might it be even more important so use
+might it be even more important so use some observational studies so look for
+some observational studies so look for your data and find out what is important
+your data and find out what is important and then tune your matchmaking to reduce
+and then tune your matchmaking to reduce quits to reduce people leaving for the
+quits to reduce people leaving for the night to reduce whatever metric you've
+night to reduce whatever metric you've chosen is important to you
+chosen is important to you and don't forget
+and don't forget again I'll just reiterate this that when
+again I'll just reiterate this that when you're doing with skill the skill system
+you're doing with skill the skill system you use does matter so reevaluate your
+you use does matter so reevaluate your skill system and make sure that it take
+skill system and make sure that it take it takes account of events in your game
+it takes account of events in your game that are important to players that
+that are important to players that gameplay is somewhere in there that's
+gameplay is somewhere in there that's sort of a like maybe a surprise takeaway
+sort of a like maybe a surprise takeaway for some unit that your skill system may
+for some unit that your skill system may not even be capturing that now I talked
+not even be capturing that now I talked a little bit about a/b testing because I
+a little bit about a/b testing because I earlier mentioned that it can't be used
+earlier mentioned that it can't be used and the reason kind of why it can't be
+and the reason kind of why it can't be used goes into some pretty complicated
+used goes into some pretty complicated reasons that can't cover all of them in
+reasons that can't cover all of them in one slide but some research that
+one slide but some research that Microsoft Research did showed that the
+Microsoft Research did showed that the optimal skill gap to matchmake on for
+optimal skill gap to matchmake on for example depends on the population itself
+example depends on the population itself at the time your matchmaking the problem
+at the time your matchmaking the problem is an a/b test we'll split that
+is an a/b test we'll split that population so what you will learn from
+population so what you will learn from that a B test is what is optimal for the
+that a B test is what is optimal for the way you've split but that split may not
+way you've split but that split may not be what the merged population is like so
+be what the merged population is like so you can't really do that you you're
+you can't really do that you you're learning the wrong optimal settings for
+learning the wrong optimal settings for the wrong population so what you can do
+the wrong population so what you can do instead and what we're looking forward
+instead and what we're looking forward to trying at some point is what you do
+to trying at some point is what you do is you flip a coin every hour and choose
+is you flip a coin every hour and choose every time you flip that coin whether to
+every time you flip that coin whether to go with a or B and then where a is like
+go with a or B and then where a is like a is how we're matchmaking right now and
+a is how we're matchmaking right now and B is the new thing we want to try you
+B is the new thing we want to try you flip the coin because you need to have
+flip the coin because you need to have some randomness you don't want to have
+some randomness you don't want to have like the time of day be messing up
+like the time of day be messing up causing correlations in this data so you
+causing correlations in this data so you just flip that coin over an extended
+just flip that coin over an extended period of time every hour and you flip
+period of time every hour and you flip back and forth between these methods and
+back and forth between these methods and watch how the players react or in those
+watch how the players react or in those methods and then check your metrics
+methods and then check your metrics between those a and B it's the same way
+between those a and B it's the same way you would for any other AP test that way
+you would for any other AP test that way you are measuring on the correct
+you are measuring on the correct population and that is it thank you for
+population and that is it thank you for coming to my virtual talk here I hope
+coming to my virtual talk here I hope you enjoyed it if you have any questions
+you enjoyed it if you have any questions you can put them in the comments below
+you can put them in the comments below you can contact me through Twitter I
+you can contact me through Twitter I also can be emailed at Microsoft and
+also can be emailed at Microsoft and take care

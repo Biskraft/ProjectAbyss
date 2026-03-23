@@ -1,0 +1,21 @@
+# Come Back
+
+{{Infobox Song
+| name        = Come Back |
+| image       = pachilosOSTfolder.jpg |
+| jap         = 捲土重来 |
+| aname       = |
+| game        = *Pachislot Akumajō Dracula: Lords of Shadow* |
+| stage       = |
+| usage       = |
+| soundtrack  = Pachislot Akumajō Dracula: Lords of Shadow Original Soundtrack |
+| track       = 23 |
+| composer    = KPE STUDIO, Konami Kukeiha Club |
+| notes       = |
+| links       = |
+}}
+  - Come Back** is an original music theme composed by Konami Kukeiha Club for *Pachislot Akumajō Dracula: Lords of Shadow*.
+
+## Video
+
+Category: Lords of Shadow Pachislot Music Tracks

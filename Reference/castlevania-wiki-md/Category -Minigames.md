@@ -1,0 +1,3 @@
+# Category:Minigames
+
+Category: Games

@@ -1,0 +1,753 @@
+[Music] okay I'm up next I'm gonna be talking
+okay I'm up next I'm gonna be talking about some camera math a little bit so
+about some camera math a little bit so I'm titling this talk juicing your
+I'm titling this talk juicing your cameras with math and I've got some
+cameras with math and I've got some demos and I have a bajillion hotkeys
+demos and I have a bajillion hotkeys here so I need my cheat sheet here okay
+here so I need my cheat sheet here okay so we're gonna be talking about a couple
+so we're gonna be talking about a couple things today one of them is the
+things today one of them is the ubiquitous camera shake we're going to
+ubiquitous camera shake we're going to talk about good ways of doing it bad
+talk about good ways of doing it bad ways of doing it things to never do
+ways of doing it things to never do differences in 2d and 3d and that sort
+differences in 2d and 3d and that sort of thing we're gonna compare different
+of thing we're gonna compare different kinds of shakes translational versus
+kinds of shakes translational versus rotational shake we'll talk about
+rotational shake we'll talk about whether you're using randomness or some
+whether you're using randomness or some sort of coherent noise and we'll talk
+sort of coherent noise and we'll talk about what that means and the difference
+about what that means and the difference is like I said some 2d 3d distinctions
+is like I said some 2d 3d distinctions we also talked a little bit about
+we also talked a little bit about smoothed camera motion right so here in
+smoothed camera motion right so here in this example the camera is kind of
+this example the camera is kind of lazily following the player we'll talk
+lazily following the player we'll talk about some of the specific maths behind
+about some of the specific maths behind that and different ways to tweak it for
+that and different ways to tweak it for a circumstantial benefit I'll mention
+a circumstantial benefit I'll mention parametric motion but I'm going to refer
+parametric motion but I'm going to refer you to a different talk since we have so
+you to a different talk since we have so little time in general with this talk
+little time in general with this talk I'm gonna be trying to go very quickly
+I'm gonna be trying to go very quickly and give you like a shotgun smattering
+and give you like a shotgun smattering of little seeds with just enough math
+of little seeds with just enough math and intuition for you to go off and do
+and intuition for you to go off and do it yourself and I forgot to mention
+it yourself and I forgot to mention before but there are some questions
+before but there are some questions about with Kyllo slides we're gonna post
+about with Kyllo slides we're gonna post all the slides for all the talks today
+all the slides for all the talks today at essential math comm so I'll say that
+at essential math comm so I'll say that a couple times throughout the day but
+a couple times throughout the day but that's where all the slides are for this
+that's where all the slides are for this and the previous 16 years of the math
+and the previous 16 years of the math and physics tutorials of GDC I'll talk
+and physics tutorials of GDC I'll talk about some different kinds of averaging
+about some different kinds of averaging in terms of this smooth motion including
+in terms of this smooth motion including ace asymmetric asymptotic averaging just
+ace asymmetric asymptotic averaging just because that sounds fun we'll talk about
+because that sounds fun we'll talk about framing things and points of interest
+framing things and points of interest and points of focus and how do you
+and points of focus and how do you manage different things like that and
+manage different things like that and how you sort of make everything feel
+how you sort of make everything feel soft and not too overt
+soft and not too overt and then lastly my favorite talk topic
+and then lastly my favorite talk topic here is we're gonna talk about this what
+here is we're gonna talk about this what I call a Voronoi split-screen technique
+I call a Voronoi split-screen technique has anyone seen or played Lego Star Wars
+has anyone seen or played Lego Star Wars multiplayer so it does this really cool
+multiplayer so it does this really cool thing with splitting the screen we're
+thing with splitting the screen we're gonna look into how that works we're
+gonna look into how that works we're gonna look at how to do it we're gonna
+gonna look at how to do it we're gonna get a couple different ways of doing it
+get a couple different ways of doing it and then how to merge and feather those
+and then how to merge and feather those things too and then we're gonna sort of
+things too and then we're gonna sort of end with a tease in a challenge
+end with a tease in a challenge okay so juice is the new black has
+okay so juice is the new black has anyone ever seen the art of screen shake
+anyone ever seen the art of screen shake or juice juice it or lose it talks on
+or juice juice it or lose it talks on YouTube so that's your homework is go
+YouTube so that's your homework is go watch those talks they're super short
+watch those talks they're super short they're awesome you can see just in this
+they're awesome you can see just in this example alone on both of them there's
+example alone on both of them there's like all kinds of crazy ass screen shake
+like all kinds of crazy ass screen shake going on and that's one of the things
+going on and that's one of the things that's been really happening a lot both
+that's been really happening a lot both in India and Triple A is finding ways to
+in India and Triple A is finding ways to add juiciness and crunchiness right to
+add juiciness and crunchiness right to our games so that things feel solid and
+our games so that things feel solid and there are a lot of different components
+there are a lot of different components that go into that not the least of which
+that go into that not the least of which is audio and cetera but camera shake is
+is audio and cetera but camera shake is one of those big things but as we start
+one of those big things but as we start using these tools it's very easy to
+using these tools it's very easy to misuse them right and make bad things
+misuse them right and make bad things happen so camera shake is a lot like
+happen so camera shake is a lot like salt right with none of it it's not very
+salt right with none of it it's not very interesting if you land really hard on
+interesting if you land really hard on the ground it doesn't feel hard if the
+the ground it doesn't feel hard if the camera doesn't do anything but if you do
+camera doesn't do anything but if you do too much of it then it's just nodding
+too much of it then it's just nodding right so we want to have just right
+right so we want to have just right amount so my suggestion for handling
+amount so my suggestion for handling camera shake in general in your games if
+camera shake in general in your games if you're gonna do this is to have a
+you're gonna do this is to have a separate variable internally which I'll
+separate variable internally which I'll call trauma right and anytime something
+call trauma right and anytime something happens to you you'll add some trauma
+happens to you you'll add some trauma like wow that was really hard hit I'll
+like wow that was really hard hit I'll add 0.5 trauma so I'm at 50% trauma or
+add 0.5 trauma so I'm at 50% trauma or maybe some small stress would add 10 or
+maybe some small stress would add 10 or 20% and then it's constantly going down
+20% and then it's constantly going down over time at some linear fixed rate so
+over time at some linear fixed rate so every frame trauma - equals something
+every frame trauma - equals something that's time-based but the important part
+that's time-based but the important part here is that first of all camera shake
+here is that first of all camera shake is not going to be linearly proportional
+is not going to be linearly proportional to trauma it's going to be trauma
+to trauma it's going to be trauma squared or trauma cubed which in the 0
+squared or trauma cubed which in the 0 to 1 range actually means it's going to
+to 1 range actually means it's going to be
+be curve that makes it go downward right
+curve that makes it go downward right it's like the beginning of a parabola so
+it's like the beginning of a parabola so I want to talk about why this feels
+I want to talk about why this feels right and so let me start by showing one
+right and so let me start by showing one of the demos here so these are a couple
+of the demos here so these are a couple of quick little simple demos I hacked
+of quick little simple demos I hacked together just to demonstrate these sorts
+together just to demonstrate these sorts of things okay so if you look on the
+of things okay so if you look on the left of the screen there's sort of a bar
+left of the screen there's sort of a bar of trauma and if I give a lot of trauma
+of trauma and if I give a lot of trauma that's the orange bar right the amber
+that's the orange bar right the amber bar and it just is constantly going down
+bar and it just is constantly going down over time and if I give myself like a
+over time and if I give myself like a little trauma three times boom boom boom
+little trauma three times boom boom boom it's additive and you'll notice that -
+it's additive and you'll notice that - the next next to it and I'll hold it
+the next next to it and I'll hold it steady here for a second is the amount
+steady here for a second is the amount of camera shake which is the blue bar
+of camera shake which is the blue bar and so that's not linear right and so as
+and so that's not linear right and so as this goes up we get an exponential
+this goes up we get an exponential amount of screen shake for trauma there
+amount of screen shake for trauma there are a couple reasons why this feels good
+are a couple reasons why this feels good first of all it's actually somewhat
+first of all it's actually somewhat realistic if we think of a camera that's
+realistic if we think of a camera that's Jocelyn has to sort of reach stabilize
+Jocelyn has to sort of reach stabilize itself it's much like a spring and
+itself it's much like a spring and damper system right we're like the
+damper system right we're like the shocks on your car so it's like going to
+shocks on your car so it's like going to wobble back and forth and then kind of
+wobble back and forth and then kind of converge back to nothing so that feels
+converge back to nothing so that feels correct it's also nice because I can
+correct it's also nice because I can really feel the difference between if
+really feel the difference between if you can see the screen shake this is a
+you can see the screen shake this is a minor trauma and a moderate trauma right
+minor trauma and a moderate trauma right and a major trauma and it also means
+and a major trauma and it also means that if I have several minor traumas in
+that if I have several minor traumas in a row boom boom boom they have a more
+a row boom boom boom they have a more than linear effect on each other so it
+than linear effect on each other so it feels really significant of love wow I'm
+feels really significant of love wow I'm really getting my ass kicked so it feels
+really getting my ass kicked so it feels right because it's similar to real
+right because it's similar to real physics and it feels good because we can
+physics and it feels good because we can really perceive the difference between
+really perceive the difference between escalating perceptions if we instead had
+escalating perceptions if we instead had linear trauma like this where I just
+linear trauma like this where I just have them matched to each other you can
+have them matched to each other you can see that the heavy one shakes for a long
+see that the heavy one shakes for a long time and then it seems to sort of stop
+time and then it seems to sort of stop very suddenly right and also the
+very suddenly right and also the difference between a moderate trauma and
+difference between a moderate trauma and a heavy trauma doesn't feel that much
+a heavy trauma doesn't feel that much different whereas when it's nonlinear we
+different whereas when it's nonlinear we can really feel a difference
+can really feel a difference alright so there's also different kinds
+alright so there's also different kinds of camera shape right there's rotational
+of camera shape right there's rotational and translational by that I mean if I
+and translational by that I mean if I shake the screen here this is merely
+shake the screen here this is merely translational see all I'm doing is
+translational see all I'm doing is jittering the camera around left and
+jittering the camera around left and right up and down but whereas this is
+right up and down but whereas this is merely rotational trauma right
+merely rotational trauma right rotational shake which doesn't feel as
+rotational shake which doesn't feel as good I would say but it's kind of
+good I would say but it's kind of interesting
+interesting it keeps the player in focus and I would
+it keeps the player in focus and I would say in this case the translational the
+say in this case the translational the moving side to side feels better but the
+moving side to side feels better but the combination of them it feels really good
+combination of them it feels really good right especially if I've got a lot of
+right especially if I've got a lot of them feels pretty intense so the
+them feels pretty intense so the combination of both translational and
+combination of both translational and rotational camera shake is generally
+rotational camera shake is generally desirable but what if we're doing
+desirable but what if we're doing something in 3d so let's look at a 3d
+something in 3d so let's look at a 3d comparison so if I have a simple 3d game
+comparison so if I have a simple 3d game and I can look around and it's this is
+and I can look around and it's this is first-person and if I do the same thing
+first-person and if I do the same thing here I'm going to set a constant level
+here I'm going to set a constant level of trauma this is translational only
+of trauma this is translational only meaning I'm just moving the camera back
+meaning I'm just moving the camera back and forth you can see and now it makes
+and forth you can see and now it makes sense because of perspective the islands
+sense because of perspective the islands in the distance don't seem to move very
+in the distance don't seem to move very much right and in fact if I'm very close
+much right and in fact if I'm very close to the ground here this is moving quite
+to the ground here this is moving quite spastically so that actually doesn't
+spastically so that actually doesn't feel nearly as good whereas if I turn on
+feel nearly as good whereas if I turn on only rotational then it actually feels
+only rotational then it actually feels much better even if it's subtle so it
+much better even if it's subtle so it turns out ironically that in 3d
+turns out ironically that in 3d rotational feels much better than
+rotational feels much better than translational and 2d translational feels
+translational and 2d translational feels better there's another big problem
+better there's another big problem though and this is a reason why we
+though and this is a reason why we actually want to avoid ever using
+actually want to avoid ever using translational camera shake in 3d is
+translational camera shake in 3d is because it can put camera inside a wall
+because it can put camera inside a wall you can see here I know if it's coming
+you can see here I know if it's coming through on the on the monitor but half
+through on the on the monitor but half of the frames here I'll make it extreme
+of the frames here I'll make it extreme you know half of the frames the camera
+you know half of the frames the camera is actually getting displaced into the
+is actually getting displaced into the wall right and then we have all kinds of
+wall right and then we have all kinds of problems that happen and if you've ever
+problems that happen and if you've ever worked on a camera system in an engine
+worked on a camera system in an engine you know half of the
+you know half of the and your work is spent trying to keep it
+and your work is spent trying to keep it the damn thing out of the walls right so
+the damn thing out of the walls right so that's one of the things we don't want
+that's one of the things we don't want to do if we turn off the translational
+to do if we turn off the translational and we just do rotational that our
+and we just do rotational that our position is never changed so we don't
+position is never changed so we don't have to suffer from that so not only
+have to suffer from that so not only does that feel better
+does that feel better sorry if I make anyone puke in this talk
+yeah so actually in 3d ironically the rules are somewhat different that we
+rules are somewhat different that we don't want to use translational because
+don't want to use translational because it feels weird and it could be very bad
+it feels weird and it could be very bad right whereas rotational actually feels
+right whereas rotational actually feels even nicer camera shaking vr so the
+even nicer camera shaking vr so the rules of VR are try to avoid force
+rules of VR are try to avoid force motion if you have to do force motion
+motion if you have to do force motion try to make it be slow if it has to be
+try to make it be slow if it has to be fast try to make it be predictable
+fast try to make it be predictable camera shake is none of those things so
+camera shake is none of those things so don't do this okay so how does this look
+don't do this okay so how does this look in code well it's pretty trivial we want
+in code well it's pretty trivial we want to just get some random varying amount
+to just get some random varying amount say from negative one to one and then
+say from negative one to one and then we'll say that in 2d for just messing
+we'll say that in 2d for just messing with an angle right like this let's say
+with an angle right like this let's say we want to be willing to go up to ten
+we want to be willing to go up to ten degrees and so we would say the amount
+degrees and so we would say the amount of shake which is from zero to one times
+of shake which is from zero to one times the 10 degrees
+the 10 degrees so maybe moderate shake would only be up
+so maybe moderate shake would only be up to 5 degrees plus or minus right so this
+to 5 degrees plus or minus right so this random negative 1 to 1 and we'll do that
+random negative 1 to 1 and we'll do that for an x and y offset as well so this is
+for an x and y offset as well so this is the translational part as the x and y
+the translational part as the x and y and then a rotational part on top of
+and then a rotational part on top of that that's it pretty simple and then we
+that that's it pretty simple and then we take our camera and we add both the
+take our camera and we add both the shake angle and the shake offset to our
+shake angle and the shake offset to our camera and note that what we don't want
+camera and note that what we don't want to do is ruin our camera we don't
+to do is ruin our camera we don't actually want to move the camera we just
+actually want to move the camera we just want to sort of displace it from where
+want to sort of displace it from where it is so it tends to be better to have
+it is so it tends to be better to have the base camera remain pure and have a
+the base camera remain pure and have a shaky camera that we're like taking
+shaky camera that we're like taking every frame clean from scratch take the
+every frame clean from scratch take the base camera plus noise on top of it or
+base camera plus noise on top of it or plus shake in 3d this looks the same
+plus shake in 3d this looks the same obviously in 3d we have orientations
+obviously in 3d we have orientations that are more calm
+that are more calm then these Euler angles or Tait Bryan
+then these Euler angles or Tait Bryan angles of Yacht Patrol but actually that
+angles of Yacht Patrol but actually that turns out feeling really good
+turns out feeling really good maybe unsurprisingly to do your shake in
+maybe unsurprisingly to do your shake in 3d a rotational shake in Euler angles
+3d a rotational shake in Euler angles partly because we're used to in shooters
+partly because we're used to in shooters having the mouse control directly relate
+having the mouse control directly relate to these right if I move my mouse left
+to these right if I move my mouse left and right it's a yaw if I move it up and
+and right it's a yaw if I move it up and down it's a pitch and so I can tweak
+down it's a pitch and so I can tweak these how much y'all shake I want and
+these how much y'all shake I want and how much pitch shake and how much roll
+how much pitch shake and how much roll shake I want individually and that's
+shake I want individually and that's actually the perfect way to tweak it and
+actually the perfect way to tweak it and then we'll also do our translational the
+then we'll also do our translational the same way there is a better way to do
+same way there is a better way to do this and we'll show why and if you've
+this and we'll show why and if you've ever heard me talk before I'm a big fan
+ever heard me talk before I'm a big fan of Perlin noise and so I'm gonna suggest
+of Perlin noise and so I'm gonna suggest we use something like Perlin noise or
+we use something like Perlin noise or some smooth fractal noise instead of
+some smooth fractal noise instead of just this random why do I think that so
+just this random why do I think that so if I go back to this demo let me give
+if I go back to this demo let me give some examples of why perla noises
+some examples of why perla noises superior so again here's my screen shake
+superior so again here's my screen shake right and that's a fairly severe trauma
+right and that's a fairly severe trauma there are a couple things that are
+there are a couple things that are problematic
+problematic first of all let's say I'm let me get to
+first of all let's say I'm let me get to get some things moving so you can see
+get some things moving so you can see what's happening so if I'm moving around
+what's happening so if I'm moving around and I jump through the air and I'm
+and I jump through the air and I'm falling in slow motion and I turn on the
+falling in slow motion and I turn on the trauma that's what I would expect to see
+trauma that's what I would expect to see in slow motion right and then when I hit
+in slow motion right and then when I hit the ground I read traumatize so if I'm
+the ground I read traumatize so if I'm using just random this is what I get
+using just random this is what I get I'm hopping around I'm in slow motion
+I'm hopping around I'm in slow motion and I make noise and because it's random
+and I make noise and because it's random every frame it's effectively an infinite
+every frame it's effectively an infinite frequency regardless of how slow the
+frequency regardless of how slow the time is right and so if I have something
+time is right and so if I have something that's more of an equation then I can
+that's more of an equation then I can execute that equation slower and now it
+execute that equation slower and now it really feels like the camera is jerking
+really feels like the camera is jerking around in real time
+around in real time so that's one significant advantage that
+so that's one significant advantage that Perlin noise has
+excuse me so another thing is that it just feels
+so another thing is that it just feels better and I don't know if you can be
+better and I don't know if you can be convinced of that with just a simple
+convinced of that with just a simple test but if I do Perlin noise it feels
+test but if I do Perlin noise it feels like it's coherent right that the camera
+like it's coherent right that the camera is actually moving from left to right
+is actually moving from left to right it's not just teleporting to a random
+it's not just teleporting to a random place every frame and so it feels much
+place every frame and so it feels much like a camera would actually feel it's
+like a camera would actually feel it's also frame rate independent it does time
+also frame rate independent it does time scaling and generally feels great it
+scaling and generally feels great it works automatically in slow motion if
+works automatically in slow motion if you're just passing down at current time
+you're just passing down at current time or a delta time it just works it also
+or a delta time it just works it also has an adjustable frequency which is
+has an adjustable frequency which is really interesting if I again do my
+really interesting if I again do my Perlin noise here if I slow it down
+mm-hmm there we go so I can actually have and I'll just sustain the noise
+have and I'll just sustain the noise here this is with the noise slowed down
+here this is with the noise slowed down considerably and if I do this slow
+considerably and if I do this slow enough it can actually feel like say a
+enough it can actually feel like say a handheld camera effect all right so
+handheld camera effect all right so there's a lot of other uses for this
+there's a lot of other uses for this other than just like spasming the screen
+it's also more easily reproducible because it's just a function that you're
+because it's just a function that you're plugging time into it's not something
+plugging time into it's not something that's random and you'll notice if
+that's random and you'll notice if you're gonna do this you'll generally
+you're gonna do this you'll generally want to make sure you're not using the
+want to make sure you're not using the same Perlin noise for all of them
+same Perlin noise for all of them otherwise we're always gonna go down
+otherwise we're always gonna go down when we go left and we're always gonna
+when we go left and we're always gonna pitch when we off so those need to be
+pitch when we off so those need to be different I always just do this by
+different I always just do this by staggering the seeds the random seeds
+staggering the seeds the random seeds into the noise function alright so a
+into the noise function alright so a couple takeaways from that section
+couple takeaways from that section camera shake is not proportional to
+camera shake is not proportional to trauma and I would like to keep them
+trauma and I would like to keep them separate and I like to have camera shake
+separate and I like to have camera shake be exponential in 2d we like both
+be exponential in 2d we like both translational and rotational and 3d we
+translational and rotational and 3d we want to avoid translational and shred
+want to avoid translational and shred very carefully in VR also prefer some
+very carefully in VR also prefer some sort of noise formula to just random and
+sort of noise formula to just random and by the way you want Perlin noise in your
+by the way you want Perlin noise in your and in your math toolkit mentally anyway
+and in your math toolkit mentally anyway because it's badass
+because it's badass alright so next I'm gonna talk quickly
+alright so next I'm gonna talk quickly about smooth motion and I'm gonna start
+about smooth motion and I'm gonna start hurrying through some of this so in this
+hurrying through some of this so in this case here I just have the camera locked
+case here I just have the camera locked to the players position so if I go down
+to the players position so if I go down the player just kind of goes wherever he
+the player just kind of goes wherever he wants and the camera follows and if i
+wants and the camera follows and if i teleport back up to the top it just
+teleport back up to the top it just teleports right what I might want motion
+teleports right what I might want motion that's following the player more lazily
+that's following the player more lazily right and player motion can often be
+right and player motion can often be erratic or jerky especially if we have
+erratic or jerky especially if we have something like stairs where we're gonna
+something like stairs where we're gonna climb up and pop right so the camera
+climb up and pop right so the camera feels really bad won't do that so one of
+feels really bad won't do that so one of the things we can do is turn on
+the things we can do is turn on asymptotic smoothness moving and I'll
+asymptotic smoothness moving and I'll explain what that means in a second but
+explain what that means in a second but basically this is the slow version of
+basically this is the slow version of that and this is where the camera just
+that and this is where the camera just kind of lazily meanders its way
+kind of lazily meanders its way eventually towards wherever the player
+eventually towards wherever the player is and so there's very little impact
+is and so there's very little impact from any high-frequency actions that the
+from any high-frequency actions that the player takes right so as I'm falling
+player takes right so as I'm falling down steps or climbing up steps you can
+down steps or climbing up steps you can see the camera's not jerking it's
+see the camera's not jerking it's totally fine with that I can of course
+totally fine with that I can of course do that on a tighter basis so it
+do that on a tighter basis so it converges more quickly like this mm-hmm
+converges more quickly like this mm-hmm or even quicker still and this is what
+or even quicker still and this is what it turned up if you turn it up so fast
+it turned up if you turn it up so fast that it converges almost instantly then
+that it converges almost instantly then it starts feeling like it's just
+it starts feeling like it's just snapping all right so there's a really
+snapping all right so there's a really nice some really nice ways of doing this
+nice some really nice ways of doing this using cubic splines and curves and that
+using cubic splines and curves and that sort of thing there's a talk from this
+sort of thing there's a talk from this tutorial from 2012 about interpolations
+tutorial from 2012 about interpolations and splines that I highly recommend if
+and splines that I highly recommend if you want to take that approach but if
+you want to take that approach but if you just want something working and
+you just want something working and actually this works out quite well you
+actually this works out quite well you can use this asymptotic averaging so
+can use this asymptotic averaging so from that talk they through this formula
+from that talk they through this formula up on the screen and I want to talk
+up on the screen and I want to talk about that so the formulas X plus equals
+about that so the formulas X plus equals target minus x times 10% or I rewrote it
+target minus x times 10% or I rewrote it a different way this 90 times X plus 10
+a different way this 90 times X plus 10 % times target what does that mean
+% times target what does that mean same thing just written twice on the
+same thing just written twice on the left I would express it as each frame we
+left I would express it as each frame we take a 90/10 blend of ourselves and of
+take a 90/10 blend of ourselves and of what we'd like to be or on the right
+what we'd like to be or on the right it's maybe more than two ative to say
+it's maybe more than two ative to say each frame we get 10% closer to our
+each frame we get 10% closer to our target okay so let's say we have blue
+target okay so let's say we have blue and then I average in green and this is
+and then I average in green and this is a 50% asymptotic average and then I take
+a 50% asymptotic average and then I take whatever that is and I average in yellow
+whatever that is and I average in yellow so now as I average in another color the
+so now as I average in another color the all the previous colors get diminished
+all the previous colors get diminished in their effect right and so the latest
+in their effect right and so the latest thing has the most importance so each
+thing has the most importance so each color sort of pushes the rest of them
+color sort of pushes the rest of them down and so it's asymptotic in the sense
+down and so it's asymptotic in the sense that I'm never quite reaching my goal if
+that I'm never quite reaching my goal if I had say a position or something else
+I had say a position or something else that's following this then it's going to
+that's following this then it's going to feel asymptotic right and if you think
+feel asymptotic right and if you think about it is if I take move half the
+about it is if I take move half the distance between here in the chair and
+distance between here in the chair and then I move half the distance between
+then I move half the distance between here in the chair and half the distance
+here in the chair and half the distance and half the distance I'll never reach
+and half the distance I'll never reach the chair but I'll effectively reach it
+the chair but I'll effectively reach it in a kind of a nice smooth landing
+in a kind of a nice smooth landing infinitely smooth actually so how fast
+infinitely smooth actually so how fast that works on the weight I recommend
+that works on the weight I recommend toying around with these types of
+toying around with these types of weights for 1% new and 99% old is that
+weights for 1% new and 99% old is that really slow one I had 10% is reasonably
+really slow one I had 10% is reasonably fast and 50% every frame where each
+fast and 50% every frame where each frame my clothes has to have the
+frame my clothes has to have the distance is quite fast so and it's
+distance is quite fast so and it's called asymptotic because it's never
+called asymptotic because it's never quite arrives but there's nothing that
+quite arrives but there's nothing that says much like Kyle was saying in terms
+says much like Kyle was saying in terms of we want to take start with something
+of we want to take start with something realistic but then tweak it for feel
+realistic but then tweak it for feel that we have to treat horizontal and
+that we have to treat horizontal and vertical motion the same so for example
+vertical motion the same so for example we could say that there's a rule that
+we could say that there's a rule that it's going to follow me left and right
+it's going to follow me left and right but it's only going to follow me
+but it's only going to follow me vertically once I actually land on
+vertically once I actually land on something so now the camera doesn't
+something so now the camera doesn't follow me when I jump it only follows me
+follow me when I jump it only follows me when I'm landing and so as I'm going
+when I'm landing and so as I'm going across this the camera doesn't perturb
+across this the camera doesn't perturb at all as I go across those jumps
+I could also make it more lazy going up than it is going down and I can make any
+than it is going down and I can make any sort of hybrid mix of those things as I
+sort of hybrid mix of those things as I want right so I could say the camera is
+want right so I could say the camera is going to quickly converge on me when
+going to quickly converge on me when it's coming up to me or perhaps that the
+it's coming up to me or perhaps that the camera it's most important for it to
+camera it's most important for it to converge follow me very quickly when I'm
+converge follow me very quickly when I'm going down and it will do that
+going down and it will do that immediately as soon as I'm falling
+immediately as soon as I'm falling downward it has a tight ass mitotic
+downward it has a tight ass mitotic average so really try to hold on to me
+so we don't have to treat upward and downward movement the same we don't have
+downward movement the same we don't have to treat horizontal vertical movement
+to treat horizontal vertical movement the same if we're using a spec Tata
+the same if we're using a spec Tata carriages or anything else we can tweak
+carriages or anything else we can tweak each of those for those cases and that's
+each of those for those cases and that's where we start really getting the feel
+where we start really getting the feel for this plus those weights can be
+for this plus those weights can be non-constant one last fix this doesn't
+non-constant one last fix this doesn't time scale well it's also a frame rate
+time scale well it's also a frame rate dependent we can hacker on it by
+dependent we can hacker on it by multiplying by time scale so effectively
+multiplying by time scale so effectively if we're gonna be moving 0.1 every frame
+if we're gonna be moving 0.1 every frame this would be more like moving point one
+this would be more like moving point one of the way every second and we're just
+of the way every second and we're just moving a fraction event this is actually
+moving a fraction event this is actually a linear approximation which is much
+a linear approximation which is much like it's going to have a little bit of
+like it's going to have a little bit of air to it much like a numerical
+air to it much like a numerical integration will have air to it when
+integration will have air to it when you're in a jumping curve when you're
+you're in a jumping curve when you're sort of accumulating your movement from
+sort of accumulating your movement from frame to frame but it's quite good
+frame to frame but it's quite good enough okay so we've got now this other
+enough okay so we've got now this other toolkit is just move yourself a little
+toolkit is just move yourself a little bit closer towards the thing you want to
+bit closer towards the thing you want to reframe okay so in terms of framing and
+reframe okay so in terms of framing and attention I'm going to talk about this
+attention I'm going to talk about this briefly I'm not going to go into it too
+briefly I'm not going to go into it too much in the demo because I want to get
+much in the demo because I want to get to the Voronoi regions stuff so what's
+to the Voronoi regions stuff so what's at the epicenter of our attention
+at the epicenter of our attention generally the player right that may not
+generally the player right that may not always be what we're looking at at this
+always be what we're looking at at this on the screen but it's always going to
+on the screen but it's always going to be present and it's important for us to
+be present and it's important for us to know where the player is so it's at
+know where the player is so it's at least worth saying that you never want
+least worth saying that you never want to not be able to see the player right
+to not be able to see the player right at least if you're controlling her
+so there might be different things we want the camera to look at and highlight
+want the camera to look at and highlight and I'll call points of focus there
+and I'll call points of focus there those things that demand high attention
+those things that demand high attention right so a primary point for point of
+right so a primary point for point of focus like the player should never ever
+focus like the player should never ever go out of view all right unless perhaps
+go out of view all right unless perhaps during a cutscene or something like that
+during a cutscene or something like that which is not what we're talking about a
+which is not what we're talking about a secondary but still important import a
+secondary but still important import a point of focus like say the enemy that
+point of focus like say the enemy that I'm locked on to shouldn't go out of the
+I'm locked on to shouldn't go out of the screen if possible right if I can frame
+screen if possible right if I can frame both me and my target let's do that
+both me and my target let's do that but given if push comes to shove keep me
+but given if push comes to shove keep me on screen if you have to kick him off
+on screen if you have to kick him off screen we might also have points of
+screen we might also have points of interest and this is where we start
+interest and this is where we start getting some really nice subtlety that
+getting some really nice subtlety that we can put into the system and those are
+we can put into the system and those are things where we'd like them to be in the
+things where we'd like them to be in the screen if possible but we don't want to
+screen if possible but we don't want to upset anyone and so that can cause a
+upset anyone and so that can cause a little bias that we can put in to make
+little bias that we can put in to make the camera kind of focus slightly to the
+the camera kind of focus slightly to the left so that we can bring something into
+left so that we can bring something into view right if we have some piece of
+view right if we have some piece of treasure that's just off screen if we
+treasure that's just off screen if we could have the camera just kind of dip
+could have the camera just kind of dip down a little bit to show you oh by the
+down a little bit to show you oh by the way there's some treasure here and we
+way there's some treasure here and we can pull you your attention towards
+can pull you your attention towards something that's on screen just by
+something that's on screen just by directing the camera towards it subtly
+directing the camera towards it subtly or just allow you to see something that
+or just allow you to see something that you might not have seen if you just ran
+you might not have seen if you just ran past it and that's really really
+past it and that's really really interesting from a game design
+interesting from a game design standpoint because without the player
+standpoint because without the player even knowing what you're doing you can
+even knowing what you're doing you can easily draw our attention to enemies on
+easily draw our attention to enemies on the screen or loot right if you come in
+the screen or loot right if you come in the room the camera can sort of go to
+the room the camera can sort of go to the right and they'll pick the right
+the right and they'll pick the right fork right it's kind of like a
+fork right it's kind of like a magician's force you can also highlight
+magician's force you can also highlight buttons levers secret doors I mean how
+buttons levers secret doors I mean how cool is that that you're walking down
+cool is that that you're walking down the hall and the camera just kind of
+the hall and the camera just kind of does something you're like whoa what was
+does something you're like whoa what was that I felt something there's something
+that I felt something there's something here so it can be quite subtle if you
+here so it can be quite subtle if you want to be traps you can give just the
+want to be traps you can give just the subtlest hint of oh wait there's
+subtlest hint of oh wait there's something here to look for or even
+something here to look for or even explicit markers left by a level
+explicit markers left by a level designer they say this is there's a
+designer they say this is there's a statue in the middle and I want the
+statue in the middle and I want the players to take notice of it or even a
+players to take notice of it or even a procedural generation system could
+procedural generation system could identify something as this is an
+identify something as this is an important bottleneck or this is an
+important bottleneck or this is an important
+important piece of metadata like the the center of
+piece of metadata like the the center of the org base and I want to make sure
+the org base and I want to make sure that the player sort of catches it the
+that the player sort of catches it the important thing here is to feather these
+important thing here is to feather these influences and so by feathering I mean
+influences and so by feathering I mean if I'm walking along and I don't have a
+if I'm walking along and I don't have a demo to show this but if I'm walking
+demo to show this but if I'm walking along and then suddenly the camera goes
+along and then suddenly the camera goes down and then it comes back up it feels
+down and then it comes back up it feels very heavy-handed and it feels jerky
+very heavy-handed and it feels jerky right so generally we want to say well
+right so generally we want to say well for everything that we kind of would
+for everything that we kind of would like to show which are these points of
+like to show which are these points of interest how close are they to us we
+interest how close are they to us we have some threshold right and we say hey
+have some threshold right and we say hey if it's more than 10 tiles away I'm not
+if it's more than 10 tiles away I'm not interested in it that's like too far off
+interested in it that's like too far off screen but we might have some inner
+screen but we might have some inner threshold like five tiles away to say
+threshold like five tiles away to say well hey we're we're getting interested
+well hey we're we're getting interested in there and so between five and ten
+in there and so between five and ten tiles away we're going to sort of
+tiles away we're going to sort of smoothly ramp up our level of interest
+smoothly ramp up our level of interest in that thing so something is you know
+in that thing so something is you know say 9 tiles away it might have be only
+say 9 tiles away it might have be only 20% interesting to us and if we have
+20% interesting to us and if we have each point of interest has its own sense
+each point of interest has its own sense of importance then we can just simply
+of importance then we can just simply multiply its closeness by its importance
+multiply its closeness by its importance to get a sense of weight and then we can
+to get a sense of weight and then we can add up all the points of interest and do
+add up all the points of interest and do a weighted average divided by the total
+a weighted average divided by the total sum of the weights to sort of see where
+sum of the weights to sort of see where we want to be pulled in aggregate okay
+we want to be pulled in aggregate okay the big problem here is when we have
+the big problem here is when we have multiple primary focus points right and
+multiple primary focus points right and gauntlet is a typical example this where
+gauntlet is a typical example this where we've got four players and we have to
+we've got four players and we have to have them all on the screen and it's
+have them all on the screen and it's co-op so how do we handle that there's
+co-op so how do we handle that there's some really bad ways one we could say
+some really bad ways one we could say the screen can't advance so the player
+the screen can't advance so the player the warrior who's often getting a drink
+the warrior who's often getting a drink is keeping everyone back the screen
+is keeping everyone back the screen can't move we could say the players can
+can't move we could say the players can move off screen that's a terrible idea
+move off screen that's a terrible idea right because then you don't know where
+right because then you don't know where you are we could say plays could die if
+you are we could say plays could die if they're forced off screen that can be
+they're forced off screen that can be kind of dickish but in a in a
+kind of dickish but in a in a competitive game maybe that could be
+competitive game maybe that could be cool a strategic thing we could teleport
+cool a strategic thing we could teleport you back up to the group which is
+you back up to the group which is probably what we'd do if you'd we killed
+probably what we'd do if you'd we killed you all so we could have you drag the
+you all so we could have you drag the screen so the player that's pushing on
+screen so the player that's pushing on the edge of the screen would sort of
+the edge of the screen would sort of drag the other player with him we can
+drag the other player with him we can try to zoom out to encompass any
+try to zoom out to encompass any everyone but all of these things have
+everyone but all of these things have flaws and they're all intrusive into our
+flaws and they're all intrusive into our gameplay
+gameplay lastly we could split the screen right
+lastly we could split the screen right which is actually the only thing we can
+which is actually the only thing we can do frankly that isn't an intrusive
+do frankly that isn't an intrusive method let's split screen sucks because
+method let's split screen sucks because we're sharing the screen real estate
+we're sharing the screen real estate right and what's really sucky about that
+right and what's really sucky about that is in a co-op game 95% of time all the
+is in a co-op game 95% of time all the players are together and now we're
+players are together and now we're paying for 75% squeals screen real
+paying for 75% squeals screen real estate waste so what can be done about
+estate waste so what can be done about that so we have this lastly this Voronoi
+that so we have this lastly this Voronoi split screen cameras and I'm going to go
+split screen cameras and I'm going to go probably two minutes long I apologize
+probably two minutes long I apologize and the idea is like this Star Wars
+and the idea is like this Star Wars thing we can split the screen but only
+thing we can split the screen but only when necessary so the way that looks is
+let's say I have a player here and the player can move around this world and
+player can move around this world and then I add another player into it and
+then I add another player into it and the player can move around the world
+the player can move around the world right and that's no problem but if I
+right and that's no problem but if I actually look at the the way this would
+actually look at the the way this would look in the dynamic split-screen is that
+look in the dynamic split-screen is that the player is when they're together are
+the player is when they're together are going to share a screen like this and as
+going to share a screen like this and as I move apart from the player it's going
+I move apart from the player it's going to split the screen dynamically and the
+to split the screen dynamically and the orientation of the split is always
+orientation of the split is always oriented so that as I go towards the
+oriented so that as I go towards the player as I go towards the split I know
+player as I go towards the split I know I'm going towards the other player
+I'm going towards the other player alright so how does that work
+alright so how does that work so we effectively figure out a screen
+so we effectively figure out a screen size directive how big is a the view
+size directive how big is a the view area that we want at the zoom depth that
+area that we want at the zoom depth that our artists want they'll yell at us if
+our artists want they'll yell at us if we zoom out and we figure out if we can
+we zoom out and we figure out if we can fit in it great if we can't comfortably
+fit in it great if we can't comfortably fit in it no problem we're going to
+fit in it no problem we're going to split the screen and so we can figure
+split the screen and so we can figure out a halfway point along the line
+out a halfway point along the line between us and make it perpendicular to
+between us and make it perpendicular to that point so here's the line between us
+that point so here's the line between us and then we make perpendicular to it and
+and then we make perpendicular to it and that's going to be the splitting edge
+that's going to be the splitting edge and then we can effectively move the
+and then we can effectively move the screens apart from each other
+screens apart from each other and so now we have player a gets his own
+and so now we have player a gets his own screen that's kind of more centered
+screen that's kind of more centered around him and player B gets his own
+around him and player B gets his own screen and they're just shoved away from
+screen and they're just shoved away from each other and then we
+each other and then we Composite those two screens using a
+Composite those two screens using a stencil and into one screen so we can
+stencil and into one screen so we can sort of see each other across the split
+sort of see each other across the split but you'll notice a and B are not
+but you'll notice a and B are not centered in their regions which is kind
+centered in their regions which is kind of annoying so we could then do
+of annoying so we could then do something where we recenter the players
+something where we recenter the players in their regions and then your direction
+in their regions and then your direction towards the edge is still the direction
+towards the edge is still the direction towards the other player and it's really
+towards the other player and it's really important that we have feathering when
+important that we have feathering when we make these transitions between the
+we make these transitions between the split screen and the regular screen
+split screen and the regular screen because actually this is what it looks
+because actually this is what it looks like here's me with the split screens
+like here's me with the split screens and as soon as I come within range it's
+and as soon as I come within range it's going to make this awful snap right
+going to make this awful snap right because it's going from a camera that's
+because it's going from a camera that's centered around the both of us to Tusa
+centered around the both of us to Tusa cameras that are centered around each of
+cameras that are centered around each of us so if I instead again use feathering
+us so if I instead again use feathering to sort of start easing so each view
+to sort of start easing so each view starts merging towards the combined view
+starts merging towards the combined view so that once they get close enough then
+so that once they get close enough then they're going to be the same they can
+they're going to be the same they can line up this is actually quite easy to
+line up this is actually quite easy to do and I recommend that you grab the
+do and I recommend that you grab the slides later and I have some
+slides later and I have some instructions in here on how to do them
+instructions in here on how to do them but effectively you're gonna break the
+but effectively you're gonna break the world into these Voronoi regions and
+world into these Voronoi regions and then you're gonna constrain that to the
+then you're gonna constrain that to the local area around the player the players
+local area around the player the players which is this neighborhood down here in
+which is this neighborhood down here in the left and then you're going to use
+the left and then you're going to use that as sort of the relative Division of
+that as sort of the relative Division of the screen above so if we're really far
+the screen above so if we're really far apart in the world then in the map above
+apart in the world then in the map above we're gonna be using that same shape
+we're gonna be using that same shape that was cutting below and then lastly
+that was cutting below and then lastly you can do this and I'm not sure if
+you can do this and I'm not sure if other games other than Lego Star Wars
+other games other than Lego Star Wars have done this but so far I haven't seen
+have done this but so far I haven't seen any games do this where you have three
+any games do this where you have three or more players so it actually works
+or more players so it actually works quite brilliantly you can just move
+quite brilliantly you can just move towards the screen and then these two
+towards the screen and then these two players are sharing a screen and these
+players are sharing a screen and these two players can move towards each other
+two players can move towards each other and they're sharing a screen and if we
+and they're sharing a screen and if we do something like this
+the screens will kind of divide and balance Howard they need to and you'll
+balance Howard they need to and you'll notice as a runs across the world and he
+notice as a runs across the world and he runs past B he joins with B and
+runs past B he joins with B and separates from B he joins with D and
+separates from B he joins with D and separates from D he joins with seen
+separates from D he joins with seen separates from C all right so that's all
+separates from C all right so that's all the time I have the slides do have the
+the time I have the slides do have the full information about how to create
+full information about how to create construct these regions and it's the
+construct these regions and it's the same technique where you're just
+same technique where you're just stitching together four different points
+stitching together four different points of view based on your relationship to
+of view based on your relationship to each other in the world and that becomes
+each other in the world and that becomes your screen relative to each other all
+your screen relative to each other all right thank you very much
+right thank you very much [Applause]

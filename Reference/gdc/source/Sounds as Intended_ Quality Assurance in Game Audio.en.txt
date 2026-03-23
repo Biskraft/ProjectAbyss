@@ -1,0 +1,711 @@
+[Music]
+first thing I want to do is say a handful of thank you I'll make it quick
+handful of thank you I'll make it quick um thank you Damen for mentoring this
+um thank you Damen for mentoring this talk thank you so much um thank you to
+talk thank you so much um thank you to Brian Schmidt and games sound con for
+Brian Schmidt and games sound con for allowing me to give an earlier iteration
+allowing me to give an earlier iteration of this talk at games sound con last
+of this talk at games sound con last year um and massive massive thank you to
+year um and massive massive thank you to both the audio and QA teams on Diablo 4
+both the audio and QA teams on Diablo 4 for listening to the absolutely
+for listening to the absolutely atrocious first version of this talk and
+atrocious first version of this talk and giving me all the feedback I needed to
+giving me all the feedback I needed to make it good for all of
+make it good for all of you all right let's
+you all right let's go so who am I why am I here talking to
+go so who am I why am I here talking to you about audio QA um I am a composer
+you about audio QA um I am a composer and sound designer in my own rate uh
+and sound designer in my own rate uh Amanda la music and sound I am currently
+Amanda la music and sound I am currently the audio QA subject matter expert on
+the audio QA subject matter expert on Diablo 4 at blizard entertainment
+Diablo 4 at blizard entertainment specifically blizzard Albany which used
+specifically blizzard Albany which used to be vicarious Visions uh prior to that
+to be vicarious Visions uh prior to that I was the audio test lead for Tony Hawk
+I was the audio test lead for Tony Hawk Pro Skater 1 and two at vicarious
+Pro Skater 1 and two at vicarious Visions I have an MFA and music
+Visions I have an MFA and music composition from the Vermont College of
+composition from the Vermont College of Fine Arts I'm a cat lover and a yarn
+Fine Arts I'm a cat lover and a yarn connoisseur you can see my my two cats
+connoisseur you can see my my two cats there realia and overon they are vital
+there realia and overon they are vital to the game development process uh my
+to the game development process uh my co-workers get a little bit disappointed
+co-workers get a little bit disappointed if they don't show up to our our morning
+if they don't show up to our our morning meetings uh a couple things I didn't put
+meetings uh a couple things I didn't put on here I am also the chair of the
+on here I am also the chair of the Albany igda and I am also one of the
+Albany igda and I am also one of the organizing members of gwa Albany which
+organizing members of gwa Albany which is our QA Union at blizzard
+ALB what is QA this apparently has been a Hot Topic today uh so QA stands for
+a Hot Topic today uh so QA stands for quality assurance and it is what it
+quality assurance and it is what it sounds like we want to assure the
+sounds like we want to assure the quality oh
+quality oh no
+no okay all right we want to assure the
+okay all right we want to assure the quality of the game what does that mean
+quality of the game what does that mean we want to make sure that everything
+we want to make sure that everything that has been designed is working the
+that has been designed is working the way it's supposed to and isn't working
+way it's supposed to and isn't working in any of the ways it's not supposed to
+in any of the ways it's not supposed to right and how do we do that we gather
+right and how do we do that we gather information we ask questions we author
+information we ask questions we author documentation to guide testing we find
+documentation to guide testing we find and Report defects also known as bugs
+and Report defects also known as bugs and then once bugs have been fixed we go
+and then once bugs have been fixed we go back and verify those fixes to make sure
+back and verify those fixes to make sure that they haven't broken anything
+that they haven't broken anything else um so this the image that I have
+else um so this the image that I have here is uh a screenshot of the playlist
+here is uh a screenshot of the playlist from Tony Hawks Pro Skater 1 and two and
+from Tony Hawks Pro Skater 1 and two and just a little bit about this it works
+just a little bit about this it works like an MP3 player on shuffle so things
+like an MP3 player on shuffle so things that we needed to test for it make sure
+that we needed to test for it make sure that it's random make sure that no songs
+that it's random make sure that no songs repeat until every song in the playlist
+repeat until every song in the playlist has been played make sure that you can
+has been played make sure that you can check and uncheck songs so that you can
+check and uncheck songs so that you can add and remove them from the playlist uh
+add and remove them from the playlist uh some other things we had to test the
+some other things we had to test the game had a t rating that means that we
+game had a t rating that means that we needed to make sure there was no
+needed to make sure there was no language in the lyrics that was going to
+language in the lyrics that was going to threaten that rating so that meant
+threaten that rating so that meant listening through making sure everything
+listening through making sure everything was properly bleeped properly censored
+was properly bleeped properly censored right uh in order to do that we created
+right uh in order to do that we created an audio test spec a glossery of terms
+an audio test spec a glossery of terms test pass a custom bug tracker for UI
+test pass a custom bug tracker for UI including instructions for testing
+including instructions for testing uh and so on I apologize my notes are on
+uh and so on I apologize my notes are on my phone because we couldn't make the
+my phone because we couldn't make the computer
+work all right moving on common misconceptions about QA what
+on common misconceptions about QA what is not QA there's a very common
+is not QA there's a very common misconception that QA and play testing
+misconception that QA and play testing are the same thing this is not true uh
+are the same thing this is not true uh while it is true that we organize and
+while it is true that we organize and participate in play tests uh we being QA
+participate in play tests uh we being QA testers it is not far from the bulk of
+testers it is not far from the bulk of our job it's it's kind of more of a rare
+our job it's it's kind of more of a rare thing to be honest with you uh we are
+thing to be honest with you uh we are not breaking the game we are merely
+not breaking the game we are merely exposing the ways in which it is already
+exposing the ways in which it is already broken uh we're also not fixing the game
+broken uh we're also not fixing the game we we we are not fixing the game we're
+we we we are not fixing the game we're just telling you how it's broken and
+just telling you how it's broken and then it's up to y'all to figure out how
+then it's up to y'all to figure out how to fix it uh it's not getting paid to
+to fix it uh it's not getting paid to play games all day a lot of the time
+play games all day a lot of the time we're not even really playing the game
+we're not even really playing the game not in a natural way that that that a
+not in a natural way that that that a human being would do it uh often we're
+human being would do it uh often we're actually testing in the engine or we're
+actually testing in the engine or we're looking at documentation uh a lot of
+looking at documentation uh a lot of time I spend test planning uh very
+time I spend test planning uh very rarely am I actually in the game playing
+rarely am I actually in the game playing the way a player would we cannot find
+the way a player would we cannot find every bug there are going to be things
+every bug there are going to be things that are only exposed in really unique
+that are only exposed in really unique circumstances there are going to be
+circumstances there are going to be situations where you need thousands upon
+situations where you need thousands upon thousands of players in order to expose
+thousands of players in order to expose a bug and you just you're not going to
+a bug and you just you're not going to have a QA team that big
+have a QA team that big so there're going to be thing every game
+so there're going to be thing every game ships with
+ships with bugs and not every bug that we find is
+bugs and not every bug that we find is going to get fixed and I have a couple
+going to get fixed and I have a couple little funny stories about that that's
+little funny stories about that that's that's why there's lobsters on the
+that's why there's lobsters on the screen right now
+screen right now so Diablo I resurrected I didn't
+so Diablo I resurrected I didn't actually really work on it I did a
+actually really work on it I did a little bit of testing support but there
+little bit of testing support but there was just the absolute funniest bug that
+was just the absolute funniest bug that someone wrote uh one of the testers had
+someone wrote uh one of the testers had actually grown up in the Caribbean and
+actually grown up in the Caribbean and knew the difference between a warm water
+knew the difference between a warm water and a cold water lobster and wrote a bug
+and a cold water lobster and wrote a bug that there were cold water lobsters
+that there were cold water lobsters being sold at a fishmonger in an area of
+being sold at a fishmonger in an area of the game that would have been warm water
+the game that would have been warm water area it's the wrong kind of lobster that
+area it's the wrong kind of lobster that didn't get
+didn't get fixed didn't get fixed uh and then
+fixed didn't get fixed uh and then another one down here is something that
+another one down here is something that also didn't get fixed in Tony Haw post
+also didn't get fixed in Tony Haw post skat 102 this is actually a bug I wrote
+skat 102 this is actually a bug I wrote myself and since this screenshot is just
+myself and since this screenshot is just from Google uh you know that it didn't
+from Google uh you know that it didn't get fixed so if you look at that little
+get fixed so if you look at that little uh con rete thing to the right of the
+uh con rete thing to the right of the screen there and you see how it's sort
+screen there and you see how it's sort of turned to the concrete does not do
+of turned to the concrete does not do that it doesn't work that way it'll bre
+that it doesn't work that way it'll bre it'll break it'll crack but it's not
+it'll break it'll crack but it's not just going to get picked up like floor
+just going to get picked up like floor tiles do that concrete doesn't do that I
+tiles do that concrete doesn't do that I know this because my dad does concrete
+know this because my dad does concrete for a living that didn't get fixed
+for a living that didn't get fixed either as you can
+see so audio QA and by that I mean a QA tester or testers who are specifically
+tester or testers who are specifically assigned to work on audio testing why do
+assigned to work on audio testing why do you want that specialization allows for
+you want that specialization allows for expertise when you have someone who is
+expertise when you have someone who is specifically trained in your audio tools
+specifically trained in your audio tools and in your engine you're going to get
+and in your engine you're going to get more and higher quality bug reports
+more and higher quality bug reports there's that doesn't mean that there's
+there's that doesn't mean that there's more bugs in your game that means that
+more bugs in your game that means that more of them are being exposed so that
+more of them are being exposed so that you can make more educated decisions
+you can make more educated decisions about what you want to
+about what you want to fix uh you'll get fewer dupes nmis wfs
+fix uh you'll get fewer dupes nmis wfs nmis meaning needs more information
+nmis meaning needs more information which is when you get a bug report that
+which is when you get a bug report that is incomplete and does not give you what
+is incomplete and does not give you what you need to actually fix the bug and you
+you need to actually fix the bug and you have to send it back and wait for the
+have to send it back and wait for the tester to go and add more information to
+tester to go and add more information to it wnf being a will not fix uh you don't
+it wnf being a will not fix uh you don't want them writing bugs for things that
+want them writing bugs for things that are actually intended
+are actually intended right a well-trained audio QA who
+right a well-trained audio QA who understands your system and your design
+understands your system and your design will also anticipate potential points of
+will also anticipate potential points of failure so one way that I did this when
+failure so one way that I did this when I was working on Tony Hawks Pro Skater
+I was working on Tony Hawks Pro Skater one and two is that I had found an area
+one and two is that I had found an area very early in development I had found an
+very early in development I had found an area that when you skated on it the
+area that when you skated on it the skate Loop did not play it just went
+skate Loop did not play it just went silent and I asked the audio team about
+silent and I asked the audio team about it and this was pre- pandemic so one of
+it and this was pre- pandemic so one of the sound designers came to my desk and
+the sound designers came to my desk and showed me in unreal the exact settings
+showed me in unreal the exact settings on that actor that were incorrect that
+on that actor that were incorrect that were causing the loop not to play and
+were causing the loop not to play and since I then had that information I was
+since I then had that information I was able to figure out that that was
+able to figure out that that was probably going to happen in a lot of
+probably going to happen in a lot of other places so because it was early
+other places so because it was early enough in development that I had a lot
+enough in development that I had a lot of I had a lot of free time I went
+of I had a lot of free time I went through every single level in the engine
+through every single level in the engine and I pulled up every single actor and I
+and I pulled up every single actor and I checked the Collision settings for all
+checked the Collision settings for all of them and I made a massive document
+of them and I made a massive document per
+per level with every actor that had
+level with every actor that had incorrect Collision settings and I sent
+incorrect Collision settings and I sent that off in bug reports and that got
+that off in bug reports and that got fixed so early that by the time the game
+fixed so early that by the time the game shipped we really didn't have that
+shipped we really didn't have that problem
+problem anymore um that also falls
+anymore um that also falls into understanding where the bug needs
+into understanding where the bug needs to go because that was actually a level
+to go because that was actually a level design bug it wasn't an audio bug and
+design bug it wasn't an audio bug and because that had been explained to me I
+because that had been explained to me I was able to send it right to the level
+was able to send it right to the level design team and the audio a team didn't
+design team and the audio a team didn't have to waste time looking at it and
+have to waste time looking at it and figuring it out that it wasn't up to
+figuring it out that it wasn't up to them to
+them to fix so a well-trained audio QA tester
+fix so a well-trained audio QA tester will also provide additional information
+will also provide additional information if they understand your middleware and
+if they understand your middleware and your engine they will give you specific
+your engine they will give you specific actor names specific file names specific
+actor names specific file names specific wise events they will capture wise
+wise events they will capture wise profiling sessions they will give you
+profiling sessions they will give you more information to make it easier and
+more information to make it easier and faster to fix your
+faster to fix your bugs uh audio QA can also gather
+bugs uh audio QA can also gather information and perform tasks for you if
+information and perform tasks for you if they know what they're doing uh when I
+they know what they're doing uh when I worked on Tony Hawks Pro Skater 1 and
+worked on Tony Hawks Pro Skater 1 and two I actually helped with some of the
+two I actually helped with some of the vo recording all of the exertion vo was
+vo recording all of the exertion vo was recorded with the exception of Tony Hawk
+recorded with the exception of Tony Hawk and Jack Black all of the other skaters
+and Jack Black all of the other skaters exertions were recorded in House at
+exertions were recorded in House at vicarious visions and I was able to help
+vicarious visions and I was able to help set that up and and uh facilitate those
+sessions what are the relationships that your audio QA tester has with different
+your audio QA tester has with different members of your audio
+members of your audio department well when it comes to design
+department well when it comes to design we need to know what your VIs and goals
+we need to know what your VIs and goals are we need to know what the theme of
+are we need to know what the theme of the game is what is the narrative what
+the game is what is the narrative what is the mood so that when we hear a sound
+is the mood so that when we hear a sound that isn't conveying that like Tony Hawk
+that isn't conveying that like Tony Hawk sounds a lot different than Diablo 4
+sounds a lot different than Diablo 4 right you don't want them to sound the
+right you don't want them to sound the same so we need to know what your vision
+same so we need to know what your vision and what your goals are when it comes to
+and what your goals are when it comes to implementation we need to understand
+implementation we need to understand your systems and your structure how do
+your systems and your structure how do these work how do these sounds work how
+these work how do these sounds work how are things set up and to be honest with
+are things set up and to be honest with you uh just the way that your middleware
+you uh just the way that your middleware just the way that your project is set up
+just the way that your project is set up and wise can inform our test passes a
+and wise can inform our test passes a lot I've actually directly used the wise
+lot I've actually directly used the wise project for games to inform the test
+project for games to inform the test passes that I've been writing to check
+passes that I've been writing to check functionality when it comes to
+functionality when it comes to engineering we need to understand how
+engineering we need to understand how the audio relates to other features how
+the audio relates to other features how it's set up is the sound on the VFX and
+it's set up is the sound on the VFX and then when the VFX doesn't play the
+then when the VFX doesn't play the sound's not going to play and then we
+sound's not going to play and then we understand that that's not an audio bug
+understand that that's not an audio bug it's a VFX bug so we're not wasting
+it's a VFX bug so we're not wasting audio's time with that again when it
+audio's time with that again when it comes to production we need to
+comes to production we need to understand the timeline and the state
+understand the timeline and the state that the work is in you don't want a
+that the work is in you don't want a million UI bugs for missing audio when
+million UI bugs for missing audio when you haven't actually started to create
+you haven't actually started to create your UI audio
+your UI audio yet and when it comes to other QA
+yet and when it comes to other QA testers other who are testing other
+testers other who are testing other features there is significant overlap in
+features there is significant overlap in testing you really don't want to have
+testing you really don't want to have your audio testers go through and retest
+your audio testers go through and retest features that have already been checked
+features that have already been checked for functionality and art and so on just
+for functionality and art and so on just listening to the audio it it it's very
+listening to the audio it it it's very redundant makes a lot more sense if you
+redundant makes a lot more sense if you can coordinate that testing so that
+can coordinate that testing so that everything's getting done at the same
+time What do we do all day what does QA actually do so now we understand the
+actually do so now we understand the goal of QA but what does the average day
+goal of QA but what does the average day in a tester's life look like so often
+in a tester's life look like so often we'll start the day with either a smoke
+we'll start the day with either a smoke test or a build verification test the
+test or a build verification test the the terms are interchangeable really uh
+the terms are interchangeable really uh and what that means is we'll get a
+and what that means is we'll get a nightly
+nightly build and we want to make sure that all
+build and we want to make sure that all the core functionality is available in
+the core functionality is available in that build we want to make sure you can
+that build we want to make sure you can get into the game want to make sure you
+get into the game want to make sure you can select a character want to make sure
+can select a character want to make sure you can move around and so on and these
+you can move around and so on and these tests will vary based on the project but
+tests will vary based on the project but you want to make sure the core
+you want to make sure the core functionality is there so that the build
+functionality is there so that the build is actually viable for other play tests
+is actually viable for other play tests that other teams may be doing and
+that other teams may be doing and further testing if it's not you need to
+further testing if it's not you need to roll back to a previous
+roll back to a previous build we'll do a lot of targeted ad hoc
+build we'll do a lot of targeted ad hoc uh ad hoc just means unguided testing
+uh ad hoc just means unguided testing means you're not following a test pass
+means you're not following a test pass you're just uh going through and playing
+you're just uh going through and playing the game sometimes the way a player
+the game sometimes the way a player would sometimes the way a player
+would sometimes the way a player wouldn't uh you're trying to access
+wouldn't uh you're trying to access areas that shouldn't have access to
+areas that shouldn't have access to trying to perform abilities that you
+trying to perform abilities that you shouldn't be able to perform trying to
+shouldn't be able to perform trying to use things that you shouldn't be able to
+use things that you shouldn't be able to use do things out of order see what
+use do things out of order see what happens when you do stuff that wasn't
+happens when you do stuff that wasn't intended in the design right because
+intended in the design right because often that you'll find things that are
+often that you'll find things that are broken the first bug I ever found when I
+broken the first bug I ever found when I was working on Tony Haw Pro Skater one
+was working on Tony Haw Pro Skater one and two I actually was able to there was
+and two I actually was able to there was an issue I think with the velocity of
+an issue I think with the velocity of the skate and I was able to get way
+the skate and I was able to get way higher than I should have but the bug I
+higher than I should have but the bug I actually wrote was that I was able to
+actually wrote was that I was able to jump up on top of a building and
+jump up on top of a building and actually fall right through it cuz I had
+actually fall right through it cuz I had no Collision
+no Collision so that the first bug I ever
+so that the first bug I ever wrote uh we create and maintain
+wrote uh we create and maintain documentation this is documentation
+documentation this is documentation relating to test but not always
+relating to test but not always sometimes the documentation that we
+sometimes the documentation that we create can be very very helpful to other
+create can be very very helpful to other departments um I created a bespoke bug
+departments um I created a bespoke bug tracker uh for UI audio bugs on Tony
+tracker uh for UI audio bugs on Tony Hawks Pro Skater 1 and2 at the request
+Hawks Pro Skater 1 and2 at the request of one of our sound designers which was
+of one of our sound designers which was very helpful to me to keep track of that
+very helpful to me to keep track of that work being done but also helpful to him
+work being done but also helpful to him we can also perform Dev requested tests
+we can also perform Dev requested tests and tasks so if you've just finished
+and tasks so if you've just finished work on the music for this part of the
+work on the music for this part of the game and you want to make sure that it's
+game and you want to make sure that it's all transitioning smoothly we can go and
+all transitioning smoothly we can go and do that and we can go do it in ways that
+do that and we can go do it in ways that you wouldn't want the player to do it
+you wouldn't want the player to do it and see what happens to the music when
+and see what happens to the music when we do that so you can get really intense
+we do that so you can get really intense testing on a specific
+testing on a specific feature uh we can also sometimes do
+feature uh we can also sometimes do tasks for you so like I said the vo
+tasks for you so like I said the vo recording thing uh I actually helped out
+recording thing uh I actually helped out with the batch material tagging for the
+with the batch material tagging for the skate system on Tony hawx Pro Skater 1
+skate system on Tony hawx Pro Skater 1 and two which saved a lot of time for
+and two which saved a lot of time for the sound
+the sound designers and test planning and
+designers and test planning and execution uh test planning is the art of
+execution uh test planning is the art of actually figuring out what is to be
+actually figuring out what is to be tested how you're going to do it what
+tested how you're going to do it what the prerequisites are what the actual
+the prerequisites are what the actual steps for executing the test are what
+steps for executing the test are what the expected results are uh and
+the expected results are uh and execution is actually performing that
+execution is actually performing that test writing any bugs that come up and
+test writing any bugs that come up and passing or failing the cases and
+passing or failing the cases and generating reports on the state that the
+generating reports on the state that the game is in we also perform confirmation
+game is in we also perform confirmation and verification so once a bug is marked
+and verification so once a bug is marked fixed the that's not the end of the
+fixed the that's not the end of the story there's a couple things that we
+story there's a couple things that we need to do for one we need to make sure
+need to do for one we need to make sure the fix actually
+the fix actually worked sometimes it
+worked sometimes it doesn't and we also need to make sure
+doesn't and we also need to make sure that it didn't break anything else
+that it didn't break anything else because that can also
+happen so Dev requests what can you ask your QA to do we can gather information
+your QA to do we can gather information for you we can we can do media capture
+for you we can we can do media capture uh we can tell you how to trigger
+uh we can tell you how to trigger certain events how to get to a certain
+certain events how to get to a certain part of the game how to put the the game
+part of the game how to put the the game in a specific State um I remember on
+in a specific State um I remember on Tony Haw PR Skater 1 and 2 I was asked
+Tony Haw PR Skater 1 and 2 I was asked hey is there a way to set this up so
+hey is there a way to set this up so that my character always spawns at the
+that my character always spawns at the top of this building and I was able to
+top of this building and I was able to figure out that you could move the the
+figure out that you could move the the player start location if you were in the
+player start location if you were in the engine you could move it wherever you
+engine you could move it wherever you wanted it and just make sure not to
+wanted it and just make sure not to check it in um we write bugs so you can
+check it in um we write bugs so you can ask us to write bugs if you find
+ask us to write bugs if you find something please ask us to write bugs
+something please ask us to write bugs please don't do it yourself because if
+please don't do it yourself because if you haven't been trained in QA you
+you haven't been trained in QA you probably don't know what is needed in
+probably don't know what is needed in that bug and what's going to happen is
+that bug and what's going to happen is that's going to get sent back to QA and
+that's going to get sent back to QA and they're not going to know what you're
+they're not going to know what you're talking about either uh so then they're
+talking about either uh so then they're going to come and pester you so you're
+going to come and pester you so you're much better off just reaching out
+much better off just reaching out directly to your QA and saying hey I
+directly to your QA and saying hey I found this weird thing can you go
+found this weird thing can you go investigate it and write it up and we'll
+investigate it and write it up and we'll be happy to do that for
+be happy to do that for you again you can ask us to test
+you again you can ask us to test specific features or areas we're going
+specific features or areas we're going to do that anyway but if you've just
+to do that anyway but if you've just completed something and you want stress
+completed something and you want stress testing on it or you have priority that
+testing on it or you have priority that you want to make sure it gets done uh
+you want to make sure it gets done uh you can definitely reach out to us
+you can definitely reach out to us anytime time and let us know we can
+anytime time and let us know we can answer questions for you so QA touches
+answer questions for you so QA touches every part of the game right audio
+every part of the game right audio touches every part of the game every
+touches every part of the game every feature makes a sound that means that QA
+feature makes a sound that means that QA needs to understand how to test pretty
+needs to understand how to test pretty much every feature of the game and to be
+much every feature of the game and to be honest with you we spend a lot of time
+honest with you we spend a lot of time testing things that aren't audio too so
+testing things that aren't audio too so we often know how to how to start that
+we often know how to how to start that Quest how to get to that location where
+Quest how to get to that location where that character is so if how that debug
+that character is so if how that debug functionality works right uh so please
+functionality works right uh so please reach out ask questions we can often get
+reach out ask questions we can often get you that information really fast and
+you that information really fast and even if we don't know we usually know
+even if we don't know we usually know who to ask and again helping with Dev
+who to ask and again helping with Dev tasks like the vo recording and the
+tasks like the vo recording and the batch material
+tagging how do we make this work how do you get the most from your relationship
+you get the most from your relationship with audio QA help us help you invest in
+with audio QA help us help you invest in your QA testers create
+your QA testers create documentation and maintain it invest the
+documentation and maintain it invest the time to sit down with your audio QA
+time to sit down with your audio QA point of contact and walk them through
+point of contact and walk them through your wise project or your f mod project
+your wise project or your f mod project walk them through how things are set up
+walk them through how things are set up in the engine take the time to answer
+in the engine take the time to answer their questions give them tasks and
+their questions give them tasks and testing that often helps we are capable
+testing that often helps we are capable of doing things on our own but having
+of doing things on our own but having that guidance of knowing where you need
+that guidance of knowing where you need our attention the most helps us as much
+our attention the most helps us as much as it helps you it helps us make sure
+as it helps you it helps us make sure that we are focused on what we need to
+that we are focused on what we need to be focused on maintain open
+be focused on maintain open communication answer questions ask
+communication answer questions ask questions uh invite your QA into your
+questions uh invite your QA into your Slack panels invite them to all of the
+Slack panels invite them to all of the relevant meetings invite them to your
+relevant meetings invite them to your Sprint planning and uh do triage bug
+Sprint planning and uh do triage bug triage with them invite them to some of
+triage with them invite them to some of your Social meetings create thorough
+your Social meetings create thorough up-to-date documentation create thorough
+up-to-date documentation create thorough upto-date
+upto-date documentation and maintain it please
+documentation and maintain it please please
+please please build strong relationships you
+please build strong relationships you know build friendships
+know build friendships collaboration uh and advocate for your
+collaboration uh and advocate for your QA it's it's not really a secret that QA
+QA it's it's not really a secret that QA in the industry isn't always treated
+in the industry isn't always treated very well and I think that the
+very well and I think that the misconceptions around it contribute to
+misconceptions around it contribute to that the idea that oh you're just you're
+that the idea that oh you're just you're just getting paid to play games all day
+just getting paid to play games all day no so please advocate for your QA if you
+no so please advocate for your QA if you don't have full-time QA please advocate
+don't have full-time QA please advocate for your company creating full-time
+for your company creating full-time positions if your QA is not paid well
+positions if your QA is not paid well enough if your QA doesn't have benefits
+enough if your QA doesn't have benefits if your QA is not allowed to talk to
+if your QA is not allowed to talk to developers um which tends to be more of
+developers um which tends to be more of a publishing QA thing than a developer
+a publishing QA thing than a developer QA thing so there is a difference
+QA thing so there is a difference between those two and I had it in my
+between those two and I had it in my notes to tell you but since I don't have
+notes to tell you but since I don't have my notes I forgot to tell you that so
+my notes I forgot to tell you that so publishing QA comes at a much later
+publishing QA comes at a much later stage and doesn't have as much
+stage and doesn't have as much interaction whereas development QA is
+interaction whereas development QA is there from the very beginning and is in
+there from the very beginning and is in constant contact with the
+constant contact with the developers
+developers and contact and
+and contact and memes I think I kind of rushed through
+memes I think I kind of rushed through this because again I didn't have my
+this because again I didn't have my notes so
+notes so sorry uh does anyone have
+sorry uh does anyone have questions
+questions [Applause]
+[Applause] hi for the how to write a QA bug reports
+hi for the how to write a QA bug reports do you have any resources that could be
+do you have any resources that could be helpful for proper language or proper
+helpful for proper language or proper orientation for those type of bug
+orientation for those type of bug reports so they don't get bounced back
+reports so they don't get bounced back and forth between Dev and QA so it's
+and forth between Dev and QA so it's going to vary a lot based on your
+going to vary a lot based on your project and the type of information that
+project and the type of information that is needed for your project um our bug
+is needed for your project um our bug reports for Tony Hawk different than our
+reports for Tony Hawk different than our bug reports for Diablo 4 but the core
+bug reports for Diablo 4 but the core things that you need to have you need to
+things that you need to have you need to know what build you're on what branch
+know what build you're on what branch you're on you need Repro steps and you
+you're on you need Repro steps and you need detailed Repro steps not just go to
+need detailed Repro steps not just go to this place and do this thing but be be
+this place and do this thing but be be specific if you're using a debug tool
+specific if you're using a debug tool indicate how to access that tool and how
+indicate how to access that tool and how to do it give exact coordinates for
+to do it give exact coordinates for where in the game you are uh be as
+where in the game you are uh be as precise as possible whenever you can uh
+precise as possible whenever you can uh you should also include your expected
+you should also include your expected results of what you thought was going to
+results of what you thought was going to happen when you encountered this bug as
+happen when you encountered this bug as well as your actual results results of
+well as your actual results results of what actually happened keywords can also
+what actually happened keywords can also help to make your bugs more searchable
+help to make your bugs more searchable especially on a really large project
+especially on a really large project that has thousands upon thousands of
+that has thousands upon thousands of bugs uh media capture is very important
+bugs uh media capture is very important if a screenshot is sufficient if it's
+if a screenshot is sufficient if it's just an art bug where a screenshot shows
+just an art bug where a screenshot shows the problem in full that's great video
+the problem in full that's great video is
+better and any other information that you might need the team that's going to
+you might need the team that's going to work on it uh and so on awesome thank
+work on it uh and so on awesome thank you
+you yeah hey how's it going good how are you
+yeah hey how's it going good how are you yeah good um I was just wondering if
+yeah good um I was just wondering if there's ever any um U I don't know if
+there's ever any um U I don't know if this is like technically bugs but um
+this is like technically bugs but um like kind of mix issues that might come
+like kind of mix issues that might come into play like if I've made a um song
+into play like if I've made a um song and there's like certain amount of
+and there's like certain amount of highend and then this sound designer has
+highend and then this sound designer has made some sound effects and they're all
+made some sound effects and they're all like really harsh as well and those two
+like really harsh as well and those two things are clashing if you would ever be
+things are clashing if you would ever be like oh this is it is that a bug or is
+like oh this is it is that a bug or is that a mix issue or who would kind of
+that a mix issue or who would kind of look at that yeah so if we encounter
+look at that yeah so if we encounter something and we're not sure if it's
+something and we're not sure if it's intended or not best practice is to get
+intended or not best practice is to get a capture of it a video of it send it to
+a capture of it a video of it send it to the design team and say is this intended
+the design team and say is this intended is this what you want right we're not
+is this what you want right we're not here to judge your work we're not here
+here to judge your work we're not here to tell you we hate it we're not here to
+to tell you we hate it we're not here to tell you that you're doing it wrong we
+tell you that you're doing it wrong we want to make sure that the vision you're
+want to make sure that the vision you're trying to convey is what is actually
+trying to convey is what is actually getting across so often we may run into
+getting across so often we may run into something where we're not sure what the
+something where we're not sure what the intended functionality is and the proper
+intended functionality is and the proper practice is to ask great thank you
+practice is to ask great thank you you're
+you're welcome thank you for your talk if if
+welcome thank you for your talk if if you were to hire an audio QA would you
+you were to hire an audio QA would you look for someone in audio with an
+look for someone in audio with an interest in QA or someone in QA with an
+interest in QA or someone in QA with an interest of audio or
+interest of audio or neither well I can tell you how I got
+neither well I can tell you how I got hired which is that uh I had more of a
+hired which is that uh I had more of a background in audio and I was applying
+background in audio and I was applying for a QA job and that was actually what
+for a QA job and that was actually what got me hired for Tony Hawk because I
+got me hired for Tony Hawk because I happened to apply at exactly the right
+happened to apply at exactly the right time that they were looking for an audio
+time that they were looking for an audio tester so the way that vicarious visions
+tester so the way that vicarious visions and blizzard hire is not to list a
+and blizzard hire is not to list a specific audio QA position it's it's
+specific audio QA position it's it's just hiring generic QA
+just hiring generic QA but I have helped hire candidates before
+but I have helped hire candidates before I've helped interview candidates before
+I've helped interview candidates before and we do look for folks who have
+and we do look for folks who have specific interests um because that means
+specific interests um because that means that they may have more knowledge that
+that they may have more knowledge that can be applicable to testing those areas
+can be applicable to testing those areas and they'll have more interest in be
+and they'll have more interest in be paying more attention to those areas
+paying more attention to those areas so I don't know that I've really
+so I don't know that I've really answered your question but I'm also not
+answered your question but I'm also not in a hiring capacity so it's a little
+in a hiring capacity so it's a little hard to say but uh I was primarily an
+hard to say but uh I was primarily an audio person who was applying for a QA
+audio person who was applying for a QA job if that helps it helps thank you
+job if that helps it helps thank you you're
+you're welcome um thank you for your talk and I
+welcome um thank you for your talk and I was just curious that if you have any
+was just curious that if you have any standards for um listening environment
+standards for um listening environment for audio C in your team could you
+for audio C in your team could you clarify a little bit what you mean like
+clarify a little bit what you mean like um some people can you know listen on
+um some people can you know listen on headphones or speakers or surround
+headphones or speakers or surround systems and I was just um wondering if
+systems and I was just um wondering if um you guys have some kind of
+um you guys have some kind of standardization in your um team so most
+standardization in your um team so most testers will be listening on headphones
+testers will be listening on headphones um particularly if they're in like a big
+um particularly if they're in like a big QA room they'll have to be on headphones
+QA room they'll have to be on headphones right you're not going to hear anything
+right you're not going to hear anything but when it comes to whatever formats
+but when it comes to whatever formats we're shipping in we want to make sure
+we're shipping in we want to make sure we're testing in so you will have some
+we're testing in so you will have some kind of a setup whether it's at the
+kind of a setup whether it's at the studio or like I have a surround setup
+studio or like I have a surround setup that was sent to me that I need to
+that was sent to me that I need to finish assembling when I get back home
+finish assembling when I get back home to be able to test on surround so you do
+to be able to test on surround so you do want to test in every format that you're
+want to test in every format that you're shipping in but probably not every
+shipping in but probably not every tester is going to have access to those
+tester is going to have access to those formats okay thank
+you hi perhaps this question has already been um dealt with a little bit but um
+been um dealt with a little bit but um for those who already have some QA
+for those who already have some QA experience maybe outside of audio QA um
+experience maybe outside of audio QA um I have work work experien in like
+I have work work experien in like software QA or perhaps they're a game
+software QA or perhaps they're a game tester QA but not for audio what would
+tester QA but not for audio what would you suggest the skills they would want
+you suggest the skills they would want to have besides obviously audio
+to have besides obviously audio knowledge to say work in what you're
+knowledge to say work in what you're doing um and and what would what would
+doing um and and what would what would you recommend for them to
+you recommend for them to know I think a knowledge of middleware
+know I think a knowledge of middleware and knowledge of game engine and again
+and knowledge of game engine and again those doesn't have to be the exact
+those doesn't have to be the exact middleware or engine that's being used
+middleware or engine that's being used like for example Diablo 4 is in a
+like for example Diablo 4 is in a proprietary engine so there is no
+proprietary engine so there is no knowing that engine before you work on
+knowing that engine before you work on that project for an example but having a
+that project for an example but having a base knowledge of other engines it's the
+base knowledge of other engines it's the same thing is like knowing one Daw you
+same thing is like knowing one Daw you can kind of you can kind of figure out
+can kind of you can kind of figure out the other ones from there right so you
+the other ones from there right so you want to have some experience with engine
+want to have some experience with engine you want to have some experience with
+you want to have some experience with middleware and you definitely want to
+middleware and you definitely want to have some experience in QA if you can uh
+have some experience in QA if you can uh I I I I don't think I can get much more
+I I I I don't think I can get much more specific than that because every project
+specific than that because every project is so different and every team works so
+is so different and every team works so differently thank you you're
+welcome there it is hi um that was that was a great talking I was uh taking some
+was a great talking I was uh taking some uh rigorous crazy notes um you mentioned
+uh rigorous crazy notes um you mentioned earlier about the uh the way the wise
+earlier about the uh the way the wise project is being set up um kind of help
+project is being set up um kind of help can kind of help with that and I was
+can kind of help with that and I was wondering if you have any like uh best
+wondering if you have any like uh best practices or suggestions when setting up
+practices or suggestions when setting up a wise project as not the QA person but
+a wise project as not the QA person but as like the um one of the main sound
+as like the um one of the main sound designers or one of the main people
+designers or one of the main people setting up the project are there any
+setting up the project are there any best practices when setting that kind of
+best practices when setting that kind of project up so it can be easily read and
+project up so it can be easily read and understood I think it'll be the same
+understood I think it'll be the same practices as uh you know if you're
+practices as uh you know if you're working with other sound designers
+working with other sound designers wanting to set things up in a way that
+wanting to set things up in a way that is clear and it's the same thing right
+is clear and it's the same thing right so you're you're going to want to train
+so you're you're going to want to train your QA to understand how your project
+your QA to understand how your project is set up so it's more that you want to
+is set up so it's more that you want to educate them on how you've done things
+educate them on how you've done things rather than trying to tailor what you're
+rather than trying to tailor what you're doing to them but the more clear and
+doing to them but the more clear and readable and the more sense it makes
+readable and the more sense it makes obviously the easier it'll be so it's
+obviously the easier it'll be so it's more about taking the time to train your
+more about taking the time to train your QA on how you've set up your project
+QA on how you've set up your project versus tailoring your project to your QA
+versus tailoring your project to your QA person person ah okay thank you you're
+person person ah okay thank you you're welcome hey Amanda thanks for sharing
+welcome hey Amanda thanks for sharing all the inside um as someone that fixes
+all the inside um as someone that fixes a lot of audio bugs uh let me tell you
+a lot of audio bugs uh let me tell you how valuable I think two services are
+how valuable I think two services are that you that you provide one is
+that you that you provide one is regression testing to ask you folks to
+regression testing to ask you folks to tell me exactly which code change or
+tell me exactly which code change or asset change made the bug appear is
+asset change made the bug appear is dramatically valuable because I can
+dramatically valuable because I can super surgically know that is the Delta
+super surgically know that is the Delta that I can investigate and fix this the
+that I can investigate and fix this the other thing is that I constantly ask QA
+other thing is that I constantly ask QA is to reproduce the bug in the simplest
+is to reproduce the bug in the simplest form ever like if you are on the fifth
+form ever like if you are on the fifth mission in the third level after
+mission in the third level after leveling like go into the test map do
+leveling like go into the test map do this console command there's your bug
+this console command there's your bug that is such a good valuable thing that
+that is such a good valuable thing that you provide as well so thanks for that
+you provide as well so thanks for that yes definitely that is a really good
+yes definitely that is a really good point sometimes you'll you'll run into a
+point sometimes you'll you'll run into a bug really deep into gameplay but but
+bug really deep into gameplay but but you don't need to get that deep into you
+you don't need to get that deep into you don't simplify it right keep the steps
+don't simplify it right keep the steps as simple as possible make it as
+as simple as possible make it as reproducible as possible
+reproducible as possible definitely awesome there any more
+definitely awesome there any more questions I'm sorry the talk was so
+questions I'm sorry the talk was so short I had other things I was going to
+short I had other things I was going to talk about but I didn't have my
+notes thank
+[Music] you

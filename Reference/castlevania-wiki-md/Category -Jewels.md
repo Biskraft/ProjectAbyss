@@ -1,0 +1,3 @@
+# Category:Jewels
+
+Category: Accessories

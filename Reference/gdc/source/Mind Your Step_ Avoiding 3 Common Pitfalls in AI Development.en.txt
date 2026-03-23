@@ -1,0 +1,788 @@
+[Music] hi everybody all right - step abouting
+hi everybody all right - step abouting three common pitfalls kneei development
+three common pitfalls kneei development this is a talk for beginners as they've
+this is a talk for beginners as they've said for people who start out my name is
+said for people who start out my name is Sam Miller a reference insomniac games
+Sam Miller a reference insomniac games as a senior engineer these are some of
+as a senior engineer these are some of the games that we shipped in the last
+the games that we shipped in the last five years what was working there the
+five years what was working there the last game I worked on is sunset
+last game I worked on is sunset overdrive for Xbox one
+overdrive for Xbox one excellent game if you haven't played it
+excellent game if you haven't played it you should check it out we have a bunch
+you should check it out we have a bunch of games coming out actually at Ratchet
+of games coming out actually at Ratchet and Clank is coming out for ps4 looks
+and Clank is coming out for ps4 looks amazing you should buy it next month
+amazing you should buy it next month some of the deepest in development and
+some of the deepest in development and for oculus rift we're working on the
+for oculus rift we're working on the edge of nowhere but I'm not going to
+edge of nowhere but I'm not going to talk about any of these or kind of about
+talk about any of these or kind of about all of these most of my examples will
+all of these most of my examples will become sunset overdrive all right
+become sunset overdrive all right mind your step is about high-level AI
+mind your step is about high-level AI design ideas it is for beginners it is
+design ideas it is for beginners it is for all experience levels for
+for all experience levels for programmers and designers there is no
+programmers and designers there is no programming in here that is nope
+programming in here that is nope pseudocode it is divided into three
+pseudocode it is divided into three parts the first part is called URI I
+parts the first part is called URI I does not excel in the abstraction
+does not excel in the abstraction generic the second part the body I is
+generic the second part the body I is not your friend
+not your friend in the last part escalation is the
+in the last part escalation is the mother of all challenge but overall this
+mother of all challenge but overall this talk is really about memorable
+talk is really about memorable experiences and how to make AI that's
+experiences and how to make AI that's memorable and that carries your game and
+memorable and that carries your game and there's only one number and this whole
+there's only one number and this whole talk that I would like you to take away
+talk that I would like you to take away which is 50% 50% is how much more
+which is 50% 50% is how much more memorable you I should be if you do all
+memorable you I should be if you do all this where's it's not doing all these
+this where's it's not doing all these things I'm talking about alright first
+things I'm talking about alright first part your eye does not excel in the at
+part your eye does not excel in the at second generic or how to create
+second generic or how to create memorable behavior so the idea is you
+memorable behavior so the idea is you start out on the new game you work on a
+start out on the new game you work on a new agent and you're asked to make
+new agent and you're asked to make something unique and something memorable
+something unique and something memorable because the eye has to carry the game
+because the eye has to carry the game bringing the players engage them and you
+bringing the players engage them and you might have some existing code you might
+might have some existing code you might have a database we have shared code
+have a database we have shared code library and summer games with behaviors
+library and summer games with behaviors behavior trees all the base code that
+behavior trees all the base code that you can reuse for other projects and you
+you can reuse for other projects and you might want to mix and match those
+might want to mix and match those behaviors
+behaviors to create something new and the pitfall
+to create something new and the pitfall here is simply to fail to create
+here is simply to fail to create something unique from abstract systems
+something unique from abstract systems and I will explain that I'm going so if
+and I will explain that I'm going so if there's an example might look very
+there's an example might look very different in your game and it's also
+different in your game and it's also just prerequisites I will go through
+just prerequisites I will go through this pretty quickly because we will get
+this pretty quickly because we will get to the interesting card later on let's
+to the interesting card later on let's say you have some some collection of
+say you have some some collection of components or just mechanisms in your
+components or just mechanisms in your system maybe it's just design documents
+system maybe it's just design documents you have some movement components some
+you have some movement components some awareness some combat components and it
+awareness some combat components and it might look like something like this so
+might look like something like this so you have some walking some flying some
+you have some walking some flying some swimming you have line of sight
+swimming you have line of sight awareness on the awareness and audio
+awareness on the awareness and audio bareness and you have ranged combat Mele
+bareness and you have ranged combat Mele combat and area-of-effect attacks and
+combat and area-of-effect attacks and then you can combine these right you can
+then you can combine these right you can say okay I want to create a bot that is
+say okay I want to create a bot that is flying that has line-of-sight awareness
+flying that has line-of-sight awareness and has an area of effect attack and
+and has an area of effect attack and that might be something like a dragon it
+that might be something like a dragon it flies over you sees the player shoots
+flies over you sees the player shoots fire or you go ahead and you create
+fire or you go ahead and you create something like it's walking it adheres
+something like it's walking it adheres you it listens to your footsteps and
+you it listens to your footsteps and then melee attacks you that might be
+then melee attacks you that might be something like a clicker from the last
+something like a clicker from the last of us through all of these components
+of us through all of these components you can create all kinds of different
+you can create all kinds of different bots on to all kinds of different
+bots on to all kinds of different behaviors and that's great that's super
+behaviors and that's great that's super efficient that's how programmers should
+efficient that's how programmers should think right you reuse what's there
+think right you reuse what's there the issue is none of these deals at all
+the issue is none of these deals at all with how the player experiences your AI
+with how the player experiences your AI you have no idea whether you made two
+you have no idea whether you made two BOTS that are actually different for the
+BOTS that are actually different for the player or just different on paper so to
+player or just different on paper so to look at it a little closer you have to
+look at it a little closer you have to put on your designer hat and you have it
+put on your designer hat and you have it looking to have to look at mechanics how
+looking to have to look at mechanics how does the player actually interact with
+does the player actually interact with your AI and that might be looking
+your AI and that might be looking something like this
+something like this you think about the player you think
+you think about the player you think about okay the player has to catch up
+about okay the player has to catch up flag or run away the player has to take
+flag or run away the player has to take cover or move really fast or strafe to
+cover or move really fast or strafe to break one of site or break awareness of
+break one of site or break awareness of the eye or the player has to run in
+the eye or the player has to run in Ghana or get close up or snipe from a
+Ghana or get close up or snipe from a distance and now you can combine the
+distance and now you can combine the mechanics from the player's perspective
+mechanics from the player's perspective and say okay I want to create an AI that
+and say okay I want to create an AI that you have to flank then you have to take
+you have to flank then you have to take cover and snipe from the side and that
+cover and snipe from the side and that might be an enemy that's really strong
+might be an enemy that's really strong at the front or really strong and close
+at the front or really strong and close range or you say okay I want to catch up
+range or you say okay I want to catch up with
+with be really fast and running kind of down
+be really fast and running kind of down that might be in the eye that is harder
+that might be in the eye that is harder and harder over time and that you have
+and harder over time and that you have to take out fast this helps you this
+to take out fast this helps you this helps you to really understand what the
+helps you to really understand what the players doing right whether the
+players doing right whether the experience is unique for the player and
+experience is unique for the player and whether wanting I placed it from lead
+whether wanting I placed it from lead another I already in planning phase but
+another I already in planning phase but is it memorable and what does it mean to
+is it memorable and what does it mean to be memorable do you need a category of
+be memorable do you need a category of memorable mechanics and what would be in
+memorable mechanics and what would be in here I would put it be like literally
+here I would put it be like literally memories that you put in here and the
+memories that you put in here and the player generates those somehow so to
+player generates those somehow so to answer these questions I have to go a
+answer these questions I have to go a little bit into neuroscience when you
+little bit into neuroscience when you read about memory and how memories are
+read about memory and how memories are created and how memory is getting
+created and how memory is getting getting stronger you will find that cat
+getting stronger you will find that cat pictures are really memorable and that
+pictures are really memorable and that you should have them in all your
+you should have them in all your presentations and I assume this worked
+presentations and I assume this worked I assume this picture is more memorable
+I assume this picture is more memorable in the last 20 slides because either you
+in the last 20 slides because either you love cats and this is cute and you think
+love cats and this is cute and you think it's a good idea or I think this is
+it's a good idea or I think this is stupid I shouldn't have done this and
+stupid I shouldn't have done this and you hate cats or allergic or something
+you hate cats or allergic or something either way you probably have an
+either way you probably have an emotional reaction to the cat picture
+emotional reaction to the cat picture because when you do read into the
+because when you do read into the neuroscience you will hear the term
+neuroscience you will hear the term emotional arousal a lot it's a very
+emotional arousal a lot it's a very general purpose term it basically just
+general purpose term it basically just means anything that is off your neutral
+means anything that is off your neutral zone anything that gets you out of your
+zone anything that gets you out of your comfort zone positively or negatively
+comfort zone positively or negatively the the father of research in this
+the the father of research in this professor James McGraw he's actually
+professor James McGraw he's actually California local and he started studying
+California local and he started studying this decades ago ago memory and emotion
+this decades ago ago memory and emotion is one of the books that he can read up
+is one of the books that he can read up on this and basically what he did is he
+on this and basically what he did is he took two groups one of them were looking
+took two groups one of them were looking at kitchen sink objects and the other
+at kitchen sink objects and the other group was looking at emotional arousing
+group was looking at emotional arousing things like dangerous animals or crashes
+things like dangerous animals or crashes usually at bodies stuff like that and
+usually at bodies stuff like that and then he asked afterwards how many of
+then he asked afterwards how many of these pictures do you recall do you
+these pictures do you recall do you actually remember what you saw and the
+actually remember what you saw and the result was something like this neutral
+result was something like this neutral objects and arousing objects the
+objects and arousing objects the arousing objects were a little bit more
+arousing objects were a little bit more memorable about 20 percent not 50 what
+memorable about 20 percent not 50 what 20 percent so he said yeah there is a
+20 percent so he said yeah there is a connection between emotional arousing
+connection between emotional arousing thing
+thing in memory and he also said stress
+in memory and he also said stress hormones can strengthen that memory
+hormones can strengthen that memory which just means like this picture is
+which just means like this picture is memorable but this might be more
+memorable but this might be more memorable especially if you actually
+memorable especially if you actually encountered in nature it's all the
+encountered in nature it's all the reason why I will remember this talk
+reason why I will remember this talk more than you and I will talk about it
+more than you and I will talk about it later some more so thinking about all
+later some more so thinking about all this what does it mean for gameplay when
+this what does it mean for gameplay when you think about emotional games you will
+you think about emotional games you will probably come up with a bunch of
+probably come up with a bunch of cutscenes you will come up with moments
+cutscenes you will come up with moments that had like set these moments where
+that had like set these moments where someone was dying that you were fond of
+someone was dying that you were fond of and you will not find a lot of gameplay
+and you will not find a lot of gameplay but maybe some and I will bring some
+but maybe some and I will bring some examples of how we do emotions in game
+examples of how we do emotions in game play these are goals these are the red
+play these are goals these are the red green and blue the simple emotions
+green and blue the simple emotions positive emotions synergy is the emotion
+positive emotions synergy is the emotion of working together and their version is
+of working together and their version is a negative emotion and by goals I mean
+a negative emotion and by goals I mean the player might not like what you do he
+the player might not like what you do he might disagree so you might want to try
+might disagree so you might want to try to do something likeable and huge and
+to do something likeable and huge and the player thinks it's stupid or you
+the player thinks it's stupid or you might do something that's supposed to be
+might do something that's supposed to be aggressive and nasty and the play I
+aggressive and nasty and the play I think it's really cool but at least you
+think it's really cool but at least you get some kind of emotional reaction
+get some kind of emotional reaction which as we learned it's better than no
+which as we learned it's better than no reaction so affection positive emotions
+reaction so affection positive emotions what do you want to do is you want to
+what do you want to do is you want to create some bonding moments right you
+create some bonding moments right you want to have lovable behavior sounds
+want to have lovable behavior sounds funny but one of my first memories of
+funny but one of my first memories of games that I like still have in my mind
+games that I like still have in my mind it's not quite true one of the first
+it's not quite true one of the first memories of this was 12 years ago and
+memories of this was 12 years ago and half-life 2 you met Dawg the big
+half-life 2 you met Dawg the big mechanic robot and he looked kind of
+mechanic robot and he looked kind of scary and the first thing you did with
+scary and the first thing you did with him is you played fetch you were
+him is you played fetch you were shooting a metal ball and he fetched it
+shooting a metal ball and he fetched it father
+father it caught it and brought it back to you
+it caught it and brought it back to you and you learn the mechanics and you
+and you learn the mechanics and you learn to fall in love with that
+learn to fall in love with that companion ai and we basically insensate
+companion ai and we basically insensate overdrive last game I worked on we
+overdrive last game I worked on we basically just stole that idea we we had
+basically just stole that idea we we had a dog robot that actually looked like a
+a dog robot that actually looked like a dog and when you met him you learn to
+dog and when you met him you learn to love them I will show video of that and
+love them I will show video of that and there's no audio voice in all you
+there's no audio voice in all you yeah you like playing fetch you want me
+yeah you like playing fetch you want me to throw this thing for you
+to throw this thing for you hmm how can I make this fun for me too
+hmm how can I make this fun for me too how about
+yeah yeah hey Sam I got this stupid dog excited now how do i reboot it
+excited now how do i reboot it what's happy not the best news to break
+what's happy not the best news to break to you but Margaret has to do that here
+to you but Margaret has to do that here all right so what do we do there well
+all right so what do we do there well there's obviously the plain things like
+there's obviously the plain things like it's friendly looking right it looks
+it's friendly looking right it looks like Hello Kitty or something but
+like Hello Kitty or something but there's a lot of behavior about this dog
+there's a lot of behavior about this dog that tries to make it look friendly to
+that tries to make it look friendly to the player in wags as the years as wax
+the player in wags as the years as wax its tail it does a little happy dance
+its tail it does a little happy dance whenever you interact with it
+whenever you interact with it it actually looks for attention it barks
+it actually looks for attention it barks at the player and looks at the player
+at the player and looks at the player and tries to get your attention when you
+and tries to get your attention when you look away all these things are trying to
+look away all these things are trying to get the player to fall in love with the
+get the player to fall in love with the eye and play with it the second example
+eye and play with it the second example is synergy it's one of my favorite
+is synergy it's one of my favorite things actually in games it's the
+things actually in games it's the feeling of collaboration and working
+feeling of collaboration and working together and codependence it doesn't
+together and codependence it doesn't happen very often but when it works it's
+happen very often but when it works it's great it's probably the best thing there
+great it's probably the best thing there my favorite example of that is journey
+my favorite example of that is journey and journey you find a lot of floating
+and journey you find a lot of floating creatures that you interact with that
+creatures that you interact with that you rescue and then they play with you
+you rescue and then they play with you and they energize you and bring you
+and they energize you and bring you forward and I will show a quick video of
+forward and I will show a quick video of that to you
+rescuing the dolphins or carpet creatures and they will call out to you
+creatures and they will call out to you and you can answer they will encircle
+and you can answer they will encircle you and when you call back to actually
+you and when you call back to actually pick you up and help you out and that is
+pick you up and help you out and that is energy working together with AI
+all right the last one just as an example a version negative emotions you
+example a version negative emotions you will mostly find that in bosses right
+will mostly find that in bosses right when you think about negative emotions
+when you think about negative emotions in gameplay it's almost always the the
+in gameplay it's almost always the the main villain probably just because
+main villain probably just because that's where we invest our time right we
+that's where we invest our time right we don't have a lot of time to work on
+don't have a lot of time to work on emotions with your foot soldier a
+emotions with your foot soldier a version dislike betrayal negative
+version dislike betrayal negative emotions taunting often plays a big part
+emotions taunting often plays a big part in it
+in it my favorite example from other games is
+my favorite example from other games is Wesker who in Resident Evil he's a
+Wesker who in Resident Evil he's a friendly NPC originally and the first
+friendly NPC originally and the first one and he turns on you he becomes evil
+one and he turns on you he becomes evil and this becomes part of his behavior he
+and this becomes part of his behavior he does evil things as he will see in the
+does evil things as he will see in the video he's teleporting away from your
+video he's teleporting away from your bullets and he is sucker punching you
+bullets and he is sucker punching you and he is generally sucky to play
+and he is generally sucky to play against
+evil dude teleports and sucker punches
+all right in incense overdrive we had fizzy fizzy is our permanent
+we had fizzy fizzy is our permanent aware a I that's kind of taunting you
+aware a I that's kind of taunting you throughout the game and you have to
+throughout the game and you have to fight her multiple times and she's
+fight her multiple times and she's trying to taunt you both outside and
+trying to taunt you both outside and inside gameplay and here's an example of
+inside gameplay and here's an example of that
+LIF is attacking me right fizzy says basically please stop moving so I can
+basically please stop moving so I can kill you
+kill you alright so to recap the first part
+alright so to recap the first part creating memorable experience it's not a
+creating memorable experience it's not a behavior is about the interaction of the
+behavior is about the interaction of the player first right like you have to look
+player first right like you have to look out at unique interaction and then it's
+out at unique interaction and then it's about emotion you find some emotional
+about emotion you find some emotional connection to the eye well that's
+connection to the eye well that's positive or negative and that will
+positive or negative and that will strengthen your experience at the end of
+strengthen your experience at the end of the day you oftentimes have to create
+the day you oftentimes have to create some kind of one-off behavior something
+some kind of one-off behavior something that only happens once just to build
+that only happens once just to build this emotional connection for example in
+this emotional connection for example in our case of the dog the the whole dog
+our case of the dog the the whole dog park is one large set of interactions it
+park is one large set of interactions it only exists for this purpose and that
+only exists for this purpose and that are not being used afterwards so pitbull
+are not being used afterwards so pitbull voice first part is over we can create
+voice first part is over we can create memorable behavior we know that we need
+memorable behavior we know that we need some kind of emotion and we know that
+some kind of emotion and we know that has something to do with strengthening
+has something to do with strengthening the emotion after the aftereffect see
+the emotion after the aftereffect see the next chapter will be specifically
+the next chapter will be specifically about body I and I put this in here
+about body I and I put this in here because body I a lot of things that I
+because body I a lot of things that I just said apply to body I but Maria has
+just said apply to body I but Maria has very different challenges than your
+very different challenges than your average enemy or friendly eye the
+average enemy or friendly eye the chapters called the body eye is not your
+chapters called the body eye is not your friend
+friend or how to design the body I around the
+or how to design the body I around the needs of the game but body I I mean a
+needs of the game but body I I mean a lot of different things here I mean all
+lot of different things here I mean all kinds of friendly a eyes that play with
+kinds of friendly a eyes that play with the player and a part of the game some
+the player and a part of the game some people call it companions and people
+people call it companions and people call it t me I all of those all of these
+call it t me I all of those all of these guys are meant right I mean something
+guys are meant right I mean something like Elizabeth I mean something like the
+like Elizabeth I mean something like the Robo talk are just introduced I mean
+Robo talk are just introduced I mean teammates and squad mates all of them so
+teammates and squad mates all of them so the scenario is this you're working on
+the scenario is this you're working on buddy alright and you know body I has
+buddy alright and you know body I has special needs it's really hard to get
+special needs it's really hard to get people to agree on what is good body I
+people to agree on what is good body I and you might think I want to model the
+and you might think I want to model the eye after what the player wants and it
+eye after what the player wants and it sounds like a good idea the pitfall will
+sounds like a good idea the pitfall will say right ahead
+say right ahead gets before the game is to build up
+gets before the game is to build up player entitlement and to explain what I
+player entitlement and to explain what I mean
+mean I will first give you some examples then
+I will first give you some examples then spell it out for you alright so first
+spell it out for you alright so first example the body I can revive you you
+example the body I can revive you you are working on some team shooter and the
+are working on some team shooter and the player goes down and there's two or
+player goes down and there's two or three AI teammates and they can come and
+three AI teammates and they can come and revive you why wouldn't they
+revive you why wouldn't they but you have no economy you have no
+but you have no economy you have no health packs or instant death or timeout
+health packs or instant death or timeout and then you get into a real problem
+and then you get into a real problem because technically you can never die
+because technically you can never die the I can always come and revive you
+the I can always come and revive you right and even if the AI fails for
+right and even if the AI fails for obvious reasons like getting shot the
+obvious reasons like getting shot the player will not accept that I had that
+player will not accept that I had that problem actually infuse what we had
+problem actually infuse what we had exactly this issue where it went so far
+exactly this issue where it went so far as the I would come over would like bend
+as the I would come over would like bend down to try to revive you get shot in
+down to try to revive you get shot in the head and the player would still say
+the head and the player would still say that I failed the ice sucks
+that I failed the ice sucks another example body eye supports combat
+another example body eye supports combat its fighting with you is part of the
+its fighting with you is part of the setups and there is no tracking of the
+setups and there is no tracking of the player progress nothing that checks how
+player progress nothing that checks how many people will the player shot or
+many people will the player shot or whether he pushed forward the combat and
+whether he pushed forward the combat and then you get youtube videos of call of
+then you get youtube videos of call of duty black ops that play themselves and
+duty black ops that play themselves and the the player just watches and you can
+the the player just watches and you can argue that's what this flames
+argue that's what this flames game is supposed to do it's not about
+game is supposed to do it's not about challenge it's about feeling in the
+challenge it's about feeling in the middle you don't actually have to play
+middle you don't actually have to play but it the very least you're you're not
+but it the very least you're you're not matching the player expectation here
+matching the player expectation here which is I'm the hero I'm the most
+which is I'm the hero I'm the most important person in this game
+important person in this game the third example this is really
+the third example this is really contentious every time I talk about this
+contentious every time I talk about this there is 50 50 people who agree and
+there is 50 50 people who agree and completely disagree with this the body I
+completely disagree with this the body I gives you ammunition there's no rules
+gives you ammunition there's no rules when how much you just press a button
+when how much you just press a button you get ammunition and you could really
+you get ammunition and you could really use to that and then if it's missing
+use to that and then if it's missing you could really annoyed or at least I
+you could really annoyed or at least I get really annoyed that is my one
+get really annoyed that is my one problem with Elizabeth she is amazing
+problem with Elizabeth she is amazing and I will talk about how amazing she is
+and I will talk about how amazing she is later but to this my one issue I got
+later but to this my one issue I got annoyed with her when she wasn't there
+annoyed with her when she wasn't there or when she wasn't working and the fact
+or when she wasn't working and the fact that half people are green half of the
+that half people are green half of the people don't agree with this just proves
+people don't agree with this just proves my point that you never know what people
+my point that you never know what people expect so play entitlement is about
+expect so play entitlement is about spoiling the player is about giving the
+spoiling the player is about giving the player what he wants
+player what he wants and he either doesn't care anymore or is
+and he either doesn't care anymore or is really upset and is missing and it's
+really upset and is missing and it's also about different expectations
+also about different expectations everybody wants something else from
+everybody wants something else from bodyís and you can't really guess what
+bodyís and you can't really guess what it's going to be for some people this is
+it's going to be for some people this is sushi and it's amazing and for other
+sushi and it's amazing and for other people is raw fish and they don't want
+people is raw fish and they don't want it so you might want to go about it
+it so you might want to go about it differently at least I do I'm trying to
+differently at least I do I'm trying to when I go for body I these days I'm
+when I go for body I these days I'm trying to model at the runs of the needs
+trying to model at the runs of the needs of the game and it sounds very obvious
+of the game and it sounds very obvious right it sounds like oh sure we all try
+right it sounds like oh sure we all try to make the game better that's the goal
+to make the game better that's the goal but what does it mean and and what is
+but what does it mean and and what is really helping the game for me there's
+really helping the game for me there's three categories these are my categories
+three categories these are my categories you might agree might have different
+you might agree might have different names you might mix and match them which
+names you might mix and match them which sometimes works and sometimes doesn't
+sometimes works and sometimes doesn't but these are my three categories the
+but these are my three categories the teacher the VIP and the soldier the
+teacher the VIP and the soldier the teacher explains the world right he is
+teacher explains the world right he is there to give you the background the
+there to give you the background the plot the story explains you why you're
+plot the story explains you why you're there
+there the teacher is leading the way showing
+the teacher is leading the way showing you around leading you by the hand
+you around leading you by the hand showing you a door showing you a
+showing you a door showing you a lootcrate maybe it's a dog that find
+lootcrate maybe it's a dog that find some some equipment for you in the world
+some some equipment for you in the world but the teacher does not fight normally
+but the teacher does not fight normally the teachers and academic it doesn't
+the teachers and academic it doesn't care about combat and that's really
+care about combat and that's really where Elizabeth the skirt that is why I
+where Elizabeth the skirt that is why I like her not the other thing not the
+like her not the other thing not the giving me gift that is where she's the
+giving me gift that is where she's the best that I think the second category is
+best that I think the second category is the VIP VIP is the purpose of the game
+the VIP VIP is the purpose of the game the purpose of the mission it's really
+the purpose of the mission it's really why you're there and while you're
+why you're there and while you're playing this the TT the VIP cannot die
+playing this the TT the VIP cannot die meaning either the VIP is immortal or if
+meaning either the VIP is immortal or if the VIP dies you lost and that's usually
+the VIP dies you lost and that's usually where you find codependence where like
+where you find codependence where like you safety VIP and eventually the VIP
+you safety VIP and eventually the VIP will do something for you
+will do something for you my favorite example for this is Ellie
+my favorite example for this is Ellie from the Last of Us
+from the Last of Us without spoiling anything she is the
+without spoiling anything she is the reason you make you play this game and
+reason you make you play this game and more important than anything else the
+more important than anything else the last category is a soldier the soldiers
+last category is a soldier the soldiers everybody who fights everybody who
+everybody who fights everybody who supports combat either just helping the
+supports combat either just helping the player or just being fluff being
+player or just being fluff being background making the combat larger and
+background making the combat larger and most importantly and that's really
+most importantly and that's really important for me the soldier can die and
+important for me the soldier can die and it shouldn't matter
+it shouldn't matter like if the AI does something wrong
+like if the AI does something wrong if the eye goes down it shouldn't at all
+if the eye goes down it shouldn't at all influence your game
+influence your game any team shooter has has soldiers like
+any team shooter has has soldiers like this right like Halo or Call of Duty
+this right like Halo or Call of Duty things in the background it don't really
+things in the background it don't really matter for the player so you can mix and
+matter for the player so you can mix and match those but if you for example
+match those but if you for example create a VIP AI that is also a soldier
+create a VIP AI that is also a soldier you basically just create an escort
+you basically just create an escort mission where it depends on the AI
+mission where it depends on the AI whether your game progresses or not
+whether your game progresses or not so what happens if if you don't work for
+so what happens if if you don't work for the players needs right why should the
+the players needs right why should the player care about all this well for all
+player care about all this well for all the reasons I explained before the
+the reasons I explained before the player should care for an emotional
+player should care for an emotional connection you should care because he
+connection you should care because he likes di he should care for story and
+likes di he should care for story and character reasons and lastly you should
+character reasons and lastly you should care because you play together with the
+care because you play together with the I the I saves you you safer works
+I the I saves you you safer works together all right
+together all right to recap this part prevent play
+to recap this part prevent play entitlement be very careful about your
+entitlement be very careful about your assumptions above what the player wants
+assumptions above what the player wants and that you that you think you know
+and that you that you think you know what actually makes a player happy
+what actually makes a player happy because everybody has a different
+because everybody has a different expectation here design around the needs
+expectation here design around the needs of the game if you can think really hard
+of the game if you can think really hard about what your game is missing is it
+about what your game is missing is it missing some story explanation as is
+missing some story explanation as is missing someone at least by the hand is
+missing someone at least by the hand is it missing missing a purpose like why am
+it missing missing a purpose like why am i doing all this why am i fighting fill
+i doing all this why am i fighting fill that need and finally motivate through
+that need and finally motivate through story and emotion think about how you
+story and emotion think about how you can get an emotional connection and
+can get an emotional connection and motivate through that pitfall avoided we
+motivate through that pitfall avoided we know we need some emotion we know that
+know we need some emotion we know that the body I can spoil the player and we
+the body I can spoil the player and we have to be careful about it we can make
+have to be careful about it we can make good friendly eye but we haven't talked
+good friendly eye but we haven't talked at all about enemy AI so the last
+at all about enemy AI so the last chapter is solely about enemy AI and
+chapter is solely about enemy AI and it's wrapping it up the last chapter is
+it's wrapping it up the last chapter is called escalation is the mother of all
+called escalation is the mother of all challenge or Viper petition is Burton's
+challenge or Viper petition is Burton's reputation so to repeat myself we're
+reputation so to repeat myself we're talking about memorable experiences
+talking about memorable experiences right we're talking about how to make
+right we're talking about how to make the game memorable for the player and
+the game memorable for the player and you might wonder what does it has to do
+you might wonder what does it has to do with challenge
+with challenge well you remember the study I was
+well you remember the study I was talking about before of professor
+talking about before of professor McGough was like taking group a and
+McGough was like taking group a and Group B and Group a was looking at
+Group B and Group a was looking at kitchen sink items and grupe was looking
+kitchen sink items and grupe was looking at emotional arousing objects while he
+at emotional arousing objects while he did some more work on this and one of
+did some more work on this and one of the sentences you might remember is
+the sentences you might remember is stress hormones can strengthen memory so
+stress hormones can strengthen memory so what he did there is the so called ice
+what he did there is the so called ice water trial he basically took the two
+water trial he basically took the two groups and he's put them up again and
+groups and he's put them up again and one one half of them would just get a
+one one half of them would just get a bucket of warm water and were asked to
+bucket of warm water and were asked to hold their hand in it the other one was
+hold their hand in it the other one was given a bucket of ice water and asked to
+given a bucket of ice water and asked to help their hand in the ice water until
+help their hand in the ice water until it really hurt until they couldn't hold
+it really hurt until they couldn't hold it anymore and there basically was
+it anymore and there basically was torturing them right so the result was
+torturing them right so the result was this as soon as you mixed emotion with
+this as soon as you mixed emotion with stress with pain your memory would jump
+stress with pain your memory would jump up fifty plus percent better
+up fifty plus percent better recollection of what just happened and
+recollection of what just happened and the interesting thing to note here too
+the interesting thing to note here too in this chart is on the right side are
+in this chart is on the right side are the neutral items and left side the
+the neutral items and left side the arousing items so on the right side you
+arousing items so on the right side you can actually see that stress when
+can actually see that stress when induced on the neutral items reduce your
+induced on the neutral items reduce your memory it really only works together
+memory it really only works together when you mix the two stress and
+when you mix the two stress and emotional interesting items that makes
+emotional interesting items that makes memory strong so to talk about challenge
+memory strong so to talk about challenge here we let's say the goal is we have
+here we let's say the goal is we have some combat setup and you're asked to
+some combat setup and you're asked to make it harder or make it longer it's
+make it harder or make it longer it's too short too easy fix that and your
+too short too easy fix that and your approach might be to repeat an existing
+approach might be to repeat an existing behavior an existing mechanic three four
+behavior an existing mechanic three four or five times and it totally makes sense
+or five times and it totally makes sense that is the right approach because
+that is the right approach because repetition is really good for your game
+repetition is really good for your game here's a here's a quote from Ziggy
+here's a here's a quote from Ziggy Ziegler the father of all motivational
+Ziegler the father of all motivational speakers repetition is the mother of
+speakers repetition is the mother of learning the father of action which
+learning the father of action which makes it the architect of accomplishment
+makes it the architect of accomplishment and this really speaks to action games
+and this really speaks to action games that's what we do all right that's what
+that's what we do all right that's what it's all about
+it's all about we want a player to learn we want a
+we want a player to learn we want a player to repeat the behavior get better
+player to repeat the behavior get better at it
+at it get skill over time and then overcome
+get skill over time and then overcome the game beat the game feel accomplished
+the game beat the game feel accomplished and also for developers
+and also for developers this is really important because we can
+this is really important because we can reuse our work we can have to play a
+reuse our work we can have to play a fight to say meow 50 times instead of
+fight to say meow 50 times instead of making 50 different the eyes so
+making 50 different the eyes so repetition is good the problem is you
+repetition is good the problem is you can very quickly cheapen the experience
+can very quickly cheapen the experience with a player if you do the same thing
+with a player if you do the same thing one over two player will get bored right
+one over two player will get bored right he will feel too skillful for what you
+he will feel too skillful for what you throw at him he will think that you
+throw at him he will think that you didn't come up with anything better so
+didn't come up with anything better so the approach that people take oftentimes
+the approach that people take oftentimes that I took in the past was to say okay
+that I took in the past was to say okay we add some weak spots we add some
+we add some weak spots we add some tourists you have a giant monster and it
+tourists you have a giant monster and it has five turrets on it and you have to
+has five turrets on it and you have to first destroy the turrets and the
+first destroy the turrets and the turrets ruler rockets that is a really
+turrets ruler rockets that is a really bad idea and here's why destroying weak
+bad idea and here's why destroying weak spots especially if it's buttons it's
+spots especially if it's buttons it's kind of kind of like cutting off the
+kind of kind of like cutting off the heads of a hydra hydra is obviously the
+heads of a hydra hydra is obviously the the giant serpent with seven or ten
+the giant serpent with seven or ten heads of the old Greek mythology and was
+heads of the old Greek mythology and was fighting all the green heroes and you
+fighting all the green heroes and you would cut off some hats and you would
+would cut off some hats and you would cut some more hats and cut up some more
+cut some more hats and cut up some more and now the combat is boring and sucks
+and now the combat is boring and sucks because there is no hat left and there
+because there is no hat left and there is just like a snake right and the
+is just like a snake right and the Greeks knew that they were smarter than
+Greeks knew that they were smarter than that
+that they knew they need a real challenge for
+they knew they need a real challenge for error for the heroes so they said no no
+error for the heroes so they said no no no the heads grow back or even better
+no the heads grow back or even better every time you cut off a head there's
+every time you cut off a head there's two hats coming out and that's really
+two hats coming out and that's really how you get challenged you really make
+how you get challenged you really make the player think about and if you do
+the player think about and if you do something wrong it's going to be get
+something wrong it's going to be get harder
+harder so instead of thinking about just adding
+so instead of thinking about just adding big spots or just doing the same thing
+big spots or just doing the same thing over and over and hats make it harder
+over and over and hats make it harder every time you progress through the
+every time you progress through the combat make it harder with each step and
+combat make it harder with each step and increase the challenge because the
+increase the challenge because the player learns something a player got
+player learns something a player got better so your challenge has to become
+better so your challenge has to become greater alright so think of this as
+greater alright so think of this as escalating the combat like think of your
+escalating the combat like think of your enemy like a wounded animal think of it
+enemy like a wounded animal think of it like what would happen if the player if
+like what would happen if the player if the enemy was scared it wasn't a corner
+the enemy was scared it wasn't a corner it was more defensive or more aggressive
+it was more defensive or more aggressive edge attacks don't show everything at
+edge attacks don't show everything at the beginning actually hold it back and
+the beginning actually hold it back and during the progress of the battle bring
+during the progress of the battle bring out your extra stuff scale combat
+out your extra stuff scale combat intensity this is really easy for
+intensity this is really easy for programmers just put in some sliders put
+programmers just put in some sliders put in a slider of how much damage output
+in a slider of how much damage output you do per second or
+you do per second or how fast you react to the player or how
+how fast you react to the player or how quickly you mix things up and as a
+quickly you mix things up and as a combat progresses you just scale it up
+combat progresses you just scale it up in other words build escalation in your
+in other words build escalation in your enemy AI behavior turn this little puppy
+enemy AI behavior turn this little puppy into this angry dog over time some
+into this angry dog over time some examples for this from censored
+examples for this from censored overdrive does the hooker repairs last
+overdrive does the hooker repairs last thing in the middle here is a giant claw
+thing in the middle here is a giant claw he's dangerous when you get close to him
+he's dangerous when you get close to him he is really strong melee attacks but if
+he is really strong melee attacks but if you wait for too long he will collect
+you wait for too long he will collect smaller enemies if you don't take him
+smaller enemies if you don't take him down he will collect them they jump on
+down he will collect them they jump on his back and he will start throwing
+his back and he will start throwing enemies of you literally so you want to
+enemies of you literally so you want to be fast about me don't want to ignore
+be fast about me don't want to ignore him he becomes dangerous or another
+him he becomes dangerous or another example is pretty much any boss in
+example is pretty much any boss in sunset overdrive the all are set up in
+sunset overdrive the all are set up in phases they start out slow
+phases they start out slow they start out sluggish and become more
+they start out sluggish and become more aggressive over time this is the Norton
+aggressive over time this is the Norton dragon it's basically a giant penis
+dragon it's basically a giant penis shaped creature that flies through City
+shaped creature that flies through City and you're supposed to follow him and
+and you're supposed to follow him and jump on his back and hit his head and
+jump on his back and hit his head and every time you do that he becomes more
+every time you do that he becomes more aggressive he will start drawing spikes
+aggressive he will start drawing spikes on his back he will start shooting fire
+on his back he will start shooting fire he will set the city ablaze and try to
+he will set the city ablaze and try to stop you from catching up with him right
+stop you from catching up with him right it's a build escalation in your bosses
+it's a build escalation in your bosses to recap repetition is the mother of a
+to recap repetition is the mother of a learning escalation this the mother of
+learning escalation this the mother of all challenge pitfall avoided we know we
+all challenge pitfall avoided we know we need to create some emotional connection
+need to create some emotional connection we know if we scare very careful about
+we know if we scare very careful about body I on assumptions with body I and we
+body I on assumptions with body I and we know that if you add stress if you add
+know that if you add stress if you add pain if you try to torture the player
+pain if you try to torture the player I'm not trying but if you add some
+I'm not trying but if you add some stress level to it to the player you
+stress level to it to the player you will get a better response you will get
+will get a better response you will get more memorization of what's going on
+more memorization of what's going on thank you for listening please give me a
+thank you for listening please give me a feedback after there is like two minutes
+feedback after there is like two minutes left for FIFA for questions
+[Applause] as you mentioned we do have honestly
+as you mentioned we do have honestly three minutes left for questions please
+three minutes left for questions please use the microphones in the aisles so
+use the microphones in the aisles so that it shows up on the video anybody
+that it shows up on the video anybody have any questions for Yong well I will
+have any questions for Yong well I will kill time for a moment he touched on a
+kill time for a moment he touched on a lot of interesting things and Yun and I
+lot of interesting things and Yun and I actually have to have a beer after this
+actually have to have a beer after this to talk about it a lot of neuroscience a
+to talk about it a lot of neuroscience a lot of psychology and that's very
+lot of psychology and that's very important that goes into AI as matter of
+important that goes into AI as matter of fact I don't know if Brian's in here but
+fact I don't know if Brian's in here but Brian Schwab and I did a lecture here in
+Brian Schwab and I did a lecture here in 2012 on psychology and AI and so it
+2012 on psychology and AI and so it touches on not the same stuff but very
+touches on not the same stuff but very similar things about how we can engage
+similar things about how we can engage the player through what they sit down at
+the player through what they sit down at the computer or at the console with is
+the computer or at the console with is is that their built-in hooks of
+is that their built-in hooks of psychology and so if the things that he
+psychology and so if the things that he was talking about here about being
+was talking about here about being cognizant of as a as a designer for that
+cognizant of as a as a designer for that matter or an AI programmer you might
+matter or an AI programmer you might want to pick that up it's for free on
+want to pick that up it's for free on the GDC vault back in 2012
+the GDC vault back in 2012 just look for psychology and AI or my
+just look for psychology and AI or my name of Brian Schwab's name and you'll
+name of Brian Schwab's name and you'll find it but it's also very similar and
+find it but it's also very similar and that's really an important thing for us
+that's really an important thing for us to be aware of as game programmers
+to be aware of as game programmers because that's all we're doing is
+because that's all we're doing is dealing with people's psychology so I
+dealing with people's psychology so I don't see anybody coming up for
+don't see anybody coming up for questions you can just if if you want
+questions you can just if if you want otherwise we'll go ahead and cut it off
+otherwise we'll go ahead and cut it off here oh go ahead and step up to the mic
+here oh go ahead and step up to the mic please good great great talk by the way
+please good great great talk by the way man thanks Kayla see so the soldier's
+man thanks Kayla see so the soldier's death is always relevant not always I
+death is always relevant not always I prefer to be irrelevant you prefer it to
+prefer to be irrelevant you prefer it to be a real don't care that make sense I
+be a real don't care that make sense I was just like in my mind is that because
+was just like in my mind is that because you want to ensure that the death is
+you want to ensure that the death is something that the player can prevent to
+something that the player can prevent to allow it to be fair if the player really
+allow it to be fair if the player really needs to prevent the death and you're
+needs to prevent the death and you're basically making a VIP right like you
+basically making a VIP right like you making someone who's important for your
+making someone who's important for your existence before the game the soldier is
+existence before the game the soldier is really more the you have large-scale
+really more the you have large-scale combat you have 50 AI fighting other 50
+combat you have 50 AI fighting other 50 enemies that's the soldier right like
+enemies that's the soldier right like it's a fluff in the background it's not
+it's a fluff in the background it's not so much about someone the player cares
+so much about someone the player cares about if you if you have a squat like a
+about if you if you have a squat like a teammate that if he dies if the game is
+teammate that if he dies if the game is over you create a VIP and you want
+over you create a VIP and you want have some kind of collaboration you want
+have some kind of collaboration you want to have that Oh I save your butt you
+to have that Oh I save your butt you save my butt behavior okay thank you hey
+save my butt behavior okay thank you hey how you doing
+how you doing also great talk man well I just want to
+also great talk man well I just want to be something just want to clear up this
+be something just want to clear up this soldier a AI that you were talking about
+soldier a AI that you were talking about it's not the same as the buddy AI
+it's not the same as the buddy AI correct you can argue that soldier is
+correct you can argue that soldier is also a buddy in a way right but it's a
+also a buddy in a way right but it's a body that is not usually not emotionally
+body that is not usually not emotionally connected to you it's more like oh I'm
+connected to you it's more like oh I'm going out in the field with my 50 squad
+going out in the field with my 50 squad mates I might care that they die but it
+mates I might care that they die but it doesn't matter for my experience if they
+doesn't matter for my experience if they do necessarily it just adds to my
+do necessarily it just adds to my experience okay it's like you know I'm
+experience okay it's like you know I'm thinking like um like you know at the
+thinking like um like you know at the difference between like the Marines in
+difference between like the Marines in Halo mmm that that would occasionally
+Halo mmm that that would occasionally join you like though in my mind that's a
+join you like though in my mind that's a soldier yeah matter of fact to like gara
+soldier yeah matter of fact to like gara gara sorex would be like a buddy would
+gara sorex would be like a buddy would that be a fair comparison
+that be a fair comparison yes what I mean thank you okay we're
+yes what I mean thank you okay we're going to go ahead and I have to wrap it
+going to go ahead and I have to wrap it up but good stuff here from Yan Muller
+up but good stuff here from Yan Muller I agree Oh Sarah
+you

@@ -1,0 +1,848 @@
+[Music] hi everyone my name is ryan cardinal i'm
+hi everyone my name is ryan cardinal i'm the technical lead on the fifa gameplay
+the technical lead on the fifa gameplay team up at electronic arts in vancouver
+team up at electronic arts in vancouver i'm here with two of my colleagues luke
+i'm here with two of my colleagues luke shire who's a senior animator and is one
+shire who's a senior animator and is one of the driving forces on our team's
+of the driving forces on our team's initiative to motion capture a full
+initiative to motion capture a full soccer match with accent suits
+soccer match with accent suits and david wong who's a senior software
+and david wong who's a senior software engineer working on animation
+engineer working on animation applications of machine learning and
+applications of machine learning and we're excited today to talk to you about
+we're excited today to talk to you about fifa 22's hyper motion technology the
+fifa 22's hyper motion technology the term high promotion was coined to
+term high promotion was coined to represent the technology behind fifa
+represent the technology behind fifa 22's gameplay features exclusive to the
+22's gameplay features exclusive to the playstation 5 xbox series xns and stadia
+playstation 5 xbox series xns and stadia platforms
+platforms from a development standpoint
+from a development standpoint hypermotion represents our team's work
+hypermotion represents our team's work that we did to combine real-world data
+that we did to combine real-world data and machine learning in order to make
+and machine learning in order to make the animation in our game more authentic
+the animation in our game more authentic and seamless
+and seamless it's our goal today to share why and how
+it's our goal today to share why and how we pursued these goals and to share some
+we pursued these goals and to share some of our results
+of our results we'll start by taking a deep dive look
+we'll start by taking a deep dive look into the full match capture session we
+into the full match capture session we did using xn suits
+did using xn suits we'll explore the motivations behind
+we'll explore the motivations behind capturing a full soccer match in this
+capturing a full soccer match in this manner and take a behind the scenes look
+manner and take a behind the scenes look at the shoot
+at the shoot we'll then look at the impact that
+we'll then look at the impact that capturing data in this manner has on
+capturing data in this manner has on animator workflows
+animator workflows we'll show how we reconstructed 3d ball
+we'll show how we reconstructed 3d ball data from the video footage of the shoot
+data from the video footage of the shoot and then look at some applications of
+and then look at some applications of that data
+that data and lastly we'll present how fifa uses
+and lastly we'll present how fifa uses machine learning to produce procedural
+machine learning to produce procedural animation using neural networks
+animation using neural networks so without further ado i'm going to pass
+so without further ado i'm going to pass over to luke shire who's going to take
+over to luke shire who's going to take us on a deep dive of that full match
+us on a deep dive of that full match capture session
+thanks ryan um when it comes to inspiration the ultimate vision for us
+inspiration the ultimate vision for us on the gameplay team is to recreate what
+on the gameplay team is to recreate what fans see every weekend on the pitch or
+fans see every weekend on the pitch or at least a version of it that we can
+at least a version of it that we can squeeze into our 12-minute virtual game
+squeeze into our 12-minute virtual game so it's only natural for us to always be
+so it's only natural for us to always be wondering what if we can capture what we
+wondering what if we can capture what we see on tv this has been a dream of ours
+see on tv this has been a dream of ours for decades and over the last couple
+for decades and over the last couple years we've started to make huge strides
+years we've started to make huge strides to make it a reality
+our first exercise though was to list the limitations of our current optical
+the limitations of our current optical setup and the first problem comes from
+setup and the first problem comes from just the physical dimensions of the
+just the physical dimensions of the space optical studios are small when
+space optical studios are small when you're looking at it in the context of
+you're looking at it in the context of capturing a full game with 22 players
+capturing a full game with 22 players the second is a limited
+the second is a limited local talent pool here in vancouver
+local talent pool here in vancouver sometimes leaving us wanting more when
+sometimes leaving us wanting more when it comes to variety authenticity and the
+it comes to variety authenticity and the ability to perform actions based on
+ability to perform actions based on professional reference now we can take
+professional reference now we can take our setup on the road and go to the pros
+our setup on the road and go to the pros the main problem though with capturing
+the main problem though with capturing an optical is that the motion can become
+an optical is that the motion can become artificial it loses so much that context
+artificial it loses so much that context and detail of motion from a real match
+and detail of motion from a real match it also lacks the competitive atmosphere
+it also lacks the competitive atmosphere the aggression the creativity and the
+the aggression the creativity and the emotion of football we're looking to
+emotion of football we're looking to capture the highest fidelity and realism
+capture the highest fidelity and realism possible and doing this will only enable
+possible and doing this will only enable us to build a better game so it brought
+us to build a better game so it brought us back to our goal of capturing
+us back to our goal of capturing professional players competing in a real
+professional players competing in a real football match on a real pitch
+so the first thing we did was prototype and start small
+and start small we were familiar with sensor based
+we were familiar with sensor based capture methods like accents and after
+capture methods like accents and after reaching out to them to get a showcase
+reaching out to them to get a showcase of the latest quality levels
+of the latest quality levels we were pretty optimistic it might be
+we were pretty optimistic it might be possible so we arranged for them to come
+possible so we arranged for them to come to visit us vancouver to help capture
+to visit us vancouver to help capture four players in a scribbage on our
+four players in a scribbage on our studio soccer pitch here you can see the
+studio soccer pitch here you can see the raw data from one of the suited players
+raw data from one of the suited players that we captured we were really really
+that we captured we were really really excited about the quality of the data we
+excited about the quality of the data we were seeing and so we started to feel
+were seeing and so we started to feel confident in exploring the idea of
+confident in exploring the idea of capturing a full match with professional
+capturing a full match with professional teams
+teams this prototype allowed us to see the
+this prototype allowed us to see the quality level the data to prove out our
+quality level the data to prove out our pipeline and get this data into the game
+pipeline and get this data into the game and most importantly allowed us to
+and most importantly allowed us to identify the remaining problems that we
+identify the remaining problems that we need to overcome to successfully pull
+need to overcome to successfully pull this off
+this off so what were these big problems that we
+so what were these big problems that we needed to solve well the first one was
+needed to solve well the first one was player drift
+player drift sensor-based capture methods tend to
+sensor-based capture methods tend to experience drift on a character's route
+experience drift on a character's route over time
+over time and we're trying to shoot in 10 to 15
+and we're trying to shoot in 10 to 15 minutes segments which lets the athletes
+minutes segments which lets the athletes get into the flow of the game
+get into the flow of the game once we got this data back we measured
+once we got this data back we measured over 12 feet of drift on the character's
+over 12 feet of drift on the character's route by the end of the take which was
+route by the end of the take which was quite large
+quite large the other major problem is we didn't
+the other major problem is we didn't actually have a way of capturing the
+actually have a way of capturing the existing 3d ball data it's a critical
+existing 3d ball data it's a critical piece of data needed for understanding
+piece of data needed for understanding context around player motion we needed a
+context around player motion we needed a way to reconstruct this ball data
+in order to resolve the player drift we use the local positioning system or lps
+use the local positioning system or lps for short which is similar to kind of
+for short which is similar to kind of gps but instead of satellites all we
+gps but instead of satellites all we need to set up was beacons around the
+need to set up was beacons around the pitch players then wear a chest strap
+pitch players then wear a chest strap with a sensor and the beacons can
+with a sensor and the beacons can pinpoint the player's location to within
+pinpoint the player's location to within five centimeters
+five centimeters we ended up using the wemo pro sensors
+we ended up using the wemo pro sensors which is the same tracking system used
+which is the same tracking system used by clubs like barcelona and real madrid
+by clubs like barcelona and real madrid and with the help of accents we were
+and with the help of accents we were able to integrate this lps positioning
+able to integrate this lps positioning data into the animation solve to correct
+data into the animation solve to correct our drift issue
+next up we need to somehow generate the 3d ball data ball data is really
+3d ball data ball data is really important information that provides a
+important information that provides a lot of context to the motion that we see
+lot of context to the motion that we see it's the focal point of a sports
+it's the focal point of a sports broadcast so being able to follow with
+broadcast so being able to follow with the camera really helps follow the play
+the camera really helps follow the play when playing back our solved scene
+when playing back our solved scene so for the problem of generating the
+so for the problem of generating the ball data we use static camera footage
+ball data we use static camera footage to reconstruct 3d ball position as ryan
+to reconstruct 3d ball position as ryan will cover shortly
+so two solutions to our two main problems our dev team started searching
+problems our dev team started searching for teams that we could partner with for
+for teams that we could partner with for the shoot
+the shoot everything was coming together to be
+everything was coming together to be able to do this in spring of 2020 but
+able to do this in spring of 2020 but unfortunately covet had other plans as
+unfortunately covet had other plans as the world shut down our dreams were put
+the world shut down our dreams were put on hold and we had to defer our plans to
+on hold and we had to defer our plans to some unknown future date we weren't
+some unknown future date we weren't ready to give up just yet though as
+ready to give up just yet though as sports league started up again we
+sports league started up again we continued to look for opportunities and
+continued to look for opportunities and opportunity arose to work with two
+opportunity arose to work with two professional spanish teams
+also due to travel restrictions no one on the fifa development team was
+on the fifa development team was actually able to make the trip to spain
+actually able to make the trip to spain for the shoot
+for the shoot several members of our animation and
+several members of our animation and production team joined the shoot
+production team joined the shoot virtually we partnered with a company
+virtually we partnered with a company called render motion
+called render motion who provide accents based animation
+who provide accents based animation solutions in paint in spain to perform
+solutions in paint in spain to perform this shoot for us
+this shoot for us and with that all being said let's take
+and with that all being said let's take a look at what we needed to make this
+a look at what we needed to make this thing work smoothly
+thing work smoothly at the beginning of the video you can
+at the beginning of the video you can see the players are standing in little
+see the players are standing in little hoops facing a piece of tape these mark
+hoops facing a piece of tape these mark the positions and orientations in which
+the positions and orientations in which the players needed to start this take
+the players needed to start this take and having a well-defined relative
+and having a well-defined relative position helped us when we were building
+position helped us when we were building a merge scene of all these players
+a merge scene of all these players we also got the players to clap at the
+we also got the players to clap at the beginning of the take as you can see as
+beginning of the take as you can see as well this action helped us synchronize
+well this action helped us synchronize the video footage with the xsens data
+so in order to be able to reconstruct the ball positional data we need to
+the ball positional data we need to capture the action from multiple static
+capture the action from multiple static cameras eight cameras were set up around
+cameras eight cameras were set up around the stadium to capture everything as you
+the stadium to capture everything as you can see on the right
+can see on the right we captured 8k video at 50 frames per
+we captured 8k video at 50 frames per second which is about 270 megs per
+second which is about 270 megs per second so make sure you're stocked with
+second so make sure you're stocked with sd cards
+sd cards also in the video watermarking absolute
+also in the video watermarking absolute time code which is real world time um on
+time code which is real world time um on the video it allows us to synchronize
+the video it allows us to synchronize the camera footage with the motion data
+the camera footage with the motion data which we were capturing which is a
+which we were capturing which is a critical piece
+so during the shoot each take was at least 10 minutes this allowed players to
+least 10 minutes this allowed players to get into the rhythm of a game and help
+get into the rhythm of a game and help our goal of capturing better performance
+our goal of capturing better performance the takes were ended naturally on the
+the takes were ended naturally on the next whistle after the 10 minute mark
+next whistle after the 10 minute mark however we had a hard cap at the 15
+however we had a hard cap at the 15 minute mark and the referee would blow
+minute mark and the referee would blow the whistle to end the take there long
+the whistle to end the take there long takes are cumbersome to work with in our
+takes are cumbersome to work with in our animation tools and as the file sizes of
+animation tools and as the file sizes of the captured data and
+the captured data and video footage become massive
+video footage become massive so having these breaks keep things
+so having these breaks keep things reasonable and provides an opportunity
+reasonable and provides an opportunity to swap sd cards fix sensors on the
+to swap sd cards fix sensors on the suits etc
+suits etc and lastly the long length of the takes
+and lastly the long length of the takes the flow the intensity and the
+the flow the intensity and the performance were amazing we were so so
+performance were amazing we were so so happy with the data we were able to
+happy with the data we were able to capture
+so once we completed the shoot and after a bit of back and forth the final data
+a bit of back and forth the final data was delivered to us for us to start
+was delivered to us for us to start working here you can see the delivered
+working here you can see the delivered data retargeted to our rig
+data retargeted to our rig it's hard to follow the play without the
+it's hard to follow the play without the ball also as an animator it's tough to
+ball also as an animator it's tough to identify exactly what portions of
+identify exactly what portions of animation we would like to extract
+animation we would like to extract not to mention all the context around
+not to mention all the context around the movement of players and how it
+the movement of players and how it pertains to the ball itself
+so now we'll just do a quick run through on how our team use the data from the
+on how our team use the data from the shoot in different ways
+shoot in different ways one of the primary driving forces behind
+one of the primary driving forces behind this shoot was to be able to do a large
+this shoot was to be able to do a large anime animation refresh with authentic
+anime animation refresh with authentic motion to the sport the kicker in
+motion to the sport the kicker in capturing data this way is it requires a
+capturing data this way is it requires a whole new workflow
+when we run an optical shoot animators create a shot list with all
+animators create a shot list with all the animations that we need to capture
+the animations that we need to capture the talent then tries to perform all the
+the talent then tries to perform all the shots on the list under direction and
+shots on the list under direction and then animators select the takes they
+then animators select the takes they like each delivered take is a short
+like each delivered take is a short piece of animation with a specific
+piece of animation with a specific action
+action when we capture in a full match contest
+when we capture in a full match contest we're sorting through 22 different
+we're sorting through 22 different players data each file is 15 minutes
+players data each file is 15 minutes long and we have no way to find the
+long and we have no way to find the motion we like out of the box
+motion we like out of the box we needed a new workflow to be
+we needed a new workflow to be productive
+productive each individual player's data is merged
+each individual player's data is merged into a single master scene for the take
+into a single master scene for the take which is then augmented with the ball
+which is then augmented with the ball data a camera is then attached to the
+data a camera is then attached to the ball
+ball this allows animators and designers to
+this allows animators and designers to watch the game similar to a tv broadcast
+watch the game similar to a tv broadcast and every time they see something
+and every time they see something interesting we record the frame the
+interesting we record the frame the motion started the type of motion
+motion started the type of motion whether it's a dribble a tackle a kick
+whether it's a dribble a tackle a kick etc and a short description of how that
+etc and a short description of how that animation can be used in the game
+animation can be used in the game we're effectively building a shot list
+we're effectively building a shot list in real time as we watch the game back
+in real time as we watch the game back we can then go through this shot list
+we can then go through this shot list one by one or feature by feature and
+one by one or feature by feature and export the frame ranges we're interested
+export the frame ranges we're interested in
+here's a great example of a highlight from the game just a beautiful free kick
+from the game just a beautiful free kick that results in a goal
+so once we've identified this dnf the animators will go back and identify the
+animators will go back and identify the start frame at the bottom and which
+start frame at the bottom and which player performed the action which you
+player performed the action which you can see on the right
+so once we've identified the player in the frame range we're interested in we
+the frame range we're interested in we load up the single player file scrub to
+load up the single player file scrub to the start frame and export what we need
+the start frame and export what we need a naming convention is used on the
+a naming convention is used on the exported file so that animators know the
+exported file so that animators know the source file and frames of the exported
+source file and frames of the exported data
+data animators can then clean up and modify
+animators can then clean up and modify the exported portion as we see fit and
+the exported portion as we see fit and now i'll share a few examples from the
+now i'll share a few examples from the shoot compared to the source video and
+shoot compared to the source video and then how they turned out in the game
+first we start out with this great goalkeeper save
+goalkeeper save the keeper reacts really well to this
+the keeper reacts really well to this deflected shot and swats it away from
+deflected shot and swats it away from goal and this is one example of a
+goal and this is one example of a scenario that's really difficult to
+scenario that's really difficult to recreate in our studio
+next there's this beautiful slice lob with a great follow through as it sails
+with a great follow through as it sails across the pitch the player admires the
+across the pitch the player admires the pass it's details like this that create
+pass it's details like this that create stunning unique animation that we're
+stunning unique animation that we're always looking out for
+always looking out for and lastly here's another scenario
+and lastly here's another scenario that's difficult to capture in the
+that's difficult to capture in the studio in mocap the actors use slide
+studio in mocap the actors use slide mats to recreate sliding tackles or
+mats to recreate sliding tackles or kicks they need to focus on hitting the
+kicks they need to focus on hitting the mat contacting the ball instead of just
+mat contacting the ball instead of just sliding naturally and doing what they do
+sliding naturally and doing what they do this particular animation came from two
+this particular animation came from two players fighting to keep the ball in
+players fighting to keep the ball in play but even played back on a single
+play but even played back on a single actor the effort shows through and
+actor the effort shows through and improves the situation
+improves the situation all in all our animators were able to
+all in all our animators were able to add over 4 000 new gameplay animations
+add over 4 000 new gameplay animations this year and a huge chunk of that was
+this year and a huge chunk of that was from the xsens data set
+from the xsens data set now i'll pass over to ryan to talk about
+now i'll pass over to ryan to talk about the ball generation
+thanks luke so the easiest way to follow sports is
+so the easiest way to follow sports is to follow the ball and we needed that 3d
+to follow the ball and we needed that 3d ball data in our animated scenes so that
+ball data in our animated scenes so that our animators can follow the play in
+our animators can follow the play in their tools and as we'll cover shortly
+their tools and as we'll cover shortly we needed that to be able to extract
+we needed that to be able to extract portions of the animation that interact
+portions of the animation that interact with the ball for use in training our
+with the ball for use in training our deep neural networks so let's look at
+deep neural networks so let's look at how we augmented our animation data with
+how we augmented our animation data with 3d ball position data and see how just
+3d ball position data and see how just by having that data around we can use it
+by having that data around we can use it to find solutions to other problems
+the only information we have available for recreating that 3d ball data is the
+for recreating that 3d ball data is the static camera video footage from our
+static camera video footage from our capture session
+capture session the information that we need to acquire
+the information that we need to acquire are the 2d screen coordinates of the
+are the 2d screen coordinates of the ball from the various videos and the
+ball from the various videos and the projection matrices of the cameras
+projection matrices of the cameras these pieces of information will allow
+these pieces of information will allow us to project array into the world from
+us to project array into the world from the camera through the tracked object
+the camera through the tracked object similar to how you would click on a 3d
+similar to how you would click on a 3d object
+object using a 2d mouse cursor
+using a 2d mouse cursor we can then estimate the projection
+we can then estimate the projection matrices using a computer vision
+matrices using a computer vision technique known as camera calibration
+technique known as camera calibration and then by using multiple calibrated
+and then by using multiple calibrated and synchronized cameras we can shoot
+and synchronized cameras we can shoot multiple arrays into the world and the
+multiple arrays into the world and the closest point between those two rays
+closest point between those two rays will give us our object's location
+will give us our object's location so let's take a quick look at how we
+so let's take a quick look at how we track the ball
+track the ball here you can see the tool i built it was
+here you can see the tool i built it was just a simple video player i built using
+just a simple video player i built using python and opencv that provides support
+python and opencv that provides support for tracking
+for tracking and since we're in control of the
+and since we're in control of the parameters of our capture session we're
+parameters of our capture session we're able to cheat a little bit
+able to cheat a little bit so by choosing a ball whose color stands
+so by choosing a ball whose color stands out from its surroundings we can
+out from its surroundings we can simplify our tracking logic by using hsv
+simplify our tracking logic by using hsv blob detection and this works by
+blob detection and this works by converting the red green and blue pixel
+converting the red green and blue pixel values into the hsv or hue saturation
+values into the hsv or hue saturation and value color space which looks
+and value color space which looks something like this
+something like this and we can then convert those pixels
+and we can then convert those pixels into a binary format where the pixels
+into a binary format where the pixels will be white if they're within the
+will be white if they're within the desired hsv range or black if they're
+desired hsv range or black if they're outside of that range which looks like
+outside of that range which looks like this
+this and then the center of our chosen
+and then the center of our chosen contour will be the ball screen
+contour will be the ball screen coordinate there it
+coordinate there it is to calibrate our cameras we then need
+is to calibrate our cameras we then need to provide the calibration algorithm
+to provide the calibration algorithm with many sets of 3d object points and
+with many sets of 3d object points and their associated 2d coordinates
+their associated 2d coordinates the idea is that given many examples the
+the idea is that given many examples the algorithm can estimate
+algorithm can estimate uh it can estimate the projection matrix
+uh it can estimate the projection matrix needed to perform such a projection
+needed to perform such a projection so traditionally you would do this by
+so traditionally you would do this by filming a checkerboard pattern from many
+filming a checkerboard pattern from many different angles however we didn't have
+different angles however we didn't have access to the cameras so we needed a
+access to the cameras so we needed a different solution
+different solution so what we did is we associate the known
+so what we did is we associate the known landmarks on the field with 2d screen
+landmarks on the field with 2d screen locations using a simple tool pictured
+locations using a simple tool pictured here
+here and once we do this for all of our
+and once we do this for all of our camera views we can run the calibration
+camera views we can run the calibration algorithm to produce our projection
+algorithm to produce our projection matrices
+matrices and then once we have the calibrated
+and then once we have the calibrated cameras we can write a script that
+cameras we can write a script that triangulates the ball position and
+triangulates the ball position and injects it into our animated scene
+injects it into our animated scene and here are the results of the ball
+and here are the results of the ball being added to our motion builder scene
+being added to our motion builder scene and while it wasn't perfect it allowed
+and while it wasn't perfect it allowed us to work with and review the data much
+us to work with and review the data much more easily and it provided the context
+more easily and it provided the context necessary to extract the motion needed
+necessary to extract the motion needed to train our neural network
+to train our neural network for machine learning
+and while this ball data was primarily used to help our animators and for
+used to help our animators and for machine learning just having this data
+machine learning just having this data allowed us to use real-world ball
+allowed us to use real-world ball trajectory data to improve our in-game
+trajectory data to improve our in-game ball physics
+ball physics historically we would tune ball physics
+historically we would tune ball physics against reference videos
+against reference videos however the solution isn't very scalable
+however the solution isn't very scalable it's slow and tedious and while we might
+it's slow and tedious and while we might improve a scenario that we're testing
+improve a scenario that we're testing it's difficult to avoid regressing in
+it's difficult to avoid regressing in another case
+another case so we felt that if we could get a lot of
+so we felt that if we could get a lot of example trajectories from our accent
+example trajectories from our accent shoot loaded into our gameplay testbed
+shoot loaded into our gameplay testbed we could build a system that allows us
+we could build a system that allows us to iterate on our physics parameters and
+to iterate on our physics parameters and test against the wide variety of
+test against the wide variety of different ball trajectories quickly
+different ball trajectories quickly so we developed a system that loaded a
+so we developed a system that loaded a set of ball trajectories
+set of ball trajectories it would then select one and launch an
+it would then select one and launch an in-game ball with the same initial
+in-game ball with the same initial velocities we could then compare how the
+velocities we could then compare how the ball travels in our game versus the real
+ball travels in our game versus the real world
+world the system allows us to rapidly compare
+the system allows us to rapidly compare and validate our tuning against the
+and validate our tuning against the whole battery of cases in order to
+whole battery of cases in order to ensure we're continually moving towards
+ensure we're continually moving towards the right direction
+and here you can see some examples of the new ball physics in action
+and now i'm going to pass over to david wong who's going to show us how fifa
+wong who's going to show us how fifa uses machine learning in our animation
+uses machine learning in our animation system
+system thank you ryan
+thank you ryan now we will cover the machine learning
+now we will cover the machine learning part of high promotion specifically the
+part of high promotion specifically the ml4 system
+ml4 system the major advantage of machine learning
+the major advantage of machine learning is that it can solve hard problems where
+is that it can solve hard problems where traditional coding can be difficult
+traditional coding can be difficult but it also requires lots of good data
+but it also requires lots of good data where the solution of the problem is
+where the solution of the problem is embedded in the data itself
+embedded in the data itself previously our team already has had
+previously our team already has had success shipping small ml components
+success shipping small ml components like ml based head tracking and ml based
+like ml based head tracking and ml based ik as you can see in this video
+ik as you can see in this video however the scale were relatively small
+however the scale were relatively small with very small neural networks a
+with very small neural networks a customized specialized ml inference
+customized specialized ml inference runtime and you only control a small
+runtime and you only control a small number of joins we want to scale up to
+number of joins we want to scale up to solve larger problems
+first we will need a more generic ml runtime inference solution to support
+runtime inference solution to support many more different operators
+many more different operators because we want to test different neural
+because we want to test different neural network architecture we want to
+network architecture we want to experiment with different ones
+experiment with different ones so our 4 spy team have developed this by
+so our 4 spy team have developed this by wrapping over existing open sources like
+wrapping over existing open sources like cafe 2 and onyx runtime and port them
+cafe 2 and onyx runtime and port them all to all target platforms optimize and
+all to all target platforms optimize and trim up under the code
+this is what mlfo trying to solve in fifa two of the primary action a moving
+fifa two of the primary action a moving player from one position to another
+player from one position to another called locomotion and to make ball
+called locomotion and to make ball contacts such as kicking
+contacts such as kicking trapping passing or shooting we want the
+trapping passing or shooting we want the transition from locomotion to ball
+transition from locomotion to ball contact to be smooth and seamless
+contact to be smooth and seamless an example is shown in this video cta is
+an example is shown in this video cta is the development name of ml flow when no
+the development name of ml flow when no gta or ml4 is on the player did a hob
+gta or ml4 is on the player did a hob genital transition
+genital transition due to phase mismatch
+due to phase mismatch with gta transition is smooth
+with gta transition is smooth ml4 tries to solve this transition
+ml4 tries to solve this transition problem
+these are the main inputs to the neural networks we have the starting and
+networks we have the starting and current pose with the full skeleton and
+current pose with the full skeleton and then we have a target post in the future
+then we have a target post in the future with
+with the skeleton and we have the local
+the skeleton and we have the local motion path from the current post to the
+motion path from the current post to the target post and then we have target time
+target post and then we have target time and other control parameters
+and other control parameters the new network model outputs the next
+the new network model outputs the next pose two takes into the future with foot
+pose two takes into the future with foot plan state and some others
+plan state and some others if we fit these steps we will generate
+if we fit these steps we will generate all the poses in between and it forms a
+all the poses in between and it forms a trans transition animation as you can
+trans transition animation as you can see here
+this is a step by step generation showing the output of the neural network
+showing the output of the neural network frame
+we have a system called pen path that calculates all content animation and
+calculates all content animation and path to that animation output from pen
+path to that animation output from pen path used as inputs into ml full
+path used as inputs into ml full pan path can change decision every frame
+pan path can change decision every frame which means ml phone needs to respond to
+which means ml phone needs to respond to requests to preserve responsiveness as a
+requests to preserve responsiveness as a result depending on the data coverage we
+result depending on the data coverage we can't guarantee a seamless transition
+can't guarantee a seamless transition every time but in most cases it produces
+every time but in most cases it produces good results in other cases we are not
+good results in other cases we are not worse off than what we were previously
+worse off than what we were previously we would love to have everything hundred
+we would love to have everything hundred percent seamless however our top
+percent seamless however our top priority is to be responsive to our user
+priority is to be responsive to our user input
+input to get the best authentic motion we
+to get the best authentic motion we wanted data to exhibit the
+wanted data to exhibit the characteristics of real football players
+characteristics of real football players which is why we felt using the xn data
+which is why we felt using the xn data was vitally important for us
+was vitally important for us it gives a fairly large data set and
+it gives a fairly large data set and player weren't acting as would be in
+player weren't acting as would be in mocap section and have a lot more space
+mocap section and have a lot more space on the field than in mocap studio which
+on the field than in mocap studio which would already mention before
+would already mention before this is a diagram of a high level
+this is a diagram of a high level overview of our data pipeline we export
+overview of our data pipeline we export the animation to more ml-friendly format
+the animation to more ml-friendly format from various sources
+from various sources even though we obtain a lot of data from
+even though we obtain a lot of data from our accent switch but it's really only
+our accent switch but it's really only one match it's limited by the action
+one match it's limited by the action performed by the athletes in that
+performed by the athletes in that particular match
+particular match the coverage was not enough for all the
+the coverage was not enough for all the possible cases in our game
+possible cases in our game as is common in ml we need to do data
+as is common in ml we need to do data augmentation we use optical mode cap
+augmentation we use optical mode cap data that we already have and we also
+data that we already have and we also use our game to generate more artificial
+use our game to generate more artificial data where we measure the quality before
+data where we measure the quality before adding to our training set
+adding to our training set and we did another section of more
+and we did another section of more capital field data hold
+to train the dnn to deep neural network we extract the input features and output
+we extract the input features and output labels from the csv data we use python
+labels from the csv data we use python to train it on the cloud aws
+to train it on the cloud aws we use test support to monitor the
+we use test support to monitor the training progress we have about 5
+training progress we have about 5 million data points to train per network
+million data points to train per network once the network has finished training
+once the network has finished training we put it in our game with our runtime
+we put it in our game with our runtime influence engine as we mentioned it
+influence engine as we mentioned it before
+before then we can go testing in our game
+then we can go testing in our game one common question people ask is how
+one common question people ask is how long does it take to train
+long does it take to train it took it first took a few days which
+it took it first took a few days which was totally not acceptable law practical
+was totally not acceptable law practical in production so we aggressively
+in production so we aggressively optimize it down to two to three hours
+optimize it down to two to three hours via new architecture distributed
+via new architecture distributed training
+training tuning the learning rates and other
+tuning the learning rates and other parameters besides training time can be
+parameters besides training time can be slow one commonly overlooked area is the
+slow one commonly overlooked area is the data processing time it could take a
+data processing time it could take a very long time so we optimize that too
+very long time so we optimize that too using multi-cores and multi-machines
+we were able to leverage our gameplay testbed to create a stress test scenario
+testbed to create a stress test scenario for our system
+for our system we set up random scenarios where the
+we set up random scenarios where the ball and player would be launched from
+ball and player would be launched from different starting states and have the
+different starting states and have the player intercept the ball in different
+player intercept the ball in different ways
+ways these tools provide a way to do a b
+these tools provide a way to do a b testing it will run the same scenario
+testing it will run the same scenario once with the ml4 system enabled and
+once with the ml4 system enabled and once with it disabled
+once with it disabled we can also leverage this system to
+we can also leverage this system to compare iterations of our networks by
+compare iterations of our networks by supporting hot swapping of our ml models
+supporting hot swapping of our ml models between runs
+between runs we derive quality metrics to measure
+we derive quality metrics to measure quality like foot sliding momentum pops
+quality like foot sliding momentum pops post air etc we run thousands of this
+post air etc we run thousands of this scenario overnight and get a report of
+scenario overnight and get a report of their metrics to compare
+tens of thousands of this scenario would run overnight and the report will be
+run overnight and the report will be available in the morning
+available in the morning we will see statistical analysis of the
+we will see statistical analysis of the number and types of error we were
+number and types of error we were encountering we use python to analyze
+encountering we use python to analyze and extract specific
+and extract specific information that we wanted we visualize
+information that we wanted we visualize the path
+the path coverage with heat maps path patterns
+coverage with heat maps path patterns and generate histograms
+and generate histograms the report also tracked the scenario
+the report also tracked the scenario inputs
+inputs we needed to recreate the individual
+we needed to recreate the individual tests
+tests so that we could retest a scenario
+so that we could retest a scenario against a modifier neural network model
+against a modifier neural network model or other fixes
+or other fixes we can identify data host by visualizing
+we can identify data host by visualizing the heat map as is shown on the picture
+the heat map as is shown on the picture of the trajectory coverage and checking
+of the trajectory coverage and checking all the worst cases
+all the worst cases we also use the stress test to identify
+we also use the stress test to identify scenario where ml4
+scenario where ml4 was behaving poorly and the whole system
+was behaving poorly and the whole system was behaving nicely we could then go
+was behaving nicely we could then go back and export the data from the
+back and export the data from the scenarios using the old system in order
+scenarios using the old system in order to augment our training data
+to augment our training data the quality metrics are very important
+the quality metrics are very important to measure incremental changes of the
+to measure incremental changes of the network
+network model
+model features or data since each change might
+features or data since each change might make some improvements that is very hard
+make some improvements that is very hard to tell by purely looking at it
+to tell by purely looking at it the ability to iterate and stress test
+the ability to iterate and stress test changes and measure quality and
+changes and measure quality and performance was invaluable
+performance was invaluable the bottom line is if you want to build
+the bottom line is if you want to build fully procedural ml animation system
+fully procedural ml animation system you'll likely want to build a automated
+you'll likely want to build a automated ways
+ways to validate the quality of your system
+here we can see some example of ml4 in action
+action the players will adjust the cadence by
+the players will adjust the cadence by taking stutter steps or elongating their
+taking stutter steps or elongating their strikes in order to take the ball in
+strikes in order to take the ball in strike as you can see here
+there's some more examples
+i'll pass back to wyan thank you thanks david so i guess it's about time
+thanks david so i guess it's about time we wrap up our talk but before we go i
+we wrap up our talk but before we go i just want to summarize our team's
+just want to summarize our team's experience trying to deliver on hyper
+experience trying to deliver on hyper motion what worked and what needs
+motion what worked and what needs improvement
+improvement in terms of what worked we accomplished
+in terms of what worked we accomplished our initial mission of capturing a full
+our initial mission of capturing a full soccer match between professional teams
+soccer match between professional teams the animation delivered was high quality
+the animation delivered was high quality and we were able to capture a lot of
+and we were able to capture a lot of unique animations and scenarios that
+unique animations and scenarios that were previously not possible or at least
+were previously not possible or at least very difficult to capture in a studio
+very difficult to capture in a studio setting
+setting we successfully generated ball data
+we successfully generated ball data which provided additional context for
+which provided additional context for the motion allowing animators to follow
+the motion allowing animators to follow the play and providing examples to help
+the play and providing examples to help improve our physics
+improve our physics and it provided lots of animation data
+and it provided lots of animation data with unique and desirable
+with unique and desirable characteristics that we use to train our
+characteristics that we use to train our neural networks
+neural networks and while we're very happy with what we
+and while we're very happy with what we accomplished we need to acknowledge that
+accomplished we need to acknowledge that there are considerations to make if we
+there are considerations to make if we want to continue to efficiently work
+want to continue to efficiently work with lots of big animation data going
+with lots of big animation data going forward
+forward we now have a new problem of identifying
+we now have a new problem of identifying selecting and exploring animation data
+selecting and exploring animation data that we want to use
+that we want to use and we now deal with large file sizes
+and we now deal with large file sizes which take longer to load in our tools
+which take longer to load in our tools so we need to invest in finding an
+so we need to invest in finding an efficient way to categorize or tag
+efficient way to categorize or tag animation with relevant context so that
+animation with relevant context so that we can build the tools to search for the
+we can build the tools to search for the specific motion we're interested in
+specific motion we're interested in in conclusion we feel very positive
+in conclusion we feel very positive about the steps we took this year we've
+about the steps we took this year we've added a new capture technique to our
+added a new capture technique to our toolbox to help augment the visual
+toolbox to help augment the visual authenticity of our game and we're able
+authenticity of our game and we're able to leverage this data into adding the
+to leverage this data into adding the largest number of gameplay animations
+largest number of gameplay animations into our game in a single year and to
+into our game in a single year and to improve the game's ball physics
+improve the game's ball physics we also built our first machine learned
+we also built our first machine learned animation system that generates full
+animation system that generates full body animation and our team got more
+body animation and our team got more experience productizing machine learning
+experience productizing machine learning features which gives us more confidence
+features which gives us more confidence to take on more ambitious or difficult
+to take on more ambitious or difficult problems in the future
+problems in the future and that's what hypermotion represents
+and that's what hypermotion represents to our team blending real world data and
+to our team blending real world data and machine learning to improve the
+machine learning to improve the authenticity of our game in meaningful
+authenticity of our game in meaningful ways
+ways and that's all we have for you today and
+and that's all we have for you today and thank you very very much for listening
+thank you very very much for listening and before we go uh if you're interested
+and before we go uh if you're interested in machine learning in the animation
+in machine learning in the animation space our colleague sebastian stark is
+space our colleague sebastian stark is going to be presenting tomorrow morning
+going to be presenting tomorrow morning at 9 30 a.m uh where he's going to cover
+at 9 30 a.m uh where he's going to cover four years of research in the space
+four years of research in the space sebastian's an ai scientist he's really
+sebastian's an ai scientist he's really smart funny and he's an engaging guy and
+smart funny and he's an engaging guy and his talks are always fun inspiring and
+his talks are always fun inspiring and informational so i highly recommend you
+informational so i highly recommend you check out that session
+check out that session and uh lastly we're always hiring so if
+and uh lastly we're always hiring so if you found the work we presented
+you found the work we presented interesting we'd love to hear from you
+interesting we'd love to hear from you um
+um there's a few minutes for questions if
+there's a few minutes for questions if you want to step up to the mics
+you want to step up to the mics yeah we should have a few minutes and if
+yeah we should have a few minutes and if we don't have much time then our contact
+we don't have much time then our contact information is on the screen or you can
+information is on the screen or you can contact us through the conference app
+[Applause] hi uh i was wondering if you could
+hi uh i was wondering if you could elaborate a little bit more on what
+elaborate a little bit more on what parameters you're using for the machine
+parameters you're using for the machine learning to know that it's it was
+learning to know that it's it was effective like a
+effective like a perturbation was effective versus a
+perturbation was effective versus a previous perturbation
+previous perturbation right so
+right so we have a system that we didn't talk
+we have a system that we didn't talk about today it's a
+about today it's a it's a quality evaluation so essentially
+it's a quality evaluation so essentially it will
+score the quality of the animation it takes short samples of animation and
+takes short samples of animation and it's another machine learning system
+it's another machine learning system that will score that quality
+that will score that quality it's a generative system so it generates
+it's a generative system so it generates a pose based on the previous animation
+a pose based on the previous animation and we compare that to the pose the
+and we compare that to the pose the animation in game generated and based on
+animation in game generated and based on the score we can evaluate
+the score we can evaluate the difference between those poses
+the difference between those poses the other systems we use are more
+the other systems we use are more heuristic based with looks at foot
+heuristic based with looks at foot sliding scissoring and stuff like that
+sliding scissoring and stuff like that cool thank you
+cool thank you hi
+hi uh nice talk thank you um i was
+uh nice talk thank you um i was wondering during the
+wondering during the full uh
+full uh motion capture on the soccer field with
+motion capture on the soccer field with two
+two teams
+teams uh you you mentioned that you you are um
+uh you you mentioned that you you are um creating your shot list watching the
+creating your shot list watching the result of the mocap if i understood
+result of the mocap if i understood correctly and i was wondering um with
+correctly and i was wondering um with the full liberty given to the players
+the full liberty given to the players um it's it seems that inherently there
+um it's it seems that inherently there would be a lot of ambiguity in the data
+would be a lot of ambiguity in the data with with respect to the features that
+with with respect to the features that you use to drive your characters
+you use to drive your characters and so i was wondering did you pay any
+and so i was wondering did you pay any attention to
+attention to how to remove that ambiguity or does
+how to remove that ambiguity or does your system is able to handle it
+your system is able to handle it did you want to take that or take the
+did you want to take that or take the capture side of it
+capture side of it um yeah so so yeah with the shoot we had
+um yeah so so yeah with the shoot we had um two full teams and sorry one one
+um two full teams and sorry one one question what do you mean by the uh
+question what do you mean by the uh ambiguity with the with the data um
+ambiguity with the with the data um so so um
+so so um a simple example if you if you ask your
+a simple example if you if you ask your character if you think your character is
+character if you think your character is running forward that there are many
+running forward that there are many different speeds many different things
+different speeds many different things that happen if we just consider that
+that happen if we just consider that parameter of
+parameter of forward speed so i'm thinking that based
+forward speed so i'm thinking that based on your set of features the set of
+on your set of features the set of parameters for the motion
+parameters for the motion there would be a lot of
+there would be a lot of different motion that would fit the same
+different motion that would fit the same values for those parameters
+yeah that makes sense yeah um
+that makes sense yeah um so so
+so so we we treated this shoot as kind of a
+we we treated this shoot as kind of a cherry on top and to help drive future
+cherry on top and to help drive future technologies so a lot of our like
+technologies so a lot of our like fundamental gameplay animation systems
+fundamental gameplay animation systems had a lot of the animation in place that
+had a lot of the animation in place that could you know
+could you know make the feature run and we were able
+make the feature run and we were able then to be very selective about what
+then to be very selective about what animations we wanted to pull out to put
+animations we wanted to pull out to put into our game
+into our game but in the future it will be
+but in the future it will be much more dynamic and complex because we
+much more dynamic and complex because we do want to pull a lot of these
+do want to pull a lot of these different pieces like you know whether
+different pieces like you know whether they're sidestepping at certain speeds
+they're sidestepping at certain speeds or how they move to the ball
+or how they move to the ball being able to categorize those and
+being able to categorize those and extract large portions so we can pull
+extract large portions so we can pull them out is really important but we
+them out is really important but we haven't got there just yet
+haven't got there just yet on the on the other side of things it's
+on the on the other side of things it's not our only source of data we have lots
+not our only source of data we have lots of optical capture that we still do like
+of optical capture that we still do like it's not our only motion capture source
+it's not our only motion capture source um in terms of the the neural network
+um in terms of the the neural network how we choose the right portion of
+how we choose the right portion of animation there are other inputs to the
+animation there are other inputs to the network that are in take into account so
+network that are in take into account so for instance the the locomotion path the
+for instance the the locomotion path the path that takes us from the current
+path that takes us from the current position to the target position uh that
+position to the target position uh that has a time associated with it so we know
+has a time associated with it so we know roughly how fast we need to get to that
+roughly how fast we need to get to that target pose so that will help
+target pose so that will help buy us what we're selecting from the
+buy us what we're selecting from the data set
+data set all right thank you
+all right thank you thank you very much
+thank you very much thank you thank you
+thank you thank you [Music]
+[Music] you

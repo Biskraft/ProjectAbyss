@@ -1,0 +1,937 @@
+[Music] hey everyone and welcome to our talk
+hey everyone and welcome to our talk spatial audio in budget cuts
+spatial audio in budget cuts uh ironically we will not be playing
+uh ironically we will not be playing back any sounds
+back any sounds but
+but you have to use your imagination
+you have to use your imagination and speaking of that
+and speaking of that you will all receive a feedback form
+you will all receive a feedback form after the talk so use your imagination
+after the talk so use your imagination and pretend it was super good and give
+and pretend it was super good and give us a good review
+us a good review so my name is jonas jalbari i'm cto of a
+so my name is jonas jalbari i'm cto of a company called yesterment and we make
+company called yesterment and we make super secret unannounced music
+super secret unannounced music middleware
+middleware but more importantly i was the composer
+but more importantly i was the composer and audio designer of the game budget
+and audio designer of the game budget cuts
+cuts and i am lakulesh anthani i am a valve
+and i am lakulesh anthani i am a valve person and in my valve time i do valve
+person and in my valve time i do valve things like spatial audio
+things like spatial audio um so this talk is really going to be
+um so this talk is really going to be about our experiences in integrating
+about our experiences in integrating spatial audio into budget cuts
+spatial audio into budget cuts via valve spatial audio tool called
+via valve spatial audio tool called steam audio
+steam audio so before we get into all of the
+so before we get into all of the all of the details about all of our
+all of the details about all of our experiences
+experiences just a quick overview of this talk
+just a quick overview of this talk i am going to be talking about the
+i am going to be talking about the technical side of things jonas is going
+technical side of things jonas is going to be talking about the artistic side so
+to be talking about the artistic side so kind of like good cop bad cop here
+kind of like good cop bad cop here so first off
+so first off um
+um spatial audio has been getting a lot of
+spatial audio has been getting a lot of attention in recent years but already
+attention in recent years but already there's so much confusing terminology
+there's so much confusing terminology out there that it's kind of hard to keep
+out there that it's kind of hard to keep track of what someone means when they
+track of what someone means when they say that they've implemented such and
+say that they've implemented such and such spatial audio feature
+such spatial audio feature so
+so i'm going to give a quick overview of
+i'm going to give a quick overview of some of the concepts and the first one
+some of the concepts and the first one is hrtf
+is hrtf head related transfer function
+head related transfer function so in the real world the shape of your
+so in the real world the shape of your head affects how you hear things the
+head affects how you hear things the sound
+sound bends around your head before it gets
+bends around your head before it gets into your ears so the effect of your
+into your ears so the effect of your head your torso these flappy bits of
+head your torso these flappy bits of your ears
+your ears they all affect how you hear things and
+they all affect how you hear things and where you perceive a sound to be coming
+where you perceive a sound to be coming from and an hrtf is a set of filters
+from and an hrtf is a set of filters that models that
+that models that hrtfs are typically measured from dummy
+hrtfs are typically measured from dummy heads or real people
+heads or real people and they're measured in a bunch of
+and they're measured in a bunch of different directions and all of this
+different directions and all of this information is used to resynthesize the
+information is used to resynthesize the positionality of a sound
+positionality of a sound the other concept is ambisonics
+the other concept is ambisonics ambisonics is kind of a surround format
+ambisonics is kind of a surround format but unlike your typical 5.1 or 7.1 it's
+but unlike your typical 5.1 or 7.1 it's a spherical representation of a sound
+a spherical representation of a sound field so it includes verticality as well
+field so it includes verticality as well uh one way to maybe think about this is
+uh one way to maybe think about this is it's like 360 video but for sound again
+it's like 360 video but for sound again ambisonics can be measured i mean
+ambisonics can be measured i mean recorded uh using a bunch of different
+recorded uh using a bunch of different kinds of microphones you can also encode
+kinds of microphones you can also encode a monoclip into ambisonics given a
+a monoclip into ambisonics given a direction
+direction and you can decode ambisonics using
+and you can decode ambisonics using hardware software decoders
+hardware software decoders and you can spatialize ambisonics using
+and you can spatialize ambisonics using hrtfs
+hrtfs i'm going to hand it over to jonas who's
+i'm going to hand it over to jonas who's going to discuss a few more spatial
+going to discuss a few more spatial audio concepts
+so what you have to take into account when working with all these things is
+when working with all these things is stuff like distance cues and that means
+stuff like distance cues and that means a sound will get
+a sound will get softer and more muffled the highs will
+softer and more muffled the highs will get rolled off the further away the
+get rolled off the further away the sound is playing from the listener
+sound is playing from the listener also if the sound is played back in a
+also if the sound is played back in a reverberant space you will get much more
+reverberant space you will get much more of the reverb and the late reflections
+then we have stuff regarding the rooms so
+stuff regarding the rooms so uh
+room size q would mean that the way a sound will bounce around the room the
+sound will bounce around the room the reflections will give an indicator of
+reflections will give an indicator of the size of the space
+the size of the space stuff like how long the reverb tail is
+stuff like how long the reverb tail is but also which materials
+but also which materials are being used in the room that will
+are being used in the room that will affect the coloration of the sound
+affect the coloration of the sound and
+and this thing is super important for a
+this thing is super important for a presence and selling the illusion of
+presence and selling the illusion of being in a different space
+being in a different space we also have stuff like sound
+we also have stuff like sound propagation and that
+propagation and that in effect means the way sound flows
+in effect means the way sound flows through a space
+through a space so sound will be bouncing being blocked
+so sound will be bouncing being blocked being scattered diffracted
+being scattered diffracted going through different materials and
+going through different materials and being colored by that
+being colored by that going through openings doors windows
+going through openings doors windows just how the sound is bouncing around
+just how the sound is bouncing around basically
+basically so uh this is pretty cool but uh it's
+so uh this is pretty cool but uh it's nothing new and uh coolish why are we
+nothing new and uh coolish why are we seeing this uh
+seeing this uh talk about special audio right now
+that's a good question actually um all of this tech or much of this deck is
+of this tech or much of this deck is really
+really several decades old so why is this all
+several decades old so why is this all relevant now
+relevant now there's a few reasons
+there's a few reasons one is that computers are way faster now
+one is that computers are way faster now you have
+you have multi-core cpus gpus you have a lot of
+multi-core cpus gpus you have a lot of compute you can throw at problems like
+compute you can throw at problems like spatial audio so that's now
+spatial audio so that's now computationally feasible
+computationally feasible the other thing is vr
+the other thing is vr with the rise of vr in the last few
+with the rise of vr in the last few years the importance of immersion has
+years the importance of immersion has gone up and spatial audio is a as a very
+gone up and spatial audio is a as a very important way through which you can add
+important way through which you can add immersion
+immersion uh to your audio
+uh to your audio and a side
+and a side uh benefit of this is that with vr most
+uh benefit of this is that with vr most of your users are gonna be using
+of your users are gonna be using headphones which is the ideal delivery
+headphones which is the ideal delivery mechanism for spatial audio so all of
+mechanism for spatial audio so all of these factors together are kind of why
+these factors together are kind of why spatial audio is
+spatial audio is all the rage these days
+all the rage these days so that's an overview of spatial audio
+so that's an overview of spatial audio uh so now i'm gonna hand it over to
+uh so now i'm gonna hand it over to jonas he's gonna tell us more about
+jonas he's gonna tell us more about budget cuts which is what all the kids
+budget cuts which is what all the kids are talking about these days
+so body cuts it's all the latest rage uh since like three years ago
+since like three years ago uh it's a rhythm game where you have two
+uh it's a rhythm game where you have two lightsabers and
+lightsabers and oh the wrong game uh so it's it's a vr
+oh the wrong game uh so it's it's a vr spy game basically there's a snippet of
+spy game basically there's a snippet of our trailer
+our trailer um
+um and it features stealth deadly robots
+and it features stealth deadly robots uh
+uh you have to hide from the robots uh and
+you have to hide from the robots uh and trying not to get seen or you could
+trying not to get seen or you could choose to
+choose to kill the robots the only way possible
+kill the robots the only way possible with knives and scissors
+with knives and scissors so the game is
+so the game is designed around two core concepts
+designed around two core concepts it's all about room scale gameplay so
+it's all about room scale gameplay so you'll be
+you'll be crawling on the floor hiding behind
+crawling on the floor hiding behind cubicles crouching
+cubicles crouching ducking and weaving stuff like that
+ducking and weaving stuff like that and most
+and most interestingly it features a very novel
+interestingly it features a very novel teleportation portal mechanic that works
+teleportation portal mechanic that works like this so you fire a
+like this so you fire a ball with your hand cannon it opens up a
+ball with your hand cannon it opens up a portal that you can look into and
+portal that you can look into and preview the new location and once you're
+preview the new location and once you're ready you teleport to that location and
+ready you teleport to that location and the teleport
+the teleport portal will
+portal will envelop around you it feels very
+envelop around you it feels very immersive
+immersive and it also aids in gameplay because
+and it also aids in gameplay because you'll be able to pre-survey where
+you'll be able to pre-survey where you're going
+you're going so i'll
+so i'll be the first to argue that
+be the first to argue that spatial audio should be implemented into
+spatial audio should be implemented into every game
+every game coming forward from this point
+coming forward from this point it's
+it's super
+super nice
+nice but most importantly like for a game
+but most importantly like for a game like body cuts it's even imperative for
+like body cuts it's even imperative for a stealth game
+a stealth game because
+because spatial audio will give us clues about
+spatial audio will give us clues about where the enemy's are
+where the enemy's are situated where they're
+situated where they're patrolling
+patrolling we will get cues about the space that
+we will get cues about the space that we're in if we're uh
+we're in if we're uh hiding behind safe cover or not and um
+hiding behind safe cover or not and um we've all been uh talked uh talking
+we've all been uh talked uh talking about like immersion for uh ever in vr
+about like immersion for uh ever in vr but it's really about that
+but it's really about that so
+so audio normally is used to sell the
+audio normally is used to sell the illusion and even more so in vr so it
+illusion and even more so in vr so it makes sense that we actually use this
+makes sense that we actually use this tech to
+tech to get that extra mile
+get that extra mile so we've been using reflections for
+so we've been using reflections for instance as one of our core gameplay
+instance as one of our core gameplay cues
+cues which allows the player to properly form
+which allows the player to properly form a strategy based on what they're hearing
+a strategy based on what they're hearing so
+so while you normally
+while you normally in a game would be able to hear that ah
+in a game would be able to hear that ah there's a sound emitting from the next
+there's a sound emitting from the next room
+room with special audio technologies we can
+with special audio technologies we can hear the size of the room that's on the
+hear the size of the room that's on the other side of the wall we can hear if
+other side of the wall we can hear if the robot is walking away from us or
+the robot is walking away from us or coming towards us
+coming towards us just based on the way the sound is being
+just based on the way the sound is being colored
+colored so that helps the player to
+so that helps the player to correctly assess a threat and
+correctly assess a threat and time their strategies accordingly
+also a core gameplay cue we use occlusion which means
+occlusion which means the way a sound is being blocked
+the way a sound is being blocked essentially it's a ray trace from the
+essentially it's a ray trace from the audio source back to the listener and if
+audio source back to the listener and if there is geometry intersecting that
+there is geometry intersecting that the sound will get
+the sound will get muffled according to what kind of
+muffled according to what kind of material the geometry intersecting
+material the geometry intersecting has applied to itself so this can tell
+has applied to itself so this can tell us if we're uh behind safe cover or if
+us if we're uh behind safe cover or if we're in a direct line of sight to an
+we're in a direct line of sight to an enemy
+enemy um also there are
+um also there are this telephone similar to the matrix
+this telephone similar to the matrix where you'd
+where you'd [Music]
+[Music] pick up the phone to get new information
+pick up the phone to get new information about your mission um and then you can
+about your mission um and then you can hear
+hear quite clearly if it's on in a different
+quite clearly if it's on in a different room even though it's far away
+room even though it's far away uh you can pinpoint which room is coming
+uh you can pinpoint which room is coming from
+from so
+so all was not well working like this and
+all was not well working like this and la coolish will uh go over some of that
+all right so for the next few minutes i'm going to
+for the next few minutes i'm going to talk about some of the things we had to
+talk about some of the things we had to do to get spatial audio working well in
+do to get spatial audio working well in budget cuts
+budget cuts what i will not be talking about is
+what i will not be talking about is hrtfs or occlusion because this is 2019
+hrtfs or occlusion because this is 2019 and that's not really as much of a
+and that's not really as much of a problem as it used to be
+problem as it used to be so what i'm going to be talking about
+so what i'm going to be talking about here is sound propagation so
+here is sound propagation so this is a quick overview of what we did
+this is a quick overview of what we did we split sound propagation into per
+we split sound propagation into per source early reflections and a single
+source early reflections and a single physics based reverb
+physics based reverb the early sound paths
+the early sound paths for every source were guided using a
+for every source were guided using a custom portaling system
+custom portaling system and in addition to all of this we faked
+and in addition to all of this we faked some of the spatialization for ambience
+some of the spatialization for ambience and music using the steam audio
+and music using the steam audio ambisonics reverb system
+ambisonics reverb system so let me start with the real-time
+so let me start with the real-time reflections and
+reflections and early pass
+early pass so ideally
+so ideally and this was our starting point we
+and this was our starting point we wanted to model sound propagation from
+wanted to model sound propagation from every single source individually trace
+every single source individually trace rays all over the place apply
+rays all over the place apply convolution reverbs for every individual
+convolution reverbs for every individual source and everything would be great but
+source and everything would be great but obviously that's a lot of compute
+obviously that's a lot of compute there are ways to mitigate this you can
+there are ways to mitigate this you can use multi-threading you can use gpus
+use multi-threading you can use gpus there are options but those are not
+there are options but those are not always suitable for every title and in
+always suitable for every title and in particular they were not suitable for
+particular they were not suitable for budget cuts
+budget cuts so we decided to do the following we
+so we decided to do the following we said let's split
+said let's split uh let's split sound propagation into
+uh let's split sound propagation into two parts for every source we're only
+two parts for every source we're only going to compute early reflection so
+going to compute early reflection so that's like one or two bounces
+that's like one or two bounces and then the reverb will be applied
+and then the reverb will be applied separately and i'll come back to the
+separately and i'll come back to the reverb in a bit
+reverb in a bit so we implemented this it worked more or
+so we implemented this it worked more or less okay
+less okay uh performance was
+uh performance was more or less okay
+more or less okay but it wasn't perfect
+but it wasn't perfect and in particular
+and in particular we had an issue where sometimes we
+we had an issue where sometimes we encountered sudden frame rate hits
+encountered sudden frame rate hits which were kind of hard to track down
+which were kind of hard to track down what was going on
+what was going on so we did a whole bunch of investigation
+so we did a whole bunch of investigation and what we found was that there was
+and what we found was that there was something quirky about how unity's audio
+something quirky about how unity's audio engine was working and what it was doing
+engine was working and what it was doing was every time an audio clip was played
+was every time an audio clip was played from an audio source
+from an audio source it was re-initializing a whole bunch of
+it was re-initializing a whole bunch of spatializer state
+spatializer state now this is interesting because
+now this is interesting because spatializer state is not really tied to
+spatializer state is not really tied to an element in your mix graph it's more
+an element in your mix graph it's more tied to the physical game object that's
+tied to the physical game object that's moving around in your scene
+moving around in your scene so
+so we obviously reported this issue to
+we obviously reported this issue to unity and they began to work on a fix
+unity and they began to work on a fix but that fix was not going to come out
+but that fix was not going to come out in time for budget cuts to ship so we
+in time for budget cuts to ship so we decided to
+decided to you know approximate things further
+you know approximate things further and our solution to that was to first
+and our solution to that was to first take a step back and really think about
+take a step back and really think about why we cared so much about these early
+why we cared so much about these early sound paths and the important cue here
+sound paths and the important cue here was
+was we really only care about knowing which
+we really only care about knowing which doors
+doors have robots on the other side which
+have robots on the other side which windows which vents have robots on the
+windows which vents have robots on the other side so that you don't go there
+other side so that you don't go there and so what we did was
+and so what we did was let's manually mark those up
+let's manually mark those up and then use that information to guide
+and then use that information to guide the steam audio ray tracer so that it
+the steam audio ray tracer so that it doesn't have to calculate as much it can
+doesn't have to calculate as much it can run way way more efficiently
+run way way more efficiently so that's what we implemented um
+so that's what we implemented um just want to point out that this
+just want to point out that this solution was developed specifically for
+solution was developed specifically for budget cuts and is not part of steam
+budget cuts and is not part of steam audio at this time
+so that's the early paths the other issue was reverb
+other issue was reverb so we obviously couldn't apply reverb to
+so we obviously couldn't apply reverb to every source so what we do is
+every source so what we do is we apply a physics-based reverb
+we apply a physics-based reverb for a sub mix so rays are traced out
+for a sub mix so rays are traced out from the listener's position gathered
+from the listener's position gathered back at the listener's position after a
+back at the listener's position after a whole bunch of bouncing around
+whole bunch of bouncing around and that is sufficient to convey a sense
+and that is sufficient to convey a sense of room size room shape
+of room size room shape materials that sort of thing
+materials that sort of thing but there are issues
+but there are issues well before i go into the issues one of
+well before i go into the issues one of the benefits of doing this is that your
+the benefits of doing this is that your compute cost is independent of how many
+compute cost is independent of how many sources you have you're just applying
+sources you have you're just applying the reverb to a sub mix
+the reverb to a sub mix so now to the issue which is that
+so now to the issue which is that because of the way physics-based reverb
+because of the way physics-based reverb works because of the way rays are
+works because of the way rays are gathered
+gathered when you move close to a wall
+when you move close to a wall what happens is the size of the room
+what happens is the size of the room begins to appear a little bit smaller
+begins to appear a little bit smaller and the solution to this problem is to
+and the solution to this problem is to use a directional reverb so you model
+use a directional reverb so you model how energy decays in different
+how energy decays in different directions
+directions and so if you do this correctly what
+and so if you do this correctly what will happen is when you move close to a
+will happen is when you move close to a wall the tail of the reverb will shift
+wall the tail of the reverb will shift away from the wall
+away from the wall and you'll get a
+and you'll get a smaller shorter echo from the wall
+smaller shorter echo from the wall itself
+itself and so that's what is implemented
+and so that's what is implemented uh in steam audio and in budget cuts
+uh in steam audio and in budget cuts but there's a gotcha there as well
+but there's a gotcha there as well and that is latency so physics based
+and that is latency so physics based reverb is going to update
+reverb is going to update at two to ten hertz and that kind of
+at two to ten hertz and that kind of latency is fine if you're just moving
+latency is fine if you're just moving from one space to another but that's not
+from one space to another but that's not fine if you just turn your head around
+fine if you just turn your head around and have to wait like half a second
+and have to wait like half a second for the simulation to update
+for the simulation to update uh based on your
+uh based on your based on where you're looking
+based on where you're looking and the solution to this is ambisonics
+and the solution to this is ambisonics so one of the nice things about
+so one of the nice things about ambisonics is that you can take any
+ambisonics is that you can take any ambisonics buffer
+ambisonics buffer and rotate it to any arbitrary
+and rotate it to any arbitrary orientation
+orientation and so what we do is
+and so what we do is we run all of our physics-based reverb
+we run all of our physics-based reverb simulations in world space so
+simulations in world space so independent of where the listener is
+independent of where the listener is looking
+looking we do our convolutions with these world
+we do our convolutions with these world space reverbs
+space reverbs and then once all the convolution all
+and then once all the convolution all the audio processing is done we just
+the audio processing is done we just take that one frame of audio
+take that one frame of audio and we rotate it
+and we rotate it uh to match the listener's orientation
+uh to match the listener's orientation so we get decoupled
+so we get decoupled orientation updates that are
+orientation updates that are calculated at audio frame rates
+calculated at audio frame rates so those are the two issues that we
+so those are the two issues that we solved with reflections and with reverb
+solved with reflections and with reverb and now jonas is going to talk about
+and now jonas is going to talk about ambience and music
+thank you lecoulish i hope all that was crystal clear
+crystal clear so spatial audio is
+so spatial audio is essentially a whole new paradigm when it
+essentially a whole new paradigm when it comes to how you approach your mix
+things that are still stuck in an old paradigm is
+paradigm is how you treat music in games or stuff
+how you treat music in games or stuff like ambiences
+like ambiences and
+and when mixing like spatial audio together
+when mixing like spatial audio together with the a flat stereo sound file uh
+with the a flat stereo sound file uh it's feels very disconnected and
+it's feels very disconnected and doesn't feel part of the experience and
+doesn't feel part of the experience and when it uh comes like music and games
+when it uh comes like music and games are supposed to propel the
+are supposed to propel the player further into the experience not
+player further into the experience not pull them out right um
+pull them out right um so
+so there are different approaches you could
+there are different approaches you could do with music in vr and one would be to
+do with music in vr and one would be to always uh
+always uh from the design stage uh
+from the design stage uh use diegetic sound sources so that the
+use diegetic sound sources so that the music that is actually always emanating
+music that is actually always emanating from somewhere in the space
+from somewhere in the space we did some of that in body cuts
+we did some of that in body cuts there are a bunch of radios scattered
+there are a bunch of radios scattered across the world and if you move closer
+across the world and if you move closer to them the music will fall down into a
+to them the music will fall down into a specialized radio
+specialized radio and that goes
+and that goes gives a pretty nice effect
+gives a pretty nice effect [Music]
+[Music] another approach i used was to
+another approach i used was to essentially when mixing the music use
+essentially when mixing the music use binaural
+binaural panning plugins and uh
+panning plugins and uh move slowly automate movement around the
+move slowly automate movement around the player where the instruments will be
+player where the instruments will be slowly facing around in the sound stage
+slowly facing around in the sound stage which doesn't at all line up with what
+which doesn't at all line up with what is going on on screen but the
+is going on on screen but the facing of the of the sound
+facing of the of the sound sort of allows it to
+sort of allows it to blend more properly and together with
+blend more properly and together with the spatialized sounds
+the spatialized sounds the preferred solution would instead be
+the preferred solution would instead be to play back an ambisonics music mix so
+to play back an ambisonics music mix so that you would mix your music in
+that you would mix your music in ambisonics
+ambisonics and then when playing it back
+and then when playing it back in the game you can choose to
+in the game you can choose to have it rotate together with the
+have it rotate together with the player's head or independent of it
+player's head or independent of it so that for instance
+so that for instance drums would always be coming from that
+drums would always be coming from that direction or whatever depending on are
+direction or whatever depending on are you moving
+another similar issue comes with ambiences so
+ambiences so you need some sort of like uh
+you need some sort of like uh to to to convey a space you need to have
+to to to convey a space you need to have uh some kind of ambience and
+uh some kind of ambience and the
+the preferred way to go about it using
+preferred way to go about it using spatialized sounds would be to just use
+spatialized sounds would be to just use reflections and have
+reflections and have a ton of bounces and that
+a ton of bounces and that in turn would create
+in turn would create a dynamic room tone right
+a dynamic room tone right but
+but since we had performance issues with
+since we had performance issues with reflections we couldn't do anything like
+reflections we couldn't do anything like that
+that at the same time the game world is quite
+at the same time the game world is quite empty because it's an abandoned office
+empty because it's an abandoned office building with patreon robots so you need
+building with patreon robots so you need some kind of sound uh to
+some kind of sound uh to be actually to to to get back something
+be actually to to to get back something from the room
+from the room so uh the way we did that was to fake
+so uh the way we did that was to fake things up with
+things up with piping
+piping like a mono a sound file that played
+like a mono a sound file that played back filtered white noise uh i attached
+back filtered white noise uh i attached that to the player so it's always moving
+that to the player so it's always moving with me and as you're teleporting
+with me and as you're teleporting yourself into say a small vent
+yourself into say a small vent that noise will then fill up the space
+that noise will then fill up the space and you suddenly get a sense of the size
+and you suddenly get a sense of the size of the room
+of the room the same goes when going out to big
+the same goes when going out to big space then it would be something bigger
+space then it would be something bigger [Music]
+[Music] so
+so spatial audio is super great super cool
+spatial audio is super great super cool uh but
+uh but it comes with a lot of caveats so
+it comes with a lot of caveats so for instance all of these plugins you
+for instance all of these plugins you can get for free more or less there are
+can get for free more or less there are many that are not i suppose but
+many that are not i suppose but what's not free is performance
+what's not free is performance and
+you need to budget for performance before starting with this like
+before starting with this like especially the more of the features you
+especially the more of the features you add in the better it's going to sound
+add in the better it's going to sound and you will notice this drastically but
+and you will notice this drastically but it will will also tank your performance
+it will will also tank your performance so you need to
+so you need to rain your expectations in a bit
+rain your expectations in a bit and try to not use all of the
+and try to not use all of the good stuff just yet and of course being
+good stuff just yet and of course being a beta kind of software there is no
+a beta kind of software there is no community if you stumble upon an issue
+community if you stumble upon an issue you need to directly talk to the
+you need to directly talk to the developer
+developer and
+and i'm not sure that everyone is so lucky
+i'm not sure that everyone is so lucky as we've been
+as we've been to have them like on speed aisle and say
+to have them like on speed aisle and say hey could you add this thing
+hey could you add this thing um
+um but yeah you need to uh
+but yeah you need to uh keep that in mind that it's not like any
+keep that in mind that it's not like any of the big uh
+of the big uh things like fm otherwise that has a lot
+things like fm otherwise that has a lot of community around them and the
+of community around them and the documentation is always
+documentation is always changing of course
+changing of course and it is not without bugs and sometimes
+and it is not without bugs and sometimes you can question your own sanity and
+you can question your own sanity and it turns out it was a bug like with the
+it turns out it was a bug like with the unit thing all along
+unit thing all along and a bug like the unity bug
+and a bug like the unity bug did cause me to have to redo the whole
+did cause me to have to redo the whole mix several times because we had to cut
+mix several times because we had to cut features so that's like
+features so that's like just a couple of weeks just doing that
+just a couple of weeks just doing that the last time two weeks before release
+the last time two weeks before release even so it's not it's not a
+even so it's not it's not a plug-and-play solution it's what we're
+plug-and-play solution it's what we're trying to say
+trying to say so you need to really
+so you need to really think about this from the get-go
+think about this from the get-go you can't just activate the plug-in and
+you can't just activate the plug-in and it's going to sound nice and spatialized
+it's going to sound nice and spatialized so
+so giving back the word to la coolish it's
+giving back the word to la coolish it's going to talk about what a summary of
+going to talk about what a summary of what we did right
+so for those of us who just zoned out
+for those of us who just zoned out through most of that
+through most of that um this is what we talked about uh we
+um this is what we talked about uh we split
+split spatial audio we spit we split sound
+spatial audio we spit we split sound propagation into two parts
+propagation into two parts early reflections for every source
+early reflections for every source and reverb for a sub mix based on the
+and reverb for a sub mix based on the listener position
+listener position we
+we guided the early reflections using
+guided the early reflections using manually placed portals
+manually placed portals and we used ambisonics reverb
+and we used ambisonics reverb to spatialize ambiences and music
+so you know things didn't go
+you know things didn't go exactly as we planned so what would we
+exactly as we planned so what would we have liked to have done better you know
+have liked to have done better you know what are some ways in which things can
+what are some ways in which things can improve
+improve so one is
+so one is obviously we would have liked to have
+obviously we would have liked to have had more success with the early
+had more success with the early reflections
+reflections the bug that we reported to unity that
+the bug that we reported to unity that was leading to a lot of the performance
+was leading to a lot of the performance issues that i believe has been fixed and
+issues that i believe has been fixed and a fix is shipping in 2019.1
+a fix is shipping in 2019.1 or thereabouts
+having said that the portal system that we came up with is great
+we came up with is great however it may not be suitable for all
+however it may not be suitable for all kinds of titles it depends on what kind
+kinds of titles it depends on what kind of scenes you have and it worked well
+of scenes you have and it worked well for budget cuts
+for budget cuts so we would ideally want to try to
+so we would ideally want to try to [Music]
+[Music] maybe come up with something more
+maybe come up with something more semi-automatic something more flexible
+semi-automatic something more flexible that can solve this problem
+that can solve this problem more efficiently than just rate racing
+more efficiently than just rate racing all the things
+the other thing we would like to have is what is called near field hrtf and
+what is called near field hrtf and the what near field hrtf means is
+the what near field hrtf means is when you hold some sound source really
+when you hold some sound source really close to your head
+close to your head that's called a near field source
+that's called a near field source so in budget cuts for example you can
+so in budget cuts for example you can hold a phone right up to your ear and
+hold a phone right up to your ear and you want that to be rendered using a
+you want that to be rendered using a near field hrtf
+near field hrtf the hrtfs you normally have including
+the hrtfs you normally have including the one in steam audio they're far field
+the one in steam audio they're far field so they're recorded from a few meters
+so they're recorded from a few meters away from the listener
+away from the listener so you want to
+so you want to get near field data because that adds a
+get near field data because that adds a more visceral kind of feel to that
+more visceral kind of feel to that specialization
+specialization so those are some of the technical
+so those are some of the technical things we would like to improve uh so
+things we would like to improve uh so jonas what are some of the less
+jonas what are some of the less technical things we would like to
+technical things we would like to improve
+improve well before getting to that i'd uh
+well before getting to that i'd uh want to take the opportunity to say that
+want to take the opportunity to say that we are going to update buddy cuts to the
+we are going to update buddy cuts to the new unity version so that we can put in
+new unity version so that we can put in all the nice things
+all the nice things back in
+i'm not sure that we're going to do that but i'm
+but i'm saying it here so that
+saying it here so that the team can then be forced to do it
+the team can then be forced to do it essentially
+essentially it's a
+it's a promise
+promise so what we want to do more as well is so
+so what we want to do more as well is so the reverb works great
+the reverb works great but
+but like i said before it's all about
+like i said before it's all about selling the illusion and sometimes uh
+selling the illusion and sometimes uh realism is not as good as what you can
+realism is not as good as what you can imagine up so we want to be able to
+imagine up so we want to be able to tweak the reverb further and like cheat
+tweak the reverb further and like cheat a bit and make reverb tails longer
+a bit and make reverb tails longer for instance or use the reverb
+for instance or use the reverb calculations to
+calculations to control a third-party reverb or
+control a third-party reverb or something similar
+something similar also since we're using this hand cannon
+also since we're using this hand cannon thing as soon as we fire the cannon we
+thing as soon as we fire the cannon we already know where the portal will land
+already know where the portal will land so then we can start precomputing the
+so then we can start precomputing the reverb before even
+reverb before even going there
+going there um
+yeah so instead of having a half a second
+second delay of going to space until you start
+delay of going to space until you start hearing the change of the space now we
+hearing the change of the space now we can do it instantly if we do it like
+can do it instantly if we do it like that
+that um
+um using ambisonics for ambiences so uh
+using ambisonics for ambiences so uh recently
+recently steam audio added ambisonics playback
+steam audio added ambisonics playback it's already available in the other
+it's already available in the other specializing suites as well
+specializing suites as well and that means that you can have an
+and that means that you can have an ambisonics recording
+of say you know a city or a room and play that back and have that rotate
+play that back and have that rotate together with your head
+together with your head that works super well for far-field
+that works super well for far-field sounds but for close sounds you'd
+sounds but for close sounds you'd want to not do that because
+want to not do that because you can see that they're not moving or
+you can see that they're not moving or that the sound is not
+that the sound is not moving the distance with those files
+moving the distance with those files anyway
+anyway so conclusions uh
+so conclusions uh it's super expensive uh performance-wise
+it's super expensive uh performance-wise so you need to account for that
+so you need to account for that when working with any bleeding edge tech
+when working with any bleeding edge tech be prepared that everything is going to
+be prepared that everything is going to break all the time
+break all the time um
+um but
+but as a vr developer you're always working
+as a vr developer you're always working with like
+with like the vanguard of that stuff so you you're
+the vanguard of that stuff so you you're probably used to it
+probably used to it spatial audio it's extreme extremely
+spatial audio it's extreme extremely important for
+important for vr immersion or rather like room
+vr immersion or rather like room presence uh to get you
+presence uh to get you tricked into being in a space um
+tricked into being in a space um imperative for any kind of stealth game
+imperative for any kind of stealth game and it's truly a next-gen audio
+and it's truly a next-gen audio experience
+experience me as an audio designer
+me as an audio designer i'm super happy about the
+i'm super happy about the advancements of audio technology in the
+advancements of audio technology in the past few years within games and it's in
+past few years within games and it's in due time that all games start to sound
+due time that all games start to sound much better
+much better yeah that's me
+yeah that's me and what about the bad cop and as the
+and what about the bad cop and as the bad cop it is my duty to inform you that
+bad cop it is my duty to inform you that if you want to use spatial audio for
+if you want to use spatial audio for your next project start early
+your next project start early it is not just something you can tack on
+it is not just something you can tack on at the end flip a switch and be like yes
+at the end flip a switch and be like yes this is awesome you're going to have to
+this is awesome you're going to have to change a lot of your workflows it's
+change a lot of your workflows it's going to affect a lot of the different
+going to affect a lot of the different aspects of your production
+aspects of your production it's going to touch level design artwork
+it's going to touch level design artwork everything
+everything so just keep that in mind
+so just keep that in mind and that's all from us thank you and
+and that's all from us thank you and we're happy to answer any questions
+we're happy to answer any questions [Applause]
+i thank you that was great and great game as well thank you
+game as well thank you are you biased
+um what can i how can i ask us is there other packages we should try before we
+other packages we should try before we try the steam one or in addition to the
+try the steam one or in addition to the steam one uh i think you should try all
+steam one uh i think you should try all of them
+of them like they all have different uh timbre
+like they all have different uh timbre if you will the filters sound a bit
+if you will the filters sound a bit different
+different the hrtf
+the hrtf panning it's sort of this same
+panning it's sort of this same with most of them but they all have
+with most of them but they all have different ways of d of uh dealing with
+different ways of d of uh dealing with certain issues
+certain issues uh so uh yeah
+uh so uh yeah try all of them uh they're
+try all of them uh they're some are better for some things like
+some are better for some things like google resonance is better for mobile
+google resonance is better for mobile but it's not as powerful
+but it's not as powerful feature-wise thank you thank you
+more
+here we go hey do you want to talk a little bit
+hey do you want to talk a little bit about the um
+about the um ambisonic reverb that you used and like
+ambisonic reverb that you used and like what like what product you found there
+what like what product you found there or products out there that we can use
+or products out there that we can use for our solutions
+for our solutions so
+so in this case the ambisonics reverb that
+in this case the ambisonics reverb that i was referring to was the one that's
+i was referring to was the one that's built into steam audio okay so all of
+built into steam audio okay so all of the reverb calculations happen in like
+the reverb calculations happen in like ambisonics
+ambisonics so you can rotate the reverb freely
+so you can rotate the reverb freely and did you find it impacting
+and did you find it impacting performance or was it just smooth so for
+performance or was it just smooth so for sure the
+sure the it depends on how many channels you have
+it depends on how many channels you have right so the the performance impact
+right so the the performance impact scales linearly in how many channels you
+scales linearly in how many channels you have so first order ambisonics is four
+have so first order ambisonics is four convolutions second order is nine and
+convolutions second order is nine and that sort of thing so
+that sort of thing so but overall as long as
+but overall as long as so we did a listener-centric thing so it
+so we did a listener-centric thing so it was just being applied to a single
+was just being applied to a single sub-mix
+sub-mix so since it wasn't scaling with how many
+so since it wasn't scaling with how many sources you have
+sources you have the impact was not that significant
+the impact was not that significant thank you
+hi thanks for the talk um just wanted to thank you as someone who also lost a
+thank you as someone who also lost a week and a lot of hair for the unity
+week and a lot of hair for the unity spatialization reinitialization bug uh
+spatialization reinitialization bug uh for opening up a channel to them yes
+for opening up a channel to them yes give a round of applause
+give a round of applause um yeah
+um yeah that was not great veterans of the unity
+that was not great veterans of the unity rheospatialization war um but yeah so i
+rheospatialization war um but yeah so i will be i took a picture of that
+will be i took a picture of that screenshot i will be sending it to my
+screenshot i will be sending it to my team thank you awesome
+great talk guys i just had a question about the wall materials and reflection
+about the wall materials and reflection absorption coefficients did you use that
+absorption coefficients did you use that a lot did you use lots of different wall
+a lot did you use lots of different wall materials or
+so being an office space i used as many materials as you would
+i used as many materials as you would expect in an office so
+expect in an office so carpeted floors uh i'm not used to
+carpeted floors uh i'm not used to cubicles that's right
+cubicles that's right so what i'm not used to cubicles right
+so what i'm not used to cubicles right right right
+right right yeah and some of the materials i had to
+yeah and some of the materials i had to like since we couldn't
+like since we couldn't uh suddenly use all the nice reflection
+uh suddenly use all the nice reflection parts i had to redo all the
+parts i had to redo all the materials like to allow them to
+materials like to allow them to transmit more of the sound through them
+transmit more of the sound through them to fake that
+to fake that so yeah it's mostly the standard
+so yeah it's mostly the standard materials but uh tweaked
+materials but uh tweaked thank you
+i'm definitely more uh curious about uh your approach to that kind of uh ambient
+your approach to that kind of uh ambient layer that you said you kind of had like
+layer that you said you kind of had like a for like room tone you put white noise
+a for like room tone you put white noise in and then you sent it through the
+in and then you sent it through the reverb did you actually stick white
+reverb did you actually stick white noise in or did you kind of design like
+noise in or did you kind of design like a room tone for each room and like what
+a room tone for each room and like what was your kind of thought process and how
+was your kind of thought process and how did that end up serving as a bed for
+did that end up serving as a bed for everything else
+everything else right so uh about the
+right so uh about the faked
+faked room tone uh so
+room tone uh so essentially
+essentially it's really just
+it's really just a filtered white noise uh so not all of
+a filtered white noise uh so not all of the high frequencies are still there but
+the high frequencies are still there but i figured um since the reverb is used in
+i figured um since the reverb is used in using impulse convolutions um i just
+using impulse convolutions um i just want wanted to like trigger those uh
+want wanted to like trigger those uh frequencies uh so that's why it's a
+frequencies uh so that's why it's a noise
+noise and uh it's not really a tune at all
+and uh it's not really a tune at all that's why it's so
+that's why it's so neat it's just
+neat it's just something that's easily added and you
+something that's easily added and you can hear instantly that you're in
+can hear instantly that you're in different spaces
+different spaces and then my follow-up question is when
+and then my follow-up question is when that reverb was kind of um
+that reverb was kind of um like following a listener for that kind
+like following a listener for that kind of situation where you're like near the
+of situation where you're like near the wall like
+wall like how how closely did you parameterize
+how how closely did you parameterize that to like distance from the wall was
+that to like distance from the wall was like a gradual rotation that happens or
+like a gradual rotation that happens or was like a focus like what was the kind
+was like a focus like what was the kind of parameterization you you thought of
+of parameterization you you thought of there
+there so uh originally the reverb was not
+so uh originally the reverb was not directional and i had that issue that if
+directional and i had that issue that if you were close to a wall
+you were close to a wall the reaper would think that you were in
+the reaper would think that you were in a smaller space
+a smaller space but la coolish kindly
+but la coolish kindly fixed that so
+fixed that so now it doesn't really matter if you're
+now it doesn't really matter if you're close to a wall you can still hear
+close to a wall you can still hear that it's the sound of a space
+that it's the sound of a space so you weren't actually rotating it in
+so you weren't actually rotating it in that situation it was just happening
+that situation it was just happening naturally because it was already a
+naturally because it was already a spatialized right
+spatialized right okay cool
+are we done for time so the last question so i'm not a sound
+so the last question so i'm not a sound designer but this talk was fascinating
+designer but this talk was fascinating because i'm interested in spatial audio
+because i'm interested in spatial audio when i've been messing with it uh i
+when i've been messing with it uh i found that open-backed headphones are
+found that open-backed headphones are the best in terms of sound reproduction
+the best in terms of sound reproduction for spatialized audio but when listening
+for spatialized audio but when listening back on speakers it sounds very thin
+back on speakers it sounds very thin but there are certain times that you do
+but there are certain times that you do want speakers over headphones for
+want speakers over headphones for certain games is there a way that we can
+certain games is there a way that we can kind of make a middle ground that does
+kind of make a middle ground that does have specialized audio for those who do
+have specialized audio for those who do want to go with headphones and a special
+want to go with headphones and a special mix or something for headphones or is
+mix or something for headphones or is there like a way to make sure that those
+there like a way to make sure that those play very well together or no you want
+play very well together or no you want to talk about decoders um
+to talk about decoders um sure so there's a bunch of different
+sure so there's a bunch of different options that you have
+options that you have one is obviously to just assume that
+one is obviously to just assume that everyone has
+everyone has decent-ish headphones and say that this
+decent-ish headphones and say that this requires headphones but if that's not an
+requires headphones but if that's not an option
+option uh you can then rely on external
+uh you can then rely on external decoders so there are some uh
+decoders so there are some uh some systems that have ambisonics decode
+some systems that have ambisonics decode in hardware
+in hardware and they can handle spatialization they
+and they can handle spatialization they will typically do things like crosstalk
+will typically do things like crosstalk cancellation to improve
+cancellation to improve the spatialization over speakers
+the spatialization over speakers or alternatively you could just do
+or alternatively you could just do what we did for counter-strike which is
+what we did for counter-strike which is like you turn you have a you have a
+like you turn you have a you have a special setting for stereo with
+special setting for stereo with headphones versus just stereo
+headphones versus just stereo and the user explicitly makes the choice
+and the user explicitly makes the choice am i using headphones or not and if
+am i using headphones or not and if they're not using headphones
+they're not using headphones the hrtf goes away
+the hrtf goes away thank you
+thank you and to add to that uh for more uh human
+and to add to that uh for more uh human uh
+uh intelligible speech uh no uh well so the
+intelligible speech uh no uh well so the the nice thing about ambisonics is that
+the nice thing about ambisonics is that uh
+uh obviously we're using uh uh hrtf decoder
+obviously we're using uh uh hrtf decoder but uh you could essentially make a
+but uh you could essentially make a decoder that says i have 200 speakers in
+decoder that says i have 200 speakers in a sphere around me played back to those
+a sphere around me played back to those or
+or i have stereo
+i have stereo played back through those that kind of
+played back through those that kind of thing so the format itself is very
+thing so the format itself is very versatile like that
+versatile like that thank you
+thank you thank you uh we'll be
+thank you uh we'll be in another room i suppose
+in another room i suppose answering more questions thanks

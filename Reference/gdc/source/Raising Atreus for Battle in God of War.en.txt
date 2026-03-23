@@ -1,0 +1,1391 @@
+[Music] hello everybody welcome to the most
+hello everybody welcome to the most boring talk here at GDC you've all made
+boring talk here at GDC you've all made a mistake coming here but seriously
+a mistake coming here but seriously thank you for coming there's a lot of
+thank you for coming there's a lot of good talks going on right now so thank
+good talks going on right now so thank you for choosing this one so what is
+you for choosing this one so what is this presentation about it's about at
+this presentation about it's about at risk
+risk a companion AI in God of War for those
+a companion AI in God of War for those who don't know God war is a third-person
+who don't know God war is a third-person action melee game with like RPG elements
+action melee game with like RPG elements and this talk will focus mostly on the
+and this talk will focus mostly on the combat aspects of at Reyes go over the
+combat aspects of at Reyes go over the hows and whys and take you through the
+hows and whys and take you through the journey of creating a trace
+journey of creating a trace so before we start Who am I
+so before we start Who am I my name is hi Otto I'm a senior combat
+my name is hi Otto I'm a senior combat tech designer I've been working at Santa
+tech designer I've been working at Santa Monica studios for over eight years and
+Monica studios for over eight years and these are the titles I've worked on in
+these are the titles I've worked on in the past and before I start let me tell
+the past and before I start let me tell you how I ended up working on at Reyes
+you how I ended up working on at Reyes it's a little bit of story time so one
+it's a little bit of story time so one day I was tasked to implement and design
+day I was tasked to implement and design a trace from scratch I was like why it's
+a trace from scratch I was like why it's why I have no desire or like experience
+why I have no desire or like experience making a companion yeah so since I want
+making a companion yeah so since I want to keep my job I went on the internet
+to keep my job I went on the internet and searched how to make you know a good
+and searched how to make you know a good companion
+companion you know
+yeah I like yeah okay yeah I like to copy and paste a lot of codes so that's
+copy and paste a lot of codes so that's my workflow usually so anyways what I
+my workflow usually so anyways what I found was I saw a talk by max teickhoff
+found was I saw a talk by max teickhoff he did a talk about Ellie in the Last of
+he did a talk about Ellie in the Last of Us and he said he treated Ellie like his
+Us and he said he treated Ellie like his own child so I was like okay if that's
+own child so I was like okay if that's what it takes to make a good companion a
+what it takes to make a good companion a I so be it
+I so be it so next day I got a picture frame of a
+so next day I got a picture frame of a trace yeah yeah
+trace yeah yeah but the problem here is that I don't
+but the problem here is that I don't want kids or even have kids I'm like
+want kids or even have kids I'm like what am I doing with my life right now
+what am I doing with my life right now so so fortunately though I treated trace
+so so fortunately though I treated trace like a friend that plays you know games
+like a friend that plays you know games with you you know a friend that knows
+with you you know a friend that knows what you're gonna do and vice versa you
+what you're gonna do and vice versa you know you have you can just play games
+know you have you can just play games and you know what you're gonna do and he
+and you know what you're gonna do and he knows what they're you know they know
+knows what they're you know they know what you're gonna do so it was like some
+what you're gonna do so it was like some kind of teamwork and that change of
+kind of teamwork and that change of perception ultimately influenced some of
+perception ultimately influenced some of the decision made
+the decision made when building a trace so enough about me
+when building a trace so enough about me who is at Reyes he's a son of Kratos
+who is at Reyes he's a son of Kratos small child you know I'm born in the
+small child you know I'm born in the harsh Norse mythological mythological
+harsh Norse mythological mythological setting uses a bow primarily and there's
+setting uses a bow primarily and there's no formal training and this clip I'm
+no formal training and this clip I'm going to show you is just showcasing
+going to show you is just showcasing white race does in combat
+I'm not gonna go into too much detail right now no he's doing a mixture of
+right now no he's doing a mixture of both economist behaviors and directive
+both economist behaviors and directive actions
+and the main thing here is that you don't even know if you like look at this
+don't even know if you like look at this and you don't know what the game is all
+and you don't know what the game is all about or whatever but you can see a
+about or whatever but you can see a trace helping you like a teammate yeah
+trace helping you like a teammate yeah he looks pretty useful I guess that's
+he looks pretty useful I guess that's what we were born so as long as you get
+what we were born so as long as you get that that's all
+yeah and that's it unfortunately it wasn't always like that
+unfortunately it wasn't always like that and this is how it all started
+and this is how it all started so like any respectable designer I guess
+so like any respectable designer I guess like I started with core pillars the
+like I started with core pillars the first pillar being supporting the player
+first pillar being supporting the player Kratos is a main actor in the game so
+Kratos is a main actor in the game so you know at Reyes need to be supporting
+you know at Reyes need to be supporting greatness second pillar is he should not
+greatness second pillar is he should not hinder the player he should never get in
+hinder the player he should never get in the way of the player that's just a big
+the way of the player that's just a big no-no third thing is if he ever does
+no-no third thing is if he ever does something it should always be helpful it
+something it should always be helpful it should never end you know it should
+should never end you know it should never make the player feel bad whenever
+never make the player feel bad whenever a trace performs an action and lastly
+a trace performs an action and lastly and maybe most importantly you should
+and maybe most importantly you should not have to babysit him you know and if
+not have to babysit him you know and if any of the last three points actually
+any of the last three points actually just goes bad the game will immediately
+just goes bad the game will immediately feel like a bad escort mission and we
+feel like a bad escort mission and we tried really hard not breaking any of
+tried really hard not breaking any of these rules so these core pillars are
+these rules so these core pillars are pretty good but the real question is who
+pretty good but the real question is who are we supporting right we're supporting
+are we supporting right we're supporting Kratos a one-man army
+Kratos a one-man army he's killed Titans gods just went to
+he's killed Titans gods just went to hell him back he'll more gods and then
+hell him back he'll more gods and then you kill a lot of guys and nobody was
+you kill a lot of guys and nobody was saying oh you know what you know what
+saying oh you know what you know what greatest needs a child to fight with it
+greatest needs a child to fight with it in battle I'm a genius right nobody was
+in battle I'm a genius right nobody was saying that maybe except for one
+saying that maybe except for one director but you know yeah yes a real
+director but you know yeah yes a real question is how do we support a literal
+question is how do we support a literal God of War a child and how he's gonna
+God of War a child and how he's gonna support him so it's all about the
+support him so it's all about the framing like how do we approach this
+framing like how do we approach this problem you know when you look at movies
+problem you know when you look at movies like Marvel you know and the Marvel
+like Marvel you know and the Marvel movies you see a Thor he's just
+movies you see a Thor he's just destroying enemies left and right kind
+destroying enemies left and right kind of like Kratos right I mean you see guys
+of like Kratos right I mean you see guys like Hawkeye maybe not as you know
+like Hawkeye maybe not as you know impressive as Thor but he's doing work
+impressive as Thor but he's doing work but the main thing here is that they're
+but the main thing here is that they're working as a cohesive unit they're a
+working as a cohesive unit they're a team right and then when they're
+team right and then when they're whenever they work as a team they they
+whenever they work as a team they they can finish their goal quicker and you
+can finish their goal quicker and you know this framing was a good step in
+know this framing was a good step in approaching on traces raw so knowing
+approaching on traces raw so knowing this framing what were the next steps to
+this framing what were the next steps to prototype prototype bunch of things and
+prototype prototype bunch of things and we do a lot of inspiration from all
+we do a lot of inspiration from all like single-player games with good
+like single-player games with good companion II eyes and also we looked at
+companion II eyes and also we looked at multiplayer games where your teammates
+multiplayer games where your teammates will help you up
+will help you up so cooperative and also team-based games
+so cooperative and also team-based games so looking at all these archetypes were
+so looking at all these archetypes were like what's the first thing we want to
+like what's the first thing we want to try out so we tried at rates being an
+try out so we tried at rates being an initiator an initiator is a character
+initiator an initiator is a character who will start teamfight and will give
+who will start teamfight and will give you or give their teammates a huge
+you or give their teammates a huge advantage when the fight starts or
+advantage when the fight starts or usually and that's what we did so in the
+usually and that's what we did so in the next clip I'm going to show you trace
+next clip I'm going to show you trace does exactly that find your angle boy
+does exactly that find your angle boy yes sir so he does a couple of things
+yes sir so he does a couple of things first this first quick he's gonna just
+first this first quick he's gonna just help out some arrows that's what he did
+help out some arrows that's what he did other things
+other things removing enemy weapons kind of useful
+removing enemy weapons kind of useful not bad
+not bad or even rooting enemies using the tree
+or even rooting enemies using the tree that's kind of useful I guess and then
+that's kind of useful I guess and then you know summoning crows I wonder where
+you know summoning crows I wonder where we got that inspiration from you know
+we got that inspiration from you know yeah
+yeah so all these look good on a paper but
+so all these look good on a paper but there were two main issues with this
+there were two main issues with this number one the players exhibited a play
+number one the players exhibited a play pattern that we did not want to promote
+pattern that we did not want to promote you know the players were kind of like
+you know the players were kind of like sneaking around in the battlefield
+sneaking around in the battlefield they're like Oh what kind of trace use
+they're like Oh what kind of trace use and it almost felt like a stealth game
+and it almost felt like a stealth game and that's not something we want
+and that's not something we want foremost so already that was a big
+foremost so already that was a big problem number two was when players
+problem number two was when players actually use a trace it was really
+actually use a trace it was really mindless because you would just say oh
+mindless because you would just say oh just interact with that and then your
+just interact with that and then your dime so the first point I made you know
+dime so the first point I made you know be making the game feel like a stealth
+be making the game feel like a stealth game that was a problem so we didn't
+game that was a problem so we didn't address that but we're like okay if he's
+address that but we're like okay if he's kind of mindless to use what if he was
+kind of mindless to use what if he was more involved in combat you know now
+more involved in combat you know now what if he you know what if we can
+what if he you know what if we can change his behavior to be offensive or
+change his behavior to be offensive or defensive so in the next clip I'm going
+defensive so in the next clip I'm going to show you the first half at Reyes is
+to show you the first half at Reyes is kind of offensive he's going to be you
+kind of offensive he's going to be you know distracting guys in front of you
+know distracting guys in front of you and the latter half is going to be
+and the latter half is going to be helping you out when you get hit
+helping you out when you get hit and sorry for debuggers I'm so sorry I'm
+and sorry for debuggers I'm so sorry I'm so sorry
+so sorry yeah so right here he's gonna distract
+yeah so right here he's gonna distract the guy on the right it's gonna shoot
+the guy on the right it's gonna shoot him and then he's gonna distract the guy
+him and then he's gonna distract the guy kind of in my huskers and he does is
+kind of in my huskers and he does is every like so he kind of keeps a healthy
+every like so he kind of keeps a healthy like the cycling through all who he
+like the cycling through all who he thinks is the best target to control
+thinks is the best target to control their attention away this was kind of
+their attention away this was kind of useful is interesting next thing we try
+useful is interesting next thing we try this this is the defensive mode you see
+this this is the defensive mode you see here
+here cRIO Scott hits and at race will try to
+cRIO Scott hits and at race will try to help you yeah that's interesting yeah so
+help you yeah that's interesting yeah so note that you know it Reyes is going
+note that you know it Reyes is going behind the player you can only help out
+behind the player you can only help out when he's actually behind you so you
+when he's actually behind you so you know this action is kind of helpful I
+know this action is kind of helpful I guess you know you can do always do some
+guess you know you can do always do some things but there was a couple of
+things but there was a couple of problems with this too
+problems with this too you had too much control over at Reyes
+you had too much control over at Reyes like in the heat of the battle people
+like in the heat of the battle people didn't even try it or like changes
+didn't even try it or like changes behavior like I'm attacking this guy I
+behavior like I'm attacking this guy I have no time to think about what the
+have no time to think about what the behavior trait should be so that's
+behavior trait should be so that's problem number one number two was during
+problem number one number two was during this time enemies were dying like three
+this time enemies were dying like three hits you know we were fighting humanoid
+hits you know we were fighting humanoid like human bandits so as a god he should
+like human bandits so as a god he should be able to go them relative easily so
+be able to go them relative easily so they were dying three hits so a tres
+they were dying three hits so a tres couldn't even do shine in this kind of
+couldn't even do shine in this kind of environment but the silver lining was
+environment but the silver lining was when he was actually distracting enemies
+when he was actually distracting enemies in front of him it was actually pretty
+in front of him it was actually pretty useful so I'll talk about that a little
+useful so I'll talk about that a little bit later but first I want to point out
+bit later but first I want to point out that around this time we actually took a
+that around this time we actually took a trace and we split him into two core
+trace and we split him into two core traits one defining his autonomous
+traits one defining his autonomous behavior and the other defining is
+behavior and the other defining is directed actions directed actors is when
+directed actions directed actors is when the player tells a trade us what to do
+the player tells a trade us what to do so when we actually split these apart it
+so when we actually split these apart it was actually easily easier to work in
+was actually easily easier to work in isolation and I was the right call so
+isolation and I was the right call so back to what I was saying where when he
+back to what I was saying where when he was distracting enemies on his own like
+was distracting enemies on his own like autonomously that was really useful so I
+autonomously that was really useful so I want to kind of dig deeper into this
+want to kind of dig deeper into this with harness behavior so next thing we
+with harness behavior so next thing we tried was okay you know
+tried was okay you know what if he actually behaved like a real
+what if he actually behaved like a real player when you're playing like an FPS
+player when you're playing like an FPS game your teammates will hopefully try
+game your teammates will hopefully try to like handle threat from the other
+to like handle threat from the other side of the map and you'll handle
+side of the map and you'll handle another side of the fight or map you're
+another side of the fight or map you're kind of essentially splitting up the
+kind of essentially splitting up the battlefield and at race did exactly that
+battlefield and at race did exactly that so in the next video I will show you
+so in the next video I will show you trace is divine the field in his own way
+trace is divine the field in his own way slow for debug again but all the circles
+slow for debug again but all the circles are on the enemy that's who it raises
+are on the enemy that's who it raises focus on and in this RTS esque camera
+focus on and in this RTS esque camera you can see what's happening great
+you can see what's happening great traces kind of no divine about feels
+traces kind of no divine about feels right and you know this actual game view
+right and you know this actual game view if your tray is passively yeah no people
+if your tray is passively yeah no people don't play like a game like this we play
+don't play like a game like this we play like this feeling translate a lot move a
+like this feeling translate a lot move a camera like crazy changer focus no and
+camera like crazy changer focus no and you briefly maybe see a trace like what
+you briefly maybe see a trace like what is he doing there I have no idea what
+is he doing there I have no idea what was he doing who knows I'm just gonna go
+was he doing who knows I'm just gonna go back to fighting this control
+back to fighting this control I mean ogre so is a huge issue and
+I mean ogre so is a huge issue and honestly at this point I was like oh man
+honestly at this point I was like oh man I suck I should probably update my
+I suck I should probably update my resume I'm gonna hit but you know there
+resume I'm gonna hit but you know there was key nuggets of goodness when I was
+was key nuggets of goodness when I was doing all these things I was like you
+doing all these things I was like you know what I'm gonna do a little deep
+know what I'm gonna do a little deep dive and kind of list out all the core
+dive and kind of list out all the core issues that I'm seeing right now and
+issues that I'm seeing right now and yeah when I actually did that I actually
+yeah when I actually did that I actually identified three issues first one being
+identified three issues first one being presence people didn't even see where he
+presence people didn't even see where he was number 2 was perceived impact even
+was number 2 was perceived impact even if he did something you don't know what
+if he did something you don't know what the impact is that is for combat now 3
+the impact is that is for combat now 3 was weak enemies not necessarily at
+was weak enemies not necessarily at racism problem but it was adding to a
+racism problem but it was adding to a problem so let's address these three
+problem so let's address these three issues presence this is the reality can
+issues presence this is the reality can any of you guys see where a crisis I'll
+any of you guys see where a crisis I'll give you guys a second I guess yeah
+give you guys a second I guess yeah nobody right probably yeah because he's
+nobody right probably yeah because he's not in the picture
+not in the picture I'm just kidding he's actually right
+I'm just kidding he's actually right there he's laying on the ground like
+there he's laying on the ground like that and this was a reality even if he's
+that and this was a reality even if he's on screen you can even see him and the
+on screen you can even see him and the fact that we can't have you know the
+fact that we can't have you know the camera cuts and stuff so you know we had
+camera cuts and stuff so you know we had to adapt to that and you know that
+to adapt to that and you know that exasperated issue but there were three
+exasperated issue but there were three things that actually helped his presence
+things that actually helped his presence now first thing was make him use a bow
+now first thing was make him use a bow as a melee weapon number two is dynamic
+as a melee weapon number two is dynamic poses number three is changing his
+poses number three is changing his positioning behavior so first thing him
+positioning behavior so first thing him using a male bow has a male weapon
+using a male bow has a male weapon completely unintuitive I would an archer
+completely unintuitive I would an archer use a bow as a male weapon
+use a bow as a male weapon well it turns out you know when archers
+well it turns out you know when archers are shooting they're doing this like
+are shooting they're doing this like still pose right and so when you're
+still pose right and so when you're scanning the battlefield you'll see oh
+scanning the battlefield you'll see oh yeah it has that pose but the arrow went
+yeah it has that pose but the arrow went somewhere I can't make the connection
+somewhere I can't make the connection who he's shot but the moment he uses it
+who he's shot but the moment he uses it bow as a melee weapon he's using a you
+bow as a melee weapon he's using a you know more fluid animation and then you
+know more fluid animation and then you know he's next to an enemy so you can
+know he's next to an enemy so you can make the you can now like add one and
+make the you can now like add one and one together just by scanning the
+one together just by scanning the battlefield and that helped his presence
+battlefield and that helped his presence immensely you saw a lot more interesting
+immensely you saw a lot more interesting things happening in the battlefield and
+things happening in the battlefield and number two was my favorite dynamic poses
+number two was my favorite dynamic poses and people you guys might be thinking uh
+and people you guys might be thinking uh why don't you guys do it at the
+why don't you guys do it at the beginning on to even design broom like I
+beginning on to even design broom like I know you guys might be thinking that but
+know you guys might be thinking that but there's a thing called us wanted to be
+there's a thing called us wanted to be grounded the game was ground at the
+grounded the game was ground at the beginning we couldn't do these you know
+beginning we couldn't do these you know jumping movies and stuff like that but
+jumping movies and stuff like that but we had a great tonal shift and that
+we had a great tonal shift and that restriction kind of came off a bit so we
+restriction kind of came off a bit so we were able to have a trace jump up in the
+were able to have a trace jump up in the air we essentially kind of dialed up the
+air we essentially kind of dialed up the anime knob by like thirty percent were
+anime knob by like thirty percent were like alright this is a right amount so
+like alright this is a right amount so you can see this pose in koma combat you
+you can see this pose in koma combat you can see here he's like occupying like
+can see here he's like occupying like the second half or just the top of the
+the second half or just the top of the screen
+screen that's fantastic there's a lot more
+that's fantastic there's a lot more noise and you see what's happening when
+noise and you see what's happening when he's trying to stab enemies you kind of
+he's trying to stab enemies you kind of arc his back and kind of hold his pose
+arc his back and kind of hold his pose it's fantastic and even his his profile
+it's fantastic and even his his profile he actually goes sideways and you know
+he actually goes sideways and you know when you actually see a small child
+when you actually see a small child becomes sideways in battle you actually
+becomes sideways in battle you actually noticed that really immediately yeah and
+noticed that really immediately yeah and when he's grabbing enemies
+when he's grabbing enemies you know he would tower over enemies
+you know he would tower over enemies he's a small child so he's trying to
+he's a small child so he's trying to look bigger than he who years so you
+look bigger than he who years so you hold that pose grab enemies and worked
+hold that pose grab enemies and worked out pretty well and again when he's
+out pretty well and again when he's doing melee attacks he's putting his
+doing melee attacks he's putting his entire weight into it and when he does
+entire weight into it and when he does that kind of motion you really notice it
+that kind of motion you really notice it so even if you're doing all these
+so even if you're doing all these interesting combos or whatnot you notice
+interesting combos or whatnot you notice a traitor's kind of coming in with you
+a traitor's kind of coming in with you and it's fantastic
+and it's fantastic and my favorite pose of all is this one
+and my favorite pose of all is this one him kind of kneeling down ish to do like
+him kind of kneeling down ish to do like a dash attack and we need whenever he
+a dash attack and we need whenever he did that you knew he was gonna go into
+did that you knew he was gonna go into position like as fast as possible and
+position like as fast as possible and speaking of position that's my next
+speaking of position that's my next topic
+topic you know intuitive does not mean it's
+you know intuitive does not mean it's going to be interesting so initially we
+going to be interesting so initially we want at Reyes to be like safe and he's a
+want at Reyes to be like safe and he's a small boy after all and he's using the
+small boy after all and he's using the bow as a in a range weapon so he's kind
+bow as a in a range weapon so he's kind of moving away from threats we even gave
+of moving away from threats we even gave him a straight set so he can actually
+him a straight set so he can actually change his position really quickly but
+change his position really quickly but what ended up happening was he looked
+what ended up happening was he looked really erratic because he was trying to
+really erratic because he was trying to find a safe spot and not only that since
+find a safe spot and not only that since he's evading all the enemies nothing
+he's evading all the enemies nothing interesting will happen on its own he's
+interesting will happen on its own he's just like carefully avoiding enemies so
+just like carefully avoiding enemies so we're like okay let's make it like
+we're like okay let's make it like slightly more interesting let's make him
+slightly more interesting let's make him stand his ground a bit let enemies
+stand his ground a bit let enemies actually bump into him and see what can
+actually bump into him and see what can happen so when that happens we decided
+happen so when that happens we decided that if a trace like swings his bow or
+that if a trace like swings his bow or like you know there's some offensive
+like you know there's some offensive action that leads to some kind of
+action that leads to some kind of positive outcome it felt great
+positive outcome it felt great now with this when we tell it race to go
+now with this when we tell it race to go somewhere he's gonna actually stand his
+somewhere he's gonna actually stand his ground and with that we're like what's
+ground and with that we're like what's the best place to put him and it's
+the best place to put him and it's behind the players target you know when
+behind the players target you know when the players focusing on the enemy like
+the players focusing on the enemy like he has a field of view and right behind
+he has a field of view and right behind the enemies also somewhere where players
+the enemies also somewhere where players can actually notice him so when we
+can actually notice him so when we actually moved or try to position that
+actually moved or try to position that race behind the enemy target or the
+race behind the enemy target or the players target that's where the magic
+players target that's where the magic happened actually on his movement
+happened actually on his movement actually now had an intentionality he
+actually now had an intentionality he was moving there for a purpose and the
+was moving there for a purpose and the purpose being like double-team the
+purpose being like double-team the target or fighting us and when he did
+target or fighting us and when he did that it was you know it didn't look
+that it was you know it didn't look contrived he came on-screen with the
+contrived he came on-screen with the reason when he was actually dividing the
+reason when he was actually dividing the battlefield like - earlier like when he
+battlefield like - earlier like when he actually came on-screen
+actually came on-screen what is he doing he's just charging it's
+what is he doing he's just charging it's about I have no idea what he's doing so
+about I have no idea what he's doing so when you did this it was fantastic
+when you did this it was fantastic and you know like property mates when
+and you know like property mates when they you know go into position you know
+they you know go into position you know to you know set up an alley-oop or a
+to you know set up an alley-oop or a bump set spike you know a trace case is
+bump set spike you know a trace case is just you know being the crap out of your
+just you know being the crap out of your target like they all had a good reason
+target like they all had a good reason to move to a position so that's
+to move to a position so that's fantastic
+fantastic so this is a small clip of a trace
+so this is a small clip of a trace posting up to the players target I gave
+posting up to the players target I gave myself like a three four second rule
+myself like a three four second rule where it takes around that time for I
+where it takes around that time for I traced kind of come up on screen and try
+traced kind of come up on screen and try to post up next year target
+yeah so all this was possible because of my favorite tool and game development or
+my favorite tool and game development or Bing thanks John
+Bing thanks John I am NOT above using warping I use it
+I am NOT above using warping I use it everywhere like the moment I can warp I
+everywhere like the moment I can warp I just do it like I even have a script
+just do it like I even have a script that allows me to like you know just
+that allows me to like you know just copypastas something you know the warp
+copypastas something you know the warp will just happened and the main thing
+will just happened and the main thing was you know I want to make sure a trace
+was you know I want to make sure a trace was a reliable teammate not a realistic
+was a reliable teammate not a realistic teammate and that was the most important
+teammate and that was the most important aspect I have focused on because when
+aspect I have focused on because when whenever a trace needs to come in and
+whenever a trace needs to come in and help with the hero I want to make sure
+help with the hero I want to make sure it happens at a timely manner so the
+it happens at a timely manner so the logic of teleporting is pretty
+logic of teleporting is pretty straightforward you take if he wants to
+straightforward you take if he wants to go to a target he takes the edge of the
+go to a target he takes the edge of the frustum of the saga camera and then he
+frustum of the saga camera and then he picks up point closest to the target I'm
+picks up point closest to the target I'm kind of early simplifying it but that's
+kind of early simplifying it but that's how your teleports when he's off screen
+how your teleports when he's off screen and I'm going to show you a video clip
+and I'm going to show you a video clip of him just teleporting everywhere I
+of him just teleporting everywhere I just popped in there and he's gonna like
+just popped in there and he's gonna like attack that guy and obviously when he
+attack that guy and obviously when he teleports you usually cannot I mean you
+teleports you usually cannot I mean you can buy most of them you cannot see I'm
+can buy most of them you cannot see I'm him teleporting and what's funny about
+him teleporting and what's funny about this teleporting behavior is that he's
+this teleporting behavior is that he's actually a lot more reliable when he's
+actually a lot more reliable when he's off-screen because he's helpful
+off-screen because he's helpful teleporting constantly if he's actually
+teleporting constantly if he's actually far away he needs to run towards your
+far away he needs to run towards your target so I was an interesting thing so
+target so I was an interesting thing so with all this fantastic teleporting all
+with all this fantastic teleporting all these things we did you know we felt
+these things we did you know we felt that his presence was actually improving
+that his presence was actually improving and we're like ok let's focus on the
+and we're like ok let's focus on the other things now so perceived impact you
+other things now so perceived impact you know when he was actually dividing a
+know when he was actually dividing a battlefield you know people might have
+battlefield you know people might have seen it but they're like what am I gonna
+seen it but they're like what am I gonna do after this like after you divide a
+do after this like after you divide a field what am I supposed to do like they
+field what am I supposed to do like they don't know what to do so instead of at
+don't know what to do so instead of at Reyes focusing on the macro aspects of
+Reyes focusing on the macro aspects of the battlefield
+the battlefield we were like what if he actually focuses
+we were like what if he actually focuses on the micro aspects of the battlefield
+on the micro aspects of the battlefield what I mean by that is he's going to be
+what I mean by that is he's going to be now oops sorry
+now oops sorry focusing on the players target so
+focusing on the players target so whenever the player does something is a
+whenever the player does something is a target a trace will be extremely
+target a trace will be extremely reactive
+reactive he's constantly
+he's constantly can what the player is doing so knowing
+can what the player is doing so knowing that what kind of actions did a trace
+that what kind of actions did a trace take these are some of them so if you
+take these are some of them so if you launch an enemy that Reyes will keep him
+launch an enemy that Reyes will keep him juggle see and if you ground an enemy a
+juggle see and if you ground an enemy a tripping enemy he'll keep him grounded
+tripping enemy he'll keep him grounded now if you kick an enemy into a wall you
+now if you kick an enemy into a wall you know a tracer will keep him pinned to
+know a tracer will keep him pinned to the wall if you're hitting in that an
+the wall if you're hitting in that an enemy trailer just grab and so he can't
+enemy trailer just grab and so he can't move and if the enemy is just constant
+move and if the enemy is just constant blocking your attacks you're just break
+blocking your attacks you're just break his block by tripping him and these are
+his block by tripping him and these are just a couple of them there's a lot more
+just a couple of them there's a lot more the main thing here was that he extends
+the main thing here was that he extends the enemies vulnerable state and allows
+the enemies vulnerable state and allows players to attack the enemy and kill the
+players to attack the enemy and kill the enemy quickly and every time I trades
+enemy quickly and every time I trades did this this was when the
+did this this was when the intentionality of the player and a tray
+intentionality of the player and a tray is kind of aligned a player doesn't want
+is kind of aligned a player doesn't want to kill the guy quicker and then a
+to kill the guy quicker and then a traditional mouse so when he did that
+traditional mouse so when he did that the Tres felt like a better teammate as
+the Tres felt like a better teammate as a whole so perceived impact people are
+a whole so perceived impact people are now feeling his impact alright he's kind
+now feeling his impact alright he's kind of useful now but the weak enemies not
+of useful now but the weak enemies not Trey's problem but you know we resolved
+Trey's problem but you know we resolved it by you know increasing the health of
+it by you know increasing the health of enemies obviously but if the enemy
+enemies obviously but if the enemy actually gets stronger you know it
+actually gets stronger you know it doesn't mean that race should do more
+doesn't mean that race should do more damage so you know he helps the player
+damage so you know he helps the player out the main thing he should be focusing
+out the main thing he should be focusing on is creating more shortcuts for
+on is creating more shortcuts for players to dispatch the enemy this was
+players to dispatch the enemy this was really important because you don't want
+really important because you don't want a trace to take the spotlight of the
+a trace to take the spotlight of the player so the next video I'm going to
+player so the next video I'm going to show you I'll show you a clip of a
+show you I'll show you a clip of a player killing a dragger without a trace
+player killing a dragger without a trace is help in the latter half you know he's
+is help in the latter half you know he's gonna kill druggers with the help
+so all this is taking about 14 seconds and which is pretty bad I guess
+but if you use a Reyes he gives you shortcuts and kill them pretty quickly
+[Music]
+the main thing here is not only does he provide short cuts he actually provides
+provide short cuts he actually provides you other options in combat as well so
+you other options in combat as well so if he's like grabbing an enemy and they
+if he's like grabbing an enemy and they decide to launch him at radius will kind
+decide to launch him at radius will kind of slam the enemy down and create like a
+of slam the enemy down and create like a huge concussion and you know that was
+huge concussion and you know that was that was how he actually helped the
+that was how he actually helped the player even though the enemy got beefier
+player even though the enemy got beefier it creates constantly provide these
+it creates constantly provide these shortcuts so it's actually fantastic and
+shortcuts so it's actually fantastic and you know while we were working on these
+you know while we were working on these mechanics there were some finding key
+mechanics there were some finding key findings that what that weren't very
+findings that what that weren't very obvious so timing is everything
+obvious so timing is everything not every time it's a good time to
+not every time it's a good time to follow up so if the players like aiming
+follow up so if the players like aiming with his you know acts on a reticle and
+with his you know acts on a reticle and the trace happens is like not the guy
+the trace happens is like not the guy away
+away that's terrible so you have to be
+that's terrible so you have to be mindful when he can attack other times
+mindful when he can attack other times when you know the player is actually
+when you know the player is actually wailing on a guy it's okay for trades to
+wailing on a guy it's okay for trades to actually come in and help you out
+actually come in and help you out and the key thing here is that you know
+and the key thing here is that you know the best actually the best time for our
+the best actually the best time for our trades to help the player is when the
+trades to help the player is when the player actually does like a really
+player actually does like a really strong move or whatever where there's a
+strong move or whatever where there's a long recovery time because during the
+long recovery time because during the recovery time usually the players can't
+recovery time usually the players can't like move and stuff like that and that
+like move and stuff like that and that small beat that window they can actually
+small beat that window they can actually register what a trace is doing so when
+register what a trace is doing so when the trace is jumping off the players
+the trace is jumping off the players back that's when people really notice
+back that's when people really notice and so just because you found that great
+and so just because you found that great time to attack doesn't mean you know the
+time to attack doesn't mean you know the actions are going to be helpful
+actions are going to be helpful you know not all support actions are
+you know not all support actions are useful actions you know if if the
+useful actions you know if if the attacks are extremely disrupted we have
+attacks are extremely disrupted we have to be mindful when we're gonna do it for
+to be mindful when we're gonna do it for example if players are knocking enemies
+example if players are knocking enemies off the ledge and stuff like that and a
+off the ledge and stuff like that and a trace happens to kind of interrupted by
+trace happens to kind of interrupted by hitting them out of the air that's
+hitting them out of the air that's disruptive that's really bad and also
+disruptive that's really bad and also conversely like if conversely if the
+conversely like if conversely if the player is you know causing a stumble
+player is you know causing a stumble reaction on the enemy
+reaction on the enemy and at Reyes comes in just cause a basic
+and at Reyes comes in just cause a basic reaction he effectively negated the
+reaction he effectively negated the recovery time of the enemies so it needs
+recovery time of the enemies so it needs to we need to respect their reaction
+to we need to respect their reaction hierarchy of the game this is a really
+hierarchy of the game this is a really simplified reaction hierarchy there's a
+simplified reaction hierarchy there's a lot more reactions but I just simplified
+lot more reactions but I just simplified about that's a that's the idea and the
+about that's a that's the idea and the main thing here is that you know we have
+main thing here is that you know we have to we have to predict that players in
+to we have to predict that players in tangency essentially so if the player is
+tangency essentially so if the player is doing some kind of actions make sure
+doing some kind of actions make sure whatever a trace does is going to
+whatever a trace does is going to enhance what the player wants to do and
+enhance what the player wants to do and that's kind of how how we design his
+that's kind of how how we design his attacks and this is kind of seeing
+attacks and this is kind of seeing everything in action this is kind of
+everything in action this is kind of early but this is when I was like III
+early but this is when I was like III maybe I get to keep my job maybe I'm
+maybe I get to keep my job maybe I'm doing something I'm smart he's actually
+doing something I'm smart he's actually doing helping you out
+doing helping you out anonymously yeah I mean there was more
+anonymously yeah I mean there was more tuning that need to happen but this had
+tuning that need to happen but this had all elements of a trace kind of helping
+all elements of a trace kind of helping you and this is just purely autonomous
+you and this is just purely autonomous you're not telling a trace to do
+you're not telling a trace to do anything
+so this all looked good and we were like okay maybe that playtesters can now play
+okay maybe that playtesters can now play with a trance
+with a trance but look good but it was only helpful
+but look good but it was only helpful when players were actually offensive
+when players were actually offensive remember I said that race is going to be
+remember I said that race is going to be reactive to your actions so it turns out
+reactive to your actions so it turns out when players are on you know whether
+when players are on you know whether they're low on health they start to
+they're low on health they start to become very padded or very defensive
+become very padded or very defensive this is your defensive a tres can't do
+this is your defensive a tres can't do anything after that so we're like okay
+anything after that so we're like okay we need to come up with couple of
+we need to come up with couple of helpful behaviors to allow players to
+helpful behaviors to allow players to become more offensive so some of the
+become more offensive so some of the helpful behaviors were now calling out
+helpful behaviors were now calling out threats especially attacks for coming
+threats especially attacks for coming out of office creamy you can't look
+out of office creamy you can't look behind you so it was a perfect way for a
+behind you so it was a perfect way for a trace to call them out
+trace to call them out another thing is she sometimes it
+another thing is she sometimes it protects you from off-screen attacks
+protects you from off-screen attacks most people didn't notice this but it
+most people didn't notice this but it actually happens quite often other thing
+actually happens quite often other thing is reviving the player this is not
+is reviving the player this is not really a behavior per se but it's it's
+really a behavior per se but it's it's another like resource mechanic that
+another like resource mechanic that allows players to become more offensive
+allows players to become more offensive when they're kind of low on health and
+when they're kind of low on health and finally my favorite detecting danger
+finally my favorite detecting danger thank you Sam so there's this danger
+thank you Sam so there's this danger meter where a tracer is detecting if the
+meter where a tracer is detecting if the player is in danger or not and fee if
+player is in danger or not and fee if this meters hits a certain threshold I
+this meters hits a certain threshold I traced this like a spread shot and pulls
+traced this like a spread shot and pulls enemies away here's a video of that
+enemies away here's a video of that so he's gonna do right about now and he
+so he's gonna do right about now and he just pulls a bunch of enemies towards
+just pulls a bunch of enemies towards him and you can just only fight one
+him and you can just only fight one enemy and you know the the danger meter
+enemy and you know the the danger meter was based off of the number of enemies
+was based off of the number of enemies around the player his health and also
+around the player his health and also the types of actions you know kratos was
+the types of actions you know kratos was doing like if he's blocking or defending
+doing like if he's blocking or defending or dodging that meter went up in the
+or dodging that meter went up in the moment you actually perform an offense
+moment you actually perform an offense of action the meter actually just reset
+of action the meter actually just reset and just join your merry way and
+and just join your merry way and honestly this thing wasn't to promote
+honestly this thing wasn't to promote defensive playstyle
+defensive playstyle we were just making sure that there's
+we were just making sure that there's some brief moments where players can
+some brief moments where players can actually take on the offense when
+actually take on the offense when they're in trouble and this extended
+they're in trouble and this extended like the intense fights
+like the intense fights longer which was me which was good so
+longer which was me which was good so with all the Thomas behavior kind of in
+with all the Thomas behavior kind of in place you know it was pretty much done
+place you know it was pretty much done and we were at a good place so now I
+and we were at a good place so now I want to talk about the directive actions
+so the directed actions a Cadis unbutton we always we always wanted a dedicated
+we always we always wanted a dedicated son button and we examined these
+son button and we examined these on-demand actions actually and before we
+on-demand actions actually and before we actually dive into those ideas we had to
+actually dive into those ideas we had to ensure a couple of things number one
+ensure a couple of things number one they have to be reliable and when I say
+they have to be reliable and when I say too reliable it doesn't mean it needs to
+too reliable it doesn't mean it needs to like destroy the enemy what I mean by
+like destroy the enemy what I mean by reliable is if you press that button
+reliable is if you press that button whatever action Tracy's gonna do it
+whatever action Tracy's gonna do it needs to happen what if you know a trace
+needs to happen what if you know a trace like jumping up in the air or whatever
+like jumping up in the air or whatever we have to offer all the actions in a
+we have to offer all the actions in a way where it could be interrupted and
+way where it could be interrupted and that also meant that his update loop
+that also meant that his update loop can't be round robin because all the
+can't be round robin because all the actions will be delayed other thing is
+actions will be delayed other thing is it shouldn't disrupt the player you know
+it shouldn't disrupt the player you know when a tree is gonna perform an action
+when a tree is gonna perform an action he can come from all sides of the
+he can come from all sides of the battlefield so you don't know where he's
+battlefield so you don't know where he's gonna be shooting at so whatever he does
+gonna be shooting at so whatever he does is should not cause and grief to the
+is should not cause and grief to the player and if trace does something you
+player and if trace does something you have to make sure that players will know
+have to make sure that players will know what's gonna happen to the enemy the the
+what's gonna happen to the enemy the the player is actually sorry the players are
+player is actually sorry the players are actually operating on a moment-to-moment
+actually operating on a moment-to-moment basis so if something random happen it's
+basis so if something random happen it's gonna throw off their game and lastly
+gonna throw off their game and lastly the actions need to be super helpful if
+the actions need to be super helpful if you use the action and you know it
+you use the action and you know it causes some you know harm to the player
+causes some you know harm to the player or whatever it nobody will be interest
+or whatever it nobody will be interest in using us so so knowing all these
+in using us so so knowing all these really ok these are pretty solid let's
+really ok these are pretty solid let's try making ice arrows focus on crowd
+try making ice arrows focus on crowd control so when this went int I was like
+control so when this went int I was like alright this is pretty good what can go
+alright this is pretty good what can go wrong ice arrows now he's slowing down
+wrong ice arrows now he's slowing down enemies nobody's slowing down enemies
+enemies nobody's slowing down enemies right now
+right now but obviously as you guys may know you
+but obviously as you guys may know you know Chris you know has it Leviathan max
+know Chris you know has it Leviathan max it used to be the blood acts by turning
+it used to be the blood acts by turning through the light of the Mac so the
+through the light of the Mac so the moments I put in the ice arrow I had to
+moments I put in the ice arrow I had to try just to remove it because I was
+try just to remove it because I was competing with the Leviathan acts
+figuring out what Kratos is going to do was first and foremost the most
+was first and foremost the most important things I had to concede so the
+important things I had to concede so the next thing I did was all right maybe a
+next thing I did was all right maybe a crowd control isn't the right answer
+crowd control isn't the right answer what if we you know just try out damage
+what if we you know just try out damage let's just try it out and we just
+let's just try it out and we just exactly what we did his arrows actually
+exactly what we did his arrows actually did damage he can use his knife to
+did damage he can use his knife to regenerate his arrows we also added some
+regenerate his arrows we also added some kind of risk factor to see if it's
+kind of risk factor to see if it's interesting to use it and this video is
+interesting to use it and this video is a trades just using his knife as a
+a trades just using his knife as a weapon and it's not showing like his
+weapon and it's not showing like his arrows being regenerated but the arrows
+arrows being regenerated but the arrows and the knife kind of operate the same
+and the knife kind of operate the same way you shoot or you stab somebody and
+way you shoot or you stab somebody and then something will happen so you see
+then something will happen so you see right there he actually killed the guy
+right there he actually killed the guy on the ground there and then when he was
+on the ground there and then when he was in action
+in action he's just not the guy on the right but
+he's just not the guy on the right but then he killed the guy on the left it's
+then he killed the guy on the left it's sort of like what's going on so so the
+sort of like what's going on so so the issue at hand were you know the the
+issue at hand were you know the the results were very random looking you
+results were very random looking you know if the enemy had hata like you know
+know if the enemy had hata like you know full HP and then you use a Chris he'll
+full HP and then you use a Chris he'll probably knock him down but the enemy's
+probably knock him down but the enemy's low on health and use a trade to
+low on health and use a trade to immediately kill him so it looked very
+immediately kill him so it looked very random second of all you know when
+random second of all you know when you're actually trying to use at Reyes
+you're actually trying to use at Reyes that risk later we added was just not
+that risk later we added was just not engaging at all when you're fighting
+engaging at all when you're fighting multiple enemies and you're focused
+multiple enemies and you're focused constantly changing if you happen to
+constantly changing if you happen to press the Sun button and he actually
+press the Sun button and he actually gets knocked down or something like that
+gets knocked down or something like that you no longer want to use a son so that
+you no longer want to use a son so that risk later was already like a bad idea
+risk later was already like a bad idea and lastly there is no synergy these two
+and lastly there is no synergy these two systems like the regenerating of the
+systems like the regenerating of the arrows and killing enemies and the hero
+arrows and killing enemies and the hero actually doing damage they kind of live
+actually doing damage they kind of live separately on their own so there was
+separately on their own so there was they weren't even talking to each other
+they weren't even talking to each other so that's all bad so the first two two
+so that's all bad so the first two two points of it being looking random
+points of it being looking random and risk later being bad okay we can't
+and risk later being bad okay we can't do anything with that but let's remove
+do anything with that but let's remove that but let's try to focus on maybe
+that but let's try to focus on maybe promoting some kind of teamwork with
+promoting some kind of teamwork with this a mechanic so we came up with the
+this a mechanic so we came up with the tagging mechanic where you shoot an
+tagging mechanic where you shoot an error an enemy they get tagged and then
+error an enemy they get tagged and then you could detonate it using your shield
+you could detonate it using your shield and there to do that you had to press l2
+and there to do that you had to press l2 twice or l1 twice actually detonate the
+twice or l1 twice actually detonate the charge and when you detonated the
+charge and when you detonated the enemies actually fly back is no longer
+enemies actually fly back is no longer gonna do a lot of damage it caused a
+gonna do a lot of damage it caused a really good reaction so it looks good
+really good reaction so it looks good but the mechanic was hidden behind the
+but the mechanic was hidden behind the l1 button and most people didn't even
+l1 button and most people didn't even engaging so we're like okay so what if
+engaging so we're like okay so what if like any kid causes this like explosion
+like any kid causes this like explosion let it detonate right well if you do
+let it detonate right well if you do that like in this clip right now throws
+that like in this clip right now throws the apps and the enemy gets phone back
+the apps and the enemy gets phone back that's really disruptive you know if you
+that's really disruptive you know if you tag an enemy and you won't launch an
+tag an enemy and you won't launch an enemy in the air you know what's gonna
+enemy in the air you know what's gonna happen is you're gonna go up in the air
+happen is you're gonna go up in the air or if he's gonna fly back who knows like
+or if he's gonna fly back who knows like now we're like destroying the hierarchy
+now we're like destroying the hierarchy of the reaction is just all bad news
+of the reaction is just all bad news Plus this also discouraged me from using
+Plus this also discouraged me from using a trace when comm being enemies so if
+a trace when comm being enemies so if I'm like hitting guys and I want to keep
+I'm like hitting guys and I want to keep arrows being pelted on the enemy the
+arrows being pelted on the enemy the next is gonna send him flying so this
+next is gonna send him flying so this was a terrible idea so it's really back
+was a terrible idea so it's really back to a drawing board and honestly at this
+to a drawing board and honestly at this point I was like I don't know what I'm
+point I was like I don't know what I'm doing I'm just gonna just keep the thing
+doing I'm just gonna just keep the thing how it is and let the system kind of
+how it is and let the system kind of stew for a bit and we just kind of
+stew for a bit and we just kind of waited it out and see what happened and
+waited it out and see what happened and key things happen that made me want to
+key things happen that made me want to work on the directed actions and they
+work on the directed actions and they are player mechanics were finalized the
+are player mechanics were finalized the player didn't change as much there were
+player didn't change as much there were a lot more constants to work with so it
+a lot more constants to work with so it was a lot easier to frame how to support
+was a lot easier to frame how to support Kratos second you I came on board about
+Kratos second you I came on board about one year before ship so net finally saw
+one year before ship so net finally saw health
+health we finally saw status meters a crates
+we finally saw status meters a crates can now feed into those meters which was
+can now feed into those meters which was great and we got the stun system on
+great and we got the stun system on board this was like the best thing ever
+board this was like the best thing ever because now a crates can apply stun and
+because now a crates can apply stun and allow players to just you know rip
+allow players to just you know rip enemies in half he wasn't really
+enemies in half he wasn't really competing with
+competing with craters because the Sun system just
+craters because the Sun system just allows players to live criticism power
+allows players to live criticism power fantasy
+fantasy so just because that race can apply more
+so just because that race can apply more Sun was okay and finally while we were
+Sun was okay and finally while we were working at Ray uh you know autonomous
+working at Ray uh you know autonomous behaviors we found out that distracting
+behaviors we found out that distracting enemies was it really was really helpful
+enemies was it really was really helpful so you know I got all the ideas and just
+so you know I got all the ideas and just kind of like mash it together and I kind
+kind of like mash it together and I kind of created the runic arrows so the first
+of created the runic arrows so the first reason why you want to use your arrows
+reason why you want to use your arrows is because it applies Sun and the poles
+is because it applies Sun and the poles enemies aggro away which was very
+enemies aggro away which was very helpful the secondary reason is to apply
+helpful the secondary reason is to apply damage and also a place that affects so
+damage and also a place that affects so if you want to shock enemies and hold
+if you want to shock enemies and hold them in place you would do that and the
+them in place you would do that and the more nuanced reason why you would you
+more nuanced reason why you would you you would want to use it so that you can
+you would want to use it so that you can extend your combo so if you launched an
+extend your combo so if you launched an enemy you can kind of keep shooting at
+enemy you can kind of keep shooting at them extending them the combo and
+them extending them the combo and whatever and also when you actually did
+whatever and also when you actually did that the enemy's back side will be
+that the enemy's back side will be turned because remember how a trace will
+turned because remember how a trace will now be behind your target if you
+now be behind your target if you actually pull the enemies attention
+actually pull the enemies attention their back side will be turned against
+their back side will be turned against you so now hitting them in their back
+you so now hitting them in their back was very very beneficial
+was very very beneficial so these mechanics were actually very
+so these mechanics were actually very good and then we have to also make sure
+good and then we have to also make sure that using this was really intuitive so
+that using this was really intuitive so when you actually pulled aim using the
+when you actually pulled aim using the l2 the arrows need to hit the reticle a
+l2 the arrows need to hit the reticle a we ensure that it goes through
+we ensure that it goes through environments make sure that the arrows
+environments make sure that the arrows actually hit the reticle and if you
+actually hit the reticle and if you aren't using the reticle we just guess
+aren't using the reticle we just guess who we think the best target is some
+who we think the best target is some targets have higher high priority
+targets have higher high priority because enemies like the revenant or the
+because enemies like the revenant or the nightmares most people tend to use the
+nightmares most people tend to use the arrows to defeat them so we prioritize
+arrows to defeat them so we prioritize him higher and this was good but
+him higher and this was good but balancing these arrows was actually a
+balancing these arrows was actually a big issue people didn't realize that you
+big issue people didn't realize that you know you can actually be performing an
+know you can actually be performing an action and a trace can also be
+action and a trace can also be performing action together with you so
+performing action together with you so you can be attacking just mash your
+you can be attacking just mash your score button and in trance can also
+score button and in trance can also attack even when you're getting hit you
+attack even when you're getting hit you can also mash that button you know
+can also mash that button you know interrupt the enemy and knowing that you
+interrupt the enemy and knowing that you know these arrows would constantly
+know these arrows would constantly interrupt and
+interrupt and and on top of copied off
+and on top of copied off Cory or a director wanted to spam
+Cory or a director wanted to spam today's arrows as fast as possible so
+today's arrows as fast as possible so that just exasperated an issue so how we
+that just exasperated an issue so how we dealt with that we limited the rate of
+dealt with that we limited the rate of fire of the arrows and limited the ammo
+fire of the arrows and limited the ammo count which is pretty easy I guess but
+count which is pretty easy I guess but the other thing I also did was I
+the other thing I also did was I actually slowed down the rate of fire
+actually slowed down the rate of fire like one frame every week without it
+like one frame every week without it getting noticed yeah yeah I know I know
+getting noticed yeah yeah I know I know I'm a jerk what can I say
+I'm a jerk what can I say yeah and Cory would ask me this you slow
+yeah and Cory would ask me this you slow down the rate of fire I'll just chalk it
+down the rate of fire I'll just chalk it up to a bad frame rate who knows like I
+up to a bad frame rate who knows like I can't tell so he probably knew about
+can't tell so he probably knew about whatever but the main thing was that ah
+whatever but the main thing was that ah you know it was about adding these key
+you know it was about adding these key and vulnerabilities to enemies so if the
+and vulnerabilities to enemies so if the enemy is about to do like a really you
+enemy is about to do like a really you know signature attack we made sure that
+know signature attack we made sure that can't be interrupted otherwise we were
+can't be interrupted otherwise we were just completely trivialize the enemies
+and my favorite thing the runic summons and you know you just like kratos traits
+and you know you just like kratos traits can perform these special ruining
+can perform these special ruining attacks and this was actually added
+attacks and this was actually added probably towards the end of alpha and
+probably towards the end of alpha and beginning of beta when we were a feature
+beginning of beta when we were a feature to complete so me and a couple of people
+to complete so me and a couple of people that didn't care about job security we
+that didn't care about job security we were like let's just check this in
+were like let's just check this in because it's really cool and you know it
+because it's really cool and you know it turned out pretty good it actually fit
+turned out pretty good it actually fit into traces fantasy so many animals talk
+into traces fantasy so many animals talk to animals and it was great it was a you
+to animals and it was great it was a you know productions a problem after that so
+know productions a problem after that so putting it all together the main thing
+putting it all together the main thing is player commands the square button it
+is player commands the square button it needs to just interrupt everything that
+needs to just interrupt everything that is the main thing we have to keep in
+is the main thing we have to keep in mind
+mind number two is making sure his autonomous
+number two is making sure his autonomous behavior like when you trip an enemy or
+behavior like when you trip an enemy or you launch enemy he can follow up
+you launch enemy he can follow up reliably that makes him feel like a good
+reliably that makes him feel like a good teammate and lastly this behavior where
+teammate and lastly this behavior where he's actually just doing something on
+he's actually just doing something on his own like bumping into enemies he
+his own like bumping into enemies he will play you know he was suing his bow
+will play you know he was suing his bow apply some stun he'll cause some happy
+apply some stun he'll cause some happy accidents those were actually important
+accidents those were actually important because every fight will now no longer
+because every fight will now no longer feel like the same so that was actually
+feel like the same so that was actually very useful and I wanted to kind of dive
+very useful and I wanted to kind of dive a little
+a little to some of the additional systems the
+to some of the additional systems the trace kind of dealt with so death no
+trace kind of dealt with so death no death we want to follow the core pillars
+death we want to follow the core pillars of a trace we didn't want to babysit
+of a trace we didn't want to babysit player TRAI so we you know make sure you
+player TRAI so we you know make sure you can't die and if you were a bad parent I
+can't die and if you were a bad parent I mean if you're about a player you might
+mean if you're about a player you might you might just leave a trace on the
+you might just leave a trace on the ground like okay I don't care I don't I
+ground like okay I don't care I don't I don't care if he's you know
+don't care if he's you know incapacitated that was okay if you
+incapacitated that was okay if you didn't want to help but Trace that was
+didn't want to help but Trace that was fine so we're okay with that second
+fine so we're okay with that second thing was player customization early
+thing was player customization early concept people wanted to teach at race
+concept people wanted to teach at race through like actions like oh I'm gonna
+through like actions like oh I'm gonna teach my boy not to you know attack you
+teach my boy not to you know attack you know or be you know whatever right that
+know or be you know whatever right that was a really bad concept but we we just
+was a really bad concept but we we just made sure that you're allowed to
+made sure that you're allowed to customize a trace through gear and skill
+customize a trace through gear and skill tree you know so if you wanted a trace
+tree you know so if you wanted a trace to become a heel bot or if you wanted to
+to become a heel bot or if you wanted to be a nice sharp shooter or he's good at
+be a nice sharp shooter or he's good at applying stun you can all do that
+applying stun you can all do that through gear and the skill tree we or I
+through gear and the skill tree we or I work backwards on that so after a trace
+work backwards on that so after a trace was done I just took what was cool about
+was done I just took what was cool about trace and just shoved it into the skill
+trace and just shoved it into the skill tree my god this looks kind of good that
+tree my god this looks kind of good that was how I worked and honestly the
+was how I worked and honestly the resources used to upgrade the skill tree
+resources used to upgrade the skill tree and the gear I made sure that there's an
+and the gear I made sure that there's an aspect of like sacrificing your own
+aspect of like sacrificing your own improvement for your child you know like
+improvement for your child you know like so your resources you have to sacrifice
+so your resources you have to sacrifice to see your child grow up you know it's
+to see your child grow up you know it's like a reoccurring theme parenthood or
+like a reoccurring theme parenthood or something I don't know that's that's
+something I don't know that's that's what I heard so we we actually put that
+what I heard so we we actually put that in and then the last thing is you know
+in and then the last thing is you know these behavior nodes that were really
+these behavior nodes that were really strong so all the autonomous behavior he
+strong so all the autonomous behavior he did we made it so that it's easy
+did we made it so that it's easy unlocked so the moment you spend a
+unlocked so the moment you spend a little bit of points or some points into
+little bit of points or some points into trace you saw a massive gain and we have
+trace you saw a massive gain and we have to make sure that the moment you know
+to make sure that the moment you know you invest in a trace you feel like it
+you invest in a trace you feel like it was worth it so there are a couple of
+was worth it so there are a couple of key takeaways here number one at Reyes
+key takeaways here number one at Reyes is really like an AI mechanic and we
+is really like an AI mechanic and we ought to make sure that using him was
+ought to make sure that using him was really easy
+really easy easy to perform you just mash a square
+easy to perform you just mash a square button he does shots and also for people
+button he does shots and also for people that are advanced you know I talked
+that are advanced you know I talked about it earlier where you can like you
+about it earlier where you can like you know Commodore taxon stuff like that we
+know Commodore taxon stuff like that we at me I had to make sure that was
+at me I had to make sure that was actually in there but the true skill is
+actually in there but the true skill is if you actually pay attention to a trace
+if you actually pay attention to a trace you know a trace always paying attention
+you know a trace always paying attention to your action but if you actually pay
+to your action but if you actually pay attention to trace what he's doing and
+attention to trace what he's doing and you become a better teammate for a trace
+you become a better teammate for a trace that's when a true teamwork happens so
+that's when a true teamwork happens so if a trace is running towards it enemies
+if a trace is running towards it enemies you know he's gonna trip in you can land
+you know he's gonna trip in you can land a cleave with the greatest of ease
+a cleave with the greatest of ease you're like oh that was so easy it's
+you're like oh that was so easy it's when both you and a tree is kind of play
+when both you and a tree is kind of play off of each other that's when the true
+off of each other that's when the true teamwork shines that's when I get to cry
+teamwork shines that's when I get to cry because it's so beautiful and you know
+because it's so beautiful and you know the main thing is the intentionality of
+the main thing is the intentionality of both players are aligned and this was
+both players are aligned and this was interesting narrative so it was kind of
+interesting narrative so it was kind of hard for me to do something because at
+hard for me to do something because at the beginning of the game you know at
+the beginning of the game you know at race camp eat is crazy killer right he
+race camp eat is crazy killer right he needs to be kind of you know a little
+needs to be kind of you know a little bit weaker so all of his autonomous
+bit weaker so all of his autonomous behaviors were kind of kind of it was
+behaviors were kind of kind of it was kind of stopped so the only useful thing
+kind of stopped so the only useful thing about race was using the score button so
+about race was using the score button so at the risk of making a trace feel kind
+at the risk of making a trace feel kind of weak and kind of useless we have to
+of weak and kind of useless we have to do that to fit narrative leave and
+do that to fit narrative leave and towards the end of the game we have to
+towards the end of the game we have to make sure that Reyes kinda just becomes
+make sure that Reyes kinda just becomes a jerk and he doesn't follow your
+a jerk and he doesn't follow your directions anymore so if you play square
+directions anymore so if you play square button he doesn't do it it feels like a
+button he doesn't do it it feels like a really bad companion guy but narrative
+really bad companion guy but narrative Lee it all made sense and this was like
+Lee it all made sense and this was like a really big takeaway for me you know I
+a really big takeaway for me you know I like to go on YouTube and just watch you
+like to go on YouTube and just watch you know videos of reaction videos of things
+know videos of reaction videos of things happening because I'm like that and then
+happening because I'm like that and then I would see people fight the last fight
+I would see people fight the last fight with the stranger and you will see a
+with the stranger and you will see a trace do all these crazy things like
+trace do all these crazy things like he's doing like these backflips he's
+he's doing like these backflips he's shooting arrows in the air and he's like
+shooting arrows in the air and he's like summoning snakes and stuff like that and
+summoning snakes and stuff like that and people like yes that's my boy doing all
+people like yes that's my boy doing all that stuff and the people are actually
+that stuff and the people are actually proud of a trace you know so like the
+proud of a trace you know so like the all the investments they made it
+all the investments they made it culminated into the cinematic
+culminated into the cinematic moment where they're like oh yeah that's
+moment where they're like oh yeah that's so cool I can invest so much into him
+so cool I can invest so much into him he's doing all these things and when
+he's doing all these things and when people saw when people saw the growth
+people saw when people saw the growth and narrative Lee and in actual like
+and narrative Lee and in actual like gameplay and when it creates did all
+gameplay and when it creates did all those things in the cinematic people
+those things in the cinematic people more like oh what is he doing why is he
+more like oh what is he doing why is he doing that people were actually like yes
+doing that people were actually like yes that he's doing that because I taught
+that he's doing that because I taught him to do all those things and when he
+him to do all those things and when he did that
+did that you know the game actually felt like a
+you know the game actually felt like a more cohesive and it was really good and
+more cohesive and it was really good and obviously you know we were reimagining
+obviously you know we were reimagining the game combat changed frequently so we
+the game combat changed frequently so we have to be pretty agile old ideas became
+have to be pretty agile old ideas became relevant really often and vice versa and
+relevant really often and vice versa and we have to make sure that all the
+we have to make sure that all the scripts and all the ideas were very
+scripts and all the ideas were very modular you can actually copy and paste
+modular you can actually copy and paste and just remove all these ideas so that
+and just remove all these ideas so that you can actually iterate a lot quicker
+you can actually iterate a lot quicker and final thing you know combating
+and final thing you know combating doubts the pretty much the final boss of
+doubts the pretty much the final boss of every game development I think you know
+every game development I think you know it's getting the right people to believe
+it's getting the right people to believe in your systems really really crucial
+in your systems really really crucial because you know like during development
+because you know like during development a lot of people will ask me so when is
+a lot of people will ask me so when is it race going Scott hahaha my oh that's
+it race going Scott hahaha my oh that's really funny
+really funny and that's like a constant constant
+and that's like a constant constant thing I have to deal with and you know I
+thing I have to deal with and you know I even had you know some people you know
+even had you know some people you know high positions too hung over Triscuits
+high positions too hung over Triscuits you know kind of cut you know here's the
+you know kind of cut you know here's the exit plan and stuff like that I'm like
+exit plan and stuff like that I'm like okay thanks so much confidence to me
+okay thanks so much confidence to me thanks but honestly like rallying the
+thanks but honestly like rallying the right people to garner support is the
+right people to garner support is the most important thing because when you do
+most important thing because when you do that you know people start to stay late
+that you know people start to stay late with me and kind of play tests and give
+with me and kind of play tests and give me feedback they would create assets for
+me feedback they would create assets for me to kind of prove out an idea and this
+me to kind of prove out an idea and this is kind of true for all game systems
+is kind of true for all game systems right like you know obviously but when
+right like you know obviously but when there's so much doubt in the future
+there's so much doubt in the future having these key people to help you out
+having these key people to help you out was really really helpful so doing all
+was really really helpful so doing all that how well did at Reyes do IGN said
+that how well did at Reyes do IGN said yeah a trace his impact cannot be
+yeah a trace his impact cannot be understated he's both an asset to the
+understated he's both an asset to the story and in battle
+story and in battle Thanks GQ was like yeah my biggest
+Thanks GQ was like yeah my biggest takeaway from the new god awards that of
+takeaway from the new god awards that of developer has finally cracked how an AI
+developer has finally cracked how an AI companion can be the best part of
+companion can be the best part of videogame and only took 20 odd years to
+videogame and only took 20 odd years to do it
+do it thanks to you here thanks but my wait no
+thanks to you here thanks but my wait no that's not the punch line no no the best
+that's not the punch line no no the best quote is from rice bean and cheese from
+quote is from rice bean and cheese from a reddit thread and he says the boy is
+a reddit thread and he says the boy is one of the better AI companions in
+one of the better AI companions in videogames thanks rice bean and cheese
+videogames thanks rice bean and cheese and really this was a team effort
+and really this was a team effort everything from cinematics and behaviors
+everything from cinematics and behaviors outside of combat helped realize who a
+outside of combat helped realize who a trace is and you know that was it so
+trace is and you know that was it so thank you that's it thank you for coming
+thank you that's it thank you for coming to this talk
+[Applause]
+thank you thank you yeah yeah sorry sorry there's a little bit more sorry
+sorry there's a little bit more sorry and the slides are terrible I'm sorry so
+and the slides are terrible I'm sorry so tomorrow you can check out me here's
+tomorrow you can check out me here's talk about evolving God of War combat if
+talk about evolving God of War combat if you're gonna take take a closer look of
+you're gonna take take a closer look of what we did in combat go check that out
+what we did in combat go check that out and now I will distract you guys with
+and now I will distract you guys with this video as I take a Q&A session so no
+this video as I take a Q&A session so no questions will be asked
+please I can't see you no one's gonna ask me questions sweet these are all
+ask me questions sweet these are all prototype videos yes so you mentioned
+prototype videos yes so you mentioned that a Trias response to what hit create
+that a Trias response to what hit create hit reaction you caused on an opponent
+hit reaction you caused on an opponent I was just wondering under the hood if
+I was just wondering under the hood if at Reyes looks at which like attack the
+at Reyes looks at which like attack the player uses or if it looks at like the
+player uses or if it looks at like the targeted opponent which state they're in
+targeted opponent which state they're in sorry so can you repeat that again
+sorry so can you repeat that again so I was curious you mentioned that at
+so I was curious you mentioned that at Reyes looks at behaves differently based
+Reyes looks at behaves differently based on which hit reaction the targeted
+on which hit reaction the targeted opponent yes yes I was wondering if it
+opponent yes yes I was wondering if it looks at which attack the player is
+looks at which attack the player is currently using and it whether or not
+currently using and it whether or not hit or if it takes a look at the the
+hit or if it takes a look at the the opponents state right so the question is
+opponents state right so the question is when notorious decides to attack does at
+when notorious decides to attack does at race look at the enemy state or what the
+race look at the enemy state or what the players doing we actually look at the
+players doing we actually look at the enemy state because depending on what
+enemy state because depending on what the player does his power level whatever
+the player does his power level whatever could be completely different so
+could be completely different so calculating that we couldn't do so we
+calculating that we couldn't do so we based it off of in like the reactions so
+based it off of in like the reactions so if an enemy were to play like a reaction
+if an enemy were to play like a reaction that might be you know we don't want to
+that might be you know we don't want to disrupt it at race will so perform an
+disrupt it at race will so perform an attack but it wouldn't cause any
+attack but it wouldn't cause any reaction so we would preserve their
+reaction so we would preserve their reaction okay okay thanks yeah yeah you
+reaction okay okay thanks yeah yeah you mentioned a few times how important it
+mentioned a few times how important it was for you guys to have that feeling
+was for you guys to have that feeling that whenever you press square something
+that whenever you press square something happens yes and your companion is doing
+happens yes and your companion is doing things how did you dealt with all the
+things how did you dealt with all the aspects where it was impossible for the
+aspects where it was impossible for the gameplay reasons so either he was out of
+gameplay reasons so either he was out of arm or he was visibly occluded towards
+arm or he was visibly occluded towards the target so he couldn't take a shot
+the target so he couldn't take a shot did you had situations like that and how
+did you had situations like that and how did you feedback that to the player that
+did you feedback that to the player that he knows that something is going on but
+he knows that something is going on but it's wrong right so the question is you
+it's wrong right so the question is you know we wanted to retain the score bun
+know we wanted to retain the score bun to be very reactive but sometimes it's
+to be very reactive but sometimes it's not reactive because you know a trace is
+not reactive because you know a trace is in trouble and stuff like how do we deal
+in trouble and stuff like how do we deal with that that is a very good question
+with that that is a very good question so
+so when he can't shoot the arrows there
+when he can't shoot the arrows there were actually very limited reasons why
+were actually very limited reasons why he couldn't number one is if he's
+he couldn't number one is if he's actually incapacitated incapacitated
+actually incapacitated incapacitated that was actually the players fault for
+that was actually the players fault for making that happen so we were okay with
+making that happen so we were okay with the arrows not responding to that with
+the arrows not responding to that with the arrows him actually running out of
+the arrows him actually running out of arrows he just says arrow is constantly
+arrows he just says arrow is constantly maybe it's not the best way but he just
+maybe it's not the best way but he just vocally tells you that he's out of
+vocally tells you that he's out of arrows yeah aside from that it wasn't
+arrows yeah aside from that it wasn't really yeah I think that's about it
+really yeah I think that's about it actually so didn't run into trouble of
+actually so didn't run into trouble of him not seeing the target that you're
+him not seeing the target that you're pressing the square if because I can
+pressing the square if because I can easily imagine him being behind a tree
+easily imagine him being behind a tree visibly and right being able to reach
+visibly and right being able to reach the target that you're trying to attack
+the target that you're trying to attack yeah so the question is you know what if
+yeah so the question is you know what if a trace can't physically shoot at the
+a trace can't physically shoot at the target we just allowed it yeah we just
+target we just allowed it yeah we just made sure the arrows actually goes
+made sure the arrows actually goes through everything and hits the target
+through everything and hits the target itself makes total sense I can't so
+itself makes total sense I can't so sorry that's fine okay so thank you
+sorry that's fine okay so thank you again for doing this and I just had a
+again for doing this and I just had a quick question that I obviously know
+quick question that I obviously know game development is a very fluid process
+game development is a very fluid process but you mentioned a couple of times that
+but you mentioned a couple of times that you sort of started out knowing that you
+you sort of started out knowing that you wanted at Reyes in the game and you
+wanted at Reyes in the game and you mentioned a couple of times of people
+mentioned a couple of times of people joking about taking him out or things
+joking about taking him out or things like that or yeah but that would have
+like that or yeah but that would have affected both the storyline and the
+affected both the storyline and the combat right so sort of it's sort of
+combat right so sort of it's sort of maybe this is the wrong question but
+maybe this is the wrong question but what was how was how did at Reyes fit
+what was how was how did at Reyes fit into the initial vision of the game and
+into the initial vision of the game and how much can you tell us how much it
+how much can you tell us how much it sort of evolved over time well I'm here
+sort of evolved over time well I'm here to talk about the combat aspects we
+to talk about the combat aspects we thought the quarry about that but yeah I
+thought the quarry about that but yeah I mean from the onset of the game we
+mean from the onset of the game we always want to trace kind of grow with
+always want to trace kind of grow with his father and kind of help you on fight
+his father and kind of help you on fight so that was there wasn't always an
+so that was there wasn't always an aspect of that but like you said I'm
+aspect of that but like you said I'm sorry the question was what was like the
+sorry the question was what was like the vision of a trace and like you know we
+vision of a trace and like you know we were always talking about cutting at
+were always talking about cutting at Reyes so how do we deal with that yeah
+Reyes so how do we deal with that yeah so the vision we always want to trace
+so the vision we always want to trace kind of grow with you and stuff so that
+kind of grow with you and stuff so that was always there but you know the combat
+was always there but you know the combat aspect we were like okay maybe it's okay
+aspect we were like okay maybe it's okay to actually remove the combat aspect and
+to actually remove the combat aspect and let Atria's kind of be like a set
+let Atria's kind of be like a set narrative piece to fulfill like you know
+narrative piece to fulfill like you know the father and son relationship so we
+the father and son relationship so we had
+had back-up plan which I didn't never wanted
+back-up plan which I didn't never wanted to do but we had backup plans yeah thank
+to do but we had backup plans yeah thank you yep
+hey so when you were doing with the warping of the child around did you ever
+warping of the child around did you ever have to worry about the time it took for
+have to worry about the time it took for him to warp like oh I saw him really far
+him to warp like oh I saw him really far to my right I'm gonna fight enemy left
+to my right I'm gonna fight enemy left and then he just also ended up here
+and then he just also ended up here instantly and you wanted more to take
+instantly and you wanted more to take like yeah I reckon or two instead of
+like yeah I reckon or two instead of instant yeah so the question is do we
+instant yeah so the question is do we care about the realism of teleporting
+care about the realism of teleporting from far away it's closer yeah I didn't
+from far away it's closer yeah I didn't care like I was like I'm just gonna talk
+care like I was like I'm just gonna talk about immediately because first and
+about immediately because first and foremost if a trace it becomes really
+foremost if a trace it becomes really unreliable you kind of don't want to use
+unreliable you kind of don't want to use a trace as much so I made sure the
+a trace as much so I made sure the reliability is key and realism is kind
+reliability is key and realism is kind of just down there okay yeah thanks yep
+of just down there okay yeah thanks yep hello yeah so thank you for the child
+hello yeah so thank you for the child was pretty good so I was there how did
+was pretty good so I was there how did you use a scripting language or
+you use a scripting language or something to do all these or yes the
+something to do all these or yes the question is do we use a scripting
+question is do we use a scripting language interesting enough we actually
+language interesting enough we actually got a real scripting language Lua
+got a real scripting language Lua probably happen maybe a year and a half
+probably happen maybe a year and a half into development yeah before that we
+into development yeah before that we didn't have anything like that
+didn't have anything like that cool thanks yeah hi my questions about
+cool thanks yeah hi my questions about how in a lot of the cinematic moments
+how in a lot of the cinematic moments particularly near the end the camera
+particularly near the end the camera plays over and swaps between Kratos init
+plays over and swaps between Kratos init Reyes as they're swapping through
+Reyes as they're swapping through particularly fighting the stranger yeah
+particularly fighting the stranger yeah on I can't pronounce it the big snake at
+on I can't pronounce it the big snake at the end but with their thoughts as it
+the end but with their thoughts as it was developing through combat of having
+was developing through combat of having the camera emphasize the traces actions
+the camera emphasize the traces actions and kind of moving over the shoulder
+and kind of moving over the shoulder with them or was it always locked behind
+with them or was it always locked behind in this third-person perspective well
+in this third-person perspective well speed of a camera me here we'll talk all
+speed of a camera me here we'll talk all about camera stuff but you know if
+about camera stuff but you know if you're actually playing the game and the
+you're actually playing the game and the camera just takes over like without kind
+camera just takes over like without kind of like you knowing it's very disruptive
+of like you knowing it's very disruptive as well so yeah we never I mean we
+as well so yeah we never I mean we entertained the idea early on but we're
+entertained the idea early on but we're like no it is a terrible idea we don't
+like no it is a terrible idea we don't want to you know focus on what a trace
+want to you know focus on what a trace is doing during combat because you know
+is doing during combat because you know if we did that you know you could be hit
+if we did that you know you could be hit out of it in some places there's a lot
+out of it in some places there's a lot of issues with that so we didn't go with
+of issues with that so we didn't go with it okay thank you yep
+it okay thank you yep hi my question is I'm curious about the
+hi my question is I'm curious about the design process of individual resolution
+design process of individual resolution scenes I've noticed that most of your
+scenes I've noticed that most of your design pillar core pillars are more like
+design pillar core pillars are more like constraint like no death and no
+constraint like no death and no babysitting so how do you find a idea to
+babysitting so how do you find a idea to start prototype in plane tests okay
+start prototype in plane tests okay right so so the question was how do we
+right so so the question was how do we prototype things when the core pillars
+prototype things when the core pillars seem like more like restrictions I mean
+seem like more like restrictions I mean they're like guidelines of how we want
+they're like guidelines of how we want so so honestly when we're prototyping we
+so so honestly when we're prototyping we had restrictions of you know create a
+had restrictions of you know create a trace can't you know do these crazy
+trace can't you know do these crazy things right but the main thing was when
+things right but the main thing was when were prototyping we wanted to make sure
+were prototyping we wanted to make sure a trace is a good teammate and as long
+a trace is a good teammate and as long as he's a good teammate and follow those
+as he's a good teammate and follow those core pillars we were ok with any type of
+core pillars we were ok with any type of prototype so that was kind of like the
+prototype so that was kind of like the basis of how we went with you know all
+basis of how we went with you know all the testing and stuff so not sure if
+the testing and stuff so not sure if that's answers a question is the picture
+that's answers a question is the picture still on your desk yes I don't even have
+still on your desk yes I don't even have a picture of my wife yeah I suck how do
+a picture of my wife yeah I suck how do you make sure that a trace is helpful at
+you make sure that a trace is helpful at the beginning of the game before you get
+the beginning of the game before you get all the upgrades right towards the end
+all the upgrades right towards the end yeah so the question is how do we make
+yeah so the question is how do we make sure trace is useful at the beginning of
+sure trace is useful at the beginning of the game without getting all the
+the game without getting all the upgrades so you know how at the the
+upgrades so you know how at the the hierarchy I listed initially about you
+hierarchy I listed initially about you know him the the commanded actions being
+know him the the commanded actions being very useful we just did that so even it
+very useful we just did that so even it as a base level if you just spam Square
+as a base level if you just spam Square there's level views that's actually
+there's level views that's actually helpful so he applied stuns you can now
+helpful so he applied stuns you can now grab the enemy pulls the enemy away so
+grab the enemy pulls the enemy away so you know we just just pretty much banked
+you know we just just pretty much banked on that mechanic and it worked out
+on that mechanic and it worked out pretty well hi so this video reminds me
+pretty well hi so this video reminds me one thing which used to be talked
+one thing which used to be talked amongst Chinese players do you know the
+amongst Chinese players do you know the game actually among our players have
+game actually among our players have another name as the God of War and hey
+another name as the God of War and hey old father so the reason reason why is
+old father so the reason reason why is when for either player when they play
+when for either player when they play the game they were freed okay so archers
+the game they were freed okay so archers on da and they can and he can cause high
+on da and they can and he can cause high damage so my question is have you
+damage so my question is have you considered about keep the two parents
+considered about keep the two parents the damage caused between the critters
+the damage caused between the critters and our troops so you're saying a so the
+and our troops so you're saying a so the question is how we considered balancing
+question is how we considered balancing damage based off of what sorry yeah so
+damage based off of what sorry yeah so the patterns the damage caused between
+the patterns the damage caused between these two characters oh yeah so sorry so
+these two characters oh yeah so sorry so the question is how do we balance the
+the question is how do we balance the damage induced characters yeah at radius
+damage induced characters yeah at radius actually doesn't do much damage his
+actually doesn't do much damage his arrows actually do very little damage
+arrows actually do very little damage the only time you can that he actually
+the only time you can that he actually does damage if you actually gear him to
+does damage if you actually gear him to actually do that
+actually do that I chose never should have liked take
+I chose never should have liked take away the players spotlight the power
+away the players spotlight the power fantasy we just ensure that you know at
+fantasy we just ensure that you know at radius will always support the player
+radius will always support the player and killing the enemy quicker so does it
+and killing the enemy quicker so does it both fighting so when I was claimed both
+both fighting so when I was claimed both fighters Valkyries and I will keep
+fighters Valkyries and I will keep practice um button until the post died
+practice um button until the post died and two to maximum the damage right of
+and two to maximum the damage right of that so so you so what do you say is
+that so so you so what do you say is just to limit the sounds limited archers
+just to limit the sounds limited archers damage into the lower lower than the
+damage into the lower lower than the creatures right yeah so I guess the
+creatures right yeah so I guess the question is do we like lower the damage
+question is do we like lower the damage of trace damage so yeah yeah I mean I
+of trace damage so yeah yeah I mean I mean yeah as a trace like you know even
+mean yeah as a trace like you know even if you upgrade him a lot
+if you upgrade him a lot he'll never surpassed Chris's damage
+he'll never surpassed Chris's damage that's like the rule we said so you know
+that's like the rule we said so you know when we're balancing these things and
+when we're balancing these things and you're finding these Valkyries we're
+you're finding these Valkyries we're like okay nitrates can do you know maybe
+like okay nitrates can do you know maybe six shots within like this kind of
+six shots within like this kind of timeframe and we know you know what his
+timeframe and we know you know what his damage per second is when we kind of
+damage per second is when we kind of bounces health and the toughness and
+bounces health and the toughness and stuff like that so that's kind of like
+stuff like that so that's kind of like the process we took so I don't that
+the process we took so I don't that answers your question I'm sorry all
+answers your question I'm sorry all right I guess that's it alright thank
+right I guess that's it alright thank you all for coming
+you all for coming [Applause]

@@ -1,0 +1,519 @@
+[Music] hey everybody welcome to bleeding edge
+hey everybody welcome to bleeding edge effects on mobile my name is Annie saya
+effects on mobile my name is Annie saya and I'm the technical director at level
+and I'm the technical director at level axe for those of you who have never
+axe for those of you who have never heard of level X before we make video
+heard of level X before we make video games for doctors which I promise you is
+games for doctors which I promise you is just as weird as it sounds here's an
+just as weird as it sounds here's an example of some of the games we make we
+example of some of the games we make we currently have four released games on
+currently have four released games on iOS and Android and a couple more
+iOS and Android and a couple more currently in development our games range
+currently in development our games range from hyper realistic to hyper stylized
+from hyper realistic to hyper stylized and each one presents its own unique
+and each one presents its own unique visual effects challenges throughout the
+visual effects challenges throughout the process of creating these different
+process of creating these different experiences we've developed a set of
+experiences we've developed a set of common principles of what we think makes
+common principles of what we think makes for an interesting effect we try to make
+for an interesting effect we try to make our effects dynamic reacting to player's
+our effects dynamic reacting to player's actions we want them to be controllable
+actions we want them to be controllable which makes them easier to reuse and
+which makes them easier to reuse and adapt to a wide variety of different
+adapt to a wide variety of different scenarios we want to create environments
+scenarios we want to create environments that feel live because in many cases the
+that feel live because in many cases the environments we are depicting actually
+environments we are depicting actually are alive and most importantly after all
+are alive and most importantly after all this we have to figure out how to get it
+this we have to figure out how to get it to run well on a telephone computer so
+to run well on a telephone computer so in this talk I wanted to show you guys
+in this talk I wanted to show you guys what we've learned making effects like
+what we've learned making effects like this and I think the best way to do that
+this and I think the best way to do that is to look back on the last four years
+is to look back on the last four years we've been making mobile games and pull
+we've been making mobile games and pull out some of the techniques we seem to
+out some of the techniques we seem to reach for over and over again so I've
+reach for over and over again so I've chosen four techniques that I felt I
+chosen four techniques that I felt I could jam into a 30-minute presentation
+could jam into a 30-minute presentation and I'm going to show you an example of
+and I'm going to show you an example of how we implemented each one for our game
+how we implemented each one for our game Paul max the four examples I'm going to
+Paul max the four examples I'm going to show you are dynamically rendering a
+show you are dynamically rendering a mask in the UV space treating blood
+mask in the UV space treating blood trails and pools create soft body
+trails and pools create soft body deformation with a vertex shader and
+deformation with a vertex shader and most exciting of all I'll show you how
+most exciting of all I'll show you how we made volumetric boogers a brief word
+we made volumetric boogers a brief word of warning before we get started the
+of warning before we get started the stock is pretty technical in nature I
+stock is pretty technical in nature I will be referring to the existence of
+will be referring to the existence of man
+man and shaders that being said I have tried
+and shaders that being said I have tried to make this presentation as accessible
+to make this presentation as accessible as possible with that goal in mind I'll
+as possible with that goal in mind I'll be releasing the unity project of all
+be releasing the unity project of all the examples I'm going to show on github
+the examples I'm going to show on github I'll put a link at the end of the
+I'll put a link at the end of the presentation also worth mentioning we do
+presentation also worth mentioning we do make video games for doctors so some of
+make video games for doctors so some of you might find the material um icky I'm
+you might find the material um icky I'm used to it by now but if you're not
+used to it by now but if you're not maybe don't look for the next half hour
+maybe don't look for the next half hour so okay
+so okay ready let's go the first technique we're
+ready let's go the first technique we're going to talk about is rendering a mask
+going to talk about is rendering a mask into UV space this tool you are seeing
+into UV space this tool you are seeing in this video is called an argon plasma
+in this video is called an argon plasma coagulator this is a real thing doctors
+coagulator this is a real thing doctors used it's literally a plasma gun they
+used it's literally a plasma gun they shoot inside people's butts the team was
+shoot inside people's butts the team was so excited when we found out this thing
+so excited when we found out this thing existed it was one of the first things
+existed it was one of the first things we tried to implement but it brought
+we tried to implement but it brought numerous tactical challenges burned
+numerous tactical challenges burned tissue leaves marks the burns need to
+tissue leaves marks the burns need to work across UVs and meshes burns need to
+work across UVs and meshes burns need to be persistent for that level we didn't
+be persistent for that level we didn't want to add decals that fade away after
+want to add decals that fade away after a certain period of time or anything
+a certain period of time or anything like that and mobile devices are limited
+like that and mobile devices are limited in memory our solution was to
+in memory our solution was to dynamically render a low resolution mask
+dynamically render a low resolution mask into UV space we start like all things
+into UV space we start like all things in computer graphics with a poorly you
+in computer graphics with a poorly you vide model of an armadillo here we
+vide model of an armadillo here we create an object with a script on it
+create an object with a script on it called a painter the script sets three
+called a painter the script sets three global shader parameters the world space
+global shader parameters the world space position of the painter a hardness value
+position of the painter a hardness value and a radius shader Global's are great
+and a radius shader Global's are great for this kind of thing because they
+for this kind of thing because they easily work across meshes with the same
+easily work across meshes with the same shader with these values we can
+shader with these values we can calculate a smooth fall-off from any
+calculate a smooth fall-off from any point on our mesh here's the simple
+point on our mesh here's the simple fall-off function we're using and for
+fall-off function we're using and for those more visually inclined here's the
+those more visually inclined here's the same function being used in shader graph
+same function being used in shader graph this note is also available in unreal
+this note is also available in unreal material editor in our fragment shader
+material editor in our fragment shader we use this fall-off value to lerp two
+we use this fall-off value to lerp two colors together ok cool that gives us a
+colors together ok cool that gives us a world space fall-off but we want our
+world space fall-off but we want our mask in UV space not world space in a
+mask in UV space not world space in a vertex shader we can transform our world
+vertex shader we can transform our world space position into UVC
+space position into UVC by cashing the worldspace position of
+by cashing the worldspace position of our mesh we can still use our fall-off
+our mesh we can still use our fall-off function but this time it's rendered in
+function but this time it's rendered in UV space so you can imagine taking a
+UV space so you can imagine taking a picture of this and using it as an input
+picture of this and using it as an input into your material as I mask and that's
+into your material as I mask and that's exactly what we're going to tell unity
+exactly what we're going to tell unity to do unity has this very powerful API
+to do unity has this very powerful API called command buffers which is perfect
+called command buffers which is perfect for this sort of thing we create a new
+for this sort of thing we create a new command buffer until it to render imesh
+command buffer until it to render imesh using the shader we just created but
+using the shader we just created but instead of outputting the results to the
+instead of outputting the results to the screen we store it into a render texture
+screen we store it into a render texture we can use later as our mask here I'm
+we can use later as our mask here I'm ray casting and moving the painter Chani
+ray casting and moving the painter Chani point I hit on the mesh because we
+point I hit on the mesh because we aren't clearing the render texture every
+aren't clearing the render texture every frame we get this cool painting effect
+frame we get this cool painting effect this is also about the time you're
+this is also about the time you're cursing yourself or your half hazard UV
+cursing yourself or your half hazard UV unwrapping there are seams everywhere
+unwrapping there are seams everywhere this is totally not shippable we could
+this is totally not shippable we could go back and try to hide these seams but
+go back and try to hide these seams but I don't know about you I'll do pretty
+I don't know about you I'll do pretty much anything to avoid laying out proper
+much anything to avoid laying out proper you v's to understand why we are getting
+you v's to understand why we are getting these seams let's take a closer look at
+these seams let's take a closer look at a single triangle the problem is caused
+a single triangle the problem is caused during rasterization which is just a
+during rasterization which is just a fancy word for turning triangles into
+fancy word for turning triangles into pixels during rasterization your
+pixels during rasterization your triangle is divided up into a grid each
+triangle is divided up into a grid each grid has a center position if the center
+grid has a center position if the center position of the grid is inside the
+position of the grid is inside the triangle a pixel is drawn on that grid
+triangle a pixel is drawn on that grid but if the grid Center position exists
+but if the grid Center position exists outside the triangle no pixel is drawn
+outside the triangle no pixel is drawn we can clearly see we have several
+we can clearly see we have several locations where part of the grid is
+locations where part of the grid is inside the triangle but no pixels are
+inside the triangle but no pixels are rendered which is causing the seams in
+rendered which is causing the seams in our UV mass an easy fix for this problem
+our UV mass an easy fix for this problem would be to tell the GPU to use
+would be to tell the GPU to use conservative rasterization so that any
+conservative rasterization so that any part of the grid that has a single
+part of the grid that has a single triangle and it gets drawn unfortunately
+triangle and it gets drawn unfortunately this feature isn't available on many
+this feature isn't available on many mobile devices and at the time and
+mobile devices and at the time and wasn't an option in unity at all our
+wasn't an option in unity at all our solution was to write a shader that
+solution was to write a shader that dilates our mass texture
+here's how a painter looks after doing a dilation pass on our mast render texture
+here you can see more clearly what the dilation pass is doing to the mask you
+dilation pass is doing to the mask you do need to make sure your UVs have
+do need to make sure your UVs have enough padding or else the dilation
+enough padding or else the dilation would cause the UVs to overlap and
+would cause the UVs to overlap and you'll get artifacts the dilation shader
+you'll get artifacts the dilation shader is pretty simple every pixel and the
+is pretty simple every pixel and the mass texture overrides its color if it
+mass texture overrides its color if it has any neighbors of a higher value than
+has any neighbors of a higher value than itself to use this we add a line to our
+itself to use this we add a line to our command buffer telling it to render our
+command buffer telling it to render our masked texture into a dilation texture
+masked texture into a dilation texture using our dilation shader okay so now
+using our dilation shader okay so now that we've rendered into UV space let's
+that we've rendered into UV space let's take a look at how we created blood
+take a look at how we created blood trails and pools from a design point of
+trails and pools from a design point of view we wanted any surface in the game
+view we wanted any surface in the game to be able to bleed if it got hit by a
+to be able to bleed if it got hit by a sharp object blood will flow out of the
+sharp object blood will flow out of the wound based on gravity leaving a trail
+wound based on gravity leaving a trail behind it blood will start to pool an
+behind it blood will start to pool an in-group based on gravity these blood
+in-group based on gravity these blood pools will grow and start to damage the
+pools will grow and start to damage the patient and blood can be washed away
+patient and blood can be washed away with water or removed by suction the
+with water or removed by suction the dynamic mass system we just went over
+dynamic mass system we just went over actually gives us a pretty good
+actually gives us a pretty good foundation for this effect first we'll
+foundation for this effect first we'll extend it so it can dynamically erase
+extend it so it can dynamically erase parts of our mask turns out that's
+parts of our mask turns out that's actually not that hard to do you can set
+actually not that hard to do you can set the blend operation in the shader to be
+the blend operation in the shader to be controlled with a variable and we write
+controlled with a variable and we write a simple script to set that blend
+a simple script to set that blend operation from add to subtractive okay
+operation from add to subtractive okay so that's removing what about pooling
+so that's removing what about pooling blood to get the effect of blood pooling
+blood to get the effect of blood pooling over time we multiply our mask by a
+over time we multiply our mask by a value just over one the shader that does
+value just over one the shader that does the multiplication is super simple it
+the multiplication is super simple it just reads the value of the mass texture
+just reads the value of the mass texture and multiplies it by number slightly
+and multiplies it by number slightly above one this will have the effect of
+above one this will have the effect of slowly increasing areas that have blood
+slowly increasing areas that have blood while keeping areas that have no blood
+while keeping areas that have no blood the same we want to apply this
+the same we want to apply this multiplication once a frame but reading
+multiplication once a frame but reading and writing from the same rendered
+and writing from the same rendered texture is super slow so we use a
+texture is super slow so we use a technique called ping ponging
+technique called ping ponging texture ping-ponging works by creating
+texture ping-ponging works by creating to render textures the first render
+to render textures the first render texture we write into using our dynamic
+texture we write into using our dynamic mass shader just as before we then used
+mass shader just as before we then used the first texture to write into the
+the first texture to write into the second texture using our multiplication
+second texture using our multiplication shader we can then alternate which
+shader we can then alternate which texture gets written into the other each
+texture gets written into the other each frame ping-pong you back and forth this
+frame ping-pong you back and forth this can be pretty confusing the first time
+can be pretty confusing the first time you hear about it so let's break it down
+you hear about it so let's break it down even more our t1 is our mass texture
+even more our t1 is our mass texture which we used to blit into our t2
+which we used to blit into our t2 applying a multiplication of one point
+applying a multiplication of one point to next frame we flip them so our t2 is
+to next frame we flip them so our t2 is our mass texture which we use the blitt
+our mass texture which we use the blitt into our t1 applying the same
+into our t1 applying the same multiplication we always apply the
+multiplication we always apply the dilation to the last texture written
+dilation to the last texture written into this is the render texture we use
+into this is the render texture we use later for a mask another interesting
+later for a mask another interesting thing is setting your multiplication
+thing is setting your multiplication value less than 1 something like point
+value less than 1 something like point nine eight produces this cool fade out
+nine eight produces this cool fade out effect and this is what removing part of
+effect and this is what removing part of the mask looks like in game we're ray
+the mask looks like in game we're ray casting to place a painter on the
+casting to place a painter on the surface when the waterjet is active just
+surface when the waterjet is active just like in our painting demo we also use a
+like in our painting demo we also use a cavity map to make the blood look like
+cavity map to make the blood look like it's filling in the cracks more
+for flowing blood we attach painters to physics objects
+physics objects it's amazing how simple primitive
+it's amazing how simple primitive physics objects can add a ton of variety
+physics objects can add a ton of variety to something like this and this is what
+to something like this and this is what it looks like inside the editor one
+it looks like inside the editor one problem we had with this approach is
+problem we had with this approach is players would section the trail of blood
+players would section the trail of blood but not treat the source of the wound
+but not treat the source of the wound itself so they would still be receiving
+itself so they would still be receiving damage even though it looked like the
+damage even though it looked like the blood was gone to fix this we had
+blood was gone to fix this we had physics objects record their locations
+physics objects record their locations every frame to create a path we would
+every frame to create a path we would then sweep a painter along that path to
+then sweep a painter along that path to indicate to the player blood was still
+indicate to the player blood was still flowing out of the wound this was one of
+flowing out of the wound this was one of those things that when it was suggested
+those things that when it was suggested I never thought it was going to work but
+I never thought it was going to work but it actually ended up working really well
+it actually ended up working really well so after fluid simulation the next
+so after fluid simulation the next notoriously difficult thing to do in
+notoriously difficult thing to do in games is soft body physics for tissue
+games is soft body physics for tissue deformation we really wanted to make the
+deformation we really wanted to make the world feel alive and reactive you should
+world feel alive and reactive you should be able to grab pinch and pull the
+be able to grab pinch and pull the tissue in any location and based on the
+tissue in any location and based on the interviews we had with our physician
+interviews we had with our physician advisors you can actually see the
+advisors you can actually see the heartbeat and deform the tissue more on
+heartbeat and deform the tissue more on the left side of the patient than the
+the left side of the patient than the right which becomes important when
+right which becomes important when navigating to accomplish all this we
+navigating to accomplish all this we decided to use a vertex shader first we
+decided to use a vertex shader first we created a script we called a manipulator
+created a script we called a manipulator the manipulator has a reference to two
+the manipulator has a reference to two transforms which we call an anchor and a
+transforms which we call an anchor and a handle next we calculate a
+handle next we calculate a transformation matrix that when applied
+transformation matrix that when applied moves a position from the anchor space
+moves a position from the anchor space to the handle space in the vertex shader
+to the handle space in the vertex shader we could just multiply that matrix with
+we could just multiply that matrix with the vertex position and move our mesh
+the vertex position and move our mesh around with our handle you can think of
+around with our handle you can think of this like mesh skating if you only had a
+this like mesh skating if you only had a one bone with a hundred percent
+one bone with a hundred percent influence
+instead of deforming the entire mesh with our handle we can use the same
+with our handle we can use the same world space mass technique I showed you
+world space mass technique I showed you earlier to create a smooth fall-off at
+earlier to create a smooth fall-off at our deformation all we need to do is
+our deformation all we need to do is pass in our manipulators position radius
+pass in our manipulators position radius and a hardness value and we can use the
+and a hardness value and we can use the same exact sphere mask function we used
+same exact sphere mask function we used earlier then we just use that fall-off
+earlier then we just use that fall-off value in a work from the original vertex
+value in a work from the original vertex position to the position after the
+position to the position after the matrix multiplication this is already
+matrix multiplication this is already kind of Awesome but you might notice the
+kind of Awesome but you might notice the lighting list a little bit off this is
+lighting list a little bit off this is because our normals aren't being
+because our normals aren't being recalculated after changing the vertex
+recalculated after changing the vertex position to recalculate the normals we
+position to recalculate the normals we are going to call our apply manipulator
+are going to call our apply manipulator function two additional times once with
+function two additional times once with our vertex positions slightly offset in
+our vertex positions slightly offset in the direction of the meshes tangent and
+the direction of the meshes tangent and the other with the position offset in
+the other with the position offset in the direction of the meshes by tangent
+the direction of the meshes by tangent we can use these two new positions to
+we can use these two new positions to calculate the manipulated tangent and by
+calculate the manipulated tangent and by tangent vectors which when we cross
+tangent vectors which when we cross together gives us our corrected world
+together gives us our corrected world normal just multiplying by a matrix
+normal just multiplying by a matrix works great if you aren't rotating too
+works great if you aren't rotating too much this is actually what we ended up
+much this is actually what we ended up shipping with for a game Paul max but if
+shipping with for a game Paul max but if you do end up rotating a lot you get
+you do end up rotating a lot you get this really ugly pinch artifact this is
+this really ugly pinch artifact this is because we're applying a linear fall-off
+because we're applying a linear fall-off to our matrix and rotations aren't
+to our matrix and rotations aren't linear the solution is to separate out
+linear the solution is to separate out the rotation translation and scale
+the rotation translation and scale components and handle the fall-off for
+components and handle the fall-off for them all individually translation is the
+them all individually translation is the easiest we just subtract our handles
+easiest we just subtract our handles rotation with our anchors position for
+rotation with our anchors position for scale we divide our handle scale and our
+scale we divide our handle scale and our anchor scale for rotation we convert our
+anchor scale for rotation we convert our rotation to angle axis and multiply them
+rotation to angle axis and multiply them together now on the GPU we can apply
+together now on the GPU we can apply each transformation with fall-off
+each transformation with fall-off separately and sum them together at the
+separately and sum them together at the end
+here's the rotate about access method we're using if you're curious about it
+we're using if you're curious about it it applies a rotation to a position
+it applies a rotation to a position given an angle and an access this is
+given an angle and an access this is also available as a node in shader graph
+also available as a node in shader graph and here's what the corrective rotations
+and here's what the corrective rotations look like one manipulator is fun but
+look like one manipulator is fun but multiple manipulators is a party you can
+multiple manipulators is a party you can really do some cool stuff with more than
+really do some cool stuff with more than one of them to do this we'll send all
+one of them to do this we'll send all the manipulator parameters as arrays of
+the manipulator parameters as arrays of floats and vectors to the shader we'll
+floats and vectors to the shader we'll modify our apply manipulator function to
+modify our apply manipulator function to loop through all the manipulators in the
+loop through all the manipulators in the loop we'll add the amount each
+loop we'll add the amount each manipulator displaces each vert by we
+manipulator displaces each vert by we can then add that total displacement to
+can then add that total displacement to the position after the loop and of
+the position after the loop and of course we need to attach physics objects
+course we need to attach physics objects to these things you can get some pretty
+to these things you can get some pretty convincingly volume preserving the facts
+convincingly volume preserving the facts just by connecting a bunch of rigid
+just by connecting a bunch of rigid bodies together with constraints
+you could do that previous example with bones and honestly you would probably
+bones and honestly you would probably have better control over it but where
+have better control over it but where this effect really shines is attachment
+this effect really shines is attachment manipulators dynamically in this example
+manipulators dynamically in this example we are adding a manipulator at the
+we are adding a manipulator at the position the raycast heads and then
+position the raycast heads and then dragging the handle around with the code
+something like this would work great for a loading screen or a little vignette
+a loading screen or a little vignette before you started the game I don't know
+before you started the game I don't know just a random idea or if you're making a
+just a random idea or if you're making a doctor on doctor fighting game you could
+doctor on doctor fighting game you could use the manipulator to add hit reacts
+use the manipulator to add hit reacts what's really cool about this is it
+what's really cool about this is it works across any animation and any
+works across any animation and any character they just need to have the
+character they just need to have the same material and shaders applied and
+same material and shaders applied and even if I take the reaction animation
+even if I take the reaction animation off you can still feel the impact from
+off you can still feel the impact from just the manipulator
+one thing to keep in mind when you're working with something like this is
+working with something like this is because it's a world space fall-off it
+because it's a world space fall-off it doesn't respect any sort of information
+doesn't respect any sort of information about connectivity so if a leg is very
+about connectivity so if a leg is very close to another leg you're going to get
+close to another leg you're going to get that manipulated influence which
+that manipulated influence which probably isn't what you want depending
+probably isn't what you want depending on your use cases and your mesh this
+on your use cases and your mesh this might not be a problem or you might want
+might not be a problem or you might want to consider implementing a mask or some
+to consider implementing a mask or some other system but at a certain point
+other system but at a certain point you're probably better off just
+you're probably better off just implementing regular skinning and here's
+implementing regular skinning and here's what the heartbeat ended up looking like
+what the heartbeat ended up looking like in-game and this is what it looks like
+in-game and this is what it looks like in the unity editor we have these gizmos
+in the unity editor we have these gizmos where we can place these manipulators
+where we can place these manipulators around and scale and animate them and
+around and scale and animate them and transform them just like any other game
+transform them just like any other game object and here we're just scaling a
+object and here we're just scaling a manipulator to get that pinch effect if
+manipulator to get that pinch effect if you're interested in implementing
+you're interested in implementing something like this I highly recommend
+something like this I highly recommend checking out the sculpting and
+checking out the sculpting and simulating with six degrees of freedom
+simulating with six degrees of freedom controllers on the GDC fall David goes
+controllers on the GDC fall David goes into a lot more detail than I had time
+into a lot more detail than I had time to today and he extends this technique
+to today and he extends this technique using something called Calvin lids which
+using something called Calvin lids which creates a much more physically
+creates a much more physically believable result okay our last and
+believable result okay our last and clearly most important effect I wanted
+clearly most important effect I wanted to show you today volumetric boogers in
+to show you today volumetric boogers in terms of design requirements we wanted
+terms of design requirements we wanted to create a sense of discovery and
+to create a sense of discovery and exploration by hiding complications from
+exploration by hiding complications from plain sight we wanted the boogers to be
+plain sight we wanted the boogers to be interactive so you can push them around
+interactive so you can push them around and use your suction tool to remove them
+and use your suction tool to remove them we also want to be able to attach these
+we also want to be able to attach these objects to anatomy and other things and
+objects to anatomy and other things and honestly we just really wanted to make
+honestly we just really wanted to make boogers the boogers are implemented
+boogers the boogers are implemented using sphere trays signed distance
+using sphere trays signed distance functions the first time I heard about
+functions the first time I heard about signed distance functions I was like I
+signed distance functions I was like I know what all those words mean
+know what all those words mean individual
+individual but I have no idea what they mean
+but I have no idea what they mean together so let's break down each part
+together so let's break down each part first of all it's literally a function
+first of all it's literally a function you call initiator you can pass any
+you call initiator you can pass any position into this function and it will
+position into this function and it will turn the closest distance to a surface
+turn the closest distance to a surface it's a way of asking how far do I need
+it's a way of asking how far do I need to travel to get to the surface of
+to travel to get to the surface of something and the sign part means if the
+something and the sign part means if the position is inside the surface it
+position is inside the surface it returns negative so you can easily
+returns negative so you can easily detect if you're inside of something one
+detect if you're inside of something one of the most powerful properties of
+of the most powerful properties of signed distance functions is you can
+signed distance functions is you can easily blend objects together this
+easily blend objects together this method of combining signed distance
+method of combining signed distance functions is called smooth Minh
+functions is called smooth Minh typically when you're working with
+typically when you're working with signed distance functions you are
+signed distance functions you are building things out of simple primitives
+building things out of simple primitives the good news is there's a large library
+the good news is there's a large library of these primitive functions that people
+of these primitive functions that people have already written and hosted online
+have already written and hosted online for pretty much any primitive and by
+for pretty much any primitive and by combining these primitives together you
+combining these primitives together you can create some really complicated
+can create some really complicated objects our boogers are made out of only
+objects our boogers are made out of only spheres and cylinders to rendered signed
+spheres and cylinders to rendered signed distance functions we use a technique
+distance functions we use a technique called sphere tracing sphere tracing is
+called sphere tracing sphere tracing is a screen space technique meaning for
+a screen space technique meaning for every pixel we shoot out array we then
+every pixel we shoot out array we then march along that ray using the distance
+march along that ray using the distance of the closest surface as our minimum
+of the closest surface as our minimum step size when the distance the closest
+step size when the distance the closest surface is small enough you can set the
+surface is small enough you can set the color of the corresponding pixel in the
+color of the corresponding pixel in the screen to the color of the object you
+screen to the color of the object you are closest to I know I'm going kind of
+are closest to I know I'm going kind of fast through this but there's actually a
+fast through this but there's actually a ton of information online on sphere
+ton of information online on sphere marching signed distance fields in unity
+marching signed distance fields in unity so if you're lost here are a bunch of
+so if you're lost here are a bunch of resources that you can check out ok so
+resources that you can check out ok so we have a brief overview on signed
+we have a brief overview on signed distance functions and sphere tracing
+distance functions and sphere tracing let's break down each step to make a
+let's break down each step to make a booger we start by rendering signed
+booger we start by rendering signed distance function spheres into a low
+distance function spheres into a low resolution render texture we then blur
+resolution render texture we then blur that render texture to remove any
+that render texture to remove any artifacts do the lower resolution
+artifacts do the lower resolution we then introduce transparency we
+we then introduce transparency we connect the signed distance cylinders to
+connect the signed distance cylinders to our neighboring booger blobs we do a
+our neighboring booger blobs we do a smooth Minh operation to blend the whole
+smooth Minh operation to blend the whole thing together we add refraction and
+thing together we add refraction and distortion we distort the normals using
+distortion we distort the normals using a 3d noise function and here we're using
+a 3d noise function and here we're using the same smooth Minh technique to blend
+the same smooth Minh technique to blend our SDS with the depth buffer which
+our SDS with the depth buffer which really sells the effect of these objects
+really sells the effect of these objects having some sort of surface tension
+and you should have guessed by now we're definitely going to add physics to these
+definitely going to add physics to these things I think every game needs bouncy
+things I think every game needs bouncy buggers and here we're attaching a
+buggers and here we're attaching a booger to a nail and unfortunate patient
+booger to a nail and unfortunate patient has swallowed
+the booger here is just attached with a spring physics object it's super simple
+and here's an example of hiding a foreign object behind the boogers
+I think this is my favorite case
+okay so that's the four techniques I wanted to go over let's review what we
+wanted to go over let's review what we learned on this journey together you can
+learned on this journey together you can use world space fall-off functions to
+use world space fall-off functions to create very controllable effects by
+create very controllable effects by attaching these fall offs the different
+attaching these fall offs the different objects in your game we learned how to
+objects in your game we learned how to render into UV space and avoid seams by
+render into UV space and avoid seams by running a dilation pass we learned how
+running a dilation pass we learned how to make a simple simulation by ping pong
+to make a simple simulation by ping pong in to render textures with each other we
+in to render textures with each other we saw how adding physics improves pretty
+saw how adding physics improves pretty much any effect making it more dynamic
+much any effect making it more dynamic and alive and in case you didn't already
+and alive and in case you didn't already know we were reminded to never swallow a
+know we were reminded to never swallow a nail I wanted to thank everyone at level
+nail I wanted to thank everyone at level axe for helping with this talk
+axe for helping with this talk especially these folks who were
+especially these folks who were instrumental in implementing several of
+instrumental in implementing several of the facts I showed today we were also
+the facts I showed today we were also hiring so if anything I showed you today
+hiring so if anything I showed you today inspired you you thought this looked fun
+inspired you you thought this looked fun you want to help maybe make the next
+you want to help maybe make the next generation volumetric boogers we're
+generation volumetric boogers we're always looking for that kind of thing
+and remember all the source code is posted on github but if you have any
+posted on github but if you have any questions feel free to reach out to me
+questions feel free to reach out to me on Twitter or send me an email thanks so
+on Twitter or send me an email thanks so much

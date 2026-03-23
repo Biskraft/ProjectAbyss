@@ -1,0 +1,1542 @@
+[Music] but it welcome we want to talk on
+but it welcome we want to talk on vehicle physics in Skylanders
+vehicle physics in Skylanders superchargers my name is yannick steel I
+superchargers my name is yannick steel I was the lead vehicle engineer on the
+was the lead vehicle engineer on the project primarily my responsibilities
+project primarily my responsibilities were to lead the team during the
+were to lead the team during the implementation and design of a land sea
+implementation and design of a land sea and air vehicles in the game also an
+and air vehicles in the game also an engineer on the team I was responsible
+engineer on the team I was responsible more for interfacing with physics and
+more for interfacing with physics and math and solving a lot of problems that
+math and solving a lot of problems that we had along the way of implementing our
+we had along the way of implementing our vehicles so Skylanders is an action RPG
+vehicles so Skylanders is an action RPG where every single playable character
+where every single playable character has a physical toy associated with it
+has a physical toy associated with it and the uniqueness and variety of these
+and the uniqueness and variety of these characters are really the driving force
+characters are really the driving force behind the franchise what we had been
+behind the franchise what we had been asked to do was to introduce vehicles
+asked to do was to introduce vehicles into the mix and make sure that these
+into the mix and make sure that these vehicles were just as quirky and playful
+vehicles were just as quirky and playful as the characters that were going to be
+as the characters that were going to be riding around in them we also knew early
+riding around in them we also knew early on that there was going to be a huge
+on that there was going to be a huge variety of different gameplay here we
+variety of different gameplay here we wanted to have a leaner were sort of
+wanted to have a leaner were sort of vehicle combat we wanted exploration
+vehicle combat we wanted exploration puzzle-solving and racing and we were
+puzzle-solving and racing and we were going to be doing all of that on land
+going to be doing all of that on land and air sea so it was really important
+and air sea so it was really important to a team that we have a really strong
+to a team that we have a really strong technical foundation so that it would
+technical foundation so that it would enable our content creators to create
+enable our content creators to create this a wide swath of gameplay
+this a wide swath of gameplay experiences before we delve into it I
+experiences before we delve into it I want to just give you guys sort of a
+want to just give you guys sort of a sense of how this talk is structured I'm
+sense of how this talk is structured I'm gonna run through some of our early
+gonna run through some of our early prototypes and some of the missteps that
+prototypes and some of the missteps that we made early on those who led us to
+we made early on those who led us to define some guiding principles for the
+define some guiding principles for the team or some pillows that really helped
+team or some pillows that really helped us make better decisions later on in the
+us make better decisions later on in the project and then in the second half of
+project and then in the second half of the talk Patrick's gonna take you guys
+the talk Patrick's gonna take you guys through more of a technical deep dive
+through more of a technical deep dive and really get into some of the details
+and really get into some of the details on on the vehicle systems that
+on on the vehicle systems that created it's probably worth mentioning
+created it's probably worth mentioning at this point that we use havoc as a
+at this point that we use havoc as a physics middleware there's nothing in
+physics middleware there's nothing in this presentation nothing in our
+this presentation nothing in our approach in general that acquires havoc
+approach in general that acquires havoc but just so you guys know where we're
+but just so you guys know where we're coming from so let's delve in to the
+coming from so let's delve in to the first prototype we wanted to make a land
+first prototype we wanted to make a land vehicle so at this point we didn't
+vehicle so at this point we didn't actually have any vehicle physics tech
+actually have any vehicle physics tech inner engine so we did a lot of research
+inner engine so we did a lot of research we looked at have experience we will
+we looked at have experience we will look at bullets vehicle physics and and
+look at bullets vehicle physics and and really try to learn as much as we could
+really try to learn as much as we could and these are great resources for you
+and these are great resources for you guys to check out and try to understand
+guys to check out and try to understand which aspects of this that you may or
+which aspects of this that you may or may not need in your game what we
+may not need in your game what we decided to do was to implement it first
+decided to do was to implement it first in this prototype a vidcast based spring
+in this prototype a vidcast based spring suspension this basically means we're
+suspension this basically means we're going to take a spring I'm gonna
+going to take a spring I'm gonna simulate it attach one end to the
+simulate it attach one end to the chassis the other to the wheel and this
+chassis the other to the wheel and this spring is going to have a length and a
+spring is going to have a length and a stiffness and then we use a velocity
+stiffness and then we use a velocity dampening parameter to make sure that
+dampening parameter to make sure that the spring stabilizes nicely then we
+the spring stabilizes nicely then we take out a cast and basically cast along
+take out a cast and basically cast along that spring and when it contacts the
+that spring and when it contacts the ground we compress this thing and this
+ground we compress this thing and this sort of creates a counter force back up
+sort of creates a counter force back up on the chassis and this is what gives
+on the chassis and this is what gives you that kind of nice physics you feel
+you that kind of nice physics you feel where the the vehicle's wheel is moving
+where the the vehicle's wheel is moving independently from the chassis the way
+independently from the chassis the way we apply our engine forces in this first
+we apply our engine forces in this first prototype is we apply our braking and
+prototype is we apply our braking and acceleration forces at the point where
+acceleration forces at the point where the wheel is contacting the ground this
+the wheel is contacting the ground this is the same spot where we apply our side
+is the same spot where we apply our side force that basically is simulating the
+force that basically is simulating the side friction of the tire we chose to
+side friction of the tire we chose to have all three of these forces go to
+have all three of these forces go to zero if any given Biel was wheel was
+zero if any given Biel was wheel was after downed and but we also use the
+after downed and but we also use the grip coefficient such that if the
+grip coefficient such that if the suspension force was low we would induce
+suspension force was low we would induce these three forces and this gave us the
+these three forces and this gave us the sense that if you were the vehicle was
+sense that if you were the vehicle was landing and not all the wheels were
+landing and not all the wheels were fully contacting the ground
+fully contacting the ground vehicle might scared or if you did a
+vehicle might scared or if you did a hard turn the vehicle to skid out and
+hard turn the vehicle to skid out and this drifting was something we really
+this drifting was something we really liked in the early prototype and we
+liked in the early prototype and we really leaned into later on and
+really leaned into later on and development when we wanted this vehicle
+development when we wanted this vehicle to turn all we do is we go tape the two
+to turn all we do is we go tape the two front tires and then the side friction
+front tires and then the side friction pretty much takes care of redirecting
+pretty much takes care of redirecting the vehicle so I'll take a quick look
+the vehicle so I'll take a quick look this is the first prototype that we made
+this is the first prototype that we made and there was some things about this
+and there was some things about this that really liked right off the bat we
+that really liked right off the bat we knew that our content creators were
+knew that our content creators were excited about sort of organic to vein
+excited about sort of organic to vein and goaling hills so it was exciting to
+and goaling hills so it was exciting to get his first prototype out and it was
+get his first prototype out and it was just fun to bomb around and catch air we
+just fun to bomb around and catch air we loved spinning around and doing kicks
+loved spinning around and doing kicks one thing we hadn't really thought
+one thing we hadn't really thought through and expected was that we noticed
+through and expected was that we noticed because we're applying all the forces at
+because we're applying all the forces at the wheels the chassis will lurch when
+the wheels the chassis will lurch when you brake of accelerate or a little lean
+you brake of accelerate or a little lean and the terms and we got sort of this
+and the terms and we got sort of this procedural animation for free so that
+procedural animation for free so that that was exciting
+that was exciting however there were plenty of problems in
+however there were plenty of problems in the early prototype in particular when
+the early prototype in particular when you cashed into anything so you really
+you cashed into anything so you really as these vehicles that I've around
+as these vehicles that I've around really fast even if you just skim the
+really fast even if you just skim the side of a wall it really develops a lot
+side of a wall it really develops a lot of rotational forces and we spent quite
+of rotational forces and we spent quite a bit of time working with a suspension
+a bit of time working with a suspension doing things like reducing the center of
+doing things like reducing the center of mass or not reducing it but placing it
+mass or not reducing it but placing it lower to reduce the chance of the
+lower to reduce the chance of the vehicle flipping on its side or flipping
+vehicle flipping on its side or flipping on his head or worse yet just sort of
+on his head or worse yet just sort of getting flung out of the level
+getting flung out of the level altogether so we knew that this was
+altogether so we knew that this was something that we were gonna have to
+something that we were gonna have to deal with these things I think to the
+deal with these things I think to the engineers seemed like manageable
+engineers seemed like manageable problems you know we can fix some of
+problems you know we can fix some of these bugs we can make interacting with
+these bugs we can make interacting with the suspension a little bit simpler
+the suspension a little bit simpler because it was quite technically complex
+because it was quite technically complex but I think our designers had a totally
+but I think our designers had a totally different perspective from us which was
+different perspective from us which was that they they saw this first prototype
+that they they saw this first prototype and
+and like I said setting it up the suspension
+like I said setting it up the suspension was complex actually the the first one
+was complex actually the the first one that we did Patrick set up most of the
+that we did Patrick set up most of the tunable values for the suspension to
+tunable values for the suspension to make sure it worked well and but I think
+make sure it worked well and but I think to someone who didn't understand the
+to someone who didn't understand the physics equations that were under the
+physics equations that were under the hood really a lot of the tuning values
+hood really a lot of the tuning values just seemed like a bunch of magic
+just seemed like a bunch of magic numbers and worse yet it was really easy
+numbers and worse yet it was really easy to change anything in this setup and
+to change anything in this setup and make that suspension unstable or implode
+make that suspension unstable or implode and I think it created an environment
+and I think it created an environment where the designers were nervous to
+where the designers were nervous to change anything because it was really
+change anything because it was really easy to break however I think the most
+easy to break however I think the most important concern they had which is
+important concern they had which is completely valid is that they saw how
+completely valid is that they saw how much work it was for us to make one
+much work it was for us to make one vehicle and get that working well and
+vehicle and get that working well and they had to make nine more land vehicles
+they had to make nine more land vehicles it was really important to us that all
+it was really important to us that all these vehicles feel unique and have
+these vehicles feel unique and have their own personality and at this point
+their own personality and at this point the thought of making nine more it was
+the thought of making nine more it was difficult just to make them functional
+difficult just to make them functional far less kind of pull out the
+far less kind of pull out the personality so that we knew at this
+personality so that we knew at this point that this exact approach maybe
+point that this exact approach maybe wasn't the right way to go so we decided
+wasn't the right way to go so we decided to kind of swing the pendulum the other
+to kind of swing the pendulum the other way and try a totally different approach
+way and try a totally different approach which we call character vehicles what we
+which we call character vehicles what we have in our pipeline we've created just
+have in our pipeline we've created just hundreds of characters and Skylanders
+hundreds of characters and Skylanders our tools pipeline and run time for
+our tools pipeline and run time for characters is really powerful and our
+characters is really powerful and our designers are incredibly capable and
+designers are incredibly capable and comfortable with that pipeline so we
+comfortable with that pipeline so we thought why don't we just all mint that
+thought why don't we just all mint that pipeline and try to make our vehicles
+pipeline and try to make our vehicles inside that constant so what that meant
+inside that constant so what that meant for us was that we were actually going
+for us was that we were actually going to be moving away from physically
+to be moving away from physically accurate simulation and moving into sort
+accurate simulation and moving into sort of an animation state machine where we
+of an animation state machine where we could layer on partial animations on to
+could layer on partial animations on to the vehicle and really in our specific
+the vehicle and really in our specific setup this meant that we could no longer
+setup this meant that we could no longer apply forces to a rigid bodies we had to
+apply forces to a rigid bodies we had to set of the
+set of the every single frame on on the vehicle
+every single frame on on the vehicle this totally makes sense those four on
+this totally makes sense those four on foot characters but I think for vehicles
+foot characters but I think for vehicles if you want concepts like momentum and
+if you want concepts like momentum and inertia we really had to make sure that
+inertia we really had to make sure that we were passing that velocity through
+we were passing that velocity through frame by frame and state by state
+frame by frame and state by state I think the upside of using velocities
+I think the upside of using velocities is I really believe that people just
+is I really believe that people just have a better than two ative grasp of
+have a better than two ative grasp of velocity than they do a forces and
+velocity than they do a forces and accelerations and so it really let us
+accelerations and so it really let us sort of focus in on an interface and and
+sort of focus in on an interface and and really try to simplify things to improve
+really try to simplify things to improve a design interface however I think when
+a design interface however I think when we actually fully built it this approach
+we actually fully built it this approach also had a lot of problems some of the
+also had a lot of problems some of the issues that you're seeing in the video
+issues that you're seeing in the video here is that we can no longer apply
+here is that we can no longer apply forces to the suspension so we're
+forces to the suspension so we're basically just doing a take a stand
+basically just doing a take a stand matching it to the ground this causes a
+matching it to the ground this causes a lot of glitchyness if you have any kind
+lot of glitchyness if you have any kind of uneven surface or content theaters
+of uneven surface or content theaters had to smooth stuff out and I had to beg
+had to smooth stuff out and I had to beg them to take out at any little tack and
+them to take out at any little tack and dividend the load was terrible but we
+dividend the load was terrible but we really see that we always wanted to make
+really see that we always wanted to make that loop-de-loop I think the thing that
+that loop-de-loop I think the thing that really caused me to believe that this
+really caused me to believe that this approach was not going to be viable is
+approach was not going to be viable is that if you're setting the velocity on
+that if you're setting the velocity on these vehicles every flame the
+these vehicles every flame the interaction with external forces when
+interaction with external forces when you're crashing in the walls vehicles
+you're crashing in the walls vehicles are cashing in to you or something else
+are cashing in to you or something else is smashing into you what seemed simple
+is smashing into you what seemed simple at first actually kind of spiraled out
+at first actually kind of spiraled out of control on the engineering side
+of control on the engineering side trying to take in all these external
+trying to take in all these external influences and it started feeling like
+influences and it started feeling like we were building own kind of capi
+we were building own kind of capi physics engine on top of this so we
+physics engine on top of this so we thought let's not do this let's let's
+thought let's not do this let's let's return to the physically accurate
+return to the physically accurate simulation and let's leverage this
+simulation and let's leverage this amazing sort of physics building where
+amazing sort of physics building where they we have and let's use that however
+they we have and let's use that however there were definitely some lessons that
+there were definitely some lessons that we learn
+we learn in the experiments for character
+in the experiments for character vehicles that we wanted to bring in and
+vehicles that we wanted to bring in and we felt like these might alleviate the
+we felt like these might alleviate the concerns that we were having early on
+concerns that we were having early on and we thought if we could combine these
+and we thought if we could combine these approaches maybe we can sort of get the
+approaches maybe we can sort of get the best of both worlds and end up with a
+best of both worlds and end up with a good good system and a good approach so
+good good system and a good approach so at this point we tried to establish
+at this point we tried to establish these pillows full for the vehicle team
+these pillows full for the vehicle team so that we could make better decisions
+so that we could make better decisions and make sure we're all on the same page
+and make sure we're all on the same page and getting towards the same goal so the
+and getting towards the same goal so the first thing we decided was like let's
+first thing we decided was like let's simplify the physics simulation whenever
+simplify the physics simulation whenever possible make sure we're not taking
+possible make sure we're not taking along unnecessary complexity in physics
+along unnecessary complexity in physics all along through the project and if we
+all along through the project and if we want complexity ideally let's make it a
+want complexity ideally let's make it a ties from the interaction of simple
+ties from the interaction of simple systems if we learn anything from our
+systems if we learn anything from our character vehicles it is that we had to
+character vehicles it is that we had to start thinking about our physics
+start thinking about our physics parameters not just as the equations but
+parameters not just as the equations but as to how our designers thought about
+as to how our designers thought about these concepts and make sure that we
+these concepts and make sure that we mill back to them the things that
+mill back to them the things that they're saying about the vehicle motion
+they're saying about the vehicle motion and finally and this definitely was not
+and finally and this definitely was not obvious to us at first was that we had
+obvious to us at first was that we had to start keeping our physics parameters
+to start keeping our physics parameters independent this basically means that
+independent this basically means that you're trying to minimize the amount of
+you're trying to minimize the amount of side effects as you change one value in
+side effects as you change one value in the physics simulation that it affects
+the physics simulation that it affects another area and this really becomes a
+another area and this really becomes a nightmare if you don't do this to try to
+nightmare if you don't do this to try to tune the vehicle and get it shipped out
+tune the vehicle and get it shipped out so I'm going to go through a bunch of
+so I'm going to go through a bunch of examples that hopefully will sort of
+examples that hopefully will sort of exemplify how we use these pillars and
+exemplify how we use these pillars and practice and and how we actually use
+practice and and how we actually use that to to make decisions so let's take
+that to to make decisions so let's take a look at a simple example if we're just
+a look at a simple example if we're just going to accelerate a vehicle up to top
+going to accelerate a vehicle up to top speed whenever we talk to our designers
+speed whenever we talk to our designers about this they almost always ended up
+about this they almost always ended up drawing up a curve like this on the
+drawing up a curve like this on the whiteboard and and this was just sort of
+whiteboard and and this was just sort of how they thought about it they they have
+how they thought about it they they have an amount of time that it takes to each
+an amount of time that it takes to each of the top speed they have a top speed
+of the top speed they have a top speed and then they have this curve
+and then they have this curve that tells us how the vehicle is going
+that tells us how the vehicle is going to reach the top speed so let's look at
+to reach the top speed so let's look at an example of two different vehicles
+an example of two different vehicles here the top one is kind of a fast zippy
+here the top one is kind of a fast zippy vehicle and the bottom one is a
+vehicle and the bottom one is a lumbering vehicle what might not be
+lumbering vehicle what might not be obvious here is that these vehicles have
+obvious here is that these vehicles have the same top speed and they have the
+the same top speed and they have the same amount of time to reach that top
+same amount of time to reach that top speed the only thing that's different
+speed the only thing that's different here is the shape of that curve and what
+here is the shape of that curve and what we've come to realize in this case and
+we've come to realize in this case and in a lot of cases when it comes to the
+in a lot of cases when it comes to the the physics vehicles is that we had to
+the physics vehicles is that we had to expose these kind of curves directly out
+expose these kind of curves directly out in our tools so we've done this before
+in our tools so we've done this before and the effects and things like that but
+and the effects and things like that but now we're going to actually use it in
+now we're going to actually use it in gameplay and and this made a huge huge
+gameplay and and this made a huge huge difference for us if you take an
+difference for us if you take an equation just something simple a F
+equation just something simple a F equals MA and give that as values or
+equals MA and give that as values or parameters out to your designer they
+parameters out to your designer they tend to only be able to set the force
+tend to only be able to set the force that's the only thing they can change
+that's the only thing they can change and that's just a magic number and
+and that's just a magic number and they're like playing with it until it
+they're like playing with it until it gives them something but what you've
+gives them something but what you've actually done there is you've inherently
+actually done there is you've inherently said it's using constant acceleration
+said it's using constant acceleration and you've denied them the ability to
+and you've denied them the ability to change this and really that curve which
+change this and really that curve which you haven't given them then is the
+you haven't given them then is the defining feature of that vehicle and
+defining feature of that vehicle and it's it's really really important I
+it's it's really really important I think to to use these kind of curves to
+think to to use these kind of curves to help but simplify it but actually give
+help but simplify it but actually give access to a lot more of the personality
+access to a lot more of the personality of the vehicle we also tried to simplify
+of the vehicle we also tried to simplify some things down this kind of shows how
+some things down this kind of shows how we applied forces in the first prototype
+we applied forces in the first prototype we decided to simplify this a lot but
+we decided to simplify this a lot but just going to do engine forces State
+just going to do engine forces State through the center of the mass of the
+through the center of the mass of the vehicle this meant that we lost the
+vehicle this meant that we lost the procedural animation that I mentioned
+procedural animation that I mentioned earlier but what we gained was really a
+earlier but what we gained was really a consistency in handling and we didn't
+consistency in handling and we didn't have to explain the players why if one
+have to explain the players why if one wheel was slightly off the game the
+wheel was slightly off the game the turning felt different or something like
+turning felt different or something like that and really now what we're going to
+that and really now what we're going to do for turning is we're just going to
+do for turning is we're just going to apply a port force and give ourselves a
+apply a port force and give ourselves a rotational acceleration
+rotational acceleration and turn the vehicle that way we also
+and turn the vehicle that way we also got rid of the side forces and we just
+got rid of the side forces and we just use drag across all the vehicles we use
+use drag across all the vehicles we use this model full of the land vehicles we
+this model full of the land vehicles we use it for the air vehicles as well the
+use it for the air vehicles as well the only difference was that we also do a
+only difference was that we also do a rotation in the pitch in addition to the
+rotation in the pitch in addition to the yaw and honestly from a physics
+yaw and honestly from a physics perspective that was really the the
+perspective that was really the the major difference and there we also use
+major difference and there we also use this approach for the water vehicles
+this approach for the water vehicles which simplified things when we tried to
+which simplified things when we tried to model buoyancy so let's take a look at
+model buoyancy so let's take a look at an early prototype that I made with
+an early prototype that I made with Patrick and one of our handling
+Patrick and one of our handling engineers patrick hennessey helped us
+engineers patrick hennessey helped us out with this and we wanted to get a
+out with this and we wanted to get a feel for water vehicles we knew we had
+feel for water vehicles we knew we had these sort of huge waves that we could
+these sort of huge waves that we could do and we wanted to make sure the water
+do and we wanted to make sure the water vehicles could kind of ride up the waves
+vehicles could kind of ride up the waves that could skid down them they could
+that could skid down them they could dive through the waves and so we had a
+dive through the waves and so we had a ton of fun trying to set up this this
+ton of fun trying to set up this this first prototype and honestly the
+first prototype and honestly the approach that we took in this first week
+approach that we took in this first week is very similar to what ended up
+is very similar to what ended up shipping in the game so let's take a
+shipping in the game so let's take a quick look at the buoyancy modeling it's
+quick look at the buoyancy modeling it's it's a physically complicated concept
+it's a physically complicated concept you can really model this in as complex
+you can really model this in as complex a manner as you would like what you're
+a manner as you would like what you're dealing with here is in our case of
+dealing with here is in our case of vehicle where partly some volume of that
+vehicle where partly some volume of that vehicle is submerged in water and the
+vehicle is submerged in water and the displaced water is going to apply a
+displaced water is going to apply a force across the surface of the the
+force across the surface of the the volume with our newfound pillars of
+volume with our newfound pillars of simplification we've said well let's
+simplification we've said well let's just make it a box this is gonna really
+just make it a box this is gonna really help us calculate a volume and figure
+help us calculate a volume and figure out how much of that volume is submerged
+out how much of that volume is submerged in a much much simpler manner also we
+in a much much simpler manner also we decided to apply a single buoyant force
+decided to apply a single buoyant force through the center of mass this meant
+through the center of mass this meant that our buoyant force actually isn't
+that our buoyant force actually isn't going to apply any rotation to the water
+going to apply any rotation to the water vehicle it's really just gonna
+vehicle it's really just gonna sort of bob up and down in the water we
+sort of bob up and down in the water we did apply the buoyant force along the
+did apply the buoyant force along the water surface normal and that that
+water surface normal and that that helped us be able to deal with the waves
+helped us be able to deal with the waves that we were seeing also we had an
+that we were seeing also we had an angular swing on the vehicle which would
+angular swing on the vehicle which would turn and sort of rotate the vehicle
+turn and sort of rotate the vehicle towards the water normal so it would try
+towards the water normal so it would try to match up to that kind of gradually
+to match up to that kind of gradually this simple approach worked better than
+this simple approach worked better than we expected
+we expected I really thought eventually we're going
+I really thought eventually we're going to add more points of buoyancy and it's
+to add more points of buoyancy and it's going to like be more complicated but it
+going to like be more complicated but it worked well for the vehicle you you have
+worked well for the vehicle you you have to be able to handle the vehicle it has
+to be able to handle the vehicle it has to be controllable so this made it a lot
+to be controllable so this made it a lot simpler I think for us also because we
+simpler I think for us also because we chose such a simple model it was really
+chose such a simple model it was really cheap and we discovered hey let's just
+cheap and we discovered hey let's just put this buoyancy thing on other objects
+put this buoyancy thing on other objects in the world and all of a sudden we have
+in the world and all of a sudden we have all this sort of flotsam and jetsam that
+all this sort of flotsam and jetsam that the vehicle can interact with and and we
+the vehicle can interact with and and we ended up really liking this this
+ended up really liking this this approach another important concept in in
+approach another important concept in in buoyancy is the nesting height of the
+buoyancy is the nesting height of the vehicle I think for designers this was
+vehicle I think for designers this was really something they identified for us
+really something they identified for us that was a defining feature of the
+that was a defining feature of the vehicle what it means is how deep this
+vehicle what it means is how deep this vehicle is going to sink in the water
+vehicle is going to sink in the water when it says yes so a speedboat might
+when it says yes so a speedboat might only sink a little bit if you have a
+only sink a little bit if you have a sort of submarine type it's gonna sink
+sort of submarine type it's gonna sink lower if you look at the equations of
+lower if you look at the equations of what governs the guessing height of the
+what governs the guessing height of the vehicle there's a lot that goes into it
+vehicle there's a lot that goes into it and there's a lot of things that can
+and there's a lot of things that can make that besting height change however
+make that besting height change however what we wanted was to be able to set the
+what we wanted was to be able to set the testing height and guarantee that that's
+testing height and guarantee that that's how the vehicle was going to behave we
+how the vehicle was going to behave we ended up doing this by basically solving
+ended up doing this by basically solving for the resting height and just putting
+for the resting height and just putting in a value from zero to one and then at
+in a value from zero to one and then at one time we would dynamically calculate
+one time we would dynamically calculate the other values to ensure that we
+the other values to ensure that we actually got the correct resting height
+actually got the correct resting height in our case we ended up
+in our case we ended up calculating the volume of the vehicle
+calculating the volume of the vehicle and what this did for us was that if
+and what this did for us was that if someone defines the guessing height of
+someone defines the guessing height of the vehicle if someone comes along two
+the vehicle if someone comes along two months later and decides that because of
+months later and decides that because of collisions they want to give this
+collisions they want to give this vehicle more mass all of a sudden the
+vehicle more mass all of a sudden the vehicle sinks lower than the water that
+vehicle sinks lower than the water that seems cool from like a physics concept
+seems cool from like a physics concept but it sucks for the people who have
+but it sucks for the people who have tuned it and want everything to be right
+tuned it and want everything to be right so it was really important to us to look
+so it was really important to us to look at all these equations as we implemented
+at all these equations as we implemented them and really evaluate every single
+them and really evaluate every single parameter and understand if they were
+parameter and understand if they were independent or if they were dependent if
+independent or if they were dependent if we wanted them to be dependent and and
+we wanted them to be dependent and and more often than not we really tried to
+more often than not we really tried to separate these values I haven't
+separate these values I haven't calculate them as needed the last
+calculate them as needed the last concept that I want to run through is
+concept that I want to run through is some of the stuff we did with an
+some of the stuff we did with an animation system on top of the vehicle
+animation system on top of the vehicle the first thing was really just to take
+the first thing was really just to take the physical movement of the vehicle and
+the physical movement of the vehicle and maybe the control input and try to place
+maybe the control input and try to place the vehicle in a state like is it just
+the vehicle in a state like is it just accelerating from gas there's a turning
+accelerating from gas there's a turning and allowing our animators to just
+and allowing our animators to just animate on top of the the physics
+animate on top of the the physics simulation and this I think more than
+simulation and this I think more than anything allowed them to bring out a ton
+anything allowed them to bring out a ton of personality and each vehicle without
+of personality and each vehicle without actually changing a lot of the things
+actually changing a lot of the things about how we did a physics suspension
+about how we did a physics suspension under the hood and that both gives you a
+under the hood and that both gives you a consistency in handling but now you can
+consistency in handling but now you can really draw out the vehicle and figure
+really draw out the vehicle and figure out what this vehicle is about another
+out what this vehicle is about another thing we did here was that we had the
+thing we did here was that we had the animators actually animate the full
+animators actually animate the full extent of the suspension so how high up
+extent of the suspension so how high up can the wheels go and how loads to go to
+can the wheels go and how loads to go to the gown this meant that it ideally the
+the gown this meant that it ideally the suspension will never look bad it'll
+suspension will never look bad it'll never clip into the vehicle but also it
+never clip into the vehicle but also it allowed us to actually not just have the
+allowed us to actually not just have the wheel maybe move simply up and down they
+wheel maybe move simply up and down they could do a sort of a rotational
+could do a sort of a rotational suspension they can do whatever looks
+suspension they can do whatever looks good
+good while under the hood the suspension is
+while under the hood the suspension is basically just interpolating between
+basically just interpolating between these values and I think this really let
+these values and I think this really let our engineers and designers in one hand
+our engineers and designers in one hand focus on what felt fun and what was good
+focus on what felt fun and what was good with the vehicle and then allowing a lot
+with the vehicle and then allowing a lot of the other artists and animators to do
+of the other artists and animators to do their job and bring out the personality
+their job and bring out the personality and vehicle without the two teams
+and vehicle without the two teams stepping on each other's toes too much
+stepping on each other's toes too much so hopefully these examples kind of help
+so hopefully these examples kind of help clarify some of the pillars and how we
+clarify some of the pillars and how we went through them at this point I'm
+went through them at this point I'm gonna hand it off to Patrick and he's
+gonna hand it off to Patrick and he's gonna take you guys through some of the
+gonna take you guys through some of the details of the physics systems all right
+details of the physics systems all right so before we get into this I want to
+so before we get into this I want to explain that when we say that we are
+explain that when we say that we are simplifying these systems that process
+simplifying these systems that process in and of itself is not necessarily
+in and of itself is not necessarily simple
+simple we actually found more often than not it
+we actually found more often than not it was a complex process for us to figure
+was a complex process for us to figure out ways to simplify where to simplify
+out ways to simplify where to simplify and to implement these systems but we
+and to implement these systems but we were ok with that because that meant
+were ok with that because that meant that we as the engineers we're taking on
+that we as the engineers we're taking on the burden of solvent complexity and
+the burden of solvent complexity and allowing our content creators to have
+allowing our content creators to have simple and intuitive systems that allow
+simple and intuitive systems that allow them to work on the fund so we felt that
+them to work on the fund so we felt that this was a great compromise and a great
+this was a great compromise and a great organization of complexity so without
+organization of complexity so without any further ado let's dive right in so
+any further ado let's dive right in so first I want to talk about the velocity
+first I want to talk about the velocity curves that Yann had mentioned before on
+curves that Yann had mentioned before on the x-axis we have the time from rest
+the x-axis we have the time from rest until next speed that is defined by the
+until next speed that is defined by the designer and on the y-axis we have our
+designer and on the y-axis we have our speed from rest until max speed now
+speed from rest until max speed now normally when you devalue 8 a curve like
+normally when you devalue 8 a curve like this you'd have a value on the x-axis
+this you'd have a value on the x-axis and you would just pump it in to a
+and you would just pump it in to a function and you get out a y-value
+function and you get out a y-value however for our vehicles all we really
+however for our vehicles all we really knew was our speed so we needed to get a
+knew was our speed so we needed to get a time value out of it so we did a process
+time value out of it so we did a process we called reverse evaluation
+we called reverse evaluation so given a speed value what we would do
+so given a speed value what we would do is essentially reevaluate to figure out
+is essentially reevaluate to figure out our current time value the process that
+our current time value the process that we used for this was a simple binary
+we used for this was a simple binary search for the curve we solved in the
+search for the curve we solved in the forward direction and various points and
+forward direction and various points and hone in on the time value that gives us
+hone in on the time value that gives us a speed value that we were looking
+a speed value that we were looking or there's other ways of doing this you
+or there's other ways of doing this you can do a lookup table or if you have an
+can do a lookup table or if you have an implicit function you might be able to
+implicit function you might be able to transpose it we didn't have any
+transpose it we didn't have any performance problems so we were just one
+performance problems so we were just one with uh simple binary search so once we
+with uh simple binary search so once we have a time value what we can do now is
+have a time value what we can do now is step our time along the curve with our
+step our time along the curve with our frame Delta time and then get out a new
+frame Delta time and then get out a new speed value then all we're doing is we
+speed value then all we're doing is we take the difference between the two of
+take the difference between the two of these which is a delta velocity which is
+these which is a delta velocity which is an acceleration and we can multiply that
+an acceleration and we can multiply that by mass and apply it as a force and
+by mass and apply it as a force and that's how we will move along this curve
+that's how we will move along this curve now there's two very important points
+now there's two very important points here first of all we are always applying
+here first of all we are always applying forces we never want to set velocity on
+forces we never want to set velocity on the body when we set the velocity we can
+the body when we set the velocity we can stomp on other systems and we have to
+stomp on other systems and we have to maintain a lot of state but if we're
+maintain a lot of state but if we're just adding forces that let's just layer
+just adding forces that let's just layer multiple systems together and grit much
+multiple systems together and grit much more complex behavior from them which is
+more complex behavior from them which is one of our pillars secondly we don't
+one of our pillars secondly we don't ever want to assume what our time is we
+ever want to assume what our time is we want to recalculate at every frame this
+want to recalculate at every frame this lets outside influences impact us if we
+lets outside influences impact us if we just assume that we hit our target and
+just assume that we hit our target and ran into a wall and then use that
+ran into a wall and then use that previous frame value of time the next
+previous frame value of time the next frame we would be going way faster than
+frame we would be going way faster than we should be so weary calculated every
+we should be so weary calculated every frame and this you know lets the outside
+frame and this you know lets the outside influences slow us down or stop us and
+influences slow us down or stop us and like lets things like Hills if we're
+like lets things like Hills if we're going uphill we may not hit our target
+going uphill we may not hit our target every frame but we're gonna generally
+every frame but we're gonna generally follow the the general fingerprint the
+follow the the general fingerprint the design made even though it could take us
+design made even though it could take us a little longer to get to our top speed
+a little longer to get to our top speed we still get there in a good way and we
+we still get there in a good way and we found that behavior was really good and
+found that behavior was really good and really allowed the outside world to
+really allowed the outside world to impact our vehicles moving on I want to
+impact our vehicles moving on I want to talk about our suspension because it's
+talk about our suspension because it's important so oh no one more thing
+important so oh no one more thing so our vehicles don't necessarily always
+so our vehicles don't necessarily always travel from rest until max speed they
+travel from rest until max speed they can actually be going backwards in
+can actually be going backwards in relation to the direction they're trying
+relation to the direction they're trying to accelerate so our curves actually
+to accelerate so our curves actually looked more like this where the y-axis
+looked more like this where the y-axis went from negative max speed to positive
+went from negative max speed to positive max speed zero was in the middle and now
+max speed zero was in the middle and now our time on the x-axis no longer
+our time on the x-axis no longer corresponds to what design is said is
+corresponds to what design is said is rest max speed but this is really easy
+rest max speed but this is really easy to solve for all we do is one time at
+to solve for all we do is one time at the beginning of
+the beginning of like load up we can look at and figure
+like load up we can look at and figure out where our rest is and where our max
+out where our rest is and where our max speed is by you doing a one-time reverse
+speed is by you doing a one-time reverse evaluation and then get this range back
+evaluation and then get this range back out and this range corresponds to what
+out and this range corresponds to what designs input from rest to max speed and
+designs input from rest to max speed and we just scale our DTS by this amount fit
+we just scale our DTS by this amount fit it to this range and then we have a
+it to this range and then we have a consistent acceleration across the curve
+consistent acceleration across the curve just the same and they can put that zero
+just the same and they can put that zero point anywhere on this curve and it will
+point anywhere on this curve and it will still work all right now going on to our
+still work all right now going on to our suspension I know all righty so we have
+suspension I know all righty so we have a bunch of a variety of visuals up here
+a bunch of a variety of visuals up here and we knew that we're gonna have these
+and we knew that we're gonna have these fantastical vehicles as you can see in
+fantastical vehicles as you can see in the bottom left here we have Shark Tank
+the bottom left here we have Shark Tank which has these tire treads and actually
+which has these tire treads and actually can like dive under the earth we have at
+can like dive under the earth we have at the top the shield Stryker vehicle with
+the top the shield Stryker vehicle with these cog wheels and actually it's six
+these cog wheels and actually it's six of them and then in the bottom right we
+of them and then in the bottom right we have burn cycle with a giant molten
+have burn cycle with a giant molten wheel and then our giant rocket booster
+wheel and then our giant rocket booster in the back in all of these situations
+in the back in all of these situations despite the variety of visuals we always
+despite the variety of visuals we always did four wheel suspension
+did four wheel suspension we found that four wheels provided the
+we found that four wheels provided the most stability and consistency in
+most stability and consistency in handling and that was important to us
+handling and that was important to us now we allow some personality to come
+now we allow some personality to come through by design could shift where the
+through by design could shift where the suspension was how tall it was how stiff
+suspension was how tall it was how stiff it was but we're maintaining this four
+it was but we're maintaining this four wheel suspension as it just fit our
+wheel suspension as it just fit our level mechanic and metrics best now you
+level mechanic and metrics best now you might also notice that I I'm drawing
+might also notice that I I'm drawing cylinders here for our player vehicles
+cylinders here for our player vehicles we did a shape cast instead of array
+we did a shape cast instead of array cast we found that this provided more
+cast we found that this provided more information about the ground and allowed
+information about the ground and allowed us to avoid the vehicles overreacting to
+us to avoid the vehicles overreacting to a small divot in the ground or hole in
+a small divot in the ground or hole in the collision for our NPC or AI vehicles
+the collision for our NPC or AI vehicles we would just use a red cast as before
+we would just use a red cast as before the visual fidelity was not nearly as
+the visual fidelity was not nearly as important and performance was but for
+important and performance was but for our player vehicles it was shape casts
+our player vehicles it was shape casts but there was another problem with it if
+but there was another problem with it if we got collision to hit us in the middle
+we got collision to hit us in the middle of our vehicle the forces of the
+of our vehicle the forces of the suspension would push outward until it
+suspension would push outward until it eventually exploded and it would be very
+eventually exploded and it would be very unstable
+unstable it could also confuse our suspension
+it could also confuse our suspension pretty easily and get it to the bouncing
+pretty easily and get it to the bouncing state like this or clip into the middle
+state like this or clip into the middle of our vehicle like that if you had a
+of our vehicle like that if you had a tall enough piece of collision in the
+tall enough piece of collision in the middle your wheels would never touch the
+middle your wheels would never touch the ground and you could actually get stuck
+ground and you could actually get stuck so this was a problem that we needed
+so this was a problem that we needed and the way we did that is we
+and the way we did that is we essentially made our vehicles a lot more
+essentially made our vehicles a lot more like a Flintstone vehicle we connected
+like a Flintstone vehicle we connected these cylinders in the middle so that if
+these cylinders in the middle so that if you had at least half of the vehicle on
+you had at least half of the vehicle on the surface the other way would pick it
+the surface the other way would pick it up and you'd be stable this fixed our
+up and you'd be stable this fixed our edge cases that we're seeing before
+edge cases that we're seeing before though this doesn't look physically
+though this doesn't look physically accurate it's much better that it's
+accurate it's much better that it's stable and it still looked good in
+stable and it still looked good in situations where you had small bumps on
+situations where you had small bumps on either side the wheels were properly
+either side the wheels were properly reacting so this was a compromise that
+reacting so this was a compromise that we felt the most important thing is
+we felt the most important thing is stability and control and we can live
+stability and control and we can live with that and it also meant that if you
+with that and it also meant that if you were hitting a ramp you just had to get
+were hitting a ramp you just had to get close enough you didn't have to hit it
+close enough you didn't have to hit it perfectly so moving on I want to talk
+perfectly so moving on I want to talk now about how we handle Springs so when
+now about how we handle Springs so when we were doing her initial prototypes we
+we were doing her initial prototypes we did a spring damper system is he on
+did a spring damper system is he on mentioned and we did what any good lazy
+mentioned and we did what any good lazy engineer will do and just fit a single
+engineer will do and just fit a single Euler integration and other integrations
+Euler integration and other integrations are great unless you have a variable
+are great unless you have a variable framerate and early on in development we
+framerate and early on in development we did not have optimize builds and we're
+did not have optimize builds and we're often working in our debug builds in
+often working in our debug builds in order to implement new features it looks
+order to implement new features it looks something like this so that's our
+something like this so that's our vehicle running at 18 frames per second
+vehicle running at 18 frames per second with a plus or minus variance of about
+with a plus or minus variance of about 10 milliseconds per frame it is
+10 milliseconds per frame it is undriveable absolutely and this was a
+undriveable absolutely and this was a big problem because we needed debugger
+big problem because we needed debugger things our vehicles and we couldn't
+things our vehicles and we couldn't because we couldn't even drive them we
+because we couldn't even drive them we wanted this where weather because this
+wanted this where weather because this is a frame rate it's nice and smooth so
+is a frame rate it's nice and smooth so we needed a way of fixing as fast so
+we needed a way of fixing as fast so that we can develop and show executives
+that we can develop and show executives Hey look at how awesome our vehicles are
+Hey look at how awesome our vehicles are so we took a short-term bandage approach
+so we took a short-term bandage approach so if we before we're just doing four
+so if we before we're just doing four steps for four frames of oil intubation
+steps for four frames of oil intubation instead what we would do is a bunch of
+instead what we would do is a bunch of little steps in a fixed time step which
+little steps in a fixed time step which we picked to be about 200 Hertz or 5
+we picked to be about 200 Hertz or 5 milliseconds for our player vehicles and
+milliseconds for our player vehicles and we do oiler grace boiler integrations
+we do oiler grace boiler integrations across the bat this fixed a lot of the
+across the bat this fixed a lot of the problems we were having with our Euler
+problems we were having with our Euler integrations and the variable time stuff
+integrations and the variable time stuff and any leftovers from the first frame
+and any leftovers from the first frame would kind of carry on to the next
+would kind of carry on to the next the next frame the next frame it would
+the next frame the next frame it would always be stepped at this consistent
+always be stepped at this consistent rate so we didn't have that explosion of
+rate so we didn't have that explosion of force when you're using Euler
+force when you're using Euler integration there's other approaches you
+integration there's other approaches you can take
+can take I'll better integrators for sure but
+I'll better integrators for sure but there's a reason that we like this and
+there's a reason that we like this and I'm gonna get into in a little bit
+I'm gonna get into in a little bit before I do I want to show you the end
+before I do I want to show you the end result which is this so you can kind of
+result which is this so you can kind of see the wheels are jittering just a bit
+see the wheels are jittering just a bit but this is still the exact same frame
+but this is still the exact same frame rate we've had on the left the 18
+rate we've had on the left the 18 streams per second but we were never
+streams per second but we were never going to see this in a shipping title
+going to see this in a shipping title and if we did we were in deep trouble so
+and if we did we were in deep trouble so this was more than enough for us to
+this was more than enough for us to develop with and we actually shipped
+develop with and we actually shipped with it because we weren't ever going to
+with it because we weren't ever going to see the situation where here we have
+see the situation where here we have here and it handled our spikes that we
+here and it handled our spikes that we might have occasionally just fine so we
+might have occasionally just fine so we were very happy with that I want to put
+were very happy with that I want to put up a little bit of pseudocode quickly to
+up a little bit of pseudocode quickly to show how we did our stepping if you can
+show how we did our stepping if you can take a picture of it or you can come
+take a picture of it or you can come back in the vault and look at it later I
+back in the vault and look at it later I don't expect you to understand this all
+don't expect you to understand this all right now but I do want to call out a
+right now but I do want to call out a few lines of code and explain what it's
+few lines of code and explain what it's doing so you can kind of get it get an
+doing so you can kind of get it get an idea and maybe avoid some pitfalls that
+idea and maybe avoid some pitfalls that we had early on and implementing this
+we had early on and implementing this first of all what we're doing on this
+first of all what we're doing on this line is where you are calculating the
+line is where you are calculating the velocity of the suspension at the point
+velocity of the suspension at the point that it connects with the chassis and
+that it connects with the chassis and also incorporating gravity that might
+also incorporating gravity that might accumulate over time so that we're
+accumulate over time so that we're basically simulating in the later sub
+basically simulating in the later sub steps that it's accelerating
+steps that it's accelerating we will then project that in the
+we will then project that in the direction of the suspension in order to
+direction of the suspension in order to see how fast the chassis is moving at
+see how fast the chassis is moving at that point in the direction of the
+that point in the direction of the suspension and we're going to use that
+suspension and we're going to use that projected velocity in two places first
+projected velocity in two places first of all we're gonna use an inner spring
+of all we're gonna use an inner spring damper since it's a velocity based
+damper since it's a velocity based spring damper that's our velocity and
+spring damper that's our velocity and then we're going to keep track of how
+then we're going to keep track of how far we've traveled based on the this
+far we've traveled based on the this each subset that we are compressing or
+each subset that we are compressing or expanding our suspension based on how
+expanding our suspension based on how it's moving in the later sub steps
+it's moving in the later sub steps so if our front wheels are compressing
+so if our front wheels are compressing in our back wheels aren't we're going to
+in our back wheels aren't we're going to get some torque that's going to make our
+get some torque that's going to make our back wheel start to accelerate and then
+back wheel start to accelerate and then they're going to compress more and it's
+they're going to compress more and it's going to balance itself out that much
+going to balance itself out that much faster and potentially within a frame so
+faster and potentially within a frame so this is a really awesome thing and it
+this is a really awesome thing and it has one other advantage that we really
+has one other advantage that we really liked about
+liked about stepping and that's in landing so if you
+stepping and that's in landing so if you imagine well first of all our vehicles
+imagine well first of all our vehicles are traveling in the hundreds of miles
+are traveling in the hundreds of miles per hour range in Skylands and when
+per hour range in Skylands and when they're falling they're falling even
+they're falling they're falling even faster if you imagine that we set up our
+faster if you imagine that we set up our suspension as such with the orange arrow
+suspension as such with the orange arrow representing the distance of the cast
+representing the distance of the cast it's very possible that within a frame
+it's very possible that within a frame we don't see the ground but we're gonna
+we don't see the ground but we're gonna travel far enough that we're gonna go
+travel far enough that we're gonna go through it and then our chasis will slam
+through it and then our chasis will slam into it and we're gonna be stopped and
+into it and we're gonna be stopped and instead of having a smooth transition
+instead of having a smooth transition between falling and landing we're just
+between falling and landing we're just gonna slam in this is a problem but
+gonna slam in this is a problem but using the high frequency sub stepping we
+using the high frequency sub stepping we can fix it if we take the amount that we
+can fix it if we take the amount that we are going to move within the frame and
+are going to move within the frame and extend our raycast by that much we can
+extend our raycast by that much we can then step it in each sub step until we
+then step it in each sub step until we eventually get our suspension to start
+eventually get our suspension to start to intersect with the ground and we will
+to intersect with the ground and we will start to apply forces it'll slow us down
+start to apply forces it'll slow us down and maybe compress a little bit more but
+and maybe compress a little bit more but the forces get stronger and then we can
+the forces get stronger and then we can actually counterbalance it so now
+actually counterbalance it so now instead of slamming into the ground we
+instead of slamming into the ground we have successfully landed and our
+have successfully landed and our suspension is successfully kept us away
+suspension is successfully kept us away from it and we're free to drive off and
+from it and we're free to drive off and cause all sorts of other types of mayhem
+cause all sorts of other types of mayhem like crashing into things which is the
+like crashing into things which is the next thing I'm going to talk about how
+next thing I'm going to talk about how we handle collisions so we are making a
+we handle collisions so we are making a game for kids collisions are gonna
+game for kids collisions are gonna happen a lot we needed to make sure that
+happen a lot we needed to make sure that these collisions are fun but we didn't
+these collisions are fun but we didn't necessarily know what fun was in this
+necessarily know what fun was in this context we knew from our early
+context we knew from our early prototypes that driving into a wall and
+prototypes that driving into a wall and then spinning out of control that's not
+then spinning out of control that's not fun that's frustrating we didn't need
+fun that's frustrating we didn't need something better but we also knew that
+something better but we also knew that the thing that makes you feel like hey
+the thing that makes you feel like hey I'm driving a vehicle is that the way
+I'm driving a vehicle is that the way that the vehicle responds when it
+that the vehicle responds when it collides with things and the way those
+collides with things and the way those things that you collide with respond to
+things that you collide with respond to you that gives you that kind of visceral
+you that gives you that kind of visceral physical feeling of I'm driving this
+physical feeling of I'm driving this massive object to the world and doing
+massive object to the world and doing all sorts of damage in mayhem so we
+all sorts of damage in mayhem so we needed to figure out what parts of that
+needed to figure out what parts of that response were interesting and when we
+response were interesting and when we wanted to apply them and we needed a
+wanted to apply them and we needed a prototype and iterate on it so the idea
+prototype and iterate on it so the idea was to essentially invest a significant
+was to essentially invest a significant factor
+factor effort into making a system that put
+effort into making a system that put these tools into the hands of the team
+these tools into the hands of the team as a whole both content creators and
+as a whole both content creators and engineers so that they could figure out
+engineers so that they could figure out where the fun was for the relative
+where the fun was for the relative systems and then implement that fun and
+systems and then implement that fun and then we would have a great collision
+then we would have a great collision response for our vehicles so to do that
+response for our vehicles so to do that we've made our system be defined in data
+we've made our system be defined in data what the concept of data that's specific
+what the concept of data that's specific to a picture because this is all text um
+to a picture because this is all text um what our data object was was called a
+what our data object was was called a rule now a rule consisted of a set of
+rule now a rule consisted of a set of criteria about the collision that were
+criteria about the collision that were used to filter out if this rule would
+used to filter out if this rule would match or not the criteria consisted of
+match or not the criteria consisted of things about the body's relationship to
+things about the body's relationship to the collision such as its speed towards
+the collision such as its speed towards the collision as a ratio of its max
+the collision as a ratio of its max speed or the angle between its forward
+speed or the angle between its forward and the collision normal it also
+and the collision normal it also consisted of some metadata about the
+consisted of some metadata about the body such as like the team relationship
+body such as like the team relationship between the two bodies of the friendly
+between the two bodies of the friendly or the enemy or the neutral or is it a
+or the enemy or the neutral or is it a player is the body of vehicle is it an
+player is the body of vehicle is it an AI any kind of information that would
+AI any kind of information that would help a user to figure out if they cared
+help a user to figure out if they cared about this collision was added to the
+about this collision was added to the set of criteria in the rule so that
+set of criteria in the rule so that filtering was a bit was flexible enough
+filtering was a bit was flexible enough to catch exactly what was necessary to
+to catch exactly what was necessary to catch next there was a priority so in
+catch next there was a priority so in order to if multiple rules match we
+order to if multiple rules match we needed to figure out who would be
+needed to figure out who would be applied the highest priority would win
+applied the highest priority would win and this allowed us to layer rules
+and this allowed us to layer rules together of increasing complexity honing
+together of increasing complexity honing in on key parts of the collision and
+in on key parts of the collision and increasing the priority to get more
+increasing the priority to get more complex behaviors when say you're going
+complex behaviors when say you're going faster and this is a powerful thing now
+faster and this is a powerful thing now we made sure that our rules only
+we made sure that our rules only involved vehicles at least one of the
+involved vehicles at least one of the bodies involved had to be a vehicle this
+bodies involved had to be a vehicle this was mostly done for simplicity we were
+was mostly done for simplicity we were only caring about our vehicles in this
+only caring about our vehicles in this response system and also for performance
+response system and also for performance as our vehicles are traveling very fast
+as our vehicles are traveling very fast we just needed to focus in on these
+we just needed to focus in on these collisions instead of applying rules to
+collisions instead of applying rules to every single collision that we ever saw
+every single collision that we ever saw but this is not a requirement you can
+but this is not a requirement you can use a system like this for all of your
+use a system like this for all of your collisions if you want
+collisions if you want we just didn't feel the need to now
+we just didn't feel the need to now they are scoped what this means is where
+they are scoped what this means is where the rule is defined and data determines
+the rule is defined and data determines when it will run at the highest level
+when it will run at the highest level scope we had global rules that would
+scope we had global rules that would apply to all collisions involving at
+apply to all collisions involving at least one vehicle the next level down
+least one vehicle the next level down was per game mode we knew that we needed
+was per game mode we knew that we needed a different set of rules for say our
+a different set of rules for say our racing mode if you crash into a wall in
+racing mode if you crash into a wall in the racing mode you might want to guide
+the racing mode you might want to guide the player back onto the track versus
+the player back onto the track versus our arena mode where there's is no track
+our arena mode where there's is no track to worry about the next level would be
+to worry about the next level would be vehicle type error error handling had
+vehicle type error error handling had different set of requirements as there
+different set of requirements as there were able to rotate in both yaw and
+were able to rotate in both yaw and pitch versus land vehicles that only
+pitch versus land vehicles that only really rotated in the yaw space lastly
+really rotated in the yaw space lastly at the lowest level was the per entity
+at the lowest level was the per entity scope we could add a component onto our
+scope we could add a component onto our entity that disa find a list of rules
+entity that disa find a list of rules and those rules would only ever run if
+and those rules would only ever run if that entity was involved in a collision
+that entity was involved in a collision with a vehicle the entity did not have
+with a vehicle the entity did not have to be a vehicle itself which is really
+to be a vehicle itself which is really awesome and meant that we could
+awesome and meant that we could essentially add custom rules in a single
+essentially add custom rules in a single place in the game and get the behavior
+place in the game and get the behavior to only happen there which drive which
+to only happen there which drive which really drove some level mechanics at one
+really drove some level mechanics at one point we had bells that you had to ring
+point we had bells that you had to ring in order to open a door and we could
+in order to open a door and we could just throw a rule that said when this
+just throw a rule that said when this Bell is hit do this thing and then it
+Bell is hit do this thing and then it send this message off and keep track of
+send this message off and keep track of it so it was a really easy way to hook
+it so it was a really easy way to hook into making our levels more interesting
+into making our levels more interesting now the next thing is a little bit
+now the next thing is a little bit confusing and I'm going to show an
+confusing and I'm going to show an example about it later and hopefully
+example about it later and hopefully explain it better but our rules were
+explain it better but our rules were defined in a PI direction away so what
+defined in a PI direction away so what this meant is we don't necessarily know
+this meant is we don't necessarily know what order our physics simulation is
+what order our physics simulation is going to give us the bodies it could say
+going to give us the bodies it could say that a vehicle is colliding with a box
+that a vehicle is colliding with a box but it could also just as well say the
+but it could also just as well say the box is colliding with the vehicle so it
+box is colliding with the vehicle so it was up to the rule to disambiguate the
+was up to the rule to disambiguate the word what order of the bodies were in
+word what order of the bodies were in and make sure that the response was
+and make sure that the response was applied in the to the proper body
+applied in the to the proper body we essentially tested each rule from
+we essentially tested each rule from both perspectives and then the rule
+both perspectives and then the rule needed to filter out and only match one
+needed to filter out and only match one otherwise it being big if which response
+otherwise it being big if which response would be applied to which lastly there's
+would be applied to which lastly there's a response this defines how either body
+a response this defines how either body will respond to the collision and what's
+will respond to the collision and what's going to
+going to and after the fact so I want to go into
+and after the fact so I want to go into a little bit more detail about
+a little bit more detail about responsive our responses ran in two
+responsive our responses ran in two phases mortgage with art the first phase
+phases mortgage with art the first phase then in the middle of our simulation
+then in the middle of our simulation this phase was used to do thing to
+this phase was used to do thing to change the collisions essentially before
+change the collisions essentially before they ever happened we needed this in
+they ever happened we needed this in order to do things like entirely
+order to do things like entirely ignoring the collision or if we wanted
+ignoring the collision or if we wanted to change the mass of the bodies in
+to change the mass of the bodies in relation to each other before the we
+relation to each other before the we solved for it we have to do it in the
+solved for it we have to do it in the middle of the sim this we could do other
+middle of the sim this we could do other things like reduce the amount of
+things like reduce the amount of rotation about his god or change a
+rotation about his god or change a normal collision
+normal collision since we're running in the middle of the
+since we're running in the middle of the simulation though that limits how much
+simulation though that limits how much stuff we can actually do if we allow
+stuff we can actually do if we allow ourselves to set the but the position of
+ourselves to set the but the position of the bodies or change their velocities
+the bodies or change their velocities we've already solved for our contact so
+we've already solved for our contact so that's going to just invalidate that and
+that's going to just invalidate that and if we allow things like adding or
+if we allow things like adding or removing bodies that may cause us to
+removing bodies that may cause us to crash as we've just totally trashed
+crash as we've just totally trashed arson so we basically don't allow any
+arson so we basically don't allow any user code it's a very fixed set of
+user code it's a very fixed set of operations that happen in here and they
+operations that happen in here and they all happen right in the middle of the
+all happen right in the middle of the sim for anyone who is also using havoc
+sim for anyone who is also using havoc new physics like us this is running in
+new physics like us this is running in the post collide stage against the
+the post collide stage against the predictive manifold so it's actually
+predictive manifold so it's actually happening before the collisions happen
+happening before the collisions happen if you're not using havoc in physics you
+if you're not using havoc in physics you can still do this you just need to make
+can still do this you just need to make sure it is happening in your sim and
+sure it is happening in your sim and operating before you do any kind of
+operating before you do any kind of solving you may think that oh if I want
+solving you may think that oh if I want to ignore our contact I can just set the
+to ignore our contact I can just set the body's velocity back to what it was
+body's velocity back to what it was before and it's like I never hit it but
+before and it's like I never hit it but the problem is you may hit that body
+the problem is you may hit that body into another body that causes a chain
+into another body that causes a chain reaction that you're never going to be
+reaction that you're never going to be able to correct for so this has to
+able to correct for so this has to happen in the middle of us in the other
+happen in the middle of us in the other phase is after the sin outside of sin so
+phase is after the sin outside of sin so this is where we react and start doing
+this is where we react and start doing more flexible operations we can do
+more flexible operations we can do things like spawning effects we can play
+things like spawning effects we can play sounds we can do damage we can add and
+sounds we can do damage we can add and remove bodies we can change the velocity
+remove bodies we can change the velocity if we want and simulate bounces or knock
+if we want and simulate bounces or knock away really the sky's the limit so we
+away really the sky's the limit so we had a like based virtual class in our
+had a like based virtual class in our response that other engineers could hook
+response that other engineers could hook into for their own systems and our
+into for their own systems and our gameplay engineers use this too
+gameplay engineers use this too make it so that when you rammed into
+make it so that when you rammed into other vehicles it would both apply
+other vehicles it would both apply damage and send it flying in a comical
+damage and send it flying in a comical arc and that way you can get this
+arc and that way you can get this feeling of just branding your enemies
+feeling of just branding your enemies away this phase ran in the against the
+away this phase ran in the against the actual impulses that were applied or
+actual impulses that were applied or clipped as they were and if in having in
+clipped as they were and if in having in physics and if you're not using having
+physics and if you're not using having new physics again as long as it's that
+new physics again as long as it's that side of the same you're safe to go you
+side of the same you're safe to go you can kind of store off whatever happened
+can kind of store off whatever happened and then apply it later apply these kind
+and then apply it later apply these kind of flexible responses later there's one
+of flexible responses later there's one other part about how we handle the the
+other part about how we handle the the priority and layering of rules in this
+priority and layering of rules in this the two phases so in the first phase
+the two phases so in the first phase since we're all only operating local to
+since we're all only operating local to any kind of contact point we don't want
+any kind of contact point we don't want any outside influences we took the best
+any outside influences we took the best match the highest priority match per
+match the highest priority match per contact and this is different than what
+contact and this is different than what we did in the second phase since the
+we did in the second phase since the second phase can do things like apply
+second phase can do things like apply damage and play effects if we have ten
+damage and play effects if we have ten contact points between two bodies we
+contact points between two bodies we don't want to apply ten times the damage
+don't want to apply ten times the damage we only want to apply one so we found
+we only want to apply one so we found the best match between two bodies and
+the best match between two bodies and then applied just one response per the
+then applied just one response per the two bodies we would find all the ones
+two bodies we would find all the ones that match the best rule averaged them
+that match the best rule averaged them together to get them like a location and
+together to get them like a location and an orientation and apply the rule there
+an orientation and apply the rule there this little technical detail that was
+this little technical detail that was kind of confusing but I think is an
+kind of confusing but I think is an important thing to to call out so now
+important thing to to call out so now that we have this system in place the
+that we have this system in place the first thing we wanted to do as engineers
+first thing we wanted to do as engineers was make a set of rules and a global
+was make a set of rules and a global scope that would make sure that we could
+scope that would make sure that we could solve the problems that we were having
+solve the problems that we were having in our early prototypes of losing
+in our early prototypes of losing control when you hit walls and then by
+control when you hit walls and then by setting these rules up at the global
+setting these rules up at the global scope at a low priority then other
+scope at a low priority then other people could essentially layer behaviors
+people could essentially layer behaviors on top of these rules and then get more
+on top of these rules and then get more interesting behavior so what you're
+interesting behavior so what you're seeing here is the difference between
+seeing here is the difference between our collision with and without the rules
+our collision with and without the rules applied on the left and with rules
+applied on the left and with rules you'll see basically we're not allowing
+you'll see basically we're not allowing it to rotate we're not allowing it to
+it to rotate we're not allowing it to get up the wall and we may play a little
+get up the wall and we may play a little animation effect of it jiggling when it
+animation effect of it jiggling when it hits but that's just a little bit of
+hits but that's just a little bit of extra flavor based on the speed and how
+extra flavor based on the speed and how hit the wall this was is a bit much
+hit the wall this was is a bit much better response then even though that's
+better response then even though that's really awesome the way we get air we
+really awesome the way we get air we care a lot more about control than
+care a lot more about control than awesome awesome tricks so now that
+awesome awesome tricks so now that that's in place we can start building
+that's in place we can start building more interesting behavior one example of
+more interesting behavior one example of that is how we handle our destructible
+that is how we handle our destructible zand the vehicles colliding with a
+zand the vehicles colliding with a destructible x' so what we essentially
+destructible x' so what we essentially wanted is if our vehicle hits a
+wanted is if our vehicle hits a destructible at a low speed nothing
+destructible at a low speed nothing happens we just kind of either won't
+happens we just kind of either won't rotate against thing we won't push it if
+rotate against thing we won't push it if it's fixed but if we come back at it at
+it's fixed but if we come back at it at higher speed we're gonna apply damage to
+higher speed we're gonna apply damage to it and send it break it apart and send
+it and send it break it apart and send the pieces of debris flying and push it
+the pieces of debris flying and push it around it's gonna look awesome but we
+around it's gonna look awesome but we only want that to happen if we're
+only want that to happen if we're traveling fast enough so let's walk
+traveling fast enough so let's walk through how we set up this rule so first
+through how we set up this rule so first of all we need to make sure that this is
+of all we need to make sure that this is only ever plying when we are hitting
+only ever plying when we are hitting destructible x' and that's easy to do
+destructible x' and that's easy to do with the skull we can essentially add
+with the skull we can essentially add this rule to our base archetype of
+this rule to our base archetype of destructible x' and then since all of
+destructible x' and then since all of our destructible is inherit from that
+our destructible is inherit from that they will also inherit the rule and this
+they will also inherit the rule and this rule will only ever run on our
+rule will only ever run on our destructible x' next we need to deal
+destructible x' next we need to deal with that whole confusing
+with that whole confusing bidirectionality thing we need to figure
+bidirectionality thing we need to figure out which bodies which that we apply the
+out which bodies which that we apply the response in the proper order usually
+response in the proper order usually when we're doing things like applying an
+when we're doing things like applying an action to another body as a matter of
+action to another body as a matter of standard we said that the source was the
+standard we said that the source was the person doing the action the target was
+person doing the action the target was on receiving the action so in this case
+on receiving the action so in this case the source should be the vehicle and the
+the source should be the vehicle and the target should be the destructible so all
+target should be the destructible so all we really have to say is hey the source
+we really have to say is hey the source is a vehicle yes now if we didn't do
+is a vehicle yes now if we didn't do that and we had a destructible flying at
+that and we had a destructible flying at us it's very possible that it may apply
+us it's very possible that it may apply damage to us and that would be very bad
+damage to us and that would be very bad so that's kind of what I mean by the by
+so that's kind of what I mean by the by directionality the other only other
+directionality the other only other thing we have to worry about is our
+thing we have to worry about is our speed so we can just say hey is the
+speed so we can just say hey is the source traveling at least 20% of its max
+source traveling at least 20% of its max B once that is true this will match and
+B once that is true this will match and if it's priority is higher than the
+if it's priority is higher than the global rules it's going to be applied
+global rules it's going to be applied all the other criteria for the collision
+all the other criteria for the collision are set up in such a way that you don't
+are set up in such a way that you don't need to touch them if you don't care
+need to touch them if you don't care about them they're going to match by
+about them they're going to match by default so you're only really honing in
+default so you're only really honing in on the parts of the collision you care
+on the parts of the collision you care about because there's a lot of criteria
+about because there's a lot of criteria and that just makes it a lot easier and
+and that just makes it a lot easier and faster to set it up then all we have to
+faster to set it up then all we have to do is apply our reaction for our source
+do is apply our reaction for our source we want to ignore the collision entirely
+we want to ignore the collision entirely this happens in the phase one that I
+this happens in the phase one that I mentioned for and we are gonna pass
+mentioned for and we are gonna pass straight through as if it was never
+straight through as if it was never there our target is going to apply
+there our target is going to apply damage which will break it apart and
+damage which will break it apart and send debris flying an important note is
+send debris flying an important note is the when these rule when the phases are
+the when these rule when the phases are applied is hidden from the user
+applied is hidden from the user that's just like a technical detail they
+that's just like a technical detail they never had to deal with it they just had
+never had to deal with it they just had a single response and then we need to
+a single response and then we need to make sure that we applied the right
+make sure that we applied the right responses at the right times so this
+responses at the right times so this system as a whole it was a lot more
+system as a whole it was a lot more complex than ultimately we kind of
+complex than ultimately we kind of wanted we were hoping that we would have
+wanted we were hoping that we would have like layering of rules would make simple
+like layering of rules would make simple rules that would you know stack together
+rules that would you know stack together and then we'd have this nice complex
+and then we'd have this nice complex behavior but since our rules were
+behavior but since our rules were defined at different scopes and
+defined at different scopes and different places all over the place it
+different places all over the place it really was more of a nightmare of trying
+really was more of a nightmare of trying to like organize them and keep them
+to like organize them and keep them consistently prioritized against each
+consistently prioritized against each other and we had to set up like just
+other and we had to set up like just kind of keep an eye on that make sure
+kind of keep an eye on that make sure that one designer wasn't setting some
+that one designer wasn't setting some number that would stomp on somebody
+number that would stomp on somebody else's rule and debugging it and dealing
+else's rule and debugging it and dealing with a lot of context in the system it
+with a lot of context in the system it was more complex than I wanted if maybe
+was more complex than I wanted if maybe free we started middle of the
+free we started middle of the development if you want to do something
+development if you want to do something like this it's great to start it as
+like this it's great to start it as early as possible so if isn't much time
+early as possible so if isn't much time to kind of iterate on it but I don't
+to kind of iterate on it but I don't want the complexity necessarily scare
+want the complexity necessarily scare you away the flexibility that we got out
+you away the flexibility that we got out of it was amazing ah when we were
+of it was amazing ah when we were closing out a project if QA reported a
+closing out a project if QA reported a bug in some particular part of a map we
+bug in some particular part of a map we can go to the entity that was causing
+can go to the entity that was causing the collision problem add a rule to it
+the collision problem add a rule to it fix the bug and know that we weren't
+fix the bug and know that we weren't going to break something somewhere else
+going to break something somewhere else in some other map or somewhere else in
+in some other map or somewhere else in that map and if you've ever been in
+that map and if you've ever been in crunch trying to ship something and need
+crunch trying to ship something and need to put in a hack it is amazing to know
+to put in a hack it is amazing to know that your hack isn't gonna affect
+that your hack isn't gonna affect anything else and it really drove a lot
+anything else and it really drove a lot of fun iteration from our contact
+of fun iteration from our contact Raiders both design and artists and
+Raiders both design and artists and engineers really were able to explore
+engineers really were able to explore the fun of collisions with our vehicles
+the fun of collisions with our vehicles and make it more than just something
+and make it more than just something that happens and instead turn it into an
+that happens and instead turn it into an exciting experience that makes you want
+exciting experience that makes you want to crash into things so as fun as
+to crash into things so as fun as collision response is I want to move on
+collision response is I want to move on to something a little bit more fun and
+to something a little bit more fun and wrap up with our predictive land
+wrap up with our predictive land system so as you've seen it in a lot of
+system so as you've seen it in a lot of videos are we like our vehicles getting
+videos are we like our vehicles getting air like the first time we had a
+air like the first time we had a prototype the first thing I did was put
+prototype the first thing I did was put down a ramp and hit it it's fun to do
+down a ramp and hit it it's fun to do soaring through the air but we knew that
+soaring through the air but we knew that we needed our vehicles to properly land
+we needed our vehicles to properly land on the wheels if it didn't you wouldn't
+on the wheels if it didn't you wouldn't have control and it just wouldn't be fun
+have control and it just wouldn't be fun so we decided we're gonna make a system
+so we decided we're gonna make a system that's gonna make us always land on our
+that's gonna make us always land on our wheels it's simple enough and then we
+wheels it's simple enough and then we can start doing flips and tricks and
+can start doing flips and tricks and stuff in the air and get this awesome
+stuff in the air and get this awesome feeling and still know that everything
+feeling and still know that everything will be fine when we land so how do we
+will be fine when we land so how do we do this well let's walk through it this
+do this well let's walk through it this is what will happen when we don't have a
+is what will happen when we don't have a predicted landing system our vehicle is
+predicted landing system our vehicle is going to hit a ramp and get some air and
+going to hit a ramp and get some air and then kind of do a partial spin in
+then kind of do a partial spin in crashing into its nose and that's bad
+crashing into its nose and that's bad and we don't want that so we need to fix
+and we don't want that so we need to fix that what we do is the moment we detect
+that what we do is the moment we detect that our vehicle is going to get air we
+that our vehicle is going to get air we take a pre computed convex hull that
+take a pre computed convex hull that includes the chassis and the wheels and
+includes the chassis and the wheels and oriented along the velocity that we're
+oriented along the velocity that we're traveling and the up axis world up and
+traveling and the up axis world up and then we test it along a ballistic
+then we test it along a ballistic trajectory to figure out when and where
+trajectory to figure out when and where we're going to land now that we have
+we're going to land now that we have that information we can simulate what
+that information we can simulate what our vehicle would do based on its
+our vehicle would do based on its initial orientation and its angular
+initial orientation and its angular velocity and multiply it by the time
+velocity and multiply it by the time it's going to take us to land to figure
+it's going to take us to land to figure out what our uncorrectable ASSA t would
+out what our uncorrectable ASSA t would be then we could just take the
+be then we could just take the difference between that orientation and
+difference between that orientation and our ideal landing orientation that we
+our ideal landing orientation that we can calculate just from the collision
+can calculate just from the collision normal and our velocity and figure out
+normal and our velocity and figure out what correction we need to apply if we
+what correction we need to apply if we apply that correction over time in the
+apply that correction over time in the air in theory we're going to get a
+air in theory we're going to get a result much more like this and
+result much more like this and everything is great it's not that simple
+everything is great it's not that simple so and that's not even that simple
+so and that's not even that simple anyways so the when you're dealing with
+anyways so the when you're dealing with rigid body physics the angular velocity
+rigid body physics the angular velocity is stored as a single axis that you
+is stored as a single axis that you rotate around and multiplied by the
+rotate around and multiplied by the speed that you rotate around it in order
+speed that you rotate around it in order to do this kind of correction over time
+to do this kind of correction over time and incorporate flips and twists and
+and incorporate flips and twists and stuff
+stuff you actually have to rotate the axis
+you actually have to rotate the axis around which you're rotating over time
+around which you're rotating over time which is a process called precession and
+which is a process called precession and is really really really hard to solve
+is really really really hard to solve it's like a higher-order equation and I
+it's like a higher-order equation and I tried and I failed and I had to move on
+tried and I failed and I had to move on so we had to find a way of simplifying
+so we had to find a way of simplifying this / cheating horribly in order to
+this / cheating horribly in order to make this work here's how we cheated the
+make this work here's how we cheated the moment our vehicle gets air what we're
+moment our vehicle gets air what we're gonna do is take its orientation right
+gonna do is take its orientation right there
+there and then do the cast like I mentioned
+and then do the cast like I mentioned before and figure out where the
+before and figure out where the orientation we want to be at when we
+orientation we want to be at when we land we can pick an axis around which we
+land we can pick an axis around which we can rotate from this orientation
+can rotate from this orientation I said showing up that's not really
+I said showing up that's not really showing up there's a little arrow there
+showing up there's a little arrow there we take the difference between this
+we take the difference between this orientation our landing orientation get
+orientation our landing orientation get in axis we can spin around that will
+in axis we can spin around that will make us get to that orientation and then
+make us get to that orientation and then we take our angular speed here multiply
+we take our angular speed here multiply it by the amount of time it's going to
+it by the amount of time it's going to take us to land and then round that to
+take us to land and then round that to the nearest whole revolution if you
+the nearest whole revolution if you spend a full revolution around an axis
+spend a full revolution around an axis you wind up right where you are again so
+you wind up right where you are again so then all we have to do is apply the
+then all we have to do is apply the difference between this orientation and
+difference between this orientation and our landing orientation as an angle add
+our landing orientation as an angle add that to the full amount of revolutions
+that to the full amount of revolutions and we get a result that looks something
+and we get a result that looks something like this where we're spinning around a
+like this where we're spinning around a single axis over time getting a lot of
+single axis over time getting a lot of cool motion but you don't really know
+cool motion but you don't really know that it's just that single axis and the
+that it's just that single axis and the part that's important to note is we
+part that's important to note is we could totally change the axis around
+could totally change the axis around which we spin by doing this process like
+which we spin by doing this process like our angular velocity could change
+our angular velocity could change drastically at that one point but the
+drastically at that one point but the process of getting air is chaotic enough
+process of getting air is chaotic enough that your eye doesn't necessarily catch
+that your eye doesn't necessarily catch that and we hide the fact that we're
+that and we hide the fact that we're doing this by that process now if we
+doing this by that process now if we weren't on a ballistic trajectory or we
+weren't on a ballistic trajectory or we allowed any kind of input to change when
+allowed any kind of input to change when we were going to land and we change
+we were going to land and we change angular velocity in the middle of the
+angular velocity in the middle of the air it's very obvious and it looks
+air it's very obvious and it looks really bad but at that one moment of
+really bad but at that one moment of getting air our brains can't really see
+getting air our brains can't really see it the change and we hide that and then
+it the change and we hide that and then this much simpler approach works
+this much simpler approach works perfectly fine and we should with it and
+perfectly fine and we should with it and I absolutely love it and so with that
+I absolutely love it and so with that that wraps up our technical deep dive
+that wraps up our technical deep dive hopefully this has shown you some of the
+hopefully this has shown you some of the and the complexities that we were
+and the complexities that we were dealing with with these systems and
+dealing with with these systems and might help you avoid the pitfalls that
+might help you avoid the pitfalls that we hit while implementing them and also
+we hit while implementing them and also it helps you expose physics to your team
+it helps you expose physics to your team as a whole so that everyone can really
+as a whole so that everyone can really find the fun in physics absolutely also
+find the fun in physics absolutely also I want to mention again how much these
+I want to mention again how much these kind of pillars helped us and and it was
+kind of pillars helped us and and it was really a changing point for a team when
+really a changing point for a team when we started sort of honing in on these
+we started sort of honing in on these rules and I think it helped us make much
+rules and I think it helped us make much better decisions hopefully these are
+better decisions hopefully these are helpful to you but I really think that
+helpful to you but I really think that for your own project and your own goals
+for your own project and your own goals you need to sort of find your own and
+you need to sort of find your own and and really define for your team what is
+and really define for your team what is important and what isn't also I think we
+important and what isn't also I think we wanted to kind of just mention here at
+wanted to kind of just mention here at the end that if you are like us at a
+the end that if you are like us at a point where you're sort of on the fence
+point where you're sort of on the fence between whether or not you should
+between whether or not you should introduce some of the complexities of
+introduce some of the complexities of physically accurate simulation I think
+physically accurate simulation I think of the spending a few years doing this
+of the spending a few years doing this and working with a lot I think we can
+and working with a lot I think we can wholeheartedly say you should it's it's
+wholeheartedly say you should it's it's difficult at times
+difficult at times but it's a process with physics that it
+but it's a process with physics that it can be controlled it's not like you just
+can be controlled it's not like you just have to give up control give up design
+have to give up control give up design it's really something that if you take
+it's really something that if you take the time in the effort that you can
+the time in the effort that you can manage and that you can expose out to
+manage and that you can expose out to your designers and you can work together
+your designers and you can work together with them to really I think being a ton
+with them to really I think being a ton to your game and I'm really really happy
+to your game and I'm really really happy that we ended up doing this so I think
+that we ended up doing this so I think that wraps it up for us
+that wraps it up for us thank you yes
+thank you yes [Applause]
+[Applause] I think I think that's the microphone
+I think I think that's the microphone setup if anyone has any questions we
+setup if anyone has any questions we have five minutes so right on track so
+have five minutes so right on track so my question is can you share a little
+my question is can you share a little bit about the numbers how many of
+bit about the numbers how many of physics programmers were there on the
+physics programmers were there on the project and how many content designers
+project and how many content designers and maybe how many vehicles were there
+and maybe how many vehicles were there in the end thank you
+in the end thank you so the question was how many physics
+so the question was how many physics program as we had and how many people on
+program as we had and how many people on the team it varied through the
+the team it varied through the throughout the project I was very happy
+throughout the project I was very happy when I got to the point where I could
+when I got to the point where I could have one engineer focus on C and one
+have one engineer focus on C and one focus on air and one I focused on land
+focus on air and one I focused on land myself so that we could also take
+myself so that we could also take ownership of what was fun and really
+ownership of what was fun and really work with the designers on that as the
+work with the designers on that as the engineers Patrick helped us out with a
+engineers Patrick helped us out with a lot of the physics implementation but
+lot of the physics implementation but even he was not on our team full-time is
+even he was not on our team full-time is kind of an advisory role at times only
+kind of an advisory role at times only on what to do and then making yan do it
+on what to do and then making yan do it which is the greatest thing in the world
+which is the greatest thing in the world and then I made sure that I at least had
+and then I made sure that I at least had my desk next to his so if he wasn't
+my desk next to his so if he wasn't officially on my team I could at least
+officially on my team I could at least pull him over and say I'm really dumb
+pull him over and say I'm really dumb and you need to help me sorry so how
+and you need to help me sorry so how many vehicles we had 20 vehicles we had
+many vehicles we had 20 vehicles we had 10 land vehicles and maybe five or six
+10 land vehicles and maybe five or six each yeah it's about 20 total a couple
+each yeah it's about 20 total a couple questions one clarification
+questions one clarification you said the forces are applied through
+you said the forces are applied through the center of mass of the vehicle that's
+the center of mass of the vehicle that's just for like the linear portion of like
+just for like the linear portion of like the accelerations I assume not like this
+the accelerations I assume not like this the suspension was applied at the point
+the suspension was applied at the point that it connected the chassis is to
+that it connected the chassis is to apply torque but the yeah and then so i
+apply torque but the yeah and then so i mean so then how did you actually expose
+mean so then how did you actually expose like the turning rates and things like
+like the turning rates and things like that
+that if the wheels weren't applying fork so
+if the wheels weren't applying fork so it was remember how we had those
+it was remember how we had those velocity curves we used them again
+velocity curves we used them again essentially to accelerate our angular
+essentially to accelerate our angular velocity over time and then they could
+velocity over time and then they could define a turning radius I believe is
+define a turning radius I believe is what it was and it would accelerate to
+what it was and it would accelerate to maximum turning radius to get there I
+maximum turning radius to get there I guess one third question do you have
+guess one third question do you have anything that's like a tank or something
+anything that's like a tank or something that turns in place or is it all just
+that turns in place or is it all just actually the the water vehicles tend to
+actually the the water vehicles tend to sort of turn around the center and some
+sort of turn around the center and some of the other vehicles like especially
+of the other vehicles like especially when we had drifting we had to change
+when we had drifting we had to change the point around which we turn so we had
+the point around which we turn so we had the flexibility within our turning to
+the flexibility within our turning to either choose to turn around the center
+either choose to turn around the center or we could offset that and pivot around
+or we could offset that and pivot around something else which that kind of diff
+something else which that kind of diff thing and getting that to feel right and
+thing and getting that to feel right and sort of sliding that pivot around is
+sort of sliding that pivot around is also non-trivial
+also non-trivial our initial implementation allowed you
+our initial implementation allowed you to actually define the rotation on all
+to actually define the rotation on all of the wheel so we could actually make
+of the wheel so we could actually make the back wheels come to turn and do that
+the back wheels come to turn and do that kind of turn in place but that was
+kind of turn in place but that was complexity that was we felt in the end
+complexity that was we felt in the end was not as necessary yeah I think the
+was not as necessary yeah I think the doing just the turning angle at first
+doing just the turning angle at first with the wheels I think it's just
+with the wheels I think it's just unintuitive and then switching to a
+unintuitive and then switching to a turning radius I think they leave made a
+turning radius I think they leave made a lot more sense to be thank you good
+lot more sense to be thank you good stuff I think I enjoy playing this stuff
+stuff I think I enjoy playing this stuff as much as my kids do so we appreciate
+as much as my kids do so we appreciate it really quick question kind of
+it really quick question kind of regarding the complexity or management
+regarding the complexity or management of complexity even after you kind of
+of complexity even after you kind of introduced scope and layers I was
+introduced scope and layers I was curious if when it gets down to like the
+curious if when it gets down to like the collision map in general toward the end
+collision map in general toward the end of the project with all the sort of
+of the project with all the sort of accumulation of stuff that goes into it
+accumulation of stuff that goes into it does it still become kind of a
+does it still become kind of a data-driven design debugging problem or
+data-driven design debugging problem or does it land back on the engineers of
+does it land back on the engineers of that for almost all of the debugging
+that for almost all of the debugging when rules were not being applied right
+when rules were not being applied right fell on my lap there's the vehicles
+fell on my lap there's the vehicles travel very very fast and generated lots
+travel very very fast and generated lots of manifolds and we thankfully had to
+of manifolds and we thankfully had to have a visual debugger to kind of show
+have a visual debugger to kind of show us all these points and record it and
+us all these points and record it and they would everyone would just send me a
+they would everyone would just send me a recording and I'd have to unwind exactly
+recording and I'd have to unwind exactly what was going wrong from that there's a
+what was going wrong from that there's a lot of information presented there and
+lot of information presented there and it's hard to present all of this stuff
+it's hard to present all of this stuff and enough information to actually
+and enough information to actually reverse engineer what was happening the
+reverse engineer what was happening the actual so figuring out what rules were
+actual so figuring out what rules were applied in that regard or when they
+applied in that regard or when they weren't apply properly was up to me I
+weren't apply properly was up to me I don't think there was too much there was
+don't think there was too much there was a few problems about rules not being
+a few problems about rules not being understood from design yeah I mean I
+understood from design yeah I mean I think there was definitely management
+think there was definitely management that we had to see there was not
+that we had to see there was not technical it's just sort of you know
+technical it's just sort of you know procedural almost like you have to just
+procedural almost like you have to just make sure that the team understands what
+make sure that the team understands what the changing and will the viewing
+the changing and will the viewing changes to all of it as we go through it
+changes to all of it as we go through it I actually think it felt to us like we
+I actually think it felt to us like we were very successful towards the end of
+were very successful towards the end of the project in that we had made these
+the project in that we had made these decisions early on to try to stop
+decisions early on to try to stop stepping on each other's toes and having
+stepping on each other's toes and having some persons fix break something else
+some persons fix break something else and we had put in a ton of f of early on
+and we had put in a ton of f of early on for that and I think we really got the
+for that and I think we really got the benefits out of that when we went to
+benefits out of that when we went to close out the project and there was
+close out the project and there was definitely part of me that was terrified
+definitely part of me that was terrified that things were going to come apart of
+that things were going to come apart of the seams right at the end and it was
+the seams right at the end and it was going to be really hard to fix things
+going to be really hard to fix things but honestly we were sort of shocked at
+but honestly we were sort of shocked at how smoothly it went for a team without
+how smoothly it went for a team without at the end and and like the independent
+at the end and and like the independent parameters thing like it's a lifesaver
+parameters thing like it's a lifesaver being able to put the rule run entity
+being able to put the rule run entity meant that they didn't have to deal so
+meant that they didn't have to deal so much for layering they just cranked up
+much for layering they just cranked up the priority and put it right there and
+the priority and put it right there and if it wasn't firing is fairly obvious so
+if it wasn't firing is fairly obvious so those kind of debugging things were
+those kind of debugging things were pretty straightforward and I think
+pretty straightforward and I think that's time all right cool thank you so
+that's time all right cool thank you so much guys we'll be in the wrap-up room
+much guys we'll be in the wrap-up room with anyone once
+with anyone once you

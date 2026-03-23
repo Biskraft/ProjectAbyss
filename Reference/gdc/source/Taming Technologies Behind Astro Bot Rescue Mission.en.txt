@@ -1,0 +1,629 @@
+[Music]
+hello everyone thank you for coming my name is yuki
+thank you for coming my name is yuki miyamai from
+miyamai from si japan studio i was the technical
+si japan studio i was the technical leader of
+leader of astrobot rescue mission today i'm going
+astrobot rescue mission today i'm going to talk about
+to talk about what the most important technical goals
+what the most important technical goals were for this game
+were for this game and how we achieved those goals
+and how we achieved those goals for those who don't know astrobot rescue
+for those who don't know astrobot rescue mission is a vr
+mission is a vr platformer which was released in october
+platformer which was released in october 2018.
+2018. it uses various features of playstation
+it uses various features of playstation vr
+vr and the dualshock 4 controller there are
+and the dualshock 4 controller there are over 50 levels with
+over 50 levels with many different visual themes
+many different visual themes the game was developed by 26 people in
+the game was developed by 26 people in 18 months
+18 months this is a photo of the team asobi in
+this is a photo of the team asobi in japan studio
+japan studio during the development these were the
+during the development these were the three biggest technical goals
+three biggest technical goals our target frame rate is 60 and it's
+our target frame rate is 60 and it's scaled to 120
+scaled to 120 by reprojection as primary drops are not
+by reprojection as primary drops are not allowed in vr games
+allowed in vr games we have to keep 60 fps at all times
+we have to keep 60 fps at all times and second because it's vr visuals are
+and second because it's vr visuals are physically close to users
+physically close to users so they should be comfortable on your
+so they should be comfortable on your eyes and at the same time
+eyes and at the same time convincing the third one
+convincing the third one is smooth game flow which means
+is smooth game flow which means we have to pay much attention to game
+we have to pay much attention to game flow or game stage transitions
+flow or game stage transitions because they are repeated many times
+because they are repeated many times if they are not implemented well users
+if they are not implemented well users will
+will easily get tired in vr
+easily get tired in vr the purpose of this talk is to share
+the purpose of this talk is to share some of the techniques
+some of the techniques we used to work toward achieving these
+we used to work toward achieving these goals
+goals so the first topic is rendering
+so the first topic is rendering optimization this has the biggest impact
+optimization this has the biggest impact on the frame rate
+on the frame rate i want to talk about some of the
+i want to talk about some of the techniques which were effective
+techniques which were effective to keep 60 fps
+at the first optimization we kept the scene compact
+scene compact we knew that optimization was really
+we knew that optimization was really tough for vr games
+tough for vr games so we started optimization at the game
+so we started optimization at the game design level
+design level we divided levels to small sections and
+we divided levels to small sections and each section is roughly 30 meters by 30
+each section is roughly 30 meters by 30 meters
+meters and depending on the player's position
+and depending on the player's position some sections
+some sections are not visible from the player so we
+are not visible from the player so we manually set the
+manually set the section visibilities players go almost
+section visibilities players go almost straight from a start point to a goal
+straight from a start point to a goal so manual control was manageable for our
+so manual control was manageable for our game
+game in the product we had a maximum 2500
+in the product we had a maximum 2500 charcoals
+charcoals at a time including shuttles and stereo
+at a time including shuttles and stereo rendering
+rendering i think this is small enough
+our renderer spec is as follows we used forward rendering with h sample
+we used forward rendering with h sample msaa
+msaa as a small optimization here we pack the
+as a small optimization here we pack the depth value to the alpha channel
+depth value to the alpha channel of the color buffer by doing so we can
+of the color buffer by doing so we can skip
+skip the depth resolve and when sampling
+the depth resolve and when sampling background color buffer
+background color buffer we can get the depth value for free
+we can get the depth value for free we had some special effects shaders but
+we had some special effects shaders but for most
+for most of the objects we used basic single
+of the objects we used basic single layer
+layer pbr materials the number of lights
+pbr materials the number of lights is also really small we have max two
+is also really small we have max two blended ibl's
+blended ibl's one directional and a 16 point and 16
+one directional and a 16 point and 16 spotlights
+spotlights all of these lights are evaluated in
+all of these lights are evaluated in every material
+every material with no tile or cluster calling because
+with no tile or cluster calling because it's much faster for
+it's much faster for this number of ways
+so we kept the pipeline simple as much as possible for the gpu performance
+as another gpu optimization we implemented
+implemented dynamic resolution system we measure the
+dynamic resolution system we measure the gpu time of the previous frame
+gpu time of the previous frame and decide the resolution of the current
+and decide the resolution of the current frame
+frame the good thing is dynamic resolution can
+the good thing is dynamic resolution can handle emergency cases
+handle emergency cases for example diving into fires
+for example diving into fires or water those kinds of extreme cases
+or water those kinds of extreme cases and more importantly it increases the
+and more importantly it increases the resolution
+resolution in most cases our resolution setting is
+in most cases our resolution setting is shown
+shown in this table 1.0 scale is the display
+in this table 1.0 scale is the display resolution of psvr and we have scales
+resolution of psvr and we have scales from 0.85
+from 0.85 to 1.5 we have only four settings
+to 1.5 we have only four settings but it greatly improves the image
+but it greatly improves the image quality
+quality compared to just one setting
+here is how it works it's simple if the total gpu time of the previous frame is
+total gpu time of the previous frame is over 16.6 milliseconds we immediately
+over 16.6 milliseconds we immediately decrease the resolution
+when we scale it up it's more conservative
+conservative to estimate the gpu cost of the next
+to estimate the gpu cost of the next resolution
+resolution we scale the stereo rendering time by
+we scale the stereo rendering time by the pixel
+the pixel count ratio and if it's below 16.6
+count ratio and if it's below 16.6 milliseconds
+milliseconds for 30 frames we increase the
+for 30 frames we increase the resolution some gpu jobs are not
+resolution some gpu jobs are not related to the resolution such as
+related to the resolution such as shadows
+shadows so it's important to exclude those times
+so it's important to exclude those times from the estimation
+from the estimation and because the gpu time is not
+and because the gpu time is not proportional to the pixel count
+proportional to the pixel count for example it depends on whether it's
+for example it depends on whether it's vertex heavy or pixel heavy
+vertex heavy or pixel heavy we added the scale parameter s and 0.85
+we added the scale parameter s and 0.85 worked well for our case
+worked well for our case i played some levels and took statistics
+i played some levels and took statistics on ps4 the resolution was over 1.25
+on ps4 the resolution was over 1.25 scale
+scale on average before implementing dynamic
+on average before implementing dynamic resolution
+resolution we had been using 1.0 by default so
+we had been using 1.0 by default so it's a big improvement on ps4 pro
+it's a big improvement on ps4 pro 1.5 was used almost always
+1.5 was used almost always although the quality was improved
+although the quality was improved sometimes we noticed resolution popping
+sometimes we noticed resolution popping because we had only four settings we
+because we had only four settings we prepared the four pipelines
+prepared the four pipelines in advance and just switched them but
+in advance and just switched them but now
+now i think free dynamic approach which has
+i think free dynamic approach which has finite resolution granularity
+finite resolution granularity for example per two pixels will be
+for example per two pixels will be better as it produces smoother result
+there is another problem in heavy scenes we don't see any frame rate drops even
+we don't see any frame rate drops even in heavy scenes
+in heavy scenes but the resolution decreases to the
+but the resolution decreases to the lowest
+lowest quietly it happens in many levels
+quietly it happens in many levels our qa team is very strict about frame
+our qa team is very strict about frame rate
+rate but not about resolution degrees so it
+but not about resolution degrees so it might be missed in the final qa process
+might be missed in the final qa process another problem is that even though the
+another problem is that even though the resolution is the lowest
+resolution is the lowest the frame rate is keeping 60. so it's
+the frame rate is keeping 60. so it's difficult to know
+difficult to know how much how many milliseconds we should
+how much how many milliseconds we should optimize
+optimize to get higher resolution this is an
+to get higher resolution this is an example we show a performance indicator
+example we show a performance indicator in the center of the view when the frame
+in the center of the view when the frame rate drops
+rate drops so everybody can see it this is the zoom
+so everybody can see it this is the zoom up
+up we show frame rate and gpu time in
+we show frame rate and gpu time in milliseconds
+milliseconds without the dynamic resolution system
+without the dynamic resolution system the frame rate drops like this
+the frame rate drops like this qa team reports this issue and also it's
+qa team reports this issue and also it's easy to see how many milliseconds we
+easy to see how many milliseconds we should cut
+should cut to keep the frame rate
+but if you turn on the dynamic resolution there is no frame rate drops
+resolution there is no frame rate drops but the resolution is too low we want to
+but the resolution is too low we want to get
+get a higher resolution but the gpu time
+a higher resolution but the gpu time information here is
+information here is useless because it's impossible to know
+useless because it's impossible to know how many milliseconds we should cut in
+how many milliseconds we should cut in the next resolution
+the next resolution because we are rendering in the lower
+because we are rendering in the lower resolution
+so to control the quality with dynamic resolution system
+resolution system we decided target resolution and
+we decided target resolution and emergency resolution
+emergency resolution the target means we should achieve it
+the target means we should achieve it at minimum and the emergency resolution
+at minimum and the emergency resolution is only
+is only allowed in emergence cases not
+allowed in emergence cases not everywhere
+everywhere with this consensus we didn't use
+with this consensus we didn't use the emergency resolutions until the very
+the emergency resolutions until the very end of the production we intentionally
+end of the production we intentionally made the frame rate drops
+made the frame rate drops and encouraged the team to optimize the
+and encouraged the team to optimize the levels
+levels i think this worked well if we look at
+i think this worked well if we look at the graph again
+the graph again you can see that the lowest resolution
+you can see that the lowest resolution was really used
+was really used in the product it's less than 0.1
+in the product it's less than 0.1 percent
+okay then next is a cpu side optimization topic
+optimization topic stereo rendering method we consider
+stereo rendering method we consider three methods for stereo rendering
+the first one is to run the rendering pipeline twice
+pipeline twice this is the easiest implementation
+this is the easiest implementation but has lots of cpu waste
+the second one is resubmitting a command buffer
+buffer this saves the cpu cost to generate a
+this saves the cpu cost to generate a command buffer
+command buffer and it requires no shared modifications
+and it requires no shared modifications but draw call count is still big
+the last one is to use instance raw to double the geometry in a single path
+double the geometry in a single path you draw the objects with double
+you draw the objects with double instance count
+instance count and switch the render target with slice
+and switch the render target with slice index in vertical shaders
+index in vertical shaders this can have the draw called count so
+this can have the draw called count so it's good for
+it's good for cpu and gpu however this requires
+cpu and gpu however this requires vertical shader
+vertical shader and some pipeline modifications
+and some pipeline modifications so we chose resubmitting a command
+so we chose resubmitting a command buffer
+buffer because we also had to support
+because we also had to support non-stereo rendering pipeline
+non-stereo rendering pipeline and we wanted to keep the code simple
+on ps4 command buffers we built a processed directory on gpu so
+a processed directory on gpu so resubmission has almost no cpu overhead
+resubmission has almost no cpu overhead but because the command buffer is
+but because the command buffer is processed as it is
+processed as it is we need to care about synchronizations
+we need to care about synchronizations ourselves
+ourselves for example when we make gp wait for
+for example when we make gp wait for rendering of the
+rendering of the previous stage we usually use labels
+previous stage we usually use labels allocated from
+allocated from command buffer and wait wait until the
+command buffer and wait wait until the label is set by gpu to a certain value
+label is set by gpu to a certain value but when the command buffer is processed
+but when the command buffer is processed second time
+second time labels are already filled so you have to
+labels are already filled so you have to clear the labels after the first
+clear the labels after the first commands are finished
+commands are finished to do this we allocated the memory block
+to do this we allocated the memory block for the labels
+for the labels and put a memory copy command a clear
+and put a memory copy command a clear command
+command at the end of the commands so
+at the end of the commands so the shared command buffer is created as
+the shared command buffer is created as follows
+follows first set up the left view constant
+first set up the left view constant buffer
+buffer by cpu view id is also
+by cpu view id is also included in this buffer
+included in this buffer push scene draw calls as usual which are
+push scene draw calls as usual which are for materials
+for materials and post effects
+and post effects push output draw call that selects the
+push output draw call that selects the render target
+render target there are several ways here we put two
+there are several ways here we put two draw calls
+draw calls one is for left and the other is for
+one is for left and the other is for right
+right and called one by geometry shader
+and called one by geometry shader depending on the view id
+depending on the view id or if render target array is available
+or if render target array is available you can just use slice index in vertex
+you can just use slice index in vertex shaders
+finally push memory copy commands at the end of the command buffer
+end of the command buffer which fills the view constant buffer
+which fills the view constant buffer with
+with right eye and clear synchronization
+right eye and clear synchronization labels
+labels once you've created this command buffer
+once you've created this command buffer you can simply call submit twice
+you can simply call submit twice in this way we can save much cpu time
+okay now i want to move to the next topic
+topic effects in vr we implemented
+effects in vr we implemented some effects and spend time to make it
+some effects and spend time to make it look good
+look good in vr so i want to share what went well
+in vr so i want to share what went well i picked up three effects water clouds
+i picked up three effects water clouds and 3d texts the first
+and 3d texts the first effect is water we have some water
+effect is water we have some water levels
+levels and as a gameplay
+the player can go into the water
+in vr players viewpoint is free so we couldn't avoid to draw the
+so we couldn't avoid to draw the boundary of the water on air
+boundary of the water on air i think the unique point of our water
+i think the unique point of our water rendering is that
+rendering is that we seriously render the boundary rather
+we seriously render the boundary rather than hiding it
+than hiding it in addition the surface should be moving
+in addition the surface should be moving as a game
+as a game play requirement
+in this image you can see two components of the water rendering
+of the water rendering water surface and a fog
+water surface and a fog effect applied to the underwater area
+effect applied to the underwater area i'll explain how to render the each
+i'll explain how to render the each component
+the surface is just a fine mesh no dynamic tessellation because
+no dynamic tessellation because pre-tessellated geometry was faster
+pre-tessellated geometry was faster for our level size we move the vertices
+for our level size we move the vertices in vertical shader with three sine waves
+in vertical shader with three sine waves which are tweaked by material attributes
+which are tweaked by material attributes and 16 wave sources controlled by
+and 16 wave sources controlled by a game called the shading is not so
+a game called the shading is not so special
+special we just calculate scattering and
+we just calculate scattering and absorption
+absorption using the distance to the background but
+using the distance to the background but an
+an interesting effect we added was surface
+interesting effect we added was surface tension effect
+tension effect we bend normals at intersections to the
+we bend normals at intersections to the background
+background it's exaggerated but we feel
+it's exaggerated but we feel we feel we felt it's realistic
+we feel we felt it's realistic we also bend normals at the camera
+we also bend normals at the camera intersection
+intersection which makes the boundary look nice
+underwater 4 is just a plus effect but as shown in this figure we needed to
+but as shown in this figure we needed to detect the under altruism in the screen
+detect the under altruism in the screen and apply the fog only to that area
+and apply the fog only to that area actually you use stencil buffer the
+actually you use stencil buffer the steps to
+steps to create the stencil or first
+create the stencil or first clear the stencil buffer with zero
+clear the stencil buffer with zero draw the scene objects without stencil
+draw the scene objects without stencil operations
+operations and draw water area box which covers the
+and draw water area box which covers the bottom of the water and sets the stem
+bottom of the water and sets the stem survival to 1.
+survival to 1. and next draw the water surfaced with
+and next draw the water surfaced with stencil operations this is a bit
+stencil operations this is a bit complicated
+complicated when depth test passes we set three
+when depth test passes we set three and when depth test fails use decrement
+and when depth test fails use decrement for front face
+for front face and increment for backwards then
+and increment for backwards then only the underwater area has stencil
+only the underwater area has stencil value 1
+value 1 so we apply the fog effect where the
+so we apply the fog effect where the stencil is 1.
+stencil is 1. the reason why that step 4 is
+the reason why that step 4 is complicated is to
+complicated is to handle any viewpoints like these figures
+handle any viewpoints like these figures above the water inside the waves and
+above the water inside the waves and completely
+completely underwater this might be hard to
+underwater this might be hard to understand now but
+understand now but if you take time to think later you will
+if you take time to think later you will be able to see this rework
+here is the final result you can see that the player can dive
+that the player can dive into the water smoothly
+into the water smoothly the water drops on the screen adjust
+the water drops on the screen adjust distortion particles
+this is another thing you can see that the fog is only applied to the
+the fog is only applied to the underwater area
+underwater area and also you can see the boundary
+okay that next effect is clouds clouds were used in many levels of the
+clouds were used in many levels of the game
+game so the cloud rendering was important for
+so the cloud rendering was important for us
+our class are close to the player and artists want to control the shape
+artists want to control the shape freely so we can't use the cloud layer
+freely so we can't use the cloud layer approach
+approach which was used in horizon zero dawn
+which was used in horizon zero dawn suited for situations where
+suited for situations where players look up at the sky also
+players look up at the sky also they need to be lightweight so we have
+they need to be lightweight so we have to avoid lots of transparency
+to avoid lots of transparency and of course they need to be moving
+so we took a mesh approach again we draw the polygons
+the polygons sample a 3d noise texture and use it for
+sample a 3d noise texture and use it for the shading
+the shading we also use the noise for the vertex
+we also use the noise for the vertex displacement
+displacement the noise texture is similar to the
+the noise texture is similar to the horizon method
+horizon method r channel contains low frequency noise
+r channel contains low frequency noise and gba
+and gba channels have higher frequency noises
+channels have higher frequency noises the low frequency noise is eroded by the
+the low frequency noise is eroded by the high frequency noises
+high frequency noises the detail of how to use the noise was
+the detail of how to use the noise was explained by the shima
+explained by the shima engine team at siggraph 2017
+engine team at siggraph 2017 so i'll skip it here
+so i'll skip it here for shadows because dynamic shadows on
+for shadows because dynamic shadows on the clouds need many sample points to
+the clouds need many sample points to hide the polygon feeling
+hide the polygon feeling we just used baked shadows on the clouds
+we just used baked shadows on the clouds including cell shadows
+including cell shadows so here is the shading steps we take
+so here is the shading steps we take five samples along the v-ray and
+five samples along the v-ray and accumulate the sun scattering
+accumulate the sun scattering precisely at each sampling point you
+precisely at each sampling point you also need to sample the noise in the sun
+also need to sample the noise in the sun direction several times to get
+direction several times to get occlusions
+occlusions but we can't afford to sample many
+but we can't afford to sample many points
+points so instead we just sample one point
+so instead we just sample one point towards the sun direction from the last
+towards the sun direction from the last sampling point
+sampling point we subtract the noise value a from b
+we subtract the noise value a from b and use it as a multiplier
+and use it as a multiplier this produces detailed sound occlusions
+this produces detailed sound occlusions and baked shadow map covers the static
+and baked shadow map covers the static large scale occlusion
+large scale occlusion and finally we add ambient by evaluating
+and finally we add ambient by evaluating ibl diffuse
+ibl diffuse with the surface normal and the
+with the surface normal and the accumulated noise value
+accumulated noise value this is a very rough approximation
+this is a very rough approximation but it can make the clouds fit the scene
+but it can make the clouds fit the scene and
+and it's easy to implement so i
+it's easy to implement so i show the components by images clouds are
+show the components by images clouds are made with
+made with fine meshes like this with five samples
+fine meshes like this with five samples baked shadow map and ibl ambient you get
+baked shadow map and ibl ambient you get this
+this because five samples is too small we
+because five samples is too small we don't get any volumetric feeling yet
+don't get any volumetric feeling yet so we move the vertices to y direction
+so we move the vertices to y direction according to the noise
+according to the noise values by adding one sample
+values by adding one sample to the sun direction you get more
+to the sun direction you get more details like this
+details like this like this we wanted
+like this we wanted more details on the intersections so we
+more details on the intersections so we used the noise
+used the noise as alpha values when it's close to
+as alpha values when it's close to background
+background we reuse the noise so there is no
+we reuse the noise so there is no additional sampling but
+additional sampling but we use different frequency weights
+we use different frequency weights usually higher frequency than
+usually higher frequency than the shading like in this code sample
+the shading like in this code sample with some magic numbers and a step
+with some magic numbers and a step function
+function we got nice details on the intersections
+this is the in-game result for this scene
+scene at the half of 1080p it took around 1.2
+at the half of 1080p it took around 1.2 milliseconds
+milliseconds per eye on ps4
+it looks a little bit cartoony due to the vertex displacement
+the vertex displacement but we think we've got interesting
+but we think we've got interesting movements
+okay the last effect is 3d text this is just one slide but what's worth
+this is just one slide but what's worth mentioning is
+mentioning is our texts are all made with polygons
+our texts are all made with polygons most of our texts have small extrusion
+most of our texts have small extrusion and that gives
+and that gives better 3d feeling than texture planes in
+better 3d feeling than texture planes in vr
+vr another good thing is that it's
+another good thing is that it's resolution free
+resolution free we tweaked text positions many times
+we tweaked text positions many times but we tweaked resolution setting only a
+but we tweaked resolution setting only a few times
+few times one more good thing is we didn't have to
+one more good thing is we didn't have to make special
+make special shaders such as distance field shaders
+shaders such as distance field shaders we simply we used effect shaders
+we simply we used effect shaders to generate the polygons from text we
+to generate the polygons from text we built
+built an automated system using type node in
+an automated system using type node in maya
+maya and we finally supported 23 languages
+okay this is the last topic smooth game flow
+flow this might sound like a game design
+this might sound like a game design topic
+topic but i'd like i'd like to talk about
+but i'd like i'd like to talk about techniques behind it
+techniques behind it as you can imagine unsmooth game flow in
+as you can imagine unsmooth game flow in vr
+vr creates discomfort for users
+creates discomfort for users for example long loading time makes
+for example long loading time makes users tired
+users tired device tracking interruption while
+device tracking interruption while displaying something
+displaying something leads to sickness and if a black screen
+leads to sickness and if a black screen is displayed for a long time the game
+is displayed for a long time the game loses
+loses immersion so we do the opposite we try
+immersion so we do the opposite we try to minimize
+to minimize the loading time we keep the device
+the loading time we keep the device tracking all the time
+tracking all the time and we avoid black screens and show
+and we avoid black screens and show something
+something that users can interact with
+so this is our main game flow we have a word select menu
+word select menu a pause menu on levels when a user
+a pause menu on levels when a user selects a level
+selects a level in the word select the menu closes and
+in the word select the menu closes and the user moves to
+the user moves to the level and when the user clears the
+the level and when the user clears the level
+level they go back to the word select users
+they go back to the word select users have to clear the levels
+have to clear the levels one by one and they always go back to
+one by one and they always go back to the menu
+the menu every time and the pulse menu can be
+every time and the pulse menu can be opened
+opened anytime this is the spec
+anytime this is the spec and it's a very simple design to achieve
+and it's a very simple design to achieve this game design and make it smooth we
+this game design and make it smooth we thought about memory
+thought about memory management first
+to minimize the loading we load the word select
+select and the pulse menu as resident resources
+and the pulse menu as resident resources once we launch the game
+once we launch the game and never unload them then
+and never unload them then when a user selects a level we lose the
+when a user selects a level we lose the level resources
+level resources everything fits in memory in other words
+everything fits in memory in other words we optimized every level to fit in
+we optimized every level to fit in memory
+memory when the user clears the level we just
+when the user clears the level we just unload the resources we repeat this
+unload the resources we repeat this process when the user moves to the next
+process when the user moves to the next level
+level load the resources and
+load the resources and unload them once the level is cleared
+so with this strategy because unloading is so fast
+is so fast the only path that takes time is the
+the only path that takes time is the transition from the world select
+transition from the world select to the level so i will focus on how we
+to the level so i will focus on how we manage
+manage this transition first i'd like to show
+this transition first i'd like to show the video of
+the video of our final smooth result
+this is the word select you select the level astro comes to the
+you select the level astro comes to the controller
+controller and you can interact with an effect bar
+and you can interact with an effect bar blue the loading has finished
+blue the loading has finished you trigger a word revealing effect
+[Music] and you can start the level
+this figure explains what happened the top row is
+top row is what users see and the bottom row is the
+what users see and the bottom row is the loading process when the user selects a
+loading process when the user selects a level
+level we start an animation to close the board
+we start an animation to close the board select
+select at the same time we start loading meshes
+at the same time we start loading meshes and animations while loading those
+and animations while loading those resources we keep the rendering of the
+resources we keep the rendering of the in-game
+in-game controller also we show an
+controller also we show an effect ball that the user can interact
+effect ball that the user can interact with
+with using the controller so you feel you are
+using the controller so you feel you are still
+still in the vr world even in loading time
+in the vr world even in loading time once
+once the loading is finished we start loading
+the loading is finished we start loading textures
+textures at this point the user can start the
+at this point the user can start the level and
+level and the revealing effect creates the word
+the revealing effect creates the word the point is we delay the texture
+the point is we delay the texture loading
+loading and allow users to start levels before
+and allow users to start levels before finishing the texture loading
+finishing the texture loading this shortened the loading time and the
+this shortened the loading time and the time users think of as
+time users think of as loading was less than 5 seconds
+loading was less than 5 seconds so how did we implement the delayed
+so how did we implement the delayed texture loading
+the implementation is so easy when the when we load meshes we assign
+when the when we load meshes we assign constant color textures
+constant color textures and we load texture files in order of
+and we load texture files in order of distance from
+distance from the player and switch the temporary
+the player and switch the temporary texture with the actual texture
+texture with the actual texture once it's loaded we rarely see any
+once it's loaded we rarely see any popping
+popping thanks to the large revealing effect
+thanks to the large revealing effect we also investigated other texture
+we also investigated other texture streaming
+streaming techniques but considering our level
+techniques but considering our level size and game design
+size and game design i think this was the fastest way to
+i think this was the fastest way to achieve our goal
+achieve our goal so to sum up minimizing loading time
+so to sum up minimizing loading time keeping device tracking and keeping word
+keeping device tracking and keeping word interaction
+interaction these are so important especially in vr
+okay we covered these topics today you might think there are no advanced
+you might think there are no advanced technology
+technology or complicated techniques and we always
+or complicated techniques and we always choose the easy path
+choose the easy path it's partly true we pay much attention
+it's partly true we pay much attention to
+to implementation cost we choose easier
+implementation cost we choose easier ways
+ways if possible so that we can focus on
+if possible so that we can focus on other important things
+other important things i think this way of thinking is
+i think this way of thinking is important
+important especially for small teams with limited
+especially for small teams with limited amount of time
+amount of time so i hope this talk will help you to cut
+so i hope this talk will help you to cut implementation time and achieve great vr
+implementation time and achieve great vr experiences thank you
+i think we have almost no time for q a but i will move to the wrap-up room
+but i will move to the wrap-up room so if you have any questions please come
+so if you have any questions please come with me or
+with me or just email me thank you very much

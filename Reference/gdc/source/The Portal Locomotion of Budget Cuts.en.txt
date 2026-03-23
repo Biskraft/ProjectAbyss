@@ -1,0 +1,769 @@
+[Music] - the portal locomotion of budget cuts I
+- the portal locomotion of budget cuts I am you Hakeem Almir I'm the co-founder
+am you Hakeem Almir I'm the co-founder and tech artist at neat corporation so a
+and tech artist at neat corporation so a little shirk background I've been doing
+little shirk background I've been doing mostly programming and tech artist stuff
+mostly programming and tech artist stuff in Stockholm Sweden so I did some work
+in Stockholm Sweden so I did some work for Avalanche Studios I did a unity in
+for Avalanche Studios I did a unity in c-sharp teaching course at future games
+c-sharp teaching course at future games which is a game development school I've
+which is a game development school I've been doing some work for a quick soul
+been doing some work for a quick soul under GPU bakingstuff
+under GPU bakingstuff and I've also created shader forge a
+and I've also created shader forge a node based shader editor for unity but
+node based shader editor for unity but nowadays I spend pretty much all of my
+nowadays I spend pretty much all of my time at neat Corporation developing
+time at neat Corporation developing budget cuts so budget cuts is a
+budget cuts so budget cuts is a first-person stealth VR game and it's
+first-person stealth VR game and it's releasing soon it's coming to steam and
+releasing soon it's coming to steam and oculus Oh May 16th 2018 thank you I
+oculus Oh May 16th 2018 thank you I thought I'd just clear that out before
+thought I'd just clear that out before people start asking sir alright so this
+people start asking sir alright so this talk I'm going to talk about the portal
+talk I'm going to talk about the portal locomotion in our game it's mostly going
+locomotion in our game it's mostly going to be about the design and it's gonna be
+to be about the design and it's gonna be about the tech and a little bit about
+about the tech and a little bit about the art so I thought I'd first show a
+the art so I thought I'd first show a video of it in action if it works let's
+video of it in action if it works let's see there we go sort of ok it's kind of
+see there we go sort of ok it's kind of slow so I guess I'll explain it slowly
+slow so I guess I'll explain it slowly ok so in this case you can see that the
+ok so in this case you can see that the player is standing in a Blue Room and
+player is standing in a Blue Room and you're holding a device called the
+you're holding a device called the translator so you then fire a beacon out
+translator so you then fire a beacon out of this translocator
+of this translocator and then once it lands in the other room
+and then once it lands in the other room you get a portal in your gun so I think
+you get a portal in your gun so I think it's my internet connection that's
+it's my internet connection that's really shitty I'm sorry about that ok
+really shitty I'm sorry about that ok we'll make do so the portal then opens
+we'll make do so the portal then opens up in your above your translocator gun
+up in your above your translocator gun so you can then look through into the
+so you can then look through into the other room so you can see that the the
+other room so you can see that the the other room is the Red Room and that's
+other room is the Red Room and that's inside the portal and the Blue Room is
+inside the portal and the Blue Room is whatever you were signing before and you
+whatever you were signing before and you then move into the room by pressing a
+then move into the room by pressing a button and then that portal then wraps
+button and then that portal then wraps around you and your
+around you and your transported to that location really
+transported to that location really sorry about the video by the way all
+sorry about the video by the way all right so let's talk about the design so
+right so let's talk about the design so as we as with most VR games you kind of
+as we as with most VR games you kind of have to start with motion sickness
+have to start with motion sickness because motion sickness is such a big
+because motion sickness is such a big issue in VR like if you try to port some
+issue in VR like if you try to port some game from an on V like a poor turn on VR
+game from an on V like a poor turn on VR game into VR you're gonna get motion
+game into VR you're gonna get motion sick in pretty much all cases so with
+sick in pretty much all cases so with all of these limitations with how you
+all of these limitations with how you can move the camera you have to you know
+can move the camera you have to you know work around that as as as early as
+work around that as as as early as possible so we just said no we don't
+possible so we just said no we don't want to have any motion sickness I'm not
+want to have any motion sickness I'm not going to go into details on why we
+going to go into details on why we decided that it seems like that's kind
+decided that it seems like that's kind of redundant like that talk should have
+of redundant like that talk should have happened two years ago so all right so
+happened two years ago so all right so I'm not gonna talk with my motion
+I'm not gonna talk with my motion sickness and I'm just going to talk
+sickness and I'm just going to talk about how we started developing this
+about how we started developing this locomotion system so we started with a
+locomotion system so we started with a point-and-click teleportation and that's
+point-and-click teleportation and that's your laser pointer type of locomotion
+your laser pointer type of locomotion where you have your tool handle and then
+where you have your tool handle and then you point somewhere and then you press a
+you point somewhere and then you press a button and you're instantly teleport
+button and you're instantly teleport there so this system had a bunch of
+there so this system had a bunch of problems that we wanted to solve so I'm
+problems that we wanted to solve so I'm just going to run through all of the
+just going to run through all of the issues that we had with this system
+issues that we had with this system there's no speed limits at which you can
+there's no speed limits at which you can traverse the world so you can just keep
+traverse the world so you can just keep tapping the button and you'll just
+tapping the button and you'll just instantly teleport wherever you're
+instantly teleport wherever you're pointing and this is a problem like both
+pointing and this is a problem like both in terms of gameplay because it's a
+in terms of gameplay because it's a stealth game and the time it takes to
+stealth game and the time it takes to move to a certain location is really
+move to a certain location is really important so another problem with this
+important so another problem with this is that if you if you move it moving
+is that if you if you move it moving small enough increments it can like
+small enough increments it can like start to resemble continuous motion and
+start to resemble continuous motion and that's also a problem because then
+that's also a problem because then that's going to cause motion sickness as
+that's going to cause motion sickness as well there's no distance limits so if
+well there's no distance limits so if you just point it like at a mountain
+you just point it like at a mountain somewhere far away you can just teleport
+somewhere far away you can just teleport there because it's the laser pointer
+there because it's the laser pointer right so you just go there immediately
+right so you just go there immediately and then you can go back and this is
+and then you can go back and this is also a problem in terms of gameplay so
+also a problem in terms of gameplay so both of the both of these things we
+both of the both of these things we wanted to solve them in a natural way so
+wanted to solve them in a natural way so in terms of the speed limits like we
+in terms of the speed limits like we could add a cool-down for every
+could add a cool-down for every teleportation but that's like that's
+teleportation but that's like that's really shitty for the players like oh I
+really shitty for the players like oh I just have to wait for one second or
+just have to wait for one second or whatever for every teleportation and it
+whatever for every teleportation and it just feels unnatural and tacked on it's
+just feels unnatural and tacked on it's kind of unfair the same goes with the
+kind of unfair the same goes with the distance limit like we could tack on
+distance limit like we could tack on some maximum
+some maximum for how far you can teleport but that's
+for how far you can teleport but that's again that's kind of unfair to the
+again that's kind of unfair to the player because it's like why is this
+player because it's like why is this limit here another problem is that it's
+limit here another problem is that it's unpredictable it's hard to tell where
+unpredictable it's hard to tell where your head and body is going to end up
+your head and body is going to end up once you actually teleport so let's say
+once you actually teleport so let's say you want to teleport to a doorway and
+you want to teleport to a doorway and you want to make sure that you don't
+you want to make sure that you don't peek you through like in front of the
+peek you through like in front of the doorway
+doorway just in case there are enemies there so
+just in case there are enemies there so like where where's your head gonna end
+like where where's your head gonna end up if you just point the laser pointer
+up if you just point the laser pointer there and like are you moving you're
+there and like are you moving you're tracking space origin or are you moving
+tracking space origin or are you moving your player head and it's kind of
+your player head and it's kind of difficult to predict where you're gonna
+difficult to predict where you're gonna end up so that was really crucial in our
+end up so that was really crucial in our game which is a stealth game so we
+game which is a stealth game so we needed to solve that as well and the
+needed to solve that as well and the transition when teleporting is kind of
+transition when teleporting is kind of harsh so if you make a graph of location
+harsh so if you make a graph of location a location B over time it's just this
+a location B over time it's just this really harsh transition in the center
+really harsh transition in the center which is just snaps over there and it's
+which is just snaps over there and it's feel shitty it's just blinks in your
+feel shitty it's just blinks in your face and it's kind of just up very nice
+face and it's kind of just up very nice at all so these were the goals we wanted
+at all so these were the goals we wanted to solve all of these problems so we
+to solve all of these problems so we didn't want to have any motion sickness
+didn't want to have any motion sickness we wanted to have a natural speed limit
+we wanted to have a natural speed limit one of natural distance limits we want
+one of natural distance limits we want to have accurate positioning of the head
+to have accurate positioning of the head we also wanted to have a smooth
+we also wanted to have a smooth transition once you go for a location a
+transition once you go for a location a to location B so the translocator device
+to location B so the translocator device from the Unreal Tournament series was
+from the Unreal Tournament series was probably our biggest source of
+probably our biggest source of inspiration for this given that it's
+inspiration for this given that it's using the same name translocator so the
+using the same name translocator so the translocator in Unreal Tournament is a
+translocator in Unreal Tournament is a device you're holding your hand you then
+device you're holding your hand you then press the button to fire a small beacon
+press the button to fire a small beacon that flies out and once it lands you can
+that flies out and once it lands you can then press the alternate fire to
+then press the alternate fire to teleport to wherever the beacon was so
+teleport to wherever the beacon was so the other source of inspiration was the
+the other source of inspiration was the portals from the game portal so the
+portals from the game portal so the portals in portal are quite intuitive
+portals in portal are quite intuitive it's it just opens up this portal and
+it's it just opens up this portal and it's a window into a new location and
+it's a window into a new location and it's really clear where you're going to
+it's really clear where you're going to end up once you look through them so
+end up once you look through them so combine combining these two was
+combine combining these two was basically what led to our locomotion
+basically what led to our locomotion system so what did the translocator
+system so what did the translocator solve so since the translocator fires
+solve so since the translocator fires your project a little gun it's going to
+your project a little gun it's going to land after a while because it's a
+land after a while because it's a physical objects that's affected by
+physical objects that's affected by gravity it's going to land somewhere it
+gravity it's going to land somewhere it has a set amount of speed so there's no
+has a set amount of speed so there's no way you can teleport faster than
+way you can teleport faster than the launch speed of the translocator
+the launch speed of the translocator beacon so this Fred much solved the
+beacon so this Fred much solved the speed limit problem it solves the
+speed limit problem it solves the distance limit problem and it's also
+distance limit problem and it's also doing that in a natural way because you
+doing that in a natural way because you know how throwing arcs work you know how
+know how throwing arcs work you know how physical objects fly through space so
+physical objects fly through space so you're okay as a player waiting for that
+you're okay as a player waiting for that to finish so we've pretty much solved
+to finish so we've pretty much solved the first three problems by having this
+the first three problems by having this translocator type of locomotion so as
+translocator type of locomotion so as for the accurate specific positioning a
+for the accurate specific positioning a smooth transition this is where we start
+smooth transition this is where we start to take inspiration from portal so the
+to take inspiration from portal so the transition that's so going back to the
+transition that's so going back to the transition the instant instantaneous
+transition the instant instantaneous transition that's kind of harsh and just
+transition that's kind of harsh and just popping in your face we wanted to
+popping in your face we wanted to improve that so we had some ideas on how
+improve that so we had some ideas on how to do that so one idea was to crossfade
+to do that so one idea was to crossfade to show both worlds and just
+to show both worlds and just transparently fade out one over the
+transparently fade out one over the other which is really shitty don't do
+other which is really shitty don't do that it's it's just showing two worlds
+that it's it's just showing two worlds at the same time it's really hard of the
+at the same time it's really hard of the GPU to render all of these things at the
+GPU to render all of these things at the same time it's just bad so don't do that
+same time it's just bad so don't do that you can also fade in and out to a solid
+you can also fade in and out to a solid color this is something that I guess
+color this is something that I guess most VR games do these days you have you
+most VR games do these days you have you flashed your solid color then you flash
+flashed your solid color then you flash back and it's it works okay and you can
+back and it's it works okay and you can sort of like you can put some sounds in
+sort of like you can put some sounds in there that kind of gives a narrative of
+there that kind of gives a narrative of what's happening so you can put like a
+what's happening so you can put like a footstep sound while you while it's
+footstep sound while you while it's fully faded to the solid color and it
+fully faded to the solid color and it makes it's kind of a narrative of what
+makes it's kind of a narrative of what you're what the player is doing during
+you're what the player is doing during that transition but we felt that this
+that transition but we felt that this wasn't good enough for our game we felt
+wasn't good enough for our game we felt that it's kind of mean to the players
+that it's kind of mean to the players you just fade out the entire screen it
+you just fade out the entire screen it still feels kind of tacked on it's like
+still feels kind of tacked on it's like oh you're just doing this because it's
+oh you're just doing this because it's VR and okay alright so we decided to go
+VR and okay alright so we decided to go with a portal so having a portal gives
+with a portal so having a portal gives the player the opportunity to look at
+the player the opportunity to look at both locations at the same time without
+both locations at the same time without them occupying the same space in in
+them occupying the same space in in their view so for the crossfade example
+their view so for the crossfade example you can see both places but it's really
+you can see both places but it's really hard to focus on it because they're
+hard to focus on it because they're overlapping and it's difficult but with
+overlapping and it's difficult but with the portal you can actually see where
+the portal you can actually see where you're going to end up you have this
+you're going to end up you have this window of looking into the new place so
+window of looking into the new place so then it makes it much more predictable
+then it makes it much more predictable which is good for our for our stealth
+which is good for our for our stealth game so here's a bit of an overview of
+game so here's a bit of an overview of the transition works so in
+the transition works so in first screenshot you can see that the
+first screenshot you can see that the portals open about the translocator and
+portals open about the translocator and the player wants to move into this red
+the player wants to move into this red room that has a small coffee table and
+room that has a small coffee table and once you want to go there you press the
+once you want to go there you press the buttons to translocate and the portal
+buttons to translocate and the portal then wraps around you you could say that
+then wraps around you you could say that it expands and once it's fully enveloped
+it expands and once it's fully enveloped the player they're standing at in your
+the player they're standing at in your location and this is a completely smooth
+location and this is a completely smooth experience so just to give a little bit
+experience so just to give a little bit of a technical breakdown of how this
+of a technical breakdown of how this system is set up so on the left you have
+system is set up so on the left you have the the little cross is the origin of
+the the little cross is the origin of the play space so we're doing room scale
+the play space so we're doing room scale tracked VR so that's the origin of the
+tracked VR so that's the origin of the play space and the thing above it is the
+play space and the thing above it is the eyes of the player or the cameras and
+eyes of the player or the cameras and the things on the rights that are that's
+the things on the rights that are that's the destination you want to go to so
+the destination you want to go to so let's say these are objects you want to
+let's say these are objects you want to move to so you then fire the
+move to so you then fire the translocator beacon it lands near the
+translocator beacon it lands near the objects we then create another set of
+objects we then create another set of cameras because we're gonna we're gonna
+cameras because we're gonna we're gonna have to render the portal as well so
+have to render the portal as well so this one matches your head at all times
+this one matches your head at all times so when you move your head to the sides
+so when you move your head to the sides the portal cameras are going to move in
+the portal cameras are going to move in the in the same way so we then open the
+the in the same way so we then open the portal in front of the player and this
+portal in front of the player and this corresponds to this location in at the
+corresponds to this location in at the portal or in the destination so then you
+portal or in the destination so then you can look through the portal and once you
+can look through the portal and once you do that you can see the new objects that
+do that you can see the new objects that are you're about to go to and in this
+are you're about to go to and in this way you get like a really predictable
+way you get like a really predictable way of seeing where you're gonna end up
+way of seeing where you're gonna end up how it's going to look and and this one
+how it's going to look and and this one is fully dynamic as well so if you if
+is fully dynamic as well so if you if you turn around the portal is gonna
+you turn around the portal is gonna follow along your weapon as well so you
+follow along your weapon as well so you can you can always see where you're
+can you can always see where you're going to end up so then once you press
+going to end up so then once you press the buttons to teleport we expand the
+the buttons to teleport we expand the portal around the sphere that's around
+portal around the sphere that's around the head of the player the sphere is
+the head of the player the sphere is like I think we used like one meter
+like I think we used like one meter radius and then the portal just expands
+radius and then the portal just expands around that sphere and then like it
+around that sphere and then like it fully envelops the player and
+fully envelops the player and understanding at the new location so
+understanding at the new location so once you press expense and then you're
+once you press expense and then you're at the new location so this system was
+at the new location so this system was super smooth we haven't had any
+super smooth we haven't had any locomotion we haven't had any motion
+locomotion we haven't had any motion sickness from this at all it's been
+sickness from this at all it's been working really well so we so this was a
+working really well so we so this was a nice way of contextualizing the the
+nice way of contextualizing the the movement system in the game as well
+movement system in the game as well because our translocator device has a
+because our translocator device has a story behind it alright so that pretty
+story behind it alright so that pretty much solved all of the the goal
+much solved all of the the goal in terms to look emotion but we also had
+in terms to look emotion but we also had some design issues still so let's say
+some design issues still so let's say let's say you're the player is looking
+let's say you're the player is looking north so so this is a top-down view the
+north so so this is a top-down view the players looking north they're holding
+players looking north they're holding the translocator device in front of them
+the translocator device in front of them and they open up the portal and then you
+and they open up the portal and then you press the buttons to teleport to the new
+press the buttons to teleport to the new location so the portal starts expanding
+location so the portal starts expanding in front of them now we naively thought
+in front of them now we naively thought that okay so as soon as the portal has
+that okay so as soon as the portal has expanded and filled your entire field of
+expanded and filled your entire field of view we can then move the player object
+view we can then move the player object in the new location and just close the
+in the new location and just close the portal and everything's done the problem
+portal and everything's done the problem though is that the player can still turn
+though is that the player can still turn around so if the player starts turning
+around so if the player starts turning then the portal edge is going to be in
+then the portal edge is going to be in front of them so we kind of have to kept
+front of them so we kind of have to kept expanding the portal across the entire
+expanding the portal across the entire sphere around the player head so we had
+sphere around the player head so we had to do this full and develop or the
+to do this full and develop or the player which had some issues so if you
+player which had some issues so if you let's say you're looking forward you
+let's say you're looking forward you have the portal in front of you you
+have the portal in front of you you press the buttons to teleport is then
+press the buttons to teleport is then starts to expand and once it reaches
+starts to expand and once it reaches this point you don't see anything
+this point you don't see anything happening your entire field of view is
+happening your entire field of view is the destination that you're going to but
+the destination that you're going to but the portal hasn't wrapped yet so you
+the portal hasn't wrapped yet so you still have this time here where like you
+still have this time here where like you don't see anything happening but you're
+don't see anything happening but you're still waiting for the portal to finish
+still waiting for the portal to finish so it was kind of annoying to have to
+so it was kind of annoying to have to wait for that so conversely if you're
+wait for that so conversely if you're looking south and you're holding the
+looking south and you're holding the translocator to the north and you start
+translocator to the north and you start translocating then the first half of the
+translocating then the first half of the translocation is going to be useless
+translocation is going to be useless because nothing's happening you just
+because nothing's happening you just heard the audio for teleporting but
+heard the audio for teleporting but nothing happens until like the last
+nothing happens until like the last seven or five percent of the you
+seven or five percent of the you wrapping so this was something we wanted
+wrapping so this was something we wanted to solve because we wanted to have a
+to solve because we wanted to have a consistent teleportation time and when
+consistent teleportation time and when it him we didn't want to have any sort
+it him we didn't want to have any sort of weird wrapping where the portal comes
+of weird wrapping where the portal comes like in from your periphery and it
+like in from your periphery and it squeezes into a small hole and it just
+squeezes into a small hole and it just looked odd all right so the solution to
+looked odd all right so the solution to this is a word that I've always wanted
+this is a word that I've always wanted to use in a professional setting
+to use in a professional setting it's slurp so that's a short for
+it's slurp so that's a short for spherical linear interpolation so on the
+spherical linear interpolation so on the left you have lerp which is linear and
+left you have lerp which is linear and on the right you have slurp which is
+on the right you have slurp which is spherical so it's basically
+spherical so it's basically interpolation between two sets of data
+interpolation between two sets of data points in this case is two vectors so if
+points in this case is two vectors so if you want interpolate between the
+you want interpolate between the vertical vector and the horizontal one
+vertical vector and the horizontal one bite
+bite five percent and fifty percent you can
+five percent and fifty percent you can see that the right one is spherical so
+see that the right one is spherical so that's what we're doing with the
+that's what we're doing with the direction towards the translocator and
+direction towards the translocator and the player view direction so as you can
+the player view direction so as you can see here that's the translocator
+see here that's the translocator direction and we have the view direction
+direction and we have the view direction there so what we do is essentially so so
+there so what we do is essentially so so if we have this case where the player is
+if we have this case where the player is looking south east and they have the
+looking south east and they have the portal to the north and they start to
+portal to the north and they start to translocate the press the buttons then
+translocate the press the buttons then we pivot the portal around the player
+we pivot the portal around the player head to rotate in front of them so while
+head to rotate in front of them so while it's expanding its simultaneously
+it's expanding its simultaneously slurping towards the field of view of
+slurping towards the field of view of the player so then it just and fully
+the player so then it just and fully involved their field of view it's really
+involved their field of view it's really predictable and it works really well
+predictable and it works really well so this solve the problem of how like
+so this solve the problem of how like holding the translator behind them in
+holding the translator behind them in the press the buttons it just kind of
+the press the buttons it just kind of gives you this sideswipe as it covers
+gives you this sideswipe as it covers your field of view and it works really
+your field of view and it works really well so that that allow us to give a
+well so that that allow us to give a consistent time to to move in every step
+consistent time to to move in every step so then we also ask ourselves what is
+so then we also ask ourselves what is the portal like what's the physical
+the portal like what's the physical nature of the portal and how do people
+nature of the portal and how do people interact with it so this is something
+interact with it so this is something that's quite important because the
+that's quite important because the player gets certain expectations of how
+player gets certain expectations of how they can use it so for instance like can
+they can use it so for instance like can you reach through the portal can you
+you reach through the portal can you grab objects if you do that can you
+grab objects if you do that can you throw objects through the portal so if
+throw objects through the portal so if you open the portal behind an enemy and
+you open the portal behind an enemy and you're holding a knife can you throw the
+you're holding a knife can you throw the knife through the portal at the enemy it
+knife through the portal at the enemy it like should that work or can you put
+like should that work or can you put your head through the portal if you like
+your head through the portal if you like move it really close to your face so
+move it really close to your face so these were questions we had to solve
+these were questions we had to solve somehow and contrary to the portal in
+somehow and contrary to the portal in the game portal our portal is not
+the game portal our portal is not physical at all it's only visual so
+physical at all it's only visual so photons only nothing else can go through
+photons only nothing else can go through this portal until you well actually
+this portal until you well actually transfer gate and press the buttons I
+transfer gate and press the buttons I guess and this this works pretty well in
+guess and this this works pretty well in communicating and how things work and it
+communicating and how things work and it also allowed us to save time in not
+also allowed us to save time in not implementing throwing physics objects
+implementing throwing physics objects through the portal because that's a
+through the portal because that's a whole can of worms so so let's say the
+whole can of worms so so let's say the player is standing in this blue room and
+player is standing in this blue room and they teleport to a pair of scissors
+they teleport to a pair of scissors that's lying on a shelf in the Red Room
+that's lying on a shelf in the Red Room so if you want to grab that object you
+so if you want to grab that object you use your grabber which is the tool
+use your grabber which is the tool you're using to pick stuff up
+you're using to pick stuff up and if you move that into the portal you
+and if you move that into the portal you can see that it's kind of gets this
+can see that it's kind of gets this hologram effects so that's one way that
+hologram effects so that's one way that we communicate to the player that this
+we communicate to the player that this is a preview of where you're gonna end
+is a preview of where you're gonna end up you're not actually standing there
+up you're not actually standing there your controllers are not actually at the
+your controllers are not actually at the new location so this was a good way of
+new location so this was a good way of communicating total player that no you
+communicating total player that no you you can't pick this up and actually work
+you can't pick this up and actually work well we we used to have issues with this
+well we we used to have issues with this before when the controllers looked like
+before when the controllers looked like the physical controllers on the other
+the physical controllers on the other other side of the portal as well but in
+other side of the portal as well but in this case it worked well so once you
+this case it worked well so once you press the buttons to translocate and the
+press the buttons to translocate and the portal starts expanding around you
+portal starts expanding around you we immediately pop the controllers to
+we immediately pop the controllers to the physical versions of them so it's no
+the physical versions of them so it's no longer holograms and you can immediately
+longer holograms and you can immediately start to interact with it and this is
+start to interact with it and this is something we actually added later so the
+something we actually added later so the first iteration of the portal we didn't
+first iteration of the portal we didn't move the physical player objects until
+move the physical player objects until the portal was done wrapping around you
+the portal was done wrapping around you and we had a lot of issues with players
+and we had a lot of issues with players like let's say you're holding a knife
+like let's say you're holding a knife and you want to throw that at a robot
+and you want to throw that at a robot that's standing somewhere you open up
+that's standing somewhere you open up the portal and then you want to press
+the portal and then you want to press the buttons to transfer you can and then
+the buttons to transfer you can and then immediately throw the knife but the
+immediately throw the knife but the problem with this is that if the
+problem with this is that if the translocation of your physical body
+translocation of your physical body doesn't happen until the portal is done
+doesn't happen until the portal is done if you throw the knife wireless wrapping
+if you throw the knife wireless wrapping around you it's gonna be thrown from the
+around you it's gonna be thrown from the old location rather than the new
+old location rather than the new location so had a lot of people like
+location so had a lot of people like losing their knives it seemed like they
+losing their knives it seemed like they were just disappearing so what we do is
+were just disappearing so what we do is we immediately move the player on the
+we immediately move the player on the first frame you press the transfer gate
+first frame you press the transfer gate and then the rest is just a visual
+and then the rest is just a visual effects so in this case you press the
+effects so in this case you press the buttons to transfer gate and you could
+buttons to transfer gate and you could just pick up the scissors and you're
+just pick up the scissors and you're done so what about the enemies in our
+done so what about the enemies in our game can they see the portal can they
+game can they see the portal can they see the translocator like how do they
+see the translocator like how do they interact with it so this is our
+interact with it so this is our translocator beacon so should they be
+translocator beacon so should they be able to see that one or not and we in in
+able to see that one or not and we in in the demo we released two years ago we
+the demo we released two years ago we didn't we made sure that they couldn't
+didn't we made sure that they couldn't see the beacon at all because who felt
+see the beacon at all because who felt that the game became too hard but we
+that the game became too hard but we later realized that once it get used to
+later realized that once it get used to the robots not seeing the translocator
+the robots not seeing the translocator beacon the game felt like it was became
+beacon the game felt like it was became a bit too easy you can just move around
+a bit too easy you can just move around anywhere and you could just do whatever
+anywhere and you could just do whatever you wanted and there was no consequence
+you wanted and there was no consequence and the threat of the robots kind of
+and the threat of the robots kind of disappeared
+disappeared so we did some experimenting with this
+so we did some experimenting with this we we tried to kind of make the beacon
+we we tried to kind of make the beacon into a character into yourself in a way
+into a character into yourself in a way like an extension of you so if you
+like an extension of you so if you wanted to move somewhere let's say you
+wanted to move somewhere let's say you want to move past this guard then if you
+want to move past this guard then if you don't want to be spotted you maybe you
+don't want to be spotted you maybe you have to move around the guard like you
+have to move around the guard like you have to fire it over the the doorway so
+have to fire it over the the doorway so this was this is something that would we
+this was this is something that would we experimented with but it ended up not
+experimented with but it ended up not being fun because in in stealth games if
+being fun because in in stealth games if when you move around continuously you
+when you move around continuously you can still look around you you can still
+can still look around you you can still see who can see you but if we try to
+see who can see you but if we try to like emulate a character in something
+like emulate a character in something that you can't see from it became kind
+that you can't see from it became kind of it just didn't work well you would
+of it just didn't work well you would fire the transportation a hallway and
+fire the transportation a hallway and like five robots saw the beacon and you
+like five robots saw the beacon and you had no idea from where they saw them and
+had no idea from where they saw them and it we just became you just became
+it we just became you just became chaotic and and shitty so yeah we ended
+chaotic and and shitty so yeah we ended up scrapping that idea so they can't see
+up scrapping that idea so they can't see the they can see the translocated beacon
+the they can see the translocated beacon anymore so what about the portal can
+anymore so what about the portal can they see the portal how should they
+they see the portal how should they react to say they see it and again this
+react to say they see it and again this is something that was invisible in the
+is something that was invisible in the demo but we felt that again it kind of
+demo but we felt that again it kind of removed the threat of the enemies
+removed the threat of the enemies because you could just look inside a
+because you could just look inside a room you can look around and the enemies
+room you can look around and the enemies would not react to the portal at all so
+would not react to the portal at all so what we tried for a while was to make
+what we tried for a while was to make the enemies shoot the portal if they see
+the enemies shoot the portal if they see it so you fire the beacon into room the
+it so you fire the beacon into room the portal opens up and if there's a guard
+portal opens up and if there's a guard there they're gonna see the portal and
+there they're gonna see the portal and fire at it which closes the portal and
+fire at it which closes the portal and then they would start looking for you
+then they would start looking for you the problem with this would this was
+the problem with this would this was basically the same as with the
+basically the same as with the translocator beacon it just became
+translocator beacon it just became chaotic it wasn't really the the fun
+chaotic it wasn't really the the fun type of chaotic either it was just the
+type of chaotic either it was just the the unpredictable
+the unpredictable type of chaotic so we ended up half way
+type of chaotic so we ended up half way scrapping that idea of making them see
+scrapping that idea of making them see the portal so what we did instead was
+the portal so what we did instead was that they can't see the portal itself
+that they can't see the portal itself but they can see you through the portal
+but they can see you through the portal so if you're looking through the portal
+so if you're looking through the portal in a room and you're looking at a robot
+in a room and you're looking at a robot they can see you through the portal and
+they can see you through the portal and then they would react and then they'd
+then they would react and then they'd fire at the portal to close the portal
+fire at the portal to close the portal so this kind of kept the threats of the
+so this kind of kept the threats of the guards there because they react to the
+guards there because they react to the portal but only when you see the guards
+portal but only when you see the guards so that kind of removed the
+so that kind of removed the unpredictability factor and made it much
+unpredictability factor and made it much more interesting and fun
+more interesting and fun so in this case you get all the audio
+so in this case you get all the audio cues of a guard spotting you and then
+cues of a guard spotting you and then you you get this like innate reaction
+you you get this like innate reaction that you just want to close the portal
+that you just want to close the portal and hide which is really good so that
+and hide which is really good so that worked well for us all right so a little
+worked well for us all right so a little bit about the tech so we kind of had two
+bit about the tech so we kind of had two iterations of the portal system so the
+iterations of the portal system so the old one was the one we had in the demo
+old one was the one we had in the demo two years ago and then we have a new
+two years ago and then we have a new iteration that's much faster so this is
+iteration that's much faster so this is the old version just to go through the
+the old version just to go through the two iterations we had so in the old
+two iterations we had so in the old version we rendered the portal cameras
+version we rendered the portal cameras so so when we rendered the cameras of
+so so when we rendered the cameras of the portal that's two cameras one per
+the portal that's two cameras one per eye so we render that to render target
+eye so we render that to render target and never have a portal mesh in front of
+and never have a portal mesh in front of you that's again the one meter distance
+you that's again the one meter distance sphere where we cut out using a shader
+sphere where we cut out using a shader and then we rendered that render targets
+and then we rendered that render targets with the shader on that portal and then
+with the shader on that portal and then we render the eye cameras which is
+we render the eye cameras which is everything your eye eyes can see and
+everything your eye eyes can see and then the portal mesh in front of it and
+then the portal mesh in front of it and then we added all of the effects the
+then we added all of the effects the problem with this though is that this is
+problem with this though is that this is really heavy for the graphics card so if
+really heavy for the graphics card so if you're like okay I'm gonna render the
+you're like okay I'm gonna render the left eye of the portal and I'm gonna
+left eye of the portal and I'm gonna render the right out of the portal and
+render the right out of the portal and I'm gonna render the left eye of the
+I'm gonna render the left eye of the player and the right I have the player
+player and the right I have the player and like it becomes quite a lot after a
+and like it becomes quite a lot after a while so it's just it's not very
+while so it's just it's not very performant and then you're like okay
+performant and then you're like okay let's add some some sort of post effects
+let's add some some sort of post effects here I want to have tone mapping and I
+here I want to have tone mapping and I want to have color correction then it's
+want to have color correction then it's just super heavy so we had to optimize
+just super heavy so we had to optimize this somehow so it's really heavy like
+this somehow so it's really heavy like both in processing power as well as in
+both in processing power as well as in memory because we had to have like a
+memory because we had to have like a full screen render target as well so our
+full screen render target as well so our solution to this was to not use the
+solution to this was to not use the render target at all so in the the final
+render target at all so in the the final version that we're using right now we
+version that we're using right now we first rendered the portal which is the
+first rendered the portal which is the the black disk you can see there and
+the black disk you can see there and that will rights to the Z buffer so that
+that will rights to the Z buffer so that everything behind it gets rejected so it
+everything behind it gets rejected so it only renders everything around the
+only renders everything around the portal so it renders all the opaque
+portal so it renders all the opaque geometry for the eye cameras so then we
+geometry for the eye cameras so then we render the transparent geometry to add
+render the transparent geometry to add all the portal effects and whatnot then
+all the portal effects and whatnot then we filled the Z buffer fullscreen and
+we filled the Z buffer fullscreen and then we punch a hole in the in the Z
+then we punch a hole in the in the Z buffer at the
+buffer at the so what we then can do is we just render
+so what we then can do is we just render the pearl cameras after this and
+the pearl cameras after this and everything around the portal will be
+everything around the portal will be easy rejected early so we will only
+easy rejected early so we will only render inside the portal so then we
+render inside the portal so then we rendered the opaque geometry of the
+rendered the opaque geometry of the portal cameras and then the transparent
+portal cameras and then the transparent geometry and that gives us the full
+geometry and that gives us the full effect of the portal and this was much
+effect of the portal and this was much much more performance than what we had
+much more performance than what we had before and we didn't have to do any
+before and we didn't have to do any render target acts no so this is kind of
+render target acts no so this is kind of an overview of that system all right so
+an overview of that system all right so let's talk a little bit about the art as
+let's talk a little bit about the art as well so this is screen is a screen shot
+well so this is screen is a screen shot from the old version since we were using
+from the old version since we were using a render target we could do all sorts of
+a render target we could do all sorts of effects that we can't really do anymore
+effects that we can't really do anymore so we could do refraction inside the
+so we could do refraction inside the portal so if you look around the edges
+portal so if you look around the edges of the portal it kind of distorts what's
+of the portal it kind of distorts what's behind it and that was kind of it gave
+behind it and that was kind of it gave it this like a black hole effect
+it this like a black hole effect everything was just sort of worked
+everything was just sort of worked around the edges which was pretty cool
+around the edges which was pretty cool but it was kind of hard to communicate
+but it was kind of hard to communicate to the player how all of that worked and
+to the player how all of that worked and we but but the advantage was like we
+we but but the advantage was like we could have the refraction effects we
+could have the refraction effects we could have like 2d effects around the
+could have like 2d effects around the edges because it was just sitting on
+edges because it was just sitting on this inverted sphere around the player
+this inverted sphere around the player but we changed that for the final portal
+but we changed that for the final portal so just to give a little effects
+so just to give a little effects breakdown of how the portal is rendered
+breakdown of how the portal is rendered we first have the disk of the portal and
+we first have the disk of the portal and we then render a glow effect around the
+we then render a glow effect around the portal is just a quad strip basically so
+portal is just a quad strip basically so this is on the outside and gives it a
+this is on the outside and gives it a nice glow effect then there's a funnel
+nice glow effect then there's a funnel which is two high poly I forgot to fix
+which is two high poly I forgot to fix that but too late now so it has like a
+that but too late now so it has like a funnel shape which is gives it a bit of
+funnel shape which is gives it a bit of a depth and gives it a kind of a funnel
+a depth and gives it a kind of a funnel effect the effect is kind of subtle but
+effect the effect is kind of subtle but in VR it feels much better it feels like
+in VR it feels much better it feels like things are going into the portal all
+things are going into the portal all right so then we render the eye cameras
+right so then we render the eye cameras inside the portal and then we have a
+inside the portal and then we have a multiply disc that multiplies in a color
+multiply disc that multiplies in a color from the edges I can switch back and
+from the edges I can switch back and forth so you can see so that gives it a
+forth so you can see so that gives it a bit more depth it gives it a bit more
+bit more depth it gives it a bit more punch and makes it feel like a sphere
+punch and makes it feel like a sphere and a deep thing you can look into so
+and a deep thing you can look into so then we have an inner inverted cylinder
+then we have an inner inverted cylinder thing that gives it more
+thing that gives it more more of the funnel effects which is
+more of the funnel effects which is useful and then another glow ring on the
+useful and then another glow ring on the inside to make the border seem like a
+inside to make the border seem like a really sharp glow kind of the lightsaber
+really sharp glow kind of the lightsaber effect I guess alright and let's see if
+effect I guess alright and let's see if this one there we go and then we also
+this one there we go and then we also have a bubble shine on top of the portal
+have a bubble shine on top of the portal because in in the new version we want
+because in in the new version we want the portal to feel more like a bubble
+the portal to feel more like a bubble you can look through rather than a black
+you can look through rather than a black hole so or a wormhole I guess so yeah
+hole so or a wormhole I guess so yeah that gave it a nice shine we had to
+that gave it a nice shine we had to tweak this one quite a lot to make sure
+tweak this one quite a lot to make sure that it didn't like outshine the things
+that it didn't like outshine the things you were seeing inside of the portal and
+you were seeing inside of the portal and this was kind of tricky when you were
+this was kind of tricky when you were moving from like a very dark area to a
+moving from like a very dark area to a very bright area and vice versa so if
+very bright area and vice versa so if you had like really bright reflections
+you had like really bright reflections on the portal going into a dark area you
+on the portal going into a dark area you would just see the reflection so it was
+would just see the reflection so it was super confusing so we ended up just
+super confusing so we ended up just fading the reflection in center of the
+fading the reflection in center of the portal and just making it sharper on the
+portal and just making it sharper on the edges all right so the the physical
+edges all right so the the physical nature of the portal was something we
+nature of the portal was something we had some issues with in the demo so this
+had some issues with in the demo so this inverted sphere I've been talking about
+inverted sphere I've been talking about before that was something we had to
+before that was something we had to scrap once we reached the final
+scrap once we reached the final iteration of the portal because the
+iteration of the portal because the inverted sphere idea was basically a you
+inverted sphere idea was basically a you Technosphere you invert it it's 1 meter
+Technosphere you invert it it's 1 meter in radius and never had a shader that
+in radius and never had a shader that rendered the portal in front of it in
+rendered the portal in front of it in front of you based on the direction from
+front of you based on the direction from your head to the translocator but the
+your head to the translocator but the problem with that was that it had no
+problem with that was that it had no sense of depth it was always at 1 meter
+sense of depth it was always at 1 meter distance regardless of where you were
+distance regardless of where you were holding the translocator so you could
+holding the translocator so you could move the translocator around but the
+move the translocator around but the portal would stay at 1 meters distance
+portal would stay at 1 meters distance and it was really hard to tell like how
+and it was really hard to tell like how where's the portal how far away is it it
+where's the portal how far away is it it was it we just felt weird for the player
+was it we just felt weird for the player so let's see if this video plays if not
+so let's see if this video plays if not I'll just skip it it's not too important
+nope okay it's slow whatever okay so once we change the portal to be a sphere
+once we change the portal to be a sphere above the translocator then we had to
+above the translocator then we had to solve the problems of the player pushing
+solve the problems of the player pushing their head through that one because that
+their head through that one because that was not a problem before right because
+was not a problem before right because there was always at 1 meters distance
+there was always at 1 meters distance you couldn't put your head through it
+you couldn't put your head through it but once you have it as a sphere above
+but once you have it as a sphere above the translocator you have to solve that
+the translocator you have to solve that problem somehow so we what we did was
+problem somehow so we what we did was when the player pushes their head
+when the player pushes their head towards the the sphere around the
+towards the the sphere around the translocator we just shrink it down and
+translocator we just shrink it down and then it moves into the controller so we
+then it moves into the controller so we had some debating like whether or not
+had some debating like whether or not the whether or not you should be able to
+the whether or not you should be able to translocate by putting it above your
+translocate by putting it above your head but that it's it's kind of hard to
+head but that it's it's kind of hard to because you want to be able to look
+because you want to be able to look through the portal without moving to the
+through the portal without moving to the new location so we decided that you
+new location so we decided that you can't do that you have to press the
+can't do that you have to press the buttons to teleport we also wanted to
+buttons to teleport we also wanted to keep the 2d effects we had we had these
+keep the 2d effects we had we had these like it was 3d 3d geometry but we wanted
+like it was 3d 3d geometry but we wanted to have like all the nice borders and
+to have like all the nice borders and all the nice glow effects but if it's a
+all the nice glow effects but if it's a sphere it was difficult to control all
+sphere it was difficult to control all of those in a nice way so what we ended
+of those in a nice way so what we ended up doing was to fake a sphere so there's
+up doing was to fake a sphere so there's this a 2d example of the same case you
+this a 2d example of the same case you also what we ended up doing was to move
+also what we ended up doing was to move a disc to a location inside a sphere to
+a disc to a location inside a sphere to make it look like a sphere from whatever
+make it look like a sphere from whatever perspective you were looking at it from
+perspective you were looking at it from and this is done on the GPU so it's done
+and this is done on the GPU so it's done per eye and the effect is actually super
+per eye and the effect is actually super convincing in VR and here's the code in
+convincing in VR and here's the code in case you want it's so you can you can
+case you want it's so you can you can really easily fake spheres this way and
+really easily fake spheres this way and it's really fascinating because I when I
+it's really fascinating because I when I tried this in in VR I was like holy
+tried this in in VR I was like holy this really does look like a sphere and
+this really does look like a sphere and it's really bizarre even though it's
+it's really bizarre even though it's just like a disc that's repositioned so
+just like a disc that's repositioned so this way we could just keep all of our
+this way we could just keep all of our nice 2d effects and yeah we had a lot of
+nice 2d effects and yeah we had a lot of control in how we could make the portal
+control in how we could make the portal look and feel and that's it for my talk
+look and feel and that's it for my talk so thank you very much for joining
+so thank you very much for joining [Applause]

@@ -1,0 +1,293 @@
+hey everyone it's me Tim and today I
+want to talk about Quest implementation
+Christy tenay 6130 I hope I got that
+name right asks hi Tim can you please
+explain more about how a quest system is
+created in code do you use a database or
+just classes
+there are variables only or entire
+records and how do you change the quest
+dates and do branching depending on the
+various State paths provided and chosen
+by the players
+good question and let me let me for a
+second just say why this is such a good
+question I love that it is very specific
+you didn't ask hey how do you make
+quests because I don't know if you mean
+code I don't know if you mean design I
+don't know if you by Design you mean the
+idea of the quest or the specific
+implementation how narrative factors in
+no very specific how do you code it
+it's also a good example of asking a
+question about something that I forgot I
+ever didn't know and this is going to
+sound strange but let me just tell you
+how these things work and it took me a
+long time to figure this out when you
+first start in the game industry you
+don't know anything so you have a
+question about everything
+after a while you start to do these
+things you learn like okay this is good
+I'm going to use this thing I've learned
+after decades you forget that you didn't
+even know that thing
+so it never would have occurred to me to
+talk about this because I I just assume
+people have played a bunch of RPGs they
+know how this works
+so it's something that a friend told me
+once he said one nature of becoming an
+expert in something is early on in
+becoming an expert you realize all the
+stuff you don't know
+and then later
+in being an expert you forget all the
+things you didn't ever know you forget
+the fact that you didn't never know
+those things so this is a good question
+I want to talk about it this is I'm
+going to talk about a system we used it
+in Fallout
+it was the first time we had ever done
+anything like it
+so when I sat down to write the design
+docs on this section in Arcanum I
+formalized all of this
+and I'll talk about in States and how
+the states are adjusted but I've used
+this particular formulation ever since
+it was used in Arcanum it was used in
+Temple of Elemental Evil it was used in
+Vampire Bloodlines we were going to use
+something similar in WildStar definitely
+used it in outer worlds
+so let me talk about how it's coded
+first of all every Quest is has a set of
+states it can go through this could be
+an enumeration it's
+unknown meaning
+the players never heard of it
+mentioned meaning the quest has been
+mentioned talked about but the player
+was non-committal about it
+accepted meaning they accepted the quest
+and that's all they've done
+achieved meaning the objective of the
+quest
+was done but they haven't turned it in
+some quests those may be the same thing
+but I don't know I'll leave that to the
+narrative designer and then the
+fifth state is completed meaning the
+objective or objectives and I'll talk
+about that have all been done have all
+been achieved and now the quest is and
+the quest has been turned in rewards
+have been given
+it's completed
+there's actually a six State called
+botched which is
+any time actually you can set botched on
+any of the states except completed
+botched is handled specially in code I
+use it as a flag on the quest date so
+Quest date is one of those enums I just
+mentioned one of those five ones and
+then you have botched and that's because
+if an unknown Quest gets botched
+depending on UI design you may or may
+not tell players about it I've seen some
+games when a quest I've never tried to
+get didn't even know about is botched
+and I'm told about it when like the
+quest Giver gets killed
+I've also seen games and I've made games
+myself that if you kill a quest Giver
+all the quests they give you internally
+are botched but you're never told if you
+if if they're only in the unknown state
+for mentioned accepted and achieved if
+they've been input in your quest log
+sometimes mention quests go in quest log
+sometimes they don't then it gets moved
+to a botched section
+however once a quest is completed it's
+done it's over it's moved in the
+complete section if you try to set the
+Bots flag it doesn't let you so let's
+talk about that so I do all this in a
+quest class the quest class has as
+variables the state which is probably
+neenum and the Box flag
+and that's it so let's talk about the
+methods that you can put on this class
+and yeah I'm talking C plus plus just
+because that's the last time I
+implemented this so
+you can set a state so you on that
+particular Quest you call set State not
+botch though so those are the five ones
+I have
+advancement is enforced here quests can
+only move forward you can't go from
+mentioned to unknown you can't go from
+achieved to mention so when that state
+is called it only allows the quest state
+to advance from an earlier one to a
+later one
+um but also
+um
+once the quest has been completed cause
+to this the set state are ignored so
+you've completed it I'm not it won't
+accept any more State commands on that
+Quest
+you can also call get State now get
+state is where you say if that botch
+flag is set you return the botched State
+otherwise you just return the state that
+it is now in here you can also decide if
+I don't tell the player that an unknown
+Quest is botched if
+the state is unknown you don't care what
+botched is you just return unknown so
+that's something you have to decide in
+your game how you're going to handle
+that and then there's a third
+uh or fourth depending on how you look
+at it a set of methods for botching and
+unboxing a quest
+when you botch it it turns on this the
+flag and when you unbox it it turns off
+that flag
+now again these methods don't work if
+the state's already been set to complete
+it
+so now you have a basic functional Quest
+class how do you implement that well I
+make a
+Quest array that is managed by a quest
+manager which welcome to C plus you're
+going to be making a Singleton here it's
+the thing I don't like about the
+language every time I've made
+CL well not every time but frequently
+when you make classes of things you have
+to end up making a Singleton manager for
+those classes and this is no different
+so you just make a quest manager the
+quest manager
+basically reads in
+um the quest data and it's Mana it it
+reads in and saves that array
+and it's what managed all of them so
+that way it has a load save so when the
+game says hey you need to save this
+person's game the quest manager writes
+out the
+State and botched flag of all the quests
+and then you have to make you have to
+put the set State get State and Bots and
+unbox as script
+calls so you basically expose them to
+your scripting language I always have
+scripters handle the Quest State and the
+reason for that is
+it can be changed in so many ways like I
+said you kill the quest manager botch
+you
+walk by someone on the street and
+they're just talking about something
+you know like I heard there's bandage
+down by the river mentioned
+you are in a dialogue with someone and
+they're like would you did you hear
+about the bandits mentioned would you
+deal with them
+player says yes
+you said it to accept it these have to
+be done in scripts because there's just
+so many places
+throughout the code that they can be
+changed it's really hard to systematize
+that so it's that's the one thing I'm
+like here here you are it's probably
+these script calls tend to be caught a
+lot by narrative designers but also by
+your level designers who write Scripts
+now you notice I have Miss out a few
+things I'm going to talk about some
+advanced
+um Quest stuff you want maybe you want
+multiple objectives so to do this Quest
+you have to do these three things
+just add extra variables into the quest
+class for those extra objectives and
+they're when you call set State on
+achieved you have to actually give it
+what
+objective that you're achieving so
+um set State takes an optional parameter
+which has to be there if you're calling
+achieved or you could just make a
+separate one and say set State doesn't
+work for achieved and set State achieved
+it's its own thing that requires a
+parameter
+you can decide at this point whether or
+not
+um these have to be done in order
+or if any of these objectives are
+optional
+and then what you can do is you can do
+Flags to control that if if they have to
+do a b and c in order then you can't set
+b as achieved before you set a
+if it's A and B and C is optional then
+well there's a rule that once you've
+achieved all of the objectives the quest
+will return completed for its state
+it will return completed even if the
+optional ones aren't done
+and then it will once you have all of
+them
+um it can be completed so yeah I'm sorry
+it doesn't return completed it can be
+set to completed if all of the
+non-optional states are marked as
+achieved
+so
+I kind of just wanted to start at the
+end as I hear some things you could do
+to make a more modern
+Quest system with multiple States and
+optional States but just to get started
+I would do what I originally told you
+about which is just make a quest which
+you know go get the crown of diamonds
+which is hidden in this cave
+you go get the crown it goes for mention
+you accept it you go and when you as
+soon as you pick up that Crown it's
+achieved as soon as you go back to the
+quest giver and turn it in complete it
+everything else from there is kind of an
+advanced set of things you can do but
+they're not that hard and I think
+if you're a programmer or you're a
+designer you can just write that in and
+your programmer will know what to do if
+you want to add States in order or
+optional States
+but in general I've used this structure
+in so many games
+it works well it's tested it's tried and
+true and it will do pretty much
+everything that an RPG player expects
+from their quests
+so I hope that answered your question
+Christy tenace and I hope that's how you
+you say your name

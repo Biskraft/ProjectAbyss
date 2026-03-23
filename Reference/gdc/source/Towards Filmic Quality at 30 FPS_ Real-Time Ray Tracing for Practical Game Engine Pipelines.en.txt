@@ -1,0 +1,2071 @@
+[Music] thank you guys for
+thank you guys for coming to enthuse about retracing along
+coming to enthuse about retracing along the way
+the way ponder the problems that we've attempted
+ponder the problems that we've attempted to tackle
+to tackle and problems that the industry as a
+and problems that the industry as a whole will attempt to continue to tackle
+whole will attempt to continue to tackle my name is intelli tatarcho can i lead
+my name is intelli tatarcho can i lead unity's graphics group
+unity's graphics group now this presentation is focused on the
+now this presentation is focused on the lessons that we've
+lessons that we've learned throughout the process of doing
+learned throughout the process of doing a production oriented approach
+a production oriented approach for uh integrating ray tracing in terra
+for uh integrating ray tracing in terra rasterization pipeline and i'll talk
+rasterization pipeline and i'll talk about that
+about that um from the perspective of the engine
+um from the perspective of the engine lessons that we've learned as well as
+lessons that we've learned as well as some of the things that are related to
+some of the things that are related to content creation
+content creation we'll talk a little bit about the
+we'll talk a little bit about the pinfalls that we've explored questions
+pinfalls that we've explored questions that we
+that we did encounter and may not have solved
+did encounter and may not have solved that i want you guys to help
+that i want you guys to help and also some of thinking about where we
+and also some of thinking about where we go from there
+go from there there are two major contributors along
+there are two major contributors along me to the presentation sebastian lagarde
+me to the presentation sebastian lagarde and anis binub
+and anis binub from unity technologies they will be
+from unity technologies they will be here for questions at the end
+here for questions at the end however everything i'm presenting here
+however everything i'm presenting here today has been a real team effort
+today has been a real team effort and a lot of people contributed to the
+and a lot of people contributed to the algorithms and systems that i'll be
+algorithms and systems that i'll be covering i'm here
+covering i'm here to represent but before we dive into the
+to represent but before we dive into the details of the technical presentation i
+details of the technical presentation i want to briefly share the project we've
+want to briefly share the project we've actually
+actually used to drive it pun intended
+invent yourself and then reinvent yourself don't swim in the same slew
+yourself don't swim in the same slew invent yourself and then reinvent
+invent yourself and then reinvent yourself
+yourself and stay out of the clutches of
+and stay out of the clutches of mediocrity
+mediocrity invent yourself and then reinvent
+invent yourself and then reinvent yourself change your tone and shape so
+yourself change your tone and shape so often that they can never
+often that they can never categorize you reinvigorate yourself
+categorize you reinvigorate yourself and accept what is but only
+and accept what is but only on the terms that you have invented be
+on the terms that you have invented be self-taught
+self-taught and reinvent your life because you must
+and reinvent your life because you must it is your life
+it is your life and its history and the present belong
+and its history and the present belong only
+only to you
+so what did you just see this is actually the demo that we're going to
+actually the demo that we're going to dive here throughout all of the
+dive here throughout all of the presentation and i've lost the control
+presentation and i've lost the control of the screen
+of the screen always exciting drivers will solve ray
+always exciting drivers will solve ray tracing
+tracing will solve all sorts of complex problems
+will solve all sorts of complex problems about
+about cloud gaming and so forth but
+cloud gaming and so forth but presentation screens and driver control
+presentation screens and driver control will remain to be a challenge
+will remain to be a challenge um call to i fees okay so the demo
+um call to i fees okay so the demo actually
+actually is at the heart of the outline of what
+is at the heart of the outline of what we'll be covering we'll talk about the
+we'll be covering we'll talk about the rasterization pipeline
+rasterization pipeline we'll talk about integrating the
+we'll talk about integrating the retracing into our high definition
+retracing into our high definition rendering pipeline some of the effects
+rendering pipeline some of the effects that we use for this particular demo
+that we use for this particular demo we'll talk about performance and some of
+we'll talk about performance and some of the sort of thoughts about where
+the sort of thoughts about where dxr may want to go but what did you just
+dxr may want to go but what did you just see
+see what we've done in this particular
+what we've done in this particular project is we filmed a real world car on
+project is we filmed a real world car on location
+location and recreated this scene we captured the
+and recreated this scene we captured the lighting environment the scene itself
+lighting environment the scene itself using the exact camera and lighting
+using the exact camera and lighting conditions and then using the official
+conditions and then using the official product design uh model with all its
+product design uh model with all its crazy geometry
+crazy geometry we then recreated the cg vehicle to
+we then recreated the cg vehicle to match the film
+match the film and then we transitioned the shots in
+and then we transitioned the shots in the video from real world car
+the video from real world car like what you see on the left here to
+like what you see on the left here to the ray trace car
+the ray trace car seamlessly and in the film we rendered
+seamlessly and in the film we rendered this car at interactive rates
+this car at interactive rates on rtx 2018
+on rtx 2018 sorry 2080 ti with a lot of different
+sorry 2080 ti with a lot of different ray tracing effects refraction area
+ray tracing effects refraction area lights
+lights shadows ambient occlusion and so forth
+shadows ambient occlusion and so forth and that's what we'll be covering
+and here is example of some of the more complex uh visuals going on in the demo
+complex uh visuals going on in the demo with a complex transparency and
+with a complex transparency and refraction
+refraction and you're seeing a comparison against
+and you're seeing a comparison against the real world filmed version
+the real world filmed version the car was quite complex it was very
+the car was quite complex it was very dense geometry and of course it's
+dense geometry and of course it's actually the vehicle that's used for
+actually the vehicle that's used for production but what the reason we
+production but what the reason we actually use this aside from
+actually use this aside from uh while rendering pretty cars is always
+uh while rendering pretty cars is always a good looking result is
+a good looking result is its density is actually quite
+its density is actually quite representative of a lot of real world
+representative of a lot of real world scenes
+scenes there's a ton of silly meshes very dense
+there's a ton of silly meshes very dense geometry
+geometry lots of draw calls lots of different
+lots of draw calls lots of different materials while it's not identical to
+materials while it's not identical to let's say
+let's say you know an open world forest scene it
+you know an open world forest scene it still has quite a lot of moving parts
+still has quite a lot of moving parts and there are moving parts so first
+and there are moving parts so first let's take a brief look at our high
+let's take a brief look at our high definition render pipeline because
+definition render pipeline because that's the basis for
+that's the basis for our approach it is a physically
+our approach it is a physically based rendering pipeline we use unified
+based rendering pipeline we use unified lighting
+lighting what that means is the same lighting
+what that means is the same lighting features apply to opeque
+features apply to opeque uh transparent volumetric elements uh in
+uh transparent volumetric elements uh in all of the content in the frame
+all of the content in the frame we use coherent lighting throughout all
+we use coherent lighting throughout all of the light types
+of the light types have to work with all of the materials
+have to work with all of the materials as well as with all of the options of
+as well as with all of the options of global illumination light maps light
+global illumination light maps light probes and so forth
+probes and so forth this is super important for content
+this is super important for content creation
+creation and as you see throughout this
+and as you see throughout this presentation we strive to maintain the
+presentation we strive to maintain the same principle for our ray tracing
+same principle for our ray tracing approach as well
+approach as well and while uh certainly you know we we
+and while uh certainly you know we we think of retracing as a panacea that
+think of retracing as a panacea that will solve all of our rendering problems
+will solve all of our rendering problems there's some really interesting
+there's some really interesting challenges with maintaining this
+challenges with maintaining this unified approach and in hd in particular
+unified approach and in hd in particular we also worked hard to
+we also worked hard to avoid double lighting and double
+avoid double lighting and double occlusion now
+occlusion now one of the important properties for our
+one of the important properties for our implementation which may not be
+implementation which may not be true for you know a specific game is we
+true for you know a specific game is we need to be able to do either forward for
+need to be able to do either forward for vr applications for example
+vr applications for example or deferred approach and again when we
+or deferred approach and again when we were looking at retracing we needed to
+were looking at retracing we needed to think about how that's going to affect
+think about how that's going to affect the particular set of effect choices
+the particular set of effect choices with our hd pipeline we have
+with our hd pipeline we have classification of materials they get
+classification of materials they get output to g buffer
+output to g buffer so standard opaque subsurface scattering
+so standard opaque subsurface scattering clear code iridescence anaesotropic
+clear code iridescence anaesotropic they're all stored in the g buffer with
+they're all stored in the g buffer with a you know bit
+a you know bit now some materials in our deferred path
+now some materials in our deferred path are so
+are so complex or need additional information
+complex or need additional information for example we want to store specular
+for example we want to store specular tint that we need to still render them
+tint that we need to still render them as forward
+as forward of course our favorite transparents but
+of course our favorite transparents but then beyond that we have a number of
+then beyond that we have a number of organic materials skin hair
+organic materials skin hair fabric sorry not skin eyes
+fabric sorry not skin eyes that still need to be rendered with
+that still need to be rendered with forward and again that has some
+forward and again that has some interesting implications for
+interesting implications for being able to do that in a rasterization
+being able to do that in a rasterization pipeline
+pipeline the retracing pipeline that we built for
+the retracing pipeline that we built for hdrp is actually built directly
+hdrp is actually built directly on that on top of that pipeline we
+on that on top of that pipeline we plugged all the low-level
+plugged all the low-level layers and in this presentation i'm
+layers and in this presentation i'm actually not going to talk about
+actually not going to talk about how we integrated dxr to the low-level
+how we integrated dxr to the low-level renderer that's kind of a topic of a
+renderer that's kind of a topic of a separate
+separate presentation we did um the layer and
+presentation we did um the layer and that we exposed to c sharp so in
+that we exposed to c sharp so in in unity you can actually access much of
+in unity you can actually access much of the rendering uh pipeline control
+the rendering uh pipeline control through c
+through c sharp and shaders and so after that
+sharp and shaders and so after that majority of the work on the retracing
+majority of the work on the retracing effect happened on that level
+effect happened on that level which of course meant that we can
+which of course meant that we can iterate really quickly on the effects
+iterate really quickly on the effects once the architecture was established
+once the architecture was established and just a quick thing i'll constantly
+and just a quick thing i'll constantly be saying ray trace effect
+be saying ray trace effect really just means uh you know a bucket
+really just means uh you know a bucket of container
+of container for anything that goes on to render a
+for anything that goes on to render a particular ray trace algorithm be it
+particular ray trace algorithm be it ambient occlusion or shadows
+ambient occlusion or shadows and so forth so in our case
+and so forth so in our case again i mentioned that we need to be
+again i mentioned that we need to be really flexible with regards to forward
+really flexible with regards to forward and deferred
+and deferred support because we want retracing to be
+support because we want retracing to be used regardless
+used regardless of the particular directionality and so
+of the particular directionality and so for
+for for retracing we start by um shooting
+for retracing we start by um shooting secondary rays from depth buffer
+secondary rays from depth buffer in normal buffer for a peak of course
+in normal buffer for a peak of course this is straightforward we can use
+this is straightforward we can use g buffer as a starting point now with
+g buffer as a starting point now with forward objects we use
+forward objects we use a pre-pass and we use that already for
+a pre-pass and we use that already for screen space reflection
+screen space reflection to output depth of normal during the
+to output depth of normal during the pre-pass and that's the information we
+pre-pass and that's the information we can start secondary
+can start secondary arrays from so in some ways uh since we
+arrays from so in some ways uh since we already have a good implementation of
+already have a good implementation of ssr
+ssr it actually needs the same data as ray
+it actually needs the same data as ray tracing for a lot of the materials as
+tracing for a lot of the materials as you'll see
+you'll see of course the next thing that we know is
+of course the next thing that we know is we'll never be able to shoot thousands
+we'll never be able to shoot thousands and tens of thousands of rays that
+and tens of thousands of rays that you'll see in a weta digital manuka or
+you'll see in a weta digital manuka or similar offline um you know renderers in
+similar offline um you know renderers in order to maintain performance
+order to maintain performance and this theme is repeated throughout
+and this theme is repeated throughout anybody who's talking about real-time
+anybody who's talking about real-time ray tracing
+ray tracing reducing noise through denoising and
+reducing noise through denoising and temporal accumulation is key to achieve
+temporal accumulation is key to achieve frame rate
+frame rate so we mentioned we're going to start
+so we mentioned we're going to start from uh
+from uh for ray trace from primary rays from
+for ray trace from primary rays from camera
+camera shoot it in screen space this is
+shoot it in screen space this is basically to obtain visibility and i'll
+basically to obtain visibility and i'll discuss where we use it
+discuss where we use it and for secondary race we start from the
+and for secondary race we start from the first intersection with the primary race
+first intersection with the primary race and that's the g buffer or pre-pass
+and that's the g buffer or pre-pass approach
+approach in reality every ray has to be thought
+in reality every ray has to be thought about quite
+about quite thoroughly it's quite expensive to
+thoroughly it's quite expensive to implement it especially as we get to
+implement it especially as we get to retracing
+retracing now of course as we shoot more rays the
+now of course as we shoot more rays the resulting quality is higher
+resulting quality is higher the simple truth is if you don't shoot a
+the simple truth is if you don't shoot a sufficient number of rays
+sufficient number of rays you'll end up with a terrible looking
+you'll end up with a terrible looking huge degradation of quality terrible
+huge degradation of quality terrible looking effect
+looking effect now we supplement them with denoiser to
+now we supplement them with denoiser to keep the freights
+keep the freights fast however one important thing about
+fast however one important thing about denoising is we need to denoise every
+denoising is we need to denoise every single effect because they actually have
+single effect because they actually have different
+different qualities and we need to make sure that
+qualities and we need to make sure that we
+we account that and so we're kind of in the
+account that and so we're kind of in the sweet spot of trade-off between the
+sweet spot of trade-off between the quality of the actual denoiser
+quality of the actual denoiser the cost it will take to run it versus
+the cost it will take to run it versus the cost that it will take to
+the cost that it will take to run more raise evaluation of race being
+run more raise evaluation of race being the expensive part
+the expensive part now we could choose to go to a high
+now we could choose to go to a high quality denoiser nvidia has a very
+quality denoiser nvidia has a very sophisticated denoiser available
+sophisticated denoiser available that uses light positions specular
+that uses light positions specular roughness it needs more information
+roughness it needs more information so one you'll pay the cost to output
+so one you'll pay the cost to output this information two you'll store it
+this information two you'll store it three you'll sample at four the actual
+three you'll sample at four the actual algorithms of the denoiser is heavier
+algorithms of the denoiser is heavier and of course that might in our case
+and of course that might in our case when we evaluated that dominated the
+when we evaluated that dominated the cost of
+cost of uh rate execution so all of the savings
+uh rate execution so all of the savings we did by not
+we did by not shooting more rains were gone and so
+shooting more rains were gone and so that ended up not being
+that ended up not being a win for us so our approach is
+a win for us so our approach is launch minimal amount of race then
+launch minimal amount of race then reduce
+reduce variance with good sampling and we'll
+variance with good sampling and we'll talk about some of the techniques there
+talk about some of the techniques there accumulating poorly because that allows
+accumulating poorly because that allows us to you know get more contributions of
+us to you know get more contributions of race
+race and then the end result of that goes
+and then the end result of that goes through the denoiser
+through the denoiser it's very straightforward to understand
+it's very straightforward to understand the cost of race
+the cost of race it varies linearly with length we
+it varies linearly with length we actually did
+actually did a number of performance profiling to
+a number of performance profiling to determine that
+determine that and for the live demo that you will see
+and for the live demo that you will see um you know in a few
+um you know in a few minutes here we actually use one ray for
+minutes here we actually use one ray for example
+example uh for regular effects for some of the
+uh for regular effects for some of the more expensive
+more expensive uh effects like reflection we use
+uh effects like reflection we use quarter uh resolution
+quarter uh resolution and then for ao and shadows we end up
+and then for ao and shadows we end up using four rays
+using four rays now of course this is the you know sweet
+now of course this is the you know sweet spot of perf versus quality
+spot of perf versus quality and so with respect to denoising like i
+and so with respect to denoising like i mentioned we have to do it perfect so we
+mentioned we have to do it perfect so we went with a very
+went with a very inexpensive approach that gives us good
+inexpensive approach that gives us good quality
+quality now um i want to say so the way that we
+now um i want to say so the way that we are approaching that
+are approaching that is we do it in temporal and then we use
+is we do it in temporal and then we use a joint bilateral filtering
+a joint bilateral filtering with regards to temporal just to clarify
+with regards to temporal just to clarify it's not a ta
+it's not a ta filter very similar to the approach that
+filter very similar to the approach that thomas tacovis
+thomas tacovis described in last year's digital dragons
+described in last year's digital dragons presentation
+presentation it's only inspired by taa and so what we
+it's only inspired by taa and so what we do is we run one sample per
+do is we run one sample per effect which is accumulated over frames
+effect which is accumulated over frames and then we run
+and then we run eight sample taa so we accumulate eight
+eight sample taa so we accumulate eight frames history's worth uh and that's
+frames history's worth uh and that's actually what we are doing to kind of
+actually what we are doing to kind of supplement the temporal we're not trying
+supplement the temporal we're not trying with this element to remove aliasing
+with this element to remove aliasing we're simply trying to accumulate pixels
+we're simply trying to accumulate pixels uh to match history in the material
+uh to match history in the material properties and at the end of the frame
+properties and at the end of the frame like i said we have
+like i said we have the property for each effect we need to
+the property for each effect we need to run essentially the custom history per
+run essentially the custom history per effect so this is where
+the specificity about each effect comes into place
+into place we actually store a history buffer per
+we actually store a history buffer per effect
+effect once that period once that per um area
+once that period once that per um area shadow lies
+shadow lies it gives us better stability of course
+it gives us better stability of course that comes of the cost of additional
+that comes of the cost of additional memory
+memory as we need to add memory for the history
+as we need to add memory for the history for accumulation
+for accumulation but that memory really allows us to
+but that memory really allows us to reduce number of rays
+reduce number of rays thus increasing performance so it's kind
+thus increasing performance so it's kind of a trade-off
+of a trade-off we use joint bilateral filters
+we use joint bilateral filters throughout and
+throughout and in this case it's using normal and depth
+in this case it's using normal and depth as opposed to lumens
+as opposed to lumens luminance that you'd see with a
+luminance that you'd see with a bilateral filter it's a nice and
+bilateral filter it's a nice and inexpensive filter implemented as a
+inexpensive filter implemented as a separate computer filter
+separate computer filter and normals and depth allow us to sort
+and normals and depth allow us to sort out the discontinuity issues
+out the discontinuity issues and as i said we me we output them
+and as i said we me we output them either through g buff or pre-pass
+either through g buff or pre-pass and so that allows us to take advantage
+and so that allows us to take advantage of opaque
+of opaque and forward materials now
+and forward materials now the fun part is while the permutation of
+the fun part is while the permutation of materials that we've mentioned early on
+materials that we've mentioned early on transparents have been a pain and
+transparents have been a pain and suffering for people who are doing
+suffering for people who are doing rasterizations for
+rasterizations for decades right well i'm sorry to say but
+decades right well i'm sorry to say but that doesn't quite go away with
+that doesn't quite go away with retracing
+retracing of course if you care about performance
+of course if you care about performance in this case since we don't have
+in this case since we don't have depth we actually can't really
+depth we actually can't really use anything for that in this particular
+use anything for that in this particular case because we're not outputting
+case because we're not outputting we'll talk about how we sorted
+we'll talk about how we sorted transparency in a subsequent path
+transparency in a subsequent path with regards to denoiser we provide
+with regards to denoiser we provide artists ability to control the filter
+artists ability to control the filter for example the demo the video that you
+for example the demo the video that you saw of the demo that we rendered for
+saw of the demo that we rendered for the matching of the real car they were
+the matching of the real car they were using quite large filters of course that
+using quite large filters of course that means that you know the cost is higher
+means that you know the cost is higher and the content creators can basically
+and the content creators can basically control the cost of quality versus
+control the cost of quality versus trade-off
+trade-off and we intend to make it scalable based
+and we intend to make it scalable based on you know essential platform
+on you know essential platform configurations
+configurations and that allows us to really amp up the
+and that allows us to really amp up the quality on a per effect level aside from
+quality on a per effect level aside from just per platform level
+just per platform level so if you wanted to really spend more
+so if you wanted to really spend more time you know samples in a particular
+time you know samples in a particular uh algorithm you can
+uh algorithm you can now with simple bolero denoiser
+now with simple bolero denoiser stability results is very highly
+stability results is very highly dependent on the actual qualities of the
+dependent on the actual qualities of the samples that feed into the denoiser
+samples that feed into the denoiser which is why sampling is crucial in
+which is why sampling is crucial in order to generate a good frame
+order to generate a good frame when you have good samples your denoiser
+when you have good samples your denoiser result will be much more
+result will be much more stable and met far in last year's 2018
+stable and met far in last year's 2018 advances talk gave a really wonderful
+advances talk gave a really wonderful presentation on the intuition of
+presentation on the intuition of you know some of the approaches that you
+you know some of the approaches that you need to think about to achieve low
+need to think about to achieve low variance
+variance this is important to do before you apply
+this is important to do before you apply the denoiser
+the denoiser so next we're going to touch on sampling
+so next we're going to touch on sampling how do we approach reduction of variance
+how do we approach reduction of variance so ultimately everything is related uh
+so ultimately everything is related uh everything that you're you know in the
+everything that you're you know in the limit surface essentially we take
+limit surface essentially we take infinite number of samples without any
+infinite number of samples without any denoiser
+denoiser the signal converges and our result is
+the signal converges and our result is unbiased that's of course the holy grail
+unbiased that's of course the holy grail but as we imagine it's quite not real
+but as we imagine it's quite not real time that's the you know
+time that's the you know hours of frames in the offline renderer
+hours of frames in the offline renderer so we applied denoiser congratulations
+so we applied denoiser congratulations well that introduces bias and so the
+well that introduces bias and so the better we
+better we actually you know stratify our sampling
+actually you know stratify our sampling the better the end result
+the better the end result will be with regards to reducing bias
+will be with regards to reducing bias and so it's even though we actually
+and so it's even though we actually might pay more costs
+might pay more costs in the way that we're doing selection of
+in the way that we're doing selection of race
+race it's more than offset by the resulting
+it's more than offset by the resulting quality improvement for the race
+quality improvement for the race and it's the same principle as multiple
+and it's the same principle as multiple important samplings
+important samplings where you have essentially a lobe and
+where you have essentially a lobe and you bias the sampling direction toward
+you bias the sampling direction toward that lobe
+that lobe converting the texture to probability
+converting the texture to probability distribution for that lobe
+distribution for that lobe representation
+representation and we sample from that sequence and
+and we sample from that sequence and then convert it to pdf
+then convert it to pdf we actually execute similar approach uh
+we actually execute similar approach uh for all of our
+for all of our ray launches per effect
+ray launches per effect so to hedge your bets pun intended we
+so to hedge your bets pun intended we use the following sampling
+use the following sampling strategy we rely on owen scrambled
+strategy we rely on owen scrambled sequence which is actually described in
+sequence which is actually described in siggraph
+siggraph 2003 talk on monte carlo techniques
+2003 talk on monte carlo techniques and essentially sobel sequence is a
+and essentially sobel sequence is a really widely used
+really widely used low discrepancy sequence for numerical
+low discrepancy sequence for numerical solving of multiple integrals which is
+solving of multiple integrals which is why of course it's uh
+why of course it's uh relevant to monte carlo and a lot of the
+relevant to monte carlo and a lot of the quasi-monte carlo computations
+quasi-monte carlo computations rely on using this sequence and then
+rely on using this sequence and then scrambling it through permutation
+scrambling it through permutation that allowed us to make him originally
+that allowed us to make him originally to maintain the low discrepancy
+to maintain the low discrepancy now each extra sample increases the
+now each extra sample increases the coverage in an optimal way
+coverage in an optimal way and thus allows sampling to be
+and thus allows sampling to be temporally coherent and next frame
+temporally coherent and next frame continues to build a sequence and this
+continues to build a sequence and this is actually the sequence that you see
+is actually the sequence that you see that we do
+that we do in time
+each pixel uses identical sequence we just store it in a texture
+just store it in a texture and we use a screen space blue noise to
+and we use a screen space blue noise to break up the pattern
+break up the pattern it ends up being coherent in screen
+it ends up being coherent in screen space and here is the example
+space and here is the example kind of the pseudo code we generate
+kind of the pseudo code we generate array direction using x sample
+array direction using x sample in one direction that's the first row
+in one direction that's the first row that you see to get one sample and then
+that you see to get one sample and then we use the second row in y direction for
+we use the second row in y direction for the second sample
+the second sample and this allows us to use two dimensions
+and this allows us to use two dimensions everywhere
+everywhere except with a special case of area light
+except with a special case of area light where we use actually three dimensions
+where we use actually three dimensions we accumulate up to eight frames and
+we accumulate up to eight frames and inside one effect we can actually go
+inside one effect we can actually go up to 32 samples because of our current
+up to 32 samples because of our current implementation stores are 256 by 256
+implementation stores are 256 by 256 squares texture
+squares texture but we also can play with changing
+but we also can play with changing dimensions to basically go with a lot
+dimensions to basically go with a lot more samples
+more samples by doing a 2 by 10 to 24
+by doing a 2 by 10 to 24 so that you can actually end up with 128
+so that you can actually end up with 128 samples if you wanted to so kind of
+samples if you wanted to so kind of your value will matter and like i
+your value will matter and like i mentioned scrabbling happens with blue
+mentioned scrabbling happens with blue noise
+noise we begin by grabbing the blue noise with
+we begin by grabbing the blue noise with the current textile position
+the current textile position from a precomputed texture it gives us
+from a precomputed texture it gives us the x
+the x y noise then for each coordinate we
+y noise then for each coordinate we sample the own scrambled
+sample the own scrambled dimension texture like i've described
+dimension texture like i've described scrambling the resulting blue noise
+scrambling the resulting blue noise and then the scramble of the blue noise
+and then the scramble of the blue noise analysis to reduce the pattern or
+analysis to reduce the pattern or partition
+partition then the blue noise is essentially
+then the blue noise is essentially allowing us to ease the filtering of the
+allowing us to ease the filtering of the denoiser
+denoiser since it provides a very common filter
+since it provides a very common filter for denoising
+for denoising and so this allows us to yield a
+and so this allows us to yield a temporally coherent sequence
+temporally coherent sequence with a number of samples and so it
+with a number of samples and so it accumulates in a stable manner
+accumulates in a stable manner so if we look at you know now we've
+so if we look at you know now we've covered kind of like with the noise we
+covered kind of like with the noise we figure out good sampling and then we
+figure out good sampling and then we reduce
+reduce uh you know the resulting bias now how
+uh you know the resulting bias now how do we approach
+do we approach retrace effects the general architecture
+retrace effects the general architecture is quite straightforward
+is quite straightforward so if we look at dxr we have a number of
+so if we look at dxr we have a number of different shaders regeneration closest
+different shaders regeneration closest hit any hit miss and so forth
+hit any hit miss and so forth and then there's the surface shader and
+and then there's the surface shader and a surface shader there's a couple of
+a surface shader there's a couple of options
+options of course people get really hyped up
+of course people get really hyped up about retracing and
+about retracing and uh i implemented my own poverty ray
+uh i implemented my own poverty ray tracing i'll age myself you know every
+tracing i'll age myself you know every one of you implemented it probably too
+one of you implemented it probably too um it was awesome we got transparency
+um it was awesome we got transparency reflections textures we felt really good
+reflections textures we felt really good and yeah sure it solves everything real
+and yeah sure it solves everything real production content is a tad different
+production content is a tad different from them spheres
+from them spheres uh you know you have immensely varied
+uh you know you have immensely varied material types and
+material types and accounting for surface shader that i was
+accounting for surface shader that i was just showing you
+just showing you is a must however we now need to deal
+is a must however we now need to deal with the vast permutations of material
+with the vast permutations of material types opaque
+types opaque uh opaque alpha tested so you see lots
+uh opaque alpha tested so you see lots of that here
+of that here transparent eyes and so forth
+transparent eyes and so forth double-sided and many more
+double-sided and many more as we go through our effects on
+as we go through our effects on retracing keep these in mind because
+retracing keep these in mind because we're actually trying to solve it for a
+we're actually trying to solve it for a production that
+production that you know isn't limited to opaque spheres
+you know isn't limited to opaque spheres so a good way to think about ray tracing
+so a good way to think about ray tracing effects is ambient occlusion it's kind
+effects is ambient occlusion it's kind of like the hello world of ray tracing
+of like the hello world of ray tracing so to say which is why everybody starts
+so to say which is why everybody starts it
+it and when we say hello world we really
+and when we say hello world we really mean ambient occlusion for opaque
+mean ambient occlusion for opaque non-alpha tested objects right
+non-alpha tested objects right um we trace the ray from g buffer
+um we trace the ray from g buffer position in the direction of the normal
+position in the direction of the normal for a peak
+for a peak on alpha tested objects from the you
+on alpha tested objects from the you know very straightforward
+know very straightforward and then secondary arrays used to
+and then secondary arrays used to compute the ambient occlusion
+compute the ambient occlusion we picked the number of samples that's
+we picked the number of samples that's just a parameter and a shader
+just a parameter and a shader sample the hemisphere cosine this is the
+sample the hemisphere cosine this is the standard approach and i forgot to
+standard approach and i forgot to include the proper reference for matt
+include the proper reference for matt farah's amazing book
+farah's amazing book simply requires a random number profile
+simply requires a random number profile you know provided to
+you know provided to again to feed the denoiser and we use
+again to feed the denoiser and we use the own sequence
+the own sequence so in terms of the hit it's actually
+so in terms of the hit it's actually very straightforward we know if we hit
+very straightforward we know if we hit something
+something for opaque surfaces this means we
+for opaque surfaces this means we actually don't need to
+actually don't need to continue it's already occluded it's
+continue it's already occluded it's purely a visibility computation
+purely a visibility computation and so we can just use any hit to
+and so we can just use any hit to evaluate this visibility
+evaluate this visibility simple path and shaders are just for you
+simple path and shaders are just for you for reference for later we actually
+for reference for later we actually don't need to spend time on them
+don't need to spend time on them now for eo we need to choose distance if
+now for eo we need to choose distance if you choose infinite that's your sky
+you choose infinite that's your sky occlusion computation right small
+occlusion computation right small distance is more like the
+distance is more like the regular ao in some ways approaching the
+regular ao in some ways approaching the uh sort of ssaois type of
+uh sort of ssaois type of uh hemisphere distance now the distance
+uh hemisphere distance now the distance drives the
+drives the past performance ultimately and so
+past performance ultimately and so that's your optimization
+that's your optimization longer ray is far more expensive as you
+longer ray is far more expensive as you need to traverse more bvh
+need to traverse more bvh the cost of array like i mentioned was
+the cost of array like i mentioned was linear and so
+linear and so um we need to think really you know
+um we need to think really you know thoroughly about the distance that we
+thoroughly about the distance that we provide
+provide and then the denoiser actually
+and then the denoiser actually correlates the cost as well
+correlates the cost as well because it's dependent on the size of
+because it's dependent on the size of the kernel
+the kernel cost is linear based on the size of the
+cost is linear based on the size of the kernel
+kernel so why do we even bother with ao because
+so why do we even bother with ao because i thought you said you know i said
+i thought you said you know i said earlier we're going to do shadows
+earlier we're going to do shadows right that should technically take care
+right that should technically take care of all of the occlusion issues
+of all of the occlusion issues if we have strong environment lighting
+if we have strong environment lighting and that's the example of hdri
+and that's the example of hdri skies right either hdri skies or light
+skies right either hdri skies or light probes
+probes global shadows will show you the sort of
+global shadows will show you the sort of crease details and of course the major
+crease details and of course the major movements
+movements but you'll lose a lot of the information
+but you'll lose a lot of the information from far away because guess what we
+from far away because guess what we didn't pick the infinite distance right
+didn't pick the infinite distance right like we already constrained it to some
+like we already constrained it to some particular
+particular uh area of the scene and that theme gets
+uh area of the scene and that theme gets repeated throughout because you know
+repeated throughout because you know as we optimize performance we walk away
+as we optimize performance we walk away from ground truth and then we need to
+from ground truth and then we need to make up for the lack of ground truth and
+make up for the lack of ground truth and this is the example
+this is the example so ao can really be a good supplement
+so ao can really be a good supplement for the areas where you miss the
+for the areas where you miss the occlusion for the larger elements of the
+occlusion for the larger elements of the scene for comparison
+scene for comparison this is screen space ambient occlusion
+this is screen space ambient occlusion in
+in hdrp on the car asset
+hdrp on the car asset and here you see the ray trace the
+and here you see the ray trace the collision now note some of the over
+collision now note some of the over darkening in the images that's that's
+darkening in the images that's that's our
+our friends the transparence and we'll touch
+friends the transparence and we'll touch on that in a second but of course you
+on that in a second but of course you can see as i kind of switch back and
+can see as i kind of switch back and forth
+forth how much more accurate occlusion uh
+how much more accurate occlusion uh results in terms of
+results in terms of ambient occlusion so yes transparency
+ambient occlusion so yes transparency what if we want to have more than just
+what if we want to have more than just obiquix
+obiquix okay double-sided material is actually
+okay double-sided material is actually not too bad we pass the flag to the api
+not too bad we pass the flag to the api and that basically disable calling in
+and that basically disable calling in the acceleration structure
+the acceleration structure on the dxr side and we're good okay that
+on the dxr side and we're good okay that was kind of easy
+was kind of easy transparence right like we thought it
+transparence right like we thought it was going to be totally doable
+was going to be totally doable the problem is in in retracing path it's
+the problem is in in retracing path it's still
+still quite a bit of a pain there's not really
+quite a bit of a pain there's not really actually an easy way to do this that's
+actually an easy way to do this that's performant
+performant quite yet in real time because we need
+quite yet in real time because we need to account for
+to account for accumulation of light and we need to
+accumulation of light and we need to account for rough refraction effects
+account for rough refraction effects if the object is 50 transparent we need
+if the object is 50 transparent we need for example for ao we need to accumulate
+of ao and then continue to keep accumulating because some of the light
+accumulating because some of the light propagates through the media
+propagates through the media and if the object is rough we have to
+and if the object is rough we have to actually then account for the ray
+actually then account for the ray distribution for
+distribution for you know this is the example of the
+you know this is the example of the spread here
+spread here and of course perf head for doing this
+and of course perf head for doing this many rays is
+many rays is actually not we're not quite there in
+actually not we're not quite there in terms of hardware
+terms of hardware um to be able to do this at real time so
+um to be able to do this at real time so we need to special case transparency
+we need to special case transparency as i mentioned alpha testing is crucial
+as i mentioned alpha testing is crucial for real-time production
+for real-time production now artists actually author alpha tested
+now artists actually author alpha tested as just you know
+as just you know sub-graph and a shader graph we don't
+sub-graph and a shader graph we don't know what they're going to evaluate how
+know what they're going to evaluate how crazy
+crazy you know surface elements they're going
+you know surface elements they're going to pull in and so we need to add support
+to pull in and so we need to add support for alpha-tested objects in a generic
+for alpha-tested objects in a generic way that allows us to sample this
+way that allows us to sample this material model
+material model that is not in any manner of harcoded
+that is not in any manner of harcoded at ray trace what we do is we evaluate
+at ray trace what we do is we evaluate the subgraph from the
+the subgraph from the alpha tested evaluation that's what you
+alpha tested evaluation that's what you see here
+see here and that evaluation increases the cost
+and that evaluation increases the cost of the effects
+of the effects right because we now need to add it to
+right because we now need to add it to the any hit surface shader
+the any hit surface shader and all of the effects like shadows ao
+and all of the effects like shadows ao etc need to support it in order to
+etc need to support it in order to render it correctly
+render it correctly so the heat processing needs to account
+so the heat processing needs to account for alpha threshold
+and what this means is all of the effects need to actually plan to account
+effects need to actually plan to account alpha testing holistically
+alpha testing holistically which of course increases the complexity
+which of course increases the complexity of the effects and here is the example
+of the effects and here is the example you can kind of see that little
+you can kind of see that little um foliage element and it's doing
+um foliage element and it's doing uh proper alpha testing for reflections
+uh proper alpha testing for reflections in the mirror as well as uh
+in the mirror as well as uh shadows and and and so forth
+now we are this is the example of double uh sided geometry
+uh sided geometry so we handled ambient occlusion example
+so we handled ambient occlusion example so we handle visibility good
+so we handle visibility good uh we handled some surface property
+uh we handled some surface property alpha tested double-sided so
+alpha tested double-sided so let's kind of think about the next build
+let's kind of think about the next build of the effects the opaque
+of the effects the opaque the shadows
+the shadows and reflection so if we think about
+and reflection so if we think about reflection this is the contribution of
+reflection this is the contribution of indirect specular
+indirect specular the effect starts bringing a lot of the
+the effect starts bringing a lot of the complexity for production pipelines
+complexity for production pipelines we typically want to bring them uh to
+we typically want to bring them uh to replace screen space
+replace screen space reflections because there's a lot of
+reflections because there's a lot of artifacts and it's a very
+artifacts and it's a very challenging effect to do but then we
+challenging effect to do but then we need to think about all the material
+need to think about all the material permutation
+permutation there's another thing that we need to
+there's another thing that we need to think about it from perspective of
+think about it from perspective of engine architecture
+engine architecture which is uh while we're really really
+which is uh while we're really really accustomed to doing visibility in our
+accustomed to doing visibility in our frustums right like it's fantastic my
+frustums right like it's fantastic my view
+view i declare it i run the visibility be it
+i declare it i run the visibility be it occlusion calling or whatever i'm really
+occlusion calling or whatever i'm really proud of myself
+proud of myself yeah that doesn't work anymore because
+yeah that doesn't work anymore because now the object that i'm going to be
+now the object that i'm going to be reflected may be outside of my cluster
+reflected may be outside of my cluster visibility and that visibility is
+visibility and that visibility is actually not
+actually not accurate for the particular situation
+accurate for the particular situation so that's that actually brings some of
+so that's that actually brings some of the complexity and we need to think
+the complexity and we need to think about essentially using
+about essentially using a cluster volume around the camera for
+a cluster volume around the camera for calling
+calling what we also need to think about is
+what we also need to think about is store the data in the voxel around that
+store the data in the voxel around that camera because we need to bring the
+camera because we need to bring the lighting data
+lighting data uh the reflection probes the planar
+uh the reflection probes the planar reflections decals all of the payloads
+reflections decals all of the payloads that we typically associate with a given
+that we typically associate with a given view
+view into the new structure because our
+into the new structure because our visibility representation and results of
+visibility representation and results of that changed
+that changed and in terms of um lighting we also have
+and in terms of um lighting we also have to consider the same thing right like
+to consider the same thing right like when we're computing reflection we need
+when we're computing reflection we need to compute the lighting of the reflected
+to compute the lighting of the reflected object
+object which means we need to account for the
+which means we need to account for the light that's outside
+light that's outside and so we need to ensure that we also
+and so we need to ensure that we also evaluate the same identical light loop
+evaluate the same identical light loop and i'll touch on that in a second
+and i'll touch on that in a second in regardless of whether we're doing the
+in regardless of whether we're doing the primary this is
+primary this is our material lighting evaluation or are
+our material lighting evaluation or are we doing secondary this is our you know
+we doing secondary this is our you know reflection accumulation for example
+reflection accumulation for example and so for indirect specular what do we
+and so for indirect specular what do we do
+do for every bounce we evaluate lighting
+for every bounce we evaluate lighting and we reuse the same code as the actual
+and we reuse the same code as the actual regular light
+regular light loop except for reflection hierarchy
+loop except for reflection hierarchy now ideally depending on lod you
+now ideally depending on lod you actually may want to use a simplified
+actually may want to use a simplified material for reflection
+material for reflection for you know improve performance because
+for you know improve performance because evaluating the full stack of the
+evaluating the full stack of the material for multiple bounds can get
+material for multiple bounds can get really costly
+really costly or you also may need to account for
+or you also may need to account for reflecting complex materials so an
+reflecting complex materials so an isotropy subsurface scattering
+isotropy subsurface scattering this is the light loop evaluation from
+this is the light loop evaluation from hdrp
+hdrp that we use in rasterization and so we
+that we use in rasterization and so we start from the sun kind of like top down
+we evaluate all directional lights at the top then we evaluate all the
+the top then we evaluate all the punctual light spotlight point light and
+punctual light spotlight point light and all of the area lights so lamps and so
+all of the area lights so lamps and so forth
+forth we add sunlight sky cloud the reflection
+we add sunlight sky cloud the reflection probes hgri
+probes hgri and then we finalize the sky evaluation
+and then we finalize the sky evaluation we do a very similar evaluation in ray
+we do a very similar evaluation in ray tracing
+tracing the only thing that's different is now
+the only thing that's different is now we'll replace the reflection probe with
+we'll replace the reflection probe with the actual ray tracer reflections
+the actual ray tracer reflections and so if i kind of go back and forth
+and so if i kind of go back and forth you can see that that
+you can see that that you know sphere disappeared and for
+you know sphere disappeared and for performance reasons we actually evaluate
+performance reasons we actually evaluate sky in the same manner as we do
+sky in the same manner as we do uh with rasterization by using
+uh with rasterization by using pre-integrated cube maps
+pre-integrated cube maps uh so this is pre-integrated hdri and
+uh so this is pre-integrated hdri and there's some
+there's some snags on that font for um game oriented
+snags on that font for um game oriented retracing scenarios
+retracing scenarios when we render out the full frame pass
+when we render out the full frame pass tracer we'd actually do the
+tracer we'd actually do the proper computation of the hdri in order
+proper computation of the hdri in order to do this in a much more accurate
+to do this in a much more accurate manner
+manner so as i touched on that we need to worry
+so as i touched on that we need to worry about visibility with regards to ray
+about visibility with regards to ray tracing so
+tracing so primary way we're still good we're still
+primary way we're still good we're still in the view frostum so visibility is
+in the view frostum so visibility is good there
+good there secondary and beyond we really are in a
+secondary and beyond we really are in a free fall like this is where we start
+free fall like this is where we start getting into production specific
+getting into production specific solutions right camera orientation
+solutions right camera orientation because your costs will basically will
+because your costs will basically will you know vary both with regards of how
+you know vary both with regards of how big your acceleration structure needs to
+big your acceleration structure needs to be and how long it's going to take to
+be and how long it's going to take to traverse it
+traverse it and we need to account this on the uh
+and we need to account this on the uh engine front with
+engine front with um ray tracing it's in global space so
+um ray tracing it's in global space so we define a region around the camera
+we define a region around the camera and evaluate the lighting environment
+and evaluate the lighting environment globally for all of the elements that
+globally for all of the elements that are outside
+are outside so we talked about the fact that you
+so we talked about the fact that you actually have to change the low level
+actually have to change the low level architecture on that front and there's
+architecture on that front and there's some flexibility that you need to think
+some flexibility that you need to think about how are you going to structure
+about how are you going to structure again that can be an artist specific
+again that can be an artist specific um effect or it can be a level of detail
+um effect or it can be a level of detail controlled right like
+controlled right like because depending on the complexity of
+because depending on the complexity of the situation you may want to scale down
+the situation you may want to scale down the
+the the region where you're going to be
+the region where you're going to be evaluating your global effects
+evaluating your global effects uh as it all affects the performance and
+uh as it all affects the performance and this is the rough uh
+this is the rough uh outline of what you would actually need
+outline of what you would actually need to be considering when you're building
+to be considering when you're building the frog
+the frog the the voxel around your camera with
+the the voxel around your camera with all of the payloads
+all of the payloads so this is an example of evaluating the
+so this is an example of evaluating the lights
+lights uh representation is basically
+uh representation is basically accumulation of lights hitting a
+accumulation of lights hitting a particular area
+particular area and in terms of parallel to the
+and in terms of parallel to the rasterization this is kind of like we
+rasterization this is kind of like we have the probe as the same
+have the probe as the same peril apparel concept
+peril apparel concept interesting bit about decals with ray
+interesting bit about decals with ray tracing because we're again we're doing
+tracing because we're again we're doing a production focused uh
+a production focused uh system and while artists love using
+system and while artists love using decals they allow them a really quick
+decals they allow them a really quick and
+and and customization to material properties
+and customization to material properties of the surface
+of the surface and decals is a really interesting case
+and decals is a really interesting case for reflections right um
+for reflections right um how do we enable the contribution of
+how do we enable the contribution of decals in the correct manner
+decals in the correct manner when do we determine you know are they
+when do we determine you know are they visible are they not visible do they
+visible are they not visible do they still reflect
+still reflect and how would they actually work with
+and how would they actually work with ray tracing
+ray tracing so what we did with rasterization so if
+so what we did with rasterization so if you look at
+you look at sebastian's uh siggraph 2018
+sebastian's uh siggraph 2018 presentation from last year's advances
+presentation from last year's advances course
+course he defines that we basically maintain a
+he defines that we basically maintain a froxel around the camera where we keep
+froxel around the camera where we keep the payload for decals
+the payload for decals and so we can kind of think of the thing
+and so we can kind of think of the thing that we kept in the froxel for
+that we kept in the froxel for rasterization
+rasterization becomes the voxel representation for ray
+becomes the voxel representation for ray tracing world
+tracing world in the rasterization world we store our
+in the rasterization world we store our decals in a
+decals in a spatial structure around the frost
+spatial structure around the frost froxel
+froxel now in retracing we now put it in that
+now in retracing we now put it in that camera aligned voxel it's still used for
+camera aligned voxel it's still used for partitioning
+partitioning right so we still can do cluster decal
+right so we still can do cluster decal implementation for
+implementation for acceleration but it's not centered
+acceleration but it's not centered around the camera it's a spatial
+around the camera it's a spatial representation
+representation and that essentially allows us to then
+and that essentially allows us to then find the appropriate decal
+find the appropriate decal and now we need to think about how to
+and now we need to think about how to evaluate it and of course
+evaluate it and of course artists evaluate properties from the
+artists evaluate properties from the shader graph
+shader graph in hdrp we apply decals whether they
+in hdrp we apply decals whether they um if they're opaque by just rendering
+um if they're opaque by just rendering them as the debuffer decals
+them as the debuffer decals and for transparent decals we do cluster
+and for transparent decals we do cluster approach
+approach this actually modifies the appear the
+this actually modifies the appear the appearance of the objects directly in
+appearance of the objects directly in the g buffer for deferred
+the g buffer for deferred uh or peaked and alternatively of course
+uh or peaked and alternatively of course in our forward pass it will modify it as
+in our forward pass it will modify it as part of the
+part of the shader evaluation with retracing we
+shader evaluation with retracing we basically can follow the same
+basically can follow the same uh route everything goes through the
+uh route everything goes through the cluster decals and ray tracing so
+cluster decals and ray tracing so the debuffer decals are gone we value
+the debuffer decals are gone we value the material properties again
+the material properties again evoking the shader graph functions we
+evoking the shader graph functions we applied the resulting decal to the
+applied the resulting decal to the material by modifying it store it in a
+material by modifying it store it in a similar manner
+similar manner and then evaluate the light loop to make
+and then evaluate the light loop to make sure that we're computing the proper
+sure that we're computing the proper lighting
+lighting again the only changes we're operating
+again the only changes we're operating on voxel the only tricky thing
+on voxel the only tricky thing is we cannot support extrusion decals in
+is we cannot support extrusion decals in this route and it's not even clear what
+this route and it's not even clear what do you do with regards to acceleration
+do you do with regards to acceleration structure intersections
+structure intersections uh in the ray tracing so this is
+uh in the ray tracing so this is something that we need to be mindful
+something that we need to be mindful when building content
+when building content uh that's designed for ray tracing and
+uh that's designed for ray tracing and rasterization because
+rasterization because they're not interchangeable the other
+they're not interchangeable the other thing that we want to think about is an
+thing that we want to think about is an isotropy
+isotropy right and in general just thinking about
+right and in general just thinking about reflection with different brdfs
+reflection with different brdfs so at each intersection we need to
+so at each intersection we need to consider
+consider um in the reflection paths that the
+um in the reflection paths that the direction of the ray needs to account
+direction of the ray needs to account for
+for needs to be actually be driven by
+needs to be actually be driven by important sampling and the reason we
+important sampling and the reason we want to do this again is to reduce the
+want to do this again is to reduce the variance
+variance so we have to make sure that it follows
+so we have to make sure that it follows the distribution of material
+the distribution of material now this is an example of an isotropic
+now this is an example of an isotropic right and you see its reflection in the
+right and you see its reflection in the subsequent uh
+subsequent uh object uh and we need to know the actual
+object uh and we need to know the actual beer
+beer and you know ndf of the material um in
+and you know ndf of the material um in order to create the distribution
+order to create the distribution direction
+direction thus we need to know the material
+thus we need to know the material properties and the same time if we want
+properties and the same time if we want to know the brdf well that means two
+to know the brdf well that means two things
+things in a fun bit of you know current api
+in a fun bit of you know current api design you either need to have some sort
+design you either need to have some sort of uber share because while we don't
+of uber share because while we don't have subroutines
+have subroutines or we need to figure out some
+or we need to figure out some alternative way to get at the material
+alternative way to get at the material information for the underlying system
+information for the underlying system and like i mentioned we did store a lot
+and like i mentioned we did store a lot of the material ids in g buffer
+of the material ids in g buffer so congratulations to us but forward
+so congratulations to us but forward materials we don't really have a way to
+materials we don't really have a way to classify this is an example of a lot of
+classify this is an example of a lot of the you know fabric hair and so forth
+the you know fabric hair and so forth so what we do is we important sample
+so what we do is we important sample with
+with an approximation of the brdf by using
+an approximation of the brdf by using ggx and this is the example here
+ggx and this is the example here that actually gets you pretty far you
+that actually gets you pretty far you can represent
+can represent a reasonable approximation of an
+a reasonable approximation of an isotropy
+isotropy because we're really only picking the
+because we're really only picking the sampling direction right
+sampling direction right and it's a reasonable approximation of
+and it's a reasonable approximation of the ndf
+the ndf however with clear coat we need to
+however with clear coat we need to account for it by using roughness in the
+account for it by using roughness in the clear and this is the example here
+clear and this is the example here and so this is the result kind of of the
+and so this is the result kind of of the clear coat and its reflection
+clear coat and its reflection and similarly for specular color
+so we need to ensure that we're evaluating the
+evaluating the um light loop like we were saying for
+um light loop like we were saying for the specular and what we do is during
+the specular and what we do is during the trace ray we evaluate the material
+the trace ray we evaluate the material we apply our decal
+we apply our decal uh you know as we were discussing and
+uh you know as we were discussing and then we do the full light loop for the
+then we do the full light loop for the decal as well in order to
+decal as well in order to get the accurate uh quality of the final
+get the accurate uh quality of the final lighting for that particular object
+lighting for that particular object and what this means is allows us to have
+and what this means is allows us to have the surface shader at the appropriate
+the surface shader at the appropriate you know sort of
+you know sort of uh point for faster performance and
+uh point for faster performance and you'll have all of this stuff for for
+you'll have all of this stuff for for reference later on
+reference later on now you have to be careful about another
+now you have to be careful about another aspect which comes along with you know
+aspect which comes along with you know real production-centric uh worlds you
+real production-centric uh worlds you need to mine your cascade shadows
+need to mine your cascade shadows because remember that we're not going to
+because remember that we're not going to evaluate everything in the infinite
+evaluate everything in the infinite distance well we can't afford it
+distance well we can't afford it so if you have a giant view you might
+so if you have a giant view you might still want to rely on cascade shadows
+still want to rely on cascade shadows and they will encompass a region around
+and they will encompass a region around the camera and so now you have to deal
+the camera and so now you have to deal with the
+with the merge of the cascade shadows around your
+merge of the cascade shadows around your camera and your glorious perfect
+camera and your glorious perfect reflection
+reflection ray trace shadows with cascade shadows
+ray trace shadows with cascade shadows view dependent
+view dependent and so if you reflect outside the
+and so if you reflect outside the boundary of cascades you actually won't
+boundary of cascades you actually won't even be picking up the right shadows
+even be picking up the right shadows from that super giant object that that
+from that super giant object that that is coming in outside
+is coming in outside and so you really need to be kind of
+and so you really need to be kind of paying attention to that
+paying attention to that so what also happens if you have a
+so what also happens if you have a metallic object inside a room full of
+metallic object inside a room full of mirrors
+mirrors right multiple balance are very
+right multiple balance are very expensive to evaluate and how do you
+expensive to evaluate and how do you account for more than second balance in
+account for more than second balance in a performant way
+a performant way in our case we ensure that you you know
+in our case we ensure that you you know obviously if you have something like a
+obviously if you have something like a reflection of a knob
+reflection of a knob uh that needs to reflect another
+uh that needs to reflect another metallic object
+metallic object you'll want to blend multiple times in
+you'll want to blend multiple times in general we want to evaluate reflection
+general we want to evaluate reflection for one bounce because of the cost of
+for one bounce because of the cost of the reflection shader
+the reflection shader but in some cases we can actually think
+but in some cases we can actually think about falling back to rasterization
+about falling back to rasterization and how did we approach and
+and how did we approach and rasterization for metallic object we can
+rasterization for metallic object we can use specular term as diffuse
+use specular term as diffuse right so we basically use fresnel zero
+right so we basically use fresnel zero in our implementation
+in our implementation as essentially diffuse for metal objects
+as essentially diffuse for metal objects for second balances we fall back to
+for second balances we fall back to fresnel zero
+fresnel zero right which gives you the sort of the
+right which gives you the sort of the color of the object
+color of the object and if you don't do the you actually
+and if you don't do the you actually will over darken the object it gives you
+will over darken the object it gives you the black and this is the example
+the black and this is the example may be hard to see but that that knob
+may be hard to see but that that knob that you see on the panel actually is
+that you see on the panel actually is the example of bringing in that tint
+the example of bringing in that tint uh for the metallic object to blend uh
+uh for the metallic object to blend uh appropriate
+appropriate darkening so as we mentioned
+darkening so as we mentioned reflection is a very expensive path we
+reflection is a very expensive path we pass we need to
+pass we need to optimize it so we default to using quota
+optimize it so we default to using quota resolution for speed
+resolution for speed this is very similar to what ea seed has
+this is very similar to what ea seed has done
+done and what we do is we select one of the
+and what we do is we select one of the four samples per frame
+four samples per frame evaluate the lighting store the
+evaluate the lighting store the resulting index sample direction
+resulting index sample direction do the probability distribution function
+do the probability distribution function and then up sample with all the brdf
+and then up sample with all the brdf information for filtering so this is
+information for filtering so this is accounting for variance roughness
+accounting for variance roughness and so forth then it follows the same
+and so forth then it follows the same temporal
+temporal accumulation and bilateral disjoint
+accumulation and bilateral disjoint based on the radius of the filter that
+based on the radius of the filter that we specified
+we specified and so here is the example of roughness
+and so here is the example of roughness normal
+normal we use the full resolution results and
+we use the full resolution results and i'll do a little back and forth
+i'll do a little back and forth so you can kind of see what happens with
+so you can kind of see what happens with quarter rest in reality if you're moving
+quarter rest in reality if you're moving reasonably fast
+reasonably fast it's not too bad and performance is
+it's not too bad and performance is pretty good
+pretty good in terms of gaining the the benefits for
+in terms of gaining the the benefits for that okay
+that okay great done with indirect specular let's
+great done with indirect specular let's talk about shadows
+talk about shadows rasterization of course is a really well
+rasterization of course is a really well known and fast approach for it when we
+known and fast approach for it when we evaluate
+evaluate uh you know shadows we just do a simple
+uh you know shadows we just do a simple shadow map
+shadow map with retrace we actually can do a lot of
+with retrace we actually can do a lot of these approaches as well
+these approaches as well and evaluate rasterize shadow maps
+and evaluate rasterize shadow maps during reflections
+during reflections because that's faster it's an
+because that's faster it's an optimization for that particular pass
+optimization for that particular pass because you may not need the actual
+because you may not need the actual precise glorious ray trace shadows
+precise glorious ray trace shadows the recursion can murder your
+the recursion can murder your performance so for shadows we have the
+performance so for shadows we have the full screen buffer for the shadow if you
+full screen buffer for the shadow if you want high resolution
+want high resolution or if your light is very soft you
+or if your light is very soft you actually can get away with less
+actually can get away with less and this kind of like experiment based
+and this kind of like experiment based on your particular production screen
+on your particular production screen it is required to be full screen for
+it is required to be full screen for area lights and for
+area lights and for sunlight
+we use ray train screen space shadow map for sun this is the
+for sun this is the disk light and note that this again
+disk light and note that this again breaks for transparence
+breaks for transparence because if you go through the
+because if you go through the transparency you need to handle the
+transparency you need to handle the opacity correctly
+opacity correctly the object is tinted in the color shader
+the object is tinted in the color shader which is of course expensive to
+which is of course expensive to evaluate in that pass and in general i
+evaluate in that pass and in general i mean it's extremely expensive to
+mean it's extremely expensive to evaluate to begin with
+evaluate to begin with if you consider again the the rough
+if you consider again the the rough refraction so even
+refraction so even in offline it's not really to support it
+in offline it's not really to support it and
+and for reflection we use a combination of
+for reflection we use a combination of screen space
+screen space shadow maps so that's the sun area
+shadow maps so that's the sun area lights as well as shadow map for
+lights as well as shadow map for punctuals
+punctuals and area lights next
+and area lights next area light shadows of course they're
+area light shadows of course they're quite uh
+quite uh intensive to evaluate we can switch
+intensive to evaluate we can switch between rasterize implementation of area
+between rasterize implementation of area lights or between ray trace perlite
+lights or between ray trace perlite we also can do this dynamically so we
+we also can do this dynamically so we allow a lot of control based on lod or
+allow a lot of control based on lod or based on artist
+based on artist preference in future we'll also
+preference in future we'll also experiment with importance driven
+experiment with importance driven techniques to kind of see if we can do
+techniques to kind of see if we can do this in a more automatic manner
+this in a more automatic manner when selecting rasterization we use eric
+when selecting rasterization we use eric heights's linear transform cosine
+heights's linear transform cosine approach
+approach plus exponential shadow maps for area
+plus exponential shadow maps for area lights
+lights and um you want to make sure that you
+and um you want to make sure that you use a combination like i've described
+use a combination like i've described before to combine it in a safe way
+before to combine it in a safe way manner
+so raytrace theory allies are actually correct
+correct as the glorious ground truth but quite
+as the glorious ground truth but quite expensive because you need to launch
+expensive because you need to launch a lot of race to cover the area
+a lot of race to cover the area especially for those giant aerial lights
+especially for those giant aerial lights in the video you probably saw this
+in the video you probably saw this enormous textured screen which is one
+enormous textured screen which is one enormous
+enormous area light and so as an optimization we
+area light and so as an optimization we can evaluate visibility independently
+can evaluate visibility independently which is essentially a shadow map
+which is essentially a shadow map separately from direct lighting and what
+separately from direct lighting and what we do it's a very similar principle to
+we do it's a very similar principle to rasterization
+rasterization we render visibility to shadow map using
+we render visibility to shadow map using exponential shadow maps
+exponential shadow maps and then apply lighting and
+and then apply lighting and of course the regular shadow maps are
+of course the regular shadow maps are incorrect in this case because they're
+incorrect in this case because they're not accounting for brdf for the material
+not accounting for brdf for the material but again you're thinking about
+but again you're thinking about performance implementation so it is a
+performance implementation so it is a reasonable compromise
+you uh in our case we fall back to the approach described in
+approach described in eric heitz's present well morgan eric
+eric heitz's present well morgan eric and
+and steven hill's presentation from last
+steven hill's presentation from last year's siggraph
+year's siggraph which allows for better representation
+which allows for better representation for separate visibility that actually
+for separate visibility that actually takes into account material and is a
+takes into account material and is a great reference with a lot of code and
+great reference with a lot of code and detail
+detail and then as i mentioned we value their
+and then as i mentioned we value their lighting with ltc
+lighting with ltc so this is the example of a naive
+so this is the example of a naive implementation for computing area light
+implementation for computing area light shadow without the
+shadow without the ltc approach that we've just mentioned
+ltc approach that we've just mentioned and notice that it's you know it's not
+and notice that it's you know it's not really representative of the complexity
+really representative of the complexity of the vehicle
+of the vehicle so i'll go back and forth between the
+so i'll go back and forth between the approach from
+approach from eric's ltc implementation pretty close
+eric's ltc implementation pretty close to ground truth so that complexity and
+to ground truth so that complexity and evaluation actually really matters in
+evaluation actually really matters in regards to quality
+for textual area light shadow we require a full screen space buffer
+a full screen space buffer we pack it for efficiency now we
+we pack it for efficiency now we actually need to
+actually need to have access to full material properties
+have access to full material properties in order to evaluate brdf
+in order to evaluate brdf so in our case we're restricted to the g
+so in our case we're restricted to the g buffer con
+buffer con renderer uh we approximate the standard
+renderer uh we approximate the standard materials for performance so of course
+materials for performance so of course you know all of the special effects of
+you know all of the special effects of an isotropy
+an isotropy et cetera fell out but it's okay for
+et cetera fell out but it's okay for for the current for performance reason
+for the current for performance reason and
+and essentially along with a direct light
+essentially along with a direct light evaluation
+so what we do we need to then look at optimization for area light shadows
+optimization for area light shadows we launch rate and evaluate every
+we launch rate and evaluate every samples
+samples so the shadow that we're doing is the
+so the shadow that we're doing is the noise so we can't actually approximate
+noise so we can't actually approximate the brdf
+the brdf and like i said if we choose the
+and like i said if we choose the standard material we end up with a
+standard material we end up with a fairly reasonable approximation
+fairly reasonable approximation that gives a good quality without
+that gives a good quality without sacrifice to the final shadow qual
+sacrifice to the final shadow qual shadow experience how we pack this
+shadow experience how we pack this texture is we use an rgba fp16 screen
+texture is we use an rgba fp16 screen space buffer
+space buffer and we packed three components
+and we packed three components essentially the first component this is
+essentially the first component this is described
+described in more depth in eric's representation
+in more depth in eric's representation we pack the luminance of direct lighting
+we pack the luminance of direct lighting so we launch in our case a sample
+so we launch in our case a sample directly not using linear
+directly not using linear transfer cosine then we combined
+transfer cosine then we combined the luminance with testing visibility so
+the luminance with testing visibility so this essentially brings in the shadow
+this essentially brings in the shadow term
+term and then the final term we packed is the
+and then the final term we packed is the full evaluation of ltc
+full evaluation of ltc invite you to read the paper as it's
+invite you to read the paper as it's really really great
+really really great we need to for textuary lights in order
+we need to for textuary lights in order to get good quality and stability
+to get good quality and stability denoise each term
+denoise each term separately and so this is required
+separately and so this is required in order to get stability but of course
+in order to get stability but of course it means you have to separate the signal
+it means you have to separate the signal and run two passes
+and run two passes we for uh efficiency of implementation
+we for uh efficiency of implementation did it in a single pass in compute for
+did it in a single pass in compute for performance which is
+performance which is uh much better and we also use the u
+uh much better and we also use the u the combined ltc evaluation result
+the combined ltc evaluation result as a parameter for guiding the denoiser
+as a parameter for guiding the denoiser in order to
+in order to essentially in a similar manner that we
+essentially in a similar manner that we would use depth of normal
+would use depth of normal in the other set of effects to be able
+in the other set of effects to be able to
+to deal with discontinuities and then we've
+deal with discontinuities and then we've divided the luminance by the
+divided the luminance by the sn in order to update the final shadow
+sn in order to update the final shadow result
+result now one of the issues with area lights
+now one of the issues with area lights of course is they're quite large and the
+of course is they're quite large and the samples can go in a wide range of
+samples can go in a wide range of directions so we need to think about
+directions so we need to think about coherency of rays in order to obtain
+coherency of rays in order to obtain good performance
+good performance and it really is one of the biggest
+and it really is one of the biggest costs for this particular effect
+costs for this particular effect as you can imagine the caches get quite
+as you can imagine the caches get quite trashed in the process
+trashed in the process so the biggest win for area light
+so the biggest win for area light evaluation is to
+evaluation is to think about how we can improve coherency
+think about how we can improve coherency of evaluation
+of evaluation in our case what we do is well actually
+in our case what we do is well actually let's look at the naive approach right
+let's look at the naive approach right so we want to do four samples for the
+so we want to do four samples for the area light and we shoot them in
+area light and we shoot them in basically four uncorrelated directions
+basically four uncorrelated directions no guarantees of coherency whatsoever
+no guarantees of coherency whatsoever god knows what
+god knows what point in the cache you will hit as you
+point in the cache you will hit as you can imagine it gets
+can imagine it gets quite poor performance the alternative
+quite poor performance the alternative is to split the evaluation into four
+is to split the evaluation into four passes
+passes and each free per pass will use an
+and each free per pass will use an approximately similar um
+approximately similar um direction which allows us to to get much
+direction which allows us to to get much better coherency for the execution of
+better coherency for the execution of that pass
+that pass resulting in much better performance
+resulting in much better performance despite the non-obvious fact that we're
+despite the non-obvious fact that we're going for four passes
+going for four passes and this is actually example of the
+and this is actually example of the result in pix
+result in pix uh evaluated in our rtx 2080 ti at 1080p
+uh evaluated in our rtx 2080 ti at 1080p and so the shadow for area like this is
+and so the shadow for area like this is that giant you know two-thirds of the
+that giant you know two-thirds of the screen
+screen area light executes at about 4.8
+area light executes at about 4.8 milliseconds
+milliseconds but if we do the non-obvious four pass
+but if we do the non-obvious four pass you know
+you know separation you actually save almost two
+separation you actually save almost two milliseconds which is quite quite
+milliseconds which is quite quite significant
+significant transparency and ray tracing them
+transparency and ray tracing them transparents are always
+transparents are always problematic not possible to denoise no g
+problematic not possible to denoise no g buffer
+buffer i thought it was supposed to be a
+i thought it was supposed to be a glorious promise we also need to render
+glorious promise we also need to render from primary race so it's
+from primary race so it's expensive to evaluate so
+expensive to evaluate so with regards to handling them correctly
+with regards to handling them correctly what we need to think about is we need
+what we need to think about is we need to handle transmission
+to handle transmission and we need to handle rough refraction
+and we need to handle rough refraction of course this is expensive even an
+of course this is expensive even an offline world
+offline world first thing we're thinking about is when
+first thing we're thinking about is when you're hitting a transparent object you
+you're hitting a transparent object you need to
+need to launch array right so we need to render
+launch array right so we need to render primary visibility with ray tracing
+primary visibility with ray tracing because we don't have
+because we don't have a g buffer right like we don't have the
+a g buffer right like we don't have the starting point of information
+starting point of information so the very first you've just realized
+so the very first you've just realized is yay path tracer
+is yay path tracer right and what about performance
+right and what about performance when hitting that object we need to
+when hitting that object we need to think about
+think about how we're going to manage path tracer
+how we're going to manage path tracer primary evaluation
+primary evaluation versus rasterization because we also
+versus rasterization because we also said we don't want to do primary array
+said we don't want to do primary array for all of the opec objects right so
+for all of the opec objects right so what we do is we allow
+what we do is we allow essentially switching per object per
+essentially switching per object per effect of sending the primary rate
+effect of sending the primary rate either through rasterization so deferred
+either through rasterization so deferred g buffer or whatever
+g buffer or whatever flavor of the day forward etc or send it
+flavor of the day forward etc or send it through ray tracing
+through ray tracing and so here is the example of a scene
+and so here is the example of a scene where that's actually really needed
+where that's actually really needed because you'll see a lot of you know
+because you'll see a lot of you know complex transparency happening on the
+complex transparency happening on the gear shift primary objects are rendered
+gear shift primary objects are rendered in a depth pre-pass
+in a depth pre-pass we output a mask for every element of
+we output a mask for every element of the transparent object that we use in
+the transparent object that we use in order to discard rays that shouldn't be
+order to discard rays that shouldn't be actually used
+actually used for primary ray rendering this is our
+for primary ray rendering this is our optimization right
+optimization right and furthermore we also provide a
+and furthermore we also provide a parameter for primary visibility array
+parameter for primary visibility array to
+to the artist to control max recursion and
+the artist to control max recursion and this is related to the refraction
+this is related to the refraction effects
+effects and what we do then is we launch rays in
+and what we do then is we launch rays in screen space from near plane in the
+screen space from near plane in the direction of the fire plane
+direction of the fire plane right like for the visibility
+right like for the visibility computation and so
+computation and so illustrating kind of like the approach
+illustrating kind of like the approach for max depth
+for max depth what we do is we retrieve the index of
+what we do is we retrieve the index of refraction and calculate the refraction
+refraction and calculate the refraction vector
+vector we calculate the refraction we launch
+we calculate the refraction we launch ray store the results of that refraction
+ray store the results of that refraction continue onward calculate the reflection
+continue onward calculate the reflection launch rays store the results of that
+launch rays store the results of that reflection
+reflection and in each point we evaluate light
+and in each point we evaluate light loops so reflection value refraction
+loops so reflection value refraction value and so forth
+value and so forth and then we accumulate the final result
+and then we accumulate the final result in return
+in return and the light loop has to take all of
+and the light loop has to take all of this into account
+this into account the results of reflection so every ray
+the results of reflection so every ray that i've sent through
+that i've sent through results of the two refracted passes
+results of the two refracted passes until we essentially
+until we essentially reach the max depth so quite a lot of
+reach the max depth so quite a lot of complexity so these of course
+complexity so these of course you know should be used with wisdom and
+you know should be used with wisdom and sense
+so that is actually what allows us to support multiple reflection and
+support multiple reflection and refraction for transparent objects
+refraction for transparent objects as i've mentioned we only support smooth
+as i've mentioned we only support smooth reflection and refraction that whole
+reflection and refraction that whole scattering of the rough refraction
+scattering of the rough refraction good next year's gdc um quite expensive
+good next year's gdc um quite expensive and there is a really
+and there is a really good analysis from colin's presentation
+good analysis from colin's presentation on the subject from last
+on the subject from last year's siggraph intro to
+year's siggraph intro to ray tracing course so here's an example
+ray tracing course so here's an example of uh i think nine level
+of uh i think nine level uh passes so we're kind of going through
+uh passes so we're kind of going through multiple bounces accumulate
+multiple bounces accumulate accumulating result uh for the final
+accumulating result uh for the final refracted and reflected now note that
+refracted and reflected now note that this doesn't support total internal
+this doesn't support total internal reflection on fresnel
+reflection on fresnel so we value when we evaluate light loop
+so we value when we evaluate light loop we actually
+we actually fall back to a lot of the rasterization
+fall back to a lot of the rasterization evaluation so we value each look for now
+evaluation so we value each look for now and fresnel is evaluated at every bounce
+and fresnel is evaluated at every bounce pass
+this the reason this doesn't account for total internal reflections
+total internal reflections because well schlick fresnel is just an
+because well schlick fresnel is just an approximation and it's only really good
+approximation and it's only really good when ior is between 1.4 and 1.7
+when ior is between 1.4 and 1.7 so you know quite limited in its
+so you know quite limited in its representation true fresnel is something
+representation true fresnel is something that we use for the full
+that we use for the full you know expensive glorious frame path
+you know expensive glorious frame path tracer
+tracer but for our pipeline with a more game
+but for our pipeline with a more game oriented
+oriented rendering for the live we actually can't
+rendering for the live we actually can't represent it in the pbr
+represent it in the pbr so we pre-integrate the cube map uh you
+so we pre-integrate the cube map uh you know based on the fact remember the hdri
+know based on the fact remember the hdri cube map that i mentioned in the light
+cube map that i mentioned in the light evaluation
+evaluation we pre-integrated based on the fact that
+we pre-integrated based on the fact that it's schlick
+it's schlick and that's the reason i mentioned
+and that's the reason i mentioned earlier that if we you know
+earlier that if we you know if we're doing the full path tracer we
+if we're doing the full path tracer we need to do proper evaluation because
+need to do proper evaluation because that's where we need to actually go back
+that's where we need to actually go back to the fresnel
+to the fresnel in order to handle the total internal
+in order to handle the total internal reflection of course
+reflection of course that will come with significantly more
+that will come with significantly more performance cost and
+performance cost and uh when quality is more important than
+uh when quality is more important than performance fantastic
+performance fantastic go wild use the true fresnel and when
+go wild use the true fresnel and when you're in a more performant route and
+you're in a more performant route and you really need to think about
+you really need to think about you know dynamic elements of the scene
+you know dynamic elements of the scene we
+we actually one of the benefits is we get
+actually one of the benefits is we get performance but the other benefits is
+performance but the other benefits is you also match more of the look to your
+you also match more of the look to your evaluation from the rasterization path
+evaluation from the rasterization path so one set of assets is also something
+so one set of assets is also something that's worth thinking about
+so um this is the example of the total internal reflection
+internal reflection in fact that you know we're basically
+in fact that you know we're basically saying we're punting for this
+so in our case uh you know actually sorry it's a little bit um
+sorry it's a little bit um repeated so we mentioned that we want to
+repeated so we mentioned that we want to have ray tracing or rasterization what
+have ray tracing or rasterization what we've enabled is we allow actually
+we've enabled is we allow actually switch
+switch between uh full ray trace so primary
+between uh full ray trace so primary visibility or
+visibility or rasterization either placed on camera it
+rasterization either placed on camera it can be
+can be used for rendering that specific view
+used for rendering that specific view entirely in you know ale with retracing
+entirely in you know ale with retracing etc or you can actually have a view
+etc or you can actually have a view that's defaulting to ssao so a lot
+that's defaulting to ssao so a lot of flexibility in that regard the area
+of flexibility in that regard the area light is something that's switchable
+light is something that's switchable back and forth based on either the
+back and forth based on either the object or
+object or distance and similarly you can also mix
+distance and similarly you can also mix primary ray
+primary ray objects b to pico transparents it
+objects b to pico transparents it actually doesn't really quite matter
+actually doesn't really quite matter with regular you know deferred and more
+with regular you know deferred and more standard pipeline
+standard pipeline objects of course
+objects of course ray tracing path you know for anything
+ray tracing path you know for anything that you've selected is more performance
+that you've selected is more performance intensive
+intensive and so you need to think about how are
+and so you need to think about how are you going to fall back on rasterization
+you going to fall back on rasterization when outside the region of the camera
+when outside the region of the camera and we talked about how we actually need
+and we talked about how we actually need to rethink about how we're approaching
+to rethink about how we're approaching camera and visibility
+camera and visibility what we do is we fall back to ray trace
+what we do is we fall back to ray trace reflection
+reflection in our um reflection hierarchy so we
+in our um reflection hierarchy so we look here is the example
+look here is the example basically this is your frustum view and
+basically this is your frustum view and the areas where you
+the areas where you define rasterization fallbacks you can
+define rasterization fallbacks you can kind of see we fall back to ssr further
+kind of see we fall back to ssr further away
+away and we define the area where we're still
+and we define the area where we're still computing global reflections around kind
+computing global reflections around kind of like proximity of the camera
+of like proximity of the camera again driven by your quality and
+again driven by your quality and performance needs and then further away
+performance needs and then further away you start falling back to more and more
+you start falling back to more and more and more
+and more lod approaches for ssr and similar
+lod approaches for ssr and similar approaches or even drop out that and if
+approaches or even drop out that and if you need to
+so when we use primary visibility ray rendering it's very similar to opaque
+rendering it's very similar to opaque objects
+objects they're rendered in depth pre-pass i'll
+they're rendered in depth pre-pass i'll put a mask like i said
+put a mask like i said if the transparent object is not
+if the transparent object is not registered in the acceleration structure
+registered in the acceleration structure it actually
+it actually doesn't have ability to appear in our
+doesn't have ability to appear in our reflection and so
+reflection and so what we do is we treat the primary
+what we do is we treat the primary visibility object as
+visibility object as an opaque object for intents and
+an opaque object for intents and purposes of that
+purposes of that and what that means is the primary ray
+and what that means is the primary ray transparent can see other object and you
+transparent can see other object and you actually don't need to require any
+actually don't need to require any compositing but that means we're back to
+compositing but that means we're back to sorting issues
+sorting issues because we don't intend to render for
+because we don't intend to render for example particles into an uh
+example particles into an uh you know a giant acceleration structure
+you know a giant acceleration structure uh in full glory we're not going to have
+uh in full glory we're not going to have to deal well where is this
+to deal well where is this sort you know opaque primary ray sorry
+sort you know opaque primary ray sorry primary transparent object with respect
+primary transparent object with respect to everything else in the scene
+to everything else in the scene when we're actually rendering the
+when we're actually rendering the transparent part
+so there's some things that we need to think about for transparence going
+think about for transparence going forward in order to make sure
+forward in order to make sure that it's really robust the next thing i
+that it's really robust the next thing i wanted to hit is
+wanted to hit is indirect diffuse and i realize i'm a
+indirect diffuse and i realize i'm a little bit short on time so we might go
+little bit short on time so we might go through this a little faster
+through this a little faster the very simple thing that we've decided
+the very simple thing that we've decided to do with indirect diffuse is replace
+to do with indirect diffuse is replace sampling of
+sampling of essentially pre-computed in lighting
+essentially pre-computed in lighting illumination such as light probe a light
+illumination such as light probe a light map
+map with either a brute for a force approach
+with either a brute for a force approach where we do
+where we do a ground truth approximation basically
+a ground truth approximation basically do the full cosine integration of the
+do the full cosine integration of the scene
+scene and the noise that allows us to compute
+and the noise that allows us to compute really high quality but really expensive
+really high quality but really expensive indirect diffuse and this is the example
+indirect diffuse and this is the example of light map that's been beaked
+of light map that's been beaked and the resulted ray trace indirect
+and the resulted ray trace indirect diffuse which is actually fully dynamic
+diffuse which is actually fully dynamic now the approach you know brute force
+now the approach you know brute force approach is very close to ground truth
+approach is very close to ground truth so it's fantastic for more expensive
+so it's fantastic for more expensive frames
+frames and in fact the the video of the car
+and in fact the the video of the car that i showed you was using that
+that i showed you was using that approach
+approach but we can also look for the cheaper
+but we can also look for the cheaper alternative and what we do there is we
+alternative and what we do there is we generate light probes on the fly
+generate light probes on the fly actually in a similar manner as we do a
+actually in a similar manner as we do a flying one with beak light probes
+flying one with beak light probes we store them in a 3d texture and this
+we store them in a 3d texture and this can be of course amortized over multiple
+can be of course amortized over multiple frames
+frames and then we combine the resulting
+and then we combine the resulting indirect diffuse with ambient occlusion
+indirect diffuse with ambient occlusion and so a light probe group and this is
+and so a light probe group and this is the example of a light
+the example of a light group that's set up in a car it's super
+group that's set up in a car it's super easy to set up
+easy to set up right and it's just used solely for the
+right and it's just used solely for the purposes of rendering into that
+purposes of rendering into that information for indirect diffuse you can
+information for indirect diffuse you can also ensure to put more of them in
+also ensure to put more of them in regions where you want more fidelity now
+regions where you want more fidelity now you can use a different acceleration
+you can use a different acceleration structure for the light probes in order
+structure for the light probes in order to have a faster computation
+to have a faster computation so we actually use proxy geometry in
+so we actually use proxy geometry in order to speed up the
+order to speed up the indirect computation and we encode the
+indirect computation and we encode the light probes by using sage
+light probes by using sage second order coefficients it allows us
+second order coefficients it allows us to capture low frequency diffuse so
+to capture low frequency diffuse so fantastic and we can get away with this
+fantastic and we can get away with this you know proxy lot crew geometry because
+you know proxy lot crew geometry because it is really just you know
+it is really just you know low frequency diffuse and in our case we
+low frequency diffuse and in our case we trace about a thousand rays for each
+trace about a thousand rays for each light probes
+light probes each ray traverses the acceleration
+each ray traverses the acceleration structure that's using that generated
+structure that's using that generated proxy
+proxy geometry and when the triangle is hit we
+geometry and when the triangle is hit we evaluate lighting in that point
+evaluate lighting in that point and then convolve the resulting color
+and then convolve the resulting color into the corresponding stage
+into the corresponding stage coefficients
+coefficients and so again this is actually the same
+and so again this is actually the same approach that we used to generate
+approach that we used to generate offline b
+offline b can just you know less probes and
+can just you know less probes and slightly different geometry
+slightly different geometry and we use a compute shader to resample
+and we use a compute shader to resample the sage probes coefficients into the
+the sage probes coefficients into the volume texture
+volume texture and uh the closest four probes for each
+and uh the closest four probes for each voxel in the volume texture
+voxel in the volume texture ends up being rendered um and
+ends up being rendered um and interpolated
+interpolated around the particular voxel now the
+around the particular voxel now the final volume texture is set on an lpp
+final volume texture is set on an lpp component
+component right in the custom value texture and
+right in the custom value texture and then every single object can actually
+then every single object can actually sample from that particular
+sample from that particular element evaluating the sh coefficients
+element evaluating the sh coefficients and then computing the final gi value
+and then computing the final gi value so this is the example of how the sh
+so this is the example of how the sh coefficient texture looks
+coefficient texture looks when we go through all the layers and as
+when we go through all the layers and as you know it consists of nine
+you know it consists of nine coefficients for each rgb
+coefficients for each rgb channel but we also can pack them a
+channel but we also can pack them a little bit more efficient into the
+little bit more efficient into the seven rgba channels uh to an atlas of a
+seven rgba channels uh to an atlas of a 3d texture
+3d texture so of course there's a ton of
+so of course there's a ton of performance consideration for the sake
+performance consideration for the sake of time i'm going to skip them
+of time i'm going to skip them the main thing that we want to say is
+the main thing that we want to say is around 27 probes accumulation is about
+around 27 probes accumulation is about three millisecond on 2080 ti
+three millisecond on 2080 ti uh evaluation and there's a bunch of
+uh evaluation and there's a bunch of optimizations
+optimizations uh for you know a brute force approach
+uh for you know a brute force approach of optimizing all of them
+of optimizing all of them however if we use essentially more
+however if we use essentially more stem devaluation for compute cores we
+stem devaluation for compute cores we can split the evaluation of a single
+can split the evaluation of a single probes into series of samples
+probes into series of samples so that a single ray invocation can do a
+so that a single ray invocation can do a subset of all of you know we said that
+um a thousand 24 samples and so we actually paralyzed execution for
+actually paralyzed execution for within a probe for every single ray and
+within a probe for every single ray and when we do that
+when we do that with the resulting parallelization we
+with the resulting parallelization we were able to cut down the gpu cost to
+were able to cut down the gpu cost to 0.5 milliseconds for about 40
+0.5 milliseconds for about 40 probes and that's what we use in the
+probes and that's what we use in the live demo
+live demo so one node and acceleration structure i
+so one node and acceleration structure i already mentioned that we're using
+already mentioned that we're using cheaper geometry
+cheaper geometry now there's some fun bits about the api
+now there's some fun bits about the api uh with regards to lod
+uh with regards to lod but to work around those fun bits we
+but to work around those fun bits we essentially allow
+essentially allow an acceleration structure unique perfect
+an acceleration structure unique perfect and so you can use it to drive
+and so you can use it to drive completely different geometry so for
+completely different geometry so for you know gi we're using proxies for
+you know gi we're using proxies for reflection you might want to use a
+reflection you might want to use a higher fidelity pass
+higher fidelity pass it allows us to separate lods it allows
+it allows us to separate lods it allows us to separate scene representation
+us to separate scene representation and we give this flexibility both on the
+and we give this flexibility both on the effect and on us
+effect and on us you know specific i have a point to
+you know specific i have a point to touch on that
+touch on that for the designers of the apis on that
+for the designers of the apis on that but this is kind of a workaround in that
+but this is kind of a workaround in that and we also allow artists to flag
+and we also allow artists to flag objects
+objects to say whether they go to a particular
+to say whether they go to a particular acceleration structure or not
+acceleration structure or not as essentially it's done with just a bit
+as essentially it's done with just a bit fill for each ray trace effect per
+fill for each ray trace effect per volume
+volume and we can have unique configurations
+and we can have unique configurations per effect
+per effect and what it does is actually can allow
+and what it does is actually can allow us to create an acceleration structure
+us to create an acceleration structure that's dedicated to a particular effect
+that's dedicated to a particular effect what that means is like for example for
+what that means is like for example for these headlights we have a really
+these headlights we have a really complex effect lots of bounce and
+complex effect lots of bounce and refraction so forth
+refraction so forth so we've made an acceleration structure
+so we've made an acceleration structure that only encompasses this particular
+that only encompasses this particular headlamp
+headlamp by again that exclusion route and so yay
+by again that exclusion route and so yay they're fantastically
+they're fantastically really high quality we can do more
+really high quality we can do more balances whereas if we were to encompass
+balances whereas if we were to encompass the entirety of the world well
+the entirety of the world well we know how that's going to end
+we know how that's going to end similarly we also
+similarly we also support light layers which is something
+support light layers which is something that our artists feel really keenly
+that our artists feel really keenly fond of for any type of light with ray
+fond of for any type of light with ray tracing and it's
+tracing and it's actually the same way that we support it
+actually the same way that we support it for rasterization
+for rasterization same light representation means same
+same light representation means same content and then they can go to
+content and then they can go to appropriate evaluation
+appropriate evaluation i'll skip a little bit on evaluation of
+i'll skip a little bit on evaluation of light layers
+light layers one important thing that we were focused
+one important thing that we were focused on is how do you represent the shaders
+on is how do you represent the shaders for
+for um ray tracing with a shader graph
+um ray tracing with a shader graph because of course we want to enable
+because of course we want to enable artists for maximum freedom
+artists for maximum freedom and you can kind of think about retreat
+and you can kind of think about retreat shaders as a flavor of a sub
+shaders as a flavor of a sub graph that's encompassed for a specific
+graph that's encompassed for a specific lod in each effects we then have a
+lod in each effects we then have a separate shader table because of course
+separate shader table because of course you need to ensure you're actually
+you need to ensure you're actually compiling and linking and
+compiling and linking and able to evaluate that and with shader
+able to evaluate that and with shader graph we can bring a
+graph we can bring a separate shader sub graph per effect
+separate shader sub graph per effect this is also going to be used to be able
+this is also going to be used to be able to switch
+to switch based on distance as well as effect
+based on distance as well as effect so a couple of things about the demo
+so a couple of things about the demo i'll show in a second
+i'll show in a second on 2080 tide it was running at about 60
+on 2080 tide it was running at about 60 fps i'll run on my laptop we'll see how
+fps i'll run on my laptop we'll see how it does with running for an
+it does with running for an hour apparently i live on the edge
+hour apparently i live on the edge this car is about 28 million polygons
+this car is about 28 million polygons with tons of effects
+with tons of effects we did do a pass and this is something
+we did do a pass and this is something that you need to mind with retracing for
+that you need to mind with retracing for sure
+sure as there are a lot more parameters set
+as there are a lot more parameters set you need to think about optimizing
+you need to think about optimizing meshes to avoid
+meshes to avoid you know to basically do merging and so
+you know to basically do merging and so forth of smart things for the draw calls
+forth of smart things for the draw calls it was a little bit of an insane
+it was a little bit of an insane geometry right and this is sort of the
+geometry right and this is sort of the level of silliness because this was a
+level of silliness because this was a product design car they modeled the
+product design car they modeled the actual numbers
+actual numbers for the text and the panel sub you know
+for the text and the panel sub you know this is like the the radio part
+this is like the the radio part silly but it has representation for some
+silly but it has representation for some of the complexities that we'll
+of the complexities that we'll see in a good level i i think 28 mil
+see in a good level i i think 28 mil with a ton of details is actually a
+with a ton of details is actually a fairly decent workload or presenting
+fairly decent workload or presenting this on next-gen games and so this is
+this on next-gen games and so this is just the example of the density of
+just the example of the density of the geometry and
+the geometry and the performance numbers i'll let you
+the performance numbers i'll let you kind of peruse them later on
+kind of peruse them later on um captured in 28 ti for this white shot
+um captured in 28 ti for this white shot that you've just seen you know as you
+that you've just seen you know as you can see the reflections is actually you
+can see the reflections is actually you know about five milliseconds is where we
+know about five milliseconds is where we spend our being
+spend our being uh quite quite extensively and then the
+uh quite quite extensively and then the retracing itself is only 14 milliseconds
+retracing itself is only 14 milliseconds so it's actually
+so it's actually not bad despite the fact that it's a
+not bad despite the fact that it's a heavy polygonal model
+heavy polygonal model and an enormous textured light
+and an enormous textured light so let's live on the edge and see what
+so let's live on the edge and see what how this will work
+and of course if we're going to get kicked out of the room you're
+kicked out of the room you're you can come over and check it out on
+you can come over and check it out on the live laptop
+the live laptop and so this is that wide area light that
+and so this is that wide area light that you were seeing and sort of thing i can
+you were seeing and sort of thing i can show you the comparison to the ray
+show you the comparison to the ray traced effects
+traced effects versus the screen space reflections and
+versus the screen space reflections and you know you can start seeing some of
+you know you can start seeing some of the fidelity that comes in
+the fidelity that comes in with that effect the primary visibility
+with that effect the primary visibility ray is actually a lot better
+ray is actually a lot better noticeable in the interior so if we go
+noticeable in the interior so if we go to this region
+to this region the um gear shift box and part of my car
+the um gear shift box and part of my car terminology knowledge because i'll
+terminology knowledge because i'll probably name something incorrectly
+probably name something incorrectly has a really complex transparent and
+has a really complex transparent and refractive
+refractive object if i turn the visibility array
+object if i turn the visibility array you can kind of start seeing and in fact
+you can kind of start seeing and in fact if i go a little bit sideways
+if i go a little bit sideways you can start seeing the loss of quality
+you can start seeing the loss of quality of being able to get the internal
+of being able to get the internal effects within that object
+effects within that object from the bounces that are happening
+from the bounces that are happening and if we look at reflections
+and if we look at reflections again that's something that we can kind
+again that's something that we can kind of start seeing all of the dynamic
+of start seeing all of the dynamic elements of them
+okay i'm being hurried on that's okay thank you guys for not
+that's okay thank you guys for not displaying extreme impatience
+displaying extreme impatience albeit the conference is less tolerant
+albeit the conference is less tolerant okay
+all right so a couple of small performance observations i have about
+performance observations i have about maybe five minutes
+maybe five minutes and then i'll finish my rant we noticed
+and then i'll finish my rant we noticed that
+that surprisingly payload had really small
+surprisingly payload had really small impact we did a lot of tests uh you know
+impact we did a lot of tests uh you know varying
+varying 256 versus 1024 payload changes it was
+256 versus 1024 payload changes it was negligible
+negligible in terms of performance and we actually
+in terms of performance and we actually found the same feedback from microsoft
+found the same feedback from microsoft and nvidia
+and nvidia when discussing cost was roughly linear
+when discussing cost was roughly linear with the numbers of rays
+with the numbers of rays and of course as i mentioned earlier
+and of course as i mentioned earlier rate coherency was king right
+rate coherency was king right it's also super important to get rid of
+it's also super important to get rid of as much work as possible from the ray
+as much work as possible from the ray trace shader
+trace shader splitting work between compute and ray
+splitting work between compute and ray trace so doing pre-pass is a good thing
+trace so doing pre-pass is a good thing to do
+to do for performance reasons on our side what
+for performance reasons on our side what are we doing next
+are we doing next we're going to support particles and
+we're going to support particles and it's going to be fun we're going to
+it's going to be fun we're going to discover a lot of interesting challenges
+discover a lot of interesting challenges we're also going to support more
+we're also going to support more sophisticated gpu animations
+sophisticated gpu animations um you saw some of the animations in the
+um you saw some of the animations in the car but the really fun bits exist
+car but the really fun bits exist when artists do vertex animations in the
+when artists do vertex animations in the shader graph
+shader graph lots of interesting challenges there
+lots of interesting challenges there with regard regards to bvhs and updated
+with regard regards to bvhs and updated acceleration structures
+acceleration structures and of course even more optimizations um
+and of course even more optimizations um so for the five-minute rent this is sort
+so for the five-minute rent this is sort of if there are any ihvs people or
+of if there are any ihvs people or people who talk to hvs and
+people who talk to hvs and or apis i wanted to mention a couple of
+or apis i wanted to mention a couple of things that are worth thinking about
+things that are worth thinking about with regards to current api
+with regards to current api and or state of algorithms so with
+and or state of algorithms so with regards to the noising
+regards to the noising we said we're going to denoising um per
+we said we're going to denoising um per effect
+effect we chose a cheap denoiser more of them
+we chose a cheap denoiser more of them per area light etc
+per area light etc congratulations profit runs fast we're
+congratulations profit runs fast we're good
+good it's still not super well understood
+it's still not super well understood what is the actual intuition of when you
+what is the actual intuition of when you want to choose let's say denoiser per
+want to choose let's say denoiser per frame
+frame versus the denoiser per effect i would
+versus the denoiser per effect i would love to see more
+love to see more you know deeper research in that domain
+you know deeper research in that domain of understanding of
+of understanding of how the final denoiser okay matches
+how the final denoiser okay matches maybe i'll rent outside of the door
+maybe i'll rent outside of the door so a couple of things i'll just manage
+so a couple of things i'll just manage them mention them
+them mention them we have global acceleration structures
+we have global acceleration structures and global reflection tables
+and global reflection tables how will this work with streaming how
+how will this work with streaming how will this work with lods
+will this work with lods how will this work with shaders that
+how will this work with shaders that need to be compiled iteratively
+need to be compiled iteratively how will this work with all the dynamic
+how will this work with all the dynamic objects that we want to procedurally
+objects that we want to procedurally create
+create lots of challenges there how will they
+lots of challenges there how will they work with gpu updates i can't update the
+work with gpu updates i can't update the bbh structure and the gpu
+bbh structure and the gpu so there's a lot of deep thinking that
+so there's a lot of deep thinking that needs to occur on that front before we
+needs to occur on that front before we can really start thinking about
+can really start thinking about truly integrating this in the proper way
+truly integrating this in the proper way then of course we need to think about
+then of course we need to think about ray tracing and texture cache coherency
+ray tracing and texture cache coherency the main thing i want to mention there
+the main thing i want to mention there is we think we understood texture
+is we think we understood texture streaming right like we can predict when
+streaming right like we can predict when objects need to stream in pretty well
+objects need to stream in pretty well with ray tracing guess what you're out
+with ray tracing guess what you're out of luck you don't know when the texture
+of luck you don't know when the texture needs to be streamed in
+needs to be streamed in it's outside of your camera view so
+it's outside of your camera view so there's some really good thinking that i
+there's some really good thinking that i think is going to happen in the next
+think is going to happen in the next three to five years
+three to five years and how we combine the generality of our
+and how we combine the generality of our dynamic worlds open world streaming and
+dynamic worlds open world streaming and so forth
+so forth with the lockdown of the black box
+with the lockdown of the black box always loaded and compiled at runtime
+always loaded and compiled at runtime bvhs that are
+bvhs that are not in our control so in general that
+not in our control so in general that that's a
+that's a pretty big challenge and mess shaders
+pretty big challenge and mess shaders and
+and and ray tracing and anything that does
+and ray tracing and anything that does gpu generation and compute shaders or
+gpu generation and compute shaders or gpu driven pipeline
+gpu driven pipeline how do we do you know bvh updates in
+how do we do you know bvh updates in that case this remains a really
+that case this remains a really fascinating field
+fascinating field i'm sorry one little thing ddx ddys they
+i'm sorry one little thing ddx ddys they were our friends we knew them so well
+were our friends we knew them so well well with retracing this is a problem we
+well with retracing this is a problem we kind of worked around it there's an
+kind of worked around it there's an nvidia paper i
+nvidia paper i advise you to look it up on map lod you
+advise you to look it up on map lod you can always fall back on meb0 that's okay
+can always fall back on meb0 that's okay and then of course support for beam so i
+and then of course support for beam so i told you we're doing a bunch of stuff
+told you we're doing a bunch of stuff through primary race congratulations to
+through primary race congratulations to us how do we accelerate it
+us how do we accelerate it we want to do beams through the
+we want to do beams through the accelerated acceleration structure
+accelerated acceleration structure we know their coherency not supported
+we know their coherency not supported through the api
+through the api and the rent so there were a lot of
+and the rent so there were a lot of people who contributed to this demo a
+people who contributed to this demo a couple more minutes they need to be
+couple more minutes they need to be named they were fantastic
+named they were fantastic they are really hard work and the
+they are really hard work and the results are amazing and this is both
+results are amazing and this is both artists engineers
+artists engineers and so forth once more blog we're hiring
+and so forth once more blog we're hiring if you want to solve all the hard
+if you want to solve all the hard problems i just mentioned
+problems i just mentioned come join us we're across the world
+come join us we're across the world probably
+probably where you are we are at two so
+where you are we are at two so end of rant thank you for your patience
+end of rant thank you for your patience and if there are questions i'll be at
+and if there are questions i'll be at the end of the talk

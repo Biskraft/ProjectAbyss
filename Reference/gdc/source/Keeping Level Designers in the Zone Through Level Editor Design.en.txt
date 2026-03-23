@@ -1,0 +1,1897 @@
+real short on time but this is gonna be a big thing we're going to run through
+a big thing we're going to run through five editors so I hope this time for
+five editors so I hope this time for questions at the end if not we can go to
+questions at the end if not we can go to the overflow room and then we get asked
+the overflow room and then we get asked questions there all right
+questions there all right hello everyone I'm Robin storm and here
+hello everyone I'm Robin storm and here to talk about keeping level seven zone
+to talk about keeping level seven zone whoo level editor design I'm a little
+whoo level editor design I'm a little designer in the Netherlands and over the
+designer in the Netherlands and over the last nine years I've worked with all
+last nine years I've worked with all kinds of editors and engines both public
+kinds of editors and engines both public and proprietary in-house ones over the
+and proprietary in-house ones over the use of these headers I've grown
+use of these headers I've grown accustomed to having to do the same
+accustomed to having to do the same thing in many different ways some of
+thing in many different ways some of these ways made it easier to enter the
+these ways made it easier to enter the zone and others made it more difficult
+zone and others made it more difficult to reach a zone but what is the zone the
+to reach a zone but what is the zone the flow state being in a zone is completely
+flow state being in a zone is completely subconscious you don't choose to get in
+subconscious you don't choose to get in or if out of here out of a flow state
+or if out of here out of a flow state your brain does if the editor does not
+your brain does if the editor does not allow for enough complexity anxiety sets
+allow for enough complexity anxiety sets in and if they're gonna make some
+in and if they're gonna make some tedious to perform tasks boredom sets in
+tedious to perform tasks boredom sets in if the editor allows for complex tasks
+if the editor allows for complex tasks to perform skillfully flow is created
+to perform skillfully flow is created and the developer gets into the zone
+and the developer gets into the zone which means content quality goes up and
+which means content quality goes up and quality development time goes up at the
+quality development time goes up at the end of the day it may even be surprised
+end of the day it may even be surprised at how much you got done look at how to
+at how much you got done look at how to minimize those flow Stoppers by
+minimize those flow Stoppers by comparing five different and widely used
+comparing five different and widely used editors and now we can use that
+editors and now we can use that information to improve future editors
+information to improve future editors both for public and in-house use now I'm
+both for public and in-house use now I'm not talking about how the game is is
+not talking about how the game is is communicated to the level designer or
+communicated to the level designer or how the editor interfaces with the
+how the editor interfaces with the engine in this talk I'm specifically
+engine in this talk I'm specifically talking about the level designer -
+talking about the level designer - editor interface the UX this is the
+editor interface the UX this is the critical point where a developer can
+critical point where a developer can either get in or out of the flow state
+either get in or out of the flow state this is also the critical point from
+this is also the critical point from having a game on paper to having a game
+having a game on paper to having a game in the engine this is where all the
+in the engine this is where all the creativity let's loose and gets put into
+creativity let's loose and gets put into a shape where that the customer can find
+a shape where that the customer can find as such is very important step it's
+as such is very important step it's often overlooked or sometimes
+often overlooked or sometimes disregarded
+disregarded now the electors will be looking today
+now the electors will be looking today our hammer Unreal Engine for unity the
+our hammer Unreal Engine for unity the screen creation kit and 3ds max now
+screen creation kit and 3ds max now these editors are all widely different
+these editors are all widely different used for a huge variety of games in
+used for a huge variety of games in genres and all I used by companies to
+genres and all I used by companies to make awesome levels with which was while
+make awesome levels with which was while we're looking at all of them and
+we're looking at all of them and showcasing their solutions to the same
+showcasing their solutions to the same problems level designers face everywhere
+problems level designers face everywhere all of them also allow for customization
+all of them also allow for customization to improve their toolset but for today
+to improve their toolset but for today we're only going to look about the
+we're only going to look about the database editors with no custom plugins
+database editors with no custom plugins otherwise we'd be here next week still
+otherwise we'd be here next week still and although we cannot
+and although we cannot look at first party proprietary tools we
+look at first party proprietary tools we can recognize similarities in these
+can recognize similarities in these public energies that we can apply to our
+public energies that we can apply to our in-house tools so we're going to look at
+in-house tools so we're going to look at these specific level design necessities
+these specific level design necessities navigating the editor creating geometry
+navigating the editor creating geometry snapping editing geometry terrain
+snapping editing geometry terrain texturing lighting importing assets
+texturing lighting importing assets placing assets and playtesting we're not
+placing assets and playtesting we're not going to do every single bit for every
+going to do every single bit for every single engine as time is limited so
+single engine as time is limited so we're sticking to the most important
+we're sticking to the most important parts of learning about the UX we will
+parts of learning about the UX we will not be discussing scripting i/o visual
+not be discussing scripting i/o visual scripting share editing nav editing
+scripting share editing nav editing optimization and requesting speech trees
+optimization and requesting speech trees there's also more stuff these are all
+there's also more stuff these are all very important and these editors carry
+very important and these editors carry both good and bad examples of them as
+both good and bad examples of them as really interesting but there isn't
+really interesting but there isn't enough time in an hour if you think I
+enough time in an hour if you think I missed something for a specific editor
+missed something for a specific editor or you would like to discuss these
+or you would like to discuss these features anyway
+features anyway cool then just come talk to me after the
+cool then just come talk to me after the presentation lastly before we go into
+presentation lastly before we go into the meat of the talk I've noticed there
+the meat of the talk I've noticed there are jargon and terminology differences
+are jargon and terminology differences around the world for developers
+around the world for developers some say engine and mean editor and some
+some say engine and mean editor and some say level designer and also mean
+say level designer and also mean environment artists or a combination of
+environment artists or a combination of both hopefully with the visual trainers
+both hopefully with the visual trainers presentation will be clear what's being
+presentation will be clear what's being talked about if not please come talk to
+talked about if not please come talk to me after a talk or email me my email is
+me after a talk or email me my email is here and also at the end of the
+here and also at the end of the presentation okay so let's start with
+presentation okay so let's start with navigation so we need to be able to get
+navigation so we need to be able to get wormy to be fast and quickly see any
+wormy to be fast and quickly see any part of the level from any angle sounds
+part of the level from any angle sounds simple but how these editors facilitate
+simple but how these editors facilitate this let's look to collect hammer so
+this let's look to collect hammer so there are four windows one 3d and three
+there are four windows one 3d and three 2d from the top front inside this means
+2d from the top front inside this means that at all times we have a good idea of
+that at all times we have a good idea of what the layout of the level is and we
+what the layout of the level is and we can zoom in and out of every window so
+can zoom in and out of every window so we can quickly see any part of level if
+we can quickly see any part of level if you specifically want to understand
+you specifically want to understand better and we can fly around freely look
+better and we can fly around freely look in any direction we may like this allows
+in any direction we may like this allows the levels are interesting in the flow
+the levels are interesting in the flow and pick and choose what they need to
+and pick and choose what they need to see very fast and we can make new
+see very fast and we can make new windows as well although they do not
+windows as well although they do not duck so it takes a bit of handling if
+duck so it takes a bit of handling if there are many windows this can take us
+there are many windows this can take us out of the zone as the set of seeing
+out of the zone as the set of seeing something quickly we may have to find
+something quickly we may have to find and align the window first hammer also
+and align the window first hammer also has a really neat system called cordon
+has a really neat system called cordon with it you can make a box and anything
+with it you can make a box and anything inside that box is rendered anything
+inside that box is rendered anything outside of the box is not you can resize
+outside of the box is not you can resize that box and create more boxes if you
+that box and create more boxes if you like to only let one part of the level
+like to only let one part of the level appear this makes it quick to navigate
+appear this makes it quick to navigate through a set part of the level
+through a set part of the level this keeps level design in zone
+this keeps level design in zone especially once levels have gone very
+especially once levels have gone very large and very complex at the end of the
+large and very complex at the end of the develop
+develop cycle also you can run the level with
+cycle also you can run the level with only the visible entities running so
+only the visible entities running so tracking down bugs becomes visual as
+tracking down bugs becomes visual as well again increasing flow and making it
+well again increasing flow and making it quick and visual let's take a look at
+quick and visual let's take a look at unreal again we have four windows one 3d
+unreal again we have four windows one 3d and three 2d although this time they all
+and three 2d although this time they all zoom in at the same time this is a tiny
+zoom in at the same time this is a tiny detail but it can affect flow as we may
+detail but it can affect flow as we may want to see one part of the level from
+want to see one part of the level from afar and another opposed with this
+afar and another opposed with this system were forced to zoom everywhere
+system were forced to zoom everywhere and we can fly around freely and look in
+and we can fly around freely and look in any direction at any time so this makes
+any direction at any time so this makes it quick for the level designer to see
+it quick for the level designer to see what they need to see and we can dock
+what they need to see and we can dock the windows so we don't clutter up the
+the windows so we don't clutter up the monitor with loose windows this makes it
+monitor with loose windows this makes it more likely for flow to happen let's we
+more likely for flow to happen let's we don't clarify monitor we have to search
+don't clarify monitor we have to search for that right window which mind the
+for that right window which mind the Autobahn which other one I'm gonna be
+Autobahn which other one I'm gonna be alt tabbing this is nice and fast let's
+alt tabbing this is nice and fast let's take a look at unity again we have four
+take a look at unity again we have four windows one 3d and three 2d so we can
+windows one 3d and three 2d so we can see any part of level quickly we can
+see any part of level quickly we can also create new windows if we'd like and
+also create new windows if we'd like and we can fly around freely and look in any
+we can fly around freely and look in any direction at any time we've got a flying
+direction at any time we've got a flying camera just make sure we can see end a
+camera just make sure we can see end a level quickly by both the macro and
+level quickly by both the macro and micro level and we can dock the windows
+micro level and we can dock the windows again so it into any configuration we
+again so it into any configuration we can also have one 3d view and know to
+can also have one 3d view and know to diffuse if we'd like to we also know
+diffuse if we'd like to we also know again clutter up the monitor let's take
+again clutter up the monitor let's take a look at creation kit ok so it's only
+a look at creation kit ok so it's only one window and we can't create any new
+one window and we can't create any new ones this makes it more time in mind
+ones this makes it more time in mind consuming to get a fuller idea of the
+consuming to get a fuller idea of the level and the window also does not duck
+level and the window also does not duck so we sort of have to be careful to like
+so we sort of have to be careful to like align it right and if we have a many
+align it right and if we have a many menus around we also have to juggle them
+menus around we also have to juggle them and we cannot fly around freely we have
+and we cannot fly around freely we have to rotate around a selected object so we
+to rotate around a selected object so we have to change objects and I'll rotate
+have to change objects and I'll rotate around them this system is very fast
+around them this system is very fast when using wide open areas and getting a
+when using wide open areas and getting a quick overlook overflow area but this
+quick overlook overflow area but this doesn't mean I've gone through a small
+doesn't mean I've gone through a small intersection such as this requires some
+intersection such as this requires some fiddling as we have to find the right
+fiddling as we have to find the right object to rotate around and depending on
+object to rotate around and depending on where we are so first person is how the
+where we are so first person is how the player looks at the level in this case
+player looks at the level in this case the orbital camera might be fast for
+the orbital camera might be fast for looking around objects but the player
+looking around objects but the player won't look at the level in that way so
+won't look at the level in that way so the workflow the orbital camera creates
+the workflow the orbital camera creates is one of which many player centric
+is one of which many player centric developments will be missed that can
+developments will be missed that can become a massive development issue
+become a massive development issue caused by a seemingly tiny UX issue
+caused by a seemingly tiny UX issue cycle ok 3ds max 3ds max again halves
+cycle ok 3ds max 3ds max again halves for Windows we can zoom in on our debt
+for Windows we can zoom in on our debt cetera and it has the same orbital
+cetera and it has the same orbital camera that we just saw in the creation
+camera that we just saw in the creation kit so we can take a quick look around
+kit so we can take a quick look around but it also has the free flying camera
+but it also has the free flying camera if you need to look at a smaller select
+if you need to look at a smaller select part of the level so we can do both we
+part of the level so we can do both we can do
+can do one singular object and we can fly
+one singular object and we can fly around and look at a huge level so what
+around and look at a huge level so what do we learn from looking at this well
+do we learn from looking at this well multi-window is make it possible to see
+multi-window is make it possible to see more of a level at a glance we see with
+more of a level at a glance we see with them we can quickly find any part of the
+them we can quickly find any part of the level and always have an overview
+level and always have an overview multiple windows help us stay in the
+multiple windows help us stay in the zone and docking windows can personalize
+zone and docking windows can personalize a workspace and increase speed loose
+a workspace and increase speed loose windows can make you lose focus and
+windows can make you lose focus and having to search for them which can make
+having to search for them which can make for a messy view which takes us out of
+for a messy view which takes us out of the zone and a free flying camera works
+the zone and a free flying camera works in all cases and while orbital camera
+in all cases and while orbital camera can also work it requires more actions
+can also work it requires more actions in indoor spaces having both can speed
+in indoor spaces having both can speed up work here also if you're making a
+up work here also if you're making a first-person game it helps facilitate
+first-person game it helps facilitate player centric design and the hammock
+player centric design and the hammock recording system increases visibility
+recording system increases visibility and speed in especially large and
+and speed in especially large and complex levels navigating through a
+complex levels navigating through a large width and complex level becomes
+large width and complex level becomes much faster making sure the focus is on
+much faster making sure the focus is on what is important instead of having to
+what is important instead of having to deal with the complexity created over a
+deal with the complexity created over a long development time now mind you none
+long development time now mind you none of these particular things are
+of these particular things are necessarily engine related any editor is
+necessarily engine related any editor is able able to have any kind of camera
+able able to have any kind of camera system or a system where you draw a box
+system or a system where you draw a box and anything outside that box isn't
+and anything outside that box isn't rendered so that's not engine related
+rendered so that's not engine related any other there's possibility of these
+any other there's possibility of these features if the time they save outweighs
+features if the time they save outweighs the time spent creating them now of
+the time spent creating them now of course navigation is also tied to UI so
+course navigation is also tied to UI so let's grab a specific example the
+let's grab a specific example the creation kit is made for RPGs which
+creation kit is made for RPGs which means you have a huge amount of
+means you have a huge amount of variables tax and assets to tweak this
+variables tax and assets to tweak this means going through many different menus
+means going through many different menus and to say what is any menu we have to
+and to say what is any menu we have to click OK otherwise we lose all the work
+click OK otherwise we lose all the work we just did in that menu ok so let's
+we just did in that menu ok so let's take a look at some of the menus in the
+take a look at some of the menus in the creation kit and where those buttons are
+creation kit and where those buttons are ok and the question menu it's down and
+ok and the question menu it's down and to the right it's the same location as
+to the right it's the same location as with most windows on PC so the levels on
+with most windows on PC so the levels on is used to it and will not interrupt the
+is used to it and will not interrupt the flow let's take a look at another menu
+flow let's take a look at another menu it's not on to the left ok it's not
+it's not on to the left ok it's not terrible yet so once we used to working
+terrible yet so once we used to working on one menu we have to adapt to the
+on one menu we have to adapt to the other which can take us out of the zone
+other which can take us out of the zone one more menu so why is the ok button
+one more menu so why is the ok button suddenly all the way up there one it can
+suddenly all the way up there one it can take a little time out of the zone and
+take a little time out of the zone and two they might click at the X which is
+two they might click at the X which is right next to it if they did 20 minutes
+right next to it if they did 20 minutes of work they might lose all of it and is
+of work they might lose all of it and is seemingly tiny new axis you can cause
+seemingly tiny new axis you can cause this now of course the creation kit is
+this now of course the creation kit is not the only one in the system there's
+not the only one in the system there's many editors that do these kinds of
+many editors that do these kinds of things and sure they're technically
+things and sure they're technically usable but do they facilitate creativity
+usable but do they facilitate creativity sometimes these issues creep up over
+sometimes these issues creep up over time due to recent such as this is way
+time due to recent such as this is way we've always done it or it's not
+we've always done it or it's not necessary to spend time improving it
+necessary to spend time improving it just deal with it
+just deal with it but if a developer continually has
+but if a developer continually has trouble with an editor
+trouble with an editor tool it's not their fault it's the fault
+tool it's not their fault it's the fault of whatever designed the editor think of
+of whatever designed the editor think of it like when a player cannot find a go
+it like when a player cannot find a go in the level do we blame the player or
+in the level do we blame the player or the level designer so why wouldn't we be
+the level designer so why wouldn't we be not blame the tool designer if a user
+not blame the tool designer if a user continually makes mistakes with the tool
+continually makes mistakes with the tool now this book of course is a must read
+now this book of course is a must read and most people know that already but
+and most people know that already but there's also so much wisdom in here for
+there's also so much wisdom in here for tool designer please read it in your own
+tool designer please read it in your own time if you want to like to improve your
+time if you want to like to improve your own tools and editors let's take a look
+own tools and editors let's take a look at creating the basic geometry so we
+at creating the basic geometry so we need to able to quickly place in size
+need to able to quickly place in size basic geometry and to replace large
+basic geometry and to replace large tracts of map quickly and accurately
+tracts of map quickly and accurately because building something is only 32
+because building something is only 32 percent of development time iterating
+percent of development time iterating and reworking is the other 70% of
+and reworking is the other 70% of development time so let's take a look at
+development time so let's take a look at how hammer tackles this problem we can
+how hammer tackles this problem we can select a primitive to play such as a box
+select a primitive to play such as a box a cylinder etc and then we simply click
+a cylinder etc and then we simply click and drag and we have an outline of the
+and drag and we have an outline of the brush that we can place anywhere
+brush that we can place anywhere notice how due to the four windows we
+notice how due to the four windows we can quickly and precisely place the
+can quickly and precisely place the brush exactly where we want to we don't
+brush exactly where we want to we don't have to find a pivot we don't have to
+have to find a pivot we don't have to look around in 3d view we simply click
+look around in 3d view we simply click and drag where we want it to be this
+and drag where we want it to be this keeps us inflow of work and we then just
+keeps us inflow of work and we then just press ENTER to make it appear we can
+press ENTER to make it appear we can change the size by grabbing one of the
+change the size by grabbing one of the handles and just dragging we instantly
+handles and just dragging we instantly see the measurements on each side in
+see the measurements on each side in each 2d view so we know exactly what the
+each 2d view so we know exactly what the sizes are and any time we select a brush
+sizes are and any time we select a brush so if we know a player walks at 15 units
+so if we know a player walks at 15 units per second or an acid was made for 512
+per second or an acid was made for 512 units we can quickly size up the map for
+units we can quickly size up the map for both the player and for the environment
+both the player and for the environment artists also saving them time let's take
+artists also saving them time let's take a look at unreal unreal 4 we can click
+a look at unreal unreal 4 we can click and drag the place a brush of a basic
+and drag the place a brush of a basic primitive however we cannot see the
+primitive however we cannot see the measurements right away we have to sort
+measurements right away we have to sort of click and drag for each side of the
+of click and drag for each side of the measurements this adds a step for every
+measurements this adds a step for every single brush we want to place and for
+single brush we want to place and for which we want to check the size the bang
+which we want to check the size the bang on the player and the alarmed artists so
+on the player and the alarmed artists so tiny thinks just this is now creating
+tiny thinks just this is now creating this butterfly effect however in the
+this butterfly effect however in the bottom right we can also see the
+bottom right we can also see the measurements and edit them to change the
+measurements and edit them to change the brush size and to move the brush we have
+brush size and to move the brush we have to specifically click on the pivot
+to specifically click on the pivot compare this to hammer where we can just
+compare this to hammer where we can just click on the brush any part of the brush
+click on the brush any part of the brush and with this one we have to find like
+and with this one we have to find like one of the three slivers and click one
+one of the three slivers and click one of those again time you thing but it can
+of those again time you thing but it can save some time take a look at unity so
+save some time take a look at unity so we can again can place different
+we can again can place different perimeters however we do not know any of
+perimeters however we do not know any of the measurements as we're all given the
+the measurements as we're all given the scale of the object again this can cause
+scale of the object again this can cause a geometry or art bottleneck that might
+a geometry or art bottleneck that might bite us in the ass later weeks or even
+bite us in the ass later weeks or even months from after placing this basic
+months from after placing this basic geometry now using the Rex tool we have
+geometry now using the Rex tool we have features slightly similar to hammer but
+features slightly similar to hammer but it's almost unusable because none of
+it's almost unusable because none of this can be snapped though the scale
+this can be snapped though the scale numbers do change so we can place things
+numbers do change so we can place things but not accurately replacing entire
+but not accurately replacing entire sections of a level will become very
+sections of a level will become very messy without snap geometry and accurate
+messy without snap geometry and accurate measurements now if we were to build an
+measurements now if we were to build an entire level based on these geometry
+entire level based on these geometry tools it would be building like a
+tools it would be building like a mansion without a proper foundation
+mansion without a proper foundation it might seem okay now but the entire
+it might seem okay now but the entire place will come crashing down if the
+place will come crashing down if the earth so much as shifts a centimeter
+earth so much as shifts a centimeter let's take a look at 3ds max now there's
+let's take a look at 3ds max now there's a large amount of primitives we can
+a large amount of primitives we can choose from here this makes it slightly
+choose from here this makes it slightly more flowy to four levels to be less of
+more flowy to four levels to be less of just boxes and hallways as we have other
+just boxes and hallways as we have other shapes to choose from and a premise also
+shapes to choose from and a premise also can be easily changed there for
+can be easily changed there for placement we can click and drag to
+placement we can click and drag to change these variables keeping a low
+change these variables keeping a low designer in the flow by allowing them to
+designer in the flow by allowing them to quickly do a complex task however again
+quickly do a complex task however again we do not see your specific measurements
+we do not see your specific measurements on each side only the height and a
+on each side only the height and a radius now we can't check for the
+radius now we can't check for the measurements throw by going into a
+measurements throw by going into a separate menu and clicking two points
+separate menu and clicking two points however where's the measurement now
+however where's the measurement now check it guess it's all the way down
+check it guess it's all the way down here again it's a tiny thing but if we
+here again it's a tiny thing but if we continually have to look up and down the
+continually have to look up and down the mother it's not going to promote flow in
+mother it's not going to promote flow in our blames it's going to promote
+our blames it's going to promote annoyance which will not improve the
+annoyance which will not improve the quality of our levels so what did we
+quality of our levels so what did we learn here hammer system of quick
+learn here hammer system of quick placement basic shaping invisible
+placement basic shaping invisible measurements is very very fast there are
+measurements is very very fast there are no menus necessary because everything
+no menus necessary because everything happens where the developer is looking
+happens where the developer is looking and pointing their mouse
+and pointing their mouse this makes it easier for the level
+this makes it easier for the level designer to get into the flow than
+designer to get into the flow than having to use menus it also enables the
+having to use menus it also enables the developer to iterate extremely rapidly
+developer to iterate extremely rapidly if a level at the end of the development
+if a level at the end of the development cycle needs adjustments now we can do so
+cycle needs adjustments now we can do so in seconds and minutes instead of weeks
+in seconds and minutes instead of weeks and months well and we'll also use this
+and months well and we'll also use this VSP the system is slightly slower
+VSP the system is slightly slower overall and placing basic geometry due
+overall and placing basic geometry due to requiring a menu and typing to
+to requiring a menu and typing to perfectly sized up a brush and a unit
+perfectly sized up a brush and a unit assembly has next to no uses level
+assembly has next to no uses level editor there are plenty of editor
+editor there are plenty of editor plugins though that you can buy we're
+plugins though that you can buy we're just looking at out of the box
+just looking at out of the box functionality today and 3ds max has a
+functionality today and 3ds max has a large amount of basic geometry to choose
+large amount of basic geometry to choose from so a level might all not only be
+from so a level might all not only be made out of boxes they're also edited to
+made out of boxes they're also edited to a menu but in that case it makes sense
+a menu but in that case it makes sense as they make quite complex however at
+as they make quite complex however at this point if you're an unreal developer
+this point if you're an unreal developer you might be thinking ah that's great
+you might be thinking ah that's great yeah that's you have those opinions but
+yeah that's you have those opinions but I'm faster making things in a real then
+I'm faster making things in a real then you are making things in hammer and you
+you are making things in hammer and you might be right so instead let's grab
+might be right so instead let's grab some facts how many clicks drags typing
+some facts how many clicks drags typing a button presses it does it take to
+a button presses it does it take to create a 512 by 512 by 512 brush and
+create a 512 by 512 by 512 brush and hammer versus in unreal
+hammer versus in unreal okay so when how many you would click
+okay so when how many you would click twice drag twice and press a button once
+twice drag twice and press a button once and I really need to click twice drag
+and I really need to click twice drag ones type three times and press a button
+ones type three times and press a button twice now that might not seem
+twice now that might not seem a big difference but only one brush
+a big difference but only one brush making a basic level can make it can
+making a basic level can make it can take thousands of brushes and that's
+take thousands of brushes and that's only one level these extra moments of
+only one level these extra moments of typing really add up on a project and
+typing really add up on a project and that takes that six months to even years
+that takes that six months to even years for 10,000 brushes the difference
+for 10,000 brushes the difference becomes between 50,000 actions in 80,000
+becomes between 50,000 actions in 80,000 actions that's the 30,000 action
+actions that's the 30,000 action difference almost half the time and
+difference almost half the time and that's almost one third of the time
+that's almost one third of the time saved just because the UX of one editor
+saved just because the UX of one editor requires fewer actions than the other
+requires fewer actions than the other it's not the engine it's not the user
+it's not the engine it's not the user it's just the UX that causes this time
+it's just the UX that causes this time loss over development cycle this is huge
+loss over development cycle this is huge and sure you might say hammer is ancient
+and sure you might say hammer is ancient but this is a tool from 1998 and it
+but this is a tool from 1998 and it still works that fast I mean people are
+still works that fast I mean people are making businesses out of providing
+making businesses out of providing similar tools for unity and unreal
+similar tools for unity and unreal engine for developers it's not about CSG
+engine for developers it's not about CSG or BSP it's about how you create
+or BSP it's about how you create geometry and it's just how about the UX
+geometry and it's just how about the UX of creating that geometry so yes if you
+of creating that geometry so yes if you look at the time reference in in
+look at the time reference in in differing UX actions hammer is faster
+differing UX actions hammer is faster and creating basic geometry levels but
+and creating basic geometry levels but that's just basic geometry what about
+that's just basic geometry what about complex geometry it's a different story
+complex geometry it's a different story so we want a place and add it comic
+so we want a place and add it comic somebody very quickly so we have a set
+somebody very quickly so we have a set of complex geometry we can choose from
+of complex geometry we can choose from this time we choose an arch we click and
+this time we choose an arch we click and drag out a shape and a menu pops up but
+drag out a shape and a menu pops up but you can change the properties of the
+you can change the properties of the arch and after we press ok we can scale
+arch and after we press ok we can scale and skew it but we cannot change any of
+and skew it but we cannot change any of those properties anymore that we saw on
+those properties anymore that we saw on the menu changing a number down here
+the menu changing a number down here only applies to new arches not old ones
+only applies to new arches not old ones and this exact same thing goes for
+and this exact same thing goes for cylinders we place one but after is it
+cylinders we place one but after is it set change a number of slides besides
+set change a number of slides besides does not do anything apart from when we
+does not do anything apart from when we place a new one we can edit it but that
+place a new one we can edit it but that takes considerable manual time so we
+takes considerable manual time so we kind of quickly accurately replace large
+kind of quickly accurately replace large complex sections of the map so this
+complex sections of the map so this makes it more difficult to get into the
+makes it more difficult to get into the flow when it comes to complex geometry
+flow when it comes to complex geometry in hammer so this could lead to levels
+in hammer so this could lead to levels aren't creating only boxes and hallways
+aren't creating only boxes and hallways because that's the flow of their
+because that's the flow of their creation and that's what they can oh
+creation and that's what they can oh that's allow them what to do in the
+that's allow them what to do in the production time available let's take a
+production time available let's take a look at unreal no real business all had
+look at unreal no real business all had to place our curves there we place it
+to place our curves there we place it and then in the menu we have many many
+and then in the menu we have many many different options the inner radius the
+different options the inner radius the angle of the curve the step height even
+angle of the curve the step height even a number of stairs like as you can tell
+a number of stairs like as you can tell this is full of flow it's visual and
+this is full of flow it's visual and that allows allows when to do a complex
+that allows allows when to do a complex task very quickly a level designer will
+task very quickly a level designer will not shy out to make a section with the
+not shy out to make a section with the curves there so if after playtesting i
+curves there so if after playtesting i want to quickly change a complex piece
+want to quickly change a complex piece of geometry we can do so when it comes
+of geometry we can do so when it comes to these specific primitives unreal also
+to these specific primitives unreal also has a subtractive brush system for
+has a subtractive brush system for example when we create a sphere a place
+example when we create a sphere a place it inside a brush and
+it inside a brush and make it subtract we've then created a
+make it subtract we've then created a hole so if at the place s thing want to
+hole so if at the place s thing want to change in large section of indoor space
+change in large section of indoor space instead of having to move this six sides
+instead of having to move this six sides of a room
+of a room we've only place the one brush that
+we've only place the one brush that makes up the room so we don't have to
+makes up the room so we don't have to create this whole different thing
+create this whole different thing so what did we learn here well having a
+so what did we learn here well having a huge variety of primitives make sure
+huge variety of primitives make sure that even complex geometry will be flow
+that even complex geometry will be flow viable on both unreal three is max allow
+viable on both unreal three is max allow for these complex presets to change with
+for these complex presets to change with numerical values which promotes flow
+numerical values which promotes flow even with complex levels and geometry
+even with complex levels and geometry and both also immediately and visually
+and both also immediately and visually show these changes in the editor views
+show these changes in the editor views there's no need to replace entire
+there's no need to replace entire sections by hands like we would have to
+sections by hands like we would have to do in hammer so instead of being afraid
+do in hammer so instead of being afraid we might have to cut levels or stick
+we might have to cut levels or stick with old content due to production and
+with old content due to production and time being low we can you just create
+time being low we can you just create what we like with high quality time can
+what we like with high quality time can be spent in the zone creating what is
+be spent in the zone creating what is both good quality for the player and
+both good quality for the player and good quality for the developer a good
+good quality for the developer a good thing here is to remember this
+thing here is to remember this interesting design comes from iteration
+interesting design comes from iteration and trying things out if the editor does
+and trying things out if the editor does not facilitate this then the design of
+not facilitate this then the design of the game will stagnate
+the game will stagnate we do not think of an awesome design
+we do not think of an awesome design that I make it and publish it no we
+that I make it and publish it no we think of something cool we iterated and
+think of something cool we iterated and we find things that we never even knew
+we find things that we never even knew were awesome and then we use those four
+were awesome and then we use those four great features so allow the level
+great features so allow the level designer to it away it was for in the
+designer to it away it was for in the editor and the design of the game will
+editor and the design of the game will flourish with it before to know more
+flourish with it before to know more about this I recommend looking at this
+about this I recommend looking at this talk from GDC 2014 by Chris McKenzie
+talk from GDC 2014 by Chris McKenzie from Ubisoft in it he explains the how
+from Ubisoft in it he explains the how the amazing editor they made called ub
+the amazing editor they made called ub art used for raymond to make it possible
+art used for raymond to make it possible for a single level designer to build an
+for a single level designer to build an entire level and the boss with mechanics
+entire level and the boss with mechanics and place asset just through the editor
+and place asset just through the editor just one level design i mean think how
+just one level design i mean think how many iteration cycles you can be sped up
+many iteration cycles you can be sped up solely by improving the editor ux let's
+solely by improving the editor ux let's take a look at snapping tools these are
+take a look at snapping tools these are very important for speed and flow to
+very important for speed and flow to quickly connect everything and make sure
+quickly connect everything and make sure the level designer or artist can create
+the level designer or artist can create art for the right size so not void or
+art for the right size so not void or holes are seen by the geometry by the
+holes are seen by the geometry by the player
+player okay so wanna snap anything to anywhere
+okay so wanna snap anything to anywhere sounds simple how do these editors do
+sounds simple how do these editors do that when we move a brush around in
+that when we move a brush around in hamburg it automatically snaps to the
+hamburg it automatically snaps to the grid so we never have to worry about
+grid so we never have to worry about anything being off grid ever unless we
+anything being off grid ever unless we specifically tell it to be this makes it
+specifically tell it to be this makes it easier for the levels line to focus on
+easier for the levels line to focus on the level and get into zone its don't
+the level and get into zone its don't have to worry and double check all
+have to worry and double check all design and we can quickly change the
+design and we can quickly change the grid size with hotkeys and we instantly
+grid size with hotkeys and we instantly see what the right size is again the
+see what the right size is again the four windows help here as we can see in
+four windows help here as we can see in any direction where we are in the level
+any direction where we are in the level and what we're snapping to let's take a
+and what we're snapping to let's take a look at unity and unity we have to go
+look at unity and unity we have to go into a separate menu
+into a separate menu snaps we don't have any hotkeys to
+snaps we don't have any hotkeys to change the grid this is a huge deal as
+change the grid this is a huge deal as we now are flowing be continually
+we now are flowing be continually interrupted to find the right size to
+interrupted to find the right size to work with and to snap we also have to
+work with and to snap we also have to hold down a key on the keyboard
+hold down a key on the keyboard specifically which can be a physically
+specifically which can be a physically cumbersome task if we're doing this over
+cumbersome task if we're doing this over long sessions though we also have vertex
+long sessions though we also have vertex nav capabilities in case we're using
+nav capabilities in case we're using modular assets this is really fast
+modular assets this is really fast take a look at the creation kit an
+take a look at the creation kit an equation Kate we also have snapped a
+equation Kate we also have snapped a grid but the grid is invisible like I'm
+grid but the grid is invisible like I'm changing the grid here but you don't
+changing the grid here but you don't really notice unless I jiggle something
+really notice unless I jiggle something around so we don't get instant visual
+around so we don't get instant visual feedback and if we want to fit something
+feedback and if we want to fit something we can do that through a vertex snapping
+we can do that through a vertex snapping or even better we can select a reference
+or even better we can select a reference to snap to so as long as the assets
+to snap to so as long as the assets themselves are by measurement rules we
+themselves are by measurement rules we can use this a snap what we want even on
+can use this a snap what we want even on really weird angles so we click on this
+really weird angles so we click on this click on this click on the thing that we
+click on this click on the thing that we want to snap it to and now it's on the
+want to snap it to and now it's on the same kind of grid level as that other
+same kind of grid level as that other model is so we don't have four windows
+model is so we don't have four windows so we kind of still have to look around
+so we kind of still have to look around and see where it is but boom there it is
+and see where it is but boom there it is it fits so even if something on a really
+it fits so even if something on a really weird angle we can make complex levels
+weird angle we can make complex levels really cool gameplay and it still is
+really cool gameplay and it still is easy to edit later let's take a look at
+easy to edit later let's take a look at 3ds max the shoulder snaps adding some
+3ds max the shoulder snaps adding some extra go into this menu have a huge
+extra go into this menu have a huge variety of snaps available and we can
+variety of snaps available and we can also change all these measurements there
+also change all these measurements there are shortcuts to change these settings
+are shortcuts to change these settings it can be customized as well if you want
+it can be customized as well if you want to snap anything you can do it in 3ds
+to snap anything you can do it in 3ds max okay so what do we learn from this
+max okay so what do we learn from this like a large variety of snaps is nice as
+like a large variety of snaps is nice as it saves time and create possibility for
+it saves time and create possibility for complex geometry and levels that is
+complex geometry and levels that is still easy to edit it maintains flow
+still easy to edit it maintains flow while writing for a wide variety of
+while writing for a wide variety of gameplay possibilities and vertex snaps
+gameplay possibilities and vertex snaps are specially useful for modular games
+are specially useful for modular games off grid snaps again create a
+off grid snaps again create a possibility for complex geometry you
+possibility for complex geometry you don't have to worry about a particular
+don't have to worry about a particular complex session of a level becoming too
+complex session of a level becoming too complex to change later it maintains
+complex to change later it maintains flow over the entire project length and
+flow over the entire project length and helps with every part of level placement
+helps with every part of level placement in geometry lights assets anything and
+in geometry lights assets anything and of course fast snap changes with hotkeys
+of course fast snap changes with hotkeys are nice as having a go through menus
+are nice as having a go through menus cost valuable time and cognitive effort
+cost valuable time and cognitive effort but let's take a look at the differences
+but let's take a look at the differences these hotkeys jaquise just can make how
+these hotkeys jaquise just can make how to change snaps and what and what the
+to change snaps and what and what the current size is for all five errors I'm
+current size is for all five errors I'm talking about I mean that's pretty crazy
+talking about I mean that's pretty crazy that's not to say hockey's are easy to
+that's not to say hockey's are easy to do though they have their own problem
+do though they have their own problem problems as well so let's say for
+problems as well so let's say for example we have a new editor feature and
+example we have a new editor feature and it's called geometry lock has been
+it's called geometry lock has been decided to use ctrl L for this as it
+decided to use ctrl L for this as it uses the same letter ok sounds good
+uses the same letter ok sounds good let's do this
+let's do this so we have to use this feature a lot
+so we have to use this feature a lot let's say like once every two minutes
+let's say like once every two minutes I mean ouch I mean my hand is like
+I mean ouch I mean my hand is like stretching two roots and struggling to
+stretching two roots and struggling to respect that position it's just not nice
+respect that position it's just not nice to use let's take a look another one
+to use let's take a look another one control s we use this about 50 times an
+control s we use this about 50 times an hour and we use it all the time it feels
+hour and we use it all the time it feels nice it doesn't hurt my hand I can keep
+nice it doesn't hurt my hand I can keep on doing it all day let's take a look at
+on doing it all day let's take a look at shift M okay it's a bit further it's
+shift M okay it's a bit further it's still possible though and I was painful
+still possible though and I was painful as control L let's take a look at
+as control L let's take a look at control all team you can look at my what
+control all team you can look at my what my tendon is just whitening out I mean
+my tendon is just whitening out I mean this is an often used shortcut even just
+this is an often used shortcut even just two times an hour at the end of the work
+two times an hour at the end of the work week I will need physical therapy to
+week I will need physical therapy to make sure that my hand isn't hurting
+make sure that my hand isn't hurting every single day and that's just through
+every single day and that's just through a shortcut but I'm not saying this
+a shortcut but I'm not saying this should be standard for every single
+should be standard for every single shortcut because then we're going to run
+shortcut because then we're going to run into this forty competing standards
+into this forty competing standards we're gonna make the one ultimate
+we're gonna make the one ultimate standard and others fifteen competing
+standard and others fifteen competing standards standards are sadly not
+standards standards are sadly not realistic but hopefully we can work
+realistic but hopefully we can work towards making these shortcuts less
+towards making these shortcuts less physically painful I mean all these
+physically painful I mean all these shortcuts I just showed you are from
+shortcuts I just showed you are from actual editors that I have been using
+actual editors that I have been using anyway let's move on to the next feature
+anyway let's move on to the next feature editing geometry we've placed it maybe
+editing geometry we've placed it maybe we changed some values but now we want
+we changed some values but now we want to really put it into shape okay so
+to really put it into shape okay so let's ask to be able to quickly add a
+let's ask to be able to quickly add a geometry cool let's take a look so we
+geometry cool let's take a look so we can use the products tool to move
+can use the products tool to move forward vertices around it instantly see
+forward vertices around it instantly see the result this keeps a level designer
+the result this keeps a level designer in the flow focusing on making a level
+in the flow focusing on making a level awesome and we can also place a bounding
+awesome and we can also place a bounding box for more complex geometry that'll
+box for more complex geometry that'll have a lot of vertices so only the
+have a lot of vertices so only the vertices inside that box are selected so
+vertices inside that box are selected so if it makes a really complex geometry we
+if it makes a really complex geometry we can still easily edit it later without
+can still easily edit it later without fear of becoming a mess that is hard to
+fear of becoming a mess that is hard to edit with a clipping tool we can click
+edit with a clipping tool we can click and drag to create a clip that cuts a
+and drag to create a clip that cuts a brush into any shape we like and we see
+brush into any shape we like and we see the cut in both the 2d and the 3d views
+the cut in both the 2d and the 3d views then we press ENTER to cut and the red
+then we press ENTER to cut and the red side is removed removed as shown in the
+side is removed removed as shown in the 2d view we can change which side is cut
+2d view we can change which side is cut by pressing the tool icon so we can cut
+by pressing the tool icon so we can cut a different size a size or only cut and
+a different size a size or only cut and not remove any section everything is
+not remove any section everything is very visual we obviously exactly what's
+very visual we obviously exactly what's going on we never have to double check
+going on we never have to double check we can then also individually move each
+we can then also individually move each section if you want to let's take a look
+section if you want to let's take a look at unreal and all we only also have a
+at unreal and all we only also have a vertex tool so we can click and drag to
+vertex tool so we can click and drag to select which registers we want and then
+select which registers we want and then drag them around and we also instantly
+drag them around and we also instantly see the results however we have no idea
+see the results however we have no idea what the measurements have become none
+what the measurements have become none of the measurements and if you imagine
+of the measurements and if you imagine if I may you now there have changed and
+if I may you now there have changed and also we cannot shape the brush using
+also we cannot shape the brush using these vertices because if we
+these vertices because if we try to do this perfectly every time it's
+try to do this perfectly every time it's goes to the pivot point is still gonna
+goes to the pivot point is still gonna be at the old location
+be at the old location this requires has to go through a
+this requires has to go through a drop-down menu to set the pivot point
+drop-down menu to set the pivot point and save the pivot point every time we
+and save the pivot point every time we do a vertex edit on a brush so over
+do a vertex edit on a brush so over thousands brushes this will be this will
+thousands brushes this will be this will take us right out of the zone because we
+take us right out of the zone because we have to focus on making those pivots fit
+have to focus on making those pivots fit perfectly otherwise maybe end up in a
+perfectly otherwise maybe end up in a situation later where we want to move a
+situation later where we want to move a brush and the pivot may be at the other
+brush and the pivot may be at the other end of the map after a long time in many
+end of the map after a long time in many iterations so over time this can cost us
+iterations so over time this can cost us a lot of time and a lot of flow from
+a lot of time and a lot of flow from many different level level designers now
+many different level level designers now the clipping tool for unreal arises the
+the clipping tool for unreal arises the point somewhere press spacebar and then
+point somewhere press spacebar and then point somewhere else and tap spacebar
+point somewhere else and tap spacebar again we can not see what we clipped in
+again we can not see what we clipped in the 3d view though and if you want to
+the 3d view though and if you want to redo the clip we have to redo the entire
+redo the clip we have to redo the entire pointing and spacebar process as we
+pointing and spacebar process as we cannot move the handles individually and
+cannot move the handles individually and we have to try to gauge what will be
+we have to try to gauge what will be clipped it because it was not tried and
+clipped it because it was not tried and then try to clip it will tell us to
+then try to clip it will tell us to refocus on the window but there's only
+refocus on the window but there's only one clip so why would any real refocus
+one clip so why would any real refocus the window there's only one we could use
+the window there's only one we could use and when we do clip this also doesn't
+and when we do clip this also doesn't seem to be working entirely correct in
+seem to be working entirely correct in this case I mean all in all it's just a
+this case I mean all in all it's just a mess if key presses are now placed
+mess if key presses are now placed that's not visual at all and as it may
+that's not visual at all and as it may require some time intensive reduce to
+require some time intensive reduce to edit geometry looking right later let's
+edit geometry looking right later let's take a look at 3ds max now the 3ds max
+take a look at 3ds max now the 3ds max we have a very unique system of editing
+we have a very unique system of editing we can add triangles at at an at a poly
+we can add triangles at at an at a poly modifier and then individually move
+modifier and then individually move vertices faces and edges around we can
+vertices faces and edges around we can also add a use amount of different
+also add a use amount of different modifiers in this case we're using Bend
+modifiers in this case we're using Bend and so we bend something real quickly
+and so we bend something real quickly and then we go into the stack and we
+and then we go into the stack and we want to change the geometry so for this
+want to change the geometry so for this case for example we add an edge loop and
+case for example we add an edge loop and then we edit those edges to be like a
+then we edit those edges to be like a different kind of shape I want to make
+different kind of shape I want to make something sci-fi for example then we go
+something sci-fi for example then we go back up to bend modifier and boom there
+back up to bend modifier and boom there it is quickly visually it just kind of
+it is quickly visually it just kind of works and there are many modifiers for
+works and there are many modifiers for all kinds of different cases like
+all kinds of different cases like terrain water rocks the spaceship holes
+terrain water rocks the spaceship holes now you may be thinking well that's a
+now you may be thinking well that's a bit unfair to compare geometry editing
+bit unfair to compare geometry editing tool to level editors of course 3ds max
+tool to level editors of course 3ds max is faster and allows for more complexity
+is faster and allows for more complexity that's its prime purpose but I'm not
+that's its prime purpose but I'm not directly comparing them in their quality
+directly comparing them in their quality I'm only showing the different solutions
+I'm only showing the different solutions out there for the same problems all
+out there for the same problems all these editors have made amazing levels
+these editors have made amazing levels for video games and they're all being
+for video games and they're all being used for love editing what we can learn
+used for love editing what we can learn from this what can we learn from this
+from this what can we learn from this well in this case modifiers aren't
+well in this case modifiers aren't saying okay they allow you to edit in
+saying okay they allow you to edit in shape any kind of geometry in any shape
+shape any kind of geometry in any shape you may need and quickly to and geometry
+you may need and quickly to and geometry editing tools such as vertex cutting
+editing tools such as vertex cutting extruding etc only clear visuals as
+extruding etc only clear visuals as without them we may have to redo work as
+without them we may have to redo work as we can't see what needs to be done
+we can't see what needs to be done which can take a level down out of his
+which can take a level down out of his own and we have to redo work now of
+own and we have to redo work now of course this is a tiny part of geometry
+course this is a tiny part of geometry editing tools that I've just shown
+editing tools that I've just shown there's been much more out there for
+there's been much more out there for even more complex geometry we can also
+even more complex geometry we can also learn from other fields for example this
+learn from other fields for example this is a piece of software called form Z
+is a piece of software called form Z used a lot by architects in it you can
+used a lot by architects in it you can use a spline to place a complex wall
+use a spline to place a complex wall very fast and it a bit fast to edit it
+very fast and it a bit fast to edit it fast to I mean think of the gameplay
+fast to I mean think of the gameplay possibilities when a level designer can
+possibilities when a level designer can easily place way more wide variety of
+easily place way more wide variety of geometry both the possible contact
+geometry both the possible contact complexity and the direct content
+complexity and the direct content quality go up because the developer can
+quality go up because the developer can do what they wish with with their flow
+do what they wish with with their flow maintained which may think yeah but we
+maintained which may think yeah but we can already do that in our tool at our
+can already do that in our tool at our editor right here it just takes more
+editor right here it just takes more clicks than these editors but we can do
+clicks than these editors but we can do it just because the pipeline is
+it just because the pipeline is functional doesn't mean the pipeline is
+functional doesn't mean the pipeline is done you actually know why matters for
+done you actually know why matters for games as much as you actually buy
+games as much as you actually buy matters for editors you might think well
+matters for editors you might think well it works so it's done but as you've seen
+it works so it's done but as you've seen in this presentation small issues can
+in this presentation small issues can have large production impacts just
+have large production impacts just because you can do something in a tool
+because you can do something in a tool doesn't mean the tools are finished and
+doesn't mean the tools are finished and we can cease development on them a
+we can cease development on them a really great example if for games about
+really great example if for games about this is The Witcher 3 the button to loot
+this is The Witcher 3 the button to loot and the button to extinguish are the
+and the button to extinguish are the same which means if a player opus and
+same which means if a player opus and chest and a candle is nearby they might
+chest and a candle is nearby they might extinguish the candle instead of looting
+extinguish the candle instead of looting then they try to open it just again and
+then they try to open it just again and then I we like the candle again now
+then I we like the candle again now you've done two actions and you still
+you've done two actions and you still haven't known what you want to do this
+haven't known what you want to do this was such a big issue for players that
+was such a big issue for players that was actually patched very soon which is
+was actually patched very soon which is awesome if a CD Projekt RED why is that
+awesome if a CD Projekt RED why is that awesome because this wasn't a game
+awesome because this wasn't a game critical bug you could play through the
+critical bug you could play through the entire game from start to finish
+entire game from start to finish completely it didn't leave you stuck or
+completely it didn't leave you stuck or crash the game and yet it was discussed
+crash the game and yet it was discussed on multiple articles hundreds of threats
+on multiple articles hundreds of threats were made about this and it was quickly
+were made about this and it was quickly patched that's for 45 hour game we were
+patched that's for 45 hour game we were with editors for multiple years years
+with editors for multiple years years and yet if we run into any ux issue we
+and yet if we run into any ux issue we tell ourselves well we'll just deal with
+tell ourselves well we'll just deal with it
+it you worked issues like these can be very
+you worked issues like these can be very detrimental to the work as developers so
+detrimental to the work as developers so don't stop developer tool when it
+don't stop developer tool when it functions stop developing a tool and it
+functions stop developing a tool and it allows creativity to flourish and just
+allows creativity to flourish and just as much as a scientific a very internal
+as much as a scientific a very internal example of that is this this is a level
+example of that is this this is a level editor where you cannot use the mouse to
+editor where you cannot use the mouse to navigate the camera the menu on the left
+navigate the camera the menu on the left with the angles and coordinates you have
+with the angles and coordinates you have to press those buttons to move the
+to press those buttons to move the camera around some are out there a
+camera around some are out there a person said you can build level with
+person said you can build level with this there's no need to spend
+this there's no need to spend programming time on extra features and
+programming time on extra features and they're technically rights technically
+they're technically rights technically but you would develop this tool further
+but you would develop this tool further or make a different one this is very on
+or make a different one this is very on the nose example of course but they're
+the nose example of course but they're these things like happening everywhere
+these things like happening everywhere especially with in-house tools let's
+especially with in-house tools let's take a look at string
+take a look at string so quickly at its rain in any shape we
+so quickly at its rain in any shape we might need cool
+might need cool so in hammer we call it displacements in
+so in hammer we call it displacements in this case we select a face of a brush
+this case we select a face of a brush and I'ma create a displacement of it the
+and I'ma create a displacement of it the non displacement side of the brush are
+non displacement side of the brush are then no longer in use but we still make
+then no longer in use but we still make them appear we can then quickly still a
+them appear we can then quickly still a place and copy the displacements as
+place and copy the displacements as they're handled just like regular
+they're handled just like regular brushes so our tool use our flow stays
+brushes so our tool use our flow stays the same we can then edit the terrain by
+the same we can then edit the terrain by pushing and pulling and if a gap appears
+pushing and pulling and if a gap appears and the brush is aligned we can quickly
+and the brush is aligned we can quickly so a section so that no holes up here
+so a section so that no holes up here and we can keep on everything but if you
+and we can keep on everything but if you don't want to add more faces due to
+don't want to add more faces due to displacement we make them appear select
+displacement we make them appear select them and we can convert them to
+them and we can convert them to displacements and again there's a whole
+displacements and again there's a whole account so we select them and weeks and
+account so we select them and weeks and we saw the gap we can also still edit
+we saw the gap we can also still edit the brush like we did earlier with a
+the brush like we did earlier with a vertex tool so we can create overhand
+vertex tool so we can create overhand cliffs or even caves with this kind of
+cliffs or even caves with this kind of terrain system let's take a look at
+terrain system let's take a look at unreal now real has many many many many
+unreal now real has many many many many options for effort strain and once we've
+options for effort strain and once we've placed it we have a huge variety of
+placed it we have a huge variety of tools to work with so many effects that
+tools to work with so many effects that we don't have time to cover them all we
+we don't have time to cover them all we can generate roads apply height maps
+can generate roads apply height maps whose splines copy sections of height
+whose splines copy sections of height and paste them over for a large swaths
+and paste them over for a large swaths of terrain this is very useful however
+of terrain this is very useful however we do not have as minut control as we
+we do not have as minut control as we did in a hammer we cannot create fifth
+did in a hammer we cannot create fifth cliffs or caves and we cannot sew
+cliffs or caves and we cannot sew together terrain like we would like to
+together terrain like we would like to link so we have to cover that up with
+link so we have to cover that up with models along the lines which might not
+models along the lines which might not look as pretty let's take a look at
+look as pretty let's take a look at unity our unity train we cannot see the
+unity our unity train we cannot see the size and we do have a selection of
+size and we do have a selection of brushes to choose from though so if
+brushes to choose from though so if you're specifically looking to draw like
+you're specifically looking to draw like a star-shaped mountain trash this really
+a star-shaped mountain trash this really helps however again we do not have as
+helps however again we do not have as much minut control we cannot create
+much minut control we cannot create cliffs for caves so what do we learn
+cliffs for caves so what do we learn here well this is not an easy one to
+here well this is not an easy one to find a one-play takeaway for there is a
+find a one-play takeaway for there is a large difference in small terrains which
+large difference in small terrains which is large terrain tools for example for
+is large terrain tools for example for example hammer allows for any kind of
+example hammer allows for any kind of shape of terrain and has minut control
+shape of terrain and has minut control but it's time consuming to a large
+but it's time consuming to a large terrain and it does not allow for height
+terrain and it does not allow for height maps or direct texture maps as we have
+maps or direct texture maps as we have to draw everything on thought is also
+to draw everything on thought is also engine related and while real also
+engine related and while real also allows for quick high detection labs the
+allows for quick high detection labs the cliffs and caves cannot be made it seems
+cliffs and caves cannot be made it seems to be a trade-off between complexity and
+to be a trade-off between complexity and speed with a system that would have to
+speed with a system that would have to have both be best but I haven't seen
+have both be best but I haven't seen anything like that yet I'm still
+anything like that yet I'm still wondering why sometime in the past we
+wondering why sometime in the past we decided we didn't need cliffs or caves
+decided we didn't need cliffs or caves anymore and settle with using models to
+anymore and settle with using models to cross them all up I mean just increase
+cross them all up I mean just increase the workload for artists instead of
+the workload for artists instead of laying in a designer to deal with a
+laying in a designer to deal with a problem so look at your game look at
+problem so look at your game look at what it needs and make sure that what
+what it needs and make sure that what you need is what the editor allows the
+you need is what the editor allows the level designer
+level designer automatically if necessary so they can
+automatically if necessary so they can stay in their flow I really good if you
+stay in their flow I really good if you want to hear more about this take a look
+want to hear more about this take a look at the halo 2 anniversary talk from GDC
+at the halo 2 anniversary talk from GDC 2015 by Michael Pavlovich as you also
+2015 by Michael Pavlovich as you also see here on the slide avoid
+see here on the slide avoid rocket-powered traveling deep
+rocket-powered traveling deep skilled workers doing skilled work avoid
+skilled workers doing skilled work avoid menial process tasks fatigue this again
+menial process tasks fatigue this again remember this graph these couple of
+remember this graph these couple of extra edge actions really add something
+extra edge actions really add something oops and remember this graph fatigue
+oops and remember this graph fatigue happens if we reach one of the top or
+happens if we reach one of the top or bottom sections we need to stay in the
+bottom sections we need to stay in the middle and by me by fatigue I mean this
+middle and by me by fatigue I mean this kind of thing physical energy mental
+kind of thing physical energy mental energy a psychological energy if
+energy a psychological energy if physical energy runs out we're going to
+physical energy runs out we're going to be uncomfortable I want to lie down
+be uncomfortable I want to lie down if mental energy runs out because we
+if mental energy runs out because we have to deal with so many things at the
+have to deal with so many things at the same time we lose creativity and if we
+same time we lose creativity and if we remove some of these mental hoops to
+remove some of these mental hoops to jump through it can save fatigue over
+jump through it can save fatigue over long development times and psychological
+long development times and psychological energy if we ever continually have to do
+energy if we ever continually have to do after for example start and we start to
+after for example start and we start to editor every time to check something
+editor every time to check something personal changes any person will slowly
+personal changes any person will slowly start to lose their minds and they can't
+start to lose their minds and they can't work they're physically mentally fine
+work they're physically mentally fine but they cannot work anymore small
+but they cannot work anymore small things that drain this quickly I like
+things that drain this quickly I like your wife I constantly dropping out like
+your wife I constantly dropping out like some of you probably experiencing here
+some of you probably experiencing here at UDC it's very annoying and sure you
+at UDC it's very annoying and sure you can keep on working but it's annoying
+can keep on working but it's annoying that noise that slowly seeps into your
+that noise that slowly seeps into your brain overtime until you can't focus on
+brain overtime until you can't focus on me anymore and your your creativity is
+me anymore and your your creativity is lost I mean is it worth people getting
+lost I mean is it worth people getting sick and staying home or for these kinds
+sick and staying home or for these kinds of things if they can't be fixed because
+of things if they can't be fixed because again just because the pipeline is
+again just because the pipeline is functional doesn't mean that pipeline is
+functional doesn't mean that pipeline is done all right a little bit next thing
+done all right a little bit next thing texturing so we want to find available
+texturing so we want to find available textures quickly and texture basic and
+textures quickly and texture basic and complex geometry quickly and we texture
+complex geometry quickly and we texture large sectors of math quickly accurately
+large sectors of math quickly accurately for when we iterate so let's look at
+for when we iterate so let's look at hammer we can look at a texture browser
+hammer we can look at a texture browser and we can use shortcuts to search
+and we can use shortcuts to search through the names of textures for
+through the names of textures for example we type in wall and we just
+example we type in wall and we just scroll through and we can try and find
+scroll through and we can try and find something this is not really kind of
+something this is not really kind of really nice so what if for example we
+really nice so what if for example we want to look for a green wall so we type
+want to look for a green wall so we type in wall green and there's no results
+in wall green and there's no results okay maybe what if we typed green wall
+okay maybe what if we typed green wall nope also no results
+nope also no results what about like concrete wall does that
+what about like concrete wall does that work okay yeah if we see concrete walls
+work okay yeah if we see concrete walls okay so we can take a look through them
+okay so we can take a look through them let's try like just look around and hey
+let's try like just look around and hey there's a green wall but the name is
+there's a green wall but the name is completely different to what we expect
+completely different to what we expect so we have to remember every single name
+so we have to remember every single name of these textures because we're going to
+of these textures because we're going to be busy more with our minds
+be busy more with our minds remembering names or scrolling from
+remembering names or scrolling from these textures not actually focusing on
+these textures not actually focusing on the level I mean there's ways to create
+the level I mean there's ways to create tags for these textures but you would
+tags for these textures but you would have to manually enter them for each
+have to manually enter them for each material in the files which requires to
+material in the files which requires to get out of the editor and out of the
+get out of the editor and out of the zone
+zone now with the textures like that we
+now with the textures like that we simply right-click on faces to put the
+simply right-click on faces to put the texture on them so if I face next to it
+texture on them so if I face next to it is selected it also retains the UV and
+is selected it also retains the UV and it's house very smooth in quickly I mean
+it's house very smooth in quickly I mean even on complex geometries such as
+even on complex geometries such as cylinders or arches there's no seams
+cylinders or arches there's no seams anywhere and there's no stretching
+beautiful alright our wheel okay so this texture searching system in a real house
+texture searching system in a real house has the same name convention issue you
+has the same name convention issue you would have to remember every single name
+would have to remember every single name to make sure we find the correct kind of
+to make sure we find the correct kind of texture what is a lot faster though is
+texture what is a lot faster though is the collection system we can create
+the collection system we can create names collections and then drag assets
+names collections and then drag assets in there so if we click on the
+in there so if we click on the collections we see everything that is in
+collections we see everything that is in there the same asset can be in multiple
+there the same asset can be in multiple collection so as it makes a bit faster
+collection so as it makes a bit faster to find the correct assets we need if
+to find the correct assets we need if this system is not like up by developers
+this system is not like up by developers it can really speed up having to find
+it can really speed up having to find models as all the keywords are visually
+models as all the keywords are visually laid out and set regardless of the model
+laid out and set regardless of the model names although our huge game is you
+names although our huge game is you again run into the problem of having to
+again run into the problem of having to scroll through a list of collections to
+scroll through a list of collections to apply textures we can click and drag or
+apply textures we can click and drag or we can all click however 2uv the faces
+we can all click however 2uv the faces we would have to do so manually so for
+we would have to do so manually so for example looking at this box there's a
+example looking at this box there's a visible seam okay you want to get rid of
+visible seam okay you want to get rid of this seam but all we can do is change
+this seam but all we can do is change these numbers to sort of like really try
+these numbers to sort of like really try a lot to get it in shape which takes a
+a lot to get it in shape which takes a lot of time so especially a large
+lot of time so especially a large complex on complex geometry such as this
+complex on complex geometry such as this curves there it becomes very
+curves there it becomes very time-consuming process to texture it and
+time-consuming process to texture it and make it look nice and tiled we can see
+make it look nice and tiled we can see we can easily see the seams let's take a
+we can easily see the seams let's take a look at 3ds max now strange 3ds max we
+look at 3ds max now strange 3ds max we have a system of with a list of icons
+have a system of with a list of icons and we create materials per scene we can
+and we create materials per scene we can then apply the textures by clicking a
+then apply the textures by clicking a button we can then either decide to UV
+button we can then either decide to UV which means metally setting everything
+which means metally setting everything right like we saw an unreal we just like
+right like we saw an unreal we just like push buttons around and like numbers and
+push buttons around and like numbers and hope it works
+hope it works or we can side to unwrap which is a very
+or we can side to unwrap which is a very time-consuming process not on this cube
+time-consuming process not on this cube specifically but if we have complex
+specifically but if we have complex geometry it's gonna take a while so yes
+geometry it's gonna take a while so yes we can UV it perfectly but it will take
+we can UV it perfectly but it will take a long time to do so so what do you
+a long time to do so so what do you learn here well when it comes to
+learn here well when it comes to texturing hammer comes out on top when
+texturing hammer comes out on top when it comes to applying even on a very
+it comes to applying even on a very complex geometry with seamless transfers
+complex geometry with seamless transfers from face to face being achieved by
+from face to face being achieved by clicking
+clicking instead of fiddling with menus voter
+instead of fiddling with menus voter menu is still there in case it is
+menu is still there in case it is necessary to work with but unreal
+necessary to work with but unreal affording you have faster systems for
+affording you have faster systems for finding specific textures especially on
+finding specific textures especially on larger games and databases as with
+larger games and databases as with hammer we would have to either make a
+hammer we would have to either make a very large file name to include all the
+very large file name to include all the specifics or remember every single name
+specifics or remember every single name available much like what we saw earlier
+available much like what we saw earlier with menus if you make it needlessly
+with menus if you make it needlessly complicated to find something we might
+complicated to find something we might never use it even though it might be
+never use it even though it might be very useful the same goes for textures
+very useful the same goes for textures we need to make sure we can place them
+we need to make sure we can place them fast and add them fast while staying in
+fast and add them fast while staying in his own this is extremely worthwhile and
+his own this is extremely worthwhile and if someone tells me to build the Mona
+if someone tells me to build the Mona Lisa in Excel and I object explaining it
+Lisa in Excel and I object explaining it takes a tremendous amount of time to
+takes a tremendous amount of time to texture it and it's very slow to edit
+texture it and it's very slow to edit later on the reply I get should not be
+later on the reply I get should not be like oh just keep on using it like the
+like oh just keep on using it like the rest of us we will you will get used to
+rest of us we will you will get used to it or even worse a good craftsman never
+it or even worse a good craftsman never blames his tools just because it's
+blames his tools just because it's possible for someone to build a model
+possible for someone to build a model easy in Excel doesn't mean the next big
+easy in Excel doesn't mean the next big game Triple A or Indy doesn't matter
+game Triple A or Indy doesn't matter will make his textures in Excel so
+will make his textures in Excel so lighting what are we looking for here if
+lighting what are we looking for here if you want to play slice quickly change
+you want to play slice quickly change the Sonics quickly and quickly see what
+the Sonics quickly and quickly see what they look like sadly this is also very
+they look like sadly this is also very much related to the engine so not
+much related to the engine so not everything here is purely you actual
+everything here is purely you actual ated let's take a look at hammer so we
+ated let's take a look at hammer so we can place basic lights as a directional
+can place basic lights as a directional spot point asana etc and we can then
+spot point asana etc and we can then edit the color and intensity of that
+edit the color and intensity of that light we don't see what the actual light
+light we don't see what the actual light looks like we could chase a fall-off of
+looks like we could chase a fall-off of the light and get an idea of how far it
+the light and get an idea of how far it goes but we still do not see what the
+goes but we still do not see what the light looks like if we place a spot we
+light looks like if we place a spot we get a visibility column that showcases
+get a visibility column that showcases where the light will go and what color
+where the light will go and what color it is will be again do not actually see
+it is will be again do not actually see what the light will look like to see
+what the light will look like to see what it looks like we'd have to compile
+what it looks like we'd have to compile the map and on a small map this is nice
+the map and on a small map this is nice and fast but for a large light later
+and fast but for a large light later stages of development you would need
+stages of development you would need either a beast of a machine or a long
+either a beast of a machine or a long time to see even small edits let's take
+time to see even small edits let's take a look at unreal and I will be again
+a look at unreal and I will be again have a basic choice of basic lights
+have a basic choice of basic lights among place then we instantly get an
+among place then we instantly get an indication what will look like in game
+indication what will look like in game you can also also toggle the
+you can also also toggle the View window to a game view making it so
+View window to a game view making it so you can instantly see what's in a scene
+you can instantly see what's in a scene without all the editor icons we can also
+without all the editor icons we can also bake and compile this for a final view
+bake and compile this for a final view if we want to but we get a good idea
+if we want to but we get a good idea what the light looks like right away for
+what the light looks like right away for spots we also still have the cone so we
+spots we also still have the cone so we have a better idea but any movement and
+have a better idea but any movement and color is also instantly shown let's take
+color is also instantly shown let's take a look at the creation kit on the Left
+a look at the creation kit on the Left we have a huge list of lights we can
+we have a huge list of lights we can choose from these range from spots glows
+choose from these range from spots glows fire torches campfires bonfires anything
+fire torches campfires bonfires anything a large variety of presets choices are
+a large variety of presets choices are available and
+available and at new ones of this or edit an existing
+at new ones of this or edit an existing one there is a nice insisting system
+one there is a nice insisting system here to where if we change the light and
+here to where if we change the light and this big list and any of those lights
+this big list and any of those lights are in a scene somewhere else they also
+are in a scene somewhere else they also all change automatically which can save
+all change automatically which can save time of a huge project like Skyrim is if
+time of a huge project like Skyrim is if you open up a preview window though we
+you open up a preview window though we cannot see what the light looks like
+cannot see what the light looks like because there's nothing to bounce off
+because there's nothing to bounce off off so we have to click and drag it into
+off so we have to click and drag it into the scene to see what it looks like
+the scene to see what it looks like which is a bit time in action intensive
+which is a bit time in action intensive we also have instant light visibility
+we also have instant light visibility which could also toggle on enough and to
+which could also toggle on enough and to change light settings we all can also
+change light settings we all can also click on the lights to go into a menu
+click on the lights to go into a menu but that menu has tabs it has many many
+but that menu has tabs it has many many many tabs so we have to find the right
+many tabs so we have to find the right one and then we can edit the specific
+one and then we can edit the specific variable you would want to as you can
+variable you would want to as you can probably guess that's pretty slow and it
+probably guess that's pretty slow and it takes us out of a flow of work there are
+takes us out of a flow of work there are a lot of options that's great but it's
+a lot of options that's great but it's going but going through them I having to
+going but going through them I having to click many times it's gonna take us out
+click many times it's gonna take us out of zone now you might say go so just
+of zone now you might say go so just drag to make the window bigger and the
+drag to make the window bigger and the tabs will be more widespread across the
+tabs will be more widespread across the screen but you can't this window menu
+screen but you can't this window menu kind of mean it cannot be made bigger or
+kind of mean it cannot be made bigger or smaller it's very very time intensive
+smaller it's very very time intensive and not undulated this is just a UI
+and not undulated this is just a UI issue let's take a look at 3ds max as we
+issue let's take a look at 3ds max as we just next again we have a basic choice
+just next again we have a basic choice of lights a visible corn and instant
+of lights a visible corn and instant lighting visibility we can quickly and
+lighting visibility we can quickly and actually change the light settings it's
+actually change the light settings it's seems to be very WYSIWYG but of course
+seems to be very WYSIWYG but of course 3ds max we're gonna have to port it to
+3ds max we're gonna have to port it to our engine so we don't really know if
+our engine so we don't really know if it's one-to-one to in-game lighting okay
+it's one-to-one to in-game lighting okay so what do we learn here well in this
+so what do we learn here well in this case unreal force pretty damn good and
+case unreal force pretty damn good and unity' is very similar to that where we
+unity' is very similar to that where we both have live lighting and screen
+both have live lighting and screen creation kit has a lot more options
+creation kit has a lot more options which is nice but to get through them or
+which is nice but to get through them or just access the basic ones requires a
+just access the basic ones requires a lot of time and clicking having a huge
+lot of time and clicking having a huge preset list a choose from can save time
+preset list a choose from can save time especially over large projects and
+especially over large projects and visible guidelines help a lot and of
+visible guidelines help a lot and of course live lighting is the absolute
+course live lighting is the absolute best time saver ever being able to
+best time saver ever being able to compile for better results later is nice
+compile for better results later is nice but seeing what you're doing instantly
+but seeing what you're doing instantly visually helps a lot however this is all
+visually helps a lot however this is all very engine dependent as well and so
+very engine dependent as well and so having a lot of choice is great but make
+having a lot of choice is great but make sure the menus do not take up too much
+sure the menus do not take up too much time and effort to use yes time and
+time and effort to use yes time and effort from many UX menus really be that
+effort from many UX menus really be that detrimental a really great real life
+detrimental a really great real life example this is what Adam Savage 2x
+example this is what Adam Savage 2x mythbuster did with his workshop Adam
+mythbuster did with his workshop Adam Savage removed as many draws from his
+Savage removed as many draws from his workshop so that everything has as much
+workshop so that everything has as much instant access as possible by looking at
+instant access as possible by looking at foster workshop you can see where a
+foster workshop you can see where a particular tool is grab it immediately
+particular tool is grab it immediately when walking towards it everything
+when walking towards it everything that's in a drawer will slowly disappear
+that's in a drawer will slowly disappear and not be used anymore there are so
+and not be used anymore there are so many things that your mind can think of
+many things that your mind can think of if you just see it if it's linear
+if you just see it if it's linear whew but sadly just a human problem so
+whew but sadly just a human problem so the same goes for menus and editors if
+the same goes for menus and editors if there's a menu in a menu in a drop-down
+there's a menu in a menu in a drop-down menu it will take three clicks to
+menu it will take three clicks to finally be used and that's so non visual
+finally be used and that's so non visual that whatever is in that menu will
+that whatever is in that menu will probably never be used anyway of course
+probably never be used anyway of course for complex systems and menu is good to
+for complex systems and menu is good to have especially when it comes to
+have especially when it comes to multiple variable settings but for
+multiple variable settings but for simple things such as changing snaps
+simple things such as changing snaps it's time consuming to have to go
+it's time consuming to have to go through a menu every time there are
+through a menu every time there are better ways of doing this take for
+better ways of doing this take for example a look at the compared the menus
+example a look at the compared the menus on lists in text with the universal uy
+on lists in text with the universal uy of wow yes you can click through the
+of wow yes you can click through the spell book and read everything if you
+spell book and read everything if you want to but in game you can just hover
+want to but in game you can just hover over just click icons all the time
+over just click icons all the time there's so many abilities but there's
+there's so many abilities but there's Universal icon structure that everyone
+Universal icon structure that everyone understands I mean that 10 million
+understands I mean that 10 million people playing this and they understand
+people playing this and they understand the icons and it's nice for them to use
+the icons and it's nice for them to use so having a giant amount of icons the
+so having a giant amount of icons the screen isn't a bad thing it's a lot
+screen isn't a bad thing it's a lot better than that having all the icons
+better than that having all the icons and having a screen full of text that
+and having a screen full of text that you can stay have to read through and
+you can stay have to read through and add the ability to put the icons in the
+add the ability to put the icons in the position you want them and something you
+position you want them and something you have def setting up their work though
+have def setting up their work though the way they want it
+the way they want it there's no menus needed I mean again
+there's no menus needed I mean again they're still spell but if you want to
+they're still spell but if you want to read everything but everything you need
+read everything but everything you need is right there and that's not the only
+is right there and that's not the only problem with menus there's also another
+problem with menus there's also another many of you especially programmers
+many of you especially programmers already know this comic there's a common
+already know this comic there's a common problem where a programmer is disrupted
+problem where a programmer is disrupted by someone coming into our office and
+by someone coming into our office and saying one thing while they were really
+saying one thing while they were really busy with a really complex issue and it
+busy with a really complex issue and it all disappears into a black hole due to
+all disappears into a black hole due to the interruption the same exact thing
+the interruption the same exact thing can happen when a level designer is
+can happen when a level designer is disrupted by having to search through
+disrupted by having to search through five menus and three dropdowns just as
+five menus and three dropdowns just as much as a game play or a narrative
+much as a game play or a narrative designer is disrupted by having their
+designer is disrupted by having their images on Microsoft Word shift all over
+images on Microsoft Word shift all over the place and making what should be a
+the place and making what should be a simple edit this kind of losing flow
+simple edit this kind of losing flow losing a bit of in a zone can have huge
+losing a bit of in a zone can have huge impacts if the editor has so many menus
+impacts if the editor has so many menus that needs to be accessed all the time
+that needs to be accessed all the time I'll be almost impossible for the brain
+I'll be almost impossible for the brain to reset zone state there's a create a
+to reset zone state there's a create a space for timer relaxation and we can do
+space for timer relaxation and we can do anything we like and focus on a problem
+anything we like and focus on a problem at hand we generate better solutions if
+at hand we generate better solutions if I mean flow thinking of creative and
+I mean flow thinking of creative and awesome solutions for difficult problems
+awesome solutions for difficult problems an arts scripting design anything and so
+an arts scripting design anything and so only I need to click through five tabs
+only I need to click through five tabs it'd be a cool thing I thought about my
+it'd be a cool thing I thought about my intention and relaxation is gone not
+intention and relaxation is gone not because I want it's deep but because I'm
+because I want it's deep but because I'm a human being that is taken out of flow
+a human being that is taken out of flow by clicking five tabs and I'll be out
+by clicking five tabs and I'll be out and talking about suffering by the way
+and talking about suffering by the way the brightness of the editor also
+the brightness of the editor also affects the developer I mean looking at
+affects the developer I mean looking at a matter of 12 hours a day can make your
+a matter of 12 hours a day can make your eyes feel painful many people already
+eyes feel painful many people already use flux or similar software to help
+use flux or similar software to help keeping our eyes from suffering over 60
+keeping our eyes from suffering over 60 hour work weeks this gift isn't really
+hour work weeks this gift isn't really nice in your eyes is it exactly your
+nice in your eyes is it exactly your eyes
+eyes constantly focusing or refocusing is
+constantly focusing or refocusing is painful so instead dark backgrounds are
+painful so instead dark backgrounds are much easier on the eyes especially in
+much easier on the eyes especially in Kron times and crunch times and at night
+Kron times and crunch times and at night this is a super simple thing that can
+this is a super simple thing that can save the eyes of sanity of your
+save the eyes of sanity of your developers keep it keeping it dark with
+developers keep it keeping it dark with the right amount of highlights feels
+the right amount of highlights feels much better on the eyes or at least
+much better on the eyes or at least having an option to turn on the dark UI
+having an option to turn on the dark UI for the people that need it can really
+for the people that need it can really help here
+help here so let's go to importing assets what do
+so let's go to importing assets what do we need here well quickly get anything
+we need here well quickly get anything into the editor cool let's take a look
+into the editor cool let's take a look at how my hammer does it so some of you
+at how my hammer does it so some of you of users probably already know how
+of users probably already know how difficult this is I don't have a video
+difficult this is I don't have a video of it as it would take too long to
+of it as it would take too long to showcase the full process in short if
+showcase the full process in short if you want to do it in a less painful way
+you want to do it in a less painful way than using the first party tools which
+than using the first party tools which require you to use a command prompt
+require you to use a command prompt window to search for a script file to
+window to search for a script file to compile your model then you have to use
+compile your model then you have to use third-party tools found on the internet
+third-party tools found on the internet and those tools might be updated to the
+and those tools might be updated to the latest version of Mac's Photoshop and
+latest version of Mac's Photoshop and Maya and they might not be and if
+Maya and they might not be and if something breaks or gives errors you can
+something breaks or gives errors you can only hope someone else on the internet
+only hope someone else on the internet has found a solution or else you're out
+has found a solution or else you're out of luck so you have to go through this
+of luck so you have to go through this time-consuming process to get any acid
+time-consuming process to get any acid in game so making modular assets for
+in game so making modular assets for source and I adapted them can make
+source and I adapted them can make almost can then can makes almost
+almost can then can makes almost impossible four levels are to get into
+impossible four levels are to get into the zone in the end you'll have to close
+the zone in the end you'll have to close and open about three to four piece of
+and open about three to four piece of different different pieces of software
+different different pieces of software and there are mods out there like
+and there are mods out there like award-winning mods for source that did
+award-winning mods for source that did not include fantastic assets that were
+not include fantastic assets that were already finished as it was too
+already finished as it was too complicated to get them into the engine
+complicated to get them into the engine and that's just a shame let's take a
+and that's just a shame let's take a look at unreal we click the import
+look at unreal we click the import button and select a model or we can
+button and select a model or we can click and drag a model in this texture
+click and drag a model in this texture is the texture is automatically ordered
+is the texture is automatically ordered as well it's nice visual fast there's
+as well it's nice visual fast there's also an even faster way we can directly
+also an even faster way we can directly say from your modeling software into a
+say from your modeling software into a folder and on with full automatically
+folder and on with full automatically grabs it imports anything in the folder
+grabs it imports anything in the folder so yeah really fast on re4 also
+so yeah really fast on re4 also automatically is a preview icon for the
+automatically is a preview icon for the model which helps for searching with the
+model which helps for searching with the assets sigelei gonna do
+assets sigelei gonna do unity about the same as unreal we can
+unity about the same as unreal we can click and drag a model in although the
+click and drag a model in although the skill might be a bit office we don't
+skill might be a bit office we don't really know any of the measurements
+really know any of the measurements because again we're just working with
+because again we're just working with scale all right let's take a look at the
+scale all right let's take a look at the creation kit again a video of this
+creation kit again a video of this process would take too long the
+process would take too long the processes again with third-party tools
+processes again with third-party tools so if anything breaks your Google
+so if anything breaks your Google searching skills would have to be in
+searching skills would have to be in good shape
+good shape and again the third-party tools may not
+and again the third-party tools may not be usable with the current version of
+be usable with the current version of software I tried to put something in the
+software I tried to put something in the creation kit with 3ds max 2016
+creation kit with 3ds max 2016 couldn't do it have to download an older
+couldn't do it have to download an older version to make it happen let's take a
+version to make it happen let's take a look at what we learned here so of
+look at what we learned here so of course welcome
+course welcome test them I have way better first party
+test them I have way better first party systems in house that only they use and
+systems in house that only they use and but sadly we can't look at those and
+but sadly we can't look at those and learn from them so very obviously but
+learn from them so very obviously but still worth pointing out clicking and
+still worth pointing out clicking and drying is very fast and a director we
+drying is very fast and a director we load system where any model and the
+load system where any model and the directory is loaded automatically it is
+directory is loaded automatically it is also very nice and fast as it skips even
+also very nice and fast as it skips even a clicking and dragging and an automatic
+a clicking and dragging and an automatic import for textures affected models is
+import for textures affected models is fantastic as it skips another step where
+fantastic as it skips another step where bugs or errors could pop up if it were
+bugs or errors could pop up if it were done manually an automatic icon creation
+done manually an automatic icon creation for searching purposes is awesome this
+for searching purposes is awesome this makes it easier to work with the content
+makes it easier to work with the content once it's important especially when
+once it's important especially when we're talking about a large game or mod
+we're talking about a large game or mod and these kinds of problems if never
+and these kinds of problems if never solved can really snowball out of
+solved can really snowball out of proportion good and bad UX has huge
+proportion good and bad UX has huge impacts I mean there's pretty crazy
+impacts I mean there's pretty crazy differences here and make a huge effects
+differences here and make a huge effects over time and of course these are kind
+over time and of course these are kind of loose pile of good UX is file of
+of loose pile of good UX is file of value X pile of goo UX escape we've got
+value X pile of goo UX escape we've got creative fall from solving faster
+creative fall from solving faster development time which creates quality
+development time which creates quality content which creates happy developers
+content which creates happy developers because they know that content is good
+because they know that content is good or bad which create more query or
+or bad which create more query or creative problem solving and there's bad
+creative problem solving and there's bad new works there's one way problem
+new works there's one way problem solving slower development time inferior
+solving slower development time inferior contents which creates unhappy
+contents which creates unhappy developers because we know when our
+developers because we know when our contents bad and which creates more one
+contents bad and which creates more one of my problem solving so there's really
+of my problem solving so there's really a lot of stuff that can happen if we
+a lot of stuff that can happen if we give the buy the power tool of designers
+give the buy the power tool of designers to change these things and buy power I
+to change these things and buy power I mean the ability to do so within the
+mean the ability to do so within the producing time how do you grant them
+producing time how do you grant them just disability by designing editors
+just disability by designing editors with good UX so don't believe me let's
+with good UX so don't believe me let's grab an example we want to solve a
+grab an example we want to solve a signposting issue so we have two ways of
+signposting issue so we have two ways of doing this either a level designer
+doing this either a level designer change the geometry import some asset
+change the geometry import some asset changes the lighting and play test in
+changes the lighting and play test in editor to see if the new signposting
+editor to see if the new signposting works or the programmers have to create
+works or the programmers have to create a new floating aero system the artists
+a new floating aero system the artists have to create a new good-looking era
+have to create a new good-looking era for the system the producer has fine
+for the system the producer has fine time for these groups communicate
+time for these groups communicate effectively so no time is lost and queue
+effectively so no time is lost and queue has a test for the new era system and
+has a test for the new era system and the only difference between these two
+the only difference between these two solutions is whether the level designer
+solutions is whether the level designer has the editing power to change those
+has the editing power to change those things themselves
+things themselves I mean low designer can bring end up to
+I mean low designer can bring end up to working levels and then the other
+working levels and then the other developers can make sure that is
+developers can make sure that is shippable quality which brings down the
+shippable quality which brings down the number of total iterations if it takes
+number of total iterations if it takes very long to implement a level fix sorts
+very long to implement a level fix sorts made difficult or bad with that value
+made difficult or bad with that value editor UI you'll have no choice but to
+editor UI you'll have no choice but to add quest markers and when Tessa
+add quest markers and when Tessa feedback says is difficult to get
+feedback says is difficult to get somewhere as it's the most production
+somewhere as it's the most production safe way of handling that feedback so a
+safe way of handling that feedback so a set of levels being iterated new
+set of levels being iterated new functions are being added to solve these
+functions are being added to solve these gaps and this is not due to dead are
+gaps and this is not due to dead are being dysfunctional not to the end
+being dysfunctional not to the end being bad not to the developers being
+being bad not to the developers being bad but only due to the editor UX being
+bad but only due to the editor UX being bad I mean look at the huge amount of
+bad I mean look at the huge amount of time and effort saved with good editor
+time and effort saved with good editor UX however there is a direct correlation
+UX however there is a direct correlation between a tool being more revolutionary
+between a tool being more revolutionary and a difficulty of getting people
+and a difficulty of getting people behind that process simply due to the
+behind that process simply due to the perceived risk and there are many
+perceived risk and there are many reasons for this but the biggest one of
+reasons for this but the biggest one of course being like we discussed before
+course being like we discussed before the level designer asks but the producer
+the level designer asks but the producer and forum are have to do that's not a
+and forum are have to do that's not a nice trade now some companies cut out
+nice trade now some companies cut out the middleman here they tend to hire
+the middleman here they tend to hire level designers who can also program
+level designers who can also program however those availables may be hard to
+however those availables may be hard to find or very expensive so instead all I
+find or very expensive so instead all I could say is that I hope with this
+could say is that I hope with this presentation it becomes more clear that
+presentation it becomes more clear that level designers do not ask solely for
+level designers do not ask solely for themselves but also for the sake of the
+themselves but also for the sake of the entire game because again they tend to
+entire game because again they tend to be one of the key links between the game
+be one of the key links between the game design and the actual product at the
+design and the actual product at the user place so if you liked this talk or
+user place so if you liked this talk or its contents don't shy away from showing
+its contents don't shy away from showing it to your entire team or just the
+it to your entire team or just the programmer sort of level designers
+programmer sort of level designers everyone is impacted by these editors
+everyone is impacted by these editors and flow ok let's look at placing assets
+and flow ok let's look at placing assets so we want to quickly play stuff and
+so we want to quickly play stuff and basically add reposition quickly above
+basically add reposition quickly above the large and small volumes ok let's
+the large and small volumes ok let's take a look so we can hammer we can
+take a look so we can hammer we can select a variety of prop entities such
+select a variety of prop entities such as dynamic physics static etc we then
+as dynamic physics static etc we then place it and then we have to find a
+place it and then we have to find a model for it we have to do this by
+model for it we have to do this by keywords so again we run through the
+keywords so again we run through the same issues as we did with textures
+same issues as we did with textures either we have to scroll through a big
+either we have to scroll through a big list or we have to remember all the
+list or we have to remember all the names and that might also be a model in
+names and that might also be a model in there you might not expect like if we
+there you might not expect like if we search for door we might also find
+search for door we might also find something called an indoor bench and
+something called an indoor bench and hammer does allow for a very quick way
+hammer does allow for a very quick way to copy and paste for example getting a
+to copy and paste for example getting a prophecy perfectly on the ground takes a
+prophecy perfectly on the ground takes a bit of filling if you move manually but
+bit of filling if you move manually but if we copy and paste it it pays exactly
+if we copy and paste it it pays exactly to where we point with the mouse and a
+to where we point with the mouse and a model is perfectly set on the ground
+model is perfectly set on the ground this can save time when it comes to
+this can save time when it comes to detailing a map and we're placing many
+detailing a map and we're placing many of the same props as we don't need to
+of the same props as we don't need to grab the movement or and or type in
+grab the movement or and or type in coordinates an interesting system amer
+coordinates an interesting system amer also allows for is instances replace an
+also allows for is instances replace an instance of an T and then you tie a map
+instance of an T and then you tie a map file to it the entity then shows what is
+file to it the entity then shows what is in that map file we can then copy and
+in that map file we can then copy and paste multiple of these entities around
+paste multiple of these entities around and if we then go into the original map
+and if we then go into the original map map file we tied to it we can make
+map file we tied to it we can make changes to it because this go to their
+changes to it because this go to their map file and there we see like there's a
+map file and there we see like there's a light and a couple of entities and a
+light and a couple of entities and a brush piece of geometry ok cool so you
+brush piece of geometry ok cool so you make changes here we go back every
+make changes here we go back every automatically changes so if I have a
+automatically changes so if I have a complex light set up a geometry setup or
+complex light set up a geometry setup or select some kind of entities up we can
+select some kind of entities up we can easily change all of them in one minute
+easily change all of them in one minute let's take a look at unreal and I will
+let's take a look at unreal and I will we simply click and drag from the model
+we simply click and drag from the model browser which is a bit faster and we can
+browser which is a bit faster and we can still change the model if you'd like to
+still change the model if you'd like to but we have to use the pivot to move the
+but we have to use the pivot to move the model and if we copy and paste we have
+model and if we copy and paste we have to continually drag out the next model
+to continually drag out the next model for to the correct position and we of
+for to the correct position and we of course have the same keyword searching
+course have the same keyword searching system go again the collection system
+system go again the collection system helps here to take a look at unity you
+helps here to take a look at unity you can see we have a similar system to run
+can see we have a similar system to run wheel but we click and drag a model into
+wheel but we click and drag a model into the scene and to copy in place we need
+the scene and to copy in place we need to duplicate click and drag again we can
+to duplicate click and drag again we can search through keywords and tags let's
+search through keywords and tags let's look a look at a crazy kit to find
+look a look at a crazy kit to find assets in equation kit we have to go
+assets in equation kit we have to go through many different directories to
+through many different directories to find the correct models to work with due
+find the correct models to work with due to the entire geometry being made out of
+to the entire geometry being made out of assets there are no visual icons present
+assets there are no visual icons present and again we can search through keywords
+and again we can search through keywords only there's a preview window we can
+only there's a preview window we can make appear but it shows the assets one
+make appear but it shows the assets one after another also like we saw in hammer
+after another also like we saw in hammer which is slow and dealing with the large
+which is slow and dealing with the large amount of assets available in this case
+amount of assets available in this case although switching out models is quite
+although switching out models is quite fast if you need to do though do so I
+fast if you need to do though do so I mean simply adding icons here instead of
+mean simply adding icons here instead of just text can save a huge amount of time
+just text can save a huge amount of time because we can quickly and one glass and
+because we can quickly and one glass and one glance see exactly what we need
+one glance see exactly what we need instead of having to go through this and
+instead of having to go through this and sort of just finding that exact right
+sort of just finding that exact right thing that we need so what do we learn
+thing that we need so what do we learn here well icons searching is much faster
+here well icons searching is much faster than text searching as it provides that
+than text searching as it provides that at a glance overview in a collection or
+at a glance overview in a collection or tagging system is faster than a text
+tagging system is faster than a text system especially for large asset
+system especially for large asset databases and positional copying what
+databases and positional copying what copying where the user is pointing is a
+copying where the user is pointing is a bit faster than dragging or typing
+bit faster than dragging or typing coordinates especially when working with
+coordinates especially when working with large levels and complex geometry an
+large levels and complex geometry an instant thing or prefabs are very useful
+instant thing or prefabs are very useful and placing many of the same assets or
+and placing many of the same assets or groups of assets they spent up to speed
+groups of assets they spent up to speed up the iteration process as less time
+up the iteration process as less time has to be spent doing the same thing
+has to be spent doing the same thing over and over and everything changes
+over and over and everything changes immediately inside editors though there
+immediately inside editors though there are also ways of making the process of
+are also ways of making the process of finding SS even faster for example
+finding SS even faster for example the Team Fortress 2 community started
+the Team Fortress 2 community started making prop libraries like a bejeweled
+making prop libraries like a bejeweled snark dude it did this which is a level
+snark dude it did this which is a level with all the assets of the game in them
+with all the assets of the game in them sorted by kind rocks with rocks 5 smooth
+sorted by kind rocks with rocks 5 smooth pipes boxes with boxes etc in this way
+pipes boxes with boxes etc in this way no matter what the name of the model
+no matter what the name of the model file is it is visually immediately
+file is it is visually immediately apparent what the choices are and we can
+apparent what the choices are and we can simply copy and paste them over it saves
+simply copy and paste them over it saves a lot design I have to go through text
+a lot design I have to go through text lists one by one the exact same thing
+lists one by one the exact same thing was also released by valve on the latest
+was also released by valve on the latest operation for counter-strike
+so let's say I want to change this brush with a model so I go into the zoo that's
+with a model so I go into the zoo that's all created and I get an immediate
+all created and I get an immediate visual overview of all my choices I
+visual overview of all my choices I don't need to remember any names and
+don't need to remember any names and always know exactly what my choices are
+always know exactly what my choices are even between high and low poly models
+even between high and low poly models now this system is slower when the level
+now this system is slower when the level designer working on the level knows all
+designer working on the level knows all the SS by name but especially on
+the SS by name but especially on bringing on new developers or really
+bringing on new developers or really large large systems this is way way
+large large systems this is way way better like I can find and having loved
+better like I can find and having loved design and switch between levels it
+design and switch between levels it provides a way of getting acquainted
+provides a way of getting acquainted with all the options and it's like a
+with all the options and it's like a garden to get inspiration from I can
+garden to get inspiration from I can then find a model and then I can then
+then find a model and then I can then just paste it over if I ever need to
+just paste it over if I ever need to change it I can then do it by name if
+change it I can then do it by name if I'd like to so I just click on it paste
+I'd like to so I just click on it paste it move it there and remove the brush
+it move it there and remove the brush and I'm done let's tick so let's play a
+and I'm done let's tick so let's play a game here called name that model and I
+game here called name that model and I want you all to play lon just yell
+want you all to play lon just yell loudly so I can hear you okay so what is
+loudly so I can hear you okay so what is this model called any suggestions sorry
+this model called any suggestions sorry gates it's called a meter so if you
+gates it's called a meter so if you haven't typed in meter you can't find
+haven't typed in meter you can't find out model okay let's do this one what
+out model okay let's do this one what would this be called suggestions sorry
+would this be called suggestions sorry fence fence it's called a grill you can
+fence fence it's called a grill you can see that it sort of makes sense but you
+see that it sort of makes sense but you would never check that end to find it
+would never check that end to find it let's do another one
+let's do another one what's this one called bracket nice job
+what's this one called bracket nice job it's called the prison brackets let's
+it's called the prison brackets let's look at this one but it's this one
+look at this one but it's this one called end rail lever it's called a
+called end rail lever it's called a scaffolding building X supports okay
+scaffolding building X supports okay final one what would this be called
+final one what would this be called rails rails yeah well think rails it's
+rails rails yeah well think rails it's called a run straights anyway you get
+called a run straights anyway you get the idea
+the idea so finding models based on names is just
+so finding models based on names is just not good for flow especially when
+not good for flow especially when working with bilingual teams and if
+working with bilingual teams and if you're outsourcing outsourcing art
+you're outsourcing outsourcing art because you just kind of have trouble
+because you just kind of have trouble with that okay final thing playtesting
+with that okay final thing playtesting okay so what I want to do quickly get in
+okay so what I want to do quickly get in another game and play that stuff cool
+another game and play that stuff cool how does hammer do this well first me to
+how does hammer do this well first me to place a spawn points and then we have to
+place a spawn points and then we have to compile the level and this can take five
+compile the level and this can take five minutes or up to an hour depending on
+minutes or up to an hour depending on many different factors and we also need
+many different factors and we also need to remember the location of the spawn
+to remember the location of the spawn point and make sure we move it around if
+point and make sure we move it around if we want to plate as a specific section
+we want to plate as a specific section of the map otherwise we may waste time
+of the map otherwise we may waste time running through the map to find the
+running through the map to find the right location again
+right location again one more tiny thing we have to remember
+one more tiny thing we have to remember instead of getting into the zone of
+instead of getting into the zone of thinking how can I make this level the
+thinking how can I make this level the best it can be my brain is not focusing
+best it can be my brain is not focusing on like okay so where's that spawn
+on like okay so where's that spawn because I no need to forget it otherwise
+because I no need to forget it otherwise I'll facepalm myself an hour lose time
+I'll facepalm myself an hour lose time it takes me out of the zone okay let's
+it takes me out of the zone okay let's look take a look at our wheel and our
+look take a look at our wheel and our wheel we have to right-click anywhere
+wheel we have to right-click anywhere and press play here just no need to move
+and press play here just no need to move spawn or around or wait for a game on
+spawn or around or wait for a game on map to load we just click and play
+map to load we just click and play there's no need to compile either I mean
+there's no need to compile either I mean yes we can if we want to but there's no
+yes we can if we want to but there's no requirement to do so take a look at
+requirement to do so take a look at unity now press play and whatever is
+unity now press play and whatever is programmed to be the main camera play
+programmed to be the main camera play your character or whatever this you made
+your character or whatever this you made will start playing this is fairly fast
+will start playing this is fairly fast and there's a very nice pause and
+and there's a very nice pause and frame-by-frame system as well if
+frame-by-frame system as well if anything goes wrong unexpectedly it's
+anything goes wrong unexpectedly it's quite simple to pause and then
+quite simple to pause and then immediately fly around to look up and
+immediately fly around to look up and wrong and everything stays put it's also
+wrong and everything stays put it's also possible to adapt the scene while paused
+possible to adapt the scene while paused for example you can see I moved around a
+for example you can see I moved around a bit further here and come over it even
+bit further here and come over it even further here this pause added system
+further here this pause added system makes for extremely fast testing and
+makes for extremely fast testing and iteration of changes let's take a look
+iteration of changes let's take a look at the creation kit to play this an
+at the creation kit to play this an equation kit a spawn location needs to
+equation kit a spawn location needs to be moved around to the correct place and
+be moved around to the correct place and a level needs to be saved and the game
+a level needs to be saved and the game needs to be started with the right
+needs to be started with the right content enabled the player can then
+content enabled the player can then spawn in to the level using a console
+spawn in to the level using a console well if you don't wish to edit the level
+well if you don't wish to edit the level and tab in the sea changes you can't you
+and tab in the sea changes you can't you will have to unload and reload the game
+will have to unload and reload the game every time in edit this game so you have
+every time in edit this game so you have to completely quit it and completely
+to completely quit it and completely start it up again this can be very
+start it up again this can be very costly on time especially when it comes
+costly on time especially when it comes to smaller changes and the speed of
+to smaller changes and the speed of loading and 3ds max well you can't
+loading and 3ds max well you can't they're probably currently working on
+they're probably currently working on something but right now and you can't
+something but right now and you can't play anything in 3ds max okay so having
+play anything in 3ds max okay so having an editor check so we don't have to
+an editor check so we don't have to start up the game saves a lot of time
+start up the game saves a lot of time and we can focus on the level instead of
+and we can focus on the level instead of having to wait otherwise it's nice if we
+having to wait otherwise it's nice if we can keep the game and the editor running
+can keep the game and the editor running at the same time so we don't have to
+at the same time so we don't have to reload either while I'm in between
+reload either while I'm in between changes and clicking allocation to play
+changes and clicking allocation to play is very nice as it means I don't have to
+is very nice as it means I don't have to get thinking about where the spawn
+get thinking about where the spawn location is or any other entities that
+location is or any other entities that are tied to it and when you had no one
+are tied to it and when you had no one have to move them around we can focus on
+have to move them around we can focus on a problem at hand and of course flying
+a problem at hand and of course flying and editing during past time is
+and editing during past time is incredible it really speeds up the
+incredible it really speeds up the iteration process as problems can
+iteration process as problems can quickly be found and adapted without
+quickly be found and adapted without having to go through a playtesting
+having to go through a playtesting pipeline though of course all these
+pipeline though of course all these issues are also engine dependant so it's
+issues are also engine dependant so it's difficult to implement this but it might
+difficult to implement this but it might be worth it over large and longer
+be worth it over large and longer projects depending on what you're
+projects depending on what you're working on so those are all the topics
+working on so those are all the topics we've covered it in I hope this has been
+we've covered it in I hope this has been useful to you and I just want to
+useful to you and I just want to reiterate the most important points look
+reiterate the most important points look at other games for inspiration and look
+at other games for inspiration and look at other editor for inspiration this may
+at other editor for inspiration this may seemed obvious but f we saw through this
+seemed obvious but f we saw through this presentation many solutions already
+presentation many solutions already present and they just haven't been
+present and they just haven't been implemented main point button yet in
+implemented main point button yet in other editors an interesting design
+other editors an interesting design comes from iteration and trying things
+comes from iteration and trying things out if the editor does not facilitate
+out if the editor does not facilitate this and the design of the game will
+this and the design of the game will stagnate and really tiny issues can have
+stagnate and really tiny issues can have really huge impacts over long projects
+really huge impacts over long projects and there are many more companies doing
+and there are many more companies doing these kinds of things already but they
+these kinds of things already but they get rarely shared and usually stay in
+get rarely shared and usually stay in house under NDA so if someone does talk
+house under NDA so if someone does talk about them just grab an and shake all
+about them just grab an and shake all the information out of them you could
+the information out of them you could possibly have because it's really really
+possibly have because it's really really valuable and just because a pipeline is
+valuable and just because a pipeline is functional doesn't mean that pipeline is
+functional doesn't mean that pipeline is done you actually my metaphor games as
+done you actually my metaphor games as much as matters for editors again just
+much as matters for editors again just remember like a 45 hour game quickly
+remember like a 45 hour game quickly past three hour long editor and not work
+past three hour long editor and not work done again like if and don't don't
+done again like if and don't don't answer someone's cries for help with
+answer someone's cries for help with just keep on using it like the rest of
+just keep on using it like the rest of us or you will get used to it or a good
+us or you will get used to it or a good craftsman never blames his tools and
+craftsman never blames his tools and fatigue happens it's a real thing so
+fatigue happens it's a real thing so watch out for this and that is the fault
+watch out for this and that is the fault of whoever designed an editor if the
+of whoever designed an editor if the user just consistently does something
+user just consistently does something wrong and create a space for creativity
+wrong and create a space for creativity in flow being in the zone it reflects in
+in flow being in the zone it reflects in our work and remember the spirals of
+our work and remember the spirals of good and bad UX and the butterfly
+good and bad UX and the butterfly effects that they can cause and huge
+effects that they can cause and huge amounts of time and effort can be saved
+amounts of time and effort can be saved to just who just threw you X so when
+to just who just threw you X so when shorts saying a good craftsman never
+shorts saying a good craftsman never blames his tool is detrimental to your
+blames his tool is detrimental to your game your developers and your customers
+game your developers and your customers should developers be smart enough to
+should developers be smart enough to know what tools to pick and what to what
+know what tools to pick and what to what to use for which tasks yes should
+to use for which tasks yes should developers be smart enough to realize
+developers be smart enough to realize when their tools are holding back the
+when their tools are holding back the game's potential yes thank you very much
+I would like these thank these people for all the help they gave me and I want
+for all the help they gave me and I want to thank these editors for in fisting
+to thank these editors for in fisting like it's awesome that we can all create
+like it's awesome that we can all create stuff also at home for mothers these are
+stuff also at home for mothers these are the sources that I used and are there
+the sources that I used and are there any questions I think we have five
+any questions I think we have five minutes left is that correct yes cool
+minutes left is that correct yes cool amen
+amen so I think we can all agree that
+so I think we can all agree that searching a thing for NASA by name is
+searching a thing for NASA by name is terrible but um do you have any ideas
+terrible but um do you have any ideas about solving that problem like tagging
+about solving that problem like tagging systems that I don't require people to
+systems that I don't require people to figure out everything about their asset
+figure out everything about their asset some other person might search the zoo
+some other person might search the zoo thing is still the best thing that I've
+thing is still the best thing that I've seen so far and what I showed in the
+seen so far and what I showed in the video was only models in this case but
+video was only models in this case but actually I didn't show another party
+actually I didn't show another party level which valve also made which is a
+level which valve also made which is a texture section so you have this you
+texture section so you have this you twelve textures with all the shaders on
+twelve textures with all the shaders on them you just look around them and go
+them you just look around them and go hey that's the kind of red shader I want
+hey that's the kind of red shader I want you just right there
+you just right there right I remember tags are names for you
+right I remember tags are names for you know like sunset overdrive we had over
+know like sunset overdrive we had over 200 thousand assets and creating just
+200 thousand assets and creating just that creating the zoo would have taken a
+that creating the zoo would have taken a bit of a full time job so is there do
+bit of a full time job so is there do you know of anything that like could
+you know of anything that like could automate that yes well there is a system
+automate that yes well there is a system which is now really aged not used
+which is now really aged not used anymore which was done by valve also
+anymore which was done by valve also like a long time ago which is what they
+like a long time ago which is what they call like an entity sprawl I think it is
+call like an entity sprawl I think it is so we still click on the button and it
+so we still click on the button and it basically spawns every single entity
+basically spawns every single entity entity that it has on the entire map
+entity that it has on the entire map like in sections so you sort of know
+like in sections so you sort of know where everything is
+where everything is now if you've named things moderately
+now if you've named things moderately like goods you can develop a system like
+like goods you can develop a system like okay everything that has the word wooden
+okay everything that has the word wooden hit goes to this section of the map
+hit goes to this section of the map anything that has a word type in it goes
+anything that has a word type in it goes in this section of the map I haven't
+in this section of the map I haven't seen anyone else do that yet though yeah
+seen anyone else do that yet though yeah so it's not really a salt issue yet any
+so it's not really a salt issue yet any other questions
+no well if you have any questions later you can also grab still grab straw
+you can also grab still grab straw waffle or find me in a wrapper boom
+waffle or find me in a wrapper boom thank you very much

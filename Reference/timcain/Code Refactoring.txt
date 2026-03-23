@@ -1,0 +1,416 @@
+hi everyone it's me Tim and today I want
+to talk about code
+refactoring B 892 asked in the games
+industry how do you handle code
+refractors is there time for it how do
+you approach it are there dedicated time
+periods dedicated to
+refactoring or is it done in small bits
+throughout development B that's a really
+good question I thought I did something
+but when I looked all I did is kind of
+mention code refractor when I did a
+video on optimization which I'll link
+below but code refactoring is done for
+more than just optimization reasons so
+let me get into it first of all what is
+code refactoring that's whenever you
+restructure existing code so code that's
+already written and works to make it
+better and I'll talk about what better
+is but usually it means you're rewriting
+it because you want it to be cleaner and
+faster it's usually bug free before you
+start but I've had some code refactors
+because there was a pernicious bug that
+I literally could not find and I
+refactored the code and it disappeared
+so so let's talk about why you would
+want to refactor code there are three
+big reasons you want to do this
+efficiency
+maintainability and reusability and
+these are all different they're a little
+related they have a little bit of
+overlap but there are three different
+reasons you want a code refractor so
+let's walk through them and I'll give
+some
+examples the the first reason you want
+to do it is efficiency maybe you have
+code and you want it to be faster or use
+less
+memory that's that's primarily the
+stated reason people say they want to
+refactor code usually programmers are
+like hey I could do I could do this
+better if you if I had second time
+usually this is done by you see how your
+code is really being used by by the time
+you go to code refactor
+other systems are in place and they're
+using this particular piece of code so
+you see like how's it used how
+frequently is it used how many objects
+use it that kind of information should
+guide your refactor and your rewrite of
+the code and I'll give you an example
+let's
+say that you have some piece of code
+that at some
+point it has an array that things get
+put into and occasionally Resorts it and
+you wrote it it has a simple insert it
+just throws it at the end and then when
+the resort comes in it just does like a
+quick sort of the entire
+thing but when you're actually looking
+at how it's used later you notice that
+usually the because the array is sorted
+and things are just being inserted at
+the end quick swort is not the best
+thing to use here there are other
+algorithms that work a lot better with
+an almost already sorted array so right
+then you might think well I may need to
+change my sort
+algorithm but then you think well wait a
+minute if the array is already sorted it
+would be easy to
+insert the new item at the correct spot
+because you do one linear pass
+bam however this would depend
+on how frequently you're inserting and
+how fast that insertion needs to be if
+that insertion needs to be near instant
+it's easier just to throw it on the end
+and then sort when you don't have to
+worry about time we used to do things in
+several games I wrote where we there
+were times where there were lots of CPU
+Cycles available so we would do things
+then a perfect example of that was when
+certain uis would come up whether it was
+uh inventory or looking at your
+character build or even bringing up an
+options menu or the pause menu the game
+would be paused so suddenly a lot of
+systems which eat a lot of Cycles like
+AI or even rendering suddenly those
+aren't doing anything you can use those
+Cycles to do other things for one of our
+games we use that to do garbage
+collection because Unity garbage
+collects when it thinks it's necessary
+which can cause stuttering in your game
+so the way we avoided that is we
+manually called garbage collect at times
+we knew a stutter would not be noticed
+because a stutter of of 100 milliseconds
+is really noticeable in a 30 or 60
+frames per second game but is not
+noticeable at all when you bring up a
+pause menu and you're like hm I wonder
+if I want to change an option or I think
+I'm going to go make a sandwich 100
+millisecond pause to do a garbage
+collection no one's going to
+notice in terms of this array resorting
+it may be that you can you're free to
+resort that array in one of these
+downtimes so you make insert super fast
+and then who cares how long the the
+resort takes
+or it may be that both of them have to
+be as efficient as possible so maybe you
+add it to the end and you use a better
+sort algorithm or maybe you do when a
+new item comes into that array you you
+stick it in the right spot so that way
+you never have to do a sort it depends
+on how it's used so without that
+information without usability
+information you the programmer cannot
+make that decision which is one reason
+code refractors I recommend pushing it
+off wait to see how your code is used
+just like optimization doing too early
+of a code refactor is bad and I'll talk
+about that the second reason you want to
+do code refactor is
+maintainability if this is code that's
+generic enough that you're you intend to
+use it in other uh games you're writing
+or you're doing like a live service game
+or just a big enough game that you're
+going to have to come back again and
+again to look at this code to
+potentially add new features or to fix
+bugs that you didn't see when there was
+100 play testers but you're seeing it
+now that there's a million people
+playing your game you want that code to
+be very
+clean it's called less spaghetti code
+because you want a new programmer
+because who knows if you're you're going
+to be the one doing it or even you six
+months later know what's going on here
+people always say well why are you even
+writing spaghetti code spaghetti code
+happens a lot in the game industry
+because changes happen to the design of
+the game either the design was flawed
+but you didn't realize it till you
+implemented it or or a better idea came
+along maybe you put it in front of a
+focus group and they're like well if if
+this UI just worked this way that would
+be easier by the way I've seen I've seen
+and written some really bad spaghetti
+code in UI because you have to write it
+over and over and over again to try to
+accommodate how people are actually
+using
+it when you rewrite it over and over
+again frequently
+it even the most simple design change
+can result in a dramatically big change
+to your
+code this leads to Spaghetti code where
+a method that was is named one thing and
+was supposed to do one thing is now
+doing three things
+or some method that was only supposed to
+be called once or twice is now being
+called every update just or just a a a
+method got longer and longer and longer
+and longer until finally it's like 10 or
+20 pages of code and you're finding
+where to make a change in it is a
+nightmare an example of that would be uh
+one of the Fast Travel one of the games
+I made that had fast
+travel time would pass during fast
+travel if it took you take if you went
+from here to here when you arrived we
+would calculate well okay 3 days went by
+advaned time 3 days well guess what that
+would Advance status effects that would
+tick many of them ticked every heartbeat
+like every two seconds if a status
+effect was a DOT a damage over time that
+could kill the
+player so
+it was weird that you walked all this
+distance arrived in this town and fell
+over dead when that dot should have
+killed you 2 minutes after you started
+out so now you have to make fast travel
+constantly tick time really quickly as
+it goes along but then if one of those
+effects caused to popup UI like
+something comes up and it's like you're
+low on health or you know you still have
+poison do you want to take care of that
+can that happen during fast travel maybe
+your fast travel UI once it's once it's
+started can't really handle a pop-up UI
+interrupting it and you have to change
+it so it can those two changes the
+continuous ticking and pop-up UI it's
+going to make your fast travel code look
+like a mess and when you're done and you
+have time you may want to go back and go
+okay now that I know that time has to
+tick continuously and pop-ups may occur
+I want to rewrite some of this fast
+travel
+code and then the final reason you want
+to refactor your code is reuse usability
+which is separate from maintainability
+maintainability is you just keeping that
+code working correctly and being
+efficient and bug-free as the game is
+live or has DLC added to it and new
+features reusability is you may want to
+pick up that piece of code and use it in
+another game you're doing you don't want
+to remake the wheel every single time
+you make a game so refactored code can
+often be made more reusable by isolating
+it the specific parts so now you can
+have a a a module or sometimes even a
+library and you're like this is used for
+this thing which is very generic I can
+use it in a lot of games so I want to
+make that code very efficient for
+reusability an example of this that I've
+talked about on this channel is when I
+took all of the
+Dos specific cause in Fallout and
+isolated it to a library called
+ganol because we knew we were changing
+it to Windows we were also going to make
+it run on windows so that let us rewrite
+all those dos calls to be Windows calls
+just in the library the game itself had
+no idea this change was happening if it
+needed a window to pop up or it needed
+input from a mouse or keyboard it just
+called into ganal how ganal got that
+information or displayed things was a
+mystery to the to anyone who was writing
+in the Fallout game code this was so
+effective by the way that one of the
+first things I did after leaving
+interplay was write a brand new library
+called TIG ganal stood for gan's not
+Windows TIG stands for TIG isn't ganal
+TIG had even more advanced Windows
+features things that I didn't do because
+I needed to support Doss I stopped
+supporting Doss with TIG and got even
+more advanced Windows features in it
+this gon TIG made it very easy to Port
+the game when we wanted a Mac version
+you only had to change calls in those
+libraries if you wanted to update
+something like if a new version of
+direct came out the only thing that used
+it was inside those libraries so nothing
+in the in the in the game itself had to
+change there's an entire video on gon
+TIG and I'll link it below so now let me
+get into what the pros and the cons are
+for code refactoring the pros I
+shouldn't have to go over done right
+it's everything I just said you'll have
+faster code better code cleaner code
+however that done right phrase is doing
+a lot of heavy lifting here so let's
+break down what I think to be a lot of
+cons of code refactoring first of all
+it's frequently done too early
+programmers will love to say yeah I just
+wrote something I want to refactor it
+really you don't even know how it's
+going to be used you don't even know if
+it really has any bugs in it or if it's
+too slow for the application but like
+yeah but I can make it faster but what
+if you don't need to if you have
+something that's called once every 10
+minutes who cares so I've seen early
+refactoring frequently just the same way
+I see early optimization and look at at
+that in the optimization bit my
+recommendation here is wait to see if
+you even need to refactor it is your
+code too slow is it too messy it may not
+be and just having a better idea of how
+to do it is not a good reason to
+refactor and then doing it too
+frequently again I've worked with
+programmers who they want to refactor at
+when they get to the end of the task
+they're like okay I've written
+everything and it's working I want to
+refactor now they want to refactor if
+they have a I have a better idea of how
+to do this let's do it or you're just
+about to go into the bug fixing phase
+and like well I'm going to refactor a
+lot of my code and that should handle a
+lot of the bugs no that is a bad idea
+first of all they want to refactor the
+same code over and over and over which
+causes the opposite of spaghettification
+you write um what I think is you get too
+clever with it and I'll talk about that
+in a minute but a lot of programmers get
+way too clever with their code which
+really harms them going back to it
+later but anyway if the basic idea here
+is if memory and speed and readability
+isn't an issue why are you refactoring
+don't do it also bear in mind a huge con
+of refactoring is yes you might be able
+to get rid of some pernicious bug you
+couldn't find but you might introduce a
+new one every time code is Rewritten
+there's a good chance that bugs will get
+introduced and rewriting is writing code
+so every time you write code you may be
+writing bugs so think about that you may
+have really good code you may refactor
+it it's a little bit faster even though
+it didn't need to be and now there's a
+bug in it which you definitely don't
+want the other reason to refactor to
+make it more
+readable you can be you can refactor
+code thinking you're making it more
+readable but you actually make code
+that's no easier to understand or
+maintain or Worse harder to maintain
+I've seen programmers look at something
+and go oh there's a better way I
+shouldn't have there's a better way to
+do this I shouldn't have used sort I
+should have used radic sorting or I
+should used something that they think is
+incredibly clever and a little obscure
+so they refactor their code to use that
+and then later on six months later they
+come back to it and they have no idea
+they've completely forgotten what that
+kind of sorting was or worse a new
+programmer looks at and goes I've never
+seen anyone do anything like this I
+don't even know where to start because
+you're trying to take your code maybe
+and add one new feature but you've made
+it incredibly rigid by your refactoring
+that's that's a problem and then finally
+the biggest con with refactoring and you
+hear this from producers is sometimes it
+will cost you time and therefore money
+for no immediate benefit the existing
+code is bug-free it's not contributing
+to in any major way to the speed SL any
+slowdown in the game it's not using a
+lot of memory or whatever and you have
+programmers go why want to refactor it
+for some abstract later benefit and it's
+it's completely fair for for a producer
+to push back on that and going we have a
+lot of right now benefits that you could
+be doing why are we doing this for a
+later abstract benefit we may never need
+and that is a weird conversation to
+watch happen between programmers and
+producers and it's because of this and I
+say this as a programmer I've said
+before on this channel that programmers
+love to feel one way but try to logic
+their way out of the explanation they
+just want to refactor code but they
+don't have a good reason to refractor
+their code but they will argue for hours
+that they're being logical when they
+just really want to and sometimes just
+wanting to isn't a good reason to if you
+can't if you can't State a good reason
+don't refactor your
+code so let me sum up refactoring is
+just a tool it's a tool like all tools
+it can help you a lot if you do it for
+the right reasons like all tools it can
+be misused used and result in lots of
+bad things in your game so code
+refactoring efficient do it for
+Efficiency do it for maintainability do
+it for readability but you don't always
+have to do it so I hope that answered
+your question B 892

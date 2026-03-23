@@ -1,0 +1,996 @@
+[Music] all right I saw hello everyone
+all right I saw hello everyone oh my voice echoes so my name is Julian
+oh my voice echoes so my name is Julian Smith as Dave said I am an assistant
+Smith as Dave said I am an assistant professor at Northeastern University
+professor at Northeastern University which is in Boston Massachusetts so I'm
+which is in Boston Massachusetts so I'm very grateful to be here where there
+very grateful to be here where there isn't snow and to give you a little bit
+isn't snow and to give you a little bit of background and why it is and the kind
+of background and why it is and the kind of work I've been doing in content
+of work I've been doing in content generation I've been interested in
+generation I've been interested in procedural content generation as it
+procedural content generation as it intersects with game design to enable
+intersects with game design to enable new playable experiences mix initiative
+new playable experiences mix initiative design tools which we'll be talking
+design tools which we'll be talking about in this talk recently I've been
+about in this talk recently I've been doing a little bit of work looking into
+doing a little bit of work looking into the history of content generation across
+the history of content generation across games since about the mid 60s or so and
+games since about the mid 60s or so and the kind of games that I've generated
+the kind of games that I've generated content for in the past in my research
+content for in the past in my research have been super mario world western
+have been super mario world western role-playing games style levels and
+role-playing games style levels and puzzle games thanks and I'm I'm Julie
+puzzle games thanks and I'm I'm Julie Antonelli's currently at New York
+Antonelli's currently at New York University I've been doing various kinds
+University I've been doing various kinds of things in procedure current
+of things in procedure current generation started out with trying to
+generation started out with trying to figure out how to control use
+figure out how to control use evolutionary algorithms to control game
+evolutionary algorithms to control game characters and I was like hey why not
+characters and I was like hey why not turn it around why not you know clearly
+turn it around why not you know clearly come up with levels and stuff instead so
+come up with levels and stuff instead so I've been using a lot of different
+I've been using a lot of different methods typically from the biological
+methods typically from the biological inspired statistical and the similar non
+inspired statistical and the similar non symbolic reams to do counter generation
+symbolic reams to do counter generation in various games including racing games
+in various games including racing games Super Mario Bros Starcraft etc so this
+Super Mario Bros Starcraft etc so this is kind of the the whirlwind tour of
+is kind of the the whirlwind tour of procedural content generation so we're
+procedural content generation so we're gonna be talking about four main things
+gonna be talking about four main things today
+today the first is giving a very high-level
+the first is giving a very high-level overview of different technical
+overview of different technical approaches and algorithms that you can
+approaches and algorithms that you can use for content generation specifically
+use for content generation specifically looking at what we're calling gameplay
+looking at what we're calling gameplay oriented PSG's so a lot of procedural
+oriented PSG's so a lot of procedural content generation that you may have
+content generation that you may have seen from like the computer graphics
+seen from like the computer graphics community would be for procedural
+community would be for procedural textures or
+textures or like height maps or procedural flame
+like height maps or procedural flame effects we're really more interested in
+effects we're really more interested in the kind of procedural content
+the kind of procedural content generation that's for content that
+generation that's for content that players were really deeply interact with
+players were really deeply interact with and form part of the gameplay experience
+and form part of the gameplay experience after giving this sort of very
+after giving this sort of very high-level overview of algorithms we'll
+high-level overview of algorithms we'll talk about sort of practical advice so
+talk about sort of practical advice so if you want to put content generation
+if you want to put content generation into your game what are some of the
+into your game what are some of the things you might want to think about
+things you might want to think about talk about using PCG to actually help
+talk about using PCG to actually help designers not just replace designers and
+designers not just replace designers and then end with sort of a very again
+then end with sort of a very again high-level overview of different
+high-level overview of different debugging and visualization strategies
+debugging and visualization strategies you might want to use
+you might want to use I think the key theme across all of this
+I think the key theme across all of this presentation is that there's no magic
+presentation is that there's no magic bullet we we all know this right there's
+bullet we we all know this right there's a lot of different algorithms you can
+a lot of different algorithms you can use for this and they've got trade-offs
+use for this and they've got trade-offs and so the goal that we have with this
+and so the goal that we have with this presentation is to try to make those
+presentation is to try to make those trade-offs a little more clear we're not
+trade-offs a little more clear we're not gonna be here and tell you like Gramma's
+gonna be here and tell you like Gramma's those are the best way to generate
+those are the best way to generate content and the one true way right there
+content and the one true way right there they're good for some things and not as
+they're good for some things and not as good for other things so with that let's
+good for other things so with that let's dive in a little bit to some of the
+dive in a little bit to some of the we've identified sort of four high level
+we've identified sort of four high level approaches that people can use for
+approaches that people can use for content generation talk about what they
+content generation talk about what they are and what some of the trade-offs are
+are and what some of the trade-offs are in terms of what they're good at and
+in terms of what they're good at and badass so the first method the a set of
+badass so the first method the a set of methods that we can think about what
+methods that we can think about what we're calling constructive methods so
+we're calling constructive methods so these are typically very ad hoc methods
+these are typically very ad hoc methods where you might piece together large
+where you might piece together large building blocks of content spelunky is a
+building blocks of content spelunky is a really good example of a system that
+really good example of a system that uses a kind of constructive method
+uses a kind of constructive method there's there's pre designed by humans
+there's there's pre designed by humans tiles that get placed next to each other
+tiles that get placed next to each other and then a second pass in the algorithm
+and then a second pass in the algorithm goes through and decorates all of those
+goes through and decorates all of those tiles with loot and enemies and so on
+tiles with loot and enemies and so on and Darius Kazemi has a really great
+and Darius Kazemi has a really great blog post online that should be pretty
+blog post online that should be pretty goo global that talks about specifically
+goo global that talks about specifically how the spelunky level generation
+how the spelunky level generation algorithm works really constructive
+algorithm works really constructive methods are about sort of directing
+methods are about sort of directing randomness right so you could just place
+randomness right so you could just place a call to a random number generator
+a call to a random number generator get a bunch of random stuff that shows
+get a bunch of random stuff that shows up on your screen so we try a few
+up on your screen so we try a few different ways to try to influence that
+different ways to try to influence that random number generator to give
+random number generator to give something that feels a bit more design
+something that feels a bit more design early than just being like at the mercy
+early than just being like at the mercy of your random number generator so these
+of your random number generator so these can include things like paying careful
+can include things like paying careful attention to your knowledge
+attention to your knowledge representation and using very carefully
+representation and using very carefully crafted blocks that fit together nicely
+crafted blocks that fit together nicely altering your random number distribution
+altering your random number distribution so you're not just pulling from a
+so you're not just pulling from a uniform distribution and look up tables
+uniform distribution and look up tables and sort of my tagline for constructive
+and sort of my tagline for constructive methods is like we want to hack
+methods is like we want to hack something together that works right and
+something together that works right and it'll it'll probably only work for this
+it'll it'll probably only work for this game and nothing else but like let's
+game and nothing else but like let's just get something working well it's
+just get something working well it's really nice about a constructive
+really nice about a constructive approach is that it's typically very
+approach is that it's typically very lightweight algorithmically sort of like
+lightweight algorithmically sort of like a few calls to a random number generator
+a few calls to a random number generator and you're done
+and you're done it puts more sort of burden on to
+it puts more sort of burden on to designers and artists and level
+designers and artists and level designers to be able to design your
+designers to be able to design your modular content that's going to go
+modular content that's going to go together though right which can be a lot
+together though right which can be a lot if you need to suddenly think about like
+if you need to suddenly think about like all possible pairs of all possible tile
+all possible pairs of all possible tile sets like what's going to happen it's
+sets like what's going to happen it's pretty customized to the designs is not
+pretty customized to the designs is not very extensible and really the main
+very extensible and really the main peril I think of these systems is that
+peril I think of these systems is that you're constantly fighting against human
+you're constantly fighting against human pattern recognition skill we're really
+pattern recognition skill we're really good at detecting patterns in content
+good at detecting patterns in content and you'll see patterns in content very
+and you'll see patterns in content very quickly
+quickly and we kind of wanted to give like an
+and we kind of wanted to give like an extreme example of each possible
+extreme example of each possible approach so the extreme example I would
+approach so the extreme example I would say for a constructive method is the a
+say for a constructive method is the a DMD Dungeon generation system which is a
+DMD Dungeon generation system which is a paper-based system for procedurally
+paper-based system for procedurally generating an entire dungeon as you go
+generating an entire dungeon as you go it has four pages of look-up tables tied
+it has four pages of look-up tables tied to each possible dice roll you can do
+to each possible dice roll you can do for placing like all of this crazy stuff
+for placing like all of this crazy stuff in and it's it's like it's kind of
+in and it's it's like it's kind of inspiring really yeah sounds like a lot
+inspiring really yeah sounds like a lot of fun yeah so the more the more sort of
+of fun yeah so the more the more sort of structured way in a sense of doing
+structured way in a sense of doing bottom-up content generation if you
+bottom-up content generation if you compare to constructive methods is
+compare to constructive methods is grammars and this is grammars right of
+grammars and this is grammars right of like computer science 101 or 1 or 2 fame
+like computer science 101 or 1 or 2 fame or
+or Chomsky famous something they're used
+Chomsky famous something they're used for linguistics so basically you define
+for linguistics so basically you define an ontology of objects that can exist in
+an ontology of objects that can exist in the world and then you design a set of
+the world and then you design a set of production rules and what object gives
+production rules and what object gives can be in each production step be
+can be in each production step be transformed into what Ellis this has
+transformed into what Ellis this has been more probably most famously used
+been more probably most famously used for for generating vegetation plants and
+for for generating vegetation plants and trees think SpeedTree for example but he
+trees think SpeedTree for example but he can be used for lots of other things as
+can be used for lots of other things as well
+well so in the background you see a part of
+so in the background you see a part of your wrist Dorman's grammatical system
+your wrist Dorman's grammatical system for generating dungeons and quests in
+for generating dungeons and quests in zelda like games it's computers good
+zelda like games it's computers good that's very broad applicability you can
+that's very broad applicability you can do lots of other things and it's easy to
+do lots of other things and it's easy to sort of combine different design
+sort of combine different design elements you have a it you can get
+elements you have a it you can get surprisingly complex results that still
+surprisingly complex results that still adhere to basic design principles out of
+adhere to basic design principles out of very little you put in in a sense so
+very little you put in in a sense so it's very useful in that sense the
+it's very useful in that sense the perils of over generating or like the
+perils of over generating or like the power of obj generating is also parallel
+power of obj generating is also parallel for generating you can generate huge
+for generating you can generate huge structures that often show a lot of
+structures that often show a lot of regularity perhaps more regularity than
+regularity perhaps more regularity than you would actually want to do so but
+you would actually want to do so but this can be solved by combining it with
+this can be solved by combining it with some sort of testing procedure where you
+some sort of testing procedure where you sort of if you generate something that
+sort of if you generate something that doesn't actually look cute or doesn't
+doesn't actually look cute or doesn't play well according to some automatic
+play well according to some automatic master you can cut it down and
+master you can cut it down and regenerate which brings us to which
+regenerate which brings us to which brings us to so constructive methods and
+brings us to so constructive methods and grammars are really more bottom-up
+grammars are really more bottom-up approaches like you define a set of
+approaches like you define a set of rules and kind of see what bubbles up
+rules and kind of see what bubbles up and like what interesting surprising
+and like what interesting surprising emergent things happen the other two
+emergent things happen the other two approaches that we want to talk about a
+approaches that we want to talk about a really more top-down methods where you
+really more top-down methods where you as a designer and AI program like in
+as a designer and AI program like in combination that's what's cool about PCG
+combination that's what's cool about PCG or like doing AI end design together you
+or like doing AI end design together you can sort of specify high-level goals
+can sort of specify high-level goals that you have and let the system figure
+that you have and let the system figure out what to create that meets those
+out what to create that meets those high-level goals
+high-level goals so there's a relatively new within the
+so there's a relatively new within the academic procedural content generation
+academic procedural content generation community approach of looking at
+community approach of looking at constraint based systems to be able to
+constraint based systems to be able to do procedural content generation the
+do procedural content generation the idea behind these systems is that you
+idea behind these systems is that you specify what you want to be true about
+specify what you want to be true about your final content using logical
+your final content using logical language so you could say like I want to
+language so you could say like I want to have a cave system and it should be 30
+have a cave system and it should be 30 by 30 tiles and I want there to be at
+by 30 tiles and I want there to be at least five rooms and I want those rooms
+least five rooms and I want those rooms to be connected by at least 10 corridors
+to be connected by at least 10 corridors and I want you know there to be lots of
+and I want you know there to be lots of enemies and at least one of the rooms
+enemies and at least one of the rooms and you're giving these very high level
+and you're giving these very high level design constraints and then you kind of
+design constraints and then you kind of hit the generate button and let this off
+hit the generate button and let this off the shelf constraint solver figure out
+the shelf constraint solver figure out what all of the different variables are
+what all of the different variables are and what they need to be set to to
+and what they need to be set to to create a system for you so an example of
+create a system for you so an example of a like out in the wild right now game
+a like out in the wild right now game the users constraint based PCG is this
+the users constraint based PCG is this educational puzzle game called
+educational puzzle game called refraction where which is from
+refraction where which is from university of washington where you're
+university of washington where you're trying to control how lasers move around
+trying to control how lasers move around and Bend so that you can power
+and Bend so that you can power spaceships with fractional portions of
+spaceships with fractional portions of lasers this is a really powerful way of
+lasers this is a really powerful way of doing content generation you need to be
+doing content generation you need to be able to figure out how to express your
+able to figure out how to express your entire domain in logic programming
+entire domain in logic programming though which is a non-trivial task so
+though which is a non-trivial task so we're working on making it a little
+we're working on making it a little easier so some of the really great
+easier so some of the really great things about constraint based systems
+things about constraint based systems you can make promises about design
+you can make promises about design issues and guarantee that you will meet
+issues and guarantee that you will meet those promises which is huge like coming
+those promises which is huge like coming from grammars where you've got this
+from grammars where you've got this emergent stuff that bubbles up you can't
+emergent stuff that bubbles up you can't make any promises it is hard to even
+make any promises it is hard to even make promises about playability right
+make promises about playability right like validity with constraint systems
+like validity with constraint systems you can guarantee validity it's a fairly
+you can guarantee validity it's a fairly flexible and general-purpose language
+flexible and general-purpose language that you can use so it's very extensible
+that you can use so it's very extensible anything that you can figure out how to
+anything that you can figure out how to express in it will work you don't need
+express in it will work you don't need to like tack on a bunch of extra custom
+to like tack on a bunch of extra custom created AI modules some of the cons are
+created AI modules some of the cons are you need to define your domain very very
+you need to define your domain very very tightly including what seems like common
+tightly including what seems like common sense rules so this is a
+sense rules so this is a a I system called Sinagra that uses a
+a I system called Sinagra that uses a numerical constraint solving and is like
+numerical constraint solving and is like just even like specifying that platforms
+just even like specifying that platforms need to be attached to each other feels
+need to be attached to each other feels like a very common-sense constraint you
+like a very common-sense constraint you need to explicitly make that clear to
+need to explicitly make that clear to the AI system and it can have some
+the AI system and it can have some scalability issues and those scalability
+scalability issues and those scalability issues and not super well understood
+issues and not super well understood right now as an extreme example
+right now as an extreme example variations forever is a constraint based
+variations forever is a constraint based PCG system to generate an entire space
+PCG system to generate an entire space of potential acade style games and so
+of potential acade style games and so you can specify the rules for the games
+you can specify the rules for the games using constraints as well and get really
+using constraints as well and get really weird stuff that comes out of it yeah so
+weird stuff that comes out of it yeah so another system which is more top-down
+another system which is more top-down than put them out for another sort of
+than put them out for another sort of class of systems is optimization based
+class of systems is optimization based systems also called search based systems
+systems also called search based systems depending on which right-right-right
+depending on which right-right-right we have not disagreed over this at all
+we have not disagreed over this at all ever so this is basically idea of using
+ever so this is basically idea of using an evolutionary algorithm or something
+an evolutionary algorithm or something similar a stochastic optimization
+similar a stochastic optimization algorithm to evolve your content so
+algorithm to evolve your content so evolutionary algorithms is the easiest
+evolutionary algorithms is the easiest thing in the world you just take their
+thing in the world you just take their win in evolution you have lots of
+win in evolution you have lots of content different levels or whatever
+content different levels or whatever random is generated you keep the good
+random is generated you keep the good ones throw away the bad ones and make
+ones throw away the bad ones and make mutated copies of the good ones maybe
+mutated copies of the good ones maybe and let them sort of cross over with
+and let them sort of cross over with each other and this works very well in
+each other and this works very well in theory it often works very well in
+theory it often works very well in practice it despite the extreme
+practice it despite the extreme simplicity of the ID it requires quite a
+simplicity of the ID it requires quite a sophistication to use sometimes the
+sophistication to use sometimes the fitness function need here is one of the
+fitness function need here is one of the key parts you need you didn't fit
+key parts you need you didn't fit advantage or to sort of judge how good
+advantage or to sort of judge how good the content is the study can be used in
+the content is the study can be used in very different scales from just trying
+very different scales from just trying to tune your game to creating a
+to tune your game to creating a completely new game so what you see in
+completely new game so what you see in the background here is Paul - source
+the background here is Paul - source city conquest which used evolutionary
+city conquest which used evolutionary algorithms to tune it quite successfully
+algorithms to tune it quite successfully as I understand
+as I understand the other example you see here in the
+the other example you see here in the background is Cameron Brown's Ludi
+background is Cameron Brown's Ludi system well it's not actually that it's
+system well it's not actually that it's actually the game Avila which is a game
+actually the game Avila which is a game you can a simple board game you can buy
+you can a simple board game you can buy in a box set which is apparently out
+in a box set which is apparently out there making money which was not
+there making money which was not designed by the game designer Cameron
+designed by the game designer Cameron Brown but the sound by the system that
+Brown but the sound by the system that Cameron Brown built which uses
+Cameron Brown built which uses evolutionary algorithms to explore the
+evolutionary algorithms to explore the space of different board games he sort
+space of different board games he sort of made it easy for himself by
+of made it easy for himself by constraining himself to a very sort of
+constraining himself to a very sort of narrow set of board games but
+narrow set of board games but nevertheless it works for him it works
+nevertheless it works for him it works very well here so the screens to know
+very well here so the screens to know for me the power of these systems is
+for me the power of these systems is that are extremely general you can
+that are extremely general you can basically put anything else in there and
+basically put anything else in there and it will work and it requires some
+it will work and it requires some relatively little domain knowledge to
+relatively little domain knowledge to set an evolutionary system up to do
+set an evolutionary system up to do search for content the parents are one
+search for content the parents are one is that it can be very very slow so if
+is that it can be very very slow so if you need something that sort of is
+you need something that sort of is guaranteed to generate a new level or a
+guaranteed to generate a new level or a new sort of enemy or whatever before the
+new sort of enemy or whatever before the next frame
+next frame maybe you shouldn't trust evolutionary
+maybe you shouldn't trust evolutionary computation maybe it might be far too
+computation maybe it might be far too slow but if you do it on the silent on
+slow but if you do it on the silent on this different thing the other peril is
+this different thing the other peril is that you really need to come up with a
+that you really need to come up with a fitness function that captures what you
+fitness function that captures what you actually want to capture which is
+actually want to capture which is trickier than what you what you will
+trickier than what you what you will expect right so to take an extreme
+expect right so to take an extreme example here this is a very fascinating
+example here this is a very fascinating one this is Michael cooks Angelina which
+one this is Michael cooks Angelina which is a backronym for a novel game
+is a backronym for a novel game revolving laborat
+revolving laborat I named Angelina yeah so this system
+I named Angelina yeah so this system tries to complete come up with complete
+tries to complete come up with complete games including mechanics levels and and
+games including mechanics levels and and it even shoots us sort of themes for its
+it even shoots us sort of themes for its games and graphics by for example
+games and graphics by for example reading The Guardian and then using that
+reading The Guardian and then using that as input to an evolution or algorithm
+as input to an evolution or algorithm therefore you get these sort of rather
+therefore you get these sort of rather odd teams here this is a very
+odd teams here this is a very fascinating system that is really trying
+fascinating system that is really trying to push the boundaries and do something
+to push the boundaries and do something that has not been done before if it was
+that has not been done before if it was successful most of us will be unemployed
+unfortunately fortunately it's not really working all the way so at the end
+really working all the way so at the end of this sort of survey of these four
+of this sort of survey of these four main classes of content generation
+main classes of content generation algorithms there are several others
+algorithms there are several others which we did not really find the time to
+which we did not really find the time to include here we just to sort of point
+include here we just to sort of point out that very often the greatest power
+out that very often the greatest power can be had from combining them so you
+can be had from combining them so you can combine basically the examples we
+can combine basically the examples we have optimization and grammars
+have optimization and grammars constraints and grammars optimization
+constraints and grammars optimization and constraints and you can have
+and constraints and you can have multiple layers or constructive
+multiple layers or constructive algorithms on top of each other so you
+algorithms on top of each other so you see in background there's a Super Mario
+see in background there's a Super Mario Bros level generated by an evolutionary
+Bros level generated by an evolutionary grammatical system so basically and a
+grammatical system so basically and a system that evolves grammars that
+system that evolves grammars that creates Mario levels and with some
+creates Mario levels and with some pretty good effect actually you can get
+pretty good effect actually you can get a very large number of levels that look
+a very large number of levels that look like this and that look completely
+like this and that look completely different but according to the same
+different but according to the same pattern very easily so yeah so so in
+pattern very easily so yeah so so in summary there's sort of four main
+summary there's sort of four main classes of algorithms that we've talked
+classes of algorithms that we've talked about at a very high level at the end of
+about at a very high level at the end of this talk we'll give you some resources
+this talk we'll give you some resources to go find out a little bit more about
+to go find out a little bit more about them and each one sort of has these
+them and each one sort of has these different trade-offs it's so
+different trade-offs it's so constructive algorithms can be very very
+constructive algorithms can be very very simple to offer can be very highly
+simple to offer can be very highly customized to your particular game but
+customized to your particular game but they can lead to this peril of having a
+they can lead to this peril of having a lot of repetitiveness in your content
+lot of repetitiveness in your content the players will start to see very very
+the players will start to see very very quickly and their ad hoc so they're not
+quickly and their ad hoc so they're not really extensible across games or if you
+really extensible across games or if you want to be able to like modify like if
+want to be able to like modify like if your game design changes there might be
+your game design changes there might be a lot of like backwards work that you
+a lot of like backwards work that you need to do constraint based systems are
+need to do constraint based systems are really powerful for being able to give
+really powerful for being able to give all of these design guarantees you're
+all of these design guarantees you're using a declarative language to be able
+using a declarative language to be able to describe all of your content which
+to describe all of your content which means that while the logic programming
+means that while the logic programming language is not super friendly to
+language is not super friendly to designers unless they're you know really
+designers unless they're you know really super into AI as well
+super into AI as well the
+the like general mode of thinking and our
+like general mode of thinking and our experience has been really more
+experience has been really more accessible to non-technical designers
+accessible to non-technical designers the peril being that you need to figure
+the peril being that you need to figure out how to translate all of that stuff
+out how to translate all of that stuff to different constraints and also
+to different constraints and also debugging constraint based systems can
+debugging constraint based systems can be very challenging because often if you
+be very challenging because often if you give a conflicting set of constraints to
+give a conflicting set of constraints to it and like tell it to find an answer
+it and like tell it to find an answer it'll just tell you that it can't it
+it'll just tell you that it can't it won't tell you why it can't do that
+won't tell you why it can't do that optimization based approaches have
+optimization based approaches have really good generality and very
+really good generality and very interesting emergent behavior can come
+interesting emergent behavior can come out of them but it can be very hard to
+out of them but it can be very hard to define your fitness function and very
+define your fitness function and very tempting to try to define it as like
+tempting to try to define it as like what's a fun level and then you end up
+what's a fun level and then you end up with this like weird situation where
+with this like weird situation where you're trying to come up with a
+you're trying to come up with a mathematical definition of fun which is
+mathematical definition of fun which is on the right or the one which Julian
+on the right or the one which Julian thinks as possible and I think maybe and
+thinks as possible and I think maybe and they're also they can be fairly slow
+they're also they can be fairly slow grammars again have a lot of emergent
+grammars again have a lot of emergent properties that come out of them and
+properties that come out of them and they're relatively easy to offer but you
+they're relatively easy to offer but you need to spend a lot of time thinking
+need to spend a lot of time thinking about how you're going to filter the
+about how you're going to filter the content that comes out so with all of
+content that comes out so with all of that sort of very high-level overview
+that sort of very high-level overview that now you know sort of four main
+that now you know sort of four main classes of algorithms for content
+classes of algorithms for content generation like how do you pick what you
+generation like how do you pick what you want to do and what are some of the
+want to do and what are some of the design considerations you might have
+design considerations you might have when you're making a content generator
+when you're making a content generator and there's sort of four different
+and there's sort of four different classes of things that you might want to
+classes of things that you might want to think about now delve into each one of
+think about now delve into each one of these in just a minute you can think
+these in just a minute you can think about like what the building blocks are
+about like what the building blocks are that you're constructing from right are
+that you're constructing from right are you working with like free authored
+you working with like free authored chunks of content from someone in like
+chunks of content from someone in like the level design team are you working
+the level design team are you working with like sub components kind of like a
+with like sub components kind of like a tile set like with no semantic knowledge
+tile set like with no semantic knowledge attached to it is that what you're
+attached to it is that what you're trying to do with stages in between do
+trying to do with stages in between do you need your content generated to run
+you need your content generated to run online and response to what players are
+online and response to what players are doing or do you need it or is it okay if
+doing or do you need it or is it okay if it runs offline what and then I think
+it runs offline what and then I think the two that I'm maybe the most
+the two that I'm maybe the most interested in recently is what kind of
+interested in recently is what kind of player interaction do you want to have
+player interaction do you want to have with your content generator if at all do
+with your content generator if at all do you want to just be generating content
+you want to just be generating content and then the
+and then the where gets dumped into that content and
+where gets dumped into that content and it's as though as though a human had
+it's as though as though a human had created it right it's just the computer
+created it right it's just the computer happened to do it or do you want players
+happened to do it or do you want players to actually be able to manipulate that
+to actually be able to manipulate that content generation system as part of
+content generation system as part of play which can lead to some interesting
+play which can lead to some interesting things and then also the extent to which
+things and then also the extent to which you want to have control over the the
+you want to have control over the the content that comes out do you want to be
+content that comes out do you want to be able to influence like directly
+able to influence like directly influence aspects of the player
+influence aspects of the player experience so we can think about the
+experience so we can think about the building blocks aspect to sort of a
+building blocks aspect to sort of a question of data versus process it's so
+question of data versus process it's so offered chunks I should maybe have a
+offered chunks I should maybe have a better term for these are these like pre
+better term for these are these like pre authored big piece like set pieces that
+authored big piece like set pieces that you can just like glue together in
+you can just like glue together in different ways or maybe you've got
+different ways or maybe you've got templates this is like the mad libs of
+templates this is like the mad libs of procedural content generation right like
+procedural content generation right like a lot of stuff that's human authored and
+a lot of stuff that's human authored and then like some rules to control what
+then like some rules to control what goes into the different slots and maybe
+goes into the different slots and maybe those rules are really finely crafted to
+those rules are really finely crafted to be able to make sort of always valid
+be able to make sort of always valid design like design controlled content or
+design like design controlled content or maybe those rules
+maybe those rules maybe those rules are a little crazier
+maybe those rules are a little crazier like Mad Libs so that you get weird
+like Mad Libs so that you get weird stuff coming out at the end but these
+stuff coming out at the end but these are both very data oriented ways of
+are both very data oriented ways of thinking about procedural content
+thinking about procedural content generation that maybe lend themselves to
+generation that maybe lend themselves to data oriented algorithms that you would
+data oriented algorithms that you would want to use like a constructive
+want to use like a constructive algorithm or maybe like a grammar
+algorithm or maybe like a grammar grammars are really good for template
+grammars are really good for template based control on the other end of the
+based control on the other end of the spectrum and this is probably where a
+spectrum and this is probably where a lot of academic research and procedural
+lot of academic research and procedural content generation has been focusing is
+content generation has been focusing is on process oriented content generation
+on process oriented content generation so what of the the amount of content
+so what of the the amount of content that your algorithm has to work with is
+that your algorithm has to work with is like a single level component so maybe
+like a single level component so maybe if it's Super Mario World your level
+if it's Super Mario World your level component might be a platformer with an
+component might be a platformer with an enemy on top of it like this has some
+enemy on top of it like this has some semantic information attached to it and
+semantic information attached to it and that you can kind of tell the AI system
+that you can kind of tell the AI system what that means but it's not really
+what that means but it's not really enough to be like a meaningful piece of
+enough to be like a meaningful piece of player experience on its own so you need
+player experience on its own so you need to have this intelligent process that's
+to have this intelligent process that's running that's trying to capture some
+running that's trying to capture some amount of design knowledge for how to
+amount of design knowledge for how to assemble
+assemble you know he was trying to like take the
+you know he was trying to like take the designers brains and like squish it down
+designers brains and like squish it down into an algorithm without like
+into an algorithm without like lobotomizing them right so these are
+lobotomizing them right so these are much more process oriented ways and you
+much more process oriented ways and you may want to work with the component
+may want to work with the component level maybe you don't have like a big
+level maybe you don't have like a big design team that can put together huge
+design team that can put together huge amounts of content for you so you're
+amounts of content for you so you're like traps this is like the reducing
+like traps this is like the reducing authoring burden argument for content
+authoring burden argument for content generation right if you don't want to
+generation right if you don't want to have big set pieces you want to have
+have big set pieces you want to have smaller pieces then you're gonna need a
+smaller pieces then you're gonna need a much more complicated algorithm to be
+much more complicated algorithm to be able to set those smaller pieces
+able to set those smaller pieces together and there you're starting to
+together and there you're starting to work something like evolutionary
+work something like evolutionary algorithms or constraint based systems
+algorithm speed is often a big question right and and this is kind of a
+right and and this is kind of a no-brainer if you want your content
+no-brainer if you want your content generated to be able to run online and
+generated to be able to run online and respond to players you're gonna need to
+respond to players you're gonna need to pick something that's pretty fast right
+pick something that's pretty fast right grammars are pretty fast you can
+grammars are pretty fast you can customize your constructive whatever
+customize your constructive whatever you've created to be pretty fast
+you've created to be pretty fast constraint these systems it depends on
+constraint these systems it depends on the size of your domain and what you're
+the size of your domain and what you're working with you can have a constraint
+working with you can have a constraint based system that will generate so like
+based system that will generate so like two Nagre which you'll see in a minute
+two Nagre which you'll see in a minute generates levels using a constraint
+generates levels using a constraint based system but it's domain is so
+based system but it's domain is so constrained that it can do that in real
+constrained that it can do that in real time if you want to have like a massive
+time if you want to have like a massive piece of content that you're generating
+piece of content that you're generating you're looking at sort of on the order
+you're looking at sort of on the order of a few minutes maybe in a few hours to
+of a few minutes maybe in a few hours to generate something that's not going to
+generate something that's not going to work online for evolutionary approaches
+work online for evolutionary approaches you can think of having a human in the
+you can think of having a human in the loop right so you could replace your
+loop right so you could replace your fitness function with humans voting and
+fitness function with humans voting and the game go out your arms race which you
+the game go out your arms race which you should all go look up if you haven't
+should all go look up if you haven't heard of it before
+heard of it before use of this really effectively if you're
+use of this really effectively if you're running offline then you can be a lot
+running offline then you can be a lot more flexible in the algorithm that you
+more flexible in the algorithm that you choose and then finally we can think I
+choose and then finally we can think I like what about the players right maybe
+like what about the players right maybe we shouldn't think about them finally
+we shouldn't think about them finally maybe we should think about them first
+maybe we should think about them first but the the type of control that you
+but the the type of control that you want to be able to have really dictates
+want to be able to have really dictates the kind of algorithm that you have so
+the kind of algorithm that you have so if you want a parameterised control sort
+if you want a parameterised control sort of civilization map generation style
+of civilization map generation style control where you can tweak in the
+control where you can tweak in the beginning like I want there to be lakes
+beginning like I want there to be lakes and I want there to be no barbarians and
+and I want there to be no barbarians and a few other things these are parameters
+a few other things these are parameters right that tends to lend itself fairly
+right that tends to lend itself fairly well to like weighting different rules
+well to like weighting different rules in your grammar if you want indirect
+in your grammar if you want indirect control over what's being created like
+like saying galactic arms race it's a space shooter game where the weapons are
+space shooter game where the weapons are procedurally generated and the way that
+procedurally generated and the way that those weapons get generated is by
+those weapons get generated is by evolving the next weapon based on the
+evolving the next weapon based on the one that you've used the most frequently
+one that you've used the most frequently in the game so that's a really indirect
+in the game so that's a really indirect kind of control you can also think of
+kind of control you can also think of like the experience manager and left for
+like the experience manager and left for dead
+dead it's sort of an indirect kind of control
+it's sort of an indirect kind of control that the player might have over what's
+that the player might have over what's going on in your in your system and then
+going on in your in your system and then you can also think about what level of
+you can also think about what level of design control you want to have so do
+design control you want to have so do you want experiential control where
+you want experiential control where you're actually explicitly modeling some
+you're actually explicitly modeling some aspect of the players experience like
+aspect of the players experience like the pacing of a platforming level are
+the pacing of a platforming level are you good with compositional control
+you good with compositional control which is really more like saying I want
+which is really more like saying I want 50% of this world to be like covered
+50% of this world to be like covered with ocean and 20% of it should be sort
+with ocean and 20% of it should be sort of like built-up cities and that can
+of like built-up cities and that can guide the kind of decision-making you're
+guide the kind of decision-making you're making as well yeah so we talked a lot
+making as well yeah so we talked a lot about individual methods and types of
+about individual methods and types of methods for generating content and when
+methods for generating content and when you should use one when you use should
+you should use one when you use should use the other and so on and by now it
+use the other and so on and by now it should be getting clear that there are
+should be getting clear that there are lots of trade-offs and I mean confusing
+lots of trade-offs and I mean confusing but then there's also the matter of
+but then there's also the matter of where in the chain are you gonna use
+where in the chain are you gonna use these how are you gonna use this are you
+these how are you gonna use this are you gonna use an algorithm as game runs or
+gonna use an algorithm as game runs or the same time or you're just gonna are
+the same time or you're just gonna are you just going to let a producer convert
+you just going to let a producer convert for you or be happy with it
+for you or be happy with it or key somehow interact with it so
+or key somehow interact with it so recently there's been a couple of
+recently there's been a couple of prototypes that I loved on how you can
+prototypes that I loved on how you can come up with authoring tools for
+come up with authoring tools for different games that use the full power
+different games that use the full power of these AI methods to create content
+of these AI methods to create content but together with you and in a sort of
+but together with you and in a sort of dialogue with you in a mixed initiative
+dialogue with you in a mixed initiative fashion meaning that you can take
+fashion meaning that you can take initiatives and the program can also
+initiatives and the program can also take initiatives so we'll briefly show
+take initiatives so we'll briefly show three examples that all come out of
+three examples that all come out of academia actually
+academia actually our labs and but and but which showcases
+our labs and but and but which showcases in various ways the first here is Tamera
+in various ways the first here is Tamera yeah yeah so I can talk very quickly
+yeah yeah so I can talk very quickly about something I think Sagar was shown
+about something I think Sagar was shown at the AI summit three or four years ago
+at the AI summit three or four years ago I want to say so five or six well that
+I want to say so five or six well that makes me feel old doesn't it
+so it's an auger is a system that uses a combination of constraints and reactive
+combination of constraints and reactive planning which is really like it's
+planning which is really like it's actually a grammar going on to have
+actually a grammar going on to have human-computer interaction for creating
+human-computer interaction for creating platformer levels this is a prototype
+platformer levels this is a prototype tool it's obviously not like ready to go
+tool it's obviously not like ready to go out into the real world and be used by
+out into the real world and be used by platformer level designers but it's sort
+platformer level designers but it's sort of playing with the idea of what this
+of playing with the idea of what this could look like so the idea is that the
+could look like so the idea is that the human and the computer can interact in
+human and the computer can interact in real time to collaborate on what the
+real time to collaborate on what the design of the level should be the human
+design of the level should be the human cut is sort of through interacting in
+cut is sort of through interacting in the user interface is continually
+the user interface is continually editing constraints that are placed onto
+editing constraints that are placed onto the level and the machine is sort of
+the level and the machine is sort of brainstorming ideas for what levels can
+brainstorming ideas for what levels can look like that meet the constraints that
+look like that meet the constraints that you're adding on to the system and it
+you're adding on to the system and it provides a level of experiential control
+provides a level of experiential control so you can actually as a designer
+so you can actually as a designer directly manipulate the pacing of the
+directly manipulate the pacing of the level you can say I want it to be fast
+level you can say I want it to be fast paced in the middle slower paced at the
+paced in the middle slower paced at the end and it will be and it will create
+end and it will be and it will create geometry that meets those pacing
+geometry that meets those pacing constraints without you needing to say
+constraints without you needing to say what geometry should go into place so
+what geometry should go into place so I'm so I'm going to kind of skip around
+I'm so I'm going to kind of skip around in this video a little bit because it's
+in this video a little bit because it's whoops come on so this is you can hit
+whoops come on so this is you can hit the generate button and it generates a
+the generate button and it generates a bunch of different ideas what levels
+bunch of different ideas what levels could look like you could draw in
+could look like you could draw in platforms and anything that's showing in
+platforms and anything that's showing in in dark is a constrained system and
+in dark is a constrained system and generate stuff that fits in between them
+generate stuff that fits in between them you can play test it in the editor and
+you can play test it in the editor and this is what happens when you tell a
+this is what happens when you tell a computer scientist to make that the
+computer scientist to make that the computer scientist me to make the art
+computer scientist me to make the art for your a item because I know how to
+for your a item because I know how to draw robots and birds
+draw robots and birds that's it this is the point where you
+that's it this is the point where you can directly manipulate the pacing so
+can directly manipulate the pacing so there's this beat timeline down at the
+there's this beat timeline down at the bottom where you can add in areas where
+bottom where you can add in areas where the player needs to be taking more
+the player needs to be taking more actions you can remove actions are from
+actions you can remove actions are from the end and you can see that the level
+the end and you can see that the level geometry is continually updating to me
+geometry is continually updating to me sort of the pacing that you want and you
+sort of the pacing that you want and you can regenerate at any time you can also
+can regenerate at any time you can also grab platforms drag them around and it
+grab platforms drag them around and it will automatically keep up with what's
+will automatically keep up with what's going on so this is a direct interaction
+going on so this is a direct interaction where the content generation system yes
+where the content generation system yes and where stenography studies about like
+and where stenography studies about like co-authoring with a machine based on the
+co-authoring with a machine based on the constraint based systems sentience caps
+constraint based systems sentience caps bridges another idea of using
+bridges another idea of using evolutionary system and other kind of
+evolutionary system and other kind of search based systems to assist the
+search based systems to assist the player so this is some system for
+player so this is some system for general sort of strategy game sketch
+general sort of strategy game sketch generation let me talk a little bit over
+generation let me talk a little bit over this video how do you start it you show
+this video how do you start it you show me oh there's a mouse pointer right
+me oh there's a mouse pointer right beautiful
+beautiful yeah okay good right so this is the
+yeah okay good right so this is the sentence gets booked to playing yeah
+sentence gets booked to playing yeah right you create it represent this right
+right you create it represent this right game maps it's a sort of high-level
+game maps it's a sort of high-level chunks which abstracted with um
+chunks which abstracted with um represents like impassable areas which
+represents like impassable areas which could be wards and so on a Starcraft or
+could be wards and so on a Starcraft or base resources and so on so as you go
+base resources and so on so as you go along and edit and draw things here you
+along and edit and draw things here you see those little screens to the right
+see those little screens to the right these are suggestions that are based on
+these are suggestions that are based on what you're currently editing which is
+what you're currently editing which is generated using evolutionary search and
+generated using evolutionary search and something called novelty search which is
+something called novelty search which is a way of finding diverse similar but
+a way of finding diverse similar but diverse sort of content it also gives
+diverse sort of content it also gives you this little sort of meters that
+you this little sort of meters that gives you immediate feedback as you add
+gives you immediate feedback as you add it about like the balance do you have
+it about like the balance do you have like the same amount of bases next to
+like the same amount of bases next to you and and you have space around the
+you and and you have space around the base access to resource and so on you
+base access to resource and so on you can get these various views to show you
+can get these various views to show you based on gameplay features various
+based on gameplay features various aspects of fairness
+aspects of fairness and game balance and as you go along you
+and game balance and as you go along you might choose to you implement one or
+might choose to you implement one or several of these suggestions and we
+several of these suggestions and we place you map with it every time you do
+place you map with it every time you do it the two learns from you and tries to
+it the two learns from you and tries to figure out what kind of aesthetic
+figure out what kind of aesthetic preferences you have oh this person is
+preferences you have oh this person is trying to generate very sparse maps so
+trying to generate very sparse maps so this file person is trying to very
+this file person is trying to very generate maps with lots of choke points
+generate maps with lots of choke points and so on so it has various detectors
+and so on so it has various detectors but these are designed to design
+but these are designed to design features and as you go along with this
+features and as you go along with this you can then come up with you can export
+you can then come up with you can export it to various kind of game modes and we
+it to various kind of game modes and we have an export of a Starcraft and also
+have an export of a Starcraft and also for like our own sort of you know simple
+for like our own sort of you know simple map for material but it's trying to
+map for material but it's trying to operate at the somewhat more abstract
+operate at the somewhat more abstract level it's not not not a level of a
+level it's not not not a level of a particular strategy game but of like
+particular strategy game but of like some sort of abstraction of what what
+some sort of abstraction of what what goes into a strategy game they take an
+goes into a strategy game they take an example of something which is a lot more
+example of something which is a lot more tailored a particular game we have what
+tailored a particular game we have what we call the road possum or a possum or
+we call the road possum or a possum or something which is a level generator for
+something which is a level generator for cut the rope this yeah mobile puzzle
+cut the rope this yeah mobile puzzle games been very very successful uses
+games been very very successful uses three search and mmm and grammar based
+three search and mmm and grammar based genetic programming so basically
+genetic programming so basically evolving grammars so both people come up
+evolving grammars so both people come up with levels and to help you solve levers
+with levels and to help you solve levers and wheel turn right no yeah
+and wheel turn right no yeah right so we have the same thing here we
+right so we have the same thing here we have an editor which actually is like a
+have an editor which actually is like a clone of the catalogue game using the
+clone of the catalogue game using the original assets which they were happy to
+original assets which they were happy to let us use you can put things out there
+let us use you can put things out there you can press the bottom check for
+you can press the bottom check for playability and it gives you the
+playability and it gives you the complete sequence of actions you take to
+complete sequence of actions you take to sort of them to play the game this uses
+sort of them to play the game this uses a pretty interesting tree search
+a pretty interesting tree search algorithm which I won't get into here
+algorithm which I won't get into here but they took us I'm thinking and it can
+but they took us I'm thinking and it can also sort of um there's a separate way
+also sort of um there's a separate way of visualizing what can happen which is
+of visualizing what can happen which is an occlusion based view with
+an occlusion based view with which shows you what kind of effects
+which shows you what kind of effects each component has as you put them in
+each component has as you put them in here and what what includes it and what
+here and what what includes it and what sort of pass you can actually need to
+sort of pass you can actually need to take you can at any point sort of fix
+take you can at any point sort of fix parts of the design and have it
+parts of the design and have it regenerate the rest of the sign and yeah
+regenerate the rest of the sign and yeah so I guess wouldn't have time to go
+so I guess wouldn't have time to go through this very much all right so I
+through this very much all right so I wanted to close with some thoughts on
+wanted to close with some thoughts on how to like yeah how to actually
+how to like yeah how to actually visualize and and debug these systems
+visualize and and debug these systems right so you've got Adam Smith has this
+right so you've got Adam Smith has this way of talking about generative systems
+way of talking about generative systems where you're sculpting a design space
+where you're sculpting a design space basically you need to to shift your
+basically you need to to shift your thinking from how to design a single
+thinking from how to design a single piece of content how to create an entire
+piece of content how to create an entire space of potential content and he has
+space of potential content and he has this very like nice Quay based metaphor
+this very like nice Quay based metaphor that I just I really love it feels very
+that I just I really love it feels very artsy but it's it's tempting when we
+artsy but it's it's tempting when we build generative systems so just like
+build generative systems so just like hit the generate button a few times say
+hit the generate button a few times say yeah this looks you know this looks like
+yeah this looks you know this looks like it's making reasonable stuff so I guess
+it's making reasonable stuff so I guess my generator is like done right but it's
+my generator is like done right but it's difficult to actually sample reasonably
+difficult to actually sample reasonably from the space and actually Nathan and
+from the space and actually Nathan and his talk is going to be talking a little
+his talk is going to be talking a little bit about a solution he has for this you
+bit about a solution he has for this you can think of it as like if you have a
+can think of it as like if you have a hundred coins and you flip them you
+hundred coins and you flip them you would expect that 50 times you would get
+would expect that 50 times you would get heads and 50 times you would get tails
+heads and 50 times you would get tails but it's entirely possible that you'd
+but it's entirely possible that you'd get heads like 90 times and tails ten
+get heads like 90 times and tails ten times so it's hard to know that when you
+times so it's hard to know that when you hit the generate button you're really
+hit the generate button you're really getting a representative sample from
+getting a representative sample from this massive space of content that
+this massive space of content that you're making so one of the ways that
+you're making so one of the ways that we've talked about trying to resolve
+we've talked about trying to resolve this problem is by trying to actually
+this problem is by trying to actually map out the expressive range of a
+map out the expressive range of a generative system and roughly the way
+generative system and roughly the way that we've been mapping this out is
+that we've been mapping this out is defining several numerical metrics or
+defining several numerical metrics or numerical scores for the content that
+numerical scores for the content that your system can produce generating a
+your system can produce generating a huge amount of content from that system
+huge amount of content from that system and with lightweight methods that will
+and with lightweight methods that will go relatively quickly with heavier
+go relatively quickly with heavier weight methods that might you know you
+weight methods that might you know you might need to like run this
+might need to like run this some overnight or something and then
+some overnight or something and then score each piece of content that you
+score each piece of content that you create and map out with the 2d histogram
+create and map out with the 2d histogram that can be visualized as a heat map
+that can be visualized as a heat map what kind of space of content you're
+what kind of space of content you're getting so these are each one of these
+getting so these are each one of these graphs is a heat map for a different
+graphs is a heat map for a different generator for a 2d platforming game
+generator for a 2d platforming game mapping sort of a rough approximation of
+mapping sort of a rough approximation of difficulty on the y-axis against a rough
+difficulty on the y-axis against a rough approximation of linearity so like how
+approximation of linearity so like how flat the levels are basically and you
+flat the levels are basically and you can see that each system is creating
+can see that each system is creating very different looking spaces of levels
+very different looking spaces of levels so the the green points in these maps
+so the the green points in these maps sort of areas where the generator is
+sort of areas where the generator is biased towards creating a lot of levels
+biased towards creating a lot of levels in that space and then it falls off so
+in that space and then it falls off so we even have some systems like in the
+we even have some systems like in the top right that system creates kinds of
+top right that system creates kinds of levels that the system in the the middle
+levels that the system in the the middle top will never be able to create right
+top will never be able to create right so it's kind of interesting to be able
+so it's kind of interesting to be able to look at the space of content that you
+to look at the space of content that you can get for reference some of the
+can get for reference some of the metrics that we're talking about here
+metrics that we're talking about here leniency which is like an objective
+leniency which is like an objective approximation the difficulty by
+approximation the difficulty by weighting each component that appears in
+weighting each component that appears in a level by how much home the player
+a level by how much home the player would come to were they to fail the
+would come to were they to fail the interaction with it it's like if you
+interaction with it it's like if you fail the interaction with a gap you're
+fail the interaction with a gap you're dead if you fail the interaction with a
+dead if you fail the interaction with a Goomba then you've just like lost your
+Goomba then you've just like lost your powerup right so it's not quite as harsh
+powerup right so it's not quite as harsh as a gap is also linearity like density
+as a gap is also linearity like density of challenges and then pattern density
+of challenges and then pattern density and pattern variation or two metrics
+and pattern variation or two metrics that are looking at how close to the
+that are looking at how close to the original Mario levels the generated
+original Mario levels the generated levels appear
+levels appear the other cool thing that you can do
+the other cool thing that you can do when you've got this ability to
+when you've got this ability to visualize the generative space is that
+visualize the generative space is that you can look at how your generative
+you can look at how your generative space is changing when you vary certain
+space is changing when you vary certain input parameters and uncover
+input parameters and uncover unintentional biases that you might have
+unintentional biases that you might have in your generative system so these are a
+in your generative system so these are a bunch of heat maps for a single level
+bunch of heat maps for a single level generator
+generator where each one is a different
+where each one is a different configuration of input parameters to it
+configuration of input parameters to it and for the sake of time I won't say
+and for the sake of time I won't say exactly what all of those parameters are
+exactly what all of those parameters are but suffice to say they're different and
+but suffice to say they're different and you can see that there are certain
+you can see that there are certain configurations of parameters that bias
+configurations of parameters that bias the generator towards creating
+the generator towards creating particular kinds of content more than
+particular kinds of content more than others and you can talk to us and ask us
+others and you can talk to us and ask us about exactly how this is working after
+about exactly how this is working after the talk of you would like so we wanted
+the talk of you would like so we wanted to close with just some further
+to close with just some further resources and ideas so if you if your
+resources and ideas so if you if your interest is piqued by this like very
+interest is piqued by this like very high-level very well wind overview of
+high-level very well wind overview of like all of procedural content
+like all of procedural content generation yeah man like 40 minutes
+generation yeah man like 40 minutes that's hard to do these are some
+that's hard to do these are some resources that you might find useful so
+resources that you might find useful so this is the procedural content
+this is the procedural content generation Google group this is a google
+generation Google group this is a google group and a mailing list that consists
+group and a mailing list that consists of indie game developers I think some
+of indie game developers I think some people from triple-a industry and
+people from triple-a industry and academics who are all sort of talking
+academics who are all sort of talking about procedural content generation it
+about procedural content generation it varies in its amount of activity and
+varies in its amount of activity and please if you joined us as many of you
+please if you joined us as many of you might be logging in and trying to do now
+might be logging in and trying to do now please write like something in the
+please write like something in the recent for joining box so we know that
+recent for joining box so we know that you're not about right and and if you
+you're not about right and and if you join please contribute to discussion
+join please contribute to discussion there's a thread saying introducing
+there's a thread saying introducing ourselves please add to that introduce
+ourselves please add to that introduce yourselves there's two game jams that
+yourselves there's two game jams that are going on one happened last November
+are going on one happened last November called the procedural content generation
+called the procedural content generation Jam it will be coming back again in 2015
+Jam it will be coming back again in 2015 that's organized by Mike cook there's
+that's organized by Mike cook there's also the AI based game jam that's being
+also the AI based game jam that's being organized by Alex's earth that's going
+organized by Alex's earth that's going to be taking place around the end of
+to be taking place around the end of March there's a websites for those
+March there's a websites for those there's a wiki that has sort of
+there's a wiki that has sort of information about different algorithms
+information about different algorithms we've talked about an in-progress
+we've talked about an in-progress textbook that's currently free online at
+textbook that's currently free online at PC G book those compo edited by Julia
+PC G book those compo edited by Julia yes it will continue to be free but it
+yes it will continue to be free but it would also come out as like a book PCG
+would also come out as like a book PCG book calm have a look at it right now
+book calm have a look at it right now and then finally these are some of the
+and then finally these are some of the academic venues where PCG research gets
+academic venues where PCG research gets published we know that the paywall is a
+published we know that the paywall is a thing we know that the paywall is a huge
+thing we know that the paywall is a huge pain and we hate it as much as you all
+pain and we hate it as much as you all do the first three of these are either
+do the first three of these are either open access or mostly open access
+open access or mostly open access means you don't need to pay to be able
+means you don't need to pay to be able to find our work that we're doing and
+to find our work that we're doing and with that I think we should transition
+with that I think we should transition to Mason thank you
+to Mason thank you [Applause]

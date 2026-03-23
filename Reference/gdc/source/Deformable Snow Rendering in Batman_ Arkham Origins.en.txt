@@ -1,0 +1,584 @@
+[Music]
+hello hey all right uh so good afternoon everyone and uh welcome to this GDC 20
+everyone and uh welcome to this GDC 20 uh 2014 programming track session titled
+uh 2014 programming track session titled uh deformable snow in Batman Arkham
+uh deformable snow in Batman Arkham Origins so before we begin let me
+Origins so before we begin let me quickly introduce myself so my name is k
+quickly introduce myself so my name is k Baris and I was the lead rendering
+Baris and I was the lead rendering programmer on Arkham Origins and um in
+programmer on Arkham Origins and um in case you haven't played it Arkham
+case you haven't played it Arkham Origins is the third installment in the
+Origins is the third installment in the critically Acclaim Batman Arkham series
+critically Acclaim Batman Arkham series the fourth one uh that's coming up soon
+the fourth one uh that's coming up soon but so the two previous titles were so
+but so the two previous titles were so Asylum and city were created and
+Asylum and city were created and developed by our sister studio in the UK
+developed by our sister studio in the UK Rock Steady
+Rock Steady games so just like the title says well
+games so just like the title says well this talk is basically about a novel
+this talk is basically about a novel extremely fast and low memory technique
+extremely fast and low memory technique uh for the rendering of surfaces covered
+uh for the rendering of surfaces covered with fallen deformable snow basically to
+with fallen deformable snow basically to represent visually convincing uh and
+represent visually convincing uh and organic uh deformable snow surfaces that
+organic uh deformable snow surfaces that we developed for this game so here's a
+we developed for this game so here's a quick agenda for the talk so first I'll
+quick agenda for the talk so first I'll uh give a quick overview of the
+uh give a quick overview of the motivations behind the deformable snow
+motivations behind the deformable snow technique and then I'll explain how the
+technique and then I'll explain how the technique is novel in its approach of
+technique is novel in its approach of acquiring uh arbitrary deformation as
+acquiring uh arbitrary deformation as well as present all the details you need
+well as present all the details you need in case this is something something you
+in case this is something something you want to implement uh for your next game
+want to implement uh for your next game and one thing to know is that while we
+and one thing to know is that while we originally designed this technique for
+originally designed this technique for previous gen um I'll also give
+previous gen um I'll also give additional detail on how the direct tax
+additional detail on how the direct tax 11 approach we took with our friends at
+11 approach we took with our friends at Nvidia allowed us to bring this
+Nvidia allowed us to bring this technique uh to the next level on PC and
+technique uh to the next level on PC and making it next gen
+making it next gen ready so in the case you haven't played
+ready so in the case you haven't played Arkham Origins the game is basically a
+Arkham Origins the game is basically a prequel to Arkham Asylum uh where the
+prequel to Arkham Asylum uh where the main events of the story happen on
+main events of the story happen on Christmas Eve and obviously nothing says
+Christmas Eve and obviously nothing says Christmas Eve like a snowstorm and
+Christmas Eve like a snowstorm and coming from Montreal Canada we
+coming from Montreal Canada we definitely know what this means so we
+definitely know what this means so we kind of had no choice but to put a
+kind of had no choice but to put a significant effort in making sure the
+significant effort in making sure the visuals of snow were definitely on par
+visuals of snow were definitely on par with what we're used to back home so in
+with what we're used to back home so in the end we wanted to support a wide
+the end we wanted to support a wide range of snowy environments from the
+range of snowy environments from the light snow that you can see on this
+light snow that you can see on this picture to Temporary yet heavy
+picture to Temporary yet heavy wind gusts and the formable snow
+wind gusts and the formable snow surfaces now from the previous two
+surfaces now from the previous two images I'm sure you'll agree that uh
+images I'm sure you'll agree that uh most of these snow storm effects can be
+most of these snow storm effects can be covered by the usual whether it's VFX
+covered by the usual whether it's VFX fog a sphere or cylinder that follows
+fog a sphere or cylinder that follows the player you know the usual but in the
+the player you know the usual but in the case of the formable snow surfaces
+case of the formable snow surfaces there's usually a visual discrepancy so
+there's usually a visual discrepancy so you know to fake uh deformable snow you
+you know to fake uh deformable snow you know people have been using decal
+know people have been using decal and it it can do the job but often it's
+and it it can do the job but often it's just not enough even if they're properly
+just not enough even if they're properly lit with Parallax mapping they can look
+lit with Parallax mapping they can look pretty repetitive even if you use some
+pretty repetitive even if you use some kind of shading trickery such as normal
+kind of shading trickery such as normal or diffuse randomization and to kind of
+or diffuse randomization and to kind of cover all cases you kind of have to
+cover all cases you kind of have to customize decals for everywhere a
+customize decals for everywhere a character can interact with a surface
+character can interact with a surface you know you'd have one for the feet one
+you know you'd have one for the feet one for the hands and that's kind of getting
+for the hands and that's kind of getting insane if you think about all the
+insane if you think about all the possibilities that that can be there
+possibilities that that can be there which is why people usually stick to
+which is why people usually stick to footsteps now we wanted to come up with
+footsteps now we wanted to come up with something a bit different something that
+something a bit different something that would capture the organic nature of
+would capture the organic nature of character movements and at the same time
+character movements and at the same time the Dynamics of gameplay so basically we
+the Dynamics of gameplay so basically we have three requirements for the
+have three requirements for the technique to be uh interesting and I
+technique to be uh interesting and I guess viable so first it must depict
+guess viable so first it must depict iconic visuals of deformable snow then
+iconic visuals of deformable snow then it must uh have repres it can it has to
+it must uh have repres it can it has to represent organic deformation from
+represent organic deformation from walking falling sliding fighting and
+walking falling sliding fighting and more not just limited to footsteps and
+more not just limited to footsteps and we have a low memory usage and low
+we have a low memory usage and low performance cost requirement because
+performance cost requirement because we're making an open world
+we're making an open world game and so what do I mean by iconic
+game and so what do I mean by iconic visuals of the formable snow I mean
+visuals of the formable snow I mean identifiable and realistic visual
+identifiable and realistic visual deformation just like uh for the
+deformation just like uh for the footsteps on the image to the left you
+footsteps on the image to the left you know where feet are not all showing the
+know where feet are not all showing the same uh if you look at the image clearly
+same uh if you look at the image clearly you'll see that some some footsteps
+you'll see that some some footsteps there left Trails depending on how fast
+there left Trails depending on how fast the person was walking if the foot was
+the person was walking if the foot was half up half down if the the player
+half up half down if the the player stopped looked around started walking
+stopped looked around started walking again to the extreme extent of organic
+again to the extreme extent of organic deformation just like the image to the
+deformation just like the image to the right uh where you you know it could be
+right uh where you you know it could be from throwing a thug to the ground uh in
+from throwing a thug to the ground uh in our case Batman running then sliding
+our case Batman running then sliding then running again with the cape
+then running again with the cape brushing against the ground and making a
+brushing against the ground and making a snow angel and obviously you can't do
+snow angel and obviously you can't do this all super efficiently and with High
+this all super efficiently and with High Fidelity with decals so you know we
+Fidelity with decals so you know we asked ourselves and said so has anyone
+asked ourselves and said so has anyone tried making deformable surfaces before
+tried making deformable surfaces before and it seems so and some of the results
+and it seems so and some of the results in previous games uh are actually quite
+in previous games uh are actually quite nice for what they're trying to achieve
+nice for what they're trying to achieve this is especially true U from Jean Fran
+this is especially true U from Jean Fran talk on Assassin's Creed 3 where the
+talk on Assassin's Creed 3 where the thickness of the snow also affects
+thickness of the snow also affects character animation and in Journey it's
+character animation and in Journey it's the sand that does that as well so and
+the sand that does that as well so and most of the most of these approaches uh
+most of the most of these approaches uh they tend to modify and prop deformation
+they tend to modify and prop deformation to a Terrain and in our case we don't
+to a Terrain and in our case we don't have that kind of information on a
+have that kind of information on a unified grid for say like a Terrain we
+unified grid for say like a Terrain we mostly have in our case rooftops and
+mostly have in our case rooftops and streets and so while you could
+streets and so while you could definitely raycast your way and figure
+definitely raycast your way and figure out where you are in the world relative
+out where you are in the world relative to the surface we didn't want to add Ray
+to the surface we didn't want to add Ray casts and also in our case if if you
+casts and also in our case if if you think about the the organic part of the
+think about the the organic part of the the requirements it's like do you only R
+the requirements it's like do you only R cast from feet obviously no so how do
+cast from feet obviously no so how do you represent Ray cast for something
+you represent Ray cast for something like a snow angel I guess you could use
+like a snow angel I guess you could use you know you could use thick raycast or
+you know you could use thick raycast or you could use actual physics collisions
+you could use actual physics collisions and paint variable thickness and that
+and paint variable thickness and that sort of stuff but it's starting to get a
+sort of stuff but it's starting to get a bit complicated and I'm not sure it
+bit complicated and I'm not sure it scales really well to at some point in
+scales really well to at some point in the game you can end up with 18
+the game you can end up with 18 characters on screen so and and also to
+characters on screen so and and also to properly uh have de formable so like in
+properly uh have de formable so like in the images I just shown you know it's
+the images I just shown you know it's more than just Trails you need very high
+more than just Trails you need very high and or variable triangle density and
+and or variable triangle density and obvious ly you can say that this is
+obvious ly you can say that this is feasible for DX 11 uh Tes with
+feasible for DX 11 uh Tes with tessalation which is what we did but
+tessalation which is what we did but also the game shipped on PS3 360 Wii U
+also the game shipped on PS3 360 Wii U so we didn't really have that option so
+so we didn't really have that option so like I said we needed some option that
+like I said we needed some option that works great on console that is really
+works great on console that is really fast to compute and that we could extend
+fast to compute and that we could extend on PC for for future hardare or future
+on PC for for future hardare or future Hardware so instead our approach is to
+Hardware so instead our approach is to generate these displacement height maps
+generate these displacement height maps at runtime uh we're kind of relying on a
+at runtime uh we're kind of relying on a cheap approach which I'll explain just a
+cheap approach which I'll explain just a bit we definitely went for something
+bit we definitely went for something that falls into the tricks category
+that falls into the tricks category which I find uh personally really
+which I find uh personally really satisfying as a graphics programmer
+satisfying as a graphics programmer rather than than focusing on a technique
+rather than than focusing on a technique that is 100% accurate and or close s of
+that is 100% accurate and or close s of ground truth and also it turns out that
+ground truth and also it turns out that these uh height Maps can be of low
+these uh height Maps can be of low resolution and the results will look
+resolution and the results will look nice which is a plus which again allows
+nice which is a plus which again allows us to stay in that low memory footprint
+us to stay in that low memory footprint and keep it manageable and so with these
+and keep it manageable and so with these height Maps we can then use simple
+height Maps we can then use simple things like three or four taps of relief
+things like three or four taps of relief mapping at runtime on 360 PS3 r u with
+mapping at runtime on 360 PS3 r u with no or with none or barely any noticeable
+no or with none or barely any noticeable uh texal swimming because the camera the
+uh texal swimming because the camera the third person camera never gets that low
+third person camera never gets that low with respect to the
+with respect to the floor so as I said our city has many
+floor so as I said our city has many rooftops and streets uh we can therefore
+rooftops and streets uh we can therefore allocate and the so just a bit like the
+allocate and the so just a bit like the image there so we can therefore allocate
+image there so we can therefore allocate and
+and deallocate um these height maps on a
+deallocate um these height maps on a perne basis you know and only keep the
+perne basis you know and only keep the ones we need based on occupancy uh
+ones we need based on occupancy uh visibility and size and for our game we
+visibility and size and for our game we also have the luxury that it's always
+also have the luxury that it's always snowing so the players shouldn't be too
+snowing so the players shouldn't be too offended uh if he flies around and snow
+offended uh if he flies around and snow surfaces that he previously saw or
+surfaces that he previously saw or previously interacted with are now back
+previously interacted with are now back to their original mint state so this is
+to their original mint state so this is basically what the displacement height
+basically what the displacement height map can look in the game so this is
+map can look in the game so this is basically just a trail I did uh walking
+basically just a trail I did uh walking around with Batman with the you can see
+around with Batman with the you can see the trail from the feet but you can also
+the trail from the feet but you can also notice the cape brushing against the
+notice the cape brushing against the ground as I turn turn around um one
+ground as I turn turn around um one thing to notice is that there's a
+thing to notice is that there's a gradient so there's it doesn't it
+gradient so there's it doesn't it definitely means that this is not binary
+definitely means that this is not binary so we actually get varying height during
+so we actually get varying height during relief mapping so here's the matching
+relief mapping so here's the matching shading part shaded
+shading part shaded part so the question is how do we
+part so the question is how do we generate those height maps and so
+generate those height maps and so basically here's the trick so all you
+basically here's the trick so all you have to do is render the snow affecting
+have to do is render the snow affecting actors or objects such as characters but
+actors or objects such as characters but also anything that can move on those
+also anything that can move on those surfaces like interactable physics
+surfaces like interactable physics objects for example looking from under
+objects for example looking from under the surface using an ankle high
+the surface using an ankle high orthogonal frustum so if you clear to
+orthogonal frustum so if you clear to Black and render these objects in white
+Black and render these objects in white then filter and accumulate pingpong
+then filter and accumulate pingpong style basically anything containing
+style basically anything containing inside that red frustum there uh will be
+inside that red frustum there uh will be part of the
+part of the deformation and one thing to note is
+deformation and one thing to note is that um we use an orthogonal frustum so
+that um we use an orthogonal frustum so that we don't want any perspective
+that we don't want any perspective Distortion and the frustum is basically
+Distortion and the frustum is basically contained inside the bounds of the
+contained inside the bounds of the deformable uh
+deformable uh surface so here's another view of the
+surface so here's another view of the ankle high oroom we also added a scale
+ankle high oroom we also added a scale and a vertical offset to the frust so it
+and a vertical offset to the frust so it can be tweaked on a perne basis
+can be tweaked on a perne basis depending on if we don't have perfectly
+depending on if we don't have perfectly flat
+flat surfaces or if you just want to increase
+surfaces or if you just want to increase the range at which the camera is
+the range at which the camera is capturing so here are some more in-game
+capturing so here are some more in-game screenshots on the
+screenshots on the consoles and uh like I mentioned
+consoles and uh like I mentioned previously since the deformation is not
+previously since the deformation is not uh black and white and definitely a
+uh black and white and definitely a grayscale value uh a significant amount
+grayscale value uh a significant amount of detail uh is there to show the
+of detail uh is there to show the differences in movement with Feet Again
+differences in movement with Feet Again being half up half down you can kind of
+being half up half down you can kind of notice this on the image uh and you can
+notice this on the image uh and you can also notice like place like where the
+also notice like place like where the player was standing rotated standing on
+player was standing rotated standing on spot that sort of stuff so we definitely
+spot that sort of stuff so we definitely get that kind of
+get that kind of variation so here's another shot after a
+variation so here's another shot after a big fight uh you can definitely notice
+big fight uh you can definitely notice how the snow uh was paded down by all
+how the snow uh was paded down by all the feet during fight but also following
+the feet during fight but also following the shape where the thug to the left is
+the shape where the thug to the left is lying on the ground I mean you know
+lying on the ground I mean you know images are great but let's see what it
+images are great but let's see what it looks like at
+looks like at runtime
+I got multiple calls available sending them out in priority
+order and again as I'm mentioned the technique wouldn't be complete if you
+technique wouldn't be complete if you weren't able to make snow angels so
+weren't able to make snow angels so there you go some thugs making snow
+angels now let's go a bit uh a bit more into implementation detail so if we take
+into implementation detail so if we take a look at the CPU side update Loop so
+a look at the CPU side update Loop so for every active snow surface we figure
+for every active snow surface we figure out if the surface uh surface affecting
+out if the surface uh surface affecting object again the character or other
+object again the character or other physicalized object is on the surface uh
+physicalized object is on the surface uh to do this we do a we have a quad tree
+to do this we do a we have a quad tree lookup again because we're a city uh
+lookup again because we're a city uh rather than keeping an actor list per
+rather than keeping an actor list per for each surface kind of works
+for each surface kind of works uh fast that way and by active I mean a
+uh fast that way and by active I mean a surface a surface that is active is
+surface a surface that is active is basically a surface that has either
+basically a surface that has either thugs on it or Batman uh that falls into
+thugs on it or Batman uh that falls into a certain distance uh and that has been
+a certain distance uh and that has been registered you know to our manager and
+registered you know to our manager and we make sure to not have too many uh
+we make sure to not have too many uh surfaces up close but again we have a
+surfaces up close but again we have a two Meg budget and with the low
+two Meg budget and with the low resolution of the that's not too big of
+resolution of the that's not too big of a deal uh so we override material on
+a deal uh so we override material on Parts again we replace with the simple
+Parts again we replace with the simple white material we then render actors and
+white material we then render actors and process accumulate with the
+process accumulate with the postprocessed I'm going just going to
+postprocessed I'm going just going to discuss in a bit so about height map
+discuss in a bit so about height map accumulation actual surface rendering so
+accumulation actual surface rendering so this is basically done in three stages
+this is basically done in three stages first stage we take the result of that
+first stage we take the result of that render and we apply a small blur a
+render and we apply a small blur a simple four tab bilinear Pon disc is
+simple four tab bilinear Pon disc is fast because of the resolution is good
+fast because of the resolution is good enough to have some nice gradients we
+enough to have some nice gradients we then add the filtered results the
+then add the filtered results the existing height map simple as that you
+existing height map simple as that you know and but another trick is so for
+know and but another trick is so for that second stage you can also subtract
+that second stage you can also subtract a small value to the height map this is
+a small value to the height map this is how we slowly bring back the height map
+how we slowly bring back the height map to its original Min State and again to
+to its original Min State and again to fake the fact that it's snowing outside
+fake the fact that it's snowing outside so we kind of get that for free and then
+so we kind of get that for free and then the third stage which is shading so I'll
+the third stage which is shading so I'll spend a bit more time on that so um for
+spend a bit more time on that so um for perform uh performance purposes we
+perform uh performance purposes we always have two materials on a snow
+always have two materials on a snow surface the non non deformed one and the
+surface the non non deformed one and the one that actually applies the
+one that actually applies the deformation so as you probably expect
+deformation so as you probably expect the non-deformed one is uh the material
+the non-deformed one is uh the material that it it just looks the same with
+that it it just looks the same with deoration not active so basically uh you
+deoration not active so basically uh you know no deoration less textures to fetch
+know no deoration less textures to fetch less math cheaper um and also matching
+less math cheaper um and also matching materials means we can easily load out
+materials means we can easily load out the
+the deformation now uh in the case of the
+deformation now uh in the case of the the second case in the case of the
+the second case in the case of the deformable snow material um this
+deformable snow material um this material if effectively Blends two
+material if effectively Blends two materials in the same Shader using the
+materials in the same Shader using the height map now here's a closer view of
+height map now here's a closer view of the shading where you can see the
+the shading where you can see the blending between the two layers uh we
+blending between the two layers uh we also add glitter but only on the top
+also add glitter but only on the top layer on the top layer because well
+layer on the top layer because well everyone loves glitter and uh for the
+everyone loves glitter and uh for the transition between the Surface um we
+transition between the Surface um we also apply some kind of subsurface
+also apply some kind of subsurface scattering uh color which just based on
+scattering uh color which just based on Sky color nothing complicated to kind of
+Sky color nothing complicated to kind of show better
+show better transition and so in the case of the
+transition and so in the case of the deformable snow material I mentioned we
+deformable snow material I mentioned we blend between two materials um so for
+blend between two materials um so for the diffuse really simple just slurp
+the diffuse really simple just slurp with the grayscale value from the height
+with the grayscale value from the height map all textures are fetched with the
+map all textures are fetched with the relief ma UVS so we only compute the
+relief ma UVS so we only compute the offset once and then we use this offset
+offset once and then we use this offset to fetch all textures required um
+to fetch all textures required um independently of whether they have local
+independently of whether they have local space uh UVS or World space UVS now for
+space uh UVS or World space UVS now for normals uh we don't lur between them so
+normals uh we don't lur between them so instead
+instead uh we blend them using reoriented normal
+uh we blend them using reoriented normal mapping and the reason we do this is
+mapping and the reason we do this is because normals are not colors and you
+because normals are not colors and you simply just can't lurp normals like that
+simply just can't lurp normals like that or apply some other some non Vector math
+or apply some other some non Vector math sensitive operations such as overlay
+sensitive operations such as overlay that people have been
+that people have been using so basically we oriented normal
+using so basically we oriented normal mapping uses an optimized Quan base
+mapping uses an optimized Quan base approach to achieve this uh this
+approach to achieve this uh this operation and you know you think
+operation and you know you think quaternium you think expenses but after
+quaternium you think expenses but after optimization it's actually quite cheap
+optimization it's actually quite cheap and we've used this all over the game
+and we've used this all over the game for detail normals which makes a a big
+for detail normals which makes a a big visual difference so here's the code you
+visual difference so here's the code you need to do this operation pretty simple
+need to do this operation pretty simple I don't want to get into the details too
+I don't want to get into the details too much so make sure to check the
+much so make sure to check the references and the blog
+references and the blog post so just some quick uh results so in
+post so just some quick uh results so in the case uh this is what you'd get if
+the case uh this is what you'd get if you had a base normal to the left and
+you had a base normal to the left and added uh with simple linear
+added uh with simple linear interpolation at detail normal on top of
+interpolation at detail normal on top of it this is what you'd get with the
+it this is what you'd get with the alltime artist's favorite overlay that
+alltime artist's favorite overlay that people like to use in Photoshop a lot
+people like to use in Photoshop a lot and this is what the results you'd get
+and this is what the results you'd get with reoriented normal mapping you can
+with reoriented normal mapping you can notice on this technique with this
+notice on this technique with this technique how the normal looks properly
+technique how the normal looks properly the base and the detail detail normal
+the base and the detail detail normal look properly combined and how the
+look properly combined and how the detail fits right on top of the base
+detail fits right on top of the base normal and again uh you know
+normal and again uh you know generalizing here but you should
+generalizing here but you should definitely check the blog post for
+definitely check the blog post for comparisons with other techniques that
+comparisons with other techniques that are either faster or more expensive
+are either faster or more expensive or more or less mathematically
+or more or less mathematically robust now here's some bits and pieces
+robust now here's some bits and pieces of additional or general info I guess
+of additional or general info I guess about the technique so make sure your
+about the technique so make sure your surface UV is align with the orthoforum
+surface UV is align with the orthoforum this simplifies any lookups uh it's
+this simplifies any lookups uh it's pretty simple you know 0er one range
+pretty simple you know 0er one range simplifies height map to displacement
+simplifies height map to displacement lookup and make sure to scale World
+lookup and make sure to scale World space height map resolution uh based on
+space height map resolution uh based on actual World space so and try to keep
+actual World space so and try to keep Texel Square U again we don't need high
+Texel Square U again we don't need high res resolution and also deformable snow
+res resolution and also deformable snow looks better in low resolution we tried
+looks better in low resolution we tried increasing it but you don't need that uh
+increasing it but you don't need that uh you don't need that level of detail and
+you don't need that level of detail and you also need to scale your relief
+you also need to scale your relief mapping
+mapping parameters um also it's nice to process
+parameters um also it's nice to process surfaces that are close but that you
+surfaces that are close but that you haven't seen yet you can actually use
+haven't seen yet you can actually use this as an element of gameplay uh in our
+this as an element of gameplay uh in our case you can see paths taken by thugs
+case you can see paths taken by thugs before you actually encountered them um
+before you actually encountered them um we didn't end up doing proper visibility
+we didn't end up doing proper visibility tests distance is good enough combined
+tests distance is good enough combined with update over multiple frames which
+with update over multiple frames which is what we do so we only render two
+is what we do so we only render two surfaces uh per frame this is tweakable
+surfaces uh per frame this is tweakable but it's good enough uh good enough for
+but it's good enough uh good enough for what we need and also when a surface
+what we need and also when a surface gets far we swap the material back to
+gets far we swap the material back to the non- deform default one uh release
+the non- deform default one uh release the memory used by the surface so that
+the memory used by the surface so that other potential surfaces might use it um
+other potential surfaces might use it um we don't really fragment because we keep
+we don't really fragment because we keep all of these allocations in a
+all of these allocations in a pre-allocated memory trunk and as as I
+pre-allocated memory trunk and as as I mentioned earlier we've enhanced the
+mentioned earlier we've enhanced the results with the tessellation this has
+results with the tessellation this has been a great uh collaboration between
+been a great uh collaboration between Warner Brothers in Nvidia so basically
+Warner Brothers in Nvidia so basically this feature uh was developed with uh
+this feature uh was developed with uh good friend evini Makarov at Nvidia and
+good friend evini Makarov at Nvidia and um different to the height the the color
+um different to the height the the color height map we actually use accurate uh
+height map we actually use accurate uh displacement based on depth so we captur
+displacement based on depth so we captur the height map basically like a zbuffer
+the height map basically like a zbuffer and we the latest version has two
+and we the latest version has two channels so we have a minimum height
+channels so we have a minimum height field and a projected displacement uh
+field and a projected displacement uh having those allows for additive results
+having those allows for additive results which I'll show an image of what it
+which I'll show an image of what it looks like and allows for basically any
+looks like and allows for basically any kind of deformable surface such as a a
+kind of deformable surface such as a a snow
+snow bank um
+bank um yeah so here's what it basically looks
+yeah so here's what it basically looks like from the side so you have your
+like from the side so you have your orthogonal capture frem your minimum
+orthogonal capture frem your minimum height feel in green your projected uh
+height feel in green your projected uh displacement in blue and the final
+displacement in blue and the final surface that is displaced in Darker
+surface that is displaced in Darker blue um so I mentioned that the Tesla
+blue um so I mentioned that the Tesla version adds detail displacement that is
+version adds detail displacement that is actually calculated from the normal map
+actually calculated from the normal map which is applied globally to the uh snow
+which is applied globally to the uh snow surface so this is something you don't
+surface so this is something you don't get from the relief map and it kind of
+get from the relief map and it kind of allows us to have these uh so the the
+allows us to have these uh so the the floor surfaces are described with two
+floor surfaces are described with two normals the macroon normal and the
+normals the macroon normal and the Micron normal so this is additional
+Micron normal so this is additional waves in the surface using the macron
+waves in the surface using the macron normal so this what you would get
+normal so this what you would get without tessellation so you don't get
+without tessellation so you don't get any macro deformation pretty flat and
+any macro deformation pretty flat and with tessellation you can notice
+with tessellation you can notice additional waves that that kind of break
+additional waves that that kind of break the uniformity of the surface so we like
+the uniformity of the surface so we like this a lot uh we have a runtime uh
+this a lot uh we have a runtime uh approach to uh we do adaptive sorry
+approach to uh we do adaptive sorry dicing of snow meshes which is similar
+dicing of snow meshes which is similar to what was presented on Monday in the
+to what was presented on Monday in the dark text course by Android T enough so
+dark text course by Android T enough so I would definitely check this out but
+I would definitely check this out but moving to real geometry has definitely
+moving to real geometry has definitely some advantage
+some advantage uh works with Dynamic Shadows you know
+uh works with Dynamic Shadows you know Shadows actually follow the surface and
+Shadows actually follow the surface and shift with the deformation we get self
+shift with the deformation we get self shadowing cell sheding that sort of
+shadowing cell sheding that sort of stuff and ambient occlusion also comes
+stuff and ambient occlusion also comes in and fills in the the trails or the
+in and fills in the the trails or the the where the snow is so that's another
+the where the snow is so that's another benefit of moving uh to real
+benefit of moving uh to real tessellation and we keep the same height
+tessellation and we keep the same height map resolution as on consoles again
+map resolution as on consoles again because it's a really low frequency
+because it's a really low frequency effect so here's some of the results
+effect so here's some of the results which with HBO plus you can see
+which with HBO plus you can see definitely the macrow waves on the upper
+definitely the macrow waves on the upper part of the image and how the hbao adds
+part of the image and how the hbao adds a ton of volume in the final
+a ton of volume in the final result now with regards to Performance
+result now with regards to Performance we on consoles we try to keep it under
+we on consoles we try to keep it under Mill one millisecond of GPU uh
+Mill one millisecond of GPU uh updates um since we update deformable
+updates um since we update deformable snow surfaces over multiple frames you
+snow surfaces over multiple frames you can kind of control that again we have a
+can kind of control that again we have a small memory footprint of two Megs um
+small memory footprint of two Megs um again because because we're using low
+again because because we're using low resolution height map
+resolution height map and because we allocate and deallocate
+and because we allocate and deallocate on the fly so that's why we can have
+on the fly so that's why we can have that low memory
+that low memory footprint some issues with the technique
+footprint some issues with the technique of course so obviously
+of course so obviously deformation uh with the relief mapped
+deformation uh with the relief mapped approach will never look as great as
+approach will never look as great as actual
+actual tessellation so I guess we could replace
+tessellation so I guess we could replace that with paral seclusion mapping that's
+that with paral seclusion mapping that's an an option and also we don't have uh
+an an option and also we don't have uh that AO uh in the in the height map so I
+that AO uh in the in the height map so I guess we could der some parametric uh AO
+guess we could der some parametric uh AO from the hyp map I believe there's a
+from the hyp map I believe there's a talk from Killzone that talks about that
+talk from Killzone that talks about that in the previous years and the Tesla
+in the previous years and the Tesla approach well so when artists were
+approach well so when artists were working on the game it kind of came in
+working on the game it kind of came in late and it this placement was not
+late and it this placement was not really taken into account you know so we
+really taken into account you know so we had issues with like prepass actors open
+had issues with like prepass actors open edges that sort of stuff uh so um some
+edges that sort of stuff uh so um some meshes couldn't use tessellation but we
+meshes couldn't use tessellation but we added that second Channel
+added that second Channel uh in the the tessellation stage which
+uh in the the tessellation stage which allowed us to fix most of these issues
+allowed us to fix most of these issues with minimal artist
+with minimal artist interaction so future
+interaction so future endeavors well I guess you could save
+endeavors well I guess you could save the hype maps and reload them that'd be
+the hype maps and reload them that'd be cool you could also use this for other
+cool you could also use this for other things such as sand mud
+things such as sand mud um that sort of stuff we didn't need
+um that sort of stuff we didn't need that again because it was always snowing
+that again because it was always snowing so we could uh replenish the height Maps
+so we could uh replenish the height Maps so in summary I presented a fast and low
+so in summary I presented a fast and low memory footprint technique to render
+memory footprint technique to render deformable snow surfaces that adds a
+deformable snow surfaces that adds a really nice level of interaction between
+really nice level of interaction between players in the world and depicts iconic
+players in the world and depicts iconic and organic visuals of the formable snow
+and organic visuals of the formable snow and it's also a good testation case for
+and it's also a good testation case for your darkx 11 game with minimal editing
+your darkx 11 game with minimal editing and art
+and art tweaks so obviously there is no ey in
+tweaks so obviously there is no ey in team and so I would like to thank all
+team and so I would like to thank all the following people who've helped in
+the following people who've helped in some way shape or form in making this
+some way shape or form in making this happen and and uh that's all I have so
+happen and and uh that's all I have so I'll be taking your questions thank
+I'll be taking your questions thank [Applause]
+[Applause] you hey um so this technique seems to
+you hey um so this technique seems to work really well on flat terrain have
+work really well on flat terrain have you tried it on arbitrary geometry like
+you tried it on arbitrary geometry like more organic terrain yeah so on consoles
+more organic terrain yeah so on consoles obviously because we use the height the
+obviously because we use the height the colored hey map uh we we have it on some
+colored hey map uh we we have it on some snow Banks it doesn't look as nice you
+snow Banks it doesn't look as nice you kind of get some deformation but again
+kind of get some deformation but again because of the limited uh you know only
+because of the limited uh you know only three taps or four taps of real life map
+three taps or four taps of real life map you don't get that really nice cut off
+you don't get that really nice cut off that you would get with desolation so if
+that you would get with desolation so if I had to recommend some so on cons on
+I had to recommend some so on cons on sorry on PC high end you actually get
+sorry on PC high end you actually get the full like the snow Banks kind of
+the full like the snow Banks kind of kind of fall apart as you go through
+kind of fall apart as you go through them so I would that recommend using the
+them so I would that recommend using the depth based approach rather than
+depth based approach rather than the the colored approach thank you
+all right thank [Applause]
+you

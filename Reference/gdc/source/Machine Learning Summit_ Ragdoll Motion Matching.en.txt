@@ -1,0 +1,932 @@
+[Music]
+so hello everyone I'm a smoke level with Ubisoft LaFave LaForest a little
+Ubisoft LaFave LaForest a little research lab here now Ubisoft Montreal
+research lab here now Ubisoft Montreal so today this is the recording for the
+so today this is the recording for the talk I was supposed to give at GDC so
+talk I was supposed to give at GDC so I'm just recording in here with the
+I'm just recording in here with the camera so the talk is called rag doll
+camera so the talk is called rag doll motion matching and since people
+motion matching and since people normally skip the first eight minutes of
+normally skip the first eight minutes of every video I've put the result right
+every video I've put the result right here in the first slide you see this guy
+here in the first slide you see this guy there this blue guy is physically
+there this blue guy is physically sedated rag doll like virtual robot it's
+sedated rag doll like virtual robot it's self powered with little motors and he's
+self powered with little motors and he's trying to follow interactive motion
+trying to follow interactive motion capture while getting lots of cubes in
+capture while getting lots of cubes in the face trying to survive difficult
+the face trying to survive difficult perturbations so that's the purpose the
+perturbations so that's the purpose the the goal of this stock there's two two
+the goal of this stock there's two two goals I am I guess my first goal is to
+goals I am I guess my first goal is to take a wild guess about where game
+take a wild guess about where game animation might be going in the future
+animation might be going in the future the second goal is to provide intuition
+the second goal is to provide intuition about a specific solution to the
+about a specific solution to the reinforcement learning problem the
+reinforcement learning problem the reason for that is because reinforcement
+reason for that is because reinforcement learning is a big part of what makes
+learning is a big part of what makes this possible and I think it's a good
+this possible and I think it's a good idea to get a good intuition behind this
+idea to get a good intuition behind this specific equation so we can actually go
+specific equation so we can actually go deep and find an equation that you can
+deep and find an equation that you can actually get a feeling for that's useful
+actually get a feeling for that's useful and that's very general and really fun
+and that's very general and really fun and beautiful I think so let's start
+and beautiful I think so let's start with this question just to give like the
+with this question just to give like the door why like why would we do that and I
+door why like why would we do that and I want to start with this weird question
+want to start with this weird question what's the difference between a
+what's the difference between a character playing in animation and a
+character playing in animation and a character actually doing something in
+character actually doing something in his virtual world that's a weird
+his virtual world that's a weird question but look at this guy there so I
+question but look at this guy there so I would claim that this guy is actually
+would claim that this guy is actually there like he's there doing thing in his
+there like he's there doing thing in his virtual world he's not just he's playing
+virtual world he's not just he's playing animations but he's actually like
+animations but he's actually like this is very well integrated in his
+this is very well integrated in his world and this is like the emotion I
+world and this is like the emotion I want you to feel now this is something
+want you to feel now this is something different than what video games do today
+different than what video games do today because he's actually there like it's
+because he's actually there like it's actually happening so like we need to
+actually happening so like we need to get better at physically by his
+get better at physically by his animation so lots of people have been
+animation so lots of people have been trying to figure this out this is same
+trying to figure this out this is same problem as robotics so lots of different
+problem as robotics so lots of different ways to approach the problem
+ways to approach the problem lots of people in very different domains
+lots of people in very different domains so robotics people game people that
+so robotics people game people that kinda makes people they're different
+kinda makes people they're different papers every year at many conferences so
+papers every year at many conferences so if you meet one of these people just
+if you meet one of these people just tell them thank you because they
+tell them thank you because they actually figured it out and but most of
+actually figured it out and but most of the recent research is pointing in a fun
+the recent research is pointing in a fun direction which is reinforcement
+direction which is reinforcement learning so that's why we dive right now
+learning so that's why we dive right now into this primer let's understand what
+into this primer let's understand what reinforcement learning is about so I
+reinforcement learning is about so I even put like resolve videos inside this
+even put like resolve videos inside this primer so you can't skip it don't try to
+primer so you can't skip it don't try to skip the video to the result at the end
+skip the video to the result at the end because results will be right in there
+because results will be right in there so hold on we'll go it's gonna be fun
+so hold on we'll go it's gonna be fun let's dive in right now in reinforcement
+let's dive in right now in reinforcement learning so personal learning is this
+learning so personal learning is this there are lots of little words and our
+there are lots of little words and our rows there so there's n is the
+rows there so there's n is the environment and there's a policy there
+environment and there's a policy there are states there's actions and there's
+are states there's actions and there's rewards so what all are these things so
+rewards so what all are these things so the environment is the game world and
+the environment is the game world and it's rules so here's a little
+it's rules so here's a little environment with a little character
+environment with a little character trying to move around collect coins and
+trying to move around collect coins and stars and avoid stepping in lava and the
+stars and avoid stepping in lava and the policy is the decision maker so that's
+policy is the decision maker so that's you when you press buttons on a
+you when you press buttons on a controller maybe and so so the state in
+controller maybe and so so the state in this case for this environment is just
+this case for this environment is just where you are on this grid the reactions
+where you are on this grid the reactions that the policy can make is just little
+that the policy can make is just little arrow so you step in direction so each
+arrow so you step in direction so each possible actions are up down left and
+possible actions are up down left and right and the rewards will be like plus
+right and the rewards will be like plus one if you get a coin and plus then if
+one if you get a coin and plus then if you get the big
+you get the big star and minus one so it's like a cast
+star and minus one so it's like a cast when you step into the lava and I
+when you step into the lava and I thought you see now is really you need
+thought you see now is really you need to think about it as a function policy
+to think about it as a function policy is a function it's a mapping from state
+is a function it's a mapping from state to action so it's really a function that
+to action so it's really a function that you give it a state spits out an action
+you give it a state spits out an action so you see all these little arrows there
+so you see all these little arrows there the state gets in the policy get an
+the state gets in the policy get an action the environment takes in the old
+action the environment takes in the old state and in the action you get a new
+state and in the action you get a new state so every step in the environment
+state so every step in the environment like over time every frame in the game
+like over time every frame in the game and you get a little reward which is
+and you get a little reward which is just one number every frame
+just one number every frame so a policy what is the policy is these
+so a policy what is the policy is these arrows so this is one possible policy so
+arrows so this is one possible policy so policy would be like just rules there on
+policy would be like just rules there on the floor tell you when you're in this
+the floor tell you when you're in this state go in this direction so now the
+state go in this direction so now the policy can be like a little bit random
+policy can be like a little bit random like stochastic so sometimes we might
+like stochastic so sometimes we might have a probability of making different
+have a probability of making different choices so for example for a baseball
+choices so for example for a baseball picture here there's like two couple of
+picture here there's like two couple of different throws you can do so with
+different throws you can do so with different probabilities so that's a
+different probabilities so that's a stochastic policy so you can do
+stochastic policy so you can do different choices for us so so it means
+different choices for us so so it means that one way to think about it is the
+that one way to think about it is the action is it's not just equal to policy
+action is it's not just equal to policy but it's sampled from a probability
+but it's sampled from a probability distribution and it's just it just means
+distribution and it's just it just means that policy doesn't always get give the
+that policy doesn't always get give the same result for the same input so in our
+same result for the same input so in our little world here it means like
+little world here it means like sometimes there's different
+sometimes there's different probabilities to go in with different
+probabilities to go in with different directions and now so we need to define
+directions and now so we need to define more things so when you evaluate a
+more things so when you evaluate a policy in an environment from some
+policy in an environment from some starting state so the starting state is
+starting state so the starting state is decided by the environment so every time
+decided by the environment so every time you start evaluating a policy the
+you start evaluating a policy the environment kit puts you in a state and
+environment kit puts you in a state and then what happens is you get a
+then what happens is you get a trajectory can also call it an episode
+trajectory can also call it an episode it's the synonym and so this is a
+it's the synonym and so this is a trajectory that you get a little pad in
+trajectory that you get a little pad in this state space if the policy has some
+this state space if the policy has some randomness you could get different
+randomness you could get different trajectories even if you're in with the
+trajectories even if you're in with the same policy
+same policy so like let's say you get this and
+so like let's say you get this and there's different trajectories with the
+there's different trajectories with the same policy and now we need to define
+same policy and now we need to define another thing so what's the return of a
+another thing so what's the return of a trajectory so it's the sum of rewards
+trajectory so it's the sum of rewards along the trajectory so you just sum all
+along the trajectory so you just sum all the rewards that you got along a
+the rewards that you got along a trajectory
+trajectory it gives you a reward a return a return
+it gives you a reward a return a return so like this trajectory there you sum
+so like this trajectory there you sum the rewards you get plus one plus one
+the rewards you get plus one plus one plus ten so the return of this specific
+plus ten so the return of this specific trajectory is twelve but then with the
+trajectory is twelve but then with the same trajectory the same policy you get
+same trajectory the same policy you get different trajectories with different
+different trajectories with different returns and now we can define like that
+returns and now we can define like that the important thing is the average
+the important thing is the average return that you get with this policy and
+return that you get with this policy and now the goal of reinforcement learning
+now the goal of reinforcement learning is to find the policy with the highest
+is to find the policy with the highest average return that we get with all the
+average return that we get with all the trajectories you get maybe trajectories
+trajectories you get maybe trajectories or start with different start states
+or start with different start states also and since the policy is a little
+also and since the policy is a little bit random you get different
+bit random you get different trajectories also the environment itself
+trajectories also the environment itself could be random so yeah so that's the
+could be random so yeah so that's the reinforcement learning problem and yeah
+reinforcement learning problem and yeah for this example here you see that
+for this example here you see that average return of this policy would be
+average return of this policy would be the average of the returns you got so
+the average of the returns you got so that's what's the beginning of the
+that's what's the beginning of the tutorial like that's the no let's take a
+tutorial like that's the no let's take a little break and look at the result a
+little break and look at the result a little bit you see this guy so it's hard
+little bit you see this guy so it's hard to see how what we just discussed will
+to see how what we just discussed will help us with this little problem of a
+help us with this little problem of a guy trying to climb these stairs there
+so the trick is to you now we're going to see the actions in the state as
+to see the actions in the state as continuous and high-dimensional so it
+continuous and high-dimensional so it won't be like little discrete actions
+won't be like little discrete actions and discrete states it's going to be
+and discrete states it's going to be continuous actions in states in high
+continuous actions in states in high dimensions so RL and big continuous
+dimensions so RL and big continuous spaces so how do you think about this so
+spaces so how do you think about this so we're gonna be like the ID for our
+we're gonna be like the ID for our environment is gonna be a guy that tries
+environment is gonna be a guy that tries not to fall sometimes you fall sometimes
+not to fall sometimes you fall sometimes it doesn't fall and the rewards will be
+it doesn't fall and the rewards will be like you get rewards when you're not
+like you get rewards when you're not falling and you get penalties when you
+falling and you get penalties when you fall so but I will explain the details
+fall so but I will explain the details of our specific environment
+of our specific environment a little bit later let's continue with
+a little bit later let's continue with with our little tutorial so we go back
+with our little tutorial so we go back to the deterministic case like let's
+to the deterministic case like let's forget about randomness for a little bit
+forget about randomness for a little bit and now the states is a point let's say
+and now the states is a point let's say there's four dimensions it's continuous
+there's four dimensions it's continuous a little point there with four
+a little point there with four dimensions and the actions also is a
+dimensions and the actions also is a continuous point in some other space
+continuous point in some other space let's say there's three dimensions there
+let's say there's three dimensions there and let's let's try to see what the
+and let's let's try to see what the policy is now with this so we're gonna
+policy is now with this so we're gonna plot actions with respect state it's
+plot actions with respect state it's just a little function just to see it
+just a little function just to see it let's think about just one dimensions
+let's think about just one dimensions for state one dimension for action for
+for state one dimension for action for now and so yeah so when you're in this
+now and so yeah so when you're in this state three but eight you get the action
+state three but eight you get the action nine point nine and you can think of a
+nine point nine and you can think of a policy being this function so the goal
+policy being this function so the goal is not not to find an action necessarily
+is not not to find an action necessarily but really finding a function so we
+but really finding a function so we don't discover the best function that
+don't discover the best function that gives us the best reward so you see
+gives us the best reward so you see reward is still just one number it's not
+reward is still just one number it's not it's not a vector so here's a simple
+it's not a vector so here's a simple policy you can come up with this that's
+policy you can come up with this that's a policy that's a valid policy that's a
+a policy that's a valid policy that's a little a little equation that takes as
+little a little equation that takes as input the state and then returns an
+input the state and then returns an action it looks like this so you see
+action it looks like this so you see there's numbers there the point three
+there's numbers there the point three and point two that's just the parameters
+and point two that's just the parameters of this line and in general you see you
+of this line and in general you see you can you even have parameters let's call
+can you even have parameters let's call them theta theta zero and theta one
+them theta theta zero and theta one would be the parameters of the function
+would be the parameters of the function so you see there's inputs and parameters
+so you see there's inputs and parameters it's two different things the parameters
+it's two different things the parameters are like hard-coded numbers inside the
+are like hard-coded numbers inside the function and we can place them also in a
+function and we can place them also in a little vector so we have a little vector
+little vector so we have a little vector of parameters we call it theta and as
+of parameters we call it theta and as the parameters of this function so now
+the parameters of this function so now the fun things today in this day and age
+the fun things today in this day and age of deep learning the functions can get
+of deep learning the functions can get pretty big and if one thing we can say
+pretty big and if one thing we can say is it if the equation is big enough it
+is it if the equation is big enough it becomes naturally a neural net to neural
+becomes naturally a neural net to neural net it's just a big equation with lots
+net it's just a big equation with lots of parameters that's a little bit higher
+of parameters that's a little bit higher call but we don't actually care about
+call but we don't actually care about the D
+the D tells of what a neural net is for now
+tells of what a neural net is for now let's just think about it as an equation
+let's just think about it as an equation with parameters it could be the weights
+with parameters it could be the weights of the neural net and yeah so so when
+of the neural net and yeah so so when you change the parameters of this
+you change the parameters of this function you get different functions so
+function you get different functions so now finding a policy means finding a
+now finding a policy means finding a vector theta of parameters that gives
+vector theta of parameters that gives the best rewards so what do we do with
+the best rewards so what do we do with that like with our environment we're
+that like with our environment we're going to start at some state we s0 and
+going to start at some state we s0 and then we give it to our policy we get an
+then we give it to our policy we get an action a zero give that to our
+action a zero give that to our environment state an action and we get
+environment state an action and we get to a new state and the environment gives
+to a new state and the environment gives us a little reward and repeat and repeat
+us a little reward and repeat and repeat you get our trajectory like this so now
+you get our trajectory like this so now the goal is to tweak data like we're
+the goal is to tweak data like we're going to change theta a little bit to
+going to change theta a little bit to give get more rewards later in the
+give get more rewards later in the future so one thing we can do is plot it
+future so one thing we can do is plot it like this so we're going to put on this
+like this so we're going to put on this axis there theta the parameter let's say
+axis there theta the parameter let's say there's just one parameter let's start
+there's just one parameter let's start neural network with just one neuron or
+neural network with just one neuron or something and so all policies are
+something and so all policies are somewhere on this axis and we're gonna
+somewhere on this axis and we're gonna try one let's try one neural network one
+try one let's try one neural network one with one with some the parameter this
+with one with some the parameter this parameter and we're going to run many
+parameter and we're going to run many trajectories with this policy and
+trajectories with this policy and compute the average return average
+compute the average return average between would be like average summed
+between would be like average summed over all steps over all trajectories all
+over all steps over all trajectories all episodes that you do may be divided by
+episodes that you do may be divided by number of trajectories but we don't
+number of trajectories but we don't actually care and you get this number
+actually care and you get this number that says how happy you are with this
+that says how happy you are with this policy and can try it again with
+policy and can try it again with different different vectors of
+different different vectors of parameters look around see what's what's
+parameters look around see what's what's happening there and you see like
+happening there and you see like virtually like magically there's this
+virtually like magically there's this world of policies and you try to climb
+world of policies and you try to climb some hopefully there's some amount in
+some hopefully there's some amount in there that you try to get to the
+there that you try to get to the so that's finding this data best with
+so that's finding this data best with the best average return is the goal of
+the best average return is the goal of reinforcement learning and one way to do
+reinforcement learning and one way to do it is to start with a guess I guess
+it is to start with a guess I guess policy and try to climb to find a slope
+policy and try to climb to find a slope where in the parameter world you should
+where in the parameter world you should go in this direction to improve your
+go in this direction to improve your policy so for this you can just as I
+policy so for this you can just as I said just try a bunch of different
+said just try a bunch of different policies in the province policies it's
+policies in the province policies it's really neural networks like it's
+really neural networks like it's parameters of neural networks you can
+parameters of neural networks you can really try them randomly that's gonna
+really try them randomly that's gonna that might be hard but you can still try
+that might be hard but you can still try it it leads to evolution algorithms
+it it leads to evolution algorithms that's what evolution is it's trying
+that's what evolution is it's trying different policies you can do it with
+different policies you can do it with like particle swarms or evolution like
+like particle swarms or evolution like genetic evolution
+genetic evolution you could have genetic evolution is part
+you could have genetic evolution is part of that so each of these little dots
+of that so each of these little dots there is one policy one vector of
+there is one policy one vector of parameters and you can evaluate the
+parameters and you can evaluate the expected average return you get lots of
+expected average return you get lots of average lots of return in the white part
+average lots of return in the white part there so generations after generation
+there so generations after generation you going to hopefully explore in the
+you going to hopefully explore in the policy world and focus focus on the
+policy world and focus focus on the solution so what's hard with this is
+solution so what's hard with this is that when theta has lots of dimensions
+that when theta has lots of dimensions it's hard to sample when there's too
+it's hard to sample when there's too many dimensions because of the curse of
+many dimensions because of the curse of dimensional deal you can't really
+dimensional deal you can't really explore efficiently it's very difficult
+explore efficiently it's very difficult but the actual problem with evolution is
+but the actual problem with evolution is not that very actual problems evolution
+not that very actual problems evolution is like need to die a lot in order to
+is like need to die a lot in order to learn something like it's learning by
+learn something like it's learning by dying it's not super efficient that's
+dying it's not super efficient that's why I took like billions of years or
+why I took like billions of years or Millions I don't know so and also the
+Millions I don't know so and also the problem is we're not using all the
+problem is we're not using all the available information and good and bad
+available information and good and bad actions you just know that like at the
+actions you just know that like at the end of the episodes it was bad but you
+end of the episodes it was bad but you don't know which actions we're actually
+don't know which actions we're actually responsible for the problem and it would
+responsible for the problem and it would be better to to use like all information
+be better to to use like all information for example these little cats there they
+for example these little cats there they learned that if they press the button
+learned that if they press the button they get some food but the reason why
+they get some food but the reason why they managed to learn it because they
+they managed to learn it because they get the reward just not too long after
+get the reward just not too long after the action
+the action so we're going to try to do to use this
+so we're going to try to do to use this this this knowledge to improve our
+this this knowledge to improve our algorithms so if you pick up a book on
+algorithms so if you pick up a book on reinforcement learning or Google online
+reinforcement learning or Google online you'll see there's a whole zoo of
+you'll see there's a whole zoo of methods you can use and evolution is
+methods you can use and evolution is just one of them so there's a bunch of
+just one of them so there's a bunch of different words there like robot assists
+different words there like robot assists spend more less more time on one side of
+spend more less more time on one side of this and ucq learning there that's one
+this and ucq learning there that's one we won't talk about today but it's
+we won't talk about today but it's really good for learning video games so
+really good for learning video games so we're going to focus on this region
+we're going to focus on this region there are policy gradient and actor
+there are policy gradient and actor critic because there's some good
+critic because there's some good intuition to be get gained there and it
+intuition to be get gained there and it actually works in a surprisingly general
+actually works in a surprisingly general way so let's second a little break and
+way so let's second a little break and look at our guy again
+look at our guy again try to guess like what's what's
+try to guess like what's what's happening and I said like its goal is to
+happening and I said like its goal is to follow motion capture but also did not
+follow motion capture but also did not fall by like posted he decides where to
+fall by like posted he decides where to put his foot
+so what's the plan for inventing this fun algorithm of policy gradient so
+fun algorithm of policy gradient so we're going to forget about most things
+we're going to forget about most things and really focus on this simple idea of
+and really focus on this simple idea of trying to make good actions more
+trying to make good actions more probable so okay so we'll have a policy
+probable so okay so we'll have a policy going to be a little bit random it's
+going to be a little bit random it's going to take different actions find
+going to take different actions find good actions make them product more
+good actions make them product more probable so that's the idea so sometimes
+probable so that's the idea so sometimes you make an action you're in some state
+you make an action you're in some state that looked a little bit the same and
+that looked a little bit the same and your your policy will give you different
+your your policy will give you different actions at every step there's gonna be
+actions at every step there's gonna be lots of different actions lots of
+lots of different actions lots of dimensions but let's say at some point
+dimensions but let's say at some point you make this action and another point
+you make this action and another point another try another episode you make
+another try another episode you make another action like you see 3.7 got a
+another action like you see 3.7 got a better result so like you you see like
+better result so like you you see like the returns after the 3.9 got to 0
+the returns after the 3.9 got to 0 because you fell so we like better 3.7
+because you fell so we like better 3.7 in this state should do this action we
+in this state should do this action we don't care too much about what this
+don't care too much about what this action means maybe it's a torque maybe
+action means maybe it's a torque maybe it's a motor activation in the knee or
+it's a motor activation in the knee or something deciding to put the foot
+something deciding to put the foot somewhere else to avoid falling so yeah
+somewhere else to avoid falling so yeah so we're going to find the high return
+so we're going to find the high return actions and change our policy to make
+actions and change our policy to make them more probable so there's two things
+them more probable so there's two things we need to think about now so let's
+we need to think about now so let's start with the second one so how to make
+start with the second one so how to make good actions more probable let's say we
+good actions more probable let's say we already know which ones are good so so
+already know which ones are good so so we go back to this little trying their
+we go back to this little trying their random policy there's the action they
+random policy there's the action they are wearing a fixed state let's say the
+are wearing a fixed state let's say the state is fixed and now this graph is the
+state is fixed and now this graph is the probability of picking the action but
+probability of picking the action but now we're in continuous space so it's
+now we're in continuous space so it's more like this so we're sampling the
+more like this so we're sampling the action from a probability density this
+action from a probability density this curve there is a probability density it
+curve there is a probability density it needs like the sum under the curve
+needs like the sum under the curve should be 1 because it's a probability
+should be 1 because it's a probability and you see there's more probability of
+and you see there's more probability of being in the middle there and now we
+being in the middle there and now we have a sample this action 3.7 and we
+have a sample this action 3.7 and we like it because we think it's a good
+like it because we think it's a good action we want to increase the
+action we want to increase the probability of doing that more we want
+probability of doing that more we want to it more in the future so what it
+to it more in the future so what it means good returns want to increase this
+means good returns want to increase this probability so we want to make a little
+probability so we want to make a little bump there in the curve but that's weird
+bump there in the curve but that's weird like how we can actually like do this so
+like how we can actually like do this so we need to be more Purcell specific
+we need to be more Purcell specific about the form of our policy we won't do
+about the form of our policy we won't do like a big table like the tabular thing
+like a big table like the tabular thing we want to be more specific
+we want to be more specific so simplest choice is to just pick a
+so simplest choice is to just pick a Gaussian like a simple curve with just
+Gaussian like a simple curve with just two parameters the mean and the standard
+two parameters the mean and the standard deviation and now the idea is that our
+deviation and now the idea is that our little neural network that was supposed
+little neural network that was supposed to give us our action now will give us
+to give us our action now will give us instead the parameters of this
+instead the parameters of this distribution of action and this is the
+distribution of action and this is the weird part like you need to stop like
+weird part like you need to stop like and just think about it for five seconds
+and just think about it for five seconds like now our neural network that's our
+like now our neural network that's our policy gives us the parameters of a
+policy gives us the parameters of a distribution of actions for each state
+distribution of actions for each state you see the state is still an input the
+you see the state is still an input the network it outputs like the the neural
+network it outputs like the the neural network outputs two things now the mean
+network outputs two things now the mean and the standard deviation the variance
+and the standard deviation the variance of this Gaussian so now we have this
+of this Gaussian so now we have this good action will increase the color the
+good action will increase the color the probability there so I can think about
+probability there so I can think about it for one seconds what's gonna happen
+it for one seconds what's gonna happen with the mean and standard deviation if
+with the mean and standard deviation if we want to increase the probability
+we want to increase the probability there you see the first thing that comes
+there you see the first thing that comes to mind is to to move the the mean in
+to mind is to to move the the mean in this direction that's gonna increase the
+this direction that's gonna increase the probability there but the other idea
+probability there but the other idea with the standard deviation what should
+with the standard deviation what should happen to it if you the good action was
+happen to it if you the good action was near the tail it might be a good idea to
+near the tail it might be a good idea to make the gosh in a little bit more fat
+make the gosh in a little bit more fat like to explore more so when you get
+like to explore more so when you get good actions in the tail of your
+good actions in the tail of your distribution you should it means you
+distribution you should it means you think we should explore more because I
+think we should explore more because I got good actions really far so that's
+got good actions really far so that's like feel smart like you're gonna change
+like feel smart like you're gonna change the mean and STD but you see there's
+the mean and STD but you see there's like an indirection we're gonna we won't
+like an indirection we're gonna we won't change a mean instead a directly what we
+change a mean instead a directly what we want to do is to nudge theta the
+want to do is to nudge theta the parameters so that the mean and STD
+parameters so that the mean and STD changes so that you increase the
+changes so that you increase the probability of your good action
+probability of your good action you see there's like three levels of
+you see there's like three levels of indirection that that's what makes it
+indirection that that's what makes it weird a little bit but it works
+weird a little bit but it works so and what when the good action is
+so and what when the good action is close to the middle there what's gonna
+close to the middle there what's gonna happen it's gonna get spiked here and
+happen it's gonna get spiked here and this is we're gonna focus on the good
+this is we're gonna focus on the good solution so what happens with when you
+solution so what happens with when you have two dimensional state and in one
+have two dimensional state and in one dimensional action you can have this fun
+dimensional action you can have this fun little visualization here you see each
+little visualization here you see each of these little curves is for one state
+of these little curves is for one state and you see that their action is one
+and you see that their action is one dimensional so as the thing is learning
+dimensional so as the thing is learning it becomes more focused on the solution
+it becomes more focused on the solution it's like little breathing of
+it's like little breathing of exploration and exploitation is
+exploration and exploitation is exploitation exploration dilemma is a
+exploitation exploration dilemma is a really big thing so we need to be smart
+really big thing so we need to be smart about it so it it's like breathing your
+about it so it it's like breathing your exploration like this so let's get a
+exploration like this so let's get a little bit more precise what what's what
+little bit more precise what what's what what we actually want to do this new
+what we actually want to do this new policy what's gonna happen is that we're
+policy what's gonna happen is that we're gonna do lots of actions lots of states
+gonna do lots of actions lots of states on a big batch of actions and now with
+on a big batch of actions and now with this batch of actions we can for each of
+this batch of actions we can for each of them we're going to nudge our
+them we're going to nudge our probability like change change our
+probability like change change our little probability to so that the good
+little probability to so that the good actions will be more probable so look at
+actions will be more probable so look at these terms they're a new probability
+these terms they're a new probability all probability at this action so one
+all probability at this action so one idea is to pick the ratio of these two
+idea is to pick the ratio of these two what's the ratio of these things in this
+what's the ratio of these things in this case it's like three it's like three
+case it's like three it's like three times bigger approximately you want this
+times bigger approximately you want this to be big if we were happy with the
+to be big if we were happy with the action so the trick is to just multiply
+action so the trick is to just multiply it what some number that tells us how
+it what some number that tells us how happy we are with the action so we have
+happy we are with the action so we have any question here yeah so how happy with
+any question here yeah so how happy with the action let's put this number let's
+the action let's put this number let's make sure that it it's negative when
+make sure that it it's negative when we're happy so it's gonna bring it down
+we're happy so it's gonna bring it down the ratio is going to go below one in
+the ratio is going to go below one in this case oh so that's like the force
+this case oh so that's like the force that we want okay we want to nudge theta
+that we want okay we want to nudge theta to pull this number up that should work
+to pull this number up that should work so how do we actually do this like you
+so how do we actually do this like you see the new probability is that it's a
+see the new probability is that it's a function of theta and the current action
+function of theta and the current action so and we want to nudge theta what does
+so and we want to nudge theta what does it mean to indulge data with
+it mean to indulge data with the trick to nudge things in machine
+the trick to nudge things in machine learning in every flight optimization
+learning in every flight optimization world if you know a little bit about
+world if you know a little bit about these kind of things it it means taking
+these kind of things it it means taking the derivative of the thing with respect
+the derivative of the thing with respect to the thing that you want to know so
+to the thing that you want to know so that's the slope of the thing with
+that's the slope of the thing with respect to the parameters theta so
+respect to the parameters theta so that's the big equation so what it means
+that's the big equation so what it means there we're going to update theta to go
+there we're going to update theta to go in the direction of the slope so that's
+in the direction of the slope so that's a big thing but that's it like that's
+a big thing but that's it like that's the big equation I wanted to get to so
+the big equation I wanted to get to so you see where 0.01 that's like a
+you see where 0.01 that's like a learning rate we can add the parameters
+learning rate we can add the parameters in this direction that should make the
+in this direction that should make the good actions more probable so yeah so
+good actions more probable so yeah so that's where we are now we need to
+that's where we are now we need to decide what how to decide if we're happy
+decide what how to decide if we're happy with an action or not and if you look
+with an action or not and if you look here they'd only theta that that appears
+here they'd only theta that that appears in this equation they are they're like
+in this equation they are they're like the the the other things are just
+the the the other things are just sampled there's no derivatives but this
+sampled there's no derivatives but this thing derivative with respect to theta
+thing derivative with respect to theta of a neural network that's what tensor
+of a neural network that's what tensor flow and by torch and all these things
+flow and by torch and all these things are good at that's what they do that's
+are good at that's what they do that's what deep learning is like it's to find
+what deep learning is like it's to find derivatives of things with respects to
+derivatives of things with respects to parameters of neural networks so that's
+parameters of neural networks so that's what we like
+what we like dual its Auto diff that means finding
+dual its Auto diff that means finding derivative is automatically and big
+derivative is automatically and big batches of that on GPU to go over super
+batches of that on GPU to go over super fast that's given for free with tensor
+fast that's given for free with tensor flow and pi torch and all these things
+flow and pi torch and all these things so the last little piece of the puzzle
+so the last little piece of the puzzle how to find good actions so yeah so
+how to find good actions so yeah so there's lots of things to think about
+there's lots of things to think about so let's look better our little cats and
+so let's look better our little cats and our little beaver there but let's look
+our little beaver there but let's look at one trajectory they're different
+at one trajectory they're different actions that's it all the little aids
+actions that's it all the little aids are different actions and you get
+are different actions and you get different rewards look at the little
+different rewards look at the little rewards you get a minus 30 there that
+rewards you get a minus 30 there that means that's bad and the 40 there that's
+means that's bad and the 40 there that's fun so it means probably that these
+fun so it means probably that these actions that led to get the good reward
+actions that led to get the good reward we're good and they're bad actions
+we're good and they're bad actions before the the the big bad reward those
+before the the the big bad reward those were bad actions
+were bad actions so so maybe one of these actions where
+so so maybe one of these actions where is the thing that causes a problem so
+is the thing that causes a problem so trying to decide which actions are
+trying to decide which actions are responsible for good and bad things that
+responsible for good and bad things that happen later in the future
+happen later in the future that's the credit assignment problem yes
+that's the credit assignment problem yes it feels like an easy problem when just
+it feels like an easy problem when just looking at it like this but there's like
+looking at it like this but there's like how far in the future should you look
+how far in the future should you look for the rewards to and how to decide
+for the rewards to and how to decide which actions caused the problems that's
+which actions caused the problems that's a hard problem and one easy way to think
+a hard problem and one easy way to think about it is to think about this question
+about it is to think about this question like do you prefer some money now or a
+like do you prefer some money now or a little bit more money but far in the
+little bit more money but far in the future maybe maybe you prefer a thousand
+future maybe maybe you prefer a thousand dollars now that's possible so that
+dollars now that's possible so that means that in your head you discounted
+means that in your head you discounted the rewards that are too far in the
+the rewards that are too far in the future with some discount factor that
+future with some discount factor that you have in your brain so let's say the
+you have in your brain so let's say the discount factor gamma this little Greek
+discount factor gamma this little Greek letter they're 0.9 we're going to scale
+letter they're 0.9 we're going to scale the future rewards with this number and
+the future rewards with this number and more and more scale down as you go far
+more and more scale down as you go far in the future so for example what's the
+in the future so for example what's the discounted return of this action that
+discounted return of this action that you made there so how would you compute
+you made there so how would you compute this like the idea is to compute it like
+this like the idea is to compute it like this so you get the first reward that
+this so you get the first reward that doesn't get discounted the second one in
+doesn't get discounted the second one in the future this minus 30 we're
+the future this minus 30 we're multiplying it with 0.9 and the next one
+multiplying it with 0.9 and the next one multiply it by 0.9 times 0.9 see whereas
+multiply it by 0.9 times 0.9 see whereas if you go further in further in the
+if you go further in further in the future I'm going to multiply it by a
+future I'm going to multiply it by a smaller and smaller number see to the
+smaller and smaller number see to the three here and continue to the four it
+three here and continue to the four it gives us this little equation for
+gives us this little equation for discounted return so that's why you're
+discounted return so that's why you're gonna see always this little thing there
+gonna see always this little thing there are some with gamma to the T so that's
+are some with gamma to the T so that's discounted return so from now when I say
+discounted return so from now when I say return it me is actually discounted
+return it me is actually discounted return so that solved this part for
+return so that solved this part for deciding which actions are responsible
+deciding which actions are responsible for which rewards and now let's say
+for which rewards and now let's say we're in a some state that looks a
+we're in a some state that looks a little bit the same let's say as 3 is
+little bit the same let's say as 3 is some state don't really care too much
+some state don't really care too much what it is let's say it's a state that
+what it is let's say it's a state that looks a little bit the same and with our
+looks a little bit the same and with our policy we did different
+policy we did different randomly with our stochastic policy with
+randomly with our stochastic policy with different actions you see actions are a
+different actions you see actions are a little bit different and we're trying to
+little bit different and we're trying to decide if we're happy with this specific
+decide if we're happy with this specific action that we made that at this point
+action that we made that at this point in our big trajectory trajectories so to
+in our big trajectory trajectories so to know if we're happy we're going to look
+know if we're happy we're going to look at what happened after compute the
+at what happened after compute the discounted return you see maybe was that
+discounted return you see maybe was that good like there's a minus 35 there so
+good like there's a minus 35 there so maybe we're not happy but we also need
+maybe we're not happy but we also need to look at the other ones and that's the
+to look at the other ones and that's the main idea of this slide if you look at
+main idea of this slide if you look at the other one there
+the other one there and the other one here that's even worse
+and the other one here that's even worse just big negative numbers there so it
+just big negative numbers there so it means we're actually happy with this
+means we're actually happy with this minus 35 was not too bad
+minus 35 was not too bad so it brings this intuition that what we
+so it brings this intuition that what we actually want to compute is the return
+actually want to compute is the return that we got minus the average return
+that we got minus the average return from this state so average return from
+from this state so average return from the state is an important concept like
+the state is an important concept like roboticist and everybody really focus on
+roboticist and everybody really focus on that a lot that's called the value
+that a lot that's called the value that's where every time some you're here
+that's where every time some you're here value or like reward to go or a cost to
+value or like reward to go or a cost to go if you're a little bit pessimistic
+go if you're a little bit pessimistic like roboticists so that's the value
+like roboticists so that's the value it's important and the trick is to
+it's important and the trick is to actually keep track of that with another
+actually keep track of that with another little neural network that we're going
+little neural network that we're going to try and train on the side and that's
+to try and train on the side and that's almost supervised learning with a moving
+almost supervised learning with a moving target but still a little bit supervised
+target but still a little bit supervised so it's kind of simple in a way because
+so it's kind of simple in a way because you can always compute the discounted
+you can always compute the discounted return that you get after some state and
+return that you get after some state and then train this neural network in a
+then train this neural network in a supervised way it's just you know the
+supervised way it's just you know the answer like and you just train this on
+answer like and you just train this on the side with your main policy network
+the side with your main policy network so some people call this the critic and
+so some people call this the critic and we have there are the real policy
+we have there are the real policy Network that we're going to actually
+Network that we're going to actually ship at run time when you want to test
+ship at run time when you want to test the thing you just need the actor you
+the thing you just need the actor you don't need a critic anymore
+don't need a critic anymore so that's where the actor critic ID
+so that's where the actor critic ID comes from and now as you train this you
+comes from and now as you train this you get a little dance like between the
+get a little dance like between the actor and the critic actor decides what
+actor and the critic actor decides what actions to
+actions to and the critic is like judging and
+and the critic is like judging and trying to guess how much discounted
+trying to guess how much discounted return you're going to get from this
+return you're going to get from this state with this policy so yes so that's
+state with this policy so yes so that's that's about it like you can plug this
+that's about it like you can plug this in our equation that we found a couple
+in our equation that we found a couple of slides ago plug this and there you
+of slides ago plug this and there you have it like this is the thing this is
+have it like this is the thing this is the equation I wanted to get to that's
+the equation I wanted to get to that's the policy gradient it's a beautiful
+the policy gradient it's a beautiful equation this is the thing that gets you
+equation this is the thing that gets you give more probability to the good
+give more probability to the good actions and this is surprisingly general
+actions and this is surprisingly general it's really surprising that it actually
+it's really surprising that it actually works because it feels really awkward
+works because it feels really awkward but you can actually solve vo games with
+but you can actually solve vo games with that you can solve robotics problems
+that you can solve robotics problems with that the Berkley people in open air
+with that the Berkley people in open air I people are really like this algorithm
+I people are really like this algorithm a lot and there's lots of variants for
+a lot and there's lots of variants for that here's the actual mat if you want
+that here's the actual mat if you want to read this and you'll see in the books
+to read this and you'll see in the books that's that's exactly what we talked
+that's that's exactly what we talked about but in more mathematical form and
+about but in more mathematical form and here's some code lots of implementations
+here's some code lots of implementations of that on the web you see everything we
+of that on the web you see everything we talked about this they're like the how
+talked about this they're like the how happy with actions the episodes if you
+happy with actions the episodes if you that's my suggestion if you want to
+that's my suggestion if you want to learn this because I think it's cool I
+learn this because I think it's cool I think you should everybody should try to
+think you should everybody should try to learn that if they can if they want I
+learn that if they can if they want I think the steps would be to arraign read
+think the steps would be to arraign read this book this book is really good
+this book this book is really good reinforcement learning by certain
+reinforcement learning by certain umberto and then watch this bootcamp
+umberto and then watch this bootcamp bunch of little videos on YouTube watch
+bunch of little videos on YouTube watch this and then if you want to run some
+this and then if you want to run some code start with this spinning up in deep
+code start with this spinning up in deep RL I do open AI guys that's a good place
+RL I do open AI guys that's a good place to start if you want to just try
+to start if you want to just try different algorithms see which one works
+different algorithms see which one works on your little environment that you want
+on your little environment that you want to try so yeah so that's what that's the
+to try so yeah so that's what that's the Dahle primer and now we can look at our
+Dahle primer and now we can look at our specific environment so our initial
+specific environment so our initial problem so the environment is everything
+problem so the environment is everything that is not the policy there's going to
+that is not the policy there's going to be lots of different pieces in our
+be lots of different pieces in our environment
+environment and but the one-liner is this or
+and but the one-liner is this or environment is a self-powered physical
+environment is a self-powered physical character that is rewarded when it
+character that is rewarded when it follows most imagining motion matching
+follows most imagining motion matching is is the thing that was made for
+is is the thing that was made for foreigner couple years ago the main idea
+foreigner couple years ago the main idea is to just you have a big pile of
+is to just you have a big pile of animation big database of animation and
+animation big database of animation and every frame we're going to find a little
+every frame we're going to find a little piece of mocap that fits your current
+piece of mocap that fits your current pose and then where you want to go so
+pose and then where you want to go so it's actually not too complicated so the
+it's actually not too complicated so the input would be just raw mocap some guy
+input would be just raw mocap some guy like here is a style very tired you see
+like here is a style very tired you see like the kind of detail you want to get
+like the kind of detail you want to get so you just have a guy randomly going on
+so you just have a guy randomly going on the mocap floor for a couple of minutes
+the mocap floor for a couple of minutes then you plug that there clean the game
+then you plug that there clean the game and the idea is yeah so every couple of
+and the idea is yeah so every couple of frames maybe you choose which little
+frames maybe you choose which little piece of animation to play you see all
+piece of animation to play you see all the choices you have there and that's
+the choices you have there and that's what it looks like at runtime like the
+what it looks like at runtime like the red arrow is me controlling the stick in
+red arrow is me controlling the stick in foreigner so there's more details on
+foreigner so there's more details on that there's another ddg talk for 2016
+that there's another ddg talk for 2016 so we see the blue path here is the
+so we see the blue path here is the currently playing piece of mocap and the
+currently playing piece of mocap and the bread path is a desired trajectory from
+bread path is a desired trajectory from the gameplay and you see that the blue
+the gameplay and you see that the blue paths right to match the red path you
+paths right to match the red path you see we jump everywhere in the the mocap
+see we jump everywhere in the the mocap all the time so to see the animation
+all the time so to see the animation switching the trick is to disable the
+switching the trick is to disable the animation blending so if I disable
+animation blending so if I disable blending you'll see switches all the
+blending you'll see switches all the time you see pops that's normal because
+time you see pops that's normal because with switch animation without blending
+with switch animation without blending see we don't even worry it until the
+see we don't even worry it until the step is finished we just switch when the
+step is finished we just switch when the input in the input switches so that's
+input in the input switches so that's the idea of motion matching and now the
+the idea of motion matching and now the goal is to follow this with a rag doll
+goal is to follow this with a rag doll that's self powered with motors without
+that's self powered with motors without cheating without god forces the gut
+cheating without god forces the gut forces are the forces that people use
+forces are the forces that people use some time but with rag dolls that attach
+some time but with rag dolls that attach suits you're bound to like world points
+suits you're bound to like world points that's not allowed and so yeah so yeah
+that's not allowed and so yeah so yeah the white guy is the motion matching guy
+the white guy is the motion matching guy he's randomly playing motion matching
+he's randomly playing motion matching and the blue guy is trying to follow you
+and the blue guy is trying to follow you see the reward signal at the top so at
+see the reward signal at the top so at the beginning of training he falls all
+the beginning of training he falls all the time it falls on his face all the
+the time it falls on his face all the time and then after a couple hours of
+time and then after a couple hours of training he starts to get better nice to
+training he starts to get better nice to follow the white guy a little bit better
+and at the end you see the white guy interactive animation that I control
+interactive animation that I control with the stakes there and the physically
+with the stakes there and the physically simulated guy there so you see the
+simulated guy there so you see the counter quality we're trying to get
+counter quality we're trying to get different moves can Crouch can walk
+different moves can Crouch can walk backward okay so so so that's the
+backward okay so so so that's the problem in the solution but now let's
+problem in the solution but now let's look at this so this is the big diagram
+look at this so this is the big diagram everything that's not the policy is the
+everything that's not the policy is the environment there's lots of arrows there
+environment there's lots of arrows there let's focus on this part here first you
+let's focus on this part here first you see that that's a state that we gave to
+see that that's a state that we gave to the policy see the two arrows there on
+the policy see the two arrows there on the left there's the motion matching
+the left there's the motion matching part that gives an animation state like
+part that gives an animation state like a kinematic State and on the right
+a kinematic State and on the right there's a physics engine that give that
+there's a physics engine that give that has a physical state for the physical
+has a physical state for the physical character we give both as a state to our
+character we give both as a state to our policy this is what a little looks like
+policy this is what a little looks like it's like lots of red lines there that's
+it's like lots of red lines there that's what the policy sees sees the the the
+what the policy sees sees the the the animation sees the the robot sees also
+animation sees the the robot sees also the future ground to help it a little
+the future ground to help it a little bit predict what's gonna happen you see
+bit predict what's gonna happen you see the white guy is actually doing the
+the white guy is actually doing the decision of going up because there's
+decision of going up because there's animations of going up and down there's
+animations of going up and down there's an inverse kinematics also on the white
+an inverse kinematics also on the white guy to help a little bit so the blue
+guy to help a little bit so the blue guide really just has to avoid falling
+and then the action the action in our case we decided to do the following the
+case we decided to do the following the action will be enough set from the
+action will be enough set from the reference animation from the white guy
+reference animation from the white guy so you see every frame we're gonna have
+so you see every frame we're gonna have little offsets in angles for a subset of
+little offsets in angles for a subset of joints we do not have this upset too
+joints we do not have this upset too to get the green guy you see we're gonna
+to get the green guy you see we're gonna add it to the animation stay so the
+add it to the animation stay so the green guy is what we're going to give
+green guy is what we're going to give the physics engine as a target pose for
+the physics engine as a target pose for the rag doll so it's a PD control target
+the rag doll so it's a PD control target for people that know what like
+for people that know what like proportional derivative control is so
+proportional derivative control is so we're gonna give that to the physics
+we're gonna give that to the physics engine and the physics engine will find
+engine and the physics engine will find the torques that are necessary to go to
+the torques that are necessary to go to this pose so this is what it looks like
+this pose so this is what it looks like see the way the green guy shakes that's
+see the way the green guy shakes that's the feedback the balance feedback that's
+the feedback the balance feedback that's deciding okay I need to tweak a little
+deciding okay I need to tweak a little bit whatever I going to put my foot to
+bit whatever I going to put my foot to avoid falling so that's what the network
+avoid falling so that's what the network learned to do and then the last little
+learned to do and then the last little bit is the reward when you compute the
+bit is the reward when you compute the reward just a single number we can
+reward just a single number we can subtract subtract the the physics and
+subtract subtract the the physics and animation and take the inverse of this
+animation and take the inverse of this like these little distances so the
+like these little distances so the reward will be a combination of many
+reward will be a combination of many things could be like trying to get the
+things could be like trying to get the correct velocity the correct pose and
+correct velocity the correct pose and avoid falling so it's gonna be multiple
+avoid falling so it's gonna be multiple little things not just and in the end it
+little things not just and in the end it goes to zero if the tracking is bad so
+goes to zero if the tracking is bad so you can devise different ways to compute
+you can devise different ways to compute the reward but basically it boys on to
+the reward but basically it boys on to trying to follow the enemy so if you
+trying to follow the enemy so if you you're not careful and you forget you
+you're not careful and you forget you forget to follow the style you could get
+forget to follow the style you could get this like this is what happens when you
+this like this is what happens when you forget some terms in the rewards like
+forget some terms in the rewards like forget the style you can get some weird
+forget the style you can get some weird things
+so yeah so we trained this multiple guys during the night takes a couple of hours
+during the night takes a couple of hours maybe 10 hours maybe 40 hours if you're
+maybe 10 hours maybe 40 hours if you're not lucky and the admissions are too
+not lucky and the admissions are too difficult see many guys at the same time
+difficult see many guys at the same time training this during the night and yeah
+training this during the night and yeah so for more details you can check out
+so for more details you can check out this paper that we got accepted at
+this paper that we got accepted at SIGGRAPH Asia last year with Kevin Berg
+SIGGRAPH Asia last year with Kevin Berg I mean student at McGill so read this
+I mean student at McGill so read this paper if you want and yeah so let's look
+paper if you want and yeah so let's look at this guy again because I want to go
+at this guy again because I want to go back to like the actual feeling that you
+back to like the actual feeling that you get when you see this guy
+get when you see this guy so you just met this little character
+so you just met this little character but you already care for him I think
+but you already care for him I think because he shares things with you like
+because he shares things with you like you have to deal with gravity in your
+you have to deal with gravity in your own life he has to deal with gravity so
+own life he has to deal with gravity so it makes makes you feel sad when you
+it makes makes you feel sad when you failed so maybe we should do something
+failed so maybe we should do something about it
+about it see the problem with this is that the
+see the problem with this is that the animation system is completely isolated
+animation system is completely isolated from physics so to get a get up like the
+from physics so to get a get up like the fall and get up if we have that in our
+fall and get up if we have that in our database to actually pick up the get up
+database to actually pick up the get up we need to feedback the physics inside
+we need to feedback the physics inside the kinematic part and that's the next
+the kinematic part and that's the next part and but that's just subject for
+part and but that's just subject for another talk maybe but the main idea is
+another talk maybe but the main idea is sometimes we would like to bootstrap the
+sometimes we would like to bootstrap the physics state inside the kinematic state
+physics state inside the kinematic state to find a pose at the beginning of a get
+to find a pose at the beginning of a get up that matches where the rag doll is
+up that matches where the rag doll is presently like that the current ragdoll
+presently like that the current ragdoll pose current robot pose so this is what
+pose current robot pose so this is what you saw there the white guy is going to
+you saw there the white guy is going to grab the physics guy in the correct pose
+grab the physics guy in the correct pose and so we get some sort of fall get up
+and so we get some sort of fall get up behavior so yeah
+behavior so yeah virtual torture of our little guy it's
+virtual torture of our little guy it's beautiful well that's not the end of it
+beautiful well that's not the end of it like there's lots of things to do it's
+like there's lots of things to do it's just the beginning I think it's very
+just the beginning I think it's very exciting I want to finish by saying as I
+exciting I want to finish by saying as I always say like this to me is the the
+always say like this to me is the the natural next step for video game
+natural next step for video game animation going from a animation
+animation going from a animation playback to actual virtual robotics that
+playback to actual virtual robotics that we could actually play our video games
+we could actually play our video games on real robot if but that would be
+on real robot if but that would be dangerous but yeah anyway so that's what
+dangerous but yeah anyway so that's what I prepared for you today thank you

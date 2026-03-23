@@ -1,0 +1,3 @@
+# Category:Pendants
+
+Category: Accessories

@@ -1,0 +1,456 @@
+hi everyone it's me Tim today I want to
+talk about common sources of programming
+frustration this is probably probably
+going to be a long video it's also me
+talking to programmers so while it may
+be of interest to non-game development
+programmers it's probably only
+academically interesting to any of the
+game development people who aren't
+programmers although I there are some
+things in here I think some production
+people should look at or I'm sorry just
+be aware of um because I got a couple
+production things to say at the end of
+the video but let me also say that this
+is not going to be the same video as the
+one I did on challenges facing
+programmers in game development that's
+more of a team related thing about you
+know the challenges of working with
+non-programmers this is more of things
+that will happen when you're programming
+that will frustrate you aggravate you
+throw you into a rage and pretty much
+sometimes put a roadblock in on
+development I'm going to talk about what
+they are the different ones that have
+happened and some maybe give you some
+ideas of how you
+can ameliorate these I don't think I can
+solve it but I think I can help
+ameliorate it so let's talk about a few
+things first let's talk about when
+you're using other people's source code
+this could be a game engine
+this could be a sound Library this could
+be the standard temp template Library
+you know
+STL eventually you're going to run
+into a method that doesn't work I'm not
+talking about a bugged method I'm
+talking about something that is entirely
+unimplemented and yet in their
+documentation there's it's implied that
+it's working now I know this has
+happened with some of the modern game
+engines and I'm I'm sure you have
+stories about it but this is not new
+this happened back on Arcanum we wanted
+to do some text
+processing in directex and AR Arcanum
+was 2D the text processing functions
+existed they worked in
+3D many of the pages implied they worked
+in 2D but then I found one that said
+this is not implemented yet it will be
+supported in a later revision of direct
+T I think it was aliasing text I don't
+remember I mean this is 20 years ago and
+my note wasn't clear on this let me just
+tell you something we worked on Arcanum
+for three years and that feature never
+got implemented in 2D directex I finally
+got a hold of someone there who said it
+wasn't being prioritized because
+everybody's going 3D so this is
+something we waited on for years that
+never that that function never got
+working so we eventually just did it
+ourselves or we used I think we used
+drop Shadows so it still looked good
+against all the different backgrounds so
+you have to be aware of that you will
+sometimes use third party software and
+some of the methods they provide that
+they expose in their apis do not work
+I'm not talking they're bugged I mean
+they literally are
+unimplemented so now let's talk about
+bugs not just your own but also in third
+party I've already mentioned in the
+Fallout 2 video by the way I will
+reference all these videos Below in the
+fall why I left Fallout 2 I talked about
+a memory overwrite which was entirely
+caused by you know the internal
+programming team and how we spent two
+weeks looking for that two very
+frustrating weeks so I'm not going to
+repeat that here what I am going to tell
+you about is another memory bug that we
+had early on I think this happened about
+a year into development no it had to be
+more than a year um because uh Christian
+Jones helped fix it so that would be a
+year and a half maybe a year and a half
+not quite two years into it it was this
+the compiler we're using was called
+watcom and we were using it because it
+had this really cool flat mode that let
+you access more than 64k of memory at
+once which me coming from Unix
+background I thought was an archaic
+limitation on Windows that I could only
+grab 64k blocks of memory so anyway
+watcom let you do a flat mode great full
+32-bit pointers love it we had we ran
+into a problem we started noticing
+memory overwrites and what was weird
+about them was we traced it into
+functions that were writing within the
+boundaries we set so let's say we had a
+block of memory a th000 bytes long we'd
+write 900 bytes into it and then we get
+a memory overwrite in another block of
+memory in another piece of code we
+finally traced it and it was it was a
+pain to do this we noticed that the
+blocks that were complaining about being
+overwritten had all been reall
+in memory you can Malik which is create
+a block free which is release it and
+reic realic says I want to take that
+block of memory I have and make it a
+little bit longer and if it can just add
+to the end that's great otherwise it has
+to find a new bigger block and copy your
+old data to the to the beginning of it
+so then you have the extra memory at the
+end we' re reall some blocks in Fallout
+and these were the ones that were
+reporting the
+errors so I sent an email to the Waton
+support email and they wrote back no
+it's almost certainly a bug actually no
+I don't even think they said almost they
+said it's got to be a bug in your code
+we know nothing about what you're
+talking about this kind of made me mad
+because I thought it was pretty obvious
+from our code what the problem is so I
+wrote a
+feline program the first two lines
+looped over and maled a thousand blocks
+the next three lines looped through
+those Malik blocks would re them to
+bigger sizes and then look to see if the
+react block conflicted with any of the
+other
+999 already created blocks and it just
+kept looping and looping Forever Until
+It finally saw one of them conflict and
+then it printed an error message and
+stopped let me tell you something you
+could run this program and it would
+never run for more than 20 seconds
+before it would stop and go this real
+real block includes part of a memory
+that was maled for for an earlier block
+of memory I sent this back to support
+and I said here's five lines of code
+either tell me where my bug is or admit
+that you have a bug in realic 48 hours
+later to their credit they said we have
+a bug in realic it'll be fixed in the
+next revision now two things I just want
+to make clear here they probably get
+thousands of support messages where the
+error is on the programmer using the
+compiler so they probably just thought
+it was another one of those programmers
+so I get why I got the initial feedback
+I was just a little this is wasting our
+time but also I'm going to talk later
+Chris Jones went in and saved the day by
+we ended up writing our own memory
+allocation routines and I'll talk about
+that at the end it's part of how you can
+solve some of these
+frustrations so the next thing I want to
+talk about is user
+interface I find user interface code to
+be some of the most painful and
+frustrating code I've ever written
+throughout my career it was a pain in
+the80s and I find it to be a pain in the
+2020s it's hard to exactly explain why
+other than it seems to be an enormous
+frustrating time sync with endless
+causes of bugs not just because of what
+I've already mentioned which is
+sometimes there will be a method that
+isn't implemented or a method that
+doesn't work the way exactly they
+describe it will work but for a third
+reason which is among
+UI um apis often if you want to do it
+exactly the way they describe it it's
+easy if you need a tiny change like I
+need that button to be transparent or I
+need that button to be non-rectangular
+oh my God it is like
+extracting teeth it becomes the most
+painful change and you could have an
+artist who's just like but I thought we
+agreed a year ago that we would have
+round buttons and you're like H it it's
+something that changes the schedule to I
+could have had this done in a day and
+now it's going to take me weeks take
+note production people is this something
+you could have
+predicted we'll talk about that later um
+now let's talk about changes to
+design um or just changes in general
+sometimes you will the designers will
+write a design for something system
+design a UI design narrow design
+something you're coded up and then they
+change their mind they haven't even run
+with what you've done in between when
+you coded it and it was being tested
+they went oh we've had to change our
+mind now that's really bad and Annoying
+It's like did couldn't you have thought
+of this before but let me tell you a
+second thing that happens too which is
+they write a design everybody looks at
+it and goes that's good you then code it
+then it's being tested and QA discovers
+issues with it these aren't bugs the
+code is a Flawless Recreation of the
+design the design itself self has a bug
+embedded in it so now the design has to
+change this isn't so bad you shouldn't
+get so upset about it it's it's it's not
+uncommon but it's not super common it
+happens is basically what I'm saying so
+you again have to change your code I'm
+sure a lot of programmers know where I'm
+getting at of this why this is
+frustrating lots of changes to code
+tends to lead to what's called spaghetti
+code when you wrote the code the first
+time it was really welld designed but
+then because the design changed for
+better for worse you had to go in and
+change things then you had to go and
+change things again and then there were
+bugs you had to go and change things
+again now the code looks pretty bad and
+at this point you may have a lead who's
+getting mad at you're like why did you
+write such horrible code you're like I
+didn't my code was a Flawless Gem and
+then things change now you could say
+well when you rewrite it you should have
+made it Flawless like um I'm often given
+like a day to fix this bug I didn't have
+time to rewrite the entire section of
+code so that will lead to frustration
+for programmers especially between
+programmers and Productions so now let
+me say why this is something I wanted
+production people to be aware of all
+those sources I talked about design
+changes bugs in your code bugs in third
+party code third party code
+unimplemented but documented um elements
+you user interface just user interface
+across the board these are things that
+lead to slowdowns in programming and
+then later on lead to Crunch and I'm a
+firm belief that there is no magic
+production wand that can foresee and fix
+all these things I've already done two
+videos on crunch please watch them both
+if you think I either don't know what
+I'm talking about or can't come up with
+counter examples because I can so what
+I'm saying is to production people and
+then to all the non-production people
+going it's Management's fault no buffers
+of time no fallback designs nothing of
+this can account for all of these things
+that will happen and even if you
+accounted for them some of them are just
+unavoidable they will happen and you're
+thinking well we're make buffers you
+probably can't unless you make such a
+big buffer that you run into the other
+problem I'm talking about where it's so
+cautious that you come up with a design
+and they say it will take two months to
+do this you're like you sure won't take
+two days two months because you're
+trying to account for all those things
+that might happen and often won't like
+the watcom error when
+watcom originally sent back I was like
+maybe they're right maybe it's our code
+there are two other games here that use
+watcom and they're not running into this
+problem well it was because it was in
+realic and they were they were just
+malaking and freeing they were grabbing
+blocks using them and and then letting
+them go we reall a block that's where
+the error was so that would not that's
+not possible to foresee nobody could
+have gone hey I'm going to put some
+buffer of time here in case your
+compiler is broken and by the way that's
+not as far-fetched as it sounds I've
+often seen compilers broken on the
+optimization Flags where you you have a
+perfectly running piece of code but it's
+kind of slow you turn on the compiler
+optimization and now it runs really fast
+and it's broken um a whole bunch of
+different things that can happen there
+I'm basically
+saying production can't account for all
+this they literally cannot so what is my
+solution I have three different
+suggestions on what you can do when you
+run into these frustrating programming
+situations these are all for programmers
+to deal with the first thing you can do
+is switch to something else for a while
+just jump to another piece of code go
+home go ride your bike go do something
+else for a while just don't have eyes on
+this piece of code you'll be surprised
+at how frequently you come back in a day
+or two look at the code and immediately
+go Oh there's the problem this used to
+happen all the time when I was in
+engineering school and some of my
+non-engineer non-computer science
+engineering schoolmates would have a
+programming problem and they couldn't
+see it it was like I it's a very simple
+Pascal program and they're like I don't
+understand
+and then I'd look at and go oh you're
+missing a semicolon at the end because
+you had to have a semicolon at the end
+of every uh Pascal line and they're like
+uh and the reason the compiler didn't
+see it is those compilers were somewhat
+primitive and with the lack of a
+semicolon meant they went to the next
+line and possibly the next few lines and
+the the next line happened to be a comet
+and then two lines down he finally had a
+semicolon and so it grouped all those
+lines together tried to process it into
+something and then came up with some
+obscure like I don't know a method to
+call for this and it's like no it says
+you're missing a semicolon it's hard to
+see sometimes you know just going away
+for a while but it brings in my other
+point which is sometimes bringing in
+another pair of eyes can massively help
+you out um I'm not a big fan of pair
+programming which is two programmers
+working on a piece of code to produce it
+but I'm a huge fan of pair to bugging
+which is if you get stuck trying to
+figure out what the bug is in your code
+sometimes bringing another programmer
+and saying watch what happens when I
+step through this sometimes out other
+program will go oh something just
+stomped on your memory oh oh oh you are
+this isn't the method you want to call
+because it's not it doesn't check for
+capitalization in strings or something
+like that sometimes they just
+immediately see it so if switching to
+something else or getting another
+programmer to look at it with you isn't
+something you can do then sometimes you
+just have to rewrite it and that's the
+third solution just rewrite the thing
+but when you rewrite it don't rewrite it
+the same way use a different algorithm
+use a different set of data structures
+when we ran into that realic problem
+from watcom and we did not know how long
+it was going to take them to get back to
+us Chris Jones the other lead programmer
+on Fallout pointed out that we were also
+having fragmentation issues in Doss
+where we were having between all of our
+malx and freeze and realex we were
+having memory all over the place and he
+suggested rewriting our memory ma
+allocation system to do two things one
+we Malik one giant block when the game
+started and that's all we used and all
+the malx reic and frees happened within
+that block and they all happen through
+handles instead of pointers a handle is
+a pointer that you have to say when you
+go to use it I'm locking you and then
+you get a pointer you can use and then
+when you're done you say I'm unlocking
+you the cool thing about that is at any
+point you can say try to defragment
+memory and any pointer that isn't locked
+any block that isn't locked can be moved
+around and you can try to coales all
+your memory into one spot and even if
+you have holes in memory you can coales
+them into a big block that maybe can be
+used to get give you memory
+Chris did that even before I think
+watcom fixed realic not only did that
+avoid the realic problem we were having
+with our compiler but it saved the Doss
+version of Fallout which was having
+massive fragmentation issues I mentioned
+that I think in my Fallout timeline
+video
+so here's what I want you to get out of
+this there are if you're a programmer
+whether you're in Pro uh game
+development or lot you're going to run
+through a lot of these frustrating
+things they just happen I also think
+they're unavoidable they're
+unforeseeable sometimes except maybe oh
+I've got UI I'm going to quadruple my
+time estimate because UI always is a
+Time sync but for a lot of the other
+ones you could double it or whatever and
+you're still going to run into things
+you absolutely did not
+foresee the only solutions I have is
+jump to something else bring someone
+else in to help you debug it or just
+rewrite it from scratch in a whole new
+way these I found sometimes I could
+rewrite it faster than it would take me
+to deg
+so I'm hoping these are things that can
+help you and also for other people make
+you understand why sometimes crunch
+happens not because you have a bad team
+but unforeseeable things can happen it's
+game development it's half art it's not
+all science so I hope this helps you
+programmers and production people

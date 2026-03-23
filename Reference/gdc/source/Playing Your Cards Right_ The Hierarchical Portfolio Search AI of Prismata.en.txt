@@ -1,0 +1,740 @@
+[Music] everyone so I'm Dave Churchill today
+everyone so I'm Dave Churchill today I'll be talking about the hierarchical
+I'll be talking about the hierarchical portfolio search system that I created
+portfolio search system that I created to make the AI for Prisma da it's a
+to make the AI for Prisma da it's a complex name but that was just to sell
+complex name but that was just to sell the paper it's really simple I promise
+the paper it's really simple I promise so I made this game with loon arc
+so I made this game with loon arc studios but now I'm a faculty member in
+studios but now I'm a faculty member in the computer science department at
+the computer science department at Normal University in Newfoundland which
+Normal University in Newfoundland which is the easternmost Rock in North America
+is the easternmost Rock in North America so Prizmo des prés mada is a hybrid
+so Prizmo des prés mada is a hybrid strategy game that we've been working on
+strategy game that we've been working on two-player game alternating turns you
+two-player game alternating turns you can think of it as sort of hearthstone
+can think of it as sort of hearthstone or Magic the Gathering meets Starcraft
+or Magic the Gathering meets Starcraft so it's a sort of it's a card game
+so it's a sort of it's a card game without cards and it's a real-time
+without cards and it's a real-time strategy game without the real-time so
+strategy game without the real-time so it's a really interesting strategic game
+it's a really interesting strategic game so before I get into the AI system for
+so before I get into the AI system for the game I'm gonna explain like just
+the game I'm gonna explain like just some basic properties about the game so
+some basic properties about the game so the game has two players here we have
+the game has two players here we have the AI up on the top and the player
+the AI up on the top and the player who's me down on the bottom and it's
+who's me down on the bottom and it's alternating turns so that means I'll
+alternating turns so that means I'll take my complete turn and then the
+take my complete turn and then the opponent will take their complete turn
+so on the bottom half of the screen you see my unit's player ones units and on
+see my unit's player ones units and on the top half of the screen you see
+the top half of the screen you see player two's units okay also each player
+player two's units okay also each player has a certain number of resources so
+has a certain number of resources so there are five different resources in
+there are five different resources in the game each of these can purchase
+the game each of these can purchase certain number of units so certain
+certain number of units so certain technologies can only be purchased by
+technologies can only be purchased by certain resources each player has their
+certain resources each player has their own resource pool many of your units can
+own resource pool many of your units can be clicked to activate abilities so for
+be clicked to activate abilities so for example here I have the drone unit which
+example here I have the drone unit which is sort of a worker type unit with an
+is sort of a worker type unit with an RTS flavor and when I click on the drone
+RTS flavor and when I click on the drone unit I get some gold
+unit I get some gold so each drone click gives me a gold and
+so each drone click gives me a gold and each unit can only be clicked once per
+each unit can only be clicked once per turn so once I have some resources you
+turn so once I have some resources you see over here on the left side is some
+see over here on the left side is some purchase of
+purchase of all units so unlike most strategy card
+all units so unlike most strategy card games there's no hands or decks in
+games there's no hands or decks in Prisma de instead it's it's more like
+Prisma de instead it's it's more like Dominion if you've ever played the
+Dominion if you've ever played the Dominion card game where you have a
+Dominion card game where you have a shared pool of cards that you can
+shared pool of cards that you can purchase from which are randomized at
+purchase from which are randomized at the start of the game so unlike an AI
+the start of the game so unlike an AI for a game maybe like Starcraft where we
+for a game maybe like Starcraft where we could hard-code some build orders or
+could hard-code some build orders or something into the AI system the
+something into the AI system the starting state of this game is actually
+starting state of this game is actually randomized which leads to a lot of
+randomized which leads to a lot of replayability
+replayability but it's actually really difficult to
+but it's actually really difficult to build an AI when you're starting states
+build an AI when you're starting states are randomized so in the game we click
+are randomized so in the game we click to purchase some units and then these
+to purchase some units and then these units appear directly on the battlefield
+units appear directly on the battlefield so they don't go into our hand they're
+so they don't go into our hand they're right on the battlefield and then we can
+right on the battlefield and then we can attack with our units and defend with
+attack with our units and defend with some of our units and then we pass the
+some of our units and then we pass the turn to our opponent so that's basically
+turn to our opponent so that's basically what a turn is in Prisma de and knowing
+what a turn is in Prisma de and knowing the the basic rules of the game helps
+the the basic rules of the game helps with explaining the AI system that we're
+with explaining the AI system that we're going to create for it so so two really
+going to create for it so so two really interesting things about prism ATO which
+interesting things about prism ATO which are different than many other strategy
+are different than many other strategy games is that prasada is perfect
+games is that prasada is perfect information which means that there's
+information which means that there's nothing hidden by either players so I
+nothing hidden by either players so I like I said there's no fog of war
+like I said there's no fog of war there's no decks there's there's no
+there's no decks there's there's no cards in hand also it's completely
+cards in hand also it's completely deterministic and so what this means is
+deterministic and so what this means is there's no randomness in the gameplay so
+there's no randomness in the gameplay so I'm not gonna lay a Ragnaros and hope it
+I'm not gonna lay a Ragnaros and hope it hits my opponents face you know instead
+hits my opponents face you know instead of my own everything I do in the game is
+of my own everything I do in the game is there's no randomness beyond the initial
+there's no randomness beyond the initial starting state which is random
+starting state which is random randomized so excuse me some of the AI
+randomized so excuse me some of the AI design goals that we had in Prisma dough
+design goals that we had in Prisma dough you know before you you write the AI
+you know before you you write the AI system you should have some goals in
+system you should have some goals in mind
+mind so the first and most important was that
+so the first and most important was that the game has some complex rules and we
+the game has some complex rules and we wanted to create a really good new
+wanted to create a really good new player tutorial and so the main point of
+player tutorial and so the main point of the AI was to sort of transition people
+the AI was to sort of transition people through the rules of the game and make a
+through the rules of the game and make a really nice new user experience for the
+really nice new user experience for the game secondary to that was to have an AI
+game secondary to that was to have an AI that is strong
+that is strong enough so that it can pose a challenge
+enough so that it can pose a challenge against experienced players so we have
+against experienced players so we have some experienced players they want to
+some experienced players they want to practice new strategies or build orders
+practice new strategies or build orders etc and maybe you know their friends
+etc and maybe you know their friends aren't online and they don't want to
+aren't online and they don't want to play a ranked ladder right now so they
+play a ranked ladder right now so they want to be able to practice against an
+want to be able to practice against an opponent that's good enough to put up
+opponent that's good enough to put up some sort of fight next also is a we
+some sort of fight next also is a we just want an enjoyable single-player
+just want an enjoyable single-player experience right so we have one have
+experience right so we have one have some replay value we don't want the AI
+some replay value we don't want the AI to do the same thing every single time
+to do the same thing every single time you play against it and finally we want
+you play against it and finally we want as modular a design as possible for a
+as modular a design as possible for a number of reasons so the first is we'd
+number of reasons so the first is we'd like to have different AI difficulty
+like to have different AI difficulty settings so we want an easy version of
+settings so we want an easy version of the of the AI a really hard version of
+the of the AI a really hard version of the AI and a bunch of things in between
+the AI and a bunch of things in between and also because this is a competitive
+and also because this is a competitive strategy online video game unlike a game
+strategy online video game unlike a game like chess which hasn't been balanced
+like chess which hasn't been balanced patched since like 940 AD this game is
+patched since like 940 AD this game is going to be constantly changing as users
+going to be constantly changing as users find like overpowered units or new build
+find like overpowered units or new build orders and so the AI system we don't
+orders and so the AI system we don't want to have to recode the whole thing
+want to have to recode the whole thing if a unit changes right because if we
+if a unit changes right because if we had a hard-coded build order and now the
+had a hard-coded build order and now the cost changes we would have to reprogram
+cost changes we would have to reprogram the whole AI and really we really don't
+the whole AI and really we really don't want that so coming from academia I
+want that so coming from academia I naively said ok let's try and use some
+naively said ok let's try and use some search so you know deep blue played
+search so you know deep blue played chess really well and some Monte Carlo
+chess really well and some Monte Carlo tree search systems have played the game
+tree search systems have played the game of go really well and so let's take this
+of go really well and so let's take this huge academic literature of really smart
+huge academic literature of really smart algorithms and try and apply it to a
+algorithms and try and apply it to a retail video game and see how that works
+retail video game and see how that works out so why is using heuristic search
+out so why is using heuristic search difficult for strategy games there's a
+difficult for strategy games there's a number of reasons I'll just go over a
+number of reasons I'll just go over a couple really quickly so first of all
+couple really quickly so first of all it's hugely complex so there's a really
+it's hugely complex so there's a really large number of states that are possible
+large number of states that are possible in this game for example units can have
+in this game for example units can have different numbers of hit points status
+different numbers of hit points status effects they can have different
+effects they can have different abilities build times etc and all this
+abilities build times etc and all this leads to a gigantic state space
+leads to a gigantic state space so we can't just search every possible
+so we can't just search every possible state in the game because as you may
+state in the game because as you may know there's about 10 to the 80 atoms in
+know there's about 10 to the 80 atoms in the universe so even if each of those
+the universe so even if each of those we're doing a billion calculations a
+we're doing a billion calculations a second
+second you know we'd never solve this also and
+you know we'd never solve this also and probably more importantly is the
+probably more importantly is the multi-unit control problem that a lot of
+multi-unit control problem that a lot of strategy games face so in a game like
+strategy games face so in a game like chess we're only using moving one piece
+chess we're only using moving one piece at a time so we may only need to
+at a time so we may only need to consider maybe 40 different moves that
+consider maybe 40 different moves that we can do at any time but in a strategy
+we can do at any time but in a strategy game a player move is actually a
+game a player move is actually a combination of mu of actions for each
+combination of mu of actions for each unit that the player controls so in a
+unit that the player controls so in a strategy game if we have u units and a
+strategy game if we have u units and a actions per unit we actually have an
+actions per unit we actually have an exponential number of actions at any
+exponential number of actions at any given time that we have to consider so
+given time that we have to consider so we're trying to do search we have some
+we're trying to do search we have some high-level search algorithm but we have
+high-level search algorithm but we have so many actions that we can't even
+so many actions that we can't even escape depth one of this alpha beta
+escape depth one of this alpha beta search for example and so that's no good
+search for example and so that's no good so we need to reduce the number of
+so we need to reduce the number of actions somehow but how do we do this
+actions somehow but how do we do this people have been trying to do this for a
+people have been trying to do this for a really long time and so my you know
+really long time and so my you know pseudo answer to this question unlike
+pseudo answer to this question unlike Dave I don't claim to be solidly solving
+Dave I don't claim to be solidly solving all of your np-hard problems but I can
+all of your np-hard problems but I can certainly help so the idea of
+certainly help so the idea of hierarchical portfolio search I'll call
+hierarchical portfolio search I'll call it HPS is a bit of a mouthful is just
+it HPS is a bit of a mouthful is just two steps so first we instead of
+two steps so first we instead of searching over an exponential number of
+searching over an exponential number of moves we're going to generate a smaller
+moves we're going to generate a smaller subset of hopefully intelligent moves
+subset of hopefully intelligent moves using what I'll describe in the future
+using what I'll describe in the future which is a portfolio and then we'll
+which is a portfolio and then we'll apply some high-level search algorithm
+apply some high-level search algorithm to those subsets of moves that we've
+to those subsets of moves that we've generated
+generated rather than over everything so what are
+rather than over everything so what are the components of this system so first
+the components of this system so first of all we need a game state right so
+of all we need a game state right so this is the current state of the game
+this is the current state of the game that we're trying to decide on a move
+that we're trying to decide on a move for for the AI we have some actions
+for for the AI we have some actions which in Prisma da are clicking a unit
+which in Prisma da are clicking a unit for example or purchasing a unit and
+for example or purchasing a unit and Starcraft for example you'd have you
+Starcraft for example you'd have you know movement of a unit or building or
+know movement of a unit or building or training a unit etc and then we have a
+training a unit etc and then we have a move which I'm describing as this is the
+move which I'm describing as this is the a the thing that AI will do to complete
+a the thing that AI will do to complete its whole turn and so a move here
+its whole turn and so a move here an ordered sequence of actions so click
+an ordered sequence of actions so click this unit click this unit click this
+this unit click this unit click this unit and our goal here is to pass in a
+unit and our goal here is to pass in a game state to our AI and it will spit
+game state to our AI and it will spit out a move that it should do and
+out a move that it should do and hopefully that move will be good to
+hopefully that move will be good to other components of HP s first we have
+other components of HP s first we have this a player function I'm going to call
+this a player function I'm going to call it and the player function is
+it and the player function is essentially doing all the logic of the
+essentially doing all the logic of the AI system so this player function it
+AI system so this player function it takes in a state s it performs the move
+takes in a state s it performs the move decision logic and it returns the move
+decision logic and it returns the move that was that it thinks should should do
+that was that it thinks should should do at that state and the key part here is
+at that state and the key part here is that a lot of a lot of AI systems have
+that a lot of a lot of AI systems have this player function but we're in
+this player function but we're in addition to the player function we have
+addition to the player function we have what I call a partial player function so
+what I call a partial player function so the difference between a partial player
+the difference between a partial player is that it will generate a tactical move
+is that it will generate a tactical move for a specific phase of the game or for
+for a specific phase of the game or for a specific type of unit in the game so
+a specific type of unit in the game so you as the game designer if you want to
+you as the game designer if you want to implement HPS are going to technically
+implement HPS are going to technically decompose your game somehow and I'll
+decompose your game somehow and I'll give some examples of that
+give some examples of that so in Prisma da the game has a number of
+so in Prisma da the game has a number of phases to it if you've played a lot of
+phases to it if you've played a lot of strategic card games like Magic the
+strategic card games like Magic the Gathering has an untapped you draw cards
+Gathering has an untapped you draw cards you have a main phase in Prisma da you
+you have a main phase in Prisma da you have a defensive phase where you assign
+have a defensive phase where you assign damage to units in order to block the
+damage to units in order to block the damage you have an ability phase where
+damage you have an ability phase where you click your units you have a
+you click your units you have a purchasing phase where you buy new units
+purchasing phase where you buy new units and you have a breaching phase where you
+and you have a breaching phase where you assigned damage to your opponent's units
+assigned damage to your opponent's units so the names of these aren't super
+so the names of these aren't super important but the partial players here
+important but the partial players here are tactical sub algorithms which
+are tactical sub algorithms which generate moves for individual phases so
+generate moves for individual phases so if you look under defense here for
+if you look under defense here for example I have two partial players that
+example I have two partial players that play the defense phase of pres mata one
+play the defense phase of pres mata one of them might be some optimization
+of them might be some optimization algorithm that says try to assign damage
+algorithm that says try to assign damage to our blockers that minimizes the
+to our blockers that minimizes the resource cost loss after my damage is
+resource cost loss after my damage is done or another one might be assigned
+done or another one might be assigned damage to my blockers such that I save
+damage to my blockers such that I save the most attackers for the next turn
+the most attackers for the next turn similarly an ability partial
+similarly an ability partial player may say just attack with
+player may say just attack with everything or leave back the most
+everything or leave back the most blockers that I can so what you do is
+blockers that I can so what you do is you create this collection of tactical
+you create this collection of tactical algorithms and this is the portfolio
+algorithms and this is the portfolio that I was talking about ok so then from
+that I was talking about ok so then from this portfolio a player move that we're
+this portfolio a player move that we're interested in the AI doing for a turn is
+interested in the AI doing for a turn is just one selection from each of those
+just one selection from each of those decompositions so you take one one
+decompositions so you take one one player a partial player from the defense
+player a partial player from the defense one from the ability one from the buy
+one from the ability one from the buy and one from breach and this is a player
+and one from breach and this is a player move from the turn you just concatenate
+move from the turn you just concatenate those moves what about other games so
+those moves what about other games so let's say we're talking about real time
+let's say we're talking about real time strategy games so you can also create
+strategy games so you can also create portfolios based on the unit type for
+portfolios based on the unit type for example so again if I'm playing a game
+example so again if I'm playing a game like Starcraft I have a number of
+like Starcraft I have a number of different unit types that are really
+different unit types that are really good at specific parts of the game so my
+good at specific parts of the game so my dragoon unit here is a ranged unit so I
+dragoon unit here is a ranged unit so I might have tactical algorithms like
+might have tactical algorithms like attack the closest thing or since it's a
+attack the closest thing or since it's a relatively fast and long ranged unit I
+relatively fast and long ranged unit I could say kite the enemy so attack the
+could say kite the enemy so attack the closest thing and then back up or maybe
+closest thing and then back up or maybe I just say run away so I have a number
+I just say run away so I have a number of different tactical algorithms for
+of different tactical algorithms for each of the unit types in the game
+each of the unit types in the game similarly if you're playing something
+similarly if you're playing something like League of Legends or another MOBA
+like League of Legends or another MOBA game you could have these algorithms on
+game you could have these algorithms on a champion by champion basis ok and you
+a champion by champion basis ok and you can also reuse them between champions
+can also reuse them between champions like I could have the same the same
+like I could have the same the same script doing attack closest for the drew
+script doing attack closest for the drew for the dragoons or the tanks or the
+for the dragoons or the tanks or the muta lists etc and again a player move
+muta lists etc and again a player move for a turn is just a selection of one of
+for a turn is just a selection of one of these for each of the unit types so a
+these for each of the unit types so a really good takeaway here is that you
+really good takeaway here is that you can use existing scripts or algorithms
+can use existing scripts or algorithms to generate a portfolio so if you're
+to generate a portfolio so if you're saying Oh Dave we're not going to
+saying Oh Dave we're not going to rewrite our whole AI system just because
+rewrite our whole AI system just because you say it's good well if you have a
+you say it's good well if you have a bunch of stuff already in place you can
+bunch of stuff already in place you can just drop search on top of all that and
+just drop search on top of all that and hopefully make it more intelligent and
+hopefully make it more intelligent and this is one way of doing that so how do
+this is one way of doing that so how do we tie everything together
+we tie everything together so the HPS algorithm you're going to
+so the HPS algorithm you're going to decide on
+decide on three things so you have a portfolio
+three things so you have a portfolio that you've decided on which is you know
+that you've decided on which is you know some again some technical decomposition
+some again some technical decomposition within your game you have a game state
+within your game you have a game state and you have a high level search
+and you have a high level search algorithm so again what's going to
+algorithm so again what's going to happen is we're going to first generate
+happen is we're going to first generate the moves using the portfolio and then
+the moves using the portfolio and then apply the high-level search to that and
+apply the high-level search to that and so the real I guess novelty of HPS is in
+so the real I guess novelty of HPS is in the move generation so I'm not going to
+the move generation so I'm not going to go into the details here of any
+go into the details here of any particular high-level search algorithm
+particular high-level search algorithm there are you know you could use Monte
+there are you know you could use Monte Carlo tree search or alpha beta or a
+Carlo tree search or alpha beta or a greedy search etc I'm just going to go
+greedy search etc I'm just going to go into the to the HPS specific stuff so
+into the to the HPS specific stuff so for example in Prisma de how are we
+for example in Prisma de how are we doing the move generation using this
+doing the move generation using this portfolio so this is a sample of a
+portfolio so this is a sample of a portfolio that we're using in Prizmo de
+portfolio that we're using in Prizmo de which you know myself and the designers
+which you know myself and the designers collaborate and come up with a set of
+collaborate and come up with a set of behaviors so we may have a lot of
+behaviors so we may have a lot of different behaviors for purchasing cards
+different behaviors for purchasing cards so for example we may say okay buy the
+so for example we may say okay buy the most attack you can on this turn or buy
+most attack you can on this turn or buy the most defense so what you do is you
+the most defense so what you do is you create a portfolio that is really broad
+create a portfolio that is really broad so it can do everything that you would
+so it can do everything that you would want it to do it can be aggressive it
+want it to do it can be aggressive it can be economic it can be defensive and
+can be economic it can be defensive and then what we do is the way we're going
+then what we do is the way we're going to generate moves from this is to take
+to generate moves from this is to take all the possible permutations of this
+all the possible permutations of this list okay so for example here with this
+list okay so for example here with this portfolio the first move I'll generate
+portfolio the first move I'll generate is just the concatenation of all the
+is just the concatenation of all the first elements in this set the second
+first elements in this set the second move is this one then the third move the
+move is this one then the third move the fourth move etc and so we're just taking
+fourth move etc and so we're just taking all possible permutations of these and
+all possible permutations of these and then we use these moves as the moves
+then we use these moves as the moves that the high-level search is going to
+that the high-level search is going to search over okay so for example back
+search over okay so for example back here when I had this portfolio with two
+here when I had this portfolio with two times three times four times two
+times three times four times two what's that two times three six six
+what's that two times three six six times we had
+times we had 48 so here we've reduced the branching
+48 so here we've reduced the branching factor of our search from possibly
+factor of our search from possibly millions down to 48
+millions down to 48 okay now the optimal move may not be a
+okay now the optimal move may not be a part of this 48 but hey at least you're
+part of this 48 but hey at least you're doing something right and at least the
+doing something right and at least the different types of behaviors that you
+different types of behaviors that you want are being represented here and like
+want are being represented here and like I said before you can use any high-level
+I said before you can use any high-level search algorithm you want
+search algorithm you want so in Prisma da we use Monte Carlo tree
+so in Prisma da we use Monte Carlo tree search we use alpha beta and we also use
+search we use alpha beta and we also use random selection so and sometimes maybe
+random selection so and sometimes maybe the easier ai you you don't want to
+the easier ai you you don't want to spend time on search you just want to
+spend time on search you just want to select a random move other possibilities
+select a random move other possibilities you could do maybe you don't have time
+you could do maybe you don't have time for search so you could do something
+for search so you could do something like hill climbing or if you're really
+like hill climbing or if you're really cool you could use a genetic algorithm
+cool you could use a genetic algorithm or you know you can use machine learning
+or you know you can use machine learning or reinforcement learning the choice is
+or reinforcement learning the choice is up to you
+up to you so whatever really cool state-of-the-art
+so whatever really cool state-of-the-art algorithm you want to put on top of this
+algorithm you want to put on top of this you can so another one of our goals was
+you can so another one of our goals was modular design because we really wanted
+modular design because we really wanted to have a lot of different AI
+to have a lot of different AI difficulties but with if you're using
+difficulties but with if you're using something like a behavior tree it may be
+something like a behavior tree it may be it's hard to sort of tune that to be
+it's hard to sort of tune that to be easier or more difficult but the system
+easier or more difficult but the system we have for Prisma is really really
+we have for Prisma is really really modular and really easy to create
+modular and really easy to create different AI settings so this is the
+different AI settings so this is the portfolio that we had for prism otta and
+portfolio that we had for prism otta and the high level search algorithm that we
+the high level search algorithm that we used for the hardest difficulty setting
+used for the hardest difficulty setting in the game was a Monte Carlo tree
+in the game was a Monte Carlo tree search okay so we gave this Monte Carlo
+search okay so we gave this Monte Carlo tree search three or seven seconds you
+tree search three or seven seconds you can change the settings but just imagine
+can change the settings but just imagine a three second Monte Carlo tree search
+a three second Monte Carlo tree search where the AI starts thinking and three
+where the AI starts thinking and three seconds later it gives you a move now
+seconds later it gives you a move now that's a long time and we were actually
+that's a long time and we were actually worried initially that users wouldn't
+worried initially that users wouldn't want to wait three seconds to get a move
+want to wait three seconds to get a move back but almost immediately we had
+back but almost immediately we had feedback coming in saying can I turn the
+feedback coming in saying can I turn the slider up to a minute
+slider up to a minute like I don't care how long it takes I
+like I don't care how long it takes I just want the AI to be as good as
+just want the AI to be as good as possible and of course you know this is
+possible and of course you know this is possible in a turn-based strategy game
+possible in a turn-based strategy game it may not be possible in a real-time
+it may not be possible in a real-time strategy game to
+strategy game to at this time but if you do have that
+at this time but if you do have that luxury then you can give it as much time
+luxury then you can give it as much time as you want and hopefully it gets better
+as you want and hopefully it gets better so one difficulty down from that was the
+so one difficulty down from that was the expert bot we called it which just did a
+expert bot we called it which just did a depth to alpha beta search so it looked
+depth to alpha beta search so it looked maybe you know 200 moves to depth into
+maybe you know 200 moves to depth into the future and then returned something
+the future and then returned something so rather than wait for three seconds
+so rather than wait for three seconds the expert bot returns a move almost
+the expert bot returns a move almost instantaneously but it's still it's
+instantaneously but it's still it's still doing search right so it's still
+still doing search right so it's still saying for whatever I can do and then
+saying for whatever I can do and then whatever you can do will do minimax in
+whatever you can do will do minimax in there and return something intelligent
+there and return something intelligent the medium AI instead of doing search
+the medium AI instead of doing search here it just returns a random one of the
+here it just returns a random one of the random permutations and so even though
+random permutations and so even though it's random it's not a random move it's
+it's random it's not a random move it's random from within
+random from within hopefully intelligent things so it may
+hopefully intelligent things so it may make mistakes sometimes but that's what
+make mistakes sometimes but that's what we want for a medium difficulty and the
+we want for a medium difficulty and the easy bot we just took a lot of these
+easy bot we just took a lot of these tactical algorithms out so for example
+tactical algorithms out so for example the the hardest AI will have like
+the the hardest AI will have like solvers running like knapsack solvers
+solvers running like knapsack solvers trying to minimize the loss when it's
+trying to minimize the loss when it's defending but the easy but we'll just
+defending but the easy but we'll just say just block from left to right with
+say just block from left to right with all of my units right and so you can
+all of my units right and so you can plug in these tactical algorithms and
+plug in these tactical algorithms and make different difficulty settings just
+make different difficulty settings just with these different building blocks and
+with these different building blocks and the last difficulty that we have is
+the last difficulty that we have is called a pacifist bot where we wanted
+called a pacifist bot where we wanted something to play we wanted it to play
+something to play we wanted it to play really well but we didn't want it to
+really well but we didn't want it to ever attack we just wanted something for
+ever attack we just wanted something for users to be able to sort of beat up on
+users to be able to sort of beat up on and feel really special and so it has
+and feel really special and so it has this it has the same portfolio as our
+this it has the same portfolio as our hardest difficulty except it never
+hardest difficulty except it never attacks and that's it so you just plug
+attacks and that's it so you just plug in the don't attack tactical algorithm
+in the don't attack tactical algorithm instead of all the different attacking
+instead of all the different attacking ones you were using before so what are
+ones you were using before so what are some of the benefits of this system so
+some of the benefits of this system so the really big benefit here is that
+the really big benefit here is that search adapts to dynamic scenarios okay
+search adapts to dynamic scenarios okay so your AI when you're using search it
+so your AI when you're using search it can do things like rush your opponent
+can do things like rush your opponent really aggressively it can do economic
+really aggressively it can do economic builds it can do defensive and you
+builds it can do defensive and you have to hard-code any of this like based
+have to hard-code any of this like based on the units that are in our sets so if
+on the units that are in our sets so if there's a lot of aggressive units in the
+there's a lot of aggressive units in the set the AI you'll see it actually start
+set the AI you'll see it actually start rushing the opponent or if there's a
+rushing the opponent or if there's a bunch of like huge defenders it will
+bunch of like huge defenders it will take a more economic stance and this is
+take a more economic stance and this is all just comes out of the search also
+all just comes out of the search also something that I've learned from
+something that I've learned from watching these sessions up here is that
+watching these sessions up here is that emergent behavior is scary designers do
+emergent behavior is scary designers do not like emergent behavior because for
+not like emergent behavior because for example I think one example someone said
+example I think one example someone said was they had some sort of dynamic you
+was they had some sort of dynamic you know search based system for a
+know search based system for a first-person shooter and the AI ended up
+first-person shooter and the AI ended up like doing a backflip and throwing organ
+like doing a backflip and throwing organ Aid which bounced off four walls and
+Aid which bounced off four walls and perfectly hit the guy in the face right
+perfectly hit the guy in the face right and it just feels unfair and yes it was
+and it just feels unfair and yes it was intelligent but the designer didn't want
+intelligent but the designer didn't want that to happen right and so with HP s
+that to happen right and so with HP s you can easily take those sort of things
+you can easily take those sort of things out of the game right so you can it only
+out of the game right so you can it only selects from a known set of moves so
+selects from a known set of moves so you're telling it hey I only want it to
+you're telling it hey I only want it to be able to do one of these certain
+be able to do one of these certain things but then it uses the search to
+things but then it uses the search to optimize which of those certain things
+optimize which of those certain things are really beneficial and it's also
+are really beneficial and it's also really designer friendly so once you
+really designer friendly so once you give someone a really nice configuration
+give someone a really nice configuration file for example about two months ago
+file for example about two months ago the designers of the game said okay Dave
+the designers of the game said okay Dave time to crawl out of your a eye hole and
+time to crawl out of your a eye hole and your black box and just tell us how the
+your black box and just tell us how the configuration file works and within
+configuration file works and within about two weeks the a I had gotten
+about two weeks the a I had gotten almost twice as strong like they said
+almost twice as strong like they said they are really good at the game I'm
+they are really good at the game I'm kind of good at AI and so they take the
+kind of good at AI and so they take the AI system that was completely Jenner
+AI system that was completely Jenner eyes without any hard-coded information
+eyes without any hard-coded information and put in a couple of little build
+and put in a couple of little build orders here and there and it really did
+orders here and there and it really did improve the strength of the AI and they
+improve the strength of the AI and they didn't have to touch a line of code so I
+didn't have to touch a line of code so I think that was pretty cool so we did
+think that was pretty cool so we did some experiments because I wanted to
+some experiments because I wanted to know whether or not this stuff was
+know whether or not this stuff was actually working so the first experiment
+actually working so the first experiment was to test whether or not my intuition
+was to test whether or not my intuition about these difficulty settings whether
+about these difficulty settings whether or not it was actually true and so from
+or not it was actually true and so from left to right here I played a bunch of
+left to right here I played a bunch of round-robin matches maybe like a million
+round-robin matches maybe like a million games
+games the master bot versus the the ez bot etc
+the master bot versus the the ez bot etc and yes it does turn out that the
+and yes it does turn out that the intuition was correct and the more
+intuition was correct and the more difficult a is with the search based
+difficult a is with the search based solutions do beat up on the the easier
+solutions do beat up on the the easier it is similarly if you're going to use
+it is similarly if you're going to use search you need to know ok well the
+search you need to know ok well the whole point of using search is that if I
+whole point of using search is that if I give it more time it should produce
+give it more time it should produce better moves and so what I did was an
+better moves and so what I did was an experiment where we just give it say 100
+experiment where we just give it say 100 milliseconds versus a second versus 3
+milliseconds versus a second versus 3 seconds versus 10 seconds etc and yes
+seconds versus 10 seconds etc and yes the this system the more time you give
+the this system the more time you give it the more the more intelligent the
+it the more the more intelligent the move that it will produce I also did a
+move that it will produce I also did a really sneaky experiment which I was
+really sneaky experiment which I was really proud of so we played I played I
+really proud of so we played I played I created I took the code from our github
+created I took the code from our github and made a secret version of the client
+and made a secret version of the client and what this did was it actually queued
+and what this did was it actually queued up on the ranked ladder automatically
+up on the ranked ladder automatically played a game using the AI and then
+played a game using the AI and then recorded the results and humans like not
+recorded the results and humans like not even you know the bosses didn't even
+even you know the bosses didn't even know I was doing this so it was
+know I was doing this so it was successful luckily I wouldn't have told
+successful luckily I wouldn't have told anyone if it wasn't right so I used the
+anyone if it wasn't right so I used the the master bot which is the hardest bot
+the master bot which is the hardest bot and I put it on a three second time
+and I put it on a three second time setting and I put random delay on all
+setting and I put random delay on all the actions so it wasn't just selecting
+the actions so it wasn't just selecting things and then clicking everything like
+things and then clicking everything like you know it was actually clicking slowly
+you know it was actually clicking slowly so it trying to pass some sort of prism
+so it trying to pass some sort of prism out of Turing test and nobody emailed or
+out of Turing test and nobody emailed or said anything so it's good I think that
+said anything so it's good I think that it passed the prasada Turing test and
+it passed the prasada Turing test and after all that was said and done the a I
+after all that was said and done the a I achieved a rank of six point five out of
+achieved a rank of six point five out of ten on the ladder so I'll tell you what
+ten on the ladder so I'll tell you what that means in a second because you know
+that means in a second because you know that that number doesn't matter but what
+that that number doesn't matter but what you see when you're trying to test the
+you see when you're trying to test the strength of your AI if the people who
+strength of your AI if the people who have been playing against the AI a lot
+have been playing against the AI a lot know they're playing against the AI they
+know they're playing against the AI they can opponent model it and do things
+can opponent model it and do things against it that it's week two but when
+against it that it's week two but when you secretly play against the AI they
+you secretly play against the AI they don't know the weakness of the player
+don't know the weakness of the player and so they're playing a more standard
+and so they're playing a more standard game where they're not trying to exploit
+game where they're not trying to exploit an AI so I think that this is a more a
+an AI so I think that this is a more a better test of sort of where the AI
+better test of sort of where the AI ranks so at the time this was done this
+ranks so at the time this was done this is the ranking distribution of players
+is the ranking distribution of players on our ladder and so the AI came about
+on our ladder and so the AI came about tier six point five which meant that at
+tier six point five which meant that at the time it was within the top twenty
+the time it was within the top twenty five percent of people playing the game
+five percent of people playing the game in terms of playing strength and since
+in terms of playing strength and since then this experiment was done like a
+then this experiment was done like a year and a half ago we've been in closed
+year and a half ago we've been in closed beta for a little while
+beta for a little while and we think that the AI is actually now
+and we think that the AI is actually now maybe within the top ten percent of
+maybe within the top ten percent of people playing and so it's it's it's
+people playing and so it's it's it's pretty strong I think so where our goals
+pretty strong I think so where our goals achieved I think that it's it's been
+achieved I think that it's it's been really great we did a survey of our
+really great we did a survey of our users I don't have the results on the
+users I don't have the results on the slides but they thought that it was
+slides but they thought that it was really really great as a new user
+really really great as a new user experience especially with the different
+experience especially with the different difficulty settings whether or not it's
+difficulty settings whether or not it's good for experienced player training
+good for experienced player training it's our top few people of which we have
+it's our top few people of which we have a few in the crowd can really trash the
+a few in the crowd can really trash the bots right but if you're a new player
+bots right but if you're a new player learning the game it takes you maybe a
+learning the game it takes you maybe a couple of hundred games to be able to
+couple of hundred games to be able to beat the AI and so it's kind of strong
+beat the AI and so it's kind of strong but it's it's not you know it's not deep
+but it's it's not you know it's not deep blue or alphago level just yet I think
+blue or alphago level just yet I think it user said that it had a lot of replay
+it user said that it had a lot of replay value so based on the different if you
+value so based on the different if you have a random assortment of cards that a
+have a random assortment of cards that a I can play them all these random
+I can play them all these random assortments fairly well and so you can
+assortments fairly well and so you can keep playing against the AI without a
+keep playing against the AI without a lot of repetition and the modular design
+lot of repetition and the modular design I have no metric to really measure this
+I have no metric to really measure this but I did think that the designers their
+but I did think that the designers their ability to pick up this system and
+ability to pick up this system and modify it without any AI knowledge was
+modify it without any AI knowledge was sort of a testament to that and also
+sort of a testament to that and also we've undergone maybe two or three dozen
+we've undergone maybe two or three dozen balance changes where we've changed the
+balance changes where we've changed the costs of units in the game and changed a
+costs of units in the game and changed a couple of game rules even and the AI
+couple of game rules even and the AI system has held up to that and hasn't
+system has held up to that and hasn't need to be changed in any way so one
+need to be changed in any way so one final thought everything I hear from
+final thought everything I hear from everybody in the video game industry oh
+everybody in the video game industry oh we can't spare the cycles we'd love to
+we can't spare the cycles we'd love to be able to do search but I'm not running
+be able to do search but I'm not running like Monte Carlo tree search on a ps4 or
+like Monte Carlo tree search on a ps4 or something
+something that we have two milliseconds to do AI
+that we have two milliseconds to do AI or one millisecond we can't run this but
+or one millisecond we can't run this but my counter to that is that search isn't
+my counter to that is that search isn't limited to in-game behavior okay so what
+limited to in-game behavior okay so what does that mean try offline search you
+does that mean try offline search you probably hired a hundred people to QA
+probably hired a hundred people to QA test your game but if you can replace
+test your game but if you can replace people with robots which is you know
+people with robots which is you know maybe away the future maybe you're not
+maybe away the future maybe you're not alone maybe not a lot of people are in
+alone maybe not a lot of people are in on this idea but this AI if it's strong
+on this idea but this AI if it's strong enough maybe it can't run in real time
+enough maybe it can't run in real time in your game but it can be used for bug
+in your game but it can be used for bug testing or for balance testing or for
+testing or for balance testing or for stress testing etc so I think that even
+stress testing etc so I think that even if you don't want to implement this as
+if you don't want to implement this as the decision logic for your game engine
+the decision logic for your game engine you can still use these techniques in an
+you can still use these techniques in an offline manner thank you very much
+apparently there's two minutes for questions of anyone has questions
+in the examples you gave the portfolio's were for individual components or parts
+were for individual components or parts of the game and one of the examples you
+of the game and one of the examples you gave was an RTS you have a particular
+gave was an RTS you have a particular unit having three different like models
+unit having three different like models but which it uses it's it's logic but
+but which it uses it's it's logic but you didn't recover in a case in that
+you didn't recover in a case in that specific case because this is clearly a
+specific case because this is clearly a different type of game but what happens
+different type of game but what happens when you when a good play is based on
+when you when a good play is based on those those individual parts kind of
+those those individual parts kind of working together because an optimum move
+working together because an optimum move for one unit while and not to move for
+for one unit while and not to move for another unit at the same time might not
+another unit at the same time might not actually produce a good result sure so
+actually produce a good result sure so the good thing about the portfolio
+the good thing about the portfolio system is that I gave examples where
+system is that I gave examples where you're passing in like algorithms here
+you're passing in like algorithms here right but you can also pass in say all
+right but you can also pass in say all the individual actions that a unit could
+the individual actions that a unit could do so in general this could search over
+do so in general this could search over a wider range of collaborative behaviors
+a wider range of collaborative behaviors and since you are searching over all
+and since you are searching over all possible permutations of those then you
+possible permutations of those then you will get collaborative behavior out of
+will get collaborative behavior out of that but if you're using this sort of
+that but if you're using this sort of you know passing in scripts or
+you know passing in scripts or algorithms and you're missing some of
+algorithms and you're missing some of that collaborative behavior so there's
+that collaborative behavior so there's definitely a trade-off between how many
+definitely a trade-off between how many nodes you're willing to generate and the
+nodes you're willing to generate and the level of collaborative behavior that you
+level of collaborative behavior that you want to achieve thank you if if you're
+want to achieve thank you if if you're using alpha beta implicitly you have
+using alpha beta implicitly you have some sort of value function as well as
+some sort of value function as well as the portfolio of strategies sure so
+the portfolio of strategies sure so peter is asking about you know you can't
+peter is asking about you know you can't search the whole game tree when you're
+search the whole game tree when you're doing alpha beta or Monte Carlo tree
+doing alpha beta or Monte Carlo tree search and so you need a way to evaluate
+search and so you need a way to evaluate a node so you need to know or a game
+a node so you need to know or a game state so if you look at a game state a
+state so if you look at a game state a human can come along and probably say oh
+human can come along and probably say oh this person is winning and this person
+this person is winning and this person is probably losing and so we need some
+is probably losing and so we need some sort of evaluation for that and what I
+sort of evaluation for that and what I did and I didn't want to get into the
+did and I didn't want to get into the details here they're all in the paper if
+details here they're all in the paper if you go to my website there's lots of
+you go to my website there's lots of details but we tried at first a formula
+details but we tried at first a formula based evaluation sort of like chess
+based evaluation sort of like chess where you know you give a queen nine
+where you know you give a queen nine points and upon one point and then sum
+points and upon one point and then sum them up but that didn't really end up
+them up but that didn't really end up working very well so what I went with
+working very well so what I went with was I took
+was I took a player that I had constructed a really
+a player that I had constructed a really simple player and then did a play out
+simple player and then did a play out from a given state so if you have a
+from a given state so if you have a state and you have really dumb behaviors
+state and you have really dumb behaviors even though they're dumb if both people
+even though they're dumb if both people follow this behavior and one person wins
+follow this behavior and one person wins it probably means that they were winning
+it probably means that they were winning at that state and so we did this play
+at that state and so we did this play out evaluation rather than a formula
+out evaluation rather than a formula based evaluation
+[Applause]
+you

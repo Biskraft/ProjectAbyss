@@ -1,0 +1,1247 @@
+[Music] my name is max Kaminsky I am a PhD
+my name is max Kaminsky I am a PhD student at the expressive intelligence
+student at the expressive intelligence studio at UC Santa Cruz and today what
+studio at UC Santa Cruz and today what I'm going to be talking about is
+I'm going to be talking about is procedural narrative design with
+procedural narrative design with parametrized story lights so if you have
+parametrized story lights so if you have done anything in game narrative before
+done anything in game narrative before you have probably seen a diagram that
+you have probably seen a diagram that looks something like this
+looks something like this this is basically a branching narrative
+this is basically a branching narrative structure points if you know what the
+structure points if you know what the star is already this is from a specific
+star is already this is from a specific blog post that sort of categorizes a
+blog post that sort of categorizes a whole bunch of different possible ways
+whole bunch of different possible ways to do branching there are different
+to do branching there are different games and what you can see here is that
+games and what you can see here is that they're sort of all these different
+they're sort of all these different possible paths the player can take
+possible paths the player can take through the story there's a whole bunch
+through the story there's a whole bunch of like sort of different sort of routes
+of like sort of different sort of routes you can take there's branching points
+you can take there's branching points where you diverge and then sort of join
+where you diverge and then sort of join back together at the sort of later
+back together at the sort of later decision points and there's a lot of
+decision points and there's a lot of good reasons that we see sort of these
+good reasons that we see sort of these static overall sort of like predefined
+static overall sort of like predefined narrative structures and games we see a
+narrative structures and games we see a lot of sort of familiarity as one of the
+lot of sort of familiarity as one of the big advantages here so everyone sort of
+big advantages here so everyone sort of knows what this is basically looking at
+knows what this is basically looking at it and sort of how to design something
+it and sort of how to design something for it even if it's only simple there's
+for it even if it's only simple there's also sort of cost reasons and sort of
+also sort of cost reasons and sort of simplicity of implementation reasons
+simplicity of implementation reasons where like it's really easy to sort of
+where like it's really easy to sort of go in and say okay I know how to
+go in and say okay I know how to structure the code for something like
+structure the code for something like this
+this and there's all sort of these
+and there's all sort of these pre-existing tools like twine where you
+pre-existing tools like twine where you can sort of see that like it's really
+can sort of see that like it's really easy to go in and write sort of twine
+easy to go in and write sort of twine stories that are basically like taking
+stories that are basically like taking this branching structure and reifying it
+this branching structure and reifying it and you can see all the arrows are
+and you can see all the arrows are connecting all the nodes and it sort of
+connecting all the nodes and it sort of this like overall graph of stories
+this like overall graph of stories that's very easy to sort of like look
+that's very easy to sort of like look and see how it's structured but what I'm
+and see how it's structured but what I'm interested in is sort of taking this
+interested in is sort of taking this graph and sort of blowing it to pieces
+graph and sort of blowing it to pieces and sort of like sort of fragmenting
+and sort of like sort of fragmenting this huge sort of branching story graph
+this huge sort of branching story graph and taking it into a sort of stage where
+and taking it into a sort of stage where players are more able to sort of shape
+players are more able to sort of shape the narrative structure on a fundamental
+the narrative structure on a fundamental level as opposed to sort of charting
+level as opposed to sort of charting past through this predefined narrative
+past through this predefined narrative structure that the authors have set out
+structure that the authors have set out for them especially I'm interested in
+for them especially I'm interested in this in context of procedural narrative
+this in context of procedural narrative games which are kind of all about this
+games which are kind of all about this like ability to have the story vary
+like ability to have the story vary significantly between playthroughs and
+significantly between playthroughs and in ways that are more fundamental than
+in ways that are more fundamental than if you're just sort of stuck with this
+if you're just sort of stuck with this branching narrative structure and for
+branching narrative structure and for this to happen what I found is that you
+this to happen what I found is that you sort of need two things you need we or
+sort of need two things you need we or durable units of narrative content and
+durable units of narrative content and then you also need some mechanism for
+then you also need some mechanism for determining when it makes sense to use
+determining when it makes sense to use them and when you put these two things
+them and when you put these two things together you get what I call story
+together you get what I call story lights so story lights are sort of the
+lights so story lights are sort of the term was coined and fall in London which
+term was coined and fall in London which is the game you can see on the right
+is the game you can see on the right here they sort of as the designers of
+here they sort of as the designers of this game decided to write their story
+this game decided to write their story content in sort of
+content in sort of tiny little modules each of which has
+tiny little modules each of which has some preconditions on it that sort of
+some preconditions on it that sort of dictate when you are are not allowed to
+dictate when you are are not allowed to play through them and in this case most
+play through them and in this case most of the preconditions are sort of
+of the preconditions are sort of involving stats that are attached to
+involving stats that are attached to your character so if you have nightmares
+your character so if you have nightmares greater than four you can play certain
+greater than four you can play certain story lights or if you're like over five
+story lights or if you're like over five or fifteen persuasive or something like
+or fifteen persuasive or something like that and then similarly you have rains
+that and then similarly you have rains which is a more recent game and this is
+which is a more recent game and this is I think also a more well-known probably
+I think also a more well-known probably example where they sort of took the
+example where they sort of took the story lit metaphor for for crafting
+story lit metaphor for for crafting stories and literally sort of took this
+stories and literally sort of took this deck of cards metaphor and smash them
+deck of cards metaphor and smash them into one another so stories are cards or
+into one another so stories are cards or store clips or cards and you're sort of
+store clips or cards and you're sort of swiping left or right on requests that
+swiping left or right on requests that people bring you in order to sort of
+people bring you in order to sort of accept or reject those requests because
+accept or reject those requests because you are the king and that's what Kings
+you are the king and that's what Kings do so when you sort of look at the
+do so when you sort of look at the common elements of these two structures
+common elements of these two structures or these two games you get sort of this
+or these two games you get sort of this common definition of story a--let's
+common definition of story a--let's which is basically that they're these
+which is basically that they're these self-contained reorder double units of
+self-contained reorder double units of narrative content was sort of
+narrative content was sort of preconditions that dictate when you can
+preconditions that dictate when you can show them to the player and sort of
+show them to the player and sort of maybe these effects that update the game
+maybe these effects that update the game state so this approach works really
+state so this approach works really great if your game state is pretty
+great if your game state is pretty simple right so in rains you've got just
+simple right so in rains you've got just these four sort of integer qualities or
+these four sort of integer qualities or resources they represent your favor with
+resources they represent your favor with the different factions in the kingdom
+the different factions in the kingdom like the military the church the people
+like the military the church the people and so on or in story Nexus which is the
+and so on or in story Nexus which is the engine the power's fall in London you've
+engine the power's fall in London you've got this sort of bag of arbitrarily many
+got this sort of bag of arbitrarily many integer qualities which really the stats
+integer qualities which really the stats are the variables attached to your
+are the variables attached to your character but if you want to sort of use
+character but if you want to sort of use this approach with more complicated game
+this approach with more complicated game states you need some way to get beyond
+states you need some way to get beyond these sort of flat preconditions these
+these sort of flat preconditions these sort of like we're just checking whether
+sort of like we're just checking whether an integer variable is within a certain
+an integer variable is within a certain threshold or not and you need to sort of
+threshold or not and you need to sort of basically get to a way of expressing
+basically get to a way of expressing preconditions that allows you to sort of
+preconditions that allows you to sort of query arbitrarily complex game states
+query arbitrarily complex game states and so this gets to where Star Creator
+and so this gets to where Star Creator comes in Starfighter is a game that I
+comes in Starfighter is a game that I was working on towards the start of
+was working on towards the start of undergrad or actually towards the end of
+undergrad or actually towards the end of undergrad it's sort of into the start of
+undergrad it's sort of into the start of grad school I've temporarily suspended
+grad school I've temporarily suspended development on it but it looks like this
+development on it but it looks like this or the original prototype looks like
+or the original prototype looks like this and the goal here as you can see
+this and the goal here as you can see was probably to um make a range like
+was probably to um make a range like sort of game where the framing is that
+sort of game where the framing is that you're sort of a space captain of a tiny
+you're sort of a space captain of a tiny little freighter traveling from system
+little freighter traveling from system to system and sort of taking on odd jobs
+to system and sort of taking on odd jobs in order to eke out an existence in
+in order to eke out an existence in space what this gradually shifted
+space what this gradually shifted towards being was a game about the
+towards being was a game about the relationships between a cast of sort of
+relationships between a cast of sort of quirky procedurally generated characters
+quirky procedurally generated characters so if you've seen like Cowboy Bebop or
+so if you've seen like Cowboy Bebop or Firefly or sort of the implied
+Firefly or sort of the implied off-screen life of Han Solo and
+off-screen life of Han Solo and Chewbacca in Star Wars all of these
+Chewbacca in Star Wars all of these things are sort of like what I was
+things are sort of like what I was trying to get at and sort of the the
+trying to get at and sort of the the narrative design of this game and for
+narrative design of this game and for this to happen for the procedural
+this to happen for the procedural generation especially to come in
+generation especially to come in what I really needed was a way to write
+what I really needed was a way to write narrative content that wasn't tied to
+narrative content that wasn't tied to any one character in particular but that
+any one character in particular but that could be applied whenever an appropriate
+could be applied whenever an appropriate situation happened to come up in the
+situation happened to come up in the game stayed so you can see that this is
+game stayed so you can see that this is a much more complicated interface now
+a much more complicated interface now you've got these individual characters
+you've got these individual characters who have they're sort of truck tune
+who have they're sort of truck tune names you've got this cargo in your
+names you've got this cargo in your cargo hold you've got all these
+cargo hold you've got all these procedural generated sort of star
+procedural generated sort of star systems you can travel between and what
+systems you can travel between and what you really need now is to sort of like
+you really need now is to sort of like write content for generic situations
+write content for generic situations like one crew member is irritating
+like one crew member is irritating another or sort of is mentoring another
+another or sort of is mentoring another or has fallen in love with another all
+or has fallen in love with another all these sorts of like situations that you
+these sorts of like situations that you can imagine being narrative ly
+can imagine being narrative ly interesting without the characters
+interesting without the characters themselves being like sort of defined
+themselves being like sort of defined ahead of time and I already had the sort
+ahead of time and I already had the sort of simple reins like story alert system
+of simple reins like story alert system from the original game but I had to sort
+from the original game but I had to sort of somehow hack it to support this kind
+of somehow hack it to support this kind of complicated game state especially the
+of complicated game state especially the sort of web of crew relationships and
+sort of web of crew relationships and the parametrized narrative content that
+the parametrized narrative content that I wanted them had to write and so I
+I wanted them had to write and so I ended up with something that looks kind
+ended up with something that looks kind of like this this is a parametrized
+of like this this is a parametrized story lit it's a pretty simple one which
+story lit it's a pretty simple one which is maybe speaking to how much
+is maybe speaking to how much boilerplate I end up writing all the
+boilerplate I end up writing all the time that I consider this simple but
+time that I consider this simple but this is basically when two members of
+this is basically when two members of the crew are sort of like when the crew
+the crew are sort of like when the crew overall is having a good time and two
+overall is having a good time and two and two of them decided basically but
+and two of them decided basically but they're getting along better now than
+they're getting along better now than they used to so you can see that there's
+they used to so you can see that there's in addition to this sort of static
+in addition to this sort of static prerequisite or a precondition which is
+prerequisite or a precondition which is basically like checking to be sure that
+basically like checking to be sure that the crew have not been unfriendly to one
+the crew have not been unfriendly to one another recently we're also having this
+another recently we're also having this query part here where we're sort of
+query part here where we're sort of binding these two logic variables and
+binding these two logic variables and what this means is basically we're
+what this means is basically we're looking for two characters in this case
+looking for two characters in this case who are not the same as one another
+who are not the same as one another which is critically important and we're
+which is critically important and we're sort of binding them these two variables
+sort of binding them these two variables crew one and crew two and then we can
+crew one and crew two and then we can sort of use these crew that we've bound
+sort of use these crew that we've bound to these variables like later on in the
+to these variables like later on in the body of the story lit what we're doing
+body of the story lit what we're doing is we're sort of querying against the
+is we're sort of querying against the game state finding entities that match
+game state finding entities that match the preconditions we're looking for and
+the preconditions we're looking for and then we're sort of saying for every
+then we're sort of saying for every story lit whose query is currently met
+story lit whose query is currently met then we can show that story to the
+then we can show that story to the player and we're sort of picking
+player and we're sort of picking weighted randomly from among the
+weighted randomly from among the possible poulos toilets that we've got
+possible poulos toilets that we've got so this leads very naturally to an
+so this leads very naturally to an authoring pattern where some story let's
+authoring pattern where some story let's have these super specific preconditions
+have these super specific preconditions like you maybe have story lips that have
+like you maybe have story lips that have ten or twelve preconditions among them
+ten or twelve preconditions among them and these are very rarely met because of
+and these are very rarely met because of how complicated they are but when they
+how complicated they are but when they are met it feels like it's sort of
+are met it feels like it's sort of naturally written exactly for the
+naturally written exactly for the current situation the player happens to
+current situation the player happens to find themselves in and this leads to
+find themselves in and this leads to these sort of magical moments where it's
+these sort of magical moments where it's like oh this is so specific to my
+like oh this is so specific to my condition it's like there's no way that
+condition it's like there's no way that the author could possibly have foreseen
+the author could possibly have foreseen this particular condition that I've
+this particular condition that I've gotten into but we totally did and so
+gotten into but we totally did and so you get these specific bits of narrative
+you get these specific bits of narrative for those situations and then more often
+for those situations and then more often what you're right
+what you're right a whole bunch of sort of these generic
+a whole bunch of sort of these generic fall back story lights with really
+fall back story lights with really lightweight sort of small simple
+lightweight sort of small simple preconditions that are easy to fall back
+preconditions that are easy to fall back on that sort of match a wide range of
+on that sort of match a wide range of situations and that maybe have some more
+situations and that maybe have some more procedural textual variation to sort of
+procedural textual variation to sort of disguise the fact that you're repeating
+disguise the fact that you're repeating the same things over and over again and
+the same things over and over again and then you can see here that there's like
+then you can see here that there's like this text template part where we're sort
+this text template part where we're sort of like substituting in the names of the
+of like substituting in the names of the crew into the sort of overall Tech's
+crew into the sort of overall Tech's that we show the player in the end okay
+that we show the player in the end okay so we get this definition to parametrize
+so we get this definition to parametrize story let's that basically augments the
+story let's that basically augments the initial definition of story let's with
+initial definition of story let's with instead of preconditions we've got these
+instead of preconditions we've got these roles where you can slot in sort of
+roles where you can slot in sort of appropriate entities like characters or
+appropriate entities like characters or cargo units or whatever
+cargo units or whatever okay I'm gonna skim super briefly over
+okay I'm gonna skim super briefly over disadvantages you lose precise control
+disadvantages you lose precise control over the narrative structure this is
+over the narrative structure this is kind of a thing that you know to be the
+kind of a thing that you know to be the point anyway you have to handle the
+point anyway you have to handle the implementation right now you can't just
+implementation right now you can't just drop in a thing to unity and say give me
+drop in a thing to unity and say give me parameterize story let's and it goes
+parameterize story let's and it goes okay same for authoring tools there's no
+okay same for authoring tools there's no twine equivalent yet I'm working on that
+twine equivalent yet I'm working on that debugging gets tricky you have to write
+debugging gets tricky you have to write like JSON a lot by hand and so on and so
+like JSON a lot by hand and so on and so forth but I think it's super powerful as
+forth but I think it's super powerful as an approach anyway it gives you the
+an approach anyway it gives you the simple concrete alternative to static
+simple concrete alternative to static narrative structures it's really
+narrative structures it's really powerful really flexible you can love
+powerful really flexible you can love you can express lots of different ideas
+you can express lots of different ideas in terms of these queries that I've
+in terms of these queries that I've shown you and there's sort of design
+shown you and there's sort of design patterns and games that are using these
+patterns and games that are using these techniques starting to emerge like
+techniques starting to emerge like cultist simulator is a really great
+cultist simulator is a really great example that was recent and I think you
+example that was recent and I think you can start to see that there's more and
+can start to see that there's more and more of this going forward so that's it
+more of this going forward so that's it thank you this is my contact information
+thank you this is my contact information if you want to sort of contact me after
+if you want to sort of contact me after this I've also written a paper about
+this I've also written a paper about this and starfighter the current
+this and starfighter the current prototype can be played on itch thank
+prototype can be played on itch thank you
+hi I'm Nicole hi I'm an artist and a programmer thank you
+programmer thank you I'm an artisan programmer from New York
+I'm an artisan programmer from New York I freelance as a creative technologist
+I freelance as a creative technologist at Google Creative Lab I teach at NYU's
+at Google Creative Lab I teach at NYU's interactive telecommunications program
+interactive telecommunications program and I'm also currently working on an
+and I'm also currently working on an entirely voice-controlled sci-fi game
+entirely voice-controlled sci-fi game with the National Film Board of Canada
+with the National Film Board of Canada so today I want to talk about some tools
+so today I want to talk about some tools that I use for voice technology in art
+that I use for voice technology in art and games but actually I mostly want to
+and games but actually I mostly want to talk about appropriating technology
+talk about appropriating technology that's meant to be used for serious
+that's meant to be used for serious business purposes to make creative
+business purposes to make creative things basically like you don't have to
+things basically like you don't have to only use game making tools to make games
+only use game making tools to make games so as I said I do a lot of stuff with
+so as I said I do a lot of stuff with voice technology which is mostly about
+voice technology which is mostly about just like allowing making things that
+just like allowing making things that allow people to yell at computers and
+allow people to yell at computers and then like making the computers yell back
+then like making the computers yell back at them so one example is a game I made
+at them so one example is a game I made called enhanced computer which is also
+called enhanced computer which is also the URL of the game
+the URL of the game it's a cyberpunk voice controlled game
+it's a cyberpunk voice controlled game that's a no Maj to that science fiction
+that's a no Maj to that science fiction trope where people are like yelling
+trope where people are like yelling enhance and zoom in and then like
+enhance and zoom in and then like magical technology things happen so this
+magical technology things happen so this is a game that lets you do that but the
+is a game that lets you do that but the thing is when you're developing things
+thing is when you're developing things with voice technology the the thing is
+with voice technology the the thing is like a lot of you know these voice
+like a lot of you know these voice assistant devices are basically the way
+assistant devices are basically the way that most people talk to computers and
+that most people talk to computers and so most of the developer developer tools
+so most of the developer developer tools available are basically made entirely
+available are basically made entirely for these very rigidly controlled
+for these very rigidly controlled platforms owned by big companies and
+platforms owned by big companies and another thing is that a lot of this
+another thing is that a lot of this technology is actually advancing very
+technology is actually advancing very quickly so like speech recognition
+quickly so like speech recognition intent detection speech synthesis
+intent detection speech synthesis sentiment analysis all these things that
+sentiment analysis all these things that basically make up voice technology
+basically make up voice technology there's a lot of advancement happening
+there's a lot of advancement happening as voice assistants become more and more
+as voice assistants become more and more popular but again sort of the tools
+popular but again sort of the tools available to use those things you know
+available to use those things you know naturally are used for things that make
+naturally are used for things that make a big companies a lot of money and that
+a big companies a lot of money and that usually comes out in the form of
+usually comes out in the form of customer service chat BOTS so like all
+customer service chat BOTS so like all all this innovation and research is
+all this innovation and research is basically currently being funneled into
+basically currently being funneled into customer service chat BOTS
+customer service chat BOTS and you can see this in the
+and you can see this in the documentation of a lot of these tools so
+documentation of a lot of these tools so this is actually one of my favorite
+this is actually one of my favorite tools to use it's called dialog flow
+tools to use it's called dialog flow it's an NLP tool for a conversational AI
+it's an NLP tool for a conversational AI that helps you figure out the intent of
+that helps you figure out the intent of what a person is saying without having
+what a person is saying without having to like say manually hard code every
+to like say manually hard code every possible way a person could say it so
+possible way a person could say it so this is used for enterprise and
+this is used for enterprise and commercial purposes and you can see that
+commercial purposes and you can see that just from like the way that they talk
+just from like the way that they talk about it on this website and the
+about it on this website and the testimonies are from like Domino's or
+testimonies are from like Domino's or KLM or companies like that but it's also
+KLM or companies like that but it's also a really powerful tool for games so I
+a really powerful tool for games so I want to show you a couple examples of
+want to show you a couple examples of things that are basically not customer
+things that are basically not customer service chat bots that you know I made
+service chat bots that you know I made like using this tool that was meant for
+like using this tool that was meant for that purpose so one example is a really
+that purpose so one example is a really simple voice game called mystery animal
+simple voice game called mystery animal for kids which is on the Google
+for kids which is on the Google assistant but it's also available on the
+assistant but it's also available on the web so it's like a reverse 20 question
+web so it's like a reverse 20 question style game where you have to ask the
+style game where you have to ask the Machine yes-or-no questions to like
+Machine yes-or-no questions to like figure out what animal it is and this is
+figure out what animal it is and this is possible because dialogue flow makes it
+possible because dialogue flow makes it so that people can say things and it's
+so that people can say things and it's sort of like open-ended way and then we
+sort of like open-ended way and then we can still figure out what they're saying
+can still figure out what they're saying and respond appropriately so here if you
+and respond appropriately so here if you say can I eat you for lunch we figure
+say can I eat you for lunch we figure out that they're asking if the animals
+out that they're asking if the animals edible so a project that I worked on
+edible so a project that I worked on with the 3d artist Iran Hillel II is
+with the 3d artist Iran Hillel II is that like where we used dialogue flow
+that like where we used dialogue flow and in it like extremely hacky way that
+and in it like extremely hacky way that they definitely do not intend for it's
+they definitely do not intend for it's called garden France it's built in AR
+called garden France it's built in AR with AR and unity and I'm gonna show you
+with AR and unity and I'm gonna show you a video oh hello I'm so glad you're here
+a video oh hello I'm so glad you're here I've been waiting so long for someone to
+I've been waiting so long for someone to show up to be honest it's pretty lonely
+show up to be honest it's pretty lonely around here tell me what is your name my
+around here tell me what is your name my name is Michael
+name is Michael nice to meet you Michael I really need
+nice to meet you Michael I really need your help I need to plant a beautiful
+your help I need to plant a beautiful garden so that other people will come
+garden so that other people will come visit me and I can make more friends but
+visit me and I can make more friends but I don't have arms so please take this
+I don't have arms so please take this seed and plant it somewhere well it's a
+seed and plant it somewhere well it's a start Michael but this tree can look
+start Michael but this tree can look better
+better backyard plants like it when you talk to
+backyard plants like it when you talk to them why don't you say something nice to
+them why don't you say something nice to this tree I think you're a very boring
+this tree I think you're a very boring looking tree Michael I said say
+looking tree Michael I said say something nice that wasn't nice look
+something nice that wasn't nice look what you did Michael try saying
+what you did Michael try saying something nicer just kidding you're a
+something nicer just kidding you're a beautiful extraordinary true well said
+beautiful extraordinary true well said Michael the trees seem to like that but
+Michael the trees seem to like that but you've got more to do brown and teal
+you've got more to do brown and teal teal and brown interesting combination
+teal and brown interesting combination [Music]
+[Music] splendid well done Michael
+splendid well done Michael I thought we planted a lovely garden
+I thought we planted a lovely garden with my creative direction and words you
+with my creative direction and words you definitely want to visit my garden now
+definitely want to visit my garden now and become my friend okay so that's
+and become my friend okay so that's garden friends and we did a bunch of
+garden friends and we did a bunch of experimental stuff they're like you know
+experimental stuff they're like you know you can say your name and then the
+you can say your name and then the character would say it back to you we
+character would say it back to you we use sentiment analysis you know when we
+use sentiment analysis you know when we asked you to say something nice to the
+asked you to say something nice to the tree and if you say something that's not
+tree and if you say something that's not nice the tree turns black we change the
+nice the tree turns black we change the colors and the scene depending on what
+colors and the scene depending on what you said and all this stuff is made
+you said and all this stuff is made possible with dialogue flow with the
+possible with dialogue flow with the sort of intent detection and like
+sort of intent detection and like keyword extraction and empty entity
+keyword extraction and empty entity extraction features the problem is like
+extraction features the problem is like the API is like built is not built to be
+the API is like built is not built to be used that way so dialogue flow used to
+used that way so dialogue flow used to have this really nice simple REST API
+have this really nice simple REST API where you could just send an API key and
+where you could just send an API key and send a query and get a response back but
+send a query and get a response back but they've changed it so there's a lot more
+they've changed it so there's a lot more like authentication stuff that you have
+like authentication stuff that you have to do and it makes it difficult to use
+to do and it makes it difficult to use it in things like the in you know the
+it in things like the in you know the browser and unity or somewhere else so
+browser and unity or somewhere else so the solution is like we you have to do
+the solution is like we you have to do some hacky to get it to work
+some hacky to get it to work because dialogue flow being a google
+because dialogue flow being a google technology is basically built to be used
+technology is basically built to be used with the Google assistants so if you
+with the Google assistants so if you want to use it again in a place outside
+want to use it again in a place outside of that you have to do a bit of extra
+of that you have to do a bit of extra work so it's not necessarily that bad
+work so it's not necessarily that bad like for in if you want to use in the
+like for in if you want to use in the browser there's like simple things you
+browser there's like simple things you can do like run a server with WebSockets
+can do like run a server with WebSockets and dialogue flow actually does have a
+and dialogue flow actually does have a node SDK so you can do this thing
+node SDK so you can do this thing instead of like before you might have
+instead of like before you might have been able to send a request from the
+been able to send a request from the client side and use it there on a
+client side and use it there on a website now it's a little more
+website now it's a little more complicated but it's still possible and
+complicated but it's still possible and with unity actually luckily a few of my
+with unity actually luckily a few of my students alana bonder Allison and
+students alana bonder Allison and Lindsey at NYU are building a plugin so
+Lindsey at NYU are building a plugin so that people can again use dialogue flow
+that people can again use dialogue flow in a unity project and you can the URL
+in a unity project and you can the URL is there and it's currently in progress
+is there and it's currently in progress but I'm sure they would appreciate any
+but I'm sure they would appreciate any pull requests so
+pull requests so basically to wrap up you know sometimes
+basically to wrap up you know sometimes the tools you want to use are not meant
+the tools you want to use are not meant for some fun things but I think it's
+for some fun things but I think it's still worth doing those hacky things to
+still worth doing those hacky things to make the cool stuff and again you don't
+make the cool stuff and again you don't have to only use game making tools to
+have to only use game making tools to make games so here's a guy having a
+make games so here's a guy having a great time playing enhanced computer
+great time playing enhanced computer alright thank you my name is Eric
+alright thank you my name is Eric Redmond and I'm gonna talk to you about
+Redmond and I'm gonna talk to you about the level editor we made for our game
+the level editor we made for our game clone drone and a danger zone and some
+clone drone and a danger zone and some cool things we learned along the way so
+cool things we learned along the way so what is clone drone and a danger zone
+what is clone drone and a danger zone it is a third-person sword fighting game
+it is a third-person sword fighting game where any part of your body can be
+where any part of your body can be sliced off with your human mind
+sliced off with your human mind downloaded into a robot gladiator you
+downloaded into a robot gladiator you must try to survive the Sinister trials
+must try to survive the Sinister trials of the arena and in 2017 we made a level
+of the arena and in 2017 we made a level editor for this game it ships with the
+editor for this game it ships with the game and you can use it to publish stuff
+game and you can use it to publish stuff to Steam Workshop and it turns out that
+to Steam Workshop and it turns out that people like doing that we currently have
+people like doing that we currently have 15,000 levels in Steam Workshop which is
+15,000 levels in Steam Workshop which is really cool they look a lot like this at
+really cool they look a lot like this at least this is what people's first-level
+least this is what people's first-level tend to look like for a lot of our
+tend to look like for a lot of our players it's a cool way to kind of just
+players it's a cool way to kind of just experiment with putting a lot of really
+experiment with putting a lot of really dangerous enemies into a level so you
+dangerous enemies into a level so you can kind of experience something that no
+can kind of experience something that no sensible game designer would ever put in
+sensible game designer would ever put in the game you can kind of tackle that
+the game you can kind of tackle that with no upgrades kind of thing and of
+with no upgrades kind of thing and of course if you look at some of the top
+course if you look at some of the top levels you start to see more of a
+levels you start to see more of a variety between like interesting
+variety between like interesting gameplay challenges more sort of
+gameplay challenges more sort of thematically strong levels where you're
+thematically strong levels where you're trying to like create like a sculpted
+trying to like create like a sculpted scene
+scene kind of thing so there's a lot of really
+kind of thing so there's a lot of really really cool stuff there and of course we
+really cool stuff there and of course we eat our own dog food we're using the
+eat our own dog food we're using the level editor to make the official levels
+level editor to make the official levels of the game as well so we're kind of
+of the game as well so we're kind of really married to this this tool as well
+really married to this this tool as well and so far it's been really good so yeah
+and so far it's been really good so yeah I'm gonna see if I can go over some cool
+I'm gonna see if I can go over some cool features that maybe some of you will
+features that maybe some of you will find some nuggets of useful information
+find some nuggets of useful information and all right the first thing we are
+and all right the first thing we are able to expose values so here you can
+able to expose values so here you can see a very similar looking thing to
+see a very similar looking thing to unity or any other sort of game engine
+unity or any other sort of game engine you highlight an object you can see
+you highlight an object you can see values associated with that object you
+values associated with that object you can modify them and de update how do we
+can modify them and de update how do we do that well we use attributes and
+do that well we use attributes and reflection some of you I'm sure have
+reflection some of you I'm sure have heard of this but if you haven't heard
+heard of this but if you haven't heard of this and you want to do something
+of this and you want to do something like this you should google that because
+like this you should google that because it's amazing we basically just add you
+it's amazing we basically just add you know a little include and level editor
+know a little include and level editor tag on any value and by magic you can
+tag on any value and by magic you can now tweak it and the game and of course
+now tweak it and the game and of course this also works for method calls this is
+this also works for method calls this is easy way to add a button to the
+easy way to add a button to the inspector over there here's an example
+inspector over there here's an example of testing the height of a jump pad this
+of testing the height of a jump pad this saves so much time not having to play
+saves so much time not having to play test the entire level and of course it
+test the entire level and of course it works in exactly the same way just slap
+works in exactly the same way just slap an attribute on a method and boom super
+an attribute on a method and boom super easy to use
+easy to use all right next features triggers what
+all right next features triggers what are triggers triggers are basically a
+are triggers triggers are basically a way to detect that something is
+way to detect that something is happening and in the level editor can of
+happening and in the level editor can of trigger a response so in this simple
+trigger a response so in this simple example we have a door and we have a
+example we have a door and we have a zone where that kind of triggers when
+zone where that kind of triggers when the player enters it looks like this as
+the player enters it looks like this as you would expect you run up to it the
+you would expect you run up to it the door opens oh there's an enemy
+door opens oh there's an enemy the enemy is also activated by the
+the enemy is also activated by the trigger and what's cool about this is
+trigger and what's cool about this is that we can add all kinds of sort of
+that we can add all kinds of sort of things that trigger bangs so for example
+things that trigger bangs so for example you can also trigger stuff when everyone
+you can also trigger stuff when everyone dies in an area everyone leaves an area
+dies in an area everyone leaves an area animations can trigger stuff and all
+animations can trigger stuff and all kinds of wonderful things like that and
+kinds of wonderful things like that and then it kind of provides a standard
+then it kind of provides a standard interface for anything we add to the
+interface for anything we add to the level editor can be triggered from a
+level editor can be triggered from a variety of triggers like that so it kind
+variety of triggers like that so it kind of forms a really cool system where you
+of forms a really cool system where you can string together stuff and chain them
+can string together stuff and chain them to create quite complex things so an
+to create quite complex things so an example of that is that one of our
+example of that is that one of our players made a calculator somehow I'm
+players made a calculator somehow I'm actually not sure how he did it but it
+actually not sure how he did it but it basically uses triggers and then at MU
+basically uses triggers and then at MU and in response to shooting these
+and in response to shooting these triggers it moves some enemies around
+triggers it moves some enemies around that again cause another trigger to
+that again cause another trigger to update some sort of predefined value and
+update some sort of predefined value and he managed to make it so you can add
+he managed to make it so you can add these numbers together and get a result
+these numbers together and get a result so it's a pretty powerful system when
+so it's a pretty powerful system when you have simple simple tools like that
+you have simple simple tools like that you can can just weave together alright
+you can can just weave together alright next feature hello JJ C humans
+next feature hello JJ C humans greetings where your text-to-speech for
+greetings where your text-to-speech for all the dialogue at this game it is
+all the dialogue at this game it is superior to your human voices by far
+superior to your human voices by far yeah this is one of the more successful
+yeah this is one of the more successful features in the game
+features in the game we have about 33,000 spoken words in
+we have about 33,000 spoken words in this little indie game which is a lot of
+this little indie game which is a lot of words these guys talk a lot and people
+words these guys talk a lot and people like it
+like it how do we do that well it's actually
+how do we do that well it's actually very simple we have a Google spreadsheet
+very simple we have a Google spreadsheet here's you here you can see the text I
+here's you here you can see the text I just said and there's a simple
+just said and there's a simple one-button import you click a button
+one-button import you click a button download a spreadsheet generates audio
+download a spreadsheet generates audio and kind of bundles it with the game and
+and kind of bundles it with the game and then it up to updates a manifest of all
+then it up to updates a manifest of all spoken dialogue so the game can kind of
+spoken dialogue so the game can kind of know what dialogue is in the game and
+know what dialogue is in the game and you can just trigger it very easily
+you can just trigger it very easily from the game yep all right here is a
+from the game yep all right here is a maybe more controversial feature we
+maybe more controversial feature we added our own animation system to the
+added our own animation system to the game or to the level editor rather so
+game or to the level editor rather so this was a really hard decision it was
+this was a really hard decision it was kind of hard to justify doing this I
+kind of hard to justify doing this I spent about a month making this system
+spent about a month making this system here's like a little cutscene from
+here's like a little cutscene from chapter 4 of story mode that we're
+chapter 4 of story mode that we're working on right now and this was yeah
+working on right now and this was yeah this was tricky because unity already
+this was tricky because unity already has an animation system why would we do
+has an animation system why would we do this and it kind of comes down to the
+this and it kind of comes down to the fact that when you make a level editor
+fact that when you make a level editor like a complex system that sits on top
+like a complex system that sits on top of the normal game engine it makes it
+of the normal game engine it makes it hard to use the game engines features as
+hard to use the game engines features as you would normally do them because
+you would normally do them because you're kind of you know serializing and
+you're kind of you know serializing and stuff in a completely different way so
+stuff in a completely different way so yeah we agonized over this but what it
+yeah we agonized over this but what it comes down to is that I love drama when
+comes down to is that I love drama when making levels you know I love it when
+making levels you know I love it when suddenly a robot walks out from behind a
+suddenly a robot walks out from behind a pillar or something and it's like what's
+pillar or something and it's like what's up human let's fight you know dramatic
+up human let's fight you know dramatic stuff like that small dramatic things
+stuff like that small dramatic things and big dramatic things and I think if
+and big dramatic things and I think if you take nothing else away from this
+you take nothing else away from this it's a kind of an obvious point but when
+it's a kind of an obvious point but when it's easy to add content you get a lot
+it's easy to add content you get a lot of content added to the game and it's a
+of content added to the game and it's a joy to add that content so we have all
+joy to add that content so we have all kinds of animations now that we
+kinds of animations now that we previously just couldn't do because it
+previously just couldn't do because it was too hard and a Pingo should be a
+was too hard and a Pingo should be a goal whenever you try to make a tool
+goal whenever you try to make a tool like this it's kind of to make the user
+like this it's kind of to make the user forgets that they are using a tool to be
+forgets that they are using a tool to be able to kind of stay in a creative mind
+able to kind of stay in a creative mind space to think about what do you want to
+space to think about what do you want to exist not how are you gonna make it work
+exist not how are you gonna make it work with these complex beings and yes that
+with these complex beings and yes that is I guess my overall point thank you so
+is I guess my overall point thank you so much
+hey everyone how's it going I'm M and I'm here to talk to you today about
+I'm here to talk to you today about using MIDI controllers to tune game feel
+using MIDI controllers to tune game feel so I spent a lot of the last year
+so I spent a lot of the last year working on a new hardware platform where
+working on a new hardware platform where we were prototyping new low level
+we were prototyping new low level interactions we were basically trying to
+interactions we were basically trying to turn out a new prototype every couple
+turn out a new prototype every couple days or every week to figure out what
+days or every week to figure out what actually works what are we trying to do
+actually works what are we trying to do here and we ran into a really classic
+here and we ran into a really classic prototyping problem where when a
+prototyping problem where when a prototype is successful that is really
+prototype is successful that is really obvious it's really easy to tell you
+obvious it's really easy to tell you should do more with this but if a
+should do more with this but if a prototype is not fun it's really tricky
+prototype is not fun it's really tricky to call the line on is this not working
+to call the line on is this not working because it's a bad idea or did we just
+because it's a bad idea or did we just not spend enough time polishing it so
+not spend enough time polishing it so one of the ways we tried to solve that
+one of the ways we tried to solve that was to minimize the amount of time it
+was to minimize the amount of time it took us to sort of get a prototype
+took us to sort of get a prototype really really polished and one of the
+really really polished and one of the ways we tried to solve that with
+ways we tried to solve that with reaching for MIDI controllers so if this
+reaching for MIDI controllers so if this is a totally new concept for you we were
+is a totally new concept for you we were using some hardware like that which I am
+using some hardware like that which I am also holding in my hand
+also holding in my hand you can take all of these knobs and
+you can take all of these knobs and sliders and wire them up to all of your
+sliders and wire them up to all of your physics constants and all the other
+physics constants and all the other magic numbers in your game so while the
+magic numbers in your game so while the game is running you can tune them in
+game is running you can tune them in real time and see how they feel so what
+real time and see how they feel so what does this actually do for us tight
+does this actually do for us tight feedback loops are amazing if you have
+feedback loops are amazing if you have ever done the sort of thing where you
+ever done the sort of thing where you have to stop your game while it's
+have to stop your game while it's running change a number in code and then
+running change a number in code and then restart the game you know that
+restart the game you know that absolutely kills your ability to be
+absolutely kills your ability to be creative and come up with new ideas and
+creative and come up with new ideas and try things things are naturally a little
+try things things are naturally a little better in unity if you're using the
+better in unity if you're using the inspector window at runtime or at
+inspector window at runtime or at compile time
+compile time but it's still not great I've seen a lot
+but it's still not great I've seen a lot of people will using controller games
+of people will using controller games they may wire up the keyboard to do a
+they may wire up the keyboard to do a similar thing but a MIDI controller can
+similar thing but a MIDI controller can be really great for this and where it
+be really great for this and where it really starts to get interesting is when
+really starts to get interesting is when you're tuning complex sets of variables
+you're tuning complex sets of variables that are related to each other so I
+that are related to each other so I worked a lot on a like cartoony kart
+worked a lot on a like cartoony kart racer where we cared about things like
+racer where we cared about things like max velocity and acceleration and turn
+max velocity and acceleration and turn speed but we cared less about those
+speed but we cared less about those individual values as much as what is the
+individual values as much as what is the relationship between them which is
+relationship between them which is really really hard to tune when you can
+really really hard to tune when you can only change one value at a time and I
+only change one value at a time and I played around with things like let's
+played around with things like let's encode the proportion between all these
+encode the proportion between all these variables as a number and tune that
+variables as a number and tune that number
+number but that gets very complicated very
+but that gets very complicated very quickly and is way more complex than you
+quickly and is way more complex than you want to deal with when you're trying to
+want to deal with when you're trying to make a fun game whereas if you have a
+make a fun game whereas if you have a MIDI controller and you can take those
+MIDI controller and you can take those three or four variables and wire them up
+three or four variables and wire them up to sliders that you can each control
+to sliders that you can each control with one finger that is really easy to
+with one finger that is really easy to play around in foot works also perhaps
+play around in foot works also perhaps most important you get a feel like this
+most important you get a feel like this DJ code wizard this is I really
+DJ code wizard this is I really appreciate my design collaborator had
+appreciate my design collaborator had this sort of sense of creating a Mesa on
+this sort of sense of creating a Mesa on plats before setting up - - and a given
+plats before setting up - - and a given prototype which seems silly but I think
+prototype which seems silly but I think is actually really vitally important
+is actually really vitally important because once like game design is a
+because once like game design is a creative activity and if you can get
+creative activity and if you can get into this playful sense of exploration
+into this playful sense of exploration and getting you to a place where you can
+and getting you to a place where you can explore the entire possibility space of
+explore the entire possibility space of your design you're gonna do much better
+your design you're gonna do much better work also on a very concrete level
+work also on a very concrete level humans have a lot of very very strong
+humans have a lot of very very strong cognitive biases against weird numbers
+cognitive biases against weird numbers if you're manually typing numbers into
+if you're manually typing numbers into code or the inspector window you're
+code or the inspector window you're gonna go for numbers that look nice and
+gonna go for numbers that look nice and clean whereas if you have this nice
+clean whereas if you have this nice expressive analog input you might
+expressive analog input you might actually find the number that feels more
+actually find the number that feels more right and I think it goes without saying
+right and I think it goes without saying this is this is a very nice hack that I
+this is this is a very nice hack that I enjoy but it still feels like a bit of a
+enjoy but it still feels like a bit of a hack you might be familiar with Brett
+hack you might be familiar with Brett Victor's work this is from his talk
+Victor's work this is from his talk inventing on principle where he talks
+inventing on principle where he talks about you know how do you tune a sort of
+about you know how do you tune a sort of Mario style 2d platformer like in an
+Mario style 2d platformer like in an ideal world we wouldn't be dealing with
+ideal world we wouldn't be dealing with running back and forth changing physics
+running back and forth changing physics and jump speed and trying it over time
+and jump speed and trying it over time to see what works we would have some
+to see what works we would have some higher level conceptual abstraction that
+higher level conceptual abstraction that cuts cleanly through the design
+cuts cleanly through the design possibility space and shows us what our
+possibility space and shows us what our actual problem is but until then like 50
+actual problem is but until then like 50 bucks where the hardware is a pretty
+bucks where the hardware is a pretty good solution so concretely what did I
+good solution so concretely what did I actually do so as I talk to people it
+actually do so as I talk to people it turns out there are a lot of people who
+turns out there are a lot of people who are already using MIDI controllers they
+are already using MIDI controllers they just don't really talk about it that
+just don't really talk about it that often but pretty much everyone I talked
+often but pretty much everyone I talked to pointed to this William Shearer blog
+to pointed to this William Shearer blog post from 2015 about how he uses a midi
+post from 2015 about how he uses a midi controller for manifold garden and he
+controller for manifold garden and he talked about the specific controller he
+talked about the specific controller he uses the way he wires things up in unity
+uses the way he wires things up in unity and the sorts of things to use it for so
+and the sorts of things to use it for so in broad strokes I took all of his work
+in broad strokes I took all of his work took the work that I had been doing and
+took the work that I had been doing and sort of wrapped it up in this nice unity
+sort of wrapped it up in this nice unity project
+project where the hope is they're already not
+where the hope is they're already not that many barriers to entry to getting
+that many barriers to entry to getting started here other than not knowing what
+started here other than not knowing what to do so maybe I can provide you a nice
+to do so maybe I can provide you a nice unity library that if you have bought
+unity library that if you have bought this Korg nano control to hardware that
+this Korg nano control to hardware that a lot of people use that is 40 to 60
+a lot of people use that is 40 to 60 dollars online you can drop this into
+dollars online you can drop this into your unity project and if you haven't
+your unity project and if you haven't changed the default media values it
+changed the default media values it should just work that said it is pretty
+should just work that said it is pretty buddy buggy so we will see you right now
+buddy buggy so we will see you right now if it just works unfortunately most of
+if it just works unfortunately most of the work I was actually using this for
+the work I was actually using this for is both nd aid and fairly complex to set
+is both nd aid and fairly complex to set up so this is everyone's favorite unity
+up so this is everyone's favorite unity default flappy bird clone see this is
+default flappy bird clone see this is really awkward looking at the other
+really awkward looking at the other screen so there is a custom inspector
+screen so there is a custom inspector window that is on the other screen
+hey so because we know that every good game has character customization options
+game has character customization options and Corrigan makes the nano control - in
+and Corrigan makes the nano control - in white and black you can customize the
+white and black you can customize the editor but from there say we want to
+editor but from there say we want to wire up this knob up here to how high
+wire up this knob up here to how high the bird jumps we're just gonna drag in
+the bird jumps we're just gonna drag in our bird there we go and I was reaching
+our bird there we go and I was reaching in for this for this object I'm grabbing
+in for this for this object I'm grabbing every amount of behavior off it so say
+every amount of behavior off it so say we want the bird and then it's gonna go
+we want the bird and then it's gonna go through and use this user of reflection
+through and use this user of reflection api's defines every property or storage
+api's defines every property or storage field that looks like it could be a
+field that looks like it could be a number we can tweak and then the super
+number we can tweak and then the super value is what the current value is the
+value is what the current value is the range is basically these these knobs
+range is basically these these knobs have a bottom and a top so the bottom is
+have a bottom and a top so the bottom is going to be 0 the top is gonna be this
+going to be 0 the top is gonna be this number let's make it pretty high
+number let's make it pretty high let's leave with that for now and see if
+let's leave with that for now and see if it works so we can close that out and if
+it works so we can close that out and if we run the game you're not actually
+we run the game you're not actually gonna be able to see me moving my hands
+gonna be able to see me moving my hands unfortunately but as I turn it all the
+unfortunately but as I turn it all the way up whoa
+I think we stole a little bit of tuning to go but we'll leave it at that for now
+to go but we'll leave it at that for now yes that's about it the other thing to
+yes that's about it the other thing to call out is if you actually pull this
+call out is if you actually pull this open there's another UI inside the
+open there's another UI inside the inspector itself or you can add more
+inspector itself or you can add more bindings here there are a million
+bindings here there are a million different design decisions I could talk
+different design decisions I could talk about that I don't have time for but I
+about that I don't have time for but I do want to talk about one really
+do want to talk about one really important one which is these drop downs
+important one which is these drop downs that I talked a little bit about so on a
+that I talked a little bit about so on a logistical level it totally made sense
+logistical level it totally made sense for me to do this the amount of time
+for me to do this the amount of time that I spent implementing that paid back
+that I spent implementing that paid back for itself immediately in terms of not
+for itself immediately in terms of not worrying about injuring a typo and
+worrying about injuring a typo and typing something wrong but I think it's
+typing something wrong but I think it's actually way more conceptually important
+actually way more conceptually important than that that if this is an empty text
+than that that if this is an empty text field this is now a tool that you have
+field this is now a tool that you have to come to the saying I know exactly
+to come to the saying I know exactly what variable I want to tweak this is a
+what variable I want to tweak this is a tool that will let me accomplish that
+tool that will let me accomplish that task whereas now that it's a drop-down
+task whereas now that it's a drop-down this is now another space for
+this is now another space for exploration where if you know this game
+exploration where if you know this game doesn't feel right and I don't know how
+doesn't feel right and I don't know how to solve it maybe by browsing through
+to solve it maybe by browsing through the choices the tool is giving you this
+the choices the tool is giving you this will help give me some insight into what
+will help give me some insight into what I can actually do this is a tool and not
+I can actually do this is a tool and not just to solve a specific problem but to
+just to solve a specific problem but to help give you a framework for which you
+help give you a framework for which you can explore your problem space so
+can explore your problem space so augmenting human productivity is great
+augmenting human productivity is great we have lots of tools to do that but I
+we have lots of tools to do that but I would push you as tool builders because
+would push you as tool builders because I assume a lot of you were here because
+I assume a lot of you were here because you care about making your own tools you
+you care about making your own tools you should think about augmenting human
+should think about augmenting human creativity or to put it another way
+creativity or to put it another way hammers are great there are lots of
+hammers are great there are lots of hammers that are very useful but pianos
+hammers that are very useful but pianos are also super useful you should make
+are also super useful you should make more pianos thanks
+I'm David Mershon with universal happy maker and today I'm going to talk about
+maker and today I'm going to talk about animating using Portland noise just a
+animating using Portland noise just a little disclaimer this is a talk about
+little disclaimer this is a talk about programming if you can't program it all
+programming if you can't program it all this would be a really good time to get
+this would be a really good time to get a cup of coffee or mess around on your
+a cup of coffee or mess around on your phone on the other hand what I'm gonna
+phone on the other hand what I'm gonna tell you are some things that we learned
+tell you are some things that we learned that made our lives easier and other
+that made our lives easier and other programmers know them so if you're
+programmers know them so if you're someone sitting in the audience that
+someone sitting in the audience that knows everything I'm going to say I
+knows everything I'm going to say I don't mean to insult your intelligence
+don't mean to insult your intelligence it's just maybe not everyone knows this
+it's just maybe not everyone knows this stuff and maybe it'll make your lives
+stuff and maybe it'll make your lives easier like it did for us so first I'm
+easier like it did for us so first I'm just going to show you what it is that
+just going to show you what it is that I'm going to demo today this is some
+I'm going to demo today this is some purlin animated characters from our game
+purlin animated characters from our game this guy is animated with more or less
+this guy is animated with more or less just one script with about a hundred
+just one script with about a hundred lines of code so if that sounds good to
+lines of code so if that sounds good to you I'm gonna explain it if not you're
+you I'm gonna explain it if not you're crazy so why is it that we got into
+crazy so why is it that we got into Perlin noise for animation there's lots
+Perlin noise for animation there's lots of ways to animate thanks basically
+of ways to animate thanks basically we're a small team we don't have anyone
+we're a small team we don't have anyone that can dedicate time to doing keyframe
+that can dedicate time to doing keyframe animation and we still wanted our game
+animation and we still wanted our game to look great because you have to
+to look great because you have to impress people and you know make them
+impress people and you know make them want to play your game and have it be a
+want to play your game and have it be a good experience in terms of visuals so
+good experience in terms of visuals so when we ran into this problem I thought
+when we ran into this problem I thought about my friend Nick Crockett who told
+about my friend Nick Crockett who told me years ago that if you want your game
+me years ago that if you want your game to look good you put some purlins on it
+to look good you put some purlins on it and I didn't really know what that meant
+and I didn't really know what that meant but I remembered that he said that and
+but I remembered that he said that and so I looked into it and so what Perlin
+so I looked into it and so what Perlin noise is is an algorithm that this guy
+noise is is an algorithm that this guy Ken Perlin thought of in the 1980s to
+Ken Perlin thought of in the 1980s to make procedural textures for the movie
+make procedural textures for the movie Tron which won an Academy Award and this
+Tron which won an Academy Award and this is what they look like on the left here
+is what they look like on the left here that's a basic Perlin noise generated
+that's a basic Perlin noise generated bitmap on the right is a sort of fractal
+bitmap on the right is a sort of fractal extrapolation of that that you might
+extrapolation of that that you might have seen if you use Photoshop or studio
+have seen if you use Photoshop or studio max or something like that a very common
+max or something like that a very common texture and in the center is a 3d
+texture and in the center is a 3d rendered landscape that's composed of
+rendered landscape that's composed of content that's based on Perlin noise
+content that's based on Perlin noise type algorithms so but what our team
+type algorithms so but what our team used it for is animation and the easiest
+used it for is animation and the easiest way to think about that is you go back
+way to think about that is you go back to that picture on the left and you
+to that picture on the left and you imagine just one line in that bitmap and
+imagine just one line in that bitmap and we're going to traverse it from left to
+we're going to traverse it from left to right
+right basically convert each of those values
+basically convert each of those values the luminance values from black to white
+the luminance values from black to white to a floating point value normalize zero
+to a floating point value normalize zero to one and use that to drive whatever
+to one and use that to drive whatever motion we want as amplitude values over
+motion we want as amplitude values over time so to show you why you'd use Perla
+time so to show you why you'd use Perla noise rather than something else I'm
+noise rather than something else I'm going to compare several different
+going to compare several different functions for generating amplitude over
+functions for generating amplitude over time we've got a seated random one first
+time we've got a seated random one first then the sine wave which you know what
+then the sine wave which you know what that is if you paid attention during
+that is if you paid attention during math class and then the purlins noise
+math class and then the purlins noise which is the subject of today's talk so
+which is the subject of today's talk so I'm gonna go to an example here in unity
+I'm gonna go to an example here in unity this is just a graph I made that's gonna
+this is just a graph I made that's gonna blow those functions up you can see the
+blow those functions up you can see the random noise is indeed random but
+random noise is indeed random but unfortunately it's not very good for
+unfortunately it's not very good for smooth movement because the amplitude of
+smooth movement because the amplitude of the points from one moment in time to
+the points from one moment in time to another has no continuity at all you
+another has no continuity at all you still might find that useful for making
+still might find that useful for making raindrops or something like that but not
+raindrops or something like that but not for moving objects around next we've got
+for moving objects around next we've got a sine wave which is very smooth it was
+a sine wave which is very smooth it was just very nice and you might use that
+just very nice and you might use that for a court bobbing on water but it
+for a court bobbing on water but it doesn't look very alive it's very
+doesn't look very alive it's very mechanical Perlin noise it combines some
+mechanical Perlin noise it combines some of the order of the sine wave and the
+of the order of the sine wave and the chaos of the randomness it's smooth so
+chaos of the randomness it's smooth so you can use it for moving things around
+you can use it for moving things around but it's also unpredictable you don't
+but it's also unpredictable you don't know when things are gonna get really
+know when things are gonna get really jiggy and when they're gonna level off
+jiggy and when they're gonna level off and kind of end up in a Novelli for a
+and kind of end up in a Novelli for a while or a plateau so what does this
+while or a plateau so what does this look like when you actually move objects
+look like when you actually move objects around in it that is what we're going to
+around in it that is what we're going to look yeah next
+look yeah next so this cube here is being moved around
+so this cube here is being moved around with a script that just uses Perlin
+with a script that just uses Perlin noise we'll show it to you right here
+noise we'll show it to you right here this is only about 20 lines of code and
+this is only about 20 lines of code and all this is doing is taking that those
+all this is doing is taking that those values of amplitude over time and using
+values of amplitude over time and using it to drive of the exposition on the
+it to drive of the exposition on the transform of this object so you can see
+transform of this object so you can see that it moves smoothly but its movements
+that it moves smoothly but its movements unpredictable you don't know when it's
+unpredictable you don't know when it's going to stop and start now of course
+going to stop and start now of course you can use this same code basically
+you can use this same code basically almost the exact same script with one
+almost the exact same script with one line of difference to drive the rotation
+line of difference to drive the rotation right now they're moving and rotating in
+right now they're moving and rotating in sync because it's almost the same script
+sync because it's almost the same script and they're using the same time values
+and they're using the same time values but if you change the time scale and one
+but if you change the time scale and one of them they now become disconnected and
+of them they now become disconnected and seem to have their own agency or you can
+seem to have their own agency or you can change this scene value which is just
+change this scene value which is just what's being put into the
+what's being put into the other argument on the purlins function
+other argument on the purlins function that's built to take X&Y coordinates so
+that's built to take X&Y coordinates so now they're moving at the same speed but
+now they're moving at the same speed but off basically a different line at that
+off basically a different line at that bitmap so this starts to become really
+bitmap so this starts to become really powerful once you start organizing these
+powerful once you start organizing these into hierarchies like this one here and
+into hierarchies like this one here and you can imagine that this is in the arm
+you can imagine that this is in the arm of the teacher that is scolding you for
+of the teacher that is scolding you for not remembering your sine waves in math
+not remembering your sine waves in math class this next example here is one of
+class this next example here is one of the actual scripts that we use in the
+the actual scripts that we use in the game the previous ones were all demo
+game the previous ones were all demo scripts this one isn't much longer it's
+scripts this one isn't much longer it's only about a hundred lines of code and
+only about a hundred lines of code and the main difference here is it modulates
+the main difference here is it modulates all three X's on position rotation and
+all three X's on position rotation and scale and this one is doing all of that
+scale and this one is doing all of that and making something that maybe moves
+and making something that maybe moves kind of like a balloon in the summer sky
+kind of like a balloon in the summer sky or that shiny black probe droid that was
+or that shiny black probe droid that was gonna stick Princess Leia with needles
+gonna stick Princess Leia with needles if she didn't revealed the location of
+if she didn't revealed the location of Alderaan if you've seen the film now you
+Alderaan if you've seen the film now you put those into a hierarchy and you add
+put those into a hierarchy and you add some excellent character art from
+some excellent character art from someone like our excellent character
+someone like our excellent character artist Julia Y and you get some
+artist Julia Y and you get some characters that look like they move
+characters that look like they move around and they talk and this talking
+around and they talk and this talking you're seeing is just a very simple
+you're seeing is just a very simple thing we're just speeding up all of
+thing we're just speeding up all of their animators at once and it's a
+their animators at once and it's a really dumb trick it's like a kid
+really dumb trick it's like a kid shaking a sock puppet to make it look
+shaking a sock puppet to make it look like it's talking but sometimes really
+like it's talking but sometimes really dumb tricks are what you need so here's
+dumb tricks are what you need so here's some more of the characters in game
+some more of the characters in game using this technology and we use it for
+using this technology and we use it for just about everything else to ease it
+just about everything else to ease it for environments characters UI
+for environments characters UI animations we just make everything
+animations we just make everything wobble around with Perlin noise and it
+wobble around with Perlin noise and it looks nice and warm and we didn't have
+looks nice and warm and we didn't have to lay a single keyframe so you can also
+to lay a single keyframe so you can also change States with purlins use this time
+change States with purlins use this time amplitude over time values to swap say
+amplitude over time values to swap say frames in this bright that's also useful
+frames in this bright that's also useful in this characters lips are flapping
+in this characters lips are flapping based on that as well so thank you very
+based on that as well so thank you very much I hope what I say make your life
+much I hope what I say make your life easier
+hi um I'm John Manning I'm 50% a secret lab but I'm a program on night in the
+lab but I'm a program on night in the woods I've written a bunch of books gone
+woods I've written a bunch of books gone by them please also I've read are
+by them please also I've read are helping on Marvel create your own from
+helping on Marvel create your own from tech comics and also here's a cool tool
+tech comics and also here's a cool tool you can use it's called young spinner
+you can use it's called young spinner and it was a simple solution to a fairly
+and it was a simple solution to a fairly complicated problem that was faced
+complicated problem that was faced during the development of night in the
+during the development of night in the woods so the problem was Scott Benson
+woods so the problem was Scott Benson was lead artist and also the dialogue
+was lead artist and also the dialogue writer for most of the game Alec local
+writer for most of the game Alec local was lead programmer and at the
+was lead programmer and at the Hockenberry was research or story writer
+Hockenberry was research or story writer the problem was that Scott could not do
+the problem was that Scott could not do all the writing and do all the art and
+all the writing and do all the art and also code at the same time there are
+also code at the same time there are some limits to how many different tasks
+some limits to how many different tasks in any team can do now a night in the
+in any team can do now a night in the woods is a very text heavy adventure
+woods is a very text heavy adventure game and so the solution that we came up
+game and so the solution that we came up with was a thing called yarn yarn is a
+with was a thing called yarn yarn is a language for writing dialogue the
+language for writing dialogue the solution was to make this a very simple
+solution was to make this a very simple tool for ease of use for writers and
+tool for ease of use for writers and ease of use for people integrating that
+ease of use for people integrating that tool into the software so this is
+tool into the software so this is inspired by twine and we've seen twine
+inspired by twine and we've seen twine being discussed a bunch today and also
+being discussed a bunch today and also like a twine kind of has like sunk into
+like a twine kind of has like sunk into the developer consciousness a bit as
+the developer consciousness a bit as well which is nice
+well which is nice so the idea was what if twine but in our
+so the idea was what if twine but in our game so the yarn dialogue system is
+game so the yarn dialogue system is really two things it is the yarn editor
+really two things it is the yarn editor a piece of software that you use to
+a piece of software that you use to write your dialogue and also it is yarn
+write your dialogue and also it is yarn spinner which is the library that
+spinner which is the library that interprets that dialogue and runs it
+interprets that dialogue and runs it inside your game so yawn is as a simple
+inside your game so yawn is as a simple app is a twine like node representation
+app is a twine like node representation of your dialogue each node contains a
+of your dialogue each node contains a number of lines of dialogue it contains
+number of lines of dialogue it contains some logic it contains basically a tiny
+some logic it contains basically a tiny script the yarn code as I've mentioned
+script the yarn code as I've mentioned is a twine like syntax so again designed
+is a twine like syntax so again designed to be easy to write easy to pass it's
+to be easy to write easy to pass it's simple for writers who don't necessarily
+simple for writers who don't necessarily need to work with the underlying
+need to work with the underlying behavior of the scene and it's also
+behavior of the scene and it's also simple for programmers who want to set
+simple for programmers who want to set up a scenes behavior without having to
+up a scenes behavior without having to mess with the actual content of the
+mess with the actual content of the lines as spoken by characters so what
+lines as spoken by characters so what does the language look like well it
+does the language look like well it looks like this this is actually some of
+looks like this this is actually some of the source code from night in the woods
+the source code from night in the woods in which we have some logic this is not
+in which we have some logic this is not a full node so there's no end if there
+a full node so there's no end if there so we have characters
+so we have characters speaking we have tagged to the end of
+speaking we have tagged to the end of lines to indicate localization line
+lines to indicate localization line codes we have logic happening we have
+codes we have logic happening we have you know the game state being modified
+you know the game state being modified so it was designed to make it easy for
+so it was designed to make it easy for writers and easy to block out a scene
+writers and easy to block out a scene and also have full control over what is
+and also have full control over what is happening inside the scene story wise so
+happening inside the scene story wise so all of the gameplay of night in the
+all of the gameplay of night in the woods is drawn almost entirely driven by
+woods is drawn almost entirely driven by by yon script so let's take a bit of a
+by yon script so let's take a bit of a closer look at what yon language looks
+closer look at what yon language looks like this these three lines of code here
+like this these three lines of code here on the left are valid yarn syntax lines
+on the left are valid yarn syntax lines so each line of dialogue is a is
+so each line of dialogue is a is represented as a line of text and what
+represented as a line of text and what Yantz been all do is it will read each
+Yantz been all do is it will read each line one at a time and deliver it to
+line one at a time and deliver it to your game your game then blocks on each
+your game your game then blocks on each line and handles it however it needs to
+line and handles it however it needs to so in the case of not in the woods we
+so in the case of not in the woods we pop a dialogue bubble we display each
+pop a dialogue bubble we display each character one at a time we wait for play
+character one at a time we wait for play input but for example in a game in which
+input but for example in a game in which you display multiple runs of lines it
+you display multiple runs of lines it can also handle that just as easily
+can also handle that just as easily logic works in a very similar way so
+logic works in a very similar way so again I've said Twilight syntax very
+again I've said Twilight syntax very more often than I should
+more often than I should anytime that a variable gets accessed
+anytime that a variable gets accessed young spinner will actually just defer
+young spinner will actually just defer to your program it doesn't have its own
+to your program it doesn't have its own built-in variable system you implement
+built-in variable system you implement that yourself so it's very easy to
+that yourself so it's very easy to integrate into your existing game state
+integrate into your existing game state system the the choice system is every
+system the the choice system is every time it encounters this pair of double
+time it encounters this pair of double square brackets it will add that to a
+square brackets it will add that to a list of options that it's encountered
+list of options that it's encountered and then when it reaches the end of a
+and then when it reaches the end of a script it'll then display all the
+script it'll then display all the options it seen so far and based on what
+options it seen so far and based on what the player has chosen immigrant then go
+the player has chosen immigrant then go to a different node so it's designed to
+to a different node so it's designed to make it very simple to just add more
+make it very simple to just add more options additionally there's non visible
+options additionally there's non visible like non text-based things that a ya Yan
+like non text-based things that a ya Yan script would need to do so that's things
+script would need to do so that's things like you know commands so all of the all
+like you know commands so all of the all the stage directions in the game are
+the stage directions in the game are done with these kinds of commands in
+done with these kinds of commands in this case we have an instruction to
+this case we have an instruction to dismiss the speech bubble and then make
+dismiss the speech bubble and then make the player character perform a sitting
+the player character perform a sitting down animation and then we delay the two
+down animation and then we delay the two seconds to create a bit of a beat so all
+seconds to create a bit of a beat so all of the non dialogue stuff is handled in
+of the non dialogue stuff is handled in this way we also realized that because
+this way we also realized that because it's a very very expressive
+it's a very very expressive representation there's a lot of
+representation there's a lot of opportunity for creating very short
+opportunity for creating very short lightweight choices so this is not
+lightweight choices so this is not necessarily things that affects the game
+necessarily things that affects the game story like its main plot but players do
+story like its main plot but players do like being given options even if that
+like being given options even if that doesn't change anything up half of the
+doesn't change anything up half of the fact that whether you say yes or no like
+fact that whether you say yes or no like no variable to be modified here and yet
+no variable to be modified here and yet it the player is engaged so this little
+it the player is engaged so this little arrow syntax makes it very
+arrow syntax makes it very straightforward to create lightweight
+straightforward to create lightweight options so to integrate this into unity
+options so to integrate this into unity I'm not going to like assume that
+I'm not going to like assume that everyone here use Ian because not
+everyone here use Ian because not everyone does but basically the API it
+everyone does but basically the API it looks like this you create a model
+looks like this you create a model behavior that implements some kuru teens
+behavior that implements some kuru teens so like one for lines one for options
+so like one for lines one for options once the commands that that kind of
+once the commands that that kind of stuff you yield on those co-routines
+stuff you yield on those co-routines as there's a run and that's the entire
+as there's a run and that's the entire thing so you for example implement this
+thing so you for example implement this this abstract class called dialog UI
+this abstract class called dialog UI behavior and so you get called hey a
+behavior and so you get called hey a dialog began or hey a line has arrived
+dialog began or hey a line has arrived here are some options let me know which
+here are some options let me know which one the player chose here's a command
+one the player chose here's a command also known complete or dala complete so
+also known complete or dala complete so to just show this in action this is a
+to just show this in action this is a another chunk of code from not in the
+another chunk of code from not in the woods so we have two characters b and
+woods so we have two characters b and may talk to each other then there's a
+may talk to each other then there's a choice and then if the player chooses
+choice and then if the player chooses the option let's hang out then we set
+the option let's hang out then we set some game state then navigate to a
+some game state then navigate to a different scene so here it is in game so
+different scene so here it is in game so what is happening here is yan spinner is
+what is happening here is yan spinner is delivering the individual lines to the
+delivering the individual lines to the game and that's causing the speech
+game and that's causing the speech balloons to appear it's actually one
+balloons to appear it's actually one basically once every I think eighth of a
+basically once every I think eighth of a second it's like just playing another
+second it's like just playing another character to create that thing filling
+character to create that thing filling out and then yeah when the player chose
+out and then yeah when the player chose that option then we virus out and then
+that option then we virus out and then go turn it into the scene yun spinner is
+go turn it into the scene yun spinner is free it is available right now it is
+free it is available right now it is open source it is under the MIT license
+open source it is under the MIT license which means you can use it in your
+which means you can use it in your commercial projects by the way this this
+commercial projects by the way this this slide and the next slide contain things
+slide and the next slide contain things the email and take photos of so
+the email and take photos of so obviously the man on screen for a second
+obviously the man on screen for a second um it's all on github so we welcome your
+um it's all on github so we welcome your contributions we also have a fairly
+contributions we also have a fairly active little slack where people can
+active little slack where people can come and chat about how to use the on
+come and chat about how to use the on spinner I'm better move to the next
+spinner I'm better move to the next slide so give you second
+and yeah that's me that's my studio that's not in the woods not in the woods
+that's not in the woods not in the woods was made by infinite fall and vinji we
+was made by infinite fall and vinji we help them as well I'm also speaking
+help them as well I'm also speaking tomorrow morning on some more advanced
+tomorrow morning on some more advanced stuff on like being able to
+stuff on like being able to mathematically prove that a lot of
+mathematically prove that a lot of dialogue is reachable so if you're
+dialogue is reachable so if you're nursing that come see it
+nursing that come see it thank you much that's it
+thank you much that's it that was the tech toolbox 2019 thanks so
+that was the tech toolbox 2019 thanks so much for coming let's hear it one more
+much for coming let's hear it one more time for our six amazing speakers

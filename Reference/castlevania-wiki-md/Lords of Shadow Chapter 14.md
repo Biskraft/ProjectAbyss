@@ -1,0 +1,31 @@
+# Lords of Shadow Chapter 14
+
+The fourteenth and second downloadable content chapter of *Castlevania: Lords of Shadow*, as well as the final overall chapter. Gabriel ventures into the Dimensional Prison in which the Forgotten One is held, and finally confronts him, leading to a battle that determines Gabriel's fate and the future of the entire world. 
+
+## Chapter summary
+Now a vampire due to Laura's sacrifice, Gabriel enters the dark prison, a cavernous and foul region. After destroying a troop of enemies, he comes to a sealed door with a weak area at the very bottom, which he breaks through. He soon comes to a pool of molten lava, but upon approach Gabriel doubles over in pain as the Forgotten One, a gigantic demon in silvery-white armor, emerges from the pool. Before it has a chance to see him, Gabriel conceals himself behind a boulder, his pain easing as the Forgotten One moves away from him.
+
+Gabriel silently follows up after the demon as it climbs up the walls and tries to break through the multiple ceilings of the chamber. Often, the Forgotten One senses something underneath him, prompting Gabriel to quickly hide in order to avoid being detected. Despite his caution, it's critical that Gabriel continues after the demon, as the lava pool it had emerged from begins rising below the both of them, although the Forgotten One is not affected by the lava.
+
+Reaching the summit, the giant fiend uses its power to pry open a circular door, but the effort appears to momentarily weaken him. Gabriel rushes at the Forgotten One, but is noticed by the demon, who grabs and then throws Gabriel. The two fight, and Gabriel is able to wound the Forgotten One's right knee, stripping it of its armor and exposing glowing muscle. Surprised to see a human in the dimensional prison, the Forgotten One recognizes Gabriel's armor as belonging to the Brotherhood of Light. It notes that there is something different about Gabriel, who vows to destroy the Forgotten One. The fiend only laughs at Belmont's words and informs him that a part of its own power is obliterating the seal on the prison. 
+
+A battle ensues between them, with the demon using shockwaves, flares, and a pair of serrated shadow blades to harm Gabriel. However, the knight is able to weaken the demon, particularly by attacking the exposed knee and deflecting the flares back. He rushes the demon again and is able to cling to its back, successfully destroying the armor of the Forgotten One's torso with several punches. He additionally is able to hit the demon with its own rock mace, but at that moment the cavern trembles, pieces of rock falling around them. The Forgotten One acknowledges Gabriel as a "worthy rival", but insists that he will not win. Gabriel impatiently dismisses the creatures words, but the Forgotten One recalls his power from the door, which has been successfully broken through. 
+
+Gabriel retreats behind a boulder once again, while the Forgotten One laughs and insists the warrior kill himself while he has the opportunity, promising that he will suffer, never finding peace "in Light nor Darkness". The Forgotten One then leaves the chamber through the door it has unsealed, continuing on through a river of lava.
+
+<p style="margin-top:0.4em;margin-bottom:0.5em;">Gabriel follows it, leaping among flat mounds of rock that have fallen from the ceiling into the magma. Gabriel remains behind the demon as it begins to pummel its way through a metal barrier blocking its path, which loosen a stone pillar with a ledge. Gabriel grapples his way to the ledge and hangs on. The Forgotten One senses Gabriel and glances around the pillar, yet Gabriel moves around the ledge to avoid being seen. The creature then picks up the pillar and uses it as a battering ram to break through the barrier. Gabriel holds on as the pillar is repeatedly slammed against the metal. Once it is through, Gabriel rides the pillar down the lava flow after the demon. </p>
+
+Landing on shore, Gabriel follows the demon to the outermost area of the dimension, at the rift's very entrance. The Forgotten One, as before, sends out some of its powers to begin destroying the seal and allow it to finally be free. Gabriel appears standing behind it; the demon senses him again and turns to attack. However, Belmont dodges and, using the Dark Gauntlet, shears off the armor covering the Forgotten One's left forearm. The two battle a final time: in addition to the usual attacks from the ancient fiend, Gabriel pushes rocks heated by the demon's lightning back at it, and manages to injure the Forgotten One's right shoulder, kicking the armor hard enough to shatter it. The fight continues, with the Forgotten One throwing rock spears, but Gabriel is able to acquire them and fling them at his enemy. While the demon is stunned, Gabriel runs up and begins punching the Forgotten One until half of its helmet is shattered, revealing the muscled, greenish mass of its face. 
+
+Although weakened by Gabriel's assault, the Forgotten One is successful in opening the seal. It then threatens to obliterate the world as vengeance for its long imprisonment, promising to let Gabriel live to witness his failure, as the rest of the demon's power retreats from the opened portal and returns to it. However, at the very last moment, Gabriel leaps in front of the Forgotten One with aid from the Seraph Shoulders and intercepts the power, successfully absorbing it despite the demon's protests. The Forgotten One rushes in to strike him, but the warrior easily moves out of the way, floating in an aura of light. Realizing its defeat is imminent, the Forgotten One turns to Gabriel and begs for mercy. However, Gabriel ignores the demon's plea and slices the Forgotten One in two with a mere slash of his hand, killing the creature forever.
+
+As a final sign of the abandonment of his former life as both a mortal and a warrior for good, Gabriel crushes the Vampire Killer in one hand. He then departs the dimension, leaving the discarded pieces of his former weapon behind. This brings the game to its final end.
+
+## Locations
+#Dimensional Prison
+#The Underworld
+
+## Related Chapters
+- Chapter 13 - The previous chapter
+Category: Lords of Shadow Chapters
+Category: Lords of Shadow DLC

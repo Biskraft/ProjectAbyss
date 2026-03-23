@@ -1,0 +1,693 @@
+[Music] uh Hey everybody thanks for coming out
+uh Hey everybody thanks for coming out today uh my name is Zach Aman I'm the
+today uh my name is Zach Aman I'm the lead engineer at 17 bit uh 17 bit is a
+lead engineer at 17 bit uh 17 bit is a small seven-man Studio based in Seattle
+small seven-man Studio based in Seattle and in Kyoto uh most recently we
+and in Kyoto uh most recently we developed the turn-based strategy game
+developed the turn-based strategy game skulls of the Shogun and right now we're
+skulls of the Shogun and right now we're working on g z um today I'm here to
+working on g z um today I'm here to share with you about the process of
+share with you about the process of building building procedural dungeons in
+building building procedural dungeons in our game uh if you're not familiar with
+our game uh if you're not familiar with the game Gala Z is a top down 2D space
+the game Gala Z is a top down 2D space shooter it's an homage to 16 bit
+shooter it's an homage to 16 bit Shooters updated with modern tech and
+Shooters updated with modern tech and modern design if you Tred to compare the
+modern design if you Tred to compare the game to asteroids Halo Far Cry Spelunky
+game to asteroids Halo Far Cry Spelunky or even the early 80s anime series
+or even the early 80s anime series starblazers you wouldn't be far off all
+starblazers you wouldn't be far off all these have Serv as Inspirations when
+these have Serv as Inspirations when designing and building Galaxy uh Galaxy
+designing and building Galaxy uh Galaxy is being developed in unity with a um
+is being developed in unity with a um custom AI solution provided by sentient
+custom AI solution provided by sentient and will be released this year on the
+and will be released this year on the PlayStation 4 and later on Steam for
+PlayStation 4 and later on Steam for those of you who haven't seen or heard
+those of you who haven't seen or heard of the game before I'm going to play a
+of the game before I'm going to play a quick gameplay video just to give you
+quick gameplay video just to give you some contextual reference for those
+some contextual reference for those things we're going to be
+discussing uh is there audio should be playing
+playing okay product not yet
+rated Galaxy [Music]
+he
+[Music]
+2014 please pretend you didn't
+see
+okay uh at PA Prime in 2013 we demoed our tutorial level which we had
+our tutorial level which we had internally named the fourth cave was the
+internally named the fourth cave was the fourth iteration of a lot of hard work
+fourth iteration of a lot of hard work um and every Rock had been hand placed
+um and every Rock had been hand placed and sized every region was uniquely lit
+and sized every region was uniquely lit every enemy Patrol was strategically
+every enemy Patrol was strategically placed put a lot of work into
+placed put a lot of work into handcrafting the sort of experience uh
+handcrafting the sort of experience uh we are really happy with the end results
+we are really happy with the end results but it also showed us exactly how much
+but it also showed us exactly how much work was left to finish making the game
+work was left to finish making the game uh the pack demo also highlighted for us
+uh the pack demo also highlighted for us the true strengths of the game which I
+the true strengths of the game which I listed here and if you notice uh the
+listed here and if you notice uh the delicate placement of rocks and Flora
+delicate placement of rocks and Flora and Fauna is not on that list um our
+and Fauna is not on that list um our level design approach started to shift
+level design approach started to shift very rapidly once we realized this we
+very rapidly once we realized this we had a hunch that we could randomly
+had a hunch that we could randomly generate our levels but we didn't quite
+generate our levels but we didn't quite know exactly how we'd go about that uh
+know exactly how we'd go about that uh and I had some prior experience doing
+and I had some prior experience doing procedural generation on a student game
+procedural generation on a student game called sin and so I volunteered to take
+called sin and so I volunteered to take on the task and by this point I done a
+on the task and by this point I done a fair amount of reading about procedural
+fair amount of reading about procedural content uh generation techniques and the
+content uh generation techniques and the one that immediately stood out to me the
+one that immediately stood out to me the most was something called cellular
+most was something called cellular automata cellular automata refers to a
+automata cellular automata refers to a simulation performed on a grid of cells
+simulation performed on a grid of cells that are always on or off and are
+that are always on or off and are governed by certain rules these rules
+governed by certain rules these rules are applied to every cell during each
+are applied to every cell during each step of the simulation each rule
+step of the simulation each rule examines the cell's current state if
+examines the cell's current state if it's alive or dead and also the number
+it's alive or dead and also the number of living neighbors if there are enough
+of living neighbors if there are enough living cells surrounding a dead one it
+living cells surrounding a dead one it will become alive as well and similarly
+will become alive as well and similarly if there are not enough living cells
+if there are not enough living cells around a live cell it will die off John
+around a live cell it will die off John Conway's seminal Game of Life which was
+Conway's seminal Game of Life which was devised in 1970 is a collection of these
+devised in 1970 is a collection of these rules that produces an unstable uh
+rules that produces an unstable uh constantly shifting field of cells that
+constantly shifting field of cells that closely resembles the rise fall and
+closely resembles the rise fall and alterations of a society of living
+alterations of a society of living organisms uh the cellular automat game
+organisms uh the cellular automat game is initialized with a starting
+is initialized with a starting configuration of cells and then the user
+configuration of cells and then the user sort of steps away and doesn't interact
+sort of steps away and doesn't interact with it except to observe it and here we
+with it except to observe it and here we can see two examples of uh cellular
+can see two examples of uh cellular automat patterns one very simple and one
+automat patterns one very simple and one very complex both of these patterns are
+very complex both of these patterns are what are called gliders a very popular
+what are called gliders a very popular typee of pattern in The Game of Life the
+typee of pattern in The Game of Life the glider pattern will move across the grid
+glider pattern will move across the grid infinitely until it hits uh the edge of
+infinitely until it hits uh the edge of the grid uh which makes a capable of
+the grid uh which makes a capable of transmitting information even if that's
+transmitting information even if that's only one bit at a time it can still
+only one bit at a time it can still transmit information which means that
+transmit information which means that you can build things like logical Gates
+you can build things like logical Gates and or exclusive art Etc which
+and or exclusive art Etc which ultimately means that the game of life
+ultimately means that the game of life is tur in complete if you build enough
+is tur in complete if you build enough little tiny
+little tiny gliders so the complexity exhibited by
+gliders so the complexity exhibited by such a relatively simple algorithm is
+such a relatively simple algorithm is nothing short of phenomenal but remember
+nothing short of phenomenal but remember the rules used in The Game of Life were
+the rules used in The Game of Life were specifically chosen to generate these
+specifically chosen to generate these types of interactions if you play around
+types of interactions if you play around with the rule set and pick a different
+with the rule set and pick a different set of rules that will ultimately bring
+set of rules that will ultimately bring the grid to a state of equilibrium some
+the grid to a state of equilibrium some very interesting shapes start to
+very interesting shapes start to emerge let's see what happens with a
+emerge let's see what happens with a more stable rule set and a random
+more stable rule set and a random configuration of starting
+configuration of starting cells perfect uh let's just take a
+cells perfect uh let's just take a moment appreciate the beauty of this
+moment appreciate the beauty of this cave it's got pretty much everything you
+cave it's got pretty much everything you would want in a Gala Z level uh Islands
+would want in a Gala Z level uh Islands narrow passageways pockets for hiding or
+narrow passageways pockets for hiding or for placing lava cools like there's so
+for placing lava cools like there's so many things you could do with the space
+many things you could do with the space and all this from that same underlying
+and all this from that same underlying system that generated those gliders in
+system that generated those gliders in the previous Slide the only variation is
+the previous Slide the only variation is a rule set that tends tends towards
+a rule set that tends tends towards equilibrium and a much denser starting
+equilibrium and a much denser starting grid uh the algorithm stabilizes
+grid uh the algorithm stabilizes relatively quickly it only takes about
+relatively quickly it only takes about 10 or so iterations to achieve
+10 or so iterations to achieve this and here we see a step-by-step
+this and here we see a step-by-step generation of a small cellular automat
+generation of a small cellular automat cave using a custom tool that we built
+cave using a custom tool that we built for Galaxy uh this first animation shows
+for Galaxy uh this first animation shows how the cave evolves from its initial
+how the cave evolves from its initial chaotic seed you can see it starts with
+chaotic seed you can see it starts with Pure Noise but over time it converges
+Pure Noise but over time it converges into this really cool shape so we fill
+into this really cool shape so we fill the starting grid with about 50% living
+the starting grid with about 50% living cells and 50% dead cells and then run
+cells and 50% dead cells and then run the rule set
+the rule set repeatedly and here we can see the final
+repeatedly and here we can see the final result of that same cave if we change
+result of that same cave if we change the proportion of dead to living cells
+the proportion of dead to living cells by seaing the grid with more dead cells
+by seaing the grid with more dead cells we produce less open space and vice
+we produce less open space and vice versa when we seat it with more living
+versa when we seat it with more living cells we're able to produce more open
+space so we just make our grid bigger the cellular automat algorithm and voila
+the cellular automat algorithm and voila we're done right actually no not by a
+we're done right actually no not by a long shot because as beautiful as this
+long shot because as beautiful as this is it's impossible to control it's
+is it's impossible to control it's visually fantastic and it's exactly what
+visually fantastic and it's exactly what we want but you still have the daunting
+we want but you still have the daunting task of writing some sort of algorithm
+task of writing some sort of algorithm that populates this cave with
+that populates this cave with interesting objects you would need to
+interesting objects you would need to place treasure enemy Patrol paths
+place treasure enemy Patrol paths hazardous obstacles like all the things
+hazardous obstacles like all the things that make the game fun and interesting
+that make the game fun and interesting you still have to place and that's
+you still have to place and that's actually really really difficult to do
+actually really really difficult to do with a shape like this so cellular
+with a shape like this so cellular automar are really cool but they're not
+automar are really cool but they're not not a good choice for generating levels
+not a good choice for generating levels at this scale they are however an ideal
+at this scale they are however an ideal solution for generating smaller chunks
+solution for generating smaller chunks within a
+within a level and so once we decided that the
+level and so once we decided that the smaller cave chunks were the way to go
+smaller cave chunks were the way to go uh we started experimenting with many
+uh we started experimenting with many different spatial subdivision techniques
+different spatial subdivision techniques to link them together and to form
+to link them together and to form something larger and
+something larger and cohesive uh binary space partitioning is
+cohesive uh binary space partitioning is a tried and two process for splitting uh
+a tried and two process for splitting uh space into smaller discreet chunks and
+space into smaller discreet chunks and so that was the first method that I
+so that was the first method that I turned to given a rect that find a
+turned to given a rect that find a dungeon size I would split the space
+dungeon size I would split the space into smaller and smaller pieces stopping
+into smaller and smaller pieces stopping when each piece was small enough that I
+when each piece was small enough that I could consider it to be room sized and
+could consider it to be room sized and at the end some percentage of those
+at the end some percentage of those rooms would just be thrown out leaving
+rooms would just be thrown out leaving us with a scattered collection of rooms
+us with a scattered collection of rooms to be filled with cellular
+to be filled with cellular automa and from this collection of rooms
+automa and from this collection of rooms I was able to construct a minimum
+I was able to construct a minimum spanning tree uh which gives you the
+spanning tree uh which gives you the most direct path from any one node to
+most direct path from any one node to all its neighbors uh using the
+all its neighbors uh using the connecting edges of the tree which in
+connecting edges of the tree which in this image are represented by those
+this image are represented by those thick black lines I to drill tunnels
+thick black lines I to drill tunnels that connected individual rooms together
+that connected individual rooms together the result which I neglected to take a
+the result which I neglected to take a screenshot of was kind of a mess uh just
+screenshot of was kind of a mess uh just imagine that every Noe on that graph
+imagine that every Noe on that graph pictured was replaced with a small
+pictured was replaced with a small cellular automat cave the connecting
+cellular automat cave the connecting corridors were sometimes too long or too
+corridors were sometimes too long or too angled or the rooms were too far apart
+angled or the rooms were too far apart or they intersected the rooms in awkward
+or they intersected the rooms in awkward ways or or there were just too many
+ways or or there were just too many things wrong with this approach and I
+things wrong with this approach and I really like solving problems but all I
+really like solving problems but all I saw in front of me after this were more
+saw in front of me after this were more and more problems so this is around the
+and more problems so this is around the time that I decided to take a a few
+time that I decided to take a a few steps back and reconsider our whole
+steps back and reconsider our whole approach uh during this time maybe by
+approach uh during this time maybe by chance my cooworker Paul pointed me to a
+chance my cooworker Paul pointed me to a Wikipedia page on zorder curves and
+Wikipedia page on zorder curves and suggested that they might be
+suggested that they might be useful a zorder curve is a function that
+useful a zorder curve is a function that Maps multi-dimensional data to one
+Maps multi-dimensional data to one dimension while preserving locality that
+dimension while preserving locality that sounds like a mouthful uh but like
+sounds like a mouthful uh but like everything else we are going to be
+everything else we are going to be exploring it's best Illustrated with a
+exploring it's best Illustrated with a picture or
+picture or two so here we see a few different
+two so here we see a few different instances of the two-dimensional zorder
+instances of the two-dimensional zorder curve at increasingly higher resolutions
+curve at increasingly higher resolutions the first one Maps a 2 x two space and
+the first one Maps a 2 x two space and then a 4x4 8x8 and finally 16x
+then a 4x4 8x8 and finally 16x 16 the zorder function works by
+16 the zorder function works by interleaving the bits of the X and Y
+interleaving the bits of the X and Y coordinates to generate a single value
+coordinates to generate a single value called the zv value and I'm going to
+called the zv value and I'm going to skip over the details of the
+skip over the details of the implementation but if it's something
+implementation but if it's something you're curious about um it's fairly
+you're curious about um it's fairly straightforward if you're comfortable
+straightforward if you're comfortable with doing bitwise uh operations in code
+with doing bitwise uh operations in code so how does all this relate to Gala Z
+so how does all this relate to Gala Z and cellular automata well obviously
+and cellular automata well obviously this isn't quite how I'd imagined our
+this isn't quite how I'd imagined our dungeons turning out there's a lot of
+dungeons turning out there's a lot of zigging and zagging uh but there are two
+zigging and zagging uh but there are two characteristics of this algorithm that
+characteristics of this algorithm that are of interest to us the first is that
+are of interest to us the first is that it gives us a way of representing a
+it gives us a way of representing a two-dimensional grid with linear values
+two-dimensional grid with linear values if I have a square grid I can generate a
+if I have a square grid I can generate a linear path that takes us from one end
+linear path that takes us from one end of the dungeon to the other it lets us
+of the dungeon to the other it lets us map physical space to logical space and
+map physical space to logical space and secondly but just as importantly this
+secondly but just as importantly this function is invertible if I have a z
+function is invertible if I have a z value I can retrieve the X and Y
+value I can retrieve the X and Y coordinates very easily and very quickly
+coordinates very easily and very quickly incrementing the Z value from say 0 to 3
+incrementing the Z value from say 0 to 3 will take you through all the cells on a
+will take you through all the cells on a 2 X2
+grid sorry that was really loud uh as it turns out Zer curves are part of a whole
+turns out Zer curves are part of a whole family of space filling curves um which
+family of space filling curves um which are functions whose range contain the
+are functions whose range contain the entire two-dimensional unit Square so if
+entire two-dimensional unit Square so if you have a 2x2 or a 4x4 or 8x8 whatever
+you have a 2x2 or a 4x4 or 8x8 whatever uh Square you can ensure that every
+uh Square you can ensure that every point in that space will be touched by
+point in that space will be touched by one of these curves this was a big
+one of these curves this was a big selling point for me because one of my
+selling point for me because one of my pet peeves uh is handling backtracking
+pet peeves uh is handling backtracking and intersections which is a common
+and intersections which is a common issue when you're doing pathf finding
+issue when you're doing pathf finding and space filling
+and space filling algorithms so Hilbert curves are another
+algorithms so Hilbert curves are another set of functions that belong to this
+set of functions that belong to this family and the moment I saw this diagram
+family and the moment I saw this diagram everything started clicking into place
+everything started clicking into place and you may already be able to see why
+and you may already be able to see why um they preserve locality even better
+um they preserve locality even better than zorder curves and the coordinates
+than zorder curves and the coordinates between points on the curve never change
+between points on the curve never change in both dimensions at once that means
+in both dimensions at once that means they're orthogonal I.E there are no no
+they're orthogonal I.E there are no no diagonals which was something that
+diagonals which was something that prevented zor curves from being really
+prevented zor curves from being really useful for us only having to deal with
+useful for us only having to deal with the four cardinal directions actually
+the four cardinal directions actually simplifies a lot of
+simplifies a lot of stuff to work with the hbert Curve like
+stuff to work with the hbert Curve like with the zorder Curve all you need are
+with the zorder Curve all you need are two functions one that Maps
+two functions one that Maps one-dimensional space to two-
+one-dimensional space to two- dimensional space and vice versa and
+dimensional space and vice versa and instead of calling the onedimensional
+instead of calling the onedimensional value Z we're going to call it D for
+value Z we're going to call it D for distance as you can see this entire
+distance as you can see this entire implementation is only about 20 lines of
+implementation is only about 20 lines of code and it's mostly composed of simple
+code and it's mostly composed of simple arithmetic and bitwise
+operations so if we abandoning all that spanning tree in binary space
+spanning tree in binary space partitioning nonsense and instead just
+partitioning nonsense and instead just lay the rooms out on a grid it becomes a
+lay the rooms out on a grid it becomes a perfect match for the Hilbert curve
+perfect match for the Hilbert curve there is however one glaring fault with
+there is however one glaring fault with using Hilbert curves to map out the
+using Hilbert curves to map out the interior of our dungeon and that's that
+interior of our dungeon and that's that the path is always the
+the path is always the same in the following example we're
+same in the following example we're trying to build a dungeon that's four
+trying to build a dungeon that's four rooms wide and four rooms tall and so
+rooms wide and four rooms tall and so naturally we would want to pair it with
+naturally we would want to pair it with a hbert curve whose Dimensions
+a hbert curve whose Dimensions match and as you can see if you follow
+match and as you can see if you follow the path of the hbert curve every saw
+the path of the hbert curve every saw gets visited but the shape of the path
+gets visited but the shape of the path is far too recognizable it doesn't
+is far too recognizable it doesn't really look random at all even if if you
+really look random at all even if if you rotate the underlying curve uh it's
+rotate the underlying curve uh it's still very recognizable and even in the
+still very recognizable and even in the game without a level map or something
+game without a level map or something the player is going to be able to pick
+the player is going to be able to pick up on this sort of repetition very very
+up on this sort of repetition very very quickly so our
+quickly so our solution first we start by expanding the
+solution first we start by expanding the dimension of the hbert curve to the next
+dimension of the hbert curve to the next power of two which makes it four times
+power of two which makes it four times the size of the dungeon grid and then we
+the size of the dungeon grid and then we pick a random offset for the dungeon
+pick a random offset for the dungeon grid so rather than mapping the grid and
+grid so rather than mapping the grid and the curve 1: one we use the smaller
+the curve 1: one we use the smaller dungeon grid as a sampling kernel and
+dungeon grid as a sampling kernel and only take the parts of the hbert Curve
+only take the parts of the hbert Curve that are contained within the
+that are contained within the grid we do this by walking along the
+grid we do this by walking along the Hilbert curve from one end to the other
+Hilbert curve from one end to the other and checking to see if the XY
+and checking to see if the XY coordinates at each point on the curve
+coordinates at each point on the curve are contained within that dungeon grid
+are contained within that dungeon grid if they are then we add that cell to the
+if they are then we add that cell to the dungeon's main
+dungeon's main path if we ever walk off the grid we
+path if we ever walk off the grid we simply keep walking the curve until it
+simply keep walking the curve until it returns to a neighboring cell if it
+returns to a neighboring cell if it doesn't ever touch a neighboring cell
+doesn't ever touch a neighboring cell then the path ends and here are a few
+then the path ends and here are a few more examples of random paths that can
+more examples of random paths that can be constructed with this approach in
+be constructed with this approach in this animation all the red cells are
+this animation all the red cells are dead cells they've been excluded because
+dead cells they've been excluded because they were unable to connect to the main
+they were unable to connect to the main path as we were walking along the
+path as we were walking along the hillward
+hillward curve so already we have a lot more V uh
+curve so already we have a lot more V uh variation uh but the paths are still a
+variation uh but the paths are still a little on the plain side and so in most
+little on the plain side and so in most cases we're left with a handful of dead
+cases we're left with a handful of dead cells that we normally just discard but
+cells that we normally just discard but it turns out we can reuse those instead
+it turns out we can reuse those instead of discarding them entirely for every
+of discarding them entirely for every dead cell that is touching the final
+dead cell that is touching the final path we consider a candidate for a dead
+path we consider a candidate for a dead end and dead ends are offshoots from the
+end and dead ends are offshoots from the main dungeon path and they're
+main dungeon path and they're represented by the purple cells in this
+represented by the purple cells in this animation
+animation dead ends actually play a very important
+dead ends actually play a very important part in Galaxy uh because that's where
+part in Galaxy uh because that's where treasure troves and mission objectives
+treasure troves and mission objectives are usually placed if we can't generate
+are usually placed if we can't generate enough dead ends to meet the
+enough dead ends to meet the requirements for a particular dungeon
+requirements for a particular dungeon then we simply discard the results and
+then we simply discard the results and start again from scratch and because the
+start again from scratch and because the whole process is very very quick uh it's
+whole process is very very quick uh it's easy to brute force a layout that
+easy to brute force a layout that works so now we have a way of generating
+works so now we have a way of generating random layouts within a confined space
+random layouts within a confined space uh it's time when we go back to the
+uh it's time when we go back to the thing that started this whole mess which
+thing that started this whole mess which was generating cave like rooms by
+was generating cave like rooms by working from the top down now instead of
+working from the top down now instead of from the bottom up uh we have a little
+from the bottom up uh we have a little more information about how to generate
+more information about how to generate these rooms using cellular automa our
+these rooms using cellular automa our approach to generating the dungeons
+approach to generating the dungeons layout added some restrictions to the
+layout added some restrictions to the rooms which ends up being a really good
+rooms which ends up being a really good thing uh when you impose constraints on
+thing uh when you impose constraints on a problem it typically makes it easier
+a problem it typically makes it easier to solve and that was definitely the
+to solve and that was definitely the case here with a clear understanding of
+case here with a clear understanding of our high level layout let's take a look
+our high level layout let's take a look at some of these
+at some of these considerations first one is that we
+considerations first one is that we decided that the cellular automata would
+decided that the cellular automata would be used to generate individual rooms of
+be used to generate individual rooms of a fixed size we always know how big any
+a fixed size we always know how big any one chunk is going to be uh we chose a
+one chunk is going to be uh we chose a seemingly arbitrary grid size not at all
+seemingly arbitrary grid size not at all related 17 bit actually totally
+related 17 bit actually totally coincidental um a size that provides
+coincidental um a size that provides enough Fidelity for these cellular
+enough Fidelity for these cellular automat features to show through without
+automat features to show through without being so big that they're
+being so big that they're unwieldy additionally because these
+unwieldy additionally because these rooms needed to be placed along an exit
+rooms needed to be placed along an exit or along a path with discreet Cardinal
+or along a path with discreet Cardinal exits the edges of the rooms need to be
+exits the edges of the rooms need to be open enough to connect to their
+open enough to connect to their neighbors the cellular automat algorithm
+neighbors the cellular automat algorithm does a good job at providing initial
+does a good job at providing initial shape of the room but sometimes it's not
+shape of the room but sometimes it's not quite right there's an odd pixel here or
+quite right there's an odd pixel here or there or uh you know that passageway is
+there or uh you know that passageway is just not quite wide enough and so it's
+just not quite wide enough and so it's important for the content creators to be
+important for the content creators to be able to go in and touch up these shapes
+able to go in and touch up these shapes when they need
+when they need to and also entty rooms are boring we
+to and also entty rooms are boring we need a way to specify the placement of
+need a way to specify the placement of loot of enemies mission objectives all
+loot of enemies mission objectives all that good stuff and finally we knew we'd
+that good stuff and finally we knew we'd also need some extra data about a room
+also need some extra data about a room for filtering criteria say you want to
+for filtering criteria say you want to make a room that's only going to be used
+make a room that's only going to be used at the end of a dungeon or a room that's
+at the end of a dungeon or a room that's used for a particular Mission we need a
+used for a particular Mission we need a way to be able to specify that as well
+way to be able to specify that as well so all these requirements helped us
+so all these requirements helped us build a tool that was uniquely uh suited
+build a tool that was uniquely uh suited to addressing the aention
+to addressing the aention challenges and there are two main parts
+challenges and there are two main parts to our room template editor uh at the
+to our room template editor uh at the top is a layer based pixel painting tool
+top is a layer based pixel painting tool that allows our content creators to
+that allows our content creators to create a low reses template of a
+create a low reses template of a cellular automar room there's a little
+cellular automar room there's a little button they can click and just keep
+button they can click and just keep clicking it and it'll keep generating
+clicking it and it'll keep generating new shapes that they can start with as a
+new shapes that they can start with as a base and these templates are simply
+base and these templates are simply patterns for building the actual room at
+patterns for building the actual room at runtime all we're doing is seating the
+runtime all we're doing is seating the data at first glance I know this looks
+data at first glance I know this looks like a jumbled mess of colors but each
+like a jumbled mess of colors but each color represents an individual layer
+color represents an individual layer that controls the placement of a
+that controls the placement of a different collection of objects and
+different collection of objects and Below all that is a panel for editing
+Below all that is a panel for editing things like the templates name its
+things like the templates name its available exits uh its room spaciousness
+available exits uh its room spaciousness metadata all that stuff as well as some
+metadata all that stuff as well as some controls for previewing the room ingame
+controls for previewing the room ingame let's take a little bit of a closer look
+let's take a little bit of a closer look at that painting panel up
+at that painting panel up top room creation becomes decidedly less
+top room creation becomes decidedly less complex when you go layer by layer in
+complex when you go layer by layer in the first layer here the user can paint
+the first layer here the user can paint over anomalies or add their own geometry
+over anomalies or add their own geometry to the room in the second layer uh they
+to the room in the second layer uh they can add way points for enemy Patrol
+can add way points for enemy Patrol paths and then there are layers for bug
+paths and then there are layers for bug spawn points decoration objects
+spawn points decoration objects interactable objects uh background
+interactable objects uh background objects fixed obstacles floating
+objects fixed obstacles floating obstacles destructible barricades lava
+obstacles destructible barricades lava pools foreground elements to enhance the
+pools foreground elements to enhance the sense of depth uh all these things come
+sense of depth uh all these things come together in this one tool and they all
+together in this one tool and they all utilize the same interface for creating
+utilize the same interface for creating placing and
+editing so with this tool at any point in time the user can click the build
+in time the user can click the build button to see what the room will look
+button to see what the room will look like in the game and as you can probably
+like in the game and as you can probably guess this particular feature proved to
+guess this particular feature proved to be invaluable uh but as it turns out
+be invaluable uh but as it turns out it's not just invaluable it's actually
+it's not just invaluable it's actually kind of a necessity because these are
+kind of a necessity because these are room templates the content creator
+room templates the content creator doesn't know exactly the configuration
+doesn't know exactly the configuration of the room when it's in the game um
+of the room when it's in the game um there's a bunch of different templates
+there's a bunch of different templates or a bunch of different data that could
+or a bunch of different data that could be applied to this template and so it's
+be applied to this template and so it's important for them to be able to see the
+important for them to be able to see the room in different
+room in different configurations these configurations are
+configurations these configurations are called dungeon zones so dungeon zones
+called dungeon zones so dungeon zones are how we give uh a room with the same
+are how we give uh a room with the same template their own unique aesthetic
+template their own unique aesthetic typically a dungeon is made up of
+typically a dungeon is made up of anywhere from 1 to four zones with zones
+anywhere from 1 to four zones with zones often spanning multiple rooms they group
+often spanning multiple rooms they group different parts of a dungeon together
+different parts of a dungeon together and they give the player some sort of uh
+and they give the player some sort of uh frame of reference when they're
+frame of reference when they're traversing it it allows the player to
+traversing it it allows the player to say things like oh I must have circled
+say things like oh I must have circled back around because I'm I'm back in the
+back around because I'm I'm back in the bug area where I started it also allows
+bug area where I started it also allows us to extract a lot of variety from a
+us to extract a lot of variety from a single room template and specifically
+single room template and specifically dungeon zones control how the room is
+dungeon zones control how the room is lit what you see in the background layer
+lit what you see in the background layer what you see in the foreground layer
+what you see in the foreground layer what types of enemies can spawn there
+what types of enemies can spawn there what types of loot can spawn there and
+what types of loot can spawn there and how many rooms you'll encounter in a row
+how many rooms you'll encounter in a row in this particular
+in this particular Zone astute viewers may have noticed
+Zone astute viewers may have noticed that the final appearance of these caves
+that the final appearance of these caves is much more organic than the blocky
+is much more organic than the blocky templates that we've been looking at and
+templates that we've been looking at and we accomplish this with two steps the
+we accomplish this with two steps the first is to flood fill the cellular
+first is to flood fill the cellular cellular automat grid to detect isolated
+cellular automat grid to detect isolated shapes and these points are then
+shapes and these points are then triangulated into meshes and then
+triangulated into meshes and then assigned Collision data and a tiling
+assigned Collision data and a tiling texture and this forms the interior of
+texture and this forms the interior of the cave walls and then to form the
+the cave walls and then to form the exteriors we simply Place pre-made Rock
+exteriors we simply Place pre-made Rock objects along the edges of those meshes
+objects along the edges of those meshes and this is what gives the cave walls
+and this is what gives the cave walls their Jagged
+roughness and so finally after all that hopefully you now have a pretty good
+hopefully you now have a pretty good idea of what's going on in this
+idea of what's going on in this animation uh there's the exaggerated
+animation uh there's the exaggerated Hilbert curve layout the placement of
+Hilbert curve layout the placement of rocks different colored zones Etc we
+rocks different colored zones Etc we finally have one big happy space
+cave space hulks are are another type of dungeon in Galaxy that utilize the same
+dungeon in Galaxy that utilize the same procedural system as the caves uh with a
+procedural system as the caves uh with a few key differences caves are organic
+few key differences caves are organic and expansive while space hulks are
+and expansive while space hulks are man-made they're quantized they're much
+man-made they're quantized they're much more linear as
+more linear as well so I took advantage of the fact
+well so I took advantage of the fact that our space hulks are longer than
+that our space hulks are longer than they are tall being never more than two
+they are tall being never more than two rooms High the y-coordinate can be
+rooms High the y-coordinate can be represented with a single bit so rather
+represented with a single bit so rather than using Hilbert curves to generate
+than using Hilbert curves to generate these layouts I generate a random number
+these layouts I generate a random number and I look at its binary encoding and
+and I look at its binary encoding and then alternate between the top and
+then alternate between the top and bottom rows of the dungeon grid so the
+bottom rows of the dungeon grid so the bits are read from left to right placing
+bits are read from left to right placing new cells either on the same row or in
+new cells either on the same row or in the opposite row depending on whether or
+the opposite row depending on whether or not that bit is set this gives you a
+not that bit is set this gives you a very sort of jagged zigzaggy effect
+very sort of jagged zigzaggy effect which the hbert curves do
+which the hbert curves do not like with Hilbert curves generating
+not like with Hilbert curves generating a new layout is very very quick and so
+a new layout is very very quick and so it's acceptable again to Brute Force our
+it's acceptable again to Brute Force our way to a result that meets the criteria
+way to a result that meets the criteria for a particular
+for a particular level and here we can see the grid based
+level and here we can see the grid based room templates continuing to pay
+room templates continuing to pay dividends rather than jumping through
+dividends rather than jumping through hoops to make the cells appear organic
+hoops to make the cells appear organic and Cave likee uh for space hulks we
+and Cave likee uh for space hulks we Embrace their sharp edges and uniformity
+Embrace their sharp edges and uniformity by placing metal panels in place of
+rocks uh I'd like to show one more final example of how we squeezed as much value
+example of how we squeezed as much value out of the low res room template system
+out of the low res room template system as we
+as we could by combining elements from both
+could by combining elements from both the space Hulks and the cave dungeons we
+the space Hulks and the cave dungeons we were able to create a third type of
+were able to create a third type of dungeon and our games fiction pirate
+dungeon and our games fiction pirate bases are created by enemy units who
+bases are created by enemy units who have set up shop in cavernous asteroids
+have set up shop in cavernous asteroids the the Interiors are man-made but they
+the the Interiors are man-made but they often contain organic elements left over
+often contain organic elements left over from the original cave and this one
+from the original cave and this one literally fell into our lap with almost
+literally fell into our lap with almost no extra coding just some creative
+no extra coding just some creative combinations in the Json dungeon data we
+combinations in the Json dungeon data we take elements from both and create a new
+take elements from both and create a new type
+entirely so with that I'd like to leave you with a few best practice
+you with a few best practice recommendations uh these are things I
+recommendations uh these are things I wish I had kept in mind or known about
+wish I had kept in mind or known about from the
+from the start the first is to pick a coordinate
+start the first is to pick a coordinate system and stick to it uh in the unity
+system and stick to it uh in the unity editor the y- axis goes from top to
+editor the y- axis goes from top to bottom and in the game itself it goes
+bottom and in the game itself it goes from bottom to top uh and because I was
+from bottom to top uh and because I was doing so much work in the editor guei I
+doing so much work in the editor guei I made the mistake of using an inverted
+made the mistake of using an inverted coordinate system when generating
+coordinate system when generating dungeon layouts which resulted in a lot
+dungeon layouts which resulted in a lot of unnecessary flipping along the y-axis
+of unnecessary flipping along the y-axis at various points in the pipeline um
+at various points in the pipeline um before I standardize our coordinate
+before I standardize our coordinate systems this led to a lot of frustration
+systems this led to a lot of frustration when
+when debugging also draw pictures very very
+debugging also draw pictures very very important and keep them nearby having a
+important and keep them nearby having a visual reference is incredibly
+visual reference is incredibly invaluable for for the sort of thing
+invaluable for for the sort of thing especially if this is going to be like a
+especially if this is going to be like a multi-week or a multi-month project you
+multi-week or a multi-month project you really want to able to refer back to
+really want to able to refer back to your original idea or things you've done
+your original idea or things you've done in the past that haven't worked
+in the past that haven't worked out one of the strengths of our system
+out one of the strengths of our system is the ability to swap out pieces to
+is the ability to swap out pieces to generate entirely different results
+generate entirely different results keeping systems modular is notoriously
+keeping systems modular is notoriously hard in gameplay code but in a system
+hard in gameplay code but in a system like this it's much more straightforward
+like this it's much more straightforward and there really is no good reason not
+and there really is no good reason not to do
+to do so the more you have in some external
+so the more you have in some external file format like Json or XML the easier
+file format like Json or XML the easier it is to make changes or to write tools
+it is to make changes or to write tools that make the changes for you uh we
+that make the changes for you uh we chose Json over using unity's scriptable
+chose Json over using unity's scriptable objects because of its flexibility and
+objects because of its flexibility and the ability to modify it quickly in a
+the ability to modify it quickly in a text editor um I didn't end up writing
+text editor um I didn't end up writing any sort of tool for modifying uh some
+any sort of tool for modifying uh some of the dungeon Zone data and stuff like
+of the dungeon Zone data and stuff like that because it was easier just to write
+that because it was easier just to write it by hand and and tweak it when you
+it by hand and and tweak it when you needed and when possible uh give
+needed and when possible uh give yourself a Target to work towards but we
+yourself a Target to work towards but we had the benefit of having already
+had the benefit of having already created a level that we were happy with
+created a level that we were happy with and met our expectations and so that was
+and met our expectations and so that was a good Benchmark for us when we were
+a good Benchmark for us when we were redesigning things with a procedural
+redesigning things with a procedural mindset
+mindset also uh keep in mind your own working
+also uh keep in mind your own working memory capacity uh working memory refers
+memory capacity uh working memory refers to the number of Concepts that the human
+to the number of Concepts that the human brain can hold on to at once and this is
+brain can hold on to at once and this is particularly relevant to the discipline
+particularly relevant to the discipline of computer programming and helps to
+of computer programming and helps to explain why the concept of flow is so
+explain why the concept of flow is so important I'm sure most of you have have
+important I'm sure most of you have have experienced this in the past uh you're
+experienced this in the past uh you're knee deep in a difficult task when
+knee deep in a difficult task when someone shouts your name across the room
+someone shouts your name across the room because they desperately need your
+because they desperately need your attention uh the mental model that
+attention uh the mental model that you've spent the past hour building in
+you've spent the past hour building in your head all of a sudden falls to the
+your head all of a sudden falls to the floor comes crashing down and it takes
+floor comes crashing down and it takes another half an hour just to ramp up and
+another half an hour just to ramp up and get back back in the groove where you
+get back back in the groove where you left off uh when designing and
+left off uh when designing and interacting with complex systems like
+interacting with complex systems like this it's important to be able to fully
+this it's important to be able to fully grasp the big picture and any at any one
+grasp the big picture and any at any one point in time and that really can only
+point in time and that really can only be accomplished by providing enough
+be accomplished by providing enough layers of abstraction so figure out your
+layers of abstraction so figure out your own working memory capacity for me it's
+own working memory capacity for me it's about five or six high level Concepts
+about five or six high level Concepts and then refactor your code when the
+and then refactor your code when the number of systems in any one layer
+number of systems in any one layer exceeds that
+exceeds that amount and if I can leave you with one
+amount and if I can leave you with one last thing it's this there's not a
+last thing it's this there's not a textbook approach to generating
+textbook approach to generating procedural content the process is
+procedural content the process is absolutely as unique to your game or is
+absolutely as unique to your game or is just as unique as your game is it
+just as unique as your game is it doesn't need to include difficult or
+doesn't need to include difficult or abstract math and like many other game
+abstract math and like many other game development techniques it's largely a
+development techniques it's largely a question of creative problem solving and
+question of creative problem solving and uh being willing to attempt new and
+uh being willing to attempt new and untested methods we failed many many
+untested methods we failed many many times along the way but each failure
+times along the way but each failure taught us something new about the game
+taught us something new about the game that we were trying to
+that we were trying to make and unfortunately I only have about
+make and unfortunately I only have about a minute left I think we're out of time
+a minute left I think we're out of time but if you have any questions I'd love
+but if you have any questions I'd love to talk with you after either down here
+to talk with you after either down here or in the wrap-up room in 2002 um and if
+or in the wrap-up room in 2002 um and if you're interested in hearing more about
+you're interested in hearing more about the the music side of Galaxy there's
+the the music side of Galaxy there's going to be a really really sweet talk
+going to be a really really sweet talk by Andy coming up right after this one
+by Andy coming up right after this one thanks for your
+thanks for your [Applause]
+time

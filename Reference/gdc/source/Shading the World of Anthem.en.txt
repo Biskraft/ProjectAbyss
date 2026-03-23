@@ -1,0 +1,1577 @@
+[Music]
+i'm just super thrilled to give this talk today
+super thrilled to give this talk today uh shading the world of anthem and i
+uh shading the world of anthem and i need to give you a little bit of
+need to give you a little bit of backstory to help you understand why
+backstory to help you understand why for the last three years i've been
+for the last three years i've been giving talks about writing shaders
+giving talks about writing shaders at the tech artist boot camp and each
+at the tech artist boot camp and each talk i would give
+talk i would give examples of shaders that you could write
+examples of shaders that you could write and show and kind of break them down
+and show and kind of break them down and show how they worked but i wasn't
+and show how they worked but i wasn't able to show
+able to show anything uh from the game that i was
+anything uh from the game that i was working on
+working on because anthem hadn't shipped yet but
+because anthem hadn't shipped yet but now that it has shipped
+now that it has shipped i can actually show an audience like you
+i can actually show an audience like you guys
+guys um some shader examples from our actual
+um some shader examples from our actual game
+game and that just feels super cool to me
+and that just feels super cool to me uh before we begin something that's
+uh before we begin something that's really important for me to to point out
+really important for me to to point out about this talk is that i'm the one here
+about this talk is that i'm the one here giving the talk but i actually represent
+giving the talk but i actually represent hundreds of
+hundreds of really talented developers back home in
+really talented developers back home in both
+both bioware austin and bioware edmonton who
+bioware austin and bioware edmonton who worked
+worked really hard to make this game so
+really hard to make this game so while i'm going to show a lot of the
+while i'm going to show a lot of the work that i helped to create
+work that i helped to create i don't want to take credit for any of
+i don't want to take credit for any of it because it was
+it because it was a massive collaboration from the whole
+a massive collaboration from the whole team
+team and i especially want to call out uh the
+and i especially want to call out uh the contributions of
+contributions of my colleague nick sadler who was a
+my colleague nick sadler who was a fantastic shader artist on the project
+fantastic shader artist on the project as well
+as well and with that let's jump right in uh
+and with that let's jump right in uh just as a brief introduction
+just as a brief introduction i'm ben cloward and i've been a
+i'm ben cloward and i've been a technical artist and animator in the
+technical artist and animator in the video game industry for 20 years now
+video game industry for 20 years now these are some of the projects that i've
+these are some of the projects that i've worked on i also helped to
+worked on i also helped to create some software that's part of
+create some software that's part of uh max and maya now called shader
+uh max and maya now called shader effects i don't know how many of you are
+effects i don't know how many of you are familiar with
+familiar with with shader effects in max or maya so i
+with shader effects in max or maya so i i helped to work on that project
+i helped to work on that project as well as shipping these games
+as well as shipping these games and now of course uh for the last three
+and now of course uh for the last three and a half years
+and a half years i've been working on a little project
+i've been working on a little project called anthem
+called anthem can i see how many of you have played
+can i see how many of you have played anthem
+anthem all right fantastic maybe a third of you
+all right fantastic maybe a third of you uh for those of you that aren't familiar
+uh for those of you that aren't familiar with it i want to
+with it i want to play a trailer so we'll just take a
+play a trailer so we'll just take a minute to watch that
+you are the chosen few protectors of our world
+world this is your time
+fire
+out there you will fight the unimaginable
+feel the power of your javelin it's precision
+[Music] rely on each other unleash your power
+[Applause] you are freelancers
+you are freelancers [Applause]
+thank you so the first time i saw this trailer was at
+the first time i saw this trailer was at a company meeting on a screen maybe
+a company meeting on a screen maybe three times this size and when it was
+three times this size and when it was done i was just like
+done i was just like yeah i'm fired up wanna go blow some
+yeah i'm fired up wanna go blow some things up
+things up um anyway um so as you can see from the
+um anyway um so as you can see from the trailer anthem is uh
+trailer anthem is uh the most recent uh adventure game
+the most recent uh adventure game from from bioware you're in a squad of
+from from bioware you're in a squad of up to four players you put on javelin
+up to four players you put on javelin armor
+armor and you go out into the wild to to have
+and you go out into the wild to to have amazing adventures with your friends
+so um we ran into a lot of challenges in the process of developing this game
+in the process of developing this game and
+and when i originally gave this talk uh
+when i originally gave this talk uh to the tech artist at bioware um i had
+to the tech artist at bioware um i had this slide here and it just had bullet
+this slide here and it just had bullet points with
+points with with three of the challenges we ran into
+with three of the challenges we ran into and they were like no no
+and they were like no no bullet points in a list do not do these
+bullet points in a list do not do these challenges justice
+challenges justice we want you to separate them out and put
+we want you to separate them out and put them in like a triangle shape and just
+them in like a triangle shape and just really emphasize
+really emphasize uh how hard these things were because
+uh how hard these things were because they're not just
+they're not just individual items they actually multiply
+individual items they actually multiply on each other so the first challenge was
+on each other so the first challenge was that we had a lot of diverse
+that we had a lot of diverse environments so we had
+environments so we had swamps and jungles and weird alien
+swamps and jungles and weird alien interiors and i'll show you some
+interiors and i'll show you some examples in a minute
+examples in a minute so we had a really large library of
+so we had a really large library of assets to support all these different
+assets to support all these different environments
+environments on top of that we have a dynamic weather
+on top of that we have a dynamic weather system in the game so any time while
+system in the game so any time while you're playing
+you're playing the clouds can roll in and it can start
+the clouds can roll in and it can start raining
+raining softly and then rain harder so all of
+softly and then rain harder so all of the assets in all of our diverse
+the assets in all of our diverse environments
+environments also have to being support the
+also have to being support the ability to to look wet and rained on
+ability to to look wet and rained on at any given time and being a dynamic
+at any given time and being a dynamic open world
+open world we also have our day and night system so
+we also have our day and night system so all of our assets also have to look good
+all of our assets also have to look good under any lighting conditions so these
+under any lighting conditions so these aren't just like three
+aren't just like three individual challenges but they kind of
+individual challenges but they kind of compound
+compound on one another so each of for each of
+on one another so each of for each of these i have
+these i have a little demo video that i want to show
+a little demo video that i want to show you and this first one
+you and this first one is an illustration of some of the
+is an illustration of some of the diverse environments that we have
+diverse environments that we have so you can see we have like rocky
+so you can see we have like rocky terrain and
+terrain and really weird looking alien interiors
+really weird looking alien interiors and jungles and the list just goes on
+and jungles and the list just goes on [Music]
+so you can imagine building lots of different types of environments require
+different types of environments require creating a very large asset library
+creating a very large asset library to be able to support this kind of
+variety
+[Music] [Applause]
+[Applause] it's really neat experience to be able
+it's really neat experience to be able to go go to work every day and look at
+to go go to work every day and look at artwork like that and feel like oh i get
+artwork like that and feel like oh i get to
+to participate in this i get to help our
+participate in this i get to help our our environment artists build this
+our environment artists build this amazing
+amazing work next i want to show you a video
+work next i want to show you a video that shows
+that shows uh what our dynamic weather system looks
+uh what our dynamic weather system looks like
+like um while you're watching this i want to
+um while you're watching this i want to just kind of
+just kind of tell you that uh shader artists are
+tell you that uh shader artists are weird
+weird and and the reason for that is you know
+and and the reason for that is you know this is a game about
+this is a game about getting in and javelin and going out and
+getting in and javelin and going out and destroying
+destroying things and fighting monsters and having
+things and fighting monsters and having a great time
+a great time and here we are as game developers and
+and here we are as game developers and what are we doing
+what are we doing we're staring at the cement
+um a few years ago i took my kids to the zoo
+zoo and i had my camera with me and my kids
+and i had my camera with me and my kids were all excited about looking at the
+were all excited about looking at the animals you know oh
+animals you know oh giraffes lions tigers and because i had
+giraffes lions tigers and because i had my camera i was looking around and i was
+my camera i was looking around and i was like oh there's really neat
+like oh there's really neat material reference here and so i had my
+material reference here and so i had my camera pointed at the brick wall
+camera pointed at the brick wall and a guy came up and tapped me on these
+and a guy came up and tapped me on these on the shoulder and he's like buddy the
+on the shoulder and he's like buddy the monkeys are over there
+so anyway you can see in this video we have we have the dynamic weather the
+have we have the dynamic weather the clouds roll in
+clouds roll in you can see the little raindrops on the
+you can see the little raindrops on the cement i have it sped up a little bit
+cement i have it sped up a little bit but the puddles will grow dynamically
+but the puddles will grow dynamically over time and then you can see the rain
+over time and then you can see the rain ripples in the puddles
+ripples in the puddles and then the storm stops and the crowds
+and then the storm stops and the crowds dissipate
+dissipate and you can still see the rain ripples
+and you can still see the rain ripples but then they go away and
+but then they go away and then the puddles start to shrink uh and
+then the puddles start to shrink uh and have its
+have its i haven't sped up because i didn't think
+i haven't sped up because i didn't think you wanted to sit here for 10 minutes
+you wanted to sit here for 10 minutes just watching puddles dry
+just watching puddles dry but yeah that's how our dynamic weather
+but yeah that's how our dynamic weather system works and i'll get into that a
+system works and i'll get into that a little bit more
+little bit more later in the talk and then we also have
+later in the talk and then we also have our day night cycles
+our day night cycles and our day and night lasts about an
+and our day and night lasts about an hour of real time in the game and so i
+hour of real time in the game and so i have this sped up
+have this sped up 60 times so you only have to watch it
+60 times so you only have to watch it for a minute
+for a minute but you can see that the sun moves
+but you can see that the sun moves across the sky
+across the sky and the shadows change and this was
+and the shadows change and this was especially a challenge for lighting
+especially a challenge for lighting artists
+artists who had to be sure that the lighting
+who had to be sure that the lighting looked correct
+looked correct uh at all times of the day they had to
+uh at all times of the day they had to create nice looking cloudy sky but then
+create nice looking cloudy sky but then also
+also a sky at night and when the sun goes
+a sky at night and when the sun goes down here in a minute you'll see that
+down here in a minute you'll see that that
+that the stars will come out you can see the
+the stars will come out you can see the moons go by and it's just
+moons go by and it's just it's really beautiful to look at one of
+it's really beautiful to look at one of the things that i did to contribute to
+the things that i did to contribute to this is
+this is i wrote this shader that has the
+i wrote this shader that has the bioluminescent bacteria in the water
+bioluminescent bacteria in the water that you can only see
+that you can only see at nighttime
+so yeah those are some pretty big challenges and i know these aren't
+challenges and i know these aren't necessarily
+necessarily things that are new in games but they
+things that are new in games but they are really neat to be able to work on
+are really neat to be able to work on and i was excited to be able to
+and i was excited to be able to participate in a project with
+participate in a project with time of day and dynamic weather and
+time of day and dynamic weather and all kinds of fun challenges like that
+all kinds of fun challenges like that it makes it exciting to go to work when
+it makes it exciting to go to work when you have hard problems to
+you have hard problems to to bite off and chew so here are a
+to bite off and chew so here are a couple of techniques that we used or
+couple of techniques that we used or that i used
+that i used when faced with any particular challenge
+when faced with any particular challenge so i'd have an environment artist or the
+so i'd have an environment artist or the art director come to me and he would say
+art director come to me and he would say or she would say i need a shader that
+or she would say i need a shader that does
+does this and so i would go down these steps
+this and so i would go down these steps in order to create that first of all i
+in order to create that first of all i would go out and collect reference
+would go out and collect reference either photos that i took for myself or
+either photos that i took for myself or images that i found
+images that i found with google image search and i would
+with google image search and i would bring them all together into a big
+bring them all together into a big reference library and then i would work
+reference library and then i would work together with the person that asked for
+together with the person that asked for that
+that particular asset to identify some key
+particular asset to identify some key elements
+elements that represented the essence of what
+that represented the essence of what that effect was
+that effect was and just as important as identifying
+and just as important as identifying what we wanted to go into the effect
+what we wanted to go into the effect was identifying what we wanted to leave
+was identifying what we wanted to leave out
+out because if you go out and look at
+because if you go out and look at reality it's infinitely
+reality it's infinitely detailed and we just can't push that
+detailed and we just can't push that kind of detail and so you have to kind
+kind of detail and so you have to kind of draw the line somewhere and say well
+of draw the line somewhere and say well we can do this and we can do this
+we can do this and we can do this but we can't do these other 300 things
+but we can't do these other 300 things that we see
+that we see you really have to identify what you're
+you really have to identify what you're not going to do in addition to what you
+not going to do in addition to what you will do
+will do and then i would go about creating a
+and then i would go about creating a shader
+shader step by step trying to mimic each of
+step by step trying to mimic each of these key elements that we had
+these key elements that we had identified
+identified in from our reference material
+so what i'm going to do for the rest of the talk
+the talk is i'm going to walk you through three
+is i'm going to walk you through three example shaders that were created for
+example shaders that were created for anthem
+anthem and i'm going to show you how those
+and i'm going to show you how those steps applied of collecting reference
+steps applied of collecting reference material
+material identifying key elements and then
+identifying key elements and then building the shader step by step
+building the shader step by step to replicate the elements that we saw
+to replicate the elements that we saw in the reference so let's start out with
+in the reference so let's start out with lava
+so as i said first of all we collect reference
+reference and here are some images of lava that we
+and here are some images of lava that we were able to
+were able to to find and bring together we used a lot
+to find and bring together we used a lot more of this
+more of this a lot more images than this but these
+a lot more images than this but these are just a few examples
+are just a few examples so what we needed to do then once we had
+so what we needed to do then once we had our reference images collected
+our reference images collected is identify some key characteristics
+is identify some key characteristics that make lava what it is
+that make lava what it is so let's take a look first of all lava
+so let's take a look first of all lava has these really interesting
+has these really interesting folds and wrinkles when it kind of piles
+folds and wrinkles when it kind of piles up on itself and it hardens into these
+up on itself and it hardens into these really unique shapes secondly you can
+really unique shapes secondly you can see from the images that there's a
+see from the images that there's a really nice contrast between
+really nice contrast between the areas of really molten lava where
+the areas of really molten lava where it's really hot
+it's really hot and areas where it's cooled
+and areas where it's cooled and then finally there's this there's
+and then finally there's this there's this really beautiful gradient between
+this really beautiful gradient between like bright
+like bright yellow and orange and red representing
+yellow and orange and red representing the different
+the different temperatures of the lava and not
+temperatures of the lava and not displayed in these images obviously but
+displayed in these images obviously but we also collected
+we also collected a reference video of lava moving and it
+a reference video of lava moving and it has this really
+has this really irregular way of oozing that we're going
+irregular way of oozing that we're going to try to
+to try to to replicate so it also in addition to
+to replicate so it also in addition to being able to collect
+being able to collect reference it's also very beneficial if
+reference it's also very beneficial if you can
+you can send some people to actually take photos
+send some people to actually take photos of the real thing
+of the real thing so we had some of our environment
+so we had some of our environment artists go on a photogrammetry trip to
+artists go on a photogrammetry trip to hawaii
+hawaii lucky them
+so they spent 10 days uh capturing images of
+images of all kinds of things and you can see here
+all kinds of things and you can see here they're they're taking pictures
+they're they're taking pictures of the lava flows now they didn't
+of the lava flows now they didn't actually go to any real
+actually go to any real flowing lava and so they kind of left
+flowing lava and so they kind of left that part up to me we weren't going to
+that part up to me we weren't going to put our artists on top of active flowing
+put our artists on top of active flowing lava
+lava but from what they create or what they
+but from what they create or what they captured with the photo
+captured with the photo photogrammetry and the images that we
+photogrammetry and the images that we created we were able to put that
+created we were able to put that together and create something convincing
+together and create something convincing so from the photogrammetry i was able to
+so from the photogrammetry i was able to derive some really nice
+derive some really nice source textures so you can see here we
+source textures so you can see here we have our base color
+have our base color our height normal ambient occlusion and
+our height normal ambient occlusion and smoothness
+smoothness and these all came from the
+and these all came from the photogrammetry assets that the
+photogrammetry assets that the environment artists created from their
+environment artists created from their trip to hawaii
+trip to hawaii all right so let's dive right in and
+all right so let's dive right in and create a shader
+create a shader now in the previous years when i've
+now in the previous years when i've given these talks i've been using the
+given these talks i've been using the unreal engine but at
+unreal engine but at bioware we use the frostbite game engine
+bioware we use the frostbite game engine and i love working in frostbite because
+and i love working in frostbite because it
+it it enables us to create some really
+it enables us to create some really amazing looking effects
+amazing looking effects pretty much anything that we can think
+pretty much anything that we can think of that we get from the reference images
+of that we get from the reference images i'm able to to replicate in frostbite's
+i'm able to to replicate in frostbite's shader editor
+shader editor so here you can see i have my two base
+so here you can see i have my two base textures
+textures this texture at the top is a packing of
+this texture at the top is a packing of the base color and the height
+the base color and the height and then the second texture is the
+and then the second texture is the normal the ambient occlusion and the
+normal the ambient occlusion and the smoothness
+smoothness and i'm just passing all that data into
+and i'm just passing all that data into my lit root node
+my lit root node and so let's take a look at what that
+and so let's take a look at what that looks like
+looks like so this is the the lava that we're
+so this is the the lava that we're looking right at right here in the
+looking right at right here in the middle
+middle um the rest of the environment here is
+um the rest of the environment here is just so that you can
+just so that you can kind of take a look at it in context but
+kind of take a look at it in context but this thing that's going diagonally down
+this thing that's going diagonally down the middle is what we're going to be
+the middle is what we're going to be looking at for this example
+looking at for this example you can see that it's just this static
+you can see that it's just this static lava that they captured from the lava
+lava that they captured from the lava fields and
+fields and there's a lot more work that we need to
+there's a lot more work that we need to do on this effect
+do on this effect to make it what we want to what we want
+to make it what we want to what we want to see
+to see so the first thing that i want to do is
+so the first thing that i want to do is figure out where
+figure out where uh in the in the lava i want to put the
+uh in the in the lava i want to put the molten parts
+molten parts and so to do that i'm going to start out
+and so to do that i'm going to start out by uh
+by uh sampling the height mask so here i've
+sampling the height mask so here i've got the height mask which was in the
+got the height mask which was in the alpha channel
+alpha channel alpha channel of my my base color and i
+alpha channel of my my base color and i have this node down here called linstep
+have this node down here called linstep and this is very similar to smooth step
+and this is very similar to smooth step but it's linear and so it's a little bit
+but it's linear and so it's a little bit more optimized
+more optimized and what that note does is it remaps the
+and what that note does is it remaps the range
+range between two values that i specify
+between two values that i specify and then i'm going to invert it this
+and then i'm going to invert it this complement node is like a one minus it
+complement node is like a one minus it flips it
+flips it and the reason i want to do that is
+and the reason i want to do that is because the height map
+because the height map is bright where it's high and i actually
+is bright where it's high and i actually want it to be bright where it's low
+want it to be bright where it's low because i want the lava to be in the
+because i want the lava to be in the cracks
+cracks so after applying the height now you can
+so after applying the height now you can see i plugged my height map here into
+see i plugged my height map here into reflectance and the reason for that is
+reflectance and the reason for that is i'm going to use the reflectance channel
+i'm going to use the reflectance channel temporarily
+temporarily just to to get a debug view of what that
+just to to get a debug view of what that mask looks like
+mask looks like so here is our reflectance view and you
+so here is our reflectance view and you can see i'm starting to create the mask
+can see i'm starting to create the mask that will determine where the molten
+that will determine where the molten parts of the lava are going to go
+parts of the lava are going to go and just using the height map it's kind
+and just using the height map it's kind of blurry looking and there's not enough
+of blurry looking and there's not enough detail there i want to add some more
+detail there i want to add some more details and make it look cooler
+details and make it look cooler so i'm going to
+so i'm going to go back to my shader and what i can do
+go back to my shader and what i can do is i had a lot of detail in
+is i had a lot of detail in the ambient occlusion and smoothness
+the ambient occlusion and smoothness maps
+maps so those are coming from right here so
+so those are coming from right here so what i'm going to do is
+what i'm going to do is take those maps and adjust them a little
+take those maps and adjust them a little bit i'll adjust brightness and contrast
+bit i'll adjust brightness and contrast invert them you know multiply a little
+invert them you know multiply a little bit to
+bit to to brighten it up and then i'm going to
+to brighten it up and then i'm going to add those masks
+add those masks together with the mask that i already
+together with the mask that i already created for my height map
+created for my height map and that's going to look like this so
+and that's going to look like this so you can see
+you can see using the smoothness and ambient
+using the smoothness and ambient occlusion detail i'm able to to pull in
+occlusion detail i'm able to to pull in some more
+some more detail and make it look a little bit
+detail and make it look a little bit more interesting
+more interesting the next thing i need to do is take that
+the next thing i need to do is take that mask
+mask and map it to my color gradient
+and map it to my color gradient so this is a gradient that i created
+so this is a gradient that i created based on the reference images
+based on the reference images i'm just kind of color picking kind of a
+i'm just kind of color picking kind of a darker red
+darker red orange leading up to a yellow and then
+orange leading up to a yellow and then almost white
+almost white at the hottest part of the gradient
+at the hottest part of the gradient all right so i'm going to take my mask
+all right so i'm going to take my mask here and use that
+here and use that as my coordinate to look up into my
+as my coordinate to look up into my small gradient texture
+small gradient texture i'm able to store this uh in the
+i'm able to store this uh in the previous slide this gradient looks
+previous slide this gradient looks really big but i'm able to store it in
+really big but i'm able to store it in an image that's only like
+an image that's only like 32 by 4 pixels because i don't need a
+32 by 4 pixels because i don't need a ton of detail because it's a
+ton of detail because it's a nice smooth gradient all right so then i
+nice smooth gradient all right so then i plug that
+plug that color detail into my base color and also
+color detail into my base color and also my emissive color
+my emissive color and i end up with something that looks
+and i end up with something that looks much more like lava
+much more like lava but we're not quite there yet there's a
+but we're not quite there yet there's a couple of things still missing
+couple of things still missing first of all i want to mask out the lava
+first of all i want to mask out the lava so that it's not as
+so that it's not as bright on the edges to kind of mimic
+bright on the edges to kind of mimic the fact that it's going to be cool on
+the fact that it's going to be cool on the edges but more
+the edges but more more hot in the center and so it created
+more hot in the center and so it created another gradient image that just goes
+another gradient image that just goes from black to white to black again
+from black to white to black again and then i multiply from from one side
+and then i multiply from from one side to the other it's going black to white
+to the other it's going black to white to black again
+to black again and then i multiply my mask by that
+and then i multiply my mask by that and i'm able to get an effect that looks
+and i'm able to get an effect that looks like this so here's what it used to look
+like this so here's what it used to look like
+like and then when we apply that mask kind of
+and then when we apply that mask kind of masks out the edges
+masks out the edges so that you know over here i'm not
+so that you know over here i'm not getting
+getting hot lava but i'm mostly isolating that
+hot lava but i'm mostly isolating that to the center of the flow
+to the center of the flow all right now there's one more thing
+all right now there's one more thing that i need
+that i need and it's probably obvious like you've
+and it's probably obvious like you've been staring at this lava and you're
+been staring at this lava and you're like why isn't it moving it's supposed
+like why isn't it moving it's supposed to be flowing right
+to be flowing right lava flows so that's what we're going to
+lava flows so that's what we're going to add next
+add next and we're going to do it with a flow map
+and we're going to do it with a flow map and i'm not going to spend a lot of time
+and i'm not going to spend a lot of time going
+going into what a flow map is because
+into what a flow map is because at last year's gdc abel spent his entire
+at last year's gdc abel spent his entire talk
+talk talking about what a flow map is but
+talking about what a flow map is but just
+just really briefly what you do with a flow
+really briefly what you do with a flow map is you stretch the uvs of a texture
+map is you stretch the uvs of a texture along a specific direction and that
+along a specific direction and that direction is defined in the flow map
+direction is defined in the flow map and then as the uvs become too stretched
+and then as the uvs become too stretched you
+you cross fade to another texture which is
+cross fade to another texture which is also stretching and you kind of ping
+also stretching and you kind of ping pong back and forth
+pong back and forth so one texture is stretching out and
+so one texture is stretching out and then you fade to the other one and it's
+then you fade to the other one and it's moving
+moving and this one while you're seeing this
+and this one while you're seeing this one this one pops back
+one this one pops back but because you're fading back and forth
+but because you're fading back and forth you hide the pop
+you hide the pop so that's what flow maps are and in this
+so that's what flow maps are and in this case i'm going to use the flow maps
+case i'm going to use the flow maps to make the lava flow faster in the
+to make the lava flow faster in the center
+center and slower on the edges i could just
+and slower on the edges i could just scroll the uvs
+scroll the uvs so that it all move would move uniform
+so that it all move would move uniform but i don't think that would look as
+but i don't think that would look as nice
+nice and so we're going to use the flow map
+and so we're going to use the flow map instead
+instead and so here's my graph that sets up the
+and so here's my graph that sets up the uv coordinates to sample my
+uv coordinates to sample my my two textures so i have my uv-1 and my
+my two textures so i have my uv-1 and my uv2
+uv2 and then i also have this this logic
+and then i also have this this logic here that's going to set up
+here that's going to set up the math to blend back and forth between
+the math to blend back and forth between the two textures
+the two textures so here's my graph as it was and now it
+so here's my graph as it was and now it becomes a little more complicated
+becomes a little more complicated because i'm having to sample
+because i'm having to sample uh two textures both of the base color
+uh two textures both of the base color and of the utilities
+and of the utilities and so this node right here
+and so this node right here is what i showed on the previous slide
+is what i showed on the previous slide of of the
+of of the the logic that i was using to set up the
+the logic that i was using to set up the uvs for the flow map
+uvs for the flow map and then for my flow i'm using this same
+and then for my flow i'm using this same gradient down here that i was using to
+gradient down here that i was using to to multiply the brightness so the black
+to multiply the brightness so the black to white to black
+to white to black and that's going to make it flow faster
+and that's going to make it flow faster in the middle and slower on the edges
+so then we end up with something that looks like this so you can see that over
+looks like this so you can see that over here on the edge of the effect it's
+here on the edge of the effect it's hardly moving at all
+hardly moving at all but then the lava in the middle is
+but then the lava in the middle is flowing faster
+all right and that is the lava effect and i have a little video here that kind
+and i have a little video here that kind of shows
+of shows uh this example plus a couple a couple
+uh this example plus a couple a couple of other ones
+of other ones so that you can see in context uh what
+so that you can see in context uh what this effect looked like
+this effect looked like i also i didn't show this in the shader
+i also i didn't show this in the shader itself but i also added some controls
+itself but i also added some controls that would allow
+that would allow the environment artist to control the
+the environment artist to control the temperature of the lava
+temperature of the lava in various places along the flow
+in various places along the flow so in the in one of the shots you could
+so in the in one of the shots you could see that it was
+see that it was really red looking and then in other
+really red looking and then in other places it looks really warm and that's
+places it looks really warm and that's because they were able to
+because they were able to control at each point along this flow
+control at each point along this flow how hot and how cold it was
+how hot and how cold it was all right let's move on to the next
+all right let's move on to the next example so now we're going to talk about
+example so now we're going to talk about the dynamic weather in the game
+and so uh as with the lava we needed to go out and capture reference
+go out and capture reference uh and this is yet again more evidence
+uh and this is yet again more evidence of how weird
+of how weird uh shader artists are here i am with my
+uh shader artists are here i am with my camera
+camera standing in the rain uh taking pictures
+standing in the rain uh taking pictures of things with with raindrops on them so
+of things with with raindrops on them so you can see that uh from the reference
+you can see that uh from the reference images uh
+images uh um hard surfaces have rain that hits
+um hard surfaces have rain that hits them and it kind of
+them and it kind of rolls off and runs down the side
+rolls off and runs down the side porous surfaces the rain soaks into them
+porous surfaces the rain soaks into them after it's been raining for a while
+after it's been raining for a while puddles form and the puddles have
+puddles form and the puddles have ripples
+ripples and so these are all the kinds of things
+and so these are all the kinds of things that we want to try to imitate
+that we want to try to imitate as we create the weather for our game
+so as i said we the next thing that we do is is identify these key steps so
+do is is identify these key steps so we're going to talk about creating
+we're going to talk about creating wetness creating rain drops
+wetness creating rain drops on the horizontal surfaces rain drips
+on the horizontal surfaces rain drips on vertical surfaces and also puddles
+on vertical surfaces and also puddles so let's jump right into it first we're
+so let's jump right into it first we're going to talk about wetness
+going to talk about wetness so when surfaces get wet what happens
+so when surfaces get wet what happens if the surface is porous the
+if the surface is porous the liquid is going to soak into them and
+liquid is going to soak into them and it's going to make the surface look
+it's going to make the surface look more saturated and darker and if the
+more saturated and darker and if the surface
+surface is impermeable the water is going to
+is impermeable the water is going to pool on the surface
+pool on the surface and make it more smooth so this shader
+and make it more smooth so this shader function is doing just that
+function is doing just that i have a mask down here that's
+i have a mask down here that's determining how
+determining how wet the surface is going to be and it's
+wet the surface is going to be and it's also
+also using this term called impermeability to
+using this term called impermeability to figure out
+figure out what should happen and i also have this
+what should happen and i also have this this term here the drop and puddle mask
+this term here the drop and puddle mask because we know that it's going to be a
+because we know that it's going to be a hundred percent wet
+hundred percent wet if it's puddle or if it's a raindrop
+if it's puddle or if it's a raindrop so then i use that value to determine
+so then i use that value to determine the final base color the smoothness
+the final base color the smoothness and reflectance smoothness and
+and reflectance smoothness and reflectance are fairly straightforward i
+reflectance are fairly straightforward i can just blend between the current
+can just blend between the current smoothness
+smoothness and the smoothness of water based on the
+and the smoothness of water based on the mask that i created
+mask that i created and the same with reflectance blend
+and the same with reflectance blend between the current reflectance and
+between the current reflectance and reflectance of water
+reflectance of water based on the mass that i created the
+based on the mass that i created the base color is just a little bit more
+base color is just a little bit more involved
+involved here i'm blending between the base color
+here i'm blending between the base color and my adjusted wet color
+and my adjusted wet color based on the mask that i created and
+based on the mask that i created and in order to create the adjusted wet
+in order to create the adjusted wet color i use this desaturate node with a
+color i use this desaturate node with a negative value
+negative value which actually makes the color more
+which actually makes the color more saturated i know it's called desaturate
+saturated i know it's called desaturate but if you pass a negative value into it
+but if you pass a negative value into it it actually
+it actually saturates and then i have this
+saturates and then i have this multiplier here
+multiplier here which is darkening the color so this is
+which is darkening the color so this is the wet color and the dry color
+the wet color and the dry color and i get my final color based on where
+and i get my final color based on where the where the wetness shows up
+all right next i want to show raindrops and there's a really important principle
+and there's a really important principle that i want to talk about with this
+that i want to talk about with this slide
+slide and that is it's really important to do
+and that is it's really important to do as
+as few texture samples as possible in your
+few texture samples as possible in your shaders
+shaders the more times you sample a texture the
+the more times you sample a texture the more expensive it is
+more expensive it is and so here i have four different maps
+and so here i have four different maps that i need
+that i need in order to create my raindrop effect
+in order to create my raindrop effect but i want to figure out a way that i
+but i want to figure out a way that i can pack them all together into a single
+can pack them all together into a single texture so that i can just do
+texture so that i can just do one texture lookup for the entire
+one texture lookup for the entire raindrop
+raindrop effect so my normal map has three
+effect so my normal map has three channels
+channels and i know that i can derive the z
+and i know that i can derive the z component of the normal in the shader
+component of the normal in the shader and so i really just need
+and so i really just need two channels for my normal map then my
+two channels for my normal map then my second
+second map here is temporal offset map and
+map here is temporal offset map and every drop here i don't know if you can
+every drop here i don't know if you can see on the slide there but every drop is
+see on the slide there but every drop is a different shade of gray
+a different shade of gray and i'm going to combine that with time
+and i'm going to combine that with time i'm actually going to subtract it from
+i'm actually going to subtract it from my time value
+my time value so that when the drops are animated they
+so that when the drops are animated they happen all at different times instead of
+happen all at different times instead of all at once in sync and then i have two
+all at once in sync and then i have two masks here one mask is for my animated
+masks here one mask is for my animated drops and my other mask is for my static
+drops and my other mask is for my static drops
+drops and if i put my normal map in my red
+and if i put my normal map in my red and my green channel and my temporal
+and my green channel and my temporal offset mask in my blue channel
+offset mask in my blue channel that leaves me one channel left and two
+that leaves me one channel left and two masks
+masks but in this case the really nice thing
+but in this case the really nice thing about these masks is that they're
+about these masks is that they're that they do the data doesn't overlap
+that they do the data doesn't overlap so the animated drops fit in between the
+so the animated drops fit in between the static drops
+static drops and so what i can do is adjust my
+and so what i can do is adjust my animated
+animated drop mask so that it goes from point
+drop mask so that it goes from point five to one
+five to one and my static drop mask so that it goes
+and my static drop mask so that it goes from point five to zero
+from point five to zero does that make sense so i'm packing the
+does that make sense so i'm packing the two
+two the two textures together into one
+the two textures together into one single channel
+single channel so when i'm able to do that then i can
+so when i'm able to do that then i can create take all this data and put it
+create take all this data and put it into one texture
+into one texture and then just use one texture sample to
+and then just use one texture sample to create my effect
+create my effect and so here's what my shader graph looks
+and so here's what my shader graph looks like for creating
+like for creating the raindrops this up here is
+the raindrops this up here is multiplying by two and subtracting one
+multiplying by two and subtracting one which is
+which is a standard operation that you have to do
+a standard operation that you have to do for a normal map
+for a normal map to switch it from your texture you're
+to switch it from your texture you're storing your data from zero to one
+storing your data from zero to one but in a normal map it needs to be
+but in a normal map it needs to be negative one to one
+negative one to one and so i expand that by multiplying by
+and so i expand that by multiplying by two and subtracting one
+two and subtracting one and that gives me my normal multiplied
+and that gives me my normal multiplied by my mask
+by my mask and there's the the normal that i need
+and there's the the normal that i need for the drops
+for the drops so let's talk about how the mask is
+so let's talk about how the mask is created here's
+created here's the blue channel which is my temporal
+the blue channel which is my temporal offset mask
+offset mask and as i said i subtract that from time
+and as i said i subtract that from time and then i take the fractional value
+and then i take the fractional value of what's left and what that does is it
+of what's left and what that does is it gives me time
+gives me time that proceeds from zero to one and then
+that proceeds from zero to one and then jumps back to zero to one and then it
+jumps back to zero to one and then it continue it's like making it into a loop
+continue it's like making it into a loop and with that temporal offset mask it
+and with that temporal offset mask it makes every drop
+makes every drop loop at a different uh a different time
+now there's something really interesting going on here and that is these two
+going on here and that is these two nodes that i'm using to expand my normal
+nodes that i'm using to expand my normal map
+map that's exactly what i need to expand and
+that's exactly what i need to expand and separate out the two
+separate out the two uh the two masks that i packed together
+uh the two masks that i packed together in the same channel
+in the same channel so i had one that go that went from
+so i had one that go that went from point five to one and the other one that
+point five to one and the other one that went from point
+went from point five to zero and with this times two
+five to zero and with this times two minus one
+minus one now i have one map that goes from zero
+now i have one map that goes from zero to one and the other map that goes from
+to one and the other map that goes from zero to negative one
+zero to negative one and so it's really easy to just add a
+and so it's really easy to just add a single
+single saturate node to get the one mask
+saturate node to get the one mask because then i throw out the data that's
+because then i throw out the data that's less than zero
+less than zero and i just have the mask left over
+and i just have the mask left over that's from zero to one
+that's from zero to one and then for my static drops i multiply
+and then for my static drops i multiply it by a negative one because that data
+it by a negative one because that data is from zero to negative one so if i
+is from zero to negative one so if i multiply
+multiply by negative one i flip it over and then
+by negative one i flip it over and then i saturate that
+i saturate that and i have my animated drop mask so i'm
+and i have my animated drop mask so i'm able to share these two
+able to share these two nodes that unpack my normal map in order
+nodes that unpack my normal map in order to also unpack
+to also unpack my animated and static drop mask
+my animated and static drop mask so then i combine those two
+masks and i multiply them by this other mask down here now this
+mask down here now this is my world space normal with my y
+is my world space normal with my y component
+component facing up and also a factor that i pass
+facing up and also a factor that i pass into this to determine like is it
+into this to determine like is it raining or not
+raining or not and so then i'm able to multiply my map
+and so then i'm able to multiply my map by that and i get my drop mask out
+by that and i get my drop mask out and my normal map out and my result
+and my normal map out and my result looks something like this
+looks something like this you can see on the top of the surface
+you can see on the top of the surface here
+here i've got drops some of them are static
+i've got drops some of them are static some of them are animated
+some of them are animated and i don't get any drops here on this
+and i don't get any drops here on this side of the object
+all right let's take a look at puddles now
+now i know that puddles have been
+i know that puddles have been a kind of a controversial topic lately
+a kind of a controversial topic lately but we're going to talk about them
+but we're going to talk about them anyway so we wanted puddles to form
+anyway so we wanted puddles to form uh all over the map and
+uh all over the map and we're able to procedurally decide where
+we're able to procedurally decide where to put them based on a noise texture
+to put them based on a noise texture and this is this particular shader that
+and this is this particular shader that i'm showing here is for
+i'm showing here is for our props but on terrain we actually
+our props but on terrain we actually used
+used uh two of them that were scaled
+uh two of them that were scaled differently and combined with each other
+differently and combined with each other so that the tiling was much less
+so that the tiling was much less apparent but i wanted to show kind of a
+apparent but i wanted to show kind of a simple example
+simple example so that it was obvious what was going on
+so that it was obvious what was going on but basically this is projected from
+but basically this is projected from world space y
+down here for puddle size one of the neat things about the frostbite engine
+neat things about the frostbite engine is that i'm
+is that i'm able to really easily pass in parameters
+able to really easily pass in parameters from outside the shader that the engine
+from outside the shader that the engine is controlling externally
+is controlling externally so in this case this wetness parameters
+so in this case this wetness parameters red channel
+red channel contains a value from the environment
+contains a value from the environment system that is the accumulation of water
+system that is the accumulation of water and what this does is the game is
+and what this does is the game is keeping track of how long it's been
+keeping track of how long it's been raining
+raining and the longer it rains the higher this
+and the longer it rains the higher this value gets
+value gets so it's basically controlling how big
+so it's basically controlling how big the puddles can be
+the puddles can be and then i remap these two values and
+and then i remap these two values and pass them into my lens step
+pass them into my lens step which again is is remapping my texture
+which again is is remapping my texture color
+color so the puddles start out really small in
+so the puddles start out really small in the areas that are black
+the areas that are black and they grow over time as my wetness
+and they grow over time as my wetness red channel value gets higher
+then i also have another y up value here that's masking so the
+y up value here that's masking so the puddles only appear on
+puddles only appear on up facing surfaces and i have some logic
+up facing surfaces and i have some logic up here in the shader that's controlling
+up here in the shader that's controlling what the normals look like in the
+what the normals look like in the puddles
+puddles i have one node that does the wind
+i have one node that does the wind ripples and another node that does
+ripples and another node that does the rain ripples so then i add those
+the rain ripples so then i add those together
+together and i blend between the current normal
+and i blend between the current normal and the puddle normal
+and the puddle normal and here i pass out my puddle mask and
+and here i pass out my puddle mask and my
+my normal mask for the puddles now if
+normal mask for the puddles now if you've
+you've attended my talk two years ago i
+attended my talk two years ago i actually went into a whole lot of detail
+actually went into a whole lot of detail about how these drop ripples were
+about how these drop ripples were created
+created and in that particular talk i was using
+and in that particular talk i was using the unreal engine so you can see this
+the unreal engine so you can see this this node graph looks a little bit
+this node graph looks a little bit different than the other ones that i've
+different than the other ones that i've been showing that's because i
+been showing that's because i i built this example in unreal but it's
+i built this example in unreal but it's basically the exact same thing in
+basically the exact same thing in frostbite
+frostbite because i talked about it back then i'm
+because i talked about it back then i'm not going to go into a whole lot of
+not going to go into a whole lot of detail
+detail about the how these ripples are created
+about the how these ripples are created now but please check out the talk that i
+now but please check out the talk that i gave
+gave two years ago on the vault to
+two years ago on the vault to to go into more detail about how these
+to go into more detail about how these rebels were created
+rebels were created so i take this ripple logic and then i
+so i take this ripple logic and then i duplicate it four times you can see how
+duplicate it four times you can see how that's happening here
+that's happening here and the reason it's duplicated four
+and the reason it's duplicated four times is
+times is if you're just doing it like this
+if you're just doing it like this there's no possible chance that any of
+there's no possible chance that any of these ripples can overlap each other
+these ripples can overlap each other and that's really what we wanted to do
+and that's really what we wanted to do and so i needed to do this effect
+and so i needed to do this effect multiple times with different time
+multiple times with different time offsets
+offsets different speeds different positions and
+different speeds different positions and scale offsets as well
+scale offsets as well so when all of those are combined
+so when all of those are combined together you get an effect that's much
+together you get an effect that's much more convincing
+so here i have my four ripple nodes and i combine those normals together
+i combine those normals together and then i pass them out now if you
+and then i pass them out now if you really want to get a lot of detail
+really want to get a lot of detail on creating weather effects and rain and
+on creating weather effects and rain and puddles and ripples
+puddles and ripples i recommend you take a look at sebastian
+i recommend you take a look at sebastian lagarde's blog
+lagarde's blog online it's absolutely amazing he goes
+online it's absolutely amazing he goes into all kinds of scientific detail
+into all kinds of scientific detail about what surfaces look like when
+about what surfaces look like when they're wet
+they're wet how they change and he's got all kinds
+how they change and he's got all kinds of references
+of references and it's just a really really useful
+and it's just a really really useful material
+so here's what our puddles look like and in this particular video
+in this particular video i didn't actually capture it long enough
+i didn't actually capture it long enough to see the puddles grow
+to see the puddles grow but you can see that they do have the
+but you can see that they do have the the wind ripples
+the wind ripples and the rain ripples and we get puddles
+and the rain ripples and we get puddles on the up facing surfaces of terrain
+on the up facing surfaces of terrain and objects that are flat
+all right so i talked about how to create raindrops and i talked about how
+create raindrops and i talked about how to create puddles
+to create puddles and we talked about wetness so what this
+and we talked about wetness so what this graph is doing is it's combining all of
+graph is doing is it's combining all of those effects together
+those effects together so this node here represents the drops
+so this node here represents the drops graph
+graph that i had previously this node here
+that i had previously this node here represents the puddles graph that i had
+represents the puddles graph that i had and then down here what i'm doing is um
+and then down here what i'm doing is um i'm making the world kind of wet overall
+i'm making the world kind of wet overall um so this
+um so this multiply here is is like a value of 0.6
+multiply here is is like a value of 0.6 and so everything in general gets about
+and so everything in general gets about 0.6 wet after it's been raining for a
+0.6 wet after it's been raining for a little while
+little while so i know that my drops are 100 wet my
+so i know that my drops are 100 wet my puddles are 100
+puddles are 100 wet and then everything else is about
+wet and then everything else is about sixty percent wet
+sixty percent wet and i combine those together and then i
+and i combine those together and then i run that through my wetness
+run that through my wetness uh so that we can create wetness where
+uh so that we can create wetness where where there's a puddle where there's a
+where there's a puddle where there's a raindrop
+raindrop or just in general uh for for sixty
+or just in general uh for for sixty percent of everything
+percent of everything and so that's how our our weather
+and so that's how our our weather effects are created now this is a really
+effects are created now this is a really simple example
+simple example we actually made the liquid look
+we actually made the liquid look different on different surfaces so
+different on different surfaces so it works differently on rocks and it
+it works differently on rocks and it works differently on hard surface
+works differently on hard surface objects and it works differently on
+objects and it works differently on terrain
+terrain but this is a fairly straightforward way
+but this is a fairly straightforward way of illustrating some of the things that
+of illustrating some of the things that it does
+all right and here's kind of a montage video showing what it looks like on
+video showing what it looks like on different surfaces
+different surfaces so here are some ruined walls you can
+so here are some ruined walls you can see the water kind of
+see the water kind of flowing down the sides the puddles with
+flowing down the sides the puddles with the wind ripples and rain
+the wind ripples and rain ripples also water flowing down the
+ripples also water flowing down the sides of rocks
+sides of rocks and you can see droplets on hard surface
+and you can see droplets on hard surface objects
+and this was so much fun to do i just absolutely loved figuring out
+absolutely loved figuring out how to do all these things
+all right let's move on to water surfaces
+surfaces um we had tons of water in our game i
+um we had tons of water in our game i think our environment artists decided
+think our environment artists decided early on that they really liked the way
+early on that they really liked the way that water looked and so they're just
+that water looked and so they're just going to put it everywhere
+going to put it everywhere so we ended up with all kinds of water
+so we ended up with all kinds of water but i'm going to go over
+but i'm going to go over kind of the basics of creating a water
+kind of the basics of creating a water shader and then we'll show
+shader and then we'll show some examples of of the variety of water
+some examples of of the variety of water that we had so here are some
+that we had so here are some some images that we correct collected
+some images that we correct collected kind of as reference to figure out
+kind of as reference to figure out you know what water looks like and these
+you know what water looks like and these are some of the key elements we
+are some of the key elements we identified so water has
+identified so water has ripples on the surface it changes color
+ripples on the surface it changes color as you go from shallow water to deep
+as you go from shallow water to deep color
+color it also changes opacity it's really
+it also changes opacity it's really transparent
+transparent when it's shallow and it gets less
+when it's shallow and it gets less transparent the deeper that you go
+transparent the deeper that you go then it has really nice looking
+then it has really nice looking reflections and it also has a refraction
+reflections and it also has a refraction so this is what we start out with we
+so this is what we start out with we start out with just a completely blank
+start out with just a completely blank slate
+slate you know we have a flat plane here just
+you know we have a flat plane here just a solid gray color
+a solid gray color and we need to create a shader that
+and we need to create a shader that makes this look like water
+makes this look like water so i'm going to start off with the
+so i'm going to start off with the surface ripples
+surface ripples and you can see here i have a normal map
+and you can see here i have a normal map that looks like
+that looks like rippling water and i'm using three of
+rippling water and i'm using three of these and basically these are different
+these and basically these are different sizes
+sizes and i'm scrolling them at different
+and i'm scrolling them at different rates across
+rates across each other and combining those together
+each other and combining those together now i need to step back and tell a story
+now i need to step back and tell a story here um i gave my talk for
+here um i gave my talk for my wife maybe two weeks ago and when we
+my wife maybe two weeks ago and when we got to this slide she said
+got to this slide she said wait a minute she said
+wait a minute she said a couple of weeks ago you and i were on
+a couple of weeks ago you and i were on a date and we were taking a walk
+a date and we were taking a walk down by the river this is the riverwalk
+down by the river this is the riverwalk in san antonio for those of you that are
+in san antonio for those of you that are familiar with it
+familiar with it and you pointed out the water to me and
+and you pointed out the water to me and you said isn't that beautiful water it
+you said isn't that beautiful water it has
+has small ripples it has medium ripples it
+small ripples it has medium ripples it has large ripples
+has large ripples and i thought you were being romantic
+and i thought you were being romantic she said you were doing research weren't
+she said you were doing research weren't you
+it's really easy to get into trouble uh with your wife
+with your wife uh when you're excited about things and
+uh when you're excited about things and you're
+you're out uh on a walk so be careful
+out uh on a walk so be careful anyway so what this network is doing is
+anyway so what this network is doing is it's combining three different sizes of
+it's combining three different sizes of ripples together
+ripples together and uh we also have this control here
+and uh we also have this control here that blends between this this blue color
+that blends between this this blue color here
+here represents a flat normal and we're able
+represents a flat normal and we're able to use ripple one suppression these are
+to use ripple one suppression these are values that i can pass into the function
+values that i can pass into the function ripple 1 suppression and ripple 3
+ripple 1 suppression and ripple 3 suppression
+suppression to control how much of each of those i'm
+to control how much of each of those i'm blending together
+blending together so that i can get more big waves or more
+so that i can get more big waves or more small waves
+small waves and so here's uh the very simple start
+and so here's uh the very simple start of my shader
+of my shader uh the the ripple normals are in this
+uh the the ripple normals are in this node then i use this node to transform
+node then i use this node to transform them into world space
+them into world space because that's what frostbite wants and
+because that's what frostbite wants and then i just pass that into my root
+then i just pass that into my root and i get something that looks like this
+and i get something that looks like this so it's not water yet but you can see
+so it's not water yet but you can see that the ripples are
+that the ripples are sort of trying to approximate something
+sort of trying to approximate something that might become water if we do a
+that might become water if we do a little bit more with it
+little bit more with it all right so the next thing that we want
+all right so the next thing that we want to do is uh use some depth
+to do is uh use some depth so i add this depth node and what this
+so i add this depth node and what this does is
+does is uh surfaces below my water that are
+uh surfaces below my water that are really far away and i can specify a
+really far away and i can specify a value for how deep the maximum is
+value for how deep the maximum is those that will appear white and
+those that will appear white and anything that's really shallow or right
+anything that's really shallow or right next to the surface of my water will
+next to the surface of my water will appear black so in this case i'm just
+appear black so in this case i'm just going to start out by passing that into
+going to start out by passing that into my base color and i get something like
+my base color and i get something like this so you can see that
+this so you can see that it's sort of white down here where it's
+it's sort of white down here where it's deep and black
+deep and black up here where it's shallow
+up here where it's shallow so that creates a mask for me and then
+so that creates a mask for me and then i'm able to use that mask to do some
+i'm able to use that mask to do some interesting things so the first thing
+interesting things so the first thing that i'm going to do with it is
+that i'm going to do with it is blend between two different colors i
+blend between two different colors i kind of have this light green color
+kind of have this light green color where it's shallow
+where it's shallow and then this sort of darker blue color
+and then this sort of darker blue color where it's deep
+where it's deep and that gives me something like this so
+and that gives me something like this so i have my darker blue color here
+i have my darker blue color here and my lighter green color here but i
+and my lighter green color here but i can also use this mask for
+can also use this mask for opacity and so in this this case
+opacity and so in this this case i'm just going to take my depth opacity
+i'm just going to take my depth opacity here
+here and i'm going to pass it into the
+and i'm going to pass it into the opacity on my root node
+opacity on my root node now i'm adding a value of 0.2 because i
+now i'm adding a value of 0.2 because i don't ever want the water to become
+don't ever want the water to become completely transparent even at the edges
+completely transparent even at the edges i want it to have
+i want it to have a little bit of opacity so i add a value
+a little bit of opacity so i add a value of 0.2 there
+of 0.2 there and so where i started out with this
+and so where i started out with this when i use
+when i use my depth for opacity i end up with
+my depth for opacity i end up with something that looks like this
+something that looks like this now there's nothing amazing or fancy in
+now there's nothing amazing or fancy in my shader that's creating those
+my shader that's creating those uh caustic patterns dynamically so don't
+uh caustic patterns dynamically so don't kind of get that idea that i'm doing
+kind of get that idea that i'm doing something amazing there the the caustics
+something amazing there the the caustics are a completely separate effect
+are a completely separate effect that we project using an environment
+that we project using an environment decal
+decal but they are there to illustrate the
+but they are there to illustrate the fact that you can see through the water
+fact that you can see through the water and it's more opaque or it's more
+and it's more opaque or it's more transparent where it's shallow and then
+transparent where it's shallow and then as it gets deeper
+as it gets deeper it's less transparent all right so
+it's less transparent all right so there's still a little bit more that we
+there's still a little bit more that we need to do and the next step that we're
+need to do and the next step that we're going to do
+going to do is add in some reflections so this node
+is add in some reflections so this node takes my
+takes my world space normal and it generates
+world space normal and it generates reflectance and smoothness values now
+reflectance and smoothness values now the smoothness values are pretty much
+the smoothness values are pretty much constant i think i just passed in like a
+constant i think i just passed in like a value of 0.95 or something like that
+value of 0.95 or something like that but for reflectance what i want is to
+but for reflectance what i want is to use a fresnel term so
+use a fresnel term so the water is more reflectance more
+the water is more reflectance more reflectant
+reflectant at a glancing angle and then if i'm
+at a glancing angle and then if i'm looking straight down into it
+looking straight down into it uh it's less reflectant so that's what
+uh it's less reflectant so that's what that's giving me there
+that's giving me there and so this is what it looked like
+and so this is what it looked like without the reflectance
+without the reflectance and then it's i add in the reflections
+and then it's i add in the reflections you can see that i get really nice
+you can see that i get really nice reflections out here where
+reflections out here where my water is at a glancing angle but as
+my water is at a glancing angle but as i'm looking down
+i'm looking down directly into it i get less all right
+directly into it i get less all right now there's one
+now there's one one last thing that's missing and that
+one last thing that's missing and that is the refraction on the water
+is the refraction on the water so i'm going to add in one more node
+so i'm going to add in one more node here which does refraction
+here which does refraction it takes my tangent space normals and
+it takes my tangent space normals and does
+does a screen space distortion effect and
+a screen space distortion effect and this also has a fresnel term in it so
+this also has a fresnel term in it so that i'm only getting refraction when
+that i'm only getting refraction when i'm looking down
+i'm looking down at the water and not when i'm looking
+at the water and not when i'm looking across it i want to get reflections
+across it i want to get reflections looking across it and refractions when
+looking across it and refractions when i'm looking down
+i'm looking down and so this is what it looks like
+and so this is what it looks like without the distortion or without the
+without the distortion or without the refractions
+refractions and then when i add that in i get
+and then when i add that in i get something that looks pretty nice
+something that looks pretty nice now we got some water got reflections
+now we got some water got reflections refractions
+refractions uh depth-based opacity and
+uh depth-based opacity and depth-based color and then some nice
+depth-based color and then some nice ripples on the surface
+ripples on the surface and these are all of the elements that
+and these are all of the elements that we put together to create uh basic
+we put together to create uh basic water now we did all kinds of water for
+water now we did all kinds of water for this game like i said so
+this game like i said so i would start out with this and then the
+i would start out with this and then the environment artist would come to me and
+environment artist would come to me and they would say can you make it look
+they would say can you make it look muddy
+muddy can you make it look like it somebody
+can you make it look like it somebody poured antifreeze into it
+poured antifreeze into it can you make it uh really swampy looking
+can you make it uh really swampy looking and so we created
+and so we created tons of different kinds of water and i
+tons of different kinds of water and i put together this
+put together this video montage to give you some ideas of
+video montage to give you some ideas of some of the different
+some of the different looking water effects that we're able to
+looking water effects that we're able to achieve in the game
+[Music] wow
+all right we're almost done uh so let's just go over a couple of takeaways
+just go over a couple of takeaways the first one is that collecting good
+the first one is that collecting good references critical
+references critical and if you can sneak in a trip to hawaii
+and if you can sneak in a trip to hawaii that's good too
+that's good too next it's important that when you create
+next it's important that when you create or when you collect your reference that
+or when you collect your reference that you identify
+you identify the elements that make this thing what
+the elements that make this thing what is it you boil it down to its essence
+is it you boil it down to its essence and figure out
+and figure out what is it that i'm going to try to
+what is it that i'm going to try to imitate in my shaders based on the
+imitate in my shaders based on the reference
+reference and like i said before it's almost as
+and like i said before it's almost as important to identify
+important to identify the things that you're not going to do
+the things that you're not going to do as to identify the things that you are
+as to identify the things that you are going to do
+going to do and you need to figure out uh things
+and you need to figure out uh things that you can leave out
+that you can leave out uh to save on performance
+uh to save on performance because you can't do absolutely
+because you can't do absolutely everything
+everything early on in the production of our game
+early on in the production of our game we had a lot more
+we had a lot more complicated looking weather for example
+complicated looking weather for example and we found that we just couldn't run
+and we found that we just couldn't run it and we had to
+it and we had to simplify things a lot so the examples
+simplify things a lot so the examples that i showed you were the
+that i showed you were the the more simplified versions of of what
+the more simplified versions of of what we started out with
+we started out with so it would have been a lot better to do
+so it would have been a lot better to do that up front
+that up front but that's not how things turned out
+but that's not how things turned out if i've done my job today in my talk
+if i've done my job today in my talk hopefully all of you
+hopefully all of you are thinking man shader work is super
+are thinking man shader work is super cool
+cool how can i get into this like if you
+how can i get into this like if you don't write shaders how can i start
+don't write shaders how can i start learning this
+learning this and here are a few things that you can
+and here are a few things that you can do to get started
+do to get started first of all take a look at other games
+first of all take a look at other games when i was in the process of working on
+when i was in the process of working on this
+this i loved playing games like
+i loved playing games like horizon zero dawn and spider-man
+horizon zero dawn and spider-man just just by show of hands how many of
+just just by show of hands how many of you been have been to 10 or more
+you been have been to 10 or more talks about spider-man at gdc
+talks about spider-man at gdc okay yeah but anyway i loved
+okay yeah but anyway i loved looking at other games and figuring out
+looking at other games and figuring out what they were doing
+what they were doing you can do google and youtube searches
+you can do google and youtube searches for tutorials on writing shaders
+for tutorials on writing shaders you can download unreal for free for
+you can download unreal for free for example and and get into shader writing
+example and and get into shader writing that way or use
+that way or use shader effects in max or maya and most
+shader effects in max or maya and most importantly just do it
+importantly just do it identify something that you want to try
+identify something that you want to try to imitate and just give it your best
+to imitate and just give it your best shot
+shot and i talked about finding a book to
+and i talked about finding a book to read
+read these are some of the books that i
+these are some of the books that i learned how to write shaders with and
+learned how to write shaders with and this was maybe 10 or 15 years ago
+this was maybe 10 or 15 years ago but this knowledge is all still very
+but this knowledge is all still very relevant to
+relevant to to writing shaders now so if you want to
+to writing shaders now so if you want to get started
+get started it's really great to divine to grab a
+it's really great to divine to grab a book a lot of these books are available
+book a lot of these books are available for free online now
+and so that's my talk i have my email address here and my twitter handle if
+address here and my twitter handle if you want to give me some direct feedback
+you want to give me some direct feedback and i really appreciate all of you for
+and i really appreciate all of you for for coming and listening to what i have
+for coming and listening to what i have to say today so thanks a lot
+it looks like we have about five or ten minutes for questions so if you'd like
+minutes for questions so if you'd like to ask a question
+to ask a question feel free to step up to the mic and
+feel free to step up to the mic and i'll do what i can to answer go ahead hi
+i'll do what i can to answer go ahead hi hello i'm sorry
+hello i'm sorry i may be missing some information so
+i may be missing some information so just want to
+just want to confirm that for your ring jobs
+confirm that for your ring jobs maps they are like normal map and the
+maps they are like normal map and the temporal offset mask and three masks
+temporal offset mask and three masks then then you said you package them to
+then then you said you package them to the one map
+the one map so as i know like like the rgb channel
+so as i know like like the rgb channel only three channels
+only three channels so how could you package all three or
+so how could you package all three or all maps
+all maps in the one map and like when you
+in the one map and like when you withdraw the
+withdraw the normal map you make sure it's the
+normal map you make sure it's the correct normal map
+correct normal map sure so a a texture can have three
+sure so a a texture can have three channels or it can have four channels
+channels or it can have four channels you can have red green blue and alpha
+you can have red green blue and alpha yeah and so the
+yeah and so the the static map and the animated drop map
+the static map and the animated drop map were both packed into the alpha channel
+were both packed into the alpha channel together
+together okay so a screen or overlay together
+okay so a screen or overlay together in the alpha channel right okay
+in the alpha channel right okay and then your second the second part of
+and then your second the second part of your question was about the normal
+your question was about the normal yes so if you put the red in
+yes so if you put the red in or if you put the x component and the y
+or if you put the x component and the y component
+component of your normal map into the red channel
+of your normal map into the red channel on the green channel
+on the green channel then in the shader you can reconstruct
+then in the shader you can reconstruct your normal
+your normal now in this particular example i just
+now in this particular example i just kind of
+kind of didn't do that to make it cheaper but if
+didn't do that to make it cheaper but if you want it to be
+you want it to be technically correct you can do the math
+technically correct you can do the math to derive the
+to derive the z chant the z component
+z chant the z component from the x and the y because the normal
+from the x and the y because the normal is supposed to be normalized
+is supposed to be normalized okay that math has a square root in it
+okay that math has a square root in it which is kind of expensive
+which is kind of expensive and so i just skipped it in this effect
+and so i just skipped it in this effect because i didn't think it was
+because i didn't think it was necessary i just assumed a value of one
+necessary i just assumed a value of one for the
+for the for the z component instead of
+for the z component instead of calculating it okay okay
+calculating it okay okay so actually you use the like blue
+so actually you use the like blue channel to package
+channel to package one map and then the alpha channel
+one map and then the alpha channel packages the rest
+packages the rest too right that's cool okay thank you
+too right that's cool okay thank you very much you're welcome over here
+very much you're welcome over here hi uh you mentioned your first pass on
+hi uh you mentioned your first pass on the weather stuff wasn't performant
+the weather stuff wasn't performant enough to ship and you had to optimize
+enough to ship and you had to optimize it a bit
+it a bit sort of along those lines do you have
+sort of along those lines do you have like shader lods or like per skew
+like shader lods or like per skew shader control high medium low yeah yeah
+shader control high medium low yeah yeah absolutely and those are the kinds of
+absolutely and those are the kinds of things that i took out of these examples
+things that i took out of these examples just so my graph didn't look like
+just so my graph didn't look like a pile of spaghetti for the shots of my
+a pile of spaghetti for the shots of my graphs that i was showing here
+graphs that i was showing here they're really simplified down but we
+they're really simplified down but we have a node that controls quality
+have a node that controls quality where you can it has a low medium high
+where you can it has a low medium high and
+and ultra pin and whatever you pass into
+ultra pin and whatever you pass into each of those pins is what gets compiled
+each of those pins is what gets compiled as the shader for
+as the shader for those quality settings how often do you
+those quality settings how often do you have to use that
+have to use that like what percentage of the materials in
+like what percentage of the materials in the game need a cheaper
+the game need a cheaper version um
+version um that's a that's a hard question i use it
+that's a that's a hard question i use it as often as i can
+as often as i can um because you know you want the game to
+um because you know you want the game to be
+be much more performant on each of those
+much more performant on each of those levels of quality
+levels of quality if there are things that can that can be
+if there are things that can that can be left out
+left out without absolutely killing the the image
+without absolutely killing the the image then we want to do that on the the lower
+then we want to do that on the the lower quality levels for sure so you like do
+quality levels for sure so you like do it ahead of time instead of waiting for
+it ahead of time instead of waiting for engineering to come to your desk and
+engineering to come to your desk and i've never had engineering do that to me
+i've never had engineering do that to me um
+um i usually do it myself um because we we
+i usually do it myself um because we we work in kind of two passes so we'll
+work in kind of two passes so we'll we'll do a look dev
+we'll do a look dev development pass and get things looking
+development pass and get things looking the way that we want them to
+the way that we want them to and then we'll go back and perform a
+and then we'll go back and perform a performance pass
+performance pass and really that just involves you know
+and really that just involves you know using
+using uh razer on ps4 or pix
+uh razer on ps4 or pix and just kind of seeing how much things
+and just kind of seeing how much things cost and well does it fit in my time and
+cost and well does it fit in my time and if not
+if not you know how can i make it faster cool
+you know how can i make it faster cool thank you you're welcome
+thank you you're welcome hello hey um my question is more on like
+hello hey um my question is more on like the organizational bookkeeping
+the organizational bookkeeping as you're putting together these growing
+as you're putting together these growing libraries of shaders
+libraries of shaders so you mentioned you have environments
+so you mentioned you have environments come to you and ask you for like a new
+come to you and ask you for like a new effect or
+effect or uh you have like this extensive
+uh you have like this extensive different types of water
+different types of water and i struggle personally it's where
+and i struggle personally it's where i'll go down the path of wanting to
+i'll go down the path of wanting to create more and more like master
+create more and more like master materials so do you have any certain
+materials so do you have any certain cutoffs that you try to keep to to
+cutoffs that you try to keep to to determine whether
+determine whether you want to combine two setters together
+you want to combine two setters together or
+or keep steph more separate that's a really
+keep steph more separate that's a really good question in the case of
+good question in the case of water um we don't have the ability to
+water um we don't have the ability to pass um external parameters in
+pass um external parameters in to adjust it and so every time the
+to adjust it and so every time the artist wants something new i need to
+artist wants something new i need to to create a new shader and that's one of
+to create a new shader and that's one of the reasons why
+the reasons why all of those water nodes were created
+all of those water nodes were created kind of modularly i had one for reflect
+kind of modularly i had one for reflect reflection one for refraction because i
+reflection one for refraction because i could just take those and put them
+could just take those and put them together to create a new one
+together to create a new one fairly quickly yeah for some of the
+fairly quickly yeah for some of the other assets like
+other assets like vegetation or rocks or that sort of
+vegetation or rocks or that sort of thing
+thing we had one really large shader but then
+we had one really large shader but then you could tick boxes to turn it on and
+you could tick boxes to turn it on and off the features that you needed
+off the features that you needed so that the the shaders didn't get out
+so that the the shaders didn't get out of hand in terms of how many
+of hand in terms of how many of them there were the artists could
+of them there were the artists could just pick i want the rock shader and
+just pick i want the rock shader and then they could check the boxes for the
+then they could check the boxes for the wrong uh the features that they needed
+wrong uh the features that they needed even with the master series like the
+even with the master series like the rocks is there a certain cut off to
+rocks is there a certain cut off to where like you don't want to have
+where like you don't want to have 20 plus exposed parameters for them to
+20 plus exposed parameters for them to go through for each yeah yeah absolutely
+go through for each yeah yeah absolutely uh i don't have a silver bullet for you
+uh i don't have a silver bullet for you on how to right how to decide how to do
+on how to right how to decide how to do that
+that um but definitely something to consider
+um but definitely something to consider yeah yeah
+yeah yeah absolutely thank you
+i'm interested to hear more about the optimization pass
+optimization pass uh did you optimize it yourself or did
+uh did you optimize it yourself or did you ever hand it over to like a graphics
+you ever hand it over to like a graphics programmer to kind of hand optimize it
+programmer to kind of hand optimize it uh no none of our shaders were touched
+uh no none of our shaders were touched by graphics programmers sometimes that
+by graphics programmers sometimes that they
+they sometimes they would say hey in general
+sometimes they would say hey in general this view is too expensive
+this view is too expensive go and figure it out but optimization of
+go and figure it out but optimization of the art assets is generally the domain
+the art assets is generally the domain of the tech artists
+of the tech artists at our studios and so
+at our studios and so you know the graphics engineers would
+you know the graphics engineers would say hey tech artists figured this out
+say hey tech artists figured this out but they wouldn't actually
+but they wouldn't actually get in and and tell us how to do it it
+get in and and tell us how to do it it was just a matter of
+was just a matter of of isolating a specific view or
+of isolating a specific view or direction that we are looking in the
+direction that we are looking in the game and
+game and you know if it's not running at 30
+you know if it's not running at 30 frames a second here or actually faster
+frames a second here or actually faster because we had to account for characters
+because we had to account for characters and
+and vfx and all kinds of other things i
+vfx and all kinds of other things i think our target was like 25 or 28
+think our target was like 25 or 28 milliseconds
+milliseconds if it was over that then we would just
+if it was over that then we would just run that specific frame through pixar
+run that specific frame through pixar razor and
+razor and identify targets of opportunity to to
+identify targets of opportunity to to reduce
+reduce all right thank you
+i've already tried to packing extra information to
+information to a normal map channel but
+a normal map channel but with the x5 compression i cannot avoid
+with the x5 compression i cannot avoid compression artifact on normal trading
+compression artifact on normal trading so
+so could you tell me what kind of
+could you tell me what kind of comprehension setting do
+comprehension setting do did you use yeah so in the case of this
+did you use yeah so in the case of this rain texture it's a 512 by 512
+rain texture it's a 512 by 512 and because it's used on every asset in
+and because it's used on every asset in the game we did not compress it
+the game we did not compress it so this texture is stored uncompressed
+so this texture is stored uncompressed oh i see
+oh i see okay thank you
+oh hello nice talk uh i'm interested in the doing the
+the doing the refraction uh did you do it in this
+refraction uh did you do it in this screen space and did you use the death
+screen space and did you use the death map to assist the
+map to assist the pickup of how to uh resolve the uh
+pickup of how to uh resolve the uh resulting uh like angle of the
+resulting uh like angle of the light vector right so one of the things
+light vector right so one of the things that's interesting about our engine is
+that's interesting about our engine is that yeah it it does
+that yeah it it does it does this distortion in screen space
+it does this distortion in screen space and
+and what i really would like to have is
+what i really would like to have is something where the surface of the water
+something where the surface of the water is not distorted and it only distorts
+is not distorted and it only distorts what's underneath it
+what's underneath it but unfortunately because this is a
+but unfortunately because this is a screen space effect that gets applied to
+screen space effect that gets applied to everything
+everything and so that's why it was really
+and so that's why it was really important to do the the fall off or the
+important to do the the fall off or the fresnel so that it only showed up when
+fresnel so that it only showed up when you're
+you're looking directly down what was the
+looking directly down what was the second half of your question
+second half of your question i was just wondering if you used the
+i was just wondering if you used the desk map to assist in that pickup
+desk map to assist in that pickup so i use the depth map to determine how
+so i use the depth map to determine how much distortion to apply so the deeper
+much distortion to apply so the deeper the water it is the more i would distort
+the water it is the more i would distort is that what you were talking about okay
+is that what you were talking about okay so you it is an approximate term then
+so you it is an approximate term then yeah very nice thank you all right
+yeah very nice thank you all right last question uh i was actually
+last question uh i was actually wondering about that depth map myself
+wondering about that depth map myself is that a screen space depth map for
+is that a screen space depth map for your water depth or is it actual
+your water depth or is it actual like from the top how deep is the water
+like from the top how deep is the water down ah
+down ah so yes it is a screen space effect um
+so yes it is a screen space effect um did you run into any
+did you run into any uh issues with the fact that you know
+uh issues with the fact that you know different angles would produce a
+different angles would produce a different
+different depth yeah and for that i had to
+depth yeah and for that i had to multiply it by a fresnel term to to
+multiply it by a fresnel term to to isolate it so that you'd only get it
+isolate it so that you'd only get it when you're looking down
+when you're looking down it had to be adjusted yeah gotcha thank
+it had to be adjusted yeah gotcha thank you good question
+you good question all right thanks a lot for coming
+everybody

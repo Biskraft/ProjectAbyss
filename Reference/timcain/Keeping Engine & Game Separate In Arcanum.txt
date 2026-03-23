@@ -1,0 +1,266 @@
+Hi everyone, it's me Tim. Today I want
+to talk about keeping the game and the
+engine separate in Arcanum. This comes
+from a question from All Lucky 7 who
+asked, "Interesting that the mechanics
+and the engine part of the game were
+kept separate. Would you mind explaining
+how that is or was done?"
+So, if you've watched this channel and
+you know I've I've referenced TIG and
+Gnol, my operating system abstraction
+libraries a ton. There's a video I'll
+link below. It's the only one. Uh,
+please watch that if you really want to
+get some details on
+kind of taking part of the game and
+shoving it into a library so it can
+abstract something so you don't have to
+think about it. But the reason I did Tig
+and Gol was I didn't want to worry what
+platform the game was running on. Was it
+Windows? Was it DOSs? Was it Mac? Which
+version of Windows was it? I don't care.
+I don't want to know. So those libraries
+let me make calls to the library and the
+and the library itself knew what
+platform. So there's a different library
+for every platform and it would redirect
+the call to the appropriate API. This is
+very similar to what I did in Arcanum. I
+decided I wanted to keep what I
+considered the game engine for Arcanum
+separate from the game mechanics that
+rooted it in the Arcanum IP. So we were
+coding Arcanum in C. So what we did was
+all the functions that and structures
+and private variables that all belong
+together that were all similar went into
+its own C file and then some of these C
+files were game related. These were
+things like stats and skills and spells
+and combat but many were engine related
+and had nothing to do with Arcanum
+itself. It was like sector loading and
+tile loading, sprite loading and
+animation, script loading and processing
+things that that were kind of agnostic
+towards what the game was. It didn't
+have any rules in them. It just was they
+could be used in any game. We were just
+using them in ours. But because they
+were handcrafted for Arcanum, we just
+put them in their own files knowing
+that, hey, later on we could pull them
+out.
+What's cool about that was
+by keeping them together in the same C
+library which is means all the files
+were compiled together and put into a
+lib and later those libs were linked
+together for the executable. By keeping
+them in the same library
+we had lots of data flowing back and
+forth between them and that made it
+efficient. But by keeping them in
+separate files, we could easily go those
+are engine files and those are game
+files. So that was kind of the the
+low-level gist of how we kept those
+separate. However, I went back and
+looked at it because I'm like, I know we
+had separate libraries that were still
+game related.
+The entire game's user interface, the
+game UI was not only kept in separate
+files, but they were it was kept in a
+separate folder and compiled separately
+into its own library
+and which was then linked in separately
+and as part of the executable. And the
+reason we did that was
+the user interface is not the game and
+we wanted to keep it separate from the
+game and it's also not the engine. So we
+wanted to keep it separate from the
+engine.
+Two huge reasons drove us to do that
+based on our experience from previous
+games. And I'm saying our I mean the
+team we all we talked about this before
+we laid down a line of code.
+First of all the u user interface might
+change. I' I've told you that user inter
+user interface coding has been the bane
+of my programming existence because it
+is a tremendous time sync. It's it's
+really hard to get done well. you
+frequently redo it because it's the kind
+of uh code where you write something
+you're like well that should be pretty
+easy and that should be good and then
+you play you're like that's not good and
+you want to recode it and then recode it
+and then recode it and then your code is
+a bunch of spaghetti code so you're like
+let me rewrite all the space stuff now
+that we're doing something entirely
+differently plus the art frequently
+changes art will go in and we're like
+this isn't quite working let's change
+the art we may change resolution or you
+may make art that's dependent on the
+resolution the game is running in you
+may make art that's um dependent on the
+platform. If you've ever played uh two
+console games, you realize that when
+little whenever it references the
+controller, it has totally different art
+for the Xbox controller and the
+PlayStation controller and the Switch
+controller. And those are all things
+that you don't want the game to know or
+care where these inputs are coming in
+from, but the UI has to care. So tons of
+things that you don't want the game
+caring about, but the UI and therefore
+the player care about, you shove it into
+this separate library and it gets and
+everything's handled there. But the the
+other reason we kept it in its own
+library is the user interface doesn't
+decide anything. It doesn't it doesn't
+know anything about the game. It gets
+data from the game. It asks the game for
+information. the game doesn't ask it and
+shouldn't ask it. So we by putting in
+its own library and not making that data
+that it knows available back down to the
+game. You kind of get around programmers
+who are trying to like well just ask the
+user interface whose turn it is. No, no,
+no. You should be asking combat the game
+combat uh file what what whose turn it
+is. Don't ask the user interface. So
+data went up to the user interface but
+never backed down. The game doesn't know
+or care about the UI. The game is the
+honey badger. It don't care. The UI
+could be doing anything it wants. The
+game doesn't care. Here's a good example
+of that because I uh several people said
+they like when I give examples in
+Arcanum when combat started, when
+turn-based combat started, initiative
+was rolled. So the game, one of the game
+modules, I think it was combat rolled
+initiative at the start of combat and
+everybody got an initiative assigned to
+them. That data was thrown up to the UI.
+the UI was going to display it. How did
+it display it? Did it display an entire,
+you know, line of people whose turn it
+was? Maybe. Maybe it only displayed the
+one person whose turn it was. The game
+didn't care. It rolled initiative, threw
+that up to UI, and let the UI do
+whatever it wanted to, which meant we
+could change our mind on how the UI
+could display. Nothing would change down
+in the game code. Then, as turn
+progressed down that initiative list,
+the UI would show that progression
+somehow. Would it take down the person
+whose turn it was and put up a new pro
+picture? Maybe. Would it did it have a a
+you know a line of profiles and it just
+highlighted them as it went down or
+maybe a big arrow? Who knows? Who cares?
+So, keep in mind here the UI never
+decided whose turn it was and no one
+should be asking the UI whose turn it
+was. That came from combat. Combat told
+the UI, here's whose turn it is if you
+care to do anything with that
+information. So, keeping that UI in a
+separate library kept it separate, kept
+all of its data separate, kept all the
+information flowing one way and
+prevented programmers from misusing the
+UI by saying, "Hey, I'm down in AI and I
+want to know something. I'm going to ask
+the UI." No, that's not where you ask.
+So, that information wasn't even
+available. Anyway, all these decisions
+helped us out tremendously after Arcanum
+shipped and we were looking for new work
+to do and the opportunity to do Temple
+of Elemental Evil arose. They wanted it
+done quickly. They said a year and a
+half, which was 18 months. We eventually
+did it in 20 because three and a half
+came out in the middle and we had to
+redo all the 3.0 rules in two months.
+That was that was great. Thanks, guys.
+But
+the only reason we could even make
+Temple that quickly is because we took
+we made a few new files for the engine.
+Um, I mentioned that our sprites went
+from being 2D sprites to 3D sprites that
+were actually 3D models that were stored
+and being rendered 3D on into the into
+the scene. And the background map wasn't
+tiled like it was in Fallout or Arcanum.
+It was a
+um a we made it in 3D, took a large
+image of it and just put it down behind
+the player and then when the player
+walked behind a wall, there were these
+um there was a depth buffer that we kept
+separately that said how to display the
+player. If the player went behind a wall
+or went behind an object, we knew not to
+draw that part of the sprite. So, a few
+game engines changed, but then a whole
+bunch of game files. In fact, I'd say
+all the game files were brand new
+because they were all brand new for D
+and D. Attributes, combat, classes.
+There were no classes in in Arcanum. So,
+there's a whole new game engine concept
+of classes that were written that
+interacted with all those other game
+files. And of course, we had a whole new
+UI library. The UI was done very
+differently in Temple. We had that
+radial menu menu. We just threw out all
+the old UI and we made new UI because it
+was getting new and different data from
+the from the game files anyway from the
+the game functions. We just made a whole
+new game UI lib and linked that in. So
+that's what we did and that's the
+advantage of separation by the way. Um
+these days with engines readily
+available off the shelf it's everybody
+does that almost every day but even then
+there are some engines that let you blur
+that. You can get the code for Unreal
+and change anything you want. And if you
+stuff game data down in what should just
+be engine code, you can. You shouldn't,
+but you can. Meanwhile, Unity, it just
+calls you as a, you know, you're you're
+basically script things that get called
+by the engine and you do your game stuff
+in there. So, it naturally encapsulates
+the game. But back then, back in the 90s
+and 2000s, this stuff wasn't really done
+very much. And we did it. And it really
+helped us not only keep the code in a
+better state, but also be able to turn
+around and use our Arcanum engine
+quickly to make Temple of Elemental
+Evil. Anyway, I hope that answers your
+question. All lucky seven.

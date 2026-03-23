@@ -1,0 +1,1223 @@
+[Music] thank you
+hello all and thank you for coming to my talk on how to use shaders to create
+talk on how to use shaders to create stylized visual effects
+stylized visual effects let me start off by saying that this
+let me start off by saying that this will be a two-part talk the first part
+will be a two-part talk the first part will focus on a generalized overview of
+will focus on a generalized overview of Shader Concepts part 2 will then walk
+Shader Concepts part 2 will then walk you through a step-by-step way of how to
+you through a step-by-step way of how to implement set Shader Concepts in the
+implement set Shader Concepts in the game engine of your choice for the
+game engine of your choice for the purposes of this talk we'll be using
+purposes of this talk we'll be using Unreal Engine 4. however feel free to
+Unreal Engine 4. however feel free to follow along in a game engine or shade
+follow along in a game engine or shade editor of your choice
+editor of your choice a little bit about myself my name is via
+a little bit about myself my name is via Sharma and I'm a visual effects artist
+Sharma and I'm a visual effects artist at a studio called probably monsters in
+at a studio called probably monsters in Bellevue Washington I've had the honor
+Bellevue Washington I've had the honor of working on some amazing titles on
+of working on some amazing titles on platforms from PC current gen next-gen
+platforms from PC current gen next-gen consoles mobile phones and even VR
+to give you a brief overview of what this talk is all about we will start by
+this talk is all about we will start by talking about some of the common
+talking about some of the common misconceptions and perceptions around
+misconceptions and perceptions around stylized VFX and you'll just see in a
+stylized VFX and you'll just see in a bit why this is important
+bit why this is important we'll then move on to a VFX Shader 101
+we'll then move on to a VFX Shader 101 type of introduction and you'll learn
+type of introduction and you'll learn how these different systems work or more
+how these different systems work or more importantly how they come together to
+importantly how they come together to create some of the VFX that you see in
+create some of the VFX that you see in your favorite games
+your favorite games and then next we'll move on to some neat
+and then next we'll move on to some neat Shader tips and tricks that will help
+Shader tips and tricks that will help level up your VFX
+level up your VFX and then finally we will do a Unreal
+and then finally we will do a Unreal Engine step-by-step walkthrough to
+Engine step-by-step walkthrough to implement these Shader Concepts that you
+implement these Shader Concepts that you just learned
+just learned the topics on the right are not really
+the topics on the right are not really in the scope of this talk however I'm
+in the scope of this talk however I'm more than happy to chat with you about
+more than happy to chat with you about them if you grab me after this
+them if you grab me after this presentation
+so one of the bigger misconceptions about being a stylized visual effects
+about being a stylized visual effects artist is that your either this
+artist is that your either this hand-drawn frame by frame hand-painted
+hand-drawn frame by frame hand-painted visual effects hardest or you're this
+visual effects hardest or you're this tech savvy Shader and simulation Guru
+tech savvy Shader and simulation Guru but in reality if you have a strong
+but in reality if you have a strong grasp of these simple Shader
+grasp of these simple Shader fundamentals these simple Shader
+fundamentals these simple Shader Concepts you will be able to approach 90
+Concepts you will be able to approach 90 of all visual effects problems of the
+of all visual effects problems of the stylized kind that come your way
+stylized kind that come your way another misconception that affects not
+another misconception that affects not just VFX but the game industry as a
+just VFX but the game industry as a whole is what exactly is stylized
+whole is what exactly is stylized is cuphead stylized or is Battlefield
+is cuphead stylized or is Battlefield stylized
+stylized is fortnite or Uncharted or Borderlands
+is fortnite or Uncharted or Borderlands stylized
+stylized well you see most people think of
+well you see most people think of stylization as a spectrum where on one
+stylization as a spectrum where on one end you've got cartoony and the other
+end you've got cartoony and the other end you've got realistic and
+end you've got realistic and I think that stylization can only fully
+I think that stylization can only fully be understood
+be understood if you take a step back and take a look
+if you take a step back and take a look at the art holistically from a point of
+at the art holistically from a point of view of the principles and elements of
+view of the principles and elements of art design and animation right and so
+art design and animation right and so there you realize that stylization is
+there you realize that stylization is more of this design space as opposed to
+more of this design space as opposed to a linear Spectrum
+a linear Spectrum sure making things cartoony is one way
+sure making things cartoony is one way of stylizing your art but you could very
+of stylizing your art but you could very well choose to stylize just your motion
+well choose to stylize just your motion or I could very well choose to stylize
+or I could very well choose to stylize just my form
+just my form so a better definition of stylization
+so a better definition of stylization could be that stylization is the
+could be that stylization is the abstraction of realism you know with
+abstraction of realism you know with realism you're forced to make your
+realism you're forced to make your things look as realistic as possible
+things look as realistic as possible while enhancing the visual language a
+while enhancing the visual language a little bit however with stylization
+little bit however with stylization you're free to play with the shapes
+you're free to play with the shapes colors forms motion you can exaggerate
+colors forms motion you can exaggerate some elements or even completely remove
+some elements or even completely remove some elements to make sure it's in the
+some elements to make sure it's in the line with your art Direction doing so
+line with your art Direction doing so with realism which is break that
+with realism which is break that illusion of reality and won't belong in
+illusion of reality and won't belong in the world of our video game
+the world of our video game and as you progress through this
+and as you progress through this presentation and the different examples
+presentation and the different examples you will see you will realize that they
+you will see you will realize that they might be in opposite ends of this design
+might be in opposite ends of this design space however the same simple Shader
+space however the same simple Shader Concepts apply to both those VFX or all
+Concepts apply to both those VFX or all those VFX even regardless of where on
+those VFX even regardless of where on the stylized design space they fall
+the stylized design space they fall okay
+okay so here's an example of a person piece
+so here's an example of a person piece that I made a couple years ago
+that I made a couple years ago and as you can see you might you might
+and as you can see you might you might be like hey you know Beard You've
+be like hey you know Beard You've stylized the cartoony values and you've
+stylized the cartoony values and you've got a color that is mostly cell shaded
+got a color that is mostly cell shaded and anime-like and but however the
+and anime-like and but however the motion of the liquid and the fluid is
+motion of the liquid and the fluid is kind of realistic the buoyancy of that
+kind of realistic the buoyancy of that cube is kind of realistic and you know
+cube is kind of realistic and you know you would be right but the reality is
+you would be right but the reality is even though the colors and values are
+even though the colors and values are stylized there is absolutely nothing
+stylized there is absolutely nothing about this piece that has hand-painted
+about this piece that has hand-painted elements in it even though the liquid
+elements in it even though the liquid motion or the buoyancy of the cube might
+motion or the buoyancy of the cube might be more on the realistic end of this
+be more on the realistic end of this design space there is absolutely no
+design space there is absolutely no liquid or fluid simulations involved
+liquid or fluid simulations involved every single thing
+every single thing that in this piece exists you will be
+that in this piece exists you will be able to do
+able to do just through all the simple Shader
+just through all the simple Shader Concepts excuse me that you will learn
+Concepts excuse me that you will learn throughout this talk
+throughout this talk so let's begin with our first Shader
+so let's begin with our first Shader concept okay it is the scrolling texture
+concept okay it is the scrolling texture along uv's Shader now this Shader is
+along uv's Shader now this Shader is called a few different things you can
+called a few different things you can hear called Curve sweeps or swipe meshes
+hear called Curve sweeps or swipe meshes or even the community of VFX favorite
+or even the community of VFX favorite solar coasters you know but they all do
+solar coasters you know but they all do the same thing which is they scroll a
+the same thing which is they scroll a texture along the UVS of a particular
+texture along the UVS of a particular mesh now just for instance imagine I had
+mesh now just for instance imagine I had a poly strip okay and I had its UVS flat
+a poly strip okay and I had its UVS flat in a zero to one space
+in a zero to one space if I scroll the texture along that zero
+if I scroll the texture along that zero to one UV space that would correspond to
+to one UV space that would correspond to scrolling the texture on my poly strip
+scrolling the texture on my poly strip okay now here you can see this in motion
+okay now here you can see this in motion as I scroll my texture in my UV space
+as I scroll my texture in my UV space the same texture gets scrolled along my
+the same texture gets scrolled along my poly strip as well okay so let's go over
+poly strip as well okay so let's go over real quick how to set this up and unreal
+real quick how to set this up and unreal so here I've got a alpha texture and a
+so here I've got a alpha texture and a emissive texture we will take a texture
+emissive texture we will take a texture coordinate node and we will do a
+coordinate node and we will do a component mask where we will split this
+component mask where we will split this into a r Channel and a g Channel now
+into a r Channel and a g Channel now these directly correspond to the U and
+these directly correspond to the U and the V Channel okay now since this
+the V Channel okay now since this texture is horizontal and we want to
+texture is horizontal and we want to scroll it horizontally
+scroll it horizontally we would scroll it along the U so we
+we would scroll it along the U so we will do an add operation now add or
+will do an add operation now add or subtract moves okay this is important
+subtract moves okay this is important remember this so we will do an add
+remember this so we will do an add operation in the r Channel which is the
+operation in the r Channel which is the EU and we will add a parameter called
+EU and we will add a parameter called offset to this
+offset to this we will then do a append operation on
+we will then do a append operation on both RR and G and then it's just as
+both RR and G and then it's just as simple as plugging that into the UVS of
+simple as plugging that into the UVS of our Alpha and our message there you go
+our Alpha and our message there you go you have your very first simple
+you have your very first simple scrolling texture Shader
+and now that we have our Shader ready we can play around with the offset
+can play around with the offset parameter and Achieve our desired result
+parameter and Achieve our desired result now this brings me to our next important
+now this brings me to our next important point which is repeat textures versus
+point which is repeat textures versus clamped textures
+clamped textures a repeat texture also known as a wrap
+a repeat texture also known as a wrap texture mode in unreal uh does exactly
+texture mode in unreal uh does exactly what it sounds like it repeats
+what it sounds like it repeats indefinitely Loops your texture over and
+indefinitely Loops your texture over and over again this is useful for VFX that
+over again this is useful for VFX that repeat themselves over and over again as
+repeat themselves over and over again as you can see in these examples you've got
+you can see in these examples you've got two games which are stylistically
+two games which are stylistically extremely different however
+extremely different however they both follow the same simple Shader
+they both follow the same simple Shader concept which is on the left you've got
+concept which is on the left you've got Gears five whose waterfall is more on
+Gears five whose waterfall is more on the realistic end of this design space
+the realistic end of this design space you see the colors the values the motion
+you see the colors the values the motion however the reason this is so so that
+however the reason this is so so that the waterfall element exists in the
+the waterfall element exists in the world of Gears 5 without breaking that
+world of Gears 5 without breaking that immersion for the player especially at
+immersion for the player especially at the very beginning of the game where
+the very beginning of the game where this where this moment occurs and then
+this where this moment occurs and then you've got Spyro on the right a
+you've got Spyro on the right a radically different game in terms of
+radically different game in terms of stylization however the Lava Falls are
+stylization however the Lava Falls are using the same repeating Loop of a
+using the same repeating Loop of a scrolling texture
+scrolling texture all right now A clamp in contrast what
+all right now A clamp in contrast what clamp does is it indefinitely tiles very
+clamp does is it indefinitely tiles very last pixel of your texture okay so in
+last pixel of your texture okay so in instance if you see the alpha texture
+instance if you see the alpha texture over here it's got black pixels to
+over here it's got black pixels to either side as we know black pixels
+either side as we know black pixels represent transparency so you can see
+represent transparency so you can see once that your texture has scrolled past
+once that your texture has scrolled past it just repeats the very last
+it just repeats the very last transparent black pixels to the
+transparent black pixels to the remainder of its life
+remainder of its life and these clamped textures can be useful
+and these clamped textures can be useful for effects that go from point A to
+for effects that go from point A to point B it's an effects that happen a
+point B it's an effects that happen a one-off all right so you can see in
+one-off all right so you can see in these examples stylistically quite
+these examples stylistically quite different however they all use VFX they
+different however they all use VFX they go from one point to the other
+go from one point to the other and these use cloud textures okay and as
+and these use cloud textures okay and as you can see they can be used for VFX
+you can see they can be used for VFX like sword slashes or if effects like a
+like sword slashes or if effects like a projectile and Trail or even bullet
+projectile and Trail or even bullet tracers okay
+so in my example I've used a repeat or wrap mode texture that Scrolls along the
+wrap mode texture that Scrolls along the UVS of the strip mesh okay
+UVS of the strip mesh okay this scrolling was done using a banner
+this scrolling was done using a banner node okay which scrolled your input in
+node okay which scrolled your input in any given Direction and since I wanted
+any given Direction and since I wanted to scroll it downwards I plugged in a
+to scroll it downwards I plugged in a value of negative 1 on the y-axis so
+value of negative 1 on the y-axis so that will make sure that my texture
+that will make sure that my texture Scrolls downward
+Scrolls downward on my mesh
+on my mesh now this is very interesting because
+now this is very interesting because this principle of scrolling textures
+this principle of scrolling textures along your yogis doesn't have to be on
+along your yogis doesn't have to be on strips of polygons as well
+strips of polygons as well in this example you can see how the
+in this example you can see how the ripples moving outwards on the surface
+ripples moving outwards on the surface of the liquid were created using the
+of the liquid were created using the exact same technique
+so if you look at our previous example we had a strip where the UVS were laid
+we had a strip where the UVS were laid flat scrolling back along it scrolled it
+flat scrolling back along it scrolled it along the mesh now if we have a circular
+along the mesh now if we have a circular mesh and if we lay its UVS out flat
+mesh and if we lay its UVS out flat let's say we have a ring okay now what
+let's say we have a ring okay now what you could do is have the bottom part of
+you could do is have the bottom part of your UVS be the inner ring and you can
+your UVS be the inner ring and you can have the top part of your abs be the
+have the top part of your abs be the outer ring and now as you scroll your
+outer ring and now as you scroll your texture from the bottom to the top of
+texture from the bottom to the top of the UVS you'll have the same texture
+the UVS you'll have the same texture scrolling from the inner vein to the
+scrolling from the inner vein to the outward ring of your earpiece all right
+outward ring of your earpiece all right and there's so many use cases of this
+and there's so many use cases of this technique guys you could use it for like
+technique guys you could use it for like shock waves in the ground or you know
+shock waves in the ground or you know maybe even like block VFX where you have
+maybe even like block VFX where you have you know if somebody hits you and you
+you know if somebody hits you and you block you have the circular almost
+block you have the circular almost dome-like VFX that plays they'll use
+dome-like VFX that plays they'll use this similar technique
+now moving on to Shader number two we have Alpha erosion
+have Alpha erosion now this one has a couple different
+now this one has a couple different names as well you have heard it being
+names as well you have heard it being called Alpha threshold Alpha crushing
+called Alpha threshold Alpha crushing Alpha clipping uh Black Point fading
+Alpha clipping uh Black Point fading there's a couple different names but
+there's a couple different names but they'll do the same thing
+they'll do the same thing now basically what Alpha does is it
+now basically what Alpha does is it controls what parts of your texture are
+controls what parts of your texture are visible and which parts are not so a
+visible and which parts are not so a value of a one or white
+value of a one or white usually meansfully opaque and a value of
+usually meansfully opaque and a value of zero or black means fully transparent
+zero or black means fully transparent so moving your value from 0 to 1 and
+so moving your value from 0 to 1 and back
+back gives you a fade in and Fade Out as you
+gives you a fade in and Fade Out as you can see in the example below
+can see in the example below now this is okay for some use cases
+now this is okay for some use cases however sometimes we want a bit more
+however sometimes we want a bit more Fidelity in the way our texture fades in
+Fidelity in the way our texture fades in and out
+and out and that's where Alpha erosion comes in
+and that's where Alpha erosion comes in handy and now you can see using Alpha
+handy and now you can see using Alpha erosion it gives us texture a more sense
+erosion it gives us texture a more sense of being kind of eaten away more of a
+of being kind of eaten away more of a gazelle the feeling as opposed to a
+gazelle the feeling as opposed to a uniform fade in and Fade up okay
+uniform fade in and Fade up okay the way Alpha erosion works is if you
+the way Alpha erosion works is if you supply it a gradient
+supply it a gradient okay Alpha erosion starts eating up from
+okay Alpha erosion starts eating up from one end of the gradient all the way to
+one end of the gradient all the way to the other so in this case it will start
+the other so in this case it will start eating up all the black values first
+eating up all the black values first then the gray values and finally make
+then the gray values and finally make its way all the way up to the white
+its way all the way up to the white values
+values this way you get some sense of like
+this way you get some sense of like non-uniform fading in and out as opposed
+non-uniform fading in and out as opposed to the whole texture just going in and
+to the whole texture just going in and out okay
+out okay here you can see the comparison side by
+here you can see the comparison side by side of a traditional Alpha fade in and
+side of a traditional Alpha fade in and out as opposed to alphabrosion fade in
+out as opposed to alphabrosion fade in and out okay
+so setting this up we will set up a very simple version of our Alpha erosion we
+simple version of our Alpha erosion we already have our noise map baked into
+already have our noise map baked into our texture so we have our Alpha mask
+our texture so we have our Alpha mask with varying degrees of Grays blacks and
+with varying degrees of Grays blacks and whites now we're going to make a
+whites now we're going to make a parameter call it erosion and then we're
+parameter call it erosion and then we're going to subtract this from our texture
+going to subtract this from our texture then we're going to saturate this result
+then we're going to saturate this result what saturation does is it clamps your
+what saturation does is it clamps your result between 0 to 1. this is important
+result between 0 to 1. this is important because you don't want it going the
+because you don't want it going the super whites and now that you want it
+super whites and now that you want it going to negative values okay
+going to negative values okay you plug this into your opacity and
+you plug this into your opacity and there you go you have your very simple
+there you go you have your very simple Alpha erosion Shader guys
+and once it's ready play around with the erosion parameter and and see the result
+erosion parameter and and see the result uh here are some of the uses of alpha
+uh here are some of the uses of alpha erosion we can see on the left hand
+erosion we can see on the left hand corner uh Legend of Zelda breath of the
+corner uh Legend of Zelda breath of the wild uh the explosion and the smoke
+wild uh the explosion and the smoke doesn't just fade out right it has the
+doesn't just fade out right it has the smoke kind of being eroded away on the
+smoke kind of being eroded away on the right side we've got Assassin's Creed a
+right side we've got Assassin's Creed a game more on the realistic end of this
+game more on the realistic end of this design space quite different from the
+design space quite different from the style of breath of the wild however they
+style of breath of the wild however they use exact same principle on their blood
+use exact same principle on their blood effects so their blood effects erode out
+effects so their blood effects erode out into the result instead of fading away
+into the result instead of fading away sorry they erode out giving this more
+sorry they erode out giving this more sense of chunkier goopier globbier
+sense of chunkier goopier globbier feeling to it all right
+feeling to it all right foreign moving on we have our third and
+foreign moving on we have our third and my personal favorite UV Distortion
+my personal favorite UV Distortion Shader now this Shader does exactly what
+Shader now this Shader does exactly what you think it does it distorts your UVs
+you think it does it distorts your UVs so as you can see here we have a static
+so as you can see here we have a static texture if we pass some UV Distortion
+texture if we pass some UV Distortion onto it it instantly comes to life it's
+onto it it instantly comes to life it's now more Wiggly it has this sense of
+now more Wiggly it has this sense of motion than just the static texture on a
+motion than just the static texture on a card that it previously was
+card that it previously was the core principle behind UV Distortion
+the core principle behind UV Distortion is if you take a scrolling texture and
+is if you take a scrolling texture and you add it to the UVS of another texture
+you add it to the UVS of another texture you can manipulate the two bees and so
+you can manipulate the two bees and so here we achieved the wiggly motion by
+here we achieved the wiggly motion by scrolling this noise texture into our
+scrolling this noise texture into our Alpha texture
+Alpha texture so a simple way to set this up would be
+so a simple way to set this up would be we're going to take a normal map now now
+we're going to take a normal map now now we'll come to this in a moment why
+we'll come to this in a moment why that's important we're going to take a
+that's important we're going to take a normal map texture okay and then if you
+normal map texture okay and then if you remember from our very first Shader we
+remember from our very first Shader we used a Panner node to move our texture
+used a Panner node to move our texture right so we will do something exactly
+right so we will do something exactly similar we're going to make a pattern
+similar we're going to make a pattern node and we're going to move it
+node and we're going to move it downwards in the y-axis okay by 0.5
+downwards in the y-axis okay by 0.5 now for the purposes of this
+now for the purposes of this demonstration I go ahead and scale the
+demonstration I go ahead and scale the UVS to be 0.5 and 0.5 and the reason for
+UVS to be 0.5 and 0.5 and the reason for this is because I want to see more
+this is because I want to see more blobier distortion on my Alpha texture
+blobier distortion on my Alpha texture as opposed to more high frequency noise
+as opposed to more high frequency noise okay we're then going to multiply the
+okay we're then going to multiply the red Channel with a parameter let's call
+red Channel with a parameter let's call it distortion
+it distortion and then finally as we mentioned earlier
+and then finally as we mentioned earlier we're going to add this to the textured
+we're going to add this to the textured coordinate and then when we plug this
+coordinate and then when we plug this value into our texture we finally have
+value into our texture we finally have our very first UV Distortion Shader
+our very first UV Distortion Shader okay
+okay now
+now when we play around with the Distortion
+when we play around with the Distortion value we've got a wiggly little line
+value we've got a wiggly little line coming to life
+now as you saw in that previous walkthrough
+walkthrough we use a normal map now the reason for
+we use a normal map now the reason for this is a normal map by default operates
+this is a normal map by default operates in a minus one two one texture range
+in a minus one two one texture range okay now a regular noise texture is
+okay now a regular noise texture is usually in a zero to one space
+usually in a zero to one space so the way we fix this is using an
+so the way we fix this is using an operation known as remapping okay The
+operation known as remapping okay The Way remix works is we take a simple zero
+Way remix works is we take a simple zero to one space and using some math
+to one space and using some math operations we convert it into a negative
+operations we convert it into a negative one to one space
+one to one space all right now it's important to remember
+all right now it's important to remember this little bit of math
+this little bit of math multiply
+scales your texture range adding or subtracting moves
+adding or subtracting moves your texture range
+your texture range okay so let's visualize this really
+okay so let's visualize this really quick we've got our zero to one space
+quick we've got our zero to one space and if we multiply this by two
+and if we multiply this by two okay scale zero times two
+okay scale zero times two is zero one times two is two so our zero
+is zero one times two is two so our zero to one space scales two zero to two
+to one space scales two zero to two space
+space okay now we can subtract by one okay
+okay now we can subtract by one okay subtracting moves so zero minus one is
+subtracting moves so zero minus one is minus one two minus one is one
+minus one two minus one is one and there you go it has moved now to a
+and there you go it has moved now to a negative one two one range
+negative one two one range and arguments have now been pre-mouthed
+and arguments have now been pre-mouthed okay it's another way to do this we take
+okay it's another way to do this we take our zero to one space
+our zero to one space and we can subtract this by negative 0.5
+and we can subtract this by negative 0.5 subtracting moves our texture so zero
+subtracting moves our texture so zero minus 0.5 is minus 0.5 1 minus point
+minus 0.5 is minus 0.5 1 minus point five is point five so this moves it
+five is point five so this moves it right there
+right there now we can multiply this by 2 to scale
+now we can multiply this by 2 to scale our texture so negative 0.5 into 2 is
+our texture so negative 0.5 into 2 is negative 1 and 0.5 into 2 is positive
+negative 1 and 0.5 into 2 is positive one and then boom you have your texture
+one and then boom you have your texture measured one from zero to one excuse me
+measured one from zero to one excuse me to minus one two one range
+so here we will do a remapping however we'll use a built-in node in a real
+we'll use a built-in node in a real engine called constant bias scale if you
+engine called constant bias scale if you take a look at this texture you can see
+take a look at this texture you can see it's off the center right so we're gonna
+it's off the center right so we're gonna create our constant bias scale
+create our constant bias scale and we're gonna subtract by 0.5 and
+and we're gonna subtract by 0.5 and we're going to multiply it by two
+we're going to multiply it by two and so what this will essentially do is
+and so what this will essentially do is move our UVS in the negative one to one
+move our UVS in the negative one to one range now if you take a look at the
+range now if you take a look at the texture down below
+texture down below it is now in the center
+so UV Distortion has many many uses all right if we take a look at Legend of
+right if we take a look at Legend of Zelda once again
+Zelda once again you can see these fires they were all
+you can see these fires they were all done using the UV Distortion Shader that
+done using the UV Distortion Shader that is the cool thing about this you do not
+is the cool thing about this you do not need to hand drill these fires you do
+need to hand drill these fires you do not need to simulate them in a software
+not need to simulate them in a software like Houdini or use fume FX these are
+like Houdini or use fume FX these are totally achievable by using some UV
+totally achievable by using some UV Distortion noise on a texture
+Distortion noise on a texture Simon trumpler has an amazing talk on
+Simon trumpler has an amazing talk on how he created the fire in rhyme and I
+how he created the fire in rhyme and I would highly suggest taking a look at
+would highly suggest taking a look at that talk if you're interested in how to
+that talk if you're interested in how to make these kinds of fires
+make these kinds of fires and if you remember from our Alpha
+and if you remember from our Alpha erosion section the Assassin's Creed
+erosion section the Assassin's Creed blood we can now go ahead and add some
+blood we can now go ahead and add some UV Distortion to it and it totally gives
+UV Distortion to it and it totally gives this visceral really flowy kind of
+this visceral really flowy kind of motion to our blood textures which is
+motion to our blood textures which is essentially just study card texture and
+essentially just study card texture and not some fancy liquid stimulation being
+not some fancy liquid stimulation being played all right and guys
+played all right and guys UV Distortion is
+UV Distortion is really versatile I've seen it being used
+really versatile I've seen it being used in 2D games before where we had a flag
+in 2D games before where we had a flag texture that was a static card and
+texture that was a static card and passing some human Distortion to it just
+passing some human Distortion to it just brought the flag back to life and had it
+brought the flag back to life and had it waving and this is one of this has got
+waving and this is one of this has got to be one of my favorite UV favorite
+to be one of my favorite UV favorite shaders uh so following the same
+shaders uh so following the same principle all the splashes and splatters
+principle all the splashes and splatters were done by UV distorting these
+were done by UV distorting these textures
+so let's move on to our next Shader vertex offset
+vertex offset now vertex offset is also known as World
+now vertex offset is also known as World position offset and the way it works is
+position offset and the way it works is it allows the vertices of a mesh to be
+it allows the vertices of a mesh to be manipulated in a world space
+manipulated in a world space by the Shader okay now this is useful
+by the Shader okay now this is useful for making objects move around or change
+for making objects move around or change scale or change shape or rotate and
+scale or change shape or rotate and plenty of other effects in this effect
+plenty of other effects in this effect you can see how we have passed a
+you can see how we have passed a scrolling noise into our sphere and that
+scrolling noise into our sphere and that has created a more Blobby sphere okay
+has created a more Blobby sphere okay for this example we will use vertex
+for this example we will use vertex normals
+normals so let's talk about what exactly the
+so let's talk about what exactly the concept of a normal is okay a normal can
+concept of a normal is okay a normal can be described as a vector that defines
+be described as a vector that defines the orientation of the surface
+the orientation of the surface okay
+okay as we can see over here we all know that
+as we can see over here we all know that a sphere is not really a sphere right
+a sphere is not really a sphere right it's a collection of quads or tries that
+it's a collection of quads or tries that come together to form that sphere so and
+come together to form that sphere so and so the normals for each one of those
+so the normals for each one of those faces is a line that is perpendicular to
+faces is a line that is perpendicular to that surface that defines the
+that surface that defines the orientation of that face okay so in our
+orientation of that face okay so in our engine we can get the world space vertex
+engine we can get the world space vertex normal by using the vertex normal WS
+normal by using the vertex normal WS node
+node as you may have guessed the Ws stands
+as you may have guessed the Ws stands for World space and with this node we
+for World space and with this node we can do operations in our vertex Shader
+can do operations in our vertex Shader so let's create a very simple vertex
+so let's create a very simple vertex offset Shader as you saw in a previous
+offset Shader as you saw in a previous example we have a scrolling noise that
+example we have a scrolling noise that goes down our sphere
+goes down our sphere so what we're going to do is we're going
+so what we're going to do is we're going to call the vertex normal node and then
+to call the vertex normal node and then we're going to multiply this with a
+we're going to multiply this with a parameter let's call this parameter
+parameter let's call this parameter offset okay
+offset okay now we will once again multiply this
+now we will once again multiply this parameter with another parameter and
+parameter with another parameter and call it strength
+call it strength okay and then once we plug this into the
+okay and then once we plug this into the world position offset node you will have
+world position offset node you will have control of the vertex Shader of your
+control of the vertex Shader of your object so if you can guess what this
+object so if you can guess what this does
+does it will
+it will scale
+scale your object so in this example we can
+your object so in this example we can see you can make your mesh grow or
+see you can make your mesh grow or Shrink within the material without
+Shrink within the material without having to manually transform it how cool
+having to manually transform it how cool is that guys
+is that guys now if we wanted our spherical blob that
+now if we wanted our spherical blob that we saw in the previous example in the
+we saw in the previous example in the first example all you have to do is
+first example all you have to do is really just take your normal and pass
+really just take your normal and pass that instead of your offset parameter
+that instead of your offset parameter node because it's scrolling downwards
+node because it's scrolling downwards just like the Distortion it will create
+just like the Distortion it will create the same effect and it will create this
+the same effect and it will create this blob now once we tweak the strength you
+blob now once we tweak the strength you can feel free to go as subtle or as
+can feel free to go as subtle or as crazy as possible depending on what your
+crazy as possible depending on what your effects calls for
+some applications of this include Uncharted where they have some really
+Uncharted where they have some really amazing amazing examples of how they use
+amazing amazing examples of how they use vertex offset to create really great
+vertex offset to create really great effects all throughout the game however
+effects all throughout the game however this is just one example it barely
+this is just one example it barely scratches the surface but it's still
+scratches the surface but it's still really cool
+really cool the motion
+the motion the flowing of the liquid in the class
+the flowing of the liquid in the class is controlled by the vertex officer
+is controlled by the vertex officer on the opposite end of the stylistic
+on the opposite end of the stylistic design space way far away from Uncharted
+design space way far away from Uncharted we've got abzu and patlis where they're
+we've got abzu and patlis where they're fish and birds are controlled by
+fish and birds are controlled by animated vertex offsets and that is
+animated vertex offsets and that is really cool because it helps save the
+really cool because it helps save the cost of having bones or having
+cost of having bones or having animations everything can be controlled
+animations everything can be controlled just through the Shader uh I've seen
+just through the Shader uh I've seen many more useful applications guys uh
+many more useful applications guys uh one example is like ambient uh grass
+one example is like ambient uh grass flowing in the wind and this is a pretty
+flowing in the wind and this is a pretty Universal application regardless of you
+Universal application regardless of you know where in the style design space
+know where in the style design space your game Falls
+all right so coming back to our piece uh this stream of water has this undulating
+this stream of water has this undulating kind of uneven flow to it and so it's
+kind of uneven flow to it and so it's literally just a polygon strip with some
+literally just a polygon strip with some scrolling noise just like the sphere
+scrolling noise just like the sphere creating that downward Blobby motion
+creating that downward Blobby motion that I showed you before
+so now we can move on to our neat trip tips and tricks uh the first tip is mask
+tips and tricks uh the first tip is mask what is a mask a mask is usually a black
+what is a mask a mask is usually a black and white texture that can be used to
+and white texture that can be used to perform certain operations just like an
+perform certain operations just like an alpha black usually means zero and white
+alpha black usually means zero and white usually means one and so operations from
+usually means one and so operations from this you know you can have masks do
+this you know you can have masks do really simple things to all the way to
+really simple things to all the way to really complex things here's an example
+really complex things here's an example from the vertex offset section with the
+from the vertex offset section with the fish from abzu and here you can see you
+fish from abzu and here you can see you have the mask going from black at the
+have the mask going from black at the head all the way to White at the tail
+head all the way to White at the tail what this means is your vertex offset
+what this means is your vertex offset will mostly affect that tail end and
+will mostly affect that tail end and reduce in intensity the closer and
+reduce in intensity the closer and closer it gets to the Head okay
+closer it gets to the Head okay the next tip is gradient mapping the
+the next tip is gradient mapping the content behind gradient mapping is that
+content behind gradient mapping is that given a black and white input image and
+given a black and white input image and a colored gradient all black and white
+a colored gradient all black and white values are mapped to the equivalent
+values are mapped to the equivalent color values of that gradient so where
+color values of that gradient so where the image is darker the colors of the
+the image is darker the colors of the left of the gradient are applied where
+left of the gradient are applied where the image is lighter the colors at the
+the image is lighter the colors at the right of the gradient are applied
+right of the gradient are applied so essentially the way we map our
+so essentially the way we map our gradient to our texture is as you can
+gradient to our texture is as you can see above we have our gradient that goes
+see above we have our gradient that goes all the way from T heal to tan to Pink
+all the way from T heal to tan to Pink okay down below we have a texture that
+okay down below we have a texture that is got some whites and Grays and blacks
+is got some whites and Grays and blacks and when it's fully mapped you can see
+and when it's fully mapped you can see that the white parts are pink the gray
+that the white parts are pink the gray parts are tan
+parts are tan and the black parts are teal
+and the black parts are teal uh to set this up in our Shader it's
+uh to set this up in our Shader it's just as simple as plugging the red
+just as simple as plugging the red Channel or a combination of channels of
+Channel or a combination of channels of your choices providing to the UVS that's
+your choices providing to the UVS that's it
+it uh one of the great things about Unreal
+uh one of the great things about Unreal Engine is traditionally we used to make
+Engine is traditionally we used to make these gradients in a software like
+these gradients in a software like Photoshop externally but now in Unreal
+Photoshop externally but now in Unreal Engine you can use curve atlases so you
+Engine you can use curve atlases so you can create and preview gradients within
+can create and preview gradients within the engine itself in real time it's
+the engine itself in real time it's super helpful when it comes to iteration
+super helpful when it comes to iteration uh here are some examples of a gradient
+uh here are some examples of a gradient mapping in
+mapping in in action uh besides just you know
+in action uh besides just you know saving a lot of textual memory it is
+saving a lot of textual memory it is also very useful for creating this
+also very useful for creating this amazing variety using limited number of
+amazing variety using limited number of assets
+now debugging is something that I personally use to visualize the math
+personally use to visualize the math that I'm doing to visualize what
+that I'm doing to visualize what controlling a potential parameter could
+controlling a potential parameter could look like okay out of all of these I use
+look like okay out of all of these I use scalar values and debug time sign the
+scalar values and debug time sign the most
+most a sine wave traditionally goes from
+a sine wave traditionally goes from negative one to one but the debug time
+negative one to one but the debug time side known has been normalized in Unreal
+side known has been normalized in Unreal Engine to go from zero to one okay if
+Engine to go from zero to one okay if you want a regular sign you should plug
+you want a regular sign you should plug a time into sine okay and below here you
+a time into sine okay and below here you can see that plugging the sign into a
+can see that plugging the sign into a debug scalar values helps us visualize
+debug scalar values helps us visualize our math seeing it go from negative one
+our math seeing it go from negative one to one
+to one our next step is lerp also known as
+our next step is lerp also known as linear interpolate now this has many
+linear interpolate now this has many many uses from scaling transforming uh
+many uses from scaling transforming uh colors it's it's pretty Universal the
+colors it's it's pretty Universal the concept behind this is if you have two
+concept behind this is if you have two inputs A and B
+inputs A and B the alpha will denote a point either at
+the alpha will denote a point either at a or at b or a blend of something in
+a or at b or a blend of something in between okay now your Alpha can be
+between okay now your Alpha can be anything it could be a mask it can be a
+anything it could be a mask it can be a scale or value it can even be a fresnel
+scale or value it can even be a fresnel whatever it is can be your Alpha and
+whatever it is can be your Alpha and that will denote that point between a
+that will denote that point between a and b
+and b so here we have an example where we have
+so here we have an example where we have two colors we've got red and we've got
+two colors we've got red and we've got green we plug that into the A and B
+green we plug that into the A and B inputs okay now since the alpha of the
+inputs okay now since the alpha of the slope is by default so that 0.5 you get
+slope is by default so that 0.5 you get yellow which is a blend of red and green
+yellow which is a blend of red and green if I set this value to zero we get just
+if I set this value to zero we get just red set the value to 1 get just green
+red set the value to 1 get just green all right now to preview this I can
+all right now to preview this I can select the debug time sign node remember
+select the debug time sign node remember it goes from the zero to one once I plug
+it goes from the zero to one once I plug that in we can see our color going from
+that in we can see our color going from zero to one red to green and blending in
+zero to one red to green and blending in between
+between right
+uh our last tip for the day is dynamic parameters so initially we were
+parameters so initially we were controlling all our parameters manually
+controlling all our parameters manually through a material instance but if we
+through a material instance but if we want to access these properties in a
+want to access these properties in a particle system like Niagara or Cascade
+particle system like Niagara or Cascade we will use Dynamic parameters instead
+we will use Dynamic parameters instead okay as you can see there are four
+okay as you can see there are four inputs and they all correspond to rgba
+inputs and they all correspond to rgba values okay you can see that we've named
+values okay you can see that we've named our first input offset and we've given a
+our first input offset and we've given a default value of zero
+default value of zero to control these parameters inside your
+to control these parameters inside your particle system you will use the dynamic
+particle system you will use the dynamic parameter module in Cascade as well as
+parameter module in Cascade as well as Niagara
+and this is the end of part one guys and thank you for watching and I will catch
+thank you for watching and I will catch up with you in part two where we'll go
+up with you in part two where we'll go through these simple Concepts in Unreal
+through these simple Concepts in Unreal Engine and set them up
+Engine and set them up hey guys and welcome back to part two of
+hey guys and welcome back to part two of how to use shaders to create stylized
+how to use shaders to create stylized visual effects
+visual effects uh in this part we'll be going over how
+uh in this part we'll be going over how to create those things simple Shader
+to create those things simple Shader Concepts in Unreal Engine 4.
+Concepts in Unreal Engine 4. so to begin with I've got one mesh and
+so to begin with I've got one mesh and four textures let's go over our mesh
+four textures let's go over our mesh first
+first our mesh is a simple curved mesh that I
+our mesh is a simple curved mesh that I built in Maya
+built in Maya and its UVS have been laid out flat in
+and its UVS have been laid out flat in a021 space now
+a021 space now it is important to note that these UVS
+it is important to note that these UVS are laid out vertically now this is
+are laid out vertically now this is different to the examples we had in the
+different to the examples we had in the previous presentation where they were
+previous presentation where they were laid out horizontally this does make a
+laid out horizontally this does make a tiny bit of a difference in the way we
+tiny bit of a difference in the way we do our operations but we will get to
+do our operations but we will get to that when we come to compiling our
+that when we come to compiling our Shader
+Shader next we have our four textures
+let's open them all up so we can talk through them
+through them so firstly we have our Trail texture now
+so firstly we have our Trail texture now our Trail texture is what will be
+our Trail texture is what will be scrolling along our current mesh
+scrolling along our current mesh we then have our noise texture now this
+we then have our noise texture now this is
+is used for our UV Distortion and can be
+used for our UV Distortion and can be used for several other purposes as well
+used for several other purposes as well we next have a gradient texture now a
+we next have a gradient texture now a gradient map this particular one was
+gradient map this particular one was built in Photoshop this particular one
+built in Photoshop this particular one has also a brown start and goes all the
+has also a brown start and goes all the way to Orange and yellows and white
+way to Orange and yellows and white values
+values lastly we have a alpha mask now this
+lastly we have a alpha mask now this Alpha mask is what we will use on top of
+Alpha mask is what we will use on top of our curved mesh to hide the edges and
+our curved mesh to hide the edges and the reason we do that is when your true
+the reason we do that is when your true rail texture Scrolls along you do not
+rail texture Scrolls along you do not want that to be this jarring hard Edge
+want that to be this jarring hard Edge that it Clips against and so we use this
+that it Clips against and so we use this soft Edge to kind of create this softer
+soft Edge to kind of create this softer mask on an edge okay
+so let's begin by tossing our mesh into our scene
+excuse me
+um we will then go ahead and create a material let's call this m underscore
+material let's call this m underscore Shader
+Shader open this bad boy up
+open this bad boy up now the first thing you will do is
+now the first thing you will do is change this from opaque to translucent
+change this from opaque to translucent blend mode now the reason you do this is
+blend mode now the reason you do this is because
+because you want to be able to use your Alpha
+you want to be able to use your Alpha mask as your opacity input if something
+mask as your opacity input if something is opaque there is no opacity input it
+is opaque there is no opacity input it should still take
+we will then get our Alpha mask texture and Trail texture into our Shader
+and Trail texture into our Shader you can do that by selecting your
+you can do that by selecting your texture
+texture going into your material holding down t
+going into your material holding down t for texture and clicking
+for texture and clicking once again select the texture you want
+once again select the texture you want go into your material graph hold down T
+go into your material graph hold down T and click
+and click what I'm going to do is multiply these
+what I'm going to do is multiply these textures because I kind of want my saw
+textures because I kind of want my saw my trail texture to have a nice soft
+my trail texture to have a nice soft Edge
+Edge just like that I'll plug that into the
+just like that I'll plug that into the opacity Channel
+opacity Channel then I will then let's just make a
+then I will then let's just make a vector parameter hold down V for a
+vector parameter hold down V for a vector parameter let's just call this
+vector parameter let's just call this emission and plug that into the massive
+emission and plug that into the massive Let's uh let's get a value of like
+Let's uh let's get a value of like three into that channel
+save go back and let's right click and create material instance
+create material instance now a material instance is kind of like
+now a material instance is kind of like the child of a master material it
+the child of a master material it inherits all the properties from the
+inherits all the properties from the parent material but it has its own
+parent material but it has its own values it's kind of its own entity in a
+values it's kind of its own entity in a way okay let's drag and drop this
+way okay let's drag and drop this material instance onto our mesh you can
+material instance onto our mesh you can see it automatically populated the
+see it automatically populated the material field
+material field let's open it up
+sorry guys I just have the ability to record one screen at a time and so I
+record one screen at a time and so I have to drop the stack here
+have to drop the stack here you see the mission parameter has shown
+you see the mission parameter has shown up right here in that instance and you
+up right here in that instance and you can click this and this two ways to
+can click this and this two ways to update it if you know your values you
+update it if you know your values you can just you know plug them in right
+can just you know plug them in right there let's say I want two in blue and I
+there let's say I want two in blue and I have this nice uh neon pink drill thing
+have this nice uh neon pink drill thing going on or you can always use your
+going on or you can always use your trusty color wheel if
+trusty color wheel if for let's just go down here
+for let's just go down here let's create a nice little
+let's create a nice little wispy Trail thing going on okay
+wispy Trail thing going on okay um
+um so you see how even though both the
+so you see how even though both the parent and the child have the same
+parent and the child have the same property of color they each have their
+property of color they each have their own value of what that color means to
+own value of what that color means to them
+them let's go back to our Shader and let's
+let's go back to our Shader and let's create our first Shader function let's
+create our first Shader function let's do scrolling texture along UVs
+do scrolling texture along UVs we need a texture coordinate node for
+we need a texture coordinate node for that and the easiest way to create that
+that and the easiest way to create that in the material graph is to use sorry to
+in the material graph is to use sorry to hold down you your UVs
+hold down you your UVs and click
+and click we'll then
+we'll then component masks and we will mask out red
+component masks and we will mask out red and green cards
+and green cards in our previous demonstration
+in our previous demonstration we did the add operation in the red
+we did the add operation in the red Channel because we wanted to move our
+Channel because we wanted to move our texture horizontally in this case we
+texture horizontally in this case we wanted moving vertically so we're going
+wanted moving vertically so we're going to do our add operation on the green
+to do our add operation on the green Channel instead okay
+just like we held down V to create a vector parameter for the emission we'll
+vector parameter for the emission we'll hold down s to create a scalar parameter
+hold down s to create a scalar parameter for our offset
+that's enough questions
+now we'll do a append Vector operation on these bad boys
+and plug them into the UVs
+open up our instance let's see what we have here
+so now we have our offset parameter that's shown up
+that's shown up and now if we scroll this guy
+and now if we scroll this guy there you go you have your nice infinite
+there you go you have your nice infinite scrolling trail of Doom
+now what I would like is to see it just be a one-off trail so just a one-off uh
+be a one-off trail so just a one-off uh Slash almost if you will and to do that
+Slash almost if you will and to do that we will need to change our texture uh
+we will need to change our texture uh repeat mode from repeat from wrap to
+repeat mode from repeat from wrap to clamp
+so the way you do that is you open your Trail texture
+Trail texture with those little drop down you see this
+with those little drop down you see this tiling method it says wrap you want to
+tiling method it says wrap you want to change that to clamp
+save
+open up your texture
+now we go from so on negative one we're going to go from negative one to
+we're going to go from negative one to one
+one you have a nice little sweet little
+you have a nice little sweet little scroll let's do that again
+scroll let's do that again let's go from negative one
+boom okay
+save and let us let's unplug this guy drag
+and let us let's unplug this guy drag these away let's select our nose press C
+these away let's select our nose press C and create a nice little box for them
+and create a nice little box for them and texture
+and texture put that away
+put that away let's move on to our second operation
+let's move on to our second operation now uh let's let's do UV distortion
+now uh let's let's do UV distortion so for that we're going to use our noise
+so for that we're going to use our noise texture
+texture and we can select it
+and we can select it hold down t
+hold down t okay
+okay uh for scrolling this noise I'm going to
+uh for scrolling this noise I'm going to use a panel node uh what a pattern node
+use a panel node uh what a pattern node does is it moves your
+does is it moves your texture in a given Direction I'm going
+texture in a given Direction I'm going to move it the speed of maybe let's say
+to move it the speed of maybe let's say one in the y direction
+now if you want to visualize what's happening with your nodes uh one good
+happening with your nodes uh one good method is to click live notes and live
+method is to click live notes and live updates
+updates so now you can see it moving
+so now you can see it moving [Music]
+[Music] um
+um I think this noise is a bit too high
+I think this noise is a bit too high frequency for me for my liking so I'm
+frequency for me for my liking so I'm going to go ahead and scale the
+going to go ahead and scale the U and the V just a little bit let's give
+U and the V just a little bit let's give this 8.3
+this 8.3 and let's give it a point one
+and let's give it a point one that is way too fast so let's go down
+that is way too fast so let's go down and
+and it's 2.1
+much better okay now remember since this is not a normal map you're going to have
+is not a normal map you're going to have to
+to remap of this using a constant by a
+remap of this using a constant by a scale or or performing uh individual
+scale or or performing uh individual operation let's just go ahead
+operation let's just go ahead and remap this from negative one to one
+and remap this from negative one to one let's put in five and two
+let's put in five and two and we can multiply this
+and we can multiply this with this kind of parameter is called
+with this kind of parameter is called distortion
+and remember you want to add these to the UVs
+the UVs the trail texture
+all right very nice now if we go back in here we have a distortion parameter
+here we have a distortion parameter Let's uh
+Let's uh let's start small let's give it uh value
+let's start small let's give it uh value 0.1 Maybe
+0.1 Maybe there you go you have a nice little
+there you go you have a nice little uh wispy
+uh wispy motion gun on there
+unplug this guy
+all right um
+um let's do alpha erosion next now our
+let's do alpha erosion next now our Trail texture already has built-in a
+Trail texture already has built-in a decent range of Grays blacks and whites
+decent range of Grays blacks and whites so let's just use that to our advantage
+so let's just use that to our advantage uh we are going to subtract
+uh we are going to subtract that
+and let's crack it from from erosion
+then you want to saturate this because you want to make sure your values are
+you want to make sure your values are between zero to one
+between zero to one and let's use this to multiply with
+and let's use this to multiply with our Alpha mask okay
+our Alpha mask okay now one thing you want to make sure is
+now one thing you want to make sure is uh
+uh try and keep your parameters to be in
+try and keep your parameters to be in the range that you want you want for
+the range that you want you want for your Shader so in this case I want my
+your Shader so in this case I want my parameter tweakable from zero to one so
+parameter tweakable from zero to one so what we can do is click on that
+what we can do is click on that parameter and where you see slider Min
+parameter and where you see slider Min and slider Max you can set those to zero
+and slider Max you can set those to zero to one
+to one what I'll mean is your erosion parameter
+what I'll mean is your erosion parameter will only be slidable between zero to
+will only be slidable between zero to one
+one save this just come back in here
+save this just come back in here now that we have this let's turn on our
+now that we have this let's turn on our erosion
+erosion and you see it doesn't go lower than
+and you see it doesn't go lower than zero and we work towards one
+which fades in and out uh a really cool way to visualize this
+uh a really cool way to visualize this without even going outside or leaving
+without even going outside or leaving the editor is to you can select your
+the editor is to you can select your curve mesh
+curve mesh click this little teapot right here
+click this little teapot right here be a current Mission here
+be a current Mission here right now you can
+right now you can erosion we know it goes from zero to one
+erosion we know it goes from zero to one so you can plug in a debug time side
+so you can plug in a debug time side node which does exactly the same
+as you plug that in if you check out your preview or even
+if you check out your preview or even this right here you can see your texture
+this right here you can see your texture you're building in and out from zero to
+you're building in and out from zero to one
+all right I'm gonna I'm gonna put this back here for now
+I'm gonna put this back here for now thank you
+thank you and
+now lastly let's do our world position offset
+offset now you can do that let's just copy
+now you can do that let's just copy these notes right here
+these notes right here Douglas yeah let's do that
+all right uh
+you want to multiply this with your vertex nominals
+vertex nominals remember WS stands for World space
+multiply this with another parameter let's call this wpo strength or just WPS
+we'll plug this into a world position offset
+offset okay
+apply save
+let's go in here and give this a value Maybe
+Maybe 0.1
+0.1 .3 and 0.3
+.3 and 0.3 and then I think this is panning way too
+and then I think this is panning way too quick since half click 6.05
+quick since half click 6.05 all right let's do that
+I'll go back out you can see the little Trail
+Trail turn on wpl let's set this to I don't
+turn on wpl let's set this to I don't know let's start somewhere pen
+know let's start somewhere pen all right you see that now unlike UV
+all right you see that now unlike UV Distortion this thing is actually
+Distortion this thing is actually lifting the vertices so 250 see that
+you need to set it to something really crazy like 500 but there's not too many
+crazy like 500 but there's not too many use cases where you know you would do
+use cases where you know you would do something like this and there's uh
+something like this and there's uh there's more smarter ways to do things
+there's more smarter ways to do things like that so we'll set this back to zero
+like that so we'll set this back to zero go back into our Jitter
+unplug this guy it's going to stop it here
+so now we've individually created all of our uh four different Shader functions
+our uh four different Shader functions and then we'll engine uh let's go ahead
+and then we'll engine uh let's go ahead and add our gradient map into this so
+and add our gradient map into this so let's get rid of our
+emission parameter
+parameter and let's take our
+Trail
+and we can bring in our gradient
+now the simplest way
+the simplest way to get your greater y values from this
+to get your greater y values from this texture to this
+texture to this take your red Channel
+take your red Channel in here
+in here and
+and boom you can see right here all your
+boom you can see right here all your values everything in here
+values everything in here drag this plug it into the emissive
+drag this plug it into the emissive hit apply
+and boom now have a nice little fiery thing going on it seems a little off and
+thing going on it seems a little off and the reason for this is
+the reason for this is your gradient map needs to be clamp not
+your gradient map needs to be clamp not wrap and you can see over here it's
+wrap and you can see over here it's repeating last pixel we do not want that
+repeating last pixel we do not want that so let's go clamp
+so let's go clamp clamp and Save
+there you go
+now let us now that we've built these uh functions individually let's compile
+functions individually let's compile them all together so we can perform all
+them all together so we can perform all of these operations on our little Trail
+so let's start with our UV Distortion and scrolling texture
+and scrolling texture um in fact this thing is independent
+um in fact this thing is independent we can just plug this in directly this
+we can just plug this in directly this will not
+will not be dependent on any of the other
+be dependent on any of the other functions
+functions these two however will be dependent on
+these two however will be dependent on each other so let's
+each other so let's drag that out of the way
+and our erosion as well is independent so we can take this
+so we can take this plug this into the subtract
+plug this into the subtract and plug our saturate into the
+and plug our saturate into the multiply
+okay
+very messy spaghetti noodles all over
+try to work as neatly as possible but you know
+all right so now we know that our scrolling texture is just scrolling on
+scrolling texture is just scrolling on just scrolling on G so what we can do is
+just scrolling on G so what we can do is take this mask
+and steal it for this right here
+I'm going to plug this ad into the append
+one cool little trick you can do is an unreal you can double click a node link
+unreal you can double click a node link and it creates this little
+and it creates this little dot that you can drag around
+and now we will take this and plug it into
+now we will take this and plug it into our
+our lovely
+lovely Trail texture UVs
+now if you hit apply and Save
+in your material instance you have all your parameters showing up
+your parameters showing up let me go back here let's say wpo let's
+let me go back here let's say wpo let's just leave it to zero offset we can
+just leave it to zero offset we can leave it at that Distortion let's set it
+leave it at that Distortion let's set it to 0.1
+and there you go now you have a moving Trail uh that you know you can control
+Trail uh that you know you can control say you've got some few like that and
+say you've got some few like that and then you know it starts out full but
+then you know it starts out full but towards the end of it it kind of erodes
+towards the end of it it kind of erodes away instead of just like traveling all
+away instead of just like traveling all the way up
+the way up you know just like this bit's way out of
+you know just like this bit's way out of existence
+existence um a lot of cool things you can do over
+um a lot of cool things you can do over here
+here one of the main ways to control all
+one of the main ways to control all these parameters as VFX artist is in a
+these parameters as VFX artist is in a VFX editor system a particle system so
+VFX editor system a particle system so you can use Cascade Niagara uh whatever
+you can use Cascade Niagara uh whatever the way we will do that
+the way we will do that is using Dynamic parameters instead of
+is using Dynamic parameters instead of scale-up parameters okay so what we're
+scale-up parameters okay so what we're going to do is go in and replace all our
+going to do is go in and replace all our scalar parameters with Dynamic
+scalar parameters with Dynamic parameters instead
+parameters instead let's go ahead and start that
+let's go ahead and start that so we're going to go in here
+so we're going to go in here you create a dynamic parameter
+Let's uh
+see distortion
+erosion
+offset and VPO
+and VPO our default value is on point one zero
+our default value is on point one zero zero zero
+and let's plug this bad boy in distortion
+distortion duplicate it plug offset and offset
+[Music]
+we will then plug this guy erosion into erosion
+erosion and lastly wpo
+and lastly wpo from there
+all right fantastic
+now let's build a really quick particle system that shows the slash working
+system that shows the slash working let's select this guy and delete it
+let's select this guy and delete it so
+so save our little instance
+save our little instance shoot this as you can see now all our
+shoot this as you can see now all our parameters have disappeared because now
+parameters have disappeared because now they are Dynamic and not scalar and
+they are Dynamic and not scalar and tweakable through this anymore okay
+tweakable through this anymore okay so let's right click and create a
+so let's right click and create a particle system let's call it pre
+particle system let's call it pre underscore uh Slash
+underscore uh Slash open that guy up
+open that guy up we want a mesh
+let's select our little curve mesh right here
+all right now we definitely don't want 20 plus meshes so let's go in here
+20 plus meshes so let's go in here and turn the spawn rate to zero
+and turn the spawn rate to zero and let's just spawn one mesh at a time
+oh gosh there you go I really want a velocity so let's just
+I really want a velocity so let's just want one and let's stay in place size
+want one and let's stay in place size seems a bit too big so yeah that is so
+seems a bit too big so yeah that is so let's set it to one one
+let's set it to one one there you go no one spans one
+very good last time it stays on a bit too long you
+last time it stays on a bit too long you don't know slash is usually gone within
+don't know slash is usually gone within um less than a second so let's set it to
+um less than a second so let's set it to point
+point three
+three five so you can see what that does so we
+five so you can see what that does so we have
+okay all right great now let's drag this guy
+all right great now let's drag this guy in Oh wrong thing sorry drag our slash
+in Oh wrong thing sorry drag our slash in
+now let us assign our
+let us assign our you go over here and click override
+you go over here and click override material
+material the required tab you put your instance
+the required tab you put your instance so here
+so here plug this guy in
+all right now it's coming to life we see your
+now it's coming to life we see your Trail
+go to parameter select dynamic now you'll notice that all your values
+now you'll notice that all your values and parameter names are missing you
+and parameter names are missing you right click hit refresh it doesn't look
+right click hit refresh it doesn't look like it refresh the values so we'll have
+like it refresh the values so we'll have to insert those manually we have 0.1 and
+to insert those manually we have 0.1 and the zero zero zero call
+the zero zero zero call zero zero
+zero zero zero there we go
+zero there we go now we have our trail that
+spawns in it's pointing way too quick let's change the duration to two
+let's change the duration to two this one's unless we do twice two
+this one's unless we do twice two seconds
+okay
+now we can select our offset parameter let's change that from a constant to a
+let's change that from a constant to a constant curve now a constant Curve will
+constant curve now a constant Curve will allow you to choose two points in time
+allow you to choose two points in time and their respective values as well
+and their respective values as well so let's create or I say two but you can
+so let's create or I say two but you can have multiple let's just do two for the
+have multiple let's just do two for the sake of Simplicity for this example
+so at zero I want my offset to have value of minus one now one I want my
+value of minus one now one I want my opposite to have value of one
+opposite to have value of one so now you can see it just swishes there
+so now you can see it just swishes there it goes
+okay and now what we can do is do a similar thing with the erosion right now
+similar thing with the erosion right now it's just traveling this entire path
+it's just traveling this entire path it's not like fading out so what we can
+it's not like fading out so what we can do is go in to the erosion parameter and
+do is go in to the erosion parameter and do the exact same thing let's go into
+do the exact same thing let's go into erosion set that to curve
+let's create two points for Simplicity say
+say at 0.3 seconds in 25 seconds in it's
+at 0.3 seconds in 25 seconds in it's it's still full but it slowly starts
+it's still full but it slowly starts fading away
+fading away the rest of the trail so now
+you can see it's kind of eating up itself before it reaches the end
+you can obviously change the lifetime to be really really slow so we can see this
+be really really slow so we can see this question in action
+and slow mo
+little house
+all right and there we have it that is how to use Dynamic parameters how to
+how to use Dynamic parameters how to create Shader functions
+create Shader functions in Unreal Engine 4.
+all right so guys I will have a link to these
+so guys I will have a link to these project files in the chat uh a few of
+project files in the chat uh a few of the resources that have been very
+the resources that have been very helpful for me while I was learning VFX
+helpful for me while I was learning VFX as well as a few resources I've
+as well as a few resources I've mentioned throughout these slides uh
+mentioned throughout these slides uh Simon trumpler's blog with the UV
+Simon trumpler's blog with the UV Distortion fire and many other cool
+Distortion fire and many other cool tricks if you're interested in learning
+tricks if you're interested in learning how shaders can help support DFX their
+how shaders can help support DFX their blog is really fantastic read for that
+blog is really fantastic read for that Shannon has a wonderful post on VFX
+Shannon has a wonderful post on VFX Forums on how she built different
+Forums on how she built different elements for the League of Legends VFX
+elements for the League of Legends VFX and it is always wonderful to read
+and it is always wonderful to read through how the experts and the pros do
+through how the experts and the pros do their techniques so you can learn from
+their techniques so you can learn from it and build phenomenal VFX for free
+it and build phenomenal VFX for free Allen Tobias has a Blog where he talks
+Allen Tobias has a Blog where he talks in detail about gradient mapping if you
+in detail about gradient mapping if you would like to learn more on that topic
+would like to learn more on that topic um other than that guys the real-time
+um other than that guys the real-time VFX form is this wonderful Trove of
+VFX form is this wonderful Trove of knowledge that I cannot recommend enough
+knowledge that I cannot recommend enough to people they have a forum they have a
+to people they have a forum they have a Discord they have a Facebook group even
+Discord they have a Facebook group even and
+and if you're a student or or even just
+if you're a student or or even just starting out with real-time VFX I highly
+starting out with real-time VFX I highly recommend this group you know it is
+recommend this group you know it is wonderful for networking wonderful for
+wonderful for networking wonderful for getting
+getting the eyes of Professionals in the
+the eyes of Professionals in the industry uh get eyes on your work and
+industry uh get eyes on your work and getting uh critiques and feedbacks and
+getting uh critiques and feedbacks and and just an all-round wonderful
+and just an all-round wonderful experience learning and becoming a VFX
+experience learning and becoming a VFX artist
+artist um
+um other than that I have left all my
+other than that I have left all my contact information in the screen if you
+contact information in the screen if you all have any further questions or would
+all have any further questions or would like any feedback or critiques on your
+like any feedback or critiques on your VFX art pieces I'm more than happy to
+VFX art pieces I'm more than happy to help shoot me an email and uh let's
+help shoot me an email and uh let's let's figure something out
+let's figure something out um that being said uh I have laid out
+um that being said uh I have laid out all the wonderful and magical tools that
+all the wonderful and magical tools that vs VFX artists use to create VFX and I
+vs VFX artists use to create VFX and I hope with these tools in Your Arsenal
+hope with these tools in Your Arsenal you can go ahead and create something
+you can go ahead and create something wonderful and magical of your own thank
+wonderful and magical of your own thank you so much for coming to this
+you so much for coming to this presentation hope you all have a great
+presentation hope you all have a great summer 2021.
+[Music] thank you

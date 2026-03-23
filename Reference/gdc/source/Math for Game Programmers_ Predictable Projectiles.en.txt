@@ -1,0 +1,649 @@
+[Music]
+my name is Chris dark and I'm a program at robot entertainment I've been in the
+at robot entertainment I've been in the industry now for around 13 years at
+industry now for around 13 years at several different companies most
+several different companies most recently robot entertainment for the
+recently robot entertainment for the last eight years I really worked on the
+last eight years I really worked on the Orcs Must Die franchise so for those of
+Orcs Must Die franchise so for those of you not familiar familiar with orcs
+you not familiar familiar with orcs here's a quick rundown you have one warm
+here's a quick rundown you have one warm agent friends versus hordes of orcs AI
+agent friends versus hordes of orcs AI trolls ogres and worse and weapons and
+trolls ogres and worse and weapons and traps to hold them back from an in your
+traps to hold them back from an in your IFFT there are tons of AI don't want to
+IFFT there are tons of AI don't want to shoot you stab you and or blow you up
+shoot you stab you and or blow you up I'm going to be talking today about is
+I'm going to be talking today about is doing range day eyes and this franchise
+doing range day eyes and this franchise specifically is that fire projectiles
+specifically is that fire projectiles I'll be talking about math code and
+I'll be talking about math code and design all three the design drives your
+design all three the design drives your math and your code keeping it fun is
+math and your code keeping it fun is your former job so most action games
+your former job so most action games have ranged AI like I mentioned I'm
+have ranged AI like I mentioned I'm going to be talking about the ones that
+going to be talking about the ones that do projectiles some of this but not
+do projectiles some of this but not motovan is relevant to hits can the
+motovan is relevant to hits can the projectiles need to be slow enough for
+projectiles need to be slow enough for the player to dodge this way the player
+the player to dodge this way the player has a chance to have some counter play
+has a chance to have some counter play against the eyes and it makes you a is
+against the eyes and it makes you a is more fun to play against however this
+more fun to play against however this means that by the time the put the
+means that by the time the put the projectile gets there the player won't
+projectile gets there the player won't be there if you're not aiming ahead this
+be there if you're not aiming ahead this is what you're going to get looks pretty
+is what you're going to get looks pretty bad doesn't it you really want something
+bad doesn't it you really want something more like this so the first class of
+more like this so the first class of projectiles we'll be talking about our
+projectiles we'll be talking about our linear projectiles and then the second
+linear projectiles and then the second or ballistic projectiles I'm going to be
+or ballistic projectiles I'm going to be talking through how to aim debug and
+talking through how to aim debug and most importantly miss with bow types of
+most importantly miss with bow types of projectiles and a few things I ran
+projectiles and a few things I ran across while has implemented them so
+across while has implemented them so let's start off by talking about
+let's start off by talking about predicting player movement so first a
+predicting player movement so first a few assumptions we're going to make
+few assumptions we're going to make we're typically working over a short
+we're typically working over a short enough timeframe that we don't need to
+enough timeframe that we don't need to worry about rotations and we also want
+worry about rotations and we also want to make sure we ignore the player's
+to make sure we ignore the player's vertical velocity when they're jumping
+vertical velocity when they're jumping otherwise it's going to throw off our
+otherwise it's going to throw off our aiming results we're gonna be pretending
+aiming results we're gonna be pretending that we're operating in a vacuum it
+that we're operating in a vacuum it helps keep the math and ultimately the
+helps keep the math and ultimately the code quite a bit simpler so we need to
+code quite a bit simpler so we need to know which way the player is going to be
+know which way the player is going to be going the easiest thing to do is look at
+going the easiest thing to do is look at how fast the
+how fast the going right now and in what direction
+going right now and in what direction and just use that this works well as
+and just use that this works well as long as the players doing something like
+long as the players doing something like this however when your player starts
+this however when your player starts doing things more like this it doesn't
+doing things more like this it doesn't work quite as well is there something we
+work quite as well is there something we can do better than just the
+can do better than just the instantaneous velocity there is we can
+instantaneous velocity there is we can use a history buffer which will give us
+use a history buffer which will give us a more accurate result you're gonna want
+a more accurate result you're gonna want to take that history buffer and tweak it
+to take that history buffer and tweak it until you're accurate but players still
+until you're accurate but players still have a chance to dodge the projectiles
+have a chance to dodge the projectiles so now that we've got a velocity let's
+so now that we've got a velocity let's walk through how to use that to predict
+walk through how to use that to predict to the players future position so the
+to the players future position so the start with or mage here in a position in
+start with or mage here in a position in our first few games just as a side note
+our first few games just as a side note the origin of the player is on the
+the origin of the player is on the ground you want to make sure you're
+ground you want to make sure you're actually using the center of their
+actually using the center of their bounding box and not shooting at the
+bounding box and not shooting at the ground we know from our history buffer
+ground we know from our history buffer that they're moving at some velocity and
+that they're moving at some velocity and then they're going to be moving 40
+then they're going to be moving 40 seconds we don't know how long T is yet
+seconds we don't know how long T is yet but we'll come back to that here in a
+but we'll come back to that here in a little bit so when you put that all
+little bit so when you put that all together that will give us our final
+together that will give us our final predict position X prime which is the
+predict position X prime which is the aboard ranges original position plus his
+aboard ranges original position plus his velocity times the amount of time he's
+velocity times the amount of time he's been traveling we'll see this again here
+been traveling we'll see this again here in just a minute first though let's talk
+in just a minute first though let's talk about linear projectiles a little bit
+about linear projectiles a little bit this is a linear projectile there's no
+this is a linear projectile there's no gravity on it it's going to go into
+gravity on it it's going to go into straight line forever or until it hits
+straight line forever or until it hits something but before we go ahead and
+something but before we go ahead and fire one of these off there's a few
+fire one of these off there's a few things we want to do we want to predict
+things we want to do we want to predict the player's position which we'll talk
+the player's position which we'll talk about how we're going to do then we want
+about how we're going to do then we want to make sure that we're not going to be
+to make sure that we're not going to be firing this through a wall we may also
+firing this through a wall we may also want to check against friendly units
+want to check against friendly units between us and that predicted player
+between us and that predicted player position we wound up not however we did
+position we wound up not however we did have the friendlies block shots because
+have the friendlies block shots because players were a little bit baffled where
+players were a little bit baffled where the shots were coming from since our
+the shots were coming from since our range units tended to be in the back we
+range units tended to be in the back we didn't do a line of sight check though
+didn't do a line of sight check though just because we have a lot of works and
+just because we have a lot of works and it would have been pretty performance
+it would have been pretty performance heavy to do so and then the other thing
+heavy to do so and then the other thing you want to think about is when you're
+you want to think about is when you're actually going to do the math to do the
+actually going to do the math to do the intersection prediction you can do it
+intersection prediction you can do it before you fire off or you can do it at
+before you fire off or you can do it at the actual launch point in your
+the actual launch point in your animation so now that we've got that out
+animation so now that we've got that out of the way let's talk about how we're
+of the way let's talk about how we're looking at the projectile so like the
+looking at the projectile so like the word range it's going to start in a
+word range it's going to start in a fixed position in this case it's going
+fixed position in this case it's going to be the end of the works
+to be the end of the works crossbow it's gonna be moving at some
+crossbow it's gonna be moving at some fixed speed we let design to said what
+fixed speed we let design to said what the speed was we also had a maximum
+the speed was we also had a maximum speed or a maximum range sorry on our
+speed or a maximum range sorry on our projectiles so that they would time out
+projectiles so that they would time out after a certain amount of time and we
+after a certain amount of time and we wouldn't have a lot of Indies cluttering
+wouldn't have a lot of Indies cluttering up the world and then there's gonna be
+up the world and then there's gonna be it's going to be moving for some amount
+it's going to be moving for some amount of time T since launch and since the AI
+of time T since launch and since the AI can actually fire in any direction SP
+can actually fire in any direction SP your speed times the amount of time it
+your speed times the amount of time it spit out is actually going to form a
+spit out is actually going to form a circle around the eye that's expanding
+circle around the eye that's expanding over time so the radius of that circle
+over time so the radius of that circle like I said is a speed times the time
+like I said is a speed times the time that's been out x prime which is going
+that's been out x prime which is going to be our new projectile position live
+to be our new projectile position live somewhere on that expanding circle this
+somewhere on that expanding circle this can also be written as the equation for
+can also be written as the equation for a circle which I've done here I'm gonna
+a circle which I've done here I'm gonna be doing and showing all my math on my
+be doing and showing all my math on my slides here in 2d I for some reason I'm
+slides here in 2d I for some reason I'm not a very good artist when it comes to
+not a very good artist when it comes to 3d so just just say you know this math
+3d so just just say you know this math actually does all work in 3d without any
+actually does all work in 3d without any modification so when you take the
+modification so when you take the players move in and the projectiles move
+players move in and the projectiles move in and you put them together you can see
+in and you put them together you can see what we wind up with is a circle versus
+what we wind up with is a circle versus line intersection and so if we think
+line intersection and so if we think about a circle versus line intersection
+about a circle versus line intersection we really have three cases we don't hit
+we really have three cases we don't hit it all we have one potential hit or we
+it all we have one potential hit or we have two potential hits so just keep
+have two potential hits so just keep that in mind as we go here so here are
+that in mind as we go here so here are equations again for both the player
+equations again for both the player movement at the projectile movement
+movement at the projectile movement so you'll notice both of these have an X
+so you'll notice both of these have an X Prime this is actually going to be our
+Prime this is actually going to be our intersection point where the projectile
+intersection point where the projectile hits the player and you also notice we
+hits the player and you also notice we have a teen both of these for how long
+have a teen both of these for how long it's been so we don't know T which is
+it's been so we don't know T which is our intersection time so if you take
+our intersection time so if you take these two equations and you solve them
+these two equations and you solve them 30 you wind up with a quadratic equation
+30 you wind up with a quadratic equation which you can solve using the quadratic
+which you can solve using the quadratic formula a B and C here are all scalars
+formula a B and C here are all scalars there's a vet bunch of vector multiplies
+there's a vet bunch of vector multiplies in there that are just dot products for
+in there that are just dot products for folks interested in how we got from the
+folks interested in how we got from the last side to this slide the online
+last side to this slide the online versions these slides which will be up
+versions these slides which will be up shortly after GDC will actually have
+shortly after GDC will actually have that whole derivation in the appendix so
+that whole derivation in the appendix so let's take our credit formula that we
+let's take our credit formula that we got from there it's pretty simple it's
+got from there it's pretty simple it's not too difficult to code this up and go
+not too difficult to code this up and go however there's a couple edge cases you
+however there's a couple edge cases you want to make sure you think about while
+want to make sure you think about while you're working through solving this so
+you're working through solving this so first if you
+first if you take a look at the bottom of this your
+take a look at the bottom of this your intuition would be if a is zero you
+intuition would be if a is zero you don't have a valid solution but remember
+don't have a valid solution but remember we're actually solving a polynomial a T
+we're actually solving a polynomial a T squared plus BT plus C equals zero so we
+squared plus BT plus C equals zero so we actually do have a valid solution if a
+actually do have a valid solution if a is zero same we want to do is when we
+is zero same we want to do is when we want to take a look at the discriminant
+want to take a look at the discriminant inside of the square root here if it's
+inside of the square root here if it's zero we wind up with one solution if
+zero we wind up with one solution if it's negative we don't have any solution
+it's negative we don't have any solution at all otherwise we're going to get two
+at all otherwise we're going to get two solutions we want to take the smallest
+solutions we want to take the smallest positive solution of the two because you
+positive solution of the two because you want to hit as soon as you can if you
+want to hit as soon as you can if you have a negative solution its invalid in
+have a negative solution its invalid in my experience you're almost always going
+my experience you're almost always going to wind up with one invalid solution
+to wind up with one invalid solution it's very rare to actually wind up with
+it's very rare to actually wind up with two valid solutions out of this so once
+two valid solutions out of this so once you have your solution for time T you
+you have your solution for time T you can circle back around and plug that
+can circle back around and plug that into the warm Age movement equation and
+into the warm Age movement equation and this will give us x prime the location
+this will give us x prime the location we're aiming at you can take X prime and
+we're aiming at you can take X prime and your initial firing point from the orc
+your initial firing point from the orc and that will give you the direction
+and that will give you the direction you're firing in and then if you
+you're firing in and then if you multiply that by the speed the
+multiply that by the speed the projectile is firing at you will have
+projectile is firing at you will have your final projectile velocity as you
+your final projectile velocity as you can see here so what happens if you
+can see here so what happens if you don't come up with a valid solution
+don't come up with a valid solution because it can and will happen to you so
+because it can and will happen to you so if you did your math before you played
+if you did your math before you played your firing animation you can just not
+your firing animation you can just not fire at all nobody will ever know
+fire at all nobody will ever know anything happened however if you like us
+anything happened however if you like us and you actually did your math at the
+and you actually did your math at the time you hit the firing point in your
+time you hit the firing point in your animation the works already played a
+animation the works already played a firing animation it looks really bad in
+firing animation it looks really bad in our experience if nothing comes out of
+our experience if nothing comes out of the crossbow at that point so we wound
+the crossbow at that point so we wound up doing was actually just shooting a
+up doing was actually just shooting a projectile at the players current
+projectile at the players current position nobody ever really noticed it
+position nobody ever really noticed it happened frequently enough it still
+happened frequently enough it still looked fine and we have a lot of cases
+looked fine and we have a lot of cases to where the player wasn't moving around
+to where the player wasn't moving around so it still actually looked pretty
+so it still actually looked pretty decent so once you have your math all
+decent so once you have your math all coding up and in your game you may want
+coding up and in your game you may want to actually visually double check it
+to actually visually double check it just to make sure it's working like it
+just to make sure it's working like it expected so we did that so the first
+expected so we did that so the first thing we did is in under the orc here we
+thing we did is in under the orc here we drew the launch point you can't see it
+drew the launch point you can't see it because he's standing on top of it the
+because he's standing on top of it the next one you do here in red was the
+next one you do here in red was the actual predicted point of intersection
+actual predicted point of intersection between the warm age and the projectile
+between the warm age and the projectile then we drew the motion of the
+then we drew the motion of the projectile every frame we just draw its
+projectile every frame we just draw its position in white and then we draw the
+position in white and then we draw the final endpoint impact point in blue so
+final endpoint impact point in blue so if you notice the impact point and the
+if you notice the impact point and the predicted point are actually slightly
+predicted point are actually slightly different here but that's expected
+different here but that's expected since the players collision is an
+since the players collision is an important space in our case it's
+important space in our case it's actually a cylinder so that impact point
+actually a cylinder so that impact point is actually on the surface of the
+is actually on the surface of the cylinder so those two points are close
+cylinder so those two points are close enough that this is what we would expect
+enough that this is what we would expect to see and this lines up so now we've
+to see and this lines up so now we've talked about hitting a little bit with
+talked about hitting a little bit with linear projectiles let's talk about
+linear projectiles let's talk about missing with them we're trying to write
+missing with them we're trying to write funny opponents here and not aimbots so
+funny opponents here and not aimbots so we wound up giving to design two
+we wound up giving to design two different accuracy settings one for
+different accuracy settings one for horizontal and one for vertical we would
+horizontal and one for vertical we would then take that and do a random role
+then take that and do a random role between the negative value and the
+between the negative value and the positive value so we defaulted to two
+positive value so we defaulted to two degrees interestingly enough for both
+degrees interestingly enough for both horizontal and vertical which gave us a
+horizontal and vertical which gave us a total cone of four degrees we would then
+total cone of four degrees we would then take those two rotations generate a
+take those two rotations generate a rotation matrix and multiple multiply it
+rotation matrix and multiple multiply it by our initial direction vector to
+by our initial direction vector to randomize the shots one thing we noted
+randomize the shots one thing we noted is specially on the vertical is that you
+is specially on the vertical is that you want to avoid shooting too far up or too
+want to avoid shooting too far up or too far down especially for shooting to the
+far down especially for shooting to the ground
+ground it made the eye look especially dumb
+it made the eye look especially dumb they are orcs but at the end of the day
+they are orcs but at the end of the day you won't don't want them to look too
+you won't don't want them to look too dumb after all so this worked well we
+dumb after all so this worked well we had this in our game for quite a while
+had this in our game for quite a while and then we added barricades which are
+and then we added barricades which are obstructions have blocked the eyes paths
+obstructions have blocked the eyes paths and that they can damage and we noticed
+and that they can damage and we noticed that archers are really being rough on
+that archers are really being rough on the barricades as you can see here
+the barricades as you can see here pretty much all their shots are hitting
+pretty much all their shots are hitting the barricades it looks really bad
+the barricades it looks really bad players were complaining because all
+players were complaining because all they're expensive traps are getting torn
+they're expensive traps are getting torn up so what we wound up doing is we added
+up so what we wound up doing is we added a new value into the equation we called
+a new value into the equation we called tilt that we applied to the vertical
+tilt that we applied to the vertical value only so tilt automatically shrunk
+value only so tilt automatically shrunk the cone by half so now we had a two
+the cone by half so now we had a two degree cone instead of a four degree
+degree cone instead of a four degree cone and then we had a range 0 to 1
+cone and then we had a range 0 to 1 where point 5 kept it centered
+where point 5 kept it centered 0 would remove the bottom and 1 would
+0 would remove the bottom and 1 would remove the top we wound up defaulting
+remove the top we wound up defaulting our tilt value to 3/4 which got the
+our tilt value to 3/4 which got the majority the shots clear of the
+majority the shots clear of the barricades as you can see here we didn't
+barricades as you can see here we didn't want to remove all of the down because
+want to remove all of the down because we do want to incent players to not
+we do want to incent players to not fight around their barricades but we
+fight around their barricades but we didn't want to be overly penalizing
+didn't want to be overly penalizing either as it turns out that actually
+either as it turns out that actually still wasn't enough to fix all of our
+still wasn't enough to fix all of our problems with barricades we had a number
+problems with barricades we had a number of short characters in the game as you
+of short characters in the game as you can see here whose center point which is
+can see here whose center point which is what we were aiming at was actually
+what we were aiming at was actually below the barricade height so what we
+below the barricade height so what we did for those cases is we had the AI
+did for those cases is we had the AI look at the height of the thing they
+look at the height of the thing they were shooting at and if their Center was
+were shooting at and if their Center was below the top of the barricades we'd
+below the top of the barricades we'd pull it up but not above the top of the
+pull it up but not above the top of the player us collision cylinder we threw a
+player us collision cylinder we threw a warning if that
+warning if that point actually did need to go over the
+point actually did need to go over the top of the cylinder fortunately it's
+top of the cylinder fortunately it's never come up for us so here's
+never come up for us so here's everything all working on a layered
+everything all working on a layered projectile
+projectile so in summary they have a fixed constant
+so in summary they have a fixed constant speed you want to take that speed and
+speed you want to take that speed and the player movement prediction to solve
+the player movement prediction to solve for the intersection time and location
+for the intersection time and location as far as missing we used a cone we used
+as far as missing we used a cone we used a different angle for both horizontal
+a different angle for both horizontal and vertical in that cone and we did
+and vertical in that cone and we did need to do some additional game
+need to do some additional game dependent tweaks and you may as well so
+dependent tweaks and you may as well so next up let's talk about their cousins
+next up let's talk about their cousins the ballistic projectiles so this is a
+the ballistic projectiles so this is a ballistic projectile unlike a linear
+ballistic projectile unlike a linear projectile it has an upwards initial
+projectile it has an upwards initial velocity or some velocity to its initial
+velocity or some velocity to its initial velocity and it's affected by gravity so
+velocity and it's affected by gravity so you get this nice arcing motion so you
+you get this nice arcing motion so you really want to do the same set of
+really want to do the same set of operations here as you did on the linear
+operations here as you did on the linear projectile before firing you want to
+projectile before firing you want to predict the player's position one slight
+predict the player's position one slight difference here is you may actually want
+difference here is you may actually want to predict on the ground which because a
+to predict on the ground which because a lot of times you'll have a group bouncy
+lot of times you'll have a group bouncy grenade and this will actually get you
+grenade and this will actually get you less bounciness and will land it closer
+less bounciness and will land it closer to the player we want to do a
+to the player we want to do a line-of-sight check in theory you'd
+line-of-sight check in theory you'd actually want to do a piecewise
+actually want to do a piecewise approximation of your arc to make sure
+approximation of your arc to make sure you're not going to hit anything up in
+you're not going to hit anything up in the air
+the air however our hallways in our game were
+however our hallways in our game were pretty much square and didn't have any
+pretty much square and didn't have any obstructions I've talked top so we
+obstructions I've talked top so we actually just kept the straight line
+actually just kept the straight line check it saved us some performance and
+check it saved us some performance and was good enough for us
+was good enough for us but your mileage may vary on that point
+but your mileage may vary on that point and then just like before we wanted to
+and then just like before we wanted to look at when we were doing our math
+look at when we were doing our math either before the shot or at the time of
+either before the shot or at the time of the shot so this is your basic ballistic
+the shot so this is your basic ballistic motion equation if you're interested in
+motion equation if you're interested in seeing how this is all derived out I'm
+seeing how this is all derived out I'm gonna refer you to last year's excellent
+gonna refer you to last year's excellent talk on building a better jump where
+talk on building a better jump where it's talked through in some depth so
+it's talked through in some depth so after seeing how we solved for a linear
+after seeing how we solved for a linear projectile you'd probably assume we just
+projectile you'd probably assume we just take this and the one range movement
+take this and the one range movement equation and put them together and solve
+equation and put them together and solve them except you wind up with this which
+them except you wind up with this which is a quartic equation and can be a
+is a quartic equation and can be a little bit hairy to solve if you're
+little bit hairy to solve if you're curious how these are actually solved
+curious how these are actually solved I've got some good references in the
+I've got some good references in the note graphics gems 1 is probably the
+note graphics gems 1 is probably the best one we actually wound up doing some
+best one we actually wound up doing some reproach mate approximations here in
+reproach mate approximations here in cheating so how did you cheat you might
+cheating so how did you cheat you might wonder
+wonder well we started with an arc and we noted
+well we started with an arc and we noted that you could actually break the motion
+that you could actually break the motion of the arc into horizontal and vertical
+of the arc into horizontal and vertical pieces so we solved the horizontal one
+pieces so we solved the horizontal one first with actually our good old linear
+first with actually our good old linear projectile code which he already had the
+projectile code which he already had the one slight difference here is we
+one slight difference here is we actually had a maximum range on this
+actually had a maximum range on this which I'll talk about more here in a
+which I'll talk about more here in a little bit we go ahead we solve that for
+little bit we go ahead we solve that for t we'd get our intersection point and
+t we'd get our intersection point and we're done so we take that intersection
+we're done so we take that intersection point with our vertical motion and say
+point with our vertical motion and say this is where we want it to land so
+this is where we want it to land so let's solve for our throw so that will
+let's solve for our throw so that will in fact land at our intersection point
+in fact land at our intersection point so we'll start with our projectile
+so we'll start with our projectile equation from a couple slides back and
+equation from a couple slides back and we'll break into x and y-components here
+we'll break into x and y-components here which are going to we're just going to
+which are going to we're just going to solve at the distance of the target so X
+solve at the distance of the target so X is going to be your horizontal distance
+is going to be your horizontal distance and Y is going to be a vertical distance
+and Y is going to be a vertical distance we want to solve these for theta once we
+we want to solve these for theta once we can use to calculate our launch speeds
+can use to calculate our launch speeds so we have two equations and two
+so we have two equations and two unknowns and if you take these and you
+unknowns and if you take these and you solve them you wind up with this which
+solve them you wind up with this which is actually the quadratic occasion again
+is actually the quadratic occasion again and once you solve that through for
+and once you solve that through for theta
+theta you're going to wind up with this and
+you're going to wind up with this and you can use this to get your launch
+you can use this to get your launch angle so you may have one solution in
+angle so you may have one solution in which case you're good you know you're
+which case you're good you know you're throwing the list you're done if you
+throwing the list you're done if you wind up with no solution we just threw
+wind up with no solution we just threw it straight at the player but we kept
+it straight at the player but we kept gravity on the projectile we found it
+gravity on the projectile we found it was important to keep gravity on there
+was important to keep gravity on there just for the feel of things sometimes it
+just for the feel of things sometimes it wouldn't land close enough but
+wouldn't land close enough but frequently it was good enough that
+frequently it was good enough that nobody ever noticed and then sometimes
+nobody ever noticed and then sometimes you wind up with two solutions in which
+you wind up with two solutions in which case we just picked this smaller of the
+case we just picked this smaller of the two we felt that looked better the
+two we felt that looked better the higher of the two frequently was a
+higher of the two frequently was a pretty large arc which I'll talk about
+pretty large arc which I'll talk about again here in a minute
+again here in a minute so now that we have theta we can solve
+so now that we have theta we can solve for our speeds which is a pretty simple
+for our speeds which is a pretty simple solve you just multiply by the cosine of
+solve you just multiply by the cosine of the angle or the sine of the angle and
+the angle or the sine of the angle and we're driving that from just basic trig
+we're driving that from just basic trig equations sohcahtoa in this case if
+equations sohcahtoa in this case if anybody remembers back to high school
+anybody remembers back to high school algebra so now that we've got these we
+algebra so now that we've got these we actually need a horizontal and vertical
+actually need a horizontal and vertical vector to throw along that way it all
+vector to throw along that way it all works when you have a case like this so
+works when you have a case like this so for calculating throw vectors you're
+for calculating throw vectors you're going to have R which is the vector
+going to have R which is the vector between the launch point and the target
+between the launch point and the target and which may be non horizontal as it is
+and which may be non horizontal as it is here
+all you want to do is actually just project that down to the ground the math
+project that down to the ground the math for that winds up being you're just
+for that winds up being you're just removing the up component of your vector
+removing the up component of your vector nice and simple then you take that
+nice and simple then you take that component which I'm calling our prime
+component which I'm calling our prime multiplying it by your horizontal speed
+multiplying it by your horizontal speed and then adding your vertical speed in
+and then adding your vertical speed in and you are now in the grenade throwing
+and you are now in the grenade throwing business so one note here is that using
+business so one note here is that using the quadratic equation like we did is
+the quadratic equation like we did is not a perfect solution to this problem
+not a perfect solution to this problem you will hit where you want to but it
+you will hit where you want to but it may alter your impact time slightly we
+may alter your impact time slightly we found that for us and for the ranges we
+found that for us and for the ranges we were fighting at it didn't matter and it
+were fighting at it didn't matter and it still worked just fine and the fact rod
+still worked just fine and the fact rod Rene's area we didn't really hurt much
+Rene's area we didn't really hurt much either there so just something to be
+either there so just something to be aware of if you use this solution so as
+aware of if you use this solution so as far as actually calculating what our
+far as actually calculating what our base throw speed was we change our
+base throw speed was we change our approach between games here so at first
+approach between games here so at first we just had a constant speed that design
+we just had a constant speed that design would set for how fast these were thrown
+would set for how fast these were thrown however it was kind of difficult to work
+however it was kind of difficult to work with because they wouldn't know how much
+with because they wouldn't know how much arc that would give them kind of what
+arc that would give them kind of what the feel was on that so we found
+the feel was on that so we found actually giving them some values to play
+actually giving them some values to play with it more just described how the
+with it more just described how the bridgetta was gonna behave give us
+bridgetta was gonna behave give us better looking results so instead of one
+better looking results so instead of one value we actually gave them three so we
+value we actually gave them three so we gave them a gravity multiplier so a
+gave them a gravity multiplier so a larger gravity multiplier would make the
+larger gravity multiplier would make the projectile heavier and feel a little bit
+projectile heavier and feel a little bit weightier like a grenade making it
+weightier like a grenade making it smaller would give you more of an arc we
+smaller would give you more of an arc we gave them an ideal launch angle which we
+gave them an ideal launch angle which we defaulted to 45 degrees that way you get
+defaulted to 45 degrees that way you get since a 45 degree launch of the
+since a 45 degree launch of the projectile will give you the maximum
+projectile will give you the maximum range for speed would actually give us
+range for speed would actually give us the lowest possible speed there
+the lowest possible speed there I don't think design ever actually
+I don't think design ever actually changes from 45 degrees but the option
+changes from 45 degrees but the option was there if they wanted it and then
+was there if they wanted it and then like I mentioned earlier we had a
+like I mentioned earlier we had a maximum range we had a little bit of a
+maximum range we had a little bit of a constraint on how far that could be
+constraint on how far that could be which I'll talk about here again in a
+which I'll talk about here again in a minute
+minute so solving out for our throat for a
+so solving out for our throat for a drive through a speed from that works
+drive through a speed from that works just like before we're splitting into x
+just like before we're splitting into x and y components like we did and then
+and y components like we did and then we're actually gonna solve these for
+we're actually gonna solve these for where the projectile comes back to the
+where the projectile comes back to the ground at the maximum range and this
+ground at the maximum range and this will wind up being the speed we used
+will wind up being the speed we used earlier just a friendly reminder all the
+earlier just a friendly reminder all the derivations for all of these are gonna
+derivations for all of these are gonna be on the online slides later if you're
+be on the online slides later if you're curious how the math actually all works
+curious how the math actually all works kind of beneath the covers and then
+kind of beneath the covers and then we're actually also going to use those
+we're actually also going to use those trig identities again to calculate our
+trig identities again to calculate our horizontal through a speed specifically
+horizontal through a speed specifically so maximum range which I've mentioned a
+so maximum range which I've mentioned a couple of times so our designing our
+couple of times so our designing our game agreed on a minimum ceiling height
+game agreed on a minimum ceiling height which is to say nothing will ever be
+which is to say nothing will ever be lower than this don't forget to take
+lower than this don't forget to take into account when you're actually
+into account when you're actually calculating how high that is that you
+calculating how high that is that you want to calculate it from the throw
+want to calculate it from the throw point of the character not from the
+point of the character not from the ground so different characters might
+ground so different characters might actually have a different height here so
+actually have a different height here so we would take that height we would plug
+we would take that height we would plug it in the projectile equation and we'd
+it in the projectile equation and we'd solve it through and wind up with our
+solve it through and wind up with our possible maximum range for that height
+possible maximum range for that height debugging this is actually pretty
+debugging this is actually pretty similar to debugging linear prevent
+similar to debugging linear prevent projectiles we had the same colors did
+projectiles we had the same colors did the same things one thing you might
+the same things one thing you might notice here though is we actually had a
+notice here though is we actually had a couple of impact points since their
+couple of impact points since their grenades will bounce around that's okay
+grenades will bounce around that's okay and that's expected so one problem we
+and that's expected so one problem we ran across with these grenades is when
+ran across with these grenades is when the players got really close so you got
+the players got really close so you got something like this which and it's not
+something like this which and it's not really so good you really wouldn't want
+really so good you really wouldn't want to ship with this right so we wound up
+to ship with this right so we wound up cheating a little bit to solve this we
+cheating a little bit to solve this we noticed it was really only when the
+noticed it was really only when the player got close so we had a maximum
+player got close so we had a maximum angle of 70 degrees we used in our game
+angle of 70 degrees we used in our game and then we had a minimum distance that
+and then we had a minimum distance that we set to about two to three meters and
+we set to about two to three meters and that actually seemed to work pretty well
+that actually seemed to work pretty well for us the players get close the eyes
+for us the players get close the eyes were just do a straight line throw again
+were just do a straight line throw again with gravity and it looked good later on
+with gravity and it looked good later on in the game we actually wanted making an
+in the game we actually wanted making an AI change so when players got close
+AI change so when players got close enough the eyes would just break off
+enough the eyes would just break off doing range attacks it wound up making
+doing range attacks it wound up making this a little bit better and it also end
+this a little bit better and it also end up looking better because an Oryx
+up looking better because an Oryx shooting you with a crossbow when he's
+shooting you with a crossbow when he's right up in your face like this it it
+right up in your face like this it it just looks a little bit silly it also
+just looks a little bit silly it also gave players one other way to counter
+gave players one other way to counter play against range AI since they could
+play against range AI since they could get up close to them and for ci to break
+get up close to them and for ci to break off and continue running down the path
+off and continue running down the path there are some other ways you can
+there are some other ways you can possibly cheat physics here I've got
+possibly cheat physics here I've got some more information on these and the
+some more information on these and the references if you're curious all of them
+references if you're curious all of them have different trade-offs so ours is not
+have different trade-offs so ours is not the only way to solve it but we were we
+the only way to solve it but we were we were happy of the results so as far as
+were happy of the results so as far as ballistic projectiles go you still want
+ballistic projectiles go you still want to be able to miss so the first project
+to be able to miss so the first project we did these we actually just picked a
+we did these we actually just picked a random point in a circle around the
+random point in a circle around the player and just or the predicted
+player and just or the predicted position of the player sorry and then we
+position of the player sorry and then we threw in there worked fine we shipped
+threw in there worked fine we shipped with it
+with it not a problem we actually went up
+not a problem we actually went up changing a little bit on our latest game
+changing a little bit on our latest game the thing we noticed was players were
+the thing we noticed was players were not always facing towards the grenade
+not always facing towards the grenade throwing units
+throwing units and so they would frequently miss the
+and so they would frequently miss the fact that a grenade and just shown up
+fact that a grenade and just shown up and then they'd be like hey where did
+and then they'd be like hey where did that damage come from that's not cool
+that damage come from that's not cool so what we went up doing was a handful
+so what we went up doing was a handful of things so we added a few sound of the
+of things so we added a few sound of the grenade there was a nice hissing sound
+grenade there was a nice hissing sound as it flew through the air is 3d so as
+as it flew through the air is 3d so as you'd hear getting closer closer closer
+you'd hear getting closer closer closer closer then we beefed up the impact
+closer then we beefed up the impact sounds so there's a nice solid clunk
+sounds so there's a nice solid clunk when I hate you or hit the ground nearby
+when I hate you or hit the ground nearby and then as you can see here we also
+and then as you can see here we also hadn't a decal to show the danger zone
+hadn't a decal to show the danger zone to give the player notice it was there
+to give the player notice it was there and give him a chance to run out of the
+and give him a chance to run out of the way as a result we actually pulled off
+way as a result we actually pulled off the missing in a circle code and just
+the missing in a circle code and just had the grenade throwing units always
+had the grenade throwing units always hit the player we actually were a lot
+hit the player we actually were a lot happy the results of this and we were
+happy the results of this and we were just trying to throw in a circle around
+just trying to throw in a circle around the player so when you put it all
+the player so when you put it all together this is what you get for
+together this is what you get for ballistic projectiles so we had a
+ballistic projectiles so we had a derived speed on these we threw them
+derived speed on these we threw them with an arc we came up with our
+with an arc we came up with our approximate solution that we were happy
+approximate solution that we were happy with and then we solved it with a
+with and then we solved it with a quadratic equation you may need to if
+quadratic equation you may need to if you use that solution you may need to
+you use that solution you may need to compensate for high arcs or some other
+compensate for high arcs or some other edge cases as far as missing goes you
+edge cases as far as missing goes you can either aim around the player or just
+can either aim around the player or just make the grenades avoidable so wrapping
+make the grenades avoidable so wrapping up make sure you aim ahead of the player
+up make sure you aim ahead of the player make sure it's fun fun is your priority
+make sure it's fun fun is your priority here it's okay to cheat as long as it's
+here it's okay to cheat as long as it's fun and looks good at the end of the day
+fun and looks good at the end of the day make sure players have a chance to react
+make sure players have a chance to react AIS we're trying to write a fun opponent
+AIS we're trying to write a fun opponent and not an aimbot and then make sure
+and not an aimbot and then make sure design can control your course ID with
+design can control your course ID with parameters and then derive your math
+parameters and then derive your math code and fun from there any questions if
+code and fun from there any questions if you have questions by the way please
+you have questions by the way please step up to the mic

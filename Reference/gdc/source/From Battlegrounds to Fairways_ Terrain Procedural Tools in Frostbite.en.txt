@@ -1,0 +1,1377 @@
+[Music]
+hello everyone and thank you for uh coming to this session where we will
+coming to this session where we will talk about frostbite procedural
+talk about frostbite procedural terrains uh my name is Julian Keb and I
+terrains uh my name is Julian Keb and I the team lead for frostbite terrain
+the team lead for frostbite terrain tools I've been at electronic cards on
+tools I've been at electronic cards on the frostbite team for some eight years
+the frostbite team for some eight years now and at first I was working on the
+now and at first I was working on the the runtime side of things where I had
+the runtime side of things where I had lots of fun uh but later on there was an
+lots of fun uh but later on there was an opportunity to explore procedural
+opportunity to explore procedural creation tools which I found really uh
+creation tools which I found really uh exciting so I switch on the tooling side
+exciting so I switch on the tooling side and uh never switch back actually and
+and uh never switch back actually and that was to lead the project which I'm
+that was to lead the project which I'm talking about
+talking about today as you might know frostbite is
+today as you might know frostbite is EA's proprietary engine it Powers a
+EA's proprietary engine it Powers a large number of games ranging from sport
+large number of games ranging from sport titles to racing games firstperson
+titles to racing games firstperson Shooters and space game uh like the
+Shooters and space game uh like the well-received
+well-received Dead Space remake that came out of
+Dead Space remake that came out of motive which is a studio located in
+motive which is a studio located in Montreal where I happen to be coming
+Montreal where I happen to be coming from uh this talk focuses on terrain
+from uh this talk focuses on terrain tools so let's only keep those titles
+tools so let's only keep those titles that actually have uh frostbite terrains
+that actually have uh frostbite terrains we'll remove remove those space games
+we'll remove remove those space games and uh almost all sports game and this
+and uh almost all sports game and this leaves around 60% of titles which is
+leaves around 60% of titles which is quite a
+quite a lot so before we begin uh I just want to
+lot so before we begin uh I just want to set expectations so this is not a
+set expectations so this is not a straightforward programming talk it's
+straightforward programming talk it's kind of a fusion between a programming
+kind of a fusion between a programming one and a visual arts one that caters to
+one and a visual arts one that caters to both side of the spectrums part
+both side of the spectrums part technical info uh part I
+technical info uh part I candy and uh we will start with a short
+candy and uh we will start with a short overview of the part of frostbite Trin
+overview of the part of frostbite Trin that is relevant for this talk then I
+that is relevant for this talk then I will explain what we did in the editor
+will explain what we did in the editor and the reasons we did it uh think of it
+and the reasons we did it uh think of it as a sort of Dev diary where I'll be
+as a sort of Dev diary where I'll be showcasing the features in the order we
+showcasing the features in the order we designed and added them over time
+designed and added them over time after that we'll go straight to ship
+after that we'll go straight to ship results uh where all the I candy will be
+results uh where all the I candy will be sort of like eating dessert before the
+sort of like eating dessert before the main course because all the proteins
+main course because all the proteins will be right after because we will uh
+will be right after because we will uh talk about implementation details and
+talk about implementation details and Architectural choices and we will
+Architectural choices and we will conclude this with a short short
+conclude this with a short short retrospective and Q&A if we have
+time so Frost by train runtime is uh Best in Class it's very scalable
+Best in Class it's very scalable supports arbitrary view distance
+supports arbitrary view distance arbitrary levels of details and moving
+arbitrary levels of details and moving speeds that range from a soldier walking
+speeds that range from a soldier walking to a jet flying it's backed by an
+to a jet flying it's backed by an efficient virtual texture system uh
+efficient virtual texture system uh which support complex
+which support complex materials it also has runtime mesh
+materials it also has runtime mesh scattering which is entirely GPU based
+scattering which is entirely GPU based uh for things like small environment
+uh for things like small environment objects like grass and small size rocks
+objects like grass and small size rocks and such things and being the engine
+and such things and being the engine used by Battlefield it obviously has
+used by Battlefield it obviously has support for Destruction through things
+support for Destruction through things like uh heightfield deformers and local
+like uh heightfield deformers and local texture
+texture updates so let's start by looking at a
+updates so let's start by looking at a simplified view of the Terin material
+simplified view of the Terin material data flow in the editor artists author a
+data flow in the editor artists author a number of data Maps um for various
+number of data Maps um for various aspects of the terrain we call these
+aspects of the terrain we call these rasters they're just essentially 2D
+rasters they're just essentially 2D images that are broken up in tiles of
+images that are broken up in tiles of varying resolution but they're generally
+varying resolution but they're generally around two samples per meter in the
+around two samples per meter in the gameplay areas there's of course a
+gameplay areas there's of course a height field which provides the topology
+height field which provides the topology uh we also have a color map which
+uh we also have a color map which provides four channel of data that can
+provides four channel of data that can be used in the runtime and there are
+be used in the runtime and there are many other rasters usually defined but I
+many other rasters usually defined but I won't really cover them uh they're not
+won't really cover them uh they're not so relevant for this doc like one about
+so relevant for this doc like one about uh that controls desolation level
+uh that controls desolation level there's also one that controls how deep
+there's also one that controls how deep the terrain can be destroyed at any
+the terrain can be destroyed at any specific uh
+specific uh location and then you have a number of
+location and then you have a number of material basks and these all get send
+material basks and these all get send through the the acid pipeline to get
+through the the acid pipeline to get optimized in some way and in the
+optimized in some way and in the runtime uh a material has a
+runtime uh a material has a corresponding Shader that produces a
+corresponding Shader that produces a continuous texture that tiles seamlessly
+continuous texture that tiles seamlessly and these shaders can also read from the
+and these shaders can also read from the height field and color Maps so they can
+height field and color Maps so they can be fairly complex uh then the opacity
+be fairly complex uh then the opacity that the Shader outputs gets multiplied
+that the Shader outputs gets multiplied with its corresponding material mask and
+with its corresponding material mask and blending all these together you produce
+blending all these together you produce one tile of terrain texture so this
+one tile of terrain texture so this particular one here is just programmer
+particular one here is just programmer art not really beautiful and part of the
+art not really beautiful and part of the reason is that the textures are just
+reason is that the textures are just fading into one another uh in reality
+fading into one another uh in reality this this blending stage is fully
+this this blending stage is fully programmable through node-based system
+programmable through node-based system and if you're actually fading a texture
+and if you're actually fading a texture into another would look more like this
+into another would look more like this uh so you can have the sand appear and
+uh so you can have the sand appear and cracks before they they they're they're
+cracks before they they they're they're at full
+opacity another thing about frostbite is that if you take any location you can
+that if you take any location you can have multiple numbers of layers there
+have multiple numbers of layers there which means you can have complex
+which means you can have complex materials with interwoven different
+materials with interwoven different uh different materials yeah
+uh different materials yeah um so while the runtime aspects are
+um so while the runtime aspects are really interesting uh we won't be
+really interesting uh we won't be talking much about them because um all
+talking much about them because um all I'm going to talk about happens here if
+I'm going to talk about happens here if we take this as a timeline so meaning
+we take this as a timeline so meaning it's it's not an acid pipeline uh trick
+it's it's not an acid pipeline uh trick it's not a runtime thing it's really
+it's not a runtime thing it's really something that is in the editor and uh
+something that is in the editor and uh another way to frame it is to say that
+another way to frame it is to say that we will talk about controlling topology
+we will talk about controlling topology and uh where these material appear at
+and uh where these material appear at medium and large scale the reason is
+medium and large scale the reason is that the small surface details is
+that the small surface details is essentially handled by those material
+shaders okay so when we started this project some five years ago most terrain
+project some five years ago most terrain work was done through manual painting
+work was done through manual painting and as much as it was time consuming it
+and as much as it was time consuming it paid off because for example dice had a
+paid off because for example dice had a reputation for creating high quality
+reputation for creating high quality Maps but this came at the cost of
+Maps but this came at the cost of excessive manual work and when things
+excessive manual work and when things were not done manually they were uh they
+were not done manually they were uh they went through expensive uh import export
+went through expensive uh import export Cycles into external dccs which takes
+Cycles into external dccs which takes extra times and means slower
+extra times and means slower iterating so how can we improve from
+iterating so how can we improve from this um well one way is to externalize
+this um well one way is to externalize more TR tasks into external DCC uh maybe
+more TR tasks into external DCC uh maybe a tool specifically for procedural
+a tool specifically for procedural trains maybe Houdini and then uh we
+trains maybe Houdini and then uh we could create some kind of bridge between
+could create some kind of bridge between the two maybe it's a script that uses an
+the two maybe it's a script that uses an API and if you're lucky you get a button
+API and if you're lucky you get a button that uh automatically refreshes from the
+that uh automatically refreshes from the editor wait a few seconds and you see
+editor wait a few seconds and you see the result but we wanted to approach
+the result but we wanted to approach this differently we want we we decided
+this differently we want we we decided to bring back uh sort of run-of-the-mill
+to bring back uh sort of run-of-the-mill 80% of terrain workflow goes directly in
+80% of terrain workflow goes directly in the editor the part that is about level
+the editor the part that is about level design where it really makes a great
+design where it really makes a great impact to be able to iterate inside the
+impact to be able to iterate inside the editor uh so why uh well we thought it
+editor uh so why uh well we thought it would lower the cost of entry for light
+would lower the cost of entry for light procedural tasks maybe you're not making
+procedural tasks maybe you're not making an open open world game maybe you're
+an open open world game maybe you're just a small studio and all you want is
+just a small studio and all you want is flatten your roads so you don't need the
+flatten your roads so you don't need the full setup and second uh live feedback
+full setup and second uh live feedback meant easier experimenting through
+meant easier experimenting through faster iterations not live feedback as
+faster iterations not live feedback as wait a few seconds live as you drag
+wait a few seconds live as you drag something and you get the whole stack to
+something and you get the whole stack to refresh and finally we wanted to unlock
+refresh and finally we wanted to unlock Future opportunities uh say ugc for
+Future opportunities uh say ugc for example owning that tech means we could
+example owning that tech means we could eventually use it in the runtime I'm
+eventually use it in the runtime I'm going to talk more about that
+going to talk more about that later and uh we're not fooling ourselves
+later and uh we're not fooling ourselves we cannot replace Houdini we actually
+we cannot replace Houdini we actually love Houdini and use it all the time
+love Houdini and use it all the time everywhere but uh we wanted to own a few
+everywhere but uh we wanted to own a few of those workflows so Houdini can still
+of those workflows so Houdini can still read the trained data
+read the trained data uh and be used for other things like uh
+uh and be used for other things like uh procedural asset placement and some
+procedural asset placement and some other trained tasks for example sand
+other trained tasks for example sand simulation we would wouldn't try to do
+simulation we would wouldn't try to do it in the editor it's not worth
+it in the editor it's not worth it so the first thing we knew we needed
+it so the first thing we knew we needed is to break out every raster into overl
+is to break out every raster into overl fairly simple move
+fairly simple move um or obvious should I say uh
+um or obvious should I say uh to be fair those should probably be
+to be fair those should probably be called layers but that word that was
+called layers but that word that was already taken for terrain layers so we
+already taken for terrain layers so we named them overlays but you can think of
+named them overlays but you can think of them as layers and uh with that any
+them as layers and uh with that any modification could be located on a
+modification could be located on a specific overlay and happen in a
+specific overlay and happen in a non-destructive
+non-destructive way so you might notice this pattern
+way so you might notice this pattern exists in the runtime as we compose
+exists in the runtime as we compose composite the train layers together to
+composite the train layers together to get one piece of of texture and in the
+get one piece of of texture and in the editor each material mask itself is made
+editor each material mask itself is made from compositing different overlays so
+from compositing different overlays so it's exactly like
+it's exactly like that so if we Zoom a bit on this uh each
+that so if we Zoom a bit on this uh each overlay has obviously a data Channel but
+overlay has obviously a data Channel but also an opacity one an alpha one that
+also an opacity one an alpha one that stores uh yeah opacity transparency and
+stores uh yeah opacity transparency and the rest is pretty standard there's a
+the rest is pretty standard there's a blending stage and uh in that blending
+blending stage and uh in that blending stage we support things like a global
+stage we support things like a global opacity multiplier uh blend modes I
+opacity multiplier uh blend modes I think we have 12 of them and blending
+think we have 12 of them and blending all overlays together you produce your
+all overlays together you produce your final hi Highfield raster or maybe your
+final hi Highfield raster or maybe your mask raster your color map raster
+mask raster your color map raster they're just generic images after all
+they're just generic images after all with only their pixel format varying
+with only their pixel format varying everything is sort of uh interchangeable
+everything is sort of uh interchangeable heightfield R flat color map is rgba and
+heightfield R flat color map is rgba and so
+so on uh this is how it looks in the editor
+on uh this is how it looks in the editor so all the rasters are like collapsible
+so all the rasters are like collapsible sections and uh their content is uh
+sections and uh their content is uh children overlays basically we also have
+children overlays basically we also have folders and the idea is that the folder
+folders and the idea is that the folder content gets Blended and then uh I mean
+content gets Blended and then uh I mean the children of the folder gets Blended
+the children of the folder gets Blended and the folders content is that Blended
+and the folders content is that Blended result so what type of overlays do we
+result so what type of overlays do we have uh obviously we will need paintable
+have uh obviously we will need paintable overlays these are your standard
+overlays these are your standard overlays onto which you would just brush
+overlays onto which you would just brush with tools for example or maybe you
+with tools for example or maybe you could uh import images from an external
+could uh import images from an external BCC they're just static and they're
+BCC they're just static and they're saved on disk uh so at this point we
+saved on disk uh so at this point we have a nice layered setup that is
+have a nice layered setup that is non-destructive but we're not procedural
+non-destructive but we're not procedural yet everything is still manual so that's
+yet everything is still manual so that's why we added Auto Paine over these as we
+why we added Auto Paine over these as we call them there's a second type and you
+call them there's a second type and you cannot brush on these their content is
+cannot brush on these their content is entirely produced from objects that act
+entirely produced from objects that act as uh terrain brushes essentially so
+as uh terrain brushes essentially so let's look at how this
+let's look at how this works the basic idea is to have assets
+works the basic idea is to have assets expose a number of what we call autopan
+expose a number of what we call autopan behaviors that are named and on the
+behaviors that are named and on the other side uh you have the autopan
+other side uh you have the autopan overlays which sort of sub subscribe to
+overlays which sort of sub subscribe to these uh
+these uh behaviors um and then this produ
+behaviors um and then this produ produces some result uh before we
+produces some result uh before we continue I just want to talk about this
+continue I just want to talk about this rainbowy color we have here because I'm
+rainbowy color we have here because I'm going to be showing some more of these
+going to be showing some more of these uh it's essentially a heat map with
+uh it's essentially a heat map with zeros and ones standing out
+zeros and ones standing out um
+um yeah so what is a behavior um as I said
+yeah so what is a behavior um as I said it's kind of like a a Terrain
+it's kind of like a a Terrain brush uh assets behaving as terrain
+brush uh assets behaving as terrain brushes and at its core it's simply a
+brushes and at its core it's simply a mesh a transform that can deform the
+mesh a transform that can deform the mesh and some Shader with some
+mesh and some Shader with some parameters and as simple as it is uh the
+parameters and as simple as it is uh the power comes from the different workflows
+power comes from the different workflows that are enabled by combining different
+that are enabled by combining different meshes and
+meshes and shaders then the idea is just to take a
+shaders then the idea is just to take a an orthographic camera camera and grab a
+an orthographic camera camera and grab a snapshot of the mesh from above and this
+snapshot of the mesh from above and this is your result that you stem on the
+is your result that you stem on the overlay so if we imagine a very simple
+overlay so if we imagine a very simple case where you would use the asset's own
+case where you would use the asset's own mesh to auto paint um just with this you
+mesh to auto paint um just with this you can get surprisingly useful results as
+can get surprisingly useful results as we'll see in a
+we'll see in a moment since overlays have opacity
+moment since overlays have opacity information the shaders output both the
+information the shaders output both the data for the data for the content and
+data for the data for the content and it's alpha or opacity if you're auto
+it's alpha or opacity if you're auto painting on a mask it's very simple you
+painting on a mask it's very simple you just write one in both data and opacity
+just write one in both data and opacity this gets the mesh projection stemed on
+this gets the mesh projection stemed on the overlay when auto painting on the
+the overlay when auto painting on the height field you just output uh the
+height field you just output uh the fragments height as the data and zero
+fragments height as the data and zero for opacity and one for opacity and this
+for opacity and one for opacity and this deforms the height field so it perfectly
+deforms the height field so it perfectly wraps the
+wraps the object so let's have this shown in
+object so let's have this shown in practice uh the rock here is on wet send
+practice uh the rock here is on wet send but we'd like to make the two better
+but we'd like to make the two better integrated together so let's uh and also
+integrated together so let's uh and also had add some variety so let's add a
+had add some variety so let's add a little bump uh on the send we can uh
+little bump uh on the send we can uh limit the effect by scaling the mesh
+limit the effect by scaling the mesh using the
+using the transform uh then let's uh use a mask AO
+transform uh then let's uh use a mask AO paint on a sort of rippled sand mask and
+paint on a sort of rippled sand mask and we also make it a bit bigger and the
+we also make it a bit bigger and the second mask why not some sand with
+second mask why not some sand with gravel and we get this
+gravel and we get this effect and in the editor it's live so as
+effect and in the editor it's live so as The Rock transform is changed the
+The Rock transform is changed the projected shapes are impacted because
+projected shapes are impacted because they inherit that transform on top of
+they inherit that transform on top of the their
+the their own so this is actually three Rock
+own so this is actually three Rock meshes aggregated together that's why
+meshes aggregated together that's why they rotate a bit
+they rotate a bit funny confession
+funny confession here so not not only static assets can
+here so not not only static assets can be Auto painted uh same goes for roads
+be Auto painted uh same goes for roads there they're also a mesh although a
+there they're also a mesh although a dynamic one that is generated from a
+dynamic one that is generated from a spline so a typical workflow is to
+spline so a typical workflow is to flatten the height field where roads are
+flatten the height field where roads are and by generating a slightly slightly
+and by generating a slightly slightly wider mesh we can have the autopaint
+wider mesh we can have the autopaint Shader Fade Out the flat in on the on
+Shader Fade Out the flat in on the on the sides by using the opacity Channel
+the sides by using the opacity Channel output so that they better integrate
+output so that they better integrate with the environment so this is how it
+with the environment so this is how it looks like in the
+looks like in the editor so with this we can see why
+editor so with this we can see why interactivity is not just a nice to have
+interactivity is not just a nice to have uh being able to iterate that quickly
+uh being able to iterate that quickly has a strong impact on the final quality
+has a strong impact on the final quality when a user moves a spine they're not
+when a user moves a spine they're not guessing what the procedural output will
+guessing what the procedural output will be they see it at in-game quality as
+be they see it at in-game quality as they
+they work another thing you can do by autop
+work another thing you can do by autop painting a mesh directly on the hide
+painting a mesh directly on the hide field is what we call autopaint Lookout
+field is what we call autopaint Lookout uh somebody figured this out uh and we
+uh somebody figured this out uh and we didn't see it coming but the idea is to
+didn't see it coming but the idea is to work with a library of abstract shapes
+work with a library of abstract shapes landscape features and sculpt the height
+landscape features and sculpt the height field piecewise using those shapes uh
+field piecewise using those shapes uh key to this workflow is obviously having
+key to this workflow is obviously having the auto paint work in uh Max blend mode
+the auto paint work in uh Max blend mode so intersections are seamless and yeah
+so intersections are seamless and yeah you can iterate rapidly with
+you can iterate rapidly with this here's another workflow we have we
+this here's another workflow we have we call a capture the idea is to have
+call a capture the idea is to have artists Place Assets in a level where
+artists Place Assets in a level where they paint a sculp around the assets and
+they paint a sculp around the assets and using a volume we capture the strain
+using a volume we capture the strain into textures and we automatically
+into textures and we automatically create the behaviors in the acid prefab
+create the behaviors in the acid prefab uh bottom line is when you place the
+uh bottom line is when you place the acid in level the terrain follows with
+acid in level the terrain follows with it uh another combination combination a
+it uh another combination combination a road mesh with a texture and you get a
+road mesh with a texture and you get a nice riverbed Carver spline
+so this is from uh an internal demo that was made by a small team of artists U
+was made by a small team of artists U and it showcases number of texts we
+and it showcases number of texts we built and it has a lot of oo paint
+built and it has a lot of oo paint workflows that I just showed for example
+workflows that I just showed for example the heightfield is all blocked out uh
+the heightfield is all blocked out uh the stone stairs carve the height field
+the stone stairs carve the height field around them using custom meshes and all
+around them using custom meshes and all trees have auto paint
+capture
+okay uh there is one last type of overlay we added to get a full feature
+overlay we added to get a full feature set and its effects overlay uh these
+set and its effects overlay uh these include generators and filters and more
+include generators and filters and more but the idea is that they're applied on
+but the idea is that they're applied on the whole Terin they just they they
+the whole Terin they just they they don't relate to objects and you cannot
+don't relate to objects and you cannot brush on them
+brush on them either so as first we at first we
+either so as first we at first we started adding generators like voro uh
+started adding generators like voro uh which can be applied on a mask or the
+which can be applied on a mask or the height field again everything is
+height field again everything is interchangeable they're all images and
+interchangeable they're all images and uh you can create also this slightly
+uh you can create also this slightly unsettling breathing terrain which I
+unsettling breathing terrain which I made by playing with a
+made by playing with a slider um one thing I want to mention is
+slider um one thing I want to mention is that to create these effects we chose to
+that to create these effects we chose to leverage our runtime node based shaders
+leverage our runtime node based shaders which obviously had large consequences
+which obviously had large consequences on on the overall architecture uh but I
+on on the overall architecture uh but I I will talk more about this later so the
+I will talk more about this later so the great thing about this is that since our
+great thing about this is that since our Tech artists already know this uh this
+Tech artists already know this uh this Tech they can just
+Tech they can just Le author their own effects basically to
+Le author their own effects basically to augment the basic
+augment the basic Library so going back to this uh overlay
+Library so going back to this uh overlay compositing diagram we have now overlays
+compositing diagram we have now overlays that get their content from shaders and
+that get their content from shaders and seems it would be very easy to provide
+seems it would be very easy to provide them with the previous stage the
+them with the previous stage the previous Blended overlay so which means
+previous Blended overlay so which means uh can create filters so that's the next
+uh can create filters so that's the next thing we did uh blurred dilate warp and
+thing we did uh blurred dilate warp and again you can blur the height field or
+again you can blur the height field or color
+color map
+map anything uh but in many cases what user
+anything uh but in many cases what user want is to generate masks derived from
+want is to generate masks derived from the topology for example maybe they need
+the topology for example maybe they need a mask that matches the flat
+a mask that matches the flat areas so there's a very very
+areas so there's a very very straightforward way to make this
+straightforward way to make this possible which is to provide the height
+possible which is to provide the height field to all uh effects
+field to all uh effects systematically and we did that exactly
+systematically and we did that exactly at
+at first so it unlocked a new uh family of
+first so it unlocked a new uh family of interesting effects like the slope mask
+interesting effects like the slope mask I I was talking about but also one to
+I I was talking about but also one to highlight height ranges for example and
+highlight height ranges for example and we also made more complex one like
+we also made more complex one like kernel based filters uh curvature
+kernel based filters uh curvature filters to highlight concavity or
+filters to highlight concavity or convexity or this relief filter which is
+convexity or this relief filter which is showing the height compared to the
+showing the height compared to the average height in a radius and we also
+average height in a radius and we also create created uh Ray marching effects
+create created uh Ray marching effects like sun exposure like this particular
+like sun exposure like this particular one really looks like it's it's in game
+one really looks like it's it's in game with lighting but it's actually just the
+with lighting but it's actually just the mask that is using a black and white
+mask that is using a black and white palette and it's very useful to bake uh
+palette and it's very useful to bake uh bake Shadows for one thing or you could
+bake Shadows for one thing or you could use that to uh simulate vegetation
+use that to uh simulate vegetation growth for example and what's nice is
+growth for example and what's nice is you can also accumulate the whole Sun
+you can also accumulate the whole Sun Arc over a day for example we have nice
+Arc over a day for example we have nice features like that and we also have one
+features like that and we also have one that does ambient occlusion and it's
+that does ambient occlusion and it's pretty much like you would do in a
+pretty much like you would do in a screen pass in runtime except it's uh
+screen pass in runtime except it's uh it's done on the height field and it
+it's done on the height field and it shows amount of Sky
+shows amount of Sky visibility so far so good uh we can read
+visibility so far so good uh we can read from the height field uh but soon enough
+from the height field uh but soon enough came new request to have things be able
+came new request to have things be able to ride to the heightfield say you want
+to ride to the heightfield say you want the terrain to be more lumpy where the
+the terrain to be more lumpy where the snow is uh you need to the height field
+snow is uh you need to the height field to read from a mask or maybe you want
+to read from a mask or maybe you want your asphalt mask to delete the grass
+your asphalt mask to delete the grass mask so clearly this original setup
+mask so clearly this original setup won't work and you might see what this
+won't work and you might see what this coming but what we need is a full
+coming but what we need is a full dependency graph so if we pause a m
+dependency graph so if we pause a m moment we have this layered ux and we
+moment we have this layered ux and we also want this node based thing so um at
+also want this node based thing so um at this point we kind of took the decision
+this point we kind of took the decision to keep the layered ux because it's kind
+to keep the layered ux because it's kind of people are familiar with this and uh
+of people are familiar with this and uh if you're not in a lot of spaghetti
+if you're not in a lot of spaghetti dependency it kind of really fits the
+dependency it kind of really fits the bill so what we did is uh add
+bill so what we did is uh add navigational arrows basically each
+navigational arrows basically each overlay show their incoming and outgoing
+overlay show their incoming and outgoing connections and the users can navigate
+connections and the users can navigate like this so this kind of sums up what
+like this so this kind of sums up what we have in the end uh talk is not
+we have in the end uh talk is not finished but this is just one clean way
+finished but this is just one clean way to wrap things up we have a graph note
+to wrap things up we have a graph note based graph backend that is invisible
+based graph backend that is invisible and automatically generated from the
+and automatically generated from the layered
+layered ux that has dependency
+navigation so there's one last piece of the puzzle that's still missing which is
+the puzzle that's still missing which is iterative processes a classic example
+iterative processes a classic example would be erosion this is just anything
+would be erosion this is just anything that you need to run a number of times
+that you need to run a number of times to get the final
+to get the final result and to do that we added a sort of
+result and to do that we added a sort of uh a way to
+uh a way to declare how output textures are routed
+declare how output textures are routed back into input textures and we can just
+back into input textures and we can just run the effect a number of times by
+run the effect a number of times by swapping the outputs with the with the
+swapping the outputs with the with the input and with that we could Implement
+input and with that we could Implement things like thermal erosion for example
+things like thermal erosion for example which happens to be quite fast because
+which happens to be quite fast because you can still brush right under the
+you can still brush right under the effect and see it live with no
+effect and see it live with no performance impact
+performance impact whatsoever which is great but not
+whatsoever which is great but not surprising because gpus are really fast
+surprising because gpus are really fast these days and at the same time those
+these days and at the same time those rasters again are like two samples per
+rasters again are like two samples per meter so unless you're painting on a
+meter so unless you're painting on a with a one kilometer brush uh you should
+with a one kilometer brush uh you should be
+be fine and then we added also water
+fine and then we added also water simulation uh that's a very important
+simulation uh that's a very important Breck of a procedural
+Breck of a procedural toolkit um and we have a mode that just
+toolkit um and we have a mode that just lets the water flow and one that
+lets the water flow and one that accumulates water to uh produce flow
+accumulates water to uh produce flow maps and we made it to the candy part so
+maps and we made it to the candy part so time for some Shi results uh the first
+time for some Shi results uh the first game I'm going to talk about is EA
+game I'm going to talk about is EA Sports PGA Tour golf game uh and they
+Sports PGA Tour golf game uh and they have a particular setup because they
+have a particular setup because they work from lar scans they they're
+work from lar scans they they're reproducing existing courses so what
+reproducing existing courses so what they get is from these cans are uh high
+they get is from these cans are uh high density Point clouds for the height
+density Point clouds for the height field and then a number of vector paths
+field and then a number of vector paths for like important features bunkers
+for like important features bunkers Fairways uh greens and roughs and then
+Fairways uh greens and roughs and then through Houdini they extract the actual
+through Houdini they extract the actual height field and masks uh that they can
+height field and masks uh that they can Import in froste head which is the name
+Import in froste head which is the name of the editor by the way and uh inside
+of the editor by the way and uh inside froste head they uh iterate using our
+froste head they uh iterate using our tools to do minor minor changes but
+tools to do minor minor changes but important ones
+important ones an example is this one so uh for some
+an example is this one so uh for some reason they found they wanted to
+reason they found they wanted to increase the lip on the sen bunkers
+increase the lip on the sen bunkers the bunkers that's how it it's called
+the bunkers that's how it it's called and uh to use that to do that they used
+and uh to use that to do that they used the sand mask that was fed to the
+the sand mask that was fed to the heightfield in subtract mode so they
+heightfield in subtract mode so they could just tweak what they wanted
+could just tweak what they wanted obviously faster than painting by
+obviously faster than painting by hand uh other things they did uh they
+hand uh other things they did uh they added a bit of clumpiness in the rough
+added a bit of clumpiness in the rough areas using like pein noise modulated
+areas using like pein noise modulated with the high field curvature
+with the high field curvature they derived a number of additional
+they derived a number of additional masks like dry grass versus grass versus
+masks like dry grass versus grass versus semi- dry grass I guess um and all this
+semi- dry grass I guess um and all this all these were driven from topology
+all these were driven from topology operators or filters uh this screenshot
+operators or filters uh this screenshot has a number of them together there's
+has a number of them together there's also little Mounds at the base of tree
+also little Mounds at the base of tree that were added with auto paint and
+that were added with auto paint and uh yeah a lot of
+uh yeah a lot of things all right
+things all right so now let's talk about Battlefield um
+so now let's talk about Battlefield um as opposed to PJ Sports which worked
+as opposed to PJ Sports which worked from works from lar scans they needed to
+from works from lar scans they needed to iterate a lot more on the levels if only
+iterate a lot more on the levels if only for gameplay reasons uh so they were a
+for gameplay reasons uh so they were a lot Freer to experiment with the tools
+lot Freer to experiment with the tools and frankly they surprised us in many
+and frankly they surprised us in many different ways on many occasions by
+different ways on many occasions by going beyond what we had initially made
+going beyond what we had initially made the tools for so they really pushed the
+the tools for so they really pushed the tools to their
+tools to their limit which is great
+limit which is great so this uh this map is a location where
+so this uh this map is a location where water has recessed leaving pools of
+water has recessed leaving pools of rusty
+rusty water and uh important visual thematic
+water and uh important visual thematic is those sediment lines I guess I would
+is those sediment lines I guess I would call stratified lines and at small C
+call stratified lines and at small C small scale this is produced in the
+small scale this is produced in the material shaders that can read from the
+material shaders that can read from the height
+height field and at distance uh you have larger
+field and at distance uh you have larger ones that are coming from the color
+map as you can see in a [Music]
+second so uh if we pull back the curtain for a moment and examine the foundation
+for a moment and examine the foundation of this levels terrain there are 20 or
+of this levels terrain there are 20 or so material layers that are used and
+so material layers that are used and they have shaders uh that read from
+they have shaders uh that read from textures and break up the tiling in
+textures and break up the tiling in seamless ways and they all write to the
+seamless ways and they all write to the train virtual texture which has typical
+train virtual texture which has typical iCal G buffer channels but also uh
+iCal G buffer channels but also uh vertical displacement or should I say a
+vertical displacement or should I say a normal based
+normal based displacement and uh so this view shows
+displacement and uh so this view shows all the materials together with nothing
+all the materials together with nothing else pretty patchy and kind of flat at
+else pretty patchy and kind of flat at distance so that's why we have the color
+distance so that's why we have the color map so the color map adds variation and
+map so the color map adds variation and uh since all materials read from it they
+uh since all materials read from it they it can also control the overall Hue of
+it can also control the overall Hue of all materials so this is showing the
+all materials so this is showing the both
+together and then adding decals which are essentially meshes that write on the
+are essentially meshes that write on the virtual texture and all those same
+virtual texture and all those same channels including displacement so
+channels including displacement so that's how they can sort of dig a bit
+that's how they can sort of dig a bit into
+into it uh now adding
+it uh now adding objects starting to come up together
+objects starting to come up together nicely and the one missing thing is uh
+nicely and the one missing thing is uh maybe you guessed it GPU scattering
+maybe you guessed it GPU scattering which is small scale vegetation and
+which is small scale vegetation and small scale objects um again completely
+small scale objects um again completely GPU GPU power in the case of frostbite
+GPU GPU power in the case of frostbite and the placement is is driven by
+and the placement is is driven by material
+material masks so if we look at how the
+masks so if we look at how the procedural data operates together uh we
+procedural data operates together uh we start with let say material rasters
+start with let say material rasters first
+first and then they also added a number of
+and then they also added a number of what we call like utility rasters
+what we call like utility rasters concept rasters they're not really s
+concept rasters they're not really s they're not sent in the run time they're
+they're not sent in the run time they're just references for from for other masks
+just references for from for other masks to read from and they influence the
+to read from and they influence the material masks but also things like the
+material masks but also things like the color map adding the height field uh the
+color map adding the height field uh the height field pretty much writes to
+height field pretty much writes to everything and the objects again impacts
+everything and the objects again impacts everything including the height field so
+everything including the height field so this is just a simplified overview the
+this is just a simplified overview the actual graph looks like this
+actual graph looks like this nobody ever looks at that except me a
+nobody ever looks at that except me a couple of times I guess to debug and uh
+couple of times I guess to debug and uh one thing to mention is that the you can
+one thing to mention is that the you can see most connections are coming from the
+see most connections are coming from the heightfield topmost overlay because
+heightfield topmost overlay because everything reads from topology all masks
+everything reads from topology all masks almost read from topology but there's
+almost read from topology but there's other connections as
+other connections as well so it's impossible to look at
+well so it's impossible to look at everything but let's just take one mask
+everything but let's just take one mask for example uh this one is called Rock
+for example uh this one is called Rock color it's a utility mask so it's not
+color it's a utility mask so it's not driving a Shader it's just used by other
+driving a Shader it's just used by other things uh so it starts off with Cliff
+things uh so it starts off with Cliff mesh auto paint one thing to notice is
+mesh auto paint one thing to notice is that the auto paint discards anything
+that the auto paint discards anything below the height field because auto
+below the height field because auto paint can also Peak at the height field
+paint can also Peak at the height field and then a bit of blur is added then
+and then a bit of blur is added then slope blur which blurs in the direction
+slope blur which blurs in the direction of
+of slope sort of creating a sort of leaking
+slope sort of creating a sort of leaking effect I guess and then a bit of uh
+effect I guess and then a bit of uh height map is used uh height range is
+height map is used uh height range is used to trim the top off and levels to
+used to trim the top off and levels to for a final tweak so if we follow that
+for a final tweak so if we follow that uh it's used in the color map and it's
+uh it's used in the color map and it's uh looped in one of these
+uh looped in one of these folders and it creates this sort of dark
+folders and it creates this sort of dark and brownish tint effect and adding all
+and brownish tint effect and adding all those folders one by one we can see how
+those folders one by one we can see how they built
+they built it uh really layer by layer
+I won't add them all one by one because it's too long but the final thing the
+it's too long but the final thing the final color map looks like this this is
+final color map looks like this this is a bird's eye view and you can see it's
+a bird's eye view and you can see it's completely procedurally generated
+completely procedurally generated meaning that if anyone changes the
+meaning that if anyone changes the height field anything should reap uh
+height field anything should reap uh instantly in the editor and if other
+instantly in the editor and if other raster depend on the color map they they
+raster depend on the color map they they would get in turn updated so not all
+would get in turn updated so not all levels use a procedural color map uh
+levels use a procedural color map uh sometimes they use satellite imagery
+sometimes they use satellite imagery especially when when the level is based
+especially when when the level is based on the real life location and it's the
+on the real life location and it's the case with this next level which I'm
+case with this next level which I'm going to talk
+about so uh again all material masks are driven from procedural
+driven from procedural operations you can see the plow lines on
+operations you can see the plow lines on the back plowing lines I guess and
+the back plowing lines I guess and there's some curvature going on there
+there's some curvature going on there probably uh so if we take just one uh
+probably uh so if we take just one uh mask one such
+mask one such mask this one
+mask this one is called sorry this one is called uh
+is called sorry this one is called uh snow grass it's kind of snow with a bit
+snow grass it's kind of snow with a bit of grass blades peeking through uh it
+of grass blades peeking through uh it starts off with ambient occlusion as the
+starts off with ambient occlusion as the as its basis and then uh this
+as its basis and then uh this is selection from the color map AR r a
+is selection from the color map AR r a color selection maybe the greens are
+color selection maybe the greens are pulled in for example then uh the river
+pulled in for example then uh the river is removed using a uh height
+is removed using a uh height selection then a bit of flow map water
+selection then a bit of flow map water simulation then uh number of Auto
+simulation then uh number of Auto painted things are removed like roads
+painted things are removed like roads and trees and finally uh artist touchups
+and trees and finally uh artist touchups so this last overlay is where artists
+so this last overlay is where artists can override anything uh say the game
+can override anything uh say the game designer wants some extra cover using
+designer wants some extra cover using mesh cattering for example it can just
+mesh cattering for example it can just be added using brushes
+be added using brushes there the next map I'm going to talk
+there the next map I'm going to talk about is called hourglass and it
+about is called hourglass and it features a city that has been lost to
+features a city that has been lost to send as the result of uh desertification
+send as the result of uh desertification and
+sandstorms so the main feature of the train is obviously sand Junes here and
+train is obviously sand Junes here and before we look into this map uh I want
+before we look into this map uh I want to show you again our road auto paint
+to show you again our road auto paint tool so this is just two intersecting
+tool so this is just two intersecting roads very basic uh let's fix the
+roads very basic uh let's fix the intersection by using a Max blend mode
+intersection by using a Max blend mode which we support between objects on the
+which we support between objects on the same
+same overlay uh making the road width zero
+overlay uh making the road width zero and then making the fallof 100 meters we
+and then making the fallof 100 meters we get this and tweaking the curve of the
+get this and tweaking the curve of the fallof we get this maybe you see where
+fallof we get this maybe you see where this is going it's essentially looking
+this is going it's essentially looking like a sandune right and when I opened
+like a sandune right and when I opened this map this was the first map I opened
+this map this was the first map I opened by the way when they started production
+by the way when they started production and I saw this and I had no idea what
+and I saw this and I had no idea what was going on and it turns out it's 100
+was going on and it turns out it's 100 and hundreds of roads and so I had to
+and hundreds of roads and so I had to call the the the person that thought
+call the the the person that thought about it and Michael Anderson is his
+about it and Michael Anderson is his name and I asked him like isn't it it's
+name and I asked him like isn't it it's fascinating but isn't it a bit
+fascinating but isn't it a bit overkilled to have all these hand place
+overkilled to have all these hand place and he said no it just took me two days
+and he said no it just took me two days and it's actually quite useful because
+and it's actually quite useful because this is a first-person shooter right and
+this is a first-person shooter right and so when you iterate you can get calls
+so when you iterate you can get calls very late in production that are
+very late in production that are basically can you clear this line of
+basically can you clear this line of sight and remove all sandunes and turn
+sight and remove all sandunes and turn turns out you can actually just grab the
+turns out you can actually just grab the sjun and move it or copy it and um again
+sjun and move it or copy it and um again showing like
+showing like how powerful it is to get instant
+how powerful it is to get instant feedback you're not guessing what it
+feedback you're not guessing what it will look like once you run your
+will look like once you run your procedural external DCC you just see it
+procedural external DCC you just see it live and if there's some effects over it
+live and if there's some effects over it you see that as
+you see that as well the next level I'm going to talk
+well the next level I'm going to talk about was made uh with a lot of
+about was made uh with a lot of photogrametry and the studio uh called
+photogrametry and the studio uh called ripple effect that made it found a
+ripple effect that made it found a location that matched the look they were
+location that matched the look they were after so they went out on a field trip
+after so they went out on a field trip probably had tons of fun and collected
+probably had tons of fun and collected uh materials for assets using
+uh materials for assets using photogrametry and they made this uh one
+photogrametry and they made this uh one is the real one one is the frostbite
+is the real one one is the frostbite version and I know because the reference
+version and I know because the reference ball is on a stand in one of the two so
+ball is on a stand in one of the two so pretty
+pretty amazing and here's a trailer internal
+amazing and here's a trailer internal trailer but I guess it's not internal
+trailer but I guess it's not internal anymore if I show
+[Music] it
+[Music] [Applause]
+[Applause] [Music]
+[Music] sh
+[Music] okay so it may be surprising considering
+okay so it may be surprising considering how monochromatic this level is it's the
+how monochromatic this level is it's the desert essentially but it actually has
+desert essentially but it actually has 24 different material layers uh which
+24 different material layers uh which together contribute to create a very
+together contribute to create a very detailed and Rich
+detailed and Rich landscape um there are there are also 15
+landscape um there are there are also 15 utility masks that are defined and as
+utility masks that are defined and as much as 22,000 autopaint Auto painted
+much as 22,000 autopaint Auto painted objects so that would be splines mainly
+objects so that would be splines mainly but also rocks and
+but also rocks and buildings so uh let's look at the height
+buildings so uh let's look at the height field for a change uh if we add every
+field for a change uh if we add every overlay one by one what we see at first
+overlay one by one what we see at first is uh essentially the evolution of the
+is uh essentially the evolution of the level over time as they were changing
+level over time as they were changing major feur features by adding mountains
+major feur features by adding mountains and and things like that this uh meaning
+and and things like that this uh meaning they can just walk back their decision
+they can just walk back their decision since it's all overlays uh and it's
+since it's all overlays uh and it's non-destructive so adding those and then
+non-destructive so adding those and then you get this thing which is uh creating
+you get this thing which is uh creating flow lines in the height field and it's
+flow lines in the height field and it's coming from this mask which is defined
+coming from this mask which is defined using a flow map and uh other things and
+using a flow map and uh other things and then the roads are deleted using
+then the roads are deleted using autopaint or maybe actually a reference
+autopaint or maybe actually a reference to another mask and finally you you have
+to another mask and finally you you have this thing which I'm going to talk about
+this thing which I'm going to talk about so uh remember how this looks it's
+so uh remember how this looks it's adding detail outside of the gameplay
+adding detail outside of the gameplay area essentially and finally Road auto
+area essentially and finally Road auto paint and uh yeah that's it so um this
+paint and uh yeah that's it so um this is a texture that the runtime Shader use
+is a texture that the runtime Shader use at distance to like big boulders
+at distance to like big boulders essentially and what they wanted to do
+essentially and what they wanted to do is um create more details at
+is um create more details at distance they essentially wanted to B
+distance they essentially wanted to B the displacement like you would have at
+the displacement like you would have at a close distance but they wanted to bake
+a close distance but they wanted to bake it in the height field at distance and
+it in the height field at distance and because we used uh our rendering shaders
+because we used uh our rendering shaders they could just copy their R runtime
+they could just copy their R runtime shaders in the in effect and use the
+shaders in the in effect and use the same complex detailing algorithm
+same complex detailing algorithm uh like this and so they could bake it
+uh like this and so they could bake it in like
+in like this and you can show this effect at
+this and you can show this effect at distance where the heightfield is has
+distance where the heightfield is has this nice
+this nice texture all right we made it up to the
+texture all right we made it up to the proteins
+proteins um so when we planned this framework we
+um so when we planned this framework we had the the ambitious goal to have live
+had the the ambitious goal to have live realtime feedback this not only means we
+realtime feedback this not only means we need fast terrain updates but in the
+need fast terrain updates but in the first place we need to know when the
+first place we need to know when the terrain when a change invalidates the
+terrain when a change invalidates the terrain so this can can get pretty
+terrain so this can can get pretty tricky uh for auto pain uh because one
+tricky uh for auto pain uh because one reason is that behavior definitions can
+reason is that behavior definitions can be nested deep into prefabs of prefabs
+be nested deep into prefabs of prefabs so uh we need to track all this in
+so uh we need to track all this in another case it's pretty simple uh for
+another case it's pretty simple uh for example if a brush is applied so let's
+example if a brush is applied so let's look at this case and sort of
+look at this case and sort of Trace um what happens when a brush
+Trace um what happens when a brush stroke is applied so the brush the brush
+stroke is applied so the brush the brush event triggers an update request which
+event triggers an update request which uh which has the ID of the modified
+uh which has the ID of the modified overlay and the impacted World coverage
+overlay and the impacted World coverage and in the editor there is a job queue
+and in the editor there is a job queue so the first thing we need to do is
+so the first thing we need to do is create uh jobs that will refresh the
+create uh jobs that will refresh the modif
+modif terrain uh as you know the back end is a
+terrain uh as you know the back end is a sort of director graph so we start we
+sort of director graph so we start we need to walk from the the overlay where
+need to walk from the the overlay where where the change uh happened and walk to
+where the change uh happened and walk to the end nodes to find what has been
+the end nodes to find what has been modified so from this we can identify a
+modified so from this we can identify a primary primary job which is the raster
+primary primary job which is the raster that owns this overlay you're painting
+that owns this overlay you're painting on but also secondary jobs that are just
+on but also secondary jobs that are just the side effects uh primary Jobs means
+the side effects uh primary Jobs means uh they need to be prior
+uh they need to be prior High to have high priority and secondary
+High to have high priority and secondary job can probably wait a
+job can probably wait a little but wait uh right after the
+little but wait uh right after the paintable there's a blur so let's
+paintable there's a blur so let's suppose what you brushed is this GDC
+suppose what you brushed is this GDC logo the blur is going to spread the
+logo the blur is going to spread the change right so you need probably need
+change right so you need probably need to rebake a bit
+to rebake a bit larger and it would be the case for
+larger and it would be the case for other things like uh curvature any
+other things like uh curvature any kernel filter filter or iterative
+kernel filter filter or iterative processes you would be in the same
+processes you would be in the same situation so how can we fix this well
+situation so how can we fix this well one way which is what we did first again
+one way which is what we did first again is you can just slap an extra 30 meter
+is you can just slap an extra 30 meter everywhere right and it works until the
+everywhere right and it works until the day it doesn't work because someone
+day it doesn't work because someone calls you and says hey your terrain is
+calls you and says hey your terrain is broken look at that and you say oh just
+broken look at that and you say oh just raise it to 100 meters and it still
+raise it to 100 meters and it still works but you're impacting your per
+works but you're impacting your per performance is degrading over time so
+performance is degrading over time so the right way to fix that is that as
+the right way to fix that is that as you're
+you're walking um the pad from the overlay you
+walking um the pad from the overlay you need to add up the spread of uh like how
+need to add up the spread of uh like how much each overlay spreads change in the
+much each overlay spreads change in the case of blur it's very simple it's just
+case of blur it's very simple it's just a radius but it can get pretty tricky
+a radius but it can get pretty tricky like warp uh has a very complex
+like warp uh has a very complex expression and then you get the final
+expression and then you get the final final coverage you actually need to
+final coverage you actually need to refresh so when the jobs are created
+refresh so when the jobs are created once the jobs are created um we don't
+once the jobs are created um we don't immediately insert them in the queue we
+immediately insert them in the queue we try to be smart about it by recycling
+try to be smart about it by recycling existing jobs that just that can just be
+existing jobs that just that can just be extended um for example if you're
+extended um for example if you're brushing on the height field tons of
+brushing on the height field tons of masks are impacted but until you Mouse
+masks are impacted but until you Mouse release we won't process these so while
+release we won't process these so while we push them in a queue we we don't
+we push them in a queue we we don't create tons of fragmented overlapping
+create tons of fragmented overlapping jobs because of this
+jobs because of this simplification and then we just do a
+simplification and then we just do a sort and insert in the queue and we sort
+sort and insert in the queue and we sort by kind of obvious things like frost
+by kind of obvious things like frost them intersection you don't need to
+them intersection you don't need to refresh what you're not looking at uh
+refresh what you're not looking at uh you don't need to refresh uh secondary
+you don't need to refresh uh secondary jobs as fast as primary ones and Camera
+jobs as fast as primary ones and Camera distance and then job execution deserve
+distance and then job execution deserve its own uh section so let's
+its own uh section so let's go so the first thing to mention about
+go so the first thing to mention about Job execution is that we use an external
+Job execution is that we use an external process let's call this uh the train
+process let's call this uh the train update service it's actually sort of
+update service it's actually sort of lightwe frostbite rendering
+lightwe frostbite rendering stack and uh why did we do that sounds
+stack and uh why did we do that sounds like uh asking for trouble well again we
+like uh asking for trouble well again we wanted to leverage our node-based um
+wanted to leverage our node-based um Shader graphs that we have in runtime
+Shader graphs that we have in runtime and we also wanted to not code a whole
+and we also wanted to not code a whole graph engine that we have that gets
+graph engine that we have that gets compiled to bite code in the engine in
+compiled to bite code in the engine in the runtime and finally as I mentioned
+the runtime and finally as I mentioned we wanted to sort of own this Tech and
+we wanted to sort of own this Tech and have it in having it in the runtime
+have it in having it in the runtime sounded like a good idea just to unlock
+sounded like a good idea just to unlock Future ideas like ugc for
+Future ideas like ugc for example so we did that and in the end
+example so we did that and in the end that's what we have on one hand you have
+that's what we have on one hand you have um frosted which has all the world data
+um frosted which has all the world data like auto paint objects their transforms
+like auto paint objects their transforms we have spatial lookup tables to be able
+we have spatial lookup tables to be able to know exactly what needs to be part of
+to know exactly what needs to be part of a bake job and uh train tile data also
+a bake job and uh train tile data also lives there and the rule graph uh is
+lives there and the rule graph uh is generated there and the in the update
+generated there and the in the update service we have built runtime built
+service we have built runtime built version of the graph and the shaders and
+version of the graph and the shaders and we're essentially running a context
+we're essentially running a context agnostic image processing graph
+agnostic image processing graph there
+there so when a job is removed from the queue
+so when a job is removed from the queue to be processed it is uh we sent we send
+to be processed it is uh we sent we send an RPC call that has a number of
+an RPC call that has a number of different
+different informations uh but one thing to
+informations uh but one thing to highlight is that we use GPU share
+highlight is that we use GPU share memory
+memory resources and using this was uh using
+resources and using this was uh using this shared memory was key for us to
+this shared memory was key for us to reduce the friction involved in having
+reduce the friction involved in having those two process talking to one another
+those two process talking to one another um after all train data doesn't need to
+um after all train data doesn't need to leave the GPU you're display it there
+leave the GPU you're display it there but you're also processing it
+but you're also processing it there and when it's done we just send an
+there and when it's done we just send an RPC back with some
+RPC back with some statistics so zooming in on the active
+statistics so zooming in on the active nodes that are in the input RPC data um
+nodes that are in the input RPC data um the editor takes care of caching all the
+the editor takes care of caching all the dependencies between overlays and
+dependencies between overlays and outputs and the other direction so it
+outputs and the other direction so it can provide a list of active nodes that
+can provide a list of active nodes that are needed uh given an output node
+are needed uh given an output node basically and it sends this as part of
+basically and it sends this as part of the
+the information we also need to provide uh
+information we also need to provide uh paintable
+paintable tiles paintable tiles are stored on disk
+tiles paintable tiles are stored on disk so the editor has them and uh they
+so the editor has them and uh they actually live on the in tiles as I
+actually live on the in tiles as I mentioned earlier but they're also laid
+mentioned earlier but they're also laid out on a quad tree and
+out on a quad tree and um so we need to re revisit this uh
+um so we need to re revisit this uh algorithm of spreading change because in
+algorithm of spreading change because in it works works in the other way as well
+it works works in the other way as well if a blur spreads the change it also
+if a blur spreads the change it also needs to read from that same
+needs to read from that same radius so as we walk back from the end
+radius so as we walk back from the end uh we need to add up these look Lookout
+uh we need to add up these look Lookout ranges to get the actual coverage we
+ranges to get the actual coverage we need to bundle the
+need to bundle the tiles uh for and uh what we do is we
+tiles uh for and uh what we do is we push them into GPU memory uh into the
+push them into GPU memory uh into the tiles are push in Tod texture arrays and
+tiles are push in Tod texture arrays and we have an indirection texture that Maps
+we have an indirection texture that Maps the world position to the tile index so
+the world position to the tile index so basically uh the paintable overlays job
+basically uh the paintable overlays job in terms of uh processing is just to on
+in terms of uh processing is just to on indirect I guess produce a flat tile
+indirect I guess produce a flat tile where tiles are not separate
+basically okay uh retrospective and takeaways okay um so there's a very
+takeaways okay um so there's a very important question we can ask ourselves
+important question we can ask ourselves which is how much of the procedural
+which is how much of the procedural content had to be manually repainted by
+content had to be manually repainted by game
+game studios in other words like if what we
+studios in other words like if what we produce is the equivalent of macaroni
+produce is the equivalent of macaroni art and they needed to major surgery to
+art and they needed to major surgery to make it live up to the studio standards
+make it live up to the studio standards uh we failed right so if we look at a
+uh we failed right so if we look at a battlefield map from season one we here
+battlefield map from season one we here are shown three representative
+are shown three representative masks
+masks um and we can see that around 15% are
+um and we can see that around 15% are have touch-ups that's why I'm that's
+have touch-ups that's why I'm that's what I'm toggling on and off here and if
+what I'm toggling on and off here and if we look at season 4 um this is down to
+we look at season 4 um this is down to 1% and the explanation was provided to
+1% and the explanation was provided to me by a studio artist and he said that
+me by a studio artist and he said that as they get more familiar with the
+as they get more familiar with the procedural tool they can express more
+procedural tool they can express more things and more organic looks um and get
+things and more organic looks um and get closer to what they want just with the
+closer to what they want just with the procedural
+procedural tools which is a nice thing to hear
+tools which is a nice thing to hear so I'd like to go over a few design
+so I'd like to go over a few design choices we did to see um how they paid
+choices we did to see um how they paid off or not so the first one is this
+off or not so the first one is this promise that we have which is terrain is
+promise that we have which is terrain is always up to
+always up to date uh again tracking full the full
+date uh again tracking full the full auto Paine chain of dependency uh came
+auto Paine chain of dependency uh came to a cost it's complicated so maybe in
+to a cost it's complicated so maybe in hindsight I would have gone for
+hindsight I would have gone for something like uh Auto pane gets refresh
+something like uh Auto pane gets refresh As you move the object or change the
+As you move the object or change the transform but maybe not if you change a
+transform but maybe not if you change a parameter like three levels deep then
+parameter like three levels deep then you could probably uh suffer a right
+you could probably uh suffer a right click and refresh
+click and refresh object um second uh using frostbite
+object um second uh using frostbite runtime as a service um this obviously
+runtime as a service um this obviously increased our dependencies and it came
+increased our dependencies and it came at a cost because we got sometimes broke
+at a cost because we got sometimes broke by people that don't really know us
+by people that don't really know us being on the tool side so we made a lot
+being on the tool side so we made a lot of friends maybe enemies I don't know uh
+of friends maybe enemies I don't know uh but I think the decision still pays off
+but I think the decision still pays off uh today in new ways for example with
+uh today in new ways for example with what I shown about uh using runtime
+what I shown about uh using runtime shaders as effect
+shaders as effect overlays and finally um the ageold
+overlays and finally um the ageold debate between node Bay versus Slayer ux
+debate between node Bay versus Slayer ux um so in the end obviously levels
+um so in the end obviously levels expected our uh sorry levels went beyond
+expected our uh sorry levels went beyond our expectations of the they they were
+our expectations of the they they were way more complex than we thought they
+way more complex than we thought they would be so um I think we need better
+would be so um I think we need better tools to navigate dependen than just
+tools to navigate dependen than just these little little arrows maybe we need
+these little little arrows maybe we need things like this kind of diagram that I
+things like this kind of diagram that I shown where dependencies are shown at
+shown where dependencies are shown at the rter level not at the overlay level
+the rter level not at the overlay level just to sort of get an overview of what
+just to sort of get an overview of what the level is like or maybe we could go
+the level is like or maybe we could go hybrid and have some rasters be node
+hybrid and have some rasters be node based some others simpler ones could
+based some others simpler ones could stay in the layer
+Paradigm so uh what lies ahead for us um we need better ux and
+we need better ux and that one of the examples of what we need
+that one of the examples of what we need is better presets so effect presets but
+is better presets so effect presets but also full raster presets imagine you
+also full raster presets imagine you have just a a dry grass coming with all
+have just a a dry grass coming with all the full layer stack or maybe biome
+the full layer stack or maybe biome presets even and we want to tailor the
+presets even and we want to tailor the visibility of things to craft meaning
+visibility of things to craft meaning like you can gradually ramp up if you
+like you can gradually ramp up if you are coming on a on a team just to do two
+are coming on a on a team just to do two weeks of painting you don't need need to
+weeks of painting you don't need need to see the whole procedural setup for
+see the whole procedural setup for example um so the maps that I've shown
+example um so the maps that I've shown are obviously not uh large in the sense
+are obviously not uh large in the sense of open world games and we want to
+of open world games and we want to improve our multi-user workflows and
+improve our multi-user workflows and tools and uh improve on large data
+tools and uh improve on large data management and obviously performance uh
+management and obviously performance uh is key so we can there's a lot of
+is key so we can there's a lot of opportunities when where we could do
+opportunities when where we could do smarter caching and have uh for example
+smarter caching and have uh for example higher GPU occupancy the baking is quite
+higher GPU occupancy the baking is quite sequential we're not really uh there are
+sequential we're not really uh there are gaps where the GPU is sort of waiting
+gaps where the GPU is sort of waiting for RPC calls and things like that so we
+for RPC calls and things like that so we could probably improve on that and yeah
+could probably improve on that and yeah so to sum summarize all this we enabled
+so to sum summarize all this we enabled procedural uh training authoring in the
+procedural uh training authoring in the editor by supporting live feedback
+editor by supporting live feedback thanks to powerful gpus and uh our
+thanks to powerful gpus and uh our workflows are non-destructive because we
+workflows are non-destructive because we have overlays and we have Rich World
+have overlays and we have Rich World asset integration using auto paint the
+asset integration using auto paint the train uh procedural rules don't live in
+train uh procedural rules don't live in their own little Silo they're aware of
+their own little Silo they're aware of uh walls and
+uh walls and objects and we support complex data
+objects and we support complex data interaction because we have a node-based
+interaction because we have a node-based backend and all scenarios are possible
+backend and all scenarios are possible uh as long as you don't create Cycles
+uh as long as you don't create Cycles right and uh it's extendable by Tech
+right and uh it's extendable by Tech artist because we're using runtime
+artist because we're using runtime shaders so that's pretty much it uh a
+shaders so that's pretty much it uh a couple of people I want to thank uh Cody
+couple of people I want to thank uh Cody Richie was was there since the beginning
+Richie was was there since the beginning had a lot of foundational idea met all
+had a lot of foundational idea met all made this possible also uh my family uh
+made this possible also uh my family uh they saw me disappear for a month making
+they saw me disappear for a month making these slides and my team obviously
+these slides and my team obviously trained tools Jean V and Sean the whole
+trained tools Jean V and Sean the whole procedural team and the studios
+procedural team and the studios obviously that uh dare to follow us in
+obviously that uh dare to follow us in this crazy adventure and
+this crazy adventure and um that's it I have a small uh farewell
+um that's it I have a small uh farewell outro that I'm going to run now
+[Music] [Applause]
+[Applause] [Music]
+thank you all for coming I appreciate
+coming I appreciate [Music]
+it and we have time for a little Q&A if there are questions hot takes
+anything hello hi oh hello hi uh yeah thank you for the
+oh hello hi uh yeah thank you for the five course meal it was delicious um I
+five course meal it was delicious um I had a question uh regarding uh
+had a question uh regarding uh customization of the pipeline procedural
+customization of the pipeline procedural tools relative to different Studios so
+tools relative to different Studios so different Studios have different
+different Studios have different requirements where you have like PGA
+requirements where you have like PGA they probably want really high level of
+they probably want really high level of quality for individual Tex like tiles
+quality for individual Tex like tiles and probably large tile sizes or
+and probably large tile sizes or something versus Battlefield how
+something versus Battlefield how customizable are those macro parameters
+customizable are those macro parameters uh for the tool set yeah uh so there's
+uh for the tool set yeah uh so there's one answer to that if you're talking
+one answer to that if you're talking about like resolution specifically maybe
+about like resolution specifically maybe not but tile size resolution Tex density
+not but tile size resolution Tex density all the I really uh talk briefly about
+all the I really uh talk briefly about it but like our tile resolution is is so
+it but like our tile resolution is is so all tiles have the same pixel size but
+all tiles have the same pixel size but they're on laid out on a quad tree and
+they're on laid out on a quad tree and you can just refine that
+you can just refine that quadry uh not infinitely of course but
+quadry uh not infinitely of course but like to maybe something like eight
+like to maybe something like eight samples meter um typically what game
+samples meter um typically what game team do is that they have a sort of a uh
+team do is that they have a sort of a uh resolution that that goes lower with
+resolution that that goes lower with distance okay thanks uh did this on uh
+distance okay thanks uh did this on uh reply yeah makes sense
+okay um quick question uh when you guys are bringing in the effects layers or
+are bringing in the effects layers or overlay filters for the artist uh like
+overlay filters for the artist uh like erosion and flow and stuff like that
+erosion and flow and stuff like that what's the level of effort and how long
+what's the level of effort and how long does it take like if an artist comes to
+does it take like if an artist comes to you guys and says I want like sun
+you guys and says I want like sun direction or something like that or like
+direction or something like that or like is it a huge effort for you guys to pull
+is it a huge effort for you guys to pull in those filters or no not really
+in those filters or no not really actually um no it probably I mean it's
+actually um no it probably I mean it's it's really using our runtime Tech so
+it's really using our runtime Tech so it's as quick as making a Shader which
+it's as quick as making a Shader which is probably around half a day I would
+is probably around half a day I would say but obviously it depends on the
+say but obviously it depends on the effect but half a day is the typical
+effect but half a day is the typical time I've seen to come up with a the new
+time I've seen to come up with a the new Shader um they were all made by one of
+Shader um they were all made by one of our Tech artists Mo like all the ones in
+our Tech artists Mo like all the ones in the default library and he always comes
+the default library and he always comes up with new ones and uh so the the
+up with new ones and uh so the the response time pretty quick I would say
+response time pretty quick I would say so how many how many of those effects
+so how many how many of those effects layers would you guys have or filters to
+layers would you guys have or filters to choose from oh the presets I would say
+choose from oh the presets I would say like I would say 30 maybe okay not
+like I would say 30 maybe okay not probably not as much as a fully
+probably not as much as a fully dedicated like procedural train DCC uh
+dedicated like procedural train DCC uh we're not there yet like erosion is not
+we're not there yet like erosion is not like on par with the the the highend I
+like on par with the the the highend I would say uh but that's not where the
+would say uh but that's not where the the value is uh I mean there there would
+the value is uh I mean there there would be obviously value than having like
+be obviously value than having like top-notch erosion we're working on it
+top-notch erosion we're working on it actually but where the the value is is
+actually but where the the value is is iterating with like objects and things
+iterating with like objects and things like that like level design not your
+like that like level design not your foundational height field you know
+foundational height field you know yeah
+yeah hi whoa that's a lot louder than I
+hi whoa that's a lot louder than I thought it'd be hi I'm Sasha Chon from
+thought it'd be hi I'm Sasha Chon from Ben studio um I have a question on kind
+Ben studio um I have a question on kind of the initial setup of this process so
+of the initial setup of this process so you said that you maybe were considering
+you said that you maybe were considering Houdini and setting up these tools
+Houdini and setting up these tools beforehand but then decided to switch
+beforehand but then decided to switch entirely to doing it all in house on
+entirely to doing it all in house on your own home brew engine yes I got this
+your own home brew engine yes I got this right
+right well we didn't I I what I said is like
+well we didn't I I what I said is like this would be one way typical way to go
+this would be one way typical way to go like using Houdini of course uh we but
+like using Houdini of course uh we but we really wanted this sort of live
+we really wanted this sort of live feedback experience so it wasn't really
+feedback experience so it wasn't really a hesitation as far as you
+a hesitation as far as you know okay but you did like most of your
+know okay but you did like most of your tools like you've built them inside your
+tools like you've built them inside your engine um and I could see you wanted the
+engine um and I could see you wanted the live feedback I'm just thinking like
+live feedback I'm just thinking like this probably took a lot of time for
+this probably took a lot of time for like programmers to make the nodes to
+like programmers to make the nodes to make this possible so given the timeline
+make this possible so given the timeline of
+of things where did the tool generation
+things where did the tool generation come in when the programmers like
+come in when the programmers like potentially might have had made those
+potentially might have had made those nodes like did you have them at the
+nodes like did you have them at the ready or did you have to go back and
+ready or did you have to go back and forth between them so the the nodes to
+forth between them so the the nodes to be clear the nodes were first of all not
+be clear the nodes were first of all not the most time expensive
+the most time expensive thing to code really not actually cuz
+thing to code really not actually cuz again we're using the runtime Shader
+again we're using the runtime Shader node Tech and Tech the nodes were not
+node Tech and Tech the nodes were not made by programmers they were made by
+made by programmers they were made by mostly One tech artist honestly and
+mostly One tech artist honestly and um so yeah that was really not the the
+um so yeah that was really not the the the the most complicated part the most
+the the most complicated part the most complicated part was the sort of
+complicated part was the sort of interprocess you know uh navigation like
+interprocess you know uh navigation like having this an external process and then
+having this an external process and then we were kind of outliers being on the
+we were kind of outliers being on the tool side using rendering side so that
+tool side using rendering side so that was most where most the friction was not
+was most where most the friction was not creating the effects themselves honestly
+creating the effects themselves honestly uh obviously some are more harder like
+uh obviously some are more harder like water simulation and things like that
+water simulation and things like that but even those would be maybe five days
+but even those would be maybe five days I don't know um again is we're talking
+I don't know um again is we're talking about maybe 30 effects so overall not
+about maybe 30 effects so overall not the that's not where the the battle was
+the that's not where the the battle was okay yeah cuz
+okay yeah cuz um a lot of companies and a lot of like
+um a lot of companies and a lot of like places that I've made games that usually
+places that I've made games that usually like make most of their Tools in Houdini
+like make most of their Tools in Houdini so I was just like trying to see like
+so I was just like trying to see like the benefit and like just completely
+the benefit and like just completely like going full scale into your engine
+like going full scale into your engine and abandoning Houdini except for like
+and abandoning Houdini except for like for some small yeah but uh yeah no good
+for some small yeah but uh yeah no good question uh but again we're not
+question uh but again we're not abandoning it like what I mean is like
+abandoning it like what I mean is like it's still tering data is still there
+it's still tering data is still there for grab for grabs for Houdini for
+for grab for grabs for Houdini for example and it in some levels uh I had
+example and it in some levels uh I had to cut some slides but some levels have
+to cut some slides but some levels have Houdini uh setups like the the last one
+Houdini uh setups like the the last one I shown uh read the heightfield to
+I shown uh read the heightfield to generate flow line uh flow spline deal
+generate flow line uh flow spline deal uh roads and hudini is still involved in
+uh roads and hudini is still involved in a lot of places but we just sort of
+a lot of places but we just sort of grabbed one aspect that is usually made
+grabbed one aspect that is usually made through Houdini and we brought it back
+through Houdini and we brought it back for yeah all the reasons I said
+for yeah all the reasons I said earlier okay cool thank
+earlier okay cool thank you hello
+you hello regarding the 1% or 15% case of people
+regarding the 1% or 15% case of people that had to do manual modifications to
+that had to do manual modifications to something after using the procedural
+something after using the procedural tools how did that affect the procedural
+tools how did that affect the procedural workflow did their manual changes get
+workflow did their manual changes get blown away if they needed to make more
+blown away if they needed to make more procedural changes or what happened no
+procedural changes or what happened no because that's the thing the they they
+because that's the thing the they they always had this topmost
+always had this topmost overlay uh that is called like artist
+overlay uh that is called like artist input or something like that and that's
+input or something like that and that's where the changes the manual changes
+where the changes the manual changes were done so that that's the whole point
+were done so that that's the whole point actually of being nondestructive because
+actually of being nondestructive because if you changed whatever like the your
+if you changed whatever like the your auto paint Shader uh touch ups would
+auto paint Shader uh touch ups would still be there uh and only affect those
+still be there uh and only affect those areas you you you painted manually all
+areas you you you painted manually all the rest was still you know free to move
+the rest was still you know free to move uh thank
+uh thank you hi there uh thanks for the talk uh
+you hi there uh thanks for the talk uh it was great um wondering um you know it
+it was great um wondering um you know it sounds like you have a lot of overlays
+sounds like you have a lot of overlays and a lot of textures a lot of materials
+and a lot of textures a lot of materials and Stu like that um where do those fit
+and Stu like that um where do those fit in memory how do you deal with those
+in memory how do you deal with those both in the editor and in runtime uh
+both in the editor and in runtime uh like how do you manage all that I'm sure
+like how do you manage all that I'm sure you can't go into detail but just
+you can't go into detail but just curious like what's our some strategies
+curious like what's our some strategies um it it all just works
+um it it all just works no no seriously I mean uh okay so you
+no no seriously I mean uh okay so you just like throw it all at the GPU and
+just like throw it all at the GPU and off what do you me okay so in that from
+off what do you me okay so in that from that angle no obviously it's not all on
+that angle no obviously it's not all on the GPU yeah yeah so we have pull you
+the GPU yeah yeah so we have pull you know a budget on GPU and like if you're
+know a budget on GPU and like if you're brushing like those style around where
+brushing like those style around where you're brushing will stay on the GPU but
+you're brushing will stay on the GPU but if you move around and you're brushing
+if you move around and you're brushing everywhere uh we we we notice we're
+everywhere uh we we we notice we're missing some tiles and we remove some
+missing some tiles and we remove some from the GPU it's kind of that simple I
+from the GPU it's kind of that simple I see so so like what's in memory
+see so so like what's in memory typically like when you're not editing
+typically like when you're not editing is just the last layer like the final
+is just the last layer like the final kind of compressed layer is that like
+kind of compressed layer is that like how it usually or a few layers and the
+how it usually or a few layers and the The Source materials are kind of uh the
+The Source materials are kind of uh the not in memory uh okay uh so all the
+not in memory uh okay uh so all the paintable tiles need to be in GPU memory
+paintable tiles need to be in GPU memory yeah but the non- paintable overlays
+yeah but the non- paintable overlays like Auto pain and effects these are all
+like Auto pain and effects these are all sort of you know done just in time in in
+sort of you know done just in time in in that update service we have and they're
+that update service we have and they're they're Epal is that a
+they're Epal is that a word so they you know but the paintable
+word so they you know but the paintable ones need to be in GPU because uh
+ones need to be in GPU because uh they're controlled from the editor
+they're controlled from the editor um and we actually want move this uh to
+um and we actually want move this uh to the to that service they don't really
+the to that service they don't really need to be in the editor the brushing
+need to be in the editor the brushing happens in the editor but that's just a
+happens in the editor but that's just a legacy thing honestly because we would
+legacy thing honestly because we would want the brushing to be fully done on
+want the brushing to be fully done on the GPU in that service uh but we didn't
+the GPU in that service uh but we didn't have time yet all right thank
+have time yet all right thank you hey thank you great talk um I'm
+you hey thank you great talk um I'm curious own the resources on the GPU and
+curious own the resources on the GPU and then the the external process uh is able
+then the the external process uh is able to access the same resources
+to access the same resources uh to avoid duplication could you
+uh to avoid duplication could you explain more about the technology that
+explain more about the technology that allows this so there is such a thing as
+allows this so there is such a thing as GPU shared memory like at the OS level
+GPU shared memory like at the OS level that exists I I I had to Google it when
+that exists I I I had to Google it when five years ago and uh we actually stress
+five years ago and uh we actually stress it so much that they had to fix bugs in
+it so much that they had to fix bugs in the drivers because we're like you're
+the drivers because we're like you're brushing and it's
+brushing and it's like and um and that's basically it you
+like and um and that's basically it you know uh so again like we upload what
+know uh so again like we upload what needs to be in the GPU memory only and
+needs to be in the GPU memory only and that is uh like scent but only the
+that is uh like scent but only the handle is sent right it's a noest handle
+handle is sent right it's a noest handle that is sent on the RPC call and using
+that is sent on the RPC call and using uh you know acquire and releases we
+uh you know acquire and releases we coordinate that buffer that is shared
+coordinate that buffer that is shared between the two processes okay thank you
+between the two processes okay thank you hey final question here um so you
+hey final question here um so you mentioned the use of satellite imagery
+mentioned the use of satellite imagery to some extent in in the within
+to some extent in in the within frostbite and and you know this emphasis
+frostbite and and you know this emphasis on hyperrealism these beautiful scenes
+on hyperrealism these beautiful scenes that look so real um I wonder to what
+that look so real um I wonder to what extent you've used geospacial data
+extent you've used geospacial data within your own workflows to create
+within your own workflows to create scenes to make more realistic uh good
+scenes to make more realistic uh good question so the the interesting thing
+question so the the interesting thing about uh battlefield for example if we
+about uh battlefield for example if we take the I I mentioned PGA sport was lar
+take the I I mentioned PGA sport was lar data so that that that is uh easily
+data so that that that is uh easily explained Battlefield uh they were a bit
+explained Battlefield uh they were a bit Freer in terms of what they could
+Freer in terms of what they could experiment with so some maps are based
+experiment with so some maps are based from uh again I I'm a programmer I'm not
+from uh again I I'm a programmer I'm not a tech artist so I this is just my best
+a tech artist so I this is just my best uh not my best guess because I know a
+uh not my best guess because I know a bit about it but some maps were made
+bit about it but some maps were made using uh like the last one I I shown a
+using uh like the last one I I shown a bit of satellite data uh photogrametry
+bit of satellite data uh photogrametry and uh liar I don't know I'm sorry but
+and uh liar I don't know I'm sorry but um they they they had really varied
+um they they they had really varied approaches there's not one uh I think
+approaches there's not one uh I think they they're actually coming up with
+they they're actually coming up with probably more unified approach as they
+probably more unified approach as they learn the tools but uh for Kingston it
+learn the tools but uh for Kingston it was you know different setups per level
+was you know different setups per level interesting thank
+you okay thank you very [Applause]
+[Music]
+much

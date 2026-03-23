@@ -1,0 +1,565 @@
+[Music] again I'm Graham Rhodes and I'll be
+again I'm Graham Rhodes and I'll be talking about implicit geometry I don't
+talking about implicit geometry I don't know how many of you are familiar with
+know how many of you are familiar with this idea there have been a couple of
+this idea there have been a couple of talks earlier today that have have shown
+talks earlier today that have have shown uses of implicit geometry they do show
+uses of implicit geometry they do show up in games and in various places how
+up in games and in various places how many I just want to find out how many of
+many I just want to find out how many of you know or knew before you came here
+you know or knew before you came here today what what is meant by implicit
+today what what is meant by implicit geometry okay I figured some of you that
+geometry okay I figured some of you that had seen this before
+had seen this before deed so what I want to do the first
+deed so what I want to do the first slide here I'm just going to show a few
+slide here I'm just going to show a few examples probably every one of you have
+examples probably every one of you have seen Mehta balls on this idea of having
+seen Mehta balls on this idea of having these kind of spheres in space that when
+these kind of spheres in space that when they get close to each other they they
+they get close to each other they they morph together this is one example of an
+morph together this is one example of an implicit geometry you don't just have an
+implicit geometry you don't just have an equation that tells you the shape of
+equation that tells you the shape of this thing it comes together because of
+this thing it comes together because of the the way these things are defined in
+the the way these things are defined in space another example here that you do
+space another example here that you do see in games is the use of implicit
+see in games is the use of implicit surfaces to generate the fluid geometry
+surfaces to generate the fluid geometry when you have like a water splashing
+when you have like a water splashing water in the game things like that the
+water in the game things like that the fluid is solved in the background and
+fluid is solved in the background and then there's some technique for
+then there's some technique for extracting a geometry to draw it another
+extracting a geometry to draw it another example that is some that you may have
+example that is some that you may have seen in in in some on some occasion is
+seen in in in some on some occasion is the use of potential flow fields to do
+the use of potential flow fields to do crowd pathfinding to avoid obstacles and
+crowd pathfinding to avoid obstacles and reach a target and this is done by again
+reach a target and this is done by again solving of solving a fluid flow and then
+solving of solving a fluid flow and then extracting the shape of the path from
+extracting the shape of the path from that fluid flow so I want to give you
+that fluid flow so I want to give you this the basic idea is that you have
+this the basic idea is that you have some kind of a field function that's
+some kind of a field function that's defined everywhere in space
+defined everywhere in space and once you've once you've evaluated
+and once you've once you've evaluated the field based on this this field
+the field based on this this field function you pick a threshold value that
+function you pick a threshold value that defines the geometry you want to extract
+defines the geometry you want to extract from it
+from it and I've got the thing down there using
+and I've got the thing down there using magic to extract the level set well
+magic to extract the level set well you're not really going to use magic
+you're not really going to use magic they're just different techniques that
+they're just different techniques that you would use to extract it
+you would use to extract it you can depending on the way the field
+you can depending on the way the field is defined you can you can easily rate
+is defined you can you can easily rate race these things or you can use
+race these things or you can use geometric techniques to get real
+geometric techniques to get real polygons out of the field or lines out
+polygons out of the field or lines out of the field to make a shape so a couple
+of the field to make a shape so a couple of different examples there for pulling
+of different examples there for pulling polygons out or marching cubes or
+polygons out or marching cubes or marching tetrahedra different variations
+marching tetrahedra different variations of that another technique is to use a
+of that another technique is to use a sort of related but to use an octree to
+sort of related but to use an octree to figure out where you have function
+figure out where you have function values and where where it's inside and
+values and where where it's inside and where it's outside of your threshold
+where it's outside of your threshold value so I'm interested in modeling with
+value so I'm interested in modeling with implicit surface it's not so much
+implicit surface it's not so much drawing or ray tracing but how do we get
+drawing or ray tracing but how do we get geometry out of these things and how can
+geometry out of these things and how can we how can we use them so what kind of a
+we how can we use them so what kind of a function makes sense so here's some
+function makes sense so here's some examples we already that we already
+examples we already that we already talked about the fluid flow simulation
+talked about the fluid flow simulation where you might be extracting a surface
+where you might be extracting a surface based on fluid density to represent at
+based on fluid density to represent at the boundary between air and water you
+the boundary between air and water you could generate a noise function which
+could generate a noise function which would perhaps enable you to extract this
+would perhaps enable you to extract this the shape of clouds that you could then
+the shape of clouds that you could then send into your renderer to draw
+send into your renderer to draw volumetric clouds you could use an
+volumetric clouds you could use an implicit surface for carving geometry
+implicit surface for carving geometry out of a block or adding material for a
+out of a block or adding material for a voxel rendering and you would use an
+voxel rendering and you would use an implicit surface to kind of model the
+implicit surface to kind of model the material density Jim already showed an
+material density Jim already showed an example of using a signed business field
+example of using a signed business field for rendering simple shapes
+for rendering simple shapes and you could as well just have a
+and you could as well just have a texture that has things in it that you
+texture that has things in it that you want to extract so if you're trying to
+want to extract so if you're trying to do computer vision on a photograph to
+do computer vision on a photograph to extract shapes out of it you could you
+extract shapes out of it you could you could do that as well but what I'm going
+could do that as well but what I'm going to talk about here is how do we
+to talk about here is how do we construct an implicit and filled using
+construct an implicit and filled using kernel functions and the currently
+kernel functions and the currently kernel function is really a collection
+kernel function is really a collection that's continuous throughout space so
+that's continuous throughout space so that we can add we can we can place them
+that we can add we can we can place them at different places in the field and
+at different places in the field and they add together to give us a
+they add together to give us a continuous field function and I don't
+continuous field function and I don't think I'm going to go through and show
+think I'm going to go through and show you a few examples on this one this one
+you a few examples on this one this one is assigned distance field for a circle
+is assigned distance field for a circle or sphere and you can see it's
+or sphere and you can see it's discontinuous in the center and it's
+discontinuous in the center and it's linear away from the center now one
+linear away from the center now one thing about this function is it's
+thing about this function is it's unbounded so it goes to infinity at an
+unbounded so it goes to infinity at an infinite distance away from the radius
+infinite distance away from the radius that can be advantageous as we'll see in
+that can be advantageous as we'll see in in a minute but it being discontinuous
+in a minute but it being discontinuous at the center is is not really desirable
+at the center is is not really desirable another one is the bi-harmonic radial
+another one is the bi-harmonic radial basis function now this one too is
+basis function now this one too is unbounded it goes to infinity at an
+unbounded it goes to infinity at an infinite distance from the center but
+infinite distance from the center but it's continuous so so that's that's
+it's continuous so so that's that's advantageous compared to the asan
+advantageous compared to the asan business field for general smooth
+business field for general smooth function building now this one here is
+function building now this one here is the Gaussian distribution unlike the
+the Gaussian distribution unlike the other two this one is bounded so it
+other two this one is bounded so it doesn't go to infinity at infinity or at
+doesn't go to infinity at infinity or at the at the center and in a way this is
+the at the center and in a way this is kind of an intuitive one because if you
+kind of an intuitive one because if you were to add to these together if I were
+were to add to these together if I were to put another example of this function
+to put another example of this function off to the side then you can you can
+off to the side then you can you can imagine what it would look like and it
+imagine what it would look like and it would look like this so if we have three
+would look like this so if we have three of those Carnales placed in space and we
+of those Carnales placed in space and we add in two
+add in two together then you get something that
+together then you get something that looks like that and that's very much
+looks like that and that's very much what the metabolic like this isn't the
+what the metabolic like this isn't the function that's typically used for
+function that's typically used for metabolic aynd of get that that shape
+metabolic aynd of get that that shape now the fact that this thing is the fact
+now the fact that this thing is the fact that this thing is bounded and its
+that this thing is bounded and its effect kind of makes it not as useful as
+effect kind of makes it not as useful as you might think while it's pretty
+you might think while it's pretty intuitive to to model things with you
+intuitive to to model things with you know you kind of know what you're gonna
+know you kind of know what you're gonna get intuitively here if you had a bunch
+get intuitively here if you had a bunch of scattered points you're just gonna
+of scattered points you're just gonna end up with something that looks like
+end up with something that looks like this it's not going to give you a
+this it's not going to give you a function that's very interesting across
+function that's very interesting across the entire field it's not good for
+the entire field it's not good for gap-filling it's not good for fitting a
+gap-filling it's not good for fitting a function to scatter data for example
+function to scatter data for example whereas the functions that that are
+whereas the functions that that are unbounded that have on infinite support
+unbounded that have on infinite support those are better for filling gaps if I
+those are better for filling gaps if I have scattered points then I can fit a
+have scattered points then I can fit a function that will interpolate all of
+function that will interpolate all of the points and it will give me a smooth
+the points and it will give me a smooth function that doesn't have any holes in
+function that doesn't have any holes in it this one if we tried to if we had
+it this one if we tried to if we had scattered points on the boundary of a
+scattered points on the boundary of a circle for example then not only would
+circle for example then not only would we not
+we not you know we wouldn't fill the gaps in
+you know we wouldn't fill the gaps in between the points we'd end up with this
+between the points we'd end up with this kind of oscillating thing that goes
+kind of oscillating thing that goes around and it would really really
+around and it would really really wouldn't like it look like a circle but
+wouldn't like it look like a circle but were the ones that have that infinite
+were the ones that have that infinite support they're gonna fill in the gaps
+support they're gonna fill in the gaps so we get a much better surface that
+so we get a much better surface that fits all these scattered points so
+fits all these scattered points so looking back at the other two the ones
+looking back at the other two the ones that didn't that were unbounded or had
+that didn't that were unbounded or had infant support this was the this is
+infant support this was the this is three instances of the signed distance
+three instances of the signed distance field added together and you can see how
+field added together and you can see how they do kind of nicely interpolate
+they do kind of nicely interpolate across those three points and the same
+across those three points and the same thing happens here with the with the BA
+thing happens here with the with the BA harmonic radial basis function it
+harmonic radial basis function it smoothly interpolates across those
+smoothly interpolates across those points it kind of fills the gaps nicely
+points it kind of fills the gaps nicely and gives us a smooth function now by
+and gives us a smooth function now by the way these are called radial basis
+the way these are called radial basis functions because they are they're a
+functions because they are they're a function only on the distance from the
+function only on the distance from the field point that you're evaluating and
+field point that you're evaluating and the center of the
+the center of the particular Colonel so we can use these
+particular Colonel so we can use these functions then to build things that are
+functions then to build things that are beyond blobbies that rebel on beyond
+beyond blobbies that rebel on beyond meta balls we can take scattered point
+meta balls we can take scattered point data put these kernels at appropriate
+data put these kernels at appropriate points in in the field and then
+points in in the field and then formulate a set of equations to figure
+formulate a set of equations to figure out how strong they need to be and that
+out how strong they need to be and that will give us a smooth function that kind
+will give us a smooth function that kind of nicely interpolates our scattered
+of nicely interpolates our scattered data now I want to talk about I'll give
+data now I want to talk about I'll give you some references at the end they go
+you some references at the end they go into more detail about that process
+into more detail about that process about the kind of historical approaches
+about the kind of historical approaches that have that have been used to to go
+that have that have been used to to go about doing that but I want to show you
+about doing that but I want to show you one example in this example is an
+one example in this example is an experiment that I've been doing with
+experiment that I've been doing with mixed success but I'm going to show you
+mixed success but I'm going to show you a specific way to do this to take these
+a specific way to do this to take these to take some set of points to figure out
+to take some set of points to figure out what the kernel strengths are and then
+what the kernel strengths are and then to evaluate it to to look at that
+to evaluate it to to look at that function that we get in the end and the
+function that we get in the end and the particular thing that I'm interested in
+particular thing that I'm interested in is is using fluid modeling modeling the
+is is using fluid modeling modeling the flow relative to surfaces to to model
+flow relative to surfaces to to model this geometry my background actually I I
+this geometry my background actually I I was trained as an aerospace engineer so
+was trained as an aerospace engineer so this is something that I've used a lot
+this is something that I've used a lot in in the engineering world and I was
+in in the engineering world and I was interested in you and looking at how it
+interested in you and looking at how it might be applicable to just general
+might be applicable to just general surface modeling or modeling of a field
+surface modeling or modeling of a field relative to some control surface so this
+relative to some control surface so this this example is specific to a different
+this example is specific to a different kernel function than the one that I've
+kernel function than the one that I've showed you earlier so the reason that
+showed you earlier so the reason that implicit our potential flows is what I'm
+implicit our potential flows is what I'm going to be talking about here potential
+going to be talking about here potential flows are interesting just because
+flows are interesting just because they're mathematically
+they're mathematically um elegant the the the governing
+um elegant the the the governing equation for a potential flow is
+equation for a potential flow is Laplace's equation that's equivalent to
+Laplace's equation that's equivalent to the conservation of mass and it it can
+the conservation of mass and it it can be represented compactly in that form
+be represented compactly in that form down below where I don't know if you're
+down below where I don't know if you're seeing the cursor or not but no you're
+seeing the cursor or not but no you're not seeing it but I'll show you what
+not seeing it but I'll show you what that del operator is in a minute but the
+that del operator is in a minute but the field function fee is a velocity
+field function fee is a velocity potential it represents basically the
+potential it represents basically the potential the derivative of that the
+potential the derivative of that the derivative of that represents the
+derivative of that represents the velocity at a point in the integral the
+velocity at a point in the integral the integral of velocity represents the
+integral of velocity represents the change in velocity potential from one
+change in velocity potential from one point to the other I'm not going to try
+point to the other I'm not going to try to explain that too much but this
+to explain that too much but this happens to be a linear PDE a partial
+happens to be a linear PDE a partial differential equation and so the
+differential equation and so the principle of superfish superposition
+principle of superfish superposition applies if I add these if I add velocity
+applies if I add these if I add velocity potential kernel functions in the field
+potential kernel functions in the field in the summer a summation of those will
+in the summer a summation of those will automatically satisfy that continuity
+automatically satisfy that continuity equation so any any combination of those
+equation so any any combination of those kernel functions that satisfies a
+kernel functions that satisfies a particular set of boundary conditions
+particular set of boundary conditions that I add will be a potential flow that
+that I add will be a potential flow that satisfies that physics equation so we
+satisfies that physics equation so we can actually design the field using
+can actually design the field using these kernels now I want to show you two
+these kernels now I want to show you two potential flow kernel functions one is a
+potential flow kernel functions one is a 3d point source and this function here
+3d point source and this function here is the equation for the potential in the
+is the equation for the potential in the field you can see that it is
+field you can see that it is discontinuous at the at the center of
+discontinuous at the at the center of the kernel and we're just not going to
+the kernel and we're just not going to worry about that it's it's it's
+worry about that it's it's it's unbounded at at the origin
+but it goes to zero at infinity so kind of like the Gaussian function the fact
+of like the Gaussian function the fact that it goes to zero infinity
+that it goes to zero infinity probably means this one isn't a very
+probably means this one isn't a very good one for modeling for interpolate
+good one for modeling for interpolate general surfaces because we're not going
+general surfaces because we're not going to feel gaps between if we just have
+to feel gaps between if we just have these scattered points we're not going
+these scattered points we're not going to fill any gap so I'm gonna have a
+to fill any gap so I'm gonna have a bunch of a bunch of holes in the surface
+but I wanted to show you that because I can I can because I can show you how
+can I can because I can show you how that relates to a flow so the derivative
+that relates to a flow so the derivative the the potential is a velocity
+the the potential is a velocity potential the derivative of it the
+potential the derivative of it the gradient of it is the direction of an
+gradient of it is the direction of an imparted it's the direction of the flow
+imparted it's the direction of the flow velocity at that point so the potential
+velocity at that point so the potential source basically it's as it's feeding
+source basically it's as it's feeding it's as if it's as if it is feeding
+it's as if it's as if it is feeding fluid or mass into the field radially
+fluid or mass into the field radially away from the point and the the strength
+away from the point and the the strength of the the the strength of the element
+of the the the strength of the element is basically the the massive volume that
+is basically the the massive volume that flows away from the point per unit time
+flows away from the point per unit time now if we take the derivative of that of
+now if we take the derivative of that of that particular function then we get the
+that particular function then we get the velocity down that you see at the bottom
+velocity down that you see at the bottom there I will I will explain while I'm
+there I will I will explain while I'm talking about velocity when I get before
+talking about velocity when I get before I get to the end of the talk but since
+I get to the end of the talk but since this thing is unbounded at infinity it's
+this thing is unbounded at infinity it's not going to be very good for kind of
+not going to be very good for kind of filling in gaps and scattered in a
+filling in gaps and scattered in a scatter point field so I'm not really
+scatter point field so I'm not really interested in using this one but if we
+interested in using this one but if we look at this in 2d that prior one was
+look at this in 2d that prior one was for a 3d source if we look at it in 2d
+for a 3d source if we look at it in 2d the potential is very different and I'm
+the potential is very different and I'm not going to go into the into why here
+not going to go into the into why here if you're if you want to know why it's
+if you're if you want to know why it's different in 2d ask me afterwards and
+different in 2d ask me afterwards and I'll explain it to you it's actually
+I'll explain it to you it's actually pretty easy but I'm I'm trying to
+pretty easy but I'm I'm trying to somewhat avoid the physics of it but in
+somewhat avoid the physics of it but in this case we've got a natural log which
+this case we've got a natural log which is
+is to go to infinity at an infinite
+to go to infinity at an infinite distance so this one is better for kind
+distance so this one is better for kind of modeling scattered points or a sparse
+of modeling scattered points or a sparse collection of control geometry now the
+collection of control geometry now the potential the the the first equation
+potential the the the first equation there is the is the potential for a
+there is the is the potential for a single point but we can also consider
+single point but we can also consider this to be a constant strength across
+this to be a constant strength across the line segment so we're actually
+the line segment so we're actually admitting values away from the line
+admitting values away from the line segment instead of just from a single
+segment instead of just from a single point and that's a little bit of a more
+point and that's a little bit of a more complicated equation it's got a couple
+complicated equation it's got a couple of logarithms in there and it's got an
+of logarithms in there and it's got an arc tangent so it's it's expensive we
+arc tangent so it's it's expensive we can we can deal with that later but
+can we can deal with that later but that's what the function looks like and
+that's what the function looks like and when we take the derivative of that we
+when we take the derivative of that we get velocity components that look like
+get velocity components that look like that second equation there and in this
+that second equation there and in this case just to tell you what the geometry
+case just to tell you what the geometry is the the source is this line segment
+is the the source is this line segment that goes from point one to point two
+that goes from point one to point two I'm evaluating it at that field point
+I'm evaluating it at that field point that's located at the other end of the R
+that's located at the other end of the R one vector the R vectors are just the
+one vector the R vectors are just the points from the the ends of the of the
+points from the the ends of the of the the source segment to that field point
+the source segment to that field point and the two unit directions are u which
+and the two unit directions are u which is along the axis of the element and in
+is along the axis of the element and in is normal to the element and while I'm
+is normal to the element and while I'm presenting the 2d equations here there
+presenting the 2d equations here there is an equivalent closed source form for
+is an equivalent closed source form for a 3d source that can be placed on a
+a 3d source that can be placed on a polygonal element so it's this extends
+polygonal element so it's this extends naturally to 3d and when I began working
+naturally to 3d and when I began working on this talk I kind of I really had this
+on this talk I kind of I really had this idea that that I could I could do
+idea that that I could I could do something very cool using the flow
+something very cool using the flow around meshes to generate a field
+around meshes to generate a field function and that's what I did and the
+function and that's what I did and the idea here is to use something like a
+idea here is to use something like a handcrafted mesh as a support and then
+handcrafted mesh as a support and then build a field away from that mesh
+build a field away from that mesh on so if we look at this here then if we
+on so if we look at this here then if we put a source on each element of each
+put a source on each element of each polygon of the mesh and give each one a
+polygon of the mesh and give each one a unique strength then we can we can
+unique strength then we can we can evaluate initially holding the string
+evaluate initially holding the string theory unity we can evaluate the
+theory unity we can evaluate the influence of one triangle on any other
+influence of one triangle on any other point in the field and if we choose
+point in the field and if we choose those points to be basically the
+those points to be basically the midpoint of the other cells we can get
+midpoint of the other cells we can get the influence of each source on all of
+the influence of each source on all of the other sources and that will give us
+the other sources and that will give us a set of equations so looking at that's
+a set of equations so looking at that's that V 1 Star with V 1 star being the
+that V 1 Star with V 1 star being the total potential at the centre of polygon
+total potential at the centre of polygon 1 then it's going to be equal to the
+1 then it's going to be equal to the strength of polygon 1 times the
+strength of polygon 1 times the influence of the polygon on itself plus
+influence of the polygon on itself plus the strength of polygon the strength of
+the strength of polygon the strength of element 2 times the influence of polygon
+element 2 times the influence of polygon two on polygon 1 etc if we build that
+two on polygon 1 etc if we build that equation for every polygon on the mesh
+equation for every polygon on the mesh and we have a set of equations that we
+and we have a set of equations that we can solve to get the source drinks
+can solve to get the source drinks needed to create a realistic flow
+needed to create a realistic flow relative to that geometry one that will
+relative to that geometry one that will make that entire geometry be a source
+make that entire geometry be a source from which we can omit flow if we want
+from which we can omit flow if we want to or just evaluate the ISO service to
+to or just evaluate the ISO service to you know it's some relative distance to
+you know it's some relative distance to get some geometry around it so this is
+get some geometry around it so this is what that equation looks like when we
+what that equation looks like when we put it into matrix form it's basically a
+put it into matrix form it's basically a linear system and what we're doing here
+linear system and what we're doing here is we're applying something called
+is we're applying something called garishly boundary conditions and this is
+garishly boundary conditions and this is the case where we're directly specifying
+the case where we're directly specifying the value of the field we really want
+the value of the field we really want the the surface of the geometry to
+the the surface of the geometry to become an isosurface and then any if we
+become an isosurface and then any if we if we evaluate the you know if it works
+if we evaluate the you know if it works out perfectly if we evaluate this
+out perfectly if we evaluate this at that same field value then we'll get
+at that same field value then we'll get the geometry of the surface but if we
+the geometry of the surface but if we evaluate it at a different field value
+evaluate it at a different field value we'll get we'll get some offset so it's
+we'll get we'll get some offset so it's very nice for being able to find an
+very nice for being able to find an offset surface away from some geometry
+offset surface away from some geometry that we specify now one thing you should
+that we specify now one thing you should notice here is that we can't set the
+notice here is that we can't set the right-hand side of this to zero because
+right-hand side of this to zero because then we'll just give the trivial
+then we'll just give the trivial solution where all the strengths are
+solution where all the strengths are zero there's no no flow there's no field
+zero there's no no flow there's no field or it's a completely a zero field so
+or it's a completely a zero field so what I've done here and my experiments
+what I've done here and my experiments is just to set the potential equal to
+is just to set the potential equal to one and then you saw for the swore
+one and then you saw for the swore strings and once you know the source
+strings and once you know the source drinks now you can go back and evaluate
+drinks now you can go back and evaluate the field anywhere in space
+now one reason for so using this technique using this carnal function you
+technique using this carnal function you can generate a field that will have a
+can generate a field that will have a surface that represents this represents
+surface that represents this represents the geometry that you that you used as a
+the geometry that you that you used as a control geometry as you would with any
+control geometry as you would with any of the other basis functions and in this
+of the other basis functions and in this case you also can take the derivative of
+case you also can take the derivative of the field to get the velocity of a
+the field to get the velocity of a particle at a point and then you can
+particle at a point and then you can since you can evaluate that at any point
+since you can evaluate that at any point in the field you can compute the
+in the field you can compute the velocity of a particle a point
+velocity of a particle a point integrated in time compute the velocity
+integrated in time compute the velocity at the next point in the field and then
+at the next point in the field and then trace the particle in time so basically
+trace the particle in time so basically you're able to do a little bit of
+you're able to do a little bit of physics based on this field and then
+physics based on this field and then once you're done with that well so now
+once you're done with that well so now that you have this field another thing
+that you have this field another thing that you can do is you can you can now
+that you can do is you can you can now superimpose over other control kernels
+superimpose over other control kernels to modify the field in interesting ways
+to modify the field in interesting ways for example if you if you had some
+for example if you if you had some object in the field that was kind of a
+object in the field that was kind of a global obstacle but then you had a that
+global obstacle but then you had a that you've had maybe a local obstacle that
+you've had maybe a local obstacle that was moving around elsewhere another
+was moving around elsewhere another entity or a bot or something you you can
+entity or a bot or something you you can you can kind of interactively evaluate
+you can kind of interactively evaluate these other kernels to kind of locally
+these other kernels to kind of locally modify the the field to get to get to
+modify the the field to get to get to get you know different effects on the
+get you know different effects on the path so
+the the functions that we were looking at back here are not simple so this is
+at back here are not simple so this is not something that is that is great for
+not something that is that is great for running in an engine because it you'd
+running in an engine because it you'd have to do a lot of work to to get it to
+have to do a lot of work to to get it to run it you know a high frame rate but
+run it you know a high frame rate but you can use this in a in a content
+you can use this in a in a content creation tool to you to build geometry
+creation tool to you to build geometry or to build fields that could then be
+or to build fields that could then be evaluated you know it run time in the
+evaluated you know it run time in the game on there are some things that you
+game on there are some things that you can you can do to speed it up you can
+can you can do to speed it up you can delegate some of this stuff to the GPU
+delegate some of this stuff to the GPU one thing about these the potential
+one thing about these the potential fields is far away from the elements
+fields is far away from the elements they do behave like point elements so
+they do behave like point elements so you can substitute the effect of a point
+you can substitute the effect of a point element if you're far away from the
+element if you're far away from the control geometry you also could use
+control geometry you also could use approximate functions or table lookups
+approximate functions or table lookups something that makes it less expensive
+something that makes it less expensive another thing that you can do is bake
+another thing that you can do is bake the kernel functions into a 2d or
+the kernel functions into a 2d or volumetric texture and then scale and
+volumetric texture and then scale and transform those and look those up rather
+transform those and look those up rather then evaluated that could be faster now
+then evaluated that could be faster now I'm going to show a few a few little
+I'm going to show a few a few little demos and then I'll come back to this
+demos and then I'll come back to this slide
+okay I will
+these are all 2d demos I just didn't have time to do anything more
+have time to do anything more sophisticated so what I've done here is
+sophisticated so what I've done here is I've I've used the geometry of a square
+I've I've used the geometry of a square and so I've placed a single source a
+and so I've placed a single source a constant source element on each edge of
+constant source element on each edge of the square and I've set the boundary
+the square and I've set the boundary condition to to set the the potential to
+condition to to set the the potential to be zero at the midpoint of each element
+be zero at the midpoint of each element and those little white dots that you're
+and those little white dots that you're seeing are isosurfaces so it happens
+seeing are isosurfaces so it happens that that I did hit that boundary
+that that I did hit that boundary condition this is an isosurface with
+condition this is an isosurface with value of 1 so I did hit the boundary
+value of 1 so I did hit the boundary condition at the four midpoints but
+condition at the four midpoints but that's it so I haven't really
+that's it so I haven't really interpolated and I haven't really gotten
+interpolated and I haven't really gotten a surface that that looks like the shape
+a surface that that looks like the shape that I put in it's it's too coarse of a
+that I put in it's it's too coarse of a set of values
+but I can I can evaluate I can do the same thing this is exactly the same
+same thing this is exactly the same thing just with another ISO service
+thing just with another ISO service added and I can't see what the value of
+added and I can't see what the value of the ISO surface is but if you just
+the ISO surface is but if you just evaluate it slightly off then you do get
+evaluate it slightly off then you do get something that's closer to the to the
+something that's closer to the to the shape you put into it so here's another
+shape you put into it so here's another here's another shape and here again
+here's another shape and here again you've got if you look at the midpoint
+you've got if you look at the midpoint of each edge
+of each edge I do have an isosurface that passes
+I do have an isosurface that passes through that midpoint but it's not very
+through that midpoint but it's not very close to to the shape that I wanted but
+close to to the shape that I wanted but what happens if I'm if I move I'm going
+what happens if I'm if I move I'm going to go back and show you the other one
+there's another version of this one that I forgot to show you in this case rather
+I forgot to show you in this case rather than set the boundary condition
+than set the boundary condition condition at the midpoint I set the
+condition at the midpoint I set the boundary condition to the corner itself
+boundary condition to the corner itself or just slightly off from the corner so
+or just slightly off from the corner so in this case with an isosurface of one
+in this case with an isosurface of one does basically pass through the corners
+does basically pass through the corners so some experimentation on the location
+so some experimentation on the location of that the point where you value the
+of that the point where you value the boundary condition is useful so I'm told
+boundary condition is useful so I'm told that I don't have any time left so I
+that I don't have any time left so I will just go back to my one slide
+not sure why didn't go away okay so the real takeaways here are I wanted to give
+real takeaways here are I wanted to give you an example of using radial basis
+you an example of using radial basis functions to build implicit surfaces
+functions to build implicit surfaces that interpolate kind of scattered
+that interpolate kind of scattered fields in a way that can be useful and
+fields in a way that can be useful and to show you that this this has been used
+to show you that this this has been used in in games for various applications now
+in in games for various applications now as for my my experiment with the
+as for my my experiment with the potential flow I didn't really get very
+potential flow I didn't really get very very very far along with it and I'm not
+very very far along with it and I'm not really thrilled with it so far it's
+really thrilled with it so far it's expensive and I had higher higher hopes
+expensive and I had higher higher hopes for it but I may I may experiment with
+for it but I may I may experiment with it more but I did want to go through and
+it more but I did want to go through and show you what I had done just so you can
+show you what I had done just so you can kind of see the mechanics of how to how
+kind of see the mechanics of how to how to solve the problem and what what it
+to solve the problem and what what it might do for you so that's it here are
+might do for you so that's it here are some references these slides will be
+some references these slides will be available later in case you don't have
+available later in case you don't have time to write those down now but those
+time to write those down now but those first two or I don't know they're about
+first two or I don't know they're about a decade old or so but they do talk
+a decade old or so but they do talk about this technique in in quite a bit
+about this technique in in quite a bit of detail and for the flow specific
+of detail and for the flow specific functions that last reference is the
+functions that last reference is the book that I used about although there
+book that I used about although there are many many other references but these
+are many many other references but these are all good ones so does anyone have
+are all good ones so does anyone have any questions okay well if you're
+any questions okay well if you're interested in talking about it more
+interested in talking about it more please stop by afterwards
+you

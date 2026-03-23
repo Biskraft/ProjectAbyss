@@ -1,0 +1,752 @@
+[Music]
+welcome to marvel's spider-man procedural
+to marvel's spider-man procedural lighting tools
+lighting tools gdc the conference associates have asked
+gdc the conference associates have asked me to
+me to make a couple of reminders please
+make a couple of reminders please silence your cell phones or put them in
+silence your cell phones or put them in pleasure mode
+pleasure mode and remember to fill out the
+and remember to fill out the survey that they'll send out after the
+survey that they'll send out after the presentation
+presentation my name is x-ray halperin i am a senior
+my name is x-ray halperin i am a senior technical artist at insomniac games
+technical artist at insomniac games it's my pleasure to be here with you
+it's my pleasure to be here with you today uh this is my second gdc
+today uh this is my second gdc my first time speaking here i think it
+my first time speaking here i think it was last year in this very room i had
+was last year in this very room i had the pleasure of watching yoko tarot
+the pleasure of watching yoko tarot present an amazing talk on nira automata
+present an amazing talk on nira automata and i'm really happy to be in the same
+and i'm really happy to be in the same room that that happened
+room that that happened insomniacs a great place to work um
+we've got a lot of current job openings so uh go to our webpage
+so uh go to our webpage check these out um we're looking for
+check these out um we're looking for talented folks
+i want to give a big thank you and a shout out
+shout out to sony interactive media side effects
+to sony interactive media side effects software
+software jeff hannah and gdc as well as everyone
+jeff hannah and gdc as well as everyone at insomniac games
+at insomniac games there's a number of talks by insomniacs
+there's a number of talks by insomniacs about spider-man
+about spider-man at gdc this year
+some of the related talks include marvel's spider-man a technical
+marvel's spider-man a technical postmortem by elon ruskin
+postmortem by elon ruskin that's uh this evening at 5 30 p.m
+that's uh this evening at 5 30 p.m and tomorrow there's a lot of talks
+and tomorrow there's a lot of talks about spider-man
+about spider-man uh doug sheehan is going to be
+uh doug sheehan is going to be presenting uh the traversal through the
+presenting uh the traversal through the city
+city ron peaked is going to be talking about
+ron peaked is going to be talking about editing with immutable data
+editing with immutable data alex previty is going to be talking
+alex previty is going to be talking about designing
+about designing sound for spider-man and jason hickey
+sound for spider-man and jason hickey is going to be talking about leading a
+is going to be talking about leading a large environmental team
+as a technical artist on marvel's spider-man part of my job
+spider-man part of my job was to identify points in the production
+was to identify points in the production pipeline
+pipeline that can be proceduralized with
+that can be proceduralized with the goal of removing
+the goal of removing rote tasks from the artist plate
+rote tasks from the artist plate basically i try to keep the artists sane
+basically i try to keep the artists sane so they don't rage quit by throwing
+so they don't rage quit by throwing their keyboards across the room
+so what is procedural in this context procedural refers to algorithmic methods
+procedural refers to algorithmic methods of creating data as opposed to manual
+of creating data as opposed to manual methods
+methods at insomniac games we've developed a
+at insomniac games we've developed a number of procedural workflows for
+number of procedural workflows for generating open world content for our
+generating open world content for our games
+games if you attended my colleague david
+if you attended my colleague david santiago's presentation earlier today
+santiago's presentation earlier today you'll have a good idea about many of
+you'll have a good idea about many of these procedural systems
+these procedural systems this talk will cover some of the
+this talk will cover some of the procedural workflows which apply to
+procedural workflows which apply to lighting the open world
+lighting the open world of marvel's spider-man
+lighting artists illuminate the open world by hand
+world by hand placing lights throughout the
+placing lights throughout the environment but how can procedural
+environment but how can procedural techniques augment the hard work of the
+techniques augment the hard work of the lighting artists
+lighting artists by identifying the rote technical tasks
+by identifying the rote technical tasks and automating them
+and automating them we can remove the boring repetitive
+we can remove the boring repetitive stuff from the artist's workflow
+stuff from the artist's workflow and allow them to focus on create
+and allow them to focus on create creating great art
+creating great art procedural techniques assisted and
+procedural techniques assisted and augmented
+augmented the lighting artists with bulk tasks
+the lighting artists with bulk tasks across the open world
+procedural techniques contributed to three main aspects of lighting in
+three main aspects of lighting in spider-man
+spider-man light fixtures could be placed in the
+light fixtures could be placed in the open world based on rules defining
+open world based on rules defining things like the minimum distance between
+things like the minimum distance between lights
+lights or how far back on the sidewalk to place
+or how far back on the sidewalk to place street lamps
+light probes used for generating real-time reflections
+real-time reflections were placed in optimized positions using
+were placed in optimized positions using the context of the open world geometry
+the context of the open world geometry in the immediate vicinity of each probe
+and light grid capture volumes used to generate
+generate cached light grid data for diffuse
+cached light grid data for diffuse global illumination
+global illumination were created and optimized using
+were created and optimized using procedural techniques
+procedural techniques we'll review each of these but first
+we'll review each of these but first let's take a look at some of the open
+let's take a look at some of the open world environments from the game
+world environments from the game don't you think you're a little hard on
+don't you think you're a little hard on spider-man let me tell you something
+spider-man let me tell you something patterson
+patterson spider-man treats new york city as his
+spider-man treats new york city as his own personal playground
+own personal playground just yesterday i saw him doing backflips
+just yesterday i saw him doing backflips and 360's
+and 360's disgraceful running and crawling on
+disgraceful running and crawling on buildings
+buildings in fact i have it on good authority that
+in fact i have it on good authority that he's been doing swan dives off of
+he's been doing swan dives off of skyscrapers
+skyscrapers it seems the more confident he gets the
+it seems the more confident he gets the more
+more creative he gets walk like a normal
+creative he gets walk like a normal person
+person come on what's wrong with a little
+come on what's wrong with a little sightseeing and new york is super
+sightseeing and new york is super diverse and constantly changing
+diverse and constantly changing maybe he's just looking for
+maybe he's just looking for [Music]
+[Music] so we could see that uh we've got a wide
+so we could see that uh we've got a wide and varied
+and varied open world environment that's just
+open world environment that's just really dense with visual
+really dense with visual information and content
+the open world of spider-man is divided into 726
+into 726 tile regions each tile region is defined
+tile regions each tile region is defined by several zone files
+by several zone files which are json that contain references
+which are json that contain references to the assets
+to the assets within a given tile region procedural
+within a given tile region procedural systems allow
+systems allow iterating over the content in each tile
+iterating over the content in each tile region
+region to add massive amounts of information to
+to add massive amounts of information to the game
+the game this image shows how the island of
+this image shows how the island of manhattan is divided up into tiles
+manhattan is divided up into tiles we iterate over each tile as a work unit
+we iterate over each tile as a work unit to add or adjust the content using
+to add or adjust the content using procedural tools
+procedural tools our manhattan is about six kilometers by
+our manhattan is about six kilometers by three kilometers
+three kilometers divided up into these 726 tiles
+divided up into these 726 tiles measuring 128 meters per side
+spider-man is a streaming game as spider-man moves through the open world
+spider-man moves through the open world the current tile and its neighbors
+the current tile and its neighbors stream into memory
+stream into memory and the previous tiles stream out this
+and the previous tiles stream out this poses some issues for distant
+poses some issues for distant reflections
+reflections but more on that in a moment the first
+but more on that in a moment the first step
+step in most of the insomniac games
+in most of the insomniac games procedural workflows is to construct a
+procedural workflows is to construct a point cloud from the zone data
+point cloud from the zone data we use python to parse json from the
+we use python to parse json from the zone files
+zone files and recurse through all of the
+and recurse through all of the references
+references let's look at a tile called m35 in
+let's look at a tile called m35 in greenwich village
+this json snippet represents the region for a single file each one of those
+for a single file each one of those zones
+zones contains data that streams in along with
+contains data that streams in along with the tile
+the building geometry used for the context in procedural lighting tools
+context in procedural lighting tools is located in the ground zone
+i load the ground zone data into a point cloud
+cloud each point represents the pivot of an
+each point represents the pivot of an individual model instance
+individual model instance within a prefabricated building asset
+within a prefabricated building asset the point cloud contains all of the
+the point cloud contains all of the attributes we ever need
+attributes we ever need to reconstruct the ground zone and the
+to reconstruct the ground zone and the game data
+game data in third-party digital content creation
+in third-party digital content creation applications
+applications such as houdini we flatten all of the
+such as houdini we flatten all of the transformation hierarchies into world
+transformation hierarchies into world space
+we encamp the attributes n up and tangent u
+tangent u there's a lot of aligning and instancing
+there's a lot of aligning and instancing and pack geometry
+and pack geometry is very memory efficient because the
+is very memory efficient because the assets are built
+assets are built from repeated model instances
+we've got id and asset path point attributes
+attributes which let us define a clear way to
+which let us define a clear way to identify
+identify and address each unique asset such as
+and address each unique asset such as this
+this sanctum
+sometimes bounding boxes are handy
+a moment ago i mentioned prefabricated assets
+assets each prefabricated asset is a collection
+each prefabricated asset is a collection of models
+of models and other information such as lights and
+and other information such as lights and shaders
+shaders grouped together in a json file on disk
+grouped together in a json file on disk creating a single addressable asset
+creating a single addressable asset entity
+entity these assets may be browsed by using the
+these assets may be browsed by using the insomniac vault
+insomniac vault here's an example of a street light
+here's an example of a street light pre-fabricated asset
+pre-fabricated asset rather than tasking artists with placing
+rather than tasking artists with placing every street lamp along the streets that
+every street lamp along the streets that make up the city
+make up the city we were able to offload this repetitive
+we were able to offload this repetitive rules-based task
+rules-based task and procedurally place the street lamps
+and procedurally place the street lamps into the open world
+into the open world of marvel's spider-man
+of marvel's spider-man each prefabricated asset can be
+each prefabricated asset can be instanced
+instanced multiple times for marvel's spider-man
+multiple times for marvel's spider-man street lights were placed on a metric
+street lights were placed on a metric along sidewalks
+along sidewalks at a fixed distance back from the curb
+at a fixed distance back from the curb and aligned
+and aligned according to the normals of the sidewalk
+according to the normals of the sidewalk upon which they are placed
+we can visualize the location of all the light sources in a tile to help
+all the light sources in a tile to help find under-lit
+find under-lit areas of the open world
+areas of the open world marvel's spider-man supports night as a
+marvel's spider-man supports night as a time of day
+time of day so it's important to make sure there are
+so it's important to make sure there are no unintentionally
+no unintentionally under-lit areas
+under-lit areas doing some nearest neighbor and ray
+doing some nearest neighbor and ray casting computations
+casting computations we can detect underserved areas
+we can detect underserved areas which are not receiving enough light
+which are not receiving enough light we can then attempt to procedurally
+we can then attempt to procedurally place additional light fixtures into
+place additional light fixtures into those areas
+those areas and log them for further inspection by
+and log them for further inspection by the lighting team
+light probes are used for reflection maps
+maps light probes occur in the open world at
+light probes occur in the open world at a low spatial frequency
+a low spatial frequency but capture the reflected objects at
+but capture the reflected objects at high fidelity
+high fidelity in real time they are procedurally
+in real time they are procedurally placed
+placed in optimized positions based on
+in optimized positions based on heuristics
+heuristics verbally described by the lighting team
+verbally described by the lighting team for optimal placement
+marvel's spider-man had four procedurally placed light probes per
+procedurally placed light probes per tile
+tile additional light probes replaced by the
+additional light probes replaced by the lighting artists where needed
+lighting artists where needed the first step is dividing the tile into
+the first step is dividing the tile into four
+four cells one for each light probe
+cells one for each light probe we create a point at the center of each
+we create a point at the center of each cell and based on the rules of thumb
+cell and based on the rules of thumb described by the lighting artists i
+described by the lighting artists i analyzed the ground zone geometry
+analyzed the ground zone geometry to identify optimal positions and move
+to identify optimal positions and move the location
+the location of the light probes
+we find where the roads and where the roads and intersections exist
+roads and intersections exist in each cell
+in each cell and we move the light probe points to
+and we move the light probe points to the nearest major road intersection
+the nearest major road intersection in its cell if there's no major
+in its cell if there's no major intersection
+intersection we use a minor intersection if there's
+we use a minor intersection if there's no minor intersection
+no minor intersection we use the centroid of the road segment
+we use the centroid of the road segment that intersects the cell
+that intersects the cell if there's no road we leave it alone at
+if there's no road we leave it alone at the center of the cell
+we can then check if any probes are inside of building volumes
+inside of building volumes we don't want them inside of buildings
+we don't want them inside of buildings we just want them outside of buildings
+we just want them outside of buildings in the open world
+in the open world if so we use the sine distance function
+if so we use the sine distance function of the volume
+of the volume to push the light probe outside of the
+to push the light probe outside of the building
+building finally we export the json containing
+finally we export the json containing light probe information
+light probe information for ingestion into the game engine wash
+for ingestion into the game engine wash rinse and repeat 726 times
+rinse and repeat 726 times as a procedural system should the
+as a procedural system should the kneading capability arise to support
+kneading capability arise to support more light probes
+more light probes we can increase the number of
+we can increase the number of subdivisions per tile
+subdivisions per tile thus increasing the number of light
+thus increasing the number of light probes
+this json snippet represents a single light probe
+light probe the probe is defined by a volume at a
+the probe is defined by a volume at a certain position within the tile
+certain position within the tile then the exact position of the light
+then the exact position of the light probe is defined as an offset
+probe is defined as an offset from the centroid of that volume so the
+from the centroid of that volume so the volume represents the extents of the
+volume represents the extents of the cell
+cell and the offset represents the position
+and the offset represents the position of the light probe
+of the light probe within the cell
+here's another example of a light probe in the open world of marvel spider-man
+in the open world of marvel spider-man the image in the upper left corner shows
+the image in the upper left corner shows each side of the generated environment
+each side of the generated environment map for this light probe
+you'll notice that the quality of the assets captured in the light probe
+assets captured in the light probe are not the full resolution assets but
+are not the full resolution assets but rather the optimized 3d message
+rather the optimized 3d message met 3d meshes used in the insomniac
+met 3d meshes used in the insomniac game's imposter system
+game's imposter system i'm going to explain more about the
+i'm going to explain more about the imposter system in a few moments
+imposter system in a few moments but this is what allowed us to generate
+but this is what allowed us to generate distant reflections for the whole city
+distant reflections for the whole city in real time
+in real time even though the high-res assets are only
+even though the high-res assets are only streamed in
+streamed in for the local tile that spider-man is
+for the local tile that spider-man is currently occupying plus its neighbors
+currently occupying plus its neighbors storing all the light probe reflection
+storing all the light probe reflection maps proved bulky on disks so
+maps proved bulky on disks so so tony archulio on the core engineering
+so tony archulio on the core engineering team developed technology for generating
+team developed technology for generating the light probe captures in real time
+the light probe captures in real time since only the current streaming tile
+since only the current streaming tile and its neighbors are available at full
+and its neighbors are available at full resolution
+resolution we leveraged the impostor system to
+we leveraged the impostor system to create the content for the distant
+create the content for the distant reflections
+reflections the ig imposters informed a number of
+the ig imposters informed a number of game systems
+game systems including the real-time light probes the
+including the real-time light probes the ig imposters are 3d mesh models with
+ig imposters are 3d mesh models with projected textures
+projected textures as for the light probes the each face of
+as for the light probes the each face of the light cube map is rendered at a 512
+the light cube map is rendered at a 512 by 512 resolution
+by 512 resolution we take advantage of mipmapping to
+we take advantage of mipmapping to convolve the cube map down
+convolve the cube map down five levels and each mip level ends up
+five levels and each mip level ends up representing an amount of glossiness
+representing an amount of glossiness regardless of how an artist sets the
+regardless of how an artist sets the glossiness on the
+glossiness on the on the slider for the shader of the
+on the slider for the shader of the surface material
+surface material we always quantize that glossiness
+we always quantize that glossiness response down to one of the five mip
+response down to one of the five mip levels
+all of the buildings in the island of manhattan in this screen capture
+manhattan in this screen capture are the ig imposters we can load the
+are the ig imposters we can load the entire island into memory
+entire island into memory the igm posture geometry and lowest mip
+the igm posture geometry and lowest mip texture
+texture remain in global persistent memory and
+remain in global persistent memory and represent the lowest lod in the game
+represent the lowest lod in the game this allows for reflecting distant
+this allows for reflecting distant buildings when their tile region is not
+buildings when their tile region is not streamed into memory
+streamed into memory the total geometry footprint for all of
+the total geometry footprint for all of manhattan
+manhattan was about 101 megabytes and the lowest
+was about 101 megabytes and the lowest mip for texture maps
+mip for texture maps is about 90 megabytes high quality
+is about 90 megabytes high quality polygons for reflective and emissive
+polygons for reflective and emissive properties
+properties take up about another 30 megabytes so
+take up about another 30 megabytes so we're looking at about
+we're looking at about 220 megs of ram in global persistent
+220 megs of ram in global persistent memory
+memory that hold the entire represent
+that hold the entire represent representation of the lowest led of the
+representation of the lowest led of the city
+city that's accessible by any game system at
+that's accessible by any game system at any time
+the ig imposter geometry and lowest mip texture
+texture stay in that global resident memory
+stay in that global resident memory they always maintain fidelity under all
+they always maintain fidelity under all circumstances
+circumstances it eliminates a far clipping plane for
+it eliminates a far clipping plane for drawing
+drawing it maintains geometric relief details of
+it maintains geometric relief details of the source assets
+the source assets supports fully emissive and reflective
+supports fully emissive and reflective surfaces
+surfaces and transition seamlessly between the
+and transition seamlessly between the hi-res instance geometry and the
+hi-res instance geometry and the corresponding ig imposter
+additionally as i said it informs many of the other game systems
+so how do we take a high-res model and turn it into one of these imposters
+turn it into one of these imposters this is a building from tile h21
+this exploded view shows all of the model instances that make up the
+model instances that make up the building
+building buildings are constructed from model
+buildings are constructed from model kits containing pre-defined assets
+kits containing pre-defined assets such as windows walls and doors
+such as windows walls and doors since the pre-fabricated building assets
+since the pre-fabricated building assets are used over and over again within a
+are used over and over again within a building
+building there are actually a small number of
+there are actually a small number of unique models per building
+again here's the full resolution this is the lowest lod to build the
+this is the lowest lod to build the imposter
+imposter we identify groups of connected geometry
+we identify groups of connected geometry which share primitive normals
+which share primitive normals we iterate over each set of connected
+we iterate over each set of connected geometry which shares a common primitive
+geometry which shares a common primitive normal
+normal and we remove shared edges from the
+and we remove shared edges from the polygons leaving an outline of the shape
+we triangulate the result
+and remove occluded geometry that's on the interior of the building
+after occlusion removal we do a final optimization pass
+optimization pass and we've brought a high-res building
+and we've brought a high-res building that had tens of thousands of polys down
+that had tens of thousands of polys down to about five thousand polygons
+to about five thousand polygons this is a single mesh that represents
+this is a single mesh that represents the entire prefabricated asset
+we capture the imposter geometry and generate
+generate orthogonal texture alice's the building
+orthogonal texture alice's the building in the middle is the hi-res asset
+in the middle is the hi-res asset the building on the left is the imposter
+the building on the left is the imposter with textures applied
+with textures applied the building on the right is the
+the building on the right is the imposter without textures
+we generate two texture atlases per building
+building atlas a contains the rgb albedo
+atlas a contains the rgb albedo atlas b contains spec gloss and emission
+atlas b contains spec gloss and emission we've replaced all of the model
+we've replaced all of the model instances and texturing from a building
+instances and texturing from a building prefab with a single model instance
+prefab with a single model instance and a pair of texture maps
+each building atlas is collected with the atlases from neighboring tiles
+the atlases from neighboring tiles in an imposter zone atlas rgb albedo is
+in an imposter zone atlas rgb albedo is stored at full size
+stored at full size while spec gloss and emission are stored
+while spec gloss and emission are stored at half size
+at half size those half size maps are represented as
+those half size maps are represented as green
+green in this image you can see avengers tower
+in this image you can see avengers tower on the bottom
+on the bottom this is one of the nine tile imposter
+this is one of the nine tile imposter zones
+zones this is another nine tile impostor zones
+this is another nine tile impostor zones we also use the imposters to generate
+we also use the imposters to generate the light grids
+the light grids for caching global illumination data
+light grids are high spatial frequency low
+low detail samples for diffuse light in the
+detail samples for diffuse light in the open world
+open world using the same geometry measures as the
+using the same geometry measures as the ig imposters
+ig imposters i quickly load the contents of a tile
+i quickly load the contents of a tile and all of its neighbors
+and all of its neighbors in order to determine what content would
+in order to determine what content would affect the diffuse samples
+affect the diffuse samples used for diffuse global illumination
+used for diffuse global illumination calculations
+calculations the 128 meter square tile is divided
+the 128 meter square tile is divided into 16 meter capture volumes
+into 16 meter capture volumes the cache data for each volume
+the cache data for each volume represents the 16 meter volume
+represents the 16 meter volume divided into 4096 samples at a one meter
+divided into 4096 samples at a one meter resolution
+resolution the data is similar to that captured by
+the data is similar to that captured by the real-time light probes
+the real-time light probes but the resolution is much lower and
+but the resolution is much lower and compressed for the diffuse lighting
+compressed for the diffuse lighting computations
+computations the capture volumes for sampling and
+the capture volumes for sampling and caching diffuse illumination
+caching diffuse illumination were procedurally placed and optimized
+were procedurally placed and optimized into each tile
+into each tile based on the tile contents and the
+based on the tile contents and the contents of neighboring tiles
+contents of neighboring tiles the number of vertical light grids
+the number of vertical light grids generated depends on the height
+generated depends on the height of the tallest building in the tile
+of the tallest building in the tile testing the individual capture volumes
+testing the individual capture volumes against the assets
+against the assets in the tiles zone file allows us to
+in the tiles zone file allows us to remove
+remove capture volumes with no contribution
+light grid capture volumes are also removed from the inside volumes of
+removed from the inside volumes of buildings
+buildings the final light grid capture volumes are
+the final light grid capture volumes are written out as json and ingested into
+written out as json and ingested into the insomniac engine
+the insomniac engine where the samples are rendered into a
+where the samples are rendered into a cached file format for runtime usage
+cached file format for runtime usage light probes are real time while light
+light probes are real time while light grids are precached
+grids are precached and never generated at runtime
+light grid capture volumes removed from the insides of buildings
+the insides of buildings as you can see in this slide
+the final light grid capture volumes are written out as json
+written out as json this json snippet represents a single
+this json snippet represents a single light grid
+light grid and here we can see the game engine
+and here we can see the game engine iterating
+iterating through each of the light grids as it
+through each of the light grids as it generates that point cache data
+there are 4096 samples per capture volume
+volume each sample generates a cube map at 256
+each sample generates a cube map at 256 by 256 pixels per face
+by 256 pixels per face each face of the cube map is then
+each face of the cube map is then convolved down
+convolved down to a single hdr color value representing
+to a single hdr color value representing the diffuse term
+the diffuse term and a directional vector so each sample
+and a directional vector so each sample inside of that capture volume is six
+inside of that capture volume is six pixels
+pixels each with the directional vector the
+each with the directional vector the color value and direction data
+color value and direction data is highly compressible
+is highly compressible thank you very much this concludes my
+thank you very much this concludes my talk and if there are any questions
+talk and if there are any questions i'll be happy to take them
+uh hey i saw you use json a lot to spit out the procedurally generated data
+spit out the procedurally generated data and read it back into the
+and read it back into the game engine did you ever like load
+game engine did you ever like load houdini into the game engine
+houdini into the game engine or it was all built with json so the
+or it was all built with json so the question is
+question is did we load houdini into the game engine
+did we load houdini into the game engine or did we use json as an intermediary
+or did we use json as an intermediary format to go between the two
+format to go between the two the answer to that question is it's a
+the answer to that question is it's a bit of a hybrid
+bit of a hybrid json was certainly the way that we
+json was certainly the way that we communicated back and forth in many
+communicated back and forth in many cases
+cases we did not implement the houdini engine
+we did not implement the houdini engine in our insomniac engine
+in our insomniac engine but what we did do is expose several
+but what we did do is expose several tools from pull down menus
+tools from pull down menus in the engine which would spawn um
+in the engine which would spawn um a non-gooey
+a non-gooey shell of houdini that we could send
+shell of houdini that we could send requests to to process data offline
+requests to to process data offline which could then generate json on disk
+which could then generate json on disk that could be read back into the
+that could be read back into the insomniac engine
+insomniac engine thank you
+hi thank you for the talk um quick question on the imposter system
+question on the imposter system so the i noticed that um i'm guessing
+so the i noticed that um i'm guessing you were marking
+you were marking specific prefabs for generating and
+specific prefabs for generating and imposters and specific prefabs were not
+imposters and specific prefabs were not generating any posters intentionally i
+generating any posters intentionally i noticed that some on some of the
+noticed that some on some of the buildings they were like benches and
+buildings they were like benches and like other things that were just
+like other things that were just completely excluded from the imposter
+completely excluded from the imposter generation
+generation so how did you decide what was going on
+so how did you decide what was going on what wasn't going into the imposter
+what wasn't going into the imposter so there were a number of ways that we
+so there were a number of ways that we could include or exclude things from
+could include or exclude things from imposter generation
+imposter generation in additional we had another subsystem
+in additional we had another subsystem called the hibernation
+called the hibernation subsystem so for example things like
+subsystem so for example things like things that would contribute to the
+things that would contribute to the silhouette of a building uh that were
+silhouette of a building uh that were accoutrements on top of the building
+accoutrements on top of the building like water towers or air conditioning
+like water towers or air conditioning units
+units those were handled by a separate system
+those were handled by a separate system called the hibernate system that
+called the hibernate system that basically had the full resolution asset
+basically had the full resolution asset but with a much longer draw distance
+but with a much longer draw distance so we would exclude those kind of things
+so we would exclude those kind of things from the imposters because
+from the imposters because that geometry tended to be a little bit
+that geometry tended to be a little bit more organic like things like water
+more organic like things like water towers with lots of details and struts
+towers with lots of details and struts and things like that
+and things like that just wouldn't really imposter very well
+just wouldn't really imposter very well and would have created a lot of extra
+and would have created a lot of extra geometry
+geometry for the imposter system to deal with so
+for the imposter system to deal with so selectively we would
+selectively we would use meta tags to say this thing's
+use meta tags to say this thing's hibernated
+hibernated um this thing should be skipped or this
+um this thing should be skipped or this thing should be
+thing should be well the default was to include things
+well the default was to include things okay thank you
+okay thank you hi um so you guys were
+hi um so you guys were actually an engine at game time
+actually an engine at game time rendering your reflection maps
+rendering your reflection maps is that to save space to save disk space
+is that to save space to save disk space essentially yes to save disk space so
+essentially yes to save disk space so did you only have to do that
+did you only have to do that when the user would kind of cross over
+when the user would kind of cross over into that region how often were you like
+into that region how often were you like refreshing those or
+refreshing those or um the they were
+um the they were refreshed whenever there was time to do
+refreshed whenever there was time to do so
+so so it was a i think it was classified as
+so it was a i think it was classified as sort of a medium priority task
+sort of a medium priority task along all of the other rendering tasks
+along all of the other rendering tasks that are happening per frame so it's not
+that are happening per frame so it's not happening
+happening 30 times per second it's not happening
+30 times per second it's not happening 30 times per second
+30 times per second i think it's probably happening about
+i think it's probably happening about twice a second the the
+twice a second the the the reflection maps would get updated
+the reflection maps would get updated about twice a second on average
+about twice a second on average that seemed to be fine thank you
+that seemed to be fine thank you uh hi i might have misheard you earlier
+uh hi i might have misheard you earlier but i
+but i heard you mentioned light maps and were
+heard you mentioned light maps and were you speaking specifically about the gi
+you speaking specifically about the gi light maps you're using or geometry
+light maps you're using or geometry light maps you mean light grids
+light maps you mean light grids i i thought you said light maps
+i i thought you said light maps specifically but uh
+specifically but uh i guess the question is did you use
+i guess the question is did you use light maps for
+light maps for geometry or was it just the grids
+geometry or was it just the grids that were generated light grids were
+that were generated light grids were used for
+used for generating the samples used for the
+generating the samples used for the global illumination
+global illumination and light probes were used for the
+and light probes were used for the specular and reflection
+specular and reflection okay in addition there are you know
+okay in addition there are you know real-time sources of illumination all
+real-time sources of illumination all over the game
+over the game right for direct elimination gotcha
+right for direct elimination gotcha thanks
+um with the light grids how many times how many points along the time of day
+how many points along the time of day did you capture those
+did you capture those uh so there are four times the question
+uh so there are four times the question is for the light grids
+is for the light grids uh how many times of day did we sample
+uh how many times of day did we sample and there are four times a day in the
+and there are four times a day in the game
+game we have uh sort of daytime noon lighting
+we have uh sort of daytime noon lighting we have sunset lighting
+we have sunset lighting we have a foggy rainy day lighting and
+we have a foggy rainy day lighting and we have nighttime lighting
+we have nighttime lighting so each of the light grids was generated
+so each of the light grids was generated at each of those times a day thank you
+at each of those times a day thank you hey uh you talked about reflection
+hey uh you talked about reflection probes and indirect
+probes and indirect lighting data using the probes but what
+lighting data using the probes but what about the shadows
+about the shadows and i'm assuming everything is dynamic
+and i'm assuming everything is dynamic but these buildings are so huge and they
+but these buildings are so huge and they cast
+cast like dynamic shadows so what's the
+like dynamic shadows so what's the resolution how is the optimization for
+resolution how is the optimization for that implemented
+that implemented the question is how did we optimize for
+the question is how did we optimize for shadows and handle the shadows
+shadows and handle the shadows um so that's it that's an interesting
+um so that's it that's an interesting topic i didn't really touch on
+topic i didn't really touch on in my talk maybe i could have but
+in my talk maybe i could have but using the light probes and the imposters
+using the light probes and the imposters we were able to generate occlusion maps
+we were able to generate occlusion maps for the different times of day in
+for the different times of day in addition to the light probe
+addition to the light probe each light probe has a draw list of
+each light probe has a draw list of what buildings are visible to that light
+what buildings are visible to that light probe
+probe so if a building is not visible to the
+so if a building is not visible to the light probe
+light probe it can be placed into the
+it can be placed into the list of the occlusion map
+i'm not completely familiar with all the technology that was
+technology that was used for that technique but again that
+used for that technique but again that was
+was our tony artullio in our core rendering
+our tony artullio in our core rendering team
+team who devised that system and the
+who devised that system and the imposters sort of helped the imposters
+imposters sort of helped the imposters and the light probes
+and the light probes helped inform that system to make
+helped inform that system to make optimized choices
+optimized choices just another follow-up did you use like
+just another follow-up did you use like a mix
+a mix uh shadowing where you used to bake the
+uh shadowing where you used to bake the shadows too far off and then have
+shadows too far off and then have dynamic in which were closer
+dynamic in which were closer uh there aren't really any baked shadows
+uh there aren't really any baked shadows that i'm aware of
+that i'm aware of um obviously the global illumination is
+um obviously the global illumination is baked the samples are baked
+baked the samples are baked uh so if something is in shadow in those
+uh so if something is in shadow in those samples
+samples that is cache data but but that's
+that is cache data but but that's uh not being that's not considering any
+uh not being that's not considering any of the
+of the direct illumination from the game thank
+direct illumination from the game thank you
+so i think we got time for like one more question yes so
+question yes so uh the 128x128 meter tiles how many of
+uh the 128x128 meter tiles how many of those
+those on average were you able to fit into
+on average were you able to fit into memory or because the whole city was
+memory or because the whole city was imposters but then you had i'm sure you
+imposters but then you had i'm sure you had more than one of them loaded at a
+had more than one of them loaded at a time so
+time so how many yes per average did you so
+how many yes per average did you so there would be uh
+there would be uh i don't know about an average but the
+i don't know about an average but the goal was to be able to have a tile
+goal was to be able to have a tile and its neighbors streamed into memory
+and its neighbors streamed into memory so nine tiles
+so nine tiles um the tile that spider-man would
+um the tile that spider-man would currently be in would be
+currently be in would be streamed in or the the model instance
+streamed in or the the model instance would be drawn at full resolution
+would be drawn at full resolution and then there's in addition to the
+and then there's in addition to the imposter system there's a more standard
+imposter system there's a more standard lod system
+lod system to handle neighboring tiles for example
+to handle neighboring tiles for example i believe there were also some optimize
+i believe there were also some optimize optimizations
+optimizations put in place so that when spider-man is
+put in place so that when spider-man is moving quickly
+moving quickly we sort of uh predict where he's going
+we sort of uh predict where he's going to go
+to go and we don't load the tiles behind him
+and we don't load the tiles behind him necessarily
+necessarily we sort of figure out what his likely
+we sort of figure out what his likely frustum of travel is going to be at any
+frustum of travel is going to be at any time and just load those tiles in
+time and just load those tiles in if he's moving at a really fast clip and
+if he's moving at a really fast clip and we do that to avoid
+we do that to avoid you know load time frame dropouts and
+you know load time frame dropouts and stuff like that
+stuff like that thanks a lot thank you very much

@@ -1,0 +1,664 @@
+[Music] why are we here
+why are we here uh caves of cud is a game that i develop
+uh caves of cud is a game that i develop i'm brian buckley i'm a co-founder at
+i'm brian buckley i'm a co-founder at freehold games
+freehold games caves of cut has
+caves of cut has a ton of procedural generation
+a ton of procedural generation we use a bunch of normal techniques that
+we use a bunch of normal techniques that you've heard of perlin noise etc
+you've heard of perlin noise etc and we use a few novel techniques and
+and we use a few novel techniques and today we're going to talk about a
+today we're going to talk about a specific one wave function collapse
+specific one wave function collapse which sounds scary but i hope by the end
+which sounds scary but i hope by the end you'll realize it's not particularly
+you'll realize it's not particularly terrifying
+terrifying so we're going to first start by looking
+so we're going to first start by looking at some final results that we get by
+at some final results that we get by utilizing this technique
+utilizing this technique and then we'll go through some slides to
+and then we'll go through some slides to talk about how we get there
+talk about how we get there so here's a map in caves of cut if
+so here's a map in caves of cut if you're not familiar with it it's a
+you're not familiar with it it's a tile-based game so each of the maps is
+tile-based game so each of the maps is 80 by 25 and it's very discreet so you
+80 by 25 and it's very discreet so you can see walls and creatures and plants
+can see walls and creatures and plants here and they're represented in a sort
+here and they're represented in a sort of abstract way so here we have a sort
+of abstract way so here we have a sort of rectilinear palace it has sort of an
+of rectilinear palace it has sort of an outer wall
+outer wall and inner buildings and they're
+and inner buildings and they're populated by various things blood
+populated by various things blood splatters and centipedes and gardens
+splatters and centipedes and gardens and here we have an underground map
+and here we have an underground map where we have some very narrow corridors
+where we have some very narrow corridors goalies full of water
+goalies full of water little rooms full of water this is very
+little rooms full of water this is very sort of maisy narrow map
+sort of maisy narrow map and here we have a
+and here we have a circular tower embedded in some rock
+circular tower embedded in some rock salt it's filled with bears i guess an
+salt it's filled with bears i guess an asphalt
+asphalt and a little statuary on the right it's
+and a little statuary on the right it's got
+got sort of curvy labyrinthine halls
+sort of curvy labyrinthine halls and here we have a little town we've got
+and here we have a little town we've got maybe a big ruined civic structure up
+maybe a big ruined civic structure up north and in the south we have
+north and in the south we have a bunch of rectilinear village buildings
+a bunch of rectilinear village buildings adjacent laid out along a nice forested
+adjacent laid out along a nice forested path
+so these are a wide variety of results but the result of a
+variety of results but the result of a single algorithm so these each had a
+single algorithm so these each had a very different character you had little
+very different character you had little maisy corridors you had a fairly
+maisy corridors you had a fairly dispersed village with well-ordered
+dispersed village with well-ordered buildings you had a
+buildings you had a water filled goalies
+water filled goalies and instead of using an individual
+and instead of using an individual technique to generate each of these we
+technique to generate each of these we use a powerful new texture synthesis
+use a powerful new texture synthesis technique called wave function collapse
+technique called wave function collapse alongside a few other tools that we use
+alongside a few other tools that we use to supplement its weaknesses when
+to supplement its weaknesses when applied to maps
+applied to maps so wave function collapse it was
+so wave function collapse it was developed by a russian mathematician
+developed by a russian mathematician named maxim gooman released open source
+named maxim gooman released open source mit licensed and the repositories out
+mit licensed and the repositories out here it's in 20 different languages you
+here it's in 20 different languages you can go out there and download it now and
+can go out there and download it now and use it hopefully after this talk you'll
+use it hopefully after this talk you'll be able to go out there and build into
+be able to go out there and build into your projects
+your projects caves of code was its first commercial
+caves of code was its first commercial commercial use a bunch of others quickly
+commercial use a bunch of others quickly followed because it's such a powerful
+followed because it's such a powerful technique
+technique wave function collapse has two primary
+wave function collapse has two primary modes it operates on tiles
+modes it operates on tiles and operates on textures
+and operates on textures if you do procedural generation you've
+if you do procedural generation you've probably encountered wong tile maps
+probably encountered wong tile maps which are based on edge colored
+which are based on edge colored adjacencies
+adjacencies the tile map generation is sort of
+the tile map generation is sort of similar to that but
+similar to that but the adjacency constraints are much more
+the adjacency constraints are much more powerful than edge coloring you can get
+powerful than edge coloring you can get a much more powerful result so if you're
+a much more powerful result so if you're interested in tile-based
+interested in tile-based map design
+map design this is great we're not going to talk
+this is great we're not going to talk about it
+about it instead we use texture mode
+instead we use texture mode texture mode
+texture mode uses small training inputs they can be
+uses small training inputs they can be big but it's most powerful when they're
+big but it's most powerful when they're small
+small maybe 8 by 8 or 16x16 training images
+maybe 8 by 8 or 16x16 training images and they can produce arbitrarily large
+and they can produce arbitrarily large outputs with the character of that input
+outputs with the character of that input training image
+training image this is pretty amazing so on the left
+this is pretty amazing so on the left you have three separate inputs and the
+you have three separate inputs and the top you see a sort of rectilinear room
+top you see a sort of rectilinear room hall and you can see seven sample
+hall and you can see seven sample outputs here just bigger you can see
+outputs here just bigger you can see that each of them has a pretty different
+that each of them has a pretty different layout but
+layout but shares structurally uh the same
+shares structurally uh the same character as the input
+character as the input on the second row you see some caves
+on the second row you see some caves these are caves that you would typically
+these are caves that you would typically generate via cellular automata system or
+generate via cellular automata system or something
+something or box filters something very different
+or box filters something very different from that that first rectilinear room
+from that that first rectilinear room hall arrangement
+hall arrangement and then third you see an input texture
+and then third you see an input texture that's five by five simple couple dots
+that's five by five simple couple dots in a line and you get some very complex
+in a line and you get some very complex uh
+uh quilted patterns and this would be some
+quilted patterns and this would be some custom line drawing technique so instead
+custom line drawing technique so instead of having to have three very different
+of having to have three very different algorithms you're able to have
+algorithms you're able to have one single algorithm that's fed
+one single algorithm that's fed different very simple training inputs
+different very simple training inputs this is something you can pop open ms
+this is something you can pop open ms paint right any training input and throw
+paint right any training input and throw it through the algorithm
+it through the algorithm very cool so i'm going to run quickly
+very cool so i'm going to run quickly through this text slide don't feel like
+through this text slide don't feel like you have to load this into your brain
+you have to load this into your brain we're going to walk through it more
+we're going to walk through it more carefully i just want to prime your
+carefully i just want to prime your system for
+system for what we're going to talk about i'm
+what we're going to talk about i'm actually not going to go way down to the
+actually not going to go way down to the nuts of bolts of this algorithm they're
+nuts of bolts of this algorithm they're good papers to do that i want to give
+good papers to do that i want to give you a intuitive understanding of how
+you a intuitive understanding of how this algorithm is making decisions when
+this algorithm is making decisions when it's painting its output
+it's painting its output so first what it does is it chops it up
+so first what it does is it chops it up into n by end tiles
+into n by end tiles n is something you pick um
+n is something you pick um three is a very typical size so it's
+three is a very typical size so it's going to operate on individual three by
+going to operate on individual three by three tiles chop up your input image
+three tiles chop up your input image into those it's going to operate on
+into those it's going to operate on those as its basic atom you can choose
+those as its basic atom you can choose bigger or smaller atoms depending on
+bigger or smaller atoms depending on the character you want out of your
+the character you want out of your output then we output
+output then we output the or we set up the output as a
+the or we set up the output as a superposition of all those possible
+superposition of all those possible tiles so you can imagine each element of
+tiles so you can imagine each element of the output being superimposed of each of
+the output being superimposed of each of the tiles that are pulled out of the
+the tiles that are pulled out of the input and this is the character it
+input and this is the character it shares with quantum wave function
+shares with quantum wave function collapse it's it's sort of a snide
+collapse it's it's sort of a snide relationship it's not anything
+relationship it's not anything complicated
+complicated what it does then is it picks one at
+what it does then is it picks one at random to start with and says well of
+random to start with and says well of all these possible tiles we're going to
+all these possible tiles we're going to select the lowest in by an entropy area
+select the lowest in by an entropy area and pick one at random and collapse it
+and pick one at random and collapse it down to a single tile
+down to a single tile and then it's got some new information i
+and then it's got some new information i know that this tile exists these
+know that this tile exists these adjacencies are removed from the list
+adjacencies are removed from the list and then it continues until every output
+and then it continues until every output has only a single selection and that's
+has only a single selection and that's pretty much it so didn't catch that
+pretty much it so didn't catch that we'll walk through that in a little more
+we'll walk through that in a little more detail here so the first thing it does
+detail here so the first thing it does is it identifies all the in-by-end
+is it identifies all the in-by-end patterns
+patterns so the example here i'm going to use is
+so the example here i'm going to use is a very simple three color training input
+a very simple three color training input it's got red on the outside and a green
+it's got red on the outside and a green box and a blue inside and so it's going
+box and a blue inside and so it's going to chop it up into all these three by
+to chop it up into all these three by three patterns so i'm showing you five
+three patterns so i'm showing you five here but they're obviously a bunch in a
+here but they're obviously a bunch in a nine by nine box without wrapping it's
+nine by nine box without wrapping it's gonna be like 49 and uh if you allow
+gonna be like 49 and uh if you allow wrapping it's like what a 81.
+wrapping it's like what a 81. if you allow symmetries and rotations
+if you allow symmetries and rotations it's much more
+it's much more then it goes through and for each tile
+then it goes through and for each tile it figures out where do the other tiles
+it figures out where do the other tiles overlap and it's going to use this
+overlap and it's going to use this information in order to do the
+information in order to do the propagation
+propagation and so here i'm just showing an example
+and so here i'm just showing an example you've got two tiles and you can see
+you've got two tiles and you can see that
+that the first tile on the left it overlaps
+the first tile on the left it overlaps with the two tiles below it sharing
+with the two tiles below it sharing those six red pixels
+so this is an example output of an wfc run so let's unpack what we're looking
+run so let's unpack what we're looking at here a little bit on the very left
+at here a little bit on the very left you see the training input what you're
+you see the training input what you're seeing is the first four steps of the
+seeing is the first four steps of the wfc collapse
+wfc collapse in the very first frame the white
+in the very first frame the white outline box is the three by three tile
+outline box is the three by three tile it's decided to collapse it then steps
+it's decided to collapse it then steps through one three by three section at a
+through one three by three section at a time and selects an output tile that
+time and selects an output tile that correctly overlaps the existing tiles
+correctly overlaps the existing tiles that it knows about and it steps through
+that it knows about and it steps through the image until all of them are
+the image until all of them are collapsed from the existing input data
+collapsed from the existing input data so to give you a real idea what's going
+so to give you a real idea what's going on
+on if you look at the area in the box it's
+if you look at the area in the box it's very clearly green blue
+very clearly green blue that's a single
+that's a single non-superimposed result the rest of the
+non-superimposed result the rest of the blending pixels is a visualization of
+blending pixels is a visualization of the output tiles that are remain for
+the output tiles that are remain for that available for that area
+that available for that area superimposed on one another so pixels
+superimposed on one another so pixels that have sort of a green blue box they
+that have sort of a green blue box they can still be either green or blue
+can still be either green or blue depending on what tiles remain to be
+depending on what tiles remain to be chosen
+chosen so let's look very specifically at this
+so let's look very specifically at this first step and try to build an intuition
+first step and try to build an intuition for how it makes these decisions let's
+for how it makes these decisions let's look at this strip of three pixels here
+look at this strip of three pixels here unlike the pixels to the left you can
+unlike the pixels to the left you can see these blue pixels are a little green
+see these blue pixels are a little green which means they still have some
+which means they still have some possibility to become green pixels so
+possibility to become green pixels so why is this
+why is this well we look to the left of this pattern
+well we look to the left of this pattern and we see to the left of this pattern
+and we see to the left of this pattern in the input is a strip of blue blue
+in the input is a strip of blue blue green
+green and where can we find this in the input
+and where can we find this in the input pattern we can essentially find it in
+pattern we can essentially find it in these three places we can find it here
+these three places we can find it here each of these magenta boxes
+each of these magenta boxes is what the output column we're thinking
+is what the output column we're thinking about might be
+about might be in this case in the most leftmost case
+in this case in the most leftmost case you can see left of that is blue blue
+you can see left of that is blue blue green
+green and the second case left of that is blue
+and the second case left of that is blue blue green and third case left of that
+blue green and third case left of that is blue blue green so these are all
+is blue blue green so these are all these could all slot in there
+these could all slot in there two of these outputs that column is blue
+two of these outputs that column is blue blue green and the third possible output
+blue green and the third possible output the column is green green green and so
+the column is green green green and so we can see
+we can see here we go if
+here we go if if we look at
+if we look at two blue blue green inputs and one green
+two blue blue green inputs and one green green green input you can see that the
+green green input you can see that the probability is
+probability is two blues and one green for each of
+two blues and one green for each of those top two pixels and oh it's always
+those top two pixels and oh it's always going to be green in the output so you
+going to be green in the output so you can see that we though we've selected
+can see that we though we've selected that
+that initial three by three box we know quite
+initial three by three box we know quite a bit about what possible adjacencies
+a bit about what possible adjacencies exist based on the input image
+exist based on the input image and so again looking at this you should
+and so again looking at this you should have a better idea sort of intuitively
+have a better idea sort of intuitively what it's doing each of these white
+what it's doing each of these white boxes is selecting for sure what these
+boxes is selecting for sure what these pixels are in each case it knows a
+pixels are in each case it knows a little bit more about the possibilities
+little bit more about the possibilities that remain and it simply sort of flood
+that remain and it simply sort of flood fills around the area to make it work
+fills around the area to make it work so let's watch this work it's fun
+so let's watch this work it's fun so we have
+so we have five training inputs on the left we have
+five training inputs on the left we have a little white box
+a little white box a little red box
+a little red box sort of more complex temple
+sort of more complex temple you can watch in real time as it decides
+you can watch in real time as it decides usually from the edges
+usually from the edges what the possibilities are
+what the possibilities are and then
+and then folds in those
+folds in those overlapping potentials
+overlapping potentials until we've got a final image and you
+until we've got a final image and you can obviously run this many times and
+can obviously run this many times and get a different output each time
+pretty fun so you can get big complex outputs from little inputs
+so that gives you an idea of how the technique works again you don't have to
+technique works again you don't have to understand it when i started
+understand it when i started experimenting with it i had no clue what
+experimenting with it i had no clue what was going on so i i'm sort of a hands-on
+was going on so i i'm sort of a hands-on learner so i just tried to give it input
+learner so i just tried to give it input and
+and see what it see what happened and so
+see what it see what happened and so this was my first experiment in texture
+this was my first experiment in texture mode in respect to building tile maps i
+mode in respect to building tile maps i wanted to build structured output so in
+wanted to build structured output so in this case i was like well can i make it
+this case i was like well can i make it build little square buildings for a
+build little square buildings for a village that would be neat
+village that would be neat i gave it a black box on a white
+i gave it a black box on a white background and i did not get a bunch of
+background and i did not get a bunch of little square buildings and it turns out
+little square buildings and it turns out that's because
+that's because what is the image telling it it tells
+what is the image telling it it tells it's telling it basically on the order
+it's telling it basically on the order of three by three pixels that a line can
+of three by three pixels that a line can turn left or a line can turn right or a
+turn left or a line can turn right or a line can go straight you'll notice that
+line can go straight you'll notice that there's no overlaps but there's also
+there's no overlaps but there's also no training in that image that tells
+no training in that image that tells that there's an inside and out to side
+that there's an inside and out to side of the square there's no spatial spatial
+of the square there's no spatial spatial relationship between those turns and so
+relationship between those turns and so you get the output there
+you get the output there i said well what if i had
+i said well what if i had a third color so now i've got white and
+a third color so now i've got white and i've got black and i've got red inside
+i've got black and i've got red inside this suddenly produces the kind of
+this suddenly produces the kind of spatial coherence that i want across the
+spatial coherence that i want across the map you've got little red filled boxes
+map you've got little red filled boxes that's awesome because not only do you
+that's awesome because not only do you get the spatial coherence but you also
+get the spatial coherence but you also get some structural hinting the red
+get some structural hinting the red pixels tell me hey that's the inside of
+pixels tell me hey that's the inside of a place and when you're building a map
+a place and when you're building a map that's a pretty interesting distinction
+that's a pretty interesting distinction to be able to pull out of a real simple
+to be able to pull out of a real simple texture okay well something i can put
+texture okay well something i can put furniture inside and plants outside and
+furniture inside and plants outside and that looks
+that looks like a already a coherent village with
+like a already a coherent village with almost nothing going on we've got a
+almost nothing going on we've got a three color texture going into it
+three color texture going into it here's another example as i get more
+here's another example as i get more comfortable playing with it hey what if
+comfortable playing with it hey what if i feed a bigger training image do i get
+i feed a bigger training image do i get noise or do i get something interesting
+noise or do i get something interesting i get something interesting that's cool
+i get something interesting that's cool another example i said well can i
+another example i said well can i produce sort of naturalistic gardens
+produce sort of naturalistic gardens sure i mean these are like eight second
+sure i mean these are like eight second experiments in ms paint this is i'm not
+experiments in ms paint this is i'm not i'm not spending 20 hours learning to do
+i'm not spending 20 hours learning to do high level math
+high level math so maybe i'm in the wrong lecture also
+here's an introductory shape and keep this in mind because we're going to
+this in mind because we're going to return to the star shape i added an
+return to the star shape i added an additional color here and you can see
+additional color here and you can see you get star-like shapes
+you get star-like shapes not identical stars but some variation
+not identical stars but some variation and that's pretty interesting
+and that's pretty interesting how to use this in your code probably
+how to use this in your code probably the most interesting slide for people
+the most interesting slide for people it's not complicated it's three lines of
+it's not complicated it's three lines of code you initialize the model you tell
+code you initialize the model you tell it to run and you get the output image
+it to run and you get the output image and that's it and let's take a look at
+and that's it and let's take a look at the inputs because sometimes
+the inputs because sometimes the complexity is hidden in the in the
+the complexity is hidden in the in the parameterization for wfc it's not
+parameterization for wfc it's not there's not even any complexity there
+there's not even any complexity there you give it the training image you say
+you give it the training image you say what is the n i want i want it to be two
+what is the n i want i want it to be two or three or four
+or three or four how big do i want the output to be do i
+how big do i want the output to be do i want the input to wrap across edges do i
+want the input to wrap across edges do i want the output direct cross edges and
+want the output direct cross edges and do i want it to sample with symmetry
+do i want it to sample with symmetry symmetry is a little bit interesting not
+symmetry is a little bit interesting not very complicated if you're for instance
+very complicated if you're for instance putting in something where orientation
+putting in something where orientation matters and you've got ground at the
+matters and you've got ground at the bottom at sky at the top you probably
+bottom at sky at the top you probably don't want symmetry unless you want to
+don't want symmetry unless you want to end up with sky at the bottom if you've
+end up with sky at the bottom if you've got buildings where you don't care about
+got buildings where you don't care about the orientation you want to probably
+the orientation you want to probably crank that symmetry up to eight where
+crank that symmetry up to eight where you've got full reflection and
+you've got full reflection and rotational symmetry
+rotational symmetry so
+so applied to map design these are not
+applied to map design these are not problems with the algorithm per se but
+problems with the algorithm per se but only domain specific problems what
+only domain specific problems what problems did we run into when we tried
+problems did we run into when we tried to use this problem one was homogeny the
+to use this problem one was homogeny the outputs are
+outputs are as you get bigger and bigger just
+as you get bigger and bigger just completely homogeneous in all directions
+completely homogeneous in all directions they're interesting at the small scale
+they're interesting at the small scale but you don't really want to walk across
+but you don't really want to walk across an infinite homogeneous plane of these
+an infinite homogeneous plane of these buildings
+buildings problem two is overfitting and so we'll
+problem two is overfitting and so we'll return to the star shape
+return to the star shape one of the things you want to do in maps
+one of the things you want to do in maps is have more interesting details than
+is have more interesting details than walls you want to have doors and where
+walls you want to have doors and where the monsters are and where the furniture
+the monsters are and where the furniture is etc etc and you might think that well
+is etc etc and you might think that well let me add more colors to the wfc input
+let me add more colors to the wfc input and that of course was the first thing i
+and that of course was the first thing i tried the reality is as soon as you
+tried the reality is as soon as you start adding more and more colors less
+start adding more and more colors less of these tiles tend to overlap and so
+of these tiles tend to overlap and so you tend to get
+you tend to get very
+very uh
+uh very non-varied outputs because the
+very non-varied outputs because the tiles can fit together only in one
+tiles can fit together only in one particular way and so instead you just
+particular way and so instead you just reflect and rotate the shape across
+reflect and rotate the shape across space
+space so how do we solve these
+so how do we solve these the solution to
+the solution to homogeny was very simple we segmented
+homogeny was very simple we segmented the output space and then used wfc to
+the output space and then used wfc to fill in details
+fill in details so in this case this very simple example
+so in this case this very simple example we've segmented this map into three high
+we've segmented this map into three high level chunks and each of them is filled
+level chunks and each of them is filled with a wfc input with different
+with a wfc input with different character so this produces a
+character so this produces a high level
+high level graph that's more interesting than a
+graph that's more interesting than a homogeneous output and then the
+homogeneous output and then the interiors that interior detailing which
+interiors that interior detailing which can be quite difficult to get with uh
+can be quite difficult to get with uh standard procedural techniques can be
+standard procedural techniques can be highly varied because you can pick from
+highly varied because you can pick from a big library of 500 templates you made
+a big library of 500 templates you made in ms paint and get some really
+in ms paint and get some really interesting complex output
+interesting complex output how do we deal with overfitting the
+how do we deal with overfitting the solution to overfitting was pretty
+solution to overfitting was pretty simple which was to use the output of
+simple which was to use the output of wsc in order to generate high level wall
+wsc in order to generate high level wall structure and then use a post-processing
+structure and then use a post-processing pass to generate the more detailed uh
+pass to generate the more detailed uh more detailed things like doors and
+more detailed things like doors and furniture you can imagine a bunch of
+furniture you can imagine a bunch of ways to do this i'm going to show you
+ways to do this i'm going to show you one of the full run throughs that we did
+one of the full run throughs that we did we did to get a level in caves of cod
+we did to get a level in caves of cod so here's a real simple example first we
+so here's a real simple example first we pick some segmentation in this case
+pick some segmentation in this case we're going to pick a big circle in the
+we're going to pick a big circle in the middle middle of the map
+middle middle of the map where they're going to run a wfc
+where they're going to run a wfc template to fill the whole map up
+template to fill the whole map up in this case we're just going to run a
+in this case we're just going to run a set of buildings
+set of buildings we're going to cookie cutter that circle
+we're going to cookie cutter that circle out and our we are left with some walls
+out and our we are left with some walls you can see that
+you can see that this has created some disjoint rooms and
+this has created some disjoint rooms and so what we do is we simply
+so what we do is we simply segment this map we figure out which are
+segment this map we figure out which are the disconnected spaces and then we a
+the disconnected spaces and then we a star from segment to segment anywhere we
+star from segment to segment anywhere we pop through a wall we're going to place
+pop through a wall we're going to place a door so you can see in this case we're
+a door so you can see in this case we're a-starring here you've got a little red
+a-starring here you've got a little red cross where the door is punched and we
+cross where the door is punched and we do it
+do it again
+and again and again
+and again and once that's done
+and once that's done we are able to build a whole map which
+we are able to build a whole map which looks pretty complicated but you can see
+looks pretty complicated but you can see now that there's there's very little
+now that there's there's very little going on right we've we've done a top
+going on right we've we've done a top level segmentation we've filled in the
+level segmentation we've filled in the details with wfc and we've punched some
+details with wfc and we've punched some doors with a pretty simple a-star and
+doors with a pretty simple a-star and that's
+that's the output is pretty complex so let's
+the output is pretty complex so let's revisit
+revisit the initial maps
+the initial maps which looked complex before but let's
+which looked complex before but let's think about how we did these these are
+think about how we did these these are each accomplished through the exact same
+each accomplished through the exact same technique in this case we've got a
+technique in this case we've got a couple square areas that were filled
+couple square areas that were filled with rectilinear wfc output that's it
+with rectilinear wfc output that's it you get this cool looking palace
+you get this cool looking palace here we have a full map that's been
+here we have a full map that's been allowed to run we had a tiny little
+allowed to run we had a tiny little corridor wfc it's maybe eight by eight
+corridor wfc it's maybe eight by eight we let it just run out across the whole
+we let it just run out across the whole map then we flood fill in some of the
+map then we flood fill in some of the edges with with dirt so this looks like
+edges with with dirt so this looks like a buried
+a buried buried set of goalies
+buried set of goalies here we've just got a circle and a
+here we've just got a circle and a square output that been filled with real
+square output that been filled with real simple labyrinthine wfc
+simple labyrinthine wfc and here we have a big square at the top
+and here we have a big square at the top that's been filled with wfc output and a
+that's been filled with wfc output and a big square at the bottom which has been
+big square at the bottom which has been filled with wfc output and that's it and
+filled with wfc output and that's it and you get this cool little village right
+you get this cool little village right pretty simple so
+pretty simple so there are some really good papers in the
+there are some really good papers in the wild
+wild isaac karth has written a good one
+isaac karth has written a good one called wfc is constraint solving the
+called wfc is constraint solving the wild if you want to go
+wild if you want to go really deep down into how the algorithm
+really deep down into how the algorithm works you can go uh grab that the
+works you can go uh grab that the repository is a really excellent
+repository is a really excellent resource unlike a lot of reports
+resource unlike a lot of reports repositories it's really excellently
+repositories it's really excellently documented it's got source code in
+documented it's got source code in 30 different languages because as you
+30 different languages because as you can see it's like a super easy technique
+can see it's like a super easy technique and a super powerful one and so it's
+and a super powerful one and so it's very easy to plug into your project and
+very easy to plug into your project and go
+go and that is it i'm brian buckler that
+and that is it i'm brian buckler that was wfc
+do i have
+yeah if you have questions come to mike's happy to answer
+so how did you deal with
+how did you deal with communicating the algorithm to
+communicating the algorithm to like uh people who are more used to
+like uh people who are more used to traditional level design tools uh or
+traditional level design tools uh or more traditional uh procedural
+more traditional uh procedural generation
+generation uh
+uh approaches which tend to work on like
+approaches which tend to work on like kind of room chunks or things like that
+kind of room chunks or things like that where there's discrete combat spaces or
+where there's discrete combat spaces or discrete uh spaces for different
+discrete uh spaces for different gameplay styles yeah the question is how
+gameplay styles yeah the question is how would i how would i communicate that to
+would i how would i communicate that to them or how would you yeah how how did
+them or how would you yeah how how did working with how did working with design
+working with how did working with design people from that background work out for
+people from that background work out for you yeah well our team is so the
+you yeah well our team is so the question is how did it work out working
+question is how did it work out working with people who are
+with people who are more interested in discrete level design
+more interested in discrete level design and the answer is we have no none of
+and the answer is we have no none of those people on the team
+how did it go with you well i mean this this was a big uh
+well i mean this this was a big uh challenge for counter spy because we
+challenge for counter spy because we ended up doing room by room chunking
+ended up doing room by room chunking because that was easy to build out
+because that was easy to build out spaces and have combat ai work in it but
+spaces and have combat ai work in it but yeah if i can take that question to an
+yeah if i can take that question to an adjacent space i think there's a
+adjacent space i think there's a tendency to want to have a little bit
+tendency to want to have a little bit more control ability from a designer's
+more control ability from a designer's perspective these
+perspective these in caves of code we let our generative
+in caves of code we let our generative systems run really wild and it's part of
+systems run really wild and it's part of the aesthetic of the game and we can
+the aesthetic of the game and we can lean into it um and you can see we do
+lean into it um and you can see we do things like we just smash outputs on top
+things like we just smash outputs on top of each other but because our game is
+of each other but because our game is about runes that have been smashed out
+about runes that have been smashed out on top of each other that's great um
+on top of each other that's great um i think that i think that
+i think that i think that the when you get into the design space
+the when you get into the design space where you want more control the
+where you want more control the tendencies to move more towards prefabs
+tendencies to move more towards prefabs which designers have control over so you
+which designers have control over so you want to lean into like the tile based
+want to lean into like the tile based techniques in order to put fit those
+techniques in order to put fit those prefabs together and then allow the
+prefabs together and then allow the designators to design spaces that
+designators to design spaces that can work within a particular bound right
+can work within a particular bound right so within this prefab this area can be
+so within this prefab this area can be filled in this knuckle so so if i'm
+filled in this knuckle so so if i'm following you you're suggesting maybe uh
+following you you're suggesting maybe uh when you're doing the spatial
+when you're doing the spatial partitioning uh step you can do some of
+partitioning uh step you can do some of that wfc step to do the kind of broad
+that wfc step to do the kind of broad strokes and then chunk down uh prefabs
+strokes and then chunk down uh prefabs into the appropriate size spaces yeah i
+into the appropriate size spaces yeah i would actually say probably the tile
+would actually say probably the tile based uh
+based uh portion of wfc which i didn't talk about
+portion of wfc which i didn't talk about is probably more interesting than those
+is probably more interesting than those teams that gets a little bit more
+teams that gets a little bit more controllability to that out thank you
+controllability to that out thank you sure
+sure did you try building any constraints
+did you try building any constraints into the wave function collapse
+into the wave function collapse algorithm itself like no repeating tiles
+algorithm itself like no repeating tiles in this
+in this region or anything like that because
+region or anything like that because i've experimented with that with some
+i've experimented with that with some other
+other implementations of this and ran into
+implementations of this and ran into quite a few problems yeah the the
+quite a few problems yeah the the question was did we build any additional
+question was did we build any additional constraints on top of wfc um the answer
+constraints on top of wfc um the answer is no because i tried it and i ran into
+is no because i tried it and i ran into a bunch of problems
+max is is a cool guy and very knowledgeable obviously since he created
+knowledgeable obviously since he created and if you have a specific question
+and if you have a specific question about constraint building i would
+about constraint building i would actually hit him up on twitter and and
+actually hit him up on twitter and and ask because he's helpful but
+ask because he's helpful but i i didn't have time to push past those
+i i didn't have time to push past those problems in this case and we were able
+problems in this case and we were able to get really good output without any
+to get really good output without any kind of complex
+kind of complex constraint additions i would say there's
+constraint additions i would say there's a great c sharp library on github by guy
+a great c sharp library on github by guy boris the brave or whatever i think it's
+boris the brave or whatever i think it's linked within that repository works
+linked within that repository works great inside unity yeah awesome
+great talk um i had a question did you ever try having like a more detailed uh
+ever try having like a more detailed uh training set to be able to have more
+training set to be able to have more permutations of different sort of
+permutations of different sort of adjacent materials yeah it's really
+adjacent materials yeah it's really tricky because the reality is that those
+tricky because the reality is that those bigger training sets like the temple
+bigger training sets like the temple really you can reduce those um
+really you can reduce those um quite a bit and still get similar output
+quite a bit and still get similar output um those bigger
+um those bigger bigger sets
+bigger sets unless they're very complicated tend to
+unless they're very complicated tend to just start repeating the same patterns
+just start repeating the same patterns and so a good train because as your
+and so a good train because as your training set gets bigger the memory
+training set gets bigger the memory impact and the cpu impact of the of the
+impact and the cpu impact of the of the collapse gets bigger
+collapse gets bigger it tends to be best just to try to
+it tends to be best just to try to figure out exactly what the character is
+figure out exactly what the character is and pack it into as small as spaces as
+and pack it into as small as spaces as possible for actual production right um
+possible for actual production right um so i meant sort of when um when you have
+so i meant sort of when um when you have like so when you had multiple colors
+like so when you had multiple colors colors you got the repeating patterns
+colors you got the repeating patterns right yeah so uh by having maybe a
+right yeah so uh by having maybe a bigger training set maybe you could have
+bigger training set maybe you could have more permutations of colors adjacent to
+more permutations of colors adjacent to each other to sort of still be able to
+each other to sort of still be able to get the detail but oh yeah could you
+get the detail but oh yeah could you work around overfitting by by having a
+work around overfitting by by having a bunch of them with different colors yeah
+bunch of them with different colors yeah i think you probably could i haven't
+i think you probably could i haven't really experimented with it but i mean
+really experimented with it but i mean that would that would certainly be an
+that would that would certainly be an effective use of it i think something to
+effective use of it i think something to experiment with
+experiment with any other questions
+any other questions no okay well thank you

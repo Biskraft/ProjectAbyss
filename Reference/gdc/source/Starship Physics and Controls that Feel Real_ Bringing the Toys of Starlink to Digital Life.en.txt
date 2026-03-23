@@ -1,0 +1,776 @@
+[Music] hello everybody
+hello everybody and welcome to my talk on starship
+and welcome to my talk on starship physics and controls
+physics and controls that feel real uh how we brought
+that feel real uh how we brought the toys of starlink to life uh just
+the toys of starlink to life uh just before i begin i'd like to ask everybody
+before i begin i'd like to ask everybody to please silence their cell phones
+to please silence their cell phones and this is my first gdc talk so i would
+and this is my first gdc talk so i would love to
+love to if you could fill out your evaluation
+if you could fill out your evaluation forms at the end and i'd love to read
+forms at the end and i'd love to read comments like that so
+comments like that so thank you
+so who am i my name is michael wasilewski i've been in the game
+wasilewski i've been in the game industry roughly
+industry roughly 13 14 years now the last eight years at
+13 14 years now the last eight years at ubisoft toronto
+ubisoft toronto i've been focused primarily on gameplay
+i've been focused primarily on gameplay animation and tools
+animation and tools um and for the last little bit i've been
+um and for the last little bit i've been working on startling battle for atlas
+working on startling battle for atlas so our team's primary contributions
+so our team's primary contributions include transforming the signals coming
+include transforming the signals coming out of this hardware device that our
+out of this hardware device that our very talented hardware team provide
+very talented hardware team provide and turning them into a digital version
+and turning them into a digital version of the ship so
+of the ship so along with that comes the controls the
+along with that comes the controls the physics
+physics and reactions of the ship i'm also super
+and reactions of the ship i'm also super passionate about
+passionate about controls and how characters feel in
+controls and how characters feel in games and it's not easy to convey with
+games and it's not easy to convey with just videos and text but i'm going to
+just videos and text but i'm going to try to do my best
+so what is starlink well starlink is an open world action adventure
+open world action adventure game targeted towards but not
+game targeted towards but not exclusively for
+exclusively for kids players are encouraged to swap
+kids players are encouraged to swap parts not only to
+parts not only to build the type of starship that they
+build the type of starship that they want but also to overcome
+want but also to overcome obstacles in the game so you can sort of
+obstacles in the game so you can sort of turn your wings around
+turn your wings around you can swap them on top of each other
+you can swap them on top of each other and swap parts of different way of
+and swap parts of different way of different halls onto different other uh
+hulls
+so you can see we've come a long way since the initial prototype i think that
+since the initial prototype i think that was roughly four
+was roughly four years ago or so uh but even from day one
+years ago or so uh but even from day one having the toy be a physical thing that
+having the toy be a physical thing that our players would interact with was
+our players would interact with was very important the starship being
+very important the starship being mounted on the controller provides more
+mounted on the controller provides more of a visceral experience and we wanted
+of a visceral experience and we wanted that to translate into game
+that to translate into game but so how do children play with toys
+but so how do children play with toys well they
+well they skim them along the ground they fly them
+skim them along the ground they fly them through the air
+through the air they tumble them in the air and
+they tumble them in the air and usually smash them into the nearest
+usually smash them into the nearest available object
+available object and those are some of the core
+and those are some of the core experiences that we wanted to
+experiences that we wanted to translate and to digitally emulate
+now with that brings a few challenges so our starships don't have wheels of
+our starships don't have wheels of course
+course and with that comes certain expectations
+and with that comes certain expectations environmental collisions that in a car
+environmental collisions that in a car game
+game would feel completely acceptable in
+would feel completely acceptable in stopping you
+stopping you dead in your track should probably be
+dead in your track should probably be avoided we also want to align
+avoided we also want to align nicely to the terrain we are
+nicely to the terrain we are a shooter so we need tight control over
+a shooter so we need tight control over all movement of our ship
+all movement of our ship you know we can't we have to have
+you know we can't we have to have control over timings
+control over timings the feel position on screen that sort of
+the feel position on screen that sort of thing
+you don't need full physical accuracy it's not that important but being
+it's not that important but being physically plausible
+physically plausible while remaining fun was an important
+while remaining fun was an important goal
+whoops and we're a small team so inexpensive
+we're a small team so inexpensive solutions were always a big plus
+solutions were always a big plus i think each cell had roughly like three
+i think each cell had roughly like three to four people in it so
+to four people in it so uh we looked for cheap solutions
+uh we looked for cheap solutions and of course the unique challenge in
+and of course the unique challenge in our game was this
+our game was this players build their ships and we wanted
+players build their ships and we wanted them to give them the fantasy
+them to give them the fantasy the fantasy of being an ace pilot of
+the fantasy of being an ace pilot of their own creation
+their own creation thus we couldn't optimize towards any
+thus we couldn't optimize towards any single basic shape or convex hull we
+single basic shape or convex hull we kind of had to support
+kind of had to support a huge variety of different shapes
+a huge variety of different shapes so i'm going to go step by step to build
+so i'm going to go step by step to build up a ship that's dynamic has character
+up a ship that's dynamic has character reactive to the environment my hope is
+reactive to the environment my hope is that at each step it feels like well
+that at each step it feels like well that was just
+that was just the obvious next thing one would do but
+the obvious next thing one would do but like make no mistake it took a while to
+like make no mistake it took a while to develop this game and during development
+develop this game and during development we tried things
+we tried things we iterated and we did fail quite a bit
+so what is our ship well it's just a point in space driven by linear and
+a point in space driven by linear and angular velocities
+angular velocities it's kind of an oversimplification but
+it's kind of an oversimplification but at its absolute core that's true
+at its absolute core that's true on the gameplay side we drive the point
+on the gameplay side we drive the point in space the ship mesh and collision
+in space the ship mesh and collision shapes are bolted onto that transform
+shapes are bolted onto that transform and we treat the whole thing like a
+and we treat the whole thing like a giant rigid body
+giant rigid body um it's not quite that simple and in
+um it's not quite that simple and in fact you can see from the preview from
+fact you can see from the preview from the sh from the picture that
+the sh from the picture that we use some sensors to properly navigate
+we use some sensors to properly navigate in the world
+in the world and i'll go into those in a moment
+and i'll go into those in a moment but first the transformation pipeline of
+but first the transformation pipeline of our
+our ship first we try to apply any player
+ship first we try to apply any player input to drive it in the world
+input to drive it in the world then we apply some character or maybe
+then we apply some character or maybe flavor onto the ship via animations
+flavor onto the ship via animations we perform reactions to projectiles and
+we perform reactions to projectiles and collisions we encountered last frame
+collisions we encountered last frame and finally we pass it off pass all of
+and finally we pass it off pass all of that off to the physics system and read
+that off to the physics system and read it back for rendering
+so what is behavior well behavior is the layer at which design
+layer at which design i would say has the most control over
+i would say has the most control over how a ship will feel when being
+how a ship will feel when being controlled
+controlled it's made up of several reusable classes
+it's made up of several reusable classes that control primarily just one
+that control primarily just one aspect of the ship via linear and
+aspect of the ship via linear and angular velocities
+angular velocities multiple behaviors can be sequenced or
+multiple behaviors can be sequenced or blended together to get something more
+blended together to get something more complex
+complex so the code here isn't all that
+so the code here isn't all that important i've kind of simplified it
+important i've kind of simplified it anyway from the real thing we shipped
+anyway from the real thing we shipped with
+with but the important thing is that each
+but the important thing is that each behavior is just a class with tuning
+behavior is just a class with tuning parameters
+parameters and an update method which operates on a
+and an update method which operates on a set of input output parameters
+set of input output parameters some behaviors drive our point directly
+some behaviors drive our point directly some behaviors just calculate parameters
+some behaviors just calculate parameters for later behaviors to
+for later behaviors to use in some way
+use in some way now we have three major navigation modes
+now we have three major navigation modes like i mentioned in the beginning
+like i mentioned in the beginning skimming atmospheric flight and space
+skimming atmospheric flight and space flight
+flight each navigation mode has a state machine
+each navigation mode has a state machine that sequences behaviors together
+that sequences behaviors together and adjust various blend parameters in
+and adjust various blend parameters in the example above
+the example above we blend two versions of a camera
+we blend two versions of a camera alignment depending on how fast the ship
+alignment depending on how fast the ship is moving
+is moving we can also adjust the settings if
+we can also adjust the settings if you're stalled frozen or have some other
+you're stalled frozen or have some other status effect applied
+status effect applied it's really simplified example and our
+it's really simplified example and our real modes
+real modes had many many many more sequence
+had many many many more sequence behaviors in this sort of tree-like
+behaviors in this sort of tree-like structure uh when we enter or exit the
+structure uh when we enter or exit the atmosphere of a planet or maybe turn on
+atmosphere of a planet or maybe turn on and off our flight engines
+and off our flight engines we have to transition between these
+we have to transition between these states thus each of our state machines
+states thus each of our state machines are behaviors themselves
+are behaviors themselves and then we can use existing blend
+and then we can use existing blend functionality to transition between them
+and we have a big core set of behaviors and most reuse
+and most reuse happens by tuning a behavior for a
+happens by tuning a behavior for a specific scenario
+specific scenario most of them are applicable to multiple
+most of them are applicable to multiple navigation modes although we do have
+navigation modes although we do have more
+more esoteric ones like something our
+esoteric ones like something our designers requested aligning to the
+designers requested aligning to the solar system
+solar system system ecliptic plane over time so the
+system ecliptic plane over time so the players don't get disoriented
+so let's just start with the most basic which is a thruster behavior
+which is a thruster behavior this just applies a linear force to our
+this just applies a linear force to our point based on user input
+point based on user input when the user when the ship is attached
+when the user when the ship is attached to the point the physics step keeps it
+to the point the physics step keeps it in the world
+in the world but you know we're constantly colliding
+but you know we're constantly colliding and scraping in the world and
+and scraping in the world and against our height map and props along
+against our height map and props along the way so there's no rotation on the
+the way so there's no rotation on the ship so it's not
+ship so it's not really useful in on its own
+really useful in on its own but let's start aligning to the camera
+but let's start aligning to the camera the player actually feels like now
+the player actually feels like now now that like they're controlling a
+now that like they're controlling a third person character or third person
+third person character or third person avatar
+avatar we just dangle a carrot in front of the
+we just dangle a carrot in front of the ship in the direction we want to rotate
+ship in the direction we want to rotate given our current angular velocity
+given our current angular velocity figure out if there's any delta
+figure out if there's any delta needed to get us there in the next frame
+needed to get us there in the next frame and then apply a force to do so
+and then apply a force to do so design of course has knobs to tune the
+design of course has knobs to tune the smoothing and acceleration
+once we're generally moving and facing the right direction we can work on
+the right direction we can work on keeping ourselves off the ground
+keeping ourselves off the ground our repulsor behaviors fear casts
+our repulsor behaviors fear casts against the world a few times and tries
+against the world a few times and tries to keep the ship from hitting the
+to keep the ship from hitting the terrain
+terrain now here repulsor is a bit of a misnomer
+now here repulsor is a bit of a misnomer because depending on the desired
+because depending on the desired gameplay
+gameplay we either tightly keep our ship bound to
+we either tightly keep our ship bound to the ground for example in combat we want
+the ground for example in combat we want to keep them
+to keep them generally in the same combat plane but
+generally in the same combat plane but when we're navigating across
+when we're navigating across our giant worlds we allow the ship to
+our giant worlds we allow the ship to hit jumps
+hit jumps sail through the air that sort of thing
+sail through the air that sort of thing so
+so the repulsor's kind of just using a
+the repulsor's kind of just using a spring equation where our spring
+spring equation where our spring constant varies
+constant varies depending on the type of gameplay that
+depending on the type of gameplay that we want and it generally keeps us off
+we want and it generally keeps us off the ground
+the ground and away from objects although as you
+and away from objects although as you see you can see from the video not
+see you can see from the video not all objects and i'll get into that in a
+all objects and i'll get into that in a second
+well once we have this repulsor behavior we kind of have a
+we kind of have a a good normal to the ground so we can
+a good normal to the ground so we can use some of the repulsors uh
+use some of the repulsors uh the the sensors to determine a good
+the the sensors to determine a good normal vector and refine our ship and
+normal vector and refine our ship and align it to the terrain
+align it to the terrain uh this is where having multiple sphere
+uh this is where having multiple sphere cast results help
+cast results help as you can never know what sort of
+as you can never know what sort of scattered artist props you may find your
+scattered artist props you may find your ship
+ship on top of you can also see that the
+on top of you can also see that the raycast
+raycast the distance between our raycast changes
+the distance between our raycast changes as the ship moves faster or slower
+then we add i'd say the most touchy feely step for design to tune but one
+feely step for design to tune but one that completely brings the ship to life
+that completely brings the ship to life adding role to the ship based on player
+adding role to the ship based on player input helps give the impression of
+input helps give the impression of engines
+engines actually having to do work
+then putting that all together and including dashes in different directions
+including dashes in different directions upwards left right you get something
+upwards left right you get something that i think feels pretty
+that i think feels pretty dynamic and responsive on screen
+the vfx help as well
+now we're not a racing or simulation game where the player is expected to
+game where the player is expected to retain very high grain control of their
+retain very high grain control of their ship
+ship we're a giant open world game where the
+we're a giant open world game where the player's goal is to get across various
+player's goal is to get across various types of terrain and engage in combat
+types of terrain and engage in combat it was important that our worlds feel as
+it was important that our worlds feel as interesting as possible
+interesting as possible and that the player felt like a skilled
+and that the player felt like a skilled pilot while navigating every corner of
+pilot while navigating every corner of each of our seven planets
+each of our seven planets uh without some sort of avoidance
+uh without some sort of avoidance behavior i don't think we could have
+behavior i don't think we could have accomplished that goal
+accomplished that goal thus we raycast in front of us to sense
+thus we raycast in front of us to sense what what's ahead
+what what's ahead and apply an upwards force to try to
+and apply an upwards force to try to clear any obstacles in the way
+clear any obstacles in the way in this case it's getting me over some
+in this case it's getting me over some dinosaur bones and uh
+dinosaur bones and uh some scattered rocks
+and you can see even as i jump over it when i go down to the ground my repulsor
+when i go down to the ground my repulsor spring equation kicks in and you get
+spring equation kicks in and you get that nice sense of movement
+so our tooling uh wasn't quite there for starlink so sequencing the behaviors was
+starlink so sequencing the behaviors was a bit manual
+a bit manual but all the design variables were
+but all the design variables were exposed for tuning
+exposed for tuning like i mentioned we have the three major
+like i mentioned we have the three major navigation modes and the sequence of
+navigation modes and the sequence of behaviors the sequencing of behaviors
+behaviors the sequencing of behaviors was slightly different for each of them
+was slightly different for each of them but the core set of behaviors was all
+but the core set of behaviors was all the same
+the same in fact we're releasing an update in
+in fact we're releasing an update in april uh i think maybe april early may
+april uh i think maybe april early may that adds a drifting mechanic to the
+that adds a drifting mechanic to the game and we didn't add any new types of
+game and we didn't add any new types of behaviors we just sequenced existing
+behaviors we just sequenced existing ones with our state machine
+and i mentioned that behaviors have settings these include
+settings these include acceleration curves blending times
+acceleration curves blending times maximum translations on screen etc
+maximum translations on screen etc but we also had many different ship
+but we also had many different ship halls and wings that should feel
+halls and wings that should feel different depending on how our players
+different depending on how our players assembled them together
+assembled them together so design actually tuned several sets of
+so design actually tuned several sets of settings for our behaviors and at
+settings for our behaviors and at runtime we would linearly combine them
+runtime we would linearly combine them with weights extracted from this
+with weights extracted from this physical ship configuration
+physical ship configuration at one extreme the ship could feel more
+at one extreme the ship could feel more like a motorcycle and the other extreme
+like a motorcycle and the other extreme more like a tank
+so onto animation since we have a rigid body as our main avatar
+body as our main avatar much of the character has to come from
+much of the character has to come from vfx sfx and secondary animation on the
+vfx sfx and secondary animation on the flaps
+flaps but we can do a bit better by using
+but we can do a bit better by using animations to drive our rigid body
+animations to drive our rigid body there's not a lot of references out
+there's not a lot of references out there for applying animations to a ship
+there for applying animations to a ship that's physically controlled but
+that's physically controlled but it's not too bad in a nutshell animation
+it's not too bad in a nutshell animation is always additive for us
+is always additive for us so a playing animation defines an offset
+so a playing animation defines an offset around the base gameplay transform we
+around the base gameplay transform we want to be at
+want to be at we never actually drive the root of the
+we never actually drive the root of the ship with animations we just apply
+ship with animations we just apply velocities
+velocities to our physics bodies that take us to
+to our physics bodies that take us to the desired offset
+the desired offset and just as a side note we had a very
+and just as a side note we had a very small team to make this title
+small team to make this title so and since our animations are just a
+so and since our animations are just a single bone
+single bone the first animations we applied were
+the first animations we applied were actually just repurposed camera
+actually just repurposed camera animations from an internal third
+animations from an internal third third-person shooter game
+third-person shooter game and i think we actually shipped with
+and i think we actually shipped with that
+so once we have a ship that moves has a bit of character
+bit of character uh reactions to the world and the
+uh reactions to the world and the environment are in my
+environment are in my in my opinion the biggest opportunity to
+in my opinion the biggest opportunity to connect it with
+connect it with the rest of the game makes the ship feel
+the rest of the game makes the ship feel grounded and more than just a transform
+grounded and more than just a transform on screen
+on screen but remember our driving principle the
+but remember our driving principle the ship in game has to react to physical
+ship in game has to react to physical impacts just like you might imagine a
+impacts just like you might imagine a child might mime
+child might mime while playing with a toy ship should
+while playing with a toy ship should translate although maybe not too far
+translate although maybe not too far should rotate maybe not too much to
+should rotate maybe not too much to interfere with gameplay
+interfere with gameplay and finally recover back to its original
+and finally recover back to its original transform and one extra constraint for
+transform and one extra constraint for our team
+our team depending on how the ship has been
+depending on how the ship has been configured you know three wings on one
+configured you know three wings on one side
+side no wings on the other some pointing up
+no wings on the other some pointing up some pointing down
+some pointing down the ship has to react in a physically
+the ship has to react in a physically plausible way
+so each part that we attach to the ship comes with a set of capsules that get
+comes with a set of capsules that get added to the bait to a base compound
+added to the bait to a base compound shape
+shape as we add more wings they just stack on
+as we add more wings they just stack on top of each other
+top of each other and as you can build some pretty crazy
+and as you can build some pretty crazy ship combinations in our game your rigid
+ship combinations in our game your rigid body compound shape will also look
+body compound shape will also look pretty wild each part has a mass
+pretty wild each part has a mass and can change the ship's center of mass
+and can change the ship's center of mass and inertia tensor accordingly
+and inertia tensor accordingly together the inertia tensor and center
+together the inertia tensor and center of mass position can drastically change
+of mass position can drastically change how
+how impact reactions feel so
+impact reactions feel so we'd like to have impacts that feel real
+we'd like to have impacts that feel real or maybe a better term would be feel fun
+and again because we want tight control over our ship we don't actually want the
+over our ship we don't actually want the physics engine to do the creative work
+physics engine to do the creative work for us
+for us we actually don't we don't have that
+we actually don't we don't have that much control at that level ideally we do
+much control at that level ideally we do some
+some creative calculations on the gameplay
+creative calculations on the gameplay side figure out what our ship should
+side figure out what our ship should look like and then drive the ship
+look like and then drive the ship transform in the physics step the same
+transform in the physics step the same way we've been doing
+way we've been doing uh with behaviors in animation just via
+uh with behaviors in animation just via linear and angular
+linear and angular forces so there are two components and
+forces so there are two components and i'll start with translation there's
+i'll start with translation there's translation rotation
+translation rotation uh at least in starlink projectiles move
+uh at least in starlink projectiles move pretty quickly and players generally
+pretty quickly and players generally only perceive
+only perceive that one came from this jet this
+that one came from this jet this direction and hit the main mass of the
+direction and hit the main mass of the ship
+ship not that it came from an exact spot and
+not that it came from an exact spot and hit this my wing at an oblique angle
+hit this my wing at an oblique angle so in our simplified representation the
+so in our simplified representation the ship is just going to translate for some
+ship is just going to translate for some amount down the impact direction
+amount down the impact direction it's pretty easy i kind of think of it
+it's pretty easy i kind of think of it as a little finger poking
+as a little finger poking the ship at a certain spot
+so you translate for a bit and what does that look like
+that look like well it's not bad i guess uh serves a
+well it's not bad i guess uh serves a couple purposes
+couple purposes it has the ship dynamically react on
+it has the ship dynamically react on screen and shows which direction the
+screen and shows which direction the impact came from
+impact came from i think it works but it's a bit sterile
+i think it works but it's a bit sterile and like it lacking that oomph factor
+so let's make it look a bit better by focusing on the rotation component
+focusing on the rotation component so we see an incoming projectile that's
+so we see an incoming projectile that's about to impact our ship
+about to impact our ship the impacting the uh projectile
+the impacting the uh projectile direction is in
+direction is in the red vector v right here which will
+the red vector v right here which will cross with the vector from the center of
+cross with the vector from the center of mass
+mass to the impact point this gives us the
+to the impact point this gives us the green vector
+green vector this gives sorry the magenta vector
+this gives sorry the magenta vector coming out of the
+coming out of the the screen and maybe a bit to the right
+now that becomes our vector that we want to rotate the ship
+to rotate the ship around well in physics
+around well in physics an inertia tensor kind of tells us how
+an inertia tensor kind of tells us how much a rigid body will resist
+much a rigid body will resist rotation around each axis and how much
+rotation around each axis and how much torque you need to
+torque you need to needs to be applied to move the body and
+needs to be applied to move the body and as i mentioned
+as i mentioned before each part has a mass so each the
+before each part has a mass so each the ship has an inertia tensor that you can
+ship has an inertia tensor that you can either calculate
+either calculate manually or ask your physics system to
+manually or ask your physics system to provide for you so if we multiply this
+provide for you so if we multiply this rotation axis by the tensor and the mass
+rotation axis by the tensor and the mass the length of the result is the total
+the length of the result is the total angle by which you would
+angle by which you would need to rotate it's a axis angle
+so as a recap each projectile just creates a new axis angle transform that
+creates a new axis angle transform that we want the ship to be at
+we want the ship to be at we blend those transforms out over time
+we blend those transforms out over time and we nudge the ship there using
+and we nudge the ship there using uh forces
+so what does that look like so the magic as with most things in game development
+as with most things in game development is in the tuning there's a maximum
+is in the tuning there's a maximum translation the ship generally remains
+translation the ship generally remains in the so that the ship generally
+in the so that the ship generally remains in the center of the screen this
+remains in the center of the screen this differs versus
+differs versus in space versus on planet because we
+in space versus on planet because we don't have the ground plane to worry
+don't have the ground plane to worry about
+about uh in space there are also limits on the
+uh in space there are also limits on the maximum rotation we can torque the ship
+maximum rotation we can torque the ship so that on screen the ship
+so that on screen the ship generally faces mostly forward we can
+generally faces mostly forward we can also
+also combine this by modifying the behaviors
+combine this by modifying the behaviors from the beginning of the presentation
+from the beginning of the presentation hard enough impacts will push us towards
+hard enough impacts will push us towards the ground causing our repulsor to work
+the ground causing our repulsor to work a bit harder
+a bit harder so you see the ship do sort of a bounce
+so you see the ship do sort of a bounce up and down providing i think a richer
+up and down providing i think a richer sense of movement
+sense of movement and even harder impacts cause what we
+and even harder impacts cause what we call a stall where our repulsor and
+call a stall where our repulsor and thrust behaviors just completely turn
+thrust behaviors just completely turn off for about a second or so
+and then our vfx team did a great job of selling the actual engines recovering
+now you may have noticed me snapping wings and weapons onto my ship
+wings and weapons onto my ship and you can literally feel in your hand
+and you can literally feel in your hand the force needed to do that
+the force needed to do that and we wanted that to translate into
+and we wanted that to translate into game so we actually just applied the
+game so we actually just applied the exact same technique when a part
+exact same technique when a part animates it
+animates it we just do that fake little finger jab
+we just do that fake little finger jab uh and of course depending pending on
+uh and of course depending pending on how the ship is currently configured
+how the ship is currently configured that reaction should still look pretty
+that reaction should still look pretty realistic
+realistic basically we kind of created ourselves
+basically we kind of created ourselves an inexpensive form of procedural
+animation
+what about collisions with the world this is sort of what it looks like if
+this is sort of what it looks like if you don't react to the world at all
+you don't react to the world at all i mean you don't go through those
+i mean you don't go through those objects
+objects but i guess it does the job but it's not
+but i guess it does the job but it's not super exciting
+super exciting but what if we were to do the exact same
+but what if we were to do the exact same thing we did with projectile impacts
+thing we did with projectile impacts what if we were to apply
+what if we were to apply that fake little nudge
+that fake little nudge in this case i think i think it results
+in this case i think i think it results in something that looks pretty good
+in something that looks pretty good and uh more importantly pushes us out of
+and uh more importantly pushes us out of the way for subsequent collisions
+so as a side note i've i can't tell you how many
+how many cliffs and rocks i've scraped our
+cliffs and rocks i've scraped our digital ship in
+digital ship in during the course of this game to get it
+during the course of this game to get it to feel just right
+to feel just right and my one note is that
+and my one note is that if you're doing something where you have
+if you're doing something where you have a skimming uh vehicle
+a skimming uh vehicle uh just ignore like 90 of the collisions
+uh just ignore like 90 of the collisions coming from below your ship
+coming from below your ship because you're probably hitting uh
+because you're probably hitting uh collision-enabled props on the ground
+collision-enabled props on the ground that somebody scattered
+that somebody scattered and your ship would just flinch way too
+and your ship would just flinch way too much
+so some of you some of the more eagle-eyed of you may have noticed a
+eagle-eyed of you may have noticed a physics shape at the bottom of the ship
+physics shape at the bottom of the ship that's colored a little bit differently
+that's colored a little bit differently internally we call that the imp plow we
+internally we call that the imp plow we have a small npc in our game
+have a small npc in our game the imp with very low hit points kind of
+the imp with very low hit points kind of popcorn fodder for the player
+popcorn fodder for the player and as they're pretty small design
+and as they're pretty small design wanted to encourage the the player to
+wanted to encourage the the player to drive right through them
+drive right through them the problem being with all the work we
+the problem being with all the work we did to get our repulsor working the ship
+did to get our repulsor working the ship sits at about the same height as the imp
+sits at about the same height as the imp and a player trying to ram them would
+and a player trying to ram them would often miss or skim
+often miss or skim directly over their heads so our
+directly over their heads so our solution
+solution was to add this invisible plow shape so
+was to add this invisible plow shape so from the player's perspective everything
+from the player's perspective everything looks
+looks great given the camera angle speed at
+great given the camera angle speed at which we travel but if we look at it
+which we travel but if we look at it from the side
+from the side the ship never actually hits the imp
+the ship never actually hits the imp it's just this invisible piece of
+it's just this invisible piece of collision
+collision causing their reaction
+well really hard collisions are a special case
+special case sometimes it's best to just step back
+sometimes it's best to just step back and let your physics system do the heavy
+and let your physics system do the heavy lifting apply a little slow motion on
+lifting apply a little slow motion on the impacts emphasize it
+the impacts emphasize it and things look great one thing to note
+and things look great one thing to note is because all of our behaviors
+is because all of our behaviors animations projectile impacts etc have
+animations projectile impacts etc have all been combining to drive the rigid
+all been combining to drive the rigid body
+body when we go into purely physics driven
+when we go into purely physics driven mode all that motion is carried through
+mode all that motion is carried through we don't need to blend anything out or
+we don't need to blend anything out or worry about a mismatch between the
+worry about a mismatch between the rendering and physics
+rendering and physics but you will notice here that my ship
+but you will notice here that my ship actually recovers back to normal
+actually recovers back to normal in a pretty physically plausible manner
+in a pretty physically plausible manner and
+and that was one of the biggest challenges
+that was one of the biggest challenges we faced on this project
+we faced on this project recovery so there are several different
+recovery so there are several different factors to consider when dealing with a
+factors to consider when dealing with a tumbling vehicle
+tumbling vehicle its initial and desired orientations as
+its initial and desired orientations as well as the initial and desired angular
+well as the initial and desired angular velocities
+velocities there's of course and of course you
+there's of course and of course you don't want to do it over one frame
+don't want to do it over one frame so there's some recovery time that you
+so there's some recovery time that you want to uh
+want to uh nudge your vehicle over there's of
+nudge your vehicle over there's of course the linear component to this but
+course the linear component to this but we kind of ignored it for the purposes
+we kind of ignored it for the purposes of this game and just let gravity do its
+of this game and just let gravity do its do its thing so just like with
+do its thing so just like with animations
+animations and projectile reactions we want to find
+and projectile reactions we want to find a good recovery
+a good recovery way to recover and then nudge your ship
+way to recover and then nudge your ship over time to this better orientation
+so i typically think of bezier curves as a way to blend a position
+a way to blend a position but we can also use them to blend from
+but we can also use them to blend from one angle to another where our
+one angle to another where our intermediate points are blending
+intermediate points are blending out our initial angular velocity and
+out our initial angular velocity and blending in
+blending in our target angular velocity i i've shown
+our target angular velocity i i've shown it above here in local space but you can
+it above here in local space but you can also do it in world space
+also do it in world space um k here is just a tuning parameter
+um k here is just a tuning parameter that kind of specifies how the recovery
+that kind of specifies how the recovery looks
+looks and depending on the time that you use
+and depending on the time that you use to recover
+to recover it can actually look quite a bit
+it can actually look quite a bit different as well
+different as well the important thing to note here is that
+the important thing to note here is that this curve just defines orientations
+this curve just defines orientations our job is to take these desired
+our job is to take these desired orientations and apply forces to our
+orientations and apply forces to our rigid body
+rigid body over some amount of time to sort of
+over some amount of time to sort of nudge it back into place this is just an
+nudge it back into place this is just an ideal
+ideal representation of where we want to be
+now when we blend to a target angle of course we can go the short way
+course we can go the short way or long way around the sphere and i've
+or long way around the sphere and i've done a lot of animation programming so
+done a lot of animation programming so blending the short way is kind of
+blending the short way is kind of embedded or ingrained in my head but
+embedded or ingrained in my head but it's not
+it's not immediately clear that that's the best
+immediately clear that that's the best approach if you have that initial
+approach if you have that initial angular velocity you may end up
+angular velocity you may end up with something that looks worse
+so i'll show you a video in a second but here's a ship that from the perspective
+here's a ship that from the perspective of the pilot
+of the pilot inside is tumbling clockwise the arrows
+inside is tumbling clockwise the arrows represent the forward orientation of the
+represent the forward orientation of the ship
+ship if we were to simulate it ahead in time
+if we were to simulate it ahead in time we can either carry that momentum
+we can either carry that momentum through keep spinning
+through keep spinning and then slowly nudge ourselves towards
+and then slowly nudge ourselves towards the target orientation
+the target orientation or that's what the green debug arrows
+or that's what the green debug arrows represent
+represent or instead try to counteract that
+or instead try to counteract that momentum the yellow arrows
+momentum the yellow arrows both get us to this desired orientation
+both get us to this desired orientation velocity but one just looks
+velocity but one just looks much better so we finally we we tried
+much better so we finally we we tried several things here but we finally
+several things here but we finally settled on this approach we subdivide
+settled on this approach we subdivide each curve
+each curve into segments we calculate the angular
+into segments we calculate the angular acceleration at each
+acceleration at each segment for curve a do the exact same
+segment for curve a do the exact same thing for curve b
+thing for curve b and then pick the curve with the
+and then pick the curve with the smallest maximum acceleration
+smallest maximum acceleration and when you try to reduce your maximum
+and when you try to reduce your maximum angular acceleration
+angular acceleration you preserve momentum or at least it
+you preserve momentum or at least it feels like you're preserving momentum
+so here i am heroically piloting my ship directly into a pile of dinosaur bones
+directly into a pile of dinosaur bones as my ship tumbles i can recover it
+as my ship tumbles i can recover it nicely looks looks pretty good
+nicely looks looks pretty good now if we scrub backwards in time to see
+now if we scrub backwards in time to see exactly what happened
+exactly what happened just remember that the projected path in
+just remember that the projected path in green is always the recovery with the
+green is always the recovery with the minimal angular acceleration i.e the
+minimal angular acceleration i.e the best one
+best one when i first impact you can see it's
+when i first impact you can see it's better for me to fight the induced
+better for me to fight the induced rotation and power through
+rotation and power through but as my ship keeps tumbling the path
+but as my ship keeps tumbling the path changes so it actually becomes better
+changes so it actually becomes better for me to continue tumbling and actually
+for me to continue tumbling and actually increase my tumble rate versus drag to
+increase my tumble rate versus drag to rotate 360 through
+rotate 360 through and recover
+and recover finally physics and read back so
+finally physics and read back so gameplay systems on starlink run on a
+gameplay systems on starlink run on a variable time step and we always render
+variable time step and we always render the ship at the gameplay position
+the ship at the gameplay position physics however operates on a fixed time
+physics however operates on a fixed time step and that's just due to simulation
+step and that's just due to simulation stability concerns
+stability concerns what this means is that our physics
+what this means is that our physics representation of the ship is always
+representation of the ship is always slightly out of sync with what we render
+slightly out of sync with what we render in games where you don't travel too fast
+in games where you don't travel too fast it's not that big of an issue
+it's not that big of an issue but it's for us it was something we
+but it's for us it was something we needed to think about and in fact before
+needed to think about and in fact before working on a vehicle game like this i
+working on a vehicle game like this i hadn't even
+hadn't even considered this problem so you can step
+considered this problem so you can step your physics to just before
+your physics to just before or just after your game frame
+or just after your game frame and for us in fact in order to keep them
+and for us in fact in order to keep them as close as possible we try to split the
+as close as possible we try to split the difference
+difference if more than half of the physics step
+if more than half of the physics step time would have been past the gameplay
+time would have been past the gameplay frame
+frame then we kept it back conversely if the
+then we kept it back conversely if the physics step
+physics step would have been more than half its step
+would have been more than half its step behind the gameplay frame
+behind the gameplay frame then we stepped it past but what that
+then we stepped it past but what that means is when you're reading back
+means is when you're reading back transforms from physics
+transforms from physics and actually rendering them we either
+and actually rendering them we either have to forward predict to where we
+have to forward predict to where we think it'll be
+think it'll be or backward predict to where it has been
+or backward predict to where it has been so here i've induced a bad frame rate in
+so here i've induced a bad frame rate in order to get my physics and game frames
+order to get my physics and game frames out of sync
+out of sync although you can see that for the player
+although you can see that for the player the j the the ship
+the j the the ship generally looks correct but if i scrub
+generally looks correct but if i scrub back
+back the uh the green physics shapes are
+the uh the green physics shapes are always slightly out of sync
+always slightly out of sync and depending on where my game frame and
+and depending on where my game frame and my physics frame are
+my physics frame are i'm either predicting forward or
+i'm either predicting forward or predicting uh backward
+predicting uh backward but due to the prediction you don't
+but due to the prediction you don't really notice it as a player
+so conclusions well you can build up your vehicle behaviors one step at a
+your vehicle behaviors one step at a time
+time layering them together basic behaviors
+layering them together basic behaviors together can really give you something a
+together can really give you something a bit more complex
+bit more complex simulating impacts on the gameplay side
+simulating impacts on the gameplay side can feel real
+can feel real and be an inexpensive form of animation
+and be an inexpensive form of animation for the rest of your
+for the rest of your game depending on you know what sort of
+game depending on you know what sort of game you're making
+at first when we started uh with a tumbling physics object in the world and
+tumbling physics object in the world and we had no idea how to recover it but it
+we had no idea how to recover it but it turns out it's really not
+turns out it's really not too bad um you can still look physically
+too bad um you can still look physically plausible
+plausible and i would really love to push that
+and i would really love to push that even farther by taking the linear
+even farther by taking the linear component into account
+component into account i would love to be able to raycast the
+i would love to be able to raycast the head
+head in time see where i'm going to be and do
+in time see where i'm going to be and do something more interesting or maybe even
+something more interesting or maybe even make a gameplay mechanic out of it
+thank you [Applause]

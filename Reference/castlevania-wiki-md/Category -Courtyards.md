@@ -1,0 +1,3 @@
+# Category:Courtyards
+
+Category: Environments

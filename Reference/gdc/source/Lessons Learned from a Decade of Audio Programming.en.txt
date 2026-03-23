@@ -1,0 +1,737 @@
+so thank you all for coming for uh delaying your lunch to come to my talk
+delaying your lunch to come to my talk Lessons Learned From a decade of audio
+Lessons Learned From a decade of audio programming my name is guy somberg and
+programming my name is guy somberg and I'm a uh core programmer at Telltale
+I'm a uh core programmer at Telltale Games uh and so here I'm going to share
+Games uh and so here I'm going to share my wisdom of the last 10 plus years of
+my wisdom of the last 10 plus years of um programming audio engines so who am I
+um programming audio engines so who am I why should you bother listening to me
+why should you bother listening to me I've been in game since 2002 uh that
+I've been in game since 2002 uh that turns out it's actually 12 years so my
+turns out it's actually 12 years so my talk should really be called Lessons
+talk should really be called Lessons Learned From A do decade of audio
+Learned From A do decade of audio programming which is totally my new
+programming which is totally my new favorite word um over the the years I've
+favorite word um over the the years I've owned the audio engine at every company
+owned the audio engine at every company I've ever worked at that was either the
+I've ever worked at that was either the engine for the whole company or the
+engine for the whole company or the engine just for the product I was
+engine just for the product I was working on and more importantly though
+working on and more importantly though I've actually shipped lots of games
+I've actually shipped lots of games everything from slot machines Game Boy
+everything from slot machines Game Boy Advance AAA PC and everything in between
+Advance AAA PC and everything in between and over those games I've actually
+and over those games I've actually written 13 different audio engines from
+written 13 different audio engines from the ground up from zero source code and
+the ground up from zero source code and uh some of those are more than one for
+uh some of those are more than one for each game uh for example Hellgate London
+each game uh for example Hellgate London actually had three audio engines that uh
+actually had three audio engines that uh evolved as the needs of the game evolved
+evolved as the needs of the game evolved the uh we decided it was just time to
+the uh we decided it was just time to rewrite the uh the engine from the
+rewrite the uh the engine from the ground up and so over the years I've
+ground up and so over the years I've actually gotten pretty good at it so in
+actually gotten pretty good at it so in this talk I'm going to give you six kind
+this talk I'm going to give you six kind of py lessons that I've learned uh
+of py lessons that I've learned uh targeted at you know people who uh want
+targeted at you know people who uh want to be audio programmers or people who
+to be audio programmers or people who are forced to be audio programmers and
+are forced to be audio programmers and don't want to be audio programmers uh so
+don't want to be audio programmers uh so the first lesson is that uh playing
+the first lesson is that uh playing audio is really easy in fact it's one of
+audio is really easy in fact it's one of the simplest things that your audio
+the simplest things that your audio engine can do or that your game engine
+engine can do or that your game engine does and to to demonstrate this we're
+does and to to demonstrate this we're going to start from the very Beginnings
+going to start from the very Beginnings like the fundamentals how does a speaker
+like the fundamentals how does a speaker work uh this is a great diagram uh
+work uh this is a great diagram uh there's a cone attached to a magnet
+there's a cone attached to a magnet there's wires coiled around the magnet
+there's wires coiled around the magnet when electricity runs through the the
+when electricity runs through the the the wires it generates a magnetic field
+the wires it generates a magnetic field which moves the magnet which moves the
+which moves the magnet which moves the cone which creates sound I hope you all
+cone which creates sound I hope you all followed that so uh you can think about
+followed that so uh you can think about uh if you graph the position or the
+uh if you graph the position or the offset of that magnet from Center over
+offset of that magnet from Center over time that is kind of your wave form of
+time that is kind of your wave form of your sound and if you do if you to draw
+your sound and if you do if you to draw that out will look like this and then
+that out will look like this and then what we do is we sample it very
+what we do is we sample it very frequently typically 44 or 48,000 times
+frequently typically 44 or 48,000 times per second and that'll look like this
+per second and that'll look like this and then what we do with that is we just
+and then what we do with that is we just move the magnet to wherever it is over
+move the magnet to wherever it is over at at that curve that point in the curve
+at at that curve that point in the curve and we generate a sound so great we can
+and we generate a sound so great we can play one sound um right big deal that's
+play one sound um right big deal that's not very exciting it becomes more
+not very exciting it becomes more exciting when you start to play more
+exciting when you start to play more than one sound so what happens if you
+than one sound so what happens if you try and play the uh the blue curve with
+try and play the uh the blue curve with the like what is that puke green kind of
+the like what is that puke green kind of colored curve
+colored curve on the right well it turns out that if
+on the right well it turns out that if you play those two together your curve
+you play those two together your curve looks like this orange
+looks like this orange curve and if you do all the math you
+curve and if you do all the math you figure out all the Nyquist and all the
+figure out all the Nyquist and all the voodoo behind it it turns out that all
+voodoo behind it it turns out that all you're really doing is adding these two
+you're really doing is adding these two curves sample by sample just like this
+curves sample by sample just like this you're signal a plus signal b equals
+you're signal a plus signal b equals your output signal and because output
+your output signal and because output signal is itself a signal it turns out
+signal is itself a signal it turns out that we can generalize this very
+that we can generalize this very trivially adding up a whole bunch of uh
+trivially adding up a whole bunch of uh just all the signals together becomes
+just all the signals together becomes your output now I can keep going I can
+your output now I can keep going I can can talk about you know I can introduce
+can talk about you know I can introduce subm mixing and clipping and all these
+subm mixing and clipping and all these other things but there's kind of one
+other things but there's kind of one thing that I want to focus on here and
+thing that I want to focus on here and that is that all of this stuff is
+that is that all of this stuff is embarrassingly vectorizable so whatever
+embarrassingly vectorizable so whatever your
+your particular uh single instruction
+particular uh single instruction multiple data set for your Hardware is
+multiple data set for your Hardware is it's going to get a big workout when
+it's going to get a big workout when mixing audio when playing audio back so
+mixing audio when playing audio back so the point of all this is that playing
+the point of all this is that playing sounds is free doesn't matter how many
+sounds is free doesn't matter how many sounds you play it's you know what I'm
+sounds you play it's you know what I'm lying playing sound isn't free playing
+lying playing sound isn't free playing sound is really cheap you can play as
+sound is really cheap you can play as many sounds as you want within reason
+many sounds as you want within reason and it's not going to cause uh like
+and it's not going to cause uh like resource problems memory is is still a
+resource problems memory is is still a concern but in terms of CPU cost it's
+concern but in terms of CPU cost it's nothing so if playing sounds is cheap
+nothing so if playing sounds is cheap bordering on free it turns out that the
+bordering on free it turns out that the audio mix is actually what the hard part
+audio mix is actually what the hard part is so what do I mean when I say the
+is so what do I mean when I say the audio mix audio mix is how you combine
+audio mix audio mix is how you combine the sounds that are playing it's what
+the sounds that are playing it's what the it's what the game players are
+the it's what the game players are actually hearing and there's a lot of
+actually hearing and there's a lot of things that go into it some examples
+things that go into it some examples like how the music and the ambience will
+like how the music and the ambience will mesh together it's how when you enter
+mesh together it's how when you enter sniper mode maybe the footsteps get
+sniper mode maybe the footsteps get louder so you can hear if somebody's
+louder so you can hear if somebody's sneaking up on you it's how the
+sneaking up on you it's how the environment the Reverb and the uh the uh
+environment the Reverb and the uh the uh the just the background Ambiance of the
+the just the background Ambiance of the the environment sounds and it turns out
+the environment sounds and it turns out that one of the biggest hammers that we
+that one of the biggest hammers that we have is just lowering volume of sounds
+have is just lowering volume of sounds that are less important and you can
+that are less important and you can there's lots of tools in your whatever
+there's lots of tools in your whatever uh audio engine you're using uh the
+uh audio engine you're using uh the audio middleware uh to do many of these
+audio middleware uh to do many of these things for example gain reduction uh
+things for example gain reduction uh sound cone so that as I turn my head I
+sound cone so that as I turn my head I get quieter um 3D distance attenuation
+get quieter um 3D distance attenuation and uh ducking is uh the process of kind
+and uh ducking is uh the process of kind of lowering sounds whenever other
+of lowering sounds whenever other lowering the volume of sounds whenever
+lowering the volume of sounds whenever other sounds are playing and all these
+other sounds are playing and all these things are either built into your audio
+things are either built into your audio engine or they're really easy to
+engine or they're really easy to implement um there's also uh more
+implement um there's also uh more advanced features I call them mix States
+advanced features I call them mix States I think they're called sound moods and
+I think they're called sound moods and cryc they're called mixer snapshots in
+cryc they're called mixer snapshots in many other engines including fod studio
+many other engines including fod studio and this is a much more involved subject
+and this is a much more involved subject where you're basically taking a snapshot
+where you're basically taking a snapshot of what you want your mix to look like
+of what you want your mix to look like and fading up to that state whenever
+and fading up to that state whenever certain game events happen and fading
+certain game events happen and fading out and I wish I had more time to talk
+out and I wish I had more time to talk about this I only have a 25 minute talk
+about this I only have a 25 minute talk but just mix States mixer snapshots is
+but just mix States mixer snapshots is like a 60-minute talk on its own um so
+like a 60-minute talk on its own um so there there's a lot going there now if
+there there's a lot going there now if you take the lowering volume and kind of
+you take the lowering volume and kind of take it to its extreme uh it turns out
+take it to its extreme uh it turns out that a big chunk of audio technology
+that a big chunk of audio technology actually revolves around not playing
+actually revolves around not playing sounds at all
+sounds at all um and that takes the form of things
+um and that takes the form of things like maximum playbacks where just this
+like maximum playbacks where just this sound can't play more than so many times
+sound can't play more than so many times stream limits which are usually a
+stream limits which are usually a restriction on your bandwidth or kind of
+restriction on your bandwidth or kind of you know your spinning medium which is
+you know your spinning medium which is becoming less of a concern with more
+becoming less of a concern with more modern stuff but for example the Xbox
+modern stuff but for example the Xbox 360 often has stream limits uh
+360 often has stream limits uh virtualized sound sources where just
+virtualized sound sources where just sounds that are less important get cut
+sounds that are less important get cut off completely so they don't become a
+off completely so they don't become a part of the mix and all these things are
+part of the mix and all these things are again either already built in for
+again either already built in for example virtualized sound sources or
+example virtualized sound sources or they're things that are pretty easy to
+they're things that are pretty easy to implement uh in your audio engine but I
+implement uh in your audio engine but I want to talk now about one that's a
+want to talk now about one that's a little bit more uh involved in advance
+little bit more uh involved in advance and that is Walter merch's rule of 2 and
+and that is Walter merch's rule of 2 and a half so this gentleman here is Walter
+a half so this gentleman here is Walter merch uh he is an academy award-winning
+merch uh he is an academy award-winning sound designer uh worked on THX 1138 and
+sound designer uh worked on THX 1138 and a number of other uh other great movies
+a number of other uh other great movies and while he was mixing uh THX 1138 he
+and while he was mixing uh THX 1138 he realized he had this realization he said
+realized he had this realization he said you know so long as uh I'm laying out
+you know so long as uh I'm laying out these footsteps if I have one person
+these footsteps if I have one person walking I have to synchronize the
+walking I have to synchronize the footsteps with the uh with the scene so
+footsteps with the uh with the scene so if I have two people walking I have to
+if I have two people walking I have to synchronize the footsteps with the scene
+synchronize the footsteps with the scene as soon as I get past two the two and a
+as soon as I get past two the two and a half thing all of a sudden it's less
+half thing all of a sudden it's less about every individual footstep and it's
+about every individual footstep and it's more about the sound of
+more about the sound of footsteps so how did we take this and
+footsteps so how did we take this and make it uh into something that was uh
+make it uh into something that was uh valuable for a game and for Hellgate
+valuable for a game and for Hellgate London and we did this also on BioShock
+London and we did this also on BioShock 2 we implemented this thing which we
+2 we implemented this thing which we called Max within radius and we allowed
+called Max within radius and we allowed for each sound in the game we allowed
+for each sound in the game we allowed the sound designers to define a maximum
+the sound designers to define a maximum number of playbacks within uh a given
+number of playbacks within uh a given radius and they defin the Max playbacks
+radius and they defin the Max playbacks and the radius for that sound so in this
+and the radius for that sound so in this situation here we have the blue triangle
+situation here we have the blue triangle is the listener the green dots are the
+is the listener the green dots are the sound sources and so we draw a circle or
+sound sources and so we draw a circle or sphere really around the sound sources
+sphere really around the sound sources uh at at the given radius and then we
+uh at at the given radius and then we cut out in this case all but two of
+cut out in this case all but two of these sounds uh which was the max
+these sounds uh which was the max playbacks for the sound and what this
+playbacks for the sound and what this what this does is it maintains
+what this does is it maintains spatialization so in this situation we
+spatialization so in this situation we have two sounds coming from the left we
+have two sounds coming from the left we have two sounds coming from the right
+have two sounds coming from the right two sounds from behind to maintain that
+two sounds from behind to maintain that but the mix isn't getting muddy you're
+but the mix isn't getting muddy you're uh if you start to play all these sounds
+uh if you start to play all these sounds on top of each other it starts to sound
+on top of each other it starts to sound like noise and so by doing this we are
+like noise and so by doing this we are creating a situation where we still have
+creating a situation where we still have all the spatialization we still have the
+all the spatialization we still have the sound coming but we're actually using
+sound coming but we're actually using less resources while still having a
+less resources while still having a cleaner
+cleaner mix so if I were to summarize the audio
+mix so if I were to summarize the audio mix in kind of one py sentence it would
+mix in kind of one py sentence it would be that you want to let the most
+be that you want to let the most important sounds shine uh but more
+important sounds shine uh but more precisely since we are audio programmers
+precisely since we are audio programmers not sound designers it's that you need
+not sound designers it's that you need to provide tools for your sound
+to provide tools for your sound designers to allow them to make the most
+designers to allow them to make the most important sounds
+important sounds shine speaking of sound designers you
+shine speaking of sound designers you need to learn to work with them they are
+need to learn to work with them they are your customers and they are wonderful
+your customers and they are wonderful beautiful people and they uh they will
+beautiful people and they uh they will uh they're they will create awesome
+uh they're they will create awesome content with whatever you give them um
+content with whatever you give them um but really what they want to do is ship
+but really what they want to do is ship a copy of Protools with every game and
+a copy of Protools with every game and you know we'll come back to this I
+you know we'll come back to this I promise they also have their own
+promise they also have their own language with lots of crazy terms that
+language with lots of crazy terms that you have to learn and this shouldn't be
+you have to learn and this shouldn't be as a surprise we as programmers have our
+as a surprise we as programmers have our own language and so uh what you need to
+own language and so uh what you need to do with all these things is uh you need
+do with all these things is uh you need to learn their language you need to
+to learn their language you need to learn speak it to them and you need to
+learn speak it to them and you need to love it because your sound designers
+love it because your sound designers will love you for loving their language
+will love you for loving their language if you come to them and speak to them
+if you come to them and speak to them about decibels and Headroom and
+about decibels and Headroom and vcas it it it makes it much easier to
+vcas it it it makes it much easier to communicate when you're talking to them
+communicate when you're talking to them in their own language there's one one of
+in their own language there's one one of these terms in particular I want to talk
+these terms in particular I want to talk about that is the decibel uh decibel is
+about that is the decibel uh decibel is simply defined as 1/10th of a bell
+simply defined as 1/10th of a bell what's a bell turns out that the answer
+what's a bell turns out that the answer is it doesn't matter a bell uh the most
+is it doesn't matter a bell uh the most important thing you need to know is that
+important thing you need to know is that 6db is half or double volume so to find
+6db is half or double volume so to find out what your decibels are you uh or
+out what your decibels are you uh or what the volume percent is you divide by
+what the volume percent is you divide by six and turn it into a power of two
+six and turn it into a power of two easy enough and in fact when uh whenever
+easy enough and in fact when uh whenever I write a new audio engine the first
+I write a new audio engine the first thing that I do these four lines of code
+thing that I do these four lines of code are the first four lines of code that I
+are the first four lines of code that I write uh these are conversion functions
+write uh these are conversion functions from decibels to volume percent and back
+from decibels to volume percent and back and I'm going to St here for about like
+and I'm going to St here for about like four more seconds to let people who are
+four more seconds to let people who are taking pictures of it or writing them
+taking pictures of it or writing them furiously down uh these are these are
+furiously down uh these are these are wonderful functions the first thing I
+wonderful functions the first thing I that I
+that I do I hear lots of snaps oh here hold on
+do I hear lots of snaps oh here hold on I can go back quick quick quick
+okay all right we got it so I'm going to before we leave the subject I'm going to
+before we leave the subject I'm going to leave uh leave you with the biggest best
+leave uh leave you with the biggest best secret that I know for working with
+secret that I know for working with sound designers so let's say your sound
+sound designers so let's say your sound designer comes to you and he says I want
+designer comes to you and he says I want to be able to kind of play you know this
+to be able to kind of play you know this list of sounds randomly kind of with a
+list of sounds randomly kind of with a timer on it and uh go from there you
+timer on it and uh go from there you tell them in one word you can say no no
+tell them in one word you can say no no I'm not going to do that for you that is
+I'm not going to do that for you that is not at all what you want you're not
+not at all what you want you're not trying to solve that problem you're
+trying to solve that problem you're trying to solve the problem of creating
+trying to solve the problem of creating a background an ambient let's see if we
+a background an ambient let's see if we can find a solution for that and give
+can find a solution for that and give you what you're actually asking for
+you what you're actually asking for because remember sound designers will
+because remember sound designers will create wonderful content even if you
+create wonderful content even if you give them trash horrible awful tools to
+give them trash horrible awful tools to do it with and this situation that I
+do it with and this situation that I talked about is is a dramatization of
+talked about is is a dramatization of something that happened before I came on
+something that happened before I came on on a previous product that was actually
+on a previous product that was actually hugely award-winning um so even you know
+hugely award-winning um so even you know this is this is true they will create
+this is this is true they will create award-winning content even with trash so
+award-winning content even with trash so your goal then should be don't give them
+your goal then should be don't give them trash even if your sound designer comes
+trash even if your sound designer comes to you and says I would like a steaming
+to you and says I would like a steaming pile of trash please you say no instead
+pile of trash please you say no instead you give them the tool best tool to
+you give them the tool best tool to solve their more General problem uh in a
+solve their more General problem uh in a long-term lazy fashion if you are
+long-term lazy fashion if you are long-term lazy you you spend more time
+long-term lazy you you spend more time up front and you give them great tools
+up front and you give them great tools that solve exactly what they're trying
+that solve exactly what they're trying to do uh and if you do this then your
+to do uh and if you do this then your product will ship on time it will ship
+product will ship on time it will ship maybe even early and sound will not be a
+maybe even early and sound will not be a problem uh if you spend the time up
+problem uh if you spend the time up front so we're all game developers we
+front so we're all game developers we have to do things quickly and middleware
+have to do things quickly and middleware is awesome there's uh fod and y's and
+is awesome there's uh fod and y's and various other uh middleware things
+various other uh middleware things that'll make bootstrapping your audio
+that'll make bootstrapping your audio engine really really quick so in fact to
+engine really really quick so in fact to demonstrate this I'm going to bootstrap
+demonstrate this I'm going to bootstrap an audio engine here in front of you
+an audio engine here in front of you this is all the source code for an audio
+this is all the source code for an audio engine I'm going to go about 99% light
+engine I'm going to go about 99% light speed but I'm hoping that I will get my
+speed but I'm hoping that I will get my point
+point across here we go this is our header for
+across here we go this is our header for audio engine we have some that canit
+audio engine we have some that canit update and shutdown functions uh we have
+update and shutdown functions uh we have some functions to manage sounds and
+some functions to manage sounds and playing channels uh we're using the
+playing channels uh we're using the pointed implementation so here's our
+pointed implementation so here's our pimple and then we have some here I'm
+pimple and then we have some here I'm using fod for my source data but the
+using fod for my source data but the principle applies for whatever audio
+principle applies for whatever audio engine you're using and then we have
+engine you're using and then we have some uh init and shutdown functions
+some uh init and shutdown functions there Constructors and D structures
+there Constructors and D structures which I'm not going to show the source
+which I'm not going to show the source code here for because they're boring
+code here for because they're boring they're just copy pasted from the
+they're just copy pasted from the documentation and then just you know
+documentation and then just you know releasing all your assets uh here's our
+releasing all your assets uh here's our update function um we're going through
+update function um we're going through uh our channels seeing what's stopped we
+uh our channels seeing what's stopped we remove anything that's no longer valid
+remove anything that's no longer valid and then we update the system our load
+and then we update the system our load sound and an unload sound are really
+sound and an unload sound are really kind of mirrors of each other first we
+kind of mirrors of each other first we check our cache then we either load or
+check our cache then we either load or unload the sound and then we either add
+unload the sound and then we either add or remove it from the cache I'm going to
+or remove it from the cache I'm going to spend just a little bit more time on
+spend just a little bit more time on play sound here uh so here we have we we
+play sound here uh so here we have we we see if the sound is already loaded if
+see if the sound is already loaded if not we load the sound and then if we
+not we load the sound and then if we still haven't don't have the sound then
+still haven't don't have the sound then we uh then we exit early and then
+we uh then we exit early and then finally we play the sound and set all of
+finally we play the sound and set all of its parameters now there's three things
+its parameters now there's three things that I want to call out here number one
+that I want to call out here number one is this parameter here the third
+is this parameter here the third parameter to play sound uh it's Boolean
+parameter to play sound uh it's Boolean true what does that mean it's uh
+true what does that mean it's uh starting the sound as paused and what
+starting the sound as paused and what that does is if you don't pass it if you
+that does is if you don't pass it if you pass false the sound will start playing
+pass false the sound will start playing immediately or as close to immediately
+immediately or as close to immediately and the audio thread the mixer thread is
+and the audio thread the mixer thread is going to get that and what can happen is
+going to get that and what can happen is there will be a brief window after You'
+there will be a brief window after You' started the sound before you have set
+started the sound before you have set the 3D parameters and the volume and
+the 3D parameters and the volume and whatever else you're setting while that
+whatever else you're setting while that sound can play and you get a little pop
+sound can play and you get a little pop little and then the sound goes to
+little and then the sound goes to wherever uh whatever volume and stuff
+wherever uh whatever volume and stuff you've set so by starting it as uh
+you've set so by starting it as uh paused and then setting your parameters
+paused and then setting your parameters and unpausing it you are uh you're
+and unpausing it you are uh you're preventing that pop and kind of priming
+preventing that pop and kind of priming the pump second thing I want to call it
+the pump second thing I want to call it is the return value of this is an
+is the return value of this is an integer and basically this is how the
+integer and basically this is how the external system deals with playing
+external system deals with playing sounds or interacts with playing sounds
+sounds or interacts with playing sounds is through this and yes you do have to
+is through this and yes you do have to do a lookup every time to actually get
+do a lookup every time to actually get the underlying object and it's tempting
+the underlying object and it's tempting to say well let me create an object like
+to say well let me create an object like a playing sound or a channel object
+a playing sound or a channel object something that you can call functions on
+something that you can call functions on the problem is now all of a sudden you
+the problem is now all of a sudden you have this object that is in cahoots with
+have this object that is in cahoots with the sound system it needs to know about
+the sound system it needs to know about the internals of the sound system but
+the internals of the sound system but it's not really owned by the sound
+it's not really owned by the sound system and so the underlying concept the
+system and so the underlying concept the underlying memory that this object is
+underlying memory that this object is pointing at can can disappear and then
+pointing at can can disappear and then it doesn't know about it uh I have fixed
+it doesn't know about it uh I have fixed a lot of crashes a lot of weird crashes
+a lot of crashes a lot of weird crashes simply by converting from sound objects
+simply by converting from sound objects to integer IDs the last thing I want to
+to integer IDs the last thing I want to call out here is that even if we fail to
+call out here is that even if we fail to load the sound we still return a valid
+load the sound we still return a valid Channel ID and this is really just to
+Channel ID and this is really just to protect against one particular pattern
+protect against one particular pattern of coding which I've seen particularly
+of coding which I've seen particularly in particle systems uh where there's a
+in particle systems uh where there's a sound that they want to play and then
+sound that they want to play and then every frame they say is my channel ID
+every frame they say is my channel ID valid if not play the sound next frame
+valid if not play the sound next frame is my channel ID valid if not play the
+is my channel ID valid if not play the sound if you are constantly returning an
+sound if you are constantly returning an invalid Channel ID if you fail to load
+invalid Channel ID if you fail to load the sound you're going to be wasting all
+the sound you're going to be wasting all this processing trying to play the sound
+this processing trying to play the sound that you're never going to actually
+that you're never going to actually succeed on so always return a valid
+succeed on so always return a valid Channel ID even if you fail to load the
+Channel ID even if you fail to load the sound
+sound uh last piece of this is just the set
+uh last piece of this is just the set channel whatever these are really boring
+channel whatever these are really boring just follow the pattern and go from
+just follow the pattern and go from there so in summary we have it took
+there so in summary we have it took about 300 lines of code for a fully
+about 300 lines of code for a fully functional audio engine uh it took me
+functional audio engine uh it took me about an hour and a half I'll Grant you
+about an hour and a half I'll Grant you I know what I'm doing and what it needs
+I know what I'm doing and what it needs to look like at the end so you know it
+to look like at the end so you know it might take other people longer but um so
+might take other people longer but um so what like why did I show this to you
+what like why did I show this to you well it turns out that you can ship on
+well it turns out that you can ship on the moral equivalent of this code uh
+the moral equivalent of this code uh there's a few little bits and Bobs other
+there's a few little bits and Bobs other than the in destruct that you need but
+than the in destruct that you need but you can actually ship on this and I have
+you can actually ship on this and I have like minion Master this is a game that I
+like minion Master this is a game that I did as an indie with bit flip games this
+did as an indie with bit flip games this is more or less uh this is more or less
+is more or less uh this is more or less the uh the the audio engine that we
+the uh the the audio engine that we shipped with but like remember this I
+shipped with but like remember this I showed you this wonderful Pro Tools that
+showed you this wonderful Pro Tools that we want to ship a copy of with every
+we want to ship a copy of with every game does this look familiar here on the
+game does this look familiar here on the left we have uh y's on the right we have
+left we have uh y's on the right we have fod Studio they're very similar to this
+fod Studio they're very similar to this and these tools will provide your sound
+and these tools will provide your sound designers with a lot of features just
+designers with a lot of features just right out of the box snapshots and and
+right out of the box snapshots and and busing and all these wonderful things
+busing and all these wonderful things and it's really tempting just to give
+and it's really tempting just to give them the tools and say great I'm done
+them the tools and say great I'm done but you can't just throw these tools at
+but you can't just throw these tools at them and call it a day like off the top
+them and call it a day like off the top of my head here's a small subset of some
+of my head here's a small subset of some of the things you might have to think
+of the things you might have to think about uh in your game engine now not
+about uh in your game engine now not every game engine or audio engine needs
+every game engine or audio engine needs all of these things but all audio
+all of these things but all audio engines will need some of these
+engines will need some of these things so I wish I had time to talk
+things so I wish I had time to talk about all of them but I I don't um
+about all of them but I I don't um so lesson five is that sound is always
+so lesson five is that sound is always the first thing to get the shaft and I'm
+the first thing to get the shaft and I'm going to present you with some uh I can
+going to present you with some uh I can see some people nodding here that's
+see some people nodding here that's awesome uh some situations that are
+awesome uh some situations that are inspired by real life events not exactly
+inspired by real life events not exactly but you know sufficient close enough so
+but you know sufficient close enough so uh we need five Megs of ram take it from
+uh we need five Megs of ram take it from sound they have too much anyway um our
+sound they have too much anyway um our ship date hasn't changed but everybody
+ship date hasn't changed but everybody else is running late well sound is
+else is running late well sound is postprocess so guess who gets to Crunch
+postprocess so guess who gets to Crunch um we're Staffing up who do we
+um we're Staffing up who do we need we don't no Nobody audio engine
+need we don't no Nobody audio engine yeah nobody gets to do work on the audio
+yeah nobody gets to do work on the audio um and I want to do a little bit of uh
+um and I want to do a little bit of uh this little dude here is the uh the
+this little dude here is the uh the flagship Studios sound caveman uh the
+flagship Studios sound caveman uh the the people uh before I started working
+the people uh before I started working at Flagship Studios um they all knew
+at Flagship Studios um they all knew that they were sound caveman and they
+that they were sound caveman and they had a very primitive audio engine so
+had a very primitive audio engine so whoever kind of touched it last became
+whoever kind of touched it last became the expert they became the sound
+the expert they became the sound Neanderthal and they got to keep they
+Neanderthal and they got to keep they got the the sound caveman and became the
+got the the sound caveman and became the expert so when I came in I got to keep
+expert so when I came in I got to keep the sound caveman because I own that
+the sound caveman because I own that audio
+audio engine um so what can you do like the
+engine um so what can you do like the these are kind of fun little situations
+these are kind of fun little situations but what can you do if you're faced with
+but what can you do if you're faced with these situations so the first thing is
+these situations so the first thing is the best ideal case is push for a
+the best ideal case is push for a dedicated audio programmer I mean if you
+dedicated audio programmer I mean if you can it's not always possible maybe
+can it's not always possible maybe you're small Indie and you can't hire
+you're small Indie and you can't hire anybody maybe you uh there's just no
+anybody maybe you uh there's just no budget for a particular audio programmer
+budget for a particular audio programmer but um if you can then there's like it's
+but um if you can then there's like it's awesome it's a great position to have in
+awesome it's a great position to have in your in your studio uh if you can't then
+your in your studio uh if you can't then you can learn it yourself it's actually
+you can learn it yourself it's actually really rewarding it's not that difficult
+really rewarding it's not that difficult and it's actually quite fun to uh to do
+and it's actually quite fun to uh to do this here we got
+this here we got somebody thank you sir um and uh the
+somebody thank you sir um and uh the last one is a little bit sneakier um you
+last one is a little bit sneakier um you can ask for more resources than you
+can ask for more resources than you actually need so uh you ask for 50
+actually need so uh you ask for 50 megabytes they give you 40 megabytes and
+megabytes they give you 40 megabytes and then you plan for 35 at the end of the
+then you plan for 35 at the end of the project when they steal from you but
+project when they steal from you but make sure if you do this that you use
+make sure if you do this that you use everything that you get if you if you
+everything that you get if you if you actually use 35 Megs of the 40 that they
+actually use 35 Megs of the 40 that they give you then on your next project
+give you then on your next project they'll say you only use 35 so they'll
+they'll say you only use 35 so they'll give you 35 and then they still steal
+give you 35 and then they still steal from you at the
+from you at the end the last lesson here I'm going to
+end the last lesson here I'm going to leave you with is uh listen to your
+leave you with is uh listen to your games it's critically important that you
+games it's critically important that you listen to your games as much as you can
+listen to your games as much as you can over the years I've learned to tell the
+over the years I've learned to tell the difference between all these different
+difference between all these different kinds of noise just from listening to
+kinds of noise just from listening to them and I can tell where they're coming
+them and I can tell where they're coming from and why um and this is uh it's not
+from and why um and this is uh it's not easy but you know over the years have
+easy but you know over the years have developed this and so I can do this can
+developed this and so I can do this can you now I bet all the sound designers
+you now I bet all the sound designers here are going well yeah but the sound
+here are going well yeah but the sound programmers you need to develop your ear
+programmers you need to develop your ear you need to listen and know what the
+you need to listen and know what the difference between a sample
+difference between a sample discontinuity and a buffer and how they
+discontinuity and a buffer and how they sound different and why so I cannot
+sound different and why so I cannot stress this enough there is no
+stress this enough there is no substitute for listening to your games
+substitute for listening to your games in as many situations and speakers and
+in as many situations and speakers and whatnot as you
+whatnot as you can last thing I want to do here is uh
+can last thing I want to do here is uh talk a little bit about the history of
+talk a little bit about the history of where I come where I've come from and
+where I come where I've come from and where I'm going and you know what went
+where I'm going and you know what went right and what went wrong with a little
+right and what went wrong with a little bit of a mini postmortem on my audio
+bit of a mini postmortem on my audio engines so a lot went right I mean I
+engines so a lot went right I mean I wouldn't be here if that weren't true um
+wouldn't be here if that weren't true um I learned a lot you know I started uh in
+I learned a lot you know I started uh in slot machines and I really didn't want
+slot machines and I really didn't want to be doing audio but I have embraced it
+to be doing audio but I have embraced it and I I love it now um I also shipped
+and I I love it now um I also shipped you know shipping is a big deal if you
+you know shipping is a big deal if you can't ship or you haven't shipped then
+can't ship or you haven't shipped then you're just noodling around and so
+you're just noodling around and so shipping is a really big feature even if
+shipping is a really big feature even if you're not complete or beautiful or
+you're not complete or beautiful or perfect um or well even if your code
+perfect um or well even if your code rather is not beautiful uh so I've also
+rather is not beautiful uh so I've also made some wonderful tools for my sound
+made some wonderful tools for my sound designers uh the Bioshock 2 voice
+designers uh the Bioshock 2 voice packager took a process that was just
+packager took a process that was just hours upon hours it was literally an all
+hours upon hours it was literally an all nighter if they needed to do this and it
+nighter if they needed to do this and it was error prone and horrible and I took
+was error prone and horrible and I took this into something that he could set up
+this into something that he could set up in 5 minutes before he left for home and
+in 5 minutes before he left for home and he would come back the next day and
+he would come back the next day and would be done perfectly every time the
+would be done perfectly every time the background sound engine for Hellgate
+background sound engine for Hellgate London and it's uh iteration rewrite
+London and it's uh iteration rewrite sler in BioShock 2 uh is a beautiful
+sler in BioShock 2 uh is a beautiful piece of work that I'm really proud of
+piece of work that I'm really proud of um and also the third person camera
+um and also the third person camera listener Tech that I I wish I had time
+listener Tech that I I wish I had time to listen to talk about here uh in
+to listen to talk about here uh in Hellgate London is where we originally
+Hellgate London is where we originally developed this I'm particularly proud of
+developed this I'm particularly proud of that and if you want to talk to me
+that and if you want to talk to me afterwards I can I'll be happy to
+afterwards I can I'll be happy to describe that to you thank you um so
+describe that to you thank you um so excuse me it was not all sunshine and
+excuse me it was not all sunshine and Roses uh there were some really big Mis
+Roses uh there were some really big Mis ups and the one in particular I want to
+ups and the one in particular I want to call out is the Hellgate London music
+call out is the Hellgate London music engine which was this horribly over
+engine which was this horribly over engineered piece of work that really
+engineered piece of work that really didn't solve the problem at hand Dave
+didn't solve the problem at hand Dave I'm sorry
+I'm sorry um and I want to say that here I'm
+um and I want to say that here I'm really sorry for all you people who
+really sorry for all you people who played Hellgate London and never heard
+played Hellgate London and never heard the action music that our awesome
+the action music that our awesome composers wrote that's my fault um I've
+composers wrote that's my fault um I've also historically not been aggressive
+also historically not been aggressive enough about threading you know there
+enough about threading you know there were opportunities have been there for a
+were opportunities have been there for a long time to thread your audio engines
+long time to thread your audio engines and to you know obviously you need a
+and to you know obviously you need a mixer thread you need some threads built
+mixer thread you need some threads built in but threading the interface is a very
+in but threading the interface is a very valid part that isolates the rest of
+valid part that isolates the rest of your code from any kind of hitches that
+your code from any kind of hitches that may be in your audio
+may be in your audio engine so uh where am I going from here
+engine so uh where am I going from here future plans uh I'm at Cil games right
+future plans uh I'm at Cil games right now I can't talk too much about what
+now I can't talk too much about what we're doing and where we're going but I
+we're doing and where we're going but I can tell you that this is the best audio
+can tell you that this is the best audio engine I've ever built and in fact
+engine I've ever built and in fact that's my goal is always to make some
+that's my goal is always to make some sort of measurable Improvement in the
+sort of measurable Improvement in the lives of my sound
+lives of my sound designers and before I finish up here I
+designers and before I finish up here I want to leave you uh with one last bonus
+want to leave you uh with one last bonus session which is bonus lesson excuse me
+session which is bonus lesson excuse me which is that audio programming is fun
+which is that audio programming is fun uh
+uh you should do it and you should not be
+you should do it and you should not be afraid of it uh thank you very much we
+afraid of it uh thank you very much we have about three minutes for
+have about three minutes for [Applause]
+questions any questions yes
+sir uh so the question is uh other than um fod and Y is in similar things what
+um fod and Y is in similar things what tools can I
+tools can I recommend that's an excellent question
+recommend that's an excellent question I'm I'm an fod guy so I've I've focused
+I'm I'm an fod guy so I've I've focused on fod uh throughout my career there are
+on fod uh throughout my career there are um like there are some open source audio
+um like there are some open source audio engines sdl has a mixer uh a li mixer I
+engines sdl has a mixer uh a li mixer I think it's called and there's openal so
+think it's called and there's openal so there's there's some of those um in ter
+there's there's some of those um in ter sorry say
+sorry say again Maverick if you use Unity oh
+again Maverick if you use Unity oh fabric here fabric if you use uni from
+fabric here fabric if you use uni from over there so the there there are some
+over there so the there there are some there are some Alternatives but uh
+there are some Alternatives but uh that's that's what I got we have a
+that's that's what I got we have a question back there uh so I'm working
+question back there uh so I'm working with a sound designer on a project and
+with a sound designer on a project and uh historically I've been rolling a
+uh historically I've been rolling a custom audio engine but he's been really
+custom audio engine but he's been really interested in leveraging the features of
+interested in leveraging the features of the editor tools and fod sound system So
+the editor tools and fod sound system So currently we're talking about a sort of
+currently we're talking about a sort of integration stuff I guess
+integration stuff I guess um what's your
+um what's your General experience with like the level
+General experience with like the level of uh autonomy you have with um with a
+of uh autonomy you have with um with a middleware sound Engine versus a ground
+middleware sound Engine versus a ground up
+up system it's a bit of a it's a fair
+system it's a bit of a it's a fair question um I I much prefer working with
+question um I I much prefer working with middleware because the I've written a
+middleware because the I've written a low-l mixer for slot machines really
+low-l mixer for slot machines really like mixing at the sample level and the
+like mixing at the sample level and the problem is that that's tedious and error
+problem is that that's tedious and error prone and you have to deal with driver
+prone and you have to deal with driver differences and you have to actually
+differences and you have to actually parse the sounds yourself so if you can
+parse the sounds yourself so if you can get a uh a a middleware that is at
+get a uh a a middleware that is at whatever level abstracts the best for
+whatever level abstracts the best for you um then that's the right one so fod
+you um then that's the right one so fod is I like fod because it abstracts at
+is I like fod because it abstracts at multiple levels but uh there you know
+multiple levels but uh there you know Wise is also great because it abstracts
+Wise is also great because it abstracts at a very high level and uh there are
+at a very high level and uh there are like the sdl mixer and some of these
+like the sdl mixer and some of these other ones abstract at a very low level
+other ones abstract at a very low level and so whatever whatever your mixing
+and so whatever whatever your mixing philosophy is wherever you are spending
+philosophy is wherever you are spending your most time that's where you want to
+your most time that's where you want to spend whatever wherever you're trying to
+spend whatever wherever you're trying to solve your problems that's the
+solve your problems that's the appropriate level of abstraction for
+appropriate level of abstraction for your middleware so uh just as an
+your middleware so uh just as an extension to that I uh find a lot of
+extension to that I uh find a lot of like potential and uh enjoyment honestly
+like potential and uh enjoyment honestly in writing custom dsps what's your
+in writing custom dsps what's your experience with uh middleware that's
+experience with uh middleware that's easily extensible with uh custom
+easily extensible with uh custom dsps uh I hate to sound like broken
+dsps uh I hate to sound like broken record but fmod actually has a great uh
+record but fmod actually has a great uh plugin architecture for that um I
+plugin architecture for that um I believe wise does as well I haven't
+believe wise does as well I haven't looked at their API recently um and
+looked at their API recently um and beyond that uh I can't I cannot
+beyond that uh I can't I cannot speak um I think we have about 30
+speak um I think we have about 30 seconds and then I will be at the
+seconds and then I will be at the wrap-up room 307 so we'll take one more
+wrap-up room 307 so we'll take one more question okay uh as a sound designer uh
+question okay uh as a sound designer uh how much do you recommend that uh I or
+how much do you recommend that uh I or we dive into the code and learning audio
+we dive into the code and learning audio programming for the most successful
+programming for the most successful collaboration with audio programmers
+collaboration with audio programmers that's an excellent question um in
+that's an excellent question um in general you shouldn't have to be a
+general you shouldn't have to be a programmer I went to a great talk about
+programmer I went to a great talk about the uh the the audio engine in I think
+the uh the the audio engine in I think it was one of the Killzone games
+it was one of the Killzone games recently it was just uh yesterday the
+recently it was just uh yesterday the day before where they they did uh they
+day before where they they did uh they had kind of a a boxes in line scripting
+had kind of a a boxes in line scripting language for their audio team and that
+language for their audio team and that that's the kind of deepest I would allow
+that's the kind of deepest I would allow a sound designer to get um somebody
+a sound designer to get um somebody who's kind of focused on creating sound
+who's kind of focused on creating sound you know if you want to if if like
+you know if you want to if if like you're an Indian you want to do both
+you're an Indian you want to do both then you know more power to you but if
+then you know more power to you but if you're if you're more just like I want
+you're if you're more just like I want I'm a sound designer how much should I
+I'm a sound designer how much should I know how to program that's that's the
+know how to program that's that's the level of abstraction I would recommend
+level of abstraction I would recommend okay thanks cool so I think that uh we I
+okay thanks cool so I think that uh we I will be at the I think we're they're
+will be at the I think we're they're kicking us out so I will be across the
+kicking us out so I will be across the hall in 307 if you have any more
+hall in 307 if you have any more questions

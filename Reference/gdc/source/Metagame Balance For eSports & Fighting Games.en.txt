@@ -1,0 +1,864 @@
+all right come on then great okay thank you guys so much for
+great okay thank you guys so much for coming
+coming my name is Alex Jaffe you can follow me
+my name is Alex Jaffe you can follow me on twitter at blankety I'm a data
+on twitter at blankety I'm a data scientist a designer and a programmer at
+scientist a designer and a programmer at spry Fox and today I'm gonna be talking
+spry Fox and today I'm gonna be talking about meta game balance and it's gonna
+about meta game balance and it's gonna be it's gonna be sort of a deep dive
+be it's gonna be sort of a deep dive into this one really really focused
+into this one really really focused aspect of game balance it's kind of like
+aspect of game balance it's kind of like the twenty finit 25-minute lightning
+the twenty finit 25-minute lightning talk for some 800 minute Ring cycle talk
+talk for some 800 minute Ring cycle talk that I'll give in my bathtub or
+that I'll give in my bathtub or something and I'm really gonna be
+something and I'm really gonna be developing one big idea this whole time
+developing one big idea this whole time so sort of hold tight and listen up this
+so sort of hold tight and listen up this work alright
+work alright oh it goes that way okay so in the fall
+oh it goes that way okay so in the fall of 2012 I worked on this game
+of 2012 I worked on this game PlayStation all-stars battle royale it's
+PlayStation all-stars battle royale it's a four player icon brawler with all the
+a four player icon brawler with all the Sony characters and it was my job to
+Sony characters and it was my job to sort of take all the data that was
+sort of take all the data that was coming in from players playing the game
+coming in from players playing the game and help the designers balance it so
+and help the designers balance it so figure out where the game could be more
+figure out where the game could be more interesting or deep or more fair or you
+interesting or deep or more fair or you know just kind of more fun for players
+know just kind of more fun for players look at what they're doing and by the
+look at what they're doing and by the way the game is actually really great
+way the game is actually really great and a pretty unique despite its passing
+and a pretty unique despite its passing resemblance the other four player icon
+resemblance the other four player icon brawler shrek super slam
+brawler shrek super slam so um you know yes we wanted to
+so um you know yes we wanted to understand a lot about the game but one
+understand a lot about the game but one of the things that we cared the most
+of the things that we cared the most about was it doesn't work I have to
+about was it doesn't work I have to point it probably okay I'm using my
+point it probably okay I'm using my keyboard there we go what I think
+keyboard there we go what I think secured the most about was character
+secured the most about was character balance so this is here I'm not talking
+balance so this is here I'm not talking about how the game feels to play how
+about how the game feels to play how players play the game it's more just I
+players play the game it's more just I have a character that I like I'm coming
+have a character that I like I'm coming to this game and I want to be able to
+to this game and I want to be able to play this character and win right I want
+play this character and win right I want to be able to feel like this character
+to be able to feel like this character is not over it's not underpowered or
+is not over it's not underpowered or that some other character isn't
+that some other character isn't overpowered it's a it's a really
+overpowered it's a it's a really important concept it's almost like
+important concept it's almost like players need to be able to play the meta
+players need to be able to play the meta game in a way that feels good it's not
+game in a way that feels good it's not the only thing that matters but I think
+the only thing that matters but I think anyone who's worked on eSports knows
+anyone who's worked on eSports knows that this kind of concern is pretty
+that this kind of concern is pretty paramount whether you're worrying about
+paramount whether you're worrying about classes in tf2 or you know loadout
+classes in tf2 or you know loadout profiles and Cod or races and Starcraft
+profiles and Cod or races and Starcraft or sort of team dynamics and League of
+or sort of team dynamics and League of Legends this is an issue that you have
+Legends this is an issue that you have to wrestle with now for most of this
+to wrestle with now for most of this talk I'll be talking about fighting
+talk I'll be talking about fighting games because they kind of actually have
+games because they kind of actually have one of the simplest meta games out there
+one of the simplest meta games out there but I just want you to think throughout
+but I just want you to think throughout this whole thing about how the stuff I'm
+this whole thing about how the stuff I'm going to talk about is still relevant to
+going to talk about is still relevant to these other genres of games with some
+these other genres of games with some modifications so we care about character
+modifications so we care about character strength but how do we evaluate it and
+strength but how do we evaluate it and what are we even talking about when we
+what are we even talking about when we say a character is overpowered this is
+say a character is overpowered this is kind of one of the central questions I'm
+kind of one of the central questions I'm wrestling with there are a lot of
+wrestling with there are a lot of different ways we talk about character
+different ways we talk about character strength and I'll focus on two right now
+strength and I'll focus on two right now one is win rate that is how often does
+one is win rate that is how often does Kratos win against in an average game
+Kratos win against in an average game okay and you can if you have data from
+okay and you can if you have data from the game you can plot it you can look at
+the game you can plot it you can look at it you can say okay these characters
+it you can say okay these characters look a little overpowered these
+look a little overpowered these characters look a little underpowered or
+characters look a little underpowered or if you're feeling really masochistic you
+if you're feeling really masochistic you can listen to players and players will
+can listen to players and players will tell you something completely unlike
+tell you something completely unlike anything you've actually seen the data
+anything you've actually seen the data and it's totally perplexing right this
+and it's totally perplexing right this is a tier list from IGN from shortly
+is a tier list from IGN from shortly after the game came out and you know it
+after the game came out and you know it says that these two characters Kratos
+says that these two characters Kratos and Ryden are just completely
+and Ryden are just completely overpowered and dominating the game in
+overpowered and dominating the game in contrast if we look at their win rates
+contrast if we look at their win rates sort of doesn't look like it as much
+sort of doesn't look like it as much correlation there at all right one of
+correlation there at all right one of them is sort of middle the others middle
+them is sort of middle the others middle high so while we work on this game you
+high so while we work on this game you know I think I was really confused by
+know I think I was really confused by this discrepancy and it's really
+this discrepancy and it's really tempting to say well the players don't
+tempting to say well the players don't know what they're talking about or
+know what they're talking about or something right they're not great
+something right they're not great players or even if they are they only
+players or even if they are they only care about the guys with the big swords
+care about the guys with the big swords or something like that
+or something like that and yet you know we still do take their
+and yet you know we still do take their views into account even when we say
+views into account even when we say something like that when we patch the
+something like that when we patch the game we tried to address wind rates as
+game we tried to address wind rates as well as the characters that players
+well as the characters that players perceived as unbalanced and so okay one
+perceived as unbalanced and so okay one of the things that I realized was
+of the things that I realized was happening here one of the properties
+happening here one of the properties that these characters that these
+that these characters that these characters had who players really
+characters had who players really thought were overpowered was play
+thought were overpowered was play frequency was very very high this
+frequency was very very high this clicker okay that is crayons and writing
+clicker okay that is crayons and writing we're by far the most played characters
+we're by far the most played characters in the game so okay this maybe starts to
+in the game so okay this maybe starts to point to what's going on right the
+point to what's going on right the players are just facing these opponents
+players are just facing these opponents over and over again it's like it's no
+over and over again it's like it's no wonder it's frustrating and we have to
+wonder it's frustrating and we have to think about player experience that's
+think about player experience that's what we're doing right we're trying to
+what we're doing right we're trying to create a good player experience so this
+create a good player experience so this suggests a totally different way to
+suggests a totally different way to think about game balance maybe we could
+think about game balance maybe we could just look at play frequency as our sort
+just look at play frequency as our sort of canonical truth of what it means for
+of canonical truth of what it means for a character or an asymmetric option in
+a character or an asymmetric option in general to be unbalanced and maybe we
+general to be unbalanced and maybe we just nerf the you know most plate
+just nerf the you know most plate options I mean there are several reasons
+options I mean there are several reasons why that's not a good idea but I still
+why that's not a good idea but I still think there's some fundamental nugget of
+think there's some fundamental nugget of truth to why this is good first of all
+truth to why this is good first of all let's say we restrict to expert players
+let's say we restrict to expert players so we just look at the play frequency
+so we just look at the play frequency for the best players in the game okay
+for the best players in the game okay then
+then okay this isn't just gonna be people
+okay this isn't just gonna be people like big swords these players are
+like big swords these players are playing to win right they're picking
+playing to win right they're picking their characters in a way that is going
+their characters in a way that is going to let them get to the top of the
+to let them get to the top of the rankings right so okay all of the
+rankings right so okay all of the characters who they're playing
+characters who they're playing frequently are going to be winners so
+frequently are going to be winners so then the question is okay is that enough
+then the question is okay is that enough can we just look at play frequency and
+can we just look at play frequency and that's our that's our you know source of
+that's our that's our you know source of truth on on what is what is too much
+truth on on what is what is too much what needs to be addressed in the game
+what needs to be addressed in the game but there is another problem and there's
+but there is another problem and there's the instability of play rates here's
+the instability of play rates here's some data from the game shortly after
+some data from the game shortly after our first patch so what these are are
+our first patch so what these are are play rates for different characters on
+play rates for different characters on the second week after that patch and the
+the second week after that patch and the fifth week after that patch okay and
+fifth week after that patch okay and what you see is they are all over the
+what you see is they are all over the place right if these players are playing
+place right if these players are playing to win right and these are indeed high
+to win right and these are indeed high skilled players why are they changing so
+skilled players why are they changing so much why is Kratos almost doubling in
+much why is Kratos almost doubling in popularity over the course of a few
+popularity over the course of a few weeks your first guess should be that
+weeks your first guess should be that okay the patch came out players have
+okay the patch came out players have figured out something new about the game
+figured out something new about the game right so now they are they're realizing
+right so now they are they're realizing Kratos is more powerful they've gotten
+Kratos is more powerful they've gotten better technique and they are winning
+better technique and they are winning with him some more players play him but
+with him some more players play him but here are the wind rates in the same time
+here are the wind rates in the same time period this graph is extremely
+period this graph is extremely okay so they're essentially not changing
+okay so they're essentially not changing at all these characters are staying
+at all these characters are staying fixed in effectiveness and yet players
+fixed in effectiveness and yet players are adopting them and leaving them
+are adopting them and leaving them behind for seemingly no good reason okay
+behind for seemingly no good reason okay so if play rates are so unstable first
+so if play rates are so unstable first of all why okay well I said players are
+of all why okay well I said players are playing to win but there are multiple
+playing to win but there are multiple viable options right as we can see like
+viable options right as we can see like there are actually a lot of good
+there are actually a lot of good characters in this game at the at the
+characters in this game at the at the top level it's relatively balanced and
+top level it's relatively balanced and unfortunately players have free will and
+unfortunately players have free will and so we can't just you know know exactly
+so we can't just you know know exactly what they're gonna do there are a lot of
+what they're gonna do there are a lot of options we would love it if we could
+options we would love it if we could just predict a future like okay this
+just predict a future like okay this game comes out it's been out for a
+game comes out it's been out for a couple days we sort of get all the data
+couple days we sort of get all the data on the left side now we want to know
+on the left side now we want to know where the game is heading like it's some
+where the game is heading like it's some character just going to completely
+character just going to completely dominate the meta game so it'd be great
+dominate the meta game so it'd be great if we could predict the right side of
+if we could predict the right side of this graph right know right away okay
+this graph right know right away okay like kratos is just gonna start
+like kratos is just gonna start dominating we want to pass him or
+dominating we want to pass him or something or maybe even predict it
+something or maybe even predict it solely from playtesting right got some
+solely from playtesting right got some data ourselves never release the game
+data ourselves never release the game and put it out in a state where this
+and put it out in a state where this doesn't happen but of course as I said
+doesn't happen but of course as I said the problem is players have freewill
+the problem is players have freewill they have choice there are all these
+they have choice there are all these different states Drake might go to right
+different states Drake might go to right he might you know play you're gonna
+he might you know play you're gonna decide to play him less they might
+decide to play him less they might decide to play him a ton it's pretty
+decide to play him a ton it's pretty hard to just predict the future when you
+hard to just predict the future when you know we're dealing with human being so I
+know we're dealing with human being so I have a more meager goal and that's to
+have a more meager goal and that's to predict all the futures so that is
+predict all the futures so that is basically to know what if we could say
+basically to know what if we could say just something about the range of
+just something about the range of possible values for how often Drake will
+possible values for how often Drake will be played kind of understand this whole
+be played kind of understand this whole span of possible possible meta games
+span of possible possible meta games that we might up and end up in right and
+that we might up and end up in right and also know you know that within a few
+also know you know that within a few weeks say once players have learned that
+weeks say once players have learned that kratos is effective and they've adopted
+kratos is effective and they've adopted him that say all of the meta games that
+him that say all of the meta games that we might end up in involve credits being
+we might end up in involve credits being played way too much so much that's gonna
+played way too much so much that's gonna frustrate players who have to play em
+frustrate players who have to play em frustrate players who face him and also
+frustrate players who face him and also frustrate spectators if we're dealing
+frustrate spectators if we're dealing with these sports well this this would
+with these sports well this this would be great this would be a great future
+be great this would be a great future I'm sorry a great reality because we can
+I'm sorry a great reality because we can actually you know balance our games
+actually you know balance our games before players have kind of unbalanced
+before players have kind of unbalanced them for us and I this is actually what
+them for us and I this is actually what I'm proposing I call it meta game bounds
+I'm proposing I call it meta game bounds it's a new way to think about asymmetric
+it's a new way to think about asymmetric strengths you can sort of do this
+strengths you can sort of do this basically produce these bounds on the
+basically produce these bounds on the most that sort of the highest frequency
+most that sort of the highest frequency you might expect to see a character be
+you might expect to see a character be played in
+played in reasonable metagame full of expert
+reasonable metagame full of expert players and the lowest frequency you
+players and the lowest frequency you know won't be perfect but I think by the
+know won't be perfect but I think by the end you'll be convinced that you know
+end you'll be convinced that you know there's actually a way to do this okay
+there's actually a way to do this okay so I'm gonna talk about the meta game as
+so I'm gonna talk about the meta game as I view it it's a very very kind of
+I view it it's a very very kind of focused specific view of the meta game
+focused specific view of the meta game talk about how that helps us enable this
+talk about how that helps us enable this construction these these meta game
+construction these these meta game bounds and then finally how we can use
+bounds and then finally how we can use those bounds to find imbalances in the
+those bounds to find imbalances in the game alright so after I finished working
+game alright so after I finished working on playstation allstars III did I
+on playstation allstars III did I finished my PhD at the University of
+finished my PhD at the University of Washington with my dissertation was on
+Washington with my dissertation was on game balancing and near the very very
+game balancing and near the very very end of it I was looking at this matchup
+end of it I was looking at this matchup charts for Street Fighter 4 and it's
+charts for Street Fighter 4 and it's something struck me about it so here's
+something struck me about it so here's how these charts work you pick a
+how these charts work you pick a character on the row like sea viper you
+character on the row like sea viper you pick a character column like uh who was
+pick a character column like uh who was that Akuma and and then the six there in
+that Akuma and and then the six there in the middle uh means there's a six in ten
+the middle uh means there's a six in ten chance of that of a long beating Akuma
+chance of that of a long beating Akuma in a fair match of high skill game okay
+in a fair match of high skill game okay another thing about these charts is they
+another thing about these charts is they are totally made-up but they're still
+are totally made-up but they're still pretty good so literally a bunch of
+pretty good so literally a bunch of people got in a room who you know pretty
+people got in a room who you know pretty sieve themselves to be expert players
+sieve themselves to be expert players and they decided what these numbers
+and they decided what these numbers should be so you should think okay I
+should be so you should think okay I shouldn't believe these at all but I
+shouldn't believe these at all but I argue they're still really useful first
+argue they're still really useful first of all they're well-defined unlike
+of all they're well-defined unlike cheerless str8 here these don't actually
+cheerless str8 here these don't actually mean anything everybody has a different
+mean anything everybody has a different definition for what this means
+definition for what this means whereas a 60% win rate is very very well
+whereas a 60% win rate is very very well defined it's something we can we can
+defined it's something we can we can discuss and we can figure out what the
+discuss and we can figure out what the right number is we can even you know
+right number is we can even you know look at actual data and figure out some
+look at actual data and figure out some approximation of the truth here on top
+approximation of the truth here on top of that it's unaffected by play
+of that it's unaffected by play frequency so remember part of the
+frequency so remember part of the problem we're trying to wrestle with is
+problem we're trying to wrestle with is we can't just look at the current
+we can't just look at the current metagame because it's sort of it's all
+metagame because it's sort of it's all over the place it moves with time
+over the place it moves with time naturally a sort of converges into these
+naturally a sort of converges into these different equilibrium and moves around
+different equilibrium and moves around and and what we need to know is the
+and and what we need to know is the whole possible space of this so we need
+whole possible space of this so we need some source of data that is unaffected
+some source of data that is unaffected by this play frequency and indeed this
+by this play frequency and indeed this is you know if a lot more players start
+is you know if a lot more players start playing see Viper that doesn't mean her
+playing see Viper that doesn't mean her win rate against Akuma is going to
+win rate against Akuma is going to substantially change it might change a
+substantially change it might change a little because players will learn more
+little because players will learn more about how to play her right but that
+about how to play her right but that that change will be much slower
+that change will be much slower developing new techniques for a game
+developing new techniques for a game happens slowly compared to moves
+happens slowly compared to moves movements in the meta game which as I
+movements in the meta game which as I showed you happen very very quickly so
+showed you happen very very quickly so even knowing the matchup chart right now
+even knowing the matchup chart right now is
+is tremely useful so my goal sort of is to
+tremely useful so my goal sort of is to is to take these matchup charts these
+is to take these matchup charts these these sort of impenetrable walls of
+these sort of impenetrable walls of numbers and and to find their secrets
+numbers and and to find their secrets like the protagonist in PI who has this
+like the protagonist in PI who has this 216 digit string of numbers who's trying
+216 digit string of numbers who's trying to find the secrets of God through it
+to find the secrets of God through it it's kind of like that it's like are
+it's kind of like that it's like are there some fundamental secrets of the
+there some fundamental secrets of the game that we can find in these matchup
+game that we can find in these matchup charts right do they define like how the
+charts right do they define like how the meta game might work in all possible
+meta game might work in all possible universes and and I think they do some
+universes and and I think they do some people who have tried to analyze them
+people who have tried to analyze them before I in fact everyone who makes
+before I in fact everyone who makes these match up charts produces these
+these match up charts produces these averages these sorry these sums on the
+averages these sorry these sums on the right side it's just the sum of all the
+right side it's just the sum of all the numbers and so they say okay seth has
+numbers and so they say okay seth has the highest sum of numbers he's maybe
+the highest sum of numbers he's maybe the strongest character in the game
+the strongest character in the game nobody actually believes these because
+nobody actually believes these because it's totally overly simplistic it says
+it's totally overly simplistic it says basically basically it's how often -
+basically basically it's how often - Seth win against an average opponent but
+Seth win against an average opponent but you never face an average opponent you
+you never face an average opponent you face other strong opponents who are
+face other strong opponents who are themselves defined by their ability to
+themselves defined by their ability to face strong opponents it's the cyclical
+face strong opponents it's the cyclical thing that's very very hard for a human
+thing that's very very hard for a human to reason about but it is possible for a
+to reason about but it is possible for a computer to reason about and that is
+computer to reason about and that is where I'm going to do that we need to
+where I'm going to do that we need to treat this matchup chart itself as kind
+treat this matchup chart itself as kind of the source of information the source
+of the source of information the source of definition for some game basically
+of definition for some game basically metagame the game not that meta game the
+metagame the game not that meta game the game Erik Simmons benefit convene but
+game Erik Simmons benefit convene but but a different meta game the game
+but a different meta game the game literally the game that is playing the
+literally the game that is playing the meta game of any sort of competitive
+meta game of any sort of competitive game and what if we take it seriously as
+game and what if we take it seriously as a game worthy of analysis in itself
+a game worthy of analysis in itself all right of its own and you know and
+all right of its own and you know and actually you know analyze it well I call
+actually you know analyze it well I call it the selection game just to be really
+it the selection game just to be really clear it needs a name and it's super
+clear it needs a name and it's super simple we're coming to play game of
+simple we're coming to play game of Street Fighter we sit down we're gonna
+Street Fighter we sit down we're gonna pick characters to play we do it
+pick characters to play we do it simultaneously and in secret then
+simultaneously and in secret then there's some chance that I win based on
+there's some chance that I win based on the character I chose and I'm not even
+the character I chose and I'm not even going to play the game I'm just
+going to play the game I'm just selecting my character just like you and
+selecting my character just like you and then robots who play just like us will
+then robots who play just like us will play for us and then you know if I play
+play for us and then you know if I play Zangief or you play guile I win 60% of
+Zangief or you play guile I win 60% of the time but it's just randomness so my
+the time but it's just randomness so my goal now is just to pick the right
+goal now is just to pick the right characters will treat ties as 50% win
+characters will treat ties as 50% win chance for simplicity okay what kind of
+chance for simplicity okay what kind of game is this well it's basically
+game is this well it's basically rock-paper-scissors which makes it sound
+rock-paper-scissors which makes it sound super boring but there's still something
+super boring but there's still something interesting here it's a generalization
+interesting here it's a generalization of rock-paper-scissors write this like
+of rock-paper-scissors write this like Princess Bride poisoning game
+Princess Bride poisoning game we're like you know trying to figure I'm
+we're like you know trying to figure I'm trying to think about what you're trying
+trying to think about what you're trying to think about I'm trying to think this
+to think about I'm trying to think this Yomi game but the good news about these
+Yomi game but the good news about these games is that they are well covered by
+games is that they are well covered by game theory we know how to analyze them
+game theory we know how to analyze them extremely well and the most important
+extremely well and the most important concept you need to know here is the
+concept you need to know here is the notion of an optimal strategy which just
+notion of an optimal strategy which just means it's a way that I can play such
+means it's a way that I can play such that I win at least half of my games no
+that I win at least half of my games no matter what you do no matter what you
+matter what you do no matter what you know about my strategy I'm always going
+know about my strategy I'm always going to guarantee that I win half the games
+to guarantee that I win half the games ok the problem is that any fixed
+ok the problem is that any fixed strategy can be exploited right if I
+strategy can be exploited right if I just play rock and you know that then
+just play rock and you know that then you will win every time because you'll
+you will win every time because you'll win paper you'll play paper excuse me
+win paper you'll play paper excuse me but if I play randomly if there's some
+but if I play randomly if there's some unpredictability then I can do better
+unpredictability then I can do better right so we have this notion of a mixed
+right so we have this notion of a mixed strategy which is a probability
+strategy which is a probability distribution over these pure strategies
+distribution over these pure strategies and so if I play 1/3 Rock 1/3 paper and
+and so if I play 1/3 Rock 1/3 paper and 1/3 scissors then there's nothing you
+1/3 scissors then there's nothing you can do to exploit the knowledge of that
+can do to exploit the knowledge of that strategy right even if you decide ok I'm
+strategy right even if you decide ok I'm just going to be you decide to play rock
+just going to be you decide to play rock you win half the time if you win play
+you win half the time if you win play paper you win half the time no matter
+paper you win half the time no matter what if you play some random ice dredger
+what if you play some random ice dredger you still win at most half the time so
+you still win at most half the time so uniformly win random it wins half the
+uniformly win random it wins half the time and that's optimal since the game
+time and that's optimal since the game is symmetric I can't ever do better than
+is symmetric I can't ever do better than guaranteeing winning half the time right
+guaranteeing winning half the time right ok so that's all the game theory I'm
+ok so that's all the game theory I'm going to teach you it's like one slide
+going to teach you it's like one slide or something I recommend Frank Lance's
+or something I recommend Frank Lance's game 30 talk it's an hour and there's a
+game 30 talk it's an hour and there's a lot more interesting stuff in it but
+lot more interesting stuff in it but this is all we need for now ok so now I
+this is all we need for now ok so now I can actually talk about how we construct
+can actually talk about how we construct these metagame bounds so you might see
+these metagame bounds so you might see where I'm going we have a you know say a
+where I'm going we have a you know say a selection game like this this is some
+selection game like this this is some Starcraft 2 data from some tournaments a
+Starcraft 2 data from some tournaments a few years ago and now we want to know
+few years ago and now we want to know what rate should I play each of these
+what rate should I play each of these characters right how often should I play
+characters right how often should I play Terran to ensure that I don't get
+Terran to ensure that I don't get dominated by say my bad matchup against
+dominated by say my bad matchup against or - check late Protoss make sure I
+or - check late Protoss make sure I don't get amin aided by my bad matchup
+don't get amin aided by my bad matchup against Protoss that example anyway the
+against Protoss that example anyway the way we solve this is with a linear
+way we solve this is with a linear program it's just like this it's really
+program it's just like this it's really simple you just plug it into an LP
+simple you just plug it into an LP solver let it run and voila you get your
+solver let it run and voila you get your probabilities you don't actually need to
+probabilities you don't actually need to know how that works but it is it is
+know how that works but it is it is actually quite simple if you have the
+actually quite simple if you have the right libraries literally it's just a
+right libraries literally it's just a few lines of code and you know you can
+few lines of code and you know you can efficiently find the solution to
+efficiently find the solution to these games these are some games can
+these games these are some games can find the probability distribution that
+find the probability distribution that you must play to you know win this best
+you must play to you know win this best you can so here let's say it's 36% area
+you can so here let's say it's 36% area and 34% protists could these be like
+and 34% protists could these be like should we think of these are the
+should we think of these are the expected frequencies that we would see
+expected frequencies that we would see Terran and Protoss and Zerg appearing in
+Terran and Protoss and Zerg appearing in the wild since that's our goal well no
+the wild since that's our goal well no because they're actually two problems
+because they're actually two problems with that
+with that the first is that I've been treating
+the first is that I've been treating this game of selecting say characters in
+this game of selecting say characters in a fighting game as this one time thing I
+a fighting game as this one time thing I sit down we play together every round
+sit down we play together every round I'm gonna pick a character independently
+I'm gonna pick a character independently from the last but that is not how
+from the last but that is not how communities work and specifically about
+communities work and specifically about how eSports work these games have huge
+how eSports work these games have huge execution barriers require a ton of
+execution barriers require a ton of skill and you know for a game like
+skill and you know for a game like Street Fighter say you know a character
+Street Fighter say you know a character may sorry a player may spend years
+may sorry a player may spend years training with one character they're not
+training with one character they're not just gonna pick the character that's
+just gonna pick the character that's gonna you know do the best in this
+gonna you know do the best in this particular matchup they're gonna be kind
+particular matchup they're gonna be kind of stuck on their character so it seems
+of stuck on their character so it seems like these single round games these
+like these single round games these zero-sum games the selection games can't
+zero-sum games the selection games can't really say much about what a real
+really say much about what a real community will look like right because
+community will look like right because it has to do with this very human
+it has to do with this very human properties kind of like spanning outside
+properties kind of like spanning outside the magic circle of what people train
+the magic circle of what people train over time but I have an argument that
+over time but I have an argument that there actually is a much deeper
+there actually is a much deeper connection between these two models than
+connection between these two models than you might think
+you might think so consider the following model for how
+so consider the following model for how a community forms okay imagine you have
+a community forms okay imagine you have say a third reuse a third Zangief some
+say a third reuse a third Zangief some if they're camis and some community of
+if they're camis and some community of street fighter players and they're
+street fighter players and they're basically stuck on their characters
+basically stuck on their characters everybody plays their character almost
+everybody plays their character almost all the time because it's so important
+all the time because it's so important to train with that one but then a new
+to train with that one but then a new player comes along and he's gonna play
+player comes along and he's gonna play for a while and pick the character it
+for a while and pick the character it lets him totally dominate the current
+lets him totally dominate the current characters so he picks Fei Long right
+characters so he picks Fei Long right because Fei Long you know has an
+because Fei Long you know has an advantage against each of these and the
+advantage against each of these and the new player comes along and she picks me
+new player comes along and she picks me long to write because Fei Long has this
+long to write because Fei Long has this advantage it's great right you can
+advantage it's great right you can basically exploit the weakness in the
+basically exploit the weakness in the current community and this keeps
+current community and this keeps happening for a while until finally
+happening for a while until finally there are a lot of fate logs and then
+there are a lot of fate logs and then someone has this amazing idea they
+someone has this amazing idea they realize like I'm gonna play Balrog
+realize like I'm gonna play Balrog because Balrog has an advantage against
+because Balrog has an advantage against Fei Long and now I can get more wins
+Fei Long and now I can get more wins right so imagine this is a process this
+right so imagine this is a process this is the process that describes how your
+is the process that describes how your community forms seems not so crazy far
+community forms seems not so crazy far from reality but the amazing fact is
+from reality but the amazing fact is that this process is identical to an
+that this process is identical to an algorithm called fictitious play and
+algorithm called fictitious play and this algorithm is a way to compute the
+this algorithm is a way to compute the optimal strategy to a selection game
+optimal strategy to a selection game which means that over time the
+which means that over time the percentage of players who we see sort of
+percentage of players who we see sort of playing ryu in a community is going to
+playing ryu in a community is going to converge to the percentage chance that
+converge to the percentage chance that you should play were you in a single
+you should play were you in a single round of this game okay this is really
+round of this game okay this is really important this means that we have this
+important this means that we have this selection game right we have this you
+selection game right we have this you know this little game where we just you
+know this little game where we just you and I just play once but however it is
+and I just play once but however it is that I should play that game is actually
+that I should play that game is actually how we should see an entire community of
+how we should see an entire community of players kind of like adopting characters
+players kind of like adopting characters over the course of years again I've
+over the course of years again I've oversimplified the model but I think it
+oversimplified the model but I think it points to some fundamental truth so now
+points to some fundamental truth so now it seems like okay we're in a position
+it seems like okay we're in a position where we can take these matchup charts
+where we can take these matchup charts or selection games and we can compute an
+or selection games and we can compute an optimal strategy for them and hopefully
+optimal strategy for them and hopefully get some information about which
+get some information about which characters are gonna get played in the
+characters are gonna get played in the wild we did this here for that Street
+wild we did this here for that Street Fighter 4 chart and you get something
+Fighter 4 chart and you get something like this which is totally utterly wrong
+like this which is totally utterly wrong if you've ever played Street Fighter 4
+if you've ever played Street Fighter 4 you know that first of all more than 9
+you know that first of all more than 9 of the 39 characters get played this was
+of the 39 characters get played this was before the recent patch there were 39
+before the recent patch there were 39 more over a third of the players don't
+more over a third of the players don't play Balrog that is not reality bare
+play Balrog that is not reality bare legs a fine character but it is not a
+legs a fine character but it is not a third of the care players so there's
+third of the care players so there's still one problem with our method here
+still one problem with our method here and the problem is that perfectly
+and the problem is that perfectly optimal play is not realistic right
+optimal play is not realistic right players may play to win players may be
+players may play to win players may be very good at playing to win and you know
+very good at playing to win and you know despite this they're not going to play
+despite this they're not going to play perfectly they might play some
+perfectly they might play some approximation of perfectly right and
+approximation of perfectly right and beyond that there's some noise in the
+beyond that there's some noise in the data we have these matchup charts
+data we have these matchup charts they're not perfect even if we've taken
+they're not perfect even if we've taken them from real data from the wild
+them from real data from the wild they're still going to be noisy so we
+they're still going to be noisy so we can't have this very stringent
+can't have this very stringent dependency on you know absolutely
+dependency on you know absolutely perfect optimal play if we want to learn
+perfect optimal play if we want to learn something about our game but we can
+something about our game but we can think about approximately optimal play
+think about approximately optimal play so the idea is okay we want to know how
+so the idea is okay we want to know how often you know you can win while playing
+often you know you can win while playing Balrog some percentage of the time we
+Balrog some percentage of the time we don't know can't can you play is it
+don't know can't can you play is it possible to be have a very effective
+possible to be have a very effective community that has 12% balrog in it so
+community that has 12% balrog in it so we force our strategy to play Balrog 12
+we force our strategy to play Balrog 12 percent of the time and then we check
+percent of the time and then we check can you still win a lot essentially so
+can you still win a lot essentially so we modify our linear program you don't
+we modify our linear program you don't need to know the details here but you
+need to know the details here but you put one more constraint on it and then
+put one more constraint on it and then you pop out here this this set of play
+you pop out here this this set of play rates it's totally different than the
+rates it's totally different than the last one right and this says ok this is
+last one right and this says ok this is the one where we know Balrog is played
+the one where we know Balrog is played exactly 12
+exactly 12 percent of the time and then we can
+percent of the time and then we can check at the one where he's played 13
+check at the one where he's played 13 percent of the time and 14 percent of
+percent of the time and 14 percent of the time it's sort of explored this
+the time it's sort of explored this whole space of what play rates look like
+whole space of what play rates look like when one of the characters appears at
+when one of the characters appears at some frequency all right and this
+some frequency all right and this actually gets us what we want because
+actually gets us what we want because now we can make a chart like this and
+now we can make a chart like this and let me make sure you really understand
+let me make sure you really understand what this chart is saying at the bottom
+what this chart is saying at the bottom we have playwrights that is you know
+we have playwrights that is you know played five percent of the time or
+played five percent of the time or twenty percent of your community or
+twenty percent of your community or whatever and then the two sides of this
+whatever and then the two sides of this interval tell you the minimum frequency
+interval tell you the minimum frequency you should expect this character to
+you should expect this character to occur and the maximum frequency
+occur and the maximum frequency frequency you should expect them to
+frequency you should expect them to occur so this says Balrogs in any stable
+occur so this says Balrogs in any stable strong streetfighter community that wins
+strong streetfighter community that wins you know most of the time against any
+you know most of the time against any kind of outsider who tries to exploit
+kind of outsider who tries to exploit them you'll see at least you know three
+them you'll see at least you know three percent balrog or something but you'll
+percent balrog or something but you'll see at most you know thirty five percent
+see at most you know thirty five percent so it's actually a huge range players
+so it's actually a huge range players have a lot of freedom in this game to
+have a lot of freedom in this game to pick the characters they want to pick
+pick the characters they want to pick and everyone can appear at least you
+and everyone can appear at least you know at some frequency within a sort of
+know at some frequency within a sort of strong competitive meta game so that's
+strong competitive meta game so that's great I mean three fighter four is a
+great I mean three fighter four is a very balanced game but the real purpose
+very balanced game but the real purpose of these bounds is to help us find
+of these bounds is to help us find problems in our in our meta right
+problems in our in our meta right possible problems so I'm gonna talk
+possible problems so I'm gonna talk about three kinds of characters that
+about three kinds of characters that these graphs let you find I'll call them
+these graphs let you find I'll call them always excluded sometimes dominant and
+always excluded sometimes dominant and always dominate characters all right so
+always dominate characters all right so I just want to be absolutely sure we
+I just want to be absolutely sure we understand what this graph means it
+understand what this graph means it means if you look at the character at
+means if you look at the character at the top left at the laptop then the left
+the top left at the laptop then the left point means you have to play Balrog at
+point means you have to play Balrog at least 5% of the time in a stable
+least 5% of the time in a stable community the right point means you have
+community the right point means you have to play him at most 40 percent of the
+to play him at most 40 percent of the time all right
+time all right so finding imbalances here's a matchup
+so finding imbalances here's a matchup chart that I derived from some data
+chart that I derived from some data again player player made up on smash
+again player player made up on smash wiki for super smash brothers melee you
+wiki for super smash brothers melee you don't need a look at the numbers what
+don't need a look at the numbers what you do need to see is the matchup charts
+you do need to see is the matchup charts that it produces so I want to focus your
+that it produces so I want to focus your attention first on these entries okay
+attention first on these entries okay these are the ones where the right side
+these are the ones where the right side of the green bar is all the way to the
+of the green bar is all the way to the left and what that means is that at most
+left and what that means is that at most 0 percent of the players in a community
+0 percent of the players in a community can play a young link or link or Yoshi
+can play a young link or link or Yoshi and still have some success ok so that's
+and still have some success ok so that's not good you want a game in which you
+not good you want a game in which you know players have freedom which players
+know players have freedom which players are able to
+are able to we'll kind of be able to participate in
+we'll kind of be able to participate in it as any character right and actually
+it as any character right and actually contribute and win so this is sort of an
+contribute and win so this is sort of an immediate problem maybe you want to buff
+immediate problem maybe you want to buff these characters right and you know this
+these characters right and you know this is not something you necessarily can
+is not something you necessarily can easily find in the matchup charts
+easily find in the matchup charts because it depends on the
+because it depends on the interdependencies on the cap of the
+interdependencies on the cap of the characters and who they beat and who
+characters and who they beat and who beats them another thing we can look for
+beats them another thing we can look for these sometimes dominant characters so
+these sometimes dominant characters so fox falco Marth and Samus pop out here
+fox falco Marth and Samus pop out here these are characters for whom if the
+these are characters for whom if the players had their druthers eco they
+players had their druthers eco they could play some enormous frequency what
+could play some enormous frequency what this basically tells us is that if every
+this basically tells us is that if every player in the entire game wanted to play
+player in the entire game wanted to play fox they could do so and there would be
+fox they could do so and there would be nothing anyone else could really do to
+nothing anyone else could really do to stop them there's no other character
+stop them there's no other character that can come in exploit the fact that
+that can come in exploit the fact that everybody's playing fox it's like if you
+everybody's playing fox it's like if you had this rock-paper-scissors community
+had this rock-paper-scissors community where everybody's playing rock but
+where everybody's playing rock but there's just nothing that actually
+there's just nothing that actually forces you to play something else
+forces you to play something else now as a designer you basically have
+now as a designer you basically have your choice it's a matter of taste
+your choice it's a matter of taste whether or not you want to do something
+whether or not you want to do something about this maybe you think it's fine if
+about this maybe you think it's fine if everybody wants to play fox they won't
+everybody wants to play fox they won't they will naturally self distribute
+they will naturally self distribute that's reasonable in our case we had too
+that's reasonable in our case we had too many players playing Kratos we didn't
+many players playing Kratos we didn't like in the players didn't like it so I
+like in the players didn't like it so I think it would have been really nice to
+think it would have been really nice to actually know that this was kind of this
+actually know that this was kind of this possibility and find a version of the
+possibility and find a version of the game in which that wasn't the case which
+game in which that wasn't the case which would require essentially giving other
+would require essentially giving other characters counters to create us right
+characters counters to create us right finding ways that they can force create
+finding ways that they can force create us out of this dominant position and
+us out of this dominant position and then after producing those you can
+then after producing those you can actually test them we can you match up
+actually test them we can you match up charts and see whether you've solved the
+charts and see whether you've solved the problem so finally they're always
+problem so finally they're always dominant characters now I'm looking at
+dominant characters now I'm looking at Super Smash Brothers Brawl data which
+Super Smash Brothers Brawl data which has an infamous problem and you can see
+has an infamous problem and you can see it here so Meta Knight has to be played
+it here so Meta Knight has to be played at least 55% of the time in any strong
+at least 55% of the time in any strong community if you don't play him that
+community if you don't play him that much meta Knights will come in and
+much meta Knights will come in and destroy you okay so it's this there's
+destroy you okay so it's this there's this kind of inevitability that like no
+this kind of inevitability that like no matter what meta Knights go to
+matter what meta Knights go to completely dominate this game obviously
+completely dominate this game obviously you don't want this situation right you
+you don't want this situation right you may have one criticism which is that
+may have one criticism which is that yeah which is that if you look at the
+yeah which is that if you look at the matchups for Meta Knight
+matchups for Meta Knight they are totally obviously overpowered
+they are totally obviously overpowered like all his numbers are ridiculously
+like all his numbers are ridiculously high he doesn't look anything like the
+high he doesn't look anything like the other characters you don't need all this
+other characters you don't need all this fancy game theory to discover that right
+fancy game theory to discover that right but this is an extreme case what about
+but this is an extreme case what about these matchups this is for PlayStation
+these matchups this is for PlayStation all-stars battle royale this is taken
+all-stars battle royale this is taken from median skill players but equally
+from median skill players but equally informative
+informative um now if you look at this again I know
+um now if you look at this again I know you can't really see the numbers the
+you can't really see the numbers the question is is there a character here
+question is is there a character here who totally dominates there one
+who totally dominates there one character like you know who just takes
+character like you know who just takes over the meta I think it's it's pretty
+over the meta I think it's it's pretty hard to see but when you actually do the
+hard to see but when you actually do the computation you see this so it says that
+computation you see this so it says that sacra has to be played basically half
+sacra has to be played basically half the time half the players have to play
+the time half the players have to play sac boy in sort of the convergent one of
+sac boy in sort of the convergent one of any of the convergence states of this
+any of the convergence states of this meta game and this is like really really
+meta game and this is like really really important to know and I just want to go
+important to know and I just want to go back again just to show you this there's
+back again just to show you this there's nothing obvious here sac boy is the
+nothing obvious here sac boy is the third highest character he is a 5.7
+third highest character he is a 5.7 average Mac matchup it's really about
+average Mac matchup it's really about this kind of you know cyclical interplay
+this kind of you know cyclical interplay between all these characters right it
+between all these characters right it just so happens that the way his
+just so happens that the way his advantages and disadvantages work out
+advantages and disadvantages work out this is kind of a necessary consequence
+this is kind of a necessary consequence and just as some confirmation of this
+and just as some confirmation of this reality here are the frequencies of play
+reality here are the frequencies of play for sackboy in the first three weeks of
+for sackboy in the first three weeks of the game this is week one they've
+the game this is week one they've already figured out they should play him
+already figured out they should play him you know 18 percent of the time week 225
+you know 18 percent of the time week 225 week three he's more than forty percent
+week three he's more than forty percent of the games are played by sac boy okay
+of the games are played by sac boy okay and his win rates are not changing this
+and his win rates are not changing this is players figuring it out right they're
+is players figuring it out right they're realizing very very quickly the meta is
+realizing very very quickly the meta is broken and imagine if we had that
+broken and imagine if we had that matchup chart early on and we also had
+matchup chart early on and we also had these tools right that would enable us
+these tools right that would enable us to see where this was all inevitably
+to see where this was all inevitably heading right that sac boy had this kind
+heading right that sac boy had this kind of inevitable place here now this is
+of inevitable place here now this is high school data so it's a little
+high school data so it's a little different from the media and skill data
+different from the media and skill data I showed you before but you know just as
+I showed you before but you know just as a consequence of how much data I have
+a consequence of how much data I have but the same principle applies basically
+but the same principle applies basically I think we need to try this I think I
+I think we need to try this I think I think it's worth actually applying these
+think it's worth actually applying these methods in the middle of a game early on
+methods in the middle of a game early on in a games development you know and it's
+in a games development you know and it's it's not just about applying the tools
+it's not just about applying the tools or something although you should know I
+or something although you should know I put the code online you can try it
+put the code online you can try it yourself this github URL it's really
+yourself this github URL it's really really simple all you do is you take a
+really simple all you do is you take a little CSV of match up charts if you
+little CSV of match up charts if you have them how often each character wins
+have them how often each character wins and it outputs some graphs like that and
+and it outputs some graphs like that and you can look at intermediate results too
+you can look at intermediate results too and I really encourage people do this
+and I really encourage people do this but I want to see how these methods work
+but I want to see how these methods work for different kinds of games you know
+for different kinds of games you know there are a lot of different ways that
+there are a lot of different ways that we can think about meta game balance and
+we can think about meta game balance and you know we're never going to have just
+you know we're never going to have just this one true notion of what balance is
+this one true notion of what balance is but the nice thing about these methods
+but the nice thing about these methods is
+is like these sort of vaguely defined here
+like these sort of vaguely defined here lists you know they start from this
+lists you know they start from this really really really reliable source of
+really really really reliable source of data these matchups really well-defined
+data these matchups really well-defined data and they produce something that you
+data and they produce something that you know is it's kind of vaguely objective
+know is it's kind of vaguely objective right it tells you not how players will
+right it tells you not how players will play but at least how they should play
+play but at least how they should play and I think there's so much potential to
+and I think there's so much potential to take you know this kind of this kind of
+take you know this kind of this kind of data for the game these mashup chart
+data for the game these mashup chart data and learn all sorts of things about
+data and learn all sorts of things about the game from it right like really
+the game from it right like really actually step back and take the analysis
+actually step back and take the analysis of our game seriously and not just put
+of our game seriously and not just put games out there and kind of see what
+games out there and kind of see what sticks and see which players you know
+sticks and see which players you know completely destroy our game but try to
+completely destroy our game but try to get ahead of them and make a game that
+get ahead of them and make a game that actually is good for these players who
+actually is good for these players who are now taking them so so seriously
+are now taking them so so seriously alright well thanks so much for
+alright well thanks so much for listening
+I have like a few minutes for questions so please oh and also don't forget to
+so please oh and also don't forget to put in your ratings on the the radiant
+put in your ratings on the the radiant email any questions come up to the
+email any questions come up to the Meccans yeah over there hi there um I
+Meccans yeah over there hi there um I was wondering do you think you could
+was wondering do you think you could break down the metagame within the
+break down the metagame within the actual game into something like this and
+actual game into something like this and apply the same methods imagine like
+apply the same methods imagine like tic-tac-toe or something like that we're
+tic-tac-toe or something like that we're saying put X in the top left corner and
+saying put X in the top left corner and then the next move and stuff like that
+then the next move and stuff like that I'm so glad you asked because this gets
+I'm so glad you asked because this gets to a point that I meant to mention this
+to a point that I meant to mention this is actually pretty key the metagame
+is actually pretty key the metagame is this incredibly simple game okay it's
+is this incredibly simple game okay it's just this matrix of numbers at least in
+just this matrix of numbers at least in the case of street fighting it is more
+the case of street fighting it is more amenable to game theoretic analysis than
+amenable to game theoretic analysis than almost any internals of any games that
+almost any internals of any games that we play it's a shame that we haven't
+we play it's a shame that we haven't looked at the meta game through game
+looked at the meta game through game theory in the past because it is the
+theory in the past because it is the place where we can learn the most most
+place where we can learn the most most easily and I encourage other people to
+easily and I encourage other people to do it unfortunately you know take that
+do it unfortunately you know take that toe you can do but most games are so
+toe you can do but most games are so complex that they're hard to analyze I
+complex that they're hard to analyze I think I'm gonna give it a shot with our
+think I'm gonna give it a shot with our game I'll tweet you the results this is
+game I'll tweet you the results this is really really cool the the charts with
+really really cool the the charts with the matchups and stuff like that can
+the matchups and stuff like that can that just be derived from metrics in
+that just be derived from metrics in your game yeah yeah no more type of
+your game yeah yeah no more type of questions my car says to Freddy said oh
+questions my car says to Freddy said oh yeah that's right I am done I got
+yeah that's right I am done I got confused by the time let's go to
+confused by the time let's go to breakout room wherever want to talk okay
+breakout room wherever want to talk okay thanks a lot
+you

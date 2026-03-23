@@ -1,0 +1,1503 @@
+[Music] reminder to do all of your after talk
+reminder to do all of your after talk survey stuff but let's get right into it
+so I'm like acting I'm the engine director at insomniac games and today
+director at insomniac games and today I'm going to talk about solving the
+I'm going to talk about solving the Nintendo's coding game challenge so if
+Nintendo's coding game challenge so if you don't know coding game is an online
+you don't know coding game is an online site where you did sort of a game it's
+site where you did sort of a game it's sort of a programming competition site
+sort of a programming competition site so they provide specific challenges
+so they provide specific challenges people go on there and solve them it's
+people go on there and solve them it's good for practice there's lots of sites
+good for practice there's lots of sites like it lots of hacker sites similar
+like it lots of hacker sites similar kinds of things but the fact that
+kinds of things but the fact that Nintendo sponsored a challenge is the
+Nintendo sponsored a challenge is the thing that caught my eye specifically
+thing that caught my eye specifically I'm like okay well this probably has
+I'm like okay well this probably has some ability with games so it makes it
+some ability with games so it makes it interesting to me all of my steps all
+interesting to me all of my steps all the things I'm about to show you
+the things I'm about to show you including this particular document are
+including this particular document are on github there's the link so you can
+on github there's the link so you can you can pull that and follow along if
+you can pull that and follow along if you like
+you like so today's talk is about process not
+so today's talk is about process not solution this I'm just walking through
+solution this I'm just walking through my personal process of solving this
+my personal process of solving this problem there are probably a million
+problem there are probably a million other ways of tackling this particular
+other ways of tackling this particular problem this was mine I'm a walk through
+problem this was mine I'm a walk through the solution as part of talking about
+the solution as part of talking about the process but that is not the point so
+the process but that is not the point so I'm gonna walk through all basically all
+I'm gonna walk through all basically all the test code or at least a significant
+the test code or at least a significant portion of the test code and versions
+portion of the test code and versions that I created while I solve the problem
+that I created while I solve the problem so from test zero zero to test one F and
+so from test zero zero to test one F and just sort of worked my way through it
+just sort of worked my way through it and tell you what I was thinking as I
+and tell you what I was thinking as I was going and why I was writing each
+was going and why I was writing each thing so starting with ten zero two zero
+thing so starting with ten zero two zero zero what's the question what am I
+zero what's the question what am I trying to solve can I get any insight
+trying to solve can I get any insight into that so going on to the site this
+into that so going on to the site this was the question that's presented the
+was the question that's presented the society program has received a series of
+society program has received a series of messages from Alpha Centauri the most
+messages from Alpha Centauri the most frequent message seems to be blah blah
+frequent message seems to be blah blah blah it is not known why any of these
+blah it is not known why any of these messages are encoded but there's a good
+messages are encoded but there's a good chance that the
+chance that the the Centurions are trying to evaluate
+the Centurions are trying to evaluate our cognitive abilities before
+our cognitive abilities before establishing advanced cog contact our
+establishing advanced cog contact our best engineers are working to code this
+best engineers are working to code this messages etc etc so there's a lot of
+messages etc etc so there's a lot of flour right a lot flour littling a
+flour right a lot flour littling a language around the problem and at the
+language around the problem and at the bottoms presented some some pseudocode
+bottoms presented some some pseudocode of the encoding program so I read this
+of the encoding program so I read this right get it try to get excited about
+right get it try to get excited about the problem
+the problem so what the first thing I need to do is
+so what the first thing I need to do is I need to take away all the flour
+I need to take away all the flour language I need to figure out what it is
+language I need to figure out what it is that I'm actually what it is this is
+that I'm actually what it is this is actually describing so somewhat so to
+actually describing so somewhat so to summarize the problem we have some
+summarize the problem we have some function which given a returns B in
+function which given a returns B in terms of the problem space here we're
+terms of the problem space here we're given B and F and we have to return all
+given B and F and we have to return all the a which satisfy that a and B can be
+the a which satisfy that a and B can be 64 128 256 or 512 bits so it's pretty
+64 128 256 or 512 bits so it's pretty straightforward description problem
+straightforward description problem description so in our case in my case I
+description so in our case in my case I called F encode and so the universe of
+called F encode and so the universe of that is decode so B equals in code a and
+that is decode so B equals in code a and decode b return some set of a things
+decode b return some set of a things that could that could have been encoded
+that could that could have been encoded to create that B so taking the
+to create that B so taking the pseudocode and the c++ code that was
+pseudocode and the c++ code that was provided here's the encode function as
+provided here's the encode function as basically as delivered as part of the
+basically as delivered as part of the problem description and looking at it in
+problem description and looking at it in my process i'm looking at it so it says
+my process i'm looking at it so it says there in comments magic centurion
+there in comments magic centurion operation i can't really decipher what's
+operation i can't really decipher what's happening
+happening just by looking at this bit of code so
+just by looking at this bit of code so my goal here is really just to
+my goal here is really just to understand one code does before i get
+understand one code does before i get deeper into trying to write a decode
+deeper into trying to write a decode function so that's the most important
+function so that's the most important thing to me first is what does encode do
+thing to me first is what does encode do so first thing i do is i testing code
+so first thing i do is i testing code with random ins
+with random ins and if you saw squirrels talk you know
+and if you saw squirrels talk you know you know getting a good set of random
+you know getting a good set of random values is important and so what I did
+values is important and so what I did and what I generally do is go to random
+and what I generally do is go to random not org which is an amazing set of
+not org which is an amazing set of actually properly random values that you
+actually properly random values that you can just download at any given time
+can just download at any given time and use it essentially as a noise table
+and use it essentially as a noise table so I wanted to be able to repeat all of
+so I wanted to be able to repeat all of my tests constantly over and over again
+my tests constantly over and over again so I have the same random table that I'm
+so I have the same random table that I'm constantly using so I just downloaded a
+constantly using so I just downloaded a set of that created a random install H
+set of that created a random install H and now I know for the rest of time here
+and now I know for the rest of time here all my tests are gonna be the same
+all my tests are gonna be the same so for test zero zero I'm just sort of
+so for test zero zero I'm just sort of printing out what encode function this
+printing out what encode function this encode magic encode function does I just
+encode magic encode function does I just want to have a look at it and see if
+want to have a look at it and see if there's anything I can see so you can
+there's anything I can see so you can see I'm just looping through my test
+see I'm just looping through my test count which is my random ins I'm calling
+count which is my random ins I'm calling the encode function I'm just printing it
+the encode function I'm just printing it out that's it
+out that's it printing out the results I just wanna
+printing out the results I just wanna see what it looks like it looks like
+see what it looks like it looks like this so I spent a lot of time literally
+this so I spent a lot of time literally just staring at this the whole output
+just staring at this the whole output I'm looking forward patterns things that
+I'm looking forward patterns things that appear anything that looks interesting
+appear anything that looks interesting and nothing really pops at me at this
+and nothing really pops at me at this point so I have to dig in to actually
+point so I have to dig in to actually dig in deeper okay I'll have to actually
+dig in deeper okay I'll have to actually do some analysis there's nothing super
+do some analysis there's nothing super obvious so that's what test oh one is is
+obvious so that's what test oh one is is there any obvious connection between
+there any obvious connection between encode input and output so I'm testing a
+encode input and output so I'm testing a bunch of obvious stuff but the most
+bunch of obvious stuff but the most obvious thing to look for is is there a
+obvious thing to look for is is there a is there a correlation between the bits
+is there a correlation between the bits of the output and the bits of the input
+of the output and the bits of the input so I'm testing here specifically what's
+so I'm testing here specifically what's the probability of the bit of B being on
+the probability of the bit of B being on given at the same bit of a and that's
+given at the same bit of a and that's just this simple function so in
+just this simple function so in pseudocode all test one does is sort of
+pseudocode all test one does is sort of loop through all a random tests and for
+loop through all a random tests and for each bit in each one of the results it
+each bit in each one of the results it counts up you're all here the bits here
+counts up you're all here the bits here are the count for all the bits an a here
+are the count for all the bits an a here all accounts for all the bits and B and
+all accounts for all the bits and B and just calculates the probability of B
+just calculates the probability of B given a for every single bit and so I
+given a for every single bit and so I looked at the results so from 0 to 63
+looked at the results so from 0 to 63 all the bits if I look at the middle
+all the bits if I look at the middle bits here so everything basically
+bits here so everything basically everything on middle super not
+everything on middle super not interesting right basically they're all
+interesting right basically they're all hovering around 0.5 so they're all
+hovering around 0.5 so they're all essentially random given a whatever a is
+essentially random given a whatever a is is sort of there's no correlation with B
+is sort of there's no correlation with B but first there's a sort of a chunk at
+but first there's a sort of a chunk at the top and a chunk of the bottom that
+the top and a chunk of the bottom that are much more interesting and I can see
+are much more interesting and I can see this sort of scaling up let's start with
+this sort of scaling up let's start with you know the you know given given a the
+you know the you know given given a the probability of B being on is only 23%
+probability of B being on is only 23% or 24% so is a sort of high correlation
+or 24% so is a sort of high correlation between those two bits and it sort of
+between those two bits and it sort of you know decreasing over the first few
+you know decreasing over the first few bits and sort of at the end - there's
+bits and sort of at the end - there's this sort of bunching up of a much
+this sort of bunching up of a much higher correlation of bits so I thought
+higher correlation of bits so I thought okay well this is super interesting
+okay well this is super interesting right so maybe there's something I can
+right so maybe there's something I can do with this so this is where I went off
+do with this so this is where I went off on a super long tangent which I won't
+on a super long tangent which I won't really get into but this is sort of the
+really get into but this is sort of the state machine generated this is totally
+state machine generated this is totally a path that you can take to solve this
+a path that you can take to solve this problem but it is absolutely the long
+problem but it is absolutely the long way around this problem so you just
+way around this problem so you just start with what's needed to get the
+start with what's needed to get the first bit of B to be set so everything
+first bit of B to be set so everything that I need to know in order to set
+that I need to know in order to set definitely know that the first bit of B
+definitely know that the first bit of B is set and then I move on to say given
+is set and then I move on to say given that I know what the first bit of B is
+that I know what the first bit of B is and what I need to know in a what I need
+and what I need to know in a what I need to know to get the second bit of B etc
+to know to get the second bit of B etc and I just sort of looped this in on
+and I just sort of looped this in on itself
+itself you can basically build a state machine
+you can basically build a state machine generator based on that on those facts
+generator based on that on those facts and again like I said this is a this is
+and again like I said this is a this is possible it's totally solvable this way
+possible it's totally solvable this way it was just a really really long way
+it was just a really really long way around solving this problem
+around solving this problem so as I'm deep into this this approach
+so as I'm deep into this this approach it occurs to me that I missed a super
+it occurs to me that I missed a super obvious test and that's test o2 here
+obvious test and that's test o2 here instead of just looking at random
+instead of just looking at random outputs I'm gonna recheck with order and
+outputs I'm gonna recheck with order and outputs so now this is what I'm doing
+outputs so now this is what I'm doing here in test o2 testing encode with
+here in test o2 testing encode with ordered values so for my input a I'm
+ordered values so for my input a I'm just setting a fixed upper 632 bits and
+just setting a fixed upper 632 bits and the lower 32 base is just an incremented
+the lower 32 base is just an incremented value so for however many tests I have
+value so for however many tests I have it just starts with 0 1 2 3 and I could
+it just starts with 0 1 2 3 and I could encode that I want to look at B so let's
+encode that I want to look at B so let's see what that looks like
+see what that looks like well thing that's a lot more interesting
+well thing that's a lot more interesting there's a lot more correlation going on
+there's a lot more correlation going on here
+here and if I'm looking at here right what's
+and if I'm looking at here right what's happening here at the top not the top
+happening here at the top not the top value of each of these pairs is the
+value of each of these pairs is the input the bottom value of each of these
+input the bottom value of each of these pairs the output they're saying there's
+pairs the output they're saying there's a lot of similarity between these two
+a lot of similarity between these two numbers so when I'm doing it in an
+numbers so when I'm doing it in an incremental way it's a lot clearer that
+incremental way it's a lot clearer that there's some correlation between the
+there's some correlation between the input in the output and my first
+input in the output and my first impression when I'm looking at it some
+impression when I'm looking at it some communities this is some kind of gray
+communities this is some kind of gray code maybe there's something going on
+code maybe there's something going on here that's my first
+here that's my first impression and just looking at this so
+impression and just looking at this so my next step is okay maybe I just
+my next step is okay maybe I just swapped the output and just display it a
+swapped the output and just display it a little more little endian format to see
+little more little endian format to see if that changes anything from visually
+if that changes anything from visually that's all I do is I just swapped the
+that's all I do is I just swapped the the I just swapped the two 32 bits just
+the I just swapped the two 32 bits just say maybe for me it's a little more
+say maybe for me it's a little more natural maybe I see something different
+natural maybe I see something different and so that's all this is it's just a
+and so that's all this is it's just a more little endian format like okay well
+more little endian format like okay well as I'm looking through these numbers I
+as I'm looking through these numbers I see something super interesting here as
+see something super interesting here as I'm pouring down through the numbers I
+I'm pouring down through the numbers I see there's something is super
+see there's something is super interesting about each of the powers of
+interesting about each of the powers of two like there's there's there's
+two like there's there's there's something happening here
+something happening here Niq to just the powers of two in terms
+Niq to just the powers of two in terms of the a in terms of the input so my
+of the a in terms of the input so my next step is let's just print out the
+next step is let's just print out the powers of two let's just look at that
+powers of two let's just look at that let's see what's happening with that so
+let's see what's happening with that so now I test test 404 so test Oh for I
+now I test test 404 so test Oh for I look at just all the powers of two now
+look at just all the powers of two now you can look at this and even without
+you can look at this and even without knowing what's going on here you can see
+knowing what's going on here you can see that there's a visual pattern right you
+that there's a visual pattern right you can see sort of this sort of left
+can see sort of this sort of left shifting going on of the of the inputs
+shifting going on of the of the inputs and outputs so there's clearly something
+and outputs so there's clearly something interesting happening in in the powers
+interesting happening in in the powers of two and in fact I look each
+of two and in fact I look each individual one of these and I can see
+individual one of these and I can see the same thing going on so I have a of a
+the same thing going on so I have a of a 0 and a 1 so remember little in against
+0 and a 1 so remember little in against the right side here is a zero on the
+the right side here is a zero on the left side is a 1 and so we start with a
+left side is a 1 and so we start with a zero looks like what's happening is B is
+zero looks like what's happening is B is just sort of that a zero shifted left
+just sort of that a zero shifted left and the amount it's shifted left by is
+and the amount it's shifted left by is the basically the trailing zero count of
+the basically the trailing zero count of of a1 so I have some questions now like
+of a1 so I have some questions now like hey is it what's happening if a1 is not
+hey is it what's happening if a1 is not a power of two so what I do I pick any
+a power of two so what I do I pick any arbitrary number I just happen to pick
+arbitrary number I just happen to pick oh F in this case I pick an arbitrary
+oh F in this case I pick an arbitrary number and I just break it up into its
+number and I just break it up into its into its constituent powers of two and
+into its constituent powers of two and in test oh five what I do is I say print
+in test oh five what I do is I say print out encoding of one two four and eight
+out encoding of one two four and eight and then the final value F and show me
+and then the final value F and show me what that looks like so you can see sort
+what that looks like so you can see sort of if
+of if what's the correlation between the final
+what's the correlation between the final value and all the powers of two that
+value and all the powers of two that it's made up out of and so this is what
+it's made up out of and so this is what that print out looked like so here's a
+that print out looked like so here's a input here's the powers of here's one
+input here's the powers of here's one two four eight the powers of two that
+two four eight the powers of two that make up F and F at the bottom so I'm
+make up F and F at the bottom so I'm looking at this I stare at these values
+looking at this I stare at these values look at all the variations of these
+look at all the variations of these values I'm looking at it and I see
+values I'm looking at it and I see something very interesting happening
+something very interesting happening here and that's this I look at the value
+here and that's this I look at the value the final value F at the bottom and it's
+the final value F at the bottom and it's really just the XOR down the columns of
+really just the XOR down the columns of all the power of two values there so the
+all the power of two values there so the first bit zero bit at the right hand
+first bit zero bit at the right hand side is just really 1x or zero X or 0 X
+side is just really 1x or zero X or 0 X or 0 the second column similarly it's X
+or 0 the second column similarly it's X 1 X or 1 X or 0 X or 0 is 0 at the
+1 X or 1 X or 0 X or 0 is 0 at the bottom and so I see that all the way
+bottom and so I see that all the way across so I find that very interesting
+across so I find that very interesting so now I have kind of a theory of how
+so now I have kind of a theory of how this is how this in code works so given
+this is how this in code works so given where a and B are 64 bits and I can
+where a and B are 64 bits and I can break up a into two 32-bit segments it's
+break up a into two 32-bit segments it's kind of looks like this so I loop
+kind of looks like this so I loop through all the the bits of a0 if it's
+through all the the bits of a0 if it's on then B X ORS with a1 shifted left by
+on then B X ORS with a1 shifted left by whatever the I did the current bit that
+whatever the I did the current bit that I'm on there so this should duplicate
+I'm on there so this should duplicate the work that we saw that I saw there so
+the work that we saw that I saw there so now I have to test that but first I want
+now I have to test that but first I want to just help myself visualize so my next
+to just help myself visualize so my next step is really just to Reese pace things
+step is really just to Reese pace things this doesn't provide me any value other
+this doesn't provide me any value other than visual value I sort of I want to
+than visual value I sort of I want to look at the problem a different way
+look at the problem a different way which is a lot of what I do I just print
+which is a lot of what I do I just print it out in a different way just to look
+it out in a different way just to look at it so with 10 7 the next thing I
+at it so with 10 7 the next thing I wanted to do was just validate across
+wanted to do was just validate across the simple sample a wide err sample set
+the simple sample a wide err sample set this isn't just what I'm seeing make
+this isn't just what I'm seeing make sense because up to now I've test this
+sense because up to now I've test this very limited set write a zero just
+very limited set write a zero just really small subset of values
+really small subset of values and in fact with the last system which
+and in fact with the last system which is literally just F right one single
+is literally just F right one single value and a1 is up to this point I just
+value and a1 is up to this point I just had fixed so does the theory I currently
+had fixed so does the theory I currently have in terms of what this loops
+have in terms of what this loops supposed to do
+supposed to do hold up across all the sample data and
+hold up across all the sample data and does it change if a zero is you know and
+does it change if a zero is you know and anything other than this small subset
+anything other than this small subset values so I create this alternate
+values so I create this alternate version this encode 232 which is
+version this encode 232 which is basically just the code version of the
+basically just the code version of the the pseudo code will you saw seen
+the pseudo code will you saw seen nothing unique or special about this and
+nothing unique or special about this and I run through so Tesla 7 runs through
+I run through so Tesla 7 runs through the same random inputs runs the original
+the same random inputs runs the original code runs this alternate version and
+code runs this alternate version and just checks to see if the results are
+just checks to see if the results are the same so this is a pure sanity
+the same so this is a pure sanity checking does the thing work the way
+checking does the thing work the way expected to work across all the sample
+expected to work across all the sample data that I'm dealing with in fact it
+data that I'm dealing with in fact it does works fine so I'm very confident
+does works fine so I'm very confident now that the that this is essentially
+now that the that this is essentially the function so I want to play with some
+the function so I want to play with some variations of the encode function at
+variations of the encode function at this point and so all test eight here is
+this point and so all test eight here is is just real the realization that I can
+is just real the realization that I can do this if this branch here and check
+do this if this branch here and check and shift of the I or I can just
+and shift of the I or I can just multiply by a 1 and so this is just me
+multiply by a 1 and so this is just me playing with variations I know these are
+playing with variations I know these are two the same like I know these two
+two the same like I know these two things are identical but every test
+things are identical but every test eight I want to rerun it anyway I create
+eight I want to rerun it anyway I create it I test it I rerun all my tests just
+it I test it I rerun all my tests just for sanity sake and luckily all the
+for sanity sake and luckily all the tests pass I am still sane so test 9 so
+tests pass I am still sane so test 9 so I want to go back and revisiting again
+I want to go back and revisiting again with all with all the test inputs so
+with all with all the test inputs so with all the random values I want to see
+with all the random values I want to see what it looks like again so test 9 is
+what it looks like again so test 9 is the same as test 7 but this is that
+the same as test 7 but this is that encode 232 that I created just prints
+encode 232 that I created just prints out all the steps as it going and so me
+out all the steps as it going and so me injecting a bunch of printf sin to the
+injecting a bunch of printf sin to the code that I write is pretty much how I
+code that I write is pretty much how I do stuff and so you can this is a temp
+do stuff and so you can this is a temp bit of the sample output from test Oh 9
+bit of the sample output from test Oh 9 which looks like this boom so I'm
+which looks like this boom so I'm printing out at every step what's
+printing out at every step what's happening so at the top
+happening so at the top a one at the right hand side is a zero
+a one at the right hand side is a zero so all the bits in a zero and at the
+so all the bits in a zero and at the bottom here the result of B and as I
+bottom here the result of B and as I said each one of these columns sort of X
+said each one of these columns sort of X ORS down and so the results are as I
+ORS down and so the results are as I expected but visually it's super
+expected but visually it's super interesting because now I look at this
+interesting because now I look at this and I say well looking at this way and
+and I say well looking at this way and looking at a bigger case like this
+looking at a bigger case like this they're very specific you know these
+they're very specific you know these least test cases this looks suspiciously
+least test cases this looks suspiciously like some kind of longhand
+like some kind of longhand multiplication right but for each place
+multiplication right but for each place there's something different going and
+there's something different going and going on right for instead of
+going on right for instead of multiplication it's really just anding
+multiplication it's really just anding instead of an addition it's sort of an
+instead of an addition it's sort of an XOR so we you know we have this
+XOR so we you know we have this multiplication instead of multiplication
+multiplication instead of multiplication right we have and so only 1 times 1 is 1
+right we have and so only 1 times 1 is 1 and for addition we have this truth
+and for addition we have this truth table so this is what's going on so the
+table so this is what's going on so the question is what fits this model you
+question is what fits this model you know if this isn't really integer
+know if this isn't really integer multiplication but it is some kind of
+multiplication but it is some kind of longhand location what what fits this
+longhand location what what fits this model in fact there is something that
+model in fact there is something that perfectly fits this model multiplication
+perfectly fits this model multiplication of polynomial over GF 2 fits this model
+of polynomial over GF 2 fits this model perfectly if you don't happen to know
+perfectly if you don't happen to know that fact I don't know how you get from
+that fact I don't know how you get from what I saw to this this is a massive
+what I saw to this this is a massive leap and the problem is that you can't
+leap and the problem is that you can't just search for those tables right it's
+just search for those tables right it's very difficult so my suggestion is in
+very difficult so my suggestion is in the case where I where I happened to not
+the case where I where I happened to not know these kinds of things where I hid
+know these kinds of things where I hid this kind of block and I know there must
+this kind of block and I know there must be something that's called this often
+be something that's called this often what I'll do is I'll I'll write a bit of
+what I'll do is I'll I'll write a bit of code that prints out a bunch of numbers
+code that prints out a bunch of numbers in order and then I can search the
+in order and then I can search the integer database online for something
+integer database online for something that matches those numbers and I can see
+that matches those numbers and I can see what things that fit that model so it's
+what things that fit that model so it's generally my approach to those so GF 2
+generally my approach to those so GF 2 basically just means a finite field of
+basically just means a finite field of two elements so and we can see here if I
+two elements so and we can see here if I look up GF 2 in Wikipedia those tables
+look up GF 2 in Wikipedia those tables look super super familiar those exact
+look super super familiar those exact identical tables that we just created
+identical tables that we just created so most programmers when I'm gonna talk
+so most programmers when I'm gonna talk about finite fields that's programmers
+about finite fields that's programmers use finite fields all the time so if I
+use finite fields all the time so if I were to say you have a youant 8a and we
+were to say you have a youant 8a and we put FF in it and
+put FF in it and ask you what is a plus-two probably most
+ask you what is a plus-two probably most of it you could tell me what the answer
+of it you could tell me what the answer to that question is and we know because
+to that question is and we know because it just we know that it just wraps
+it just we know that it just wraps around a certain number of finite things
+around a certain number of finite things we know they're just sort of just mod of
+we know they're just sort of just mod of eight bits here and in GF 2 really all
+eight bits here and in GF 2 really all that means is all the math is mod 2 so
+that means is all the math is mod 2 so one bit
+one bit right it's super simple super easy to
+right it's super simple super easy to understand really nice overview of of
+understand really nice overview of of what's happening in finite fields is
+what's happening in finite fields is this particular paper which I totally
+this particular paper which I totally recommend reading if this is something
+recommend reading if this is something that interests you what does it mean to
+that interests you what does it mean to represent a polynomial over GF 2 so the
+represent a polynomial over GF 2 so the exponent is implicit in this place right
+exponent is implicit in this place right and the coefficient is stored in
+and the coefficient is stored in coefficients here in GF 2 because we're
+coefficients here in GF 2 because we're ma everything is mod 2 can only be 1 or
+ma everything is mod 2 can only be 1 or 0 so if we take a particular Jeff of 1 0
+0 so if we take a particular Jeff of 1 0 1 1 the exponent is implicit right so
+1 1 the exponent is implicit right so we're going from the right to the left X
+we're going from the right to the left X to the 0 x to the 1/x to the 2x 2 3 sort
+to the 0 x to the 1/x to the 2x 2 3 sort of as you would expect moving from the
+of as you would expect moving from the right to the left and so that's 1 0 1 1
+right to the left and so that's 1 0 1 1 which maps to X to the third plus X plus
+which maps to X to the third plus X plus 1 you can see how sort of it maps so
+1 you can see how sort of it maps so next test right I want now I kind of
+next test right I want now I kind of have them I have it I have a model
+have them I have it I have a model online of a theory I have a theory that
+online of a theory I have a theory that what encode is actually doing is
+what encode is actually doing is multiplying polynomials over GF 2
+multiplying polynomials over GF 2 everything so far in my model fits
+everything so far in my model fits perfectly to this fact I don't care if
+perfectly to this fact I don't care if this is the reality the model fits
+this is the reality the model fits correctly so that's as far as I'm
+correctly so that's as far as I'm concerned is the reality right the model
+concerned is the reality right the model fits it's correct so I want to create a
+fits it's correct so I want to create a new function called P GF to mole and
+new function called P GF to mole and just rework things in these terms
+just rework things in these terms knowing that I should get the same
+knowing that I should get the same results so I create this GF 2 0 0 C and
+results so I create this GF 2 0 0 C and I start writing things in these terms at
+I start writing things in these terms at this point so I created GF 2 mold you
+this point so I created GF 2 mold you have to add which is just X or and a GF
+have to add which is just X or and a GF 2 shift left shift left logical which
+2 shift left shift left logical which kind of does as you'd expect and just
+kind of does as you'd expect and just shifts it shifts the whole value over so
+shifts it shifts the whole value over so this is what multiply does which is very
+this is what multiply does which is very reminiscent of the other version of the
+reminiscent of the other version of the encode that we saw it sort of test that
+encode that we saw it sort of test that goes through all the bits test a bit if
+goes through all the bits test a bit if the bit
+the bit set then adds it in which is the same as
+set then adds it in which is the same as X or and then this shifts over the a so
+X or and then this shifts over the a so we can continue moving along so as you
+we can continue moving along so as you can you can imagine it's sort of is that
+can you can imagine it's sort of is that sort of kind of long hand multiply going
+sort of kind of long hand multiply going on here
+on here wrecking not in a recognizable form I
+wrecking not in a recognizable form I rerun this same from this function
+rerun this same from this function against all the same tests and all its
+against all the same tests and all its has passed so I'm getting exactly the
+has passed so I'm getting exactly the same results
+same results it's just formulated in a different way
+it's just formulated in a different way so test OB
+so test OB it's another sanity test now I want to
+it's another sanity test now I want to make sure that after I've sort of doing
+make sure that after I've sort of doing all this work and reformulating it do
+all this work and reformulating it do all the other expected bits work I've
+all the other expected bits work I've really just been focused on the 64-bit
+really just been focused on the 64-bit version right now but I want to make
+version right now but I want to make sure that all this other stuff works
+sure that all this other stuff works right so I need to verify its cases
+right so I need to verify its cases where B can be 128 or 256 or 512 bits so
+where B can be 128 or 256 or 512 bits so test OB is the same as the previous test
+test OB is the same as the previous test this test so a that we just did but I've
+this test so a that we just did but I've extended it to all the above all these
+extended it to all the above all these cases I'm using the exact same random
+cases I'm using the exact same random number tape tables they're same random
+number tape tables they're same random values I'm just sort of casting them
+values I'm just sort of casting them wider so instead of taking the first 32
+wider so instead of taking the first 32 bits of the the table and taking the
+bits of the the table and taking the second the first two in casting that as
+second the first two in casting that as as 64 the first four in casting has 128
+as 64 the first four in casting has 128 and so running off all the tests pass so
+and so running off all the tests pass so I'm pretty convinced at this point that
+I'm pretty convinced at this point that this is in fact the model this is in
+this is in fact the model this is in fact what encode does across all the bit
+fact what encode does across all the bit depths pretty good
+depths pretty good so with test OC now I think I know
+so with test OC now I think I know pretty sure what our wedding code means
+pretty sure what our wedding code means what could decode mean so this is what I
+what could decode mean so this is what I get to the point where I'm actually
+get to the point where I'm actually trying to solve the actual problem here
+trying to solve the actual problem here so if in code is GF 2 mol what does the
+so if in code is GF 2 mol what does the code do well what's the reverse of
+code do well what's the reverse of multiplied and that's factor right so
+multiplied and that's factor right so now I'm gonna take a look at the
+now I'm gonna take a look at the provided test cases
+provided test cases so here's test case one that's provided
+so here's test case one that's provided and now with my this this with my
+and now with my this this with my insight into what what's happening in
+insight into what what's happening in the encode function a lot of stuff
+the encode function a lot of stuff really becomes a lot more obvious so I
+really becomes a lot more obvious so I can look at the input and output and I
+can look at the input and output and I can sort of interpret it so I see that
+can sort of interpret it so I see that the input is sums 60 polish 64 bit
+the input is sums 60 polish 64 bit polynomial and sort of little endian
+polynomial and sort of little endian format
+format we're only this sort of bottom 16 bits
+we're only this sort of bottom 16 bits have anything in them and I could say
+have anything in them and I could say what's factor well the first is that the
+what's factor well the first is that the st. that's a number the same number as a
+st. that's a number the same number as a polynomial times one is it and that same
+polynomial times one is it and that same number times one is the same value so
+number times one is the same value so that makes sense in terms of factoring
+that makes sense in terms of factoring and I can presume here that some
+and I can presume here that some polynomial represented by eighty-three
+polynomial represented by eighty-three times some polynomial represented by e5
+times some polynomial represented by e5 multiplies to seven 3af and then can see
+multiplies to seven 3af and then can see the reverse immediately underneath it
+the reverse immediately underneath it and so the thing is though as I'm
+and so the thing is though as I'm looking through these other test cases
+looking through these other test cases and you can see the same pattern here
+and you can see the same pattern here with one time's the same number and
+with one time's the same number and these two numbers that are flipped and
+these two numbers that are flipped and these two numbers of this you know
+these two numbers of this you know there's two pairs here that are the same
+there's two pairs here that are the same as but I'm looking through these test
+as but I'm looking through these test cases it really really should have been
+cases it really really should have been obvious to me when I was looking at test
+obvious to me when I was looking at test cases originally that this was sort of a
+cases originally that this was sort of a multiply factor thing when I see this
+multiply factor thing when I see this sort of pairs I'm looking at something
+sort of pairs I'm looking at something times one and it really should have been
+times one and it really should have been a lot more obvious but it totally wasn't
+a lot more obvious but it totally wasn't I totally missed this looking at the
+I totally missed this looking at the original cases I had to go through this
+original cases I had to go through this process for me personally of visualizing
+process for me personally of visualizing all that data and going through it and
+all that data and going through it and walking through it and recreating in
+walking through it and recreating in code in order to then in hindsight see
+code in order to then in hindsight see what's going on in those test cases so
+what's going on in those test cases so now with tests OSI moving on I want to
+now with tests OSI moving on I want to just print all those tests take all the
+just print all those tests take all the SEFs cases and print them out in
+SEFs cases and print them out in polynomial format so this is just for me
+polynomial format so this is just for me personally for visualization purposes so
+personally for visualization purposes so go through each of the test cases and
+go through each of the test cases and prints it out like like you see here so
+prints it out like like you see here so instead of this value let's instead of
+instead of this value let's instead of these values up top is just printing out
+these values up top is just printing out the same values in polynomial format so
+the same values in polynomial format so I look at this particular case and we
+I look at this particular case and we said all right well 73f should be a
+said all right well 73f should be a three times E 5 in as polynomials which
+three times E 5 in as polynomials which is interpreted as X to the seventh plus
+is interpreted as X to the seventh plus X plus one times X to the seventh plus X
+X plus one times X to the seventh plus X to the sixth plus X to the fifth plus X
+to the sixth plus X to the fifth plus X to the second plus 1 I promise I'm going
+to the second plus 1 I promise I'm going to try not to read too many polynomials
+to try not to read too many polynomials and the talk today so the first thing I
+and the talk today so the first thing I do is say okay if this is true if this
+do is say okay if this is true if this makes sense then I should be able to
+makes sense then I should be able to verify this in like three seconds and
+verify this in like three seconds and mathematica so I just take the
+mathematica so I just take the polynomial the input polynomial here and
+polynomial the input polynomial here and I cut and paste because I put it in a
+I cut and paste because I put it in a nice format that I can cut and paste
+nice format that I can cut and paste into Mathematica I cut and paste it and
+into Mathematica I cut and paste it and I say factor this and luckily enough
+I say factor this and luckily enough Mathematica can do modulus to factoring
+Mathematica can do modulus to factoring so I just say factor this modulus - boom
+so I just say factor this modulus - boom those are the two values in fact those a
+those are the two values in fact those a same identical values as the show up
+same identical values as the show up there which are represented by 83 and
+there which are represented by 83 and ye5 so I'm super confident now that
+ye5 so I'm super confident now that we're going down the right track that
+we're going down the right track that this makes sense if you have their
+this makes sense if you have their lesson here is if you have a calculator
+lesson here is if you have a calculator use it and the very least to verify your
+use it and the very least to verify your what you're doing so I go through a
+what you're doing so I go through a night I cut and paste I checked all the
+night I cut and paste I checked all the other test cases as well I just paste
+other test cases as well I just paste those in do they make sense does it am I
+those in do they make sense does it am I getting the same values and yes indeed
+getting the same values and yes indeed they're all identical they all map to
+they're all identical they all map to what I expect them to map to so test OD
+what I expect them to map to so test OD start figuring out what D code would
+start figuring out what D code would mean to do what's the process like what
+mean to do what's the process like what are the steps and I want to I mean I
+are the steps and I want to I mean I don't just want to put this in a
+don't just want to put this in a Mathematica I want to actually do the
+Mathematica I want to actually do the thing so what does it look like so at
+thing so what does it look like so at this point I can restate the problem so
+this point I can restate the problem so I write it down so given a polynomial
+I write it down so given a polynomial over GF 2 to the N where n can be one of
+over GF 2 to the N where n can be one of these bit depths 64 128 256 or 512
+these bit depths 64 128 256 or 512 display all the pairs of factors of
+display all the pairs of factors of degree and less than n / 2 that's sort
+degree and less than n / 2 that's sort of a specific constraint to the problem
+of a specific constraint to the problem definition is you're just outputting
+definition is you're just outputting these pairs of factors so what if
+these pairs of factors so what if there's more than two factors if you're
+there's more than two factors if you're given a polynomial it has a bunch of
+given a polynomial it has a bunch of different factors well I think the
+different factors well I think the answer here is you just recombine them
+answer here is you just recombine them until you get a pair that fits the
+until you get a pair that fits the constraint so the steps find all the
+constraint so the steps find all the irreducible factors of F so the smallest
+irreducible factors of F so the smallest things that I can make that I can make
+things that I can make that I can make up F with recombine those until I get
+up F with recombine those until I get pairs that fit format and sort the
+pairs that fit format and sort the results in output seems fairly
+results in output seems fairly straightforward except that I don't know
+straightforward except that I don't know how to factor polynomials over GF 2 so
+how to factor polynomials over GF 2 so this is my next step how do I figure
+this is my next step how do I figure what do i do how do I figure this out so
+what do i do how do I figure this out so I asked myself what would Knuth do right
+I asked myself what would Knuth do right so crack open the book I don't know
+so crack open the book I don't know about you but I find I find are to
+about you but I find I find are to computer programming super handy for
+computer programming super handy for reference I find it super handy for when
+reference I find it super handy for when I already basically when I already know
+I already basically when I already know the answer looking it up I'm just
+the answer looking it up I'm just reminding my
+reminding my I just want to know a finer point but I
+I just want to know a finer point but I don't actually know the answer it's
+don't actually know the answer it's super hard for me to understand what's
+super hard for me to understand what's going on in there
+going on in there and this particular set of solutions is
+and this particular set of solutions is no exception to that so but to point you
+no exception to that so but to point you give you reference volume 2 section 4 6
+give you reference volume 2 section 4 6 2 factorization of polynomials which is
+2 factorization of polynomials which is perfectly what I'm looking for here and
+perfectly what I'm looking for here and the finer point of that particular page
+the finer point of that particular page is this this half of the page is pretty
+is this this half of the page is pretty much the steps that we need to do but
+much the steps that we need to do but again in my first glance here in my
+again in my first glance here in my first pass of the section in this page
+first pass of the section in this page and this part of this page it's super
+and this part of this page it's super terse because I didn't really understand
+terse because I didn't really understand what was going on I didn't it was very
+what was going on I didn't it was very hard for me to read because I didn't
+hard for me to read because I didn't already know the answer but luckily
+already know the answer but luckily we're given a hint I was given a hint
+we're given a hint I was given a hint anyway here which is the name of the
+anyway here which is the name of the thing that I need to Google in order to
+thing that I need to Google in order to understand which is Berlin cans
+understand which is Berlin cans factoring algorithm all right so after a
+factoring algorithm all right so after a bunch of googling and reading and going
+bunch of googling and reading and going I found this one paper right there's
+I found this one paper right there's lots of papers on this particular thing
+lots of papers on this particular thing but I found personally this particular
+but I found personally this particular paper the most useful the most
+paper the most useful the most straightforward description and I
+straightforward description and I provide a link here if you're interested
+provide a link here if you're interested it's very short so 9 pages and it has a
+it's very short so 9 pages and it has a worked example which I always find it
+worked example which I always find it super useful like if you actually work
+super useful like if you actually work through an example so to go back to this
+through an example so to go back to this now ok let's look at step one so I know
+now ok let's look at step one so I know ok I kind of got a better idea of what
+ok I kind of got a better idea of what what this means what Burley counts
+what this means what Burley counts factoring out are the means because I've
+factoring out are the means because I've read this other paper now let's go back
+read this other paper now let's go back I'm gonna work on step one step one b1
+I'm gonna work on step one step one b1 ensure that UX is square-free all right
+ensure that UX is square-free all right what does that mean
+what does that mean it means we have a fact we have a
+it means we have a fact we have a polynomial say a which and which is made
+polynomial say a which and which is made of the factors B squared CD we're
+of the factors B squared CD we're pulling out the squared factors in this
+pulling out the squared factors in this case B squared is the fact that we're
+case B squared is the fact that we're pulling out so we end up with two things
+pulling out so we end up with two things a 0 is B squared and a 1 is C D so those
+a 0 is B squared and a 1 is C D so those combine back together would be a right
+combine back together would be a right that's what we mean we're pulling out
+that's what we mean we're pulling out the stuff that is squared out of here
+the stuff that is squared out of here so square-free factorization UX has a
+so square-free factorization UX has a square factor if the GCD of UX and the
+square factor if the GCD of UX and the derivative of UX is not 1 so just create
+derivative of UX is not 1 so just create that creat steps
+that creat steps out of that the first is given some UX
+out of that the first is given some UX which we're going to call F which I call
+which we're going to call F which I call F get the derivative F get the GCD of F
+F get the derivative F get the GCD of F and the derivative of F call that G so f
+and the derivative of F call that G so f is made of G times some H which we don't
+is made of G times some H which we don't know yet but since we know G we can just
+know yet but since we know G we can just say F divided by G is that H right so a
+say F divided by G is that H right so a fairly straightforward process here
+fairly straightforward process here except which I'll get to in a minute
+except which I'll get to in a minute let's start with an example with a
+let's start with an example with a square in it so I just create an example
+square in it so I just create an example any example fairly complicated one
+any example fairly complicated one enough to sort of know that things are
+enough to sort of know that things are going right or wrong in the middle of
+going right or wrong in the middle of that circled at the bottom here is a
+that circled at the bottom here is a squared factor just so I know what I'm
+squared factor just so I know what I'm dealing with so I'm gonna pull out that
+dealing with so I'm gonna pull out that square factor manually so just by hand
+square factor manually so just by hand here I know what I want my a I know what
+here I know what I want my a I know what I want my B so I know it's left might be
+I want my B so I know it's left might be so in test OD I'm just gonna multiply
+so in test OD I'm just gonna multiply all these little things here left that
+all these little things here left that are left and B together
+are left and B together and print out with the results so what
+and print out with the results so what should I expect from me so I already
+should I expect from me so I already know how to multiply we've already done
+know how to multiply we've already done it a bunch of times but again just a
+it a bunch of times but again just a sort of sanity test and verify what I'm
+sort of sanity test and verify what I'm doing I keep doing it anyway so I
+doing I keep doing it anyway so I multiply all these things back together
+multiply all these things back together and this is what I get for B I know this
+and this is what I get for B I know this is what I wanna be I verify this by
+is what I wanna be I verify this by again throwing it back into Mathematica
+again throwing it back into Mathematica and making sure that all the factors are
+and making sure that all the factors are correct
+correct so after square-free factors a
+so after square-free factors a square-free factorization I know that
+square-free factorization I know that these are the two values that I should
+these are the two values that I should be getting which is the a and B here the
+be getting which is the a and B here the a is the squared value that's pulled out
+a is the squared value that's pulled out I know what I'm looking for but I have a
+I know what I'm looking for but I have a bunch of things that I need to figure
+bunch of things that I need to figure out how to do so for instance how would
+out how to do so for instance how would you take the derivative of a polynomial
+you take the derivative of a polynomial over GF 2 I don't know I didn't know at
+over GF 2 I don't know I didn't know at this point so let's start there so let's
+this point so let's start there so let's just review the regular process Rick so
+just review the regular process Rick so we have the derivative of x squared plus
+we have the derivative of x squared plus X plus 1 with respect to X the
+X plus 1 with respect to X the mechanical process for that is really
+mechanical process for that is really simple right we multiply each of
+simple right we multiply each of exponent with its coefficient and
+exponent with its coefficient and subtract 1 from each exponent we're left
+subtract 1 from each exponent we're left with 2x plus 1 fairly straightforward
+with 2x plus 1 fairly straightforward mechanical process but over GF 2 it's
+mechanical process but over GF 2 it's the same mechanical steps but all the
+the same mechanical steps but all the math and GF 2 is mod 2 so R 2 R 2 and 2x
+math and GF 2 is mod 2 so R 2 R 2 and 2x plus one the two there is two mod 0
+plus one the two there is two mod 0 which is 0 so our derivative of x
+which is 0 so our derivative of x squared plus X plus 1 over GF 2 with
+squared plus X plus 1 over GF 2 with respect to X is in fact 1 because the
+respect to X is in fact 1 because the two X becomes 0 to make a put a finer
+two X becomes 0 to make a put a finer point on it the process for taking the
+point on it the process for taking the derivative in GF 2 is all coefficients
+derivative in GF 2 is all coefficients are 0 that already everything is mod 0
+are 0 that already everything is mod 0 everything is mod 2 all the even
+everything is mod 2 all the even exponents will be multiplied by either 0
+exponents will be multiplied by either 0 or 1 to get the coefficient right the
+or 1 to get the coefficient right the result is that the coefficient of each
+result is that the coefficient of each one of those will either be even or 0
+one of those will either be even or 0 all even values are 0 so they're all
+all even values are 0 so they're all going to be 0 so we can just mask out
+going to be 0 so we can just mask out all the even exponents we don't need any
+all the even exponents we don't need any of them all the exponent exponent will
+of them all the exponent exponent will be multiplied by 0 or 1 to get a
+be multiplied by 0 or 1 to get a coefficient the resulting coefficient is
+coefficient the resulting coefficient is either odd or 0 or all odd values mod 2
+either odd or 0 or all odd values mod 2 are 1 so we can reduce we can just
+are 1 so we can reduce we can just reduce all the odd exponents by 1 which
+reduce all the odd exponents by 1 which is the same as saying shift everything
+is the same as saying shift everything right one place so in terms of process
+right one place so in terms of process this is what it looks like so we take
+this is what it looks like so we take this particular example 1 0 1 1 1 1 we
+this particular example 1 0 1 1 1 1 we zero out the even exponent because we
+zero out the even exponent because we know those don't matter because anything
+know those don't matter because anything those even numbers all multiply but
+those even numbers all multiply but whatever are gonna be even and all gonna
+whatever are gonna be even and all gonna be 0 so we just just mess those out we
+be 0 so we just just mess those out we just shift everything else over one
+just shift everything else over one place and we're left with in this
+place and we're left with in this particular example X to the fourth plus
+particular example X to the fourth plus X to the 2nd + 1 which is which as far
+X to the 2nd + 1 which is which as far as I'm concerned at this point is just
+as I'm concerned at this point is just is just witchcraft like that the fact
+is just witchcraft like that the fact that getting the derivative is so easy
+that getting the derivative is so easy and socially forward is amazing so I
+and socially forward is amazing so I just so in test OE I just printing out
+just so in test OE I just printing out example derivatives just to check to see
+example derivatives just to check to see that what I'm doing is right and what
+that what I'm doing is right and what would make sense and what's going on so
+would make sense and what's going on so I take this a value and I put the
+I take this a value and I put the derivative of it and you know looks okay
+derivative of it and you know looks okay so the next step test OEF what do I need
+so the next step test OEF what do I need to find the greatest common divisor of
+to find the greatest common divisor of the - of two polynomials because my next
+the - of two polynomials because my next step here is G is the GCD of F and the
+step here is G is the GCD of F and the so how do I get the GCD of polynomial /
+so how do I get the GCD of polynomial / / GF - well in fact like most things and
+/ GF - well in fact like most things and process is the same as the GCD of any
+process is the same as the GCD of any two polynomials only the coefficient
+two polynomials only the coefficient masses in GF 2 so everything is mod 2 so
+masses in GF 2 so everything is mod 2 so reviewing what how'd you get the GCD
+reviewing what how'd you get the GCD it's basically GCD of a and B is the GCD
+it's basically GCD of a and B is the GCD of B and a mod B so we just go through
+of B and a mod B so we just go through this process we do a mod B and we check
+this process we do a mod B and we check to see if it's 0 and if it's not 0 we
+to see if it's 0 and if it's not 0 we just keep going through the loop but a
+just keep going through the loop but a mod B presents a problem because implies
+mod B presents a problem because implies that I need to do polynomial division
+that I need to do polynomial division over GF 2 because the mod is just the
+over GF 2 because the mod is just the remainder of the division
+remainder of the division so how do I divide the polynomial over
+so how do I divide the polynomial over GF 2 again so the same as dividing
+GF 2 again so the same as dividing regular polynomials only coefficient
+regular polynomials only coefficient math is all in GF 2 so if we're gonna
+math is all in GF 2 so if we're gonna start with what's how does regular
+start with what's how does regular polynomial long division work right we
+polynomial long division work right we can see here is this particular example
+can see here is this particular example I won't read all of it but starting with
+I won't read all of it but starting with how many times is x + 1 go into X to the
+how many times is x + 1 go into X to the third we just need that first bit here
+third we just need that first bit here we just say it goes in x squared and so
+we just say it goes in x squared and so we multiple we multiply those out and
+we multiple we multiply those out and then we go down the process there but I
+then we go down the process there but I can visualize that another way and I
+can visualize that another way and I know lots of people visualize it this
+know lots of people visualize it this way and you just deal with the the
+way and you just deal with the the components and forget about the
+components and forget about the coefficients and forget about all the
+coefficients and forget about all the the variables in this particular case
+the variables in this particular case you're just dealing with the
+you're just dealing with the coefficients because much easier to read
+coefficients because much easier to read and reason about so you can see here 1 -
+and reason about so you can see here 1 - 6 11 and -6 are the coefficients of the
+6 11 and -6 are the coefficients of the same as X to the third minus six x to
+same as X to the third minus six x to the second plus 11x minus 6 right and
+the second plus 11x minus 6 right and one one there is X plus one so in terms
+one one there is X plus one so in terms of doing this process right how many
+of doing this process right how many times is one one go in how many times
+times is one one go in how many times does it need to be multiplied in order
+does it need to be multiplied in order to make one and just just needs to be
+to make one and just just needs to be multiplied well one we subtract those
+multiplied well one we subtract those out we get negative 7 how many times
+out we get negative 7 how many times does 1 1 need to go do x to make
+does 1 1 need to go do x to make negative 7 is negative 7 so we multiply
+negative 7 is negative 7 so we multiply those subtract those out we get 18 minus
+those subtract those out we get 18 minus 6 how many times does that need to be
+6 how many times does that need to be multiplied by 1 18
+multiplied by 1 18 and we subtract those and we have a
+and we subtract those and we have a remainder the same process right um but
+remainder the same process right um but in GF 2 it's gonna be a little bit
+in GF 2 it's gonna be a little bit different right but if we're looking at
+different right but if we're looking at the process of polynomial division we
+the process of polynomial division we know that we basically need two
+know that we basically need two operations when you're multiplication
+operations when you're multiplication and subtraction multiplication we
+and subtraction multiplication we already have we already know how to do
+already have we already know how to do that it's just and subtraction though
+that it's just and subtraction though this is the first time I've had to deal
+this is the first time I've had to deal with subtraction in this process but
+with subtraction in this process but everything again is mod 2 so 0 minus 0
+everything again is mod 2 so 0 minus 0 is 0 0 minus 1 is minus 1
+is 0 0 minus 1 is minus 1 Montu is 1 1 minus 0 is 1 in 1 minus 1
+Montu is 1 1 minus 0 is 1 in 1 minus 1 is 0 so this is our truth table for
+is 0 so this is our truth table for subtracting coefficients in fact that
+subtracting coefficients in fact that truth table is exactly the same as the
+truth table is exactly the same as the one for addition which is just X or so
+one for addition which is just X or so subtraction and addition and GF 2 are
+subtraction and addition and GF 2 are exactly the same which is super super
+exactly the same which is super super interesting and fascinating it also
+interesting and fascinating it also means that any code that I write in GF 2
+means that any code that I write in GF 2 will not work in any other finite field
+will not work in any other finite field definition because I guaranteed to screw
+definition because I guaranteed to screw that up and just use addition or
+that up and just use addition or subtraction everywhere so test Oh F now
+subtraction everywhere so test Oh F now I just want to print out a working
+I just want to print out a working example so I create this p GF - div
+example so I create this p GF - div print this version of divide algorithm
+print this version of divide algorithm that prints out all the individual steps
+that prints out all the individual steps as it's dividing its as its dividing two
+as it's dividing its as its dividing two values so I'm dividing a by B here and
+values so I'm dividing a by B here and it's exactly the same format that I
+it's exactly the same format that I showed before and part of the reason
+showed before and part of the reason that that format is is valuable to me is
+that that format is is valuable to me is it's easier to printf honestly so you
+it's easier to printf honestly so you know how many times is that just the
+know how many times is that just the right hand side I need to go and it
+right hand side I need to go and it doesn't need to be multiplied to the
+doesn't need to be multiplied to the left-hand side just one it's always
+left-hand side just one it's always gonna be 1 or 0 and we just go down and
+gonna be 1 or 0 and we just go down and get our result but the fact that I can
+get our result but the fact that I can visualize it and look through all the
+visualize it and look through all the steps and look through any particular
+steps and look through any particular example is super helpful part of my
+example is super helpful part of my process and it seems like a lot of this
+process and it seems like a lot of this step steps where I'm printing out a lot
+step steps where I'm printing out a lot of extra things I'm printing out a lot
+of extra things I'm printing out a lot of extra steps you know is it worth that
+of extra steps you know is it worth that is it worth me doing inevitably yes
+is it worth me doing inevitably yes inevitably it's always worth me going
+inevitably it's always worth me going through the extra effort of printing out
+through the extra effort of printing out a formatted version of what I'm working
+a formatted version of what I'm working on because eventually I'm going to hit
+on because eventually I'm going to hit some bug eventually I'm gonna be stuck
+some bug eventually I'm gonna be stuck on something and I'm gonna want to
+on something and I'm gonna want to visualize all the steps and make sure
+visualize all the steps and make sure that everything is right or wondering
+that everything is right or wondering why this one case doesn't work it's
+why this one case doesn't work it's almost always worth doing
+almost always worth doing so in terms of division this is pretty
+so in terms of division this is pretty much what it's doing which is as you'd
+much what it's doing which is as you'd expect as we described so we're going
+expect as we described so we're going through the count we're shifting left
+through the count we're shifting left the quotient by one bit
+the quotient by one bit we're checking to see if that top bit is
+we're checking to see if that top bit is set because we're only gonna be
+set because we're only gonna be multiplying by zero or one and if it's
+multiplying by zero or one and if it's set we're setting when we're adding
+set we're setting when we're adding setting that one quotient bit at the
+setting that one quotient bit at the bottom and we're shifting the divisor
+bottom and we're shifting the divisor left to the appropriate amount so that
+left to the appropriate amount so that we can subtract and we're subtracting
+we can subtract and we're subtracting and as you can see here at number six in
+and as you can see here at number six in fact I call add instead of subtract so
+fact I call add instead of subtract so that whole guarantee where I would
+that whole guarantee where I would definitely get things wrong if we're
+definitely get things wrong if we're doing anything in GF anything in not GF
+doing anything in GF anything in not GF 2 is definitely true but add and
+2 is definitely true but add and subtract the same in GF 2 all right so
+subtract the same in GF 2 all right so now moving on test 1 0 so now I think I
+now moving on test 1 0 so now I think I think I have enough parts here to
+think I have enough parts here to actually get the GCD of two polynomials
+actually get the GCD of two polynomials over GF 2
+over GF 2 I have mod I have all the things right
+I have mod I have all the things right can I do this
+can I do this in fact so I build this function P GF to
+in fact so I build this function P GF to GCD which just does pretty much this
+GCD which just does pretty much this loop right as you expect looping through
+loop right as you expect looping through I get 2 remainder I check to see if the
+I get 2 remainder I check to see if the rain or 0 if it's done if it is I'm done
+rain or 0 if it's done if it is I'm done if the remainder is 1 I'm also done the
+if the remainder is 1 I'm also done the vote if the if the greatest common
+vote if the if the greatest common divisor is 1 the relative with prime so
+divisor is 1 the relative with prime so I can bail out here and then I just loop
+I can bail out here and then I just loop it around this is a while loop so I just
+it around this is a while loop so I just keep looping around with the until I
+keep looping around with the until I fill I'm finished so this is we have all
+fill I'm finished so this is we have all the pieces I can't test this now I want
+the pieces I can't test this now I want to make sure that in fact it's all good
+to make sure that in fact it's all good it's right so I get my example here I
+it's right so I get my example here I print it out and print out the GCD so
+print it out and print out the GCD so everything's printed out and then I cut
+everything's printed out and then I cut and paste again cut and paste my my my F
+and paste again cut and paste my my my F here into Mathematica I say polynomial
+here into Mathematica I say polynomial GCD this value and this value modulus
+GCD this value and this value modulus two and in fact the result is the same
+two and in fact the result is the same so I can test a bunch of values here be
+so I can test a bunch of values here be fairly confident that what I'm doing is
+fairly confident that what I'm doing is correct now I think now that I have now
+correct now I think now that I have now I have division and multiplication and
+I have division and multiplication and GCD and derivative I think I have all
+GCD and derivative I think I have all the parts to do square-free
+the parts to do square-free factorization this the steps four and
+factorization this the steps four and five here just multiplication division
+five here just multiplication division so we're good there already
+so we're good there already how to do that so I jump right into
+how to do that so I jump right into creating gf2 SFF square free
+creating gf2 SFF square free factorization and I just print out test
+factorization and I just print out test eleven just prints out square free
+eleven just prints out square free factors so I give it an input value and
+factors so I give it an input value and it prints out square free factors here
+it prints out square free factors here in different formats different cut and
+in different formats different cut and paste able formats so starting with
+paste able formats so starting with binary format and hex format and
+binary format and hex format and polynomial format and this last one here
+polynomial format and this last one here SFF a 0 and a 1 so to two versions and
+SFF a 0 and a 1 so to two versions and hex is this what we expected if I go
+hex is this what we expected if I go back this SD so now I'm reaching back to
+back this SD so now I'm reaching back to one of the previous tests and it's nice
+one of the previous tests and it's nice for me to have all these tests in a row
+for me to have all these tests in a row so I keep them all together
+so I keep them all together it's not just saying it's just not
+it's not just saying it's just not version like version controlled versions
+version like version controlled versions of the same file I keep them all in a
+of the same file I keep them all in a big pile so I can refer back to them
+big pile so I can refer back to them like this so back at SD I said this is
+like this so back at SD I said this is what I want to have after square-free
+what I want to have after square-free factorization in fact these two values
+factorization in fact these two values are identical so I'm fairly confident
+are identical so I'm fairly confident that I'm getting the right answer here
+that I'm getting the right answer here test twelve now I want to build the
+test twelve now I want to build the matrix q is described in step b2 so step
+matrix q is described in step b2 so step b2 here says form the matrix Q is
+b2 here says form the matrix Q is defined by eleven and twelve and this
+defined by eleven and twelve and this can be one of two ways depending on
+can be one of two ways depending on whether or not P is very large as
+whether or not P is very large as explained below let me talk a little bit
+explained below let me talk a little bit about the as explained below part of
+about the as explained below part of this I definitely felt dumb reading this
+this I definitely felt dumb reading this and this is one of those examples where
+and this is one of those examples where I'm reading and I just it's something
+I'm reading and I just it's something just I didn't understand something I
+just I didn't understand something I just missed something I just something
+just missed something I just something is just obscuring my understanding of
+is just obscuring my understanding of this of this description and I just
+this of this description and I just didn't get it right I'm reading in
+didn't get it right I'm reading in reading I'm just not getting it but
+reading I'm just not getting it but again that's where I reached back to
+again that's where I reached back to that other paper that I mentioned which
+that other paper that I mentioned which sort of helped to to clarify what was
+sort of helped to to clarify what was going on but in fact I'll tell you the
+going on but in fact I'll tell you the real answer here is I really really
+real answer here is I really really wasn't getting it to the degree where I
+wasn't getting it to the degree where I went to a professor of mathematics at
+went to a professor of mathematics at UCLA and I said can I just pay you money
+UCLA and I said can I just pay you money to tell me what's going on here and he
+to tell me what's going on here and he said yes right before and I'll tell you
+said yes right before and I'll tell you often that times professor of
+often that times professor of mathematics at your local university
+mathematics at your local university will take money he just sat down with me
+will take money he just sat down with me and we sat down for for like four or
+and we sat down for for like four or five hours and just worked work through
+five hours and just worked work through all the holes in my understanding
+all the holes in my understanding and totally worth the money let me tell
+and totally worth the money let me tell you and that's that's I think a
+you and that's that's I think a legitimate way of approaching some
+legitimate way of approaching some problems where I don't know like I don't
+problems where I don't know like I don't know what I'm missing I don't know why I
+know what I'm missing I don't know why I don't understand this and just sort of
+don't understand this and just sort of helping me through but to summarize the
+helping me through but to summarize the end results here I tell you how hard it
+end results here I tell you how hard it was for me to this and I'm sure this is
+was for me to this and I'm sure this is super clear to tons and tons of people
+super clear to tons and tons of people from sure they're millions of people who
+from sure they're millions of people who this was super clear to for me this was
+this was super clear to for me this was this this moment where I could look at
+this this moment where I could look at this and understand what it was saying
+this and understand what it was saying was huge and worth hundreds of dollars
+was huge and worth hundreds of dollars so the building that key matrix looks
+so the building that key matrix looks like this which is for I equals 0 to the
+like this which is for I equals 0 to the degree of P and the grape is sort of the
+degree of P and the grape is sort of the largest exponent P where P czar
+largest exponent P where P czar polynomial
+polynomial each row of Q is X to the even power so
+each row of Q is X to the even power so I times to mod P that particular
+I times to mod P that particular polynomial P that were that we're
+polynomial P that were that we're building a queue off of so this matrix
+building a queue off of so this matrix is I understand what's happening here I
+is I understand what's happening here I understand what I'm building I
+understand what I'm building I understand mechanically but getting to
+understand mechanically but getting to this point was a huge long process of
+this point was a huge long process of understanding but in this particular
+understanding but in this particular paper again this reaches back to the
+paper again this reaches back to the other paper that I mentioned there's
+other paper that I mentioned there's that worked example which is super nice
+that worked example which is super nice this is really really tiny worked
+this is really really tiny worked example because as often in papers is
+example because as often in papers is really hard to show a large working
+really hard to show a large working example but at least there's something
+example but at least there's something so given this particular F this
+so given this particular F this particular polynomial at the top here is
+particular polynomial at the top here is the matrix Q in here and this is just
+the matrix Q in here and this is just print it that same matrix here printed
+print it that same matrix here printed out a different way more tightly but
+out a different way more tightly but it's the same values above so that makes
+it's the same values above so that makes Q where f is X to the fifth plus X to
+Q where f is X to the fifth plus X to the fourth plus one so in test 12 all I
+the fourth plus one so in test 12 all I want to do is verify my understanding
+want to do is verify my understanding can I get the same results as that paper
+can I get the same results as that paper and I was really really happy because
+and I was really really happy because one I got the same results in two if
+one I got the same results in two if that paper if there was a if there was a
+that paper if there was a if there was a bug in that paper and they printed out
+bug in that paper and they printed out something wrong I would have never ever
+something wrong I would have never ever understood this because I was the only
+understood this because I was the only the only example that I had to work from
+the only example that I had to work from but luckily the data in the paper is
+but luckily the data in the paper is correct I could
+correct I could applicate it and understand what's
+applicate it and understand what's happening here so the matrix fairly
+happening here so the matrix fairly simple X to the 0 mod a right so which
+simple X to the 0 mod a right so which is just 1 even power so 1 mod a my a is
+is just 1 even power so 1 mod a my a is X to the 5th plus X to the 4th plus 1 so
+X to the 5th plus X to the 4th plus 1 so just mod with that X to the 2nd mod a so
+just mod with that X to the 2nd mod a so that's just again even power so all the
+that's just again even power so all the even powers of X mod are a and that's
+even powers of X mod are a and that's our result so test 13 I want to create a
+our result so test 13 I want to create a small but simple example to factor and
+small but simple example to factor and solve so I start with two simple
+solve so I start with two simple irreducible factors and I multiply them
+irreducible factors and I multiply them together and all I do in test 13 is
+together and all I do in test 13 is actually just multiply them together and
+actually just multiply them together and print them out so it starts with these
+print them out so it starts with these two irreducible factors multiply them
+two irreducible factors multiply them together I call my my PG f2 mall which
+together I call my my PG f2 mall which I've now used a bunch of times but again
+I've now used a bunch of times but again I'm sanity checking and get that
+I'm sanity checking and get that so for test 14 I want to start breaking
+so for test 14 I want to start breaking down B 3 B 3 says triangular triangular
+down B 3 B 3 says triangular triangular I matrix Q minus 1 and a bunch of other
+I matrix Q minus 1 and a bunch of other things but to summarize what step b3
+things but to summarize what step b3 says it says M is Q minus 1 and find the
+says it says M is Q minus 1 and find the null basis vectors of M someone's start
+null basis vectors of M someone's start with that
+with that step 1 Q minus 1 I'm pretty sure I can
+step 1 Q minus 1 I'm pretty sure I can do that so I'm in this case test 14 I'm
+do that so I'm in this case test 14 I'm printing out Q I and M Q is that matrix
+printing out Q I and M Q is that matrix we just I just built printing out in
+we just I just built printing out in this example all right is identity I
+this example all right is identity I definitely know how to do identity
+definitely know how to do identity matrix and M is Q minus I so I print
+matrix and M is Q minus I so I print those out so I'm fairly comfortable for
+those out so I'm fairly comfortable for I'm printing here and I'm moving on test
+all right bigger problem how do I find the null basis vectors of matrix M in
+the null basis vectors of matrix M in fact super super excellent walkthrough
+fact super super excellent walkthrough on this particular link would totally
+on this particular link would totally recommend you reading if you're at all
+recommend you reading if you're at all interested in this particular question
+interested in this particular question because for me this really enlightened
+because for me this really enlightened me this particular answer to this
+me this particular answer to this particular question on math stack
+particular question on math stack exchange it's a process much like matrix
+exchange it's a process much like matrix matrix inverse so summarize the process
+matrix inverse so summarize the process though you're augmenting m with the
+though you're augmenting m with the identity matrix of the same size you're
+identity matrix of the same size you're transforming m to row reduced echelon
+transforming m to row reduced echelon form
+form and the null basis vectors are
+and the null basis vectors are whatever's left
+whatever's left whatever's on the right when the left
+whatever's on the right when the left side of the Augmented form is zero it's
+side of the Augmented form is zero it's a fairly straightforward mechanical
+a fairly straightforward mechanical process so to start with step a in that
+process so to start with step a in that mechanical process augment em with
+mechanical process augment em with identity of the same size so it looks
+identity of the same size so it looks like this w is just going through each
+like this w is just going through each row its Hickey am shifting it left by
+row its Hickey am shifting it left by the degree of P and then inserting the
+the degree of P and then inserting the appropriate vector of the identity at
+appropriate vector of the identity at that point so in test 15 I'm just
+that point so in test 15 I'm just printing that out and I create a new
+printing that out and I create a new print so I can print stuff an Augmented
+print so I can print stuff an Augmented form which just means I just put a space
+form which just means I just put a space in the middle so I can visualize a
+in the middle so I can visualize a little bit better so it's just this it's
+little bit better so it's just this it's the same M on the left and there's
+the same M on the left and there's identity on the right but it's just of
+identity on the right but it's just of one matrix W with those so space in the
+one matrix W with those so space in the middle for visualization purposes so now
+middle for visualization purposes so now I need a function I need to get this
+I need a function I need to get this into a row reduced echelon form which I
+into a row reduced echelon form which I don't happen to have a handy function
+don't happen to have a handy function for but I can use I know I can use Gauss
+for but I can use I know I can use Gauss Jordan elimination super useful
+Jordan elimination super useful description here
+description here there's also calculator there's lots of
+there's also calculator there's lots of online calculators online for reference
+online calculators online for reference this particular one I found useful
+this particular one I found useful because it sort of dumped all the steps
+because it sort of dumped all the steps out as well so as I'm debugging I have
+out as well so as I'm debugging I have something to compare against which is
+something to compare against which is nice again going back to worked examples
+nice again going back to worked examples are really nice and really helped for me
+are really nice and really helped for me in terms of understanding so I create
+in terms of understanding so I create this function pgf to our breadth and a
+this function pgf to our breadth and a function our F HTML which prints out all
+function our F HTML which prints out all the steps and the output so I can
+the steps and the output so I can visualize it make sure that what it's
+visualize it make sure that what it's doing makes sense but to go over Gauss
+doing makes sense but to go over Gauss Jordan elimination gf2 how does that
+Jordan elimination gf2 how does that work it works exactly the same as if you
+work it works exactly the same as if you weren't in GF 2 except for all the
+weren't in GF 2 except for all the component math is mod 2 so in terms of
+component math is mod 2 so in terms of mechanical process you mark first row as
+mechanical process you mark first row as the next result next result row then you
+the next result next result row then you go through the loop so you find the
+go through the loop so you find the first row with the leftmost bit set and
+first row with the leftmost bit set and then you swap that in your next result
+then you swap that in your next result row call that your pivot row and then
+row call that your pivot row and then you subtract that out from all the other
+you subtract that out from all the other rows so basically just that's the only
+rows so basically just that's the only one with that particular bit set and
+one with that particular bit set and then you just go through that process
+then you just go through that process sort of working away across the bits
+sort of working away across the bits from left to the right and just
+from left to the right and just remembering your add here is in GF 2 so
+remembering your add here is in GF 2 so it's just XOR so output of test 16 the
+it's just XOR so output of test 16 the thing about so
+thing about so in this particular case again printing
+in this particular case again printing out in terms of printing everything out
+out in terms of printing everything out putting everything out in HTML so that I
+putting everything out in HTML so that I can visualize what's happening here so I
+can visualize what's happening here so I can printing it out as it goes marking
+can printing it out as it goes marking the first row highlighting and again
+the first row highlighting and again it's printing this out in color so I can
+it's printing this out in color so I can see what's going on highlighting the
+see what's going on highlighting the first the pivot row it's highlighting
+first the pivot row it's highlighting the fact that they're swapping sort of
+the fact that they're swapping sort of highlighting what it's subtracting from
+highlighting what it's subtracting from here and then finding the next pivot row
+here and then finding the next pivot row etc and so going through the whole
+etc and so going through the whole process and you can see I can see it
+process and you can see I can see it sort of work its way down here and in
+sort of work its way down here and in fact this XI this was super fascinating
+fact this XI this was super fascinating to me because I don't think I've you
+to me because I don't think I've you know looking at this and looking at
+know looking at this and looking at 64-bit versions and 128-bit versions and
+64-bit versions and 128-bit versions and 512 bit versions I don't think I ever
+512 bit versions I don't think I ever had seeing so gigantic actual worked
+had seeing so gigantic actual worked examples step by step of Gauss Jordan
+examples step by step of Gauss Jordan elimination
+elimination especially in GF 2 like I'd never seen
+especially in GF 2 like I'd never seen it before and being able to visualize it
+it before and being able to visualize it and see it every single step of the way
+and see it every single step of the way was I mean it was amazing and so I
+was I mean it was amazing and so I played with this quiet for quite a long
+played with this quiet for quite a long time to be honest until you're done and
+time to be honest until you're done and you left with this matrix M here at the
+you left with this matrix M here at the end so the result and remember is sort
+end so the result and remember is sort of an Augmented form so I just put the
+of an Augmented form so I just put the space in the middle here and I take this
+space in the middle here and I take this I also printed out the same matrix and
+I also printed out the same matrix and it's sort of easy to paste into
+it's sort of easy to paste into mathematic form which again just throws
+mathematic form which again just throws stuff into my pronounce and make it
+stuff into my pronounce and make it easier to paste in Mathematica so I
+easier to paste in Mathematica so I verify this I can do a row reduce of
+verify this I can do a row reduce of that matrix modulus 2 and verify that
+that matrix modulus 2 and verify that the result is the same and it is so I'm
+the result is the same and it is so I'm good with that the next step is sort of
+good with that the next step is sort of highlight what the null basis vectors
+highlight what the null basis vectors are what will the point of doing all
+are what will the point of doing all this so those are the where the left
+this so those are the where the left side of the Augmented form is 0 so I
+side of the Augmented form is 0 so I just added a dis is just an addition to
+just added a dis is just an addition to the debug printing where I just
+the debug printing where I just highlighted those so here in red the
+highlighted those so here in red the left side you can see a zero so the
+left side you can see a zero so the right side are the null basis vectors
+right side are the null basis vectors which I then print out here in three
+which I then print out here in three different forms in binary and hacks and
+different forms in binary and hacks and polynomial form so now I can sort of go
+polynomial form so now I can sort of go through all the steps I can complete all
+through all the steps I can complete all the steps with b4 and apply to a simple
+the steps with b4 and apply to a simple example so b4 here
+example so b4 here so calculating GCD of U of X which is
+so calculating GCD of U of X which is our F and that one of those null basis
+our F and that one of those null basis vectors and minus s where s is in the
+vectors and minus s where s is in the range of 0 and P now P again this is
+range of 0 and P now P again this is something that threw me reading this
+something that threw me reading this document P is the power of the of the
+document P is the power of the of the the field to find that field that we're
+the field to find that field that we're working with so P is 2 in this case
+so it's from where s is from 0 to 2 so s is either 0 or 1 so we're calculating V
+is either 0 or 1 so we're calculating V minus 0 or V minus 1 so for each
+minus 0 or V minus 1 so for each non-trivial vector V found in B 3 and
+non-trivial vector V found in B 3 and the non-trivial vector is anything
+the non-trivial vector is anything that's not 1 1 is the trivial version so
+that's not 1 1 is the trivial version so we can find non-trivial factors of our
+we can find non-trivial factors of our original value with GCD of F so that the
+original value with GCD of F so that the original F and V which is one of those
+original F and V which is one of those those null basis vectors and GCD of F
+those null basis vectors and GCD of F and V minus 1 so the multiplying those
+and V minus 1 so the multiplying those two things together will give us our F
+two things together will give us our F and that's pretty much what this says
+and that's pretty much what this says here it's a product of GCD U of X minus
+here it's a product of GCD U of X minus s and U of X where s is then the range
+s and U of X where s is then the range of 0 and P where for our case P is 2 so
+of 0 and P where for our case P is 2 so this is just a sort of simpler way of
+this is just a sort of simpler way of saying that same thing so highlighting
+saying that same thing so highlighting our null basis vectors from test 17
+our null basis vectors from test 17 again I'm just kind of highlighting the
+again I'm just kind of highlighting the non-tree of the one non-trivial result
+non-tree of the one non-trivial result the other one is 1 so we're just
+the other one is 1 so we're just throwing that away so in test 18 all I'm
+throwing that away so in test 18 all I'm doing I can already do GCD I can already
+doing I can already do GCD I can already get my null basis vectors now I can do
+get my null basis vectors now I can do all the things so I should just be able
+all the things so I should just be able to calculate in print get the GCD of
+to calculate in print get the GCD of these two values and verify that Multan
+these two values and verify that Multan multiplying them together gives me my
+multiplying them together gives me my original volume back which it should and
+original volume back which it should and it does so I get that one be V which I'm
+it does so I get that one be V which I'm calling be V that one basis vector I'm
+calling be V that one basis vector I'm getting the GCD of a which is my
+getting the GCD of a which is my original input I've been printed out
+original input I've been printed out there my original input and be V Plus 0
+there my original input and be V Plus 0 and G GCD of a might be me plus 1 which
+and G GCD of a might be me plus 1 which are those two polynomials there and now
+are those two polynomials there and now I can say are these what I'm looking for
+I can say are these what I'm looking for these two factors what I'm looking for
+these two factors what I'm looking for and if I go back to creating a simple
+and if I go back to creating a simple example with two reducible factors those
+example with two reducible factors those are in fact the same exact two
+are in fact the same exact two irreducible factor so I can compare and
+irreducible factor so I can compare and say yes those are correct it looks good
+say yes those are correct it looks good I solved a really simple example yay
+I solved a really simple example yay so test 19 umm so test the process on a
+so test 19 umm so test the process on a larger square free example which is this
+larger square free example which is this one I created before so I had this B
+one I created before so I had this B which was square free as I created
+which was square free as I created before which I'm now calling hey so it's
+before which I'm now calling hey so it's the same as the previous test same as
+the same as the previous test same as tests 18 but with this particular value
+tests 18 but with this particular value and I could so I can print it out I
+and I could so I can print it out I prints out everything you could see much
+prints out everything you could see much bigger prints out the highlights and no
+bigger prints out the highlights and no basis vectors there I print out the
+basis vectors there I print out the non-trivial result the non-trivial
+non-trivial result the non-trivial results here so I'm just throwing out
+results here so I'm just throwing out the one already I'm just in the function
+the one already I'm just in the function I don't have to I don't have to worry
+I don't have to I don't have to worry about it
+about it finding the factors based on those and
+finding the factors based on those and so for each so I'm doing the pair of G
+so for each so I'm doing the pair of G CDs here with each one of those basis
+CDs here with each one of those basis vectors that I found here so each one
+vectors that I found here so each one plus 0 and plus 1 or plus here and minus
+plus 0 and plus 1 or plus here and minus 1 it doesn't matter cuz they're both the
+1 it doesn't matter cuz they're both the same so each pair of these D CDs you see
+same so each pair of these D CDs you see can be multiplied together to make the
+can be multiplied together to make the original value so each one of those
+original value so each one of those represents each pair of those represents
+represents each pair of those represents a list of factors right potential
+a list of factors right potential factors I can multiply any given pair of
+factors I can multiply any given pair of them to back to the original one but can
+them to back to the original one but can I get anything else out of there so I
+I get anything else out of there so I want to get factors that actually
+want to get factors that actually multiply together to get a so really all
+multiply together to get a so really all I'm gonna do is say ok I know each one
+I'm gonna do is say ok I know each one of those two pairs each one of those
+of those two pairs each one of those pairs multiplies together but can I get
+pairs multiplies together but can I get more out of this so I'm just gonna loop
+more out of this so I'm just gonna loop through all of them and sort of just
+through all of them and sort of just divide them out of of a until I can get
+divide them out of of a until I can get a list may be it may be I get lucky and
+a list may be it may be I get lucky and I can get some additional factors out of
+I can get some additional factors out of that right so I just divide them all out
+that right so I just divide them all out and see which I ever ones divide out
+and see which I ever ones divide out evenly so from that and test one a I can
+evenly so from that and test one a I can now print out a list of non-trivial
+now print out a list of non-trivial factors of a these are all the things
+factors of a these are all the things that I could find so I'm comfortable
+that I could find so I'm comfortable printing that out at this point but now
+printing that out at this point but now I realize that non-trivial factors are
+I realize that non-trivial factors are not the same as irreducible factors so I
+not the same as irreducible factors so I need to go from non-trivial factors to
+need to go from non-trivial factors to irreducible factors how do I do that
+irreducible factors how do I do that well if I can find non-trivial factors I
+well if I can find non-trivial factors I can find any irreducible factors you're
+can find any irreducible factors you're looking just
+looking just recurse right I just get them
+recurse right I just get them non-trivial factors of each one of those
+non-trivial factors of each one of those until I can't find anymore and then I
+until I can't find anymore and then I have an irreducible factor and so that's
+have an irreducible factor and so that's in fact what tests 1b does for each one
+in fact what tests 1b does for each one of the non-trivial factors find the
+of the non-trivial factors find the non-trivial factors of that until I
+non-trivial factors of that until I can't find any more that's a pretty
+can't find any more that's a pretty straightforward process so I'm left with
+straightforward process so I'm left with at the end of one be spitting out a list
+at the end of one be spitting out a list of irreducible factors of F or of a and
+of irreducible factors of F or of a and so I look at this this list here and I
+so I look at this this list here and I compared against B which I created
+compared against B which I created before and is it what I expected and in
+before and is it what I expected and in fact this list is identical to this list
+fact this list is identical to this list this list I created here B is identical
+this list I created here B is identical to list above here of irreducible
+to list above here of irreducible factors that I found so I'm fairly
+factors that I found so I'm fairly comfortable that I can find that list
+comfortable that I can find that list yay
+yay just one scene but all these pieces
+just one scene but all these pieces together and test factor gets too large
+together and test factor gets too large a polynomial with squares in it in the
+a polynomial with squares in it in the first place
+first place so if we reach all the way back to
+so if we reach all the way back to creating an example with the square in
+creating an example with the square in it which is the thing that we verified
+it which is the thing that we verified here the head square in it test 1c
+here the head square in it test 1c really just says call GF 2 s FF first
+really just says call GF 2 s FF first and then for each one of those square
+and then for each one of those square factors each one of the factors I get
+factors each one of the factors I get out of that do the same process 1b which
+out of that do the same process 1b which is get all the reducible factors of that
+is get all the reducible factors of that of those and then just combine
+of those and then just combine everything into a final list so this is
+everything into a final list so this is what I am left with here so I left with
+what I am left with here so I left with this list of irreducible factors which
+this list of irreducible factors which is the same as the one that we expected
+is the same as the one that we expected because we factored it in the first
+because we factored it in the first place so it's all looks good but now I
+place so it's all looks good but now I need an expanded list of irreducible
+need an expanded list of irreducible factors so remember one of those is
+factors so remember one of those is squared because we pulled it out
+squared because we pulled it out specifically because it was squared so
+specifically because it was squared so it's this particular value that's
+it's this particular value that's squared but for my purposes I want to be
+squared but for my purposes I want to be able to recombine everything so I want
+able to recombine everything so I want to expand this so really I'm just going
+to expand this so really I'm just going through anything that's squared anything
+through anything that's squared anything that has a power that has a polynomial
+that has a power that has a polynomial squared I'm just going to duplicate it
+squared I'm just going to duplicate it in as many times as it's called for so
+in as many times as it's called for so that's all that I'm doing in test one Ds
+that's all that I'm doing in test one Ds I'm just printing out and duplicating
+I'm just printing out and duplicating all the expanded factors and so that's
+all the expanded factors and so that's what this is f 0 you can see is the same
+what this is f 0 you can see is the same as f 1 hex 67 and the rest of them are
+as f 1 hex 67 and the rest of them are as you as there something happened to be
+as you as there something happened to be be the section B of that of that
+be the section B of that of that original polynomial so going back to the
+original polynomial so going back to the original problem list of all the way
+original problem list of all the way back given a polynomial over GF 2 to the
+back given a polynomial over GF 2 to the N where n is one of those bit depths
+N where n is one of those bit depths display all the pairs of factors of
+display all the pairs of factors of degree less than n divided by 2 step 1
+degree less than n divided by 2 step 1 find all the reducible factors of F
+find all the reducible factors of F finally I feel comfortable that I can do
+finally I feel comfortable that I can do step 1 at this point but luckily steps 2
+step 1 at this point but luckily steps 2 3 & 4 are much more straightforward so
+3 & 4 are much more straightforward so taking all those irreducible factors and
+taking all those irreducible factors and sort of recombining them and to fit into
+sort of recombining them and to fit into pairs that fit into the appropriate bit
+pairs that fit into the appropriate bit depth so that's all the test 1e does so
+depth so that's all the test 1e does so it goes through those lists of
+it goes through those lists of irreducible factors and recombines them
+irreducible factors and recombines them into pairs that fit and that's what
+into pairs that fit and that's what outputs here that's what it looks like
+outputs here that's what it looks like so then I get to test one F test 1 F now
+so then I get to test one F test 1 F now I go back to the original test cases and
+I go back to the original test cases and I say all right am i even so I haven't
+I say all right am i even so I haven't even solved the problem and solving the
+even solved the problem and solving the correct problem you know have I done all
+correct problem you know have I done all those to all the things correctly so
+those to all the things correctly so let's look let's run it against the
+let's look let's run it against the original test cases to make sure
+original test cases to make sure so here's test case 3 we now know why
+so here's test case 3 we now know why there's a third now I now know why it
+there's a third now I now know why it says 32 instead of 64 even though the
+says 32 instead of 64 even though the input an output is 64 because it's a
+input an output is 64 because it's a multiplication to 230 different numbers
+multiplication to 230 different numbers but I run now factoring on that input
+but I run now factoring on that input there and I get my result here which is
+there and I get my result here which is the same as the output in they provided
+the same as the output in they provided test case so I'm good
+test case so I'm good like I feel very good at this point and
+like I feel very good at this point and seems to be solving the right problem
+seems to be solving the right problem except sometimes in the original Texas
+except sometimes in the original Texas is and only sometimes the results
+is and only sometimes the results include this sort of what seems like in
+include this sort of what seems like in totally unnecessary factor with one like
+totally unnecessary factor with one like this the thing that made it so that
+this the thing that made it so that should have been obvious what multiply
+should have been obvious what multiply that it was a factoring problem in the
+that it was a factoring problem in the first place but it seems totally
+first place but it seems totally unnecessary
+unnecessary obviously it's gonna affect with one
+obviously it's gonna affect with one that why would you even bother to help
+that why would you even bother to help with that so when do you include that
+with that so when do you include that one when do I include that one and the
+one when do I include that one and the results I'll leave that particular part
+results I'll leave that particular part of the problem as a exercise to the
+of the problem as a exercise to the reader and in here as I said all this
+reader and in here as I said all this stuff is available on Mike on this
+stuff is available on Mike on this github page every single one of the
+github page every single one of the tests is there this document is there
+tests is there this document is there you can walk through they all run
+you can walk through they all run there's a makefile
+there's a makefile you can do that so you can dig your way
+you can do that so you can dig your way through it and I'm happy to take any
+through it and I'm happy to take any comments on that even pull requests if
+comments on that even pull requests if you want to keep going with tests to
+you want to keep going with tests to zero so that's it thank you
+zero so that's it thank you [Applause]
+[Applause] you
+you [Applause]

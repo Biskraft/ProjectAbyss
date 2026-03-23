@@ -1,0 +1,1435 @@
+[Music]
+i'm kevin tadisco i'm a senior software engineer at
+i'm a senior software engineer at vicarious visions
+vicarious visions before we get going i was asked to
+before we get going i was asked to remind everybody to put your cell phones
+remind everybody to put your cell phones on silent
+on silent and also please fill out the evaluation
+and also please fill out the evaluation form that you'll receive at the end of
+form that you'll receive at the end of this talk
+this talk and now to start i have a disclaimer
+any hdr images that i'm about to show you are a bit of a lie
+you are a bit of a lie i'm showing this on a non-hdr display
+i'm showing this on a non-hdr display which means that it cannot faithfully
+which means that it cannot faithfully reproduce
+reproduce an hdr image therefore all of the
+an hdr image therefore all of the imagery is tone mapped to be a
+imagery is tone mapped to be a perceptual representation of what hdr
+perceptual representation of what hdr content looks like
+content looks like as it might be compared to sdr or
+as it might be compared to sdr or standard dynamic range
+standard dynamic range also some of the images were captured by
+also some of the images were captured by taking a picture of a monitor screen
+taking a picture of a monitor screen so quality may look a bit low at times
+so quality may look a bit low at times at this point in hdr's maturity i'm sure
+at this point in hdr's maturity i'm sure that everybody kind of understands this
+that everybody kind of understands this but i thought it might
+but i thought it might be worth a quick reminder
+so i think we're all very familiar by now with what destiny looks like
+now with what destiny looks like here's a shot of the hunter's golden gun
+here's a shot of the hunter's golden gun activation in standard dynamic range
+activation in standard dynamic range and after our work on hdr display
+and after our work on hdr display support in the game
+support in the game we bring this shot looking like this
+we bring this shot looking like this to looking something like this
+to looking something like this and we take this beautiful landscape of
+and we take this beautiful landscape of io with its greenish yellow fields and
+io with its greenish yellow fields and tall blue
+tall blue billowing smokestacks and transform it
+billowing smokestacks and transform it into this
+into this the colors are more vibrant they pop
+the colors are more vibrant they pop everything is brighter
+everything is brighter richer
+richer today i'm going to cover how we brought
+today i'm going to cover how we brought this upgrade to destiny
+this upgrade to destiny which had content only authored and
+which had content only authored and mastered for sdr
+mastered for sdr i'm going to start by getting everybody
+i'm going to start by getting everybody in the right mindset with a quick recap
+in the right mindset with a quick recap of what hdr is
+of what hdr is and then dive right into how we
+and then dive right into how we approached implementing hdr display
+approached implementing hdr display support in destiny
+support in destiny in particular i'm going to talk about
+in particular i'm going to talk about the goals that we set out with
+the goals that we set out with as well as the constraints that we were
+as well as the constraints that we were bound to which as i'll explain proved
+bound to which as i'll explain proved very significant when it came to the
+very significant when it came to the decisions that we made
+decisions that we made and the approaches that we took i'm
+and the approaches that we took i'm going to focus on three main challenges
+going to focus on three main challenges that we faced in the work how do we tone
+that we faced in the work how do we tone map the game for hdr
+map the game for hdr how do we color grade the game for hdr
+how do we color grade the game for hdr and how do we add hdr support to our ui
+and how do we add hdr support to our ui i'm going to talk about a comparison
+i'm going to talk about a comparison tool that we made that allowed artists
+tool that we made that allowed artists to review
+to review hdr content alongside sdr content on the
+hdr content alongside sdr content on the same screen
+and then from there i'm going to shift gears a bit and move into a broader
+gears a bit and move into a broader space
+space i'll talk about how wild the hdr world
+i'll talk about how wild the hdr world is right now in particular how wild it
+is right now in particular how wild it is on the pc
+is on the pc pc was the first platform on which
+pc was the first platform on which destiny received hdr support
+destiny received hdr support so the bulk of the experience that i
+so the bulk of the experience that i have was understanding how hdr works in
+have was understanding how hdr works in the pc space
+the pc space i'll talk about all the interesting
+i'll talk about all the interesting things i learned about what's necessary
+things i learned about what's necessary for creating a successful hdr game for
+for creating a successful hdr game for windows
+windows and finally i'm going to pose the
+and finally i'm going to pose the question
+question did we do it right well
+did we do it right well we turned out a really great looking hdr
+we turned out a really great looking hdr game but i would hesitate to say that we
+game but i would hesitate to say that we did it the absolute right way
+did it the absolute right way so one and a half years in does it hold
+so one and a half years in does it hold up now that hdr displays are becoming
+up now that hdr displays are becoming more and more mainstream
+more and more mainstream well sort of
+well sort of take mercury for example in sdr
+take mercury for example in sdr today i hope to shed some light on why
+today i hope to shed some light on why when we take this scene
+when we take this scene and view it on an hdr display
+and view it on an hdr display we get this kind of washed out look
+we get this kind of washed out look we've gained detail in the bright sun
+we've gained detail in the bright sun although arguably we probably shouldn't
+although arguably we probably shouldn't have
+have but we actually appear to have lost
+but we actually appear to have lost dynamic range and this is an example of
+dynamic range and this is an example of how our constraints ended up impacting
+how our constraints ended up impacting our final result
+our final result i'll wrap up today with what i learned
+i'll wrap up today with what i learned about doing this kind of work the right
+about doing this kind of work the right way
+way i'll admit that i didn't have a lot of
+i'll admit that i didn't have a lot of experience in this space when the work
+experience in this space when the work started and since then i've learned a
+started and since then i've learned a ton
+ton hopefully i can pass some of these
+hopefully i can pass some of these learnings onto you all today
+learnings onto you all today so really really quick recap of what hdr
+so really really quick recap of what hdr is
+is hdr gets us two major things more
+hdr gets us two major things more dynamic range
+dynamic range blacker blacks brighter whites and more
+blacker blacks brighter whites and more color
+color you can see here that the range of hdr
+you can see here that the range of hdr extends a few orders of magnitude above
+extends a few orders of magnitude above and below that of sdr
+and below that of sdr incidentally this is this range is about
+incidentally this is this range is about equivalent to that of the human eye
+equivalent to that of the human eye without adaptation
+without adaptation also on the right you can see the
+also on the right you can see the difference in gamut size between the sdr
+difference in gamut size between the sdr standard rec 709 which is the smaller
+standard rec 709 which is the smaller triangle
+triangle and the new hdr standard rec 2020 the
+and the new hdr standard rec 2020 the larger triangle
+larger triangle throughout the presentation i'll mention
+throughout the presentation i'll mention these two color spaces a lot
+these two color spaces a lot rec 709 is the color space used for hdtv
+rec 709 is the color space used for hdtv and rec 2020 is for uhd tv
+you'll also hear me mention knits a lot a knit is the a unit of visible light
+a knit is the a unit of visible light intensity and is equal to one candela
+intensity and is equal to one candela per square meter
+per square meter where a candela is the si unit of
+where a candela is the si unit of luminous intensity
+luminous intensity modern lcd displays output a range of
+modern lcd displays output a range of 200 to 300 nits
+200 to 300 nits and hdtvs can be anywhere in the range
+and hdtvs can be anywhere in the range from 400 to possibly even 1500 nits
+from 400 to possibly even 1500 nits depending on
+depending on certain conditions in cases
+and just to give some grounding for those less familiar with some more terms
+those less familiar with some more terms i'll be throwing around
+i'll be throwing around tone mapping is the process of remapping
+tone mapping is the process of remapping a set of colors in a particular range
+a set of colors in a particular range down to a new set of colors and
+down to a new set of colors and brightnesses and a more limited range
+brightnesses and a more limited range for example taking raw camera data of
+for example taking raw camera data of real-world lighting conditions and
+real-world lighting conditions and squashing that data down
+squashing that data down into a typical into range that a typical
+into a typical into range that a typical display can represent
+the term lut is just shorthand for lookup table and it's a data structure
+lookup table and it's a data structure that's used in color grading as a means
+that's used in color grading as a means of altering colors
+fp16 is a pixel format where each channel has 16 bits of precision so
+channel has 16 bits of precision so double that of our standard 8-bit rgba
+double that of our standard 8-bit rgba format
+format gamma is the pretty well-known nonlinear
+gamma is the pretty well-known nonlinear transform of
+transform of image data that originated in the crt tv
+image data that originated in the crt tv it's non-linear in order to
+it's non-linear in order to give more precision to dark values which
+give more precision to dark values which is important because the human eye is
+is important because the human eye is more sensitive to brightness changes in
+more sensitive to brightness changes in low light than bright light
+low light than bright light and finally pq is short for a perceptual
+and finally pq is short for a perceptual quantizer
+quantizer and it's hdr's new gamma curve
+and it's hdr's new gamma curve i'm not going to cover the details of
+i'm not going to cover the details of its formulation because that could
+its formulation because that could probably eat up the entire hour that i
+probably eat up the entire hour that i have
+have but it's designed to ensure that enough
+but it's designed to ensure that enough precision is available over the entire
+precision is available over the entire range of the hdr standard
+range of the hdr standard so that a human can't visually perceive
+so that a human can't visually perceive a discrete step in brightness
+a discrete step in brightness now all this out of the way we can dive
+now all this out of the way we can dive right into the details of bringing hdr
+right into the details of bringing hdr display support to destiny 2.
+display support to destiny 2. i told you this recap would be quick
+i told you this recap would be quick so we set out with a few explicit goals
+so we set out with a few explicit goals for our hdr implementation
+for our hdr implementation the first of these were art centric and
+the first of these were art centric and championed by nate hawbaker over at
+championed by nate hawbaker over at bungie
+bungie who was the technical artist i worked
+who was the technical artist i worked with on hdr
+with on hdr we wanted visual consistency when
+we wanted visual consistency when compared to the sdr version of the game
+compared to the sdr version of the game as well as the same high level of visual
+as well as the same high level of visual quality that's expected from a bungee
+quality that's expected from a bungee title
+title we also needed to build the feature with
+we also needed to build the feature with little to no extra art support
+little to no extra art support nate would be the only artist working on
+nate would be the only artist working on this and this was maybe obviously our
+this and this was maybe obviously our largest constraint
+largest constraint now in addition to this as an engineer i
+now in addition to this as an engineer i saw a high degree of technical
+saw a high degree of technical robustness
+robustness in the implementation it should always
+in the implementation it should always work when it can
+work when it can or be clear why it's not working now at
+or be clear why it's not working now at the time that we started the work in
+the time that we started the work in early 2017
+early 2017 hdr was in a very early adoption state
+hdr was in a very early adoption state working with it could be very finicky
+working with it could be very finicky and in a few cases it still is
+and in a few cases it still is very few users would initially have
+very few users would initially have access to it hence the limited resources
+access to it hence the limited resources to implement it
+to implement it this essentially started out as a pet
+this essentially started out as a pet project i was the only
+project i was the only engineer working on it which brought us
+engineer working on it which brought us to a total of two people
+to a total of two people to support the future one last really
+to support the future one last really interesting constraint that i want to
+interesting constraint that i want to highlight
+highlight here is that what we were trying to do
+here is that what we were trying to do was take a game
+was take a game that was authored and mastered for sdr
+that was authored and mastered for sdr and retroactively fit it with hdr
+and retroactively fit it with hdr display support
+display support as we'll see this is what pulled us away
+as we'll see this is what pulled us away from doing things the right way
+from doing things the right way and drove us to come up with some very
+and drove us to come up with some very unique solutions
+now if you review some documentation about adding support for hdr displays
+about adding support for hdr displays you can come up with a checklist that
+you can come up with a checklist that looks a bit like this
+looks a bit like this first we need to actually inform the
+first we need to actually inform the display that we're supplying an hdr
+display that we're supplying an hdr picture
+picture this can be done with the api of the
+this can be done with the api of the platform that you're working on
+platform that you're working on we need to change our backbuffer format
+we need to change our backbuffer format to be hdr compliant
+to be hdr compliant we need to ensure that we have at least
+we need to ensure that we have at least 10 bits per channel of precision
+10 bits per channel of precision throughout the entire rendering pipeline
+throughout the entire rendering pipeline otherwise we're going to lose our larger
+otherwise we're going to lose our larger range in precision
+now before sending the image off to the display we need to convert our picture
+display we need to convert our picture to the new rec 2020 color space
+to the new rec 2020 color space and pq and code now on pc these last two
+and pq and code now on pc these last two items are handled for us by the display
+items are handled for us by the display driver
+driver if we choose and then uh
+if we choose and then uh magic right everything just works and
+magic right everything just works and and it's great we send it out no
+and it's great we send it out no it's not that simple destiny's rendering
+it's not that simple destiny's rendering pipeline at a high level looks pretty
+pipeline at a high level looks pretty standard
+standard lighting and shading uses 11 11 10
+lighting and shading uses 11 11 10 buffers so we started with sufficient
+buffers so we started with sufficient precision there
+precision there post process continues on with 11 11 10
+post process continues on with 11 11 10 as well as 16 bit floating point so
+as well as 16 bit floating point so no work needs to be done there either
+no work needs to be done there either then we take
+then we take the scene and we tone map it down to sdr
+the scene and we tone map it down to sdr and that tone map value is used as an
+and that tone map value is used as an input into our grading luts
+input into our grading luts we shift from 16 bits per channel to 8
+we shift from 16 bits per channel to 8 and we've moved from scene referred
+and we've moved from scene referred space to a non-linear tone map space
+space to a non-linear tone map space we've lost our range after this ui is
+we've lost our range after this ui is rendered directly to the back buffer
+rendered directly to the back buffer and then the final image is sent out to
+and then the final image is sent out to the display
+the display and these formats used in the latter
+and these formats used in the latter stages of the pipeline meant that
+stages of the pipeline meant that initial hdr support wasn't as simple as
+initial hdr support wasn't as simple as changing the back buffer format alone
+changing the back buffer format alone the result is something similar to this
+the result is something similar to this which hopefully looks a bit dim
+which hopefully looks a bit dim the low brightness is because having
+the low brightness is because having rendered to an 8-bit per channel target
+rendered to an 8-bit per channel target during the pipeline
+during the pipeline pixel values are clamped to 1 which on
+pixel values are clamped to 1 which on an hdr display
+an hdr display translates to only 80 nits of brightness
+translates to only 80 nits of brightness under these conditions we could achieve
+under these conditions we could achieve nothing brighter than that and because
+nothing brighter than that and because of something called the hunt effect
+of something called the hunt effect you get something that looks pretty dull
+unfortunately for destiny it was fairly simple to change all these formats when
+simple to change all these formats when running with hdr enabled
+running with hdr enabled and we did this by branching maintaining
+and we did this by branching maintaining the old sdr pipeline
+the old sdr pipeline in its entirety while introducing a new
+in its entirety while introducing a new rendering path where these formats would
+rendering path where these formats would be different
+be different if our target display was hdr on pc the
+if our target display was hdr on pc the back buffer format was 16-bit floating
+back buffer format was 16-bit floating point
+point and on console it's 10 bits per channel
+and on console it's 10 bits per channel 2-bits alpha
+2-bits alpha and the result of doing this is we go
+and the result of doing this is we go from this very dim picture
+from this very dim picture to something that takes much better
+to something that takes much better advantage of the range that hdr has to
+advantage of the range that hdr has to offer
+offer but of course it's still not really that
+but of course it's still not really that simple if it were i wouldn't be up here
+simple if it were i wouldn't be up here talking
+talking the next step after that was figuring
+the next step after that was figuring out how to tone map for hdr
+out how to tone map for hdr i mentioned earlier that tone mapping
+i mentioned earlier that tone mapping takes place right at the end of
+takes place right at the end of post-processing alongside color grading
+post-processing alongside color grading destiny 2 has a rather unique tone
+destiny 2 has a rather unique tone mapping curve and it looks like this
+mapping curve and it looks like this it doesn't really have much of a toe it
+it doesn't really have much of a toe it gives more contrast to the low ranges
+gives more contrast to the low ranges rather than the mid
+rather than the mid and initially for simplicity's sake we
+and initially for simplicity's sake we implemented the asus hdr filming tow
+implemented the asus hdr filming tow mapping curve
+mapping curve just to get us off the ground and
+just to get us off the ground and running and that looks like this
+running and that looks like this it's kind of a different shape than
+it's kind of a different shape than destiny's curve
+destiny's curve you can see that here
+so the result doesn't actually match the intent of sdr very well
+intent of sdr very well as you can see here sdr is in the left
+as you can see here sdr is in the left half of these images and hdr
+half of these images and hdr is in the right in particular the darks
+is in the right in particular the darks were really crushed
+were really crushed we couldn't go the asus route because it
+we couldn't go the asus route because it was too far off from our goal of visual
+was too far off from our goal of visual consistency and also players would have
+consistency and also players would have kind of a terrible time trying to play
+kind of a terrible time trying to play in dark conditions like that
+so we modeled an hdr curve that matched the shape of the sdr curve
+the shape of the sdr curve and got much more visually consistent
+and got much more visually consistent results now this is an area where we
+results now this is an area where we probably could have explored other
+probably could have explored other options but with the existing sdr curve
+options but with the existing sdr curve so
+so ingrained in the visual style of destiny
+ingrained in the visual style of destiny and an artist's expectations
+and an artist's expectations changing the sdr pipeline was a
+changing the sdr pipeline was a non-starter given the impact and the
+non-starter given the impact and the resources that we had
+resources that we had two people next up
+two people next up color grading color grading is a step
+color grading color grading is a step during post process that
+during post process that essentially converts colors to other
+essentially converts colors to other colors it's a common practice in the
+colors it's a common practice in the film industry to alter the look of
+film industry to alter the look of any given frame we use it in games
+any given frame we use it in games primarily to set ambience or create
+primarily to set ambience or create color warping effects
+color warping effects for example when you travel through a
+for example when you travel through a man canon or a vex teleporter in the
+man canon or a vex teleporter in the game
+game as pictured here a let transformation is
+as pictured here a let transformation is being used to achieve part of the screen
+being used to achieve part of the screen space effect you see
+space effect you see the hurdle that we faced was that the
+the hurdle that we faced was that the luts for destiny 2 were authored for
+luts for destiny 2 were authored for colors in sdr space
+colors in sdr space from 0 to 1. so the values we got back
+from 0 to 1. so the values we got back were not hdr and the values that
+were not hdr and the values that expected to go into it were also not hdr
+expected to go into it were also not hdr were two choices
+were two choices either we re-author the luts for hdr and
+either we re-author the luts for hdr and choose which tables to use depending on
+choose which tables to use depending on what display we're outputting to
+what display we're outputting to or we find a clever way to use the sdr
+or we find a clever way to use the sdr flats and as an engineer
+flats and as an engineer of course i went the route of trying to
+of course i went the route of trying to be clever
+be clever i settled on some math trickery
+i settled on some math trickery considering that we're taking a linear
+considering that we're taking a linear input
+input y equals x tone mapping it down to a new
+y equals x tone mapping it down to a new range
+range y equals sdr tone mapped so s of x
+y equals sdr tone mapped so s of x and then transforming that color with a
+and then transforming that color with a lookup table l of s of x
+lookup table l of s of x the hdr value we want in the end before
+the hdr value we want in the end before tone mapping is just our original linear
+tone mapping is just our original linear input so
+input so if we ignore the color transform to get
+if we ignore the color transform to get back to our original linear value
+back to our original linear value we just have to multiply by x over s of
+we just have to multiply by x over s of x and voila
+x and voila we have our hdr value back
+we have our hdr value back and it worked and this is what the code
+and it worked and this is what the code looks like or pseudocode at least we
+looks like or pseudocode at least we tone map our sdr color we perform our
+tone map our sdr color we perform our lut lookup
+lut lookup we calculate this transform by dividing
+we calculate this transform by dividing the input color
+the input color careful not to divide by zero and then
+careful not to divide by zero and then we multiply our luck color by that
+we multiply our luck color by that transform
+now when i say it worked it wasn't quite perfect because whenever the input color
+perfect because whenever the input color is zero
+is zero we'll fail to perform a color
+we'll fail to perform a color replacement because we'll still get zero
+replacement because we'll still get zero as a result
+as a result this means that we can't replace the
+this means that we can't replace the color black
+we decided to ship with that issue as it really wasn't very common to
+really wasn't very common to try to perform that color replacement in
+try to perform that color replacement in that specific case
+that specific case we did unwittingly shift with a
+we did unwittingly shift with a different bug though and maybe some of
+different bug though and maybe some of you saw this at some point
+you saw this at some point if you play with hdr because this one
+if you play with hdr because this one was around for a while
+yeah so anywhere in the game that had particularly dark colors like this cave
+particularly dark colors like this cave ended up getting kind of blown out
+ended up getting kind of blown out looking overly
+looking overly bright and bloomy in a pretty broken way
+bright and bloomy in a pretty broken way with elements of it still
+with elements of it still just as dark as they should be in
+just as dark as they should be in splotches yeah it doesn't look good
+splotches yeah it doesn't look good and the problem became very clear when
+and the problem became very clear when the trick to transform our lut lookups
+the trick to transform our lut lookups back to hdr space was graphed out so
+back to hdr space was graphed out so this is the graph
+this is the graph of that mathematical trick
+as the linear input approaches zero the transform
+transform actually starts to slope upward so lut
+actually starts to slope upward so lut lookups from the dark input colors like
+lookups from the dark input colors like the ones seen here on the right
+the ones seen here on the right are actually going to be greatly
+are actually going to be greatly amplified like so
+now the fix wasn't particularly elegant but it worked pretty well
+but it worked pretty well i introduced a piecewise function that
+i introduced a piecewise function that would preserve the slope of the
+would preserve the slope of the transform curve as the input approach
+transform curve as the input approach zero
+zero and this abrupt change in slope at the
+and this abrupt change in slope at the intersection point of the two functions
+intersection point of the two functions didn't produce any visual artifacts
+didn't produce any visual artifacts i verified the validity of approach
+i verified the validity of approach using the hdr sdr comparison tool
+using the hdr sdr comparison tool which i'll talk about more shortly you
+which i'll talk about more shortly you can see that on the right side there
+okay ui ui was definitely the most arduous journey in
+definitely the most arduous journey in bringing hdr to destiny 2.
+bringing hdr to destiny 2. we tried a total of three different
+we tried a total of three different solutions
+solutions each had unique issues so we just picked
+each had unique issues so we just picked the one with the least complicated
+the one with the least complicated problems to solve and
+problems to solve and plowed right through those there were
+plowed right through those there were two key things that played into all this
+two key things that played into all this difficulty
+difficulty the first one unlike lighting
+the first one unlike lighting calculations ui content is inherently
+calculations ui content is inherently sdr content
+sdr content you're taking images that were authored
+you're taking images that were authored on an srgb display and drawing them
+on an srgb display and drawing them right back
+right back what you see is what you get and the
+what you see is what you get and the second problem is that ui is expected to
+second problem is that ui is expected to be blended in sdr space
+a quick preview of ui rendering and destiny
+destiny each ui element in destiny is rendered
+each ui element in destiny is rendered directly to the back buffer like the
+directly to the back buffer like the cursor here
+cursor here some more complex elements are rendered
+some more complex elements are rendered to a smaller off-screen buffer first and
+to a smaller off-screen buffer first and then the contents of that buffer are
+then the contents of that buffer are rendered to the back buffer
+rendered to the back buffer and lastly there are these things called
+and lastly there are these things called overdraw elements which sample from the
+overdraw elements which sample from the back buffer first
+back buffer first perform maybe some kind of blur on that
+perform maybe some kind of blur on that sample and then render over that sample
+sample and then render over that sample and draw that back onto the back buffer
+and draw that back onto the back buffer the first challenge that i mentioned ui
+the first challenge that i mentioned ui is authored for sdr seems really
+is authored for sdr seems really easy to overcome at first just boost the
+easy to overcome at first just boost the brightness of the ui
+brightness of the ui into a more suitable range so attempt
+into a more suitable range so attempt number one was
+number one was still render all the ui directly to the
+still render all the ui directly to the back buffer but multiply by some magic
+back buffer but multiply by some magic constant
+now unfortunately giving each individual color channel a boost in intensity
+color channel a boost in intensity didn't end up looking quite right
+didn't end up looking quite right all the ui elements look washed out
+all the ui elements look washed out overly wide shifted
+overly wide shifted the reason for this is gamma encoding or
+the reason for this is gamma encoding or more generally
+more generally display transfer functions or in this
+display transfer functions or in this case lack thereof
+case lack thereof sdr you're viewing the ui after it
+sdr you're viewing the ui after it undergoes a gamma transformation when
+undergoes a gamma transformation when being decoded by the display
+being decoded by the display and the result of performing on this
+and the result of performing on this operation on each channel individually
+operation on each channel individually actually means that a hue shift takes
+actually means that a hue shift takes place this meant that in order to
+place this meant that in order to faithfully reproduce ui as viewed on an
+faithfully reproduce ui as viewed on an sdr monitor
+sdr monitor it would have to undergo the same
+it would have to undergo the same transformation but we would have to
+transformation but we would have to perform this manually
+perform this manually and the code looks something like this
+and the code looks something like this raised to a gamma exponent and then
+raised to a gamma exponent and then multiplied by our magic constant
+multiplied by our magic constant the result turns out to be pretty
+the result turns out to be pretty accurate
+accurate now with some experimentation we settled
+now with some experimentation we settled on a gamma exponent of 2.8
+on a gamma exponent of 2.8 and a boost to a maximum of 700 nits
+and a boost to a maximum of 700 nits which when you think about it is
+which when you think about it is actually quite bright
+unfortunately there were still other issues after this first pass
+issues after this first pass more complex elements like overdraw
+more complex elements like overdraw elements were completely wrong
+elements were completely wrong you can see that at the bottom here with
+you can see that at the bottom here with the new user experience overlay
+the new user experience overlay the buttons in the character creator
+the buttons in the character creator screen were also super broken
+screen were also super broken and text looked severely aliased in some
+and text looked severely aliased in some places
+places the overdraw was the most
+the overdraw was the most straightforward to address just don't
+straightforward to address just don't perform the hdr transform when
+perform the hdr transform when drawing back the overdraw element
+drawing back the overdraw element because you've already sampled it from
+because you've already sampled it from hdr space
+hdr space we don't want double hdr text
+we don't want double hdr text unfortunately complicated matters quite
+unfortunately complicated matters quite a bit more
+a bit more and it turns out that we can't blend sdr
+and it turns out that we can't blend sdr content over hdr content
+content over hdr content because this ends up darkening the
+because this ends up darkening the pixels rather than brightening them
+pixels rather than brightening them as it would have in sdr
+so our next plan was why don't we render all our ui elements to some off-screen
+all our ui elements to some off-screen container that's the same size as the
+container that's the same size as the back buffer
+back buffer we'll do all this blending in sdr space
+we'll do all this blending in sdr space and then perform one big transform to
+and then perform one big transform to hdr space at the end
+hdr space at the end this still had two problems one was
+this still had two problems one was really specific to destiny's ui
+really specific to destiny's ui architecture and it was that overdraw
+architecture and it was that overdraw had nothing to sample from
+had nothing to sample from it would try to sample from this blank
+it would try to sample from this blank container on which we were rendering all
+container on which we were rendering all our ui
+our ui the second issue was the text would
+the second issue was the text would still look alias because even though
+still look alias because even though we've removed the problem of blending
+we've removed the problem of blending over ui elements in sdr space it was
+over ui elements in sdr space it was still ultimately trying to be blended
+still ultimately trying to be blended over hdr colors in the back buffer
+over hdr colors in the back buffer so our next idea after that was let's
+so our next idea after that was let's implement a custom blending pass
+implement a custom blending pass but that still didn't give the overdraw
+but that still didn't give the overdraw mechanism any source to sample from
+mechanism any source to sample from so we had to scrap that too
+so we had to scrap that too so i backtracked to rendering ui
+so i backtracked to rendering ui offscreen
+offscreen with one small change before rendering
+with one small change before rendering the ui i copy the back buffer into it
+the ui i copy the back buffer into it and use a simple reversible tone mapper
+and use a simple reversible tone mapper to bring it into an sdr range
+to bring it into an sdr range render all of the ui and sdr and then
+render all of the ui and sdr and then reverse tone map back into hdr space
+reverse tone map back into hdr space the tone mapping function was
+the tone mapping function was specifically chosen to be the exact
+specifically chosen to be the exact inverse of the transformations
+inverse of the transformations to bring ui content into hdr space so
+to bring ui content into hdr space so the full operation would be a no op for
+the full operation would be a no op for pixels that didn't have you
+pixels that didn't have you ui rendered over them
+just review that again using our render pass diagrams
+pass diagrams lighting and shading and post process
+lighting and shading and post process from before
+from before and in our hdr rendering branch we tone
+and in our hdr rendering branch we tone mapping color grid for hdr
+mapping color grid for hdr we then tone map down to sdr range but
+we then tone map down to sdr range but still keep our 16 bit floating point
+still keep our 16 bit floating point precision render all of our ui
+precision render all of our ui in sdr range and then inverse tone map
+in sdr range and then inverse tone map back
+back into our new back buffer with our ui
+into our new back buffer with our ui rendered over it and then we can output
+rendered over it and then we can output to the display
+so now let's talk about our hdr sdr comparison tool
+comparison tool while all of this work was going on
+while all of this work was going on there came this request from tech art
+there came this request from tech art to have a means of comparing the two
+to have a means of comparing the two contents on the same display
+contents on the same display and this is a really interesting
+and this is a really interesting challenge because once a display is in
+challenge because once a display is in hdr mode
+hdr mode sdr values are going to be interpreted
+sdr values are going to be interpreted modern sdr displays actually boost the
+modern sdr displays actually boost the brightness of your content
+brightness of your content above the standard 80 nits to something
+above the standard 80 nits to something like three to 400 nits
+like three to 400 nits and due to the hunt effect like this
+and due to the hunt effect like this image i showed earlier if you were to
+image i showed earlier if you were to just view this content as its
+just view this content as its intended 80 nits it would look less
+intended 80 nits it would look less saturated even though it's the same
+saturated even though it's the same color value
+color value brighter values cause the perception of
+brighter values cause the perception of higher saturation
+higher saturation so what this means is that just tone
+so what this means is that just tone mapping to sdr and throwing the result
+mapping to sdr and throwing the result up on the screen wouldn't fly
+up on the screen wouldn't fly we'll get an image that looks dim and
+we'll get an image that looks dim and desaturated like this one since it's
+desaturated like this one since it's only maxing out at a very low brightness
+only maxing out at a very low brightness now before i actually go into how we
+now before i actually go into how we made this comparison tool i just want to
+made this comparison tool i just want to stress the tremendous amount of value
+stress the tremendous amount of value that it had
+that it had i mentioned before that we utilized it
+i mentioned before that we utilized it when comparing the sdr and hdr tone
+when comparing the sdr and hdr tone mapping curves
+mapping curves and then i also used it when chasing
+and then i also used it when chasing down the color grading bug where dark
+down the color grading bug where dark areas appeared extra bloomy
+areas appeared extra bloomy the following images were taken really
+the following images were taken really early in hdr's development
+early in hdr's development and are just photos taken of the hdr
+and are just photos taken of the hdr screen with an iphone
+screen with an iphone but more importantly demonstrate two
+but more importantly demonstrate two things hdr
+things hdr on the right definitely had the wrong
+on the right definitely had the wrong look
+look and sdr on the left was definitely
+and sdr on the left was definitely reasonably reproduced
+reasonably reproduced one major issue that we had early on was
+one major issue that we had early on was the shift of colors particularly in the
+the shift of colors particularly in the sky box
+sky box pictured here the planet nessus it can
+pictured here the planet nessus it can be seen in the background
+be seen in the background light shafts which are blue and sdr but
+light shafts which are blue and sdr but came through green in hdr
+came through green in hdr and the reason for this was that the
+and the reason for this was that the linear values produced by the skybox
+linear values produced by the skybox were actually
+were actually somewhat dominated by the green channel
+somewhat dominated by the green channel but the sdr tone mapping curve balanced
+but the sdr tone mapping curve balanced out both blue and green
+out both blue and green and the hdr tone mapping curve exposed
+and the hdr tone mapping curve exposed this
+this because it didn't match the intent of
+because it didn't match the intent of the sdr curve at this point
+the sdr curve at this point the second issue which was also present
+the second issue which was also present in the other shots was this real
+in the other shots was this real over darkening of areas this was
+over darkening of areas this was partially due to the tone mapping curve
+partially due to the tone mapping curve but it was also due to my overzealous
+but it was also due to my overzealous attempt to correct for the lack of
+attempt to correct for the lack of ambient occlusion in my own local
+ambient occlusion in my own local content build
+content build with the toe of the tone mapping curve
+with the toe of the tone mapping curve so when that was combined with the real
+so when that was combined with the real baked ao solution
+baked ao solution it would produce these really dark
+it would produce these really dark spaces oops
+how do we actually do this the problem that we were solving for ui was teaching
+that we were solving for ui was teaching us
+us pretty important lessons that were
+pretty important lessons that were required to understand this problem too
+required to understand this problem too all we need to do is recreate the
+all we need to do is recreate the transforms that a pixel would go through
+transforms that a pixel would go through on an sdr display and then scale that to
+on an sdr display and then scale that to a target brightness but what exactly are
+a target brightness but what exactly are those transforms
+those transforms we wanted to be more exact here than we
+we wanted to be more exact here than we were with the ui
+were with the ui so we needed to understand them in
+so we needed to understand them in greater detail in order to manually
+greater detail in order to manually reproduce this sdr image
+reproduce this sdr image there are two types of transfer
+there are two types of transfer functions at play here the first are
+functions at play here the first are eotfs or electro optical transfer
+eotfs or electro optical transfer functions which define a transformation
+functions which define a transformation from a signal voltage
+from a signal voltage to an optical intensity on a display
+to an optical intensity on a display and the second are oetfs or
+and the second are oetfs or optoelectrical transfer functions
+optoelectrical transfer functions which define a transformation from an
+which define a transformation from an optical intensity to a voltage
+optical intensity to a voltage now both of these functions are the
+now both of these functions are the answer to the question how do you
+answer to the question how do you represent a light intensity with a
+represent a light intensity with a single voltage
+single voltage an eotf is the reproduction of light
+an eotf is the reproduction of light from a voltage and an oetf
+from a voltage and an oetf is the capture of light to a voltage
+these transformations in conjunction are important because as we saw with the
+important because as we saw with the gamma correction on ui
+gamma correction on ui applying them to individual color
+applying them to individual color channels alters the linear curve
+channels alters the linear curve and introduces a hue shift these
+and introduces a hue shift these differing transfer functions are also
+differing transfer functions are also the reason that brightness screens exist
+the reason that brightness screens exist in video games
+in video games depending on the transfer function used
+depending on the transfer function used by your display in media you may not see
+by your display in media you may not see you may not see the content as it was
+you may not see the content as it was authored or mastered
+authored or mastered the brightness screen adjusts the gamma
+the brightness screen adjusts the gamma exponent in order to better tune
+exponent in order to better tune for the intended visual output
+for the intended visual output now for the reproduction of sdr content
+now for the reproduction of sdr content in hdr we chose the srgbf
+in hdr we chose the srgbf the srgb eotf so many acronyms which
+the srgb eotf so many acronyms which generates this curve
+generates this curve and the bt 709 oetf which is from the
+and the bt 709 oetf which is from the standard for high definition television
+standard for high definition television after tone mapping for sdr in our tow
+after tone mapping for sdr in our tow mapping pass we would run the pixel
+mapping pass we would run the pixel values through both of these curves
+values through both of these curves and then scale that result to a target
+and then scale that result to a target brightness
+brightness and here's the final result standard sdr
+and here's the final result standard sdr is on the left and our recreation in hdr
+is on the left and our recreation in hdr is on the right
+and here's another look with these photos being taken on the monitor to try
+photos being taken on the monitor to try to demonstrate what you would see if you
+to demonstrate what you would see if you were just looking at the screen
+were just looking at the screen now takara was really happy with the
+now takara was really happy with the results they felt that it faithfully
+results they felt that it faithfully reproduced the sdr look
+reproduced the sdr look and used it in order to tune hdr tone
+and used it in order to tune hdr tone mapping curve to match the intent of the
+mapping curve to match the intent of the sdr tone mapping curve i must highlight
+sdr tone mapping curve i must highlight though that these images here
+though that these images here definitely don't look perfect and i'll
+definitely don't look perfect and i'll get to why that is in just a little bit
+get to why that is in just a little bit but first i want to talk about some of
+but first i want to talk about some of the more
+the more interesting problems that came up during
+interesting problems that came up during this work consider this a mix between a
+this work consider this a mix between a rant and a brain dump of all the weird
+rant and a brain dump of all the weird things that i encountered
+things that i encountered and learned while working on this
+so first up some tvs may not support hdr right out of the box you may
+support hdr right out of the box you may be required to locate an
+be required to locate an enhanced hdmi setting
+enhanced hdmi setting for one of the inputs usually it's input
+for one of the inputs usually it's input one
+one usually that's the only input that
+usually that's the only input that supports the switch but until you do
+supports the switch but until you do that your hardware won't recognize the
+that your hardware won't recognize the tv
+tv as hdr capable and this must be really
+as hdr capable and this must be really great for a consumer to unbox their
+great for a consumer to unbox their brand new hdr tv
+brand new hdr tv plug their console into it and then have
+plug their console into it and then have the console say nope not hdr
+more technically we had to be careful about using saturated in our shaders
+about using saturated in our shaders because this inherently clamps to a zero
+because this inherently clamps to a zero to one range so you're automatically
+to one range so you're automatically going to lose this larger range that hdr
+going to lose this larger range that hdr has to offer
+has to offer the the solution here is pretty simple
+the the solution here is pretty simple roll your own saturated function or just
+roll your own saturated function or just avoid its use in general
+if you're using 16-bit floating point buffers that actually means you can get
+buffers that actually means you can get negative numbers
+negative numbers this picture here is a bug that we had
+this picture here is a bug that we had when we tried to use 16-bit floating
+when we tried to use 16-bit floating point
+point lighting and shading buffers instead of
+lighting and shading buffers instead of 11 11 10.
+11 11 10. the vfx for the ship's thrusters in this
+the vfx for the ship's thrusters in this cutscene could generate negative enough
+cutscene could generate negative enough for
+for numbers in the frame buffer and that
+numbers in the frame buffer and that would lead to these colorful artifacts
+would lead to these colorful artifacts in this case we addressed it simply by
+in this case we addressed it simply by not leveraging 16 bit floating point
+not leveraging 16 bit floating point lighting shading buffers in the future
+lighting shading buffers in the future the more ideal fix would be to just
+the more ideal fix would be to just obviously prevent these negative colors
+obviously prevent these negative colors from happening
+our two anti-aliasing algorithms fxaa and smaa need to operate in sdr space in
+and smaa need to operate in sdr space in order to be effective at all
+order to be effective at all in both cases we use a cheap reversible
+in both cases we use a cheap reversible tone mapper
+tone mapper to bring the range down before
+to bring the range down before performing aa and then inverse tone map
+performing aa and then inverse tone map back to hdr
+back to hdr and then finally on screens with really
+and then finally on screens with really really deep blacks like
+really deep blacks like oleds screen noise suddenly becomes much
+oleds screen noise suddenly becomes much more pronounced and visible
+more pronounced and visible it looks like static so you have to
+it looks like static so you have to attenuate it accordingly depending on
+attenuate it accordingly depending on the
+the minimum brightness of your display or
+minimum brightness of your display or the low range
+the low range and then all these technical gotchas get
+and then all these technical gotchas get kinda crazier when we start talking
+kinda crazier when we start talking about support for hdr and pc
+about support for hdr and pc and admittedly the space is much better
+and admittedly the space is much better than it once was but at the same time
+than it once was but at the same time i think it has a bit of a long way to
+i think it has a bit of a long way to stabilize
+stabilize so here's a short retrospective on
+so here's a short retrospective on developing an hdr game on windows
+for the longest time we were plagued by this banding in the skybox and other
+this banding in the skybox and other atmospheric effects
+atmospheric effects really anywhere that had a gradual
+really anywhere that had a gradual gradient of color
+gradient of color i was quite confused i painstakingly
+i was quite confused i painstakingly scrutinized every single stage of
+scrutinized every single stage of rendering
+rendering for weeks to try to spot where this
+for weeks to try to spot where this banding was being introduced
+banding was being introduced convinced that we were losing precision
+convinced that we were losing precision somewhere
+somewhere but eventually i arrived at the nvidia
+but eventually i arrived at the nvidia display settings where you can choose
+display settings where you can choose the output color depth for your display
+the output color depth for your display and i found that it defaulted to 8 bits
+and i found that it defaulted to 8 bits per channel
+per channel the reason for this i'm pretty sure was
+the reason for this i'm pretty sure was that the video mode i was trying to run
+that the video mode i was trying to run 4k at 60fps required a data rate too
+4k at 60fps required a data rate too high for the hdmi
+high for the hdmi protocol at the time dropping this
+protocol at the time dropping this target frame rate to 30 and then
+target frame rate to 30 and then manually switching this bit depth to 10
+manually switching this bit depth to 10 bits per channel
+bits per channel fix the banding what was odd is that i
+fix the banding what was odd is that i still had to change the output color
+still had to change the output color depth manually
+depth manually and this is another area where i could
+and this is another area where i could see players getting pretty confused
+see players getting pretty confused about
+about not getting the best quality out of the
+not getting the best quality out of the box
+quickly if we look at the requirements for 4k hdr 30fps would require something
+for 4k hdr 30fps would require something over
+over a little over 11 gigabit per second
+a little over 11 gigabit per second rates while 60fps naturally requires
+rates while 60fps naturally requires twice that this was with no chroma
+twice that this was with no chroma subsampling
+subsampling now fortunately hdmi 2.1 supports these
+now fortunately hdmi 2.1 supports these rates and so does displayport so just
+rates and so does displayport so just make sure that you're using either of
+make sure that you're using either of those if you're going to do this work
+now when we first shipped hdr and pc we got a really positive response
+got a really positive response we hit our goals for visual consistency
+we hit our goals for visual consistency quality technical robustness
+quality technical robustness and we were one of only a handful of hdr
+and we were one of only a handful of hdr games on the pc at the time
+games on the pc at the time people were having very few issues
+people were having very few issues getting the game to engage hdr which was
+getting the game to engage hdr which was great
+great i think one player commented something
+i think one player commented something something to the effect of finally
+something to the effect of finally an hdr game on the pc that just works
+an hdr game on the pc that just works however hdr was still a feature that was
+however hdr was still a feature that was restricted to full screen exclusive
+restricted to full screen exclusive window mode
+window mode and that's a mode that not everybody
+and that's a mode that not everybody likes to use so
+likes to use so when new dxgi features started to come
+when new dxgi features started to come into the picture i wondered if we could
+into the picture i wondered if we could improve on this implementation and
+improve on this implementation and support
+support hdr in a windowed mode
+now ideally an hdr game on windows supports both windows 7
+supports both windows 7 and windows 10. windows 7 requires full
+and windows 10. windows 7 requires full screen exclusive there's no getting
+screen exclusive there's no getting around that
+around that it has to be engaged with the apis from
+it has to be engaged with the apis from nvidia or amd
+nvidia or amd while windows 10 can now utilize dxgi to
+while windows 10 can now utilize dxgi to query hdr support
+query hdr support and set the metadata appropriate what we
+and set the metadata appropriate what we tried
+tried what i'd recommend doing is first
+what i'd recommend doing is first checking for compatibility with dxgi 1.5
+checking for compatibility with dxgi 1.5 or above
+or above this will tell you whether you're
+this will tell you whether you're working with windows 10 or 7.
+working with windows 10 or 7. then you have to check if the monitor's
+then you have to check if the monitor's color space is rec 2020
+color space is rec 2020 now if hdr and advanced color is turned
+now if hdr and advanced color is turned on
+on in the os it will be if neither of those
+in the os it will be if neither of those are true
+are true you should fall back to using vendor
+you should fall back to using vendor apis because it means either it's not on
+apis because it means either it's not on by default and you have to go into full
+by default and you have to go into full screen exclusive to turn it on
+screen exclusive to turn it on or you're using windows 7 and you have
+or you're using windows 7 and you have to do that anyway
+to do that anyway we make the distinction between native
+we make the distinction between native and vendor support
+and vendor support and cache which support we have in order
+and cache which support we have in order to determine how to enable it if the
+to determine how to enable it if the user chooses to
+user chooses to it's also worth pointing out both of
+it's also worth pointing out both of these methods can use a 16 bit floating
+these methods can use a 16 bit floating point back buffer with 709 primaries so
+point back buffer with 709 primaries so you are able to unify
+you are able to unify your two pipelines for both cases which
+your two pipelines for both cases which is great
+now that works great on the surface but hdr and dxgi still has its quirks
+hdr and dxgi still has its quirks the first that i found is that depending
+the first that i found is that depending on which back buffer format you use your
+on which back buffer format you use your choices being
+choices being 10 bits per channel and 2 bits alpha or
+10 bits per channel and 2 bits alpha or 16 bit floating point
+16 bit floating point your color space will either be pq
+your color space will either be pq encoded with 20 20 primaries
+encoded with 20 20 primaries or no gamma with 709 primaries for some
+or no gamma with 709 primaries for some reason it's not okay to have a 16-bit
+reason it's not okay to have a 16-bit floating point buffer with 2020
+floating point buffer with 2020 primaries
+primaries i kind of want that furthermore the swap
+i kind of want that furthermore the swap chain
+chain has to be using the flip present model
+has to be using the flip present model to support any color space other than
+to support any color space other than 709 with 2.2 gamma
+709 with 2.2 gamma and this is because legacy gdi is still
+and this is because legacy gdi is still in use for the non-flip swap effects
+in use for the non-flip swap effects and it has no support for surfaces with
+and it has no support for surfaces with greater than 32-bit depth
+greater than 32-bit depth lastly i'm not actually sure if this is
+lastly i'm not actually sure if this is documented anywhere but
+documented anywhere but the desktop window manager in hdr mode
+the desktop window manager in hdr mode actually expects an fp16
+actually expects an fp16 back buffer from applications if you
+back buffer from applications if you provide it with 10 bits
+provide it with 10 bits per channel and tube at alpha pq encoded
+per channel and tube at alpha pq encoded back buffer
+back buffer it will dpq composite your frame in its
+it will dpq composite your frame in its own internal fp16 buffer
+own internal fp16 buffer before re-pq-ing and then sending that
+before re-pq-ing and then sending that off to the display
+off to the display this obviously brings with it a perfect
+this obviously brings with it a perfect for the composite step
+for the composite step we didn't measure exactly what that was
+we didn't measure exactly what that was i think it's
+i think it's probably obvious that it would have some
+probably obvious that it would have some kind of perf implication but
+kind of perf implication but because of this we opted to stick with
+because of this we opted to stick with the fp-16 back buffer instead
+and i showed this a few slides ago this all works totally great but
+all works totally great but we still have not shipped this
+we still have not shipped this improvement because of no shortage of
+improvement because of no shortage of edge case issues and other strange
+edge case issues and other strange behavior
+behavior particularly as it pertains to another
+particularly as it pertains to another improvement that we made which did ship
+improvement that we made which did ship last year and that's the black and white
+last year and that's the black and white point calibration screens
+point calibration screens so these screens were implemented using
+so these screens were implemented using a pretty standard scale and bias
+a pretty standard scale and bias and we kept the reference white paper
+and we kept the reference white paper value at a fixed 80 nets
+value at a fixed 80 nets and let the white point change the max
+and let the white point change the max knit value of the pq
+knit value of the pq algorithm so by default that's 10 000.
+algorithm so by default that's 10 000. reducing it has the same effect as
+reducing it has the same effect as increasing the reference paper white
+increasing the reference paper white value that's the scale step
+value that's the scale step now the white point screen is
+now the white point screen is implemented with three tricorns of
+implemented with three tricorns of increasing intensity in front of a
+increasing intensity in front of a background of an intended
+background of an intended ten thousand nets the brightest value
+ten thousand nets the brightest value that we could hope
+that we could hope to output on any hdr display is ten
+to output on any hdr display is ten thousand
+thousand of course no display can actually
+of course no display can actually achieve this right now so we're
+achieve this right now so we're basically telling the display give it
+basically telling the display give it all you got
+all you got show the brightest thing you can the not
+show the brightest thing you can the not visible trachorn is valued just above
+visible trachorn is valued just above the maximum output for our hdr tone
+the maximum output for our hdr tone mapping curve
+mapping curve in other words it's the brightest value
+in other words it's the brightest value the game could ever display and it can
+the game could ever display and it can safely blend into our bright background
+safely blend into our bright background the barely visible trackhorn represents
+the barely visible trackhorn represents one step down from that brightest value
+one step down from that brightest value and then the clearly visible tricorn
+and then the clearly visible tricorn another equal step down
+another equal step down seeing both of these ensures that the
+seeing both of these ensures that the detail will be preserved in bright areas
+detail will be preserved in bright areas of the game the way that it was meant to
+of the game the way that it was meant to be
+be unfortunately the brightness screen
+unfortunately the brightness screen behaves differently under several
+behaves differently under several different conditions
+first off you can get different calibrations whether you have hdr
+calibrations whether you have hdr enabled on the desktop or not turn
+enabled on the desktop or not turn windows hdr off
+windows hdr off enter the game in full screen calibrate
+enter the game in full screen calibrate your white point turn windows hdr back
+your white point turn windows hdr back on
+on re-enter the game and the screen looks
+re-enter the game and the screen looks different
+different you can get different results if you
+you can get different results if you toggle between windowed and full screen
+toggle between windowed and full screen modes
+modes calibrating one change to another you
+calibrating one change to another you have to calibrate again
+have to calibrate again the screen can be different depending on
+the screen can be different depending on what type of video card you're using
+what type of video card you're using your calibrations can change if you add
+your calibrations can change if you add or remove a second monitor to your rig
+or remove a second monitor to your rig and lastly my personal favorite
+and lastly my personal favorite depending on how long you leave the
+depending on how long you leave the white point screen open
+white point screen open the monitor will auto correct itself to
+the monitor will auto correct itself to balance out the intensities that you're
+balance out the intensities that you're trying to display creating a moving
+trying to display creating a moving target as you're trying to calibrate and
+target as you're trying to calibrate and this is the worst and i want it to go
+this is the worst and i want it to go away now
+away now all of this is really to say that hdr in
+all of this is really to say that hdr in windows is a really challenging space to
+windows is a really challenging space to work in right now if you want to make
+work in right now if you want to make things
+things perfect you might have to accept that
+perfect you might have to accept that everything isn't going to work
+everything isn't going to work exactly as you expect it to all the time
+exactly as you expect it to all the time and the real goal is to just abstract
+and the real goal is to just abstract away these quirks from players
+away these quirks from players um and i'm just gonna insert in here i
+um and i'm just gonna insert in here i had another bug where the
+had another bug where the the white uh background bar of this
+the white uh background bar of this calibration screen would just completely
+calibration screen would just completely disappear sometimes
+disappear sometimes if you turn your calibration meter all
+if you turn your calibration meter all the way up it would just
+the way up it would just go away never figured that one out
+go away never figured that one out eventually fixed with a driver
+eventually fixed with a driver update
+so that brings me back to this comparison tool i mentioned that these
+comparison tool i mentioned that these pictures of it show that it's not 100
+pictures of it show that it's not 100 accurate if we compare directly to what
+accurate if we compare directly to what we see with our own eyes on an sdr
+we see with our own eyes on an sdr display
+display but can we really make this perfect if i
+but can we really make this perfect if i were to revisit the comparison tool i
+were to revisit the comparison tool i might take a different approach
+might take a different approach i'd switch to a chromoloomer
+i'd switch to a chromoloomer representation i'd raise the luma
+representation i'd raise the luma in order to avoid hue shifts at all but
+in order to avoid hue shifts at all but then i'd be skipping this inherent
+then i'd be skipping this inherent u-shift that comes with srgb displays
+u-shift that comes with srgb displays and their transfer functions
+and their transfer functions so i'd be leaving out kind of an
+so i'd be leaving out kind of an important part i'd have to find a way to
+important part i'd have to find a way to do both
+do both it's actually really difficult to get
+it's actually really difficult to get this to be really accurate but why
+this to be really accurate but why well at least part of the reason a large
+well at least part of the reason a large part i think
+part i think is that different monitors do all sorts
+is that different monitors do all sorts of different things to an image to bring
+of different things to an image to bring you what the manufacturer deems to be
+you what the manufacturer deems to be the best quality
+the best quality in this example each image's color
+in this example each image's color distribution is slightly different and
+distribution is slightly different and represents the differences you might see
+represents the differences you might see across different monitors
+across different monitors with different calibrations displaying
+with different calibrations displaying the same scene
+in this case my monitor was really pushing the vibrancy of the image
+pushing the vibrancy of the image and also adding a blue shift i'll admit
+and also adding a blue shift i'll admit i didn't really take much care to
+i didn't really take much care to calibrate its sdr mode prior to taking
+calibrate its sdr mode prior to taking these pictures
+these pictures the differences in display curves are
+the differences in display curves are what make this kind of comparison tool
+what make this kind of comparison tool really hard to kneel down but what's
+really hard to kneel down but what's important to remember is that for this
+important to remember is that for this tool
+tool we just have to match artists
+we just have to match artists expectations we don't actually have to
+expectations we don't actually have to match a real sdr display
+match a real sdr display that could be calibrated to anything
+now all the stuff about varying display curves can be true for hdr tvs as well
+curves can be true for hdr tvs as well and that's what makes these calibration
+and that's what makes these calibration screens
+screens really hard to get right while the hdr
+really hard to get right while the hdr standard is much more clear about
+standard is much more clear about encoding and decoding
+encoding and decoding we're still subject to some very black
+we're still subject to some very black box color correction or luminance
+box color correction or luminance correction
+correction depending on the capabilities of the
+depending on the capabilities of the display and this is something that the
+display and this is something that the hdr gaming interest group wants to
+hdr gaming interest group wants to address by encouraging tv manufacturers
+address by encouraging tv manufacturers to implement common behavior in the game
+to implement common behavior in the game mode of displays
+mode of displays one of the key points is that in game
+one of the key points is that in game mode instead of the tv rolling off near
+mode instead of the tv rolling off near peak luminance values like this which
+peak luminance values like this which can end up altering our content
+can end up altering our content unexpectedly the tv just clips as soon
+unexpectedly the tv just clips as soon as it reaches its peak luminance value
+as it reaches its peak luminance value like this
+like this and we the developers are given details
+and we the developers are given details about the display
+about the display that allow us to customize our tone
+that allow us to customize our tone mapping function until this kind of
+mapping function until this kind of standardization happens we're going to
+standardization happens we're going to have to drum up some really really
+have to drum up some really really robust calibration tech
+all right that was a lot of stuff i mentioned at the beginning that i don't
+mentioned at the beginning that i don't believe we really went about this the
+believe we really went about this the absolute
+absolute correct way i should say that i still
+correct way i should say that i still think we ended up with a really great
+think we ended up with a really great looking hdr game and i'm very proud of
+looking hdr game and i'm very proud of that
+that but i have to recognize the things i
+but i have to recognize the things i learned along the way and things i've
+learned along the way and things i've learned in the time since would have
+learned in the time since would have been really valuable to have known from
+been really valuable to have known from the start
+the start so if i were to have a second go at this
+so if i were to have a second go at this i'd definitely start by choosing to use
+i'd definitely start by choosing to use hdr luts being clever was great
+hdr luts being clever was great but several of the unique issues that i
+but several of the unique issues that i covered today while interesting to solve
+covered today while interesting to solve could have just been avoided entirely if
+could have just been avoided entirely if we use let's design for hdr
+we use let's design for hdr next i definitely use a chromoloomer
+next i definitely use a chromoloomer representation to convert the ui to hdr
+representation to convert the ui to hdr space
+space and along those lines i think more
+and along those lines i think more carefully about how other color spaces
+carefully about how other color spaces like ictcp
+like ictcp which is a chroma representation
+which is a chroma representation specifically designed
+specifically designed for hdr and wide color gamut how these
+for hdr and wide color gamut how these spaces could be used to generate better
+spaces could be used to generate better quality results
+quality results and finally i defer tone mapping until
+and finally i defer tone mapping until much later in the pipeline
+much later in the pipeline and would prefer not to branch between
+and would prefer not to branch between sdr and hdr and
+sdr and hdr and across the whole pipeline
+i'd really be looking for a pipeline that looks more like this what i call
+that looks more like this what i call the ideal hdr pipeline
+the ideal hdr pipeline lighting and shading post process those
+lighting and shading post process those can all be the same
+can all be the same but then we only have one singular path
+but then we only have one singular path we tone map and color grade in hdr
+we tone map and color grade in hdr using something maybe like the asus
+using something maybe like the asus filmic hdr tone mapping curve
+filmic hdr tone mapping curve we render ui out separately in sdr space
+we render ui out separately in sdr space i don't have a great solution for this
+i don't have a great solution for this right now
+right now we can do it in the off screen container
+we can do it in the off screen container like i like i described
+like i like i described and then we have this composite step
+and then we have this composite step where we composite ui
+where we composite ui onto our hdr back buffer and then
+onto our hdr back buffer and then something that i
+something that i and a lot of others have called display
+and a lot of others have called display mapping step which is where
+mapping step which is where we depending on the type of display that
+we depending on the type of display that we're going to
+we're going to will either tone map to the capabilities
+will either tone map to the capabilities of an hdr display
+of an hdr display or tone map all the way down to sdr and
+or tone map all the way down to sdr and convert our color spaces if we have to
+and this brings us to the real lessons that i'd like to leave you with today
+so as you're adding a support for hdr displays in your game
+displays in your game i strongly recommend taking these steps
+i strongly recommend taking these steps to ensure the best quality and
+to ensure the best quality and long-standing results
+long-standing results first up validate your content the sun
+first up validate your content the sun should be brighter than everything else
+should be brighter than everything else highlights shouldn't be brighter than
+highlights shouldn't be brighter than the lights are themselves hdr tends to
+the lights are themselves hdr tends to expose these kinds of lighting hacks all
+expose these kinds of lighting hacks all the time
+the time and on the flip side with deeper blacks
+and on the flip side with deeper blacks we also need to make sure that our
+we also need to make sure that our darker content is still bright enough
+darker content is still bright enough or has enough contrast for players to be
+or has enough contrast for players to be able to see what's going on in front of
+able to see what's going on in front of them
+be prepared to change maybe even overhaul
+overhaul possibly get rid of your original sdr
+possibly get rid of your original sdr rendering pipeline i don't recommend
+rendering pipeline i don't recommend branching
+branching unifying the two now will pay you great
+unifying the two now will pay you great quality dividends further down the road
+like i mentioned before you should strive to stay in hdr space for as long
+strive to stay in hdr space for as long as possible in the frame right up until
+as possible in the frame right up until the point where you need to send the
+the point where you need to send the image to the display
+image to the display and then tone map down
+next don't rule out using other color spaces like ictcp
+spaces like ictcp in certain stages of your pipeline i
+in certain stages of your pipeline i don't have great recommendations on how
+don't have great recommendations on how the best ways to use them but i think
+the best ways to use them but i think there's a lot of
+there's a lot of a lot of potential research in that area
+a lot of potential research in that area use photometric units being able to
+use photometric units being able to reason on physical light values is
+reason on physical light values is really useful in helping understand what
+really useful in helping understand what dynamic range you have at any given
+dynamic range you have at any given stage of rendering
+stage of rendering and how to adapt that range for your
+and how to adapt that range for your target display and get the best quality
+target display and get the best quality result
+result and then finally i would recommend
+and then finally i would recommend making a comparison tool for
+making a comparison tool for hdr to sdr now as i was putting together
+hdr to sdr now as i was putting together materials for this
+materials for this talk and as we move towards a world
+talk and as we move towards a world where hdr is the new norm
+where hdr is the new norm i was actually wondering if this kind of
+i was actually wondering if this kind of comparison tool is still worth
+comparison tool is still worth implementing
+implementing and i actually think that it is but for
+and i actually think that it is but for the opposite purpose
+the opposite purpose we're still going to need to master for
+we're still going to need to master for sdr i mean just think of how long we had
+sdr i mean just think of how long we had to adhere
+to adhere to a safe screen zone for crts sdr
+to a safe screen zone for crts sdr displays are going to hang around for
+displays are going to hang around for quite a long time
+quite a long time and this kind of tool can give an artist
+and this kind of tool can give an artist a great approximation of what the game
+a great approximation of what the game will look like in sdr without them
+will look like in sdr without them having to manage two different displays
+having to manage two different displays all the time
+so i'd like to give a special thank you to nate hawbaker for his really
+to nate hawbaker for his really excellent work in helping
+excellent work in helping deliver a great hdr game and bring hdr
+deliver a great hdr game and bring hdr display support to
+display support to destiny 2. as well as a thank you to
+destiny 2. as well as a thank you to astap at vicarious visions for
+astap at vicarious visions for consulting on many of the technical
+consulting on many of the technical challenges that we faced
+challenges that we faced shout out to brandon brad at bungie for
+shout out to brandon brad at bungie for their help in bringing the hdr
+their help in bringing the hdr implementation to consoles
+implementation to consoles and a thanks to tim healy at vicarious
+and a thanks to tim healy at vicarious visions for helping me assemble
+visions for helping me assemble materials for this presentation
+materials for this presentation and that's my time
+questions yes hi um you mentioned content validation were you allowed to
+content validation were you allowed to like file a bug on art if the rocket
+like file a bug on art if the rocket thruster was brighter than the sun or
+thruster was brighter than the sun or did you just
+did you just have to work around it uh yeah were we
+have to work around it uh yeah were we allowed to file bugs for art for
+allowed to file bugs for art for for content validation issues like that
+for content validation issues like that um
+um it didn't really happen that often uh
+it didn't really happen that often uh for cases like for bright cases like the
+for cases like for bright cases like the sun we didn't
+sun we didn't deliver anything like that uh for cases
+deliver anything like that uh for cases where linear content values were too
+where linear content values were too dark we did start to look at those
+dark we did start to look at those because
+because i mean uh recently we started having
+i mean uh recently we started having more and more problems with people
+more and more problems with people complaining about um two too many dark
+complaining about um two too many dark values in the game
+values in the game as they went into different caves so
+as they went into different caves so nate over bungie started to implement
+nate over bungie started to implement some content validation tools that would
+some content validation tools that would determine if linear values in the game
+determine if linear values in the game were too dark and thus be too dark on
+were too dark and thus be too dark on displays
+displays that's where we started actually like
+that's where we started actually like applying pressure
+applying pressure for art to fix up some of that content
+hey um can you go over your point about the
+the srgb and 709 eotf oetf
+srgb and 709 eotf oetf point and how that helped you
+point and how that helped you uh sure do you want me to recap it or
+uh sure do you want me to recap it or how exactly it played into generating
+how exactly it played into generating those
+those results yeah how it played into fixing
+results yeah how it played into fixing your
+your final issues um so
+final issues um so [Music]
+[Music] uh hopefully i'll maybe recap maybe i
+uh hopefully i'll maybe recap maybe i just missed uh
+just missed uh sure sure um so
+sure sure um so the idea was that um with the ui we
+the idea was that um with the ui we needed to put it through a manual gamma
+needed to put it through a manual gamma transform that it would have had had it
+transform that it would have had had it been displayed on a normal
+been displayed on a normal sdr display doing that manually allowed
+sdr display doing that manually allowed us to recreate what it would have looked
+us to recreate what it would have looked like
+like otherwise and then when we were doing
+otherwise and then when we were doing the comparison tool we needed to use the
+the comparison tool we needed to use the transfer functions
+transfer functions going both ways because we were taking
+going both ways because we were taking linear
+linear normally we would kind of inverse gamma
+normally we would kind of inverse gamma that in order to get the linear result
+that in order to get the linear result back on the screen because it would be
+back on the screen because it would be encoded and then decoded to get our
+encoded and then decoded to get our linear result back so we had to look at
+linear result back so we had to look at both
+both uh the oh what did i say we use
+uh the oh what did i say we use the whatever the eotf was
+the whatever the eotf was we would kind of we would go oetf to
+we would kind of we would go oetf to um to encoded space and then we would
+um to encoded space and then we would decode it manually and then output the
+decode it manually and then output the linear space
+linear space through pq to the hdr display which that
+through pq to the hdr display which that was a lot of words
+was a lot of words i apologize but um using those transfer
+i apologize but um using those transfer functions in conjunction with each other
+functions in conjunction with each other essentially was a recreation of the
+essentially was a recreation of the entire pipeline
+entire pipeline of an sdr display so normally we'd have
+of an sdr display so normally we'd have linear values in our game
+linear values in our game we would apply an inverse gamma function
+we would apply an inverse gamma function before we send it out to the display the
+before we send it out to the display the display would decode that gamma
+display would decode that gamma we needed to reproduce that entire
+we needed to reproduce that entire pipeline and it's worth pointing out
+pipeline and it's worth pointing out that we
+that we applied the same transformations not
+applied the same transformations not only in our comparison tool
+only in our comparison tool but also to the lut lookups that we
+but also to the lut lookups that we performed that we got back from
+performed that we got back from sdr in the normal hdr pipeline
+sdr in the normal hdr pipeline cool thanks hi
+cool thanks hi can you comment on the performance hit
+can you comment on the performance hit that you
+that you experience converting everything to
+experience converting everything to floating point or
+floating point or 10 to 10 yeah
+10 to 10 yeah i don't have great hard numbers for you
+i don't have great hard numbers for you uh
+uh and the reason for that is pretty much
+and the reason for that is pretty much that
+that when we were doing the work we were
+when we were doing the work we were thinking about the pc space
+thinking about the pc space and we were also thinking about the fact
+and we were also thinking about the fact that well
+that well okay all our users that are going to
+okay all our users that are going to have hdr capabilities are going to have
+have hdr capabilities are going to have these pretty powerful rigs
+these pretty powerful rigs so performance kind of went out the
+so performance kind of went out the window for a while while we were doing
+window for a while while we were doing all this work
+all this work and when we brought the hdr
+and when we brought the hdr implementation to consoles it was a
+implementation to consoles it was a different story we had to consider both
+different story we had to consider both memory
+memory um and the cost of doing all those tone
+um and the cost of doing all those tone map inverse tone map steps and
+map inverse tone map steps and everything
+everything ultimately it fit barely
+ultimately it fit barely um but it probably added a solid 0.1
+um but it probably added a solid 0.1 millisecond
+millisecond 0.2 millisecond to the whole frame
+0.2 millisecond to the whole frame just for those steps and then from a
+just for those steps and then from a memory perspective
+memory perspective it definitely pushed us against the
+it definitely pushed us against the barrier of the room
+barrier of the room cool and one other quick question uh are
+cool and one other quick question uh are there standard
+there standard color calibrations for the hdr space
+color calibrations for the hdr space like there's a lot of color calibration
+like there's a lot of color calibration tools that exist right now for
+tools that exist right now for calibrating your sdr monitor and getting
+calibrating your sdr monitor and getting you know good photographic quality
+you know good photographic quality color out of it is do such tools exist
+color out of it is do such tools exist for the hdr space
+for the hdr space that we should be looking at if we're
+that we should be looking at if we're going to be authoring hdr content
+going to be authoring hdr content uh that's a really good question i am
+uh that's a really good question i am actually not sure
+actually not sure although uh i think if you talk to chaz
+although uh i think if you talk to chaz over there he
+over there he he may have some uh tools now
+i haven't tried it okay thank you okay so yeah just in case that didn't get
+so yeah just in case that didn't get mike uh
+mike uh a bunch of color calibration companies
+a bunch of color calibration companies have said that their tools now work in
+have said that their tools now work in hdr space
+hdr space thanks jess hi what was the um
+thanks jess hi what was the um iteration time of creating like a new
+iteration time of creating like a new sort of um grading each time you do it
+sort of um grading each time you do it you build
+you build and put it on a console for the um you
+and put it on a console for the um you know the next version
+know the next version um yeah the iteration time for
+um yeah the iteration time for creating a new grading curve uh or the
+creating a new grading curve uh or the toe mapping curve
+toe mapping curve i actually can't comment too well on
+i actually can't comment too well on what that was
+what that was the tone mapping work after the
+the tone mapping work after the comparison tool was created was done by
+comparison tool was created was done by nate over at bungie
+nate over at bungie um i believe that he
+um i believe that he i think he did something like
+i think he did something like extrapolate the sdr curve into a
+extrapolate the sdr curve into a wider range and then perform a curve fit
+wider range and then perform a curve fit to generate a curve that had roughly the
+to generate a curve that had roughly the same shape
+same shape but the actual iteration time and the
+but the actual iteration time and the steps that he took to do it are a little
+steps that he took to do it are a little bit of a mystery to me i'm sorry
+bit of a mystery to me i'm sorry okay
+no more questions all right thank you all very much
+all very much [Applause]

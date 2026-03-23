@@ -1,0 +1,1083 @@
+okay hello everybody today I'm going to talk about the theory and practice of
+talk about the theory and practice of cameras in side-scrollers and 2d games
+cameras in side-scrollers and 2d games in general side-scrollers is a it's just
+in general side-scrollers is a it's just a private case of what are you talking
+a private case of what are you talking about there are a lot of parallels in to
+about there are a lot of parallels in to 3d games but we're going to focus on
+3d games but we're going to focus on what's interesting to me and
+what's interesting to me and specifically for the game that I'm
+specifically for the game that I'm working on which is mushroom 11 I've
+working on which is mushroom 11 I've been working on this game for the past
+been working on this game for the past three years and still not ready as you
+three years and still not ready as you can see there are quite a lot of issues
+can see there are quite a lot of issues with a camera that needs to be tackled
+with a camera that needs to be tackled which kind of threw me into this journey
+which kind of threw me into this journey of trying to figure out how to do proper
+of trying to figure out how to do proper camera systems and the result is what
+camera systems and the result is what you see here and I'll talk a little bit
+you see here and I'll talk a little bit about that later on so scrolling we have
+about that later on so scrolling we have when we have more to show than what the
+when we have more to show than what the screen supports will obviously need to
+screen supports will obviously need to leave some things out of the screen but
+leave some things out of the screen but when we start moving the screen there
+when we start moving the screen there are some neural aspects that we need to
+are some neural aspects that we need to to figure out so first of all let's talk
+to figure out so first of all let's talk a little bit about the neural aspect of
+a little bit about the neural aspect of squalene we review the image through our
+squalene we review the image through our eyeball and the image is presented on a
+eyeball and the image is presented on a set of cones and receptors in the back
+set of cones and receptors in the back of our eyeball called the fovea
+of our eyeball called the fovea centralis the powerful and very folia
+centralis the powerful and very folia the centralist is in charge of the
+the centralist is in charge of the center of the image gives a very sharp
+center of the image gives a very sharp image but kind of low frames per second
+image but kind of low frames per second so to speak there's a secondary belt and
+so to speak there's a secondary belt and then the third and biggest belt with the
+then the third and biggest belt with the the most cones is the parry phobia
+the most cones is the parry phobia responsible for the peripheral vision it
+responsible for the peripheral vision it has a very low density and but great
+has a very low density and but great depth of color but in order to get all
+depth of color but in order to get all this information
+this information from such a huge set of receptor it
+from such a huge set of receptor it actually compresses the images into
+actually compresses the images into patterns and the patterns are visual
+patterns and the patterns are visual textural patterns as well as motion
+textural patterns as well as motion patterns and changes in velocity that
+patterns and changes in velocity that information is fed like other other
+information is fed like other other pieces of signal signals from the brain
+pieces of signal signals from the brain through our Thomas and then instead it's
+through our Thomas and then instead it's sent to the visual cortex as well as the
+sent to the visual cortex as well as the amygdala the amygdala is the part of our
+amygdala the amygdala is the part of our brain that's in charge of emotional
+brain that's in charge of emotional reactions and inhibition of those
+reactions and inhibition of those reactions of fear and anxiety what we
+reactions of fear and anxiety what we call the fight-or-flight by teaching in
+call the fight-or-flight by teaching in our brain to ignore those signals
+our brain to ignore those signals eventually our amygdala amygdala knows
+eventually our amygdala amygdala knows to to ignore those those signals and
+to to ignore those those signals and just let the visual cortex take charge
+just let the visual cortex take charge and when we were talking about visual
+and when we were talking about visual patterns in our peripheral vision it
+patterns in our peripheral vision it could be something that just reminds us
+could be something that just reminds us of something scary that we've seen and
+of something scary that we've seen and the corner of our eye could be something
+the corner of our eye could be something that moves really fast or it can also be
+that moves really fast or it can also be the entire image which is the background
+the entire image which is the background of the screen moving really fast on top
+of the screen moving really fast on top of that we have what we call the
+of that we have what we call the vestibular system which is our internal
+vestibular system which is our internal spatial orientation balancing system
+spatial orientation balancing system allowing us to basically stand straight
+allowing us to basically stand straight and then when this thing is coupled with
+and then when this thing is coupled with the vision it basically gives us a full
+the vision it basically gives us a full orientation of where we are how to walk
+orientation of where we are how to walk and what and what not now the amount of
+and what and what not now the amount of information is given to our ascent to
+information is given to our ascent to our brain we try to minimize that
+our brain we try to minimize that information and in fact even if you try
+information and in fact even if you try to move your head really fast you'll see
+to move your head really fast you'll see that your eyes will use what we call the
+that your eyes will use what we call the vestibular ocular reflex trying to
+vestibular ocular reflex trying to minimize the amount of changes in our in
+minimize the amount of changes in our in our view we are not wired to see the
+our view we are not wired to see the image move really fast in fact when we
+image move really fast in fact when we when we have any
+when we have any any conflicting sensory signals between
+any conflicting sensory signals between our eyes and our vestibular systems
+our eyes and our vestibular systems system then it may lead to nausea and
+system then it may lead to nausea and discomfort of course this everybody
+discomfort of course this everybody knows it when they well some people are
+knows it when they well some people are very sensitive to reading in a moving
+very sensitive to reading in a moving car and this is even more dramatic when
+car and this is even more dramatic when when playing first-person games or
+when playing first-person games or virtual reality obviously this is a much
+virtual reality obviously this is a much more dramatic so how do we properly
+more dramatic so how do we properly properly scroll I split it into three
+properly scroll I split it into three main groups tension interaction comfort
+main groups tension interaction comfort attention is making sure that all the
+attention is making sure that all the necessary gameplay elements are in the
+necessary gameplay elements are in the frame interaction how do we make the
+frame interaction how do we make the cycle that we take to teach the amygdala
+cycle that we take to teach the amygdala to know that those changes are
+to know that those changes are predictable and tightly bound to the
+predictable and tightly bound to the controls and those changes as they are
+controls and those changes as they are made and they have to be made they need
+made and they have to be made they need to be easy on the eyes those of course
+to be easy on the eyes those of course are all part of the same equation they
+are all part of the same equation they all fit into each other also throughout
+all fit into each other also throughout this presentation I'm going to go
+this presentation I'm going to go through my own personal nostalgia of
+through my own personal nostalgia of games all the way from the 80s that how
+games all the way from the 80s that how they start working with scrolling as
+they start working with scrolling as well as the indie games of today where
+well as the indie games of today where all the innovation and and the care and
+all the innovation and and the care and attention that you can see in only in
+attention that you can see in only in indie games really so how do you scroll
+indie games really so how do you scroll first of all obviously you need to
+first of all obviously you need to follow your character so if we go back
+follow your character so if we go back to what's considered the first real
+to what's considered the first real scroller it's a game called rally-x
+scroller it's a game called rally-x from 1980 it did the only thing that you
+from 1980 it did the only thing that you could really do which is follow the
+could really do which is follow the character I call it position locking the
+character I call it position locking the camera means with a character nothing
+camera means with a character nothing interesting here except with the fact
+interesting here except with the fact that scrolling at the time was really a
+that scrolling at the time was really a you know a difficult feat to achieve
+you know a difficult feat to achieve there were issues with the fact that the
+there were issues with the fact that the solution was really low the CPU was very
+solution was really low the CPU was very slow there was segmentation issues you
+slow there was segmentation issues you couldn't display more than a few sprites
+couldn't display more than a few sprites per line bunch of issues so this
+per line bunch of issues so this technically is a huge breakthrough by
+technically is a huge breakthrough by the way you'll see that throughout this
+the way you'll see that throughout this presentation and I'll present my own
+presentation and I'll present my own terminology just from my own reference
+terminology just from my own reference and I'll definitely post it later moving
+and I'll definitely post it later moving on the game called kung fu master use
+on the game called kung fu master use the same idea only horizontally you just
+the same idea only horizontally you just lock to the character as the level ends
+lock to the character as the level ends you'd snap to the end of the level
+you'd snap to the end of the level obviously this is so obvious that I'm
+obviously this is so obvious that I'm not going to really talk about edge
+not going to really talk about edge snapping I just wanted to you know just
+snapping I just wanted to you know just mention it quickly
+mention it quickly the just a quick shout out to Takashi
+the just a quick shout out to Takashi nishiyama the guy who made this game is
+nishiyama the guy who made this game is he made this game between making moon
+he made this game between making moon patrol two years before and Street
+patrol two years before and Street Fighter one three years after so this
+Fighter one three years after so this this technology still works very well
+this technology still works very well today
+today some games really benefit from this kind
+some games really benefit from this kind of the behavior especially when you have
+of the behavior especially when you have a smaller character it doesn't move
+a smaller character it doesn't move really fast you need to see everything
+really fast you need to see everything left and right up and down terraria is
+left and right up and down terraria is the perfect this is this position
+the perfect this is this position locking the perfect technologies here so
+locking the perfect technologies here so how do we curb camera motion in order to
+how do we curb camera motion in order to eliminate those unpredictable bumps if
+eliminate those unpredictable bumps if we go back to 1981 there's a game called
+we go back to 1981 there's a game called jump bug that was still considered the
+jump bug that was still considered the first platformer
+first platformer it introduced a system that I call
+it introduced a system that I call camera window which allows the player to
+camera window which allows the player to move within that window without moving
+move within that window without moving the camera without scrolling again
+the camera without scrolling again scrolling was a really problematic thing
+scrolling was a really problematic thing to do and with the CPU and and the
+to do and with the CPU and and the resolution so you would move freely but
+resolution so you would move freely but as you touch the edge of the window it
+as you touch the edge of the window it will start pulling the camera with it so
+will start pulling the camera with it so this system is a pretty problematic you
+this system is a pretty problematic you think about the fact that you're moving
+think about the fact that you're moving away from that window which leaves you
+away from that window which leaves you very even
+very even little room to see what's ahead and
+little room to see what's ahead and what's up and you know the exit of the
+what's up and you know the exit of the level is up one way you could do it with
+level is up one way you could do it with is like they did with the Rosslyn saga
+is like they did with the Rosslyn saga one of my favorite games of the 80s they
+one of my favorite games of the 80s they just placed their window in off-center
+just placed their window in off-center allowing for 50% view forward and
+allowing for 50% view forward and downward this is great but the problem
+downward this is great but the problem is that we need to start backtracking or
+is that we need to start backtracking or if you jump and end up in the middle of
+if you jump and end up in the middle of the window you'll have even less room to
+the window you'll have even less room to see what's coming ahead or above well
+see what's coming ahead or above well this system is still used in Fez it's
+this system is still used in Fez it's used perfectly in fact this system is
+used perfectly in fact this system is maintained the horizontal window is
+maintained the horizontal window is maintained even throughout dimension
+maintained even throughout dimension shifts and we're going to talk a little
+shifts and we're going to talk a little more about this game and the camera
+more about this game and the camera system here so we talked about when you
+system here so we talked about when you showed Russ on saga we showed that the
+showed Russ on saga we showed that the character could end up in the middle of
+character could end up in the middle of the window how do you snap it so you
+the window how do you snap it so you Center the player back into the center
+Center the player back into the center of the window my favorite game of all
+of the window my favorite game of all time if I may say is shinobi from 1987
+time if I may say is shinobi from 1987 it used a horizontal locking system but
+it used a horizontal locking system but vertically it had a really long window
+vertically it had a really long window because it fit the game perfectly the
+because it fit the game perfectly the the player is pretty big on the screen
+the player is pretty big on the screen the jumps are really high so they try to
+the jumps are really high so they try to keep the window as high as possible the
+keep the window as high as possible the problem is that the player would
+problem is that the player would potentially be off-center really quickly
+potentially be off-center really quickly so what they would do is every frame
+so what they would do is every frame when the player was off-center they
+when the player was off-center they would start slowly to focus back on to
+would start slowly to focus back on to the player keeping keeping you always in
+the player keeping keeping you always in check and we're going to talk a lot
+check and we're going to talk a lot about the work of Shigeru Miyamoto
+about the work of Shigeru Miyamoto but going forward a little bit a Super
+but going forward a little bit a Super Mario World it was the first one that I
+Mario World it was the first one that I noticed that introduced a platform
+noticed that introduced a platform snapping and in this game they really
+snapping and in this game they really tried very hard to maintain the minimal
+tried very hard to maintain the minimal amount of camera movement and in the
+amount of camera movement and in the case the window is the entire screen the
+case the window is the entire screen the camera window is the entire screen it
+camera window is the entire screen it will only move when push the edge of the
+will only move when push the edge of the screen unless you land on a platform
+screen unless you land on a platform where it would quickly snap I think this
+where it would quickly snap I think this is a obviously a brilliant idea
+is a obviously a brilliant idea some find landing and in the snapping a
+some find landing and in the snapping a little abrupt but that's the first one
+little abrupt but that's the first one that I noticed it used it you can see
+that I noticed it used it you can see you can see a more regulated version of
+you can see a more regulated version of this in Raymond and throughout the
+this in Raymond and throughout the Raymond franchise you still see this
+Raymond franchise you still see this today awesome in outs is you if it from
+today awesome in outs is you if it from 2012 used the same technique obviously
+2012 used the same technique obviously there's always a problem when you have
+there's always a problem when you have characters that don't land on platforms
+characters that don't land on platforms so like the jetpack character would be
+so like the jetpack character would be pre snapped basically keeping it
+pre snapped basically keeping it position locked both both horizontally
+position locked both both horizontally and vertically but the motion that we
+and vertically but the motion that we have to do either horizontally or
+have to do either horizontally or vertically or when we touch the edge of
+vertically or when we touch the edge of the window how do we smooth that that
+the window how do we smooth that that motion and may I remind you that in the
+motion and may I remind you that in the 80s we we had a very low resolution
+80s we we had a very low resolution we're talking about 256 by 240 at the
+we're talking about 256 by 240 at the NES so the pixels there were huge today
+NES so the pixels there were huge today when we're talking about pixel art we
+when we're talking about pixel art we can we need to remember that the pixels
+can we need to remember that the pixels that we use actually contain a lot of
+that we use actually contain a lot of screen pixels and that's a luxury that
+screen pixels and that's a luxury that people that the 80s didn't really have
+people that the 80s didn't really have so for example if you look at pac-land
+so for example if you look at pac-land from 84 which this is actually
+from 84 which this is actually considered as the first real platformer
+considered as the first real platformer it didn't really do anything special
+it didn't really do anything special with regard to smoothing the window it
+with regard to smoothing the window it just locked to the position of the
+just locked to the position of the player but the player actually created
+player but the player actually created some sort of pseudo physics and that
+some sort of pseudo physics and that that physics was a smoothing the camera
+that physics was a smoothing the camera on its own when we're talking about
+on its own when we're talking about pseudo physics obviously even today
+pseudo physics obviously even today everything the suit of physics but in
+everything the suit of physics but in this case we didn't have you know they
+this case we didn't have you know they didn't have damping and and the friction
+didn't have damping and and the friction so we're talking about accelerated from
+so we're talking about accelerated from one pixel per frame to pixel three pics
+one pixel per frame to pixel three pics and so on dan slowing it down back again
+now I'm gonna do a quick shout out to Ichigo Miyamoto and remind - is first
+Ichigo Miyamoto and remind - is first early experiments in scrolling in 1984
+early experiments in scrolling in 1984 he made a couple of games that
+he made a couple of games that introduced screwing in some way one of
+introduced screwing in some way one of them was a Excitebike which the
+them was a Excitebike which the scrolling was kind of the background of
+scrolling was kind of the background of the game you didn't really have a lot of
+the game you didn't really have a lot of the game was not about to scroll and you
+the game was not about to scroll and you didn't really have a lot of control
+didn't really have a lot of control that's going devil world from the same
+that's going devil world from the same year had everything to do with scrolling
+year had everything to do with scrolling in fact the game the devil was
+in fact the game the devil was controlling the scroll in this really
+controlling the scroll in this really weird pac-man clone and this game was I
+weird pac-man clone and this game was I don't know if it's considered one of the
+don't know if it's considered one of the best work of Miyamoto in fact due to
+best work of Miyamoto in fact due to some weird religious iconography this
+some weird religious iconography this was denied release in North America and
+was denied release in North America and the reason why I'm reminding this really
+the reason why I'm reminding this really quickly is that I don't know more in a
+quickly is that I don't know more in a philosophical way if you look at some of
+philosophical way if you look at some of the early works of the geniuses of today
+the early works of the geniuses of today seeing some of their more mediocre work
+seeing some of their more mediocre work is kind of encouraging to everybody and
+is kind of encouraging to everybody and and and I do that a lot sometimes when I
+and and I do that a lot sometimes when I feel down maybe then what may be the the
+feel down maybe then what may be the the the biggest accomplishment and this is
+the biggest accomplishment and this is completing my own conspiracy theory is
+completing my own conspiracy theory is that I believe that there's some cross
+that I believe that there's some cross reference to bubble bubble from this but
+reference to bubble bubble from this but I'm not sure this it's not official
+I'm not sure this it's not official alright so moving on to 1985 Miyamoto
+alright so moving on to 1985 Miyamoto actually did his first true experiment
+actually did his first true experiment in scrolling and in Super Mario World
+in scrolling and in Super Mario World the character was moving really really
+the character was moving really really fast and if you think about it this is a
+fast and if you think about it this is a one-sided window you could backtrack for
+one-sided window you could backtrack for the entire half of the screen and then
+the entire half of the screen and then when you would go back and push against
+when you would go back and push against that window it would move from zero to
+that window it would move from zero to maximum speed in one frame and that
+maximum speed in one frame and that would feel very uncomfortable
+would feel very uncomfortable what he did is something I called speed
+what he did is something I called speed up push zone so it would as it hit
+up push zone so it would as it hit certain point on the screen it would
+certain point on the screen it would start spinning it up so when Mario hits
+start spinning it up so when Mario hits that anchor point the camera is already
+that anchor point the camera is already in full speed and this thing I actually
+in full speed and this thing I actually didn't notice it for 30 years because
+didn't notice it for 30 years because it's so brilliant and so clean and I
+it's so brilliant and so clean and I think this is a just genius solution
+think this is a just genius solution another solution of the same idea but
+another solution of the same idea but kind of the opposite is what they did
+kind of the opposite is what they did with Metroid they had either horizontal
+with Metroid they had either horizontal or a vertical window depends on the
+or a vertical window depends on the level and it allowed the player to step
+level and it allowed the player to step out of that window and then start
+out of that window and then start catching up with the speed of that
+catching up with the speed of that window so the character would always be
+window so the character would always be a little bit couple of pixels depend on
+a little bit couple of pixels depend on the speed depending on the speed out of
+the speed depending on the speed out of that window but that work community well
+that window but that work community well it didn't leave a lot of room to see
+it didn't leave a lot of room to see what's ahead but that's the problem with
+what's ahead but that's the problem with camera window in the first place when
+camera window in the first place when you're talking about smoothing of course
+you're talking about smoothing of course when there were more pixels to play with
+when there were more pixels to play with and you know use a floating-point became
+and you know use a floating-point became a little more easy you can start doing
+a little more easy you can start doing allure ping which is stands for linear
+allure ping which is stands for linear interpolation the idea is that you would
+interpolation the idea is that you would in every frame you would reduce the
+in every frame you would reduce the distance between the camera and your
+distance between the camera and your character by a certain factor
+character by a certain factor they did it with Dante key Kong country
+they did it with Dante key Kong country that's the first game that I've noticed
+that's the first game that I've noticed that they did it properly but they do it
+that they did it properly but they do it ever since you can see it in almost
+ever since you can see it in almost every game today Super Meat Boy uses it
+every game today Super Meat Boy uses it it's one of the best ways of easing the
+it's one of the best ways of easing the the camera motion if you think about it
+the camera motion if you think about it LARPing is ease out there's another
+LARPing is ease out there's another thing which is ease out if you know the
+thing which is ease out if you know the term the idea is that you ease the
+term the idea is that you ease the camera into motion and then out of
+camera into motion and then out of motion again by applying some actual
+motion again by applying some actual velocity to the camera itself using for
+velocity to the camera itself using for example smooth damp function it's used
+example smooth damp function it's used in the amazing never alone game from
+in the amazing never alone game from 2014 and many other games of today it
+2014 and many other games of today it works very well when you need to to have
+works very well when you need to to have some drama and narrative
+some drama and narrative and smoothness that some games really
+and smoothness that some games really benefit from and if we go back to pixel
+benefit from and if we go back to pixel art what they did with their doing with
+art what they did with their doing with hyper light drifter coming out soon
+hyper light drifter coming out soon hopefully they they actually have true a
+hopefully they they actually have true a pixel perfect art that they present on a
+pixel perfect art that they present on a canvas and that canvas is is moved on
+canvas and that canvas is is moved on the true screen pixels so you could you
+the true screen pixels so you could you would still have the pixel perfect big
+would still have the pixel perfect big game pixels but the scrolling is the
+game pixels but the scrolling is the only thing that breaks that pixel
+only thing that breaks that pixel perfect behavior by applying the
+perfect behavior by applying the scrolling on the true scrolling on the
+scrolling on the true scrolling on the canvas so framing how how do we make
+canvas so framing how how do we make sure that the player sees everything
+sure that the player sees everything they need to see so auto scrolling as
+they need to see so auto scrolling as you can see is not exactly a part of
+you can see is not exactly a part of this presentation because I feel like
+this presentation because I feel like well if you don't have control of
+well if you don't have control of scrolling it's a different kind of
+scrolling it's a different kind of question
+question but what they did was scramble which is
+but what they did was scramble which is also considered one of the the first
+also considered one of the the first scrollers it gives you a good sense of
+scrollers it gives you a good sense of what the player would do if they had a
+what the player would do if they had a true control of full control over where
+true control of full control over where they want the player to be you have the
+they want the player to be you have the entire screen you have things coming at
+entire screen you have things coming at you you want to be as far away from the
+you you want to be as far away from the edge as possible but still leave a
+edge as possible but still leave a little bit of room behind you to make
+little bit of room behind you to make sure that nothing creeps up and that's
+sure that nothing creeps up and that's more or less what they did with pac-man
+more or less what they did with pac-man instead of locking it to the center like
+instead of locking it to the center like they did with with other game like kung
+they did with with other game like kung fu master they put the the anchor point
+fu master they put the the anchor point a little bit off-center because that's
+a little bit off-center because that's the principle direction of the of the
+the principle direction of the of the player you would still be able to go
+player you would still be able to go back you don't do that a lot but you
+back you don't do that a lot but you still have a little bit of room the idea
+still have a little bit of room the idea in general is that the player would want
+in general is that the player would want to go to the center and you'll see that
+to go to the center and you'll see that throughout the presentation in general
+throughout the presentation in general you always want to aim towards the
+you always want to aim towards the center another way going back to 1981 is
+center another way going back to 1981 is what they did with defender they had
+what they did with defender they had what I call the dual
+what I call the dual Ford Focus you had Ford Focus that's
+Ford Focus you had Ford Focus that's based on where you're heading as as soon
+based on where you're heading as as soon as you switch it will immediately start
+as you switch it will immediately start snapping toward the other anchor point
+snapping toward the other anchor point this game is way ahead of its time it
+this game is way ahead of its time it took a lot of a lot of years until they
+took a lot of a lot of years until they actually figured out how to do this
+actually figured out how to do this properly this worked really well even
+properly this worked really well even back then
+okay second technical difficulties sorry about that I'm running off Google Docs
+nightmare okay
+all right let's see if we can do this
+bear with me all right so um it's okay for now trying to connect okay so going
+for now trying to connect okay so going forward a decade or so Bonanza Brothers
+forward a decade or so Bonanza Brothers is another type of implementation of the
+is another type of implementation of the same idea but unlike what they did with
+same idea but unlike what they did with defender from it from 1981 they instead
+defender from it from 1981 they instead of having the switch abrupt and
+of having the switch abrupt and immediate they actually made the change
+immediate they actually made the change based on your walking speed if you look
+based on your walking speed if you look at the character at the bottom you would
+at the character at the bottom you would see that the switch between the anchors
+see that the switch between the anchors would be based on the speed of your your
+would be based on the speed of your your character and you wouldn't even notice
+character and you wouldn't even notice it when you play unless unless you start
+it when you play unless unless you start placing some lines over there so going
+placing some lines over there so going back to Miyamoto again I'm going to talk
+back to Miyamoto again I'm going to talk a lot about a lot about this game this
+a lot about a lot about this game this super super mario world it had a lot of
+super super mario world it had a lot of interesting ideas this is life my
+interesting ideas this is life my favorite one it also had a dual
+favorite one it also had a dual threshold but their true genius here is
+threshold but their true genius here is that it actually let the player
+that it actually let the player backtrack a little bit before switching
+backtrack a little bit before switching and to the other anchor and this is
+and to the other anchor and this is perfect for this kind of game because
+perfect for this kind of game because this game actually allowed kind of
+this game actually allowed kind of encouraged the player to to do all sorts
+encouraged the player to to do all sorts of back-and-forth motion so instead of
+of back-and-forth motion so instead of every time that you switch back and
+every time that you switch back and forth forth it would switch to the other
+forth forth it would switch to the other or starts moving start moving to the
+or starts moving start moving to the other anchor in this case it actually
+other anchor in this case it actually lets you walk a significant amount
+lets you walk a significant amount before hitting switching to the other
+before hitting switching to the other anchor a game that does this today not
+anchor a game that does this today not exactly this it's closer to what Bonanza
+exactly this it's closer to what Bonanza brother actually did is cave story well
+brother actually did is cave story well it's not exactly today um you can see
+it's not exactly today um you can see that this game has requires a lot of for
+that this game has requires a lot of for forward view you you have a lot of
+forward view you you have a lot of things coming at you and you would
+things coming at you and you would really require a vast
+really require a vast a clear view of what's coming ahead they
+a clear view of what's coming ahead they did more or less the same idea they had
+did more or less the same idea they had two anchors and as soon as you would
+two anchors and as soon as you would switch it would start slowly walk and go
+switch it would start slowly walk and go to the other anchor based on based on
+to the other anchor based on based on your walking speed yes
+another thing that I notice is what what I call target focus and the reason why I
+I call target focus and the reason why I call it target focus is because it
+call it target focus is because it actually Maps through the actual target
+actually Maps through the actual target of the player how do we know what the
+of the player how do we know what the target is is where what where the player
+target is is where what where the player really wants to go what they did with a
+really wants to go what they did with a jazz jackrabbit - from epic back in the
+jazz jackrabbit - from epic back in the day they actually they move the camera
+day they actually they move the camera based on what the player and what the
+based on what the player and what the player did so if the player pushed the
+player did so if the player pushed the stick left they would move the camera
+stick left they would move the camera left if they did it right they move
+left if they did it right they move slowly right until a certain distance
+slowly right until a certain distance this is pretty brilliant because it
+this is pretty brilliant because it really Maps perfectly to what the player
+really Maps perfectly to what the player wants to do and I haven't seen this done
+wants to do and I haven't seen this done a lot the good thing about this idea is
+a lot the good thing about this idea is that it actually works up and down as
+that it actually works up and down as well because in some cases you want to
+well because in some cases you want to see what's what's going underneath you
+see what's what's going underneath you you would do the same exact thing you
+you would do the same exact thing you would press the down cursor key and it
+would press the down cursor key and it would react exactly in the same manner
+would react exactly in the same manner so and we're talking about target focus
+so and we're talking about target focus of course it doesn't is not limited to
+of course it doesn't is not limited to cursor keys or controllers some games
+cursor keys or controllers some games that introduce Mouse action like a
+that introduce Mouse action like a snapshot which allows you to capture
+snapshot which allows you to capture elements from one side and move them to
+elements from one side and move them to another and side so if you already have
+another and side so if you already have the mouse the mouse is a good
+the mouse the mouse is a good representation of your actual view you
+representation of your actual view you know where you're looking at so why not
+know where you're looking at so why not put the camera and this sort of average
+put the camera and this sort of average between the character and the cursor
+between the character and the cursor that is very clear that that's where you
+that is very clear that that's where you want to go in the same way as they did
+want to go in the same way as they did with the the swapper an amazing game
+with the the swapper an amazing game that has a bunch of great
+that has a bunch of great great camera behaviors so if you have a
+great camera behaviors so if you have a gun or in this case a cloning device
+gun or in this case a cloning device that aims to some place this is where
+that aims to some place this is where the player is looking at this is where
+the player is looking at this is where our attention is directed in fact you
+our attention is directed in fact you would sometimes want to look to some
+would sometimes want to look to some direction you will go to the other one
+direction you will go to the other one and you would want the camera to to
+and you would want the camera to to follow the looking direction and not the
+follow the looking direction and not the walking direction so this is a perfect
+walking direction so this is a perfect solution it also obviously requires
+solution it also obviously requires either in a digital some sort of
+either in a digital some sort of additional control either a mouse or an
+additional control either a mouse or an additional stick projected focus doesn't
+additional stick projected focus doesn't work necessarily very well for
+work necessarily very well for platformers it could work for
+platformers it could work for horizontally but vertically you have
+horizontally but vertically you have differential that's very abrupt if you
+differential that's very abrupt if you think about it about jumping jumping is
+think about it about jumping jumping is changes the speed that your vertical
+changes the speed that your vertical speed from 0 to 2 X in one frame that
+speed from 0 to 2 X in one frame that doesn't really work very well and try to
+doesn't really work very well and try to project the speed but in all sorts of
+project the speed but in all sorts of flying elements like they did with
+flying elements like they did with secrets of red econ from last year this
+secrets of red econ from last year this works really really well you just aim
+works really really well you just aim for where the player is going to be in
+for where the player is going to be in in a few milliseconds a great
+in a few milliseconds a great representation of very intelligent
+representation of very intelligent system it can be found in the
+system it can be found in the luftrausers I guess I spelled that wrong
+luftrausers I guess I spelled that wrong I'm sorry it is kind of weird so yeah
+I'm sorry it is kind of weird so yeah they have a really interesting
+they have a really interesting combination of target focus and
+combination of target focus and projected focus projected focus as we
+projected focus projected focus as we said it looks to looks at your actual
+said it looks to looks at your actual velocity target focuses it looks at
+velocity target focuses it looks at where you actually aiming so they found
+where you actually aiming so they found this nice combination of those two
+this nice combination of those two always giving you a good sense of where
+always giving you a good sense of where you're actually going sometimes you were
+you're actually going sometimes you were aiming to some direction but you're
+aiming to some direction but you're thrusting to get to something to
+thrusting to get to something to someplace else so they found a good
+someplace else so they found a good averaging of that of those behaviors on
+averaging of that of those behaviors on top of that they have other elements
+top of that they have other elements that we'll talk about in in a sec all
+that we'll talk about in in a sec all right so so far we've been talking about
+right so so far we've been talking about what the player needs to see but what
+what the player needs to see but what about what
+about what we want as the directors of our own
+we want as the directors of our own games we want the player to see we have
+games we want the player to see we have some choice more in the narrative aspect
+one of my favorite games of the 80s I'm not that old and just bear with me is
+not that old and just bear with me is the Wonder Boy
+the Wonder Boy that game actually introduced something
+that game actually introduced something that this was very modern at the time
+that this was very modern at the time and even technically it's not very easy
+and even technically it's not very easy if you think about how to do this it
+if you think about how to do this it would move the camera along a path that
+would move the camera along a path that was not parallel like other games of the
+was not parallel like other games of the time in fact it would not only not
+time in fact it would not only not always Center it it would sometimes just
+always Center it it would sometimes just move the camera up for example and
+move the camera up for example and keeping the boy at at the bottom kind of
+keeping the boy at at the bottom kind of foreshadowing something that's coming up
+foreshadowing something that's coming up ahead that gives us as level designers
+ahead that gives us as level designers much more freedom something that we can
+much more freedom something that we can do a lot with going forward in almost a
+do a lot with going forward in almost a decade in the birth of the fifth
+decade in the birth of the fifth generation of consoles this is the
+generation of consoles this is the PlayStation it cloning off from the
+PlayStation it cloning off from the PlayStation they started having two and
+PlayStation they started having two and a half D or three D in general and two
+a half D or three D in general and two and a half D in in particular so the
+and a half D in in particular so the camera path that as we've seen is with
+camera path that as we've seen is with wonderbook could be much more versatile
+wonderbook could be much more versatile it doesn't have to be necessary position
+it doesn't have to be necessary position its position and zooming and tilting and
+its position and zooming and tilting and whatnot you can use it in any any way
+whatnot you can use it in any any way you want you could start moving towards
+you want you could start moving towards certain elements that you want the
+certain elements that you want the player to notice or or zoom out to give
+player to notice or or zoom out to give some more interesting dramatic effect
+some more interesting dramatic effect and works very well for that grain this
+and works very well for that grain this is super important and not a lot of game
+is super important and not a lot of game did that at the time donkey kong country
+did that at the time donkey kong country has a bunch of standard elements like
+has a bunch of standard elements like lerp smoothing we talked about that a
+lerp smoothing we talked about that a vertical position locking dual forward
+vertical position locking dual forward view horizontally but the interesting
+view horizontally but the interesting thing that they did is that every reach
+thing that they did is that every reach every level has multiple regions and
+every level has multiple regions and those regions would
+would each one of those region would set different anchors some regions would be
+different anchors some regions would be more linear go from left to right other
+more linear go from left to right other ones would be more exploratory those
+ones would be more exploratory those would actually place those anchors in
+would actually place those anchors in the center kind of giving you an idea
+the center kind of giving you an idea where you need to go and that was very
+where you need to go and that was very clever and you could say when you play
+clever and you could say when you play it you can see the camera would shift
+it you can see the camera would shift dramatically between different regions
+dramatically between different regions another thing that you could do back at
+another thing that you could do back at the time when the technology kind of
+the time when the technology kind of started allowing that is using zoom to
+started allowing that is using zoom to fit you have a certain element that you
+fit you have a certain element that you want to including the screen no matter
+want to including the screen no matter what like the boss then you would zoom
+what like the boss then you would zoom out to make sure that that element is
+out to make sure that that element is always on the screen so if you're the
+always on the screen so if you're the player and you see that it starts
+player and you see that it starts zooming out you immediately know what
+zooming out you immediately know what you need to do that was Yoshi's story by
+you need to do that was Yoshi's story by the way now cue focus and I think this
+the way now cue focus and I think this is one of the most important elements
+is one of the most important elements that we can learn from from other games
+that we can learn from from other games and other games has done this before but
+and other games has done this before but insanely twisted shadow plant really
+insanely twisted shadow plant really made this into a almost an art form and
+made this into a almost an art form and in fact they had a blog post exactly
+in fact they had a blog post exactly about this technology and that's where I
+about this technology and that's where I got this footage from what they do is
+got this footage from what they do is they have what I what they call
+they have what I what they call attractors that as you get in close
+attractors that as you get in close enough to those attractors it would
+enough to those attractors it would start slowly shift the camera towards
+start slowly shift the camera towards that attractor based on the distance
+that attractor based on the distance from the center I call it double ring
+from the center I call it double ring attractors because you have this outer
+attractors because you have this outer ring once you're inside that ring it
+ring once you're inside that ring it will start every doing some weighted
+will start every doing some weighted average between the character and that
+average between the character and that cue clos and the closer you get to the
+cue clos and the closer you get to the the center of that cue it would get
+the center of that cue it would get closer to that queue if you immediately
+closer to that queue if you immediately know what you need to do because you see
+know what you need to do because you see the camera will start as you are as
+the camera will start as you are as you get into the center ring it will
+you get into the center ring it will lock on that cue in this case it's the
+lock on that cue in this case it's the check point and the good good thing
+check point and the good good thing about that you can have a bunch of
+about that you can have a bunch of overlapping outer rings so the camera
+overlapping outer rings so the camera would average between all the different
+would average between all the different elements this game has a bunch of other
+elements this game has a bunch of other elements that are very interesting such
+elements that are very interesting such as them using the the gun that they have
+as them using the the gun that they have as a target focus
+as a target focus representation of where you're actually
+representation of where you're actually looking at you should check out that
+looking at you should check out that blog post another way of doing Q focus
+blog post another way of doing Q focus in a very innovative way is what they
+in a very innovative way is what they what Edmund McMillen Tyler Gayle did
+what Edmund McMillen Tyler Gayle did with ether they they have as soon as you
+with ether they they have as soon as you get into the gravity zone of any planet
+get into the gravity zone of any planet they would start slowly shift or tilt
+they would start slowly shift or tilt the the screen so downward would lead to
+the the screen so downward would lead to that gravity source which is very
+that gravity source which is very predictable very clean and gives you a
+predictable very clean and gives you a good sense of drama and narrative and
+good sense of drama and narrative and it's a perfect solution and something
+it's a perfect solution and something you don't see a lot and no presentation
+you don't see a lot and no presentation on camerawork would be complete without
+on camerawork would be complete without talking about limbo it's really a
+talking about limbo it's really a perfect combination of using different
+perfect combination of using different like very simple camera system which is
+like very simple camera system which is a simple position locking if you think
+a simple position locking if you think about it but then the anchor changes
+about it but then the anchor changes dramatically between regions in the same
+dramatically between regions in the same level even well it's all the same level
+level even well it's all the same level really and and you have a bunch of cues
+really and and you have a bunch of cues and those cues are set on or off so all
+and those cues are set on or off so all of a sudden you have like a boss coming
+of a sudden you have like a boss coming into the screen and that would take the
+into the screen and that would take the attention or is used as a tractor to get
+attention or is used as a tractor to get the camera closer something else that I
+the camera closer something else that I call Regent focus is in this case you
+call Regent focus is in this case you can see that the camera is based on some
+can see that the camera is based on some sort of average between the center of
+sort of average between the center of the region there's only one region at
+the region there's only one region at the geometry wars really and the
+the geometry wars really and the character so there are a bunch of
+character so there are a bunch of different ways that geometry wars could
+different ways that geometry wars could have scrolled they chose this one they
+have scrolled they chose this one they could have used camera window they could
+could have used camera window they could have used any type of target locking
+have used any type of target locking they use this one because it actually
+they use this one because it actually gives you a sense of where you need to
+gives you a sense of where you need to go where is the center you always know
+go where is the center you always know where you are in relation to the center
+where you are in relation to the center and that's really important and you're
+and that's really important and you're always on the move it's also kind of a
+always on the move it's also kind of a dramatic effect the same kind of idea
+dramatic effect the same kind of idea combined with other element
+combined with other element is what they did with a vessel from 2012
+is what they did with a vessel from 2012 this is a very heavy puzzle-platformer a
+this is a very heavy puzzle-platformer a lot of things happening at once for a
+lot of things happening at once for a further four in each puzzle you need to
+further four in each puzzle you need to see a lot of different elements and each
+see a lot of different elements and each of those regions it's like like room
+of those regions it's like like room puzzles that you would see in earlier
+puzzles that you would see in earlier games but instead of having that they
+games but instead of having that they actually have anchors that focus and
+actually have anchors that focus and zoom into or out of certain elements to
+zoom into or out of certain elements to make sure that everything that's
+make sure that everything that's important for that specific puzzle would
+important for that specific puzzle would be shown for would be shown to the
+be shown for would be shown to the player but on top of that what they
+player but on top of that what they would do is they wouldn't just freeze
+would do is they wouldn't just freeze the position of the camera on the center
+the position of the camera on the center of that region if you notice the motion
+of that region if you notice the motion of the player actually takes the moves
+of the player actually takes the moves the camera slightly so there is like a
+the camera slightly so there is like a small extra slack that they allow the
+small extra slack that they allow the camera to move around their region and
+camera to move around their region and this is pretty brilliant it gives you
+this is pretty brilliant it gives you the sense of control you're actually
+the sense of control you're actually moving the camera as well but also as
+moving the camera as well but also as you hit the next region or the edge of
+you hit the next region or the edge of the region that you're in the camera is
+the region that you're in the camera is already in motion so there's never
+already in motion so there's never really unpredictable movement of the
+really unpredictable movement of the camera one other thing that it was done
+camera one other thing that it was done in the first days of PlayStation tomba
+in the first days of PlayStation tomba from 1997 used something I call gesture
+from 1997 used something I call gesture cues which is elements that are based
+cues which is elements that are based camera movement that is based on what
+camera movement that is based on what you actually do there are a bunch of
+you actually do there are a bunch of things in that game that changed the
+things in that game that changed the camera behavior one of them is when you
+camera behavior one of them is when you start climbing the camera would shift
+start climbing the camera would shift behind you give you more sense of
+behind you give you more sense of control and drama you know you're just
+control and drama you know you're just looking ahead you can see what's behind
+looking ahead you can see what's behind you giving giving a lot of control
+you giving giving a lot of control feeling of control if you did this with
+feeling of control if you did this with as test in many many different elements
+as test in many many different elements this is a great fighting game that's
+this is a great fighting game that's supposed to come out sometime and
+supposed to come out sometime and and now I have the same problem and a
+and now I have the same problem and a lot of the different elements cause
+lot of the different elements cause different camera effects and that gives
+different camera effects and that gives a lot of sense of drama control and also
+a lot of sense of drama control and also kind of lack of control when some of
+kind of lack of control when some of these things happen you said you feel
+these things happen you said you feel almost powerless sometimes when we see
+almost powerless sometimes when we see these things happening especially in
+these things happening especially in succession and I feel like this is one
+succession and I feel like this is one of those things that we're just
+of those things that we're just scratching the surface with gesture cues
+scratching the surface with gesture cues moving the camera based on what you
+moving the camera based on what you actually do now we already have a camera
+actually do now we already have a camera why not use that camera to actually tell
+why not use that camera to actually tell a story I call this cinematic path paths
+a story I call this cinematic path paths so instead of having a cutscene telling
+so instead of having a cutscene telling something that that happened
+something that that happened someplace else why not just use that
+someplace else why not just use that camera it's also I also almost see this
+camera it's also I also almost see this as a lazy solution but it's exactly the
+as a lazy solution but it's exactly the one thing that you need to do they did
+one thing that you need to do they did some sort of like is something like that
+some sort of like is something like that in Streets of Rage from 91 and the
+in Streets of Rage from 91 and the behemoth did this with Alien Hominid and
+behemoth did this with Alien Hominid and Castle Crashers they do it all the time
+Castle Crashers they do it all the time and it achieves a few goals one of them
+and it achieves a few goals one of them is obviously tell a story but also
+is obviously tell a story but also provide a direction of where the player
+provide a direction of where the player needs to go so it's two in one and you
+needs to go so it's two in one and you you feel like you're playing the whole
+you feel like you're playing the whole time there's no cutscene the game is
+time there's no cutscene the game is running the whole time alright so what
+running the whole time alright so what do we do when we have more than one
+do we do when we have more than one thing to focus on I think we all played
+thing to focus on I think we all played this game gauntlet from 1985 it's a
+this game gauntlet from 1985 it's a pretty amazing game the technology is
+pretty amazing game the technology is pretty well ahead of its time the
+pretty well ahead of its time the scrolling is wonderful so many things
+scrolling is wonderful so many things running at once there is slight problem
+running at once there is slight problem when you have more than one player and
+when you have more than one player and we all know this what happens if one of
+we all know this what happens if one of the players just slacks off or just
+the players just slacks off or just tries to go to the other direction
+tries to go to the other direction everyone is everybody's stuck I call
+everyone is everybody's stuck I call this position averaging that's pretty
+this position averaging that's pretty clear you have a lot of things at the
+clear you have a lot of things at the same time you would try to average to go
+same time you would try to average to go to the average position but that's an
+to the average position but that's an obvious problem this operatives problem
+obvious problem this operatives problem could be seen
+could be seen also pretty clearly I mean this is I
+also pretty clearly I mean this is I really love this game it's a pretty
+really love this game it's a pretty crazy game but what happens when you
+crazy game but what happens when you have all these players die and respawn
+have all these players die and respawn or move from one side and then reappear
+or move from one side and then reappear on the other one also listen the average
+on the other one also listen the average would just shift dramatically so it
+would just shift dramatically so it works really well for summer I gun is as
+works really well for summer I gun is as a player but if you're trying if you're
+a player but if you're trying if you're not a player and you try to watch
+not a player and you try to watch someone else play it could be a little
+someone else play it could be a little uneasy on the ice one solution is what
+uneasy on the ice one solution is what they did with Street Fighter 1 and then
+they did with Street Fighter 1 and then throughout the franchise they created
+throughout the franchise they created the camera window the good old camera
+the camera window the good old camera window if one player pushes through
+window if one player pushes through pushes the edge of the the window it
+pushes the edge of the the window it would push the camera obviously but also
+would push the camera obviously but also push the other player so the only way
+push the other player so the only way you could actually get stuck if both
+you could actually get stuck if both players forcefully try to push two
+players forcefully try to push two different directions it works for some
+different directions it works for some games definitely works for one-on-one
+games definitely works for one-on-one fighting games like this
+fighting games like this and obviously the best solution is what
+and obviously the best solution is what they did with Super Smash Brothers 1 and
+they did with Super Smash Brothers 1 and throughout the franchise you have you
+throughout the franchise you have you average the position add some additional
+average the position add some additional smoothing and you zoom out to make sure
+smoothing and you zoom out to make sure that everything that's important is in
+that everything that's important is in the frame yeah one Rockets Rockets
+the frame yeah one Rockets Rockets Rockets which came out last year it was
+Rockets which came out last year it was also a great representation of what they
+also a great representation of what they do do is Super Smash Brothers and here's
+do do is Super Smash Brothers and here's kind of the develop designer choice as
+kind of the develop designer choice as well it will always try to zoom out the
+well it will always try to zoom out the minimal amount of zooming so the player
+minimal amount of zooming so the player would not really see what's behind and
+would not really see what's behind and also if you get back far enough it's
+also if you get back far enough it's actually uncomfortable you don't really
+actually uncomfortable you don't really see very well so you have this implicit
+see very well so you have this implicit encouragement to always go back to make
+encouragement to always go back to make close encounters which is exactly what
+close encounters which is exactly what the designers wanted another solution is
+the designers wanted another solution is what they did is spelunky obviously I
+what they did is spelunky obviously I the solution is not even get to the not
+the solution is not even get to the not even address the problem of multiple
+even address the problem of multiple characters you just give the camera to
+characters you just give the camera to one if that person dies the camera would
+one if that person dies the camera would move to another player and that's super
+move to another player and that's super important for a game that if you go out
+important for a game that if you go out of the screen you actually has some
+of the screen you actually has some grave consequences and everything that
+grave consequences and everything that pertains to multiplayer would would
+pertains to multiplayer would would would fit multi character and you don't
+would fit multi character and you don't have to do a straight 5050 average you
+have to do a straight 5050 average you can do whatever forty and something else
+manual control when would you provide additional control to what is implicit
+additional control to what is implicit by the camera movement so I think this
+by the camera movement so I think this might be the last time I'm going to talk
+might be the last time I'm going to talk about Super Mario World and it's it's
+about Super Mario World and it's it's pretty interesting
+pretty interesting I feel like the fact that they
+I feel like the fact that they introduced so many different systems in
+introduced so many different systems in one game is some sort of a
+one game is some sort of a overcompensation for a really bad system
+overcompensation for a really bad system that they had in the Super Mario
+that they had in the Super Mario Brothers 3 or something on top of
+Brothers 3 or something on top of everything they did they actually had an
+everything they did they actually had an additional manual control the shoulder
+additional manual control the shoulder buttons would move the camera as well I
+buttons would move the camera as well I don't think anybody really used it a lot
+don't think anybody really used it a lot I don't think it's really needed and
+I don't think it's really needed and it's not implicit it's not very clear
+it's not implicit it's not very clear the player wouldn't would even know that
+the player wouldn't would even know that this thing existed this is obviously not
+this thing existed this is obviously not a real I mean it's not that your classic
+a real I mean it's not that your classic side scroller but what they did with
+side scroller but what they did with Osmos is using control that's very clear
+Osmos is using control that's very clear and implicit to produce exactly the
+and implicit to produce exactly the results that you would expect in this
+results that you would expect in this case the mouse wheel or or in tablets
+case the mouse wheel or or in tablets that pinch-to-zoom would do exactly what
+that pinch-to-zoom would do exactly what you would expect that's what they did
+you would expect that's what they did with jazz jackrabbit II they use the
+with jazz jackrabbit II they use the left and right keys or stick to move the
+left and right keys or stick to move the camera but the same exact behavior would
+camera but the same exact behavior would would move the camera up and down which
+would move the camera up and down which is very useful in some cases they did
+is very useful in some cases they did the same thing with spelunky
+the same thing with spelunky you just expect that if you and you
+you just expect that if you and you would probably do it do it if you didn't
+would probably do it do it if you didn't notice as you were climbing or crouching
+quickly I want to talk about camera shake camera shake is kind of the the
+shake camera shake is kind of the the opposite of what we're talking about
+opposite of what we're talking about right now it's providing some sort of
+right now it's providing some sort of lack of control the player has no
+lack of control the player has no control there's something happening on
+control there's something happening on the screen that's bigger then then the
+the screen that's bigger then then the player could actually control so I try
+player could actually control so I try to look back and with help of friends to
+to look back and with help of friends to figure out when was the first
+figure out when was the first implementation of camera shake this is a
+implementation of camera shake this is a the farthest I got and of course it's
+the farthest I got and of course it's Miyamoto the it's not exactly the camera
+Miyamoto the it's not exactly the camera shake that we know of today because it's
+shake that we know of today because it's it actually has a some part in the game
+it actually has a some part in the game it's not just an effect but still the
+it's not just an effect but still the camera shake close to what we know today
+camera shake close to what we know today the funny thing is that you would only
+the funny thing is that you would only see this behavior on the arcade you
+see this behavior on the arcade you wouldn't see it on the NES they probably
+wouldn't see it on the NES they probably tried and couldn't get scrolling to work
+tried and couldn't get scrolling to work and I have this theory that that's when
+and I have this theory that that's when Miyamoto decided that scrolling is
+Miyamoto decided that scrolling is something that he wants to pursue so I
+something that he wants to pursue so I built an entire story in my head so
+built an entire story in my head so anyway if we're talking about screen
+anyway if we're talking about screen shakes and screen freezes Vlambeer and
+shakes and screen freezes Vlambeer and they know best they made it into an art
+they know best they made it into an art form really and I had some talks about
+form really and I had some talks about that if you look up gee devil JW's work
+that if you look up gee devil JW's work it's it's a huge subject on itself
+it's it's a huge subject on itself alright so how do we put everything
+alright so how do we put everything together and make our own custom-made
+together and make our own custom-made camera so first of all we look at what
+camera so first of all we look at what we want to do what's what are the
+we want to do what's what are the characteristic and significant important
+characteristic and significant important features of our game then we get
+features of our game then we get inspired by other games as I try to do
+inspired by other games as I try to do here as well and then we make it our own
+here as well and then we make it our own change what we need we take some tips we
+change what we need we take some tips we combine and make our own camera solution
+combine and make our own camera solution this game from 1985 legend of Kage
+this game from 1985 legend of Kage doesn't have anything amazing going for
+doesn't have anything amazing going for it except for the fact that it's a
+it except for the fact that it's a probably the last game going from right
+probably the last game going from right to left
+to left for some reason except for mine what
+for some reason except for mine what they did is they created a camera window
+they did is they created a camera window that's exactly the width of a tree
+that's exactly the width of a tree because most fighting actually happened
+because most fighting actually happened on trees so once you're on a tree the
+on trees so once you're on a tree the camera would stay still and again not a
+camera would stay still and again not a brilliant camera solution necessarily
+brilliant camera solution necessarily but the implementation is ideal for that
+but the implementation is ideal for that specific game as we've seen before with
+specific game as we've seen before with shinobi if you have high jumps use a
+shinobi if you have high jumps use a very high vertical window but remember
+very high vertical window but remember to to snap it back to the center if you
+to to snap it back to the center if you have a character that moves really
+have a character that moves really really fast in all directions up and
+really fast in all directions up and down maybe use a camera window that's
+down maybe use a camera window that's very narrow that would work really well
+very narrow that would work really well especially since most camera and most
+especially since most camera and most direction changes happen on the ground
+direction changes happen on the ground so you wouldn't really see the bumps
+so you wouldn't really see the bumps from one side to another except when
+from one side to another except when you've flying down into the bottom edge
+you've flying down into the bottom edge of the screen which in this case is kind
+of the screen which in this case is kind of abrupt and this is exactly what they
+of abrupt and this is exactly what they did they solved this in so that was
+did they solved this in so that was sonic once in Sonic 2 this is they solve
+sonic once in Sonic 2 this is they solve the same problem by using what Super
+the same problem by using what Super Mario Brothers one used that's the speed
+Mario Brothers one used that's the speed up push zone each one of the halves
+up push zone each one of the halves horizontally and vertically stops the
+horizontally and vertically stops the motion of the camera and then starts
+motion of the camera and then starts easing it out back again so even when
+easing it out back again so even when you go into a high-speed loop you
+you go into a high-speed loop you wouldn't even notice that the fact that
+wouldn't even notice that the fact that it actually reduced the speed in one
+it actually reduced the speed in one side immediately increased it back and
+side immediately increased it back and it feels very very smooth and it's a
+it feels very very smooth and it's a major change specifically on the camera
+major change specifically on the camera system between the two games long
+system between the two games long distant view we talked about the concave
+distant view we talked about the concave story I think that's a perfect solution
+story I think that's a perfect solution for games that require a lot of forward
+for games that require a lot of forward view I won't talk a little bit about Fez
+view I won't talk a little bit about Fez again for games for platformers we don't
+again for games for platformers we don't really see camera windows too much these
+really see camera windows too much these days because you miss out
+days because you miss out we miss out a lot of information of
+we miss out a lot of information of what's coming ahead but that's not fast
+what's coming ahead but that's not fast Fez doesn't have a lot of things coming
+Fez doesn't have a lot of things coming at you in fact you would I I think that
+at you in fact you would I I think that most of the important elements since
+most of the important elements since most most of the dimension shifts happen
+most most of the dimension shifts happen in corners of buildings so you could
+in corners of buildings so you could argue that most of everything that's
+argue that most of everything that's important is actually behind you and
+important is actually behind you and that that is maintained throughout the
+that that is maintained throughout the dimension shift so this solution the
+dimension shift so this solution the camerawindow solution that works
+camerawindow solution that works throughout dimensions it is the perfect
+throughout dimensions it is the perfect solution for this kind of game if you
+solution for this kind of game if you have elaborate causal systems with a lot
+have elaborate causal systems with a lot of things happening at the same time
+of things happening at the same time make make the regions as your the
+make make the regions as your the jurisdiction of where the camera needs
+jurisdiction of where the camera needs to be but you can easily do what vessel
+to be but you can easily do what vessel did still allow a little bit of motion
+did still allow a little bit of motion some control of the motion to the
+some control of the motion to the character giving them more sense of
+character giving them more sense of control and if you're telling a story
+control and if you're telling a story like we've seen with Alien Hominid the
+like we've seen with Alien Hominid the swapper actually made told the entire
+swapper actually made told the entire story based on in-game camera shifts and
+story based on in-game camera shifts and region changes and cinematic paths the
+region changes and cinematic paths the entire story is told that way zooming in
+entire story is told that way zooming in zooming out changing of course and
+zooming out changing of course and lighting and whatnot if you want to tell
+lighting and whatnot if you want to tell a story always already we ordering in
+a story always already we ordering in the game just use the camera to tell
+the game just use the camera to tell your story so what do I do in mushroom
+your story so what do I do in mushroom 11 so mushroom 11 has multiple regions
+11 so mushroom 11 has multiple regions per each level you can see that each of
+per each level you can see that each of each of those regions is very very basic
+each of those regions is very very basic rectangular area in could be angular as
+rectangular area in could be angular as well and and the camera can only move in
+well and and the camera can only move in that specific region also each one of
+that specific region also each one of those region has a zoom factor a field
+those region has a zoom factor a field of view factor that allows me in some
+of view factor that allows me in some cases where there are a lot of things
+cases where there are a lot of things happening I can zoom out give more
+happening I can zoom out give more attention to two things up ahead all
+attention to two things up ahead all these regions are numbered so the first
+these regions are numbered so the first region the first mushroom piece to go
+region the first mushroom piece to go through the next region would take the
+through the next region would take the camera with it there are two main region
+camera with it there are two main region archetypes one is the center oriented
+archetypes one is the center oriented which is basically the camera goes to
+which is basically the camera goes to the average position of all the
+the average position of all the different cells and the other archetype
+different cells and the other archetype is the progression or oriented the
+is the progression or oriented the regions where those those regions have a
+regions where those those regions have a trajectory in this case it's just from
+trajectory in this case it's just from right going from right to left and I'm
+right going from right to left and I'm looking at all the different cells
+looking at all the different cells different mushroom pieces and the one
+different mushroom pieces and the one that's most progressed on that line on
+that's most progressed on that line on that trajectory gets the camera and
+that trajectory gets the camera and since I know that I'm only using this
+since I know that I'm only using this behavior this region in in cases where
+behavior this region in in cases where it's more linear motion not really
+it's more linear motion not really puzzle I know that I can apply an
+puzzle I know that I can apply an additional static forward focus I'm
+additional static forward focus I'm moving the camera even further based on
+moving the camera even further based on that trajectory in some cases there are
+that trajectory in some cases there are additional cues like the tractors that
+additional cues like the tractors that we've seen other games in which case I
+we've seen other games in which case I would average the position based on a
+would average the position based on a certain weight that I decide on between
+certain weight that I decide on between certain elements in the game I in this
+certain elements in the game I in this case the tip of the boss and the control
+case the tip of the boss and the control mushroom and of course on top of
+mushroom and of course on top of everything there's an interesting
+everything there's an interesting behavior for smoothing I'm using
+behavior for smoothing I'm using projected focus obviously there's no
+projected focus obviously there's no control here the only thing I know of
+control here the only thing I know of each mushroom piece is its velocity
+each mushroom piece is its velocity really I can make it jump rings so I'm
+really I can make it jump rings so I'm looking at its current trajectory and
+looking at its current trajectory and then apply a further physics smoothing
+then apply a further physics smoothing on it the interesting thing that took me
+on it the interesting thing that took me a long time to kind of figure out is the
+a long time to kind of figure out is the physics smoothing factor is based on the
+physics smoothing factor is based on the speed of that specific mushroom when I
+speed of that specific mushroom when I move really really fast either in
+move really really fast either in tunnels or like we see in in this case
+tunnels or like we see in in this case we have a mushroom piece that moves
+we have a mushroom piece that moves really really fast between regions then
+really really fast between regions then the factor would be very very low I
+the factor would be very very low I would basically try to aim for zero
+would basically try to aim for zero point five seconds of full smoothie but
+point five seconds of full smoothie but in case I'm just trimming and just
+in case I'm just trimming and just exploring it could easily go to
+exploring it could easily go to two-and-a-half three seconds smoothing
+two-and-a-half three seconds smoothing and that works very well for me and when
+and that works very well for me and when we have a lot of different mushroom
+we have a lot of different mushroom pieces enough different velocities and
+pieces enough different velocities and different regions this is how it all
+different regions this is how it all comes together so that's much from
+comes together so that's much from eleven and that's my talk thank you very
+eleven and that's my talk thank you very much

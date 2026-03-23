@@ -1,0 +1,1090 @@
+[Music] hi everyone
+hi everyone my name is guillermo i am a senior
+my name is guillermo i am a senior graphic programmer at contig dream
+graphic programmer at contig dream a country dream is a studio which
+a country dream is a studio which creates game with strong visual
+creates game with strong visual and story and we have our own
+and story and we have our own in-house engine this talk is an overview
+in-house engine this talk is an overview of various rendering techniques used in
+of various rendering techniques used in our two previous game and
+our two previous game and on the current one it mainly focuses on
+on the current one it mainly focuses on lighting and changing
+lighting and changing my co-worker tibo is credited here but
+my co-worker tibo is credited here but he for his help on this presentation
+he for his help on this presentation but he's not with us today
+but he's not with us today okay the first part we focused on or
+okay the first part we focused on or need to be physically based
+need to be physically based and the path we choose from heavy rain
+and the path we choose from heavy rain to detroit become human
+to detroit become human i will discuss why we are using
+i will discuss why we are using photometric units
+photometric units and the need to have material
+and the need to have material calibration and validation tools
+calibration and validation tools then i will explain the direct lighting
+then i will explain the direct lighting and shadow techniques
+and shadow techniques used in your use in our game and i will
+used in your use in our game and i will make a brief talk about or
+make a brief talk about or a volumetric lighting solution and i
+a volumetric lighting solution and i will finish with
+will finish with all indirect lighting implementation but
+all indirect lighting implementation but let's start with the
+let's start with the quick trailer of detroit become human
+quick trailer of detroit become human i'm the android set by cyberlife
+look what you did you have to accept the world
+world as it is or a fight
+as it is or a fight my name is cara my name is marcus my
+my name is cara my name is marcus my name is
+for the players
+okay get back get back a little bit in the past and talk about
+the past and talk about our previous game everyone
+our previous game everyone wore the pastry game based on forward
+wore the pastry game based on forward rendering engine
+rendering engine all the shading and lighting was done in
+all the shading and lighting was done in gamer's space and the brdf was derived
+gamer's space and the brdf was derived from blindfold
+from blindfold it's pretty classic on beyond tousou
+it's pretty classic on beyond tousou we converted a rendering engine to a
+we converted a rendering engine to a different one
+different one all material evolution remain in gamma
+all material evolution remain in gamma space but lighting and shading are done
+space but lighting and shading are done in linear space
+in linear space we use a more refined brdf based on
+we use a more refined brdf based on microfacetory
+microfacetory with some approximation to fit the ps3
+with some approximation to fit the ps3 capability
+for detroit become human we get back to cluster forward shading
+cluster forward shading to have more flexibility on all
+to have more flexibility on all materials all
+materials all rendering pipeline is known in linear
+rendering pipeline is known in linear space and we use micro
+space and we use micro facet brdf mainly based on ggx
+facet brdf mainly based on ggx distribution
+distribution with support of anisotropy
+with support of anisotropy the difference part still use a vanilla
+the difference part still use a vanilla bastian diffuse term
+bastian diffuse term and we do partial energy conservation
+and we do partial energy conservation between
+between diffus and specular
+diffus and specular photometric units are used for all
+photometric units are used for all intensity
+intensity on both analytical light and emissive
+on both analytical light and emissive surfaces
+all material are built by artists with the help of a shedding tree
+the help of a shedding tree this is very powerful and can be hard to
+this is very powerful and can be hard to control performances and global
+control performances and global coherency
+coherency some materials can have multiple
+some materials can have multiple specular albums like the skin shader the
+specular albums like the skin shader the car paint
+car paint or even the literally in some cases
+or even the literally in some cases to handle this kind of materials
+we have implemented something we call a brdf layer stack
+brdf layer stack we split our brdf in multiple layer and
+we split our brdf in multiple layer and stack them
+stack them material can have two specular lab plus
+material can have two specular lab plus one diffuse and
+one diffuse and one subsurface or back scattering one
+one subsurface or back scattering one for example the literally have only one
+for example the literally have only one specular knob by default
+specular knob by default but in cad it can possible it can be
+but in cad it can possible it can be possible to add a second for metallic
+possible to add a second for metallic materials which
+materials which with random effect on them
+energy conservation between layer is a required and each layer computes its
+required and each layer computes its reflected and transmitted energy
+reflected and transmitted energy the remaining energy is released to
+the remaining energy is released to compute the next layer
+compute the next layer to have a perfect energy conservation we
+to have a perfect energy conservation we will need to pre-compute energy transfer
+will need to pre-compute energy transfer over the entire brdf taking into account
+over the entire brdf taking into account multiple scattering fresnel and
+multiple scattering fresnel and absorption
+absorption this approach was not retained by the
+this approach was not retained by the fear of the cost
+fear of the cost introduced by multiple lookup needed to
+introduced by multiple lookup needed to achieve this
+achieve this and unfortunately we just take into
+and unfortunately we just take into account the fresnel interface
+account the fresnel interface to achieve energy conservation between
+to achieve energy conservation between layers
+layers but a recent talk by christopher coola
+but a recent talk by christopher coola and
+and alejandro conti at last year's graph on
+alejandro conti at last year's graph on this subject give us some hope to use
+this subject give us some hope to use such a technique in our next project
+such a technique in our next project okay now you have an overview of how or
+okay now you have an overview of how or sharing is processed
+sharing is processed and i can talk about the issue we faced
+and i can talk about the issue we faced in the prediction
+in the prediction cycle before detroit become human each
+cycle before detroit become human each artist
+artist build their own level and add their own
+build their own level and add their own habits
+habits lighting from one cent scene to another
+lighting from one cent scene to another could be very different
+could be very different even under identical light condition
+even under identical light condition materials was not spared by this issue
+materials was not spared by this issue in this case it was really hard to reuse
+in this case it was really hard to reuse props in different scenes and understand
+props in different scenes and understand who is the culprit
+who is the culprit is it the material or the lighting for
+is it the material or the lighting for all this reason
+all this reason we decided to move to photometric units
+we decided to move to photometric units to fix
+to fix a part of the problem
+when we started to this development like coherency was a main goal
+coherency was a main goal with photometric units it was easier to
+with photometric units it was easier to compare sun lighting to real life
+compare sun lighting to real life references
+references art and artists can use real light
+art and artists can use real light real-life measure value it gives
+real-life measure value it gives guidelines for artists to correctly
+guidelines for artists to correctly lit their scene and by the same way it
+lit their scene and by the same way it presents them from unconsciously back
+presents them from unconsciously back lighting information in their albedo
+lighting information in their albedo by for example when they do
+by for example when they do dark albedo for nighting
+dark albedo for nighting and finally intensity range between
+and finally intensity range between bright and dark area of the scene are
+bright and dark area of the scene are more plausible
+more plausible for more information about about
+for more information about about photometric units you can refer to a
+photometric units you can refer to a great presentation by sebastian lagarde
+great presentation by sebastian lagarde and charles rousseau
+and charles rousseau called moving frostbite to physically
+called moving frostbite to physically based rendering
+let's do a quick reminder about photometric units
+you have the luminous power that can be expressed in lumen
+expressed in lumen who was that was the total light amount
+who was that was the total light amount uh
+uh energy emitted by light the luminous
+energy emitted by light the luminous intensity
+intensity that was expressed in candela is the
+that was expressed in candela is the luminous power per solid angle direction
+luminous power per solid angle direction of light illuminance
+of light illuminance that can be expressed in looks
+that was the light amount falling on the surface
+surface and the luminance that can be expressed
+and the luminance that can be expressed in candela per square meter
+in candela per square meter and it's a per-unit area of candela in
+and it's a per-unit area of candela in specific direction
+directional light can be expressed in looks because as seen previously looks
+looks because as seen previously looks is a light amount falling on the surface
+is a light amount falling on the surface other lights can be expressed in lumen
+other lights can be expressed in lumen or in canada per square meter if aero
+or in canada per square meter if aero light are used
+light are used you can see some luminous power
+you can see some luminous power references provided by sebastian angela
+references provided by sebastian angela lagarde in
+lagarde in this presentation on the subject and as
+this presentation on the subject and as you can see
+you can see the range between values can be very
+the range between values can be very high
+high quadratic attenuation are mandatory for
+quadratic attenuation are mandatory for punctual light sources
+punctual light sources to compute correct illuminance at the
+to compute correct illuminance at the surface of object
+surface of object and illuminance can be rely really high
+and illuminance can be rely really high near the punctual light sources
+for emissive surfaces we add an emissive intensity parameter on
+intensity parameter on all materials in combination with the
+all materials in combination with the traditional
+traditional emissive color hemis event density is
+emissive color hemis event density is expressed in exposure value heavy or
+expressed in exposure value heavy or stop in photography but why are we using
+stop in photography but why are we using heavy and not candela per square meter
+heavy and not candela per square meter which might be a more logical
+which might be a more logical unit to use for emissive surfaces
+unit to use for emissive surfaces candela per square meter is a linear
+candela per square meter is a linear scale but is not
+scale but is not perceived as such by the human eye but
+perceived as such by the human eye but ev is perceptually linear scale for the
+ev is perceptually linear scale for the human vision
+human vision and adding one unit in ev double the
+and adding one unit in ev double the passive light intensity
+to work with such high range we need to correctly expose our scene even in all
+correctly expose our scene even in all level editor
+level editor using an auto exposure is not
+using an auto exposure is not recommended
+recommended it can easily break your landmark to
+it can easily break your landmark to keep real life
+keep real life comparison we use measure measured
+comparison we use measure measured exposure for triple like condition
+and fortunately all levels are split in volume called thin zone
+volume called thin zone this thin zone are used for visibility
+this thin zone are used for visibility in combination of portals
+in combination of portals and you usually match a room in our
+and you usually match a room in our house
+we had to them or exposure information in this case our director of photography
+in this case our director of photography provide exposure references for
+provide exposure references for set artists the same exposure are fixed
+set artists the same exposure are fixed are fixed value for the same zone and
+are fixed value for the same zone and there is no camera transition
+there is no camera transition we instantly apply exposure when the
+we instantly apply exposure when the camera enters in the
+camera enters in the thin zone
+scene exposure is expressed in ev100 it represents a combination of camera
+it represents a combination of camera shutter speed and f number
+shutter speed and f number for iso 100 sensibilities sensor
+for iso 100 sensibilities sensor sensibility
+sensibility sun exposure is great is a great tool to
+sun exposure is great is a great tool to ensure that our lighting was incoherent
+ensure that our lighting was incoherent ranges
+ranges for asset production and it
+for asset production and it it is really useful to pre-expose or
+it is really useful to pre-expose or accumulation buffer
+accumulation buffer but it's not enough for in-game exposure
+but it's not enough for in-game exposure where we need more control and that's
+where we need more control and that's why we introduce camera exposure
+camera exposure is an exposure compensation over the sun exposure
+compensation over the sun exposure and it gives more control to dynamically
+and it gives more control to dynamically change the exposure
+change the exposure artists are able to choose between four
+artists are able to choose between four different camera exposure type depending
+different camera exposure type depending on their need
+on their need auto exposure are mainly used in
+auto exposure are mainly used in gameplay
+gameplay phases in manual exposure on cutscenes
+okay the first one we call it manual exposure the exposure value is in
+exposure the exposure value is in heavy 100 and can be controlled by
+heavy 100 and can be controlled by animated curve
+animated curve the second one in called camera it is
+the second one in called camera it is it computes exposure from physical
+it computes exposure from physical camera setting
+camera setting like the half stop the hyzo and the
+like the half stop the hyzo and the shutter speed
+shutter speed we have an auto average that computes
+we have an auto average that computes the exposure from the low average
+the exposure from the low average luminance of the scene
+luminance of the scene that's pretty classic and the last one
+that's pretty classic and the last one is called auto evie zone it's a little
+is called auto evie zone it's a little bit
+bit special it computes the
+special it computes the exposure from the value provided in the
+exposure from the value provided in the sim zone
+sim zone in addition to decals
+in addition to decals exposure details manual placed manually
+exposure details manual placed manually placed in the scene
+this screen capture represents our camera
+camera auto ev debug view as you may be can see
+auto ev debug view as you may be can see on the scale on the right
+on the scale on the right all the pixels in the room have neutral
+all the pixels in the room have neutral exposure compensation
+exposure compensation this is because the camera is currently
+this is because the camera is currently in the
+in the thin zone of the room all the pixels
+thin zone of the room all the pixels outside of the house are in a different
+outside of the house are in a different scene zone
+scene zone which is approximately three stop above
+which is approximately three stop above the current
+the current thin zone this is the right pixel
+thin zone this is the right pixel the red pixel sorry
+the red pixel sorry and the dac's dark pixel near the
+and the dac's dark pixel near the entrance were evedically manually placed
+entrance were evedically manually placed by artists to control exposure this
+by artists to control exposure this decal
+decal was approximately half a stop below the
+was approximately half a stop below the current sun exposure
+current sun exposure and now let's see it in action
+you can see the box of the decal near the door
+the door [Music]
+and when the camera see all the pixels in this zone
+in this zone the the exposure or the toe exposure is
+the the exposure or the toe exposure is done
+done and as you can see when the camera goes
+and as you can see when the camera goes out
+out the same exposures change but the the
+the same exposures change but the the camera exposure
+camera exposure do compensation to have a smooth
+do compensation to have a smooth transition
+ok to work with photometric unit we develop a lot of debug tool
+unit we develop a lot of debug tool here is some example the first one is a
+here is some example the first one is a virtual spot meter that gives us
+virtual spot meter that gives us pixel absolute luminance in candela per
+pixel absolute luminance in candela per square meter and ev100
+square meter and ev100 it also gives us rgb value of our
+it also gives us rgb value of our accumulation buffer
+accumulation buffer it's really really useful to tweak
+it's really really useful to tweak emissive surfaces and
+emissive surfaces and debug eye value and specular reflection
+debug eye value and specular reflection [Music]
+[Music] and the second one is a false color
+and the second one is a false color debug screen
+debug screen that help us to check if a scene is well
+that help us to check if a scene is well exposed
+exposed it's highlight range for correct exposed
+it's highlight range for correct exposed middle gray skin tone
+middle gray skin tone and ranges for crest black and bunch
+and ranges for crest black and bunch wide
+wide this debug screen is really really
+this debug screen is really really useful for our director of photography
+useful for our director of photography to check if
+to check if the scene was correctly exposed
+now now with all the work done on the photometric unit and exposure
+photometric unit and exposure we have a good framework for lighting
+we have a good framework for lighting with real light
+with real light references and consistent value
+references and consistent value but if we don't want to break all the
+but if we don't want to break all the work done on the lighting
+work done on the lighting material need the same treatment our
+material need the same treatment our first idea was to scan
+first idea was to scan a huge quantity of material to use them
+a huge quantity of material to use them on our game but it was not possible for
+on our game but it was not possible for us to do it
+us to do it we don't have the workforce for it
+even even if we are not able to scan all materials
+materials we really want to capture some objects
+we really want to capture some objects and material references
+and material references to do this we needed to build a
+to do this we needed to build a controlled environment
+controlled environment that was easy to reproduce in our engine
+that was easy to reproduce in our engine we built a black room with three
+we built a black room with three incandescent bulb and capture reference
+incandescent bulb and capture reference material and objects
+material and objects all this process also give us
+all this process also give us possibility to validate the work done on
+possibility to validate the work done on photometric unit
+photometric unit and capture our first full range image
+and capture our first full range image based light
+around this we built a tool called the housing tool that provide calibrated
+the housing tool that provide calibrated environment
+environment and an easy access to material
+and an easy access to material properties
+properties it is really important to use full range
+it is really important to use full range image baselight to have a result as
+image baselight to have a result as close as possible to the reality
+close as possible to the reality you could find some interesting
+you could find some interesting information on the subject
+information on the subject on a presentation by sebastian lagarde
+on a presentation by sebastian lagarde call an artist friendly workflow for
+call an artist friendly workflow for panoramic hdri
+panoramic hdri artists can easily check their props in
+artists can easily check their props in this tool and check if the
+this tool and check if the materials are correct a screenshot of
+materials are correct a screenshot of this tool
+this tool let's see the screenshot panel of the
+let's see the screenshot panel of the left
+left give easy access to to display material
+give easy access to to display material properties
+properties and the props and character of the game
+and the props and character of the game can be verified in this tool it's pretty
+can be verified in this tool it's pretty useful to detect a
+useful to detect a wrong material setup
+in addition to the icing tool we provide some debug option to our light value
+some debug option to our light value with out of range material properties
+with out of range material properties wrong best color is highlighted in red
+wrong best color is highlighted in red wrong fresnel value for glass shader in
+wrong fresnel value for glass shader in blue
+blue and material with wrong metallic setup
+and material with wrong metallic setup in yellow
+in yellow it's really useful to quickly understand
+it's really useful to quickly understand what's wrong with your material
+what's wrong with your material see some example um this aloe
+see some example um this aloe is this allowed us to identify that the
+is this allowed us to identify that the best color of the snow are often too
+best color of the snow are often too high
+high and the glass shader often have two high
+and the glass shader often have two high reflectance values
+reflectance values and in some cares in some cases we could
+and in some cares in some cases we could find some strange setup
+find some strange setup like for the sofa that have metallic
+like for the sofa that have metallic property on it
+property on it now let's talk about all lighting and
+now let's talk about all lighting and shadowing solution
+okay we use photometric units and have calibration material
+calibration material but what's about analytical light all of
+but what's about analytical light all of our anatomy analytical light were
+our anatomy analytical light were punctual sources
+punctual sources we have a direction light a point light
+we have a direction light a point light and spotlight
+and spotlight and a projector light that is a
+and a projector light that is a directional light constraint in the box
+directional light constraint in the box with attenuation pretty simple
+with attenuation pretty simple attenuation is quadratic by default but
+attenuation is quadratic by default but artists can tweak the value between
+artists can tweak the value between from 0 to 2. it is useful to
+from 0 to 2. it is useful to fake bigger lights by decreasing the
+fake bigger lights by decreasing the attenuation
+the quadratic attenuation is combined with an attenuation radius
+with an attenuation radius that try to preserve energy as much as
+that try to preserve energy as much as possible
+possible but energy lost is unavoidable at the
+but energy lost is unavoidable at the end of the reduce
+but punctual light sources but with punctual sources some really
+but with punctual sources some really high intensity peak can appear in the
+high intensity peak can appear in the specular reflection
+specular reflection this issue issue is mostly present in
+this issue issue is mostly present in materials with
+materials with mid and low roughness
+mid and low roughness to fix this issue we have implemented a
+to fix this issue we have implemented a rear light using closest point
+rear light using closest point techniques
+techniques but forward rendering means all lights
+but forward rendering means all lights need to be and are
+alight this introduce additional cost to
+this introduce additional cost to lighting and artists should have to
+lighting and artists should have to relate all the scene already lit
+relate all the scene already lit and unfortunately it was too late in the
+and unfortunately it was too late in the production cycle
+production cycle to integrate them on the korean game
+finally we slightly bears the material of ness to prevent the issue
+ok with light with the differentiating we were able to
+with the differentiating we were able to use custom
+use custom geometry easily it's helped to constrain
+geometry easily it's helped to constrain light in an arbitrary geometry tree to
+light in an arbitrary geometry tree to prevent them to leak
+prevent them to leak from wall or even without shadow
+from wall or even without shadow but because we are we have a forward
+but because we are we have a forward engine
+engine it was not trivial to use custom
+it was not trivial to use custom geometry like we've done before
+geometry like we've done before to handle a part of the problem we have
+to handle a part of the problem we have had in an orientable near clip plane
+had in an orientable near clip plane on all all whole light it's very useful
+on all all whole light it's very useful and cheap
+and cheap to help light positioning with without
+to help light positioning with without custom light geometry
+custom light geometry we also had some visibility flag on all
+we also had some visibility flag on all lights
+lights that give us the possibility to reject
+that give us the possibility to reject light per cluster
+light per cluster and per pixel a light can lead
+and per pixel a light can lead all the things on offer level or just
+all the things on offer level or just the same zone where the lid is in or all
+the same zone where the lid is in or all the
+the sensors visible by the light the first
+sensors visible by the light the first term of the light
+term of the light it's prevent leaking from light with a
+it's prevent leaking from light with a shadow and it's great for performances
+shadow and it's great for performances by example in a house a light on the
+by example in a house a light on the second floor won't
+second floor won't lit the pixel of the first floor with
+lit the pixel of the first floor with this flag on it
+okay now let's introduce our close-up lighting system
+lighting system our games are story driven with many
+our games are story driven with many close-up camera shots
+close-up camera shots we want to be able to lit or close a
+we want to be able to lit or close a shot like on a movie set
+shot like on a movie set and we pay special attention to the
+and we pay special attention to the lighting
+lighting with our tool we are able to edit the
+with our tool we are able to edit the lighting
+lighting of all our camera shots on a
+of all our camera shots on a post-production phase
+post-production phase artists can choose for each camera track
+artists can choose for each camera track what object will receive
+what object will receive or close applied and can also add some
+or close applied and can also add some exposure track on them
+on the engine side the close-up lighting in is a set of
+in is a set of is a set of flight used to replace the
+is a set of flight used to replace the regular lighting
+regular lighting artists choose objects that will be lit
+artists choose objects that will be lit by the close-up light set
+by the close-up light set they can also affect the indirect
+they can also affect the indirect contribution contribution
+contribution contribution with gi and ibl color multiplier
+with gi and ibl color multiplier they can flag a regular light in the
+they can flag a regular light in the scene as additional close-up light
+scene as additional close-up light and close-up light always use or
+and close-up light always use or close-up shadow system
+close-up shadow system that will explain later and it have its
+that will explain later and it have its own light cluster fitted to the bonding
+own light cluster fitted to the bonding box of the
+box of the close-up close-up selection and the size
+close-up close-up selection and the size of this
+of this additional cluster is eleven by eleven
+additional cluster is eleven by eleven by four
+okay let's see a screenshot with or close-up lighting on and
+close-up lighting on and another with the close-up lighting off
+another with the close-up lighting off it's pretty useful in this case
+okay now that the subject of the direct lighting has been approached i
+direct lighting has been approached i can talk about our choices
+can talk about our choices the choices we made on the shadow part
+we use classic shadow mapping techniques but
+but all percentage cross filtering is done
+all percentage cross filtering is done with
+with 8 sample and temporal super sampling
+8 sample and temporal super sampling all the samples are deterring using blue
+all the samples are deterring using blue noise and the temporal anteriorizing
+noise and the temporal anteriorizing soften the result for us
+soften the result for us the default blur radius is 3 pixels wide
+the default blur radius is 3 pixels wide and can go up to
+and can go up to 15 pixels
+shadowbase is automatically computed from the geometry normal and artists do
+from the geometry normal and artists do not need to worry about it
+not need to worry about it we also implement soft shadow
+we also implement soft shadow in the form of pcss but it's turned out
+in the form of pcss but it's turned out to be
+to be not feasible for us because of a too
+not feasible for us because of a too high registered pressure in our shadow
+high registered pressure in our shadow but pcs pcss is still used on auto
+shader
+a shadow store on an atlas of
+8192 square pixel texture at 16 bit precision artists are able to
+at 16 bit precision artists are able to choose between three different
+choose between three different size for their shadow and all are
+size for their shadow and all are multiple or 256 pixels
+shadow are resized depending on their distance to the camera
+distance to the camera the resolution can be half at max we
+the resolution can be half at max we decrease
+decrease resolution in 4 step to prevent pixel
+resolution in 4 step to prevent pixel crawling
+crawling and repack them in the atlas when
+and repack them in the atlas when reaching multiple of
+reaching multiple of [Music]
+[Music] 256 pixels
+the shadow atlas was lazily updated only if a light
+if a light move in or if something move in their
+move in or if something move in their first term
+first term point light faces can be individually
+point light faces can be individually excluded and
+excluded and we also have a tweakable near clip plane
+we also have a tweakable near clip plane to help with numerical
+to help with numerical numerical precision and light
+numerical precision and light positioning
+this clip plane can be correlated or not with the light near clip plane itself
+with the light near clip plane itself but
+but this one is not don't support rotation
+for the directional light we use cascaded shadow map
+cascaded shadow map with the same filtering than on the ozo
+with the same filtering than on the ozo lights
+lights i sample with temporal super sampling
+i sample with temporal super sampling with mousse transition between shadow
+with mousse transition between shadow split
+split by using jittering and temporal
+by using jittering and temporal anti-aliasing
+anti-aliasing or cascades have four split at max
+or cascades have four split at max but a majority of her scene only have a
+but a majority of her scene only have a 2 or 3 split
+2 or 3 split and split distribution is automatic
+and split distribution is automatic automatically handed
+automatically handed no artist input needed except for the
+no artist input needed except for the far distance
+far distance of the last split
+we handle a static shadow too we try to have a
+have a shadow also we try to have a shadow on
+shadow also we try to have a shadow on all
+all right and to do this we have a static
+right and to do this we have a static shadow system the shadow
+shadow system the shadow of a light switch to a static shadow
+of a light switch to a static shadow depending on the
+depending on the camera distance they contain only static
+camera distance they contain only static geometry
+geometry and we do only one sample with
+and we do only one sample with billionaire
+billionaire billionaire comparison it's pretty fast
+billionaire comparison it's pretty fast all the static shadow are stored on an
+all the static shadow are stored on an atlas of
+atlas of 2048 square pixel and shadow itself
+2048 square pixel and shadow itself are 16 4 square pixels
+are 16 4 square pixels we are able to have up to 1020 for
+we are able to have up to 1020 for static shadow in a scene
+static shadow in a scene static shadow for the directional light
+static shadow for the directional light is handled by
+is handled by a huge texture storing all the static
+a huge texture storing all the static geometry
+geometry it's a pretty huge texture
+okay close up shadow like for or close apply system we want to have high
+close apply system we want to have high quality shadow
+quality shadow on our close-up shots
+on our close-up shots we are about to have two additional
+we are about to have two additional shadow for close applied system
+shadow for close applied system and the system is always on even if we
+and the system is always on even if we are not in a close-up shot
+are not in a close-up shot all this all the shadow can be promoted
+all this all the shadow can be promoted to close up one
+to close up one close-up shadow are used to add
+close-up shadow are used to add precision
+precision and precision on contact and
+and precision on contact and self-shadowing
+self-shadowing artists select a relevant object in the
+artists select a relevant object in the same that receive close-up shadow by
+same that receive close-up shadow by example all the characters
+example all the characters are close-up shadow receiver and only
+are close-up shadow receiver and only this object
+this object receive the close-up shadow
+receive the close-up shadow okay how its work first of all
+okay how its work first of all we compute a bonding volume of all
+we compute a bonding volume of all visible
+visible close-up shadows receiver on a radius of
+close-up shadows receiver on a radius of 10 meter around the camera
+10 meter around the camera the bonding volume of skinhead objects
+the bonding volume of skinhead objects are computed from a
+are computed from a point cloud to be able to fit to only
+point cloud to be able to fit to only the visible part
+the visible part of the character or the skin object
+of the character or the skin object then we fit the first term
+then we fit the first term to the bonding volume of all the visible
+to the bonding volume of all the visible cluster preserver
+an object between the right position and the near plane of the
+the near plane of the fitted first term are projected on this
+fitted first term are projected on this snare plane
+now in this case we render only the object
+object in the boning volume and hold the object
+in the boning volume and hold the object between the
+between the burning volume and the light
+burning volume and the light okay a screenshot with a close-up shadow
+okay a screenshot with a close-up shadow on
+on and another wizard the close-up shadow
+and another wizard the close-up shadow it's really helped with light
+it's really helped with light light leaking and self-shadowing
+okay our shadow memory budget we have a big chunk of memory dedicated
+we have a big chunk of memory dedicated to shadows
+to shadows which is about 280 megabytes
+which is about 280 megabytes close-up shadow are stored on the main
+close-up shadow are stored on the main shadow atlas
+shadow atlas we are able to have between 10 to 1024
+we are able to have between 10 to 1024 shadow at a time
+shadow at a time depending on the resolution of the
+depending on the resolution of the shadow
+shadow by example in the case of point light
+by example in the case of point light with sys
+with sys with six face casting shadow
+at one thousand twenty four pixel each the atlas if is filled up with only 10
+the atlas if is filled up with only 10 light
+light and trust me this case appears more than
+and trust me this case appears more than once in the production
+ok no video that displays the shadow atlas
+video that displays the shadow atlas can see some close-up shadow that
+can see some close-up shadow that constantly fit on the character
+constantly fit on the character you have two close-up shadow and on the
+you have two close-up shadow and on the lower left and lower right you can see
+lower left and lower right you can see shadow that resize depending on the
+shadow that resize depending on the distance with the light source and the
+distance with the light source and the camera
+and when the close-up lighting is enabled the number of
+enabled the number of shadow is proportional to the light
+shadow is proportional to the light count used for the close-up per light
+shot
+okay shadow performances we have 15 to 20 shadow updates on
+we have 15 to 20 shadow updates on average per frame
+average per frame but there is no limit quantity it can
+but there is no limit quantity it can get wide in some cases
+get wide in some cases and on the previous video the shadow
+and on the previous video the shadow cost is between 1.5 millisecond
+cost is between 1.5 millisecond and 3.5 milliseconds majority of olsen
+and 3.5 milliseconds majority of olsen don't get go over 5 milliseconds for
+don't get go over 5 milliseconds for shadow
+shadow the most of the time the
+the most of the time the costs for the close-up shadow are really
+costs for the close-up shadow are really independent and can be
+independent and can be it can be really fast if few objects are
+it can be really fast if few objects are reprojected on the airplane
+reprojected on the airplane but it can be really slow in the case of
+but it can be really slow in the case of a tree covering all the first time of
+a tree covering all the first time of the light
+the light because of a huge alpha test coverage
+okay let's talk about volumetric lighting
+lighting for volumetric lighting we use an
+for volumetric lighting we use an unified volumetric lighting solution
+unified volumetric lighting solution popularized by
+popularized by barbonski in 2014 and sebastian hilaire
+barbonski in 2014 and sebastian hilaire in
+in 2015. the technique consists of storing
+2015. the technique consists of storing all the medium property
+all the medium property and the lighting to a volumetric texture
+and the lighting to a volumetric texture fitted on the first time of the light
+fitted on the first time of the light it's a kind of different shading done on
+it's a kind of different shading done on a volumetric buffer
+for more information i advise you to read the previous paper on this subject
+read the previous paper on this subject in our case we render all volumetric
+in our case we render all volumetric buffer with checkerboard
+buffer with checkerboard rendering the native resolution of
+rendering the native resolution of volumetric buffer are 192 by 108
+volumetric buffer are 192 by 108 by 64. on the base ps4 and we slightly
+by 64. on the base ps4 and we slightly increase the resolution on the pro
+the temporal component of the effect use blue noise deterring
+blue noise deterring on the depth lighting and all the
+on the depth lighting and all the features are supported
+features are supported all lighting features are supported
+all lighting features are supported like like click plane
+like like click plane on the light and shadow as well as all
+on the light and shadow as well as all on direct lighting
+on direct lighting for contribution is supported in all
+for contribution is supported in all jay baking and it gives us an
+jay baking and it gives us an approximation of multiple scattering in
+approximation of multiple scattering in the fog
+the fog okay the volume metric light can leak
+okay the volume metric light can leak through surfaces
+through surfaces with this technique when the light is in
+with this technique when the light is in the same depth slice
+the same depth slice than the surface of an opaque object
+as you can see the light can lit some sample
+sample in the cell and when we compute to move
+in the cell and when we compute to move when we compute moving average of all
+when we compute moving average of all the simple
+the simple the light contribution can be stronger
+the light contribution can be stronger stronger than expected
+stronger than expected for us it is really important to fix
+for us it is really important to fix this issue because we have a lot of
+this issue because we have a lot of small volumetric light attached to
+small volumetric light attached to objects to fix this
+objects to fix this issue we store min max depths per tile
+issue we store min max depths per tile in two dimension
+in two dimension we use max depth to clump voxel
+we use max depth to clump voxel thickness at light
+thickness at light evaluation and we
+evaluation and we apply a zbs when sampling the volumetric
+apply a zbs when sampling the volumetric texture
+that was storing the light scattering when the tie variance is above
+when the tie variance is above above a certain threshold that don't fix
+above a certain threshold that don't fix all the issue but it's it can be really
+all the issue but it's it can be really effective in some cases
+okay let's see a screenshot with the volumetric
+volumetric lighting off and another with the
+lighting off and another with the volumetric lighting on
+volumetric lighting on with some colored setting it's prettier
+with some colored setting it's prettier in the game
+in the game in the majority of using the performance
+in the majority of using the performance has around two milliseconds and can go
+has around two milliseconds and can go up to three milliseconds
+up to three milliseconds in thin with huge amount of moving light
+in thin with huge amount of moving light we use some technique to reproject
+we use some technique to reproject uh and prevent ghosting on moving light
+uh and prevent ghosting on moving light and this is why in this case we have
+and this is why in this case we have more
+more cost when a huge amount of flight are
+cost when a huge amount of flight are moving in the scene
+moving in the scene but we don't go over three milliseconds
+but we don't go over three milliseconds all the time
+okay in just a little video because i love this effect
+love this effect yeah it's quick
+okay now we can talk about our undirect lighting solution
+uh if we go back in the past with beyond to soul
+to soul at that time we were using half-life 2
+at that time we were using half-life 2 ambient cube
+ambient cube storage per vertex for static geometry
+storage per vertex for static geometry and with
+and with light probe for dynamic geometry
+light probe for dynamic geometry the undirect specular was a mix of
+the undirect specular was a mix of various technique
+various technique we have planar reflection
+we have planar reflection amp also with vertical blur pyramid to
+amp also with vertical blur pyramid to fake roughness
+fake roughness and q-map capture without bureau
+and q-map capture without bureau different aggression and
+different aggression and manually used in the shelling tree
+manually used in the shelling tree it was pretty ugly at this time
+it was pretty ugly at this time and all the artists need to to do
+and all the artists need to to do the capture and integrate the
+the capture and integrate the the the ibl in their shading
+the the ibl in their shading herself
+and what we want is to to have an unified solution for static
+to have an unified solution for static and
+and dynamic object
+we start to work on a probe best solution for everything
+solution for everything or solution is typical this day we use
+or solution is typical this day we use image based light for specular component
+image based light for specular component with ggx and if
+with ggx and if ndf integration filtered
+ndf integration filtered important sampling is used to prevent a
+important sampling is used to prevent a firefly and we have
+firefly and we have influence and parallel parallax box
+for the diffic sport we begin to use diffuse prop grid
+diffuse prop grid but as we choose to use diffuse prop
+but as we choose to use diffuse prop grid some technical flow happens to us
+grid some technical flow happens to us light leaking was one big issue
+light leaking was one big issue introduced by
+introduced by some introduced by prop grid
+some introduced by prop grid and it's an ongoing research research
+and it's an ongoing research research era with some interesting solution
+era with some interesting solution proposed last year
+proposed last year interpolation irregularity are are not
+interpolation irregularity are are not often addressed but
+often addressed but was considered as problematic for us
+by example if we try to fix light leaking by rejecting probes based on
+leaking by rejecting probes based on occlusion it often leads to
+occlusion it often leads to interpolation artifact
+interpolation artifact we ended up to never discarding any
+we ended up to never discarding any probe
+we store our probe in an adaptative adaptive sparse oak tree automatically
+adaptive sparse oak tree automatically build with artists q
+they they can provide density zone to help
+help the automatic voxelization
+the automatic voxelization and the scene voxelization help us to
+and the scene voxelization help us to automatically adjust the resolution of
+automatically adjust the resolution of the archery
+the archery around the object and the wall of the
+around the object and the wall of the scene
+okay in our case one or three cell contain
+contain eight probes on
+eight probes on one per corner of the cell a pointed
+one per corner of the cell a pointed space
+space is always surrounded by eight probes and
+is always surrounded by eight probes and we never discard any pro
+we never discard any pro but virtually offset them at the baking
+but virtually offset them at the baking time
+time instead
+thanks to this artists can use a proper tractor
+tractor the this attractor are closed mesh
+the this attractor are closed mesh that attracts all the probe in the
+that attracts all the probe in the volume
+volume this attractor can be fit to a
+this attractor can be fit to a to a room or just on a certain object
+to a room or just on a certain object and they are real really cute they are
+and they are real really cute they are there sorry and they are
+there sorry and they are they are useful
+and they are usually close to all volume zone
+zone already used for visibility
+artists can also use mesh repulsor to offset probes outside
+offset probes outside of the geometry
+on the left on the left note all probes inside the
+inside the this single facet cube receive light
+this single facet cube receive light information and introduce light leaking
+information and introduce light leaking on the right probes are offseted outside
+on the right probes are offseted outside of the cube and creates a more natural
+of the cube and creates a more natural occlusion
+occlusion also note the envelope antipolation
+also note the envelope antipolation error on the
+error on the right side of the cube
+okay offsetting probes help us to solve majority of likely kinkay's
+majority of likely kinkay's cases as previously said
+cases as previously said we've virtually offset all probes during
+we've virtually offset all probes during capture or baking time
+capture or baking time but the the evaluation of the gi
+but the the evaluation of the gi is always based on the original grip
+is always based on the original grip grid position the offset is only done at
+grid position the offset is only done at baking time
+baking time probe inside the wall is undefined
+probe inside the wall is undefined because the wall as usually used usually
+because the wall as usually used usually will
+will use back face curling and the probe was
+use back face curling and the probe was in a state
+in a state that we don't know we use a repulsor to
+that we don't know we use a repulsor to virtually
+virtually offset the prop position outside of the
+offset the prop position outside of the wall
+in this case this probe
+that was moved on the outside of the wall takes some bright red color
+wall takes some bright red color we fix one side but this creates some
+we fix one side but this creates some licking
+licking on the other side of the wall that's
+on the other side of the wall that's that was
+that was way dimmer than the first one
+if the leaking was always present in or relevant
+relevant we subdivide the ar3 around the object
+we subdivide the ar3 around the object if possible
+if possible and it will fix the issue
+if it is not possible to subdivide because we reach
+because we reach the maximum or 3 octary depth we follow
+the maximum or 3 octary depth we follow minimum and direct light error
+minimum and direct light error weak and direct is always less
+weak and direct is always less noticeable than bright and direct
+ok in the cases we can properly handle we also provide some probe color
+we also provide some probe color modifier
+modifier with smooth quadratic attenuation
+with smooth quadratic attenuation quadratic transition for manual
+quadratic transition for manual modification
+modification this color modifier are post applied and
+this color modifier are post applied and post applied on the jbeg competition and
+post applied on the jbeg competition and provide really fast iteration
+to prevent filtering discontinuity between oak tree
+between oak tree between octree level when using hardware
+between octree level when using hardware filtering
+filtering we force color continuity at baking time
+we force color continuity at baking time by
+by by antipolating probes that are not that
+by antipolating probes that are not that are on the border of the octree depth
+are on the border of the octree depth size difference
+size difference like on t-junction in this case
+like on t-junction in this case blue probes are never computed
+blue probes are never computed but interpolated instead
+but interpolated instead it helped to prevent irregularity and
+it helped to prevent irregularity and this allows
+this allows us to use hardware filtering
+us to use hardware filtering okay let's talk about how we store data
+okay let's talk about how we store data in us person tree
+only leaves have content and we only need to store leaves
+need to store leaves and remember our previously mentioned we
+and remember our previously mentioned we have eight probes per leaf
+have eight probes per leaf for the eight corner of the yolk tree
+leave us leaves our store in the volume texture atlas
+texture atlas we pack we pack the the eight probe
+we pack we pack the the eight probe of each leaf into two by two by two
+of each leaf into two by two by two block
+block of the volume texture atlas
+probes are shared on the corner of the octree but
+octree but need to be duplicate duplicated to
+need to be duplicate duplicated to support adaptative
+support adaptative and difference in the
+and difference in the cell depth of the oak tree
+and it's give us a lot of redundancy
+to prevent this issue we do not store the
+the oak tree leaves but his first parent
+oak tree leaves but his first parent in his first parent cell instead we pack
+in his first parent cell instead we pack leave the first parent into three by
+leave the first parent into three by three by three block
+three by three block or of the volume texture atlas storing
+or of the volume texture atlas storing parent cell is way better
+we still have some redundancy but it's good enough for us
+the iranians store in each probe by using
+using second-order spherical harmonic with
+second-order spherical harmonic with geometric
+geometric reconstruction for better quality which
+reconstruction for better quality which means we need to store four coefficients
+means we need to store four coefficients by probes
+by probes in this case we have three rgba volume
+in this case we have three rgba volume texture
+texture at 16 bit precision for volume texture
+at 16 bit precision for volume texture atlas
+atlas by example 24 000 probes can be stored
+by example 24 000 probes can be stored on a 100 by 100
+on a 100 by 100 by 3 volume texture which give us around
+by 3 volume texture which give us around 3 megabytes
+3 megabytes for all this prop in the game we are
+for all this prop in the game we are closer to
+closer to 100 000 probes for each sin zone
+this gives us approximately 15 megabytes 15 megabytes
+15 megabytes by cinzo
+by cinzo okay how do we display or gi
+we never discard any probe that allows us to directly sample volumetric texture
+us to directly sample volumetric texture by using hardware filtering but for each
+by using hardware filtering but for each probe we need to store a hash key
+probe we need to store a hash key and to to reconstruct atlas texture
+and to to reconstruct atlas texture coordinates
+we use one hash per octo-leave the ash code is phone from 3d position
+the ash code is phone from 3d position thanks to morton key algorithm
+thanks to morton key algorithm it's a constant time algorithm to
+it's a constant time algorithm to transfer multi-dimensional data to one
+transfer multi-dimensional data to one dimension
+dimension and the hash code is restricted to 32
+and the hash code is restricted to 32 bits which limits the auction level to
+bits which limits the auction level to 10.
+and finally the hash codes are used to compute textual coordinates
+compute textual coordinates to fetch the atlas volume
+the bonuses provided by with such technique
+technique is that we can easily blend between
+is that we can easily blend between different
+different between multiple g sets with a computer
+between multiple g sets with a computer it lets us to easily switch or gi
+it lets us to easily switch or gi when our light is switched on or off
+when our light is switched on or off and it can be useful to make gi global
+and it can be useful to make gi global elimination transition
+elimination transition for daytime or by example when
+for daytime or by example when opening or closing a curtain like on
+opening or closing a curtain like on this video
+okay because we use thin zone with portal
+portal we want to avoid add transition
+we want to avoid add transition between syndrome artists can
+between syndrome artists can set up transition distance around portal
+set up transition distance around portal all dynamic object passing through
+all dynamic object passing through sample both global emissions
+sample both global emissions the sample global emission of the both
+the sample global emission of the both 10 zone
+transition is based on distance to portal
+portal and normal direction
+and normal direction a screenshot here with the
+a screenshot here with the transition off and one another with the
+transition off and one another with the transition on
+this help us to have a really smooth transition one
+transition one character go chant change
+character go chant change go to a room to another with a really
+go to a room to another with a really different
+different lighting condition
+okay for static object we also use global elimination
+we also use global elimination transition
+transition for objects most of the objects
+for objects most of the objects are in unix in zone like interior wall
+are in unix in zone like interior wall versus excel wall but
+versus excel wall but what about door window and widow window
+what about door window and widow window frame
+frame this object are assigned to a thin zone
+this object are assigned to a thin zone but
+but are also visible from others
+in this case we flag object to sample both gi atlas
+both gi atlas and it solves the issue on the left
+and it solves the issue on the left on the left the door and window only
+on the left the door and window only sample the interior gi
+sample the interior gi and on the right the sample both
+okay it's now it's time to conclude this talk
+first of all the road to physically based rendering
+based rendering rendering in the other hand we need
+rendering in the other hand we need better energy conservation for light and
+better energy conservation for light and materials
+materials materials are not physically accurate
+materials are not physically accurate enough
+enough and being physically based is good but
+and being physically based is good but don't forget artist visions and needs
+don't forget artist visions and needs it's really important
+and remember that photometric units can provide a good framework to ensure
+provide a good framework to ensure coherent
+coherent coherent asset production
+coherent asset production and always use referent environment to
+and always use referent environment to validate your materials
+okay what what's next for us we want to have
+have area light and soft shadow everywhere
+area light and soft shadow everywhere it's one of our big
+it's one of our big subjects we need to work on
+subjects we need to work on energy conservation and improve our bldf
+energy conservation and improve our bldf layer stack
+layer stack adding more dynamic components in our
+adding more dynamic components in our global animation system is also really
+global animation system is also really really important for us
+really important for us we haven't had the time to add
+we haven't had the time to add pseudo-dynamic
+pseudo-dynamic global animation like adding spherical
+global animation like adding spherical harmonic injection inject light
+harmonic injection inject light injection
+injection and virtual point light or inject color
+and virtual point light or inject color modifier on the fly
+for volumetric lighting we want to add more flexibility on
+more flexibility on fog density volume and add volumetric
+fog density volume and add volumetric shadow
+shadow too and that's it
+too and that's it i want to thank all the rendering team
+i want to thank all the rendering team at country dream for their fantastic
+at country dream for their fantastic work
+work and i want to thank julia mercer for
+and i want to thank julia mercer for this advice
+this advice on my presentation ok it's
+on my presentation ok it's time for question maybe
+did you experiment with bc6h compression
+oh for your indirect lighting for the global emulation
+global emulation yeah uh yes i we
+yeah uh yes i we all or
+all volumetric texture
+sorry and don't do this we don't experiment with
+experiment with compression i think the size was really
+compression i think the size was really small for us
+small for us and we don't we won't have to enough
+and we don't we won't have to enough precision
+precision to to our global ignition sorry thank
+to to our global ignition sorry thank you
+hey how did you guys handle the uh interpolation errors at the edge of the
+interpolation errors at the edge of the blocks that are stored in the uh
+blocks that are stored in the uh in the pre-texture
+in the pre-texture okay we
+we have some redundancy in your global elimination atlas
+elimination atlas and all the
+we we don't have to handle the different interpolation because we have all the
+interpolation because we have all the probes surrounding
+probes surrounding the position in space that was
+the position in space that was on the block and when we have different
+on the block and when we have different level in their tree we don't compute
+level in their tree we don't compute can i go we don't compute all the
+the probe but instead we antipolate we do some interpolation between the two
+we do some interpolation between the two different probes
+no okay but the the blue probes are unquality and using the probe
+are unquality and using the probe from the upper level and in this case we
+from the upper level and in this case we don't have a discontinuity when we use
+don't have a discontinuity when we use when we fetch okay but like in the in
+when we fetch okay but like in the in the next slide when you go
+the next slide when you go when you have the uh um the texture like
+when you have the uh um the texture like sorry keep going
+sorry keep going the one past this one um in the in the
+the one past this one um in the in the touch of the stores the leaves
+touch of the stores the leaves like when you know that two by two block
+like when you know that two by two block is next to another two by two block you
+is next to another two by two block you guys said you were using
+guys said you were using like tri-linear filtering on the texture
+like tri-linear filtering on the texture to get the value
+to get the value like what happens if you sample near the
+like what happens if you sample near the edge of the block where it connects to
+edge of the block where it connects to the other one
+the other one uh we have that to don't go
+uh we have that to don't go over the half pixel okay to just
+over the half pixel okay to just get on the okay cool thanks on the block
+get on the okay cool thanks on the block thank you
+another question okay i think we can conclude here thank
+okay i think we can conclude here thank [Applause]
+you

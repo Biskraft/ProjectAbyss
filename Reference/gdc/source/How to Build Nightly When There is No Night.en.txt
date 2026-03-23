@@ -1,0 +1,1727 @@
+[Music] jeez I hope I said about not a boot that
+jeez I hope I said about not a boot that would completely get me away all right
+would completely get me away all right right yes no yes for getting the lights
+right yes no yes for getting the lights okay good okay so if you were attending
+okay good okay so if you were attending to intending to see my presentation how
+to intending to see my presentation how to build nightly when there is no night
+to build nightly when there is no night I mean you are in the right place I'm
+I mean you are in the right place I'm supposed to start with some housekeeping
+supposed to start with some housekeeping you know it's pretty late in the day so
+you know it's pretty late in the day so they ask you to defrag but I suspect
+they ask you to defrag but I suspect it's probably not that big a deal the
+it's probably not that big a deal the service they send out afterwards they
+service they send out afterwards they encourage me to tell you to fill that
+encourage me to tell you to fill that out if you have good things to save and
+out if you have good things to save and I would absolutely encourage that you do
+I would absolutely encourage that you do and if there's something that I don't
+and if there's something that I don't cover as part of this or that I don't
+cover as part of this or that I don't touch enough on and that you don't feel
+touch enough on and that you don't feel like telling me and they're asking about
+like telling me and they're asking about in the Q&A afterwards please let me know
+in the Q&A afterwards please let me know this builds CMC I stuff is a bit of the
+this builds CMC I stuff is a bit of the neglected stepchild of the industry and
+neglected stepchild of the industry and the process so if it's something that
+the process so if it's something that you're passionate about which I'm
+you're passionate about which I'm assuming you are since you're here let
+assuming you are since you're here let them know like I said that maybe I can
+them know like I said that maybe I can come back and do some more I also wanted
+come back and do some more I also wanted to extend a personal thanks just before
+to extend a personal thanks just before we get started I know everybody thanks
+we get started I know everybody thanks you guys for coming but it's 5:30 it's
+you guys for coming but it's 5:30 it's Thursday
+Thursday it's late we're tired we're hungry
+it's late we're tired we're hungry there's work presentations on the South
+there's work presentations on the South Park presentation is on even I want to
+Park presentation is on even I want to be at the Zurich one so I really
+be at the Zurich one so I really appreciate that all you guys are here to
+appreciate that all you guys are here to listen to me instead alright so I'm just
+listen to me instead alright so I'm just gonna take a quick second introduce
+gonna take a quick second introduce myself so my name is Josh Nixdorf an
+myself so my name is Josh Nixdorf an associate technical director up at
+associate technical director up at Electronic Arts in Burnaby which is in
+Electronic Arts in Burnaby which is in Canada if I didn't already give that
+Canada if I didn't already give that away technical director is just a fancy
+away technical director is just a fancy title at EA for the guy who's always in
+title at EA for the guy who's always in trouble when things don't work so I
+trouble when things don't work so I currently work with EA Sports which
+currently work with EA Sports which doesn't really exist in terms of an
+doesn't really exist in terms of an organizational structure anymore and it
+organizational structure anymore and it used to be the studio in our land Oh in
+used to be the studio in our land Oh in the studio in Burnaby that made all the
+the studio in Burnaby that made all the sports games that have the big EA Sports
+sports games that have the big EA Sports when you actually start the game that
+when you actually start the game that will still be there that's not going
+will still be there that's not going away it's just it's a marketing thing
+away it's just it's a marketing thing rather than organizational now they've
+rather than organizational now they've changed the companies to know that now
+changed the companies to know that now we're all working together and we can do
+we're all working together and we can do more cool
+more cool so my team is the development and
+so my team is the development and release engineering team we're
+release engineering team we're responsible for the source control the
+responsible for the source control the continuous integration the builds the
+continuous integration the builds the dev side automated tests a whole pile of
+dev side automated tests a whole pile of that kind of stuff as well as a bunch of
+that kind of stuff as well as a bunch of the development of workflows for the dev
+the development of workflows for the dev teams including FIFA NHL Madden Tiger
+teams including FIFA NHL Madden Tiger UFC and that kind of stuff and now that
+UFC and that kind of stuff and now that Sports doesn't exist we'll be extending
+Sports doesn't exist we'll be extending that into various other games within EA
+that into various other games within EA alright so what did I mean by no night
+alright so what did I mean by no night is it you know convincing your
+is it you know convincing your developers that they should you know
+developers that they should you know forgo sleep in order to work on the game
+forgo sleep in order to work on the game no and even if I was here to talk to
+no and even if I was here to talk to that there's no way legal would have
+that there's no way legal would have ever approved me giving you that secret
+ever approved me giving you that secret thank you for whoever laughs I
+thank you for whoever laughs I appreciate that no seriously I've never
+appreciate that no seriously I've never seen anything like that all Eyefinity a
+there we go it's also not a presentation on how to work in an environment where
+on how to work in an environment where the Sun doesn't set as I mentioned I'm
+the Sun doesn't set as I mentioned I'm from Burnaby which is in Vancouver and
+from Burnaby which is in Vancouver and if you've ever been there you know that
+if you've ever been there you know that the Sun is barely up if you're
+the Sun is barely up if you're specifically interested in how to work
+specifically interested in how to work when the Sun doesn't set I can get you
+when the Sun doesn't set I can get you in touch with some of the guys and dice
+in touch with some of the guys and dice and Sweden and they could probably have
+and Sweden and they could probably have much more insight into that so what do I
+much more insight into that so what do I mean by this no night thing classically
+mean by this no night thing classically our work days are I say 9:00 to 5:00 but
+our work days are I say 9:00 to 5:00 but I don't know if you guys are anything
+I don't know if you guys are anything like us it's more like 11:00 to 7:00 and
+like us it's more like 11:00 to 7:00 and maybe that creeps even longer the point
+maybe that creeps even longer the point is there's some set period of time
+is there's some set period of time beyond which there's this window this
+beyond which there's this window this magic window after everybody goes home
+magic window after everybody goes home where the automation can do its thing
+where the automation can do its thing it's generating artifacts it's going
+it's generating artifacts it's going back and getting coverage it's doing
+back and getting coverage it's doing things it's these nightly builds that we
+things it's these nightly builds that we all have and typically when you've got
+all have and typically when you've got your base automation setup going for a
+your base automation setup going for a team you've got some set of you know
+team you've got some set of you know continuous builds and some set of
+continuous builds and some set of nightly builds going on and so the
+nightly builds going on and so the problem we encountered and it's what a
+problem we encountered and it's what a lot of this presentation is going to
+lot of this presentation is going to cover is as we took some of our games
+cover is as we took some of our games specifically FIFA and we moved that
+specifically FIFA and we moved that development of those teams more and more
+development of those teams more and more global and we lost that window and it's
+global and we lost that window and it's really easy to take for granted that
+really easy to take for granted that window how important are your nightly so
+window how important are your nightly so you'd find another way around it at a
+you'd find another way around it at a certain point that window is actually
+certain point that window is actually the flexibility for a lot of your
+the flexibility for a lot of your processes and when you lose it you
+processes and when you lose it you find out how fragile a lot of these
+find out how fragile a lot of these things really are so in the course of
+things really are so in the course of this presentation I'm going to discuss a
+this presentation I'm going to discuss a couple of dirty secrets that we have you
+couple of dirty secrets that we have you will probably find if you really think
+will probably find if you really think about it that you have a lot of these
+about it that you have a lot of these things too if any of you really thinks
+things too if any of you really thinks that your build system is absolutely
+that your build system is absolutely perfect and that nothing I said applies
+perfect and that nothing I said applies I'd really like to hear from you at the
+I'd really like to hear from you at the end of this because I want to know how
+end of this because I want to know how you've done it in the meantime can I
+you've done it in the meantime can I just do a quick poll of everybody how
+just do a quick poll of everybody how many people are build engineers build
+many people are build engineers build managers someone who's responsible for
+managers someone who's responsible for the actual build stuff okay I see a few
+the actual build stuff okay I see a few hands okay good and how many people are
+hands okay good and how many people are here because they're really concerned
+here because they're really concerned about the builds they have they're not
+about the builds they have they're not convinced that they work well enough
+convinced that they work well enough okay that's a lot more halves that's
+okay that's a lot more halves that's what I expected good okay so this will
+what I expected good okay so this will cover of things a lot of best practices
+cover of things a lot of best practices even if you're not in an environment
+even if you're not in an environment where you're going to be going highly
+where you're going to be going highly distributed one of the most helpful
+distributed one of the most helpful things that you'll get from this will be
+things that you'll get from this will be evidence to help your arguments a lot of
+evidence to help your arguments a lot of the stuff I'm going to talk about will
+the stuff I'm going to talk about will be a no-brainer you're going to look at
+be a no-brainer you're going to look at that and go why did you even tell me
+that and go why did you even tell me that that's obvious
+that that's obvious the point is I'm giving you an argument
+the point is I'm giving you an argument to take to the guys that have that money
+to take to the guys that have that money so that you can actually use that to
+so that you can actually use that to improve your odds of getting this stuff
+improve your odds of getting this stuff and because just because it makes sense
+and because just because it makes sense doesn't mean that they give you money
+doesn't mean that they give you money for it all right
+for it all right so in the beginning our dev teams start
+so in the beginning our dev teams start like this apparently we're all very very
+like this apparently we're all very very young where we're happy we're excited
+young where we're happy we're excited we're all working together we can see
+we're all working together we can see each other we can talk to each other
+each other we can talk to each other when there's a problem we went over to
+when there's a problem we went over to each other's desks we work these things
+each other's desks we work these things out it's fantastic this is this is the
+out it's fantastic this is this is the glory days and but typically it only
+glory days and but typically it only works for really really small teams it
+works for really really small teams it doesn't take very long before you start
+doesn't take very long before you start organizing and I'm gonna use organizing
+organizing and I'm gonna use organizing as a dirty word here before you know
+as a dirty word here before you know what you've got some set of
+what you've got some set of game-development you've got a department
+game-development you've got a department for that you've got an art department
+for that you've got an art department maybe you've got a localization
+maybe you've got a localization department of course you're going to
+department of course you're going to have a QA department and these guys are
+have a QA department and these guys are going to work together but you get to
+going to work together but you get to the point where people don't need to
+the point where people don't need to talk to each other anymore and once you
+talk to each other anymore and once you get to that point then it becomes a very
+get to that point then it becomes a very logical progression of well do these
+logical progression of well do these people even really need to be co-located
+people even really need to be co-located and so I'm going to do a quick example
+and so I'm going to do a quick example of what ended up happening with FIFA so
+of what ended up happening with FIFA so largely the FIFA soccer game is
+largely the FIFA soccer game is developed in Burnaby and yes for anyone
+developed in Burnaby and yes for anyone who's thinking it we get
+who's thinking it we get the irony of making a you know
+the irony of making a you know world-class soccer game in Canada if it
+world-class soccer game in Canada if it makes you feel any better a huge
+makes you feel any better a huge proportion of the team are all European
+proportion of the team are all European so they're just tiny little Conclave in
+so they're just tiny little Conclave in Canada so classically the development
+Canada so classically the development happens in Burnaby that was everything
+happens in Burnaby that was everything it wasn't just the development the art
+it wasn't just the development the art happens there QA happens there
+happens there QA happens there everything happens there eventually
+everything happens there eventually these teams get to the point where well
+these teams get to the point where well you know maybe maybe some of the stuff
+you know maybe maybe some of the stuff could get moved and so localization was
+could get moved and so localization was the first one that I remember to move
+the first one that I remember to move somewhere else we move that off to
+somewhere else we move that off to Madrid why did we do that
+Madrid why did we do that I don't know I didn't make the decision
+I don't know I didn't make the decision but I can make a pretty good guess that
+but I can make a pretty good guess that it was probably had something to do with
+it was probably had something to do with money in this case it's really easy to
+money in this case it's really easy to get access to people who speak a variety
+get access to people who speak a variety of languages in the Europe and Madrid
+of languages in the Europe and Madrid was a nice low class low-cost place to
+was a nice low class low-cost place to do this so in the old days we would
+do this so in the old days we would create our build same as we would for QA
+create our build same as we would for QA and we would transfer that massive ISO
+and we would transfer that massive ISO disk over to Spain and they would play
+disk over to Spain and they would play the game and had some sort of
+the game and had some sort of localization data and potentially
+localization data and potentially sendhub act now originally they were
+sendhub act now originally they were really checking in to the Depot but
+really checking in to the Depot but eventually someone pointed out the
+eventually someone pointed out the transferring eight and a half gig you
+transferring eight and a half gig you know to Spain once a week was a really
+know to Spain once a week was a really big waste of time and if we were to
+big waste of time and if we were to simply get them access to the source
+simply get them access to the source control they could likely build that
+control they could likely build that building himself faster than we can
+building himself faster than we can actually transfer it there and once that
+actually transfer it there and once that happens once they had access to source
+happens once they had access to source control it becomes a viable option for
+control it becomes a viable option for them to start making their localization
+them to start making their localization check-ins themselves rather than through
+check-ins themselves rather than through working with some of the burnaby so then
+working with some of the burnaby so then we added Hyderabad in India and this
+we added Hyderabad in India and this started out being reasonably simple QA
+started out being reasonably simple QA type stuff maybe they helped write some
+type stuff maybe they helped write some automation scripts that we would use for
+automation scripts that we would use for testing and simple stuff but as we
+testing and simple stuff but as we worked with those guys more we started
+worked with those guys more we started to trust them more we start using them
+to trust them more we start using them for more and more stuff and eventually
+for more and more stuff and eventually they're causing some check-ins and we
+they're causing some check-ins and we out sourced more and we're so altering
+out sourced more and we're so altering Madrid and then Hyderabad we didn't stop
+Madrid and then Hyderabad we didn't stop that we started doing more stuff in
+that we started doing more stuff in Buenos Aires and other parts of
+Buenos Aires and other parts of Argentina as well and this was the first
+Argentina as well and this was the first time that we really started working with
+time that we really started working with people doing actual development on the
+people doing actual development on the main code base not just seven QA staff
+main code base not just seven QA staff for localization general development
+for localization general development going on and but still not necessarily a
+going on and but still not necessarily a ton and usually around specific features
+ton and usually around specific features so maybe we'll give
+so maybe we'll give this feature and I'll do that it's part
+this feature and I'll do that it's part of my about these guys colored in light
+of my about these guys colored in light blue is they're not doing a ton of
+blue is they're not doing a ton of interactions well and I probably
+interactions well and I probably shouldn't have met this for them going
+shouldn't have met this for them going to anyway at some point we may have
+to anyway at some point we may have burned through all the people willing to
+burned through all the people willing to be QA testers in Vancouver and so we
+be QA testers in Vancouver and so we needed to do QA somewhere else um so
+needed to do QA somewhere else um so Baton Rouge is where removed it -
+Baton Rouge is where removed it - probably not having actually happened
+probably not having actually happened but it's more colorful that way and so a
+but it's more colorful that way and so a lot of our games do at least a lot of
+lot of our games do at least a lot of the sports games do testing on a Baton
+the sports games do testing on a Baton Rouge and the same thing happens there
+Rouge and the same thing happens there you start getting some really bright
+you start getting some really bright people there and so I don't like check
+people there and so I don't like check and start flowing from there and when
+and start flowing from there and when finally when what we would call gen 4
+finally when what we would call gen 4 but ps4 and Xbox one came along and we
+but ps4 and Xbox one came along and we couldn't really just double the size of
+couldn't really just double the size of our dev team to handle the current
+our dev team to handle the current generation and the new stuff coming out
+generation and the new stuff coming out so we needed to find a way to get that
+so we needed to find a way to get that dev team able to build for all these
+dev team able to build for all these platforms so well we opened up a studio
+platforms so well we opened up a studio in Bucharest in Romania and I think we
+in Bucharest in Romania and I think we already had a mobile one but we expanded
+already had a mobile one but we expanded it and a bunch of the development of the
+it and a bunch of the development of the main FIFA game started happening out of
+main FIFA game started happening out of there and that was the point where it
+there and that was the point where it really tipped the scales to you know
+really tipped the scales to you know almost half the check-ins are coming
+almost half the check-ins are coming from Burnaby and almost half the
+from Burnaby and almost half the chickens are coming from Bucharest with
+chickens are coming from Bucharest with the small weather sort of spice coming
+the small weather sort of spice coming in from all these other ones but the
+in from all these other ones but the point was once we got our check-ins
+point was once we got our check-ins looking like this we stopped having
+looking like this we stopped having those windows where we can do things and
+those windows where we can do things and there at any given time of the day
+there at any given time of the day somebody was checking in so what
+somebody was checking in so what challenges did we hit when when we
+challenges did we hit when when we started doing this I mean the first one
+started doing this I mean the first one obvious and this sounds expensive
+obvious and this sounds expensive you know obviously we're saving money
+you know obviously we're saving money this presumably the reason why we would
+this presumably the reason why we would do this outsourcing and but but what is
+do this outsourcing and but but what is this doing technically integrations
+this doing technically integrations become nightmarishly common I mean it
+become nightmarishly common I mean it was one thing when they were all
+was one thing when they were all localized you could talk to people now
+localized you could talk to people now some guy in a different time zone is
+some guy in a different time zone is doing this thing and he's not talking to
+doing this thing and he's not talking to you at all so these became much more
+you at all so these became much more expensive than they usually are we've
+expensive than they usually are we've all seen this we all know this problem
+all seen this we all know this problem the works on my machine problem is a
+the works on my machine problem is a nightmare on a good day when it's some
+nightmare on a good day when it's some guy in Romania who doesn't ever work any
+guy in Romania who doesn't ever work any hours that you were telling you that it
+hours that you were telling you that it works on his machine this got
+works on his machine this got substantially worse
+substantially worse I can't stress how much worse this got
+I can't stress how much worse this got your branch health becomes another
+your branch health becomes another interesting note as I called it before
+interesting note as I called it before you're working
+you're working you've got people checking in 24 hours a
+you've got people checking in 24 hours a day so you just lost that window where
+day so you just lost that window where you could do that risky check and after
+you could do that risky check and after everybody else goes home and just make
+everybody else goes home and just make sure that you've got things fixed by the
+sure that you've got things fixed by the morning alternatively maybe I check in I
+morning alternatively maybe I check in I take off for the day and if it's broken
+take off for the day and if it's broken I'm gonna log in at night no big deal
+I'm gonna log in at night no big deal you you don't you can't do that anymore
+you you don't you can't do that anymore if your code base is broken and you're
+if your code base is broken and you're impacting someone else's ability to work
+impacting someone else's ability to work so let's start by talking about how what
+so let's start by talking about how what were some of the things we did to
+were some of the things we did to address this integration cost and the
+address this integration cost and the the first thing was recognizing how good
+the first thing was recognizing how good we used to have it basically that local
+we used to have it basically that local integrations were really really simple
+integrations were really really simple and we really wanted that back what were
+and we really wanted that back what were we trying to do at certain point we
+we trying to do at certain point we realize it just wasn't there was no way
+realize it just wasn't there was no way to make less integrations happen when we
+to make less integrations happen when we went more distributed things just got
+went more distributed things just got more complicated it was basically not
+more complicated it was basically not giving up but but accepting that it
+giving up but but accepting that it wasn't just integrations there was a
+wasn't just integrations there was a variety of things that got more
+variety of things that got more difficult an example I'll give is even
+difficult an example I'll give is even syncing for the very first time you've
+syncing for the very first time you've hired a new guy in Europe it's his first
+hired a new guy in Europe it's his first day what's he gonna do well he's got a
+day what's he gonna do well he's got a sink of the game right so we start
+sink of the game right so we start sinking that from your North American
+sinking that from your North American Depot and suddenly it slow down for
+Depot and suddenly it slow down for everybody anytime that we have these
+everybody anytime that we have these type of interactions where developers
+type of interactions where developers can in fact other developers I'm going
+can in fact other developers I'm going to say developers in lava what I really
+to say developers in lava what I really mean is content creators so these are
+mean is content creators so these are your developers your level designers
+your developers your level designers anyone who's checking in anything really
+anyone who's checking in anything really anytime they're doing that they're gonna
+anytime they're doing that they're gonna have some interactions and these things
+have some interactions and these things are going to run amok and that's what
+are going to run amok and that's what you really need to be worrying about and
+you really need to be worrying about and that was I guess to reiterate there's
+that was I guess to reiterate there's one last time the key point it wasn't
+one last time the key point it wasn't really integrations that were a problem
+really integrations that were a problem it was interactions so how we started
+it was interactions so how we started addressing this was we started thinking
+addressing this was we started thinking about our commits our work as a flow and
+about our commits our work as a flow and and this is maybe a bit weird especially
+and this is maybe a bit weird especially if there's any product managers or
+if there's any product managers or that'll present you have these people
+that'll present you have these people it's these people's jobs to make sure
+it's these people's jobs to make sure that the features get into the game that
+that the features get into the game that it happens on schedule that this thing
+it happens on schedule that this thing ships and that you guys make money
+ships and that you guys make money someone is planning that if you're in
+someone is planning that if you're in the development side of things you
+the development side of things you should care about that you should be
+should care about that you should be aware of that but if you're responsible
+aware of that but if you're responsible for the build and the build health as a
+for the build and the build health as a few of you were or there's a lot of you
+few of you were or there's a lot of you or if you're concerned about that stuff
+or if you're concerned about that stuff and the right mindset for this is and
+and the right mindset for this is and flow how much work are these people able
+flow how much work are these people able to do what are the things that are
+to do what are the things that are blocking them from doing more work don't
+blocking them from doing more work don't worry about the nature of that work
+worry about the nature of that work think of it purely as a volume thing at
+think of it purely as a volume thing at Electronic Arts the team that I'm with
+Electronic Arts the team that I'm with the development and release engineering
+the development and release engineering team that's what we do and we're the
+team that's what we do and we're the guys that are there to facilitate via CI
+guys that are there to facilitate via CI or to rules or processes whatever we can
+or to rules or processes whatever we can do it's our job to make sure that that
+do it's our job to make sure that that developer can get his features into the
+developer can get his features into the game as fast as possible and spend the
+game as fast as possible and spend the least overhead possible and worrying
+least overhead possible and worrying about whether or not the build is
+about whether or not the build is healthy this floral analogy is really
+healthy this floral analogy is really important too because we're going to get
+important too because we're going to get to in a minute because flows intersect
+to in a minute because flows intersect that individual user thinking this is
+that individual user thinking this is work as a flow this is obvious I haven't
+work as a flow this is obvious I haven't told you anything particularly important
+told you anything particularly important it's recognizing that all those flows
+it's recognizing that all those flows have to meet at some point and so source
+have to meet at some point and so source controls were really call that out so
+controls were really call that out so the best practice here is that
+the best practice here is that recognizing the source control is the
+recognizing the source control is the confluence of all your effort and there
+confluence of all your effort and there isn't a heck of a lot that you can do
+isn't a heck of a lot that you can do about that
+about that source control is where people's work
+source control is where people's work are going to interact now you may have
+are going to interact now you may have other systems and the Dupre submit or
+other systems and the Dupre submit or other things so that things happen
+other things so that things happen before people's right to source control
+before people's right to source control but ultimately there's some place where
+but ultimately there's some place where all this data is going it's probably
+all this data is going it's probably sort of insurable and that's where
+sort of insurable and that's where you're going to hit all these problems
+you're going to hit all these problems and so recognizing what I said before
+and so recognizing what I said before and team growth makes it inevitable for
+and team growth makes it inevitable for the number of these interactions to grow
+the number of these interactions to grow to grow branching is hopefully something
+to grow branching is hopefully something that's crossed all of your minds by this
+that's crossed all of your minds by this point why isn't this going to talking
+point why isn't this going to talking about branching yet and this is
+about branching yet and this is absolutely a solution to this problem
+absolutely a solution to this problem for a little bit it's a solution not
+for a little bit it's a solution not necessarily the solution you get all
+necessarily the solution you get all these guys working in branches or some
+these guys working in branches or some set of appropriate branches and it
+set of appropriate branches and it definitely reduces the likelihood that
+definitely reduces the likelihood that you're impacted by someone else leaving
+you're impacted by someone else leaving there
+there in an unhealthy state but at some point
+in an unhealthy state but at some point these things still need to get merged
+these things still need to get merged and a lot of the same interaction
+and a lot of the same interaction problems still pop up game architecture
+problems still pop up game architecture is another perfectly reasonable way to
+is another perfectly reasonable way to solve a lot of the problems associated
+solve a lot of the problems associated with this now if you can get your AI
+with this now if you can get your AI completely segregated such that it has
+completely segregated such that it has almost no overlapping files code
+almost no overlapping files code dependencies on your rendering system
+dependencies on your rendering system which there aren't too many there anyway
+which there aren't too many there anyway then it just makes it that much easier
+then it just makes it that much easier the more dependent your code is
+the more dependent your code is definitely the more you're going to hit
+definitely the more you're going to hit this problem but it is a solution not
+this problem but it is a solution not necessarily the solution so some of what
+necessarily the solution so some of what I've said so far probably sounds a
+I've said so far probably sounds a little bit you know strange with why
+little bit you know strange with why would they have all these people that
+would they have all these people that sound like they're checking into one
+sound like they're checking into one branch well this is the first dirty
+branch well this is the first dirty secret that I want to get out there for
+secret that I want to get out there for almost all of the sports titles
+almost all of the sports titles everybody works in the same branch
+everybody works in the same branch now Madden guys don't work in the FIFA
+now Madden guys don't work in the FIFA branch obviously Madden has its branch
+branch obviously Madden has its branch FIFA has its branch any channel has its
+FIFA has its branch any channel has its branch for the most part everybody
+branch for the most part everybody regardless of where they are in the
+regardless of where they are in the world is checking into mainline all the
+world is checking into mainline all the time there's no staging branch there's
+time there's no staging branch there's no anything else now there's some
+no anything else now there's some exceptions to this we definitely branch
+exceptions to this we definitely branch for events III that kind of stuff and
+for events III that kind of stuff and there are exceptions to the rule FIFA
+there are exceptions to the rule FIFA has done some clever things with their
+has done some clever things with their AI to allow that to be often its own
+AI to allow that to be often its own branch but everybody who is I'm working
+branch but everybody who is I'm working on the AI checking into the same branch
+on the AI checking into the same branch all the time and why in the world would
+all the time and why in the world would we do that how does that work some of
+we do that how does that work some of the stuff we're going to cover in the
+the stuff we're going to cover in the next little bit
+next little bit the trick is recognising that as the
+the trick is recognising that as the easier you can make those interactions
+easier you can make those interactions that I've been talking about and the
+that I've been talking about and the earlier you can make them happen the
+earlier you can make them happen the more viable you make something like this
+more viable you make something like this to be able to work let me give you some
+to be able to work let me give you some fake math because I couldn't help myself
+fake math because I couldn't help myself and a graph in case this isn't you know
+and a graph in case this isn't you know startlingly clear at this point reducing
+startlingly clear at this point reducing those interactions as bad the number of
+those interactions as bad the number of interactions that you have whether
+interactions that you have whether that's it typically commits per day is
+that's it typically commits per day is the right kind of metric to think of for
+the right kind of metric to think of for this but it might be your team's eyes if
+this but it might be your team's eyes if you don't know what your commits per day
+you don't know what your commits per day is trying to hold that constant or
+is trying to hold that constant or reduce that means that your eyes are
+reduce that means that your eyes are going to have a smaller team or you're
+going to have a smaller team or you're making people hold their check-ins
+making people hold their check-ins locally longer form in those check-ins
+locally longer form in those check-ins locally longer is just increasing the
+locally longer is just increasing the amount of effort
+amount of effort I have to do when it comes time to
+I have to do when it comes time to integrate so the nice pretty line here
+integrate so the nice pretty line here this optimized one is trying to show you
+this optimized one is trying to show you that you can reduce the pain of the
+that you can reduce the pain of the interactions not by reducing number of
+interactions not by reducing number of interactions but by reducing the
+interactions but by reducing the magnitude of those interactions so what
+magnitude of those interactions so what do I mean by that it's time for some
+do I mean by that it's time for some specifics make source control fast from
+specifics make source control fast from every location this is a no-brainer boy
+every location this is a no-brainer boy if this is what this presentation is
+if this is what this presentation is going to be about you guys gonna be
+going to be about you guys gonna be disappointed promise you will get better
+disappointed promise you will get better from here this is one of those ones I'm
+from here this is one of those ones I'm talking about at the beginning where
+talking about at the beginning where everybody knows this but that doesn't
+everybody knows this but that doesn't mean that you can be able to get the
+mean that you can be able to get the money spent on this so you're gonna open
+money spent on this so you're gonna open up a new location I don't know you're
+up a new location I don't know you're doing some outsourcing again look at our
+doing some outsourcing again look at our case Romania how do you make sure that
+case Romania how do you make sure that those guys are working really fast
+those guys are working really fast I mean speed is easy when it's local you
+I mean speed is easy when it's local you just throw more hardware at the problem
+just throw more hardware at the problem when you're doing this in some type of a
+when you're doing this in some type of a distributed global environment you have
+distributed global environment you have to rely on someone else's network which
+to rely on someone else's network which means you're paying for access you're
+means you're paying for access you're paying for bandwidth and these things
+paying for bandwidth and these things have a cost associated with them plus
+have a cost associated with them plus moving large volumes of data is still
+moving large volumes of data is still expensive in 2014 and I'd be interested
+expensive in 2014 and I'd be interested with everybody's best metric is but I
+with everybody's best metric is but I can't imagine that we can move an ISO
+can't imagine that we can move an ISO anywhere else in the world or any
+anywhere else in the world or any significant or Versys let's put it that
+significant or Versys let's put it that way I don't think we can move a disk
+way I don't think we can move a disk image any gig disk image overseas in
+image any gig disk image overseas in under probably four hours and even
+under probably four hours and even that's massively faster than it was just
+that's massively faster than it was just a couple years ago so this can all go
+a couple years ago so this can all go back to that early example where we
+back to that early example where we talked about having someone in Europe
+talked about having someone in Europe that is doing their initial sync well if
+that is doing their initial sync well if he does their initial sync he's
+he does their initial sync he's impacting those local users see that
+impacting those local users see that problems taken care of but it's slow
+problems taken care of but it's slow he's connecting to this remote North
+he's connecting to this remote North American Depot every time it was to do
+American Depot every time it was to do with commit or any type of operation
+with commit or any type of operation it's just sits there and does nothing
+it's just sits there and does nothing for five minutes it's from his
+for five minutes it's from his perspective done it's nothing well how's
+perspective done it's nothing well how's he gonna react to that he's going to
+he gonna react to that he's going to start doing it less and again the less
+start doing it less and again the less he starts doing it the less he's
+he starts doing it the less he's integrating the more the expensive those
+integrating the more the expensive those are going to be the more it's costing
+are going to be the more it's costing you and so this is where a trade-off
+you and so this is where a trade-off comes in to this and obviously it's easy
+comes in to this and obviously it's easy for me to say spend all the money you
+for me to say spend all the money you can on getting that bandwidth but that
+can on getting that bandwidth but that might not be the right thing to do
+might not be the right thing to do it's erectors what you're going for here
+it's erectors what you're going for here is to recognize that you have that
+is to recognize that you have that option the more you spend on buying
+option the more you spend on buying bandwidth the more you save on time if
+bandwidth the more you save on time if you have no money to spend on that
+you have no money to spend on that bandwidth just recognize that you're
+bandwidth just recognize that you're paying for it in time not my
+paying for it in time not my be a completely reasonable pay way to
+be a completely reasonable pay way to pay for it so I'll go over what the
+pay for it so I'll go over what the architecture looks like on FIFA for this
+architecture looks like on FIFA for this briefly imagine that that's Vancouver
+briefly imagine that that's Vancouver sort of all our developers are very
+sort of all our developers are very classy there were suits so the main
+classy there were suits so the main repository for FIFA for historical
+repository for FIFA for historical reasons is located in Vancouver Burnaby
+reasons is located in Vancouver Burnaby yeah all the local developers work on
+yeah all the local developers work on that when we moved to Romania we set up
+that when we moved to Romania we set up a proxy in that location all those
+a proxy in that location all those developers work on that when we extended
+developers work on that when we extended into South America same thing instead of
+into South America same thing instead of a proxy there you have all those
+a proxy there you have all those developers work on that the interesting
+developers work on that the interesting thing here is it goes back to the
+thing here is it goes back to the bandwidth depending on the source
+bandwidth depending on the source control system that you're using ours
+control system that you're using ours this is set up such that those remote
+this is set up such that those remote users when they're using that proxy it's
+users when they're using that proxy it's when they do an initial action that's
+when they do an initial action that's when it synchronizes the surfer so
+when it synchronizes the surfer so that's the proxy allows the data to be
+that's the proxy allows the data to be cached locally but it isn't necessarily
+cached locally but it isn't necessarily synchronizing locally so those guys are
+synchronizing locally so those guys are paying some type of a time penalty when
+paying some type of a time penalty when they do an initial sync and these little
+they do an initial sync and these little recycle arrows I put on here to
+recycle arrows I put on here to represent what we built on top of the
+represent what we built on top of the source control was just a local CI job
+source control was just a local CI job that just does nothing but sync lab
+that just does nothing but sync lab local repository and the purpose of
+local repository and the purpose of doing that is to keep that thing always
+doing that is to keep that thing always up-to-date so that on the end-users side
+up-to-date so that on the end-users side the sync is always as fast as possible
+the sync is always as fast as possible he never has to pay the initial penalty
+he never has to pay the initial penalty of synchronizing the data overseas but
+of synchronizing the data overseas but again this is a trade-off we're paying
+again this is a trade-off we're paying for that in bandwidth but we save devs
+for that in bandwidth but we save devs time and this is important for us
+time and this is important for us because time is the most valuable
+because time is the most valuable resources resource on FIFA as you
+resources resource on FIFA as you already know this is an iterative title
+already know this is an iterative title we put it out every single year you'd
+we put it out every single year you'd think that means we have 12 months to
+think that means we have 12 months to work on it
+work on it but the reality is we have to do some
+but the reality is we have to do some time out of launch support so we're not
+time out of launch support so we're not getting started until thinking about the
+getting started until thinking about the next one until a couple months maybe six
+next one until a couple months maybe six to eight weeks after launch but by then
+to eight weeks after launch but by then it's Christmas times nobody's really
+it's Christmas times nobody's really thinking about what they're doing maybe
+thinking about what they're doing maybe what they're doing some amount of
+what they're doing some amount of pre-pro the reality is in the best case
+pre-pro the reality is in the best case when we only get nine months to action
+when we only get nine months to action people with proper development into
+people with proper development into and before we're trying to get it out
+and before we're trying to get it out the door again so giving up you know
+the door again so giving up you know even a week because we have some
+even a week because we have some synchronization issue with our most
+synchronization issue with our most remote development and hurts our
+remote development and hurts our schedules terribly now if you happen to
+schedules terribly now if you happen to be using perforce like we are this
+be using perforce like we are this should sound reasonably familiar if
+should sound reasonably familiar if there are some benefits coming down the
+there are some benefits coming down the road perforce as a service they have new
+road perforce as a service they have new technology I think they call them edge
+technology I think they call them edge servers coming out and the edge server
+servers coming out and the edge server should really prevent us from needing
+should really prevent us from needing that local CI job that's keeping that
+that local CI job that's keeping that stuff in sync that it has some
+stuff in sync that it has some intelligence I'm not entirely familiar
+intelligence I'm not entirely familiar with but it's the idea there is that
+with but it's the idea there is that it's going to do the best it can to make
+it's going to do the best it can to make sure that data is synchronized and
+sure that data is synchronized and reducing that bandwidth if you happen to
+reducing that bandwidth if you happen to be using a distributed source control
+be using a distributed source control system and you may actually have even
+system and you may actually have even more traffic than this there's a ton of
+more traffic than this there's a ton of benefits from doing that I'm not
+benefits from doing that I'm not slagging them but it's just noting that
+slagging them but it's just noting that there's a tendency for those to actually
+there's a tendency for those to actually transmit even more complete sets of data
+transmit even more complete sets of data than something like perforce would and
+than something like perforce would and so you may actually find that you're
+so you may actually find that you're paying a lot more in bandwidth now this
+paying a lot more in bandwidth now this doesn't necessarily matter a whole bunch
+doesn't necessarily matter a whole bunch if you have small branches which we do
+if you have small branches which we do it leads to your branch size matters so
+it leads to your branch size matters so my original purpose for this
+my original purpose for this presentation was getting back to that
+presentation was getting back to that sort of dirty secret of why do we have
+sort of dirty secret of why do we have all our developers work in one branch
+all our developers work in one branch this is anyone who joins the company
+this is anyone who joins the company will okay this is really bad seeing you
+will okay this is really bad seeing you guys why are you doing this and then
+guys why are you doing this and then usually get some type of an answer that
+usually get some type of an answer that doesn't represent reality and so I
+doesn't represent reality and so I thought okay I'm gonna do this
+thought okay I'm gonna do this presentation I'm gonna admit to all
+presentation I'm gonna admit to all these guys this secret and I'm going to
+these guys this secret and I'm going to answer why it was that we've done this
+answer why it was that we've done this and my Google admit was to blame
+and my Google admit was to blame integrations
+integrations I called that out earlier integrations
+I called that out earlier integrations they were expensive and so I sat down I
+they were expensive and so I sat down I started thinking well what is it about
+started thinking well what is it about integrations that were really hate you
+integrations that were really hate you know why is this such a problem for us
+know why is this such a problem for us and it turns out in divisions aren't a
+and it turns out in divisions aren't a problem they're really not that hard in
+problem they're really not that hard in the grand scheme of things and they're
+the grand scheme of things and they're not that expensive they're a nuisance
+not that expensive they're a nuisance and developers generally don't like them
+and developers generally don't like them but there wasn't anything that was
+but there wasn't anything that was actually wrong with them so it turned
+actually wrong with them so it turned out what our problem actually was was
+out what our problem actually was was that we were avoiding branches we
+that we were avoiding branches we avoided branching altogether and that
+avoided branching altogether and that was a kind of a startling realization
+was a kind of a startling realization like what wait why is why is branch
+like what wait why is why is branch such a problem and so we dig into that
+such a problem and so we dig into that and it turns out it's because our
+and it turns out it's because our branches are huge when I say huge I mean
+branches are huge when I say huge I mean 150 gig they're really big branches you
+150 gig they're really big branches you decide you want to cut a branch to do
+decide you want to cut a branch to do some feature in a safe way that's a lot
+some feature in a safe way that's a lot of extra sink that you just had to pull
+of extra sink that you just had to pull down to your system that's a lot of
+down to your system that's a lot of waiting that you had to do to get that
+waiting that you had to do to get that it's painful so as a result people have
+it's painful so as a result people have an aversion to doing that so if we
+an aversion to doing that so if we continue on asking why well why in the
+continue on asking why well why in the world that we have such large sinks
+world that we have such large sinks well data synchronization we never
+well data synchronization we never really invented a good way to make sure
+really invented a good way to make sure that our assets were in line with our
+that our assets were in line with our code how we did this was if you change
+code how we did this was if you change the code that would impact the assets
+the code that would impact the assets you're expected to rebuild the assets
+you're expected to rebuild the assets and check it all at the same time and
+and check it all at the same time and we'll get to why that has other
+we'll get to why that has other downsides in a minute but that was
+downsides in a minute but that was really how we solve that problem why did
+really how we solve that problem why did we do it that way like we do that well
+we do it that way like we do that well that was how the team the game team was
+that was how the team the game team was organized we had an art department we
+organized we had an art department we had a department and those guys worked
+had a department and those guys worked together they're obviously all sorts of
+together they're obviously all sorts of roles that bridge that gap but not
+roles that bridge that gap but not necessarily anyone who was responsible
+necessarily anyone who was responsible for that whole picture and so this
+for that whole picture and so this process made sense one team hands the
+process made sense one team hands the process over via check-in and it just it
+process over via check-in and it just it makes sense everybody works and nobody
+makes sense everybody works and nobody ever gets blocked by this and how do we
+ever gets blocked by this and how do we end up you know what why would we
+end up you know what why would we organize that way but why would the
+organize that way but why would the system work that way and if anyone's
+system work that way and if anyone's familiar with Conway's law basically
+familiar with Conway's law basically says something to the effect of you're
+says something to the effect of you're any software designed by an organization
+any software designed by an organization we're almost always into resembling the
+we're almost always into resembling the interfaces of communication in that
+interfaces of communication in that organization and this ends up being very
+organization and this ends up being very true here the only reason I could find
+true here the only reason I could find for why we did it this way was there was
+for why we did it this way was there was an earth department so we handled all
+an earth department so we handled all the earth this way and there was one guy
+the earth this way and there was one guy from the art department who talked to
+from the art department who talked to one guy in dev this was the process they
+one guy in dev this was the process they came up with okay it made sense now why
+came up with okay it made sense now why are we stuck with it knowing that if
+are we stuck with it knowing that if it's because acid synchronization was a
+it's because acid synchronization was a huge problem for us for years it was you
+huge problem for us for years it was you could sink to the sink to head and not
+could sink to the sink to head and not be guaranteed that you had some good set
+be guaranteed that you had some good set of data to actually go along
+of data to actually go along and this caused us no amount of grief
+and this caused us no amount of grief and it was especially bad for producers
+and it was especially bad for producers or other people that need to play that
+or other people that need to play that game
+game I mean QA was slightly insulated because
+I mean QA was slightly insulated because we made sure that something was blessed
+we made sure that something was blessed before we gave it to them
+before we gave it to them but for embedded QA or production or
+but for embedded QA or production or designers and those need to have access
+designers and those need to have access to that stuff and there was no really
+to that stuff and there was no really good way that we could say hey here's
+good way that we could say hey here's that thing that's brand new and here's a
+that thing that's brand new and here's a set of data that's guaranteed to work
+set of data that's guaranteed to work with it so for us it was absolutely huge
+with it so for us it was absolutely huge it was a very important problem and at
+it was a very important problem and at some point somebody decided it was much
+some point somebody decided it was much more valuable than the integration cost
+more valuable than the integration cost so we stuck with it and over the years
+so we stuck with it and over the years we've developed around it we've really
+we've developed around it we've really architected the game so that we need to
+architected the game so that we need to do less integrations with reiha
+do less integrations with reiha architected the build system to make
+architected the build system to make some aspects of that much easier we've
+some aspects of that much easier we've built tons and tons and tons of tools
+built tons and tons and tons of tools and process around the pipeline's just
+and process around the pipeline's just to make that stuff that a little bit
+to make that stuff that a little bit faster so integrations become less
+faster so integrations become less necessary looking back would we do this
+necessary looking back would we do this again now no and every time I point out
+again now no and every time I point out to someone hey I think I figured out why
+to someone hey I think I figured out why we do this it was a facepalm every
+we do this it was a facepalm every single time and people just want to sort
+single time and people just want to sort of forget about it but that's the way it
+of forget about it but that's the way it was so if you're getting back on track
+was so if you're getting back on track I'll give you some quick details about
+I'll give you some quick details about FIFA after this so this is sort of a
+FIFA after this so this is sort of a mock histogram of what chemists look
+mock histogram of what chemists look like over time and this is sort of going
+like over time and this is sort of going back to the flow point a little bit and
+back to the flow point a little bit and this window of availability for
+this window of availability for automation of process odds are good if
+automation of process odds are good if you've never created a histogram of what
+you've never created a histogram of what your source controlled commits look like
+your source controlled commits look like it probably is something like this
+it probably is something like this the leftmost is whenever your people
+the leftmost is whenever your people come in there's typically some large
+come in there's typically some large volume of commits in the morning people
+volume of commits in the morning people have done some type of testing they've
+have done some type of testing they've done something overnight they come in
+done something overnight they come in the morning to make sure that it's good
+the morning to make sure that it's good they check in the morning and typically
+they check in the morning and typically commit to stay reasonably high for a
+commit to stay reasonably high for a little while some guys get in later some
+little while some guys get in later some guys need to fix a bug and I'll get done
+guys need to fix a bug and I'll get done they they commit as well that first low
+they they commit as well that first low bar that's lunch the higher one after
+bar that's lunch the higher one after that is of course when everybody gets
+that is of course when everybody gets back from lunch and then that last one
+back from lunch and then that last one is right before everybody's trying to
+is right before everybody's trying to leave for the day this makes sense all
+leave for the day this makes sense all now whitespace on either side is that
+now whitespace on either side is that window I'm talking about where you have
+window I'm talking about where you have the ability to go and do all sorts of
+the ability to go and do all sorts of wonderful things when you have people
+wonderful things when you have people working all over the
+working all over the world this is more what it looks like
+world this is more what it looks like you end up with maybe a couple of low
+you end up with maybe a couple of low bars while you're transitioning from
+bars while you're transitioning from North America to Asia because it's a big
+North America to Asia because it's a big whole bunch of time zones and unless
+whole bunch of time zones and unless you've got guys in Australia or Hawaii
+you've got guys in Australia or Hawaii you know there's not a lot of time in
+you know there's not a lot of time in there but eventually it'll pick back up
+there but eventually it'll pick back up and now we've gone from this case where
+and now we've gone from this case where there really weren't going to be any
+there really weren't going to be any chickens overnight to when maybe have a
+chickens overnight to when maybe have a couple hours right after the guys in
+couple hours right after the guys in North America went home and they
+North America went home and they absolutely won't allow us to do any
+absolutely won't allow us to do any major automation or anything risky
+major automation or anything risky during that time because if they've got
+during that time because if they've got a milestone or a gate or anything that's
+a milestone or a gate or anything that's the time they want to eat into to be
+the time they want to eat into to be able to use so for some numbers on FIFA
+able to use so for some numbers on FIFA just to give a scope of what I'm talking
+just to give a scope of what I'm talking about
+about I told you there are branches were in
+I told you there are branches were in the range of about 150 gig they do go up
+the range of about 150 gig they do go up to about 250 gig depending on how
+to about 250 gig depending on how careful you are with your clients back
+careful you are with your clients back but if you are really good about that
+but if you are really good about that you can actually get it down to about 75
+you can actually get it down to about 75 gig this is the essential amount of data
+gig this is the essential amount of data but that's the minimum data and I think
+but that's the minimum data and I think that's the thing that build machines
+that's the thing that build machines actually have so they're not wasting any
+actually have so they're not wasting any storage number of files
+storage number of files that's an optimized sync it's about
+that's an optimized sync it's about three hundred and sixty thousand files
+three hundred and sixty thousand files if you don't put a lot of effort and
+if you don't put a lot of effort and determine that sync down it's easily
+determine that sync down it's easily upwards of a million which is ridiculous
+upwards of a million which is ridiculous our largest file is about seven hundred
+our largest file is about seven hundred Meg it's a bundle of audio asset I'm
+Meg it's a bundle of audio asset I'm sure a lot of you guys have that our
+sure a lot of you guys have that our most edited file is the most edited I
+most edited file is the most edited I could find was about 74 edits between
+could find was about 74 edits between now and last September so that's quite a
+now and last September so that's quite a few per week revisions per day I only
+few per week revisions per day I only took a look at last week not including
+took a look at last week not including AI for any of these numbers there was
+AI for any of these numbers there was about 50 per day if I include da I guys
+about 50 per day if I include da I guys at who like as I said we're on a sever
+at who like as I said we're on a sever branch that gets to about another 25 and
+branch that gets to about another 25 and per day on top of that so even right now
+per day on top of that so even right now we were way out from final or sort of
+we were way out from final or sort of you guys were well into production
+you guys were well into production there's 75 commits a day another
+there's 75 commits a day another interesting note while we're here is QA
+interesting note while we're here is QA and localization always have current
+and localization always have current builds now we don't give it to them once
+builds now we don't give it to them once a week or once every couple of days
+a week or once every couple of days localization has the build that's
+localization has the build that's absolutely as current as when we started
+absolutely as current as when we started coughing it to local to low
+coughing it to local to low in QA is the same way we have every
+in QA is the same way we have every single night or every morning they have
+single night or every morning they have a build waiting for them that is the
+a build waiting for them that is the most current build as of usually 3:00 in
+most current build as of usually 3:00 in the morning yeah actually that's that's
+the morning yeah actually that's that's fair enough
+fair enough all right so in order to make all this
+all right so in order to make all this stuff work and in one branch there's a
+stuff work and in one branch there's a fair amount of discipline and automation
+fair amount of discipline and automation we're gonna get to the automation in the
+we're gonna get to the automation in the next second or the next couple slides
+next second or the next couple slides but for now let's finish up a source
+but for now let's finish up a source control so at this point I would like to
+control so at this point I would like to make a quick apology at some point I
+make a quick apology at some point I developed a warped sense of humor in the
+developed a warped sense of humor in the process of making this presentation and
+process of making this presentation and almost all the slides after this attempt
+almost all the slides after this attempt to be funny so hopefully you'll find
+to be funny so hopefully you'll find some humor in them if not my bad all
+some humor in them if not my bad all right so this one's obvious right
+right so this one's obvious right limiting binary files in source control
+limiting binary files in source control binary files take up a lot of space
+binary files take up a lot of space source control is particularly terrible
+source control is particularly terrible usually add it did I don't know of any
+usually add it did I don't know of any system that actually does diffs on
+system that actually does diffs on binary files for these things so you
+binary files for these things so you went up in a case where the more you're
+went up in a case where the more you're putting in there the more storage we're
+putting in there the more storage we're using up and you typically end up using
+using up and you typically end up using up really really fast
+up really really fast but you do want revision history on a
+but you do want revision history on a bunch of this stuff as I said in our
+bunch of this stuff as I said in our case we're checking in a bunch of the
+case we're checking in a bunch of the assets along with the code to make sure
+assets along with the code to make sure that it's synchronized there's not a lot
+that it's synchronized there's not a lot we can do about limiting binary files in
+we can do about limiting binary files in that case we need those at the end of
+that case we need those at the end of the year or at the end of the cycle we
+the year or at the end of the cycle we want to make sure that you can sync back
+want to make sure that you can sync back to any change list and have that good
+to any change list and have that good set of data there so we have to leave
+set of data there so we have to leave those files but we try to use as a
+those files but we try to use as a trade-off here is any files that we can
+trade-off here is any files that we can regenerate reasonably easily will try to
+regenerate reasonably easily will try to not check in so an example of this is
+not check in so an example of this is the Madden game has sort of their asset
+the Madden game has sort of their asset bundles that they check into perforce
+bundles that they check into perforce and that they will limit these things
+and that they will limit these things but the reason that they do this is so
+but the reason that they do this is so that if you happen to be at head or near
+that if you happen to be at head or near head you can get the last couple of
+head you can get the last couple of these things you're working very very
+these things you're working very very fast you don't need to generate these if
+fast you don't need to generate these if for some reason you need to go back say
+for some reason you need to go back say more than a week or however many of
+more than a week or however many of these things they keep you can
+these things they keep you can absolutely do that you just need to take
+absolutely do that you just need to take the time to regenerate the quick load
+the time to regenerate the quick load files FIFA doesn't do this because
+files FIFA doesn't do this because unfortunately the rate at which they
+unfortunately the rate at which they turn just makes it such that they'd be
+turn just makes it such that they'd be burning space so as part of your
+burning space so as part of your building of
+building of Aoife you almost always need to build
+Aoife you almost always need to build those quick loads but how they got
+those quick loads but how they got around having to spend that time was
+around having to spend that time was that the game almost always works with
+that the game almost always works with the loose assets as well and you
+the loose assets as well and you wouldn't do any performance profiling
+wouldn't do any performance profiling with that but it's playable very
+with that but it's playable very playable this is NSYNC in case you
+playable this is NSYNC in case you couldn't tell protect yourself from bad
+couldn't tell protect yourself from bad sinks so we kind of touched on this one
+sinks so we kind of touched on this one a little bit early you're a new member
+a little bit early you're a new member to a new team what's the first thing
+to a new team what's the first thing you're going to do you're gonna go in
+you're going to do you're gonna go in sync what impact does that sync have on
+sync what impact does that sync have on everybody else yeah I don't know about
+everybody else yeah I don't know about you guys but in when I started we had a
+you guys but in when I started we had a very firm rule you do not do a full sync
+very firm rule you do not do a full sync during work hours you set it up you do
+during work hours you set it up you do it right before you leave you go home
+it right before you leave you go home for the night so you were not likely to
+for the night so you were not likely to be impacting people but it always
+be impacting people but it always happened and part of this was I don't
+happened and part of this was I don't know about your build systems but we
+know about your build systems but we definitely had a couple bugs in ours
+definitely had a couple bugs in ours where things would leak into the source
+where things would leak into the source tree and at some point you would go I
+tree and at some point you would go I don't know why this isn't working I'm
+don't know why this isn't working I'm just gonna rethink everything and see if
+just gonna rethink everything and see if that fixes it and you don't want that
+that fixes it and you don't want that guy to say well 10 o'clock and I think
+guy to say well 10 o'clock and I think this is the solution I'm gonna have to
+this is the solution I'm gonna have to go home now and so you let them sink but
+go home now and so you let them sink but suddenly these things start taking a
+suddenly these things start taking a toll on what everybody else can do not
+toll on what everybody else can do not such a big deal if this is local if
+such a big deal if this is local if these guys are remote this becomes a
+these guys are remote this becomes a really big cost they're sucking juice
+really big cost they're sucking juice out of your server this is slow the more
+out of your server this is slow the more of these actions that you have the less
+of these actions that you have the less everybody else is getting through your
+everybody else is getting through your source control so obviously they mean
+source control so obviously they mean the solutions to this are simple things
+the solutions to this are simple things like documentation or triggers on your
+like documentation or triggers on your source control and that's largely what
+source control and that's largely what we do in fact when you have a trigger on
+we do in fact when you have a trigger on the source control that points you with
+the source control that points you with the documentation if you do something
+the documentation if you do something particularly terrible like say I'd like
+particularly terrible like say I'd like to thank all the FIFA no you get the big
+to thank all the FIFA no you get the big denied email that makes you feel
+denied email that makes you feel particularly upset and then it points
+particularly upset and then it points you with the documentation where it says
+you with the documentation where it says you may not sink the root you may not
+you may not sink the root you may not you must only think some of these
+you must only think some of these folders as a pro trip triggers are great
+folders as a pro trip triggers are great I don't use them for as much as you can
+I don't use them for as much as you can if you can kick off your CI that way and
+if you can kick off your CI that way and do it some of the best ones that we have
+do it some of the best ones that we have block you from if you didn't put a bug
+block you from if you didn't put a bug number or if a feature number some you
+number or if a feature number some you know you have some system where you're
+know you have some system where you're doing work if you don't have a number
+doing work if you don't have a number indicating why you submitted this check
+indicating why you submitted this check in
+in gets blocked again continuing the work
+gets blocked again continuing the work sense of humor keep your CI sinks
+sense of humor keep your CI sinks separated so this is a really
+separated so this is a really interesting one and I don't know that
+interesting one and I don't know that you'd normally hit it unless you had a
+you'd normally hit it unless you had a really big scale but for a good chunk of
+really big scale but for a good chunk of FIFA's development pad during the year
+FIFA's development pad during the year we actually have more automation than we
+we actually have more automation than we have people and so there may be up to a
+have people and so there may be up to a hundred machines that are doing various
+hundred machines that are doing various CI jobs all that exactly at the same
+CI jobs all that exactly at the same time first thing in the morning if
+time first thing in the morning if you're the first guy to put a check-in
+you're the first guy to put a check-in in when the system has managed to hit an
+in when the system has managed to hit an idle point a hundred machining has just
+idle point a hundred machining has just kicked off and they're all sinking and
+kicked off and they're all sinking and would you just submit it if someone else
+would you just submit it if someone else tries to do something it's just it's
+tries to do something it's just it's junk their experience is slow and this
+junk their experience is slow and this typically would happen say first thing
+typically would happen say first thing in the morning and remaining huh or
+in the morning and remaining huh or first thing in the morning in burnaby
+first thing in the morning in burnaby and it's a painful experience first
+and it's a painful experience first thing in the morning people are actually
+thing in the morning people are actually excited to work they get in they want to
+excited to work they get in they want to do stuff and if their first experience
+do stuff and if their first experience with source control is well I hit sync
+with source control is well I hit sync and it's not doing anything where I
+and it's not doing anything where I tried to submit my check and then I
+tried to submit my check and then I tested all night and it's lagging these
+tested all night and it's lagging these guys get upset and they're unhappy with
+guys get upset and they're unhappy with you so the solution to this was we
+you so the solution to this was we actually set up a proxy inside of our
+actually set up a proxy inside of our local site so that only our CI system
+local site so that only our CI system uses this is a relatively cheap thing to
+uses this is a relatively cheap thing to set up it's all local you just need
+set up it's all local you just need another machine to do it but it makes it
+another machine to do it but it makes it so that your CI never actually had
+so that your CI never actually had negatively impacts your development and
+negatively impacts your development and this made a huge difference during
+this made a huge difference during FIFA's final last year and that it got
+FIFA's final last year and that it got people to stop yelling at me don't stop
+people to stop yelling at me don't stop for backups this is a really interesting
+for backups this is a really interesting one I'm going to touch on sort of halide
+one I'm going to touch on sort of halide we came across something like this later
+we came across something like this later and the point is you backup your source
+and the point is you backup your source control you probably need to stop your
+control you probably need to stop your source control in order to backup your
+source control in order to backup your source control which means you have some
+source control which means you have some window where it's not usable again we go
+window where it's not usable again we go back to a scenario where you're working
+back to a scenario where you're working across the world well you still have
+across the world well you still have weekends probably and less of a weekend
+weekends probably and less of a weekend and that full you know 48 plus hour
+and that full you know 48 plus hour window but you still got something but
+window but you still got something but you don't need to stop there's lots of
+you don't need to stop there's lots of technologies and approaches that are
+technologies and approaches that are available for example if you happen to
+available for example if you happen to be using a storage area network
+be using a storage area network at all and even if you're not using some
+at all and even if you're not using some big fancy device that you license from
+big fancy device that you license from some you know global IT outfit I've got
+some you know global IT outfit I've got an AZ at home that supports this
+an AZ at home that supports this functionality the point is that you you
+functionality the point is that you you set up your machine you backend it off
+set up your machine you backend it off this NASA stuff you do a tiny pause to
+this NASA stuff you do a tiny pause to your source control flush any outgoing
+your source control flush any outgoing transactions you take that snapshot
+transactions you take that snapshot which is like an instantaneous copy it's
+which is like an instantaneous copy it's not really a copy it's a redirection
+not really a copy it's a redirection layer and you pay based on how much it
+layer and you pay based on how much it differs from the snapshot at the time
+differs from the snapshot at the time you took it but at that point you can
+you took it but at that point you can turn your source control back on so
+turn your source control back on so you've been down for maybe a couple
+you've been down for maybe a couple minutes maybe a not even noticeable
+minutes maybe a not even noticeable amount of time but then you can do that
+amount of time but then you can do that back up off that snapshot and seems in
+back up off that snapshot and seems in kind of lies to databases if you don't
+kind of lies to databases if you don't if you need to do a back up on a
+if you need to do a back up on a database that's an operational database
+database that's an operational database you're using all the time why are you
+you're using all the time why are you stopping that database you know set up a
+stopping that database you know set up a replicant to do something take some any
+replicant to do something take some any action that you can so that you can back
+action that you can so that you can back up off something that isn't your live
+up off something that isn't your live system you have a sidenote
+system you have a sidenote oh actually I got a little anecdote here
+oh actually I got a little anecdote here take your backup seriously and I know
+take your backup seriously and I know when everybody knows that everybody's
+when everybody knows that everybody's been you know we'd all be used the
+been you know we'd all be used the computer before we don't come back let's
+computer before we don't come back let's work but stuff happens and it always
+work but stuff happens and it always happens in the most inopportune times -
+happens in the most inopportune times - Christmas is back we deleted Madden like
+Christmas is back we deleted Madden like source control gone we had an IT bug and
+source control gone we had an IT bug and something went wrong with one of the
+something went wrong with one of the disks that was back in the perforce
+disks that was back in the perforce server and some very helpful engineer
+server and some very helpful engineer and thought he knew how to solve the
+and thought he knew how to solve the problem and so we went in and he
+problem and so we went in and he remounted the drive to the to the server
+remounted the drive to the to the server and in the process he wiped it
+and in the process he wiped it unrecoverable you can imagine that that
+unrecoverable you can imagine that that did not go over well so the guys came
+did not go over well so the guys came back from the Christmas break and
+back from the Christmas break and perforce wasn't there and they had to
+perforce wasn't there and they had to just work with what they had on their
+just work with what they had on their local machine eventually we were able to
+local machine eventually we were able to recover from tape backups and we were
+recover from tape backups and we were really lucky that that actually worked
+really lucky that that actually worked and we were able to rebuild the diffs
+and we were able to rebuild the diffs there was a fortune of engineer who at
+there was a fortune of engineer who at his desk was sinking he had just sunk
+his desk was sinking he had just sunk everything right before he got deleted
+everything right before he got deleted so we were able to you know recover from
+so we were able to you know recover from the backup fill on the gaps with that
+the backup fill on the gaps with that stuff recreate some of the history and
+stuff recreate some of the history and getting going but there was a better
+getting going but there was a better part of I think about almost a week
+part of I think about almost a week purrs just sort of sat there and twiddle
+purrs just sort of sat there and twiddle their thumbs so take the stuff seriously
+their thumbs so take the stuff seriously as a tip if you happen to have source
+as a tip if you happen to have source control and say less potentially stable
+control and say less potentially stable source of the world consider those
+source of the world consider those backups additionally we have a studio in
+backups additionally we have a studio in South Korea it definitely gets backed up
+South Korea it definitely gets backed up more than some of our other four four
+more than some of our other four four servers when we're on this note disaster
+servers when we're on this note disaster recovery is obvious and I think it's
+recovery is obvious and I think it's everybody's natural reaction business
+everybody's natural reaction business continuity might not be something that
+continuity might not be something that you've heard of so disaster recovery all
+you've heard of so disaster recovery all define as recovering from something went
+define as recovering from something went wrong getting the system back exactly
+wrong getting the system back exactly the way it was and what you've lost is
+the way it was and what you've lost is time business continuity is where you
+time business continuity is where you say I don't want to be back the way I
+say I don't want to be back the way I was I want my time to be the least
+was I want my time to be the least amount of possible this would be like if
+amount of possible this would be like if the Apple store down the street burned
+the Apple store down the street burned down disaster recovery is them
+down disaster recovery is them rebuilding it business continuity is
+rebuilding it business continuity is them opening up shop next door so people
+them opening up shop next door so people can get by in that half of swag business
+can get by in that half of swag business continuity is important because there's
+continuity is important because there's a lot of stuff that you do and you rely
+a lot of stuff that you do and you rely on that probably can be recovered
+on that probably can be recovered without actually needing to do all the
+without actually needing to do all the the disaster recovery so the example
+the disaster recovery so the example we've got for this is our CI systems we
+we've got for this is our CI systems we have about 150 250 gigs worth of data as
+have about 150 250 gigs worth of data as you need one of our CI systems and
+you need one of our CI systems and unfortunately flakes out about once a
+unfortunately flakes out about once a year and that's five days worth of data
+year and that's five days worth of data is about 200 gig it's operationally it's
+is about 200 gig it's operationally it's mostly logs we were all used to that for
+mostly logs we were all used to that for that for the builds we don't need that
+that for the builds we don't need that data if that system goes down to
+data if that system goes down to reinforce 200 gauge into SQL is going to
+reinforce 200 gauge into SQL is going to take all day and usually it takes as a
+take all day and usually it takes as a data realize that the databases worked
+data realize that the databases worked and we need to actually completely
+and we need to actually completely recover it so we've lost a day for that
+recover it so we've lost a day for that then we're gonna lose a day to actually
+then we're gonna lose a day to actually rebuild the database and then by the
+rebuild the database and then by the time the system gets online it's been
+time the system gets online it's been down for two days so then it needs to
+down for two days so then it needs to spend another half a day trying to purge
+spend another half a day trying to purge out all the old data there because it's
+out all the old data there because it's not supposed to keep data for more than
+not supposed to keep data for more than five days we're down for forever
+five days we're down for forever eventually and after you know seven or
+eventually and after you know seven or eight times or of us suffering from this
+eight times or of us suffering from this we got used to the you know hope is our
+we got used to the you know hope is our problem stop hoping immediately
+problem stop hoping immediately something goes wrong let's take those
+something goes wrong let's take those project definitions the CI project
+project definitions the CI project definitions or what really matter let's
+definitions or what really matter let's get them into another CI system and get
+get them into another CI system and get everything roll
+everything roll and that's kind of the best practice
+and that's kind of the best practice around here is that hope is not your
+around here is that hope is not your friend when you're in a disaster
+friend when you're in a disaster situation but it's where we all tend to
+situation but it's where we all tend to go I'll just give this an hour and see
+go I'll just give this an hour and see what happens it'll probably come back if
+what happens it'll probably come back if you need your system running and ci is a
+you need your system running and ci is a really good example of one where if your
+really good example of one where if your developers aren't comfortable working
+developers aren't comfortable working because you've built up a ton of process
+because you've built up a ton of process around this thing what are you going to
+around this thing what are you going to do to make sure that these guys can keep
+do to make sure that these guys can keep working ok so we're going to that second
+working ok so we're going to that second problem now where it works on my machine
+problem now where it works on my machine and this is the one where CI is really
+and this is the one where CI is really hard to solve this problem we couldn't
+hard to solve this problem we couldn't come up with any other way around it
+come up with any other way around it your machine is the problem so you don't
+your machine is the problem so you don't get to say it works on your machine and
+get to say it works on your machine and especially on fee v you see it works on
+especially on fee v you see it works on my machine
+my machine the answer is full it doesn't work on
+the answer is full it doesn't work on the build machine so it's your problem
+the build machine so it's your problem you're completely responsible for it
+you're completely responsible for it there's no way around it we've made it
+there's no way around it we've made it the gold standard so let's just take a
+the gold standard so let's just take a quick look at what CI a-- looks like at
+quick look at what CI a-- looks like at sports so you have a sense of what i'm
+sports so you have a sense of what i'm talking about so we've got this content
+talking about so we've got this content creator and he's working at his local
+creator and he's working at his local desk he's got his feature he's got this
+desk he's got his feature he's got this thing finished so he starts to do some
+thing finished so he starts to do some local testing now we don't want to
+local testing now we don't want to burden him with a bunch of effort we've
+burden him with a bunch of effort we've got five platforms that we work on we've
+got five platforms that we work on we've got four different configs if I ask him
+got four different configs if I ask him to do some even you know through a
+to do some even you know through a nominal matrix of that stuff he's going
+nominal matrix of that stuff he's going to spend a ton of time on this if our
+to spend a ton of time on this if our build times are down to five minutes per
+build times are down to five minutes per platform per config he could spend a ton
+platform per config he could spend a ton of time on this so we come up with some
+of time on this so we come up with some very very very minimal sets that these
+very very very minimal sets that these guys need to do and we trust them to do
+guys need to do and we trust them to do that at every iteration and then check
+that at every iteration and then check willingly into perforce fixer that goes
+willingly into perforce fixer that goes to the source control which sends either
+to the source control which sends either there's a set of CI servers which we'll
+there's a set of CI servers which we'll be pulling the source control servers or
+be pulling the source control servers or potentially they're triggered and then
+potentially they're triggered and then we have some set of builds that will
+we have some set of builds that will kick off I'm only going to do the CI
+kick off I'm only going to do the CI process as far as the builds actually go
+process as far as the builds actually go so we've got some set of quick builds
+so we've got some set of quick builds some set of complete builds when I say
+some set of complete builds when I say quick and we'll get into this more in a
+quick and we'll get into this more in a minute but what I'm really going for is
+minute but what I'm really going for is something that validates as quickly as
+something that validates as quickly as possible that you didn't just break
+possible that you didn't just break every
+every the complete bills are the ones that can
+the complete bills are the ones that can take their time and sorry the quick
+take their time and sorry the quick builds are telling you that you didn't
+builds are telling you that you didn't break what we care about the complete
+break what we care about the complete builds are telling you that you did not
+builds are telling you that you did not break anything the analysis builds are
+break anything the analysis builds are things like lint or Coverity that are
+things like lint or Coverity that are checking out your code quality and
+checking out your code quality and profiling are typically going to be
+profiling are typically going to be memory metrics these kinds of things and
+memory metrics these kinds of things and artifacts are everything else these are
+artifacts are everything else these are the iswas for QA this is potentially art
+the iswas for QA this is potentially art whatever your whenever you're actually
+whatever your whenever you're actually generating a thing that some other
+generating a thing that some other process will use that falls into this
+process will use that falls into this type of build this was a particularly
+type of build this was a particularly important one over here and this bites
+important one over here and this bites us constantly so hopefully you've seen
+us constantly so hopefully you've seen this xkcd and it's funny we all look at
+this xkcd and it's funny we all look at it and we all know it to be true and the
+it and we all know it to be true and the problem is just because it's true
+problem is just because it's true doesn't make it okay and so we spend a
+doesn't make it okay and so we spend a ton of time we waste time allowing
+ton of time we waste time allowing people to compile and this ties back
+people to compile and this ties back into my earlier point about the
+into my earlier point about the developer at his desk you're paying him
+developer at his desk you're paying him more than your content creator at their
+more than your content creator at their desk you are paying them to generate
+desk you are paying them to generate something for you if they have to spend
+something for you if they have to spend time compiling they are not working and
+time compiling they are not working and you can fix that with the build system
+you can fix that with the build system you can do all sorts of things I'm going
+you can do all sorts of things I'm going to assume that you've already optimized
+to assume that you've already optimized your build system to the point where
+your build system to the point where there aren't any easy gains to be had
+there aren't any easy gains to be had there so then it becomes the matrix of
+there so then it becomes the matrix of things that they can do don't make them
+things that they can do don't make them do everything pick something that
+do everything pick something that probably works and allow them to check
+probably works and allow them to check that in and then use the continuous
+that in and then use the continuous integration to do everything else as a
+integration to do everything else as a side note for how we come up with that
+side note for how we come up with that add that minimal set of things we want
+add that minimal set of things we want them to build and test that's typically
+them to build and test that's typically of vary by game team to game team it's
+of vary by game team to game team it's gonna be the technical directors that
+gonna be the technical directors that are gonna decide that some titles may
+are gonna decide that some titles may favor their final build and because
+favor their final build and because they've been having say framerate
+they've been having say framerate problems and that's really the one they
+problems and that's really the one they care about titles that have had 60 frame
+care about titles that have had 60 frame for 60 FPS frame rates for years worry
+for 60 FPS frame rates for years worry less about that and maybe they'll worry
+less about that and maybe they'll worry about something with more metrics in
+about something with more metrics in this they can do some profiling so these
+this they can do some profiling so these things are highly variable I don't have
+things are highly variable I don't have an answer for what is the one that makes
+an answer for what is the one that makes sense for you it'll depend on your game
+sense for you it'll depend on your game and whatever one your developers are
+and whatever one your developers are most comfortable using is probably the
+most comfortable using is probably the one that you want
+okay so now we've said already well that's bias for speed let's make sure
+that's bias for speed let's make sure that you're always doing the fast stuff
+that you're always doing the fast stuff and that we're going to do the the
+and that we're going to do the the completeness stuff can happen on the
+completeness stuff can happen on the side later no big deal is that
+side later no big deal is that completing stuff is coverage the speed
+completing stuff is coverage the speed and completeness are the stuff that you
+and completeness are the stuff that you can do everywhere in the world these
+can do everywhere in the world these builds are typically the reasonably
+builds are typically the reasonably cheap ones they're the ones where
+cheap ones they're the ones where they're not generating artifacts you
+they're not generating artifacts you need to move around so there's stuff
+need to move around so there's stuff within our case we we do see I in both
+within our case we we do see I in both the main development place in Burnaby
+the main development place in Burnaby and in the other development in
+and in the other development in Bucharest they've got their own CI the
+Bucharest they've got their own CI the reason for doing this it's convenient
+reason for doing this it's convenient for these guys so we can do it nice and
+for these guys so we can do it nice and fast they're the amount of time that it
+fast they're the amount of time that it takes to transmit the data back over the
+takes to transmit the data back over the ocean and the user experience these guys
+ocean and the user experience these guys get getting report data back from us
+get getting report data back from us isn't worth it we can throw a couple of
+isn't worth it we can throw a couple of machines in place over there do that
+machines in place over there do that stuff locally but that completely breaks
+stuff locally but that completely breaks down if we start talking about artifacts
+down if we start talking about artifacts as soon as we need to move files between
+as soon as we need to move files between locations absolutely falls apart and it
+locations absolutely falls apart and it goes to that earlier point but that's
+goes to that earlier point but that's really really expensive so we avoid
+really really expensive so we avoid creating artifacts at their remote
+creating artifacts at their remote locations we tend to try and figure out
+locations we tend to try and figure out where the artifacts are going and try
+where the artifacts are going and try and make sure that the continuous
+and make sure that the continuous integration for those things are
+integration for those things are happening in that location so if QA is
+happening in that location so if QA is happening in burnaby that's when we're
+happening in burnaby that's when we're going to make sure that the build that's
+going to make sure that the build that's generating the disk is going to happen
+generating the disk is going to happen as I pointed out earlier it happens in
+as I pointed out earlier it happens in Baton Rouge
+Baton Rouge we don't have hardware in Baton Rouge so
+we don't have hardware in Baton Rouge so we make sure that we do it somewhere
+we make sure that we do it somewhere else in North America because at least
+else in North America because at least we can shunt the builds over there
+we can shunt the builds over there reasonably quickly and again just to
+reasonably quickly and again just to drive this point home there's no point
+drive this point home there's no point to have transferring data that you can
+to have transferring data that you can build faster I called this out earlier
+build faster I called this out earlier but with our localization guys in Madrid
+but with our localization guys in Madrid at someone we discovered that it did
+at someone we discovered that it did take substantially longer the coffee
+take substantially longer the coffee that build to those guys than it had
+that build to those guys than it had just give them their own source control
+just give them their own source control let them build it themselves we can
+let them build it themselves we can drive this point into the ground well
+drive this point into the ground well let's give this one avoid copying those
+let's give this one avoid copying those artifacts around the world okay don't
+artifacts around the world okay don't share environments I did a presentation
+share environments I did a presentation of GDC a couple years back where we were
+of GDC a couple years back where we were talking about how to scale your test
+talking about how to scale your test infrastructure to it using
+infrastructure to it using virtualization and things like that and
+virtualization and things like that and this was a principal topic on that
+this was a principal topic on that and basically sharing an environment is
+and basically sharing an environment is going to allow you to waste time so in
+going to allow you to waste time so in this example you do a build and you do a
+this example you do a build and you do a test and to build them testing the build
+test and to build them testing the build on a test in a building the test this is
+on a test in a building the test this is really easy to do right everybody does
+really easy to do right everybody does this because you start off with a build
+this because you start off with a build because that's where you start and at
+because that's where you start and at some point you added unit tests or an
+some point you added unit tests or an integration test or a functional tester
+integration test or a functional tester you added something and it made sense to
+you added something and it made sense to just put it on that build machine it was
+just put it on that build machine it was already doing that it already has the
+already doing that it already has the artifacts but as you scale those tests
+artifacts but as you scale those tests you need to realize that the builds and
+you need to realize that the builds and tests tend to have that one-to-many
+tests tend to have that one-to-many relationship and so suddenly you you
+relationship and so suddenly you you don't want to be rebuilding things
+don't want to be rebuilding things you've already built and in order so
+you've already built and in order so that you can do some other type of tests
+that you can do some other type of tests on it so if you can split your builds
+on it so if you can split your builds and you're spooked your build
+and you're spooked your build environment from your test environment
+environment from your test environment and if you can get distinct environments
+and if you can get distinct environments then you're going to get more builds out
+then you're going to get more builds out of that which has the benefit of being
+of that which has the benefit of being more atomic you're getting fewer
+more atomic you're getting fewer check-ins per build assuming that your
+check-ins per build assuming that your build is happening on a schedule which
+build is happening on a schedule which makes debugging a lot easier you're
+makes debugging a lot easier you're potentially getting more tests and more
+potentially getting more tests and more importantly you're getting those results
+importantly you're getting those results to people faster which is really what
+to people faster which is really what this is all about
+this is all about if you've done some clever things here
+if you've done some clever things here you don't even really need two machines
+you don't even really need two machines to do this it could be a simple matter
+to do this it could be a simple matter of making sure that your environment is
+of making sure that your environment is set up sufficiently well that you can
+set up sufficiently well that you can move a build over to some other location
+move a build over to some other location and start executing a test from there
+and start executing a test from there and then kick off a build on that same
+and then kick off a build on that same machine at that same time additionally
+machine at that same time additionally if you're really really keen that coffee
+if you're really really keen that coffee I just mentioned where you move it from
+I just mentioned where you move it from the build environment of the test
+the build environment of the test environment there are lots of clever
+environment there are lots of clever ways that you can completely mitigate
+ways that you can completely mitigate that time that gdz e gdz president 2012
+that time that gdz e gdz president 2012 presentation i mentioned has tons of
+presentation i mentioned has tons of detail about that so if you're
+detail about that so if you're interested come talk to me afterwards or
+interested come talk to me afterwards or check that out in the vault do your best
+check that out in the vault do your best to avoid desktop hardware this stuff is
+to avoid desktop hardware this stuff is expensive it'll always get you and it's
+expensive it'll always get you and it's not expensive in terms of the you go to
+not expensive in terms of the you go to Best Buy and you buy it it's nice and
+Best Buy and you buy it it's nice and cheap that's actually why we have so
+cheap that's actually why we have so much of it we have desktop machines we
+much of it we have desktop machines we have all sorts of or we have our
+have all sorts of or we have our developers our content creators using
+developers our content creators using these things typically you have an
+these things typically you have an abundance of desktop machines so it's
+abundance of desktop machines so it's very common for your automation farm to
+very common for your automation farm to be built out of the leftovers of that
+be built out of the leftovers of that eventually that's going to cost you the
+eventually that's going to cost you the desktop hardware isn't as reliable you
+desktop hardware isn't as reliable you start getting flaky errors and that ends
+start getting flaky errors and that ends up being the real bane it's easy if the
+up being the real bane it's easy if the drive dies you go buy a new one when it
+drive dies you go buy a new one when it starts to die and but it isn't quite
+starts to die and but it isn't quite dead that's when it starts introducing
+dead that's when it starts introducing weird things that start plaguing your
+weird things that start plaguing your results and now you have this one
+results and now you have this one machine that just does something
+machine that just does something inconsistent for us it got to the point
+inconsistent for us it got to the point where I think we could do about a farm
+where I think we could do about a farm of a hundred of these things set up in
+of a hundred of these things set up in sports so that we could do the various
+sports so that we could do the various just test automation not even build
+just test automation not even build automation just test automation for the
+automation just test automation for the couple of titles in burnaby and we had
+couple of titles in burnaby and we had to have one guy who did nothing but just
+to have one guy who did nothing but just make sure that all these things were
+make sure that all these things were actually in a healthy state this is
+actually in a healthy state this is assuming that you're using Windows if
+assuming that you're using Windows if you get away with other development
+you get away with other development environments then you will probably find
+environments then you will probably find greater stability but if you're
+greater stability but if you're developing for Xbox then you're using
+developing for Xbox then you're using Windows which means that it's reasonably
+Windows which means that it's reasonably easy to run into problems so the
+easy to run into problems so the solution that we went to for this was if
+solution that we went to for this was if you have access to a data center
+you have access to a data center fantastic get into that stuff odds are
+fantastic get into that stuff odds are good they're using server grade hardware
+good they're using server grade hardware which is going to have extra reliability
+which is going to have extra reliability on top of it but ideally virtualization
+on top of it but ideally virtualization would be the recommendation here you
+would be the recommendation here you don't want to waste your time trying to
+don't want to waste your time trying to muck out of environment errors if
+muck out of environment errors if there's something wonky happening a
+there's something wonky happening a machine that you don't see everywhere
+machine that you don't see everywhere else
+else create a new machine move the process to
+create a new machine move the process to there and see what happens if it doesn't
+there and see what happens if it doesn't fantastic delete that old one debug it
+fantastic delete that old one debug it if you've got the time but move on
+if you've got the time but move on you're trying to not have yourself
+you're trying to not have yourself dragged down by all this hardware that
+dragged down by all this hardware that you're maintaining if you don't have an
+you're maintaining if you don't have an IT department a data center don't fret
+IT department a data center don't fret about this stuff there's lots of
+about this stuff there's lots of services that you can rent VMs from
+services that you can rent VMs from assuming that you don't have security or
+assuming that you don't have security or IP issues associated with that desk it's
+IP issues associated with that desk it's for dev kits fall into the same thing I
+for dev kits fall into the same thing I don't know about you guys bash
+don't know about you guys bash PlayStation fours are giving us some
+PlayStation fours are giving us some grief at the moment says all I'll say
+grief at the moment says all I'll say about that but if you're hitting the
+about that but if you're hitting the same kind of problem you know devices
+same kind of problem you know devices like I boot bars really make a big
+like I boot bars really make a big difference there tonight blue bar is a
+difference there tonight blue bar is a network addressable power strip and send
+network addressable power strip and send a signal to that turn that thing off
+a signal to that turn that thing off power cycle it back on if you can do a
+power cycle it back on if you can do a wake-on-lan you can typically recover
+wake-on-lan you can typically recover your environment yeah that's not healthy
+your environment yeah that's not healthy for the kid but if the kid is already
+for the kid but if the kid is already giving you that much grief anyway who
+giving you that much grief anyway who at least you get it working again and
+at least you get it working again and the worst possible scenario you can have
+the worst possible scenario you can have is that QA didn't get a build in the
+is that QA didn't get a build in the morning because the automated process
+morning because the automated process relied on a kit that happened to die on
+relied on a kit that happened to die on the test right before the important one
+the test right before the important one that you needed it to do as an
+that you needed it to do as an additional pro tip here we've had great
+additional pro tip here we've had great luck using PVR's attached to consoles
+luck using PVR's attached to consoles for additional information or even just
+for additional information or even just remote viewing these things if you're
+remote viewing these things if you're doing Gen 4 development there's actually
+doing Gen 4 development there's actually some neat stuff that I know we have
+some neat stuff that I know we have working on the Xbox and I think we can
+working on the Xbox and I think we can get to fun with the PlayStation as well
+get to fun with the PlayStation as well where it's already capturing this type
+where it's already capturing this type of video output we can throw it into a
+of video output we can throw it into a buffer on the side and in the event of a
+buffer on the side and in the event of a crash we can just dump that and get the
+crash we can just dump that and get the last couple minutes of video I can't
+last couple minutes of video I can't recommend that highly enough this is one
+recommend that highly enough this is one of my favorites so test your processes
+of my favorites so test your processes from within so this is a canary in a
+from within so this is a canary in a coal mine if you're familiar with the
+coal mine if you're familiar with the analogy or if you're not familiar with
+analogy or if you're not familiar with the analogy basically the idea was at
+the analogy basically the idea was at some point in the past and I really hope
+some point in the past and I really hope this isn't an old wives tale and they
+this isn't an old wives tale and they had Canaries and coal mines and if
+had Canaries and coal mines and if something went wrong and they released
+something went wrong and they released I'm assuming gas and the canary would
+I'm assuming gas and the canary would pass out or probably die and everybody
+pass out or probably die and everybody knew to hightail it out of the mine we
+knew to hightail it out of the mine we apply the same idea to our continuous
+apply the same idea to our continuous integration one of the problems is
+integration one of the problems is really easy to erode trust with your
+really easy to erode trust with your developers in our environment as I said
+developers in our environment as I said they check in where they've done some
+they check in where they've done some set of things we take care of the rest
+set of things we take care of the rest of it for them if we aren't taking care
+of it for them if we aren't taking care of it in a very successful weather or a
+of it in a very successful weather or a reliable way then we can't claim that
+reliable way then we can't claim that that CI is the gold standard and
+that CI is the gold standard and suddenly that it works on my machine
+suddenly that it works on my machine problem creeps back in so we built when
+problem creeps back in so we built when we call the system canary it's basically
+we call the system canary it's basically a fake build it'll never fail well it
+a fake build it'll never fail well it feels all the time but it's not supposed
+feels all the time but it's not supposed to fail it doesn't do a real build it
+to fail it doesn't do a real build it does a process which is always supposed
+does a process which is always supposed to pass but it exercises almost all of
+to pass but it exercises almost all of the dependencies that a real build would
+the dependencies that a real build would actually exercise so you can actually
+actually exercise so you can actually get it is really interesting cuz you can
+get it is really interesting cuz you can map out what are all the dead spots in
+map out what are all the dead spots in your network infrastructure when exactly
+your network infrastructure when exactly does your perforce server the loft line
+does your perforce server the loft line when does your antivirus kick in because
+when does your antivirus kick in because if you have an IT department an
+if you have an IT department an anti-virus you'd probably be surprised
+anti-virus you'd probably be surprised how badly that's plaguing your systems
+how badly that's plaguing your systems all sorts of stuff like that so you can
+all sorts of stuff like that so you can absolutely map out those windows
+absolutely map out those windows and you use that data you get that back
+and you use that data you get that back in front of your your developers so that
+in front of your your developers so that they can trust the system if you can
+they can trust the system if you can show that 99% of the time these Canaries
+show that 99% of the time these Canaries are alive and sending chirps fantastic
+are alive and sending chirps fantastic but even for yourself or whoever your
+but even for yourself or whoever your build guys are if only 80% of the time
+build guys are if only 80% of the time and it's working you know then then you
+and it's working you know then then you know when you can adjust accordingly
+know when you can adjust accordingly reports people want to look at so I have
+reports people want to look at so I have many conversations with one of our guys
+many conversations with one of our guys in Bioware and who's a big fan of what
+in Bioware and who's a big fan of what was his model and triple any tools for
+was his model and triple any tools for triple-a teams and this is often not
+triple-a teams and this is often not common on central teams we build tools
+common on central teams we build tools and it's not that we make them ugly on
+and it's not that we make them ugly on purpose but we don't have artists and we
+purpose but we don't have artists and we don't have budgets for artists and and
+don't have budgets for artists and and so we make tools that are functional and
+so we make tools that are functional and pinned down they work for us I don't
+pinned down they work for us I don't understand why that guy can't use it and
+understand why that guy can't use it and you really need to make a compelling
+you really need to make a compelling reports you want to get this in front of
+reports you want to get this in front of people you need people looking at this
+people you need people looking at this data and make it something they actually
+data and make it something they actually want to look at and as a final prototype
+want to look at and as a final prototype don't report off of live systems if
+don't report off of live systems if anybody is using tableau I don't need
+anybody is using tableau I don't need any hands I suppose we actually found a
+any hands I suppose we actually found a distributor not destroyed but took out a
+distributor not destroyed but took out a couple of our test databases and the way
+couple of our test databases and the way that it would generate data especially
+that it would generate data especially drought it said in the polling mode just
+drought it said in the polling mode just didn't play nicely to our live systems
+didn't play nicely to our live systems and so we actually found it we were
+and so we actually found it we were dropping our automation testbed systems
+dropping our automation testbed systems it's simple fix build a replicated
+it's simple fix build a replicated database and point tableau with that but
+database and point tableau with that but it's really easy to do wrong and it's
+it's really easy to do wrong and it's really easy to not realize that that's
+really easy to not realize that that's what's happening so now the third
+what's happening so now the third problem this is this branch health and
+problem this is this branch health and like I said we've already touched on
+like I said we've already touched on this a lot with many of these other ones
+this a lot with many of these other ones but there's some additional insights
+but there's some additional insights that that we've got that just to help
+that that we've got that just to help you make sure that you're not putting
+you make sure that you're not putting your branch into a state where it's
+your branch into a state where it's broken or unusable by other people that
+broken or unusable by other people that depend on it pull of hands who loves
+depend on it pull of hands who loves their build system who thinks their
+their build system who thinks their build system is great and they would
+build system is great and they would recommend it okay you might want to talk
+recommend it okay you might want to talk to after please yeah that's kind of what
+to after please yeah that's kind of what I figured right if nobody likes their
+I figured right if nobody likes their builds this guy does but nobody else
+builds this guy does but nobody else like
+like their build system and it's not because
+their build system and it's not because we do a terrible job of developing these
+we do a terrible job of developing these things maybe but but generally it's
+things maybe but but generally it's because they're full of trade-offs it's
+because they're full of trade-offs it's the nature of these things they're
+the nature of these things they're hiding all that dirty laundry that we've
+hiding all that dirty laundry that we've done so they have to be nasty like that
+done so they have to be nasty like that and so how we get around this is we
+and so how we get around this is we don't make our users actually use the
+don't make our users actually use the build system now they're changing files
+build system now they're changing files such as they need to add things that's
+such as they need to add things that's inevitable but for the most part in
+inevitable but for the most part in order for it to work with automation we
+order for it to work with automation we have command-line interfaces there's
+have command-line interfaces there's nothing worse than telling your artist
+nothing worse than telling your artist okay in order for you to build your art
+okay in order for you to build your art I need you to type in this 256 character
+I need you to type in this 256 character command line to make that happen so you
+command line to make that happen so you know I'm a little behind a GUI to make
+know I'm a little behind a GUI to make sure that your heart guys your your
+sure that your heart guys your your level designers your producers your
+level designers your producers your execs if they're gonna generate a build
+execs if they're gonna generate a build from source make it easy for them to do
+from source make it easy for them to do that and just because your developers
+that and just because your developers are power users and are comfortable on
+are power users and are comfortable on the command line don't make them do that
+the command line don't make them do that either if they wouldn't use the GUI
+either if they wouldn't use the GUI great but the other tool that we built
+great but the other tool that we built was sort of a fast version of the
+was sort of a fast version of the command line the automation you know
+command line the automation you know uses the 256 character version the the
+uses the 256 character version the the other guys just sort of type build and
+other guys just sort of type build and based on what they usually do it figures
+based on what they usually do it figures out what they need to do ton of time
+out what they need to do ton of time saving and then everybody loves is a
+saving and then everybody loves is a build system telemetry is your friend
+build system telemetry is your friend build system again same thing track how
+build system again same thing track how it's being used and one of the reasons
+it's being used and one of the reasons people tend to hate build systems
+people tend to hate build systems release tweeted is because it rotted and
+release tweeted is because it rotted and it rotted because there were workflows
+it rotted because there were workflows that were being supported that may or
+that were being supported that may or not may or may not be getting used and
+not may or may not be getting used and the build system or having telemetry on
+the build system or having telemetry on that allows you to identify what's
+that allows you to identify what's getting used what's not getting used and
+getting used what's not getting used and it allows you to go to that one senior
+it allows you to go to that one senior guy who maintains that everybody uses a
+guy who maintains that everybody uses a flow to go to him and say you know what
+flow to go to him and say you know what it's just you it's just you I need to
+it's just you it's just you I need to kill this now am I to use you friend I
+kill this now am I to use you friend I mean this one's not too difficult we
+mean this one's not too difficult we touched on this before things like
+touched on this before things like virtualization sand snapshots if these
+virtualization sand snapshots if these aren't things that you've heard of your
+aren't things that you've heard of your IT guys definitely have go talk to those
+IT guys definitely have go talk to those guys they're going to be able to help
+guys they're going to be able to help you do stuff they've probably forgotten
+you do stuff they've probably forgotten more about your network and your
+more about your network and your infrastructure and your devs will
+infrastructure and your devs will probably ever learn about that stuff if
+probably ever learn about that stuff if they're not looped into making your
+they're not looped into making your processes faster you're missing out
+validate before commit this is this idea of a gauntlet basically this isn't what
+of a gauntlet basically this isn't what we're doing I already told you guys that
+we're doing I already told you guys that we just check directly in and we let the
+we just check directly in and we let the automation take care of it but this is
+automation take care of it but this is what we should recommend and this is
+what we should recommend and this is what hopefully you guys are all doing
+what hopefully you guys are all doing have some battery of tests they get run
+have some battery of tests they get run on this stuff before it goes before it
+on this stuff before it goes before it goes into source control and then the
+goes into source control and then the other one is no idling if you can avoid
+other one is no idling if you can avoid letting your system actually sit idle
+letting your system actually sit idle that's the best possible case you're
+that's the best possible case you're going to have these fast builds that are
+going to have these fast builds that are running all the time their goal is to
+running all the time their goal is to provide a result as quickly as they can
+provide a result as quickly as they can don't stop those builds but take those
+don't stop those builds but take those coverage builds those other builds that
+coverage builds those other builds that are slow repurpose them get them to do
+are slow repurpose them get them to do something else do anything but sit there
+something else do anything but sit there doing nothing all right it's not just
+doing nothing all right it's not just about wraps it so the key takeaways from
+about wraps it so the key takeaways from this and think of your commits as a flow
+this and think of your commits as a flow and keep them flowing don't fall ever
+and keep them flowing don't fall ever for the it works on my machine gold
+for the it works on my machine gold standards gotta be your automation
+standards gotta be your automation servers and recognize that branch health
+servers and recognize that branch health is your team health thank you any
+is your team health thank you any questions
+questions [Applause]
+hi I was wondering do you have a team build system or is there a centralized
+build system or is there a centralized da one that covers all the titles that's
+da one that covers all the titles that's a really good question yes yes and no so
+a really good question yes yes and no so there is a standard build system tech
+there is a standard build system tech stack that probably everybody uses
+stack that probably everybody uses except for the Frostbite guys and
+except for the Frostbite guys and hopefully none of them are in the room
+hopefully none of them are in the room but they tend to have rolled their own
+but they tend to have rolled their own just about everything although I think
+just about everything although I think they may have even merged now to how
+they may have even merged now to how everybody uses it tends to Ferry and the
+everybody uses it tends to Ferry and the CI system they build on top of that can
+CI system they build on top of that can be potentially different but they do all
+be potentially different but they do all start from the same root tech stack all
+start from the same root tech stack all right thank you

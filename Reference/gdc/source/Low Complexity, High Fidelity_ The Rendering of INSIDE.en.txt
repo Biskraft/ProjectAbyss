@@ -1,0 +1,1569 @@
+[Music]
+hello and uh uh welcome um my name is uh Mel I'm a graphics programmer this is
+Mel I'm a graphics programmer this is Mikel who'll do the second half of the
+Mikel who'll do the second half of the presentation uh Mikel is a uh a very
+presentation uh Mikel is a uh a very technical artist uh as you'll see um we
+technical artist uh as you'll see um we both work at a company called play dead
+both work at a company called play dead that once upon a time did a game called
+that once upon a time did a game called Limbo neither of us worked on limbo but
+Limbo neither of us worked on limbo but we have worked on the uh follow-up title
+we have worked on the uh follow-up title uh inside that just shipped in uh in
+uh inside that just shipped in uh in June on Xbox in July on on PC and will
+June on Xbox in July on on PC and will ship next week on uh on PlayStation 4 um
+ship next week on uh on PlayStation 4 um and that's what we're going to be
+and that's what we're going to be talking about uh more specifically we'll
+talking about uh more specifically we'll be talking about the rendering of inside
+be talking about the rendering of inside and uh we sort of picked some topics
+and uh we sort of picked some topics that we thought would be relevant to
+that we thought would be relevant to other games and that we thought that uh
+other games and that we thought that uh that you guys could could steal and
+that you guys could could steal and Implement in your own games the same as
+Implement in your own games the same as we've stolen tons of stuff from uh from
+we've stolen tons of stuff from uh from other presentations
+other presentations so uh I'll show briefly a trailer so we
+so uh I'll show briefly a trailer so we we sort of know what the game that
+we sort of know what the game that you'll be talking about looks like
+Gra
+[Music]
+all right so so now that the game's actually out uh just out of my personal
+actually out uh just out of my personal curiosity how many did actually play the
+curiosity how many did actually play the game excellent It's like half a fan base
+game excellent It's like half a fan base um all right so U as as you can see and
+um all right so U as as you can see and as as many of you already experienced uh
+as as many of you already experienced uh it's a 2 and a2d game um it's a a puzzle
+it's a 2 and a2d game um it's a a puzzle platformer and uh and it's made with
+platformer and uh and it's made with with a fixed perspective so the camera
+with a fixed perspective so the camera is always fixed this means that our
+is always fixed this means that our artists when they uh create the art they
+artists when they uh create the art they can make sure that or they know that uh
+can make sure that or they know that uh when the game is is shown on a gamer's
+when the game is is shown on a gamer's screen it will look exactly like it
+screen it will look exactly like it looks on their screen that sort of means
+looks on their screen that sort of means that they can go and tweak every every
+that they can go and tweak every every pixel for uh for Perfection and they can
+pixel for uh for Perfection and they can they can uh they can sort of rely on
+they can uh they can sort of rely on really subtle details being the same uh
+really subtle details being the same uh on the on the monitor of uh when when
+on the on the monitor of uh when when the game's played uh this sort in turn
+the game's played uh this sort in turn means that we can't have too many
+means that we can't have too many distracting artifacts because we have
+distracting artifacts because we have these very subtle details that need to
+these very subtle details that need to to um to remain on screen so uh so that
+to um to remain on screen so uh so that means we can't have sort of banding and
+means we can't have sort of banding and flickering and uh and aliasing and and
+flickering and uh and aliasing and and that sort of thing so that's something
+that sort of thing so that's something this this talk will uh will return to a
+this this talk will uh will return to a couple of times
+couple of times um from a technical point of view just
+um from a technical point of view just to get that out of the way uh we shipped
+to get that out of the way uh we shipped at UH 60 FPS um at 1080p on uh on on all
+at UH 60 FPS um at 1080p on uh on on all Targets uh and we are using the uh the
+Targets uh and we are using the uh the unity engine um with we have a source
+unity engine um with we have a source license for that so we made some
+license for that so we made some modifications for that um from a
+modifications for that um from a rendering rendering point of view uh
+rendering rendering point of view uh we're using a light prepass rendering
+we're using a light prepass rendering which looks something like this so we
+which looks something like this so we have our first uh pass over the entire
+have our first uh pass over the entire scene which is a base pass that outputs
+scene which is a base pass that outputs that's the normals we then have a a
+that's the normals we then have a a light pass that goes through all lights
+light pass that goes through all lights and uh samples those depth and normals
+and uh samples those depth and normals and then outputs the lighting we then
+and then outputs the lighting we then have a final pass that
+have a final pass that um that uh applies the the materials
+um that uh applies the the materials samples the the lighting then a
+samples the the lighting then a translucency pass and sort of a post
+translucency pass and sort of a post effect pass to wrap the whole thing up
+effect pass to wrap the whole thing up so one thing that that turned out to be
+so one thing that that turned out to be important uh rather early on was uh fog
+important uh rather early on was uh fog uh to sort of create the uh the
+uh to sort of create the uh the atmosphere and the mood of the the game
+atmosphere and the mood of the the game so initially actually quite a lot of
+so initially actually quite a lot of scenes were literally just geometry and
+scenes were literally just geometry and this depth Fork um which uh sort of in
+this depth Fork um which uh sort of in in line with limbo uh relied a lot on on
+in line with limbo uh relied a lot on on Silhouettes to uh to create the mood so
+Silhouettes to uh to create the mood so to kind of show you how much mileage we
+to kind of show you how much mileage we get out of that this is a scene without
+get out of that this is a scene without any fog and then literally just adding a
+any fog and then literally just adding a linear depth fog we get something like
+linear depth fog we get something like this which is already rather Moody the
+this which is already rather Moody the only interesting bit we're doing here
+only interesting bit we're doing here rendering wise is that we're cing the uh
+rendering wise is that we're cing the uh the intensity of the fog to a maximum
+the intensity of the fog to a maximum level so that really bright light
+level so that really bright light sources will will shine through whereas
+sources will will shine through whereas if you using exponential fog of course
+if you using exponential fog of course you converge towards one and and a
+you converge towards one and and a bright light sour as what was shine
+bright light sour as what was shine through so on top of that we have this
+through so on top of that we have this uh sort of fake fog uh scattering
+uh sort of fake fog uh scattering atmospheric scattering path uh the
+atmospheric scattering path uh the reason why I'm being very unspecific
+reason why I'm being very unspecific about that is because it's really just a
+about that is because it's really just a really wide glow so we're blurring the
+really wide glow so we're blurring the entire screen and adding adding that uh
+entire screen and adding adding that uh back on top so this was something our
+back on top so this was something our artist did uh rather early on and I
+artist did uh rather early on and I think they they used for for great
+think they they used for for great effect um but but really rather rather
+effect um but but really rather rather easy to do so so now that we're using
+easy to do so so now that we're using glow to do this this fake uh atmospheric
+glow to do this this fake uh atmospheric scattering what do we do about glow then
+scattering what do we do about glow then well we have a second path that does
+well we have a second path that does these really narrow high intensity glows
+these really narrow high intensity glows so the way we do that is like many other
+so the way we do that is like many other games that we uh we write out a mask
+games that we uh we write out a mask from from emissive materials and then we
+from from emissive materials and then we we sort of remap that mask to a HDR
+we sort of remap that mask to a HDR value between uh one and and seven and
+value between uh one and and seven and we uh calculate low from that so one
+we uh calculate low from that so one thing that that's obvious hindsight but
+thing that that's obvious hindsight but what wasn't really while we did it was
+what wasn't really while we did it was that of course when when um because that
+that of course when when um because that bloom sort of uh is an indication that
+bloom sort of uh is an indication that you have a high intensity pixel if you
+you have a high intensity pixel if you then don't render that pixel with the
+then don't render that pixel with the high intensity that that looks odd and
+high intensity that that looks odd and looks like you know you have nothing
+looks like you know you have nothing glowing uh that's that's giving off this
+glowing uh that's that's giving off this this massive blow so it was really
+this massive blow so it was really important to actually write back uh the
+important to actually write back uh the HDR values for it to look more natural
+HDR values for it to look more natural so that means that we have a post pass
+so that means that we have a post pass that looks like this so we have a temple
+that looks like this so we have a temple anti- aing pass first and then we have
+anti- aing pass first and then we have uh the two glow passes they they're
+uh the two glow passes they they're really separate but intered for for
+really separate but intered for for performance reasons it's important that
+performance reasons it's important that we have the tempo aning before the HDR
+we have the tempo aning before the HDR Bloom because um if we have too much
+Bloom because um if we have too much ausing with the high intensities that
+ausing with the high intensities that that we use in the in the HDR glow U
+that we use in the in the HDR glow U even a little bit of aing will will make
+even a little bit of aing will will make it flicker quite a lot we then have a uh
+it flicker quite a lot we then have a uh combined post effects pass that that um
+combined post effects pass that that um applies the glow and does this HDR
+applies the glow and does this HDR resolve I was talking about before uh
+resolve I was talking about before uh some lens Distortion uh some color of
+some lens Distortion uh some color of setting and color grading I'll talk a
+setting and color grading I'll talk a little bit more about that so uh the
+little bit more about that so uh the chromatic aberration like this lens red
+chromatic aberration like this lens red green blue um offsets uh we we most of
+green blue um offsets uh we we most of the time we do it uh like like most
+the time we do it uh like like most other games where we just sample red
+other games where we just sample red green and blue separately with a little
+green and blue separately with a little bit of of sort of radial offset but in
+bit of of sort of radial offset but in situations like like this under water we
+situations like like this under water we use rather large offsets which means
+use rather large offsets which means that we then get this the sort of triple
+that we then get this the sort of triple image effect that looks weird whereas
+image effect that looks weird whereas really what we wanted was a rainbow like
+really what we wanted was a rainbow like effect so uh a uh a trick to to fix that
+effect so uh a uh a trick to to fix that is uh something we found in the demo
+is uh something we found in the demo scene which is to use a red green blue
+scene which is to use a red green blue texture and then uh then we do a a
+texture and then uh then we do a a radial blur and then in our samples of
+radial blur and then in our samples of the radial blur we then also sample
+the radial blur we then also sample through the red green blue texture to
+through the red green blue texture to get the weights of of each sample so so
+get the weights of of each sample so so that's the way we we get coloring of
+that's the way we we get coloring of course the reason why that works is
+course the reason why that works is because
+because we're using or when sampling it actually
+we're using or when sampling it actually we get bilinear filtering for free using
+we get bilinear filtering for free using that so that was that was a a nice trick
+that so that was that was a a nice trick that we didn't come up with ourselves
+that we didn't come up with ourselves but completely so so
+but completely so so um one one other thing we do in the in
+um one one other thing we do in the in the final post fix pass is that we um we
+the final post fix pass is that we um we want to make sure that we want to be
+want to make sure that we want to be able to adjust the the brightness and
+able to adjust the the brightness and the way we do that is just the simplest
+the way we do that is just the simplest possible we have uh sort of a photoshops
+possible we have uh sort of a photoshops levels filter where we are able to
+levels filter where we are able to adjust the black level and the white
+adjust the black level and the white level um and the issue with that is that
+level um and the issue with that is that it's very easy to uh to cut off the the
+it's very easy to uh to cut off the the whites and get these burned out wide
+whites and get these burned out wide areas so what we did was that we used
+areas so what we did was that we used what's called uh smooth uh minimum
+what's called uh smooth uh minimum functions smooth minimum smooth ma
+functions smooth minimum smooth ma maximum functions um which we uh we use
+maximum functions um which we uh we use so we take the smooth minimum between
+so we take the smooth minimum between the uh the brightness uh adjustment
+the uh the brightness uh adjustment curve and then one and uh that means
+curve and then one and uh that means that we get this this sort of smooth
+that we get this this sort of smooth fall off and that's that's code in uh in
+fall off and that's that's code in uh in the slides um there a a Shad of to
+the slides um there a a Shad of to implementation of that so this this was
+implementation of that so this this was uh this worked out really well for us
+uh this worked out really well for us and it was also really easy for the
+and it was also really easy for the artist to tweak because they just had
+artist to tweak because they just had one parameter which was how uh smooth
+one parameter which was how uh smooth should the the Kink between the two
+should the the Kink between the two be all right so I'll I'll leave the post
+be all right so I'll I'll leave the post effects and uh and get back to the uh
+effects and uh and get back to the uh the atmosphere that we were talking
+the atmosphere that we were talking about before so the fog um we figured
+about before so the fog um we figured out rather early that we needed more
+out rather early that we needed more than just this this Global fog
+than just this this Global fog um to get the uh the the effects that we
+um to get the uh the the effects that we wanted so uh we did this local or
+wanted so uh we did this local or implementation of of this local fog um
+implementation of of this local fog um whereas this scene is an example uh the
+whereas this scene is an example uh the flashlight is rendered using this effect
+flashlight is rendered using this effect and uh how we did that is that for every
+and uh how we did that is that for every pixel we uh sample all the way to the
+pixel we uh sample all the way to the depth buffer and for each step we sample
+depth buffer and for each step we sample the uh the lighting function so the the
+the uh the lighting function so the the projected texture and the shadow map and
+projected texture and the shadow map and and fall off the texture and if you do
+and fall off the texture and if you do this in sort of a naive way then uh you
+this in sort of a naive way then uh you end up with something uh that's that's
+end up with something uh that's that's very slow uh in this example 128 samples
+very slow uh in this example 128 samples to make it look uh just okay and that
+to make it look uh just okay and that takes uh more than roughly a frame and a
+takes uh more than roughly a frame and a half um so if you try to uh to make that
+half um so if you try to uh to make that faster just by reducing the number of
+faster just by reducing the number of samples you get something like this with
+samples you get something like this with uh quite a lot of artifacts and and
+uh quite a lot of artifacts and and quite jaring artifacts as well like
+quite jaring artifacts as well like these these really sharp lines so what
+these these really sharp lines so what you can do of course is that you can go
+you can do of course is that you can go and add a little bit of of random into
+and add a little bit of of random into your ray offsets so if you do that then
+your ray offsets so if you do that then uh you get something that's
+uh you get something that's um that looks a lot better it's it's a
+um that looks a lot better it's it's a lot slower though now because when
+lot slower though now because when you're actually sampling uh your uh your
+you're actually sampling uh your uh your textures then the texture cache is
+textures then the texture cache is working a lot worse because now you have
+working a lot worse because now you have random jittering uh in your samples but
+random jittering uh in your samples but but looks a lot better and and the
+but looks a lot better and and the reason for this is the eye is actually
+reason for this is the eye is actually quite forgiving towards noise so that's
+quite forgiving towards noise so that's something we uh we chose to look uh into
+something we uh we chose to look uh into a bit further so this is uh the same
+a bit further so this is uh the same example but with three samples rather
+example but with three samples rather than 24 and uh that's that's a lot of
+than 24 and uh that's that's a lot of noise we you can only almost make out
+noise we you can only almost make out the uh the actual uh light and and
+the uh the actual uh light and and shadows in this um so what we can do
+shadows in this um so what we can do then is we can use a uh a different
+then is we can use a uh a different pattern to do the jittering so rather
+pattern to do the jittering so rather than using white noise as we are here we
+than using white noise as we are here we can use a biomatrix and uh already that
+can use a biomatrix and uh already that that looks a lot better um and the
+that looks a lot better um and the reason why that looks better is because
+reason why that looks better is because within a sort of small region uh a
+within a sort of small region uh a biomatrix is guaranteed to have all
+biomatrix is guaranteed to have all values um uh within that small region
+values um uh within that small region and that's that's uh really good and and
+and that's that's uh really good and and the reason why it looks better but but
+the reason why it looks better but but whereas the eye is very forgiving
+whereas the eye is very forgiving towards noise it really isn't very
+towards noise it really isn't very forgiving towards patents so we're
+forgiving towards patents so we're looking for something that that has this
+looking for something that that has this locality property at the same time as
+locality property at the same time as not being uh a pattern so what we ended
+not being uh a pattern so what we ended up uh finding was was called Blue noise
+up uh finding was was called Blue noise so uh that's essentially White Pass oh
+so uh that's essentially White Pass oh sorry uh white noise that's high pass
+sorry uh white noise that's high pass filtered
+filtered so blue noise or can be uh still
+so blue noise or can be uh still uniformly distributed so that means that
+uniformly distributed so that means that within a small uh region because uh it
+within a small uh region because uh it it changes rather rapidly or it changes
+it changes rather rapidly or it changes rapidly and uh it's still uniformly
+rapidly and uh it's still uniformly distributed that means we have we have
+distributed that means we have we have this same property as as uh the bio
+this same property as as uh the bio Matrix except of course we're not
+Matrix except of course we're not guaranteed that that every value is
+guaranteed that that every value is represented but we it's very likely that
+represented but we it's very likely that uh that most values represented so we we
+uh that most values represented so we we still get really good sampling without
+still get really good sampling without it being a pattern so that that worked
+it being a pattern so that that worked really well and it meant that we I think
+really well and it meant that we I think we reduced the number of samples to half
+we reduced the number of samples to half around some somewhere somewhere around
+around some somewhere somewhere around that all right so I'll I'll leave the
+that all right so I'll I'll leave the sampling off for a bit and talk about
+sampling off for a bit and talk about how we actually go and distribute the
+how we actually go and distribute the samples so the way we set up these local
+samples so the way we set up these local fog volumes in the game is that we
+fog volumes in the game is that we insert boxes and within those boxes uh
+insert boxes and within those boxes uh we have we have fog and um so of course
+we have we have fog and um so of course we don't need to sample outside um those
+we don't need to sample outside um those boxes because there's no fog we also
+boxes because there's no fog we also don't need to sample outside uh the
+don't need to sample outside uh the lights so what we do is that we do a
+lights so what we do is that we do a geometric intersection between those
+geometric intersection between those boxes and the light frost and that that
+boxes and the light frost and that that sort of boils down to uh just clipping
+sort of boils down to uh just clipping the light frost drom with each plane and
+the light frost drom with each plane and then patching up the
+then patching up the holes so that means we have this two
+holes so that means we have this two pass algorithm where first we write out
+pass algorithm where first we write out the front faces of the uh clipped
+the front faces of the uh clipped geometry and then afterwards we uh
+geometry and then afterwards we uh render the back faces and then we sample
+render the back faces and then we sample the the front face depth and then we
+the the front face depth and then we have the like the the uh the front and
+have the like the the uh the front and back points and we set sample in between
+back points and we set sample in between those
+those two um and that that gives us sort of an
+two um and that that gives us sort of an an optimal
+an optimal um
+um uh range that uh that we need to
+uh range that uh that we need to assemble in so this thing about using uh
+assemble in so this thing about using uh boxes is something we actually use for
+boxes is something we actually use for effects so in this scene above water
+effects so in this scene above water we're using a we we're using two boxes
+we're using a we we're using two boxes one above one below and the one above is
+one above one below and the one above is just sampling the the light as uh as is
+just sampling the the light as uh as is whereas below we're using this animated
+whereas below we're using this animated texture to uh to fake Co sticks um which
+texture to uh to fake Co sticks um which is is working really well so something
+is is working really well so something that uh that uh you you may have noticed
+that uh that uh you you may have noticed that that many others have noticed
+that that many others have noticed before us is that this is actually quite
+before us is that this is actually quite a smooth effect so sampling this per
+a smooth effect so sampling this per pixel is is rather Overkill so um of
+pixel is is rather Overkill so um of course we don't do that we uh sample it
+course we don't do that we uh sample it at half resolution instead um we could
+at half resolution instead um we could probably get away with sampling it at
+probably get away with sampling it at even lower resolutions but this this was
+even lower resolutions but this this was uh sufficient so that means we then have
+uh sufficient so that means we then have this three pass algorithm so the two
+this three pass algorithm so the two first passes are the same as before only
+first passes are the same as before only at half resolution so we write out the
+at half resolution so we write out the front face depth we then do the ray
+front face depth we then do the ray marching and then we have this uh thirdd
+marching and then we have this uh thirdd PA that does upsampling from half
+PA that does upsampling from half resolution to full
+resolution to full resolution and while we do uh the
+resolution and while we do uh the upsampling pass we also add a little bit
+upsampling pass we also add a little bit of sort of a noisy blur into um uh into
+of sort of a noisy blur into um uh into the upsampling and the reason why we do
+the upsampling and the reason why we do this is to get rid of this half
+this is to get rid of this half resolution structure that that we still
+resolution structure that that we still have um an additional reason uh why
+have um an additional reason uh why that's a good idea is because we as you
+that's a good idea is because we as you may remember have a temp Al anti- eing
+may remember have a temp Al anti- eing path and at least in our implementation
+path and at least in our implementation of the temporal anti- eing um we're
+of the temporal anti- eing um we're using what's called neighborhood
+using what's called neighborhood neighborhood clipping and the way that
+neighborhood clipping and the way that works is that uh for each pixel it looks
+works is that uh for each pixel it looks at the immediate neighborhood and any
+at the immediate neighborhood and any value that's within the immediate
+value that's within the immediate neighborhood is accepted so that means
+neighborhood is accepted so that means that it's very good at picking up per
+that it's very good at picking up per pixel noise but it's not very good at
+pixel noise but it's not very good at picking up a half resolution uh noise so
+picking up a half resolution uh noise so uh so sort of converting this half
+uh so sort of converting this half resolution pattern into a full
+resolution pattern into a full resolution noise um was something that
+resolution noise um was something that that it it sort of played into the hand
+that it it sort of played into the hand of tempol using rmo um which is a trick
+of tempol using rmo um which is a trick from Dice I
+from Dice I think all right so this is the uh the
+think all right so this is the uh the final result this is shown with six
+final result this is shown with six samples at at half resolution this takes
+samples at at half resolution this takes just less than a millisecond if we were
+just less than a millisecond if we were to sample every pixelon screen which of
+to sample every pixelon screen which of course we don't we only sample within uh
+course we don't we only sample within uh the actual light cone also with most of
+the actual light cone also with most of the time we're actually using three
+the time we're actually using three samples per pixel at half resolution
+samples per pixel at half resolution we're not we're not using six so that
+we're not we're not using six so that means that we are doing just less than
+means that we are doing just less than one sample per full resolution pixel um
+one sample per full resolution pixel um to get this effect so the reason why
+to get this effect so the reason why we've been obsessing so much about uh
+we've been obsessing so much about uh the number of samples of course is that
+the number of samples of course is that the effect is bandwidth bound like it's
+the effect is bandwidth bound like it's it's bound by the by the number of
+it's bound by the by the number of samples we do so we also do all the
+samples we do so we also do all the other things that uh that we can to
+other things that uh that we can to reduce the number of samples oh sorry
+reduce the number of samples oh sorry reduce the the bandwidth so we lower the
+reduce the the bandwidth so we lower the resolution of the projected texture we
+resolution of the projected texture we lower the resolution of the Shadow Maps
+lower the resolution of the Shadow Maps um of course we can get away with this
+um of course we can get away with this because it's it again it's it's a rather
+because it's it again it's it's a rather low as a rather smooth effect and we
+low as a rather smooth effect and we also there's quite a bit of blurring
+also there's quite a bit of blurring involved so we can we can get away with
+involved so we can we can get away with that so the way that fits into the
+that so the way that fits into the pipeline is like this so in after the or
+pipeline is like this so in after the or during the lighting PA we save off the
+during the lighting PA we save off the shadow maps that we know we we're going
+shadow maps that we know we we're going to need then we do the two first um
+to need then we do the two first um passes of our algorithm um now we save
+passes of our algorithm um now we save off these this Ray marched texture and
+off these this Ray marched texture and then in the translucency path we
+then in the translucency path we rendered the clip geometry and and uh
+rendered the clip geometry and and uh Sol that with with other translucencies
+Sol that with with other translucencies okay so I'll I'll leave off uh for for
+okay so I'll I'll leave off uh for for now and talk about a uh different thing
+now and talk about a uh different thing that was very important uh to get the
+that was very important uh to get the look uh that we have in in uh inside
+look uh that we have in in uh inside namely banding so this is a the effect
+namely banding so this is a the effect is the artifact is banding fact is deing
+is the artifact is banding fact is deing so this is a uh a scene from the uh game
+so this is a uh a scene from the uh game and I've sort of up the uh the
+and I've sort of up the uh the brightness a bit so we can see what's
+brightness a bit so we can see what's going on and if we uh if we look at this
+going on and if we uh if we look at this then uh you can see some of the the
+then uh you can see some of the the things I talked about in the beginning
+things I talked about in the beginning we have these very smooth Transitions
+we have these very smooth Transitions and and there are a lot of sort of
+and and there are a lot of sort of details you you can almost uh notice so
+details you you can almost uh notice so this image actually quite has quite a
+this image actually quite has quite a lot of of noise in it um which hopefully
+lot of of noise in it um which hopefully you you can't tell too much but if I
+you you can't tell too much but if I remove that noise then it looks like
+remove that noise then it looks like this um has quite a lot of artifacts it
+this um has quite a lot of artifacts it has these the sort of sharp lines all
+has these the sort of sharp lines all the way through the image um has these
+the way through the image um has these sort of rainbow like like effects um and
+sort of rainbow like like effects um and also it animates so it's really rather
+also it animates so it's really rather distracting uh compared to in in
+distracting uh compared to in in relation to this this AR style where we
+relation to this this AR style where we we want um subtlety as well so of course
+we want um subtlety as well so of course what's going on is that we're rendering
+what's going on is that we're rendering out into 8bit uh color buffers and 8
+out into 8bit uh color buffers and 8 bits per Channel really isn't uh
+bits per Channel really isn't uh sufficient the human eyes able to
+sufficient the human eyes able to perceive something along the lines of 14
+perceive something along the lines of 14 bits so what we could do of course was
+bits so what we could do of course was to render to uh higher Precision buffers
+to render to uh higher Precision buffers but on some platforms that would be uh
+but on some platforms that would be uh slower even even too slow to uh to to
+slower even even too slow to uh to to work and uh so so something else we
+work and uh so so something else we could do is use the sgb um uh targets
+could do is use the sgb um uh targets rental
+rental targets but again on some platforms that
+targets but again on some platforms that are has interesting uh implementations
+are has interesting uh implementations to say the least so we we chose to sort
+to say the least so we we chose to sort of explore dithering uh instead to uh to
+of explore dithering uh instead to uh to solve this issue so the way that works
+solve this issue so the way that works uh this is an example where uh the
+uh this is an example where uh the orange line is the signal we trying to
+orange line is the signal we trying to represent and if we look at the value
+represent and if we look at the value 0.75 bits um we then add one bit worth
+0.75 bits um we then add one bit worth of uh entirely uniform noise that means
+of uh entirely uniform noise that means that when quantizing uh to uh yeah when
+that when quantizing uh to uh yeah when quantizing uh 75% of the time we end up
+quantizing uh 75% of the time we end up quantizing to the value above the signal
+quantizing to the value above the signal and 25% of the time uh we end up
+and 25% of the time uh we end up quantizing to the value below and that's
+quantizing to the value below and that's because the the noise is entirely
+because the the noise is entirely uniform so that means that on average we
+uniform so that means that on average we actually uh we're actually getting
+actually uh we're actually getting exactly the signal that uh that we
+exactly the signal that uh that we started out with so just so uh so you
+started out with so just so uh so you can tell that this is not completely
+can tell that this is not completely black magic uh this is how you how you
+black magic uh this is how you how you would actually go about implementing it
+would actually go about implementing it so this is a pixel Shader and on output
+so this is a pixel Shader and on output you just add a a random number you can
+you just add a a random number you can get this like you can calculate this or
+get this like you can calculate this or you can get this from uh from a texture
+you can get this from uh from a texture it doesn't really matter um so it's it's
+it doesn't really matter um so it's it's I just wanted you to keep in mind that
+I just wanted you to keep in mind that this is actually spectacularly easy to
+this is actually spectacularly easy to add and and uh rather cheap as well so
+add and and uh rather cheap as well so there's really no reason why any game
+there's really no reason why any game should ship with uh with banding uh
+should ship with uh with banding uh including indie
+including indie games so just to explore this a bit
+games so just to explore this a bit further um so uh above on top we have uh
+further um so uh above on top we have uh again the signal we're trying to
+again the signal we're trying to represent then we have the the rounded
+represent then we have the the rounded quantized output in the second row and
+quantized output in the second row and then we have the error in in the third
+then we have the error in in the third row and if we then go and add our noise
+row and if we then go and add our noise to this it looks like this and already
+to this it looks like this and already that's that's really good it's a lot
+that's that's really good it's a lot better than than before but if we then
+better than than before but if we then go and made this and move it about you
+go and made this and move it about you can see that we have sort of these these
+can see that we have sort of these these um bands of no noise uh in the second
+um bands of no noise uh in the second row so what's going on there is uh
+row so what's going on there is uh what's called noise modulation and it's
+what's called noise modulation and it's it turns out to be a property of the the
+it turns out to be a property of the the type of noise we're using uh because
+type of noise we're using uh because we're using entirely uniform noise noise
+we're using entirely uniform noise noise modulation means that the error in the
+modulation means that the error in the the output image compared to the signal
+the output image compared to the signal is dependent on the signal and that's
+is dependent on the signal and that's that's a a property of course we don't
+that's a a property of course we don't want because uh yeah it looks weird so
+want because uh yeah it looks weird so so fortunately we can just change the
+so fortunately we can just change the the distribution of the noise so if we
+the distribution of the noise so if we use a triangularly distributed noise
+use a triangularly distributed noise instead uh we get this and and now we we
+instead uh we get this and and now we we don't have noise modulation so we don't
+don't have noise modulation so we don't have like the the final error is
+have like the the final error is completely independent of the signal so
+completely independent of the signal so if we go back and try to apply that we
+if we go back and try to apply that we see that we get the same uh smooth uh
+see that we get the same uh smooth uh gradient that we did before and if we
+gradient that we did before and if we animate it uh we can see that uh we no
+animate it uh we can see that uh we no longer have these these bands that we
+longer have these these bands that we noticed before but now we have quite a
+noticed before but now we have quite a lot of noise uh that's because we've now
+lot of noise uh that's because we've now added uh two bits worth of noise rather
+added uh two bits worth of noise rather than one to compensate for for the
+than one to compensate for for the Triangular uh shape of the distribution
+Triangular uh shape of the distribution so what can we do about that well uh we
+so what can we do about that well uh we can go back and use a uh use the blue
+can go back and use a uh use the blue noise that we also looked at for for
+noise that we also looked at for for sampling and uh if we do that then of
+sampling and uh if we do that then of course we have need a triangular
+course we have need a triangular distribution for that but if uh we go
+distribution for that but if uh we go and and use that instead we get
+and and use that instead we get something that's uh visibly uh less
+something that's uh visibly uh less noisy but but also doesn't have these
+noisy but but also doesn't have these these bands of of no noise again so the
+these bands of of no noise again so the way we implemented that was to just
+way we implemented that was to just calculate a pre-calculate blue noise
+calculate a pre-calculate blue noise into a texture and then we sample that
+into a texture and then we sample that um everywhere on screen that gives uh
+um everywhere on screen that gives uh complete uh texture cach coherency
+complete uh texture cach coherency between adjacent pixels so that's that's
+between adjacent pixels so that's that's actually rather good really fast so in
+actually rather good really fast so in in the few cases where we are actually
+in the few cases where we are actually bandwidth bound we then uh use a uh an
+bandwidth bound we then uh use a uh an ALU version where uh we calculate two wi
+ALU version where uh we calculate two wi noises and add them to together and add
+noises and add them to together and add that to the
+that to the output all right so now that we know how
+output all right so now that we know how to dither an output we should uh think
+to dither an output we should uh think about uh what to dither so this is an
+about uh what to dither so this is an example of a single Spotlight that
+example of a single Spotlight that shines a a very Bandy light onto the
+shines a a very Bandy light onto the scene so of course the first thing we do
+scene so of course the first thing we do is that we uh dither the uh the lighting
+is that we uh dither the uh the lighting pass so if we do that then it looks like
+pass so if we do that then it looks like this
+this and the and that that's already a lot
+and the and that that's already a lot better but we we sort of have these
+better but we we sort of have these waves uh through the uh the light that
+waves uh through the uh the light that that is not uh due to the the type of
+that is not uh due to the the type of noise as as you might think but of
+noise as as you might think but of course because the final pass is reading
+course because the final pass is reading the lighting buffer and then applying
+the lighting buffer and then applying materials and and writing that into an
+materials and and writing that into an 8bit buffer so of course we need to to
+8bit buffer so of course we need to to dither the uh the final pass as well so
+dither the uh the final pass as well so in doing that we then have an entirely
+in doing that we then have an entirely banding free uh output uh in this scene
+banding free uh output uh in this scene so afterwards we have the translucency
+so afterwards we have the translucency pass and the translucency pass might be
+pass and the translucency pass might be the most important path to to did that
+the most important path to to did that because during blending you tend to read
+because during blending you tend to read and write the same values over and over
+and write the same values over and over again um into the the uh render Target
+again um into the the uh render Target and so you you end up re quantizing uh
+and so you you end up re quantizing uh to 8 Bits multiple times so of course uh
+to 8 Bits multiple times so of course uh we need to to D those as well or D that
+we need to to D those as well or D that pass as well the uh the post effects
+pass as well the uh the post effects pass is uh is also sort of surprising
+pass is uh is also sort of surprising surprisingly uh really important to the
+surprisingly uh really important to the it tend to read and write from from 8bit
+it tend to read and write from from 8bit render tus quite a lot in the post pass
+render tus quite a lot in the post pass um
+um because bandwidth tends to be a limiting
+because bandwidth tends to be a limiting factor um during that as well so here as
+factor um during that as well so here as an example uh our our wide glow pass we
+an example uh our our wide glow pass we we actually ended up using uh a 10 bit
+we actually ended up using uh a 10 bit render Target and sort of power of two
+render Target and sort of power of two compressing it and did theing to get
+compressing it and did theing to get something that was um entirely banding
+something that was um entirely banding free and at the same time didn't have
+free and at the same time didn't have didn't have too much
+didn't have too much noise so so far we've been talking about
+noise so so far we've been talking about um bending as an artifact of colors and
+um bending as an artifact of colors and really doesn't have anything to do with
+really doesn't have anything to do with colors it's all about the quantization
+colors it's all about the quantization to 8 Bits so in our base pass when
+to 8 Bits so in our base pass when writing out um normals we are writing
+writing out um normals we are writing those out to uh to 8bit render targets
+those out to uh to 8bit render targets as well 24-bit render targets so of
+as well 24-bit render targets so of course we can we can D the normals as
+course we can we can D the normals as well and uh and exchange the banding for
+well and uh and exchange the banding for for noise uh we do this only in the in
+for noise uh we do this only in the in the few cases where where it's actually
+the few cases where where it's actually needed which is are the very few cases
+needed which is are the very few cases in the game where we have these really
+in the game where we have these really intense specular highlights with normals
+intense specular highlights with normals sort of varying across really large
+sort of varying across really large surfaces okay so now we know to did
+surfaces okay so now we know to did everything and and how to do so so is
+everything and and how to do so so is there anything else we should keep in
+there anything else we should keep in mind well it's a really good idea to to
+mind well it's a really good idea to to animate the noise uh if you don't then
+animate the noise uh if you don't then when the camera moves you sort of have
+when the camera moves you sort of have this Dusty lens effect where uh the the
+this Dusty lens effect where uh the the noise moves with the camera um also
+noise moves with the camera um also because uh we're using the tempal anti-
+because uh we're using the tempal anti- thing that means that that if you
+thing that means that that if you animated the temple anti and will sort
+animated the temple anti and will sort of integrate uh the noise over time and
+of integrate uh the noise over time and and we we'll kind of soak soak up the
+and we we'll kind of soak soak up the noise which uh so so it sort of
+noise which uh so so it sort of disappears which is nice uh also of
+disappears which is nice uh also of course
+course um yeah you should you should dther uh
+um yeah you should you should dther uh UI because uh that tends to be a lot of
+UI because uh that tends to be a lot of transparencies and a lot of of different
+transparencies and a lot of of different uh like Fades and and animations and
+uh like Fades and and animations and that sort of thing uh which is really
+that sort of thing uh which is really important and and finally when you are
+important and and finally when you are outputting uh to a monitor or or
+outputting uh to a monitor or or television then if that television for
+television then if that television for example has uh is set to use a limited
+example has uh is set to use a limited range RGB there will be that there may
+range RGB there will be that there may be a small chip that will do a
+be a small chip that will do a conversion for you uh to make sure that
+conversion for you uh to make sure that you match uh that TV so if you can then
+you match uh that TV so if you can then uh make sure to Output in the correct
+uh make sure to Output in the correct format so you can properly dther your
+format so you can properly dther your your signal and output um rather than
+your signal and output um rather than than having this uh uh the hardware do
+than having this uh uh the hardware do it for you because that that's very
+it for you because that that's very quite unlikely to uh to do sort of
+quite unlikely to uh to do sort of proper delivering of that
+proper delivering of that right and with that I'll leave you to
+right and with that I'll leave you to the very very capable hands of The Other
+the very very capable hands of The Other [Applause]
+M hello um so from a lot of uh a lot of post effects a lot of deing we're going
+post effects a lot of deing we're going to dive into uh into some lighting now
+to dive into uh into some lighting now so as uh as G said we're using um
+so as uh as G said we're using um prepass prepass lighting uh for our
+prepass prepass lighting uh for our rendering pipeline so that means that
+rendering pipeline so that means that you know during the the second pass with
+you know during the the second pass with our normals and our death buffer we are
+our normals and our death buffer we are riding several objects into a lighting
+riding several objects into a lighting buffer like spots or Point lights or
+buffer like spots or Point lights or directional lights but um well if we
+directional lights but um well if we want we can actually just render
+want we can actually just render whatever we we like in there so uh we've
+whatever we we like in there so uh we've got a few types of custom custom lights
+got a few types of custom custom lights and whatnot so let's uh take a look at
+and whatnot so let's uh take a look at the first one I'm going to talk about
+the first one I'm going to talk about which is the bounce light uh the bounce
+which is the bounce light uh the bounce light is probably the simplest of all of
+light is probably the simplest of all of these it's um very basically a way a
+these it's um very basically a way a thing that we use to sort of simulate
+thing that we use to sort of simulate pseudo Global Illumination in a very
+pseudo Global Illumination in a very handheld way and um if uh we take a look
+handheld way and um if uh we take a look at this screenshot here it's got a
+at this screenshot here it's got a little Point light down there by the box
+little Point light down there by the box but uh that's it's not a a sharp Point
+but uh that's it's not a a sharp Point light that we want so um this is the uh
+light that we want so um this is the uh the lighting product that we get around
+the lighting product that we get around a sphere and what makes a boun light
+a sphere and what makes a boun light different is that it we just you know
+different is that it we just you know wrap a lighting on the other side and
+wrap a lighting on the other side and this is
+this is something that uh Val has been doing for
+something that uh Val has been doing for characterizing for a while it's called
+characterizing for a while it's called lamper WP or uh double Lambert stuff
+lamper WP or uh double Lambert stuff like that and uh we just got a parameter
+like that and uh we just got a parameter for that called hardness that we can use
+for that called hardness that we can use to just fade off that you know front to
+to just fade off that you know front to back side product uh around around our
+back side product uh around around our objects and it just makes it less
+objects and it just makes it less obvious where the light is is coming
+obvious where the light is is coming from it kind of makes it look like it's
+from it kind of makes it look like it's coming from an area rather than a than a
+coming from an area rather than a than a singular point so so in this case we're
+singular point so so in this case we're wrapping it you know from front to back
+wrapping it you know from front to back but we can actually fade it off
+but we can actually fade it off completely if you want so that we just
+completely if you want so that we just get a straight up uh ambient just
+get a straight up uh ambient just nothing but fall off uh light so uh we
+nothing but fall off uh light so uh we use this mostly for uh doors opening or
+use this mostly for uh doors opening or just you know spreading light around the
+just you know spreading light around the room when we have a very sharp fixed
+room when we have a very sharp fixed light hitting something uh but we can
+light hitting something uh but we can also just you know attach it to
+also just you know attach it to spotlights and you know hit the ground
+spotlights and you know hit the ground uh as it as the spotlight moves around
+uh as it as the spotlight moves around but but yeah mostly for Windows opening
+but but yeah mostly for Windows opening and and the likes of that now a small
+and and the likes of that now a small property that's uh PR kind of a
+property that's uh PR kind of a no-brainer but uh also just gives a lot
+no-brainer but uh also just gives a lot of freedom is we don't restrain it to
+of freedom is we don't restrain it to just being like a point on the radius uh
+just being like a point on the radius uh cuz that would mean that you know to
+cuz that would mean that you know to fill up this room with the lights we
+fill up this room with the lights we would need to just place and place four
+would need to just place and place four lights with you know all sorts of
+lights with you know all sorts of overlapping overdraw so we we let let
+overlapping overdraw so we we let let artists uh scale the light in any which
+artists uh scale the light in any which way they want just you know non-
+way they want just you know non- uniformally you know replace these these
+uniformally you know replace these these points with a with a pill instead and uh
+points with a with a pill instead and uh yeah it's just a little more effective
+yeah it's just a little more effective and actually makes it makes it look a
+and actually makes it makes it look a little more smooth because you don't
+little more smooth because you don't have like overlapping overlapping things
+have like overlapping overlapping things so yeah that's uh that's our GI figury
+so yeah that's uh that's our GI figury and next up um so because we have a a a
+and next up um so because we have a a a you know a pass just for lighting uh we
+you know a pass just for lighting uh we can not just you know add lights to it
+can not just you know add lights to it we can also subtract or multiply things
+we can also subtract or multiply things onto this buffer we don't just need to
+onto this buffer we don't just need to to do an additive blending we can do
+to do an additive blending we can do whatever blend mode we want here so uh
+whatever blend mode we want here so uh we've got a few ways of doing ID
+we've got a few ways of doing ID inclusion or Shadows uh in a very custom
+inclusion or Shadows uh in a very custom handle way uh as opposed to using screen
+handle way uh as opposed to using screen space am inclusion or any effect like
+space am inclusion or any effect like that that's baked or screen space uh so
+that that's baked or screen space uh so we've got three types of everything
+we've got three types of everything Fusion casters and uh let's look at the
+Fusion casters and uh let's look at the first one and actually the most used one
+first one and actually the most used one which is the point uh so the point is
+which is the point uh so the point is mostly used for uh for characters it's
+mostly used for uh for characters it's uh the point is just to try to ground
+uh the point is just to try to ground them to the to the ground and to
+them to the to the ground and to themselves and into each other and you
+themselves and into each other and you know make this this uh large boy band
+know make this this uh large boy band kind of look like they're huddling
+kind of look like they're huddling together a little closer uh so in in
+together a little closer uh so in in there we've got about one per limb and
+there we've got about one per limb and we've got about 16 dudes so we' got over
+we've got about 16 dudes so we' got over hundred of those little bastards there
+hundred of those little bastards there um so how that thing works is very
+um so how that thing works is very simple if you have a bounce light you
+simple if you have a bounce light you know a light that wraps from from front
+know a light that wraps from from front to back of the geometry and that's got
+to back of the geometry and that's got an additive blend mode well the aod
+an additive blend mode well the aod decal is very simply just flipping that
+decal is very simply just flipping that around to a multiplication blend mode
+around to a multiplication blend mode and that's basically it it's you know
+and that's basically it it's you know non-uniformly SC scalable and all that
+non-uniformly SC scalable and all that SS uh one thing though because we place
+SS uh one thing though because we place a lot of them we don't that want that
+a lot of them we don't that want that many you know uh settings on it so we
+many you know uh settings on it so we just have an intensity setting and you
+just have an intensity setting and you know we can place it in scale it however
+know we can place it in scale it however so we don't have a wrap parameter for
+so we don't have a wrap parameter for this one it just wraps from front to
+this one it just wraps from front to back uh very simple and uh that's the AO
+back uh very simple and uh that's the AO decal number one so second one we have
+decal number one so second one we have is this one we use a little more
+is this one we use a little more sparsely just because well it's um it's
+sparsely just because well it's um it's more for for for bigger bigger occluders
+more for for for bigger bigger occluders like this
+like this Submarina um so the difference between
+Submarina um so the difference between the point and the sphere occlusion is
+the point and the sphere occlusion is that for the point you can just see like
+that for the point you can just see like intensifying as it get closer but this
+intensifying as it get closer but this the sphere the point is that you want it
+the sphere the point is that you want it to get sharper as it gets closer to the
+to get sharper as it gets closer to the cluey or the ground and um so comparing
+cluey or the ground and um so comparing the two the point of the sphere a sphere
+the two the point of the sphere a sphere is just you know the angle to the ground
+is just you know the angle to the ground no the point is just the angle to the
+no the point is just the angle to the ground but we really want to know like
+ground but we really want to know like what the uh you know the the sum of
+what the uh you know the the sum of occluded angles are for this uh for this
+occluded angles are for this uh for this ground so uh the way to implement the
+ground so uh the way to implement the the difference between these
+the difference between these implementations is if you have this
+implementations is if you have this normalizer which is just normal izing
+normalizer which is just normal izing the direction of the uh of the of the
+the direction of the uh of the of the ACC of the accer uh we just need to
+ACC of the accer uh we just need to change that product from this uh inverse
+change that product from this uh inverse square root to um well this this thing
+square root to um well this this thing here and then actually that gives us the
+here and then actually that gives us the the perfect product we needed and uh we
+the perfect product we needed and uh we get a nice sharp occlusion for uh
+get a nice sharp occlusion for uh basically cheaps now third up on the AO
+basically cheaps now third up on the AO scale is the Box occlusion because we've
+scale is the Box occlusion because we've got a rather small uh attempt a crate in
+got a rather small uh attempt a crate in our game I think uh third screen or so
+our game I think uh third screen or so there's a crate so um for all these
+there's a crate so um for all these dragable crates and boxes we need
+dragable crates and boxes we need something specific to them and what we
+something specific to them and what we what we really want is like have sharp
+what we really want is like have sharp Corners around the sides and you know
+Corners around the sides and you know just make it look czyy if you will and
+just make it look czyy if you will and uh the way we do that is we start with
+uh the way we do that is we start with um what you could call unsigned distance
+um what you could call unsigned distance function to the box so we have the
+function to the box so we have the position minus the size and we got like
+position minus the size and we got like the distance to to the first Edge to the
+the distance to to the first Edge to the box and uh then what we do is we take
+box and uh then what we do is we take you know the uh the angle around that so
+you know the uh the angle around that so we uh you know we know uh on which point
+we uh you know we know uh on which point around that around the faces we are and
+around that around the faces we are and that will give us that very sharp result
+that will give us that very sharp result up there on the top which is not nice
+up there on the top which is not nice you know we got these like like sharp V
+you know we got these like like sharp V shapes so instead of taking just the
+shapes so instead of taking just the unsign distance we take the let's call
+unsign distance we take the let's call it Square distance which also happens to
+it Square distance which also happens to be unsign cuz yeah it's squared and
+be unsign cuz yeah it's squared and that's just moves out the first gradient
+that's just moves out the first gradient as squaring things does and that's a
+as squaring things does and that's a totally empirical non physically based
+totally empirical non physically based way to to do this it just happened to
+way to to do this it just happened to look kind of neat and uh you know one
+look kind of neat and uh you know one side of this angle around is going to
+side of this angle around is going to look like uh that sides up there and if
+look like uh that sides up there and if you compose all four together you get
+you compose all four together you get those sharp edges around around the the
+those sharp edges around around the the sides of the box and yeah it's just
+sides of the box and yeah it's just going to kind of look like the occlusion
+going to kind of look like the occlusion of a box that's nice so those are like
+of a box that's nice so those are like for emping inclusion cast in every
+for emping inclusion cast in every direction we've also got one for
+direction we've also got one for specifically directional shadows and we
+specifically directional shadows and we use these for places where we have a lot
+use these for places where we have a lot of ambient lighting very nondirectional
+of ambient lighting very nondirectional kind of wide
+kind of wide lighting and we just need to cast some
+lighting and we just need to cast some very soft very plac down Shadows that
+very soft very plac down Shadows that might not even be from the right
+might not even be from the right direction so this is the scene without
+direction so this is the scene without these and if we add them kind of looks
+these and if we add them kind of looks like this in Step these sces and um so
+like this in Step these sces and um so there are a lot of these placed around
+there are a lot of these placed around in fact this is like the the places
+in fact this is like the the places they've been put and all they are are um
+they've been put and all they are are um a what's it called a uh a projected
+a what's it called a uh a projected decal with a texture and just multiply
+decal with a texture and just multiply onto the to the light to the lighting
+onto the to the light to the lighting buffer that's that's all there is to it
+buffer that's that's all there is to it and we use these both for these static
+and we use these both for these static scenes where we need soft Shadows uh but
+scenes where we need soft Shadows uh but also for like of course dragging objects
+also for like of course dragging objects around and that Shield there and we do
+around and that Shield there and we do these uh kind of cre enough time uh
+these uh kind of cre enough time uh period uh Shadows around the boy's feet
+period uh Shadows around the boy's feet when he's got a torch and uh yeah just
+when he's got a torch and uh yeah just nice way of Faking some really really
+nice way of Faking some really really smooth smooth Shadows so like I said we
+smooth smooth Shadows so like I said we uh we do a lot of these so we also need
+uh we do a lot of these so we also need the projection maths to go fast because
+the projection maths to go fast because projections could be expensive if they
+projections could be expensive if they are not fast and uh the way that you
+are not fast and uh the way that you would nav Implement like a uh a
+would nav Implement like a uh a projected piece of geometry is in your
+projected piece of geometry is in your ver shade would get out a viewray and
+ver shade would get out a viewray and and in your fragment Shader you would
+and in your fragment Shader you would multiply that by the depth to get a view
+multiply that by the depth to get a view position and then uh just transform it
+position and then uh just transform it with a full Matrix into your object
+with a full Matrix into your object space or your decal space um now that
+space or your decal space um now that that's that's not that nice cuz we got a
+that's that's not that nice cuz we got a full matrix multiplication and there
+full matrix multiplication and there it's got a like a large row of mad
+it's got a like a large row of mad instructions in there so we would like
+instructions in there so we would like to minimize that luckily there's a way
+to minimize that luckily there's a way to do that if you know how to do um well
+to do that if you know how to do um well space uh Reconstruction from Death
+space uh Reconstruction from Death buffer uh in which case you would get a
+buffer uh in which case you would get a viewray in your verc Shader and you
+viewray in your verc Shader and you would rotate the ray to to World space
+would rotate the ray to to World space rotation and then in your frence here
+rotation and then in your frence here you just need to multiply this world Ray
+you just need to multiply this world Ray instead of viewray by the depth and add
+instead of viewray by the depth and add a world space offset and get done so you
+a world space offset and get done so you can probably guess where that's going we
+can probably guess where that's going we still need to use a a transformation
+still need to use a a transformation matrix in order to get those World
+matrix in order to get those World position to decal space so that's
+position to decal space so that's obviously not what we want but you know
+obviously not what we want but you know same technique works on object space
+same technique works on object space Rays so you take a viewray multiply by
+Rays so you take a viewray multiply by the object
+the object um object space uh Matrix and you got an
+um object space uh Matrix and you got an object array and uh that also both
+object array and uh that also both includes rotation and scale get your in
+includes rotation and scale get your in your fragment Shader multiply by depth
+your fragment Shader multiply by depth and add an offset so now you've gone
+and add an offset so now you've gone from a matrix multiplication 4x4 down to
+from a matrix multiplication 4x4 down to a m operation on VRA 3 which is Neo
+a m operation on VRA 3 which is Neo so another place that we use these
+so another place that we use these decals are for Reflections so we've got
+decals are for Reflections so we've got screen space Reflections in the game and
+screen space Reflections in the game and uh rather than it being a full post
+uh rather than it being a full post effect on screen the whole thing we just
+effect on screen the whole thing we just needed in certain places where we kind
+needed in certain places where we kind of needed the the puddle Shader the
+of needed the the puddle Shader the puddle entity that we need to puddle
+puddle entity that we need to puddle down in places and um we like these uh
+down in places and um we like these uh screen space Reflections because they
+screen space Reflections because they have a very simple very flexible setup
+have a very simple very flexible setup rather than you know going through uh
+rather than you know going through uh and doing a plan ey reflection where you
+and doing a plan ey reflection where you need to tag objects need to be rendered
+need to tag objects need to be rendered or you know big a tube map or anything
+or you know big a tube map or anything heavy like that this just reflects
+heavy like that this just reflects what's on screen without any sort of uh
+what's on screen without any sort of uh heavy duty work and uh setup wise it's
+heavy duty work and uh setup wise it's very simple you just got to like the
+very simple you just got to like the color that you want the reflection to be
+color that you want the reflection to be at least for us and the background color
+at least for us and the background color which is well if the doesn't hit
+which is well if the doesn't hit anything we need to displace something
+anything we need to displace something texture for projection Fel power and how
+texture for projection Fel power and how long do you need the trace distance to
+long do you need the trace distance to be so very minimal uh setup on the
+be so very minimal uh setup on the material but it's um as as as the
+material but it's um as as as the advantage is pretty good you know what
+advantage is pretty good you know what you see is what reflect that's a very
+you see is what reflect that's a very nice thing but that also means what you
+nice thing but that also means what you don't see is not reflected so in this
+don't see is not reflected so in this case you know at the edges of the screen
+case you know at the edges of the screen what you usually do with screen space
+what you usually do with screen space Perfection you would either Fade Out to
+Perfection you would either Fade Out to the edge you kind of stretch it but you
+the edge you kind of stretch it but you know in this case Fade Out and you get
+know in this case Fade Out and you get these uh very light bright edges where
+these uh very light bright edges where we you know reflect the sky color or
+we you know reflect the sky color or whatever very close to the edges of the
+whatever very close to the edges of the screen and it just doesn't look nice uh
+screen and it just doesn't look nice uh and this is of course happening because
+and this is of course happening because we can't anticipate which way we're
+we can't anticipate which way we're reflecting so we're assuming the normal
+reflecting so we're assuming the normal could Point Any Which Way and we could
+could Point Any Which Way and we could be reflecting out of the screen and we
+be reflecting out of the screen and we need to F out before that happens to not
+need to F out before that happens to not have like clamping textures or whatever
+have like clamping textures or whatever and um luckily we have this is not a
+and um luckily we have this is not a universal solution but for us most of
+universal solution but for us most of the time we place down a p on theg
+the time we place down a p on theg ground pointing upward and we're a 2d
+ground pointing upward and we're a 2d game mostly looking in toward the world
+game mostly looking in toward the world so we can be left with just forcing all
+so we can be left with just forcing all normals to point straight up and in and
+normals to point straight up and in and never have any deviation on the xaxis
+never have any deviation on the xaxis which takes care of this and now we
+which takes care of this and now we don't need to fade at all cuz there's no
+don't need to fade at all cuz there's no way we're going to go off screen anymore
+way we're going to go off screen anymore it's just not going to happen now that's
+it's just not going to happen now that's uh the first way that we can not see
+uh the first way that we can not see what we want to reflect and have a fix
+what we want to reflect and have a fix for that but the other thing is a little
+for that but the other thing is a little bit more uh [ __ ] to handle which is um
+bit more uh [ __ ] to handle which is um if you have something behind something
+if you have something behind something so like say our boy is jumping in front
+so like say our boy is jumping in front of a Hy stack and we've got a camera and
+of a Hy stack and we've got a camera and we need to reflect that somehow so we
+we need to reflect that somehow so we have a camera we have a reflection rate
+have a camera we have a reflection rate anything that's behind the boy is
+anything that's behind the boy is technically invisible it looks like this
+technically invisible it looks like this we don't know what it is uh but of
+we don't know what it is uh but of course we're not going to reflect him as
+course we're not going to reflect him as he if he as if he's infinitely deep uh
+he if he as if he's infinitely deep uh in fact we're going to pretend he's
+in fact we're going to pretend he's quite shallow uh we need to have a
+quite shallow uh we need to have a little bit of a you know cut it off
+little bit of a you know cut it off right here we're going to say that
+right here we're going to say that there's an edge and in this case we're
+there's an edge and in this case we're just missing everything we're just going
+just missing everything we're just going to reflect off the sky and it's going to
+to reflect off the sky and it's going to look
+look awful um with uh checking with checking
+awful um with uh checking with checking that depth parameter
+that depth parameter uh but of course we're not just
+uh but of course we're not just reflecting you know a full resolution
+reflecting you know a full resolution thing we're you know taking very
+thing we're you know taking very quantize steps we're only stepping about
+quantize steps we're only stepping about 16 24 times through this uh reflection
+16 24 times through this uh reflection algorithm so actually what we're
+algorithm so actually what we're reflecting that through looks something
+reflecting that through looks something like this instead for each step and uh
+like this instead for each step and uh what we want to find uh in order to fix
+what we want to find uh in order to fix this problem is we want to find these
+this problem is we want to find these two edges uh cuz they're going to be
+two edges uh cuz they're going to be useful what we want to do is uh take a
+useful what we want to do is uh take a mix of what's just above and below these
+mix of what's just above and below these things and assume that we can kind of
+things and assume that we can kind of like Stitch it together behind him like
+like Stitch it together behind him like that so we need to find these so how do
+that so we need to find these so how do we do that well let's try to step
+we do that well let's try to step through uh for it we're going to need a
+through uh for it we're going to need a few uh few parameters to keep in our
+few uh few parameters to keep in our pocket when we are tracing we need the
+pocket when we are tracing we need the the depth from the last time from the
+the depth from the last time from the last uh step we need the difference
+last uh step we need the difference between the depth and the ray from the
+between the depth and the ray from the last step and we just need the old
+last step and we just need the old position from the last step so if we are
+position from the last step so if we are not behind something we save these
+not behind something we save these things like last time we were
+things like last time we were successfully aware of our surroundings
+successfully aware of our surroundings we saved these guys and we always save
+we saved these guys and we always save the last depth so we step through and oh
+the last depth so we step through and oh there was a hard wall there so we're no
+there was a hard wall there so we're no longer going to be saving the old old
+longer going to be saving the old old diff and old position so we save those
+diff and old position so we save those for later cuz we want to sample the old
+for later cuz we want to sample the old position and we keep stepping and oh
+position and we keep stepping and oh [ __ ] that was the other one so we
+[ __ ] that was the other one so we checked the last depth and the the
+checked the last depth and the the current depth you just see well if
+current depth you just see well if they're very far apart that was probably
+they're very far apart that was probably like a a split lit there somewhere and
+like a a split lit there somewhere and then using that information we just take
+then using that information we just take the old position from last time that we
+the old position from last time that we were down at the red line and the
+were down at the red line and the position now and just kind of like
+position now and just kind of like sample somewhere on that line with like
+sample somewhere on that line with like two samples and just they between them
+two samples and just they between them and that actually covers uh 90% of our
+and that actually covers uh 90% of our seams that we would have otherwise with
+seams that we would have otherwise with the boy or well any includer in the
+the boy or well any includer in the game and uh
+game and uh finally so uh for projection maths um on
+finally so uh for projection maths um on on this guy you know we uh we have a
+on this guy you know we uh we have a viewray and we want to put it into like
+viewray and we want to put it into like frustr we want to make a frustr ray so
+frustr we want to make a frustr ray so unlike uh what's it called the uh
+unlike uh what's it called the uh projected decals we don't need to take
+projected decals we don't need to take something from view space to to a object
+something from view space to to a object space we need it to take it to a
+space we need it to take it to a projected space a you know this sced you
+projected space a you know this sced you know space here and uh the naive way to
+know space here and uh the naive way to do that would to be to uh you know take
+do that would to be to uh you know take your uh your reflective position and uh
+your uh your reflective position and uh put it through a full Matrix and then
+put it through a full Matrix and then subtract your your you know your screen
+subtract your your you know your screen space position but uh I don't like that
+space position but uh I don't like that so much also it doesn't handle the the
+so much also it doesn't handle the the ne clip plane if anything goes behind
+ne clip plane if anything goes behind that you just start going back into
+that you just start going back into Infinite negative negativity so our
+Infinite negative negativity so our solution to this is to uh cheat a little
+solution to this is to uh cheat a little bit uh and create a little variable on
+bit uh and create a little variable on the CPU where we need the the size of
+the CPU where we need the the size of the viewport in projected space like on
+the viewport in projected space like on X and Y we get the like the resolution
+X and Y we get the like the resolution of the screen and the uh like the aspect
+of the screen and the uh like the aspect ratio and field of view and for the set
+ratio and field of view and for the set value we just need like the depth range
+value we just need like the depth range which looks like that and then in order
+which looks like that and then in order to uh to transform a viewray into a
+to uh to transform a viewray into a projected Ray it just looks like this
+projected Ray it just looks like this instead and uh it handles uh anything
+instead and uh it handles uh anything behind camera just fine
+behind camera just fine now so that's uh that's raise now uh
+now so that's uh that's raise now uh like I said we're only do a a few steps
+like I said we're only do a a few steps and just like the uh just like the
+and just like the uh just like the volume lighting we uh need to uh we need
+volume lighting we uh need to uh we need to do something think about these step
+to do something think about these step artifacts so obviously you add some
+artifacts so obviously you add some noise to your first step and uh you know
+noise to your first step and uh you know you've got some jittering going on and
+you've got some jittering going on and this is just
+this is just to uh reiterate that the white noise is
+to uh reiterate that the white noise is nice and easy but uh very noisy uh bay
+nice and easy but uh very noisy uh bay MA's are still nice and structural but
+MA's are still nice and structural but structural in the bad way too and blue
+structural in the bad way too and blue noise is our general Savior and you two
+noise is our general Savior and you two should use it and with temporal enti
+should use it and with temporal enti using it's really really nice
+using it's really really nice so finally about that uh thickness the
+so finally about that uh thickness the wall
+wall thickness um with screen spray
+thickness um with screen spray Perfections like I said we can't assume
+Perfections like I said we can't assume that the death buffer is a perfect
+that the death buffer is a perfect information of our of what's on screen
+information of our of what's on screen you know it's just the outer shell of
+you know it's just the outer shell of the first thing we can see so we need to
+the first thing we can see so we need to step through it assuming some sort of
+step through it assuming some sort of wall thickness and we want to get away
+wall thickness and we want to get away with like the minimum thickness we can
+with like the minimum thickness we can we can basically come up with not to not
+we can basically come up with not to not have any stretch stretch objects or as
+have any stretch stretch objects or as arst called it the boy with MC Hammer
+arst called it the boy with MC Hammer pants uh um and the the simple way that
+pants uh um and the the simple way that we started simulating this thickness
+we started simulating this thickness this is say well let's use the um you
+this is say well let's use the um you know how much is our view is our screen
+know how much is our view is our screen Ray moving instead and just say that's
+Ray moving instead and just say that's our thickness because that means if
+our thickness because that means if between now and the last step we have
+between now and the last step we have passed through some depth we're good but
+passed through some depth we're good but that has one problem at that wall there
+that has one problem at that wall there and the wall is pointing 45° to the
+and the wall is pointing 45° to the viewer which means the viewray is just
+viewer which means the viewray is just going straight across the screen which
+going straight across the screen which means it's not moving inste at all and
+means it's not moving inste at all and it won't reflect a thing so that's that
+it won't reflect a thing so that's that that sucks and um well if I take what
+that sucks and um well if I take what that viewray set was made of this is
+that viewray set was made of this is what it was made of and all you really
+what it was made of and all you really have to do is take out the reflection
+have to do is take out the reflection Direction itself and just use that so
+Direction itself and just use that so that's like the total potential movement
+that's like the total potential movement it will have and you've got a well
+it will have and you've got a well you've got my favorite wall thickness
+you've got my favorite wall thickness there at least so it it'll basically
+there at least so it it'll basically catch anything on its
+catch anything on its way now another way way that we use
+way now another way way that we use Reflections but different Reflections
+Reflections but different Reflections are of course for water so we've got
+are of course for water so we've got we've got some water rendering system
+we've got some water rendering system and for those of you who play the game
+and for those of you who play the game we have a quite a long water section so
+we have a quite a long water section so uh yeah we need a bunch of water and uh
+uh yeah we need a bunch of water and uh we need a few layers for this water uh
+we need a few layers for this water uh we need some some some uh some fogginess
+we need some some some uh some fogginess or murkiness so like see the depth of it
+or murkiness so like see the depth of it we need to render a bunch of
+we need to render a bunch of transparencies into it like like you
+transparencies into it like like you mentioned the uh the volume lighting
+mentioned the uh the volume lighting underneath the water to sort of sell the
+underneath the water to sort of sell the uh the thickness of it stuff like that
+uh the thickness of it stuff like that and we need to refract it and uh you
+and we need to refract it and uh you know make make it watery and finally
+know make make it watery and finally Reflections and these are not screen
+Reflections and these are not screen space Reflections these are pler
+space Reflections these are pler reflections because on a big water
+reflections because on a big water surface that just spands most of the
+surface that just spands most of the screen a lot of the time we just can't
+screen a lot of the time we just can't handle the artifacts so for this one we
+handle the artifacts so for this one we do use uh planer camera
+Reflections and um so we render out these uh these layers as individual
+these uh these layers as individual objects because it's actually the
+objects because it's actually the abstraction layer that we think about
+abstraction layer that we think about water is actually useful for rendering
+water is actually useful for rendering as well so this is what happened when
+as well so this is what happened when we're above when we're below we actually
+we're above when we're below we actually flip the rendering order so we render
+flip the rendering order so we render reflection first because that's the like
+reflection first because that's the like the the furest the weight thing you We R
+the the furest the weight thing you We R back to front like any transparen you do
+back to front like any transparen you do and we Rend the the Merk on top of that
+and we Rend the the Merk on top of that CU we want to merfy the reflection too
+CU we want to merfy the reflection too then the refraction and finally the
+then the refraction and finally the transparency is down here so they don't
+transparency is down here so they don't get affected by that fog or anything
+get affected by that fog or anything when we're down under and um now for
+when we're down under and um now for each of these layers uh in order to get
+each of these layers uh in order to get um get cons get a consistent surface we
+um get cons get a consistent surface we actually render each layer three times
+actually render each layer three times we render first first up a uh a
+we render first first up a uh a displacement Edge close to the camera
+displacement Edge close to the camera which uh looks something like this with
+which uh looks something like this with YF frame turned on and that's like from
+YF frame turned on and that's like from the camera perspective just a bunch of
+the camera perspective just a bunch of things that only exist in the frost drom
+things that only exist in the frost drom making waves and just making sure that
+making waves and just making sure that when you pass through there isn't like
+when you pass through there isn't like this oh the water was a pancake I guess
+this oh the water was a pancake I guess flat polygon effect it just makes it
+flat polygon effect it just makes it look deeper it only goes about 6 to 8 m
+look deeper it only goes about 6 to 8 m into the screen but that's all you need
+into the screen but that's all you need for Parallax in order to sell the the
+for Parallax in order to sell the the deepness of the water and then we render
+deepness of the water and then we render uh the outside of a box which takes care
+uh the outside of a box which takes care of the rest of the outside surface so
+of the rest of the outside surface so kind of like the outer faces of a box in
+kind of like the outer faces of a box in case this like this water volume here is
+case this like this water volume here is a box and uh when we're done with that
+a box and uh when we're done with that then we render the inside face of the of
+then we render the inside face of the of the box but you'll notice it doesn't
+the box but you'll notice it doesn't render on top of what we've already
+render on top of what we've already rendered and that's because for each
+rendered and that's because for each yeah this is how it looks like by the
+yeah this is how it looks like by the way for each of these uh for each of
+way for each of these uh for each of these layers that we render out we
+these layers that we render out we actually write into a stencil bit let's
+actually write into a stencil bit let's call it the I have rendered water
+call it the I have rendered water stencil bit and if any geometry reads
+stencil bit and if any geometry reads from that bit that it's already been
+from that bit that it's already been rendered it'll just discard the
+rendered it'll just discard the fragments so we render the trans parenes
+fragments so we render the trans parenes front to back rather than back to front
+front to back rather than back to front with rejection instead so we have one
+with rejection instead so we have one one layer so it's kind of like a pseudo
+one layer so it's kind of like a pseudo set buffer in a
+set buffer in a way and uh yeah that's it for water now
+way and uh yeah that's it for water now let's change gears and go in into a
+let's change gears and go in into a little bit more of the VFX area with
+little bit more of the VFX area with some smokey
+smoke so that very simple Smoke Stack there had a bunch of effects on it let's
+there had a bunch of effects on it let's try it again and just stop
+try it again and just stop it and uh let's try to disable all the
+it and uh let's try to disable all the effects so that's it now it looks very
+effects so that's it now it looks very plain and in fact it looks like it's
+plain and in fact it looks like it's blending into the background you can
+blending into the background you can barely see it that's because it's base
+barely see it that's because it's base color is just the ambient color of the
+color is just the ambient color of the room and nothing else so that will blend
+room and nothing else so that will blend in most cases now the first effect we
+in most cases now the first effect we put on is the presence of a uh we have a
+put on is the presence of a uh we have a fake Point light that we attach to the
+fake Point light that we attach to the to the uh to the to the Smoke to make it
+to the uh to the to the Smoke to make it look like it's being you know hit by the
+look like it's being you know hit by the lights from the window kind of ground it
+lights from the window kind of ground it in and uh up next the texture itself we
+in and uh up next the texture itself we need to wobble it a little bit around in
+need to wobble it a little bit around in order to sell some extra uh sorry we
+order to sell some extra uh sorry we need to light this thing uh a little bit
+need to light this thing uh a little bit more just to sell some gradient we need
+more just to sell some gradient we need to have it lit from top and darkened
+to have it lit from top and darkened From Below to kind of ground it and it's
+From Below to kind of ground it and it's very hard to see but if you pay close
+very hard to see but if you pay close attention there it is and there is not
+attention there it is and there is not and there it is and finally we rra all
+and there it is and finally we rra all the texture around a little bit which
+the texture around a little bit which just gives a little bit of sub particle
+just gives a little bit of sub particle motion where it'll be hard to tell where
+motion where it'll be hard to tell where one particle starts and one and the
+one particle starts and one and the other one one particle ends and the
+other one one particle ends and the other starts just because they sort of
+other starts just because they sort of yeah the the texture itself is not fully
+yeah the the texture itself is not fully um comprehensible and we wobble it
+um comprehensible and we wobble it around using this I like to call swirl
+around using this I like to call swirl noise which is basically uh a UV uh map
+noise which is basically uh a UV uh map in Photoshop with the swirl effect a
+in Photoshop with the swirl effect a bunch of times on it um just apply it
+bunch of times on it um just apply it over and over a few times and we scroll
+over and over a few times and we scroll it downwards in this case to kind of
+it downwards in this case to kind of like give the effect that the steam in
+like give the effect that the steam in this case is going downwards it could
+this case is going downwards it could also go upwards andever which way it's
+also go upwards andever which way it's just it's scrolled one way in World
+just it's scrolled one way in World space
+basically so next up some more Vapor of the hotter
+kind so I'm throwing around this box just to uh sort of illustrate how it uh
+just to uh sort of illustrate how it uh it handles movement somewhat well and uh
+it handles movement somewhat well and uh remains f throughout sub
+movement yeah that's enough said that's enough so um we've got we've got the
+enough so um we've got we've got the smoke effect going up in the background
+smoke effect going up in the background as well here it's that's just the same
+as well here it's that's just the same smoke as before with a light but the
+smoke as before with a light but the fire uh what makes it special it's using
+fire uh what makes it special it's using all the same effects the Distortion and
+all the same effects the Distortion and and all that and even a bit of gradient
+and all that and even a bit of gradient lighting but the most important part
+lighting but the most important part about the the fire is consistent
+about the the fire is consistent coloring uh when we first tried fire we
+coloring uh when we first tried fire we just had like you know going from uh red
+just had like you know going from uh red to orange to White to uh yellow and
+to orange to White to uh yellow and white in the middle and then blue at the
+white in the middle and then blue at the edges but then if a lot of layers of
+edges but then if a lot of layers of blue are layered on top of each other
+blue are layered on top of each other you could end up with a very bright blue
+you could end up with a very bright blue that would look really crappy so we do
+that would look really crappy so we do we have essentially a fire buffer that's
+we have essentially a fire buffer that's a lie but we have a fire buffer uh which
+a lie but we have a fire buffer uh which is just the alpha buffer of what we're
+is just the alpha buffer of what we're rendering into the alpha buffer is the
+rendering into the alpha buffer is the is the HDR Bloom HDR Bloom value that we
+is the HDR Bloom HDR Bloom value that we already use so that makes perfect sense
+already use so that makes perfect sense because well the fire fire is going to
+because well the fire fire is going to bloom so why not use this so we render
+bloom so why not use this so we render out a bunch of black and white Sprites
+out a bunch of black and white Sprites of essentially fieriness or hotness
+of essentially fieriness or hotness buffer uh into one consistent thing with
+buffer uh into one consistent thing with addtive BL mode and then we apply one
+addtive BL mode and then we apply one gradient to this before we read it back
+gradient to this before we read it back into
+into RGB and uh that makes every individual
+RGB and uh that makes every individual Sprite look like this or composited like
+Sprite look like this or composited like so and it just it just makes it more
+so and it just it just makes it more consistent to look at color-wise now
+consistent to look at color-wise now with fire motion was not enough to just
+with fire motion was not enough to just have with Distortion so we've also got
+have with Distortion so we've also got uh this uh here map of uh what's that
+uh this uh here map of uh what's that called it's called flipbook uh so we've
+called it's called flipbook uh so we've got a flipbook to go through and we had
+got a flipbook to go through and we had a couple of issues with this we were
+a couple of issues with this we were trying to like animate these just very
+trying to like animate these just very few cartoony frames of fire and we tried
+few cartoony frames of fire and we tried first you know going sequentially but
+first you know going sequentially but then that would mean that these nine
+then that would mean that these nine frames would Loop every one second it
+frames would Loop every one second it would look very loopy and then we Tred
+would look very loopy and then we Tred doing random but there's an 11 something
+doing random but there's an 11 something chance uh% chance that you will hit the
+chance uh% chance that you will hit the same frame twice which will to the eye
+same frame twice which will to the eye just look like lag so that was horrible
+just look like lag so that was horrible so we used an in between thing which is
+so we used an in between thing which is you know we we choose columns
+you know we we choose columns sequentially and we choose rows randomly
+sequentially and we choose rows randomly which means that we uh we don't get
+which means that we uh we don't get looping that often and we definitely
+looping that often and we definitely don't get two frames at the same time
+don't get two frames at the same time and that worked out really well for
+and that worked out really well for us now to animate between these uh
+us now to animate between these uh different layers this is if I just make
+different layers this is if I just make each uh flip a piece a solid color
+each uh flip a piece a solid color random solid color it would look like
+random solid color it would look like this but of course we don't flip between
+this but of course we don't flip between them hard we fade between them but we
+them hard we fade between them but we also don't do that we fade between them
+also don't do that we fade between them using a vertical gradient
+using a vertical gradient upward with noise cuz why
+upward with noise cuz why not and that's fire next up the the bay
+not and that's fire next up the the bay flares so we've got these Ven faes and
+flares so we've got these Ven faes and unlike the bloom they are very like
+unlike the bloom they are very like specifically put in like you put in a
+specifically put in like you put in a events Fair entity on onto a flashlight
+events Fair entity on onto a flashlight or onto something very bright and it'll
+or onto something very bright and it'll it'll flare up and um we do this just
+it'll flare up and um we do this just because we like to have our you know our
+because we like to have our you know our HJ Bloom settings different from the
+HJ Bloom settings different from the flashlight settings and the flashlight
+flashlight settings and the flashlight might be smaller than one pixel so it
+might be smaller than one pixel so it wouldn't get picked up and that would
+wouldn't get picked up and that would suck um so the way we do it is with like
+suck um so the way we do it is with like a quadrant like a 2X two Sprite
+a quadrant like a 2X two Sprite there and in order to like have
+there and in order to like have occlusion from things we could do what
+occlusion from things we could do what uh what the standard thing is is to just
+uh what the standard thing is is to just you know R Trace toward the screen and
+you know R Trace toward the screen and get Collision a bunch of times but a
+get Collision a bunch of times but a that would be expensive B we don't want
+that would be expensive B we don't want to set up Collision on trees that the
+to set up Collision on trees that the boy or anyone is never going to collide
+boy or anyone is never going to collide with that would suck so what we do is
+with that would suck so what we do is for each point in in the vertices here
+for each point in in the vertices here we um we sample the depth buffer per
+we um we sample the depth buffer per vertex a bunch of times
+vertex a bunch of times stochastically uh cuz that's only four
+stochastically uh cuz that's only four times rather than per pixel but of
+times rather than per pixel but of course we don't sample at the corners we
+course we don't sample at the corners we sample at the middle and you know we
+sample at the middle and you know we pass this on to uh to the fragment
+pass this on to uh to the fragment Shader and multiply it by the texture of
+Shader and multiply it by the texture of the fair but of course we could sample
+the fair but of course we could sample it not at the middle but slightly
+it not at the middle but slightly between the corners and the middle just
+between the corners and the middle just to get like this gradient going across
+to get like this gradient going across making it look like it's got some volume
+making it look like it's got some volume because it's free we're sampling all
+because it's free we're sampling all four vertices anyway might as well give
+four vertices anyway might as well give them a little variation and that's
+them a little variation and that's basically that so next up some water
+basically that so next up some water more water
+and we're not just talking about water rendering here we're talking
+rendering here we're talking specifically about effects on top of the
+specifically about effects on top of the water and uh here we've got this stack
+water and uh here we've got this stack of uh a foam that the Olympic di foam
+of uh a foam that the Olympic di foam going on and it's got a bunch of effects
+going on and it's got a bunch of effects almost the same effects no sorry exactly
+almost the same effects no sorry exactly the same effects as the Smoke Stack so
+the same effects as the Smoke Stack so if I take them all off they look like if
+if I take them all off they look like if I take the motion off it looks like this
+I take the motion off it looks like this all still if I take the lighting off it
+all still if I take the lighting off it looks like this all flat and putting
+looks like this all flat and putting back in the gradient lighting and the
+back in the gradient lighting and the motion looks like this so it just kind
+motion looks like this so it just kind of like uh Blends a bunch of Sprites
+of like uh Blends a bunch of Sprites together really well makes it look
+together really well makes it look really
+really thick over here we've got this
+thick over here we've got this flashlight and for those you haven't who
+flashlight and for those you haven't who haven't played it if you go into that
+haven't played it if you go into that flashlight you uh your Sofer so we need
+flashlight you uh your Sofer so we need to um to emphasize this flashlight with
+to um to emphasize this flashlight with a bunch of effects and the effects that
+a bunch of effects and the effects that we use are um first of first of all the
+we use are um first of first of all the rain so we have a a bunch of rain and uh
+rain so we have a a bunch of rain and uh we tried both doing like post effect
+we tried both doing like post effect scrolling things but that didn't really
+scrolling things but that didn't really have any good Parallax in it and then we
+have any good Parallax in it and then we tried some Sprites but uh scrolling down
+tried some Sprites but uh scrolling down with textures of rain but that was a lot
+with textures of rain but that was a lot of overdraw so what we ended up with was
+of overdraw so what we ended up with was a mesh with individual raindrops in it
+a mesh with individual raindrops in it and uh that has much as overdraw but
+and uh that has much as overdraw but uh but animation could be more costly so
+uh but animation could be more costly so what we do is we just have a Vertex
+what we do is we just have a Vertex Shader that for the raindrops going down
+Shader that for the raindrops going down as soon as a Vertex hits the bottom of
+as soon as a Vertex hits the bottom of of a volume it just goes back on top and
+of a volume it just goes back on top and goes down again that's it and the the
+goes down again that's it and the the splashes on the ground all they do is
+splashes on the ground all they do is expand with a random rotation and as
+expand with a random rotation and as soon as they're done with that and Fade
+soon as they're done with that and Fade Out they go to a new position and do
+Out they go to a new position and do that again and we just do that using
+that again and we just do that using like the animation unfolding is you know
+like the animation unfolding is you know the fractional part of times so for
+the fractional part of times so for every half
+every half second it goes up and for every you know
+second it goes up and for every you know uh inte integer part of time it moves to
+uh inte integer part of time it moves to a new position with a new seat and
+a new position with a new seat and that's basically it for them next up
+that's basically it for them next up we've got the volume lighting above the
+we've got the volume lighting above the water to just you know show where where
+water to just you know show where where it is and uh finally we've got this this
+it is and uh finally we've got this this uh you know plane on the water just
+uh you know plane on the water just showing where it's where it's hitting
+showing where it's where it's hitting the water itself with basic uh it's
+the water itself with basic uh it's called Fong uh specular lighting and a
+called Fong uh specular lighting and a bit of diffus
+bit of diffus lighting going underneath we have bunch
+lighting going underneath we have bunch of the same effects and a little new
+of the same effects and a little new one so the different effect down here is
+one so the different effect down here is we have these dust modes underneath the
+we have these dust modes underneath the water that are lit up by the by the uh
+water that are lit up by the by the uh by the spotlight and they're lit up the
+by the spotlight and they're lit up the same way that the they're moving the
+same way that the they're moving the same way that the spotlight that the
+same way that the spotlight that the raindrops are they just move across and
+raindrops are they just move across and when they come to the other Edge they
+when they come to the other Edge they loop back in and just keep going they
+loop back in and just keep going they just
+just scroll uh across in a volume and come
+scroll uh across in a volume and come back to the start using uh is called
+back to the start using uh is called modulus that that operator F
+modulus that that operator F mod and uh we've got the volume light
+mod and uh we've got the volume light underneath but unlike the one above of
+underneath but unlike the one above of course these are different volumes just
+course these are different volumes just like J said uh this one underneath has
+like J said uh this one underneath has uh a texture on it that's that's
+uh a texture on it that's that's animating of like cosics to make it look
+animating of like cosics to make it look more underwater and finally the F
+more underwater and finally the F reflection which is now a f refraction
+reflection which is now a f refraction instead just to show exactly where the
+instead just to show exactly where the light
+light is and that's it for under so for above
+is and that's it for under so for above water we've got these waves uh coming
+water we've got these waves uh coming out from the boy there I could have
+out from the boy there I could have chosen a better place to show these cuz
+chosen a better place to show these cuz they're very subtle here enough on that
+they're very subtle here enough on that so the way these waves are done they
+so the way these waves are done they just uh resample the reflection and
+just uh resample the reflection and refraction with some wavy Distortion
+refraction with some wavy Distortion around him they're done with particle
+around him they're done with particle based Rings like just these little ring
+based Rings like just these little ring meeses that go outward and the way we
+meeses that go outward and the way we get those Distortion normals are very
+get those Distortion normals are very simple we have the um the you know the
+simple we have the um the you know the direction around the ring and we have
+direction around the ring and we have the phase from Center to outward and uh
+the phase from Center to outward and uh we just take that uh Direction on the
+we just take that uh Direction on the ring as the normal and multiplied by a
+ring as the normal and multiplied by a sign that's sampled over the face of it
+sign that's sampled over the face of it so it's you know zero at the start zero
+so it's you know zero at the start zero in the middle and zero on the other Edge
+in the middle and zero on the other Edge and then negative a lot in the in the
+and then negative a lot in the in the first third and positive a lot on the
+first third and positive a lot on the second third and that gives a a wave
+second third and that gives a a wave normal
+normal essentially and uh now for a different
+essentially and uh now for a different type of
+water so this is the uh this is the wh poool and uh this one has much different
+poool and uh this one has much different motion on it um so it's got some motion
+motion on it um so it's got some motion going outward rather than just scrolling
+going outward rather than just scrolling across and uh the way we do that is with
+across and uh the way we do that is with this uh this mesh here this High poly
+this uh this mesh here this High poly mesh and the reason is it's high poly is
+mesh and the reason is it's high poly is rather than calculating the texture
+rather than calculating the texture coordinates in um in fragment we just
+coordinates in um in fragment we just made it high po count so we could
+made it high po count so we could calculate in in vertex instead now we
+calculate in in vertex instead now we could have just you know we could have
+could have just you know we could have picked scrolling you know expanding
+picked scrolling you know expanding textures outward but that would be
+textures outward but that would be somewhat difficult what we chose in that
+somewhat difficult what we chose in that was this scrolling outward but that
+was this scrolling outward but that makes texturing somewhat more difficult
+makes texturing somewhat more difficult so the texture that we have scrolling
+so the texture that we have scrolling outward looks like this and the criteria
+outward looks like this and the criteria what before was it had to look wavy and
+what before was it had to look wavy and it had to tile really well but in a non
+it had to tile really well but in a non obvious way so luckily there is an a
+obvious way so luckily there is an a good way to tile these things that you
+good way to tile these things that you might have seen outside it's like these
+might have seen outside it's like these Cobblestone bricks they tile perfectly
+Cobblestone bricks they tile perfectly but with a wave shape like water so if
+but with a wave shape like water so if if I took a picture of this started
+if I took a picture of this started tracing lines of the wave shapes then uh
+tracing lines of the wave shapes then uh took some uh stock images of of waves
+took some uh stock images of of waves and layered them underneath and then
+and layered them underneath and then removed the lines suddenly you've got a
+removed the lines suddenly you've got a texture that looks like well that
+texture that looks like well that doesn't tile but it totally tiles and uh
+doesn't tile but it totally tiles and uh yeah that makes up for a pretty good
+yeah that makes up for a pretty good tiling foam texture you guys uh finally
+tiling foam texture you guys uh finally we've got this
+flood which is a lot more dramatic with
+sound it's got a bunch of elements stuff we've already talked about and a couple
+we've already talked about and a couple of the new ones no actually just just
+of the new ones no actually just just stuff we've talked about so first up
+stuff we've talked about so first up we've got this water volume coming
+we've got this water volume coming outward and it's using our full water
+outward and it's using our full water rendering uh thing and um that thing
+rendering uh thing and um that thing however is of course animated so how it
+however is of course animated so how it looks like it's it's using three morph
+looks like it's it's using three morph targets one for before breaking one for
+targets one for before breaking one for after and one uh for the for in between
+after and one uh for the for in between it looks like this if you just look at
+it looks like this if you just look at the the mesh itself so we're using you
+the the mesh itself so we're using you know morph targets exported from 3ds Max
+know morph targets exported from 3ds Max with these three water shapes and
+with these three water shapes and animate them and that's how we do the
+animate them and that's how we do the animation of that and uh we scroll
+animation of that and uh we scroll textures on it the same way that uh we
+textures on it the same way that uh we did on the world pool and uh
+did on the world pool and uh then uh we've got this uh thing on the
+then uh we've got this uh thing on the ground this uh this big decal of uh
+ground this uh this big decal of uh screen space Reflections and the same
+screen space Reflections and the same wave texture that we had before
+wave texture that we had before scrolling in the same way that we did
+scrolling in the same way that we did before uh and the texture coordinates
+before uh and the texture coordinates what was important for the texture
+what was important for the texture coordinates was that they uh are faster
+coordinates was that they uh are faster in the beginning and then kind of like
+in the beginning and then kind of like ease out as it goes out toward the end
+ease out as it goes out toward the end of the decal and we do that by just
+of the decal and we do that by just having like applying power to the Y
+having like applying power to the Y component of the uh of the texture
+component of the uh of the texture coordinate um so that it you know goes
+coordinate um so that it you know goes very fast in the beginning and then over
+very fast in the beginning and then over time it will slow
+time it will slow down and finally we've got this carpet
+down and finally we've got this carpet of uh of particles which are lit from
+of uh of particles which are lit from behind so just you know so that these uh
+behind so just you know so that these uh club cars are are lighting it and uh
+club cars are are lighting it and uh we've got the same uh thing for an
+we've got the same uh thing for an impact down below and uh finally we've
+impact down below and uh finally we've just got like some some squshies that
+just got like some some squshies that make it uh more Squishy in the beginning
+make it uh more Squishy in the beginning and uh feel more powerful in the start
+and uh feel more powerful in the start of it and uh that's basically all the
+of it and uh that's basically all the components of
+that so in conclusion um if it isn't a parel ready for sampling we really like
+parel ready for sampling we really like blue noise and you should like it to we
+blue noise and you should like it to we really like tempal anti leasing because
+really like tempal anti leasing because it really lets us do all these
+it really lets us do all these stochastic effects that we other
+stochastic effects that we other otherwise would not be allowed to do
+otherwise would not be allowed to do before bedtime uh you should Del all
+before bedtime uh you should Del all your things with a triangular uh
+your things with a triangular uh distribution function and uh you should
+distribution function and uh you should expose customizable shaders to artists
+expose customizable shaders to artists if you're using any sort of deferred
+if you're using any sort of deferred pipeline or any pipeline whatsoever cuz
+pipeline or any pipeline whatsoever cuz you get cool decals uh screen space
+you get cool decals uh screen space Reflections are cool and useful and uh
+Reflections are cool and useful and uh non non screen space ambient inclusion
+non non screen space ambient inclusion is is cool and useful as well thanks to
+is is cool and useful as well thanks to all the all these people are colleagues
+all the all these people are colleagues at uh at pled uh people at Microsoft
+at uh at pled uh people at Microsoft Graphics team at Unity double1 for
+Graphics team at Unity double1 for making our code fast and uh the
+making our code fast and uh the twitterers for helping with this talk
+twitterers for helping with this talk and
+uh that's it [Applause]

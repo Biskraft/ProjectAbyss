@@ -1,0 +1,675 @@
+[Music] hello i'm ashlyn listen i am a software
+hello i'm ashlyn listen i am a software engineer and the Frostbite team at
+engineer and the Frostbite team at Electronic Arts and today I'm going to
+Electronic Arts and today I'm going to show you our quadrature simplification
+show you our quadrature simplification technology so we developed the
+technology so we developed the technology in collaboration with Bioware
+technology in collaboration with Bioware beginning in early 2012 and this is a
+beginning in early 2012 and this is a hand war third set of lots or levels of
+hand war third set of lots or levels of detail which I multiply by where artists
+detail which I multiply by where artists and you can see that the lots have a
+and you can see that the lots have a very regular edge flow and a good quads
+very regular edge flow and a good quads apology even though they're quite low
+apology even though they're quite low detail and at the time when Bioware
+detail and at the time when Bioware artists asked us to develop this tool
+artists asked us to develop this tool they were all always hand authoring
+they were all always hand authoring their lives and this is why because they
+their lives and this is why because they kind of want this regular topology and
+kind of want this regular topology and their lives as are shown so this is what
+their lives as are shown so this is what you would get if you would feed a quad
+you would get if you would feed a quad mesh model into LOD technology of the
+mesh model into LOD technology of the time which was triangle based so to a
+time which was triangle based so to a triangulate the mesh and would reduce
+triangulate the mesh and would reduce geometrically a very good result but
+geometrically a very good result but with a completely different triangle
+with a completely different triangle base topology so here we can see the
+base topology so here we can see the impact of that on the Left we've got a
+impact of that on the Left we've got a lot generates level of detail generated
+lot generates level of detail generated with triangles
+with triangles sorry quads and on the right we've got
+sorry quads and on the right we've got the same budget but with quads triangles
+the same budget but with quads triangles and you can see that the quad version
+and you can see that the quad version has better flexing where the character
+has better flexing where the character is skinned and it's deforming under
+is skinned and it's deforming under skinning whereas the triangulated
+skinning whereas the triangulated version has some strange artifacts even
+version has some strange artifacts even in the face where the triangulation is
+in the face where the triangulation is not matching the natural flow of the
+not matching the natural flow of the body and the
+body and the it needs to flex here I've drawn the
+it needs to flex here I've drawn the edges on the model so you can see
+edges on the model so you can see hopefully what I mean that the the court
+hopefully what I mean that the the court mesh has edges in the right places using
+mesh has edges in the right places using what are called rigging rules where
+what are called rigging rules where artists are told to and to put in rings
+artists are told to and to put in rings of edges in the places where the mesh is
+of edges in the places where the mesh is going to flex particularly where as the
+going to flex particularly where as the triangulated mesh of course just has
+triangulated mesh of course just has random triangles in those areas so the
+random triangles in those areas so the flexing is kind of a bit haphazard but
+flexing is kind of a bit haphazard but there's another side to this as well
+there's another side to this as well which is that very often like tools are
+which is that very often like tools are not perfect and so artists have to hand
+not perfect and so artists have to hand off of these models or tweet from a
+off of these models or tweet from a little bit after they've been generated
+little bit after they've been generated and when they do that the model on the
+and when they do that the model on the left is a much better starting point
+left is a much better starting point because it looks like the kind of thing
+because it looks like the kind of thing the artists produce themselves so let's
+the artists produce themselves so let's get started the young in the talk I'm
+get started the young in the talk I'm gonna be covering three different
+gonna be covering three different aspects and then I'll show you some
+aspects and then I'll show you some results the accident aspects are
+results the accident aspects are requirements that Bioware gave us for
+requirements that Bioware gave us for the generation for character models
+the generation for character models for four core measures so the first one
+for four core measures so the first one is kind of to handle topology they
+is kind of to handle topology they wanted thee that generated lots to
+wanted thee that generated lots to preserve this edge flow this while
+preserve this edge flow this while structured quads apology which character
+structured quads apology which character models did and which they're handles
+models did and which they're handles that lots had so you could kind of say
+that lots had so you could kind of say they wanted the lots to look like hand
+they wanted the lots to look like hand water models which at the time was a big
+water models which at the time was a big ask then they also wanted the ability to
+ask then they also wanted the ability to hand paint priorities onto the models
+hand paint priorities onto the models for example and Meyer and to those
+for example and Meyer and to those priorities to indicate that certain
+priorities to indicate that certain areas should be preserved in more detail
+areas should be preserved in more detail than other areas and the reason they
+than other areas and the reason they went at this was because they suspected
+went at this was because they suspected that as brilliant as our tool would be
+that as brilliant as our tool would be they would probably still have to go in
+they would probably still have to go in and hand paint some areas to kind of
+and hand paint some areas to kind of keep detail when they needed it and then
+keep detail when they needed it and then the third requirement was to preserve
+the third requirement was to preserve symmetry on models so very often
+symmetry on models so very often character models are symmetric
+character models are symmetric topologically in other words they have
+topologically in other words they have the same edge structure at the same
+the same edge structure at the same on the left and right just murder and so
+on the left and right just murder and so they wanted to retain that so it's
+they wanted to retain that so it's apology here's a sort of well authored
+apology here's a sort of well authored head model with a good quad structure so
+head model with a good quad structure so how would we go about preserving the
+how would we go about preserving the topology and the Lots like recall that
+topology and the Lots like recall that at the time as I say triangulate
+at the time as I say triangulate certification tools with triangulation
+certification tools with triangulation based and triangle based so they first
+based and triangle based so they first first started off by triangulating the
+first started off by triangulating the mesh from the left and then generated
+mesh from the left and then generated Lots on the right and this is the kind
+Lots on the right and this is the kind of thing we would have generated look at
+of thing we would have generated look at the time back in 2012 and as I said
+the time back in 2012 and as I said before this is great from a geometry
+before this is great from a geometry point of view but doesn't have the
+point of view but doesn't have the rights apology but how does that process
+rights apology but how does that process actually work like all other tools
+actually work like all other tools pretty much our tool for triangle mesh
+pretty much our tool for triangle mesh and education works like collapsing
+and education works like collapsing edges here on the Left we're collapsing
+edges here on the Left we're collapsing the edge and white to a vertex which is
+the edge and white to a vertex which is located at a collapse point written in
+located at a collapse point written in red and in the process from these two
+red and in the process from these two triangles in orange so by removing by
+triangles in orange so by removing by classing and h2 a vertex he gets removed
+classing and h2 a vertex he gets removed in general two triangles and this is all
+in general two triangles and this is all done using something called the quadric
+done using something called the quadric era metric which is a thing proposed by
+era metric which is a thing proposed by garland and heck bird way back when
+garland and heck bird way back when which basically tells you where to put
+which basically tells you where to put the collapse point to best approximate
+the collapse point to best approximate the original geometry with on your
+the original geometry with on your vertex instead of an edge and what the
+vertex instead of an edge and what the cost is of doing that like a kind of
+cost is of doing that like a kind of cost metric was tells you how much the
+cost metric was tells you how much the geometry will suffer in that area by
+geometry will suffer in that area by doing so say here's how that is used to
+doing so say here's how that is used to simplify measures this is kind of an
+simplify measures this is kind of an animation showing a large number of edge
+animation showing a large number of edge collapses in succession and each kind of
+collapses in succession and each kind of edge collapse from use two triangles and
+edge collapse from use two triangles and there's a basically a big priority queue
+there's a basically a big priority queue which has all the available
+which has all the available edge collapse candidates sorted by cost
+edge collapse candidates sorted by cost metrics the garland enactment cost
+metrics the garland enactment cost metric so that you favor the collapses
+metric so that you favor the collapses which impact
+which impact the mesh least so you you removed key
+the mesh least so you you removed key triangles for the cheapest impact to the
+triangles for the cheapest impact to the mesh and that's standard practices
+mesh and that's standard practices exactly how awesome the fire worked and
+exactly how awesome the fire worked and so we kind of knew that we needed
+so we kind of knew that we needed something similar but for quad missions
+something similar but for quad missions we read a bunch of papers and we found
+we read a bunch of papers and we found this paper by daniels at all from
+this paper by daniels at all from SIGGRAPH Asia in 2009 I think called
+SIGGRAPH Asia in 2009 I think called quadrilateral mesh certification
+quadrilateral mesh certification promising Lee and it proposes something
+promising Lee and it proposes something called poly cord collapse which is kind
+called poly cord collapse which is kind of edge collapse on steroids for
+of edge collapse on steroids for correlations so here's an example of
+correlations so here's an example of what that paper does we've got a quad
+what that paper does we've got a quad strip here in the squad measure like a
+strip here in the squad measure like a sequence of adjacent quad separated by
+sequence of adjacent quad separated by edges and we've collapsed that quad
+edges and we've collapsed that quad strip down to just a sequence of edges
+strip down to just a sequence of edges instead so and the process we've removed
+instead so and the process we've removed all of those quads in orange and the way
+all of those quads in orange and the way it's done is by collapsing edges
+it's done is by collapsing edges connecting so it's like a bunch of edge
+connecting so it's like a bunch of edge collapses done in tandem atomic link so
+collapses done in tandem atomic link so each edge collapse can be done using the
+each edge collapse can be done using the world operator that operates by
+world operator that operates by replacing v-0 v1 with just a few 0 and
+replacing v-0 v1 with just a few 0 and v2 or v3 with just v2 and then moving
+v2 or v3 with just v2 and then moving the retained vertices V 0 V 2 to the
+the retained vertices V 0 V 2 to the computed collapse point locations
+computed collapse point locations updating all the neighboring faces
+updating all the neighboring faces calculating the interpolated and v's and
+calculating the interpolated and v's and normals etc etc to basically well the
+normals etc etc to basically well the mesh at that point and in the process
+mesh at that point and in the process the generate faces faces like the orange
+the generate faces faces like the orange ones that degenerate and where two edges
+ones that degenerate and where two edges are removed and Bob's your uncle
+are removed and Bob's your uncle simplify - but it's not quite that
+simplify - but it's not quite that simple because quad strips and therefore
+simple because quad strips and therefore poly courts I should say poly cords are
+poly courts I should say poly cords are the sets of edges so in the previous
+the sets of edges so in the previous example the poly cord it's the set of
+example the poly cord it's the set of all the edges between all the quad
+all the edges between all the quad phases they're all being collapsed
+phases they're all being collapsed together so poly cords aka quads for
+together so poly cords aka quads for in this case can cross each other like
+in this case can cross each other like they are here walk across themselves
+they are here walk across themselves masaf intersect so when that happens
+masaf intersect so when that happens things are a bit more complicated
+things are a bit more complicated because it's no longer just a simple
+because it's no longer just a simple single collapse of a single edge instead
+single collapse of a single edge instead you've got four edges here that are all
+you've got four edges here that are all coincident they're all touching and all
+coincident they're all touching and all of those touching the edges get
+of those touching the edges get collapsed to just the single vertex and
+collapsed to just the single vertex and this is something that's Daniels at all
+this is something that's Daniels at all do so you can imagine that as a sort of
+do so you can imagine that as a sort of generalized wild operator well firstly a
+generalized wild operator well firstly a generalized edge collapse which is able
+generalized edge collapse which is able to collapse more than one edge as long
+to collapse more than one edge as long as they're touching and then also it can
+as they're touching and then also it can be implemented with a generalized world
+be implemented with a generalized world operator again which worlds by replacing
+operator again which worlds by replacing any occurrence of v-0 v1 v2 or v3 with
+any occurrence of v-0 v1 v2 or v3 with just v-0 and updating all the
+just v-0 and updating all the neighboring faces again it's not that
+neighboring faces again it's not that simple because single poly cords can be
+simple because single poly cords can be arbitrarily long and in particular can
+arbitrarily long and in particular can sneak around the mesh many times like
+sneak around the mesh many times like this single poly cord shown in orange on
+this single poly cord shown in orange on this asteroid so Daniels at all report
+this asteroid so Daniels at all report that poly quad collapse in their
+that poly quad collapse in their experience as nuts enough to handle
+experience as nuts enough to handle meshes like that with really long poly
+meshes like that with really long poly cords and so they introduced a what's
+cords and so they introduced a what's called a quad collapse operator which is
+called a quad collapse operator which is different and not reducible to edge
+different and not reducible to edge collapse and this operates by collapsing
+collapse and this operates by collapsing a quad by collapse by merging two of its
+a quad by collapse by merging two of its opposite vertices in this case V 0 and V
+opposite vertices in this case V 0 and V 1 it adjust v-0 and so again you can do
+1 it adjust v-0 and so again you can do that with a world operator but it's not
+that with a world operator but it's not an edge collapse it's collapsing a quad
+an edge collapse it's collapsing a quad to two edges but in the process it
+to two edges but in the process it untangles the poly quad because we're
+untangles the poly quad because we're previously across that's off instead it
+previously across that's off instead it meets itself so Daniels at all reckon
+meets itself so Daniels at all reckon that by mixing and quad collapse and
+that by mixing and quad collapse and poly
+poly or collapse you can untangle the mesh
+or collapse you can untangle the mesh when you need to and then go get back to
+when you need to and then go get back to doing some poly core collapses but we
+doing some poly core collapses but we actually found we don't need quad
+actually found we don't need quad collapse and I'm not quite sure why but
+collapse and I'm not quite sure why but part of the reason might be because our
+part of the reason might be because our world operator is quite robustly
+world operator is quite robustly implemented and we do everything with
+implemented and we do everything with the world operator but then part of it
+the world operator but then part of it model city because we skirt the issue by
+model city because we skirt the issue by not only limiting us ask to cannot sing
+not only limiting us ask to cannot sing sing halt poly courts we can collapse
+sing halt poly courts we can collapse parts of polygons which means we don't
+parts of polygons which means we don't actually have to collapse this entire
+actually have to collapse this entire poly chord we can just go and do part of
+poly chord we can just go and do part of it so yeah the other thing to say is
+it so yeah the other thing to say is that edge collapse is just a special
+that edge collapse is just a special case of poly called collapse where the
+case of poly called collapse where the poly cord only has one edge and the set
+poly cord only has one edge and the set so if you know triangle mesh like this
+so if you know triangle mesh like this there are no quads so there are no quad
+there are no quads so there are no quad strips and instead each poly cord which
+strips and instead each poly cord which is just a single edge terminates at to
+is just a single edge terminates at to incident triangles so it kind of means
+incident triangles so it kind of means that if you can do poly quad collapse
+that if you can do poly quad collapse you can do edge collapse because it's
+you can do edge collapse because it's just a simple special case of it
+so we dutifully implements that the poly cord collapse part of daniels at all and
+cord collapse part of daniels at all and this is the kind of result you get so it
+this is the kind of result you get so it looks pretty good and that we took the
+looks pretty good and that we took the apology preservation box because the
+apology preservation box because the edge flow of the model the sort of flow
+edge flow of the model the sort of flow of edges around the model looks like an
+of edges around the model looks like an office north of it approximately but the
+office north of it approximately but the problem with it if you like is that
+problem with it if you like is that where our hands are tied at this point
+where our hands are tied at this point because at this point we were only
+because at this point we were only collapsing entire poly cords or nothing
+collapsing entire poly cords or nothing like Daniels at all and that limits what
+like Daniels at all and that limits what you can do because single poly course
+you can do because single poly course can go through completely different
+can go through completely different parts of the match from the face to the
+parts of the match from the face to the back of the head across to the year so
+back of the head across to the year so if you want to collapse part of the back
+if you want to collapse part of the back of the head it forces you to collapse
+of the head it forces you to collapse the part of the ear and
+the part of the ear and which you might want to retain so your
+which you might want to retain so your ability to locally refine the metrics
+ability to locally refine the metrics have different detailed levels in
+have different detailed levels in different areas is limited so for that
+different areas is limited so for that reason we we started to look at
+reason we we started to look at collapsing parts of pi chords which we
+collapsing parts of pi chords which we call sub paulo chords and that was also
+call sub paulo chords and that was also hinted to us by the second requirement
+hinted to us by the second requirement which was priority painting so probably
+which was priority painting so probably painting again is where an artist comes
+painting again is where an artist comes in and paints part of the match saying
+in and paints part of the match saying that like that pot to be retained at the
+that like that pot to be retained at the expense of other areas so here's the
+expense of other areas so here's the kind of result we we wanted to get from
+kind of result we we wanted to get from that these two lights are both the same
+that these two lights are both the same budget but on the right we've painted
+budget but on the right we've painted the face like I said I showed in the
+the face like I said I showed in the previous slide and so we've magically
+previous slide and so we've magically retained more detail and not in the face
+retained more detail and not in the face but you can see that doing that forces
+but you can see that doing that forces us to change the topology because we
+us to change the topology because we even be perfectly had to collapse only
+even be perfectly had to collapse only parts of these aligning poly cords
+parts of these aligning poly cords stopping at the part where the face
+stopping at the part where the face requires more detail and in the process
+requires more detail and in the process we introduce usually a triangle and a
+we introduce usually a triangle and a singular vertex so that also hinted to
+singular vertex so that also hinted to us that we needed to collapse sub poly
+us that we needed to collapse sub poly chords rather than poly course here's
+chords rather than poly course here's just a little illustration of a sub poly
+just a little illustration of a sub poly calculus so we've got a poly chord which
+calculus so we've got a poly chord which extends down into the face and we only
+extends down into the face and we only want to collapse the first five edges as
+want to collapse the first five edges as little edge collapses and in doing so
+little edge collapses and in doing so here's the results we end up introducing
+here's the results we end up introducing a triangle and a singular vertex and but
+a triangle and a singular vertex and but we've the payoff for changing the
+we've the payoff for changing the topology is a B they be enough to vary
+topology is a B they be enough to vary the detail they're locally but that does
+the detail they're locally but that does present us with a problem because
+present us with a problem because whereas there's only a limited number of
+whereas there's only a limited number of poly codes in the mesh there's a very
+poly codes in the mesh there's a very large number of potential subhadda cores
+large number of potential subhadda cores there's a lot of ways to select only
+there's a lot of ways to select only some of the edges and a poly cord and
+some of the edges and a poly cord and connects just those
+connects just those and so there's a number of
+and so there's a number of simplifications that make that feasible
+simplifications that make that feasible one is to only consider contiguous sub
+one is to only consider contiguous sub poly courts are he adjacent edges and
+poly courts are he adjacent edges and not just random edges in the PI chord
+not just random edges in the PI chord and the justification for that is that
+and the justification for that is that you can always go and do other edges
+you can always go and do other edges later if you want to the next is that we
+later if you want to the next is that we don't do a sort of exhaustive search of
+don't do a sort of exhaustive search of every possible contiguous of polygons
+every possible contiguous of polygons instead we do a greedy search where we
+instead we do a greedy search where we first find a short sequence in this case
+first find a short sequence in this case three edges that is the cheapest part of
+three edges that is the cheapest part of the poly corner using a linear search
+the poly corner using a linear search and then we then incrementally improve
+and then we then incrementally improve that by adding or removing an edge at
+that by adding or removing an edge at either end as long as that improves the
+either end as long as that improves the value of the results which is there a
+value of the results which is there a ratio of the benefits for the number of
+ratio of the benefits for the number of triangles removed by that collapse to
+triangles removed by that collapse to the cost which is just the sum of the
+the cost which is just the sum of the costs of the edge collapses and so we
+costs of the edge collapses and so we hope that that all sort of he'll climb
+hope that that all sort of he'll climb to a good solution but we also as a safe
+to a good solution but we also as a safe cloud always also consider the solution
+cloud always also consider the solution of just collapsing the entire poly cord
+of just collapsing the entire poly cord because quite often that's the right
+because quite often that's the right answer and you might not reach that the
+answer and you might not reach that the whole planning another thing we do to
+whole planning another thing we do to speed things up is we maintain a data
+speed things up is we maintain a data structure which represents the
+structure which represents the partitioning of the sub poly cord edges
+partitioning of the sub poly cord edges into islands of connected edges because
+into islands of connected edges because recall each island of connected edges
+recall each island of connected edges collapses to a vertex in a sort of
+collapses to a vertex in a sort of generalized multi-edge collapse
+generalized multi-edge collapse so typically we when we're doing this
+so typically we when we're doing this search for the best sub poly cord we end
+search for the best sub poly cord we end up testing successive south poly cords
+up testing successive south poly cords that differ by only one edge either
+that differ by only one edge either added or removed so it makes a lot of
+added or removed so it makes a lot of sense to remember a lot of the
+sense to remember a lot of the information that you computed for the
+information that you computed for the previous type poly cord which was only
+previous type poly cord which was only different by one edge so that's what
+different by one edge so that's what we're doing here and then we add an edge
+we're doing here and then we add an edge we have to update that data structure
+we have to update that data structure but very often the new edge is not
+but very often the new edge is not touching any existing edges
+touching any existing edges creates a new single reg Wyland so that
+creates a new single reg Wyland so that the common case is pretty cheap and then
+the common case is pretty cheap and then occasionally an edge comes in which has
+occasionally an edge comes in which has the effect of merging two items or
+the effect of merging two items or something like that because it's
+something like that because it's incident to two of the edges already in
+incident to two of the edges already in there
+there so that that update is more complicated
+so that that update is more complicated but it's still worth doing because its
+but it's still worth doing because its own avoids of repeating a lot of
+own avoids of repeating a lot of calculations from one sub like probably
+calculations from one sub like probably called candidate to the next so here's
+called candidate to the next so here's just a quick example of that in the wild
+just a quick example of that in the wild so on the Left we've got a sub poly cord
+so on the Left we've got a sub poly cord in orange that we've been bowling with
+in orange that we've been bowling with all its edges that we've selected in
+all its edges that we've selected in white and we're going to select this
+white and we're going to select this edge here and test that candidate and
+edge here and test that candidate and when we do it's that edge is incident to
+when we do it's that edge is incident to existing - to existing edges to existing
+existing - to existing edges to existing islands so they get merged into a single
+islands so they get merged into a single island of three edges and the way you
+island of three edges and the way you can tell that that's happened is because
+can tell that that's happened is because there's a single collapse point computed
+there's a single collapse point computed for all three edges whereas previously
+for all three edges whereas previously these two edges had separate class
+these two edges had separate class points another thing we do is whenever
+points another thing we do is whenever we collapse the Paula chord we have to
+we collapse the Paula chord we have to update all the candidates for the paula
+update all the candidates for the paula chords whose geometry or topology is
+chords whose geometry or topology is affected by that welding of the mesh so
+affected by that welding of the mesh so there's kind of a neighborhood of poly
+there's kind of a neighborhood of poly cords that are no longer invalid because
+cords that are no longer invalid because their cost would have changed and so we
+their cost would have changed and so we have to remove them from the priority
+have to remove them from the priority queue and recompute their costs in
+queue and recompute their costs in riyadh them and we do that incrementally
+riyadh them and we do that incrementally because you the area that we have to
+because you the area that we have to update it is smaller than that and all
+update it is smaller than that and all of the mesh in bad cases it can be quite
+of the mesh in bad cases it can be quite expensive like this is approaching like
+expensive like this is approaching like a third of the mesh because the mesh is
+a third of the mesh because the mesh is very regular so the poly cords are quite
+very regular so the poly cords are quite long but some usually it's a lot cheaper
+long but some usually it's a lot cheaper than that so here's a result when we
+than that so here's a result when we have sub quad core collapse and you can
+have sub quad core collapse and you can see it's an improvement over the
+see it's an improvement over the previous was last we had and that's now
+previous was last we had and that's now we're able to choose to alter the
+we're able to choose to alter the topology of a mesh locally in order to
+topology of a mesh locally in order to keep detail at a reasonable level and so
+keep detail at a reasonable level and so very the detail across
+very the detail across that mesh depending where we wanted and
+that mesh depending where we wanted and in particular this gives us the ability
+in particular this gives us the ability to do priority painting but an issue
+to do priority painting but an issue with this results actually while we're
+with this results actually while we're here is that it's not symmetric you can
+here is that it's not symmetric you can see that the left and right sides of the
+see that the left and right sides of the faces are different in topology and that
+faces are different in topology and that kind of leads into the third requirement
+kind of leads into the third requirement which is that Bioware wanted us to keep
+which is that Bioware wanted us to keep the symmetry of symmetric measures
+the symmetry of symmetric measures intact and that's nice more feet because
+intact and that's nice more feet because a lot of measures character measures are
+a lot of measures character measures are come for any partly symmetric like this
+come for any partly symmetric like this one is symmetric in some areas but not
+one is symmetric in some areas but not others and we also made life a little
+others and we also made life a little more difficult for us also we may be
+more difficult for us also we may be needed to and that we want to priority
+needed to and that we want to priority painting to be independent and
+painting to be independent and orthogonal to use symmetry so you could
+orthogonal to use symmetry so you could choose to paint any half the face and
+choose to paint any half the face and have that part preserved even though
+have that part preserved even though that conflicts that the desire to
+that conflicts that the desire to preserve symmetry so in that sense our
+preserve symmetry so in that sense our symmetry preservation is kind of soft in
+symmetry preservation is kind of soft in the Reed we don't mandate that you
+the Reed we don't mandate that you always have to do exactly the same on
+always have to do exactly the same on the left and the right and said we have
+the left and the right and said we have a cross metric term which strongly
+a cross metric term which strongly favors collapses that treat that
+favors collapses that treat that collapse both of the silhouette as if
+collapse both of the silhouette as if they are symmetric or don the collapsing
+they are symmetric or don the collapsing so that's useful in that it alot buys us
+so that's useful in that it alot buys us a lot of flexibility but it also ties
+a lot of flexibility but it also ties into the fact that measures are not
+into the fact that measures are not usually completely symmetric so a method
+usually completely symmetric so a method which mandated doing exactly the same to
+which mandated doing exactly the same to the left and the right would not be
+the left and the right would not be feasible actually so the softer
+feasible actually so the softer practicing the right way to go but it
+practicing the right way to go but it does context afire things of it so we
+does context afire things of it so we developed an algorithm for automatically
+developed an algorithm for automatically identifying bilateral symmetry and
+identifying bilateral symmetry and measures and I won't go into the details
+measures and I won't go into the details but basically it does a search of the
+but basically it does a search of the graph of the edges in the mesh looking
+graph of the edges in the mesh looking for parts of the graph that are matching
+for parts of the graph that are matching it topologically and so it's able to
+it topologically and so it's able to find symmetries within
+find symmetries within that are only partly symmetric and it's
+that are only partly symmetric and it's also able to find symmetries between
+also able to find symmetries between different parts of the mesh so in this
+different parts of the mesh so in this example it's the common case we find
+example it's the common case we find entire Polly core such exactly match but
+entire Polly core such exactly match but as I'm trying to show here this is
+as I'm trying to show here this is actually more complicated than it seems
+actually more complicated than it seems because the actual symmetry map that we
+because the actual symmetry map that we find it is per edge so we find that an
+find it is per edge so we find that an individual edge is symmetric to another
+individual edge is symmetric to another individual edge and in the case where
+individual edge and in the case where entire Polly chords are thought to be
+entire Polly chords are thought to be symmetric that's because there's a
+symmetric that's because there's a one-to-one symmetry relationship between
+one-to-one symmetry relationship between their edges but we don't actually find
+their edges but we don't actually find that poly-cotton solves a symmetric
+that poly-cotton solves a symmetric rather it's all about edges as in the
+rather it's all about edges as in the slide we also found that it's important
+slide we also found that it's important to handle symmetric pairs of polly
+to handle symmetric pairs of polly chords atomically so rather than that I
+chords atomically so rather than that I can ask the left one chord and then the
+can ask the left one chord and then the right chord immediately afterwards it's
+right chord immediately afterwards it's actually necessary to collapse both of
+actually necessary to collapse both of them together as one generalized set of
+them together as one generalized set of edges and the reason for that is because
+edges and the reason for that is because you in the case of the where they
+you in the case of the where they incident like this you only get to know
+incident like this you only get to know about the whole information of that
+about the whole information of that collapse if you have both Polly chords
+collapse if you have both Polly chords available so given the fact that most of
+available so given the fact that most of the time we've expect to find pairs of
+the time we've expect to find pairs of Polly chords that are kind of exactly
+Polly chords that are kind of exactly symmetric we needed a method to handle
+symmetric we needed a method to handle that and to find the best pair of sub
+that and to find the best pair of sub Polly chords to collapse as a class
+Polly chords to collapse as a class candidate for that pair of Polly chords
+candidate for that pair of Polly chords so we just generalized our previous
+so we just generalized our previous algorithm which was for a single
+algorithm which was for a single particle by just doing the obvious thing
+particle by just doing the obvious thing and having a finding first a pair of C
+and having a finding first a pair of C pi chords C sub pi chords of a fixed
+pi chords C sub pi chords of a fixed length the cheapest area in each of the
+length the cheapest area in each of the polly chords and then growing those sub
+polly chords and then growing those sub pi chords incrementally in the same way
+pi chords incrementally in the same way by adding or removing an added either
+by adding or removing an added either and we can do that to both poly cords or
+and we can do that to both poly cords or just the one whichever produces the best
+just the one whichever produces the best value and then again we also consider
+value and then again we also consider the solution of just collapsing the
+the solution of just collapsing the entire pair because that's often a good
+entire pair because that's often a good idea but this rosy picture of exactly
+idea but this rosy picture of exactly matching paired poly cords isn't quite
+matching paired poly cords isn't quite true as I say because because we are
+true as I say because because we are dealing with meshes which are partially
+dealing with meshes which are partially symmetric and because our symmetry
+symmetric and because our symmetry therefore has to be per edge not per
+therefore has to be per edge not per poly cord you can get situations arising
+poly cord you can get situations arising particularly after a few classes where
+particularly after a few classes where the edges the edge symmetries
+the edges the edge symmetries effectively make multiple poly courts
+effectively make multiple poly courts related to each other rather than just
+related to each other rather than just pairs and in this case for example there
+pairs and in this case for example there are poly cords and the obvious left and
+are poly cords and the obvious left and right but there are other particles
+right but there are other particles involved would become kind of entangled
+involved would become kind of entangled with them by other collapses and so in
+with them by other collapses and so in general you can have what we call flux
+general you can have what we call flux of poly cords where they're all any
+of poly cords where they're all any number of poly quads can be related by
+number of poly quads can be related by these per edge symmetry links so in this
+these per edge symmetry links so in this case you've got a poly cord on the left
+case you've got a poly cord on the left which is related to two other poly cords
+which is related to two other poly cords on the right and you can imagine that
+on the right and you can imagine that actually those two other poly poly cords
+actually those two other poly poly cords may have been one PI cord but something
+may have been one PI cord but something else has happened some part of it that
+else has happened some part of it that pi cord has been collapsed so that now
+pi cord has been collapsed so that now there are three poly quads involved and
+there are three poly quads involved and we needed a way to handle this so the
+we needed a way to handle this so the way we handle this is by finding the
+way we handle this is by finding the parts of the poly cords which are most
+parts of the poly cords which are most symmetric and from that reducing finding
+symmetric and from that reducing finding pairs of poly cords in the flock which
+pairs of poly cords in the flock which are nice symmetric because we we
+are nice symmetric because we we shouldn't forget that we're kind of
+shouldn't forget that we're kind of expecting the mesh to be basically
+expecting the mesh to be basically bilaterally symmetric if it is symmetric
+bilaterally symmetric if it is symmetric and so we expect to find matching left
+and so we expect to find matching left and right pairs or an approximation to
+and right pairs or an approximation to that
+that so rather than coming up with an
+so rather than coming up with an algorithm to find the best arbitrary way
+algorithm to find the best arbitrary way to collapse any set of edges from a
+to collapse any set of edges from a flock of poly cords which would be very
+flock of poly cords which would be very expensive
+expensive instead we go and look for these pairs
+instead we go and look for these pairs and we then do the pairwise seed supply
+and we then do the pairwise seed supply cord greedy evaluation thing to each of
+cord greedy evaluation thing to each of those pairs and then we also consider
+those pairs and then we also consider each probably quadrat the flock
+each probably quadrat the flock individually using the non paired
+individually using the non paired version of that algorithm so we're
+version of that algorithm so we're effectively hedging our bets and
+effectively hedging our bets and imagining that the mesh might not might
+imagining that the mesh might not might be either not symmetric in which case
+be either not symmetric in which case we're going to have single PI cores or
+we're going to have single PI cores or symmetric in which case we're going to
+symmetric in which case we're going to find the good pairs so when we've got
+find the good pairs so when we've got all of that in place we now have
+all of that in place we now have achieved all three of the requirements
+achieved all three of the requirements and in particular we can preserve
+and in particular we can preserve topology we can also support priority
+topology we can also support priority painting by varying a topology when we
+painting by varying a topology when we need to to likely adapt detail levels
+need to to likely adapt detail levels and we can preserve symmetry or kind of
+and we can preserve symmetry or kind of at the same time with soft sliders that
+at the same time with soft sliders that choose how much topology is important
+choose how much topology is important how much symmetry is important and how
+how much symmetry is important and how much priority painting is important and
+much priority painting is important and the number of other things as well like
+the number of other things as well like we also have metrics and cost terms that
+we also have metrics and cost terms that try to preserve detail where it's needed
+try to preserve detail where it's needed for skinning and where it's needed for
+for skinning and where it's needed for sort of wet preservation and things like
+sort of wet preservation and things like that so lastly I'm just gonna rush
+that so lastly I'm just gonna rush through some results quickly so here
+through some results quickly so here we're comparing results from our tool at
+we're comparing results from our tool at the top row is a result from the hottest
+the top row is a result from the hottest the bottom row as they result from the
+the bottom row as they result from the artist authored Watterson authored
+artist authored Watterson authored models and the bottom row and you can
+models and the bottom row and you can see we do metrically look very similar
+see we do metrically look very similar to the artists models where they do
+to the artists models where they do deference that the artist has done
+deference that the artist has done things that we don't know about for
+things that we don't know about for example making the hands into mittens
+example making the hands into mittens rather than keeping the fingers
+rather than keeping the fingers here we're comparing lot three the tool
+here we're comparing lot three the tool on the left and the artist or the model
+on the left and the artist or the model on the right and the idea here is you
+on the right and the idea here is you can kind of see ignoring things like the
+can kind of see ignoring things like the mitten fingers but we match pretty well
+mitten fingers but we match pretty well and we imagine looks quite a lot like it
+and we imagine looks quite a lot like it was authored by an artist which is the
+was authored by an artist which is the idea here we're doing a kind of switch
+idea here we're doing a kind of switch test where we vary the distance to the
+test where we vary the distance to the lights and change between the lights
+lights and change between the lights according to the distance and what we're
+according to the distance and what we're looking for is popping where we switch
+looking for is popping where we switch between the different lights and you can
+between the different lights and you can see the difference between them when
+see the difference between them when they change so you'll notice that the
+they change so you'll notice that the artist or third model which is on the
+artist or third model which is on the right pops more than the one on the Left
+right pops more than the one on the Left which is generated with a tool and I
+which is generated with a tool and I think that's because the artist wasn't
+think that's because the artist wasn't more effectively is not just a pedestal
+more effectively is not just a pedestal version of the original model but rather
+version of the original model but rather is remodeled slightly so you can see
+is remodeled slightly so you can see slight differences
+here's another dragon age model and again we're comparing the tool the
+again we're comparing the tool the result at the top with your artist
+result at the top with your artist author models at the bottom and you can
+author models at the bottom and you can see we're pretty similar here's a
+see we're pretty similar here's a classic of log three again and again
+classic of log three again and again pretty similar the big difference is
+pretty similar the big difference is that the artist has kind of done some
+that the artist has kind of done some broad simplifications of these
+broad simplifications of these silhouettes the big shapes at the top
+silhouettes the big shapes at the top the other aspect is that the artist has
+the other aspect is that the artist has retained detail in the tail which is
+retained detail in the tail which is needed because the tail and flexors when
+needed because the tail and flexors when me and the Beast walks and we haven't
+me and the Beast walks and we haven't done that we do have a costume to try
+done that we do have a costume to try and do that but we'd have to crank it up
+and do that but we'd have to crank it up to you to get that kind of result this
+to you to get that kind of result this is just checking symmetry so the ability
+is just checking symmetry so the ability to preserve symmetry where the mesh is
+to preserve symmetry where the mesh is symmetric and you can see where we're
+symmetric and you can see where we're getting the right sort of result it's
+getting the right sort of result it's just the same thing for the gun
+and then finally I thought I'd show you in Long character model because we ended
+in Long character model because we ended up using this tool not just for
+up using this tool not just for characters and not just the quad
+characters and not just the quad measures but also for triangle based
+measures but also for triangle based models and props and vehicles etc
+models and props and vehicles etc through RTA and pretty much every studio
+through RTA and pretty much every studio and yeah uses this tool for all kinds of
+and yeah uses this tool for all kinds of models and here we're comparing the tool
+models and here we're comparing the tool results at the top with a competitor
+results at the top with a competitor called simplygon a third-party tool
+called simplygon a third-party tool called simply garden at the bottom and
+called simply garden at the bottom and you can see for the same budgets we're
+you can see for the same budgets we're producing pretty favorable results I
+producing pretty favorable results I think here I'm comparing simply gone on
+think here I'm comparing simply gone on the left with the tool in the middle and
+the left with the tool in the middle and an artist results artist source of mesh
+an artist results artist source of mesh on the right and you can see that we
+on the right and you can see that we kind of met the artist in the sense that
+kind of met the artist in the sense that we have a quad based understanding of
+we have a quad based understanding of the model which has allowed us to retain
+the model which has allowed us to retain the broad features a lot be distracted
+the broad features a lot be distracted by edges that are just there because of
+by edges that are just there because of triangulation and I think that's what's
+triangulation and I think that's what's allowing us to release this cleaner
+allowing us to release this cleaner result yeah thanks for watching that's
+result yeah thanks for watching that's all for me and I hope you enjoy the talk
+all for me and I hope you enjoy the talk just

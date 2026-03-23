@@ -1,0 +1,608 @@
+hi everyone it's me Tim
+today I want to talk about arcanum's
+generated dialogue system and I know
+I've been talking about Arcanum a lot
+but I mean I've got the code right in
+front of me I've been going through it a
+lot I've been playing with it and the
+generated dialogue system is something
+I'm particularly proud of because
+it
+let the few designers that were on
+arcanuman we had even of the fewer
+designers we had even fewer narrative
+designers and
+it let
+those few people I mean think about we
+only had 14 people Tops on Arcanum and
+just a few writing dialogue they let
+them make so much content in the game
+which so it was a good tool but in
+particular I liked it because it really
+doubled down on arcanum's reactivity and
+I'll talk about why
+um when I get to the NPC one but this
+could be really long I'm probably
+talking really fast but there's just so
+much to talk about and it's it's a
+detailed topic for me anyway our
+generated generated dialogue system in
+Arcanum
+consisted of a number of op codes I
+called them dialog op codes
+the way they worked was
+in the
+place of what you would write where what
+an NPC would say or a player would say
+you could write an OP code and it was
+just a single letter like a colon or B
+colon
+it always was followed by colon after
+the colon nothing might be there
+but frequently there were a lot of
+parameters that were optional for each
+opcode
+op codes could handle
+lots of different things and I left the
+designers decide to turn on and off
+certain checks that it made or to
+provide parameters for things that the
+op code was going to control and I'll
+talk about that
+what's important to remember though is
+the op code didn't turn into a single
+line of dialogue these op codes expanded
+in into an entire subtree and I'll
+explain that in just a minute
+what was nice about op codes is they
+handled all the gendered combinations
+you know a man talking to a man female
+to female male to female female male
+male which matters in most languages but
+I just remember things like you know
+French if you'd say you know you are
+pretty it would be different depending
+on the gender of the person you're
+calling pretty
+um I know we also had NPC social class
+so that could factor into how some lines
+may get may have gotten translated into
+Japanese which takes social standing
+into account and how they write things
+the
+the speaking of which the NPCs in
+Arcanum had one of 11 social classes
+applied to them they could only have one
+and they were in order of top to bottom
+they were Noble priest wizard
+technologist shopkeeper
+guard City dweller villager beggar thief
+and Bandit
+so yes a city dweller was more up the
+social standing than a villager and a
+wizard was above a technologist although
+that there was questioning whether that
+was going to be switching soon
+um in addition to that opcodes could
+reference skills and spells
+attributes you these were basically part
+of the parameter list you could pass
+into it
+okay after that long introduction let's
+jump into what they were
+um the NPC
+NPC's already had two op codes that were
+unique to NPCs and the first one was
+greeting which I'm going to talk about
+last because this is by far the most
+complicated op code but the second one
+was money
+if you added this line to an NPC they
+would ask for money and they would do it
+based on their social class so uh a
+noble person would ask for money very
+differently you know like sir I must ask
+you know coinage to exchange hands I'm
+not a dialogue writer where a beggar
+would be like can you spare a couple
+coins
+you the parameters were how much money
+you would ask for if you didn't put it
+in I think it's faulted to 10 coins but
+you could put in how much money you're
+asking for and this is a perfect example
+of how it expanded into an entire tree
+the
+the M if you said wrote M colon 100.
+that would expand into the NPC saying
+you know excuse me sir but
+could you spare a hundred coins or
+whatever they're gonna say based on
+their social class
+a shopkeeper would be
+you know you I need 100 coins for that
+then the PC could respond yes or no
+and if they said yes the NPC would
+respond
+either okay they've taken the money and
+it would get subtracted or you don't
+have enough money
+if you'd say no it would bow out and
+then it would go in off to those cases
+after getting the money it would go to
+the line that that dialogue line said to
+go to
+the PC on the other hand had a zillion
+off codes I'm not going to go into
+detail on all of them
+let me just run down them really quick I
+think they were alphabetized in code
+which is really easy to go through there
+was appreciate it was basically the PC
+saying thank you and you may wonder why
+we had opcodes for things as simple as
+that and that's variety you could write
+a colon and be done and you know that
+might be thank you thanks I appreciate
+it
+that's nice of you or whatever and it
+was by class so that would adjust there
+was barter bartering
+uh there was Czech story state that was
+an interesting one if the PC put in a
+Czech story State op code it would
+insert a line where the player would ask
+about something
+relevant to the current story state of
+the game remember I told you Arcanum had
+27 story states that went through as
+compared to Fallout 23 so we broke the
+main story into 27 distinct story States
+each one of those had a set of generic
+things that the PC could ask about that
+story state to NPCs
+there was asking for directions to a
+location so the up this was an example
+of an OP code that required a parameter
+uh if you asked for it it would the NPC
+would tell you how to get there but
+would not Mark your map there was a
+separate one called X for x marks the
+spot which was exactly like directions
+but also put a mark on your map we added
+that because there were narrow designers
+who wanted both I should have made it a
+parameter but it already had the
+parameter for location and I tried to
+avoid extra parameters we had exit
+dialogue which with them saying goodbye
+I have to go see ya
+uh there was forget it never mind
+because that was a frequently used
+thing in PC responses never mind I don't
+care anymore forget this forget I asked
+whatever there was asking for healing
+there was uh asking more questions there
+was the generic line of like I have more
+questions I want to ask you because that
+was a common one as well there was a
+load a world map where the player would
+say something
+appropriate like I'm gonna go look up my
+map now and then would just jump the
+player right to load the world map for
+fast travel purposes from a dialogue
+um
+there was buying a paper there was
+the
+oh there was an M1 what is that I think
+that's money as well
+um
+there was a quest one which I'll explain
+more in a second there was saying I'm
+sorry in various ways there was asking
+for training and you could specify what
+skill you were looking for training in
+and that
+that was put it was the narrative
+designer's responsibility if the player
+asks for training the NPC
+off we could look up what training they
+asked for they would look up their skill
+and go okay if you asked for training in
+this skill oh I'm a master in the skill
+I will offer Master training
+there was also use skill you could ask
+the NPC to use a skill for you
+and this is in addition to like healing
+or
+training or anything like that there's
+xmark spot there was yes which were a
+million ways of saying yes
+um there was no A Million Ways of saying
+no
+uh and there was also zap which was
+you specified a particular spell and
+it's asking that player to cast that
+spell so you if you wanted a priest to
+cast resurrect or
+uh speak for that or something you could
+say zap Z colon and the spell number and
+it would do that
+now
+both NPCs and PCs had two
+um op codes that they shared one was
+insult
+as a PC line it insulted the NPC based
+on their class so you would say
+something like you're the worst Noble
+person I've ever met or you're a stuck
+up City dweller for the NPC lines it in
+it insulted the NPC based on the race so
+the NPC based on their own social class
+would say something to the player based
+on whether they're a human half orc dark
+elf Elf halfling
+so we had this huge bank that we had fun
+making insults like what would a
+shopkeeper say to a dark elf they were
+angry at or what would a
+beggar say to a half orc and so we had
+tons of funds making those Banks and
+remember every time these things pulled
+from a bank so even if they just created
+one line there were dozens in some cases
+multiple dozens of these lines that they
+could use and then finally there was an
+a rumor one that could be used for PC
+and NPC as a PC it was it would expand
+to a line basically saying hey have you
+heard any cool rumors
+for NPCs it would be offering rumors and
+again for the parameters it could be a
+single number or a set of numbers or a
+range of numbers and those were all the
+rumors that that NPC
+could offer it would go look at any NP
+any rumor that they already knew
+um you could the person using op code
+say if hey if they've already heard the
+rumor don't do it but they could
+override that and say nope if I don't
+care if they pay for a rumor and get
+something they've already heard rumors
+were based on story state
+where you are in the game
+um and social class so the NPCs would a
+beggar would tell you a slightly
+different thing about there's Bandits
+Down by the River where a noble person
+would go I understand there are Bandits
+that have set up camp and are disrupting
+trade
+so again we had lots of banks for each
+individual room or had Banks and things
+that could be said optionally there was
+an optional parameter and I tried to
+avoid too many parameters like this but
+rumor just took a ton that you could add
+how much money
+um that it would cost you to get the
+rumor and by the way internally that was
+handled by this rumor op code inserting
+an ask for money op code
+dynamically in the middle of it so I
+mean the rumor opcode expanded it into
+an entire multi-branch
+dialogue tree so this is how we saved
+money and got variety at the same time
+now I said I was going to talk about how
+quests and green work is ever
+complicated quests were really complex
+quests had seven states unknown
+mentioned accepted achieved completed
+completed by a different NPC a different
+PC for multiplayer and botched unknown
+was if you'd never heard it mention was
+you heard it but you didn't accept it
+except it was when you accepted it
+achieved is when you had done the things
+you were supposed to do but you hadn't
+turned it in yet and then completed what
+you turned it in
+botched was a flag that if it was set on
+anything that wasn't completed change
+the state to botched but if you took the
+flag off it went back to whatever state
+it was at and that was because it was
+possible for the player to be maybe you
+said you'd rescue some kidnapped person
+and you got them so now the quest was in
+the achieve statement thought completed
+and on the way back they get killed
+if you raise them killing when they die
+their script says botched the quest but
+if you raise them that their scripted to
+say okay I'm back alive unbox the quest
+so we'll go back to achieved so if you
+just accepted the quest and on the way
+to get them they died
+it would get botched and going it would
+look as failed in your quest log but if
+you arrived and healed them or
+resurrected them it would go back to
+accept it so botched was done as a flag
+so you could go in and out of being a
+botch state now you can't botch a
+completed Quest because
+it's already completed so if you get the
+Villager back home you get the ransom
+money for uh
+or the money for rescuing them for the
+kidnappers and then you leave and then
+he dies it's not gonna botch your quest
+because you've already finished that
+Quest once the quest is completed the
+state is permanent
+um the way this worked was
+you would say Q colon and the quest
+number and it would if it was a PC line
+it would generate a line where the
+player asked if there are any quests
+available and the NPC would answer about
+that quest number if it was an NPC line
+the NPC would Dive Right into
+something related to the current state
+so if it was kidnapping somebody if
+somebody was kidnapped if it was unknown
+they'd go hey
+someone's been kidnapped my you know my
+my husband's been kidnapped I'll give
+you 100 coins to go find them I think
+the bandits have them if it was
+mentioned
+the same woman might go hey I told you
+about my husband being kidnapped are you
+ever gonna go look for him if it was
+accepted
+she'd say hey
+why aren't you out looking for my
+husband you said you promised to do that
+if it was achieved she'd be like oh
+you found my husband and said it to
+complete it and if it was completed
+she either might say nothing
+um or she might go you know I always
+thank you very much for rescuing my
+husband
+so I love it and if it was fail to be
+like oh my God I heard my husband's dead
+so you can tell how that would expand
+these are interesting is these these
+dialogue lines these Banks were written
+specifically for that Quest by The
+Narrative designer so they weren't
+pulled from a generic
+pool of lines like say ask for money or
+you know forget about it or exit where
+reading though was the most complicated
+opcode
+we'd ever made it was four NPCs
+the reason it was so complicated was it
+covered everything this is where
+Arcanum generated a lot of its
+reactivity from
+because the way an NPC opened a dialogue
+with you is something you usually
+remember
+and it would create greetings it would
+create greetings on a huge number of
+tests and these tests for the greeting
+could be skipped or overwritten
+um if you skipped it you NG in general
+did all the tests and I will go over the
+order did it did it in the narrative
+designer could always say skip this test
+so do test zero and one but don't do
+test zero two and three and then do the
+rest you can also say override it by
+saying
+test for that one but if it's true
+don't use a generic Bank greeting I have
+my own override for it that I want you
+to say
+so let me go through what all the tests
+were and keep in mind
+these were also by
+um NBC social class so I'll go through
+an order from test zero because I'm a c
+programmer up to uh Tess
+uh 11 10 or 11. okay so test zero was it
+literally checks to see if the NPC is
+dead if they are then then because you
+can't talk to a dead person unless
+you're using speak with dead you must be
+using speak with dead so nine times out
+of ten
+99 times out of 100 The Narrative
+designer will override this but if he
+doesn't override it it would say
+something like I'm dead and I know
+nothing why are you why did you rip me
+into pain the pain of the living because
+remember all the Arcanum uh dead NPCs
+are in agony when you bring them back to
+life
+uh test one it would check for
+associates among the player character uh
+this is why it was important to only
+have one player character because it
+would go to that player character and
+say who are his associates it would
+check
+for summoned monsters for animated dead
+and for illusions
+those were three separate checks with
+their own banks that it could respond to
+if the NPC was a wizard
+he would make a sarcastic comment about
+your associate like uh
+you know I learned how to summon fire
+Elemental when I was 15 or really your
+zombies were tracking mud in here and it
+would continue for everyone else they
+would make a
+comment about how afraid they were and
+to exit the dialogue
+which means you would have to
+um get rid of that the that associate
+before you could talk to them keep in
+mind narrative designers could override
+that and say do it do a fear comment and
+then go into dialogue so it was you
+could have it both ways as a narrative
+designer
+um then it would test for spells that
+were operating on the player and we're
+testing this order
+um it would test invisibility
+body of air body of stone body of fire
+body of water polymorph
+mirror image and Shrink
+now you would test in that order and
+each one of those spells had its own
+Bank of comments again if the MPC was a
+wizard he'd make a sarcastic comment
+like could you please turn the
+invisibility off
+fine I'll deal with you invisibly or
+um
+you know polymorph turned you into it's
+like really you want me to deal with you
+as a sheep fine but the wizard ones
+always continued otherwise this is what
+would happen for all non-wizard NPCs
+if you had one of the body spells on it
+would do a particular body comment and
+exit
+if you were polymorphed into a sheep but
+comment on that and exit
+if you had shrunk yourself they would
+make a comment on how adorably small you
+were
+but continue
+if it was Mirror Image they would make a
+comment about how many of them which one
+of you is talking to me you know are you
+Twins and continue if it was
+invisibility they'd make a fearful
+comment like who said that was that a
+ghost and exit so again
+you had to add narratives on you had to
+override it if that's not the behavior
+you wanted
+then it would do two different tests on
+your armor if you were completely naked
+so just in your underwear because we
+were a Victorian game
+the NPC would respond by their class and
+continue so they were like oh my you
+know you're down to your skivvies or
+something like that if
+you were wearing this armor that was
+marked as Barbarian armor and there was
+a flag we could put on any armor
+again they would respond by class and
+continue so a notable person might go
+how uncouth you know where shopkeeper
+were like oh we normally don't serve
+your kind and continue
+otherwise we got to work to like test
+nine or ten here you would get
+greeted by the NPC based on their
+reaction to you
+if it was a first meeting
+then
+that was broken into a great greeting
+all these were
+um by class if they loved you that you
+get a great greeting by class
+friendly a good greeting by the NBC's
+class
+courteous again a good greeting by NBC
+class neutral a neutral greeting by the
+NBC's class suspicious a bad greeting by
+the PC race dislikes another bad
+greeting by the PC race
+animosity a worst greeting based on the
+PC's race
+if you met before
+we had a different set of banks so they
+could say you know nice to see you again
+or oh what are you doing here again and
+again it was broken down in the love
+friendly courteous neutral in the same
+groups by CLA by the embassies class or
+suspicious dislike animosity
+by the
+PC's race
+this
+let us do
+so much
+you had a spell that was still running
+that made a visual effect they're
+probably going to comment on it you wear
+certain kinds of armor or you're not
+wearing armor at all they're going to
+comment on it you have
+you know they they like you or don't
+like you they're gonna comment on it
+they you've been there before they're
+going to get a different comment and
+what I loved about that was shopkeepers
+were often like oh is this your first
+time in the store would you like to see
+the inventory
+versus oh it's nice to see you back
+that's if they liked you they didn't
+like you it's like oh it's my big
+spender what do you you know what do you
+want to see this time
+notice you may or may not have been a
+big spender they're making fun of you
+because they don't like you
+um and of course they'd have to do it by
+race or it's like oh it look look it's
+the the half Fork that thinks that it's
+it's a person or you know I wonder where
+you got your money from so it was just a
+great way of constantly reminding you of
+the choices you made I loved this this
+that's all the op codes by the way that
+system is what led us put together
+such a rich
+dialogue
+uh set in Arcanum because even if all
+the rest of it was handcrafted that
+greeting allowed so much reactivity on
+so many different axes and people
+noticed and it was a really good way of
+kind of It kind of helped
+people in their minds Arcanum was just
+something extra special in that regard
+never done this since
+um when I tried to introduce this in
+later games especially at other
+companies nobody was interested I'm
+hoping now that AI
+has advanced in these llms these large
+language model AIS that something like
+this could be done but with a lot more
+variety
+especially now that AIS can also do
+speech synthesis so again I'm hope this
+is like a primitive 20 year old
+generated dialogue system we could do a
+lot better today but I thought you guys
+would like to hear exactly how it worked
+in arcade

@@ -1,0 +1,1097 @@
+[Music]
+welcome to this presentation my name isan and I'm going to be talking about
+isan and I'm going to be talking about modernizing rendering at supercell so
+modernizing rendering at supercell so first of all I want to remind everyone
+first of all I want to remind everyone to please turn off their phones if
+to please turn off their phones if they're potentially making any sounds
+they're potentially making any sounds and remember to fill in the review forms
+and remember to fill in the review forms after the presentation
+so I'm going to start off the presentation with a short History tour
+presentation with a short History tour on technology development at the
+on technology development at the company after that I'm going to be
+company after that I'm going to be talking about the actual process of
+talking about the actual process of rewriting our core renderer and porting
+rewriting our core renderer and porting all of our games on top of the new
+all of our games on top of the new system then I'm going to be talking
+system then I'm going to be talking about the new system itself going to
+about the new system itself going to give an overview of its architecture and
+give an overview of its architecture and talk a bit about the new the feature set
+talk a bit about the new the feature set and finally I'm going to go through some
+and finally I'm going to go through some of the learnings from along the
+of the learnings from along the way but first off a little bit of
+way but first off a little bit of introductions so the name was already
+introductions so the name was already mentioned di MOA I've been a super
+mentioned di MOA I've been a super cellan since March 2020 and ever since
+cellan since March 2020 and ever since I've been focusing on building our
+I've been focusing on building our shared rendering
+shared rendering capabilities so my career actually
+capabilities so my career actually started in the IT industry I did that
+started in the IT industry I did that for about five or so years but I always
+for about five or so years but I always wanted to be in the game development
+wanted to be in the game development industry
+industry so I decided to join bug bear
+so I decided to join bug bear entertainment and worked primarily on
+entertainment and worked primarily on the game
+the game recfest after bug bear I join next games
+recfest after bug bear I join next games as the lead programmer on The Walking
+as the lead programmer on The Walking Dead no man's
+Dead no man's land before supercell I was at a small
+land before supercell I was at a small startup called reforge
+startup called reforge Studios so supercell was founded in
+Studios so supercell was founded in 2010 we have about 420 or 430 people
+2010 we have about 420 or 430 people give or take globally and were best
+give or take globally and were best known for games such as Heyday clash of
+known for games such as Heyday clash of Clans Boom Beach Clash Royale and roll
+Clans Boom Beach Clash Royale and roll Stars so now let's talk a bit about the
+Stars so now let's talk a bit about the history of Technology development here
+history of Technology development here so we actually started developing our
+so we actually started developing our games in Flash our first game gunshine
+games in Flash our first game gunshine Donnet was made on flash for the
+Donnet was made on flash for the Facebook
+Facebook platform and Facebook was the first
+platform and Facebook was the first component in our multiplatform strategy
+component in our multiplatform strategy back
+back then but we soon realized that gunshine
+then but we soon realized that gunshine Donnet was not going to be the huge
+Donnet was not going to be the huge success that we had hoped it to be so we
+success that we had hoped it to be so we decided to kill the game and pivoted to
+decided to kill the game and pivoted to tablet oriented mobile which is really
+tablet oriented mobile which is really On The Rise back
+On The Rise back then so we needed something native to
+then so we needed something native to run on IOS and Android because Flash
+run on IOS and Android because Flash just wouldn't cut it and the options
+just wouldn't cut it and the options back then were quite a lot more limited
+back then were quite a lot more limited than they are
+nowadays we also wanted to continue authoring in Flash because we had a lot
+authoring in Flash because we had a lot of experience in the pipeline and we
+of experience in the pipeline and we also had a lot of content coming up in
+also had a lot of content coming up in the pipeline as well so it made
+the pipeline as well so it made sense so this was the birth of what we
+sense so this was the birth of what we call
+call Titan so we developed this pipeline for
+Titan so we developed this pipeline for converting flash content into our
+converting flash content into our in-house
+in-house format and a rendering system for
+format and a rendering system for rendering this content and we call this
+rendering this content and we call this stage stage is closely modeled off of
+stage stage is closely modeled off of The Flash
+The Flash API stage is also part of Titan but
+API stage is also part of Titan but Titan is quite a lot more than just
+Titan is quite a lot more than just rendering or stage in this case Titan is
+rendering or stage in this case Titan is has a lot of components that are
+has a lot of components that are utilized by the game teams to develop uh
+utilized by the game teams to develop uh to implement the game functionality
+to implement the game functionality components that they might not
+components that they might not necessarily want to or it doesn't make
+necessarily want to or it doesn't make sense for them to develop on their
+sense for them to develop on their own historically Titan has been
+own historically Titan has been something of a toolbox of components
+something of a toolbox of components from which game teams can pick and
+from which game teams can pick and choose these components but it's
+choose these components but it's becoming more and more of an actual
+becoming more and more of an actual engine Titan is also maintained by the
+engine Titan is also maintained by the tools and Technology team so even though
+tools and Technology team so even though every game team does have the capacity
+every game team does have the capacity and can commit directly into Titan the
+and can commit directly into Titan the primary responsibility for maintaining
+primary responsibility for maintaining the engine still falls on the tools and
+the engine still falls on the tools and Technology team and I'm also personally
+Technology team and I'm also personally part of that
+part of that team so we've been seeing this growing
+team so we've been seeing this growing need for 3D historically our early games
+need for 3D historically our early games have been isometric pre-rendered or hand
+have been isometric pre-rendered or hand painted
+painted 3D so if you look at at Heyday or Clash
+3D so if you look at at Heyday or Clash of Clans um it looks 3D is but it's
+of Clans um it looks 3D is but it's actually not you know real time render
+actually not you know real time render 3D but games such as everdale which is
+3D but games such as everdale which is one of our one of our beta games and
+one of our one of our beta games and ball Stars really highlighted the
+ball Stars really highlighted the potential of 3D in our games and what
+potential of 3D in our games and what how it could make for more Vivid
+how it could make for more Vivid environments uh it's worth mentioning
+environments uh it's worth mentioning here that even though uh everdale was
+here that even though uh everdale was killed it's found a new home under
+killed it's found a new home under medicor so we're definitely looking
+medicor so we're definitely looking forward to what they can come up with
+forward to what they can come up with the idea with the
+the idea with the concept so then some new winds started
+concept so then some new winds started blowing for 3D and one of the big things
+blowing for 3D and one of the big things that happened was that Apple decided to
+that happened was that Apple decided to drop a bomb when they deprecated openg
+drop a bomb when they deprecated openg GES this was a huge problem for us
+GES this was a huge problem for us because we heavily relied on openg GES
+because we heavily relied on openg GES pretty much all of our rendering was
+pretty much all of our rendering was built directly on top of it we had some
+built directly on top of it we had some lightweight layers on top of openg
+lightweight layers on top of openg GES but a lot of the games were also
+GES but a lot of the games were also directly called into into the underlying
+directly called into into the underlying API so if we look at a bird ey view of
+API so if we look at a bird ey view of our Legacy rendering architecture then
+our Legacy rendering architecture then at the bottom we have the openg and
+at the bottom we have the openg and openg GES layer directly no
+openg GES layer directly no abstractions on top of this we have this
+abstractions on top of this we have this lightweight helper layer with Shader
+lightweight helper layer with Shader loading on a render class that helped
+loading on a render class that helped with some vertx buffer binding things
+with some vertx buffer binding things and stuff like that GL image for open GL
+and stuff like that GL image for open GL texture creation and texture content
+texture creation and texture content loading a very kind of simple and
+loading a very kind of simple and lightweight
+lightweight stuff on top of this we had 3D rendering
+stuff on top of this we had 3D rendering uh functionality for meshes materials
+uh functionality for meshes materials models scenes Etc and this layer also
+models scenes Etc and this layer also kind contains stage and this was using
+kind contains stage and this was using the underlying layer in addition to
+the underlying layer in addition to directly calling into openg G Es as
+directly calling into openg G Es as well and then finally we have a game
+well and then finally we have a game specific rendering layer which used all
+specific rendering layer which used all the layers under
+the layers under including directly calling into
+including directly calling into openg so we were heavily heavily ring on
+openg so we were heavily heavily ring on opengl so we wanted to Future proof our
+opengl so we wanted to Future proof our rendering we really saw this as an
+rendering we really saw this as an opportunity so we didn't want to just
+opportunity so we didn't want to just work around the issue of not having
+work around the issue of not having metal by just implementing a side bys
+metal by just implementing a side bys side metal path for rendering we wanted
+side metal path for rendering we wanted to do this
+to do this properly our Legacy rendering path was
+properly our Legacy rendering path was really holding us back so it's becoming
+really holding us back so it's becoming more and more comp licated to create
+more and more comp licated to create anything more complex um 3D effects
+anything more complex um 3D effects um so it was really holding us back and
+um so it was really holding us back and we had these situations where we had 2D
+we had these situations where we had 2D rendering States leaking into 3D
+rendering States leaking into 3D rendering States and it was really hard
+rendering States and it was really hard to maintain a separation between these
+to maintain a separation between these systems so we needed a proper
+systems so we needed a proper abstraction layer that would allow our
+abstraction layer that would allow our game rendering Engineers to focus on the
+game rendering Engineers to focus on the actual game visuals and not think too
+actual game visuals and not think too much about the underlying
+API so this could be considered a risky move to rewrite the render of billion
+move to rewrite the render of billion doll
+doll games but we believe that changes like
+games but we believe that changes like these are often necessary to keep us
+these are often necessary to keep us competitive so we keep moving our games
+competitive so we keep moving our games to new Titan features because it helps
+to new Titan features because it helps us in many ways it helps us improve our
+us in many ways it helps us improve our existing games with every update so if
+existing games with every update so if we for instance develop a new content
+we for instance develop a new content delivery system then these games are
+delivery system then these games are able to deliver better and more content
+able to deliver better and more content to our
+to our players it also keeps allows us to keep
+players it also keeps allows us to keep the tools and Technology team smaller
+the tools and Technology team smaller because we can focus on these um single
+because we can focus on these um single stack and we don't have multiple
+stack and we don't have multiple branches of our technology stack to
+branches of our technology stack to maintain also it makes it a lot easier
+maintain also it makes it a lot easier to share learnings and Technology
+to share learnings and Technology between games because we have this
+between games because we have this common language that we're speaking
+common language that we're speaking common platform that we're using
+common platform that we're using using so now it's time to introduce Thor
+using so now it's time to introduce Thor or Titan Hardware oriented optimized
+or Titan Hardware oriented optimized renderer in fact this is actually just a
+renderer in fact this is actually just a name that I came up after watching a
+name that I came up after watching a Marvel Thor movie but um the term was
+Marvel Thor movie but um the term was nice and it had a nice abbreviation so
+nice and it had a nice abbreviation so that's
+that's stuck so Thor is this abstraction layer
+stuck so Thor is this abstraction layer currently it abstracts metal openg openg
+currently it abstracts metal openg openg glees and Vulcan Vulcan is still an
+glees and Vulcan Vulcan is still an experimental support but we're pushing
+experimental support but we're pushing hard to get that into live as soon as
+hard to get that into live as soon as possible when I joined the company we
+possible when I joined the company we had like a skeleton of what was to
+had like a skeleton of what was to become Thor so it's very simple we had
+become Thor so it's very simple we had we had the basic architecture in place
+we had the basic architecture in place already uh and we had basic support for
+already uh and we had basic support for openg openg G es and metal won was still
+openg openg G es and metal won was still missing at this point and actually quite
+missing at this point and actually quite a lot of like core features you know we
+a lot of like core features you know we still missing and a lot of this has been
+still missing and a lot of this has been Rewritten partially because of
+Rewritten partially because of multi-threaded support added to
+multi-threaded support added to openg but it was a good
+openg but it was a good start so during the Spring of 2020 I
+start so during the Spring of 2020 I worked on Thor pretty much in isolation
+worked on Thor pretty much in isolation so I didn't have any game project to
+so I didn't have any game project to actually work on I just had this
+actually work on I just had this separate test project for different
+separate test project for different rendering tests for creating textures
+rendering tests for creating textures creating uh compiling shaders and
+creating uh compiling shaders and rendering
+rendering Primitives but right before summer
+Primitives but right before summer holidays which in Finland uh the game
+holidays which in Finland uh the game industry typically has
+industry typically has rough roughly around July so this was by
+rough roughly around July so this was by the end of June or so I got Heyday
+the end of June or so I got Heyday running in a very limited manner so as
+running in a very limited manner so as you can see uh the screenshot is quite
+you can see uh the screenshot is quite buggy uh but it is it is the first
+buggy uh but it is it is the first screenshot of the game actually running
+screenshot of the game actually running on Thor so it was a huge milestone
+on Thor so it was a huge milestone because after this we could just start
+because after this we could just start improving Thor making it better and
+improving Thor making it better and making it production
+ready Heyday was chosen due to his limited rendering ing feature set it
+limited rendering ing feature set it basically only relied on stage we didn't
+basically only relied on stage we didn't have to implement any of the 3D
+have to implement any of the 3D rendering
+functionality of course we had to prepare for the worst so we set up
+prepare for the worst so we set up automated testing from the get-go even
+automated testing from the get-go even before we were considering merging
+before we were considering merging anything
+anything in so we had these predefined scenarios
+in so we had these predefined scenarios for smoke testing tests that would scour
+for smoke testing tests that would scour through the game go through different
+through the game go through different menus press different buttons and basic
+menus press different buttons and basic basically kind of automatically play the
+basically kind of automatically play the game we also have video recording for
+game we also have video recording for recording the PlayStation and storing
+recording the PlayStation and storing that on disk for later
+that on disk for later analysis we had log capturing so that if
+analysis we had log capturing so that if we saw some issues in the videos we
+we saw some issues in the videos we could go into the logs and see if
+could go into the logs and see if there's any uh potential reasons for why
+there's any uh potential reasons for why that might be
+that might be happening and we could execute these
+happening and we could execute these tests in Google Firebase so we can take
+tests in Google Firebase so we can take hundreds of devices and combinations
+hundreds of devices and combinations with different OS versions and try out
+with different OS versions and try out the tests on there get really good
+the tests on there get really good coverage this helped us find multiple
+coverage this helped us find multiple issues in rendering before a launch and
+issues in rendering before a launch and towards the end of the presentation I
+towards the end of the presentation I have a couple of interesting uh examples
+have a couple of interesting uh examples of these and it allowed QA to focus on
+of these and it allowed QA to focus on the more tricky
+issues so during the fall of 20120 I focused on improving Thor and
+focused on improving Thor and stabilizing Thor so basically making a
+stabilizing Thor so basically making a production ready fixing small issues
+production ready fixing small issues doing performance optimization and stuff
+doing performance optimization and stuff like
+like that working with the game team was
+that working with the game team was super easy so whenever I had any
+super easy so whenever I had any questions about where certain things
+questions about where certain things were implemented how it was how the
+were implemented how it was how the rendering was done or how to make
+rendering was done or how to make certain kinds of builds I could just
+certain kinds of builds I could just directly go to the team and get answers
+directly go to the team and get answers really quickly and no one no one really
+really quickly and no one no one really questioned my ability work to work on
+questioned my ability work to work on this and I was able to do really big
+this and I was able to do really big decisions uh
+decisions uh autonomously so in the end the update of
+autonomously so in the end the update of Heyday using Thor was released on the
+Heyday using Thor was released on the 23rd of November
+23rd of November 2020 and this was the second huge
+2020 and this was the second huge milestone for Thor because after this
+milestone for Thor because after this point we had a game in the wild and we
+point we had a game in the wild and we could start collecting performance
+could start collecting performance metrics uh crash reports and overall
+metrics uh crash reports and overall player
+player feedback luckily we didn't run into a
+feedback luckily we didn't run into a lot of issues in the live so I was able
+lot of issues in the live so I was able to move to the next project which was
+to move to the next project which was that I was jumping from one game team to
+that I was jumping from one game team to another porting the game rendering over
+another porting the game rendering over to Thor and improving Thor while doing
+to Thor and improving Thor while doing so so the next game in the line was
+so so the next game in the line was Clash of Clans and this was actually the
+Clash of Clans and this was actually the first game um to be ported that had 3D
+first game um to be ported that had 3D elements in it so at this point I needed
+elements in it so at this point I needed to Port meshes render cues materials all
+to Port meshes render cues materials all that
+that stuff but it was a relatively
+stuff but it was a relatively straightforward process partially
+straightforward process partially because stage was already ported and
+because stage was already ported and most of the rendering in Clash relied on
+most of the rendering in Clash relied on stage with just a couple of 3D elements
+stage with just a couple of 3D elements there this update went out pretty
+there this update went out pretty quickly after uh Heyday on the 12th of
+quickly after uh Heyday on the 12th of April in
+April in 2021 next up was Clash Royale and Clash
+2021 next up was Clash Royale and Clash Royale was actually started in parallel
+Royale was actually started in parallel with Clash of Clans and there weren't a
+with Clash of Clans and there weren't a lot of huge surprises again here uh
+lot of huge surprises again here uh mainly mainly some Shader variant
+mainly mainly some Shader variant filtering systems that needed to be
+filtering systems that needed to be implemented but the biggest issue really
+implemented but the biggest issue really was matching the timelines of the
+was matching the timelines of the project so their release schedule and it
+project so their release schedule and it took quite a lot of time uh to bring
+took quite a lot of time uh to bring this update out which came on out on the
+this update out which came on out on the 25th of October in
+25th of October in 2021 the fourth game out was brawl stars
+2021 the fourth game out was brawl stars and brawl star was probably the most
+and brawl star was probably the most complicated most of the functionality
+complicated most of the functionality itself was already there but because of
+itself was already there but because of the sheer amount of content that we had
+the sheer amount of content that we had and the variations of the different um
+and the variations of the different um shaders that we had we ran into a number
+shaders that we had we ran into a number of like smaller issues that needed to be
+of like smaller issues that needed to be fixed also QA had their handsful on
+fixed also QA had their handsful on multiple releases of the game so it just
+multiple releases of the game so it just took while to go through
+took while to go through QA eventually this update went out on
+QA eventually this update went out on the 16th of December in
+the 16th of December in 2021 the last game to be ported was Boom
+2021 the last game to be ported was Boom Beach and this took the longest um
+Beach and this took the longest um because again the release schedules of
+because again the release schedules of the game and boom has its own uh a bit
+the game and boom has its own uh a bit different way of doing 3D rendering so
+different way of doing 3D rendering so there was somewhat more work to be done
+there was somewhat more work to be done there but the update eventually went out
+there but the update eventually went out on the 2nd of November in
+on the 2nd of November in 2022 so at this point all the live games
+2022 so at this point all the live games had been ported and we could do a
+had been ported and we could do a surgical operation to remove the old
+surgical operation to remove the old render path so this was the third major
+render path so this was the third major milestone for Thor development and we
+milestone for Thor development and we could consider the project done at this
+could consider the project done at this point you've probably noticed a pattern
+point you've probably noticed a pattern here uh with me mentioning that the
+here uh with me mentioning that the biggest problem was really the timeline
+biggest problem was really the timeline of the projects and that is true because
+of the projects and that is true because it was complicated to match the work
+it was complicated to match the work being done on Thor to the timelines of
+being done on Thor to the timelines of these individual projects because they
+these individual projects because they still wanted to develop the games
+still wanted to develop the games forward develop all the new feat cool
+forward develop all the new feat cool features that they wanted for their
+features that they wanted for their players while I was still working on the
+players while I was still working on the core rendering so that was probably the
+core rendering so that was probably the Challen most challenging part on
+Challen most challenging part on here but that was just the beginning so
+here but that was just the beginning so the develop of Thor has continued
+the develop of Thor has continued nonstop we've now shifted Focus to
+nonstop we've now shifted Focus to building on top of Thor so now we're
+building on top of Thor so now we're able to build new rendering techniques
+able to build new rendering techniques which we couldn't before it also has
+which we couldn't before it also has made sharing a lot easier it's easier to
+made sharing a lot easier it's easier to talk if you have a common codebase and
+talk if you have a common codebase and common language to speak with and it has
+common language to speak with and it has allowed us to build better tooling and
+allowed us to build better tooling and use a lot of better tooling because of
+use a lot of better tooling because of the PIP pipeline the new pipeline
+the PIP pipeline the new pipeline underneath so let's talk a bit about
+underneath so let's talk a bit about about Thor
+about Thor itself so we had three major design
+itself so we had three major design goals for Thor first of all it needed to
+goals for Thor first of all it needed to support multiple rendering apis we
+support multiple rendering apis we wanted to add metal support but we had
+wanted to add metal support but we had to also keep the openg and openg glees
+to also keep the openg and openg glees support so naturally we had at least two
+support so naturally we had at least two apis but we also wanted to add support
+apis but we also wanted to add support for Vulcan because that's the direction
+for Vulcan because that's the direction that Android has been U pushing really
+that Android has been U pushing really hard
+we also wanted it to be powerful and efficient but easy to use so we wanted
+efficient but easy to use so we wanted to be able to create these modern
+to be able to create these modern impressive visuals with this system
+impressive visuals with this system efficiently but we also wanted the game
+efficiently but we also wanted the game engineers and the game rendering
+engineers and the game rendering Engineers to be able to do this uh
+Engineers to be able to do this uh without a lot of
+without a lot of Hassle and we wanted to make this future
+Hassle and we wanted to make this future proof so we didn't want to be rewriting
+proof so we didn't want to be rewriting this system anytime soon it was going to
+this system anytime soon it was going to be our kind of rendering platform for
+be our kind of rendering platform for the future
+future so Thor in a nutshell currently Thor supports these apis which I already
+Thor supports these apis which I already mentioned
+mentioned earlier it is architectured around the
+earlier it is architectured around the concept of metal because we found that
+concept of metal because we found that metal is probably the best compromise
+metal is probably the best compromise between performance and usability and
+between performance and usability and also metal was kind of our primary
+also metal was kind of our primary target initially so it made sense to
+target initially so it made sense to architecture things around
+architecture things around it Thor is also multi-threaded so this
+it Thor is also multi-threaded so this was a really important point for us
+was a really important point for us because modern mobile devices tend to
+because modern mobile devices tend to have a lot of cores and different types
+have a lot of cores and different types of cores also so we wanted to be able to
+of cores also so we wanted to be able to utilize that to create multi-threaded
+utilize that to create multi-threaded rendering algorithms which we couldn't
+before so we had a number of design challenges also first of all it needed
+challenges also first of all it needed to support all the Legacy devices the
+to support all the Legacy devices the render path also supported this
+render path also supported this partially comes from our mission which
+partially comes from our mission which is to create game cre games that as many
+is to create game cre games that as many many people as possible play for years
+many people as possible play for years and that are remembered forever so we
+and that are remembered forever so we didn't want to be dropping these players
+didn't want to be dropping these players that have been enjoying our our games
+that have been enjoying our our games for years just because we were rewriting
+for years just because we were rewriting this core rendering which was more or
+this core rendering which was more or less future proofing our rendering but
+less future proofing our rendering but it wasn't immediately providing any huge
+it wasn't immediately providing any huge benefits to our players it was going to
+benefits to our players it was going to provide those benefits in the future
+so the added abstractions should also be very efficient we had a very efficient
+very efficient we had a very efficient use of open G originally because we had
+use of open G originally because we had built all of our rendering directly on
+built all of our rendering directly on top of openg
+GES and abstractions tend to add overhead so we wanted to keep this to
+overhead so we wanted to keep this to the
+minimum this was probably our biggest challenges we we wanted to we wanted the
+challenges we we wanted to we wanted the new render path to coexist with the old
+new render path to coexist with the old render
+render path so we didn't want to put all of our
+path so we didn't want to put all of our eggs in a single basket and we we wanted
+eggs in a single basket and we we wanted to update our games one after another to
+to update our games one after another to make sure that the game before worked
+make sure that the game before worked before we moved to the next next
+game so let's look at a bird ey view of the core architecture of
+the core architecture of Thor so we have the bottom layer which
+Thor so we have the bottom layer which is a platform specific layer and this is
+is a platform specific layer and this is different for metal Vulcan um openg and
+different for metal Vulcan um openg and openg glees for openg and openg GES it
+openg glees for openg and openg GES it shares quite a lot of code actually so
+shares quite a lot of code actually so technically it's kind of the same
+technically it's kind of the same platform with some
+variations on top of this we have the actual abstraction layer which contains
+actual abstraction layer which contains resources such as buffers textures
+resources such as buffers textures different render states such as the
+different render states such as the render pipeline um depth stencil States
+render pipeline um depth stencil States Shader function definitions and all
+Shader function definitions and all that and this is what we call Thor so it
+that and this is what we call Thor so it is the hardware or the underlying API
+is the hardware or the underlying API abstraction
+abstraction layer on top of this we have the same
+layer on top of this we have the same layer that we had before for 3D
+layer that we had before for 3D rendering mainly also including
+rendering mainly also including stage and we didn't rearchitecturing
+layer which now depends only on Thor and the scene layer here so as you can see
+the scene layer here so as you can see it's no longer dependent on the platform
+it's no longer dependent on the platform API which was one of our biggest goals
+API which was one of our biggest goals here so let's quickly look at the
+here so let's quickly look at the composition of a single frame here so we
+composition of a single frame here so we start off with command buffer
+start off with command buffer encoding this is a concept that we took
+encoding this is a concept that we took from metal so you create a command
+from metal so you create a command buffer and then you create a render
+buffer and then you create a render encoder which is responsible for
+encoder which is responsible for encoding these draw calls and state sets
+encoding these draw calls and state sets into the command
+this is emulated on opengl because opengl does not have an A an explicit
+opengl does not have an A an explicit concept of command
+concept of command buffers excuse me metal and Vulcan has
+buffers excuse me metal and Vulcan has this so for them it's basically just a
+this so for them it's basically just a native operation but for opengl we have
+native operation but for opengl we have a host memory buffer where we encode
+a host memory buffer where we encode these um State sets and draw calls
+these um State sets and draw calls Etc this command buffer is then pushed
+Etc this command buffer is then pushed into the command
+into the command q and on metal and Vulcan this basically
+q and on metal and Vulcan this basically goes through the driver and to GPU
+goes through the driver and to GPU execution Etc but for opengl we actually
+execution Etc but for opengl we actually have a dedicated working thread that
+have a dedicated working thread that unwraps the command buffer and executes
+unwraps the command buffer and executes the opengl
+the opengl commands so this has allowed us to
+commands so this has allowed us to create these command buffers on any
+create these command buffers on any threads uh but the actual amand uh
+threads uh but the actual amand uh opengl commands are executed on a single
+thread we can of course have multiple command buffers being encoded and an
+command buffers being encoded and an execution in parallel uh there is only a
+execution in parallel uh there is only a limit for how many command buffers can
+limit for how many command buffers can exist at any given time but if you
+exist at any given time but if you encode these command buffers commit them
+encode these command buffers commit them and wait for some of them to be freed
+and wait for some of them to be freed again you can encode any amount of
+again you can encode any amount of command buffers during a single
+command buffers during a single frame and this hard limit of command
+frame and this hard limit of command buffers executing actually comes from
+buffers executing actually comes from metal then of course the second command
+metal then of course the second command buffer here gets executed and finally
+buffer here gets executed and finally when we're complete with the frame we
+when we're complete with the frame we schedule a present that's that concludes
+schedule a present that's that concludes the
+the frame so let's talk a bit about shaders
+frame so let's talk a bit about shaders so we author our shaders in
+so we author our shaders in glsl this is then compiled into spury
+glsl this is then compiled into spury modules and we convert the spury module
+modules and we convert the spury module to the Target specific languages using
+to the Target specific languages using spury cross for open GL is like
+spury cross for open GL is like different variations of GLS L and for
+different variations of GLS L and for metal that's
+MSL these are then loaded at runtime and uh converted into the runtime Concepts
+uh converted into the runtime Concepts Shader functions or Shader link uh
+Shader functions or Shader link uh compiled and linked into Shader programs
+compiled and linked into Shader programs and on openg G we also have a Shader
+and on openg G we also have a Shader program cache that we can use to
+program cache that we can use to optimize the lad times
+significantly and of course on Vulcan we directly load the spury module but it's
+directly load the spury module but it's important to know that this spurv module
+important to know that this spurv module might not be the same for every single
+might not be the same for every single platform because we might be doing some
+platform because we might be doing some optimizations for uh for them depending
+optimizations for uh for them depending on the
+platform we have both a low time and a built time pipeline here so we can do
+built time pipeline here so we can do the spury cross uh cross compilation
+the spury cross uh cross compilation either at low time or at build time the
+either at low time or at build time the low time approach was something that we
+low time approach was something that we originally had where we shipped the
+originally had where we shipped the spury modules and then at low time we
+spury modules and then at low time we did the cross comp
+did the cross comp to get the final target language which
+to get the final target language which was then compiled but now we've since
+was then compiled but now we've since moved to a build time pipeline where we
+moved to a build time pipeline where we actually build the different variations
+actually build the different variations of these shaders offline during the game
+built in addition to this we also have a variant system so every single Shader
+variant system so every single Shader can define a set of variant flags and
+can define a set of variant flags and the pipeline then builds different
+the pipeline then builds different variations of these but as we all know
+variations of these but as we all know from a lot of other engines this can
+from a lot of other engines this can cost quite a lot of time to build all
+cost quite a lot of time to build all these variations so we also support
+these variations so we also support specialization constants so if you
+specialization constants so if you request a Shader function from Thor you
+request a Shader function from Thor you can specify a set of specialization
+can specify a set of specialization constants which will further Branch out
+constants which will further Branch out the Shader
+the Shader implementation on metal this uses
+implementation on metal this uses function constants and on Vulcan it's
+function constants and on Vulcan it's specialization constants and an openg G
+specialization constants and an openg G we actually utilize the way that spur
+we actually utilize the way that spur cross kind of emulates the
+cross kind of emulates the specialization constants and we're able
+specialization constants and we're able to Def but we're able to Define these
+to Def but we're able to Define these values at compilation
+time so naturally not all features of Thor are available on all
+Thor are available on all platforms games can check for the
+platforms games can check for the availability of certain PL uh certain
+availability of certain PL uh certain features using feature flag
+features using feature flag test but some of these features are also
+test but some of these features are also emulated and this allows for a uniform
+emulated and this allows for a uniform base implementation so the game
+base implementation so the game rendering Engineers can expect a certain
+rendering Engineers can expect a certain uniform implementation or um base
+uniform implementation or um base implementation to be there to build on
+implementation to be there to build on top of and then they can Branch out for
+top of and then they can Branch out for specific type of features that they
+specific type of features that they might want to be
+might want to be using an example of these emulated
+using an example of these emulated features on openg ges2 backend is
+features on openg ges2 backend is uniform buffers so in openg gle2 we
+uniform buffers so in openg gle2 we don't have support for un native uniform
+don't have support for un native uniform buffers so we just have a host memory
+buffers so we just have a host memory buffer where we store the uniform values
+buffer where we store the uniform values based on the Shader uh uniform block
+based on the Shader uh uniform block layout and then when we want to actually
+layout and then when we want to actually render some Primitives we resolve these
+render some Primitives we resolve these by reading from the memory buffer and
+by reading from the memory buffer and using GL uniform calls to set the values
+using GL uniform calls to set the values of the
+uniforms so looking into the future Focus has now shifted to building on top
+Focus has now shifted to building on top of Thor as already mentioned I have a
+of Thor as already mentioned I have a couple of examp examples here of things
+couple of examp examples here of things that uh we're currently working on so of
+that uh we're currently working on so of course we're adding features to Thor
+course we're adding features to Thor whenever we realize that there are some
+whenever we realize that there are some new feature in metal or Vulcan we
+new feature in metal or Vulcan we consider adding that to the core of Thor
+consider adding that to the core of Thor if it is something that really benefits
+if it is something that really benefits the game
+the game teams in addition to this we have a
+teams in addition to this we have a couple of uh new systems that I wanted
+couple of uh new systems that I wanted to mention here that we're working on
+to mention here that we're working on first of all a render graph
+first of all a render graph implementation and something what we
+implementation and something what we call Odin and this is not a coincidence
+call Odin and this is not a coincidence that it's called
+that it's called loaded so now let's quickly talk about
+loaded so now let's quickly talk about the render
+the render graph the render graph is basically a
+graph the render graph is basically a task render gra render task management
+task render gra render task management system each task implements a piece of
+system each task implements a piece of frame rendering and we have two types of
+frame rendering and we have two types of tasks on here first of all we have
+tasks on here first of all we have generic tasks which do not output pixels
+generic tasks which do not output pixels and a good example of these is CPU
+and a good example of these is CPU skinning
+and this uh task is basically responsible for taking the model
+responsible for taking the model transforms the untransformed verx data
+transforms the untransformed verx data processing that and outputting that into
+processing that and outputting that into a temporary verx buffer for
+a temporary verx buffer for rendering then we have render passes and
+rendering then we have render passes and render passes actually output pixels
+render passes actually output pixels either offscreen or onscreen frame
+either offscreen or onscreen frame buffers these tasks are then queed for
+buffers these tasks are then queed for execution on worker cues
+execution on worker cues we can have basically any number of
+we can have basically any number of worker
+worker cues depending on how many different
+cues depending on how many different cores the platform has it really makes
+cores the platform has it really makes sense to use different amount of
+sense to use different amount of cues synchronization is based on the
+cues synchronization is based on the inputs and outputs of these nodes so as
+inputs and outputs of these nodes so as you can see there is a dependency
+you can see there is a dependency between model skinning and the different
+between model skinning and the different render passes here so the model skinning
+render passes here so the model skinning needs to complete before the render
+needs to complete before the render passes can
+passes can start also there is a dependency between
+start also there is a dependency between the shadow pass and the collar pass but
+the shadow pass and the collar pass but you can see there's quite a lot of
+you can see there's quite a lot of overlap in the execution between these
+overlap in the execution between these tasks this is because the colar pass
+tasks this is because the colar pass only meets the frame buffer output of
+only meets the frame buffer output of the Shadow pass but only on the GPU so
+the Shadow pass but only on the GPU so we don't we can overlap most of the
+we don't we can overlap most of the execution of these tasks because that
+execution of these tasks because that execution is preparation of the command
+execution is preparation of the command buffers so the only important thing is
+buffers so the only important thing is to make sure that the command buffer for
+to make sure that the command buffer for the sh pass is committed before the
+the sh pass is committed before the color pass and this is something that
+color pass and this is something that the system also takes into
+account so I'm not going to go too much into Odin at this point but I wanted to
+into Odin at this point but I wanted to mention that because this project with
+mention that because this project with Thor did not really touch the middle
+Thor did not really touch the middle layer that much but the project uh
+layer that much but the project uh called Odin is this so the purpose is to
+called Odin is this so the purpose is to modernize this middle layer so to be
+modernize this middle layer so to be able to to be better equipped to fulfill
+able to to be better equipped to fulfill the needs of our new games and our
+the needs of our new games and our current games uh to have different kinds
+current games uh to have different kinds of materials make that more uh
+of materials make that more uh datadriven and easier to
+use so now let's dig into some learnings from along the
+from along the way the first thing that I wanted to
+way the first thing that I wanted to talk about here is
+talk about here is quality so our games are played on a
+quality so our games are played on a wide range of devices we have about 250
+wide range of devices we have about 250 million monthly average users who have
+million monthly average users who have quite a large variety of different kinds
+quite a large variety of different kinds of
+of devices so testing everything manually
+devices so testing everything manually is just
+is just impossible and automated testing smoke
+impossible and automated testing smoke testing really took the pressure off of
+testing really took the pressure off of QA and allow allowed us to have really
+QA and allow allowed us to have really good coverage
+good coverage here another very important topic at
+here another very important topic at least for myself is proper self- review
+least for myself is proper self- review so making sure that the commit that
+so making sure that the commit that you're making or the code that you're
+you're making or the code that you're merging that you understand it and that
+merging that you understand it and that you know it is up to your own quality
+you know it is up to your own quality standards so this basically helps you
+standards so this basically helps you feel sure that you've made the decis
+feel sure that you've made the decis best decisions with the available time
+best decisions with the available time and
+and information also it builds confidence in
+information also it builds confidence in your co-workers that you are not making
+your co-workers that you are not making decisions at random and finally that
+decisions at random and finally that you're also better equipped to fix any
+you're also better equipped to fix any bugs that are surely going to pop up in
+bugs that are surely going to pop up in your code in the future
+and finally respect your QA they really help me sleep my nights in relative
+Comfort something that's very important with mobile development overall is
+with mobile development overall is Energy
+Energy Efficiency so batteries and heat
+Efficiency so batteries and heat dissipation tend to be very limiting
+dissipation tend to be very limiting factors of Mobile you don't see a lot of
+factors of Mobile you don't see a lot of devices with active cooling like fans
+devices with active cooling like fans blowing and these devices are targeted
+blowing and these devices are targeted towards
+towards not sustained performance but Peak
+not sustained performance but Peak Performance so if you try to sustain the
+Performance so if you try to sustain the full 100% usage of the device then
+full 100% usage of the device then you're going to run through battery and
+you're going to run through battery and it's going to be overheating and the
+it's going to be overheating and the device will be
+throttling rendering needs to pay extra attention to this because a lot of the
+attention to this because a lot of the rendering code tends to be on the hot
+path and this is really important to fulfill our mission because it allows us
+fulfill our mission because it allows us to you know we need to be efficient even
+to you know we need to be efficient even on these lower-end devices and we need
+on these lower-end devices and we need to allow our players to play our games
+to allow our players to play our games as long as possible so taking into
+as long as possible so taking into account the batteries and basically
+account the batteries and basically gaming comfort as
+gaming comfort as well so a couple of examples of how to
+well so a couple of examples of how to take into account Energy
+take into account Energy Efficiency first of all I would
+Efficiency first of all I would recommend to use cash efficient data
+recommend to use cash efficient data layouts uh especially on hot
+layouts uh especially on hot memory I dug up some information
+memory I dug up some information in preparation to this presentation
+in preparation to this presentation indicating that the difference between a
+indicating that the difference between a cash Miss and a cash hit is about 200
+cash Miss and a cash hit is about 200 times so it's 200 times less efficient
+times so it's 200 times less efficient in terms of energy consumption if you
+in terms of energy consumption if you get a cash Miss so you should definitely
+get a cash Miss so you should definitely aim to design your data layouts in such
+aim to design your data layouts in such a way that they are efficient for the
+a way that they are efficient for the for the
+cach also favor using multiple cores so if you're able to split your rendering
+if you're able to split your rendering algorithm into multiple threads then
+algorithm into multiple threads then you're able to put less pressure on
+you're able to put less pressure on individual cores allowing them to run at
+individual cores allowing them to run at a lower voltage saving a lot of
+energy also aim to use low power cores most modern devices nowadays have low
+most modern devices nowadays have low power cores they might have mid power
+power cores they might have mid power cores high power cores different sets of
+cores high power cores different sets of different kind of cores
+different kind of cores and using the low power course all the
+and using the low power course all the mid power course uh really saves a lot
+mid power course uh really saves a lot of energy if we look at Clash of Clans
+of energy if we look at Clash of Clans for instance it mostly runs on the low
+for instance it mostly runs on the low power cores especially on the even
+power cores especially on the even slightly higher end
+devices and finally I would recommend everyone to write sensible code from the
+everyone to write sensible code from the get-go because you will probably not
+get-go because you will probably not have the time to fix your code if you
+have the time to fix your code if you have not allocated time to do that so
+have not allocated time to do that so make sure your cat the coat that you
+make sure your cat the coat that you commit in is sensible enough it doesn't
+commit in is sensible enough it doesn't use a lot of brute forcing and it is
+use a lot of brute forcing and it is just something that can go into
+just something that can go into production if you do not have the time
+production if you do not have the time to optimize it
+further also I wanted to put this picture here which showed the difference
+picture here which showed the difference in energy consumption uh before and
+in energy consumption uh before and after moving to Thor so this was the um
+after moving to Thor so this was the um the comparison between using openg
+the comparison between using openg GES uh on the old the Legacy render
+GES uh on the old the Legacy render pipeline compared to the new render
+pipeline compared to the new render pipeline using uh
+metal of course sometimes devices don't work as
+work as expected so many Android devices
+expected so many Android devices especially ship with buggy drivers or
+especially ship with buggy drivers or Hardware the situation isn't as isn't as
+Hardware the situation isn't as isn't as bad as we had expected it to be but it
+bad as we had expected it to be but it is still
+is still significant so I have a couple of
+significant so I have a couple of examples here for the inquisitive mind
+examples here for the inquisitive mind uh of certain situations that we run
+uh of certain situations that we run into um in during this
+into um in during this project so first of all there's this
+project so first of all there's this case of missing code blocks nested code
+case of missing code blocks nested code blocks then we have using outputs as
+blocks then we have using outputs as Temporaries and finally broken uniform
+structures so let's talk about the missing code blocks
+missing code blocks first so when we were analyzing the
+first so when we were analyzing the recorded video from our test cases we
+recorded video from our test cases we noticed that on some devices the Hero
+noticed that on some devices the Hero characters were darker than on other
+characters were darker than on other devices digging into this I pinpointed
+devices digging into this I pinpointed the issue to um a function roughly like
+the issue to um a function roughly like this so we were doing srgb decoding um
+this so we were doing srgb decoding um if a constant was set to
+if a constant was set to true and I thought that well maybe it's
+true and I thought that well maybe it's the constant that just has the wrong
+the constant that just has the wrong value so I'll just hack it in and just
+value so I'll just hack it in and just try you know checking if true is
+try you know checking if true is true but this did not fix the
+true but this did not fix the issue so at this point I was like well
+issue so at this point I was like well maybe it's actually a driver issue so
+maybe it's actually a driver issue so I'll just remove the if and you know at
+I'll just remove the if and you know at least now it should execute that code
+least now it should execute that code turns out it
+turns out it didn't so the result was
+didn't so the result was that the driver just didn't like code
+that the driver just didn't like code blocks within functions which was pretty
+blocks within functions which was pretty ugly because we had to move this type of
+ugly because we had to move this type of code to the main function putting
+code to the main function putting anything any code like this in a nested
+anything any code like this in a nested function or a function that was called
+function or a function that was called for main just did not work and this was
+for main just did not work and this was this was a relatively new opengl ES3
+this was a relatively new opengl ES3 level
+device then we have this case of using fragment output as Temporaries this is
+fragment output as Temporaries this is actually something where we did wrong
+actually something where we did wrong but the result was uh quite interesting
+but the result was uh quite interesting I
+I think so in the recording we saw that
+think so in the recording we saw that some on some devices the characters were
+some on some devices the characters were drawn in
+grayscale and I pinpointed it to code like this so we were writing into the
+like this so we were writing into the fragment output and then we were doing
+fragment output and then we were doing the linear to srgb encoding here um by
+the linear to srgb encoding here um by reading from the output
+reading from the output value and writing it back
+doing it from the temporary value basically fixed the issue so we're not
+basically fixed the issue so we're not reading from Frack color
+reading from Frack color anymore this is something that the opl
+anymore this is something that the opl specification actually stats should not
+specification actually stats should not be done so you should never read from
+be done so you should never read from the fragment output you should only
+the fragment output you should only write into
+write into that but nevertheless it was really
+that but nevertheless it was really interesting how you know how it worked
+interesting how you know how it worked on some devices and the compiler didn't
+on some devices and the compiler didn't really complain about it and uh the
+really complain about it and uh the output was you know a very interesting
+case finally there's the case of broken uniform structures so on some devices we
+uniform structures so on some devices we just had a black screen so this is like
+just had a black screen so this is like the worst nightmare of any rendering
+the worst nightmare of any rendering Engineers looking at a black screen you
+Engineers looking at a black screen you have no idea if it's rendering
+have no idea if it's rendering anything but look I opened the the build
+anything but look I opened the the build on the machine where device where it was
+on the machine where device where it was broken and I was looking at it for quite
+broken and I was looking at it for quite a long time think thinking what could be
+a long time think thinking what could be wrong and then I noticed some small
+wrong and then I noticed some small flickering at the lower corner of the
+flickering at the lower corner of the screen so I thought that well definitely
+screen so I thought that well definitely it is rendering something but you know
+it is rendering something but you know what's wrong with
+what's wrong with this so I looked at it using gpid which
+this so I looked at it using gpid which is an Android graphics debugging tool
+is an Android graphics debugging tool and it showed some inconsistencies
+and it showed some inconsistencies between two two different views these
+between two two different views these view views displayed the uniform data uh
+view views displayed the uniform data uh of the Shader program so it was just
+of the Shader program so it was just showing different data there
+showing different data there so this is how we had defined the
+so this is how we had defined the uniform Block in the source
+uniform Block in the source Shader and this was converted um for the
+Shader and this was converted um for the opengl2 backend which did not have
+opengl2 backend which did not have uniform buffer support into code like
+uniform buffer support into code like this so it generated a structure with a
+this so it generated a structure with a couple of matrices and then a uniform
+couple of matrices and then a uniform based on that
+based on that structure turns out the driver didn't
+structure turns out the driver didn't like uniforms defined in the this way
+like uniforms defined in the this way and when we were updating the uniform
+and when we were updating the uniform values some of the columns in U view got
+values some of the columns in U view got values from you projection view so it
+values from you projection view so it was messing up the locations of the
+was messing up the locations of the uniforms in some weird
+uniforms in some weird way the resolution to this issue was to
+way the resolution to this issue was to use something uh in spury Cross that
+use something uh in spury Cross that basically flattens out the uniform block
+basically flattens out the uniform block into a v four array so we could just
+into a v four array so we could just update this whole uniform using a single
+update this whole uniform using a single Un uniform GL uniform call the only
+Un uniform GL uniform call the only problem was that this does not allow
+problem was that this does not allow interleaving floating Point values with
+interleaving floating Point values with integer values in the uniform block but
+integer values in the uniform block but for the games that had this issue and
+for the games that had this issue and needed to use the openg ges2 backend
+needed to use the openg ges2 backend this was not really an
+issue so finally I wanted to talk about something very important um that's kind
+something very important um that's kind of been glanced over during this
+of been glanced over during this presentation but I want to highlight at
+presentation but I want to highlight at this point which is the whole getting a
+this point which is the whole getting a done mentality that we have at the
+done mentality that we have at the company so our culture is really about
+company so our culture is really about empowering people to do their best
+empowering people to do their best work we have very little red tape so
+work we have very little red tape so whenever you need to do something and
+whenever you need to do something and you need to you know start off a project
+you need to you know start off a project to improve a certain system you don't
+to improve a certain system you don't have to go through a lot of different
+have to go through a lot of different kinds of um organizational Hoops don't
+kinds of um organizational Hoops don't have to go through different level
+have to go through different level levels of man management to get make
+levels of man management to get make designs and get approvals for them you
+designs and get approvals for them you can just kind of become your own project
+can just kind of become your own project manager and start moving it Forward of
+manager and start moving it Forward of course there are cases where this
+course there are cases where this doesn't work for like big structural
+doesn't work for like big structural changes um uh some strategic
+changes um uh some strategic strategically important things but for
+strategically important things but for most of the like system development that
+most of the like system development that we're doing it works really
+we're doing it works really well people also tend to take
+well people also tend to take responsibility and ownership of the code
+responsibility and ownership of the code that they're developing and the systems
+that they're developing and the systems that they're working on so I usually say
+that they're working on so I usually say that it's not really a problem if you
+that it's not really a problem if you screw up that's totally okay that's
+screw up that's totally okay that's that's human but it's really what
+that's human but it's really what happens after that what matters so if
+happens after that what matters so if you really take U take up the
+you really take U take up the responsibility and you help people fix
+responsibility and you help people fix your your issues or you fix them
+your your issues or you fix them yourselves that is really the important
+thing and this whole mentality of autonomous
+of autonomous um development basically being able to
+um development basically being able to do that allowed me to work efficiently
+do that allowed me to work efficiently and move between different game teams
+and move between different game teams and talk directly with the game teams
+and talk directly with the game teams and get things done really quickly and
+and get things done really quickly and make big decisions uh without going
+make big decisions uh without going through different levels of
+management of course it's not all roses like you know some people occasionally
+like you know some people occasionally make decisions without making the uh the
+make decisions without making the uh the necessary prepar ations and talking to
+necessary prepar ations and talking to people who actually like know know about
+people who actually like know know about the system that this person will be
+the system that this person will be working on but overall the benefits
+working on but overall the benefits really outweigh the downsides and it's
+really outweigh the downsides and it's been working really
+been working really well so this actually brings me to my
+well so this actually brings me to my conclusions so first of all we build
+conclusions so first of all we build technology for a need so for Thor we
+technology for a need so for Thor we really needed to add mental support so
+really needed to add mental support so that was a given but we also wanted to
+that was a given but we also wanted to make it possible for game rendering
+make it possible for game rendering Engineers to build better visuals uh in
+Engineers to build better visuals uh in the future so we were not just building
+the future so we were not just building some rebuilding something just because
+some rebuilding something just because it was a fun thing to
+it was a fun thing to do we also had to proceed really
+do we also had to proceed really carefully because we were rewriting the
+carefully because we were rewriting the render of billion dollar games so we
+render of billion dollar games so we wanted to make sure that we're not um
+wanted to make sure that we're not um we're not putting all of our eggs in a
+we're not putting all of our eggs in a single basket and then dropping
+it and finally Thor is our platform for the future for rendering so we were able
+the future for rendering so we were able to build this common language that now
+to build this common language that now all the different game teams use and we
+all the different game teams use and we can rely on and now we can build on top
+can rely on and now we can build on top of
+of this and finally there is a very
+this and finally there is a very important thing that I wanted to mention
+important thing that I wanted to mention here which is that we are hiring so if
+here which is that we are hiring so if you want to know more about the company
+you want to know more about the company you can come talk to me or any one of
+you can come talk to me or any one of the super sellion roaming around here of
+the super sellion roaming around here of which there are quite many this year
+which there are quite many this year actually uh but apart from that I think
+actually uh but apart from that I think it's time for questions now I thank you
+it's time for questions now I thank you very
+very [Applause]
+[Applause] much uh so earlier you mentioned uh that
+much uh so earlier you mentioned uh that you tried to uh put your game on the
+you tried to uh put your game on the slower cores on mobile
+slower cores on mobile uh I'd like to know how you do that on
+uh I'd like to know how you do that on iOS which doesn't provide an API uh for
+iOS which doesn't provide an API uh for threat affinity
+threat affinity Bas basically um really about like how
+Bas basically um really about like how how much you actually push the CPUs so
+how much you actually push the CPUs so just try to like be as efficient as
+just try to like be as efficient as possible and it'll automatically move it
+possible and it'll automatically move it there so in Clash's case it is
+there so in Clash's case it is relatively lightweight on the CPUs so it
+relatively lightweight on the CPUs so it kind of naturally happens uh but yes it
+kind of naturally happens uh but yes it is true that there's like no way of
+is true that there's like no way of defining that but then again if you do
+defining that but then again if you do have that interface and then you force
+have that interface and then you force it onto the low power course and it's
+it onto the low power course and it's not enough then you're not going to have
+not enough then you're not going to have the frame rate that you want so the best
+the frame rate that you want so the best way is to just like make sure that you
+way is to just like make sure that you has have as efficient Al use as
+has have as efficient Al use as efficient algorithms as possible to just
+efficient algorithms as possible to just naturally make it happen yeah we're
+naturally make it happen yeah we're we're running into that problem thank
+we're running into that problem thank you okay yeah no problem
+thanks yeah I have mostly the same question but don't you run in the issue
+question but don't you run in the issue that when you run on the low power
+that when you run on the low power course that you're not getting your
+course that you're not getting your deadlines for example
+deadlines for example [Music]
+[Music] um it's pretty smart at actually scaling
+um it's pretty smart at actually scaling like you know there there are cases
+like you know there there are cases where uh if you tried to do something
+where uh if you tried to do something really smart like automatically scale
+really smart like automatically scale your like especially in metal if you try
+your like especially in metal if you try to scale your um your presentation times
+to scale your um your presentation times based on like the actual time that
+based on like the actual time that you're executing on the GPU then you get
+you're executing on the GPU then you get this kind of rubber band effect where
+this kind of rubber band effect where it's like um spending more time and then
+it's like um spending more time and then you uh scale it down then spending less
+you uh scale it down then spending less and you scale it up up um but yeah so it
+and you scale it up up um but yeah so it it can be you know it's it's a difficult
+it can be you know it's it's a difficult problem in some cases to solve and it's
+problem in some cases to solve and it's really about like Tri and trial and
+really about like Tri and trial and error and looking at your metrics using
+error and looking at your metrics using the tools that you have and what you can
+the tools that you have and what you can do there all right thank
+you hi um how are you finding the driver stability um on like Android Vulcan
+stability um on like Android Vulcan drivers are you finding um bugs with all
+drivers are you finding um bugs with all the drivers or are you having to limit
+the drivers or are you having to limit your devices to like a known set of um
+your devices to like a known set of um of devices uh yes so we've been like
+of devices uh yes so we've been like seeing uh multiple issues like some some
+seeing uh multiple issues like some some very weird cases even unlike high-end uh
+very weird cases even unlike high-end uh devices things like the um uh like the
+devices things like the um uh like the pipeline cach is not working at all for
+pipeline cach is not working at all for like a large amount of specialization
+like a large amount of specialization constants so it is it is a kind of a
+constants so it is it is a kind of a challenging world it's getting
+challenging world it's getting better the problem really is that you
+better the problem really is that you know you have the uh you have the
+know you have the uh you have the Baseline profiles that you can rely on
+Baseline profiles that you can rely on but that doesn't really tell anything
+but that doesn't really tell anything about the quality of the driver so um it
+about the quality of the driver so um it is just a thing that's improving over
+is just a thing that's improving over time and we just need to like maybe try
+time and we just need to like maybe try it out on those devices and then
+it out on those devices and then Blacklist them if it just doesn't work
+Blacklist them if it just doesn't work there and move on there like
+there and move on there like incrementally but it yeah definitely
+incrementally but it yeah definitely we're running into into those issues
+we're running into into those issues okay thank you thanks hey thanks sok um
+okay thank you thanks hey thanks sok um when you selected SP Spire V did you
+when you selected SP Spire V did you analyze other tools like bgfx or other
+analyze other tools like bgfx or other kind of buttons like that uh excuse me
+kind of buttons like that uh excuse me selected what when you selected
+selected what when you selected SP yeah did you analyze other tools like
+SP yeah did you analyze other tools like bgfx or
+bgfx or others spury basically was like uh it
+others spury basically was like uh it was a pretty good natural selection in
+was a pretty good natural selection in the sense that um it worked directly for
+the sense that um it worked directly for Vulcan as well and there were pretty
+Vulcan as well and there were pretty good tools for that like spury cross
+good tools for that like spury cross which we could use the for spury cross
+which we could use the for spury cross is not perfect and spurv itself is not
+is not perfect and spurv itself is not perfect so we run into issues with for
+perfect so we run into issues with for instance a floating Point 16 support
+instance a floating Point 16 support which uh metal doesn't support the
+which uh metal doesn't support the relaxed position attributes on there so
+relaxed position attributes on there so it it gets a bit tricky to add like
+it it gets a bit tricky to add like floating Point 16 support uh so
+floating Point 16 support uh so definitely it's not perfect um
+definitely it's not perfect um but we didn't really really really I
+but we didn't really really really I think we didn't really do really
+think we didn't really do really in-depth analysis on that to be honest
+in-depth analysis on that to be honest um but it was just a tool that looked to
+um but it was just a tool that looked to fit our requirements really well overall
+fit our requirements really well overall and the pipeline was there we could
+and the pipeline was there we could cover all of the different use cases
+cover all of the different use cases like metal and open G and won for us
+like metal and open G and won for us with that uh but we have been thinking
+with that uh but we have been thinking about potentially uh either switching a
+about potentially uh either switching a solution or potentially even building
+solution or potentially even building our own Pipeline on there because some
+our own Pipeline on there because some of the issues that we're having with it
+of the issues that we're having with it but I hope that answers your question a
+but I hope that answers your question a bit
+bit thanks what tool were you using to
+thanks what tool were you using to measure wattage on the iPhone
+measure wattage on the iPhone 7 uh this was like game bench I think
+yeah hi when you find problems with the drivers are you just doing workarounds
+drivers are you just doing workarounds uh and moving on or are you contacting
+uh and moving on or are you contacting the driver manufacturers and if so how
+the driver manufacturers and if so how long does it take till that gets
+long does it take till that gets resolved well both but the problem
+resolved well both but the problem really is that it's not a practical rout
+really is that it's not a practical rout to expect the driver update because um
+to expect the driver update because um many of the drivers actually never get
+many of the drivers actually never get updated and you might have like even
+updated and you might have like even slightly older devices which are updated
+slightly older devices which are updated like maybe for two years or so and then
+like maybe for two years or so and then after that they never get any updates or
+after that they never get any updates or like the drivers might even never be
+like the drivers might even never be updated so we usually have to just work
+updated so we usually have to just work around the issue in some way and then um
+around the issue in some way and then um you know just hope that it's going to
+you know just hope that it's going to fix be fixed at some point thanks
+thanks so if there are no other question then I thank you very much
+then I thank you very much [Applause]
+[Music]

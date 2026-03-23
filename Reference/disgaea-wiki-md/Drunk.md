@@ -1,0 +1,4 @@
+# Drunk
+
+- Drunk** is a status condition that appears on Senators only, and thus only appears in the Dark Assembly or Classroom Assembly. While a Senator is drunk, they are also given the Forget status condition, meaning they can't use their special skills should you have to fight them by passing the bill by force. The main issue with a Drunken Senator is that they often change their minds about bribes and have a higher chance of voting against their own opinions. The Drunken Status can be induced by giving a Senator a bottle of Hard Liquor and can be removed by giving them Medicine. The Baciel Party Demons always come to the Assembly with the Drunk status already on them. and in Disgaea 3: Absence of Justice, sometimes the Fire Demon Party Demons will come to the Assembly with the Drunk status on them.
+Category: Status Ailments

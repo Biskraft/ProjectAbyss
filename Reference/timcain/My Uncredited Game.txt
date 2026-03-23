@@ -1,0 +1,286 @@
+Hi everyone, it's me Tim. Today I want
+to talk about my uncredited
+game. I've mentioned it obliquely here
+and there that there's a game out there
+that, you know, I developed that does
+not have my name in the credits by my
+choice. So, it's a fun Friday. I thought
+I'd talk about it, talk about
+why I had my name removed, and it will
+be a story. So, let me explain
+everything that happened. So, this is
+back in the '9s, and a company had I'm
+going to keep the company out of this.
+Company had a shipped game. So, they had
+a game that they already designed,
+coded, tested, and shipped. I had
+nothing to do with it. and they had done
+two patches on it, one pretty extensive.
+After all this, I think it had been
+about a year, they came to me because
+they wanted some serious changes made to
+the game. Specifically, what they wanted
+were new game mechanics,
+new artwork, and new graphical
+resolutions. So, I think the game had
+been CGA and they wanted EGA and VGA, so
+additional modes, which basically meant
+same resolution but a lot more color,
+which is why they needed new artwork and
+specifically new artwork that would be
+different based on the resolutions.
+And they were going to put this game out
+as a new game with a new title and
+everything,
+but there was a catch. And this is not
+going to surprise anybody now giving
+I've done my game preservation video,
+but they had lost the source code to the
+patches. They had the base game source
+code archived, but they didn't have the
+source code for the patches. So, what
+they were asking me to do is to take the
+base game source code and fix all the
+patches, fix all the bugs that had been
+in the first two patches. And they had
+no list of those bugs. So, I had to go
+off the patch notes that got released
+with the patch. When a home user would
+get the patch, I had to go down those
+patch notes and go, "Oh, they fixed
+this. I will go look in the code for
+that."
+I suggested an alternative. I suggested
+me handediting the executable for the
+patched game.
+And yes, that means I was going to be
+going into the.exe exe file and
+modifying the binary by hand.
+They weren't convinced um of two things.
+Some weren't convinced I could do it and
+some weren't convinced I could do it in
+a reasonable amount of time. Um
+so
+basically
+I explained to them what I was going to
+do was I already had a binary editor
+that I liked and I wasn't going to run
+it in binary mode. I was going to run it
+in hex mode. I mean, I'm not crazy that
+I could use to open up the .exe and
+directly modify it. And by the way, it
+was Emacs based for all you people who
+were around in the 80s and 90s. There
+was Emacs versus VI. I was firmly in the
+Emacs camp because the VI people were
+crazy and I think they drank human
+blood. But I was Emacs and this was an
+Emacsbased hex uh binary editor. I also
+knew assembly 8086 assembly, so that was
+not going to be a problem. And
+I felt like if I could focus on the
+things they wanted me to change rather
+than have to spend a lot of time going
+back and fixing bugs even in source code
+that I didn't know I was like this is
+going to take longer. So what they
+agreed was they said we'll give you a
+couple weeks and then we will see where
+you are.
+Okay. I ran into some major problems
+when I got started.
+The first thing I wanted to do was just
+figure out where the mechanics were in
+the code so I could tweak them. So I
+spent a couple days just going through
+the code, the assembly code, and marking
+places
+that oh this this is where they're
+they're doing the main menu. This is
+where they're setting up options. This
+is where the game starts. Oh, this is
+where they do this thing. I want to be
+vague on the mechanics. I really don't
+want you guys to look it up and find out
+what it was. That's not the point. So, I
+found out where mechanics were down. I
+found where um I think there was a save
+game. Um I found where stuff was loaded
+in. And I just marked all those places
+in code.
+The first thing I tried changing was
+adding the new resolutions because
+setting the resolution was trivial. It's
+literally I think writing to a
+particular, you know, memory location.
+It's like I want to be in this mode now.
+But it that includes a lot of other
+things because it ran in CGA which meant
+in EGA and VGA different art had to be
+loaded and displayed. It was blitted
+which is the process of writing the
+pixels out. The blitters were different.
+This had meant I had to get involved in
+the UI because the UI was going to be
+different and just changing the UI of
+the games options menu so that it didn't
+even have an option for graphics
+resolution and now there was going to be
+three CGA, EGA and VGA and it should
+default default to CGA. So I had to set
+all that up. So that quickly got me to
+figure out the blitter. I already had
+blitters for those and I I quickly did
+the user interface and all that. But
+then I got to the art. Not so much
+writing. If the art was loaded, it was I
+could write it up to the screen. It was
+how to load the art. Because
+one of the things that got lost, code
+and executable, there was no tool given
+to me for taking art in whatever format
+the artist would give it to me and
+converting it to the art of the that the
+game used. There wasn't a tool for that.
+And they when I asked them where it was,
+they're like, "We don't know. We don't
+have that archived.
+So,
+I
+I said, "Okay, this is what I'm going to
+do." I found the part of the game that
+loaded in the artwork from disk and I
+noticed it was decompressing it. It was
+loading it in some format that was
+compressed and it was decompressing it
+into a buffer so it would be
+uncompressed when it was in memory.
+I first thought, well, wait, I'll just
+take whatever art they give me
+and write a uncompressed, it's called a
+raw art file, and just load that in.
+Couldn't do that because there was a
+constraint. These were on floppies. This
+game shipped on a floppy. There was a
+constraint on how much you could fit on
+a floppy. And if I made two new
+resolutions, all with its own new
+artwork and stored them uncompressed on
+disk, it it wasn't going to fit. So what
+happened, what I did was I went through
+the assembly decompression routine,
+figured out exactly what it did,
+reverse engineered a compression
+algorithm and then wrote a tool to read
+in the new artwork in whatever format. I
+forget. I think they were daint LBMS
+and
+wrote it out in the games.
+I think it was a form of run length
+encoding, but it was their own special
+RLE and it rewrote out the art in that
+format. So now I had the ability to get
+art new artwork and have it be in the
+game.
+So I then went back into the game code,
+set the new artwork to to be loaded
+based on the resolution and get
+displayed and it worked. So suddenly
+there was a new title screen. There were
+new menus. You could switch resolution
+and see more color, better color artwork
+and just it it worked and I was like
+yeah and here's the best part. It was
+something I could show them. I could
+show the people I was working on, look
+at this. I mean, if you just started the
+game and it's in a new higher a new
+better resolution with new artwork, that
+alone
+changed hearts and minds because they
+suddenly were like, "Oh, this looks like
+a different game." It is a different
+game. So,
+they gave me the go ahead and I spent a
+few more weeks making the other changes
+I needed to do. Sometimes I went in with
+the hex editor and wrote over top of
+code because
+sometimes I sometimes I just deleted
+code. I wrote I put in null null null or
+I just deleted it and moved it over.
+What I tended to do was let's say there
+was a piece of code that did something
+and I wanted to do something else. I
+would jump from the beginning of that
+code block to the end of the .exe, write
+a whole bunch of new code there in
+assembly and then jump back to this
+spot. So effectively I left the old code
+in there, the old binary code, but I
+jump away from it and then come back
+here. So I never ran it.
+Yes, this left dead code around, but it
+was just way easier to do things that
+way. Um, and I was running out of time,
+even cleaning up and getting rid of all
+that dead code. I'm like, I didn't have
+time for this. So, I spent a few more
+weeks and I finally was done. I had a
+new game and I showed it to them. They
+ran it through QA to confirm that all
+the bugs that had been fixed were fixed
+because I used the new executable. I had
+introduced a couple bugs, fixed those.
+poof, they had a new game. But here's
+the thing, I was really proud of what I
+had done, but when I actually sat down
+to play the game, I didn't like the
+game. I mean, I had nothing to do with
+its design. It was nothing. It was no
+genre I was ever associated with, and I
+didn't like it. I thought it was a kind
+of a cheesy game. It was a real stinker
+of a game. So,
+I was going to say I asked them to
+remove my name from the credits, but
+what I did was since I had the
+executable, I just didn't change the
+credits to include my name. I added some
+names they wanted me to of like a there
+was a new producer, I think, and there's
+a new QA person. I added those into the
+credits that were in the executable, but
+I didn't add my own. And I told them not
+to put my name in the manual cuz they
+printed out a new manual because it was
+a new game with a new name. They printed
+a new manual with some new instructions
+that included the resolutions. I said,
+"Do not add my name to that." And they
+actually when I emailed that, um I know
+the VP who worked down there, I forget
+her name, she came up and asked me, she
+goes, "Are you sure?" I got an email,
+"Are you sure you don't want your name
+on this? You know, we're gladly credit
+you. You did a lot of work." And I'm
+like, "I don't want my name on it. I
+just don't want my name on it."
+I still think about that game from time
+to time and I'm proud of what I did and
+it was an interesting thing to to make a
+game without ever writing a line of
+highle language. Do it all in assembly.
+But I'm glad it's not in my portfolio.
+It exists. It did what it was supposed
+to do. It's not anything I ever want to
+lean on and go look what I did and I
+didn't for the rest of my career. No one
+knew I did that except a few people who
+were at that company and I never talked
+about it with anybody. But anyway, I
+wanted to talk about it here because I'm
+proud of what I did even if I'm not
+proud of the game. And that's my fun
+Friday on my uncredited game.

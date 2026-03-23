@@ -1,0 +1,169 @@
+import { aabbOverlap, type AABB } from '@core/Physics';
+import { calculateDamage } from '@data/damage';
+import { COMBO_STEPS, type ComboStep } from './CombatData';
+import type { Entity } from '@entities/Entity';
+import type { Game } from '../Game';
+
+export interface CombatEntity {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  vx: number;
+  vy: number;
+  hp: number;
+  maxHp: number;
+  atk: number;
+  def: number;
+  invincible: boolean;
+  invincibleTimer: number;  // ms remaining
+  facingRight?: boolean;
+  onHit(knockbackX: number, knockbackY: number, hitstun: number): void;
+  onDeath?(): void;
+}
+
+export interface HitResult {
+  target: CombatEntity;
+  damage: number;
+  comboStep: ComboStep;
+  /** World-space hit point for spark effects */
+  hitX: number;
+  hitY: number;
+  /** Knockback direction for directional effects */
+  dirX: number;
+  /** Whether this is a heavy hit (3타 or killing blow) */
+  heavy: boolean;
+}
+
+/**
+ * Sakurai Hit Stop 8 Techniques integrated:
+ * 1. Victim vibrates larger, attacker smaller
+ * 2. Hitbox doesn't move during vibration (positions frozen in hitstop)
+ * 3. Grounded = horizontal, airborne = omnidirectional
+ * 4. Amplitude converges (decay per frame)
+ * 5. Hitstop proportional to attack power / combo step
+ * 6. Hit pose blending (handled by state machine transitions)
+ * 7. Attacker micro-advances during hitstop
+ * 8. Camera shake with directional bias
+ */
+export class HitManager {
+  private game: Game;
+
+  constructor(game: Game) {
+    this.game = game;
+  }
+
+  checkHits(
+    attacker: CombatEntity,
+    comboIndex: number,
+    hitList: Set<CombatEntity>,
+    targets: CombatEntity[],
+  ): HitResult[] {
+    const step = COMBO_STEPS[comboIndex];
+    if (!step) return [];
+
+    const facingRight = attacker.facingRight ?? true;
+    const hitbox: AABB = {
+      x: facingRight
+        ? attacker.x + attacker.width
+        : attacker.x - step.hitboxW,
+      y: attacker.y + (attacker.height - step.hitboxH) / 2,
+      width: step.hitboxW,
+      height: step.hitboxH,
+    };
+
+    const results: HitResult[] = [];
+
+    for (const target of targets) {
+      if (hitList.has(target)) continue;
+      if (target.invincible) continue;
+      if (target.hp <= 0) continue;
+
+      const targetBox: AABB = {
+        x: target.x,
+        y: target.y,
+        width: target.width,
+        height: target.height,
+      };
+
+      if (aabbOverlap(hitbox, targetBox)) {
+        hitList.add(target);
+
+        const damage = calculateDamage({
+          atk: attacker.atk,
+          def: target.def,
+          skillMultiplier: 1.0,
+        });
+
+        target.hp -= damage;
+
+        const dirX = facingRight ? 1 : -1;
+        target.onHit(
+          step.knockbackX * dirX,
+          step.knockbackY,
+          step.hitstun,
+        );
+
+        // Timer-based invincibility
+        target.invincible = true;
+        target.invincibleTimer = 500;
+
+        const isKill = target.hp <= 0;
+        if (isKill) {
+          target.hp = 0;
+          target.onDeath?.();
+        }
+
+        const heavy = comboIndex >= 2 || isKill;
+
+        // --- Sakurai Feedback System ---
+        const attackerEntity = attacker as unknown as Entity;
+        const targetEntity = target as unknown as Entity;
+
+        // Technique 5: hitstop proportional to combo step
+        // 1타=3f, 2타=4f, 3타=6f, kill=8f
+        const hitstopBase = step.hitstopFrames;
+        const hitstopBonus = isKill ? 5 : heavy ? 2 : 0;
+        this.game.hitstopFrames = hitstopBase + hitstopBonus;
+
+        // Technique 1 & 4: vibration (victim large, attacker small)
+        const vibrateTotal = this.game.hitstopFrames;
+        if (targetEntity.startVibrate) {
+          const targetAmp = heavy ? 5 : 3;
+          targetEntity.startVibrate(targetAmp, vibrateTotal, true);
+          targetEntity.triggerFlash();
+        }
+        if (attackerEntity.startVibrate) {
+          const attackerAmp = heavy ? 1.5 : 0.8;
+          attackerEntity.startVibrate(attackerAmp, vibrateTotal, true);
+        }
+
+        // Technique 7: attacker micro-advance
+        if (attackerEntity.startHitAdvance) {
+          attackerEntity.startHitAdvance(dirX, heavy ? 3 : 1.5);
+        }
+
+        // Technique 8: directional camera shake, proportional to combo
+        const shakeIntensity = step.shakeIntensity * (heavy ? 1.8 : 1.0) + (isKill ? 2 : 0);
+        this.game.camera.shakeDirectional(
+          shakeIntensity,
+          dirX,
+          step.knockbackY < -40 ? -0.3 : 0,
+        );
+
+        // Hit point (center of overlap region)
+        const hitX = facingRight
+          ? Math.min(attacker.x + attacker.width + step.hitboxW * 0.3, target.x + target.width / 2)
+          : Math.max(attacker.x - step.hitboxW * 0.3, target.x + target.width / 2);
+        const hitY = target.y + target.height * 0.4;
+
+        results.push({
+          target, damage, comboStep: step,
+          hitX, hitY, dirX, heavy,
+        });
+      }
+    }
+
+    return results;
+  }
+}

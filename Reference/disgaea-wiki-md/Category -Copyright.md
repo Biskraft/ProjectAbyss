@@ -1,0 +1,5 @@
+# Category:Copyright
+
+Category can include subcategories and articles that have copyright implications. See also :Category:Policy.
+
+Category: Organisation

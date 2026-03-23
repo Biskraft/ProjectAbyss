@@ -1,0 +1,1091 @@
+[Music] hello my name is Graham volatile and I'm
+hello my name is Graham volatile and I'm a rendering engineer for the Frostbite
+a rendering engineer for the Frostbite labs team and Electronic Arts this
+labs team and Electronic Arts this presentation will cover the various
+presentation will cover the various features improvements and optimizations
+features improvements and optimizations developed for our 4k checkerboard
+developed for our 4k checkerboard technology that shift in battlefield 1
+technology that shift in battlefield 1 on ps4 as well as in Mass Effect
+on ps4 as well as in Mass Effect Andromeda and a majority of other titles
+Andromeda and a majority of other titles moving forward
+first I'd like to discuss our motivation
+frostbite Labs has been focusing on a number of longer-term projects to
+number of longer-term projects to advance games graphics and storytelling
+advance games graphics and storytelling in addition some shorter term work has
+in addition some shorter term work has been completed such as a strong push to
+been completed such as a strong push to efficiently target higher perceived
+efficiently target higher perceived resolutions with the frostbite engine
+resolutions with the frostbite engine and games here's a screenshot of Mass
+and games here's a screenshot of Mass Effect Andromeda running at 1080p on a
+Effect Andromeda running at 1080p on a ps4 Pro and here's a screenshot of this
+ps4 Pro and here's a screenshot of this environment 1800 P which offers a
+environment 1800 P which offers a substantially higher increase in visual
+substantially higher increase in visual fidelity compared to the 1080p version
+and here's a screenshot of this environment running at 2160p or 4k
+environment running at 2160p or 4k resolution which adds some additional
+resolution which adds some additional quality I do apologize for the camera
+quality I do apologize for the camera delta's it was tricky to get the exact
+delta's it was tricky to get the exact same view in the scene due to some
+same view in the scene due to some gameplay let's look at the difference in
+gameplay let's look at the difference in detail for the highlighted region
+comparing the left version which is 1080p to the right version at 4k you can
+1080p to the right version at 4k you can see how much more detail and crispness
+see how much more detail and crispness the high resolution offers looking at
+the high resolution offers looking at another highlighted region you can
+another highlighted region you can clearly see how much of the original art
+clearly see how much of the original art intention is being lost due to the
+intention is being lost due to the undersampling looking another
+undersampling looking another highlighted region this is a similar
+highlighted region this is a similar case and one last region you can see how
+case and one last region you can see how much of the details are blurred out
+much of the details are blurred out compared to the high resolution version
+over the past few years visual fidelity and complexity has greatly increased
+and complexity has greatly increased accredited to an order of magnitude
+accredited to an order of magnitude increase in both available memory and
+increase in both available memory and primitive rates as well as algorithmic
+primitive rates as well as algorithmic advances with huge computational demands
+advances with huge computational demands like PBR dynamic GI SSR and others
+comparing previous generation consoles to current generation the number of
+to current generation the number of display pixels was roughly doubled but
+display pixels was roughly doubled but scene complexity has increased
+scene complexity has increased dramatically it's about time that
+dramatically it's about time that perceived resolution got a bump as well
+in this screenshot you can see the type of detailed environments that are being
+of detailed environments that are being rendered in modern games scenes like
+rendered in modern games scenes like this generally require reasonably high
+this generally require reasonably high resolution in order to reduce aliasing
+resolution in order to reduce aliasing artifacts and showcase the details
+artifacts and showcase the details desired by the artist's rendering
+desired by the artist's rendering extremely detailed geometry requires a
+extremely detailed geometry requires a much higher sampling frequency or ugly
+much higher sampling frequency or ugly geometric aliasing occurs without
+geometric aliasing occurs without additional high resolution geometry
+additional high resolution geometry information the bulk of techniques that
+information the bulk of techniques that exists for removing geometric aliasing
+exists for removing geometric aliasing sacrificed overall image quality in
+sacrificed overall image quality in favor of temporal stability previously
+favor of temporal stability previously frostbite had deferred MSAA support but
+frostbite had deferred MSAA support but as it was an ongoing maintenance type
+as it was an ongoing maintenance type mer it was removed in order to reduce
+mer it was removed in order to reduce complexity in our rendering and while
+complexity in our rendering and while acceptable software solutions exist sony
+acceptable software solutions exist sony recently added new hardware features to
+recently added new hardware features to ps4 pro that allowed us to more easily
+ps4 pro that allowed us to more easily and efficiently implement higher
+and efficiently implement higher resolution rendering the brute force
+resolution rendering the brute force approach of rendering native 4k is not
+approach of rendering native 4k is not doable for the majority of engines or
+doable for the majority of engines or games since current Hardware is largely
+games since current Hardware is largely bottlenecked by bandwidth a very
+bottlenecked by bandwidth a very practical method to reduce the shading
+practical method to reduce the shading cost of the image is by shading only a
+cost of the image is by shading only a subset of pixels in the majority of the
+subset of pixels in the majority of the graphics pipeline while geometry
+graphics pipeline while geometry information is computed for all pixels
+information is computed for all pixels some of the information is lost but with
+some of the information is lost but with the 4k sampling rate most of the
+the 4k sampling rate most of the adjacent pixels will have strongly
+adjacent pixels will have strongly correlated shading values as long as
+correlated shading values as long as they all belong to the same surface a
+they all belong to the same surface a high quality geometry aware resolve is
+high quality geometry aware resolve is performed to reconstruct the missing
+performed to reconstruct the missing information here is some history around
+information here is some history around how this particular checkerboard
+how this particular checkerboard came to be there were some algorithms
+came to be there were some algorithms and prototypes at Sony that utilized
+and prototypes at Sony that utilized object IDs for edge detection as well as
+object IDs for edge detection as well as using EQ AAA for higher resolution depth
+using EQ AAA for higher resolution depth Killzone Shadowfall then shipped with
+Killzone Shadowfall then shipped with temporal super resolution and a
+temporal super resolution and a differential blending operator then the
+differential blending operator then the ps4 Pro was architected to include some
+ps4 Pro was architected to include some hardware features aimed at more easily
+hardware features aimed at more easily and efficiently supporting alternating
+and efficiently supporting alternating packed checkerboard sampling as well as
+packed checkerboard sampling as well as some initial implementations in a few
+some initial implementations in a few first party games last GDC Jolla is at
+first party games last GDC Jolla is at Ubisoft had a great presentation on ms a
+Ubisoft had a great presentation on ms a checkerboard implementation in Rainbow
+checkerboard implementation in Rainbow six siege that helped bring more
+six siege that helped bring more awareness to the overall idea and now we
+awareness to the overall idea and now we have implemented our own support in
+have implemented our own support in frostbite for the alternating packed
+frostbite for the alternating packed checkerboard approach which shipped in
+checkerboard approach which shipped in battlefield 1 and Mass Effect Andromeda
+we tried a number of high resolution techniques with varying success the
+techniques with varying success the results were evaluated on a 50-inch TV
+results were evaluated on a 50-inch TV at livingroom distance not on a computer
+at livingroom distance not on a computer monitor 2 feet from your face
+monitor 2 feet from your face we started with native 4k and while it
+we started with native 4k and while it looks excellent the performance is
+looks excellent the performance is unacceptable other resolutions were
+unacceptable other resolutions were evaluated like 1440p and 1800 P and
+evaluated like 1440p and 1800 P and while 1440p was within budget
+while 1440p was within budget we found that 1800 P offered a much more
+we found that 1800 P offered a much more dramatic improvement over 900 P one way
+dramatic improvement over 900 P one way to think about it is compared to the
+to think about it is compared to the previous console generation is that
+previous console generation is that 1440p is to 720p as 1800 P is to 900 P
+1440p is to 720p as 1800 P is to 900 P while resolution can be a subjective
+while resolution can be a subjective topic recall the difference in quality
+topic recall the difference in quality for 720p versus 900 P on a 1080p screen
+for 720p versus 900 P on a 1080p screen extra resolution has a roughly linear
+extra resolution has a roughly linear performance cost at least for deferred
+performance cost at least for deferred passes but will give diminishing returns
+passes but will give diminishing returns in perceived quality here's a scene from
+in perceived quality here's a scene from battlefield 1 at native 4k resolution 29
+battlefield 1 at native 4k resolution 29 milliseconds for a 60 Hertz game is
+milliseconds for a 60 Hertz game is obviously a showstopper even rendering
+obviously a showstopper even rendering at 1800 P native and scaling up to 4k
+at 1800 P native and scaling up to 4k has a cost of 21 milliseconds which is
+has a cost of 21 milliseconds which is also too high
+there's been a lot of buzz in the last few years about variable shading rates
+few years about variable shading rates and checkerboard rendering is a
+and checkerboard rendering is a practical idea that could be used to
+practical idea that could be used to greatly increase their resolution
+greatly increase their resolution without much performance cost some
+without much performance cost some experiments have been done to implement
+experiments have been done to implement checkerboard using stencil while we
+checkerboard using stencil while we didn't bother with implementing this is
+didn't bother with implementing this is important to cover for posterity sin
+important to cover for posterity sin selector board can be done in 1x1 blocks
+selector board can be done in 1x1 blocks but please don't ever ever do this the
+but please don't ever ever do this the GPU shades in 2x2 quads so you'll pay
+GPU shades in 2x2 quads so you'll pay the shading cost of native 4k but then
+the shading cost of native 4k but then throw away half of the work in order to
+throw away half of the work in order to get a performance game stencil
+get a performance game stencil checkerboard can be done in two by two
+checkerboard can be done in two by two blocks but now the sampling distribution
+blocks but now the sampling distribution is terrible with less correlation you
+is terrible with less correlation you get great coverage in a 2x2 block within
+get great coverage in a 2x2 block within a huge hall in many cases you'll get
+a huge hall in many cases you'll get diluted color bits every second quad
+diluted color bits every second quad that are quite blurry and in order to
+that are quite blurry and in order to solve that you end up luring even more
+solve that you end up luring even more so what's the point initially we looked
+so what's the point initially we looked into a 2x color and 4x depth
+into a 2x color and 4x depth checkerboard the portability of this
+checkerboard the portability of this technique is compelling but is very
+technique is compelling but is very invasive to the rendering pipeline
+invasive to the rendering pipeline that's practically all shaders and
+that's practically all shaders and render passes need to be modified
+render passes need to be modified additionally this form of checkerboard
+additionally this form of checkerboard isn't the most optimal configuration
+isn't the most optimal configuration some other variants like 2x color and 2x
+some other variants like 2x color and 2x depth have shipped in some games would
+depth have shipped in some games would have to sacrifice some performance to
+have to sacrifice some performance to remain portable across various IH fees
+another experiment was to use one X color to keep most of the rendering
+color to keep most of the rendering pipeline unchanged but render with 4x
+pipeline unchanged but render with 4x depth samples a geometry aware up sample
+depth samples a geometry aware up sample from 1080p to 4k was performed with the
+from 1080p to 4k was performed with the idea of maintaining the hard edges this
+idea of maintaining the hard edges this was a good idea and is similar to SRA a
+was a good idea and is similar to SRA a accept this trades the second pass
+accept this trades the second pass normal and bilateral of SRA a with a
+normal and bilateral of SRA a with a single pass IDs and custom
+single pass IDs and custom reconstruction in the end the quality
+reconstruction in the end the quality wasn't high enough and while it could
+wasn't high enough and while it could have been improved over time the
+have been improved over time the implementation cost between 4k geometry
+implementation cost between 4k geometry and 4k checkerboard was comparable as
+and 4k checkerboard was comparable as such this approach was abandoned
+such this approach was abandoned early to focus on a superior technique
+eventually we settled on a very efficient pact checkerboard technique we
+efficient pact checkerboard technique we started with the ps4 Pro reference
+started with the ps4 Pro reference implementation customized and optimized
+implementation customized and optimized it further and incorporated into our own
+it further and incorporated into our own temporal anti-aliasing the PAC
+temporal anti-aliasing the PAC checkerboard approach gave a substantial
+checkerboard approach gave a substantial boost to image quality and clarity while
+boost to image quality and clarity while maintaining a 60 Hertz target and
+maintaining a 60 Hertz target and shipped with very positive reviews in
+shipped with very positive reviews in battlefield one here's an example scene
+battlefield one here's an example scene that rendered with the PAC checkerboard
+that rendered with the PAC checkerboard approach looking at the highlighted area
+approach looking at the highlighted area zoomed in prior to checkerboard resolve
+zoomed in prior to checkerboard resolve you can see which samples were shaded
+you can see which samples were shaded and which samples were not
+reconstructing unshaded samples or holes in the current frame with information
+in the current frame with information from the previous frame as well as using
+from the previous frame as well as using high resolution geometry information can
+high resolution geometry information can produce a resolved result at very high
+produce a resolved result at very high quality using the PAC checkerboard
+quality using the PAC checkerboard rendering we're able to take this scene
+rendering we're able to take this scene reach comparable image quality to 1800 P
+reach comparable image quality to 1800 P native yet stay within our performance
+native yet stay within our performance target here's a close-up of the scene
+target here's a close-up of the scene showing 1800 P native and here's a
+showing 1800 P native and here's a close-up of the scene showing 1800 Peach
+close-up of the scene showing 1800 Peach checkerboard now I'll go over our
+checkerboard now I'll go over our specific checkerboard layout and
+specific checkerboard layout and configuration a MDEQ AAA is a superset
+configuration a MDEQ AAA is a superset of MSA a and provides quite a number of
+of MSA a and provides quite a number of interesting hardware features one such
+interesting hardware features one such feature is the ability to store fewer
+feature is the ability to store fewer color fragments than depth fragments
+color fragments than depth fragments which is exploited by the 4k
+which is exploited by the 4k checkerboard technique the most common
+checkerboard technique the most common checkerboard configuration is to use two
+checkerboard configuration is to use two X color and 2x or 4x depth sorry this
+X color and 2x or 4x depth sorry this approach is nice due to its high
+approach is nice due to its high portability and derivatives do not
+portability and derivatives do not require any sort of adjustment but this
+require any sort of adjustment but this approach is inefficient due to the way
+approach is inefficient due to the way that the shading quad
+that the shading quad are packed the example shown here will
+are packed the example shown here will shade eight samples but only store two
+shade eight samples but only store two of them our later layout is using one X
+of them our later layout is using one X color with two X depth with the packed
+color with two X depth with the packed checkerboard approach you only get one
+checkerboard approach you only get one shading quad in this case four samples
+shading quad in this case four samples are shaded with two samples being stored
+are shaded with two samples being stored on average the samples are 30% closer
+on average the samples are 30% closer together which results in a very
+together which results in a very measurable performance win projector
+measurable performance win projector board rendering the sample locations are
+board rendering the sample locations are alternated each frame for configuring EQ
+alternated each frame for configuring EQ AAA the scan converter must be informed
+AAA the scan converter must be informed how many samples to produce per pixel as
+how many samples to produce per pixel as well as the absolute distance from the
+well as the absolute distance from the pixel center of the sample furthest from
+pixel center of the sample furthest from the pixel center in the case of our
+the pixel center in the case of our checkerboard layout the samples are at
+checkerboard layout the samples are at 1/4 and negative 1/4 from the pixel
+1/4 and negative 1/4 from the pixel center now I'll go over the various
+center now I'll go over the various features that were used to remove or
+features that were used to remove or reduce checkerboard artifacts providing
+reduce checkerboard artifacts providing an increase in visual fidelity arguably
+an increase in visual fidelity arguably the most important feature of our
+the most important feature of our checkerboard is the object and primitive
+checkerboard is the object and primitive ID buffer used by the resolve the IDs
+ID buffer used by the resolve the IDs are generated at a higher resolution
+are generated at a higher resolution than shading for each geometry sample an
+than shading for each geometry sample an identifier is stored in an image buffer
+identifier is stored in an image buffer which uniquely identifies object and
+which uniquely identifies object and primitives that are visible at that
+primitives that are visible at that sample instance drawers provide a
+sample instance drawers provide a separate object ID per instance by
+separate object ID per instance by binding an array of object IDs 1 per
+binding an array of object IDs 1 per instance and tessellated drawers are
+instance and tessellated drawers are given a primitive ID per input patch the
+given a primitive ID per input patch the ID buffer can be written out during any
+ID buffer can be written out during any full geometry pass which is either a
+full geometry pass which is either a depth an idea only pass or the main
+depth an idea only pass or the main scene render since the depth Pass will
+scene render since the depth Pass will typically consume less memory bandwidth
+typically consume less memory bandwidth and the shading passes is advantageous
+and the shading passes is advantageous to write the IDs at this point on ps4
+to write the IDs at this point on ps4 Pro the ID generation is performed
+Pro the ID generation is performed without any shader involvement so the
+without any shader involvement so the impact on a synchronous compute jobs in
+impact on a synchronous compute jobs in parallel is minimized it is not
+parallel is minimized it is not recommended to add an additional depth
+recommended to add an additional depth pass just for ID generation as the
+pass just for ID generation as the increased CPU and GPU overhead is not
+increased CPU and GPU overhead is not worth the benefit without an existing
+worth the benefit without an existing depth only pass the ID generation is
+depth only pass the ID generation is easy to integrate into the main shading
+easy to integrate into the main shading pass doing so will cause the ID
+pass doing so will cause the ID generation to compete with memory
+generation to compete with memory bandwidth but at least the idea only
+bandwidth but at least the idea only samples don't pay for the shading the
+samples don't pay for the shading the IDS themselves are stored as 32-bit
+IDS themselves are stored as 32-bit 16-bit or 8-bit values we use an ID to
+16-bit or 8-bit values we use an ID to this 31 bits wide with the most
+this 31 bits wide with the most significant bit of the parameter ignored
+significant bit of the parameter ignored by the hardware object ID is 14 bit with
+by the hardware object ID is 14 bit with an optional 17 bit primitive ID
+an optional 17 bit primitive ID arithmetic aliy added which is reset to
+arithmetic aliy added which is reset to 0 at the end of each instance or draw
+the ID buffer is a color target bound as the 8th MRT a shader cannot export to
+the 8th MRT a shader cannot export to this target when IDs are being generated
+this target when IDs are being generated and since the ID buffer is treated like
+and since the ID buffer is treated like a color target it uses both the C B's
+a color target it uses both the C B's data paths and the color target tile
+data paths and the color target tile modes it is also safe to set this with a
+modes it is also safe to set this with a null pixel shader because the 8 MRT is
+null pixel shader because the 8 MRT is not treated as a pixel shader target
+not treated as a pixel shader target when ID propagation has been enabled an
+when ID propagation has been enabled an alternative way to produce object IDs is
+alternative way to produce object IDs is to export them from the vertex shader
+to export them from the vertex shader however this could reduce the number of
+however this could reduce the number of vs wavefronts that can be active on the
+vs wavefronts that can be active on the chip at a time there are many other
+chip at a time there are many other interesting use cases for the object ID
+interesting use cases for the object ID buffer but for this presentation it will
+buffer but for this presentation it will be used in the checker board resolve to
+be used in the checker board resolve to improve the final image quality here is
+improve the final image quality here is a complex scene from battlefield 1 with
+a complex scene from battlefield 1 with a number of unique objects this is a
+a number of unique objects this is a visualization of just the object IDs in
+visualization of just the object IDs in the scene and here is a visualization of
+the scene and here is a visualization of the primitive IDs in the scene remember
+the primitive IDs in the scene remember what I said about the object and
+what I said about the object and primitive IDs being a bit different for
+primitive IDs being a bit different for the tessellation how it's done at the
+the tessellation how it's done at the input patch level you look at the bottom
+input patch level you look at the bottom left of that screenshot you can see that
+left of that screenshot you can see that our number of adjacent triangles the
+our number of adjacent triangles the same color that's because the idea is
+same color that's because the idea is assigned prior to tessellation expansion
+when rendering a checkerboard with any pixel shaders that use implicit
+pixel shaders that use implicit gradients for mipmap selection gradient
+gradients for mipmap selection gradient adjust must be configured otherwise
+adjust must be configured otherwise graphical artifacts will occur on the
+graphical artifacts will occur on the left you can see the expected gradient
+left you can see the expected gradient but on the right you can see what the
+but on the right you can see what the real gradient is the horizontal gradient
+real gradient is the horizontal gradient is twice the expected value and the
+is twice the expected value and the vertical gradient is stretched and
+vertical gradient is stretched and rotated 45 degrees which resembles bad
+rotated 45 degrees which resembles bad anisotropic filtering in order to
+anisotropic filtering in order to correct for the rectangular pixels we
+correct for the rectangular pixels we need to apply a non uniform rescale
+need to apply a non uniform rescale because of this we can't use LOD bias as
+because of this we can't use LOD bias as a scales uniformly instead we use a
+a scales uniformly instead we use a gradient fetch with rescaled coordinates
+the adjustment is done by applying a 2x2 affine transform to the derivatives of
+affine transform to the derivatives of the texture coordinates if checkerboard
+the texture coordinates if checkerboard is disabled an identity transform is
+is disabled an identity transform is used with no measurable performance
+used with no measurable performance impact this approach allows us to avoid
+impact this approach allows us to avoid having an extra copy of all our shader
+having an extra copy of all our shader permutations for the adjusted versus
+permutations for the adjusted versus unadjusted case and in frostbite it's
+unadjusted case and in frostbite it's about eighty thousand two hundred
+about eighty thousand two hundred thousand shaders with our generated
+thousand shaders with our generated pipelines so that's an important thing
+pipelines so that's an important thing for us when checkerboard is enabled the
+for us when checkerboard is enabled the adjustment alternates between the two
+adjustment alternates between the two forms that you see here the result will
+forms that you see here the result will be texture coordinates that have been
+be texture coordinates that have been adjusted to account for the pac
+adjusted to account for the pac checkerboard manual gradient correction
+checkerboard manual gradient correction in the shader does come at a price for
+in the shader does come at a price for calculating the adjusted derivatives
+calculating the adjusted derivatives which is roughly 10% extra cost in
+which is roughly 10% extra cost in maingi buffer shading sample grad issue
+maingi buffer shading sample grad issue is more expensive than normal fetch
+is more expensive than normal fetch though there is no change in bandwidth
+though there is no change in bandwidth or latency and the fetch and filter
+or latency and the fetch and filter costs are unaffected other than ALU cost
+costs are unaffected other than ALU cost there is also increased register
+there is also increased register pressure as the derivatives need to be
+pressure as the derivatives need to be kept around need to be careful that the
+kept around need to be careful that the gradient adjust doesn't hurt your hurt
+gradient adjust doesn't hurt your hurt your occupancy at least on the critical
+your occupancy at least on the critical path however we only shade half the
+path however we only shade half the pixels and not all instructions in the
+pixels and not all instructions in the arrrf etch overall this is a win the ps4
+arrrf etch overall this is a win the ps4 Pro added special hardware and compiler
+Pro added special hardware and compiler support to apply the affine transform
+support to apply the affine transform directly in the texture unit with no
+directly in the texture unit with no registry usage on this platform just
+registry usage on this platform just turned the feature on at no ALU or V GPR
+turned the feature on at no ALU or V GPR cost here are two images courtesy of
+cost here are two images courtesy of sucker-punch which clearly show the
+sucker-punch which clearly show the value of gradient adjustment in these
+value of gradient adjustment in these images you can see a curved surface
+images you can see a curved surface going into the screen and a scrolling
+going into the screen and a scrolling text advertisement which is selecting a
+text advertisement which is selecting a lower lip earlier than it should
+lower lip earlier than it should resulting in very blocky rendering most
+resulting in very blocky rendering most cases of gradient adjust can be solved
+cases of gradient adjust can be solved with an automatic adjust performed in
+with an automatic adjust performed in the texture unit but cases like custom
+the texture unit but cases like custom filtering or virtual texturing need to
+filtering or virtual texturing need to be manually corrected in this magnified
+be manually corrected in this magnified testing showing some horrible programmer
+testing showing some horrible programmer art thank you very much you can see two
+art thank you very much you can see two alternating frames with regions of
+alternating frames with regions of blurriness due to lack of gradient
+blurriness due to lack of gradient adjust in the virtual texture sampling
+adjust in the virtual texture sampling it is exacerbated by anisotropic
+it is exacerbated by anisotropic filtering because the skewed gradients
+filtering because the skewed gradients will cause the filtering to behave more
+will cause the filtering to behave more like a blur and here is the same test
+like a blur and here is the same test scene with explicitly adjusted texture
+scene with explicitly adjusted texture gradients in the virtual texture lookup
+gradients in the virtual texture lookup the flickering stabilizes and the
+the flickering stabilizes and the correct nip levels are being chosen now
+in addition to gradient adjust the Bary centric evaluation also needs to be
+centric evaluation also needs to be corrected to use sample positions
+corrected to use sample positions instead of pixel positions without
+instead of pixel positions without barycentric see valuated at sample
+barycentric see valuated at sample positions texture fidelity and
+positions texture fidelity and smoothness will be affected in this
+smoothness will be affected in this example notice the loss of detail on the
+example notice the loss of detail on the vertical lines of the background and a
+vertical lines of the background and a more rough appearance of the vegetation
+speaking of vegetation battlefield one has a lot of it and correctly resolving
+has a lot of it and correctly resolving alpha tested objects with checkerboard
+alpha tested objects with checkerboard rendering is quite challenging alpha
+rendering is quite challenging alpha test shaders compute the depth or
+test shaders compute the depth or coverage of a pixel inside the shader
+coverage of a pixel inside the shader instead of relying on the scan converted
+instead of relying on the scan converted to determine these parameters if these
+to determine these parameters if these shaders are run at pixel rate all
+shaders are run at pixel rate all samples in the pixel share the output of
+samples in the pixel share the output of a single shader invocation resulting in
+a single shader invocation resulting in IDs that are at shading rate instead of
+IDs that are at shading rate instead of full rate this presents quite a problem
+full rate this presents quite a problem with checkerboard hole reconstruction
+the solution is to run the pixel shader for each sample in the image instead of
+for each sample in the image instead of just once per pixel to be able to
+just once per pixel to be able to generate full resolution depth and ID
+generate full resolution depth and ID values the hardware will unroll each
+values the hardware will unroll each pixel quad creating a shading quad per
+pixel quad creating a shading quad per sample because unnecessary unrolling can
+sample because unnecessary unrolling can have a severe performance impact due to
+have a severe performance impact due to a large increase in pixel shader work it
+a large increase in pixel shader work it is important to switch off the unrolling
+is important to switch off the unrolling whenever it is not needed first all
+whenever it is not needed first all alpha tested geometry will run a minimal
+alpha tested geometry will run a minimal pass to compute the coverage and/or
+pass to compute the coverage and/or depth
+depth since this pass is unrolled the shader
+since this pass is unrolled the shader needs to be as fast as possible next all
+needs to be as fast as possible next all alpha tested geometry runs at the
+alpha tested geometry runs at the expense of shading Pass
+expense of shading Pass which computes the actual color values
+which computes the actual color values this pass has performed a pixel rate and
+this pass has performed a pixel rate and with depth equals testing with the
+with depth equals testing with the previous coverage pass the expense of
+previous coverage pass the expense of shading operations benefit from maximal
+shading operations benefit from maximal hidden surface removal
+in order for the depth equals test to work correctly the positions written by
+work correctly the positions written by the coverage pass and the shading pass
+the coverage pass and the shading pass need to exactly match so make sure that
+need to exactly match so make sure that your positions are invariant other or
+your positions are invariant other or otherwise there can be subtle
+otherwise there can be subtle differences in the computed vertex
+differences in the computed vertex positions which can lead to z-fighting
+positions which can lead to z-fighting in the shading path causing holes one
+in the shading path causing holes one approach is to disable fast math for
+approach is to disable fast math for everything that goes into the position
+everything that goes into the position we did this on all our vertex shaders
+we did this on all our vertex shaders with no measurable performance cost
+here's another test scene with Austin programmer art shaded low resolution to
+programmer art shaded low resolution to make the artifacts on the Alpha tested
+make the artifacts on the Alpha tested vegetation more apparent here is the
+vegetation more apparent here is the same scene using alpha unroll avoiding
+same scene using alpha unroll avoiding all of the nasty artifacts let's go back
+all of the nasty artifacts let's go back and forth again visualizing the object
+and forth again visualizing the object and primitive IDs without the unroll
+and primitive IDs without the unroll shows the lack of high resolution
+shows the lack of high resolution geometry information for the vegetation
+this is what the object and primitive IDs look like with the Alpha unrolling
+IDs look like with the Alpha unrolling enabled I'll go back and forth again
+now I will cover various optimizations that were done to our checkerboard
+that were done to our checkerboard solution in order to make it affordable
+solution in order to make it affordable especially for our 60 Hertz titles the
+especially for our 60 Hertz titles the first optimization to cover is pixel
+first optimization to cover is pixel shader invocation control otherwise
+shader invocation control otherwise known as PS invoke every sample position
+known as PS invoke every sample position if covered by a triangle can trigger
+if covered by a triangle can trigger pixel shading work checkerboard uses one
+pixel shading work checkerboard uses one X color and two X depth and IDs due to
+X color and two X depth and IDs due to the way that EQ a works in this case
+the way that EQ a works in this case half of the shading does not contribute
+half of the shading does not contribute to the final image we can prevent over
+to the final image we can prevent over shading by configuring certain samples
+shading by configuring certain samples to be non shading which brings the
+to be non shading which brings the amount of pixel shading work back to
+amount of pixel shading work back to what it would be with one x depth and
+what it would be with one x depth and IDs on ps4 there's a very simple API to
+IDs on ps4 there's a very simple API to turn this on but it's definitely not
+turn this on but it's definitely not simple under the hood and I don't want
+simple under the hood and I don't want your brains to explode so that's this
+your brains to explode so that's this slide another optimization was the usage
+slide another optimization was the usage of FB 16 GCN instructions in our
+of FB 16 GCN instructions in our checkerboard resolved shader ps4 pro has
+checkerboard resolved shader ps4 pro has support for FP 16 and we used it
+support for FP 16 and we used it throughout the checkerboard resolved
+throughout the checkerboard resolved shader the largest benefit was the
+shader the largest benefit was the ability to greet greatly lower our LDS
+ability to greet greatly lower our LDS memory usage this resulted in about a
+memory usage this resulted in about a 30% improvement in the resolved shader
+another important optimization was the implementation of an efficient depth
+implementation of an efficient depth resolve after the ID depth and stencil
+resolve after the ID depth and stencil values are written in the frame it was
+values are written in the frame it was important that passes not requiring
+important that passes not requiring higher resolution depth and ID
+higher resolution depth and ID information be allowed to read read from
+information be allowed to read read from single sample depth in order to have the
+single sample depth in order to have the def block bandwidth transparent objects
+def block bandwidth transparent objects as well as post-processing read from a
+as well as post-processing read from a single sample resolved depth and stencil
+single sample resolved depth and stencil target as they do not write depth or
+target as they do not write depth or reasonable IDs higher resolution depth
+reasonable IDs higher resolution depth is resolved a single sample after our
+is resolved a single sample after our main G buffer lay down which is used for
+main G buffer lay down which is used for the remaining passes in the frame until
+the remaining passes in the frame until the checkerboard resolve occurs
+the simple approach is to copy depth with the compute shader but this is slow
+with the compute shader but this is slow as it requires full decompression of
+as it requires full decompression of depth to be readable in the shader
+depth to be readable in the shader during optimization I developed a
+during optimization I developed a technique that can resolve depth and
+technique that can resolve depth and stencil to a single sample target
+stencil to a single sample target without requiring decompression this is
+without requiring decompression this is done with a nifty hidden feature of the
+done with a nifty hidden feature of the AMD GCN color block or C be the publicly
+AMD GCN color block or C be the publicly available
+available AMD evergreen acceleration document
+AMD evergreen acceleration document describes a mode where the Seabee can
+describes a mode where the Seabee can copy depth to a color target since the
+copy depth to a color target since the CV can read compressed data natively a
+CV can read compressed data natively a decompression is not needed this all
+decompression is not needed this all sounds great but we want a useable depth
+sounds great but we want a useable depth target in the end not a color target
+target in the end not a color target here's yet another instance where
+here's yet another instance where low-level graphics API is can really
+low-level graphics API is can really shine first off because we want 32-bit
+shine first off because we want 32-bit depth in many cases a dummy shader is
+depth in many cases a dummy shader is used that writes out 0 and the compiler
+used that writes out 0 and the compiler is forced to output 32 bit this is
+is forced to output 32 bit this is important in order to avoid truncation
+important in order to avoid truncation of depth values when the CV does the
+of depth values when the CV does the blit as mentioned this harder feature is
+blit as mentioned this harder feature is designed to efficiently resolve depth to
+designed to efficiently resolve depth to a color target but we want to depth the
+a color target but we want to depth the target in the end through a lot of trial
+target in the end through a lot of trial and error I found a single tiling mode
+and error I found a single tiling mode that matched up between color and depth
+that matched up between color and depth layouts 2d non displayable thin and 1xa
+layouts 2d non displayable thin and 1xa a depth micro tiling are essentially the
+a depth micro tiling are essentially the same by aliasing the depth target as a
+same by aliasing the depth target as a color target this technique can resolve
+color target this technique can resolve multi sample depth to single sample
+multi sample depth to single sample color which is secretly a single sample
+color which is secretly a single sample depth target just the set up is alone is
+depth target just the set up is alone is not enough though as we currently would
+not enough though as we currently would be invoking pixel shader threads that
+be invoking pixel shader threads that would just output 0 to the destination
+would just output 0 to the destination depth and stencil need to be disabled
+depth and stencil need to be disabled copy centroids set to on and copy sample
+copy centroids set to on and copy sample index can be used to specify which depth
+index can be used to specify which depth fragment we want to write to the
+fragment we want to write to the destination 0 seems like a sensible
+destination 0 seems like a sensible index to use in all cases for us the
+index to use in all cases for us the main secret here is that the DB render
+main secret here is that the DB render control register has a depth copy bit
+control register has a depth copy bit which will read depth and write it to
+which will read depth and write it to the red channel in the destination it is
+the red channel in the destination it is important to mention that each tile will
+important to mention that each tile will remain untouched and not copied either
+stencil is done in a similar manner except using the stencil copy bit of the
+except using the stencil copy bit of the DB render control register stencil copy
+DB render control register stencil copy will right through to the green channel
+will right through to the green channel which makes sense for what this hardware
+which makes sense for what this hardware was designed for but does not work
+was designed for but does not work correctly when aliasing the color target
+correctly when aliasing the color target as a stencil target as only one channel
+as a stencil target as only one channel is present to solve this the CB color
+is present to solve this the CB color info register is programmed to perform a
+info register is programmed to perform a component swap which effectively
+component swap which effectively swizzles the green to red channel on
+swizzles the green to red channel on right here is the dummy shader used for
+right here is the dummy shader used for the depth and stencil resolve which as
+the depth and stencil resolve which as you can see is quite dummy the biggest
+you can see is quite dummy the biggest thing is just outputting 0 and forcing
+thing is just outputting 0 and forcing the compiler to 32-bit it's just a
+the compiler to 32-bit it's just a placeholder this is what occurs if you
+placeholder this is what occurs if you only resolve depth and stencil but do
+only resolve depth and stencil but do not copy and fix up the H tile metadata
+not copy and fix up the H tile metadata or high Z zooming in on that area in the
+or high Z zooming in on that area in the top left you can see the invalid blocks
+top left you can see the invalid blocks of pixels due to broken H tile just
+of pixels due to broken H tile just copying the depth will only work if the
+copying the depth will only work if the destination depth target does not use H
+destination depth target does not use H tile
+tile however H tile is critical for
+however H tile is critical for performance especially at high
+performance especially at high resolutions like 4k and so we also need
+resolutions like 4k and so we also need to explicitly copy H tile to the
+to explicitly copy H tile to the destination and patch up relevant bits
+destination and patch up relevant bits the copy was accomplished with a very
+the copy was accomplished with a very fast compute shader which will keep the
+fast compute shader which will keep the H tile acceleration working correctly on
+H tile acceleration working correctly on the one X a depth destination and any
+the one X a depth destination and any further writes will compress as expected
+here is the H tile copy shader which will load for 32-bit H tile values per
+will load for 32-bit H tile values per thread copy them to the destination mark
+thread copy them to the destination mark the tiles is expanded the shader copies
+the tiles is expanded the shader copies four values at a time instead of one to
+four values at a time instead of one to avoid being SPI bound this pass will
+avoid being SPI bound this pass will produce a destination H tile that has
+produce a destination H tile that has correct Z ranges and all tiles mark is
+correct Z ranges and all tiles mark is expanded since that is how the Seabee
+expanded since that is how the Seabee has copied the depth values across
+this optimization saved us over one millisecond and leaves both the source
+millisecond and leaves both the source and depth stencil fully compressed other
+and depth stencil fully compressed other than preserving compression the state
+than preserving compression the state this technique is great because it's
+this technique is great because it's completely bandwidth bound now I will
+completely bandwidth bound now I will cover the integration of checkerboard
+cover the integration of checkerboard with our post processing after lay down
+with our post processing after lay down of our checkerboard of G buffer is
+of our checkerboard of G buffer is important to invoke as many post
+important to invoke as many post processing steps before the checkerboard
+processing steps before the checkerboard resolve is possible the reason is
+resolve is possible the reason is strictly due to the performance cost
+strictly due to the performance cost while certain passes can produce better
+while certain passes can produce better results when computed at higher
+results when computed at higher resolution the majority of passes do not
+resolution the majority of passes do not benefit enough from the quality increase
+benefit enough from the quality increase compared to the extremely high
+compared to the extremely high performance cost
+performance cost it was very time-consuming and painful
+it was very time-consuming and painful work do the initial refactoring of
+work do the initial refactoring of lighting and post process for the
+lighting and post process for the checkerboard an evolution of the
+checkerboard an evolution of the codebase over time breaks various parts
+codebase over time breaks various parts often checkerboard is a new concept to
+often checkerboard is a new concept to many this is important to Auto chest
+many this is important to Auto chest Auto test the checkerboard pipeline if
+Auto test the checkerboard pipeline if possible in frost but we have a full
+possible in frost but we have a full auto testing setup where we were able to
+auto testing setup where we were able to just add this into our existing test
+just add this into our existing test suite and test for it now which is great
+there are some passes that ignore geometric information like SSAO
+geometric information like SSAO or luminance estimation which provide
+or luminance estimation which provide very little visual benefit to be run
+very little visual benefit to be run after the resolve some passes that can
+after the resolve some passes that can benefit from geometric information in
+benefit from geometric information in order to limit color propagation over an
+order to limit color propagation over an edge can still run at a very low
+edge can still run at a very low resolution
+resolution although the render targets are not
+although the render targets are not structurally different from non EQA
+structurally different from non EQA surfaces their pixels do not correspond
+surfaces their pixels do not correspond to a regular grid this makes linear
+to a regular grid this makes linear sampling of the checkerboard surface
+sampling of the checkerboard surface problematic it also means that the
+problematic it also means that the aspect ratio of the buffer is different
+aspect ratio of the buffer is different from a normal sixteen by nine render as
+from a normal sixteen by nine render as an example if a blur Pass is applied to
+an example if a blur Pass is applied to a checkerboard surface the correct thing
+a checkerboard surface the correct thing to do is treat each pixel according to
+to do is treat each pixel according to its exact position on the checkerboard
+its exact position on the checkerboard in the majority of cases it is possible
+in the majority of cases it is possible to get away with treating the buffer as
+to get away with treating the buffer as a 1920 by 2160 buffer however to
+a 1920 by 2160 buffer however to maintain the shape of the blur
+maintain the shape of the blur the horizontal filter should be housed
+here's a test scene that shows the tiled lighting before checkerboard correction
+lighting before checkerboard correction notice the blockiness of the lighting
+notice the blockiness of the lighting results in the zoomed in region and here
+results in the zoomed in region and here is the same test scene in region after
+is the same test scene in region after accounting for the checkerboard pixel
+accounting for the checkerboard pixel grid just go back and forth again
+grid just go back and forth again hopefully the projector shows it this
+hopefully the projector shows it this was trivially fixed by applying an
+was trivially fixed by applying an offset to the UV used for reconstructing
+offset to the UV used for reconstructing the clip space position this convenience
+the clip space position this convenience function will return a packed value for
+function will return a packed value for checkerboard UV adjustment if
+checkerboard UV adjustment if checkerboard is disabled the simply
+checkerboard is disabled the simply return 0 which doesn't apply any sort of
+return 0 which doesn't apply any sort of adjustment otherwise the return value
+adjustment otherwise the return value contains a frame parity bit in the LSB
+contains a frame parity bit in the LSB and half Texel width when interpret is a
+and half Texel width when interpret is a float this packed representation allows
+float this packed representation allows us to have a single version of all of
+us to have a single version of all of our post-processing shaders regardless
+our post-processing shaders regardless of whether or not checkerboard is active
+of whether or not checkerboard is active and this packing function is what
+and this packing function is what produced the CB pack CB state packed
+produced the CB pack CB state packed variable being passed in
+this is an overview of a battlefield 1 frame on ps4 Pro and the associate
+frame on ps4 Pro and the associate associated resolution changes the clear
+associated resolution changes the clear up to the velocity vectors are done at
+up to the velocity vectors are done at 1,800 feet checkerboard then the
+1,800 feet checkerboard then the checkerboard resolve coupled with
+checkerboard resolve coupled with temporal anti-aliasing outputs a native
+temporal anti-aliasing outputs a native 1800 P frame which is the resolution
+1800 P frame which is the resolution used by the remaining passes that do not
+used by the remaining passes that do not currently benefit from the checkerboard
+currently benefit from the checkerboard finally the display mapping and resample
+finally the display mapping and resample is performed which prepares the frame
+is performed which prepares the frame for scan out at native 4k and here is an
+for scan out at native 4k and here is an overview of a Mass Effect Andromeda
+overview of a Mass Effect Andromeda frame on ps4 Pro the render passes are
+frame on ps4 Pro the render passes are very similar to battlefield one except
+very similar to battlefield one except Mass Effect also runs a sprite depth of
+Mass Effect also runs a sprite depth of field pass after the checkerboard
+field pass after the checkerboard resolve and temporal AAA the quality of
+resolve and temporal AAA the quality of the final image is greatly dependent on
+the final image is greatly dependent on how the color buffers are combined with
+how the color buffers are combined with the high resolution geometry information
+the high resolution geometry information making the shaders that move the frame
+making the shaders that move the frame 240 resolution a very important part of
+240 resolution a very important part of these techniques the checkerboard
+these techniques the checkerboard resolve is broken into two main parts
+resolve is broken into two main parts the spatial component and the temporal
+the spatial component and the temporal component the spatial component exploits
+component the spatial component exploits the relatively dense sample rate in two
+the relatively dense sample rate in two ways first only the unshaded samples are
+ways first only the unshaded samples are resolved and the unshaken the shaded
+resolved and the unshaken the shaded samples are simply passed through second
+samples are simply passed through second the resolve only looks at the for direct
+the resolve only looks at the for direct neighbors of the unshaded sample instead
+neighbors of the unshaded sample instead of performing a wider search the
+of performing a wider search the checkerboard resolve typically does not
+checkerboard resolve typically does not use depth for performance reasons
+use depth for performance reasons therefore the color information must be
+therefore the color information must be used to determine if an edge is soft
+used to determine if an edge is soft this should only be done for colors
+this should only be done for colors produced from the same primitive as
+produced from the same primitive as there are no cases where we want
+there are no cases where we want contribution to a pixel from different
+contribution to a pixel from different objects in the case where none of the
+objects in the case where none of the surrounding colors are from the same
+surrounding colors are from the same objects an average of all four color
+objects an average of all four color samples is used this slide shows a
+samples is used this slide shows a problem with false hard edges the pixel
+problem with false hard edges the pixel able to see will be resolved using all
+able to see will be resolved using all four of its neighbors resulting in an
+four of its neighbors resulting in an even blend between
+even blend between red and blue pixels labeled as a and B
+red and blue pixels labeled as a and B have an uneven number of red and blue
+have an uneven number of red and blue neighbors leading to different blending
+neighbors leading to different blending results applied over the whole quad this
+results applied over the whole quad this would produce a visible diagonal edge
+would produce a visible diagonal edge the color bounding box will add all
+the color bounding box will add all color samples from a primitive to a
+color samples from a primitive to a bounding box and YCO CG space and color
+bounding box and YCO CG space and color samples that are from the right object
+samples that are from the right object but a different primitive will be
+but a different primitive will be considered to be on the right primitive
+considered to be on the right primitive if they are contained in this bounding
+if they are contained in this bounding box it is important to decide what to do
+box it is important to decide what to do in a single sample is contained in the
+in a single sample is contained in the bounding box here's a test case courtesy
+bounding box here's a test case courtesy of sucker-punch which really shows the
+of sucker-punch which really shows the problem of single bounding box samples
+problem of single bounding box samples because it is unlikely that other
+because it is unlikely that other samples passed the test the single
+samples passed the test the single sample is copied directly into the
+sample is copied directly into the destination pixel causing an obvious
+destination pixel causing an obvious artifact the problem can be avoided by
+artifact the problem can be avoided by using a heuristic that compares the
+using a heuristic that compares the single color value to the blended color
+single color value to the blended color of all samples from the correct object
+of all samples from the correct object the heuristic is to help reduce
+the heuristic is to help reduce artifacts and highly tessellated yet
+artifacts and highly tessellated yet smooth areas like in this character face
+let's go back and forth
+using a distance weighted blend would perform a simple averaging since all
+perform a simple averaging since all four samples are equal distant to the
+four samples are equal distant to the center sample you can see artifacts on
+center sample you can see artifacts on the left image where visual continuity
+the left image where visual continuity is being interrupted by average pixels
+is being interrupted by average pixels the solution is to use a differential
+the solution is to use a differential blending operator that compares two
+blending operator that compares two pairs of opposing color samples and
+pairs of opposing color samples and weighting each pairs contribution to the
+weighting each pairs contribution to the final value higher if the samples in the
+final value higher if the samples in the pair are more similar than the colors of
+pair are more similar than the colors of the opposing pair the differential blend
+the opposing pair the differential blend operator is much better than a simple
+operator is much better than a simple averaging but it still has limitations
+averaging but it still has limitations due to its small search radius if both
+due to its small search radius if both pairs are quite similar there is not
+pairs are quite similar there is not enough information to select the
+enough information to select the appropriate blend this mainly occurs
+appropriate blend this mainly occurs when a single pixel wide texture feature
+when a single pixel wide texture feature is encountered like in this example
+is encountered like in this example where the light background is visible
+where the light background is visible through single pixel wide openings in
+through single pixel wide openings in the foreground geometry the solution is
+the foreground geometry the solution is to use the ID buffer to influence the
+to use the ID buffer to influence the weighting back and forth
+this is the differential weighting function which includes ID evaluation
+function which includes ID evaluation the exact formulation is dependent on
+the exact formulation is dependent on what color space you operate in such as
+what color space you operate in such as log space luminance as you can see the
+log space luminance as you can see the operator is quite simple but greatly
+operator is quite simple but greatly improves the image quality here are some
+improves the image quality here are some examples showing how object and our
+examples showing how object and our primitive ID can be used to help in
+primitive ID can be used to help in separating out unique surfaces it may
+separating out unique surfaces it may seem like the inclusion of object and
+seem like the inclusion of object and our primitive ID results in a more
+our primitive ID results in a more aliased image but keep in mind that is
+aliased image but keep in mind that is desirable to keep the hard edges between
+desirable to keep the hard edges between different objects rather than just
+different objects rather than just blurring everything together and
+blurring everything together and reducing image quality the temporal
+reducing image quality the temporal component uses reprojection to combine
+component uses reprojection to combine the results of the spatial resolve with
+the results of the spatial resolve with the color history buffer for the
+the color history buffer for the majority of details you can refer to all
+majority of details you can refer to all the great presentations and research
+the great presentations and research already out there especially the work of
+already out there especially the work of Brian Karis our temporal a is very
+Brian Karis our temporal a is very similar to this and general ta isn't the
+similar to this and general ta isn't the talks focus so I won't be going into
+talks focus so I won't be going into much of the details for that I will
+much of the details for that I will briefly touch on velocity based
+briefly touch on velocity based reprojection which was updated for
+reprojection which was updated for checkerboard a static scene over two
+checkerboard a static scene over two frames is trivial to reconstruct but an
+frames is trivial to reconstruct but an actual game is obviously much more
+actual game is obviously much more dynamic if there are numerous objects on
+dynamic if there are numerous objects on surfaces in motion yet the pixel grid is
+surfaces in motion yet the pixel grid is stationary because of this we needed to
+stationary because of this we needed to correlate 3d surfaces in motion such
+correlate 3d surfaces in motion such that a valid reconstruction of unshaded
+that a valid reconstruction of unshaded checkerboard pixels can be performed the
+checkerboard pixels can be performed the correlation is achieved by having
+correlation is achieved by having surfaces right per pixel velocity
+surfaces right per pixel velocity vectors which can be used by the
+vectors which can be used by the reconstruction anti-aliased edges
+reconstruction anti-aliased edges potentially spanned depth and velocity
+potentially spanned depth and velocity discontinuities in order to make make
+discontinuities in order to make make sure that we don't lose anti-aliasing
+sure that we don't lose anti-aliasing when reprojected we need to reproject
+when reprojected we need to reproject anti-aliased lines as a whole in order
+anti-aliased lines as a whole in order to do that we must dilate velocities
+to do that we must dilate velocities around them in practice using the
+around them in practice using the frontmost velocity works well in most
+frontmost velocity works well in most cases so that's the technique we would
+cases so that's the technique we would like to use unfortunately to find the
+like to use unfortunately to find the frontmost velocity we also need to fetch
+frontmost velocity we also need to fetch the depth buffer and doing so is quite
+the depth buffer and doing so is quite expensive
+this is an overview of our optimized velocity dilation which determines the
+velocity dilation which determines the pixels that need velocity dilation
+pixels that need velocity dilation loading depth to compute the frontmost
+loading depth to compute the frontmost velocity and the pixels that use can use
+velocity and the pixels that use can use a basic averaging which bypasses the
+a basic averaging which bypasses the loading of depth the pass-through pixel
+loading of depth the pass-through pixel uses a cross-shaped kernel while the
+uses a cross-shaped kernel while the filtered pixel uses a plush tape kernel
+filtered pixel uses a plush tape kernel in this two bug overlay the red pixels
+in this two bug overlay the red pixels are moving edges which require velocity
+are moving edges which require velocity dilation while the unmarked pixels do
+dilation while the unmarked pixels do not here's an overview of the
+not here's an overview of the checkerboard resolved shader which
+checkerboard resolved shader which processes two pixels per thread the pass
+processes two pixels per thread the pass through or shaded pixels and the
+through or shaded pixels and the filtered or unshaded pixels you'll note
+filtered or unshaded pixels you'll note that the spatial resolve occurs within
+that the spatial resolve occurs within the same shader as the temporal AAA so
+the same shader as the temporal AAA so that the spatially resolved color is
+that the spatially resolved color is never written back to memory after
+never written back to memory after resolving the spatial and temporal
+resolving the spatial and temporal components the results undergo a sharpen
+components the results undergo a sharpen filter and then the final frame was
+filter and then the final frame was written out to memory despite being
+written out to memory despite being quite advanced the 4k checkerboard
+quite advanced the 4k checkerboard resolve + temporal AAA
+resolve + temporal AAA is essentially a smart blur filter as a
+is essentially a smart blur filter as a result the absence of high-frequency
+result the absence of high-frequency components in an image makes it harder
+components in an image makes it harder for just observers to discern objects
+for just observers to discern objects ganglion cells which link the retina to
+ganglion cells which link the retina to the optic nerve respond acutely to
+the optic nerve respond acutely to high-frequency image components with a
+high-frequency image components with a blurred image the brains visual cortex
+blurred image the brains visual cortex will lack the necessary information to
+will lack the necessary information to discern objects when a blurry frame
+applying a sharpen filter to the blurred image will help recover the
+image will help recover the high-frequency components which which
+high-frequency components which which will result in enhanced visual quality
+will result in enhanced visual quality be careful to not reintroduce aliasing
+be careful to not reintroduce aliasing or Hall's high frequency and to not
+or Hall's high frequency and to not introduce ringing or over sharpening
+here's a screenshot without the sharpening filter applied here is the
+sharpening filter applied here is the same scene with the sharpening filter
+same scene with the sharpening filter applied before after another example
+applied before after another example before and after close up before the
+before and after close up before the filter and after I feel like I just gave
+filter and after I feel like I just gave all of you and I exam once checkerboard
+all of you and I exam once checkerboard was submitted to mainline I started to
+was submitted to mainline I started to receive absolutely every artifact
+receive absolutely every artifact related bug report like for the entire
+related bug report like for the entire game claiming that the cause must be the
+game claiming that the cause must be the checkerboard including bugs that existed
+checkerboard including bugs that existed well before the checkerboard was
+well before the checkerboard was submitted which is fun adding lots of
+submitted which is fun adding lots of debug overlays was a great way to help
+debug overlays was a great way to help with debugging and isolate the root
+with debugging and isolate the root cause and whatever rendering component
+cause and whatever rendering component was to blame
+was to blame it was never checkerboard also take
+it was never checkerboard also take advantage of your technical artists and
+advantage of your technical artists and fellow rendering engineers teach them
+fellow rendering engineers teach them how to tell the difference between an
+how to tell the difference between an actual actual checkerboard bug and an
+actual actual checkerboard bug and an unrelated system like motion blur
+unrelated system like motion blur you might think those are the exact same
+you might think those are the exact same bug they're not so get ready for an
+bug they're not so get ready for an old-fashioned witch hunt
+now I want to briefly touch on a couple infrastructure pieces that were
+infrastructure pieces that were indirectly related to the checkerboard
+indirectly related to the checkerboard rendering perhaps the biggest pain point
+rendering perhaps the biggest pain point of the move to 4k rendering was the
+of the move to 4k rendering was the massive increase of memory usage by the
+massive increase of memory usage by the majority of our render targets at the
+majority of our render targets at the time we didn't have a fancy system
+time we didn't have a fancy system moving and repurposing memory throughout
+moving and repurposing memory throughout the frame so we had to do some pretty
+the frame so we had to do some pretty creative reef actors to manual aliasing
+creative reef actors to manual aliasing in very complex systems this extra
+in very complex systems this extra effort pulled us away from doing further
+effort pulled us away from doing further 4k specific improvements that we wanted
+4k specific improvements that we wanted to do going forward we now have very
+to do going forward we now have very flexible and efficient approach for
+flexible and efficient approach for managing render target memory and
+managing render target memory and aliasing very interested please go back
+aliasing very interested please go back and watch URIs talk titled frame graph
+and watch URIs talk titled frame graph extensible rendering architecture and
+extensible rendering architecture and frostbite it's really good render target
+frostbite it's really good render target aliasing is also super - funded about at
+aliasing is also super - funded about at times especially when the corruption
+times especially when the corruption manifests and the object ID buffer that
+manifests and the object ID buffer that helps drive our checkerboard resolve the
+helps drive our checkerboard resolve the corruption wasn't obvious at the time as
+corruption wasn't obvious at the time as the checkerboard resolved errors were
+the checkerboard resolved errors were noticeable but still quite subtle closer
+noticeable but still quite subtle closer inspection of the memory at this point
+inspection of the memory at this point in time at this point the frame story
+in time at this point the frame story identified the culprit here this was
+identified the culprit here this was especially difficult to debug and track
+especially difficult to debug and track down because our memory layouts were
+down because our memory layouts were also constantly changing frame to frame
+also constantly changing frame to frame due to dynamic resolution scaling
+developed by Dyson Microsoft another great feature is our dynamic resolution
+great feature is our dynamic resolution scaling system which also plays nicely
+scaling system which also plays nicely with our 4k checkerboard implementation
+with our 4k checkerboard implementation checkerboard is always active but the
+checkerboard is always active but the dynamic resolution scaling will
+dynamic resolution scaling will determine what initial checkerboard
+determine what initial checkerboard frame resolution should be based on a
+frame resolution should be based on a running performance heuristic
+battlefield one contains a number of infrequently running GPU tasks these
+infrequently running GPU tasks these caused the resolution to adjust in small
+caused the resolution to adjust in small increments almost every frame which
+increments almost every frame which turned out to be not an issue it
+turned out to be not an issue it actually worked with the jitter to
+actually worked with the jitter to provide different variation in sub pixel
+provide different variation in sub pixel detail we tried preventing any upscaling
+detail we tried preventing any upscaling if the camera wasn't moving
+if the camera wasn't moving but this resulted in a noticeable lower
+but this resulted in a noticeable lower quality image and also nobody complained
+quality image and also nobody complained about it
+lastly I will cover performance and future work going back to this
+future work going back to this battlefield scene let's look at the
+battlefield scene let's look at the performance numbers for it a couple
+performance numbers for it a couple things to note here the ID clear is
+things to note here the ID clear is quite high as there wasn't enough time
+quite high as there wasn't enough time to implement something better such as
+to implement something better such as using C mask acceleration to mark
+using C mask acceleration to mark cleared tiles instead of clearing the
+cleared tiles instead of clearing the backing memory and we had to do this
+backing memory and we had to do this because of our sky not actually writing
+because of our sky not actually writing down IDs this should bring the time down
+down IDs this should bring the time down quite a lot the other note is around the
+quite a lot the other note is around the three instances of depth stencil and H
+three instances of depth stencil and H tile copying the reason it's complicated
+tile copying the reason it's complicated and specific to how battlefield and Mass
+and specific to how battlefield and Mass Effect are currently rendering a frame
+Effect are currently rendering a frame other frostbite titles going forward we
+other frostbite titles going forward we only require one depth stencil a shall
+only require one depth stencil a shall copy on average making the total cost a
+copy on average making the total cost a third of what you see here
+third of what you see here comparing 1,800 feet checkerboard versus
+comparing 1,800 feet checkerboard versus 1,800 P native the checkerboard
+1,800 P native the checkerboard implementation saves 5.08 milliseconds
+implementation saves 5.08 milliseconds in the scene making the total frame cost
+in the scene making the total frame cost suitable for the 60 Hertz performance
+suitable for the 60 Hertz performance target here are some interesting GPU
+target here are some interesting GPU timers for this scene comparing 1800 P
+timers for this scene comparing 1800 P native versus 1800 Peet checkerboard in
+native versus 1800 Peet checkerboard in a lot of cases you can see that the
+a lot of cases you can see that the timing is pretty much half of what it
+timing is pretty much half of what it was before checkerboard the cases where
+was before checkerboard the cases where it's not that like the G buffer is
+it's not that like the G buffer is because it's bound by other things in
+because it's bound by other things in the pipeline like bandwidth for example
+and here's a scene from Mass Effect Andromeda using checkerboard which shows
+Andromeda using checkerboard which shows the timings between 1800 P native and
+the timings between 1800 P native and 1800 Peet checkerboard this is a 30
+1800 Peet checkerboard this is a 30 Hertz title so the checkerboard costs as
+Hertz title so the checkerboard costs as well within the allotted budget the
+well within the allotted budget the checkerboard specific timers are similar
+checkerboard specific timers are similar to the battlefield 1 capture except the
+to the battlefield 1 capture except the resolve is much more expensive due to
+resolve is much more expensive due to higher quality settings since Mass
+higher quality settings since Mass Effect goes to 30 Hertz title and can
+Effect goes to 30 Hertz title and can afford it
+here are some interesting GPU timers for this scene
+this scene comparing 1800 P native versus 1800 P
+comparing 1800 P native versus 1800 P tracker board
+we have planned further improvements to the checkerboard resolve as well as
+the checkerboard resolve as well as optimizations to alpha tested objects so
+optimizations to alpha tested objects so the sample rate coverage is not needed
+the sample rate coverage is not needed and we also want to get our actual
+and we also want to get our actual resolution higher which is just more of
+resolution higher which is just more of general optimization work we've also
+general optimization work we've also only scratched the surface what the
+only scratched the surface what the ideas can be used for the general theme
+ideas can be used for the general theme is that a number of heuristics can be
+is that a number of heuristics can be removed in favour of trivial comparisons
+removed in favour of trivial comparisons such as the Uncharted force ensel based
+such as the Uncharted force ensel based tagging stuff that we could replace with
+tagging stuff that we could replace with object IDs we plan to implement pack
+object IDs we plan to implement pack checkerboard and other platforms the ps4
+checkerboard and other platforms the ps4 pro has some great hardware features for
+pro has some great hardware features for this but a reasonable workarounds exist
+this but a reasonable workarounds exist for both Xbox and for base ps4 on PC
+for both Xbox and for base ps4 on PC we need EQ a or something like that for
+we need EQ a or something like that for all H fees as well as programmable
+all H fees as well as programmable sample locations for Vulcan and DirectX
+sample locations for Vulcan and DirectX 12 we also need a fish and driver
+12 we also need a fish and driver support for the EQ a depth resolved such
+support for the EQ a depth resolved such the source is left uncompressed and the
+the source is left uncompressed and the technique is purely bandwidth bound more
+technique is purely bandwidth bound more forward-looking but also related to high
+forward-looking but also related to high resolution rendering is the notion of
+resolution rendering is the notion of using a filtered visibility buffer and
+using a filtered visibility buffer and decoupled shading and other variable
+decoupled shading and other variable shading rate techniques G buffer
+shading rate techniques G buffer performance becomes challenging at high
+performance becomes challenging at high resolutions so classic deferred shading
+resolutions so classic deferred shading isn't the answer
+isn't the answer the goal of the visibility buffer is to
+the goal of the visibility buffer is to decouple G buffer from screen resolution
+decouple G buffer from screen resolution which improves performance at high
+which improves performance at high resolutions like 2k 4k and even MSA
+resolutions like 2k 4k and even MSA configurations as well as on some
+configurations as well as on some bandwidth-limited platforms I'd like to
+bandwidth-limited platforms I'd like to give a special thanks to the people
+give a special thanks to the people listed here for their collaboration and
+listed here for their collaboration and feedback was greatly appreciated and
+feedback was greatly appreciated and with that I'd like you to open it up to
+with that I'd like you to open it up to actually questions you have and thank
+actually questions you have and thank you very much for coming
+you very much for coming [Applause]
+[Applause] hello a nice presentation
+hello a nice presentation do you try or I use in any kind of
+do you try or I use in any kind of stencil until Sen sorry can you repeat
+stencil until Sen sorry can you repeat class
+class yeah if you are using or at least trying
+yeah if you are using or at least trying any kind of stencil stencil here
+any kind of stencil stencil here specular until the same not this time as
+specular until the same not this time as far as I know we're actually we're
+far as I know we're actually we're investigating certain techniques but no
+investigating certain techniques but no okay thank you since you were using eqa
+okay thank you since you were using eqa did you find any use for the f mask for
+did you find any use for the f mask for example for the color resolve with this
+example for the color resolve with this particular technique you actually don't
+particular technique you actually don't need to use f mask for it I have some
+need to use f mask for it I have some other plans for some of the V buffer
+other plans for some of the V buffer stuff may be using f masks
+alright that looks like it thank you very much everybody
+very much everybody [Applause]
+you

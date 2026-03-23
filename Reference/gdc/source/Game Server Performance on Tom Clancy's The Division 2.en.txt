@@ -1,0 +1,1051 @@
+[Music] hello everyone
+hello everyone my name is david and i'm going to talk
+my name is david and i'm going to talk to you about game server performance on
+to you about game server performance on the division 2.
+the division 2. a little bit of info about me i worked
+a little bit of info about me i worked at massive for about 12 years now
+at massive for about 12 years now on a bunch of different games that you
+on a bunch of different games that you can see here from world in conflict
+can see here from world in conflict to the division 2 most recently
+to the division 2 most recently i've had a couple of different roles but
+i've had a couple of different roles but mainly in game play and
+mainly in game play and ai but the last couple years have really
+ai but the last couple years have really been focusing on server performance
+been focusing on server performance both the workflows that we employ on the
+both the workflows that we employ on the team and the
+team and the optimization parts themselves
+so the contents of today's presentation will be focused around how we maintain a
+will be focused around how we maintain a large player base on our servers
+large player base on our servers and i'll be going through this in three
+and i'll be going through this in three main parts one is the code architecture
+main parts one is the code architecture that's required to
+that's required to to maintain this and the second part
+to maintain this and the second part will be about the tools and processes
+will be about the tools and processes that we have
+that we have to to be able to debug performance
+to to be able to debug performance problems and monitor performance over
+problems and monitor performance over time
+time and the third part will be some examples
+and the third part will be some examples of problems that we ran into and the
+of problems that we ran into and the solutions that we found
+solutions that we found and then we'll round off with some
+and then we'll round off with some conclusions and takeaways as well
+conclusions and takeaways as well so let's start with a video to show you
+so let's start with a video to show you a little bit of the game and what it's
+a little bit of the game and what it's basically
+see what you about find out
+[Music]
+so there you go the division 2 is a third-person shooter
+third-person shooter as you can see it has a typical client
+as you can see it has a typical client server architecture
+server architecture and it has an authoritative server so we
+and it has an authoritative server so we use the server to validate
+use the server to validate all kinds of player actions like
+all kinds of player actions like shooting and movement
+shooting and movement using animations physics and amish
+using animations physics and amish the the servers are fairly large scale
+the the servers are fairly large scale it's about 1000 players per server and
+it's about 1000 players per server and on that kind of server we have around 20
+on that kind of server we have around 20 000 npcs at any given time
+000 npcs at any given time it runs at 20 fps except in some
+it runs at 20 fps except in some dedicated pvp modes where we run at 30
+dedicated pvp modes where we run at 30 fps
+fps so we took a decision early on to
+so we took a decision early on to maximize the number of players that we
+maximize the number of players that we have on any given server and this helps
+have on any given server and this helps us in a couple of ways
+us in a couple of ways one of them is that we wanted this kind
+one of them is that we wanted this kind of seamless transitions between your own
+of seamless transitions between your own personal part of the world into the more
+personal part of the world into the more social spaces like the dark zone and the
+social spaces like the dark zone and the hubs
+hubs where you can meet other players and
+where you can meet other players and having a lot of players in that case
+having a lot of players in that case also helps us populate those
+also helps us populate those areas in a good way so that whenever you
+areas in a good way so that whenever you go into a dark zone for example it's
+go into a dark zone for example it's usually filled up with people or it
+usually filled up with people or it should be most of the time
+should be most of the time and lastly it also helps us on the
+and lastly it also helps us on the hardware side because we don't really
+hardware side because we don't really have to do any streaming from disk
+have to do any streaming from disk once we've started up the server
+so what does the game server really do if we're focusing specifically on the
+if we're focusing specifically on the server
+server well the server updates worlds and the
+well the server updates worlds and the worlds have a bunch of stuff in them
+worlds have a bunch of stuff in them like the
+like the all the ai and all the players and all
+all the ai and all the players and all the different kinds of systems like
+the different kinds of systems like like the mission script system and the
+like the mission script system and the skill script systems which are used to
+skill script systems which are used to implement things like player skills and
+implement things like player skills and so on so
+so on so each world is updated once per frame and
+each world is updated once per frame and runs through the updates of all those
+runs through the updates of all those systems
+systems and each single update is also single
+and each single update is also single threaded so each world updates
+threaded so each world updates a single threaded and it doesn't have
+a single threaded and it doesn't have any cross references to other worlds
+any cross references to other worlds during the updates
+during the updates and since we have at least one world per
+and since we have at least one world per player this makes this means we have
+player this makes this means we have a thousand worlds or more at any given
+a thousand worlds or more at any given time so this makes it a really good
+time so this makes it a really good candidate for
+candidate for sort of parallelizing process process
+sort of parallelizing process process so let's take a look at the frame
+so let's take a look at the frame structure the way we structured the
+structure the way we structured the frame
+frame is that in the beginning of the frame we
+is that in the beginning of the frame we have these small non-parallelized
+have these small non-parallelized segments
+segments and after that we have tried to
+and after that we have tried to parallelize world updates as much as we
+parallelize world updates as much as we can basically
+can basically and then at the end of the frame we have
+and then at the end of the frame we have a small non-parallelized segment again
+a small non-parallelized segment again so we have two types of tasks mainly
+so we have two types of tasks mainly what they were called short tasks and
+what they were called short tasks and long tasks
+long tasks and the short tasks are what we use to
+and the short tasks are what we use to update the worlds
+update the worlds they run on high priority threats the
+they run on high priority threats the long tasks are used to
+long tasks are used to update more background kind of data like
+update more background kind of data like caching save game data to disk
+caching save game data to disk and instancing nav meshes and so on and
+and instancing nav meshes and so on and also deleting worlds if a player leaves
+also deleting worlds if a player leaves the server and creating new worlds when
+the server and creating new worlds when a player joins the server
+looking at this you can see here that in the middle we have short tasks doing all
+the middle we have short tasks doing all these world updates and we really want
+these world updates and we really want to parallelize this as much as possible
+to parallelize this as much as possible to get the most performance out of the
+to get the most performance out of the out of the system
+so how do we distribute this work on a typical
+typical machine on a 40 core server we would
+machine on a 40 core server we would use perhaps one or two cores reserved
+use perhaps one or two cores reserved for the operating system
+for the operating system and the remaining 38 cores would be
+and the remaining 38 cores would be available to all threads so we don't use
+available to all threads so we don't use any thread affinities to set any
+any thread affinities to set any limitations here
+limitations here we just let the scheduler do the work
+we just let the scheduler do the work for us
+for us and on such a forticore machine we would
+and on such a forticore machine we would spawn 36 short task threads
+spawn 36 short task threads which take care of this world updates
+which take care of this world updates that i mentioned before
+that i mentioned before and this leaves us with about two cores
+and this leaves us with about two cores worth of cpu to run
+worth of cpu to run long tasks as well
+long tasks as well so that should give you a rough idea of
+so that should give you a rough idea of how we do the cpu work
+how we do the cpu work basically so let's take a look at the
+basically so let's take a look at the actual tools and the pipeline we use for
+this so on a high level we want programmers
+so on a high level we want programmers to always have
+to always have all kinds of performance data available
+all kinds of performance data available to them for debugging server performance
+to them for debugging server performance issues
+issues the data generation however in
+the data generation however in collection can vary a little bit with
+collection can vary a little bit with context so for example if it's the live
+context so for example if it's the live environment or if it's just if
+environment or if it's just if it's the production environment and this
+it's the production environment and this is something we're looking into fixing
+is something we're looking into fixing further
+further so beyond turnquist is also going to do
+so beyond turnquist is also going to do a talk here at gdc about
+a talk here at gdc about unifying this we always have the same
+unifying this we always have the same kind of environment both in development
+kind of environment both in development and
+and and when we go live so this can be
+and when we go live so this can be further improved but
+further improved but at least for for division 2 we made sure
+at least for for division 2 we made sure that
+that all the data is always available for for
+all the data is always available for for debugging
+debugging server performance issues
+server performance issues so let's start with a tool we call
+so let's start with a tool we call grafana this is basically a graph viewer
+grafana this is basically a graph viewer on top of a database
+on top of a database and what we do on the game server is
+and what we do on the game server is that we
+that we send data every frame from the game
+send data every frame from the game server to this database
+server to this database and due to its high level nature this
+and due to its high level nature this becomes the point of entry for most
+becomes the point of entry for most investigations into performance issues
+we keep tracking this for all servers at all times as well
+all times as well so this base this data is basically
+so this base this data is basically always available for programs to look at
+always available for programs to look at the second tool we're going to talk a
+the second tool we're going to talk a bit about is the snowdrop profiler
+bit about is the snowdrop profiler this nodal profiler basically has two
+this nodal profiler basically has two parts
+parts and it has the runtime component which
+and it has the runtime component which constantly records profiler events and
+constantly records profiler events and performance data
+performance data and it has a ui part so which you can
+and it has a ui part so which you can see here in the picture
+see here in the picture and the ui part can be used either
+and the ui part can be used either directly live as we are debugging a
+directly live as we are debugging a a running executable or debugging the
+a running executable or debugging the process for performance
+process for performance or it can be used as a offline tool
+or it can be used as a offline tool where you load up
+where you load up all the performance data that you've
+all the performance data that you've saved to disk in some previous run
+saved to disk in some previous run we use it for both cases but it's quite
+we use it for both cases but it's quite nice to have that sort of live
+nice to have that sort of live debug ability if you want to tweak some
+debug ability if you want to tweak some values for example while you're running
+values for example while you're running you can
+you can tweak tweak a little bit and look
+tweak tweak a little bit and look immediately and see if this
+immediately and see if this had an effect on performance you don't
+had an effect on performance you don't have to restart or
+have to restart or save something to disk and then load it
+save something to disk and then load it up in an external viewer for example
+and what you see here in the profiler ui is basically a single game frame
+is basically a single game frame in our internal profiler these colors
+in our internal profiler these colors represent
+represent the different game systems so you have
+the different game systems so you have the green for pathfinding for example
+the green for pathfinding for example and you have the blue for
+and you have the blue for ai updates in general and you have the
+ai updates in general and you have the the pink heroes agent updates
+the pink heroes agent updates and just to break this down in terms of
+and just to break this down in terms of what we talked about before with the
+what we talked about before with the frame structure
+frame structure this this pink part here in the
+this this pink part here in the beginning the begin frame you can see
+beginning the begin frame you can see that it's very small and needs to be
+that it's very small and needs to be very small so
+very small so so that we because we can't run anything
+so that we because we can't run anything else in parallel with that at least not
+else in parallel with that at least not world updates
+world updates and then you can see i've marked the
+and then you can see i've marked the hair as well the different worlds and
+hair as well the different worlds and how they are sort of
+how they are sort of updated one by one on each on each short
+updated one by one on each on each short task
+so how do we how do we use this in a day to day
+to day well every day we have automated blood
+well every day we have automated blood tests running on the latest bills
+tests running on the latest bills and the bots are very lightweight ai
+and the bots are very lightweight ai agents
+agents and they try to replicate behaviors that
+and they try to replicate behaviors that the players have as closely as possible
+the players have as closely as possible not necessarily from a functionality
+not necessarily from a functionality standpoint but at least from
+standpoint but at least from a performance standpoint
+a performance standpoint so we really want to make sure that they
+so we really want to make sure that they are similar to
+are similar to to players in terms of the server load
+to players in terms of the server load that they that they have
+that they that they have and this is something we verify during
+and this is something we verify during production by having
+production by having qc tests directed qc tests for example
+qc tests directed qc tests for example that
+that that would we would test with 100 bots
+that would we would test with 100 bots and then 100 qc players and make sure
+and then 100 qc players and make sure that the server load was roughly the
+that the server load was roughly the same
+the bots themselves are part of the game solution and this really helps us
+solution and this really helps us implement additional functionality into
+implement additional functionality into the bots it's a small side note but
+the bots it's a small side note but having that make sure we can use server
+having that make sure we can use server code and client code and data directly
+code and client code and data directly in the server button it's very quick to
+in the server button it's very quick to iterate over features using the bots
+the main point here is that we use the bots to fully load test
+bots to fully load test our target hardware every day
+our target hardware every day so we run a thousand of these spots on
+so we run a thousand of these spots on the actual hardware that we're shipping
+the actual hardware that we're shipping the server on
+the server on every day each test
+every day each test generates a report and we get links to
+generates a report and we get links to grafana that i mentioned before
+grafana that i mentioned before there's also a link to some binary
+there's also a link to some binary profiler data that was output during the
+profiler data that was output during the test if there's any
+test if there's any if there was any issues and we get links
+if there was any issues and we get links to crash reports and so on as well
+so some source code coming up it's been heavily modified
+heavily modified just to make it readable and and
+just to make it readable and and understandable here so uh
+understandable here so uh so but i hope it's the concept comes
+so but i hope it's the concept comes across anyway
+so the profiler data export that i mentioned the sort of binary profile
+mentioned the sort of binary profile data that's available
+data that's available we output that from the server
+we output that from the server from a couple of different cases one of
+from a couple of different cases one of them the most simple one is that
+them the most simple one is that when the frame time exceeds the target
+when the frame time exceeds the target frame time
+frame time in our case 50 milliseconds on a regular
+in our case 50 milliseconds on a regular server
+server the other one is that an individual
+the other one is that an individual system has actually gone over its own
+system has actually gone over its own budget
+budget so each one that each system has its own
+so each one that each system has its own cpu budget like ai system for example
+cpu budget like ai system for example and the
+and the the dark zone and and so on and if
+the dark zone and and so on and if either of those go over their own budget
+either of those go over their own budget we also save profiler data to disk
+we also save profiler data to disk the third one is when an individual
+the third one is when an individual scope actually takes longer than
+scope actually takes longer than anticipated
+anticipated in this case we create first of all a
+in this case we create first of all a regular
+regular profiler event but then we also create
+profiler event but then we also create this timer object that you can see here
+this timer object that you can see here which
+which tracks if the scope actually took too
+tracks if the scope actually took too long and doesn't save a profile or save
+long and doesn't save a profile or save it
+it in that case
+in that case the data export itself is nearly log
+the data export itself is nearly log free
+free and it runs on a low priority thread in
+and it runs on a low priority thread in the background so
+the background so it has almost no effect on frame rate
+it has almost no effect on frame rate whatsoever
+whatsoever and can basically be running constantly
+and can basically be running constantly during normal operation of the server
+during normal operation of the server it allocates memory on the first use
+it allocates memory on the first use which is not super
+which is not super relevant for the server but since this
+relevant for the server but since this is available for the xbox and the ps4 as
+is available for the xbox and the ps4 as well for example
+well for example we need to make sure that we don't use
+we need to make sure that we don't use this memory
+this memory if we don't allocate this memory we're
+if we don't allocate this memory we're not going to use it
+not going to use it and you can see here as well that in
+and you can see here as well that in this task which is actually the code
+this task which is actually the code that is running on the low priority
+that is running on the low priority thread
+thread we recall into the runtime of the
+we recall into the runtime of the profiler
+profiler to to save its state and the way we do
+to to save its state and the way we do that without interrupting the execution
+that without interrupting the execution of the process or the threads
+of the process or the threads is that the profiler at any given time
+is that the profiler at any given time has a number of used blocks
+has a number of used blocks that contain profiler data that has been
+that contain profiler data that has been recorded
+recorded and it has the number of free blocks as
+and it has the number of free blocks as well available for use
+well available for use and when a specific thread so this is
+and when a specific thread so this is organized
+organized per thread so each row here is per
+per thread so each row here is per thread performance data basically
+thread performance data basically profiler data when a thread needs
+profiler data when a thread needs uh fills up the current block it's going
+uh fills up the current block it's going to the profiler grabs a free block and
+to the profiler grabs a free block and puts it in the front and starts filling
+puts it in the front and starts filling up this block again
+up this block again and then once per frame at the end of
+and then once per frame at the end of the frame
+the frame we do a sort of a cleanup where we go
+we do a sort of a cleanup where we go through all of the oldest
+through all of the oldest memory blocks here in use by the
+memory blocks here in use by the profiler and move them to the free
+profiler and move them to the free blocks
+blocks pool and what happens when we do a save
+pool and what happens when we do a save is that we're going to lock
+is that we're going to lock this per thread data one by one
+this per thread data one by one and copy it basically and
+and copy it basically and if that thread is currently recording
+if that thread is currently recording events which is usually the case
+events which is usually the case then we simply take a new block from the
+then we simply take a new block from the three blocks and put it in the front and
+three blocks and put it in the front and continue to record data
+continue to record data this way execution can continue on the
+this way execution can continue on the thread without even though we're
+thread without even though we're currently
+currently saving down the state as well
+saving down the state as well there is one edge case here where we
+there is one edge case here where we actually could run out the three blocks
+actually could run out the three blocks and in that case
+and in that case the current thread that is trying to
+the current thread that is trying to record something actually has to
+record something actually has to grab the oldest memory block for that
+grab the oldest memory block for that thread
+thread and move it to the front and if that
+and move it to the front and if that happens during a save
+happens during a save then we actually end up locking
+then we actually end up locking execution of that thread and that is
+execution of that thread and that is something we really want to avoid so we
+something we really want to avoid so we need to make sure we keep
+need to make sure we keep the number three blocks available needs
+the number three blocks available needs to be big enough to never run into that
+to be big enough to never run into that example
+okay so we store we save the internal state of the profiler and
+the internal state of the profiler and we store it to disk
+we store it to disk we store it to disk based on the source
+we store it to disk based on the source trigger
+trigger that that did the save in the code this
+that that did the save in the code this makes it easy to find
+makes it easy to find for the programmers looking for
+for the programmers looking for something in for example the dark zone
+something in for example the dark zone in this example
+in this example debugging performance issues in the dark
+debugging performance issues in the dark zone the data will also always be there
+zone the data will also always be there because we don't allow
+because we don't allow sort of these different game systems to
+sort of these different game systems to overwrite each other's data they don't
+overwrite each other's data they don't share
+share a single disk budget for example they
+a single disk budget for example they have individual disk budgets
+using grafana from code as a programmer is also very simple here you can see for
+is also very simple here you can see for example we have two
+example we have two couple of simple one-liners to report
+couple of simple one-liners to report load factor and update rates
+load factor and update rates and this is something we really
+and this is something we really encourage people to do as well
+encourage people to do as well for programmers who write a system if
+for programmers who write a system if they can think of any
+they can think of any any type of value in that system that
+any type of value in that system that they would like to track over time
+they would like to track over time to be able to compare it with
+to be able to compare it with performance for example they should
+performance for example they should they are encouraged to do so and this
+they are encouraged to do so and this helps with an early
+helps with an early stage of most investigations to narrow
+stage of most investigations to narrow down what the problem could be
+here's an example for of that where we see for example we have all the
+see for example we have all the different
+different the numbers of ai in each each
+the numbers of ai in each each particular lot level for example and the
+particular lot level for example and the number of raycasts we've done and the
+number of raycasts we've done and the number of
+number of state sinkers for interactions which
+state sinkers for interactions which have this sort of runtime data
+have this sort of runtime data runtime state of interactions in the
+runtime state of interactions in the world
+just briefly uh going into how it works on the live environment is very similar
+on the live environment is very similar we still have grafana
+we still have grafana and we constantly monitor all of our
+and we constantly monitor all of our live game servers
+live game servers and if we see an issue like the spike
+and if we see an issue like the spike here in this case instead of going to
+here in this case instead of going to windows explorer we just go to google
+windows explorer we just go to google bucket
+bucket and it's structured in the same way so
+and it's structured in the same way so you'll find your dark zone data there
+you'll find your dark zone data there for example if
+for example if that was the problem you were having and
+that was the problem you were having and then you simply download and open the
+then you simply download and open the profiler data and start debugging
+so that's it for the tools and process side of things
+side of things now i'm going to go into a couple of
+now i'm going to go into a couple of examples of things of issues we had
+examples of things of issues we had during development and the solutions we
+during development and the solutions we found
+found the first one was that at some point we
+the first one was that at some point we were seeing that
+were seeing that some short task threads were not running
+some short task threads were not running for the entire frame
+for the entire frame basically so this means that
+basically so this means that several cores are not really updating
+several cores are not really updating worlds for that entire frame and this is
+worlds for that entire frame and this is with the sort of performance model we
+with the sort of performance model we have that means that we've lost cpu
+have that means that we've lost cpu uh work that was supposed to go into
+uh work that was supposed to go into updating worlds right
+updating worlds right so the first question is do they not
+so the first question is do they not have work is there anything to do
+have work is there anything to do but looking at what we do we we spawn a
+but looking at what we do we we spawn a number of tasks equal to the number of
+number of tasks equal to the number of threads
+threads and then what each of those does
+and then what each of those does is to grab a world from a global list
+is to grab a world from a global list update that world and then grab the next
+update that world and then grab the next one
+one so there's and that global list like
+so there's and that global list like these different tasks that will do that
+these different tasks that will do that until that global list is done and we've
+until that global list is done and we've updated all the worlds so there's
+updated all the worlds so there's definitely work to do
+definitely work to do you can also see here in the above
+you can also see here in the above section of the code that we
+section of the code that we list we sort the world models based on
+list we sort the world models based on their estimated costs
+their estimated costs the estimated update costs and the
+the estimated update costs and the reason we do that is to avoid
+reason we do that is to avoid frame time spikes so looking at this
+frame time spikes so looking at this example here which you saw before as
+example here which you saw before as well
+well we actually have one world that is
+we actually have one world that is taking very long time to update at the
+taking very long time to update at the end of the frame
+end of the frame and this delays the entire frame
+and this delays the entire frame execution or the entire end of the frame
+execution or the entire end of the frame and it also creates this pocket of low
+and it also creates this pocket of low cpu utilization here at the end which is
+cpu utilization here at the end which is also really bad
+also really bad so this the solution here is to make
+so this the solution here is to make sure that the system understands that
+sure that the system understands that this world will be expensive to update
+this world will be expensive to update and then it will be sorted and be
+and then it will be sorted and be updated at the beginning of the frame
+updated at the beginning of the frame instead
+instead but back to the issue
+so each task and thread is there's definitely work to do
+definitely work to do so next we enable the context switch
+so next we enable the context switch data in the
+data in the profiler and this uses the windows event
+profiler and this uses the windows event tracing api
+tracing api and we can see clearly that three
+and we can see clearly that three threads are never switched in
+threads are never switched in during the entire frame and then two of
+during the entire frame and then two of them were switched in after half the
+them were switched in after half the frame
+frame in this at the same time we have five
+in this at the same time we have five long task threads running
+long task threads running so long tasks are doing something at the
+so long tasks are doing something at the same time as short tasks are not doing
+same time as short tasks are not doing anything and the only conclusion here is
+anything and the only conclusion here is that the low priority threads
+that the low priority threads they get to run while the high priority
+they get to run while the high priority threats are waiting
+threats are waiting and the explanation is that for windows
+and the explanation is that for windows server 2016 at least
+server 2016 at least the highest priority guarantee is really
+the highest priority guarantee is really only only valid within a single core
+only only valid within a single core group
+group and core groups have up to four cores in
+and core groups have up to four cores in them
+them and each core group only has has its own
+and each core group only has has its own ready queue of threads waiting to run
+ready queue of threads waiting to run so i've given here's an example in the
+so i've given here's an example in the picture where you can see that
+picture where you can see that core 7 for example is running a is
+core 7 for example is running a is executing a low priority thread
+executing a low priority thread while there's a high priority thread
+while there's a high priority thread waiting in another core group
+waiting in another core group and core group 2 is not really going to
+and core group 2 is not really going to steal any work from core group 1 here
+steal any work from core group 1 here until
+until the ready queue for codeword 2
+the ready queue for codeword 2 is empty so this can go on for quite
+is empty so this can go on for quite some time and with 48 cores we're going
+some time and with 48 cores we're going to have 12 of these groups so we can
+to have 12 of these groups so we can expect this pattern to happen
+expect this pattern to happen and we should you should expect that
+and we should you should expect that using this scheduler
+using this scheduler we made one attempt to sort of get
+we made one attempt to sort of get around this
+around this using the function called set thread
+using the function called set thread ideal processor we tried to map
+ideal processor we tried to map each short task thread onto its own
+each short task thread onto its own core basically without using affinities
+core basically without using affinities and making it a hard requirement but
+and making it a hard requirement but this
+this didn't have any any real effect and it
+didn't have any any real effect and it mentions that in the documentation as
+mentions that in the documentation as well is that this is more of a hint
+well is that this is more of a hint to the to the scheduler than anything
+to the to the scheduler than anything else
+else so generally oversubscribing to the cpu
+so generally oversubscribing to the cpu is good
+is good for throughput you get a lot you get the
+for throughput you get a lot you get the most work done that way usually
+most work done that way usually but in our case we could spot the five
+but in our case we could spot the five to ten percent perceived
+to ten percent perceived performance drop because the threads we
+performance drop because the threads we want to run
+want to run are not running but it made us rethink
+are not running but it made us rethink the role of priorities a little bit
+the role of priorities a little bit because
+because even if we manage to succeed and enforce
+even if we manage to succeed and enforce that short tasks are the only ones
+that short tasks are the only ones running at this time or
+running at this time or at least all short tasks are running
+at least all short tasks are running then you would have long tasks
+then you would have long tasks that need to run you wouldn't be running
+that need to run you wouldn't be running anymore instead
+anymore instead so it could lead to some sort of
+so it could lead to some sort of starvation in those systems and this is
+starvation in those systems and this is something we saw as well
+something we saw as well in the in development so i'm going to go
+in the in development so i'm going to go into some examples on that
+into some examples on that um yeah so we spotted basically
+um yeah so we spotted basically overnight this server was crashing we
+overnight this server was crashing we ran out of memory
+ran out of memory and looking in grafana we could see that
+and looking in grafana we could see that this was
+this was connected probably connected to a list
+connected probably connected to a list of pending deletions being built off
+of pending deletions being built off built up over time so what this is is
+built up over time so what this is is that when a player leaves the world
+that when a player leaves the world we take their world when a player leaves
+we take their world when a player leaves the server we take their world and put
+the server we take their world and put it in a delete queue
+it in a delete queue and then we have background tasks
+and then we have background tasks running to to delete that
+running to to delete that over time but they were unable to keep
+over time but they were unable to keep up because they were they were starved
+up because they were they were starved for cpu
+so long tasks they are long test threads are low priority but it's crucial that
+are low priority but it's crucial that they run within a given time
+they run within a given time remember that they're doing things like
+remember that they're doing things like caching save game data and instancing
+caching save game data and instancing nav mesh around the player
+nav mesh around the player and uh and deleting worlds in this case
+and uh and deleting worlds in this case of course
+of course the window scheduler isn't really built
+the window scheduler isn't really built to handle this and this is by design
+to handle this and this is by design especially under
+especially under high amounts of pressure
+high amounts of pressure and in fact the better cpu utilization
+and in fact the better cpu utilization means that we have a larger risk of
+means that we have a larger risk of running into this issue
+running into this issue so the better we are at packing sort of
+so the better we are at packing sort of the main part of the frame with world
+the main part of the frame with world updates in a perfectly
+updates in a perfectly nice parallelized way we run into this
+nice parallelized way we run into this issue instead the solution for us was to
+issue instead the solution for us was to add a
+add a an internal wrapper around long tasks on
+an internal wrapper around long tasks on the server
+the server and what it does is basically it adds an
+and what it does is basically it adds an estimated cost to a global value
+estimated cost to a global value whenever we start a new long task and as
+whenever we start a new long task and as soon as the long task is done we re
+soon as the long task is done we re remove that estimated cost from that
+remove that estimated cost from that global value again
+global value again and this gives us a nice sort of
+and this gives us a nice sort of yeah estimated cost of the total amount
+yeah estimated cost of the total amount of work that is currently
+of work that is currently queued up to be done or being done on
+queued up to be done or being done on long tasks
+long tasks and the way we use this is that if it
+and the way we use this is that if it goes above a certain threshold
+goes above a certain threshold we increase something called the
+we increase something called the starvation level
+starvation level and if it goes below another threshold
+and if it goes below another threshold we reduce the starvation level again
+we reduce the starvation level again and then when we spawn tasks to update
+and then when we spawn tasks to update the worlds
+the worlds we basically instead of just spawning a
+we basically instead of just spawning a number of tasks equal to the number of
+number of tasks equal to the number of threads
+threads we also subtract the starvation level we
+we also subtract the starvation level we don't want to change the number of
+don't want to change the number of threads we're actually running we just
+threads we're actually running we just spawn less tasks so those some of those
+spawn less tasks so those some of those short task threads are just going to be
+short task threads are just going to be idle during the frame
+here you can see how that works in practice looking in grafana
+practice looking in grafana so you can see as as work here in the
+so you can see as as work here in the top graph
+top graph estimated work for long tasks starts
+estimated work for long tasks starts building up
+building up in the middle graph you can see that we
+in the middle graph you can see that we are starting to sort of yield
+are starting to sort of yield short tasks in order to to allow more
+short tasks in order to to allow more cpu to be used for the long tasks
+cpu to be used for the long tasks instead
+instead and eventually we can see that that
+and eventually we can see that that the effect of that is that quite quickly
+the effect of that is that quite quickly the amount of long task work drops off
+the amount of long task work drops off again
+again and in the bottom here you can see this
+and in the bottom here you can see this is from a workstation so
+is from a workstation so it has a slightly more exaggerated
+it has a slightly more exaggerated effect here but you can see that frame
+effect here but you can see that frame time is
+time is goes up a little bit when we yield short
+goes up a little bit when we yield short tasks to long tasks but this is expected
+tasks to long tasks but this is expected and that's the sort of trade-off you
+and that's the sort of trade-off you want instead of
+want instead of complete starvation for some systems
+another example we had was with regards to
+to memory allocation so overnight we were
+memory allocation so overnight we were spotting a lot of contention
+spotting a lot of contention in our graphs these graphs show
+in our graphs these graphs show aggregated execution time for every
+aggregated execution time for every system
+system per frame basically so during a single
+per frame basically so during a single frame here
+frame here we had 306 milliseconds spent in
+we had 306 milliseconds spent in contention which is
+contention which is which is an enormous amount of waste of
+which is an enormous amount of waste of course and again this data is available
+course and again this data is available for basically all game servers
+for basically all game servers all the time
+just a side note on this is that the data here is per frame but the
+data here is per frame but the resolution sample in grafana is one
+resolution sample in grafana is one second
+second and the reason i bring this up is that
+and the reason i bring this up is that if you look into this kind of thing
+if you look into this kind of thing be very careful with data compression
+be very careful with data compression how it's handled in every step of the
+how it's handled in every step of the way
+way so in the game server executable itself
+so in the game server executable itself we have a report interval of one second
+we have a report interval of one second and
+and there are different ways to to deal with
+there are different ways to to deal with that and what we did was to make sure we
+that and what we did was to make sure we preserve
+preserve the maximum value through all of those
+the maximum value through all of those steps so if there is any
+steps so if there is any at any point on any frame there is a
+at any point on any frame there is a spike
+spike we will we made sure that it will reach
+we will we made sure that it will reach grafana we will see it in the graphs
+grafana we will see it in the graphs but yeah if you use the wrong kind of
+but yeah if you use the wrong kind of averaging methods on any of those steps
+averaging methods on any of those steps in the middle for example you can
+in the middle for example you can actually squeeze the data and miss a lot
+actually squeeze the data and miss a lot of important information
+of important information back to the issue contention
+back to the issue contention here's what the profiler data looked
+here's what the profiler data looked when we when we
+when we when we looked like when we downloaded the file
+looked like when we downloaded the file for it
+for it so this what we're looking at here is a
+so this what we're looking at here is a full game frame of about 74 milliseconds
+full game frame of about 74 milliseconds in this case
+in this case so too long and one of the short tasks
+so too long and one of the short tasks is stocking contention for 42
+is stocking contention for 42 milliseconds which is a very long time
+milliseconds which is a very long time what's worse is that it's waiting for a
+what's worse is that it's waiting for a long task to actually
+long task to actually release the mutex
+release the mutex and that's so so it's a priority
+and that's so so it's a priority inversion issue it's the worst we don't
+inversion issue it's the worst we don't know when this
+know when this mutex will actually be available again
+mutex will actually be available again especially under heavy load
+and what it's hitting is a global mutex inside the allocation system
+inside the allocation system so all allocations above 256 kilobyte
+so all allocations above 256 kilobyte hit that mutex
+so what um so here's how you can see sort of how the
+sort of how the allocator looked um we have different
+allocator looked um we have different heaps for different sizes of allocations
+heaps for different sizes of allocations and this heap system is used basically
+and this heap system is used basically for all game systems
+the smaller sized heaps also had some locks in them but they have we had
+some locks in them but they have we had less contention here but it was still a
+less contention here but it was still a bit problematic
+bit problematic but you can see here if i go back to in
+but you can see here if i go back to in the page heap allocator here you can see
+the page heap allocator here you can see that sort of
+that sort of the main global mutex that we were
+the main global mutex that we were hitting
+hitting so just to give an example of what kind
+so just to give an example of what kind of allocations we were having that were
+of allocations we were having that were 256k
+256k when we create a new ai a new mpc in the
+when we create a new ai a new mpc in the world
+world we give them an a behavior and these are
+we give them an a behavior and these are generally pooled and reused so we don't
+generally pooled and reused so we don't create new ones
+create new ones but there is a small part of the runtime
+but there is a small part of the runtime data
+data that is actually reallocated on every on
+that is actually reallocated on every on every
+every new npc that is created and since
+new npc that is created and since behavior graphs are about 10 000 nodes
+behavior graphs are about 10 000 nodes and many of them have some small runtime
+and many of them have some small runtime component this actually ended up being a
+component this actually ended up being a lot of data
+lot of data and the reason that we have to have to
+and the reason that we have to have to reallocate it is that we use these very
+reallocate it is that we use these very highly compressed data structures inside
+highly compressed data structures inside the node graph system so
+the node graph system so so it was always even on it was always
+so it was always even on it was always reallocating the memory basically
+reallocating the memory basically we managed to fix this eventually by
+we managed to fix this eventually by optimizing
+optimizing just the size of the runtime data so we
+just the size of the runtime data so we got below 256 kilobytes and then it was
+got below 256 kilobytes and then it was less of a contention problem
+less of a contention problem another example we had that that ran
+another example we had that that ran into this large allocation was
+into this large allocation was nav mesh sector deletion in some
+nav mesh sector deletion in some specific cases
+specific cases when we oops sorry uh in some specific
+when we oops sorry uh in some specific cases when we were
+cases when we were uh going to delete the number sector
+uh going to delete the number sector usually that's done on a background
+usually that's done on a background thread
+thread but in some specific cases when the
+but in some specific cases when the player had run out of range before the
+player had run out of range before the sector was fully streamed in for example
+sector was fully streamed in for example we would actually end up deleting
+we would actually end up deleting ending up with the last reference to it
+ending up with the last reference to it and in the game code and we would delete
+and in the game code and we would delete it in the short tasks
+this was also fixed this was basically a bug so we just made sure that
+bug so we just made sure that during the deletion we can detect that
+during the deletion we can detect that it's about to get orphaned and then we
+it's about to get orphaned and then we would spawn a
+would spawn a a a specific short a long task
+a a specific short a long task just to to do that deletion instead
+just to to do that deletion instead making sure that it runs on a background
+making sure that it runs on a background thread
+thread so both of these examples were fixed to
+so both of these examples were fixed to avoid doing these big allocations in the
+avoid doing these big allocations in the world updates
+world updates but we weren't able to fix all of these
+but we weren't able to fix all of these cases at the time
+cases at the time this was a bit later in production we
+this was a bit later in production we didn't have that much time left and some
+didn't have that much time left and some of the systems were quite complex to
+of the systems were quite complex to try to refactor so we had to take a look
+try to refactor so we had to take a look at the memory system
+so the first step was to refactor the heap to be lock free remove the mutex s
+heap to be lock free remove the mutex s make sure there was no locks left in
+make sure there was no locks left in there but we could still see that
+there but we could still see that as you can see here in the picture as
+as you can see here in the picture as well the blue highlighted parts
+well the blue highlighted parts memory allocations were still taking a
+memory allocations were still taking a lot of time
+lot of time and there was some look still in effect
+and there was some look still in effect because as you can see
+because as you can see in the in the second frame there when
+in the in the second frame there when everything when all the allocations are
+everything when all the allocations are happening at the same time we would see
+happening at the same time we would see this
+this prolonged effect basically so some kind
+prolonged effect basically so some kind of lock was still in effect
+of lock was still in effect it turns out windows server 2016 had a
+it turns out windows server 2016 had a internal global lock in the soft page
+internal global lock in the soft page fault implementation
+fault implementation and we were lucky to detect this at
+and we were lucky to detect this at allocation time
+allocation time by having memory stamping in in our
+by having memory stamping in in our debug builds
+debug builds so we would see this as soon as you
+so we would see this as soon as you allocate memory but if we were running
+allocate memory but if we were running this on one of our
+this on one of our release builds that don't stamp memory
+release builds that don't stamp memory we would see this whenever a
+we would see this whenever a specific page was touched the first time
+specific page was touched the first time by the application it would have been a
+by the application it would have been a bit trickier to
+bit trickier to to find it so the solution was to have
+to find it so the solution was to have the log free heap
+the log free heap and combine it with a commit cache
+and combine it with a commit cache so what that means is once we commit
+so what that means is once we commit memory from the operating systems we
+memory from the operating systems we from the operating system we basically
+from the operating system we basically don't decommit it again
+don't decommit it again we keep it in fixed size buckets and
+we keep it in fixed size buckets and boxes based on the allocation size
+boxes based on the allocation size and these are global they are shared by
+and these are global they are shared by all threads so we have a lock free
+all threads so we have a lock free access pattern to them
+and we still run into this windows lock the first time we touch a page
+the first time we touch a page but since we don't decommit the page
+but since we don't decommit the page again we basically
+again we basically only do that on startup and at the begin
+only do that on startup and at the begin just the very beginning of execution and
+just the very beginning of execution and then
+then all those occurrences taper off very
+all those occurrences taper off very quickly
+so looking a bit at the new implementation the new
+implementation the new page type allocation doesn't have a
+page type allocation doesn't have a mutex anymore
+mutex anymore and each bucket entry commits just as
+and each bucket entry commits just as many pages as it needs for that
+many pages as it needs for that allocation
+allocation it doesn't decommit them again here's a
+it doesn't decommit them again here's a look as well
+look as well as well at the bucket allocation
+as well at the bucket allocation implementation if you're interested in
+implementation if you're interested in that
+that i won't go through it in detail here
+i won't go through it in detail here it took took some time to find a good
+it took took some time to find a good solution to this problem and the main
+solution to this problem and the main reason was that the code here is shared
+reason was that the code here is shared between all snowdrop supported platforms
+between all snowdrop supported platforms so the ps4 the xbox one all the types of
+so the ps4 the xbox one all the types of clients
+clients and and the pc server as well
+and and the pc server as well and this needs to run on all of them and
+and this needs to run on all of them and we can't really introduce any regression
+we can't really introduce any regression on any of these
+on any of these uh other platforms when we do this
+uh other platforms when we do this rewrite there's not a lot of room for
+rewrite there's not a lot of room for server-specific changes here and the
+server-specific changes here and the second thing to note
+second thing to note really is that it may seem obvious that
+really is that it may seem obvious that it's bad to have a mutex
+it's bad to have a mutex on a global level in in the allocator
+on a global level in in the allocator but if this was never visible on a
+but if this was never visible on a 12-core
+12-core workstation basically on the pcs it was
+workstation basically on the pcs it was only
+only started appearing and actually quite
+started appearing and actually quite significant
+significant on 40 cores or more
+next example is a crash that we had in open beta
+open beta so basically on the first day of our
+so basically on the first day of our open beta we had
+open beta we had hundreds of crashes i think uh
+hundreds of crashes i think uh certainly games servers were crashing
+certainly games servers were crashing every few minutes
+every few minutes it was affecting thousands of players
+it was affecting thousands of players and and we didn't get any crash dumps or
+and and we didn't get any crash dumps or any call stacks whatsoever
+any call stacks whatsoever there was no information machines just
+there was no information machines just went down and then automatically
+went down and then automatically restarted so we drew the conclusion that
+restarted so we drew the conclusion that we have to catch this with a debugger
+we have to catch this with a debugger attached
+attached so we had to go and talk to the
+so we had to go and talk to the infrastructure team to
+infrastructure team to and sort of convince them to deploy
+and sort of convince them to deploy a debugger wind dbg to a live game
+a debugger wind dbg to a live game server machine and give
+server machine and give us remote access
+us remote access and we did that and we attached the
+and we did that and we attached the debugger to the game server process
+debugger to the game server process and we immediately saw that every single
+and we immediately saw that every single player was
+player was was off the server so it turns out that
+was off the server so it turns out that wind dbg breaks
+wind dbg breaks by default when you attach to a process
+by default when you attach to a process and
+and goodbye to to those 1000 players
+goodbye to to those 1000 players basically
+basically so yeah we added the the g flag to wind
+so yeah we added the the g flag to wind dvd which makes it
+dvd which makes it not break on attaching by default and we
+not break on attaching by default and we sat four programmers around the laptop
+sat four programmers around the laptop remoting into this
+remoting into this game server machine and waiting it took
+game server machine and waiting it took a couple of hours but we got the crash
+a couple of hours but we got the crash eventually
+eventually turns out one of the udp channels was
+turns out one of the udp channels was deleting a linked list
+deleting a linked list by by recursion basically so it was the
+by by recursion basically so it was the stack was running out of memory
+stack was running out of memory and the problem here was that the crash
+and the problem here was that the crash handler was dependent on stack
+handler was dependent on stack allocation itself
+allocation itself so there's a couple of solutions to this
+so there's a couple of solutions to this you can either use the set threats
+you can either use the set threats set thread stack guarantee call to make
+set thread stack guarantee call to make sure that you have some space left when
+sure that you have some space left when you get this problem
+you get this problem and then use the crash handler to use
+and then use the crash handler to use that or you can just
+that or you can just use static memory instead either thread
+use static memory instead either thread local or
+local or or locked with some sort of mechanism
+or locked with some sort of mechanism okay time for some conclusions
+the first one is that we managed to reach our performance targets fully
+reach our performance targets fully and this was due to the
+and this was due to the sort of heavy-duty testing that we did
+sort of heavy-duty testing that we did throughout the project
+throughout the project always running on the target hardware
+always running on the target hardware and always testing with the full server
+and always testing with the full server every day
+every day in production we had very few
+in production we had very few performance issues actually slip past
+performance issues actually slip past release
+release this was and the ones that we actually
+this was and the ones that we actually had they were fixed easily found and
+had they were fixed easily found and fixed very easily thanks to
+fixed very easily thanks to all of this data being available like i
+all of this data being available like i said in in live as well you can just go
+said in in live as well you can just go in and look at any server and see if it
+in and look at any server and see if it has having any problems
+has having any problems and then you can find the binary profile
+and then you can find the binary profile data for that specific server if you
+data for that specific server if you need to look into something specific
+need to look into something specific the third one is that the team and the
+the third one is that the team and the management were always
+management were always aware of the performance work that we
+aware of the performance work that we had to do before shipping
+had to do before shipping so this relieved a lot of stress i think
+so this relieved a lot of stress i think from the team
+from the team and made sure that we we knew the work
+and made sure that we we knew the work that was coming up
+that was coming up we still did most of the optimizations
+we still did most of the optimizations quite late but we knew
+quite late but we knew exactly what we had to do
+the next one is that we this actually helped us find a lot of rare server
+helped us find a lot of rare server crashes
+crashes so just looking at an example if it
+so just looking at an example if it takes a single dev tester about five
+takes a single dev tester about five hours to find a single bug
+hours to find a single bug or like a rare crash and using a full
+or like a rare crash and using a full um a full server with bots we can find
+um a full server with bots we can find it usually within 20 seconds that's sort
+it usually within 20 seconds that's sort of the scale of how much faster we can
+of the scale of how much faster we can find it
+find it one thing that we need to improve i
+one thing that we need to improve i think is
+think is our tools for regression testing so
+our tools for regression testing so today what most programmers have to do
+today what most programmers have to do if they make a change and they want to
+if they make a change and they want to test
+test if their change has any effect on
+if their change has any effect on performance they have to test with and
+performance they have to test with and without their changes a couple of
+without their changes a couple of times i want to improve this so we have
+times i want to improve this so we have a more kind of deterministic
+a more kind of deterministic test um and and should generally it
+test um and and should generally it should be available as some sort of
+should be available as some sort of pre-flight mechanism as well so just
+pre-flight mechanism as well so just click a button somewhere and your change
+click a button somewhere and your change list gets sent off and it gets tested by
+list gets sent off and it gets tested by bots in a good
+bots in a good deterministic way and then you get a
+deterministic way and then you get a report back which is systems were
+report back which is systems were affected by the change and how were they
+affected by the change and how were they affected and so on
+so takeaways for you my primary tip is to make sure you test
+my primary tip is to make sure you test your absolute worst cases continuously
+your absolute worst cases continuously in development
+in development this helped us find basically all of the
+this helped us find basically all of the examples that i've shown you before
+examples that i've shown you before with the um the thread priority issue
+with the um the thread priority issue and the
+and the memory allocation issue we found them in
+memory allocation issue we found them in development early on
+development early on using bots because we were testing on
+using bots because we were testing on target hardware
+target hardware with the max amount of players
+this is really key and the second one is to have some people or at least one
+to have some people or at least one person dedicated solely to looking at
+person dedicated solely to looking at performance
+performance this also helped because that means that
+this also helped because that means that that person will continuously also
+that person will continuously also can improve the processes for the other
+can improve the processes for the other programmers and how they work with this
+the third one is to plan implement and test your debugging pipeline for the
+test your debugging pipeline for the live environment
+live environment early on this is sort of
+early on this is sort of self-explanatory why this is a good idea
+self-explanatory why this is a good idea but it really helped us
+but it really helped us be very reactive once we went live and
+be very reactive once we went live and immediately
+immediately analyze and fix some performance issues
+analyze and fix some performance issues but again this is something that
+but again this is something that preferably you would want to have the
+preferably you would want to have the same debugging pipeline in development
+same debugging pipeline in development and when after you go live and this
+and when after you go live and this again is something that that beyond will
+again is something that that beyond will talk
+talk talk about here at gdc like i mentioned
+talk about here at gdc like i mentioned before
+and that's all i had for today thank you very much for listening everyone
+very much for listening everyone and if you have any questions or any any
+and if you have any questions or any any comments please don't hesitate to
+comments please don't hesitate to contact me on the email address you can
+contact me on the email address you can see here
+see here thank you

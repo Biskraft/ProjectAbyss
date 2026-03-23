@@ -1,0 +1,1373 @@
+I'd like to begin by extending my condolences to all of you who did not
+condolences to all of you who did not we're not able to make it into the
+we're not able to make it into the experimental gameplay session that's
+experimental gameplay session that's going on right now sorry about that but
+going on right now sorry about that but you'll have to I guess accept me as as
+you'll have to I guess accept me as as the second place my name is what you're
+the second place my name is what you're done and I hope you're here to learn a
+done and I hope you're here to learn a little bit about denial service
+little bit about denial service mitigation and how we've been
+mitigation and how we've been approaching that problem I've been
+approaching that problem I've been making video games for about 22 years
+making video games for about 22 years now last 8 or so those at valve and
+now last 8 or so those at valve and about the last two or three of those at
+about the last two or three of those at valve I've been working on this specific
+valve I've been working on this specific problem we got a lot of stuff to cover
+problem we got a lot of stuff to cover so I'm gonna just jump right in this is
+so I'm gonna just jump right in this is what we're gonna be talking about today
+what we're gonna be talking about today I'm gonna give a quick overview of what
+I'm gonna give a quick overview of what do s attack is and review some history
+do s attack is and review some history of our experience with that problem
+of our experience with that problem we're going to talk about how you can
+we're going to talk about how you can try to approach the problem at the
+try to approach the problem at the network layer when you see there's a
+network layer when you see there's a bunch of shortcomings with that approach
+bunch of shortcomings with that approach I'm going to take a brief detour and
+I'm going to take a brief detour and talk about websites how is it different
+talk about websites how is it different to protect a website from a game and and
+to protect a website from a game and and how our websites protected from do s
+how our websites protected from do s attack and hopefully that's going to
+attack and hopefully that's going to lead to the thinking that led to our
+lead to the thinking that led to our solution that we've come up with then we
+solution that we've come up with then we will discuss our solution and talk about
+will discuss our solution and talk about how it works and the network
+how it works and the network infrastructure that makes it possible
+infrastructure that makes it possible and some really interesting unexpected
+and some really interesting unexpected benefits that it has given us finally
+benefits that it has given us finally we'll do some practical takeaways and
+we'll do some practical takeaways and specifically we're gonna talk about how
+specifically we're gonna talk about how you can take advantage of a solution
+you can take advantage of a solution we've come up with okay so when you
+we've come up with okay so when you think about network security you
+think about network security you probably think of a hacker right
+probably think of a hacker right somebody's cleverly breaking in there's
+somebody's cleverly breaking in there's sneaking and they're picking the lock
+sneaking and they're picking the lock and they're execrate and with the data
+and they're execrate and with the data without anybody knowing that they were
+without anybody knowing that they were there that's not what we're talking
+there that's not what we're talking about today right the problem we face is
+about today right the problem we face is more like this okay so we're talking
+more like this okay so we're talking about DDoS attacks so the first D in
+about DDoS attacks so the first D in DDoS is destroy
+DDoS is destroy alright there's a whole bunch of these
+alright there's a whole bunch of these internet hosts out there and they're
+internet hosts out there and they're flooding our system with packets and in
+flooding our system with packets and in an effort to overwhelm a relative
+an effort to overwhelm a relative relatively low level on the network
+relatively low level on the network stack with packets and do s they're not
+stack with packets and do s they're not trying to get in they're trying to deny
+trying to get in they're trying to deny service so they're just trying to block
+service so they're just trying to block with other legitimate traffic from
+with other legitimate traffic from getting in right so let's talk a little
+getting in right so let's talk a little bit about history cast your mind back if
+bit about history cast your mind back if you will to 2014 okay Obama is in the
+you will to 2014 okay Obama is in the White House and famous people are
+White House and famous people are dumping buckets of water on themselves
+dumping buckets of water on themselves and sometime around in October we start
+and sometime around in October we start to see an uptick in the complaints about
+to see an uptick in the complaints about the u.s. attacks and this is dota and
+the u.s. attacks and this is dota and csgo and we know that other games as
+csgo and we know that other games as well there's really been an uptick in
+well there's really been an uptick in this problem this is what red it looks
+this problem this is what red it looks like and then a Christmas 2014 you may
+like and then a Christmas 2014 you may recall this dork ruins Christmas for
+recall this dork ruins Christmas for everybody
+everybody in January 2015 that's when we started
+in January 2015 that's when we started working on our solution so 2015 the
+working on our solution so 2015 the problem starts to get worse and we see
+problem starts to get worse and we see the highest point during that year kind
+the highest point during that year kind of the problem hits its highest point I
+of the problem hits its highest point I don't know if you remember there were
+don't know if you remember there were like lizards and poodles are running
+like lizards and poodles are running around on Twitter talking about their
+around on Twitter talking about their booter services and bragging about it
+booter services and bragging about it and then in August the International was
+and then in August the International was disrupted for nearly an hour so after
+disrupted for nearly an hour so after that towards the end of 2015 really do s
+that towards the end of 2015 really do s started dropping off for a problem for
+started dropping off for a problem for us
+us by that time our relay the the solution
+by that time our relay the the solution that we had come up with had been
+that we had come up with had been deployed and we know that we were kind
+deployed and we know that we were kind of still getting attacked but the
+of still getting attacked but the attacks weren't is successful so I'm
+attacks weren't is successful so I'm thinking well you know maybe we deserve
+thinking well you know maybe we deserve some credit for this because I know that
+some credit for this because I know that other games it seems like they did have
+other games it seems like they did have a little bit of a problem their problems
+a little bit of a problem their problems linger just a little bit longer but
+linger just a little bit longer but honestly or we don't really know why our
+honestly or we don't really know why our problems dropped off maybe the attackers
+problems dropped off maybe the attackers just chose a different target but the
+just chose a different target but the biggest factor may have just been law
+biggest factor may have just been law enforcement so in 2016 the lizards and
+enforcement so in 2016 the lizards and the poodles got rolled up and the FBI
+the poodles got rolled up and the FBI hacked their tools and it
+hacked their tools and it led to the arrest of some Israeli
+led to the arrest of some Israeli teenagers this video scroop and they
+teenagers this video scroop and they were ended up being the real masterminds
+were ended up being the real masterminds and one of those guys Applejack was a
+and one of those guys Applejack was a big dota player so since then denial
+big dota player so since then denial service has been in the news but really
+service has been in the news but really not for games that much at least not for
+not for games that much at least not for us
+us so I'm reviewing this history and I'm
+so I'm reviewing this history and I'm thinking crap I'm gonna give a talk
+thinking crap I'm gonna give a talk about do s it was this prop like this
+about do s it was this prop like this problems not even relevant anymore
+problems not even relevant anymore nobody's gonna show up like ever we all
+nobody's gonna show up like ever we all this sitting here wasting our time so
+this sitting here wasting our time so and then of course just a few weeks ago
+and then of course just a few weeks ago there was a giant attack so I I hope
+there was a giant attack so I I hope that we can all agree that you know
+that we can all agree that you know vandals are still vandals and there's
+vandals are still vandals and there's more poorly secured devices on the
+more poorly secured devices on the internet than ever before and all these
+internet than ever before and all these devices have our power back consumer
+devices have our power back consumer connections that are more powerful the
+connections that are more powerful the number more so I hope we all agree this
+number more so I hope we all agree this topic still relevant let's look at the
+topic still relevant let's look at the targets that do s attacks so I think I
+targets that do s attacks so I think I want us all to keep in mind those three
+want us all to keep in mind those three basic constituencies we need to protect
+basic constituencies we need to protect first of all we need to protect our game
+first of all we need to protect our game servers so the reason people attack game
+servers so the reason people attack game servers this course to vandalize and
+servers this course to vandalize and they also want to cheat alright so if
+they also want to cheat alright so if I'm on a game server I start to lose a
+I'm on a game server I start to lose a nuke the game server then my loss is not
+nuke the game server then my loss is not recorded so game servers are going to be
+recorded so game servers are going to be a focus of this talk one of the focuses
+a focus of this talk one of the focuses of this talk another constituency is
+of this talk another constituency is your back end and when I say back in I'm
+your back end and when I say back in I'm referring to any sort of centralized
+referring to any sort of centralized service right account logon econ
+service right account logon econ matchmaking anything like that so what
+matchmaking anything like that so what do they want to attack that vandalize
+do they want to attack that vandalize I'll have just a little bit of advice
+I'll have just a little bit of advice about how to protect your back end but
+about how to protect your back end but it's not going to be the primary focus
+it's not going to be the primary focus of this talk and there's one more
+of this talk and there's one more constituency this is kind of a new one
+constituency this is kind of a new one don't forget about these guys and that
+don't forget about these guys and that is your players right your players are
+is your players right your players are on consumer connections that are easily
+on consumer connections that are easily overwhelmed they're especially
+overwhelmed they're especially vulnerable and you may think well that's
+vulnerable and you may think well that's ok because if they're a geek I P gets
+ok because if they're a geek I P gets revealed they'll just you know renew
+revealed they'll just you know renew DHCP look at a new IP no big deal well
+DHCP look at a new IP no big deal well for a lot of people that's not true
+for a lot of people that's not true and their IP is going to be a lot less
+and their IP is going to be a lot less dynamic than they would want and so once
+dynamic than they would want and so once their IP is revealed and they start
+their IP is revealed and they start getting attacked they may have problems
+getting attacked they may have problems for a long time so the goals
+for a long time so the goals why we felt why would I attack a person
+why we felt why would I attack a person obviously to cheat again especially in a
+obviously to cheat again especially in a p2p Network architecture if I'm losing I
+p2p Network architecture if I'm losing I want to boot the winner off or just you
+want to boot the winner off or just you know I can maybe attack the host same as
+know I can maybe attack the host same as a game server and also to vandalize and
+a game server and also to vandalize and you think well why do you want to attack
+you think well why do you want to attack some random init person on the internet
+some random init person on the internet and this is another kind of interesting
+and this is another kind of interesting thing that's new is that we have people
+thing that's new is that we have people on the internet who are some random
+on the internet who are some random stranger who's playing your game and if
+stranger who's playing your game and if they get taken offline your game loses a
+they get taken offline your game loses a lot of value we have very high value
+lot of value we have very high value profile high profile targets that are
+profile high profile targets that are just out there on the Internet you don't
+just out there on the Internet you don't have control over maybe they're playing
+have control over maybe they're playing in some tournament maybe there's
+in some tournament maybe there's streaming their game from their house on
+streaming their game from their house on Twitch right so we need to try to
+Twitch right so we need to try to protect these people because when they
+protect these people because when they get taken offline we lose value our game
+get taken offline we lose value our game loses value okay so let's just quickly
+loses value okay so let's just quickly get a sense of scale what we know how
+get a sense of scale what we know how big of an attack leads to what sort of
+big of an attack leads to what sort of damage so here is a typical valve data
+damage so here is a typical valve data center with some racks of some game
+center with some racks of some game servers in it and let's just talk about
+servers in it and let's just talk about kind of this scale of an attack moving
+kind of this scale of an attack moving from the smallest logical unit up to the
+from the smallest logical unit up to the largest so first these little red boxes
+largest so first these little red boxes there represent sort of an individual
+there represent sort of an individual process or an instance of your of say
+process or an instance of your of say dota or csgo and usually the limit there
+dota or csgo and usually the limit there is going to be in terms of packets per
+is going to be in terms of packets per second not bandwidth so the thing that
+second not bandwidth so the thing that gets overwhelmed there is you know
+gets overwhelmed there is you know operating system buffers or something
+operating system buffers or something like that and what happens is the
+like that and what happens is the operating system is going to stop those
+operating system is going to stop those buffers gonna feet filled up and the
+buffers gonna feet filled up and the operating system will start dropping
+operating system will start dropping packets and so if there's a bunch of
+packets and so if there's a bunch of junk traffic the junk traffic crowds out
+junk traffic the junk traffic crowds out the legitimate traffic and you start
+the legitimate traffic and you start dropping legitimate traffic so if you've
+dropping legitimate traffic so if you've written some well written code
+written some well written code reasonably well written code you on the
+reasonably well written code you on the order of 250 thousand packets a second
+order of 250 thousand packets a second is kind of where you're gonna start
+is kind of where you're gonna start having problems if you do not have well
+having problems if you do not have well written code if you have naive code the
+written code if you have naive code the limit is going to much much lower
+limit is going to much much lower like a hundred packets a second a
+like a hundred packets a second a thousand packets a second so we'll talk
+thousand packets a second so we'll talk a little bit more about what you can do
+a little bit more about what you can do to deal with that okay so moving up a
+to deal with that okay so moving up a little bit bigger attack may be able to
+little bit bigger attack may be able to take out a box if it's in our data
+take out a box if it's in our data centers most of our box have ten gig
+centers most of our box have ten gig NICs
+NICs and that's usually the thing that gets
+and that's usually the thing that gets overwhelmed is the Nick
+overwhelmed is the Nick a little bit bigger attack may overwhelm
+a little bit bigger attack may overwhelm enough to take out a whole rack and
+enough to take out a whole rack and usually the thing that gets overwhelmed
+usually the thing that gets overwhelmed there is not the switches but it's the
+there is not the switches but it's the links between the top of racks which is
+links between the top of racks which is in the box or excuse me between the that
+in the box or excuse me between the that top aggregate switch and the top of
+top aggregate switch and the top of racks which is usually those links get
+racks which is usually those links get overwhelmed somewhere between 20 80 and
+overwhelmed somewhere between 20 80 and gig in gigabit in our data centers of
+gig in gigabit in our data centers of course a bigger attack may overwhelm
+course a bigger attack may overwhelm maybe some links between specific ISPs
+maybe some links between specific ISPs and if that happens those customers and
+and if that happens those customers and that is P gets knocked out or maybe the
+that is P gets knocked out or maybe the whole data center goes offline right
+whole data center goes offline right this is a truly tremendous attack
+this is a truly tremendous attack somewhere depending on the data center
+somewhere depending on the data center how many leaks are coming in for us it's
+how many leaks are coming in for us it's about 40 gigabit to Tutera bit so it's
+about 40 gigabit to Tutera bit so it's important to realize that all these
+important to realize that all these processes in this diagram are all the
+processes in this diagram are all the same color but they're not necessarily
+same color but they're not necessarily running the same game right so if
+running the same game right so if somebody's targeting a dota game and
+somebody's targeting a dota game and they their attack is is effective they
+they their attack is is effective they may not just take out the process they
+may not just take out the process they may not just take out their box they may
+may not just take out their box they may end up you know disrupting communication
+end up you know disrupting communication for the whole rack and how much a csgo
+for the whole rack and how much a csgo servers go down or we're hosting some
+servers go down or we're hosting some game servers or third parties the third
+game servers or third parties the third party's game use might go down and the
+party's game use might go down and the situation applies to you and then
+situation applies to you and then everybody's not operating at this scale
+everybody's not operating at this scale and everybody doesn't have enough
+and everybody doesn't have enough service to fill up racks in a datacenter
+service to fill up racks in a datacenter but if you're in your cloud provider
+but if you're in your cloud provider just be aware that there's collateral
+just be aware that there's collateral damage going on all right so just
+damage going on all right so just because you if your game is targeted and
+because you if your game is targeted and may fit affect somebody else if somebody
+may fit affect somebody else if somebody else's game is targeted or just some
+else's game is targeted or just some product that has nothing to do with
+product that has nothing to do with games it can affect your game so the
+games it can affect your game so the largest attacks we faced were
+largest attacks we faced were historically there was a botnet
+historically there was a botnet reflection attack that was able to
+reflection attack that was able to sustain multi hundred gigabits of
+sustain multi hundred gigabits of bandwidth coming in to a particular IP
+bandwidth coming in to a particular IP and then we also had another attack
+and then we also had another attack where we were getting 500 million empty
+where we were getting 500 million empty UDP packets a second so that was
+UDP packets a second so that was apparently they attacked that they chose
+apparently they attacked that they chose to do then and the recent ones that was
+to do then and the recent ones that was in the headline the memcache reflection
+in the headline the memcache reflection attacks we were hit by that but it
+attacks we were hit by that but it didn't cause into the disruption okay so
+didn't cause into the disruption okay so we've talked about the problem in
+we've talked about the problem in general
+general next I want to talk about how you can
+next I want to talk about how you can try to solve it at the network layer so
+try to solve it at the network layer so when I talk about network layer I mean
+when I talk about network layer I mean we've got some UDP packet flows and
+we've got some UDP packet flows and we've got we're not going to change that
+we've got we're not going to change that traffic pattern and we're just going to
+traffic pattern and we're just going to have our switch or our hardware device
+have our switch or our hardware device that's sort of like analyzing that and
+that's sort of like analyzing that and trying to filter the good from the bad
+trying to filter the good from the bad and its operating relatively low on the
+and its operating relatively low on the stack so the main point here is
+stack so the main point here is basically that it's just really hard
+basically that it's just really hard okay so for UDP you've got packets
+okay so for UDP you've got packets coming in we're not we've probably not
+coming in we're not we've probably not gonna have enough time the packet rates
+gonna have enough time the packet rates really high relative to compute
+really high relative to compute available we're not gonna be cracking
+available we're not gonna be cracking open the packet looking inside doing any
+open the packet looking inside doing any sort of advanced stateful packet
+sort of advanced stateful packet inspection or anything like that so it's
+inspection or anything like that so it's just gonna be really difficult for us to
+just gonna be really difficult for us to tell good from bad but it gets worse
+tell good from bad but it gets worse because many of you probably know that
+because many of you probably know that IP source addresses are trivially
+IP source addresses are trivially spoofed right I can I'm on the Internet
+spoofed right I can I'm on the Internet I send a packet I can claim to be from
+I send a packet I can claim to be from any IP address I want and it's trivial
+any IP address I want and it's trivial to do that so basically the way to think
+to do that so basically the way to think about networking the problem with the
+about networking the problem with the network filter it's kind of like this
+network filter it's kind of like this gate so any UDP traffic that's bound to
+gate so any UDP traffic that's bound to your servers port is probably just gonna
+your servers port is probably just gonna go through the gate right it's going to
+go through the gate right it's going to go around the gate I should say but
+go around the gate I should say but despite these limitations Network
+despite these limitations Network solutions are gonna play an important
+solutions are gonna play an important role so let's just talk about what that
+role so let's just talk about what that is the first thing is that there's
+is the first thing is that there's obviously junk packets that you can
+obviously junk packets that you can filter out as far out at those Network
+filter out as far out at those Network edge as you can for example if you're
+edge as you can for example if you're not running any web servers in your RAC
+not running any web servers in your RAC block port 80 if you're not running in
+block port 80 if you're not running in TP port 1 2 3 so obviously junk packets
+TP port 1 2 3 so obviously junk packets can be blocked by their destination
+can be blocked by their destination address you may also want to block based
+address you may also want to block based on the port the cinders port right the
+on the port the cinders port right the source port why would I do that can't
+source port why would I do that can't the sender just assign any port they
+the sender just assign any port they want there's one very important case
+want there's one very important case where they cannot and that is a
+where they cannot and that is a reflection attack so if you recall this
+reflection attack so if you recall this is what a reflection attack looks like
+is what a reflection attack looks like I've got some attacker and he says he
+I've got some attacker and he says he spoofs his source address and he sends a
+spoofs his source address and he sends a relatively small request to some good
+relatively small request to some good faith actor out on the internet using a
+faith actor out on the internet using a ubiquitous protocol that such as MTP
+ubiquitous protocol that such as MTP memcache or something like that and the
+memcache or something like that and the the key thing is that the this good
+the key thing is that the this good faith actor out there is going to reply
+faith actor out there is going to reply to the source address which is you the
+to the source address which is you the target of the attack and the reply is
+target of the attack and the reply is bigger than the initial attackers
+bigger than the initial attackers request so by doing this he's able to
+request so by doing this he's able to gain leverage he sends a certain amount
+gain leverage he sends a certain amount of traffic to the good faith actor and
+of traffic to the good faith actor and the good faith actor sends more than
+the good faith actor sends more than that amount of traffic to you and the
+that amount of traffic to you and the thing is that the good faith actor who's
+thing is that the good faith actor who's out there is going to use a specific
+out there is going to use a specific he's obeying the rules he's going to use
+he's obeying the rules he's going to use a specific source address that can be
+a specific source address that can be blocked a source port that can be you
+blocked a source port that can be you can block the other thing you can do at
+can block the other thing you can do at the network layers block various
+the network layers block various protocol texts like syn flood or HTTP
+protocol texts like syn flood or HTTP slow right there's ubiquitous protocols
+slow right there's ubiquitous protocols in turn use and even though I realize
+in turn use and even though I realize that's not technically at the network
+that's not technically at the network layer most of the devices can look a
+layer most of the devices can look a little bit higher up the stack and they
+little bit higher up the stack and they can block those types of attacks out and
+can block those types of attacks out and that's really important to be able to do
+that's really important to be able to do the final case is when there's an
+the final case is when there's an emergency okay so let's say there's one
+emergency okay so let's say there's one there's your under attacking stuff is on
+there's your under attacking stuff is on fire there's one IP that's getting
+fire there's one IP that's getting attacked and there's collateral damage
+attacked and there's collateral damage right that we're able to take out that
+right that we're able to take out that box but the damage is spilling over to
+box but the damage is spilling over to you know other boxes in the rack or
+you know other boxes in the rack or other things that are along the path
+other things that are along the path there so what you can do just blackhole
+there so what you can do just blackhole that IP just and just block it so put
+that IP just and just block it so put out the fire and maybe sacrifice to that
+out the fire and maybe sacrifice to that IP so there's lots of things like that
+IP so there's lots of things like that or just in the middle of emergency you
+or just in the middle of emergency you can't craft a rule that always works but
+can't craft a rule that always works but you can craft a rule that will put out
+you can craft a rule that will put out the fire so that's very important role
+the fire so that's very important role for networking filtering at the network
+for networking filtering at the network to play so network filtering it does
+to play so network filtering it does play an important role but just like
+play an important role but just like this left-hand path there any UDP
+this left-hand path there any UDP traffic to your source bar it's probably
+traffic to your source bar it's probably getting through so doing it at the
+getting through so doing it at the network layer is not sufficient ok let's
+network layer is not sufficient ok let's take a brief detour and talk about
+take a brief detour and talk about websites I want to talk about what's
+websites I want to talk about what's hard about games
+hard about games why are web sites easier to defend than
+why are web sites easier to defend than games and what can we learn from
+games and what can we learn from thinking about how websites are
+thinking about how websites are protected and hopefully at the end of
+protected and hopefully at the end of this little discussion you'll think oh
+this little discussion you'll think oh of course that's the correct solution
+of course that's the correct solution the thing that we came up with
+the thing that we came up with obviously I think is the correct
+obviously I think is the correct solution I hope to convince you that of
+solution I hope to convince you that of that - okay
+that - okay so it's 2015 and we are totally getting
+so it's 2015 and we are totally getting our butts kicked by do s and and we're
+our butts kicked by do s and and we're thinking yeah games are just hard right
+thinking yeah games are just hard right I just wish I just wish I work for
+I just wish I just wish I work for Amazon because then it'd be so easy
+Amazon because then it'd be so easy right defending a website right I mean
+right defending a website right I mean like on most websites you know if I'm
+like on most websites you know if I'm shopping on Amazon I'm just dealing with
+shopping on Amazon I'm just dealing with my own data right I'm like siloed
+my own data right I'm like siloed whereas if I'm playing a game I've got
+whereas if I'm playing a game I've got multiple people connecting to the same
+multiple people connecting to the same box and if I if I'm a vandal then I can
+box and if I if I'm a vandal then I can I can see the people that are gonna be
+I can see the people that are gonna be affected by my attack right now can I
+affected by my attack right now can I can taste their tears you know that I
+can taste their tears you know that I can see it I can witness the impact if
+can see it I can witness the impact if I'm on Amazon what who cares if I take
+I'm on Amazon what who cares if I take down some box and there's just a bunch
+down some box and there's just a bunch of random strangers I'll never be able
+of random strangers I'll never be able to see that so in games the incentive
+to see that so in games the incentive and the payoff for vandalizing you just
+and the payoff for vandalizing you just cranked up so much and then games on
+cranked up so much and then games on this state right you think about how
+this state right you think about how much state isn't a game all of the
+much state isn't a game all of the positions of all the entities and their
+positions of all the entities and their health and their animation states and
+health and their animation states and everything is can change inconsistently
+everything is can change inconsistently to put some input whereas in game that
+to put some input whereas in game that state is changing continuously even if
+state is changing continuously even if nobody's doing any input it's just so
+nobody's doing any input it's just so much harder and then games have
+much harder and then games have stringent latency requirements right I
+stringent latency requirements right I mean yeah you listen to these talks by
+mean yeah you listen to these talks by Google and neck we want to make our
+Google and neck we want to make our websites snappy please right so yeah
+websites snappy please right so yeah that's great you want to make it
+that's great you want to make it responsive but can you keep low latency
+responsive but can you keep low latency consistent for one hour sustained right
+consistent for one hour sustained right if there's a hitch you're gonna you
+if there's a hitch you're gonna you can't buffer it and hide that like games
+can't buffer it and hide that like games just have these really difficult
+just have these really difficult problems and websites are so easy but
+problems and websites are so easy but the worst part is that when you're
+the worst part is that when you're making a game you have to take very low
+making a game you have to take very low level control over retransmission right
+level control over retransmission right so I'm gonna send the position of some
+so I'm gonna send the position of some entity right and it's changing
+entity right and it's changing continuously and if that message drops I
+continuously and if that message drops I don't want to retransmit that I want to
+don't want to retransmit that I want to retransmit the
+retransmit the current value right who cares what it
+current value right who cares what it was that you missed let's just send you
+was that you missed let's just send you what it is now you can't do that if you
+what it is now you can't do that if you used TCP so that's why we all have to
+used TCP so that's why we all have to use UDP because because we're taking
+use UDP because because we're taking very low-level control over what gets
+very low-level control over what gets retransmitted and UDP is hard right we
+retransmitted and UDP is hard right we just saw UDP is really hard at the
+just saw UDP is really hard at the network layer TCP so much easier so you
+network layer TCP so much easier so you know games are just hard and if only
+know games are just hard and if only maybe websites just be so much easier
+maybe websites just be so much easier and and you get up my lawn you know I
+and and you get up my lawn you know I don't so so so then you know this is a
+don't so so so then you know this is a whiny exaggeration but I hope that maybe
+whiny exaggeration but I hope that maybe had similar thoughts like that right and
+had similar thoughts like that right and the problem with this this method of
+the problem with this this method of thinking is that it's based it's a
+thinking is that it's based it's a common engineer pitfall to think my
+common engineer pitfall to think my problems are so hard and my field is so
+problems are so hard and my field is so difficult
+difficult if only I could do in the other field
+if only I could do in the other field and the source of this thinking is
+and the source of this thinking is because you don't know anything about
+because you don't know anything about the other field is what's really going
+the other field is what's really going on right they're facing different
+on right they're facing different challenges and they have different
+challenges and they have different things that are hard so you have to ask
+things that are hard so you have to ask you sees you step back any think wait a
+you sees you step back any think wait a second yeah about those websites does
+second yeah about those websites does network layer filtering work for
+network layer filtering work for websites I mean I know event you know
+websites I mean I know event you know HTTP is a TCP based protocol and so
+HTTP is a TCP based protocol and so there's it's a little bit easier than
+there's it's a little bit easier than uni P it's a little more context but is
+uni P it's a little more context but is that really a magic bullet is that
+that really a magic bullet is that what's making these websites so much
+what's making these websites so much easier defend against do s what is it
+easier defend against do s what is it exactly that makes do it websites easier
+exactly that makes do it websites easier well as it turns out a valve we got a
+well as it turns out a valve we got a bunch of people that run some big
+bunch of people that run some big websites so what I did is I went down I
+websites so what I did is I went down I talked to those guys and I learned that
+talked to those guys and I learned that games have some unique challenges you
+games have some unique challenges you know all of those things that I listed
+know all of those things that I listed those are legitimate and not a single
+those are legitimate and not a single one of them has to do with do s actually
+one of them has to do with do s actually so let's look at a modern website and
+so let's look at a modern website and we'll see what we can learn so there's a
+we'll see what we can learn so there's a modern website it's built for scale and
+modern website it's built for scale and a lot of the things that make it scale
+a lot of the things that make it scale are also the things that make it able to
+are also the things that make it able to defend against us okay so you've got
+defend against us okay so you've got this client he wants to connect to the
+this client he wants to connect to the service the first thing we notice is
+service the first thing we notice is that he uses he accesses the service via
+that he uses he accesses the service via a DNS name not IP right so
+a DNS name not IP right so this adds a layer of indirection and
+this adds a layer of indirection and very valuable layover in direction
+very valuable layover in direction that's we can use as a tool to spread
+that's we can use as a tool to spread the load we can you know use various DNS
+the load we can you know use various DNS tricks and you compare this to once the
+tricks and you compare this to once the session starts on a game server
+session starts on a game server you've got the IP right there's no
+you've got the IP right there's no multiplexing or routing or anything's
+multiplexing or routing or anything's like you've got the IP that's the only
+like you've got the IP that's the only way to talk to it and you might say well
+way to talk to it and you might say well I need to talk to that game server I
+I need to talk to that game server I can't just randomly choose one
+can't just randomly choose one geolocation random assignment route
+geolocation random assignment route Robin I gotta talk to that game server
+Robin I gotta talk to that game server that's the only one who has my data just
+that's the only one who has my data just hold that thought so the next thing
+hold that thought so the next thing about a modern website is there's going
+about a modern website is there's going to be this row of some sort of edge box
+to be this row of some sort of edge box some kind of some layers of load
+some kind of some layers of load balancers proxies or whatever I'm gonna
+balancers proxies or whatever I'm gonna want to focus on the HTTP proxies right
+want to focus on the HTTP proxies right there running a varnish or some similar
+there running a varnish or some similar software and these are can be deployed
+software and these are can be deployed at the edge of a network right so any
+at the edge of a network right so any sort of junk packet any reflection
+sort of junk packet any reflection attack anything like that is going to
+attack anything like that is going to bounce off these guys right the other
+bounce off these guys right the other thing about using proxies for a modern
+thing about using proxies for a modern website is that this is a commodity
+website is that this is a commodity service right so if you call up Amazon
+service right so if you call up Amazon and you say I need a whole bunch more
+and you say I need a whole bunch more proxies that's that's in their
+proxies that's that's in their wheelhouse right they know how to do
+wheelhouse right they know how to do that the cloud providers can do that for
+that the cloud providers can do that for you as total commodity the other thing
+you as total commodity the other thing is that if a daos attack takes out one
+is that if a daos attack takes out one of these proxies big deal right the
+of these proxies big deal right the client could just choose another one
+client could just choose another one right there's nothing really special
+right there's nothing really special about any one of these proxies and so we
+about any one of these proxies and so we can scale and we can add redundancy that
+can scale and we can add redundancy that increases the surface area of what needs
+increases the surface area of what needs to be taken out if we're gonna prevent a
+to be taken out if we're gonna prevent a client from accessing our service okay
+client from accessing our service okay then on the right hand side I want to
+then on the right hand side I want to skip the middle pardon me we have the
+skip the middle pardon me we have the data stores right so this is I'm talking
+data stores right so this is I'm talking about like some sort of sequel database
+about like some sort of sequel database or whatever the thing to note here is
+or whatever the thing to note here is that a sequel database is stateful right
+that a sequel database is stateful right it's kind of hard to imagine anything
+it's kind of hard to imagine anything more stateful than a sequel database
+more stateful than a sequel database right we talked about game server be
+right we talked about game server be having all this state you know we
+having all this state you know we couldn't migrate it that easily we got
+couldn't migrate it that easily we got to talk to that specific one you know
+to talk to that specific one you know ignoring some small multiplier for the
+ignoring some small multiplier for the purposes of redundancy if I go to Amazon
+purposes of redundancy if I go to Amazon I got to talk to the specific server
+I got to talk to the specific server that has my account history I can't just
+that has my account history I can't just talk to any random one so in that sense
+talk to any random one so in that sense it's not that different from a game I
+it's not that different from a game I got to talk to a specific box and the
+got to talk to a specific box and the middle we've got these app servers right
+middle we've got these app servers right so this is where your business logic is
+so this is where your business logic is and the main thing here is that this is
+and the main thing here is that this is also very stateful and it's also the
+also very stateful and it's also the case that you really have to talk to a
+case that you really have to talk to a specific box you can't just talk to any
+specific box you can't just talk to any random one it's true that if one of the
+random one it's true that if one of the app servers goes down and gets rebooted
+app servers goes down and gets rebooted no data is lost because there's nothing
+no data is lost because there's nothing persistent there it's all in the data
+persistent there it's all in the data stores but it is important that you get
+stores but it is important that you get rerouted there because of caching and
+rerouted there because of caching and perf right so it's very important that I
+perf right so it's very important that I talked to the specific one that handles
+talked to the specific one that handles my account or this this handling this
+my account or this this handling this particular chat room or whatever so it's
+particular chat room or whatever so it's not fundamentally different than a game
+not fundamentally different than a game we've got request from a client they've
+we've got request from a client they've got to go to a specific box so let's
+got to go to a specific box so let's just review really quickly the key
+just review really quickly the key aspects that make this scale that makes
+aspects that make this scale that makes this design of a modern website
+this design of a modern website facilitate the defense against us attack
+facilitate the defense against us attack first of all the only thing that is
+first of all the only thing that is directly addressable are the proxies and
+directly addressable are the proxies and anything that's really highly stateful
+anything that's really highly stateful anything that would be caused a
+anything that would be caused a disruption if it went offline you cannot
+disruption if it went offline you cannot even talk to you directly it does not
+even talk to you directly it does not need a public address at all doesn't
+need a public address at all doesn't need to be on the Internet the other
+need to be on the Internet the other thing is that the proxies have just the
+thing is that the proxies have just the right amount of state so it's not too
+right amount of state so it's not too little because it was too little they
+little because it was too little they basically be just like a network switch
+basically be just like a network switch right there they're trying to evaluate
+right there they're trying to evaluate these packets and they don't have enough
+these packets and they don't have enough context to filter out good from bad but
+context to filter out good from bad but it's not too much because if one goes
+it's not too much because if one goes down I can just get another one really
+down I can just get another one really quickly right establishing connection
+quickly right establishing connection does allow some require some bit of work
+does allow some require some bit of work but I can do it pretty quickly the other
+but I can do it pretty quickly the other thing is that it can add additional
+thing is that it can add additional proxies to add additional redundancy and
+proxies to add additional redundancy and this increases the surface area so if
+this increases the surface area so if somebody wants to take out our site they
+somebody wants to take out our site they have to take offline a significant
+have to take offline a significant proportion of that and I can increase
+proportion of that and I can increase that by throwing money at the problem
+that by throwing money at the problem indefinitely okay I hope that after
+indefinitely okay I hope that after looking at this you can kind of say oh I
+looking at this you can kind of say oh I see what what you need to do to me
+see what what you need to do to me a videogame work so let's talk about our
+a videogame work so let's talk about our solution our solution is basically
+solution our solution is basically proxies for game traffic and it again I
+proxies for game traffic and it again I hope it seems like I make sense but at
+hope it seems like I make sense but at the time we weren't thinking about in
+the time we weren't thinking about in terms of proxies and we're thinking
+terms of proxies and we're thinking about like comparing it to website well
+about like comparing it to website well we were thinking about was we was more
+we were thinking about was we was more like comparing it to a network switch
+like comparing it to a network switch and we were thinking we are going to
+and we were thinking we are going to route every single packet through a
+route every single packet through a Linux box in software I hope that sounds
+Linux box in software I hope that sounds crazy to you because it did to us at the
+crazy to you because it did to us at the time ok so this is what direct UDP
+time ok so this is what direct UDP connectivity looks like right this is
+connectivity looks like right this is the standard way of doing it right
+the standard way of doing it right you've got a game server it has a public
+you've got a game server it has a public IP to send the message to this game
+IP to send the message to this game server the client just uses a public IP
+server the client just uses a public IP right we're on the Internet of course
+right we're on the Internet of course the problem is that so can the bad guys
+the problem is that so can the bad guys and if I'm a network switch sitting in
+and if I'm a network switch sitting in between or device I it's route as we
+between or device I it's route as we talked about it's really difficult to
+talked about it's really difficult to tell the good traffic from the bad so
+tell the good traffic from the bad so our solution is we take these commodity
+our solution is we take these commodity servers and just running Ubuntu and we
+servers and just running Ubuntu and we have some software called Steam Datagram
+have some software called Steam Datagram relay or SDRs and we put three deploys
+relay or SDRs and we put three deploys they deployed these at the edge of our
+they deployed these at the edge of our network ok so now a client wants to
+network ok so now a client wants to connect well has this situation change
+connect well has this situation change so first he gets a ticket and the ticket
+so first he gets a ticket and the ticket he's signed into steam
+he's signed into steam so he's been authenticated we know who
+so he's been authenticated we know who he is and the ticket contains his
+he is and the ticket contains his identity it's restricted that says hey I
+identity it's restricted that says hey I you can only talk to this specific
+you can only talk to this specific server and it's gonna have a time limit
+server and it's gonna have a time limit so the tickets are shared or whatever it
+so the tickets are shared or whatever it mitigates damage and it's gonna be
+mitigates damage and it's gonna be signed right signed by something that
+signed right signed by something that the relays trust and we'll see in a
+the relays trust and we'll see in a little bit that can be your back end ok
+little bit that can be your back end ok you you guys can generate these tickets
+you you guys can generate these tickets ok then the client talks to the relay
+ok then the client talks to the relay over a public address and then the
+over a public address and then the really talks to game start we're using
+really talks to game start we're using the private address right so game
+the private address right so game servers cannot be directly addressed ok
+servers cannot be directly addressed ok so now what does it look like for an
+so now what does it look like for an attacker
+attacker so attacker well you know it's an open
+so attacker well you know it's an open Internet rights free country he can send
+Internet rights free country he can send packets through the relay just fine it's
+packets through the relay just fine it's got a public address but he has no
+got a public address but he has no ticket right so the relay is not gonna
+ticket right so the relay is not gonna let him in of course
+let him in of course you could ddos it right like it's on the
+you could ddos it right like it's on the internet it's vulnerably taken off so he
+internet it's vulnerably taken off so he gets his buddies together
+gets his buddies together he DDoS is it and that disrupts so the
+he DDoS is it and that disrupts so the client no longer can talk through that
+client no longer can talk through that relay but no big deal he just uses
+relay but no big deal he just uses another one so maybe there's a there's
+another one so maybe there's a there's some software that's running on the
+some software that's running on the client that is making dynamic route
+client that is making dynamic route choices is saying which one of these
+choices is saying which one of these relays do I want to use to talk to the
+relays do I want to use to talk to the server and it notices well I'm stopped
+server and it notices well I'm stopped receiving communications from the relay
+receiving communications from the relay I better switch to a different one so
+I better switch to a different one so maybe there's a few second delay but for
+maybe there's a few second delay but for the time when that it takes to you know
+the time when that it takes to you know to Detective to that communication has
+to Detective to that communication has been disrupted with the relay but he
+been disrupted with the relay but he switches and the game keeps going
+switches and the game keeps going there's no loss of connection or
+there's no loss of connection or anything like that and the other
+anything like that and the other important thing to remember is that the
+important thing to remember is that the relays are not just at the data same
+relays are not just at the data same data center with the game server we've
+data center with the game server we've got relays displayed all over the world
+got relays displayed all over the world so he can go not just hit the data
+so he can go not just hit the data center he can go to relay in a different
+center he can go to relay in a different data center and then then that goes on
+data center and then then that goes on our backbone to the data center where
+our backbone to the data center where the game server is in fact that's a
+the game server is in fact that's a really that's a really common thing that
+really that's a really common thing that happens okay and of course the same is
+happens okay and of course the same is with websites if an attacker wants to
+with websites if an attacker wants to disrupt a gameplay he's got a huge
+disrupt a gameplay he's got a huge surface area that he has to overwhelm of
+surface area that he has to overwhelm of course you can only do this if you've
+course you can only do this if you've got quite a bit of networked muscle so
+got quite a bit of networked muscle so let's talk about into valves network so
+let's talk about into valves network so at our edge we've got 30 points of
+at our edge we've got 30 points of presence currently so a point of
+presence currently so a point of presence meaning we have a physical
+presence meaning we have a physical connection with an isp where we can
+connection with an isp where we can receive network traffic and it gives
+receive network traffic and it gives ingress and and we have a backbone
+ingress and and we have a backbone connection a dedicated link that only
+connection a dedicated link that only carries our traffic to the rest of our
+carries our traffic to the rest of our network and in many points these points
+network and in many points these points of presence we also have you know a
+of presence we also have you know a racks with game servers or some other
+racks with game servers or some other service like a Content server or you
+service like a Content server or you know some steam service like that but in
+know some steam service like that but in some of them all we have is just a point
+some of them all we have is just a point of presence where we've deployed some
+of presence where we've deployed some relays the total aggregate man width at
+relays the total aggregate man width at our edge is in the multi terabit range
+our edge is in the multi terabit range and right now we have about 115 relay
+and right now we have about 115 relay hosts deployed we're in the process of
+hosts deployed we're in the process of ramping that up we also have connected
+ramping that up we also have connected all of our points of presence in a
+all of our points of presence in a backbone we have about 120 links right
+backbone we have about 120 links right now and let's say those are 10 gigabit
+now and let's say those are 10 gigabit links and the aggregate bandwidth total
+links and the aggregate bandwidth total aggregate bandwidth of all those links
+aggregate bandwidth of all those links is and also in the multi terabit range
+is and also in the multi terabit range so I think why
+so I think why this is not relevant to me right well it
+this is not relevant to me right well it is because later we're going to talk
+is because later we're going to talk about how steam Partners can have access
+about how steam Partners can have access to this network but I do want to pause
+to this network but I do want to pause just for a moment and I now that you
+just for a moment and I now that you guys know what this hybrid solution is I
+guys know what this hybrid solution is I want to point out that it's not a
+want to point out that it's not a coincidence that at valve we came up
+coincidence that at valve we came up with a hybrid solution so if you're
+with a hybrid solution so if you're going to do this hybrid solution you've
+going to do this hybrid solution you've got to have you've got to change the app
+got to have you've got to change the app code right there's client software
+code right there's client software that's running on the client and you
+that's running on the client and you also have to be able to deploy quite a
+also have to be able to deploy quite a bit of network hardware right you've got
+bit of network hardware right you've got to be operating at scale so how many
+to be operating at scale so how many companies have both of those things
+companies have both of those things going on so you know we make Steam's
+going on so you know we make Steam's games and we make steam my personal
+games and we make steam my personal background is more games so I'm a
+background is more games so I'm a software developer and I don't really
+software developer and I don't really I'm not a network engineer I don't buy
+I'm not a network engineer I don't buy bandwidth I don't understand links and
+bandwidth I don't understand links and data centers and I don't know how to you
+data centers and I don't know how to you know deploy hardware and all that sort
+know deploy hardware and all that sort of stuff which is a cop-out for the Q&A
+of stuff which is a cop-out for the Q&A session if any of those sorts of
+session if any of those sorts of questions come up
+questions come up oops but well we do have people that
+oops but well we do have people that know that so what did I do I move my
+know that so what did I do I move my desk down there and we started figuring
+desk down there and we started figuring out the solution which I mean this seems
+out the solution which I mean this seems kind of crazy we're gonna be around
+kind of crazy we're gonna be around every single packet through software is
+every single packet through software is that crazy nope
+that crazy nope we just did it and we shipped it so I
+we just did it and we shipped it so I just think it's remarkable at valve
+just think it's remarkable at valve first of all that we have that ability
+first of all that we have that ability to collaborate that like that and the
+to collaborate that like that and the job titles these restrict job roles
+job titles these restrict job roles didn't get in a way at all and the other
+didn't get in a way at all and the other thing is that the impact of one software
+thing is that the impact of one software engineer so one software engineer can
+engineer so one software engineer can design this entire protocol right the
+design this entire protocol right the relay server write the client code
+relay server write the client code integrated in dota and csgo and ship it
+integrated in dota and csgo and ship it that's what one software engineer can do
+that's what one software engineer can do at valve we had one or two more guys
+at valve we had one or two more guys help out with like deploying hardware
+help out with like deploying hardware and doing that sort of stuff but anyway
+and doing that sort of stuff but anyway you know I I'm really proud that we
+you know I I'm really proud that we shipped this novel tech and we had a
+shipped this novel tech and we had a huge impact on a whole bunch of
+huge impact on a whole bunch of customers which is a way of saying that
+customers which is a way of saying that we really need network engineers right
+we really need network engineers right now so if that's you or and it sounds
+now so if that's you or and it sounds really cool or you just happen to be
+really cool or you just happen to be like super smart person come on
+like super smart person come on okay with that little digression out of
+okay with that little digression out of the way a big part of the solution is
+the way a big part of the solution is that client software that we talked
+that client software that we talked about it's running on the client and
+about it's running on the client and it's making these dynamic routing
+it's making these dynamic routing decisions because we have that client
+decisions because we have that client software we got two unexpected benefits
+software we got two unexpected benefits the first benefit I hope you read this
+the first benefit I hope you read this slide title and you think what that does
+slide title and you think what that does not make any sense we were able to
+not make any sense we were able to improve P times for significant minority
+improve P times for significant minority of players relaying packets new software
+of players relaying packets new software improves ping times okay so that doesn't
+improves ping times okay so that doesn't make any sense let's see how this
+make any sense let's see how this happens okay so this is a real example
+happens okay so this is a real example of a player who was in Crowley Texas
+of a player who was in Crowley Texas happens to be near where I grew up he's
+happens to be near where I grew up he's playing on the server in LA so if he
+playing on the server in LA so if he routes direct to LA he would have gotten
+routes direct to LA he would have gotten an 82 millisecond ping
+an 82 millisecond ping so the first thing so he's gonna route
+so the first thing so he's gonna route to the relay there in LA and then the
+to the relay there in LA and then the relay is gonna go over the back hall
+relay is gonna go over the back hall within our land so the first thing to
+within our land so the first thing to observe is that just inserting that
+observe is that just inserting that relay did not increase the latency so
+relay did not increase the latency so really it suffered at least I can
+really it suffered at least I can convince you doesn't make it any worse
+convince you doesn't make it any worse because you can pull a packet in and out
+because you can pull a packet in and out of a Linux server with less than a
+of a Linux server with less than a millisecond and you can send it over the
+millisecond and you can send it over the land backhaul within a datacenter super
+land backhaul within a datacenter super fast right so that is less than a
+fast right so that is less than a millisecond it's negligible additional
+millisecond it's negligible additional additional latency and here's how you
+additional latency and here's how you can improve the ping time because this
+can improve the ping time because this is not actually what he did what
+is not actually what he did what actually happened is that his client
+actually happened is that his client measured the ping time to all of our
+measured the ping time to all of our available realized relays and is it oh
+available realized relays and is it oh if I wrap through Oklahoma City I'm only
+if I wrap through Oklahoma City I'm only 17 milliseconds away from Oklahoma City
+17 milliseconds away from Oklahoma City and then that's another 39 milliseconds
+and then that's another 39 milliseconds on our backbone between Oklahoma City
+on our backbone between Oklahoma City and Los Angeles and if you're keeping
+and Los Angeles and if you're keeping track that's 56 milliseconds so 82
+track that's 56 milliseconds so 82 milliseconds versus 56 milliseconds that
+milliseconds versus 56 milliseconds that is a meaningful improvement right I hope
+is a meaningful improvement right I hope everybody sees that is a meaningful
+everybody sees that is a meaningful improvement it's not just an improvement
+improvement it's not just an improvement because we got his latency down it's an
+because we got his latency down it's an improvement because more of the traffic
+improvement because more of the traffic so in this situation it's all going over
+so in this situation it's all going over the Internet
+the Internet we have no control over any of that any
+we have no control over any of that any of those links that are that are
+of those links that are that are involved in this situation only a short
+involved in this situation only a short portion of the path is over a route that
+portion of the path is over a route that we don't control in the back hall we
+we don't control in the back hall we control we can make sure that the
+control we can make sure that the routing is optimal and we can make sure
+routing is optimal and we can make sure that there's no you know downloading of
+that there's no you know downloading of the latest season a game of Thrones or
+the latest season a game of Thrones or whatever spiking up and interfering with
+whatever spiking up and interfering with our traffic right so the Pina provement
+our traffic right so the Pina provement is not because we're really in traffic
+is not because we're really in traffic the pain improvement comes because there
+the pain improvement comes because there is a choice of route and you might ask
+is a choice of route and you might ask why is his direct pain to LA so poor
+why is his direct pain to LA so poor questions I don't know I don't know why
+questions I don't know I don't know why it's so poor right but we have to
+it's so poor right but we have to remember that there is no such thing as
+remember that there is no such thing as a direct route to LA right the Internet
+a direct route to LA right the Internet is a packet-switched network so when
+is a packet-switched network so when he's talking to LA he's bouncing through
+he's talking to LA he's bouncing through all kinds of network devices already so
+all kinds of network devices already so adding one of them and it happens to be
+adding one of them and it happens to be software doesn't really change things in
+software doesn't really change things in any fundamental way so there's no direct
+any fundamental way so there's no direct route so he's okay I didn't mean direct
+route so he's okay I didn't mean direct route I mean the default IP route why is
+route I mean the default IP route why is the default IP route so poor well it's
+the default IP route so poor well it's because it's determined through BGP
+because it's determined through BGP routing that's the routing protocol that
+routing that's the routing protocol that drives the Internet and the input to BGP
+drives the Internet and the input to BGP routing or these you know metrics called
+routing or these you know metrics called weight and preference or whatever well
+weight and preference or whatever well they're not identical to latency right
+they're not identical to latency right they're kind of close but it's not an
+they're kind of close but it's not an exact match up right so anytime there's
+exact match up right so anytime there's a discrepancy there between those
+a discrepancy there between those metrics and actual latency it creates an
+metrics and actual latency it creates an opportunity for us to find a better
+opportunity for us to find a better route so maybe you're thinking okay you
+route so maybe you're thinking okay you dug through all your stats and you find
+dug through all your stats and you find you know a cherry-picked an example how
+you know a cherry-picked an example how often does this really happen so here is
+often does this really happen so here is a chart that shows all of our data
+a chart that shows all of our data centers with from the busiest to the
+centers with from the busiest to the least busy and you can see here our
+least busy and you can see here our busiest data center is in Stockholm and
+busiest data center is in Stockholm and you can see somewhat what is that it's a
+you can see somewhat what is that it's a majority of players so this this gray
+majority of players so this this gray represents people who essentially the
+represents people who essentially the default route was optimal this is the
+default route was optimal this is the majority of players so most people got
+majority of players so most people got an improvement and it's true
+an improvement and it's true this purple bar is anywhere from zero to
+this purple bar is anywhere from zero to ten milliseconds so it's a modest
+ten milliseconds so it's a modest improvement right but look you down here
+improvement right but look you down here oh and you can also see that the amount
+oh and you can also see that the amount of improvement depends on the
+of improvement depends on the opportunities for route selection right
+opportunities for route selection right so in Europe we have a lot of different
+so in Europe we have a lot of different interconnects we have a lot of different
+interconnects we have a lot of different ways for there to be different routes
+ways for there to be different routes and we can make improvement for example
+and we can make improvement for example in this is Australia down here we really
+in this is Australia down here we really don't only have one data center only one
+don't only have one data center only one way for the traffic to get in most
+way for the traffic to get in most people don't see an improvement but look
+people don't see an improvement but look down here like this is Dubai right this
+down here like this is Dubai right this is that eight that that red section is
+is that eight that that red section is seventy five millisecond improvement
+seventy five millisecond improvement that's a huge improvement right so for a
+that's a huge improvement right so for a lot of a small percentage of customers
+lot of a small percentage of customers were able to make a big difference and
+were able to make a big difference and for a I would say it's a minority of
+for a I would say it's a minority of customers were able to make a modest
+customers were able to make a modest improvement okay the other thing
+improvement okay the other thing unexpected benefit that we got from this
+unexpected benefit that we got from this from having this client software that
+from having this client software that was making these rerouting decisions is
+was making these rerouting decisions is that in certain parts of the world the
+that in certain parts of the world the competition between ISPs is is less than
+competition between ISPs is is less than you would desire and this has happened
+you would desire and this has happened in many different parts of the world at
+in many different parts of the world at various points in time
+various points in time basically the ISPs are peering with each
+basically the ISPs are peering with each other and the routing is set up in such
+other and the routing is set up in such a way that if you were an engineer and
+a way that if you were an engineer and you were trying to design things so the
+you were trying to design things so the internet worked as efficiently as
+internet worked as efficiently as possible
+possible it's not how you would design it right
+it's not how you would design it right so the peering arrangements and
+so the peering arrangements and everything are set up in a way that has
+everything are set up in a way that has makes business based on some sort of
+makes business based on some sort of business competition not based on what's
+business competition not based on what's good for people trying to get a good
+good for people trying to get a good connection to arbitrary internet hosts
+connection to arbitrary internet hosts so let's say that you have a data center
+so let's say that you have a data center and you do have physical connectivity to
+and you do have physical connectivity to two different ISPs so in this diagram
+two different ISPs so in this diagram we've got two players and they are using
+we've got two players and they are using two different ISPs the red ISP in the
+two different ISPs the red ISP in the blue ISP and contrary to other diagrams
+blue ISP and contrary to other diagrams the blue guys is not a bad guy here he's
+the blue guys is not a bad guy here he's just two different two different ISPs
+just two different two different ISPs and everybody's a good player so even
+and everybody's a good player so even having the connectivity come in from two
+having the connectivity come in from two different ISPs is not sufficient because
+different ISPs is not sufficient because you have to pick an IP address for your
+you have to pick an IP address for your game server right this is back when a
+game server right this is back when a game servers have a public IP so let's
+game servers have a public IP so let's say you you
+say you you shoes and IP addresses assigned from
+shoes and IP addresses assigned from your red ISP well then great your red
+your red ISP well then great your red your player on the red ISP he's got a
+your player on the red ISP he's got a great route and your blue guy he gets
+great route and your blue guy he gets bounced around some crazy scenic route
+bounced around some crazy scenic route and he has a bad time
+and he has a bad time you could try to switch it but then you
+you could try to switch it but then you all you've done is you've traded off one
+all you've done is you've traded off one person having a bad time for the other
+person having a bad time for the other so our solution is we just have some
+so our solution is we just have some relays with red ISP I address us some
+relays with red ISP I address us some solutions some realize that are assigned
+solutions some realize that are assigned blue addresses and the clients measure
+blue addresses and the clients measure their pinging they say if they're blue
+their pinging they say if they're blue it turns out oh looks like the blue
+it turns out oh looks like the blue routes fastest and they connect through
+routes fastest and they connect through there the red guys say Oh looks like the
+there the red guys say Oh looks like the rather outs fastest and they connect her
+rather outs fastest and they connect her there so of course there are other ways
+there so of course there are other ways you could solve this problem right
+you could solve this problem right there's traditional networking
+there's traditional networking engineering approaches that you could do
+engineering approaches that you could do in DotA what we've had to do is we in
+in DotA what we've had to do is we in some cases we had to segregate people by
+some cases we had to segregate people by ISP and that's really a substandard
+ISP and that's really a substandard solution and csgo we were able to
+solution and csgo we were able to implement this solution you could also
+implement this solution you could also give the game server two IP addresses
+give the game server two IP addresses right we could mount a multi home and
+right we could mount a multi home and then when you told clients to connect
+then when you told clients to connect you could say okay I'm gonna figure out
+you could say okay I'm gonna figure out if you're a red client and if so I'm
+if you're a red client and if so I'm gonna tell you to connect through the
+gonna tell you to connect through the red IP and if you're blue I'm gonna
+red IP and if you're blue I'm gonna that's just a lot of work and you have
+that's just a lot of work and you have to be able to figure out who's red and
+to be able to figure out who's red and who's blue right it's a it's a you're
+who's blue right it's a it's a you're signing yourself up for a lot of
+signing yourself up for a lot of bookkeeping and a lot of ongoing
+bookkeeping and a lot of ongoing maintenance right so the SDR solution we
+maintenance right so the SDR solution we just automatically works you just let
+just automatically works you just let the ping measurement sort it out okay
+the ping measurement sort it out okay let's get to some practical advice we've
+let's get to some practical advice we've talked about the problem hopefully
+talked about the problem hopefully everybody understands how our approach
+everybody understands how our approach to the high level of how our approach
+to the high level of how our approach works and now I'm going to give some
+works and now I'm going to give some practical eyes about what you can do so
+practical eyes about what you can do so there's one guaranteed way to make sure
+there's one guaranteed way to make sure that your game is not impacted by denial
+that your game is not impacted by denial of service and that is you can make an
+of service and that is you can make an unpopular game so this slide actually
+unpopular game so this slide actually does have a point it's not just use that
+does have a point it's not just use that emoji oh that's pretty good benefit the
+emoji oh that's pretty good benefit the point is that enough there's no other
+point is that enough there's no other guaranteed solution so everything else
+guaranteed solution so everything else we're about to talk about is just gonna
+we're about to talk about is just gonna raise the bar for that attackers have to
+raise the bar for that attackers have to jump over and it's up to you to
+jump over and it's up to you to figure out how much dev cost how much
+figure out how much dev cost how much money - you're gonna have to do those
+money - you're gonna have to do those cost-benefit analysis but there's really
+cost-benefit analysis but there's really no guaranteed solution aside from making
+no guaranteed solution aside from making it unpopular game okay one bit of
+it unpopular game okay one bit of practical advice I don't want to draw on
+practical advice I don't want to draw on this but back-end
+this but back-end make your back-end your mechanistic lion
+make your back-end your mechanistic lion right that's all it is all those things
+right that's all it is all those things that we talked about that's hard about
+that we talked about that's hard about video games you don't apply to your
+video games you don't apply to your back-end right so do not open a raw
+back-end right so do not open a raw socket take it make you back boo back in
+socket take it make you back boo back in traffic the HTTP take advantage of all
+traffic the HTTP take advantage of all the existing tools are out there
+the existing tools are out there commodity services you'll get your super
+commodity services you'll get your super high bang from your book there should be
+high bang from your book there should be no reason whatsoever well you have a
+no reason whatsoever well you have a hard time protecting your back-end just
+hard time protecting your back-end just make it a website essentially the other
+make it a website essentially the other thing you're gonna do is to use the
+thing you're gonna do is to use the network layer to do what it can do so we
+network layer to do what it can do so we talked about the fact that you know
+talked about the fact that you know there's gonna be this this whole any UDP
+there's gonna be this this whole any UDP traffic down for your server is going to
+traffic down for your server is going to get through but the network layer can
+get through but the network layer can block reflection attacks and that is the
+block reflection attacks and that is the most important function of the network
+most important function of the network layer so you may end up spinning a
+layer so you may end up spinning a little bit money maybe from your cloud
+little bit money maybe from your cloud provider to do some advanced protection
+provider to do some advanced protection or whatever or if you're a Colo
+or whatever or if you're a Colo situation maybe you buy some of those
+situation maybe you buy some of those like military-grade switches dedicated
+like military-grade switches dedicated dus hardware whatever but you may throw
+dus hardware whatever but you may throw some money the problem with the network
+some money the problem with the network layer is going to play a role every time
+layer is going to play a role every time you share an IP it adds risk so don't
+you share an IP it adds risk so don't share IPs unless you have to only do it
+share IPs unless you have to only do it on the need-to-know basis so for example
+on the need-to-know basis so for example don't do it just because one side wants
+don't do it just because one side wants to connect need to make sure that both
+to connect need to make sure that both sides have expressed some sort of
+sides have expressed some sort of affirmative intent to participate in
+affirmative intent to participate in this connection for example you may
+this connection for example you may remember that there was a exploit with
+remember that there was a exploit with Skype you could just and initiate by the
+Skype you could just and initiate by the process of initiating a Skype call to
+process of initiating a Skype call to somebody I could get their IP the other
+somebody I could get their IP the other guy didn't even have to answer the call
+guy didn't even have to answer the call so that bugs has since been fixed but
+so that bugs has since been fixed but but that's an example of where make sure
+but that's an example of where make sure your protocol does not reveal any IPs
+your protocol does not reveal any IPs tell it's absolutely necessary there's
+tell it's absolutely necessary there's other sorts of ways where you might leak
+other sorts of ways where you might leak this sort of information you for us you
+this sort of information you for us you know we had some dev tools which are
+know we had some dev tools which are super useful for sorting out problems
+super useful for sorting out problems with customers you can say hey check
+with customers you can say hey check this try this or whatever but
+this try this or whatever but unfortunately those dev tools in leaked
+unfortunately those dev tools in leaked information about where the game server
+information about where the game server was or you know what other people's IPS
+was or you know what other people's IPS on the game server we had to lock all
+on the game server we had to lock all that down also rich presents you know
+that down also rich presents you know spectators kind of ended up me in a gray
+spectators kind of ended up me in a gray area so those are some examples of
+area so those are some examples of places where you might find yourself
+places where you might find yourself leaking this information and it'll be
+leaking this information and it'll be used to DDoS your players basically in
+used to DDoS your players basically in today's internet anytime if you ever
+today's internet anytime if you ever reveal an IP it's just bad that is a
+reveal an IP it's just bad that is a conclusion that we've come to you may
+conclusion that we've come to you may not know that if you're using the
+not know that if you're using the current steam p2p api's because they try
+current steam p2p api's because they try to pearson at and establish a direct
+to pearson at and establish a direct connection and that is bad and we are
+connection and that is bad and we are not going to do that in the future we
+not going to do that in the future we are working on fixing that but the ideal
+are working on fixing that but the ideal situation is to relay the traffic and
+situation is to relay the traffic and have your relay anonymize it and so
+have your relay anonymize it and so nobody no knows anybody else's IP and
+nobody no knows anybody else's IP and they're identified by you know your
+they're identified by you know your steam ID or some other identity like
+steam ID or some other identity like that of course you don't probably are
+that of course you don't probably are not operating a scale where you can
+not operating a scale where you can deploy all this hardware but we're going
+deploy all this hardware but we're going to talk about if you're a steam partner
+to talk about if you're a steam partner you can relay your traffic through our
+you can relay your traffic through our network and you can make sure that your
+network and you can make sure that your players don't get DDoS - of course we
+players don't get DDoS - of course we want to prevent a DDoS attack but in the
+want to prevent a DDoS attack but in the event that it happens and it will happen
+event that it happens and it will happen you need to be able to checked it and
+you need to be able to checked it and get those guys banned those guys from
+get those guys banned those guys from your game and just lock down the
+your game and just lock down the incentive for them to keep doing it and
+incentive for them to keep doing it and mitigate the damage of it happening so
+mitigate the damage of it happening so that means obviously you're collecting
+that means obviously you're collecting data on like how often your games are
+data on like how often your games are failing right like you had to have
+failing right like you had to have sufficient analytics to identify the
+sufficient analytics to identify the people who are doing this and then if
+people who are doing this and then if you have a free-to-play game you've got
+you have a free-to-play game you've got a problem because the the band may not
+a problem because the the band may not sting right so if they can just if their
+sting right so if they can just if their account gets banned or everything can
+account gets banned or everything can fire up a new account and
+fire up a new account and right back in the matchmaking pool your
+right back in the matchmaking pool your bands are totally neutered so you really
+bands are totally neutered so you really need to have some barrier to getting
+need to have some barrier to getting them into the whatever matchmaking pool
+them into the whatever matchmaking pool that you're trying to protect so for
+that you're trying to protect so for example in dota in csgo that you have to
+example in dota in csgo that you have to have a certain number of games played
+have a certain number of games played some sort of time investment right make
+some sort of time investment right make them jump over a certain hurdle before
+them jump over a certain hurdle before they can get back in and start doing bad
+they can get back in and start doing bad stuff again two more things you can do
+stuff again two more things you can do you can harden your network code so
+you can harden your network code so previous iteration of this talk I went
+previous iteration of this talk I went into detail about how you know you
+into detail about how you know you really need to be pumping you're pulling
+really need to be pumping you're pulling the socket on a thread and you need to
+the socket on a thread and you need to be making sure that you don't have only
+be making sure that you don't have only you know and and I realized man just
+you know and and I realized man just writing socket code it's just really
+writing socket code it's just really hard and so I recommend that you just
+hard and so I recommend that you just don't do it and so we are releasing a
+don't do it and so we are releasing a open source library to do a lot of this
+open source library to do a lot of this stuff it's a very permissive license
+stuff it's a very permissive license it's open source you can use on any
+it's open source you can use on any platform you want doesn't matter if your
+platform you want doesn't matter if your Steam developer doesn't matter if you're
+Steam developer doesn't matter if you're on Steam doesn't matter if you make
+on Steam doesn't matter if you make games are all at all and it is a real
+games are all at all and it is a real time oriented protocol so it does
+time oriented protocol so it does reliable and unreliable messages and it
+reliable and unreliable messages and it will do the fragmentation and reassembly
+will do the fragmentation and reassembly you know your messages can be bigger
+you know your messages can be bigger than the MTU and then retransmit for
+than the MTU and then retransmit for reliable data when there's packet loss
+reliable data when there's packet loss it also has bandwidth estimation based
+it also has bandwidth estimation based on an RFC that describes TCP friendly
+on an RFC that describes TCP friendly right limiting and so you can just put a
+right limiting and so you can just put a giant message you could you know I into
+giant message you could you know I into the API and then it'll it'll meter out
+the API and then it'll it'll meter out the packets at a rate depending on how
+the packets at a rate depending on how big the pipe is between the two peers
+big the pipe is between the two peers and also does encryption it does not do
+and also does encryption it does not do anything above transport though and I
+anything above transport though and I think that's really important because
+think that's really important because I'm not we're not trying to like take
+I'm not we're not trying to like take your entity data and then you figure out
+your entity data and then you figure out how to like will serialize it for you
+how to like will serialize it for you and we'll figure out which of those
+and we'll figure out which of those state fields changed and then in you
+state fields changed and then in you know get make a delta encoded thing like
+know get make a delta encoded thing like we're not gonna do any of that because
+we're not gonna do any of that because if that's what's really hard to get into
+if that's what's really hard to get into a game that's what's so incredibly game
+a game that's what's so incredibly game specific but transport layer we found is
+specific but transport layer we found is just pretty much easy to drop in in in
+just pretty much easy to drop in in in any code base so
+any code base so there's no reason not to use it the
+there's no reason not to use it the other thing is that this code all of
+other thing is that this code all of those things I talked about that's
+those things I talked about that's spoofing UDP source spoofing and the the
+spoofing UDP source spoofing and the the risk that entails and you know making
+risk that entails and you know making sure that your socket doesn't get
+sure that your socket doesn't get overwhelmed and legitimate traffic drown
+overwhelmed and legitimate traffic drown it being drowned out by spam packets and
+it being drowned out by spam packets and all that sort of stuff like we've got
+all that sort of stuff like we've got that we've solved all that right opening
+that we've solved all that right opening a a UDP socket on the Internet is a is
+a a UDP socket on the Internet is a is fraught with peril this code has been
+fraught with peril this code has been battle tested for several years now the
+battle tested for several years now the other thing I want you to please use our
+other thing I want you to please use our network okay how are you gonna do that
+network okay how are you gonna do that there's an SDK so what do you get you
+there's an SDK so what do you get you get access to our relays and our
+get access to our relays and our backbone so what does that mean that
+backbone so what does that mean that means p2p traffic is anonymized no IPS
+means p2p traffic is anonymized no IPS are being revealed you're going to get
+are being revealed you're going to get any sort of ping improvement that we're
+any sort of ping improvement that we're able to do because we're finding optimal
+able to do because we're finding optimal routes you are going to get your data
+routes you are going to get your data transferred more of the path is going to
+transferred more of the path is going to occur over our backbone where we're able
+occur over our backbone where we're able to control it and make sure that the the
+to control it and make sure that the the Game of Thrones downloads or you know
+Game of Thrones downloads or you know you know whatever are not interfering we
+you know whatever are not interfering we can do we have P to P IP is so just two
+can do we have P to P IP is so just two random hosts on the internet right there
+random hosts on the internet right there just players and we also have our
+just players and we also have our hosting some dedicated servers for a few
+hosting some dedicated servers for a few partners the stunlock guys the battle
+partners the stunlock guys the battle rock the battle right guys are hosting
+rock the battle right guys are hosting some servers with us and we have some
+some servers with us and we have some more partners that are do we're in the
+more partners that are do we're in the process of working on that and we can do
+process of working on that and we can do that's a slightly different API and we
+that's a slightly different API and we can do that too also because we have
+can do that too also because we have these relays deployed out there we can
+these relays deployed out there we can we have some tools for estimating ping
+we have some tools for estimating ping okay let me just describe how this works
+okay let me just describe how this works so I measure all of my ping to you know
+so I measure all of my ping to you know all of the relays and I know all of my
+all of the relays and I know all of my ping to those relays and if you measure
+ping to those relays and if you measure all you're paying to all of your relays
+all you're paying to all of your relays and then we compare notes it's a small
+and then we compare notes it's a small bit of information right just a small
+bit of information right just a small bit of data that lists those pings but
+bit of data that lists those pings but once I have that I can estimate my ping
+once I have that I can estimate my ping to you right or to between any two
+to you right or to between any two internet hosts once I have that
+internet hosts once I have that that data I can estimate the ping
+that data I can estimate the ping between them without sending any packets
+between them without sending any packets right this is extremely useful for you
+right this is extremely useful for you know figuring out what peers ought to be
+know figuring out what peers ought to be put together or figure out who's going
+put together or figure out who's going to be the host if you've got some you
+to be the host if you've got some you know a p2p situation or figuring out if
+know a p2p situation or figuring out if you got servers deployed which region
+you got servers deployed which region they should connect to so I know that
+they should connect to so I know that our existing p2p API is if you try to do
+our existing p2p API is if you try to do that right now it's got a you know
+that right now it's got a you know you're gonna be actually pinging and
+you're gonna be actually pinging and it's gonna try to pierce an ad and
+it's gonna try to pierce an ad and there's like five second
+there's like five second you know like handshaking time or it
+you know like handshaking time or it tries to do that and it has lots of
+tries to do that and it has lots of problems so I'm really really looking
+problems so I'm really really looking forward to some partner has a good need
+forward to some partner has a good need for some of these peeing estimation
+for some of these peeing estimation tools I think they're really gonna be
+tools I think they're really gonna be powerful another thing you get with this
+powerful another thing you get with this library is certs so I mentioned that
+library is certs so I mentioned that game network to sockets has encryption
+game network to sockets has encryption encryption only works with starts I
+encryption only works with starts I don't want to get into a big discussion
+don't want to get into a big discussion but basically you can just man in the
+but basically you can just man in the middle right and and unless you can
+middle right and and unless you can prove that the guy you talk to is this
+prove that the guy you talk to is this the guy you really want encryption is a
+the guy you really want encryption is a little bit neutered of course it doesn't
+little bit neutered of course it doesn't prevent anybody else from filling that
+prevent anybody else from filling that role of certificate authority but steam
+role of certificate authority but steam can be a certificate authority here's
+can be a certificate authority here's the key point there is that well they're
+the key point there is that well they're two points one is if somebody connects
+two points one is if somebody connects you know from the very first moment that
+you know from the very first moment that they are who they say they are you don't
+they are who they say they are you don't have to say okay I've got a connection
+have to say okay I've got a connection from this particular steam ID and then
+from this particular steam ID and then go ask steam hey is this who they say
+go ask steam hey is this who they say they are meanwhile either in this kind
+they are meanwhile either in this kind of state of limbo note from the very
+of state of limbo note from the very moment they connect you know that we've
+moment they connect you know that we've checked their identity and we and
+checked their identity and we and they're presenting this certificate that
+they're presenting this certificate that proves it they are who they say they are
+proves it they are who they say they are the other thing is on the encryption bit
+the other thing is on the encryption bit we have moved the threat so that it's
+we have moved the threat so that it's not possible to man in the middle to
+not possible to man in the middle to observe or tamper with the traffic
+observe or tamper with the traffic unless you are inside the process okay
+unless you are inside the process okay so you can't just observe it or tamper
+so you can't just observe it or tamper with it by being outside of the process
+with it by being outside of the process of installing some box that's going to
+of installing some box that's going to like you know relay the traffic or
+like you know relay the traffic or anything like that you have to be inside
+anything like that you have to be inside the process and that makes it in a
+the process and that makes it in a position where VAT can detect it right
+position where VAT can detect it right so the certs may be it seemed a little
+so the certs may be it seemed a little esoteric but they really empower some
+esoteric but they really empower some good security features of course you
+good security features of course you also get everything else that comes with
+also get everything else that comes with everything on the previous slide so our
+everything on the previous slide so our goal here is that we really want if
+goal here is that we really want if you're on steam you you use this SDK and
+you're on steam you you use this SDK and if you're not on steam you can use the
+if you're not on steam you can use the same API you just use the open source
+same API you just use the open source version so you don't have to have if Def
+version so you don't have to have if Def steam go this Genki way if otherwise
+steam go this Genki way if otherwise I'll use my socket code or whatever and
+I'll use my socket code or whatever and then you're still resolving all those
+then you're still resolving all those same problems that we've talked about
+same problems that we've talked about hardening your network code and all that
+hardening your network code and all that just talk straight to the API so if you
+just talk straight to the API so if you are a steam partner please email me and
+are a steam partner please email me and I can get you early access to this sdk
+I can get you early access to this sdk it's currently kind of an early access
+it's currently kind of an early access as a separate lib it will be coming in
+as a separate lib it will be coming in the Seymours sdk soon that is it thank
+the Seymours sdk soon that is it thank you for your time are there any
+you for your time are there any questions how do you first of all great
+questions how do you first of all great talk
+talk I love all this stuff thank you how do
+I love all this stuff thank you how do you mitigate against replay attacks
+you mitigate against replay attacks replay attacks so can you describe what
+replay attacks so can you describe what yes when the replay attacks someone
+yes when the replay attacks someone who's in the game and wants to like
+who's in the game and wants to like they're losing they want to take the
+they're losing they want to take the server down so that they don't have the
+server down so that they don't have the MMR hit they'll record a little bit of
+MMR hit they'll record a little bit of their traffic that they're sending and
+their traffic that they're sending and then they'll just give that to a bot
+then they'll just give that to a bot farm and say hey bot farm send this
+farm and say hey bot farm send this traffic well so the protocol is a
+traffic well so the protocol is a connection-oriented protocol so you
+connection-oriented protocol so you could all these security questions can
+could all these security questions can get really complicated okay so I have to
+get really complicated okay so I have to think about exactly how we're gonna
+think about exactly how we're gonna defend of that I may have to answer the
+defend of that I may have to answer the helpline I don't mean to cop-out because
+helpline I don't mean to cop-out because I'm certain that we have an answer for
+I'm certain that we have an answer for that I'm just gotta think through I
+that I'm just gotta think through I don't want to give any wrong answers
+don't want to give any wrong answers especially on security stuff where it
+especially on security stuff where it depends so much on the details does
+depends so much on the details does anybody else have any questions
+anybody else have any questions do you want to we can talk about it
+do you want to we can talk about it after I just don't want to answer I'm
+after I just don't want to answer I'm like off the cuff here yes so it seems
+like off the cuff here yes so it seems like there's fair
+like there's fair value that I as a developer would get if
+value that I as a developer would get if I was using this so is there an
+I was using this so is there an Associated cost no okay no no we just
+Associated cost no okay no no we just you know we consider it a steam platform
+you know we consider it a steam platform feature okay
+no other questions
+okay well I'll be I guess hanging out out here answering this guy is security
+out here answering this guy is security question and if anybody else has any
+question and if anybody else has any more questions thank you for your time
+more questions thank you for your time again
+again [Applause]

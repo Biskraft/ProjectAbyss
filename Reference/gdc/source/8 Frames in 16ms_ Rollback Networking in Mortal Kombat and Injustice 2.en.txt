@@ -1,0 +1,1568 @@
+[Music] all right it's about that time if
+all right it's about that time if everybody could mute their phones and
+everybody could mute their phones and please fill out evaluations that would
+please fill out evaluations that would be great I'm gonna get started because
+be great I'm gonna get started because in my dry runs I fill the whole time so
+in my dry runs I fill the whole time so I'm gonna try and finish early for
+I'm gonna try and finish early for questions
+questions I'm Michael Stallone I'm lead software
+I'm Michael Stallone I'm lead software engineer on the engine team at
+engineer on the engine team at NetherRealm Studios we ship injustice
+NetherRealm Studios we ship injustice and Mortal Kombat what does this talk
+and Mortal Kombat what does this talk about the how why and lessons learned
+about the how why and lessons learned from switching our network model from
+from switching our network model from lockstep to roll back in a patch this is
+lockstep to roll back in a patch this is not a rendering talk I know it says
+not a rendering talk I know it says eight frames in 16 milliseconds I am NOT
+eight frames in 16 milliseconds I am NOT a rendering engineer I will not be
+a rendering engineer I will not be talking about the GPU this is also not
+talking about the GPU this is also not about the network transport layer I
+about the network transport layer I won't really be talking about packet
+won't really be talking about packet loss and how to cover it up
+loss and how to cover it up out of order packet delivery and that
+out of order packet delivery and that sort of thing that's a thing that we're
+sort of thing that's a thing that we're all doing I'm just not going to talk
+all doing I'm just not going to talk about that we are not the first or only
+about that we are not the first or only people to do rollback networking but I
+people to do rollback networking but I haven't seen any GDC talks about it
+haven't seen any GDC talks about it so I thought I would give one and this
+so I thought I would give one and this is mostly about our experience the
+is mostly about our experience the things that we went through when we did
+things that we went through when we did this maybe some of this is applicable to
+this maybe some of this is applicable to you guys just to give you guys a sense
+you guys just to give you guys a sense of the scope of what we were the time we
+of the scope of what we were the time we invested in shipping this thing was
+invested in shipping this thing was about four to twelve concurrent
+about four to twelve concurrent engineers for nine months roughly seven
+engineers for nine months roughly seven or eight man years of work for the
+or eight man years of work for the initial release and then ongoing support
+initial release and then ongoing support is part-time work for about six
+is part-time work for about six engineers although by now all the
+engineers although by now all the engineers understand how this works and
+engineers understand how this works and everybody gets to contribute our
+everybody gets to contribute our deadline was the mortal kombat
+deadline was the mortal kombat ten game of the year patch just some
+ten game of the year patch just some background terminology things that I'm
+background terminology things that I'm going to end up saying throughout the
+going to end up saying throughout the presentation just wanted to make sure
+presentation just wanted to make sure everybody was on the same page RTT is
+everybody was on the same page RTT is round trip time it's how long the packet
+round trip time it's how long the packet takes to get from you to your other your
+takes to get from you to your other your opponent and back network latency is the
+opponent and back network latency is the one way packet travel time just from you
+one way packet travel time just from you to your opponent net pause is the game
+to your opponent net pause is the game is pausing due to having not received
+is pausing due to having not received data in
+data in and QoS is quality of service it's a
+and QoS is quality of service it's a measurement of connection quality and if
+measurement of connection quality and if you cross over the QoS boundary for some
+you cross over the QoS boundary for some length of time you'll be disconnected a
+length of time you'll be disconnected a couple more input latency this is
+couple more input latency this is basically what the entire talk is about
+basically what the entire talk is about injected delay between a button press
+injected delay between a button press and the engine response you press a
+and the engine response you press a button how long until the engine
+button how long until the engine actually responds to it the confirmed
+actually responds to it the confirmed frame it's the most recent frame where
+frame it's the most recent frame where you have input from all players ad sync
+you have input from all players ad sync that's when both clients disagree about
+that's when both clients disagree about game state leads to a disconnect and
+game state leads to a disconnect and dead reckoning a super-deep topic that
+dead reckoning a super-deep topic that is a very common networking model used
+is a very common networking model used in games all over the place and has been
+in games all over the place and has been forever I'm not going to talk about it a
+forever I'm not going to talk about it a lot there's a lot there rollback
+lot there's a lot there rollback networking has similarities to dead
+networking has similarities to dead reckoning it's usually used in a server
+reckoning it's usually used in a server authoritative model I'm not going to
+authoritative model I'm not going to talk very much about it some basics we
+talk very much about it some basics we are a hard 60 Hertz 1v1 fighting game we
+are a hard 60 Hertz 1v1 fighting game we do not drop frames that leaves you
+do not drop frames that leaves you sixteen point six six milliseconds per
+sixteen point six six milliseconds per frame that is the game tick that is our
+frame that is the game tick that is our render tick everybody is running at 60
+render tick everybody is running at 60 Hertz nobody's running at a reduced rate
+Hertz nobody's running at a reduced rate we are a peer-to-peer game this is core
+we are a peer-to-peer game this is core to this talk and our decision on the
+to this talk and our decision on the networking model if your server
+networking model if your server authoritative this you know your mileage
+authoritative this you know your mileage may vary here a network packet is sent
+may vary here a network packet is sent once per frame I only call that out
+once per frame I only call that out because we have not unhooked our
+because we have not unhooked our networking from our main thread
+networking from our main thread it is simply serviced at the top of the
+it is simply serviced at the top of the frame we may unhook it next game
+frame we may unhook it next game standard networking tricks to hide
+standard networking tricks to hide packet loss this is what I said before
+packet loss this is what I said before you know there are plenty of people who
+you know there are plenty of people who make a career of this handling packet
+make a career of this handling packet loss out of order packets and all of
+loss out of order packets and all of that sort of stuff I'm not gonna be
+that sort of stuff I'm not gonna be talking about it even though I keep
+talking about it even though I keep saying it determinism this is hugely
+saying it determinism this is hugely important for us I'm not sure how hugely
+important for us I'm not sure how hugely important it is for everybody but the
+important it is for everybody but the vast majority of our game is bit 4-bit
+vast majority of our game is bit 4-bit deterministic we fencepost many values
+deterministic we fencepost many values at various points in the TIC any
+at various points in the TIC any divergence is a desync this is the
+divergence is a desync this is the foundation that everything is built on
+foundation that everything is built on that means that when we run in
+that means that when we run in development every single bit of every of
+development every single bit of every of our thousands of
+our thousands of fencepost in the game is exactly bit for
+fencepost in the game is exactly bit for bit identical that means if you're doing
+bit identical that means if you're doing floating point math you're doing it in
+floating point math you're doing it in the right order on every machine every
+the right order on every machine every time that has a lot of implications but
+time that has a lot of implications but the important part there is the game
+the important part there is the game will play out exactly the same every
+will play out exactly the same every single time provided you've ceded your
+single time provided you've ceded your random stuff in the exact same way the
+random stuff in the exact same way the problem the whole reason we switched our
+problem the whole reason we switched our networking model our online game play
+networking model our online game play suffered from inconsistent and high
+suffered from inconsistent and high input latency the players were not happy
+input latency the players were not happy we are a fighting game that means that
+we are a fighting game that means that responsiveness is extremely important
+responsiveness is extremely important and predictability is extremely
+and predictability is extremely important people will execute a combo
+important people will execute a combo they'll they'll input a button or a
+they'll they'll input a button or a string of button presses with a given
+string of button presses with a given cadence and expect that it works every
+cadence and expect that it works every single time that's not how it worked
+single time that's not how it worked prior to us switching network models we
+prior to us switching network models we had dynamic input latency meaning that
+had dynamic input latency meaning that depending on your network latency that
+depending on your network latency that you were experiencing the cadence of
+you were experiencing the cadence of your button presses would change this is
+your button presses would change this is bad for the players I'm not going to
+bad for the players I'm not going to talk about a ton of things on here this
+talk about a ton of things on here this is just an overall latency diagram you
+is just an overall latency diagram you press a button the hardware injects
+press a button the hardware injects latency the operating system injects
+latency the operating system injects latency we inject latency input latency
+latency we inject latency input latency and then we have one frame at 60 Hertz
+and then we have one frame at 60 Hertz for the game sim our render thread and
+for the game sim our render thread and our GPU present so that's like an
+our GPU present so that's like an overall latency diagram lockstep this is
+overall latency diagram lockstep this is what we used previously before we
+what we used previously before we switched over this is very simple but
+switched over this is very simple but it's what we used for years we only send
+it's what we used for years we only send gamepad data we are not sending any game
+gamepad data we are not sending any game state at all the game will not proceed
+state at all the game will not proceed until it has input from the remote
+until it has input from the remote player for the current frame input is
+player for the current frame input is delayed by enough frames to cover the
+delayed by enough frames to cover the network latency a little diagram to show
+network latency a little diagram to show you how that works future frames are
+you how that works future frames are coming in from the right side there and
+coming in from the right side there and there's just frame by frame for each guy
+there's just frame by frame for each guy on frame one we get a pad input
+on frame one we get a pad input somebodies pressing X for frame eight
+somebodies pressing X for frame eight this is what I mean by lockstep this is
+this is what I mean by lockstep this is what I mean by input latency that button
+what I mean by input latency that button that was pressed on frame 1 will be
+that was pressed on frame 1 will be executed on frame 8 so the if you look
+executed on frame 8 so the if you look at Batman
+at Batman Superman they're not moving right
+Superman they're not moving right they're just standing there because even
+they're just standing there because even though you press the button we won't
+though you press the button we won't respond for seven more frames player to
+respond for seven more frames player to received this input on frame six still
+received this input on frame six still nobody moving they will respond to this
+nobody moving they will respond to this on frame eight and they'll do it at the
+on frame eight and they'll do it at the same time the effect is pretty subtle
+same time the effect is pretty subtle but Superman's started to punch
+but Superman's started to punch so that's lockstep that was lockstep
+so that's lockstep that was lockstep with a seven frame input delay because
+with a seven frame input delay because we had dynamic input latency that could
+we had dynamic input latency that could vary it could be five frames it could be
+vary it could be five frames it could be 15 frames depending on the network
+15 frames depending on the network latency you're experiencing 15 frames is
+latency you're experiencing 15 frames is extreme the present this is where we are
+extreme the present this is where we are today mortal kombat x and injustice to
+today mortal kombat x and injustice to have three frames of input latency and
+have three frames of input latency and support up to 10 frames 333 milliseconds
+support up to 10 frames 333 milliseconds of network latency before pausing the
+of network latency before pausing the game the online experience is much
+game the online experience is much improved and the players are happy so
+improved and the players are happy so it's three fixed frames of input latency
+it's three fixed frames of input latency we do that to help cover network latency
+we do that to help cover network latency it's you know if I haven't made it clear
+it's you know if I haven't made it clear it is constant which means it is
+it is constant which means it is completely predictable to the players
+completely predictable to the players and our previous title would fluctuate
+and our previous title would fluctuate between 5 and 20 frames the next
+between 5 and 20 frames the next question would be why 10 frames this is
+question would be why 10 frames this is a latency curve this is the graph of a
+a latency curve this is the graph of a percentage of matches played at a
+percentage of matches played at a certain RTT bucket so on the left the
+certain RTT bucket so on the left the numbers are the labels are very very
+numbers are the labels are very very small but on the left you have an
+small but on the left you have an extremely low latency connection on the
+extremely low latency connection on the right you have 300 milliseconds plus you
+right you have 300 milliseconds plus you can see that the vast majority of
+can see that the vast majority of matches are played under 300
+matches are played under 300 milliseconds RTT what's not actually
+milliseconds RTT what's not actually shown here is there could be even one
+shown here is there could be even one more bucket there for like 300 to 333
+more bucket there for like 300 to 333 and we capture that bucket as well by
+and we capture that bucket as well by supporting 333 milliseconds round-trip
+supporting 333 milliseconds round-trip time we support over 99% of the matches
+time we support over 99% of the matches that are being played quick definition
+that are being played quick definition or background on what rollback is we
+or background on what rollback is we only send pad data that's still true I
+only send pad data that's still true I keep calling that out because a lot of
+keep calling that out because a lot of dead reckoning solutions will send a lot
+dead reckoning solutions will send a lot of game state back and forth we don't we
+of game state back and forth we don't we just said and pad data the game will
+just said and pad data the game will proceed without remote input and when
+proceed without remote input and when remote input is received we will roll
+remote input is received we will roll back and then simulate forward
+back and then simulate forward same diagram as before for lockstep this
+same diagram as before for lockstep this time for rollback pretty please switch
+time for rollback pretty please switch sides alright so yeah this is the same
+sides alright so yeah this is the same thing but for with rollback networking
+thing but for with rollback networking so on frame 1 input is generated for
+so on frame 1 input is generated for frame for the idea here is that we're
+frame for the idea here is that we're seeing this with the same Network
+seeing this with the same Network latency that I showed you with the
+latency that I showed you with the lockstep so the packets coming across
+lockstep so the packets coming across for frame 4 player 1 already hit frame 4
+for frame 4 player 1 already hit frame 4 so his Superman started punching but
+so his Superman started punching but player 2 doesn't know that yet so he's
+player 2 doesn't know that yet so he's not moving by the time that gets
+not moving by the time that gets received on player 2's end it's frame 6
+received on player 2's end it's frame 6 already he's 2 frames behind
+already he's 2 frames behind he just got data for frame 4 so frame 4
+he just got data for frame 4 so frame 4 here is our confirmed frame we have
+here is our confirmed frame we have input from both players for frame 4 so
+input from both players for frame 4 so we take that back to frame 4 we would
+we take that back to frame 4 we would call that a rollback that's a rollback
+call that a rollback that's a rollback or a restore to previous state will
+or a restore to previous state will simulate frame 4 will simulate frame 5
+simulate frame 4 will simulate frame 5 and we will simulate our real tick or
+and we will simulate our real tick or our render tick frame 6 we will do all
+our render tick frame 6 we will do all of that within one frames worth of time
+of that within one frames worth of time that's sixteen point six six
+that's sixteen point six six milliseconds will simulate all those
+milliseconds will simulate all those frames because we're supporting seven
+frames because we're supporting seven frames of rollback that's eight total
+frames of rollback that's eight total frames simulated in sixteen point six
+frames simulated in sixteen point six six milliseconds in our worst case so
+six milliseconds in our worst case so both guys are doing the exact same thing
+both guys are doing the exact same thing Superman is punching on both screens and
+Superman is punching on both screens and off they go
+off they go they're synced up little comparison
+they're synced up little comparison between roll back and lockstep again
+between roll back and lockstep again dead reckoning is another super common
+dead reckoning is another super common approach just don't have time to talk
+approach just don't have time to talk about all of them lockstep is very very
+about all of them lockstep is very very simple
+simple because input is delayed you really
+because input is delayed you really don't have to do anything you just play
+don't have to do anything you just play your game as normal every frame will
+your game as normal every frame will start you'll have input for every player
+start you'll have input for every player it's simple it's visually smooth as well
+it's simple it's visually smooth as well you've delayed things so much that
+you've delayed things so much that there's no hitch when you receive input
+there's no hitch when you receive input you don't have to go back you won't
+you don't have to go back you won't glitch anybody's pose online and offline
+glitch anybody's pose online and offline play looks identical it is performant
+play looks identical it is performant because you don't have to perform roll
+because you don't have to perform roll backs we had massive CPU overhead when
+backs we had massive CPU overhead when we were performing lockstep networking
+we were performing lockstep networking that's a very good thing if you're not
+that's a very good thing if you're not latency-sensitive lockstep is great
+latency-sensitive lockstep is great robust
+robust they're both robust which seems a little
+they're both robust which seems a little silly to show you on the slide here but
+silly to show you on the slide here but our experience in the past with
+our experience in the past with peer-to-peer dead reckoning solutions
+peer-to-peer dead reckoning solutions was that they weren't wildly robust they
+was that they weren't wildly robust they were like it was just constant
+were like it was just constant whack-a-mole fixing problems so once
+whack-a-mole fixing problems so once you've matured you're rollback system
+you've matured you're rollback system and your whole engine is converted over
+and your whole engine is converted over it's a very robust solution same as
+it's a very robust solution same as lockstep low bandwidth they're both
+lockstep low bandwidth they're both sending only pad data you don't have to
+sending only pad data you don't have to worry about sending game state so that's
+worry about sending game state so that's fantastic lockstep is not responsive at
+fantastic lockstep is not responsive at all rollback is responsive it's the
+all rollback is responsive it's the whole reason we switched and this last
+whole reason we switched and this last line is not self-explanatory single
+line is not self-explanatory single frame latency what this means is when we
+frame latency what this means is when we were in the lockstep approach I said
+were in the lockstep approach I said that your dynamic input latency could
+that your dynamic input latency could vary between 5 and 20 frames if we
+vary between 5 and 20 frames if we waited for one of your frames to bog
+waited for one of your frames to bog over the network or be delivered late we
+over the network or be delivered late we would have to pause the game in order to
+would have to pause the game in order to not do that we would keep an eye on your
+not do that we would keep an eye on your RTT over the past several seconds and we
+RTT over the past several seconds and we would change the amount of input latency
+would change the amount of input latency we were experiencing so you would
+we were experiencing so you would basically rubberband your input latency
+basically rubberband your input latency over the course of a fight which meant
+over the course of a fight which meant that a spike in your latency would
+that a spike in your latency would actually persist for quite a while
+actually persist for quite a while impacting your input that's not the case
+impacting your input that's not the case with rollbacks on every for every packet
+with rollbacks on every for every packet sent that is the only latency that
+sent that is the only latency that matters you will essentially like if you
+matters you will essentially like if you did spike for one frame drop enough
+did spike for one frame drop enough packets that you bogged you would
+packets that you bogged you would immediately recover assuming the packets
+immediately recover assuming the packets started coming in again a very relevant
+started coming in again a very relevant for wireless connections what do we do
+for wireless connections what do we do first when we bit this thing off the
+first when we bit this thing off the first goal was to get an idle character
+first goal was to get an idle character rolling back just two guys standing on a
+rolling back just two guys standing on a fight line doing nothing we turned off
+fight line doing nothing we turned off almost everything even essential things
+almost everything even essential things that we would have to use for shipping
+that we would have to use for shipping we would turn off physics and I K and
+we would turn off physics and I K and particles and the entirety of on line
+particles and the entirety of on line actually which sounds kind of nuts but
+actually which sounds kind of nuts but we wanted to make it work locally before
+we wanted to make it work locally before we hooked it up online so we started
+we hooked it up online so we started doing serialization because we knew that
+doing serialization because we knew that was going to be you know the tentpole of
+was going to be you know the tentpole of this basically you have to save every
+this basically you have to save every single frame and you have to be able to
+single frame and you have to be able to restore to those frames in order to
+restore to those frames in order to rollback and we had a debug mode called
+rollback and we had a debug mode called set rollback frames I say 7 because that
+set rollback frames I say 7 because that was our decided number of rollback
+was our decided number of rollback frames we would support
+frames we would support I guess as a point of clarity I keep
+I guess as a point of clarity I keep saying seven earlier I said we support
+saying seven earlier I said we support ten frames of latency that's the three
+ten frames of latency that's the three frames of static input latency plus the
+frames of static input latency plus the seven frames of rollback which gets us
+seven frames of rollback which gets us the total of ten frames so this rollback
+the total of ten frames so this rollback set rollback frame debug mode was
+set rollback frame debug mode was something that we ran with constantly
+something that we ran with constantly everybody did it it was it was like the
+everybody did it it was it was like the number one debug mode that we used from
+number one debug mode that we used from day one all the way till today we still
+day one all the way till today we still use it I'm sorry I really don't think I
+use it I'm sorry I really don't think I explained really what was going on there
+explained really what was going on there the set rollback frame seven is every
+the set rollback frame seven is every single frame of the game will roll back
+single frame of the game will roll back seven frames and simulate forward in the
+seven frames and simulate forward in the case of no divergence or no remote input
+case of no divergence or no remote input from your opponent visually this does
+from your opponent visually this does nothing like it looks like nothing has
+nothing like it looks like nothing has happened even though you rewound seven
+happened even though you rewound seven frames and play them all back forward so
+frames and play them all back forward so that's how you knew it was working was
+that's how you knew it was working was nothing was happening and that was
+nothing was happening and that was success so a quick breakdown of the TIC
+success so a quick breakdown of the TIC timeline this is a diagram i'll use
+timeline this is a diagram i'll use later in the talk all I really want to
+later in the talk all I really want to call out here is we service our input
+call out here is we service our input and our on line like the network stuff
+and our on line like the network stuff right up at the front of the frame it's
+right up at the front of the frame it's basically a fixed cost a restore is
+basically a fixed cost a restore is restore to previous state it's one of
+restore to previous state it's one of the first things we do in the frame in
+the first things we do in the frame in the event that you've detected that you
+the event that you've detected that you have to roll back the simulated frames
+have to roll back the simulated frames are the ones that you simulate forward
+are the ones that you simulate forward with a stripped down version of the game
+with a stripped down version of the game to get back to the current tick and then
+to get back to the current tick and then we perform the real render at the end
+we perform the real render at the end the full tick with all procedural
+the full tick with all procedural systems and non gameplay affecting
+systems and non gameplay affecting things this is all one tick right if
+things this is all one tick right if we're doing our job right this takes 16
+we're doing our job right this takes 16 point 6 6 milliseconds and no more so
+point 6 6 milliseconds and no more so one of the things that I talked about
+one of the things that I talked about was that we did serialization first
+was that we did serialization first serialization is a tentpole of this I'm
+serialization is a tentpole of this I'm not going to talk about it a ton but
+not going to talk about it a ton but here's some it's the rollback framework
+here's some it's the rollback framework it was a ring buffer size to the
+it was a ring buffer size to the rollback window meaning it's a ring
+rollback window meaning it's a ring buffer with one entry per frame we
+buffer with one entry per frame we support seven frames so it's a seven
+support seven frames so it's a seven entry robot ring buffer there's an
+entry robot ring buffer there's an object serialization interface you can
+object serialization interface you can see it down in the bottom right it's
+see it down in the bottom right it's probably a little bit small just a basic
+probably a little bit small just a basic virtual interface for some of the
+virtual interface for some of the various edges that we have during
+various edges that we have during serialization saving and restoration
+serialization saving and restoration there will be entries for object
+there will be entries for object creation and destruction this
+creation and destruction this is a huge problem if you go the rollback
+is a huge problem if you go the rollback route you have to handle rolling back to
+route you have to handle rolling back to before an object was created and rolling
+before an object was created and rolling back across the destruction edge as well
+back across the destruction edge as well done naively this is going to create and
+done naively this is going to create and destroy objects all the time we only
+destroy objects all the time we only save mutable data if something doesn't
+save mutable data if something doesn't change don't save it if at all possible
+change don't save it if at all possible and it is not Delta based although maybe
+and it is not Delta based although maybe it should be restoration is the opposite
+it should be restoration is the opposite edge this is when we have to rollback
+edge this is when we have to rollback and restore the previous state we did
+and restore the previous state we did this in parallel
+this in parallel don't use shared pointer shared
+don't use shared pointer shared ownership for serialization purposes is
+ownership for serialization purposes is really bad
+really bad basically you would have to have two
+basically you would have to have two concepts of ownership both the shared
+concepts of ownership both the shared ownership but then a singular owner that
+ownership but then a singular owner that is in charge of serialization so we
+is in charge of serialization so we moved away from that we just heavily
+moved away from that we just heavily move towards using unique pointer for
+move towards using unique pointer for that sort of thing
+that sort of thing the serialization restore edge was a
+the serialization restore edge was a simple load balancing and priority
+simple load balancing and priority scheme there's a large perf win compared
+scheme there's a large perf win compared to the single threaded version so at the
+to the single threaded version so at the very start of this approach we were
+very start of this approach we were simply doing single threaded restoration
+simply doing single threaded restoration and it was it was a small amount of work
+and it was it was a small amount of work because we didn't know the full set of
+because we didn't know the full set of everything that we needed to restore and
+everything that we needed to restore and it took about 1.3 milliseconds at the
+it took about 1.3 milliseconds at the end of it I'm sorry 2.7 after we
+end of it I'm sorry 2.7 after we parallelized everything it went down to
+parallelized everything it went down to 1.3 milliseconds and that was for twice
+1.3 milliseconds and that was for twice as much data also just a point of note
+as much data also just a point of note waking threads is slow we're using
+waking threads is slow we're using condition variables we found that to be
+condition variables we found that to be slow largely on both platforms that's
+slow largely on both platforms that's something that will look and do in the
+something that will look and do in the future maybe keeping threads warm maybe
+future maybe keeping threads warm maybe using simple spin locks it's a very
+using simple spin locks it's a very small amount of performance that we lose
+small amount of performance that we lose in there we also have single threaded
+in there we also have single threaded post serialization fix up so after
+post serialization fix up so after you've done the relatively naive or
+you've done the relatively naive or simple serialization restore work we
+simple serialization restore work we would do a virtual pass over to link up
+would do a virtual pass over to link up various pointers and systems that
+various pointers and systems that weren't amenable to being serialized
+weren't amenable to being serialized maybe that's because it was an
+maybe that's because it was an asymmetric serialization relationship
+asymmetric serialization relationship where you would serialize the object but
+where you would serialize the object but you'd have other systems that you really
+you'd have other systems that you really didn't want to pay serialization cost
+didn't want to pay serialization cost for so you would you need to hook those
+for so you would you need to hook those guys back up yeah bulk serialization and
+guys back up yeah bulk serialization and immutable data are hugely preferred yeah
+immutable data are hugely preferred yeah mmm copy all your stuff or
+mmm copy all your stuff or don't change it and therefore don't have
+don't change it and therefore don't have to serialize it I'm not gonna read all
+to serialize it I'm not gonna read all of this it's object lifetime the slides
+of this it's object lifetime the slides are here if you guys want to pull down
+are here if you guys want to pull down the deck after the fact
+the deck after the fact deferred deletion and delete and
+deferred deletion and delete and recreate you have two choices for your
+recreate you have two choices for your objects object lifetime management if
+objects object lifetime management if you do deferred deletion you don't
+you do deferred deletion you don't really have to handle the creation and
+really have to handle the creation and destruction of every object every time
+destruction of every object every time they die and you roll back across that
+they die and you roll back across that boundary delete and recreate is what you
+boundary delete and recreate is what you get out-of-the-box naively it's you'll
+get out-of-the-box naively it's you'll just constantly delete and recreate your
+just constantly delete and recreate your objects which maybe I'm making that
+objects which maybe I'm making that sound bad like sometimes the basic
+sound bad like sometimes the basic approach is exactly what you need
+approach is exactly what you need recreate Able's this is another thing we
+recreate Able's this is another thing we did to avoid creating objects all the
+did to avoid creating objects all the time the gist of it was you would hatch
+time the gist of it was you would hatch that object and every time you rolled
+that object and every time you rolled back and played through the creation
+back and played through the creation edge again you would check the hash of
+edge again you would check the hash of essentially the situation you were in
+essentially the situation you were in and if it was the same you would reuse
+and if it was the same you would reuse that object this is great for sounds and
+that object this is great for sounds and particles they can be non-deterministic
+particles they can be non-deterministic especially for GPU particles and since
+especially for GPU particles and since they're non-deterministic if we were to
+they're non-deterministic if we were to destroy recreate and re simulate these
+destroy recreate and re simulate these guys we would likely end up with a
+guys we would likely end up with a different result what this would mean is
+different result what this would mean is this would be chronic like visual
+this would be chronic like visual popping debatably audio popping if
+popping debatably audio popping if you're doing anything dynamic there as
+you're doing anything dynamic there as well recreate Able's it's a relatively
+well recreate Able's it's a relatively simple thing but the concept was very
+simple thing but the concept was very powerful just the ability to hash an
+powerful just the ability to hash an object and say this is the exact same
+object and say this is the exact same guy don't remake it don't Reese emulator
+guy don't remake it don't Reese emulator we saved a lot of performance this way
+what about gameplay script we have a proprietary script system called MK
+proprietary script system called MK script it's C like this is what our
+script it's C like this is what our designers work in we did have to support
+designers work in we did have to support fibre stack unwinding fibre stack
+fibre stack unwinding fibre stack serialization and objects on the stack
+serialization and objects on the stack that contained dynamic allocations were
+that contained dynamic allocations were a pain we wrap them up in a type we
+a pain we wrap them up in a type we registered them we clean them up
+registered them we clean them up separately because the stack was just
+separately because the stack was just getting zeroed out roll back artifacts
+getting zeroed out roll back artifacts this is one of the downsides of roll
+this is one of the downsides of roll back networking you will pop your
+back networking you will pop your visuals if the divergence is large
+visuals if the divergence is large divergence is usually minor in fact
+divergence is usually minor in fact divergence usually causes no visual
+divergence usually causes no visual artifacts at all most of the time when
+artifacts at all most of the time when you're receiving remote input from
+you're receiving remote input from somebody it doesn't actually affect your
+somebody it doesn't actually affect your game
+game we treat all input as significant and we
+we treat all input as significant and we will roll back every time we get data
+will roll back every time we get data from the remote player you may not have
+from the remote player you may not have to if you have a more well guarded input
+to if you have a more well guarded input system that knows whether input is valid
+system that knows whether input is valid and gameplay affecting then you may not
+and gameplay affecting then you may not have to roll back all the time but since
+have to roll back all the time but since we need to support divergence and roll
+we need to support divergence and roll back every single frame of the game it
+back every single frame of the game it doesn't really save us that much so I
+doesn't really save us that much so I have a video coming up here with this it
+have a video coming up here with this it this is just a fight with roll backs on
+this is just a fight with roll backs on it's an online fighter so I mean see if
+it's an online fighter so I mean see if you can pick it out one of these players
+you can pick it out one of these players is local and one of these players is
+is local and one of these players is remote so this match was played at the
+remote so this match was played at the absolute top of our latency supported so
+absolute top of our latency supported so this match was played at like three
+this match was played at like three hundred and twenty milliseconds RTP
+hundred and twenty milliseconds RTP basically had any worse than this and we
+basically had any worse than this and we would QoS the players and disconnect
+would QoS the players and disconnect them so Deadpool is the local character
+them so Deadpool is the local character and Starfire is the remote player so
+and Starfire is the remote player so she's the one rolling back constantly
+she's the one rolling back constantly I'll play it one more time she if you
+I'll play it one more time she if you look closely she's got some glitchy err
+look closely she's got some glitchy err motion than he does and it has
+motion than he does and it has everything to do with her being 300
+everything to do with her being 300 milliseconds behind
+as you can see if most of the time it just doesn't matter look this is a
+just doesn't matter look this is a terrible connection and the game plays
+terrible connection and the game plays fine as far as the players are concerned
+fine as far as the players are concerned it plays great like visually there are
+it plays great like visually there are artifacts but from an input standpoint
+artifacts but from an input standpoint the game is smooth how was performance
+the game is smooth how was performance when we switched over naively
+when we switched over naively performance was terrible it was really
+performance was terrible it was really really bad
+really bad prior to switching over to rollback
+prior to switching over to rollback networking we were idling at 9 or 10
+networking we were idling at 9 or 10 milliseconds on the CPU after we did the
+milliseconds on the CPU after we did the rollback support we initially idled at
+rollback support we initially idled at 30 milliseconds remembering we have to
+30 milliseconds remembering we have to fit into 1666 here the Headroom due to
+fit into 1666 here the Headroom due to the console generation jump was gone
+the console generation jump was gone we'd been playing it fast and loose with
+we'd been playing it fast and loose with our CPU resources since ps4 and Xbox one
+our CPU resources since ps4 and Xbox one came out and and we had to pay the piper
+came out and and we had to pay the piper so yeah we had tons of free cores this
+so yeah we had tons of free cores this is just a quick capture I'll have more
+is just a quick capture I'll have more like it this is from our tax graphing
+like it this is from our tax graphing system which I'll refer to as job graph
+system which I'll refer to as job graph but this is just a performance dump of
+but this is just a performance dump of the various Hardware threads and what
+the various Hardware threads and what was going on
+was going on yellow is something that's called an
+yellow is something that's called an exclusive resource which is essentially
+exclusive resource which is essentially anything with that exclusive resource
+anything with that exclusive resource cannot run concurrently all of that
+cannot run concurrently all of that empty grey space is free cores we have
+empty grey space is free cores we have some performance tools I'm not sure what
+some performance tools I'm not sure what I can I'm allowed to say but Sony and
+I can I'm allowed to say but Sony and Microsoft performance tools were
+Microsoft performance tools were incredibly valuable we used them all day
+incredibly valuable we used them all day every day the job graph visualizer which
+every day the job graph visualizer which was the threading layout that you just
+was the threading layout that you just saw as well as a tree like structure
+saw as well as a tree like structure which you'll see later roll back loops
+which you'll see later roll back loops super pause this was we had a mode in
+super pause this was we had a mode in the game that could roll back to the
+the game that could roll back to the same frame over and over and over again
+same frame over and over and over again what we would do is we would set
+what we would do is we would set thresholds in the game that if he went
+thresholds in the game that if he went above 16 milliseconds or 15 milliseconds
+above 16 milliseconds or 15 milliseconds we would sudo pause the game and just
+we would sudo pause the game and just roll back and Reiss emulator the same
+roll back and Reiss emulator the same frame over and over and over again to
+frame over and over and over again to catch our bhaag scenarios let you late
+catch our bhaag scenarios let you late attach a profiler and dig in the pet
+attach a profiler and dig in the pet profiler there's other GDC talks about
+profiler there's other GDC talks about this but basically it's a CPU profiling
+this but basically it's a CPU profiling tool written in-house that allows you to
+tool written in-house that allows you to set thresholds for various functions and
+set thresholds for various functions and performance bots so that we can see when
+performance bots so that we can see when bad things happened
+this is that tick timeline from earlier I'm gonna go break this down a number of
+I'm gonna go break this down a number of times over the next couple minutes this
+times over the next couple minutes this is a seven frame roll back on the ship
+is a seven frame roll back on the ship version of injustice two at idle it's
+version of injustice two at idle it's about 13 milliseconds same thing that
+about 13 milliseconds same thing that you saw previously I'm gonna break it
+you saw previously I'm gonna break it down into various sections which is our
+down into various sections which is our game play execution our engine execution
+game play execution our engine execution and green for saving and restoring this
+and green for saving and restoring this is 21 milliseconds this is also the ship
+is 21 milliseconds this is also the ship version of injustice - it's a spiked
+version of injustice - it's a spiked frame this is where Green Arrow did a
+frame this is where Green Arrow did a bad thing and he spiked out a frame and
+bad thing and he spiked out a frame and we actually ship this we probably fixed
+we actually ship this we probably fixed it later but some spikes do make it
+it later but some spikes do make it through I call out high thread
+through I call out high thread contention basically we we usually do
+contention basically we we usually do cooperatively multi-threaded work but
+cooperatively multi-threaded work but early on we also have other things that
+early on we also have other things that are non cooperatively multi-threaded
+are non cooperatively multi-threaded like our render thread our UI thread and
+like our render thread our UI thread and our audio thread so they tend to bog us
+our audio thread so they tend to bog us a little bit early in the frame this
+a little bit early in the frame this particular spike is due to mesh spawning
+particular spike is due to mesh spawning particle spawning particle attachment
+particle spawning particle attachment and a whole bunch of gameplay processes
+and a whole bunch of gameplay processes that run and I call out here spikes can
+that run and I call out here spikes can persist for 8 frames if you're doing
+persist for 8 frames if you're doing something heavy here like spawning a
+something heavy here like spawning a whole bunch of stuff and you're not
+whole bunch of stuff and you're not cutting any corners to do that you're
+cutting any corners to do that you're gonna roll back and replay this frame up
+gonna roll back and replay this frame up - you might do that eight times right
+- you might do that eight times right you might keep crossing this boundary
+you might keep crossing this boundary and keep bogging your game for eight
+and keep bogging your game for eight frames this is a this is one of the
+frames this is a this is one of the early captures from Mortal Kombat 10
+early captures from Mortal Kombat 10 it's a 32 millisecond frame I just
+it's a 32 millisecond frame I just wanted to call out that the the first
+wanted to call out that the the first block is a fixed cost block its input
+block is a fixed cost block its input processing and online handling that
+processing and online handling that doesn't change at all
+doesn't change at all we had our restore it was single
+we had our restore it was single threaded and very heavy the simulated
+threaded and very heavy the simulated frames 0 to 6 here took up a large
+frames 0 to 6 here took up a large percentage of the overall frame larger
+percentage of the overall frame larger than what we shipped obviously and the
+than what we shipped obviously and the real render tick is substantially
+real render tick is substantially similar to what it was before rollback
+similar to what it was before rollback networking what I'm trying to call out
+networking what I'm trying to call out here is the majority of our costs were
+here is the majority of our costs were in the simulation frames not the final
+in the simulation frames not the final render frame that one continued largely
+render frame that one continued largely to be what it is today and it's it's
+to be what it is today and it's it's been optimized but not not necessarily
+been optimized but not not necessarily systemically it's about multiplicative
+systemically it's about multiplicative wins if you can do something that works
+wins if you can do something that works for 8 frames you should do that if you
+for 8 frames you should do that if you put in an optimization that only works
+put in an optimization that only works for your render frame you know your
+for your render frame you know your gains are commensurately smaller
+gains are commensurately smaller frame 0 is the confirmed frame this is
+frame 0 is the confirmed frame this is the frame that I received input from my
+the frame that I received input from my remote guy and that's why I rolled back
+remote guy and that's why I rolled back seven frames we're gonna run our seven
+seven frames we're gonna run our seven lightweight simulation frames and then
+lightweight simulation frames and then one render frame will render once at the
+one render frame will render once at the end of this I'm gonna break this thing
+end of this I'm gonna break this thing down just lit add that across all the
+down just lit add that across all the different frames restore is a large
+different frames restore is a large green single threaded chunk there first
+green single threaded chunk there first thing we did here we turned off
+thing we did here we turned off everything cool physics and cloth
+everything cool physics and cloth raycast psych a particle effects online
+raycast psych a particle effects online desync so we turned off everything and I
+desync so we turned off everything and I don't mean like hey we turn this off for
+don't mean like hey we turn this off for purposes of development what I mean is
+purposes of development what I mean is we run these systems only on the render
+we run these systems only on the render tick or some of these on the get run on
+tick or some of these on the get run on the confirmed frame but we only run them
+the confirmed frame but we only run them once per tick stop running them eight
+once per tick stop running them eight times they're very expensive so that
+times they're very expensive so that reduces our engine tick on the simulated
+reduces our engine tick on the simulated frames you'll notice it doesn't touch
+frames you'll notice it doesn't touch anything on the rendered frame then some
+anything on the rendered frame then some easy performance wins don't do string
+easy performance wins don't do string compares don't do things eight times
+compares don't do things eight times like controller polling or garbage
+like controller polling or garbage collection don't update certain systems
+collection don't update certain systems or whole sloughs of objects our
+or whole sloughs of objects our environment is not gameplay affecting
+environment is not gameplay affecting don't update at eight times and
+don't update at eight times and realistically death by a thousand paper
+realistically death by a thousand paper cuts
+cuts tons of dynamic Alex pointer chasing or
+tons of dynamic Alex pointer chasing or my personal pet peeve is walking sparse
+my personal pet peeve is walking sparse lists this pattern happens everywhere
+lists this pattern happens everywhere you've got these massive lists of
+you've got these massive lists of objects and you're iterating over them
+objects and you're iterating over them to do work on five percent of them right
+to do work on five percent of them right you've got some virtual function that
+you've got some virtual function that you're hitting on 100% of your objects
+you're hitting on 100% of your objects that are actually it's gonna do work on
+that are actually it's gonna do work on five percent of them that's a thing
+five percent of them that's a thing bulk allocation and serialization of all
+bulk allocation and serialization of all of our animals in the Animas a verse a
+of our animals in the Animas a verse a half millisecond that was a nice win and
+half millisecond that was a nice win and use your profiling tools they will tell
+use your profiling tools they will tell you what you're doing wrong so the
+you what you're doing wrong so the engine tick got even smaller game tick
+engine tick got even smaller game tick hasn't really changed and we haven't
+hasn't really changed and we haven't touched serialization yet this is the
+touched serialization yet this is the more difficult performance wins I'm not
+more difficult performance wins I'm not going to read the whole slide to you
+going to read the whole slide to you guys I will explain the promotable reese
+guys I will explain the promotable reese emulation behavior because that doesn't
+emulation behavior because that doesn't explain itself basically you would have
+explain itself basically you would have objects that would be latent in the
+objects that would be latent in the environment that are not gameplay
+environment that are not gameplay affecting right up until they are so
+affecting right up until they are so instead of paying for them all the time
+instead of paying for them all the time we would
+we would them only when needed the the thing to
+them only when needed the the thing to note there is you need to know that
+note there is you need to know that you're going to need them before you do
+you're going to need them before you do because if you wait too long you're
+because if you wait too long you're inside your role back window and that's
+inside your role back window and that's not going to be coordinated on both
+not going to be coordinated on both machines so you need to see this coming
+machines so you need to see this coming seven frames in advance you frequently
+seven frames in advance you frequently not an issue
+not an issue aggressive parallelization and graph
+aggressive parallelization and graph optimizations that is a heck of a bullet
+optimizations that is a heck of a bullet point we spent a ton of time optimizing
+point we spent a ton of time optimizing our task graph and then yeah we a sync
+our task graph and then yeah we a sync tick our UI and audio emitter
+tick our UI and audio emitter parallelization is a big deal animation
+parallelization is a big deal animation priests am playing wasn't a huge win but
+priests am playing wasn't a huge win but ended up being fairly painful to
+ended up being fairly painful to implement job priorities yeah makes our
+implement job priorities yeah makes our engine tick go faster still like
+engine tick go faster still like obviously you're seeing this in
+obviously you're seeing this in serialization is taking up a massive
+serialization is taking up a massive amount of time for us so this is our
+amount of time for us so this is our task graph here you're only as fast as
+task graph here you're only as fast as your critical path initially we had that
+your critical path initially we had that graph that I showed you earlier I keep
+graph that I showed you earlier I keep calling it a graph it's because this
+calling it a graph it's because this tool generates graphs that we'll see in
+tool generates graphs that we'll see in the next slide but the one on top here
+the next slide but the one on top here is a very sparse very wasteful graph and
+is a very sparse very wasteful graph and the one on the bottom is the one we
+the one on the bottom is the one we actually shipped there's still a little
+actually shipped there's still a little bit of waste at the end at the end of
+bit of waste at the end at the end of the day you're only as fast as your
+the day you're only as fast as your critical path this is just a capture of
+critical path this is just a capture of a full job graph tick this is the render
+a full job graph tick this is the render tick you know we can dig in here and see
+tick you know we can dig in here and see if we our dependencies are all
+if we our dependencies are all meaningful and if all of this makes
+meaningful and if all of this makes sense
+sense all I really want to call out here is
+all I really want to call out here is that our simulated graph is much much
+that our simulated graph is much much simpler there's much fewer actors much
+simpler there's much fewer actors much less complexity and I mean you can see
+less complexity and I mean you can see how ludicrously sparse it is the total
+how ludicrously sparse it is the total time scale for that is I think half a
+time scale for that is I think half a millisecond to run one of the simulated
+millisecond to run one of the simulated frames that's pretty normal
+frames that's pretty normal so yeah I mean you can see we're largely
+so yeah I mean you can see we're largely bound by animation sampling there so
+bound by animation sampling there so about that threading thread contention
+about that threading thread contention is a real thing as I mentioned earlier
+is a real thing as I mentioned earlier our non cooperatively multi-threaded
+our non cooperatively multi-threaded portions of the engine do conflict with
+portions of the engine do conflict with the rest of our engine they do slow us
+the rest of our engine they do slow us down a bit manage your priorities manage
+down a bit manage your priorities manage your affinities you want to stick on the
+your affinities you want to stick on the same core don't over subscribe your
+same core don't over subscribe your threads drop thread priority for low
+threads drop thread priority for low priority or latency tolerant work and be
+priority or latency tolerant work and be careful of priority inversions
+careful of priority inversions starvation that's kind of a no-brainer
+starvation that's kind of a no-brainer at this point
+at this point but starvation can sneak up on you
+but starvation can sneak up on you that's very much a thing threating
+that's very much a thing threating primitives can cost more than they're
+primitives can cost more than they're worth this is kind of another of my pet
+worth this is kind of another of my pet peeves it's very common to insert basic
+peeves it's very common to insert basic threating primitives all over the place
+threating primitives all over the place to guard critical sections of work I'm a
+to guard critical sections of work I'm a huge fan of our cooperatively
+huge fan of our cooperatively multi-threaded system the task graphing
+multi-threaded system the task graphing that we do because it avoids all of this
+that we do because it avoids all of this and use move semantics to avoid
+and use move semantics to avoid unnecessary atomic operations you don't
+unnecessary atomic operations you don't want to increment and decrement this
+want to increment and decrement this stuff just move it so our serialization
+stuff just move it so our serialization time went way down do you have to save
+time went way down do you have to save eight times this was a big deal for us
+eight times this was a big deal for us we figured it out you only actually have
+we figured it out you only actually have to save the confirm frame you don't
+to save the confirm frame you don't actually need to save every frame of
+actually need to save every frame of your simulation you can only ever roll
+your simulation you can only ever roll back to a frame that you actually had
+back to a frame that you actually had input for everybody what this does mean
+input for everybody what this does mean though is you will on average roll back
+though is you will on average roll back further than you technically had to this
+further than you technically had to this is a great optimization for your worst
+is a great optimization for your worst case but it makes your average case
+case but it makes your average case better oh sorry your worst case gets
+better oh sorry your worst case gets much better your average case actually
+much better your average case actually gets worse we just happen to not care
+gets worse we just happen to not care because we have to fit in to sixteen
+because we have to fit in to sixteen point six six anyway so we we heard our
+point six six anyway so we we heard our average case and we optimized for our
+average case and we optimized for our worst case so we pack it down twelve
+worst case so we pack it down twelve milliseconds particle performance they
+milliseconds particle performance they were special naive approaches were way
+were special naive approaches were way too expensive particle systems were the
+too expensive particle systems were the largest cause of performance spikes we
+largest cause of performance spikes we solve this largely with heavy caching
+solve this largely with heavy caching reduce tree simulation and cutting
+reduce tree simulation and cutting corners on serialization all over the
+corners on serialization all over the place we would do deferred async
+place we would do deferred async initialization of our particles and we
+initialization of our particles and we would automatically parallelize the
+would automatically parallelize the emitters initially that was manual we
+emitters initially that was manual we would actually have an artist and an
+would actually have an artist and an engineer sit down and break up the
+engineer sit down and break up the emitters into figuring out which ones
+emitters into figuring out which ones could go wide but it turns out you can
+could go wide but it turns out you can just figure that out offline we burned
+just figure that out offline we burned about a hundred Meg for a runtime cache
+about a hundred Meg for a runtime cache of our particles so that we don't run
+of our particles so that we don't run time spawn our particles it was just too
+time spawn our particles it was just too expensive
+expensive these are the particle Reece emulation
+these are the particle Reece emulation modes in the initial rollout our
+modes in the initial rollout our designers would have to flag every
+designers would have to flag every single particle they made with one of
+single particle they made with one of these modes either yury simulate always
+these modes either yury simulate always in which case in a seven
+in which case in a seven roll back you'll actually risa me late
+roll back you'll actually risa me late these particles eight times you would do
+these particles eight times you would do this if essentially if your particles
+this if essentially if your particles couldn't support variable time steps so
+couldn't support variable time steps so in that case you actually had to
+in that case you actually had to simulate them every single time every
+simulate them every single time every single frame to get a predictable result
+single frame to get a predictable result out the other side Rison ever which is
+out the other side Rison ever which is I'm only gonna simulate you on the
+I'm only gonna simulate you on the render frame recent predictive this was
+render frame recent predictive this was by far our most common mode what it
+by far our most common mode what it leverages is the fact that the particles
+leverages is the fact that the particles generally support variable time steps we
+generally support variable time steps we would simulate twice once on the confirm
+would simulate twice once on the confirm frame and once on the render frame what
+frame and once on the render frame what this effectively ends up doing is giving
+this effectively ends up doing is giving you this like midpoint thing where
+you this like midpoint thing where you're you're doing a seven frame roll
+you're you're doing a seven frame roll back and you're gonna simulate the guy
+back and you're gonna simulate the guy on frame three as well as on the render
+on frame three as well as on the render frame giving you sort of a midpoint and
+frame giving you sort of a midpoint and an end point so that you get predictable
+an end point so that you get predictable particle playback this ends up becoming
+particle playback this ends up becoming our default and we almost never opt out
+our default and we almost never opt out of it and then recent track this is for
+of it and then recent track this is for stuff that gets spawned into the
+stuff that gets spawned into the environment we're never gonna undo it
+environment we're never gonna undo it we're just gonna let it go this is the
+we're just gonna let it go this is the predictive particle cache
+predictive particle cache we call it the pprs but I don't remember
+we call it the pprs but I don't remember what that stands for so it's predictive
+what that stands for so it's predictive ticking and serialization it may cause
+ticking and serialization it may cause visual discontinuities the important
+visual discontinuities the important part here is that what we do is we hash
+part here is that what we do is we hash with really really loose constraints on
+with really really loose constraints on these particle systems and the
+these particle systems and the constraints are like is the player in
+constraints are like is the player in roughly the same spot and have you done
+roughly the same spot and have you done roughly the same thing in the gameplay
+roughly the same thing in the gameplay script if so let's reuse this guy don't
+script if so let's reuse this guy don't touch him don't simulate them don't
+touch him don't simulate them don't serialize them asterisks that's not
+serialize them asterisks that's not exactly true we do put a special
+exactly true we do put a special serialization buffer that sits on top of
+serialization buffer that sits on top of the rest of the rollback system for use
+the rest of the rollback system for use here if the particle system a simulation
+here if the particle system a simulation inputs match the cache entry use the
+inputs match the cache entry use the cache this was extremely effective it's
+cache this was extremely effective it's a good template for areas that don't
+a good template for areas that don't have to be perfect where you can use
+have to be perfect where you can use this lightweight serialization and very
+this lightweight serialization and very loose hashing algorithm to figure out
+loose hashing algorithm to figure out what is close enough you can't do this
+what is close enough you can't do this for anything that your game actually
+for anything that your game actually relies upon this is only for like visual
+relies upon this is only for like visual discontinuities or maybe audio a quick
+discontinuities or maybe audio a quick video of what I'm going to show here is
+video of what I'm going to show here is I'm going to show particle systems on
+I'm going to show particle systems on the local machine as well as on the
+the local machine as well as on the remote machine and you'll see some
+remote machine and you'll see some divergence here you'll see things where
+divergence here you'll see things where we mispredicted
+we mispredicted these are particle systems that are
+these are particle systems that are input sensitive so as you're doing this
+input sensitive so as you're doing this move you can you know press the right
+move you can you know press the right stick or something and cause the
+stick or something and cause the particle to do a different thing I'll
+particle to do a different thing I'll play this multiple times so it's a
+play this multiple times so it's a little hard to see but if you check it
+little hard to see but if you check it on the remote machine there you'll see
+on the remote machine there you'll see the laser miss predicts all over the
+the laser miss predicts all over the place so this is firestorm same story
+place so this is firestorm same story this particle system is sensitive to
+this particle system is sensitive to your input so you'll see that the remote
+your input so you'll see that the remote player sometimes shows it as a distant
+player sometimes shows it as a distant move and then it corrects to be closer
+move and then it corrects to be closer this one you'll see almost no divergence
+this one you'll see almost no divergence the reason for that is the input that
+the reason for that is the input that actually mattered to the game occurred
+actually mattered to the game occurred very early on in the lightning ball like
+very early on in the lightning ball like he executed the move before the particle
+he executed the move before the particle was ever created
+was ever created so those two particles look basically
+so those two particles look basically identical what I'm going to show you
+identical what I'm going to show you coming up here is that was with our pprs
+coming up here is that was with our pprs the predictive particle system with the
+the predictive particle system with the separate state cache on this is with it
+separate state cache on this is with it off so that's with a particle system
+off so that's with a particle system that can't like the reason that pprs is
+that can't like the reason that pprs is saving us there is because it's reusing
+saving us there is because it's reusing the exact same object instead of
+the exact same object instead of attempting to Reese emulator if you re
+attempting to Reese emulator if you re simulate that object that's what you get
+simulate that object that's what you get it's because it can't I'm flicking up
+it's because it can't I'm flicking up but the the pprs system there allows us
+but the the pprs system there allows us to reuse that particle effect and keep
+to reuse that particle effect and keep the exact same visuals it has a non
+the exact same visuals it has a non deterministic simulation so when you
+deterministic simulation so when you actually Risa meu late at the eight
+actually Risa meu late at the eight times necessary you get a different
+times necessary you get a different result
+result so it's visually inconsistent I'll do it
+so it's visually inconsistent I'll do it one more time because the the first two
+one more time because the the first two there are a little bit hard to see
+[Music]
+so it may go without saying I'm showing all of these under massive latency right
+all of these under massive latency right this is these are these are connections
+this is these are these are connections that are right before our POS cutoff 300
+that are right before our POS cutoff 300 350 millisecond trip time so this this
+350 millisecond trip time so this this one that's about to show here is a
+one that's about to show here is a demonstration of why you have to reuse
+demonstration of why you have to reuse objects that simulate
+objects that simulate non-deterministically
+non-deterministically [Music]
+so checking our work we we thought we were in trouble
+were in trouble we were we were due to ship the game in
+we were we were due to ship the game in a month or so or the patch for the game
+a month or so or the patch for the game and we kind of thought we were screwed
+and we kind of thought we were screwed we didn't think like we were still
+we didn't think like we were still bogging and the problem was we had been
+bogging and the problem was we had been so focused on set rollback frame 7 which
+so focused on set rollback frame 7 which was taking every frame in our game and
+was taking every frame in our game and running it with seven simulated frames
+running it with seven simulated frames we were basically running our worst case
+we were basically running our worst case scenario every single tick because that
+scenario every single tick because that was technically possible turns out
+was technically possible turns out that's actually not realistic at all QA
+that's actually not realistic at all QA picked up the game and said this is
+picked up the game and said this is fantastic you have to ship this I know
+fantastic you have to ship this I know you guys think that your performance
+you guys think that your performance metrics are all wrong here and that you
+metrics are all wrong here and that you were bogging and like this plays leaps
+were bogging and like this plays leaps and bounds better than any online
+and bounds better than any online experience for Mortal Kombat in the past
+experience for Mortal Kombat in the past you have to do this so basically our
+you have to do this so basically our benchmark was completely wrong we were
+benchmark was completely wrong we were so focused on seven frames of rollback
+so focused on seven frames of rollback that it turns out a human button press
+that it turns out a human button press cadence is like maybe six times a second
+cadence is like maybe six times a second usually much less than that so the
+usually much less than that so the number of times that you actually roll
+number of times that you actually roll back seven frames is really bad
+back seven frames is really bad connections and only whenever your
+connections and only whenever your opponent presses a button and getting
+opponent presses a button and getting those scenarios to occur in the very few
+those scenarios to occur in the very few situations that would actually bog the
+situations that would actually bog the game it turns out this is incredibly
+game it turns out this is incredibly rare and it doesn't actually impact the
+rare and it doesn't actually impact the actual player experience we were still
+actual player experience we were still bogging occasionally and we were net
+bogging occasionally and we were net pausing in our worst cases so basically
+pausing in our worst cases so basically as you reach the latency cap if you
+as you reach the latency cap if you hadn't received a packet inside the 333
+hadn't received a packet inside the 333 milliseconds that we supported we would
+milliseconds that we supported we would have to pause the game turns out pausing
+have to pause the game turns out pausing the game feels terrible right it injects
+the game feels terrible right it injects these herky-jerky moments where the game
+these herky-jerky moments where the game gets hitch's it does screw up your
+gets hitch's it does screw up your button cadence quite a bit it turns out
+button cadence quite a bit it turns out that actually just extending the frames
+that actually just extending the frames a little bit will smooth that out so
+a little bit will smooth that out so this is a slightly contrived example
+this is a slightly contrived example because this is injecting 34
+because this is injecting 34 milliseconds spaced out over 10 frames
+milliseconds spaced out over 10 frames which is actually more than we would
+which is actually more than we would ever do the the most we would inject is
+ever do the the most we would inject is about 2 milliseconds per frame and we
+about 2 milliseconds per frame and we will only do this if you're right up at
+will only do this if you're right up at the top of our latency curve right so I
+the top of our latency curve right so I mean as you can tell we spent a ton of
+mean as you can tell we spent a ton of time
+time I'm optimizing for the
+I'm optimizing for the worst-possible-case the vast majority of
+worst-possible-case the vast majority of our matches never hit any of these cases
+our matches never hit any of these cases and the game plays extremely smoothly we
+and the game plays extremely smoothly we were just so focused on the the worst
+were just so focused on the the worst possible experience that we spent a lot
+possible experience that we spent a lot of time optimizing for that so we had
+of time optimizing for that so we had all this internal data QA is telling us
+all this internal data QA is telling us everything's great but we were about to
+everything's great but we were about to pull the trigger on a pretty large
+pull the trigger on a pretty large change to our code base in a game that
+change to our code base in a game that had been live for nine months so we ran
+had been live for nine months so we ran a beta we had about 20,000 users the
+a beta we had about 20,000 users the public was extremely happy about it we
+public was extremely happy about it we were watching all the streamers play
+were watching all the streamers play locally and they were they were loving
+locally and they were they were loving it right it was a big deal and it really
+it right it was a big deal and it really solidified our performance and network
+solidified our performance and network targets again our benchmarks were all
+targets again our benchmarks were all wrong we were chasing the wrong thing
+wrong we were chasing the wrong thing curveball beta telemetry demonstrated
+curveball beta telemetry demonstrated unexpected results most matches had one
+unexpected results most matches had one player rolling back seven frames every
+player rolling back seven frames every single frame of the game ironically it
+single frame of the game ironically it was the crazy benchmark we'd been
+was the crazy benchmark we'd been chasing the entire time turns out we had
+chasing the entire time turns out we had a bug and I don't know that it was a bug
+a bug and I don't know that it was a bug but it was something that had to be
+but it was something that had to be addressed it was basically a performance
+addressed it was basically a performance feedback loop somebody would start
+feedback loop somebody would start rolling back seven frames which would
+rolling back seven frames which would occasionally bog them which would cause
+occasionally bog them which would cause their frames to take longer which would
+their frames to take longer which would cause them to bog more and constantly
+cause them to bog more and constantly roll back at the maximum possible
+roll back at the maximum possible distance so the players loved it anyway
+distance so the players loved it anyway that's that 95% people said this is
+that's that 95% people said this is awesome we had a horrific bug that
+awesome we had a horrific bug that caused the absolute worst case scenario
+caused the absolute worst case scenario and it was still way better than
+and it was still way better than anything we had before what we did was
+anything we had before what we did was we artificially slowed down the player
+we artificially slowed down the player who was ahead to get them back in sync
+who was ahead to get them back in sync we kicked this in anytime somebody gets
+we kicked this in anytime somebody gets more than about a frame and a half ahead
+more than about a frame and a half ahead of the other player and all you have to
+of the other player and all you have to do is inject just a little bit of
+do is inject just a little bit of latency to get people to sync back up
+latency to get people to sync back up fine tuning we analyzed our roll back
+fine tuning we analyzed our roll back counts and we use speck saves to reduce
+counts and we use speck saves to reduce roll backs previously I'd said you only
+roll backs previously I'd said you only have to save the confirm frame that's
+have to save the confirm frame that's true but that causes you to roll back
+true but that causes you to roll back further than maybe you have to if you
+further than maybe you have to if you simulate forward and the input does not
+simulate forward and the input does not diverge you get the remote input that
+diverge you get the remote input that you expected to get if you had save that
+you expected to get if you had save that frame you could use it meaning you don't
+frame you could use it meaning you don't have to roll back all the way now the
+have to roll back all the way now the extreme of that is save every frame but
+extreme of that is save every frame but then our performance goes down again so
+then our performance goes down again so we have this speck save system where we
+we have this speck save system where we will save the confirm frame you have to
+will save the confirm frame you have to do that
+do that in order to always have a consistent
+in order to always have a consistent thing to roll back to save the
+thing to roll back to save the simulation midpoint if we have time we
+simulation midpoint if we have time we know we're gonna have time because the
+know we're gonna have time because the performance is relatively consistent if
+performance is relatively consistent if you're rolling back seven frames you may
+you're rolling back seven frames you may not have time to save this mid frame but
+not have time to save this mid frame but if you're rolling back maybe five frames
+if you're rolling back maybe five frames you can bias the save closer to the
+you can bias the save closer to the confirmed frame which is actually
+confirmed frame which is actually further in your past this makes it more
+further in your past this makes it more likely to actually be confirmed by
+likely to actually be confirmed by remote input basically saying your
+remote input basically saying your prediction for remote input is more
+prediction for remote input is more likely to match the less time that
+likely to match the less time that passes save at the end of the frame if
+passes save at the end of the frame if you have time and thresholds are
+you have time and thresholds are tweakable without patching so we could
+tweakable without patching so we could slide these things around in the live
+slide these things around in the live environment try and find what works and
+environment try and find what works and these speculative saves reduce the total
+these speculative saves reduce the total rollback count by 30% so the reason this
+rollback count by 30% so the reason this dis gets a little bit complicated but
+dis gets a little bit complicated but the speculative saves reducing rollback
+the speculative saves reducing rollback count kind of sounds a little
+count kind of sounds a little non-intuitive the main type of rollback
+non-intuitive the main type of rollback that they were saving us from was what
+that they were saving us from was what we would call it an rb2 it's a buffer
+we would call it an rb2 it's a buffer exhaustion rollback it's a my confirmed
+exhaustion rollback it's a my confirmed frame is about to fall off the end of my
+frame is about to fall off the end of my buffer and that's the only thing I saved
+buffer and that's the only thing I saved therefore we have to roll back into the
+therefore we have to roll back into the past to another frame where I actually
+past to another frame where I actually have input for save that guy and and
+have input for save that guy and and then we're good but I just performed a
+then we're good but I just performed a seventh frame rollback even when no
+seventh frame rollback even when no input diverged you really want to avoid
+input diverged you really want to avoid that if at all possible what about all
+that if at all possible what about all the D sinks yeah we made our game a lot
+the D sinks yeah we made our game a lot more complicated and therefore we had a
+more complicated and therefore we had a whole lot more D sinks not running
+whole lot more D sinks not running procedural systems ended up being a big
+procedural systems ended up being a big cause of D sinks turns out our game code
+cause of D sinks turns out our game code was reliant on a whole bunch of
+was reliant on a whole bunch of procedural things that we had turned off
+procedural things that we had turned off I KB a you know main culprit there
+I KB a you know main culprit there luckily our tools got better offline D
+luckily our tools got better offline D sink detection because we're
+sink detection because we're deterministic if we play back our pad
+deterministic if we play back our pad input with the exact same network
+input with the exact same network cadence you get the exact same match
+cadence you get the exact same match meaning I actually don't need to be
+meaning I actually don't need to be online in order to D sink the game for
+online in order to D sink the game for debugging purposes that's fantastic
+debugging purposes that's fantastic because not every developer wants to
+because not every developer wants to have two kits on their mission at their
+have two kits on their mission at their desk people don't want to set up online
+desk people don't want to set up online sessions to reproduce this thing being
+sessions to reproduce this thing being able to do this with one kit was
+able to do this with one kit was fantastic we would capture the remote
+fantastic we would capture the remote input with network delays you could
+input with network delays you could replay the match and since you could
+replay the match and since you could replay the match every single time
+replay the match every single time deterministically you could also
+deterministically you could also krumin after-the-fact so you could
+krumin after-the-fact so you could inject new desync fencepost new prince
+inject new desync fencepost new prince whatever you want and you could replay
+whatever you want and you could replay that match as many times as you needed
+that match as many times as you needed to zero in on what your problem actually
+to zero in on what your problem actually was this was completely invaluable that
+was this was completely invaluable that was our normal debugging process when a
+was our normal debugging process when a decent happened it was hey give me the
+decent happened it was hey give me the replay I'm gonna look at it locally I'm
+replay I'm gonna look at it locally I'm gonna take a look at my logs if that's
+gonna take a look at my logs if that's not what I want I'm gonna inject more
+not what I want I'm gonna inject more debugging information and keep doing
+debugging information and keep doing that until I find the problem final D
+that until I find the problem final D sync rate was less than 1.1 percent I'm
+sync rate was less than 1.1 percent I'm I'm fairly certain it's actually less
+I'm fairly certain it's actually less than point zero one percent so what a
+than point zero one percent so what a decent log looks like it's nothing fancy
+decent log looks like it's nothing fancy it's a text if so d sync tools general D
+it's a text if so d sync tools general D sink detection and logging which is
+sink detection and logging which is basically what we just talked about the
+basically what we just talked about the replay files I talked about this but I
+replay files I talked about this but I just to mention it one more time it was
+just to mention it one more time it was incredibly valuable you don't get this
+incredibly valuable you don't get this unless your game is completely
+unless your game is completely deterministic end to end and ad sync
+deterministic end to end and ad sync utility which you can see the small
+utility which you can see the small screen shot there
+screen shot there the most useful thing that that gave us
+the most useful thing that that gave us was we can grab D sinks from the wild
+was we can grab D sinks from the wild any developer can click a button and go
+any developer can click a button and go grab all of the D sinks that occurred in
+grab all of the D sinks that occurred in the past day or week from the wild so
+the past day or week from the wild so when the game launched everybody sitting
+when the game launched everybody sitting there clicking the you know give me all
+there clicking the you know give me all my logs let's find out why the game's D
+my logs let's find out why the game's D sinking and fix that and we got to
+sinking and fix that and we got to respond very quickly because of that we
+respond very quickly because of that we didn't have to wait on first party for
+didn't have to wait on first party for that and I just call out NRS soak we
+that and I just call out NRS soak we soak online matches on every kit in the
+soak online matches on every kit in the building every night LOD sinks get
+building every night LOD sinks get logged to an internal server and we can
+logged to an internal server and we can debug it that way so you catch a lot of
+debug it that way so you catch a lot of this stuff way before it gets out into
+this stuff way before it gets out into the wild some low-level lessons learned
+the wild some low-level lessons learned limit your mutable state handles over
+limit your mutable state handles over pointers wherever performance allows
+pointers wherever performance allows handles are inherently a double bounce
+handles are inherently a double bounce usually it depends on your
+usually it depends on your implementation but they cost extra
+implementation but they cost extra performance but what they can allow you
+performance but what they can allow you to do more easily than a pointer is
+to do more easily than a pointer is basically if you're using a handle when
+basically if you're using a handle when it comes time to fix something up post
+it comes time to fix something up post serialization you basically don't have
+serialization you basically don't have to also they can allow asymmetric
+to also they can allow asymmetric rollback relationships where you have an
+rollback relationships where you have an object that you're referencing via a
+object that you're referencing via a handle and your system is not serialized
+handle and your system is not serialized but the object is or vice versa with a
+but the object is or vice versa with a raw pointer that's much harder to do you
+raw pointer that's much harder to do you end up having to have these strange post
+end up having to have these strange post fix-up calls where you go and fix up all
+fix-up calls where you go and fix up all the pointers in the whole wide world
+the pointers in the whole wide world avoid shared ownership
+avoid shared ownership beautiful mutable resources again this
+beautiful mutable resources again this is what I talked about very early on
+is what I talked about very early on shared ownership you would end up having
+shared ownership you would end up having to inject another concept of like
+to inject another concept of like serialization ownership which is super
+serialization ownership which is super dirty and to be avoided avoid work in
+dirty and to be avoided avoid work in your constructors or destructors again
+your constructors or destructors again if you're preserving object lifetimes
+if you're preserving object lifetimes across these creation and destruction
+across these creation and destruction boundaries you can't trust your
+boundaries you can't trust your constructors and destructors to trigger
+constructors and destructors to trigger when they normally would lean on mem
+when they normally would lean on mem copies and buffer swaps instead of
+copies and buffer swaps instead of dynamic fix-up yep yep do that high
+dynamic fix-up yep yep do that high level lessons learned this is a huge one
+level lessons learned this is a huge one this is a big deal this feels like of
+this is a big deal this feels like of course this is the way it should work
+course this is the way it should work design your game systems to drive visual
+design your game systems to drive visual state not depend on it we have a whole
+state not depend on it we have a whole bunch of code that says tell me where my
+bunch of code that says tell me where my right hand is oh you know where is the
+right hand is oh you know where is the head and it does all of these things and
+head and it does all of these things and it's literally saying tell me where the
+it's literally saying tell me where the joint is but if you stop running your
+joint is but if you stop running your procedural systems those answers are all
+procedural systems those answers are all wrong so we end up having to cut a whole
+wrong so we end up having to cut a whole bunch of corners to make all of those
+bunch of corners to make all of those answers right and if we had done a
+answers right and if we had done a cleaner job up front of segregating
+cleaner job up front of segregating these two systems we'd be much better
+these two systems we'd be much better off design systems to update with
+off design systems to update with variable time steps
+variable time steps it is extremely convenient when you
+it is extremely convenient when you don't have to run something eight times
+don't have to run something eight times and you can run it at intermediate
+and you can run it at intermediate points and still get effectively the
+points and still get effectively the same result if you can update
+same result if you can update parametrically that's even better
+parametrically that's even better because you probably only need to update
+because you probably only need to update once every one should work with debug
+once every one should work with debug rollback systems enabled it's the
+rollback systems enabled it's the fastest way to find things that go wrong
+fastest way to find things that go wrong when your designers are not running with
+when your designers are not running with debug systems enabled they think
+debug systems enabled they think everything they're making is just fine
+everything they're making is just fine only to find out later because you know
+only to find out later because you know QA happened to find a bug defer
+QA happened to find a bug defer processing until after the rollback
+processing until after the rollback window if reasonable what this means is
+window if reasonable what this means is I don't have to actually roll something
+I don't have to actually roll something back if I don't respond to it
+back if I don't respond to it until I'm guaranteed for it to have
+until I'm guaranteed for it to have actually occurred what I mean is if an
+actually occurred what I mean is if an event occurs and I don't respond to it
+event occurs and I don't respond to it for seven or eight ticks I'm guaranteed
+for seven or eight ticks I'm guaranteed by the time I actually respond to that
+by the time I actually respond to that that event has actually happened on both
+that event has actually happened on both machines it will not be rolled back this
+machines it will not be rolled back this doesn't have to be rollback compliant at
+doesn't have to be rollback compliant at that point we do that for our pause menu
+that point we do that for our pause menu we do that for our cinematics we will
+we do that for our cinematics we will never roll back out of a cinematic we
+never roll back out of a cinematic we will never roll back into a cinematic so
+will never roll back into a cinematic so we didn't support our cinematic tool for
+we didn't support our cinematic tool for roll backs although that causes our
+roll backs although that causes our gameplay guys some headaches because
+gameplay guys some headaches because they have to put these boundaries on
+they have to put these boundaries on either side I'll also say in the
+either side I'll also say in the cinematic vein there we just
+cinematic vein there we just categorically don't allow anybody to
+categorically don't allow anybody to roll back across a camera cut that's not
+roll back across a camera cut that's not for a technical reason that's just
+for a technical reason that's just incredibly jarring to the player so I
+incredibly jarring to the player so I mean it's also in mortal combat if you
+mean it's also in mortal combat if you cut a guy's head off we don't want to
+cut a guy's head off we don't want to roll back before that boundary like you
+roll back before that boundary like you just showed you ending the fight and
+just showed you ending the fight and it's terrible for the players so there
+it's terrible for the players so there are certain boundaries that from a
+are certain boundaries that from a technical standpoint we could support
+technical standpoint we could support but from a user standpoint we should
+but from a user standpoint we should never allow bhaag is also no longer a
+never allow bhaag is also no longer a function of a single frame if you've
+function of a single frame if you've done a terrible thing it will likely
+done a terrible thing it will likely persist for the duration of your roll
+persist for the duration of your roll back window future work multi-thread our
+back window future work multi-thread our gameplay script we have three cores
+gameplay script we have three cores there we can fill them with arbitrary
+there we can fill them with arbitrary work or we can just multi thread our
+work or we can just multi thread our game script that effort is underway it
+game script that effort is underway it seems to be going well extend state
+seems to be going well extend state based serialization we do have something
+based serialization we do have something in the game where certain objects will
+in the game where certain objects will enter a state serialize that state and
+enter a state serialize that state and then not not serialize the object until
+then not not serialize the object until state changes again that's a great idea
+state changes again that's a great idea we should do more of it simplify
+we should do more of it simplify particle serialization or simulation if
+particle serialization or simulation if we can move our particles in a
+we can move our particles in a parametric Direction everything gets
+parametric Direction everything gets easier and cheaper separate the game
+easier and cheaper separate the game state from the visual state and add roll
+state from the visual state and add roll back for more roll back support for more
+back for more roll back support for more systems largely just to ease the burden
+systems largely just to ease the burden on our gameplay teams any questions
+on our gameplay teams any questions we're hiring I'm just gonna let a video
+we're hiring I'm just gonna let a video loop hi there
+loop hi there I work on a lockstep fighting game so
+I work on a lockstep fighting game so first of all congratulations I'm blown
+first of all congratulations I'm blown away that you were actually able to pull
+away that you were actually able to pull this off how how close to the 16
+this off how how close to the 16 millisecond performance budget were you
+millisecond performance budget were you before you started this process yep so
+before you started this process yep so the question is how close were we to the
+the question is how close were we to the 16 millisecond budget or limit before we
+16 millisecond budget or limit before we started the process we were in my
+started the process we were in my opinion we were a bit lazy due to the
+opinion we were a bit lazy due to the console generation jump we were running
+console generation jump we were running at about 10 milliseconds in an idle
+at about 10 milliseconds in an idle frame which gave us plenty of room to
+frame which gave us plenty of room to spike and generally stay in frame I see
+spike and generally stay in frame I see so the the exercise was basically making
+so the the exercise was basically making sure that you could run the
+sure that you could run the deterministic portion of your game
+deterministic portion of your game within whatever budget you had left and
+within whatever budget you had left and so you were paring down how much was in
+so you were paring down how much was in the deterministic segment and optimizing
+the deterministic segment and optimizing at the same time as
+at the same time as that yep that's just a bit and from a
+that yep that's just a bit and from a user experience standpoint if you are
+user experience standpoint if you are rolling back you didn't blend into the
+rolling back you didn't blend into the corrected frame you just went straight
+corrected frame you just went straight to it is that we tried so the question
+to it is that we tried so the question is did we interpolate into the corrected
+is did we interpolate into the corrected position corrected pose we experimented
+position corrected pose we experimented with that
+with that the short answer was it felt worse the
+the short answer was it felt worse the our response from QA was that they they
+our response from QA was that they they wanted to see the frames immediately as
+wanted to see the frames immediately as soon as we could correct it we should
+soon as we could correct it we should correct it also the interpolation led to
+correct it also the interpolation led to a lot of foot sliding and that sort of
+a lot of foot sliding and that sort of thing right so the user would
+thing right so the user would essentially lose like between three and
+essentially lose like between three and eight frames of execution from the other
+eight frames of execution from the other and they didn't really complain about
+and they didn't really complain about that or care about that I'll also note
+that or care about that I'll also note that I'd have to rewind all the way to
+that I'd have to rewind all the way to the beginning of the slides the latency
+the beginning of the slides the latency curve that I showed the vast majority of
+curve that I showed the vast majority of our games would be played under four to
+our games would be played under four to five frames of latency and we had three
+five frames of latency and we had three frames of static input latency which
+frames of static input latency which meant only one or two frames of rollback
+meant only one or two frames of rollback and that would cover 60 or 70% of the
+and that would cover 60 or 70% of the game so most games are played in super
+game so most games are played in super smooth so you rarely would run into
+smooth so you rarely would run into problems where someone would like hit
+problems where someone would like hit confirm and then it would be undone and
+confirm and then it would be undone and then they'd be pissed off yep I mean it
+then they'd be pissed off yep I mean it is a thing yeah it is rare as you said
+is a thing yeah it is rare as you said that's awesome congratulation was
+that's awesome congratulation was unexpected
+unexpected frankly it was blue naman it would be
+frankly it was blue naman it would be much more visually jarring I don't know
+much more visually jarring I don't know how you did the serialization thing -
+how you did the serialization thing - that's like super daunting even
+that's like super daunting even considering how to go into that it's not
+considering how to go into that it's not bad start by serializing a lot and then
+bad start by serializing a lot and then optimize it that's the gist of it cool
+optimize it that's the gist of it cool thanks thank you so for this new system
+thanks thank you so for this new system compared to the older system it seems
+compared to the older system it seems like the user reaction time might be a
+like the user reaction time might be a little different yeah were there what
+little different yeah were there what did this drive gameplay changes where
+did this drive gameplay changes where maybe moves that needed to be reactive
+maybe moves that needed to be reactive all had to be made longer or things that
+all had to be made longer or things that shouldn't be reactive all had to be made
+shouldn't be reactive all had to be made faster yeah I'll repeat the question
+faster yeah I'll repeat the question because I was told - although it sounds
+because I was told - although it sounds like you're super clear here the
+like you're super clear here the question is basically there's reaction
+question is basically there's reaction time implications to this right moves
+time implications to this right moves have warmup time
+have warmup time it's a highly reactive game people want
+it's a highly reactive game people want to respond immediately and and your
+to respond immediately and and your concern is is spot-on
+concern is is spot-on so did we make changes for mortal
+so did we make changes for mortal 10 which is where we initially patch
+10 which is where we initially patch this in know the basically that was 100%
+this in know the basically that was 100% an engineering effort that's 99%
+an engineering effort that's 99% engineering but we didn't touch the
+engineering but we didn't touch the gameplay for injustice - yeah a little
+gameplay for injustice - yeah a little bit
+bit the designers didn't change much though
+the designers didn't change much though as I said the vast majority of your
+as I said the vast majority of your matches will be played with one or two
+matches will be played with one or two frames of actual like rollbacks
+frames of actual like rollbacks like three frames static input latency
+like three frames static input latency one or two frames of rollback so yeah
+one or two frames of rollback so yeah you're shaving off about one or two
+you're shaving off about one or two frames there so I don't know that our
+frames there so I don't know that our designers adjusted the moves a lot
+designers adjusted the moves a lot you're right in that some seven or eight
+you're right in that some seven or eight or nine frame punch is incredibly quick
+or nine frame punch is incredibly quick and shaving off one two three four or
+and shaving off one two three four or five frames of that is the thing comes
+five frames of that is the thing comes out like lightning but the honest truth
+out like lightning but the honest truth this is somewhat my opinion but it's
+this is somewhat my opinion but it's confirmed around the building is
+confirmed around the building is fighting games are about footsies right
+fighting games are about footsies right it's I know when I'm in this position
+it's I know when I'm in this position I'm in danger
+I'm in danger right and if you're within jab distance
+right and if you're within jab distance of a guy the vast majority of your
+of a guy the vast majority of your player base largely including
+player base largely including professional players is unable to
+professional players is unable to actually react to that right it's
+actually react to that right it's generally anticipate Ori so that's the
+generally anticipate Ori so that's the gist of it we do shave off you know the
+gist of it we do shave off you know the front end of the attacks with some of
+front end of the attacks with some of these rollback frames though yeah I mean
+these rollback frames though yeah I mean it seems like you could lose seven seven
+it seems like you could lose seven seven frames on every single attack
+frames on every single attack theoretically that is technically
+theoretically that is technically possible yes if you're playing up near
+possible yes if you're playing up near the latency cap that will happen how do
+the latency cap that will happen how do I had a like there's an anecdotal thing
+I had a like there's an anecdotal thing we would receive reports during the beta
+we would receive reports during the beta for a guy who was like in Brazil playing
+for a guy who was like in Brazil playing on McDonald's Wi-Fi across the ocean
+on McDonald's Wi-Fi across the ocean raving about how awesome it was like is
+raving about how awesome it was like is he a super competitive professional
+he a super competitive professional player like almost certainly not for
+player like almost certainly not for everybody else this is this is fantastic
+everybody else this is this is fantastic I mean the pros love it too right like
+I mean the pros love it too right like when they like their input cadence is
+when they like their input cadence is identical when they show up to a
+identical when they show up to a tournament their online practice is
+tournament their online practice is actually valid and at the same time all
+actually valid and at the same time all of their truly competitive events are
+of their truly competitive events are played on a land oh no this is clearly
+played on a land oh no this is clearly better I was just curious if they needed
+better I was just curious if they needed to balance anything thank you so much
+to balance anything thank you so much yeah thank you Kri talk two questions
+yeah thank you Kri talk two questions number one major engineering effort
+number one major engineering effort seven to eight years can you give me at
+seven to eight years can you give me at least a rough idea of the breakdown of
+least a rough idea of the breakdown of where most of that time went or was it
+where most of that time went or was it just sort of evenly spent
+just sort of evenly spent the question is seven or eight man years
+the question is seven or eight man years how the heck did that how did that break
+how the heck did that how did that break down man good question you know
+down man good question you know certainly we lost a man year to decent
+certainly we lost a man year to decent chasing no doubt several man years if
+chasing no doubt several man years if that would have been spent doing raw
+that would have been spent doing raw optimization of you know graph
+optimization of you know graph optimization that sort of thing so I
+optimization that sort of thing so I would say we probably spent four or five
+would say we probably spent four or five man years of that doing optimization
+man years of that doing optimization work and we probably spent the balance
+work and we probably spent the balance on correctness and I we probably had one
+on correctness and I we probably had one or two man years just building
+or two man years just building infrastructure of serialization systems
+infrastructure of serialization systems and trying to serialize the whole darn
+and trying to serialize the whole darn game but a lot of it was optimization
+game but a lot of it was optimization and D syncs super interesting and then
+and D syncs super interesting and then the second question I have is you a lot
+the second question I have is you a lot of that work was making particle effects
+of that work was making particle effects work and you straight up called out that
+work and you straight up called out that of course you ideally want to separate
+of course you ideally want to separate visuals from gameplay to have gameplay
+visuals from gameplay to have gameplay Drive visuals what prevented you from
+Drive visuals what prevented you from just never Reece emulator articles ever
+just never Reece emulator articles ever just keep their orientations and
+just keep their orientations and rotations you know and maybe they vanish
+rotations you know and maybe they vanish if that confirm doesn't come out right
+if that confirm doesn't come out right or maybe they move they interpret often
+or maybe they move they interpret often yeah so the question is hey particles
+yeah so the question is hey particles are a visual thing why the heck are you
+are a visual thing why the heck are you rolling them back the gist of it is I I
+rolling them back the gist of it is I I was trying to put a number on this
+was trying to put a number on this mentally here but it basically some
+mentally here but it basically some portion of our roll back is done for
+portion of our roll back is done for gameplay determinism purposes and some
+gameplay determinism purposes and some percentage of it is done simply to make
+percentage of it is done simply to make the game look better so a lot of the
+the game look better so a lot of the particles I I hesitate to say all the
+particles I I hesitate to say all the particles but a lot of the particles
+particles but a lot of the particles were rolled back purely for visual
+were rolled back purely for visual purposes and visual correctness not for
+purposes and visual correctness not for gameplay determinism also that pprs
+gameplay determinism also that pprs system prevented us from rolling back
+system prevented us from rolling back the vast majority of our particles so by
+the vast majority of our particles so by the end of it we really weren't rolling
+the end of it we really weren't rolling them back much that pprs thing really
+them back much that pprs thing really sort of saved our bacon there I'll try
+sort of saved our bacon there I'll try and knock these questions out real quick
+and knock these questions out real quick and then I'll talk outside I think I
+and then I'll talk outside I think I have like one minute left or two minutes
+have like one minute left or two minutes hello on LittleBigPlanet we used a very
+hello on LittleBigPlanet we used a very similar system and our biggest issues
+similar system and our biggest issues were performance and out of syncs you've
+were performance and out of syncs you've covered really nicely the performance
+covered really nicely the performance tips but do you have any tips for a
+tips but do you have any tips for a structuring your code to avoid out
+structuring your code to avoid out syncs and be detecting and tracking down
+syncs and be detecting and tracking down the cause of the out of sync yeah so the
+the cause of the out of sync yeah so the question is distinct so a real pain do
+question is distinct so a real pain do you have any tips and tricks there
+you have any tips and tricks there oh man deep topic we lean so heavily on
+oh man deep topic we lean so heavily on the fact that we were fully
+the fact that we were fully deterministic and we could replay those
+deterministic and we could replay those matches I know that's not going to help
+matches I know that's not going to help you architectural II necessarily but
+you architectural II necessarily but being able to play them back and being
+being able to play them back and being able to breadcrumb it if you can't do
+able to breadcrumb it if you can't do that you have to do that it was just a
+that you have to do that it was just a complete lifesaver I'll talk to you
+complete lifesaver I'll talk to you afterwards it's a I'd love for the whole
+afterwards it's a I'd love for the whole room to hear it but it I just don't have
+room to hear it but it I just don't have time to dive super deep on that I
+time to dive super deep on that I believe you guys aren't PC as well right
+believe you guys aren't PC as well right we ship a PC client yeah okay so with
+we ship a PC client yeah okay so with respect to variable Hardware when some
+respect to variable Hardware when some players on actually hitting 16
+players on actually hitting 16 millisecond no seconds how does your
+millisecond no seconds how does your system work if one person is running at
+system work if one person is running at like 30 FPS or something yeah my
+like 30 FPS or something yeah my understanding I we don't ship the PC
+understanding I we don't ship the PC client in-house we outsource it but my
+client in-house we outsource it but my understanding is that they the short
+understanding is that they the short answer is they not pause more frequently
+answer is they not pause more frequently like a lot of these safeguards that we
+like a lot of these safeguards that we have to ensure like a certain latency
+have to ensure like a certain latency footprint they exist but on PC they just
+footprint they exist but on PC they just it's a lot fuzzier so they do end up
+it's a lot fuzzier so they do end up pausing the game more so with variable
+pausing the game more so with variable Hardware and variable
+Hardware and variable I guess the network experience is
+I guess the network experience is probably basically identical but they'll
+probably basically identical but they'll net pause the game more frequently one
+net pause the game more frequently one very interesting thing to note is that
+very interesting thing to note is that if you are bogging maybe due to hardware
+if you are bogging maybe due to hardware or whatever that does impact your RTT
+or whatever that does impact your RTT because your networks end rate is
+because your networks end rate is changed and your network receive rate
+changed and your network receive rate has effectively changed that can lead to
+has effectively changed that can lead to like really weird feedback loops I'm not
+like really weird feedback loops I'm not sure what's being done there cool thank
+sure what's being done there cool thank you thank you save state each time
+you thank you save state each time you're saving it isn't it the question
+you're saving it isn't it the question is how BIG's the save buffer it's small
+is how BIG's the save buffer it's small measured in K you know maybe maybe a Meg
+measured in K you know maybe maybe a Meg per frame probably less

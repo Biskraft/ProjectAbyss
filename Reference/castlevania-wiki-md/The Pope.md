@@ -1,0 +1,12 @@
+# The Pope
+
+- The Pope** was the head of the Church. The differences between the Catholic Church and Greek Orthodox Church have been blurred in *Castlevania* mythos. It is possible that the Pope was also the head of the Orthodox Church in *Castlevania* lore or that there was a separate "Pope" for the Roman Catholic and Orthodox churches, although the latter is unlikely since the Orthodox Church does not believe in the infallibility of a Pope.
+
+Very likely the Pope mentioned in *Castlevania III: Dracula's Curse* was Pope Sixtus IV, who reigned from 1471 to 1484, putting Trevor Belmont's adventures well within Sixtus IV's papacy. Pope Sixtus IV was notable for sanctioning the Sistine Chapel and ushering in the Italian Renaissance. On a darker note, the Pope issued the *Exigit Sinceras Devotionis Affectus*, establishing the Spanish Inquisition as it is remembered today, but was unable to rein in the rampant torturing. Pope Sixtus IV ardently opposed the Ottoman Turks by ordering a failed Crusade.
+
+In regards to the papacy within the Eastern Orthodox Church, it is worth noting Pope Sixtus IV made efforts to bridge the schism between the Roman Catholic and Eastern Orthodox churches, likely as an effort to increase Catholic influence in Ottoman territory. Considering Wallachia was a tributary of the Ottoman Empire at the time, it would be reasonable to assume the Orthodox Church in Romania at some point weighed in on realigning itself with the Pope. Indeed, the Romanian Orthodox Church became the Romanian Catholic Orthodox centuries later. This would simply mean the confusion is a case of semantics: rather than Trevor and Sypha being contacted by the Pope *of* the Eastern Orthodox Church, which would be erroneous en lieu of the nature of Eastern Orthodoxy, they were probably contacted by the Pope *through/via* the Eastern Orthodox Church.
+
+The Pope during the time of Dracula's war on humanity tried to deal with the Count. He first sent a large army to defeat Dracula, but it was destroyed. He then sent the mystical warrior Sypha Belnades to do the job, but she never came back either and was believed to have died. Finally, he searched far and wide for a member of the Belmont clan, who had fallen out of favor with the church and feared by the people as much as the vampires they hunted were. He found Trevor Belmont, who agreed to the task, and Trevor was able to overcome the threat posed by Dracula with aid of several companions.
+
+
+Category: Dracula's Curse Characters

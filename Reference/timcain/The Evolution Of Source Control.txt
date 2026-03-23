@@ -1,0 +1,322 @@
+hi everyone it's me Tim and today I want
+to talk about the evolution of source
+control Source control is widely used
+now was not ever used in the 80s at
+least no where I was Source control is
+using software
+to maintain ownership of an asset that's
+going into the game this asset asset
+could be a code module it could be a
+piece of art it could be a
+script but Source control manages the
+versions of those and who owns it and
+what the latest one
+is so let me tell you how we did Source
+control in the 80s and even early
+90s a lot of the games I worked on
+either had one
+programmer which was pretty much BST
+tail and and Rags to Riches or on Grand
+s Bridge even though there were multiple
+programmers there was for any particular
+code module there was only one
+programmer so you basically owned the
+code
+and whatever was on your machine was the
+latest version builds were made by
+putting that code onto a build machine
+when there when I was there was only one
+programmer my machine was the build
+machine I would get art from artists I
+would get sound files I would get script
+whatever was happening I would get them
+put them on my machine and make a build
+from my
+machine um for something like Grand s
+bridge I remember giving code to the
+lead programmer and he would then build
+it on his machine on Rags of riches I
+think was one of the first times we
+might have had a build machine I don't
+remember
+but that would be a machine that wasn't
+one that any particular one on the team
+used but everybody went and put their
+assets on it whether it was their art or
+their sound or the code and it was built
+there I know by the time we started
+Fallout in
+1994 that was the first time we ever
+used software
+controlled Source management and that
+was a uh piece of software called Source
+safe it was from Microsoft Source safe
+was great
+because it lived up on the network and
+you check things in to Source safe or
+check things out if you added a file it
+would go into Source safe and then
+become readon on your machine so you
+couldn't touch it if you wanted to you
+could get stuff out of sour safe and it
+would get readon copies on your own
+machine so if I wanted to make a build
+with the latest version of all the
+assets I would just do a get I would get
+all the latest versions and I could do a
+build on my machine and have a version
+of the game with all the latest assets
+and
+code if I wanted to make a change to
+code I would have to check out that file
+from Source safe and this is everyone
+would have to the artist would have to
+check out an art file a texture script
+scriptor would have to check out a
+script a audio person would have to
+check out a sound file but Source safe
+was exclusive meaning when you checked
+it out it became writable on your
+machine and no one else could check it
+out it was seen as checked out by you
+and if anyone else went to sour safe to
+check it out it would say sorry and it
+would say Tim has it right now so you
+could sometimes go to someone and go hey
+we need to do a a build and you're
+sitting on a you know you have a bunch
+files checked out but the interesting
+thing about exclusive checkout meant you
+had to think about how you were doing
+code because if you had a module that
+was really big and controlled a lot of
+parts of the game multiple programmers
+might want to get get at that and then
+they would argue over who had it so it
+part of how you broke up your code
+wasn't just
+um how you thought the code should
+naturally break up into modules but
+also you wanted the modules to be
+smaller so
+that if one programmer grabbed some part
+of the game other program programmers
+could still work on other parts so like
+your interface you just want one big
+interface module you break the interface
+up to here's the inventory here's the
+option screen here's the main HUD um
+here's the journal and you break those
+all up into different code modules so
+that different people could work on
+those interfaces on the at the same time
+because the checkouts and sour safe were
+exclusive there's no concept of merging
+meaning you got a version from Source
+safe you modified it and then when you
+checked it in it became redown only on
+your machine and your new one checked in
+as the latest you could have a history
+and you could roll back to a previous
+one but it was a continuous linear
+history of changes that individuals made
+to files and you could it would have the
+name of the person who made the changes
+so you could see who had made changes
+that's how we sometimes knew when bugs
+had been introduced because you're like
+hey it's not working you saw someone
+check something in you could Delta the
+two files and say oh he he changed these
+lines oh there's a bug right there in
+that line that was great
+when we started working on Arcanum I
+can't remember whether we used per force
+I think we did but we had a different
+problem on Arcanum in that the world
+editor needed to let M multiple people
+edit the map because our world map was
+the entire map of Arcanum so there's no
+way we could let someone check out the
+world map because yes that would give
+you tant the city but no one else could
+work on anything that was an external
+map in the entire world
+so what we did for that one and I
+described it more in one of the Arcanum
+videos
+was when the editor started editing a
+sector it would try to lock that sector
+and the way it locked it was it would
+create a file on our Network on a shared
+folder with the sector number as the
+file name and the extension Lo for
+lock because file creation is a in
+Windows so we were basically leveraging
+something there
+where if you attempted to create the
+file and it already existed somebody
+must have it locked you could see who
+created the file and that would tell you
+who did it so we even had that
+functionality we had a a time stamp on
+it so you could even say when they
+locked it how long they'd had it checked
+out
+um if the file didn't exist then nobody
+had it checked out and it created the
+file for you you know with your name as
+the Creator and then you had that sector
+checked out so World Ed you on Arcanum
+used file creation on a network folder
+to create these sort of locks and
+unlocks because of that that was more
+like
+editing world map sectors was more like
+doing stuff in sour safe it was an
+exclusive checkout and there was no
+um way to merge changing is but we also
+didn't have a file history because once
+it checked back in it just that data
+went into the our database and the lock
+was
+removed when we finally got to Temple by
+Temple and vampire I know we were using
+per force
+perforce was from my point of view just
+like everything you wanted in sore safe
+but didn't get so sour safe finally had
+what was called non-exclusive checkout
+which meant more than one programmer
+could grab a code module um more than
+one scriptor could grab a script in
+theory you could let more than one
+artist grab an art file but we found the
+subsequent merging was very hard for
+that so we usually for nontext files we
+usually
+disabled uh non-exclusive checkout so it
+became exclusive checkout but for
+non-exclusive checkout the way it worked
+was two people could check it out at the
+same time the first person to check it
+in it just went in when the second
+person would go to check it in it would
+say hey the file I have in sour safe is
+not the file you have checked out let's
+merge it and it would show the
+differences and on a good day what you
+had worked on and what the other person
+had worked on were in different parts of
+the text and you could simply say merge
+them and check in on a bad day you'd
+find out you two were working in the
+same area and then you would have to
+work on that and figure out well they
+were making the for Loop bigger but I
+was changing what the for Loop did so we
+can combine those Chang
+sometimes you find out someone was
+fixing something you were fixing and
+boom you just wasted some time or the
+two of you did different fixes and you
+have to go talk to him and say which one
+do you want to use in general that
+tended not to happen because at least
+for the programmers as the lead
+programmer I would tend to assign
+different things well Steve Moray was
+the lead programmer on Temple I was the
+lead well I acted as the lead on vampire
+I would um assign different things for
+people to do and so they rarely
+overlapped in a module and when they did
+they were almost always working in
+different sections of the module
+perforce though let you do some other
+really cool things that we did allow for
+code and non-code assets one of them was
+called shelving shelving is when you do
+a bunch of work but rather than you want
+to rather than check it in and overwrite
+what's there you shove it and what it
+does is it creates a special little area
+and it checks that stuff in and so that
+way shelving was a way of working on
+something over multiple days but at the
+end of every day you can still check it
+in so if anything like if your machine
+crashed you wouldn't lose
+anything but because it was checked into
+a
+shelf it was not included in the if if
+people did get it was your own private
+little shelf and then when you finally
+wanted to put it into the main branch it
+would check to see if you had to do any
+merging if you didn't it would just
+overwrite what was there and if you did
+it would make you do the merch a very
+similar thing to that is called
+branching and branching in perforce is
+when you take all of the asset files and
+you create a completely separate branch
+and then when you're checking in and out
+you have to say which branch you're
+working in and then you check in and out
+on that Branch branching is really
+useful for doing something like you want
+to make a demo so you Branch the game
+and you get the demo working you know
+maybe there's you know a few extra NPCs
+a tutorial that gets thrown in or maybe
+it's on a level that's not going to be
+included in the game and all that data
+is just kept on the
+branch branching is also useful for once
+the game ships and goes out the door and
+let's say you start working on DLC bran
+those could be branches let's say you
+make patches those could be branches and
+the reason for that is you may one day
+want to go back to the original
+unpatched
+version um for different reasons uh you
+may have someone who wants to see what
+the game was when you shipped someone
+what may want
+to make a version of your game on a
+different um target for example you may
+have a PC version of the game and now
+you want to make it for PlayStation they
+may want to do that on the Bas
+Branch because the fixes that were done
+especially if there were optimizations
+may not apply in any way to to the
+PlayStation Branch but sometimes it
+would I mean if there are bug fixes and
+that's the good thing you can go through
+and look at the check-ins and go things
+that fixed mechanics and all that boom
+you want that things that changed how
+stuff was rendered to the screen you're
+probably not going to need that for the
+PlayStation version so having those
+different branches worked really well
+and was something I wish I could go back
+in time and have had that on all my
+games anyway I believe perforce is still
+what's used today we were using it on
+everything in obsidian and on the outer
+worlds it's a really good piece of
+software but we've come a long way from
+Source safe or from Source control being
+it's whatever's on my machine is the
+real piece of code or whatever asset
+you're looking for so it's come a long
+way in 40 some years and I think it's
+that's a perfect example of where things
+have improved immensely and where
+software really helps in the development
+process anyway I hope you like the
+evolution of source control

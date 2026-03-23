@@ -1,0 +1,850 @@
+[Music] this is tricks of the trade we have
+this is tricks of the trade we have exactly six animators they have exactly
+exactly six animators they have exactly five minutes to give you the best tips
+five minutes to give you the best tips and tricks they know please do not clap
+and tricks they know please do not clap in between each one save all of the
+in between each one save all of the plots for the very end we are animators
+plots for the very end we are animators and we need every second you have take
+and we need every second you have take it away Vanson hi I'm James Benson I
+it away Vanson hi I'm James Benson I worked in Triple A for 5 minutes on
+worked in Triple A for 5 minutes on fable and then a cancelled boy simulator
+fable and then a cancelled boy simulator then I made or in the blind forest and
+then I made or in the blind forest and fire watch and now making in the valley
+fire watch and now making in the valley of gods yeah I want to talk specifically
+of gods yeah I want to talk specifically about some unity system stuff but the
+about some unity system stuff but the gist is all sort of broadly applicable
+gist is all sort of broadly applicable so tip number one avoiding state
+so tip number one avoiding state machines and trying to keep your
+machines and trying to keep your animation sets within a single blend
+animation sets within a single blend tree so the problem with state machines
+tree so the problem with state machines basically is that they give you these
+basically is that they give you these kind of binary possibility states where
+kind of binary possibility states where you're either standing or you're
+you're either standing or you're crouched and this isn't just a visual
+crouched and this isn't just a visual problem it's a controls one why a
+problem it's a controls one why a blender is better so you can exist
+blender is better so you can exist indefinitely in between two states you
+indefinitely in between two states you can transition on linearly by driving
+can transition on linearly by driving floats
+floats makanan by default when you're going
+makanan by default when you're going between states you can only do linear
+between states you can only do linear stuff it's completely hard-coded there's
+stuff it's completely hard-coded there's no way around it most importantly they
+no way around it most importantly they synchronize the footballs and now scale
+synchronize the footballs and now scale time so that everything is seamlessly in
+time so that everything is seamlessly in sync so that's sort of the basics using
+sync so that's sort of the basics using these bits of knowledge you can replace
+these bits of knowledge you can replace almost all of your locomotion
+almost all of your locomotion transitions with dynamically control
+transitions with dynamically control blends so here when we hit the ground
+blends so here when we hit the ground we're blending into the Crouch movement
+we're blending into the Crouch movement state that we used for the previous
+state that we used for the previous little jiff and we can also define how
+little jiff and we can also define how far you're going to blend into that
+far you're going to blend into that crouch movement by how fast you were
+crouch movement by how fast you were going when you hit the ground so you can
+going when you hit the ground so you can actually get a much more dynamic thing
+actually get a much more dynamic thing than you would have just by authoring a
+than you would have just by authoring a single clip think of your blend tree
+single clip think of your blend tree like a flowchart asking a series of
+like a flowchart asking a series of progressively more specific questions so
+progressively more specific questions so here we're also asking how far away are
+here we're also asking how far away are you from the ground and because the
+you from the ground and because the answer is not very far rather than
+answer is not very far rather than throwing you into a new state with a big
+throwing you into a new state with a big falling leaf in your arms in the air we
+falling leaf in your arms in the air we just put you into a sort of a slow
+just put you into a sort of a slow falling walk we have one foot out to
+falling walk we have one foot out to catch you when you fall and then we do
+catch you when you fall and then we do the little Crouch bumps and all in the
+the little Crouch bumps and all in the same blend tree it keeps you in the same
+same blend tree it keeps you in the same foot phases and it's a sort of seamless
+foot phases and it's a sort of seamless thing if the grounds further you can go
+thing if the grounds further you can go into more traditional falling loops and
+into more traditional falling loops and if it's really far you can do these kind
+if it's really far you can do these kind of I'm gonna die when I hit the ground
+of I'm gonna die when I hit the ground animations and again when you do hit the
+animations and again when you do hit the ground you know that the feet are gonna
+ground you know that the feet are gonna perfectly be in phase and it's all going
+perfectly be in phase and it's all going to be nice and seamless by putting your
+to be nice and seamless by putting your time into variations on your loops for
+time into variations on your loops for different directions accelerations etc
+different directions accelerations etc you can skip a lot of individual clip
+you can skip a lot of individual clip authoring and management and then you'll
+authoring and management and then you'll also find that because you've made so
+also find that because you've made so many movement cycles you'll just
+many movement cycles you'll just naturally create much broader
+naturally create much broader possibilities for movement in the for
+possibilities for movement in the for the character so tip number two build
+the character so tip number two build multiple layers of dynamics into your
+multiple layers of dynamics into your idle behaviors so people can NPC alive
+idle behaviors so people can NPC alive is really hard making a character's
+is really hard making a character's awareness of the environment into the
+awareness of the environment into the clips it works very very well in a game
+clips it works very very well in a game like World of Warcraft but if you need
+like World of Warcraft but if you need your NPC to be able to dynamically
+your NPC to be able to dynamically direct their attention like say into the
+direct their attention like say into the player's eyes in a first-person game
+player's eyes in a first-person game you're going to have to have some kind
+you're going to have to have some kind of dynamics however if you build your
+of dynamics however if you build your lookout stuff as like a single like a
+lookout stuff as like a single like a chain it's going to be very rigid
+chain it's going to be very rigid there's gonna be no overshoot or overlap
+there's gonna be no overshoot or overlap so if instead you split your character
+so if instead you split your character tension and to say the eyes the head the
+tension and to say the eyes the head the chest the equipment they're using even
+chest the equipment they're using even if you want all those things pointed in
+if you want all those things pointed in one direction they're going to get there
+one direction they're going to get there with different timings and even better
+with different timings and even better you can you can put them in different
+you can you can put them in different places so for example they have their
+places so for example they have their torch on an interesting thing in the
+torch on an interesting thing in the environment and then they dynamically
+environment and then they dynamically look back to you with their head and
+look back to you with their head and eyes to sort of signal look at this
+eyes to sort of signal look at this interesting thing I'm pointing at
+interesting thing I'm pointing at combined with locomotion you can create
+combined with locomotion you can create interesting behaviors like dynamically
+interesting behaviors like dynamically looking over their shoulder when they're
+looking over their shoulder when they're walking backwards or tracking that the
+walking backwards or tracking that the path they're moving along to give a
+path they're moving along to give a sense that the character has some kind
+sense that the character has some kind of forethought and those sort of systems
+of forethought and those sort of systems work nicely with full body okay to rein
+work nicely with full body okay to rein in kind of stuff and you just generally
+in kind of stuff and you just generally build a percent that the character is
+build a percent that the character is animated within the space in the game
+animated within the space in the game and not like a series of clips in Maya
+and not like a series of clips in Maya or 3ds max my next tip is facial capture
+or 3ds max my next tip is facial capture this is mostly a thing for
+this is mostly a thing for of small teams but my assumption until
+of small teams but my assumption until relatively recently had been that face
+relatively recently had been that face cap stuff was gated by enormous budgets
+cap stuff was gated by enormous budgets and team sizes and it turns out that's
+and team sizes and it turns out that's just not really the case the software
+just not really the case the software and hardware can be gone for a few
+and hardware can be gone for a few thousand dollars and largely it's the
+thousand dollars and largely it's the same kind of stuff that big teams are
+same kind of stuff that big teams are using it's more expensive just like
+using it's more expensive just like getting a lot of people to crunch the
+getting a lot of people to crunch the data but I think that it's not something
+data but I think that it's not something that's super commonly thought of in
+that's super commonly thought of in small teams as a feasible option and
+small teams as a feasible option and even we've got two animators now--come
+even we've got two animators now--come santo but ii when it was just me and I
+santo but ii when it was just me and I was doing this initial test it still
+was doing this initial test it still seemed like a very feasible thing in the
+seemed like a very feasible thing in the pipeline in terms of the time it takes
+pipeline in terms of the time it takes it's on and so forth
+it's on and so forth so those are all my tips and tricks if
+so those are all my tips and tricks if you didn't like any of them hopefully
+you didn't like any of them hopefully you're like Jaleel so duels tips good
+you're like Jaleel so duels tips good we're good we're good hi my name is Jill
+we're good we're good hi my name is Jill Elsa doll and I am the CEO and
+Elsa doll and I am the CEO and co-founder of still more studios it
+co-founder of still more studios it would be presumptuous of me to tell you
+would be presumptuous of me to tell you how to build a successful company I've
+how to build a successful company I've only been doing this for three years and
+only been doing this for three years and I have a feeling I need 10 more to
+I have a feeling I need 10 more to really get the big picture and it's even
+really get the big picture and it's even more ridiculous to be doing this in five
+more ridiculous to be doing this in five minutes but here we go most people ask
+minutes but here we go most people ask how long since we've opened steamroll
+how long since we've opened steamroll Studios and usually I say three years
+Studios and usually I say three years but in reality it's taken over 14 years
+but in reality it's taken over 14 years my whole career a good reputation is
+my whole career a good reputation is crucial someday if you want to stand on
+crucial someday if you want to stand on your own in this industry like running a
+your own in this industry like running a studio a strong Network and a good rep
+studio a strong Network and a good rep will be extremely extremely valuable
+will be extremely extremely valuable it's a very small industry where
+it's a very small industry where everyone knows everyone how do you keep
+everyone knows everyone how do you keep a good rep you work hard this is Lee our
+a good rep you work hard this is Lee our community manager focus on the
+community manager focus on the achievable dream not the blue sky blue
+achievable dream not the blue sky blue sky dream each step you take make it
+sky dream each step you take make it your best step forward if you find
+your best step forward if you find yourself wanting status then you are
+yourself wanting status then you are doing it wrong the title of supervisor
+doing it wrong the title of supervisor or director will find you when you are
+or director will find you when you are ready you want to be remembered as a
+ready you want to be remembered as a hard worker if you're given a C shot
+hard worker if you're given a C shot don't complain just do the best you can
+don't complain just do the best you can you will get noticed if you put your
+you will get noticed if you put your heart and soul into it and it might be
+heart and soul into it and it might be something that your colleagues never
+something that your colleagues never forget keep in mind the best animators
+forget keep in mind the best animators out there can turn C shots into
+out there can turn C shots into a shots now that's a skill that will get
+a shots now that's a skill that will get you noticed be remembered as someone
+you noticed be remembered as someone reliable nope wrong I got it there we go
+it's difficult to get your first job but it's even harder to keep a job make
+it's even harder to keep a job make yourself invaluable to your team if you
+yourself invaluable to your team if you are new to the team your chances are
+are new to the team your chances are limited yes most supervisors play
+limited yes most supervisors play favorites therefore work towards getting
+favorites therefore work towards getting yourself noticed we apply the same
+yourself noticed we apply the same philosophy has similar Studios if we
+philosophy has similar Studios if we work hard for our clients they will
+work hard for our clients they will always remember us and point others in
+always remember us and point others in our direction
+our direction integrity is a huge part of building a
+integrity is a huge part of building a strong team be honest with your clients
+strong team be honest with your clients it's better for your brand if you don't
+it's better for your brand if you don't take a job than take the job and do it
+take a job than take the job and do it badly treat your team and clients like
+badly treat your team and clients like they are a big happy family
+they are a big happy family they will there will be ups and downs
+they will there will be ups and downs but in the end the product as well as
+but in the end the product as well as the process will represent your brand
+the process will represent your brand don't just partner your best friends
+don't just partner your best friends partner with people who are as
+partner with people who are as hard-working as you are leaving your big
+hard-working as you are leaving your big ego at the door is the first thing you
+ego at the door is the first thing you do in a partnership know whether to
+do in a partnership know whether to trust your instincts or not trust it use
+trust your instincts or not trust it use a good 10 years of your career as a
+a good 10 years of your career as a guide study decisions you've made and
+guide study decisions you've made and where they've led you but also do the
+where they've led you but also do the same for your leadership team sometimes
+same for your leadership team sometimes you have to trust in your business
+you have to trust in your business partners decision even if you disagree
+partners decision even if you disagree if a member of you of your leadership
+if a member of you of your leadership team makes the wrong call fix it learn
+team makes the wrong call fix it learn from it and move forward easier said
+from it and move forward easier said than done
+than done but it works animators can be a bunch of
+but it works animators can be a bunch of drama queens I know I'm a bigger one
+drama queens I know I'm a bigger one myself I speak their language happily
+myself I speak their language happily walking around the studio and bothering
+walking around the studio and bothering everyone means your shot is going really
+everyone means your shot is going really well
+well putting your headphones and hoodie on
+putting your headphones and hoodie on means your animation is not looking so
+means your animation is not looking so good the trick is knowing how and when
+good the trick is knowing how and when to help them sometimes you just need to
+to help them sometimes you just need to let them be other times jump in all that
+let them be other times jump in all that grumpiness will spread like the plague
+grumpiness will spread like the plague my point is know your team well with
+my point is know your team well with that respect it all falls apart too many
+that respect it all falls apart too many companies promote based on seniority
+companies promote based on seniority it's a touchy subject you want to be
+it's a touchy subject you want to be respectful and promote your senior
+respectful and promote your senior employees but how many of you have
+employees but how many of you have worked under supervisors you just didn't
+worked under supervisors you just didn't believe in promoting someone only
+believe in promoting someone only because of seniority will disrupt the
+because of seniority will disrupt the team and put a needed pressure on that
+team and put a needed pressure on that person promote based on merit and
+person promote based on merit and respect we'll follow three years ago we
+respect we'll follow three years ago we all took a big pay cut luckily being in
+all took a big pay cut luckily being in Florida we were able to survive but when
+Florida we were able to survive but when your studio finds stability make sure
+your studio finds stability make sure you re-evaluate everyone who made
+you re-evaluate everyone who made sacrifices at the very beginning or you
+sacrifices at the very beginning or you will lose the same people who helped
+will lose the same people who helped build your company have a strong
+build your company have a strong philosophy at still more studios we
+philosophy at still more studios we believe in never being scared to fail on
+believe in never being scared to fail on all said it I live by it in the past I
+all said it I live by it in the past I only had my family to worry about now we
+only had my family to worry about now we have 40 people and their families as a
+have 40 people and their families as a small studio we have to take risks but
+small studio we have to take risks but they have to be calculated risks make
+they have to be calculated risks make sure your leadership team understands
+sure your leadership team understands your company's philosophy if they do
+your company's philosophy if they do everyone else will if I tell you that
+everyone else will if I tell you that high quality of work and a family
+high quality of work and a family oriented company is our philosophy you
+oriented company is our philosophy you say that that's everyone else's model
+say that that's everyone else's model but before making any decision we ask
+but before making any decision we ask ourselves can we produce the quality of
+ourselves can we produce the quality of work that represents us and can we also
+work that represents us and can we also do it can our team also do it within the
+do it can our team also do it within the deadline we don't take a job if it's
+deadline we don't take a job if it's going to hurt our team with a lot of
+going to hurt our team with a lot of overtime well if you give me ten million
+overtime well if you give me ten million dollars to risk in pong in a week maybe
+dollars to risk in pong in a week maybe I take it in the end our team's
+I take it in the end our team's well-being and the quality of work we
+well-being and the quality of work we produce is our brand thank you very much
+produce is our brand thank you very much and next we have the lovely Al Madina
+and next we have the lovely Al Madina [Applause]
+[Applause] okay working hello my name is Thumbelina
+okay working hello my name is Thumbelina Soria and I work another dog today I
+Soria and I work another dog today I want to give some tips about motion
+want to give some tips about motion capture
+capture starting with what to do before the
+starting with what to do before the shoot often motion capture sessions are
+shoot often motion capture sessions are done externally we pay for space actors
+done externally we pay for space actors data so it is very important to plan
+data so it is very important to plan ahead of time before shooting you should
+ahead of time before shooting you should have a very clear idea of what you want
+have a very clear idea of what you want to capture and how this doesn't mean you
+to capture and how this doesn't mean you can't experiment in the stage but the
+can't experiment in the stage but the bigger decision should happen in advance
+bigger decision should happen in advance it is important that you talk to
+it is important that you talk to designers game and creative directors to
+designers game and creative directors to the excuse how the performances would be
+the excuse how the performances would be what speeds and high are required and
+what speeds and high are required and what is the tone of the scenes before
+what is the tone of the scenes before you should previous the scenes and
+you should previous the scenes and implement them in the game these will
+implement them in the game these will answer a lot of questions before the
+answer a lot of questions before the capture the more accurate the previous
+capture the more accurate the previous the better the capture would be once you
+the better the capture would be once you know what you want to capture create a
+know what you want to capture create a shortlist have different fields for all
+shortlist have different fields for all the information you need name
+the information you need name description on the move characters
+description on the move characters probes try to keep it all the
+probes try to keep it all the information in one place also try to
+information in one place also try to organize the shots so you don't have to
+organize the shots so you don't have to jump into it between them use a good
+jump into it between them use a good naming convention so you know what you
+naming convention so you know what you are capturing but just looking at the
+are capturing but just looking at the name have in mind the actors and turns
+name have in mind the actors and turns don't have them doing a Crouch moves it
+don't have them doing a Crouch moves it for five hours or a sprint right after
+for five hours or a sprint right after lunch so mix it up not only will help
+lunch so mix it up not only will help the actor well-being but also their
+the actor well-being but also their performance when shots require a build
+performance when shots require a build try to sort this in order so you don't
+try to sort this in order so you don't have to take those builds down if you're
+have to take those builds down if you're going to lead there later my next tips
+going to lead there later my next tips are related to the day of the shoot we
+are related to the day of the shoot we work in empty spaces and that makes it
+work in empty spaces and that makes it difficult to communicate what we want to
+difficult to communicate what we want to achieve to the actors so take references
+achieve to the actors so take references with you to show them things like
+with you to show them things like foolish on the game concept of the
+foolish on the game concept of the characters environments script of the
+characters environments script of the scenes and previous when given
+scenes and previous when given directions start by describing the
+directions start by describing the context and what the situation is and
+context and what the situation is and let them act when reading this book
+let them act when reading this book directing actors have learned that if it
+directing actors have learned that if it doesn't work and it's absolutely
+doesn't work and it's absolutely necessary to give some more details use
+necessary to give some more details use verbs not objectives for example don't
+verbs not objectives for example don't say something like at
+say something like at nervous instead you could say move
+nervous instead you could say move faster
+faster try to breathe heavily figure it with
+try to breathe heavily figure it with your hands I want to emphasize though
+your hands I want to emphasize though that it's very let them act instead of
+that it's very let them act instead of giving such specific directions also
+giving such specific directions also listen is what the actors have to say
+listen is what the actors have to say all the time they come up with ideas
+all the time they come up with ideas that are very very valuable have someone
+that are very very valuable have someone that is not directing the shoot taking
+that is not directing the shoot taking notes so when the data is deliver you
+notes so when the data is deliver you don't have to look through all of it to
+don't have to look through all of it to know what you like in the first place
+know what you like in the first place when capturing gameplay there are
+when capturing gameplay there are specific requirements these are speed
+specific requirements these are speed movement trajectories beginning and
+movement trajectories beginning and impulses these restrictions can make the
+impulses these restrictions can make the performances as stiff and very unnatural
+performances as stiff and very unnatural but they are necessary I like to start
+but they are necessary I like to start by not even much direction at first in a
+by not even much direction at first in a star restricting from there getting an
+star restricting from there getting an accurate data on the stage will have
+accurate data on the stage will have will save a lot of animator time you
+will save a lot of animator time you will need to find the right balance
+will need to find the right balance between the time spent at the stage and
+between the time spent at the stage and time spent spent just in the animations
+time spent spent just in the animations here are a few tricks we use for
+here are a few tricks we use for gameplay captures guide on the ground to
+gameplay captures guide on the ground to keep the actors on a straight line cones
+keep the actors on a straight line cones to measure the speed and guys to make
+to measure the speed and guys to make sure the actors end up with a correct
+sure the actors end up with a correct foot position when capturing movements
+foot position when capturing movements or scenes in parts make sure you choose
+or scenes in parts make sure you choose a good branching point match the poses
+a good branching point match the poses and momentum and make sure you have
+and momentum and make sure you have enough data so you can do a good blend
+enough data so you can do a good blend between them and finally some tips to
+between them and finally some tips to manipulate motion capture data when
+manipulate motion capture data when assembling takes together make sure you
+assembling takes together make sure you spend time on assembling face because
+spend time on assembling face because before committing to polish avoid for
+before committing to polish avoid for the sliding Bigler or pops ideally if
+the sliding Bigler or pops ideally if something was in capturing properly you
+something was in capturing properly you will recapture it but if you can't try
+will recapture it but if you can't try to do your best while working in
+to do your best while working in nonlinear editing such as tracks or time
+nonlinear editing such as tracks or time editor when the designer asks you to
+editor when the designer asks you to make an animation faster doesn't mean
+make an animation faster doesn't mean make it faster just mean make it shorter
+make it faster just mean make it shorter so instead of speeding up the animation
+so instead of speeding up the animation as a whole you could try to make just
+as a whole you could try to make just some of those parts shorter for this I
+some of those parts shorter for this I use a trick which is blending animation
+use a trick which is blending animation with itself in tracks or time editor I
+with itself in tracks or time editor I look at the original data and analyze
+look at the original data and analyze where it would be okay to collapse time
+where it would be okay to collapse time places
+places struggles long recoveries settlings are
+struggles long recoveries settlings are dissipations these methods allowed for a
+dissipations these methods allowed for a very fast iteration without losing data
+very fast iteration without losing data and it's a very very visual way and my
+and it's a very very visual way and my last steps while working on a scene use
+last steps while working on a scene use video reference from the shoot and keep
+video reference from the shoot and keep the original data so you can always
+the original data so you can always compare it to your edits and next on its
+compare it to your edits and next on its Johan alright hi okay everyone my name
+Johan alright hi okay everyone my name is Johan currently a principal animator
+is Johan currently a principal animator at Riot Games working on League of
+at Riot Games working on League of Legends I first got into animation by
+Legends I first got into animation by taking a 2d animation course and many of
+taking a 2d animation course and many of the ways I approach my authoring my 3d
+the ways I approach my authoring my 3d animations and problem solving is still
+animations and problem solving is still from a very 2d perspective these next
+from a very 2d perspective these next tips or I should really say my habits
+tips or I should really say my habits are things I noticed myself doing on a
+are things I noticed myself doing on a day to day basis so here we go trick
+day to day basis so here we go trick number one draw on your monitor I use a
+number one draw on your monitor I use a dry erase marker to dry over my
+dry erase marker to dry over my animation as a way of tracking what I've
+animation as a way of tracking what I've done so far or to plan what I want to do
+done so far or to plan what I want to do next here's what you need dry erase
+next here's what you need dry erase markers whiteboard cleaner cleaner
+markers whiteboard cleaner cleaner refill microfiber cloth and I just want
+refill microfiber cloth and I just want to say haven't ruined in any monitors so
+to say haven't ruined in any monitors so far and but I work on Dell monitors I
+far and but I work on Dell monitors I don't know about Apple ones they use
+don't know about Apple ones they use special coatings I don't know so use
+special coatings I don't know so use discretion here are a few things you can
+discretion here are a few things you can do with the marker well we can create a
+do with the marker well we can create a line of action idea to pose and
+line of action idea to pose and basically you can rough in your pose and
+basically you can rough in your pose and line up the character to the drawing so
+line up the character to the drawing so it's fun another thing we can do keep
+it's fun another thing we can do keep track of contact points like foot
+track of contact points like foot contact and hand placement you basically
+contact and hand placement you basically mark the point and you slide your post
+mark the point and you slide your post back in place it's really great way of
+back in place it's really great way of tracking swings and arcs by dotting the
+tracking swings and arcs by dotting the keyframes and connecting the dots you
+keyframes and connecting the dots you can visualize the path this also lets us
+can visualize the path this also lets us visualize timing by tracking the spacing
+visualize timing by tracking the spacing between the poses we can see how fast or
+between the poses we can see how fast or slow something is moving which kind of
+slow something is moving which kind of leads me to my next tip that's a tip
+leads me to my next tip that's a tip number two use evenly spaced keyframes
+number two use evenly spaced keyframes and so what do I mean by that when doing
+and so what do I mean by that when doing this I set keys along even intervals I
+this I set keys along even intervals I like in this case every three frames
+like in this case every three frames and delete anything in between and I
+and delete anything in between and I should emphasize is usually for a small
+should emphasize is usually for a small range like a swing or an attack and why
+range like a swing or an attack and why is this useful well it lets you
+is this useful well it lets you visualize your timing in your animation
+visualize your timing in your animation when jumping between your keyframes I
+when jumping between your keyframes I mean I try to explain using this
+mean I try to explain using this movement here you can see the object is
+movement here you can see the object is accelerating in the beginning of slowing
+accelerating in the beginning of slowing down near the end and I'm gonna show the
+down near the end and I'm gonna show the keyframes in that movement you can see
+keyframes in that movement you can see all that you can see how different the
+all that you can see how different the spacing is at the bottom and let's just
+spacing is at the bottom and let's just say we were to key evenly for the same
+say we were to key evenly for the same move in like every four frames and I
+move in like every four frames and I want to compare these to it and show you
+want to compare these to it and show you how we can actually see the time timing
+how we can actually see the time timing visualized and looking at the spacing of
+visualized and looking at the spacing of the non-uniform poses I have no idea
+the non-uniform poses I have no idea what the speed is like because there's
+what the speed is like because there's no constant where the keyframes exist in
+no constant where the keyframes exist in time looking at the example on the right
+time looking at the example on the right we know each poses four frames apart and
+we know each poses four frames apart and then when looking at the poses now we
+then when looking at the poses now we can clearly see that the ball is moving
+can clearly see that the ball is moving slowly in the beginning zips across in
+slowly in the beginning zips across in the middle slows down near the end I
+the middle slows down near the end I hope that my last tip orthographic views
+hope that my last tip orthographic views use orthographic cues I'm not sure I
+use orthographic cues I'm not sure I mean I'm sure you guys already do this
+mean I'm sure you guys already do this but I just want to emphasize how
+but I just want to emphasize how important it is especially when you
+important it is especially when you working on 3d games where your animation
+working on 3d games where your animation will be shown from multiple angles and
+will be shown from multiple angles and by no means are these views accurate
+by no means are these views accurate representations of the final animation
+representations of the final animation what what they would look like but it's
+what what they would look like but it's a really good way of gut checking your
+a really good way of gut checking your work by eliminating depth it can help
+work by eliminating depth it can help reveal posing mistakes and other flaws
+reveal posing mistakes and other flaws in your animation here's an example of a
+in your animation here's an example of a pose that looks okay in perspective view
+pose that looks okay in perspective view and look at it from front view and we
+and look at it from front view and we can see that the pose is off balance an
+can see that the pose is off balance an orthographic view is really easy to
+orthographic view is really easy to correct this post so let's let's do it
+correct this post so let's let's do it there we go
+there we go orthographic cameras can also be used
+orthographic cameras can also be used for tracking movement here's an example
+for tracking movement here's an example of a character flying through space the
+of a character flying through space the animation is shown in normal perspective
+animation is shown in normal perspective here it is from front and side
+here it is from front and side orthographic views and this is a really
+orthographic views and this is a really useful useful way of tracking arcs and I
+useful useful way of tracking arcs and I can worry about making changes a
+can worry about making changes a dimension at a time I can track gravity
+dimension at a time I can track gravity as well by looking at the vertical
+as well by looking at the vertical spacing between the keys you can also
+spacing between the keys you can also track them up top see to see if he's
+track them up top see to see if he's moving in a straight line and
+moving in a straight line and and generally I found that overall if
+and generally I found that overall if you can make your movement look pretty
+you can make your movement look pretty decent inside front view and sometimes
+decent inside front view and sometimes top it'll generally look good in most
+top it'll generally look good in most angles and you know and I found myself
+angles and you know and I found myself in the beginning not using orthographic
+in the beginning not using orthographic cameras due to how inconvenient the
+cameras due to how inconvenient the interface was maybe it was because it
+interface was maybe it was because it took too many clicks I then I've since
+took too many clicks I then I've since created myself hotkeys to quickly switch
+created myself hotkeys to quickly switch between two different viewports so and
+between two different viewports so and you know definitely something I use
+you know definitely something I use every day and I'll include a link to the
+every day and I'll include a link to the scripts and hotkeys at the end of this
+scripts and hotkeys at the end of this so let's see to summarize what I just
+so let's see to summarize what I just rambled about draw on your monitor using
+rambled about draw on your monitor using dry erase markers use evenly spaced
+dry erase markers use evenly spaced keyframes use orthographic cameras and
+keyframes use orthographic cameras and if you wish follow this link and should
+if you wish follow this link and should take you to my scripts thanks for your
+take you to my scripts thanks for your time
+time and next up talented caller okay hi my
+and next up talented caller okay hi my name is Kyle Chittenden I work at a
+name is Kyle Chittenden I work at a certain affinity and today I will be
+certain affinity and today I will be talking to you about animation tests
+talking to you about animation tests animation tests we all do them we all
+animation tests we all do them we all lose countless hours of sleep doing them
+lose countless hours of sleep doing them and at the end of the test we all feel
+and at the end of the test we all feel like we needed more time and it could
+like we needed more time and it could have been so much more but we go to bed
+have been so much more but we go to bed fairly happy with our completed
+fairly happy with our completed animation until we wake up literally
+animation until we wake up literally three days later and come to fool
+three days later and come to fool ourselves into thinking that what we've
+ourselves into thinking that what we've just submitted was utter trash so if
+just submitted was utter trash so if you're a student looking for a job an
+you're a student looking for a job an employee looking for a new work or
+employee looking for a new work or someone who just got laid off and this
+someone who just got laid off and this may be looking for their next step
+may be looking for their next step listen up because I've been where you've
+listen up because I've been where you've been and through it all I've learned
+been and through it all I've learned some important things so here are my
+some important things so here are my animation tips and tricks that have
+animation tips and tricks that have helped me out through the painful
+helped me out through the painful moments of animation desks
+moments of animation desks pre-production pre-production is like
+pre-production pre-production is like your best friend an adorable pet and a
+your best friend an adorable pet and a pint of ice cream all combined into one
+pint of ice cream all combined into one delicious palico companion I urge you to
+delicious palico companion I urge you to take a good chunk of your time for a
+take a good chunk of your time for a pre-production in searching for
+pre-production in searching for references relevant to what you're
+references relevant to what you're animating don't know where to look for
+animating don't know where to look for references well I've got good news for
+references well I've got good news for you you can start you can basically look
+you you can start you can basically look anywhere games movies novels comics
+anywhere games movies novels comics videos of you doing actions indoors
+videos of you doing actions indoors outdoors honestly you can put your dog
+outdoors honestly you can put your dog in a mocap suit and film him anything to
+in a mocap suit and film him anything to make sure that you have the best
+make sure that you have the best animation background possible to what
+animation background possible to what the test entails now also while you're
+the test entails now also while you're doing this be sure to come up with a
+doing this be sure to come up with a background bio for your character if
+background bio for your character if they don't
+they don't we have one this will help you a ton in
+we have one this will help you a ton in knowing how they interact with their
+knowing how they interact with their environment ask questions like what are
+environment ask questions like what are their motivations what are their
+their motivations what are their strengths and weaknesses what are their
+strengths and weaknesses what are their current views on net neutrality and the
+current views on net neutrality and the authorities that govern it the deeper
+authorities that govern it the deeper you delve into the characters background
+you delve into the characters background the more you can give them a unique
+the more you can give them a unique personality and an animation test that
+personality and an animation test that defines who they are second tip double
+defines who they are second tip double hugging controllers to avoid gimbal lock
+hugging controllers to avoid gimbal lock all right so if you're an animator like
+all right so if you're an animator like me than you love doing animations full
+me than you love doing animations full of flips and spins however if you're
+of flips and spins however if you're only using one controller to do this
+only using one controller to do this then you might notice something a little
+then you might notice something a little bit unnatural and this is because of
+bit unnatural and this is because of gimbal lock which gives priority to an
+gimbal lock which gives priority to an ACCI while rotating an object if you're
+ACCI while rotating an object if you're having gimbal lock issues during flips
+having gimbal lock issues during flips and spins and you can't send it back to
+and spins and you can't send it back to a rigger to fix it such as during an
+a rigger to fix it such as during an animation test well then you might want
+animation test well then you might want to try out the simple trick create a new
+to try out the simple trick create a new new circle and scale it so you can
+new circle and scale it so you can easily see it around your character then
+easily see it around your character then parent the original master controller to
+parent the original master controller to the new controller you just created use
+the new controller you just created use one controller for all the flips and the
+one controller for all the flips and the other controller for all the spins
+other controller for all the spins because you're dedicating each
+because you're dedicating each controller to rotate in only one
+controller to rotate in only one direction the unblocked shouldn't be a
+direction the unblocked shouldn't be a problem anymore
+problem anymore and you can go about making your sweet
+and you can go about making your sweet animation 3 use reactive objects to
+animation 3 use reactive objects to clarify animations ok so a test entails
+clarify animations ok so a test entails that you have a two-prong combo attack
+that you have a two-prong combo attack but you're not really sure if everybody
+but you're not really sure if everybody is able to see the second done tackle
+is able to see the second done tackle and well the first thing you want to
+and well the first thing you want to make sure of is that you clearly portray
+make sure of is that you clearly portray that second attack landing however if
+that second attack landing however if you're still a little bit paranoid then
+you're still a little bit paranoid then it doesn't hurt to add a static mesh
+it doesn't hurt to add a static mesh that reacts to the character's attacks
+that reacts to the character's attacks so go ahead and make a mesh and have it
+so go ahead and make a mesh and have it representing the enemy it doesn't need
+representing the enemy it doesn't need any crazy animation just make sure that
+any crazy animation just make sure that you give it a representation of weight
+you give it a representation of weight this is cool also because depending on
+this is cool also because depending on how much weight you give it can show how
+how much weight you give it can show how much power each attack has when it lands
+much power each attack has when it lands lastly play blasting animation to send
+lastly play blasting animation to send it into the company noting that the mesh
+it into the company noting that the mesh is there as a representation of the
+is there as a representation of the enemy this lessens your anxiety and
+enemy this lessens your anxiety and shows that you were thinking of how to
+shows that you were thinking of how to do the attack with an enemy in mind the
+do the attack with an enemy in mind the whole time for twinning the correct way
+whole time for twinning the correct way no I'm not talking about twins here I'm
+no I'm not talking about twins here I'm talking about when two objects move in
+talking about when two objects move in parallel at the same time Thank You mr.
+parallel at the same time Thank You mr. Obama for demonstrating if you're an
+Obama for demonstrating if you're an animator new or old then you've probably
+animator new or old then you've probably heard that twinning is bad however I'm
+heard that twinning is bad however I'm here to tell you it isn't as long as you
+here to tell you it isn't as long as you do it correctly
+do it correctly Tim rudder goes into this concept more
+Tim rudder goes into this concept more in-depth but let me reiterate that if
+in-depth but let me reiterate that if you're twinning that's okay just make
+you're twinning that's okay just make sure that you're breaking up the
+sure that you're breaking up the animation to account for it space your
+animation to account for it space your timing so that the poses land at
+timing so that the poses land at separate times lead the motions in two
+separate times lead the motions in two different directions
+different directions offset one part of the body so that
+offset one part of the body so that makes the character a less symmetrical
+makes the character a less symmetrical avoid consecutive twinning poses
+avoid consecutive twinning poses throughout the shot and be intentional
+throughout the shot and be intentional with your movements many successful
+with your movements many successful games and animations and movies have
+games and animations and movies have done this successfully so you'll be in
+done this successfully so you'll be in good hands when you're trying it out for
+good hands when you're trying it out for yourself and also and lastly don't
+yourself and also and lastly don't commit until you're ready
+commit until you're ready this isn't marriage advice this is
+this isn't marriage advice this is advice on when you should start a test
+advice on when you should start a test if you're currently in the middle of
+if you're currently in the middle of finals week if you're crunching at work
+finals week if you're crunching at work or if things just feel a little bit more
+or if things just feel a little bit more hectic than usual don't start an
+hectic than usual don't start an animation test companies will often send
+animation test companies will often send you a test and give you an allotted
+you a test and give you an allotted amount of time to do it however they're
+amount of time to do it however they're usually pretty flexible about when you
+usually pretty flexible about when you can start the test itself take them up
+can start the test itself take them up on their offer and don't be afraid to
+on their offer and don't be afraid to say that you'd like to start the test a
+say that you'd like to start the test a few days down the road also if there are
+few days down the road also if there are other candidates trying to take the test
+other candidates trying to take the test the same time as you they're not gonna
+the same time as you they're not gonna pass you up in line as long as your
+pass you up in line as long as your animation is good that's what matters
+animation is good that's what matters and the only way you can make the
+and the only way you can make the animation the best it can be is if you
+animation the best it can be is if you have the time to commit to it fully and
+have the time to commit to it fully and that's my talk hopefully hopefully these
+that's my talk hopefully hopefully these tips will help you as they have helped
+tips will help you as they have helped me and if you didn't like it and you
+me and if you didn't like it and you fell asleep throughout the presentation
+fell asleep throughout the presentation well then hopefully at least assisted
+well then hopefully at least assisted you in a 5 minute now alright lastly is
+you in a 5 minute now alright lastly is Gwen Frey there is one rule alright my
+Gwen Frey there is one rule alright my name is Gwen I am a technical animator I
+name is Gwen I am a technical animator I am a studio founder for the molasses
+am a studio founder for the molasses flood and I'm the sole animator there
+flood and I'm the sole animator there I'm gonna showcase tips and tricks I
+I'm gonna showcase tips and tricks I used while working on this character
+used while working on this character scout she's a prototype character we had
+scout she's a prototype character we had in game or she's just a prototype
+in game or she's just a prototype character we had when I started out with
+character we had when I started out with her I wanted to make a character they
+her I wanted to make a character they had absolutely no transition animations
+had absolutely no transition animations at all a transition animation is an
+at all a transition animation is an animation takes you from one loop like a
+animation takes you from one loop like a run or a walk to another loop like an
+run or a walk to another loop like an idol it tends to slow down your
+idol it tends to slow down your iteration because you have to update it
+iteration because you have to update it every time you update either loop
+every time you update either loop instead for her she is for animations
+instead for her she is for animations total for her locomotion an idol a run a
+total for her locomotion an idol a run a walk and a kind of hard stop animation
+walk and a kind of hard stop animation if you look at this video you'll see
+if you look at this video you'll see that the moment Scout stops moving the
+that the moment Scout stops moving the foot she has planted on the ground still
+foot she has planted on the ground still stays in the ground the foot that's in
+stays in the ground the foot that's in the air plants and she'll shift her
+the air plants and she'll shift her weight onto the newly planted foot and
+weight onto the newly planted foot and then slide the foot that's on the ground
+then slide the foot that's on the ground to match where it needs to be for the
+to match where it needs to be for the idle location the way I did this is I
+idle location the way I did this is I made to float tracks in the walk in the
+made to float tracks in the walk in the run
+run cycles there each float one float track
+cycles there each float one float track is for the left foot and one is for the
+is for the left foot and one is for the right foot and they'll blend from one
+right foot and they'll blend from one when the foot is planted on the ground
+when the foot is planted on the ground to zero when the foot is in the air
+to zero when the foot is in the air whenever the Scout stops moving I freeze
+whenever the Scout stops moving I freeze her locomotion animation and I can query
+her locomotion animation and I can query these two tracks to see if a foot is
+these two tracks to see if a foot is planted on the ground or not I also
+planted on the ground or not I also added a remain planted float track to
+added a remain planted float track to the hard stop animation this track is
+the hard stop animation this track is one for the first half of the animation
+one for the first half of the animation and blends to zero over the time I
+and blends to zero over the time I wanted to move her planted foot to the
+wanted to move her planted foot to the idle location now all I have to do is
+idle location now all I have to do is multiply that is planted float track for
+multiply that is planted float track for each foot by the remain planted track
+each foot by the remain planted track and the hard stop animation and I can
+and the hard stop animation and I can use that to drive the blend for the eye
+use that to drive the blend for the eye kate argot bones I just said I'm using
+kate argot bones I just said I'm using AI K target bones let's talk about I
+AI K target bones let's talk about I okay you this strategy requires that I
+okay you this strategy requires that I have I came running on my character at
+have I came running on my character at all times this is pretty typical for me
+all times this is pretty typical for me and I tend to setup by K in a similar
+and I tend to setup by K in a similar fashion for all of my characters I have
+fashion for all of my characters I have bones in the rig for the leg I hate
+bones in the rig for the leg I hate targets these bones are constrained to
+targets these bones are constrained to the ankle bones but parented under the
+the ankle bones but parented under the root of the character since these are in
+root of the character since these are in the rig they're automatically exported
+the rig they're automatically exported for every animation I make so anytime in
+for every animation I make so anytime in engine I need to figure out where the
+engine I need to figure out where the feet should be in route relative space I
+feet should be in route relative space I can just query the location of these
+can just query the location of these bones I also have bones parented under
+bones I also have bones parented under the pole vectors for the leg I K I
+the pole vectors for the leg I K I figure we're as animators we're already
+figure we're as animators we're already managing the pole vector we might as
+managing the pole vector we might as well bring that information into the
+well bring that information into the game into the engine and use that to
+game into the engine and use that to drive our pole vectors for the in-game I
+drive our pole vectors for the in-game I K as well I use that K for run stuff but
+K as well I use that K for run stuff but I use it for all kinds of other things
+I use it for all kinds of other things as well here I'm using it to make a
+as well here I'm using it to make a quick and dirty kind of slope variation
+quick and dirty kind of slope variation for all of our locomotion all I did here
+for all of our locomotion all I did here was I took the I Kate argot bones
+was I took the I Kate argot bones parented them under a world orientation
+parented them under a world orientation bone and every tick I cast a ray down to
+bone and every tick I cast a ray down to the world and find the normal angle of
+the world and find the normal angle of the world to set the orientation of this
+the world to set the orientation of this bone this will obviously orient the eye
+bone this will obviously orient the eye K this will orient the eye cave feet to
+K this will orient the eye cave feet to the ground
+the ground you'll notice if you're watching here
+you'll notice if you're watching here very carefully that s her feet
+very carefully that s her feet approached the ground they blend into
+approached the ground they blend into the eye K and they blend out whenever
+the eye K and they blend out whenever she takes her feet off of the ground
+she takes her feet off of the ground also whenever she's jumping for instance
+also whenever she's jumping for instance in game AI k will turn off guess I'm
+in game AI k will turn off guess I'm doing that I'm exporting that from Maya
+doing that I'm exporting that from Maya as well so I actually export the blend
+as well so I actually export the blend between AI K and F K in Maya and I have
+between AI K and F K in Maya and I have that float track drive the in game I K
+that float track drive the in game I K in engine what this means is I when I'm
+in engine what this means is I when I'm animating something like this jump
+animating something like this jump I'm thinking and as I blend from FK to
+I'm thinking and as I blend from FK to Ike a that her feet in I came might be
+Ike a that her feet in I came might be slightly manipulated by slope variation
+slightly manipulated by slope variation or something else in game I just keep
+or something else in game I just keep that in mind as I animate speaking of
+that in mind as I animate speaking of jumps for a traditional jump you have a
+jumps for a traditional jump you have a looping fall animation and then you kind
+looping fall animation and then you kind of hit the ground and you blend really
+of hit the ground and you blend really quickly into this landing animation you
+quickly into this landing animation you don't have a lot of frames to play with
+don't have a lot of frames to play with if you do that you can't really give the
+if you do that you can't really give the character a lot of weight I generally
+character a lot of weight I generally think this kind of looks bad
+think this kind of looks bad I saw a talk that Lauren did for Paragon
+I saw a talk that Lauren did for Paragon and I kind of stole his idea instead I
+and I kind of stole his idea instead I animate the land from a much higher
+animate the land from a much higher point off of the ground and I ever feet
+point off of the ground and I ever feet reach through the collision cylinder and
+reach through the collision cylinder and touch the ground before she actually
+touch the ground before she actually hits makes contact with the ground I
+hits makes contact with the ground I don't actually play this animation what
+don't actually play this animation what I do is I query the distance she is from
+I do is I query the distance she is from the ground and I use that to select a
+the ground and I use that to select a frame of this animation so to reiterate
+frame of this animation so to reiterate that was that animation happened
+that was that animation happened it started with her a hundred units off
+it started with her a hundred units off of the ground so an engine what I'm
+of the ground so an engine what I'm doing is I'm detecting how far she's off
+doing is I'm detecting how far she's off up the ground buying that by a hundred
+up the ground buying that by a hundred and playing the frame there's that
+and playing the frame there's that percentage through the animation this
+percentage through the animation this animation does not play I am selecting a
+animation does not play I am selecting a frame of the animation based on an input
+frame of the animation based on an input variable which is in this case the
+variable which is in this case the distance from the ground this is
+distance from the ground this is important because like say she could be
+important because like say she could be falling at different velocities they
+falling at different velocities they could manipulate the arcs it doesn't
+could manipulate the arcs it doesn't matter what the designer does because
+matter what the designer does because the animation is data driven her feet
+the animation is data driven her feet will never penetrate through the ground
+will never penetrate through the ground I use this concept for all kinds of
+I use this concept for all kinds of things for instance I just like how turn
+things for instance I just like how turn in place animations are usually set up
+in place animations are usually set up it's usually a lot of different football
+it's usually a lot of different football animations butting together in some kind
+animations butting together in some kind of hot mess instead of that what I did
+of hot mess instead of that what I did for her was I made one turn in place
+for her was I made one turn in place animation that turns her 360 degrees and
+animation that turns her 360 degrees and I queried the worldspace orientation of
+I queried the worldspace orientation of scout at all times and I used that
+scout at all times and I used that orientation to drive the frame that I'm
+orientation to drive the frame that I'm selecting of this animation so for
+selecting of this animation so for instance as she's turning as she's
+instance as she's turning as she's turning and the engine to text that
+turning and the engine to text that she's turning left or right this
+she's turning left or right this animation will play forwards or
+animation will play forwards or backwards I'm constantly selecting a
+backwards I'm constantly selecting a frame of this animation based on her
+frame of this animation based on her world space orientation well you're
+world space orientation well you're seeing right here is actually only three
+seeing right here is actually only three animations one where she's has her feet
+animations one where she's has her feet moving when were an identical animation
+moving when were an identical animation to that that just has her feet planted
+to that that just has her feet planted on the ground that I blend to anytime
+on the ground that I blend to anytime the world orientation is not changing
+the world orientation is not changing and then an additive Idol that plays
+and then an additive Idol that plays over the whole set up so with three
+over the whole set up so with three animations I can actually make a pretty
+animations I can actually make a pretty decent turn in place all right this has
+decent turn in place all right this has been tricks of the trade you may know
+been tricks of the trade you may know everybody stand up
+thank you we have we hit it perfectly and have no time for questions have a
+and have no time for questions have a wonderful day

@@ -1,0 +1,1244 @@
+[Music] so I'm going to be talking about maths
+so I'm going to be talking about maths um and it's maths the like you know you
+um and it's maths the like you know you do your GDC talk and you put it in and I
+do your GDC talk and you put it in and I had one piece of feedback and that piece
+had one piece of feedback and that piece of feedback was that I had a typo that
+of feedback was that I had a typo that it's math and it's like it's not
+it's math and it's like it's not math there are multiple types of math
+math there are multiple types of math it's math you know um so what I want to
+it's math you know um so what I want to talk about is this thing that I worked
+talk about is this thing that I worked on uh a you ified method of noise
+on uh a you ified method of noise generation right so uh
+generation right so uh firstly I'm going to talk
+firstly I'm going to talk about some of the problems that we had
+about some of the problems that we had to solve making no man sky so I'm going
+to solve making no man sky so I'm going to give you a little bit of History
+to give you a little bit of History first um and that's because we were a
+first um and that's because we were a super small team and we had this problem
+super small team and we had this problem to solve which is that we made kind of
+to solve which is that we made kind of one of the most played games of last
+one of the most played games of last year um with just this really tiny team
+year um with just this really tiny team and so that brought this whole set of
+and so that brought this whole set of weird problems right um secondly I'm
+weird problems right um secondly I'm going to talk about one of our solutions
+going to talk about one of our solutions to that problem like just kind of one
+to that problem like just kind of one specific small part of that um which is
+specific small part of that um which is a way a new way of kind of generating
+a way a new way of kind of generating noise uh that I worked on um and the
+noise uh that I worked on um and the reason that I've flown in because I want
+reason that I've flown in because I want to talk about it is cuz I hope that
+to talk about it is cuz I hope that other people build on it and I hope you
+other people build on it and I hope you know uh I hope that that is useful to
+know uh I hope that that is useful to people and I would love to see more in
+people and I would love to see more in terms of procedural generation more in
+terms of procedural generation more in games um and that's the third thing I
+games um and that's the third thing I want to talk about is I've got thoughts
+want to talk about is I've got thoughts on where I think procedural generation
+on where I think procedural generation could go with the future and where we at
+could go with the future and where we at Hell games would love to go with
+Hell games would love to go with it but first some history so I started
+it but first some history so I started out at Criterion uh which is now EA like
+out at Criterion uh which is now EA like got bought by EA um and and I sat down
+got bought by EA um and and I sat down to write this and I realized like to
+to write this and I realized like to write a little bit of history about me I
+write a little bit of history about me I realized I'm really old I'm so old now
+realized I'm really old I'm so old now like I don't know what happens to Old
+like I don't know what happens to Old programmers like as in you don't
+programmers like as in you don't generally see them but I'm I I presume
+generally see them but I'm I I presume I'm about to find out right like I think
+I'm about to find out right like I think I think they come for you in the night I
+I think they come for you in the night I don't know something happens you get
+don't know something happens you get disappeared but I'm near that time now
+disappeared but I'm near that time now right because I started digging out some
+right because I started digging out some of this so I worked at Criterion and
+of this so I worked at Criterion and Criterion
+Criterion maybe not so much maybe not as much now
+maybe not so much maybe not as much now but at the time was kind of becoming
+but at the time was kind of becoming known for for engine and kind of Cutting
+known for for engine and kind of Cutting Edge Tech and stuff like that and
+Edge Tech and stuff like that and there's a reason why I want to explain
+there's a reason why I want to explain this um so like I started out there at
+this um so like I started out there at 21 um as like a junior programmer and I
+21 um as like a junior programmer and I left when I was 25 and I had done stuff
+left when I was 25 and I had done stuff like engine coding engine leads Tech
+like engine coding engine leads Tech director stuff like that uh various
+director stuff like that uh various different places on various different
+different places on various different games
+games um and
+um and the reason I discovered that I'm old is
+the reason I discovered that I'm old is because the first quote about renderware
+because the first quote about renderware when they say next Generation Graphics
+when they say next Generation Graphics they're talking about PS2 so that's how
+they're talking about PS2 so that's how old I am I'm like they're coming for me
+old I am I'm like they're coming for me soon um and where they talk about black
+soon um and where they talk about black a Next Generation uh engine on current
+a Next Generation uh engine on current generation Hardware uh that was an
+generation Hardware uh that was an engine that I was engine lead on and
+engine that I was engine lead on and something I worked on a lot um and that
+something I worked on a lot um and that was PS3 like was Next Generation then
+was PS3 like was Next Generation then just you know I'm like one of those old
+just you know I'm like one of those old fights that talks about the Spectrum all
+fights that talks about the Spectrum all the time um so uh so I worked there I
+the time um so uh so I worked there I actually worked on a whole load of math
+actually worked on a whole load of math stuff so I didn't work on renderware but
+stuff so I didn't work on renderware but I ended up writing like this math
+I ended up writing like this math library that ended up getting used in
+library that ended up getting used in renderware which was in like games that
+renderware which was in like games that you might have played like GTA and Call
+you might have played like GTA and Call of Duty in Battlefield and stuff like
+of Duty in Battlefield and stuff like that and you'll know this because I did
+that and you'll know this because I did the I optimized the animation code and
+the I optimized the animation code and it's got a bug in it and I saw it in so
+it's got a bug in it and I saw it in so many games and it was horrible you would
+many games and it was horrible you would see arms pop inside out and if you saw
+see arms pop inside out and if you saw that then you would you know that was me
+that then you would you know that was me that's my mark
+right um so the reason I'm explaining this is cu I think
+this is cu I think engines really dictate design decisions
+engines really dictate design decisions and that's almost your first decision
+and that's almost your first decision your first design decision on any game
+your first design decision on any game is what engine you're using and that
+is what engine you're using and that loads of things Cascade from that right
+loads of things Cascade from that right and like I said there before somebody
+and like I said there before somebody lynches me like it's totally fine if you
+lynches me like it's totally fine if you use unreal or Unity or whatever it's
+use unreal or Unity or whatever it's just not something I have ever done
+just not something I have ever done really um like I think they're great and
+really um like I think they're great and stuff but before starting no man Sky
+stuff but before starting no man Sky when I sat down to write the first lines
+when I sat down to write the first lines of code the previous seven years every
+of code the previous seven years every single year of those seven years I had
+single year of those seven years I had been part of writing a new engine from
+been part of writing a new engine from scratch so I had done that like seven
+scratch so I had done that like seven times across seven different games um
+times across seven different games um and
+and like uh it begins to get a bit boring um
+like uh it begins to get a bit boring um and you're solving the same problems all
+and you're solving the same problems all the time um and so I guess I wanted to
+the time um and so I guess I wanted to do something a bit new right
+do something a bit new right um so no man Sky started as a hobby it
+um so no man Sky started as a hobby it was like a hobby project it sort of
+was like a hobby project it sort of still is for me um I had I love riding
+still is for me um I had I love riding engines and I think it's a real craft
+engines and I think it's a real craft and I would hate to see it die out and I
+and I would hate to see it die out and I would hate to see us all use unreal um
+would hate to see us all use unreal um you know because I
+you know because I think like almost every new genre when
+think like almost every new genre when you think of any new genre it was
+you think of any new genre it was created in a new engine right like when
+created in a new engine right like when you think of Doom and things like that
+you think of Doom and things like that you know um I we need the zombie
+you know um I we need the zombie apocalypse is going to come and then who
+apocalypse is going to come and then who is going to ride our engines right
+is going to ride our engines right somebody needs to remember had to do
+somebody needs to remember had to do that so I think it's a really cool thing
+that so I think it's a really cool thing and I could never not see doing that but
+and I could never not see doing that but it was starting to get boring and we
+it was starting to get boring and we have gravitated towards a certain place
+have gravitated towards a certain place in games where things are
+in games where things are are quite iterative you know like you
+are quite iterative you know like you look at if anyone watches like looks at
+look at if anyone watches like looks at digital Foundry or something like that
+digital Foundry or something like that and they zoom in on images you know
+and they zoom in on images you know comparing two games and they're
+comparing two games and they're comparing literally pixels and between
+comparing literally pixels and between one engine and another you know terms of
+one engine and another you know terms of like the anti-aliasing method so I just
+like the anti-aliasing method so I just wanted to sit down and write something
+wanted to sit down and write something completely different um mainly selfishly
+completely different um mainly selfishly because I just thought of the things
+because I just thought of the things that I wanted to learn about and then I
+that I wanted to learn about and then I started to ride an engine that had those
+started to ride an engine that had those things in I guess um and that was fun
+things in I guess um and that was fun like that was really fun um and really
+like that was really fun um and really fun period of my life where every
+fun period of my life where every evening and weekend I was coming home
+evening and weekend I was coming home from coding all day and I would go and I
+from coding all day and I would go and I would write my little engine and that
+would write my little engine and that was really fun um
+was really fun um then then we showed it um we showed the
+then then we showed it um we showed the first trailer and from then on it was
+first trailer and from then on it was like it was like we were building a
+like it was like we were building a rocket ship on the way up like to the
+rocket ship on the way up like to the sun being fired into the sun with like
+sun being fired into the sun with like the skin burning from our faces right it
+the skin burning from our faces right it was like it was a bit of a roller
+was like it was a bit of a roller coaster ride from then on but at the
+coaster ride from then on but at the start it was it was genuinely just a
+start it was it was genuinely just a hobby and and something was super
+hobby and and something was super enjoyable
+and so it was something new right and that's a thing that's easy to forget
+that's a thing that's easy to forget when you're playing it is
+when you're playing it is that if you are playing no man's Sky
+that if you are playing no man's Sky then you're getting an experience you
+then you're getting an experience you kind of can't have anywhere else right
+kind of can't have anywhere else right like don't get me wrong I'm super
+like don't get me wrong I'm super excited that this area is being explored
+excited that this area is being explored now and that you have Star Citizen and
+now and that you have Star Citizen and Elite and Astron I help loads of other
+Elite and Astron I help loads of other games who are doing things in this area
+games who are doing things in this area and solving similar types of problems
+and solving similar types of problems but at the time as we were going through
+but at the time as we were going through it we were going through it reasonably
+it we were going through it reasonably on our own without a a reference point
+on our own without a a reference point um and it was super technically
+um and it was super technically challenging and that makes it super
+challenging and that makes it super interesting um you know and I
+interesting um you know and I think that's like selfishly as an engine
+think that's like selfishly as an engine programmer that's fun like there's
+programmer that's fun like there's interesting problems there and I had
+interesting problems there and I had kind of lost that a
+bit so actually if I just
+so actually if I just take some examples of what I mean by
+take some examples of what I mean by that or just even one little example
+that or just even one little example right um like when you're working in no
+right um like when you're working in no man's Sky when you're working in the
+man's Sky when you're working in the engine uh like one you were never within
+engine uh like one you were never within floating Point accuracy right you were
+floating Point accuracy right you were always outside the bounds what the the
+always outside the bounds what the the computer is actually able to compute
+computer is actually able to compute compute and understand your Y is no
+compute and understand your Y is no longer up which is way more is way more
+longer up which is way more is way more difficult than what you realize and I'll
+difficult than what you realize and I'll try and get into that
+try and get into that um nothing can be pre-baked nothing can
+um nothing can be pre-baked nothing can be
+be pre-calculated like every solution to
+pre-calculated like every solution to even the smallest problems is really
+even the smallest problems is really unique uh and I find that quite
+unique uh and I find that quite interesting like really simple example
+interesting like really simple example okay if you are in any normal game any
+okay if you are in any normal game any normal game um and you want to put like
+normal game um and you want to put like a little marker over the top of a
+a little marker over the top of a building um then that's really simple
+building um then that's really simple you just get the building get its
+you just get the building get its position and put the marker there right
+position and put the marker there right like that is an easy problem uh in no
+like that is an easy problem uh in no man's Sky you go to get the building um
+man's Sky you go to get the building um and let's say the building is on the
+and let's say the building is on the same Planet as you uh which is one
+same Planet as you uh which is one problem but let's say the buildings are
+problem but let's say the buildings are the same Planet as you it you have to
+the same Planet as you it you have to account for the curvature of that planet
+account for the curvature of that planet that building might be directly
+that building might be directly underneath you or it might be you know
+underneath you or it might be you know on the other side of the planet so now
+on the other side of the planet so now you're going to have to cast that marker
+you're going to have to cast that marker up onto the Horizon of where you stood
+up onto the Horizon of where you stood uh so to do that you remember that your
+uh so to do that you remember that your y isn't up anymore so you're going to
+y isn't up anymore so you're going to have to calculate the tangent and B
+have to calculate the tangent and B tangent you're going to have to think
+tangent you're going to have to think about how close you are to the pole um
+about how close you are to the pole um you're going to have to bring that
+you're going to have to bring that marker up so that's okay that's not too
+marker up so that's okay that's not too bad but maybe it's on another planet
+bad but maybe it's on another planet right and maybe it's on the back of that
+right and maybe it's on the back of that planet so now you've got to cast that
+planet so now you've got to cast that round to the side of that planet um so
+round to the side of that planet um so that's little bit tricky but then there
+that's little bit tricky but then there could be another planet between you and
+could be another planet between you and that planet so you got to bring it
+that planet so you got to bring it around the side of that one
+around the side of that one but then both of those planets might be
+but then both of those planets might be underneath you because there's planets
+underneath you because there's planets underneath you so you've got to take
+underneath you so you've got to take that marker Bring It Around bring it
+that marker Bring It Around bring it around onto the Horizon and then as you
+around onto the Horizon and then as you fly towards it it's got to move to the
+fly towards it it's got to move to the right place so that's okay that's not
+right place so that's okay that's not too bad except none of those buildings
+too bad except none of those buildings exist right now because they're all
+exist right now because they're all being
+being generated and they're quite expensive to
+generated and they're quite expensive to generate so now you're going to say find
+generate so now you're going to say find me the nearest building of this type and
+me the nearest building of this type and to do that you going to have to start
+to do that you going to have to start generating where buildings
+generating where buildings are uh and that's really expensive so
+are uh and that's really expensive so now you've got to multi-thread it um and
+now you've got to multi-thread it um and you've got to run it over like a longer
+you've got to run it over like a longer period um and you're going to have to
+period um and you're going to have to start generating plan you know actual
+start generating plan you know actual terrain of planets and working out where
+terrain of planets and working out where buildings are and getting the nearest
+buildings are and getting the nearest one so you're going to that's too
+one so you're going to that's too expensive to do so you need a bunch of
+expensive to do so you need a bunch of horis STS to do that um and now you've
+horis STS to do that um and now you've got the building but you have to take
+got the building but you have to take into account is it perhaps unable to
+into account is it perhaps unable to exist there because it is under water
+exist there because it is under water because it's on too sleep steep a slope
+because it's on too sleep steep a slope something like that so these really
+something like that so these really complex like expensive things to work
+complex like expensive things to work out and then even then when you finally
+out and then even then when you finally get the position of that
+get the position of that building it's not in floating Point
+building it's not in floating Point accuracy so you're going to have to move
+accuracy so you're going to have to move between multiple different spaces in
+between multiple different spaces in order to get it then you can place the
+order to get it then you can place the marker and then the player can fly
+marker and then the player can fly towards it and I I love that like that
+towards it and I I love that like that is fun it means everything takes way
+is fun it means everything takes way longer than what you expect and
+longer than what you expect and it's a whole bunch of different problems
+it's a whole bunch of different problems but it's cool you you know at some point
+but it's cool you you know at some point any game developer here must have hit
+any game developer here must have hit that point where it's a bit like falling
+that point where it's a bit like falling off a log every game that you make
+off a log every game that you make you're kind of just doing the same
+you're kind of just doing the same things over and over again and this was
+things over and over again and this was new and different and exciting and now
+new and different and exciting and now that we've done it like it gives us a
+that we've done it like it gives us a great kind of power and capability going
+great kind of power and capability going forward for other things that we can do
+forward for other things that we can do you know if you're a company and can
+you know if you're a company and can generate an entire planet in like the
+generate an entire planet in like the Press of a button in in you know moments
+Press of a button in in you know moments then it's so freeing in terms of what
+then it's so freeing in terms of what kind of games you can make and what kind
+kind of games you can make and what kind of problems you can explore and
+stuff so I'm just going to click through some images um people have taken from
+some images um people have taken from the game I just kind of want to get
+the game I just kind of want to get across the the diversity in the game at
+across the the diversity in the game at the moment
+these are all just from people who've played or taken
+played or taken screenshots so what's interesting about
+screenshots so what's interesting about that which I think there was a really
+that which I think there was a really diverse worlds is that no man sky is
+diverse worlds is that no man sky is really big but it's also really
+really big but it's also really small um it was a 2
+small um it was a 2 GB steam download but actually most of
+GB steam download but actually most of that was audio another 200 Megs was like
+that was audio another 200 Megs was like prebate UI so everything that you saw
+prebate UI so everything that you saw there in those screenshots cuz they
+there in those screenshots cuz they don't show UI in audio like that was
+don't show UI in audio like that was generated in about 300 Megs right and
+generated in about 300 Megs right and that's super fun like I find that super
+that's super fun like I find that super cool H and like by contrast when we
+cool H and like by contrast when we uploaded for steam we had to upload our
+uploaded for steam we had to upload our our like you know XE and that's 2 gigs
+our like you know XE and that's 2 gigs and our goddamn 4 gig Banner PSD you
+and our goddamn 4 gig Banner PSD you know um so I think like in terms of
+know um so I think like in terms of there's a bunch of different unexplored
+there's a bunch of different unexplored areas or areas that are that are super
+areas or areas that are that are super cool right now in terms of procedural
+cool right now in terms of procedural generation like web games or things that
+generation like web games or things that you download I think is super
+you download I think is super interesting um so
+interesting um so it's it's
+it's it's small um but it's also a game that
+small um but it's also a game that was that was played quite a
+was that was played quite a lot
+lot um so if you take I'm just going to talk
+um so if you take I'm just going to talk about some of the games that I've worked
+about some of the games that I've worked on so if you take Joe
+on so if you take Joe Danger uh of which there were like four
+Danger uh of which there were like four Joe dangers right you take all the Joe
+Joe dangers right you take all the Joe dangers and you put them all together we
+dangers and you put them all together we sold about a million copies of Joe
+sold about a million copies of Joe danger um and it was played a lot it was
+danger um and it was played a lot it was really well liked and well reviewed and
+really well liked and well reviewed and stuff like that um but the total number
+stuff like that um but the total number of hours is like this okay uh and then
+of hours is like this okay uh and then this makes me a bit sad uh so there was
+this makes me a bit sad uh so there was a game I worked on black which sold
+a game I worked on black which sold really well like exceptionally well and
+really well like exceptionally well and this is the total number of hours that
+this is the total number of hours that black was played for by comparison to
+black was played for by comparison to Joe Danger which is kind of annoying um
+Joe Danger which is kind of annoying um you know having just come from there
+um so before that and just a bunch of time in between some of the team that I
+time in between some of the team that I work with we worked on
+work with we worked on burnout um so burnout in particular I'm
+burnout um so burnout in particular I'm taking Burnout 3 here which was like
+taking Burnout 3 here which was like probably the most played burnout um
+probably the most played burnout um really highly reviewed sold incredibly
+really highly reviewed sold incredibly well um that's what that looks like and
+well um that's what that looks like and in terms of total number of hours played
+in terms of total number of hours played and you're talking about roughly similar
+and you're talking about roughly similar numbers of copies sold between black and
+numbers of copies sold between black and burnout and uh things like that um black
+burnout and uh things like that um black was a shorter
+was a shorter game uh
+game uh so this is this is sort of depressing
+so this is this is sort of depressing for Joe Danger uh but no man sky like
+for Joe Danger uh but no man sky like dwarfs them in terms of uh hours played
+dwarfs them in terms of uh hours played and in fact if you look you look at
+and in fact if you look you look at Steam and things like that um you know
+Steam and things like that um you know compared to uh a lot of the big releases
+compared to uh a lot of the big releases of the year like DSX or Far Cry or
+of the year like DSX or Far Cry or something like that um you know no man's
+something like that um you know no man's sky is like to my surprise significantly
+sky is like to my surprise significantly above those you know um and he's like I
+above those you know um and he's like I said one of the most played games of the
+said one of the most played games of the year and that I think and the reason I'm
+year and that I think and the reason I'm bringing that up is not some boast or
+bringing that up is not some boast or something it's because I think it is
+something it's because I think it is down to the diversity of the worlds and
+down to the diversity of the worlds and it's really interesting to me that the
+it's really interesting to me that the sheer amount of time that people compl
+sheer amount of time that people compl play for like we have a kind of scary
+play for like we have a kind of scary number of people who have played for 100
+number of people who have played for 100 hours or more um like so far beyond any
+hours or more um like so far beyond any other game that I've worked on um and
+other game that I've worked on um and loads of people like I'm not sure how to
+loads of people like I'm not sure how to feel about this they've played for a
+feel about this they've played for a th000 hours which is like the game has
+th000 hours which is like the game has been out 6 months it's like 5 hours a
+been out 6 months it's like 5 hours a day every day or something like that
+day every day or something like that except presumably it's like three solid
+except presumably it's like three solid weeks of not eating and not sleeping or
+weeks of not eating and not sleeping or something like that
+something like that instead
+instead um and we were a super small team I I
+um and we were a super small team I I probably har on about this a lot but I
+probably har on about this a lot but I do it to give credit to the team that
+do it to give credit to the team that worked on it like actually if you
+worked on it like actually if you average it out there was only about six
+average it out there was only about six people working on the game uh you know
+people working on the game uh you know like as in
+like as in average uh it was an incredibly small
+average uh it was an incredibly small team and that you know we are publisher
+team and that you know we are publisher and things like that so that includes
+and things like that so that includes production publishing marketing and all
+production publishing marketing and all that not that we're you know very good
+that not that we're you know very good with that kind of thing
+with that kind of thing um so that gives you a little bit of an
+um so that gives you a little bit of an overview
+overview of like the history of the game and my
+of like the history of the game and my history and stuff like that um so I
+history and stuff like that um so I wanted to get into the kind
+wanted to get into the kind of uh like how we created that diversity
+of uh like how we created that diversity um and I'm going to pick one thing in
+um and I'm going to pick one thing in particular so I wanted to talk
+particular so I wanted to talk about uh actually noise generation so
+about uh actually noise generation so this is a a gross simplification but
+this is a a gross simplification but basically we generate a whole bunch of
+basically we generate a whole bunch of noise which is like the terrain and a
+noise which is like the terrain and a bunch of other stuff clouds and
+bunch of other stuff clouds and populations of stuff and things like
+populations of stuff and things like that uh that all goes into some voxels
+that uh that all goes into some voxels then we polygonize it uh then that goes
+then we polygonize it uh then that goes to render physics population that kind
+to render physics population that kind of thing um inis did a good talk earlier
+of thing um inis did a good talk earlier and it's way more complicated than that
+and it's way more complicated than that but you know I don't understand it all
+but you know I don't understand it all um no it's it's just just because I'm
+um no it's it's just just because I'm going to talk about the noise
+going to talk about the noise Generation Um so I'm going to talk about
+Generation Um so I'm going to talk about a bunch of different ways that I tried
+a bunch of different ways that I tried to solve this problem and the problem
+to solve this problem and the problem was creating diverse worlds that would
+was creating diverse worlds that would surprise me when I'm playing um and
+surprise me when I'm playing um and would kind of surprise anyone who played
+would kind of surprise anyone who played uh and keep them interested and meant
+uh and keep them interested and meant that they could play for hundreds of
+that they could play for hundreds of hours and see something new but also
+hours and see something new but also remained playable and also remained like
+remained playable and also remained like predictable in a way in that I needed to
+predictable in a way in that I needed to know how much memory they were going to
+know how much memory they were going to take and what kind of performance they
+take and what kind of performance they would have and stuff like that um so my
+would have and stuff like that um so my first attempt this is like way back 5
+first attempt this is like way back 5 years ago I just copied Minecraft like
+years ago I just copied Minecraft like it was you know that was quite popular
+it was you know that was quite popular at the time to clone
+at the time to clone Minecraft um so by that I mean the same
+Minecraft um so by that I mean the same method as as Minecraft uses which which
+method as as Minecraft uses which which is Trine near filtered kind of low
+is Trine near filtered kind of low density pearlin noise feels stacked on
+density pearlin noise feels stacked on top of each other um so I was actually
+top of each other um so I was actually like Notch has has talked about this a
+like Notch has has talked about this a bit but at the time what I did was I got
+bit but at the time what I did was I got Minecraft and I disassembled it and then
+Minecraft and I disassembled it and then I named all the variables and I worked
+I named all the variables and I worked out how it was working um which is
+out how it was working um which is probably bad but we didn't use it so
+probably bad but we didn't use it so it's fine and I can't be sued
+it's fine and I can't be sued right I hope I think hope right um but
+right I hope I think hope right um but yeah it was really interesting and the
+yeah it was really interesting and the reason I did that is because no one
+reason I did that is because no one talks about this but Minecraft is
+talks about this but Minecraft is amazing like in terms of the worlds like
+amazing like in terms of the worlds like they I think that is the secret and
+they I think that is the secret and anyone who clones Minecraft they always
+anyone who clones Minecraft they always forget that and they end up with way
+forget that and they end up with way less interesting worlds and I think it
+less interesting worlds and I think it is the like the core of why Minecraft is
+is the like the core of why Minecraft is so compelling right um and why it's been
+so compelling right um and why it's been such a
+such a phenomenon uh now the problem is we were
+phenomenon uh now the problem is we were polygonize these worlds and we were
+polygonize these worlds and we were making something that was more realistic
+making something that was more realistic and the thing that makes Minecraft
+and the thing that makes Minecraft really interesting is all this kind of
+really interesting is all this kind of terorist shape and makes it play really
+terorist shape and makes it play really well and the reality is that when you
+well and the reality is that when you put something realistic over that it's
+put something realistic over that it's like draping a cloth over that um and
+like draping a cloth over that um and these are low density points on a a
+these are low density points on a a pearing noise field field and then TR
+pearing noise field field and then TR linear filtered off so effectively what
+linear filtered off so effectively what you have is just a load of Mound
+you have is just a load of Mound and pyramids when you put that cloth
+and pyramids when you put that cloth over the top and actually it doesn't it
+over the top and actually it doesn't it doesn't work in a realistic sense um so
+doesn't work in a realistic sense um so it didn't play particularly well for us
+it didn't play particularly well for us and actually you expect to see way you
+and actually you expect to see way you know instantly you want crevices you
+know instantly you want crevices you want erosion you want you know you want
+want erosion you want you know you want this kind of thing which is actually
+this kind of thing which is actually built in Minecraft um but you want this
+built in Minecraft um but you want this kind of detail there more realistic
+kind of detail there more realistic shapes and Mountain shapes and things
+shapes and Mountain shapes and things like that right so I abandoned
+like that right so I abandoned that and then I just tried something
+that and then I just tried something simpler so just high density rather than
+simpler so just high density rather than low density high density noise Fields
+low density high density noise Fields right straight kind of pearing noise
+right straight kind of pearing noise this is what space engine uses if you're
+this is what space engine uses if you're used to that um it's the classic image
+used to that um it's the classic image of a Terrain Sim right like I'll show
+of a Terrain Sim right like I'll show you what I mean okay this is a render
+you what I mean okay this is a render from
+from teren um and this is pearling noise and
+teren um and this is pearling noise and like uh I go through like people's CVS
+like uh I go through like people's CVS and demos and stuff like that when they
+and demos and stuff like that when they apply and like this is the classic thing
+apply and like this is the classic thing that you see which is just unaltered
+that you see which is just unaltered pearing noise and it sort of looks like
+pearing noise and it sort of looks like mountains but it also sort of doesn't um
+mountains but it also sort of doesn't um I used to apply loads of image
+I used to apply loads of image processing to this to pick out features
+processing to this to pick out features highlights add more contrast things like
+highlights add more contrast things like that layer loads of things on top of
+that layer loads of things on top of each other and in some of our
+each other and in some of our earlier like videos and demos and stuff
+earlier like videos and demos and stuff like that we were using some of these
+like that we were using some of these methods but the worlds aren't that
+methods but the worlds aren't that interesting and actually the real world
+interesting and actually the real world isn't like this right the features are
+isn't like this right the features are extremely repetitive in pearling noise
+extremely repetitive in pearling noise um and they also are unrealistic in that
+um and they also are unrealistic in that the slope the gradient is reasonably
+the slope the gradient is reasonably constant and that's not what you see in
+constant and that's not what you see in the real world in the real world you see
+the real world in the real world you see Sharp Cliffs you see way more
+Sharp Cliffs you see way more distribution of noise which brings me on
+distribution of noise which brings me on to the next thing that I
+to the next thing that I tried so uh demm data is digital
+tried so uh demm data is digital elevation map data um and you can just
+elevation map data um and you can just download it online and it's the real
+download it online and it's the real world if you know um real world
+world if you know um real world data
+data just uh like captured it's kind of what
+just uh like captured it's kind of what Google Maps and things like that it's
+Google Maps and things like that it's Contour data from The Real World
+Contour data from The Real World captured at various
+captured at various points um and I thought it would be cool
+points um and I thought it would be cool and somebody else had already done it in
+and somebody else had already done it in parbury and way better than me and um
+parbury and way better than me and um but download this and actually extract
+but download this and actually extract data from it so pars like just take utor
+data from it so pars like just take utor or something like that right and then
+or something like that right and then pars all the data from it and work out
+pars all the data from it and work out how what's the rate of change of slopes
+how what's the rate of change of slopes and shapes and try and get some of that
+and shapes and try and get some of that data out and then feed that back into
+data out and then feed that back into noise generation right work out the
+noise generation right work out the distribution of shape change because I
+distribution of shape change because I decided that the distribution of shape
+decided that the distribution of shape change and Par noise isn't very
+change and Par noise isn't very realistic
+realistic um so and these are taken these shots
+um so and these are taken these shots are taken from uh that uh paper in
+are taken from uh that uh paper in parberry which really good paper um and
+parberry which really good paper um and his conclusion and I was mine's the same
+his conclusion and I was mine's the same that noise in the real world is
+that noise in the real world is exponentially
+exponentially distributed um and you'll see what I
+distributed um and you'll see what I mean okay so this is normal pein noise
+mean okay so this is normal pein noise and then this is when you train PE noise
+and then this is when you train PE noise basically on DM data so you get
+basically on DM data so you get something that's much more realistic
+something that's much more realistic right um and this like if I had my time
+right um and this like if I had my time over like I would love to put more time
+over like I would love to put more time into this this is such a rich area for
+into this this is such a rich area for investigation
+investigation um it is however unfortunate the real
+um it is however unfortunate the real world is super
+world is super boring um so we would put this into our
+boring um so we would put this into our game and I don't know if anyone's ever
+game and I don't know if anyone's ever been for a walk but it turns out walking
+been for a walk but it turns out walking in the real world is super boring I
+in the real world is super boring I hadn't been but I realized that playing
+hadn't been but I realized that playing the game right like you walk for ages
+the game right like you walk for ages and nothing happens and so that's what
+and nothing happens and so that's what was going on um like and I said that I
+was going on um like and I said that I uh that I'd used Utah and I said it to
+uh that I'd used Utah and I said it to my friend who lives in Utah and he said
+my friend who lives in Utah and he said like uh you can like Utah is so flat
+like uh you can like Utah is so flat sometimes that you can see the back of
+sometimes that you can see the back of your own head
+your own head right
+right um so so but this this is a video from
+um so so but this this is a video from that uh
+that uh talk and you see it looks it looks
+talk and you see it looks it looks awesome it looks real and this is what
+awesome it looks real and this is what this is what you want but you just want
+this is what you want but you just want it at a different scale these are the
+it at a different scale these are the kinds of shapes that we want right but
+kinds of shapes that we want right but you can see that is pretty
+boring okay so I went from there to a thing called Uber noise I call it Uber
+thing called Uber noise I call it Uber noise um and that's this kind of
+noise um and that's this kind of unifying method of noise
+generation so the reality is all that experimentation before and that happened
+experimentation before and that happened over the course of about like three or
+over the course of about like three or four years um informed what we needed
+four years um informed what we needed and what we didn't what we wanted from
+and what we didn't what we wanted from this and what was possible and what was
+this and what was possible and what was what makes something fun to play what
+what makes something fun to play what doesn't what controlability we want and
+doesn't what controlability we want and things like that
+things like that okay so and I say over the course of
+okay so and I say over the course of four years
+four years like I can't explain this enough but no
+like I can't explain this enough but no man sky was such a small team in the
+man sky was such a small team in the majority of the time there's only a few
+majority of the time there's only a few programmers on it um that any one
+programmers on it um that any one programmer like myself we were doing a
+programmer like myself we were doing a million different things so this would
+million different things so this would be like every once in a while we I would
+be like every once in a while we I would get a week to work on this or I would
+get a week to work on this or I would work on in my spare time or something
+work on in my spare time or something um so
+um so let me take you through some of the
+let me take you through some of the things that I'd used previously and then
+things that I'd used previously and then I'm going to talk about how I kind of
+I'm going to talk about how I kind of brought all those things together and
+brought all those things together and and what that leads to um okay so here
+and what that leads to um okay so here are the current noise methods that you
+are the current noise methods that you see really commonly used lots of
+see really commonly used lots of different places use this uh so pearlin
+different places use this uh so pearlin Simplex Billow Ridge whirly analytical
+Simplex Billow Ridge whirly analytical derivatives domain warping and I'm just
+derivatives domain warping and I'm just going to take you through a couple of
+going to take you through a couple of those so
+those so pearlin this is what you've seen
+pearlin this is what you've seen everywhere this is that like and I don't
+everywhere this is that like and I don't mean to sound bad about it pein's super
+mean to sound bad about it pein's super amazing right um and like Ken pearlin
+amazing right um and like Ken pearlin one is like Oscar for this and stuff
+one is like Oscar for this and stuff like that uh and everyone still uses it
+like that uh and everyone still uses it and it's cool um what's going on is
+and it's cool um what's going on is basically that you are taking random
+basically that you are taking random noise which looks like your TV when it's
+noise which looks like your TV when it's tuned to static and it's just completely
+tuned to static and it's just completely random noise and then you're kind of
+random noise and then you're kind of creating gradients from that and
+creating gradients from that and creating something that is more cohesive
+creating something that is more cohesive and ultimately has this kind of shape
+and ultimately has this kind of shape right almost like a sine
+right almost like a sine wave um
+wave um but it is kind of cohesive and it is
+but it is kind of cohesive and it is fractal right so if you take fractional
+fractal right so if you take fractional Brown in motion you put multiple layers
+Brown in motion you put multiple layers of this like noise on top top of each
+of this like noise on top top of each other at different amplitudes and
+other at different amplitudes and different frequencies and so you can
+different frequencies and so you can imagine if you did that here you would
+imagine if you did that here you would start to get something that looked much
+start to get something that looked much more mountainous but I'm just going to
+more mountainous but I'm just going to go with like one octave of noise
+go with like one octave of noise right but obviously you would use
+right but obviously you would use multiple multiple
+multiple multiple octaves uh so below so like
+octaves uh so below so like this this like embarrass this but this
+this this like embarrass this but this this is this graph and then you just put
+this is this graph and then you just put in an ABS okay so you just ABS
+in an ABS okay so you just ABS everything that's underneath and you get
+everything that's underneath and you get something that looks more like rounded
+something that looks more like rounded Hills so we want sometimes as we're
+Hills so we want sometimes as we're walking around the terrain so when I
+walking around the terrain so when I talk about Uber noise sometimes you want
+talk about Uber noise sometimes you want it to look like this and sometimes you
+it to look like this and sometimes you want these nice round
+want these nice round Hills um and kind of create Rolling
+Hills um and kind of create Rolling Hills and uh like sharp creases and
+Hills and uh like sharp creases and stuff like that so that's really simple
+stuff like that so that's really simple so you just ABS it as you
+go and then taking the complement of that so just one
+that so just one minus you start to get
+minus you start to get like like these really sharp
+like like these really sharp ridges um so you get Ridge noise which
+ridges um so you get Ridge noise which people talk about and and use and
+people talk about and and use and actually like this does dis this
+actually like this does dis this obviously looks really simple or it
+obviously looks really simple or it looks like kind of like Bart Simpson's
+looks like kind of like Bart Simpson's hair or something like that um but in
+hair or something like that um but in real terms if you do this in 3D and you
+real terms if you do this in 3D and you do enough octaves like it looks super
+do enough octaves like it looks super realistic and it's the kind of ter brain
+realistic and it's the kind of ter brain Sim noise that you've seen before
+Sim noise that you've seen before normally this would look like like
+normally this would look like like genuinely like Alpine mountains so if
+genuinely like Alpine mountains so if you use teren or something like that you
+you use teren or something like that you or World Builder you see that kind of
+or World Builder you see that kind of thing um this though this is the good
+thing um this though this is the good stuff right um so this is really
+stuff right um so this is really important anyone who's doing noise and
+important anyone who's doing noise and who's not using this like you absolutely
+who's not using this like you absolutely should right uh
+should right uh so what we
+so what we want is to
+want is to have our features
+have our features change in relation to different octaves
+change in relation to different octaves of
+of noise like that's what happens in the
+noise like that's what happens in the real world so I'm going to explain a
+real world so I'm going to explain a thing but it's probably really
+thing but it's probably really obvious we have this massive array of
+obvious we have this massive array of voxels like billions of them and we are
+voxels like billions of them and we are going to generate one voxal so we're
+going to generate one voxal so we're just going to pick an XYZ position
+just going to pick an XYZ position somewhere in the universe and we are
+somewhere in the universe and we are going to say fill in this
+going to say fill in this boxel um and when you do that you cannot
+boxel um and when you do that you cannot as part of that equation you can never
+as part of that equation you can never query the voxal round about you because
+query the voxal round about you because if you had to do that if to generate
+if you had to do that if to generate this boxal here like in this world to
+this boxal here like in this world to generate this one you needed to ask this
+generate this one you needed to ask this one what was in it then that Cascades
+one what was in it then that Cascades cuz to generate that one you need to ask
+cuz to generate that one you need to ask that one to generate that one and it
+that one to generate that one and it goes on and on and on and it's an
+goes on and on and on and it's an intractable problem right uh so because
+intractable problem right uh so because of that it's really hard to have a ro
+of that it's really hard to have a ro iion which is what you really want cuz
+iion which is what you really want cuz in order it would be simple to have
+in order it would be simple to have erosion if you knew that when you were
+erosion if you knew that when you were generating a voxel that it was on a
+generating a voxel that it was on a mountain or it was high up or low down
+mountain or it was high up or low down or that it was perhaps at the bottom of
+or that it was perhaps at the bottom of like a lake or something like that but
+like a lake or something like that but you can't find that out because you
+you can't find that out because you can't ask any of the voxels around
+can't ask any of the voxels around you and it seems like this almost
+you and it seems like this almost unsolvable problem and it's a real
+unsolvable problem and it's a real problem if you're generating caves or
+problem if you're generating caves or you're generating erosion or you're
+you're generating erosion or you're generating uh Rivers because one feature
+generating uh Rivers because one feature needs to flow into another and it needs
+needs to flow into another and it needs context and you can't get that context
+context and you can't get that context but what you can get is the derivative
+but what you can get is the derivative if you had that then you would know the
+if you had that then you would know the rate of change of noise at that point
+rate of change of noise at that point when you have that you know that you
+when you have that you know that you were on a slope or you're on a flat or
+were on a slope or you're on a flat or you're trending upwards or downwards and
+you're trending upwards or downwards and if you have that knowledge and you can
+if you have that knowledge and you can return from pearling noise the
+return from pearling noise the analytical
+analytical derivative then you're going to be able
+derivative then you're going to be able to have certain
+to have certain features much more prominent on slopes
+features much more prominent on slopes so you can make them much more noisy or
+so you can make them much more noisy or much less noisy you know if you were in
+much less noisy you know if you were in a desert then slopes are very smooth if
+a desert then slopes are very smooth if you were you know in the Alps or
+you were you know in the Alps or something like that then slopes are very
+something like that then slopes are very very craggy and
+very craggy and noisy um and that's exactly what we need
+noisy um and that's exactly what we need and it's kind it's it's an awesome trick
+and it's kind it's it's an awesome trick and once you have that then there are so
+and once you have that then there are so many things that you're unable to do we
+many things that you're unable to do we also from this Uber noise function we
+also from this Uber noise function we need the analytical derivative returned
+need the analytical derivative returned for mover noise so even after it's
+for mover noise so even after it's calculated all this Billow and stuff at
+calculated all this Billow and stuff at that Ridge we need to know that
+that Ridge we need to know that analytical derivative so that we can
+analytical derivative so that we can feed it in further to other
+things um and I'm just going to shout these out because uh these sites IQ who
+these out because uh these sites IQ who probably everyone knows who works in he
+probably everyone knows who works in he works at noise he used to work at Pixar
+works at noise he used to work at Pixar and is now at Oculus I think and runs a
+and is now at Oculus I think and runs a patrion which everyone sponsor um these
+patrion which everyone sponsor um these sites explain this far better than than
+sites explain this far better than than I do right um and I actually am about to
+I do right um and I actually am about to steal some images from those sites so
+steal some images from those sites so you know don't sue me from that uh cuz
+you know don't sue me from that uh cuz they laid out really well so here's an
+they laid out really well so here's an example this is what like kind of normal
+example this is what like kind of normal boring repetitive pein noise looks like
+boring repetitive pein noise looks like but then if we feed in the
+but then if we feed in the derivative uh we can start smoothing out
+derivative uh we can start smoothing out some of the slopes having little pockets
+some of the slopes having little pockets of detail in there and this looks I hope
+of detail in there and this looks I hope that's obvious but it's really obvious
+that's obvious but it's really obvious when you're down in amongst this playing
+when you're down in amongst this playing the game is way more interesting and way
+the game is way more interesting and way more realistic and gives way more
+more realistic and gives way more variety and this is the kind of thing we
+variety and this is the kind of thing we want when I'm talking about this by the
+want when I'm talking about this by the way I'm going to talk about it as if we
+way I'm going to talk about it as if we were generating one layer of noise but
+were generating one layer of noise but like in no man's Sky we generate so many
+like in no man's Sky we generate so many layers of noise like layers upon layers
+layers of noise like layers upon layers and each one feeds into the next into
+and each one feeds into the next into the next into the
+the next into the next so the other thing I'm going to
+next so the other thing I'm going to talk about and I'm going to steal some
+talk about and I'm going to steal some images here as well uh is domain warping
+images here as well uh is domain warping this is super cool and this is basically
+this is super cool and this is basically distorting the domain of the noise that
+distorting the domain of the noise that we're generating with another function
+we're generating with another function and often feeding noise into itself in
+and often feeding noise into itself in in kind of uh successive octaves so this
+in kind of uh successive octaves so this is a little snippet this is what normal
+is a little snippet this is what normal pearing noise looks
+pearing noise looks like so let's feed it in another
+like so let's feed it in another function warp it and you start to get
+function warp it and you start to get something that looks a bit more
+something that looks a bit more realistic I don't know if that's like
+realistic I don't know if that's like I'm I've looked at this for so long that
+I'm I've looked at this for so long that that's really obvious to me um but I'll
+that's really obvious to me um but I'll try and show you so let's do that
+try and show you so let's do that again and now hopefully you can see that
+again and now hopefully you can see that looks a little bit more like an aerial
+looks a little bit more like an aerial photograph of some Terrain right and in
+photograph of some Terrain right and in case that's not obvious here it is blown
+case that's not obvious here it is blown up right and you can start to see things
+up right and you can start to see things that look maybe like rivers and things
+that look maybe like rivers and things like that we actually use this to create
+like that we actually use this to create our coastlines our Rivers um and also if
+our coastlines our Rivers um and also if you look really closely you can kind of
+you look really closely you can kind of see shapes look like they're flowing
+see shapes look like they're flowing into one another it's kind of like you
+into one another it's kind of like you can see why it's called warping you're
+can see why it's called warping you're just warping the image um IQ has an
+just warping the image um IQ has an awesome image on his side where he has
+awesome image on his side where he has colorized
+colorized these and I I think I could easily be
+these and I I think I could easily be looking at an aerial photograph of some
+looking at an aerial photograph of some terrain right
+terrain right like like if I just flick to some real
+like like if I just flick to some real terrain like this is real terrain real
+terrain like this is real terrain real terrain is really fractally right like
+terrain is really fractally right like it's so you know it's awesome um but
+it's so you know it's awesome um but just going back and forth between them
+just going back and forth between them you can see really similar kind of
+you can see really similar kind of shapes evolving and like with this if
+shapes evolving and like with this if you were to start filling this with
+you were to start filling this with water if you imagine water coming up
+water if you imagine water coming up from this
+from this um that you would see all those little
+um that you would see all those little cracks start to fill in and you would
+cracks start to fill in and you would get little Rivers you can see some of
+get little Rivers you can see some of them up in the kind of top right and
+them up in the kind of top right and stuff that that looks really nice and
+stuff that that looks really nice and starts to not look like you know kind of
+starts to not look like you know kind of a classic terrain Sim at
+all so uh what we want from our Uber noise
+so uh what we want from our Uber noise is we want domain warping like I just
+is we want domain warping like I just explained we want erosion on our slopes
+explained we want erosion on our slopes we want control over altitude erosion we
+we want control over altitude erosion we want ridges plateaus Terraces Rolling
+want ridges plateaus Terraces Rolling Hills we want non-re repeating features
+Hills we want non-re repeating features and we want an analytical derivative
+and we want an analytical derivative returned at the end of it so we can go
+returned at the end of it so we can go and feed that into more layers of uber
+and feed that into more layers of uber noise um and this is kind of how this is
+noise um and this is kind of how this is a function for how terrains are
+a function for how terrains are generated in no man
+sky so this is the function that we want right we want each of these to be a
+right we want each of these to be a little indiv idual control and in case
+little indiv idual control and in case it's not obvious you would take yet more
+it's not obvious you would take yet more noise over the top and generate these
+noise over the top and generate these floating Point values right so you're
+floating Point values right so you're going to vary the warp over time or the
+going to vary the warp over time or the sharpness or the amplification of
+sharpness or the amplification of features or whatever um which gives
+features or whatever um which gives really kind of
+really kind of varied features as you walk
+varied features as you walk around um so sharpness is really easy uh
+around um so sharpness is really easy uh that's just like I explained before just
+that's just like I explained before just getting your Ridge and your bow noise
+getting your Ridge and your bow noise and then just kind of blending between
+and then just kind of blending between them so now instead of just being binary
+them so now instead of just being binary we can just blend between
+we can just blend between them slope erosion just like we were
+them slope erosion just like we were talking about before again this is where
+talking about before again this is where you're going to be able to control the
+you're going to be able to control the amount of noise and kind of detail on
+amount of noise and kind of detail on your
+your slopes you also have altitude damping so
+slopes you also have altitude damping so things that you want to do sometimes is
+things that you want to do sometimes is you want to have like a basin that
+you want to have like a basin that flattens out or maybe some uh you know
+flattens out or maybe some uh you know kind of like you would guess
+kind of like you would guess in uh I guess erosion that comes like CU
+in uh I guess erosion that comes like CU you have various different types of
+you have various different types of erosion and a lot of these can be used
+erosion and a lot of these can be used to mimic that so you can have tetonic
+to mimic that so you can have tetonic erosion or glacial erosion you get these
+erosion or glacial erosion you get these more smooth shapes coming in sometimes
+more smooth shapes coming in sometimes and what you're doing is you you're
+and what you're doing is you you're varying the amplitude based on the
+varying the amplitude based on the derivative
+derivative uh we're going to perturb The Domain so
+uh we're going to perturb The Domain so like domain warping those are going to
+like domain warping those are going to create our nice little um flows of
+create our nice little um flows of rivers and
+rivers and things and amplifying something simp
+things and amplifying something simp some features and this is really this is
+some features and this is really this is really simple it drives me crazy that I
+really simple it drives me crazy that I didn't think of this earlier and that I
+didn't think of this earlier and that I didn't work on it more um as you go
+didn't work on it more um as you go between octaves the lesson that I
+between octaves the lesson that I learned from um the exponentially
+learned from um the exponentially distributed noise a really nice trick is
+distributed noise a really nice trick is to have different emphasis on different
+to have different emphasis on different octaves of your noise and to have
+octaves of your noise and to have certain features really stand out and
+certain features really stand out and damp down certain features um it creates
+damp down certain features um it creates so like really nice trick is to have
+so like really nice trick is to have your first octave not actually be that
+your first octave not actually be that prominent because that's what's giving
+prominent because that's what's giving you these really repetitive sequences of
+you these really repetitive sequences of mountains and varying that makes a huge
+mountains and varying that makes a huge difference having some of the lower
+difference having some of the lower octaves have more impact
+octaves have more impact now that's an area where we could have
+now that's an area where we could have and we didn't where we could have taken
+and we didn't where we could have taken the learning from exponential
+the learning from exponential distributed noise take some DM data and
+distributed noise take some DM data and start feeding it into this and have
+start feeding it into this and have every octave have a different kind of
+every octave have a different kind of emphasis as we go through the
+emphasis as we go through the terrain um so I'm going to show you some
+terrain um so I'm going to show you some images um and these are just I just
+images um and these are just I just screenshotted these a minute ago um but
+screenshotted these a minute ago um but just booted up on a planet and flew
+just booted up on a planet and flew around and took some pictures okay so
+around and took some pictures okay so you can start start to see some of the
+you can start start to see some of the features that you're getting involving
+features that you're getting involving so when you have 3D
+so when you have 3D noise um you're also getting at the
+noise um you're also getting at the sides you can see sheer Cliffs sometimes
+sides you can see sheer Cliffs sometimes and other times not really round shaped
+and other times not really round shaped sometimes so that's coming from our
+sometimes so that's coming from our amplification of features
+amplification of features sometimes um and also I'm talking about
+sometimes um and also I'm talking about noise as if it's being generated in 2D
+noise as if it's being generated in 2D the reality is we mix 2D and 3D a lot
+the reality is we mix 2D and 3D a lot so that's why you get these kind of
+so that's why you get these kind of overhangs and that's something that a
+overhangs and that's something that a lot of
+lot of um kind of demos that you
+um kind of demos that you see uh like of Planet generation and
+see uh like of Planet generation and things like that they're in
+things like that they're in 2D um and two-dimensional Generations a
+2D um and two-dimensional Generations a generation of hey Fields is so much
+generation of hey Fields is so much easier because literally like you go
+easier because literally like you go from having to generate millions of
+from having to generate millions of voxal to having to generate billions of
+voxal to having to generate billions of voxal but it's worth it to get caves and
+voxal but it's worth it to get caves and overhangs and we needed that because
+overhangs and we needed that because otherwise the terrains aren't
+otherwise the terrains aren't interesting enough and this real core
+interesting enough and this real core part of exploration is to have those
+part of exploration is to have those shapes to have these non-s smooth shapes
+shapes to have these non-s smooth shapes and to have things like Cliff edges and
+and to have things like Cliff edges and stuff like that so here you're seeing
+stuff like that so here you're seeing that domain warping you're seeing that
+that domain warping you're seeing that kind of snake
+kind of snake through um and a huge differentiation in
+through um and a huge differentiation in in noises there where you're not seeing
+in noises there where you're not seeing those repeating Hills right you're
+those repeating Hills right you're seeing massive Hills sometimes times
+seeing massive Hills sometimes times other times not and we have you know
+other times not and we have you know kilometer 2 km high mountains sometimes
+kilometer 2 km high mountains sometimes each with like little caves inside in
+each with like little caves inside in them and
+them and things these overhangs again are super
+things these overhangs again are super cool I haven't really talked about caves
+cool I haven't really talked about caves but caves is super difficult problem
+but caves is super difficult problem much like the erosion was because you
+much like the erosion was because you need to know when you generate the cave
+need to know when you generate the cave how are you going to break through so
+how are you going to break through so that it actually has a hole that comes
+that it actually has a hole that comes out and when you generate that hole
+out and when you generate that hole because remember remember that when
+because remember remember that when you're generating any voxal you cannot
+you're generating any voxal you cannot know about the voxels around it to to
+know about the voxels around it to to generate that cave and to generate it
+generate that cave and to generate it breaking through the terrain is a
+breaking through the terrain is a difficult
+difficult problem
+problem um this is a nice image so this is just
+um this is a nice image so this is just actually I happen to know is one layer
+actually I happen to know is one layer of noise so this is just one layer of
+of noise so this is just one layer of uber noise and you're seeing so many
+uber noise and you're seeing so many different things going on there so down
+different things going on there so down in the bottom that's domain warping
+in the bottom that's domain warping that's giving you those nice shapes if
+that's giving you those nice shapes if you were to fill that in with water you
+you were to fill that in with water you would get really nice little rivers and
+would get really nice little rivers and things going through um you're seeing
+things going through um you're seeing steep Cliffs and then a Time round
+steep Cliffs and then a Time round edges um you're seeing in the far
+edges um you're seeing in the far distance a real
+distance a real change in terms of like heights of
+change in terms of like heights of mountains and things like that and
+mountains and things like that and actually their shapes are changing I
+actually their shapes are changing I don't know if that's obvious if you can
+don't know if that's obvious if you can make that out they're going between
+make that out they're going between quite round to starting to be quite
+quite round to starting to be quite sheer and this is one of the things that
+sheer and this is one of the things that I think really work Works in no man's
+I think really work Works in no man's Sky what one of the reasons why people
+Sky what one of the reasons why people play it for so long is because we get it
+play it for so long is because we get it all the time we get people saying I
+all the time we get people saying I played for 100 hours and then I landed
+played for 100 hours and then I landed on this planet and it looked like
+on this planet and it looked like something I hadn't seen before um and so
+something I hadn't seen before um and so I think that's that's cool that's
+I think that's that's cool that's interesting and people know because they
+interesting and people know because they know they haven't seen it before that
+know they haven't seen it before that that it's different it gives a real
+that it's different it gives a real sense of exploration it's important to
+sense of exploration it's important to the game um okay there's loads of stuff
+the game um okay there's loads of stuff that I haven't talked about that if I
+that I haven't talked about that if I didn't hate talking to you all uh that I
+didn't hate talking to you all uh that I would love to talk about sometime in the
+would love to talk about sometime in the future so if people want to ask me about
+future so if people want to ask me about they can so creating sdfs maintaining
+they can so creating sdfs maintaining that that's a difficult problem caves
+that that's a difficult problem caves features Terraces uh erosion flowing
+features Terraces uh erosion flowing into RI rivers and the really difficult
+into RI rivers and the really difficult one is noise is is very unpredictable
+one is noise is is very unpredictable and non evenly
+and non evenly distributed um okay so let's go through
+distributed um okay so let's go through this real quickly I'm probably running
+this real quickly I'm probably running out of time uh so I want to talk about
+out of time uh so I want to talk about how difficult was to build this and to
+how difficult was to build this and to test this so we're talking about testing
+test this so we're talking about testing the untestable right an infinite number
+the untestable right an infinite number of planets and permutations you can't
+of planets and permutations you can't possibly test them all you've got
+possibly test them all you've got limited memory and performance every
+limited memory and performance every player I mean think about what a
+player I mean think about what a nightmare this is every player is going
+nightmare this is every player is going to boot up into different star system
+to boot up into different star system and have different memory requirements
+and have different memory requirements and we can't know like we cannot know we
+and we can't know like we cannot know we can guess we can use H horis sixs what
+can guess we can use H horis sixs what we did in the end was flying
+we did in the end was flying little drones out you know effectively
+little drones out you know effectively we had a smoke test and that would run
+we had a smoke test and that would run and it would return how the overall
+and it would return how the overall performance of the game was doing after
+performance of the game was doing after every check-in and it would also like
+every check-in and it would also like send back info right and we could just
+send back info right and we could just do it by numbers but we can't possibly
+do it by numbers but we can't possibly test every single permutation so we
+test every single permutation so we tried to generally fire out about as
+tried to generally fire out about as many and run as much tests and stuff
+many and run as much tests and stuff test as much as we could to the kinds of
+test as much as we could to the kinds of numbers of players that we thought we
+numbers of players that we thought we were going to have
+were going to have so we were trying to guess how many
+so we were trying to guess how many players that we would have so we kind of
+players that we would have so we kind of looked at what was out there at the
+looked at what was out there at the moment so we were looking at like the
+moment so we were looking at like the two previous games that had come out on
+two previous games that had come out on Steam right this is we we had no better
+Steam right this is we we had no better way of doing it right so inside was an
+way of doing it right so inside was an indie game we're an indie game it felt
+indie game we're an indie game it felt like everyone was playing it when it
+like everyone was playing it when it came out it is awesome game they beat us
+came out it is awesome game they beat us at every Awards they deserve us it's
+at every Awards they deserve us it's beautiful um so they had had about 3,000
+beautiful um so they had had about 3,000 players concurrently that's kind of
+players concurrently that's kind of where I thought we would be um but Sony
+where I thought we would be um but Sony would occasionally say to it's like oh
+would occasionally say to it's like oh well this is kind of a AAA type product
+well this is kind of a AAA type product and so we were looking at things like
+and so we were looking at things like Far Cry so this was like the game that
+Far Cry so this was like the game that had just come out it's a huge game
+had just come out it's a huge game obviously I love Far Cry so they had had
+obviously I love Far Cry so they had had like 14,000 players Max concurrent and
+like 14,000 players Max concurrent and we kind of that made us feel a little
+we kind of that made us feel a little bit nervous in terms of our servers and
+bit nervous in terms of our servers and the amount of people sheer number of
+the amount of people sheer number of people booting up day one you know like
+people booting up day one you know like 14,000 people are going to play are we
+14,000 people are going to play are we testing it to that
+testing it to that degree um we had more players than we
+degree um we had more players than we expected um so we had around
+expected um so we had around 250,000 uh when it launched on PC but
+250,000 uh when it launched on PC but the other problem which is a lot and the
+the other problem which is a lot and the other problem was that uh people were
+other problem was that uh people were still playing on PS4 when we launched so
+still playing on PS4 when we launched so at the time of launch PC there was
+at the time of launch PC there was around 500,000 people
+around 500,000 people playing um which is difficult when they
+playing um which is difficult when they are all booting up on planets that you
+are all booting up on planets that you haven't been to um and is extremely
+haven't been to um and is extremely nerve-wracking and when like the
+nerve-wracking and when like the networking team who is handling like the
+networking team who is handling like the uploads and that connection to the
+uploads and that connection to the server is like one guy and it's only one
+server is like one guy and it's only one of his jobs um and we had like half a
+of his jobs um and we had like half a billion discoveries uploaded right um it
+billion discoveries uploaded right um it was like insane numbers that we were
+was like insane numbers that we were dealing with uh but it was super
+dealing with uh but it was super fun like and it's a super interesting
+fun like and it's a super interesting thing to
+thing to do when
+do when we
+we launched um we
+launched um we had about 1% of players on PC having
+had about 1% of players on PC having crashes in terms of crash dumps that we
+crashes in terms of crash dumps that we were getting and stuff like that uh most
+were getting and stuff like that uh most of those were people operating out of
+of those were people operating out of Min speec but there was a bunch of
+Min speec but there was a bunch of things in terms of like as you would
+things in terms of like as you would guess memory and stuff like that it was
+guess memory and stuff like that it was pretty much on par with games that I've
+pretty much on par with games that I've released before so games like burnout
+released before so games like burnout and stuff like that but we were just
+and stuff like that but we were just operating at a different scale um it was
+operating at a different scale um it was far beyond what I had experienced before
+far beyond what I had experienced before in terms of people playing a game kind
+in terms of people playing a game kind of thing um by the time Foundation came
+of thing um by the time Foundation came out which was our update um we had far
+out which was our update um we had far far fewer so it was about 1% and we had
+far fewer so it was about 1% and we had about a million people playing on the
+about a million people playing on the day that Foundation released and a
+day that Foundation released and a really small number of kind of crash
+really small number of kind of crash dumps from that and again most of that
+dumps from that and again most of that was just playing outside of Min speec
+was just playing outside of Min speec and things like
+and things like that um but we've kind of learned that
+that um but we've kind of learned that lesson a
+lesson a thing that uh that is a little bit crazy
+thing that uh that is a little bit crazy is to to fix some of the
+is to to fix some of the bugs um but also because we wanted to
+bugs um but also because we wanted to really embellish the worlds that we had
+really embellish the worlds that we had um we rebuilt the universe which meant
+um we rebuilt the universe which meant just doing it all over again um so
+just doing it all over again um so rebuilding the universe resetting all
+rebuilding the universe resetting all the players so no matter what you're
+the players so no matter what you're doing in the game we've got to take you
+doing in the game we've got to take you and place you somewhere safe maybe
+and place you somewhere safe maybe you're just repairing your ship um maybe
+you're just repairing your ship um maybe you're just about to you know get to
+you're just about to you know get to crash ship or you're in the middle of a
+crash ship or you're in the middle of a battle or whatever and you've saved your
+battle or whatever and you've saved your game we have to sort you out even though
+game we have to sort you out even though the entire universe has changed and
+the entire universe has changed and that's a fun thing um when you know that
+that's a fun thing um when you know that people are going to update and just go
+people are going to update and just go through a million different edge cases
+through a million different edge cases um but it's a really unique game and
+um but it's a really unique game and there's like I said unique problems that
+there's like I said unique problems that come with it um but that's something
+come with it um but that's something that we're going to keep on doing is
+that we're going to keep on doing is actually continuing to work on this
+actually continuing to work on this terrain and it's something that people
+terrain and it's something that people can't quite put their finger on so with
+can't quite put their finger on so with the foundation update something we kept
+the foundation update something we kept hearing was that the game feels a little
+hearing was that the game feels a little bit more epic or that there's a
+bit more epic or that there's a different feel to it and that is the
+different feel to it and that is the terrain um I know because when our
+terrain um I know because when our changes went in everyone on the team
+changes went in everyone on the team started saying it and it's hard to put
+started saying it and it's hard to put your finger on exactly why but you know
+your finger on exactly why but you know that you're visiting more interesting
+that you're visiting more interesting places and things you haven't seen
+places and things you haven't seen before and that's something that we're
+before and that's something that we're going to keep doing uh which is fun and
+going to keep doing uh which is fun and scary and a very unique problem most
+scary and a very unique problem most people don't update their game and have
+people don't update their game and have every level change entirely in construct
+every level change entirely in construct kind of thing weird um so
+kind of thing weird um so yeah thing I wanted to say is that we're
+yeah thing I wanted to say is that we're hiring um this
+is I guess I know that procedural generation will be a small part of games
+generation will be a small part of games in the
+in the future right like I mean loads of the
+future right like I mean loads of the talks at GDC whether it was horizon or
+talks at GDC whether it was horizon or wildlands we're talking about procedural
+wildlands we're talking about procedural generation components to their games
+generation components to their games that's super cool for us it is it is a
+that's super cool for us it is it is a big part of our future and making really
+big part of our future and making really unique weird engine decisions and then
+unique weird engine decisions and then allowing that to dictate a a Cascade of
+allowing that to dictate a a Cascade of problems it's cool for me to be able to
+problems it's cool for me to be able to stand up and say to talented people like
+stand up and say to talented people like yourselves that you know we're looking
+yourselves that you know we're looking for that kind of thing um and we want to
+for that kind of thing um and we want to continue going forward making new
+continue going forward making new impactful technology we know how hard it
+impactful technology we know how hard it is to make games I personally you know
+is to make games I personally you know had to break into the industry and that
+had to break into the industry and that was hard then I worked on some AAA games
+was hard then I worked on some AAA games and that was really hard that was like
+and that was really hard that was like the hardest thing I've done in my life
+the hardest thing I've done in my life and so stressful something that you care
+and so stressful something that you care about so creatively to work on it and to
+about so creatively to work on it and to finish it it's a really intense
+finish it it's a really intense experience then I started a company and
+experience then I started a company and had the additional bonus of you know
+had the additional bonus of you know running out of money and having to fish
+running out of money and having to fish under those kind of horrible constraints
+under those kind of horrible constraints and making sometimes bad decisions
+and making sometimes bad decisions sometimes good decisions because you
+sometimes good decisions because you have you have to because of money
+have you have to because of money constraints and funds and things like
+constraints and funds and things like that and then I know what it's like on
+that and then I know what it's like on top of that with no man's Sky to do
+top of that with no man's Sky to do something new and weird and experimental
+something new and weird and experimental on top of you know also running out of
+on top of you know also running out of money and also uh trying to finish
+money and also uh trying to finish something you care about really
+something you care about really creatively um so if you
+creatively um so if you are like interested in working on stuff
+are like interested in working on stuff like that then great but let's say
+like that then great but let's say you're you're interested in working on
+you're you're interested in working on that kind of thing but you also want to
+that kind of thing but you also want to start up and do your own thing then
+start up and do your own thing then we're going to try and help with that a
+we're going to try and help with that a little bit as well um so we're starting
+little bit as well um so we're starting this thing it's super lowkey at the
+this thing it's super lowkey at the moment but it's hello Labs um and we're
+moment but it's hello Labs um and we're going to try and fund and support a
+going to try and fund and support a couple of projects we've one already in
+couple of projects we've one already in development um and the focus is going to
+development um and the focus is going to be on procedural generation and kind of
+be on procedural generation and kind of experimental games games research that
+experimental games games research that kind of thing uh more details will
+kind of thing uh more details will follow but if you were there and this is
+follow but if you were there and this is the kind of area that you're interested
+the kind of area that you're interested in like we would love to help people
+in like we would love to help people avoid some of the pains that we went
+avoid some of the pains that we went through ourselves kind of thing it's
+through ourselves kind of thing it's something I care really passionately
+something I care really passionately about
+about uh
+so that's my talk if you're interested come and mail me I flew in I now go run
+come and mail me I flew in I now go run and fly out um I'm not like doing
+and fly out um I'm not like doing questions and stuff like that but you've
+questions and stuff like that but you've got the email address
+got the email address and I will hopefully try and be out in
+and I will hopefully try and be out in one of the break rooms later if people
+one of the break rooms later if people have questions and stuff and I'll let
+have questions and stuff and I'll let everyone leave finish up their GDC day
+everyone leave finish up their GDC day I'm sure you're sick of people talking
+I'm sure you're sick of people talking thank you
+[Applause]

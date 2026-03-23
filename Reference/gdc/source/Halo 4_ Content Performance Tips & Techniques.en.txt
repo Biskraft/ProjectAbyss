@@ -1,0 +1,1166 @@
+hello everyone my name is Wes grammont I'm the lead technical art director at
+Industries uh welcome to my talk Halo 4 content performance uh tips and
+content performance uh tips and techniques uh this afternoon I'm going
+techniques uh this afternoon I'm going to be talking about the work I did
+to be talking about the work I did during the last year of production on
+during the last year of production on Halo 4 uh to help get the game uh
+Halo 4 uh to help get the game uh running at frame rate while uh
+running at frame rate while uh maintaining the Integrity of the visuals
+maintaining the Integrity of the visuals that the uh the team worked so hard
+that the uh the team worked so hard on so a little bit about me um double
+on so a little bit about me um double majored in computer graphics and
+majored in computer graphics and illustration at Syracuse
+illustration at Syracuse University and I've been in the uh the
+University and I've been in the uh the games industry for about 16 years uh the
+games industry for about 16 years uh the first three as a lead artist and uh the
+first three as a lead artist and uh the last 13 in various Tech art roles uh I
+last 13 in various Tech art roles uh I spent nine years at Electronic Arts uh
+spent nine years at Electronic Arts uh three years uh co-running a studio with
+three years uh co-running a studio with uh three other guys and then the last
+uh three other guys and then the last four and a half years at Microsoft uh in
+four and a half years at Microsoft uh in the last two with uh 343 so Halo 4 was
+the last two with uh 343 so Halo 4 was my 20th ship title
+okay so this uh talk is really geared towards folks who have little to no
+towards folks who have little to no experience with uh content performance
+experience with uh content performance optimization techniques um so I'm going
+optimization techniques um so I'm going to kind of make that assumption uh as I
+to kind of make that assumption uh as I go through the talk um we're going to
+go through the talk um we're going to start with uh discussion around
+start with uh discussion around performance planning and the tools that
+performance planning and the tools that make this kind of work uh go easier um
+make this kind of work uh go easier um then we're going to uh kind of get into
+then we're going to uh kind of get into the me of the talk which is common
+the me of the talk which is common performance issues and ways to uh kind
+performance issues and ways to uh kind of address those issues and then we'll
+of address those issues and then we'll kind of wrap things up with um uh
+kind of wrap things up with um uh performance reports and performance
+scheduling so before we get too far in so what is performance um well in the
+so what is performance um well in the context of this talk uh at at a very
+context of this talk uh at at a very high level it's basically is our game
+high level it's basically is our game running at frame rate and for Halo 4 uh
+running at frame rate and for Halo 4 uh our Target frame rate was 30 frames per
+our Target frame rate was 30 frames per second and so basically if we weren't
+second and so basically if we weren't running at 30 frames per second we had
+running at 30 frames per second we had bad performance and we had to kind of
+bad performance and we had to kind of then and at that point look a little bit
+then and at that point look a little bit deeper so when I when I say deeper what
+deeper so when I when I say deeper what I'm talking about is how how long is it
+I'm talking about is how how long is it taking the hardware to render a frame
+taking the hardware to render a frame and we had 33 milliseconds on Halo 4 in
+and we had 33 milliseconds on Halo 4 in which to accomplish rendering of a frame
+which to accomplish rendering of a frame in order to maintain our frame rate and
+in order to maintain our frame rate and so there's various uh stages at which
+so there's various uh stages at which this can slow down and that we'll we'll
+this can slow down and that we'll we'll talk about that in the next slide um the
+talk about that in the next slide um the reason this is important which is
+reason this is important which is probably obvious is that if your
+probably obvious is that if your performance stinks then your
+performance stinks then your interactivity goes down and your game's
+interactivity goes down and your game's no fun
+no fun um and the reason performance analysis
+um and the reason performance analysis is really important is because what we
+is really important is because what we want to do is maintain that frame rate
+want to do is maintain that frame rate while at the same time making sure that
+while at the same time making sure that we um kind of maintain the really
+we um kind of maintain the really awesome Rich environment that our uh art
+awesome Rich environment that our uh art teams have spent so much time
+teams have spent so much time on so why Tech art um I think Tech art
+on so why Tech art um I think Tech art is uniquely positioned uh to kind of
+is uniquely positioned uh to kind of lead in this area uh we kind of have a
+lead in this area uh we kind of have a background in both art and uh
+background in both art and uh engineering so we have a what I think is
+engineering so we have a what I think is a a little bit more of a holistic view
+a a little bit more of a holistic view on things where you know artists might
+on things where you know artists might be more focused on just the visuals and
+be more focused on just the visuals and the dev team might be more focused on
+the dev team might be more focused on just making sure the thing uh runs
+well so when I'm looking at performance analysis I find um having this kind of
+analysis I find um having this kind of high level picture in mind is really
+high level picture in mind is really helpful uh there's a lot more um to this
+helpful uh there's a lot more um to this but uh this is kind of the the key stuff
+but uh this is kind of the the key stuff so you've got two places where things
+so you've got two places where things can slow down you've got your CPU and
+can slow down you've got your CPU and your GPU and on Halo 4 uh we had two
+your GPU and on Halo 4 uh we had two threads where you could potentially slow
+threads where you could potentially slow down on the CPU um or I would say the
+down on the CPU um or I would say the most common places we could slow down on
+most common places we could slow down on the CPU um and they were our Sim thread
+the CPU um and they were our Sim thread and our render thread and so our Sim
+and our render thread and so our Sim thread is basically where we do uh AI
+thread is basically where we do uh AI updating um Ray casts for Collision that
+updating um Ray casts for Collision that sort of thing and our render thread is
+sort of thing and our render thread is where we go through and sort of evaluate
+where we go through and sort of evaluate sort what's visible um kind of collect
+sort what's visible um kind of collect uh data up to uh bundle up and hand off
+uh data up to uh bundle up and hand off to the GPU which we call feeding the GPU
+to the GPU which we call feeding the GPU and the GPU would be responsible for
+and the GPU would be responsible for unpackaging uh the the m and mesh data
+unpackaging uh the the m and mesh data Shader resources texture resources and
+Shader resources texture resources and and handle rendering the various
+and handle rendering the various elements that we're passing to it so at
+elements that we're passing to it so at any point um in this in this pipeline
+any point um in this in this pipeline things could slow down and your frame
+things could slow down and your frame rate uh goes down as a
+rate uh goes down as a result so before I get too far into uh
+result so before I get too far into uh kind of the nitty-gritty uh I thought
+kind of the nitty-gritty uh I thought I'd share a little story with you um
+I'd share a little story with you um that has some relevance towards this so
+that has some relevance towards this so I joined 343 in the fall of 2011 and up
+I joined 343 in the fall of 2011 and up until that point uh the team had been in
+until that point uh the team had been in development for quite a while and they
+development for quite a while and they spent aot a lot of time um and energy
+spent aot a lot of time um and energy making some really awesome visuals uh
+making some really awesome visuals uh some really cool encounters uh working
+some really cool encounters uh working on the narrative uh but not a lot of
+on the narrative uh but not a lot of time on uh performance so the the two
+time on uh performance so the the two projects that I'd worked on prior to
+projects that I'd worked on prior to coming to 343 I'd spent quite a bit of
+coming to 343 I'd spent quite a bit of time on uh performance optimization so
+time on uh performance optimization so the uh engineering lead uh David berer
+the uh engineering lead uh David berer uh came to me and he said hey Wes uh I'd
+uh came to me and he said hey Wes uh I'd love for you to kind of help lead the
+love for you to kind of help lead the effort to get our game running um at 30
+effort to get our game running um at 30 frames per second
+frames per second and he said he was giving me the
+and he said he was giving me the performance hammer and I said okay great
+performance hammer and I said okay great um this kind of work I'd done in the
+um this kind of work I'd done in the past so I was like I definitely can help
+past so I was like I definitely can help with that um and so uh a couple days
+with that um and so uh a couple days later uh I showed up at work and there
+later uh I showed up at work and there was this big brown box on my desk and I
+was this big brown box on my desk and I opened it up and there was literally
+opened it up and there was literally this performance hammer in the box and
+this performance hammer in the box and so his his comment was basically and I
+so his his comment was basically and I like that this was a very squishy Hammer
+like that this was a very squishy Hammer uh because I think it's very uh relevant
+uh because I think it's very uh relevant um to kind of the performance uh
+um to kind of the performance uh balancing process but basically his
+balancing process but basically his comment to me was I need you to work
+comment to me was I need you to work with the art team to kind kind of get
+with the art team to kind kind of get things uh running well and uh if you
+things uh running well and uh if you can't accomplish this with the
+can't accomplish this with the performance Hammer um we'll come in with
+performance Hammer um we'll come in with a sledgehammer so uh kind of with that
+a sledgehammer so uh kind of with that information I went and approached the
+information I went and approached the art leads let them know that uh we'd be
+art leads let them know that uh we'd be partnering with them to try and maintain
+partnering with them to try and maintain their awesome visuals and hit our uh
+their awesome visuals and hit our uh frame rate goals and they were naturally
+frame rate goals and they were naturally skeptical um and I could definitely
+skeptical um and I could definitely relate to that having been on other
+relate to that having been on other projects where um optimization often
+projects where um optimization often meant just kind of destroying the
+meant just kind of destroying the quality of stuff uh not because it was
+quality of stuff uh not because it was desired but because that was what ended
+desired but because that was what ended up being needed to get to uh performance
+up being needed to get to uh performance schools so you know I let them know hey
+schools so you know I let them know hey my background is in art I really care
+my background is in art I really care about the Integrity of the work you guys
+about the Integrity of the work you guys have been doing and the reason I'm
+have been doing and the reason I'm telling this story is I think it's
+telling this story is I think it's really helpful to kind of build that
+really helpful to kind of build that trust uh going into the performance uh
+trust uh going into the performance uh kind of optimization process I think
+kind of optimization process I think having the art team know that you've got
+having the art team know that you've got their uh interests at heart and that
+their uh interests at heart and that you're going to be working with them to
+you're going to be working with them to try and maintain the all the um love and
+try and maintain the all the um love and effort that they put into their work is
+effort that they put into their work is a really important first step on this
+journey okay so when we started this uh process um
+so when we started this uh process um one of the things that was really
+one of the things that was really helpful was coming up with a perf frame
+helpful was coming up with a perf frame budget and so as I mentioned a few
+budget and so as I mentioned a few slides back we had 33 milliseconds uh in
+slides back we had 33 milliseconds uh in which to render a frame and right off
+which to render a frame and right off the top we've got certain costs that we
+the top we've got certain costs that we know we're always going to pay and I
+know we're always going to pay and I call those critical costs we didn't
+call those critical costs we didn't really call them that during the project
+really call them that during the project but I needed to call them something for
+but I needed to call them something for this slide so critical costs and those
+this slide so critical costs and those are things like your HUD if you happen
+are things like your HUD if you happen to be uh in a situation where you have a
+to be uh in a situation where you have a HUD you're going to pay for those all
+HUD you're going to pay for those all the time um postprocess effects if
+the time um postprocess effects if you've got certain things that you just
+you've got certain things that you just you know you're always going to do so
+you know you're always going to do so we' kind of take that off the top we'd
+we' kind of take that off the top we'd ALS also take uh give a kind of a a
+ALS also take uh give a kind of a a little overhead right off the bat like a
+little overhead right off the bat like a couple milliseconds to make sure no
+couple milliseconds to make sure no matter what we always had a little bit
+matter what we always had a little bit of buffer in case things kind of went
+of buffer in case things kind of went haywire and we just needed some extra
+haywire and we just needed some extra wiggle room so our frame rate wouldn't
+wiggle room so our frame rate wouldn't drop and then what with what was left
+drop and then what with what was left over um we sat down with all the art
+over um we sat down with all the art leads and we kind of mapped out and this
+leads and we kind of mapped out and this is a spreadsheet from uh one of our
+is a spreadsheet from uh one of our campaign missions uh we basically mapped
+campaign missions uh we basically mapped out for each area kind of what the
+out for each area kind of what the classification was for that area so is
+classification was for that area so is it combat heavy uh is it a like a a
+it combat heavy uh is it a like a a beautiful Vista where we're not going to
+beautiful Vista where we're not going to be doing a lot so we can really put a
+be doing a lot so we can really put a lot more um of our frame budget into
+lot more um of our frame budget into rendering uh the environment is in an
+rendering uh the environment is in an area where the lighting team really
+area where the lighting team really wants to go bananas and um you know put
+wants to go bananas and um you know put a lot of like really interesting
+a lot of like really interesting lighting there so we need more budget
+lighting there so we need more budget for doing that so we'd kind of go back
+for doing that so we'd kind of go back and forth and negotiate these things and
+and forth and negotiate these things and we come up with this uh per frame
+we come up with this uh per frame budget and so we had that for each each
+budget and so we had that for each each mission in each
+area and so I'm I'm going to mentioned this is more of like a best practice as
+this is more of like a best practice as I mentioned I came onto the project
+I mentioned I came onto the project about a year out from ship so I didn't
+about a year out from ship so I didn't get a lot of opportunity um on Halo 4 to
+get a lot of opportunity um on Halo 4 to to do a lot of level review a lot of the
+to do a lot of level review a lot of the levels were already kind of laid out but
+levels were already kind of laid out but I think it's really important to mention
+I think it's really important to mention this uh because if you are early on in a
+this uh because if you are early on in a project uh getting involved getting the
+project uh getting involved getting the graphics team involved Tech art involved
+graphics team involved Tech art involved early on um can kind of kind of help
+early on um can kind of kind of help head some things off that might uh be
+head some things off that might uh be problematic or at least you'll know
+problematic or at least you'll know where your kind of problem spots are
+where your kind of problem spots are going to be so you can kind of come up
+going to be so you can kind of come up with mitigation plans ahead of
+time all right come on PowerPoint all right so this is the most obvious uh
+right so this is the most obvious uh Performance Tool and hopefully everybody
+Performance Tool and hopefully everybody has access to this but your uh FPS
+has access to this but your uh FPS counter um basically if you uh if you're
+counter um basically if you uh if you're running under your target frame rate
+running under your target frame rate this is your early warning sign that
+this is your early warning sign that you've got a problem and uh just to kind
+you've got a problem and uh just to kind of give you sort of a highle view of
+of give you sort of a highle view of what this process L for us looked like
+what this process L for us looked like for us and looks like for most people is
+for us and looks like for most people is um you find an area you're not running
+um you find an area you're not running at 30 you go into that area in the game
+at 30 you go into that area in the game uh you do some timing captures which
+uh you do some timing captures which I'll talk about in a little bit and you
+I'll talk about in a little bit and you kind of diagnose what's going on and you
+kind of diagnose what's going on and you use very various debug modes in the game
+use very various debug modes in the game to kind of help uh sleuth out uh what
+to kind of help uh sleuth out uh what what potentially could be could be the
+what potentially could be could be the problem and ways to kind of address
+it so uh one of the things that was really helpful um I mentioned this Frame
+really helpful um I mentioned this Frame budget that we had uh we had a bunch of
+budget that we had uh we had a bunch of in-game counters that would kind of give
+in-game counters that would kind of give us the same sort of um information that
+us the same sort of um information that we'd get from our timing captures and
+we'd get from our timing captures and but they just weren't as accurate
+but they just weren't as accurate because the the uh the fact that you
+because the the uh the fact that you were actually measuring this stuff
+were actually measuring this stuff introduced a certain amount of overhead
+introduced a certain amount of overhead but it was good for ballp Parky things
+but it was good for ballp Parky things and it allowed our uh art leads to have
+and it allowed our uh art leads to have a way to basically look at at their um
+a way to basically look at at their um timings for their area and see if they
+timings for their area and see if they were aligning well with the uh per frame
+were aligning well with the uh per frame budgets um and again it was it was very
+budgets um and again it was it was very ballp parkky but uh this was really
+ballp parkky but uh this was really helpful in kind of a triaging situation
+helpful in kind of a triaging situation where we're like Hey we're not running
+where we're like Hey we're not running at 30 um sometimes the the uh the
+at 30 um sometimes the the uh the artists could kind of self- diagnose the
+artists could kind of self- diagnose the problem and correct it um but if they
+problem and correct it um but if they couldn't they'd escalated it to Tech art
+couldn't they'd escalated it to Tech art we'd do an analysis if we couldn't kind
+we'd do an analysis if we couldn't kind of come up with some uh ways that they
+of come up with some uh ways that they could fix it in content and it was kind
+could fix it in content and it was kind of deemed a engine side issue then we
+of deemed a engine side issue then we would escalate it to our engineering
+team uh uh I mentioned the debug views um briefly but basically there was a
+um briefly but basically there was a couple of views that were really really
+couple of views that were really really helpful in sort of diagnosing problems
+helpful in sort of diagnosing problems uh during performance analysis uh
+uh during performance analysis uh probably the biggest one that I found
+probably the biggest one that I found helpful was a render freeze which
+helpful was a render freeze which basically you you uh freeze the camera
+basically you you uh freeze the camera it it kind of captures everything that
+it it kind of captures everything that is within the view Frost room that the
+is within the view Frost room that the GPU is currently dealing with and then
+GPU is currently dealing with and then it let you pop the camera out and you
+it let you pop the camera out and you kind of look at it from another
+kind of look at it from another perspective so this is really helpful
+perspective so this is really helpful because um in this in this case here
+because um in this in this case here this is a shot from the first mission uh
+this is a shot from the first mission uh in uh Halo 4 where you're kind of uh
+in uh Halo 4 where you're kind of uh going down the corridors of the Ford
+going down the corridors of the Ford Unto Dawn after just coming out of uh
+Unto Dawn after just coming out of uh kind of a deep freeze and those yellow
+kind of a deep freeze and those yellow lines are the view frustrum and so you
+lines are the view frustrum and so you can see that there was a lot of stuff
+can see that there was a lot of stuff being rendered here that wasn't actually
+being rendered here that wasn't actually visible from the point of view of Master
+visible from the point of view of Master Chief and so this was a case of where we
+Chief and so this was a case of where we we were able to you know quickly
+we were able to you know quickly identify that we had some uh culling to
+identify that we had some uh culling to do uh the the other kind of uh debug
+do uh the the other kind of uh debug states were very helpful were we had
+states were very helpful were we had ways to
+ways to um uh choose to draw or not draw certain
+um uh choose to draw or not draw certain types of objects so uh static meshes
+types of objects so uh static meshes versus Dynamic meshes versus effects uh
+versus Dynamic meshes versus effects uh just changing to wireframe mode that
+just changing to wireframe mode that sort of
+sort of thing uh we also had this um Tool uh
+thing uh we also had this um Tool uh that would was more of a a kind of a
+that would was more of a a kind of a option in when we ran our builds to log
+option in when we ran our builds to log uh information to our database and so as
+uh information to our database and so as we were progressing through the or
+we were progressing through the or actually as everybody was kind of
+actually as everybody was kind of progressing through the game uh we'd be
+progressing through the game uh we'd be periodically sampling uh FPS and then
+periodically sampling uh FPS and then camera position orientation and logging
+camera position orientation and logging this to a database and over time what
+this to a database and over time what this built out was this really nice uh
+this built out was this really nice uh heat map that we could then use a web we
+heat map that we could then use a web we had a web tool called Cortana web um
+had a web tool called Cortana web um that could access this database and
+that could access this database and provide these heat Maps which provided
+provide these heat Maps which provided much more targeted um uh kind of ways to
+much more targeted um uh kind of ways to identify where we need to go in and do
+identify where we need to go in and do real real deep performance work um
+real real deep performance work um without this we would have been
+without this we would have been wandering around levels and and really
+wandering around levels and and really kind of spending time in places we
+kind of spending time in places we didn't need to be spending
+time so Halo 4 you know is a first-party uh exclusive um so we were developing on
+uh exclusive um so we were developing on Xbox 360 and uh the xdk uh comes with
+Xbox 360 and uh the xdk uh comes with this great tool called pix which is the
+this great tool called pix which is the performance investigator for Xbox 360
+performance investigator for Xbox 360 and this allows you to do CPU and GPU
+and this allows you to do CPU and GPU timing captures um and so uh I kind of
+timing captures um and so uh I kind of mentioned our process is you know we
+mentioned our process is you know we find a place where we're running
+find a place where we're running slow it was very quick to uh create
+slow it was very quick to uh create timing captures because you could just
+timing captures because you could just kind of attach picks and it would just
+kind of attach picks and it would just kind of run while the game was running
+kind of run while the game was running and you could pause it it would pause
+and you could pause it it would pause the game you could just kind of select a
+the game you could just kind of select a region and generate one of these timing
+region and generate one of these timing captures which basically would give you
+captures which basically would give you a uh breakdown um for the range of
+a uh breakdown um for the range of frames you've selected of kind of what
+frames you've selected of kind of what the CPU was working on uh during that
+the CPU was working on uh during that time period and the very top row um in
+time period and the very top row um in this image is uh what the GP is doing
+this image is uh what the GP is doing and so a real quick indicator that
+and so a real quick indicator that you've got a problem was uh in this case
+you've got a problem was uh in this case uh not a problem um is that if you have
+uh not a problem um is that if you have big white gaps and like if it does if
+big white gaps and like if it does if that top GPU line didn't look like a
+that top GPU line didn't look like a solid black bar meant your GPU is
+solid black bar meant your GPU is probably waiting around for something to
+probably waiting around for something to finish up on the Sim thread or render
+finish up on the Sim thread or render thread so it was a it was a really quick
+thread so it was a it was a really quick way to kind of say hey I need to Dig
+way to kind of say hey I need to Dig Down Deeper into the events that are
+Down Deeper into the events that are happening on these threads and see where
+happening on these threads and see where what the timings are um we'll talk a
+what the timings are um we'll talk a little bit more about that in a second
+little bit more about that in a second but this was a first stop because you
+but this was a first stop because you very quickly rule out that it was the
+very quickly rule out that it was the CPU and then the GPU time and captures
+CPU and then the GPU time and captures which talk about in the next slide take
+which talk about in the next slide take a little bit more time because we have
+a little bit more time because we have to kind of gather up all the information
+to kind of gather up all the information that is used to render a single
+that is used to render a single frame and uh it it it definitely uh it's
+frame and uh it it it definitely uh it's it's more uh intensive for uh the dev
+it's more uh intensive for uh the dev kit so we'd kind of do this only once
+kit so we'd kind of do this only once we' kind of identify that we have a a
+we' kind of identify that we have a a kind of a GPU related problem in an area
+kind of a GPU related problem in an area and what what this does though is it it
+and what what this does though is it it grabs everything kind of deconstructs
+grabs everything kind of deconstructs the frame into this nice uh spreadsheet
+the frame into this nice uh spreadsheet where you can kind of Click through the
+where you can kind of Click through the spreadsheet you've got timing for each
+spreadsheet you've got timing for each element that's being drawn and so it's
+element that's being drawn and so it's very easy to kind of identify what's
+very easy to kind of identify what's taking a long time and then you can
+taking a long time and then you can either um there's some additional Tools
+either um there's some additional Tools in in the in the GPU timing uh where you
+in in the in the GPU timing uh where you can kind of analyze to see if you're
+can kind of analyze to see if you're kind of pixel Shader or vertex Shader
+kind of pixel Shader or vertex Shader bound or if you're you know installed on
+bound or if you're you know installed on texture fetches that sort of thing and
+texture fetches that sort of thing and uh you can also then go into uh into the
+uh you can also then go into uh into the actual content then and sort of uh kind
+actual content then and sort of uh kind of analyze it as well to kind of see
+of analyze it as well to kind of see what what might be causing that to take
+what what might be causing that to take a
+a while okay so now we get to the meat and
+while okay so now we get to the meat and potatoes of the talk so these were some
+potatoes of the talk so these were some performance issues that came up over and
+performance issues that came up over and over again uh during the uh development
+over again uh during the uh development of Halo 4 and so I've kind of coated
+of Halo 4 and so I've kind of coated them all because they just they they
+them all because they just they they kept happening over and over again I can
+kept happening over and over again I can only assume they will happen for other
+only assume they will happen for other people as well um so large draw
+people as well um so large draw distances uh in Halo 4 we had some
+distances uh in Halo 4 we had some really big uh missions really expansive
+really big uh missions really expansive spaces and we'd often have performance
+spaces and we'd often have performance issues in these areas so generally this
+issues in these areas so generally this is due to uh one of a couple things poor
+is due to uh one of a couple things poor loding uh related small triangles um and
+loding uh related small triangles um and also too many draw calls so how do we
+also too many draw calls so how do we deal with this stuff oh there's a kind
+deal with this stuff oh there's a kind of a bag of tricks some of them some of
+of a bag of tricks some of them some of them
+them are's that going all right there we go
+are's that going all right there we go uh some of them are a little bit more
+uh some of them are a little bit more straightforward than others so small
+straightforward than others so small triangles
+triangles obvious to an LOD distance if we've got
+obvious to an LOD distance if we've got small triangles and we have lods we can
+small triangles and we have lods we can swap to the next lowest LOD um in some
+swap to the next lowest LOD um in some cases we didn't have lods on some assets
+cases we didn't have lods on some assets and that's what I'm showing here uh we
+and that's what I'm showing here uh we had this this very complex model for the
+had this this very complex model for the UNC Infiniti and it had been modeled
+UNC Infiniti and it had been modeled kind of for cinematic sequences and we
+kind of for cinematic sequences and we didn't actually know it was going to end
+didn't actually know it was going to end up uh making an appearance um in the
+up uh making an appearance um in the game pretty close to a combat area and
+game pretty close to a combat area and so it was dropped in at the end of one
+so it was dropped in at the end of one of the missions and we ended up this was
+of the missions and we ended up this was a case of small triangles where we just
+a case of small triangles where we just had we were processing uh well not only
+had we were processing uh well not only just small triangles but too many
+just small triangles but too many triangles and so kind of removing a lot
+triangles and so kind of removing a lot of the smaller details that you couldn't
+of the smaller details that you couldn't really appreciate at the distance it was
+really appreciate at the distance it was at we basically generally you know
+at we basically generally you know created a one-off l for this case um
+created a one-off l for this case um similarly at the end of the second to
+similarly at the end of the second to last mission um there's this kind of
+last mission um there's this kind of Atrium area where UNC has kind of built
+Atrium area where UNC has kind of built this thing on an asteroid and it was
+this thing on an asteroid and it was modeled uh to kind of really look good
+modeled uh to kind of really look good when you're wandering around on foot but
+when you're wandering around on foot but later on in the mission you kind of
+later on in the mission you kind of Traverse upward in an elevator and the
+Traverse upward in an elevator and the art team had kind of just duplicated the
+art team had kind of just duplicated the mesh over to build this this other asset
+mesh over to build this this other asset and hadn't really taken time to uh kind
+and hadn't really taken time to uh kind of evaluate the size of the triangles
+of evaluate the size of the triangles and so we had a lot of tiny little
+and so we had a lot of tiny little triangles which you can see I've circled
+triangles which you can see I've circled all over the place saying hey you should
+all over the place saying hey you should probably delete these and they did and
+probably delete these and they did and uh and our performance got back to where
+uh and our performance got back to where it needed to be in that
+it needed to be in that area Okay uh another technique uh draw
+area Okay uh another technique uh draw calls so so when you're dealing with big
+calls so so when you're dealing with big distances and you have a lot of draw
+distances and you have a lot of draw calls um this one may be again pretty
+calls um this one may be again pretty obvious uh is you you want to call stuff
+obvious uh is you you want to call stuff and um but I was surprised at how many
+and um but I was surprised at how many times we were drawing things that we
+times we were drawing things that we didn't need to be drawing and nobody
+didn't need to be drawing and nobody really noticed um so this was uh this
+really noticed um so this was uh this was from the last mission you had we had
+was from the last mission you had we had this Trench Run um we were flying a
+this Trench Run um we were flying a broadsword uh down this trench and it
+broadsword uh down this trench and it was running really choppy and the team
+was running really choppy and the team was very concerned about having to you
+was very concerned about having to you know impact the visuals kind of get it
+know impact the visuals kind of get it into performance well it turned out we
+into performance well it turned out we were just rendering um chunks of stuff
+were just rendering um chunks of stuff just way way out into the distance and
+just way way out into the distance and it was stuff that you couldn't even see
+it was stuff that you couldn't even see um it stuff that wouldn't even render in
+um it stuff that wouldn't even render in the frame so this was a real simple case
+the frame so this was a real simple case of just uh pulling in the uh the
+of just uh pulling in the uh the distance coling so we were dropping
+distance coling so we were dropping things out sooner to reduce draw calls
+things out sooner to reduce draw calls um it didn't impact the visuals at all
+um it didn't impact the visuals at all um and it got us back to where we needed
+um and it got us back to where we needed to be for that
+area so sometimes when you've got these big expansive spaces though you don't
+big expansive spaces though you don't you can't really call things you have to
+you can't really call things you have to draw them and that's where proxy Geo uh
+draw them and that's where proxy Geo uh really kind of is a is a big help so in
+really kind of is a is a big help so in the first mission of uh Halo 4 you're
+the first mission of uh Halo 4 you're again you're on this uh severed half of
+again you're on this uh severed half of Ford Unto Dawn and uh probably about a
+Ford Unto Dawn and uh probably about a third of the way into the mission you
+third of the way into the mission you realize for the first time that there's
+realize for the first time that there's these Covenant forces on the ship and
+these Covenant forces on the ship and you're looking out kind of over this
+you're looking out kind of over this Observatory decking onto this uh missile
+Observatory decking onto this uh missile Bay kind of open area uh Beyond and it's
+Bay kind of open area uh Beyond and it's actually going a combat space later on
+actually going a combat space later on in the mission
+in the mission um but at the point where you you're
+um but at the point where you you're viewing it we had some really bad
+viewing it we had some really bad performance issues because not only are
+performance issues because not only are you rendering this big space but we were
+you rendering this big space but we were doing it through a glass kind of surface
+doing it through a glass kind of surface and so any there's a lot of problems uh
+and so any there's a lot of problems uh kind of compounding each other and so in
+kind of compounding each other and so in this case we were able to uh get most of
+this case we were able to uh get most of the way back into perf by um just
+the way back into perf by um just creating a lower res uh version of this
+creating a lower res uh version of this this uh big outer area and then taking
+this uh big outer area and then taking an in-game uh screenshot of the highres
+an in-game uh screenshot of the highres geometry projection mapping it back onto
+geometry projection mapping it back onto the lower res geometry and it looked the
+the lower res geometry and it looked the same um so we you know it didn't didn't
+same um so we you know it didn't didn't drastically affect the visuals but it
+drastically affect the visuals but it helped us get back into performance for
+helped us get back into performance for that
+area Okay so sometimes you want to call things and you just they're right in
+things and you just they're right in front of your face and there's nothing
+front of your face and there's nothing you can do and we had uh but that's not
+you can do and we had uh but that's not true there is nothing you can do which
+true there is nothing you can do which is occlusion cards um so this is a
+is occlusion cards um so this is a technique I first uh started using on
+technique I first uh started using on connect Adventures uh basically if you
+connect Adventures uh basically if you model the the heck out of an area and
+model the the heck out of an area and you've got you know a ton of Geo but you
+you've got you know a ton of Geo but you you kind of need to um you kind kind of
+you kind of need to um you kind kind of need to get things back into scope um
+need to get things back into scope um this is kind of a a way to approach that
+this is kind of a a way to approach that one of many but um so occlusion cards
+one of many but um so occlusion cards the basic idea is
+the basic idea is this hopefully this
+this hopefully this runs so you've got this Shader um that
+runs so you've got this Shader um that just Fades out as the camera approaches
+just Fades out as the camera approaches it so so when it's opaque you can call
+it so so when it's opaque you can call everything behind it um and and then you
+everything behind it um and and then you just kind of start drawing it just
+just kind of start drawing it just before it starts to fade out um and I
+before it starts to fade out um and I should also note that these don't have
+should also note that these don't have to be a plane it could be uh kind of a
+to be a plane it could be uh kind of a dome or it could be any kind of an
+dome or it could be any kind of an arbitrary shape and it doesn't have to
+arbitrary shape and it doesn't have to be kind of a a fog kind of plane here
+be kind of a a fog kind of plane here like this you could put textures on it
+like this you could put textures on it you can put animated uh kind of shaders
+you can put animated uh kind of shaders and I'm going to show you some examples
+and I'm going to show you some examples of that so it doesn't it doesn't have to
+of that so it doesn't it doesn't have to be a very obvious kind of just straight
+be a very obvious kind of just straight up fogging technique that that is um
+up fogging technique that that is um being used here so some flavors of this
+being used here so some flavors of this that were used on Halo 4 uh this is a
+that were used on Halo 4 uh this is a bloom occlusion card um basically what
+bloom occlusion card um basically what we're doing here is we are uh using it
+we're doing here is we are uh using it to kind of fake a uh kind of a fake HDR
+to kind of fake a uh kind of a fake HDR exposure so we've turned up the color
+exposure so we've turned up the color really bright and we let our
+really bright and we let our post-processed Bloom kind of blow it out
+post-processed Bloom kind of blow it out um but while we're coming up this tunnel
+um but while we're coming up this tunnel we're basically rendering nothing behind
+we're basically rendering nothing behind that thing and as we come up uh just
+that thing and as we come up uh just before it starts to fade is when we kind
+before it starts to fade is when we kind of bring in that huge complicated Vista
+of bring in that huge complicated Vista uh that we reveal as you kind of Crest
+uh that we reveal as you kind of Crest over this
+rise another example here this is at the end of the second mission in Halo 4 um
+end of the second mission in Halo 4 um we had this very complicated Forerunner
+we had this very complicated Forerunner um building and a kind of a pretty heavy
+um building and a kind of a pretty heavy encounter going on in this area so when
+encounter going on in this area so when you first enter this space we're having
+you first enter this space we're having performance problems CU not only were we
+performance problems CU not only were we rendering this this really complicated
+rendering this this really complicated exterior um there was a hallway at the
+exterior um there was a hallway at the base of this structure in uh let me see
+base of this structure in uh let me see if I can get this to work here right in
+if I can get this to work here right in this area and so what we did was we
+this area and so what we did was we created what I call an imposter
+created what I call an imposter occlusion card in this space where uh we
+occlusion card in this space where uh we took a screenshot um similar to what we
+took a screenshot um similar to what we did with the proxy Geo of the interior
+did with the proxy Geo of the interior of that space before we called it and
+of that space before we called it and then we just used that as a texture map
+then we just used that as a texture map on one of these occlusion cards and we
+on one of these occlusion cards and we do a kind of a cross Spade um and in the
+do a kind of a cross Spade um and in the context of the gameplay you're kind of
+context of the gameplay you're kind of in this lower level so you don't really
+in this lower level so you don't really tend to notice this I'm where I'm
+tend to notice this I'm where I'm standing in the in the in the level is
+standing in the in the in the level is probably the where it is most prominent
+probably the where it is most prominent you really need to be kind of keeping
+you really need to be kind of keeping your eye on it to really notice it but
+your eye on it to really notice it but uh it got us back into perf for this
+area and then another kind of variation on this is a fog occlusion card and uh
+on this is a fog occlusion card and uh this is actually it's not just a fog
+this is actually it's not just a fog occlusion card it's it's kind of like an
+occlusion card it's it's kind of like an animated fog kind of spilling over
+animated fog kind of spilling over effect
+effect so it's just a card like we I've been
+so it's just a card like we I've been saying where it kind of Fades out but
+saying where it kind of Fades out but what we did here was this big space off
+what we did here was this big space off to the left which is has a ton of
+to the left which is has a ton of geometry in it uh we were having some
+geometry in it uh we were having some performance issues when we came down the
+performance issues when we came down the hall here so we just C all that and put
+hall here so we just C all that and put this kind of fog kind of animated
+this kind of fog kind of animated spilling over and it kind of masks the
+spilling over and it kind of masks the fact that we basically uh if we took
+fact that we basically uh if we took that fog away we're just looking outside
+that fog away we're just looking outside the world um there's nothing rendering
+the world um there's nothing rendering there so it it kind of just masks the
+there so it it kind of just masks the culling happening in that area
+okay let's go power
+point okay there we go um so the next performance issue uh kind of related to
+performance issue uh kind of related to the draw call stuff is uh poor culling
+the draw call stuff is uh poor culling so this is um can sometimes be stuff
+so this is um can sometimes be stuff that's actually in view in the camera
+that's actually in view in the camera view frustrum but a lot of times poor
+view frustrum but a lot of times poor cing can be do to things that are not
+cing can be do to things that are not even in the camera view frustrum or or
+even in the camera view frustrum or or seem like they're not in the view
+seem like they're not in the view frustrum but we're still paying for them
+frustrum but we're still paying for them um sometimes well usually this is due to
+um sometimes well usually this is due to really big meshes um it can also be due
+really big meshes um it can also be due to uh if we aren't um rendering the
+to uh if we aren't um rendering the right stuff into the Z prepass so that
+right stuff into the Z prepass so that we can kind of early out um both of
+we can kind of early out um both of these can be contributing factors uh
+these can be contributing factors uh this next video is going to kind of show
+this next video is going to kind of show you the problem with big meshes so if
+you the problem with big meshes so if you got a really complicated mesh tends
+you got a really complicated mesh tends to be like a Terrain mesh or like maybe
+to be like a Terrain mesh or like maybe like a big building or something um even
+like a big building or something um even when a little polygon and view we have
+when a little polygon and view we have to kind of uh have the whole thing uh
+to kind of uh have the whole thing uh being processed where if we chop it up
+being processed where if we chop it up we can immediately start culling things
+we can immediately start culling things out as they move out of the camera frust
+out as they move out of the camera frust them
+them so it's this doesn't really affect
+so it's this doesn't really affect visuals at all it's really more of a
+visuals at all it's really more of a Content fix again that's what the like
+Content fix again that's what the like the focus of this talk is basically how
+the focus of this talk is basically how can we modify content to kind of get it
+can we modify content to kind of get it back to where it needs to be and this is
+back to where it needs to be and this is really a kind of a lwh hanging
+really a kind of a lwh hanging fruit uh an example of this uh
+fruit uh an example of this uh is there was a uh
+is there was a uh Mission uh on Halo 4 where we're kind of
+Mission uh on Halo 4 where we're kind of in this desert environment we're riding
+in this desert environment we're riding on this really big vehicle called the
+on this really big vehicle called the mammoth and we come to the end of it and
+mammoth and we come to the end of it and um at the end of the mammoth ride and we
+um at the end of the mammoth ride and we jump off and we're in kind of this this
+jump off and we're in kind of this this Grotto that we called sniper alley which
+Grotto that we called sniper alley which you can see here is this little area
+you can see here is this little area right here and we were having some
+right here and we were having some performance issues and it turned out it
+performance issues and it turned out it was exactly this big mesh problem so
+was exactly this big mesh problem so when we went into the render freeze you
+when we went into the render freeze you could see that we had this entire giant
+could see that we had this entire giant terrain mesh this is a actually a a
+terrain mesh this is a actually a a problem at a couple different spots on
+problem at a couple different spots on this Mission and um like I've just said
+this Mission and um like I've just said chopping it up uh solved the problem uh
+chopping it up uh solved the problem uh also had the added byproduct of giving
+also had the added byproduct of giving us a little bit better management over
+us a little bit better management over our light Maps um another thing that we
+our light Maps um another thing that we could do in these areas too that helped
+could do in these areas too that helped with uh with culling is um we use a uh a
+with uh with culling is um we use a uh a portaling system to uh do a calling on
+portaling system to uh do a calling on the CPU and so tightening up those
+the CPU and so tightening up those portals and making sure that they were
+portals and making sure that they were really crafted as well as they could be
+really crafted as well as they could be uh helped a lot too cuz when we first
+uh helped a lot too cuz when we first build these spaces out we keep this
+build these spaces out we keep this stuff kind of loose cuz the designers
+stuff kind of loose cuz the designers would still be adding and removing
+would still be adding and removing things but as we got closer to ship
+things but as we got closer to ship getting those things really aligned with
+getting those things really aligned with the the content was important um so
+the the content was important um so another big area performance issue uh
+another big area performance issue uh expensive shaders and I'm probably all
+expensive shaders and I'm probably all of you have experienced this um so lots
+of you have experienced this um so lots of Samplers lots of math instructions
+of Samplers lots of math instructions all contribute to shaders being
+all contribute to shaders being expensive so the solution is Shader
+expensive so the solution is Shader optimization um this image is a picture
+optimization um this image is a picture of some Forerunner metal
+of some Forerunner metal um we had a fairly complicated metal
+um we had a fairly complicated metal Shader that we used for Forerunner
+Shader that we used for Forerunner surfaces and the last mission of uh Halo
+surfaces and the last mission of uh Halo 4 had basically metal everywhere and so
+4 had basically metal everywhere and so we had to create a more optimized
+we had to create a more optimized version for that mission and this one
+version for that mission and this one was made about 20% cheaper just by
+was made about 20% cheaper just by switching out the specular model um
+switching out the specular model um which reduced the math instruction
+which reduced the math instruction significantly um kind of going along the
+significantly um kind of going along the Shader optimization theme we had this
+Shader optimization theme we had this idea of production shaders versus ship
+idea of production shaders versus ship shaders so production Shader is kind of
+shaders so production Shader is kind of like a generic Shader uh that the
+like a generic Shader uh that the artists can kind of experiment with try
+artists can kind of experiment with try different things out but when it came
+different things out but when it came time to ship and we knew a Shader how a
+time to ship and we knew a Shader how a Shader was going to be used in a
+Shader was going to be used in a specific context uh we would dup that
+specific context uh we would dup that Shader off and just hack the hell out of
+Shader off and just hack the hell out of it to get it like just mashed down and
+it to get it like just mashed down and so but maintain the look as much as
+so but maintain the look as much as possible so uh we would do that we would
+possible so uh we would do that we would kind of pack uh channels differently uh
+kind of pack uh channels differently uh we'd reduce or uh removed shading terms
+we'd reduce or uh removed shading terms if they were subtle or not used at all
+if they were subtle or not used at all um this image here is uh an example of
+um this image here is uh an example of on um was the third mission of Halo that
+on um was the third mission of Halo that the art team had spent quite a bit of
+the art team had spent quite a bit of time kind of crafting the look of these
+time kind of crafting the look of these sort of volcanic rocks on that mission
+sort of volcanic rocks on that mission and they were very concerned about
+and they were very concerned about maintaining the look um but we'd reached
+maintaining the look um but we'd reached a point then the kind of the
+a point then the kind of the optimization process where these rocks
+optimization process where these rocks were definitely they were occupying a
+were definitely they were occupying a lot of screen space and they were quite
+lot of screen space and they were quite expensive to render um but we were just
+expensive to render um but we were just a little bit over so I you know I asked
+a little bit over so I you know I asked the art lead hey would you mind uh if I
+the art lead hey would you mind uh if I took a crack at optimizing um this rock
+took a crack at optimizing um this rock Shader and his response was sure but it
+Shader and his response was sure but it needs to look exactly the same and so I
+needs to look exactly the same and so I said okay fair enough um I was able to
+said okay fair enough um I was able to get it about 15% faster and what I did
+get it about 15% faster and what I did was rather than do like an AB comparison
+was rather than do like an AB comparison when I showed them the results um I was
+when I showed them the results um I was inspired by Sesame Street you guys ever
+inspired by Sesame Street you guys ever heard like one of these things is not
+heard like one of these things is not like the other
+like the other yeah okay so I built a scene with about
+yeah okay so I built a scene with about five of these rocks and only one of them
+five of these rocks and only one of them was the optimized one and I sat them
+was the optimized one and I sat them down in front of it and I said if you
+down in front of it and I said if you can tell me which one is the optimized
+can tell me which one is the optimized uh one I'll go back to the drawing board
+uh one I'll go back to the drawing board and he sat there for about a minute and
+and he sat there for about a minute and then pointed out the wrong Rock so the
+then pointed out the wrong Rock so the optimization stuck and the reason I tell
+optimization stuck and the reason I tell that story is because I think uh it's
+that story is because I think uh it's definitely a technique I'll use in the
+definitely a technique I'll use in the future um I think when you've got uh
+future um I think when you've got uh some maybe some built-in bias um I think
+some maybe some built-in bias um I think making things a little more
+making things a little more obis gated when it comes to kind of
+obis gated when it comes to kind of these sort of subjective judgment calls
+these sort of subjective judgment calls uh it makes sure that people are really
+uh it makes sure that people are really being honest about what's important
+being honest about what's important visually um another thing I want to
+visually um another thing I want to mention is our art team did a lot of Kit
+mention is our art team did a lot of Kit bashing to kind of build assets so a lot
+bashing to kind of build assets so a lot of times we'd end up with just gobs of
+of times we'd end up with just gobs of materials on what were otherwise very
+materials on what were otherwise very simple assets and those materials would
+simple assets and those materials would often be sampling uh a ton of textur so
+often be sampling uh a ton of textur so um doing some material optimization was
+um doing some material optimization was also uh an important part of this Shader
+also uh an important part of this Shader optimization
+process so overdraw um rfx team was actually very sensitive to this uh this
+actually very sensitive to this uh this problem this is where we're drawing just
+problem this is where we're drawing just too many transparent things on top of
+too many transparent things on top of each other uh and it starts to bog
+each other uh and it starts to bog things down so despite uh some of our
+things down so despite uh some of our our efforts in this area you still have
+our efforts in this area you still have cases where a particular effect might
+cases where a particular effect might end up being placed in a certain context
+end up being placed in a certain context and it might be just the straw that
+and it might be just the straw that breaks the camel's back so um we would
+breaks the camel's back so um we would solution in these areas would be to
+solution in these areas would be to either kind of tune the emission rates
+either kind of tune the emission rates to minimize the uh the amount of
+to minimize the uh the amount of overdraw that was occurring um sometimes
+overdraw that was occurring um sometimes we'd go back ask the effects team to go
+we'd go back ask the effects team to go back to um sort of do some additional
+back to um sort of do some additional work on the materials that are applied
+work on the materials that are applied to these Sprites to add complexity in
+to these Sprites to add complexity in those materials rather than achieve that
+those materials rather than achieve that complexity by overlapping a lot of
+complexity by overlapping a lot of Sprites
+Sprites um another area kind of related uh we
+um another area kind of related uh we had a lot of lens flares in Halo 4 um
+had a lot of lens flares in Halo 4 um a lot and and so we had we had one uh
+a lot and and so we had we had one uh area in one of our missions where it was
+area in one of our missions where it was just really running terrible and it
+just really running terrible and it turned out there was just all these
+turned out there was just all these overlapping quads from all these lens FL
+overlapping quads from all these lens FL lens flirt elements and so the solution
+lens flirt elements and so the solution here was creating a more optimized lens
+here was creating a more optimized lens flare um for that specific use case and
+flare um for that specific use case and that's really a common theme in a lot of
+that's really a common theme in a lot of this uh kind of performance work is when
+this uh kind of performance work is when you're trying to kind of find this sweet
+you're trying to kind of find this sweet spot with the visuals is rather than
+spot with the visuals is rather than trying to create a solution that is um
+trying to create a solution that is um going to fix it for your entire uh game
+going to fix it for your entire uh game is just really just tune things in the
+is just really just tune things in the places where they need to be tuned so
+places where they need to be tuned so that way your visuals don't get affected
+that way your visuals don't get affected in areas where there is no problem um
+in areas where there is no problem um the other thing we did uh our Graphics
+the other thing we did uh our Graphics team would occasionally render to a kind
+team would occasionally render to a kind of a quarter reses buffer uh so that
+of a quarter reses buffer uh so that wouldn't take as long to render our
+wouldn't take as long to render our transparence that helped as
+well so skyboxes were another area where we had lots of transparent pixels um
+we had lots of transparent pixels um when we first started doing the skyboxes
+when we first started doing the skyboxes were gorgeous
+were gorgeous um when they first started doing them
+um when they first started doing them though they were just kind of putting
+though they were just kind of putting them on these big concentric quad strips
+them on these big concentric quad strips and so we were we were paying you know
+and so we were we were paying you know they were just textures with Alpha in
+they were just textures with Alpha in the sky so all those pixels in the sky
+the sky so all those pixels in the sky we were paying uh overdraw cost for
+we were paying uh overdraw cost for nothing visually so the solution there
+nothing visually so the solution there was to go in and kind of cut the
+was to go in and kind of cut the geometry so that we aren't paying for
+geometry so that we aren't paying for basically fully transparent pixels and
+basically fully transparent pixels and then taking it a step further to go in
+then taking it a step further to go in and actually build a quad strip along
+and actually build a quad strip along the um the right along the edge of the
+the um the right along the edge of the kind of the mountain ranges and stuff so
+kind of the mountain ranges and stuff so we only pay transparent cost right along
+we only pay transparent cost right along that edge line and then put an opaque
+that edge line and then put an opaque Shader on the on the lower portions
+Shader on the on the lower portions where we don't need the
+where we don't need the transparency um this uh same technique
+transparency um this uh same technique can be extended to water um if you if
+can be extended to water um if you if you're doing kind of depth blending
+you're doing kind of depth blending along a shoreline and you're kind of
+along a shoreline and you're kind of fading out to kind of deeper water um as
+fading out to kind of deeper water um as soon as you get into that deeper opaque
+soon as you get into that deeper opaque water you can just cut the geometry
+water you can just cut the geometry there and put a fully opaque Shader in
+there and put a fully opaque Shader in that area so you're basically you've got
+that area so you're basically you've got opaque pixels in the center of of your
+opaque pixels in the center of of your your water masses and you're not you're
+your water masses and you're not you're only paying for transparency along the
+only paying for transparency along the shorelines we use that on connected
+shorelines we use that on connected Ventures not on
+Halo okay another performance issue lighting costs um so Hala 4 uh used a
+lighting costs um so Hala 4 uh used a deferred renderer and so we had uh two
+deferred renderer and so we had uh two types of Lights we had screen space
+types of Lights we had screen space lights and we had Dynamic lights and
+lights and we had Dynamic lights and there was good uh use cases uh for using
+there was good uh use cases uh for using either one but screen space lights were
+either one but screen space lights were definitely uh the more efficient of the
+definitely uh the more efficient of the two and so um but we also got immediate
+two and so um but we also got immediate feedback with the dynamic lights so the
+feedback with the dynamic lights so the lighters would often work with fully
+lighters would often work with fully Dynamic lights and only switch things to
+Dynamic lights and only switch things to screen space when they were ready to uh
+screen space when they were ready to uh to uh kind of call it final um so
+to uh kind of call it final um so occasionally we'd have lights that just
+occasionally we'd have lights that just slipped through the Gap that where they
+slipped through the Gap that where they they forgot to flip that switch and turn
+they forgot to flip that switch and turn them into screen space that was a common
+them into screen space that was a common thing we just have to check for uh some
+thing we just have to check for uh some other cases though even with screen
+other cases though even with screen space we could have some uh performance
+space we could have some uh performance hits and this is a this image here is a
+hits and this is a this image here is a good example of that we had these little
+good example of that we had these little uh Covenant light sticks that had these
+uh Covenant light sticks that had these just huge falloff radiuses to the lights
+just huge falloff radiuses to the lights and this is actually a frame from pix
+and this is actually a frame from pix and again pix is really helpful it's got
+and again pix is really helpful it's got some um some cool uh visualization modes
+some um some cool uh visualization modes and this one allows you to see the
+and this one allows you to see the wireframe for the fall off of the light
+wireframe for the fall off of the light and so when when we saw that these
+and so when when we saw that these lights were expensive and usually screen
+lights were expensive and usually screen space lights were quite cheap um it was
+space lights were quite cheap um it was a good uh way to kind of say hey we've
+a good uh way to kind of say hey we've there's you know we've got to um got to
+there's you know we've got to um got to reduce the radius on these guys and that
+reduce the radius on these guys and that was a real quick
+was a real quick fix um kind of speaking to the kind of
+fix um kind of speaking to the kind of Lights being left behind we had we had
+Lights being left behind we had we had like we were over in this area and we
+like we were over in this area and we nobody could figure it out turned out it
+nobody could figure it out turned out it was there was these tiny little spot
+was there was these tiny little spot Dynamic spotlights in the middle of
+Dynamic spotlights in the middle of nowhere that were costing 3 milliseconds
+nowhere that were costing 3 milliseconds which is a huge part of your 30 m 33
+which is a huge part of your 30 m 33 millisecond budget and just uh deleting
+millisecond budget and just uh deleting these solve the problem so um just kind
+these solve the problem so um just kind of being aware of what your content's
+of being aware of what your content's doing is a a huge part of
+this so cinematics um we did a lot of work on cinematics to get them into
+work on cinematics to get them into performance uh uh we had some very
+performance uh uh we had some very complicated characters uh Cortana was by
+complicated characters uh Cortana was by far one of our most expensive things to
+far one of our most expensive things to render uh in the game uh she clocked in
+render uh in the game uh she clocked in around uh 5 to six milliseconds due to
+around uh 5 to six milliseconds due to the the various render targets we had to
+the the various render targets we had to uh great uh to achieve that effect um so
+uh great uh to achieve that effect um so we had this sequence at the end
+we had this sequence at the end of uh the game where Cortana
+of uh the game where Cortana um let's see I'll play it while I talk
+um let's see I'll play it while I talk uh where Cortana is kind of she comes up
+uh where Cortana is kind of she comes up and we've got this pretty complicated
+and we've got this pretty complicated effect behind her and uh she's doing
+effect behind her and uh she's doing some stuff and we were very concerned
+some stuff and we were very concerned about this uh particular shot and so
+about this uh particular shot and so because we were she's expensive uh she
+because we were she's expensive uh she was draw drawing over other transparent
+was draw drawing over other transparent things in a really huge environment um
+things in a really huge environment um kind of all the problems I've just uh
+kind of all the problems I've just uh kind of called out all in one shot and
+kind of called out all in one shot and so uh some of the ways we dealt with
+so uh some of the ways we dealt with this uh one we kind of pulled the plin
+this uh one we kind of pulled the plin back a little bit so that we could and
+back a little bit so that we could and and tilted the camera down so that we
+and tilted the camera down so that we could get more opaque pixels covering
+could get more opaque pixels covering the screen so you'll notice this this uh
+the screen so you'll notice this this uh kind of platform you're standing on
+kind of platform you're standing on occupies about half the frame that
+occupies about half the frame that helped improve uh the render time you
+helped improve uh the render time you also notice we put this um barricade
+also notice we put this um barricade behind her in between her and that uh
+behind her in between her and that uh that kind of orange orb effect and what
+that kind of orange orb effect and what that allowed us to do is again this is
+that allowed us to do is again this is to address overdraw issues we basically
+to address overdraw issues we basically put some opaque pixels back there and so
+put some opaque pixels back there and so where she's rendering we're not paying
+where she's rendering we're not paying all that overdraw cost in addition of
+all that overdraw cost in addition of the cost of just rendering her so um
+the cost of just rendering her so um those are some techniques that helped uh
+those are some techniques that helped uh ensure that we uh we could get that shot
+ensure that we uh we could get that shot achieve that shot for
+narrative um finally I just want to mention um I kind of touched on this at
+mention um I kind of touched on this at the beginning of the talk uh you
+the beginning of the talk uh you definitely want to make sure you
+definitely want to make sure you optimize your post effects uh on Halo 4
+optimize your post effects uh on Halo 4 we had two types of fog we had a a
+we had two types of fog we had a a patchy fog and a screen space fog and a
+patchy fog and a screen space fog and a lot of times we had both of those turned
+lot of times we had both of those turned on at the same time we didn't really
+on at the same time we didn't really need it um so kind of being aware of
+need it um so kind of being aware of what you're what you're actually using
+what you're what you're actually using and whether or not it's really
+and whether or not it's really contributing uh significantly to the
+contributing uh significantly to the final look of the of the frame and then
+final look of the of the frame and then um having your making sure your uh all
+um having your making sure your uh all the things you're paying critical costs
+the things you're paying critical costs for uh things that we rendering all the
+for uh things that we rendering all the time like the HUD are as efficient as
+time like the HUD are as efficient as they can be and uh early on in this
+they can be and uh early on in this process our HUD actually wasn't very
+process our HUD actually wasn't very efficient and our UI team team did a
+efficient and our UI team team did a great job kind of getting that down as
+great job kind of getting that down as far as they could uh so that it wasn't
+far as they could uh so that it wasn't eating too much of our budget
+up so I mentioned at the beginning of the talk GPU starvation um there are a
+the talk GPU starvation um there are a lot of cases where your GPU is not
+lot of cases where your GPU is not bottleneck it's your CPU and so this can
+bottleneck it's your CPU and so this can be due to a variety of issues uh slow
+be due to a variety of issues uh slow Collision um poor culling uh just too
+Collision um poor culling uh just too many AI simulating all kind of
+many AI simulating all kind of contribute to GPU starvation um so ways
+contribute to GPU starvation um so ways to fix that we T we've already talked
+to fix that we T we've already talked about some of the culling techniques um
+about some of the culling techniques um going in and optimizing collusion meshes
+going in and optimizing collusion meshes uh helps uh get your your ray cast costs
+uh helps uh get your your ray cast costs down and we did quite a bit of that on
+down and we did quite a bit of that on Halo 4 um we had two types of collision
+Halo 4 um we had two types of collision we had a play collision and a bullet
+we had a play collision and a bullet collision and we would go in and
+collision and we would go in and optimize those as necessary to uh to get
+optimize those as necessary to uh to get those raycast times down we also um had
+those raycast times down we also um had times like the one shown here uh where
+times like the one shown here uh where we were spawning in way too many Dynamic
+we were spawning in way too many Dynamic objects and or AI um and we would the
+objects and or AI um and we would the solution here was to go talk with the
+solution here was to go talk with the design team and they would have to uh
+design team and they would have to uh kind of stagger the spawning of objects
+kind of stagger the spawning of objects um which usually wasn't a problem
+um which usually wasn't a problem because it was usually stuff that wasn't
+because it was usually stuff that wasn't really in view anyway it was just and
+really in view anyway it was just and and they hadn't intentionally meant it
+and they hadn't intentionally meant it to spawn in as early as it did it was
+to spawn in as early as it did it was just kind of something that
+happened and so uh at the end of this whole process uh you know the the end
+whole process uh you know the the end goal here is we want to create a bunch
+goal here is we want to create a bunch of actionable items for the team to go
+of actionable items for the team to go uh address so creating these performance
+uh address so creating these performance reports at the end are uh probably the
+reports at the end are uh probably the most important part of the entire
+most important part of the entire process so so we would create uh kind of
+process so so we would create uh kind of call outs per team um environment
+call outs per team um environment lighting effects all the ones listed
+lighting effects all the ones listed here and we would give them multiple
+here and we would give them multiple suggestions uh for ways to fix uh each
+suggestions uh for ways to fix uh each of their areas where they're over budget
+of their areas where they're over budget again these are all referenced back to
+again these are all referenced back to that per frame budget I talked about at
+that per frame budget I talked about at the beginning of the whole uh talk so
+the beginning of the whole uh talk so they're they would get kind of a call
+they're they would get kind of a call out for each area like hey you know
+out for each area like hey you know you're maybe a millisecond over here's
+you're maybe a millisecond over here's some ways you could uh kind of get that
+some ways you could uh kind of get that millisecond back and we'd give them you
+millisecond back and we'd give them you know maybe half a dozen different uh
+know maybe half a dozen different uh options and to me that was very
+options and to me that was very important because it let them own the
+important because it let them own the final decision on what got optimized and
+final decision on what got optimized and we we definitely could have gone in and
+we we definitely could have gone in and just said hey this is what we're doing
+just said hey this is what we're doing live with it um but you get a lot more
+live with it um but you get a lot more buyin from the team by involving them uh
+buyin from the team by involving them uh in the process and and allowing them to
+in the process and and allowing them to help be the decision makers for how
+help be the decision makers for how their their content gets
+optimized so uh performance analysis takes quite a bit of time and I often
+takes quite a bit of time and I often felt basically like Master Chief here in
+felt basically like Master Chief here in this image where we had our ship date
+this image where we had our ship date kind of coming in and there was lots of
+kind of coming in and there was lots of performance to do and there was not a
+performance to do and there was not a lot of time um it usually took about a
+lot of time um it usually took about a day or more uh per pass on a on a
+day or more uh per pass on a on a mission to do a run through and that was
+mission to do a run through and that was with our automated uh kind of uh heat
+with our automated uh kind of uh heat map creation process so we could do kind
+map creation process so we could do kind of more targeted analysis um so
+of more targeted analysis um so definitely uh for us it was important to
+definitely uh for us it was important to make sure that we had time scheduled not
+make sure that we had time scheduled not only for the initial analysis but then
+only for the initial analysis but then uh those those uh reports that I just
+uh those those uh reports that I just mentioned would get turned into um bugs
+mentioned would get turned into um bugs in our bug tracking software and then uh
+in our bug tracking software and then uh when they were resolved it would be on
+when they were resolved it would be on us to go back and follow up with folks
+us to go back and follow up with folks and make sure uh or follow up in those
+and make sure uh or follow up in those areas that we' called out and see if
+areas that we' called out and see if they'd actually uh addressed the issue
+they'd actually uh addressed the issue and then if not we had to you know
+and then if not we had to you know generate a follow-up report and more
+generate a follow-up report and more bugs um the other thing we did uh
+bugs um the other thing we did uh towards the end uh was making sure we
+towards the end uh was making sure we had scheduled playthroughs um on release
+had scheduled playthroughs um on release kind of builds um when we're when we're
+kind of builds um when we're when we're kind of in the midst of production
+kind of in the midst of production uh we run our our builds that we were
+uh we run our our builds that we were running with had a lot of extra counters
+running with had a lot of extra counters in them to uh give us more um
+in them to uh give us more um information on timing um but those uh
+information on timing um but those uh similar to the case where you've got the
+similar to the case where you've got the in-game uh debug menu that kind of
+in-game uh debug menu that kind of introduces some overhead even with the
+introduces some overhead even with the uh the timing captures just having those
+uh the timing captures just having those counters in there also um introduces a
+counters in there also um introduces a little bit of overhead so really we got
+little bit of overhead so really we got our true numbers when we actually did
+our true numbers when we actually did our full release build and then we would
+our full release build and then we would have very minimal um kind of instrument
+have very minimal um kind of instrument mentation in there to kind of get a
+mentation in there to kind of get a sense of where frame rate was uh and we
+sense of where frame rate was uh and we would make sure we were doing
+would make sure we were doing playthroughs in both uh full screen and
+playthroughs in both uh full screen and split screen because that was one of our
+split screen because that was one of our modes and we wanted to make sure that um
+modes and we wanted to make sure that um that was a good experience on both those
+that was a good experience on both those uh those
+modes so before I wrap up here uh I want to call out this is a talk that's
+to call out this is a talk that's happening tomorrow if you uh have a lot
+happening tomorrow if you uh have a lot of interest in this uh performance stuff
+of interest in this uh performance stuff uh there's going to be a talk focused
+uh there's going to be a talk focused specifically on Xbox One um on the
+specifically on Xbox One um on the performance tools and uh definitely
+performance tools and uh definitely suggest checking that
+suggest checking that out and I just want to say thank you to
+out and I just want to say thank you to the entire 343 team to Bonnie Ross Josh
+the entire 343 team to Bonnie Ross Josh Holmes and Neil Harrison for allowing me
+Holmes and Neil Harrison for allowing me to share these stories with you and for
+to share these stories with you and for to David burer for entrusting me with
+to David burer for entrusting me with the perf
+the perf hammer and that's it thanks
+hammer and that's it thanks [Applause]
+[Applause] [Music]
+[Music] everybody so I can take question do we
+everybody so I can take question do we have time for a question
+have time for a question yeah so if anybody's got
+yeah so if anybody's got questions hey uh so with the occlusion
+questions hey uh so with the occlusion cards did you just let it rendered to
+cards did you just let it rendered to your duck buffer when it was fully op or
+your duck buffer when it was fully op or did you do some other way to call the
+did you do some other way to call the aore behind it no so the uh so yeah
+aore behind it no so the uh so yeah actually I'm glad you mentioned that um
+actually I'm glad you mentioned that um so there's there's a couple ways you can
+so there's there's a couple ways you can do this so the depth the the the depth
+do this so the depth the the the depth uh occlusion cards uh are part of the
+uh occlusion cards uh are part of the transparent path they don't render the
+transparent path they don't render the to the depth buffer as you as you
+to the depth buffer as you as you pointed out but one thing you can do is
+pointed out but one thing you can do is if you want to you can put like a really
+if you want to you can put like a really big uh you could dupe the the the uh
+big uh you could dupe the the the uh clusion geometry and maybe move it back
+clusion geometry and maybe move it back a little bit and put an opaque Shader on
+a little bit and put an opaque Shader on there and that can write to your like
+there and that can write to your like your Z pre pass and that can be like
+your Z pre pass and that can be like another way to uh do your calling um and
+another way to uh do your calling um and you just turn that off before you start
+you just turn that off before you start fading so would that would that do
+fading so would that would that do Dynamic austion queries then for the
+Dynamic austion queries then for the actual objects though to stop the draw
+actual objects though to stop the draw calls or did you like actually like have
+calls or did you like actually like have somebody hook up like hey these objects
+somebody hook up like hey these objects will turn off yeah no so so in our
+will turn off yeah no so so in our engine we had a basically a flag you
+engine we had a basically a flag you could set that just says past this
+could set that just says past this distance just stop evaluating this
+distance just stop evaluating this object and so we just set that and we
+object and so we just set that and we had some tools uh that would just very
+had some tools uh that would just very easily uh let us set that on a bunch of
+easily uh let us set that on a bunch of of them all at
+of them all at once yeah all so in this you were
+once yeah all so in this you were talking all about your career missions
+talking all about your career missions so I was wondering how much if any of
+so I was wondering how much if any of this applied to the multiplayer maps
+this applied to the multiplayer maps that's a great question uh it very much
+that's a great question uh it very much applies to it um we couldn't use as many
+applies to it um we couldn't use as many of the tricks because multiplayer is
+of the tricks because multiplayer is kind of like you've got uh just
+kind of like you've got uh just everybody everywhere all the time um so
+everybody everywhere all the time um so we we were a lot more strict about our
+we we were a lot more strict about our uh kind of requirements for those maps
+uh kind of requirements for those maps about um kind of how complicated they
+about um kind of how complicated they could be CU um there was just too many
+could be CU um there was just too many situations where you just you never knew
+situations where you just you never knew if there was going to be a bazillion
+if there was going to be a bazillion grenades going off or what the you know
+grenades going off or what the you know kind of the the situation was so uh we
+kind of the the situation was so uh we were we were we could be a little bit
+were we were we could be a little bit more crafted in the campaign and
+more crafted in the campaign and multiplayer we' had to be a lot more
+multiplayer we' had to be a lot more strict so especially with the Forge Maps
+strict so especially with the Forge Maps where you know you
+where you know you have a huge amount of content that
+have a huge amount of content that players can put into the maps was there
+players can put into the maps was there any kind of optimization that you could
+any kind of optimization that you could do for those uh not a lot um other than
+do for those uh not a lot um other than put caps on the number of uh things you
+put caps on the number of uh things you can place in the in the in the Forge
+can place in the in the in the Forge environment that's really uh where the
+environment that's really uh where the where the optimization kind of is is
+where the optimization kind of is is just kind of creating a a built-in kind
+just kind of creating a a built-in kind of budget for for players to kind of be
+of budget for for players to kind of be able to adhere to so we don't don't
+able to adhere to so we don't don't create a scene that will be unplayable
+create a scene that will be unplayable okay yeah thanks sure
+all right thanks [Applause]
+[Applause] [Music]
+[Music] [Applause]
+everybody

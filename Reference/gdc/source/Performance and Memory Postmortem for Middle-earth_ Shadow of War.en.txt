@@ -1,0 +1,1669 @@
+[Music] so welcome to the performance and memory
+so welcome to the performance and memory post-mortem for middle-earth shadow war
+post-mortem for middle-earth shadow war my name is piatra mintues I'm a
+my name is piatra mintues I'm a technical director at monolith
+technical director at monolith productions I've been with monolith for
+productions I've been with monolith for the past 15 years I originally joined
+the past 15 years I originally joined the team at monolith to work on a game
+the team at monolith to work on a game of his codename was an action movie and
+of his codename was an action movie and ended up shipping as fear the shadow of
+ended up shipping as fear the shadow of war uses the Firebird engine it's a
+war uses the Firebird engine it's a monolith proprietary engine this is the
+monolith proprietary engine this is the engine that used to be called lift tech
+engine that used to be called lift tech it isn't it has been since we rented to
+it isn't it has been since we rented to Firebird and I've been working on this
+Firebird and I've been working on this engine for the past 15 years as well so
+engine for the past 15 years as well so shadow of war is a third-person
+shadow of war is a third-person action-adventure game it retailed
+action-adventure game it retailed October 10th of last year it sent
+October 10th of last year it sent shipped on many different platforms and
+shipped on many different platforms and from the very beginning we were always
+from the very beginning we were always tour targeting 30 frames per second on
+tour targeting 30 frames per second on the consoles and 60 frames a second on
+the consoles and 60 frames a second on the PC and for those of you in the room
+the PC and for those of you in the room who have not played shadow of war I'm
+who have not played shadow of war I'm going to play a short clip to kind of
+going to play a short clip to kind of introduce you to the game to kind of set
+introduce you to the game to kind of set the stage for this talk
+[Music] [Applause]
+[Applause] [Music]
+[Music] [Applause]
+[Applause] death calls to you again Ranger
+how do we bring this water there
+[Music]
+shadow of war uses the Nemesis system we're not gonna be talking about the
+we're not gonna be talking about the Nemesis system in this talk cause it's
+Nemesis system in this talk cause it's not really relevant to the performance
+not really relevant to the performance and memory optimizations however it is a
+and memory optimizations however it is a core design pillar of shadow of war and
+core design pillar of shadow of war and as such it dictates that every single AI
+as such it dictates that every single AI or character actor you ever encounter in
+or character actor you ever encounter in the game is unique they have unique
+the game is unique they have unique personalities they have unique traits
+personalities they have unique traits but what's important to us right now for
+but what's important to us right now for this talk is they have unique visuals
+this talk is they have unique visuals and the other thing I want you to take
+and the other thing I want you to take away from that last video is that from
+away from that last video is that from shadow of Mordor now in shadow of war
+shadow of Mordor now in shadow of war we're gonna have a war which really
+we're gonna have a war which really indicates there's going to be more so
+indicates there's going to be more so this talk is broken up into two parts
+this talk is broken up into two parts were first gonna talk about the
+were first gonna talk about the performance optimizations we did on
+performance optimizations we did on shadow of war trying to get it run at a
+shadow of war trying to get it run at a target frame rate that we were aiming
+target frame rate that we were aiming for and then after that we're gonna talk
+for and then after that we're gonna talk about how he actually got to fit in
+about how he actually got to fit in memory because we also had problems
+memory because we also had problems getting this game actually fitting into
+getting this game actually fitting into memory so let's start with performance
+memory so let's start with performance optimizations so back on shadow of
+optimizations so back on shadow of Mordor when we were working on the game
+Mordor when we were working on the game we actually were challenged by the fact
+we actually were challenged by the fact that we moved from eight AI that we
+that we moved from eight AI that we hadn't feared to over to sixty AI there
+hadn't feared to over to sixty AI there was a console transition that occurred
+was a console transition that occurred at a time however the hardware did not
+at a time however the hardware did not have almost 8x increase in performance
+have almost 8x increase in performance although we did increase our AI count by
+although we did increase our AI count by 8x or about 8x on shadow of war because
+8x or about 8x on shadow of war because we're gonna do war we need more than the
+we're gonna do war we need more than the 60 we had on shadow of Mordor so we
+60 we had on shadow of Mordor so we decided or design decided to push the
+decided or design decided to push the game to 200 AI and I also want to
+game to 200 AI and I also want to emphasize that once again this says the
+emphasize that once again this says the Nemesis system so it's 208 but their
+Nemesis system so it's 208 but their unique AI and this is an issue for
+unique AI and this is an issue for performance especially for rendering or
+performance especially for rendering or you can just stamp 200 guys out using
+you can just stamp 200 guys out using instance rendering we have to actually
+instance rendering we have to actually render a unique guys every single time
+render a unique guys every single time so a quick table here of facts between
+so a quick table here of facts between shadow of Mordor and shadow war and what
+shadow of Mordor and shadow war and what changed already talked about the fact
+changed already talked about the fact that we increased our AI account by
+that we increased our AI account by almost 4x but we also since we moved
+almost 4x but we also since we moved exclusively to the current gen consoles
+exclusively to the current gen consoles and we no longer have a last gen version
+and we no longer have a last gen version of the game
+of the game we increased our mesh counts to push
+we increased our mesh counts to push them to a more higher fidelity than we
+them to a more higher fidelity than we had in the last project and that went up
+had in the last project and that went up almost 12x and count and this is on the
+almost 12x and count and this is on the highest oldies it's the LD you see
+highest oldies it's the LD you see really up close or mesh density went out
+really up close or mesh density went out by about five x we did this because on
+by about five x we did this because on shadow of mordor it was again cross-gen
+shadow of mordor it was again cross-gen and we used tessellation a tessellate
+and we used tessellation a tessellate for the current gen consoles but now
+for the current gen consoles but now that we didn't have that issue we
+that we didn't have that issue we actually increase the mesh density
+actually increase the mesh density directly and then our bone counts also
+directly and then our bone counts also double we're gonna do some quick math
+double we're gonna do some quick math here and we're gonna get back to this
+here and we're gonna get back to this math later but since we're already on
+math later but since we're already on the slide we got 48 pieces and we have
+the slide we got 48 pieces and we have 64 bones per piece and this gives us
+64 bones per piece and this gives us about 768 bones per character in it
+about 768 bones per character in it we're gonna get back to this number
+we're gonna get back to this number later because it is because it is going
+later because it is because it is going to be relevant to the talk other systems
+to be relevant to the talk other systems that we pushed we took our effects only
+that we pushed we took our effects only as high as well we're gonna need way
+as high as well we're gonna need way more effects so we actually increase our
+more effects so we actually increase our effects cost by a bottom of some 10x or
+effects cost by a bottom of some 10x or GPU particle emitters just skyrocketed
+GPU particle emitters just skyrocketed and our maps are about three times
+and our maps are about three times bigger per zone and shadow of war versus
+bigger per zone and shadow of war versus shadow of mordor soared navmesh it's
+shadow of mordor soared navmesh it's three times as big too and our navmesh
+three times as big too and our navmesh in both games actually spans the entire
+in both games actually spans the entire world the entire level so we're
+world the entire level so we're approaching beta and we're profiling the
+approaching beta and we're profiling the game on the consoles on like a ps4 and
+game on the consoles on like a ps4 and Xbox one and this is the result we get
+Xbox one and this is the result we get using the shadow of mordor engine we
+using the shadow of mordor engine we pushed everything so far we've got 200
+pushed everything so far we've got 200 guys now instead of the 60 they're all
+guys now instead of the 60 they're all way more expensive to run they're just
+way more expensive to run they're just the AI logic and the rendering cost is
+the AI logic and the rendering cost is insane and so now we're at 90
+insane and so now we're at 90 milliseconds and we're still trying to
+milliseconds and we're still trying to ship this game and everyone's still
+ship this game and everyone's still pushing forward so at the time this was
+pushing forward so at the time this was my reaction to it
+my reaction to it and it was basically me running around
+and it was basically me running around the office screaming so we have to say
+the office screaming so we have to say we have to sorry actually I want to
+we have to sorry actually I want to point out that from this point forward
+point out that from this point forward we're actually going to be kind of going
+we're actually going to be kind of going on the journey trying to get this 90
+on the journey trying to get this 90 milliseconds down to the 33 and that red
+milliseconds down to the 33 and that red line you see right
+line you see right there that's a 33 that's our target
+there that's a 33 that's our target framerate so for the rest of the
+framerate so for the rest of the performance talk we'll be attacking that
+performance talk we'll be attacking that so first thing we're gonna do to attack
+so first thing we're gonna do to attack that is we're gonna thread systems the
+that is we're gonna thread systems the first thought that we had well let's
+first thought that we had well let's thread some more we threaded a bunch of
+thread some more we threaded a bunch of shadow Mordor
+shadow Mordor but we could we could thread more we
+but we could we could thread more we could see what would how we could
+could see what would how we could offload some systems to make those that
+offload some systems to make those that performance improvement performance
+performance improvement performance increase so obviously we had 200 AI
+increase so obviously we had 200 AI that's a huge cost for our AI logic so
+that's a huge cost for our AI logic so one of the systems we had to thread is
+one of the systems we had to thread is just alright our AI logic and it was
+just alright our AI logic and it was actually a number of game systems that
+actually a number of game systems that we ended up threading in the end and I'm
+we ended up threading in the end and I'm not really going to go into much detail
+not really going to go into much detail on the individual game systems as they
+on the individual game systems as they are very specific to shadow of war but
+are very specific to shadow of war but it was a huge undertaking for the
+it was a huge undertaking for the engineering team and it was a huge
+engineering team and it was a huge performance win so it can't be
+performance win so it can't be understated here are some of the huge
+understated here are some of the huge systems that we did end up threading in
+systems that we did end up threading in shadow of war that were not threaded in
+shadow of war that were not threaded in shadow of mordor so a fact system again
+shadow of mordor so a fact system again we went from 2 milliseconds now it's 20
+we went from 2 milliseconds now it's 20 it can't just be on the main simulation
+it can't just be on the main simulation thread so it's been thrown off ai again
+thread so it's been thrown off ai again trying to control 289 and for them to
+trying to control 289 and for them to have all the logic and so on that had to
+have all the logic and so on that had to be threaded off to another thread
+be threaded off to another thread pathfinding now because we have 200 AI
+pathfinding now because we have 200 AI and the world is three times as big you
+and the world is three times as big you got 200 guys passing all the time
+got 200 guys passing all the time searching a much bigger knavish that had
+searching a much bigger knavish that had to be offloaded path regions so we have
+to be offloaded path regions so we have destruction in a game and every so often
+destruction in a game and every so often something is destroyed ends up carving
+something is destroyed ends up carving out the navmesh which then requires all
+out the navmesh which then requires all the navmesh regions to be updated and
+the navmesh regions to be updated and that's a pretty significant cost so
+that's a pretty significant cost so again that had to be offloaded we also
+again that had to be offloaded we also added a fire simulation to shadow of war
+added a fire simulation to shadow of war that did not exist in shadow of Mordor
+that did not exist in shadow of Mordor and we had to offer that because that
+and we had to offer that because that too was pretty expensive and then
+too was pretty expensive and then finally a player in that AI motion just
+finally a player in that AI motion just got more complex since the last game and
+got more complex since the last game and as a result it too had to be pushed off
+as a result it too had to be pushed off to a background thread things we could
+to a background thread things we could talk about though is one of the things
+talk about though is one of the things we did in shadow of Mordor we started
+we did in shadow of Mordor we started doing shadow motors we moved to what we
+doing shadow motors we moved to what we started introducing a lot of these
+started introducing a lot of these lightweight atomic spin
+lightweight atomic spin I'm not really going to get into what
+I'm not really going to get into what atomic spin locks are if you don't know
+atomic spin locks are if you don't know what atomic spin locks are you could
+what atomic spin locks are you could Google that and you should be able to
+Google that and you should be able to get examples of that pretty quickly but
+get examples of that pretty quickly but what I'm trying to say here is we
+what I'm trying to say here is we actually moved a lot of our systems to
+actually moved a lot of our systems to just using atomic spin locks instead of
+just using atomic spin locks instead of using kernel parameters such as critical
+using kernel parameters such as critical section so anytime we were doing any
+section so anytime we were doing any data access protection that we wanted to
+data access protection that we wanted to protect the data atomically we are now
+protect the data atomically we are now using atomic spin locks in most of our
+using atomic spin locks in most of our cases there's no contention on the spin
+cases there's no contention on the spin lock so when they do occur what we're
+lock so when they do occur what we're really looking for is to avoid a context
+really looking for is to avoid a context switch and having our threads swapped
+switch and having our threads swapped out because the context switches are
+out because the context switches are very expensive it's not just the the
+very expensive it's not just the the registers of the threads that we're
+registers of the threads that we're getting saved and restored that's
+getting saved and restored that's expensive it's a fact that the caches
+expensive it's a fact that the caches will get evicted by the time your thread
+will get evicted by the time your thread swaps back in and you're going to pay
+swaps back in and you're going to pay the cost of a cache miss all over again
+the cost of a cache miss all over again and we still use kernel primitives if we
+and we still use kernel primitives if we actually do want a context switch the
+actually do want a context switch the other affirmative we introduced that we
+other affirmative we introduced that we didn't have it all in shadow mortar is a
+didn't have it all in shadow mortar is a multiple reader single writer primitive
+multiple reader single writer primitive so what we use on shadow mortar for
+so what we use on shadow mortar for these scenarios was essentially a
+these scenarios was essentially a semaphore a kernel semaphore and those
+semaphore a kernel semaphore and those things are really expensive but they are
+things are really expensive but they are there are lightweight versions of that
+there are lightweight versions of that Microsoft and Sony both have primitives
+Microsoft and Sony both have primitives for this the Microsoft one is called a
+for this the Microsoft one is called a slim reader/writer lock and if you
+slim reader/writer lock and if you google that you could probably get be
+google that you could probably get be taken straight to the MSDN page and we
+taken straight to the MSDN page and we use this for example for physics system
+use this for example for physics system where we have our physics system that's
+where we have our physics system that's written once a frame but then for the
+written once a frame but then for the rest of the frame any thread on any core
+rest of the frame any thread on any core could read into that physics system and
+could read into that physics system and using a semaphore for that was actually
+using a semaphore for that was actually quite costly you could also implement
+quite costly you could also implement this primitive yourself without using
+this primitive yourself without using either the Microsoft or Sony
+either the Microsoft or Sony implementations by just using two atomic
+implementations by just using two atomic spin locks that guard the reader and the
+spin locks that guard the reader and the writer and in an atomic counter that
+writer and in an atomic counter that counts the current active readers the
+counts the current active readers the other thing we started looking to add is
+other thing we started looking to add is on the consoles you have two CPU
+on the consoles you have two CPU clusters each CPU cluster has four cores
+clusters each CPU cluster has four cores and all those four cores
+and all those four cores single l2-cache the problem with that we
+single l2-cache the problem with that we started seeing on shadow of war as we
+started seeing on shadow of war as we started threading everything and so what
+started threading everything and so what ended up happening is on the single
+ended up happening is on the single cluster all four cores were pegged they
+cluster all four cores were pegged they were all maxed out 100% constantly using
+were all maxed out 100% constantly using that shared l2 cache and each core was
+that shared l2 cache and each core was essentially evicting the data that
+essentially evicting the data that another core just put in and they were
+another core just put in and they were all just fighting between those data
+all just fighting between those data that was in and out and just thrashing
+that was in and out and just thrashing the cache non-stop so we started looking
+the cache non-stop so we started looking into ways of how could we avoid all this
+into ways of how could we avoid all this thrashing can we have can we somehow
+thrashing can we have can we somehow find solutions where more of our data
+find solutions where more of our data remains in the cache without it being
+remains in the cache without it being evicted and so we realized that we could
+evicted and so we realized that we could probably segregate the game logic from
+probably segregate the game logic from the renderer and what we ended up doing
+the renderer and what we ended up doing is we put entire render on the second
+is we put entire render on the second cluster and we kept all the gameplay
+cluster and we kept all the gameplay logic in the first question and for
+logic in the first question and for shadow war because there was so much
+shadow war because there was so much stuff going on this actually gave us
+stuff going on this actually gave us about a ten percent performance gain
+about a ten percent performance gain once we actually achieved achieved this
+once we actually achieved achieved this and did it properly the problem is
+and did it properly the problem is actually achieving this because we
+actually achieving this because we actually trying to do in this exact same
+actually trying to do in this exact same thing on shadow of mordor a few times
+thing on shadow of mordor a few times and we failed every single time but we
+and we failed every single time but we reached our performance target without
+reached our performance target without this so we ended up just shelving it for
+this so we ended up just shelving it for in shadow of war we were performing so
+in shadow of war we were performing so poorly that we had to reevaluate
+poorly that we had to reevaluate distance either to make it work the
+distance either to make it work the problem occurs is in scenarios where you
+problem occurs is in scenarios where you have data and both CPU clusters are in
+have data and both CPU clusters are in one of the art of caches and are both
+one of the art of caches and are both being axed at the same time this causes
+being axed at the same time this causes both of those CPU clusters to do a
+both of those CPU clusters to do a really expensive sink and that sink is
+really expensive sink and that sink is extremely expensive so if you attempt
+extremely expensive so if you attempt this for the very first time you'll
+this for the very first time you'll probably see a massive negative wind or
+probably see a massive negative wind or negative or just a loss in performance
+negative or just a loss in performance so it took us a while that's why I'm
+so it took us a while that's why I'm calling a black magic because it's
+calling a black magic because it's basically looking at your data and
+basically looking at your data and trying to figure out what isn't what
+trying to figure out what isn't what could possible to be in a cache that is
+could possible to be in a cache that is stalling me until you figure it out and
+stalling me until you figure it out and then all said no because I have a got a
+then all said no because I have a got a ten percent performance game so our
+ten percent performance game so our model if when we thread our systems or
+model if when we thread our systems or approach a threading our systems is
+approach a threading our systems is actually we try to keep our jobs really
+actually we try to keep our jobs really large
+large we don't we no longer have SPU's so we
+we don't we no longer have SPU's so we don't have a hard word limit on the size
+don't have a hard word limit on the size of our jobs and so because of that we
+of our jobs and so because of that we prefer to keep our jobs large and we do
+prefer to keep our jobs large and we do that because we have a lot of junior
+that because we have a lot of junior engineers that come in and we're not
+engineers that come in and we're not really we don't really trust them with
+really we don't really trust them with threading a lot of systems we it takes
+threading a lot of systems we it takes you know from my personal experience it
+you know from my personal experience it takes a few years of experience to
+takes a few years of experience to really know how to properly you're right
+really know how to properly you're right threaded code and what the patterns are
+threaded code and what the patterns are and what to look for and so on and if
+and what to look for and so on and if you don't do it right and everything
+you don't do it right and everything might work but you'll have a race
+might work but you'll have a race condition that shows up you know in a
+condition that shows up you know in a crash once a week or something like that
+crash once a week or something like that and trying to track that back down it's
+and trying to track that back down it's such a pain that we just try to avoid
+such a pain that we just try to avoid that as much as possible by keeping our
+that as much as possible by keeping our jobs large we also avoid a lot of
+jobs large we also avoid a lot of synchronization because no matter how
+synchronization because no matter how you synchronize your jobs even if it's
+you synchronize your jobs even if it's really fast and more synchronization you
+really fast and more synchronization you have it's always going to be slower than
+have it's always going to be slower than not having them and large jobs also kind
+not having them and large jobs also kind of utilize the CPU cache a little bit
+of utilize the CPU cache a little bit better
+better mostly because if you're crunching on
+mostly because if you're crunching on this data all on a single core all your
+this data all on a single core all your data is in that l2 cache it's all in the
+data is in that l2 cache it's all in the l1 cache for that single core if you
+l1 cache for that single core if you split it up obviously the l1 is not
+split it up obviously the l1 is not shared so you might have to go back to
+shared so you might have to go back to the l2 or you might have to go back to
+the l2 or you might have to go back to memory to get the data you need it's not
+memory to get the data you need it's not a huge win but it is a pro so the way we
+a huge win but it is a pro so the way we approach these large jobs as we kind of
+approach these large jobs as we kind of move our entire large systems over we
+move our entire large systems over we don't try to thread the individual
+don't try to thread the individual system we just move the entire system so
+system we just move the entire system so for instance or effects system we move
+for instance or effects system we move the entire fax system over we didn't
+the entire fax system over we didn't thread individual keys and created a
+thread individual keys and created a million little jobs that evaluate the
+million little jobs that evaluate the keys we didn't thread the actual effects
+keys we didn't thread the actual effects at a defect level we actually did it the
+at a defect level we actually did it the entire frame level system of here's the
+entire frame level system of here's the effects for the frame they're all going
+effects for the frame they're all going to execute on a single core elsewhere
+to execute on a single core elsewhere and the way we schedule these across all
+and the way we schedule these across all of our cores is perhaps a little bit
+of our cores is perhaps a little bit chaotic but what we have is a
+chaotic but what we have is a spreadsheet essentially what we have
+spreadsheet essentially what we have here's all of our cords here's all our
+here's all of our cords here's all our really heavy-duty threads we basically
+really heavy-duty threads we basically map them out onto those cores we give
+map them out onto those cores we give them fixed affinities and they are not
+them fixed affinities and they are not allowed to have her jump cords there
+allowed to have her jump cords there always executed in that exact one core
+always executed in that exact one core and we if you have two threads they
+and we if you have two threads they don't fully take a full frame or three
+don't fully take a full frame or three or four we basically map them out on
+or four we basically map them out on that core every single one of these
+that core every single one of these systems has a budget that it shouldn't
+systems has a budget that it shouldn't exceed and we just kind of have a layout
+exceed and we just kind of have a layout core layout of all of our threads
+core layout of all of our threads there's obviously a lot of downsides to
+there's obviously a lot of downsides to this unlike a traditional job system
+this unlike a traditional job system that has a lot of small course none of
+that has a lot of small course none of these will pack really nicely into a
+these will pack really nicely into a nice thin kind of like a Tetris style
+nice thin kind of like a Tetris style where all the blocks just fit in the
+where all the blocks just fit in the lines clear the other problem is that
+crap I actually forgot what a lot of a problem is so we're gonna skip the other
+problem is so we're gonna skip the other problem oh actually no I remember whoa
+problem oh actually no I remember whoa all right you get a new console and then
+all right you get a new console and then say this time it doesn't have the six
+say this time it doesn't have the six cores that the current consoles have it
+cores that the current consoles have it has 12 it's not gonna scale it so you
+has 12 it's not gonna scale it so you just you can't just pop shadow war into
+just you can't just pop shadow war into that and all the sudden this yeah we're
+that and all the sudden this yeah we're taking advantage of all those 12 cores
+taking advantage of all those 12 cores because we've mapped these out
+because we've mapped these out individually so we basically would have
+individually so we basically would have to go back remap them probably rethread
+to go back remap them probably rethread them because each individual one is now
+them because each individual one is now too long so it doesn't really scale but
+too long so it doesn't really scale but for this product and for the hardware oh
+for this product and for the hardware oh he had this worked for us so I mentioned
+he had this worked for us so I mentioned our first problem was the CPU gaps so
+our first problem was the CPU gaps so the way we approach those gaps and on
+the way we approach those gaps and on the CPU is we kind of use the same
+the CPU is we kind of use the same technique that the GPU that does with
+technique that the GPU that does with asynchronous compute so what we have is
+asynchronous compute so what we have is we have these hard working threads with
+we have these hard working threads with these giant systems that are affinities
+these giant systems that are affinities course but then we have low priority
+course but then we have low priority threads they could jump in anytime these
+threads they could jump in anytime these large systems slow down or basically
+large systems slow down or basically switch out and sleep so we have a bunch
+switch out and sleep so we have a bunch of these low priority threads such as
+of these low priority threads such as file i/o streaming audio streaming and
+file i/o streaming audio streaming and we have this concept of asynchronous
+we have this concept of asynchronous rate castes where on the very beginning
+rate castes where on the very beginning of the frame
+of the frame the game might request Aulani DS like
+the game might request Aulani DS like 500 ray casts but I don't need them now
+500 ray casts but I don't need them now I'm gonna get the results you know 25
+I'm gonna get the results you know 25 milliseconds into the frame so you have
+milliseconds into the frame so you have 25 milliseconds to find some CPU gap
+25 milliseconds to find some CPU gap somewhere to cut to gather these array
+somewhere to cut to gather these array cast it's a quick example that imagine
+cast it's a quick example that imagine this is a single core it's our whole 33
+this is a single core it's our whole 33 milliseconds we have one giant thread
+milliseconds we have one giant thread and could be so let's just call it a
+and could be so let's just call it a surrender thread so the renderer threads
+surrender thread so the renderer threads didn't have any work on the very
+didn't have any work on the very beginning because the simulation thread
+beginning because the simulation thread didn't give it any work to do yet then
+didn't give it any work to do yet then it had a bunch of work until about maybe
+it had a bunch of work until about maybe the 18 millisecond mark but then it's
+the 18 millisecond mark but then it's ran into work so I went to sleep and
+ran into work so I went to sleep and then it came back at around the 25
+then it came back at around the 25 millisecond mark so then there was a low
+millisecond mark so then there was a low priority thread just hanging around
+priority thread just hanging around maybe he was doing her texture streaming
+maybe he was doing her texture streaming so it was streaming or textures but it's
+so it was streaming or textures but it's low priority we don't really care of
+low priority we don't really care of that texture comes in this exact frame
+that texture comes in this exact frame or the next frame so it's executing it
+or the next frame so it's executing it comes it's doing its worry calls on this
+comes it's doing its worry calls on this render thread came in and kicked it out
+render thread came in and kicked it out of the way we run our thread and execute
+of the way we run our thread and execute texts are streaming resumes texture
+texts are streaming resumes texture streaming is done we have a number
+streaming is done we have a number thread that comes in in this case maybe
+thread that comes in in this case maybe it's audio streaming it does some work
+it's audio streaming it does some work is it gets all its work done and then
+is it gets all its work done and then there was a little gap remaining so the
+there was a little gap remaining so the maybe they sing Chris ray casts
+maybe they sing Chris ray casts basically took that little gap so it's
+basically took that little gap so it's going to show you a first-party trace of
+going to show you a first-party trace of this and shadow of war in the worst case
+this and shadow of war in the worst case scenario but I wasn't able to get that
+scenario but I wasn't able to get that those slides so you're only get you
+those slides so you're only get you could go in you're gonna have to trust
+could go in you're gonna have to trust me there are scenarios in shadow or if
+me there are scenarios in shadow or if you've ever played it and you do those
+you've ever played it and you do those four assaults where things get super
+four assaults where things get super crazy and we have every single chord
+crazy and we have every single chord that basically looks exactly like this
+that basically looks exactly like this that fills it up to about 99% CPU
+that fills it up to about 99% CPU utilization across every single core in
+utilization across every single core in the consoles and we basically you know
+the consoles and we basically you know barely running at 30 there so as it is
+barely running at 30 there so as it is large and powerful approach that we use
+large and powerful approach that we use at monolith we kind of love to call this
+at monolith we kind of love to call this thing the monolithic approach
+so all jokes aside though I just want to point out that we're not really
+point out that we're not really advocating for this approach the reason
+advocating for this approach the reason we actually took this approach was a lot
+we actually took this approach was a lot of it was due to just resource
+of it was due to just resource limitations and time constraints it was
+limitations and time constraints it was an easier approach for us to take than
+an easier approach for us to take than to invest into for instance the effect
+to invest into for instance the effect system threading the entire system with
+system threading the entire system with a million different jobs it was a lot
+a million different jobs it was a lot easier to just move the whole thing over
+easier to just move the whole thing over and inside the system the entire effects
+and inside the system the entire effects system remains single threaded so none
+system remains single threaded so none of that had to change it was just the
+of that had to change it was just the input and the output of the system that
+input and the output of the system that had to be synchronized so the other
+had to be synchronized so the other thing we do do on a shadow of war and we
+thing we do do on a shadow of war and we actually did some of this in the shadow
+actually did some of this in the shadow of Mordor as we pipeline and what
+of Mordor as we pipeline and what pipelining is is we supposedly just
+pipelining is is we supposedly just spawning off threads and then joining
+spawning off threads and then joining them back in we pipeline or threads out
+them back in we pipeline or threads out we pipeline we have Laie waterfalling
+we pipeline we have Laie waterfalling pipeline where we have work we offload
+pipeline where we have work we offload work to another court and our thread and
+work to another court and our thread and this thread runs on another course
+this thread runs on another course simultaneously as the original thread we
+simultaneously as the original thread we use these circular command buffers to
+use these circular command buffers to piling this work over and we do this
+piling this work over and we do this mostly for the renderer so we do this so
+mostly for the renderer so we do this so that every second of these stages in our
+that every second of these stages in our pipeline gets a full frame and doesn't
+pipeline gets a full frame and doesn't have to be synchronized back in to the
+have to be synchronized back in to the first original originating thread on the
+first original originating thread on the very beginning because then they
+very beginning because then they wouldn't get the full 33 milliseconds of
+wouldn't get the full 33 milliseconds of a frame so it's like a quick look at
+a frame so it's like a quick look at this
+this so our first stage of our pipeline is a
+so our first stage of our pipeline is a simulation thread it's 33 milliseconds
+simulation thread it's 33 milliseconds next stage it pipelines work into the
+next stage it pipelines work into the render thread it also gets 33
+render thread it also gets 33 milliseconds then we have a thread that
+milliseconds then we have a thread that we call the driver thread it's you can
+we call the driver thread it's you can think of this more as the render thread
+think of this more as the render thread being the platform agnostic renderer and
+being the platform agnostic renderer and the driver thread being the platform
+the driver thread being the platform specific renderer so the platform
+specific renderer so the platform specific renderer now gets a full frame
+specific renderer now gets a full frame of 33 milliseconds it ends up writing
+of 33 milliseconds it ends up writing out the GPU command buffer that ends up
+out the GPU command buffer that ends up getting a full 33 milliseconds to
+getting a full 33 milliseconds to execute on the GPU now once it's done it
+execute on the GPU now once it's done it for free
+for free it ends up writing out the frame buffer
+it ends up writing out the frame buffer and that and then it puts it into the
+and that and then it puts it into the frame into the display queue and that is
+frame into the display queue and that is that little block there that's a display
+that little block there that's a display queue once a V blank occurs we could now
+queue once a V blank occurs we could now flip and that it gets displayed on the
+flip and that it gets displayed on the screen for again 33 milliseconds and
+screen for again 33 milliseconds and when you show all the frames it looks
+when you show all the frames it looks something like this
+something like this and this is actually I want to point out
+and this is actually I want to point out the best case scenario for pipelining
+the best case scenario for pipelining because we're gonna I'm gonna show you
+because we're gonna I'm gonna show you the worst case in a bit so this red line
+the worst case in a bit so this red line here is only here it's kind of
+here is only here it's kind of illustrating my point if we spawned the
+illustrating my point if we spawned the render thread off of the simulation
+render thread off of the simulation thread and then asked for it to join
+thread and then asked for it to join back before the simulation thread ended
+back before the simulation thread ended then we would be we wouldn't have a full
+then we would be we wouldn't have a full 33 milliseconds for the render thread
+33 milliseconds for the render thread and then the same thing for the driver
+and then the same thing for the driver thread if it's spawned from the renderer
+thread if it's spawned from the renderer thread and then joined back in it would
+thread and then joined back in it would not get the full 33 milliseconds and
+not get the full 33 milliseconds and this only applies to the CPU workload so
+this only applies to the CPU workload so only the blue rose goes to GPU that is
+only the blue rose goes to GPU that is just how the GPU works and when we have
+just how the GPU works and when we have no control over that so when we pipeline
+no control over that so when we pipeline our threads we make sure that none of
+our threads we make sure that none of these stages in our pipeline falls
+these stages in our pipeline falls behind by more than one frame if it does
+behind by more than one frame if it does fall behind behind by more than one
+fall behind behind by more than one frame we end up stalling the stages
+frame we end up stalling the stages before it so ideally what we want out of
+before it so ideally what we want out of our pipeline is the picture I showed you
+our pipeline is the picture I showed you the very beginning where every single
+the very beginning where every single stage executes just maybe a couple
+stage executes just maybe a couple milliseconds after the other and as a
+milliseconds after the other and as a result the end user does not actually
+result the end user does not actually can't really tell that this pipelining
+can't really tell that this pipelining is occurring because the entire pipeline
+is occurring because the entire pipeline is maybe adding at a maximum maybe 10
+is maybe adding at a maximum maybe 10 milliseconds to the frame and no one
+milliseconds to the frame and no one playing the game is going to notice that
+playing the game is going to notice that there's an extra 10 milliseconds going
+there's an extra 10 milliseconds going on and all this is great as long as the
+on and all this is great as long as the first stage is the stage that you're
+first stage is the stage that you're bound by but in retail we're actually
+bound by but in retail we're actually bound by the last stage because in
+bound by the last stage because in retail the last stage is the V blank the
+retail the last stage is the V blank the V blank is always taking exactly 33 and
+V blank is always taking exactly 33 and if we did our jobs correctly and we're
+if we did our jobs correctly and we're not dropping frames every other stage
+not dropping frames every other stage has to take exactly less than 33 in
+has to take exactly less than 33 in order to not drop those frames which
+order to not drop those frames which makes that very last stage beat about
+makes that very last stage beat about the stage that were bound by
+the stage that were bound by when this happens our entire pipeline
+when this happens our entire pipeline just starts telescoping out because
+just starts telescoping out because every single stage before it is now
+every single stage before it is now basically blocked on this one frame
+basically blocked on this one frame behind scenario so when this occurs
+behind scenario so when this occurs here's our stages or six pipeline stages
+here's our stages or six pipeline stages and if every single one of these stages
+and if every single one of these stages gets 33 milliseconds because it's
+gets 33 milliseconds because it's exactly one frame behind the net result
+exactly one frame behind the net result of this is that now what you're seeing
+of this is that now what you're seeing on the screen is 200 milliseconds behind
+on the screen is 200 milliseconds behind the very first stage in our pipeline
+the very first stage in our pipeline this is a huge problem for us because at
+this is a huge problem for us because at that point now we have a 200
+that point now we have a 200 milliseconds input latency because we
+milliseconds input latency because we actually got their input on that first
+actually got their input on that first stage and all the rest of the stages are
+stage and all the rest of the stages are rendering and we're not doing input in
+rendering and we're not doing input in the renderer and 200 milliseconds is
+the renderer and 200 milliseconds is something that is noticeable to the
+something that is noticeable to the end-user so in order to solve this
+end-user so in order to solve this telescoping issue we implemented a
+telescoping issue we implemented a dynamic frame pacing system so what we
+dynamic frame pacing system so what we do is we run two consoles you could
+do is we run two consoles you could actually monitor display queue and find
+actually monitor display queue and find out exactly how many frames you know
+out exactly how many frames you know buffer it up in that display queue there
+buffer it up in that display queue there are waiting deep link so we're sitting
+are waiting deep link so we're sitting there every single frame checking what's
+there every single frame checking what's going on how many frames do we have
+going on how many frames do we have buffered up if we have too many or if
+buffered up if we have too many or if there are frames buffered up then we
+there are frames buffered up then we know we are now GPU bound
+know we are now GPU bound we're telescoping out and when this
+we're telescoping out and when this occurs we try to basically compensate
+occurs we try to basically compensate for that by going back to the very first
+for that by going back to the very first stage in the pipelining into our
+stage in the pipelining into our simulation thread and making sure that
+simulation thread and making sure that it takes longer than any rest of those
+it takes longer than any rest of those stages so we know the last stage is 33.3
+stages so we know the last stage is 33.3 so we have to have this first stage take
+so we have to have this first stage take longer than 33.3 so what we do is we
+longer than 33.3 so what we do is we basically give it an extra millisecond
+basically give it an extra millisecond every single frame try to and by doing
+every single frame try to and by doing so it ends up contracting the entire
+so it ends up contracting the entire telescope so here's an example of that
+telescope so here's an example of that so imagine if our actual simulation
+so imagine if our actual simulation thread typically just takes 30
+thread typically just takes 30 milliseconds because it's you know it's
+milliseconds because it's you know it's not missing frames 30 milliseconds could
+not missing frames 30 milliseconds could be a good number to hit and what we're
+be a good number to hit and what we're gonna go say and say the render thread
+gonna go say and say the render thread is also taking 30 drivers thread is also
+is also taking 30 drivers thread is also taking 30 the GPU is taking 33
+taking 30 the GPU is taking 33 but then it's this play Q is now taking
+but then it's this play Q is now taking a full frame to because it's full and
+a full frame to because it's full and it's waiting for that next be blank and
+it's waiting for that next be blank and then it finally gets displayed on the
+then it finally gets displayed on the screen
+screen so as you can see the entire pipeline is
+so as you can see the entire pipeline is kind of getting telescoped out and this
+kind of getting telescoped out and this is not the worst case I try to do the
+is not the worst case I try to do the worst case on his slides but it would go
+worst case on his slides but it would go way off the slides so this is kind of
+way off the slides so this is kind of the best you guys are getting but you
+the best you guys are getting but you kind of get the idea here it if in the
+kind of get the idea here it if in the worst case every single one of these
+worst case every single one of these blocks would basically be connected tip
+blocks would basically be connected tip detail and it would telescope way out so
+detail and it would telescope way out so we detected a display key was full and
+we detected a display key was full and so for the next frame we had a
+so for the next frame we had a simulation artificially stalled until 34
+simulation artificially stalled until 34 milliseconds we leave all the rest of
+milliseconds we leave all the rest of the stages alone first time around this
+the stages alone first time around this doesn't really do much to the frame so
+doesn't really do much to the frame so everything still appears about the same
+everything still appears about the same but then on the next frame we're still
+but then on the next frame we're still doing this because we're still behind
+doing this because we're still behind and you couldn't if you look at the row
+and you couldn't if you look at the row second from the bottom you'll notice
+second from the bottom you'll notice that the display queue now is shrinking
+that the display queue now is shrinking because all the frame buffers that we
+because all the frame buffers that we had buffered up and it is flanked you
+had buffered up and it is flanked you well they're going away because we're
+well they're going away because we're technically dropping frames but because
+technically dropping frames but because we have these display buffers queued
+we have these display buffers queued everything is still you know still we're
+everything is still you know still we're still not really dropping frames and we
+still not really dropping frames and we just keep doing that and or just play
+just keep doing that and or just play could just keep shrinking and eventually
+could just keep shrinking and eventually does this flaky will go away and when it
+does this flaky will go away and when it does go away we just let go and go back
+does go away we just let go and go back to where we were and we do this from the
+to where we were and we do this from the very beginning of the game so we never
+very beginning of the game so we never really let this pipeline telescope out
+really let this pipeline telescope out because the second things show up in the
+because the second things show up in the display queue we start orient we engage
+display queue we start orient we engage this dynamic frame pacer and so we're if
+this dynamic frame pacer and so we're if you were to do a real-time trace of this
+you were to do a real-time trace of this you would probably see it kind of
+you would probably see it kind of wiggled around where it's engaged
+wiggled around where it's engaged disengaged engages engaged but this
+disengaged engages engaged but this whole wiggling it only adds maybe a
+whole wiggling it only adds maybe a handful of milliseconds two three four
+handful of milliseconds two three four five so the frames might be five there
+five so the frames might be five there might be a five milliseconds difference
+might be a five milliseconds difference between where input is being really
+between where input is being really gathered but that the end user cannot
+gathered but that the end user cannot tell that but he could definitely tell
+tell that but he could definitely tell the fact that if the whole thing was
+the fact that if the whole thing was telescoped out and it was taking an
+telescoped out and it was taking an extra 200 milliseconds
+extra 200 milliseconds so now that we did all that we threaded
+so now that we did all that we threaded all our systems we got rid of a bunch of
+all our systems we got rid of a bunch of criminal primitives we tiwiii pipelined
+criminal primitives we tiwiii pipelined by doing so we shaved off about a good
+by doing so we shaved off about a good 40 milliseconds off of that simulation
+40 milliseconds off of that simulation thread but we haven't done anything for
+thread but we haven't done anything for the renderer yet so now we're going to
+the renderer yet so now we're going to go ahead and try to get this renderer in
+go ahead and try to get this renderer in line some quick facts we on shadow of
+line some quick facts we on shadow of mordor versus shadow of war again we
+mordor versus shadow of war again we ended up moving to a much faster first
+ended up moving to a much faster first party graphics api's on the shadow of
+party graphics api's on the shadow of war so that helped a lot of performance
+war so that helped a lot of performance on a PC we actually had to move to D 3 D
+on a PC we actually had to move to D 3 D 11 one we shipped on D 3 D 11 because we
+11 one we shipped on D 3 D 11 because we were Windows 7 game we had to move to
+were Windows 7 game we had to move to 11:1 for performance issues or
+11:1 for performance issues or performance gains out of 11 1 actually
+performance gains out of 11 1 actually we could not stick with just 11 0 on the
+we could not stick with just 11 0 on the API level and the hardware limit is
+API level and the hardware limit is still feature levels 1100 and after all
+still feature levels 1100 and after all the optimizations we ended up doing on
+the optimizations we ended up doing on the renderer for shadow of war we
+the renderer for shadow of war we actually got got it to use less of the
+actually got got it to use less of the console coerced and it did on shadow of
+console coerced and it did on shadow of mordor even though shadow of war is does
+mordor even though shadow of war is does just so much more so the first thing we
+just so much more so the first thing we did when we were profiling the renderer
+did when we were profiling the renderer is well it's taking 90 millisecond let's
+is well it's taking 90 millisecond let's do some profilers let's figure out what
+do some profilers let's figure out what is going on so a shadow of mordor we
+is going on so a shadow of mordor we never used it was still a cross-gen game
+never used it was still a cross-gen game it had the last gen was till d3 d9
+it had the last gen was till d3 d9 current gen was the 3d 11 we didn't have
+current gen was the 3d 11 we didn't have any named constant buffers so everything
+any named constant buffers so everything was basically setting out individual
+was basically setting out individual constants and then building up a global
+constants and then building up a global constant buffer and sending that over to
+constant buffer and sending that over to the GPU every single frame and not only
+the GPU every single frame and not only that we had a lot of copies along the
+that we had a lot of copies along the way because we had a bunch of
+way because we had a bunch of abstraction layers so we'd have to copy
+abstraction layers so we'd have to copy the first copy would be the value the
+the first copy would be the value the game would send to the platform-agnostic
+game would send to the platform-agnostic renderer the platform-agnostic renderer
+renderer the platform-agnostic renderer would then set it to the platform
+would then set it to the platform specific renderer which would make a
+specific renderer which would make a copy then at the very end on the very
+copy then at the very end on the very last stage when we're actually
+last stage when we're actually performing the draw call we would then
+performing the draw call we would then allocate memory for a constant buffer
+allocate memory for a constant buffer and then mem copy that value to the
+and then mem copy that value to the platform
+platform or specifically I've already had into
+or specifically I've already had into that constant buffer and send that over
+that constant buffer and send that over to the GPU but there was just a lot of
+to the GPU but there was just a lot of copies all the members really added up
+copies all the members really added up so first thing we did is we basically
+so first thing we did is we basically introduced named constant buffers into
+introduced named constant buffers into our rendering and this is just a
+our rendering and this is just a traditional approach of what you would
+traditional approach of what you would do when you introduced named constant
+do when you introduced named constant buffers you look on the update frequency
+buffers you look on the update frequency you probably create like a frame
+you probably create like a frame constant but for a view constant buffer
+constant but for a view constant buffer frame one on the updates once a frames
+frame one on the updates once a frames you know to touch those constants ever
+you know to touch those constants ever again and so on the other thing we did
+again and so on the other thing we did to avoid the copies as we exposed
+to avoid the copies as we exposed through accessors the actual
+through accessors the actual platform-specific constant buffer all
+platform-specific constant buffer all the way back to frame code so instead of
+the way back to frame code so instead of making all these copies along the way
+making all these copies along the way using accessors or making game code a
+using accessors or making game code a set of value it actually ends up writing
+set of value it actually ends up writing the value directly into a constant
+the value directly into a constant buffer that is used directly and by the
+buffer that is used directly and by the GPU on the consoles so we track all our
+GPU on the consoles so we track all our constant buffers with a dirty state in
+constant buffers with a dirty state in the frame code then we do this because
+the frame code then we do this because we're writing with from very beginning
+we're writing with from very beginning we're actually writing final
+we're actually writing final platform-specific constant buffers and
+platform-specific constant buffers and we tracked our dirty State so the game
+we tracked our dirty State so the game actually changed the value in it now
+actually changed the value in it now it's dirty and the GPU does not know
+it's dirty and the GPU does not know about it so when we go to the first
+about it so when we go to the first drawing code that needs to use this
+drawing code that needs to use this constant buffer we detect that it's
+constant buffer we detect that it's dirty so we chained we uploaded back to
+dirty so we chained we uploaded back to the GPU so if it's for instance constant
+the GPU so if it's for instance constant buffer 1 and it's dirty we said constant
+buffer 1 and it's dirty we said constant buffer 1 again but then we don't ever
+buffer 1 again but then we don't ever touch constant buffer 1 again until the
+touch constant buffer 1 again until the next time it's dirty so for instance for
+next time it's dirty so for instance for the frame constant buffer its dirty once
+the frame constant buffer its dirty once a frame we set at once on the very
+a frame we set at once on the very beginning of her frame and we never set
+beginning of her frame and we never set that constant buffer ever again for any
+that constant buffer ever again for any draw call following and so when it is
+draw call following and so when it is dirty we give to GPU that copy and then
+dirty we give to GPU that copy and then we make another copy for the CPU and
+we make another copy for the CPU and then the CPU could keep working on this
+then the CPU could keep working on this new copy while the GPU already has this
+new copy while the GPU already has this copy we sent to it and the G and the
+copy we sent to it and the G and the copy we sent to the GPU we mark it a
+copy we sent to the GPU we mark it a frame code which just means that we
+frame code which just means that we cannot touch that memory until that
+cannot touch that memory until that frame code is cleared by the GPU and
+frame code is cleared by the GPU and then we just recycle that memory binding
+then we just recycle that memory binding constant buffers is now just on the
+constant buffers is now just on the consoles on these super simple it's just
+consoles on these super simple it's just a pointer we no longer allocate special
+a pointer we no longer allocate special memory for a constant buffer mem copy
+memory for a constant buffer mem copy everything in and
+everything in and uploaded now since we're dealing with
+uploaded now since we're dealing with platform-specific constant buffers it's
+platform-specific constant buffers it's just a pointer set and then we also
+just a pointer set and then we also noticed that well we have these
+noticed that well we have these materials constant buffers or we have
+materials constant buffers or we have basically values that our tools set and
+basically values that our tools set and are they're said by artists so we can't
+are they're said by artists so we can't set it in code but they're your tweaked
+set it in code but they're your tweaked by artists and they're tweaked before
+by artists and they're tweaked before ever gets of the game so at cook time we
+ever gets of the game so at cook time we could actually generate these material
+could actually generate these material constant buffers we could generate them
+constant buffers we could generate them to be 100% platform-specific constant
+to be 100% platform-specific constant buffers and then we come up and simply
+buffers and then we come up and simply again just set them using a pointer to
+again just set them using a pointer to set those material constant buffers and
+set those material constant buffers and ever you'll really we don't need to
+ever you'll really we don't need to actually even know what is inside those
+actually even know what is inside those buffers they're just a black box that we
+buffers they're just a black box that we know the shader is eventually going to
+know the shader is eventually going to use so here's the name constant buffers
+use so here's the name constant buffers we added in shadow of war in shadow
+we added in shadow of war in shadow mortar obviously we only had two global
+mortar obviously we only had two global I want to point out these two constant
+I want to point out these two constant buffers so we kind of went over the bone
+buffers so we kind of went over the bone count in the very beginning of this talk
+count in the very beginning of this talk and I want to point out that we also
+and I want to point out that we also have a previous bones a constant buffer
+have a previous bones a constant buffer and the reason we have that is because
+and the reason we have that is because on shadow of war we also introduced
+on shadow of war we also introduced temporal anti-aliasing and for temporal
+temporal anti-aliasing and for temporal anti-aliasing you need to know about the
+anti-aliasing you need to know about the previous frame in order to generate your
+previous frame in order to generate your motion vectors so now we were sending
+motion vectors so now we were sending not just a current frame bones every
+not just a current frame bones every single time we were sending the previous
+single time we were sending the previous frame bones every single time so we'll
+frame bones every single time so we'll do some more math again so if you
+do some more math again so if you remember that in numbers from before we
+remember that in numbers from before we had 48 pieces 64 bones but now we have
+had 48 pieces 64 bones but now we have two frames were for that and we have 200
+two frames were for that and we have 200 AI in the screen so that adds up to
+AI in the screen so that adds up to about three hundred and seven thousand
+about three hundred and seven thousand bone transforms that we're trying to
+bone transforms that we're trying to send to the GPU every single frame but
+send to the GPU every single frame but wait there's more we have for render
+wait there's more we have for render status because we have the G buffer
+status because we have the G buffer stage and then we have three cascading
+stage and then we have three cascading shadow map stages and each one of those
+shadow map stages and each one of those the way to render worked it would
+the way to render worked it would regenerate the bones constant buffer for
+regenerate the bones constant buffer for every single out of those stages every
+every single out of those stages every time it had to render a skeletal model
+time it had to render a skeletal model so the net result was 1.2 million bone
+so the net result was 1.2 million bone transforms being sent to the GPU every
+transforms being sent to the GPU every frame
+frame and our bone transforms are made up of
+and our bone transforms are made up of two vector fours one for position and
+two vector fours one for position and one as a rotation quaternion so really
+one as a rotation quaternion so really it was 2.4 million
+it was 2.4 million vector force being uploaded to GPU every
+vector force being uploaded to GPU every single frame so this is why we can't
+single frame so this is why we can't have nice things
+so what we did to solve this is we actually went for every single one of
+actually went for every single one of our constant buffer it's not just a bone
+our constant buffer it's not just a bone to ones but it was really for the bone
+to ones but it was really for the bone ones and we gathered heuristics on these
+ones and we gathered heuristics on these constants we determined two things two
+constants we determined two things two things that were important to us one was
+things that were important to us one was how often was each constant used and how
+how often was each constant used and how often was the constants actually set to
+often was the constants actually set to zero and any constant the constants that
+zero and any constant the constants that were used heavily by most of our shaders
+were used heavily by most of our shaders day got basically put to the very
+day got basically put to the very beginning of our constant buffer and the
+beginning of our constant buffer and the ones that were very rarely used
+ones that were very rarely used basically got pushed down to the bottom
+basically got pushed down to the bottom and the same thing for the ones that
+and the same thing for the ones that were typically set to zero and the
+were typically set to zero and the reason we did that is we only now
+reason we did that is we only now allocate constant buffers big enough to
+allocate constant buffers big enough to hold our reused constants and so any
+hold our reused constants and so any constants that is not used by the shader
+constants that is not used by the shader if it's not there in memory it's
+if it's not there in memory it's obviously perfectly fine for the shader
+obviously perfectly fine for the shader but the other thing we also did is any
+but the other thing we also did is any constant that is zero we don't actually
+constant that is zero we don't actually have to back it with memory because when
+have to back it with memory because when the GPU goes ahead and tries to read the
+the GPU goes ahead and tries to read the value out of the constant buffer the net
+value out of the constant buffer the net result is it just returns zero back to
+result is it just returns zero back to the shader so if you're going to
+the shader so if you're going to allocate memory just to mem copy a zero
+allocate memory just to mem copy a zero in then send it to the GPU then have the
+in then send it to the GPU then have the GPU dereference a memory put it in his
+GPU dereference a memory put it in his cache just to read a zero back it's kind
+cache just to read a zero back it's kind of a lot better just to have to keep you
+of a lot better just to have to keep you a return zero as an error code which
+a return zero as an error code which just works out perfectly for what we're
+just works out perfectly for what we're trying to do the biggest problem we have
+trying to do the biggest problem we have of that is all of our first party
+of that is all of our first party graphics API is just spam like crazy
+graphics API is just spam like crazy saying that we're just doing everything
+saying that we're just doing everything wrong and then your game basically runs
+wrong and then your game basically runs like a frame a second because of all the
+like a frame a second because of all the error spam luckily you could turn that
+error spam luckily you could turn that off and absolutely every one of the
+off and absolutely every one of the api's the other thing we did for the
+api's the other thing we did for the bones specifically is we actually now
+bones specifically is we actually now cache short constant buffers wood for
+cache short constant buffers wood for render nodes so if they're encountered
+render nodes so if they're encountered in different stages along the way and
+in different stages along the way and they haven't changed we just reuse the
+they haven't changed we just reuse the ones that were built
+ones that were built previous stage so if we built the bones
+previous stage so if we built the bones in the Jeep offer stage we just reuse in
+in the Jeep offer stage we just reuse in accounts the cascading shadowmap stages
+accounts the cascading shadowmap stages so we don't have to actually rebuild
+so we don't have to actually rebuild them all from scratch every single time
+them all from scratch every single time as I mentioned before we switched to
+as I mentioned before we switched to much faster first-party graphics api's
+much faster first-party graphics api's we also removed frame to frame reference
+we also removed frame to frame reference counters so we used to have these atomic
+counters so we used to have these atomic reference counters in a renderer and
+reference counters in a renderer and atomic reference counters seamless if
+atomic reference counters seamless if they're fast
+they're fast all they are is atomic increment atomic
+all they are is atomic increment atomic decrement single CPU instruction but if
+decrement single CPU instruction but if you're doing in the renderer and you're
+you're doing in the renderer and you're doing it like 10 thousand times a frame
+doing it like 10 thousand times a frame that really adds up so we got rid of all
+that really adds up so we got rid of all that and now we're just using our frame
+that and now we're just using our frame codes to track absolutely all lifetime
+codes to track absolutely all lifetime we were kind of doing a mix of that in
+we were kind of doing a mix of that in the past but we basically went through
+the past but we basically went through and just cleaned the whole thing up so
+and just cleaned the whole thing up so that we're not using any frame to frame
+that we're not using any frame to frame reference counting the other thing we
+reference counting the other thing we did was which was a significant
+did was which was a significant undertaking was actually we cashed at
+undertaking was actually we cashed at the graphics API State on every single
+the graphics API State on every single one of her platforms because we noticed
+one of her platforms because we noticed that if we were doing any redundant
+that if we were doing any redundant state changes even though if they looked
+state changes even though if they looked a minor a lot of times what would happen
+a minor a lot of times what would happen would it would have invalidate some kind
+would it would have invalidate some kind of state in the graphics API which would
+of state in the graphics API which would be a lot more expensive than it actually
+be a lot more expensive than it actually looks so all of our all of our state is
+looks so all of our all of our state is completely cached and we pretty much
+completely cached and we pretty much just generate these CRC's for every one
+just generate these CRC's for every one of our state's we check those CRC's the
+of our state's we check those CRC's the CRC's are is the same then we just never
+CRC's are is the same then we just never said that state if they're different
+said that state if they're different than we've obviously said it and a lot
+than we've obviously said it and a lot of stuff is also pointer it's like a
+of stuff is also pointer it's like a texture it's just a pointer is that
+texture it's just a pointer is that texture or reset into you know texture
+texture or reset into you know texture slot to if it is and just leave it alone
+slot to if it is and just leave it alone and this was a huge win obviously on PC
+and this was a huge win obviously on PC because we're now we're avoiding all
+because we're now we're avoiding all those comm calls but it was actually
+those comm calls but it was actually also winning on the consoles so the next
+also winning on the consoles so the next thing we did is we got rid of a lot of
+thing we did is we got rid of a lot of our flashing so we used to do a lot of
+our flashing so we used to do a lot of flushing to be safe it's a good thing to
+flushing to be safe it's a good thing to do but it's also pretty expensive so on
+do but it's also pretty expensive so on the consoles we end up we got rid of all
+the consoles we end up we got rid of all of our CPU and GPU flushing we did this
+of our CPU and GPU flushing we did this by what we're using right combined
+by what we're using right combined memory on the on the consoles for most
+memory on the on the consoles for most of our GPU data so when we're writing to
+of our GPU data so when we're writing to it on the CPU it only takes about five
+it on the CPU it only takes about five hours
+hours Michael's before it's committed into
+Michael's before it's committed into that memory and because there's so much
+that memory and because there's so much stuff going on on shadow of war by the
+stuff going on on shadow of war by the time the GPU ever sees his data it's
+time the GPU ever sees his data it's definitely committing to memory so we
+definitely committing to memory so we don't do that we don't do really do any
+don't do that we don't do really do any tracking to make sure that 500 cycles
+tracking to make sure that 500 cycles have occurred we just assume they have
+have occurred we just assume they have and we haven't seen any problems with
+and we haven't seen any problems with that on the GPU though what we end up
+that on the GPU though what we end up doing is we can allocate all the memory
+doing is we can allocate all the memory we've ever sent to the GPU on a cache
+we've ever sent to the GPU on a cache line boundary so not only is every all
+line boundary so not only is every all the memory allocated on the cache line
+the memory allocated on the cache line boundary it's also padded out to a cache
+boundary it's also padded out to a cache line boundary so if you for instance
+line boundary so if you for instance have a constant buffer that all it has
+have a constant buffer that all it has is one vector for it's obviously not
+is one vector for it's obviously not using an entire cache line it's going to
+using an entire cache line it's going to get patted out to the entire cache line
+get patted out to the entire cache line because if we send out that one vector
+because if we send out that one vector for to the GPU early on in the frame the
+for to the GPU early on in the frame the GPU will put it in this cache we then
+GPU will put it in this cache we then allocate another constant buffer that's
+allocate another constant buffer that's maybe again one vector for and it ends
+maybe again one vector for and it ends up being in this if it ends up being on
+up being in this if it ends up being on the same cache line as previous one we
+the same cache line as previous one we could change it on the CPU but without a
+could change it on the CPU but without a cache flush obviously the GP is not
+cache flush obviously the GP is not going to see it then you're just reading
+going to see it then you're just reading garbage data and because we don't want
+garbage data and because we don't want to do that cache flash flush we
+to do that cache flash flush we basically pad everything out to cache
+basically pad everything out to cache line boundaries and cache lines are
+line boundaries and cache lines are pretty small so there is some memory
+pretty small so there is some memory wasted here but it's pretty
+wasted here but it's pretty insignificant compared to five gigabytes
+insignificant compared to five gigabytes you have on a current gen consoles
+you have on a current gen consoles and then we have dynamic resolution
+and then we have dynamic resolution scaling on the GPU and that's great and
+scaling on the GPU and that's great and a lot of you will have to use that but
+a lot of you will have to use that but that skills the GPU on load and we have
+that skills the GPU on load and we have a somewhat open-world game we have no
+a somewhat open-world game we have no idea what the end user is going to be
+idea what the end user is going to be able to do they could create scenarios
+able to do they could create scenarios are just crazy so we're looking in the
+are just crazy so we're looking in the ways well how can we dynamically scale
+ways well how can we dynamically scale the CPU - and not just a GPU so we ended
+the CPU - and not just a GPU so we ended up doing two things one thing is we're
+up doing two things one thing is we're constantly monitoring didn't CPU
+constantly monitoring didn't CPU workload of the renderer if it gets
+workload of the renderer if it gets really heavy if it gets maybe about 30
+really heavy if it gets maybe about 30 milliseconds we start throttling we
+milliseconds we start throttling we start pushing out all the lots of our
+start pushing out all the lots of our character models and that helps us
+character models and that helps us because the blahs are further away have
+because the blahs are further away have less drawn holes so right away there's a
+less drawn holes so right away there's a lot less drawing holes to set up on the
+lot less drawing holes to set up on the CPU side also
+CPU side also most of those lots further away use
+most of those lots further away use Keeper shaders because we're going to
+Keeper shaders because we're going to typically only use we only use
+typically only use we only use tessellation on the logs that are up
+tessellation on the logs that are up close
+close then well as you could push push further
+then well as you could push push further away it's just vertex pixel nothing else
+away it's just vertex pixel nothing else so again it's a lot simpler to set up
+so again it's a lot simpler to set up those drunk holes and tessellated ones
+those drunk holes and tessellated ones and then if really hits the fan and
+and then if really hits the fan and we're now dropping frames we actually
+we're now dropping frames we actually end up we stop streaming textures we
+end up we stop streaming textures we shot on textures hi nips and we do this
+shot on textures hi nips and we do this because it lowers the CPU usage not
+because it lowers the CPU usage not streaming is basically not doing any
+streaming is basically not doing any additional work so that gives us more
+additional work so that gives us more holes in our CPU timeline and it also
+holes in our CPU timeline and it also there's a lot less memory pressure
+there's a lot less memory pressure because we're pulling all this stuff in
+because we're pulling all this stuff in and out of memory
+and out of memory so basically pausing that for a while
+so basically pausing that for a while until we regain our framerate fixes that
+until we regain our framerate fixes that as well and there's and there's also
+as well and there's and there's also cost between virtual and physical page
+cost between virtual and physical page mapping so doing all that I've got a
+mapping so doing all that I've got a runner thread down down to 45
+runner thread down down to 45 milliseconds so we're getting there so
+milliseconds so we're getting there so now we're gonna look into our memory see
+now we're gonna look into our memory see if we could do anything with memory to
+if we could do anything with memory to get us running faster so a huge
+get us running faster so a huge performance when the shadow of war was
+performance when the shadow of war was actually switching to 2 Meg pages we
+actually switching to 2 Meg pages we used to use only 64 K pages exclusively
+used to use only 64 K pages exclusively on shadow of mordor now we're using 2
+on shadow of mordor now we're using 2 Meg pages
+Meg pages we're actually using a mix I'm sorry
+we're actually using a mix I'm sorry we're using a mix between two Meg's and
+we're using a mix between two Meg's and 64 K pages and that gave us about a 20%
+64 K pages and that gave us about a 20% performance gain over shadow of war a
+performance gain over shadow of war a lot of it just came from the sorry
+lot of it just came from the sorry overshadowed mortar a lot of it actually
+overshadowed mortar a lot of it actually came from the fact that there's just so
+came from the fact that there's just so much going on so much random memory
+much going on so much random memory access and this this is where the large
+access and this this is where the large pages shine we actually I put my this on
+pages shine we actually I put my this on in PC as well however it's not that
+in PC as well however it's not that noticeable to most of our users on the
+noticeable to most of our users on the PC because we're GPU bound on the PC and
+PC because we're GPU bound on the PC and it does make the CPU faster unless
+it does make the CPU faster unless you're actually CPU bound you'll not
+you're actually CPU bound you'll not really get much out of this so we end up
+really get much out of this so we end up allocating these pages that's when we
+allocating these pages that's when we start the process we do this because we
+start the process we do this because we have a mix so there's no way you're
+have a mix so there's no way you're going to find contiguous to make page so
+going to find contiguous to make page so we basically here's a breakdown of our
+we basically here's a breakdown of our memory of shadow of war we allocate 1.5
+memory of shadow of war we allocate 1.5 gigs of GPU memory 2 gigs of CPU memory
+gigs of GPU memory 2 gigs of CPU memory 256 Meg's of
+256 Meg's of GPU memory that's cached by the CPU and
+GPU memory that's cached by the CPU and then there's that great block that's
+then there's that great block that's split out that's about a gig or 64 K
+split out that's about a gig or 64 K pages and we actually use that mostly
+pages and we actually use that mostly for our textures so doing that switching
+for our textures so doing that switching to the two Meg pages and getting it down
+to the two Meg pages and getting it down to getting that 20% performance gain
+to getting that 20% performance gain we're now down to about 40 milliseconds
+we're now down to about 40 milliseconds in the simulation thread and 36 on the
+in the simulation thread and 36 on the renderer so we're almost there
+renderer so we're almost there what can we do with you to get this game
+what can we do with you to get this game actually running at frame rate so in our
+actually running at frame rate so in our development builds we use the OLS when
+development builds we use the OLS when we do this because it's great for
+we do this because it's great for iteration times you could change the CPP
+iteration times you could change the CPP file all you have to do is build up one
+file all you have to do is build up one DLL you don't have to rebuild an entire
+DLL you don't have to rebuild an entire game we have incremental linking turn on
+game we have incremental linking turn on debug fast laying all this great stuff
+debug fast laying all this great stuff it's great for iteration times it sucks
+it's great for iteration times it sucks for performance and our executable is
+for performance and our executable is just a tiny stub that has absolutely no
+just a tiny stub that has absolutely no code in it and all it does is just loads
+code in it and all it does is just loads those dll's and this is for a
+those dll's and this is for a development build for a retail build we
+development build for a retail build we convert these dll's
+convert these dll's we target them to become libs at this
+we target them to become libs at this point we turn off all this things and
+point we turn off all this things and make iteration times great such as
+make iteration times great such as incremental linking and so on and then
+incremental linking and so on and then we use our stub executable to now link
+we use our stub executable to now link in those lives as opposed to load those
+in those lives as opposed to load those dll's
+dll's and the beauty of that is that when
+and the beauty of that is that when you're doing linking the way it works is
+you're doing linking the way it works is it only pulls in code that is reference
+it only pulls in code that is reference so it's it's basically the Kalinka is
+so it's it's basically the Kalinka is basically dead stripping your code or
+basically dead stripping your code or getting rid of all the code that is dead
+getting rid of all the code that is dead and since our code base is 20 years old
+and since our code base is 20 years old there's a lot of dead code and that
+there's a lot of dead code and that alone just gives us about a 10% boost in
+alone just gives us about a 10% boost in performance by getting rid of all the
+performance by getting rid of all the dead code and getting rid of all the DLL
+dead code and getting rid of all the DLL boundaries the other thing we do is we
+boundaries the other thing we do is we have link time code generation turned on
+have link time code generation turned on and we did this actually on shadow of
+and we did this actually on shadow of mordor as well and we do it for all of
+mordor as well and we do it for all of our middleware as well so we go into
+our middleware as well so we go into every school middleware package and turn
+every school middleware package and turn on LTC G LTC G on Microsoft platforms
+on LTC G LTC G on Microsoft platforms gives us about a 10% boost in
+gives us about a 10% boost in performance and the reason it's greater
+performance and the reason it's greater on the Microsoft platforms then on the
+on the Microsoft platforms then on the sony ones is because of and the boy a
+sony ones is because of and the boy a Microsoft compiler works you can't
+Microsoft compiler works you can't actually in line between ob/ob JS
+actually in line between ob/ob JS without turning on LTC G we also use PG
+without turning on LTC G we also use PG Oprah
+Oprah while guys optimizations on all of our
+while guys optimizations on all of our platforms as well this is the first
+platforms as well this is the first project we actually shipped with pgo and
+project we actually shipped with pgo and that we found about a 5% gain on top of
+that we found about a 5% gain on top of LT CG by using PG oh and a quick
+LT CG by using PG oh and a quick pro tip there at least this worked for
+pro tip there at least this worked for us if you're using a Microsoft if you're
+us if you're using a Microsoft if you're compiling for Microsoft platforms and
+compiling for Microsoft platforms and you have calm down folding enabled it
+you have calm down folding enabled it will shrink your executable but from
+will shrink your executable but from what we encounter it is it basically
+what we encounter it is it basically gets rid or the gains we got out of pgo
+gets rid or the gains we got out of pgo so we end up turning off calmed and
+so we end up turning off calmed and folding so doing that we finally got our
+folding so doing that we finally got our game running at frame rate so we could I
+game running at frame rate so we could I mean it's good to ship frame rate wise I
+mean it's good to ship frame rate wise I feel great it's awesome so now we're
+feel great it's awesome so now we're gonna try to get it to fit into memory
+gonna try to get it to fit into memory because we can't really ship if I did
+because we can't really ship if I did actually fitting so the modern GPUs use
+actually fitting so the modern GPUs use a virtual memory this is we no longer
+a virtual memory this is we no longer have a last gen console which doesn't
+have a last gen console which doesn't have virtual memory and so we have this
+have virtual memory and so we have this virtual memory we've had it around from
+virtual memory we've had it around from the CPUs for a while we no longer have
+the CPUs for a while we no longer have to allocate contiguous memory on the GPU
+to allocate contiguous memory on the GPU so what can we do to actually get this
+so what can we do to actually get this can we can we do anything with this
+can we can we do anything with this virtual memory to save on memory we know
+virtual memory to save on memory we know that physical memory could be mapped and
+that physical memory could be mapped and that unmapped into virtual memory on a
+that unmapped into virtual memory on a page granularity and we also know we
+page granularity and we also know we could take a single physical page and
+could take a single physical page and map it to multiple locations of virtual
+map it to multiple locations of virtual memory and a quick example of that
+memory and a quick example of that we got virtual memory on the top
+we got virtual memory on the top physical on the bottom I could allocate
+physical on the bottom I could allocate a physical page and you were in the
+a physical page and you were in the physical memory range and we could map
+physical memory range and we could map it anywhere in the virtual memory range
+it anywhere in the virtual memory range so there it is pretty straightforward it
+so there it is pretty straightforward it could take another physical memory page
+could take another physical memory page an allocated right next or map it right
+an allocated right next or map it right next into the into the address space of
+next into the into the address space of that virtual memory and so from the
+that virtual memory and so from the virtual memory perspective it looks
+virtual memory perspective it looks contiguous even though I don't at the
+contiguous even though I don't at the physical level it is not and this is
+physical level it is not and this is okay
+okay and then there's another or you could
+and then there's another or you could allocate another page and you could
+allocate another page and you could actually map it into completely separate
+actually map it into completely separate locations in virtual memory and this
+locations in virtual memory and this works too so we're going to use 64 K
+works too so we're going to use 64 K pages for this and this is why we have
+pages for this and this is why we have that giant one gig city for cable
+that giant one gig city for cable and the reason for that is it's a lot
+and the reason for that is it's a lot easier to find scenarios where you could
+easier to find scenarios where you could share a 64k page of data to Meg's worth
+share a 64k page of data to Meg's worth of data is pretty difficult to share it
+of data is pretty difficult to share it also means that if there's any if
+also means that if there's any if there's any memory that we don't use out
+there's any memory that we don't use out of a 64k page because we want to do some
+of a 64k page because we want to do some kind of memory trick or we're not we're
+kind of memory trick or we're not we're not losing too much out of that 64 K
+not losing too much out of that 64 K page as opposed to a 2 Meg page where
+page as opposed to a 2 Meg page where there might be a bunch of data left over
+there might be a bunch of data left over but obviously there is a downside to it
+but obviously there is a downside to it they're slower so so the first thing we
+they're slower so so the first thing we started thinking is can we move our
+started thinking is can we move our mipmap streaming over to these pages so
+mipmap streaming over to these pages so in shadow of mordor we we never wheats
+in shadow of mordor we we never wheats mipmap stream but we actually never
+mipmap stream but we actually never unloaded those nips because we moved we
+unloaded those nips because we moved we work across gen again we moved to this
+work across gen again we moved to this great new console at 5 gigs oh my god
+great new console at 5 gigs oh my god all the memory in the world what you
+all the memory in the world what you know there's no point of unloading this
+know there's no point of unloading this data the only reason we string those
+data the only reason we string those mips and in the first place was to lower
+mips and in the first place was to lower load times because our load times were
+load times because our load times were pretty significant but we had all the
+pretty significant but we had all the memory to keep him in memory on shadow
+memory to keep him in memory on shadow of war because we were out of memory we
+of war because we were out of memory we started looking at started looking at
+started looking at started looking at our texture streaming and think I
+our texture streaming and think I wondering is there a way to save on
+wondering is there a way to save on memory by maybe moving this these nips
+memory by maybe moving this these nips in and out of memory constantly and this
+in and out of memory constantly and this is just a quick reminder that out of any
+is just a quick reminder that out of any texture to hime it caught it
+texture to hime it caught it memory wise cost 66 percent of the rest
+memory wise cost 66 percent of the rest of the texture so if you get rid of that
+of the texture so if you get rid of that heimet all you're left with is 33% of
+heimet all you're left with is 33% of the memory usage so we implemented a
+the memory usage so we implemented a mipmap streaming system at cook time we
+mipmap streaming system at cook time we analyzed every single one of our meshes
+analyzed every single one of our meshes and we find the largest the triangle the
+and we find the largest the triangle the worst case scenario triangle that has
+worst case scenario triangle that has the greatest Texel density that would
+the greatest Texel density that would basically require that high nib to come
+basically require that high nib to come in first and we save it off at runtime
+in first and we save it off at runtime we do some quick math to basically
+we do some quick math to basically project that triangle onto the screen
+project that triangle onto the screen determining what it Smith may have value
+determining what it Smith may have value would be and approximate that meta value
+would be and approximate that meta value and I've highlighted approximate because
+and I've highlighted approximate because you don't really have to do the exact
+you don't really have to do the exact same math that GPU does here because
+same math that GPU does here because you're going to be bound by the
+you're going to be bound by the streaming system and not so much by the
+streaming system and not so much by the accuracy of your math so finding the
+accuracy of your math so finding the fastest way to do this is a lot better
+fastest way to do this is a lot better than
+than being accurate it's a quick example we
+being accurate it's a quick example we have this tribute a here in the middle
+have this tribute a here in the middle of the screen we have a bounding box for
+of the screen we have a bounding box for every single one of these objects and we
+every single one of these objects and we take this triangle we saved off a cook
+take this triangle we saved off a cook time and we simply projected onto that
+time and we simply projected onto that bounding box camera facing the screen
+bounding box camera facing the screen space figure out what that what the mid
+space figure out what that what the mid value would be for that triangle that
+value would be for that triangle that triangle is obviously not to scale we
+triangle is obviously not to scale we don't have triangles this big but if I
+don't have triangles this big but if I use a real-world triangle you wouldn't
+use a real-world triangle you wouldn't see it so this the entire streaming
+see it so this the entire streaming system operates on the CPU and it's
+system operates on the CPU and it's throttled so it doesn't take up too much
+throttled so it doesn't take up too much time we only have value in about 64
+time we only have value in about 64 while we evaluate exactly 64 of these
+while we evaluate exactly 64 of these meshes of frame we have a frame code on
+meshes of frame we have a frame code on it so we don't evaluate the same mesh
+it so we don't evaluate the same mesh twice and we put a dampening system in
+twice and we put a dampening system in there to avoid thrashing of the mips so
+there to avoid thrashing of the mips so that we don't pull them in and out every
+that we don't pull them in and out every single frame and as a result we could
+single frame and as a result we could evaluate about 1920 of these every
+evaluate about 1920 of these every second so after a few seconds we value
+second so after a few seconds we value the entire scene because we're only
+the entire scene because we're only following this only the stuff that is
+following this only the stuff that is being rendered is evaluated and so the
+being rendered is evaluated and so the cpu cost as a result is about is fixed
+cpu cost as a result is about is fixed at about 0.1 milliseconds per frame so
+at about 0.1 milliseconds per frame so the high MIPS they use a memory pool and
+the high MIPS they use a memory pool and we pre allocate these 64 K pages the
+we pre allocate these 64 K pages the second when we start the game again so
+second when we start the game again so that we always have the memory for this
+that we always have the memory for this pool and we just slow the mips in and
+pool and we just slow the mips in and out until we're out of memory or until
+out until we're out of memory or until the high mips are depleted and then we
+the high mips are depleted and then we just don't give them the texture am it
+just don't give them the texture am it if it requests this one and so every
+if it requests this one and so every single one of our textures we create
+single one of our textures we create without a high MIPS so virtual memory is
+without a high MIPS so virtual memory is mapped out for entire texture but it's
+mapped out for entire texture but it's only backed by physical memory all the
+only backed by physical memory all the way up to the pieman and i map is
+way up to the pieman and i map is ignored so a quick demo of that imagine
+ignored so a quick demo of that imagine this texture here that's a virtual
+this texture here that's a virtual memory layout of a regular texture 2d
+memory layout of a regular texture 2d and then we have our base memory which
+and then we have our base memory which is just memory that if we run out of
+is just memory that if we run out of that it's a error that we're out of
+that it's a error that we're out of memory but if we run out of a high
+memory but if we run out of a high memory pool that's okay we'll just never
+memory pool that's okay we'll just never displayed a high me up to the end user
+displayed a high me up to the end user it still it's a it's more of a warning
+it still it's a it's more of a warning to the game developers than
+to the game developers than an error to us so every one of these
+an error to us so every one of these blocks is 64k block we end up basically
+blocks is 64k block we end up basically assigning 64k blocks to all these
+assigning 64k blocks to all these different MIPS and we're doing this
+different MIPS and we're doing this manually were mapping the physical
+manually were mapping the physical memory to virtual memory here and I just
+memory to virtual memory here and I just staged the texture would be considered
+staged the texture would be considered loaded by the game and would be handed
+loaded by the game and would be handed off until the mid map streaming system
+off until the mid map streaming system determines and he's a high MIT once it
+determines and he's a high MIT once it determines and he's a high MIT all the
+determines and he's a high MIT all the 64k pages from the high met pool are now
+64k pages from the high met pool are now assigned to this high MIT until it
+assigned to this high MIT until it doesn't need it anymore and then in
+doesn't need it anymore and then in they're just thrown back into the high
+they're just thrown back into the high map memory pool so doing this actually
+map memory pool so doing this actually saves us about a gig of memory over
+saves us about a gig of memory over keeping all the high MIPS in memory for
+keeping all the high MIPS in memory for shadow of war so you next thing we
+shadow of war so you next thing we started thinking about is to texture 2d
+started thinking about is to texture 2d arrays we actually use a bunch of these
+arrays we actually use a bunch of these texture 2d arrays on shadow of war we
+texture 2d arrays on shadow of war we use them for terrain reason for
+use them for terrain reason for character models we use them for a lot
+character models we use them for a lot of our structures and we use it for our
+of our structures and we use it for our effects flipbooks so the benefits of
+effects flipbooks so the benefits of using these texture 2d arrays is we use
+using these texture 2d arrays is we use them from blending a lot so it's great
+them from blending a lot so it's great for blending because when you simple
+for blending because when you simple them in the shader you're guaranteed
+them in the shader you're guaranteed every single one of your slices is going
+every single one of your slices is going to be the exact same mid-level it also
+to be the exact same mid-level it also kind of simplified our shaders because
+kind of simplified our shaders because we didn't have to do as many wrenching
+we didn't have to do as many wrenching in our shaders checking if the regular
+in our shaders checking if the regular texture 2ds were valid or not and we
+texture 2ds were valid or not and we were just now don't at this point we're
+were just now don't at this point we're just calculating indices into the
+just calculating indices into the texture 2d array but there are issues
+texture 2d array but there are issues with texture 2d arrays first one is
+with texture 2d arrays first one is padding so on the AMD Hardware that
+padding so on the AMD Hardware that exists on the consoles the texture 2d
+exists on the consoles the texture 2d arrays are always padded the slice count
+arrays are always padded the slice count is always padded to a power or two so if
+is always padded to a power or two so if you requested a three slice texture
+you requested a three slice texture array the return memory layout will
+array the return memory layout will contain four three and four is not so
+contain four three and four is not so bad but this is a power to imagine you
+bad but this is a power to imagine you wanted 17 slices in your texture 2d
+wanted 17 slices in your texture 2d array the return memory layout would
+array the return memory layout would contain 32 and you'd be paying the cost
+contain 32 and you'd be paying the cost for all 32 the next issue is duplication
+for all 32 the next issue is duplication so we're using texture 2d arrays
+so we're using texture 2d arrays everywhere this is great but we're using
+everywhere this is great but we're using it for blending so
+it for blending so in our snow level for example every
+in our snow level for example every artist that creates a texture to the
+artist that creates a texture to the array wants a blend of snow so they're
+array wants a blend of snow so they're always going to add that same exact snow
+always going to add that same exact snow slice into their texture 2d array and
+slice into their texture 2d array and traditionally what would end up
+traditionally what would end up happening is you're just baking this
+happening is you're just baking this texture 2d array down at cook time and
+texture 2d array down at cook time and this snow is just duplicated and every
+this snow is just duplicated and every single one of your texture 2d arrays so
+single one of your texture 2d arrays so in order to get around to padding what
+in order to get around to padding what we end up doing is we are already
+we end up doing is we are already mapping 64k pages for all of our texture
+mapping 64k pages for all of our texture loading anyways so we analyze the
+loading anyways so we analyze the texture array and just ignore all the
+texture array and just ignore all the areas that are padded so in the case of
+areas that are padded so in the case of the 17 slices go into going all the way
+the 17 slices go into going all the way to 32 you got 15 slices you're basically
+to 32 you got 15 slices you're basically order useless taking up memory we just
+order useless taking up memory we just never actually back them with any
+never actually back them with any physical memory the virtual memory is
+physical memory the virtual memory is still there textures have these this
+still there textures have these this concept called pack nips
+concept called pack nips this is actually a direct3d term these
+this is actually a direct3d term these are the MIPS that are smaller than one
+are the MIPS that are smaller than one 64k page and since they're smaller than
+64k page and since they're smaller than one 64k page we actually just give them
+one 64k page we actually just give them a 64 K page and for texture 2d arrays it
+a 64 K page and for texture 2d arrays it gets even more complicated because
+gets even more complicated because typically what happens you have all your
+typically what happens you have all your tail nips and it's one last 64 K page
+tail nips and it's one last 64 K page and texture 2d arrays you will have the
+and texture 2d arrays you will have the tail nips of multiple slices in that one
+tail nips of multiple slices in that one page which gets really complicated with
+page which gets really complicated with texture 2d arrays so because it's 1 64 K
+texture 2d arrays so because it's 1 64 K page we don't really care about it and
+page we don't really care about it and we just always have physical memory
+we just always have physical memory backing for packed nips it's an example
+backing for packed nips it's an example of this here we have a texture array so
+of this here we have a texture array so this is a virtual memory layout of a
+this is a virtual memory layout of a texture array on top left corner where
+texture array on top left corner where you have the wood texture and the high
+you have the wood texture and the high nip that's where the virtual memory of a
+nip that's where the virtual memory of a virtual memory layout of a texture 2d
+virtual memory layout of a texture 2d array starts it goes through all these
+array starts it goes through all these high Maps first including so in this
+high Maps first including so in this scenario I'm doing the 3 slices that
+scenario I'm doing the 3 slices that we're using and we're paying the cost
+we're using and we're paying the cost for four so this is where if I asked on
+for four so this is where if I asked on the console to allocate a three sliced
+the console to allocate a three sliced extra range this is the layout I would
+extra range this is the layout I would get so you go from MIT to MIT you
+get so you go from MIT to MIT you basically do all the hyneman's first and
+basically do all the hyneman's first and the next letter of MIPS and so on and
+the next letter of MIPS and so on and you have the PAC maps and so when we map
+you have the PAC maps and so when we map things out we're
+things out we're was going to give them give the pack
+was going to give them give the pack mitts physical backing because we don't
+mitts physical backing because we don't really want to look into that
+really want to look into that howdy are really packed in there but
+howdy are really packed in there but then when we get to this point word I'm
+then when we get to this point word I'm hip is actually using a 64 K page we
+hip is actually using a 64 K page we never backed that very last myth so we
+never backed that very last myth so we just leave it blank and we just keep
+just leave it blank and we just keep doing that for the rest of our MIPS and
+doing that for the rest of our MIPS and then we do the same thing before Haim it
+then we do the same thing before Haim it memory pool only though slices that we
+memory pool only though slices that we use or back the rest are blank chip you
+use or back the rest are blank chip you never reached the memory that's blank
+never reached the memory that's blank and everyone's happy at the end
+duplication we solved that by sharing our 64 K pages so all of our texture 2d
+our 64 K pages so all of our texture 2d arrays they just contain references and
+arrays they just contain references and at runtime we map those references back
+at runtime we map those references back and build a texture 2d array at runtime
+and build a texture 2d array at runtime so at cook time our texture 2d arrays
+so at cook time our texture 2d arrays have references to regular texture to
+have references to regular texture to these and then we reference count those
+these and then we reference count those slices
+so again pack MIPS we just duplicate them and then this solution of actually
+them and then this solution of actually sharing these slices by using references
+sharing these slices by using references has the benefit that we could also use
+has the benefit that we could also use that entire slice as a regular texture
+that entire slice as a regular texture 2d so if you have another shaders use
+2d so if you have another shaders use the texture 2d we could do that and or
+the texture 2d we could do that and or it also helped our cook times because
+it also helped our cook times because before we had to cook the entire texture
+before we had to cook the entire texture 2d now we're actually just cooking one
+2d now we're actually just cooking one slice at a time because we're just
+slice at a time because we're just referencing it at runtime so here's a
+referencing it at runtime so here's a quick example of that we have a one
+quick example of that we have a one texture rate I use a stone and then wood
+texture rate I use a stone and then wood for the next slice I want to use this
+for the next slice I want to use this wood and then stone typically if you
+wood and then stone typically if you were just cooking this offline it would
+were just cooking this offline it would be two completely separate texture
+be two completely separate texture arrays and when you load them at runtime
+arrays and when you load them at runtime you just be duplicating all those bits
+you just be duplicating all those bits and data but since we're using
+and data but since we're using references we know this it's the exact
+references we know this it's the exact same slice so we're only gonna pay the
+same slice so we're only gonna pay the cost for one so for the pack Maps again
+cost for one so for the pack Maps again we don't do anything we're gonna buy it
+we don't do anything we're gonna buy it we're gonna back them with 64 K pages so
+we're gonna back them with 64 K pages so that's done but now what we're gonna do
+that's done but now what we're gonna do is we're gonna take one 64 K page put it
+is we're gonna take one 64 K page put it in the bits for this stone texture and
+in the bits for this stone texture and bind it to two virtual addresses and
+bind it to two virtual addresses and share them that way
+share them that way and we just keep doing that we just keep
+and we just keep doing that we just keep sharing and only using the memory for
+sharing and only using the memory for one texture
+one texture and not for both and again this
+and not for both and again this basically saves us all the memory of
+basically saves us all the memory of basically a voice of duplication costs
+basically a voice of duplication costs completely and we do the same thing with
+completely and we do the same thing with the high MIPS so we by doing this by
+the high MIPS so we by doing this by avoiding the duplication we saved about
+avoiding the duplication we saved about 300 Meg's of memory but it's really seen
+300 Meg's of memory but it's really seen dependent because it all depends on how
+dependent because it all depends on how much duplication there is the padding I
+much duplication there is the padding I can't really claim that we save memory
+can't really claim that we save memory because what we have would have done if
+because what we have would have done if we didn't have support for non power of
+we didn't have support for non power of two textures is we were just not allow
+two textures is we were just not allow the artist to ever have non power to
+the artist to ever have non power to texture array slices so the if they
+texture array slices so the if they wanted to do 17 slices we would just
+wanted to do 17 slices we would just have the cooker return an error saying I
+have the cooker return an error saying I reduced 16 or 32 and thank you and we're
+reduced 16 or 32 and thank you and we're hi ring and if you liked what you saw
+hi ring and if you liked what you saw please come join us if you didn't like
+please come join us if you didn't like what you saw and you thought it was
+what you saw and you thought it was really bad you want to come and fix it
+really bad you want to come and fix it well we're hiring as well
+we have four other talks here at GDC on shadow of war so if you're interested in
+shadow of war so if you're interested in shadow of war I would highly recommend
+shadow of war I would highly recommend you go see them the last two talks are
+you go see them the last two talks are still to come
+still to come one is actually today at 4:00 and order
+one is actually today at 4:00 and order any questions
+yeah I have a quick question in directx12 they support bind lists
+directx12 they support bind lists buffers now did you look into into that
+buffers now did you look into into that at all for the PC and would that give
+at all for the PC and would that give you any savings and so on PC we were
+you any savings and so on PC we were still all 11 on shadow of war so we're
+still all 11 on shadow of war so we're now really looking at 12 at this point
+now really looking at 12 at this point we did try to so I actually had a bunch
+we did try to so I actually had a bunch of PC slides in his deck but as you
+of PC slides in his deck but as you could tell everyone's really long and so
+could tell everyone's really long and so having another like 30 minutes of PC
+having another like 30 minutes of PC slides away too long so I'm Pete on PC
+slides away too long so I'm Pete on PC we actually tried to use tiled resources
+we actually tried to use tiled resources for a lot of things because it's kind of
+for a lot of things because it's kind of the same idea you're not paying 64 K
+the same idea you're not paying 64 K pages at a time but of d3 11 there was a
+pages at a time but of d3 11 there was a lot of limitations for instance you
+lot of limitations for instance you could only have one memory pool for per
+could only have one memory pool for per resource so it couldn't really separate
+resource so it couldn't really separate like a high memory pool or a high MIT
+like a high memory pool or a high MIT pool with the rest of the pools and in
+pool with the rest of the pools and in addition to that held resources don't
+addition to that held resources don't actually work with texture 2d arrays
+actually work with texture 2d arrays basically all those pack nips I was
+basically all those pack nips I was telling showing for texture 2d arrays or
+telling showing for texture 2d arrays or just unsupported so you could have
+just unsupported so you could have texture 2d arrays you just can't have
+texture 2d arrays you just can't have tail nips and for us that's kind of
+tail nips and for us that's kind of useless so we ended up on PC we actually
+useless so we ended up on PC we actually ended up not sharing any of that memory
+ended up not sharing any of that memory and just duplicating it all and just
+and just duplicating it all and just loading high maps the traditional way
+loading high maps the traditional way and not trying to like exchange memory
+and not trying to like exchange memory back and forth
+hello so my questions in in terms of Quality Assurance so when you talk about
+Quality Assurance so when you talk about the was it the dynamic frame pacing so
+the was it the dynamic frame pacing so you mentioned how it was basically like
+you mentioned how it was basically like dropping a frame so in terms of Quality
+dropping a frame so in terms of Quality Assurance how do you do you distinguish
+Assurance how do you do you distinguish between those frame rate drops and
+between those frame rate drops and actual frame rate drop well it doesn't
+actual frame rate drop well it doesn't really drop a frame because our pipeline
+really drop a frame because our pipeline buffers out enough frames ahead so it's
+buffers out enough frames ahead so it's i williams said that because we're going
+i williams said that because we're going beyond 33 milliseconds and traditionally
+beyond 33 milliseconds and traditionally in a like our older games if we went
+in a like our older games if we went beyond 33 we would be dropping frames
+beyond 33 we would be dropping frames but because we're buffered out and you
+but because we're buffered out and you have multiple stages in that pipeline
+have multiple stages in that pipeline those other stages absorb the fact that
+those other stages absorb the fact that you went beyond 33 so we're at 34 we
+you went beyond 33 so we're at 34 we then start the RET because we're
+then start the RET because we're telescoped out that actually kind of
+telescoped out that actually kind of also means we're buffered out which
+also means we're buffered out which means these buffers could absorb the
+means these buffers could absorb the fact that we just lost a millisecond in
+fact that we just lost a millisecond in the first stage but we didn't lose a
+the first stage but we didn't lose a millisecond at the very end so there's
+millisecond at the very end so there's actually no frame drop at the very end
+actually no frame drop at the very end figure of speech then yeah it's more
+figure of speech then yeah it's more like a thanks uh hi he said you were at
+like a thanks uh hi he said you were at 90 milliseconds at beta how many months
+90 milliseconds at beta how many months before ship was that a lot less than I
+before ship was that a lot less than I would want that was I mean that was
+would want that was I mean that was probably let's see uh it's probably a
+probably let's see uh it's probably a year okay thanks
+with your threading model with a low priority tasks are they floating between
+priority tasks are they floating between the different cause and if so did you
+the different cause and if so did you ever have problems where a low priority
+ever have problems where a low priority task would be interrupted by a high
+task would be interrupted by a high priority task for a long time before it
+priority task for a long time before it finishes yeah we also had yes we did so
+finishes yeah we also had yes we did so so what so problems week so the low
+so what so problems week so the low priority task being interrupted for too
+priority task being interrupted for too long we didn't have but we did run into
+long we didn't have but we did run into issues word for instance a low priority
+issues word for instance a low priority task might take the lock on the
+task might take the lock on the allocator then get swapped out for a
+allocator then get swapped out for a high priority task and now the high
+high priority task and now the high priority task wants the allocator and
+priority task wants the allocator and now what
+now what and luckily almost never happens and so
+and luckily almost never happens and so all of our spin locks down I mention we
+all of our spin locks down I mention we used eventually they go into a kernel
+used eventually they go into a kernel primitive anyway so they will stall out
+primitive anyway so they will stall out so this high priority task ever needs
+so this high priority task ever needs something from the low priority task it
+something from the low priority task it will spin there for a little bit and be
+will spin there for a little bit and be like alright I can't get this I'm going
+like alright I can't get this I'm going to sleep so it stalls then this low
+to sleep so it stalls then this low priority task story starts again let's
+priority task story starts again let's go of that to the lock on the allocator
+go of that to the lock on the allocator but then it gets swapped out right away
+but then it gets swapped out right away because now the other thread could go so
+because now the other thread could go so it basically wakes and goes back to
+it basically wakes and goes back to sleep and then the other thread keeps
+sleep and then the other thread keeps going so it was that a big did you did
+going so it was that a big did you did you solve that problem or did you yeah I
+you solve that problem or did you yeah I mean we so we solved the problem by
+mean we so we solved the problem by eventually so we actually had a bigger
+eventually so we actually had a bigger problem on the Sony platforms so in the
+problem on the Sony platforms so in the Sony platform I'm not sure how familiar
+Sony platform I'm not sure how familiar you are with a ps4 but on the ps4 what
+you are with a ps4 but on the ps4 what the problems we had was the priorities
+the problems we had was the priorities for threads work a little bit
+for threads work a little bit differently so if you call first this
+differently so if you call first this yield on a ps4 all that will yield to is
+yield on a ps4 all that will yield to is full to a thread that's equal or higher
+full to a thread that's equal or higher priority and not one that's lower so if
+priority and not one that's lower so if you had a scenario of like well I had
+you had a scenario of like well I had this really high priority thread that
+this really high priority thread that needs to run but it can't get the
+needs to run but it can't get the allocator lock because the slower one
+allocator lock because the slower one does well I'm gonna yield but this one's
+does well I'm gonna yield but this one's lower priority so it never gets that CPU
+lower priority so it never gets that CPU slice so we had that problem and we
+slice so we had that problem and we solved it
+solved it trying to remember exactly how oh we
+trying to remember exactly how oh we sold you know how we sold that we sold
+sold you know how we sold that we sold it in a really really bad way eventually
+it in a really really bad way eventually what happens is we find out that we're
+what happens is we find out that we're actively stalling out too long here
+actively stalling out too long here something's wrong
+something's wrong alright so instead of calling yield
+alright so instead of calling yield let's just call sleep one so there this
+let's just call sleep one so there this thread is completely going to sleep it's
+thread is completely going to sleep it's letting go of this entire core and then
+letting go of this entire core and then that out the low priority threads could
+that out the low priority threads could kick in and we actually only do that on
+kick in and we actually only do that on the ps4 because it's not necessary on
+the ps4 because it's not necessary on the Microsoft platforms thank you do you
+the Microsoft platforms thank you do you do affinity walk income desktop
+do affinity walk income desktop platforms and is it worth it we do dot
+platforms and is it worth it we do dot right now there is that whole like new
+right now there is that whole like new Windows 10 game mode thing that we were
+Windows 10 game mode thing that we were considering doing some affinity locking
+considering doing some affinity locking on that but the truth is we basically
+on that but the truth is we basically have to get this game running on the
+have to get this game running on the consoles and the CPU and the consoles is
+consoles and the CPU and the consoles is frankly not all that great so by the
+frankly not all that great so by the time it runs in the consoles it flies on
+time it runs in the consoles it flies on the PC so we basically don't offend ties
+the PC so we basically don't offend ties we let Windows schedule all the
+we let Windows schedule all the different threads all over the place

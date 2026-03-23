@@ -1,0 +1,1454 @@
+[Music] [Applause]
+well thanks everyone for coming I originally wanted a much longer title
+originally wanted a much longer title for our talk but mike-mike nixed it so I
+for our talk but mike-mike nixed it so I can see why okay introductions quick
+can see why okay introductions quick introductions so I'm Jeff Hara where I'm
+introductions so I'm Jeff Hara where I'm senior software engineer at a Vancouver
+senior software engineer at a Vancouver currently lead gameplay engineer on UFC
+currently lead gameplay engineer on UFC I've been working in the industry since
+I've been working in the industry since 2000 so I've been working at EA for 16
+2000 so I've been working at EA for 16 years which along with my increasingly
+years which along with my increasingly cleaning hair makes me feel very very
+cleaning hair makes me feel very very old and I'm Jerry Matheson lead gameplay
+old and I'm Jerry Matheson lead gameplay animator at EA Sports in the UFC two
+animator at EA Sports in the UFC two title film industry since like 1999
+title film industry since like 1999 store that made for attainment making
+store that made for attainment making kids grow tunes and I'm here making me
+kids grow tunes and I'm here making me do the games alright so here's an
+do the games alright so here's an outline of what we're gonna be talking
+outline of what we're gonna be talking about today so I'm gonna go first and
+about today so I'm gonna go first and I'll be talking about all the technical
+I'll be talking about all the technical engineering stuff I'll give you an
+engineering stuff I'll give you an overview of our dynamic grappling system
+overview of our dynamic grappling system kind of the the design change that we
+kind of the the design change that we went through from UFC 1 to UFC 2 and
+went through from UFC 1 to UFC 2 and talk about how that influenced our
+talk about how that influenced our animation requirements I'm going to do a
+animation requirements I'm going to do a bit of a technical deep dive on the
+bit of a technical deep dive on the relative a case system I talked about
+relative a case system I talked about that a little bit last year looking back
+that a little bit last year looking back in my talk I don't think I explained it
+in my talk I don't think I explained it very well and there's a lot more depth
+very well and there's a lot more depth that could have gone into so I'm going
+that could have gone into so I'm going to dive into that because it's kind of a
+to dive into that because it's kind of a fundamental building block to the
+fundamental building block to the procedural system we put together this
+procedural system we put together this year and then I'll go over the what we
+year and then I'll go over the what we called procedural mocap that's a term
+called procedural mocap that's a term that Jeremy coined after seeing how this
+that Jeremy coined after seeing how this stuff worked how we solved our grappling
+stuff worked how we solved our grappling problems for this year
+problems for this year and I'm going to talk about essentially
+and I'm going to talk about essentially how one gameplan tomater can create that
+how one gameplan tomater can create that much content for a feature I'm going to
+much content for a feature I'm going to start with UFC one you can see doing it
+start with UFC one you can see doing it the old way how much content we created
+the old way how much content we created and then on UFC to how we improved on
+and then on UFC to how we improved on that and a big key part of that is just
+that and a big key part of that is just procedural techniques that kind of a
+procedural techniques that kind of a us in a big way on that and that I'll
+us in a big way on that and that I'll come to a conclusion where we've arrived
+come to a conclusion where we've arrived so it's a big exciting week for us our
+so it's a big exciting week for us our game launches tomorrow so you're not
+game launches tomorrow so you're not familiar with our game or the UFC here's
+familiar with our game or the UFC here's a hype trailer to get you all excited
+a hype trailer to get you all excited for the talk
+the notorious Conor McGregor black trunks for the champion Jose Aldo jr.
+trunks for the champion Jose Aldo jr. Conor relaxed and smiling
+[Applause]
+all right there we go what's fun Thanks okay so one of the big back of the box
+okay so one of the big back of the box features for this year's game is
+features for this year's game is something that we called dynamic
+something that we called dynamic grappling so to understand what that
+grappling so to understand what that system is I'll take you back to UFC one
+system is I'll take you back to UFC one and talk about the grappling system
+and talk about the grappling system there so it's pretty pretty
+there so it's pretty pretty straightforward kind of stuff so when
+straightforward kind of stuff so when you're when you take the guy to the
+you're when you take the guy to the ground you start off in some kind of
+ground you start off in some kind of Idol depending on what position you're
+Idol depending on what position you're in the top fighter has a bunch of things
+in the top fighter has a bunch of things he can do the bottom fighter has a bunch
+he can do the bottom fighter has a bunch of things he can do let's simplify it a
+of things he can do let's simplify it a little bit and say the top guy can go
+little bit and say the top guy can go left to right and the bottom guy can go
+left to right and the bottom guy can go left to right so if the top I presses to
+left to right so if the top I presses to the left he'll play an animation of him
+the left he'll play an animation of him doing something to the left that could
+doing something to the left that could be a submission the transition attempt
+be a submission the transition attempt in this case he's trying to pass the
+in this case he's trying to pass the bottom guy's guard by pressing down on
+bottom guy's guard by pressing down on the knee so you've got a start animation
+the knee so you've got a start animation to initiate the action you've got an
+to initiate the action you've got an idle pose where the game kind of figures
+idle pose where the game kind of figures at the transition logic and then you
+at the transition logic and then you have a cancel animation to bring you
+have a cancel animation to bring you back from where you came from and a
+back from where you came from and a finish animation that executes the
+finish animation that executes the technique and takes you to where you're
+technique and takes you to where you're going
+going similarly the guy on the bottom presses
+similarly the guy on the bottom presses to the right he'll play some move in
+to the right he'll play some move in that direction
+that direction similar similar thing a submission
+similar similar thing a submission transition something like that so what
+transition something like that so what happens if the top guy presses to the
+happens if the top guy presses to the left and the bottom guy presses to the
+left and the bottom guy presses to the left at the exact same time so in UFC
+left at the exact same time so in UFC one the top guy pressed to the left he
+one the top guy pressed to the left he would play his transition animation but
+would play his transition animation but if the bottom guy also pressed to the
+if the bottom guy also pressed to the right and the game registered the input
+right and the game registered the input just a little one frame later he would
+just a little one frame later he would get absolutely nothing no response from
+get absolutely nothing no response from the game that he had done anything he'd
+the game that he had done anything he'd be locked out of any transitions the
+be locked out of any transitions the only thing he could do is recognize that
+only thing he could do is recognize that the top fighter had started to
+the top fighter had started to transition and play a denial animation
+transition and play a denial animation which just prevents him from doing his
+which just prevents him from doing his action so this wasn't very good for
+action so this wasn't very good for users they felt frustrated oftentimes
+users they felt frustrated oftentimes they'd be pressing on the stick and get
+they'd be pressing on the stick and get no response they thought the game was
+no response they thought the game was broken its unresponsive I don't
+broken its unresponsive I don't understand how to play
+understand how to play just generally a bad bad experience for
+just generally a bad bad experience for people so in an ideal world we want
+people so in an ideal world we want something like this where top guy
+something like this where top guy presses to the left and he gets an
+presses to the left and he gets an action bottom guy presses right he also
+action bottom guy presses right he also gets an action so the two players could
+gets an action so the two players could act independent of each other playing an
+act independent of each other playing an animation that correspond to what they
+animation that correspond to what they were trying to do no matter what the
+were trying to do no matter what the other guy was trying to do increase
+other guy was trying to do increase responsiveness and key increased that
+responsiveness and key increased that sense of engagement with the game so
+sense of engagement with the game so let's get a sense of what kind of
+let's get a sense of what kind of numbers we're looking at in order to
+numbers we're looking at in order to support a feature like that so just in
+support a feature like that so just in full guard this position here let's say
+full guard this position here let's say the top guy has eight possible
+the top guy has eight possible transitions he could do eight
+transitions he could do eight transitions submissions whatever so
+transitions submissions whatever so left-right up-down and then holding a
+left-right up-down and then holding a modifier left-right up-down and the
+modifier left-right up-down and the bottom guy also has a transition say for
+bottom guy also has a transition say for example a similar deal this would
+example a similar deal this would represent all the different idle states
+represent all the different idle states that the players could get into in full
+that the players could get into in full guard it's not 100% accurate it's this
+guard it's not 100% accurate it's this kind of the back of the napkin kind of
+kind of the back of the napkin kind of calculations we were doing at the
+calculations we were doing at the beginning to see what we were up against
+beginning to see what we were up against to try and implement this so you're
+to try and implement this so you're looking at eight times eight 64
+looking at eight times eight 64 different states I'll be like top guys
+different states I'll be like top guys going on the right bottom guys go on the
+going on the right bottom guys go on the left top guys don't know the right
+left top guys don't know the right bottom guys going down all those
+bottom guys going down all those permutations right so in order to figure
+permutations right so in order to figure out what kind of animations we need we
+out what kind of animations we need we need four different animations for each
+need four different animations for each one of those states we need something
+one of those states we need something that takes you to that state an idle
+that takes you to that state an idle animation once you're in that state I
+animation once you're in that state I cancel that brings you back to the state
+cancel that brings you back to the state you came from and then a success
+you came from and then a success animation that takes you to wherever
+animation that takes you to wherever you're going from each of those states
+you're going from each of those states so we multiply by four and then the game
+so we multiply by four and then the game has 15 different ground positions so
+has 15 different ground positions so assuming every ground position has the
+assuming every ground position has the same level of complexity asgard which
+same level of complexity asgard which they don't but some are closed some are
+they don't but some are closed some are bigger some are smaller we've got to
+bigger some are smaller we've got to multiply that number by 15 so we got a
+multiply that number by 15 so we got a really big number here to put that into
+really big number here to put that into context this little piece that I cut out
+context this little piece that I cut out at the bottom that's
+at the bottom that's the number of animations that we built
+the number of animations that we built for the entire ground game in UFC one
+for the entire ground game in UFC one and the big picture is what we would
+and the big picture is what we would need to build in order to support this
+need to build in order to support this system for UFC two with the same budget
+system for UFC two with the same budget the same timeline same number of
+the same timeline same number of animators that kind of stuff so on the
+animators that kind of stuff so on the face of it it looks absolutely
+face of it it looks absolutely impossible unless we can come up with
+impossible unless we can come up with some kind of procedural system or
+some kind of procedural system or something just some way to optimize this
+something just some way to optimize this so that we can get like a tenfold
+so that we can get like a tenfold increase in content creation not trivial
+increase in content creation not trivial at all so before I dive into how we did
+at all so before I dive into how we did that
+that I want to talk about relative that case
+I want to talk about relative that case so relative ikk existed in EA MMA like
+so relative ikk existed in EA MMA like four years ago existed in EA UFC
+four years ago existed in EA UFC it's used by a bunch of different games
+it's used by a bunch of different games in da sports it's a system primarily
+in da sports it's a system primarily designed for playing two player
+designed for playing two player animations on characters of different
+animations on characters of different scales that was kind of its first
+scales that was kind of its first purpose and it's taken on a different
+purpose and it's taken on a different meaning this year for us I talked about
+meaning this year for us I talked about a little bit last year but I'm going to
+a little bit last year but I'm going to dive into some details same rules apply
+dive into some details same rules apply I'm not allowed to show any of the
+I'm not allowed to show any of the editors in our tool but I kind of mocked
+editors in our tool but I kind of mocked them up a little bit in PowerPoint to
+them up a little bit in PowerPoint to give you an idea of how it works so yeah
+give you an idea of how it works so yeah two player animations let's take a look
+two player animations let's take a look at a concrete example here so in this
+at a concrete example here so in this one the bottom fighter is reaching up
+one the bottom fighter is reaching up and grabbing the top fighters head and
+and grabbing the top fighters head and then canceling back into the idle so
+then canceling back into the idle so what does that look like if we make the
+what does that look like if we make the bottom fighters arm comically large
+obviously the contacts point contact points don't line up the animation
+points don't line up the animation completely breaks so with the relative I
+completely breaks so with the relative I K system what we do is we offer our
+K system what we do is we offer our constraint between the left hand of the
+constraint between the left hand of the bottom fighter and the head of the top
+bottom fighter and the head of the top fighter and we bake out the position of
+fighter and we bake out the position of the hand relative to the head into a new
+the hand relative to the head into a new channel in the rig for every frame of
+channel in the rig for every frame of that animation this is not how it works
+that animation this is not how it works on the other hood but conceptually think
+on the other hood but conceptually think of it as a bone that's parented to the
+of it as a bone that's parented to the head of the top fighter in the top
+head of the top fighter in the top fighters rig that's just constrained to
+fighters rig that's just constrained to the hand say a motion builder and then
+the hand say a motion builder and then baked out with that global position
+baked out with that global position right now you might be thinking
+right now you might be thinking how how are you gonna generalize that
+how how are you gonna generalize that there's like the hand could be relative
+there's like the hand could be relative the head to the arm any number of joints
+the head to the arm any number of joints on the other characters skeleton and
+on the other characters skeleton and vice versa are you going to put that
+vice versa are you going to put that many joints in the skeleton one of our
+many joints in the skeleton one of our really clever clever engineers Dominick
+really clever clever engineers Dominick Parker figured out a way of encoding
+Parker figured out a way of encoding that information in the rig so that we
+that information in the rig so that we could do it with a limited number of
+could do it with a limited number of slots and it would blend across
+slots and it would blend across animations that's kind of the secret
+animations that's kind of the secret sauce of this solution but if you have
+sauce of this solution but if you have like a limited number of joints you want
+like a limited number of joints you want to make relative to each other the bone
+to make relative to each other the bone approach is pretty much exactly what
+approach is pretty much exactly what we're doing here
+we're doing here so we baked out the path of the hand
+so we baked out the path of the hand relative the head all throughout the
+relative the head all throughout the animation and the animators can offer a
+animation and the animators can offer a curve that defines how tightly the hand
+curve that defines how tightly the hand is following that constraint so it can
+is following that constraint so it can become relative the head it can kind of
+become relative the head it can kind of ramp in as it starts approaching the
+ramp in as it starts approaching the head we add a hundred percent when he's
+head we add a hundred percent when he's holding the head and then ramp back down
+holding the head and then ramp back down to zero as he lets go so when we play
+to zero as he lets go so when we play back this long-armed
+back this long-armed character on the same animation we now
+character on the same animation we now have a target point for the hand
+have a target point for the hand relative to the guy's head we just snap
+relative to the guy's head we just snap it to there using AI K and the way we go
+it to there using AI K and the way we go so this is what that simple example
+so this is what that simple example looks like once you turn on the relative
+looks like once you turn on the relative that K system pretty decent results so
+that K system pretty decent results so that works well for when the arm gets
+that works well for when the arm gets really long and you need to figure out
+really long and you need to figure out where to put it what happens if the top
+where to put it what happens if the top fighters head gets really really big
+fighters head gets really really big that same approach doesn't work so what
+that same approach doesn't work so what we did this is new for UFC two in the
+we did this is new for UFC two in the talk last year I was saying that we
+talk last year I was saying that we wanted to move our I K system into the
+wanted to move our I K system into the physics system because we're having a
+physics system because we're having a lot of fighting between the AI cave and
+lot of fighting between the AI cave and physics one would be pulling in one
+physics one would be pulling in one direction I could be pulling in the
+direction I could be pulling in the other and you never really resolve
+other and you never really resolve anything we accomplished that and it
+anything we accomplished that and it gave us some new tools to use when
+gave us some new tools to use when trying to calculate these constraints so
+trying to calculate these constraints so what we do now is we cast array from the
+what we do now is we cast array from the head to the hand and figure out where
+head to the hand and figure out where that ray intersects with the collision
+that ray intersects with the collision volumes and then we use those collision
+volumes and then we use those collision points on the surface of the mesh to
+points on the surface of the mesh to define the relative constraints so now
+define the relative constraints so now as the head gets bigger the relative
+as the head gets bigger the relative contact point moves out depending on the
+contact point moves out depending on the arbitrary size and shape of the
+arbitrary size and shape of the collision geometry that's underneath so
+collision geometry that's underneath so let's look at that in action if I grow
+let's look at that in action if I grow the top guy's head and grow the bottom
+the top guy's head and grow the bottom guys arm you'll see the results that
+guys arm you'll see the results that you'd expect the animation played back
+you'd expect the animation played back so it's a simple simple example but in
+so it's a simple simple example but in our game we've got animations like this
+our game we've got animations like this where the characters are all tangled up
+where the characters are all tangled up like spaghetti so someone has to go in
+like spaghetti so someone has to go in and offer all those constraints now that
+and offer all those constraints now that was a huge time consuming process in UFC
+was a huge time consuming process in UFC one one of our engineers John too wrote
+one one of our engineers John too wrote offline batch process to go through and
+offline batch process to go through and analyze all the motion figure out which
+analyze all the motion figure out which joints were in close proximity to others
+joints were in close proximity to others and where they settled and came up with
+and where they settled and came up with a first pass of all the constraint
+a first pass of all the constraint offering on these and then sometimes
+offering on these and then sometimes they would work sometimes they wouldn't
+they would work sometimes they wouldn't animators would have to go through and
+animators would have to go through and tweak them in some cases just a little
+tweak them in some cases just a little bit in other cases a lot but we were
+bit in other cases a lot but we were able to speed up the process by
+able to speed up the process by automating that stuff and every single
+automating that stuff and every single animation in the game has a set of these
+animation in the game has a set of these constraints built into it that's kind of
+constraints built into it that's kind of the the base set of building blocks that
+the the base set of building blocks that I had to work with when putting together
+I had to work with when putting together this procedural solution now I've talked
+this procedural solution now I've talked about using this for scale compensation
+about using this for scale compensation but it can also be used for other
+but it can also be used for other techniques one that we use often in UFC
+techniques one that we use often in UFC one is animating against static punching
+one is animating against static punching dummy so you gotta have a guy on top of
+dummy so you gotta have a guy on top of another guy and the bottom guys
+another guy and the bottom guys animation is perfectly still there's
+animation is perfectly still there's nothing animating there and the other
+nothing animating there and the other guy would just punch at his head grab
+guy would just punch at his head grab his arm or whatever and then you could
+his arm or whatever and then you could play that animation against any
+play that animation against any animation for the bottom guy and it
+animation for the bottom guy and it would just track and move appropriately
+would just track and move appropriately so it was a good way of like kind of
+so it was a good way of like kind of reusing animations and two-player
+reusing animations and two-player context and that type of technique is
+context and that type of technique is where we're going to go to with this
+where we're going to go to with this time a dynamic grappling system it also
+time a dynamic grappling system it also worked on the feet now I need a short
+worked on the feet now I need a short volunteer Tim do you mind coming up here
+volunteer Tim do you mind coming up here we were doing a rehearsal last night and
+we were doing a rehearsal last night and we know I know something in the video
+we know I know something in the video that's coming up that I didn't really
+that's coming up that I didn't really explain so I don't have any slides for
+explain so I don't have any slides for this and Tim was begging for us to do
+this and Tim was begging for us to do something some sort of physical comedy
+something some sort of physical comedy because we did it last year so I'm gonna
+because we did it last year so I'm gonna use Tim as my as my get closer come on
+use Tim as my as my get closer come on you gotta get a camera all right so this
+you gotta get a camera all right so this in the next video that I show you keep
+in the next video that I show you keep an eye out for this pose here so this is
+an eye out for this pose here so this is the Muay Thai clinch now obviously I can
+the Muay Thai clinch now obviously I can do it - Tim no problem right now try and
+do it - Tim no problem right now try and do it to me he's got to reach way up not
+do it to me he's got to reach way up not easy to do right so we added a system
+easy to do right so we added a system where we could set constraints between
+where we could set constraints between arbitrary joints same as in relative
+arbitrary joints same as in relative okay but only on one axis so you could
+okay but only on one axis so you could define what access it it applies to so
+define what access it it applies to so if we're in the same pose here I can
+if we're in the same pose here I can apply a constraint between our hips and
+apply a constraint between our hips and I came my hips to his hips but only in
+I came my hips to his hips but only in the y-axis so I can drop down like this
+the y-axis so I can drop down like this and now similarly if Tim's trying to do
+and now similarly if Tim's trying to do it to me I can drop my hips down and now
+it to me I can drop my hips down and now he can do every every move that he wants
+he can do every every move that he wants every I can do every move that I want
+every I can do every move that I want against him now obviously if Tim's doing
+against him now obviously if Tim's doing it to me he can't ika his hips up right
+it to me he can't ika his hips up right it's not possible so what we did was we
+it's not possible so what we did was we created conditional constraints where
+created conditional constraints where the condition could be the height
+the condition could be the height difference between the fighters so those
+difference between the fighters so those are a couple cool little tricks that we
+are a couple cool little tricks that we used in this system Thanks to everyone
+used in this system Thanks to everyone round of applause for thing
+so here's an example of this system working in in-game in UFC - with one of
+working in in-game in UFC - with one of the most extreme height differences that
+the most extreme height differences that we have this is Stefan Struve who's I
+we have this is Stefan Struve who's I think 7 feet tall or 6/7 um yeah close
+think 7 feet tall or 6/7 um yeah close to 7 against Mike Tyson not sure how
+to 7 against Mike Tyson not sure how tall he is buddy's pretty short so you
+tall he is buddy's pretty short so you see the animations hold up pretty well
+see the animations hold up pretty well here he takes us back pretty soon he'll
+here he takes us back pretty soon he'll get to that same tyke Lynch position
+get to that same tyke Lynch position that I was demoing with Tim or a almost
+that I was demoing with Tim or a almost next one right here so now look at this
+next one right here so now look at this pose look at this animation these are
+pose look at this animation these are animated against same scale characters
+animated against same scale characters and then Mike Tyson's going to reverse
+and then Mike Tyson's going to reverse it soon and get the Thai clinch on
+it soon and get the Thai clinch on Stefan Struve that's the exact same
+Stefan Struve that's the exact same animation playing back and I can't
+animation playing back and I can't believe that this works it holds up
+believe that this works it holds up really really well I don't even think
+really really well I don't even think this combination was tested by QA we saw
+this combination was tested by QA we saw it like last week we're like oh crap
+it like last week we're like oh crap and then it actually worked so our
+and then it actually worked so our clinch engineer Dominic spent a lot of
+clinch engineer Dominic spent a lot of time handed offering that stuff and then
+time handed offering that stuff and then just for fun here's another way back in
+just for fun here's another way back in a way I'm not gonna let you near me at
+a way I'm not gonna let you near me at first all the ranges
+Hey
+that's an example of another extreme hide districts that we weren't expecting
+hide districts that we weren't expecting to have to support in the game and
+to have to support in the game and really really tall hair that can really
+really really tall hair that can really mess with contact points
+mess with contact points anyway let's back to the problem that
+anyway let's back to the problem that we're trying to solve a huge complex
+we're trying to solve a huge complex animation tree that we need to build and
+animation tree that we need to build and not enough time or manpower to do it so
+not enough time or manpower to do it so let's dig into some concrete examples
+let's dig into some concrete examples here this is an example that inspired
+here this is an example that inspired the the technique that we used to solve
+the the technique that we used to solve this problem I was looking at this
+this problem I was looking at this animation so the bottom guy just puts
+animation so the bottom guy just puts his hand on his knee that's it very
+his hand on his knee that's it very simple and then what do I want to mix
+simple and then what do I want to mix that with with the top guy top guys
+that with with the top guy top guys putting his hand on the bottom guy's
+putting his hand on the bottom guy's knee it feels to me that those should be
+knee it feels to me that those should be able to play independent of each other
+able to play independent of each other without a whole lot of animation work
+without a whole lot of animation work because the important things are moving
+because the important things are moving independent of each other you look at
+independent of each other you look at them side by side there's not a whole
+them side by side there's not a whole lot of overlap in in the important
+lot of overlap in in the important movement in both the start and the
+movement in both the start and the cancel so in order to build this
+cancel so in order to build this prototype I asked Jeremy to throw
+prototype I asked Jeremy to throw together something that we call a mixed
+together something that we call a mixed idle so a mixed idle is a just a regular
+idle so a mixed idle is a just a regular hand authored cycle that is what they
+hand authored cycle that is what they should look like once they get to this
+should look like once they get to this state of one guy going to the right and
+state of one guy going to the right and the other guy going to the left so this
+the other guy going to the left so this is what Jeremy put together for me
+is what Jeremy put together for me there's a lot of these but it's not that
+there's a lot of these but it's not that exponential number in that first slide
+exponential number in that first slide this is a manageable number of
+this is a manageable number of animations this is what I need from him
+animations this is what I need from him in order to even start on some sort of
+in order to even start on some sort of solution so this is what we need we need
+solution so this is what we need we need we go from the base idle to top guy
+we go from the base idle to top guy going to the left base out or bottom guy
+going to the left base out or bottom guy going to the right and then if the
+going to the right and then if the bottom guy is already going the right
+bottom guy is already going the right top guy go on the left and vice versa so
+top guy go on the left and vice versa so the green and green arrows are the
+the green and green arrows are the animations that we have from UFC one to
+animations that we have from UFC one to work with and the blue arrows are the
+work with and the blue arrows are the animations that we need to figure out a
+animations that we need to figure out a way to produce in a very very cheap kind
+way to produce in a very very cheap kind of way
+so we need to go from the idle on the left to the Auto on the right let's
+left to the Auto on the right let's focus on that example here's the
+focus on that example here's the animation of the bomb guy putting his
+animation of the bomb guy putting his hand on the knee that seems very
+hand on the knee that seems very important so let's make that base so
+important so let's make that base so what I'm doing here is I'm building a
+what I'm doing here is I'm building a set of layers I know that I need this
+set of layers I know that I need this animation because that's the piece
+animation because that's the piece that's missing so I put that as the base
+that's missing so I put that as the base layer now he's not coming from the right
+layer now he's not coming from the right pose or going to the right pose in this
+pose or going to the right pose in this base layer so I'm going to toss in the
+base layer so I'm going to toss in the from idle and the to idle into my set of
+from idle and the to idle into my set of layers here and now I'm just going to
+layers here and now I'm just going to start with the from idle blend it out
+start with the from idle blend it out and end with my two idols so I'll blend
+and end with my two idols so I'll blend that in so I got a bunch of curves that
+that in so I got a bunch of curves that I can now manipulate controlling the
+I can now manipulate controlling the blend to him from the idle and with that
+blend to him from the idle and with that setup you get this kind of result so we
+setup you get this kind of result so we start at the right pose what we're doing
+start at the right pose what we're doing we play the animation on the right hand
+we play the animation on the right hand that we want but the top guy's hand pops
+that we want but the top guy's hand pops to the chest and then back to the leg so
+to the chest and then back to the leg so if you focus just on the right hand at
+if you focus just on the right hand at the bottom fighter everything looks
+the bottom fighter everything looks pretty good the only problem is the top
+pretty good the only problem is the top fighter are kind of popping around as he
+fighter are kind of popping around as he blends out to the transition animation
+blends out to the transition animation and back in again so I toss in two more
+and back in again so I toss in two more idles the from idle again the two idle
+idles the from idle again the two idle again I give the ability to mask in and
+again I give the ability to mask in and out different parts of the body on those
+out different parts of the body on those layers give another set of curves to
+layers give another set of curves to play around with surprisingly this this
+play around with surprisingly this this next iteration was enough for us to
+next iteration was enough for us to solve all the problems there was enough
+solve all the problems there was enough flexibility in this setup to get
+flexibility in this setup to get everything that we needed but I didn't
+everything that we needed but I didn't know it at the time okay so now we
+know it at the time okay so now we change our mask I want the hand
+change our mask I want the hand animation from the base layer so I mask
+animation from the base layer so I mask that out that's what that little red dot
+that out that's what that little red dot means I mask in everything else for the
+means I mask in everything else for the bottom fighter and the top fighter or
+bottom fighter and the top fighter or sorry just for the bottom fighter and so
+sorry just for the bottom fighter and so I want everything from the bottom
+I want everything from the bottom fighter except for the right arm so
+fighter except for the right arm so right arms coming from the base layer
+right arms coming from the base layer everything else is coming from these
+everything else is coming from these from into items I just do a straight
+from into items I just do a straight crossfade from the front and two idols
+crossfade from the front and two idols for everything except the right arm
+for everything except the right arm and then similarly for the top fighter I
+and then similarly for the top fighter I just do a crossfade from the source idle
+just do a crossfade from the source idle to the destination idle because he's not
+to the destination idle because he's not doing anything interesting with his body
+doing anything interesting with his body so we just there's subtle changes in the
+so we just there's subtle changes in the idle but we just do a crossfade there
+idle but we just do a crossfade there and this is the result that we get when
+and this is the result that we get when we do that kind of layering hey that
+we do that kind of layering hey that looks good I can work with that it's got
+looks good I can work with that it's got me really excited I think we've solved
+me really excited I think we've solved the problem let's try some more examples
+the problem let's try some more examples just to see what happens and there's at
+just to see what happens and there's at this point everything's hand offered all
+this point everything's hand offered all these curves are hand offered here's an
+these curves are hand offered here's an example where there's quite a bit more
+example where there's quite a bit more motion in the body of the bottom fighter
+motion in the body of the bottom fighter but the curve setup and the masking
+but the curve setup and the masking setup is surprisingly similar to the
+setup is surprisingly similar to the first one so using that technique we get
+first one so using that technique we get a result like this it doesn't look like
+a result like this it doesn't look like super great but it's passable we could
+super great but it's passable we could put this in the game I could ship with
+put this in the game I could ship with this if I have to but it could certainly
+this if I have to but it could certainly look a lot better so now I'm starting to
+look a lot better so now I'm starting to get a little nervous this might work but
+get a little nervous this might work but it might not work let's see where it
+it might not work let's see where it goes from here just as a as a test I got
+goes from here just as a as a test I got Jeremy to take this into motion builder
+Jeremy to take this into motion builder and clean it up and see what he came up
+and clean it up and see what he came up with and timing but not spend a lot of
+with and timing but not spend a lot of time on it because I was like okay if we
+time on it because I was like okay if we have to tweak some of these by hand how
+have to tweak some of these by hand how much work are we looking at so the one
+much work are we looking at so the one on the right is the tweaked animation
+on the right is the tweaked animation that Jeremy did the one on the left is
+that Jeremy did the one on the left is the fully procedurally generated one the
+the fully procedurally generated one the one on the right looks better but it
+one on the right looks better but it didn't take a lot of time for him to put
+didn't take a lot of time for him to put that one together and the improvement
+that one together and the improvement minimal the timing looks better it's not
+minimal the timing looks better it's not quite as loopy but yeah we're still in a
+quite as loopy but yeah we're still in a good spot here here's another example
+good spot here here's another example that came later in production when we
+that came later in production when we realized that we could use this for
+realized that we could use this for strikes too so this is something that
+strikes too so this is something that the bottom fighter can do he can punch
+the bottom fighter can do he can punch the top fighter in the head while
+the top fighter in the head while they're addling here and I wanted him to
+they're addling here and I wanted him to be able to punch the guy in the head
+be able to punch the guy in the head while the top guy was in the middle of
+while the top guy was in the middle of doing something so that you get that
+doing something so that you get that continuity of punching no matter what
+continuity of punching no matter what the top guys doing so we put this
+the top guys doing so we put this animation in the same system instead of
+animation in the same system instead of the from idle to idle setup it was all
+the from idle to idle setup it was all just the idle that I want to use all the
+just the idle that I want to use all the way through take the arm and a little
+way through take the arm and a little bit of a torso in the head from
+bit of a torso in the head from the punch the rest is just coming from
+the punch the rest is just coming from the idol that they want to be in and
+the idol that they want to be in and this is the results that we get from
+this is the results that we get from that that looks awesome
+that that looks awesome that totally works I can work with that
+that totally works I can work with that as well so this is starting to look up
+as well so this is starting to look up there were some examples that didn't go
+there were some examples that didn't go so well
+so well any time the guys were kind of on their
+any time the guys were kind of on their feet there was no way for me to get any
+feet there was no way for me to get any kind of footwork and no matter what I
+kind of footwork and no matter what I did with the curves tweaked them didn't
+did with the curves tweaked them didn't matter it basically ended up like a
+matter it basically ended up like a really crappy looking look where the
+really crappy looking look where the head passes through the hips and it's
+head passes through the hips and it's very slight E and linear and this we
+very slight E and linear and this we kind of ship with this absolutely
+kind of ship with this absolutely impossible to ship the game of this so
+impossible to ship the game of this so what we ended up with in the end was a
+what we ended up with in the end was a spectrum of animations so the the the
+spectrum of animations so the the the masking and layers and curve setup that
+masking and layers and curve setup that I showed you that that was final that's
+I showed you that that was final that's what we ended up using
+what we ended up using we were able to use a the same pattern
+we were able to use a the same pattern for so many transitions with that
+for so many transitions with that looping all bones except for these and
+looping all bones except for these and asking out this but they were all kind
+asking out this but they were all kind of different masks and different layers
+of different masks and different layers so what we did was we put together a
+so what we did was we put together a process where we could identify the
+process where we could identify the relative I cake constraints that were
+relative I cake constraints that were the same between the source and
+the same between the source and animation era source and destination
+animation era source and destination idols and procedurally generate these
+idols and procedurally generate these curves and masks as a first pass and
+curves and masks as a first pass and that worked for a large large number of
+that worked for a large large number of animations but then there were other
+animations but then there were other ones where we had to tweak some of the
+ones where we had to tweak some of the curves try and get a little bit better
+curves try and get a little bit better results and then there were other ones
+results and then there were other ones where tweaking the curves wasn't enough
+where tweaking the curves wasn't enough so we built a pipeline that would bake
+so we built a pipeline that would bake out the resulting animation into a an
+out the resulting animation into a an animation that could be edit in
+animation that could be edit in MotionBuilder
+MotionBuilder it's kind of like a one-button export
+it's kind of like a one-button export straight into motion builder the
+straight into motion builder the animator could spend an hour cleaning it
+animator could spend an hour cleaning it up it would go straight back into game
+up it would go straight back into game already hooked up and finally we have
+already hooked up and finally we have some that were just so bad that we had
+some that were just so bad that we had to use traditional mocap so we had a
+to use traditional mocap so we had a spectrum here it I was aiming for fully
+spectrum here it I was aiming for fully procedural because you get all the
+procedural because you get all the memory savings from that obviously a lot
+memory savings from that obviously a lot less work but we were sitting in a place
+less work but we were sitting in a place where we knew not everything was going
+where we knew not everything was going to work that way what we didn't know is
+to work that way what we didn't know is how many would fall in which part of the
+how many would fall in which part of the spectrum so we had the following
+spectrum so we had the following concerns coming at a creep
+concerns coming at a creep a huge memory concerns because if we
+a huge memory concerns because if we have to do a tenfold increase in
+have to do a tenfold increase in animations without increasing our memory
+animations without increasing our memory budget we just can't do this feature the
+budget we just can't do this feature the other one was the quality concerns how
+other one was the quality concerns how many are going to be on the mocap side
+many are going to be on the mocap side how many are going to be on this fully
+how many are going to be on this fully procedural side and are we going to be
+procedural side and are we going to be able to create enough content to support
+able to create enough content to support this are one of our brilliant engineers
+this are one of our brilliant engineers Sandberg Avanti put together an
+Sandberg Avanti put together an animation streaming solution for us so
+animation streaming solution for us so I'm not going to go in a ton of detail
+I'm not going to go in a ton of detail here but because of the rigid nature of
+here but because of the rigid nature of our state machine if you're idling in
+our state machine if you're idling in state a you have all those red lines
+state a you have all those red lines already loaded in memory if the guy
+already loaded in memory if the guy presses on the stick you can just play
+presses on the stick you can just play that animation because it's resident in
+that animation because it's resident in memory as soon as you play an animation
+memory as soon as you play an animation that transitions you from A to B we
+that transitions you from A to B we unload all the animations that come out
+unload all the animations that come out of state a start loading all the
+of state a start loading all the animations that come out of state B and
+animations that come out of state B and as long as you can load all those
+as long as you can load all those animations in the same amount of time
+animations in the same amount of time that it takes you to playback the
+that it takes you to playback the animation from A to B you're golden and
+animation from A to B you're golden and he got the system working so now we're
+he got the system working so now we're sitting in a place where memory is not
+sitting in a place where memory is not of concern and we have a system that
+of concern and we have a system that will scale up ridiculously big for
+will scale up ridiculously big for future iterations of the game so super
+future iterations of the game so super excited about that memory is no longer a
+excited about that memory is no longer a concern the big concern was the quality
+concern the big concern was the quality we had no idea if we could get this done
+we had no idea if we could get this done on time or to a quality level that was
+on time or to a quality level that was necessary to ship the game so we kind of
+necessary to ship the game so we kind of took a leap of faith here
+took a leap of faith here there was nothing else we could do we
+there was nothing else we could do we mitigated risk by focusing on workflow
+mitigated risk by focusing on workflow efficiencies and prioritizing the work
+efficiencies and prioritizing the work just in case we ran at a time and coming
+just in case we ran at a time and coming up with some backup plans for some of
+up with some backup plans for some of the more fringe positions in the game so
+the more fringe positions in the game so that led us into production big unknowns
+that led us into production big unknowns not really sure if this is going to work
+not really sure if this is going to work but a plan in place that kind of feels
+but a plan in place that kind of feels like maybe it would and Jeremy will take
+like maybe it would and Jeremy will take you through production hello
+okay so next we're going to talk about the animation side of the a Sports UFC -
+the animation side of the a Sports UFC - and I think the best place start is UFC
+and I think the best place start is UFC one so I want to turn it back to UFC one
+one so I want to turn it back to UFC one and talk about our approach to workflow
+and talk about our approach to workflow there well I talked about the early
+there well I talked about the early design and workflow approach I want to
+design and workflow approach I want to talk about the changes we faced and the
+talk about the changes we faced and the challenges we faced sorry and
+challenges we faced sorry and post-mortem so UFC one the way we've you
+post-mortem so UFC one the way we've you know faced the feature was the way that
+know faced the feature was the way that anybody does I meet with Liam Miller our
+anybody does I meet with Liam Miller our lead game designer and we break down
+lead game designer and we break down that feature and see kind of what he had
+that feature and see kind of what he had in mind next I would collect any visual
+in mind next I would collect any visual reference that would helps the defies
+reference that would helps the defies feature in my mind and make sure that's
+feature in my mind and make sure that's the same page as everybody else
+there we go and then what we do often is either use a piece of paper you say
+either use a piece of paper you say camera we go in and we would break down
+camera we go in and we would break down the individual parts of that feature
+the individual parts of that feature this is example of a transition on the
+this is example of a transition on the ground all our transitions for the most
+ground all our transitions for the most part have five parts here you see Jeff
+part have five parts here you see Jeff and Liam are starting in the full guard
+and Liam are starting in the full guard position if the player were to press
+position if the player were to press write the stick they would give start
+write the stick they would give start animation then they would enter a ready
+animation then they would enter a ready animation and depending on their inputs
+animation and depending on their inputs they would have to get a success a deny
+they would have to get a success a deny or a castle animation so now knowing
+or a castle animation so now knowing that each transition has five parts and
+that each transition has five parts and how many transitions I can then create a
+how many transitions I can then create a shot list for motion capture studio on
+shot list for motion capture studio on the bottom right you'll see a pose
+the bottom right you'll see a pose library there that particular pose
+library there that particular pose library has 87 pages with several poses
+library has 87 pages with several poses on each page that's not even all our
+on each page that's not even all our poses that that's our Bible when we go
+poses that that's our Bible when we go in that's a visual reference to the
+in that's a visual reference to the actors and then we go in to the studio
+actors and then we go in to the studio we capture the data if you look on the
+we capture the data if you look on the right hand screen Liam Miller is
+right hand screen Liam Miller is weighing down the cage and beside him is
+weighing down the cage and beside him is that pose library that thing's essential
+then using proprietary software I'll go back to my desk and I will painstakingly
+back to my desk and I will painstakingly and tediously for that data it's not a
+and tediously for that data it's not a fun process and then for UFC one we
+fun process and then for UFC one we would clean it up in-house this is
+would clean it up in-house this is Dimitri Cooper in one of our senior
+Dimitri Cooper in one of our senior animators cleaning up a grapple
+animators cleaning up a grapple transition and then we'd review and read
+transition and then we'd review and read revise revise to a shipful quality this
+revise revise to a shipful quality this animation is still in the revision stage
+animation is still in the revision stage but it's it's in good shape it's it's
+but it's it's in good shape it's it's getting there
+getting there so why do we do it this way we had the
+so why do we do it this way we had the time when we had the head count we had a
+time when we had the head count we had a head count of one and we figured that
+head count of one and we figured that would be enough for this feature and I
+would be enough for this feature and I was worried that the complexity
+was worried that the complexity of mixed martial arts and jiu-jitsu
+of mixed martial arts and jiu-jitsu would be lost in translation using
+would be lost in translation using strolled development the sport is very
+strolled development the sport is very technical
+technical our fans are very knowledgeable and they
+our fans are very knowledgeable and they would know if we messed up grips have to
+would know if we messed up grips have to be just so posing just has to be just so
+be just so posing just has to be just so I was wrong in this assumption for UFC
+I was wrong in this assumption for UFC two we did use a shield development and
+two we did use a shield development and it was to a huge success if you guys
+it was to a huge success if you guys want to hear more specifically how we
+want to hear more specifically how we did that say GU Tanaka and I did a
+did that say GU Tanaka and I did a presentation at XG s last July and
+presentation at XG s last July and Vancouver so if you want to find a
+Vancouver so if you want to find a little more about that
+so working that way we end up a six hundred two player grappling nations for
+hundred two player grappling nations for UFC one the problems we face working
+UFC one the problems we face working this way our name Convention discipline
+this way our name Convention discipline was lacking some animators named for
+was lacking some animators named for example our half guard position half
+example our half guard position half guard others named it half G some people
+guard others named it half G some people named it start the start animation of
+named it start the start animation of the success or others attempt neither
+the success or others attempt neither are wrong but they are consistent and
+are wrong but they are consistent and that made a reputation less effective
+that made a reputation less effective when searching out these particular
+when searching out these particular assets problems like that and other
+assets problems like that and other problems completely different led to
+problems completely different led to overtime
+overtime led to late implementation which led to
+led to late implementation which led to poor testing poor tuning I skip
+poor testing poor tuning I skip something there no so post mortem coming
+something there no so post mortem coming out of that we decided right away we
+out of that we decided right away we definitely did tighter named prevention
+because of the animation number was limited this made the ground game feel
+limited this made the ground game feel linear limited it was turn-based and
+linear limited it was turn-based and visual feedback was lacking we did up
+visual feedback was lacking we did up with a 7 out of 10 on Metacritic we
+with a 7 out of 10 on Metacritic we really wanted that 8 out of 10 we needed
+really wanted that 8 out of 10 we needed a bigger game we needed more animations
+a bigger game we needed more animations and I need to embrace external
+and I need to embrace external development so moving into UFC two's
+development so moving into UFC two's production cycle I want to talk about
+production cycle I want to talk about the prototype of the
+the prototype of the game preparing for production and then
+game preparing for production and then production itself so the prototype a
+production itself so the prototype a early entry probe Jeff came to me and he
+early entry probe Jeff came to me and he said hey Jer I got something to show ya
+said hey Jer I got something to show ya and I came over to his desk and he
+and I came over to his desk and he showed me his version of the ground game
+showed me his version of the ground game very early on and it looked smooth and
+very early on and it looked smooth and looked organic looked real and I was
+looked organic looked real and I was really exciting I said how did you get
+really exciting I said how did you get this he said well I have this nifty new
+this he said well I have this nifty new grapple controller tool and he said I
+grapple controller tool and he said I just want to show you the decay ideas
+just want to show you the decay ideas coming out of this tool so he had me
+coming out of this tool so he had me mock-up a mixed Idol which I'll explain
+mock-up a mixed Idol which I'll explain more about later and he put through to
+more about later and he put through to existing UFC one assets and connects
+existing UFC one assets and connects them together and what we got was this
+them together and what we got was this kind of weird programmer art linear
+kind of weird programmer art linear animation and I looked at it I'm like
+animation and I looked at it I'm like that's interesting I looked at it again
+that's interesting I looked at it again and I thought well our mocap isn't that
+and I thought well our mocap isn't that great either
+great either and this data comes with the begin pose
+and this data comes with the begin pose in the end pose already imprinted and
+in the end pose already imprinted and perfect and all of he was clamped in
+perfect and all of he was clamped in between poses and I like that's actually
+between poses and I like that's actually kind of really cool so I was like let's
+kind of really cool so I was like let's let's see where this goes i like this so
+let's see where this goes i like this so far so we can try to break it down like
+far so we can try to break it down like what if we did the old way and we would
+what if we did the old way and we would have to do a law of our fsz all the way
+have to do a law of our fsz all the way but if they do everything the old way
+but if they do everything the old way you know I still be the Liam or Jeff and
+you know I still be the Liam or Jeff and figure out how it's all going to work I
+figure out how it's all going to work I love to gather my visual reference for
+love to gather my visual reference for the motion capture make sure we're on
+the motion capture make sure we're on the same page I still have to create
+the same page I still have to create these mix titles which I'll talk about
+these mix titles which I'll talk about more later break down the design figure
+more later break down the design figure out that name convention super-important
+out that name convention super-important create the shot list not fun it takes a
+create the shot list not fun it takes a long time go and shoot the data can be
+long time go and shoot the data can be fun not always fun or the tool you know
+fun not always fun or the tool you know or the data which always sucks no one
+or the data which always sucks no one likes doing it and if you did deal way
+likes doing it and if you did deal way we clean up in-house which we wouldn't
+we clean up in-house which we wouldn't this time we'll use actual development
+this time we'll use actual development some of it in-house and external and
+some of it in-house and external and then review and revised with Schiphol
+then review and revised with Schiphol quality so we knew we couldn't do the
+quality so we knew we couldn't do the whole game that way so what if we use
+whole game that way so what if we use Jeff's tool
+Jeff's tool so for the procedural data we've maker
+so for the procedural data we've maker mix titles we throw it through Jeff's
+mix titles we throw it through Jeff's nifty tool
+nifty tool we'd press export ideally we ship up
+we'd press export ideally we ship up ship it off to a technical in India and
+ship it off to a technical in India and you know we're good so we decided we're
+you know we're good so we decided we're going to try that let's prepare for
+going to try that let's prepare for production let's see how we're gonna do
+production let's see how we're gonna do this all so I'm going to first talk
+this all so I'm going to first talk about the mix titles we all know what
+about the mix titles we all know what that means on the Left you'll see our
+that means on the Left you'll see our regular full guard position if the top
+regular full guard position if the top man presses left on the stick he gets
+man presses left on the stick he gets this idle now if we go back to our
+this idle now if we go back to our default guard idle if the bottom and
+default guard idle if the bottom and press is left on his stick we get sorry
+press is left on his stick we get sorry the bottom model there in the middle and
+the bottom model there in the middle and then if they both press left in the
+then if they both press left in the stick you'll see here in the full guard
+stick you'll see here in the full guard position the top man's right elbow
+position the top man's right elbow you'll see here at his Posey's dig into
+you'll see here at his Posey's dig into his elbow into the bottom man's left leg
+his elbow into the bottom man's left leg you'll see again in the far left picture
+you'll see again in the far left picture the bottom man's left wrist is now going
+the bottom man's left wrist is now going for the arm drag it's around the top
+for the arm drag it's around the top man's left tricep and in our mixed idle
+man's left tricep and in our mixed idle when they both pass left to stick the
+when they both pass left to stick the top man's right elbow is dig into a
+top man's right elbow is dig into a bottom man's leg well at the same time
+bottom man's leg well at the same time the bottom man's left wrist and is
+the bottom man's left wrist and is gripping the whoops gripping the top
+gripping the whoops gripping the top masked tricep perfect that's what we
+masked tricep perfect that's what we need so we now had to figure out what
+need so we now had to figure out what kind of data was had come out of this
+kind of data was had come out of this tool so we knew how to best prepare for
+tool so we knew how to best prepare for that we did like a vertical slice of the
+that we did like a vertical slice of the guard position we did some quick math
+guard position we did some quick math out of that so we figured based on the
+out of that so we figured based on the guard position that 80% of our data
+guard position that 80% of our data would be easy to process it would take
+would be easy to process it would take about 1.5 man hours to clean up each
+about 1.5 man hours to clean up each little transition 10% the data would be
+little transition 10% the data would be difficult to process going back to the
+difficult to process going back to the easy to process that would also be great
+easy to process that would also be great as said to Arsenal development it's easy
+as said to Arsenal development it's easy for them difficult to process is 10%
+for them difficult to process is 10% that would be 3 man-hours and those
+that would be 3 man-hours and those would be awkward to explain to show
+would be awkward to explain to show developments we thought let's just keep
+developments we thought let's just keep that in house the small number the
+that in house the small number the perfect keep in house
+perfect keep in house and then ten percent would be cannot
+and then ten percent would be cannot process we'll have to go through that
+process we'll have to go through that whole motion capture process and then
+whole motion capture process and then once that's done be able four hours for
+once that's done be able four hours for a person Institute clean it up so just
+a person Institute clean it up so just an example of easy to process data this
+an example of easy to process data this was the kind of data we're getting for
+was the kind of data we're getting for the most part for the tool the bottom
+the most part for the tool the bottom man's left arm is going to top man's or
+man's left arm is going to top man's or straight above man's right arm is going
+straight above man's right arm is going through the top man's left arm and the
+through the top man's left arm and the bottom man's man's legs are crossing
+bottom man's man's legs are crossing through each other it's very linear it's
+through each other it's very linear it's it's not bad it's definitely something
+it's not bad it's definitely something we can work with but it's not perfect as
+we can work with but it's not perfect as you can see so that's about 1.5 hours
+you can see so that's about 1.5 hours for first cleanup difficult to process
+for first cleanup difficult to process data this is a bit trickier it looks
+data this is a bit trickier it looks kind of simple at first but the top
+kind of simple at first but the top man's right arm is going through the
+man's right arm is going through the bottom man's left arm so we're gonna
+bottom man's left arm so we're gonna have to explain to a person you got to
+have to explain to a person you got to bring that wrist all the way to his hip
+bring that wrist all the way to his hip to pull it through we'll probably have
+to pull it through we'll probably have to separate the two the top mount to
+to separate the two the top mount to push off a bit separating their bodies
+push off a bit separating their bodies and then with the pin the legs rather
+and then with the pin the legs rather try to explain how to keep it in-house
+try to explain how to keep it in-house keep it simple and then difficult to
+keep it simple and then difficult to process data as you can see the top man
+process data as you can see the top man is like teleporting across the mat he's
+is like teleporting across the mat he's sliding he has no weight he's like he's
+sliding he has no weight he's like he's on the ice rink we probably could spend
+on the ice rink we probably could spend some time clean that up but why bother
+some time clean that up but why bother let's keep our visual quality high let's
+let's keep our visual quality high let's just go reshoot this so movie into
+just go reshoot this so movie into production this is what a production was
+production this is what a production was going to look like for all the types of
+going to look like for all the types of data Kalfas tool we were gonna walk to
+data Kalfas tool we were gonna walk to our name convention create our mixed
+our name convention create our mixed titles we press the export button we
+titles we press the export button we would you know take all that data and we
+would you know take all that data and we would estimate how long it would take to
+would estimate how long it would take to do it all with makers Docs and
+do it all with makers Docs and spreadsheets so we know where it was
+spreadsheets so we know where it was going to be at what time and what state
+going to be at what time and what state we ideally ship off the ease to process
+we ideally ship off the ease to process data to India nice packages from the
+data to India nice packages from the cleanup difficult to process data would
+cleanup difficult to process data would keep in-house clean up and then can I
+keep in-house clean up and then can I post this data we would just go in
+post this data we would just go in sure in our capture studio and this is
+sure in our capture studio and this is here's an example of some of the naming
+here's an example of some of the naming convention we had to work with it's the
+convention we had to work with it's the longest name convention have ever worked
+longest name convention have ever worked with
+with this one it's clearly UFC to the G means
+this one it's clearly UFC to the G means it's the ground trans means is a
+it's the ground trans means is a transitional animation the sub means
+transitional animation the sub means it's the submissive the bottom man who
+it's the submissive the bottom man who is initiating the transition back mount
+is initiating the transition back mount half guard means it's going from back
+half guard means it's going from back mount to half guard right means based
+mount to half guard right means based off the top man if his head is north and
+off the top man if his head is north and his groin is south is going
+his groin is south is going counterclockwise and Jeff can explain to
+counterclockwise and Jeff can explain to the last four parts of the name yes
+the last four parts of the name yes success means he's actually succeeding
+success means he's actually succeeding right nations transitioning submission
+right nations transitioning submission down advanced right none none those are
+down advanced right none none those are kind of the states in the state machine
+kind of the states in the state machine so the state in the state machine is
+so the state in the state machine is defined by three things what grappling
+defined by three things what grappling position you're in
+position you're in what slot the top fighter is in and what
+what slot the top fighter is in and what slot the bottom fighters in though that
+slot the bottom fighters in though that Triplett defines a state in the state
+Triplett defines a state in the state machine so those last four pieces are
+machine so those last four pieces are kind of giving all the information to
+kind of giving all the information to know we're coming from submission down
+know we're coming from submission down advanced right and going to transit none
+advanced right and going to transit none trans none from the back mount state to
+trans none from the back mount state to the half guard state and the important
+the half guard state and the important part here is that this does mean
+part here is that this does mean something of somebody and sees this or
+something of somebody and sees this or children find these assets which is huge
+children find these assets which is huge is this number of assets so this was a
+is this number of assets so this was a big win for us so now it was important
+big win for us so now it was important to keep that difficult to process data
+to keep that difficult to process data down to a small number and I explained
+down to a small number and I explained why we had 40 default poses that's just
+why we had 40 default poses that's just your full guard half guard anybody
+your full guard half guard anybody watches UFC you know these positions we
+watches UFC you know these positions we had 120 to neutral poses these like
+had 120 to neutral poses these like these mixed idols he's ready idols we
+these mixed idols he's ready idols we had two or sixty one submission poses
+had two or sixty one submission poses from our grapple transition state going
+from our grapple transition state going into our submission state that's a total
+into our submission state that's a total of four hundred twenty three potential
+of four hundred twenty three potential poses that you're gonna have to you know
+poses that you're gonna have to you know you're writing out your your shot list
+you're writing out your your shot list your figuring out what goes where you're
+your figuring out what goes where you're doing the name convention you have to
+doing the name convention you have to make sure you have all these poses
+make sure you have all these poses prints out to show your actor
+prints out to show your actor this is just a small example of some of
+this is just a small example of some of the poses that the actor in the data
+the poses that the actor in the data match the closer it matches these for
+match the closer it matches these for your external development team to use
+your external development team to use you then have to go and take that data
+you then have to go and take that data and put into motion blur file and like
+and put into motion blur file and like provide the sources with the exact start
+provide the sources with the exact start pose a tenpo is just a huge nightmare so
+pose a tenpo is just a huge nightmare so to keep that number small was crucial so
+to keep that number small was crucial so the end result of working this way
+UFC one had six hundred two player ground animations UFC two had over 1957
+ground animations UFC two had over 1957 two playground animations UFC two's and
+two playground animations UFC two's and tug grappling system had 3153 two player
+tug grappling system had 3153 two player animations touristy three of those were
+animations touristy three of those were procedural we ran through Jeff's tool
+procedural we ran through Jeff's tool and were untouched by an animator 4.37
+and were untouched by an animator 4.37 were procedural animations exported and
+were procedural animations exported and processed being an animator touched them
+98 we could not it was data that was was unusable from
+it was data that was was unusable from Jeff tool so he had to go and actually
+Jeff tool so he had to go and actually re capture those and clean them up the
+re capture those and clean them up the old-school way and then one thousand
+old-school way and then one thousand three of seventeen transitions we
+three of seventeen transitions we actually went captured and cleaned up in
+actually went captured and cleaned up in our capture lab that's UFC want to you
+our capture lab that's UFC want to you see to combine at one point I want to
+see to combine at one point I want to make about this to is even though in the
+make about this to is even though in the end we ended up motion capturing a bunch
+end we ended up motion capturing a bunch and cleaning up a bunch while we were in
+and cleaning up a bunch while we were in early production in pre-pro we had a
+early production in pre-pro we had a template for almost all the transitions
+template for almost all the transitions in the game so we could actually prove
+in the game so we could actually prove out the design we could convince people
+out the design we could convince people that this was worthwhile from a gameplay
+that this was worthwhile from a gameplay standpoint even if the animations
+standpoint even if the animations weren't perfect or beautiful they were a
+weren't perfect or beautiful they were a hundred percent functional and it gave
+hundred percent functional and it gave us a template to work with all through
+us a template to work with all through production if we hadn't had that early
+production if we hadn't had that early prototype no way anyone would have
+prototype no way anyone would have signed off on this feature to begin with
+signed off on this feature to begin with so the procedural aspect had huge
+so the procedural aspect had huge benefits in pre-pro even if those
+benefits in pre-pro even if those benefits started to dwindle as we got
+benefits started to dwindle as we got through production and everything
+through production and everything yeah it's really worked really early on
+yeah it's really worked really early on use the procedural data which is huge
+use the procedural data which is huge um so 587 transitions we said detect
+um so 587 transitions we said detect occur in UFC 2 which was a huge win for
+occur in UFC 2 which was a huge win for us 80 of those were of just tulle this
+us 80 of those were of just tulle this number could have been much bigger I
+number could have been much bigger I spent so much time managing my ex dev
+spent so much time managing my ex dev group that I would have these small gaps
+group that I would have these small gaps in time where I could work on actual
+in time where I could work on actual data cleanup processing and so I like
+data cleanup processing and so I like those animations because it would just
+those animations because it would just be like an hour hour and a half and I
+be like an hour hour and a half and I could I would have to stop halfway
+could I would have to stop halfway through and go back to managing so I
+through and go back to managing so I like that but this guy data is perfect
+like that but this guy data is perfect for your show the vote partners if you
+for your show the vote partners if you were to use that system and so yeah if
+were to use that system and so yeah if we did this the old way without Geoff's
+we did this the old way without Geoff's help this would have taken essentially
+help this would have taken essentially three animators in-house to do and that
+three animators in-house to do and that just was not an option so just visual
+just was not an option so just visual reference if you compare the amount of
+reference if you compare the amount of data we created UFC 1 T UFC 2 UFC 1
+data we created UFC 1 T UFC 2 UFC 1 being the blue UFC to be in the red you
+being the blue UFC to be in the red you can see it's like over three times the
+can see it's like over three times the amount with the aid of Jeff tool and
+amount with the aid of Jeff tool and just here to break down of the type of
+just here to break down of the type of data we ended up having so one left it's
+data we ended up having so one left it's our motion capture and then the two
+our motion capture and then the two small pieces is the data from Jeff's
+small pieces is the data from Jeff's tool and you can see the amount the top
+tool and you can see the amount the top wedge is procedurally edited animator
+wedge is procedurally edited animator touched at the bottom wedge is untouched
+touched at the bottom wedge is untouched by Jeff tool which is amazing and then
+by Jeff tool which is amazing and then of the data Jeff's will produced you can
+of the data Jeff's will produced you can see on the left that's the amount
+see on the left that's the amount touched by an animator and then on the
+touched by an animator and then on the far right untouched and then that top
+far right untouched and then that top wedge is the amount we couldn't use we
+wedge is the amount we couldn't use we had to go in to capture so in conclusion
+had to go in to capture so in conclusion I think UFC 2 was a success success
+I think UFC 2 was a success success because of our organizational protocols
+because of our organizational protocols all that docking knowing what asset was
+all that docking knowing what asset was weird in the world and what state we had
+weird in the world and what state we had to know that over time and what's data
+to know that over time and what's data was in the game often we just put in raw
+was in the game often we just put in raw mocap data for Jeff to use we get all
+mocap data for Jeff to use we get all set up and then we have no
+set up and then we have no when it was old and I'm here for India
+when it was old and I'm here for India we've know we were placed with new data
+we've know we were placed with new data and the intervention if I didn't mention
+and the intervention if I didn't mention already and then it works drill
+already and then it works drill development was a big part of why we got
+development was a big part of why we got this done and then one of the biggest
+this done and then one of the biggest pieces was Jeff's tool for sure it was a
+pieces was Jeff's tool for sure it was a massive win and we ended up with our ADA
+massive win and we ended up with our ADA attend last time I checked which is very
+attend last time I checked which is very happy he might have gone off might have
+happy he might have gone off might have gone up it's 81 that was to say that and
+gone up it's 81 that was to say that and so in conclusion a lot of you I'm
+so in conclusion a lot of you I'm assuming watch house of cards there is a
+assuming watch house of cards there is a scene in the house of cards where
+scene in the house of cards where there's all these monks in the White
+there's all these monks in the White House and they're sitting over this
+House and they're sitting over this table and there it looks like they're
+table and there it looks like they're kind of grading chalk on to a table
+kind of grading chalk on to a table creating this pattern it looks like
+creating this pattern it looks like painstaking work it looks not innocent
+painstaking work it looks not innocent tedious and it looks long and hard when
+tedious and it looks long and hard when Jeff came to me and showed me the early
+Jeff came to me and showed me the early prototype and I kind of understood it
+prototype and I kind of understood it would take I knew it wouldn't be sexy
+would take I knew it wouldn't be sexy work like overwatch but I believed so
+work like overwatch but I believed so much in the result and as you see the
+much in the result and as you see the result of this you know amongst works
+result of this you know amongst works this beautiful inspiring pattern that is
+this beautiful inspiring pattern that is pretty mind-blowing and I just saw the
+pretty mind-blowing and I just saw the bigger pixel tunnel like this working
+bigger pixel tunnel like this working with always little pieces and doing this
+with always little pieces and doing this track and documents and working with X
+track and documents and working with X dev it's not sexy work but I had the big
+dev it's not sexy work but I had the big picture of mine and I was super excited
+picture of mine and I was super excited I love this for mixed martial arts I
+I love this for mixed martial arts I love grappling and I was like what if we
+love grappling and I was like what if we could actually make the first legit
+could actually make the first legit grappling feature in a game and so
+grappling feature in a game and so that's what you know that's why I went
+that's what you know that's why I went through all the hard work was for that
+through all the hard work was for that end result I was so excited to see it
+end result I was so excited to see it and here's an example of all that hard
+and here's an example of all that hard work
+work [Applause]
+powerful right hand
+break possession mountain here for submission
+he's got that arm bar lit off right here [Applause]
+[Applause] beautiful big diving punch to the head
+Maya's right eye is looking pretty swore he's doing a great job of moving and
+he's doing a great job of moving and transitioning here on the ground could
+transitioning here on the ground could elbow to the head five major babies
+elbow to the head five major babies inside control again so that's literally
+inside control again so that's literally thousands of animations from here I'm
+thousands of animations from here I'm gonna hand it back to Jeff I want to go
+gonna hand it back to Jeff I want to go through a few of the learnings that I
+through a few of the learnings that I took away from this project so we're in
+took away from this project so we're in pre-pro we've got this seemingly
+pre-pro we've got this seemingly insurmountable problem unless we can
+insurmountable problem unless we can come up with a procedural solution and
+come up with a procedural solution and procedural is sexy I could probably do a
+procedural is sexy I could probably do a GDC talk on this awesome procedural
+GDC talk on this awesome procedural solution I really want this feature to
+solution I really want this feature to work we've got to find a way to do it so
+work we've got to find a way to do it so I start on the procedural solution I'm
+I start on the procedural solution I'm starting to get these mixed results and
+starting to get these mixed results and it's like I don't know if this is gonna
+it's like I don't know if this is gonna work there was a decision point there
+work there was a decision point there where I could double down on making it a
+where I could double down on making it a hundred percent procedural and trying to
+hundred percent procedural and trying to introduce our physics engine into this
+introduce our physics engine into this offline animation generation process of
+offline animation generation process of some of those clipping issues would go
+some of those clipping issues would go away but that might introduce more
+away but that might introduce more problems I could maybe try to add more
+problems I could maybe try to add more intelligence in the auto matching
+intelligence in the auto matching algorithm to try and get better results
+algorithm to try and get better results but don't lose sight of the forest for
+but don't lose sight of the forest for the trees
+the trees the goal was actually to ship this
+the goal was actually to ship this feature and figure out how to make this
+feature and figure out how to make this much content so put the cool technology
+much content so put the cool technology to the side and focus on workflows focus
+to the side and focus on workflows focus on tightening up the export process make
+on tightening up the export process make everything as quick and as fast as
+everything as quick and as fast as possible and figure out a way to work
+possible and figure out a way to work with the animators to get to the end
+with the animators to get to the end result that was a big one another one so
+result that was a big one another one so game industry is kind of material a
+game industry is kind of material a little bit over the years animation has
+little bit over the years animation has matured of kind of falling behind or
+matured of kind of falling behind or trailing behind a little bit but we've
+trailing behind a little bit but we've got a bunch of mature tools most engines
+got a bunch of mature tools most engines have like some pretty good generic state
+have like some pretty good generic state machine technology animation blending
+machine technology animation blending technology all that kind of stuff so
+technology all that kind of stuff so we've got some really good general
+we've got some really good general purpose tools but when we scaled up to
+purpose tools but when we scaled up to this or
+this or we scaled up to this volume of content
+we scaled up to this volume of content those generalized tools just weren't
+those generalized tools just weren't going to cut it so there's a tipping
+going to cut it so there's a tipping point somewhere where the number of
+point somewhere where the number of assets that you need to create inside of
+assets that you need to create inside of a system it's not worth using those
+a system it's not worth using those general purpose tools you have to build
+general purpose tools you have to build something very specific to the problem
+something very specific to the problem at hand so that you can extract every
+at hand so that you can extract every tiny little bit of efficiency out of
+tiny little bit of efficiency out of that process because it's going to just
+that process because it's going to just explode in in volume and every little
+explode in in volume and every little bit counts so we spent a lot of time we
+bit counts so we spent a lot of time we wrote a custom state machine for this
+wrote a custom state machine for this I'm annually entered all 4,000 nodes in
+I'm annually entered all 4,000 nodes in that state machine but it contained all
+that state machine but it contained all the metadata that was needed in order to
+the metadata that was needed in order to understand where it fit in its place we
+understand where it fit in its place we could write a bunch of automation tools
+could write a bunch of automation tools off of that state machine all of the
+off of that state machine all of the procedural transitions and animations
+procedural transitions and animations were built off of that base state
+were built off of that base state machine layer so everything kind of came
+machine layer so everything kind of came from one central hub and the workflows
+from one central hub and the workflows for offering that state machine were
+for offering that state machine were 100% designed just for what I had to do
+100% designed just for what I had to do with that state machine and if we hadn't
+with that state machine and if we hadn't done it that way there was absolutely no
+done it that way there was absolutely no way we live have had time to do this it
+way we live have had time to do this it was a massive massive undertaking and
+was a massive massive undertaking and that initial authoring of the state
+that initial authoring of the state machine could not be automated in any
+machine could not be automated in any way because it had to follow the real
+way because it had to follow the real life sport of mixed martial arts it
+life sport of mixed martial arts it wasn't a homogeneous system that
+wasn't a homogeneous system that translated across all grappled positions
+translated across all grappled positions every position had a unique flavor and
+every position had a unique flavor and difference based on the what arm was
+difference based on the what arm was grabbing what what could you do well
+grabbing what what could you do well another guy was doing a thing and it
+another guy was doing a thing and it took a lot of knowledge of the sport and
+took a lot of knowledge of the sport and custom tools in order to put something
+custom tools in order to put something together that complex and this was a big
+together that complex and this was a big one from this is what I wanted in my
+one from this is what I wanted in my original title but we cut it out
+original title but we cut it out to quote Nate Diaz don't be scared homie
+to quote Nate Diaz don't be scared homie we were facing something that seemed
+we were facing something that seemed insurmountable this is probably gonna be
+insurmountable this is probably gonna be really bad advice to give to you I'm
+really bad advice to give to you I'm gonna do it anyway because it might be
+gonna do it anyway because it might be inspirational
+inspirational or it might tank your next project I
+or it might tank your next project I don't know we were kind of looking at
+don't know we were kind of looking at this massive amount of stuff that you
+this massive amount of stuff that you have to do and huge unknowns and you've
+have to do and huge unknowns and you've got management asking you to come up
+got management asking you to come up with estimates and then you've got to
+with estimates and then you've got to break that down into who's going to do
+break that down into who's going to do what and honestly like there's a point
+what and honestly like there's a point where I don't know the answer like I
+where I don't know the answer like I cannot estimate how long this was going
+cannot estimate how long this was going to take I have no clue so I choose I get
+to take I have no clue so I choose I get to choose are we taking this risk or not
+to choose are we taking this risk or not because people are trusting my judgment
+because people are trusting my judgment to decide whether we go forward if I was
+to decide whether we go forward if I was conservative I would have said no we
+conservative I would have said no we can't do this because there's too many
+can't do this because there's too many unknowns but Jeremy and I were like
+unknowns but Jeremy and I were like super excited about doing this it was
+super excited about doing this it was like [ __ ] it let's do it right or die
+like [ __ ] it let's do it right or die and so yeah just don't be don't be scary
+and so yeah just don't be don't be scary if you're really passionate and you make
+if you're really passionate and you make solid contingency plans and you know you
+solid contingency plans and you know you have decision points on the product in
+have decision points on the product in the production cycle where you can take
+the production cycle where you can take a left turn or a right turn if things
+a left turn or a right turn if things don't work out the way you want just go
+don't work out the way you want just go for it you're working with a team of
+for it you're working with a team of really smart people and you'll be able
+really smart people and you'll be able to pivot when you need to so yeah just
+to pivot when you need to so yeah just don't be scared to take risks awesome
+don't be scared to take risks awesome things can come with it probably bad
+things can come with it probably bad things can come - if I'm not gonna talk
+things can come - if I'm not gonna talk about and that's it we've got a few
+about and that's it we've got a few minutes for questions if anyone has
+minutes for questions if anyone has [Applause]
+over here hello I'm John Butterfield I have a question if you ever went back
+have a question if you ever went back and edited any of your mix titles
+and edited any of your mix titles excuse me like so that if your start and
+excuse me like so that if your start and end poses changed how did you realign
+end poses changed how did you realign those throughout the process so there's
+those throughout the process so there's two pieces to that probably what
+two pieces to that probably what Jeremy's going to say but at the
+Jeremy's going to say but at the beginning there was a lot of editing of
+beginning there was a lot of editing of those mix titles so we would try and
+those mix titles so we would try and keep things procedural for as long as
+keep things procedural for as long as possible to kind of work out all the
+possible to kind of work out all the details with those mixed Auto poses if
+details with those mixed Auto poses if we were to bake something out and have
+we were to bake something out and have it tweaked all of that procedural
+it tweaked all of that procedural information was still stored in the data
+information was still stored in the data library so we could always flip back to
+library so we could always flip back to the procedural one regenerate it and
+the procedural one regenerate it and then do the cleanup again so that's my
+then do the cleanup again so that's my answer that's pretty much my answer
+answer that's pretty much my answer there were times where if it was a small
+there were times where if it was a small change I just go into the edited data
+change I just go into the edited data and just left the pose on they polish it
+and just left the pose on they polish it further but sometimes you just
+further but sometimes you just regenerated know a bunch of so it was
+regenerated know a bunch of so it was kind of think you know grad work at that
+kind of think you know grad work at that point the bigger problem was with if any
+point the bigger problem was with if any of the transitions that were used as a
+of the transitions that were used as a base for the procedural generation
+base for the procedural generation changed timings that was a much bigger
+changed timings that was a much bigger challenge because when we oughta
+challenge because when we oughta generated these transitions they would
+generated these transitions they would reuse all the tagging information from
+reuse all the tagging information from the animation they would reuse all the
+the animation they would reuse all the relative ik' information from the
+relative ik' information from the original so no one had to manage or
+original so no one had to manage or maintain any of that tagging or or
+maintain any of that tagging or or curves or anything like that as soon as
+curves or anything like that as soon as you baked it out it basically becomes
+you baked it out it basically becomes its own entity where any changes to the
+its own entity where any changes to the timing all those tags have to be updated
+timing all those tags have to be updated we also had some problems with some of
+we also had some problems with some of the auto curves have to be regenerated
+the auto curves have to be regenerated if the base animation changed lengths
+if the base animation changed lengths and stuff like that so that's a tricky
+and stuff like that so that's a tricky thing to manage for sure okay thank you
+Jeremy when you first saw the procedural system you said something along the
+system you said something along the lines of well I'm okay isn't that great
+lines of well I'm okay isn't that great anyway could you elaborate on some of
+anyway could you elaborate on some of the problems or mocap sees where this
+the problems or mocap sees where this procedural solution looked like a better
+procedural solution looked like a better way to go I would know like it wasn't
+way to go I would know like it wasn't like it was better because the data was
+like it was better because the data was good or bad it was when you go into the
+good or bad it was when you go into the motion capture studio and you get these
+motion capture studio and you get these actors posing themselves on the ground
+actors posing themselves on the ground and real weight and the difference in
+and real weight and the difference in their bodies
+their bodies this had a challenge
+this had a challenge sometimes mashing those poses or we had
+sometimes mashing those poses or we had the problem with UFC one we were kind of
+the problem with UFC one we were kind of went to white belts making jiu-jitsu and
+went to white belts making jiu-jitsu and we kind of had some bad poses and we had
+we kind of had some bad poses and we had these black belts coming in with better
+these black belts coming in with better poses and their hips be more on the side
+poses and their hips be more on the side they'd be like using more of a deep half
+they'd be like using more of a deep half kind of position and then we send that
+kind of position and then we send that data off to India and they're like hey
+data off to India and they're like hey these poses don't match your old poses
+these poses don't match your old poses and making our work quite a lot harder
+and making our work quite a lot harder for us so with having Jeff's tool just
+for us so with having Jeff's tool just that was the biggest part of it was just
+that was the biggest part of it was just baking out those poses and then when I
+baking out those poses and then when I take that data and I packed it up said
+take that data and I packed it up said to India I don't have telling you
+to India I don't have telling you anything just clean up the middle
+anything just clean up the middle whereas when I sent them the Moke motion
+whereas when I sent them the Moke motion capture data I'd have to go and find
+capture data I'd have to go and find those poses and when each in each
+those poses and when each in each package each transition have to give
+package each transition have to give them each start and end pose just to
+them each start and end pose just to make sure the only things as simple as
+make sure the only things as simple as possible and there's a lot of front-end
+possible and there's a lot of front-end work on that and you get rid that friend
+work on that and you get rid that friend work is huge I don't know that people
+work is huge I don't know that people will really appreciate how complex a
+will really appreciate how complex a state machine with those four thousand
+state machine with those four thousand transitions is when you go into mocap
+transitions is when you go into mocap and like you got your 8a mocap shoot and
+and like you got your 8a mocap shoot and you're aggressively trying to capture
+you're aggressively trying to capture like 250 moves because we need these
+like 250 moves because we need these moves otherwise there's all these
+moves otherwise there's all these massive holes in the state machine
+massive holes in the state machine you're going to be like on top of every
+you're going to be like on top of every single animation that you're trying to
+single animation that you're trying to capture because you got to do it quickly
+capture because you got to do it quickly and someone has to have all that in
+and someone has to have all that in their head because you look at this
+their head because you look at this I need up transition from half guard
+I need up transition from half guard while this guy's pressing left and this
+while this guy's pressing left and this guy like figuring out what all that even
+guy like figuring out what all that even means let alone digging up the poses
+means let alone digging up the poses it's a lot of overhead
+it's a lot of overhead Jeff often directed those shoots because
+Jeff often directed those shoots because he due to system warden I did and I was
+he due to system warden I did and I was like you got to do this because I don't
+like you got to do this because I don't I was the only person who had everything
+I was the only person who had everything in my head because I offered the state
+in my head because I offered the state machine and it wasn't till way later in
+machine and it wasn't till way later in the project they're like our QA guy was
+the project they're like our QA guy was up to speed and understood it Jeremy was
+up to speed and understood it Jeremy was up to speed and understood it was
+up to speed and understood it was extremely complex and then the animation
+extremely complex and then the animation data like you guys are saying that the
+data like you guys are saying that the hand poses you get back from low-cap
+hand poses you get back from low-cap aren't good but if like the head is just
+aren't good but if like the head is just resting on the shoulder and then it
+resting on the shoulder and then it shifts a little bit that's better than
+shifts a little bit that's better than having like a hand that has no no posing
+having like a hand that has no no posing on it and is kind of floating and
+on it and is kind of floating and bouncing and stuff so there were some
+bouncing and stuff so there were some efficiencies there that you don't get
+efficiencies there that you don't get from mocap and just you know usual it's
+from mocap and just you know usual it's with no caps and jittering some
+with no caps and jittering some knock-knees some weirdness going to the
+knock-knees some weirdness going to the ground
+ground yeah only this that's supposed to say
+yeah only this that's supposed to say but forgotten now thank you guys so much
+but forgotten now thank you guys so much thanks you've got a huge combination of
+thanks you've got a huge combination of animations and various character sizes
+animations and various character sizes you have a strategy for how you would
+you have a strategy for how you would test everything was working yeah it's
+test everything was working yeah it's really hard to do we would always test
+really hard to do we would always test well I thought we always did but
+well I thought we always did but apparently we didn't the tallest versus
+apparently we didn't the tallest versus shortest fat versus fat tall versus fat
+shortest fat versus fat tall versus fat its Hall and fat versus short and skinny
+its Hall and fat versus short and skinny short and fat versus tall and skinny and
+short and fat versus tall and skinny and then always men and women because there
+then always men and women because there were differences with the female rig
+were differences with the female rig that it caused issues like breasts and
+that it caused issues like breasts and stuff like that like colliding causing
+stuff like that like colliding causing collision geometry to push you out in
+collision geometry to push you out in different ways we had to deal with some
+different ways we had to deal with some of that stuff too and but there's no way
+of that stuff too and but there's no way to test every combination is just
+to test every combination is just impossible so just pick your extremes
+impossible so just pick your extremes and like one middle of the road and hope
+and like one middle of the road and hope for the best we didn't have any
+for the best we didn't have any automated testing on that kind of stuff
+automated testing on that kind of stuff and the other thing I really wish we had
+and the other thing I really wish we had time to do but we didn't was write like
+time to do but we didn't was write like an automated script to walk the state
+an automated script to walk the state machine basically so that a QA
+machine basically so that a QA guy could just sit there and watch it do
+guy could just sit there and watch it do everything and then like pick up on any
+everything and then like pick up on any problems and flag them but we ended up
+problems and flag them but we ended up having like this master tracking
+having like this master tracking document that was generated from the
+document that was generated from the state machine that would have like a
+state machine that would have like a unique good for every transition and
+unique good for every transition and then one of our QA guys wrote a script
+then one of our QA guys wrote a script that would pull telemetry from the game
+that would pull telemetry from the game and like flag them as this has been
+and like flag them as this has been played this hasn't been played so when
+played this hasn't been played so when QA was doing testing they could like
+QA was doing testing they could like flush that database and then retest and
+flush that database and then retest and figure out hey no one's played this
+figure out hey no one's played this particular transition yet that's a
+particular transition yet that's a problem
+problem someone has to trigger that to know that
+someone has to trigger that to know that it's functioning properly but testing
+it's functioning properly but testing testing the system was a ridiculous
+testing the system was a ridiculous undertaking to like every time something
+undertaking to like every time something in the game changes you're supposed to
+in the game changes you're supposed to do a full smoke of the system and this
+do a full smoke of the system and this was just too large and complex to
+was just too large and complex to actually do manually so they're writing
+actually do manually so they're writing a lot about emotion tools we could have
+a lot about emotion tools we could have done a lot more but very very difficult
+done a lot more but very very difficult to test and as far as like the
+to test and as far as like the animations testing there's a little
+animations testing there's a little trick that happens on pretty much every
+trick that happens on pretty much every UFC name a title when the characters are
+UFC name a title when the characters are in the takedown and they attained to the
+in the takedown and they attained to the ground if they scale at least bone
+ground if they scale at least bone length one two one
+length one two one the girth stays the same so if your mark
+the girth stays the same so if your mark on versus true mark how still fat Strube
+on versus true mark how still fat Strube is still skinny but they're both
+is still skinny but they're both essentially the same height and that
+essentially the same height and that kind of takers takes care a lot of that
+kind of takers takes care a lot of that problem I think we're out of time now
+problem I think we're out of time now Jeremy and I will stick around up here
+Jeremy and I will stick around up here at the front if anyone wants to ask
+at the front if anyone wants to ask questions thanks everyone for coming

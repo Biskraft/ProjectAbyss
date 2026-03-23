@@ -1,0 +1,1171 @@
+[Music] my name is Anna I am the key manager at
+my name is Anna I am the key manager at guerilla games in games QA for about 12
+guerilla games in games QA for about 12 years and I'm here to tell you the story
+years and I'm here to tell you the story of how we tested horizons your Don
+of how we tested horizons your Don didn't let too many bugs slip through
+didn't let too many bugs slip through and managed to keep most of our sanity
+and managed to keep most of our sanity in the process so this is the summary of
+in the process so this is the summary of the topic that we'll be covering in the
+the topic that we'll be covering in the top but first I would like a show of
+top but first I would like a show of hands could you please raise your hand
+hands could you please raise your hand if you are in QA QA or engineering or
+if you are in QA QA or engineering or you consider a career in QA or QED
+you consider a career in QA or QED engineering yes could you please raise
+engineering yes could you please raise your hand if you are in production could
+your hand if you are in production could you please raise your hand if you have
+you please raise your hand if you have played horizons you are doing so just as
+played horizons you are doing so just as a brief intro who is guerrilla games
+a brief intro who is guerrilla games there are only two relevant points for
+there are only two relevant points for this talk one that we are first party so
+this talk one that we are first party so nice to do this will become relevant
+nice to do this will become relevant later in the talk I'll promise and that
+later in the talk I'll promise and that for ya the last 10 years before we went
+for ya the last 10 years before we went into production with her as yard on the
+into production with her as yard on the Killzone series was pretty much our
+Killzone series was pretty much our studio identity I don't know if any of
+studio identity I don't know if any of you have played any kills in games but
+you have played any kills in games but basically their series of first-person
+basically their series of first-person shooters set in this dystopian dark
+shooters set in this dystopian dark sci-fi future where the player fights
+sci-fi future where the player fights these iconic enemies the Helghast with
+these iconic enemies the Helghast with the red eyes it is perfect constrained
+the red eyes it is perfect constrained in kind of linear spaces so learn from
+in kind of linear spaces so learn from this - well the open spaces and lush
+this - well the open spaces and lush nature of horizons you are done with the
+nature of horizons you are done with the robot dinosaurs we kept the red eyes
+robot dinosaurs we kept the red eyes so as you can imagine such a major shift
+so as you can imagine such a major shift in direction and quite a few challenges
+in direction and quite a few challenges so I'm going to go over some of the
+so I'm going to go over some of the challenges for the project itself which
+challenges for the project itself which were very relevant for the challenge of
+were very relevant for the challenge of testing it so this was a first
+testing it so this was a first open-world game it was our first open
+open-world game it was our first open action RPG game the RPG elements
+action RPG game the RPG elements open-world setting nonlinear component
+open-world setting nonlinear component the this has introduced a lot of
+the this has introduced a lot of variables that had to be accounted for
+variables that had to be accounted for during both development and testing and
+during both development and testing and these components had a lot of
+these components had a lot of interdependencies we did not have tools
+interdependencies we did not have tools to create an open-world game so we had
+to create an open-world game so we had to pretty much build them from scratch
+to pretty much build them from scratch speaking of tools the engine that we had
+speaking of tools the engine that we had used previously to build it the Killzone
+used previously to build it the Killzone games did not support an open-world game
+games did not support an open-world game so we had to completely refactor that
+so we had to completely refactor that and retool it and there were many things
+and retool it and there were many things that we didn't know about the project
+that we didn't know about the project when we started working on it
+when we started working on it we didn't know exactly what the scope
+we didn't know exactly what the scope was or exactly what the gameplay loop
+was or exactly what the gameplay loop was going to be or even the things that
+was going to be or even the things that we did know and that we went into the
+we did know and that we went into the game we didn't have implementation
+game we didn't have implementation details about them and yeah we had never
+details about them and yeah we had never done anything like this before
+done anything like this before scary so specifically the charges for QA
+scary so specifically the charges for QA the scariest thing about the scope for
+the scariest thing about the scope for QA was that all the game components
+QA was that all the game components interacted with each other and
+interacted with each other and influenced each other they all tied
+influenced each other they all tied together so we couldn't partition things
+together so we couldn't partition things any longer in like neat categories and
+any longer in like neat categories and test them in isolation we have to look
+test them in isolation we have to look considered the whole thing so just to
+considered the whole thing so just to give you a very brief example of just
+give you a very brief example of just how the these components interacted in
+how the these components interacted in unforeseen ways early in development we
+unforeseen ways early in development we were working on a vertical slice and in
+were working on a vertical slice and in this vertical slice there was a main
+this vertical slice there was a main quest in which the player was supposed
+quest in which the player was supposed to capture a camp and yeah kill the
+to capture a camp and yeah kill the bandits raise the flag quest completed
+bandits raise the flag quest completed yay
+yay so what we were testing this for a
+so what we were testing this for a milestone we were going to plate us this
+milestone we were going to plate us this with actually users at some in some runs
+with actually users at some in some runs the main questions wouldn't complete and
+the main questions wouldn't complete and I couldn't figure out why and we've
+I couldn't figure out why and we've tried everything we could we had quest
+tried everything we could we had quest designers debug it they were like the
+designers debug it they were like the script is fine everything is fine I
+script is fine everything is fine I don't understand what's going on and
+don't understand what's going on and then it took us about two days of like
+then it took us about two days of like deep diving and investigating and we
+deep diving and investigating and we figured out that there was a random
+figured out that there was a random encounter that had nothing to do with
+encounter that had nothing to do with the quest in which there was a wounded
+the quest in which there was a wounded hunter and you could just pass by and
+hunter and you could just pass by and give them some herbs to kill them or not
+give them some herbs to kill them or not and if you gave him the herbs so if you
+and if you gave him the herbs so if you were a nice person I wanted to help him
+were a nice person I wanted to help him you couldn't complete the main quest any
+you couldn't complete the main quest any more for some strange reason there was
+more for some strange reason there was no reason for these things to be
+no reason for these things to be connected but they were so that was very
+connected but they were so that was very scary for us
+also our test team was quite small throughout the project we had about
+throughout the project we had about eight testers internally and we had help
+eight testers internally and we had help so yeah but still it was a challenge and
+so yeah but still it was a challenge and because we couldn't apply the same
+because we couldn't apply the same processes that we had for Killzone
+processes that we had for Killzone projects we had to come up with
+projects we had to come up with something new that we hadn't tried
+something new that we hadn't tried before and we didn't know if it was
+before and we didn't know if it was going to work or not so it was quite
+going to work or not so it was quite difficult for us to anticipate and plan
+difficult for us to anticipate and plan what our test strategy was going to be
+what our test strategy was going to be and additionally nobody in the internal
+and additionally nobody in the internal QA team had any experience testing
+QA team had any experience testing open-world games and our partners at
+open-world games and our partners at Sony first particular it didn't have
+Sony first particular it didn't have either so that was going to be fun
+either so that was going to be fun so what did we do I'm just going to
+so what did we do I'm just going to summarize here the components and I'm
+summarize here the components and I'm going to go into detail for each of them
+going to go into detail for each of them later but basically we came up with a
+later but basically we came up with a new team structure for our internal QA
+new team structure for our internal QA we came up with a test strategy that was
+we came up with a test strategy that was focused on what
+focused on what thought was important and relevant we
+thought was important and relevant we used a lot of tools to help our
+used a lot of tools to help our efficiency in testing and to make our
+efficiency in testing and to make our testing more informative for developers
+testing more informative for developers and we used a bunch of data to help us
+and we used a bunch of data to help us you know reorient our test strategy when
+you know reorient our test strategy when needed so what it all comes down to is
+needed so what it all comes down to is people processes tools so let's talk
+people processes tools so let's talk about people for a bit our QA team when
+about people for a bit our QA team when I started guerilla the QA team was three
+I started guerilla the QA team was three people in a windowless room whose job
+people in a windowless room whose job description was basically play the game
+description was basically play the game find the bugs and some developers when
+find the bugs and some developers when they heard the word QA there was just
+they heard the word QA there was just rolled her eyes we we've come a long way
+rolled her eyes we we've come a long way since then so this day the QA team is an
+since then so this day the QA team is an integral part of the development process
+integral part of the development process and develop personnel bring us
+and develop personnel bring us fancy chocolates to say thank you for
+fancy chocolates to say thank you for your work they were delicious chocolate
+your work they were delicious chocolate spider so what did we do with our to a
+spider so what did we do with our to a team we involved them really early
+team we involved them really early so when pretty much the entire studio
+so when pretty much the entire studio was still developing Killzone Shadowfall
+was still developing Killzone Shadowfall our previous project there was a small
+our previous project there was a small team that was prototyping horizon zero
+team that was prototyping horizon zero dawn was seven or eight people and one
+dawn was seven or eight people and one of those people was a QA person was a
+of those people was a QA person was a scientific project and was helping the
+scientific project and was helping the prototyping team to test with feedback
+prototyping team to test with feedback with research and so on we specialized
+with research and so on we specialized our QA so they gave deep knowledge of
+our QA so they gave deep knowledge of the areas that are assigned to them and
+the areas that are assigned to them and they used that to decide the test
+they used that to decide the test strategy for those areas and that
+strategy for those areas and that knowledge was immensely valuable and it
+knowledge was immensely valuable and it just improved our test strategy
+just improved our test strategy tremendously we were able to test more
+tremendously we were able to test more efficiently and we were able to make our
+efficiently and we were able to make our testing relevant because our specialized
+testing relevant because our specialized QA knew what was going on in what were
+QA knew what was going on in what were weak points of an area what was being
+weak points of an area what was being changed what the developers were working
+changed what the developers were working speaking of developers our QA were
+speaking of developers our QA were embedded with the development teams so
+embedded with the development teams so earlier on they started creating
+earlier on they started creating connections with those developers with
+connections with those developers with producers creating information loops
+producers creating information loops feedback loops they were in daily
+feedback loops they were in daily stand-ups they're continuously talking
+stand-ups they're continuously talking with the developers and getting
+with the developers and getting information from them feedback and
+information from them feedback and guidance on how to test and what a test
+guidance on how to test and what a test and when the tests also our QA were
+and when the tests also our QA were mostly autonomous so they were the ones
+mostly autonomous so they were the ones who decided the test strategy they were
+who decided the test strategy they were getting their work either from their
+getting their work either from their team from the development team based on
+team from the development team based on daily stand-ups or just communication
+daily stand-ups or just communication their own experience or intuition and
+their own experience or intuition and that freed me up to focus instead of
+that freed me up to focus instead of micromanaging people to focus on solving
+micromanaging people to focus on solving high-level puzzles that are related to
+high-level puzzles that are related to our overall test strategy how to improve
+our overall test strategy how to improve quality in the game and how to find the
+quality in the game and how to find the best cat picture to attach to homework
+best cat picture to attach to homework email it's a pretty difficult thing and
+email it's a pretty difficult thing and with autonomy also comes ownership and
+with autonomy also comes ownership and argue I had full ownership of the areas
+argue I had full ownership of the areas that they were assigned to which means
+that they were assigned to which means that they were fully invested in the
+that they were fully invested in the project and this is pretty important
+project and this is pretty important because three professionals we tend to
+because three professionals we tend to see the worst in a project we tend to
+see the worst in a project we tend to see all the words and all the bad stuff
+see all the words and all the bad stuff and whatever is broken so that tends to
+and whatever is broken so that tends to give us a pretty negative outlook so
+give us a pretty negative outlook so when you feel that you have a positive
+when you feel that you have a positive impact on the game and that your
+impact on the game and that your contribution matters that helps me to
+contribution matters that helps me to get that people feel empowered so these
+get that people feel empowered so these are just some of the ownership areas
+are just some of the ownership areas that we had through development and
+that we had through development and every area had one
+every area had one or two for quests because it's such a
+or two for quests because it's such a complex and large area QA people
+complex and large area QA people assigned to it and here has value beyond
+assigned to it and here has value beyond finding bugs we used these people's
+finding bugs we used these people's expertise as gamers their experience
+expertise as gamers their experience with the project and the unique position
+with the project and the unique position which is kind of halfway between players
+which is kind of halfway between players and developers we use this to make the
+and developers we use this to make the game better as a brief example at some
+game better as a brief example at some point quite early in development we were
+point quite early in development we were working on the boat combat like
+working on the boat combat like bullshitting
+bullshitting and there was something off about it
+and there was something off about it just something we couldn't put our
+just something we couldn't put our finger on it
+finger on it the developers couldn't be put their
+the developers couldn't be put their finger on it it was just not what we
+finger on it it was just not what we wanted it to be so a few people my team
+wanted it to be so a few people my team went into a deep dive mode and they
+went into a deep dive mode and they spent several days analyzing every
+spent several days analyzing every factor that contributed to the user
+factor that contributed to the user experience so animation sound like the
+experience so animation sound like the trails of the arrows the timing the
+trails of the arrows the timing the timing of the animations just everything
+timing of the animations just everything that was involved in this experience and
+that was involved in this experience and they came up with a pretty detailed
+they came up with a pretty detailed analysis of how all these factors were
+analysis of how all these factors were impacting the user and the designers use
+impacting the user and the designers use this to tweak those factors and create a
+this to tweak those factors and create a better experience but there were only
+better experience but there were only eight of us and we couldn't just inter
+eight of us and we couldn't just inter him without it with just yeah the eight
+him without it with just yeah the eight of us so we brought in Sony's first
+of us so we brought in Sony's first party queue it we involved them early on
+party queue it we involved them early on 13 months earlier than on the previous
+13 months earlier than on the previous project so if you work in outsourced QA
+project so if you work in outsourced QA don't despair we developers do learn and
+don't despair we developers do learn and this is a possible thing do you involve
+this is a possible thing do you involve you early and from the beginning we
+you early and from the beginning we wanted to build a partnership with them
+wanted to build a partnership with them rather than a client service provider
+relationship so we were very open and honest in our communication and we
+honest in our communication and we expected the same from them which was a
+expected the same from them which was a bit difficult at first because they're
+bit difficult at first because they're based in Liverpool in the UK and they
+based in Liverpool in the UK and they realized
+realized based in Amsterdam in the Netherlands
+based in Amsterdam in the Netherlands and well that communication culture is
+and well that communication culture is blunt British communication culture is
+blunt British communication culture is the opposite of that so we had some
+the opposite of that so we had some challenges there but we turned them
+challenges there but we turned them blood we were also quite liberal with
+blood we were also quite liberal with sharing information about the project
+sharing information about the project which made some producers nervous but I
+which made some producers nervous but I felt that this was a risk worth taking
+felt that this was a risk worth taking so it paid off so this was our team
+so it paid off so this was our team structure and Killzone Shadowfall we
+structure and Killzone Shadowfall we have the internal QA this doesn't work
+have the internal QA this doesn't work so I have the internal QA on the top and
+so I have the internal QA on the top and the first party QA team on the bottom
+the first party QA team on the bottom seperate teams single point of
+seperate teams single point of communication so there was like a lot of
+communication so there was like a lot of delay between like tasks being passed on
+delay between like tasks being passed on requests for information the deformation
+requests for information the deformation coming back and there was a lot of
+coming back and there was a lot of pressure on those single points of
+pressure on those single points of contact so if one of us got sick then
+contact so if one of us got sick then yeah that was a problem though yeah
+yeah that was a problem though yeah there was some potential bottlenecks
+there was some potential bottlenecks there and most of my time and my
+there and most of my time and my counterparts time at first party QA was
+counterparts time at first party QA was parent managing workloads and databases
+parent managing workloads and databases and tasks in bugs there that was not
+and tasks in bugs there that was not very fun so I went from that to what we
+very fun so I went from that to what we call buddies that's our technical term
+call buddies that's our technical term for it we brought the teams together we
+for it we brought the teams together we pretty much created one QA team which
+pretty much created one QA team which are as much as possible to remove the
+are as much as possible to remove the barrier of location and we create the
+barrier of location and we create the direct lines of communications we do the
+direct lines of communications we do the testers on each team so that we didn't
+testers on each team so that we didn't have to waste our time passing
+have to waste our time passing information back and forth and
+information back and forth and communication could be more efficient
+communication could be more efficient yeah and these testers also shared their
+yeah and these testers also shared their expertise with one another especially
+expertise with one another especially from the internal QA team who had all
+from the internal QA team who had all the information and all the knowledge
+the information and all the knowledge about their assigned areas and who are
+about their assigned areas and who are talking to developers on a daily basis
+talking to developers on a daily basis they're talking to producers they passed
+they're talking to producers they passed on the expectations of those developers
+on the expectations of those developers and their own knowledge and expertise
+and their own knowledge and expertise they passed them on to our partners at
+they passed them on to our partners at first party QA and yeah we remove the
+first party QA and yeah we remove the single points of failure so then the
+single points of failure so then the managers and leads could focus on more
+managers and leads could focus on more important things than micromanaging we
+important things than micromanaging we also shared training so yeah we became
+also shared training so yeah we became one team go
+one team go and yeah remove the barrier of location
+and yeah remove the barrier of location this means a few studio visits so this
+this means a few studio visits so this is us the two teams just playing board
+is us the two teams just playing board games and going out for dinner and in
+games and going out for dinner and in the lower-left that is the QA leadership
+the lower-left that is the QA leadership in both teams doing three escape rooms
+in both teams doing three escape rooms in a day and expensing it as team
+in a day and expensing it as team building we warned all these Kay perhaps
+so we built a real partnership with first party QA and we collaborated on
+first party QA and we collaborated on pretty much everything including the
+pretty much everything including the strategy so when we started defining art
+strategy so when we started defining art a strategy we didn't know exactly what
+a strategy we didn't know exactly what it was going to be but we did have some
+it was going to be but we did have some goals for it it had to be adaptable
+goals for it it had to be adaptable because we didn't know what the gaming
+because we didn't know what the gaming sector was going to be so we had to be
+sector was going to be so we had to be able to adapt at the drop of the Hat and
+able to adapt at the drop of the Hat and there were quite a few hats being
+there were quite a few hats being dropped so we needed to be able to
+dropped so we needed to be able to affect major revisions of our strategy
+affect major revisions of our strategy throughout the project as requirements
+throughout the project as requirements were changing or new things were coming
+were changing or new things were coming in we had to be scalable because we had
+in we had to be scalable because we had unexpected developments in in the
+unexpected developments in in the project as you might expect for example
+project as you might expect for example about
+about halfway through development we started
+halfway through development we started doing a lot of play testing we hadn't
+doing a lot of play testing we hadn't planned for this we didn't know that was
+planned for this we didn't know that was going to happen so this needed a lot of
+going to happen so this needed a lot of support from QA so I needed to be able
+support from QA so I needed to be able to scale up and down depending on how
+to scale up and down depending on how the need for QA support was changing so
+the need for QA support was changing so we basically did this by having but
+we basically did this by having but because of the improving our training
+because of the improving our training programs so that we could quickly bring
+programs so that we could quickly bring on new people on the project without
+on new people on the project without having to train them for two weeks first
+having to train them for two weeks first and it had to be relevant to the new
+and it had to be relevant to the new ways in which we were developing the
+ways in which we were developing the game and the new workflows and pipelines
+game and the new workflows and pipelines that were involved so we we made it the
+that were involved so we we made it the testers responsibility the strategy was
+testers responsibility the strategy was guided by their knowledge and expertise
+guided by their knowledge and expertise it was risk-based and it was focused on
+it was risk-based and it was focused on the things that we felt were important
+the things that we felt were important things that were changing all the time
+things that were changing all the time or systems that we felt that if they
+or systems that we felt that if they failed it would be a really bad
+failed it would be a really bad experience for the user such as the
+experience for the user such as the save/load system and because we had such
+save/load system and because we had such a small team we had to make it efficient
+a small team we had to make it efficient the relevant part is a component of that
+the relevant part is a component of that because we didn't test everything all
+because we didn't test everything all the time we didn't do massive regression
+the time we didn't do massive regression tests but also tools we used a lot of
+tests but also tools we used a lot of tools to make our testing more efficient
+tools to make our testing more efficient more informative and just foster and
+more informative and just foster and because we didn't have a lot of
+because we didn't have a lot of regression test and we couldn't afford
+regression test and we couldn't afford to have a lot of test cases and massive
+to have a lot of test cases and massive test plans and tons and tons of
+test plans and tons and tons of checklist we focused on exploratory
+checklist we focused on exploratory testing so 70 to 90% of all our testing
+testing so 70 to 90% of all our testing across horizons you are done and its
+across horizons you are done and its expansion the frozen walls was
+expansion the frozen walls was exploratory and I would like to go into
+exploratory and I would like to go into a bit of detail with the adaptable part
+a bit of detail with the adaptable part by way of an example so failed
+by way of an example so failed experiment number one
+experiment number one in the early days of defining our test
+in the early days of defining our test strategy we'll start player types and
+strategy we'll start player types and personas the premise was that we apply
+personas the premise was that we apply these personas to our tests and we'll
+these personas to our tests and we'll find magical new bugs that otherwise we
+find magical new bugs that otherwise we wouldn't find so we did the Bartle test
+wouldn't find so we did the Bartle test and a few are their models of player
+and a few are their models of player psychology and we built 9 personas out
+psychology and we built 9 personas out of them
+of them I think everybody's familiar with the
+I think everybody's familiar with the Bertil tests yes so one of these person
+Bertil tests yes so one of these person who knows was the hoarder I think you
+who knows was the hoarder I think you will know the type the player who picks
+will know the type the player who picks up everything never clears up their
+up everything never clears up their inventory so we thought well if this
+inventory so we thought well if this kind of player would have to pick up a
+kind of player would have to pick up a quest item then there will be issues if
+quest item then there will be issues if this player wouldn't be crafting
+this player wouldn't be crafting something in their inventory and it was
+something in their inventory and it was full there would be issues I think
+full there would be issues I think you're starting to see the problem we
+you're starting to see the problem we already knew where the issues were
+already knew where the issues were likely to be so rather than spend four
+likely to be so rather than spend four days or five days with a player assuming
+days or five days with a player assuming with a tester assuming this persona and
+with a tester assuming this persona and playing through the game like this we
+playing through the game like this we could just make a task for stress test
+could just make a task for stress test the inventory system that will be
+the inventory system that will be completed in four hours which was a lot
+completed in four hours which was a lot more efficient
+more efficient and speaking of efficiency
+and speaking of efficiency I love efficient it's one of my favorite
+I love efficient it's one of my favorite things so I was mentioning before that
+things so I was mentioning before that we couldn't use a lot of I mean where we
+we couldn't use a lot of I mean where we could but I thought that would be a
+could but I thought that would be a better way than to use thousands of test
+better way than to use thousands of test cases massive test plans lots of
+cases massive test plans lots of checklist so instead we settled on a
+checklist so instead we settled on a specific method of testing which is
+specific method of testing which is called session based testing and it's
+called session based testing and it's it's an explorer it's a subset of
+it's an explorer it's a subset of exploratory testing what is this magical
+exploratory testing what is this magical thing um we borrowed it from software
+thing um we borrowed it from software testing and we picked it because well we
+testing and we picked it because well we couldn't test everything we would get
+couldn't test everything we would get daily builds sometimes two or three
+daily builds sometimes two or three bills a day
+bills a day to test 200% test everything on one
+to test 200% test everything on one build it would take it to stir about two
+build it would take it to stir about two weeks so that was not feasible we had to
+weeks so that was not feasible we had to focus our testing it's a method that
+focus our testing it's a method that avoids tunnel vision when you're going
+avoids tunnel vision when you're going back check list and you're just taking
+back check list and you're just taking off boxes you're not really thinking
+off boxes you're not really thinking about your doing so instead using this
+about your doing so instead using this method we forced the testers to be more
+method we forced the testers to be more engaged with with the game when they
+engaged with with the game when they were testing it leverages the specialist
+were testing it leverages the specialist testers that I mentioned at the
+testers that I mentioned at the beginning because they know their area
+beginning because they know their area so well they know what is likely to fail
+so well they know what is likely to fail they know how to make it fail and they
+they know how to make it fail and they also have caused any information from
+also have caused any information from the developers that tells them oh I
+the developers that tells them oh I changed this I added this go and take a
+changed this I added this go and take a look and in our experience EEP this is
+look and in our experience EEP this is the most the method most likely to find
+the most the method most likely to find bugs it's also very flexible doesn't
+bugs it's also very flexible doesn't need a lot of test documentation so this
+need a lot of test documentation so this is just an example of one of our session
+is just an example of one of our session based tasks in jar the part of top the
+based tasks in jar the part of top the part of the top is the Charter so it is
+part of the top is the Charter so it is the question that we want answered
+the question that we want answered through testing in this case we wanted
+through testing in this case we wanted to know if the resistance to electric
+to know if the resistance to electric damage is correctly removed for the
+damage is correctly removed for the robots listed in the Charter and
+robots listed in the Charter and underneath that are the results this is
+underneath that are the results this is a test that has been completed the
+a test that has been completed the tester as I put the results in there so
+tester as I put the results in there so that developers can can look at them and
+that developers can can look at them and at the bottom there is a comment from
+at the bottom there is a comment from the tester which is a follow up aside
+the tester which is a follow up aside from a wrap-up and a summary of the
+from a wrap-up and a summary of the results which is pretty much I tested
+results which is pretty much I tested this with this methodology I didn't find
+this with this methodology I didn't find any bugs related to electrical
+any bugs related to electrical resistance but I noticed this and I made
+resistance but I noticed this and I made a follow-up task to investigate it more
+a follow-up task to investigate it more because yeah sometimes when you test
+because yeah sometimes when you test especially using this method you don't
+especially using this method you don't find bugs but you just find more
+find bugs but you just find more questions
+questions and before I give you the context for
+and before I give you the context for these beautifully crafted pie charts I'm
+these beautifully crafted pie charts I'm going to say something that might sound
+going to say something that might sound shocking when we started defining our
+shocking when we started defining our test strategy our goal was not to find
+test strategy our goal was not to find all the bugs crazy right
+all the bugs crazy right what good are we if we don't find all
+what good are we if we don't find all the bugs we only wanted to find the
+the bugs we only wanted to find the important bugs
+important bugs the crashes the performance drops the
+the crashes the performance drops the progression blockers the bugs that
+progression blockers the bugs that frustrate the player make them go and
+frustrate the player make them go and Internet leave bad reviews for the game
+Internet leave bad reviews for the game so then this is a direct comparison
+so then this is a direct comparison between the bugs that were logged
+between the bugs that were logged against Killzone Shadowfall the previous
+against Killzone Shadowfall the previous project and horizons your dog plus all
+project and horizons your dog plus all their expansions and patches and the
+their expansions and patches and the orange and yellow slices are what we
+orange and yellow slices are what we call a class and B class bugs which are
+call a class and B class bugs which are the books that we wanted to find the
+the books that we wanted to find the functionality bugs the crashes and so on
+functionality bugs the crashes and so on so I think we managed to achieve our
+so I think we managed to achieve our objective because in horizon we found a
+objective because in horizon we found a lot more of the important bugs and we
+lot more of the important bugs and we didn't focus so much on whether these
+didn't focus so much on whether these piece of debris is floating two
+piece of debris is floating two millimeters of the floor but QA is not
+millimeters of the floor but QA is not just about bugs we also do did a whole
+just about bugs we also do did a whole bunch of other things to add quality and
+bunch of other things to add quality and value to the project we played us at the
+value to the project we played us at the game like in the very early days when it
+game like in the very early days when it was too early for like formal play
+was too early for like formal play testing with actual users the developers
+testing with actual users the developers would go to QA hey play this tell me
+would go to QA hey play this tell me what you think I heard of those play
+what you think I heard of those play tests and also out of those feedback
+tests and also out of those feedback loops that we had established with the
+loops that we had established with the developers came a lot of qualitative
+developers came a lot of qualitative feedback and wasn't always taken on
+feedback and wasn't always taken on board or applied but they were listening
+board or applied but they were listening to us and that's what important we did a
+to us and that's what important we did a lot of research what we call comparative
+lot of research what we call comparative analysis or competitors or research
+analysis or competitors or research where we look at already released
+where we look at already released games and how they implement certain
+games and how they implement certain features or how they tackle different
+features or how they tackle different challenges and thing okay what can you
+challenges and thing okay what can you learn from this um are they doing it
+learn from this um are they doing it badly or are they doing it well can we
+badly or are they doing it well can we apply any of this to what we are
+apply any of this to what we are developing we also did QA reviews this
+developing we also did QA reviews this was a technique that was very useful for
+was a technique that was very useful for us where we got the entire QA team in
+us where we got the entire QA team in one room and for an hour we would play a
+one room and for an hour we would play a feature or a piece of content and
+feature or a piece of content and everybody would weigh in with their
+everybody would weigh in with their particular point of view and this is
+particular point of view and this is where those experts those specialized
+where those experts those specialized testers could really bring their
+testers could really bring their contribution and just enrich the
+contribution and just enrich the conversation and it also brought
+conversation and it also brought awareness of what was happening with
+awareness of what was happening with other areas of the game that you are not
+other areas of the game that you are not necessarily working on and just the
+necessarily working on and just the state of the project as a whole and
+state of the project as a whole and after we released we put together what
+after we released we put together what we called a secret team so this was a
+we called a secret team so this was a small strike team of testers both
+small strike team of testers both internally and from first party QA who
+internally and from first party QA who would just go on the internet which is a
+would just go on the internet which is a very scary place after you release a
+very scary place after you release a game and they would go on all the social
+game and they would go on all the social media channels on Reddit on forums on
+media channels on Reddit on forums on Twitch on a whole bunch of websites and
+Twitch on a whole bunch of websites and they would monitor for any issues that
+they would monitor for any issues that were being reported by the players
+were being reported by the players bugs frustrations things that they were
+bugs frustrations things that they were confused about and we worked really
+confused about and we worked really closely with the community team to
+closely with the community team to communicate back to those players if
+communicate back to those players if there was a workaround or to clear up
+there was a workaround or to clear up their confusion but we also investigated
+their confusion but we also investigated the issues that they were reporting and
+the issues that they were reporting and we investigated almost 500 issues and
+we investigated almost 500 issues and out of those more than a quarter were
+out of those more than a quarter were fixed and released in patches and that
+fixed and released in patches and that had an incredible positive impact and we
+had an incredible positive impact and we got a lot of positive feedback from the
+got a lot of positive feedback from the players for this support track so we
+players for this support track so we talked about strategy and people
+talked about strategy and people um so I would like not to dive into the
+um so I would like not to dive into the tools and technology that we used to
+tools and technology that we used to improve our testing and that our QA
+improve our testing and that our QA teams are used during the project this
+teams are used during the project this might become a little technical so to
+might become a little technical so to start with our in engine tools we have
+start with our in engine tools we have about 250 260 debug draw modes and
+about 250 260 debug draw modes and windows that are accessible in game so
+windows that are accessible in game so from a build of the game you launch it
+from a build of the game you launch it you can get well not you of us it can
+you can get well not you of us it can get access to to these debug views and
+get access to to these debug views and debug windows there are very formative
+debug windows there are very formative for both the testers and for the
+for both the testers and for the developers so what these debug views do
+developers so what these debug views do they show either raw data or they show
+they show either raw data or they show visualization of information that is not
+visualization of information that is not available to the end user so they
+available to the end user so they exposed the inner workings of the game
+exposed the inner workings of the game which helped our testers better
+which helped our testers better understand all these features and
+understand all these features and content but it was also very helpful for
+content but it was also very helpful for developers when they got a bug with a
+developers when they got a bug with a video attached that had a number of
+video attached that had a number of debug views turned on that showed them
+debug views turned on that showed them exactly what was going on they could go
+exactly what was going on they could go oh yeah I see what's happening I'm gonna
+oh yeah I see what's happening I'm gonna fix this so that was a huge time saver
+fix this so that was a huge time saver for developers as well and with debug
+for developers as well and with debug tools we were able to change what the
+tools we were able to change what the game was doing affect the game state
+game was doing affect the game state spawn a robot god mode and so on so
+spawn a robot god mode and so on so that's bad up our testing and we were
+that's bad up our testing and we were able to just finish our tasks faster so
+able to just finish our tasks faster so I'm just going to give a brief demo
+I'm just going to give a brief demo of how this works some examples of our
+of how this works some examples of our debug views so this is a view of the
+debug views so this is a view of the navmesh
+navmesh which shows where entities such as
+which shows where entities such as robots might might walk are allowed to
+robots might might walk are allowed to walk and this next view shows where they
+walk and this next view shows where they are likely to walk based on their
+are likely to walk based on their behavior and any scripting that might
+behavior and any scripting that might have been added to that and since we I
+have been added to that and since we I mean robots and machines were such a
+mean robots and machines were such a crucial part of the game we had a lot of
+crucial part of the game we had a lot of tools to help us test them so this is a
+tools to help us test them so this is a visualization of their visual perception
+visualization of their visual perception column so we could use this to test if
+column so we could use this to test if the player was being correctly detected
+the player was being correctly detected by entities so we had a lot of tools are
+by entities so we had a lot of tools are to test robots this next one is a
+to test robots this next one is a visualization of the animation frame so
+visualization of the animation frame so we could check for animation issues we
+we could check for animation issues we could trigger specific attacks which is
+could trigger specific attacks which is useful when one robot can have up to 10
+useful when one robot can have up to 10 and then you don't want to wait until
+and then you don't want to wait until they naturally occur you can just
+they naturally occur you can just trigger them and we also had tools that
+trigger them and we also had tools that helped us direct the entities where we
+helped us direct the entities where we needed them to be for example the tester
+needed them to be for example the tester is just now ordering this robot to go to
+is just now ordering this robot to go to a specific spot and we also had tools
+a specific spot and we also had tools that were very helpful when we're
+that were very helpful when we're testing performance and visual like we
+testing performance and visual like we can change the time of day and go with
+can change the time of day and go with it back and forth would yeah helps a lot
+it back and forth would yeah helps a lot it's a great time-saver
+speaking of time-saver this was a huge one for us this is a collision viewer so
+one for us this is a collision viewer so you can tell at a glance where there is
+you can tell at a glance where there is invisible collision or where a collision
+invisible collision or where a collision is missing or where there is mismatch
+is missing or where there is mismatch between the collision hall and the
+between the collision hall and the visual model so if anybody has done
+visual model so if anybody has done collision testing you know just how
+collision testing you know just how boring and time-consuming it is so this
+boring and time-consuming it is so this was a great help to us
+we also had a bunch of external tools if anybody has been in the poster session
+anybody has been in the poster session that run just before this talk you might
+that run just before this talk you might have seen the interactive bug map if not
+have seen the interactive bug map if not I'll go into a bit of detail about it
+I'll go into a bit of detail about it later
+later we also had the game editor they smiled
+we also had the game editor they smiled which allowed our testers to do some
+which allowed our testers to do some in-depth debugging of things like
+in-depth debugging of things like animation networks scripts for quests
+animation networks scripts for quests and it was it saved our bacon quite a
+and it was it saved our bacon quite a few times we also collected a lot of
+few times we also collected a lot of data from the game telemetry game
+data from the game telemetry game analytics same same thing and this was a
+analytics same same thing and this was a key part of localization QA we have a
+key part of localization QA we have a very high number of dialogue lines that
+very high number of dialogue lines that are spoken by NPCs and they are
+are spoken by NPCs and they are triggered contextually depending on the
+triggered contextually depending on the weather the location which point in the
+weather the location which point in the main quest you are what the main
+main quest you are what the main character is wearing so all these are
+character is wearing so all these are triggers for which line the NPC's will
+triggers for which line the NPC's will will speak and to have the localization
+will speak and to have the localization testers trigger these in game it would
+testers trigger these in game it would have been unfeasible so is that we had
+have been unfeasible so is that we had them just play through a game naturally
+them just play through a game naturally and we used data analytics sorry game
+and we used data analytics sorry game analytics to track which of these lines
+analytics to track which of these lines were triggered and to support one to
+were triggered and to support one to give us test coverage data how many of
+give us test coverage data how many of these lines have been triggered how many
+these lines have been triggered how many do we still have to go and also which
+do we still have to go and also which lines
+lines never triggered so then we were able to
+never triggered so then we were able to find a few bugs there because some of
+find a few bugs there because some of the some of the lines were not set up
+the some of the lines were not set up properly and they would never trigger so
+properly and they would never trigger so I will show you a little bit now how the
+I will show you a little bit now how the interactive bug map works this was a
+interactive bug map works this was a tool that was developed for us by the
+tool that was developed for us by the engineers at Sony first-party QA so this
+engineers at Sony first-party QA so this is the actual map as a releasing game we
+is the actual map as a releasing game we have a JIRA integration which allowed us
+have a JIRA integration which allowed us to populate the map the map with bugs as
+to populate the map the map with bugs as they were located in the world we could
+they were located in the world we could also preview any attachments like
+also preview any attachments like screenshots or videos or I could just
+screenshots or videos or I could just click on the bug and go to JR and see
+click on the bug and go to JR and see the details there and on the left there
+the details there and on the left there is a pretty comprehensive filtering
+is a pretty comprehensive filtering system that uses a lot of our JIRA
+system that uses a lot of our JIRA custom fields plus other parameters to
+custom fields plus other parameters to really drill down into the bug
+really drill down into the bug distribution and that was very helpful
+distribution and that was very helpful for producers and also for artists who
+for producers and also for artists who could just go into an area and see Oh
+could just go into an area and see Oh art bugs okay I'm just going to get them
+art bugs okay I'm just going to get them fix them and I'll be done we can also
+fix them and I'll be done we can also get positioning data from testers and
+get positioning data from testers and from players and filter it by a PSN ID
+from players and filter it by a PSN ID to track both test coverage and also the
+to track both test coverage and also the journey of our play testers to the world
+so using this tool we were able to find some areas that were not being explored
+some areas that were not being explored as much so the journey of the of the
+as much so the journey of the of the players is here color coded
+so I mentioned that we were able to find his product some problems with this tool
+his product some problems with this tool one of these problems was that there
+one of these problems was that there were several areas in the game that were
+were several areas in the game that were not visited by either players or testers
+not visited by either players or testers so we wondered what was going on
+so we wondered what was going on we went and started dating and we
+we went and started dating and we discovered that the detection range on
+discovered that the detection range on the compass was too short it wasn't that
+the compass was too short it wasn't that there was no content in those areas the
+there was no content in those areas the players or and the testers were just not
+players or and the testers were just not discovering it so they would enter the
+discovering it so they would enter the area they would look on their comm pass
+area they would look on their comm pass nothing there so they were like I'm not
+nothing there so they were like I'm not just gonna spend my time here so then we
+just gonna spend my time here so then we went and we fix that problem and then we
+went and we fix that problem and then we used again game game data to validate
+used again game game data to validate that our our fix was working and these
+that our our fix was working and these are some examples of exploratory
+are some examples of exploratory session-based charters that we derived
+session-based charters that we derived for that for that task so this tool led
+for that for that task so this tool led us to find issues that otherwise might
+us to find issues that otherwise might have been missed now I would like to
+have been missed now I would like to talk a little bit about test automation
+talk a little bit about test automation again this was covered in the poster
+again this was covered in the poster sessions but if you missed them I will
+sessions but if you missed them I will very briefly explain how it works so the
+very briefly explain how it works so the engineers at first party QA developed
+engineers at first party QA developed framework for us we did a lot of
+framework for us we did a lot of exploration into automation testing
+exploration into automation testing because we're thinking well we have a
+because we're thinking well we have a small team let's automate but because
+small team let's automate but because this was our first open-world game we
+this was our first open-world game we had no pre-existing network framework
+had no pre-existing network framework for automation and we figured that
+for automation and we figured that creating and maintaining scripts
+creating and maintaining scripts especially complex scripts if we want to
+especially complex scripts if we want to automate the player moving to the main
+automate the player moving to the main quest one that was extremely
+quest one that was extremely time-consuming and it required
+time-consuming and it required researchers that we didn't have we
+researchers that we didn't have we didn't have people who could spend their
+didn't have people who could spend their entire time writing and maintaining
+entire time writing and maintaining these scripts so the solution we settled
+these scripts so the solution we settled on
+on our AI driven BOTS who just go to the
+our AI driven BOTS who just go to the world and perform simple actions see the
+world and perform simple actions see the frame won't just get information from
+frame won't just get information from the game about the world over the
+the game about the world over the network and makes weighted decisions
+network and makes weighted decisions about which actions to carry out if
+about which actions to carry out if there are robots in the area it will
+there are robots in the area it will kill them
+kill them it will loot them if there are no robots
+it will loot them if there are no robots it will just go for collectables pick
+it will just go for collectables pick them up and we had 20 of these running
+them up and we had 20 of these running 24/7 which greatly increased our
+24/7 which greatly increased our coverage in the game world and allowed
+coverage in the game world and allowed us to find quite a lot of errors in
+us to find quite a lot of errors in either content setup or code and there
+either content setup or code and there we could fix and also this boss
+we could fix and also this boss generated a lot of game analytics data
+and now for the takeaway points I'm hoping I'm really hoping that you learn
+hoping I'm really hoping that you learn something from it from this talk and
+something from it from this talk and that you can take home some some tips
+that you can take home some some tips and some lessons so let's start with the
+and some lessons so let's start with the testing the people we found that trust
+testing the people we found that trust was essential and Trust and
+was essential and Trust and communication and collaboration these go
+communication and collaboration these go hand in hand it's a circle you just
+hand in hand it's a circle you just can't have one without the other we
+can't have one without the other we started building trust between the QA
+started building trust between the QA team and the development in the
+team and the development in the production team by communicating so yeah
+production team by communicating so yeah communication keep it personal whatever
+communication keep it personal whatever you can't face-to-face have your testers
+you can't face-to-face have your testers walk to the developers and talk to them
+walk to the developers and talk to them get them newest people if that's not
+get them newest people if that's not possible if your testing is overseas or
+possible if your testing is overseas or distributed subscribe calls or
+distributed subscribe calls or conference calls or try to remove that
+conference calls or try to remove that barrier of location and to put faces to
+barrier of location and to put faces to names
+shorten and widen your communication lines have people talk to each other
+lines have people talk to each other directly chat rooms whatever works be
+directly chat rooms whatever works be transparent and demand transparency from
+transparent and demand transparency from the development team ask them what are
+the development team ask them what are you doing why are you doing this how
+you doing why are you doing this how does this work
+empower them give them give them something to do that is theirs it's
+something to do that is theirs it's their responsibility they're accountable
+their responsibility they're accountable for it they will feel empowered and they
+for it they will feel empowered and they will feel that they have ownership of it
+will feel that they have ownership of it yeah keep them learning keep them
+yeah keep them learning keep them growing learn about the project learn
+growing learn about the project learn about the game learn about how an
+about the game learn about how an animator is is doing their work how a
+animator is is doing their work how a sound designer is doing their work what
+sound designer is doing their work what does this mean for my work as a tester
+these points may seem super generic and obvious and everything but remember that
+obvious and everything but remember that historically QA has been separate from
+historically QA has been separate from the development team and only recently
+the development team and only recently that has started a change and yeah
+that has started a change and yeah remember that Qi can bring value beyond
+remember that Qi can bring value beyond finding bugs so showcase that value to
+finding bugs so showcase that value to your developers and start getting them
+your developers and start getting them to come to you and ask for feedback your
+to come to you and ask for feedback your opinion can you help me with this in
+opinion can you help me with this in terms of touch strategy efficiency this
+terms of touch strategy efficiency this is part of both processes and tools in
+is part of both processes and tools in terms of processes focus on what's
+terms of processes focus on what's important you don't have to test
+important you don't have to test everything all the time really you don't
+everything all the time really you don't I know that some producers or other
+I know that some producers or other people like to do that because it feels
+people like to do that because it feels safe and yes coverage all the coverage
+safe and yes coverage all the coverage but especially with open-world game
+but especially with open-world game this is not possible it's just it's just
+this is not possible it's just it's just not feasible so I said focus on what
+not feasible so I said focus on what matters
+matters what are your risks what our areas that
+what are your risks what our areas that are being changed all the time
+are being changed all the time what are areas that have historically
+what are areas that have historically failed ask your developers what are they
+failed ask your developers what are they worried about what are your fragile
+worried about what are your fragile systems
+systems what are your week's weak spots so yeah
+what are your week's weak spots so yeah focus time box your testing and use
+focus time box your testing and use exploratory testing it's very useful it
+exploratory testing it's very useful it will leverage the the testers experience
+will leverage the the testers experience their knowledge about the project and it
+their knowledge about the project and it will just find bugs that you otherwise
+will just find bugs that you otherwise wouldn't find and yeah improve all the
+wouldn't find and yeah improve all the time look at what you're doing and ask
+time look at what you're doing and ask yourself why are we doing this why are
+yourself why are we doing this why are we doing this this way is there a better
+we doing this this way is there a better way we could be doing is there a faster
+way we could be doing is there a faster way a cheaper way what could our testers
+way a cheaper way what could our testers best spend their time on and speaking of
+best spend their time on and speaking of testers help them with tools support
+testers help them with tools support them tools can increase understanding
+them tools can increase understanding about the project can make things more
+about the project can make things more informative for developers and save time
+informative for developers and save time for them which will make them love your
+for them which will make them love your testers they can increase efficiency and
+testers they can increase efficiency and yes data look at data but look at it in
+yes data look at data but look at it in context track things such as what kind
+context track things such as what kind of bugs you are finding what are your
+of bugs you are finding what are your testers doing in the world how are they
+testers doing in the world how are they interacting with it is that useful not
+interacting with it is that useful not if not change it and this these
+if not change it and this these approaches are not perfect I'm going to
+approaches are not perfect I'm going to go through some potential downsides and
+go through some potential downsides and how you can help mitigate them regarding
+how you can help mitigate them regarding this specific approach
+this specific approach expert testers means siloing there's
+expert testers means siloing there's just no way around it but you can
+just no way around it but you can mitigate it one way we did it was with
+mitigate it one way we did it was with the QA reviews so those reviews getting
+the QA reviews so those reviews getting the entire QA team in one room getting
+the entire QA team in one room getting them talking about what they're working
+them talking about what they're working on and getting them to weigh in with
+on and getting them to weigh in with their specific point of view that really
+their specific point of view that really helped it increased awareness of what
+helped it increased awareness of what was going on in other areas of the title
+was going on in other areas of the title what other team members were working on
+what other team members were working on and it also increased collaboration
+and it also increased collaboration because they were looking oh actually
+because they were looking oh actually this feature that you just showed it
+this feature that you just showed it kind of touches on my area so maybe I
+kind of touches on my area so maybe I can help you come up with some you know
+can help you come up with some you know exploratory test cases for it
+exploratory test cases for it tools are great and amazing but if you
+tools are great and amazing but if you don't use them correctly they can cause
+don't use them correctly they can cause more problems than they help and we had
+more problems than they help and we had this a few times where testers would
+this a few times where testers would become a bit too reliant on tools and
+become a bit too reliant on tools and they would use them as they were not
+they would use them as they were not meant to be used and then we created
+meant to be used and then we created bugs that were not really bugs just
+bugs that were not really bugs just incorrect use of the tools so to
+incorrect use of the tools so to mitigate that talk to the developers get
+mitigate that talk to the developers get their perspective on how a tool is meant
+their perspective on how a tool is meant to be used if that goal doesn't align
+to be used if that goal doesn't align with what you want to do maybe they can
+with what you want to do maybe they can change it or make on your tool that is
+change it or make on your tool that is better suited to your needs and educate
+better suited to your needs and educate your testers create documentation
+your testers create documentation training guides on when to use the tools
+training guides on when to use the tools how to use them why and just get them to
+how to use them why and just get them to understand what is the intention between
+understand what is the intention between behind using these tools recruitment is
+behind using these tools recruitment is going to be a bit more difficult because
+going to be a bit more difficult because finding the people who can become
+finding the people who can become experts in an area who are self-starters
+experts in an area who are self-starters who can work autonomously who have the
+who can work autonomously who have the people skills to create those essential
+people skills to create those essential connections with the development team
+connections with the development team and the production team
+and the production team those people are difficult to find and a
+those people are difficult to find and a lot of those skills are soft skills that
+lot of those skills are soft skills that are not necessarily apparent in an
+are not necessarily apparent in an interview or on a resume so I don't know
+interview or on a resume so I don't know how to fix that if you find a way tell
+how to fix that if you find a way tell me we're still working on it and once
+me we're still working on it and once you get the people you will have to
+you get the people you will have to train them and not just for the first
+train them and not just for the first two weeks or the first month you will
+two weeks or the first month you will need to keep them learning make sure
+need to keep them learning make sure that they have the most relevant
+that they have the most relevant information that they need to do their
+information that they need to do their job
+job keep them new areas to own specialize
+keep them new areas to own specialize them in new and interesting ways doesn't
+them in new and interesting ways doesn't have to be areas of the game it could be
+have to be areas of the game it could be things like user research there's a lot
+things like user research there's a lot of overlap between that and QA or
+of overlap between that and QA or accessibility again a lot of overlap
+accessibility again a lot of overlap anything that you can think of that hey
+anything that you can think of that hey this would really increase quality in
+this would really increase quality in her project your QA could help with that
+her project your QA could help with that so empower them to do that so coming to
+so empower them to do that so coming to the end of my talk at the beginning I
+the end of my talk at the beginning I mentioned that when we started we had no
+mentioned that when we started we had no idea of the scope of the project looking
+idea of the scope of the project looking in hindsight now we have some numbers so
+in hindsight now we have some numbers so it feels pretty good to look back on
+it feels pretty good to look back on what we've done and the results we
+what we've done and the results we achieved despite the challenges and if
+achieved despite the challenges and if you take anything out of this talk it's
+you take anything out of this talk it's this this is the summary of the entire
+this this is the summary of the entire thing this is what we did open
+thing this is what we did open communication collaboration focus on
+communication collaboration focus on efficiency expertise and just be
+efficiency expertise and just be flexible and I think a testament of our
+flexible and I think a testament of our success is just a very positive
+success is just a very positive reception that we've had from players
+reception that we've had from players from peers from the press I cannot count
+from peers from the press I cannot count the number of times I have read or heard
+the number of times I have read or heard the phrase I've platinum two horizons
+the phrase I've platinum two horizons your dawn and
+your dawn and ever notice the bug mission accomplished
+[Applause] so we have some questions
+so we have some questions I noticed you said you gave yourselves a
+I noticed you said you gave yourselves a lot of autonomy so I assume you can make
+lot of autonomy so I assume you can make separate decisions than the development
+separate decisions than the development team and one of the things you mentioned
+team and one of the things you mentioned that came up as a problem with that was
+that came up as a problem with that was like setting up certain play tests were
+like setting up certain play tests were there ever times that QA could deny
+there ever times that QA could deny certain requests from developer in that
+certain requests from developer in that regard like say hey we want you to
+regard like say hey we want you to perfect a this next week could you say
+perfect a this next week could you say no we have a focus that we're working on
+no we have a focus that we're working on was that it was at that level of
+was that it was at that level of autonomy or was it separate than that no
+autonomy or was it separate than that no we so the question was about play
+we so the question was about play testing and if way was able to say oh no
+testing and if way was able to say oh no this is not ready for play testing am i
+this is not ready for play testing am i understanding correctly yeah and sort of
+understanding correctly yeah and sort of could development guide you more than
+could development guide you more than you wanted to so we understood the
+you wanted to so we understood the importance of play testing the the
+importance of play testing the the frequency of play testing was really
+frequency of play testing was really crucial in iterating and improving the
+crucial in iterating and improving the game so we supported that process as
+game so we supported that process as much as we could we had several metrics
+much as we could we had several metrics that we were tracking to figure out if
+that we were tracking to figure out if something was ready for play testing or
+something was ready for play testing or not like the number of critical bugs
+not like the number of critical bugs that were not solved and just
+that were not solved and just qualitative feedback from the specialist
+qualitative feedback from the specialist tester on that area who would say well
+tester on that area who would say well we have all these progression blockers
+we have all these progression blockers or actually we have all these problems
+or actually we have all these problems that were not solved but then instead of
+that were not solved but then instead of us saying no this is not ready we gave
+us saying no this is not ready we gave them the information of you have all
+them the information of you have all these problems fix them and then you'll
+these problems fix them and then you'll be ready so then they knew exactly which
+be ready so then they knew exactly which parts to focus on which bugs to fix
+parts to focus on which bugs to fix which books to prioritize and then they
+which books to prioritize and then they would make a new build we would validate
+would make a new build we would validate that then we were ready to go I don't
+that then we were ready to go I don't think we have ever had to postpone a
+think we have ever had to postpone a play test because the quality of the
+play test because the quality of the bill was not good enough thank you hi I
+bill was not good enough thank you hi I missed your poster session and now I
+missed your poster session and now I really care about it where can I get
+really care about it where can I get more info are you gonna get it somewhere
+more info are you gonna get it somewhere else well the speaker for the poster
+else well the speaker for the poster session is sitting in the back
+session is sitting in the back Gareth Tainan so you can talk to him he
+Gareth Tainan so you can talk to him he has
+has all the information his team developed
+all the information his team developed them you describe a system of AI bots
+them you describe a system of AI bots roaming the world and just playing the
+roaming the world and just playing the game besides the obvious crashes and
+game besides the obvious crashes and performance problems what other books
+performance problems what other books did you find this way and how did you
+did you find this way and how did you detect them so the bots because they had
+detect them so the bots because they had sorry the question was what kind of
+sorry the question was what kind of issues other than the crashes and the
+issues other than the crashes and the performance issues were uncovered by the
+performance issues were uncovered by the AI driven BOTS they uncovered a lot of
+AI driven BOTS they uncovered a lot of asserts and alerts which were caused by
+asserts and alerts which were caused by either issues in the code that were not
+either issues in the code that were not severe enough to become crashes yet or
+severe enough to become crashes yet or content that was been correctly set up
+content that was been correctly set up and could cause problems later so we
+and could cause problems later so we covered a lot of those issues and then
+covered a lot of those issues and then our development team was able to look at
+our development team was able to look at them analyze them fix them in some cases
+them analyze them fix them in some cases where they were bad enough thank you
+where they were bad enough thank you hello
+hello did you have a different test strategy
+did you have a different test strategy between your internal test team and the
+between your internal test team and the Sony first party QA team and then the
+Sony first party QA team and then the second question is would you have done
+second question is would you have done anything differently moving forward
+anything differently moving forward having a remote testing hmm good
+having a remote testing hmm good questions so did we have a different
+questions so did we have a different strategy between the internal QA team
+strategy between the internal QA team and the Sony first-party team and would
+and the Sony first-party team and would I do anything differently to answer your
+I do anything differently to answer your first question for the most part our
+first question for the most part our strategies were the same we started with
+strategies were the same we started with some divergences and some differences
+some divergences and some differences but as the project progressed we pretty
+but as the project progressed we pretty much aligned those strategies to make
+much aligned those strategies to make the most of our resources to minimize
+the most of our resources to minimize like work duplication and people working
+like work duplication and people working on the same area just doing the same
+on the same area just doing the same thing that was a waste of time so with
+thing that was a waste of time so with constant communication it was a process
+constant communication it was a process it took some time to get to the level
+it took some time to get to the level where testers will just talk to each
+where testers will just talk to each other and collaborate and figure out
+other and collaborate and figure out exactly what who needed to do what
+exactly what who needed to do what but yeah towards the end of course
+but yeah towards the end of course you're done and especially through
+you're done and especially through development of the frozen wilds we are
+development of the frozen wilds we are pretty much aligned on everything and
+pretty much aligned on everything and would I do something different looking
+would I do something different looking back I would get a slightly larger
+back I would get a slightly larger internal team when we are closer to
+internal team when we are closer to milestones like alpha or beta because
+milestones like alpha or beta because our workload around those times
+our workload around those times increased so much that we couldn't cover
+increased so much that we couldn't cover it with just the internal QA team and
+it with just the internal QA team and those were some tasks that had to be
+those were some tasks that had to be done by the QA team because they
+done by the QA team because they required a lot of communication with
+required a lot of communication with development and on production so then
+development and on production so then yeah I would get a slightly bigger maybe
+yeah I would get a slightly bigger maybe like 10 people I think that would be the
+like 10 people I think that would be the magic number for the project that we did
+magic number for the project that we did cool thank you so much this is a
+cool thank you so much this is a two-parter the first is you mentioned
+two-parter the first is you mentioned that your team was very specialized in
+that your team was very specialized in terms of quest or world or enemies or
+terms of quest or world or enemies or different parts of the game to what
+different parts of the game to what extent was your third-party testers in
+extent was your third-party testers in England also specialized so when we came
+England also specialized so when we came up with the buddy system the first party
+up with the buddy system the first party QA testers we had a core of more senior
+QA testers we had a core of more senior testers who are very experienced and
+testers who are very experienced and they were specialized in the same areas
+they were specialized in the same areas as our internal QA team so for example
+as our internal QA team so for example our quests internal testers had I think
+our quests internal testers had I think four or five counterparts at first party
+four or five counterparts at first party QA they had their own chat rooms and
+QA they had their own chat rooms and their own like communication channels
+their own like communication channels and they were talking every day about
+and they were talking every day about tasks like what needs to be done what's
+tasks like what needs to be done what's going on oh this quest designer told me
+going on oh this quest designer told me this can I take a look
+this can I take a look or we have this review coming up we need
+or we have this review coming up we need to build checked for this content and
+to build checked for this content and the second part is with people being so
+the second part is with people being so specialized
+specialized what sort of
+what sort of see that you have in case for example
+see that you have in case for example the person on quests got sick or was on
+the person on quests got sick or was on vacation who was able to cover for them
+vacation who was able to cover for them and how so in the beginning we didn't
+and how so in the beginning we didn't have any redundancy and that was a
+have any redundancy and that was a problem and then we started covering
+problem and then we started covering those holes just by having specialized
+those holes just by having specialized testers like double in other areas so
+testers like double in other areas so that in an emergency they could just
+that in an emergency they could just take over not completely replace that
+take over not completely replace that person but you know just hide things
+person but you know just hide things over and also when we had the first
+over and also when we had the first party QA buddies they were able to take
+party QA buddies they were able to take on that load because they knew almost as
+on that load because they knew almost as much as an internal QA person knew about
+much as an internal QA person knew about above that area thank you very much
+above that area thank you very much hi thanks for you talking I still can't
+hi thanks for you talking I still can't wrap my head around the fact that you
+wrap my head around the fact that you shipped that massive of a game with
+shipped that massive of a game with eight Dave deaf curious butts
+eight Dave deaf curious butts congratulations I have a real question
+congratulations I have a real question though I guess one of the big challenges
+though I guess one of the big challenges and is that the game changed a lot along
+and is that the game changed a lot along along the way from what I understood
+along the way from what I understood from previous talks I attended like even
+from previous talks I attended like even one year before ship massive changes
+one year before ship massive changes were made to it how did you handle
+were made to it how did you handle getting the documentation to get test
+getting the documentation to get test cases always up to date and stuff like
+cases always up to date and stuff like that did you have a specific pipeline in
+that did you have a specific pipeline in place what Oh documentation one of my
+place what Oh documentation one of my favorite topics and I think historically
+favorite topics and I think historically a very difficult task getting
+a very difficult task getting documentation other developers we have a
+documentation other developers we have a lot of challenges there because our
+lot of challenges there because our developers were very much focused on
+developers were very much focused on creating the content getting the feature
+creating the content getting the feature ready shippable everything bug fixes and
+ready shippable everything bug fixes and not so much on documentation so the
+not so much on documentation so the process that we came up with after a lot
+process that we came up with after a lot of trial and error and discussion was to
+of trial and error and discussion was to make their job easier to to write
+make their job easier to to write documentation so
+documentation so we explained to to them depending
+we explained to to them depending case-by-case because obviously we need
+case-by-case because obviously we need different documentation from a robot
+different documentation from a robot designer and then we need from a quest
+designer and then we need from a quest designer so we explain to them exactly
+designer so we explain to them exactly what we needed in terms of okay if I'm
+what we needed in terms of okay if I'm going to test your feature or your
+going to test your feature or your request or your robot these are the
+request or your robot these are the things that I need to know these are the
+things that I need to know these are the questions that I need answers to so it
+questions that I need answers to so it was very specific so instead of the
+was very specific so instead of the developer feeling like oh now I have to
+developer feeling like oh now I have to write a 60 page document that details
+write a 60 page document that details everything about the feature it was just
+everything about the feature it was just I just have to answer these five
+I just have to answer these five questions or I have to fill in this
+questions or I have to fill in this two-page template that tells me exactly
+two-page template that tells me exactly what QA needs to know and that really
+what QA needs to know and that really helped creating the templates for them
+helped creating the templates for them on the wiki on our internal wiki and
+on the wiki on our internal wiki and telling them okay you just need to fill
+telling them okay you just need to fill this in but everything is in place you
+this in but everything is in place you just need to fill in the information and
+just need to fill in the information and you're done so that helped a lot also
+you're done so that helped a lot also getting production on board they
+getting production on board they understood the importance of having
+understood the importance of having up-to-date documentation and how that
+up-to-date documentation and how that was helping us test the game so they
+was helping us test the game so they were badgering their teams remember to
+were badgering their teams remember to write documentation for QA and we also
+write documentation for QA and we also made it part of milestones so part of
+made it part of milestones so part of our alpha criteria or para criteria was
+our alpha criteria or para criteria was documentation so yeah thank you hey we
+documentation so yeah thank you hey we are right on time
+how big it was your external QA team oh yeah I forgot to mention that at peak
+yeah I forgot to mention that at peak there were about 60 of them on average
+there were about 60 of them on average throughout the project I would say about
+throughout the project I would say about 20 okay thank you all right thank you
+20 okay thank you all right thank you very much
+very much [Applause]

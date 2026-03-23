@@ -1,0 +1,1611 @@
+ladies and gentlemen please welcome to the stage GDC advisory board member
+the stage GDC advisory board member Chris Hecker I'm gonna make this
+Chris Hecker I'm gonna make this mercifully short yes I've been I've
+mercifully short yes I've been I've known John for I don't even know 10 or
+known John for I don't even know 10 or 11 years and I've been on the ahjussi
+11 years and I've been on the ahjussi advisory board for eight or seven or
+advisory board for eight or seven or eight years and we've been trying to get
+eight years and we've been trying to get him on the advisory board to speak at
+him on the advisory board to speak at the conference for almost as long as
+the conference for almost as long as I've known him and certainly as long as
+I've known him and certainly as long as I've been on the advisory board and
+I've been on the advisory board and finally this is the year so ladies and
+finally this is the year so ladies and gentlemen we're gonna show a short video
+gentlemen we're gonna show a short video and then john carmack thanks
+my job has always been finding the right balance between evolving hardware
+balance between evolving hardware requirements user experience and the
+requirements user experience and the development process the sweet spot in
+development process the sweet spot in the solution space our earliest titles
+the solution space our earliest titles were notable for the use of hardware
+were notable for the use of hardware level graphics techniques that were
+level graphics techniques that were rarely seen on the PC but they were also
+rarely seen on the PC but they were also developed almost exclusively in C at a
+developed almost exclusively in C at a time when game developers still held
+time when game developers still held assembly language development as a point
+assembly language development as a point of pride a horde of technologies and
+of pride a horde of technologies and methods have emerged and been explored
+methods have emerged and been explored since then
+since then VGA graphics floating-point calculations
+VGA graphics floating-point calculations Doss extenders cross-platform
+Doss extenders cross-platform development and portability offline
+development and portability offline processing networking and now a
+processing networking and now a half-dozen generations of 3d
+half-dozen generations of 3d accelerators the drive has always been
+accelerators the drive has always been to produce something exciting for both
+to produce something exciting for both the developers to work with and the
+the developers to work with and the users to experience identifying the
+users to experience identifying the things that matter and focusing on them
+[Applause]
+okay this year they hit on the winning strategy of convincing my wife that this
+strategy of convincing my wife that this was something I needed to do and letting
+was something I needed to do and letting her work out the details so I am going
+her work out the details so I am going to talk about some topical development
+to talk about some topical development issues but first I'd like everyone to
+issues but first I'd like everyone to just step back a little bit from the
+just step back a little bit from the kind of daily Labor's that we go through
+kind of daily Labor's that we go through and just be amazed at the progress that
+and just be amazed at the progress that we've seen here if you go back and look
+we've seen here if you go back and look my first computer was a vic-20 you know
+my first computer was a vic-20 you know 4k air ram one megahertz processor the
+4k air ram one megahertz processor the first commercial program that I sold was
+first commercial program that I sold was developed on an apple to see 128 K R Ram
+developed on an apple to see 128 K R Ram aka video memory and if we look at that
+aka video memory and if we look at that to what we've got today there's a factor
+to what we've got today there's a factor of a million difference in power between
+of a million difference in power between that I mean we had you know the Apple
+that I mean we had you know the Apple twos could do maybe half a killer flop
+twos could do maybe half a killer flop with the best code possible on there and
+with the best code possible on there and now we're looking at you know hundreds
+now we're looking at you know hundreds of gigaflops of processing power on our
+of gigaflops of processing power on our systems and it's easy to kind of lose to
+systems and it's easy to kind of lose to just not be aware of just how tremendous
+just not be aware of just how tremendous that really is I mean a factor of a
+that really is I mean a factor of a million that's almost like a euphemism
+million that's almost like a euphemism for impossible somebody says it needs to
+for impossible somebody says it needs to be a million times faster and we'll go
+be a million times faster and we'll go what we've gotten from there you know
+what we've gotten from there you know the early computer games were very much
+the early computer games were very much things that people had to be into that
+things that people had to be into that specific thing you had to have a huge
+specific thing you had to have a huge suspension of disbelief to be able to
+suspension of disbelief to be able to sit down and enjoy the early games while
+sit down and enjoy the early games while now we have things that can just reach
+now we have things that can just reach right out and grip people that are just
+right out and grip people that are just normal people that are used to a film or
+normal people that are used to a film or television type experience and we can
+television type experience and we can give them quality like that with the
+give them quality like that with the game so it's an interesting question to
+game so it's an interesting question to sit back and say well if we continue to
+sit back and say well if we continue to have progress like this what are we
+have progress like this what are we going to do with another factor of a
+going to do with another factor of a million and while it's likely we're not
+million and while it's likely we're not going to see necessarily all the same
+going to see necessarily all the same program you know progression levels
+program you know progression levels there we probably won't see eye
+there we probably won't see eye terahertz processors ten or twelve years
+terahertz processors ten or twelve years from now but we're certainly to see
+from now but we're certainly to see massive strides in most of the other
+massive strides in most of the other levels and certainly increased
+levels and certainly increased parallelism to make up for you know
+parallelism to make up for you know limits and scalar clock rates so if we
+limits and scalar clock rates so if we look at what we've got now there's a lot
+look at what we've got now there's a lot of things that are actually pretty close
+of things that are actually pretty close to being done
+to being done the resolution that we look at on
+the resolution that we look at on monitors today which a lot of games are
+monitors today which a lot of games are actually starting to render natively to
+actually starting to render natively to is equivalent to film resolution when
+is equivalent to film resolution when we're looking at 2 megapixels they're so
+we're looking at 2 megapixels they're so high we've just recently made the step
+high we've just recently made the step to a floating-point pixel formats which
+to a floating-point pixel formats which gives us the entire dynamic range that
+gives us the entire dynamic range that the human eye can perceive the frame
+the human eye can perceive the frame rates that we see on some some games
+rates that we see on some some games when you're looking at 120 Hertz
+when you're looking at 120 Hertz rendering that's as fast as you can
+rendering that's as fast as you can basically use for for presenting
+basically use for for presenting anything to anyone so a lot of these
+anything to anyone so a lot of these things are tantalisingly close to being
+things are tantalisingly close to being able to be just written off as this is
+able to be just written off as this is completed now there's a bunch of things
+completed now there's a bunch of things obviously that still separate what we
+obviously that still separate what we render from reality if there was an old
+render from reality if there was an old saying many years ago in computer
+saying many years ago in computer graphics that reality is 80 million
+graphics that reality is 80 million polygons a second that's clearly not the
+polygons a second that's clearly not the case because here we are today we can
+case because here we are today we can render 80 million polygons a second in
+render 80 million polygons a second in many cases and we're still a long ways
+many cases and we're still a long ways from what anyone would really term
+from what anyone would really term photorealistic but the things that we
+photorealistic but the things that we can actually look at improving here
+can actually look at improving here we're probably a factor of a hundred off
+we're probably a factor of a hundred off from the real world in terms of
+from the real world in terms of real-world clutter object complexity
+real-world clutter object complexity I typically ninh a game might have a
+I typically ninh a game might have a couple dozen people where you look at an
+couple dozen people where you look at an auditorium where there might be
+auditorium where there might be thousands of people and you get down to
+thousands of people and you get down to all the little tiny things that were
+all the little tiny things that were used to sort of abstract again games
+used to sort of abstract again games where a cluttered desk in a game might
+where a cluttered desk in a game might have a couple sheets of paper a coffee
+have a couple sheets of paper a coffee cup keyboard and a monitor where if you
+cup keyboard and a monitor where if you look at you know most people's offices
+look at you know most people's offices there's gonna be a couple thousand
+there's gonna be a couple thousand discreet little items there so there's a
+discreet little items there so there's a clear path that will take them on
+clear path that will take them on increasing the complexity of the worlds
+increasing the complexity of the worlds I am there will be probably you know
+I am there will be probably you know another factor of 10 that we just
+another factor of 10 that we just cranked up in terms of the normal things
+cranked up in terms of the normal things that we do today in games that we want
+that we do today in games that we want to go ahead and bring up to those done
+to go ahead and bring up to those done levels where we're doing everything at
+levels where we're doing everything at very high resolutions very high frame
+very high resolutions very high frame rates very high color depths mmm
+rates very high color depths mmm but I'm you know the another factor of
+but I'm you know the another factor of 100 or so will probably come in I'm in
+100 or so will probably come in I'm in terms of what we'll do with extremely
+terms of what we'll do with extremely high quality surface rendering going
+high quality surface rendering going ahead and doing a good job at all of the
+ahead and doing a good job at all of the analytically intractable problems like
+analytically intractable problems like soft shadowing and motion blur
+soft shadowing and motion blur at doing really good reflections
+at doing really good reflections throughout the world without I've you
+throughout the world without I've you know necessaries necessarily simplifying
+know necessaries necessarily simplifying assumptions but it's still on the
+assumptions but it's still on the graphics side of things you look at it
+graphics side of things you look at it and a factor of a million is basically
+and a factor of a million is basically doing it sixty Hertz what takes four and
+doing it sixty Hertz what takes four and a half hours to do now and of course
+a half hours to do now and of course four and a half hours is has always been
+four and a half hours is has always been sort of what a rendered frame takes no
+sort of what a rendered frame takes no matter what computing power that you've
+matter what computing power that you've got it'll be interesting to see if
+got it'll be interesting to see if people are able to suck that up in the
+people are able to suck that up in the offline side of things there but still
+offline side of things there but still it means that we can quite credibly with
+it means that we can quite credibly with no huge leaps of imagination or
+no huge leaps of imagination or breakthrough technologies expect to
+breakthrough technologies expect to eventually be rendering I Lord of the
+eventually be rendering I Lord of the Rings rendered quality I'm CG graphics
+Rings rendered quality I'm CG graphics and games you know a decade or more from
+and games you know a decade or more from now but there are a lot of kind of
+now but there are a lot of kind of subtle issues that are seen there when
+subtle issues that are seen there when you look at the offline rendering world
+you look at the offline rendering world which gaming will have to put a little
+which gaming will have to put a little bit more cleverness into that's like in
+bit more cleverness into that's like in say Lord of the Rings every frame is
+say Lord of the Rings every frame is basically gone through and tweaked
+basically gone through and tweaked dynamically with an artist's eye and
+dynamically with an artist's eye and that's something that we aren't able to
+that's something that we aren't able to do in a real time situation because
+do in a real time situation because we've got more flexibility than that but
+we've got more flexibility than that but the the problems that a lot of gaming
+the the problems that a lot of gaming has related to the offline stuff is very
+has related to the offline stuff is very much one of being able to give the
+much one of being able to give the player the freedom to move around there
+player the freedom to move around there and losing the ability to completely
+and losing the ability to completely control the experience they're certainly
+control the experience they're certainly different types of games will be know
+different types of games will be know done quicker than others when you've got
+done quicker than others when you've got a third-person constrained view you're
+a third-person constrained view you're gonna be able to put most of that level
+gonna be able to put most of that level of kind of detail and sophistication and
+of kind of detail and sophistication and the games will look like a movie you
+the games will look like a movie you know third-person rendered games where
+know third-person rendered games where you have a director's perspective moving
+you have a director's perspective moving in there I I have very little doubt that
+in there I I have very little doubt that that will be solved to the quality level
+that will be solved to the quality level of looking like a movie
+of looking like a movie I am first-person games where you've got
+I am first-person games where you've got complete freedom are a little bit harder
+complete freedom are a little bit harder or a lot harder in some ways the the
+or a lot harder in some ways the the actual fidelity that you'd like to
+actual fidelity that you'd like to render on there for an immersive
+render on there for an immersive experience is something that requires a
+experience is something that requires a little bit more in the way of advances
+little bit more in the way of advances in IO devices where you know
+in IO devices where you know interestingly the resolutions that we're
+interestingly the resolutions that we're at right now if we had the proper
+at right now if we had the proper display technologies there at
+display technologies there at perfectly acceptable to render reality
+perfectly acceptable to render reality if we had retinal scanning and direct
+if we had retinal scanning and direct retinal imaging if we have to use
+retinal imaging if we have to use something as crude as like a cave imager
+something as crude as like a cave imager for the entire thing we might need under
+for the entire thing we might need under factor of 50 in terms of pixel rates to
+factor of 50 in terms of pixel rates to go ahead and give the complete level of
+go ahead and give the complete level of look around at anything immersion but
+look around at anything immersion but some of the things that make it even
+some of the things that make it even more difficult are when we start looking
+more difficult are when we start looking at the ability of people to look at
+at the ability of people to look at whatever they want rather than whatever
+whatever they want rather than whatever the camera view wants which brings you
+the camera view wants which brings you up the whole the whole issues of things
+up the whole the whole issues of things that are tweaked and massaged in the
+that are tweaked and massaged in the offline rendering world that need to
+offline rendering world that need to somehow come across automatically in
+somehow come across automatically in convincingly and that leads up to a
+convincingly and that leads up to a couple of the problems which really
+couple of the problems which really aren't so much nearly done in AI you
+aren't so much nearly done in AI you know and what we'll do in computer games
+know and what we'll do in computer games another one that's basically could be
+another one that's basically could be done right now is audio if anybody
+done right now is audio if anybody wanted to spend all the resources that
+wanted to spend all the resources that we have today I terms of using the GPUs
+we have today I terms of using the GPUs for it and all the floating-point
+for it and all the floating-point processing power audio could be done I
+processing power audio could be done I mean we could go ahead and have all the
+mean we could go ahead and have all the head modeling all the written you know
+head modeling all the written you know the radiosity style sound transfer
+the radiosity style sound transfer through very complex environments and we
+through very complex environments and we certainly have the you know the sample
+certainly have the you know the sample rate and then you know the bit depth for
+rate and then you know the bit depth for all of that but it just doesn't really
+all of that but it just doesn't really pay off in the current generation of
+pay off in the current generation of things to devote that much effort to it
+things to devote that much effort to it but give it a couple more you know a
+but give it a couple more you know a couple more turns of the processor
+couple more turns of the processor generations the audio will just be done
+generations the audio will just be done now the things that that aren't done
+now the things that that aren't done physics simulation which ties in with
+physics simulation which ties in with that and tweaking of all the rendered
+that and tweaking of all the rendered views where we're much much closer to
+views where we're much much closer to being able to render exactly what we
+being able to render exactly what we want then we are to be able to simulate
+want then we are to be able to simulate exactly what we want and in many cases
+exactly what we want and in many cases physics is still one of those things
+physics is still one of those things where everybody's got a physics engine
+where everybody's got a physics engine now and they all sort of kind of work in
+now and they all sort of kind of work in many cases but everybody knows pretty
+many cases but everybody knows pretty much what you do to go ahead and break
+much what you do to go ahead and break your you know break most physics engines
+your you know break most physics engines and we're still doing basically trivial
+and we're still doing basically trivial things you know it's cool to have a
+things you know it's cool to have a couple boxes or you know bounce around
+couple boxes or you know bounce around and knock off of each other and land in
+and knock off of each other and land in different or you know different
+different or you know different orientations and the ragdoll a character
+orientations and the ragdoll a character but when we start looking at things that
+but when we start looking at things that people will be experimenting with in
+people will be experimenting with in current and future game generations
+current and future game generations there
+there we'll be I know simulations of weather
+we'll be I know simulations of weather simulations of liquids I you know
+simulations of liquids I you know simulations of you know dust motes going
+simulations of you know dust motes going through the air and transferring through
+through the air and transferring through the environments and all of these are
+the environments and all of these are you know they're interesting challenging
+you know they're interesting challenging problems I am that we can get some
+problems I am that we can get some mileage out of I it ties in kind of
+mileage out of I it ties in kind of interestingly with something that's
+interestingly with something that's happened in the game you know the game
+happened in the game you know the game industry over the last decade and that a
+industry over the last decade and that a lot of things that were academic
+lot of things that were academic pursuits are actually really relevant to
+pursuits are actually really relevant to what we're doing now you know ten years
+what we're doing now you know ten years ago gaming had nothing whatsoever to do
+ago gaming had nothing whatsoever to do with what people would do academically
+with what people would do academically with simulation or graphics I what you
+with simulation or graphics I what you were doing was basically all
+were doing was basically all implementation level things I've you
+implementation level things I've you know the trickery was in figuring out
+know the trickery was in figuring out how to do something clever and make some
+how to do something clever and make some implementation thing you know a small
+implementation thing you know a small integral factor faster than what would
+integral factor faster than what would be the straightforward algorithm for it
+be the straightforward algorithm for it but now with the power that we've got
+but now with the power that we've got and the fact that not everything is it
+and the fact that not everything is it is nailed down so hard in terms of
+is nailed down so hard in terms of exactly what fractions of the CPU need
+exactly what fractions of the CPU need to go to these things and what are left
+to go to these things and what are left over for other things we've seen it
+over for other things we've seen it certainly in the last five years I have
+certainly in the last five years I have you know a huge amount of beneficial
+you know a huge amount of beneficial crossover from the academic graphics
+crossover from the academic graphics research world into computer graphics
+research world into computer graphics because now what people do for you know
+because now what people do for you know for a college thesis or something has
+for a college thesis or something has direct applicability to what you can use
+direct applicability to what you can use in a computer game so physics rendering
+in a computer game so physics rendering is something that's still going through
+is something that's still going through a lot of that and I that's not my
+a lot of that and I that's not my specialty but it's one of those areas
+specialty but it's one of those areas that you can clearly look at and say
+that you can clearly look at and say this is going to be you know a very
+this is going to be you know a very exciting area of research that will be
+exciting area of research that will be important as we start more or less
+important as we start more or less polishing off many of the graphics side
+polishing off many of the graphics side of things and I have that also brings up
+of things and I have that also brings up the largest issue which is what you do
+the largest issue which is what you do with AI level things and of course
+with AI level things and of course that's a field that that goes much
+that's a field that that goes much beyond gaming or entertainment even into
+beyond gaming or entertainment even into you know really large kind of world
+you know really large kind of world scale important item issues on there but
+scale important item issues on there but when we come down to it as we start
+when we come down to it as we start rendering all of these completely
+rendering all of these completely perfect worlds that are just looking
+perfect worlds that are just looking absolutely fabulous the process of
+absolutely fabulous the process of making everything else look as good as
+making everything else look as good as the rendering in
+the rendering in bulbs many things that are difficult
+bulbs many things that are difficult physics simulations and then many things
+physics simulations and then many things that are just AI complete problems and
+that are just AI complete problems and it's going to be really interesting to
+it's going to be really interesting to see how those things are addressed i one
+see how those things are addressed i one of the major one of my major strategy is
+of the major one of my major strategy is that it has always been if you're not
+that it has always been if you're not going to try and solve something really
+going to try and solve something really well
+well try and dodge the issue as completely as
+try and dodge the issue as completely as possible I've you know which is why we
+possible I've you know which is why we don't have a lot of character
+don't have a lot of character interaction because character
+interaction because character interaction is hard and if you start
+interaction is hard and if you start making characters look really really
+making characters look really really good but they still act you know like
+good but they still act you know like cardboard cutouts I am you know it's an
+cardboard cutouts I am you know it's an open question whether that's actually a
+open question whether that's actually a good direction to pursue so AI is one of
+good direction to pursue so AI is one of those things that in games industry is
+those things that in games industry is still addressed completely as a you know
+still addressed completely as a you know a set of techniques and tricks and
+a set of techniques and tricks and you're working at it specifically for a
+you're working at it specifically for a you know a limited set of outputs but
+you know a limited set of outputs but we're gonna be demanding more and more
+we're gonna be demanding more and more out of that and when we start you know
+out of that and when we start you know looking at what we really expect to see
+looking at what we really expect to see in a game if people just sit back and
+in a game if people just sit back and kind of blue-sky they want to have you
+kind of blue-sky they want to have you know some you know like I say a fantasy
+know some you know like I say a fantasy environment where you go in and you've
+environment where you go in and you've got all of the people there and they're
+got all of the people there and they're acting like people that's a really tough
+acting like people that's a really tough problem now it's interesting in that I
+problem now it's interesting in that I believe personally that as the direction
+believe personally that as the direction of research goes game environments are a
+of research goes game environments are a really wonderful place to actually
+really wonderful place to actually conduct AI research because it gives you
+conduct AI research because it gives you a simulated environment where you don't
+a simulated environment where you don't have to worry about sensors and
+have to worry about sensors and actuators and you can still work on kind
+actuators and you can still work on kind of the core computational problem there
+of the core computational problem there so there's some hopeful I you know bits
+so there's some hopeful I you know bits that there may be interesting research
+that there may be interesting research elements going on there but it always
+elements going on there but it always has to be kind of tied in with the fact
+has to be kind of tied in with the fact that in the end we are making a product
+that in the end we are making a product that's supposed to entertain people
+that's supposed to entertain people and the choices that you make in
+and the choices that you make in technical directions if you want to be
+technical directions if you want to be successful you have to kind of keep your
+successful you have to kind of keep your eyes on the value rather than
+eyes on the value rather than necessarily in some ways what you
+necessarily in some ways what you consider the quality of what you're
+consider the quality of what you're doing and I say I in many cases there's
+doing and I say I in many cases there's some interesting aspects to the gaming
+some interesting aspects to the gaming world on there where a lot of what
+world on there where a lot of what people look at as a
+people look at as a like Bach programming and things like
+like Bach programming and things like that and I am you know our our issues
+that and I am you know our our issues where you're addressing a very
+where you're addressing a very domain-specific element of the game and
+domain-specific element of the game and that's been good mileage I you know
+that's been good mileage I you know we've gotten good value out of the
+we've gotten good value out of the effort that goes into that but when we
+effort that goes into that but when we start looking at harder and harder
+start looking at harder and harder problems on there it does become closer
+problems on there it does become closer to a pure research topic and I am you
+to a pure research topic and I am you know I'm probably not going to be one of
+know I'm probably not going to be one of the people at the forefront of that
+the people at the forefront of that technology but it's going to be an
+technology but it's going to be an incredibly important area that we look
+incredibly important area that we look at over you know the next decade of game
+at over you know the next decade of game development on there and there is always
+development on there and there is always the possibility that you know some real
+the possibility that you know some real fundamentally important wide-reaching
+fundamentally important wide-reaching results may be obtained by you know the
+results may be obtained by you know the efforts of people you know to make a
+efforts of people you know to make a game in there to make something come out
+game in there to make something come out time you know the way they want to have
+time you know the way they want to have characters interacting there because
+characters interacting there because that is one of the you know one of the
+that is one of the you know one of the big problems still yet to be done in
+big problems still yet to be done in computer science and I certainly believe
+computer science and I certainly believe it's a solvable one but tying that into
+it's a solvable one but tying that into the you know the actual process of
+the you know the actual process of sitting down and making the games there
+sitting down and making the games there is I'm you know it's always been
+is I'm you know it's always been interesting to have a goal with a
+interesting to have a goal with a project that you're working on trying to
+project that you're working on trying to do something new at each time you know
+do something new at each time you know to try and kind of meter out the time
+to try and kind of meter out the time that you've got for developing something
+that you've got for developing something new and interesting to actually tie in
+new and interesting to actually tie in with producing the product that's going
+with producing the product that's going to pay for your company to continue to
+to pay for your company to continue to be able to do games in the future and
+be able to do games in the future and that's one of the other major topics
+that's one of the other major topics that it I want to go over is they the
+that it I want to go over is they the extensive stretching of the game
+extensive stretching of the game development cycle and some of the
+development cycle and some of the problems that I think I see with I'm you
+problems that I think I see with I'm you know with our development cycles and to
+know with our development cycles and to some degree with the industry as a whole
+some degree with the industry as a whole we've been obviously doom 3 hasn't
+we've been obviously doom 3 hasn't shipped yet where I am you know we're
+shipped yet where I am you know we're going into our fourth year of
+going into our fourth year of development on that it's it's really
+development on that it's it's really close but there's some interesting
+close but there's some interesting things that I can look at on here where
+things that I can look at on here where I can remember clearly in previous
+I can remember clearly in previous projects thinking ok we're you know
+projects thinking ok we're you know we're down to the wire we're pushing
+we're down to the wire we're pushing everything through I've done a good job
+everything through I've done a good job on all of this but wouldn't it be nice
+on all of this but wouldn't it be nice if I could sit back and really clean up
+if I could sit back and really clean up the code perfect the interfaces and you
+the code perfect the interfaces and you know just do a
+know just do a wonderful nice craftsman job on that and
+wonderful nice craftsman job on that and interestingly this project I've had the
+interestingly this project I've had the time to basically do that and come to
+time to basically do that and come to the conclusion that it sort of sucks to
+the conclusion that it sort of sucks to be in that position where there's a
+be in that position where there's a small level of you know there's a level
+small level of you know there's a level of craftsman satisfaction that you get
+of craftsman satisfaction that you get from trying to do what you do at an
+from trying to do what you do at an extreme level of quality and one thing
+extreme level of quality and one thing that I found is that's not really my
+that I found is that's not really my primary motivation I do take some
+primary motivation I do take some enjoyment in it when you go ahead and
+enjoyment in it when you go ahead and you know and work and polish and improve
+you know and work and polish and improve something but in the end that's not
+something but in the end that's not what's really providing the value to
+what's really providing the value to your end users and that has really
+your end users and that has really become clear to me and it's been you
+become clear to me and it's been you know it's been something that's driven
+know it's been something that's driven all of my developments over the years in
+all of my developments over the years in that you want to pick out the things
+that you want to pick out the things that are really important and you need
+that are really important and you need to be able to categorize and say this is
+to be able to categorize and say this is perhaps has value but isn't the best use
+perhaps has value but isn't the best use of the time on there and that's gone
+of the time on there and that's gone back through you know every project
+back through you know every project we've ever done has had those kind of
+we've ever done has had those kind of decision points on there where is this
+decision points on there where is this going to be the thing that we focus on
+going to be the thing that we focus on is this going to be key and when you get
+is this going to be key and when you get little bits of time and you could sit
+little bits of time and you could sit back and I am do a really nice polishing
+back and I am do a really nice polishing job it's kind of nice but it's not it's
+job it's kind of nice but it's not it's not the point of maximum leverage and I
+not the point of maximum leverage and I found that I get the most satisfaction
+found that I get the most satisfaction out of the development work when I can
+out of the development work when I can tell that the work that I'm doing has no
+tell that the work that I'm doing has no major leverage on the final product and
+major leverage on the final product and there's a lot of things that have
+there's a lot of things that have changed you know with the industry that
+changed you know with the industry that to some degrees have kind of lessons the
+to some degrees have kind of lessons the ability of bekhten
+ability of bekhten to happen I've you know in the early
+to happen I've you know in the early days you would have a company that would
+days you would have a company that would have a couple programmers working on a
+have a couple programmers working on a project and there would be a good chance
+project and there would be a good chance that a single programmer would basically
+that a single programmer would basically know everything about what's going on in
+know everything about what's going on in a project and up until recently every
+a project and up until recently every aspect of a game that came out of it was
+aspect of a game that came out of it was something that I had originally written
+something that I had originally written and then we would have one or two other
+and then we would have one or two other programmers that would pick up the
+programmers that would pick up the foundation and
+foundation and head in and work from there the last
+head in and work from there the last game with quake 3 was the first game
+game with quake 3 was the first game that had a major chunk that was
+that had a major chunk that was something that I didn't write which was
+something that I didn't write which was the bought a I logic and the in Doom
+the bought a I logic and the in Doom it's the first game that we started off
+it's the first game that we started off intending to have multiple developers
+intending to have multiple developers developing completely independent areas
+developing completely independent areas and it's necessary at some point to do
+and it's necessary at some point to do that if we follow the current design
+that if we follow the current design trends that we're doing with games
+trends that we're doing with games because at some point you just reach a
+because at some point you just reach a level where one person can't possibly do
+level where one person can't possibly do all the things that you decided are
+all the things that you decided are critically important for your product
+critically important for your product you have to split things up but there's
+you have to split things up but there's there's a big cliff right there when you
+there's a big cliff right there when you go from one person being able to deal
+go from one person being able to deal with and manage and go over and change
+with and manage and go over and change and fix anything in the product to a
+and fix anything in the product to a point where you have three or four or
+point where you have three or four or more developers that may not actually
+more developers that may not actually know what's going on and everybody
+know what's going on and everybody else's code it's been unnerving for me
+else's code it's been unnerving for me sometimes to realize that there are
+sometimes to realize that there are source files in doom that I've never
+source files in doom that I've never even opened and and on the one hand I
+even opened and and on the one hand I can kind of berate myself a little bit
+can kind of berate myself a little bit and say I should be doing more
+and say I should be doing more comprehensive code reviews over
+comprehensive code reviews over everything but it does just mean there's
+everything but it does just mean there's a finite level where there's just only
+a finite level where there's just only so much that one person can deal with it
+so much that one person can deal with it one time and there's again it's
+one time and there's again it's necessary if we continue to have the
+necessary if we continue to have the kind of feature lists that we have if we
+kind of feature lists that we have if we have to do everything we've always done
+have to do everything we've always done before and then do much you know many
+before and then do much you know many more things everything that all the
+more things everything that all the competitors are doing but to some degree
+competitors are doing but to some degree I feel that we might be falling into a
+I feel that we might be falling into a kind of trap kind of a mainframe trap
+kind of trap kind of a mainframe trap where if you looked at the old computer
+where if you looked at the old computer vendors that would look at things and
+vendors that would look at things and say well this is the serious work this
+say well this is the serious work this is you know our group of competitors we
+is you know our group of competitors we have large products that have decades
+have large products that have decades long you know histories or legacies with
+long you know histories or legacies with them and we need to keep maintaining
+them and we need to keep maintaining this level of support and while I don't
+this level of support and while I don't have specific no visions for how this
+have specific no visions for how this can go it does still strike me that
+can go it does still strike me that there's the possibility for things that
+there's the possibility for things that are not yet another
+are not yet another first-person shooter third-person action
+first-person shooter third-person action game you know RPG whatever that there
+game you know RPG whatever that there that there are game possibilities that
+that there are game possibilities that are not just working directly off of the
+are not just working directly off of the exist
+exist paradigms you know the genres that we've
+paradigms you know the genres that we've got now and certainly its major claim to
+got now and certainly its major claim to fame probably is that we you know we
+fame probably is that we you know we invented a genre
+invented a genre with the first-person shooter and to
+with the first-person shooter and to some degree we're still trapped by that
+some degree we're still trapped by that success I am you know they don't expect
+success I am you know they don't expect anyone to you know to cry over our woes
+anyone to you know to cry over our woes on this that we're you know we're very
+on this that we're you know we're very happy to be successful with this but
+happy to be successful with this but there are subtle you know issues there
+there are subtle you know issues there that prevent us from doing radically
+that prevent us from doing radically different things I have just the concept
+different things I have just the concept of having dozens of employees that I'm
+of having dozens of employees that I'm you know that have certain skill sets
+you know that have certain skill sets kind of determines where we go in the
+kind of determines where we go in the development process on there we can't
+development process on there we can't just say oh I've decided we're gonna do
+just say oh I've decided we're gonna do a strategy game with some interesting
+a strategy game with some interesting and clever objective and we really don't
+and clever objective and we really don't need all these level designers and so
+need all these level designers and so there's you know there's an aspect of
+there's you know there's an aspect of the established game companies having
+the established game companies having I'm sort of a mainframe bias on there
+I'm sort of a mainframe bias on there and I have high hopes that there's still
+and I have high hopes that there's still many of the creative small development
+many of the creative small development teams that you know can be working on
+teams that you know can be working on more of an innovative new approach in
+more of an innovative new approach in there because you've got there are
+there because you've got there are factors of efficiency there when I can
+factors of efficiency there when I can still look back kind of wistfully at the
+still look back kind of wistfully at the time when there were six of us you know
+time when there were six of us you know sitting in a room working all night to
+sitting in a room working all night to get the project done rather than having
+get the project done rather than having a project manager and multiple kind of
+a project manager and multiple kind of departments working on the different
+departments working on the different things there and on the one hand there's
+things there and on the one hand there's no question that what we're doing now
+no question that what we're doing now really is superior in every way I mean
+really is superior in every way I mean I'm not gonna go you know longing for
+I'm not gonna go you know longing for the good old days of the extremely
+the good old days of the extremely simple games I mean what we're doing now
+simple games I mean what we're doing now is just better but it's better at a much
+is just better but it's better at a much larger cost and the development process
+larger cost and the development process there I do think still is open for you
+there I do think still is open for you know that six-person team doing
+know that six-person team doing something really innovative but it's not
+something really innovative but it's not going to be a first-person shooter or
+going to be a first-person shooter or any of the established genres because
+any of the established genres because it's just taking incredibly massive
+it's just taking incredibly massive amounts of development time and effort
+amounts of development time and effort to do this and the time ties in in a
+to do this and the time ties in in a really depressing level with the
+really depressing level with the technical I am requirements and strategy
+technical I am requirements and strategy on there where the new doom game was
+on there where the new doom game was based on strategic decisions that I made
+based on strategic decisions that I made over four years ago they've turned out
+over four years ago they've turned out good
+good that the hardware is pretty much evolved
+that the hardware is pretty much evolved I am the way I expected although you
+I am the way I expected although you know to be sure I have sort of a
+know to be sure I have sort of a Heisenberg uncertainty principle effect
+Heisenberg uncertainty principle effect on the hardware industry where the
+on the hardware industry where the strategic decisions that I make do
+strategic decisions that I make do influence you know upcoming generations
+influence you know upcoming generations of hardware so you know it may not be
+of hardware so you know it may not be completely strategic brilliance on my
+completely strategic brilliance on my part but but the decisions looked good
+part but but the decisions looked good but I looked at this and we were
+but I looked at this and we were rendering the same pictures that we do
+rendering the same pictures that we do now effectively I am over three years
+now effectively I am over three years ago you know on a g-force one class
+ago you know on a g-force one class hardware and here we haven't shipped the
+hardware and here we haven't shipped the title yet and we've had three you know
+title yet and we've had three you know three generations of hardware that could
+three generations of hardware that could have used this technology that we
+have used this technology that we haven't been able to get out and
+haven't been able to get out and actually really take maximum advantage
+actually really take maximum advantage of and right now we're looking at
+of and right now we're looking at starting new research for I am you know
+starting new research for I am you know the current generation of hardware with
+the current generation of hardware with floating-point pixel formats doing all
+floating-point pixel formats doing all the interesting rendering things that
+the interesting rendering things that we're looking forward to on there but
+we're looking forward to on there but you know I'm looking at this and saying
+you know I'm looking at this and saying well we ship doom really soon now I
+well we ship doom really soon now I generally we'd like to go ahead and have
+generally we'd like to go ahead and have the next title it's going to be much
+the next title it's going to be much shorter development time which usually
+shorter development time which usually means that we have to not get really
+means that we have to not get really aggressive at developing new things if
+aggressive at developing new things if we basically took doom and just kind of
+we basically took doom and just kind of spiffed up the technology a little bit
+spiffed up the technology a little bit if you know for the couple things that
+if you know for the couple things that that we can now count for in the
+that we can now count for in the changing market share that means that a
+changing market share that means that a brand new level of technology if I do
+brand new level of technology if I do the kind of level of cleanly rewrite
+the kind of level of cleanly rewrite that I did with doom might not even be
+that I did with doom might not even be started being worked with for two years
+started being worked with for two years from now and then it could take two or
+from now and then it could take two or three years to develop a new title I
+three years to develop a new title I mean if we're lucky you know it could be
+mean if we're lucky you know it could be another four year title after that and
+another four year title after that and that's looking at six years from concept
+that's looking at six years from concept I am you know to actual deployment on
+I am you know to actual deployment on there and then of course there's the the
+there and then of course there's the the kind of legacy tailing on there where
+kind of legacy tailing on there where we'll have licensees that are using that
+we'll have licensees that are using that through two generations of product after
+through two generations of product after that that's requiring to some degree
+that that's requiring to some degree looking ahead almost a decade on the
+looking ahead almost a decade on the hardware technology and certainly you
+hardware technology and certainly you can't be appropriate at that point you
+can't be appropriate at that point you might be scalable on some level there
+might be scalable on some level there but it's sort of like running I am
+but it's sort of like running I am you know you can run quake on a modern
+you know you can run quake on a modern processor but it doesn't take advantage
+processor but it doesn't take advantage of what you can really do like it would
+of what you can really do like it would with a current game on doom 3 so that's
+with a current game on doom 3 so that's one of my big trouble spots on there
+one of my big trouble spots on there about I want to bring new technology out
+about I want to bring new technology out kind of as rapidly as possible I mean
+kind of as rapidly as possible I mean the new stuff is great the things that
+the new stuff is great the things that we can do with the cards that are just
+we can do with the cards that are just coming out I mean I just got an Envy 40
+coming out I mean I just got an Envy 40 into my you know my dev system and it's
+into my you know my dev system and it's you know it's spectacular there's just
+you know it's spectacular there's just you know the power that we can get with
+you know the power that we can get with that to really go ahead and utilize all
+that to really go ahead and utilize all the you know the floating-point
+the you know the floating-point calculations that we want to use the new
+calculations that we want to use the new generations of things that I want to do
+generations of things that I want to do in the rendering and it's it's really
+in the rendering and it's it's really disappointing to think that at the
+disappointing to think that at the absolute best possible case if we
+absolute best possible case if we decided to kind of you know go for it
+decided to kind of you know go for it and do a you know a real high-end
+and do a you know a real high-end product for the next one it would be two
+product for the next one it would be two and a half years best case before we
+and a half years best case before we could have something like this that
+could have something like this that actually gets into people's hands and I
+actually gets into people's hands and I don't really know what to do about that
+don't really know what to do about that you know an idea that I floated early on
+you know an idea that I floated early on in dooms development that I wish we had
+in dooms development that I wish we had followed up on was to go ahead and do a
+followed up on was to go ahead and do a product that's specifically a rendering
+product that's specifically a rendering showcase and a lot of people you know
+showcase and a lot of people you know accused in products of being that
+accused in products of being that anyways but it's you know that's not the
+anyways but it's you know that's not the case we do look at all the aspects of
+case we do look at all the aspects of the game that we want to improve there
+the game that we want to improve there and certainly rendering has not been the
+and certainly rendering has not been the thing holding up Doom 3s development
+thing holding up Doom 3s development it's all the other aspects of the game
+it's all the other aspects of the game that we're improving on there so you
+that we're improving on there so you know I I have some hope for tiny little
+know I I have some hope for tiny little specialty products and things like that
+specialty products and things like that what I had pitched the idea early on was
+what I had pitched the idea early on was basically doing kind of a quake to remix
+basically doing kind of a quake to remix and taking a game and not changing the
+and taking a game and not changing the game you know not going in and trying to
+game you know not going in and trying to redo everything but build new media sets
+redo everything but build new media sets for it and use the new technology and
+for it and use the new technology and get it out there knowing that you're
+get it out there knowing that you're targeting a small section of the market
+targeting a small section of the market just so people can go ahead and get some
+just so people can go ahead and get some value out of the newest generation of
+value out of the newest generation of graphics technologies get people
+graphics technologies get people experienced with it and kind of start
+experienced with it and kind of start the cycle a little bit faster you know
+the cycle a little bit faster you know where everybody always wants to see the
+where everybody always wants to see the second generation title with a new
+second generation title with a new technology once everyone's kind of
+technology once everyone's kind of learned the ropes for it and is ready to
+learned the ropes for it and is ready to kind of you know apply all the lessons
+kind of you know apply all the lessons that they learned there you know it
+that they learned there you know it would be great if we could shorten the
+would be great if we could shorten the development cycles on the
+development cycles on the rather than having three or four year
+rather than having three or four year development cycles so you wait six or
+development cycles so you wait six or seven years to see the second generation
+seven years to see the second generation technology you know we could bootstrap
+technology you know we could bootstrap that somewhat earlier but even the idea
+that somewhat earlier but even the idea of just kind of rescanning an old game
+of just kind of rescanning an old game I'm you know brings with it the problems
+I'm you know brings with it the problems that as we're doing this newer newer
+that as we're doing this newer newer graphics technology the media creation
+graphics technology the media creation demands I have just gotten worse and
+demands I have just gotten worse and worse on there certainly we've got more
+worse on there certainly we've got more levels of maps that are higher
+levels of maps that are higher resolution that we're applying to
+resolution that we're applying to everything but what we also see is that
+everything but what we also see is that things that were acceptable in the
+things that were acceptable in the earlier games I mean you go back
+earlier games I mean you go back Wolfenstein was blocks you know you had
+Wolfenstein was blocks you know you had a texture run that was tied to the same
+a texture run that was tied to the same thing on each side it took 30 minutes to
+thing on each side it took 30 minutes to make a map there were shipping Maps in
+make a map there were shipping Maps in there that were done in less than an
+there that were done in less than an hour you know somebody scrubs something
+hour you know somebody scrubs something out play tested for a while said this is
+out play tested for a while said this is fun and it's in you know spear of
+fun and it's in you know spear of destiny I am and they they were they
+destiny I am and they they were they worked they were fun but when we look at
+worked they were fun but when we look at things now where it's taking man months
+things now where it's taking man months to deliver I am you know a level to even
+to deliver I am you know a level to even kind of the beginning of the play test
+kind of the beginning of the play test stage on there it's you know it becomes
+stage on there it's you know it becomes a real problem and I worry about the the
+a real problem and I worry about the the interactions between the media creation
+interactions between the media creation and the actual game content side because
+and the actual game content side because we go back again to the Wolfenstein Maps
+we go back again to the Wolfenstein Maps and if somebody goes into a room and
+and if somebody goes into a room and this is not much fun here you just scrub
+this is not much fun here you just scrub out a couple more tiles to connect it in
+out a couple more tiles to connect it in and make a cycle to some of the other
+and make a cycle to some of the other areas and if you go in and you spend
+areas and if you go in and you spend your couple months and you build an area
+your couple months and you build an area in a current game generation and you say
+in a current game generation and you say well this play isn't working out all
+well this play isn't working out all that well that same knocking the hallway
+that well that same knocking the hallway into another room I can take a week you
+into another room I can take a week you know it can take a week to go ahead and
+know it can take a week to go ahead and rebuild a room that then looks good that
+rebuild a room that then looks good that connects in a different way and has
+connects in a different way and has slightly different flow and relights the
+slightly different flow and relights the different area so that's you know a
+different area so that's you know a concern and it's certainly something
+concern and it's certainly something that's taking it makes the kind of final
+that's taking it makes the kind of final end of the game development process take
+end of the game development process take a lot longer and I'm afraid that it has
+a lot longer and I'm afraid that it has the possibility of actually making the
+the possibility of actually making the games less fun on a pure kind of game
+games less fun on a pure kind of game development symbolic level I which you
+development symbolic level I which you hopefully more than counteract by the
+hopefully more than counteract by the kind of increased richness there or you
+kind of increased richness there or you just kind of bite the bullet and take
+just kind of bite the bullet and take the time and get
+the time and get late and slip and actually deliver
+late and slip and actually deliver something where you have had the time to
+something where you have had the time to go do those two-week fixes if you know
+go do those two-week fixes if you know every time you find a game development
+every time you find a game development problem on there and you know each time
+problem on there and you know each time we've kind of done a technology there
+we've kind of done a technology there have been things that I thought would
+have been things that I thought would help in this process like the level of
+help in this process like the level of interactivity that we have in dooms
+interactivity that we have in dooms content creation is you know is one of
+content creation is you know is one of the really amazing things then you know
+the really amazing things then you know that we have over there like when we
+that we have over there like when we have other developers kind of in looking
+have other developers kind of in looking at the technology I've you know looking
+at the technology I've you know looking at the game is one thing I'm you know
+at the game is one thing I'm you know you can always kind of set piece of
+you can always kind of set piece of scene especially if you don't let them
+scene especially if you don't let them touch it that looks great
+touch it that looks great but what usually leaves kind of the
+but what usually leaves kind of the biggest impression is when I when our
+biggest impression is when I when our level designers kind of go ahead and
+level designers kind of go ahead and bring up the editor which is now
+bring up the editor which is now integrated with the game stretch out a
+integrated with the game stretch out a rendering window and everything's
+rendering window and everything's looking right with shadows and the bump
+looking right with shadows and the bump mapping and then they just grab a light
+mapping and then they just grab a light and drag it around and like all the
+and drag it around and like all the shadows and lighting and everything
+shadows and lighting and everything changes in real time and contrasting
+changes in real time and contrasting this with the previous generation where
+this with the previous generation where we had usually a 30 minute cycle I have
+we had usually a 30 minute cycle I have to go ahead and send something through
+to go ahead and send something through the visibility in the lighting process
+the visibility in the lighting process before you could actually look at it in
+before you could actually look at it in the game so at the start of this
+the game so at the start of this development I'm thinking okay we've got
+development I'm thinking okay we've got a little more work to do here but this
+a little more work to do here but this level of interactivity is so much better
+level of interactivity is so much better that it's going to you know shrink our
+that it's going to you know shrink our development time on there somewhat and
+development time on there somewhat and it hasn't worked out that way and it's
+it hasn't worked out that way and it's sort of like I believe the offline
+sort of like I believe the offline rendering world where you get more
+rendering world where you get more capabilities or the ability to do
+capabilities or the ability to do something faster and people will spend
+something faster and people will spend more time going ahead and trying to make
+more time going ahead and trying to make it absolutely perfect and it's you know
+it absolutely perfect and it's you know the the demand for the interactivity
+the the demand for the interactivity there has been kind of amusing where at
+there has been kind of amusing where at first when I brought it up we had our
+first when I brought it up we had our normal kind of level editor and you
+normal kind of level editor and you would hit Enter to go ahead and render a
+would hit Enter to go ahead and render a scene I am you know what it would bring
+scene I am you know what it would bring up the scene exactly you know as the
+up the scene exactly you know as the game renders it with the bump mapping
+game renders it with the bump mapping and the shadows and all that so that was
+and the shadows and all that so that was pretty cool then we got a little bit
+pretty cool then we got a little bit faster computers in there and
+faster computers in there and everybody's like well we'd like to be
+everybody's like well we'd like to be able to go ahead and you know stretch
+able to go ahead and you know stretch geometry and move around in this so okay
+geometry and move around in this so okay we put in continuous you know render
+we put in continuous you know render mode on there then people want to see
+mode on there then people want to see the particle systems dynamically acting
+the particle systems dynamically acting in there
+in there and you add that in and it finally got
+and you add that in and it finally got to the point where I am they they were
+to the point where I am they they were complaining about the fact that to
+complaining about the fact that to change a lights color you would you
+change a lights color you would you would have to bring up a color picker
+would have to bring up a color picker dialog click on that and then close it
+dialog click on that and then close it and now we've got like continuous color
+and now we've got like continuous color dragging in it you know in a live color
+dragging in it you know in a live color window on there and you know all of this
+window on there and you know all of this is great and our seat you know we have a
+is great and our seat you know we have a lot of really wonderful scenes in there
+lot of really wonderful scenes in there but it hasn't shortened the content
+but it hasn't shortened the content creation time so we are looking at it a
+creation time so we are looking at it a little bit more from a higher level
+little bit more from a higher level strategy strategic view now where there
+strategy strategic view now where there is going to be some attempt to start you
+is going to be some attempt to start you know building libraries of media and
+know building libraries of media and sharing to some degree there are some
+sharing to some degree there are some media assets that we've shared with
+media assets that we've shared with Raven I you know working on quake 4 and
+Raven I you know working on quake 4 and we've got some things we've shared with
+we've got some things we've shared with other licensees and we are we are hoping
+other licensees and we are we are hoping that our next title I will be able to
+that our next title I will be able to reuse at least some of Doom's assets so
+reuse at least some of Doom's assets so that was one of those things where that
+that was one of those things where that sort of gives us a constriction on our
+sort of gives us a constriction on our possible I our possible game designs
+possible I our possible game designs there it's gonna be some near future I
+there it's gonna be some near future I am you know either present day or a near
+am you know either present day or a near future thing where we can reuse the fire
+future thing where we can reuse the fire extinguishers and waste baskets and some
+extinguishers and waste baskets and some of those things like that in the game
+of those things like that in the game which is another one of those kind of to
+which is another one of those kind of to some degree hamstrung by our own
+some degree hamstrung by our own directions on there now you know we I
+directions on there now you know we I still keep looking at things where there
+still keep looking at things where there may be some possibilities of technical
+may be some possibilities of technical solutions to this but I'm beginning to
+solutions to this but I'm beginning to to fear that I no matter what kinds of
+to fear that I no matter what kinds of new technology I can bring in to help
+new technology I can bring in to help bring some of these things a little bit
+bring some of these things a little bit easier that it's not actually going to
+easier that it's not actually going to help that I even if we get same you know
+help that I even if we get same you know some forms of real-world data capture to
+some forms of real-world data capture to go ahead and you know grab materials
+go ahead and you know grab materials from you know real radiometric light
+from you know real radiometric light values and doing some interesting links
+values and doing some interesting links things like that that the next project
+things like that that the next project is gonna take yet more man-hours for per
+is gonna take yet more man-hours for per media element and the decision that we
+media element and the decision that we wind up coming to is that the games are
+wind up coming to is that the games are gonna have to get less diverse to
+gonna have to get less diverse to maintain an increase in quality on there
+maintain an increase in quality on there and that's that's always been something
+and that's that's always been something that I even before it kind of reached
+that I even before it kind of reached critical levels like it is now it always
+critical levels like it is now it always seemed too clear to me that a lot of
+seemed too clear to me that a lot of game design
+game design where you have four completely different
+where you have four completely different environments you know you want to have
+environments you know you want to have world one world - world three world four
+world one world - world three world four I always seemed to me like four times
+I always seemed to me like four times the work for you know one time's the
+the work for you know one time's the profit on there that if you want to make
+profit on there that if you want to make a game you know pick a single
+a game you know pick a single environment and try and make that as
+environment and try and make that as lush as possible I am but we sort of got
+lush as possible I am but we sort of got especially like first person shooters
+especially like first person shooters sort of have an ANSI standard 30 levels
+sort of have an ANSI standard 30 levels to them or there abouts
+to them or there abouts and that's a lot of you know it's a lot
+and that's a lot of you know it's a lot of a courage to just kind of fill out
+of a courage to just kind of fill out there and I think that we're trying to
+there and I think that we're trying to learn some lessons from I am you know
+learn some lessons from I am you know from genres that people have been forced
+from genres that people have been forced to you know for outside development
+to you know for outside development reasons like cartridge console games
+reasons like cartridge console games like on ultra 64 is where you're limited
+like on ultra 64 is where you're limited by the total amount of item of cartridge
+by the total amount of item of cartridge ROM that you can have on there you're
+ROM that you can have on there you're forced for various reasons there even if
+forced for various reasons there even if you've got a hundred person development
+you've got a hundred person development team you can't create too much effort so
+team you can't create too much effort so you change your game design styles based
+you change your game design styles based around that and even in the kind of
+around that and even in the kind of high-end game development space where
+high-end game development space where you may have large budgets large teams I
+you may have large budgets large teams I just to get things done in reasonable
+just to get things done in reasonable amounts of time we're gonna have to
+amounts of time we're gonna have to start making some of those decisions as
+start making some of those decisions as well because it's easy to have kind of
+well because it's easy to have kind of vast expansive worlds if you're
+vast expansive worlds if you're basically painting with a very broad
+basically painting with a very broad brush but now that we've given people
+brush but now that we've given people the the capability of going down and
+the the capability of going down and painting with extremely fine brushes on
+painting with extremely fine brushes on lots of different levels its I it can
+lots of different levels its I it can take an arbitrary amount of time and as
+take an arbitrary amount of time and as we approach the level of fidelity that
+we approach the level of fidelity that you can get with movies the problem
+you can get with movies the problem becomes you know almost insurmountable
+becomes you know almost insurmountable where movie development right now will
+where movie development right now will employ hundreds and hundreds of people
+employ hundreds and hundreds of people building some of these issues and these
+building some of these issues and these are sets you know they have no backs you
+are sets you know they have no backs you know you can't just turn around at some
+know you can't just turn around at some scene in a movie and then go and like
+scene in a movie and then go and like jump up onto a ledge and explore down
+jump up onto a ledge and explore down the hallway because that stuff hasn't
+the hallway because that stuff hasn't even been created by those hundreds and
+even been created by those hundreds and hundreds of people and when we can draw
+hundreds of people and when we can draw pictures that look just as good as what
+pictures that look just as good as what we're doing currently in movies today I
+we're doing currently in movies today I people are going to expect sets built to
+people are going to expect sets built to that level of detail but then they want
+that level of detail but then they want their thirty levels of adventure there
+their thirty levels of adventure there or you know even worse when you go into
+or you know even worse when you go into like large-scale online games where you
+like large-scale online games where you want to have you know a considerable
+want to have you know a considerable size of the world there and these are
+size of the world there and these are real problems I'm it's possible that you
+real problems I'm it's possible that you know there may be opportunities for I
+know there may be opportunities for I you know for kind of stock books of you
+you know for kind of stock books of you know of different data and certainly
+know of different data and certainly this has been tried there's a few
+this has been tried there's a few companies that you know that sells stock
+companies that you know that sells stock models for different things but with
+models for different things but with gaming as long as we keep revving these
+gaming as long as we keep revving these technologies like this the actual
+technologies like this the actual requirements for the media keep evolving
+requirements for the media keep evolving and that has kind of double edged
+and that has kind of double edged problems there where on the one hand you
+problems there where on the one hand you have to keep retraining your own artists
+have to keep retraining your own artists and if you want to get something done
+and if you want to get something done fast maybe you have to throw a whole lot
+fast maybe you have to throw a whole lot of artists on it you have a whole lot of
+of artists on it you have a whole lot of people early on at the learning curve
+people early on at the learning curve there I'm but if you want to get it done
+there I'm but if you want to get it done fast you kind of throw you lose the
+fast you kind of throw you lose the benefits of you know of people you want
+benefits of you know of people you want your learning curve to occupy a
+your learning curve to occupy a relatively small fraction of your
+relatively small fraction of your development time and I if the learning
+development time and I if the learning curves relatively short you know you can
+curves relatively short you know you can go ahead and you spend several months
+go ahead and you spend several months learning and then two years developing
+learning and then two years developing or something but as things get more and
+or something but as things get more and more complex that takes longer for
+more complex that takes longer for people to not necessarily like
+people to not necessarily like understand how it operates but kind of
+understand how it operates but kind of find their you know find the artistic
+find their you know find the artistic groove on how they're going to use the
+groove on how they're going to use the technology effectively and that could
+technology effectively and that could still wind up taking a good you know a
+still wind up taking a good you know a good chunk of the entire project there
+good chunk of the entire project there and the the fact that it continues to
+and the the fact that it continues to change that the skill sets necessary for
+change that the skill sets necessary for a quake generation game versus a doom
+a quake generation game versus a doom three generation game I means that you
+three generation game I means that you can't necessarily just have what the
+can't necessarily just have what the movie industry has is a huge pool of
+movie industry has is a huge pool of people where you can just go out and say
+people where you can just go out and say we need 100 carpenters you know we can't
+we need 100 carpenters you know we can't just go out and say we need I you know
+just go out and say we need I you know 100 do three modelers or texture
+100 do three modelers or texture creators because the skill set isn't
+creators because the skill set isn't specifically there it takes months to go
+specifically there it takes months to go ahead and build any level of that and I
+ahead and build any level of that and I have some hope that the next generation
+have some hope that the next generation of rendering technology will be a more
+of rendering technology will be a more general purpose tool where it won't be
+general purpose tool where it won't be the kind of naughty changes and features
+the kind of naughty changes and features that we've seen up until
+that we've seen up until now I'm you know and that's something
+now I'm you know and that's something that you know that I do think is fairly
+that you know that I do think is fairly important where previously all the
+important where previously all the generations of things that we've done
+generations of things that we've done including doom 3 are based on Nachi sets
+including doom 3 are based on Nachi sets of hardware features where okay we added
+of hardware features where okay we added cube Maps or we edit dot three blending
+cube Maps or we edit dot three blending or something like that and the
+or something like that and the relationship between a game engine and
+relationship between a game engine and an offline rendering tool I you know for
+an offline rendering tool I you know for people that actually work with them
+people that actually work with them they're completely different things I am
+they're completely different things I am there's some overlap in terms of what
+there's some overlap in terms of what you wind up producing on the output but
+you wind up producing on the output but they're just not approached the same way
+they're just not approached the same way in a content creation or a capabilities
+in a content creation or a capabilities fashion but the next generation does
+fashion but the next generation does look good for being something that will
+look good for being something that will be a more general-purpose I you know it
+be a more general-purpose I you know it will be something where you can kind of
+will be something where you can kind of program it as much as you want because
+program it as much as you want because we have our floating point pixel formats
+we have our floating point pixel formats and we have our dependent texture reads
+and we have our dependent texture reads and we've got longer programs and
+and we've got longer programs and effectively we can decompose anything we
+effectively we can decompose anything we need into this and the next level of
+need into this and the next level of technology will probably be taking
+technology will probably be taking advantage of this this may mean that as
+advantage of this this may mean that as we look five years from now that the
+we look five years from now that the skill sets required for content creation
+skill sets required for content creation do become more uniform across the
+do become more uniform across the industry and across the industry
+industry and across the industry boundaries into the offline rendering
+boundaries into the offline rendering world and this will probably be a good
+world and this will probably be a good thing in terms of you know allowing
+thing in terms of you know allowing people to move to different projects
+people to move to different projects more readily and allowing companies if
+more readily and allowing companies if they choose to to bring on kind of waves
+they choose to to bring on kind of waves of developers if necessary where you
+of developers if necessary where you know nowadays especially you know it's
+know nowadays especially you know it's growing developers at a project that's
+growing developers at a project that's behind schedule just very rarely is a is
+behind schedule just very rarely is a is a good thing you can bring on twice you
+a good thing you can bring on twice you can double your art staff and not
+can double your art staff and not actually get that much more done if you
+actually get that much more done if you have to train them and doing brand new
+have to train them and doing brand new different things I you know in ways that
+different things I you know in ways that they haven't seen before so being able
+they haven't seen before so being able to you know to leverage broader basis of
+to you know to leverage broader basis of you know if people to work on their is
+you know if people to work on their is good and we will probably be seeing
+good and we will probably be seeing actual data sharing between
+actual data sharing between like television motion picture rendering
+like television motion picture rendering and what actually goes on in games you
+and what actually goes on in games you know there's a little bit of that that
+know there's a little bit of that that can go on right
+can go on right now certainly you know things are stolen
+now certainly you know things are stolen for cutscenes and all but occasionally
+for cutscenes and all but occasionally you'll still find like some model that
+you'll still find like some model that was used scrunched up really small on I
+was used scrunched up really small on I you know on a motion picture screen is
+you know on a motion picture screen is actually something that can be rendered
+actually something that can be rendered as part of the game right now I on the
+as part of the game right now I on the material side of things that's gonna be
+material side of things that's gonna be coming you know fairly you know fairly
+coming you know fairly you know fairly soon in terms of game development a
+soon in terms of game development a next-generation technology should be
+next-generation technology should be able to go ahead and do most of the
+able to go ahead and do most of the surface models that are used in
+surface models that are used in rendering right now I you know that the
+rendering right now I you know that the resolutions will come down just to fit
+resolutions will come down just to fit reasonably on there but it will still be
+reasonably on there but it will still be a pretty direct path on there you know
+a pretty direct path on there you know it's it's a little less clear when the
+it's it's a little less clear when the geometry is going to start using exactly
+geometry is going to start using exactly the same eye you know the same kind of
+the same eye you know the same kind of tools and techniques that they use there
+tools and techniques that they use there I you know I've historically not been
+I you know I've historically not been the biggest supporter of Hardware curved
+the biggest supporter of Hardware curved surfaces for various reasons you know it
+surfaces for various reasons you know it hasn't fit and what I consider the the
+hasn't fit and what I consider the the best you know the best value for the
+best you know the best value for the effort on there but that may also be
+effort on there but that may also be coming in but you know in the relatively
+coming in but you know in the relatively near future and then you start using the
+near future and then you start using the same models to go ahead and first do
+same models to go ahead and first do your television show I have your weekly
+your television show I have your weekly animation or whatever and make your game
+animation or whatever and make your game out of it
+out of it but in some way these types of strategic
+but in some way these types of strategic directions are you know it's not it's
+directions are you know it's not it's certainly not what gaming development
+certainly not what gaming development used to be about I mean it now we're
+used to be about I mean it now we're talking like a Hollywood studio about
+talking like a Hollywood studio about being able to manage you know huge
+being able to manage you know huge numbers of people to be able to
+numbers of people to be able to cross-promote over different product
+cross-promote over different product lines and there's definitely you know an
+lines and there's definitely you know an aspect where I can look back with fully
+aspect where I can look back with fully at them you know the early game
+at them you know the early game development where you just got some
+development where you just got some people together that wanted to make a
+people together that wanted to make a really fun game built something that was
+really fun game built something that was cool and people played it and had fun I
+cool and people played it and had fun I am you know it's I do still hope that
+am you know it's I do still hope that and you know that there are people out
+and you know that there are people out here that are going to be following that
+here that are going to be following that path that can still bring the kind of
+path that can still bring the kind of new elements in I don't think that it's
+new elements in I don't think that it's a closed off completely industry I do
+a closed off completely industry I do think that you know innovative and
+think that you know innovative and really exciting new things and do have a
+really exciting new things and do have a place and can still be successful that's
+place and can still be successful that's something that you know I I know that my
+something that you know I I know that my position isn't something that you know
+position isn't something that you know it's really shared by too many people
+it's really shared by too many people here
+here but the you know when I hear developers
+but the you know when I hear developers moaning and complaining about different
+moaning and complaining about different things about you know whether they can't
+things about you know whether they can't get a publisher or you know getting
+get a publisher or you know getting contracts for different things I you
+contracts for different things I you know I very rarely comment on those
+know I very rarely comment on those situations because you know my positions
+situations because you know my positions somewhat unique I am with regard to all
+somewhat unique I am with regard to all of that but you know I I do think that
+of that but you know I I do think that they're still exciting things that can
+they're still exciting things that can be done on the small level and there
+be done on the small level and there will be things that that won't be coming
+will be things that that won't be coming from mid software because in those ways
+from mid software because in those ways we are kind of a prisoner of our own
+we are kind of a prisoner of our own success there you know we have our way
+success there you know we have our way of doing things and it will continue to
+of doing things and it will continue to to grow the company larger to do larger
+to grow the company larger to do larger and larger projects you know to go ahead
+and larger projects you know to go ahead and cross license and cross promote and
+and cross license and cross promote and and all that and that's soon I you know
+and all that and that's soon I you know that's sort of our lot in life there
+that's sort of our lot in life there they're going to be you know exciting
+they're going to be you know exciting things you have to come on the large
+things you have to come on the large scale but I do still hope that you know
+scale but I do still hope that you know that there will be a ruin you know there
+that there will be a ruin you know there will be a place for that program or
+will be a place for that program or artist combination to go off and do
+artist combination to go off and do something really kind of interesting
+something really kind of interesting because the capabilities that we're
+because the capabilities that we're getting on the one hand it sucks up more
+getting on the one hand it sucks up more and more resources but on the other hand
+and more resources but on the other hand it does give you know raw capabilities
+it does give you know raw capabilities to smaller and smaller numbers of people
+to smaller and smaller numbers of people when we look at the graphics rendering
+when we look at the graphics rendering capabilities and you know that we've got
+capabilities and you know that we've got right now that are coming out soon I'm
+right now that are coming out soon I'm you can put what would have been as soon
+you can put what would have been as soon as the technology matures a little bit
+as the technology matures a little bit with the current generation of cards for
+with the current generation of cards for doing sophisticated offline rendering
+doing sophisticated offline rendering with a at the current hardware
+with a at the current hardware accelerated floating board pixel format
+accelerated floating board pixel format stuff you will have a render farm in a
+stuff you will have a render farm in a person's desktop computer and the
+person's desktop computer and the capability is that that will give people
+capability is that that will give people is pretty exciting when you start
+is pretty exciting when you start thinking about well one artistic vision
+thinking about well one artistic vision could now go ahead and do something that
+could now go ahead and do something that previously would only have been possible
+previously would only have been possible to render if you had a Pixar sized and
+to render if you had a Pixar sized and render farm you know if you wanted to
+render farm you know if you wanted to take I you know if you wanted to do a 60
+take I you know if you wanted to do a 60 second short or something if it took you
+second short or something if it took you four and a half hours per frame you just
+four and a half hours per frame you just don't get too many cycles through I've
+don't get too many cycles through I've you know through the creative process on
+you know through the creative process on there but you know it's not long at all
+there but you know it's not long at all until we have if not real-time rendering
+until we have if not real-time rendering like we expect in a game engine very
+like we expect in a game engine very very fast
+very fast I am the hardware accelerated rendering
+I am the hardware accelerated rendering of things like that and I think that's
+of things like that and I think that's going to be an interesting kind of
+going to be an interesting kind of artistic outlet and that's always been
+artistic outlet and that's always been one of my major kind of motivations and
+one of my major kind of motivations and rewards on there is kind of seeing what
+rewards on there is kind of seeing what I do as a canvas that the artists and
+I do as a canvas that the artists and the creative people actually work on and
+the creative people actually work on and each generation of game rendering
+each generation of game rendering technology and the game interactions and
+technology and the game interactions and just all the things that make up the
+just all the things that make up the game engine I yeah the best moments for
+game engine I yeah the best moments for me have been when I kind of like look in
+me have been when I kind of like look in someone's office and just see something
+someone's office and just see something really wonderfully cool that they
+really wonderfully cool that they couldn't possibly have done before
+couldn't possibly have done before that's now possible and that is not
+that's now possible and that is not slowing down at all this generation will
+slowing down at all this generation will seem kind of cinematic director's
+seem kind of cinematic director's visions of things that you couldn't do
+visions of things that you couldn't do before
+before where in previous games you would have
+where in previous games you would have some things that had sort of a you know
+some things that had sort of a you know a director style to it that would have
+a director style to it that would have some interesting things with camera
+some interesting things with camera angles and so on I you know and the way
+angles and so on I you know and the way you could crop scenes and set them up
+you could crop scenes and set them up but you really couldn't apply the tools
+but you really couldn't apply the tools and craft of it you know of a director
+and craft of it you know of a director or I'm you know a real set layout person
+or I'm you know a real set layout person but with the current generation of
+but with the current generation of technology if you look through like a
+technology if you look through like a book on film lighting just every tool
+book on film lighting just every tool that they've got there everything that
+that they've got there everything that they do with you know barn doors and
+they do with you know barn doors and cookies and shutters and how you go
+cookies and shutters and how you go ahead and do key lights and fill lights
+ahead and do key lights and fill lights all that stuff comes out directly now
+all that stuff comes out directly now and you know over the course of a few
+and you know over the course of a few years as people get to experience you
+years as people get to experience you know experiment with that and kind of
+know experiment with that and kind of find their I'm you know their personal
+find their I'm you know their personal style with it that's gonna be very
+style with it that's gonna be very exciting to see and the next generation
+exciting to see and the next generation will take that to the level of the
+will take that to the level of the surface quality rendering that is movie
+surface quality rendering that is movie quality on there especially people are
+quality on there especially people are willing to sacrifice a little bit of I
+willing to sacrifice a little bit of I you know a frame rate or do things in a
+you know a frame rate or do things in a not quite real time frame time rate but
+not quite real time frame time rate but if they want to generate really fabulous
+if they want to generate really fabulous images I'd you know it's a it's a canvas
+images I'd you know it's a it's a canvas and paint brush set really the likes of
+and paint brush set really the likes of which no one's ever seen before and
+which no one's ever seen before and that's going to be you know really
+that's going to be you know really something to watch so the the next I've
+something to watch so the the next I've got a pretty clear idea of where things
+got a pretty clear idea of where things are going for the next five years and
+are going for the next five years and things are you know kind of there's a
+things are you know kind of there's a path out there and there's a lot of
+path out there and there's a lot of inertia kind of covering what I what
+inertia kind of covering what I what evolve in the electronics industry but I
+evolve in the electronics industry but I I would not hazard to guess too much
+I would not hazard to guess too much about what things are gonna look like
+about what things are gonna look like five years past that and I you know if
+five years past that and I you know if you go back again to the very very early
+you go back again to the very very early days you know working on you know
+days you know working on you know working on my Apple to see or something
+working on my Apple to see or something and somebody said okay a million times
+and somebody said okay a million times more power I I wouldn't have had the
+more power I I wouldn't have had the visions of whom you know bump mapping
+visions of whom you know bump mapping and stencil shadows and all that I would
+and stencil shadows and all that I would have been happy to be rendering Tron in
+have been happy to be rendering Tron in a video game
+a video game I am so we look at it today and we can
+I am so we look at it today and we can say well we want to have characters that
+say well we want to have characters that look like Lord of the Rings this is I am
+look like Lord of the Rings this is I am you know we want to have that moving
+you know we want to have that moving around in a game and will will get that
+around in a game and will will get that I have no doubt whatsoever that we'll be
+I have no doubt whatsoever that we'll be seeing that I am but there may be other
+seeing that I am but there may be other things that are just more I'm you know
+things that are just more I'm you know that maybe even more you know more
+that maybe even more you know more important like what we see in terms of
+important like what we see in terms of online communications and everything the
+online communications and everything the fact that while bandwidth and latency
+fact that while bandwidth and latency haven't improved all that much the
+haven't improved all that much the number of players that you have access
+number of players that you have access to has improved by you know that factor
+to has improved by you know that factor of a million you know you've gone from
+of a million you know you've gone from playing with your brother or something
+playing with your brother or something to having the whole world of online
+to having the whole world of online gamers open to you and there may be you
+gamers open to you and there may be you know aspects like that that turned out
+know aspects like that that turned out to be far more important to where games
+to be far more important to where games Goethe and the actual raw audio visual
+Goethe and the actual raw audio visual technologies so I think we're just about
+technologies so I think we're just about out of time here so I do have 10 minutes
+out of time here so I do have 10 minutes left to take questions if you have
+left to take questions if you have questions and I will come over to you
+questions and I will come over to you you'll ask the question yes
+John what are your expectations from the next generation of the consoles versus
+next generation of the consoles versus you know the PC capabilities so what are
+you know the PC capabilities so what are you expecting from the PlayStation 3 and
+you expecting from the PlayStation 3 and from the Xbox - okay I'm console games
+from the Xbox - okay I'm console games you know I'm not you know I'm not
+you know I'm not you know I'm not intimately involved in most of the
+intimately involved in most of the console development it's not a it's not
+console development it's not a it's not a business model that I that I like all
+a business model that I that I like all that much you know I get you know I
+that much you know I get you know I don't make a point to go out and get
+don't make a point to go out and get disclosed really early on it I would say
+disclosed really early on it I would say that I am a little bit bothered by the
+that I am a little bit bothered by the next generation pushed towards again
+next generation pushed towards again multiple processors which I thought most
+multiple processors which I thought most people would have learned the lessons
+people would have learned the lessons from the previous generation where if
+from the previous generation where if you take a console that has one fast
+you take a console that has one fast processor one fast graphics accelerator
+processor one fast graphics accelerator everybody loves to work on it it's nice
+everybody loves to work on it it's nice to program if you take a product you
+to program if you take a product you know a console that has multiple
+know a console that has multiple processors that add up to some wonderful
+processors that add up to some wonderful figure of power I it rarely gets
+figure of power I it rarely gets utilized in you know as much and it
+utilized in you know as much and it hinders development time and I'm a
+hinders development time and I'm a little bit surprised that you know that
+little bit surprised that you know that that's kind of come back as you know as
+that's kind of come back as you know as other development strategy strategy for
+other development strategy strategy for that
+it's you see team sizes and and costs in video game development rising do you
+video game development rising do you ever think they'll reach a critical mass
+ever think they'll reach a critical mass where the industry can no longer support
+where the industry can no longer support teams of that sizes and production costs
+teams of that sizes and production costs that high I don't really see a specific
+that high I don't really see a specific end in sight right now I am I do expect
+end in sight right now I am I do expect that the major top-flight titles will be
+that the major top-flight titles will be increasing in budget and there will
+increasing in budget and there will probably be more attempt to go ahead and
+probably be more attempt to go ahead and directly tie with movies get more I am
+directly tie with movies get more I am you know more kind of return for the
+you know more kind of return for the investment there but if we looked again
+investment there but if we looked again five years into the future you know I
+five years into the future you know I would not be shocked to see hundred
+would not be shocked to see hundred million dollar game development budgets
+million dollar game development budgets I you know looking that high there and I
+I you know looking that high there and I do think that's a problem that we should
+do think that's a problem that we should be concerned about but I'm sort of at a
+be concerned about but I'm sort of at a loss as to you know what to do about it
+loss as to you know what to do about it because if we're given this capability
+because if we're given this capability and you have the choice of either
+and you have the choice of either exploit the capability as much as you
+exploit the capability as much as you possibly can because your competitors
+possibly can because your competitors are doing it that's going to require
+are doing it that's going to require more and more media resources and I it's
+more and more media resources and I it's it's a serious issue so it's actually
+it's a serious issue so it's actually relates to the couple thing I mean I
+relates to the couple thing I mean I think everyone agree with you that like
+think everyone agree with you that like it's way easier to program for a fast
+it's way easier to program for a fast cpu in a graphics card but hey they
+cpu in a graphics card but hey they didn't pay attention so given that the
+didn't pay attention so given that the next consoles are all multi processing
+next consoles are all multi processing how would you architect in broad strokes
+how would you architect in broad strokes obviously an engine to work on that
+obviously an engine to work on that since it's such a pain well the the most
+since it's such a pain well the the most straightforward thing is to go ahead and
+straightforward thing is to go ahead and try to find the it's hardest when you've
+try to find the it's hardest when you've got a small granular number of
+got a small granular number of processors I mean talking two to four
+processors I mean talking two to four processors is something that makes it
+processors is something that makes it really difficult to split things up
+really difficult to split things up because you could go ahead and say
+because you could go ahead and say alright let's amp up the audio and use
+alright let's amp up the audio and use fully one processor to just make audio
+fully one processor to just make audio done that's not a bad thing to go ahead
+done that's not a bad thing to go ahead and do there when you want to try and
+and do there when you want to try and really accelerates a rendering there
+really accelerates a rendering there you're going to pick there's no really
+you're going to pick there's no really optimal way to split rendering over two
+optimal way to split rendering over two or three processors you know we've we
+or three processors you know we've we split into a front-end back-end where
+split into a front-end back-end where you do kind of like CPU based things I
+you do kind of like CPU based things I have you know all the animation and
+have you know all the animation and deformation
+deformation separated from the actual rendering and
+separated from the actual rendering and that can get you you know kind of sort
+that can get you you know kind of sort of to a 50% split but when you start
+of to a 50% split but when you start looking at numbers like if you want to
+looking at numbers like if you want to split four processors across graphics it
+split four processors across graphics it turns out that just about the best way
+turns out that just about the best way to do that is to section the screen and
+to do that is to section the screen and you get some benefit from that but it's
+you get some benefit from that but it's not a 4x you know a 4x improvement over
+not a 4x you know a 4x improvement over there you can also like try to if you're
+there you can also like try to if you're running at very high frame rates you can
+running at very high frame rates you can go ahead and pipeline full frames which
+go ahead and pipeline full frames which is a pretty good thing so that's an
+is a pretty good thing so that's an interesting possibility where if you
+interesting possibility where if you want to go ahead and use I am kind of
+want to go ahead and use I am kind of subsampled aspects in there with I if
+subsampled aspects in there with I if you want to do your soft shadowing your
+you want to do your soft shadowing your motion blur your order independent
+motion blur your order independent translucent sees all the analytically
+translucent sees all the analytically intractable things by actually rendering
+intractable things by actually rendering many more frames than your actual frame
+many more frames than your actual frame rate and doing the final compositing
+rate and doing the final compositing pass on there that would be a reasonably
+pass on there that would be a reasonably good way to try and use four processors
+good way to try and use four processors for something but it becomes much worse
+for something but it becomes much worse than when you've got four CPUs and a
+than when you've got four CPUs and a single graphics resource where you just
+single graphics resource where you just wind up queueing up all of those things
+wind up queueing up all of those things and I'm you know I'm not thrilled with
+and I'm you know I'm not thrilled with and you know with those directions and I
+and you know with those directions and I think that we've we've got several
+think that we've we've got several generations showing that this was just
+generations showing that this was just not a great thing here which is why I'm
+not a great thing here which is why I'm against kind of surprised that I but
+against kind of surprised that I but it's in vogue again more questions
+given what you said about the future of game development and and the interest
+game development and and the interest that universities seem to be having and
+that universities seem to be having and game development as the new discipline
+game development as the new discipline how would you like to see the education
+how would you like to see the education of future game developers proceed I've
+of future game developers proceed I've always been a little bit skeptical about
+always been a little bit skeptical about I am you know game development courses
+I am you know game development courses at universities largely because the
+at universities largely because the field has been so dynamic where it's
+field has been so dynamic where it's difficult to make a curriculum for
+difficult to make a curriculum for something that's changing this rapidly
+something that's changing this rapidly I'm you know I can't say I've done any
+I'm you know I can't say I've done any detailed surveys of the teams doing this
+detailed surveys of the teams doing this but it is difficult to you know if
+but it is difficult to you know if somebody went through a four-year
+somebody went through a four-year university program and they had a
+university program and they had a syllabus for game development on there
+syllabus for game development on there that was made you know it could have
+that was made you know it could have been made at the time we were doing
+been made at the time we were doing Wolfenstein I am you know somebody makes
+Wolfenstein I am you know somebody makes the syllabus runs one generation of
+the syllabus runs one generation of students through it comes back and it's
+students through it comes back and it's just the point of being almost not
+just the point of being almost not relevant on there I'm probably you get
+relevant on there I'm probably you get more from there's valid stuff to be done
+more from there's valid stuff to be done in the current computer science
+in the current computer science curriculums Graphics research now is
+curriculums Graphics research now is directly relevant to um you know to the
+directly relevant to um you know to the game design side of things or to the
+game design side of things or to the game engine side of things there are
+game engine side of things there are probably kind of meta courses that are
+probably kind of meta courses that are useful in terms of of game design and
+useful in terms of of game design and development but those are the kind of
+development but those are the kind of you know soft academic things that I'm
+you know soft academic things that I'm always a little bit leery of and I'm
+always a little bit leery of and I'm hesitant to you know to place a lot of
+hesitant to you know to place a lot of value on somebody that's gone and you
+value on somebody that's gone and you know gotten a degree in game design
+know gotten a degree in game design versus someone that you know personally
+versus someone that you know personally as you know as a person hiring people at
+as you know as a person hiring people at a company what you've actually done is
+a company what you've actually done is far more important to me than what
+far more important to me than what you've been taught I am but as we go on
+you've been taught I am but as we go on again maybe in this following generation
+again maybe in this following generation where things do stabilize a little bit
+where things do stabilize a little bit more in terms of general tool they're
+more in terms of general tool they're maybe a little bit more opportunity for
+maybe a little bit more opportunity for it to be kind of codified into a
+it to be kind of codified into a syllabus there but at this point I am
+syllabus there but at this point I am well I guess it's kind of like breaking
+well I guess it's kind of like breaking in a new you know a new graphics
+in a new you know a new graphics technology where the first generation
+technology where the first generation isn't necessarily so
+isn't necessarily so like to actually be used it's sort of
+like to actually be used it's sort of kind of bootstrap the process where you
+kind of bootstrap the process where you eventually move into something that
+eventually move into something that really is valuable later on but its side
+really is valuable later on but its side it's gonna be a little bit of a tough
+it's gonna be a little bit of a tough situation there but it'll eventually
+situation there but it'll eventually kind of work itself out I was intrigued
+kind of work itself out I was intrigued by your statement that there are still
+by your statement that there are still exciting things that can be done on a
+exciting things that can be done on a small scale can you elaborate on that a
+small scale can you elaborate on that a little bit well that's kind of one of
+little bit well that's kind of one of the you know the things where if I could
+the you know the things where if I could say exactly what they were I probably
+say exactly what they were I probably just go have some people go do that but
+just go have some people go do that but you know I I just don't want to fall
+you know I I just don't want to fall into the trap of kind of the hubris of
+into the trap of kind of the hubris of thinking that what we're doing is the
+thinking that what we're doing is the be-all end-all of you know of the
+be-all end-all of you know of the development and I certainly hope that
+development and I certainly hope that there is the equivalent of you know a
+there is the equivalent of you know a microcomputer revolution that has all of
+microcomputer revolution that has all of us that are going to be you know we're
+us that are going to be you know we're the establishment you know we're the the
+the establishment you know we're the the big corporate developers effectively
+big corporate developers effectively which is weird for you know for it a
+which is weird for you know for it a company starting you know like many game
+company starting you know like many game companies effectively started in a back
+companies effectively started in a back room but I am you know I think that
+room but I am you know I think that there's a there's a degree of blindness
+there's a there's a degree of blindness to the possibilities when you're
+to the possibilities when you're immersed in something that you do kind
+immersed in something that you do kind of for a living all the time there and
+of for a living all the time there and yes I suppose there's a remote
+yes I suppose there's a remote possibility that there's really not
+possibility that there's really not anything clever and innovative to be
+anything clever and innovative to be done on the small scale but I you know
+done on the small scale but I you know I'm not I'm not willing to take that as
+I'm not I'm not willing to take that as gospel right now and I definitely
+gospel right now and I definitely encourage people to you know to continue
+encourage people to you know to continue looking at the small things and the
+looking at the small things and the small game development things and
+small game development things and actually some of the new markets that
+actually some of the new markets that people have found it's great to see some
+people have found it's great to see some people doing reasonably well I am on
+people doing reasonably well I am on things like downloadable games it's
+things like downloadable games it's interesting that the numbers that some
+interesting that the numbers that some people are doing there are better than
+people are doing there are better than the numbers that in software was doing
+the numbers that in software was doing as a shareware developer in our early
+as a shareware developer in our early time that bootstrapped the rest of our
+time that bootstrapped the rest of our development so that's a hopeful sign you
+development so that's a hopeful sign you know there are people there that are in
+know there are people there that are in exactly analogous situations to what its
+exactly analogous situations to what its software was 12 years ago in terms of
+software was 12 years ago in terms of the scope of the projects the funding
+the scope of the projects the funding and the rewards for the development
+and the rewards for the development there so I think there's probably a
+there so I think there's probably a pretty damn good chance that there may
+pretty damn good chance that there may be some of those that can follow a
+be some of those that can follow a similar eye kind of curve of grow
+similar eye kind of curve of grow and I an expansion into what they can do
+and I an expansion into what they can do gently the curious is to your opinions
+gently the curious is to your opinions and or predictions for the future of
+and or predictions for the future of games as art as opposed to just simply
+games as art as opposed to just simply entertainment how could you say that
+entertainment how could you say that again I'm curious as to your opinions
+again I'm curious as to your opinions and or predictions for the future of
+and or predictions for the future of gaming as art as opposed to just
+gaming as art as opposed to just entertainment okay I I do have a pretty
+entertainment okay I I do have a pretty direct opinion on this and that I don't
+direct opinion on this and that I don't look at what I do as art you know I am
+look at what I do as art you know I am making a product for people and my job
+making a product for people and my job is to give them something entertaining
+is to give them something entertaining you know it may be a self-selected group
+you know it may be a self-selected group that thinks more similarly to what I do
+that thinks more similarly to what I do but I don't think that looking at it as
+but I don't think that looking at it as art is a particularly positive direction
+art is a particularly positive direction to go at I am and again it comes back to
+to go at I am and again it comes back to what I was saying about how you can do
+what I was saying about how you can do quality and you can do value and if you
+quality and you can do value and if you want to be a successful company you want
+want to be a successful company you want to focus on value because you can do
+to focus on value because you can do something that may be extremely artistic
+something that may be extremely artistic that may be the work you know of a
+that may be the work you know of a master craftsman and is extremely high
+master craftsman and is extremely high quality but if it's not providing value
+quality but if it's not providing value to the people that are actually gonna
+to the people that are actually gonna buy the game I am it's not the best
+buy the game I am it's not the best thing to actually be working on and
+thing to actually be working on and there's certainly a place for art just
+there's certainly a place for art just as there is in any media but I don't
+as there is in any media but I don't think it's correct to look for expect or
+think it's correct to look for expect or even try to make something that's
+even try to make something that's expected to be a mainstream triple-a
+expected to be a mainstream triple-a title a work of art I am you know I
+title a work of art I am you know I think it's kind of following the wrong
+think it's kind of following the wrong path there time for one more question
+yes
+you mentioned after you ship do them through you're going to do a quicker Rev
+through you're going to do a quicker Rev just polish up the graphics a little bit
+just polish up the graphics a little bit and then push another title out where do
+and then push another title out where do you see armadillos xprize relative to
+you see armadillos xprize relative to that second ret which one's going to
+that second ret which one's going to come first
+come first alright say again didn't catch that in
+alright say again didn't catch that in your second game right after right after
+your second game right after right after doing through the little quick Rev and
+doing through the little quick Rev and armadillos X PRIZE which ones going to
+armadillos X PRIZE which ones going to hit first okay yeah well I could talk
+hit first okay yeah well I could talk for another hour about all the the
+for another hour about all the the rocketry and aerospace stuff I died
+rocketry and aerospace stuff I died we're hot firing the vehicle all four
+we're hot firing the vehicle all four engines on Saturday and if that goes
+engines on Saturday and if that goes well we're lifting off dive you know on
+well we're lifting off dive you know on a test flight the week after I week
+a test flight the week after I week after that if things continue to go well
+after that if things continue to go well you know over the next year or so I will
+you know over the next year or so I will be flying you know big vehicles very
+be flying you know big vehicles very high with people on them and eventually
+high with people on them and eventually I've you know eventually heading off
+I've you know eventually heading off horizontally for orbit
+all right thank you very much is this the real life

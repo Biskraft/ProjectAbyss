@@ -1,0 +1,635 @@
+[Music] i am jinyoung zhang the team leader
+i am jinyoung zhang the team leader for this project and the first speaker
+for this project and the first speaker of
+of this session
+this session in this session we will share our
+in this session we will share our experience of making ai agents for the
+experience of making ai agents for the arena battle of blood and soul
+at first i will introduce the problem we solved and the key ideas for it
+solved and the key ideas for it and then soon the next speaker will
+and then soon the next speaker will explain how we solve the problems and
+explain how we solve the problems and challenges and show experimental results
+challenges and show experimental results including them videos
+let's start with problem explanation
+blood and soul is a mmr pitch launched in 2012
+in 2012 and is now being serviced globally
+and is now being serviced globally brilliant soul has shown distinctive
+brilliant soul has shown distinctive visual styles
+visual styles movie-like scenes
+movie-like scenes and combats inspired by realistic
+and combats inspired by realistic martial arts
+this is the arena battle of brilliant soul
+soul the arena battle is a pbp sub content of
+the arena battle is a pbp sub content of bread and soul
+bread and soul two players fight against each other in
+two players fight against each other in an instant battle arena
+an instant battle arena two win
+two win each should make the opponent hp20 in
+each should make the opponent hp20 in three minutes
+three minutes if both of their hp is still above zero
+if both of their hp is still above zero after time out
+after time out the one who deals more damaging wins
+the one who deals more damaging wins for the fairness their status are
+for the fairness their status are standardized
+our research goal is to create programmable ai agents in one-on-one
+programmable ai agents in one-on-one better using reinforcement learning
+better using reinforcement learning the reimbursement learning has been
+the reimbursement learning has been successfully applied to many games
+successfully applied to many games including some atari games gold
+including some atari games gold chess qx3 dota 2 and starcraft 2.
+chess qx3 dota 2 and starcraft 2. however the ai modules of many
+however the ai modules of many commercial games are still being
+commercial games are still being composed with handwritten rules
+composed with handwritten rules this tends to make agents simple with
+this tends to make agents simple with full of weakness so as to give limited
+full of weakness so as to give limited experience to users
+experience to users to make barriers
+to make barriers and flores agents we try to apply
+and flores agents we try to apply reinforcement learning to it
+to achieve more effectively we also try to give styles to agents
+to give styles to agents aggressive balances and defensive
+aggressive balances and defensive we thought that this would give various
+we thought that this would give various experiences to users
+experiences to users inbred and soul there are 11 classes
+inbred and soul there are 11 classes destroyer blademaster assassin someone
+destroyer blademaster assassin someone and so on to reduce complexity we made a
+and so on to reduce complexity we made a destroy agent that could fight against
+destroy agent that could fight against destroyers only
+destroyers only we were choosing destroyer because it's
+we were choosing destroyer because it's a crash that steadily appears in bread
+a crash that steadily appears in bread and soul world championship
+their skill settings are fixed to be the same for the fairness
+to describe our agent we drew the blood and soul arena battle in abstract form
+and soul arena battle in abstract form an agent would observe the environment
+an agent would observe the environment including its own state the opponent
+including its own state the opponent state and arena state
+state and arena state the observed state include hit point
+the observed state include hit point skill point the distance to the opponent
+skill point the distance to the opponent the skill curl time distance to the rna
+the skill curl time distance to the rna boundary and so on
+boundary and so on an agent would choose an appropriate
+an agent would choose an appropriate action for the observation
+action for the observation the action affect the environment and in
+the action affect the environment and in turn
+turn the agent
+the agent observes the changed state to decide an
+observes the changed state to decide an extension
+extension the agent has a chance for choosing
+the agent has a chance for choosing actions every one hundred milliseconds
+actions every one hundred milliseconds in the radiance or innovator
+in the radiance or innovator action can be categorized into skill
+action can be categorized into skill move and targeting
+move and targeting these actions should be decided
+these actions should be decided strategically since they have trade-off
+strategically since they have trade-off between costs and effects
+i'll explain the skills of destroyer with examples of
+with examples of strategic decisions
+strategic decisions it has 44 kinds of skills
+it has 44 kinds of skills which can be categorized as crowd
+which can be categorized as crowd control skill damage dealing skills
+control skill damage dealing skills resistance skills and escape skills to
+resistance skills and escape skills to deal damage continuously
+deal damage continuously an agent should decide one of the cloud
+an agent should decide one of the cloud control skills before damage dealing
+control skills before damage dealing skills
+skills if the opponent is hit by crowd control
+if the opponent is hit by crowd control skill
+skill the agent would decide the damage
+the agent would decide the damage drilling skills consecutively to reduce
+drilling skills consecutively to reduce the opponent hp as much as possible
+the opponent hp as much as possible to avoid such situation
+to avoid such situation the opponent should use one of the
+the opponent should use one of the resistance skills before being hit or
+resistance skills before being hit or use one of their escape skills after
+use one of their escape skills after being hit
+being hit since the resistance skills and escape
+since the resistance skills and escape skills have a large opportunity cost of
+skills have a large opportunity cost of crew time
+crew time you should decide to use them carefully
+you should decide to use them carefully in some situations
+in some situations it should save them to use later
+it should save them to use later this makes it difficult to learn the
+this makes it difficult to learn the optimal timing for skill decision
+in this project we faced four challenges high complexity real-time response
+high complexity real-time response generalization
+generalization and guiding fighting styles
+and guiding fighting styles the first challenge is high complexity
+the first challenge is high complexity when compared with the game of google
+when compared with the game of google our agents have larger space in case of
+our agents have larger space in case of goal the degree of freedom of each
+goal the degree of freedom of each accident space is about 10 to the power
+accident space is about 10 to the power of 170
+of 170 on the other hand our dead of hours is
+on the other hand our dead of hours is about 10 to the power of 1 800.
+about 10 to the power of 1 800. longer game lengths and the combined
+longer game lengths and the combined action of skills moves and targeting by
+action of skills moves and targeting by the action space larger
+the action space larger this makes our problems so challenging
+this makes our problems so challenging to solve this challenge
+to solve this challenge we constrain the freedom of skill
+we constrain the freedom of skill selection and reduce the decision
+selection and reduce the decision interval of movements
+interval of movements the details about them will be explained
+the details about them will be explained later
+second challenge is the constraint of real-time response
+real-time response since the arena battery is a real-time
+since the arena battery is a real-time fighting game
+fighting game rate response result in poor performance
+rate response result in poor performance even if our agent decides the optimal
+even if our agent decides the optimal actions
+actions this restricts the method for
+this restricts the method for implementing the decision policy
+implementing the decision policy for example we cannot use any search
+for example we cannot use any search based method which can require which
+based method which can require which requires
+requires huge amount of processing
+the dual networks are very flexible and powerful computational method to express
+powerful computational method to express a policy
+a policy using neural networks the complex
+using neural networks the complex computational complexity could be easily
+computational complexity could be easily controlled to satisfy the real-time
+controlled to satisfy the real-time constraints
+constraints the third challenge is generalization
+the third challenge is generalization actually we could not expect which
+actually we could not expect which programmers our agent would encounter
+programmers our agent would encounter to make our agent play well against any
+to make our agent play well against any pro gamer
+pro gamer we needed to train our agents against
+we needed to train our agents against the opponents of various styles
+the opponents of various styles for this purpose
+for this purpose we provide our agents with inspiring
+we provide our agents with inspiring partners from the open pool of sales
+partners from the open pool of sales trained agents of various styles are
+trained agents of various styles are added to the open to pull continuously
+added to the open to pull continuously to have
+to have stronger and more diverse sparring
+stronger and more diverse sparring partners
+finally we needed to guide fighting styles without hand-written rules
+styles without hand-written rules humans can easily adapt to the
+humans can easily adapt to the monotonous agents and the field board
+monotonous agents and the field board the agents of various styles could
+the agents of various styles could reduce this
+reduce this we define the trainable styles according
+we define the trainable styles according to their aggressiveness
+to their aggressiveness the aggressiveness could could be guided
+the aggressiveness could could be guided with carefully designed rewards
+with carefully designed rewards the next speaker will explain how we
+the next speaker will explain how we tune the rewards to guide different
+tune the rewards to guide different styles
+hello i am sunro ai research engineer from ncsoft
+from ncsoft i will cover the methods applied for
+i will cover the methods applied for creating the arena battle ai
+creating the arena battle ai since our agents are trained with
+since our agents are trained with reinforcement learning rl
+reinforcement learning rl i will first introduce the basic
+i will first introduce the basic concepts of rl and then i will explain
+concepts of rl and then i will explain the overall learning process including
+the overall learning process including features and rewards
+features and rewards finally i will present some engineering
+finally i will present some engineering techniques which facilitate learning
+techniques which facilitate learning process
+okay now let's imagine a baby trying to learn how to work
+learn how to work he must learn by himself with numerous
+he must learn by himself with numerous trial and errors
+trial and errors he first he falls down again and again
+he first he falls down again and again until he figure out how how to control
+until he figure out how how to control his body
+his body this type of learning is correspond to
+this type of learning is correspond to rl let's get into detail
+rl let's get into detail these three boxes shows good and bad
+these three boxes shows good and bad sequence of actions
+sequence of actions if the baby somehow falls down
+if the baby somehow falls down he realized that something was wrong but
+he realized that something was wrong but he cannot figure out exactly which part
+he cannot figure out exactly which part of the action causes the bad result
+of the action causes the bad result likewise if he succeeded to keep walking
+likewise if he succeeded to keep walking he knew he are doing well as a
+he knew he are doing well as a consequences
+consequences the signal that tells whether the baby
+the signal that tells whether the baby doing good or bad is called as a reward
+doing good or bad is called as a reward the objective is to find the best action
+the objective is to find the best action sequence to maximize the cumulative
+sequence to maximize the cumulative reward
+reward during a lot of trials the baby modifies
+during a lot of trials the baby modifies his acting policy to increase actions in
+his acting policy to increase actions in good sequences and suppressing actions
+good sequences and suppressing actions in bad sequences
+in bad sequences as experiences accumulate he learns how
+as experiences accumulate he learns how to get more of rivers
+to get more of rivers this is the core of our rl trial and
+this is the core of our rl trial and error and improving acting policy
+then what is the reward in bns are in a battle what is the signal that tells you
+battle what is the signal that tells you are doing well
+are doing well of course
+of course winning is the main key if you win
+winning is the main key if you win you're doing well
+you're doing well but it is very smart signal because it
+but it is very smart signal because it only happens at the end of the match
+only happens at the end of the match we need another signal to follow and
+we need another signal to follow and that is
+that is hp
+hp if you took away the opponent's hp
+if you took away the opponent's hp you're doing well and if your hp is
+you're doing well and if your hp is reduced you are doing bad
+reduced you are doing bad quite straightforward isn't it
+quite straightforward isn't it with these two components the agents
+with these two components the agents learn how to win
+learn how to win and how to take away the opponent's hp
+and how to take away the opponent's hp while preserving its own
+however since our agents are required to have diverse styles we introduced some
+have diverse styles we introduced some additional rewards
+additional rewards we decided to guide different degree of
+we decided to guide different degree of aggressiveness into the agents
+aggressiveness into the agents we have determined three dimensions of
+we have determined three dimensions of rewards to tune the aggressiveness
+rewards to tune the aggressiveness the aggressive player's priority is
+the aggressive player's priority is dealing damage while defensive players
+dealing damage while defensive players priority is preserving its own hp so it
+priority is preserving its own hp so it is reflected in the first dimension
+is reflected in the first dimension since aggressive play tend to approach
+since aggressive play tend to approach while the defensive play tend to secure
+while the defensive play tend to secure distance
+distance other two dimensions reflect these
+other two dimensions reflect these perspectives
+you saw this plot before right here the reward signal added
+here the reward signal added the agent sends an action then the
+the agent sends an action then the environment gives you the next
+environment gives you the next observation and reward
+observation and reward i hope you are familiar with each
+i hope you are familiar with each component of the plot exact feature
+component of the plot exact feature features represent how the agent sees
+features represent how the agent sees the world
+the world the agent decides an action based on the
+the agent decides an action based on the feature
+feature features are basically the same with
+features are basically the same with that given to the human player
+that given to the human player so any accessible information to human
+so any accessible information to human during your game are also provided to
+during your game are also provided to the ai such as hp sp distance position
+the ai such as hp sp distance position skill cool time and so on
+now let me show you the overview of the learning process
+learning process the agent which is composed of neural
+the agent which is composed of neural network proceeds combat simulations in
+network proceeds combat simulations in parallel
+parallel in our system 100 workers operate
+in our system 100 workers operate simultaneously
+simultaneously when games end networks are updated from
+when games end networks are updated from the game logs with an rl algorithm
+the game logs with an rl algorithm called acer
+called acer what algorithm does is basically
+what algorithm does is basically modifying the probability distribution
+modifying the probability distribution of each actions i mean
+of each actions i mean increasing actions and suppressing bad
+increasing actions and suppressing bad actions
+actions this loop is repeated continuously
+this loop is repeated continuously here i guess you might wonder of who the
+here i guess you might wonder of who the opponents are
+there are two conditions for good opponents first opponents should be
+opponents first opponents should be diverse enough
+diverse enough if the opponents are limited our agent
+if the opponents are limited our agent just learns how to exploit the fixed
+just learns how to exploit the fixed strategy but could not be generalized
+strategy but could not be generalized for different opponents
+for different opponents second the opponents also should be
+second the opponents also should be reinforced along with the agent
+reinforced along with the agent as both sides of the combat are becoming
+as both sides of the combat are becoming stronger
+stronger agents can experience higher quality of
+agents can experience higher quality of battle
+battle the self-play method with opponent full
+the self-play method with opponent full satisfied boss of suggested conditions
+satisfied boss of suggested conditions we store each agent
+we store each agent to the pool at fixed interval so the
+to the pool at fixed interval so the pull gradually grows
+pull gradually grows then the pool provides a variety of
+then the pool provides a variety of variety of opponents
+variety of opponents and the opponents becoming stronger with
+and the opponents becoming stronger with the agent
+from this to following two slides i will explain more engineering focused
+explain more engineering focused techniques and first technique is about
+techniques and first technique is about learning the move action policy
+learning the move action policy learning the move policy is rather
+learning the move policy is rather difficult because
+difficult because the effect of a single move is limited
+a single move indicates a movement of 0.1 second
+0.1 second considering the character's speed how
+considering the character's speed how far could it go
+far could it go therefore single move action barely
+therefore single move action barely affects to the state
+affects to the state to solve this we enforced agent to
+to solve this we enforced agent to maintain move decisions for 10
+maintain move decisions for 10 consecutive actions
+consecutive actions this allows the agent to literally move
+this allows the agent to literally move and lead to the change of subsequent
+and lead to the change of subsequent states and rewards
+states and rewards the method enables the agent to learn
+the method enables the agent to learn meaningful moving strategy
+meaningful moving strategy and finally we're able to run away or
+and finally we're able to run away or approach to the opponent
+we also facilitate learning the skill action policy with help of domain
+action policy with help of domain knowledge out of destroyer's 44 skills
+knowledge out of destroyer's 44 skills the skill that has longest skill reach
+the skill that has longest skill reach is 16 meters
+is 16 meters therefore when the distance between the
+therefore when the distance between the agent and the opponent is farther than
+agent and the opponent is farther than 60 meters
+60 meters we just blocked most of skills
+we just blocked most of skills because it is waste of resource such as
+because it is waste of resource such as skill call time and sp
+skill call time and sp it helped to ignore meaningless
+it helped to ignore meaningless exploration and boosted the learning
+exploration and boosted the learning process especially in the early phase of
+process especially in the early phase of learning
+i also want to give you some useful findings during future engineering which
+findings during future engineering which is
+is discretization of continuous feature
+discretization of continuous feature actually helped
+actually helped each skill has its own targeting range
+each skill has its own targeting range and accurate distance recognition is
+and accurate distance recognition is essential to hit the enemy
+essential to hit the enemy for example there is a skill named drag
+for example there is a skill named drag and its range is 3 meters to 16 meters
+and its range is 3 meters to 16 meters but the agent trained with continuous
+but the agent trained with continuous distance feature
+distance feature keeps miscalculating the skill range
+keeps miscalculating the skill range and use the skill when the opponent is
+and use the skill when the opponent is too far or too close
+too far or too close this is because continuous feature gives
+this is because continuous feature gives burden for model to learn the exact
+burden for model to learn the exact distance treasured for each skill
+distance treasured for each skill to solve this we encoded the distance
+to solve this we encoded the distance feature into one half vector and
+feature into one half vector and continued training
+continued training and then
+and then the agent was able to use the skill drag
+the agent was able to use the skill drag precisely
+in this section i will present some experimental results which includes
+experimental results which includes diverse learning curves
+our first extreme experiment was conducted with an opponent called
+conducted with an opponent called built-in ai
+built-in ai learning how to defeat a single fixed
+learning how to defeat a single fixed opponent is relatively easier task
+opponent is relatively easier task compared to deal with multiple random
+compared to deal with multiple random opponents
+opponents therefore before training by self-play
+therefore before training by self-play method
+method we first test the viability of the
+we first test the viability of the method by training against built-in ai
+method by training against built-in ai from infinity tower
+infinity tower is a special dungeon in blade and soul
+blade and soul where human players fight against npc ai
+where human players fight against npc ai we've used this sparring partner as a
+we've used this sparring partner as a testbed of various algorithms and tune
+testbed of various algorithms and tune over hyper parameters
+over hyper parameters let me show you the training results
+first graph is time win rate graph it shows how room rate increases as time
+shows how room rate increases as time passes
+passes the second graph is time hp div graph
+the second graph is time hp div graph hp div indicates the difference of
+hp div indicates the difference of agents hp and opponent chp when the
+agents hp and opponent chp when the match ends
+as can be seen in the graph our agent achieves 90 percent of room rate
+achieves 90 percent of room rate in just 30 minutes of training
+in just 30 minutes of training although the learning curve was splendid
+although the learning curve was splendid human player was able to easily defeat
+human player was able to easily defeat the agent
+the agent it had a lot of weaknesses and it was
+it had a lot of weaknesses and it was even
+even easier to exploit than the built-in ai
+easier to exploit than the built-in ai so we moved on to the next step
+we now enter to a self-play training phase in this stage the agent fight
+phase in this stage the agent fight against the opponent which is randomly
+against the opponent which is randomly sampled from the pool of past itself
+since there exists hundreds of hundreds of opponents so we displayed multiple
+of opponents so we displayed multiple learning curves here
+learning curves here each plot corresponds to the training
+each plot corresponds to the training curve for each of
+curve for each of each of the opponent in the poll
+each of the opponent in the poll as you can see the performance against
+as you can see the performance against each of the opponents
+each of the opponents all stably increases
+all stably increases then we briefly tested this agent
+then we briefly tested this agent against human and finally
+the level of difficulty also increased and human player felt hard to exploit
+and human player felt hard to exploit the agent
+the agent therefore we evaluated the agent with
+therefore we evaluated the agent with more systematic approach
+the goal of the evaluation is we want to measure how the agent fight well against
+measure how the agent fight well against the opponent it never had met before
+the opponent it never had met before it can be called as a generalization
+it can be called as a generalization performance
+performance or robustness of the agent
+or robustness of the agent so we made a match with this agent
+so we made a match with this agent against built-in ai and skillful human
+against built-in ai and skillful human player
+player note that the agent has never met
+note that the agent has never met built-in ai before
+built-in ai before because it is trained with self-play
+because it is trained with self-play method
+method nevertheless
+nevertheless it defeated both of built-in ai and even
+it defeated both of built-in ai and even skillful human player
+maybe at this time you might want to see how the agents actually fight so i guess
+how the agents actually fight so i guess i should move on to some demo videos
+these videos tell how the agency is getting stronger as training goes on
+getting stronger as training goes on female characters are ai
+female characters are ai and male characters are dummy opponents
+the leftmost video shows the initial model which acts randomly
+model which acts randomly we measured time consumption for ai to
+we measured time consumption for ai to reduce dummy opponent's hp from full to
+reduce dummy opponent's hp from full to zero
+zero it requires 120 seconds to defeat dummy
+it requires 120 seconds to defeat dummy model
+after a day of training the ai agent was capable of dealing damage with basic
+capable of dealing damage with basic combo
+combo also it used crowd control skills before
+also it used crowd control skills before dealing damage to make sure the
+dealing damage to make sure the opponents cannot react
+opponents cannot react it requires 42 seconds
+finally
+within only 20 seconds
+ai defeats the dummy opponent with a single long combo sequence
+as you can see the initial model is still struggling with the dummy opponent
+still struggling with the dummy opponent for your information our final agents
+for your information our final agents that compete against pro gamers
+that compete against pro gamers has trained for two weeks
+has trained for two weeks in means that each agent experienced up
+in means that each agent experienced up to four years of real-time gameplay
+now let me show you how fighting stars styles are different between the
+styles are different between the aggressive and the defensive agent
+black characters are ai and why characters are human player
+aggressive agent keeps approaching and attacks relentlessly
+and attacks relentlessly opponents have no break to think about
+opponents have no break to think about counter-attack and assessing their
+counter-attack and assessing their current state
+current state on the other hand
+defensive agents tend to secure distance and it waits for an opportunity for
+and it waits for an opportunity for proper timing to counter-attack
+you can see that agents of each style manages the match in largely different
+manages the match in largely different manner
+just before the live event called blind match we invited two prominent
+match we invited two prominent professional gamers who are the former
+professional gamers who are the former winners of annual competition
+for the fair evaluation we restricted our agent's reaction time
+our agent's reaction time with a delay of 230 milliseconds on
+with a delay of 230 milliseconds on average
+average which is similar with that of
+which is similar with that of professional gamers
+professional gamers as you can see in the table the
+as you can see in the table the aggressive agents dominate the game
+aggressive agents dominate the game while other two types of agents have
+while other two types of agents have rather intense games
+rather intense games according to the gamers interview after
+according to the gamers interview after tests this is because human players
+tests this is because human players often lead to some break between fights
+often lead to some break between fights for just think about current state and
+for just think about current state and high level strategy
+high level strategy however the aggressive agent does not
+however the aggressive agent does not allow human to have a break between
+allow human to have a break between battles
+battles but it only pours on attacks
+both of gamers agreed on that the aggressive agent is impeccable and
+aggressive agent is impeccable and flawless
+flawless they also added that aggressive agent
+they also added that aggressive agent plays in totally different way from
+plays in totally different way from human
+human while other two type of agents play
+while other two type of agents play similar to humans
+similar to humans and finally with these three models we
+and finally with these three models we went for the apply match
+went for the apply match let me show you the event highlight
+let me show you the event highlight video
+[Music]
+players here of course you know you know colorize he's been fantastic
+you know colorize he's been fantastic overnight
+hey i don't know who that is i don't think they don't stop a game right now a
+think they don't stop a game right now a bit of a dog
+bit of a dog okay okay
+okay okay all right so moment colorize show this
+all right so moment colorize show this bag all right i'm going in
+bag all right i'm going in there we go but they both still all
+there we go but they both still all persistence is actually alpha knight j
+persistence is actually alpha knight j is looking great for colorize for now
+is looking great for colorize for now amber stop is down as well
+amber stop is down as well oh drag mercy there ninja already moving
+oh drag mercy there ninja already moving forward and seeing what he can do oh we
+forward and seeing what he can do oh we can get the win another one
+can get the win another one but not if night
+but not if night he has better gusto
+he has better gusto even with gusto we'll see how he's going
+even with gusto we'll see how he's going to time that one up should be in favor
+to time that one up should be in favor of colorizing
+the drag connecting there it's gonna force out the gust already so pretty
+force out the gust already so pretty much uh similarities between the last
+much uh similarities between the last set as well and what hopping gets you
+set as well and what hopping gets you know but no
+know but no instead punish instead
+instead punish instead oh gosh he's going at it against alright
+oh gosh he's going at it against alright amber's time is also down
+amber's time is also down oh he's just again though
+oh he's just again though very nicely done this might just be it
+very nicely done this might just be it is with that nine castle only a couple
+is with that nine castle only a couple more seconds away
+more seconds away from 14 more disgusting adjustments that
+from 14 more disgusting adjustments that will be the damage wave with the wedge
+will be the damage wave with the wedge coming up all that grab and that will be
+coming up all that grab and that will be enough for shove around to take that
+enough for shove around to take that game on victory
+yeah who just lost in the third place match with his team comes back in this
+match with his team comes back in this event picture
+yeah we'll have to see how this happens because like we oh my god that
+because like we oh my god that stun that reaction time is crazy but i
+stun that reaction time is crazy but i was saying no the first two destroyers
+was saying no the first two destroyers were able to beat knight j but this time
+were able to beat knight j but this time around the choice not looking great
+around the choice not looking great if he's the only destroyer that loses
+if he's the only destroyer that loses against knight
+this is devastating this is it though that's it that's it
+that's it that's it oh but there we go this is it three
+oh but there we go this is it three seconds not too long but
+seconds not too long but it's gonna be looking a little bit
+it's gonna be looking a little bit better for knight j but not quite good
+better for knight j but not quite good enough
+no though we will see once again the gust is gonna be coming back and that
+gust is gonna be coming back and that means knight jay
+means knight jay if you hit the weight now the heel
+if you hit the weight now the heel heel's coming back now oh
+my god that's it wow playing with your food knight j huh
+wow playing with your food knight j huh wow
+the overall results including the blind match is as follows
+match is as follows the aggressive agents won all of the
+the aggressive agents won all of the game except one
+game except one and balanced and defensive agent made
+and balanced and defensive agent made competitive results against professional
+competitive results against professional gamers to the best of our knowledge this
+gamers to the best of our knowledge this level of performance is achieved for the
+level of performance is achieved for the first time in modern complex fighting
+first time in modern complex fighting games
+until now we introduce the overall process with specific engineering
+process with specific engineering techniques used for creating ai
+techniques used for creating ai i want to conclude with brief summaries
+i want to conclude with brief summaries of what we've made
+of what we've made first we succeeded to make pro-level ai
+first we succeeded to make pro-level ai in complex fighting games based on rl
+in complex fighting games based on rl methods
+methods second we guided fighting style without
+second we guided fighting style without any hard-coded rules
+any hard-coded rules aggressive style is just one example
+aggressive style is just one example and any type of styles can be guided
+and any type of styles can be guided with rear shaping
+with rear shaping third we trained robust ai with pool of
+third we trained robust ai with pool of opponents
+last we reduced the problem space with various engineering techniques
+it is the end of what we've prepared for today's session i hope you've learned
+today's session i hope you've learned some useful lessons from our session and
+some useful lessons from our session and please don't forget to evaluate our
+please don't forget to evaluate our session
+session we are jin yeon chong and sun noor from
+we are jin yeon chong and sun noor from ncsoft thank you
+and our company prepared another session on
+our company prepared another session on thursday 3 p.m it is about gym
+thursday 3 p.m it is about gym learning-based universe kinematics if
+learning-based universe kinematics if you have interested please stop by
+oh okay i'll just take one one because oh we have two minutes so if you have
+oh we have two minutes so if you have question i will take only one
+question i will take only one oh
+oh if not it's okay
+if not it's okay i'll jump in uh or did you want to go
+i'll jump in uh or did you want to go uh
+uh you could probably answer this quickly
+you could probably answer this quickly it seems like the aggressive style was
+it seems like the aggressive style was something that the ai discovered did
+something that the ai discovered did players start incorporating that
+players start incorporating that into their gameplay in order like did
+into their gameplay in order like did they is it a discovery of a game style
+they is it a discovery of a game style or is it just a unfair advantage the ai
+or is it just a unfair advantage the ai has oh
+has oh it is not unfair we
+it is not unfair we we have
+we have very carefully designed for the
+very carefully designed for the fairer
+fairer match so
+match so all the aggressive agents
+all the aggressive agents uh acts perfectly it has
+uh acts perfectly it has delay between its decision
+delay between its decision and its reactive time in game 230
+and its reactive time in game 230 milliseconds of delay so
+milliseconds of delay so yeah it is a fair match
+yeah it is a fair match i wonder if you're allowed to tell us
+i wonder if you're allowed to tell us how did you adjust the weightings of the
+how did you adjust the weightings of the neural network based on the reward
+neural network based on the reward signal that came back
+signal that came back how do we adjust the
+how do we adjust the adjust the the weightings in the neural
+adjust the the weightings in the neural network
+network rates of reward yeah
+rates of reward yeah we
+we like rl method we have a lot of trial
+like rl method we have a lot of trial and errors and to make the style
+obviously we tuned the weights and tried many set of weights and
+many set of weights and if if they look similar we
+if if they look similar we made it far apart
+made it far apart the weight of each reward and
+the weight of each reward and that thing
+that thing like that
+like that thank you

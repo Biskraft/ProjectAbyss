@@ -1,0 +1,310 @@
+﻿There aren’t many genres with such a strong
+core fantasy, as the stealth game.
+These are games about staying unseen, and
+then striking from the shadows.
+About outsmarting an entire army of enemies,
+without them even knowing you exist.
+These are games about spies, assassins,
+and, uh, Batmen.
+But making this fantasy work means balancing
+a number of complicated game systems: from
+enemy awareness, to information gathering,
+to robust detection systems.
+Get any of them wrong, and the whole thing
+can crumple in on itself.
+So, welcome to the School of Stealth.
+This is a short, GMTK mini-series about how
+stealth games work.
+In each episode, I’m going to take one system
+from the stealth game formula and break down how
+it works - looking, where necessary, at the
+technical side of things, the design considerations,
+and the end user experience.
+For episode one, we need to start where most
+stealth games begin: with the player being
+hidden.
+And then ask ourselves: how do guards actually
+see and hear the player?
+Ultimately, guards in games are given virtual
+eyes and ears that are designed to simulate
+the two main human senses: sight and sound.
+To simulate vision, video game guards typically
+have a viewcone - which is an invisible, cheese-like
+entity that is stuck to the enemy’s face.
+If the player character enters the cone, they
+get detected.
+It’s a touch more complicated than that,
+of course.
+A simple cone would allow characters to stay
+unseen even if they were right next to the
+enemy - so more complex shapes are often used.
+In Splinter Cell Blacklist, there’s a basic
+vision cone for the guard’s primary sightline,
+but a second, much wider box to simulate peripheral
+vision.
+And even a small area behind the guard to
+mimic that sixth sense of knowing when someone’s
+just over your shoulder.
+Developers will also need to consider the
+height of the cone, depending on whether the
+character should be able to hide when they’re
+above enemies.
+To know if the player is in cover, a game
+will typically use a raycast - which is basically
+when an invisible line is drawn between two
+elements to see - in this case - if anything
+is in the way.
+You can make this more complex to catch moments
+of partial cover: so, in Splinter Cell, the
+enemy raycasts to eight different bones in
+Sam Fisher’s player model - and will only
+spot him if a certain number are visible.
+Now, if the player enters the cone and isn’t
+in cover, they probably don’t get immediately spotted.
+Instead, the guard’s awareness of the player
+starts to grow.
+The speed at which this meter fills might
+be slower if the character is further away,
+or only in the guard’s peripheral vision,
+or in low light, or crouching down, or
+staying perfectly still.
+When the meter tops out, though, the guard
+will know exactly where you are.
+It’s also important to note that guards
+can be aware of more than just the player
+character - such as open doors, interesting
+objects, or dead bodies.
+This can be used to make interesting plans
+like traps and distractions - but it can also
+help give the impression of intelligence and
+awareness.
+Now, simulating hearing is a different problem.
+When you make a sound, like firing a gun,
+walking on a loud floor board, or throwing
+a stone - the sound will be given a distance
+- related to the volume of that noise.
+Any guard who is within that distance can
+then be told to go check out the source of
+the sound.
+However, a straight line between the sound
+and the guard won’t work, because we expect
+noises to be muffled by walls.
+So the typical solution is to use the game’s
+pathfinding system - the same tech that allows
+an enemy to find their way around a world
+without bumping into objects.
+Make the sound travel across that, and you’ll
+more realistically capture the way sound propagates
+through an environment in real life.
+That’s the gist of things, then, but more
+complex stuff might be included in certain
+games - for example, in Thief, guards can
+have second-hand information about the player
+based on what other enemies are up to.
+And in Hitman 2, enforcer characters are way
+less perceptive of Agent 47 if he’s facing
+away from them, which gives disguises more
+power.
+Links to more detailed technical information
+can be found in the description beneath this video.
+When done well, this system should create
+a pretty realistic representation of a human’s
+visual and auditory perception.
+You can then make educated decisions about
+where you will be safe, using your real-world
+knowledge of how sight works in different
+light conditions, or how sound might be muffled
+by a wall.
+But there’s always going to be a certain
+level of ambiguity for the player to deal
+with - which can lead to friction and frustration.
+I’m sure you’ve played a stealth game
+where you thought you were totally invisible,
+but the guard saw you anyway.
+So to help players make sense of this stuff,
+there’s a few smart ways that devs can make
+these perception systems more obvious.
+The first is helpful interface elements.
+Even way back in Thief, the developers knew
+that it was tough for players to understand
+how lit their character was from a first-person
+perspective, so there’s a light gem at the
+bottom of the screen to show your current
+visibility.
+And in Splinter Cell, the awkward challenge
+of knowing how much sound you’re making,
+is helped by a visualiser on Sam’s head’s
+up display.
+Also, most games have some kind of detection
+indicator on their interface, which mimics
+the guard’s awareness meter from earlier.
+This helps the player know that they’re
+about to be made - and sometimes even shows
+you the location of the guard who’s seen
+you.
+Next up is using animation and audio to help
+communicate a guard’s status to the player.
+A guard who is idly lazing about might suggest
+that they have pretty weak perception, but
+a suspicious enemy with their weapon raised
+will be way more alert to potential threats.
+Audio barks also let you know that the guard
+is starting to become aware of you.
+Then there are refuge spaces.
+These are places in the game world where,
+in normal circumstances,
+you are unambiguously hidden.
+That might be the high-up gargoyles in Batman,
+or areas of long grass in Assassin’s Creed,
+or crates and cupboards in Hitman.
+These give you at least one place where you
+can scout and plan from a position of total safety.
+Another big solution is player favouring - which
+is the art of handicapping systems to bias
+the player.
+As Splinter Cell Blacklist programmer Martin
+Walsh says, “it doesn’t matter what the
+NPC can see or hear from a simulation perspective.
+It’s what the player thinks the NPC should
+be able to see or hear”.
+So in his game, a guard’s hearing is reduced
+by half when they’re offscreen, because
+it feels unfair to be heard by someone you
+can’t even see.
+And in The Last of Us, enemies typically raycast
+to Joel’s head to determine line of sight
+- but that changes to his chest when he’s
+crouching, to let him peep over cover without
+being spotted.
+And then the biggest help of all, as discussed
+earlier, is a fuzzy detection system.
+If you were immediately spotted when you touched
+the guard’s vision cone, that wouldn’t
+feel very fair.
+So it makes sense that guards take a few moments
+to become aware of your presence before being
+totally alerted.
+Now there’s one final, and rather bold solution
+to this problem: and that’s to simply reveal
+these systems to the player.
+In the excellent side-scrolling sneak ‘em
+up Mark of the Ninja, the guard’s perception
+is about as unambiguous as you can get:
+Their vision cones are displayed on screen.
+The ninja is either in shadow or in light
+- and that’s shown on the character’s sprite.
+And when you make noises, you can see them
+emanating from the source as big round pulses.
+This is also shown to you before you even
+make the noise, which is helpful for knowing
+whether your noisy distraction or sneaky getaway
+will be successful.
+With the info on screen, there’s no arguing
+about what’s happening in the system.
+You’re either in the cone, or you’re not.
+And that sound either reached the guard’s
+ears, or it didn’t.
+And so Ninja’s binary perception system
+can be paired up with a totally binary detection
+system of instant awareness - though, there
+is a slight analogue fuzziness on the very
+edges of the enemy’s view cones.
+GUARD: "Is someone up there?"
+For a slightly more nuanced take on this,
+check out Shadow Tactics: Blades of the Shogun.
+Here, the vision cone is split into three
+zones: the bright green part near the enemy’s
+face is the danger zone and leads to a pretty
+instantaneous detection.
+In the dark green part, you can stay hidden
+if you’re crouched down, but will be spotted
+if you stand up.
+And the dotted part is for refuge zones like
+bushes and high grass, where you will always
+be invisible.
+If you do trip the viewcone, the whole cone
+will fill up with yellow - and if the yellow
+part touches your character, you’re spotted.
+It’s a very elegant way of displaying all
+the necessary information, right there on screen.
+Of course, it’s a lot harder to show this
+sort of stuff in a fully 3D game.
+The original Metal Gear Solid’s solution
+was to simply photocopy the game world into
+a top-down, 2D representation on your radar,
+and then draw the vision cones on that.
+It’s a sorta hand-wavey solution that’s
+still being used in games like Deus Ex: Mankind Divided.
+But it’s not impossible.
+The Sly Cooper series has guards with torches
+that cast obvious pools of yellow light.
+If you find yourself inside the light, you
+get spotted - but otherwise you’re safe.
+Cartoony, yes.
+But also, immediately readable.
+The most important thing, though, is the experience
+that these different perception systems lead to.
+When the system is made analogue and ambiguous,
+the player must evaluate the environment with
+an immersive and realistic understanding of
+light, shadow, distance, and sound.
+And it also gives the game a certain level
+of tension - where you can never been 100%
+sure that you’re safe.
+And I think this fits quite nicely with the
+core stealth fantasy: these are games where
+your power doesn’t come through sheer brute
+force, but only through your ability to hide
+from the enemy.
+So having your sneaky status be fragile and
+fuzzy reminds you that you’re always at
+risk of losing your tenuous advantage over
+the enemy.
+As Thief programmer Tom Leonard says, “it's
+about getting the player's heart pounding
+by holding them on the cusp” of being found.
+And it’s especially important to hide this
+stuff in survival horror games that borrow
+stealth elements.
+In a game like Alien Isolation, it would be
+rubbish if you could see exactly where the
+Xenomorph was looking.
+A huge amount of fear and anxiety is derived
+from your shaky knowledge of the alien’s senses.
+But making the system completely obvious has
+its own advantages.
+It puts way more power in your hands, and
+allows you to play with a huge amount of confidence.
+You can feel more like an apex predator, luring
+enemies into traps or sneaking in for a silent kill.
+As Ninja producer Jamie Cheng put it, “as
+we were iterating, I found that I wasn't nearly
+as interested in guessing whether a guard
+would hear me or not, and way more interested
+in creating an elaborate death trap”.
+Of course, the predator feel can be achieved
+through other methods, like those aforementioned
+refuge zones and by giving the player a bucketload
+of gadgets and super powers - but the more
+accurately they can predict the enemy’s
+perception, the quicker the player will get
+to that experience.
+So, that’s it for lesson one.
+Stealth game guards see and hear through a
+system of simulated eyes and ears - and developers
+can create very different experiences, depending
+on how much of that system they surface to
+the player.
+Come back next time for more deep dives into
+sneak ‘em up design.
+And if you subscribe to my channel, you’ll
+get access to the new episode as soon as it
+goes live.
+Hey. Thanks for watching.
+I hope you’re all doing okay in the midst
+of this awful coronavirus pandemic.
+It’s such a scary situation, so please stay
+safe, wash your hands,
+and follow the necessary guidelines.
+I’ll do my best to keep making interesting
+stuff to keep you busy and entertained.

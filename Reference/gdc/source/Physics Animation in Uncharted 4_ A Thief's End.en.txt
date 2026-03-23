@@ -1,0 +1,1156 @@
+[Music] all right let's get this party
+started and we have no audio oh co thank you
+you [Music]
+[Music] good morning everybody I'd like to
+good morning everybody I'd like to welcome you to my first ever GDC
+welcome you to my first ever GDC presentation so I'm a little nervous
+presentation so I'm a little nervous thank you for coming at this ungodly
+thank you for coming at this ungodly hour
+so my name is mhak I started my career in the gaming industry back in 1999 as a
+in the gaming industry back in 1999 as a 3D modeler on Mafia the city of lost
+3D modeler on Mafia the city of lost Heaven
+Heaven game luckily our company had only one
+game luckily our company had only one animator at that time and they thought I
+animator at that time and they thought I could have a
+could have a potential and I was probably decent so I
+potential and I was probably decent so I I became a lead gameplay animator on
+I became a lead gameplay animator on Mafia 2 after that I helped vatra games
+Mafia 2 after that I helped vatra games with the Silent Hill downpour and in
+with the Silent Hill downpour and in 2011 I joined the nly dox kenel as an
+2011 I joined the nly dox kenel as an animator so what physics animation means
+animator so what physics animation means to
+to us it's anything animated while
+us it's anything animated while physically
+physically simulated the most common implementation
+simulated the most common implementation of physics animation is the ragle
+of physics animation is the ragle simulation basically every game today
+simulation basically every game today has it in some form we were already
+has it in some form we were already using rle when characters die but we
+using rle when characters die but we wanted to experiment further and see if
+wanted to experiment further and see if we could use it more
+we could use it more creatively we don't want players to
+creatively we don't want players to notice when the physics animation is
+notice when the physics animation is running fitting the character and
+running fitting the character and natural look and feel is number one
+natural look and feel is number one priority I'd like to show you what did
+priority I'd like to show you what did and did not work on a few examples from
+and did not work on a few examples from our
+our games but why bother with such a risky
+games but why bother with such a risky thing like physics animation when we
+thing like physics animation when we have an army of animators right we could
+have an army of animators right we could just brute force it and it's because we
+just brute force it and it's because we were planning on abandoning the the
+were planning on abandoning the the environments made of boxes right angles
+environments made of boxes right angles and perfectly vertical walls physics
+and perfectly vertical walls physics helped us with blending out of already
+helped us with blending out of already massive amount of animations and
+massive amount of animations and sometimes allowed us to fully simulate
+sometimes allowed us to fully simulate something that would be otherwise a
+something that would be otherwise a chore to implement using the old
+chore to implement using the old ways we wanted our characters to react
+ways we wanted our characters to react more believably to whatever was
+more believably to whatever was happening to them our characters have
+happening to them our characters have incredible level of detail and we wanted
+incredible level of detail and we wanted to match the same level of Fidelity in
+to match the same level of Fidelity in animation we we also wanted players to
+animation we we also wanted players to be able to interact with the dynamic
+be able to interact with the dynamic stuff more physics ideally
+stuff more physics ideally everywhere and because it's
+everywhere and because it's fun but first things first our games are
+fun but first things first our games are running on Havoc so I'm going to use
+running on Havoc so I'm going to use terminology specific to this physics
+terminology specific to this physics engine although most of it applies to
+engine although most of it applies to other physics engines as
+other physics engines as well let's start with rigid bodies these
+well let's start with rigid bodies these are the objects roughly describing
+are the objects roughly describing geometry of our characters each rigid
+geometry of our characters each rigid body has joints Associated to it rigid
+body has joints Associated to it rigid body has its mass or weight friction
+body has its mass or weight friction restitution or bounciness and inertia
+restitution or bounciness and inertia tensor inertia tensor describes how
+tensor inertia tensor describes how difficult it is to rotate an object
+difficult it is to rotate an object around any given axis basically the
+around any given axis basically the higher the inertia tensor the more
+higher the inertia tensor the more stable the object
+stable the object is linear damping reduces the linear
+is linear damping reduces the linear movement of the object over time and
+movement of the object over time and angular damping performs the same to the
+angular damping performs the same to the rotation of the object
+rotation of the object rigid bodies can be connected by
+rigid bodies can be connected by constraints for organic forms of life we
+constraints for organic forms of life we mainly use two types hinge constraint
+mainly use two types hinge constraint limits rotation in the joint to one axis
+limits rotation in the joint to one axis typically used for knees and
+typically used for knees and elbows Regal constraint is the more
+elbows Regal constraint is the more common one as it behaves similar to
+common one as it behaves similar to majority of joints in our bodies
+majority of joints in our bodies unfortunately both types of constraints
+unfortunately both types of constraints don't behave too realistically unless we
+don't behave too realistically unless we set up limits for
+set up limits for them limits are kind of different
+them limits are kind of different difficult to set up every person has
+difficult to set up every person has different natural flexibility so it's
+different natural flexibility so it's hard to decide what is The Sweet Spot I
+hard to decide what is The Sweet Spot I prefer more restrictive limits to
+prefer more restrictive limits to prevent characters getting stuck in in
+prevent characters getting stuck in in weird yoga
+weird yoga poses or this one trust me I've seen
+poses or this one trust me I've seen these exact poses in our game
+these exact poses in our game before this particular one can happen
+before this particular one can happen when you have too much friction on your
+when you have too much friction on your rigid
+rigid bodies and also make sure the limits are
+bodies and also make sure the limits are not too restrictive so play so the
+not too restrictive so play so the characters don't look like they are just
+characters don't look like they are just taking a
+taking a nap now we have Max friction torque and
+nap now we have Max friction torque and it simulates friction in joints and
+it simulates friction in joints and tendons surrounding them so the rigid
+tendons surrounding them so the rigid bodies won't flop around freely like in
+bodies won't flop around freely like in the video on the
+the video on the left set max friction torque to 20% of
+left set max friction torque to 20% of the mass to start
+out finally to be able to animate our R doll we can use constrained
+doll we can use constrained Motors then the regular constraint
+Motors then the regular constraint becomes a powered constraint Motors try
+becomes a powered constraint Motors try their best to match our anim pose with
+their best to match our anim pose with maximum motor Force but we don't want
+maximum motor Force but we don't want them to overshoot the pose and that's
+them to overshoot the pose and that's why we also have motor
+damping another tool we have is ability to limit how fast the motor tries to
+to limit how fast the motor tries to recover the animation pose if something
+recover the animation pose if something pushes it
+pushes it around so the right side is low speed
+around so the right side is low speed and left side is high
+and left side is high speed and finally we have a motor towel
+speed and finally we have a motor towel which is basically motor stiffness you
+which is basically motor stiffness you won't see almost any difference but you
+won't see almost any difference but you can totally feel it
+can totally feel it so yeah that's it that's all the
+so yeah that's it that's all the parameters I usually tweak while I'm
+parameters I usually tweak while I'm setting up the reg
+setting up the reg dooll there's so many parameters and all
+dooll there's so many parameters and all of them are kind of connected changing
+of them are kind of connected changing one often influences others too so
+one often influences others too so please read the
+please read the manual I know it's boring uh but after
+manual I know it's boring uh but after endless hours of T tuning random numbers
+endless hours of T tuning random numbers I gave in and read the most interesting
+I gave in and read the most interesting sections also check out demos provided
+sections also check out demos provided with your physics engine they show off
+with your physics engine they show off features in nice simplified form and if
+features in nice simplified form and if you have your own custom physics engine
+you have your own custom physics engine talk to your programmer and ask him for
+talk to your programmer and ask him for for for how stuff
+for for how stuff works okay here are some basic rules
+works okay here are some basic rules rules I wish I knew when I
+rules I wish I knew when I started don't try to imitate real life
+started don't try to imitate real life reduce mass of your rigid bodies by 10
+reduce mass of your rigid bodies by 10 to 20% for each bone going out from the
+to 20% for each bone going out from the root check for unwanted collisions the
+root check for unwanted collisions the chest area is so congested that it's
+chest area is so congested that it's really hard to see what's happening
+really hard to see what's happening inside and now you can start testing and
+inside and now you can start testing and tweaking scale inertia tensors should
+tweaking scale inertia tensors should you need to stabilize disproportionally
+you need to stabilize disproportionally sized rigid
+sized rigid bodies and be patient it takes time A
+bodies and be patient it takes time A lot of time to set everything up but
+lot of time to set everything up but don't be too patient I'm talking from my
+don't be too patient I'm talking from my own experience because one day I was
+own experience because one day I was wondering why is our R doll so floaty in
+wondering why is our R doll so floaty in the game it was perfectly fine in Havoc
+the game it was perfectly fine in Havoc debug tools but super floaty in game
+debug tools but super floaty in game maybe something was Lost in
+maybe something was Lost in Translation and I spent hours well maybe
+Translation and I spent hours well maybe even days tweaking damping on Rigid
+even days tweaking damping on Rigid bodies and I felt like it's way way
+bodies and I felt like it's way way better than two days ago but I still
+better than two days ago but I still wasn't satisfied so I went to see our
+wasn't satisfied so I went to see our physics programmer and asked him for
+physics programmer and asked him for help and he checked the game code and he
+help and he checked the game code and he was like oh yeah yeah it's hardcoded so
+was like oh yeah yeah it's hardcoded so make sure you're are allowed to change
+make sure you're are allowed to change the parameters you are trying to
+change anyway how do I test my reg dolls I start throwing them around basically
+I start throwing them around basically with with the mouse that's the advantage
+with with the mouse that's the advantage we have as a game de
+we have as a game de developers body should unfold itself
+developers body should unfold itself itself into a natural looking pose if
+itself into a natural looking pose if limits restrictions and uh the friction
+limits restrictions and uh the friction and everything is set up properly the
+and everything is set up properly the human body is soft and Squishy so tone
+human body is soft and Squishy so tone the restitution
+down uh as I said before I like to keep limits on the restrictive side so if I
+limits on the restrictive side so if I put this guy's hand on his chest it
+put this guy's hand on his chest it naturally slides down next to his
+body and make sure you have correct friction on your rigid bodies this guy's
+friction on your rigid bodies this guy's leg could get stuck on the other leg if
+leg could get stuck on the other leg if the friction is too high and you might
+the friction is too high and you might get that taking a nap
+get that taking a nap pose and what I also like to do is this
+pose and what I also like to do is this sitting test I think that character
+sitting test I think that character should be able to do to be able to sit
+should be able to do to be able to sit next to a wall but it looks so cool and
+next to a wall but it looks so cool and dramatic when it slowly slides
+dramatic when it slowly slides down okay now it's time to test the
+down okay now it's time to test the regular in the real
+regular in the real gameplay by the way uh when I was doing
+gameplay by the way uh when I was doing this for some reason the dead bodies
+this for some reason the dead bodies kept reappear every time I respond the
+character yeah we are spooning in unch 4 so basically when I'm playing I'm
+4 so basically when I'm playing I'm trying to find out how often I can see a
+trying to find out how often I can see a bad
+Poe this is the friction on the legs hang
+on and this is my arm test the the chances to see a broken Regal
+the the chances to see a broken Regal are much higher when the characters are
+are much higher when the characters are moving fast and hitting a
+collision holy
+[ __ ] so it was all physics and the limits basically held the
+limits basically held the character from
+character from breaking
+breaking and one
+and one more yeah as you can see I spent some
+more yeah as you can see I spent some time all the there the all all the
+time all the there the all all the weapons anyway so we tested our R doll
+weapons anyway so we tested our R doll if it's flopping around properly but now
+if it's flopping around properly but now it's time to animate it and when we talk
+it's time to animate it and when we talk about animating rigid bodies we talk
+about animating rigid bodies we talk about their
+about their states key friend rigid body which is
+states key friend rigid body which is drawn in blue color is 100% driven by
+drawn in blue color is 100% driven by animation as you can see I'm trying to
+animation as you can see I'm trying to move it with with the mouse but it's not
+move it with with the mouse but it's not possible we use key Frank rigid bodies
+possible we use key Frank rigid bodies for pinning hands or feet to other
+for pinning hands or feet to other objects we usually disable collisions on
+objects we usually disable collisions on key friend rigid bodies so they won't
+key friend rigid bodies so they won't kick the other objects to the
+Moon next is powered or animated rigid bodies they are drawing yellow this one
+bodies they are drawing yellow this one is also driven by the animation but this
+is also driven by the animation but this time I can move it around by applying
+time I can move it around by applying impulses or by colliding with other
+impulses or by colliding with other objects by the way notice how the
+objects by the way notice how the Drake's screen left arm is flailing
+Drake's screen left arm is flailing around that's because it's not powered
+around that's because it's not powered and that is the third and last possible
+and that is the third and last possible state of our rigid bodies unfortunately
+state of our rigid bodies unfortunately it's also yellow but don't worry I won't
+it's also yellow but don't worry I won't be showing unpowered rigid bodies in my
+be showing unpowered rigid bodies in my presentation okay so I mentioned rigid
+presentation okay so I mentioned rigid bodies and let me briefly explain how we
+bodies and let me briefly explain how we can do
+can do that we use so-called animation
+that we use so-called animation controllers and the first one is powered
+controllers and the first one is powered constraint controller which we call
+constraint controller which we call Simply Motors because it uses the
+Simply Motors because it uses the constraint Motors I talked about earlier
+constraint Motors I talked about earlier and it's also
+and it's also shorter Havoc recommends this controller
+shorter Havoc recommends this controller when animating dead or dying characters
+when animating dead or dying characters it's because it's working in local space
+it's because it's working in local space so it cannot keep the character from
+so it cannot keep the character from falling without using additional tools
+falling without using additional tools but it produces pretty realistic results
+but it produces pretty realistic results thanks to its local space nature so if
+thanks to its local space nature so if you move one rigid body it moves all of
+you move one rigid body it moves all of its children with it unfortunately we
+its children with it unfortunately we were not able to match an animation post
+were not able to match an animation post without using really stiff Motors and
+without using really stiff Motors and that tend to overshoot and vibrate by
+that tend to overshoot and vibrate by the way the vibrations in the video are
+the way the vibrations in the video are slightly exaggerated so you can see them
+slightly exaggerated so you can see them better and the second animation
+better and the second animation controller is rigid body controller
+controller is rigid body controller which we call Key frame
+which we call Key frame controller it's very different from
+controller it's very different from Motors because it's manipulating
+Motors because it's manipulating velocities of individual rigid bodies to
+velocities of individual rigid bodies to match an animation pose Havoc recommends
+match an animation pose Havoc recommends this controller for live character
+this controller for live character because it works in World space and
+because it works in World space and therefore can keep them from falling due
+therefore can keep them from falling due to its World space nature it has this
+to its World space nature it has this kind of ik look so if you move for
+kind of ik look so if you move for example the upper arm the hand tries to
+example the upper arm the hand tries to stay in place you can see the similar
+stay in place you can see the similar effect in the in the head as well but
+effect in the in the head as well but it's incredible incredibly easy to match
+it's incredible incredibly easy to match an animation pose and the controller is
+an animation pose and the controller is very
+stable let me show you both controllers again side by side I also marked the key
+again side by side I also marked the key differences between controllers for you
+differences between controllers for you it's going to be important
+it's going to be important later and so we have this physics
+later and so we have this physics terminology over and let me finally show
+terminology over and let me finally show you some
+you some examples yeah I know I promised I'm Char
+examples yeah I know I promised I'm Char for but let me start with the first game
+for but let me start with the first game where we ever used our current
+where we ever used our current technology for the first time and that
+technology for the first time and that is the last of
+is the last of us so this is towards the end of the
+us so this is towards the end of the game where Joel saves Ellie spoiler
+game where Joel saves Ellie spoiler alert from being killed by fireflies uh
+alert from being killed by fireflies uh she's under anesthesia and therefore
+she's under anesthesia and therefore she's unconscious and Joel is supposed
+she's unconscious and Joel is supposed to carry her away from the
+to carry her away from the hospital it was supposed to be a very
+hospital it was supposed to be a very touching moment so Ellie's arms and legs
+touching moment so Ellie's arms and legs should not be
+should not be moving or should be moving but not too
+moving or should be moving but not too much you know so it doesn't look comical
+much you know so it doesn't look comical I checked YouTube hoping for at least a
+I checked YouTube hoping for at least a few helpful
+few helpful videos but I was really surprised when
+videos but I was really surprised when my search return returned tens of
+my search return returned tens of thousands of results yeah there was one
+thousands of results yeah there was one playlist that was 469 videos was
+playlist that was 469 videos was crazy okay back to animation we already
+crazy okay back to animation we already had this sequence at the beginning of
+had this sequence at the beginning of the game where Joel carries his daughter
+the game where Joel carries his daughter Sarah so we decided to reuse his move
+Sarah so we decided to reuse his move set but we had no time to create
+set but we had no time to create animations for Ellie one idle and one
+animations for Ellie one idle and one run forward animation had to do it
+let's see it yeah it looks pretty solid now I mean at least body it's pretty
+now I mean at least body it's pretty solid it's not moving at
+solid it's not moving at all yeah this was not shippable uh we
+all yeah this was not shippable uh we needed a solution that could get away
+needed a solution that could get away with limited number of animations and
+with limited number of animations and provide proper reactions to Joe's motion
+provide proper reactions to Joe's motion so physics right that what can possibly
+so physics right that what can possibly go
+go wrong and there we go this is our
+wrong and there we go this is our initial
+initial setup as you can see Ellie torso and and
+setup as you can see Ellie torso and and left arm were fully key framed and not
+left arm were fully key framed and not simulated at all we simulated only the
+simulated at all we simulated only the right arm head and both lower
+right arm head and both lower legs we encountered a problem with our
+legs we encountered a problem with our AET building pipeline though our
+AET building pipeline though our characters can have only one R doll so
+characters can have only one R doll so we had to hack in this additional rll
+we had to hack in this additional rll for Ellie just for this sequence okay
+for Ellie just for this sequence okay let's check how it turned
+let's check how it turned [Music]
+out yeah oh
+yeah it's not that's not very emotional is
+it so yeah we tried both Motors and key frame controller to drive the rag
+frame controller to drive the rag doll but yeah shoot
+doll but yeah shoot him okay he's dead so we tried both
+him okay he's dead so we tried both Motors key controller Motors work great
+Motors key controller Motors work great until players started changing direction
+until players started changing direction increase ining their strength wasn't
+increase ining their strength wasn't solution because we needed those limbs
+solution because we needed those limbs to be loose and key frame control felt
+to be loose and key frame control felt better but Loose limbs had this weird
+better but Loose limbs had this weird linear motion in them key frame
+linear motion in them key frame controller is after all linear right
+controller is after all linear right it's in World
+it's in World space so okay we needed to decide
+space so okay we needed to decide between Motors and key frame
+between Motors and key frame controller how could we keep using
+controller how could we keep using motors for nice follow through in
+motors for nice follow through in Ellie's limbs but stabilize them without
+Ellie's limbs but stabilize them without increasing the motor
+increasing the motor strength is there a way to cap
+strength is there a way to cap acceleration in
+joints and we got this Revelation one and that is that standard approach is to
+and that is that standard approach is to use motors or key frame controller for
+use motors or key frame controller for animating rigid
+animating rigid bodies but Yos our physics programmer
+bodies but Yos our physics programmer had an
+had an idea maybe we could try both controllers
+idea maybe we could try both controllers simultaneously we had no idea if that's
+simultaneously we had no idea if that's going to work or not but we gave it a
+going to work or not but we gave it a try it was a delicate Balancing Act
+try it was a delicate Balancing Act between the two controllers but it
+worked so we used motors with enough power to
+so we used motors with enough power to apply the animation pose but lowered
+apply the animation pose but lowered their tow stiffness to minimum to make
+their tow stiffness to minimum to make them very soft and let the limbs flop
+them very soft and let the limbs flop around and we use key frame controller
+around and we use key frame controller it functions as some kind of stabilizer
+it functions as some kind of stabilizer preventing vibrations and forcing the
+preventing vibrations and forcing the rigid bodies to keep the animation post
+rigid bodies to keep the animation post when the character is not moving too
+when the character is not moving too much but Ellie still kept breaking
+much but Ellie still kept breaking during quick directional
+during quick directional changes and we wouldn't be able to ship
+changes and we wouldn't be able to ship without Revelation 2 and we knew that
+without Revelation 2 and we knew that Ellie is parented to Joe's spine so
+Ellie is parented to Joe's spine so yaros tried to decompose the animation
+yaros tried to decompose the animation post to two
+post to two components local acceleration which is
+components local acceleration which is acceleration of Ellie's pose and parent
+acceleration of Ellie's pose and parent acceleration which is acceleration of
+acceleration which is acceleration of Joel's
+Joel's spine and now the key thing we can limit
+spine and now the key thing we can limit how much players's motion we apply to
+how much players's motion we apply to Havoc rigid bodies we were finally a
+Havoc rigid bodies we were finally a able to cap the crazy accelerations we
+able to cap the crazy accelerations we were getting when player was changing
+were getting when player was changing directions
+directions rapidly and this is from the ship
+rapidly and this is from the ship [Music]
+game [ __ ] I I think it's pretty decent for just one frame
+pose anyway so what are the key features of our Regal driving
+of our Regal driving method we are Motors and key frame
+method we are Motors and key frame controllers
+controllers simultaneously by changing weight
+simultaneously by changing weight between Motors and key frame controller
+between Motors and key frame controller we can achieve different results and by
+we can achieve different results and by the way we can change those weights per
+the way we can change those weights per rigid body
+rigid body and we can also cap acceleration spikes
+and we can also cap acceleration spikes by limiting parent
+acceleration and how the key frame controller works for you with coding
+controller works for you with coding experience it might be easier to just
+experience it might be easier to just read
+read this it's a bit simplified because I'm
+this it's a bit simplified because I'm not a programmer but the key principles
+not a programmer but the key principles are there we take local acceleration
+are there we take local acceleration sprinkle it with parent acceleration
+sprinkle it with parent acceleration then we add a little bit of velocity
+then we add a little bit of velocity gain and try to match the velocities in
+gain and try to match the velocities in rigid bodies and final and if the final
+rigid bodies and final and if the final post is still not matching up we can
+post is still not matching up we can finish it up with position
+finish it up with position gain and we take the resulting linear
+gain and we take the resulting linear velocity and set it back to our rigid
+velocity and set it back to our rigid body and we do the same for angular
+body and we do the same for angular velocities all gains and limits are
+velocities all gains and limits are exposed to our script and this is what
+exposed to our script and this is what animator
+animator sees by the way DC script is based on
+sees by the way DC script is based on lisp or scheme and our programmer then
+lisp or scheme and our programmer then leapold gave a talk talk about it here
+leapold gave a talk talk about it here at GDC back in 2008 and it was called
+at GDC back in 2008 and it was called Adventure in data
+Adventure in data compilation so all is good I call it a
+compilation so all is good I call it a success but we found out that we need
+success but we found out that we need one more RoR for
+Ellie this scene happens before the hospital one but Joel is saving Ellie
+hospital one but Joel is saving Ellie again this time it's
+again this time it's underwater and we needed slightly
+underwater and we needed slightly different parameters for our R doll much
+different parameters for our R doll much higher damping on Ellie's arms and legs
+higher damping on Ellie's arms and legs to simulate water drag and also we
+to simulate water drag and also we needed to key frame or animate different
+needed to key frame or animate different set of rigid
+set of rigid bodies it was the right time to move the
+bodies it was the right time to move the Regal definitions to DC
+Regal definitions to DC script so I wrote a python script for
+script so I wrote a python script for Maya which exports the main parameters
+Maya which exports the main parameters of regular rigid bodies and their
+of regular rigid bodies and their constraints later on we decided more
+constraints later on we decided more parameters we added more parameters for
+parameters we added more parameters for anchar 4 so we could change for example
+anchar 4 so we could change for example constraint limits on the
+constraint limits on the Fly and what are the advantages of
+Fly and what are the advantages of having reg doll in
+having reg doll in script we didn't have to touch the asset
+script we didn't have to touch the asset manager the default reg doll is still
+manager the default reg doll is still part of the skeleton though and I don't
+part of the skeleton though and I don't have to build it again should I need to
+have to build it again should I need to add more R
+add more R dolls I can just duplicate a few script
+dolls I can just duplicate a few script lines change a few numbers and compile
+lines change a few numbers and compile it it's a matter of few seconds instead
+it it's a matter of few seconds instead of minutes although I ended up saving a
+of minutes although I ended up saving a few extra Maya scenes as references for
+few extra Maya scenes as references for more sophisticated setups and exported
+more sophisticated setups and exported regular regular settings from there
+regular regular settings from there which means that further tweaking of
+which means that further tweaking of numbers in script rendered my Maya
+numbers in script rendered my Maya scenes Obsolete and we had no tools to
+scenes Obsolete and we had no tools to sing them but honestly we this tool
+sing them but honestly we this tool would be pretty easy to write we just
+would be pretty easy to write we just never really needed it bigger problem is
+never really needed it bigger problem is that most artists are scared to touch
+that most artists are scared to touch the scripts
+we have eventually decided to move everything regular related to DC script
+everything regular related to DC script and started calling it Regal
+profiles so these are the building blocks of our Regal
+blocks of our Regal profiles and this is the real
+script this is the regular definition I exported from Maya there is like
+exported from Maya there is like hundreds of lines so I collaps the blog
+hundreds of lines so I collaps the blog of text down the regular definition is
+of text down the regular definition is hooked up in the profile
+hooked up in the profile here here I specify joints that are
+here here I specify joints that are going to be key framed you know you you
+going to be key framed you know you you remember those blue rigid bodies I
+remember those blue rigid bodies I showed you
+showed you before and this one is interesting here
+before and this one is interesting here I specify Collision layers for my rigid
+I specify Collision layers for my rigid bodies the script says that they don't
+bodies the script says that they don't have any collision by default but I
+have any collision by default but I added a set of rigid bodies that can
+added a set of rigid bodies that can collide with other Regals and with the
+collide with other Regals and with the environment I can add as many sets as I
+environment I can add as many sets as I want and this is our baby I Define three
+want and this is our baby I Define three different key frame controllers and
+different key frame controllers and assign them to three different sets of
+assign them to three different sets of rigid bodies it means each can each set
+rigid bodies it means each can each set can be animated differently in game
+can be animated differently in game you'll see later
+you'll see later why and now I'd like to show you the
+why and now I'd like to show you the real beauty of our setup I can just
+real beauty of our setup I can just duplicate a handful of lines in script
+duplicate a handful of lines in script change a few parameters and I have
+change a few parameters and I have another possibly totally different
+another possibly totally different regular Behavior but watch I can
+regular Behavior but watch I can duplicate this one again hook up regular
+duplicate this one again hook up regular definition with different modor settings
+definition with different modor settings and I have another
+and I have another profile so what are the advantages of
+profile so what are the advantages of regular profiles I can go nuts and
+regular profiles I can go nuts and create many profiles very
+create many profiles very quick I'm not limited to one character
+quick I'm not limited to one character all of them work as long as the
+all of them work as long as the characters are using the same skeletal
+characters are using the same skeletal hierarchy and here's the big thing I no
+hierarchy and here's the big thing I no longer need a programmer to be able to
+longer need a programmer to be able to test reg do in game I have all profiles
+test reg do in game I have all profiles in the debug menu so I can test the
+in the debug menu so I can test the regnal anywhere I want I'm possibly even
+regnal anywhere I want I'm possibly even where I shouldn't we're done here I'm
+where I shouldn't we're done here I'm taking my brother and we're leaving you
+taking my brother and we're leaving you want to stay in burn with the ship you'd
+want to stay in burn with the ship you'd be my guest you got
+me you know what n underneath all the bravado you're just a sad little bo boy
+bravado you're just a sad little bo boy with delusions of
+with delusions of gr who by the way can't mess
+gr who by the way can't mess [ __ ] so long Nathan bre
+[ __ ] so long Nathan bre [Music]
+[Music] Nathan
+Nathan so now that you have a pretty clear idea
+so now that you have a pretty clear idea how we animate R dolls and how we set
+how we animate R dolls and how we set them up I can finally show you the best
+them up I can finally show you the best stuff we did for anchar 4
+and we start with regular vehicles I mean reg those in
+vehicles I mean reg those in vehicles so we started prototyping
+vehicles so we started prototyping Vehicles when The Last of Us was still
+Vehicles when The Last of Us was still in for
+in for production it was a great Proving Ground
+production it was a great Proving Ground for our animation controllers and mainly
+for our animation controllers and mainly for testing of the parent acceleration
+for testing of the parent acceleration limit there's no better test than
+limit there's no better test than hitting a wall at 40 m per hour
+hitting a wall at 40 m per hour of course designers chose a car with no
+of course designers chose a car with no roof so we can see every little detail
+roof so we can see every little detail well no detail at all actually I see it
+well no detail at all actually I see it yeah it looks terrible we could probably
+yeah it looks terrible we could probably add some lean additives to simulate
+add some lean additives to simulate reactions to Vehicles angular changes
+reactions to Vehicles angular changes but most likely it just wouldn't cut
+but most likely it just wouldn't cut it because we were planning on having
+it because we were planning on having some wild off-road sections on
+some wild off-road sections on Madagascar so let's see how Regal
+Madagascar so let's see how Regal handles it
+yeah it's way better Drake's chest moves independently on the car's seat nothing
+independently on the car's seat nothing is breaking even when the car is
+is breaking even when the car is swinging wildly let's see how we pull it
+swinging wildly let's see how we pull it off setup is actually pretty simple
+off setup is actually pretty simple lower body is fully key framed and we
+lower body is fully key framed and we simulate it on the spine head and arms
+simulate it on the spine head and arms up to hands key framing hands ensures
+up to hands key framing hands ensures that they won't leave the steering
+that they won't leave the steering wheel colle are interesting we don't
+wheel colle are interesting we don't have collisions on anything but spine
+have collisions on anything but spine and head we let it collide only with the
+and head we let it collide only with the seat and the steering
+seat and the steering wheel we were initially scared of
+wheel we were initially scared of letting the character collide with
+letting the character collide with anything in the vehicle and we were
+anything in the vehicle and we were ready to Sol it with different limits
+ready to Sol it with different limits but our to our surprise spine's
+but our to our surprise spine's interaction with the seeds Collision
+interaction with the seeds Collision looked very natural you'll see it
+later and to make your life easier I crunch some numbers from all anchar for
+crunch some numbers from all anchar for regol profiles and try to translate them
+regol profiles and try to translate them to clearer visual form I call it heat
+to clearer visual form I call it heat Maps the color Legend is simple
+Maps the color Legend is simple two-dimensional diagram vertical axis is
+two-dimensional diagram vertical axis is strength and horizontal axis is
+strength and horizontal axis is stiffness I colored the rigid bodies so
+stiffness I colored the rigid bodies so you can see how the key frame controller
+you can see how the key frame controller influences the simulation remember that
+influences the simulation remember that key frame controller Works in World
+key frame controller Works in World space joints have their own colors and
+space joints have their own colors and they are displayed as those little dots
+they are displayed as those little dots connecting rigid bodies I remind you
+connecting rigid bodies I remind you that motos work in local space and
+that motos work in local space and finally the grade out stuff means that
+finally the grade out stuff means that the connected rigid bodies are key
+the connected rigid bodies are key framed so how do you read the
+framed so how do you read the picture for vehicles we used strong but
+picture for vehicles we used strong but soft keyr controller for all simulated
+soft keyr controller for all simulated rigid bodies it means that the rll can
+rigid bodies it means that the rll can follow the simulation really well but
+follow the simulation really well but rigid bodies can be moved away from the
+rigid bodies can be moved away from the POS even with subtle impacts and changes
+POS even with subtle impacts and changes of momentum animation feels pretty soft
+of momentum animation feels pretty soft overall next we can see that spine has
+overall next we can see that spine has super weak Motors but on the stiffer
+super weak Motors but on the stiffer side they can barely support it having
+side they can barely support it having soft spine allows for nice compression
+soft spine allows for nice compression in the
+in the spine although it needs to be held by
+spine although it needs to be held by strong and stiff arms otherwise it would
+strong and stiff arms otherwise it would compress too
+compress too easily it's actually interesting how
+easily it's actually interesting how much the arms influence the final
+much the arms influence the final result they make Drake look like he's
+result they make Drake look like he's fighting the steering
+fighting the steering wheel the side to side swings are Wilder
+wheel the side to side swings are Wilder and have more natural angular Motion in
+and have more natural angular Motion in it on the other side the weak arms make
+it on the other side the weak arms make the side to side motion feel too linear
+the side to side motion feel too linear thanks to the majority of influence
+thanks to the majority of influence coming from the key frame
+coming from the key frame controller and the right side feels too
+controller and the right side feels too mushy and lifeless to my taste driving
+mushy and lifeless to my taste driving 4x4 should feel wild and exciting
+and let me demonstrate the effect of parent acceleration limit one more time
+parent acceleration limit one more time the red volumes you see in the video
+the red volumes you see in the video demonstrate an animation pose before
+demonstrate an animation pose before simulation this is how our characters
+simulation this is how our characters would be moving without
+would be moving without physics and so what the parent
+physics and so what the parent acceleration limit can do for us it
+acceleration limit can do for us it prevents transferring too much
+prevents transferring too much acceleration to our ragd doll and
+acceleration to our ragd doll and therefore breaking it a real person
+therefore breaking it a real person would be thrown against the dashboard
+would be thrown against the dashboard with these impacts
+with these impacts also notice how Elena's spine bounces
+also notice how Elena's spine bounces off the seed when they
+off the seed when they Collide thanks to this feature a r doll
+Collide thanks to this feature a r doll can handle anything but it doesn't mean
+can handle anything but it doesn't mean it's always the best
+it's always the best tool R doll is good for small bumps and
+tool R doll is good for small bumps and realistic weight
+realistic weight shifting but we use full body animations
+shifting but we use full body animations with no rag doll for the heart
+hits so what I watch and I'm going to put yeah so this hard
+and I'm going to put yeah so this hard hits and by the way our programmer
+hits and by the way our programmer Edward Pereira is going to talk about
+Edward Pereira is going to talk about off-roading in AAR 4 in this same room
+off-roading in AAR 4 in this same room today at 2 p.m so you can learn how he
+today at 2 p.m so you can learn how he pulled pulled off the physics of a car
+pulled pulled off the physics of a car and stuff oh yeah I was driving
+and stuff oh yeah I was driving recklessly a little bit okay let's talk
+recklessly a little bit okay let's talk about something entirely different and
+about something entirely different and that is player climbing
+that is player climbing one of the main goals for the climbing
+one of the main goals for the climbing mechanic was to give players a very
+mechanic was to give players a very analog and organic feel the same feeling
+analog and organic feel the same feeling the real rock climbers have when they
+the real rock climbers have when they search for the next handhold on the
+search for the next handhold on the sheer rock face while balancing on their
+sheer rock face while balancing on their feet wow it was complicated it looks
+feet wow it was complicated it looks like a
+like a ballet our characters were always
+ballet our characters were always climbing these perfectly ver flat
+climbing these perfectly ver flat vertical walls but we wanted to to move
+vertical walls but we wanted to to move away from
+away from that we wanted to climb slabs and
+that we wanted to climb slabs and overhangs
+and when the overhang becomes roof Jake swings his legs and PS through that
+swings his legs and PS through that section thanks his thanks to his
+section thanks his thanks to his enormous upper body strength and when
+enormous upper body strength and when he's not climbing these impossible rocks
+he's not climbing these impossible rocks you can find him hanging out on a big
+you can find him hanging out on a big ass truck speeding through the
+ass truck speeding through the countryside of
+countryside of Madagascar and to do all that you need
+Madagascar and to do all that you need crazy amount of
+crazy amount of Animation just to make the player reach
+Animation just to make the player reach for the next handhold requires dozens of
+for the next handhold requires dozens of reach poses basically every
+reach poses basically every cross-section on the spider web is a
+cross-section on the spider web is a pose that has to blend well with all of
+pose that has to blend well with all of its
+its neighbors in the game they constantly
+neighbors in the game they constantly blend based on players input and once
+blend based on players input and once the player reaches the next handhold we
+the player reaches the next handhold we played a short transition
+played a short transition animation it's really hard to keep all
+animation it's really hard to keep all animations consistent and we kept seeing
+animations consistent and we kept seeing a little hitches in players
+a little hitches in players motion we thought it's a great
+motion we thought it's a great opportunity to physics simulation you
+opportunity to physics simulation you know to smooth everything
+know to smooth everything out and this was our early
+out and this was our early prototype notice how the left side is
+prototype notice how the left side is quite a bit noisier than the right side
+quite a bit noisier than the right side where the Regal is
+running and this was recorded from the latest
+latest build as you can see our animators did
+build as you can see our animators did an excellent job and animations blend
+an excellent job and animations blend much
+much better but can you tell which side has
+better but can you tell which side has the Regal
+the Regal running okay hands up who thinks is the
+running okay hands up who thinks is the right
+side wow 15 people 20 yeah you are correct is the right side I'll show you
+correct is the right side I'll show you why yeah there is
+why yeah there is this very very subtle difference the
+this very very subtle difference the Regal adds this nice subtle overlap to
+Regal adds this nice subtle overlap to Drake's butt
+Drake's butt and the character on the left side just
+and the character on the left side just kind of eases into a post after each
+kind of eases into a post after each move you would totally feel the
+move you would totally feel the difference on the stick though it it
+difference on the stick though it it feels very
+different here I slowed it down for you so you can see better the difference
+so you can see better the difference between animation drawn in red and final
+between animation drawn in red and final result everything is happening so fast
+result everything is happening so fast that you can barely see a difference but
+that you can barely see a difference but you can totally feel it while
+playing and setting up the climbing Regal was a real challenge I wanted to
+Regal was a real challenge I wanted to crank the softness in Drake's body up
+crank the softness in Drake's body up for added momentum and nice overlap but
+for added momentum and nice overlap but I had to be careful not to introduce
+I had to be careful not to introduce hyperextensions in his arms basically
+hyperextensions in his arms basically everything was tailored to the worst
+everything was tailored to the worst case scenario and there was climbing on
+case scenario and there was climbing on Dynamic
+Dynamic objects here we have the heat map again
+objects here we have the heat map again hands and feet are key framed to ensure
+hands and feet are key framed to ensure proper contact with the environment and
+proper contact with the environment and also noticed that I key framed the
+also noticed that I key framed the forearms as well we needed arms and
+forearms as well we needed arms and upper body to be super strong because
+upper body to be super strong because they carried most of the body weight
+they carried most of the body weight spine was pretty weak to allow the
+spine was pretty weak to allow the overlap and legs were almost unaffected
+overlap and legs were almost unaffected by the key frame controller but were
+by the key frame controller but were powered using Motors in joints you can
+powered using Motors in joints you can clearly see that the upper body is
+clearly see that the upper body is firmly controlled in World space thanks
+firmly controlled in World space thanks to key frame controller and it's its
+to key frame controller and it's its effect tapers down towards the legs and
+effect tapers down towards the legs and legs are animated by Motors almost
+legs are animated by Motors almost exclusively in local
+space and here's our test for the climbing rag doll dr's body reacts
+climbing rag doll dr's body reacts naturally to impacts coming from the
+naturally to impacts coming from the truck moving the lower body in a nice
+truck moving the lower body in a nice springy
+fashion okay I'm going to let it run one more time that basically every time the
+more time that basically every time the truck does this big bomb tra's body
+truck does this big bomb tra's body nicely does
+nicely does this
+think okay but we had some really sharp
+okay but we had some really sharp Corners in our game and the rll got
+Corners in our game and the rll got sometimes stuck on invisible collisions
+sometimes stuck on invisible collisions so we tried to disable the rll collision
+so we tried to disable the rll collision and we saw no side
+and we saw no side effects occasional clipping is way
+effects occasional clipping is way better than this
+and this is my favorite part it's the Hang
+Hang climbing player can climb or jump to a
+climbing player can climb or jump to a hang position under totally arbitrary
+hang position under totally arbitrary angle this is how our early prototype
+angle this is how our early prototype looked like yeah it's pretty terrible
+looked like yeah it's pretty terrible it's basically just a blend into a hang
+it's basically just a blend into a hang pose but before we committed to creating
+pose but before we committed to creating millions of different Landing animations
+millions of different Landing animations I gave the Regal a
+I gave the Regal a try I created a new profile with super
+try I created a new profile with super loose lower body and Drake swings around
+loose lower body and Drake swings around properly when he lands in hang position
+properly when he lands in hang position but I quickly realized that this profile
+but I quickly realized that this profile looks great when Drake is just hanging
+looks great when Drake is just hanging but it felt too loose when Drake tried
+but it felt too loose when Drake tried to actively do something so I created a
+to actively do something so I created a new stiffer profile for hang
+new stiffer profile for hang reaches the thing is we switch reg dolls
+reaches the thing is we switch reg dolls in code based on player state so no R
+in code based on player state so no R dolls most of the time driving reg in
+dolls most of the time driving reg in vehicles climbing and now hang
+vehicles climbing and now hang timing but we had two profiles for one
+timing but we had two profiles for one hang
+hang State and I got an idea to use our
+State and I got an idea to use our animation event system which we simply
+animation event system which we simply call effs for enabling and disabling
+call effs for enabling and disabling regular
+regular profiles we like scripts so it's just a
+profiles we like scripts so it's just a text file with similar syntax to
+text file with similar syntax to XML but it's really simple and most of
+XML but it's really simple and most of our animators have been using it already
+our animators have been using it already for triggering events like weapon
+for triggering events like weapon reloads particle effect effects and
+reloads particle effect effects and sounds and I was excited I couldn't wait
+sounds and I was excited I couldn't wait to test it out I recorded a slow motion
+to test it out I recorded a slow motion video of Drake jumping down to hang and
+video of Drake jumping down to hang and moving side to side next to his fee is a
+moving side to side next to his fee is a debug draw with the name of currently
+debug draw with the name of currently active Rango profile with its blend
+active Rango profile with its blend value stiffer regular fades in every
+value stiffer regular fades in every time I press the left analog stick and
+time I press the left analog stick and when I release it the looser version
+when I release it the looser version takes over again if I go side to side
+takes over again if I go side to side these two profiles keep blending in and
+these two profiles keep blending in and out constantly and dr's momentum carries
+out constantly and dr's momentum carries over each move so I can make him swing
+over each move so I can make him swing more and more every time I change
+more and more every time I change direction it feels very
+organic and if I was doing like left and right left and right basically those two
+right left and right basically those two profiles will be constantly blending in
+profiles will be constantly blending in and
+and out so sequencing of Regal profiles gave
+out so sequencing of Regal profiles gave us full control over when and which
+us full control over when and which Regal profile to use with frame
+Regal profile to use with frame precision
+precision we can also control how quickly Regal
+we can also control how quickly Regal fade in and out and yes we can blend
+fade in and out and yes we can blend between Regal profiles seamlessly this
+between Regal profiles seamlessly this started the Regal Revolution Regal
+started the Regal Revolution Regal started appearing everywhere in the game
+started appearing everywhere in the game but it also gave animators more
+but it also gave animators more responsibilities because once the Regal
+responsibilities because once the Regal profile is enabled it's going to keep
+profile is enabled it's going to keep running until you turn it off again it
+running until you turn it off again it was extremely difficult to safeguard all
+was extremely difficult to safeguard all possible transition
+possible transition Transitions and we kept seeing player
+Transitions and we kept seeing player running around with the Regal enabled
+running around with the Regal enabled all the
+time no no don't worry it's it's
+fine yes so to fix this we introduced a simple rule game keeps the regular
+simple rule game keeps the regular profile running only if the currently
+profile running only if the currently playing animation contains a event this
+playing animation contains a event this feature still allowed us seamlessly
+feature still allowed us seamlessly sequencing of different regular profiles
+sequencing of different regular profiles but it also made sure that we don't run
+but it also made sure that we don't run regle where we don't want to you know no
+regle where we don't want to you know no regle is better than broken
+regle and correct waiting between key frame controllers and Motors was crucial
+frame controllers and Motors was crucial for hand
+for hand climbing arms were holding almost the
+climbing arms were holding almost the entire body weight it quickly tapers
+entire body weight it quickly tapers down down towards the spine and it has
+down down towards the spine and it has almost no effect in the legs it's used
+almost no effect in the legs it's used only to stabilize
+only to stabilize vibrations moreal forces and stiffness
+vibrations moreal forces and stiffness were cranked up in the spine to hold the
+were cranked up in the spine to hold the pose of the lower
+body the stiffer Regal is just a slightly modified version of the looser
+slightly modified version of the looser version more of the body is held in
+version more of the body is held in place by the Keir controller and also
+place by the Keir controller and also the legs got a similar treatment to lift
+the legs got a similar treatment to lift them up
+them up more by switching to a stiffer profile
+more by switching to a stiffer profile we are basically simulating muscles
+we are basically simulating muscles putting more work towards reaching the
+putting more work towards reaching the next
+handhold unlike the regular climbing roll this one had collisions enabled and
+roll this one had collisions enabled and I'd like to show you why it's because
+I'd like to show you why it's because the handang Climbing doesn't mean the
+the handang Climbing doesn't mean the player is just hanging down free of any
+player is just hanging down free of any obstacles in this case Drake's whole
+obstacles in this case Drake's whole upper body would sink into geometry
+upper body would sink into geometry should he have no Collision the side
+should he have no Collision the side effect is that his chest can push the
+effect is that his chest can push the Dynamics objects around
+and I'd like to show you one more video demonstrating how seamless the
+demonstrating how seamless the transitions between hand climbing and
+transitions between hand climbing and regular climbing are I also poked the
+regular climbing are I also poked the cage with the mouse in this video so you
+cage with the mouse in this video so you can see how everything's reacting
+can see how everything's reacting naturally somebody should make a game
+naturally somebody should make a game where players are finally allowed to do
+where players are finally allowed to do this type of
+stuff okay now onto a more explosive stuff every Uncharted had a Chase s
+stuff every Uncharted had a Chase s Chase sequence and of course unch 4 is
+Chase sequence and of course unch 4 is no
+no different Mad Max came out no long
+different Mad Max came out no long before we started working on our Chase
+before we started working on our Chase sequence we loved how the crashes were
+sequence we loved how the crashes were staged so well perfect angles perfect
+staged so well perfect angles perfect motion and timing was really amazing but
+motion and timing was really amazing but how could we achieve similar thing in in
+how could we achieve similar thing in in a video
+game and we started with animation we decided to have a maximum
+animation we decided to have a maximum of two people per vehicle
+of two people per vehicle we had to account for each character
+we had to account for each character being killed in individually or together
+being killed in individually or together and no they don't just freeze at the end
+and no they don't just freeze at the end of Animation we physicalize them so they
+of Animation we physicalize them so they keep moving without being animated which
+keep moving without being animated which is actually not entirely
+is actually not entirely true I did this test to see how we could
+true I did this test to see how we could animate characters without actually
+animate characters without actually animating them when I killed the guy he
+animating them when I killed the guy he plays a very short death animation and
+plays a very short death animation and then Blends into one single pose which
+then Blends into one single pose which he holds using regular Motors until he
+he holds using regular Motors until he stops Under the Stairs I learned how
+stops Under the Stairs I learned how critical the pose is for smooth rolling
+critical the pose is for smooth rolling motion arms need to be close to the body
+motion arms need to be close to the body legs pretty straight the more the shape
+legs pretty straight the more the shape resembles a cylinder the better also
+resembles a cylinder the better also proper friction on the regular played a
+proper friction on the regular played a big part I used all this knowledge many
+big part I used all this knowledge many months later when I was begging a
+months later when I was begging a programmer to implement this you know
+programmer to implement this you know you need a lot of arguments to sell the
+you need a lot of arguments to sell the idea to a programmer
+idea to a programmer so let me show you my death animation
+so let me show you my death animation again notice the cylindrical rolling
+pose and this is how it's in the game it worked pretty well although
+game it worked pretty well although Regal have a really hard time to keep
+Regal have a really hard time to keep the pose intact when they hit the ground
+the pose intact when they hit the ground at 50 mph one little bump on the ground
+at 50 mph one little bump on the ground and the pose turns into a mess
+we use the similar system for off-road
+vehicles so how do we animate the vehicles the conoy vehicles are
+vehicles the conoy vehicles are following a set of splines based on what
+following a set of splines based on what the player is doing it's all scripted by
+the player is doing it's all scripted by our awesome and
+our awesome and designers and once the driver dies or
+designers and once the driver dies or the vehicle is damaged enough we trigger
+the vehicle is damaged enough we trigger a
+a death we disconnect the vehicle from its
+death we disconnect the vehicle from its spline we store its last moving
+spline we store its last moving vector and we play the animation along
+vector and we play the animation along the stor Vector using the key frame
+the stor Vector using the key frame controller yes even vehicles are running
+controller yes even vehicles are running physics animation we use pretty stiff
+physics animation we use pretty stiff key frame controller so the simulation
+key frame controller so the simulation matches the animation the best it can
+matches the animation the best it can and why are we running a physics
+and why are we running a physics animation so we can animate our vehicles
+animation so we can animate our vehicles until something really bad happens and
+until something really bad happens and it happens sometimes that our object
+it happens sometimes that our object hits a small bump and moves away from
+hits a small bump and moves away from the pose we measure the distance between
+the pose we measure the distance between rigid bodies and the animation posst
+rigid bodies and the animation posst every frame and when the aor distance
+every frame and when the aor distance becomes too large we Fade Out the key
+becomes too large we Fade Out the key frame
+frame controller it normally doesn't happen
+controller it normally doesn't happen because after Small Bump the key frame
+because after Small Bump the key frame controller can recover the animation
+controller can recover the animation pose
+pose easily and only a major Collision could
+easily and only a major Collision could stop animation from playing
+stop animation from playing and the major Collision is usually
+and the major Collision is usually player smashing everything with his car
+player smashing everything with his car which is the biggest advantage of the
+which is the biggest advantage of the system we always get a better
+system we always get a better performance than just letting the
+performance than just letting the vehicles explode randomly and it's
+vehicles explode randomly and it's pretty safe to use as a bonus the key
+pretty safe to use as a bonus the key frame controller snaps the animation to
+frame controller snaps the animation to the ground for us the only thing that I
+the ground for us the only thing that I don't like about the system is that the
+don't like about the system is that the objects might Jitter a little bit when
+objects might Jitter a little bit when they are being pushed too far away from
+they are being pushed too far away from the animation po
+the animation po but the key frame controller haven't
+but the key frame controller haven't turned itself off yet but I think we
+turned itself off yet but I think we could fix it if we were given more
+could fix it if we were given more [Music]
+time okay and we have this epic cinematic
+okay and we have this epic cinematic moment when you take over the
+moment when you take over the [Music]
+Jeep yeah even the truck was animated uh with physics
+uh with physics animation okay now onto the boat
+animation okay now onto the boat chase it's an opening sequence of our
+chase it's an opening sequence of our game Drake and his brother Sam are being
+game Drake and his brother Sam are being chased in their little boat on a stormy
+chased in their little boat on a stormy sea by guys on speedboats and other guys
+sea by guys on speedboats and other guys on big boats and they throw mines at our
+on big boats and they throw mines at our poor little boat you should play it's
+poor little boat you should play it's it's really fun so the sea is really
+it's really fun so the sea is really bumpy and our little boat is widely
+bumpy and our little boat is widely moving up and down and side to side
+moving up and down and side to side while Sam is in the back of the boat
+while Sam is in the back of the boat trying to shoot the guys I tried to
+trying to shoot the guys I tried to simulate The Bumps by baking into
+simulate The Bumps by baking into animation but you could tell that s's
+animation but you could tell that s's body is not moving in sing with the sea
+body is not moving in sing with the sea this video is from final game when we
+this video is from final game when we run physics on
+Sam we key framed Sam's hand and feet to pin them down to the boat and we let
+pin them down to the boat and we let only the the right arm collide with the
+only the the right arm collide with the boat you know to prevent clipping when
+boat you know to prevent clipping when he's aiming
+Sam's aim poses didn't have any instability baked in so I let our
+instability baked in so I let our animation controllers work really hard
+animation controllers work really hard and simulate it for us Sam's whole body
+and simulate it for us Sam's whole body has pretty soft key frame controller
+has pretty soft key frame controller while Motors were basically holding the
+while Motors were basically holding the animation posst for
+animation posst for us I stiffened his right arm a little
+us I stiffened his right arm a little bit more in World space using key frame
+bit more in World space using key frame controller so he could aim
+controller so he could aim better and did the same for the head so
+better and did the same for the head so it's not bobbing around we wanted Sam to
+it's not bobbing around we wanted Sam to feel sharp and aggressive and not
+feel sharp and aggressive and not sleepy similar to the Jeep we disable
+sleepy similar to the Jeep we disable rll for the big bumps where the same
+rll for the big bumps where the same falls down to the ground and use it only
+falls down to the ground and use it only for small bumps and weight
+for small bumps and weight shifts it was super easy to implement
+shifts it was super easy to implement with our animation event
+system and this sequence is a prime example of how we
+sequence is a prime example of how we used rle as a really simple
+used rle as a really simple post-processing
+post-processing tool Drake is being dragged behind the
+tool Drake is being dragged behind the truck on a rope and going really fast
+truck on a rope and going really fast and he's desperately trying to reach it
+and he's desperately trying to reach it you can steer Drake side to side you can
+you can steer Drake side to side you can make him climb the Rope up and down all
+make him climb the Rope up and down all this is happening on a pretty bumpy road
+this is happening on a pretty bumpy road so his legs kept clipping the ground
+so his legs kept clipping the ground quite a
+quite a bit we tried to use a r doll to fix
+bit we tried to use a r doll to fix it the profile is super simple
+it the profile is super simple everything except his leg is key framed
+everything except his leg is key framed and the legs are trying to match the
+and the legs are trying to match the animation
+animation 100% by the way I zeroed friction on
+100% by the way I zeroed friction on them for better
+them for better stability let me step through a few
+stability let me step through a few frames to give you a better idea of what
+frames to give you a better idea of what was happening by the way the big blue
+was happening by the way the big blue ball in front of Drake is a special
+ball in front of Drake is a special Collision for simulating him breaking
+Collision for simulating him breaking boxes and fences and other stuff with
+boxes and fences and other stuff with his
+his head so as you can see not much is
+head so as you can see not much is really happening it's just a subtle
+really happening it's just a subtle adjustments nothing
+big until now look how deep under the ground this
+now look how deep under the ground this leg is but you won't even notice until
+leg is but you won't even notice until you see the debug
+draw and this is my last example uh first let me explain what ing
+example uh first let me explain what ing game cinematic is it's a sequence in a
+game cinematic is it's a sequence in a game that looks like a cinematic but
+game that looks like a cinematic but it's in some way interactive in this
+it's in some way interactive in this case the Jeep is dragged by a Wild River
+case the Jeep is dragged by a Wild River while spinning around and boun bouncing
+while spinning around and boun bouncing of the Rocks but player can still steer
+of the Rocks but player can still steer it a little
+it a little bit again something out of animator's
+bit again something out of animator's control is moving our characters and we'
+control is moving our characters and we' like our characters to be reacting to
+like our characters to be reacting to what's happening to them so we naturally
+what's happening to them so we naturally reached to physics it was towards the
+reached to physics it was towards the end of production and we already had
+end of production and we already had nearly 40 different regular profiles in
+nearly 40 different regular profiles in the library
+the library thanks to our eff system it was super
+thanks to our eff system it was super easy to pull
+off so we run the classic vehicle rll on both characters at the beginning of this
+both characters at the beginning of this scene but once the vehicle lands in the
+scene but once the vehicle lands in the water we switch to a custom rag dooll
+water we switch to a custom rag dooll it's a slightly modified version of
+it's a slightly modified version of Sam's Rego from the boat chase there we
+Sam's Rego from the boat chase there we can climb up this rock on it
+and this is where it transitions to other
+other gameplay look how far Elena's body is
+gameplay look how far Elena's body is from the animation pose I drawn a yellow
+from the animation pose I drawn a yellow outline around her body so you can see
+outline around her body so you can see it
+it better it took me less than 30 minutes
+better it took me less than 30 minutes to create a Regal profile and hook it up
+to create a Regal profile and hook it up in the animations we also used Regal in
+in the animations we also used Regal in the following epic cinematic
+the following epic cinematic [Applause]
+[Applause] moment no Panic no Panic I am see that
+moment no Panic no Panic I am see that Sam is running Ral well all characters
+Sam is running Ral well all characters are running Ral it's because the Jeep is
+are running Ral it's because the Jeep is still kind of steerable on the Rocky
+still kind of steerable on the Rocky Face so we don't know we we cannot just
+Face so we don't know we we cannot just bake the reactions into the
+bake the reactions into the animation now it was the hand climb and
+animation now it was the hand climb and get us out
+get us out of now you can see that Sam is praying
+of now you can see that Sam is praying for more
+Rego it's like very very subtle details but it makes a big difference when you
+but it makes a big difference when you see such a detail scene visually and
+see such a detail scene visually and something is a little bit
+something is a little bit off so none of the stuff I showed you
+off so none of the stuff I showed you today would be possible without stable
+today would be possible without stable frame rate luckily our team has some of
+frame rate luckily our team has some of the best programmers and artists in the
+the best programmers and artists in the industry and they were able to optimize
+industry and they were able to optimize the game
+the game 100% but nothing was perfect it was
+100% but nothing was perfect it was really difficult to synchronize all
+really difficult to synchronize all procedural anim systems in the game
+procedural anim systems in the game animation blending ik step physics step
+animation blending ik step physics step we were quite often working with
+we were quite often working with obsolete data from previous frames and
+obsolete data from previous frames and yaros our physics programmer had to
+yaros our physics programmer had to write some complicated predictive
+write some complicated predictive algorithms to fix that unfortunately
+algorithms to fix that unfortunately this is way beyond my expertise and you
+this is way beyond my expertise and you have to ask him should you have any
+have to ask him should you have any questions I also found out while I Was
+questions I also found out while I Was preparing this GDC talk that I knew
+preparing this GDC talk that I knew quite a lot but still very little about
+quite a lot but still very little about our system I I've learned so many
+our system I I've learned so many important details which I had no time to
+important details which I had no time to learn during production but now I'm
+learn during production but now I'm ready to make everything in our next
+ready to make everything in our next game
+game better and that's
+better and that's [Applause]
+[Applause] it thank you thank you very
+it thank you thank you very [Applause]
+[Applause] much okay any
+much okay any questions we have hey how's it going uh
+questions we have hey how's it going uh great talk thank you thank you I'm
+great talk thank you thank you I'm curious if you've used this system in a
+curious if you've used this system in a purely combat context cuz it sounds like
+purely combat context cuz it sounds like a great way to get uh better
+a great way to get uh better performances in like a fist fight but
+performances in like a fist fight but physics and compat as a designer really
+physics and compat as a designer really scares me so I'm wondering if you guys
+scares me so I'm wondering if you guys have tackled that physics in combat uh
+have tackled that physics in combat uh what do you mean by physics in combat so
+what do you mean by physics in combat so if I get like hit in the sternum versus
+if I get like hit in the sternum versus the left shoulder so like hit reactions
+the left shoulder so like hit reactions exactly uh we used a ragor only for
+exactly uh we used a ragor only for death reactions and we used animation
+death reactions and we used animation for for for the for like those little
+for for for the for like those little hit
+hit reactions
+reactions but
+but we yeah experimenting with it it works
+we yeah experimenting with it it works it works all right thank you but not yet
+it works all right thank you but not yet not not in ACH
+not not in ACH for okay so uh Havoc provides you the
+for okay so uh Havoc provides you the previewer for rag doll setups and other
+previewer for rag doll setups and other physics uh object designs in Maya but
+physics uh object designs in Maya but assuming since you have all the DC
+assuming since you have all the DC script script and EFS uh-huh did you end
+script script and EFS uh-huh did you end up using those previews I assume the
+up using those previews I assume the ingame previews were more convenient and
+ingame previews were more convenient and actually reflecting the the final
+actually reflecting the the final implementation but yeah I basically use
+implementation but yeah I basically use the the the debug Tools in Maya only for
+the the the debug Tools in Maya only for like previewing limits and frictions in
+like previewing limits and frictions in in the joints and then I I went to our
+in the joints and then I I went to our game and we have all the tools to test
+game and we have all the tools to test regular there so yeah as expect only
+regular there so yeah as expect only limited use then yeah yeah but those AOC
+limited use then yeah yeah but those AOC tools made my life easier when I started
+tools made my life easier when I started setting up the reg they are really
+setting up the reg they are really really nice had the same experience so
+really nice had the same experience so thank you
+thank you sure okay anybody else uh I put some
+sure okay anybody else uh I put some business cards on each side of the table
+business cards on each side of the table so feel free to take them and you can
+so feel free to take them and you can just email me when you are fresh and not
+just email me when you are fresh and not overwhelmed by the amount of
+overwhelmed by the amount of information and if you want come close
+information and if you want come close and we can talk about
+and we can talk about stuff for

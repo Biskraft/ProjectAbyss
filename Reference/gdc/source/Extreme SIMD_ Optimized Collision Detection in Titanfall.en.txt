@@ -1,0 +1,1552 @@
+[Music] all righty
+all righty are we ready to get going
+okay so i'm earl i'm a lead programmer at respawn entertainment and i like
+at respawn entertainment and i like program and stuff
+program and stuff here's some of the stuff i've done and
+here's some of the stuff i've done and before we get started too much i'd like
+before we get started too much i'd like to remind you
+to remind you to please turn off your noisemakers and
+to please turn off your noisemakers and to fill out those emailed surveys you
+to fill out those emailed surveys you get and
+get and invite me back next year so that's who i
+invite me back next year so that's who i am if this is who you are then you're in
+am if this is who you are then you're in the right talk if you like math
+the right talk if you like math bit operations vectors then you're in
+bit operations vectors then you're in the right spot
+the right spot and just to warn you we may set a record
+and just to warn you we may set a record for most slides in a 50-minute
+for most slides in a 50-minute presentation
+presentation so this is not a relaxing talk but
+so this is not a relaxing talk but hopefully it's informative
+hopefully it's informative so first why did we do this
+so first why did we do this and then we'll get into how we built our
+and then we'll get into how we built our axis of line binding box trees
+axis of line binding box trees how we optimized our traversal of the
+how we optimized our traversal of the trees and
+trees and how we did some deparalization of the
+how we did some deparalization of the final collision tests so
+final collision tests so collision detection is basically broken
+collision detection is basically broken down into two broad categories there's
+down into two broad categories there's discrete
+discrete collision detection are these two things
+collision detection are these two things intersecting right here right now
+intersecting right here right now and you don't care about what's before
+and you don't care about what's before or after and then there's continuous
+or after and then there's continuous collision detection or when does this
+collision detection or when does this thing that's moving first hit that other
+thing that's moving first hit that other thing
+and the discrete tech detection since it doesn't have to deal with motion is
+doesn't have to deal with motion is often faster
+often faster but it has some downsides to it
+but it has some downsides to it teleports essentially
+teleports essentially each step so it just detects that you're
+each step so it just detects that you're stuck
+stuck right now and it's up to someone else to
+right now and it's up to someone else to fix it
+fix it and even worse fast objects if they step
+and even worse fast objects if they step too far
+too far they can completely skip something so
+they can completely skip something so you could have
+you could have something like a bullet going through a
+something like a bullet going through a wall is the classic example
+wall is the classic example but rotation is no different than
+but rotation is no different than translation
+translation so in titanfall in titanfall 2 we used
+so in titanfall in titanfall 2 we used continuous collision detection
+continuous collision detection and it was continuous for translation
+and it was continuous for translation only the rotation
+only the rotation we just did fixed steps
+we just did fixed steps um but we also did discrete collision
+um but we also did discrete collision detection
+detection at the initial position so we did both
+at the initial position so we did both tests at the same time
+tests at the same time but there were some limitations that led
+but there were some limitations that led us to revisit it
+us to revisit it um the collider shape for one depended
+um the collider shape for one depended on the situation
+on the situation usually it was kind of a capsule
+usually it was kind of a capsule cylinder hybrid where we start with a
+cylinder hybrid where we start with a cylinder
+cylinder and then we chop planes off of it
+and then we chop planes off of it tangent to the capsule
+tangent to the capsule so that it is smoother over rough
+so that it is smoother over rough terrain
+terrain and it was efficient but it had some
+and it was efficient but it had some oddities
+oddities and even some things would fall back all
+and even some things would fall back all the way to an access line bounding box
+the way to an access line bounding box some of our optimizations in the
+some of our optimizations in the collision code assumed
+collision code assumed that z was up so if
+that z was up so if we rotated the capsule so that you were
+we rotated the capsule so that you were leaning forward or lying down
+leaning forward or lying down we had to basically fit that in a larger
+we had to basically fit that in a larger capsule and transform all of the world
+capsule and transform all of the world then to the
+then to the smaller capsule and the larger capsule
+smaller capsule and the larger capsule so it worked but it was expensive
+so it worked but it was expensive and the real reason we revisited it is
+and the real reason we revisited it is there is a hard limit of about a million
+there is a hard limit of about a million triangles because
+triangles because we index triangles by a 20 bit index and
+we index triangles by a 20 bit index and there are no bits left to
+there are no bits left to do more and strangely enough our content
+do more and strangely enough our content creators keep adding stuff and want more
+creators keep adding stuff and want more more and more
+more and more so our goals were no hard triangle limit
+so our goals were no hard triangle limit arbitrarily oriented colliders
+arbitrarily oriented colliders consistent collision shape fast constant
+consistent collision shape fast constant iteration times you don't want people
+iteration times you don't want people waiting on this
+waiting on this and ideally the game doesn't get any
+and ideally the game doesn't get any worse in memory or time
+worse in memory or time and we met all our goals and memory
+and we met all our goals and memory usage was maybe a few percent
+usage was maybe a few percent less but not anything to write home
+less but not anything to write home about but
+about but performance more than doubled on console
+performance more than doubled on console which was an unexpected benefit
+which was an unexpected benefit so our target platforms are all x64
+so our target platforms are all x64 but we can't rely on sse4 or avx because
+but we can't rely on sse4 or avx because of our low end pc
+of our low end pc so some relevant traits about x64 and
+so some relevant traits about x64 and jaguar's
+jaguar's implementation we've got 64 byte cache
+implementation we've got 64 byte cache lines
+lines and that's pretty standard in practice
+and that's pretty standard in practice even if they can do different things if
+even if they can do different things if they want to
+they want to l2 cache misses are usually around 100
+l2 cache misses are usually around 100 cycles
+cycles and mispredicted branches are about 20
+and mispredicted branches are about 20 cycles which is about the same cost as a
+cycles which is about the same cost as a square root
+um it also has parallel execution pipelines for both integer
+pipelines for both integer and floating point so you can do both of
+and floating point so you can do both of those at the same time
+those at the same time and there's four-way cmd with ssa2
+and there's four-way cmd with ssa2 required we actually use supplemental
+required we actually use supplemental streaming
+streaming md extensions uh 3 ss e3
+md extensions uh 3 ss e3 um and we'll get to why near the end of
+um and we'll get to why near the end of the talk
+the talk and it's 98 of hardware according to
+and it's 98 of hardware according to steam
+steam so here's our design overview for our
+so here's our design overview for our collision detection
+collision detection we use a four-way access align bounding
+we use a four-way access align bounding box tree which is ideal
+box tree which is ideal for four-way cmd we pack each node into
+for four-way cmd we pack each node into 64 bytes
+64 bytes which is ideal for cache coherency
+which is ideal for cache coherency and we use swept oriented capsules
+and we use swept oriented capsules versus triangles as
+versus triangles as our basic collision technique and it's
+our basic collision technique and it's the techniques in this talk are
+the techniques in this talk are applicable mostly to any type of
+applicable mostly to any type of collision shape you want
+collision shape you want but this is what our code used in the
+but this is what our code used in the past so we kept it
+past so we kept it notice that this is already optimizing
+notice that this is already optimizing this is all based on
+this is all based on what the hardware is good at the four
+what the hardware is good at the four boxes is based on four-way sse
+boxes is based on four-way sse the tree structure is good because we
+the tree structure is good because we call about three quarters of the stuff
+call about three quarters of the stuff each step 64 bytes of voice
+each step 64 bytes of voice waiting on memory
+waiting on memory we're going to find branchless a bb test
+we're going to find branchless a bb test and all of these early high level
+and all of these early high level optimizations
+optimizations are important so what's an aabb
+are important so what's an aabb it's a box that contains stuff and it's
+it's a box that contains stuff and it's axis aligned
+axis aligned not necessarily cats it's defined by a
+not necessarily cats it's defined by a minimax coordinate
+minimax coordinate in 3d that's three floats each so 24
+in 3d that's three floats each so 24 bytes
+bytes you can also define it by center and
+you can also define it by center and extents
+extents but when i looked into that it uses one
+but when i looked into that it uses one or two more instructions
+or two more instructions to do all of your testing and
+to do all of your testing and the dependency chain is one or two
+the dependency chain is one or two instructions deeper
+instructions deeper so men's max's tends to be better
+so men's max's tends to be better what's an aab tree it's just boxes in
+what's an aab tree it's just boxes in boxes
+boxes um here's a four-way a b tree you see a
+um here's a four-way a b tree you see a blue box containing
+blue box containing four orange boxes
+excuse me
+so four bounding boxes is 96 bytes which some quick math tells us doesn't fit in
+some quick math tells us doesn't fit in 64 bytes
+64 bytes so we have to pack it we did the obvious
+so we have to pack it we did the obvious thing of packing in 16-bit integers
+thing of packing in 16-bit integers that leaves 16 bytes for the rest of our
+that leaves 16 bytes for the rest of our tree structure
+tree structure and we're using our hardware
+and we're using our hardware architecture here
+architecture here so that we know that decoding the
+so that we know that decoding the integer part is going to be free
+integer part is going to be free because it's going to run in parallel on
+because it's going to run in parallel on the cpu to the
+the cpu to the floating point uh access align binding
+floating point uh access align binding box test so here's our structure kind of
+box test so here's our structure kind of shown you can see we've got the men's
+shown you can see we've got the men's maxes
+maxes for the four boxes taking three quarters
+for the four boxes taking three quarters of the structure this is to scale
+of the structure this is to scale indexes are 24 bits that's
+indexes are 24 bits that's either a child bounding block volume
+either a child bounding block volume node
+node or a collision primitive index
+or a collision primitive index we have the 0 1 2 3 those are the child
+we have the 0 1 2 3 those are the child types
+types each one of those is eight bits so we
+each one of those is eight bits so we have four bits per child type
+have four bits per child type and then there's a collision mask we use
+and then there's a collision mask we use a 32-bit collision mask to decide
+a 32-bit collision mask to decide whether or not we want to collide with
+whether or not we want to collide with this like titan only player only and so
+this like titan only player only and so on mass
+on mass water only you can the idea and there's
+water only you can the idea and there's 32 bits but
+32 bits but we don't use all combinations so 8-bit
+we don't use all combinations so 8-bit index
+index is enough
+is enough oh well so why an access align bounding
+oh well so why an access align bounding box for about a volume hierarchy
+box for about a volume hierarchy well it's a good trade-off to be a net
+well it's a good trade-off to be a net win your
+win your a slower collision bounding volume needs
+a slower collision bounding volume needs to be
+to be better at culling stuff so if you use
+better at culling stuff so if you use spheres
+spheres it'd be faster
+but you wouldn't call as much stuff and if you use oriented bounding boxes
+and if you use oriented bounding boxes or kdops
+or kdops which is a discrete oriented polytote
+which is a discrete oriented polytote means you pick a certain number of
+means you pick a certain number of directions
+directions like three as an aabb
+like three as an aabb and you get more storage you get more
+and you get more storage you get more choline but it's slower to test
+choline but it's slower to test so access and line binding boxes are a
+so access and line binding boxes are a good trade-off
+it might be interesting to use different shapes in different parts of the tree up
+shapes in different parts of the tree up high near the top of the tree you expect
+high near the top of the tree you expect most
+most of your leaves or most of your nodes are
+of your leaves or most of your nodes are going to miss so it
+going to miss so it might be worth a faster test that's less
+might be worth a faster test that's less accurate and then near the leaves it's
+accurate and then near the leaves it's more likely that you're close to the
+more likely that you're close to the stuff so a more accurate test that
+stuff so a more accurate test that it might be worth a little extra time so
+it might be worth a little extra time so that might be worth future research
+that might be worth future research so how do we build our trees
+well bvh bound and volume hierarchy again we basically do it in two passes
+again we basically do it in two passes one pass you make a binary tree because
+one pass you make a binary tree because that's easier
+that's easier and the second pass you throw away
+and the second pass you throw away two-thirds of the nodes
+two-thirds of the nodes to get a four-way tree instead of a
+to get a four-way tree instead of a two-way tree
+two-way tree so how do you build a two-way tree
+so how do you build a two-way tree basically you just try a bunch of ways
+basically you just try a bunch of ways to split all of your
+to split all of your boxes into two sets of boxes then you
+boxes into two sets of boxes then you evaluate them based on some heuristic we
+evaluate them based on some heuristic we use the surface areas heuristic like
+use the surface areas heuristic like everybody in the world
+everybody in the world and then you recurse on the two halves
+and then you recurse on the two halves and then stop
+and then stop once the cost of a split exceeds the
+once the cost of a split exceeds the cost of not splitting
+cost of not splitting so the surface area heuristic assumes
+so the surface area heuristic assumes the probability of a ray hitting a box
+the probability of a ray hitting a box is proportional to the box's surface
+is proportional to the box's surface area and this is true for random rays
+area and this is true for random rays that start
+that start outside of a box and it works really
+outside of a box and it works really well in practice
+well in practice and it's better than using the box's
+and it's better than using the box's volume
+volume because flat boxes still have area even
+because flat boxes still have area even if they have no volume
+now we tweak it slightly because we expect to test volumes not just raised
+expect to test volumes not just raised because we expect
+because we expect players to collide with the world and
+players to collide with the world and titans so we increased the
+titans so we increased the node box sizes by half the player's
+node box sizes by half the player's radius
+radius to increase the surface area cost of
+to increase the surface area cost of every box
+every box this leads to a shallower tree with
+this leads to a shallower tree with fewer nodes which saves some memory
+fewer nodes which saves some memory and it also saves some cpu time for
+and it also saves some cpu time for testing boxes
+testing boxes because you don't spend a lot of time
+because you don't spend a lot of time seeing that this player's capsule
+seeing that this player's capsule intersects a lot of leaves that are near
+intersects a lot of leaves that are near each other
+each other a lot of small leaves it really helps
+a lot of small leaves it really helps solve the problem of lots of small
+solve the problem of lots of small leaves for small triangles
+so we use three split strategies the first one is the most important
+first one is the most important and is pretty easy you just sort all of
+and is pretty easy you just sort all of the boxes by
+the boxes by their centers and you do this once per
+their centers and you do this once per access
+access and then you just walk that list trying
+and then you just walk that list trying all ways of splitting it from the first
+all ways of splitting it from the first half and the last half
+half and the last half and you get the surface area heuristic
+and you get the surface area heuristic for each sides evaluate the
+for each sides evaluate the cost and
+cost and that's the most important one
+that's the most important one strategy number two is a unique one to
+strategy number two is a unique one to us i think
+us i think we just take all of the big ones and put
+we just take all of the big ones and put them in one list i think
+them in one list i think it's if it's over half the size of the
+it's if it's over half the size of the parent box and we put the little ones in
+parent box and we put the little ones in another list
+another list this really helps when you have playable
+this really helps when you have playable geometry in the middle of giant
+geometry in the middle of giant background geometry such as a skybox it
+background geometry such as a skybox it separates
+separates all of that big geometry you almost
+all of that big geometry you almost never collide against from all of the
+never collide against from all of the detailed geometry you collide against a
+detailed geometry you collide against a lot and keeps from making
+lot and keeps from making weird hierarchies so this helped us a
+weird hierarchies so this helped us a lot
+lot and then you can also split your
+and then you can also split your on a regular grid and when you do this
+on a regular grid and when you do this you consider if a primitive is
+you consider if a primitive is big then you can put part of it on one
+big then you can put part of it on one side of the tree
+side of the tree and part of it on the other side of the
+and part of it on the other side of the tree you basically chop it in half
+tree you basically chop it in half see what bounding box fits on the two
+see what bounding box fits on the two halves and then
+halves and then use just that bounding box on each side
+use just that bounding box on each side but put the whole
+but put the whole object so it sticks out the bounding box
+object so it sticks out the bounding box on one side it sticks out the binding
+on one side it sticks out the binding box on the other side
+box on the other side but you put them together and it's
+but you put them together and it's inside all of the bounding boxes
+inside all of the bounding boxes um this causes the same primitive to
+um this causes the same primitive to possibly be tested more than once
+possibly be tested more than once but it's actually didn't really help us
+but it's actually didn't really help us it pretty much never gets chosen
+it pretty much never gets chosen probably because of our big little
+probably because of our big little strategy worked better
+strategy worked better so we have a two-way tree how do we get
+so we have a two-way tree how do we get a four-way tree out of it
+a four-way tree out of it well we just do a greedy top-down merge
+well we just do a greedy top-down merge and there are
+and there are five different ways that you can merge
+five different ways that you can merge sub trees
+sub trees there's one symmetric way which you see
+there's one symmetric way which you see over here
+over here and then there are four asymmetric ways
+and then there are four asymmetric ways and
+and i only drew one of them because you can
+i only drew one of them because you can easily see what
+easily see what all of the others are
+and we don't necessarily have four leaves because
+leaves because i mean artists are making this stuff and
+i mean artists are making this stuff and they don't always make it
+they don't always make it perfectly nice for code so we can end up
+perfectly nice for code so we can end up one symmetric way or two asymmetric ways
+one symmetric way or two asymmetric ways of having
+of having less than four leaves so
+less than four leaves so it's wasteful in memory to not use all
+it's wasteful in memory to not use all four children because we only store four
+four children because we only store four children
+children and because we do a greedy construction
+and because we do a greedy construction from the top down this can only happen
+from the top down this can only happen at
+at the leaves so can we tweak the greedy
+the leaves so can we tweak the greedy algorithm near the root
+algorithm near the root to make the partial leaves better lower
+to make the partial leaves better lower in the tree
+in the tree yes so first an observation adding a
+yes so first an observation adding a node turns one
+node turns one child leaf into four grandchildren
+child leaf into four grandchildren leaves which is a difference of three
+leaves which is a difference of three leaves
+leaves and at the root one node has four leaves
+and at the root one node has four leaves so you have
+so you have three k plus one leaves for k nodes so
+three k plus one leaves for k nodes so you can solve
+you can solve and find out that if you have n nodes
+and find out that if you have n nodes you're in a subtree you're going to
+you're in a subtree you're going to waste n plus one modulus three
+waste n plus one modulus three leaves and i'm not going to waste your
+leaves and i'm not going to waste your time reading algebra to you
+time reading algebra to you so that tells us how much leaves we're
+so that tells us how much leaves we're going to waste if we put this many nodes
+going to waste if we put this many nodes on this
+on this branch so when merging would just
+branch so when merging would just slightly increase
+slightly increase the subtree cost if it's going to have
+the subtree cost if it's going to have unused leaves
+unused leaves and this does a pretty good job in
+and this does a pretty good job in practice of
+practice of reducing the number of wasted leaves
+reducing the number of wasted leaves and also it helps a lot high up in the
+and also it helps a lot high up in the tree as you get lower in the tree
+tree as you get lower in the tree closer to the leaves it doesn't really
+closer to the leaves it doesn't really help much and it starts
+help much and it starts to hurt so we fade out the cost as we go
+to hurt so we fade out the cost as we go down the tree
+down the tree fade out the penalty but we still end up
+fade out the penalty but we still end up with a lot of two-way leaves
+with a lot of two-way leaves and these are leaves that are only half
+and these are leaves that are only half full which are the most wasteful
+full which are the most wasteful so the idea we had was if the leaves are
+so the idea we had was if the leaves are half full and we have two of them why
+half full and we have two of them why don't we just
+don't we just smash them together and make one
+smash them together and make one completely full leaf
+completely full leaf and that works great but now you have
+and that works great but now you have two parents but we don't care
+two parents but we don't care we don't keep parent pointers so we can
+we don't keep parent pointers so we can have two parents
+have two parents and this saves a lot of memory and
+and this saves a lot of memory and there's actually no added cost at run
+there's actually no added cost at run time since we're going to test all four
+time since we're going to test all four boxes anyway
+boxes anyway as long as we end up calling these
+as long as we end up calling these shared leaves
+shared leaves and culling is more likely if we pair
+and culling is more likely if we pair with leaves far away spatially
+with leaves far away spatially in the world so how do we maximize the
+in the world so how do we maximize the distance between
+distance between things we pair well first we just
+things we pair well first we just collect
+collect all of the two-way leaves in tree order
+all of the two-way leaves in tree order which should roughly match
+which should roughly match spatial ordering but not perfect and
+spatial ordering but not perfect and then in that list we pair
+then in that list we pair nodes that are halfway apart which again
+nodes that are halfway apart which again it's a rough heuristic that they might
+it's a rough heuristic that they might be far apart
+be far apart but and then we make it better
+but and then we make it better how do we make it better well we sort
+how do we make it better well we sort all the pairs by increasing distance
+all the pairs by increasing distance so that the closest pair is first and
+so that the closest pair is first and then we just
+then we just or the first 1 8 of the list for each of
+or the first 1 8 of the list for each of those pairs
+those pairs we pick one other pair anywhere in the
+we pick one other pair anywhere in the list
+list try all ways of swapping pairs around
+try all ways of swapping pairs around and we pick the best one and if that
+and we pick the best one and if that changed
+changed great we've improved things if not we
+great we've improved things if not we pick another one up to 10 times
+pick another one up to 10 times and then we repeat the whole thing 32
+and then we repeat the whole thing 32 times and
+times and that is really fast and and
+that is really fast and and the end our pairs are usually about half
+the end our pairs are usually about half a map apart
+a map apart so it works really well it can increase
+so it works really well it can increase the time complexity using a smarter
+the time complexity using a smarter partition but we didn't bother
+partition but we didn't bother because when it's two seconds you don't
+because when it's two seconds you don't get much by making it better so now we
+get much by making it better so now we have beautiful trees
+have beautiful trees and now we get to do math to collide
+and now we get to do math to collide so we call how do we test these aabbs
+so we call how do we test these aabbs we call if the line segment
+we call if the line segment misses the aabb so we test this infinite
+misses the aabb so we test this infinite line
+line and then we only care about from the
+and then we only care about from the start time to the end time
+start time to the end time and see if that infinite line intersects
+and see if that infinite line intersects this box at all
+this box at all and for volume traces this is how we do
+and for volume traces this is how we do rays for volumes we just
+rays for volumes we just increase the box size by however big the
+increase the box size by however big the swept volume
+swept volume projects onto the coordinate axes
+projects onto the coordinate axes so how do we do this that's pretty
+so how do we do this that's pretty standard you find the enter and leaf
+standard you find the enter and leaf times
+times of the infinite line for all of the
+of the infinite line for all of the planes through all of the
+planes through all of the box faces this works for convex
+box faces this works for convex polyhedra not just
+polyhedra not just axis and line binding boxes so this is
+axis and line binding boxes so this is the last enter time here's another enter
+the last enter time here's another enter time
+time here's the first exit time here's
+here's the first exit time here's another and it's easier to see in 2d but
+another and it's easier to see in 2d but it works
+it works any dimension and the cool thing is that
+any dimension and the cool thing is that there's
+there's no intersection if we exit before we
+no intersection if we exit before we enter
+enter so that's a pretty cheap test
+so that's a pretty cheap test and how do we deal with line segments
+and how do we deal with line segments it's also really simple
+it's also really simple the start of the line and the end of the
+the start of the line and the end of the line
+line are just extra enter and exit events
+are just extra enter and exit events and they get to be either first or last
+and they get to be either first or last enter in this case
+enter in this case the last exit is the end of the ray
+the last exit is the end of the ray so it misses the box and here's the
+so it misses the box and here's the other two exits
+so here's the math you just do vector algebra and you end up with this guy
+algebra and you end up with this guy for when you hit and it's pretty cheap
+for when you hit and it's pretty cheap you do a vector subtraction and a dot
+you do a vector subtraction and a dot product
+product and divide by a dot product and this is
+and divide by a dot product and this is where we get some optimizations
+where we get some optimizations first the point on the plane is always
+first the point on the plane is always going to be one of the two corners of
+going to be one of the two corners of your axis align bounding box
+your axis align bounding box three of them use the mins and three of
+three of them use the mins and three of them use the maxes
+them use the maxes the plane normal is always going to be a
+the plane normal is always going to be a coordinate axis so the numerator
+coordinate axis so the numerator just picks x y or z from this vector
+just picks x y or z from this vector subtract so we don't have to do a dot
+subtract so we don't have to do a dot product at all
+product at all we just pick a coordinate and then one
+we just pick a coordinate and then one over d dot
+over d dot n is going to be a constant because we
+n is going to be a constant because we only have three values for n
+only have three values for n so we can just pre-calculate those ones
+so we can just pre-calculate those ones for all aabbs and that's just one divide
+for all aabbs and that's just one divide at the start
+at the start of your ray trace because we do it in
+of your ray trace because we do it in cmd so we get x y and z
+cmd so we get x y and z at once so our plane distance check is
+at once so our plane distance check is just a subtract
+just a subtract and a multiply to find when we hit each
+and a multiply to find when we hit each plane and we do six of those
+so we found the when you hit the min's and maxes for each access so
+the min's and maxes for each access so it's going to be true that you always on
+it's going to be true that you always on an axis you always
+an axis you always hit the enter before you leave um it's
+hit the enter before you leave um it's only when you combine axes that you can
+only when you combine axes that you can leave before you enter
+leave before you enter so we use that to trivially find the
+so we use that to trivially find the enter and leave times we just take the
+enter and leave times we just take the men of the two times we found in the max
+men of the two times we found in the max of the two times we found
+of the two times we found to find the intern leave times and
+to find the intern leave times and modern hardware has instructions for min
+modern hardware has instructions for min and max that are as fast as
+and max that are as fast as add so that's really cheap
+add so that's really cheap so it's good to get fast code and edge
+so it's good to get fast code and edge cases uh special cases slow down
+cases uh special cases slow down code even if you don't take the special
+code even if you don't take the special case branch you
+case branch you spend something to detect that you don't
+spend something to detect that you don't need to take it you spend some
+need to take it you spend some code cash space you spend some cycles
+code cash space you spend some cycles just doing the if
+just doing the if you don't necessarily pay the branch
+you don't necessarily pay the branch miss prediction penalty but
+miss prediction penalty but there is still some cost so it's always
+there is still some cost so it's always always always better
+always always better to tweet code so that all of your
+to tweet code so that all of your special cases can be handled in normal
+special cases can be handled in normal code
+code and that's where we're going now by
+and that's where we're going now by dividing by zero
+dividing by zero we're all afraid of because it's undefined behavior in c
+because it's undefined behavior in c plus plus but ieee floats to find it in
+plus plus but ieee floats to find it in a way that makes a lot of sense
+a way that makes a lot of sense and almost all hardware you'll see is
+and almost all hardware you'll see is ieee 754 floats
+ieee 754 floats the exceptions are probably irrelevant
+the exceptions are probably irrelevant to us it's like
+to us it's like ibm mainframes unisys cray i think
+ibm mainframes unisys cray i think and maybe some micro controllers
+and maybe some micro controllers somewhere
+somewhere so i doubt any of us will ever see those
+so i doubt any of us will ever see those so undefined behavior
+so undefined behavior [Music]
+[Music] c used to have undefined behavior just
+c used to have undefined behavior just to let different architectures
+to let different architectures cpus handle the edge cases different
+cpus handle the edge cases different ways like is it ones or two's complement
+ways like is it ones or two's complement can we innovate different ways
+can we innovate different ways modern compilers use it to mean i get to
+modern compilers use it to mean i get to do any bizarre thing i want if it speeds
+do any bizarre thing i want if it speeds up an artificial benchmark even if you
+up an artificial benchmark even if you don't want me to
+don't want me to so i really think that the standards
+so i really think that the standards committees should define and define
+committees should define and define behavior to be
+behavior to be what the hardware does in cases like
+what the hardware does in cases like divide by zero
+divide by zero so i like floats ieee flows because they
+so i like floats ieee flows because they are very smart about their decisions
+are very smart about their decisions so an ieee floats you can represent all
+so an ieee floats you can represent all numbers from minus infinity to plus
+numbers from minus infinity to plus infinity and you do that in only 32 bits
+infinity and you do that in only 32 bits which is only possible because intervals
+which is only possible because intervals map to a single float
+map to a single float and for the edge cases of plus or minus
+and for the edge cases of plus or minus zero and plus or minus infinity
+zero and plus or minus infinity it's useful to think of those values as
+it's useful to think of those values as limits as you approach them instead of
+limits as you approach them instead of as discrete values so plus or minus zero
+as discrete values so plus or minus zero are just you can think of them as
+are just you can think of them as equivalent to one-sided limits
+equivalent to one-sided limits as you approach zero so this is
+as you approach zero so this is approaching zero from the positive
+approaching zero from the positive numbers
+numbers this is approaching zero from the
+this is approaching zero from the negative numbers and if you do that
+negative numbers and if you do that it makes divide by zero well defined and
+it makes divide by zero well defined and it makes
+it makes plus and minus zero really useful i mean
+plus and minus zero really useful i mean it might have seemed odd to have
+it might have seemed odd to have negative zero but because of
+negative zero but because of this and the fact that they're plus and
+this and the fact that they're plus and minus infinity when you divide by them
+minus infinity when you divide by them it's actually very useful to us to have
+it's actually very useful to us to have positive and negative zero be different
+positive and negative zero be different and multiplication by infinity is also
+and multiplication by infinity is also well defined because you can use these
+well defined because you can use these limits and you see you basically just
+limits and you see you basically just combine the sign bits and keep infinity
+combine the sign bits and keep infinity unless f is 0 then 0 times infinity is
+unless f is 0 then 0 times infinity is the same as 0 divided by 0
+the same as 0 divided by 0 which is not well defined it's this
+which is not well defined it's this limit
+limit which in calculus we can solve using low
+which in calculus we can solve using low patal's rule
+patal's rule i hope i pronounced that right but cpus
+i hope i pronounced that right but cpus don't have enough info for that because
+don't have enough info for that because you have to take the derivative of the
+you have to take the derivative of the numerator and the denominator
+numerator and the denominator cpus just have the values they don't
+cpus just have the values they don't have the derivatives
+have the derivatives so ieee floats return nan which means
+so ieee floats return nan which means not a number
+not a number for zero zero you can think of it as not
+for zero zero you can think of it as not a number
+a number because it could be any after you apply
+because it could be any after you apply lehopital's rule
+lehopital's rule other nan's like the square root of
+other nan's like the square root of minus one or the arc sine of two
+minus one or the arc sine of two you can think of it as not a number
+you can think of it as not a number because
+because there's no such number that's worked and
+there's no such number that's worked and you often see these in their buggers as
+you often see these in their buggers as one pound i and d for indefinite
+one pound i and d for indefinite so an interesting thing about nans is
+so an interesting thing about nans is any comparison with them returns false
+any comparison with them returns false so a equals a can be false
+so a equals a can be false if and only if a is a nan and if you
+if and only if a is a nan and if you turn on fast math in your compilers
+turn on fast math in your compilers they usually ignore nands but nands can
+they usually ignore nands but nands can be important
+be important so i don't turn on fast math
+so i don't turn on fast math and math with nands also returns nan
+and math with nands also returns nan for the most part but what about our min
+for the most part but what about our min max instructions
+max instructions ieee originally didn't have those in
+ieee originally didn't have those in 2008 they
+2008 they suggested you should return the non-nan
+suggested you should return the non-nan number and that's exactly what hlsl does
+number and that's exactly what hlsl does and that's exactly opposite what arm
+and that's exactly opposite what arm does
+does arm makes it like plus and sse
+arm makes it like plus and sse does something different still they
+does something different still they return just the second argument
+return just the second argument the only other option would be to return
+the only other option would be to return the first argument and i haven't seen
+the first argument and i haven't seen that
+that the reason ssc does this it's the
+the reason ssc does this it's the natural consequences they said
+natural consequences they said min is equal to this code sequence well
+min is equal to this code sequence well if a or b is nan this is going to be
+if a or b is nan this is going to be false and it's going to return the
+false and it's going to return the second argument
+second argument so dividing by zero
+so dividing by zero we have this thing and here's our divide
+we have this thing and here's our divide by zero
+by zero which is undefined behavior in c plus
+which is undefined behavior in c plus plus fortunately we're using intrinsics
+plus fortunately we're using intrinsics and we're not using c plus plus so it's
+and we're not using c plus plus so it's defined for
+defined for sse and it's well defined for us and
+sse and it's well defined for us and it becomes plus or minus infinity which
+it becomes plus or minus infinity which when we multiply it by this guy is going
+when we multiply it by this guy is going to give us minus
+to give us minus infinity nan or plus infinity
+infinity nan or plus infinity and it will turn out that this is almost
+and it will turn out that this is almost exactly what we want
+exactly what we want so when we're doing our test we're going
+so when we're doing our test we're going to keep
+to keep just the last enter time when we find
+just the last enter time when we find all of our enter times and leaf times
+all of our enter times and leaf times and we're going to
+and we're going to just keep the first leaves so if we ever
+just keep the first leaves so if we ever calculate a negative infinity and for
+calculate a negative infinity and for enter time that's always going to be not
+enter time that's always going to be not the last one
+the last one some other one is going to be more
+some other one is going to be more laster and similarly with the leaf time
+laster and similarly with the leaf time plus infinity can never be the first
+plus infinity can never be the first time we leave
+time we leave so in these whites you can see we
+so in these whites you can see we basically ignore it and right here in
+basically ignore it and right here in the middle
+the middle we're ignoring both the interim leave
+we're ignoring both the interim leave time so
+time so the other coordinates decide whether we
+the other coordinates decide whether we hit the box or not
+hit the box or not and then for these red and green cases
+and then for these red and green cases well if the enter time is plus infinity
+well if the enter time is plus infinity that's always going to be the last inter
+that's always going to be the last inter and that's always going to be greater
+and that's always going to be greater than our first exit
+than our first exit so we're always going to call a box over
+so we're always going to call a box over here and the red leaf time does the same
+here and the red leaf time does the same thing over here
+thing over here so our plus and minus infinities from
+so our plus and minus infinities from dividing by zero
+dividing by zero are automatically calling and handling
+are automatically calling and handling all of our edge cases so far
+all of our edge cases so far except one we get a nan
+except one we get a nan on this case when the ray goes right
+on this case when the ray goes right through the edge of a box
+through the edge of a box and what should we do and how can we get
+and what should we do and how can we get that
+that well our desired behavior is that
+well our desired behavior is that there's no gaps between two aabbs that
+there's no gaps between two aabbs that touch
+touch if there were a gap you could basically
+if there were a gap you could basically have two walls that touch
+have two walls that touch and you could shoot right between them
+and you could shoot right between them or you could drop something right
+or you could drop something right through the floor
+through the floor we don't want that so the easiest way is
+we don't want that so the easiest way is to make
+to make the edges of the box considered part of
+the edges of the box considered part of the box
+the box and we'll do this for sse other
+and we'll do this for sse other platforms are
+platforms are an exercise for the reader
+so it turns out we're going to need to turn negative zero to positive zero
+turn negative zero to positive zero this will make it so that negative and
+this will make it so that negative and we only have positive infinity to deal
+we only have positive infinity to deal with
+with and we'll also use
+and we'll also use a specific ordering of arguments to min
+a specific ordering of arguments to min and max
+and max and i'm not going to put you through the
+and i'm not going to put you through the derivation i basically tried all ways
+derivation i basically tried all ways of doing it and picked the one that
+of doing it and picked the one that worked
+worked which is not exciting to do and even
+which is not exciting to do and even less exciting to watch
+less exciting to watch so enough math for now let's code
+so enough math for now let's code here's the entire code to test four
+here's the entire code to test four bounding boxes
+bounding boxes it all fits on one slide and it's not
+it all fits on one slide and it's not even a lot of like this
+even a lot of like this oops this is two instructions
+oops this is two instructions uh this is one instruction this is a lot
+uh this is one instruction this is a lot this is like four instructions
+this is like four instructions this is like two instructions so that's
+this is like two instructions so that's not a lot
+not a lot that's it okay so we'll do a quick
+that's it okay so we'll do a quick explanation here we're just finding all
+explanation here we're just finding all of the plane distances
+of the plane distances this is mostly for reference later here
+this is mostly for reference later here we combine them to find the intern leaf
+we combine them to find the intern leaf times for each axis
+times for each axis and again this is for four boxes at once
+and again this is for four boxes at once because it's sse
+because it's sse and i've highlighted that we're swapping
+and i've highlighted that we're swapping the order of the min and max's for these
+the order of the min and max's for these min and max instructions and that turns
+min and max instructions and that turns out to be
+out to be crucial for getting correct edge case
+crucial for getting correct edge case behavior on sse when you go through the
+behavior on sse when you go through the edges of a box
+edges of a box and then this just finds the global
+and then this just finds the global minimum the last enter time
+minimum the last enter time this finds the first exit time and this
+this finds the first exit time and this decides if you should keep each of the
+decides if you should keep each of the four boxes or not
+four boxes or not and puts it in a four bit register well
+and puts it in a four bit register well four bits of a 32-bit register so
+four bits of a 32-bit register so robust code this code is robust
+robust code this code is robust this code looks almost exactly the same
+this code looks almost exactly the same and is broken
+and is broken this code looks almost exactly the same
+this code looks almost exactly the same and looks like it's better because it
+and looks like it's better because it has a lower dependency chain
+has a lower dependency chain and it's less broken but it's also
+and it's less broken but it's also broken
+broken so when you have code like this where
+so when you have code like this where you've carefully designed it leave
+you've carefully designed it leave warnings in the comments
+warnings in the comments so that future programs don't come in
+so that future programs don't come in and make things better and
+and make things better and break edge cases that happen to one
+break edge cases that happen to one person every month or so
+person every month or so and you talk up to gremlins
+so here i've given for future reference detailed analysis of why it's broken
+detailed analysis of why it's broken but that's kind of boring right now so
+but that's kind of boring right now so let's move on
+let's move on and then here's some more boilerplate
+and then here's some more boilerplate code of just how we decode
+code of just how we decode the axis align bounding boxes we get a
+the axis align bounding boxes we get a constant
+constant we unpack our 16 bit integers and we
+we unpack our 16 bit integers and we decode them
+decode them using fixed point and relative origin
+using fixed point and relative origin okay now we need to find our traversal
+okay now we need to find our traversal order
+order this is going to end up being cool we'll
+this is going to end up being cool we'll get some branchless code using bit
+get some branchless code using bit manipulation
+manipulation and magic numbers to visit a specified
+and magic numbers to visit a specified subset using a max
+subset using a max a mask of the boxes in the ideal order
+a mask of the boxes in the ideal order so keep flags which we've just found has
+so keep flags which we've just found has a bit set for each box we want to keep
+a bit set for each box we want to keep because it hits the array
+because it hits the array and we want front to back order for
+and we want front to back order for doing
+doing earlier rejection tests so
+earlier rejection tests so our min and max enter times for each ax
+our min and max enter times for each ax for each box
+for each box have this information and we'll keep the
+have this information and we'll keep the maximum
+maximum so this is the time that they first
+so this is the time that they first leave each box
+leave each box not the time they first enter and almost
+not the time they first enter and almost always they'll give you the same order
+always they'll give you the same order there's only one case where they're
+there's only one case where they're different the only case is when you have
+different the only case is when you have a big box holding littler boxes this is
+a big box holding littler boxes this is the case you have
+the case you have the skybox holding your playable geo
+the skybox holding your playable geo in that case if you use the exit time
+in that case if you use the exit time it will visit the interior box first
+it will visit the interior box first then the outer box
+then the outer box so it'll visit your playable space and
+so it'll visit your playable space and then the background geometry
+then the background geometry which is what we want in that edge case
+which is what we want in that edge case so that's why we use tmax but tmin is
+so that's why we use tmax but tmin is almost as good
+you also go fast by doing too much work we write all the boxes even though we
+we write all the boxes even though we don't use all the boxes
+don't use all the boxes but we only increase the count of boxes
+but we only increase the count of boxes we have by however many we're going to
+we have by however many we're going to keep
+keep this gets rid of all of loops and
+this gets rid of all of loops and branching and we need room for all of
+branching and we need room for all of those boxes anyway in the off camps that
+those boxes anyway in the off camps that off chance we hit them all and it's okay
+off chance we hit them all and it's okay to have garbage data if you never read
+to have garbage data if you never read it
+so how do we figure out where each box goes in our sorted list
+goes in our sorted list because we don't want them just in the
+because we don't want them just in the order they're in the tree we want the in
+order they're in the tree we want the in front to back order
+front to back order so we observe that the index it should
+so we observe that the index it should go to is
+go to is the number of boxes that should go
+the number of boxes that should go before it so i'll call the boxes a b
+before it so i'll call the boxes a b c d box a's index is b is less than a
+c d box a's index is b is less than a plus c is less than a plus d is less
+plus c is less than a plus d is less than a
+than a that's pretty easy so we could do this
+that's pretty easy so we could do this and it would not work
+and it would not work and we just do it for each box but it
+and we just do it for each box but it doesn't work so why is it broken
+doesn't work so why is it broken it's because of ties if all the
+it's because of ties if all the distances happen to be exactly equal
+distances happen to be exactly equal every box says i belong an index zero
+every box says i belong an index zero and they're going to fight for it
+and they're going to fight for it so we fix it by if we're testing a
+so we fix it by if we're testing a versus b
+versus b to go into index a and to go into nxb we
+to go into index a and to go into nxb we make sure they give exact opposite
+make sure they give exact opposite results
+results and so e is not a is less than b and
+and so e is not a is less than b and this works even if one if we happen to
+this works even if one if we happen to have an n
+so another subtlety is that if we use a is less than b
+is less than b and b is less than c we have to use a is
+and b is less than c we have to use a is less than c
+less than c we're not free to choose c is less than
+we're not free to choose c is less than a for one of our tests
+a for one of our tests and it's because if we chose c is less
+and it's because if we chose c is less than a we could end up with our all
+than a we could end up with our all equal tests saying that c
+equal tests saying that c is greater than c which makes no sense
+is greater than c which makes no sense so because of that one of the four boxes
+so because of that one of the four boxes always has to be
+always has to be on the left hand side of each test we
+on the left hand side of each test we use it in and one of them
+use it in and one of them always has to be on the back that kind
+always has to be on the back that kind of narrows the
+of narrows the combinations we can check and so here's
+combinations we can check and so here's my solution to do six tests there are 24
+my solution to do six tests there are 24 possible solutions that
+possible solutions that correspond to different permutations of
+correspond to different permutations of the all equal case
+the all equal case this gives 3 2 one zero
+this gives 3 2 one zero so we're now going to translate this
+so we're now going to translate this into simdi
+into simdi we are going to do this using swizzles
+we are going to do this using swizzles so this notation means we test
+so this notation means we test box a versus box b a versus c
+box a versus box b a versus c a versus d and b versus c so that's
+a versus d and b versus c so that's doing four tests at once and we have a
+doing four tests at once and we have a lot of flexibility in how we group these
+lot of flexibility in how we group these this is kind of one arbitrary grouping
+this is kind of one arbitrary grouping when we do this we want to do the fewest
+when we do this we want to do the fewest possible swivel swizzles
+possible swivel swizzles this is like solving a little puzzle and
+this is like solving a little puzzle and my solution is not unique
+my solution is not unique now we also get eight results but only
+now we also get eight results but only need six which gives some flexibility in
+need six which gives some flexibility in how we
+how we pack things so we can
+pack things so we can these two extra ones we can choose so
+these two extra ones we can choose so that they always go zero like a is less
+that they always go zero like a is less than a
+than a we can use the result we need already
+we can use the result we need already like a is less than b
+like a is less than b or we can use a result we don't care
+or we can use a result we don't care about like b is greater than a
+about like b is greater than a i ended up just doing things like as
+i ended up just doing things like as less than a
+less than a here's a table of how i played around
+here's a table of how i played around and came up with
+and came up with um which tests i use in this box use
+um which tests i use in this box use these tests
+these tests and this is four tests and one register
+and this is four tests and one register four in another
+four in another and these are the two swizzles and
+and these are the two swizzles and notice that this
+notice that this swizzle is repeated twice and one other
+swizzle is repeated twice and one other subtlety is
+subtlety is this is bit three two one zero which is
+this is bit three two one zero which is like intel's preferred order
+like intel's preferred order this order i often do a b c d
+this order i often do a b c d but dcba in this case is not permuted
+but dcba in this case is not permuted it's natural order
+it's natural order and it turns out to be nice when i'm
+and it turns out to be nice when i'm keeping track of
+keeping track of which box is in which bit so
+which box is in which bit so here's all that code it's not much we do
+here's all that code it's not much we do a shuffle we do a couple comparisons and
+a shuffle we do a couple comparisons and we combine them
+we combine them the combining is interesting normally
+the combining is interesting normally you'd expect to take four bits and tack
+you'd expect to take four bits and tack them onto four bits
+them onto four bits but that leaves two zeros in the middle
+but that leaves two zeros in the middle you can see the two zeros
+you can see the two zeros right here so instead we just
+right here so instead we just move it over two to get rid of those
+move it over two to get rid of those zeros
+zeros but instead of doing bit ops we do a
+but instead of doing bit ops we do a multiply and add
+multiply and add because we know that our bits don't
+because we know that our bits don't overlap so we're not ever going to have
+overlap so we're not ever going to have carries
+carries and using a multiply and add lets the
+and using a multiply and add lets the compiler uses some single
+compiler uses some single lea load effective address instruction
+lea load effective address instruction to do this calculation
+to do this calculation so we save like bytes of code space in
+so we save like bytes of code space in one cycle of
+one cycle of execution time which is a huge win
+execution time which is a huge win and then we just use pot count to do the
+and then we just use pot count to do the test now we use
+test now we use bit operations to do the not so we
+bit operations to do the not so we sometimes use a is less than b sometimes
+sometimes use a is less than b sometimes not a is less than b
+not a is less than b and so we use xor in this case we want
+and so we use xor in this case we want to flip all of the tests so we use tilde
+to flip all of the tests so we use tilde and then this just picks the three bits
+and then this just picks the three bits we care about and then this
+we care about and then this counts the three bits so pretty simple
+counts the three bits so pretty simple code
+code and then we only want to keep the boxes
+and then we only want to keep the boxes that passed our test
+that passed our test but we've been sorting all the boxes
+but we've been sorting all the boxes together so how do we limit it to the
+together so how do we limit it to the ones we care about
+ones we care about we just force the time to infinity for
+we just force the time to infinity for the ones we don't care about and the
+the ones we don't care about and the ones we like
+ones we like are in the front we don't care what
+are in the front we don't care what happens at the end
+happens at the end so that's pretty easy that's just a
+so that's pretty easy that's just a couple of minor tweaks here which you
+couple of minor tweaks here which you can
+can look later it's just a couple extra
+look later it's just a couple extra instructions
+instructions one more gotcha we need to limit it to
+one more gotcha we need to limit it to just node boxes or just leaf boxes
+just node boxes or just leaf boxes here's a leaf box
+so we have is node and is leaf masks in integer registers which we
+integer registers which we i haven't shown you that but we decode
+i haven't shown you that but we decode that in parallel to our aabb
+that in parallel to our aabb test now we need either a lut or a long
+test now we need either a lut or a long code sequence to force
+code sequence to force plus infinity based on a register inside
+plus infinity based on a register inside our sse
+our sse register and if we did that
+register and if we did that we'd have to do all of our compare logic
+we'd have to do all of our compare logic and mask works twice anyway
+and mask works twice anyway so instead we stay in the integer unit
+so instead we stay in the integer unit and
+and we change the output bits of all of that
+we change the output bits of all of that floating point math
+floating point math as if we had done it so we don't
+as if we had done it so we don't actually force to
+actually force to infinity we just do bit twiddling to
+infinity we just do bit twiddling to make it as if we had done that
+make it as if we had done that so if we're comparing a and b if a
+so if we're comparing a and b if a should be infinity
+should be infinity we force a zero if b should be infinity
+we force a zero if b should be infinity otherwise we force one and this also
+otherwise we force one and this also says exactly how to handle the edge case
+says exactly how to handle the edge case we put it into a fun lookup table
+we put it into a fun lookup table which is just using the stuff we've had
+which is just using the stuff we've had before
+before and saying what bits do we change in
+and saying what bits do we change in these cases
+these cases it's pretty straightforward these bits
+it's pretty straightforward these bits um correspond to
+um correspond to oh my mouse stopped working these bits
+oh my mouse stopped working these bits why did my boss stop working
+why did my boss stop working oh um there it works again
+oh um there it works again yeah these bits correspond to these hex
+yeah these bits correspond to these hex constants and one thing to note that
+constants and one thing to note that will be useful to us is each bit
+will be useful to us is each bit appears exactly once
+appears exactly once the implication of this is if you flip
+the implication of this is if you flip all of your input bits
+all of your input bits you will also flip all of your output
+you will also flip all of your output bits this will be useful to us
+bits this will be useful to us we are already finding a mask for is it
+we are already finding a mask for is it a node and is it a leaf
+a node and is it a leaf so the regular inputs to this table use
+so the regular inputs to this table use not a node not a leaf
+not a node not a leaf but inverted inputs use is a node is a
+but inverted inputs use is a node is a leaf which is what we have
+leaf which is what we have so that's why inverted inputs are better
+so that's why inverted inputs are better and if you use inverted inputs you get
+and if you use inverted inputs you get inverted outputs so you
+inverted outputs so you invert your bit math
+so how do we get those masks well we have that four bit child type we saw
+have that four bit child type we saw back at the beginning
+back at the beginning we encode it this specific way zero
+we encode it this specific way zero is a node one is empty
+is a node one is empty and the rest are different primitive
+and the rest are different primitive types
+types and we decode that into a 32-bit integer
+and we decode that into a 32-bit integer per child using this
+per child using this the child type minus one underflows if
+the child type minus one underflows if and only if
+and only if it was zero and that makes the upper 28
+it was zero and that makes the upper 28 bits all set
+bits all set and no underflow means the upper 28 bits
+and no underflow means the upper 28 bits are all clear
+are all clear and this is defined behavior as long as
+and this is defined behavior as long as you use unsigned types
+you use unsigned types so don't use signed integers for this
+so don't use signed integers for this so we and this with those magic
+so we and this with those magic constants i've shown you
+constants i've shown you we also have a bit saying this box is a
+we also have a bit saying this box is a node
+node we order the constants together for each
+we order the constants together for each of the four boxes to get
+of the four boxes to get all of the bits we need to set and clear
+all of the bits we need to set and clear and then we
+and then we separate into the set bits into the
+separate into the set bits into the clear bits and to the what type of boxes
+clear bits and to the what type of boxes it bits in the end
+it bits in the end and that fits on a single slide and i've
+and that fits on a single slide and i've color coded
+color coded these are sets these are clear or i mean
+these are sets these are clear or i mean these are clears these are sets this is
+these are clears these are sets this is what type is it
+what type is it and then you can see it's just a little
+and then you can see it's just a little bit of bit math
+bit of bit math that's pretty cool so we still need to
+that's pretty cool so we still need to actually write that stuff
+actually write that stuff so leaves are processed in front to back
+so leaves are processed in front to back order so we can simply
+order so we can simply write them into a fifo queue nodes are
+write them into a fifo queue nodes are processed depth
+processed depth first if you did a fifo queue you would
+first if you did a fifo queue you would do breadth first
+do breadth first so a stack is depth first so we need to
+so a stack is depth first so we need to write in reverse order
+write in reverse order fifo order would be 0 1 two three stack
+fifo order would be 0 1 two three stack order is three two one zero
+order is three two one zero so if you look at it
+so if you look at it you end up with this is what you need to
+you end up with this is what you need to do
+do and here's a table you just make if it's
+and here's a table you just make if it's this
+this if i want to keep all four i want this
+if i want to keep all four i want this order if i want to keep three i want
+order if i want to keep three i want this order
+this order and you just notice this works and it's
+and you just notice this works and it's solving a puzzle again and you get this
+solving a puzzle again and you get this code this we've seen before
+code this we've seen before this is the new code this is just that
+this is the new code this is just that thing i just showed on the previous
+thing i just showed on the previous slide that remaps indexes
+slide that remaps indexes and that's how we do front to back depth
+and that's how we do front to back depth first
+first traversal that's pretty cool not much
+traversal that's pretty cool not much code
+code no branches and lots of instruction from
+no branches and lots of instruction from level parallelism so parallel
+level parallelism so parallel cpu pipes can be effective but we can
+cpu pipes can be effective but we can still make it better one way
+still make it better one way by not doing it it turns out that most
+by not doing it it turns out that most of the time
+of the time eighty percent we only have zero or one
+eighty percent we only have zero or one children and
+children and you don't need to sort if you've got
+you don't need to sort if you've got that few so it's worth the branch
+that few so it's worth the branch if we know that we have zero or one we
+if we know that we have zero or one we have a four bit mask that we know has
+have a four bit mask that we know has at most one bit set so it's going to be
+at most one bit set so it's going to be one of these five values
+one of these five values and we want to turn it into an index so
+and we want to turn it into an index so we want these values
+we want these values and another little puzzle i noticed that
+and another little puzzle i noticed that dividing by two
+dividing by two almost worked except for this guy so i
+almost worked except for this guy so i added a fudge factor to make him work
+added a fudge factor to make him work and that ends up this cheap code
+and that ends up this cheap code which you can put into c plus and it
+which you can put into c plus and it looks like this
+looks like this the leaf code is exactly the same
+now i tried precaching and it didn't help on console even though i know
+help on console even though i know better than
+better than the hardware so
+the hardware so that was sad i thought i only need one
+that was sad i thought i only need one cache line surely pre-fetching is ideal
+cache line surely pre-fetching is ideal for this but
+for this but no matter where i put it didn't help
+no matter where i put it didn't help so how do we batch leaves we just like i
+so how do we batch leaves we just like i said we append to fifo q and up to it
+said we append to fifo q and up to it when it's full enough
+when it's full enough it turned out it was faster if we always
+it turned out it was faster if we always traced uh rays right away against
+traced uh rays right away against triangles
+triangles um but and it's also useful to always
+um but and it's also useful to always test them right away if you're debugging
+test them right away if you're debugging it
+it so you see where things came from
+so you see where things came from otherwise we
+otherwise we drain a cue when it gets too full and
+drain a cue when it gets too full and this helps branch
+this helps branch prediction in code cache so now we need
+prediction in code cache so now we need to do triangle collision
+to do triangle collision some more math um here's an efficient
+some more math um here's an efficient test by these guys whose names are cool
+and there's one problem with it it can have cracks if you look at this a
+can have cracks if you look at this a in vertex a is treated differently than
+in vertex a is treated differently than vertexes b
+vertexes b and c and that means that the order of
+and c and that means that the order of vertices can affect the results of any
+vertices can affect the results of any edge test
+edge test whether or not it exactly passes an edge
+whether or not it exactly passes an edge test or not
+test or not so if you get really unlucky you can
+so if you get really unlucky you can have a shared edge between two triangles
+have a shared edge between two triangles with no cracks
+with no cracks but because of the order the floating
+but because of the order the floating point math ends up putting a tiny hole
+point math ends up putting a tiny hole in between those two edges
+in between those two edges and something can go through it and it's
+and something can go through it and it's going to be an extremely rare bug that
+going to be an extremely rare bug that you'll
+you'll chalk up to mysteries so it's better to
+chalk up to mysteries so it's better to notice it when you read code because
+notice it when you read code because you'll never find it any other way
+you'll never find it any other way so i did something else that doesn't
+so i did something else that doesn't have cracks
+have cracks i create a plane that goes through the
+i create a plane that goes through the ray origin and each edge
+ray origin and each edge three points defines in plane
+three points defines in plane and the ray hits the triangle if and
+and the ray hits the triangle if and only if it's on the same side of all
+only if it's on the same side of all three planes
+three planes and we still have to see if it hits in
+and we still have to see if it hits in the right distance range
+the right distance range so i try to do a perspective sketch
+so i try to do a perspective sketch pretend it's 3d
+pretend it's 3d but i don't know if this ray hits or not
+but i don't know if this ray hits or not based on the sketch
+based on the sketch it's easier to see if you move the
+it's easier to see if you move the camera to the origin so that the planes
+camera to the origin so that the planes now go through the camera and they
+now go through the camera and they become lines
+become lines so here's a ray that misses here's one
+so here's a ray that misses here's one that hits you can see this one's
+that hits you can see this one's on the same side of all of these we
+on the same side of all of these we don't know if it's plus or minus but we
+don't know if it's plus or minus but we don't care
+don't care this is on a different side of this edge
+this is on a different side of this edge than these two so it misses
+and then this has no cracks even with floating point math
+floating point math independent of vertex order and when
+independent of vertex order and when done in cmd it's roughly the same cost
+and how you treat plus and minus depends whether you
+whether you hit both front and back faces just front
+hit both front and back faces just front faces or just back faces
+faces or just back faces and whether plus or minus this front or
+and whether plus or minus this front or back depends on your winding order
+back depends on your winding order okay so here's that math it's just
+okay so here's that math it's just you make the plane and you dot product
+you make the plane and you dot product with it
+with it pretty boring this doesn't do the test
+pretty boring this doesn't do the test for the distance but we saw that earlier
+for the distance but we saw that earlier it's time for capsules the capsule is
+it's time for capsules the capsule is split into three features
+split into three features two spheres and a cylinder a triangle
+two spheres and a cylinder a triangle has eight features three vertices
+has eight features three vertices three edges two faces so
+three edges two faces so we have 24 feature pairs to test and
+we have 24 feature pairs to test and they're broken down
+they're broken down this way uh we don't test the cylinder
+this way uh we don't test the cylinder versus a face because that's a very
+versus a face because that's a very rare case that can only happen if you
+rare case that can only happen if you start intersecting and
+start intersecting and only if your spheres on the top and
+only if your spheres on the top and bottom don't
+bottom don't overlap at all so that there has to be a
+overlap at all so that there has to be a gap between your two spheres for this
+gap between your two spheres for this case to ever matter
+which means that your the height of your cylinder has to be bigger than the
+cylinder has to be bigger than the diameter
+anyway we don't want to test all pairs um if we did this in the naive simply
+um if we did this in the naive simply way since if you
+way since if you rounded these up to multiples of four
+rounded these up to multiples of four you would end up with seven
+you would end up with seven simply tests with 28 results and 20
+simply tests with 28 results and 20 of them would be useless to you
+and it's often easy to see that you don't need to do all the tests
+don't need to do all the tests so we'd like to do that so what we'll do
+so we'd like to do that so what we'll do is we'll quickly call some collision
+is we'll quickly call some collision pairs
+pairs and put the ones we keep into type
+and put the ones we keep into type specific cues for like
+specific cues for like sphere versus vertex cylinder versus
+sphere versus vertex cylinder versus edge and so on
+edge and so on and we'll train cues when they get full
+and we'll train cues when they get full and this does automatic vectorization
+and this does automatic vectorization for cmd
+for cmd at runtime and it is perfectly good for
+at runtime and it is perfectly good for eight-way cmd in the future
+eight-way cmd in the future and is as good as you can get
+and is as good as you can get so how do we do the quick calling we'll
+so how do we do the quick calling we'll do an orthographic projection
+do an orthographic projection in the direction that the ray is moving
+in the direction that the ray is moving so you're looking along the ray
+so you're looking along the ray direction
+direction and so that means the swept carry from
+and so that means the swept carry from your perspective appears
+your perspective appears perfectly stationary and so instead of
+perfectly stationary and so instead of doing a 3d swept test you can do a 2d
+doing a 3d swept test you can do a 2d intersection test so here's a picture
+intersection test so here's a picture that's a capsule that's a triangle
+that's a capsule that's a triangle here's the capsule broken into parts
+here's the capsule broken into parts and then what we're going to do is we're
+and then what we're going to do is we're going to take the center of the two
+going to take the center of the two spheres
+spheres and compare it with the infinite
+and compare it with the infinite extensions of each edge
+extensions of each edge and we're going to take the radius of
+and we're going to take the radius of the spear sphere and move it to
+the spear sphere and move it to a band around each edge and that gives
+a band around each edge and that gives you this
+you this diagram and then we're going to test the
+diagram and then we're going to test the sphere's origins how far it is from each
+sphere's origins how far it is from each edge
+edge that tells us is it on which side of
+that tells us is it on which side of this edge
+this edge and we can do a radius check to see is
+and we can do a radius check to see is it in this band
+it in this band so a sphere versus edge test is needed
+so a sphere versus edge test is needed as if you're inside this box
+as if you're inside this box we see if you're inside this infinite
+we see if you're inside this infinite band if you're inside these two edges
+band if you're inside these two edges you need to do it or if you're inside
+you need to do it or if you're inside these bands you need to do it and so
+these bands you need to do it and so that's just a few
+that's just a few tests vertices are similar they're
+tests vertices are similar they're if you're inside this band and this band
+if you're inside this band and this band you need to test this vertex
+you need to test this vertex we don't need to test any of our six
+we don't need to test any of our six vertices
+vertices um the face is if you're all on the same
+um the face is if you're all on the same side of lines we don't need to test the
+side of lines we don't need to test the face
+face with either cylinder is exactly the same
+with either cylinder is exactly the same except
+except instead of using the radius you project
+instead of using the radius you project the sphere
+the sphere perpendicular to the edge which is
+perpendicular to the edge which is pretty cheap
+pretty cheap so you get a different radius for each
+so you get a different radius for each band for the cylinder
+so our quick call eliminated 20 out of 22 tests that's pretty good
+22 tests that's pretty good we only kept two tests so how do we do
+we only kept two tests so how do we do that in code well first we need to find
+that in code well first we need to find the distance to the edge
+the distance to the edge so we described it working in 2d they're
+so we described it working in 2d they're finding
+finding the projection of 3d space if you
+the projection of 3d space if you extend those 2d edges into 3d planes
+extend those 2d edges into 3d planes that go through the view direction
+that go through the view direction the 2d distance to the edge is the 3d
+the 2d distance to the edge is the 3d plane distance so we can
+plane distance so we can skip the projection and just stay in 3d
+skip the projection and just stay in 3d to get the normal you just do this cross
+to get the normal you just do this cross product and to find the distance you
+product and to find the distance you just do this dot product so it's pretty
+just do this dot product so it's pretty cheap to find how far you are from an
+cheap to find how far you are from an edge
+edge and then you can do three to four edges
+and then you can do three to four edges at once than some d so you can do
+at once than some d so you can do triangles and quads which is what we do
+triangles and quads which is what we do and it all ends up being roughly
+and it all ends up being roughly equivalent to four dot products
+equivalent to four dot products and you usually need that triple product
+and you usually need that triple product anyway so you can save the results
+anyway so you can save the results when you batch up the features and use
+when you batch up the features and use them later
+them later so we still need to test the distance to
+so we still need to test the distance to the radius
+the radius it turns out we don't need to know if
+it turns out we don't need to know if positive or negative distances inside or
+positive or negative distances inside or outside
+outside for edges we just test is the magnitude
+for edges we just test is the magnitude of distance less than radius
+of distance less than radius vertices we test if both edges are flags
+vertices we test if both edges are flags in for face we just see if all
+in for face we just see if all have the same sign
+one gotcha is the normal is not normalized and you don't want to
+normalized and you don't want to normalize if you don't have to
+normalize if you don't have to so you basically need to square both
+so you basically need to square both sides to avoid a square root
+sides to avoid a square root move the magnitude of the normal to the
+move the magnitude of the normal to the right to avoid a divide
+right to avoid a divide and it's all faster gives you the same
+and it's all faster gives you the same results
+results almost there so
+almost there so here's some quick notation b means
+here's some quick notation b means you're in an edges band
+you're in an edges band r b means you're in the band of the edge
+r b means you're in the band of the edge rotated right
+rotated right lb means and left edges band so this is
+lb means and left edges band so this is for a triangle a three bit value
+for a triangle a three bit value this is that three bit values rotated
+this is that three bit values rotated right rotated left
+right rotated left and then s is just the edge assigned bit
+and then s is just the edge assigned bit but again we don't know
+but again we don't know if plus or minus is in or out and so
+if plus or minus is in or out and so here's kind of a sketch showing here's
+here's kind of a sketch showing here's the band we're interested in
+the band we're interested in here's left here's right sign bit says
+here's left here's right sign bit says which side of this edge
+which side of this edge and i've just shown bit zero but we have
+and i've just shown bit zero but we have it rotated for bits one and two also
+it rotated for bits one and two also and we calculate all at once so for an
+and we calculate all at once so for an edge to hit
+edge to hit you need to be in its band and either
+you need to be in its band and either between its neighbor bands
+between its neighbor bands neighbor edges which is this test or
+neighbor edges which is this test or inside the neighbor's band
+inside the neighbor's band which is that test so it's just this bit
+which is that test so it's just this bit math and
+math and this is cool this only depends on
+this is cool this only depends on three or four s bits and this only
+three or four s bits and this only depends on three or four bp
+depends on three or four bp b bits so they can be put into a micro
+b bits so they can be put into a micro lut which is a single integer
+lut which is a single integer literal it's a lot so small you can hold
+literal it's a lot so small you can hold it in a constant integer
+it in a constant integer so for three we have three bits
+so for three we have three bits we want to get a three bit mask for each
+we want to get a three bit mask for each of them so we only need 24 bits for a
+of them so we only need 24 bits for a lut
+lut so here's the case where octal is
+so here's the case where octal is actually useful you could show
+actually useful you could show each entry in octal using only three
+each entry in octal using only three bits
+bits and if you work out the truth table
+and if you work out the truth table before rotating and oring and all this
+before rotating and oring and all this you get these magic numbers and i'm sure
+you get these magic numbers and i'm sure you can do that
+you can do that and for quads you get these magic
+and for quads you get these magic numbers and it's so fun to do
+so for a face to hit all edges must have the same sign
+the same sign we can do that with a micro lut too we
+we can do that with a micro lut too we just use it with the most significant
+just use it with the most significant bit set and the least significant bit
+bit set and the least significant bit set
+to get the left rotated band we need to rotate three bits
+rotate three bits by one bit there's no instruction for
+by one bit there's no instruction for that but we can use this to do it we can
+that but we can use this to do it we can multiply by nine and shift right two
+multiply by nine and shift right two multiplying by nine makes two copies of
+multiplying by nine makes two copies of the bits
+the bits and then shifting right two keeps just
+and then shifting right two keeps just these three so this is
+these three so this is actually rotated this also keeps this
+actually rotated this also keeps this bit but we don't care
+bit but we don't care we won't use it it becomes this code you
+we won't use it it becomes this code you can look at later
+it turns out we can call even more tests with precalculation
+with precalculation a shared edge you only need to test it
+a shared edge you only need to test it one way you don't have to test it for
+one way you don't have to test it for both triangles
+both triangles and you also don't need to test an edge
+and you also don't need to test an edge that's in a valley
+that's in a valley but you do need to test edge both edges
+but you do need to test edge both edges when it's coplanar because
+when it's coplanar because or at least you need to test one edge
+or at least you need to test one edge when they're coplanar because
+when they're coplanar because otherwise each triangle may think the
+otherwise each triangle may think the other will catch the collision and
+other will catch the collision and you'll fall through the floor
+you'll fall through the floor mysteriously once ever
+so we just store a mask with each poly and do a bit wise and
+and do a bit wise and and we call 60 of our edge test which is
+and we call 60 of our edge test which is great
+now can we do the same thing for vertices well we need to
+vertices well we need to do a vertex if either edge is ever
+do a vertex if either edge is ever tested so
+tested so we have to keep a vertex if either of
+we have to keep a vertex if either of its neighbors edges is kept
+its neighbors edges is kept it calls about 15 to 35 percent not as
+it calls about 15 to 35 percent not as good but it's something
+good but it's something we tend to hit way fewer vertices than
+we tend to hit way fewer vertices than edges anyway so
+edges anyway so it's okay that it's not as accurate and
+it's okay that it's not as accurate and to get more accurate we need more bits
+to get more accurate we need more bits stored per triangle
+stored per triangle and we'd rather use those bits for other
+and we'd rather use those bits for other stuff
+stuff so last thing to do is cue the collision
+so last thing to do is cue the collision tests
+tests we want to compact the fields and cmd
+we want to compact the fields and cmd registers to tightly pack the channels
+registers to tightly pack the channels whose bits are set and the mask we just
+whose bits are set and the mask we just found so
+found so we found we want this one and this one
+we found we want this one and this one so we want x1 and x3 to pack here
+so we want x1 and x3 to pack here i don't really care what's here and we
+i don't really care what's here and we grow the count by the number of set bits
+grow the count by the number of set bits in this case too
+in this case too we still store the whole thing there is
+we still store the whole thing there is no good option in sse
+no good option in sse but some supplemental cmd extensions
+but some supplemental cmd extensions three finally added something usable
+three finally added something usable this shuffle that takes a 16 byte
+this shuffle that takes a 16 byte shuffle pattern that says where each
+shuffle pattern that says where each byte goes
+byte goes it's something but yeah so
+it's something but yeah so we'll end up with this code for each
+we'll end up with this code for each field that we're putting in our
+field that we're putting in our destructive aways to compile to collide
+destructive aways to compile to collide against
+against so this is how we add cue we still need
+so this is how we add cue we still need to find the pattern
+to find the pattern so we need to get it out of a bit mask
+it's too big for a microlut so we need to solve a puzzle basically we need this
+to solve a puzzle basically we need this pattern one zero one zero stored in an
+pattern one zero one zero stored in an integer register
+integer register to get into this byte pattern stored in
+to get into this byte pattern stored in an sse register
+an sse register and note that this one corresponds to
+and note that this one corresponds to four five six seven
+four five six seven because we have to say where each of the
+because we have to say where each of the four bytes in our four byte value goes
+so we want four destination indexes expanded from our bit mask in the range
+expanded from our bit mask in the range zero to three
+zero to three so we basically end up doing a micro lut
+so we basically end up doing a micro lut for each index so we have four microlets
+for each index so we have four microlets instead of one
+instead of one and this code does that and
+and this code does that and according to agner fog's timings this
+according to agner fog's timings this should be about 23 cycles on jaguar
+should be about 23 cycles on jaguar which is about a quarter of the cost of
+which is about a quarter of the cost of a cash miss
+a cash miss but to be honest we just pay for the
+but to be honest we just pay for the cash miss and do it the simple look-up
+cash miss and do it the simple look-up table way
+table way okay the conclusion we got there
+okay the conclusion we got there um takeaways when you're doing your aabb
+um takeaways when you're doing your aabb trees consider big versus little splits
+trees consider big versus little splits and you can if you have a four-way tree
+and you can if you have a four-way tree you can merge two half-empty leaves to
+you can merge two half-empty leaves to save space
+save space um it's okay to write garbage data if
+um it's okay to write garbage data if you don't ever read it micro luts are
+you don't ever read it micro luts are really awesome
+really awesome they fit in the code cache so you don't
+they fit in the code cache so you don't get any cache misses they're
+get any cache misses they're really pretty much perfectly prefetched
+really pretty much perfectly prefetched and they're super fast
+and they're super fast masks and bit tricks are great for
+masks and bit tricks are great for branchless code which are good for
+branchless code which are good for performance
+performance divide by zero can be your friend it's
+divide by zero can be your friend it's not always bad
+not always bad know your edge case behavior and try to
+know your edge case behavior and try to make your typical case work for edge
+make your typical case work for edge cases
+cases and quick coal plus automatic soa
+and quick coal plus automatic soa batching is great for sse and avx and
+batching is great for sse and avx and like i said at the beginning it made our
+like i said at the beginning it made our collision code twice as fast even though
+collision code twice as fast even though it was doing more work
+it was doing more work so a special thanks to chris butcher for
+so a special thanks to chris butcher for his help and for the titanfall artist
+his help and for the titanfall artist for all the pretty pictures they've used
+for all the pretty pictures they've used in the background
+in the background and here's some references that's it
+and here's some references that's it any questions if you've got questions
+any questions if you've got questions please use the microphones that are set
+please use the microphones that are set up
+up there and there
+just a quick question you used pop count in a number of your slides
+in a number of your slides is that a concern on the low end pcs or
+is that a concern on the low end pcs or um
+um when i looked i couldn't find any cpus
+when i looked i couldn't find any cpus that had
+that had ssse3 and pop count or and not
+ssse3 and pop count or and not pop count so yeah
+pop count so yeah good question so he asked if any cpus
+good question so he asked if any cpus had ssse
+had ssse or any cpus we cared about didn't have
+or any cpus we cared about didn't have the popcorn instruction or
+the popcorn instruction or you if you didn't hear it anything else
+all right thank you all for coming and remember to fill out your views

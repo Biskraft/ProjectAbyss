@@ -1,0 +1,1271 @@
+[Music] [Applause]
+[Applause] good morning and welcome to blending
+good morning and welcome to blending autonomy and control creating NPCs for
+autonomy and control creating NPCs for Tom Clancy's the division my name is
+Tom Clancy's the division my name is true Rutner and I'm a game designer at
+true Rutner and I'm a game designer at massive entertainment which is a Ubisoft
+massive entertainment which is a Ubisoft studio and I designed and implemented
+studio and I designed and implemented the behaviors for mostly combat NPCs in
+the behaviors for mostly combat NPCs in the division I'm here with Phil Dunstan
+the division I'm here with Phil Dunstan senior AI programmer and will be sharing
+senior AI programmer and will be sharing this talk in the first half I'm going to
+this talk in the first half I'm going to be discussing some of the high-level
+be discussing some of the high-level behavioral intentions for our NPCs and
+behavioral intentions for our NPCs and kind of the design philosophy behind
+kind of the design philosophy behind them and then the second half Philips
+them and then the second half Philips going to talk about more the low-level
+going to talk about more the low-level behavioral systems and the scripted
+behavioral systems and the scripted control that we gave to level design
+so we're going to start with just a brief overview of the division and then
+brief overview of the division and then we're going to also give a brief
+we're going to also give a brief overview of the combat NPC's in the
+overview of the combat NPC's in the division then we're going to move on to
+division then we're going to move on to the design philosophy kind of what drove
+the design philosophy kind of what drove our decisions behind making the NPC's
+our decisions behind making the NPC's and then we'll briefly explore the
+and then we'll briefly explore the different archetypes and factions then
+different archetypes and factions then we're going to move on to what I think
+we're going to move on to what I think is a pretty important topic which is
+is a pretty important topic which is challenge scaling before finally
+challenge scaling before finally concluding the first half with the
+concluding the first half with the structure of the behavior tree for those
+structure of the behavior tree for those of you who aren't already aware Tom
+of you who aren't already aware Tom Clancy's the division is an online and
+Clancy's the division is an online and multiplayer open-world shooter RPG we
+multiplayer open-world shooter RPG we just released on March 8th since we're
+just released on March 8th since we're specifically going to be looking at NPCs
+specifically going to be looking at NPCs though here's a brief video of the
+though here's a brief video of the different factions in our game
+there should be some audio yeah it's plugged in
+good to go all right sorry about that we'll continue it's a bit loud good turn
+we'll continue it's a bit loud good turn yep if you guys are good to go okay
+yep if you guys are good to go okay great so here's the video of the
+great so here's the video of the affections take to our city started to
+affections take to our city started to collapse the dark side of humanity to
+collapse the dark side of humanity to control the streets
+this city fell apart it's crazy out here every man for himself
+survival of the fittest you gotta take what you need in this world
+what you need in this world this world is our playground now that no
+this world is our playground now that no one's here to stop us
+we got out of Riker's jail and we ain't ever going back in that
+and we ain't ever going back in that cage it's all ours now we're the new
+cage it's all ours now we're the new kings of these streets
+kings of these streets [Music]
+these streets must be cleansed save our city we must burn away this disease each
+city we must burn away this disease each trace of it
+freedom is not a right Liberty is not a given this city needs an iron fist to
+given this city needs an iron fist to restore order there shall be no
+restore order there shall be no resistance
+it is the only solution
+this is not our solution our mission is to save what remains
+to save what's left of our city
+[Music]
+we are the division
+so the division features 36 36 I'm sorry different unique combat AI that we split
+different unique combat AI that we split into 11 different archetypes we put
+into 11 different archetypes we put those NPCs into five different enemy
+those NPCs into five different enemy factions and we do have one friendly
+factions and we do have one friendly combat faction will briefly mention it
+combat faction will briefly mention it but we won't really talk about it much
+but we won't really talk about it much today our ABCs feature a suite of
+today our ABCs feature a suite of different features such as a detection
+different features such as a detection system a threat system scripted controls
+system a threat system scripted controls that level design can use to control our
+that level design can use to control our NPCs reaction to the player's vast array
+NPCs reaction to the player's vast array of abilities dynamic objective handling
+of abilities dynamic objective handling reactions to civilians and wildlife and
+reactions to civilians and wildlife and various idle activities the majority of
+various idle activities the majority of which Phillip will talk about in more
+which Phillip will talk about in more detail in the second half our NPCs were
+detail in the second half our NPCs were both used in what we call the open world
+both used in what we call the open world which is a less scripted and more
+which is a less scripted and more systemic gameplay space and a more
+systemic gameplay space and a more highly scripted story missions which are
+highly scripted story missions which are a bit more like kind of your typical
+a bit more like kind of your typical third-person shooter missions as I kind
+third-person shooter missions as I kind of alluded to earlier we used a behavior
+of alluded to earlier we used a behavior tree architecture in our snowdrop engine
+tree architecture in our snowdrop engine which is a brand new proprietary engine
+which is a brand new proprietary engine developed by massive one other thing
+developed by massive one other thing before moving on I think it's just
+before moving on I think it's just important to note that our AI was
+important to note that our AI was completly server side next we'll look at
+completly server side next we'll look at the four design pillars that we had for
+the four design pillars that we had for creating our combat NPCs the first
+creating our combat NPCs the first pillar is that our NPCs had to support
+pillar is that our NPCs had to support the idea that our game was both an RPG
+the idea that our game was both an RPG and a shooter so this meant that we
+and a shooter so this meant that we needed to allow the player to play in
+needed to allow the player to play in different ways and use different roles
+different ways and use different roles so think like disruptor tank sniper
+so think like disruptor tank sniper medic and others this was especially
+medic and others this was especially important because we were a co-op game
+important because we were a co-op game and we wanted players to combine their
+and we wanted players to combine their skills to synergize with one another and
+skills to synergize with one another and that also meant that they needed a
+that also meant that they needed a reason to do so on top of that we
+reason to do so on top of that we incorporated tip
+incorporated tip RPG systems like agro and crowd control
+RPG systems like agro and crowd control that aren't always seen in shooters
+that aren't always seen in shooters another thing we wanted to do is we
+another thing we wanted to do is we wanted to incentivize the pre combat
+wanted to incentivize the pre combat setup something that we coined as the
+setup something that we coined as the investigation phase internally which
+investigation phase internally which basically gave the player the
+basically gave the player the opportunity to scope out and plan for a
+opportunity to scope out and plan for a tactical attack and finally of course
+tactical attack and finally of course because we were an RPG and a shooter we
+because we were an RPG and a shooter we wanted to reward the twitch gameplay of
+wanted to reward the twitch gameplay of a shooter so that was the basic timing
+a shooter so that was the basic timing and positioning and dexterity challenges
+and positioning and dexterity challenges that provides the next pillar was that
+that provides the next pillar was that it was important that our NPCs fit into
+it was important that our NPCs fit into a realistic setting the Tom Clancy IP is
+a realistic setting the Tom Clancy IP is of course known for its realism and its
+of course known for its realism and its highly detailed universe
+highly detailed universe so our NPCs needed to have some kind of
+so our NPCs needed to have some kind of realism to them so they were constrained
+realism to them so they were constrained by that to some extent so it meant we
+by that to some extent so it meant we couldn't rely on magic and sci-fi even
+couldn't rely on magic and sci-fi even though we were an RPG no at first this
+though we were an RPG no at first this kind of seemed like a bit of a
+kind of seemed like a bit of a limitation and it was a challenge but
+limitation and it was a challenge but later we found that the constraints and
+later we found that the constraints and the guidelines that provided actually
+the guidelines that provided actually empowered us way more than if we had
+empowered us way more than if we had kind of a blank slate to work with the
+kind of a blank slate to work with the player could go basically anywhere in
+player could go basically anywhere in the world in our game since we were
+the world in our game since we were open-world so we had a near one-to-one
+open-world so we had a near one-to-one recreation of midtown Manhattan so that
+recreation of midtown Manhattan so that also meant that we needed to develop
+also meant that we needed to develop ways of encouraging the player to come
+ways of encouraging the player to come back to locations when they've powered
+back to locations when they've powered or leveled up although we mostly solved
+or leveled up although we mostly solved that through enemy level scaling most
+that through enemy level scaling most importantly though even though we were
+importantly though even though we were in this realistic setting fun was still
+in this realistic setting fun was still the most important thing for NPCs our
+the most important thing for NPCs our NPCs were mainly there to drive fun for
+NPCs were mainly there to drive fun for the player so even though that some of
+the player so even though that some of their behaviors were a bit gamey we
+their behaviors were a bit gamey we decided that that was best for the game
+decided that that was best for the game overall we felt like we could push the
+overall we felt like we could push the boundary a little bit on that and like
+boundary a little bit on that and like personally I mean that's a bit hard
+personally I mean that's a bit hard right
+right working in AI because sometimes we get
+working in AI because sometimes we get our egos a little bit involved
+our egos a little bit involved especially me and you you have to
+especially me and you you have to remember like why you're making the game
+remember like why you're making the game in the first place
+our third design pillar was to create strong archetypes so this meant creating
+strong archetypes so this meant creating NPCs that fulfilled various roles that
+NPCs that fulfilled various roles that challenge the player in different ways
+challenge the player in different ways this meant encouraging the player to use
+this meant encouraging the player to use different tactics based on the enemy
+different tactics based on the enemy compositions now we created excuse me we
+compositions now we created excuse me we created NPCs that that use different
+created NPCs that that use different strategies and skills and that's
+strategies and skills and that's synergize with one another and that was
+synergize with one another and that was kind of a core part of creating combat
+kind of a core part of creating combat was to create something we called combat
+was to create something we called combat puzzles for the player and that was
+puzzles for the player and that was where we use two NPCs that worked really
+where we use two NPCs that worked really well together now this of course meant
+well together now this of course meant that we had to create really clear signs
+that we had to create really clear signs and feedback to the player and we did
+and feedback to the player and we did that through the UI color the icons in
+that through the UI color the icons in the UI the appearance of the enemies and
+the UI the appearance of the enemies and of course they're out of combat in in
+of course they're out of combat in in combat behaviors the final and most
+combat behaviors the final and most important pillar though is one of
+important pillar though is one of continual challenge
+continual challenge so our NPCs needed to provide new
+so our NPCs needed to provide new concepts and gameplay to the player over
+concepts and gameplay to the player over time because combat was such an
+time because combat was such an important part of the division so we
+important part of the division so we kind of introduced a basic roll out of
+kind of introduced a basic roll out of our NPCs and the different skills but
+our NPCs and the different skills but that also meant kind of introducing the
+that also meant kind of introducing the loop of introducing something new having
+loop of introducing something new having the player practice it then master it
+the player practice it then master it and then introduce new and more evolved
+and then introduce new and more evolved concepts
+additionally we did provide multiple difficulty levels for missions don't
+difficulty levels for missions don't necessarily need to talk about that
+necessarily need to talk about that though for the case of this talk though
+though for the case of this talk though so creating a continual challenge did
+so creating a continual challenge did pose some problems to us though in
+pose some problems to us though in development because it meant that we
+development because it meant that we needed to create a ton of different NPCs
+needed to create a ton of different NPCs so I'll discuss how we attempted to
+so I'll discuss how we attempted to solve this problem
+solve this problem a bit later in the talk
+now that we've covered the overall design philosophy let's take a quick
+design philosophy let's take a quick look at the different archetypes
+look at the different archetypes features in the division before we do
+features in the division before we do that though I think it's important to
+that though I think it's important to note the real reason why you created
+note the real reason why you created archetypes the real reason we thought it
+archetypes the real reason we thought it was important is because each archetype
+was important is because each archetype poses a different challenge and we broke
+poses a different challenge and we broke this down into six separate archetype
+this down into six separate archetype challenges the first of which is what we
+challenges the first of which is what we call target prioritization and it forces
+call target prioritization and it forces a player to deal with an immediate
+a player to deal with an immediate threat or face the consequences
+threat or face the consequences the next challenge that we identified
+the next challenge that we identified was a repositioning challenge it forced
+was a repositioning challenge it forced the player usually out of cover to a new
+the player usually out of cover to a new position to avoid a dangerous threat
+position to avoid a dangerous threat next was the minimize exposure challenge
+next was the minimize exposure challenge and this meant that the player had to
+and this meant that the player had to minimize the time that they were popped
+minimize the time that they were popped out aiming or in between covers the
+out aiming or in between covers the target or during challenge challenges
+target or during challenge challenges the player to figure out an optimal path
+the player to figure out an optimal path for defeating the enemies next was the
+for defeating the enemies next was the positioning challenge which encourages a
+positioning challenge which encourages a player to move to an advantageous
+player to move to an advantageous position now this is really different
+position now this is really different than the repositioning challenge in that
+than the repositioning challenge in that it's a very proactive action instead of
+it's a very proactive action instead of a reactive one and finally the endurance
+a reactive one and finally the endurance challenge was one where the player had
+challenge was one where the player had to spend a lot of time in order to
+to spend a lot of time in order to defeat an enemy now this is a table that
+defeat an enemy now this is a table that we gave to our level design team to
+we gave to our level design team to create interesting challenges so this
+create interesting challenges so this table is really meant to kind of show
+table is really meant to kind of show which archetypes fit really well
+which archetypes fit really well together when their skills synergized
+together when their skills synergized using the challenges that we showed in
+using the challenges that we showed in the last screen before I move on though
+the last screen before I move on though just a quick warning that the videos
+just a quick warning that the videos shown in this presentation from this
+shown in this presentation from this point on feature test maps with
+point on feature test maps with incomplete lighting and propping so you
+incomplete lighting and propping so you guys probably are all aware of this just
+guys probably are all aware of this just something to point out so down to the
+something to point out so down to the archetypes the first archetype that we
+archetypes the first archetype that we had is what we called assault and that's
+had is what we called assault and that's kind of your basic cover using grunt
+kind of your basic cover using grunt it's your basic third-person shooter
+it's your basic third-person shooter challenge but they're really there to
+challenge but they're really there to kind of balance out the fireteam
+kind of balance out the fireteam and and yeah they they were a grunt role
+and and yeah they they were a grunt role within the fireteam is what we call them
+next is the retro archetype which runs directly at the player and forces them
+directly at the player and forces them to prioritize them or face a
+to prioritize them or face a consequences they got more dangerous as
+consequences they got more dangerous as the player got closer so it was really
+the player got closer so it was really important for the player to take him out
+important for the player to take him out as quickly as possible sniper archetype
+as quickly as possible sniper archetype pretty typical sniper long range high
+pretty typical sniper long range high damage single shot very accurate they
+damage single shot very accurate they forced the player to minimize their
+forced the player to minimize their exposure so not stay up too long not
+exposure so not stay up too long not going between covers too often the
+going between covers too often the thriller archetype throws a grenade or
+thriller archetype throws a grenade or other dangerous objects to force the
+other dangerous objects to force the player usually out of cover so this is a
+player usually out of cover so this is a repositioning challenge next are the
+repositioning challenge next are the controller and turret archetypes the
+controller and turret archetypes the controller sets up and fights through a
+controller sets up and fights through a proxy generally turret and repairs it if
+proxy generally turret and repairs it if it ever gets damaged
+it ever gets damaged now the turret automatically fires at
+now the turret automatically fires at the player usually with the high rate of
+the player usually with the high rate of fire suppressing them but what this did
+fire suppressing them but what this did was this introduced an interesting
+was this introduced an interesting target ordering challenge because the
+target ordering challenge because the player could make a decision if they
+player could make a decision if they wanted to try to take out the controller
+wanted to try to take out the controller before the turret was set up where they
+before the turret was set up where they could damage the turret and lure the
+could damage the turret and lure the controller out or they could damage or
+controller out or they could damage or and kill I'm sorry the controller well
+and kill I'm sorry the controller well the turret was up and have the turret
+the turret was up and have the turret malfunction on its own next is a heavy
+malfunction on its own next is a heavy weapons archetype suppresses the player
+weapons archetype suppresses the player with a high rate of fire force the
+with a high rate of fire force the player to minimize their exposure but
+player to minimize their exposure but what's different with this and the
+what's different with this and the sniper though is they typically had kind
+sniper though is they typically had kind of a long reload time and allowed the
+of a long reload time and allowed the player to come up and kind of exploit
+player to come up and kind of exploit them the next archetype is the tank
+them the next archetype is the tank archetype which are heavy NPCs who take
+archetype which are heavy NPCs who take a lot of damage to kill but they also
+a lot of damage to kill but they also generally deal a lot of damage as well
+generally deal a lot of damage as well they have weak points on them and this
+they have weak points on them and this allows the player to position themselves
+allows the player to position themselves in a way that they can hit the weak
+in a way that they can hit the weak points and some require flanking and
+points and some require flanking and they always end up either damaging the
+they always end up either damaging the NPC by a lot or crowd controlling them
+leader archetypes affect the behaviors of other NPCs generally making them more
+of other NPCs generally making them more aggressive
+aggressive so it's advantageous for the player to
+so it's advantageous for the player to usually take them out as quickly as
+usually take them out as quickly as possible
+next is the support archetype assist teammates by healing them generally
+teammates by healing them generally think of like a medic or something like
+think of like a medic or something like that again it's a target ordering
+that again it's a target ordering challenge but medics are also really
+challenge but medics are also really defensive so the player also has to kind
+defensive so the player also has to kind of position themselves if they want to
+of position themselves if they want to take them out or lure them into a
+take them out or lure them into a wounded ally and finally we have what we
+wounded ally and finally we have what we called special and that is basically all
+called special and that is basically all NPCs that didn't fit into any of their
+NPCs that didn't fit into any of their categories now this meant that NPCs in
+categories now this meant that NPCs in this category were a bit hard to define
+this category were a bit hard to define and thus the player didn't have a lot of
+and thus the player didn't have a lot of kind of education necessarily on the
+kind of education necessarily on the specific mechanics so we primarily save
+specific mechanics so we primarily save these for endgame to kind of keep it
+these for endgame to kind of keep it interesting for the player now we're
+interesting for the player now we're going to take a look at our five enemy
+going to take a look at our five enemy factions as well as our friendly combat
+factions as well as our friendly combat faction now these are introduced in the
+faction now these are introduced in the order of which they're introduced to the
+order of which they're introduced to the player so the first faction the player
+player so the first faction the player will encounter are the rioters they
+will encounter are the rioters they present a really introductory challenge
+present a really introductory challenge to the player there are starter NPCs so
+to the player there are starter NPCs so they're really there to kind of teach
+they're really there to kind of teach the player the mechanics of the game and
+the player the mechanics of the game and really introduce them to the various
+really introduce them to the various archetypes that we have in the games
+archetypes that we have in the games so the snipers throwers with very little
+so the snipers throwers with very little distraction they're disorganized they're
+distraction they're disorganized they're unskilled they're low-tech the next
+unskilled they're low-tech the next faction the player will encounter are
+faction the player will encounter are the cleaners
+the cleaners now the cleaners present a slightly more
+now the cleaners present a slightly more advanced challenge to the player and
+advanced challenge to the player and most notably they introduce a few new
+most notably they introduce a few new archetypes of the player for the first
+archetypes of the player for the first time and that's the controller and les
+time and that's the controller and les turret archetypes and then of course the
+turret archetypes and then of course the tank archetype they're a bit more
+tank archetype they're a bit more organized and they're a bit more deadly
+organized and they're a bit more deadly than the rioters the third faction the
+than the rioters the third faction the player will encounter are the Rikers and
+player will encounter are the Rikers and the Rikers present a slightly more
+the Rikers present a slightly more advanced challenge than even the
+advanced challenge than even the cleaners and they're a bit more
+cleaners and they're a bit more coordinated so this is the first time
+coordinated so this is the first time you cook the player will kind of see
+you cook the player will kind of see coordination and
+coordination and combat the fourth faction is the last
+combat the fourth faction is the last man battalion and the last man battalion
+man battalion and the last man battalion is a militaristic faction so it fits
+is a militaristic faction so it fits kind of the clan CIP really well and it
+kind of the clan CIP really well and it provides advanced challenges to the
+provides advanced challenges to the player they're organized they're
+player they're organized they're tactical and we'll talk about some of
+tactical and we'll talk about some of the things that they do in just a bit
+the things that they do in just a bit and the last enemy faction that the
+and the last enemy faction that the player will encounter is the tier 2 of
+player will encounter is the tier 2 of the last man battalion now narrative Lee
+the last man battalion now narrative Lee they're the same as the last minute
+they're the same as the last minute battalion but they actually are gameplay
+battalion but they actually are gameplay wise a pretty separate faction they're
+wise a pretty separate faction they're intended primarily for endgame because
+intended primarily for endgame because they present such an advanced challenge
+they present such an advanced challenge to the player
+to the player we also blend our archetypes a little
+we also blend our archetypes a little bit at this point so we kind of blend
+bit at this point so we kind of blend what a controller is with a support for
+what a controller is with a support for example so we kind of changed things up
+example so we kind of changed things up a little bit for the player they're very
+a little bit for the player they're very organized they use a lot of group
+organized they use a lot of group tactics so they're really intended to be
+tactics so they're really intended to be a difficult play and last but not least
+a difficult play and last but not least is our soul friendly faction combat
+is our soul friendly faction combat faction they should say which is the
+faction they should say which is the joint task force or the JTF
+joint task force or the JTF they're pretty basic combat behavior is
+they're pretty basic combat behavior is only a single archetype and really their
+only a single archetype and really their main purpose was to be a cheerleader in
+main purpose was to be a cheerleader in the game for the player so they would
+the game for the player so they would just tear the player on in and out of
+just tear the player on in and out of combat so now that we've talked about
+combat so now that we've talked about the different archetypes and factions in
+the different archetypes and factions in the game I want to talk about the NPC
+the game I want to talk about the NPC challenge tiers which was pretty
+challenge tiers which was pretty important to our game
+it'll combine kind of these two components so to provide a continuing
+components so to provide a continuing continually involving challenge for the
+continually involving challenge for the players we took each of the five
+players we took each of the five factions and we split them up into tiers
+factions and we split them up into tiers starting with the rioters and ending
+starting with the rioters and ending with the last man battalion though we
+with the last man battalion though we had a bunch of different aspects that I
+had a bunch of different aspects that I listed there that we improved as we
+listed there that we improved as we increase the faction tier so we did this
+increase the faction tier so we did this really for two reasons like one we
+really for two reasons like one we wanted to provide a continuing evolving
+wanted to provide a continuing evolving challenge for the player which is one of
+challenge for the player which is one of the pillars I mentioned if you're a
+the pillars I mentioned if you're a number
+number but possibly the more important reason
+but possibly the more important reason to that as well or equally as important
+to that as well or equally as important is that we needed a quick and relatively
+is that we needed a quick and relatively easy way to create a lot of NPCs so we
+easy way to create a lot of NPCs so we kind of picked components that we
+kind of picked components that we thought we could tweak that would be
+thought we could tweak that would be interesting in order to provide the
+interesting in order to provide the greatest variety possible so we're going
+greatest variety possible so we're going to briefly look at each of these
+to briefly look at each of these elements and how they're scaled and
+elements and how they're scaled and we're going to start with reaction to
+we're going to start with reaction to player skills and actions so to
+player skills and actions so to efficiently scale the way that NPCs
+efficiently scale the way that NPCs reacted to the player's vast array of
+reacted to the player's vast array of abilities we created what we called
+abilities we created what we called profiles or reaction profiles now these
+profiles or reaction profiles now these profiles changed depending on the
+profiles changed depending on the faction and the role of the NPC which
+faction and the role of the NPC which I'll talk about in just a second
+I'll talk about in just a second so first is the dump profile and this is
+so first is the dump profile and this is used exclusively by the writers and it
+used exclusively by the writers and it allows the player to be a lot less
+allows the player to be a lot less careful with their abilities and how
+careful with their abilities and how they use them so the player doesn't have
+they use them so the player doesn't have to use a lot of consideration they get a
+to use a lot of consideration they get a lot of you know kind of bang for their
+lot of you know kind of bang for their buck with their skills so as an example
+buck with their skills so as an example if the player uses a seeker mind on NPC
+if the player uses a seeker mind on NPC and the seeker mine is an autonomous
+and the seeker mine is an autonomous ball shaped bomb that rolls towards an
+ball shaped bomb that rolls towards an enemy that explodes in close proximity a
+enemy that explodes in close proximity a dumb profile NPC will run away in a
+dumb profile NPC will run away in a panicked way and they're gonna run
+panicked way and they're gonna run towards an ally a very reluctant ally
+towards an ally a very reluctant ally actually and hopefully the bomb will
+actually and hopefully the bomb will explode and kill them or damage them
+explode and kill them or damage them both next is a default profile which is
+both next is a default profile which is used by the majority of our NPC's in the
+used by the majority of our NPC's in the game it's slightly better than the dumb
+game it's slightly better than the dumb profile in terms of the reactivity in
+profile in terms of the reactivity in the way that the NPC avoids the players
+the way that the NPC avoids the players abilities but it's still not very
+abilities but it's still not very effective so in the example of the
+effective so in the example of the seeker mine instead of running towards
+seeker mine instead of running towards an ally the NPC just runs away from the
+an ally the NPC just runs away from the seeker mine in a panicked way the next
+seeker mine in a panicked way the next profile is the elite profile and the
+profile is the elite profile and the elite profile is only used by the tier
+elite profile is only used by the tier two of the last man battalion
+two of the last man battalion and elite role NPCs now this profile
+and elite role NPCs now this profile actually allows the NPCs to counter some
+actually allows the NPCs to counter some of the player skills so if we looked at
+of the player skills so if we looked at the secret mine example again an NPC
+the secret mine example again an NPC targeted by that will roll out of the
+targeted by that will roll out of the explosion
+next is the tech profile and the tech profile is only used by it's kind of
+profile is only used by it's kind of rare so it's only used by a few NPC's in
+rare so it's only used by a few NPC's in the game but it allows NPCs to counter
+the game but it allows NPCs to counter or even hack some of the players skills
+or even hack some of the players skills again to use the secret mine as an
+again to use the secret mine as an example if the player deploys it towards
+example if the player deploys it towards them they will hack it send it right
+them they will hack it send it right back to the player and the players won't
+back to the player and the players won't seek your mind will blow up in their
+seek your mind will blow up in their face and the final two profiles are the
+face and the final two profiles are the heavy and the turret profiles which are
+heavy and the turret profiles which are used by the tank and turret profiles
+used by the tank and turret profiles respectively so heavy profile the NPC
+respectively so heavy profile the NPC doesn't usually react to a lot of things
+doesn't usually react to a lot of things because they're kind of big and heavy
+because they're kind of big and heavy but they do have a couple few unique in
+but they do have a couple few unique in ways that they counter skills as well
+ways that they counter skills as well and finally to use the secret mind
+and finally to use the secret mind example the NPC will actually kick the
+example the NPC will actually kick the seeker mind if it gets close to them and
+seeker mind if it gets close to them and then have it destroyed so our next
+then have it destroyed so our next difficulty modifier that we used was
+difficulty modifier that we used was movement speed and style so we increase
+movement speed and style so we increase the movement speed basically of NPCs as
+the movement speed basically of NPCs as we improve the faction tier however we
+we improve the faction tier however we only limit this to the strafe speed of
+only limit this to the strafe speed of the NPC's and the rush speed of rushers
+the NPC's and the rush speed of rushers now we primarily did this for a kind of
+now we primarily did this for a kind of technical and production related reasons
+technical and production related reasons but we actually thought it would ended
+but we actually thought it would ended up being pretty sufficient so some NPCs
+up being pretty sufficient so some NPCs actually also had some kind of panicked
+actually also had some kind of panicked movement styles specifically in the
+movement styles specifically in the lower tiers and then as we got up into
+lower tiers and then as we got up into the higher tiers they used more composed
+the higher tiers they used more composed movement styles
+movement styles additionally we had two different
+additionally we had two different overall cover movement styles so when
+overall cover movement styles so when NPCs were moving to cover the first one
+NPCs were moving to cover the first one was what we called mixed movement where
+was what we called mixed movement where an NPC would sprint to a location stop
+an NPC would sprint to a location stop shoot and then either run into cover or
+shoot and then either run into cover or strafe and shoot and took
+strafe and shoot and took very short distance the other option was
+very short distance the other option was called full strafe where the NPC would
+called full strafe where the NPC would strafe into a cover while shooting the
+strafe into a cover while shooting the entire way now a faction could have one
+entire way now a faction could have one of these two profiles so we made it
+of these two profiles so we made it pretty easy
+the next modifier we had was the group behavior modifier which we have split
+behavior modifier which we have split into two groups which again the faction
+into two groups which again the faction got one of the first was what we call
+got one of the first was what we call disorganized which is where NPCs didn't
+disorganized which is where NPCs didn't coordinate their movement they didn't
+coordinate their movement they didn't communicate to each other so they didn't
+communicate to each other so they didn't provide cover fire and then we had
+provide cover fire and then we had organized and organizes where the NPC's
+organized and organizes where the NPC's did provide cover fire fire for each
+did provide cover fire fire for each other they did coordinate their movement
+other they did coordinate their movement and they also actively attempted to
+and they also actively attempted to swarm and surround the player the next
+swarm and surround the player the next modifier was cover usage so we split
+modifier was cover usage so we split this into two major groups one of which
+this into two major groups one of which was assigned each faction the first was
+was assigned each faction the first was inconsistent where MPC's would
+inconsistent where MPC's would occasionally wander out of cover and
+occasionally wander out of cover and start shooting really aggressively at
+start shooting really aggressively at the player by contrast the consistent
+the player by contrast the consistent one meant that NPCs always stayed in
+one meant that NPCs always stayed in cover and if they ever found themselves
+cover and if they ever found themselves out of cover for some reason they would
+out of cover for some reason they would attempt to get back in immediately
+though one of the more important ones was skill usage so we scaled skill usage
+was skill usage so we scaled skill usage not only in terms of the frequency in
+not only in terms of the frequency in which NPCs use skills and you know like
+which NPCs use skills and you know like the speed and the duration and things
+the speed and the duration and things like that but we also ended up swapping
+like that but we also ended up swapping out entire skills so as an example let's
+out entire skills so as an example let's look at the thrower archetype so the
+look at the thrower archetype so the thrower archetype starts off in the
+thrower archetype starts off in the lowest faction the rioters with tear gas
+lowest faction the rioters with tear gas grenade which is non-lethal provides a
+grenade which is non-lethal provides a satisfactory the player it's not
+satisfactory the player it's not particularly dangerous but if there are
+particularly dangerous but if there are other NPCs around it can be a little bit
+other NPCs around it can be a little bit dangerous than the player so they still
+dangerous than the player so they still want to avoid it next as we move up into
+want to avoid it next as we move up into the cleaners faction we swap that out
+the cleaners faction we swap that out with an incendiary bomb
+with an incendiary bomb it's basically the same thing as a tear
+it's basically the same thing as a tear gas grenade except it does have damage
+gas grenade except it does have damage over time included after that we improve
+over time included after that we improve with the Rikers in the Rikers we swap
+with the Rikers in the Rikers we swap out the incendiary bomb with a frag
+out the incendiary bomb with a frag grenade and the frag grenade deals quite
+grenade and the frag grenade deals quite a lot of damage and it has a shorter
+a lot of damage and it has a shorter fuse and finally the last kind of
+fuse and finally the last kind of evolution of the thrower is the last man
+evolution of the thrower is the last man battalion where we actually swap out the
+battalion where we actually swap out the frag grenade with a grenade launcher
+frag grenade with a grenade launcher that shoots three consecutive grenades
+that shoots three consecutive grenades that explode an impact so hopefully you
+that explode an impact so hopefully you can kind of see a progression of
+can kind of see a progression of challenge there for the player and
+challenge there for the player and finally it I think it's worth mentioning
+finally it I think it's worth mentioning that we did a little bit of Health kind
+that we did a little bit of Health kind of stagger or suppression resistance and
+of stagger or suppression resistance and damage and accuracy improvements with
+damage and accuracy improvements with faction tear we tried to keep this as
+faction tear we tried to keep this as minimal as possible because we found
+minimal as possible because we found that all the other things that we do
+that all the other things that we do like behavior I'm sorry the players
+like behavior I'm sorry the players respond to a lot better
+respond to a lot better so is bless about numbers and more about
+so is bless about numbers and more about behavioral changes so I'm going to show
+behavioral changes so I'm going to show a video about or that compares the first
+a video about or that compares the first faction or game the writers with the
+faction or game the writers with the final the most advanced faction the tier
+final the most advanced faction the tier 2 the last man battalion now please note
+2 the last man battalion now please note the differences in the cover usage the
+the differences in the cover usage the skill usage the tactics and their skills
+skill usage the tactics and their skills in combat and also just a quick note
+in combat and also just a quick note just a reminder that this is a test map
+just a reminder that this is a test map and I have God mode in god mode on so I
+and I have God mode in god mode on so I don't embarrass myself by dying
+[Music]
+thank you too
+[Music]
+so we also scale difficulty and a few other ways which I'll just briefly
+other ways which I'll just briefly mention here so we scaled the challenge
+mention here so we scaled the challenge of individual NPCs by using something we
+of individual NPCs by using something we call NPC roles which is basically our
+call NPC roles which is basically our one way to change the difficulty of an
+one way to change the difficulty of an NPC without changing the faction so we
+NPC without changing the faction so we start off with the what we call veteran
+start off with the what we call veteran NPCs which is the first improved role
+NPCs which is the first improved role and they're essentially the same thing
+and they're essentially the same thing as normal NPCs except they have a little
+as normal NPCs except they have a little bit better weapons and they feature the
+bit better weapons and they feature the addition of armor so their health bar
+addition of armor so their health bar looks very visually different to the
+looks very visually different to the player the next role is elite and elite
+player the next role is elite and elite NPCs have improved weapons even more
+NPCs have improved weapons even more improved actually than the veterans but
+improved actually than the veterans but they also have special ammo types we
+they also have special ammo types we give them brand new skills and they have
+give them brand new skills and they have improved ability reactions so they start
+improved ability reactions so they start using the elite profile for example they
+using the elite profile for example they also have additional armor and even
+also have additional armor and even better aiming one quick note though and
+better aiming one quick note though and the skill and modifications we actually
+the skill and modifications we actually ended up just using the next faction up
+ended up just using the next faction up or two factions up skills generally and
+or two factions up skills generally and that was mostly just to save production
+that was mostly just to save production cost and end up working actually pretty
+cost and end up working actually pretty well I think and then finally we have
+well I think and then finally we have the named role NPCs which are basically
+the named role NPCs which are basically just reserved for bosses and there are
+just reserved for bosses and there are the elite NPCs but they just have more
+the elite NPCs but they just have more armor unique weapons and do a little bit
+armor unique weapons and do a little bit more damage so my final topic before
+more damage so my final topic before passing the stage over to Phillip is
+passing the stage over to Phillip is just to talk really briefly about the
+just to talk really briefly about the structure of her behavior tree so as I
+structure of her behavior tree so as I talked about before one of the big
+talked about before one of the big challenges we had on the project was
+challenges we had on the project was creating a huge number of NPCs and of
+creating a huge number of NPCs and of course the way we decided to do that was
+course the way we decided to do that was to make our behaviors is modular and
+to make our behaviors is modular and reusable as possible so we split them up
+reusable as possible so we split them up into the groups which you can see here
+into the groups which you can see here so I'll kind of take you through the
+so I'll kind of take you through the flow of the NPC
+flow of the NPC behavior so we first start off with what
+behavior so we first start off with what we called high priority of critical
+we called high priority of critical events and so that's basically an
+events and so that's basically an evaluation of is there a grenade nearby
+evaluation of is there a grenade nearby is there a seeker mine that's attacking
+is there a seeker mine that's attacking me or things like is there a status
+me or things like is there a status effect applied to me or is my weak point
+effect applied to me or is my weak point exploding something like that now if
+exploding something like that now if those checks fail we move on to what we
+those checks fail we move on to what we call scripted events and these are all
+call scripted events and these are all events that are level designed
+events that are level designed controlled so these are move orders and
+controlled so these are move orders and things like that so Phillip will be
+things like that so Phillip will be talking more about that in just a moment
+talking more about that in just a moment we then move on to low priority critical
+we then move on to low priority critical events and NPC objectives the NPC
+events and NPC objectives the NPC objectives being dynamic objectives at
+objectives being dynamic objectives at the NPC's do it affects their behavior
+the NPC's do it affects their behavior and movement then if that fails we move
+and movement then if that fails we move on to our detection system which is
+on to our detection system which is basically controlling whether the NPCs
+basically controlling whether the NPCs in combat after an idle investigation
+in combat after an idle investigation and so forth then we move on to some of
+and so forth then we move on to some of the very specific archetype behaviors
+the very specific archetype behaviors before finally ending up with the base
+before finally ending up with the base behavior that almost all NPCs share now
+behavior that almost all NPCs share now that limp that's that controls cover
+that limp that's that controls cover usage reloading shooting group behaviors
+usage reloading shooting group behaviors things like that you'll notice I also
+things like that you'll notice I also pointed out the faction tier modifier so
+pointed out the faction tier modifier so all those things that we listed before
+all those things that we listed before those all are listed in those blocks and
+those all are listed in those blocks and are controllable in those blocks so
+are controllable in those blocks so before digging any deeper though in the
+before digging any deeper though in the behavior tree I'm gonna pass the stage
+behavior tree I'm gonna pass the stage over to Phillip
+yeah thanks joy and good morning to everybody my name is Phillip Dunston and
+everybody my name is Phillip Dunston and I'm a senior AI programmer on Tom
+I'm a senior AI programmer on Tom Clancy's the division you've just heard
+Clancy's the division you've just heard drew talked about our design intent and
+drew talked about our design intent and philosophy for the embassies and how we
+philosophy for the embassies and how we differentiate these through their actors
+differentiate these through their actors archetypes and the factions I'm now
+archetypes and the factions I'm now going to describe some of the more
+going to describe some of the more technical elements of the NPC behaviour
+technical elements of the NPC behaviour and I'm going to begin with a brief
+and I'm going to begin with a brief description of the combat encounters
+description of the combat encounters before diving into some of the behavior
+before diving into some of the behavior systems that underlie our embassy
+systems that underlie our embassy behaviors I will then talk about how we
+behaviors I will then talk about how we give control over the embassies to level
+give control over the embassies to level designers both directly and through
+designers both directly and through these behaviors and finally I will
+these behaviors and finally I will finish with a few lessons that we
+finish with a few lessons that we learned working with cross discipline
+learned working with cross discipline teams and particularly working with
+teams and particularly working with level designers the division is a
+level designers the division is a mixture of open worlds and narrative
+mixture of open worlds and narrative driven story missions open world
+driven story missions open world consists of emergent behaviors with
+consists of emergent behaviors with roaming mobs interacting with level
+roaming mobs interacting with level designs place encounters and our story
+designs place encounters and our story missions are generally authored linear
+missions are generally authored linear series of encounters with a very
+series of encounters with a very predictable player movement across both
+predictable player movement across both open world and story missions a core
+open world and story missions a core creative intent on Tom Clancy's the
+creative intent on Tom Clancy's the division was to give the player control
+division was to give the player control over how calm bears initiated and as
+over how calm bears initiated and as drew mentioned earlier this is called
+drew mentioned earlier this is called the player investigation phase the
+the player investigation phase the player pole skill helps players identify
+player pole skill helps players identify from high-priority targets gameplay
+from high-priority targets gameplay gameplay mechanics allow players to
+gameplay mechanics allow players to coordinate targets and to synchronize
+coordinate targets and to synchronize their combat and importantly we wanted
+their combat and importantly we wanted to allow the player to be able to
+to allow the player to be able to relocate prior to the beginning of
+relocate prior to the beginning of combat for a group of players to be able
+combat for a group of players to be able to move to flanker mob of NPCs or for a
+to move to flanker mob of NPCs or for a single player to approach within an
+single player to approach within an optimal combat range based on their
+optimal combat range based on their combat loadout to make this possible we
+combat loadout to make this possible we needed a system to allow players to
+needed a system to allow players to approach the embassies without
+approach the embassies without triggering immediate combat and that was
+triggering immediate combat and that was the responsibility of our detection
+the responsibility of our detection system our detection loop is built of
+system our detection loop is built of five alert levels escalating an NPC from
+five alert levels escalating an NPC from idle up to investigation when a target
+idle up to investigation when a target is spotted
+is spotted into combat after combat if all hostiles
+into combat after combat if all hostiles are dead NPCs can transition to a combat
+are dead NPCs can transition to a combat investigation phase and from there
+investigation phase and from there either back into idle or to combat as
+either back into idle or to combat as drew mentioned spoke about earlier the
+drew mentioned spoke about earlier the alert level controls some of the
+alert level controls some of the behaviors in the base of our embassy
+behaviors in the base of our embassy behavior tree the detection system is
+behavior tree the detection system is built as built on top of the alertness
+built as built on top of the alertness value and this is affected by both audio
+value and this is affected by both audio and visual stimuli and is defined per
+and visual stimuli and is defined per archetype our audio visual stimuli are
+archetype our audio visual stimuli are governed by standard vision cones and
+governed by standard vision cones and I'm sure you familiar with these we have
+I'm sure you familiar with these we have forward and periphery cones and these
+forward and periphery cones and these are shown in yellow in a diagram in the
+are shown in yellow in a diagram in the video video playing we are in addition
+video video playing we are in addition to the standard vision cones we have
+to the standard vision cones we have instant combat cones these are shown in
+instant combat cones these are shown in orange if a target is seen within the
+orange if a target is seen within the instant combats cone combat is triggered
+instant combats cone combat is triggered immediately to prevent the player from
+immediately to prevent the player from sneaking out behind an NPC we have a
+sneaking out behind an NPC we have a 360-degree close awareness area and our
+360-degree close awareness area and our vision cones differ if an emphases in
+vision cones differ if an emphases in combat or out of combat
+combat or out of combat if the NPC is aiming or not aiming and
+if the NPC is aiming or not aiming and they are also modified by the weather
+they are also modified by the weather weather interestingly to allow the the
+weather interestingly to allow the the player to be able to sneak up on a group
+player to be able to sneak up on a group of NPCs out of combat we modify the
+of NPCs out of combat we modify the line-of-sight test slightly so that a
+line-of-sight test slightly so that a player in low cover is remains hidden
+player in low cover is remains hidden more easily our audio events contain a
+more easily our audio events contain a sound type and a radius the radius
+sound type and a radius the radius governs the maximum distance at which
+governs the maximum distance at which the sound can be heard and the sound
+the sound can be heard and the sound type specifies limits the maximum alert
+type specifies limits the maximum alert level that can be triggered by that
+level that can be triggered by that audio event and interesting in
+audio event and interesting in suspicious sound sorry can trigger well
+suspicious sound sorry can trigger well such as player vaulting of a cover can
+such as player vaulting of a cover can trigger the NPC into a investigation let
+trigger the NPC into a investigation let the robonaut into combat and at a
+the robonaut into combat and at a threatening sound such as shots fired or
+threatening sound such as shots fired or explosion can trigger combat
+in addition to creating pre combat gameplay opera up options for the player
+gameplay opera up options for the player we also want to give the player the
+we also want to give the player the ability to exploit the detection system
+ability to exploit the detection system during combat and to facilitate this the
+during combat and to facilitate this the NPC's remember the last position a
+NPC's remember the last position a hostile target was seen the last name
+hostile target was seen the last name position contains two points the aim at
+position contains two points the aim at position and the navmesh position the
+position and the navmesh position the aim at position in green provides a
+aim at position in green provides a point for the embassies to aim at so
+point for the embassies to aim at so where they no longer have line of sight
+where they no longer have line of sight to the target this is particularly
+to the target this is particularly useful where the target is in low cover
+useful where the target is in low cover we can position the aim at points
+we can position the aim at points slightly above blue cover or outside of
+slightly above blue cover or outside of corner cover so that bullets and flames
+corner cover so that bullets and flames are seen to naturally flow past the
+are seen to naturally flow past the cover edge with the occasional shot
+cover edge with the occasional shot hitting the cover the navmesh position
+hitting the cover the navmesh position allows NPCs to find positions that can
+allows NPCs to find positions that can see behind the cover either for flanking
+see behind the cover either for flanking or as part of an investigation behavior
+moving on to our position system this is core to all of our combat behaviors and
+core to all of our combat behaviors and we use this for both cover and non cover
+we use this for both cover and non cover position queries we don't use any local
+position queries we don't use any local steering on the division so we use this
+steering on the division so we use this for nearly all of our NBC government
+for nearly all of our NBC government combat movement and some of our out of
+combat movement and some of our out of combat movement the position system
+combat movement the position system operates on pre generated tactical
+operates on pre generated tactical positions across six square kilometers
+positions across six square kilometers of Manhattan we have almost two and a
+of Manhattan we have almost two and a half million tactical tactical positions
+half million tactical tactical positions both cover and non cover our cover base
+both cover and non cover our cover base positions conclude information about the
+positions conclude information about the cover depth the cover height and the
+cover depth the cover height and the cover facing direction and I'm non cover
+cover facing direction and I'm non cover positions are generated on a rotated
+positions are generated on a rotated grid with approximately 4 meter spacing
+grid with approximately 4 meter spacing we use a rotated grid here to avoid some
+we use a rotated grid here to avoid some of the artifacts arising from the
+of the artifacts arising from the north-south and east-west orientation of
+north-south and east-west orientation of most of the buildings and streets in
+most of the buildings and streets in Manhattan as behavior to run on the
+Manhattan as behavior to run on the server these tactical positions are
+server these tactical positions are permanently resident memory to perform
+permanently resident memory to perform queries on the tactical positions we use
+queries on the tactical positions we use a single UBA position evaluator with
+a single UBA position evaluator with memory parameters affecting the scoring
+memory parameters affecting the scoring some of those parameters are shown here
+some of those parameters are shown here to make it easier for behavior authors
+to make it easier for behavior authors we expose sets of parameters through
+we expose sets of parameters through different behavior tree nodes you can
+different behavior tree nodes you can see in the screenshot here we have a
+see in the screenshot here we have a fine cover position and find uncover
+fine cover position and find uncover position nodes and these are the
+position nodes and these are the workhorse nodes of our combat behaviors
+workhorse nodes of our combat behaviors in addition you can see other types of
+in addition you can see other types of movement queries in the top right for
+movement queries in the top right for example you can see a node which allows
+example you can see a node which allows an NP speed to find a suitable place to
+an NP speed to find a suitable place to place a turret and the bottom right we
+place a turret and the bottom right we have a node for an embassy to find a
+have a node for an embassy to find a position to run away from a nearby
+position to run away from a nearby grenade we often perform multiple
+grenade we often perform multiple successive queries in behaviors with
+successive queries in behaviors with more and more permissive parameters for
+more and more permissive parameters for example we might perform a cover
+example we might perform a cover position query with an optimal range if
+position query with an optimal range if that doesn't work we'll fall back on an
+that doesn't work we'll fall back on an on cover position query with a lot with
+on cover position query with a lot with requiring line-of-sight to the tiger and
+requiring line-of-sight to the tiger and finally if both of those fail a cover or
+finally if both of those fail a cover or a non current position query without
+a non current position query without line-of-sight and we found that this
+line-of-sight and we found that this gives us better results than trying to
+gives us better results than trying to identify a single to best position in a
+identify a single to best position in a single pass it avoids the challenging
+single pass it avoids the challenging problem of having to track trying to
+problem of having to track trying to tune the different weights for the
+tune the different weights for the different parameters for the different
+different parameters for the different queries caching both navigation and
+queries caching both navigation and line-of-sight results was key to making
+line-of-sight results was key to making this work with acceptable performance in
+this work with acceptable performance in addition to combat positioning we reuse
+addition to combat positioning we reuse the technical positions and the
+the technical positions and the positioning system for investigation
+positioning system for investigation behaviors and other non-combat behaviors
+behaviors and other non-combat behaviors the example here is our scripted
+the example here is our scripted investigation behavior a group of NPCs
+investigation behavior a group of NPCs is instructed to search an area and I
+is instructed to search an area and I want to pretty write something that drew
+want to pretty write something that drew dimensions here this is a lot of the
+dimensions here this is a lot of the videos and screenshots you're seeing are
+videos and screenshots you're seeing are from are not executive of the final
+from are not executive of the final quality of the game they're taken from
+quality of the game they're taken from test levels generated in our snowdrop
+test levels generated in our snowdrop engine during development so back to the
+engine during development so back to the example the search query here is a
+example the search query here is a simple algorithm we take all of the
+simple algorithm we take all of the tactical positions within the search
+tactical positions within the search volume when we query the positions we
+volume when we query the positions we look for a position based on the
+look for a position based on the distance from the NPC and looking for
+distance from the NPC and looking for corner positive coverage positions and
+corner positive coverage positions and finally as the npcs move through
+finally as the npcs move through area we eliminate positions that have
+area we eliminate positions that have become visible to the player this is a
+become visible to the player this is a simple algorithm and it works well with
+simple algorithm and it works well with multiple aged muscle agents the division
+multiple aged muscle agents the division finally I will talk about the threat
+finally I will talk about the threat system the division is designed to be
+system the division is designed to be played co-op with up to four players and
+played co-op with up to four players and so we needed an agro staff threat system
+so we needed an agro staff threat system target threat scores are calculated from
+target threat scores are calculated from a base threat which is made of stable
+a base threat which is made of stable parameters such as whether the agent is
+parameters such as whether the agent is a player or whether they're currently
+a player or whether they're currently behind cover and did action threat which
+behind cover and did action threat which is usually a single frame event such as
+is usually a single frame event such as another target shooting or the target
+another target shooting or the target using a skill and the action threat
+using a skill and the action threat decays over time so those are our core
+decays over time so those are our core some of our core NPC behavior systems
+some of our core NPC behavior systems we're now going to take a look at how we
+we're now going to take a look at how we allow emphases levels I'm sorry to
+allow emphases levels I'm sorry to control MPC's both directly and through
+control MPC's both directly and through these systems the snowdrop engine
+these systems the snowdrop engine provides level designers with a visual
+provides level designers with a visual scripting environment if you've used
+scripting environment if you've used CryEngine or unreal before you're
+CryEngine or unreal before you're probably familiar with this tolerance
+probably familiar with this tolerance environment we provide nodes that allow
+environment we provide nodes that allow level designers to issue low-level what
+level designers to issue low-level what is - NPCs to sentient NPCs alert level
+is - NPCs to sentient NPCs alert level and to modify positioning and threat
+and to modify positioning and threat systems and we also provide a nodes to
+systems and we also provide a nodes to set high level objectives on groups of
+set high level objectives on groups of NPCs one of the first tools that we made
+NPCs one of the first tools that we made available to level designers was lower
+available to level designers was lower level orders and we call these NPC
+level orders and we call these NPC orders NBC orders are typically used to
+orders NBC orders are typically used to control a single embassy in a scripted
+control a single embassy in a scripted environment such as putting a hostage
+environment such as putting a hostage behind cover or having an NPC follower
+behind cover or having an NPC follower player it's tempting to implement these
+player it's tempting to implement these as an override behavior that replaces
+as an override behavior that replaces all of an MPC's behavior but we found
+all of an MPC's behavior but we found that much more effective to implement
+that much more effective to implement them in the behavior tree as a reaction
+them in the behavior tree as a reaction to a critical event in this way we can
+to a critical event in this way we can have them override the base NPC
+have them override the base NPC behaviour but still have the NPC
+behaviour but still have the NPC responds to very high priority critical
+responds to very high priority critical events such as grenades or has player
+events such as grenades or has player skills now I'd like to take a moment
+skills now I'd like to take a moment here to talk about level design
+in my experience level the Sun is like to have full control over the player
+to have full control over the player experience and part of that is having
+experience and part of that is having knowledge about how the Embassy is going
+knowledge about how the Embassy is going to react in any given situation so what
+to react in any given situation so what happens when you give level designers
+happens when you give level designers who like to have full knowledge of the
+who like to have full knowledge of the embassies you give them fine positioning
+embassies you give them fine positioning control over NPCs with embassy move
+control over NPCs with embassy move orders well
+orders well to grow a bit of an old name here you
+to grow a bit of an old name here you get move orders for everybody you get a
+get move orders for everybody you get a move order you get a moove order you get
+move order you get a moove order you get a move order and you don't get a move
+a move order and you don't get a move water and so this thanks Dave
+water and so this thanks Dave yeah okay so this isn't this isn't very
+yeah okay so this isn't this isn't very good because Nouveau move orders have
+good because Nouveau move orders have some serious downsides remove all orders
+some serious downsides remove all orders skip the evaluation of the underlying
+skip the evaluation of the underlying systems we no longer use the results of
+systems we no longer use the results of our sensory and detection system and our
+our sensory and detection system and our threat evaluation system and so move all
+threat evaluation system and so move all over the level orders break NPC
+over the level orders break NPC reactivity and this is really big for
+reactivity and this is really big for players players seem much more likely to
+players players seem much more likely to notice missing NPC reactions to events
+notice missing NPC reactions to events in the environment than they are to
+in the environment than they are to notice missing NPC abilities also NPC
+notice missing NPC abilities also NPC orders don't provide any context to the
+orders don't provide any context to the previous that follow those move orders
+previous that follow those move orders and take for example we have a move
+and take for example we have a move order that was interrupted by a combat
+order that was interrupted by a combat the behavior that follows that
+the behavior that follows that interruption has no information about
+interruption has no information about what the what the MC was trying to
+what the what the MC was trying to achieve with that move order and finally
+achieve with that move order and finally I think and I think most importantly
+I think and I think most importantly low-level orders force level designers
+low-level orders force level designers to have to create AI they need to plan
+to have to create AI they need to plan for all of the permutations of combat in
+for all of the permutations of combat in the environment and they need to script
+the environment and they need to script accordingly and this isn't a burden that
+accordingly and this isn't a burden that a level designer what level designers
+a level designer what level designers want and it's not one that we should be
+want and it's not one that we should be forcing upon them so we're going to
+forcing upon them so we're going to prefer systemic approaches that work
+prefer systemic approaches that work with the behavior systems rather than
+with the behavior systems rather than circumventing them so the first thing we
+circumventing them so the first thing we next thing we gave for level violence
+next thing we gave for level violence was the ability to modify the
+was the ability to modify the positioning system and initially this
+positioning system and initially this were through NPC zones an NPC Sonax is
+were through NPC zones an NPC Sonax is like a binary filter to the positioning
+like a binary filter to the positioning system the positioning of position
+system the positioning of position evaluator will only accept positions
+evaluator will only accept positions that
+that within the volume specify the empathy
+within the volume specify the empathy zone if NPCs are outside of the zone
+zone if NPCs are outside of the zone then we can allow positions that move
+then we can allow positions that move them closer to the zone but once inside
+them closer to the zone but once inside they will remain within that zone
+they will remain within that zone however this doesn't work so well in the
+however this doesn't work so well in the open world short-range combat embassies
+open world short-range combat embassies break down at the boundary edges when
+break down at the boundary edges when their target is outside of the zone and
+their target is outside of the zone and even medium-range NPCs can be sniped
+even medium-range NPCs can be sniped from with the punitive from players from
+from with the punitive from players from outside of the zone so we also add a
+outside of the zone so we also add a tactical position modifiers and attain
+tactical position modifiers and attain the positional modifier was a soft
+the positional modifier was a soft version of NPCs zone we changed the
+version of NPCs zone we changed the position evaluator to score points that
+position evaluator to score points that are close score positions that are
+are close score positions that are closer to the volume higher and give
+closer to the volume higher and give maximum score bonus to positions with
+maximum score bonus to positions with that are within the technical position
+that are within the technical position modifier volume even still we found that
+modifier volume even still we found that these modifiers could be become easily
+these modifiers could be become easily overused one other problems level
+overused one other problems level designers were trying to solve was
+designers were trying to solve was trying to solve was that with position
+trying to solve was that with position modifiers was to prevent combat in one
+modifiers was to prevent combat in one area from attracting all of the NPC's on
+area from attracting all of the NPC's on nearby and this was coming particularly
+nearby and this was coming particularly often within narrative driven story
+often within narrative driven story missions but it could also happen in the
+missions but it could also happen in the open world in the denser parts of
+open world in the denser parts of Manhattan a level designer would set up
+Manhattan a level designer would set up different accounts as in adjoining rooms
+different accounts as in adjoining rooms but as soon as combat initiated then all
+but as soon as combat initiated then all of the embassies and that mission would
+of the embassies and that mission would come running so we gave Louis sinus two
+come running so we gave Louis sinus two additional pre combat alert levels the
+additional pre combat alert levels the first of these is the scripted
+first of these is the scripted investigational at law and we saw this
+investigational at law and we saw this early when we looked at the scripted
+early when we looked at the scripted behavior um when it can how it really is
+behavior um when it can how it really is the the tactical position system with
+the the tactical position system with the scripted investigation NPCs were
+the scripted investigation NPCs were continually to search an area ad
+continually to search an area ad infinitum and second we gave them a
+infinitum and second we gave them a scripted combat alert level and a
+scripted combat alert level and a scripted combat level instructed
+scripted combat level instructed embassies to take cover and act as if
+embassies to take cover and act as if combat was going to take place with his
+combat was going to take place with his level Direction specified by the level
+level Direction specified by the level designers importantly the both these
+designers importantly the both these level alert levels skipped the initial
+level alert levels skipped the initial combat reactions or initial reactions
+combat reactions or initial reactions from an NPC entering combat such as
+from an NPC entering combat such as barks and and there are the combat
+barks and and there are the combat reactions and they don't transition back
+reactions and they don't transition back into either combat investigation or idle
+into either combat investigation or idle the NPC's will stay in those areas until
+the NPC's will stay in those areas until combat is being has begun finally and
+combat is being has begun finally and some what's very successfully
+some what's very successfully we added high-level objectives and you
+we added high-level objectives and you can see the list of halibut directives
+can see the list of halibut directives that we provided here these objectives
+that we provided here these objectives are built on top of the underlying NPC
+are built on top of the underlying NPC systems they modify the position of the
+systems they modify the position of the detection system the position of variant
+detection system the position of variant and positioning system and the threat
+and positioning system and the threat system the primary behavior for these
+system the primary behavior for these objectives was implemented a slightly
+objectives was implemented a slightly lower priority than the embassy orders
+lower priority than the embassy orders but throughout the behavior tree the NPC
+but throughout the behavior tree the NPC objectives can be used to provide
+objectives can be used to provide additional context to behaviors
+additional context to behaviors animations and barks and high-level
+animations and barks and high-level check this can be used in both in combat
+check this can be used in both in combat and out of combat situations and we had
+and out of combat situations and we had taken a deeper look at one of these
+taken a deeper look at one of these objectives the interact with prop
+objectives the interact with prop objective so for the interact with prop
+objective so for the interact with prop objective a group of embassies is
+objective a group of embassies is instructed to move into the vicinity of
+instructed to move into the vicinity of an object and if there are no high um
+an object and if there are no high um high value threats then to start
+high value threats then to start interacting with that object we modified
+interacting with that object we modified the positioning system to score the
+the positioning system to score the positions near the object higher and
+positions near the object higher and score even higher positions that are
+score even higher positions that are between the object and any tie and any
+between the object and any tie and any hostile targets and so embassies are
+hostile targets and so embassies are naturally seen to take cover in front of
+naturally seen to take cover in front of players approaching the the object we
+players approaching the the object we modify the threat system to increase the
+modify the threat system to increase the value of the threats that are in the
+value of the threats that are in the area around the object and further
+area around the object and further increase the value of threats that are
+increase the value of threats that are targeting NPCs that are interacting with
+targeting NPCs that are interacting with the object and finally we introduce new
+the object and finally we introduce new behaviors to move NB C's that are a long
+behaviors to move NB C's that are a long way away from the objects near the
+way away from the objects near the object and also if there are no high
+object and also if there are no high value of threats and the vicinity for an
+value of threats and the vicinity for an NPC to begin interacting with the object
+so the question arises then or low-level orders or high-level systemic behaviour
+orders or high-level systemic behaviour what I tell the truth we needed both in
+what I tell the truth we needed both in the open world we prefer this the
+the open world we prefer this the scenario behaviour of the high level
+scenario behaviour of the high level objectives
+objectives this Mendel's the unpredictable player
+this Mendel's the unpredictable player movement and it allows us to maintain as
+movement and it allows us to maintain as much NPC reactivity as we can low level
+much NPC reactivity as we can low level mission tava are great and story
+mission tava are great and story missions they give fine control over NPC
+missions they give fine control over NPC positioning and they work much better
+positioning and they work much better for scripted sequence than animation
+for scripted sequence than animation sequences they are more interrupts and
+sequences they are more interrupts and they don't have the same constraints
+they don't have the same constraints with initial player main PC positioning
+with initial player main PC positioning we've found across low-level orders and
+we've found across low-level orders and high electives that players will find a
+high electives that players will find a way to break all the variant pc
+way to break all the variant pc behaviour but we and certainly low-level
+behaviour but we and certainly low-level orders are more brittle than the hell
+orders are more brittle than the hell objectives but we certainly still found
+objectives but we certainly still found them very important to have for the
+them very important to have for the division so I've now discussed the
+division so I've now discussed the technical aspects of the MC behaviour
+technical aspects of the MC behaviour how we give the controller level
+how we give the controller level designers and I'd like to finish up with
+designers and I'd like to finish up with some of the lessons that we learned
+some of the lessons that we learned working with cross discipline teams and
+working with cross discipline teams and particularly working with level
+particularly working with level designers and I think this relationship
+designers and I think this relationship is one that doesn't really get discussed
+is one that doesn't really get discussed enough we often talk about the
+enough we often talk about the relationship between our designers and I
+relationship between our designers and I our programmers or animators and AI
+our programmers or animators and AI programmers but rarely the relationship
+programmers but rarely the relationship with level designers and yet level
+with level designers and yet level design is so important to good AI good
+design is so important to good AI good level design matches the capabilities of
+level design matches the capabilities of the AI it shows off that the strengths
+the AI it shows off that the strengths of our AI and it hides any shortcomings
+of our AI and it hides any shortcomings and of course the most important thing
+and of course the most important thing about any relationship is communication
+about any relationship is communication and we're talking about two-way
+and we're talking about two-way communication here yes we need to
+communication here yes we need to educate the level designers on the
+educate the level designers on the features that we're giving them to them
+features that we're giving them to them to control the embassies and how we
+to control the embassies and how we would like them to be used but we also
+would like them to be used but we also need to talk with them about the bugs
+need to talk with them about the bugs that are having and to try and identify
+that are having and to try and identify features where we can improve the tools
+features where we can improve the tools that we're giving them and the AI
+that we're giving them and the AI behaviors in the bull scuse me and the
+behaviors in the bull scuse me and the AI behaviors in the level sign they're
+AI behaviors in the level sign they're creating I'm going to grossly generalize
+creating I'm going to grossly generalize here but I'm a bit here and I certainly
+here but I'm a bit here and I certainly don't mean to make any any offense at
+don't mean to make any any offense at all to level design in my experience
+all to level design in my experience level designers I used to making things
+level designers I used to making things work with the tools that have available
+work with the tools that have available to them and the systems they use are
+to them and the systems they use are often in flux during the whole arm state
+often in flux during the whole arm state of the project development
+they often have very tight production schedules and maybe to be too busy
+schedules and maybe to be too busy producing content to be able to make
+producing content to be able to make suggestions on a IBM features so talking
+suggestions on a IBM features so talking to them about the issues they're having
+to them about the issues they're having and how we can improve our tools it
+and how we can improve our tools it becomes even more important we found
+becomes even more important we found that wiki's and emails are completely
+that wiki's and emails are completely insufficient for this during the height
+insufficient for this during the height of development wiki pages get bookmarked
+of development wiki pages get bookmarked emails get marked as follow-up but no
+emails get marked as follow-up but no one gets a chance to read them on the
+one gets a chance to read them on the division we use cross discipline teams
+division we use cross discipline teams to great effect on certain particular
+to great effect on certain particular games gameplay aspects one of my
+games gameplay aspects one of my favorite things we did on the division
+favorite things we did on the division was weekly sync meetings with key level
+was weekly sync meetings with key level designers and members the NPC teams and
+designers and members the NPC teams and this was a particularly effective with
+this was a particularly effective with our remote Kotov teams these level
+our remote Kotov teams these level designers because we came funnels for
+designers because we came funnels for the type of communication that I'm
+the type of communication that I'm talking about between level designers on
+talking about between level designers on their teams NEMC team and also and I
+their teams NEMC team and also and I very proud of this as we had a system an
+very proud of this as we had a system an embedded level of signer within the MPC
+embedded level of signer within the MPC team this level designer became an
+team this level designer became an informal point of contact for other
+informal point of contact for other little signers on the project with
+little signers on the project with problems they were having and the level
+problems they were having and the level designer could respond quickly and
+designer could respond quickly and investigate em and the detect patterns
+investigate em and the detect patterns in those problems validation and
+in those problems validation and debugging tools are also very important
+debugging tools are also very important we can validate as much as possible in
+we can validate as much as possible in the editor for instance we can check the
+the editor for instance we can check the volumes that are passed to investigation
+volumes that are passed to investigation areas or NPC zones to make sure they
+areas or NPC zones to make sure they contain enough tactical positions to be
+contain enough tactical positions to be viable
+viable one of the powers of the snowdrop engine
+one of the powers of the snowdrop engine is our ability to create and iterate
+is our ability to create and iterate quickly on test levels and we use these
+quickly on test levels and we use these both for reproducing the problems that
+both for reproducing the problems that level designer having away from the
+level designer having away from the complexity of the full game we also use
+complexity of the full game we also use it to provide examples of the intended
+it to provide examples of the intended use of our AI to level design both of
+use of our AI to level design both of these tasks became very important role
+these tasks became very important role of the embedded level designer on that
+of the embedded level designer on that team
+team but finally we is we found it very
+but finally we is we found it very useful to expose our debug drawer
+useful to expose our debug drawer environment to level designers not all
+environment to level designers not all of the level designers would use the
+of the level designers would use the debug drawer but some of them found it
+debug drawer but some of them found it very helpful to be able to quickly debug
+very helpful to be able to quickly debug simple AI problems on the division we
+simple AI problems on the division we have a very
+have a very probably havea tree editor in debugger
+probably havea tree editor in debugger and you can hear about more of this
+and you can hear about more of this tomorrow with Janice Gilbert's talk in
+tomorrow with Janice Gilbert's talk in the AR summit but we have found that
+the AR summit but we have found that this was never used at all by level
+this was never used at all by level design this is simply to lower level
+design this is simply to lower level than that they are interested in for
+than that they are interested in for debugging NPC behaviors inside
+debugging NPC behaviors inside conclusion you've heard me sorry you've
+conclusion you've heard me sorry you've heard Rui talk about the four pillars of
+heard Rui talk about the four pillars of design that we use for cranium pcs how
+design that we use for cranium pcs how the division is both an RPG and the
+the division is both an RPG and the shooter how we prioritize fun but we
+shooter how we prioritize fun but we respect the realism for the Tom Clancy
+respect the realism for the Tom Clancy universe how we create strong we create
+universe how we create strong we create combat Chatham Challenge puzzles with
+combat Chatham Challenge puzzles with strong archetypes and how we continually
+strong archetypes and how we continually challenged the player through invested
+challenged the player through invested increasing Embassy behavior complexity
+increasing Embassy behavior complexity and abilities you've heard me talk about
+and abilities you've heard me talk about the behavior systems and how we give
+the behavior systems and how we give control over level sign to be over the
+control over level sign to be over the embassies both directly and through
+embassies both directly and through these systems and finally you've heard
+these systems and finally you've heard me talk about the cross discipline teams
+me talk about the cross discipline teams and particularly that relationship with
+and particularly that relationship with all design that I think is so important
+all design that I think is so important like the shadow big thanks out here to
+like the shadow big thanks out here to the four Ubisoft Studios that worked on
+the four Ubisoft Studios that worked on the division lead studio massive
+the division lead studio massive entertainment and our three code of
+entertainment and our three code of partners reflections Red Storm and
+partners reflections Red Storm and Ubisoft annecy there are a lot of people
+Ubisoft annecy there are a lot of people that went to making contributing to the
+that went to making contributing to the NPCs on the division and we thank heaven
+NPCs on the division and we thank heaven for a quick plug for Jonas Kubrick's
+for a quick plug for Jonas Kubrick's talk tomorrow in the AR Summit Jonas
+talk tomorrow in the AR Summit Jonas will be discussing behavior tree editing
+will be discussing behavior tree editing in debugging tools and also add funiculi
+in debugging tools and also add funiculi step enough talking later in the week at
+step enough talking later in the week at the main conference on the global of
+the main conference on the global of illumination in Tom Clancy's the
+illumination in Tom Clancy's the division I'm pretty sure there aren't
+division I'm pretty sure there aren't any time for questions today but if you
+any time for questions today but if you do have any questions drew and I will be
+do have any questions drew and I will be around here afterwards we will also
+around here afterwards we will also along with Jonas via the Ubisoft lounge
+along with Jonas via the Ubisoft lounge on Wednesday morning from 11:00 to 12:30
+on Wednesday morning from 11:00 to 12:30 and you're all welcome to come and ask
+and you're all welcome to come and ask us questions about the division without
+us questions about the division without working on AI and about working at
+working on AI and about working at Ubisoft and in particular if you'd like
+Ubisoft and in particular if you'd like to speak to us about working in Sweden a
+to speak to us about working in Sweden a massive entertainment we'd love to hear
+massive entertainment we'd love to hear from you we're always looking for good
+from you we're always looking for good people thank you very much
+people thank you very much you

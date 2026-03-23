@@ -1,0 +1,1207 @@
+[Music]
+all right a bit of housekeeping beforehand anything maybe our phones
+beforehand anything maybe our phones turned to silent etc and I think after
+turned to silent etc and I think after this everyone gets an email with some
+this everyone gets an email with some feedback that'd be great if you fill it
+feedback that'd be great if you fill it in even if it's a complete disaster
+in even if it's a complete disaster which hopefully it won't be so I'm Mike
+which hopefully it won't be so I'm Mike Malinowski and I'm a senior technical
+Malinowski and I'm a senior technical artist at Creative Assembly I've been in
+artist at Creative Assembly I've been in the industry for about 11 years doing a
+the industry for about 11 years doing a mixture of rigging tools and pipeline
+mixture of rigging tools and pipeline development previous companies have been
+development previous companies have been Animal Logic Creative Assembly at the
+Animal Logic Creative Assembly at the minute guerilla games and lionhead
+minute guerilla games and lionhead studios so a creative assembly we can
+studios so a creative assembly we can have anywhere between two and six
+have anywhere between two and six projects all running in parallel at the
+projects all running in parallel at the same time so finding the right time to
+same time so finding the right time to pause and reactor or experiment with new
+pause and reactor or experiment with new ideas can be really challenging without
+ideas can be really challenging without causing potential knock-on effects to
+causing potential knock-on effects to any of those projects especially when
+any of those projects especially when many of those projects all share large
+many of those projects all share large chunks of a common tech art and tall
+chunks of a common tech art and tall codebase so ultimately the takeaway of
+codebase so ultimately the takeaway of this talk is how we actively change the
+this talk is how we actively change the way we write our tools to create a
+way we write our tools to create a environment and a pipeline that allows
+environment and a pipeline that allows us to be a bit more forward facing and
+us to be a bit more forward facing and to take more risks the majority of the
+to take more risks the majority of the examples that I'll put forward use Meyer
+examples that I'll put forward use Meyer and Python but the concepts are
+and Python but the concepts are certainly not limited to either of those
+certainly not limited to either of those so every solution is ultimately born of
+so every solution is ultimately born of a problem and anyone that's wrote any
+a problem and anyone that's wrote any tools or even just scripts might
+tools or even just scripts might familiarize yourself with this scenario
+familiarize yourself with this scenario where if we've been given a tool brief
+where if we've been given a tool brief or we've just got an idea for a script
+or we've just got an idea for a script that might help someone we sit down and
+that might help someone we sit down and we start coding and if we're writing
+we start coding and if we're writing something for someone else we get a good
+something for someone else we get a good idea of what it is they're after and we
+idea of what it is they're after and we start putting pen to paper right and we
+start putting pen to paper right and we start writing some code
+start writing some code and at that point in time we're probably
+and at that point in time we're probably the only ones using it as we're
+the only ones using it as we're developing it so our code is pretty
+developing it so our code is pretty clean it's pretty tight and it's
+clean it's pretty tight and it's relatively neat hopefully and we give
+relatively neat hopefully and we give that tools out to a couple of users we
+that tools out to a couple of users we get some beta testing going on and
+get some beta testing going on and inevitably they want changes because
+inevitably they want changes because we've maybe misinterpreted something or
+we've maybe misinterpreted something or what they thought they want isn't what
+what they thought they want isn't what they actually want and so we go back
+they actually want and so we go back into our code and we start altering that
+into our code and we start altering that based on that feedback and the remit of
+based on that feedback and the remit of the tool doesn't really change but we
+the tool doesn't really change but we start to jiggle our code around
+start to jiggle our code around underneath and time is not always on our
+underneath and time is not always on our side right so the code becomes a little
+side right so the code becomes a little bit more unclean we release it out to
+bit more unclean we release it out to the team and we start to get more and
+the team and we start to get more and more users using our tools and as more
+more users using our tools and as more users use it and as our projects
+users use it and as our projects continue to grow so does the
+continue to grow so does the requirements of the tool people ask for
+requirements of the tool people ask for extra extra pieces of functionality and
+extra extra pieces of functionality and we start bolting on more and more code
+we start bolting on more and more code as the project's grow and if we're
+as the project's grow and if we're really lucky or unlucky then multiple
+really lucky or unlucky then multiple projects pick up at all and everyone
+projects pick up at all and everyone whilst they work in very similar ways
+whilst they work in very similar ways they all have slightly different
+they all have slightly different requirements or additional feature
+requirements or additional feature requests and so we both are more and
+requests and so we both are more and more features or maybe we expose
+more features or maybe we expose different pieces of our libraries to
+different pieces of our libraries to other tools in a project specific
+other tools in a project specific pipeline and what this tends to lead to
+pipeline and what this tends to lead to is this scenario whereby you have this
+is this scenario whereby you have this monolithic horrible piece of code that
+monolithic horrible piece of code that no one really knows which bits are used
+no one really knows which bits are used by which project if any at all and it
+by which project if any at all and it automatically to a point where no one
+automatically to a point where no one wants to touch it because no one really
+wants to touch it because no one really knows what the side effects will be of
+knows what the side effects will be of making any changes to those bits of code
+making any changes to those bits of code so when we get to that point where we
+so when we get to that point where we can breathe and we can look forward and
+can breathe and we can look forward and we have a pause in production where we
+we have a pause in production where we could potentially experiment with some
+could potentially experiment with some new ideas we don't we look back and we
+new ideas we don't we look back and we say there's no way I'm going through
+say there's no way I'm going through another production cycle with that tool
+another production cycle with that tool there because it's just a nightmare and
+there because it's just a nightmare and the cost of refactoring it is so high
+the cost of refactoring it is so high that we end up just chucking it in the
+that we end up just chucking it in the bin right we start again we take
+bin right we start again we take everything we've learned from that whole
+everything we've learned from that whole process but ultimately we start the
+process but ultimately we start the process over and we clean slate
+process over and we clean slate and that I see a lot right it's
+and that I see a lot right it's depressing I see a lot in my own tools
+depressing I see a lot in my own tools and I look at it and and I die inside
+and I look at it and and I die inside when I see it but I think there's a
+when I see it but I think there's a better way and a good example of this
+better way and a good example of this scenario are exporters so let's have a
+scenario are exporters so let's have a quick look at how this happens in a more
+quick look at how this happens in a more realistic scenario so here's some
+realistic scenario so here's some hypothetical export code right and
+hypothetical export code right and imagine that we're right at the early
+imagine that we're right at the early beginnings of a project and all we
+beginnings of a project and all we actually need to do is export some
+actually need to do is export some meshes and export some joints so we've
+meshes and export some joints so we've got a bit of code at the top that's
+got a bit of code at the top that's literally looking for all the meshes in
+literally looking for all the meshes in the scene and maybe we're looking for a
+the scene and maybe we're looking for a specific attribute and if it has this
+specific attribute and if it has this attribute then we'll ask some process to
+attribute then we'll ask some process to export it out for us and then we're
+export it out for us and then we're doing pretty much the same thing at the
+doing pretty much the same thing at the bottom but this time we're looking for
+bottom but this time we're looking for joints because all we need is meshes and
+joints because all we need is meshes and skeletal data but maybe our projects
+skeletal data but maybe our projects going reasonably well and we decide to
+going reasonably well and we decide to implement cloth simulation
+implement cloth simulation maybe we're using something like apex
+maybe we're using something like apex where you know we need to markup and
+where you know we need to markup and paint data on this geometry within max
+paint data on this geometry within max or Maya so we have to export that data
+or Maya so we have to export that data out as well and it kind of makes sense
+out as well and it kind of makes sense to put your cloth export logic in with
+to put your cloth export logic in with your geometry export logic because
+your geometry export logic because you're always going to export your cloth
+you're always going to export your cloth when you export your geometry so in that
+when you export your geometry so in that goes and then maybe we attend something
+goes and then maybe we attend something like GDC and we get really excited by
+like GDC and we get really excited by the next-best runtime rigging technology
+the next-best runtime rigging technology and we come back and we update our
+and we come back and we update our exporter because we want to have a play
+exporter because we want to have a play with that and maybe averin time rigging
+with that and maybe averin time rigging information needs to look at geometry
+information needs to look at geometry and skeletal information so each little
+and skeletal information so each little insertion here isn't particularly
+insertion here isn't particularly complex as each line like it's a couple
+complex as each line like it's a couple of lines each it's not it's not heavy
+of lines each it's not it's not heavy code but it's interspersed across the
+code but it's interspersed across the whole of the exporter and then perhaps
+whole of the exporter and then perhaps in a couple of months time as we mature
+in a couple of months time as we mature in our project and we realize this
+in our project and we realize this particular implementation isn't what we
+particular implementation isn't what we want if someone else has gone in and
+want if someone else has gone in and added support for things like blend
+added support for things like blend shapes for LODs
+shapes for LODs or ragdolls trying to cherry-pick these
+or ragdolls trying to cherry-pick these pieces back out can be really
+pieces back out can be really challenging and that ultimately leads to
+challenging and that ultimately leads to a scenario where you end up with an
+a scenario where you end up with an exporter full of legacy code where no
+exporter full of legacy code where no one really knows which bits
+one really knows which bits used and which bits are not used and no
+used and which bits are not used and no one wants to touch it and every project
+one wants to touch it and every project we write a whole new exporter over and
+we write a whole new exporter over and over again and it's this problem that we
+over again and it's this problem that we put forward a solution to and for us
+put forward a solution to and for us that solution is the implementation of
+that solution is the implementation of pretty well-established design pattern
+pretty well-established design pattern and a design pattern can be thought of
+and a design pattern can be thought of simply as an approach or a concept to
+simply as an approach or a concept to code that can be used in many different
+code that can be used in many different situations and there's a great website
+situations and there's a great website here which is worth having a look at
+here which is worth having a look at this has a whole myriad of different
+this has a whole myriad of different design patterns and it details them out
+design patterns and it details them out and it has examples in Python and
+and it has examples in Python and c-sharp and C++ so it's a really good
+c-sharp and C++ so it's a really good resource but ultimately for us we're
+resource but ultimately for us we're going to look at a design pattern called
+going to look at a design pattern called the factory plug-in pattern but before
+the factory plug-in pattern but before we deep dive into what that pattern is
+we deep dive into what that pattern is it's worth taking a moment and
+it's worth taking a moment and reflecting on the fact that as a
+reflecting on the fact that as a discipline tools and TECA stem from many
+discipline tools and TECA stem from many different backgrounds right we have
+different backgrounds right we have engineers who have a passion for things
+engineers who have a passion for things that are visual and we have artists and
+that are visual and we have artists and animators who love automation and we
+animators who love automation and we have tech art and tech animation that
+have tech art and tech animation that sit somewhere in the middle and so we
+sit somewhere in the middle and so we all come from very different backgrounds
+all come from very different backgrounds with very different knowledge so before
+with very different knowledge so before we look at how we implemented this
+we look at how we implemented this pattern and what it actually gave us and
+pattern and what it actually gave us and some examples of where we use it I think
+some examples of where we use it I think it's worth taking a moment and
+it's worth taking a moment and collectively getting a good
+collectively getting a good understanding of what the pattern is so
+understanding of what the pattern is so the pattern itself is made up of three
+the pattern itself is made up of three parts you have something called a
+parts you have something called a factory something called an abstract and
+factory something called an abstract and something called plugins now arguably
+something called plugins now arguably the most crucial part of all of these is
+the most crucial part of all of these is the abstract because that tends to
+the abstract because that tends to define what it is we're trying to
+define what it is we're trying to achieve so that's where we'll start here
+achieve so that's where we'll start here and an abstract is pretty much just a
+and an abstract is pretty much just a class right and when we tend to use
+class right and when we tend to use classes we do so so that we can write
+classes we do so so that we can write some functionality and then maybe we
+some functionality and then maybe we subclass off that base class and we add
+subclass off that base class and we add some more specific functionality and we
+some more specific functionality and we keep going on like that an abstract
+keep going on like that an abstract isn't that dissimilar from the base
+isn't that dissimilar from the base class assuming that the base class is
+class assuming that the base class is the gray icon here
+the gray icon here but an abstract has to follow three
+but an abstract has to follow three really strict rules so we can never
+really strict rules so we can never instance an abstract class directly we
+instance an abstract class directly we can only ever inherit from one and an
+can only ever inherit from one and an abstract is kind of a skeleton of
+abstract is kind of a skeleton of methods and arguments it never contains
+methods and arguments it never contains any actual functionality within it and
+any actual functionality within it and when we subclass an abstract we
+when we subclass an abstract we absolutely have to re-implement any
+absolutely have to re-implement any abstract methods and that gives us
+abstract methods and that gives us classes that look a lot like this where
+classes that look a lot like this where they're structurally identical and
+they're structurally identical and Python gives us a really nice module
+Python gives us a really nice module that's the best thing about Python right
+that's the best thing about Python right there's always something already done
+there's always something already done for you but it's a module called ABC and
+for you but it's a module called ABC and that simply allows you to decorate your
+that simply allows you to decorate your classes decorate your methods and it
+classes decorate your methods and it will enforce this whole paradigm it
+will enforce this whole paradigm it won't allow you to break any of those
+won't allow you to break any of those rules so it's a nice way of if you go
+rules so it's a nice way of if you go down this route of enforcing that it's
+down this route of enforcing that it's followed but the fundamental part of
+followed but the fundamental part of this is ultimately we can start to
+this is ultimately we can start to interact with all of these classes in
+interact with all of these classes in exactly the same way and that brings us
+exactly the same way and that brings us to the second part of the pattern which
+to the second part of the pattern which is the plugins and they are the green
+is the plugins and they are the green icons on this slide we don't necessarily
+icons on this slide we don't necessarily have to care or know what each plug-in
+have to care or know what each plug-in is doing under the hood because we know
+is doing under the hood because we know exactly how to call them in what we can
+exactly how to call them in what we can expect from their returns so that's our
+expect from their returns so that's our abstract and our plugins so the third
+abstract and our plugins so the third part of the pattern is the factory now
+part of the pattern is the factory now the responsibility of the factory is
+the responsibility of the factory is ultimately to find plugins and this can
+ultimately to find plugins and this can be as simple as doing a walk over
+be as simple as doing a walk over directories and Python files and
+directories and Python files and inspecting them for implementations of
+inspecting them for implementations of our abstract and the second part of that
+our abstract and the second part of that responsibility is to give us some way of
+responsibility is to give us some way of accessing the plugins that they've found
+accessing the plugins that they've found the idea here is ultimately that the
+the idea here is ultimately that the finding of plugins is completely dynamic
+finding of plugins is completely dynamic so we don't have to hard code import
+so we don't have to hard code import statements to every piece of
+statements to every piece of functionality at all might need to
+functionality at all might need to utilize to put that into practice we can
+utilize to put that into practice we can start to have a piece of code that looks
+start to have a piece of code that looks a bit like this we're giving a factory
+a bit like this we're giving a factory we can just ask for all the plugins that
+we can just ask for all the plugins that it has and we can cycle Oh
+it has and we can cycle Oh we to plug in we don't necessarily need
+we to plug in we don't necessarily need to know what that plugin is doing but we
+to know what that plugin is doing but we know how to call it we know how to
+know how to call it we know how to interact with it it also means that we
+interact with it it also means that we can scale very easily to add some new
+can scale very easily to add some new functionality we just drop a plug-in
+functionality we just drop a plug-in into a location where our factory is
+into a location where our factory is searching now don't worry if that sounds
+searching now don't worry if that sounds a little bit fuzzy and conceptual
+a little bit fuzzy and conceptual because we're going to have a look again
+because we're going to have a look again at the exporter but this time we're
+at the exporter but this time we're going to re-implement it using this
+going to re-implement it using this pattern and then we'll see side by side
+pattern and then we'll see side by side what it actually looked like looks like
+what it actually looked like looks like and what it gives us
+and what it gives us so I said that the abstract pretty much
+so I said that the abstract pretty much defines what it is we're trying to
+defines what it is we're trying to achieve so that's what we'll start with
+achieve so that's what we'll start with so we have two methods in our abstract
+so we have two methods in our abstract we have a method called the viable
+we have a method called the viable method and we've got a method we've
+method and we've got a method we've called an export method so our export is
+called an export method so our export is pretty pretty simple and straightforward
+pretty pretty simple and straightforward the idea behind the viable method is
+the idea behind the viable method is simply for this plug-in to decide itself
+simply for this plug-in to decide itself whether there's anything within the
+whether there's anything within the scene or the context that it can export
+scene or the context that it can export so if this was a cloth plug-in it might
+so if this was a cloth plug-in it might look to see whether there's any cloth
+look to see whether there's any cloth and the idea here is it's a fail fast
+and the idea here is it's a fail fast method so she'd get out as quickly as
+method so she'd get out as quickly as possible the export method is then the
+possible the export method is then the method that's actually going to do the
+method that's actually going to do the data wrangling all the hard work so
+data wrangling all the hard work so that's our abstract that's all an
+that's our abstract that's all an abstract is it's kind of a completely
+abstract is it's kind of a completely empty structure next we need a factory
+empty structure next we need a factory now a factory is really really generic
+now a factory is really really generic right it's just a mechanism of searching
+right it's just a mechanism of searching for things and it can literally be a
+for things and it can literally be a class that cycles over directories and
+class that cycles over directories and any plugins that it finds it holds a
+any plugins that it finds it holds a reference to and gives us access to them
+reference to and gives us access to them and they're so generic that we wrote a
+and they're so generic that we wrote a little module we call plugged and we now
+little module we call plugged and we now use that everywhere and we just ask for
+use that everywhere and we just ask for a new factory and we have to give it
+a new factory and we have to give it three things so we have to give it the
+three things so we have to give it the abstract so that it knows what to look
+abstract so that it knows what to look for when it's searching for plugins we
+for when it's searching for plugins we also have to give it an identifying
+also have to give it an identifying property so that it can differentiate
+property so that it can differentiate between different plugins that it has a
+between different plugins that it has a reference to and then we just need to
+reference to and then we just need to give it the locations where it should
+give it the locations where it should search for plugins so that's Factory and
+search for plugins so that's Factory and we have our abstract so now we just need
+we have our abstract so now we just need our plug
+our plug so this is what a plugin could look like
+so this is what a plugin could look like and you probably notice that it's pretty
+and you probably notice that it's pretty much a copy/paste of our first exporter
+much a copy/paste of our first exporter at least the geometry part the only
+at least the geometry part the only difference is we've jiggled it around
+difference is we've jiggled it around inside these two methods and because
+inside these two methods and because we're doing some of the same things
+we're doing some of the same things within both of those methods we've just
+within both of those methods we've just added a private method as well but
+added a private method as well but ultimately there's no magic that's the
+ultimately there's no magic that's the key we're doing the same stuff we're
+key we're doing the same stuff we're just encapsulating the geometry so that
+just encapsulating the geometry so that it doesn't affect anything else and we
+it doesn't affect anything else and we do the same thing for the skeletal
+do the same thing for the skeletal plugin the code is almost identical
+plugin the code is almost identical because it was identical in the last
+because it was identical in the last exporter but we've got now two plugins
+exporter but we've got now two plugins and they're never going to cross
+and they're never going to cross contaminate each other so we can start
+contaminate each other so we can start to make drastic changes to how we export
+to make drastic changes to how we export geometry and we're never going to affect
+geometry and we're never going to affect how we're exporting skeletal information
+how we're exporting skeletal information we can never break our skeletal exporter
+we can never break our skeletal exporter even if we completely screw up a
+even if we completely screw up a geometry exporter in practice that gives
+geometry exporter in practice that gives us something that looks like this right
+us something that looks like this right so we're in Maya we have a mesh and we
+so we're in Maya we have a mesh and we have a skeleton and we can see that
+have a skeleton and we can see that we've got some exportable attributes on
+we've got some exportable attributes on there so that we know what should get
+there so that we know what should get picked up and in our script editor we
+picked up and in our script editor we import our factory we're not importing
+import our factory we're not importing plugins we're not importing anything
+plugins we're not importing anything specific we simply import our export
+specific we simply import our export factory we then cycle over our factory
+factory we then cycle over our factory and for each plugin in that factory we
+and for each plugin in that factory we ask the plug-in itself whether there
+ask the plug-in itself whether there it's viable whether there's anything in
+it's viable whether there's anything in here it can export and if there is we
+here it can export and if there is we ask it to do the export for is now in
+ask it to do the export for is now in this particular example in the output
+this particular example in the output that's now disappeared but there was an
+that's now disappeared but there was an output for a cloth plug-in but there's
+output for a cloth plug-in but there's no cloth in that scene so that returned
+no cloth in that scene so that returned false on its viability and we never even
+false on its viability and we never even attempt to export the cloth now there's
+attempt to export the cloth now there's a trade off and that's one of
+a trade off and that's one of performance if for instance we have 10
+performance if for instance we have 10 15 different data types it's entirely
+15 different data types it's entirely possible that we're doing the same or
+possible that we're doing the same or similar validation in each plugin so
+similar validation in each plugin so time will keep increasing but the gain
+time will keep increasing but the gain of paying that cost is that we can start
+of paying that cost is that we can start to really experiment with different
+to really experiment with different export types with
+export types with ever incurring the possibility of having
+ever incurring the possibility of having to refactor code we can extend and
+to refactor code we can extend and contract our exporter without causing
+contract our exporter without causing lots of knock-on effects elsewhere and
+lots of knock-on effects elsewhere and that's simply because the factory is
+that's simply because the factory is kind of blind to what's going on around
+kind of blind to what's going on around it is simply pulling out plugins from
+it is simply pulling out plugins from directories so to add the blend shape
+directories so to add the blend shape support or to add the LOD support we
+support or to add the LOD support we just drop a new Python file into a
+just drop a new Python file into a directory that understands how to export
+directory that understands how to export that information and our exporter will
+that information and our exporter will pick it up and we can harness pythons
+pick it up and we can harness pythons implementation of keyword arguments to
+implementation of keyword arguments to great effect with this to be able to be
+great effect with this to be able to be really specific at export time whilst
+really specific at export time whilst retaining a very generic export
+retaining a very generic export framework so for those of you that might
+framework so for those of you that might not be familiar with pythons keyword
+not be familiar with pythons keyword arguments it's ultimately mechanism that
+arguments it's ultimately mechanism that allows you to call a function with any
+allows you to call a function with any amount of arguments or named arguments
+amount of arguments or named arguments without ever declaring them upfront so
+without ever declaring them upfront so in this example we're calling a function
+in this example we're calling a function called export scene and we're calling it
+called export scene and we're calling it with an A an argument of bones per
+with an A an argument of bones per vertex but our export scene doesn't have
+vertex but our export scene doesn't have an argument of bones per vertex so that
+an argument of bones per vertex so that goes into the K box argument for us and
+goes into the K box argument for us and that becomes a dictionary of key value
+that becomes a dictionary of key value pairs that we can utilize this means the
+pairs that we can utilize this means the export seam method never really has to
+export seam method never really has to care what arguments are being passed to
+care what arguments are being passed to it it can just blindly pass those
+it it can just blindly pass those arguments down to the viability and the
+arguments down to the viability and the export method of each plug-in those
+export method of each plug-in those plugins can then choose what they look
+plugins can then choose what they look at within those arguments so our
+at within those arguments so our geometry plug-in is probably not going
+geometry plug-in is probably not going to look for a bones per vertex attribute
+to look for a bones per vertex attribute so we'll just ignore it but our skeletal
+so we'll just ignore it but our skeletal plugin might so here it's looking for a
+plugin might so here it's looking for a bones per vertex attribute if it finds
+bones per vertex attribute if it finds it then it will use it otherwise it'll
+it then it will use it otherwise it'll default to 4 and through this mechanism
+default to 4 and through this mechanism we can get very specific export results
+we can get very specific export results without ever having to update the
+without ever having to update the central core part of our exporter so
+central core part of our exporter so when we compare these two
+when we compare these two implementations of exporters it's a bit
+implementations of exporters it's a bit like
+like comparing these two images where we
+comparing these two images where we could choose to have one big monolithic
+could choose to have one big monolithic exporter with complex and ever-growing
+exporter with complex and ever-growing logic which becomes hard to follow and
+logic which becomes hard to follow and manage or we can encapsulate each export
+manage or we can encapsulate each export data type and kind of have a
+data type and kind of have a one-dimensional flow of logic which is
+one-dimensional flow of logic which is understandable that allows us to
+understandable that allows us to contract and grow and this ultimately
+contract and grow and this ultimately promotes experimentation as soon as you
+promotes experimentation as soon as you lower the risk factor then people are a
+lower the risk factor then people are a little bit more happy to dive in and try
+little bit more happy to dive in and try new things because the cost of doing it
+new things because the cost of doing it wrong is the cost of just removing a
+wrong is the cost of just removing a file out of a directory it's not a big
+file out of a directory it's not a big massive refactor what's interesting for
+massive refactor what's interesting for us when we started to understand what
+us when we started to understand what this pattern was we realized we were
+this pattern was we realized we were kind of already using it in some
+kind of already using it in some informal ways and we had a lot of code
+informal ways and we had a lot of code replication and so we have a node based
+replication and so we have a node based execution graph we had an animation
+execution graph we had an animation asset manager on Halo Wars 2 and a nice
+asset manager on Halo Wars 2 and a nice rich set of batching tools and all of
+rich set of batching tools and all of them used this pattern informally in a
+them used this pattern informally in a very ad hoc way to abstract some form of
+very ad hoc way to abstract some form of what they were doing but each one had
+what they were doing but each one had its own implementation and once we
+its own implementation and once we realized that that's when we sat and we
+realized that that's when we sat and we wrote that module that was called
+wrote that module that was called plugged and as soon as we had a module
+plugged and as soon as we had a module which was a generic factory class the
+which was a generic factory class the barrier of entry to use in this pattern
+barrier of entry to use in this pattern decreased dramatically and it started to
+decreased dramatically and it started to ripple across a lot of our tools so
+ripple across a lot of our tools so we'll start to look at what tools that
+we'll start to look at what tools that that we've used them in and how we use
+that we've used them in and how we use them so it's C a we have a pretty rich
+them so it's C a we have a pretty rich feature Riggin framework that's been
+feature Riggin framework that's been used on a lot of projects for a lot of
+used on a lot of projects for a lot of years and it's incredibly flexible and
+years and it's incredibly flexible and it allows for a massive amount of reuse
+it allows for a massive amount of reuse and our riggers can churn out rigs
+and our riggers can churn out rigs really very quickly and they're
+really very quickly and they're incredibly reliable so this is
+incredibly reliable so this is exemplified by this work here by David
+exemplified by this work here by David Vince
+[Music] I love that work it's an awesome
+I love that work it's an awesome animator but it's frustratingly good and
+animator but it's frustratingly good and I say frustratingly good because when
+I say frustratingly good because when the results are like that it's really
+the results are like that it's really hard to justify change in a Riggin
+hard to justify change in a Riggin framework but ultimately the Riggin
+framework but ultimately the Riggin toolset that we were using had become
+toolset that we were using had become quite unwieldly over time so it took the
+quite unwieldly over time so it took the approach of ham being very highly
+approach of ham being very highly parameterised components so we'd have a
+parameterised components so we'd have a component say a mod and I can model and
+component say a mod and I can model and an FK module and these would build based
+an FK module and these would build based upon attributes on joint chains so to
+upon attributes on joint chains so to give an idea of what a single I came on
+give an idea of what a single I came on or might be able to do it would support
+or might be able to do it would support these kinds of features so it could be
+these kinds of features so it could be standard I K it could be spline I K and
+standard I K it could be spline I K and it could be any combination of these so
+it could be any combination of these so they're not exclusive and when the order
+they're not exclusive and when the order of operations is quite important in
+of operations is quite important in rigging when it came to wanting to
+rigging when it came to wanting to implement soft I K what should have been
+implement soft I K what should have been a very simple and straightforward
+a very simple and straightforward implementation actually became really
+implementation actually became really high risk not because the implementation
+high risk not because the implementation of soft I K itself is challenging but
+of soft I K itself is challenging but it's really hard to know whether you're
+it's really hard to know whether you're gonna cause any possible knock-on
+gonna cause any possible knock-on effects to any other pieces of
+effects to any other pieces of functionality and when you've got six
+functionality and when you've got six projects all using the exact same
+projects all using the exact same rigging framework you can't afford to
+rigging framework you can't afford to refactor the whole thing because you may
+refactor the whole thing because you may have rigs that have been in production
+have rigs that have been in production for three years or four years and they
+for three years or four years and they have to be able to build to exactly the
+have to be able to build to exactly the same description as when they were built
+same description as when they were built their first time and this ultimately led
+their first time and this ultimately led to a scenario where riggers didn't
+to a scenario where riggers didn't really want to push not because they
+really want to push not because they didn't have the motivation but they were
+didn't have the motivation but they were scared of the risk and it was around
+scared of the risk and it was around this time when we had a good grasp of
+this time when we had a good grasp of our of the design pattern and we were
+our of the design pattern and we were starting to look at some of the talks by
+starting to look at some of the talks by Richard like.oh at GDC 2014 about
+Richard like.oh at GDC 2014 about rigging on demand and he's did an
+rigging on demand and he's did an awesome talk tomorrow on that so I
+awesome talk tomorrow on that so I recommend that as well and we had a tech
+recommend that as well and we had a tech animator call we have a tech animator
+animator call we have a tech animator called Joe who just put forward the
+called Joe who just put forward the ideas like
+ideas like I just want to build something that
+I just want to build something that they're just joints very I just want to
+they're just joints very I just want to build on top of
+build on top of maybe our controls or our objects it
+maybe our controls or our objects it shouldn't be this hard
+shouldn't be this hard and so that's kind of what we ended up
+and so that's kind of what we ended up doing
+doing we're very invested in a reference
+we're very invested in a reference rigging pipeline and it's just
+rigging pipeline and it's just impossible to make a overnight switch to
+impossible to make a overnight switch to a building rigs on-demand and have them
+a building rigs on-demand and have them all local in our scenes when we've
+all local in our scenes when we've already got all of this pipeline in
+already got all of this pipeline in place and they're being used across
+place and they're being used across multiple projects so we took a middle
+multiple projects so we took a middle ground and we figured well a referenced
+ground and we figured well a referenced rigs are pretty stable they've they've
+rigs are pretty stable they've they've been used for a long time but we want to
+been used for a long time but we want to make them better we want to add on top
+make them better we want to add on top of them so we decided to go down the
+of them so we decided to go down the approach of having Bolton components
+approach of having Bolton components that would interact or sit on top of our
+that would interact or sit on top of our reference rigs and change their behavior
+reference rigs and change their behavior and that looks a bit like this so here
+and that looks a bit like this so here we've got a rig in the scene and we're
+we've got a rig in the scene and we're launching at all that we call reaction
+launching at all that we call reaction and the animator sees a list of
+and the animator sees a list of components that they can utilize they
+components that they can utilize they can click through those components and
+can click through those components and they get exposed to some options that
+they get exposed to some options that allow them to tailor how that component
+allow them to tailor how that component might be built and we're going to focus
+might be built and we're going to focus on a component called the tail
+on a component called the tail simulation component and the idea here
+simulation component and the idea here is simply that the component builds a
+is simply that the component builds a kind of a hybrid rig that sits on top of
+kind of a hybrid rig that sits on top of our reference rig it inherits the motion
+our reference rig it inherits the motion of the reference rig but then drives it
+of the reference rig but then drives it this allows the animator to keep
+this allows the animator to keep interacting with the tail in a normal
+interacting with the tail in a normal way a stable way but ultimately when
+way a stable way but ultimately when they hit play the simulation kicks in
+they hit play the simulation kicks in and the simulation is always striving to
+and the simulation is always striving to achieve the pose is defined by the
+achieve the pose is defined by the animator but a component is more than
+animator but a component is more than just a rig it's kind of a package for
+just a rig it's kind of a package for the animator to work in a specific way
+the animator to work in a specific way so it also includes tools are specific
+so it also includes tools are specific to that component so here we've got a
+to that component so here we've got a really simple tool at all that just
+really simple tool at all that just allows the animator to add or remove
+allows the animator to add or remove collision objects so they can do that
+collision objects so they can do that through the Maya menus but it means that
+through the Maya menus but it means that they don't have to jump through five or
+they don't have to jump through five or six nested menus across a whole bunch of
+six nested menus across a whole bunch of dynamics things that they don't go
+dynamics things that they don't go through very often but they can also be
+through very often but they can also be a little bit more complex so here
+a little bit more complex so here we've got a tool where at any point in
+we've got a tool where at any point in time they can choose to make a visual
+time they can choose to make a visual bookmark of their simulation they can go
+bookmark of their simulation they can go back and start tuning their simulation
+back and start tuning their simulation attributes and at any time they can then
+attributes and at any time they can then compare the results of their current
+compare the results of their current changes against one of their snapshots
+changes against one of their snapshots and if they don't like those changes
+and if they don't like those changes they can simply restore those settings
+they can simply restore those settings back and go again from where they left
+back and go again from where they left off and then at any point they can
+off and then at any point they can simply choose to remove and bake down
+simply choose to remove and bake down the component that then bakes it down
+the component that then bakes it down onto an additive animation layer
+onto an additive animation layer allowing them to blend the results in
+allowing them to blend the results in and out even after the component is it's
+and out even after the component is it's gone now that specifics of those small
+gone now that specifics of those small tools aren't the focus of the talk but
+tools aren't the focus of the talk but it's important to recognize that a
+it's important to recognize that a component isn't just the rig right it's
+component isn't just the rig right it's a whole package so the animator can work
+a whole package so the animator can work in a specific way for the tasks that
+in a specific way for the tasks that they are trying to achieve and this
+they are trying to achieve and this whole thing uses the design pattern so
+whole thing uses the design pattern so the abstract looks a bit like this where
+the abstract looks a bit like this where we have an apply method we have a remove
+we have an apply method we have a remove method both of which pretty much do what
+method both of which pretty much do what you'd expect and then we have a build UI
+you'd expect and then we have a build UI in a runtime UI so we can interact with
+in a runtime UI so we can interact with this tool either through code directly
+this tool either through code directly or we can go through the interface but
+or we can go through the interface but we don't want a tool itself to have any
+we don't want a tool itself to have any direct understanding of any particular
+direct understanding of any particular component so when in animator selects a
+component so when in animator selects a component from the list we simply in
+component from the list we simply in instance a plug-in and we ask the
+instance a plug-in and we ask the plug-in for its build UI or its runtime
+plug-in for its build UI or its runtime UI and the tool then embeds that blindly
+UI and the tool then embeds that blindly into the window itself and we harness
+into the window itself and we harness the keyword arguments that we saw
+the keyword arguments that we saw earlier so we expect or we ask that any
+earlier so we expect or we ask that any cue widget that's given to us can
+cue widget that's given to us can serialize its state down to a dictionary
+serialize its state down to a dictionary we can then pass that into the build
+we can then pass that into the build method or the sorry the apply method of
+method or the sorry the apply method of the plug-in and suddenly we can build
+the plug-in and suddenly we can build these components either through DUI or
+these components either through DUI or through code in exactly the same way and
+through code in exactly the same way and as I mentioned before this component is
+as I mentioned before this component is a way of working so it's not just the
+a way of working so it's not just the rig it's also a suite of tools to help
+rig it's also a suite of tools to help the animator and this moves us from
+the animator and this moves us from trying to write the
+trying to write the simulation tool that can work on every
+simulation tool that can work on every rig in every possible context with a
+rig in every possible context with a million options that an animator might
+million options that an animator might rarely use and instead start focusing if
+rarely use and instead start focusing if we're building a tail simulation
+we're building a tail simulation component we're pretty sure that the
+component we're pretty sure that the animators trying to animate a tail if
+animators trying to animate a tail if they're trying to animate a chain then
+they're trying to animate a chain then maybe it's better that we have a chain
+maybe it's better that we have a chain component and this means that dev times
+component and this means that dev times for making tools starts to reduce
+for making tools starts to reduce because we can make so many more
+because we can make so many more assumptions but equally for the animator
+assumptions but equally for the animator their workflow improves as well because
+their workflow improves as well because they're only seeing options that are
+they're only seeing options that are specific to what it is they're trying to
+specific to what it is they're trying to achieve and the mechanism behind this is
+achieve and the mechanism behind this is just the same as a build UI we simply
+just the same as a build UI we simply ask the plug-in for the component for
+ask the plug-in for the component for its runtime UI and we blindly chuck that
+its runtime UI and we blindly chuck that key widget into the cue window so we
+key widget into the cue window so we don't ever have to hard code anything
+don't ever have to hard code anything into the tool itself but it comes with a
+into the tool itself but it comes with a floor there's a huge hole in this whole
+floor there's a huge hole in this whole thing an animator could choose to apply
+thing an animator could choose to apply the tail simulation rig in their scene
+the tail simulation rig in their scene and they can work and they can animate
+and they can work and they can animate and they can use the tools and they'll
+and they can use the tools and they'll be happy hopefully if we've done our job
+be happy hopefully if we've done our job right which isn't always and then maybe
+right which isn't always and then maybe one of our TAS comes to GDC or a
+one of our TAS comes to GDC or a conference and they find a new way of
+conference and they find a new way of doing tail simulation a way that's just
+doing tail simulation a way that's just far more efficient they come back
+far more efficient they come back excited and they update that component
+excited and they update that component they change the code and the rigging
+they change the code and the rigging code and they update the tool so that
+code and they update the tool so that the tools work with that new component
+the tools work with that new component and the animators start using that and
+and the animators start using that and they're really happy because the frame
+they're really happy because the frame rates are going through the roof and
+rates are going through the roof and then an animator opens up their old
+then an animator opens up their old scene and the rig still works because
+scene and the rig still works because the rig's local to the scene so
+the rig's local to the scene so everything's all good there but as soon
+everything's all good there but as soon as they tried to use the tools they
+as they tried to use the tools they break because the tools have now been
+break because the tools have now been refactored to use the new version of the
+refactored to use the new version of the rig and this leads to a scenario where
+rig and this leads to a scenario where either our tools have to start working
+either our tools have to start working in a way where they they're coded with
+in a way where they they're coded with backwards compatibility for all possible
+backwards compatibility for all possible variations of the rig or we have to
+variations of the rig or we have to start batching over all of our scenes
+start batching over all of our scenes constantly keeping
+constantly keeping two versions of our rigs up to the
+two versions of our rigs up to the latest version ultimately both of these
+latest version ultimately both of these mean that we actually gain absolutely
+mean that we actually gain absolutely nothing from this design pattern but the
+nothing from this design pattern but the solution turned out to be pretty simple
+solution turned out to be pretty simple all we needed to do was add a version
+all we needed to do was add a version number to each component and by doing
+number to each component and by doing this we could have multiple tail
+this we could have multiple tail simulation component plugins and they
+simulation component plugins and they can be differentiated only by a version
+can be differentiated only by a version number this means that when an animator
+number this means that when an animator would choose to apply the component to
+would choose to apply the component to their rig we simply scrape the factory
+their rig we simply scrape the factory and take the highest version of this
+and take the highest version of this particular component but when we open a
+particular component but when we open a scene we look at the version of that
+scene we look at the version of that component in the scene and we instance
+component in the scene and we instance the plug-in specific to that version
+the plug-in specific to that version what this means is we pay a cost of code
+what this means is we pay a cost of code replication we could have 10 versions of
+replication we could have 10 versions of the tale simulation component and each
+the tale simulation component and each one may only really change a little bit
+one may only really change a little bit but what it gives us is we're not
+but what it gives us is we're not constrained by the choices we made
+constrained by the choices we made yesterday or last week when we come with
+yesterday or last week when we come with a new idea of a tale simulation we're
+a new idea of a tale simulation we're writing at all specific to that rig we
+writing at all specific to that rig we don't have to make our tools work with
+don't have to make our tools work with the way the last version worked we can
+the way the last version worked we can start to experiment in a very free way
+start to experiment in a very free way and know that we're not going to break
+and know that we're not going to break the rig that was built three years ago
+the rig that was built three years ago and that brings us back to this slide
+and that brings us back to this slide where we can strive to make our tools
+where we can strive to make our tools work with all the different versions of
+work with all the different versions of our rigs that might be in production and
+our rigs that might be in production and our tools become increasingly monolithic
+our tools become increasingly monolithic the complexity grows and eventually at
+the complexity grows and eventually at some point the whole lot goes in the bin
+some point the whole lot goes in the bin and we start again instead we
+and we start again instead we encapsulate it we break it down we
+encapsulate it we break it down we accept a cost of code replication but
+accept a cost of code replication but ultimately when it comes to wanting to
+ultimately when it comes to wanting to implement the new version of a component
+implement the new version of a component a mindset is purely on that
+a mindset is purely on that implementation it's not on the
+implementation it's not on the refractory nor the risk or the concerns
+refractory nor the risk or the concerns around it when it comes to asking for
+around it when it comes to asking for time to implement something we don't
+time to implement something we don't have to take a really fuzzy guess at
+have to take a really fuzzy guess at what the tech debt will be if we screw
+what the tech debt will be if we screw up
+up and that does happen right we all take
+and that does happen right we all take risks we all strive to push forwards and
+risks we all strive to push forwards and that inevitably means that we get things
+that inevitably means that we get things wrong and ultimately the animator gets a
+wrong and ultimately the animator gets a far more focused workflow than just a
+far more focused workflow than just a generic rig that's trying to do
+generic rig that's trying to do everything for everyone in all
+everything for everyone in all circumstances and this was incredibly
+circumstances and this was incredibly freeing for us but that freedom started
+freeing for us but that freedom started to demonstrate restrictive nests
+to demonstrate restrictive nests elsewhere in our pipeline specifically
+elsewhere in our pipeline specifically around metadata so metadata is the glue
+around metadata so metadata is the glue between our rigs and our tools and David
+between our rigs and our tools and David hunt did an awesome talk way back in
+hunt did an awesome talk way back in 2009 but to briefly recap metadata is a
+2009 but to briefly recap metadata is a mechanism that means we are our tools
+mechanism that means we are our tools don't have to read naming conventions or
+don't have to read naming conventions or they don't have to read hierarchy
+they don't have to read hierarchy structures within our rig instead
+structures within our rig instead perhaps we use network nodes and message
+perhaps we use network nodes and message attributes or string attribute data but
+attributes or string attribute data but it comes with a bit of a floor
+it comes with a bit of a floor ultimately our metadata lives inside our
+ultimately our metadata lives inside our rigs and our tools traverse this
+rigs and our tools traverse this metadata whether they do that directly
+metadata whether they do that directly or whether they do that through a module
+or whether they do that through a module they're ultimately directly dependent on
+they're ultimately directly dependent on that particular metadata structure this
+that particular metadata structure this means that it's really hard to
+means that it's really hard to experiment or try new things in terms of
+experiment or try new things in terms of metadata mechanisms or if we want to use
+metadata mechanisms or if we want to use rigs outside of our studio but with our
+rigs outside of our studio but with our tools it can be incredibly challenging
+tools it can be incredibly challenging especially if those rigs come pre bound
+especially if those rigs come pre bound with their own metadata structure
+with their own metadata structure attached to them and in a studio where
+attached to them and in a studio where we have six projects all running and we
+we have six projects all running and we have multiple tech art teams going and
+have multiple tech art teams going and working on those we inevitably get
+working on those we inevitably get divergence everyone wants to push
+divergence everyone wants to push boundaries and so we have to metadata
+boundaries and so we have to metadata systems @ca that are currently in play
+systems @ca that are currently in play within one or two productions we've got
+within one or two productions we've got one around messaging no Messaging
+one around messaging no Messaging attributes and network nodes and we've
+attributes and network nodes and we've got one using string markup data so
+got one using string markup data so having the ability to interact with
+having the ability to interact with either of these mechanisms would be
+either of these mechanisms would be hugely beneficial and when it's
+hugely beneficial and when it's visualized in this way
+visualized in this way it starts to feel like a good fit for
+it starts to feel like a good fit for the design pattern so using that factory
+the design pattern so using that factory plug-in approach that's what we did now
+plug-in approach that's what we did now defining an abstract for a metadata
+defining an abstract for a metadata system is a lot trickier than trying to
+system is a lot trickier than trying to define an abstract for a rigging tool or
+define an abstract for a rigging tool or an exporter but the principle is the
+an exporter but the principle is the same our abstract essentially becomes an
+same our abstract essentially becomes an API for rigs and ultimately the plug-in
+API for rigs and ultimately the plug-in is then responsible for mapping that
+is then responsible for mapping that particular metadata system to this API
+particular metadata system to this API for us at CA the key needs of metadata
+for us at CA the key needs of metadata is pretty much about being able to do
+is pretty much about being able to do big searches and and relationship
+big searches and and relationship searches so I want to know all the
+searches so I want to know all the controls in a rig or I want to know all
+controls in a rig or I want to know all the deformers or something more specific
+the deformers or something more specific like I want the left ika hand control as
+like I want the left ika hand control as well as relationship information so if
+well as relationship information so if I've got a left control I want the
+I've got a left control I want the opposing object or what am I being
+opposing object or what am I being affected by or what am i affecting so
+affected by or what am i affecting so our abstracts for our rigs looks like
+our abstracts for our rigs looks like this we have functions that are related
+this we have functions that are related to tagging and to querying and we have
+to tagging and to querying and we have functions that give us relationship
+functions that give us relationship information and ultimately we leave it
+information and ultimately we leave it to the plug-in implementations to map
+to the plug-in implementations to map the specifics of their metadata system
+the specifics of their metadata system to this API we then add one more
+to this API we then add one more function we add the viable function
+function we add the viable function because we don't want our tools to know
+because we don't want our tools to know what rig is got to interact with and the
+what rig is got to interact with and the idea behind a viable function is very
+idea behind a viable function is very similar to what we've seen before so we
+similar to what we've seen before so we take in an object and then we ask that
+take in an object and then we ask that plug-in whether that plug-in can
+plug-in whether that plug-in can represent that object so if we're
+represent that object so if we're dealing with our network node metadata
+dealing with our network node metadata system maybe we'll look at the top top
+system maybe we'll look at the top top root node and we'll quickly check
+root node and we'll quickly check whether there's a meta node attached to
+whether there's a meta node attached to it or we'll look for a string mark up
+it or we'll look for a string mark up data and the first plug-in that returns
+data and the first plug-in that returns true on its viability test is instance
+true on its viability test is instance and returned so when we take that
+and returned so when we take that concept and we wrap it in a tiny little
+concept and we wrap it in a tiny little function that we call grab we can start
+function that we call grab we can start to get a rig API from a tool without
+to get a rig API from a tool without really knowing or caring we
+really knowing or caring we particular metadata system we're
+particular metadata system we're actually interacting with so here we're
+actually interacting with so here we're just going through every plug-in in our
+just going through every plug-in in our Factory and we're asking that plug-in
+Factory and we're asking that plug-in whether it can represent this rigged
+whether it can represent this rigged node if it can it's instance and it's
+node if it can it's instance and it's returned to us and that gives us
+returned to us and that gives us something that looks like this
+something that looks like this so here we've got three rigs we've got a
+so here we've got three rigs we've got a see a production rig we've got two rigs
+see a production rig we've got two rigs that we took from high in 3d and all of
+that we took from high in 3d and all of them are vastly different right they
+them are vastly different right they have different naming conventions
+have different naming conventions different structures different metadata
+different structures different metadata and we implemented a plug-in to
+and we implemented a plug-in to represent each rig type this means that
+represent each rig type this means that we don't really have to care about which
+we don't really have to care about which rig we're interacting with so we call
+rig we're interacting with so we call our grab method with whatever is
+our grab method with whatever is selected we then wrap that into a select
+selected we then wrap that into a select command and we ask it for all the
+command and we ask it for all the controls in the rig and immediately we
+controls in the rig and immediately we get a select all control scripts that's
+get a select all control scripts that's rig agnostic we can use that same bit of
+rig agnostic we can use that same bit of code regardless of the rig that we're
+code regardless of the rig that we're operating on and we can take it a little
+operating on and we can take it a little bit further so we can look at all the
+bit further so we can look at all the objects that we've got selected and for
+objects that we've got selected and for each one we can ask the rig API for its
+each one we can ask the rig API for its opposing object we then wrap that in a
+opposing object we then wrap that in a select a select call and we get a select
+select a select call and we get a select opposite script that's working on all
+opposite script that's working on all three rigs independently then the
+three rigs independently then the crucial part here is in the scripts
+crucial part here is in the scripts where we're writing we're never making
+where we're writing we're never making any kind of assumption as to the rig
+any kind of assumption as to the rig we're working on we let the the
+we're working on we let the the framework or the system work that out
+framework or the system work that out for us and ultimately the system is
+for us and ultimately the system is letting each plug-in make that decision
+letting each plug-in make that decision and we can bring that back to the
+and we can bring that back to the context of an exporter so we have a very
+context of an exporter so we have a very generic exporter that's plug in base and
+generic exporter that's plug in base and then we have a rig API where we can say
+then we have a rig API where we can say hey give me all the deformers and I'll
+hey give me all the deformers and I'll pass that to the exporter and suddenly
+pass that to the exporter and suddenly we can start to export data from rigs
+we can start to export data from rigs that we don't control that allows us to
+that we don't control that allows us to chuck in rigs into our pipeline from
+chuck in rigs into our pipeline from lots of different places or experiment
+lots of different places or experiment with lots of different things but it's
+with lots of different things but it's really worth pointing out that writing a
+really worth pointing out that writing a plugin for a metadata system isn't
+plugin for a metadata system isn't particularly trivial depending on what
+particularly trivial depending on what that metadata
+that metadata system looks like and how it works it
+system looks like and how it works it can be really involved but ultimately
+can be really involved but ultimately the costs of implementing a plug-in
+the costs of implementing a plug-in around a metadata system is
+around a metadata system is significantly less than trying to get
+significantly less than trying to get all your tools to work with all the
+all your tools to work with all the different metadata systems that you
+different metadata systems that you might have in play and there's an
+might have in play and there's an interest inside benefit to all of this
+interest inside benefit to all of this the abstracts and the factories are
+the abstracts and the factories are super generic so they never really
+super generic so they never really contain any codes specific to max or
+contain any codes specific to max or code specific to Maya or motion builder
+code specific to Maya or motion builder so to take this whole system and push it
+so to take this whole system and push it into a different application it's really
+into a different application it's really just the cost of implementing a new
+just the cost of implementing a new plugin so that's what we did so we took
+plugin so that's what we did so we took our framework and we started using it in
+our framework and we started using it in Maya and we've got a script here where
+Maya and we've got a script here where we're just dumping out a bunch of
+we're just dumping out a bunch of information through the rig API so we're
+information through the rig API so we're asking for sockets we're asking I think
+asking for sockets we're asking I think for meshes or some deformers and then
+for meshes or some deformers and then we're sending this scene over to
+we're sending this scene over to MotionBuilder and in MotionBuilder we've
+MotionBuilder and in MotionBuilder we've got exactly the same code so we're
+got exactly the same code so we're importing our rig API we're grabbing
+importing our rig API we're grabbing those objects and ultimately we get
+those objects and ultimately we get exactly the same output so we're then
+exactly the same output so we're then jumping between two different
+jumping between two different applications but we're interacting with
+applications but we're interacting with our rigs in exactly the same way and the
+our rigs in exactly the same way and the only cost of this is the implementation
+only cost of this is the implementation of a plug-in that's specific to that
+of a plug-in that's specific to that application this means we can start to
+application this means we can start to build things in different applications
+build things in different applications and not have to worry about how we're
+and not have to worry about how we're going to find our objects which brings
+going to find our objects which brings us again here we're through representing
+us again here we're through representing metadata systems through plugins we're
+metadata systems through plugins we're adding flexibility into a pipeline
+adding flexibility into a pipeline everything becomes a bit more
+everything becomes a bit more forward-facing we're not tied into a
+forward-facing we're not tied into a specific metadata system we could choose
+specific metadata system we could choose to make our tools work with the two
+to make our tools work with the two metadata systems that we have in play
+metadata systems that we have in play and that would work for today but it
+and that would work for today but it wouldn't necessarily work for tomorrow
+wouldn't necessarily work for tomorrow when someone else comes up with a better
+when someone else comes up with a better way of dealing with metadata system
+way of dealing with metadata system metadata systems and ultimately our
+metadata systems and ultimately our tools don't become the bottleneck for us
+tools don't become the bottleneck for us experimenting what becomes interesting
+experimenting what becomes interesting is suddenly our metadata system
+is suddenly our metadata system and our rigging tool and our exporter
+and our rigging tool and our exporter all look the same their code structure
+all look the same their code structure looks the same and so when we go in to
+looks the same and so when we go in to do code reviews the the overhead of
+do code reviews the the overhead of doing a review is really low we're not
+doing a review is really low we're not trying to get around our heads around
+trying to get around our heads around how this person has implemented this
+how this person has implemented this system because the systems kind of the
+system because the systems kind of the same
+same we're immediately looking at the detail
+we're immediately looking at the detail and the implementation the focus is
+and the implementation the focus is fundamentally always on the
+fundamentally always on the functionality and not the framework
+functionality and not the framework itself so we've seen animation and
+itself so we've seen animation and rigging examples but the whole concept
+rigging examples but the whole concept is a lot more flexible than that so I
+is a lot more flexible than that so I mentioned before that we used this kind
+mentioned before that we used this kind of informally in our animation asset
+of informally in our animation asset manager on Halo Wars 2 so that took the
+manager on Halo Wars 2 so that took the concept of an asset and it abstracted it
+concept of an asset and it abstracted it away from the asset system itself so
+away from the asset system itself so that had functions like get me the
+that had functions like get me the dependencies get me metadata get me
+dependencies get me metadata get me icons etc and ultimately the framework
+icons etc and ultimately the framework would search through files and folders
+would search through files and folders for files sorry
+for files sorry search me folders for files and it would
+search me folders for files and it would pass those file paths into each plugin
+pass those file paths into each plugin and the first plug-in that would say hey
+and the first plug-in that would say hey you know what I know how to represent
+you know what I know how to represent this asset that would be instance and
+this asset that would be instance and the framework the asset system itself
+the framework the asset system itself would start calling the methods of that
+would start calling the methods of that plugins of that plug-in to populate a
+plugins of that plug-in to populate a database this meant that we could have
+database this meant that we could have Maya scenes or max scenes or textures
+Maya scenes or max scenes or textures and the plugins would know how to read
+and the plugins would know how to read the metadata relating to each one and
+the metadata relating to each one and our asset system wouldn't ever have to
+our asset system wouldn't ever have to care that gives us something like this
+care that gives us something like this so we can dynamically infer the asset
+so we can dynamically infer the asset type filter because we can just ask the
+type filter because we can just ask the factory for what plugins there are we
+factory for what plugins there are we then query our database and we get a
+then query our database and we get a list of the assets that are in there and
+list of the assets that are in there and we can start to interact with those
+we can start to interact with those assets but when we right-click in one of
+assets but when we right-click in one of these the asset system doesn't know what
+these the asset system doesn't know what actions are available we simply do
+actions are available we simply do another valid valid dirty check
+another valid valid dirty check and we asked that plugin for its action
+and we asked that plugin for its action list and we generate a context menu
+list and we generate a context menu based on that so if you right-click a
+based on that so if you right-click a rig then you might get options like
+rig then you might get options like reference it or edit it but if you
+reference it or edit it but if you right-click a texture you might just get
+right-click a texture you might just get apply but the system itself still had
+apply but the system itself still had hard-coded code based on how to find an
+hard-coded code based on how to find an asset ultimately on Haley was - all of
+asset ultimately on Haley was - all of our assets were on our local hard drive
+our assets were on our local hard drive so it was hard coded to search for Maya
+so it was hard coded to search for Maya files or max files on in specific
+files or max files on in specific locations and whilst that wasn't bad
+locations and whilst that wasn't bad because that adhered to the restrictions
+because that adhered to the restrictions of the project it limited the scope of
+of the project it limited the scope of the tool and we wanted to break away
+the tool and we wanted to break away from that limitation so we added a
+from that limitation so we added a second Factory this time the
+second Factory this time the responsibility of that factory was to
+responsibility of that factory was to hold plugins relating to search
+hold plugins relating to search mechanisms so we then added a plugin for
+mechanisms so we then added a plugin for local folder searches and we moved the
+local folder searches and we moved the code that was in the asset system itself
+code that was in the asset system itself into that plugin this meant the whole
+into that plugin this meant the whole thing worked in exactly the same way the
+thing worked in exactly the same way the resort was identical but our asset
+resort was identical but our asset system was a lot lighter and this opened
+system was a lot lighter and this opened up some interesting doors for
+up some interesting doors for experimentation so for the sake of
+experimentation so for the sake of proving that flexibility and having a
+proving that flexibility and having a soft spot for dinosaurs we implemented a
+soft spot for dinosaurs we implemented a second plugin this time the plug-in
+second plugin this time the plug-in would only return its viability test if
+would only return its viability test if the path it was given was a URL to a
+the path it was given was a URL to a website called pea bio de org which is
+website called pea bio de org which is all about taxonomy information on
+all about taxonomy information on dinosaurs and ultimately we're no longer
+dinosaurs and ultimately we're no longer scraping files on a disk but we're
+scraping files on a disk but we're calling a remote server and we're asking
+calling a remote server and we're asking for information and we implement a
+for information and we implement a second asset plug-in which then will
+second asset plug-in which then will only return its viability if it gets
+only return its viability if it gets JSON data from this REST API now we're
+JSON data from this REST API now we're not making a game about dinosaur
+not making a game about dinosaur taxonomy so this was a complete waste of
+taxonomy so this was a complete waste of time
+time but it proved the system and it meant
+but it proved the system and it meant that we could jump between two vastly
+that we could jump between two vastly different data types very very quickly
+different data types very very quickly so here we're browsing warhammer two
+so here we're browsing warhammer two assets
+assets and these were scraped from the local
+and these were scraped from the local hard drive and pulled in and we the way
+hard drive and pulled in and we the way we interact with those is to open or
+we interact with those is to open or reference but we can jump over to our
+reference but we can jump over to our options tab and we can see that the file
+options tab and we can see that the file path or the search routes for those were
+path or the search routes for those were a local hard disk but if we switch over
+a local hard disk but if we switch over to our Paleo project you'll see that the
+to our Paleo project you'll see that the search route changes so the search who
+search route changes so the search who is now a paleo bio REST API so it's now
+is now a paleo bio REST API so it's now actively searching the online resource
+actively searching the online resource and populating the database based on the
+and populating the database based on the taxonomy information and the way we
+taxonomy information and the way we interact with those assets because
+interact with those assets because assets are just pieces of information is
+assets are just pieces of information is drastically different we get an open a
+drastically different we get an open a Google Images search or open the
+Google Images search or open the taxonomy information look at the key
+taxonomy information look at the key with this is you never tell a producer
+with this is you never tell a producer what you're doing because they'll never
+what you're doing because they'll never let you do and play with this stuff but
+let you do and play with this stuff but it was good but the key is it ultimately
+it was good but the key is it ultimately proved that it works and it doesn't take
+proved that it works and it doesn't take a great leap of imagination to see that
+a great leap of imagination to see that the next use of this tool is probably
+the next use of this tool is probably for an animation motion library where
+for an animation motion library where maybe we're looking at motion
+maybe we're looking at motion information that's on a network drive
+information that's on a network drive that's on perforce that's on an FTP and
+that's on perforce that's on an FTP and perhaps we're dealing with FBX files and
+perhaps we're dealing with FBX files and BVH files atom files as well as our
+BVH files atom files as well as our internal formats and ultimately for the
+internal formats and ultimately for the animator or the user they don't have to
+animator or the user they don't have to care they can simply search for
+care they can simply search for animations within this framework they
+animations within this framework they can right-click an animation and apply
+can right-click an animation and apply it and it's up to us in a plug-in to
+it and it's up to us in a plug-in to decide what happens when we choose to
+decide what happens when we choose to apply that kind of file format which
+apply that kind of file format which brings us here again to this familiar
+brings us here again to this familiar slide where when we implement an asset
+slide where when we implement an asset system it's all too easy to think well
+system it's all too easy to think well our assets are Maya files and our assets
+our assets are Maya files and our assets are t.j.s
+are t.j.s so we'll just hard code that into our
+so we'll just hard code that into our asset system and that's what we've done
+asset system and that's what we've done so many times and we end up constantly
+so many times and we end up constantly having to refactor or rewrite for every
+having to refactor or rewrite for every single project instead we push that into
+single project instead we push that into small little encapsulated blobs of
+small little encapsulated blobs of plugins and we let the plugins decide
+plugins and we let the plugins decide when they should be used this ultimately
+when they should be used this ultimately means that we get masses amount
+means that we get masses amount of reuse from our tools they become a
+of reuse from our tools they become a lot more flexible in what they can be
+lot more flexible in what they can be used for our coding standards tend to
+used for our coding standards tend to improve because there's a lot of
+improve because there's a lot of familiarity I can never say that word
+familiarity I can never say that word between all of our tools right when a TA
+between all of our tools right when a TA comes on board we only have to teach
+comes on board we only have to teach them or show them how one of our tools
+them or show them how one of our tools works and they pretty much know how all
+works and they pretty much know how all of our other tools work because there's
+of our other tools work because there's so much consistency TAS are far more
+so much consistency TAS are far more collaborative now I mean they're a
+collaborative now I mean they're a pretty social group anyway but as soon
+pretty social group anyway but as soon as they can jump onto someone else's
+as they can jump onto someone else's tool or library and not have to go
+tool or library and not have to go through the pain of understanding how
+through the pain of understanding how the system works everything's a bit more
+the system works everything's a bit more fluid and dynamic but ultimately it
+fluid and dynamic but ultimately it means we can grow in a much more stable
+means we can grow in a much more stable way and this has been really good for us
+way and this has been really good for us it's been really effective and it's now
+it's been really effective and it's now interspersed across a lot of our tools
+interspersed across a lot of our tools that cover Maya max MotionBuilder and
+that cover Maya max MotionBuilder and stand alone so it's been really really
+stand alone so it's been really really powerful it won't necessarily minimize
+powerful it won't necessarily minimize the amount of code you write if anything
+the amount of code you write if anything in certain situations as we saw with the
+in certain situations as we saw with the rig and tool it actually means you write
+rig and tool it actually means you write more code but it means you're being a
+more code but it means you're being a lot more focused and you're paying a lot
+lot more focused and you're paying a lot less refactoring costs it also won't
+less refactoring costs it also won't solve your project specific problems but
+solve your project specific problems but it does allow you to scale without an
+it does allow you to scale without an ever increasing amount of complexity it
+ever increasing amount of complexity it allows you to experiment and take risks
+allows you to experiment and take risks without incurring technical debt that's
+without incurring technical debt that's an unknown quantity for us specifically
+an unknown quantity for us specifically we gained the ability to keep growing
+we gained the ability to keep growing our tools without being restricted and
+our tools without being restricted and as I mentioned at T ace work far more
+as I mentioned at T ace work far more collaboratively because the overhead of
+collaboratively because the overhead of diving onto someone else's tool is
+diving onto someone else's tool is significantly lower generally our dev
+significantly lower generally our dev and testing times start to diminish
+and testing times start to diminish because as soon as you know how the
+because as soon as you know how the system works and you've got a pattern of
+system works and you've got a pattern of files and structure you dive straight
+files and structure you dive straight into the functionality and you're not
+into the functionality and you're not whiteboarding architectural decisions
+whiteboarding architectural decisions every other day but more important and
+every other day but more important and all of that it means that you can
+all of that it means that you can experiment with ideas when you don't
+experiment with ideas when you don't know whether
+know whether in a pan out and when you're visiting GC
+in a pan out and when you're visiting GC or other things like that you know you
+or other things like that you know you get inspired and you take risks and you
+get inspired and you take risks and you go back and you want to try things out
+go back and you want to try things out but not everything pans out the way you
+but not everything pans out the way you want so that's a really nice benefit but
+want so that's a really nice benefit but ultimately tools and TECA are not a
+ultimately tools and TECA are not a self-serving group you know where our
+self-serving group you know where our goal is to empower content creators but
+goal is to empower content creators but the two things shouldn't be thought of
+the two things shouldn't be thought of as being exclusive because the freer we
+as being exclusive because the freer we are to experiment and take risks the
+are to experiment and take risks the better the results are that our content
+better the results are that our content creators get and it's worth pointing out
+creators get and it's worth pointing out that all of this is the work of entire
+that all of this is the work of entire tech art team thank you
+tech art team thank you [Applause]
+[Music]
+and if anyone has any questions feel free yeah crystal foam remedy cool stuff
+free yeah crystal foam remedy cool stuff we have kind of similar things happening
+we have kind of similar things happening at our company I do have one question
+at our company I do have one question you mentioned that you have to write a
+you mentioned that you have to write a lot of boilerplate code which I assume
+lot of boilerplate code which I assume you do to support like an IKE a plug-in
+you do to support like an IKE a plug-in for MotionBuilder maya max whatever can
+for MotionBuilder maya max whatever can you actually always guarantee that I
+you actually always guarantee that I cave will always behave the same or is
+cave will always behave the same or is that something you're willing to live
+that something you're willing to live without so the rigging code itself we
+without so the rigging code itself we haven't ported over to any other
+haven't ported over to any other application than Maya so the rigging
+application than Maya so the rigging tour at the moment is specific to - Maya
+tour at the moment is specific to - Maya right it's only metadata that you've
+right it's only metadata that you've reported yeah the only one that we've
+reported yeah the only one that we've really pushed out is the rigging API
+really pushed out is the rigging API okay but yet that doesn't be interesting
+okay but yet that doesn't be interesting to try to solve the same issue thank you
+to try to solve the same issue thank you [Applause]
+[Applause] [Music]
+you

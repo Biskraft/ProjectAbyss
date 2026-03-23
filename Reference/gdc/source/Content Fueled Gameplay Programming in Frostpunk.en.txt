@@ -1,0 +1,1006 @@
+[Music] good afternoon ladies and gentlemen
+good afternoon ladies and gentlemen first things first i would like to
+first things first i would like to remind you to turn off your cell phones
+remind you to turn off your cell phones and to fill out the session evaluation
+and to fill out the session evaluation email
+email and let's start my name is alexander kau
+and let's start my name is alexander kau i am lead gameplay programmer at 11 bit
+i am lead gameplay programmer at 11 bit studios
+studios and today i would like to present you
+and today i would like to present you the architecture that we used
+the architecture that we used in frostpunk
+in frostpunk a few words about me i've been gameplay
+a few words about me i've been gameplay programmer for
+programmer for about nine years now most of this time i
+about nine years now most of this time i spent
+spent at 11 bit studios and i programmed
+at 11 bit studios and i programmed titles like anomaly anomaly 2
+titles like anomaly anomaly 2 this war of mine and most recently
+this war of mine and most recently i was the lead gameplay programmer of
+i was the lead gameplay programmer of frostpunk
+frostpunk that came out last year
+that came out last year for for those of you who haven't played
+for for those of you who haven't played frostpunk it's a society silva survival
+frostpunk it's a society silva survival game
+game so at its core it's a city builder
+so at its core it's a city builder but with strong emphasis on the survival
+but with strong emphasis on the survival aspect and harsh conditions in case of
+aspect and harsh conditions in case of frostpunk
+frostpunk the world is frozen and we are the
+the world is frozen and we are the leader of the last city on earth
+leader of the last city on earth and the game is focused on society
+and the game is focused on society and how the harsh conditions can change
+and how the harsh conditions can change the
+the society itself what impact does it have
+society itself what impact does it have on the society and on our decision
+on the society and on our decision decision making considering the society
+so it was made based on liquid engine our own homebrew technology that has
+our own homebrew technology that has been developed since
+been developed since nine years or so and it was programmed
+nine years or so and it was programmed by
+by five gameplay programmers and five
+five gameplay programmers and five engine programmers
+engine programmers and everything that i will present you
+and everything that i will present you was made by
+was made by those wonderful people me included
+so the idea of the game had introduced us to many challenges first
+introduced us to many challenges first of all
+of all there was no solid reference for what we
+there was no solid reference for what we were trying to pull off
+were trying to pull off because there was no city builder game
+because there was no city builder game that focused on the survival aspect
+that focused on the survival aspect aside from banished maybe
+aside from banished maybe but the thing that could stand
+but the thing that could stand out for our game was the focus on
+out for our game was the focus on society
+society that was never seen in a city builder
+that was never seen in a city builder game
+game as far as we know so that
+as far as we know so that meant for the programming team that we
+meant for the programming team that we had to do a lot of research and r
+had to do a lot of research and r d and support our designers who did the
+d and support our designers who did the same
+same so fast prototyping fast iterations
+so fast prototyping fast iterations that was the main thing during the
+that was the main thing during the development
+development and aside from that it was the biggest
+and aside from that it was the biggest project for
+project for 11 bit studios this war of mine was made
+11 bit studios this war of mine was made by 20 people
+by 20 people frostpunk was made by 70 people so the
+frostpunk was made by 70 people so the scale
+scale went up pretty high
+the solution we came up with was data-driven
+data-driven architecture that was based on entity
+architecture that was based on entity component systems
+component systems it proved to be a flexible easily
+it proved to be a flexible easily expandable
+expandable architecture that allowed the design and
+architecture that allowed the design and art teams to create
+art teams to create content and with programmers only
+content and with programmers only providing
+providing tools or new pieces of the puzzle
+tools or new pieces of the puzzle and the architecture proved to be very
+and the architecture proved to be very good for
+good for iterations and experiments and i would
+iterations and experiments and i would say that without
+say that without this approach without data-driven
+this approach without data-driven programming we wouldn't be able to
+programming we wouldn't be able to create such a unique game as frostpunk i
+create such a unique game as frostpunk i believe
+believe is and i will try to tell you
+is and i will try to tell you why so
+why so when we started programming creating
+when we started programming creating frost bank
+frost bank we had to start from somewhere the idea
+we had to start from somewhere the idea was that we start with something that we
+was that we start with something that we all well know
+all well know so the economy system the building
+so the economy system the building systems
+systems and so on so the requests from our
+and so on so the requests from our design teams
+design teams were was where that they needed a system
+were was where that they needed a system where they could define new entity types
+where they could define new entity types they could introduce for example new
+they could introduce for example new buildings
+buildings new behaviors they should be able to
+new behaviors they should be able to quickly reconfigure them
+quickly reconfigure them and they should be able to swap features
+and they should be able to swap features between
+between entity types so if we create a
+entity types so if we create a coal mine the fact of gathering
+coal mine the fact of gathering coal should be we should be able to
+coal should be we should be able to transfer it to another building
+transfer it to another building as a feature and we all knew that it
+as a feature and we all knew that it won't end on
+won't end on 20 entity types there would be more
+20 entity types there would be more entity types so the system should be
+entity types so the system should be able to scale well enough
+so we started with data structure main piece of our data structure is something
+piece of our data structure is something we called
+we called rtti class it is a
+rtti class it is a c plus class that can be serialized to
+c plus class that can be serialized to xml
+xml and to binary and our rtti system
+and to binary and our rtti system recognize the type and loads the class
+recognize the type and loads the class from the definition
+from the definition we use the xml in our editor in our work
+we use the xml in our editor in our work place and the binary format is used in
+place and the binary format is used in the final content
+the final content we also introduced global unique
+we also introduced global unique identifier
+identifier to identify rtti classes
+to identify rtti classes it of course has fixed size text form
+it of course has fixed size text form i think you will understand what it is
+and the last piece of a data structure puzzle
+puzzle is template template is a rtti class
+is template template is a rtti class that define an in-game object type
+that define an in-game object type it is of course identified by unique id
+it is of course identified by unique id and it's widely supported by our editor
+and it's widely supported by our editor our tool
+our tool so from from the template the
+so from from the template the instances of an object are created it's
+instances of an object are created it's like a prefab in unity
+like a prefab in unity so the pipeline during the game load
+so the pipeline during the game load during the work
+during the work goes like that we start with xml file
+goes like that we start with xml file then our rtti system creates template
+then our rtti system creates template object
+object in memory and then class factory creates
+in memory and then class factory creates its instances of in-game objects pretty
+its instances of in-game objects pretty straightforward
+straightforward template examples entity templates like
+template examples entity templates like buildings
+buildings like citizen template and so on
+like citizen template and so on components
+components in entity component systems were also
+in entity component systems were also implemented as templates
+implemented as templates mesh templates ui recipes basically
+mesh templates ui recipes basically everything you think
+everything you think was defined is defined in our
+was defined is defined in our architecture by
+architecture by a template class
+it's yes i think you all know what an entity component system is so
+entity component system is so to briefly remind
+to briefly remind it is a system where entity is just a
+it is a system where entity is just a container for
+container for components the components there's
+components the components there's carry that only and systems
+carry that only and systems work only on components that are
+work only on components that are attached to them
+attached to them and the main advantage for us especially
+and the main advantage for us especially considering
+considering the number of entities in the city
+the number of entities in the city was that the update didn't go
+was that the update didn't go through entity by entity way but
+through entity by entity way but functionality by functionality so
+functionality by functionality so everybody in the city
+everybody in the city moved everybody in the city starved
+moved everybody in the city starved everybody in the city
+everybody in the city did their work and so on so on
+so state and data is kept in component all logic is implemented in systems
+all logic is implemented in systems but in our case systems can also keep
+but in our case systems can also keep global state
+global state it proved to be very useful for a game
+it proved to be very useful for a game like frostpunk
+like frostpunk because for example the economy system
+because for example the economy system keeps the track of the resources the
+keeps the track of the resources the player has
+player has and it is global global value that can
+and it is global global value that can be
+be taken from the system it proved useful
+taken from the system it proved useful for us
+for us so we we decided to
+so we we decided to let the system keep their state
+let the system keep their state and we also needed to face the fact that
+and we also needed to face the fact that our engine is older than entity
+our engine is older than entity component systems and not
+component systems and not all parts of it were transferred to the
+all parts of it were transferred to the new architecture
+new architecture so some features were outside of vcs
+so some features were outside of vcs that had an
+that had an impact of on our code and for example
+impact of on our code and for example that would be ui system
+that would be ui system input system rendering system and so on
+input system rendering system and so on components and component templates as i
+components and component templates as i mentioned earlier
+mentioned earlier are rtti classes entity template
+are rtti classes entity template has a list of and of component templates
+has a list of and of component templates that are inside this entity and
+that are inside this entity and component keeps reference to its
+component keeps reference to its template
+template object so constant data
+object so constant data is kept in the template object and the
+is kept in the template object and the mutable data is kept within components
+mutable data is kept within components of course via the serialization
+of course via the serialization it can be saved as a safe game state
+we introduced two restrictions to the system
+system we've decided that only one component of
+we've decided that only one component of a type can
+a type can occur inside one entity which
+occur inside one entity which helped us to keep the configuration
+helped us to keep the configuration clean
+clean and was less error prone than
+and was less error prone than the approach where you can put
+the approach where you can put many components of the same type on an
+many components of the same type on an entity
+entity so the designer would be warned
+so the designer would be warned or even would be forbidden to put one
+or even would be forbidden to put one to put more than one component of the
+to put more than one component of the same type on entity
+same type on entity and another rule is one system per
+and another rule is one system per component type
+component type in our architecture one system is only
+in our architecture one system is only taking care of
+taking care of and processes one component type
+and processes one component type this is single responsible
+this is single responsible responsibility
+responsibility principle and it proved to be
+principle and it proved to be very clean for us to navigate through
+very clean for us to navigate through the code
+the code so we had a lot of new people on board
+so we had a lot of new people on board during the development of frostpunk and
+during the development of frostpunk and the clarity of the code
+the clarity of the code was very important for us so it
+was very important for us so it simplified the architecture
+simplified the architecture and was easier to to understand when one
+and was easier to to understand when one component
+component was handled by one system
+but that implied that there was no system
+system or component classes inheritance
+or component classes inheritance so we technically couldn't
+so we technically couldn't allow the inheritance
+allow the inheritance and through that the only way
+and through that the only way the functionality of a component
+the functionality of a component could be expanded was via adding a new
+could be expanded was via adding a new component type
+component type so if there was a movement component
+so if there was a movement component type for example
+type for example the running component type would be
+the running component type would be another component handled by another
+another component handled by another system
+system or we add the functionality to already
+or we add the functionality to already existing
+existing component this allowed us to
+component this allowed us to head for the component to have a unique
+head for the component to have a unique id
+id so checking if the entity has a
+so checking if the entity has a component of a type is just comparing
+component of a type is just comparing bit masks
+bit masks so it worked
+but it introduced a new problem because of
+of lack of inheritance some components were
+lack of inheritance some components were dependent on each other and for example
+dependent on each other and for example generator is a special building in
+generator is a special building in frostpunk the main building in the
+frostpunk the main building in the center
+center that provides heat for the for the city
+that provides heat for the for the city and it has of course generator component
+and it has of course generator component but it is also a building so it requires
+but it is also a building so it requires building component
+building component we solve that dependency by
+we solve that dependency by introducing attributes and attribute
+introducing attributes and attribute require component
+require component marks component type as prerequisite for
+marks component type as prerequisite for another component type
+another component type so when the generator component is added
+so when the generator component is added by the design team
+by the design team the default building component is also
+the default building component is also added on
+added on to an entity or the designer is prompt
+to an entity or the designer is prompt to define the building component if it's
+to define the building component if it's not
+not able to be created by default
+and on the other hand there started to occur a problem with initialization
+occur a problem with initialization order
+order so we initialized components as they
+so we initialized components as they were added by the designers
+were added by the designers but some component needed to be
+but some component needed to be initialized after another components
+initialized after another components so we introduced attribute adapter
+so we introduced attribute adapter component
+component to mark that certain component type
+to mark that certain component type should be initialized
+should be initialized before another component type
+before another component type and for example workplace component is a
+and for example workplace component is a component that manages the efficiency of
+component that manages the efficiency of the workers inside a building
+the workers inside a building and to properly be initialized it needs
+and to properly be initialized it needs information about what what is the
+information about what what is the amount of people
+amount of people allowed in this building so it needs to
+allowed in this building so it needs to be added after
+be added after place for agent component as you can see
+place for agent component as you can see in the example
+through the development of the game the design team
+design team pinpointed that a lot of entities
+pinpointed that a lot of entities are basically the same in some way
+are basically the same in some way so they have similar components attached
+so they have similar components attached to them
+to them and they had to when creating a new
+and they had to when creating a new building for example they had to copy
+building for example they had to copy the
+the component definitions that were
+component definitions that were basically the same for every single
+basically the same for every single building
+building to solve that problem and to make the
+to solve that problem and to make the designer's life easier
+designer's life easier we introduced component sets component
+we introduced component sets component sets
+sets are batches of components that the
+are batches of components that the designer can define
+designer can define it can be nested inside each other
+it can be nested inside each other and it can be attached to entity so
+and it can be attached to entity so aside from
+aside from the component list the entity also has
+pointers to component sets that are added
+added when the entity is initialized
+when the entity is initialized so when the entity the building
+so when the entity the building is a common building like any other
+is a common building like any other the basic component set is sufficient
+the basic component set is sufficient for them
+for them but when something special should happen
+but when something special should happen inside the building the designer always
+inside the building the designer always can
+can add the component set and not the
+add the component set and not the component definition
+component definition of which special configuration
+of which special configuration and the definition from an entity
+and the definition from an entity overloads the definition from
+overloads the definition from a component set
+and here is an example of generator component
+component it inherits from some base component
+it inherits from some base component type the
+type the component input class is an abstract
+component input class is an abstract class
+class that basically combines the
+that basically combines the component template with components
+component template with components itself
+itself and allows the class factory to properly
+and allows the class factory to properly initialize the component
+initialize the component then the capital lettered
+then the capital lettered purple instructions are macros
+purple instructions are macros that allow the rtti system to work
+that allow the rtti system to work properly so
+properly so it introduce introduces attributes as
+it introduce introduces attributes as you can see two attributes require
+you can see two attributes require component and after add after component
+component and after add after component which i spoke earlier
+which i spoke earlier and then we've got property declarations
+and then we've got property declarations these are also macro definitions that
+these are also macro definitions that adds the class fields to
+adds the class fields to an rtti system and then of course our
+an rtti system and then of course our ordinary class members and
+ordinary class members and for the convenience of usage we also
+for the convenience of usage we also befriend
+befriend a generator system so that the system
+a generator system so that the system can access
+can access protected members of of of the component
+an overview over our architecture looks like that so
+like that so the green part is what is defined by the
+the green part is what is defined by the design and art teams so we've got
+design and art teams so we've got behavior trees
+behavior trees for iai system that is used by ai
+for iai system that is used by ai components and ai systems
+components and ai systems but that's the topic for another talk
+but that's the topic for another talk then we've got templates configuration
+then we've got templates configuration files which i'll cover in a moment
+files which i'll cover in a moment and other things like user interface
+and other things like user interface like
+like engine render and so on
+engine render and so on so the game state is held by
+so the game state is held by entity component systems with some
+entity component systems with some helper classes
+helper classes that manage configuration files and
+that manage configuration files and the rendering and user interface input
+the rendering and user interface input is
+is like a black box in the stock
+so we created a basic city builder with some basic economics
+some basic economics but we didn't even start to create a
+but we didn't even start to create a society survival game
+society survival game so the design team wanted to start
+so the design team wanted to start iterating on that
+iterating on that and they wanted a system that would
+and they wanted a system that would allow them to control the flow of the
+allow them to control the flow of the game
+game control the narration control the
+control the narration control the special events that occur
+special events that occur either from the story or from
+either from the story or from the game state itself
+the game state itself so they needed a system that could
+so they needed a system that could allow them to write the story via
+allow them to write the story via in-game events
+in-game events some of them scripted some of them
+some of them scripted some of them emerging from the game state
+emerging from the game state they also needed a way to easily check
+they also needed a way to easily check how the player is doing
+how the player is doing what is the state of the city and the
+what is the state of the city and the state of the citizens
+state of the citizens and another requirement they wanted to
+and another requirement they wanted to define
+define things once so if they define a building
+things once so if they define a building in some place of in the configuration
+in some place of in the configuration then they shouldn't be
+then they shouldn't be shouldn't need to duplicate that
+shouldn't need to duplicate that definition
+definition so we needed a system that would allow
+so we needed a system that would allow us to point
+us to point certain parts of configuration from
+certain parts of configuration from another parts of configuration
+we introduced a concept of an entry to solve that
+solve that last problem entry is an abstraction for
+last problem entry is an abstraction for a configuration part
+a configuration part it is of course an rtti class with its
+it is of course an rtti class with its own unique id
+own unique id but it has also a readable name and of
+but it has also a readable name and of course the data
+course the data it consists
+the idea is that a configuration file for example
+for example a building list provides entries
+a building list provides entries then global entry manager reads these
+then global entry manager reads these entries
+entries and the
+once more from another parts of configuration
+configuration we are able to point on that entries
+we are able to point on that entries inside entry manager
+inside entry manager via entry links
+via entry links so for example we've got config file i
+so for example we've got config file i which consists a list of entries
+which consists a list of entries of type foo entry then we've got entry
+of type foo entry then we've got entry manager so
+manager so after the game is loaded the the file is
+after the game is loaded the the file is read
+read the entry manager reads the
+the entry manager reads the entries and can provide a list of them
+entries and can provide a list of them and from another file we can
+and from another file we can put an entry link that points at a
+put an entry link that points at a certain part of configuration
+certain part of configuration it was very useful because when
+it was very useful because when entry link is a type of its own when a
+entry link is a type of its own when a class
+class an rtti class has a field of an entry
+an rtti class has a field of an entry type
+type entry link type the
+entry link type the designer when is configuring that
+designer when is configuring that part of that object that entity order is
+part of that object that entity order is able to pick
+able to pick from the list of available entries it's
+from the list of available entries it's all connected via
+all connected via general user ids unique ids
+general user ids unique ids so the configuration is always
+so the configuration is always consistent
+consistent because when an entry that is used
+because when an entry that is used somewhere else
+somewhere else is deleted we can also always check
+is deleted we can also always check if the entry link pinpoints on something
+if the entry link pinpoints on something and therefore we can inform the design
+and therefore we can inform the design team that the configuration is
+team that the configuration is wrong is is error
+and as of the narration goes we introduced game events system it is a
+we introduced game events system it is a basically a script system that is put in
+basically a script system that is put in xml
+xml then it is loaded by the rtti system
+then it is loaded by the rtti system into c plus classes
+into c plus classes and held in memory that way so there is
+and held in memory that way so there is no
+no scripts interpreted during run time
+scripts interpreted during run time and the idea was to
+and the idea was to create it for quick prototyping but
+create it for quick prototyping but with the cleanness and polish
+with the cleanness and polish of final content so they could be valid
+of final content so they could be valid in final content as well
+the main building part of game event systems is of course game
+game event systems is of course game event
+event game event is a configuration entry that
+game event is a configuration entry that is built from
+is built from three lists of elements triggers
+three lists of elements triggers conditions and effects all of these
+conditions and effects all of these elements are configurable by
+elements are configurable by the design team the programming team
+the design team the programming team only
+only provided different types of triggers
+provided different types of triggers or conditions or effects and
+or conditions or effects and with some additional features like
+with some additional features like local and global variables it
+local and global variables it became almost a programming language it
+became almost a programming language it has its pros and cons
+has its pros and cons that we'll cover in a moment
+so triggers triggers are objects that register
+triggers are objects that register themselves
+themselves for a specific incident in game
+for a specific incident in game so for example a specific time of day
+so for example a specific time of day deaths of that citizen
+deaths of that citizen new child born whatever else you can
+new child born whatever else you can imagine
+imagine and when that specific incident happens
+and when that specific incident happens the trigger is fired
+the trigger is fired so here you've got uh an example from
+so here you've got uh an example from our editor
+our editor a trigger that is named construction of
+a trigger that is named construction of building beacon
+building beacon finished its class is building work
+finished its class is building work the specific building is beacon
+the specific building is beacon and the event occurs when the
+and the event occurs when the construction is finished
+construction is finished so the designer is able to configure
+so the designer is able to configure the trigger a bit so to be specific when
+the trigger a bit so to be specific when the trigger fires
+the trigger fires but main part of the configuration for
+but main part of the configuration for conditions is done via condition system
+conditions is done via condition system so conditions are basically boolean
+so conditions are basically boolean expressions
+expressions that evaluate of course to true or false
+that evaluate of course to true or false and they utilize some helper classes
+and they utilize some helper classes that provide
+that provide information about the current game state
+all in all they take form of polish notation expression and in our editor
+notation expression and in our editor it looks like a tree that is expanded
+it looks like a tree that is expanded and for example here we've got a
+and for example here we've got a comparison
+comparison of integer comparison
+of integer comparison of one and amount of bodies the
+of one and amount of bodies the comparison is lesser than
+comparison is lesser than and the left side is configured as
+and the left side is configured as constant integer
+constant integer with value of one and the right side is
+with value of one and the right side is that helper class that i mentioned
+that helper class that i mentioned it is checking for a resource in this
+it is checking for a resource in this case bodies
+case bodies grim
+and last but not least we've got effects effects are simply put functors
+effects are simply put functors so c plus plus objects that are
+so c plus plus objects that are basically functions
+basically functions that can change game state uh
+that can change game state uh when they when they fire when are
+when they when they fire when are executed
+so the flow the designer could create and could work on goes like this we've
+and could work on goes like this we've got ecs systems
+got ecs systems that provide game state when certain
+that provide game state when certain event
+event in game occurs then the trigger is fired
+in game occurs then the trigger is fired the conditions are checked if the
+the conditions are checked if the conditions are evaluated to true
+conditions are evaluated to true the effects are executed and if the
+the effects are executed and if the conditions are evaluated to false
+conditions are evaluated to false nothing happens
+for example trigger citizen died from starvation
+starvation condition more than 30 deaths from
+condition more than 30 deaths from starvation
+starvation effect the society should be manifesting
+effect the society should be manifesting or protesting that we need to solve the
+or protesting that we need to solve the starvation problem
+starvation problem another example new sikh citizen if
+another example new sikh citizen if there are more than 10 sick citizens
+there are more than 10 sick citizens without medical care
+without medical care start the quest to solve health care
+start the quest to solve health care problem
+problem another example day 3 12 o'clock
+another example day 3 12 o'clock a bit late no hunter's huts no food
+a bit late no hunter's huts no food create a hint for the player to build
+create a hint for the player to build hunter's huts
+the last missing part of the event systems
+systems system was the context so
+system was the context so when the event fires for example new
+when the event fires for example new child is born
+child is born we want that child to be the context of
+we want that child to be the context of the event
+the event so for example we want to give a name or
+so for example we want to give a name or whatever inside effects
+whatever inside effects and that is provide via context so
+and that is provide via context so every event when the trigger fires it
+every event when the trigger fires it assigns a context an entity to that
+assigns a context an entity to that event
+event and it is valid through the conditions
+and it is valid through the conditions part the effects part and so on
+so we've got a entity that fired the trigger but sometimes we need to
+trigger but sometimes we need to affect other entities connected somehow
+affect other entities connected somehow by
+by the event so for example when a new
+the event so for example when a new child is born
+child is born we want to name that child but we also
+we want to name that child but we also want to raise
+want to raise happiness or hope for the family
+happiness or hope for the family so inside the effects the designers can
+so inside the effects the designers can put selectors that filter entities
+put selectors that filter entities through the city through the game state
+through the city through the game state basically
+basically and execute effects with these
+and execute effects with these selected entities as contexts so
+selected entities as contexts so they are able to switch context during
+they are able to switch context during the event execution
+the event execution and by the way default context for every
+and by the way default context for every event is a generator so
+event is a generator so when the event can't be really hung on
+when the event can't be really hung on anything
+anything it is hank on generator
+here is an example from our tool our editor of a game event
+our editor of a game event it is a first death it triggers when a
+it is a first death it triggers when a citizen dies
+citizen dies and it basically creates a tough
+and it basically creates a tough decision
+decision to build cemeteries or to just dispose
+to build cemeteries or to just dispose the body
+the body in the snow
+we reused part parts of the system so the conditions were used in
+so the conditions were used in requirements for
+requirements for research the effects were used in
+research the effects were used in technologies
+technologies and in uh policies that the player could
+and in uh policies that the player could introduce to the city
+introduce to the city uh and the effects of course were used
+uh and the effects of course were used in hard decision choices so the price of
+in hard decision choices so the price of this system
+this system is were spread through a whole game
+is were spread through a whole game the it proved to be a very useful
+the it proved to be a very useful tool tool for debugging for example
+tool tool for debugging for example an event could have a trigger that fires
+an event could have a trigger that fires when certain console command is
+when certain console command is put into so it was easy
+put into so it was easy for the design team to test certain
+for the design team to test certain story parts
+story parts just by typing a command and the effects
+just by typing a command and the effects would be executed just like in
+would be executed just like in the game
+it controls all of our flow in game the entry system and the fact
+in game the entry system and the fact that
+that we could connect certain parts of
+we could connect certain parts of configuration with
+configuration with certain events certain entries provided
+certain events certain entries provided a tool to create
+a tool to create libraries so in one scenario we've got
+libraries so in one scenario we've got certain events set and another scenario
+certain events set and another scenario we could use another event set
+it was very complicated to configure and got glad that we had designers that
+got glad that we had designers that could cope with that
+could cope with that because it required certain programming
+because it required certain programming skills just to get into the system
+skills just to get into the system and without that we wouldn't be able to
+and without that we wouldn't be able to use that at
+use that at all and of course we are aware that we
+all and of course we are aware that we need a better tool to simplify the
+need a better tool to simplify the configuration
+configuration because right now it looks like this
+because right now it looks like this this is a list of directories
+this is a list of directories of events then when we open one
+of events then when we open one directory
+directory there is a list of events and when we
+there is a list of events and when we get into an event this is a
+get into an event this is a configuration for a single event
+configuration for a single event the xml that defines that
+the xml that defines that is huge and we need to find a way right
+is huge and we need to find a way right now to
+now to to deal with that somehow
+okay so the designers were happy but the art team
+art team wasn't uh of course
+wasn't uh of course they created art but they also needed a
+they created art but they also needed a gameplay system they needed a system
+gameplay system they needed a system that would allow them
+that would allow them to check the game state the conditions
+to check the game state the conditions that are currently in the city
+that are currently in the city and change the appearance of building of
+and change the appearance of building of buildings based on that
+buildings based on that so they needed to define
+so they needed to define what visual parts would change and to
+what visual parts would change and to define the conditions
+define the conditions when they are they will be changing and
+when they are they will be changing and they wanted to
+they wanted to apply them at on every single building
+apply them at on every single building in the city
+so for example when the temperature is low
+low is below zero degrees celsius
+is below zero degrees celsius the buildings should be covered in snow
+the buildings should be covered in snow but when the temperature is higher the
+but when the temperature is higher the snow should disappear
+snow should disappear when the building is active there should
+when the building is active there should be an animation that indicates the
+be an animation that indicates the activity in that building
+activity in that building when it's not active maybe a prompt for
+when it's not active maybe a prompt for a player to
+a player to that the building is not working and he
+that the building is not working and he should do something about that
+should do something about that and so on so on night the
+and so on so on night the lights in the building should be on
+lights in the building should be on they they should be off
+they they should be off so here's an example of a generator in
+so here's an example of a generator in different appearance states
+different appearance states the first one is the basic state the
+the first one is the basic state the second
+second is when we introduce laws that basically
+is when we introduce laws that basically change our city into
+change our city into a dictatorship state the third one is
+a dictatorship state the third one is when we
+when we go too far with our religion to the
+go too far with our religion to the point of fanaticism
+point of fanaticism and the other three are different
+and the other three are different upgrade
+upgrade states for for the generator and the
+states for for the generator and the tricky part is
+tricky part is that we needed a system that would allow
+that we needed a system that would allow us to combine
+us to combine the totalitarian
+the totalitarian generator with the third or second
+generator with the third or second upgrade
+upgrade to do that we introduced appearance
+to do that we introduced appearance state appearance state is basically a
+state appearance state is basically a string label
+string label or a config entry that is defined by
+or a config entry that is defined by designers or artists
+designers or artists and can be added or removed by game
+and can be added or removed by game state
+state mechanisms or by effects
+a building can have infinite amount of active appearance states for example
+active appearance states for example active totalitarian building
+active totalitarian building during night and so on
+and for the visuals some of these states should be able to be excluded
+should be able to be excluded so for example building during night and
+so for example building during night and not
+not under construction and the final visuals
+under construction and the final visuals of the building depends on the
+of the building depends on the combinations
+combinations of these appearance states
+the appearance state can affect many many different things
+many different things of course mesh elements props like like
+of course mesh elements props like like flags like
+flags like the religious symbols and so on lights
+the religious symbols and so on lights textures
+textures outlines shaders animations ui icons
+outlines shaders animations ui icons sounds basically
+sounds basically everything that surrounds the building
+everything that surrounds the building and it
+and it has any impact visually or
+has any impact visually or sound like sound wise on the player
+to aggregate the things that are changed by the
+things that are changed by the appearance
+appearance we created appearance overlay appearance
+we created appearance overlay appearance overlay is a definition of
+overlay is a definition of what changes when this when this overlay
+what changes when this when this overlay is applied
+is applied so for example visibility of certain
+so for example visibility of certain props animation start stop
+props animation start stop and so on when the building is active
+and so on when the building is active the animation should start
+the animation should start when the building is not active the
+when the building is not active the animation should stop
+animation should stop so this combined with appearance
+so this combined with appearance conditions
+creates a system that applies certain overlay
+overlay on appearance when the conditions are
+on appearance when the conditions are met
+met so when the conditions are that the
+so when the conditions are that the building should be active during
+building should be active during night we should
+night we should apply appearance overlay that puts on
+apply appearance overlay that puts on the lights
+the lights and this is this is how we did it
+this is a simple sample configuration of appearance state this is an appearance
+appearance state this is an appearance for a building that is outside the
+for a building that is outside the required heat zone
+required heat zone so the building needs to be heated and
+so the building needs to be heated and it isn't
+it isn't the conditions are the building is
+the conditions are the building is constructed the building requires heat
+constructed the building requires heat zone
+zone the place is outside hit zone and the
+the place is outside hit zone and the weather is different than storm because
+weather is different than storm because during the storm we
+during the storm we provide the player with different
+provide the player with different prompts
+prompts not that meaningful meaningless prompt
+not that meaningful meaningless prompt that the building requires hits on
+that the building requires hits on and the overlay is only changing status
+and the overlay is only changing status indicator
+indicator in this case it is an icon above the
+in this case it is an icon above the building
+building so when these conditions are met
+so when these conditions are met the building has these appearance states
+the building has these appearance states the icon appears and the players
+the icon appears and the players informed that the building requires heat
+informed that the building requires heat zone
+zone and it isn't inside the heat zone
+so to sum up the data driven architecture
+architecture as i have shown you in examples provided
+as i have shown you in examples provided us with
+us with the ability to quickly iterate with
+the ability to quickly iterate with minimum minimal involvement of the
+minimum minimal involvement of the programming team
+programming team it allowed us to create rapid prototypes
+it allowed us to create rapid prototypes and the programmers were only
+and the programmers were only introducing new
+introducing new toys for designers to play with
+toys for designers to play with and artists of course and the ecs system
+and artists of course and the ecs system that lies underneath it glued everything
+that lies underneath it glued everything together
+together and was was an efficient system
+and was was an efficient system that allowed once again rapid
+that allowed once again rapid prototyping
+prototyping and lots of r d that the game required
+that is all thank you very much if you have some questions i would gladly
+have some questions i would gladly answer them
+answer them [Applause]
+[Applause] hi can you please explain this idea of
+hi can you please explain this idea of template
+template like probably provide some example
+like probably provide some example what is what can be a template for a
+what is what can be a template for a component
+component what can be a template for what i'm
+what can be a template for what i'm smart component if you have some
+smart component if you have some component you specify
+component you specify template for this component what is
+template for this component what is template
+template template is just the definition of an
+template is just the definition of an object so
+object so for example the template defines what
+for example the template defines what fields are in the object and what is
+fields are in the object and what is configurable by the designer
+configurable by the designer so the designer only sees the
+so the designer only sees the fields that are in the template okay so
+fields that are in the template okay so component itself does not have fields
+component itself does not have fields configurable fields or no it
+configurable fields or no it does have but okay there is a
+does have but okay there is a configuration and there is one time
+configuration and there is one time so in the configuration part we've got
+so in the configuration part we've got templates only
+templates only that define the that can be configured
+that define the that can be configured and
+and create the component and when the
+create the component and when the component lives inside the runtime
+component lives inside the runtime it can change the state and it only has
+it can change the state and it only has states
+states but the definition is remains the same
+but the definition is remains the same okay it's
+okay it's the same concept as with the class
+the same concept as with the class definition and
+definition and class instances okay thank you
+thank you so uh when the with the appearance system that you can
+with the appearance system that you can have authoritarian
+have authoritarian not and night and everything that they
+not and night and everything that they can define a huge matrix of different
+can define a huge matrix of different visual configurations for a building for
+visual configurations for a building for example uh
+example uh did you do like a kind of uh one special
+did you do like a kind of uh one special mesh for each case which sounds like
+mesh for each case which sounds like that's a lot of meshes or some kind of
+that's a lot of meshes or some kind of combination system so that you overlay
+combination system so that you overlay the
+the and all the flags over their building
+and all the flags over their building and stuff like that
+so we use the simplest way the art team could cope with so
+could cope with so they aren't our artists aren't really
+they aren't our artists aren't really into configuration
+into configuration so we introdu we gave them a tool that
+so we introdu we gave them a tool that uh basically uses the name of the mesh
+uh basically uses the name of the mesh used
+used in in the in the entity
+in in the in the entity so that they can show every single mesh
+so that they can show every single mesh that has that name
+that has that name and therefore they do not need to look
+and therefore they do not need to look into the configuration they only need to
+into the configuration they only need to look into the
+look into the elements named in the editor
+elements named in the editor so well so say
+so well so say um they have to decide for each case
+um they have to decide for each case like i don't know how many cases but
+like i don't know how many cases but if it's fanatic and it's not night it
+if it's fanatic and it's not night it could be a different like
+could be a different like visual configuration that if it's okay
+visual configuration that if it's okay right
+right yeah and they gave the designers and
+yeah and they gave the designers and programmers requirements and we created
+programmers requirements and we created the configuration for them
+the configuration for them only a few of them could make that
+only a few of them could make that configuration it there was a lot of
+configuration it there was a lot of cases
+cases but with the naming
+but with the naming convention we could allow them just to
+convention we could allow them just to you know they put an effect that has
+you know they put an effect that has night inside it and it is already
+night inside it and it is already configured before
+configured before so it would be applied in every building
+so it would be applied in every building the the effect with knight is that
+the the effect with knight is that okay thank you
+hi i was just wondering on how you actually managed to create a bridge
+actually managed to create a bridge between
+between uh your your visual and your system
+uh your your visual and your system because well the
+because well the classic uh mvc you want to
+classic uh mvc you want to separate your view from you from your
+separate your view from you from your system but did you create specific
+system but did you create specific system to create that bridge between
+system to create that bridge between your empty your building and
+your empty your building and the visuals um
+the visuals um well it is one-way communication
+well it is one-way communication so the flow is always like this uh
+so the flow is always like this uh it is it always starts with the game
+it is it always starts with the game state and the visuals
+state and the visuals depend on the game state just like the
+depend on the game state just like the view always reads the data
+view always reads the data yes the same concept okay and also i
+yes the same concept okay and also i just wanted to did you
+just wanted to did you inspire yourself by existing ecs system
+inspire yourself by existing ecs system or is it
+or is it was it a hundred percent custom made
+was it a hundred percent custom made once more i'm sorry sorry did you did
+once more i'm sorry sorry did you did you inspire yourself by existing ecs
+you inspire yourself by existing ecs system or did you
+system or did you build this from the ground up we when we
+build this from the ground up we when we started developing frost monk it was
+started developing frost monk it was like
+like four years ago or so and i
+four years ago or so and i don't recall any existing ecs system
+don't recall any existing ecs system that was production ready but
+that was production ready but yeah the unity and unreal i think they
+yeah the unity and unreal i think they already started developing and there
+already started developing and there were some papers that we
+were some papers that we based our system on so yeah it was it
+based our system on so yeah it was it wasn't
+wasn't from the ground our idea okay by no
+from the ground our idea okay by no means
+means but i kind of it was a long time ago i
+but i kind of it was a long time ago i can't really remember
+can't really remember what references did we use okay actually
+what references did we use okay actually i was just curious thank you
+i have question about a system and component you mentioned that one system
+component you mentioned that one system do is one component right yes so what if
+do is one component right yes so what if designer
+designer needs some function that you
+needs some function that you need to deal with the data from two
+need to deal with the data from two components
+components well the components are accessible
+well the components are accessible via systems so one system can
+via systems so one system can communicate with another system
+communicate with another system and get the data from certain components
+and get the data from certain components it's just the one system can change
+it's just the one system can change the components of one type and
+the components of one type and getting data from another system another
+getting data from another system another component is
+component is like no no issue it's no problem
+like no no issue it's no problem so the what i mean by one system one
+so the what i mean by one system one component type is that
+component type is that one system can change the data of one
+one system can change the data of one component type
+component type ah okay thanks
+i'm a little green with uh ecs systems in general
+in general but you mentioned that your old engine
+but you mentioned that your old engine uh didn't support ecs for the visuals
+uh didn't support ecs for the visuals and the input
+and the input yes is that an area that you would have
+yes is that an area that you would have liked to extend to ecs
+liked to extend to ecs i've heard things in the past that
+i've heard things in the past that usually the visuals are kept out of each
+usually the visuals are kept out of each ecs systems
+ecs systems well i think that as far as i remember
+well i think that as far as i remember that
+that our engine team is already porting
+our engine team is already porting certain parts of configuring of engine
+certain parts of configuring of engine to the acs system
+to the acs system but as i am stuck with frostpunk for now
+but as i am stuck with frostpunk for now i'm not
+i'm not like updated what about the newest
+like updated what about the newest changes in the engine because it won't
+changes in the engine because it won't affect frostbite
+affect frostbite at all so but yeah they they try to
+at all so but yeah they they try to move with to ecs even with the rendering
+move with to ecs even with the rendering but if they pull that off i don't know
+but if they pull that off i don't know yeah
+yeah awesome well thank you very much thanks
+awesome well thank you very much thanks thank you
+thank you hi uh you mentioned that input and ui
+hi uh you mentioned that input and ui were two of the things that had to live
+were two of the things that had to live outside of the ecs control but you also
+outside of the ecs control but you also mentioned that there were ui recipes
+mentioned that there were ui recipes could you briefly explain what the ui
+could you briefly explain what the ui recipes were
+recipes were well the ets system
+well the ets system and the templates and the rtti that i
+and the templates and the rtti that i was talking about are separate
+was talking about are separate things so the ui system uses
+things so the ui system uses ui recipes as templates to create
+ui recipes as templates to create user interface so once again we've got
+user interface so once again we've got editors that create xml files that are
+editors that create xml files that are read by rtdi and the final ui
+read by rtdi and the final ui is created okay so it was it was just
+is created okay so it was it was just the data format that was being shared
+the data format that was being shared there but yes
+there but yes then completely outside of ecs yes
+then completely outside of ecs yes gotcha okay thank you
+all right no more questions so thank you very much

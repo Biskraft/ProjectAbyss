@@ -1,0 +1,398 @@
+hey everyone it's me Tim today I want to
+talk about Telemetry in
+games real Keet asks hi Tim I'm
+interested in learning about how you
+handle Telemetry in games how do you
+learn how people are playing your game
+so you can balance it or make other
+fixes that's a good
+question by the way if you're wondering
+it is very cold here I'm
+freeing
+um let me answer that the
+tldw is telemetry works by sending
+packets to a Telemetry server from the
+game for storage and Analysis so let me
+break that down
+into I want to talk about the server I
+want to talk about the packets and then
+I want to talk about the analysis so I
+haven't done this in all my games but
+it's something I started doing at
+carbine on
+WildStar and did it in a few other games
+to a limited extent um mostly because
+it's hard to get a Telemetry team you
+really do need a a group that does this
+so let me talk about uh the Telemetry
+server so the Telemetry server is a
+computer at the office or whatever data
+center you want to put it at whenever
+the game starts up it will connect to
+that server which verifies it now if
+it's a client game this can happen after
+the client's already
+connected
+um to you know and the player's logged
+in and it's verified all that and it's
+been passed on to a game server so the
+verification already been done that this
+is a valid client at that point the
+server could just go hey telary server
+expect packets from this guy um this is
+just to prevent you know packets coming
+in and spamming the Telemetry
+server so once the Telemetry server
+understands hey this game is being
+played at this internet URL this
+internet address sorry um it will
+prepare to receive packets from it now
+ours used a database called
+MySQL to store the events we had
+somebody on staff at carbine and an
+obsidian guy named Twain Martin he was a
+database master
+he could basically make SQL do anything
+you wanted and in this case the game
+would send its packets whenever an event
+happened and SQL would take that in and
+store it based on knowing who the client
+was and what character they were playing
+and what save game they were using it
+would store it off so that then we could
+gather all that data together but I will
+get to that because now let's talk about
+what those packets are so in general the
+packet is a timestamped location marked
+chunk of
+data the game will send
+these mostly and I'll explain the two
+exceptions in a minute mostly these are
+discreete in-game
+events
+so whenever the player takes damage or
+uses an ability or dies or transfers
+from one map to another like they go
+into a dungeon
+instance the game will send a packet off
+to the Telemetry server and what's great
+about these is these are distinct events
+they they have
+a they're they're happening one time
+they have the location they're happening
+in they have the time stamp so if you
+take damage let's say the player steps
+in a
+trap an event would go in hey the player
+took damage from this trap at this
+location for this much damage Dage in
+this damage type at this time on this
+map if the player decides to use an
+ability let's say they heal themselves
+it would be the player used this ability
+targeting themselves it was this ability
+and it healed this much damage let's say
+they threw a fireball at someone then it
+would be the player used the fireball
+ability cast it at this target whether
+it's a Target location or a Target
+creature at this time on this map it
+exploded and this did this damage to
+these targets so these are all things
+just get stored away as just roll data
+now there's two exceptions to these
+packets some packets are non-discrete
+those are things like when the player
+moves the player's always moving and
+what you don't want to do is just do a
+packet when they start moving or when
+they stop moving because you want to
+know where they went in between those
+events so what tends to happen is
+whenever the player is
+moving a packet is sent to the Telemetry
+server a very small packet because
+you're going to get a lot of these of
+just the player is moving he he's at
+this location he's pointing in this
+direction he's moving at the speed boom
+and then this is done every you can do
+this every tenth of a second every
+quarter second every second it depends
+on what
+um density you want on a heat map and
+I'll explain that in a minute but keep
+in mind if you want
+more density if you want a higher
+density you're going to get be making a
+lot more of these packets which are not
+only being sent but are being stored so
+you have to keep that in mind you may
+have to you may have to get your
+movement packets you may have to find a
+happy medium between a density you like
+and amount of data you want
+stored and then finally some game events
+are
+discreet but they're not technically
+considered a game event they're a
+non-game event for example something
+meta like the player saves a game or
+loads a game or a adjusts an option or
+quits the you want to store these for a
+lot of reasons and I'll talk about that
+but just think about it this way you may
+want to know when do players decide to
+save the game when when do players
+reload um when do players go in and
+adjust combat difficulty when do they go
+in and adjust cinematic options when do
+players tend to quit and that's that's a
+really important one um so those are the
+packets that get sent to the cemetry
+server so now let's talk about
+analysis in general you are creating a
+huge amount of data and that data can be
+analyzed in lots of different ways you
+can do it for individual players so you
+can say hey show me where this player
+went um what they did but in general
+they tend to
+be uh
+conglomerated so and you make things
+that we always call heat maps and heat
+Maps were
+unfortunately color coded but I since I
+was involved I usually picked color C
+codings that involved brightness so
+imagine if you gray scale the heat map
+you could still tell what everything was
+so I used kind of the brightness of it
+the in HSV space the V to determine what
+the values were and those heat Maps
+could do things like heat map for motion
+would just show where all the players
+went in a particular map so you could
+say hey I want to look at this map and I
+want to look at this area on the map and
+it would it could gather together all
+the motion data from all the different
+players who played on that map and you
+could see two things that are probably
+the most important where do they spend
+the most
+time and do they get anywhere you
+weren't expecting people to get to for
+example if you had a mountain range that
+you thought was impassible and you see a
+place where players are going over it if
+you really do want it to be impassible
+you may want to go back there and adjust
+the angles on some of the the hillsides
+of that mountain so that so it becomes
+imp impassible
+I mentioned in another video that we had
+a instance like a cave entrance at the
+top of a mountain side and we expected
+nobody to be able to get there until
+they could fly but our heat Maps showed
+people walking up there they found a
+path and they could jump and get up
+there and that was something we wanted
+to fix because we didn't want that to
+happen you can also do heat maps for
+things like damage you can show you can
+add together all the damage that players
+get at particular locations and make a
+heat map for that and then you can see
+where in the map is it the most
+dangerous and there are all kinds of
+things you can do with that kind of data
+you also I'll get i'll get to that uh
+response to the analysis in a second I'm
+kind of showing how you can gather the
+data together in lots of things you can
+also gather instead of heat maps you can
+look for reports what you call moments
+of Interest like where is a place where
+players die more fre most frequently and
+you could do that as a heat map or you
+could actually say show me like this
+location with this radius is has over 50
+deaths per hour or 100 deaths or a th000
+deaths because that's going to be very
+interesting to you you can also look for
+places where players save frequently
+where they might reduce or increase the
+game's difficulty especially the combat
+difficulty you can also look for places
+where people quit a heat map that shows
+where people quit frequently might be
+showing you places people rage quit and
+that gets me into like responses what
+can you do with all this data you're
+likely to be getting lots of lots of
+data and that's why you want to be
+careful how you analyze it because you
+don't want to get overwhelmed but you
+probably want to think about what your
+what responses you can make and that
+will tell you what kind of analysis you
+want to make on the data for example um
+you might have an expectation that
+people will quit in safe places people
+will go back to town and quit or uh
+people will quit when they're at a
+stopping point in the
+story so you might look for places that
+aren't expected like here's the middle
+of a dungeon and people tend to quit
+there a lot o if you look at the heat
+map for damage taken or deaths and it's
+really high at that location you may
+just have identified a place where
+people are rage quitting um I Heard a um
+story it's completely anecdotal I don't
+know if it's true that there was a game
+and I think it was one of
+the um lore Croft games one of the Tomb
+Raider games where they had found a jump
+there was supposed to be a place where
+somebody could the player was just
+supposed to jump but there were a lot of
+deaths there and a lot of player
+quitting there and it turned out that
+the jump which should have been really
+easy it was because the places curved
+like this and they expected that player
+to go to the places where they were
+closer and jump over but because they
+curved you know they curved in like this
+players would be running and they could
+see the spot and they'd try to jump
+earlier so putting a little raay a
+little railing on that made people go to
+the end and go oh I have to jump here so
+it could be
+fixed um High death rates are expected
+in areas where you have bosses and other
+powerful creatures you still want to
+check them uh make sure they're not
+abnormally High you also may want to
+check them to make sure that there
+aren't things like hey players of
+certain classes die a lot to this boss
+and other uh classes don't what is it
+about this class's attacks that that
+tend to wipe parties of this class but
+not other classes those are things you
+want to look at or you may want look at
+the whole game you like one of the
+things you might want to do is after
+you've processed the whole game every
+map every outdoor area you may want to
+process it all and say are the death
+rates among all the different classes in
+your game about the same if you have
+skill-based Bas games you could analyze
+the skills of the players and break them
+down into roughly combat oriented
+stealth oriented and dialogue oriented
+and go are those
+three characters dying roughly the same
+are they getting to the end of the game
+at roughly the same level like whenever
+anyone gets experience points you could
+record it and then you could see wow
+stealth players get experience and
+points in a lot of different places than
+combat players which you would expect
+because combat players are killing
+things and XP players are sneaking
+around but but if your game is only
+giving XP from quests you would expect
+both of them to get the same amount of
+XP so if by the end of the game you're
+seeing saying say stealth players are
+finishing the game three levels lower on
+average than dialogue players or combat
+players that may be something you want
+to
+fix basically you want to
+say are players playing the game like
+you expected so your expectations feed
+into this entire system you have to
+decide what your expectations are which
+then tell you what kind of response
+you'd have to things coming out of the
+data and having knowing that you may
+want to make those responses tell you
+what kind of data you even want to
+analyze and get a report for which then
+feeds back into what kind of data you
+want to collect in the first place so
+it's frequently with the case where we
+would go back and add something like ooh
+we
+never
+um we want an event that happens
+whenever player accepts a quest and we
+expect most of those to be in cities but
+then you may find that way out there's a
+DOT way out from the city that it's
+frequently a place where players are
+accepting quests and you find out one of
+the level designers put a little Shack
+out there with a really popular Quest
+and people are taking
+it maybe that's good um maybe you'd want
+your narrative designers to be aware of
+it so they can direct people out there
+so those are the kind of things that
+would just interact this is the kind of
+system that lets you get information
+back from the game being made that you
+may not know and let me tell you the
+bigger the game the more these this kind
+of information is important because I
+mentioned this before even as a game
+director I did not know every piece of
+content that was going in the game I
+didn't talk to every NPC and if I did I
+didn't touch every branch of dialogue
+that could possibly be touched and maybe
+it wasn't even possible for the
+character I was playing so I know one
+thing that we did that was really useful
+on pillars was we recorded how many
+times the player used one of his
+um skills that wasn't like a combat
+skill or a dialog skill or stealth skill
+things like athleticism we recorded when
+those got used so we wanted to know a
+few things are all those skills being
+used roughly equally and are they also
+being used frequently throughout the
+game we discovered a few that were used
+more often than others and we discovered
+a few that were front loaded and then
+hardly used at the end of the game I
+wish I had had something like this on
+Fallout because we had add we had that
+um energy weapon skill but we didn't we
+literally did not drop an energy weapon
+for the first third of the game so that
+skill could not have been used if we had
+had data like this we would have seen
+that skill not being used for the first
+third of the game and we would have
+known what the problem was
+so this is the kind of stuff I think
+people use Telemetry for and I think
+it's really useful if you can get a
+really good Telemetry team involved to
+make that server and make those reports
+for you so you can take a look at them
+anyway I hope this answers your question
+real
+Keet

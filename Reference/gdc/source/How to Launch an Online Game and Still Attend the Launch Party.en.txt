@@ -1,0 +1,641 @@
+Hello. Uh welcome. I'm I'm Chris JL.
+Um CTO at Odyssey, Interactive Odyssey is kind of a,
+we're a small studio uh focused on competitive online games. Um
+I should
+remind you to please silence your phones if you could.
+And uh you're gonna get like an email, I presume or maybe it's in the app.
+I've now already forgotten
+um about a survey,
+please. Uh
+you know, be nice to me. That'd be great.
+Um And so this is how to launch an online game uh and still attend the launch party.
+And uh thanks for coming.
+Um So the structure of the talk here is
+kind of largely oriented around two case studies.
+Um Before we get to the first one, I'm gonna introduce the game uh
+that the case studies are from uh games called Omega strikers.
+And I'm gonna briefly discuss sort of the
+architecture of the game services that we used
+uh from development all the way uh through release. Um And,
+you know, since I put in the title,
+I will point out that launch day wasn't exactly boring or peaceful.
+But um
+I was the first call for pager duty.
+I made it into the pictures that we took, you know, um and into the dinner afterwards.
+Um
+And so I think in the end, you know, we sort of had confidence in our tech and,
+and it seemed to work actually.
+Um
+so part of the discussion about architecture,
+um I will then define sort of observable
+um and, and explain why it's necessary.
+Um The first case study is a really
+sim simple trace. Uh that's uh
+for players magma
+status,
+um which will be a little bit of an orientation into what observable can look like.
+Um Then I'll dig into some of the tech underpinning kind of observable
+and, and how we implemented in Omega strikers.
+And then the second case study is a little bit more complicated.
+Uh hopefully to show kind of where things can go uh with the observable.
+Um It revolves around kind of a,
+a matchmaking problem that we had in in the actual uh public beta.
+And then finally, you know,
+just some summary stuff and uh hopefully there will be time for questions.
+Uh So starting with the game itself, uh it's called the Make Strikers, like I said,
+uh here's a short video, you know, because it's cool,
+it's just
+right,
+but you have been
+a discerning
+child
+again
+until they
+thank you video team.
+Um So Omega strikes, like I said, it's uh it's Odyssey's first uh released game.
+Uh It's a three on three competitive online game um
+kind of many of the features you expect from such game, there's matchmaking,
+there's in game friends presence, chat.
+Uh We have custom games, you know,
+the typical progression systems that you might have daily, weekly missions,
+that kind of thing.
+There's battle pass entitlement shop,
+um and all the things that I just listed are what we
+had Odyssey call our services or the sort of a round game,
+uh which is somewhat distinguished from the core game.
+And I will only really be talking about uh the services uh
+in the infrastructure kind of to support that uh for this presentation.
+Uh Omega strikers launched on eight platforms, uh PC mobile console,
+kinda all of them all together.
+Uh We did it with a pretty small team.
+We were about 1010 engineers and, and for services in particular, we were 2 to 3 at,
+at any given time
+and just to give you a sort of a scale of, of uh people to, to, to do what we're,
+what I'm explaining.
+Um
+And so being an online competitive game, you know, as an ensuing team,
+I think we had sort of the responsibility to provide not
+only sort of stable game play uh for our players,
+but
+really just ensure that they can log in and play uh whenever they want.
+And I think failing to meet that,
+uh especially right as the game is launching is like a really,
+really negative impact
+on any momentum that we might be able to build.
+And I think just sort of personally, it feels bad if somebody can't play your game.
+Um
+And so,
+in order to achieve sort of our successful launch and uh do live service operation,
+uh we focused on scalability and operability as our kind of
+principles.
+Um So essentially, we wanted to be able to respond in minutes to some problem
+uh while also simultaneously handling significant
+fluctuations in uh concurrent players.
+Um And so the goals there of scalability and operability
+kind of led us to focus on managed infrastructure.
+Uh And that's very pervasive through the entire uh
+architecture of the game.
+Uh And, and we kind of identified the general overhead and, and inflexibility of we,
+we call it owning a computer
+um as something to be avoided as much as possible.
+Uh So here is a picture
+um of the high level architecture of the game services in Omega strikers.
+Um Sort of pretty, pretty briefly, you know, game clients go
+and send a TP requests to services uh via some kind of gateway.
+Um They receive the notifications about state changes back down over a web socket.
+Um The actual logic of those services run on a
+big bundle of uh lambdas that's like a serverless compute offering
+um persistence. We're using Mongo DB. Um
+They have a managed service as well
+and then sort of sprinkled around in there,
+there's a bunch of red S nodes that do caching for us.
+Uh also on a kind of managed offering.
+Um, there are game servers as it turns out.
+Um And, and we, as may not surprise you use a managed service
+to, to handle scaling them up and down and as well as uh place matches,
+um, there is a computer that we might describe as owned uh in the middle,
+that's the match finder, a single box.
+Um And it just sits there and kind of spins over an in memory list of players. Uh
+And then spits out matches when they're found.
+Uh And then all of these pieces of infrastructure, talk to our observable service,
+uh which I'll talk about a bit later.
+Um And so the, the key thing I think about this is that
+as I've said repeatedly, they're all managed services, uh which gives us, you know,
+the ability to, to scale, uh quite, quite nicely.
+Um
+And as a result,
+the computer doing the actual work may actually be ephemeral. Uh
+you know, it, it, it may go away or we may not have control over it.
+And so if we want to do a typical thing, uh like, you know,
+log into the box and see what happened,
+you may not be able to do that because either
+like it's gone or you just aren't allowed to or
+whatever.
+Um
+So
+that's kind of a big blind spot and it makes it really difficult
+to operate uh these kinds of services and that's what observ ability,
+really.
+That's the hole that it's plugging.
+Um And just before we move on, I'll sort of highlight two notable decisions.
+Well, I think they're notable anyways, uh
+about how we actually made use of this.
+Um,
+and I would describe them as probably opposite
+sides of the conventional best practices spectrum.
+Uh The first one,
+which is the probably
+good side. Um, everything was automated.
+Uh, in terms of deployments, we, we aimed for like one button.
+Uh We ended up with three buttons
+but, you know, it's not that many.
+Um And that was sort of a core safety blanket
+uh for us in terms of really responding to really,
+really high demand or if we had a really significant outage,
+um we sort of had this in the back pocket where we
+could spin up the entire stack in another zone region wherever,
+um or potentially concurrently in multiple zones.
+Uh If we really had big, big scaling problems.
+Um
+And there's a, there's a requirement um
+to really maintain uh
+that
+ability.
+Um You know, usually it'll be every couple of months or weeks,
+you spend a few days yelling at computers because it's not working.
+Um
+But
+it was totally worth it.
+Uh An example of the value.
+We had a play test that we heard about only a few hours before it was supposed to happen
+in Asia. Um And we were able to just
+like click the buttons and it worked and I was like, great.
+And so it didn't disrupt any of our daily play tests or,
+or any other really development process.
+So we went to the unusual choice um for Omega strikers,
+it's like there's a single environment just, just one.
+it handles, you know, live game, uh it handles internal play tests,
+it handles literally everything.
+Um
+So when you make an update,
+it's going live now. And
+that means that like development features upcoming content, absolutely,
+everything is always in production.
+Uh So this forces us to implement sort of
+logical barriers uh to enable testing or protected actions.
+But the upside is that there's only one process and
+we do it every day or potentially multiple days.
+And so we're really used to it
+and
+as I will talk about later,
+that's really, really helpful. Um So changes
+get put out quite frequently. Um And, and there's, there is a risk to that.
+Um But you can kind of mitigate that or we mitigate that through
+pretty extensive automated testing um
+in, in the sense of like end to end testing. Uh And then
+there's, you know, feature flags and
+actually rolling out a change is quite, quite quick.
+So if it goes out and it's bad, you just undo it, it's,
+it's like not the end of the world.
+Um And I think again,
+the big s big upside of this single
+environment is that the in the scripted deployments
+um
+that for each individual change is actually relatively low risk.
+And like I said, you can kind of just undo it
+and it's very incremental in that way.
+Uh And uh the other big thing is you're never
+migrating or you're trying to do like any integration between these
+environments, it's always there.
+Um
+So like I alluded to a major downside uh to the managed infrastructure
+and especially these kind of ephemeral compute uh
+offerings is the significant increase in difficulty of debugging.
+The thing when it's actually running.
+Um There's several factors I think that contribute to that, but generally,
+it's just like hard to isolate a particular change or figure
+out what the heck it was doing at that time.
+Um Or, or, or reproduce it in any sort of really controlled fashion.
+And so solving that is obviously something that we are going to need
+to do so that we can actually use these things uh at scale.
+And so I'm gonna define observable kind of informally and it's,
+it's really the ability to inspect or sort of
+otherwise know what the state of an application is.
+Um while it's doing processing
+and logging is an example of a common,
+but I will classify it as somewhat rudimentary form of observable
+in Omega strikers.
+What we use is essentially a highly structured logging,
+uh systematic instru instrumentation and then a queried U I uh altogether uh to,
+to solve these problems for ourselves.
+Um
+And we'll dig into the really
+sort of more specifically how that, how that looks, uh, again a little bit later.
+Uh But for now, I just wanna highlight a couple of things that
+this allows us to do, which are really significant time savers and debugging.
+And I think as a result really increase our, our reliability.
+Um,
+the system is always on, it's always recording, there's a just kind of,
+it's like a 30 day buffer, but um it potentially could have been longer or shorter.
+Um But it allows us to kind of go back and investigate problems um
+after they've happened.
+So we do daily play tests and this was like our primary
+testing of the game more or less.
+Uh And so someone would say, hey,
+this was weird or this was busted or whatever it was and like we were playing the game.
+So we were not like monitoring this stuff,
+but we were able to go back in time and look at the state
+that they had at that time.
+It was all captured and just traced through and be like, yes, that's right.
+It was busted, it was busted here
+no, you're wrong. That's actually how it's supposed to work.
+Um
+And, and it, it's a proactive as well. It's sort of real time.
+So when you release new code, you can just like look at if it's doing what you expect.
+Uh So you can you fully inspect the, the system
+OK. So we'll start with the first example. Um
+It hopefully kind of
+illustrates now what I've been describing for the last few minutes.
+Um This is like a sample of the U I uh that
+you would see.
+And it's, it's a really simple matchmaking status query.
+The focus here is not on this particular request,
+but sort of on how this data is structured and, and presented
+that hopefully will illustrate some of the benefits
+um each row. So it's a nomenclature here. Each row is called a span. Uh
+spans are typically organized in sort of a tree like hierarchy.
+The one at the top is called the root
+and the collection of related spans is called a trace.
+And typically, that's gonna represent some logical operation,
+it's kind of context dependent.
+Um Every span usually has some common data like you have a name,
+uh a duration and then it'll point out who its parent is.
+Uh And this allows us to create, you know,
+it's kind of waterfall type visualization.
+Um
+And you know,
+just with that,
+we're able to see how long individual
+functions take basically within these requests.
+Uh you know, we can aggregate them across multiple requests or, or by players.
+And this is essentially what we use to do uh
+low testing and, and profiling.
+Uh So by itself, I think that's pretty valuable.
+Um But then there's a bit more uh so each span
+you can give it kind of this custom bag of data.
+Uh So here's
+an example of a few things that are useful.
+Um And then, you know, those get indexed basically, so you can query on them.
+Uh And, and look for related spans or, or traces.
+So here's like, you know, uh
+I don't actually remember what I highlighted there, but you know, the game version,
+for example, um
+would be useful things to, to create against.
+Um
+So here's a different trace just to sort of highlight the,
+the value of the built in timing.
+Um
+It should not take 30 seconds to log into the game.
+Uh
+And I we pull this up and we know exactly what step actually took all of that time,
+you know, immediately
+kind of like a profiler, but it's always on.
+Um And finding this takes like 10 seconds, you like, hey,
+find me things that took a long time. Oh This is bad.
+Um
+OK, so we'll move on now um to sort of
+what an implementation might look like and, and what tools are out there to,
+to use uh for your own code
+um
+at
+its core,
+right? This data is kind of just semi structured
+JSON like that's what's being passed around.
+Um Fortunately,
+there's sort of a standardization body uh it's called open telemetry.
+They identify a few common property names uh that are expected to exist.
+So this is like that's the name and, and the parent and,
+and the timing and those things, they have like
+almost like a, a schema.
+Um And outside of those,
+the rest of the data is pretty context sensitive or context dependent.
+Um you kind of give it whatever you want.
+Uh So we ended up building a pretty small set of utility functions that
+made it really easy to integrate like expanse and traces and the services code.
+Um
+And
+we through fairly continuous effort, um
+we ended up with like about 1200 instrumentation points.
+Last time I checked,
+um the number goes up, like every time you write a function, we just always wrap it in a
+trace or a span.
+Um
+There are lots of frameworks that you could use that have like, you know,
+sort of built in uh instrumentation for this kind of thing.
+So it's not like there's this massive labor cost.
+Um We didn't actually use anything like that. So we did it ourselves.
+And then
+we're able to use that integration then to facilitate
+sort of debugging across all phases of production.
+So development stacks, your unit tests are running this code,
+so you can actually look at them.
+Um And then having them all visualized in this single tool is really nice.
+It's like again, back to the sort of
+you're used to this process um from all uh points of development.
+Um And then
+to, to actually aggregate things and visualize them, we use a vendor
+uh to store and index this data. Um There are lots of back ends. Uh
+You can kind of just Google them and pick your favorite one.
+Uh Here's like a kind of cool picture that open telemetry made,
+which is great uh It to sort of show what
+the internals of the observable system itself are doing.
+You know, there's got your various producers and they're sending data to,
+you know, these service or, or services that are called collectors.
+The collector then is, you know,
+doing something probably indexing maybe a database is involved.
+Um And then it's feeding some kind of front end uh to assemble, you know, however,
+the visualization is
+could be the waterfall, it could be something else.
+Um
+And then typically it'll provide some kind of querying interface as well.
+Uh So you can look at
+interesting things.
+Um I'll just point you kind of to the
+open telemetry documentation for any really specifics or,
+or to, to go deeper on that.
+Um Yeah, so now we'll move on uh to the second example,
+it's a little bit more complicated.
+Um But the idea here is to show that
+you can look at data from multiple systems uh
+together uh to solve problems that I think would
+be pretty challenging without some kind of centralized system.
+Um This is sort of AAA recreation because the data was is aged out.
+But a recreation of a real problem that we had in our first fairly large public test
+um, you know, we were sitting there playing the game,
+it was great and then all of a sudden
+people were not matching for relatively short periods of time.
+It was like, you know,
+15 seconds ish. It's kinda
+when you get, like, AD M from Discord,
+it's kind of hard to know exactly what they're doing.
+Uh, and then some groups, like, weren't match, uh, I'm sorry,
+weren't matching at all.
+Yeah.
+And so the first thing to do it is a matchmaking problem, right?
+So we go look at the matchmaker and it's like,
+OK, this, this is bad.
+Um But
+what is going on here? Um So we can
+basically zoom into the last trace before one of the dips. And
+again, the useful part of that is
+this may or may not be actually happening live,
+but I don't care because I can go back and find
+a case of it that it was happening uh
+in the past.
+Um And so we kind of drill down
+into this particular match finder trace. Um Get that last one. That's great.
+Uh And we can look at some of the context data we've got here,
+which in our case, we were specifying, you know,
+these are the actual groups that are in the queue
+this actually looks fine.
+So this is probably not the problem, but maybe this one at the front is,
+is suspicious.
+So let's go ahead and dig further into that.
+Um
+Like query. Hey, give me things that are related to this group.
+Um I've sort of filtered out all of them but you would see like the construction of the
+group so you can see the invites for them
+and who accepted and how that was actually done.
+Um But the relevant one for us is like, ok, well,
+they're getting added to the matchmaking cue.
+So
+who was in their group? What happened when that,
+uh, addition happened?
+Maybe that data is what's suspicious
+and it turns out, um, unsurprisingly because it's kind of a guided tour,
+but this is the one that's, that's wrong.
+Um
+They're all forwards which probably doesn't mean anything to you, but in our game,
+you have to have a goalie
+or at least that's what the match finder decided.
+And so it was sitting there trying to construct groups
+where one of the teams was full of forwards and it was like, I don't
+know how to do that.
+Uh And so then they would sit there and plug the queue for
+essentially the time out, uh, for them.
+So they would fail and then people would go through be a big burst
+and that was the, the chart.
+Ok, great. So now we know the problem. Um,
+we basically then
+like, hacked in a really quick fix so that, ok,
+we just ignore what you want to be for now so that people can play the game,
+um, throw a test case in actually fix it properly in, in the matchmaker,
+uh update the matchmaker.
+And then
+we're, we're good again
+and like the total time kind of to do this was in a 25 minute range,
+um
+which I think is pretty good.
+Uh We're like aggregating data across multiple things.
+There's, you know, hundreds or thousands of matches being made
+uh per second at this time. No, not, not the picture that I showed you, but I promise
+it was like that.
+Um
+And you know, so being able to drill down into that data really quickly is,
+is solving a big, big problem.
+Um
+But it's not as,
+it's not quite as valuable when you aren't able to also operate on it.
+So that's kind of a principles uh
+in action.
+Um
+Yeah, so uh kind of in summary,
+we kind of kept our infrastructure as
+simple as possible while still addressing the,
+the problems that we are trying to solve.
+Um
+We use the same process every day
+from like really early development
+uh all the way through launch and, and in into life service as well.
+So we were really, really familiar with it.
+And
+so when there was a problem,
+it, we weren't like trying to remember like, oh,
+how do you do whatever in production or how do you do it in stage or what's that?
+No, there's just the one thing.
+Um
+I think the investment commitment to observable really meant that
+we could understand what was happening. Uh
+So we could drilled in directly quickly.
+There was again a single tool you just go here and find it.
+Um
+And then lastly on launch day itself, we really significantly over provision,
+the infrastructure just give ourselves a buffer.
+Um This flexibility is,
+is exactly what the managed services were supposed to provide
+and they did it
+and that was great. And yeah, it costs more than it maybe should have. But
+the thing ran and then you can scale it down
+very quickly over the next, you know, couple of days or, or weeks once you identify
+like what your players are doing and how many of them there are and,
+and what you need to do there.
+Um So I kind of think of that as a marketing expense
+realistically if you're trying to sell that to someone
+get some marketing money to run your servers.
+Um
+ok. Uh That's it.
+Uh Thanks for coming.
+Uh I can take any questions you ask that you go up to the,
+the microphone if you have a question.
+Hello?
+Hi
+talk.
+Um I was curious about your match finders, you said, is it literally one machine?
+Yes, it's a single c five large, it's like a little baby machine running
+and it can produce like 3 million matches per second.
+Ok.
+-- How -- do you patch it if it's one machine without taking prod
+down or do you just take prod down for a brief downtime.
+-- Oh, -- we just spin up a new one. So there's like hues and redis around it.
+Right. Right. So you just kind of pop one up and that one takes over and
+drop
+down the
+other one.
+Yeah.
+So for my matchmaker, I recently decided, you know, against,
+against external advice to you in memory as well.
+And I was like, well, it's probably, it's probably fine. So
+it's pretty fast.
+Yeah,
+I think we as a distributed system sort of tech
+space right away from any kind of in memory.
+Anything when we figured all this stuff out. But
+I think if you're calculated about it, you still can do in memory,
+sometimes it's validating to see somebody else do the same
+100 producer.
+But uh X Apple software engineer for seven years
+did SRE live ops dev ops kind of stuff.
+Uh Very interested to see your basically like mono
+reo style like single branch production because that was not my experience. But
+curious to see if you think for a game like Omega strikers and maybe other games where
+um maybe you aren't developing too many features that would be
+maybe taking months to develop and they're needing special integration.
+Do you recommend that maybe other games maybe take
+a similar approach using feature flags and end testing?
+Um
+And using that just for simplicity's sake,
+-- especially for the simplicity of automated one to maybe three button -- launch.
+I would, yeah, I, you know, I think it was great and,
+and we have features that took months to develop.
+Uh You just build them in the branch, like turn off the code, don't call the code.
+Um You know, obviously there's like two or three of us,
+so it's a lot easier for us to communicate.
+We'd like, hey, don't call these functions, please. They're not ready.
+Um
+I think there are probably process ways to, to address that at a larger scale.
+Um
+I had another thing that isn't just gone.
+Uh I'll just deal in that time that you just lost that thought. Um Testing
+-- you do unit functional and then end to end or just do you focus on -- like the last
+function pretty much just ran full end to end uh spin up the whole stack locally and,
+you know, we use some docker for that
+um
+and just run the whole thing because I don't know
+that's what's actually running.
+And so especially, you know,
+we have to be able to observe those things anyways.
+So that's just part of the stack and then
+we know it's gonna work because we tested literally the whole thing.
+Cool. Thank you. Thank you.
+Uh Hey,
+uh I'm also a big fan of open telemetry.
+Uh One of the issues I've seen teams try to solve is volume of events.
+So you showed a trace that had every function call
+uh generating uh span and being sent to the event,
+I wonder. Yeah. Have you had to deal with volume problems and costs?
+And so uh I, I have a slide that I, that I removed. But yeah, it was, it was massive.
+Uh When we launched, we were sending like almost a trillion events a day.
+Um
+You do some sampling basically is, is how it boils down.
+Um
+It's a really challenging problem. I, I think to solve where, where we are now is
+there's baseline flat sampling like at the actual event creation.
+Uh because otherwise you have to centralize the,
+the whole volume of data and trying to do any
+analysis on it becomes really challenging because the volume is so high.
+Um But then we have special paths through. So like
+any cert requests, for example, they're never sampled, we,
+we want to know what's happening in cert or we want to know what's happening in DEV
+uh we're able to turn traces on for individual players, you know,
+and these are sort of just like overrides that we've learned are very useful for us.
+Um I think it probably depends on what your particular context is and,
+and what is useful information.
+But yes, that is a
+-- hard problem. OK. -- Cool. That's good to know. Did um
+is basically like you could turn it on the root span like OK,
+the root span and all child spans are gonna get.
+-- So -- we keep most of our root spans because we like to
+see um kind of the how many requests are happening and,
+but we throw away the rest of it essentially.
+And so it basically just rolls, rolls a die at the beginning of this ban and says,
+yeah, we don't need you.
+Um
+If there is then a fatal error or something,
+it'll keep the stack basically because that's kept kind of in memory.
+Um
+Ideally, we would buffer all the requests, probably the the whole trace
+while the request was happening so that if we do hit these error cases,
+we can like dump the whole thing.
+Um But it's been pretty useful just to
+be able to see that particular stack basically.
+-- Cool. Hey, -- thanks. Yeah.
+Um
+hello uh with uh I don't know if it, if this is OK to ask but within,
+within sad news of Omega strikers, uh I want to ask is,
+is there still a team that looks into the problems and
+all these uh for
+example,
+errors or bugs
+or anything else?
+Is there like a small team or is it like when it pops up is like, oh,
+can someone like check that out?
+So like deal with that or
+how does that work?
+Yeah, we, we still have people uh full time on.
+Ok,
+thank you.
+Thanks.
+Um
+Last
+one. But
+yeah.
+Ok,
+great. Yeah,
+so uh yeah, running a live game as well.
+Um And I think one of the interesting things you brought up is that your,
+your serve back end is entirely all pro all forever.
+Um
+But that also means that you have a high potential of leaks and stuff like when you,
+that also means you also have like code duplication, right?
+So if you have something that's not backwards compatible, for example,
+um you're gonna have to have old code and a new code, how do you
+like maintain that
+and make it so that people aren't duplicating all their work over and over again.
+Um When they're back comp patting.
+Yeah. So I think there are a couple of questions there.
+The first one is like worrying about leaks.
+Um We worry about them but not like too much.
+Like it's probably stuff we're going to release anyways.
+If it leaks, it's not like maybe the end of the world obviously, we try to,
+to avoid the leaks.
+Um but it's not gonna end of the game.
+Um And then the backwards compatibility thing, we basically duplicate
+API S if, if they're gonna change significantly,
+we just go for V two and
+great. And then you in theory delete it later.
+I don't know if you've ever done that, but
+we probably should. Right. Right. OK.
+So it's normal, normal code duplication is fine. Just deal
+with it later. Copy and paste. Is there for a reason?
+-- Ok, cool. -- Thanks. Oh jeez.
+All right. Thank you.

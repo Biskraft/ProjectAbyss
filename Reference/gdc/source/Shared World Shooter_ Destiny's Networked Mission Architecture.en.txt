@@ -1,0 +1,1427 @@
+[Music] alright let's get started it looks like
+alright let's get started it looks like this might be a little bit full so if
+this might be a little bit full so if any of you guys that are on the edge
+any of you guys that are on the edge could move it it just makes it easier
+could move it it just makes it easier for anybody comes in late to find a seat
+for anybody comes in late to find a seat I like that this is a room of
+I like that this is a room of completionists you guys all stuck around
+completionists you guys all stuck around to the very last talks at GDC and I
+to the very last talks at GDC and I personally appreciate that because I
+personally appreciate that because I wanted the last docks of GDC now the
+wanted the last docks of GDC now the conference is almost over how was it was
+conference is almost over how was it was that bad yeah so I'm also curious how
+that bad yeah so I'm also curious how many of you guys were just at Chris
+many of you guys were just at Chris butchers engine architecture talk
+butchers engine architecture talk upstairs
+upstairs oh sweet most do you so I do not have
+oh sweet most do you so I do not have the silky sexy Kiwi voice that he does
+the silky sexy Kiwi voice that he does so you'll have to listen to me and I'm a
+so you'll have to listen to me and I'm a little bit hoarse so I am Justin truman
+little bit hoarse so I am Justin truman i'm one of the engineering leads over a
+i'm one of the engineering leads over a bungie and before i start talking about
+bungie and before i start talking about anything I want to make sure that I make
+anything I want to make sure that I make it super clear that I'm not even close
+it super clear that I'm not even close to the sole contributor of the
+to the sole contributor of the architecture that I'm gonna be talking
+architecture that I'm gonna be talking about today there was a good probably 59
+about today there was a good probably 59 years that went into our activity
+years that went into our activity networking systems for destiny built on
+networking systems for destiny built on top of all of the Halo Reach tech it was
+top of all of the Halo Reach tech it was a very large group effort and that's why
+a very large group effort and that's why I'm gonna be saying we a lot during this
+I'm gonna be saying we a lot during this talk and I want to answer any questions
+talk and I want to answer any questions that you guys have at the end I'm gonna
+that you guys have at the end I'm gonna try to leave time for some Q&A let's say
+try to leave time for some Q&A let's say I don't belong now is also a great time
+I don't belong now is also a great time for you to silence your cellphone's and
+for you to silence your cellphone's and if you like the talk please rate me and
+if you like the talk please rate me and give me feedback if you didn't like the
+give me feedback if you didn't like the talking keep it yourselves but so
+talking keep it yourselves but so whoever's played destiny okay
+whoever's played destiny okay good number who's got a level 32
+good number who's got a level 32 character in destiny a few of you who
+character in destiny a few of you who has three level 30 tears oh wow I I
+has three level 30 tears oh wow I I don't that's great destiny was a lot of
+don't that's great destiny was a lot of firsts for Bungie
+firsts for Bungie it was our first floor platform game we
+it was our first floor platform game we had only ever shipped on one platform
+had only ever shipped on one platform before that it was our first always
+before that it was our first always online game it was pretty scary getting
+online game it was pretty scary getting into a room in 2010 before stuff like
+into a room in 2010 before stuff like the Xbox one had even been announced and
+the Xbox one had even been announced and planning a console shooter that requires
+planning a console shooter that requires an always online internet connection it
+an always online internet connection it was also the first time that we tried
+was also the first time that we tried seamless background matchmaking Halo had
+seamless background matchmaking Halo had matchmaking lobbies and menus we wanted
+matchmaking lobbies and menus we wanted to get rid of all of that and just let
+to get rid of all of that and just let strangers wander into your game
+strangers wander into your game automatically and organically we wanted
+automatically and organically we wanted to get rid of the single player versus
+to get rid of the single player versus multiplayer menu options and just have
+multiplayer menu options and just have play destiny to accomplish that goal we
+play destiny to accomplish that goal we built a unique and uniquely complicated
+built a unique and uniquely complicated networking topology over the next hour
+networking topology over the next hour I'm going to talk through the decisions
+I'm going to talk through the decisions that led us to this unique architecture
+that led us to this unique architecture and both the advantages and
+and both the advantages and disadvantages that resulted from our
+disadvantages that resulted from our choices instead of just using a
+choices instead of just using a peer-to-peer architecture like our
+peer-to-peer architecture like our previous Halo games or implementing
+previous Halo games or implementing traditional dedicated servers we built a
+traditional dedicated servers we built a hybrid approach that we call activity
+hybrid approach that we call activity hosts activity hosts are cloud hosted
+hosts activity hosts are cloud hosted machines that were in a stripped-down
+machines that were in a stripped-down simulation of just our mission script
+simulation of just our mission script logic with our activity hosts which I'll
+logic with our activity hosts which I'll be describing in detail we were able to
+be describing in detail we were able to successfully scale at launch without any
+successfully scale at launch without any cues or downtime and we were able to
+cues or downtime and we were able to support that million player load with
+support that million player load with just a few hundred servers in our data
+just a few hundred servers in our data center because we handled we could
+center because we handled we could handle over 10,000 players per server by
+handle over 10,000 players per server by combining our activity hosts with
+combining our activity hosts with traditional peer-to-peer networking
+traditional peer-to-peer networking we've got the low latency action
+we've got the low latency action gameplay of a call of duty or halo
+gameplay of a call of duty or halo will constantly seamlessly matchmaking
+will constantly seamlessly matchmaking you the new stained strangers
+you the new stained strangers a typical destiny player is host
+a typical destiny player is host migrating between different ps4s
+migrating between different ps4s once every hundred and 60 seconds
+once every hundred and 60 seconds without noticing any discontinuity in
+without noticing any discontinuity in their simulation so that's the player
+their simulation so that's the player experience that we ended up with today
+experience that we ended up with today when I joined Bungie five years ago to
+when I joined Bungie five years ago to work on destiny we didn't have any of
+work on destiny we didn't have any of that all we really had to start with
+that all we really had to start with with some key design pillars that
+with some key design pillars that informed all of the early architectural
+informed all of the early architectural plan
+plan these design pillars were making a
+these design pillars were making a kick-ass action game making sure that it
+kick-ass action game making sure that it always supported co-op allowing you to
+always supported co-op allowing you to meet strangers and untethered freedom to
+meet strangers and untethered freedom to explore before talking about the tech
+explore before talking about the tech it's worth diving into each one of these
+it's worth diving into each one of these in a bit of detail kick-ass action game
+in a bit of detail kick-ass action game means that we needed halo parity we need
+means that we needed halo parity we need FPS genre parity we needed to make a
+FPS genre parity we needed to make a highly responsive low latency action
+highly responsive low latency action game that's instantly familiar and
+game that's instantly familiar and competitive with all of the other have
+competitive with all of the other have great FPS is out there the internal bar
+great FPS is out there the internal bar that we use to great effect was it needs
+that we use to great effect was it needs to feel like a single-player shooter
+to feel like a single-player shooter this was important to us because the
+this was important to us because the online experience is not opt-in we force
+online experience is not opt-in we force you to matchmake with other players even
+you to matchmake with other players even if all you want to do is play a solo
+if all you want to do is play a solo campaign therefore we need to make sure
+campaign therefore we need to make sure that our matchmaking and our networking
+that our matchmaking and our networking goals never hurt that solo campaign
+goals never hurt that solo campaign experience so this means that we started
+experience so this means that we started with the Halo codebase and networking
+with the Halo codebase and networking model David Aldridge did VC talk four
+model David Aldridge did VC talk four years ago about the Halo Reach
+years ago about the Halo Reach networking model which describes it in
+networking model which describes it in detail I'm gonna skip over most of that
+detail I'm gonna skip over most of that you should really watch this talk though
+you should really watch this talk though if you're interested in the details of
+if you're interested in the details of our action game networking but I will
+our action game networking but I will quickly touch on some halo networking
+quickly touch on some halo networking terminology which I'll be relying on
+terminology which I'll be relying on later in this talk the most important
+later in this talk the most important thing to know about Halo leech was that
+thing to know about Halo leech was that it had two networking models one for PvP
+it had two networking models one for PvP and one for PVE pvp used standard
+and one for PVE pvp used standard peer-to-peer host client networking one
+peer-to-peer host client networking one Xbox was the host of a game let's call
+Xbox was the host of a game let's call that the physics host for reasons that
+that the physics host for reasons that will be useful later the other X boxes
+will be useful later the other X boxes were all clients communicating with that
+were all clients communicating with that host but the host arbitrated all state
+host but the host arbitrated all state changes for PvE we used lockstep
+changes for PvE we used lockstep networking this is the networking model
+networking this is the networking model most commonly used for stuff like a
+most commonly used for stuff like a real-time strategy game if your game is
+real-time strategy game if your game is fully deterministic which means the same
+fully deterministic which means the same set of inputs always produce the same
+set of inputs always produce the same set of simulation outputs then you can
+set of simulation outputs then you can just network the controller inputs from
+just network the controller inputs from each machine and not simulate the next
+each machine and not simulate the next tick until you've received the inputs
+tick until you've received the inputs from everyone else about what should
+from everyone else about what should happen we did some tricks in our
+happen we did some tricks in our lockstep networking
+lockstep networking that latency but ultimately you have to
+that latency but ultimately you have to pay full round-trip networking time
+pay full round-trip networking time between when you pull the trigger and
+between when you pull the trigger and when the gun actually fires so that
+when the gun actually fires so that meant that while we had a networking
+meant that while we had a networking model in Halo Reach for campaign and PvE
+model in Halo Reach for campaign and PvE games you could play through the whole
+games you could play through the whole Halo Reach campaign with four players it
+Halo Reach campaign with four players it was a noticeably more Layton experience
+was a noticeably more Layton experience than our PvP game so going back to the
+than our PvP game so going back to the original design goals this lockstep
+original design goals this lockstep networking latency was unacceptable for
+networking latency was unacceptable for the feels like a single player shooter
+the feels like a single player shooter bar that I talked about earlier so that
+bar that I talked about earlier so that meant that we chose to instead start
+meant that we chose to instead start with our halo era PvP networking model
+with our halo era PvP networking model we had to extend it to support the full
+we had to extend it to support the full story campaign which leads well into the
+story campaign which leads well into the second design pillar what I like to call
+second design pillar what I like to call everything is more fun with your friends
+everything is more fun with your friends this meant to us that every activity
+this meant to us that every activity supports co-op gameplay always this also
+supports co-op gameplay always this also meant that you can always hook up with
+meant that you can always hook up with your friends every activity supports
+your friends every activity supports join in progress and we endeavor to make
+join in progress and we endeavor to make that available at all times for our
+that available at all times for our cooperative campaign that meant that
+cooperative campaign that meant that while we could start with our PvP
+while we could start with our PvP networking model we had to build it out
+networking model we had to build it out to support AI and complex activity
+to support AI and complex activity scripting for the first time lots of
+scripting for the first time lots of really cool stuff was done to accomplish
+really cool stuff was done to accomplish this networking goal for AI but I'm not
+this networking goal for AI but I'm not giving that talk either I am going to
+giving that talk either I am going to talk about activity scripting though a
+talk about activity scripting though a little later in the talk so moving on to
+little later in the talk so moving on to our third pillar which I like to state
+our third pillar which I like to state as showing off is more fun if others are
+as showing off is more fun if others are watching at Bungie we believe really
+watching at Bungie we believe really strongly but even with the minimal
+strongly but even with the minimal social interaction verbs that we
+social interaction verbs that we provided in destiny the mere existence
+provided in destiny the mere existence of other players perceiving you
+of other players perceiving you perceiving your avatar gives value to
+perceiving your avatar gives value to your actions Xbox 360 achievements were
+your actions Xbox 360 achievements were intrinsically more valuable than in-game
+intrinsically more valuable than in-game rewards because you could easily show
+rewards because you could easily show them off to your friends as another
+them off to your friends as another example as soon as you build something
+example as soon as you build something awesome in Minecraft if you're like me
+awesome in Minecraft if you're like me you immediately want to show it to your
+you immediately want to show it to your other friends who play Minecraft so
+other friends who play Minecraft so we're convinced that if we can take even
+we're convinced that if we can take even a solo player who has no friends on Xbox
+a solo player who has no friends on Xbox Live or PSN and regularly put them in
+Live or PSN and regularly put them in rooms with other people they will care
+rooms with other people they will care more about their fancy hat and their
+more about their fancy hat and their attack power
+attack power the level number over their head we also
+the level number over their head we also want these strangers to not be pursuing
+want these strangers to not be pursuing the same goals as you we think of it as
+the same goals as you we think of it as intersecting not parallel lines we don't
+intersecting not parallel lines we don't want these strangers competing with you
+want these strangers competing with you for resources or pushing you forward at
+for resources or pushing you forward at our pace faster than you would like
+our pace faster than you would like instead intersecting with strangers that
+instead intersecting with strangers that are not directly competing for any of
+are not directly competing for any of your goals minimizes friction and
+your goals minimizes friction and potential resentment so the last pillar
+potential resentment so the last pillar that I'll be talking about was
+that I'll be talking about was untethered freedom to explore this means
+untethered freedom to explore this means that our activity designs shouldn't stop
+that our activity designs shouldn't stop you from leaving the activity line and
+you from leaving the activity line and just exploring in halo co-op you were
+just exploring in halo co-op you were always tethered to a maximum radius from
+always tethered to a maximum radius from the physics house if you fell behind or
+the physics house if you fell behind or you tried to run too far away we
+you tried to run too far away we teleport you back to the host in destiny
+teleport you back to the host in destiny we wanted to let you meet up with your
+we wanted to let you meet up with your friends but have parallel play in
+friends but have parallel play in different areas of the same destination
+different areas of the same destination you could run alongside them for a
+you could run alongside them for a mission or stop the harvest and
+mission or stop the harvest and spinmetal while your friend rushes ahead
+spinmetal while your friend rushes ahead so these are the four design pillars
+so these are the four design pillars that our architecture was trying to
+that our architecture was trying to satisfy and looking at them I feel like
+satisfy and looking at them I feel like they're pretty scary from a risk
+they're pretty scary from a risk perspective especially when you stack it
+perspective especially when you stack it up with stuff like new IP first
+up with stuff like new IP first multi-platform title new engine
+multi-platform title new engine therefore while we were setting
+therefore while we were setting ambitious design goals we also set some
+ambitious design goals we also set some early scoping constraints on our
+early scoping constraints on our architecture one of the strongest early
+architecture one of the strongest early constraints is what we call bubbles
+and it's important to think about them as a constraint bubbles were not an
+as a constraint bubbles were not an accomplishment of a design goal or
+accomplishment of a design goal or vision they were scoping decision I
+vision they were scoping decision I could certainly imagine a version of
+could certainly imagine a version of destiny without these but I couldn't
+destiny without these but I couldn't imagine us shipping in 2014 without
+imagine us shipping in 2014 without these so what is a bubble a bubble is a
+these so what is a bubble a bubble is a unit of simulation a players only ever
+unit of simulation a players only ever simulating one bubbles worth of combat
+simulating one bubbles worth of combat and physics at any time a bubble is also
+and physics at any time a bubble is also our unit of assets streaming you have at
+our unit of assets streaming you have at most two bubbles a set memory loaded at
+most two bubbles a set memory loaded at any time the one that you're currently
+any time the one that you're currently simulating and the one that you're
+simulating and the one that you're pre-caching
+pre-caching for simulation perf we had a bunch of
+for simulation perf we had a bunch of different peripherals depending on the
+different peripherals depending on the max player count vehicles etc but our
+max player count vehicles etc but our standard bubble was six versus twenty
+standard bubble was six versus twenty five that meant six players and 25 AI
+five that meant six players and 25 AI and a single bubble active at any one
+and a single bubble active at any one time 25 AI ought to be enough to give me
+time 25 AI ought to be enough to give me the kick-ass action game and with three
+the kick-ass action game and with three player fire team's a population of six
+player fire team's a population of six gives you the ability to play with
+gives you the ability to play with friends and have three strangers to
+friends and have three strangers to interact with but over a one-hour
+interact with but over a one-hour experience in destiny we need a lot more
+experience in destiny we need a lot more than three strangers that's why bubbles
+than three strangers that's why bubbles are also our unit of matchmaking so
+are also our unit of matchmaking so here's an example of two bubbles with a
+here's an example of two bubbles with a Z leg transition between them from an
+Z leg transition between them from an asset loading perspective this is pretty
+asset loading perspective this is pretty standard zone based or airlock streaming
+standard zone based or airlock streaming 15 seconds out from the bubble swap you
+15 seconds out from the bubble swap you start pre-caching all of the resources
+start pre-caching all of the resources for the new bubble when you get to the
+for the new bubble when you get to the bubble swap part at the end we've got
+bubble swap part at the end we've got all of your resource loaded for the new
+all of your resource loaded for the new bubble and we can instantly D
+bubble and we can instantly D instantiate everything in bubble a and
+instantiate everything in bubble a and instantiate everything in bubble B the
+instantiate everything in bubble B the neat thing that we also do during these
+neat thing that we also do during these transitions is matchmaking you to a new
+transitions is matchmaking you to a new networked game in order to meet new
+networked game in order to meet new strangers in bubble B we start
+strangers in bubble B we start matchmaking for a new host at around the
+matchmaking for a new host at around the 10-second mark and are ready to
+10-second mark and are ready to seamlessly swap you to the new game when
+seamlessly swap you to the new game when we perform our bubble swap if we don't
+we perform our bubble swap if we don't find a suitable bubble to match you with
+find a suitable bubble to match you with by the five-second mark we abort
+by the five-second mark we abort matchmaking which gives you enough time
+matchmaking which gives you enough time to spin up your own standalone bubble
+to spin up your own standalone bubble that other strangers should eventually
+that other strangers should eventually join so as you're running through the
+join so as you're running through the world you're continuously matchmaking to
+world you're continuously matchmaking to new bubble instances fire team is the
+new bubble instances fire team is the term that we use for a
+term that we use for a Hardy unintentionally formed a group of
+Hardy unintentionally formed a group of friends that all go on the same activity
+friends that all go on the same activity together for most activities the fire
+together for most activities the fire team size limit is three a notable
+team size limit is three a notable exception is six fire teammates for four
+exception is six fire teammates for four raids so you and your fighter teammates
+raids so you and your fighter teammates are always guaranteed to matchmake into
+are always guaranteed to matchmake into the same bubble instance if you go to
+the same bubble instance if you go to the same geographic location but while
+the same geographic location but while your fireteam is guaranteed to matchmake
+your fireteam is guaranteed to matchmake to the same bubble instances you're not
+to the same bubble instances you're not actually required to stay together
+actually required to stay together you're untethered which means you could
+you're untethered which means you could be in an activity with some fire
+be in an activity with some fire teammates but each of you is matched and
+teammates but each of you is matched and connected to a completely different
+connected to a completely different bubble instance in a different part of
+bubble instance in a different part of the world strangers on the other hand
+the world strangers on the other hand will match with you in one bubble but
+will match with you in one bubble but your connection to them is not
+your connection to them is not guaranteed if you leave that bubble so
+guaranteed if you leave that bubble so you and a stranger could match make
+you and a stranger could match make together in one bubble then run through
+together in one bubble then run through a bubble transition side by side and end
+a bubble transition side by side and end up matching in two separate bubble
+up matching in two separate bubble instances on the other side on your
+instances on the other side on your screen he'll just phase out midway
+screen he'll just phase out midway through the Z leg and disappear so
+through the Z leg and disappear so bubbles are a unit of autonomous
+bubbles are a unit of autonomous simulation and matchmaking but not all
+simulation and matchmaking but not all bubbles are the same if we talk about
+bubbles are the same if we talk about design goals again we definitely will
+design goals again we definitely will achieve the pacing spectacle and
+achieve the pacing spectacle and designer curated experiences of a Halo
+designer curated experiences of a Halo or other singleplayer FPS so we want you
+or other singleplayer FPS so we want you to be able to go to a boss battle and
+to be able to go to a boss battle and not have some random stranger ruin the
+not have some random stranger ruin the experience for you or potentially show
+experience for you or potentially show up and have the boss already be half
+up and have the boss already be half dead on the other hand we also really
+dead on the other hand we also really want you to meet strangers and these
+want you to meet strangers and these goals are fundamentally at odds if we
+goals are fundamentally at odds if we try to satisfy them simultaneously so we
+try to satisfy them simultaneously so we settled on the notion of public versus
+settled on the notion of public versus private bubbles public bubbles are the
+private bubbles public bubbles are the canonical destiny experience lots of
+canonical destiny experience lots of strangers inter interacting on
+strangers inter interacting on intersecting activity lines private
+intersecting activity lines private bubbles are all reserved reserved
+bubbles are all reserved reserved exclusively for your fire team no
+exclusively for your fire team no strangers ever show up in a private
+strangers ever show up in a private bubble in MMO terminology the private
+bubble in MMO terminology the private bubbles would be instances but that
+bubbles would be instances but that terminology is in the perfect fit for
+terminology is in the perfect fit for destiny because all of our bubbles are
+destiny because all of our bubbles are instances there could be thousands of
+instances there could be thousands of copies of a single public bubble each
+copies of a single public bubble each connecting up to six strangers so here's
+connecting up to six strangers so here's an idea of how we lay out one of our
+an idea of how we lay out one of our planets and destiny we call them
+planets and destiny we call them destinations the squares in this diagram
+destinations the squares in this diagram are public bubbles the circles are
+are public bubbles the circles are private bubbles
+private bubbles you can see how there's a loop with the
+you can see how there's a loop with the public bubbles a fairly easy way for you
+public bubbles a fairly easy way for you to roll around in a patrol activity
+to roll around in a patrol activity moving predominantly between public
+moving predominantly between public bubbles opening treasure chests while
+bubbles opening treasure chests while interacting with strangers now if I add
+interacting with strangers now if I add some other activity lines most of our
+some other activity lines most of our activities start in a public bubble and
+activities start in a public bubble and they all take you on a deliberate path
+they all take you on a deliberate path through many bubbles you typically get
+through many bubbles you typically get some exposure to one or two public
+some exposure to one or two public bubbles during the activity line and
+bubbles during the activity line and then you dive into a private bubble
+then you dive into a private bubble chain where we can have a hand authored
+chain where we can have a hand authored mission climax now as a continue to
+mission climax now as a continue to layer on the various activities that
+layer on the various activities that strangers can be on in the same bubble
+strangers can be on in the same bubble the intent is that when you encounter
+the intent is that when you encounter folks in a public bubble they're likely
+folks in a public bubble they're likely to be intersecting lines passing by but
+to be intersecting lines passing by but having different goals and different
+having different goals and different directions of travel so I mentioned that
+directions of travel so I mentioned that every time that you enter a new public
+every time that you enter a new public bubble we matchmake you to a new host so
+bubble we matchmake you to a new host so who should be responsible for hosting
+who should be responsible for hosting each of these bubbles we could make it
+each of these bubbles we could make it the traditional halo reach era physics
+the traditional halo reach era physics host whichever council was elected to be
+host whichever council was elected to be the authoritative arbiter of all the
+the authoritative arbiter of all the combat events we decided not to simply
+combat events we decided not to simply use the physics hosting console and to
+use the physics hosting console and to help explain why we need to talk about
+help explain why we need to talk about hosts migrations a host migration occurs
+hosts migrations a host migration occurs whenever the physics hosting console
+whenever the physics hosting console disconnects from the game in order to
+disconnects from the game in order to keep the game running we need to elect a
+keep the game running we need to elect a new physics host from one of the
+new physics host from one of the remaining players we pick a new host and
+remaining players we pick a new host and then we need to get new authoritative
+then we need to get new authoritative simulation state from the new host in
+simulation state from the new host in Halo Reach this was a pretty abrupt
+Halo Reach this was a pretty abrupt experience for players it always caused
+experience for players it always caused a black screen for a few seconds and it
+a black screen for a few seconds and it could result in inconsistent state it
+could result in inconsistent state it was okay that this experience was a
+was okay that this experience was a little sucky because it was reasonably
+little sucky because it was reasonably rare not only did we tie all PvP rewards
+rare not only did we tie all PvP rewards to finishing a match we even temporarily
+to finishing a match we even temporarily banned players who quit PvP too often so
+banned players who quit PvP too often so host migrations did not typically
+host migrations did not typically interrupt the player experience but
+interrupt the player experience but destiny is a world of intersecting not
+destiny is a world of intersecting not parallel lines most of the time players
+parallel lines most of the time players are just passing through public bubbles
+are just passing through public bubbles any one of these players could be the
+any one of these players could be the current physics host and as soon as she
+current physics host and as soon as she leaves indie instantiate the bubble we
+leaves indie instantiate the bubble we need to migrate to a new physics host so
+need to migrate to a new physics host so in most destiny public bubbles physics
+in most destiny public bubbles physics host migrations happen all the time the
+host migrations happen all the time the average player in a public bubble
+average player in a public bubble experiences a host migration every 160
+experiences a host migration every 160 seconds I pulled that data from our
+seconds I pulled that data from our server logs from the live game one every
+server logs from the live game one every two and a half minutes we knew that we
+two and a half minutes we knew that we needed a better solution that didn't
+needed a better solution that didn't create a black screen load and hopefully
+create a black screen load and hopefully doesn't cause obvious player facing
+doesn't cause obvious player facing artifacts at this point I'm sure some of
+artifacts at this point I'm sure some of you are thinking just use dedicated
+you are thinking just use dedicated servers if we just never host migrate
+servers if we just never host migrate because we put all of our physics hosts
+because we put all of our physics hosts in the cloud we don't have to solve all
+in the cloud we don't have to solve all these annoying problems there's a couple
+these annoying problems there's a couple of strong reasons why we didn't simply
+of strong reasons why we didn't simply run dedicated servers that were
+run dedicated servers that were traditional physics hosts for one they
+traditional physics hosts for one they need to be cost feasible to support our
+need to be cost feasible to support our launch we'd have needed hundreds of
+launch we'd have needed hundreds of thousands of headless piously parity
+thousands of headless piously parity executables in the cloud and that
+executables in the cloud and that becomes a significant continuous cost to
+becomes a significant continuous cost to maintain especially if our player
+maintain especially if our player retention continues to stay as strong as
+retention continues to stay as strong as it has been additionally peer-to-peer
+it has been additionally peer-to-peer networking supports maximally responsive
+networking supports maximally responsive action gameplay in many cases we can
+action gameplay in many cases we can match it with players that are in the
+match it with players that are in the exact same city as you and you get
+exact same city as you and you get extremely low latency with your physics
+extremely low latency with your physics host much better than what we could do
+host much better than what we could do with dedicated servers we don't want to
+with dedicated servers we don't want to increase our latency for firing bullets
+increase our latency for firing bullets and doing damage that violates our
+and doing damage that violates our fields like a single-player shooter goal
+fields like a single-player shooter goal so can we keep our traditional physics
+so can we keep our traditional physics hosts around but fix the hosts migration
+hosts around but fix the hosts migration problems that halo had Halo Reach host
+problems that halo had Halo Reach host migrations were typically abrupt black
+migrations were typically abrupt black screens what does a destiny host
+screens what does a destiny host migration look like the players it
+migration look like the players it depends really we can talk about two
+depends really we can talk about two examples to begin with what I'll call
+examples to begin with what I'll call fully graceful and fully ungraceful this
+fully graceful and fully ungraceful this isn't a binary switch but two poles on a
+isn't a binary switch but two poles on a continuum fully graceful would be our
+continuum fully graceful would be our best case so the current host knows that
+best case so the current host knows that he's about to transition to another Pole
+he's about to transition to another Pole and as soon as he enters the transition
+and as soon as he enters the transition interior that gives us about 10 seconds
+interior that gives us about 10 seconds of anticipation during which we can
+of anticipation during which we can elect a new host and transfer ownership
+elect a new host and transfer ownership to them seamlessly in the best case the
+to them seamlessly in the best case the current physic state is also fully
+current physic state is also fully compatible with the old host state so
+compatible with the old host state so there's no need for discontinuous State
+there's no need for discontinuous State and players never notice that we switch
+and players never notice that we switch physics host midway through combat this
+physics host midway through combat this sort of host migration happens a lot
+sort of host migration happens a lot during a typical player experience and
+during a typical player experience and most of the time no one will notice
+most of the time no one will notice the thing I feel like this is one of the
+the thing I feel like this is one of the pretty cool things about the destiny
+pretty cool things about the destiny architecture on the other end you could
+architecture on the other end you could imagine our worst-case ungraceful host
+imagine our worst-case ungraceful host migration the physics host pulls their
+migration the physics host pulls their Ethernet cable and we stop receiving any
+Ethernet cable and we stop receiving any packets from them we have pretty lenient
+packets from them we have pretty lenient timeouts because we're always online and
+timeouts because we're always online and we don't want to be constantly kicking
+we don't want to be constantly kicking people out of the game world if they
+people out of the game world if they have a bad internet connection so it
+have a bad internet connection so it could be fifteen or twenty seconds
+could be fifteen or twenty seconds before we fully time out the old host
+before we fully time out the old host during that time you'll be locally
+during that time you'll be locally predicting state changes but they won't
+predicting state changes but they won't ever apply anything authoritative so
+ever apply anything authoritative so you'll see predictive healthbar damage
+you'll see predictive healthbar damage but be unable to kill any AI and your
+but be unable to kill any AI and your public events won't advance in any
+public events won't advance in any significant way eventually we'll elect
+significant way eventually we'll elect in the new physics host and public
+in the new physics host and public events and AI death etc will start
+events and AI death etc will start functioning again so that's the player
+functioning again so that's the player experience but what's going on under the
+experience but what's going on under the hood we obviously need to elect a new
+hood we obviously need to elect a new host to hand off all of our simulation
+host to hand off all of our simulation authority but that new host simulation
+authority but that new host simulation state will not be identical to the old
+state will not be identical to the old host not only may objects be in slightly
+host not only may objects be in slightly different states they might not have all
+different states they might not have all the same objects instantiated as the old
+the same objects instantiated as the old host they might have prematurely deleted
+host they might have prematurely deleted some objects and this can cause some
+some objects and this can cause some pretty severe experiential bugs in the
+pretty severe experiential bugs in the worst case it can completely break
+worst case it can completely break activity script progression so let's
+activity script progression so let's imagine a really simple case from PvE
+imagine a really simple case from PvE scripting you have a door that is
+scripting you have a door that is scripted to open when a player presses a
+scripted to open when a player presses a switch these are both separate objects
+switch these are both separate objects that each track a separate boolean state
+that each track a separate boolean state open closed for the door on/off for the
+open closed for the door on/off for the switch crucially because these objects
+switch crucially because these objects are separate and unattached outside of
+are separate and unattached outside of the script logic itself they're
+the script logic itself they're networked separately destiny bubbles
+networked separately destiny bubbles have many dozens of complex objects all
+have many dozens of complex objects all being simultaneously networked and
+being simultaneously networked and competing for traffic by networking each
+competing for traffic by networking each one of the objects separately we can
+one of the objects separately we can heavily prioritize our networking
+heavily prioritize our networking traffic to emphasize the objects that
+traffic to emphasize the objects that are most important to the player we've
+are most important to the player we've been doing that since the Halo days so
+been doing that since the Halo days so let's say that the physics host goes
+let's say that the physics host goes over to the door presses the switch
+over to the door presses the switch which opens the door he then immediately
+which opens the door he then immediately pulls out his Ethernet cable it's
+pulls out his Ethernet cable it's entirely possible that all clients or
+entirely possible that all clients or whomever we elect is the new HOH
+whomever we elect is the new HOH could receive the packet saying sets
+could receive the packet saying sets which they to on but never receive the
+which they to on but never receive the packet saying set door state to open
+packet saying set door state to open this that package could just get lost
+this that package could just get lost through ordinary packet loss and the
+through ordinary packet loss and the host is no longer available to rescind
+host is no longer available to rescind it in that case you now have a new host
+it in that case you now have a new host with a switch that has already been
+with a switch that has already been pressed but a door that is still closed
+pressed but a door that is still closed and you've now got a critical path
+and you've now got a critical path progression blocker and for what it's
+progression blocker and for what it's worth this case is very real Halo Reach
+worth this case is very real Halo Reach had to deal with lots of inconsistent
+had to deal with lots of inconsistent state like this during host migrations
+state like this during host migrations it could easily break games like capture
+it could easily break games like capture the flag this is a bug screenshot that I
+the flag this is a bug screenshot that I grabbed from Halo Reach this is a host
+grabbed from Halo Reach this is a host migration causing the script to spawn
+migration causing the script to spawn duplicate flags and break the score
+duplicate flags and break the score there's two red flags and well I don't
+there's two red flags and well I don't think we shifted with this bug we did
+think we shifted with this bug we did ship with host migration bugs and plenty
+ship with host migration bugs and plenty more than we wanted so there's a couple
+more than we wanted so there's a couple of ways that you could imagine fixing
+of ways that you could imagine fixing this problem one would be to program
+this problem one would be to program defensively the CTF game ensures that
+defensively the CTF game ensures that there's never more than one flag of a
+there's never more than one flag of a given team color the door switch resets
+given team color the door switch resets itself off after a few seconds so you
+itself off after a few seconds so you can reuse it if necessary we have to
+can reuse it if necessary we have to think about each of those cases as
+think about each of those cases as you're writing each activity script or
+you're writing each activity script or feature and it's hard to catch them all
+feature and it's hard to catch them all Plus hosts migrations are frequently not
+Plus hosts migrations are frequently not covered in the standard development
+covered in the standard development testing and iteration so you can get
+testing and iteration so you can get very close to shipping before you find
+very close to shipping before you find all these weird edge cases many of them
+all these weird edge cases many of them you won't even find their timing
+you won't even find their timing sensitive our simple diagram that we
+sensitive our simple diagram that we just use required the two packets get
+just use required the two packets get sent but you managed to drop exactly one
+sent but you managed to drop exactly one of them which is going to be hard to
+of them which is going to be hard to repro Hilary's ship with way more of
+repro Hilary's ship with way more of these bugs than we'd like and that was
+these bugs than we'd like and that was just PvP how do we avoid this tax on
+just PvP how do we avoid this tax on every single PvE script each of which is
+every single PvE script each of which is typically much more complicated than a
+typically much more complicated than a PvP game type so what if we go back to
+PvP game type so what if we go back to the dedicated host idea but we only host
+the dedicated host idea but we only host the mission critical state that could
+the mission critical state that could break activity scripts we keep all of
+break activity scripts we keep all of the combat and physics peer-to-peer so
+the combat and physics peer-to-peer so we have a responsive action game with
+we have a responsive action game with low latency but we keep a minimal cost
+low latency but we keep a minimal cost feasible set of state up in the cloud so
+feasible set of state up in the cloud so that it never host migrates so what do I
+that it never host migrates so what do I mean by mission critical State
+mean by mission critical State mission-critical state is any contract
+mission-critical state is any contract that an activity script explicitly or
+that an activity script explicitly or implicitly requires if an activity
+implicitly requires if an activity script says that a button opens a door
+script says that a button opens a door it's implicitly linking the two together
+it's implicitly linking the two together and saying if the button is on the door
+and saying if the button is on the door is open and vice-versa and the really
+is open and vice-versa and the really important and really tricky thing here
+important and really tricky thing here is that these contracts are typically
+is that these contracts are typically implicit not explicit you have to first
+implicit not explicit you have to first figure out how to discover all of the
+figure out how to discover all of the activity script contracts before you can
+activity script contracts before you can find a way to enforce them all so some
+find a way to enforce them all so some of our early attempts here were to try
+of our early attempts here were to try to create a de Missa tee guarantees
+to create a de Missa tee guarantees between any linked state so if the
+between any linked state so if the button is connected to a door you just
+button is connected to a door you just make sure that all networking updates
+make sure that all networking updates for both of them are atomic and you're
+for both of them are atomic and you're all good this approach has two major
+all good this approach has two major problems one a lot of contracts within
+problems one a lot of contracts within real scripts are a lot more indirect you
+real scripts are a lot more indirect you kill two AI that spawns a third guy the
+kill two AI that spawns a third guy the third guy runs over to the door and he
+third guy runs over to the door and he opens the door in that case is the door
+opens the door in that case is the door linked to the original two AI also it
+linked to the original two AI also it requires that someone and if we're
+requires that someone and if we're talking activity script we typically
+talking activity script we typically mean a designer actively think about
+mean a designer actively think about host migrations and atonic linkage which
+host migrations and atonic linkage which puts us back in the defensive
+puts us back in the defensive programming trap that we'd really like
+programming trap that we'd really like to avoid so instead what if we just
+to avoid so instead what if we just compile the list of every object that
+compile the list of every object that the activity script ever cares about all
+the activity script ever cares about all three AI the door the CTF flag and we
+three AI the door the CTF flag and we make them all atomic with each other
+make them all atomic with each other then we only update atomically and every
+then we only update atomically and every client always gets a fully consistent
+client always gets a fully consistent set of activity state that satisfies all
+set of activity state that satisfies all contracts and it's important to note
+contracts and it's important to note here we're trying to get the minimal set
+here we're trying to get the minimal set of necessary state that way as much as
+of necessary state that way as much as possible is still hosted by our low
+possible is still hosted by our low latency physics host we call this
+latency physics host we call this minimal subset of a game state that we
+minimal subset of a game state that we care about and want to atomically reckon
+care about and want to atomically reckon style activity state activity state is
+style activity state activity state is all authoritative on the activity host
+all authoritative on the activity host which runs up in the cloud and never
+which runs up in the cloud and never migrates so all of our activity scripts
+migrates so all of our activity scripts like a story mission script run in the
+like a story mission script run in the cloud and these scripts all declare
+cloud and these scripts all declare upfront what state they care about
+upfront what state they care about activity scripts operate on some set of
+activity scripts operate on some set of objects those are by definition the
+objects those are by definition the objects that they care about
+objects that they care about you can't reference an object in
+you can't reference an object in activity script without including it in
+activity script without including it in activity State there's tons of other
+activity State there's tons of other objects in the simulations they never
+objects in the simulations they never care about bullets and crates and
+care about bullets and crates and vehicles but we can do even better than
+vehicles but we can do even better than that because activity scripts also
+that because activity scripts also declare what they care about each of
+declare what they care about each of these objects let's take a squad for
+these objects let's take a squad for example a group of coordinated AI and
+example a group of coordinated AI and destiny an activity script might care
+destiny an activity script might care has the squad spawned how many AI are
+has the squad spawned how many AI are alive or dead but they probably don't
+alive or dead but they probably don't care about the individual health or
+care about the individual health or world space positions of those AI we
+world space positions of those AI we call these bits of discrete
+call these bits of discrete mission-critical State sensors we can
+mission-critical State sensors we can take all this specified state which
+take all this specified state which isn't very much and make it all
+isn't very much and make it all atomically reconcilable and persisted in
+atomically reconcilable and persisted in the cloud this way at any time a new
+the cloud this way at any time a new physics host can take over and can set
+physics host can take over and can set itself into a fully consistent state
+itself into a fully consistent state that will allow the activity script to
+that will allow the activity script to proceed so here's an example of activity
+proceed so here's an example of activity State on both the physics host that's
+State on both the physics host that's the ps4 360 console in someone's house
+the ps4 360 console in someone's house down at the bottom and the activity host
+down at the bottom and the activity host which lives up in the cloud there's a
+which lives up in the cloud there's a full duplication of sensor state on both
+full duplication of sensor state on both machines off state is what we call
+machines off state is what we call sensor communication from the activity
+sensor communication from the activity host to the client because the activity
+host to the client because the activity host is always the authority over
+host is always the authority over activity State those are the red arrows
+activity State those are the red arrows going down and sense state is
+going down and sense state is communication in the other direction the
+communication in the other direction the green arrows so as a simple example
+green arrows so as a simple example let's suppose that you have a squad you
+let's suppose that you have a squad you want to spawn it and trigger an activity
+want to spawn it and trigger an activity complete banner when everyone in the
+complete banner when everyone in the squad is dead I've written a sample
+squad is dead I've written a sample script up there on the right where you
+script up there on the right where you place the squad you wait for them all to
+place the squad you wait for them all to die and then you play activity complete
+die and then you play activity complete so first the activity host script calls
+so first the activity host script calls place this sends down off state to the
+place this sends down off state to the physics host which spawns three AI at
+physics host which spawns three AI at this point the three AI are simulated on
+this point the three AI are simulated on the physics host and peer-to-peer
+the physics host and peer-to-peer networks two other clients there's
+networks two other clients there's already a couple of interesting things
+already a couple of interesting things to note here
+to note here first the activity script itself is
+first the activity script itself is running in the cloud
+running in the cloud none of our Lua logic for activity
+none of our Lua logic for activity scripts are actually executing on the
+scripts are actually executing on the ps4 client second it's worth pointing
+ps4 client second it's worth pointing out that these three AI
+out that these three AI are not inactivity state there's a squad
+are not inactivity state there's a squad sensor inside activity state but it's
+sensor inside activity state but it's tracking very minimal state that three
+tracking very minimal state that three of them are alive that they're using
+of them are alive that they're using this specific firing area stuff like
+this specific firing area stuff like that outside of activity state there are
+that outside of activity state there are three linked heavyweight objects those
+three linked heavyweight objects those are the actual bipeds with world space
+are the actual bipeds with world space positions and skeletons and specific
+positions and skeletons and specific animation state none of that state lives
+animation state none of that state lives on the activity host the networking
+on the activity host the networking protocols are also different those three
+protocols are also different those three AI are networked just like any other
+AI are networked just like any other peer-to-peer object they're each
+peer-to-peer object they're each separately networked to all physics
+separately networked to all physics clients in the bubble independent of the
+clients in the bubble independent of the sensors using traditional halo pvp
+sensors using traditional halo pvp networking so now let's start killing
+networking so now let's start killing some aliens as the physics host detects
+some aliens as the physics host detects each kill it sends sense state up to the
+each kill it sends sense state up to the activity house decrementing the alive
+activity house decrementing the alive count on the sensor these updates are
+count on the sensor these updates are time slice to be relatively infrequent
+time slice to be relatively infrequent we as ten Hertz for both CPU and
+we as ten Hertz for both CPU and bandwidth reasons and it's atomic with
+bandwidth reasons and it's atomic with all other send state changes we send all
+all other send state changes we send all coherent sensor changes up
+coherent sensor changes up simultaneously on a given sensor update
+simultaneously on a given sensor update after the alive count hits zero
+after the alive count hits zero during the next script update the script
+during the next script update the script Co routine continues on the activity
+Co routine continues on the activity host at this point it would communicate
+host at this point it would communicate down via an objective sensor which would
+down via an objective sensor which would then update the HUD to display the
+then update the HUD to display the activity complete banner so for a given
+activity complete banner so for a given activity we specify all of its sensors
+activity we specify all of its sensors up front all the objects that it might
+up front all the objects that it might care about during the activity sensors
+care about during the activity sensors can be related to game objects but they
+can be related to game objects but they aren't one-to-one you can have multiple
+aren't one-to-one you can have multiple objects tracked by a single sensor like
+objects tracked by a single sensor like a squad or multiple sensors on a single
+a squad or multiple sensors on a single object for discrete unrelated components
+object for discrete unrelated components of state basically on the physics host
+of state basically on the physics host any sensor can read anything at once
+any sensor can read anything at once about game to game state but whatever
+about game to game state but whatever internal memory it decides to store gets
+internal memory it decides to store gets communicated up to the activity host a
+communicated up to the activity host a sense state the sensor internal memory
+sense state the sensor internal memory there's a very small subset of the
+there's a very small subset of the overall game state so our activity hosts
+overall game state so our activity hosts are much cheaper than a traditional
+are much cheaper than a traditional physics host dedicated server we only
+physics host dedicated server we only need to pay for our Dennett data center
+need to pay for our Dennett data center simulating a networking activity state
+simulating a networking activity state not the entirety of the
+not the entirety of the simulation by pruning activity stayed
+simulation by pruning activity stayed down to what's absolutely necessary
+down to what's absolutely necessary we're able to get significant scale on
+we're able to get significant scale on our data center each of our activity
+our data center each of our activity host executables is around forty five
+host executables is around forty five megabytes we could make this even
+megabytes we could make this even smaller it's a stripped-down version of
+smaller it's a stripped-down version of the destiny executable where we just
+the destiny executable where we just tore out anything that wasn't needed for
+tore out anything that wasn't needed for activity state and we basically stopped
+activity state and we basically stopped memory optimizing when we became CPU
+memory optimizing when we became CPU bound on our servers we took our
+bound on our servers we took our activity hosts at ten Hertz which allows
+activity hosts at ten Hertz which allows us to run almost 5,000 of them per
+us to run almost 5,000 of them per server that's a 40 core - and 56
+server that's a 40 core - and 56 gigabyte machine given that we typically
+gigabyte machine given that we typically have a bit over two players per activity
+have a bit over two players per activity host in real-world conditions that means
+host in real-world conditions that means that our data center could
+that our data center could hypothetically handle 1 million
+hypothetically handle 1 million concurrent users with only a couple
+concurrent users with only a couple hundred servers and that's with plenty
+hundred servers and that's with plenty of safety Headroom on each machine
+of safety Headroom on each machine that's dramatically better scale than
+that's dramatically better scale than trying to use a full dedicated server
+trying to use a full dedicated server with full dedicated servers that same
+with full dedicated servers that same hypothetical million players would
+hypothetical million players would require half a million headless ps3
+require half a million headless ps3 processes each running our full game
+processes each running our full game simulation so now what happens if you
+simulation so now what happens if you have a host migration let's suppose the
+have a host migration let's suppose the activity host has an alive count of 3 it
+activity host has an alive count of 3 it never got send States saying that any of
+never got send States saying that any of the AI died but the new physics host for
+the AI died but the new physics host for whatever reason has inconsistent state
+whatever reason has inconsistent state that gives it an alive count of 1 so the
+that gives it an alive count of 1 so the new physics host has only one AI left
+new physics host has only one AI left alive and it's only networking 1 AI 2
+alive and it's only networking 1 AI 2 physics clients using halo peer-to-peer
+physics clients using halo peer-to-peer networking whereas the activity hosts
+networking whereas the activity hosts authoritative lis states that there
+authoritative lis states that there should be 3 AI left alive the activity
+should be 3 AI left alive the activity host is the session authority who
+host is the session authority who arbitrates election of new physics hosts
+arbitrates election of new physics hosts and handles all the migrations so any
+and handles all the migrations so any host migration necessarily goes through
+host migration necessarily goes through the activity host and it calls a special
+the activity host and it calls a special reconcile function on each sensor the
+reconcile function on each sensor the squad sensor along with every other
+squad sensor along with every other sensor sends down off state and a
+sensor sends down off state and a special reconcile command which requires
+special reconcile command which requires that the new physics host modify his
+that the new physics host modify his simulation to match the off state in the
+simulation to match the off state in the common graceful migration case that we
+common graceful migration case that we talked about earlier this often results
+talked about earlier this often results in 0 or imperceptible changes if the new
+in 0 or imperceptible changes if the new physics host is up-to-date with activity
+physics host is up-to-date with activity state in this case the physics host has
+state in this case the physics host has to spawn tune
+to spawn tune to match the off-state requirement of
+to match the off-state requirement of three and one cool thing here is how we
+three and one cool thing here is how we spawn the Driggs
+spawn the Driggs we already have squad place logic in the
+we already have squad place logic in the sensor that knows how to tell the game
+sensor that knows how to tell the game to instantiate new AI bipeds we can
+to instantiate new AI bipeds we can typically reuse those exact same code
+typically reuse those exact same code path ways to handle reconcile it's just
+path ways to handle reconcile it's just like any other off state update that you
+like any other off state update that you might get through that sensor similarly
+might get through that sensor similarly if the off state had said that there
+if the off state had said that there were fewer AI than the physics host was
+were fewer AI than the physics host was simulating code in the sensor would
+simulating code in the sensor would choose AI to instantly kill in order to
+choose AI to instantly kill in order to get it down to the correct count there's
+get it down to the correct count there's several other powerful benefits that
+several other powerful benefits that come from having these dedicated
+come from having these dedicated activity hosts one is security for every
+activity hosts one is security for every Destiny's activity being played right
+Destiny's activity being played right now there's a machine that we can trust
+now there's a machine that we can trust that has fairly complex understanding of
+that has fairly complex understanding of the minute-to-minute gameplay this helps
+the minute-to-minute gameplay this helps greatly in combating piracy is a strong
+greatly in combating piracy is a strong avenue for investigating suspected
+avenue for investigating suspected cheaters and exploits
+cheaters and exploits additionally activity bubbles can
+additionally activity bubbles can execute scripts without any players
+execute scripts without any players being present we don't have to leash you
+being present we don't have to leash you to a boss room and we can maintain an
+to a boss room and we can maintain an activity script even when every player
+activity script even when every player has left the bubble and locally deleted
+has left the bubble and locally deleted every single object from their consoles
+every single object from their consoles physical memory and what happens if a
+physical memory and what happens if a player re-enters one of these empty
+player re-enters one of these empty activity levels the player herself will
+activity levels the player herself will spin up the simulation in the default
+spin up the simulation in the default state when she crosses the Z leg she'll
+state when she crosses the Z leg she'll be elected as the new physics host since
+be elected as the new physics host since it was previously empty and then she
+it was previously empty and then she will get a reconcile call where she can
+will get a reconcile call where she can fix up all of her simulated simulation
+fix up all of her simulated simulation state to match the authoritative sensor
+state to match the authoritative sensor state this is actually pretty cool we
+state this is actually pretty cool we automatically get a minimal state load
+automatically get a minimal state load functionality when entering an empty
+functionality when entering an empty activity bubble because we only fix up
+activity bubble because we only fix up the declared sensors and we leave
+the declared sensors and we leave everything else in its default state so
+everything else in its default state so all the examples that we've talked about
+all the examples that we've talked about so far are coop scripting two or three
+so far are coop scripting two or three players and a single fire team on the
+players and a single fire team on the same activity and a networked
+same activity and a networked environment but destiny is also about
+environment but destiny is also about meeting strangers on intersecting paths
+meeting strangers on intersecting paths what happens when two players meet corne
+what happens when two players meet corne two completely different activities this
+two completely different activities this is where it starts to get even more
+is where it starts to get even more complicated so let's suppose that we've
+complicated so let's suppose that we've got
+got players in this public bubble Alice Bob
+players in this public bubble Alice Bob and Charlie the peer-to-peer connected
+and Charlie the peer-to-peer connected to each other using traditional reach
+to each other using traditional reach networking and alice is the physics host
+networking and alice is the physics host two of them Alice and Bob are doing a
+two of them Alice and Bob are doing a strike together this means that they're
+strike together this means that they're connected to a mission activity host for
+connected to a mission activity host for their mission the mission activity host
+their mission the mission activity host is where all of the script logic for the
+is where all of the script logic for the chosen activity lives firing off
+chosen activity lives firing off objectives spawning bosses and their
+objectives spawning bosses and their private bubbles etc Charlie is playing a
+private bubbles etc Charlie is playing a patrol so while he's in the same bubble
+patrol so while he's in the same bubble he has a separate mission activity host
+he has a separate mission activity host giving him local patrol objectives
+giving him local patrol objectives finally they're also simultaneously all
+finally they're also simultaneously all connected to the same bubble activity
+connected to the same bubble activity host the bubble host is responsible for
+host the bubble host is responsible for all of the ambient scripting in the
+all of the ambient scripting in the public bubble it spawns and scripts all
+public bubble it spawns and scripts all of the ambient AI that you fight it
+of the ambient AI that you fight it handles the respawn timing and placement
+handles the respawn timing and placement of all the resource nodes and treasure
+of all the resource nodes and treasure chests and it runs all of the logic for
+chests and it runs all of the logic for all of the public events those are the
+all of the public events those are the main things that we do in our destiny
+main things that we do in our destiny public bubbles but technologically a
+public bubbles but technologically a bubble host is almost identical to a
+bubble host is almost identical to a mission host so you could write an
+mission host so you could write an arbitrarily complex script in there for
+arbitrarily complex script in there for a crazy public boss encounter I said
+a crazy public boss encounter I said almost identical because there's one key
+almost identical because there's one key difference between mission activity
+difference between mission activity house and bubble activity hosts that's
+house and bubble activity hosts that's worth mentioning if you go back to look
+worth mentioning if you go back to look at our activity line with all of these
+at our activity line with all of these public and private bubbles we could make
+public and private bubbles we could make them interchangeable and have an
+them interchangeable and have an activity host for every single public
+activity host for every single public bubble and one for every single private
+bubble and one for every single private bubble but there isn't really a need to
+bubble but there isn't really a need to split up the private bubbles for a given
+split up the private bubbles for a given fire team one fire team has their own
+fire team one fire team has their own shared instance of every private bubble
+shared instance of every private bubble in the destination so we can simulate
+in the destination so we can simulate all of them simultaneously on a single
+all of them simultaneously on a single activity host so you have one bubble
+activity host so you have one bubble host for each of the public bubbles and
+host for each of the public bubbles and then one mission activity host that
+then one mission activity host that manages every other bubble on the
+manages every other bubble on the destination all of the private bubbles
+destination all of the private bubbles specific to the mission that you're on
+specific to the mission that you're on so to reiterate each fire team gets
+so to reiterate each fire team gets their own mission host all fire
+their own mission host all fire teammates are always connected to the
+teammates are always connected to the same mission host and this may be the
+same mission host and this may be the only connection that they share if
+only connection that they share if they're not in the same bubble
+they're not in the same bubble the mission host runs the activity
+the mission host runs the activity scripts specific to the activity that
+scripts specific to the activity that you're on like a given story mission
+you're on like a given story mission script the mission host also owns all of
+script the mission host also owns all of the private bubbles in the destination
+the private bubbles in the destination that way your fire team can meet up in
+that way your fire team can meet up in any of these private bubbles but no
+any of these private bubbles but no stranger will ever show up there then
+stranger will ever show up there then you also have bubble activity hosts
+you also have bubble activity hosts which control public and bubbles for
+which control public and bubbles for every public bubble instance that we
+every public bubble instance that we have running in the Destiny universe
+have running in the Destiny universe there is exactly one bubble activity
+there is exactly one bubble activity hosts in the cloud it does all of the
+hosts in the cloud it does all of the scripting for the public bubble itself
+scripting for the public bubble itself public events spawning treasure chests
+public events spawning treasure chests ambient encounters and at any given time
+ambient encounters and at any given time a bubble bubble host will likely have
+a bubble bubble host will likely have several strangers in it who each have
+several strangers in it who each have their own separate mission house
+their own separate mission house additionally every member of a fireteam
+additionally every member of a fireteam could be connected to different bubble
+could be connected to different bubble hosts if they're all in different public
+hosts if they're all in different public bubbles so going back to our public
+bubbles so going back to our public bubble case you've got three different
+bubble case you've got three different activity hosts all running scripts
+activity hosts all running scripts simultaneously and injecting state into
+simultaneously and injecting state into these consoles down at the bottom how do
+these consoles down at the bottom how do we keep the scripts from stomping all
+we keep the scripts from stomping all over each other as an example you've got
+over each other as an example you've got Charlie on the right who's on a patrol
+Charlie on the right who's on a patrol lots of the patrol jobs take place in
+lots of the patrol jobs take place in public bubbles how is that ownership
+public bubbles how is that ownership distributed between the patrol mission
+distributed between the patrol mission host and the public trouble host in
+host and the public trouble host in order to keep these scripts from
+order to keep these scripts from fighting each other we have a few
+fighting each other we have a few policies that we enforce on mission
+policies that we enforce on mission hosts they're allowed to do whatever
+hosts they're allowed to do whatever they want inside all of those private
+they want inside all of those private bubbles that they have but they're not
+bubbles that they have but they're not allowed to instantiate or modify any
+allowed to instantiate or modify any networked objects inside a public bubble
+networked objects inside a public bubble this way there's only ever one activity
+this way there's only ever one activity host per bubble who can create or modify
+host per bubble who can create or modify the shared simulation however they are
+the shared simulation however they are allowed to do some stuff in public
+allowed to do some stuff in public bubbles as long as it doesn't affect the
+bubbles as long as it doesn't affect the shared simulation they can play lines of
+shared simulation they can play lines of dialogue they can set objectives they
+dialogue they can set objectives they can play full screen effects all stuff
+can play full screen effects all stuff that is just local to that fireteam
+that is just local to that fireteam additionally it's a common occurrence
+additionally it's a common occurrence for the public bubble script to have
+for the public bubble script to have some activity specific logic in it for
+some activity specific logic in it for example it can say if any players in my
+example it can say if any players in my bubble are on this specific story
+bubble are on this specific story activity allow this interactable to be
+activity allow this interactable to be used by one of those players a really
+used by one of those players a really great example
+great example public bubble hosts triggering mission
+public bubble hosts triggering mission specific logic is the raid entrance
+specific logic is the raid entrance bubble for the vault of glass on Venus
+bubble for the vault of glass on Venus if you wander through that bubble you
+if you wander through that bubble you might see a raid party show up and their
+might see a raid party show up and their presence in the bubble causes the bubble
+presence in the bubble causes the bubble host to trigger the first encounter of
+host to trigger the first encounter of the raid special enemies from the raid
+the raid special enemies from the raid spawn and players in the bubble have to
+spawn and players in the bubble have to stand on three switches long enough to
+stand on three switches long enough to open a giant door all this logic occurs
+open a giant door all this logic occurs on the public bubble host not the
+on the public bubble host not the mission host for the raid and the cool
+mission host for the raid and the cool thing here is that not only can the
+thing here is that not only can the stranger wandering through this bubble
+stranger wandering through this bubble see all of this happening because it's
+see all of this happening because it's all happening on the shared bubble host
+all happening on the shared bubble host that they're all connected to but you
+that they're all connected to but you can also participate in that first
+can also participate in that first encounter and help out without having to
+encounter and help out without having to be on the raid activity if she helps
+be on the raid activity if she helps them complete this encounter they'll run
+them complete this encounter they'll run off inside the door which is a private
+off inside the door which is a private bubble and phase out of her game even if
+bubble and phase out of her game even if she tries to follow them this cool
+she tries to follow them this cool upside carries with it additional
+upside carries with it additional complexity in order to do something like
+complexity in order to do something like this you have to split up your activity
+this you have to split up your activity into public and private portions the
+into public and private portions the public portions live on their respective
+public portions live on their respective public rubble hosts the private portions
+public rubble hosts the private portions live on the mission activity host and
+live on the mission activity host and for reasonably complex interactions
+for reasonably complex interactions between the two you have to pass global
+between the two you have to pass global flags back and forth between them
+flags back and forth between them because there's very limited interaction
+because there's very limited interaction between activity hosts this constraint
+between activity hosts this constraint plus the fact that a single public
+plus the fact that a single public bubble script needs to know how to
+bubble script needs to know how to arbitrate all of the different possible
+arbitrate all of the different possible events that could happen inside of it
+events that could happen inside of it simultaneously kept us pretty
+simultaneously kept us pretty conservative with what we do in public
+conservative with what we do in public bubbles for destiny so far but I believe
+bubbles for destiny so far but I believe that we've only just scratched the
+that we've only just scratched the surface here and there's a lot of really
+surface here and there's a lot of really ambitious stuff we can start doing in
+ambitious stuff we can start doing in public bubbles for future releases now
+public bubbles for future releases now that we're starting to get our sea legs
+that we're starting to get our sea legs with all this tech so well I do think
+with all this tech so well I do think that we managed to create some pretty
+that we managed to create some pretty cool tech and have even more ambitious
+cool tech and have even more ambitious designs coming down the pipe it's also
+designs coming down the pipe it's also we're spending a little time talking
+we're spending a little time talking about the downsides and challenges that
+about the downsides and challenges that we've encountered a phrase we like to
+we've encountered a phrase we like to use internally a lot of Bungie for this
+use internally a lot of Bungie for this is we're not the best yeah so
+back in January players found the first repeatable host migration exploit that
+repeatable host migration exploit that I'm aware of for destiny they could
+I'm aware of for destiny they could cheese the final boss fight and our
+cheese the final boss fight and our first DLC raid by pulling out their
+first DLC raid by pulling out their network cable at a key moment this
+network cable at a key moment this rapidly turned into the de-facto way to
+rapidly turned into the de-facto way to defeat the raid
+defeat the raid raise your hands if you've played in the
+raise your hands if you've played in the game that cheese crota by having the
+game that cheese crota by having the host pull out the network cable alright
+host pull out the network cable alright a few of you are honest I appreciate
+a few of you are honest I appreciate that I mean if this makes you think so
+that I mean if this makes you think so isn't all of this talks resilience -
+isn't all of this talks resilience - host migration stuff total I
+host migration stuff total I don't really blame you this case was an
+don't really blame you this case was an interesting book we have several
+interesting book we have several client-side systems that don't run on
+client-side systems that don't run on the activity host for handling damaged
+the activity host for handling damaged state and anti behavior transitions in
+state and anti behavior transitions in this case a mission-critical portion of
+this case a mission-critical portion of the raid boss logic was set up entirely
+the raid boss logic was set up entirely using those client-side systems so it
+using those client-side systems so it never got persisted or secured by our
+never got persisted or secured by our activity host model even though we had
+activity host model even though we had built sensors specifically to secure
+built sensors specifically to secure this sort of state transition this is a
+this sort of state transition this is a general problem that we have anytime
+general problem that we have anytime that we expose new complexity that is
+that we expose new complexity that is client-side only you run the risk of
+client-side only you run the risk of anyone in the studio unintentionally
+anyone in the studio unintentionally rigging up some Rube Goldberg machine
+rigging up some Rube Goldberg machine that runs entirely on the client and
+that runs entirely on the client and then making that machine mission
+then making that machine mission critical and to be clear I'm not selling
+critical and to be clear I'm not selling out the content creators here it's our
+out the content creators here it's our job as the engineers to create intuitive
+job as the engineers to create intuitive systems and communicate their usage
+systems and communicate their usage patterns well to the entire design team
+patterns well to the entire design team I view this case as an engineering
+I view this case as an engineering failure for not playing Coase of paying
+failure for not playing Coase of paying close enough attention to an auditing
+close enough attention to an auditing the more complex raid scripts and damage
+the more complex raid scripts and damage setups ideally we all want to live in a
+setups ideally we all want to live in a world where designers don't ever have to
+world where designers don't ever have to think about hosts migrations or about
+think about hosts migrations or about which machine their logic is executing
+which machine their logic is executing on and everything should just work some
+on and everything should just work some other stuff that sucks our bubble system
+other stuff that sucks our bubble system has some strong constraints that it
+has some strong constraints that it imposes in our combat spaces the Z legs
+imposes in our combat spaces the Z legs are a significant amount of real estate
+are a significant amount of real estate where we can't really put any
+where we can't really put any interesting gameplay you also get some
+interesting gameplay you also get some weird player artifacts if you run
+weird player artifacts if you run through a public bubble transition with
+through a public bubble transition with another play on your fire team you'll
+another play on your fire team you'll see them disappear and then respond
+see them disappear and then respond that's because when you bubble
+that's because when you bubble swap your fully disconnecting with that
+swap your fully disconnecting with that player and his game leaving their game
+player and his game leaving their game then joining a new game and respawning
+then joining a new game and respawning them in that new game that you've
+them in that new game that you've connected to on the other side of the
+connected to on the other side of the transition writing sensors is also a
+transition writing sensors is also a pretty expensive new cost that we had
+pretty expensive new cost that we had for destiny if you want to expose a new
+for destiny if you want to expose a new type of state to activity script you
+type of state to activity script you have to write a new sensor and had a
+have to write a new sensor and had a reconciliation and all of the networking
+reconciliation and all of the networking details this is a lot heavier weight
+details this is a lot heavier weight than exposing a function to script in a
+than exposing a function to script in a single player game this trade-off is
+single player game this trade-off is made directly against host migration bug
+made directly against host migration bug cost though rather than paying a cost
+cost though rather than paying a cost per script to hunt down host migration
+per script to hunt down host migration and networking bugs we're paying an
+and networking bugs we're paying an upfront cost per sensor it's still very
+upfront cost per sensor it's still very expensive upfront cost and it slows down
+expensive upfront cost and it slows down early iteration of new mechanics by
+early iteration of new mechanics by design designer complexity this goes
+design designer complexity this goes back to the r8 example overall
+back to the r8 example overall complexity for creating and maintaining
+complexity for creating and maintaining activity scripts is definitely higher
+activity scripts is definitely higher than it was on halo designers frequently
+than it was on halo designers frequently create content that runs exclusively on
+create content that runs exclusively on the client and then they write script
+the client and then they write script that runs exclusively on the activity
+that runs exclusively on the activity host and well in many cases you can
+host and well in many cases you can hand-wave away the distinction as an
+hand-wave away the distinction as an implementation detail in other cases you
+implementation detail in other cases you have to fully understand the activity
+have to fully understand the activity host physics host distinction and
+host physics host distinction and understand where each piece of content
+understand where each piece of content lives the silver lining here is that
+lives the silver lining here is that while you're in activity script of what
+while you're in activity script of what you see is what you get you only have
+you see is what you get you only have access to the sensors that we've
+access to the sensors that we've provided and they only have access to
+provided and they only have access to activities State so the delineation is
+activities State so the delineation is usually intuitive even if you don't
+usually intuitive even if you don't realize that it's all running on a
+realize that it's all running on a separate machine in the cloud that rate
+separate machine in the cloud that rate example was an exception because most of
+example was an exception because most of the time our designers write activity
+the time our designers write activity script and then they write other stuff
+script and then they write other stuff that happens on the client and they
+that happens on the client and they don't really have to pay attention or
+don't really have to pay attention or even necessarily understand the
+even necessarily understand the distinction and what runs up where so
+distinction and what runs up where so because we want your players to be your
+because we want your players to be your friends to be able to join you at any
+friends to be able to join you at any time we reserve slots in any public
+time we reserve slots in any public bubble for the rest of your fire team
+bubble for the rest of your fire team for fire teams that already have two or
+for fire teams that already have two or three players this is great but a lot of
+three players this is great but a lot of players run around in our games solo
+players run around in our games solo when three solar players all meet in a
+when three solar players all meet in a public bubble each one of them is
+public bubble each one of them is reserving
+reserving two extra slots for their friends that
+two extra slots for their friends that might want to join that fills up the
+might want to join that fills up the bubble preventing it from matchmaking
+bubble preventing it from matchmaking with any more strangers and you end up
+with any more strangers and you end up with a low population bubble we thought
+with a low population bubble we thought this was going to be rare but this
+this was going to be rare but this actually turns out to be the typical
+actually turns out to be the typical case average public bubble populations
+case average public bubble populations are not far off from three when we'd
+are not far off from three when we'd like it to be more like six and it's
+like it to be more like six and it's pretty tricky to solve this case while
+pretty tricky to solve this case while still allowing your friends to
+still allowing your friends to seamlessly join you at any time and not
+seamlessly join you at any time and not crash the simulation so to conclude
+crash the simulation so to conclude let's walk through a summary example of
+let's walk through a summary example of the entire ecosystem because it's kind
+the entire ecosystem because it's kind of crazy you have multiple public
+of crazy you have multiple public bubbles each with their own bubble
+bubbles each with their own bubble activity host in this case The Archers
+activity host in this case The Archers line bubble has one player in it debora
+line bubble has one player in it debora well Hellmouth has three players in it
+well Hellmouth has three players in it Alice Bob and Charlie you also have
+Alice Bob and Charlie you also have multiple fire teams each with their own
+multiple fire teams each with their own mission activity host in this case a
+mission activity host in this case a strike that Alice and Bob are playing
+strike that Alice and Bob are playing together and a patrol the Charlie and
+together and a patrol the Charlie and Debra are playing together you can also
+Debra are playing together you can also have multiple players on the same fire
+have multiple players on the same fire team who aren't connected to the same
+team who aren't connected to the same bubbles like Charlie and Deborah
+bubbles like Charlie and Deborah Charlie's over in Hellmouth and Deborah
+Charlie's over in Hellmouth and Deborah is an archers live in that case they're
+is an archers live in that case they're sharing the same local activity state
+sharing the same local activity state they get the same dialogue lines same
+they get the same dialogue lines same objectives activity UI but they're in
+objectives activity UI but they're in completely separate bubbles which means
+completely separate bubbles which means they have fully separated simulations
+they have fully separated simulations match made with completely separate
+match made with completely separate groups of players you also have a world
+groups of players you also have a world server up in the cloud that's the system
+server up in the cloud that's the system that persists all of our character and
+that persists all of our character and progression data for the RPG that I
+progression data for the RPG that I avoided talking about today since it's a
+avoided talking about today since it's a whole additional unit of complexity
+whole additional unit of complexity that's not directly related to activity
+that's not directly related to activity logic each bubble public and private
+logic each bubble public and private also has its own physics host which is
+also has its own physics host which is one of the peer-to-peer consoles that's
+one of the peer-to-peer consoles that's not in the cloud
+not in the cloud in this case alice is the physics host
+in this case alice is the physics host for the Hellmouth bubble and Deborah is
+for the Hellmouth bubble and Deborah is the physics host for the archers line
+the physics host for the archers line bubble the physics host does all of the
+bubble the physics host does all of the traditional Halo era host
+traditional Halo era host responsibilities like firing bullets and
+responsibilities like firing bullets and tracking damage and moving crates around
+tracking damage and moving crates around crucially we don't have to pay for any
+crucially we don't have to pay for any of that bandwidth or simulation in our
+of that bandwidth or simulation in our data center and it's
+data center and it's always low latency if there's other
+always low latency if there's other players you can match to and that ladies
+players you can match to and that ladies and gentlemen is destiny
+and gentlemen is destiny [Applause]
+so we've still got a few minutes if anybody has any question just step up to
+anybody has any question just step up to one of those mics and introduce yourself
+one of those mics and introduce yourself hi thank thank you for the talk so how
+hi thank thank you for the talk so how did you build consistency into the
+did you build consistency into the activity host so as you have so many of
+activity host so as you have so many of them as they're coming up and dying
+them as they're coming up and dying while still maintaining an excellent
+while still maintaining an excellent client experience if one of those
+client experience if one of those instances that are running in the cloud
+instances that are running in the cloud are dying for whatever reason because
+are dying for whatever reason because those those boxes are having issues do
+those those boxes are having issues do you build any kind of consistency
+you build any kind of consistency because that that is your authoritative
+because that that is your authoritative state for the activities so how do you
+state for the activities so how do you build consistency so that you can
+build consistency so that you can migrate from one activity host to
+migrate from one activity host to another activity host if something
+another activity host if something happens to your activity hose basically
+happens to your activity hose basically in general is pretty rare for a player's
+in general is pretty rare for a player's activity host to separate problem and
+activity host to separate problem and crashing if that does happen you get
+crashing if that does happen you get kicked orbit and you get one of those
+kicked orbit and you get one of those wacky animal names but it's pretty rare
+wacky animal names but it's pretty rare hi I was wondering um are you able to
+hi I was wondering um are you able to flex your capacity up and down do you
+flex your capacity up and down do you you do as you realize that at all with
+you do as you realize that at all with the number of hosts do you flex your
+the number of hosts do you flex your capacity up and down yeah well not just
+capacity up and down yeah well not just the data center but like during peak
+the data center but like during peak times do you go up and down in terms of
+times do you go up and down in terms of the activity in public hosts that you
+the activity in public hosts that you have we've never really hit our
+have we've never really hit our population caps which is nice because it
+population caps which is nice because it means we've been able to have a stable
+means we've been able to have a stable launch we did we didn't have to buy all
+launch we did we didn't have to buy all machines upfront it's not an arbitrarily
+machines upfront it's not an arbitrarily scalable cloud service that were renting
+scalable cloud service that were renting but but because of the ability to build
+but but because of the ability to build the text specifically for that we got hi
+the text specifically for that we got hi I'm one of the server engineers on world
+I'm one of the server engineers on world of warcraft one of the things that I
+of warcraft one of the things that I think is interesting about this that I
+think is interesting about this that I have a question for you on is degrees of
+have a question for you on is degrees of separation in the design between mission
+separation in the design between mission critical state and other state like you
+critical state and other state like you sort of handle wave around the like well
+sort of handle wave around the like well there's three guys alive and then
+there's three guys alive and then host the physics host is actually
+host the physics host is actually simulating bullets and damage which
+simulating bullets and damage which means then you just move the exploit
+means then you just move the exploit potential to fake bullets and fake
+potential to fake bullets and fake damage because it's considered the
+damage because it's considered the authority how do you work with design to
+authority how do you work with design to figure out where the right line for
+figure out where the right line for acceptable exploiting is because like
+acceptable exploiting is because like the way that we solve it is there's a
+the way that we solve it is there's a simulation in the cloud right and
+simulation in the cloud right and clearly you guys can't do that because
+clearly you guys can't do that because of peer latency and other things you
+of peer latency and other things you talked about will meet afterwards
+talked about will meet afterwards yeah but in general I mean we we do
+yeah but in general I mean we we do allow a certain amount of exploiting to
+allow a certain amount of exploiting to happen on the individual consoles
+happen on the individual consoles because we don't host everything in the
+because we don't host everything in the cloud and we rely on other metrics to
+cloud and we rely on other metrics to monitor those players typically retro
+monitor those players typically retro actively thanks thank you I want to know
+actively thanks thank you I want to know is this system in fact their memory
+is this system in fact their memory management for a gameplay mission since
+management for a gameplay mission since you can have a bunch of mission stack on
+you can have a bunch of mission stack on top of each other so I do prevent your
+top of each other so I do prevent your designers from going over budget with
+designers from going over budget with too many stuff happening at the same
+too many stuff happening at the same time yes because in general you're only
+time yes because in general you're only ever in one bubble at any given time and
+ever in one bubble at any given time and that bubble has a single script for it
+that bubble has a single script for it that determines what those so if
+that determines what those so if hypothetically have three different
+hypothetically have three different missions that all intersect in the same
+missions that all intersect in the same bubble and they all have the opportunity
+bubble and they all have the opportunity to do something that script already has
+to do something that script already has to deal with the built-in memory limits
+to deal with the built-in memory limits of like for example if you're allowed 25
+of like for example if you're allowed 25 AI in the bubble and you have one boss
+AI in the bubble and you have one boss encounter that spawns a tie but then you
+encounter that spawns a tie but then you have 22 MBNA i/o that script has to deal
+have 22 MBNA i/o that script has to deal with the fact that oh we need the API
+with the fact that oh we need the API for the boss find some other guys to
+for the boss find some other guys to these fallen we and we wrote some tools
+these fallen we and we wrote some tools to help that happen
+to help that happen pretty automatically for for the
+pretty automatically for for the designers but they just have to deal
+designers but they just have to deal with that in the public whole scripts
+with that in the public whole scripts thank you
+thank you so being that destiny is again that you
+so being that destiny is again that you want to keep supporting for ten years
+want to keep supporting for ten years basically that's what I'm asking is if
+basically that's what I'm asking is if you happen upon like a paradigm for
+you happen upon like a paradigm for doing all of this that's significantly
+doing all of this that's significantly different say six years down the line do
+different say six years down the line do you worry about like was that like a
+you worry about like was that like a concern they're like okay we're gonna
+concern they're like okay we're gonna definitely make sure that this is really
+definitely make sure that this is really agile that we can like unhook this and
+agile that we can like unhook this and hook this in over here and change it all
+hook this in over here and change it all up like I'm not a moment's notice but
+up like I'm not a moment's notice but you go I'm saying we tried to plan out
+you go I'm saying we tried to plan out what we thought we're gonna be the major
+what we thought we're gonna be the major architectural changes and technological
+architectural changes and technological changes that we could see coming down
+changes that we could see coming down the road but we already got a few of
+the road but we already got a few of them wrong like we associated we did
+them wrong like we associated we did that that machines we're gonna get
+that that machines we're gonna get arbitrarily more multi-threaded and have
+arbitrarily more multi-threaded and have more and more cores and that hasn't
+more and more cores and that hasn't really been the case also at launch it
+really been the case also at launch it makes a lot of sense for us to host our
+makes a lot of sense for us to host our own servers and do all of this
+own servers and do all of this optimization work of complexity in order
+optimization work of complexity in order to save some of the costs of full
+to save some of the costs of full dedicated servers as well as provide
+dedicated servers as well as provide latency benefits but it's entirely
+latency benefits but it's entirely possible that five years from now
+possible that five years from now there's awesome cheap scalable cloud
+there's awesome cheap scalable cloud services that are co-located in every
+services that are co-located in every every city and can provide the same
+every city and can provide the same guarantees and we can just switch to
+guarantees and we can just switch to dedicated physics house and if that
+dedicated physics house and if that happens we're just gonna have to pay an
+happens we're just gonna have to pay an expensive cool yep how big in terms of
+expensive cool yep how big in terms of like number of flights would you say the
+like number of flights would you say the average mission host the gameplay data
+average mission host the gameplay data for that takes up I'm just talking about
+for that takes up I'm just talking about like storage like you know these three
+like storage like you know these three bots are alive that's you know one byte
+bots are alive that's you know one byte of data how much yeah so I mean our
+of data how much yeah so I mean our activity hosts themselves typically use
+activity hosts themselves typically use about forty five megabytes
+about forty five megabytes data when there when I run and then of
+data when there when I run and then of that no probably less than half of that
+that no probably less than half of that is just the sensor and the activity
+is just the sensor and the activity state but hey yeah how many sensors
+state but hey yeah how many sensors would activity almost normally and on
+would activity almost normally and on average survey so in a typical story
+average survey so in a typical story mission I would guess that we have less
+mission I would guess that we have less than a hundred sensors typically maybe
+than a hundred sensors typically maybe something like fifty a public bubble
+something like fifty a public bubble script might have like twenty to forty
+script might have like twenty to forty depending on how much interesting stuff
+depending on how much interesting stuff happens there probably our peak is in
+happens there probably our peak is in the low hundreds I would be really
+the low hundreds I would be really surprised and all of those sensors are
+surprised and all of those sensors are for every script tracked object for the
+for every script tracked object for the entire mission so that will include
+entire mission so that will include sensors that like of those hundred
+sensors that like of those hundred sensors that would probably only be
+sensors that would probably only be fifteen to twenty of them at most
+fifteen to twenty of them at most instantiating at any one time and any
+instantiating at any one time and any one bubble and it's tracking all of the
+one bubble and it's tracking all of the sensors across many bubbles thank you
+sensors across many bubbles thank you all right I guess that's all the
+all right I guess that's all the questions so thanks guys
+questions so thanks guys [Applause]
+you

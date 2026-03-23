@@ -1,0 +1,1855 @@
+foreign [Music]
+[Music] I'm a software engineer from rare
+because we had such bad experiences with testing on our previous projects when we
+testing on our previous projects when we started work on our latest game sea of
+started work on our latest game sea of Thieves
+Thieves instead of relying on manual testing we
+instead of relying on manual testing we decided to completely change our
+decided to completely change our approach and use automated testing on
+approach and use automated testing on every part of the code base
+every part of the code base including on gameplay features which are
+including on gameplay features which are notoriously tricky to test
+notoriously tricky to test so in this talk I'm going to walk
+so in this talk I'm going to walk through what the approach we took our
+through what the approach we took our learnings and how we benefited benefited
+learnings and how we benefited benefited from it
+from it so first a few quick details about me
+so first a few quick details about me I've been a gameplay engineer at rare
+I've been a gameplay engineer at rare for about 14 years
+for about 14 years and for anyone who doesn't know rare
+and for anyone who doesn't know rare we're a Microsoft first party Studio
+we're a Microsoft first party Studio we're based in central England and we've
+we're based in central England and we've got a very long history of game
+got a very long history of game development and just for context we have
+development and just for context we have about 200 people in the studio at the
+about 200 people in the studio at the moment
+moment so games I've worked on uh are a bunch
+so games I've worked on uh are a bunch of kazoo Nuts and Bolts all three of the
+of kazoo Nuts and Bolts all three of the connect sports games and in the last
+connect sports games and in the last four years or so I've been working on
+four years or so I've been working on sea of Thieves
+sea of Thieves so rare gameplay Engineers don't tend to
+so rare gameplay Engineers don't tend to specialize too much uh so on sea of
+specialize too much uh so on sea of Thieves I ended up doing a bit of
+Thieves I ended up doing a bit of everything including AI physics
+everything including AI physics character movement animation and just
+character movement animation and just whatever needed doing
+whatever needed doing so for those who aren't with what sea of
+so for those who aren't with what sea of Thieves is it's a multiplayer open world
+Thieves is it's a multiplayer open world pirate Adventure game where players can
+pirate Adventure game where players can join in cruise and cooperatively sail
+join in cruise and cooperatively sail around the world follow maps to find
+around the world follow maps to find treasure steal treasure from other
+treasure steal treasure from other players and fight skeletons that's what
+players and fight skeletons that's what you can do but if you want you can just
+you can do but if you want you can just you know just play instruments and get
+you know just play instruments and get drunk on Grog you know it's up to the
+drunk on Grog you know it's up to the players
+players so since released the game about a year
+so since released the game about a year ago in fact exactly a year ago now
+ago in fact exactly a year ago now um uh We've added multiple new updates
+um uh We've added multiple new updates uh so we've added skeleton AI ships for
+uh so we've added skeleton AI ships for the players to fight a new set of
+the players to fight a new set of volcanic islands to explore and a
+volcanic islands to explore and a Megalodon shark that can appear and
+Megalodon shark that can appear and attack the players anytime
+attack the players anytime so in this presentation I'll be talking
+so in this presentation I'll be talking about
+about before automated tests would be a good
+before automated tests would be a good fit for sea of Thieves
+fit for sea of Thieves how our testing framework worked and how
+how our testing framework worked and how we created tests
+we created tests uh how we optimized our testing as we uh
+uh how we optimized our testing as we uh during production
+during production and then finally I'll talk about the
+and then finally I'll talk about the benefits we got
+benefits we got so first of all why did we decide to use
+so first of all why did we decide to use automate testing
+automate testing well sea of Thieves is going to be a
+well sea of Thieves is going to be a very different game for rare uh and some
+very different game for rare uh and some of those differences meant that in terms
+of those differences meant that in terms of testing there were going to be some
+of testing there were going to be some different challenges than we'd had
+different challenges than we'd had before
+before so the first one was that this was an
+so the first one was that this was an open world game our first open world
+open world game our first open world game and it was going to be a very open
+game and it was going to be a very open in terms of gameplay there were very few
+in terms of gameplay there were very few restrictions really on what the players
+restrictions really on what the players could do and when they could do it
+could do and when they could do it so the challenge here was the all the
+so the challenge here was the all the complexity that added the the wave
+complexity that added the the wave features interacted meant that we'd have
+features interacted meant that we'd have to keep checking all those interactions
+to keep checking all those interactions all those features making sure they
+all those features making sure they still worked
+still worked so the other issue is this was going to
+so the other issue is this was going to be a constantly evolving game this is
+be a constantly evolving game this is going to be our first game as a service
+going to be our first game as a service that we're going to be constantly
+that we're going to be constantly evolving uh responding to player
+evolving uh responding to player feedback
+feedback and the issue there is as you're
+and the issue there is as you're constantly changing the code base you've
+constantly changing the code base you've got a lot of risk of causing bug
+got a lot of risk of causing bug regressions uh breaking features that
+regressions uh breaking features that you had already implemented
+you had already implemented and then the third challenge was that we
+and then the third challenge was that we wanted to if possible release the game
+wanted to if possible release the game within a week so we could respond
+within a week so we could respond quickly to play V back or add hot fixes
+quickly to play V back or add hot fixes that kind of thing
+that kind of thing so the issue with that was that on
+so the issue with that was that on previous projects it taken at least uh
+previous projects it taken at least uh two weeks to verify a build uh with the
+two weeks to verify a build uh with the extra complexity that sea of Thieves had
+extra complexity that sea of Thieves had um a week just wasn't going to be enough
+um a week just wasn't going to be enough time to have confidence that the build
+time to have confidence that the build we were putting out to players was
+we were putting out to players was actually not going to be full of bugs
+actually not going to be full of bugs so if we look at kind of the the testing
+so if we look at kind of the the testing process that we used uh previously on on
+process that we used uh previously on on previous games if you look at this Dev
+previous games if you look at this Dev timeline of kind of like from the point
+timeline of kind of like from the point where a developer makes a local change
+where a developer makes a local change on their PC to the point where players
+on their PC to the point where players kind of get a game update our old
+kind of get a game update our old process essentially only had one point
+process essentially only had one point where we did testing really it was we
+where we did testing really it was we just got lots of manual testers uh they
+just got lots of manual testers uh they got a build that was created from the
+got a build that was created from the build system every so often and we just
+build system every so often and we just got them to check it
+got them to check it um and hope that they found other bugs
+um and hope that they found other bugs so the problem with this approach is
+so the problem with this approach is it's quite slow and a fairly unreliable
+it's quite slow and a fairly unreliable way of actually finding all our issues
+way of actually finding all our issues so let's look at the example of kind of
+so let's look at the example of kind of the failure of that kind of approach
+the failure of that kind of approach um
+um yeah so in this book an engineer has
+yeah so in this book an engineer has made a change to the game that meant
+made a change to the game that meant that the skeleton ai's Target memory was
+that the skeleton ai's Target memory was broken so that as soon as they last line
+broken so that as soon as they last line of sight with a Target they would
+of sight with a Target they would completely forget about them okay I
+completely forget about them okay I admit this engineer was me I put this
+admit this engineer was me I put this bug in the game
+bug in the game um during the beta so again I thought
+um during the beta so again I thought this would be a good example to show so
+this would be a good example to show so who is in action on a test level
+so the skeleton starts attacking the player but when the player goes around
+player but when the player goes around the corner he just stops wandering off
+the corner he just stops wandering off so
+so not great this is what we'd expect to
+not great this is what we'd expect to see
+so now when the player goes around the corner the skeleton follows as you'd
+corner the skeleton follows as you'd expect
+expect so let's go through kind of the process
+so let's go through kind of the process this book went through
+this book went through so first of all the book wasn't noticed
+so first of all the book wasn't noticed by the developer as they were developing
+by the developer as they were developing ieb so what has happened didn't I did I
+ieb so what has happened didn't I did I not test the game properly well I did I
+not test the game properly well I did I did try the skeleton AI on a test level
+did try the skeleton AI on a test level before I submitted my change but it was
+before I submitted my change but it was on an open work open area where there
+on an open work open area where there were no obstacles so you didn't see this
+were no obstacles so you didn't see this issue so again I just submitted the
+issue so again I just submitted the change
+change um
+um then the testers will test uh take the
+then the testers will test uh take the latest changes and test it in this case
+latest changes and test it in this case again because the bug was subtle enough
+again because the bug was subtle enough they didn't actually notice it and
+they didn't actually notice it and eventually yeah it ends up in a game
+eventually yeah it ends up in a game update and released to players so if we
+update and released to players so if we cut to a few weeks later and we see how
+cut to a few weeks later and we see how the bug was eventually fixed so at this
+the bug was eventually fixed so at this point the um the community team are
+point the um the community team are gathering feedback from the the beta
+gathering feedback from the the beta players and they noticed that uh the
+players and they noticed that uh the players are starting to mention that the
+players are starting to mention that the skeletons seem a bit more a bit more
+skeletons seem a bit more a bit more dumb less responsive than they used to
+dumb less responsive than they used to be so again an engineer is taken away
+be so again an engineer is taken away from their normal work they have to be a
+from their normal work they have to be a science bug and they have to spend time
+science bug and they have to spend time fixing it finding the book and then
+fixing it finding the book and then fixing it
+fixing it eventually there is a fix that's put
+eventually there is a fix that's put into the build the test doesn't have to
+into the build the test doesn't have to spend time verifying that fixed then
+spend time verifying that fixed then that that fix goes into the players uh
+that that fix goes into the players uh but of course there's every chance that
+but of course there's every chance that this bug could still reoccur uh because
+this bug could still reoccur uh because we've got no way to stop it
+we've got no way to stop it so rather than this kind of scatter shot
+so rather than this kind of scatter shot process of kind of you know adding a bug
+process of kind of you know adding a bug uh finding a bug fixing it maybe what we
+uh finding a bug fixing it maybe what we do instead is kind of regularly check
+do instead is kind of regularly check that scenario uh just make sure that
+that scenario uh just make sure that it's never in the build so let's say
+it's never in the build so let's say we've got uh one of our testers manual
+we've got uh one of our testers manual testers to kind of check that scenario
+testers to kind of check that scenario uh every day or so
+uh every day or so um
+um that wouldn't take too long to do uh but
+that wouldn't take too long to do uh but if in a game like sea of Thieves you're
+if in a game like sea of Thieves you're probably going to end up with thousands
+probably going to end up with thousands of this and it's going to be like a
+of this and it's going to be like a full-time job for someone or probably
+full-time job for someone or probably more like several people and not
+more like several people and not particularly you know not a particularly
+particularly you know not a particularly productive job really they're just going
+productive job really they're just going to be doing the same mind-numbing checks
+to be doing the same mind-numbing checks all the time
+all the time so instead of wasting a human time uh
+so instead of wasting a human time uh humans time doing this we could just ask
+humans time doing this we could just ask the game to do it itself right with an
+the game to do it itself right with an automated test
+automated test then we avoid wasting the the testers
+then we avoid wasting the the testers time
+time so the automated tests also give us a
+so the automated tests also give us a few other advantages that the humans
+few other advantages that the humans aren't able to do
+aren't able to do so um first of all we um we could run
+so um first of all we um we could run tests a lot faster with automation
+tests a lot faster with automation um
+um yeah completely a lot faster and then uh
+yeah completely a lot faster and then uh the second one is that the we can be a
+the second one is that the we can be a bit more precise like the game can test
+bit more precise like the game can test its own game state which uh the human
+its own game state which uh the human can only really check what's going on by
+can only really check what's going on by by eyeballing the game
+by eyeballing the game and then the the third thing that the
+and then the the third thing that the the automated test can do is test at a
+the automated test can do is test at a different code level uh different levels
+different code level uh different levels in terms of the game they can check
+in terms of the game they can check individual code function is working
+individual code function is working correctly the inputs with the certain
+correctly the inputs with the certain inputs certain outputs come out which
+inputs certain outputs come out which again a human tester can't do they can
+again a human tester can't do they can only really play the game in its
+only really play the game in its complete form
+complete form so we shouldn't just um get rid of all
+so we shouldn't just um get rid of all our manual testers straight away though
+our manual testers straight away though there's a few things that they're a bit
+there's a few things that they're a bit better at than the an automated test so
+better at than the an automated test so humans are going to be a lot better at
+humans are going to be a lot better at noticing defects to do with the uh the
+noticing defects to do with the uh the visual and audio uh elements of the game
+visual and audio uh elements of the game uh humans are also compared to use their
+uh humans are also compared to use their creativity do exploratory testing and
+creativity do exploratory testing and find issues that we hadn't really
+find issues that we hadn't really considered yet
+considered yet and humans are just going to be a lot
+and humans are just going to be a lot better at assessing the actual game
+better at assessing the actual game experience you know how does it feel to
+experience you know how does it feel to play
+play so until we get like very Advanced AIS
+so until we get like very Advanced AIS that could possibly do these kind of
+that could possibly do these kind of more human-like factors we want to have
+more human-like factors we want to have a mix of kind of human and automated
+a mix of kind of human and automated testing but the advantage of having
+testing but the advantage of having automated testing there is that the
+automated testing there is that the humans don't have to do so many
+humans don't have to do so many repetitive checks they can have do more
+repetitive checks they can have do more productive things
+productive things cool so it was why we decided automatic
+cool so it was why we decided automatic testing would be a good good fit
+testing would be a good good fit um now I'll talk about kind of how our
+um now I'll talk about kind of how our test framework worked and how we made
+test framework worked and how we made tests
+tests so see if these was built on top of the
+so see if these was built on top of the Unreal Engine uh so you and we used a
+Unreal Engine uh so you and we used a version that was taken a few years ago
+version that was taken a few years ago so what you see in this presentation
+so what you see in this presentation we're not completely match with the
+we're not completely match with the latest version so just bear that in mind
+latest version so just bear that in mind so we implemented our test framework by
+so we implemented our test framework by uh heavily modifying the automation
+uh heavily modifying the automation framework that was already there
+framework that was already there so we took when we took advantage of
+so we took when we took advantage of that we could do things like in the
+that we could do things like in the editor well to run tests in the editor
+editor well to run tests in the editor all we did was go to the automation tab
+all we did was go to the automation tab select the test we wanted to run
+select the test we wanted to run uh and they would all run and they would
+uh and they would all run and they would give you a kind of resort a pass or fail
+give you a kind of resort a pass or fail result
+result uh so we could run our tests in the um
+uh so we could run our tests in the um in the editor like this but we could
+in the editor like this but we could also run them on built text cutables and
+also run them on built text cutables and we also had a standalone tool which uh
+we also had a standalone tool which uh our engineers in particular use to kind
+our engineers in particular use to kind of verify their latest code changes
+of verify their latest code changes without ever having to uh build the game
+without ever having to uh build the game or build the editor
+or build the editor so simplest kind of tests we had were
+so simplest kind of tests we had were unit tests and if you're familiar with
+unit tests and if you're familiar with um well-known test Frameworks like end
+um well-known test Frameworks like end unit these will look very similar so
+unit these will look very similar so it's essentially a bit of code that
+it's essentially a bit of code that registers with the automation system so
+registers with the automation system so it can be recognized as a test
+it can be recognized as a test so unit tests generally check a specific
+so unit tests generally check a specific operation on the smallest testable bit
+operation on the smallest testable bit of code which generally means testing a
+of code which generally means testing a code function level
+code function level so in this example we have a test that's
+so in this example we have a test that's checking you know a very simple math
+checking you know a very simple math Library function
+Library function um just checking that if we've got two
+um just checking that if we've got two account and calculating the distance
+account and calculating the distance between the vectors and every and
+between the vectors and every and they're equal then we return zero
+they're equal then we return zero so most of our tests broke down into
+so most of our tests broke down into three stages so first you do the setup
+three stages so first you do the setup here where we just create the the vector
+here where we just create the the vector objects then we then run the actual
+objects then we then run the actual operation where we run the the distant
+operation where we run the the distant the distance function
+the distance function and then we do the assertion where we
+and then we do the assertion where we check the results as expected
+check the results as expected so in this case uh if the test comes
+so in this case uh if the test comes through and fails then we will throw an
+through and fails then we will throw an error to the log that will get picked up
+error to the log that will get picked up by the automation system and actually
+by the automation system and actually failed test for us
+failed test for us so if we had unit tests that cover uh
+so if we had unit tests that cover uh every code function in the game in
+every code function in the game in theory we have enough testing that
+theory we have enough testing that covers all the game right but of course
+covers all the game right but of course sometimes the way units interacts can
+sometimes the way units interacts can themselves contain bugs
+themselves contain bugs so um it's a good idea to have
+so um it's a good idea to have integration tests on top so integration
+integration tests on top so integration tests will generally cover like a whole
+tests will generally cover like a whole feature or action in the game so they
+feature or action in the game so they provide coverage for multiple units that
+provide coverage for multiple units that are in that feature and also cover the
+are in that feature and also cover the communication between them
+communication between them so now if a unit test fails for example
+so now if a unit test fails for example we know straight away that that specific
+we know straight away that that specific unit is probably going to be the problem
+unit is probably going to be the problem however before your unit tests pass and
+however before your unit tests pass and integration test fails we know that
+integration test fails we know that there's probably some other issue to do
+there's probably some other issue to do with that feature
+with that feature um probably something to do with uh it
+um probably something to do with uh it could be the communication between units
+could be the communication between units or maybe an asset problem something like
+or maybe an asset problem something like that so an integration test failure is
+that so an integration test failure is going to take longer to investigate
+going to take longer to investigate because it's covering a larger scope so
+because it's covering a larger scope so we generally prefer unit tests when we
+we generally prefer unit tests when we can
+can but they're still very useful to give us
+but they're still very useful to give us that high level signal that something's
+that high level signal that something's wrong kind of broadly with a feature
+wrong kind of broadly with a feature so to create integration tests for cfes
+so to create integration tests for cfes we just created them as Maps within the
+we just created them as Maps within the unreal editor so each map would run a
+unreal editor so each map would run a integration test map would run a um
+integration test map would run a um fixed scenarios some kind then report
+fixed scenarios some kind then report back its results as a pass will fail to
+back its results as a pass will fail to see whether that behavior happened as
+see whether that behavior happened as expected
+expected and to do the logic of what happens in
+and to do the logic of what happens in these integration tests from our use of
+these integration tests from our use of the unreal blueprint system so if you're
+the unreal blueprint system so if you're not aware of blueprint it's a node-based
+not aware of blueprint it's a node-based scripting system available in the Unreal
+scripting system available in the Unreal Engine
+Engine um so to follow the lower blueprint you
+um so to follow the lower blueprint you just look for the white line which is
+just look for the white line which is the execution line so in this example we
+the execution line so in this example we just start from the begin play event we
+just start from the begin play event we delay for two seconds then set the actor
+delay for two seconds then set the actor rotation to all zeros
+rotation to all zeros so blueprint was very good for running
+so blueprint was very good for running integration tests as nodes can be latent
+integration tests as nodes can be latent which means that they'll pause execution
+which means that they'll pause execution until a certain condition has occurred
+until a certain condition has occurred which is something you tend to do quite
+which is something you tend to do quite a lot in these integration tests so for
+a lot in these integration tests so for example this delay node is just going to
+example this delay node is just going to be delay execution for two seconds
+so we could have written our integration integration test logic with code but
+integration test logic with code but because of later node support and
+because of later node support and because how easy it is to iterate on
+because how easy it is to iterate on blueprint just inside the editor we
+blueprint just inside the editor we found it more convenient to use
+found it more convenient to use blueprint
+blueprint so as an example of an integration test
+so as an example of an integration test for sea of Thieves let's say we want to
+for sea of Thieves let's say we want to create one for one of the most basic
+create one for one of the most basic actions for a pirate game like sea of
+actions for a pirate game like sea of Thieves it's uh having the player
+Thieves it's uh having the player interact with and turn the wheel so
+interact with and turn the wheel so specifically we're going to check that
+specifically we're going to check that when they do that the actual wheel angle
+when they do that the actual wheel angle of the mesh turns correctly so this is
+of the mesh turns correctly so this is what it looks like in game at the moment
+okay so if we wanted to go about creating an integration test for this
+creating an integration test for this you know one thing we could do we could
+you know one thing we could do we could load up the full world we could have a
+load up the full world we could have a player stand on the ship and turn the
+player stand on the ship and turn the wheel but that's going to be very very
+wheel but that's going to be very very slow to load and also you're bringing so
+slow to load and also you're bringing so many other systems that are going to
+many other systems that are going to affect your test you're not really kind
+affect your test you're not really kind of looking specifically at the wheel
+of looking specifically at the wheel anymore
+anymore so instead you can have you know a much
+so instead you can have you know a much simpler version and this is what we end
+simpler version and this is what we end up doing in this example so we're going
+up doing in this example so we're going to have a player just standing on a
+to have a player just standing on a platform interacting with a wheel and
+platform interacting with a wheel and that's essentially all we need
+that's essentially all we need so this is a blueprint for the test and
+so this is a blueprint for the test and you can see it splits up into those
+you can see it splits up into those three phases like we had before setup
+three phases like we had before setup run operation and check results
+run operation and check results so I'll zoom in a bit better so you can
+so I'll zoom in a bit better so you can see
+see so in the first half we start with the
+so in the first half we start with the begin play event which is on the the
+begin play event which is on the the level blueprint we a lot of the setup's
+level blueprint we a lot of the setup's already done for us essentially by
+already done for us essentially by adding the the wheel and the player but
+adding the the wheel and the player but we also need the player to interact with
+we also need the player to interact with the wheel before you can actually turn
+the wheel before you can actually turn it so we do that first
+it so we do that first then we do the run operation uh which is
+then we do the run operation uh which is in this case is having the player apply
+in this case is having the player apply a fake input
+a fake input just to turn the wheel
+just to turn the wheel um and then finally we do an assertion
+um and then finally we do an assertion and we check that the wheel angle has
+and we check that the wheel angle has kind of gone beyond a certain tolerance
+kind of gone beyond a certain tolerance so we know that the wheel has been
+so we know that the wheel has been interacted with correctly
+interacted with correctly and then we finish a test
+and then we finish a test so this is what the test looks like in
+so this is what the test looks like in action
+action um
+um I've slowed it down a bit and made the
+I've slowed it down a bit and made the angle a bit larger just to show visually
+angle a bit larger just to show visually what's happening so in reality probably
+what's happening so in reality probably running less than a second
+running less than a second and if we go back to the automation
+and if we go back to the automation window we can see that the test is
+window we can see that the test is passing so now we have a test that's
+passing so now we have a test that's checking that whole operation uh
+checking that whole operation uh including you know all the units
+including you know all the units involved and the in-game assets and if
+involved and the in-game assets and if we run it regularly we can see if
+we run it regularly we can see if something breaks this feature
+something breaks this feature so it's a good practice to a test
+so it's a good practice to a test particularly integration test is made to
+particularly integration test is made to be robust to all the changes we could
+be robust to all the changes we could kind of expect that still conform to the
+kind of expect that still conform to the behavioral contract that we kind of
+behavioral contract that we kind of started with so in this case that the
+started with so in this case that the player interacted wheel and turns it if
+player interacted wheel and turns it if you end up kind of relying on something
+you end up kind of relying on something more specific than that you're in danger
+more specific than that you're in danger of kind of relying more on the
+of kind of relying more on the implementation of the feature and you'll
+implementation of the feature and you'll probably find that you're going to have
+probably find that you're going to have to be constantly reworking your test as
+to be constantly reworking your test as you're reworking the implementation
+you're reworking the implementation so as an example of this if we look at
+so as an example of this if we look at kind of the look at the test that we
+kind of the look at the test that we just made this is kind of the free kind
+just made this is kind of the free kind of broadly kind of code steps that are
+of broadly kind of code steps that are happening when we run it so first we
+happening when we run it so first we have a character input Handler on the
+have a character input Handler on the player character that gets a negative
+player character that gets a negative input sent to a
+input sent to a that input Handler then sends the input
+that input Handler then sends the input to the wheel object and then the wheel
+to the wheel object and then the wheel applies that input to the wheel mesh and
+applies that input to the wheel mesh and then we check the results
+then we check the results but and we're doing it all on the same
+but and we're doing it all on the same frame which is the danger because if we
+frame which is the danger because if we decide to make a code change which
+decide to make a code change which happens a lot where we want to defer
+happens a lot where we want to defer something to the next frame so let's say
+something to the next frame so let's say we defer the the application of the
+we defer the the application of the wheel mesh angle to the next frame so
+wheel mesh angle to the next frame so suddenly we're going to be checking the
+suddenly we're going to be checking the results at a time when the wheel hasn't
+results at a time when the wheel hasn't actually been changed it and if we check
+actually been changed it and if we check then we find yes that's the uh the test
+then we find yes that's the uh the test is now failing with an error saying that
+is now failing with an error saying that the the angle is not correct
+the the angle is not correct so the most straightward forward way to
+so the most straightward forward way to fix a test is just to add a delay for
+fix a test is just to add a delay for one frame between the Run operation and
+one frame between the Run operation and checking the results
+checking the results and the test succeeds again
+and the test succeeds again but let's say that we want to do another
+but let's say that we want to do another code change now this time we're going to
+code change now this time we're going to add a animation that happens kind of in
+add a animation that happens kind of in that stage of the code between when the
+that stage of the code between when the input and sends the input to the wheel
+input and sends the input to the wheel and before between when we set it on the
+and before between when we set it on the wheel mesh we're not sure how long that
+wheel mesh we're not sure how long that animation is going to be
+animation is going to be and it looks like yep the test is now
+and it looks like yep the test is now failing again so how would we fix it at
+failing again so how would we fix it at this point so one thing we could do is
+this point so one thing we could do is possibly inspect the animation and find
+possibly inspect the animation and find out how long it is but again the problem
+out how long it is but again the problem there is we're kind of looking at the
+there is we're kind of looking at the implementation again and we're kind of
+implementation again and we're kind of you know if we take the animation out we
+you know if we take the animation out we have to fix the test again
+have to fix the test again you know maybe we could add a large
+you know maybe we could add a large delay say 100 frames because we we we're
+delay say 100 frames because we we we're not we're sure that the animation is not
+not we're sure that the animation is not going to be any longer than that
+going to be any longer than that um and this would probably this would
+um and this would probably this would work but you know you've added at least
+work but you know you've added at least 100 frames to the test time now and they
+100 frames to the test time now and they maybe expect the animation to be a lot
+maybe expect the animation to be a lot less and again if you run the test once
+less and again if you run the test once or twice that's not too bad but we're
+or twice that's not too bad but we're going to be running this test hundreds
+going to be running this test hundreds of times a day possibly on our build
+of times a day possibly on our build system so all those extra frames are
+system so all those extra frames are going to add up
+going to add up so instead a better solution is just to
+so instead a better solution is just to use a polling version so what we do is
+use a polling version so what we do is we just use a delay until node and that
+we just use a delay until node and that will just again it's a later node and it
+will just again it's a later node and it will keep spinning waiting for the uh
+will keep spinning waiting for the uh the angle to be correct so again it
+the angle to be correct so again it doesn't really matter what's kind of
+doesn't really matter what's kind of happening as the player interacts with
+happening as the player interacts with the wheel it will find the right result
+the wheel it will find the right result eventually which it does
+eventually which it does yeah with the added animation in our
+yeah with the added animation in our works again
+works again and if for some reason the wheel is
+and if for some reason the wheel is actually broken what we get is a timeout
+actually broken what we get is a timeout so in this case it will time out after
+so in this case it will time out after five seconds because it the the wheel is
+five seconds because it the the wheel is broken and we just never see the angle
+broken and we just never see the angle change
+change so this is a little bit wasteful I
+so this is a little bit wasteful I suppose because we're um you know we're
+suppose because we're um you know we're all wasting five seconds uh but we don't
+all wasting five seconds uh but we don't expect this to happen very regularly
+expect this to happen very regularly because hopefully the feature is going
+because hopefully the feature is going to be working almost all the time so
+to be working almost all the time so again we tended to set our test timeouts
+again we tended to set our test timeouts to be quite high in that for that reason
+to be quite high in that for that reason uh because we were felt kind of you know
+uh because we were felt kind of you know safe doing that
+safe doing that foreign
+so sea of Thieves is a multiplayer multiplayer game it uses a network
+multiplayer game it uses a network client server architecture so we really
+client server architecture so we really wanted to make sure that we covered that
+wanted to make sure that we covered that aspect of the game with our integration
+aspect of the game with our integration test as well
+test as well so uh integration tests uh we we changed
+so uh integration tests uh we we changed the automation framework that was there
+the automation framework that was there in a reel to allow integration tests to
+in a reel to allow integration tests to pass execution between the server and
+pass execution between the server and the client so that we could check both
+the client so that we could check both sides of kind of a network communication
+sides of kind of a network communication and we did this could work with kind of
+and we did this could work with kind of built executables of an actual client
+built executables of an actual client and actual server and it also worked
+and actual server and it also worked just on the editor with kind of virtual
+just on the editor with kind of virtual client and server processes
+client and server processes so this is what would happen in a
+so this is what would happen in a typical networked integration test
+typical networked integration test so first the test begins uh on the
+so first the test begins uh on the server so here we would do the setup and
+server so here we would do the setup and say how many clients we want in the test
+say how many clients we want in the test and do the initial kind of handshaking
+and do the initial kind of handshaking and generally would set up some kind of
+and generally would set up some kind of behavior here on the server and then
+behavior here on the server and then would switch over to the client and we
+would switch over to the client and we checked that that whatever we set up on
+checked that that whatever we set up on the server has been communicated
+the server has been communicated correctly over the network over to that
+correctly over the network over to that first client
+first client then we'd go back to a server
+then we'd go back to a server and then depending on the test you might
+and then depending on the test you might end it here but in this let's say that
+end it here but in this let's say that we want to actually test that that
+we want to actually test that that communication or slightly different
+communication or slightly different communication has been sent over to a
+communication has been sent over to a second client so again the test could
+second client so again the test could support that
+support that so we could go back and forth
+so we could go back and forth ping-ponging between server and clients
+ping-ponging between server and clients but when we're ready to uh end the test
+but when we're ready to uh end the test we just go back to the server and we
+we just go back to the server and we finish the test
+so let's um as an example of what a multiplayer integration test looks like
+multiplayer integration test looks like uh for Real uh let's uh modify the test
+uh for Real uh let's uh modify the test that we just did based on a wheel we're
+that we just did based on a wheel we're going to look for the same thing the
+going to look for the same thing the change in the wheel angle but we'll
+change in the wheel angle but we'll check that it's actually working on a
+check that it's actually working on a different client on the a second client
+different client on the a second client in the scene which is this guy just
+in the scene which is this guy just standing to the side here so what we
+standing to the side here so what we expect to see in terms of the flow of
+expect to see in terms of the flow of code and the network Community Network
+code and the network Community Network communication is first the player
+communication is first the player interacts and turns the wheel just like
+interacts and turns the wheel just like in the previous Test example
+in the previous Test example then that when that wheel angle changes
+then that when that wheel angle changes that gets communicated up to server
+that gets communicated up to server and then finally that server will
+and then finally that server will communicate it to the other client the
+communicate it to the other client the observing client
+so this is the blueprint for this uh I'll probably go a little bit faster
+I'll probably go a little bit faster because it's a little longer but I'll
+because it's a little longer but I'll point out all the interesting Parts in
+point out all the interesting Parts in terms of the uh the network version
+terms of the uh the network version so uh we'll start from begin play again
+so uh we'll start from begin play again then we have a sync client server node
+then we have a sync client server node which starts to test with two clients
+we'll then switch execution over to the first client this is going to be the
+first client this is going to be the interacting client
+interacting client that client then interacts with the
+that client then interacts with the wheel and applies the fake input just as
+wheel and applies the fake input just as we did previously
+we did previously then we'll switch the observing client
+then we'll switch the observing client so this node kind of does it in a
+so this node kind of does it in a shortcut way but essentially we go to
+shortcut way but essentially we go to the server first and then and then to
+the server first and then and then to the second client so this is client id1
+the second client so this is client id1 this is the observing client
+that client will do the polling just like on the uh the previous version of
+like on the uh the previous version of the test so when that client then sees
+the test so when that client then sees that the wheel angle has changed past
+that the wheel angle has changed past the tolerance
+the tolerance then we switch back to the server and we
+then we switch back to the server and we finish the test
+so those were unit tests and integration tests but we had a few other test types
+tests but we had a few other test types that I'd like to talk out talk about
+that I'd like to talk out talk about briefly
+briefly so we also had asset audit tests so
+so we also had asset audit tests so these would check the setup on assets
+these would check the setup on assets make sure they're kind of compatible
+make sure they're kind of compatible with what we expect in the game
+with what we expect in the game so we had one of these per a lot most of
+so we had one of these per a lot most of our asset types had some kind of asset
+our asset types had some kind of asset audit test that it picked up on
+audit test that it picked up on uh we also had screenshot tests so these
+uh we also had screenshot tests so these look in practice a lot like integration
+look in practice a lot like integration tests
+tests but at the end of it they usually took a
+but at the end of it they usually took a they took a screenshot where we and then
+they took a screenshot where we and then we compared that screenshot uh with a
+we compared that screenshot uh with a diff a process afterwards against the
+diff a process afterwards against the last known good screenshot of that test
+last known good screenshot of that test to check and uh if there were any
+to check and uh if there were any differences that meant there was a some
+differences that meant there was a some kind of visual error or rendering bug
+kind of visual error or rendering bug we also had performance tests these are
+we also had performance tests these are again similar to integration tests but
+again similar to integration tests but they ran a bit longer and they would
+they ran a bit longer and they would collect data
+collect data um based uh to see if we've got some
+um based uh to see if we've got some Trends or spikes in terms of frame rate
+Trends or spikes in terms of frame rate memory use loading times that kind of
+memory use loading times that kind of thing
+thing then finally we had boot flow tests so
+then finally we had boot flow tests so these were the closest tests to kind of
+these were the closest tests to kind of simulating what it's like to actually
+simulating what it's like to actually run the game because they tested
+run the game because they tested communication between the client server
+communication between the client server and all our services that are vital to
+and all our services that are vital to running the game as well and they used
+running the game as well and they used they would check under kind of common
+they would check under kind of common scenarios such as a client joining a new
+scenarios such as a client joining a new server and you know registering all the
+server and you know registering all the services and that kind of thing
+so I'm going to talk very briefly about the kind of infrastructure we had it's
+the kind of infrastructure we had it's not really the focus of this talk but um
+not really the focus of this talk but um sort of it's kind of kind of relevant
+sort of it's kind of kind of relevant um if you want to learn more then my
+um if you want to learn more then my colleague Jafar did another talk last in
+colleague Jafar did another talk last in last year's GDC called adopting
+last year's GDC called adopting continuous delivery so check that out on
+continuous delivery so check that out on the Vault if you want to learn a bit
+the Vault if you want to learn a bit more
+so we run our tests as part of a build system which is like a team City uses
+system which is like a team City uses the team City continuous integration
+the team City continuous integration software so the team City will go ahead
+software so the team City will go ahead use that build Farm of PCS and then
+use that build Farm of PCS and then allocate them to do various jobs such as
+allocate them to do various jobs such as building the game and running a group of
+building the game and running a group of tests
+tests so depending on kind of what kind of
+so depending on kind of what kind of test it was and how slow it was and how
+test it was and how slow it was and how important it was sometimes it would
+important it was sometimes it would depend on how how often we ran the test
+depend on how how often we ran the test but generally on average we ran every
+but generally on average we ran every test we had about every 20 minutes or so
+test we had about every 20 minutes or so so if the build system encounters uh
+so if the build system encounters uh test failure we would set the bill to
+test failure we would set the bill to Red we have screens all around the
+Red we have screens all around the studio which show kind of the status of
+studio which show kind of the status of the current build and if if that happens
+the current build and if if that happens we kind of have a bit of information
+we kind of have a bit of information about kind of what test job has failed
+about kind of what test job has failed and who is probably responsible as the
+and who is probably responsible as the last person to uh you know change that
+last person to uh you know change that something in that area I've blanked out
+something in that area I've blanked out the name in this example because I
+the name in this example because I didn't want to embarrass anyone in a GDC
+didn't want to embarrass anyone in a GDC so
+so um
+um so
+so um to make sure we didn't have a broken
+um to make sure we didn't have a broken build and that team members could uh
+build and that team members could uh carry on working we have a kind of a
+carry on working we have a kind of a free three-step process for doing
+free three-step process for doing submits uh doing uh submitting changes
+submits uh doing uh submitting changes so the first one was you can only submit
+so the first one was you can only submit changes if the build was green I.E there
+changes if the build was green I.E there was no no tests failing uh we do we
+was no no tests failing uh we do we didn't want to allow people to continue
+didn't want to allow people to continue submitting something if the build was
+submitting something if the build was already broken and maybe making the
+already broken and maybe making the situation worse
+situation worse um so that would make it very important
+um so that would make it very important if the test was failing it would whoever
+if the test was failing it would whoever was responsible needed to fix it as soon
+was responsible needed to fix it as soon as as soon as they could because it was
+as as soon as they could because it was blocking the whole team from committing
+blocking the whole team from committing any more changes
+any more changes uh next we always expect that each
+uh next we always expect that each change has reasonable test coverage so
+change has reasonable test coverage so reasonable is obviously where there's a
+reasonable is obviously where there's a some kind of a leeway and some kind of
+some kind of a leeway and some kind of you know a gray area if it was a an
+you know a gray area if it was a an artist or a designer they generally
+artist or a designer they generally wouldn't submit a test with their change
+wouldn't submit a test with their change often they're what then when they submit
+often they're what then when they submit that asset it would get picked up by an
+that asset it would get picked up by an asset audit and it would be checked
+asset audit and it would be checked there but an engineer adding a new bit
+there but an engineer adding a new bit of code or new feature would we would
+of code or new feature would we would reasonably expect that they would
+reasonably expect that they would include a test or unit test integration
+include a test or unit test integration test with that submission
+test with that submission so a rare we don't really have well we
+so a rare we don't really have well we don't have test Engineers who do uh the
+don't have test Engineers who do uh the test coverage for other Engineers uh the
+test coverage for other Engineers uh the feature work they've done we found it
+feature work they've done we found it better if Engineers
+better if Engineers decided themselves and took
+decided themselves and took responsibility for the test coverage
+responsibility for the test coverage that would be needed for their change
+and the third thing is that we ask people to run a pre-commit first
+people to run a pre-commit first so
+so um obviously Engineers or developers
+um obviously Engineers or developers they need to take some responsibility
+they need to take some responsibility for their local for submitting changes
+for their local for submitting changes they need to check that they're working
+they need to check that they're working correctly we could have asked them to
+correctly we could have asked them to run automated tests locally which that
+run automated tests locally which that would have taken a bit of time also
+would have taken a bit of time also there's every chance they could forget
+there's every chance they could forget and every chance that they don't you
+and every chance that they don't you know take it running all the tests isn't
+know take it running all the tests isn't really practical because there's a lot
+really practical because there's a lot of them so they would have to pick which
+of them so they would have to pick which tests are relevant to their change which
+tests are relevant to their change which is going to be Pro to error so instead
+is going to be Pro to error so instead we um we ask an engineer to or do it
+we um we ask an engineer to or do it sorry we ask all our developers to run a
+sorry we ask all our developers to run a pre-commit first which would mean that
+pre-commit first which would mean that they send their change to the build
+they send their change to the build system that wouldn't actually submit it
+system that wouldn't actually submit it to the main branch it would just uh the
+to the main branch it would just uh the build system would go ahead build the
+build system would go ahead build the game with that current change and then
+game with that current change and then run uh test and it decides are related
+run uh test and it decides are related to that change
+to that change um and to see if those and then send the
+um and to see if those and then send the results back to the developer to say you
+results back to the developer to say you know whether that change looks good
+know whether that change looks good enough to submit
+so here's a summary of kind of the full uh sea of Thieves testing process that
+uh sea of Thieves testing process that we ended up with uh using our Dev same
+we ended up with uh using our Dev same Dev timeline that I showed you earlier
+Dev timeline that I showed you earlier so first of all as I mentioned before
+so first of all as I mentioned before when the developer makes a local change
+when the developer makes a local change uh they run the pre-commit which runs a
+uh they run the pre-commit which runs a set of automated uh the related
+set of automated uh the related automated tests uh so when if the if the
+automated tests uh so when if the if the developers does this first then there
+developers does this first then there can be have some they can be reasonably
+can be have some they can be reasonably sure that when they submit their changes
+sure that when they submit their changes it's not going to affect the rest of the
+it's not going to affect the rest of the team
+team second of all after uh well after the
+second of all after uh well after the developer submits the change so the
+developer submits the change so the build system is constantly running all
+build system is constantly running all our tests checking to see if there's
+our tests checking to see if there's intimate issues running some more
+intimate issues running some more long-ring tests to find trends that kind
+long-ring tests to find trends that kind of thing so because we do this we're
+of thing so because we do this we're fairly confident almost all the time
+fairly confident almost all the time that our build is good and we can kind
+that our build is good and we can kind of move on to the next stage and um with
+of move on to the next stage and um with whatever build we have at the moment
+whatever build we have at the moment so at this point once the build system
+so at this point once the build system kind of spits out a build every site
+kind of spits out a build every site which we do every so often probably
+which we do every so often probably every day then we have the manual
+every day then we have the manual testers check the build so this is
+testers check the build so this is obviously very similar to what we had in
+obviously very similar to what we had in the previous process but because we've
+the previous process but because we've done all that automated testing first
+done all that automated testing first the the manual testers are going to
+the the manual testers are going to always get a good build to test with so
+always get a good build to test with so they're not going to get that
+they're not going to get that show-stopping bug that happens all the
+show-stopping bug that happens all the time where they get they get the build
+time where they get they get the build for the day and the build is just
+for the day and the build is just completely broken and they waste hours
+completely broken and they waste hours then having to get the next build which
+then having to get the next build which has got that fixed and that's not going
+has got that fixed and that's not going to happen because we're fairly sure that
+to happen because we're fairly sure that all the automated tests would have
+all the automated tests would have picked up those kind of issues
+picked up those kind of issues and finally
+and finally um if a cat you should we don't do this
+um if a cat you should we don't do this all the time but occasionally uh
+all the time but occasionally uh especially when we've got new features
+especially when we've got new features that we want to get some input on we'll
+that we want to get some input on we'll send uh a latest update to a group of
+send uh a latest update to a group of Insider players to get kind of feedback
+Insider players to get kind of feedback on that change before um we submit it to
+on that change before um we submit it to all of our player base again similar to
+all of our player base again similar to what a lot of Studios would do again the
+what a lot of Studios would do again the difference here is we don't we hopefully
+difference here is we don't we hopefully don't expect them to see actually see
+don't expect them to see actually see many bugs because again we've gone
+many bugs because again we've gone through the automated testing process
+through the automated testing process we've gone through our manual testing
+we've gone through our manual testing process and hopefully they can just
+process and hopefully they can just concentrate and give us feedback on you
+concentrate and give us feedback on you know the feature and the the gameplay
+know the feature and the the gameplay itself
+itself so but so far I'll show you is what our
+so but so far I'll show you is what our testing looked like when we started full
+testing looked like when we started full production on cfvs next I'll show you
+production on cfvs next I'll show you how we optimize our testing during
+how we optimize our testing during development or in other words how we
+development or in other words how we became more pragmatic over time without
+became more pragmatic over time without automated testing
+automated testing so as we entered full production we had
+so as we entered full production we had a full team now creating tests and we
+a full team now creating tests and we were seeing the benefits of the extra
+were seeing the benefits of the extra build quality we were getting but we're
+build quality we were getting but we're also finding the test to be a bit of a
+also finding the test to be a bit of a burden in several ways
+burden in several ways so first of all uh respect we're
+so first of all uh respect we're spending a lot more time creating the
+spending a lot more time creating the tests than we expected
+tests than we expected um
+um when you would be spending some but it
+when you would be spending some but it was happening we were spending a lot
+was happening we were spending a lot more than we'd like
+more than we'd like uh the second issue was that the tests
+uh the second issue was that the tests were generally quite slow to run we had
+were generally quite slow to run we had uh quite a lot of them and some of them
+uh quite a lot of them and some of them were very slow to run the aim was that
+were very slow to run the aim was that the pre-commit process would take about
+the pre-commit process would take about an hour but it was kind of creeping up
+an hour but it was kind of creeping up to like hour and a half because it was
+to like hour and a half because it was taking such a long time which meant that
+taking such a long time which meant that developers were put in a queue to do
+developers were put in a queue to do their pre-commit which means that it
+their pre-commit which means that it would take a half a day or two a day to
+would take a half a day or two a day to kind of get their changes in so that was
+kind of get their changes in so that was really slowing down our development
+really slowing down our development the third issue was that our tests uh
+the third issue was that our tests uh particularly some tests the long and
+particularly some tests the long and complex ones were quite Reliant
+complex ones were quite Reliant unreliable excuse me and that meant that
+unreliable excuse me and that meant that a lot of engineer time was put into kind
+a lot of engineer time was put into kind of figure out why a test would fail
+of figure out why a test would fail occasionally and kind of improving the
+occasionally and kind of improving the tests maintaining the tests
+tests maintaining the tests so for those three issues that I
+so for those three issues that I mentioned the creation time running time
+mentioned the creation time running time on reliability almost all of them were
+on reliability almost all of them were much much worse for our map-based
+much much worse for our map-based integration tests so if we look at the
+integration tests so if we look at the running time for example the unit tests
+running time for example the unit tests would run 10th of a second something
+would run 10th of a second something like that that's a Max and then our
+like that that's a Max and then our integration test would take up to 20
+integration test would take up to 20 seconds
+seconds so this was because of all the assets
+so this was because of all the assets these tests generally had to load
+these tests generally had to load um
+um initializing network connections took a
+initializing network connections took a long time get you know spinning up a new
+long time get you know spinning up a new world each time
+world each time we still wanted to use integration tests
+we still wanted to use integration tests but because they were so slow we really
+but because they were so slow we really needed to find a way to improve them so
+needed to find a way to improve them so we could um or if possible use a lot
+we could um or if possible use a lot less
+less so why did we have so many integration
+so why did we have so many integration tests uh and we had them for gameplay
+tests uh and we had them for gameplay features in particular
+features in particular so if you imagine kind of the code like
+so if you imagine kind of the code like our code base is a pyramid with sea
+our code base is a pyramid with sea thieves City on top of the Unreal Engine
+thieves City on top of the Unreal Engine then unit tests kind of sit right at the
+then unit tests kind of sit right at the bottom because they didn't really have
+bottom because they didn't really have dependencies on unreal or sea of Thieves
+dependencies on unreal or sea of Thieves uh so they were nice and fast to run
+uh so they were nice and fast to run whereas integration tests because they
+whereas integration tests because they had dependency they needed a build
+had dependency they needed a build version of the game or the editor they
+version of the game or the editor they were dependent on all of everything
+were dependent on all of everything unreal everything in Sea of Thieves
+unreal everything in Sea of Thieves and we definitely found that the more
+and we definitely found that the more dependencies on a test the slower the
+dependencies on a test the slower the test was to run and less reliable it was
+test was to run and less reliable it was so we really wanted to not use as many
+so we really wanted to not use as many integration tests as we could as
+integration tests as we could as possible
+but unfortunately for gameplay testing in particular we were using a lot of
+in particular we were using a lot of integration tests and the reason for
+integration tests and the reason for this is because we were building our
+this is because we were building our gameplay code on top of unreal which you
+gameplay code on top of unreal which you know you so we're using classes such as
+know you so we're using classes such as actors and components which are integral
+actors and components which are integral to Unreal and we thought that if we
+to Unreal and we thought that if we wanted to get you know a true
+wanted to get you know a true representation of our gameplay features
+representation of our gameplay features we really need to use them in the proper
+we really need to use them in the proper context which meant in an unreal map
+context which meant in an unreal map which meant we had to use an integration
+which meant we had to use an integration test
+test but it was obviously very taxing we were
+but it was obviously very taxing we were creating a lot of these very expensive
+creating a lot of these very expensive tests
+tests so when we kind of changed our
+so when we kind of changed our assumption
+assumption um and we thought you know maybe we
+um and we thought you know maybe we could use uh make our tests gameplay
+could use uh make our tests gameplay tests run at a lower level where we just
+tests run at a lower level where we just checked the logic but didn't have all
+checked the logic but didn't have all the dependencies you know we wondered if
+the dependencies you know we wondered if that would work
+that would work so instead we came up with a new kind of
+so instead we came up with a new kind of test which we called ACTA test because
+test which we called ACTA test because they're
+they're um so named because they used the actor
+um so named because they used the actor object in in um unreal so heavily
+so active tests were essentially a unit test for unreal game code
+test for unreal game code uh they treated Unreal Engine Concepts
+uh they treated Unreal Engine Concepts such as actors and components as kind of
+such as actors and components as kind of first class dependencies so they weren't
+first class dependencies so they weren't really unit tests in a strict strictly
+really unit tests in a strict strictly stance because they had you know some
+stance because they had you know some extra dependencies on them but Engineers
+extra dependencies on them but Engineers could kind of treat them that way
+could kind of treat them that way so as an example of an actor test uh his
+so as an example of an actor test uh his uh typical game scenario we had during
+uh typical game scenario we had during development
+development so and see if these have a variety of
+so and see if these have a variety of different skeleton types one of those is
+different skeleton types one of those is the shadow skeleton which so at night
+the shadow skeleton which so at night time the shadow skeleton becomes all
+time the shadow skeleton becomes all ghost-like and is virtually invulnerable
+ghost-like and is virtually invulnerable uh but when the time of day changes then
+uh but when the time of day changes then the skeleton changes its state and it
+the skeleton changes its state and it becomes more like a normal skeleton and
+becomes more like a normal skeleton and it can be attacked again so we want to
+it can be attacked again so we want to make a test that checks that uh when the
+make a test that checks that uh when the time of day changes the shadow skeleton
+time of day changes the shadow skeleton changes from its dark to its light state
+changes from its dark to its light state so we could have done this as an
+so we could have done this as an integration test but actually do it as
+integration test but actually do it as an actor test is a lot more efficient as
+an actor test is a lot more efficient as I'll show you
+I'll show you so this is the actor test that checks
+so this is the actor test that checks that feature and as you can see it looks
+that feature and as you can see it looks a lot like a unit test and behind the
+a lot like a unit test and behind the scenes there's a little bit more kind of
+scenes there's a little bit more kind of going on in terms of setup there's a
+going on in terms of setup there's a minimal world has been created where the
+minimal world has been created where the actors can live in
+actors can live in but for the engineer who kind of creates
+but for the engineer who kind of creates a test they can kind of treat it like a
+a test they can kind of treat it like a unit test
+unit test so like all the other test examples uh
+so like all the other test examples uh this kind of splits down into three
+this kind of splits down into three phases so I'll go through what's
+phases so I'll go through what's happening in this test
+happening in this test so first of all we in the setup phase we
+so first of all we in the setup phase we create the shadow skeleton we set its
+create the shadow skeleton we set its current state to dark
+current state to dark then when we run the operation we set
+then when we run the operation we set the game world time to midday
+the game world time to midday and then we find finally we check the
+and then we find finally we check the results to check that the state of the
+results to check that the state of the Shadow skeleton has changed to light as
+Shadow skeleton has changed to light as we expect
+we expect so note this line here where we're
+so note this line here where we're ticking the shadow skeleton manually so
+ticking the shadow skeleton manually so we have to do this because that's kind
+we have to do this because that's kind of where it pulls the the world time and
+of where it pulls the the world time and checks that the you know whoever it
+checks that the you know whoever it needs to change state or not now
+needs to change state or not now obviously in the real game you would
+obviously in the real game you would never just call Tick explicitly split it
+never just call Tick explicitly split it explicitly like this you would um expect
+explicitly like this you would um expect the Unreal Engine to you know run it in
+the Unreal Engine to you know run it in its own engine Loop but again if we if
+its own engine Loop but again if we if we did it like that then we'd have to
+we did it like that then we'd have to use an integration test so
+use an integration test so um doing like doing it like this is kind
+um doing like doing it like this is kind of has a disadvantage and it's kind of
+of has a disadvantage and it's kind of not using it and it's like it's true way
+not using it and it's like it's true way um
+um yeah it's outside of its normal
+yeah it's outside of its normal environment
+environment but the major benefit we get is this
+but the major benefit we get is this this test runs a lot quicker than the
+this test runs a lot quicker than the integration test
+integration test so now we had active tests uh we weren't
+so now we had active tests uh we weren't going to completely throw away uh
+going to completely throw away uh integration tests
+integration tests um now we still have this useful test
+um now we still have this useful test coverage that either the actor test in
+coverage that either the actor test in such as
+such as checking the asset setup and checking
+checking the asset setup and checking the
+the um the integration with the Unreal
+um the integration with the Unreal Engine but we didn't want to use too
+Engine but we didn't want to use too many because they're very expensive
+many because they're very expensive so we tried to settle on a good kind of
+so we tried to settle on a good kind of rule of thumb of when you when you would
+rule of thumb of when you when you would use a integration test when you would
+use a integration test when you would use an actor test and what we came up
+use an actor test and what we came up with was if you took a feature
+with was if you took a feature um uh you could there you could then
+um uh you could there you could then create an integration test for the
+create an integration test for the golden path of the feature so the golden
+golden path of the feature so the golden path is like the successful run of the
+path is like the successful run of the feature and they would use actor tests
+feature and they would use actor tests for the edge cases or the failure cases
+for the edge cases or the failure cases and this kind of gave us we found this
+and this kind of gave us we found this kind of gave us a good mix in terms of a
+kind of gave us a good mix in terms of a balance of running the test the time
+balance of running the test the time that took the test to run and giving us
+that took the test to run and giving us kind of a reasonable Coke of uh test
+kind of a reasonable Coke of uh test coverage that we we could use
+coverage that we we could use so as an example there's a feature in
+so as an example there's a feature in the game where players can give items to
+the game where players can give items to other players
+other players and if we look at where the kind of the
+and if we look at where the kind of the tests breakdown for the coverage for
+tests breakdown for the coverage for this feature so the access cover times
+this feature so the access cover times when the giving item wasn't successful
+when the giving item wasn't successful for example because the player didn't
+for example because the player didn't have an item or it's you know they could
+have an item or it's you know they could they can't give every kind of item
+they can't give every kind of item whereas the integration test covered
+whereas the integration test covered like the full successful passing of an
+like the full successful passing of an item
+item so in terms of in numerator how it
+so in terms of in numerator how it breaks down numerically is we we found
+breaks down numerically is we we found that the ratio of actor tests to
+that the ratio of actor tests to integration test was about 12 to 1 which
+integration test was about 12 to 1 which gave us kind of you know a coverage that
+gave us kind of you know a coverage that we were happy with
+so by using integration tests for only the golden path we reduce their number
+the golden path we reduce their number by a large amount but we still need to
+by a large amount but we still need to speed up as much speed up the ones we
+speed up as much speed up the ones we had as much as possible
+had as much as possible so one way we found to do that was to
+so one way we found to do that was to merge multiple related features so this
+merge multiple related features so this broke a general rule of testing that you
+broke a general rule of testing that you should only really test one thing per
+should only really test one thing per test
+test but again because of the speed up we
+but again because of the speed up we were getting again we were happy to
+were getting again we were happy to break this rule
+break this rule so as an example so the skeletons in the
+so as an example so the skeletons in the game have three different attacks uh so
+game have three different attacks uh so we could we wanted to have a test that
+we could we wanted to have a test that checked each of those works and damaged
+checked each of those works and damaged the player correctly
+the player correctly so we could
+so we could um you could have had a test per attack
+um you could have had a test per attack and that's originally what I started
+and that's originally what I started with but I realized it was just as easy
+with but I realized it was just as easy to
+to um have one test that ran all the free
+um have one test that ran all the free attacks in sequence and again this this
+attacks in sequence and again this this meant that the initialization of the
+meant that the initialization of the world loading the skeleton all its
+world loading the skeleton all its animations that kind of thing we don't
+animations that kind of thing we don't need to do that once so we saved a lot
+need to do that once so we saved a lot of time
+so um combining the tests only really
+um combining the tests only really worked if there were related features
+worked if there were related features but there was one aspect one thing in
+but there was one aspect one thing in most integration tests that was common
+most integration tests that was common and that was the player and it turned
+and that was the player and it turned out the player was one of the most
+out the player was one of the most expensive objects when we uh used it
+expensive objects when we uh used it um again it was quite it's quite a
+um again it was quite it's quite a complicated complicated object with a
+complicated complicated object with a lot of animations attached to it and
+lot of animations attached to it and also initializing it kind of in a
+also initializing it kind of in a network scene for the network version of
+network scene for the network version of the integration test took a long time so
+the integration test took a long time so in fact in a lot of cases just
+in fact in a lot of cases just initializing the player took longer than
+initializing the player took longer than running the actual test
+running the actual test so one thing we used that was a we took
+so one thing we used that was a we took advantage of a feature in unreal where
+advantage of a feature in unreal where you could um uh World Travel so
+you could um uh World Travel so essentially you keep the same player
+essentially you keep the same player object but move him from map to map
+object but move him from map to map so we use this uh kind of to to
+so we use this uh kind of to to transition the player between uh
+transition the player between uh integration maps and meant that we kind
+integration maps and meant that we kind of we didn't have to keep loading the
+of we didn't have to keep loading the player so in this example the player
+player so in this example the player starts off in uh an integration test map
+starts off in uh an integration test map a lot like the one we did before with
+a lot like the one we did before with the ship's wheel we then unload that map
+the ship's wheel we then unload that map but keep the player and then load him in
+but keep the player and then load him in another integration test map where he's
+another integration test map where he's interacting with the Capstone
+interacting with the Capstone so again we had to be careful here and
+so again we had to be careful here and we had some bugs to do with State
+we had some bugs to do with State leaking from state to state uh some
+leaking from state to state uh some tests to test uh but again we were kind
+tests to test uh but again we were kind of happy to fix those bugs and sort that
+of happy to fix those bugs and sort that out because of the speed up game we were
+out because of the speed up game we were getting in terms of running the tests
+getting in terms of running the tests so the other issue we had which I
+so the other issue we had which I mentioned were intermittent test
+mentioned were intermittent test failures which are when tests succeed
+failures which are when tests succeed almost all the time but very
+almost all the time but very occasionally fail so some level of test
+occasionally fail so some level of test fakiness is kind of inevitable when
+fakiness is kind of inevitable when you're running such a large amount of
+you're running such a large amount of tests continuously and it seems to
+tests continuously and it seems to happen to almost everyone which are
+happen to almost everyone which are quite amused by this quote on the Google
+quite amused by this quote on the Google Google testing blog so you know it
+Google testing blog so you know it happens to the best of people so um
+happens to the best of people so um so we looked into the reasons for our
+so we looked into the reasons for our intermittent test failures and they were
+intermittent test failures and they were kind of a mix of network issues
+kind of a mix of network issues infrastructure issues and sometimes the
+infrastructure issues and sometimes the state that was leaking from a test test
+state that was leaking from a test test so we would investigate and fix these
+so we would investigate and fix these causes
+causes but we found that just stopping the team
+but we found that just stopping the team from checking in when we found one of
+from checking in when we found one of these intermittent test failures was
+these intermittent test failures was wasting a lot of time
+wasting a lot of time quite disruptive
+quite disruptive so instead what happened was when we we
+so instead what happened was when we we changed the kind of the way the build
+changed the kind of the way the build system did things and when it found a
+system did things and when it found a test failure it would immediately run
+test failure it would immediately run the test again if the test failed for
+the test again if the test failed for the second time we would actually turn
+the second time we would actually turn the build red if it if it succeeded in
+the build red if it if it succeeded in that second time we would just keep it
+that second time we would just keep it green instead
+green instead now just because we did that didn't mean
+now just because we did that didn't mean we completely uh ignored those
+we completely uh ignored those intermittent test issues we just wanted
+intermittent test issues we just wanted to kind of concentrate our efforts a bit
+to kind of concentrate our efforts a bit more so what we did is we kept a record
+more so what we did is we kept a record of those intermittent test failures and
+of those intermittent test failures and every week or so we kind of grew up a
+every week or so we kind of grew up a kind of a list of that kind of worst
+kind of a list of that kind of worst offending tests and then we asked
+offending tests and then we asked Engineers to just look at those
+Engineers to just look at those uh because those are those tests may
+uh because those are those tests may have genuine issues with the actual test
+have genuine issues with the actual test or the actual feature under test which
+or the actual feature under test which meant that they're worth investigating
+and the final thing we did to kind of improve our testing was to handle
+improve our testing was to handle consistently failing tests so these are
+consistently failing tests so these are tests that are generally badly written
+tests that are generally badly written and just kind of just keep failing so
+and just kind of just keep failing so tests like this they just can't be
+tests like this they just can't be trusted uh because they're just off
+trusted uh because they're just off they're worse often and having no test
+they're worse often and having no test at all due to the time they waste on the
+at all due to the time they waste on the build system and the false information
+build system and the false information they're giving to the team
+they're giving to the team so what we've what we did is if a test
+so what we've what we did is if a test was failing regularly we moved it to a
+was failing regularly we moved it to a quarantine area
+quarantine area where we'd keep running the test but we
+where we'd keep running the test but we wouldn't turn the build red anymore if
+wouldn't turn the build red anymore if it failed and at the same time we told
+it failed and at the same time we told the engineer responsible to test that
+the engineer responsible to test that you're testing removing the quarantine
+you're testing removing the quarantine could you please sort it out and then we
+could you please sort it out and then we gave them a few weeks to do that and if
+gave them a few weeks to do that and if they didn't get around to it then we
+they didn't get around to it then we just bin the test so this seems a bit
+just bin the test so this seems a bit harsh but again we're thinking was that
+harsh but again we're thinking was that if an engineer can't prioritize the time
+if an engineer can't prioritize the time to fix that test it's probably not
+to fix that test it's probably not giving us a worthwhile test coverage and
+giving us a worthwhile test coverage and it can be recovered later anyway so
+it can be recovered later anyway so chicken
+chicken okay so for the final part of this
+okay so for the final part of this presentation I'd like to talk about the
+presentation I'd like to talk about the the benefits we got from doing all this
+the benefits we got from doing all this automated testing
+automated testing so here's the breakdown of the tests
+so here's the breakdown of the tests that we currently have in our code base
+that we currently have in our code base so as you can see 70 of our tests are
+so as you can see 70 of our tests are active tests so it definitely felt like
+active tests so it definitely felt like we were right where we thought that this
+we were right where we thought that this was kind of The Sweet Spot in terms of
+was kind of The Sweet Spot in terms of the the code level in where to run those
+the the code level in where to run those tests for gameplay because we were using
+tests for gameplay because we were using so many
+so many uh we only have five percent integration
+uh we only have five percent integration tests there uh so again try not to
+tests there uh so again try not to overwhelm our build system with so many
+overwhelm our build system with so many integration tests but they did give us
+integration tests but they did give us vital kind of high level uh feedback if
+vital kind of high level uh feedback if something was broken uh on in a feature
+something was broken uh on in a feature in the game about half of those were
+in the game about half of those were Network tests
+Network tests and screenshot performance and boot flow
+and screenshot performance and boot flow tests uh we only have a very small
+tests uh we only have a very small number of those those will by far our
+number of those those will by far our slowest tests so we only use them
+slowest tests so we only use them sparingly
+sparingly so if you add all those up we have about
+so if you add all those up we have about 23 000 tests which is quite a lot
+23 000 tests which is quite a lot but I didn't add asset audits because
+but I didn't add asset audits because again they're kind of not quite tests
+again they're kind of not quite tests but you know if we add those as well I
+but you know if we add those as well I didn't want to skew the results too much
+didn't want to skew the results too much so I didn't add those in there but if we
+so I didn't add those in there but if we add those as well then we end up with
+add those as well then we end up with over 100 000 tests which is quite a lot
+over 100 000 tests which is quite a lot um so uh if if we hadn't rained all
+um so uh if if we hadn't rained all those efficiency savings that I've been
+those efficiency savings that I've been talking about there's just no way we
+talking about there's just no way we could have run uh those tests in a
+could have run uh those tests in a reasonable way on our build system
+cool so with all those uh we've all that testing we had we were seeing a lot of
+testing we had we were seeing a lot of benefits in terms of build stability and
+benefits in terms of build stability and that extra confidence that it gave us so
+that extra confidence that it gave us so um I should go through the the what
+um I should go through the the what those things were
+those things were so the first one we had was the reduced
+so the first one we had was the reduced time it took to verify the bill so on
+time it took to verify the bill so on connect sports arrivals as I mentioned
+connect sports arrivals as I mentioned it took about two weeks to verify a bill
+it took about two weeks to verify a bill before we sent it out as an update to
+before we sent it out as an update to players
+players where I was on sea of Thieves it took
+where I was on sea of Thieves it took about a day and a half now we were
+about a day and a half now we were confident enough so this was really
+confident enough so this was really powerful it meant that we could very
+powerful it meant that we could very quickly turn around a hotfix if we
+quickly turn around a hotfix if we needed to uh just from the kind of the
+needed to uh just from the kind of the just the current version of the bill
+uh the other benefit We Got Is We drastically reduced our manual test
+drastically reduced our manual test testing team
+testing team so we went from 50 that we uh members
+so we went from 50 that we uh members that we had on connect Sports Rivals at
+that we had on connect Sports Rivals at the time of release to 17 which at the
+the time of release to 17 which at the time of sea of Thieves
+time of sea of Thieves um so what the numbers don't show is
+um so what the numbers don't show is kind of the way that we could actually
+kind of the way that we could actually use the smaller number of testers we had
+use the smaller number of testers we had a lot more productively again because of
+a lot more productively again because of all the repetitive checks were being
+all the repetitive checks were being done by automated testing uh the the QA
+done by automated testing uh the the QA team could work more closely with the
+team could work more closely with the rest of the development team and
+rest of the development team and actually kind of feedback on kind of
+actually kind of feedback on kind of what the player experience was like of
+what the player experience was like of playing the current build
+so the third benefit we had was keeping our bug count very low so on sea of
+our bug count very low so on sea of Thieves Max Bug count over production uh
+Thieves Max Bug count over production uh was about 214 whereas on Banjo Kazooie
+was about 214 whereas on Banjo Kazooie nuts and bolts uh yeah quite older
+nuts and bolts uh yeah quite older project but um still it's good
+project but um still it's good comparison uh we went to about 3 000
+comparison uh we went to about 3 000 um and you can see kind of from the bug
+um and you can see kind of from the bug the bug Trend graph that um how
+the bug Trend graph that um how different they were so on sea of Thieves
+different they were so on sea of Thieves because of all the automated testing we
+because of all the automated testing we had a lot of issues didn't really make
+had a lot of issues didn't really make it as far as bugs because they were
+it as far as bugs because they were caught by automated testing earlier on
+caught by automated testing earlier on and never made it into the build we also
+and never made it into the build we also had a kind of a process where we asked
+had a kind of a process where we asked developers to look at fixing their bugs
+developers to look at fixing their bugs before they did Feature work and just to
+before they did Feature work and just to keep the build as stable and clean as
+keep the build as stable and clean as possible
+possible nuts and bolts as you can see we kind of
+nuts and bolts as you can see we kind of let long running issues in the build
+let long running issues in the build just build up build up build up until oh
+just build up build up build up until oh no it's a few months before release and
+no it's a few months before release and we had to fix all the bugs so uh yeah
+we had to fix all the bugs so uh yeah we've spent a lot of time doing that
+we've spent a lot of time doing that and that kind of brings me to my third
+and that kind of brings me to my third one is that uh reducing crunch so we
+one is that uh reducing crunch so we this is really important to us at rare
+this is really important to us at rare we hope that automated testing would
+we hope that automated testing would help us reduce crunch quite a bit I
+help us reduce crunch quite a bit I don't have concrete stats for this
+don't have concrete stats for this unfortunately but anecdotally developers
+unfortunately but anecdotally developers at the studio definitely found that they
+at the studio definitely found that they work less over time and I think the bug
+work less over time and I think the bug Trend graphs kind of show why this is so
+Trend graphs kind of show why this is so on sea of Thieves because we had
+on sea of Thieves because we had automated testing highlighting issues
+automated testing highlighting issues all the time they weren't those kind of
+all the time they weren't those kind of unexpected moments where you know you
+unexpected moments where you know you have issues crop up that you you didn't
+have issues crop up that you you didn't expect or have been around a long time
+expect or have been around a long time and developers could maintain more
+and developers could maintain more regular working hours because of that
+regular working hours because of that whereas on Patrick there's only nuts and
+whereas on Patrick there's only nuts and bolts uh when it got to that point when
+bolts uh when it got to that point when we before release and we had all those
+we before release and we had all those bugs uh there was definitely a lot of
+bugs uh there was definitely a lot of crunching going on
+crunching going on so so just to finish up I'd like to go
+so so just to finish up I'd like to go through some bonus lessons we learned on
+through some bonus lessons we learned on our automated testing Adventure
+so first one is that team buy-in is really important so the most common
+really important so the most common reason not to use automated testing is
+reason not to use automated testing is obviously the time it takes to do the
+obviously the time it takes to do the automated automated testing no you know
+automated automated testing no you know there's no time to do it we've got to do
+there's no time to do it we've got to do finish the game
+finish the game so my counter argument would be to that
+so my counter argument would be to that that you might actually spend more time
+that you might actually spend more time uh you might actually spend the same
+uh you might actually spend the same amount of time or less time if you use
+amount of time or less time if you use automated tests because the developers
+automated tests because the developers won't be spending as much time fixing
+won't be spending as much time fixing reoccurring bugs so we were lucky on the
+reoccurring bugs so we were lucky on the project that we that everyone on the on
+project that we that everyone on the on the team in fact well everyone at rare
+the team in fact well everyone at rare kind of bought into what we wanted to do
+kind of bought into what we wanted to do with automated testing and went along
+with automated testing and went along with us including producers and project
+with us including producers and project managers again if we didn't have that we
+managers again if we didn't have that we didn't have that support from that
+didn't have that support from that highest level uh we really probably
+highest level uh we really probably wouldn't be able to achieve what we did
+so the second one uh it was that you should really allow time if you're doing
+should really allow time if you're doing automated testing to kind of build up
+automated testing to kind of build up that knowledge in the team again a lot
+that knowledge in the team again a lot of us were unfamiliar with testing when
+of us were unfamiliar with testing when we started this there's a lot you need
+we started this there's a lot you need to think about in terms of what makes a
+to think about in terms of what makes a good test and what makes what you have
+good test and what makes what you have to do to make your code testable which
+to do to make your code testable which is quite an important one as well
+is quite an important one as well because it's very easy to make code
+because it's very easy to make code which is it's just so difficult to test
+which is it's just so difficult to test the bonuses is that you may if you make
+the bonuses is that you may if you make code more testable it actually makes it
+code more testable it actually makes it cleaner and better as well and and the
+cleaner and better as well and and the second part of this is that you should
+second part of this is that you should make sure that you spend time making
+make sure that you spend time making sure your infrastructure is robust and
+sure your infrastructure is robust and stable because you're going to be
+stable because you're going to be relying on it a lot
+relying on it a lot um so if this all seems a bit
+um so if this all seems a bit intimidating uh to get started then I
+intimidating uh to get started then I would suggest not doing what we did and
+would suggest not doing what we did and actually just just starting testing on
+actually just just starting testing on like a small part of your game or your
+like a small part of your game or your project to begin with uh just to build
+project to begin with uh just to build it up rather than go all in
+it up rather than go all in uh the third lesson we learned was that
+uh the third lesson we learned was that iterative development
+iterative development um testing They Don't Really mix so if
+um testing They Don't Really mix so if you're still kind of working on your
+you're still kind of working on your game and on the actual gameplay and
+game and on the actual gameplay and checking to find the fun uh then it's
+checking to find the fun uh then it's probably not a good idea to do testing
+probably not a good idea to do testing at the same time because you'll be
+at the same time because you'll be constantly having to rework your tests
+constantly having to rework your tests uh so on sea of Thieves when we were
+uh so on sea of Thieves when we were working on new features we actually had
+working on new features we actually had a prototype branch that we used that
+a prototype branch that we used that didn't need testing so that uh the
+didn't need testing so that uh the developers could work quickly and not
+developers could work quickly and not have to worry about tests when they're
+have to worry about tests when they're working on those features
+working on those features but even when they worked on the
+but even when they worked on the production bench we didn't really do the
+production bench we didn't really do the kind of the test driven development test
+kind of the test driven development test first style approach because
+first style approach because again we would probably end up having to
+again we would probably end up having to rework those tests a bit too often so
+rework those tests a bit too often so what what the process was more was that
+what what the process was more was that we an engineer or a developer would make
+we an engineer or a developer would make a change get it working locally and then
+a change get it working locally and then build the tests to kind of pin down what
+build the tests to kind of pin down what they've done to make sure that it
+they've done to make sure that it doesn't break in the future
+and then the final one is that pragmatism is important
+pragmatism is important um
+um so we found we had to constantly as you
+so we found we had to constantly as you saw we had to constantly change kind of
+saw we had to constantly change kind of how we were doing our testing as things
+how we were doing our testing as things were working for us so we often didn't
+were working for us so we often didn't have it weren't able to do the textbook
+have it weren't able to do the textbook way of doing things because uh you know
+way of doing things because uh you know it wasn't working for us so my
+it wasn't working for us so my suggestion would be my advice is just
+suggestion would be my advice is just don't be uh afraid to change what you're
+don't be uh afraid to change what you're doing and and do what works for you and
+doing and and do what works for you and remember that tests are you know testing
+remember that tests are you know testing has a cost so you can't possibly test
+has a cost so you can't possibly test absolutely everything so if something is
+absolutely everything so if something is Trivial maybe don't test it if something
+Trivial maybe don't test it if something is very
+is very um if a test you're going to be creating
+um if a test you're going to be creating is going to be very costly very complex
+is going to be very costly very complex and hard to maintain maybe maybe don't
+and hard to maintain maybe maybe don't don't do it uh and then on the flip side
+don't do it uh and then on the flip side if you if you're writing some code that
+if you if you're writing some code that looks quite like a complicated logic or
+looks quite like a complicated logic or something then you know definitely
+something then you know definitely concentrate your testing there
+concentrate your testing there so you know it just just remember that
+so you know it just just remember that you're not going to be able to have
+you're not going to be able to have perfect test coverage so it's just not
+perfect test coverage so it's just not really worth trying to do
+really worth trying to do and just to show that we don't have
+and just to show that we don't have perfect test coverage is what a video of
+perfect test coverage is what a video of one of my favorite books uh sorry one of
+one of my favorite books uh sorry one of my favorite videos from bugs in our game
+my favorite videos from bugs in our game I just love the expression on this guy's
+I just love the expression on this guy's face look
+face look laughs
+yeah it goes all the way over the horizon as well uh so so what can I say
+horizon as well uh so so what can I say testing is a journey we're constantly
+testing is a journey we're constantly improving so yeah
+improving so yeah cool so that's into my talk uh what I've
+cool so that's into my talk uh what I've talked about here is you know a big team
+talked about here is you know a big team effort from virtually everyone at rare
+effort from virtually everyone at rare so I'd just like to thank everyone who
+so I'd just like to thank everyone who contributed to our test process and see
+contributed to our test process and see thieves
+thieves and Rara hiring particularly with for
+and Rara hiring particularly with for software Engineers so if you're
+software Engineers so if you're interested uh check out the website link
+interested uh check out the website link on the on the page or just come and find
+on the on the page or just come and find me later
+me later and that's it does anyone have any
+and that's it does anyone have any questions
+questions [Applause]
+[Applause] uh I have a question thanks great talk
+uh I have a question thanks great talk thank you I have a question about the
+thank you I have a question about the integration testing if you didn't
+integration testing if you didn't mention mocking at all like did you ever
+mention mocking at all like did you ever think about like mocking away the server
+think about like mocking away the server if you did some client tests or do you
+if you did some client tests or do you are mocking some units away when you do
+are mocking some units away when you do some integration tests yeah
+some integration tests yeah um
+um so we did a bit of that I guess because
+so we did a bit of that I guess because the the actor tests obviously didn't
+the the actor tests obviously didn't have network communication we would have
+have network communication we would have done something similar yes we did so we
+done something similar yes we did so we did we did often did things like uh we
+did we did often did things like uh we could fake replication so we had a way
+could fake replication so we had a way of doing that so you kind of um
+of doing that so you kind of um replication is kind of the the unreal
+replication is kind of the the unreal term for like you know Community sending
+term for like you know Community sending something from uh server to client so
+something from uh server to client so yeah we could fake that essentially to
+yeah we could fake that essentially to say this has been replicated now do the
+say this has been replicated now do the correct thing on the client when you've
+correct thing on the client when you've picked that up that kind of thing the
+picked that up that kind of thing the integration tests again because there
+integration tests again because there were so few of them they were kind of uh
+were so few of them they were kind of uh they wanted kind of a more kind of a
+they wanted kind of a more kind of a broader view a kind of more high level
+broader view a kind of more high level views that's why we kind of did actual
+views that's why we kind of did actual network communication in those
+network communication in those but you always kept the units like you
+but you always kept the units like you always retested the units with the test
+always retested the units with the test also in the actual test right I mean
+also in the actual test right I mean yeah sorry we always check that you
+yeah sorry we always check that you always kept the units when you tested
+always kept the units when you tested the actor tests so you're never like so
+the actor tests so you're never like so you retested the units as well in the
+you retested the units as well in the actor test always right I guess
+actor test always right I guess um I'm not sure what you mean sorry so
+um I'm not sure what you mean sorry so you're saying they uh they would check
+you're saying they uh they would check the you mean you didn't mean unit tests
+the you mean you didn't mean unit tests or no no it's not such I mean I'm just
+or no no it's not such I mean I'm just thinking if you sometimes Mark away
+thinking if you sometimes Mark away units you already tested you probably
+units you already tested you probably you don't retest them and I mean that's
+you don't retest them and I mean that's kind of stuff yeah yeah so I suppose
+kind of stuff yeah yeah so I suppose you're right there's a bit of retesting
+you're right there's a bit of retesting going but we again integration tests
+going but we again integration tests that I like that right like I showed
+that I like that right like I showed that diagram where the integration tests
+that diagram where the integration tests contain the unit tests so in a way you
+contain the unit tests so in a way you are kind of repeating yourself a bit but
+are kind of repeating yourself a bit but the unit tests are very useful because
+the unit tests are very useful because they give you that kind of very specific
+they give you that kind of very specific point of failure that you could
+point of failure that you could investigate integration tests are quite
+investigate integration tests are quite high level because they give you that
+high level because they give you that kind of very broad sense of Something's
+kind of very broad sense of Something's Wrong uh it takes a bit longer to
+Wrong uh it takes a bit longer to investigate it but you know there's some
+investigate it but you know there's some it's something you need to look at okay
+it's something you need to look at okay thanks thank you
+thanks thank you hi um so I was wondering for the
+hi um so I was wondering for the pre-commit tests I found them very
+pre-commit tests I found them very interesting but is there a way to sort
+interesting but is there a way to sort of automate which tests are picked up in
+of automate which tests are picked up in that pre-commit so like analyzing what
+that pre-commit so like analyzing what code was changed yes yeah I left that
+code was changed yes yeah I left that out because I didn't have time and it
+out because I didn't have time and it kind of didn't fit in but yeah so how
+kind of didn't fit in but yeah so how that works is uh every day when we're
+that works is uh every day when we're running the tests we the tests kind of
+running the tests we the tests kind of record what code that
+record what code that um they're touching what assets are
+um they're touching what assets are touching and we sort of build a map up
+touching and we sort of build a map up of that and then when you do a
+of that and then when you do a pre-commit you kind of do a reverse look
+pre-commit you kind of do a reverse look above that and then you kind of find out
+above that and then you kind of find out which tests are kind of were affected by
+which tests are kind of were affected by that code change and then that builds
+that code change and then that builds your list of tests that we think are
+your list of tests that we think are related and again it's not perfect but
+related and again it's not perfect but it's kind of good in the thought we
+it's kind of good in the thought we needed especially for a pre-commit
+needed especially for a pre-commit because
+because um yeah again that was it was very
+um yeah again that was it was very important to us to keep the pre-commit
+important to us to keep the pre-commit as fast as possible and it's been a kind
+as fast as possible and it's been a kind of ongoing challenge as we keep adding
+of ongoing challenge as we keep adding more and more testing you know we can
+more and more testing you know we can only we paralyze things as much as we
+only we paralyze things as much as we can but there's kind of limits to that
+can but there's kind of limits to that so you know that that was kind of our
+so you know that that was kind of our latest way of kind of making sure that
+latest way of kind of making sure that we were speeding that up enough
+we were speeding that up enough um but it gave us good enough coverage
+um but it gave us good enough coverage to be confident for a developer to
+to be confident for a developer to submit their changes fairly sure that
+submit their changes fairly sure that they're not going to break things for
+they're not going to break things for the rest of the team cool is there
+the rest of the team cool is there somewhere that I can read more about
+somewhere that I can read more about automating that process
+automating that process um I could probably put you in touch
+um I could probably put you in touch with someone who can kind of tell you a
+with someone who can kind of tell you a bit more how that works if you want um
+bit more how that works if you want um just just find me on later or on Twitter
+just just find me on later or on Twitter or something like that and ask them
+or something like that and ask them thank you and then one more small
+thank you and then one more small question is what do you think about
+question is what do you think about testing developing with testing as first
+testing developing with testing as first class concern so instead of sort of
+class concern so instead of sort of bolting it on at the end sort of
+bolting it on at the end sort of designing your units for testability so
+designing your units for testability so they're more robust and well structured
+they're more robust and well structured yes so I yeah I kind of I briefly
+yes so I yeah I kind of I briefly mentioned that but you mean like when
+mentioned that but you mean like when you're actually building the code up and
+you're actually building the code up and right yeah after photo typing of course
+right yeah after photo typing of course yeah so we do um again as I mentioned we
+yeah so we do um again as I mentioned we don't really do it in a strictest test
+don't really do it in a strictest test driven way we just found that for game
+driven way we just found that for game for gameplay especially it's just a bit
+for gameplay especially it's just a bit too fluid and often you had to you know
+too fluid and often you had to you know you're using Unreal and the Unreal
+you're using Unreal and the Unreal Engine which is not tested so that's
+Engine which is not tested so that's kind of one of the limitations with what
+kind of one of the limitations with what we're doing here is that uh Unreal
+we're doing here is that uh Unreal Engine we're kind of assuming it all
+Engine we're kind of assuming it all works and then and yeah it does for the
+works and then and yeah it does for the most part right but it's not tested so
+most part right but it's not tested so often the and it's not very it's not in
+often the and it's not very it's not in a very kind of it's not been built in a
+a very kind of it's not been built in a way there's a lot of dependencies
+way there's a lot of dependencies between everything it's an old it's an
+between everything it's an old it's an oldish engine right so um
+um so yeah so often you would find it when you're building gameplay up you
+when you're building gameplay up you might find oh actually I had to bring
+might find oh actually I had to bring this dependency in and things like this
+this dependency in and things like this so it's often a good it's often good to
+so it's often a good it's often good to get things working we just found again
+get things working we just found again being pragmatic that it's it's good to
+being pragmatic that it's it's good to get things working rather than kind of
+get things working rather than kind of build up the uh your tests and then your
+build up the uh your tests and then your unit but it you still kind of
+unit but it you still kind of it was still definitely when you had
+it was still definitely when you had tests in mind that you would need to
+tests in mind that you would need to make later uh it still meant that you
+make later uh it still meant that you would really have to think about those
+would really have to think about those dependencies because you knew that the
+dependencies because you knew that the more you added the more you'd have to
+more you added the more you'd have to mop later and things like this so it's
+mop later and things like this so it's like do you really need that
+like do you really need that dependencies another way of doing it I
+dependencies another way of doing it I definitely found that our code base was
+definitely found that our code base was a lot cleaner in Sea thieves than it had
+a lot cleaner in Sea thieves than it had been in previous projects because of
+been in previous projects because of that awesome thank you thank you thanks
+that awesome thank you thank you thanks for the talk um were you tempted to
+for the talk um were you tempted to paralyze the integration test when you
+paralyze the integration test when you first realized they were taking so long
+first realized they were taking so long to run and you switch to act a test did
+to run and you switch to act a test did you did you mean uh like while you were
+you did you mean uh like while you were running them all on one build agent
+running them all on one build agent after the building oh yeah we we do
+after the building oh yeah we we do paralyze them actually yeah yeah so as I
+paralyze them actually yeah yeah so as I mentioned they kind of we do groups of
+mentioned they kind of we do groups of tests so yeah one thing we did was but
+tests so yeah one thing we did was but we could only go as wide as we we just
+we could only go as wide as we we just have a limited number of Agents we only
+have a limited number of Agents we only we we have all our agents on site and
+we we have all our agents on site and things like this um so and especially
+things like this um so and especially because we're running them on Xbox as
+because we're running them on Xbox as well uh running on Xbox Dev kits and
+well uh running on Xbox Dev kits and that's a little it's not quite as easy
+that's a little it's not quite as easy to kind of uh again it's a bit more work
+to kind of uh again it's a bit more work to set that up and there's you know a
+to set that up and there's you know a limit to the amount of Dev kits we had
+limit to the amount of Dev kits we had and things like that so yes we were
+and things like that so yes we were paralyzing them but even with that with
+paralyzing them but even with that with the amount of you know changes and
+the amount of you know changes and pre-commits people are sending through
+pre-commits people are sending through you know it is just an ongoing battle in
+you know it is just an ongoing battle in terms of keeping that workable all right
+terms of keeping that workable all right thank you thank you
+thank you thank you hi
+hi um I was curious you you had the one
+um I was curious you you had the one line about getting buy-in from the rest
+line about getting buy-in from the rest of the team and the trade-offs with a
+of the team and the trade-offs with a little bit of velocity for
+little bit of velocity for sustainability and all that I was
+sustainability and all that I was curious how you presented that argument
+curious how you presented that argument to the rest of the team leadership and
+to the rest of the team leadership and if there's any particular data you
+if there's any particular data you pointed to I mean that graph of
+pointed to I mean that graph of um nuts and bolts and their bug count
+um nuts and bolts and their bug count yeah unfortunately yeah we didn't have
+yeah unfortunately yeah we didn't have that until we finished it good job it
+that until we finished it good job it did work out that way um but uh
+did work out that way um but uh uh I guess I think the reality of it
+uh I guess I think the reality of it really again because we knew this was
+really again because we knew this was the kind of game it was I think I think
+the kind of game it was I think I think mostly we'd had such a bad experience
+mostly we'd had such a bad experience with previous projects I think
+with previous projects I think um I was told I was when I was
+um I was told I was when I was researching for this presentation I was
+researching for this presentation I was told that we didn't do some DLC for an
+told that we didn't do some DLC for an old project because it would just been
+old project because it would just been the testing for it would have been too
+the testing for it would have been too much work which sounds insane but that's
+much work which sounds insane but that's apparently the situation it was so I
+apparently the situation it was so I think when the producers were looking at
+think when the producers were looking at that they were thinking well whatever
+that they were thinking well whatever you think if this this this means we can
+you think if this this this means we can actually do an update every week if we
+actually do an update every week if we need to that kind of thing then let's
+need to that kind of thing then let's give it a go and
+give it a go and I've not really received much pushback
+I've not really received much pushback from I'm not hurting any pushback in
+from I'm not hurting any pushback in terms of for our producers that the
+terms of for our producers that the tests are taking too long
+tests are taking too long thank you
+thank you so your tests are
+so your tests are running is the actor test running
+running is the actor test running essentially without a world
+essentially without a world there is a world but we kind of we
+there is a world but we kind of we almost do like new object world and and
+almost do like new object world and and have our own world rather than whatever
+have our own world rather than whatever when you if you know unreal then there's
+when you if you know unreal then there's like especially in the editor I think
+like especially in the editor I think there's like two or three Worlds at the
+there's like two or three Worlds at the same time or something we just said you
+same time or something we just said you need to spin up a very minimal world and
+need to spin up a very minimal world and use that with the you know with the
+use that with the you know with the actors in there and we again it's one of
+actors in there and we again it's one of those things again we're not really not
+those things again we're not really not it feels like it's wrong to do because
+it feels like it's wrong to do because it's not you're not using things in the
+it's not you're not using things in the proper way but if you're just testing in
+proper way but if you're just testing in the logic of something then it was good
+the logic of something then it was good enough for what we needed so and but how
+enough for what we needed so and but how different is that sort of testing
+different is that sort of testing compared to like how much did you need
+compared to like how much did you need to change the automation system really
+to change the automation system really for to do what you needed to do um
+for to do what you needed to do um change the automation system again I
+change the automation system again I believe this is it wasn't that much work
+believe this is it wasn't that much work to do it was more a kind of a change of
+to do it was more a kind of a change of thinking than changing much code in the
+thinking than changing much code in the framework to be honest I think it again
+framework to be honest I think it again I think the engine does kind of support
+I think the engine does kind of support it probably if you talk to Epic they
+it probably if you talk to Epic they were like don't do that it's weird but
+were like don't do that it's weird but if you you know if we if you just do a
+if you you know if we if you just do a new world and acts a sport actor on
+new world and acts a sport actor on world or whatever then I think it will
+world or whatever then I think it will it will work so and again it meant there
+it will work so and again it meant there was some caveats it meant some things
+was some caveats it meant some things didn't work and you know again it wasn't
+didn't work and you know again it wasn't it wasn't perfect but it was good enough
+it wasn't perfect but it was good enough what we needed and it was you know it
+what we needed and it was you know it was so much faster to run so
+was so much faster to run so it's a big game so we had a lot of tests
+it's a big game so we had a lot of tests so thanks thank you
+so thanks thank you I'm curious if you've ever used or heard
+I'm curious if you've ever used or heard of hypothesis or property-based testing
+of hypothesis or property-based testing and whether you considered using that
+and whether you considered using that and if so why not I no I don't think I
+and if so why not I no I don't think I have actually
+have actually um are you able to talk briefly about
+um are you able to talk briefly about what that is yeah so um basically the
+what that is yeah so um basically the idea is that the um the test system
+idea is that the um the test system generates inputs for you so um the
+generates inputs for you so um the classic example is you have an
+classic example is you have an um an encode and a decode code function
+um an encode and a decode code function and you just say the encode function is
+and you just say the encode function is the inverse of the decode function and
+the inverse of the decode function and vice versa generate a lot of string
+vice versa generate a lot of string inputs where does it fail okay and then
+inputs where does it fail okay and then it tries to find like the minimal string
+it tries to find like the minimal string that makes it fail I see I see
+that makes it fail I see I see um no I I just say I don't think anyone
+um no I I just say I don't think anyone uh anyone mentioned trying that
+uh anyone mentioned trying that um yeah I'd be interesting how that
+um yeah I'd be interesting how that works in a like a game gameplay
+works in a like a game gameplay scenarios yeah think about how you would
+scenarios yeah think about how you would definitely worth checking out then um uh
+definitely worth checking out then um uh hypothesis is a python library that lets
+hypothesis is a python library that lets you get a good idea of how it works cool
+you get a good idea of how it works cool all right I'll look into that that
+all right I'll look into that that sounds really cool
+sounds really cool uh hello uh first of all one thing to
+uh hello uh first of all one thing to address the previous concern about uh
+address the previous concern about uh buy-in and uh something I find very
+buy-in and uh something I find very interesting and good to see from your
+interesting and good to see from your perspective how you outlined how you've
+perspective how you outlined how you've avoided crunch potentially again not
+avoided crunch potentially again not completely I'll get in trouble if I say
+completely I'll get in trouble if I say that we've it completely you know
+that we've it completely you know abolished crunch so but produced um a
+abolished crunch so but produced um a lot better definitely yeah but uh like
+lot better definitely yeah but uh like for me it's like the reduction of crunch
+for me it's like the reduction of crunch the more reliable production timeline
+the more reliable production timeline trumps moving fast and brexit because
+trumps moving fast and brexit because you will accumulate technical debt that
+you will accumulate technical debt that we will have to fix yes and your
+we will have to fix yes and your producers will like you for having a
+producers will like you for having a reliable practice
+reliable practice um on that line besides Buck
+um on that line besides Buck accumulation and Technical adapter
+accumulation and Technical adapter accumulation uh the other typical issue
+accumulation uh the other typical issue I see for Productions to fail in the end
+I see for Productions to fail in the end is performance and that is you build
+is performance and that is you build your systems you build systems upon
+your systems you build systems upon systems upon systems and then content
+systems upon systems and then content hits and hits the fan sorry uh
+hits and hits the fan sorry uh did you do anything to accumulate to
+did you do anything to accumulate to account for Content hitting later onto
+account for Content hitting later onto the systems in your performance testing
+the systems in your performance testing did you do anything so yeah as I
+did you do anything so yeah as I mentioned we have the performance tests
+mentioned we have the performance tests and those would do things like you would
+and those would do things like you would have the whole world
+have the whole world um a client in a world sorry in the
+um a client in a world sorry in the actual full
+actual full um c
+um c um and we'd collect data for five
+um and we'd collect data for five minutes or something like that travel to
+minutes or something like that travel to every island you know those kind of
+every island you know those kind of things and then we have a we have graphs
+things and then we have a we have graphs that we'll monitor we'll have we'll have
+that we'll monitor we'll have we'll have the engine team have that up on screens
+the engine team have that up on screens in theirs and they can see in real time
+in theirs and they can see in real time that something has happened and it's
+that something has happened and it's trended down and then they'll often kind
+trended down and then they'll often kind of jump in quickly uh find what has
+of jump in quickly uh find what has changed that recently
+changed that recently um the more difficult ones and when
+um the more difficult ones and when you've got a kind of a very slow
+you've got a kind of a very slow downward Trend when it's like okay we're
+downward Trend when it's like okay we're just kind of adding content and at that
+just kind of adding content and at that point often someone has to be assigned
+point often someone has to be assigned to some kind of optimization task to
+to some kind of optimization task to kind of yeah just just get it a bit
+kind of yeah just just get it a bit above get us a bit above water again and
+above get us a bit above water again and again if that's just kind of the way it
+again if that's just kind of the way it is with a continually evolving game like
+is with a continually evolving game like this so yeah but had you any kind of
+this so yeah but had you any kind of like budgeting system for that to like
+like budgeting system for that to like find these slow Trends and go like okay
+find these slow Trends and go like okay maybe this is something that is okay
+maybe this is something that is okay because we're still within budget
+because we're still within budget um Oh you mean yes so we we do give you
+um Oh you mean yes so we we do give you mean like we give the artist budgets in
+mean like we give the artist budgets in terms of uh Pollies and things like that
+terms of uh Pollies and things like that um yes and in terms of memory
+um yes and in terms of memory consumption yeah yeah we have that as
+consumption yeah yeah we have that as well yeah yeah but then again we're
+well yeah yeah but then again we're always we're always pushing it as much
+always we're always pushing it as much we can and then obviously that's a bit
+we can and then obviously that's a bit harder to do with uh when we add stuff
+harder to do with uh when we add stuff in terms of gameplay and things like
+in terms of gameplay and things like that um because well in terms of like
+that um because well in terms of like you know General performance uh rather
+you know General performance uh rather than just kind of performance uh caused
+than just kind of performance uh caused by the complexity of the world so that's
+by the complexity of the world so that's something that's a bit more nebulous
+something that's a bit more nebulous it's a bit hard to kind of give strict
+it's a bit hard to kind of give strict guidelines on oh and just one quick
+guidelines on oh and just one quick question to follow up on that yeah I
+question to follow up on that yeah I think we're almost out of time but did
+think we're almost out of time but did you have anything to stabilize the
+you have anything to stabilize the performance testing
+performance testing um stabilize it that's because
+um stabilize it that's because performance can be quite noisy oh okay I
+performance can be quite noisy oh okay I think I think we just ran it over a long
+think I think we just ran it over a long time I believe I can probably find out
+time I believe I can probably find out for you um if we did anything more than
+for you um if we did anything more than that cool thank you

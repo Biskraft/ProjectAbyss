@@ -1,0 +1,1413 @@
+[Music] okay good morning welcome to
+okay good morning welcome to goal-oriented action planning as Dave
+goal-oriented action planning as Dave just mentioned I'm Peter higley there we
+just mentioned I'm Peter higley there we go
+go skip the slide my name is Peter Hickman
+skip the slide my name is Peter Hickman as I said I worked at more kamala
+as I said I worked at more kamala productions here one of the primary AI
+productions here one of the primary AI programmers for our latest title shadow
+programmers for our latest title shadow Florida Middle Earth shadow of Mordor
+Florida Middle Earth shadow of Mordor supposed to say the full title of the
+supposed to say the full title of the game before I get into our usage of goop
+game before I get into our usage of goop on that product I need to give you an
+on that product I need to give you an overview of glory into action planning
+overview of glory into action planning spend 10 years you might have forgot
+spend 10 years you might have forgot so I started back in 2004 it's actually
+so I started back in 2004 it's actually developed for a monolith title fear by
+developed for a monolith title fear by Jeff Orkin it worked out well we've used
+Jeff Orkin it worked out well we've used it many titles since most notably shadow
+it many titles since most notably shadow of Mordor
+of Mordor so gore enjoyed action planning starts
+so gore enjoyed action planning starts with a list of goals now these at least
+with a list of goals now these at least at monolith these goals are fixed
+at monolith these goals are fixed priority the we just have a list of
+priority the we just have a list of goals we go top-down to figure out which
+goals we go top-down to figure out which goal to pursue now each goal has an is
+goal to pursue now each goal has an is valid check and this is a simple check
+valid check and this is a simple check this just checks to see if the goal
+this just checks to see if the goal should be pursued on the kill enemy goal
+should be pursued on the kill enemy goal up there you'll see there's no sense in
+up there you'll see there's no sense in trying to kill an enemy if the AI
+trying to kill an enemy if the AI doesn't know where an enemy is so is
+doesn't know where an enemy is so is valid makes some very quick simple tests
+valid makes some very quick simple tests to see if the goal should be pursued if
+to see if the goal should be pursued if it should be pursued the goal declares
+it should be pursued the goal declares what we call a desired world state now
+what we call a desired world state now get into what this world state is but
+get into what this world state is but it's should be obvious it's a way of
+it's should be obvious it's a way of just communicating what the AI what the
+just communicating what the AI what the goal wants the AI to do all right so the
+goal wants the AI to do all right so the AI achieves his goals by with actions as
+AI achieves his goals by with actions as we all do the egg so your AI will have a
+we all do the egg so your AI will have a list of actions now these actions also
+list of actions now these actions also have is valid functions but you'll
+have is valid functions but you'll notice here I have in this in the middle
+notice here I have in this in the middle column there each action declares what
+column there each action declares what world state it will satisfy it's
+world state it will satisfy it's basically saying hey I'll make sure the
+basically saying hey I'll make sure the AI if you look down there at the bottom
+AI if you look down there at the bottom you guys that go to node function go to
+you guys that go to node function go to node action I'll make sure the AI gets
+node action I'll make sure the AI gets to know
+to know why but before the action can actually
+why but before the action can actually assure the system that it can do that it
+assure the system that it can do that it needs to run this is valid check and it
+needs to run this is valid check and it will it'll get the desired world state
+will it'll get the desired world state and they'll say oh you want to go to
+and they'll say oh you want to go to node why I mean make sure I can reach
+node why I mean make sure I can reach node why oh yeah again great I'm valid
+node why oh yeah again great I'm valid use me or no that's unreachable just
+use me or no that's unreachable just don't try to do this action it's not
+don't try to do this action it's not gonna work
+gonna work another important thing to note here
+another important thing to note here about actions they can require more
+about actions they can require more world state so you'll notice like melee
+world state so you'll notice like melee attack up there you can't really perform
+attack up there you can't really perform an attack unless you have a melee weapon
+an attack unless you have a melee weapon equipped and you're by your target so
+equipped and you're by your target so actions can say yeah I'll I'll make sure
+actions can say yeah I'll I'll make sure I attack my target but you got to make
+I attack my target but you got to make sure I get there and have a melee weapon
+sure I get there and have a melee weapon in hand
+in hand alright so this world state I keep
+alright so this world state I keep mentioning the world state is it's just
+mentioning the world state is it's just it's a collection of variable it's just
+it's a collection of variable it's just a finite collection of name variables
+a finite collection of name variables and you'll notice the variables carry
+and you'll notice the variables carry values use node that X there that's
+values use node that X there that's going to be a node it's gonna say yeah
+going to be a node it's gonna say yeah use this node over here and be attacking
+use this node over here and be attacking character Y that y is going to be a
+character Y that y is going to be a character now while building a plan we
+character now while building a plan we actually have multiple world states
+actually have multiple world states you'll hear me call them desired world
+you'll hear me call them desired world states for each potential plan because
+states for each potential plan because as we add actions to our plan we're
+as we add actions to our plan we're gonna build up more world state
+gonna build up more world state variables that we need to satisfy and
+variables that we need to satisfy and also the AI always has a current world
+also the AI always has a current world state well ma I is using a node that use
+state well ma I is using a node that use node X for the a eyes current world
+node X for the a eyes current world state will be set to the node he's using
+state will be set to the node he's using where are we oh yes and one more point
+where are we oh yes and one more point here as you as you've noticed goals and
+here as you as you've noticed goals and actions usually only care about a few of
+actions usually only care about a few of these variables at a time well we have
+these variables at a time well we have the whole collection of variables but
+the whole collection of variables but they usually only say oh I only care
+they usually only say oh I only care about these two or three variables the
+about these two or three variables the rest are ignored when we're trying to
+rest are ignored when we're trying to figure out if the world state is
+figure out if the world state is satisfied is the phrase we keep using
+satisfied is the phrase we keep using all right so we have goals we have
+all right so we have goals we have actions how do we build a plan so we run
+actions how do we build a plan so we run down that goal list top down highest
+down that goal list top down highest priority first and until we find a goal
+priority first and until we find a goal that says yeah I'm valid and then we
+that says yeah I'm valid and then we find an action that satisfies that goal
+find an action that satisfies that goal as I've been
+as I've been you often often that action is going to
+you often often that action is going to require some more world state sometimes
+require some more world state sometimes the goal may require more world state
+the goal may require more world state the action may satisfy one variable but
+the action may satisfy one variable but the Goldman actually may say no I need
+the Goldman actually may say no I need like three these variables satisfied so
+like three these variables satisfied so we find more actions that satisfy on the
+we find more actions that satisfy on the previous action or that goal and we keep
+previous action or that goal and we keep repeating until all the world states all
+repeating until all the world states all those all the variables are either
+those all the variables are either satisfied by previous actions or
+satisfied by previous actions or satisfied by the current world state we
+satisfied by the current world state we say the current world states matched now
+say the current world states matched now that doesn't always succeed that can
+that doesn't always succeed that can fail and if it does that's okay we still
+fail and if it does that's okay we still have a list of goals we keep going down
+have a list of goals we keep going down that list of goals we and find the next
+that list of goals we and find the next valid goal and try to build a plan for
+valid goal and try to build a plan for that goal now you know I was saying oh
+that goal now you know I was saying oh yeah we just pick an action we don't
+yeah we just pick an action we don't just you know throw our hand in hat and
+just you know throw our hand in hat and pull out in action and we use a star
+pull out in action and we use a star actually to fought to build this list of
+actually to fought to build this list of actions and you know think about this
+actions and you know think about this list path really what we're doing is
+list path really what we're doing is we're doing path finding from the goals
+we're doing path finding from the goals desired world state to the a ice current
+desired world state to the a ice current world state now you know you a stars way
+world state now you know you a stars way to search a graph the neighbor nodes
+to search a graph the neighbor nodes from your current world from your
+from your current world from your desired world state are the list of
+desired world state are the list of actions that satisfy the outstanding
+actions that satisfy the outstanding world state variables and of course the
+world state variables and of course the path distance is well for us it's a set
+path distance is well for us it's a set cost per action as you'll hear from
+cost per action as you'll hear from Chris if you can actually bury that cost
+Chris if you can actually bury that cost per actions so I'm really do some fun
+per actions so I'm really do some fun stuff with that but you know the cost is
+stuff with that but you know the cost is the the path is just trying to minimize
+the the path is just trying to minimize the number of actions the AI needs to
+the number of actions the AI needs to take and of course it's a star we needed
+take and of course it's a star we needed heuristic the heuristic is just the
+heuristic the heuristic is just the number of outstanding world state
+number of outstanding world state variables that's a lot of words let's
+variables that's a lot of words let's run through an example we have a list of
+run through an example we have a list of goals a list of actions make sure the
+goals a list of actions make sure the slides are all yeah
+slides are all yeah our a is current world state he has a
+our a is current world state he has a melee weapon equipped and he's not doing
+melee weapon equipped and he's not doing much else we run through our list of
+much else we run through our list of goals we find oh hey I have an enemy
+goals we find oh hey I have an enemy let's kill him now of course kill enemy
+let's kill him now of course kill enemy requires that the attacking target world
+requires that the attacking target world state variable be set so you can see our
+state variable be set so you can see our desired world state it's just simply
+desired world state it's just simply attacking target we expand we find the
+attacking target we expand we find the two neighboring notes in our a star
+two neighboring notes in our a star process here we find two actions that
+process here we find two actions that can satisfy that world state melee
+can satisfy that world state melee attack and ranged attack I'm just gonna
+attack and ranged attack I'm just gonna give them a cost of one just to keep
+give them a cost of one just to keep things simple and they each require more
+things simple and they each require more world state so they add more require
+world state so they add more require world state variables that you can see
+world state variables that you can see ranged attacks as well you need a range
+ranged attacks as well you need a range weapon and you have to be near the
+weapon and you have to be near the target not on the target but near melee
+target not on the target but near melee attack says well yeah you need to have a
+attack says well yeah you need to have a melee weapon equipped and you need to be
+melee weapon equipped and you need to be on that target
+on that target but you'll notice our current world
+but you'll notice our current world state says we have a melee weapon
+state says we have a melee weapon equipped so the melee attacks desired
+equipped so the melee attacks desired world state actually only has one
+world state actually only has one variable that's not satisfied that at
+variable that's not satisfied that at target X whereas range attack still has
+target X whereas range attack still has to do some complicated counting here you
+to do some complicated counting here you find that heuristics are the heuristic
+find that heuristics are the heuristic for range attack is bigger a star always
+for range attack is bigger a star always expands the shortest you know distance
+expands the shortest you know distance plus heuristic which is going to be
+plus heuristic which is going to be melee attack we find one neighboring
+melee attack we find one neighboring action go to target that satisfies that
+action go to target that satisfies that at target we have no more outstanding
+at target we have no more outstanding world state variables we've matched our
+world state variables we've matched our current world state we have a plan we go
+current world state we have a plan we go to the target we perform a melee attack
+to the target we perform a melee attack we hope the enemy dies that's the goal
+we hope the enemy dies that's the goal usually the enemy is the player usually
+usually the enemy is the player usually he doesn't die from one attack players
+he doesn't die from one attack players don't like that so when this is done the
+don't like that so when this is done the AI just runs through this process again
+AI just runs through this process again starting at the top of the goal list and
+starting at the top of the goal list and working down until he finds a valid goal
+working down until he finds a valid goal valid valid list of actions it may be
+valid valid list of actions it may be the same plan but we run through that
+the same plan but we run through that just in case of higher priority goals or
+just in case of higher priority goals or new actions that could be run all right
+new actions that could be run all right that was a quick overview of goal
+that was a quick overview of goal oriented action planning
+oriented action planning jessa papers are great on the subject
+jessa papers are great on the subject you can find them in a predecessor to AI
+you can find them in a predecessor to AI game pro or AI pro and ya find them in a
+game pro or AI pro and ya find them in a wonderful AI book from 2004 you can also
+wonderful AI book from 2004 you can also find information online it's been around
+find information online it's been around about 10 years now so there's lots of
+about 10 years now so there's lots of information alright so shadow of mordor
+information alright so shadow of mordor how do we use all this in shadow of
+how do we use all this in shadow of mordor well we're an open-world game so
+mordor well we're an open-world game so you know we could have up to fifty a ice
+you know we could have up to fifty a ice using this planner per frame
+using this planner per frame honestly we rarely had fifty a is
+honestly we rarely had fifty a is hitting the planner in one frame but we
+hitting the planner in one frame but we also really didn't throttle it so we had
+also really didn't throttle it so we had to we had to handle a lot of a eyes and
+to we had to handle a lot of a eyes and our planner this is the great-great
+our planner this is the great-great grandchild
+grandchild Jeff's ten year old baby it's seen some
+Jeff's ten year old baby it's seen some changes through the years but heart and
+changes through the years but heart and soul this is this is Gope I'd like to
+soul this is this is Gope I'd like to say because it is so those of you know
+say because it is so those of you know go and even if you don't you've just
+go and even if you don't you've just heard me talk about using a star to
+heard me talk about using a star to build lists of actions and not always
+build lists of actions and not always succeeding it's not always the most
+succeeding it's not always the most performant planner but I got to say we
+performant planner but I got to say we didn't have too many problems with it it
+didn't have too many problems with it it really never came up as one of our hot
+really never came up as one of our hot spots but it did occasionally pop up and
+spots but it did occasionally pop up and I'll tell you what we did about this one
+I'll tell you what we did about this one thing that's very good specific here we
+thing that's very good specific here we minimize the number of world state
+minimize the number of world state variables we found our planning cost
+variables we found our planning cost scale with worlds with the number of
+scale with worlds with the number of variables and you know we're building
+variables and you know we're building heuristics we are seeing what's
+heuristics we are seeing what's satisfied we're walking that variable
+satisfied we're walking that variable count quite a bit so we need minimize
+count quite a bit so we need minimize that what we discovered is that a lot of
+that what we discovered is that a lot of these world states I showed you a lot
+these world states I showed you a lot world states with you know pointing at
+world states with you know pointing at nodes and targets we also had a lot of
+nodes and targets we also had a lot of just boolean World States we had a Cour
+just boolean World States we had a Cour goal it would simply say hey be cowering
+goal it would simply say hey be cowering you know that I want you to cower so I'd
+you know that I want you to cower so I'd be a variable if it's set to true we had
+be a variable if it's set to true we had quite a few variables like that I would
+quite a few variables like that I would honestly we had about we ended up with
+honestly we had about we ended up with about 40 of them they were never true at
+about 40 of them they were never true at the same time so naturally that's an
+the same time so naturally that's an enumeration so we fold that variable
+enumeration so we fold that variable down we folded about 40 variables down
+down we folded about 40 variables down to one we ended up having about 10 world
+to one we ended up having about 10 world state variables we build our plans on
+state variables we build our plans on and that you know that kept our
+and that you know that kept our performance good in another the other
+performance good in another the other large thing I'm this really mostly what
+large thing I'm this really mostly what I'll be talking about we kept our plan
+I'll be talking about we kept our plan Lang story it's a pretty natural thing
+Lang story it's a pretty natural thing that you know you're using a star this
+that you know you're using a star this quickly you can get to your goal the
+quickly you can get to your goal the quicker you find a path so we we
+quicker you find a path so we we actually work to reduce the number of
+actually work to reduce the number of actions react
+actions react they had to do to satisfy our goals we
+they had to do to satisfy our goals we did this by taking logic and really just
+did this by taking logic and really just pulling it out of the planner when we
+pulling it out of the planner when we could yeah well you skipped a few here
+could yeah well you skipped a few here but so and this is where I'm gonna talk
+but so and this is where I'm gonna talk to myself as much as anyone here when
+to myself as much as anyone here when you work on your AI yeah whenever
+you work on your AI yeah whenever something new comes up you think oh I
+something new comes up you think oh I could add this to planner how do I do
+could add this to planner how do I do this and you know I like to urge you it
+this and you know I like to urge you it doesn't have to be in the planner you
+doesn't have to be in the planner you can look at other systems and say well
+can look at other systems and say well maybe this system could support what I
+maybe this system could support what I need to do and I don't need to make this
+need to do and I don't need to make this planner a large complicated mess
+planner a large complicated mess for instance shadow of mordor we had
+for instance shadow of mordor we had several low level systems note we had a
+several low level systems note we had a head tracking system if you have not
+head tracking system if you have not heard that yet you really want to get a
+heard that yet you really want to get a head tracking system into your game it
+head tracking system into your game it adds so much and so easy today I'm going
+adds so much and so easy today I'm going to tell you about our weapon cheating or
+to tell you about our weapon cheating or equipping and unequipping we really
+equipping and unequipping we really didn't switch between ranged and melee
+didn't switch between ranged and melee weapons that much but you know you have
+weapons that much but you know you have the sword and when the orcs are just
+the sword and when the orcs are just walking around not trying to kill
+walking around not trying to kill anything which because not as often as
+anything which because not as often as you'd like if you're not in org they
+you'd like if you're not in org they would put that sword away whenever they
+would put that sword away whenever they see something they pulled that sword
+see something they pulled that sword back out that's a pretty natural thing
+back out that's a pretty natural thing to put into a planner especially a goat
+to put into a planner especially a goat planner it really makes sense you throw
+planner it really makes sense you throw in a world state variable weapons should
+in a world state variable weapons should be equipped or weapons should be
+be equipped or weapons should be sheathed thrown in action she done she's
+sheathed thrown in action she done she's weapon and it's great you say you know
+weapon and it's great you say you know you just set that variable and the
+you just set that variable and the planner figures up oh I better do this
+planner figures up oh I better do this on sheet action and that was that's good
+on sheet action and that was that's good but that's another world state variable
+but that's another world state variable that's another action we looked at that
+that's another action we looked at that we said you know just based on the
+we said you know just based on the animation we're playing we know if the
+animation we're playing we know if the sword should be out so we actually took
+sword should be out so we actually took that action and just put it into our
+that action and just put it into our animation selection as a just a
+animation selection as a just a transition the planner doesn't care the
+transition the planner doesn't care the planner cares that the orc is going to
+planner cares that the orc is going to play and attack animation and what's key
+play and attack animation and what's key there it's going to play the planner
+there it's going to play the planner doesn't care how long it takes it's just
+doesn't care how long it takes it's just sits and waits patiently for these
+sits and waits patiently for these low-level systems to say yeah okay
+low-level systems to say yeah okay you're done
+you're done give me another plan so so we actually
+give me another plan so so we actually took that action moving into your
+took that action moving into your transition we
+transition we Joost our plan length by one as you'll
+Joost our plan length by one as you'll see from Eric's talk that actually
+see from Eric's talk that actually reduced our plan links quite a bit we
+reduced our plan links quite a bit we also had a lot of mid-level systems I
+also had a lot of mid-level systems I call them planner driving systems does
+call them planner driving systems does these are system setting up variables
+these are system setting up variables for the planner and again a lot of
+for the planner and again a lot of systems I'd love to talk about today I'm
+systems I'd love to talk about today I'm gonna tell you about the awareness
+gonna tell you about the awareness system pretty early we decided that the
+system pretty early we decided that the arts would have just these finite levels
+arts would have just these finite levels of awareness the orcs will be alert
+of awareness the orcs will be alert pretty much when there's something to
+pretty much when there's something to kill their orcs they wake up when
+kill their orcs they wake up when there's something that killed and
+there's something that killed and ambient is the polite term for board
+ambient is the polite term for board because there's nothing to kill and that
+because there's nothing to kill and that was great for animation great for you
+was great for animation great for you know changing walk cycles and it was
+know changing walk cycles and it was also good for player feedback if you've
+also good for player feedback if you've played the game you may have seen red
+played the game you may have seen red and yellow icons over or it's heads let
+and yellow icons over or it's heads let you figure out how that relates to
+you figure out how that relates to awareness but you're pretty much seeing
+awareness but you're pretty much seeing awareness but it also helped with our
+awareness but it also helped with our planner because we recognized that we
+planner because we recognized that we would have some combat goals we'd have
+would have some combat goals we'd have some investigation goals these goals
+some investigation goals these goals were only relevant only valid when like
+were only relevant only valid when like combat goals really only valid when the
+combat goals really only valid when the orcs alert suspicious you know the
+orcs alert suspicious you know the investigation only when he's suspicious
+investigation only when he's suspicious so we actually found what we could do
+so we actually found what we could do rather than even hitting those goals and
+rather than even hitting those goals and saying hey are you valid the goals as
+saying hey are you valid the goals as well what's my alertness level know am i
+well what's my alertness level know am i alert no I'm not valid we actually could
+alert no I'm not valid we actually could just take that goal list and segment it
+just take that goal list and segment it by the awareness levels when our AI
+by the awareness levels when our AI changed awareness levels we just swap
+changed awareness levels we just swap out that goal list and say hey you might
+out that goal list and say hey you might want to look there's some new goals here
+want to look there's some new goals here and that works out great that actually
+and that works out great that actually was a to be honest that was a late
+was a to be honest that was a late addition to our to our system that gave
+addition to our to our system that gave us a just a little more CPU and of
+us a just a little more CPU and of course we had high level systems and
+course we had high level systems and honestly this is where I feel like we
+honestly this is where I feel like we had our biggest win for dealing with so
+had our biggest win for dealing with so many AI we had several high level
+many AI we had several high level systems today I'm going to tell you
+systems today I'm going to tell you about this investigation system partly
+about this investigation system partly because it started in the planner and we
+because it started in the planner and we managed to extract it so you know early
+managed to extract it so you know early on we we've always had some sort of
+on we we've always had some sort of search behavior when a
+search behavior when a you can see there's a dead orc there and
+you can see there's a dead orc there and then in the middle of the walkway when
+then in the middle of the walkway when orcs would encounter something it's not
+orcs would encounter something it's not quite right they would start searching
+quite right they would start searching and we had investigate goal investigate
+and we had investigate goal investigate goal would say yeah I recognize there's
+goal would say yeah I recognize there's something not quite right here why don't
+something not quite right here why don't you go off and do some searches now
+you go off and do some searches now we're dead good for two or three orcs
+we're dead good for two or three orcs and the little box levels that we tend
+and the little box levels that we tend to write early on if you've played our
+to write early on if you've played our game we have a few more than two or
+game we have a few more than two or three orcs and they're pretty close
+three orcs and they're pretty close together sometimes it started looking
+together sometimes it started looking silly when we get 10 20 30 orcs all
+silly when we get 10 20 30 orcs all seeing this dead body I'll going whoa I
+seeing this dead body I'll going whoa I better search look ridiculous naturally
+better search look ridiculous naturally and you know this is not news you you
+and you know this is not news you you put in something like oh I got it or you
+put in something like oh I got it or you know well someone else is searching I'm
+know well someone else is searching I'm not gonna search now and that worked
+not gonna search now and that worked great
+great orcs we've encountered a dead body
+orcs we've encountered a dead body they'd say up someone else is searching
+they'd say up someone else is searching ok I'll let them go but we're hitting
+ok I'll let them go but we're hitting our planner
+our planner it's the goals they have to determine
+it's the goals they have to determine like oh no someone else is planning and
+like oh no someone else is planning and to be honest we still wanted them to
+to be honest we still wanted them to react with the dead body we just went in
+react with the dead body we just went in the way I don't know what the reaction
+the way I don't know what the reaction for that one was we but basically want
+for that one was we but basically want him just acknowledged like this is not
+him just acknowledged like this is not good I see he's doing something I'm
+good I see he's doing something I'm gonna move on so we actually still had
+gonna move on so we actually still had to have our investigate goal go live it
+to have our investigate goal go live it then we'd have to hit up these actions
+then we'd have to hit up these actions say Oh shucky searching know someone
+say Oh shucky searching know someone else is searching maybe I should just
+else is searching maybe I should just look around and hope I find something no
+look around and hope I find something no someone else is searching and don't win
+someone else is searching and don't win do that oh I got to just do my you know
+do that oh I got to just do my you know react to dead body but I'm not going to
+react to dead body but I'm not going to do anything about it
+do anything about it animation so we're still hitting our
+animation so we're still hitting our planner and there's a lot of work for 10
+planner and there's a lot of work for 10 20 30 orcs instead what we did is we
+20 30 orcs instead what we did is we took that logic and we just like made a
+took that logic and we just like made a whole new system out of it the
+whole new system out of it the investigation system and it wasn't a
+investigation system and it wasn't a very complex system but but it was great
+very complex system but but it was great because now when it works see something
+because now when it works see something that they don't doesn't look right they
+that they don't doesn't look right they don't hit the planner they just tell the
+don't hit the planner they just tell the system hey I see something here maybe I
+system hey I see something here maybe I should be doing something about it that
+should be doing something about it that system can then just gather everyone and
+system can then just gather everyone and go oh well yeah you're close oh but
+go oh well yeah you're close oh but you're you're a captain maybe you should
+you're you're a captain maybe you should be searching you know you can figure out
+be searching you know you can figure out who's the best person to be doing the
+who's the best person to be doing the search
+search then it just basically assigns them a
+then it just basically assigns them a role now our planner isn't bothering
+role now our planner isn't bothering with like Oh is someone else searching
+with like Oh is someone else searching and what disturbances are out there in
+and what disturbances are out there in the world no our planner is simply
+the world no our planner is simply saying oh I have a role I'm lead
+saying oh I have a role I'm lead investigator and it can go through this
+investigator and it can go through this you know the rich set of actions that we
+you know the rich set of actions that we have for investigating or it could say
+have for investigating or it could say its role could just be dismissed
+its role could just be dismissed immediately and it would just do that
+immediately and it would just do that one single action it had to do that
+one single action it had to do that gained us a lot we all of a sudden now
+gained us a lot we all of a sudden now our planner is only reacting to roles
+our planner is only reacting to roles all the logic of determining who should
+all the logic of determining who should be doing what was in another system that
+be doing what was in another system that could handle it much more elegantly and
+could handle it much more elegantly and honestly you can see I have three roles
+honestly you can see I have three roles listed there that watch investigators
+listed there that watch investigators back that was added and that was added
+back that was added and that was added after the system was spun up it was so
+after the system was spun up it was so easy to add that was it was so nice
+easy to add that was it was so nice because I could just you know add
+because I could just you know add another bucket of oh we need people who
+another bucket of oh we need people who are watching other people's back and and
+are watching other people's back and and obviously the the goal and action for
+obviously the the goal and action for that it's really easy just follow this
+that it's really easy just follow this guy so it also made expanding the system
+guy so it also made expanding the system we not only do we gain CPU it made
+we not only do we gain CPU it made expanding the system much easier I'm
+expanding the system much easier I'm gonna conclude on that I wonder at you
+gonna conclude on that I wonder at you all whether using cope or not look at
+all whether using cope or not look at your planners and see if there's logic
+your planners and see if there's logic that you can maybe move out to either
+that you can maybe move out to either lower level systems or higher level
+lower level systems or higher level systems doing so I almost guarantee it's
+systems doing so I almost guarantee it's going to reduce the CPU load of your AI
+going to reduce the CPU load of your AI these systems that you'll be moving
+these systems that you'll be moving things to probably will handle that
+things to probably will handle that logic quicker more efficiently and you
+logic quicker more efficiently and you also find improving your behaviors
+also find improving your behaviors becomes easier yes oh adding random
+becomes easier yes oh adding random delays is so easy when it's just some
+delays is so easy when it's just some separate system that's all it cares
+separate system that's all it cares about and the planner just sits and
+about and the planner just sits and waits and doesn't even know that oh
+waits and doesn't even know that oh there's going to be something happening
+there's going to be something happening so I'm gonna wrap up on that I got to
+so I'm gonna wrap up on that I got to give a quick plug we're actually looking
+give a quick plug we're actually looking for an AI programmer right now so please
+for an AI programmer right now so please visit our website talk to me talk to you
+visit our website talk to me talk to you I think Matt Teitelbaum my partner in
+I think Matt Teitelbaum my partner in crime on this project and we'd love to
+crime on this project and we'd love to talk with you about all the wonderful
+talk with you about all the wonderful opportunities not sound too much like HR
+opportunities not sound too much like HR here but there you go alright next up
+here but there you go alright next up I'm gonna have a Chris I'm not sure his
+I'm gonna have a Chris I'm not sure his experience with Tomb Raider oh I gotta
+experience with Tomb Raider oh I gotta move this thing over
+hi I'm Chris Padma hey I worked on the AI flea they engineer for a tomb raider
+AI flea they engineer for a tomb raider both of the one from 2013 and one we're
+both of the one from 2013 and one we're currently working on I started with dope
+currently working on I started with dope in 2006 when our lead designer came back
+in 2006 when our lead designer came back from GDC and said hey I just saw a
+from GDC and said hey I just saw a presentation on this thing called dope
+presentation on this thing called dope you know be really cool if we could do
+you know be really cool if we could do that in our game that we were just
+that in our game that we were just starting at that time and I managed to
+starting at that time and I managed to get it up and running from scratch in
+get it up and running from scratch in just two or three weeks it really wasn't
+just two or three weeks it really wasn't that difficult to do we iterated on it
+that difficult to do we iterated on it for a while for that title and things
+for a while for that title and things happen and that that project got
+happen and that that project got cancelled and then I went to work on
+cancelled and then I went to work on something else and came back to Crystal
+something else and came back to Crystal in 2010 and resurrected this code for a
+in 2010 and resurrected this code for a tomb raider which was released in 2013
+tomb raider which was released in 2013 most of the time spent on the AI for
+most of the time spent on the AI for tomb raider is spent on the maintenance
+tomb raider is spent on the maintenance of the goals and actions creating new
+of the goals and actions creating new goals and actions and making them better
+goals and actions and making them better not really the Gulf library itself that
+not really the Gulf library itself that still written in 2006 it's still about
+still written in 2006 it's still about 90% of what it was back then so it
+90% of what it was back then so it hasn't changed much except for a few new
+hasn't changed much except for a few new features that I'm going to talk about
+features that I'm going to talk about today that are extensions to what we
+today that are extensions to what we originally had in the big oak system so
+originally had in the big oak system so right off the top of the eye added the
+right off the top of the eye added the idea of situational costs for actions
+idea of situational costs for actions which is the idea that perhaps a plan
+which is the idea that perhaps a plan with an inexpensive primary action like
+with an inexpensive primary action like melee attack might become expensive if
+melee attack might become expensive if the NPC needs to move a long distance to
+the NPC needs to move a long distance to get there so for example and exactly
+get there so for example and exactly there the melee attack might have a cost
+there the melee attack might have a cost of one but because the NPC needs to move
+of one but because the NPC needs to move 20 meters the go-to has a cost of 20 and
+20 meters the go-to has a cost of 20 and the plan cost ends up being 21 whereas
+the plan cost ends up being 21 whereas the rage attack which for whatever
+the rage attack which for whatever reason it's tuned to be more expensive
+reason it's tuned to be more expensive perhaps because it uses up ammo or
+perhaps because it uses up ammo or something like that it has a cost of 10
+something like that it has a cost of 10 but because they're already in range to
+but because they're already in range to do this attack the go-to only has a cost
+do this attack the go-to only has a cost of 1 and we end up deciding to do a
+of 1 and we end up deciding to do a range attack when they're at a distance
+range attack when they're at a distance so it's something that seem very natural
+so it's something that seem very natural very natural extension to go up and we
+very natural extension to go up and we use it for almost every plan it has an
+use it for almost every plan it has an effect on it it's much better than
+effect on it it's much better than putting a hard limit on things like
+putting a hard limit on things like attacks for example where we say we can
+attacks for example where we say we can only do a melee attack if you're within
+only do a melee attack if you're within 5 meters and you can only do a ranged
+5 meters and you can only do a ranged attack if you're more than 5 meters away
+attack if you're more than 5 meters away because sometimes you run out of ammo so
+because sometimes you run out of ammo so arrange the cat it's impossible so I
+arrange the cat it's impossible so I need to run up to do it or my melee
+need to run up to do it or my melee weapon is destroyed so I need to move
+weapon is destroyed so I need to move back to do the ranged attack and the
+back to do the ranged attack and the co-planner it takes care of all that
+co-planner it takes care of all that kind of stuff it's also useful when you
+kind of stuff it's also useful when you need to have different different
+need to have different different variations so for example a ranged
+variations so for example a ranged attack might be less expensive when I
+attack might be less expensive when I have a machine-gun that when I have a
+have a machine-gun that when I have a bow so when I have a machine-gun equip
+bow so when I have a machine-gun equip I'm more likely to pick that action for
+I'm more likely to pick that action for my attack plan the same goes for a melee
+my attack plan the same goes for a melee attack maybe if I have I'm dual wielding
+attack maybe if I have I'm dual wielding swords it's something that's very
+swords it's something that's very inexpensive but if I only have my fists
+inexpensive but if I only have my fists it becomes more expensive so that I want
+it becomes more expensive so that I want to do it less often it's also useful for
+to do it less often it's also useful for creating competing complex multi action
+creating competing complex multi action methods for the same requirement so we
+methods for the same requirement so we have at least in one of the games we had
+have at least in one of the games we had of the ability of some of our NPCs to
+of the ability of some of our NPCs to fly so they would make a choice of do I
+fly so they would make a choice of do I want to run into my target to do them
+want to run into my target to do them alien attack or is it worthwhile to
+alien attack or is it worthwhile to spend the cost of a requirement for the
+spend the cost of a requirement for the fly to action is to take off and then of
+fly to action is to take off and then of course I need to be in a landed state
+course I need to be in a landed state when I do the melee attack so that and
+when I do the melee attack so that and the costs tons of being the total of
+the costs tons of being the total of take off fly to land and melee attack
+take off fly to land and melee attack and it makes sense when they have to fly
+and it makes sense when they have to fly a certain distance but if they're very
+a certain distance but if they're very close to their target it makes more
+close to their target it makes more sense to just walk there or run there
+another thing we added was the ability to have motives this is something I did
+to have motives this is something I did on godfather inspired by the sins where
+on godfather inspired by the sins where basically they have a set of motives
+basically they have a set of motives that drive their behavior like hunger or
+that drive their behavior like hunger or thirst or I need to be entertained or I
+thirst or I need to be entertained or I need to socialize or something like this
+need to socialize or something like this and we combine that with the
+and we combine that with the planner to do some very interesting
+planner to do some very interesting things so we you we can use motives to
+things so we you we can use motives to control the goals that we use for
+control the goals that we use for example the investigate goal might be
+example the investigate goal might be something that only that they only
+something that only that they only consider if their suspicion motive is
+consider if their suspicion motive is above a certain level so maybe the first
+above a certain level so maybe the first time you throw a rock they their
+time you throw a rock they their suspicion goes up a little bit and they
+suspicion goes up a little bit and they just have a reaction to it they don't
+just have a reaction to it they don't actually plan to investigate it and then
+actually plan to investigate it and then the second time they're like you know
+the second time they're like you know what was that let me go check that out
+what was that let me go check that out and I make a plan to do it we also have
+and I make a plan to do it we also have the ability for actions to have an
+the ability for actions to have an effect on the motive so for example
+effect on the motive so for example maybe a successful attack reduces your
+maybe a successful attack reduces your fear which means that you're gonna be
+fear which means that you're gonna be less likely to flee if dangerous things
+less likely to flee if dangerous things keep happening that are increasing your
+keep happening that are increasing your fear we also have the option to we added
+fear we also have the option to we added something where we can submit multiple
+something where we can submit multiple plan candidates to the planner so for
+plan candidates to the planner so for example when you have a usable object
+example when you have a usable object you skip ahead here perhaps you have a
+you skip ahead here perhaps you have a useable object that says I need to I
+useable object that says I need to I want to use this object to address my
+want to use this object to address my hunger or something like that and
+hunger or something like that and perhaps to do that I need to do some
+perhaps to do that I need to do some other things sorry
+other things sorry [Laughter]
+[Laughter] so they might say there are there are
+so they might say there are there are two or three objects that can satisfy my
+two or three objects that can satisfy my hunger need let me go ahead and submit a
+hunger need let me go ahead and submit a plan option for each one of those and
+plan option for each one of those and I'll figure out whichever one is the
+I'll figure out whichever one is the easiest to use with its requirements and
+easiest to use with its requirements and so forth or the distance to it or this
+so forth or the distance to it or this kind of thing that's the one I'll choose
+kind of thing that's the one I'll choose and that can also be used for combat you
+and that can also be used for combat you know if there are multiple targets maybe
+know if there are multiple targets maybe I'll submit a plan option for you know a
+I'll submit a plan option for you know a target that is far away and my which is
+target that is far away and my which is my currently my primary target and maybe
+my currently my primary target and maybe I have a secondary target
+I have a secondary target and I'll want to consider plans for it
+and I'll want to consider plans for it and I'll give a penalty to the cost on
+and I'll give a penalty to the cost on the actions for the secondary target so
+the actions for the secondary target so I want to stay with my current one so if
+I want to stay with my current one so if I'm engaged with an MP an enemy that is
+I'm engaged with an MP an enemy that is far away and I'm shooting it I want to
+far away and I'm shooting it I want to make I want to continue shooting with it
+make I want to continue shooting with it but if another one jumps right out in
+but if another one jumps right out in front of me I can do a melee attack on
+front of me I can do a melee attack on it and it's a much less expensive plan
+it and it's a much less expensive plan so I'll go ahead and switch to the
+so I'll go ahead and switch to the target in that situation we can also
+target in that situation we can also have the ability for an action to submit
+have the ability for an action to submit different requirement lists so for
+different requirement lists so for example perhaps a range attack once to
+example perhaps a range attack once to commence the planner to consider well
+commence the planner to consider well let's think about doing an attack with
+let's think about doing an attack with my bow which I currently have equipped
+my bow which I currently have equipped or I want you to also consider making a
+or I want you to also consider making a plan with my machine gun but I might
+plan with my machine gun but I might need ammo for that I'm not sure you know
+need ammo for that I'm not sure you know it's gonna I'll let the planner figure
+it's gonna I'll let the planner figure that out and then it'll calculate the
+that out and then it'll calculate the costs for all of that and determine
+costs for all of that and determine which one makes the most sense to do
+which one makes the most sense to do right now so we're letting the planner
+right now so we're letting the planner take care of a lot of this work that we
+take care of a lot of this work that we would normally need to rely on the code
+would normally need to rely on the code to make decisions for we can also have
+to make decisions for we can also have the ability for situational requirements
+the ability for situational requirements a little bit this is what I was talking
+a little bit this is what I was talking about so for example if they're hungry
+about so for example if they're hungry and they decide to use the dinner table
+and they decide to use the dinner table object perhaps the dinner table object
+object perhaps the dinner table object requires that they have food and a drink
+requires that they have food and a drink and then the planner will go out and
+and then the planner will go out and find you know how can i satisfy those so
+find you know how can i satisfy those so even though the the use object had no
+even though the the use object had no idea about food and drink it knows that
+idea about food and drink it knows that the object it's required to use to
+the object it's required to use to satisfy its goal requires these other
+satisfy its goal requires these other things and it's gonna have to put
+things and it's gonna have to put together a plan to to meet all of those
+together a plan to to meet all of those dynamic situational requirements so for
+dynamic situational requirements so for example a plan might be put together to
+example a plan might be put together to go to the food server use the food
+go to the food server use the food server to get the food that my dinner
+server to get the food that my dinner table is going to require go to the bar
+table is going to require go to the bar use the bar to get a drink and then
+use the bar to get a drink and then finally I can go to my dinner table I've
+finally I can go to my dinner table I've met all the requirements I can use it in
+met all the requirements I can use it in my hunger and perhaps my thirst will be
+my hunger and perhaps my thirst will be satisfied and performing actions can
+satisfied and performing actions can have an effect on the state of the
+have an effect on the state of the inventory as well so the food and drink
+inventory as well so the food and drink get consumed when I use the dinner table
+we also might have something perhaps a ranged attack action requires
+perhaps a ranged attack action requires the machine gun as I mentioned earlier
+the machine gun as I mentioned earlier but the machine gun the range attack
+but the machine gun the range attack action doesn't know anything about ammo
+action doesn't know anything about ammo it's gonna leave it to the planner to
+it's gonna leave it to the planner to determine that well if I'm going to use
+determine that well if I'm going to use the machine gun I need to have a certain
+the machine gun I need to have a certain amount of ammo and that means I'm gonna
+amount of ammo and that means I'm gonna have to go out and you know go to a
+have to go out and you know go to a drawer or something like that is part of
+drawer or something like that is part of my plan to use this and acquire the ammo
+my plan to use this and acquire the ammo in order to do the ranged attack another
+in order to do the ranged attack another thing we added is very important to the
+thing we added is very important to the process is the ability for parent
+process is the ability for parent actions or the goal itself to monitor
+actions or the goal itself to monitor the child actions that are satisfying
+the child actions that are satisfying its requirements so for example the
+its requirements so for example the ranged attack action might determine
+ranged attack action might determine well I don't have a line of sight from
+well I don't have a line of sight from where I am right now
+where I am right now and I don't see any cover points where
+and I don't see any cover points where I'm gonna be able to shoot my target so
+I'm gonna be able to shoot my target so I'm just gonna tell the the go to I'm
+I'm just gonna tell the the go to I'm gonna feel I gonna put push forward a
+gonna feel I gonna put push forward a requirement that I need to be within 5
+requirement that I need to be within 5 meters of my target and hope that I'll
+meters of my target and hope that I'll get line-of-sight but while I'm heading
+get line-of-sight but while I'm heading there while my child action is running
+there while my child action is running satisfying my requirements I'm going to
+satisfying my requirements I'm going to continue to monitor the status of my NPC
+continue to monitor the status of my NPC and if I get line-of-sight I gonna tell
+and if I get line-of-sight I gonna tell my child action ok I'm happy that you're
+my child action ok I'm happy that you're done you don't have to go all the way to
+done you don't have to go all the way to the target I've got line-of-sight right
+the target I've got line-of-sight right now I can continue I can continue with
+now I can continue I can continue with the plan myself this also enables the
+the plan myself this also enables the parent action or gold to dynamically
+parent action or gold to dynamically change the requirements while the child
+change the requirements while the child action is in progress so for example
+action is in progress so for example while they well we're heading towards
+while they well we're heading towards the target for a range attack perhaps
+the target for a range attack perhaps someone leaves their cover point or they
+someone leaves their cover point or they they die or something like that and so
+they die or something like that and so we're able to take their couple point
+we're able to take their couple point and so now I can my range attack action
+and so now I can my range attack action can tell change the requirements that
+can tell change the requirements that the child go to action is using and say
+the child go to action is using and say I want you to go to that cover point
+I want you to go to that cover point instead this forces actions to monitor
+instead this forces actions to monitor their requirements to make sure they're
+their requirements to make sure they're still feasible so it's almost like the
+still feasible so it's almost like the validity check or viability check is
+validity check or viability check is running while the action is still active
+running while the action is still active to make sure in case the requirements
+to make sure in case the requirements are changing that we can still fulfill
+are changing that we can still fulfill them and it also
+them and it also it's a responsibility on the parent
+it's a responsibility on the parent action or gold that if they're going to
+action or gold that if they're going to change their requirements perhaps they
+change their requirements perhaps they want to consider that it's even possible
+want to consider that it's even possible to fulfill them another important thing
+to fulfill them another important thing is that we have our goal or action have
+is that we have our goal or action have the ability to evaluate and be aware of
+the ability to evaluate and be aware of the current state of the child actions
+the current state of the child actions and we may want to decide at some point
+and we may want to decide at some point that we don't know we no longer want to
+that we don't know we no longer want to do this so for example when the range
+do this so for example when the range attack action is moving to get into
+attack action is moving to get into range for a range attack maybe it
+range for a range attack maybe it decides that the target has become
+decides that the target has become injured or dead and I don't want to do
+injured or dead and I don't want to do this anymore so I'm just gonna cancel
+this anymore so I'm just gonna cancel the plan so even though the the go-to is
+the plan so even though the the go-to is the active action it's the parent action
+the active action it's the parent action that's monitoring or the goal that it's
+that's monitoring or the goal that it's monitoring the plan and making the has
+monitoring the plan and making the has the ability to make the determination
+the ability to make the determination that we should no longer do this or
+that we should no longer do this or perhaps change to a different target if
+perhaps change to a different target if that's feasible the goal or action can
+that's feasible the goal or action can use this awareness of the current state
+use this awareness of the current state - of a plan to communicate with other
+- of a plan to communicate with other NPC's like maybe when I when I make the
+NPC's like maybe when I when I make the plan to do a some kind of attack where
+plan to do a some kind of attack where I'm going to say okay I'm gonna go get
+I'm going to say okay I'm gonna go get her you know and I'm on my way I'm gonna
+her you know and I'm on my way I'm gonna say okay guys I'm gonna go attack her
+say okay guys I'm gonna go attack her and I'm this far away and I'll probably
+and I'm this far away and I'll probably be there in two seconds and that lets my
+be there in two seconds and that lets my my friends know hey I've you know my
+my friends know hey I've you know my friend is doing this so maybe it's gonna
+friend is doing this so maybe it's gonna affect the way I'm behaving it also
+affect the way I'm behaving it also provides an option for the feedback to
+provides an option for the feedback to the player because especially with a
+the player because especially with a planning system when you have
+planning system when you have complicated plans it's very important to
+complicated plans it's very important to communicate to the player what they're
+communicate to the player what they're doing and what their intention is
+doing and what their intention is otherwise sometimes they look like they
+otherwise sometimes they look like they they look confused like why is he doing
+they look confused like why is he doing that that makes no sense so they have to
+that that makes no sense so they have to communicate to the player like I'm doing
+communicate to the player like I'm doing this because you know this is my goal so
+this because you know this is my goal so the by monitoring the state of the plan
+the by monitoring the state of the plan from the paired goal or action were able
+from the paired goal or action were able to provide a place to make that
+to provide a place to make that communication
+communication another thing we added was the ability
+another thing we added was the ability to have open-ended actions you know
+to have open-ended actions you know where the action remains active it
+where the action remains active it doesn't just end the plan after one
+doesn't just end the plan after one iteration and an example of that is a
+iteration and an example of that is a ranged attack action where they're they
+ranged attack action where they're they originally intended to take one shot at
+originally intended to take one shot at their target but if the situation is
+their target but if the situation is still feasible and and viable they're
+still feasible and and viable they're going to have tasks that they perform
+going to have tasks that they perform during this action like reload stepping
+during this action like reload stepping out from cover stepping back in aiming
+out from cover stepping back in aiming and firing and they'll continue to run
+and firing and they'll continue to run the action this requires maintenance of
+the action this requires maintenance of the remaining cost of the action so that
+the remaining cost of the action so that replanting can still happen for the same
+replanting can still happen for the same goal so yes I'm gonna I have a plan to
+goal so yes I'm gonna I have a plan to range attack and I'm going to keep range
+range attack and I'm going to keep range attacking as long as it's viable but I
+attacking as long as it's viable but I need to provide a remaining costs so
+need to provide a remaining costs so that the planner can still make a
+that the planner can still make a decision to say well you know I know
+decision to say well you know I know you're doing this and that's good but I
+you're doing this and that's good but I found a cheaper thing you can now do a
+found a cheaper thing you can now do a melee attack because somebody has
+melee attack because somebody has stepped right up up to you or they've
+stepped right up up to you or they've approached you so we still allowed the
+approached you so we still allowed the planner to run and to do that we need to
+planner to run and to do that we need to provide a remaining cost for the current
+provide a remaining cost for the current plan the baton purpose of this is it
+plan the baton purpose of this is it prevents us from repeatedly having to
+prevents us from repeatedly having to construct start and finish an identical
+construct start and finish an identical plan and you know it's just a much more
+plan and you know it's just a much more efficient way to go about things because
+efficient way to go about things because planning is expensive but again if we
+planning is expensive but again if we find ourselves in a situation where we
+find ourselves in a situation where we have a better plan for the goal because
+have a better plan for the goal because we've calculated the remaining cost the
+we've calculated the remaining cost the melee attack option might come up and
+melee attack option might come up and replace the current one okay
+replace the current one okay another thing we added was I started
+another thing we added was I started keeping statistics on how successful the
+keeping statistics on how successful the NPC's were at doing on their goals and
+NPC's were at doing on their goals and their actions and that provides the
+their actions and that provides the opportunity for them to learn from their
+opportunity for them to learn from their success rates so for example maybe the
+success rates so for example maybe the melee attack is something that an NPC of
+melee attack is something that an NPC of a certain type usually fails and what we
+a certain type usually fails and what we can do is tune the cost of the melee
+can do is tune the cost of the melee attack to reflect that so that they are
+attack to reflect that so that they are less likely to do it maybe they'll only
+less likely to do it maybe they'll only do the melee attack if there
+do the melee attack if there failing all the time if the target is
+failing all the time if the target is right next to them or perhaps they'll
+right next to them or perhaps they'll never want to do it except if the other
+never want to do it except if the other if their other options are unavailable
+if their other options are unavailable for example if there are cooldown or
+for example if there are cooldown or they're out of ammo or the weapons
+they're out of ammo or the weapons broken or something like that and it
+broken or something like that and it works both ways you know maybe the range
+works both ways you know maybe the range attack is always failing because my
+attack is always failing because my weapon is unreliable or something like
+weapon is unreliable or something like this and so now I'm more willing to do
+this and so now I'm more willing to do the edge attack cost goes up and now
+the edge attack cost goes up and now it's more viable to do a melee attack
+it's more viable to do a melee attack from further away because it will have a
+from further away because it will have a lower cost even with the added movement
+lower cost even with the added movement requirement to do it
+requirement to do it the statistics generated from the
+the statistics generated from the success rates for the plans and the
+success rates for the plans and the goals and actions can be saved with the
+goals and actions can be saved with the damed
+damed game data we can save them at tunable
+game data we can save them at tunable milestones this is one of the big
+milestones this is one of the big questions for us is how do we do this do
+questions for us is how do we do this do we really want to the end game and PCs
+we really want to the end game and PCs to be affected by what happened at the
+to be affected by what happened at the beginning of the game so we have to make
+beginning of the game so we have to make decisions about that and also we want to
+decisions about that and also we want to make sure that they're tuned to specific
+make sure that they're tuned to specific types of NPC's so there they're attached
+types of NPC's so there they're attached to the go p-- setting so an NPC that has
+to the go p-- setting so an NPC that has a set of goals and actions that are
+a set of goals and actions that are primarily aimed towards range attacks
+primarily aimed towards range attacks perhaps it'll be different from one
+perhaps it'll be different from one they'll have different statistics from
+they'll have different statistics from one that has goals and actions primarily
+one that has goals and actions primarily for melee attacks we also require
+for melee attacks we also require different Gope settings for different
+different Gope settings for different NPC types because of this yeah like I
+NPC types because of this yeah like I mentioned okay and then finally one of
+mentioned okay and then finally one of the big complaints from our designers
+the big complaints from our designers was that the goal of the goal list was
+was that the goal of the goal list was somewhat inflexible it was just a
+somewhat inflexible it was just a prioritized list of goals so I exposed
+prioritized list of goals so I exposed it in their environment
+it in their environment I created a behavior graph where the
+I created a behavior graph where the goal that they're going to pursue can be
+goal that they're going to pursue can be selected by a script by a visual
+selected by a script by a visual scripting so for example they can add
+scripting so for example they can add rules you know that the code doesn't
+rules you know that the code doesn't even know about like if I'm in a pre
+even know about like if I'm in a pre combat state you know here are the
+combat state you know here are the things I want to think about doing right
+things I want to think about doing right now if I'm in combat I want to do you
+now if I'm in combat I want to do you know things related to attacking and
+know things related to attacking and this kind of thing and that way I'm not
+this kind of thing and that way I'm not wasting time do
+wasting time do pursuing goals that are not interesting
+pursuing goals that are not interesting for my current state they can also do
+for my current state they can also do all kinds of things to customize when
+all kinds of things to customize when the order that goals are in you know or
+the order that goals are in you know or which ones are available so you know
+which ones are available so you know perhaps they only want to converse if
+perhaps they only want to converse if the motive for the loneliness is going
+the motive for the loneliness is going to drive it or if the player hasn't done
+to drive it or if the player hasn't done something recently or if the target has
+something recently or if the target has a certain weapon equipped you know maybe
+a certain weapon equipped you know maybe it's more important to do a certain goal
+it's more important to do a certain goal and they can control all that from the
+and they can control all that from the behavior graph and I have a very big
+behavior graph and I have a very big slide to show an example of the behavior
+slide to show an example of the behavior graph that the designers maintain up in
+graph that the designers maintain up in the upper left hand corner is where it
+the upper left hand corner is where it all starts and they're making a decision
+all starts and they're making a decision there to say am i combat or are my low
+there to say am i combat or are my low alert and they're pursuing a set of
+alert and they're pursuing a set of goals depending on which one of those
+goals depending on which one of those they're in and then they can loop back
+they're in and then they can loop back they could even loop back onto each
+they could even loop back onto each other it isn't simply a tree it's a
+other it isn't simply a tree it's a graph and they can go down and you know
+graph and they can go down and you know finally it ends at the bottom there with
+finally it ends at the bottom there with the idle they'll always be able to idle
+the idle they'll always be able to idle if they can't find something else to do
+if they can't find something else to do so those are the main extensions to the
+so those are the main extensions to the system I was just going to go very
+system I was just going to go very quickly over debugging because it's
+quickly over debugging because it's absolutely critical to any planning
+absolutely critical to any planning system designers tend to force behaviors
+system designers tend to force behaviors via scripting when they don't understand
+via scripting when they don't understand what an NPC is doing and why they're
+what an NPC is doing and why they're doing it
+doing it and they want to make sure that the NPC
+and they want to make sure that the NPC is doing what they expect them to do
+is doing what they expect them to do scripting is great for demos or
+scripting is great for demos or extremely linear sections of the game
+extremely linear sections of the game but situations with systemic behavior
+but situations with systemic behavior are just fundamentally without the
+are just fundamentally without the systemic behavior are less interesting
+systemic behavior are less interesting and very have very little replay value
+and very have very little replay value so we really want to encourage going
+so we really want to encourage going away from scripting and allowing dynamic
+away from scripting and allowing dynamic gameplay complex plans can be confusing
+gameplay complex plans can be confusing to observe that's why they need to
+to observe that's why they need to communicate but complex plans are the
+communicate but complex plans are the exception not a common occurrence this
+exception not a common occurrence this is a fundamental aspect of cope as Peter
+is a fundamental aspect of cope as Peter was saying the planner always wants to
+was saying the planner always wants to choose the least expensive plan for a
+choose the least expensive plan for a goal so some of the common questions
+goal so some of the common questions designers have while they're looking at
+designers have while they're looking at the game is what is he doing right now
+the game is what is he doing right now in its plan what are the actions that it
+in its plan what are the actions that it consists of which action is he on this
+consists of which action is he on this kind of thing they also want to know
+kind of thing they also want to know well why isn't he doing something else
+well why isn't he doing something else right now you know why haven't we been
+right now you know why haven't we been able to find something better to do
+able to find something better to do since this plan started then finally
+since this plan started then finally before he did what he's doing you know
+before he did what he's doing you know maybe 30 seconds ago what did he did
+maybe 30 seconds ago what did he did something back then and I don't
+something back then and I don't understand why he did it so I have to
+understand why he did it so I have to provide an on screen to bugging for all
+provide an on screen to bugging for all this kind of thing and this is kind of
+this kind of thing and this is kind of what it looks like in Tomb Raider I
+what it looks like in Tomb Raider I provide information about the plans and
+provide information about the plans and the reasons for why they're doing them
+the reasons for why they're doing them and I break this down a little bit so
+and I break this down a little bit so here for example is an NPC who's doing
+here for example is an NPC who's doing and he's doing an attack and before that
+and he's doing an attack and before that the plan consists of he did a play input
+the plan consists of he did a play input action to announce that he's doing it he
+action to announce that he's doing it he decided that he wanted cover so to get
+decided that he wanted cover so to get cover he's going to use an object so he
+cover he's going to use an object so he had to go to the table flip the table he
+had to go to the table flip the table he then went to the cover point behind the
+then went to the cover point behind the table and he's doing a ranged attack
+table and he's doing a ranged attack from there that's an example of an
+from there that's an example of an attack with five actions and then you
+attack with five actions and then you can see before that with time stamps
+can see before that with time stamps next to them he was doing an attack and
+next to them he was doing an attack and that ended because he became suppressed
+that ended because he became suppressed before that I fired an arrow into the
+before that I fired an arrow into the ground and so he investigated the
+ground and so he investigated the projectile impact before that he was
+projectile impact before that he was just idling then below that I give an
+just idling then below that I give an example of here is where we provide you
+example of here is where we provide you know the last time we planned here are
+know the last time we planned here are the things we thought about doing and
+the things we thought about doing and the reasons we couldn't do them this is
+the reasons we couldn't do them this is why we're still doing what we were doing
+why we're still doing what we were doing then again I give an example of you can
+then again I give an example of you can go back in time and say when he decided
+go back in time and say when he decided to do the investigate goal for example
+to do the investigate goal for example why did he not choose to do something
+why did he not choose to do something else
+else and you can go back and look at that as
+and you can go back and look at that as well okay that's it
+well okay that's it now we're gonna hear from
+[Applause]
+okay all right yeah so my name is Eric chuckling indeed
+yeah so my name is Eric chuckling indeed at work indeed at the center of research
+at work indeed at the center of research of French military academy first let me
+of French military academy first let me say a few words about analytics because
+say a few words about analytics because I'd be speaking of Gope analytics and I
+I'd be speaking of Gope analytics and I want to explain first what I mean by
+want to explain first what I mean by analytics data analytics is the process
+analytics data analytics is the process of collecting and extracting pieces of
+of collecting and extracting pieces of information meaningful pieces of
+information meaningful pieces of information as input for various kinds
+information as input for various kinds of decisions it's a business really and
+of decisions it's a business really and money come from the processing of a user
+money come from the processing of a user inputs well yes of course in the case of
+inputs well yes of course in the case of game analytics users are players you can
+game analytics users are players you can see on the left and money is part of the
+see on the left and money is part of the game yes right not only a various kind
+game yes right not only a various kind of graphics such as heat maps and I
+of graphics such as heat maps and I refer you to that paper beyond the heat
+refer you to that paper beyond the heat map which got published in the
+map which got published in the now-closed game developer magazine not
+now-closed game developer magazine not too far ago okay what about gulp and
+too far ago okay what about gulp and analytics which is the topic of my talk
+analytics which is the topic of my talk am I going to make money with that we'll
+am I going to make money with that we'll see but most of the time I'll be showing
+see but most of the time I'll be showing you graphics first you get to collect
+you graphics first you get to collect data I'll be speaking on those free
+data I'll be speaking on those free games obviously you got that I'm going
+games obviously you got that I'm going to speak of a shadow of Mordor I'm gonna
+to speak of a shadow of Mordor I'm gonna speak of fear and yes I gonna speak from
+speak of fear and yes I gonna speak from data I was about to get thanks to Chris
+data I was about to get thanks to Chris here from the rise of the Tomb Raider by
+here from the rise of the Tomb Raider by the way now B so rise of the Tomb Raider
+the way now B so rise of the Tomb Raider is in is its in alpha version it's to
+is in is its in alpha version it's to later this week so the data I got only
+later this week so the data I got only from a few slices of the game and by the
+from a few slices of the game and by the way I also I'll be showing some rates or
+way I also I'll be showing some rates or calls to focus on some parts of my
+calls to focus on some parts of my science I'm going to do write that right
+science I'm going to do write that right now
+now so please do cap don't look at how many
+so please do cap don't look at how many files but just compare the the columns
+files but just compare the the columns here what we get from fear to shutoff
+here what we get from fear to shutoff mode or if I'm operating in half the
+mode or if I'm operating in half the time and what we get from fear to to
+time and what we get from fear to to murder is the third of the plans
+murder is the third of the plans yeah only 16 minutes but only in the 15
+yeah only 16 minutes but only in the 15 third time all right so what kind of
+third time all right so what kind of they tell you you you you can have from
+they tell you you you you can have from here I was able to modify the SDK
+here I was able to modify the SDK because the software development was
+because the software development was developed making development kit sorry
+developed making development kit sorry for fear was released one year after the
+for fear was released one year after the game 2006 so I was able to modify it
+game 2006 so I was able to modify it took me some time and now produced some
+took me some time and now produced some data then I put it here but what you
+data then I put it here but what you have to focus on here is the fact that I
+have to focus on here is the fact that I used different phones and different
+used different phones and different colors because the data from Peter for
+colors because the data from Peter for instance is different from the data from
+instance is different from the data from Chris
+Chris so let's first focus on the last piece
+so let's first focus on the last piece of information 2 1 3 2 1 for our plan
+of information 2 1 3 2 1 for our plan layouts and the first thing you can do
+layouts and the first thing you can do about all these files just ask
+about all these files just ask yourselves well what do my plan guns
+yourselves well what do my plan guns look like ok here they are
+look like ok here they are how long ago plans well Peter told you
+how long ago plans well Peter told you he has no plans or shorts indeed they're
+he has no plans or shorts indeed they're short most of the time there one or two
+short most of the time there one or two actions and that's it yes you can find
+actions and that's it yes you can find some actions of length 3 and like for in
+some actions of length 3 and like for in both fear or shadow of mordor no no
+both fear or shadow of mordor no no playing of m39 shadow mode or I don't
+playing of m39 shadow mode or I don't remember that but that's it all right
+remember that but that's it all right plans are short but despite the fact
+plans are short but despite the fact that rise it is in alpha mode you can
+that rise it is in alpha mode you can see that planning go planning in rise
+see that planning go planning in rise works already very nicely and that I
+works already very nicely and that I expect from the last for screenshot and
+expect from the last for screenshot and Chris showed that the plans would be
+Chris showed that the plans would be even longer than that so now let's focus
+even longer than that so now let's focus on the second piece of information here
+on the second piece of information here no name in
+no name in and this machine gun guy at the campfire
+and this machine gun guy at the campfire what you can do is just gather all the
+what you can do is just gather all the plans from these guys and ask yourself
+plans from these guys and ask yourself well how many plans per NPC a good
+well how many plans per NPC a good question I'd be using those rectangles
+question I'd be using those rectangles and those in those graphics those
+and those in those graphics those rectangles are whisker boxes and here is
+rectangles are whisker boxes and here is how they work you can they display a set
+how they work you can they display a set of value the first thing to know is that
+of value the first thing to know is that white line which represents the medium
+white line which represents the medium value it separates the set of value in
+value it separates the set of value in 50% above and 50% below in the black
+50% above and 50% below in the black line represent the average but bottom
+line represent the average but bottom you have what they called the lower
+you have what they called the lower fence which is just building minimum
+fence which is just building minimum value of the set and then of course you
+value of the set and then of course you got the maximum value and the rectangle
+got the maximum value and the rectangle rip separates again the above and below
+rip separates again the above and below subsets into so now let's get back to
+subsets into so now let's get back to that there's kind of a waterfall here of
+that there's kind of a waterfall here of all the years right so on the y-axis you
+all the years right so on the y-axis you get the number of a plans per NPC it
+get the number of a plans per NPC it doesn't go very far
+doesn't go very far okay but it's been decreasing over the
+okay but it's been decreasing over the year so it's 2005 and about two in ten
+year so it's 2005 and about two in ten years and then you can see decreases
+years and then you can see decreases also for rise but then increases because
+also for rise but then increases because I got two sets of value something they
+I got two sets of value something they didn't tell you is that there are two
+didn't tell you is that there are two kinds of pens successful plans and fail
+kinds of pens successful plans and fail plans for the far right box where I got
+plans for the far right box where I got both plans right fail plans are plans
+both plans right fail plans are plans which have been generated by the planner
+which have been generated by the planner but they're not to be executed by NPC's
+but they're not to be executed by NPC's for some reason so now you can focus on
+for some reason so now you can focus on time stamps plus NPC ID and we can
+time stamps plus NPC ID and we can combine them and make them more complex
+combine them and make them more complex graphics that's what I call session
+graphics that's what I call session castings okay so on the eggs you can
+castings okay so on the eggs you can find milliseconds despite the fact that
+find milliseconds despite the fact that I got microseconds milliseconds and
+I got microseconds milliseconds and seconds and blah blah blah I use on the
+seconds and blah blah blah I use on the y-axis you can find the NPC's right and
+y-axis you can find the NPC's right and you can here is what they look like
+so what is interesting here is a concurrent active NPCs you got
+concurrent active NPCs you got concurrent active users on web pages
+concurrent active users on web pages right for data analytics for game
+right for data analytics for game analytics you got concurrent active
+analytics you got concurrent active players well you got concurrent active
+players well you got concurrent active NPC's for go planning as well alright
+NPC's for go planning as well alright and what you can ask yourselves it how
+and what you can ask yourselves it how many concurrent active NPCs you can get
+many concurrent active NPCs you can get in name in a game so again I'm whisker
+in name in a game so again I'm whisker boxes here I show all the sessions all
+boxes here I show all the sessions all the data I have 17 files on the top
+the data I have 17 files on the top graphic for fear 7 for shadow of mordor
+graphic for fear 7 for shadow of mordor and 4 for tomb raider and you can see
+and 4 for tomb raider and you can see from from the data from the y-axis that
+from from the data from the y-axis that both fear and the rise alpha version are
+both fear and the rise alpha version are seminar that is not at all the case for
+seminar that is not at all the case for shadow of mordor right it's ten times
+shadow of mordor right it's ten times more the number of concurrent active
+more the number of concurrent active NPCs for a shadow model or runs up to
+NPCs for a shadow model or runs up to 150 which is just amazing so now you can
+150 which is just amazing so now you can ask yourself why I showed you this one
+ask yourself why I showed you this one right because I shall I shall why it
+right because I shall I shall why it didn't see it in my previous file
+didn't see it in my previous file because I should be intro part of the
+because I should be intro part of the game which is very linear originally
+game which is very linear originally I've when you play the game the very
+I've when you play the game the very first minute you know there's only a few
+first minute you know there's only a few NPCs on screen so now you can ask
+NPCs on screen so now you can ask yourself yes can we see the other ones
+yourself yes can we see the other ones where you have 150 yes you can
+where you have 150 yes you can of course here they are they don't look
+of course here they are they don't look the same at all right it looks likes
+the same at all right it looks likes amazing because if you look at the top
+amazing because if you look at the top left one you have up to 400 and PCs on
+left one you have up to 400 and PCs on screen I don't know if you play that
+screen I don't know if you play that game but it's kind of amazing you can go
+game but it's kind of amazing you can go at the top of a fort and look at them
+at the top of a fort and look at them moving okay and one critical thing now
+moving okay and one critical thing now is are they all calling for planning at
+is are they all calling for planning at the same time and how close so one
+the same time and how close so one difficult graphic here how many NPCs
+difficult graphic here how many NPCs calling for go
+calling for go if you remember what Peter told you
+if you remember what Peter told you there is a 15 PC limit right the 15 PC
+there is a 15 PC limit right the 15 PC limit on both graphics is that -
+limit on both graphics is that - tramline the easy thing is the maximum
+tramline the easy thing is the maximum number of that PC : is blue and the mean
+number of that PC : is blue and the mean the average is black and on the x-axis
+the average is black and on the x-axis it's something difficult here it's the
+it's something difficult here it's the width of the time window which slides
+width of the time window which slides along all the session files right so for
+along all the session files right so for instance if I take a time window of two
+instance if I take a time window of two seconds
+seconds well I slide that time window along
+well I slide that time window along overseas and flies and I record I count
+overseas and flies and I record I count how many combs for planning a parent PC
+how many combs for planning a parent PC appear in that time window and you can
+appear in that time window and you can see on the left that there is something
+see on the left that there is something critical because it's a feces
+critical because it's a feces there is only point four second to reach
+there is only point four second to reach the 50 limit right you go above the 50
+the 50 limit right you go above the 50 limit after one for second in general in
+limit after one for second in general in the seven sessions Peter sent me it's
+the seven sessions Peter sent me it's about two or three seconds and it go
+about two or three seconds and it go well above that right it can go up to 70
+well above that right it can go up to 70 when it reached in ten seconds but then
+when it reached in ten seconds but then that second is not much a problem for a
+that second is not much a problem for a real time planning right yeah I'm
+real time planning right yeah I'm finishing how fast is go that's a good
+finishing how fast is go that's a good point
+point I am I cheated here I introduced two
+I am I cheated here I introduced two more games give them free and
+more games give them free and transformers free they don't just go
+transformers free they don't just go planning they use HTN planning but I
+planning they use HTN planning but I thought that would be interesting
+thought that would be interesting because I got data from that Orion bear
+because I got data from that Orion bear from gorilla games produced the data and
+from gorilla games produced the data and for him phrase for when he was at high
+for him phrase for when he was at high moon produced the data for me and you
+moon produced the data for me and you can see that HTN planning is way faster
+can see that HTN planning is way faster than fear okay no problem
+than fear okay no problem and way faster than the others as well
+and way faster than the others as well but if you look at the rise alpha which
+but if you look at the rise alpha which includes and it's only their fav urgent
+includes and it's only their fav urgent right which includes both successful and
+right which includes both successful and fail plans it's as fast as what is done
+fail plans it's as fast as what is done in transformers free and I think it's a
+in transformers free and I think it's a success rate
+money weathers the good power go that's the last slide I have here less
+the last slide I have here less complicated graphic so on the y-axis you
+complicated graphic so on the y-axis you get the cumulative action frequency I
+get the cumulative action frequency I didn't talk about that before but what
+didn't talk about that before but what you can do is record how many times an
+you can do is record how many times an action appears in a session file you
+action appears in a session file you know and then do that across all session
+know and then do that across all session files and do the cumulative frequency
+files and do the cumulative frequency and what is amazing here is that it's
+and what is amazing here is that it's surface is only met you get only two or
+surface is only met you get only two or three actions to reach a cumulative
+three actions to reach a cumulative frequency of about 20% or 30% and you
+frequency of about 20% or 30% and you can see for instance also okay Chris
+can see for instance also okay Chris I'll take rice first
+I'll take rice first so rice there is only two actions which
+so rice there is only two actions which swallow the planning power okay you
+swallow the planning power okay you reach 60 almost 60 percent of the number
+reach 60 almost 60 percent of the number of occurrences and you can see in fear
+of occurrences and you can see in fear that you only need two actions to reach
+that you only need two actions to reach 50 percent of the number of occurrences
+50 percent of the number of occurrences in all files so mmm at random if you
+in all files so mmm at random if you pick up one session file from here well
+pick up one session file from here well there is a lot of chance you'll find
+there is a lot of chance you'll find those two actions everywhere
+those two actions everywhere there are there for animation purposes
+there are there for animation purposes they reduced that a little for a shadow
+they reduced that a little for a shadow of mordor but it's about the same and
+of mordor but it's about the same and what I expect here is one rise goes from
+what I expect here is one rise goes from alpha to beta and and final the curve
+alpha to beta and and final the curve here will be the same of the others so
+here will be the same of the others so it's a kind of 8020 rules right
+it's a kind of 8020 rules right which means 20% of the actions are
+which means 20% of the actions are enough to swallow 80% of the planning
+enough to swallow 80% of the planning power which means on the other side and
+power which means on the other side and that's where money comes in 80% of the
+that's where money comes in 80% of the actions swallow only 20% of the planning
+actions swallow only 20% of the planning power so some of these actions in shadow
+power so some of these actions in shadow mode or almost never appear right it's
+mode or almost never appear right it's pretty I got thirty three thousands of
+pretty I got thirty three thousands of actions thirty thousand plans in all
+actions thirty thousand plans in all those files and some of the actions
+those files and some of the actions appear only once
+so here is at the ratio eight actions to produce to come to swallow 80% for fear
+produce to come to swallow 80% for fear 14 for so motor and four for rise alpha
+14 for so motor and four for rise alpha so good decision-making design short
+so good decision-making design short plans I won't say that enough again
+plans I won't say that enough again three actions at most I'd say money make
+three actions at most I'd say money make sure the 80% of the action using 20% of
+sure the 80% of the action using 20% of the good power works with the F effort
+the good power works with the F effort really try to use okay I didn't speak
+really try to use okay I didn't speak about that but try to use action cost to
+about that but try to use action cost to influence action usage although that's
+influence action usage although that's unsure what I can speak of that in the
+unsure what I can speak of that in the portions or later implement planning
+portions or later implement planning cutting graphic cannon exists for
+cutting graphic cannon exists for polygons why not
+polygons why not planning clean both Chris and Peter
+planning clean both Chris and Peter described many ways of doing this I just
+described many ways of doing this I just put two here set a limit of the number
+put two here set a limit of the number NPCs calling for planning that's the 50
+NPCs calling for planning that's the 50 limit and while you read it set a limit
+limit and while you read it set a limit on the number of in pieces as well and
+on the number of in pieces as well and then you'll be able maybe to reach
+then you'll be able maybe to reach simple planning yes on the right I added
+simple planning yes on the right I added that nice green and red it's a planning
+that nice green and red it's a planning heat map from rice and all the on the
+heat map from rice and all the on the Left it's an experimental graphic from
+Left it's an experimental graphic from shadow of Mordor so I use many of her
+shadow of Mordor so I use many of her references probably the best on on
+references probably the best on on analytics is not computation or or
+analytics is not computation or or statistics book it's a girl analytics
+statistics book it's a girl analytics which helps you organize all your audio
+which helps you organize all your audio files and a form that they are a very
+files and a form that they are a very useful or the graphics I produced with
+useful or the graphics I produced with Mathematica and yes I want to thank
+Mathematica and yes I want to thank Chris and Peter for producing those data
+Chris and Peter for producing those data Chris is definitely in crunch time and
+Chris is definitely in crunch time and he's been producing and helping me for
+he's been producing and helping me for about that Peter produce videos
+about that Peter produce videos gigabytes of data for me I want to thank
+gigabytes of data for me I want to thank Orion Alex
+Orion Alex Carl Joe Foss Boccaccio J and triumph
+Carl Joe Foss Boccaccio J and triumph risen and Jeff Orkin who answered all my
+risen and Jeff Orkin who answered all my questions for the past four years
+questions for the past four years and I guess it's sample questions
+and I guess it's sample questions [Applause]
+three means three questions oh all right yep yeah do you mean have
+oh all right yep yeah do you mean have you thought this thing about anyone
+you thought this thing about anyone who's done it whoever can answer the
+who's done it whoever can answer the question the best do you have any
+question the best do you have any systems in place for allocating more
+systems in place for allocating more complex plans or just devoting more CPU
+complex plans or just devoting more CPU resources to NPCs that the player would
+resources to NPCs that the player would be more likely to be engaged with and
+be more likely to be engaged with and then less time for NPCs that they would
+then less time for NPCs that they would be paying less attention to just go
+be paying less attention to just go handle that or if you thought about ways
+handle that or if you thought about ways to do that okay yeah I I have a planning
+to do that okay yeah I I have a planning frequency that's dynamic for my NPCs so
+frequency that's dynamic for my NPCs so the ones that are on screen or near
+the ones that are on screen or near players get to plan more frequently the
+players get to plan more frequently the ones that are far away and off camera
+ones that are far away and off camera don't think very often yeah it's good
+don't think very often yeah it's good and say shadow Mordor we had systems
+and say shadow Mordor we had systems like that in place we we had timings
+like that in place we we had timings like that in place for actually for a
+like that in place for actually for a lot of our supporting systems and we
+lot of our supporting systems and we didn't really that's actually when Eric
+didn't really that's actually when Eric first started talking with me I was
+first started talking with me I was looking for that system for our planner
+looking for that system for our planner and we never ended up throttling our
+and we never ended up throttling our planning or replanting occurrences I
+planning or replanting occurrences I think throttling the other systems that
+think throttling the other systems that would cause events to change the cause a
+would cause events to change the cause a plan ended up just naturally throttling
+plan ended up just naturally throttling the planner for us
+the planner for us hey are you a I ratio for Gary like
+hey are you a I ratio for Gary like games
+games Killzone free was five Hertz I teach
+Killzone free was five Hertz I teach game a I and one of the things I really
+game a I and one of the things I really don't know is what studios how much of
+don't know is what studios how much of this how much of the the backend solvers
+this how much of the the backend solvers and planners they develop in-house and
+and planners they develop in-house and how much they use from off-the-shelf
+how much they use from off-the-shelf products and if and if there are
+products and if and if there are anything that you use off-the-shelf I'd
+anything that you use off-the-shelf I'd love to know what those what those
+love to know what those what those titles are it's all you Eric
+titles are it's all you Eric [Laughter]
+[Laughter] cero ahlian house yeah yeah I can say
+cero ahlian house yeah yeah I can say the same like I said in my presentation
+the same like I said in my presentation I wrote the coke library which is still
+I wrote the coke library which is still about 90% intact from 2006 in about two
+about 90% intact from 2006 in about two or three weeks we do use put a plug out
+or three weeks we do use put a plug out for babble fluxes now power for
+for babble fluxes now power for navigation even the front end I can drop
+navigation even the front end I can drop stuff that you were doing you'd be
+stuff that you were doing you'd be amazed right
+amazed right can you talk briefly about how you
+can you talk briefly about how you actually organize joint off behaviors oh
+actually organize joint off behaviors oh been always high between like the orcs
+been always high between like the orcs where basically one says I'm gonna go
+where basically one says I'm gonna go investigate
+investigate is there a blackboard system that says
+is there a blackboard system that says this NPCs yeah and that role or how's
+this NPCs yeah and that role or how's that rule management um yeah there's
+that rule management um yeah there's definitely is a blackboard system we
+definitely is a blackboard system we actually have okay
+actually have okay it'd be a lot to get into we have both a
+it'd be a lot to get into we have both a working memory system which is um yeah
+working memory system which is um yeah thank you I like not sure how much
+thank you I like not sure how much detail I need to go into on that working
+detail I need to go into on that working memory system where we can generate
+memory system where we can generate collections of facts and a blackboard
+collections of facts and a blackboard system that yeah that's both you know a
+system that yeah that's both you know a centralized blackboard for all the orcs
+centralized blackboard for all the orcs and of course a blackboard per
+and of course a blackboard per individual org on to Parader we have a
+individual org on to Parader we have a system that hands out cookies you know
+system that hands out cookies you know only so many guys are allowed to
+only so many guys are allowed to investigate and the way it works is when
+investigate and the way it works is when there's an event that is investigated
+there's an event that is investigated ball i delay the processing of the event
+ball i delay the processing of the event depending on the distance so that the
+depending on the distance so that the guys who is closest is the first one
+guys who is closest is the first one who's going to get a chance to plan for
+who's going to get a chance to plan for it and if he decides to investigate it
+it and if he decides to investigate it or react to it he'll do it otherwise is
+or react to it he'll do it otherwise is the next closest guy will give it a try
+the next closest guy will give it a try this kind of thing

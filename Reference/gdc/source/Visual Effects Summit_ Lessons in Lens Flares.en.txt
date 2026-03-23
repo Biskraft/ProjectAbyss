@@ -1,0 +1,399 @@
+All right.
+Uh Hello everyone.
+Welcome to my talk lessons and lens,
+uh
+apologies for the
+brief technical difficulties there. But
+before we start just a brief introduction.
+So uh my name is Anno.
+I'm a real time V FX artist at effects
+and I've been a hobbyist, photographer, filmmaker and animator for over 20 years.
+I'm also a lens flare enthusiast.
+So before we get right into it,
+I just wanted to give a brief overview of what this presentation is all about.
+There's a lot to talk about and limited time.
+So I'll be focusing more on discussing the
+key behaviors of different lens flares and how to
+create your own than giving a technical presentation on
+creating lens flares in any specific game engine.
+As with many things in game development,
+I found that there isn't really a one size
+fits all solution for lens flares and game engines.
+So in this talk,
+I'm going to be focusing more on explaining the key
+behaviors of lens flares and my process for creating them.
+The reason this is relevant is essentially because
+as hardware improves and visual fidelity increases,
+lens flares are becoming an increasingly common
+task for real-time V effects artists,
+whereas they may have previously been considered more of a technical art task.
+So today, I'll begin by talking about the interaction between light
+and the camera lens.
+Before discussing some of the
+differences between spherical and anamorphic lenses
+using reference footage of shot.
+After that,
+I'll discuss some general rules and rules of thumb
+that help you all through your own lens flares,
+supplemented by more footage.
+And then finally,
+I'll show you my process for making a custom lens flare and after effects
+and we'll open it up to a quick Q and A after that if time permits.
+All right.
+So uh let's begin with the simplification of how light interacts with the camera
+in a modern camera lens.
+There is generally a bunch of glass lens elements
+that makeup will be referred to as the lens.
+So before light can reach the image sensor,
+it's reflected and refracted as it passes through these lens elements.
+When I'm creating a lens flare,
+I like to think about the journey of light
+from the front element to the rear element and
+how that might affect the shapes, colors and behaviors of my flare.
+I also look at reference footage and think about
+which lens elements correspond to which flare elements.
+It's worth noting
+lens manufacturers usually apply an anti
+reflective coating
+to these that tends to influence the color
+of flair elements as well as the overall intensity
+and certain other factors. But we'll get into that later
+to help create lens flares.
+In any instance, here's a list of important concepts and rules of compiled,
+we'll be discussing each of these in depth,
+but I wanted to run them up on the screen
+here first so that we can reference this slide later,
+knowing these concepts as well as the context in which a flare will exist,
+can make it a lot easier to implement a visually compelling lens flare
+that truly complements the overall composition of
+the frame while also respecting the physical
+nature of a real camera.
+So first on our list,
+the two major types of lenses we typically use are spherical and anamorphic lenses
+both produce vastly different lens flares,
+image artifacts and out of focus boca effects.
+So understanding the difference between these is important
+when creating a flare of your own.
+So let's start with the far more common spherical lens.
+When shooting with a spherical lens,
+we generally expect to see radial rays around the light source where the
+number of rays will usually correspond to the number of diaphragm blades.
+For those who may not know
+aperture blades or diaphragm blades are the swiveling
+uh mechanical blades that control the size of the aperture,
+which essentially dictates how much light is led into the image sensor.
+And there's a stock image of what those look like
+with spherical lenses. We also expect to see circular or polygonal boca
+in ghosts,
+which we haven't talked about just yet, but we'll be getting into that soon.
+Similarly, we see the number of sides of polygonal boca
+correspond to the number of aperture blades.
+And while it's perhaps not the most relevant to us in our real time VFX context,
+it is important to note that we usually expect a 16
+by nine aspect ratio when shooting with a spherical lens,
+which is great because 16 by nine is the
+most typical aspect ratio for our computer monitors,
+tvs, smartphones and other displays.
+So generally,
+uh the framing an aspect ratio you see when shooting with
+a spherical lens is what you ultimately get in the final
+image before any post or editing cropping, uh
+work has been done.
+And so here's some reference footage I shot on a spherical lens.
+What you can see is that I have 14 after blades here. So we get 14 radial rays
+coming off the light source
+and moving right along
+to my favorite anamorphic lenses.
+So in general,
+anamorphic lenses tend to make things look and feel a lot more cinematic.
+They can also create a more painterly look than spherical lenses,
+which is due in part to their unique boca
+or out of focus effects as well as their distortion
+with an anamorphic lens.
+We tend to get horizontal streaks as our primary flare element.
+And depending on the lens,
+radial rays may also be present in an anamorphic flare as we'll see here in a moment.
+They tend to have slightly different visuals and behaviors than the
+radial rays that we'd see or associated with spherical lenses.
+But
+a good rule of thumb is that they have more asymmetry.
+Anamorphic lenses also produce vertically stretched
+oval shaped poka for anything that's out of focus.
+However,
+the ghosts that we see in anamorphic flares
+can be vertically or horizontally stretched oval shapes.
+And another quirk of anamorphic lenses is that they
+produce an aspect ratio of 2.39 by one,
+which is standardized as 21 by nine for the digital format.
+There's a lot to talk about in this regard. So I'm going to keep it brief.
+But essentially when we're shooting with an anamorphic lens,
+we're actually shooting on a square.
+So the original footage needs to be de squeezed
+in an editing or compositing software
+so that we ultimately get that 21 by nine widescreen
+aspect ratio with the signature cinematic black bars
+on the top and bottom of the screen.
+And here's some reference footage I shot of my anamorphic lens.
+You can see we get that primary, our primary element is
+those horizontal streaks and we get boxy shapes,
+especially when we're shooting into the sun.
+It's very common with anamorphic lenses.
+And just to contrast that here's a small reference
+of my phone's flashlight. So you can see the flare elements are
+quite different.
+And then here's what that original footage would
+have looked like before the D squeeze.
+So we've got a completely square aspect ratio
+and everything is sort of uh
+squashed horizontally.
+All right.
+So we've already touched on the radial rays and
+horizontal streaks associated with spherical
+and anamorphic lenses respectively.
+But perhaps the most common flare element is glare.
+Generally speaking,
+glare appears as a large soft element around the light source that
+reduces the contrast of the image in the areas that it occupies.
+And next up, let's talk about ghosts.
+So ghosts are boca like elements that rotate around the
+center of the screen appearing stuck to a line that
+is an invisible line.
+But one that's drawn between the center of the screen and the light source,
+ghosts often appear as copies or inverted copies of the
+light source and tend to show the light source shape.
+Although that's
+another sort of uh rule of thumb
+and next up, we have halos which tend to be pretty weird.
+These are usually circular or elliptical shaped
+elements that radially warp the light source
+pillows tend to be especially visible when light is
+when the light sources outside the screen edges.
+But
+again, that depends on the lens.
+It's also worth noting that halos can manifest in many different ways,
+but something they usually have in common is chromatic aberration.
+And finally, my absolute favorite
+element,
+Leinster.
+So if we can imagine a car windshield or
+something similar that accumulates dirt and grime
+from being exposed to the outdoors lens,
+dirt is very similar in concept,
+essentially, these are small bits of dust and dirt
+that may be caked onto the lens or may just be sitting on top of the front element
+that appears out of focus boca shapes.
+When the front element is illuminated,
+usually a front element reflection is visible simultaneously with lens dirt.
+But as with everything else we've covered,
+it always depends on the lens being used and every lens is different
+and moving right along to wide angle versus telephoto
+uh
+for our focal length.
+So whenever I'm explaining the difference between these two,
+I use the example of zooming in and zooming out on a digital camera.
+So shooting with a wide angle lens, we might expect to see lots of smaller
+uh ghosts and other flare elements.
+Whereas when shooting with a telephoto
+lens, we generally expect to see fewer larger ghosts and other flare elements,
+this is perhaps not the greatest uh reference footage that we're about to see. But
+you can maybe see when we zoom in uh
+we generally see fewer yet larger flare elements.
+So moving right along,
+uh the main difference between a glancing and direct light source
+in this context is really just the subtlety of the flare,
+a light source that's at a glancing angle to the lens will usually
+result in a more subtle flare that's barely visible if at all.
+Whereas a light source that's shining directly into the lens will
+produce a much clearer and sharper flare
+with more visible elements.
+I'm not going to spend too much time on this next one,
+but I thought it was worth uh mentioning just
+because it's something that I find very interesting.
+Um a
+light source that's outside the screen edges
+will generally produce a really unique element.
+Uh
+And there's no official name for this that I've, I've been able to find,
+but I generally refer to it as an outside edge flare.
+So a light source that's right outside the screen edges,
+but still shining directly into the lens uh
+will produce this strange element.
+And we can think of this sort of like an
+anticipatory flare just before the light source comes on screen.
+And so here's some reference of a light source that's at a glancing angle
+and then
+just more reference.
+So when it comes to the inclusion of the light source,
+ghosts tend to have the most erratic behavior,
+their internal shape and color may change and they may
+oude in a staggered manner as the light source is occluded.
+As far as the other elements are concerned,
+they generally tend to become increasingly more subtle
+or fade out entirely.
+And so we'll see that here as I
+swing over to the left
+and back again, you can see those ghosts just sort of, it's not a linear fashion.
+They're just,
+they fade out in a strange order,
+unpredictable
+and moving right along.
+Something that I consider one of the most important concepts depth of field or blur.
+So essentially, depending on whether or not the light source is in focus,
+flare elements will blur accordingly
+with a light source that is in focus.
+We'd expect to see sharper clearer flare elements than an out of focus light source.
+It's also worth noting that flare elements might change
+their shape and size while racking focus and similarly
+amorphic flare elements tend to squash and stretch.
+So as I wrap focus here,
+we'll see that these flare elements enlarge and become a lot softer.
+And then everything goes back to being somewhat
+squashed or stretched depending on which way I'm racking focus
+and finally chromatic aberration
+to quote Hannah Montana, nobody's perfect
+and that includes lenses.
+So chromatic aberration is probably familiar to many of us artists,
+especially in the post spider verse era.
+But for those who may not know chromatic aberration or color fringing is the
+failure of lens to converge or focus all colors to the same point.
+This results in color fringing as we get closer to the edges of the image.
+So
+flare elements uh like ghosts and halos can be affected by this phenomenon.
+But
+again, it's worth noting that all lenses are different
+and these flare elements can manifest
+themselves very differently depending on the lens
+and moving right along to light source color and
+the lens element coding which we
+briefly touched on.
+But just some notes that I'm going to bring up on the screen,
+certain flare elements that there's no good rule of thumb here. It's,
+you just gotta look at reference,
+but some flare elements will pick up uh the light source color,
+whereas some flare elements are gonna pick up
+the color that's
+sort of given from that flair, that lens element coating.
+And this is something that lens manufacturers work really hard to ensure that
+players aren't too intense or intrusive
+or overwhelming.
+And so here's some reference I shot of
+a prism
+and you can see that the flare elements that we're getting
+that white light source from my phone. Uh we
+not colored at all uh
+or not picking up any uh
+other color
+other than
+what the the lens elements were coded in.
+But when I
+run that through the prism,
+it's
+picking up a lot of that color
+and now it's time to put it all together.
+So to help conceptualize how we might create a lens flare in a game engine,
+I'll now demonstrate my process for creating a custom lens flare.
+And after effects
+before we begin, I'm going to show a list of effects and expressions that I'm using.
+And as I mentioned previously,
+I'll be doing my best to keep this a little bit less technical and more artistic.
+But for the technically minded folks out there,
+I will say that the most important thing to
+know when creating a lens flare in a game engine
+is knowing the screen space position of the light source.
+You can use this as well as the distance between the light source and
+the center of the screen to drive the majority of your flare elements behaviors.
+So before we get into it,
+I've got a couple of expressions that I want to run up on the screen here.
+This first one is offsetting the exposition of your element
+opposite to
+whichever way the light source is moving.
+So it will maintain its Y position, but it will move in like negative X.
+And then similarly, I have a scale X by distance
+and I have a couple of these. So I also have a scale opacity by distance.
+And really,
+it's just this kind of thing with any variation of
+or anything you could potentially want to drive any behavior.
+It's always going to be
+uh driven by the distance between
+the center of the screen and the light source
+in screen space.
+And I didn't really use this one, but it's worth running up here. Rotate a
+flair element based on
+the light sources position.
+All right.
+So here's how I start the setup and create the primary streak first,
+I create a new composition and I start making my light source shape.
+And if I were doing this as a post process effect or to composite over footage,
+I'd actually
+do this a little bit differently as we'll see here in a moment.
+But I actually start by applying a threshold to the scene
+and isolating my highlights that way
+and you'll see an example of that momentarily
+right here.
+And so that's what I'm talking about
+deriving your light source shape from
+whatever you have,
+but the highlights in the scene
+and then I go ahead and I apply some effects and just start roughing in my shape.
+Once I get something that's working,
+tend to duplicate it
+and just keep building out the shape that way.
+And I always mask out my edges, especially when working in after effects.
+Cool. So Claire,
+this is generally uh something I consider to be one of the easier elements.
+It follows the position of the light source. And it's,
+you can duplicate your light source shape, uh scale it up and blur it out a bunch
+and that should get you something pretty good.
+And then of course, mask out the edges.
+All right. So for the radial rays, there's a number of different ways to do this.
+But uh in this instance,
+what I ended up doing is I scaled my light source shape uh horizontally.
+I moved it up and I applied a polar coordinates which we'll see in a moment here.
+I also apply a wave warp to get uh some shape, breakup and
+sort of like a star
+kind of shape.
+And I do some adjustments
+and then we'll see the polar coordinates right here.
+And then after that point, you can apply a radial fast blur or something to
+radially blur those
+bits out.
+You can also pinch the center using the bulge effect,
+whatever floats your boat.
+And it's worth noting that I
+always use the ad blend mode when uh
+compositing these flare elements together in after effects.
+Although if I were compositing this over footage, I'd use the screen blending mode.
+However, if I were compositing this in a game engine,
+I'd probably want to use an additive material.
+And here you can see me uh roughing in some ghosts.
+So the key here is to tie the anchor point to the position which gets that
+ghost element rotating around the center of the screen.
+And
+I also apply a radial fast blur to this and set the mode to darkest
+which gets some of that occlusion behavior.
+So similar to ghosts, we have street ghosts which are
+the anamorphic uh
+streak elements.
+And the way I set these up is a little bit different,
+but this is where that expression from the start comes in handy.
+And so you can see I'm getting the basic behavior
+and once I get something that works,
+I just duplicate it and I just keep building it out that way
+cool.
+So moving right along to our chromatic elements,
+I generally uh do this by creating a rainbow
+blending it together.
+And once I get something that's working, I just sort of duplicate
+adjust as needed and I just copy paste those expressions from earlier
+and get the same kind of look.
+You can also apply a VR glow and certain other effects
+to sort of get whatever kind of look you want.
+And I do believe we're out of time here, unfortunately. So thank you all for
+watching, listening and attending.
+I'm just gonna, uh,
+get this process, time laps up.
+And so here's the whole roughly hour and a half process condensed into like
+a minute.
+You can see, I made my radial rays slightly differently here
+and there you have it
+right. So, thank you guys so much.

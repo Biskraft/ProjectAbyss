@@ -1,0 +1,1181 @@
+[Music]
+hey welcome everybody thanks for coming out
+out I'm Adam glazier I'm a UX designer on
+I'm Adam glazier I'm a UX designer on Google Earth VR and on other VR and AR
+Google Earth VR and on other VR and AR apps at Google and so me and my
+apps at Google and so me and my colleagues worked on earth VR for the
+colleagues worked on earth VR for the past few years and we're gonna share a
+past few years and we're gonna share a little bit about some of the UX
+little bit about some of the UX struggles and solutions that we went
+struggles and solutions that we went through to get there but before I do I'm
+through to get there but before I do I'm gonna share just just some brief
+gonna share just just some brief background on Google Earth so as you
+background on Google Earth so as you know about 14 years ago Google started
+know about 14 years ago Google started exploring the idea of mapping the entire
+exploring the idea of mapping the entire Earth and we started out with satellite
+Earth and we started out with satellite data but then we started using planes
+data but then we started using planes and cars to collect imagery did more
+and cars to collect imagery did more imagery data and using that we used
+imagery data and using that we used photogrammetry to slowly build a more
+photogrammetry to slowly build a more complex 3d mesh of the entire Earth we
+complex 3d mesh of the entire Earth we we released this on desktop and mobile
+we released this on desktop and mobile and you know this was fine but really
+and you know this was fine but really the medium needed to be unlocked like
+the medium needed to be unlocked like you're there and VR is the first time
+you're there and VR is the first time that we were actually to able to
+that we were actually to able to experience this data in the way it was
+experience this data in the way it was meant to be which was really fantastic
+meant to be which was really fantastic but in order to do that getting this to
+but in order to do that getting this to run at 90 FPS at rendering the entire
+run at 90 FPS at rendering the entire Earth 10 milliseconds every frame was
+Earth 10 milliseconds every frame was extraordinary difficult using the
+extraordinary difficult using the existing code base so to do this just
+existing code base so to do this just consider the fact that like in your
+consider the fact that like in your average city is millions of triangles
+average city is millions of triangles and as you zoom out you exponentially
+and as you zoom out you exponentially start to grow that until eventually the
+start to grow that until eventually the entire planet you're looking at millions
+entire planet you're looking at millions of our trillions and trillions of
+of our trillions and trillions of triangles on top of that we do
+triangles on top of that we do atmospheric shading atmospheric
+atmospheric shading atmospheric scattering realistic time-of-day
+scattering realistic time-of-day simulations and so we need to render all
+simulations and so we need to render all of these things in such a short amount
+of these things in such a short amount of time with no dropped frames so to do
+of time with no dropped frames so to do this we need to improve on the
+this we need to improve on the architecture
+architecture of the existing experience by we started
+of the existing experience by we started with frustum Colleen draw call batching
+with frustum Colleen draw call batching and a bunch of other ways to eliminate
+and a bunch of other ways to eliminate the bottlenecks caused by the existing
+the bottlenecks caused by the existing pipeline now last year before we
+pipeline now last year before we released Google Earth VR we talked about
+released Google Earth VR we talked about this at SIGGRAPH so if you're interested
+this at SIGGRAPH so if you're interested in the rendering optimizations and ways
+in the rendering optimizations and ways that you can render entire planet go
+that you can render entire planet go back and watch that talk we give some
+back and watch that talk we give some some insights there so the first thing
+some insights there so the first thing we did when we got a prototype vibe we
+we did when we got a prototype vibe we were one of the first companies to get
+were one of the first companies to get the vibe with the tag room demo we put
+the vibe with the tag room demo we put people in this like our founders Sara
+people in this like our founders Sara Larry and Sergey Brin and JJ Abrams and
+Larry and Sergey Brin and JJ Abrams and immediately they wanted to go further
+immediately they wanted to go further than the the limit of the three meter by
+than the the limit of the three meter by a three meter room they wanted to go
+a three meter room they wanted to go down the street or over the mountain and
+down the street or over the mountain and really explore around so to give you
+really explore around so to give you some context at this time this was about
+some context at this time this was about two years ago we had a prototype vibe
+two years ago we had a prototype vibe there were a few demos but no great
+there were a few demos but no great examples of even just how to get short
+examples of even just how to get short distances so we essentially had no idea
+distances so we essentially had no idea what you were doing so we did the first
+what you were doing so we did the first thing we thought of which was allow the
+thing we thought of which was allow the user to point somewhere and wherever
+user to point somewhere and wherever their ray intersects will teleport them
+their ray intersects will teleport them there instantly this was really
+there instantly this was really convenient because you could get to the
+convenient because you could get to the top of a mountain instantly but if
+top of a mountain instantly but if you've ever tried this with large
+you've ever tried this with large distances like it works well in small
+distances like it works well in small spaces when you're going small distances
+spaces when you're going small distances but if you go to the top of a mountain
+but if you go to the top of a mountain users would get there and look around
+users would get there and look around and then look down and realize oh
+and then look down and realize oh they're on top of the mountain so you
+they're on top of the mountain so you know it's a it's a good idea in theory
+know it's a it's a good idea in theory but in practice it didn't actually work
+but in practice it didn't actually work and this was fine but users also wanted
+and this was fine but users also wanted a higher view or a lower view so we gave
+a higher view or a lower view so we gave them the ability to scale themselves by
+them the ability to scale themselves by clicking up and down on the touchpad
+clicking up and down on the touchpad they could grow and shrink themselves
+they could grow and shrink themselves and they got those views they desired
+and they got those views they desired but there was a problem that came up is
+but there was a problem that came up is they would teleport towards a building
+they would teleport towards a building or montón and then they would say oh I
+or montón and then they would say oh I want to see what this is like at human
+want to see what this is like at human scale so they'd scale themselves down
+scale so they'd scale themselves down and as they did that something
+and as they did that something unexpected happened which is that
+unexpected happened which is that building or mountain starts to drift
+building or mountain starts to drift further and further away so that thing
+further and further away so that thing that was just 2 meters in front of them
+that was just 2 meters in front of them also all of a sudden goes way outside
+also all of a sudden goes way outside the room so you'd end up with this
+the room so you'd end up with this clunky teleport scale scale scale
+clunky teleport scale scale scale teleport scale scale scale just to get
+teleport scale scale scale just to get at human scale in front of a door or at
+at human scale in front of a door or at the base of a mountain so to make up for
+the base of a mountain so to make up for the loss of context with teleport we
+the loss of context with teleport we tried step teleporting by just
+tried step teleporting by just incrementally getting the user closer
+incrementally getting the user closer and this worked ok but it felt a little
+and this worked ok but it felt a little clunky and it broke immersion because
+clunky and it broke immersion because every time you jump to a new place it
+every time you jump to a new place it just feels artificial and and then as
+just feels artificial and and then as you can see on the way to the top of the
+you can see on the way to the top of the mountain the person ends up with their
+mountain the person ends up with their feet not on the ground so if they stop
+feet not on the ground so if they stop or look down on the way a lot of people
+or look down on the way a lot of people end up feeling disorient are sorry I'm
+end up feeling disorient are sorry I'm discomfort or have the fear of heights
+so to make up for the fear of heights we just kept their head in the same place
+just kept their head in the same place and scaled themselves so that their feet
+and scaled themselves so that their feet were always on the ground and at the
+were always on the ground and at the time this was just a crazy experiment we
+time this was just a crazy experiment we thought people would get really sick if
+thought people would get really sick if we just scale them and up and down as
+we just scale them and up and down as they're going but it actually worked
+they're going but it actually worked really well so then we tried another
+really well so then we tried another thing that we knew we weren't supposed
+thing that we knew we weren't supposed to do which is like flying the user so
+to do which is like flying the user so instead of this deft motion it's
+instead of this deft motion it's continuous motion and we keep their feet
+continuous motion and we keep their feet on the ground during this and this
+on the ground during this and this worked the best for preserving immersion
+worked the best for preserving immersion so people didn't lose context on the way
+so people didn't lose context on the way to where they were going whenever they
+to where they were going whenever they stopped their feet were on the ground
+stopped their feet were on the ground but there was one big problem which is
+but there was one big problem which is it made 95% of the people sick because
+it made 95% of the people sick because what they see and what their body feels
+what they see and what their body feels doesn't match so we have this problem
+doesn't match so we have this problem flying was awesome in all these ways but
+flying was awesome in all these ways but it made basically everyone feels sick
+it made basically everyone feels sick and tell
+and tell port was convenient but you lose context
+port was convenient but you lose context and you break immersion so we wanted to
+and you break immersion so we wanted to be somewhere in the middle we wanted
+be somewhere in the middle we wanted Total Immersion it easy to use there's
+Total Immersion it easy to use there's no context loss and no nausea so we came
+no context loss and no nausea so we came up with a really cool trick to solve
+up with a really cool trick to solve this which we call tunnel vision so as
+this which we call tunnel vision so as you can see in this video about half way
+you can see in this video about half way through in the outer edges of the users
+through in the outer edges of the users view we project a grid on the floor and
+view we project a grid on the floor and a horizon line so what this does is it
+a horizon line so what this does is it similar to the effect of being in a
+similar to the effect of being in a living room or a theatre where the stuff
+living room or a theatre where the stuff on the TV is moving but your living room
+on the TV is moving but your living room is not and it's that outer area that
+is not and it's that outer area that tells your body ok this is ok I'm not
+tells your body ok this is ok I'm not moving it's just the stuff on this
+moving it's just the stuff on this screen but it turns out you don't need a
+screen but it turns out you don't need a rug in a couch and you don't need it to
+rug in a couch and you don't need it to be an entire room you actually only need
+be an entire room you actually only need about 15 percent of the users field of
+about 15 percent of the users field of view instead of a rug you can just
+view instead of a rug you can just project a high contrast grid on the
+project a high contrast grid on the floor and it turns out the horizon line
+floor and it turns out the horizon line is also a really important factor to
+is also a really important factor to help provide the users with balance so
+help provide the users with balance so with tunnel vision and scaled flying we
+with tunnel vision and scaled flying we got somewhere close to the middle of our
+got somewhere close to the middle of our goal we lose a little bit of immersion
+goal we lose a little bit of immersion because some people notice the tunnel
+because some people notice the tunnel vision but we feel like this is a good
+vision but we feel like this is a good combination and it it's worth it
+combination and it it's worth it now when people fly really really high
+now when people fly really really high into the atmosphere
+into the atmosphere another problem emerged which is people
+another problem emerged which is people will look down and they would get tired
+will look down and they would get tired of looking down at the earth and trying
+of looking down at the earth and trying to find what country they're on and if
+to find what country they're on and if the earth wasn't rotated perfectly north
+the earth wasn't rotated perfectly north they would just be completely lost so we
+they would just be completely lost so we allow users to put the earth in front of
+allow users to put the earth in front of them and always keep north up and then
+them and always keep north up and then we project a transparent floor under
+we project a transparent floor under them so they don't feel like they're
+them so they don't feel like they're floating in space once we did this users
+floating in space once we did this users immediately wanted to grab the earth and
+immediately wanted to grab the earth and and zoom in and out so we use the same
+and zoom in and out so we use the same flying mechanism to enlarge the earth or
+flying mechanism to enlarge the earth or shrink it and we always keep the surface
+shrink it and we always keep the surface of the earth
+of the earth same distance so as it grows it doesn't
+same distance so as it grows it doesn't engulf them and to solve dragging what
+engulf them and to solve dragging what we did was we put a proxy sphere on the
+we did was we put a proxy sphere on the earth where the sphere is the size of
+earth where the sphere is the size of the Earth's crust and wherever there ray
+the Earth's crust and wherever there ray is intersecting we make sure that as
+is intersecting we make sure that as they move their controller that
+they move their controller that intersection point of the proxy sphere
+intersection point of the proxy sphere tracks with their array and then we
+tracks with their array and then we update the Earth's rotation to match
+update the Earth's rotation to match that proxy sphere but when the users
+that proxy sphere but when the users standing on the earth now that proxy
+standing on the earth now that proxy sphere is size of the earth it's huge
+sphere is size of the earth it's huge and when the users intersection point is
+and when the users intersection point is on the ground and they're dragging the
+on the ground and they're dragging the Earth this works well however if the
+Earth this works well however if the user points above themselves now the
+user points above themselves now the proxy sphere is above them but they end
+proxy sphere is above them but they end up dragging themselves into mountains
+up dragging themselves into mountains and buildings and for some reason people
+and buildings and for some reason people don't like that so we came up with this
+don't like that so we came up with this cool trick which is a proxy cone and we
+cool trick which is a proxy cone and we call this cone drag so the way it works
+call this cone drag so the way it works is on the proxy cone the tip of it's at
+is on the proxy cone the tip of it's at the base of the user's foot and the base
+the base of the user's foot and the base of the cone is where the user's Ray
+of the cone is where the user's Ray intersected the earth geometry and by
+intersected the earth geometry and by doing this it means that that
+doing this it means that that intersection point now just runs along a
+intersection point now just runs along a cone and this works really well users
+cone and this works really well users almost never end up going into geometry
+almost never end up going into geometry like a mountain or a building so you can
+like a mountain or a building so you can do really cool things like this with it
+do really cool things like this with it you can hop from the tops of buildings
+you can hop from the tops of buildings it just feels really effortless to get
+it just feels really effortless to get around so I just shared a bunch of
+around so I just shared a bunch of things but if you're going to take four
+things but if you're going to take four things away
+things away we felt like scaled flying worked the
+we felt like scaled flying worked the best scaling meaning scaling the user
+best scaling meaning scaling the user keeping their feet on the ground and
+keeping their feet on the ground and smooth movement but that only worked
+smooth movement but that only worked really well if you couple that with
+really well if you couple that with tunnel vision about 5% of our users can
+tunnel vision about 5% of our users can turn tunnel vision off and not feel sick
+turn tunnel vision off and not feel sick but the rest need it and if you're gonna
+but the rest need it and if you're gonna do dragging at different elevations cone
+do dragging at different elevations cone drag is the way to go and putting the
+drag is the way to go and putting the globe in front of users is really
+globe in front of users is really important for
+important for to get around so once we got all these
+to get around so once we got all these things implemented you know it it
+things implemented you know it it technically worked but it didn't feel as
+technically worked but it didn't feel as great as we wanted and so to get the
+great as we wanted and so to get the feel right I'm gonna introduce a pair to
+feel right I'm gonna introduce a pair to talk about that Thank You Adam hello
+talk about that Thank You Adam hello everyone my name is Erik Olson I'm an
+everyone my name is Erik Olson I'm an engineer on the team I'm gonna talk a
+engineer on the team I'm gonna talk a little bit by the work we did once we
+little bit by the work we did once we had performance rendering in place and
+had performance rendering in place and the navigation methods kind of figure
+the navigation methods kind of figure out because honestly once we were there
+out because honestly once we were there we thought we were very close to being
+we thought we were very close to being done
+done and we were a little bit surprised when
+and we were a little bit surprised when we showed it to test users and they
+we showed it to test users and they didn't have more of an emotional
+didn't have more of an emotional response we would get feedback such as
+response we would get feedback such as it feels artificial it's dead it's
+it feels artificial it's dead it's silent and I'm gonna cover what we did
+silent and I'm gonna cover what we did to improve two of our most popular
+to improve two of our most popular navigation methods drag and flying and
+navigation methods drag and flying and then briefly mention a little bit what
+then briefly mention a little bit what we did with background sound first of
+we did with background sound first of all so we started off by implementing
+all so we started off by implementing drag very similar to regular Google Maps
+drag very similar to regular Google Maps regular Google Earth we shoot array from
+regular Google Earth we shoot array from the controller and we get an
+the controller and we get an intersection point and this is kind of
+intersection point and this is kind of some sort of direct manipulation it
+some sort of direct manipulation it moves one-to-one with how you move it
+moves one-to-one with how you move it and this this felt pretty good when when
+and this this felt pretty good when when the plan is very small in front of you
+the plan is very small in front of you but in cases when the plan was below you
+but in cases when the plan was below you and you were at a pretty low scale very
+and you were at a pretty low scale very small movement would move the planet it
+small movement would move the planet it was almost like the planet doesn't have
+was almost like the planet doesn't have any weight at all and we want to create
+any weight at all and we want to create this like immersive feeling of like we
+this like immersive feeling of like we want to simulate that the planet should
+want to simulate that the planet should be very heavy it should be something
+be very heavy it should be something that you can relate to we also
+that you can relate to we also identified that just by like starting
+identified that just by like starting this dragon gesture by pressing the
+this dragon gesture by pressing the trigger button it was very hard to do so
+trigger button it was very hard to do so without moving the hand just a little
+without moving the hand just a little bit and depending on where you're
+bit and depending on where you're pointing this could cause this like
+pointing this could cause this like nasty jittering effect which is very
+nasty jittering effect which is very unpleasant
+unpleasant and it just once again it just kind of
+and it just once again it just kind of ruined immersion a little bit this no
+ruined immersion a little bit this no sort of wait so what could we do to
+sort of wait so what could we do to improve this the first thing we tried
+improve this the first thing we tried was distance-based smoothing we
+was distance-based smoothing we recognize that the further way you're
+recognize that the further way you're pointing the more sensitive it gets for
+pointing the more sensitive it gets for very small changes in the controller and
+very small changes in the controller and we came up with a scheme that would do
+we came up with a scheme that would do much more aggressive smoothing the
+much more aggressive smoothing the further way this intersection point you
+further way this intersection point you get was and this was great for reducing
+get was and this was great for reducing that jitter effect that we saw but it
+that jitter effect that we saw but it didn't really help like making the
+didn't really help like making the planet feel heavier like when still when
+planet feel heavier like when still when you were dragging right below you it was
+you were dragging right below you it was reacting a little bit too much so we
+reacting a little bit too much so we went back to the drawing board and we
+went back to the drawing board and we thought in real life if you have a
+thought in real life if you have a really heavy object in front of you and
+really heavy object in front of you and you push it it's not gonna move until
+you push it it's not gonna move until you have given it enough force and that
+you have given it enough force and that is because you have static friction
+is because you have static friction fighting back and we thought maybe we
+fighting back and we thought maybe we can simulate the interaction points
+can simulate the interaction points using some physics based physics based
+using some physics based physics based model and we ended up choosing a spring
+model and we ended up choosing a spring because then would be very trivial to
+because then would be very trivial to try static friction and then we can
+try static friction and then we can switch into kinetic friction once we
+switch into kinetic friction once we pass a certain threshold that we can
+pass a certain threshold that we can choose damping ratio so we'd get rid of
+choose damping ratio so we'd get rid of overshoots from from the spring and the
+overshoots from from the spring and the cool thing about this was like now when
+cool thing about this was like now when you started your dragging gesture and
+you started your dragging gesture and just move the control just a little bit
+just move the control just a little bit nothing would move it was it was
+nothing would move it was it was fighting back the problem with this
+fighting back the problem with this method was there was how do you pick
+method was there was how do you pick your spring parameters like as Adam was
+your spring parameters like as Adam was talking about earlier we have this
+talking about earlier we have this scaled flying method like we can
+scaled flying method like we can constant leave the user in a different
+constant leave the user in a different scale at any time how do we come up with
+scale at any time how do we come up with such a parameters that it works in any
+such a parameters that it works in any scenario like high scale low scale you
+scenario like high scale low scale you point you're far you're pointing low and
+point you're far you're pointing low and it got really complicated and it didn't
+it got really complicated and it didn't really feel like it was a little bit we
+really feel like it was a little bit we were a bit nervous that like there would
+were a bit nervous that like there would be cases what did this would not work
+be cases what did this would not work work out at all so we realized we
+work out at all so we realized we probably can end up need something
+probably can end up need something that's more robust even though like this
+that's more robust even though like this showed great promise and the thing that
+showed great promise and the thing that worked the best for us was using
+worked the best for us was using filtering so in this in the next slide
+filtering so in this in the next slide is coming up you remember it was to be
+is coming up you remember it was to be shooting a ray from the controller so
+shooting a ray from the controller so imagine that is the
+imagine that is the the red ray coming out here and then we
+the red ray coming out here and then we take this through a filter and we get a
+take this through a filter and we get a blu ray
+blu ray so it's gonna be some difference between
+so it's gonna be some difference between the red and the blue and so it's
+the red and the blue and so it's basically like we are applying the
+basically like we are applying the filtering you can think of it as in your
+filtering you can think of it as in your plank filtering on the controller which
+plank filtering on the controller which means position and rotation and this
+means position and rotation and this also means that these two rays they're
+also means that these two rays they're not guaranteed to like start from the
+not guaranteed to like start from the same position they can have completely
+same position they can have completely different orientation all right so the
+different orientation all right so the the filtering we chose was low-pass
+the filtering we chose was low-pass filtering and we have two different
+filtering and we have two different low-pass to two different filters we
+low-pass to two different filters we have a very strong low-pass filter and a
+have a very strong low-pass filter and a much weaker one and when you start the
+much weaker one and when you start the dragging gesture right in the beginning
+dragging gesture right in the beginning then we apply this super strong low-pass
+then we apply this super strong low-pass filters so you basically get almost no
+filters so you basically get almost no movement at all to simulate this static
+movement at all to simulate this static friction effect we had earlier and the
+friction effect we had earlier and the further away you get from the initial
+further away you get from the initial position or initial rotation then we're
+position or initial rotation then we're starting to apply more of the the Lewis
+starting to apply more of the the Lewis low-pass filter which introduced is like
+low-pass filter which introduced is like nice like lagging effect that the spring
+nice like lagging effect that the spring gave us earlier and now what's good
+gave us earlier and now what's good about this since it's working on the
+about this since it's working on the controller we guarantee it is gonna work
+controller we guarantee it is gonna work in any scale in any scenario because the
+in any scale in any scenario because the controller in relative motion to you
+controller in relative motion to you it's gonna be pretty much the same this
+it's gonna be pretty much the same this introduced a different problem like now
+introduced a different problem like now we do intersection with this ready that
+we do intersection with this ready that is not even guaranteed to be attached to
+is not even guaranteed to be attached to controller and more what are we
+controller and more what are we displaying to the user to communicate
+displaying to the user to communicate this should we show the post fields
+this should we show the post fields array that's like disconnect that
+array that's like disconnect that problem now that would feel weird we
+problem now that would feel weird we ended up settling for an approach where
+ended up settling for an approach where we take the intersection of the post
+we take the intersection of the post filter ray we project it to the
+filter ray we project it to the prefilled array this end up creating us
+prefilled array this end up creating us a really nice hall and we can use this
+a really nice hall and we can use this hole to place control points in a cubic
+hole to place control points in a cubic Bezier and then we always guarantee to
+Bezier and then we always guarantee to have a very smooth rendering curve at
+have a very smooth rendering curve at any time and just to make this look a
+any time and just to make this look a little bit more nice we fade out the
+little bit more nice we fade out the positive towards the end of the curve
+positive towards the end of the curve because otherwise you end up with this
+because otherwise you end up with this awkward thin spaghetti looking thing
+awkward thin spaghetti looking thing that's like axial link between you and
+that's like axial link between you and the planet so that worked pretty well
+the planet so that worked pretty well we also wanted to simulate some sort of
+we also wanted to simulate some sort of resistance like okay it's not moving now
+resistance like okay it's not moving now like you reintroduce like static
+like you reintroduce like static friction and lag like the plan is
+friction and lag like the plan is fighting back like we want to win a
+fighting back like we want to win a similar resistance in real life if you
+similar resistance in real life if you let's say you attach like a rope to have
+let's say you attach like a rope to have it I have an object that you pull this
+it I have an object that you pull this rope it's you're gonna feel this
+rope it's you're gonna feel this resistance and we thought of we thought
+resistance and we thought of we thought that we could use the haptics of the
+that we could use the haptics of the controller to like achieve something
+controller to like achieve something similar to this so what we do we for two
+similar to this so what we do we for two sequential frames we take this pour this
+sequential frames we take this pour this intersection point of the post filter
+intersection point of the post filter raise and then we compute the Delta
+raise and then we compute the Delta angle between these two points and the
+angle between these two points and the head and this gives us a very nice like
+head and this gives us a very nice like one scalar value that we can feed into
+one scalar value that we can feed into the strength of the haptics and we can
+the strength of the haptics and we can use the same nice value to be the input
+use the same nice value to be the input for the sound system so for the drag
+for the sound system so for the drag effect in earthly art we ended up making
+effect in earthly art we ended up making a slow dragging sound and a fast
+a slow dragging sound and a fast dragging sound and then based on this
+dragging sound and then based on this value like it became very easy to just
+value like it became very easy to just like blend between them depending on
+like blend between them depending on this Delta angle value so just
+this Delta angle value so just demonstrates the red lace you see here
+demonstrates the red lace you see here this is like a debug render we have like
+this is like a debug render we have like the more aggressive you drag you see
+the more aggressive you drag you see that the Delta between these two becomes
+that the Delta between these two becomes bigger and then when you stop moving it
+bigger and then when you stop moving it will always catch up in the end and if
+will always catch up in the end and if you remember the previous slide when the
+you remember the previous slide when the drag was reacting like very like once a
+drag was reacting like very like once a while and it was very artificial like I
+while and it was very artificial like I think this demonstrates like now it
+think this demonstrates like now it feels more like natural it's it's still
+feels more like natural it's it's still kind of that's what you wanted to do but
+kind of that's what you wanted to do but it feels a little bit more like we added
+it feels a little bit more like we added weights secondly I want to cover flight
+weights secondly I want to cover flight speed so we realize like scaled flying
+speed so we realize like scaled flying is probably the method that people like
+is probably the method that people like using the most and the question is like
+using the most and the question is like what kind of flight speed are we're
+what kind of flight speed are we're gonna choose because we are constantly
+gonna choose because we are constantly changing the scale and many of you in
+changing the scale and many of you in here probably heard like we're in the
+here probably heard like we're in the video space it's we heard many times
+video space it's we heard many times that doing acceleration in VR can lead
+that doing acceleration in VR can lead to motion sickness and we should avoid
+to motion sickness and we should avoid it as much as we can so the first thing
+it as much as we can so the first thing we tried was to to pick a constant
+we tried was to to pick a constant flight speed in the room space which
+flight speed in the room space which means that like
+means that like Houck how big you perceive things how
+Houck how big you perceive things how should I say this you are in your like
+should I say this you are in your like if you if you manage your we world space
+if you if you manage your we world space flight speed like it changes but how how
+flight speed like it changes but how how close your to things it's always gonna
+close your to things it's always gonna you're gonna find the same speed and
+you're gonna find the same speed and this worked pretty well for high
+this worked pretty well for high altitudes but as you went down to like
+altitudes but as you went down to like lower altitudes it felt like you end the
+lower altitudes it felt like you end the dislike area of mud
+dislike area of mud it was super frustrating for users to
+it was super frustrating for users to fly around like you you would like to
+fly around like you you would like to get stuck and it was like very
+get stuck and it was like very irritating so we needed to do something
+irritating so we needed to do something about this so we we realized like maybe
+about this so we we realized like maybe we should like go against the device and
+we should like go against the device and maybe introduce some acceleration who
+maybe introduce some acceleration who knows so we came up with this power
+knows so we came up with this power curve which basically means that in room
+curve which basically means that in room space we fly faster at lower scales and
+space we fly faster at lower scales and then as the scale gets bigger we slowly
+then as the scale gets bigger we slowly like reduce the speed in room space and
+like reduce the speed in room space and a cool trick about this was that if you
+a cool trick about this was that if you see here the the orange curve we thought
+see here the the orange curve we thought that it evaluate converges to was a
+that it evaluate converges to was a little bit too low and we actually used
+little bit too low and we actually used switch to like a different constant
+switch to like a different constant speed after a certain scale and you
+speed after a certain scale and you might think like oh that it's probably
+might think like oh that it's probably really crazy that's a really
+really crazy that's a really discontinuous acceleration that must
+discontinuous acceleration that must feel really bad but in reality like you
+feel really bad but in reality like you try it you fly around like there's so
+try it you fly around like there's so much things are happening you change the
+much things are happening you change the scale that's it's not that noticeable so
+scale that's it's not that noticeable so I thought that was a cool trick that
+I thought that was a cool trick that kind of just worked out and to
+kind of just worked out and to demonstrate so if you remember it was
+demonstrate so if you remember it was like this like gloob effect earlier when
+like this like gloob effect earlier when you find low and now we have kind of
+you find low and now we have kind of like it feels very natural like even
+like it feels very natural like even though like you saw the kerberos curve
+though like you saw the kerberos curve earlier is very nonlinear as of last
+earlier is very nonlinear as of last week we we launched a new version earth
+week we we launched a new version earth VR and we have this new mode called
+VR and we have this new mode called fixed human scale so instead of scaling
+fixed human scale so instead of scaling the user always having the feet on the
+the user always having the feet on the ground
+ground we have an now have an option to always
+we have an now have an option to always lock to users at human scale which means
+lock to users at human scale which means scales one which is this blue line you
+scales one which is this blue line you have it to the left and then the
+have it to the left and then the question is like okay what do we do
+question is like okay what do we do about flight speed now should we keep
+about flight speed now should we keep them at this like high five speed like
+them at this like high five speed like this was the highest room space flight
+this was the highest room space flight speed you had before but I think what
+speed you had before but I think what end up happening
+end up happening for very high altitudes you're basically
+for very high altitudes you're basically like not moving at all and it gets even
+like not moving at all and it gets even worse if you fly up to the clouds like
+worse if you fly up to the clouds like you can probably spend hours not getting
+you can probably spend hours not getting anywhere like you're moving in let's say
+anywhere like you're moving in let's say 9 meters per second but like that
+9 meters per second but like that doesn't really matter like if you
+doesn't really matter like if you compare that to a rocket ship or
+compare that to a rocket ship or something really fast so we needed
+something really fast so we needed something different we still wanted to
+something different we still wanted to think it had great value that you don't
+think it had great value that you don't fly too fast in this fixed human scale
+fly too fast in this fixed human scale mode we're at low altitudes because now
+mode we're at low altitudes because now it really give this like big it really
+it really give this like big it really gave this sense of scale like you really
+gave this sense of scale like you really feel like wow the planet is huge it
+feel like wow the planet is huge it actually takes me a while to get to
+actually takes me a while to get to places so we want to preserve that
+places so we want to preserve that somehow but still make it possible like
+somehow but still make it possible like up in high altitudes to travel faster we
+up in high altitudes to travel faster we ended up creating three regions one the
+ended up creating three regions one the first renu see here with the blue curve
+first renu see here with the blue curve stars this is this long linear region so
+stars this is this long linear region so we we slowly increase the flight speed
+we we slowly increase the flight speed in room space depending on the altitude
+in room space depending on the altitude and then we have the third region which
+and then we have the third region which is to the very like to be very far even
+is to the very like to be very far even even outside of this graph where we have
+even outside of this graph where we have a linear flight speed model which is
+a linear flight speed model which is pretty much the same as if you have this
+pretty much the same as if you have this scale always changing and constant speed
+scale always changing and constant speed in room space and then in the middle
+in room space and then in the middle region we blend between these two modes
+region we blend between these two modes the challenge here that we were
+the challenge here that we were struggling with we had this case like we
+struggling with we had this case like we had a pretty good idea how fast it
+had a pretty good idea how fast it should be near the ground and how fast
+should be near the ground and how fast it should be up in the clouds how do we
+it should be up in the clouds how do we make this feel very fluid so when you're
+make this feel very fluid so when you're like you dive down a flight flight
+like you dive down a flight flight downwards how do you make it feel
+downwards how do you make it feel natural so you don't end up in this a
+natural so you don't end up in this a new gluey region where it's like oh man
+new gluey region where it's like oh man like it's so much slower here and I
+like it's so much slower here and I think the finding findings were that the
+think the finding findings were that the longer the bigger you make this
+longer the bigger you make this transition region the less of this
+transition region the less of this effects you get so once you have all
+effects you get so once you have all these things in place you're flying
+these things in place you're flying around it feels great you can explore
+around it feels great you can explore anything in the world but it still
+anything in the world but it still doesn't feel like as immersive as we
+doesn't feel like as immersive as we wanted to we realized we need we need a
+wanted to we realized we need we need a rich soundscape that really sells this
+rich soundscape that really sells this idea of flying so ideally in an ideal
+idea of flying so ideally in an ideal world we we have this
+world we we have this location-based background sounds like
+location-based background sounds like wherever you go in the world you like
+wherever you go in the world you like you can just listen to the sound and you
+you can just listen to the sound and you know exactly where we are unfortunately
+know exactly where we are unfortunately this is kind of a hard problem because
+this is kind of a hard problem because it turns out this planet is very big and
+it turns out this planet is very big and we didn't really it was not really
+we didn't really it was not really feasible for our project so instead we
+feasible for our project so instead we developed these four location neutral
+developed these four location neutral sound that can work and we're divided
+sound that can work and we're divided them into four different regions so we
+them into four different regions so we have a ground region which is like
+have a ground region which is like things are very calm
+things are very calm birds chirp in the background then a
+birds chirp in the background then a second region like more higher up almost
+second region like more higher up almost close to the clouds like it's very windy
+close to the clouds like it's very windy it's like where the airplanes would go
+it's like where the airplanes would go by and then we have the atmosphere and
+by and then we have the atmosphere and space layer where things are much more
+space layer where things are much more bass is rumbling and then we take the
+bass is rumbling and then we take the users altitude and blend between these
+users altitude and blend between these background sounds based on the altitude
+background sounds based on the altitude and then finally we had here was it was
+and then finally we had here was it was it worked much better to take this
+it worked much better to take this altitude convert it into a logarithmic
+altitude convert it into a logarithmic space and then blend based on that value
+space and then blend based on that value we have this feature in earth we are we
+we have this feature in earth we are we the user can point at the Sun and drag
+the user can point at the Sun and drag it to change the time of the day and
+it to change the time of the day and this cost away for every of these level
+this cost away for every of these level of sounds we needed two versions one day
+of sounds we needed two versions one day version one night version and then we
+version one night version and then we would just blend between them depending
+would just blend between them depending on the time of the day so for the
+on the time of the day so for the initial launch when all of these things
+initial launch when all of these things were put together it looked and felt and
+were put together it looked and felt and sounded like a little bit like this
+I guess there's no sound but
+should we make sound effects herself
+[Music] okay and next up now Davi is gonna talk
+okay and next up now Davi is gonna talk a little bit more about two of our most
+a little bit more about two of our most recent major features we added to earth
+recent major features we added to earth fear Thank You pear hi everyone I'm the
+fear Thank You pear hi everyone I'm the Dove and I'm a virtual reality engineer
+Dove and I'm a virtual reality engineer on Google Earth VR and so parent Adam
+on Google Earth VR and so parent Adam talk to you guys a little bit about
+talk to you guys a little bit about getting the basics right for Google
+getting the basics right for Google Earth we are so navigation and the right
+Earth we are so navigation and the right field and we had this app we released
+field and we had this app we released this app last year and when we gave it
+this app last year and when we gave it to the hands of our users we notice the
+to the hands of our users we notice the first thing everyone wanted to try to do
+first thing everyone wanted to try to do is to go to their home or in the case of
+is to go to their home or in the case of the Bay Area they wanted to go to the
+the Bay Area they wanted to go to the home that they wish they could own
+home that they wish they could own anyways so a lot of our users maybe
+anyways so a lot of our users maybe cannot find their home directly just by
+cannot find their home directly just by flying to it so it would be nice if we
+flying to it so it would be nice if we could just give them a way to type in a
+could just give them a way to type in a query or their home address and to go to
+query or their home address and to go to that place so we're Google we're a
+that place so we're Google we're a search company search should be pretty
+search company search should be pretty easy for us right well we identified
+easy for us right well we identified three components that we wanted to get
+three components that we wanted to get right for search the first one was input
+right for search the first one was input and UI so figuring letting users enter a
+and UI so figuring letting users enter a query and easily selecting their
+query and easily selecting their destination then once he selected
+destination then once he selected destinations we wanted to make sure the
+destinations we wanted to make sure the users know exactly where they are in
+users know exactly where they are in space on that they selected the right
+space on that they selected the right place and finally we wanted to have a
+place and finally we wanted to have a search bin that always tells them where
+search bin that always tells them where their last search was so that if they
+their last search was so that if they lose their bearings while moving around
+lose their bearings while moving around they can quickly jump back to where they
+they can quickly jump back to where they were so we started with a keyboard
+were so we started with a keyboard exploration and this was actually quite
+exploration and this was actually quite challenging because at the time there
+challenging because at the time there was no good keyboard solution in virtual
+was no good keyboard solution in virtual reality
+reality there was the steamvr keyboard which we
+there was the steamvr keyboard which we actually started to use for prototyping
+actually started to use for prototyping and it was great for us initially
+and it was great for us initially because we wanted to quickly set up a
+because we wanted to quickly set up a prototype and test search and to end
+prototype and test search and to end however we found that we could not use
+however we found that we could not use it in the final
+it in the final version because it was not constant
+version because it was not constant customizable for our needs and it was
+customizable for our needs and it was also not available on oculus SDK which
+also not available on oculus SDK which we're planning on supporting at the time
+so this is where lullaby came in lullaby is an open-source library for building
+is an open-source library for building VR and AR apps it's developed internally
+VR and AR apps it's developed internally at Google and we use it for laying out
+at Google and we use it for laying out our UI and also for providing a keyboard
+our UI and also for providing a keyboard to the user that they can use to type in
+to the user that they can use to type in a search query and then we also show
+a search query and then we also show suggestions alongside it so that you can
+suggestions alongside it so that you can only you only have to type in a few
+only you only have to type in a few letters and find the destination that
+letters and find the destination that you're looking for and the great thing
+you're looking for and the great thing about this keyboard was that it was both
+about this keyboard was that it was both available in oculus and steamvr and it
+available in oculus and steamvr and it worked pretty well for our needs so now
+worked pretty well for our needs so now that the user is able to type in a query
+that the user is able to type in a query and select their destination we want to
+and select their destination we want to make sure that when we take them to that
+make sure that when we take them to that destination they know exactly where they
+destination they know exactly where they are and then they know that it's the
+are and then they know that it's the right place and the challenges here are
+right place and the challenges here are what is the best scale orientation and
+what is the best scale orientation and altitude that we need to take the user
+altitude that we need to take the user to to preserve their context and when
+to to preserve their context and when teleporting to a large area like Paris
+teleporting to a large area like Paris France or Yellowstone National Park we
+France or Yellowstone National Park we can do we can use the same solution that
+can do we can use the same solution that Google Maps on desktop uses where we
+Google Maps on desktop uses where we teleport the user we put the earth right
+teleport the user we put the earth right in front of you and we make the user
+in front of you and we make the user scale very big so they can see the large
+scale very big so they can see the large area of Paris or another area of
+area of Paris or another area of interest that they're looking for
+interest that they're looking for however in earth VR for smaller search
+however in earth VR for smaller search results we wanted to place the users
+results we wanted to place the users feet on the ground and that can be a big
+feet on the ground and that can be a big challenge because in Earth VR we can run
+challenge because in Earth VR we can run into areas that have uneven and
+into areas that have uneven and mountainous terrains and we also have
+mountainous terrains and we also have dense cities so we had to come up with a
+dense cities so we had to come up with a clever solution for this to ensure that
+clever solution for this to ensure that the user can always find where they're
+the user can always find where they're looking what they're looking for so we
+looking what they're looking for so we start with a basic scene we have a house
+start with a basic scene we have a house and we have some terrain around it and
+and we have some terrain around it and the first thing that we
+the first thing that we we found out was that it's important to
+we found out was that it's important to put the user about two meters away from
+put the user about two meters away from the place are looking at because two
+the place are looking at because two meters gave us a comfortable viewing
+meters gave us a comfortable viewing distance for the point of interest and
+distance for the point of interest and we also ensured that the users feet are
+we also ensured that the users feet are right on the ground so that they don't
+right on the ground so that they don't feel like they're intersecting with the
+feel like they're intersecting with the geometry or floating up in space then to
+geometry or floating up in space then to highlight the point of interest
+highlight the point of interest we add a search pin and we ensured that
+we add a search pin and we ensured that the users gaze towards the search bin is
+the users gaze towards the search bin is at 15 degrees down because that gives
+at 15 degrees down because that gives the the user a comfortable resting
+the the user a comfortable resting position for their eyes so now that we
+position for their eyes so now that we have the spin what do we do when the
+have the spin what do we do when the user moves around it so again the
+user moves around it so again the problem we're trying to solve with the
+problem we're trying to solve with the search pin is we wanted two people to
+search pin is we wanted two people to see exactly where their search was and
+see exactly where their search was and as they're moving around earth they'll
+as they're moving around earth they'll be able to come back to the last search
+be able to come back to the last search location if they've lost their bearings
+location if they've lost their bearings so we want to keep this pin in view
+so we want to keep this pin in view regardless of scale distance or whether
+regardless of scale distance or whether it gets hidden by buildings and terrain
+it gets hidden by buildings and terrain and we want to make sure that it's
+and we want to make sure that it's always legible and does not break
+always legible and does not break immersion to solve the problem of
+immersion to solve the problem of occlusion we came up with a solution
+occlusion we came up with a solution where we render the pin at two passes we
+where we render the pin at two passes we render the pin and a first pass with
+render the pin and a first pass with full opacity and with depth testing and
+full opacity and with depth testing and so that's what you see when the pin is
+so that's what you see when the pin is not occluded any buildings and we also
+not occluded any buildings and we also render a second pass with 50% opacity
+render a second pass with 50% opacity and without depth testing so that when
+and without depth testing so that when the pin gets occluded by buildings you
+the pin gets occluded by buildings you can still see it but fade it out a
+can still see it but fade it out a little bit which ensured that we don't
+little bit which ensured that we don't break too much immersion with a behavior
+break too much immersion with a behavior that you won't see in real life so what
+that you won't see in real life so what do we do about scaling the pin when we
+do we do about scaling the pin when we move further away from it or when we go
+move further away from it or when we go up and scale so we had we begin with a
+up and scale so we had we begin with a naive approach of just keeping a
+naive approach of just keeping a constant scale for the pin in world
+constant scale for the pin in world space and what happens when you scale up
+space and what happens when you scale up is
+is the pin starts to shrink a little bit
+the pin starts to shrink a little bit it's still visible in higher skills but
+it's still visible in higher skills but when we go all the way to planet scale
+when we go all the way to planet scale the pin can become very small and not
+the pin can become very small and not legible
+legible so we wanted to make sure that the pin
+so we wanted to make sure that the pin is still visible and legible even at
+is still visible and legible even at these far distances and high scales so
+these far distances and high scales so what we found was worked pretty well is
+what we found was worked pretty well is using a formula that uses the distance
+using a formula that uses the distance in world space between the searched pin
+in world space between the searched pin and the users head and we multiply that
+and the users head and we multiply that by some base scale in world space with
+by some base scale in world space with the dampening so that as you go further
+the dampening so that as you go further and further away from pin it still
+and further away from pin it still scales up and it still stays in view but
+scales up and it still stays in view but it does so more slowly so it still
+it does so more slowly so it still appears like it's getting further and
+appears like it's getting further and further away from you and this ensures
+further away from you and this ensures that we don't break immersion but we
+that we don't break immersion but we still keep the pin in view and the
+still keep the pin in view and the solution also works when we scale up the
+solution also works when we scale up the viewer
+so to recap all the things that we needed for search so these are the three
+needed for search so these are the three components that we really needed to get
+components that we really needed to get right in virtual reality we needed a
+right in virtual reality we needed a rock-solid text entry which was not
+rock-solid text entry which was not available that before for users to enter
+available that before for users to enter a query and select their destination as
+a query and select their destination as fast as possible
+fast as possible second we needed to take user to the
+second we needed to take user to the desired a point of interest at a
+desired a point of interest at a comfortable distance and a viewing angle
+comfortable distance and a viewing angle and we needed to make sure that the pin
+and we needed to make sure that the pin stays always visible so that as the user
+stays always visible so that as the user is moving around they know where their
+is moving around they know where their last search was and they can get their
+last search was and they can get their bearings that way so we had a launch for
+bearings that way so we had a launch for Earth we are exactly last week and we
+Earth we are exactly last week and we for that launch focused on enabling
+for that launch focused on enabling Street View which was another one of our
+Street View which was another one of our most requested features and we've
+most requested features and we've actually been thinking about Street View
+actually been thinking about Street View for a long time
+for a long time so in the summer of 2015 the earth VR
+so in the summer of 2015 the earth VR team went to see inside out by Pixar and
+team went to see inside out by Pixar and we saw the memory spheres and inside out
+we saw the memory spheres and inside out and we were really inspired to try to do
+and we were really inspired to try to do something with memories fears in virtual
+something with memories fears in virtual reality so we came up with a prototype
+reality so we came up with a prototype that uses photo spheres placed around
+that uses photo spheres placed around Manhattan and the users can move around
+Manhattan and the users can move around Manhattan point and click add a photo
+Manhattan point and click add a photo sphere and put it on top of their head
+sphere and put it on top of their head and view the entire full 360 photo we
+and view the entire full 360 photo we found it was a very compelling use case
+found it was a very compelling use case for photo spheres but we also thought
+for photo spheres but we also thought that our we also at the time we're
+that our we also at the time we're focusing on getting the the core
+focusing on getting the the core features of navigation in North VR so we
+features of navigation in North VR so we had to table these ideas for later but a
+had to table these ideas for later but a little bit about why Street View is
+little bit about why Street View is important for us is because a lot of
+important for us is because a lot of cities on earth VR do not actually have
+cities on earth VR do not actually have 3d data like tel-aviv here but the city
+3d data like tel-aviv here but the city does have Street View and it would be
+does have Street View and it would be awesome if the user can explore the city
+awesome if the user can explore the city using Street View rather than just
+using Street View rather than just looking at a flat satellite image even
+looking at a flat satellite image even in cities that do have a street view
+in cities that do have a street view like Paris for example we can still get
+like Paris for example we can still get a lot of a lot of value from jumping in
+a lot of a lot of value from jumping in a street view image because we can see
+a street view image because we can see the city at night
+the city at night and we can see the the people walking
+and we can see the the people walking around in that city and we believe that
+around in that city and we believe that it also provides a much more immersive
+it also provides a much more immersive and intimate experience so the two
+and intimate experience so the two components we identified for Street View
+components we identified for Street View to be really good in virtual reality
+to be really good in virtual reality were showing Street View availability so
+were showing Street View availability so telling the player when they will
+telling the player when they will actually be able to enter a street view
+actually be able to enter a street view panel and secondly we wanted to give
+panel and secondly we wanted to give users an intuitive and quick way to
+users an intuitive and quick way to enter and exit street view so we
+enter and exit street view so we anchored our initial explorations and
+anchored our initial explorations and prototyping in the solution that's in
+prototyping in the solution that's in Google Maps so Google Maps gives you
+Google Maps so Google Maps gives you coverage layers that show where Street
+coverage layers that show where Street View is available in blue and they give
+View is available in blue and they give you this Pegman they can just drop in a
+you this Pegman they can just drop in a place and enter the panel that's in that
+place and enter the panel that's in that location so we experimented with this in
+location so we experimented with this in Google Earth VR and we also tried to
+Google Earth VR and we also tried to enable entering shrevie using these
+enable entering shrevie using these coverage layers but we found two
+coverage layers but we found two non-trivial two problems with with these
+non-trivial two problems with with these coverage layers and one that it was
+coverage layers and one that it was non-trivial to overlay them on top of
+non-trivial to overlay them on top of the earth because the terrain is uneven
+the earth because the terrain is uneven and it can look pretty odd when you get
+and it can look pretty odd when you get up close to to the road and you see this
+up close to to the road and you see this this blue line around it and in places
+this blue line around it and in places that have a lot of 3d coverage it could
+that have a lot of 3d coverage it could get pretty pretty messy to render so
+get pretty pretty messy to render so many lines around you
+we're also inspired to try out the Pegman dropping gesture from maps
+that's all I'll say about that
+so we had to we have to go back to the drawing board and find a better solution
+drawing board and find a better solution for Street View and virtual reality so
+for Street View and virtual reality so what we found was the best experience
+what we found was the best experience was let's say we have a user standing
+was let's say we have a user standing around the city and they have their
+around the city and they have their controller with the the globe or map on
+controller with the the globe or map on their left hand and right now Street
+their left hand and right now Street View is not available because the user
+View is not available because the user is at a high scale so we have a
+is at a high scale so we have a threshold visualized in blue that once
+threshold visualized in blue that once the user goes below we show you a ripple
+the user goes below we show you a ripple effect notifying that Street View is
+effect notifying that Street View is available and then we also put a preview
+available and then we also put a preview of your street view that's showing up
+of your street view that's showing up right below your feet so you can see a
+right below your feet so you can see a quick video of how this works here all
+quick video of how this works here all right the user is flying down and as
+right the user is flying down and as they go below the threshold we pop up a
+they go below the threshold we pop up a street view preview and as the
+street view preview and as the user flies out of the street view we
+user flies out of the street view we show an icon to display that it's
+show an icon to display that it's unavailable for entering street view we
+unavailable for entering street view we first tried letting the user to hold the
+first tried letting the user to hold the bubble point at it with their right hand
+bubble point at it with their right hand and then pull the trigger to enter we
+and then pull the trigger to enter we found that that was a pretty easy way to
+found that that was a pretty easy way to enter an exit street view but our users
+enter an exit street view but our users didn't intuitively understand this
+didn't intuitively understand this gesture what they tried to do is take
+gesture what they tried to do is take the bubble and put it directly on top of
+the bubble and put it directly on top of their head just like the photospheres
+their head just like the photospheres demo that I showed you earlier
+demo that I showed you earlier so we Lisa we listened to our user
+so we Lisa we listened to our user feedback and we implemented this gesture
+feedback and we implemented this gesture that allows the user just to quickly put
+that allows the user just to quickly put street view over their head and then to
+street view over their head and then to pull it out when they want to exit to
+summarize these were the two components that were really important for Street
+that were really important for Street View and Earth VR the first one
+View and Earth VR the first one notifying the user that Street View is
+notifying the user that Street View is available on their left controller and
+available on their left controller and showing a preview of the street view on
+showing a preview of the street view on their left hand so that they can choose
+their left hand so that they can choose whether they want to enter or just skip
+whether they want to enter or just skip Curren review panel and secondly we
+Curren review panel and secondly we needed to provide the intuitive pika
+needed to provide the intuitive pika gesture of putting the bubble on top of
+gesture of putting the bubble on top of their head and removing it so that they
+their head and removing it so that they can do so very quickly and thank you
+can do so very quickly and thank you very much for coming to this talk and
+very much for coming to this talk and listening test and we'll also do a Q&A
+listening test and we'll also do a Q&A now and if you want to come up to the
+now and if you want to come up to the mic and speak to the microphone we'd
+mic and speak to the microphone we'd love to answer your questions
+hi guys great talk I had a question when you were doing user testing how did you
+you were doing user testing how did you quantitatively measure user comfort and
+quantitatively measure user comfort and discomfort with the various UX
+discomfort with the various UX components does that work okay yes so
+components does that work okay yes so the question was how do we how do we
+the question was how do we how do we test for discomfort
+test for discomfort well like but the before even testing we
+well like but the before even testing we needed to recruit people and we needed
+needed to recruit people and we needed to understand sort of their typical
+to understand sort of their typical level of discomfort so we asked
+level of discomfort so we asked questions like when you're on a bus and
+questions like when you're on a bus and you're working do you get sick or you
+you're working do you get sick or you get sick when you're flying and boating
+get sick when you're flying and boating and so we we did as much pre questions
+and so we we did as much pre questions as we could to sort of screen you know
+as we could to sort of screen you know is this a person that typically gets
+is this a person that typically gets sick and we actually isolated studies
+sick and we actually isolated studies where we had people large groups of
+where we had people large groups of people that weren't susceptible to
+people that weren't susceptible to sickness and large groups that we knew
+sickness and large groups that we knew were extreme candidates and then we
+were extreme candidates and then we would do things like like when we were
+would do things like like when we were experimenting with tunnel vision we
+experimenting with tunnel vision we would have like tests where we make them
+would have like tests where we make them fly down a street with buildings flying
+fly down a street with buildings flying by and basically like put them in the
+by and basically like put them in the worst case scenarios I'm not exactly
+worst case scenarios I'm not exactly sure like what the researchers did to
+sure like what the researchers did to mark down what happened beyond just like
+mark down what happened beyond just like is the user feeling sick or not but they
+is the user feeling sick or not but they did they did follow up with them you
+did they did follow up with them you know during the study after the study
+know during the study after the study and then like a few hours after the
+and then like a few hours after the study and even the next day because
+study and even the next day because sometimes the
+sometimes the Effects of VR don't manifest themselves
+Effects of VR don't manifest themselves till you know they leave the room and
+till you know they leave the room and then they go back to work and they're
+then they go back to work and they're like oh man
+like oh man like a headache so it took a lot of work
+like a headache so it took a lot of work I think that was probably the hardest
+I think that was probably the hardest part for that this may not be the right
+part for that this may not be the right question for the devs but what is the
+question for the devs but what is the licensing we create school curriculum
+licensing we create school curriculum what's the licensing for use of this in
+what's the licensing for use of this in a type of a product can you guys say can
+a type of a product can you guys say can you can you clarify you're asking about
+you can you clarify you're asking about the licensing firstly we do one of the
+the licensing firstly we do one of the things our field trips virtual field
+things our field trips virtual field trips to Kittyhawk or the you know
+trips to Kittyhawk or the you know redwood forest instead of just having a
+redwood forest instead of just having a field trip there with a 360 camera it
+field trip there with a 360 camera it would be cool to intro that by coming in
+would be cool to intro that by coming in from above landing there and then doing
+from above landing there and then doing the virtual field trip on location so
+the virtual field trip on location so currently we don't have like an open
+currently we don't have like an open license or way for developers to use
+license or way for developers to use this but it's something we're really
+this but it's something we're really interested in I know Google has filed
+interested in I know Google has filed some patents on some of the UX that
+some patents on some of the UX that they're developing in VR I'm wondering
+they're developing in VR I'm wondering if you guys what you guys feel about
+if you guys what you guys feel about that if it should be something where if
+that if it should be something where if you found something that really works
+you found something that really works that it should only work for your
+that it should only work for your company or oh yeah not at all
+company or oh yeah not at all Google files patents that are defensive
+Google files patents that are defensive so we're not interested in blocking
+so we're not interested in blocking other companies from using these things
+other companies from using these things which is why we're sharing this stuff
+which is why we're sharing this stuff and we hope that you guys can learn from
+and we hope that you guys can learn from it and build on it
+um having used OVR for a while I found it to be a really wonderful experience
+it to be a really wonderful experience I'm just wondering what you guys as the
+I'm just wondering what you guys as the devs think of the future applications
+devs think of the future applications for this particular product like what do
+for this particular product like what do you want Google Earth VR to be in two
+you want Google Earth VR to be in two years from now it's a very loaded
+years from now it's a very loaded question with a great one too
+we have a lot of ideas we're still trying to figure out our direction as
+trying to figure out our direction as well as we go we're always trying new
+well as we go we're always trying new things we're always experimenting with
+things we're always experimenting with new ways that earth can be in VR testing
+new ways that earth can be in VR testing process you said you recruited people so
+process you said you recruited people so were they various levels of expertise as
+were they various levels of expertise as far as computer use yeah yeah during the
+far as computer use yeah yeah during the recruiting we we would also screen for
+recruiting we we would also screen for like experience with gaming and VR you
+like experience with gaming and VR you know so we had a checklist like have you
+know so we had a checklist like have you tried cardboard or gear VR or your dk1
+tried cardboard or gear VR or your dk1 or you know that sort of thing so yeah
+or you know that sort of thing so yeah so that was part of our one way that we
+so that was part of our one way that we sort of we're more sure about our
+sort of we're more sure about our findings you know in terms of like help
+findings you know in terms of like help how experienced people work great and to
+how experienced people work great and to just springboard off that what size of a
+just springboard off that what size of a pool for like a prototype would you find
+pool for like a prototype would you find okay this like this size pool gave me
+okay this like this size pool gave me useful data on a prototype whether it
+useful data on a prototype whether it was working or not working yeah so I
+was working or not working yeah so I mean if you've ever done a user study
+mean if you've ever done a user study like you can you could bring in like
+like you can you could bring in like four or five people and if they're all
+four or five people and if they're all you know throwing off the headset or
+you know throwing off the headset or getting frustrated you know you've done
+getting frustrated you know you've done something wrong so you know sometimes
+something wrong so you know sometimes we'd try things and we just immediately
+we'd try things and we just immediately know we got it wrong and then the next
+know we got it wrong and then the next day we had people queued up we would
+day we had people queued up we would tweak stuff that night and try things
+tweak stuff that night and try things out so some iterations were much quicker
+out so some iterations were much quicker and then some were much slower where
+and then some were much slower where everything we were trying wasn't working
+everything we were trying wasn't working or it was subtle we weren't sure where
+or it was subtle we weren't sure where things were breaking and for those we
+things were breaking and for those we ended up having to do longer term
+ended up having to do longer term studies
+studies over months hey guys cool stuff thanks
+over months hey guys cool stuff thanks for sharing
+for sharing you know I've observed the same thing as
+you know I've observed the same thing as you which is a lot of people go view
+you which is a lot of people go view their own home or places they've lived
+their own home or places they've lived as a first experience and I think that's
+as a first experience and I think that's awesome and building on that I feel like
+awesome and building on that I feel like making this experience more personal to
+making this experience more personal to individuals would be like a really
+individuals would be like a really important thing to do moving forward and
+important thing to do moving forward and so like I just want to give you an idea
+so like I just want to give you an idea I do a lot of mountaineering and I have
+I do a lot of mountaineering and I have a decade worth of my GPS tracks that I
+a decade worth of my GPS tracks that I use a lot on desktop Google VR or Google
+use a lot on desktop Google VR or Google Earth so I was just wondering you know
+Earth so I was just wondering you know are you thinking about supporting KML or
+are you thinking about supporting KML or GPX file formats and when or okay here's
+GPX file formats and when or okay here's another one
+another one how about live location data from like I
+how about live location data from like I want to see where my wife is right now
+want to see where my wife is right now thank you not sure about the song yeah
+thank you not sure about the song yeah not sure about the last one but I think
+not sure about the last one but I think supporting KML data it's like have been
+supporting KML data it's like have been brought up before it's just been more of
+brought up before it's just been more of like prioritize prioritizing things it's
+like prioritize prioritizing things it's cool I think in some cases like we
+cool I think in some cases like we thought that Street View was cooler for
+thought that Street View was cooler for the time being and now we have just have
+the time being and now we have just have sit down like okay what's next what do
+sit down like okay what's next what do we do we're not sure but I think it's
+we do we're not sure but I think it's great great suggestions hi guys yes
+great great suggestions hi guys yes thanks for the talk yeah Google Earth is
+thanks for the talk yeah Google Earth is also for me one of the best experience
+also for me one of the best experience super intuitive when I tried it last
+super intuitive when I tried it last year with my colleagues we tried one by
+year with my colleagues we tried one by one and we could see you know with the
+one and we could see you know with the screen what is doing the person who is
+screen what is doing the person who is in via so my question will be do you
+in via so my question will be do you have in mind to maybe make it like
+have in mind to maybe make it like social directly multi it said with two
+social directly multi it said with two or more people at the same time
+I think that's a really cool idea once again it's a lot of like our the base of
+again it's a lot of like our the base of application is built in native so like
+application is built in native so like we have all these great ideas it's we
+we have all these great ideas it's we just some things takes longer than
+just some things takes longer than others and we just have to kind of like
+others and we just have to kind of like rank them and like how important they
+rank them and like how important they are like I think I've heard it earlier
+are like I think I've heard it earlier before is it sounds awesome
+before is it sounds awesome like I would love to sit in front of a
+like I would love to sit in front of a computer and maybe like take whoever's
+computer and maybe like take whoever's in the headsets doing tours or something
+in the headsets doing tours or something like that I think it's would be great hi
+like that I think it's would be great hi so first of all it's like the other
+so first of all it's like the other people said spectacular work it's it's a
+people said spectacular work it's it's a killer app everybody loves it so Bravo
+killer app everybody loves it so Bravo two questions on the the tunnel vision I
+two questions on the the tunnel vision I believe you called it a feature that you
+believe you called it a feature that you did you said that 15 enough it was
+did you said that 15 enough it was enough to give about 15 percent of the
+enough to give about 15 percent of the the visible pixels kind of view of the
+the visible pixels kind of view of the grid of the floor to let people ground
+grid of the floor to let people ground themselves some of the views you showed
+themselves some of the views you showed were kind of pre-distortion verse after
+were kind of pre-distortion verse after so was that of the total or was there
+so was that of the total or was there also kind of a blacking out that was
+also kind of a blacking out that was also being done oh yeah in the examples
+also being done oh yeah in the examples I showed I did I blacked out to simulate
+I showed I did I blacked out to simulate more what it looks like when you're
+more what it looks like when you're looking in the other screenshots or
+looking in the other screenshots or screen recordings they were from the the
+screen recordings they were from the the view that's shown on Windows okay and
+view that's shown on Windows okay and that doesn't have any blackout so it
+that doesn't have any blackout so it looks like a lot more but when you're
+looks like a lot more but when you're looking through you're actually only
+looking through you're actually only seeing this little trim okay and so but
+seeing this little trim okay and so but effectively that's the end the end
+effectively that's the end the end result you were simulant yeah okay and
+result you were simulant yeah okay and then the second question was with
+then the second question was with regards to the you know all of the
+regards to the you know all of the controller schemes you showed were using
+controller schemes you showed were using the vive controller and you talked about
+the vive controller and you talked about wanting to support oculus there's a ton
+wanting to support oculus there's a ton of people working on other controllers
+of people working on other controllers and gloves and all kinds of stuff have
+and gloves and all kinds of stuff have you thought about organs for these one
+you thought about organs for these one at a time have you thought about making
+at a time have you thought about making it kind of taking your set of functions
+it kind of taking your set of functions and then providing a way for people to
+and then providing a way for people to map them to other controllers you
+map them to other controllers you haven't thought of yeah we I mean we we
+haven't thought of yeah we I mean we we could provide a mapping file that people
+could provide a mapping file that people could do but like to get the you know to
+could do but like to get the you know to make it intuitive for people to just
+make it intuitive for people to just grab a controller and look down
+grab a controller and look down see tooltips and all this stuff we have
+see tooltips and all this stuff we have to do custom work for each one like just
+to do custom work for each one like just doing oculus was pretty different we had
+doing oculus was pretty different we had to rethink how things were mapped you
+to rethink how things were mapped you even had to tweak the controller model a
+even had to tweak the controller model a little bit to make it more intuitive so
+little bit to make it more intuitive so we'd like to support everything but
+we'd like to support everything but we're just currently just on track to
+we're just currently just on track to support the major ones that people are
+support the major ones that people are using okay thanks yeah just one more
+using okay thanks yeah just one more thing about the the tunnel vision size
+thing about the the tunnel vision size the the size we picked was a little bit
+the the size we picked was a little bit larger than what we actually needed and
+larger than what we actually needed and that's because when people have glasses
+that's because when people have glasses in the headset or with some headsets you
+in the headset or with some headsets you could push the screen a little further
+could push the screen a little further away from your eyes so when you had it
+away from your eyes so when you had it at that max setting you couldn't see it
+at that max setting you couldn't see it but if we you know in the future
+but if we you know in the future potentially we can control that a little
+potentially we can control that a little bit better or maybe even know what
+bit better or maybe even know what setting that's at we could even reduce
+setting that's at we could even reduce tunnel vision quite a bit more so yeah
+tunnel vision quite a bit more so yeah hi sherry so Google released the AR core
+hi sherry so Google released the AR core a few weeks ago so I'm wondering if you
+a few weeks ago so I'm wondering if you are currently designing the UX for the
+are currently designing the UX for the AR or mixer reality if not so what are
+AR or mixer reality if not so what are the main challenges or problems you are
+the main challenges or problems you are anticipating regarding to designing for
+anticipating regarding to designing for that part it's something that we would
+that part it's something that we would like to do we have experiments where
+like to do we have experiments where we've we've brought earth into unity and
+we've we've brought earth into unity and tried things like this out so it's not
+tried things like this out so it's not particularly difficult but so it's
+particularly difficult but so it's something that we're really interested
+something that we're really interested in
+cool thank you very much for coming [Applause]

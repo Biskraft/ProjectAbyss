@@ -1,0 +1,1269 @@
+[Music]
+hello and welcome to rocket league scaling for free to play my name is
+scaling for free to play my name is matthew sanders and i'm a lead online
+matthew sanders and i'm a lead online services engineer with psionics i'm
+services engineer with psionics i'm giving this talk because i was
+giving this talk because i was responsible for coordinating the back
+responsible for coordinating the back end preparation for transitioning rocket
+end preparation for transitioning rocket league to free to play
+league to free to play [Music]
+[Music] let's start by talking about my team and
+let's start by talking about my team and quickly covering the scope of the
+quickly covering the scope of the problem
+problem what does the online services team do at
+what does the online services team do at psionics
+psionics we are responsible for all game related
+we are responsible for all game related databases web services and some websites
+databases web services and some websites this includes the software development
+this includes the software development and devops deployments for all of them
+and devops deployments for all of them and what is free to play
+and what is free to play just like it sounds the plan was for
+just like it sounds the plan was for rocket league to drop its price tag
+rocket league to drop its price tag this lower barrier to entry was expected
+this lower barrier to entry was expected to bring in lots of players that didn't
+to bring in lots of players that didn't want to or couldn't pay the sticker
+want to or couldn't pay the sticker price
+price all right so just scale up the back end
+all right so just scale up the back end to accommodate more players right
+to accommodate more players right well this change could ask our back end
+well this change could ask our back end to handle an order of magnitude more
+to handle an order of magnitude more traffic
+traffic we had gotten to know our back end very
+we had gotten to know our back end very well since its original launch in 2015
+well since its original launch in 2015 and therefore we knew immediately that
+and therefore we knew immediately that significant improvements would be needed
+significant improvements would be needed as we'll see in this talk after nearly a
+as we'll see in this talk after nearly a year of preparation
+year of preparation we did see a huge increase in player
+we did see a huge increase in player traffic but we were rather well prepared
+traffic but we were rather well prepared for it and had a successful free-to-play
+for it and had a successful free-to-play relaunch
+to describe rocket league's journey to free to play we'll discuss it in three
+free to play we'll discuss it in three parts
+parts part one is about planning and
+part one is about planning and preparation
+preparation we'll briefly cover setting up new
+we'll briefly cover setting up new partnerships along with some methods of
+partnerships along with some methods of analysis
+analysis and then load testing to figure out what
+and then load testing to figure out what improvements were needed the most
+improvements were needed the most part two is where we'll discuss our
+part two is where we'll discuss our scaling improvements in more detail
+scaling improvements in more detail finally in part three we'll discuss the
+finally in part three we'll discuss the launch experience and the new normal
+launch experience and the new normal that has developed since then
+let's dive right into part one planning and preparation
+now what shall we talk about we went through a lot of different
+we went through a lot of different planning and preparation
+planning and preparation and it spent a lot of our calendar time
+and it spent a lot of our calendar time but here we'll cover just a few areas
+but here we'll cover just a few areas first up
+first up our analysis tasks mostly revolved
+our analysis tasks mostly revolved around trying to figure out what to
+around trying to figure out what to expect
+expect we spent some time with load projections
+we spent some time with load projections to figure out what player population
+to figure out what player population levels we might see
+levels we might see and we also spent time analyzing our
+and we also spent time analyzing our architecture to set up a backlog of
+architecture to set up a backlog of potential issues
+potential issues next our partnerships are definitely
+next our partnerships are definitely worth discussing
+worth discussing we lined up several support contracts
+we lined up several support contracts ranging from simple ticket-based support
+ranging from simple ticket-based support to much tighter working relationships
+to much tighter working relationships that directly helped us prepare for the
+that directly helped us prepare for the launch
+launch finally we'll talk about load testing
+finally we'll talk about load testing and how it fit into this project
+let's start with load projections how many new players will be brought in
+how many new players will be brought in by going free to play
+by going free to play it might seem hard to divine but there
+it might seem hard to divine but there are techniques
+are techniques one of the best ways is to find a
+one of the best ways is to find a comparable game release that's similar
+comparable game release that's similar to yours unfortunately rocket league is
+to yours unfortunately rocket league is a multi-console sort of sport sort of
+a multi-console sort of sport sort of action game with rockets
+action game with rockets so there were no incredibly close
+so there were no incredibly close comparisons available
+comparisons available ultimately we settled on an increase of
+ultimately we settled on an increase of three to five times our current scale
+three to five times our current scale we use the upper end of this projection
+we use the upper end of this projection as our load testing target we'll cover
+as our load testing target we'll cover much more on this load testing later
+next let's talk about our architecture evaluation what did we do to evaluate
+evaluation what did we do to evaluate our architecture
+our architecture we wrote up a thorough description of
+we wrote up a thorough description of how each component works and called out
+how each component works and called out any scalability risks in its design
+any scalability risks in its design those risks went into the backlog
+those risks went into the backlog destined for validation via load testing
+destined for validation via load testing as we worked on the first few we worked
+as we worked on the first few we worked out a template for consistency and reuse
+out a template for consistency and reuse this documentation actually made good
+this documentation actually made good reusable training material
+reusable training material we also added a peer review step for
+we also added a peer review step for each write-up
+each write-up we have peer reviews for most steps of
+we have peer reviews for most steps of our sdlc including documentation
+our sdlc including documentation so this was no exception to that
+so this was no exception to that we also wrote up an audit of our source
+we also wrote up an audit of our source control repositories to help make sure
+control repositories to help make sure we didn't miss evaluating any of our
+we didn't miss evaluating any of our products
+products these evaluations were pretty
+these evaluations were pretty straightforward but the whole exercise
+straightforward but the whole exercise took a while to get through since we had
+took a while to get through since we had a few dozen components that we wanted to
+a few dozen components that we wanted to evaluate
+now let's talk about our partnerships from very early on we knew we wanted to
+from very early on we knew we wanted to line up the best possible external
+line up the best possible external support we don't have a huge engineering
+support we don't have a huge engineering staff so we wanted to augment with
+staff so we wanted to augment with dedicated experts wherever possible
+dedicated experts wherever possible the primary intent of signing support
+the primary intent of signing support contracts was to be able to summon
+contracts was to be able to summon expert specialists at a moment's notice
+expert specialists at a moment's notice we quickly noticed that having
+we quickly noticed that having specialists on call like this is
+specialists on call like this is actually pretty expensive
+actually pretty expensive but our thought process was
+but our thought process was if the expert help reduces our downtime
+if the expert help reduces our downtime at all it would quickly pay for itself
+at all it would quickly pay for itself by restoring our revenue stream sooner
+by restoring our revenue stream sooner the first company we have to talk about
+the first company we have to talk about is google
+is google our back end has always run on gcp so we
+our back end has always run on gcp so we already had a working relationship and a
+already had a working relationship and a support contract
+support contract that said after discussing our upcoming
+that said after discussing our upcoming release with them we decided to take
+release with them we decided to take advantage of some of their additional
+advantage of some of their additional programs such as cre and gtla
+programs such as cre and gtla next we wanted to augment our in-house
+next we wanted to augment our in-house dba expertise
+dba expertise percona are the mysql experts so it made
+percona are the mysql experts so it made sense to sign up for their support
+sense to sign up for their support service
+service especially because we use pracona server
+especially because we use pracona server which is percona's own flavor of mysql
+which is percona's own flavor of mysql finally redis labs was a new addition
+finally redis labs was a new addition we were running some open source redis
+we were running some open source redis clusters but that has no formal support
+clusters but that has no formal support we got in touch with redis labs and
+we got in touch with redis labs and started migration to redis enterprise
+started migration to redis enterprise this got us support but it also
+this got us support but it also offloaded a lot of devops work by using
+offloaded a lot of devops work by using their new managed offering in gcp
+their new managed offering in gcp bringing on these companies was like
+bringing on these companies was like buying insurance it gave us a lot of
+buying insurance it gave us a lot of confidence that we'd be able to deal
+confidence that we'd be able to deal with scaling issues during the release
+with scaling issues during the release but it also presented a golden
+but it also presented a golden opportunity to leverage their expertise
+opportunity to leverage their expertise during our planning and development
+during our planning and development phases too
+we took advantage of our support partnerships immediately in the form of
+partnerships immediately in the form of several different types of exercises
+several different types of exercises one handy exercise was called the
+one handy exercise was called the pre-mortem this is similar to a
+pre-mortem this is similar to a postmortem but predictive instead of
+postmortem but predictive instead of retrospective
+retrospective basically you just get your whole team
+basically you just get your whole team together and brainstorm possible causes
+together and brainstorm possible causes of outages based on what you know about
+of outages based on what you know about your systems
+your systems score each idea with severity and
+score each idea with severity and likelihood then multiply those scores
+likelihood then multiply those scores together for stack rank
+together for stack rank this stack rank helps guide which
+this stack rank helps guide which problems you should focus on
+problems you should focus on items near the bottom of the list are
+items near the bottom of the list are most likely not worth your time since
+most likely not worth your time since they'll be either low severity or
+they'll be either low severity or unlikely to occur
+unlikely to occur another exercise from google was for
+another exercise from google was for resource planning
+resource planning since we were not a new game launch we
+since we were not a new game launch we already had a firm baseline of resource
+already had a firm baseline of resource usage including cpu cores memory and
+usage including cpu cores memory and disk across all different gcp services
+disk across all different gcp services that we were using
+that we were using our load projection that we mentioned
+our load projection that we mentioned earlier gave us a times five multiplier
+earlier gave us a times five multiplier which then yielded our projected
+which then yielded our projected resource usage
+resource usage this resource plan was directly useful
+this resource plan was directly useful in two ways the first was to get our
+in two ways the first was to get our quotas increased preemptively
+quotas increased preemptively and the second was to give the affected
+and the second was to give the affected gcp zones plenty of lead time to make
+gcp zones plenty of lead time to make sure they have enough hardware for our
+sure they have enough hardware for our increased scale
+increased scale hardware usage can often be ignored or
+hardware usage can often be ignored or forgotten under all the abstraction in
+forgotten under all the abstraction in this age of cloud services
+this age of cloud services but if our services are suddenly scaling
+but if our services are suddenly scaling up by a factor of five it's only
+up by a factor of five it's only courteous to give this heads up
+courteous to give this heads up besides google we also talked to redis
+besides google we also talked to redis labs quite a lot
+labs quite a lot we had several technical q a sessions
+we had several technical q a sessions before even deciding to commit to redis
+before even deciding to commit to redis enterprise where we learned about the
+enterprise where we learned about the specific advantages it offers
+specific advantages it offers they would also support us during our
+they would also support us during our database migrations later
+this brings us to load testing this was the most
+this was the most important feature of our entire release
+important feature of our entire release cycle and it's not even a player-facing
+cycle and it's not even a player-facing feature
+feature our original intent was just to use it
+our original intent was just to use it as a research tool to figure out what
+as a research tool to figure out what needs improvement
+needs improvement but it ended up with far more uses and
+but it ended up with far more uses and was massively underestimated
+was massively underestimated writing load tests was unique compared
+writing load tests was unique compared to the rest of our code base they're
+to the rest of our code base they're totally different from writing services
+totally different from writing services so we got almost no reuse from our
+so we got almost no reuse from our existing code base
+existing code base load testing was also expensive both in
+load testing was also expensive both in engineering hours to write
+engineering hours to write and just running our load test
+and just running our load test environment
+environment this environment contained our full set
+this environment contained our full set of services and was necessarily scaled
+of services and was necessarily scaled up beyond our production environment in
+up beyond our production environment in order to handle our times 5 load
+order to handle our times 5 load projection
+projection lastly for the load tests they were hard
+lastly for the load tests they were hard to get right because it took both
+to get right because it took both research and iteration to get the client
+research and iteration to get the client requests simulated realistically
+requests simulated realistically we wanted to get the request patterns to
+we wanted to get the request patterns to match which involved calling them in the
+match which involved calling them in the right sequence and with the right timing
+right sequence and with the right timing and we also wanted the request volumes
+and we also wanted the request volumes to match which involved tuning the
+to match which involved tuning the weighting of how often each service was
+weighting of how often each service was called
+called once the scope of this work became clear
+once the scope of this work became clear we realized we're going to have to level
+we realized we're going to have to level up our load testing so we made load
+up our load testing so we made load testing one of our primary focuses as we
+testing one of our primary focuses as we continued into major feature development
+so we continued upgrading our load test code base now as full-fledged feature
+code base now as full-fledged feature development
+development we already had some engineering work
+we already had some engineering work invested in locust and after evaluating
+invested in locust and after evaluating some other frameworks we stayed
+some other frameworks we stayed committed to it
+committed to it in particular we wanted to make sure the
+in particular we wanted to make sure the framework we used supported websockets
+framework we used supported websockets which eliminated many other frameworks
+which eliminated many other frameworks also it ran in kubernetes which is
+also it ran in kubernetes which is another plus for us
+another plus for us the one relative downside was that it's
+the one relative downside was that it's written in python and we have almost no
+written in python and we have almost no other python code amongst our services
+other python code amongst our services a quick note on terminology locus scales
+a quick note on terminology locus scales up by hatching locusts where one locus
+up by hatching locusts where one locus simulates one client
+simulates one client as we started writing and running tests
+as we started writing and running tests we felt out several different practical
+we felt out several different practical aspects of load testing
+aspects of load testing the first was that our tests were
+the first was that our tests were growing in size worthy of the term new
+growing in size worthy of the term new code base
+code base orchestrating this many tests required
+orchestrating this many tests required its own debugging sometimes even to make
+its own debugging sometimes even to make sure the framework is working properly
+sure the framework is working properly one notable gap in our original design
+one notable gap in our original design was that our locusts did not coordinate
+was that our locusts did not coordinate they simply generated randomized data
+they simply generated randomized data for their test runs
+for their test runs running certain test suites was
+running certain test suites was generating far too many validation
+generating far too many validation warnings
+warnings this was a big problem because while the
+this was a big problem because while the call volume might be correct
+call volume might be correct the work done by each service call would
+the work done by each service call would be completely inaccurate
+be completely inaccurate for example most validation warnings
+for example most validation warnings cause our services to return an error
+cause our services to return an error without even hitting our database
+without even hitting our database our solution was to set up an
+our solution was to set up an independent redis database just for
+independent redis database just for coordination of test data
+coordination of test data locusts would then register themselves
+locusts would then register themselves and some of their actions similar to how
+and some of their actions similar to how players coordinate in the real world
+players coordinate in the real world this led us query for active player ids
+this led us query for active player ids and other sensible inputs to reduce
+and other sensible inputs to reduce those validation warnings and thus
+those validation warnings and thus exercise our services more accurately
+exercise our services more accurately having to stand up this new redis
+having to stand up this new redis database and write the related queries
+database and write the related queries and coordination code is just a classic
+and coordination code is just a classic example of how the scope of our load
+example of how the scope of our load tests grew quite unexpectedly
+another big issue we found was that running load tests had multiple heavy
+running load tests had multiple heavy time costs
+time costs the first was that scaling up a test
+the first was that scaling up a test took much longer than we were expecting
+took much longer than we were expecting proportional to the scale of the test
+proportional to the scale of the test being run
+being run for example it was common for us to run
+for example it was common for us to run a million locusts and our stable hatch
+a million locusts and our stable hatch rate was a thousand locusts per second
+rate was a thousand locusts per second some quick math shows that it's going to
+some quick math shows that it's going to take a thousand seconds or nearly 17
+take a thousand seconds or nearly 17 minutes
+minutes that's a hefty commitment for one test
+that's a hefty commitment for one test run so what should we do about it
+run so what should we do about it we could figure out how to stabilize a
+we could figure out how to stabilize a higher hatch rate
+higher hatch rate but that's another whole engineering
+but that's another whole engineering problem and less more development time
+problem and less more development time to spend
+to spend we were content to pay this time cost
+we were content to pay this time cost because we could just multitask while
+because we could just multitask while waiting since our locus deployment runs
+waiting since our locus deployment runs entirely in the cloud
+entirely in the cloud this hatch rate was actually also
+this hatch rate was actually also realistic since it roughly matched our
+realistic since it roughly matched our target player authentication rates
+target player authentication rates anyway
+anyway scaling up more quickly than this could
+scaling up more quickly than this could actually make each test less realistic
+actually make each test less realistic the next big time cost we found was the
+the next big time cost we found was the run time
+run time once the test was running at full scale
+once the test was running at full scale was it just an immediate pass fail or
+was it just an immediate pass fail or should we let it run for a while
+should we let it run for a while given the ramp up time the latter was
+given the ramp up time the latter was definitely our preference
+definitely our preference longer runs helped reveal non-obvious
+longer runs helped reveal non-obvious issues such as resource leaks
+issues such as resource leaks and running semi-randomized tests for
+and running semi-randomized tests for longer help test more input combinations
+longer help test more input combinations now the scale up time and the run time
+now the scale up time and the run time combine to form one test iteration
+combine to form one test iteration as multiple iterations are run of course
+as multiple iterations are run of course this time stacks
+this time stacks we ran many experiments using this
+we ran many experiments using this iterative testing with our load tests
+iterative testing with our load tests and they were incredibly useful for
+and they were incredibly useful for experimental performance tuning
+experimental performance tuning but they paid this heavy cost in time
+speaking of experiments part of each iteration was gathering the
+part of each iteration was gathering the results
+results as i mentioned our load tests were not
+as i mentioned our load tests were not just pass fail so what did we look at
+just pass fail so what did we look at locust reports http response codes in
+locust reports http response codes in aggregate but we also reviewed our
+aggregate but we also reviewed our services logs and looked at our
+services logs and looked at our stackdriver dashboards with many metrics
+stackdriver dashboards with many metrics plotted over time
+plotted over time the goal was to determine what what
+the goal was to determine what what errors the locusts were receiving
+errors the locusts were receiving if the services had unusual warnings or
+if the services had unusual warnings or errors in their logs
+errors in their logs and of course what the resources used to
+and of course what the resources used to look like for our services and databases
+look like for our services and databases now that we were gathering test results
+now that we were gathering test results how sure were we that the testing was
+how sure were we that the testing was accurate how accurately and completely
+accurate how accurately and completely did we simulate our clients
+did we simulate our clients we started with plenty of knowledge
+we started with plenty of knowledge about the global volumes of our service
+about the global volumes of our service calls and we definitely studied the call
+calls and we definitely studied the call patterns of real clients
+patterns of real clients but in the end our load tests were still
+but in the end our load tests were still just a simulation of real traffic
+just a simulation of real traffic the biggest intentional difference is
+the biggest intentional difference is that our real clients call hundreds of
+that our real clients call hundreds of different services
+different services and it was prohibited for us to simulate
+and it was prohibited for us to simulate them all
+them all instead the research from our
+instead the research from our architecture evaluation helped inform us
+architecture evaluation helped inform us which features have the highest scaling
+which features have the highest scaling risk so we can make sure to focus load
+risk so we can make sure to focus load testing on those first
+testing on those first the bottom line
+the bottom line our load tests were as accurate as we
+our load tests were as accurate as we could make them we designed and adjusted
+could make them we designed and adjusted the best we could we couldn't know
+the best we could we couldn't know anymore until the actual launch
+anymore until the actual launch still these tests were definitely
+still these tests were definitely guiding us to many improvements
+guiding us to many improvements we ran into probably dozens of scaling
+we ran into probably dozens of scaling issues and had to fix each one to scale
+issues and had to fix each one to scale up higher to uncover the next issue
+up higher to uncover the next issue to do this under pressure of live
+to do this under pressure of live traffic would have been disastrous
+so what did the future hold for our locust load tests unlike the cicada we
+locust load tests unlike the cicada we couldn't just take a break for 17 years
+couldn't just take a break for 17 years given the amount of effort it was taking
+given the amount of effort it was taking to develop and run our tests
+to develop and run our tests we resolved to continue load testing up
+we resolved to continue load testing up until the release
+until the release it's always better to know the limits of
+it's always better to know the limits of your services even if it's too late to
+your services even if it's too late to make improvements
+make improvements you can have mitigation ready instead
+you can have mitigation ready instead looking even beyond the release we
+looking even beyond the release we realize that load testing can and should
+realize that load testing can and should be more fully integrated into our sdlc
+be more fully integrated into our sdlc once running at a higher scale we could
+once running at a higher scale we could expect all of our services to be more
+expect all of our services to be more sensitive to performance issues
+sensitive to performance issues changes will be more likely to have
+changes will be more likely to have unexpected impacts
+unexpected impacts and continued load testing was going to
+and continued load testing was going to be the easiest way to maintain
+be the easiest way to maintain confidence in the performance of our
+confidence in the performance of our services
+services and as we begin thinking about what it
+and as we begin thinking about what it will take to get to the rapidly
+will take to get to the rapidly approaching launch this brings part one
+approaching launch this brings part one playing in preparation to a close
+playing in preparation to a close [Music]
+[Music] this next part is all about scaling
+this next part is all about scaling improvements this is where we'll discuss
+improvements this is where we'll discuss the feature work that comprise the bulk
+the feature work that comprise the bulk of our development time
+the first part of our journey was all about planning and preparation to help
+about planning and preparation to help decide what improvements we needed to
+decide what improvements we needed to make
+make and this part is all about the
+and this part is all about the improvements we had time enough to
+improvements we had time enough to complete
+complete first we moved our core set of services
+first we moved our core set of services from google app engine to kubernetes
+from google app engine to kubernetes second we overhauled our matchmaking
+second we overhauled our matchmaking service
+service third we migrated all of our redis
+third we migrated all of our redis servers to redis enterprise
+servers to redis enterprise fourth we made a set of improvements to
+fourth we made a set of improvements to our mysql databases
+our mysql databases fifth we added a web service rate
+fifth we added a web service rate limiting system
+limiting system sixth and finally we'll spare a few
+sixth and finally we'll spare a few moments to discuss this development
+moments to discuss this development cycle's postmortem
+the first feature we'll talk about is the live migration of our core services
+the live migration of our core services from google app engine to google
+from google app engine to google kubernetes engine
+kubernetes engine gae is google's platform as a service
+gae is google's platform as a service similar to amazon's elastic beanstalk or
+similar to amazon's elastic beanstalk or azure's app services
+azure's app services just upload your php code base and the
+just upload your php code base and the service takes care of everything else
+service takes care of everything else gke is just google's managed kubernetes
+gke is just google's managed kubernetes service
+service we had been using gae since our original
+we had been using gae since our original launch in 2015 but in the last few years
+launch in 2015 but in the last few years it was showing its age and we had
+it was showing its age and we had actually started the migration to
+actually started the migration to kubernetes before free to play
+kubernetes before free to play preparation had begun
+preparation had begun still this effort was folded into our
+still this effort was folded into our free to play release as a prerequisite
+free to play release as a prerequisite there were several reasons for us to
+there were several reasons for us to move to gke
+move to gke we wanted increased control over our php
+we wanted increased control over our php runtime since we were missing out on
+runtime since we were missing out on some significant performance
+some significant performance improvements among other things
+improvements among other things we also needed more control over our
+we also needed more control over our resource scaling
+resource scaling another goal was more deployment
+another goal was more deployment consistency by running more components
+consistency by running more components of our architecture in kubernetes
+of our architecture in kubernetes this also happened to make us more cloud
+this also happened to make us more cloud agnostic
+agnostic another big part of our core services
+another big part of our core services migration was introducing separate gcp
+migration was introducing separate gcp projects to better separate our
+projects to better separate our deployment environments
+deployment environments a project in gcp
+a project in gcp is simply a high-level organizational
+is simply a high-level organizational structure to divide up your gcp
+structure to divide up your gcp resources
+resources with this change the paradigm is to have
+with this change the paradigm is to have nearly identical project for each
+nearly identical project for each environment
+environment with no sharing of resources between
+with no sharing of resources between those environments
+those environments having separate projects made it much
+having separate projects made it much easier to determine which environment
+easier to determine which environment owned each resource and enforced
+owned each resource and enforced independence of our lower environments
+independence of our lower environments gone were the days of production
+gone were the days of production affecting our test environment or vice
+affecting our test environment or vice versa
+versa our logging became simpler to browse
+our logging became simpler to browse because it was simply a matter of
+because it was simply a matter of selecting the right project rather than
+selecting the right project rather than setting up the right log filters
+setting up the right log filters finally our security and access control
+finally our security and access control was massively improved although we had
+was massively improved although we had to rethink it completely due to the way
+to rethink it completely due to the way everything was reorganized
+everything was reorganized when this migration was complete after
+when this migration was complete after many long months
+many long months incorporating load testing was
+incorporating load testing was indispensable
+indispensable gke was still fairly new to us as our
+gke was still fairly new to us as our small devops team only had experience
+small devops team only had experience with it from deploying and migrating our
+with it from deploying and migrating our services
+services this is where our support from the gcp
+this is where our support from the gcp teams came in handy
+teams came in handy as they were able to assist us by
+as they were able to assist us by monitoring our load tests from the
+monitoring our load tests from the platform side
+platform side and suggesting adjustments based on
+and suggesting adjustments based on their extensive kubernetes experience
+their extensive kubernetes experience completing this migration to kubernetes
+completing this migration to kubernetes was a fundamental part of getting our
+was a fundamental part of getting our core services modernized and tuned for
+core services modernized and tuned for higher free to play scale
+the second major feature we worked on was overhauling matchmaking
+was overhauling matchmaking the architecture of our matchmaking
+the architecture of our matchmaking system has some insurmountable scaling
+system has some insurmountable scaling performance problems
+performance problems these issues did not affect its
+these issues did not affect its correctness but rather meant that it had
+correctness but rather meant that it had a strict performance ceiling
+a strict performance ceiling to fix these problems we knew we were
+to fix these problems we knew we were going to need something new and it was
+going to need something new and it was going to be difficult because rocket
+going to be difficult because rocket league's matchmaking has a lot of
+league's matchmaking has a lot of complex rules
+complex rules our matchmaking service was a single
+our matchmaking service was a single threaded.net application
+threaded.net application pretty close to being maxed out and
+pretty close to being maxed out and definitely not going to hold up anywhere
+definitely not going to hold up anywhere near a low testing target
+near a low testing target and as this cat could tell you it
+and as this cat could tell you it contained a lot of spaghetti code
+so with a blank slate where do we go
+where do we go we needed to fundamentally change the
+we needed to fundamentally change the way it scales yet preserve all of the
+way it scales yet preserve all of the original functional requirements
+original functional requirements the most obvious direction was a
+the most obvious direction was a horizontally scalable map reduced
+horizontally scalable map reduced solution
+solution we considered building from scratch but
+we considered building from scratch but we also found open match
+we also found open match after much analysis and deliberation
+after much analysis and deliberation we decided to go with openmatch
+we decided to go with openmatch it seemed like it would let us skip some
+it seemed like it would let us skip some framework development but still allow us
+framework development but still allow us the freedom to implement all of our
+the freedom to implement all of our functional requirements it's also open
+functional requirements it's also open source
+source in contract with our matchmaking service
+in contract with our matchmaking service openmatch was designed for scaling which
+openmatch was designed for scaling which is where the mapreduce algorithm comes
+is where the mapreduce algorithm comes in
+in it runs as an orchestrated set of docker
+it runs as an orchestrated set of docker containers
+containers this orchestration also enforces a
+this orchestration also enforces a division of responsibilities for each
+division of responsibilities for each container
+container which compartmentalizes the different
+which compartmentalizes the different areas of our matchmaking logic
+areas of our matchmaking logic this was a huge improvement over the
+this was a huge improvement over the original spaghetti code sorry cat
+original spaghetti code sorry cat lastly it was cutting edge so cutting
+lastly it was cutting edge so cutting edge that it was not up to its 1.0
+edge that it was not up to its 1.0 release yet
+release yet integrating with a pre 1.0 product
+integrating with a pre 1.0 product actually went as you might guess
+actually went as you might guess we were held up by or found blockers
+we were held up by or found blockers that required us to wait for the next
+that required us to wait for the next revision
+revision this also forced us to fix all breaking
+this also forced us to fix all breaking changes when that next version was
+changes when that next version was released
+released so it was not the smoothest development
+so it was not the smoothest development cycle
+cycle but we launched vulpa match 1.0 and it
+but we launched vulpa match 1.0 and it certainly follows better versioning
+certainly follows better versioning practices now
+practices now for our last bullet of course we
+for our last bullet of course we mentioned load testing again
+mentioned load testing again having load tests that incorporated the
+having load tests that incorporated the matchmaking path were essential
+matchmaking path were essential we were able to tune open match in gke
+we were able to tune open match in gke for running at higher load levels just
+for running at higher load levels just like with our core services
+like with our core services more importantly we learned the dynamics
+more importantly we learned the dynamics of how even subtle configuration changes
+of how even subtle configuration changes affect the matchmaking system as a whole
+affect the matchmaking system as a whole this allowed us to react more quickly
+this allowed us to react more quickly and correctly during our free to play
+and correctly during our free to play launch as well as know where to go with
+launch as well as know where to go with further development
+further development overhauling our entire matchmaking
+overhauling our entire matchmaking system was another huge undertaking
+system was another huge undertaking lasting more than a year
+lasting more than a year but it was desperately needed and
+but it was desperately needed and directly contributed to the success of
+directly contributed to the success of our free to play release
+next let's talk about migrating to redis enterprise
+enterprise in our view the best feature of redis
+in our view the best feature of redis enterprise is its fully automated
+enterprise is its fully automated resharding
+resharding this means we can increase our cluster
+this means we can increase our cluster size that is add shards to scale
+size that is add shards to scale horizontally
+horizontally with a few clicks and the data in the
+with a few clicks and the data in the database is automatically redistributed
+database is automatically redistributed across the updated cluster with no
+across the updated cluster with no downtime
+downtime and yes we use this during the free to
+and yes we use this during the free to play release
+play release of course there is a performance cost
+of course there is a performance cost while your keys are being redistributed
+while your keys are being redistributed so hopefully you don't need to do this
+so hopefully you don't need to do this because your database is already pegged
+because your database is already pegged if it is you won't see any performance
+if it is you won't see any performance improvement from the additional shards
+improvement from the additional shards until the restarting is complete
+until the restarting is complete as part of deciding to use redis
+as part of deciding to use redis enterprise in the first place
+enterprise in the first place we also learned in detail about how it
+we also learned in detail about how it can be deployed specifically with
+can be deployed specifically with respect to its proxy
+respect to its proxy pictured here are a few common redis
+pictured here are a few common redis enterprise proxy configurations
+enterprise proxy configurations as pictured on the left most deployments
+as pictured on the left most deployments only need a single proxy because it has
+only need a single proxy because it has very high performance
+very high performance however for our largest cache database
+however for our largest cache database we did end up needing a multi-proxy
+we did end up needing a multi-proxy configuration to guarantee consistent
+configuration to guarantee consistent performance
+performance we initially tried to enable support for
+we initially tried to enable support for open source's cluster mode pictured
+open source's cluster mode pictured center
+center which deploys one proxy per shard and
+which deploys one proxy per shard and has all clients connect to all proxies
+has all clients connect to all proxies this was the simplest change but
+this was the simplest change but unfortunately we couldn't use it due to
+unfortunately we couldn't use it due to lackluster support in our web tiers
+lackluster support in our web tiers redis client library
+redis client library instead we are using a multi-proxy setup
+instead we are using a multi-proxy setup that uses dns load balancing pictured on
+that uses dns load balancing pictured on the right
+the right this has the typical disadvantages
+this has the typical disadvantages versus a layer 4 load balancer
+versus a layer 4 load balancer specifically for us our web tier had
+specifically for us our web tier had recently moved to kubernetes and we set
+recently moved to kubernetes and we set up node local dns caching to improve
+up node local dns caching to improve some of our network performance
+some of our network performance unfortunately caching dns results is
+unfortunately caching dns results is incompatible with dns load balancing
+incompatible with dns load balancing so all dns queries on the same
+so all dns queries on the same kubernetes node would always resolve to
+kubernetes node would always resolve to the same redis enterprise proxy rather
+the same redis enterprise proxy rather than rotating
+than rotating that said we run enough kubernetes nodes
+that said we run enough kubernetes nodes that the connections still end up
+that the connections still end up reasonably well distributed across the
+reasonably well distributed across the cluster so it works just fine
+cluster so it works just fine [Music]
+[Music] once using redis enterprise we noticed
+once using redis enterprise we noticed that a few of our databases were
+that a few of our databases were performing as if underprovisioned
+performing as if underprovisioned despite our estimates
+despite our estimates why did we have to scale up these
+why did we have to scale up these databases to get the performance we
+databases to get the performance we expected
+expected it came down to improving observability
+it came down to improving observability measuring performance in redis is
+measuring performance in redis is somewhat difficult
+somewhat difficult measuring cpu directly is too opaque
+measuring cpu directly is too opaque and measuring operations per second is
+and measuring operations per second is also misleading
+also misleading if your commands have a mix of o1 and on
+if your commands have a mix of o1 and on operations
+operations performance
+performance so we did tune some of our commands to
+so we did tune some of our commands to simplify from the application side
+for example we switch from using mget and mset to the single get and set sent
+and mset to the single get and set sent with pipelining
+with pipelining thanks entirely to the pipelining there
+thanks entirely to the pipelining there was only a minor difference in
+was only a minor difference in performance from the client's
+performance from the client's perspective
+perspective and the reddish shards were able to burn
+and the reddish shards were able to burn through the smaller commands more
+through the smaller commands more efficiently
+efficiently furthermore this made the reported
+furthermore this made the reported operations per second far more accurate
+operations per second far more accurate since mget and msat both counted as one
+since mget and msat both counted as one operation no matter how many keys they
+operation no matter how many keys they updated
+updated this observability change gave us the
+this observability change gave us the right information to explain the
+right information to explain the performance issues and then scale the
+performance issues and then scale the cluster appropriately
+cluster appropriately tied closely with observability is how
+tied closely with observability is how we monitor each database
+we monitor each database redis labs provides a guide for setting
+redis labs provides a guide for setting up prometheus and gerfana integration
+up prometheus and gerfana integration including some fantastic pre-configured
+including some fantastic pre-configured grafana dashboards
+grafana dashboards once we got this working it was far
+once we got this working it was far better than anything else we hooked up
+better than anything else we hooked up for our open source redis deployments
+for our open source redis deployments the screenshot on this slide shows
+the screenshot on this slide shows operations per second broken down into
+operations per second broken down into reads and writes and it's just one of
+reads and writes and it's just one of the many charts on these dashboards
+the many charts on these dashboards redis enterprise also has a few other
+redis enterprise also has a few other nice advantages that we leverage
+nice advantages that we leverage redis enterprise handles redis pub sub
+redis enterprise handles redis pub sub much better than open source in a few
+much better than open source in a few different ways but primarily because it
+different ways but primarily because it doesn't distribute all publications to
+doesn't distribute all publications to all shards
+all shards next standing up a temporary replica for
+next standing up a temporary replica for key space analysis or other inspection
+key space analysis or other inspection is just a point-and-click operation
+is just a point-and-click operation this has already come in handy several
+this has already come in handy several times for looking at production data
+times for looking at production data without interfering with the performance
+without interfering with the performance of the production clusters
+of the production clusters finally none of the features of redis
+finally none of the features of redis enterprise that we are using result in
+enterprise that we are using result in vendor lock-in with redis labs
+vendor lock-in with redis labs the only risk is not wanting to leave
+besides redis our other primary database system is mysql
+system is mysql it has been our most serious known
+it has been our most serious known scaling bottleneck for a long time
+scaling bottleneck for a long time specifically it only scales vertically
+specifically it only scales vertically give the database server more cpus and
+give the database server more cpus and memory until no higher spec machine is
+memory until no higher spec machine is available
+available it was easy enough for us to add
+it was easy enough for us to add replicas but this could only offload the
+replicas but this could only offload the read traffic that could tolerate
+read traffic that could tolerate replication lag
+replication lag we implemented countless optimizations
+we implemented countless optimizations over the years which gave us more
+over the years which gave us more headroom but eventually there's an upper
+headroom but eventually there's an upper limit on a single server especially when
+limit on a single server especially when anticipating a quintupling of the
+anticipating a quintupling of the server's workload
+server's workload our best option over the years has been
+our best option over the years has been feature shards this is where we move
+feature shards this is where we move sets of tables to new servers
+sets of tables to new servers and it's relatively easy
+and it's relatively easy well as long as you can identify a set
+well as long as you can identify a set of tables that can safely be separated
+of tables that can safely be separated out
+out unfortunately having all of our tables
+unfortunately having all of our tables on the same server for many years
+on the same server for many years has led to many tightly coupled features
+has led to many tightly coupled features due to convenient table joins
+due to convenient table joins we were left with a large core set of
+we were left with a large core set of tables including our largest overall
+tables including our largest overall tables that could not be separated out
+tables that could not be separated out without significant refactoring effort
+without significant refactoring effort notably this does not solve the vertical
+notably this does not solve the vertical scaling problem but does buy us a lot of
+scaling problem but does buy us a lot of headroom for each feature
+headroom for each feature despite the scaling risk we estimated
+despite the scaling risk we estimated that there was not sufficient time to
+that there was not sufficient time to safely incorporate a horizontal scaling
+safely incorporate a horizontal scaling solution to our databases that needed it
+solution to our databases that needed it the most
+the most we thoroughly evaluated the tests
+we thoroughly evaluated the tests it would have let us spread single
+it would have let us spread single tables across multiple database servers
+tables across multiple database servers this would scale better but to use it
+this would scale better but to use it properly we'd need to solve new types of
+properly we'd need to solve new types of problems
+problems one big example that's both mundane and
+one big example that's both mundane and labor intensive is that the test would
+labor intensive is that the test would have required us to eliminate stored
+have required us to eliminate stored procedures and move all of the sql into
+procedures and move all of the sql into our web tiers code base
+our web tiers code base we have over a thousand sore procedures
+we have over a thousand sore procedures so ouch
+so ouch in the end
+in the end we split out one last set of tables in
+we split out one last set of tables in this release cycle and our load testing
+this release cycle and our load testing demonstrated that we were able to exceed
+demonstrated that we were able to exceed our load target
+our load target but this was not our only mysql
+but this was not our only mysql improvement
+improvement [Music]
+[Music] we also incorporated proxy sql to proxy
+we also incorporated proxy sql to proxy the database connections between our
+the database connections between our core services and our mysql databases
+core services and our mysql databases proxy sql is deployed as a horizontally
+proxy sql is deployed as a horizontally scalable set of identical proxies behind
+scalable set of identical proxies behind a load balancer
+a load balancer we can scale out as many of these as we
+we can scale out as many of these as we need
+need each proxy maintains a set of persistent
+each proxy maintains a set of persistent connections to our mysql databases and
+connections to our mysql databases and listens for connections coming from our
+listens for connections coming from our web tier
+web tier the point of this setup is to offload
+the point of this setup is to offload the connection churn caused by our php
+the connection churn caused by our php web tier
+web tier unfortunately we can't use either
+unfortunately we can't use either connection pooling or
+connection pooling or persistent connections from php
+persistent connections from php the process model makes connection
+the process model makes connection pooling impossible
+pooling impossible and persistent connections are not
+and persistent connections are not feasible because it would establish one
+feasible because it would establish one connection from each php worker thread
+connection from each php worker thread to each database
+to each database and we run too many worker threads for
+and we run too many worker threads for that to work
+that to work processing a login to mysql is a
+processing a login to mysql is a surprising amount of work for the
+surprising amount of work for the database server offloading this work cut
+database server offloading this work cut the cpu usage on each server by about
+the cpu usage on each server by about half this gave us a lot more performance
+half this gave us a lot more performance headroom which is critical for our
+headroom which is critical for our vertical scaling
+vertical scaling we also gained instant failovers
+we also gained instant failovers our previous technique for promoting a
+our previous technique for promoting a replica was to swap ip addresses
+replica was to swap ip addresses this would take about 50 seconds which
+this would take about 50 seconds which was a rather large unacceptable hiccup
+was a rather large unacceptable hiccup to deal with
+to deal with so it was only reserved for emergencies
+so it was only reserved for emergencies or maintenance windows
+or maintenance windows proxy sql lets us promote a replica
+proxy sql lets us promote a replica almost instantly
+almost instantly this allows us to upgrade our servers
+this allows us to upgrade our servers much more regularly and without a
+much more regularly and without a maintenance window
+maintenance window proxy sql has some other benefits too
+proxy sql has some other benefits too it speaks to my sql protocol so it looks
+it speaks to my sql protocol so it looks like a mysql database to your
+like a mysql database to your application just point to a different ip
+application just point to a different ip it also has dynamic configurability for
+it also has dynamic configurability for routing queries to replicas
+routing queries to replicas we had already done this manually in our
+we had already done this manually in our web tier
+web tier but it's a handy tool for a scaling
+but it's a handy tool for a scaling emergency without having to modify our
+emergency without having to modify our services
+services there are also some cons from using
+there are also some cons from using proxy sql
+proxy sql we had some downtime due to proxy sql
+we had some downtime due to proxy sql bugs
+bugs there were socket leaks in some error
+there were socket leaks in some error handling situations which took us a
+handling situations which took us a while to detect and mitigate
+while to detect and mitigate in fact we're still dealing with one
+in fact we're still dealing with one which we can't reproduce for the
+which we can't reproduce for the maintainers to fix
+maintainers to fix also proxy sql is a bit complicated and
+also proxy sql is a bit complicated and the learning curve plus our lack of
+the learning curve plus our lack of experience with it resulted in a
+experience with it resulted in a misconfiguration in production within a
+misconfiguration in production within a few days of our free to play launch
+few days of our free to play launch this is another good reason to release
+this is another good reason to release major features early
+major features early all in all proxy sequel was a definite
+all in all proxy sequel was a definite improvement we only discovered these
+improvement we only discovered these cons after using it for a while and the
+cons after using it for a while and the pros still clearly outweigh them
+the last feast or the last feature we'll discuss is one of our handiest small
+discuss is one of our handiest small features rate limiting
+features rate limiting where did this feature come from
+where did this feature come from originally we designed a few options for
+originally we designed a few options for introducing a login queue as a major
+introducing a login queue as a major feature
+feature and the engineering effort for most of
+and the engineering effort for most of those designs was significant
+those designs was significant eventually we thought up a much simpler
+eventually we thought up a much simpler solution by understanding the
+solution by understanding the relationships between our player
+relationships between our player population levels
+population levels session creation rates and player churn
+session creation rates and player churn [Music]
+[Music] we reasoned that a configurable limit on
+we reasoned that a configurable limit on session creation would allow us to
+session creation would allow us to control population well enough in the
+control population well enough in the event we had to use it
+event we had to use it of course the hope was to never use it
+of course the hope was to never use it so it was more of a load shedding
+so it was more of a load shedding technique added to our tool belt
+technique added to our tool belt this is also why we didn't want to spend
+this is also why we didn't want to spend tons of time on a more complex login
+tons of time on a more complex login queue that would be rarely
+queue that would be rarely used we went with a custom
+used we went with a custom implementation instead of integrating an
+implementation instead of integrating an off-the-shelf product
+off-the-shelf product because the logic is very simple to add
+because the logic is very simple to add to our web tier
+to our web tier and having our own implementation let us
+and having our own implementation let us use our existing infrastructure
+use our existing infrastructure such as our feature flags
+such as our feature flags logs metrics and dashboards
+logs metrics and dashboards we also leveraged key exploration in
+we also leveraged key exploration in redis to reset each tally automatically
+redis to reset each tally automatically which keeps this logic flow chart really
+which keeps this logic flow chart really simple
+simple rate limiting turned out to be one of
+rate limiting turned out to be one of our most versatile and useful features
+our most versatile and useful features we could configure rate limiting for any
+we could configure rate limiting for any set of services
+set of services this would let us limit or disable
+this would let us limit or disable problematic features
+problematic features to this day we have rate limiting setup
+to this day we have rate limiting setup to protect our immensely popular
+to protect our immensely popular tournaments
+tournaments feature we could also limit service
+feature we could also limit service calls globally or per player for example
+calls globally or per player for example we could limit overall session creation
+we could limit overall session creation to 500 per second to control how quickly
+to 500 per second to control how quickly our player population grows
+our player population grows or we could limit friend invites to one
+or we could limit friend invites to one per second per player if we see a client
+per second per player if we see a client bug or something like player reviews
+bug or something like player reviews this simple rate limiting feature
+this simple rate limiting feature definitely takes the cake for cost
+definitely takes the cake for cost benefit in our development cycle it was
+benefit in our development cycle it was cheap to write and has demonstrated its
+cheap to write and has demonstrated its benefits many times
+as our future development was drawing to a close it started to seem like we
+a close it started to seem like we hadn't accomplished as much as we wanted
+hadn't accomplished as much as we wanted to
+to weren't there many months available on
+weren't there many months available on the timeline
+the timeline don't be afraid of asking these kind of
+don't be afraid of asking these kind of questions in a postmortem let's see if
+questions in a postmortem let's see if we can come up with some answers
+we can come up with some answers the first thing that sprung to mind was
+the first thing that sprung to mind was that our team like many others
+that our team like many others transitioned to full-time work from home
+transitioned to full-time work from home in march 2020.
+in march 2020. as teams go much of our work is in the
+as teams go much of our work is in the cloud or at the very least remote
+cloud or at the very least remote desktop friendly
+desktop friendly it only took most of us a matter of days
+it only took most of us a matter of days to get set up in our home offices but of
+to get set up in our home offices but of course there are many other less
+course there are many other less tangible impacts that the industry as a
+tangible impacts that the industry as a whole is still sorting out
+whole is still sorting out this makes it hard to put a finger on
+this makes it hard to put a finger on any specific impact or lack thereof
+any specific impact or lack thereof next major features will take a lot of
+next major features will take a lot of effort and are very involved if you
+effort and are very involved if you follow your department's sdlc
+follow your department's sdlc changes to live services will always
+changes to live services will always need live migration plans and rollback
+need live migration plans and rollback plans
+plans bigger changes need bigger plans often
+bigger changes need bigger plans often with multiple phases
+with multiple phases our matchmaking and core services
+our matchmaking and core services migrations were the epitome of this
+migrations were the epitome of this since they both fundamentally changed
+since they both fundamentally changed how they scale
+how they scale that's quite different from your typical
+that's quite different from your typical feature change
+feature change something else to be aware of don't
+something else to be aware of don't overanalyze
+overanalyze a hefty backlog containing great ideas
+a hefty backlog containing great ideas does no good if you have no time left to
+does no good if you have no time left to work on it
+work on it it's probably best to have some
+it's probably best to have some engineers start working on features
+engineers start working on features while research is ongoing
+while research is ongoing next define intermediate deadlines
+next define intermediate deadlines respect them and coordinate them
+respect them and coordinate them treat them as legitimate deadlines
+treat them as legitimate deadlines escalate and call out the risks if the
+escalate and call out the risks if the work is falling behind
+work is falling behind make sure everyone on the team buys in
+make sure everyone on the team buys in this can be hard to sell to the team if
+this can be hard to sell to the team if the real deadline such as the launch day
+the real deadline such as the launch day is still much further away
+is still much further away most of our major features actually
+most of our major features actually slipped far past our intermediate
+slipped far past our intermediate deadlines
+deadlines we were almost in a situation where our
+we were almost in a situation where our major features were all trying to roll
+major features were all trying to roll out at the same time right before the
+out at the same time right before the free to play release
+free to play release that was incredibly high risk
+that was incredibly high risk from our purse modem we realized that
+from our purse modem we realized that our feature deadline slippage was also
+our feature deadline slippage was also also partially the result of not
+also partially the result of not properly coordinating the teams
+properly coordinating the teams as i mentioned earlier some of our
+as i mentioned earlier some of our features were already underway and
+features were already underway and simply folded in as prerequisites to our
+simply folded in as prerequisites to our free play release
+free play release this weak association allowed those
+this weak association allowed those features deadlines to slip without
+features deadlines to slip without considering the wider free-to-play
+considering the wider free-to-play release schedule
+release schedule we should have brought our teams closer
+we should have brought our teams closer together which would have clarified the
+together which would have clarified the overall schedule and the impact of any
+overall schedule and the impact of any individual delays
+individual delays [Music]
+[Music] so after reflecting on our development
+so after reflecting on our development postmortem we can now start thinking
+postmortem we can now start thinking about the big release
+about the big release this part is where we'll discuss the
+this part is where we'll discuss the launch itself followed by our new normal
+first we look at the schedule our final lodge schedule is as you see
+our final lodge schedule is as you see here
+here releasing the game update a week early
+releasing the game update a week early was an important part of the launch
+was an important part of the launch logistics
+logistics this had a few nice impacts
+this had a few nice impacts historically every update has had a
+historically every update has had a significant upswing of users who sign in
+significant upswing of users who sign in to check out the new features
+to check out the new features for this launch releasing some of these
+for this launch releasing some of these new features early allowed some of this
+new features early allowed some of this user bump to subside which helped
+user bump to subside which helped flatten the curve before going free to
+flatten the curve before going free to play
+play one of the features we released earlier
+one of the features we released earlier was account linking with epic games
+was account linking with epic games accounts
+accounts this was a very complicated feature
+this was a very complicated feature and releasing it early let us start
+and releasing it early let us start monitoring it and get in some bug fixes
+monitoring it and get in some bug fixes before the additional influx of players
+similarly we were able to watch the newly patched clients for any abnormal
+newly patched clients for any abnormal call patterns and
+call patterns and and had time to react to the hotfix
+and had time to react to the hotfix before the free to play release
+the free to play launch itself was on a wednesday and midweek is significantly
+wednesday and midweek is significantly less busy than the weekends as we shall
+less busy than the weekends as we shall see
+and here's the launch this chart shows the game update
+this chart shows the game update the hotfix
+the hotfix the free-to-play launch on wednesday and
+the free-to-play launch on wednesday and how the population climbed into the
+how the population climbed into the weekend
+weekend look at that population increase
+look at that population increase compared with the previous week
+compared with the previous week we exceeded a million concurrent players
+we exceeded a million concurrent players for the first time ever
+for the first time ever this was an incredible milestone but
+this was an incredible milestone but achieving it actually felt like a
+achieving it actually felt like a foregone conclusion because our load
+foregone conclusion because our load testing had demonstrated that our
+testing had demonstrated that our performance ceiling was much higher than
+performance ceiling was much higher than this
+this sunday's highest population peak
+sunday's highest population peak actually exceeded our five times high
+actually exceeded our five times high end estimate
+end estimate but it did not exceed our how high can
+but it did not exceed our how high can you go load testing
+you go load testing this reinforces that you should continue
+this reinforces that you should continue with load testing and improvements up
+with load testing and improvements up until the release
+until the release this also shows why releasing on a
+this also shows why releasing on a wednesday was an excellent choice
+wednesday was an excellent choice the first boost on wednesday was big but
+the first boost on wednesday was big but then we had a few days to react to
+then we had a few days to react to issues as the population climbed ever
+issues as the population climbed ever higher into that first weekend
+higher into that first weekend but if you look closely at the charts
+but if you look closely at the charts the release wasn't entirely sunshine and
+the release wasn't entirely sunshine and roses
+as good as the launch looks we did have some severe issues including
+we did have some severe issues including two near total outage indicated by the
+two near total outage indicated by the red arrows
+red arrows the first outage was on wednesday the
+the first outage was on wednesday the 23rd which was our free to play launch
+23rd which was our free to play launch day
+day [Music]
+[Music] we had an unexpected scaling issue
+we had an unexpected scaling issue related to signing in with epic games
+related to signing in with epic games accounts and our new account linking
+accounts and our new account linking feature
+feature this was an integration point between
+this was an integration point between psionics and epic game services that was
+psionics and epic game services that was not covered by our load testing
+not covered by our load testing also note that account linking had
+also note that account linking had released a week earlier so this problem
+released a week earlier so this problem only showed up at the higher free to
+only showed up at the higher free to play scale
+the second outage was on thursday the 24th
+24th we saw climbing redis traffic getting
+we saw climbing redis traffic getting too close for comfort and made the call
+too close for comfort and made the call to double the number of redis shards for
+to double the number of redis shards for the affected redis enterprise database
+the affected redis enterprise database this was a preventative measure but this
+this was a preventative measure but this database was already stressed
+database was already stressed and adding the overhead of the
+and adding the overhead of the resharding operation ended up starting a
+resharding operation ended up starting a death spiral resulting in this outage
+death spiral resulting in this outage the third issue was on friday the 25th
+the third issue was on friday the 25th it's not visible on the chart because it
+it's not visible on the chart because it did not affect player population
+did not affect player population this was the proxy sql configuration
+this was the proxy sql configuration issue that i mentioned earlier
+issue that i mentioned earlier while preparing to promote a mysql
+while preparing to promote a mysql replica
+replica we removed the read-only flag from its
+we removed the read-only flag from its configuration and proxy sql picked up on
+configuration and proxy sql picked up on this config change automatically which
+this config change automatically which was premature
+was premature that replica was added to proxy sql's
+that replica was added to proxy sql's right group which led to a split brain
+right group which led to a split brain situation
+situation this wasn't an outage but we had to
+this wasn't an outage but we had to spend quite a lot of time reconciling
+spend quite a lot of time reconciling the data
+the data over the rest of the weekend we had no
+over the rest of the weekend we had no load-related outages this is despite far
+load-related outages this is despite far more load compared with the first few
+more load compared with the first few days
+days these were the only issues major enough
+these were the only issues major enough to make it into our release postmortem
+to make it into our release postmortem also a reminder to the viewer don't
+also a reminder to the viewer don't forget to keep a record of your issues
+forget to keep a record of your issues to write a complete and accurate
+to write a complete and accurate postmortem we've referred back to ours
+postmortem we've referred back to ours many times
+many times this was a pretty incredible record for
+this was a pretty incredible record for the first weekend
+the first weekend but how did the team handle it
+our team was tense but confident the rest of the studio just bombed us
+the rest of the studio just bombed us with memes
+with memes the peak load set a new record every day
+the peak load set a new record every day for the first five days which meant
+for the first five days which meant every day was more stressful than the
+every day was more stressful than the last
+last when was our all-time peak going to
+when was our all-time peak going to occur
+occur amazingly our times 5 projection turned
+amazingly our times 5 projection turned out to be extremely accurate
+out to be extremely accurate the entire team joined a war room zoom
+the entire team joined a war room zoom call every day up through this first
+call every day up through this first weekend
+weekend we were more prepared than any other
+we were more prepared than any other release prior but it was still tends to
+release prior but it was still tends to monitor
+monitor it was so difficult to try to load test
+it was so difficult to try to load test everything we've ever written
+everything we've ever written did we somehow miss something important
+did we somehow miss something important lastly it's worth saying that just
+lastly it's worth saying that just because there are no other big outages
+because there are no other big outages doesn't mean that we weren't actively
+doesn't mean that we weren't actively identifying and fixing issues before
+identifying and fixing issues before they became problems
+they became problems we spun up a simple spreadsheet for
+we spun up a simple spreadsheet for lightweight tracking of potential issues
+lightweight tracking of potential issues it ended up with over 50 entries
+it ended up with over 50 entries many of these were fixed quickly and the
+many of these were fixed quickly and the rest were put into the backlog to fix
+rest were put into the backlog to fix once things calmed down
+once things calmed down after the population began to subside on
+after the population began to subside on monday the team was able to take a
+monday the team was able to take a breath and start to think about the
+breath and start to think about the future and our new normal
+halfway through 2021 we're still seeing a sustained increase in users
+a sustained increase in users it's holding at about three times our
+it's holding at about three times our previous normal
+previous normal with this new normal the higher
+with this new normal the higher population makes our services more
+population makes our services more sensitive to performance issues
+sensitive to performance issues this applies to both code and
+this applies to both code and configuration changes
+configuration changes the specific danger is that if the
+the specific danger is that if the client call patterns deviate from our
+client call patterns deviate from our load test simulations we end up in
+load test simulations we end up in uncharted territory
+uncharted territory one example of such a configuration
+one example of such a configuration change is when we enabled a limited time
+change is when we enabled a limited time mode like heatseeker or spike rush
+mode like heatseeker or spike rush we're up to a million players all
+we're up to a million players all switched over to that game mode nearly
+switched over to that game mode nearly simultaneously
+simultaneously that's very out of the ordinary behavior
+that's very out of the ordinary behavior different from our load tests and
+different from our load tests and therefore not something we tested
+therefore not something we tested thankfully we were able to react quickly
+thankfully we were able to react quickly to the situation by extrapolating from
+to the situation by extrapolating from our previous load testing of matchmaking
+our previous load testing of matchmaking a second example is when we set up an
+a second example is when we set up an easy challenge that rewarded multiple
+easy challenge that rewarded multiple items
+items this caused players to be rewarded items
+this caused players to be rewarded items at a much higher rate than normal and it
+at a much higher rate than normal and it ballooned our inventory system to its
+ballooned our inventory system to its breaking point
+breaking point this has left us watching our inventory
+this has left us watching our inventory system very closely until we can migrate
+system very closely until we can migrate it to a new database engine that
+it to a new database engine that supports horizontal scaling
+supports horizontal scaling on the upside now that we've put all
+on the upside now that we've put all this work into our load testing system
+this work into our load testing system it's readily available for testing any
+it's readily available for testing any of these situations
+of these situations finally we've renewed our diligence in
+finally we've renewed our diligence in following best practices for designing
+following best practices for designing live migrations promoting code and
+live migrations promoting code and always having a rollback plan
+always having a rollback plan this concludes our look at the launch so
+this concludes our look at the launch so let's wrap up
+let's wrap up takeaways what do i think you should
+takeaways what do i think you should take away from this talk
+these are my picks for takeaways from the planning phase seek expert advice
+the planning phase seek expert advice and support
+and support stay organized and get working on the
+stay organized and get working on the long tent polls first but be aware of
+long tent polls first but be aware of what we're planning
+what we're planning set a deadline for it
+set a deadline for it the next theme that permeated this
+the next theme that permeated this entire talk was load testing it's our
+entire talk was load testing it's our most significant feature that came out
+most significant feature that came out of this release and we would have failed
+of this release and we would have failed without it
+without it it was far more work than we expected
+it was far more work than we expected but it was unquestionably worth the
+but it was unquestionably worth the investment for the free to play release
+investment for the free to play release and beyond
+and beyond next when thinking about major
+next when thinking about major improvements
+improvements take careful take care to carefully
+take careful take care to carefully coordinate their deadlines and roll outs
+coordinate their deadlines and roll outs and respect those deadlines
+and respect those deadlines finally you should always have some
+finally you should always have some versatile load checking controls like
+versatile load checking controls like rate limiting
+rate limiting they're low effort and will get a lot of
+they're low effort and will get a lot of reuse
+reuse even if your load testing demonstrates
+even if your load testing demonstrates you can handle your load target all day
+you can handle your load target all day long what if you actually get 10 times
+long what if you actually get 10 times or 100 times that target
+or 100 times that target rate limiting might just keep your
+rate limiting might just keep your services stable rather than have them go
+services stable rather than have them go down entirely
+down entirely so in closing thanks to efforts
+so in closing thanks to efforts described in this talk
+described in this talk psyonix had a really successful free
+psyonix had a really successful free play launch for rocket league and i hope
+play launch for rocket league and i hope you will too in your future endeavors
+you will too in your future endeavors thanks very much for attending please
+thanks very much for attending please ask questions if you have the time

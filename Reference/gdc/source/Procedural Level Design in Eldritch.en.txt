@@ -1,0 +1,1438 @@
+[Music] all right I think I'm going to get
+all right I think I'm going to get started now um before we begin the usual
+started now um before we begin the usual reminders please silence your cell
+reminders please silence your cell phones and they're doing the the P
+phones and they're doing the the P scanning thing oh wow they're doing the
+scanning thing oh wow they're doing the P scanning thing so between each session
+P scanning thing so between each session make sure that you get your get your
+make sure that you get your get your pass scanned so that when you do your
+pass scanned so that when you do your evaluations you get one for each of the
+evaluations you get one for each of the sessions in the talk so all right uh hi
+sessions in the talk so all right uh hi thank you for being here I'm David
+thank you for being here I'm David Pitman I'm going to be talking about
+Pitman I'm going to be talking about procedural level generation today and
+procedural level generation today and I'm just very briefly going to introduce
+I'm just very briefly going to introduce myself it's my first time speaking here
+myself it's my first time speaking here at level design in a day and my
+at level design in a day and my background is a little bit different I
+background is a little bit different I was not a level designer before I I used
+was not a level designer before I I used to work in big budget games especially
+to work in big budget games especially at 2K Marin where I was an AI programmer
+at 2K Marin where I was an AI programmer on BioShock 2 and for a time I was the
+on BioShock 2 and for a time I was the lead AI programmer on the what
+lead AI programmer on the what eventually became the bureau XCOM to
+eventually became the bureau XCOM to classified I kind of got burnt out on
+classified I kind of got burnt out on that game and about two years ago I had
+that game and about two years ago I had the opportunity to do something new
+the opportunity to do something new I co-founded minor key games with my
+I co-founded minor key games with my twin brother and now I do a little bit
+twin brother and now I do a little bit of everything I do programming design
+of everything I do programming design bad art audio business and marketing
+bad art audio business and marketing pretty much anything that has to happen
+pretty much anything that has to happen to to ship a game I do it
+now so about two years ago I made this game called eldrich and when I was
+game called eldrich and when I was working on it I actually had a kind of
+working on it I actually had a kind of difficult time explain to friends and
+difficult time explain to friends and family what I was making it wasn't like
+family what I was making it wasn't like a particularly Innovative game it was
+a particularly Innovative game it was just a hybrid of genres that people
+just a hybrid of genres that people didn't really visualize the way that I
+didn't really visualize the way that I was thinking of it it was kind of hard
+was thinking of it it was kind of hard to describe I tended to talk about it in
+to describe I tended to talk about it in terms of my influences in immersive
+terms of my influences in immersive simulations and Rogue likes but what I
+simulations and Rogue likes but what I was really trying to say is if you take
+was really trying to say is if you take first person combat and magic and
+first person combat and magic and stealth and you mix it with procedural
+stealth and you mix it with procedural levels and permanent player death and
+levels and permanent player death and dress It Up In Love crafty and fiction
+dress It Up In Love crafty and fiction and make it on a Sho string budget you
+and make it on a Sho string budget you get something that looks like
+eldrich so minor key is a two person company it's myself and my twin brother
+company it's myself and my twin brother Kyle we actually work on individual
+Kyle we actually work on individual projects though I made Aldrich
+projects though I made Aldrich completely by myself in a span of
+completely by myself in a span of slightly less than eight months which I
+slightly less than eight months which I don't track hours I think that's silly
+don't track hours I think that's silly especially for independent developers
+especially for independent developers but back of the envelope calculation
+but back of the envelope calculation puts that around 1,500 person hours of
+puts that around 1,500 person hours of work to make this game that number
+work to make this game that number didn't mean a lot to me I so I thought
+didn't mean a lot to me I so I thought about like what would it be for like a
+about like what would it be for like a conservative big budget game that would
+conservative big budget game that would be maybe 100 people working for 2 years
+be maybe 100 people working for 2 years and not crunching that would be like
+and not crunching that would be like 400,000 person hours so this was like a
+400,000 person hours so this was like a fraction of a percent of the work of a
+fraction of a percent of the work of a large game and I'm not saying that like
+large game and I'm not saying that like to brag like the game has a ton of rough
+to brag like the game has a ton of rough edges but it's just I had a very fast or
+edges but it's just I had a very fast or a very short time span to make this game
+a very short time span to make this game and I had to work very fast and so
+and I had to work very fast and so that's going to be something that comes
+that's going to be something that comes up throughout this talk is trying to
+up throughout this talk is trying to find the simplest thing that could
+find the simplest thing that could possibly work and that was actually why
+possibly work and that was actually why I chose to do procedural level
+I chose to do procedural level generation for this game um despite the
+generation for this game um despite the the kind of rushed development of
+the kind of rushed development of eldrich it was fairly well received I've
+eldrich it was fairly well received I've cherry-picked the ratings I show here
+cherry-picked the ratings I show here because it's my talk and I can do that U
+because it's my talk and I can do that U but you know nine out of 10 people who
+but you know nine out of 10 people who wrote A a review on steam liked the game
+wrote A a review on steam liked the game so that was pretty cool and it made a
+so that was pretty cool and it made a tenfold return on investment which was
+tenfold return on investment which was also really nice and it didn't do that
+also really nice and it didn't do that by selling like millions of units or
+by selling like millions of units or millions of dollars like it was not that
+millions of dollars like it was not that successful but the development was so
+successful but the development was so lean that it was fairly easy to recoup
+lean that it was fairly easy to recoup the
+cost so I want to talk about specifically what I was trying to
+specifically what I was trying to accomplish with the levels in eldrich
+accomplish with the levels in eldrich but first I want to talk about why why
+but first I want to talk about why why why I used procedural level design for
+why I used procedural level design for this game and why anyone might use it so
+this game and why anyone might use it so the first reason is probably the most
+the first reason is probably the most familiar is if if the game calls for
+familiar is if if the game calls for like an element of perennial Discovery
+like an element of perennial Discovery the way that Rogue likee games do every
+the way that Rogue likee games do every time that you play a Rog likee or some
+time that you play a Rog likee or some strategy games like Civilization uses
+strategy games like Civilization uses randomized maps to great effect the
+randomized maps to great effect the player can't go into the game knowing
+player can't go into the game knowing what that level is going to look like
+what that level is going to look like they can learn the systems but they
+they can learn the systems but they can't learn the space and so the the
+can't learn the space and so the the game design in that case actually
+game design in that case actually dictates that you need a generator so
+dictates that you need a generator so that the levels are different every
+that the levels are different every time project constraints are another big
+time project constraints are another big one and I think this is the reason that
+one and I think this is the reason that there's you know kind of the current
+there's you know kind of the current invogue Rog likee scene amongst
+invogue Rog likee scene amongst independent developers myself
+independent developers myself included when so as an individual
+included when so as an individual developer I didn't have time in eight
+developer I didn't have time in eight months to make even like five to six
+months to make even like five to six hours of gameplay if I were building the
+hours of gameplay if I were building the maps by hand I was trying to do
+maps by hand I was trying to do everything else too make enemy AIS build
+everything else too make enemy AIS build the physics for the game like I I wrote
+the physics for the game like I I wrote my own engine for this game it was I I I
+my own engine for this game it was I I I just wouldn't have had time to do love
+just wouldn't have had time to do love if you're familiar with the uh like the
+if you're familiar with the uh like the project management triangle of cost time
+project management triangle of cost time and scope where if as one of these
+and scope where if as one of these things changes the the other two have to
+things changes the the other two have to push a pull to accommodate it like as an
+push a pull to accommodate it like as an individual developer cost and time are
+individual developer cost and time are the same thing like this triangle
+the same thing like this triangle basically flattens into a line between
+basically flattens into a line between how much money do I have and how big is
+how much money do I have and how big is the scope of the game going to be I had
+the scope of the game going to be I had to keep the scope of the game small
+to keep the scope of the game small because I was going to run out money I
+because I was going to run out money I couldn't have continued to do that as a
+couldn't have continued to do that as a full-time job
+sorry another reason to consider procedural level design is if it's you
+procedural level design is if it's you know if it plays to your team strengths
+know if it plays to your team strengths my background was as a programmer I was
+my background was as a programmer I was able to get very fast at developing uh
+able to get very fast at developing uh procedural levels I had done this sort
+procedural levels I had done this sort of thing just as a hobby before and so
+of thing just as a hobby before and so when I went to make this game it was
+when I went to make this game it was natural for me to want to do this
+natural for me to want to do this whereas if I were trying to make Levels
+whereas if I were trying to make Levels by hand I'm not an experienced level
+by hand I'm not an experienced level designer I would have been kind of
+designer I would have been kind of fumbling at it I would have been much
+fumbling at it I would have been much slower about it
+slower about it uh procedural levels also kind of enable
+uh procedural levels also kind of enable content reuse in a really good way
+content reuse in a really good way everything that I made for this game
+everything that I made for this game kind of just ended up in the mix to
+kind of just ended up in the mix to where if I if I built a module I I made
+where if I if I built a module I I made some new art like it just it ended up
+some new art like it just it ended up showing up everywhere in the game you
+showing up everywhere in the game you would see it regularly you would play
+would see it regularly you would play you know the the structure of a rogue
+you know the the structure of a rogue like is such that you die you play a
+like is such that you die you play a level over and over you know A variation
+level over and over you know A variation on the same level and so you saw all the
+on the same level and so you saw all the content in eldrich a lot there wasn't
+content in eldrich a lot there wasn't the kind of in in uh big budget games
+the kind of in in uh big budget games especially there there's a lot of money
+especially there there's a lot of money spent on set these things that you might
+spent on set these things that you might only see one time in 10 or 12 hours of
+only see one time in 10 or 12 hours of play there's multiple ways to use
+play there's multiple ways to use procedural level generation the the one
+procedural level generation the the one that we're familiar with the one that I
+that we're familiar with the one that I use for eldrich is generating levels at
+use for eldrich is generating levels at runtime but you could also generate
+runtime but you could also generate levels offline and then work on them by
+levels offline and then work on them by you know like I I can imagine this is a
+you know like I I can imagine this is a good way
+good way to as as an indie developer create a
+to as as an indie developer create a game that's a bigger scope than what it
+game that's a bigger scope than what it looks like your team could support like
+looks like your team could support like generate a large terrain randomly and
+generate a large terrain randomly and then fill in like key points of
+then fill in like key points of by hand you could do something like that
+by hand you could do something like that you and you don't also have to make a
+you and you don't also have to make a whole game that's based on random levels
+whole game that's based on random levels you could supplement like a 10hour
+you could supplement like a 10hour campaign that's built by hand and then
+campaign that's built by hand and then if the player wants to do more after
+if the player wants to do more after that like there's an endless amount of
+that like there's an endless amount of generated levels so they could play
+generated levels so they could play after that I actually don't know of any
+after that I actually don't know of any games have done that but it seems like
+games have done that but it seems like it would be a really cool
+it would be a really cool thing the last point I want to make is
+thing the last point I want to make is that procedural level generation is
+that procedural level generation is design I think there's a tendency to
+design I think there's a tendency to regard it as the domain
+regard it as the domain engineering but I can imagine kind of
+engineering but I can imagine kind of like a hypothetical programmer who
+like a hypothetical programmer who doesn't have any design sensibility that
+doesn't have any design sensibility that person Couldn't Write a good algorithm
+person Couldn't Write a good algorithm to generate levels because they don't
+to generate levels because they don't know how to evaluate the output of the
+know how to evaluate the output of the system like you have to know what's a
+system like you have to know what's a good level in a way it's almost like you
+good level in a way it's almost like you know if you're a lead level designer you
+know if you're a lead level designer you may not be the one building levels but
+may not be the one building levels but you have to be able to tell the rest of
+you have to be able to tell the rest of your team you know here here's what the
+your team you know here here's what the levels for this game are going to be
+levels for this game are going to be like and be able to recognize if
+like and be able to recognize if something isn't fitting what the game
+something isn't fitting what the game needs that's kind of the same thing that
+needs that's kind of the same thing that working on procedural levels is is that
+working on procedural levels is is that the uh excuse me fight in the cold you
+the uh excuse me fight in the cold you need to be able
+need to be able to develop a a set of roles that will
+to develop a a set of roles that will produce good
+produce good Levels by knowing how to by knowing what
+Levels by knowing how to by knowing what a good level is and that that's why I
+a good level is and that that's why I think this is important to to talk about
+think this is important to to talk about at level design in a day is because you
+at level design in a day is because you know this is a room full of people who
+know this is a room full of people who have internalized what is a good level
+have internalized what is a good level you have expert knowledge you are used
+you have expert knowledge you are used to building levels you know I'm I'm kind
+to building levels you know I'm I'm kind of fumbling around in the dark like I'm
+of fumbling around in the dark like I'm not an experienced level designer but I
+not an experienced level designer but I hope to share you know what I learned
+hope to share you know what I learned along the way and show how I did you
+along the way and show how I did you know take some design sensibility and
+know take some design sensibility and shape what what I made with
+eldrich so the specific goals I had for levels in ELD I I was not trying to
+levels in ELD I I was not trying to create like the sprawling random terrain
+create like the sprawling random terrain of something like Minecraft I wanted to
+of something like Minecraft I wanted to do compact levels that have had a clear
+do compact levels that have had a clear start a clear end they took 2 to 5
+start a clear end they took 2 to 5 minutes to go through I wanted the
+minutes to go through I wanted the spaces to look I put handcrafted on the
+spaces to look I put handcrafted on the slide that's actually not a good word I
+slide that's actually not a good word I wanted them to be synthetic worlds look
+wanted them to be synthetic worlds look like they were constructed I wanted to
+like they were constructed I wanted to have ancient sunken cities and not just
+have ancient sunken cities and not just like terrain and cave systems I couldn't
+like terrain and cave systems I couldn't use noise I had to do things that were
+use noise I had to do things that were uh hand handbuilt you know I want the
+uh hand handbuilt you know I want the the effect to be of continuous space
+the effect to be of continuous space instead of room to room there's a few
+instead of room to room there's a few contemporary firstperson Rogue likes on
+contemporary firstperson Rogue likes on the market they tend to be more like
+the market they tend to be more like Arena Shooters you get locked into a
+Arena Shooters you get locked into a room you fight Monsters the door opens
+room you fight Monsters the door opens you move to next room and that's great
+you move to next room and that's great like I really enjoy a lot those games
+like I really enjoy a lot those games but that wasn't what I was trying to
+but that wasn't what I was trying to make with
+make with Eldridge and the last goal that I had
+Eldridge and the last goal that I had here was I wanted the worlds to be
+here was I wanted the worlds to be semicoherent which is a kind of strange
+semicoherent which is a kind of strange goal normally you would want worlds to
+goal normally you would want worlds to be coherent you want like a kind of
+be coherent you want like a kind of internal logic and
+internal logic and consistency but I was I was looking at
+consistency but I was I was looking at Lovecraft reference I was reading
+Lovecraft reference I was reading Lovecraft story and that was sort of the
+Lovecraft story and that was sort of the inspiration for the world and one of
+inspiration for the world and one of these things that comes up in a lot of
+these things that comes up in a lot of his writing he he describes environments
+his writing he he describes environments in detail but there's a kind of sense of
+in detail but there's a kind of sense of alien wrongness to the worlds that he
+alien wrongness to the worlds that he describes this is from K cthulu he
+describes this is from K cthulu he talked of his dreams in a strangely
+talked of his dreams in a strangely poetic fashion making me see with
+poetic fashion making me see with terrible vividness The Damp cyclopian
+terrible vividness The Damp cyclopian city of slimy greenstone whose geometry
+city of slimy greenstone whose geometry he oddly said was all wrong it's a
+he oddly said was all wrong it's a recurring element in Lovecraft and one
+recurring element in Lovecraft and one of the thing I mean sometimes it takes
+of the thing I mean sometimes it takes the form like nonukan geometry and
+the form like nonukan geometry and actually like three-dimensional space
+actually like three-dimensional space kind of being in Warped in a way that
+kind of being in Warped in a way that our minds can't
+our minds can't comprehend in eldrich I wasn't
+comprehend in eldrich I wasn't interested in doing that sort of thing
+interested in doing that sort of thing but I want the idea that the worlds are
+but I want the idea that the worlds are not logical not consistent something's
+not logical not consistent something's wrong about them and that's something
+wrong about them and that's something that I don't actually think I was very
+that I don't actually think I was very successful at but I wanted to put it out
+successful at but I wanted to put it out there I mean that's kind of what GDC is
+there I mean that's kind of what GDC is about talk about your mistakes as
+about talk about your mistakes as well I was also looked at Art reference
+well I was also looked at Art reference things that were specifically based on
+things that were specifically based on lovecrafts writing as well as you know
+lovecrafts writing as well as you know just pieces of art I I've seen and think
+just pieces of art I I've seen and think you know what this is giovan Batista
+you know what this is giovan Batista paranis ceri wood it looks like a video
+paranis ceri wood it looks like a video game environment
+game environment right and the stuff like I was getting
+right and the stuff like I was getting from the the art references like I
+from the the art references like I wanted to have right angles you know big
+wanted to have right angles you know big cyclopian masonry really complex layouts
+cyclopian masonry really complex layouts like if you look at ceri like you see
+like if you look at ceri like you see these staircases you've got catwalks
+these staircases you've got catwalks you've got people all over the place but
+you've got people all over the place but the connectivity of the space isn't
+the connectivity of the space isn't really clear at first glance that was
+really clear at first glance that was kind of what I wanted I want the sense
+kind of what I wanted I want the sense of verticality that's not common in
+of verticality that's not common in first person shooters that ended up kind
+first person shooters that ended up kind of coming back to bite me later I'll
+of coming back to bite me later I'll talk about that and I wanted I mean it's
+talk about that and I wanted I mean it's not about the structure and the layout
+not about the structure and the layout specifically but I wanted to use light
+specifically but I wanted to use light and fog to create a sense of atmosphere
+and fog to create a sense of atmosphere that makes these relatively small levels
+that makes these relatively small levels feel bigger than they
+feel bigger than they are and the results in the best case are
+are and the results in the best case are something like this we've got like if
+something like this we've got like if you know what you're looking for here
+you know what you're looking for here you can kind of see the edges we've got
+you can kind of see the edges we've got on the on the right side of the screen
+on the on the right side of the screen we've got like green grass and then
+we've got like green grass and then there's a kind of clear divide into a
+there's a kind of clear divide into a module that's made out of stone but it's
+module that's made out of stone but it's continuous space it's not room to room
+continuous space it's not room to room we've got things that look familiar
+we've got things that look familiar we've got ladders we've got scones with
+we've got ladders we've got scones with lights but it's only semicoherent like
+lights but it's only semicoherent like we've got a ladder that goes up to a
+we've got a ladder that goes up to a stone catwalk it's not really clear what
+stone catwalk it's not really clear what that's for that was kind of what the
+that's for that was kind of what the best I could do in the time I had for
+best I could do in the time I had for that sense of alien wrongness I don't
+that sense of alien wrongness I don't think it was successful but these are
+think it was successful but these are the kind of levels that we get from
+eldrid so to give you an overview of of how the levels were generated there's
+how the levels were generated there's kind of three three steps we start by
+kind of three three steps we start by building threedimensional maze just kind
+building threedimensional maze just kind of in the abstract and I'm visualizing
+of in the abstract and I'm visualizing here in two Dimensions because that's
+here in two Dimensions because that's way easier to put on a slide but if you
+way easier to put on a slide but if you imagine you you've got a box it's sliced
+imagine you you've got a box it's sliced up along every axis evenly or like if
+up along every axis evenly or like if you ever had like the clear plastic maze
+you ever had like the clear plastic maze toys that you have to get a ball bearing
+toys that you have to get a ball bearing through you can visualize it like
+through you can visualize it like that so we we build the Maze and it
+that so we we build the Maze and it defines the high level structure of a
+defines the high level structure of a level but it doesn't have any geometry
+level but it doesn't have any geometry it doesn't have any environment art then
+it doesn't have any environment art then we populate it with a modular kit of
+we populate it with a modular kit of rooms and this is the sort of thing that
+rooms and this is the sort of thing that you might even be doing as a level
+you might even be doing as a level designer now if you have like you know
+designer now if you have like you know modular environment art and you can snap
+modular environment art and you can snap pieces together it's basically exactly
+pieces together it's basically exactly the same concept and then we generate
+the same concept and then we generate entities enemies and
+items I just want to give credit where it's due also this is not like a
+it's due also this is not like a particularly revolutionary idea I was
+particularly revolutionary idea I was inspired in large part by the Spelunky
+inspired in large part by the Spelunky generator uh the so Derek U who made
+generator uh the so Derek U who made Spelunky has written a bit about it but
+Spelunky has written a bit about it but Darius Kaz Amy kind of separately re
+Darius Kaz Amy kind of separately re implemented the whole game in Javas
+implemented the whole game in Javas script I believe and has made like an
+script I believe and has made like an interactive version of Spelunky
+interactive version of Spelunky generator that you can play with on the
+generator that you can play with on the website it's really cool like check that
+website it's really cool like check that out if you get a
+out if you get a chance so the first step we we have to
+chance so the first step we we have to generate this
+generate this Maze and you might wonder why we start
+Maze and you might wonder why we start with a maze because like if I'm playing
+with a maze because like if I'm playing a game and I say yeah it was really cool
+a game and I say yeah it was really cool it had some good things some bad things
+it had some good things some bad things I played this one level and it was kind
+I played this one level and it was kind of maze like do you think I meant that
+of maze like do you think I meant that that was a good love or not like maze
+that was a good love or not like maze has connotations about I I probably
+has connotations about I I probably meant that that was you know difficult
+meant that that was you know difficult to navigate I wasn't sure where I was
+to navigate I wasn't sure where I was going maybe I got lost maybe it all
+going maybe I got lost maybe it all looked the same like Maes to me say I
+looked the same like Maes to me say I don't know where I was going and the the
+don't know where I was going and the the environment was all kind of
+environment was all kind of homogeneous so why would I start with a
+homogeneous so why would I start with a maze then if if there are those negative
+maze then if if there are those negative connotations well for a Rog likee game
+connotations well for a Rog likee game not knowing where you're going that's
+not knowing where you're going that's actually a good thing that's part of the
+actually a good thing that's part of the central mechanic of a Rog like is there
+central mechanic of a Rog like is there there isn't like explicit way finding
+there isn't like explicit way finding like there's not a designer who's who's
+like there's not a designer who's who's trying to guide the player to the exit
+trying to guide the player to the exit part of a rogue like is you have to find
+part of a rogue like is you have to find the
+exit so that part I was just okay with and I actually wanted to have really
+and I actually wanted to have really twisty confusing levels because it did
+twisty confusing levels because it did come back to that kind of love crafty
+come back to that kind of love crafty and alien wrongness if you have like a
+and alien wrongness if you have like a confusing level and you get lost in it
+confusing level and you get lost in it that's actually kind of cool that's part
+that's actually kind of cool that's part of the the Lovecraft
+of the the Lovecraft experience but what I didn't want was
+experience but what I didn't want was the the idea that the environments are
+the the idea that the environments are all very homogeneous like every part of
+all very homogeneous like every part of a level looks like every other part that
+a level looks like every other part that is not a good experience that that helps
+is not a good experience that that helps you get lost if you don't have visual
+you get lost if you don't have visual landmarks and things that make each
+landmarks and things that make each moment of a level memorable so I want
+moment of a level memorable so I want the structure of a maze but not the
+the structure of a maze but not the visual sameness of a
+maze so there's a lot of ways that you can generate mazes I think the extent of
+can generate mazes I think the extent of research that I did was to go to the
+research that I did was to go to the Wikipedia page for Maze generation and
+Wikipedia page for Maze generation and pick the first thing that looked like I
+pick the first thing that looked like I could use it I ended up with something
+could use it I ended up with something called prims
+called prims algorithm Ms liked it uh I ended up with
+algorithm Ms liked it uh I ended up with something called Prim
+something called Prim algorithm which the steps are described
+algorithm which the steps are described there but we're just going to go through
+there but we're just going to go through it visually but basically you you start
+it visually but basically you you start with the Maze and it's all closed off to
+with the Maze and it's all closed off to begin with uh basically it's a bunch of
+begin with uh basically it's a bunch of rooms they have walls between them and
+rooms they have walls between them and they're all we call them closed and then
+they're all we call them closed and then we're going to pick one at random we're
+we're going to pick one at random we're going to start in the lower left we're
+going to start in the lower left we're going to say all right that's the first
+going to say all right that's the first room in our open set of the Maze and
+room in our open set of the Maze and then we just randomly expand to any
+then we just randomly expand to any neighbor of that cell so maybe we we go
+neighbor of that cell so maybe we we go up from there then on the next step
+up from there then on the next step we're going to pick randomly from the
+we're going to pick randomly from the open rooms and expand to any closed
+open rooms and expand to any closed neighbor of that so we go that way and
+neighbor of that so we go that way and we keep doing this and we keep growing
+we keep doing this and we keep growing until either we've we've done enough
+until either we've we've done enough passes that we're happy with the maze or
+passes that we're happy with the maze or eventually we fill all the
+space so if we if we consider like the structure of this maze like it's it's a
+structure of this maze like it's it's a decent maze it it looks balanced like a
+decent maze it it looks balanced like a maze should be and as much as a maze can
+maze should be and as much as a maze can have balance but there's no Loops in it
+have balance but there's no Loops in it that's kind of a property of the
+that's kind of a property of the algorithm like because we open a path
+algorithm like because we open a path from a a open node to a closed node we
+from a a open node to a closed node we can never join two open nodes together
+can never join two open nodes together and create Loops there's also no open
+and create Loops there's also no open space in it and those are things that I
+space in it and those are things that I I ended up trying to find ways to fix so
+I ended up trying to find ways to fix so I made a few modifications to Prim
+I made a few modifications to Prim algorithm there's two random factors in
+algorithm there's two random factors in in prim's algorithm there's randomly
+in prim's algorithm there's randomly pick a node to expand from and randomly
+pick a node to expand from and randomly pick the node that you're going to
+pick the node that you're going to expand to so I biased which node that
+expand to so I biased which node that I'm picking to expand from based
+I'm picking to expand from based on trying to expand from the most recent
+on trying to expand from the most recent visited room if I crank that knob up
+visited room if I crank that knob up this was a this wasn't like a constant I
+this was a this wasn't like a constant I do it all the time this was a a control
+do it all the time this was a a control that I had to try to differentiate iate
+that I had to try to differentiate iate worlds if I turn that knob up basically
+worlds if I turn that knob up basically I get like the the generator kind of
+I get like the the generator kind of just expands through the space until it
+just expands through the space until it terminates in a dead end or it has
+terminates in a dead end or it has nowhere left to go and so you get long
+nowhere left to go and so you get long twisty mazes that end up being kind of
+twisty mazes that end up being kind of claustrophobic to explore they don't
+claustrophobic to explore they don't have a lot of branches in them if I turn
+have a lot of branches in them if I turn that knob back down I get branches from
+that knob back down I get branches from anywhere in the Maze and it's more open
+anywhere in the Maze and it's more open space lots of Junctions less twisty
+space lots of Junctions less twisty claustrophobic uh spaces so the other
+claustrophobic uh spaces so the other random factor is which room we're
+random factor is which room we're expanding to and I biased that toward
+expanding to and I biased that toward expanding on the horizontal plane
+expanding on the horizontal plane because
+because remember we we're doing this maze in
+remember we we're doing this maze in threedimensional space it it doesn't
+threedimensional space it it doesn't look like this it looks like kind of
+look like this it looks like kind of you've got three levels of this stacked
+you've got three levels of this stacked up in addition to opening paths north
+up in addition to opening paths north south east or west we can open paths up
+south east or west we can open paths up and down but people are used to walking
+and down but people are used to walking in the ground plane and we're you know
+in the ground plane and we're you know even as firstperson game players we're
+even as firstperson game players we're we're trained to navigate in that plane
+we're trained to navigate in that plane and vertical traversal ends up being
+and vertical traversal ends up being really difficult even in a game like
+really difficult even in a game like elrich where there were a lot of powers
+elrich where there were a lot of powers and abilities to try to give you
+and abilities to try to give you vertical traversal it just wasn't a lot
+vertical traversal it just wasn't a lot of fun to do so I I biased the the maze
+of fun to do so I I biased the the maze expansion to always explore the ground
+expansion to always explore the ground plane and only when it terminated and it
+plane and only when it terminated and it couldn't go anywhere else then I would
+couldn't go anywhere else then I would make a path up or down and continue to
+make a path up or down and continue to explore kind of the next story of the
+explore kind of the next story of the Maze and the last modification I made to
+Maze and the last modification I made to prim's algorithm it's not actually even
+prim's algorithm it's not actually even part of the algorithm per se but after
+part of the algorithm per se but after we've run this all these steps and we
+we've run this all these steps and we we've generated the maze I just randomly
+we've generated the maze I just randomly knocked down a bunch more walls and what
+knocked down a bunch more walls and what that gets us is you know we look at this
+that gets us is you know we look at this and we wanted to have Loops in here I
+and we wanted to have Loops in here I wanted to have some long lines of sight
+wanted to have some long lines of sight some open courtyards and and the Maze
+some open courtyards and and the Maze Generation by itself wasn't producing
+Generation by itself wasn't producing any of that but if I just start knocking
+any of that but if I just start knocking out walls I get this sort of thing and I
+out walls I get this sort of thing and I could have done a really intelligent
+could have done a really intelligent system here of like you know try to
+system here of like you know try to identify a long Loop and find like the
+identify a long Loop and find like the wall I can knock down to make the most
+wall I can knock down to make the most interesting kind of level it turned out
+interesting kind of level it turned out in a maze this small knocking down any
+in a maze this small knocking down any random wall gets me exactly what I want
+random wall gets me exactly what I want and never has any bad side effects so it
+and never has any bad side effects so it was like the again the simplest thing
+was like the again the simplest thing that could possibly work and that yeah
+that could possibly work and that yeah it took me like 5 minutes to write and
+it took me like 5 minutes to write and it makes a huge difference this is
+it makes a huge difference this is actually the modification to prims that
+actually the modification to prims that that makes the most difference in a
+that makes the most difference in a level because if I turn this all the way
+level because if I turn this all the way up like I get wide wide open spaces
+up like I get wide wide open spaces where if I turn it down I get like
+where if I turn it down I get like claustrophobic levels and it's the the
+claustrophobic levels and it's the the the difference in like it starts from
+the difference in like it starts from the same maze algorithm but you end up
+the same maze algorithm but you end up you know in a a picture like uh
+you know in a a picture like uh sorry I got to go way back so in a
+sorry I got to go way back so in a picture like this it's a very open space
+picture like this it's a very open space we've got like connectivity all between
+we've got like connectivity all between here a maze by itself could never
+here a maze by itself could never produce this right
+produce this right because there would be walls including
+because there would be walls including all this so yeah this ends up being the
+all this so yeah this ends up being the most useful factor of the three
+most useful factor of the three modifications I made
+sorry so that everything I was talking about with the maze generation so far
+about with the maze generation so far I'm kind of talking
+I'm kind of talking about regarding all space kind of as
+about regarding all space kind of as equivalent but in a level in alrich
+equivalent but in a level in alrich there's there's other things in the the
+there's there's other things in the the level besides just corridors and and
+level besides just corridors and and Corners there's the entrance and exit to
+Corners there's the entrance and exit to the level are kind of unique features
+the level are kind of unique features there's shops there's Bank vaults to Rob
+there's shops there's Bank vaults to Rob shrines to acquire Powers at and each of
+shrines to acquire Powers at and each of those is going to have to have
+those is going to have to have environment art and a module made for it
+environment art and a module made for it and that has to fit somewhere into the
+and that has to fit somewhere into the maze shops you always from one
+maze shops you always from one side uh shrines they I I would sometimes
+side uh shrines they I I would sometimes tend to put them in in Corners the exit
+tend to put them in in Corners the exit of the maze it always had to go
+of the maze it always had to go somewhere specific like the the the
+somewhere specific like the the the entrance had to go on the top of the
+entrance had to go on the top of the maze the exit had to go on the bottom so
+maze the exit had to go on the bottom so I had these special rooms and they had
+I had these special rooms and they had to go certain places in the Maze and the
+to go certain places in the Maze and the the first way that I wanted to do this
+the first way that I wanted to do this was to generate the Maze and then search
+was to generate the Maze and then search it for where I could put these features
+it for where I could put these features the problem is because like the geometry
+the problem is because like the geometry of of the exit the geometry of a shop
+of of the exit the geometry of a shop any of those kind of things it had fit
+any of those kind of things it had fit somewhere specific in the Maze and there
+somewhere specific in the Maze and there wasn't always a guarantee from
+wasn't always a guarantee from generating a random maze that I would
+generating a random maze that I would have a place that could go for example I
+have a place that could go for example I want to put a shop into like a dead end
+want to put a shop into like a dead end because it has one entrance in this
+because it has one entrance in this example there's only one place that
+example there's only one place that could go in in the top right corner
+could go in in the top right corner that's the only dead end in the Maze
+that's the only dead end in the Maze like if I kept cranking that that open
+like if I kept cranking that that open tuning knob way up there wouldn't be
+tuning knob way up there wouldn't be anywhere to put a shop and then even
+anywhere to put a shop and then even though I need that like for balance and
+though I need that like for balance and for tuning purposes it just couldn't fit
+for tuning purposes it just couldn't fit anywhere so I found I could do I don't
+anywhere so I found I could do I don't search the maze for a fit for these
+search the maze for a fit for these rooms I actually seed the maze with the
+rooms I actually seed the maze with the rooms that I need and I prescribe like
+rooms that I need and I prescribe like this room with this structure has to go
+this room with this structure has to go here in the Maze so it looks like this
+here in the Maze so it looks like this it starts even before we run prim's
+it starts even before we run prim's algorithm we've got the Maze and it's
+algorithm we've got the Maze and it's all closed off and we say all right
+all closed off and we say all right here's going to be a shop here's going
+here's going to be a shop here's going to be an exit and we open up not just
+to be an exit and we open up not just those rooms but also their neighbors and
+those rooms but also their neighbors and then I lock the rooms that they actually
+then I lock the rooms that they actually have those features in them the shop and
+have those features in them the shop and the exit and I say when I'm doing the
+the exit and I say when I'm doing the maze expansion nothing else can ever
+maze expansion nothing else can ever touch those
+touch those walls so I run the maze expansion and it
+walls so I run the maze expansion and it goes from from the neighboring rooms I
+goes from from the neighboring rooms I opened and we get the whole maze built
+opened and we get the whole maze built out here and that I've got that
+out here and that I've got that guarantee that like nothing is going to
+guarantee that like nothing is going to knock down the walls of the
+knock down the walls of the shop even if I crank up the open up the
+shop even if I crank up the open up the world tuning knob all the way and knock
+world tuning knob all the way and knock down all the rest of the walls the
+down all the rest of the walls the generator is going to guarantee this
+generator is going to guarantee this shop is always going to have this
+structure so now we've got this kind of exract maze fill in threedimensional
+exract maze fill in threedimensional space but it doesn't have any
+space but it doesn't have any environment art it doesn't have any
+environment art it doesn't have any geometry yet I use a modular approach to
+geometry yet I use a modular approach to this um like you may have heard talked
+this um like you may have heard talked about last year for Skyrim I build small
+about last year for Skyrim I build small chunks of the world and each cell in the
+chunks of the world and each cell in the Maze is going to get filled in with one
+Maze is going to get filled in with one of those
+of those chunks ELD uses a voxal engine the each
+chunks ELD uses a voxal engine the each module is 12 M by 12 M by 8 m high and I
+module is 12 M by 12 M by 8 m high and I just build them kind of like the way you
+just build them kind of like the way you would do if you're in like creative mode
+would do if you're in like creative mode in Minecraft I have an Game editor I put
+in Minecraft I have an Game editor I put voils
+voils down the challenge is that every module
+down the challenge is that every module has to connect with any other module I
+has to connect with any other module I don't have any guarantees about like
+don't have any guarantees about like which ones are going to be picked
+which ones are going to be picked adjacent to which others and with you
+adjacent to which others and with you know 12 meters on a face there's kind of
+know 12 meters on a face there's kind of a lot of ways there's a lot of space
+a lot of ways there's a lot of space where they could join this was another
+where they could join this was another case where I just did the simplest thing
+case where I just did the simplest thing that could possibly work I made a safe
+that could possibly work I made a safe region on the exterior face of each
+region on the exterior face of each module and that's what's highlighted in
+module and that's what's highlighted in yellow in these images so any module
+yellow in these images so any module that has that intends to connect on that
+that has that intends to connect on that face it has to have that space be open
+face it has to have that space be open and so like in the image on the left
+and so like in the image on the left this this module connects in both
+this this module connects in both directions one face is completely open
+directions one face is completely open the other is Walled off except for that
+the other is Walled off except for that safe region that ensures that those two
+safe region that ensures that those two faces could join together it will always
+faces could join together it will always be traversible by the player or by enemy
+AIS I could get some kind of fun effects by playing around with opening up
+by playing around with opening up geometry in on the exterior face outside
+geometry in on the exterior face outside of the safe region in this example like
+of the safe region in this example like this sorry this picture is kind of hard
+this sorry this picture is kind of hard to see but we've got a corridor so we're
+to see but we've got a corridor so we're looking at the module from the outside
+looking at the module from the outside and we've got a corridor that goes
+and we've got a corridor that goes inside in the safe region but we've also
+inside in the safe region but we've also got kind of an opening up here in the
+got kind of an opening up here in the top outside the safe region and what
+top outside the safe region and what happens is that we get kind of just
+happens is that we get kind of just serendipitous Effects by when when this
+serendipitous Effects by when when this module meets up with other modules it
+module meets up with other modules it just kind of reinterprets what that
+just kind of reinterprets what that opening looks like so the typical like
+opening looks like so the typical like the most common case is that it just
+the most common case is that it just looks like a balcony open on opening up
+looks like a balcony open on opening up onto the adjacent module
+onto the adjacent module but sometimes there's some geometry in
+but sometimes there's some geometry in the adjacent module it looks like this
+the adjacent module it looks like this is part of a a feature you know that the
+is part of a a feature you know that the the two rooms shared that's kind of
+the two rooms shared that's kind of crumbling
+crumbling away sometimes we get because the the
+away sometimes we get because the the voxal grid is so low resolution they're
+voxal grid is so low resolution they're 1 meter Cub voxal we we just get a lot
+1 meter Cub voxal we we just get a lot of features that sendly join here so in
+of features that sendly join here so in this the adjacent module had like an
+this the adjacent module had like an upstairs level and it just looks like it
+upstairs level and it just looks like it connects to that opening and actually
+connects to that opening and actually this really hides like the boundary
+this really hides like the boundary between the two modules really well like
+between the two modules really well like this just looks like one space you
+this just looks like one space you wouldn't look at this and assume those
+wouldn't look at this and assume those two separate
+two separate modules and then sometimes because this
+modules and then sometimes because this opening is outside the safe space it
+opening is outside the safe space it just ends up running into a wall and the
+just ends up running into a wall and the player you know they approach us from
+player you know they approach us from the other side they open the door and
+the other side they open the door and they're like looking at a dead end it's
+they're like looking at a dead end it's just a wall there and I was like well
+just a wall there and I was like well that's that's not good you know I I
+that's that's not good you know I I wanted the levels to be semicoherent but
+wanted the levels to be semicoherent but that just seems like a bad use of space
+that just seems like a bad use of space and then I I realized I can just put
+and then I I realized I can just put some Loot on the ground there and then
+some Loot on the ground there and then it looks like a loot closet and it looks
+it looks like a loot closet and it looks completely intentional so yeah I was
+completely intentional so yeah I was just this was the sort of thing and I
+just this was the sort of thing and I didn't do this too much in the game
+didn't do this too much in the game because it did tend to feel uh like like
+because it did tend to feel uh like like players started to perceive this pattern
+players started to perceive this pattern and it started to break down but but
+and it started to break down but but once in a while it was kind of nice to
+once in a while it was kind of nice to get these kind of serendipitous
+get these kind of serendipitous results so in the Maze there's there's
+results so in the Maze there's there's six directions that that any room can
+six directions that that any room can exit north south east west up and down
+exit north south east west up and down that means that there's 64 different
+that means that there's 64 different combinations of room of of ways that
+combinations of room of of ways that rooms can be
+rooms can be configured uh two to the power 6
+configured uh two to the power 6 64 that means that ostensibly we would
+64 that means that ostensibly we would have to build a module to fit in each of
+have to build a module to fit in each of the 64 configurations but of course we
+the 64 configurations but of course we think that wouldn't make sense like a
+think that wouldn't make sense like a room with an exit to the north it's the
+room with an exit to the north it's the same as a room with an exit to the South
+same as a room with an exit to the South just rotated so the generator will do
+just rotated so the generator will do the rotation for me so if we have a tile
+the rotation for me so if we have a tile it's got exits to north south and east
+it's got exits to north south and east the generator can rotate that about the
+the generator can rotate that about the vertical axis like we would expect and
+vertical axis like we would expect and and give us a module that will fit into
+and give us a module that will fit into the other rooms this is just what you
+the other rooms this is just what you would expect if you've worked with
+would expect if you've worked with modules before it's just like laying
+modules before it's just like laying down the tiles in the city building game
+down the tiles in the city building game but the other thing that we can do that
+but the other thing that we can do that you couldn't do with physical tiles is
+you couldn't do with physical tiles is we can also mirror this and so when I do
+we can also mirror this and so when I do this I get a North South and West exit
+this I get a North South and West exit which we already had in the first row
+which we already had in the first row from rotation so mirroring isn't
+from rotation so mirroring isn't necessary like it doesn't it doesn't
+necessary like it doesn't it doesn't fill any void in level generator but it
+fill any void in level generator but it does kind of reuse the modules in an
+does kind of reuse the modules in an interesting way because if you rotate a
+interesting way because if you rotate a room like the player doesn't perceive
+room like the player doesn't perceive that you know if we took this room and
+that you know if we took this room and rotate it at 90° it just feels like the
+rotate it at 90° it just feels like the same room we're just facing a different
+same room we're just facing a different direction and it when you mirror it you
+direction and it when you mirror it you do get you know the flipped image and
+do get you know the flipped image and the player actually perceives that as a
+the player actually perceives that as a different kind of room it did add the
+different kind of room it did add the constraints that I couldn't ever like I
+constraints that I couldn't ever like I couldn't try to spell something out on
+couldn't try to spell something out on the voxal because then I would get the
+the voxal because then I would get the mirror image and the word would get
+reversed so by using those those transforms we get 24 configurations in
+transforms we get 24 configurations in the Maze that we have to build modules
+the Maze that we have to build modules for instead of 64 and if you know I can
+for instead of 64 and if you know I can imagine if I were building like a six
+imagine if I were building like a six degrees of freedom descent style
+degrees of freedom descent style shootter I could even reduce that set
+shootter I could even reduce that set more because you could take like a room
+more because you could take like a room that has an exit to the north and rotate
+that has an exit to the north and rotate it up but since eldrich has an up Vector
+it up but since eldrich has an up Vector and gravity I couldn't do
+and gravity I couldn't do that so 24 configurations to build
+that so 24 configurations to build modules for that doesn't sound too bad
+modules for that doesn't sound too bad but we don't want the maze to be
+but we don't want the maze to be homogeneous we want we don't want for
+homogeneous we want we don't want for example every T Junction to look like
+example every T Junction to look like every other T Junction so I need to
+every other T Junction so I need to build multiple modules for each of these
+build multiple modules for each of these 24 configurations and that starts to
+24 configurations and that starts to sound like a bit more work I also don't
+sound like a bit more work I also don't know immediately how like how many
+know immediately how like how many modules do I need I want to avoid rep
+modules do I need I want to avoid rep ition in the level I want to have a
+ition in the level I want to have a number of modules I can plug in to any
+number of modules I can plug in to any similar configuration in the Maze but
+similar configuration in the Maze but how many so I wrote a little tool that
+how many so I wrote a little tool that generates a maze 10,000 times and just
+generates a maze 10,000 times and just dumps a spreadsheet of like here's how
+dumps a spreadsheet of like here's how many times I had a dead end room here's
+many times I had a dead end room here's how many times I had an L Junction or a
+how many times I had an L Junction or a t
+t Junction and then it sorts those by by
+Junction and then it sorts those by by the frequency and so that doesn't give
+the frequency and so that doesn't give me like an absolute metric of how many
+me like an absolute metric of how many modules I need to build but it gives me
+modules I need to build but it gives me a comparative metric of like appear
+a comparative metric of like appear three times as often as T Junctions I
+three times as often as T Junctions I should build three times as many l
+should build three times as many l Junction modules so they'll you know
+Junction modules so they'll you know there's a bigger set to pull from
+there's a bigger set to pull from because you'll see those more often in
+because you'll see those more often in the
+Maze so I ended up just I mean this scales really well I could build like
+scales really well I could build like even today I could go back into eldrich
+even today I could go back into eldrich and build more modules and it just gets
+and build more modules and it just gets like thrown into the mix and when I
+like thrown into the mix and when I generate a level sometimes you'll see
+generate a level sometimes you'll see those sometimes you won't I just had to
+those sometimes you won't I just had to you know kind of decide arbitrarily
+you know kind of decide arbitrarily where I was going to cut that off and
+where I was going to cut that off and how much work I was going to do what I
+how much work I was going to do what I did was like in the statistical report
+did was like in the statistical report if an L Junction shows up eight times in
+if an L Junction shows up eight times in a level I built eight variations of that
+a level I built eight variations of that module it just seemed like a good number
+module it just seemed like a good number to do and so between all the the modules
+to do and so between all the the modules that will go into the ma and modules
+that will go into the ma and modules that had specific features like shops
+that had specific features like shops and entrances and exits and shrines I
+and entrances and exits and shrines I ended up with about 60 modules I had to
+ended up with about 60 modules I had to build for each world of the game and in
+build for each world of the game and in in the first version of eldrich they
+in the first version of eldrich they shipped I think there were about 300
+shipped I think there were about 300 modules across the course of the
+game so one of the things I wanted to do was have each world in the game
+was have each world in the game represent kind of a one story from from
+represent kind of a one story from from lovecrafts U this the the first world of
+lovecrafts U this the the first world of the game was Loosely based on the shadow
+the game was Loosely based on the shadow of insouth and it's supposed to
+of insouth and it's supposed to represent kind of a cave system and sunk
+represent kind of a cave system and sunk in Ruins beneath a New England town and
+in Ruins beneath a New England town and the way that I wanted to do that was to
+the way that I wanted to do that was to represent it like the the town with red
+represent it like the the town with red brick and steel beams and then have a
+brick and steel beams and then have a kind of cave system beneath that and
+kind of cave system beneath that and then sunken ruins at the bottom and so I
+then sunken ruins at the bottom and so I just started building modules that had
+just started building modules that had each of those themes in them and it
+each of those themes in them and it ended up being very visually noisy it it
+ended up being very visually noisy it it felt chaotic I wanted levels that were
+felt chaotic I wanted levels that were semicoherent but this just felt noisy it
+semicoherent but this just felt noisy it didn't it was beyond not making sense to
+didn't it was beyond not making sense to just not looking good so the first thing
+just not looking good so the first thing that I thought I could do was well I'll
+that I thought I could do was well I'll just split each of those themes out into
+just split each of those themes out into its own modular set I'll have first
+its own modular set I'll have first you'll go through the warehouse level
+you'll go through the warehouse level then you'll go through the caves level
+then you'll go through the caves level and then you'll go through the through
+and then you'll go through the through the ruins level the problem is that
+the ruins level the problem is that would triple the amount of modules I
+would triple the amount of modules I needed to build each of those would have
+needed to build each of those would have to be a complete
+to be a complete set my solution here was I I just
+set my solution here was I I just explicitly declared each module that was
+explicitly declared each module that was building as part of one of those themes
+building as part of one of those themes and then when I generate a level the
+and then when I generate a level the generator elects one of the themes from
+generator elects one of the themes from the set to be the dominant theme so it
+the set to be the dominant theme so it says like maybe this is going to be a
+says like maybe this is going to be a warehouse level and it prefers to use
+warehouse level and it prefers to use Warehouse modules when they're available
+Warehouse modules when they're available but if for example I'm building you the
+but if for example I'm building you the maze has some some room in it and I
+maze has some some room in it and I don't have a warehouse module that fits
+don't have a warehouse module that fits that room it just falls back to using
+that room it just falls back to using whatever else that can fit in there and
+whatever else that can fit in there and so then I go from like the scene on the
+so then I go from like the scene on the left if I I do like the colar COA and
+left if I I do like the colar COA and pass over it like the bright green Parts
+pass over it like the bright green Parts here are the ruins level and then the
+here are the ruins level and then the dark blue is caves and the red part is
+dark blue is caves and the red part is Warehouses and the image on the left is
+Warehouses and the image on the left is what it looked like before where it's
+what it looked like before where it's just you've got all these themes all in
+just you've got all these themes all in the player's view right here and it's
+the player's view right here and it's just kind of visually noisy after doing
+just kind of visually noisy after doing this themes pass I ended up with levels
+this themes pass I ended up with levels like what you see on the right where
+like what you see on the right where everything that you can see inher is
+everything that you can see inher is from the ruins theme and then you know
+from the ruins theme and then you know maybe at some part in the level I don't
+maybe at some part in the level I don't have a a ruins module that fits in there
+have a a ruins module that fits in there and so it falls back to using caves or
+and so it falls back to using caves or warehouses and at that point it looks
+warehouses and at that point it looks okay it's like sure I buy that maybe you
+okay it's like sure I buy that maybe you know this this sunken ruin touches into
+know this this sunken ruin touches into a Cave System somewhere that that looks
+a Cave System somewhere that that looks fine but it's not so visually
+noisy so most of the modules I've been talking about are just things that that
+talking about are just things that that populate anywhere in the Maze but I also
+populate anywhere in the Maze but I also need to have the module mod for feature
+need to have the module mod for feature rooms uh entrances and exits shops
+rooms uh entrances and exits shops shrines all these things this is
+shrines all these things this is basically the compl of the prescribed
+basically the compl of the prescribed rooms in the Maze the things where the
+rooms in the Maze the things where the geometry had to be locked down in fact
+geometry had to be locked down in fact in the data it's all the same thing like
+in the data it's all the same thing like this is the definition for a bank vault
+this is the definition for a bank vault in the first world the first like six
+in the first world the first like six lines describe where in the Maze it's
+lines describe where in the Maze it's going to go and then at the bottom it
+going to go and then at the bottom it says these are the modules that it can
+says these are the modules that it can use there and I use this for a lot
+use there and I use this for a lot things not just like the the shops and
+things not just like the the shops and things but also to add points of kind of
+things but also to add points of kind of really rare visual interest things that
+really rare visual interest things that would be uh key landmarks kind of both
+would be uh key landmarks kind of both visually and experientially uh the image
+visually and experientially uh the image on the left here is from the second
+on the left here is from the second world of the game and it's it's kind of
+world of the game and it's it's kind of hard to see probably but it's a throne
+hard to see probably but it's a throne room it's being guarded by these two
+room it's being guarded by these two statues they're like weeping angels from
+statues they're like weeping angels from Doctor Who if you're familiar with that
+Doctor Who if you're familiar with that they come to life when you look away
+they come to life when you look away from them there's no other way to get to
+from them there's no other way to get to the throne room except to go past these
+the throne room except to go past these guys so it becomes a very dangerous
+guys so it becomes a very dangerous challenge this is the sort of thing it's
+challenge this is the sort of thing it's memorable when you see this it stands
+memorable when you see this it stands out it's you know a really cool
+out it's you know a really cool encounter that's a little different than
+encounter that's a little different than just fighting enemies in the rest of the
+just fighting enemies in the rest of the game but I didn't want to use these too
+game but I didn't want to use these too much I didn't want to have them show up
+much I didn't want to have them show up all the time so at most you get one of
+all the time so at most you get one of these per level there's not even you
+these per level there's not even you know guaranteed to be one but just let
+know guaranteed to be one but just let me do something you know once in a while
+me do something you know once in a while just mix something fun and just a little
+just mix something fun and just a little you know kind of unique bespoke
+you know kind of unique bespoke encounter that gets mixed into the level
+encounter that gets mixed into the level somewhere I also used them uh feature
+somewhere I also used them uh feature rooms to do uh things like the image on
+rooms to do uh things like the image on the right it's a zigurat at the end of
+the right it's a zigurat at the end of the first world and it's bigger than any
+the first world and it's bigger than any feature that you could that the maze
+feature that you could that the maze could generate on it it own because it's
+could generate on it it own because it's actually built out of eight modules kind
+actually built out of eight modules kind of arranged into a giant Cube so you
+of arranged into a giant Cube so you would never see a feature this large
+would never see a feature this large just in a typically generated level in
+just in a typically generated level in the game it can only happen kind of when
+the game it can only happen kind of when I build it as a bespoke
+I build it as a bespoke thing so now we have we we've built the
+thing so now we have we we've built the maze we've populated it with the modules
+maze we've populated it with the modules and we need to spawn some some objects
+and we need to spawn some some objects into it some enemies to fight some loot
+into it some enemies to fight some loot you know the goals I had for this first
+you know the goals I had for this first are kind of the things that you would
+are kind of the things that you would expect building you know Levels by hand
+expect building you know Levels by hand you have to challenge the player with
+you have to challenge the player with enemies and traps you have to give them
+enemies and traps you have to give them incentive to explore by having loot to
+incentive to explore by having loot to pick up for a procedural game there were
+pick up for a procedural game there were additional goals of like I have to
+additional goals of like I have to actually place these in sensible
+actually place these in sensible locations or the the the generator has
+locations or the the the generator has to place them in sensible locations and
+to place them in sensible locations and I also had to control the group
+I also had to control the group population like I didn't want to leave
+population like I didn't want to leave it up to chance how many enemies are in
+it up to chance how many enemies are in the level I want to be able to ramp that
+the level I want to be able to ramp that up over the course of the game so like
+up over the course of the game so like the first world there's a dozen enemies
+the first world there's a dozen enemies and at the end in within the same space
+and at the end in within the same space there might be two dozen but I needed to
+there might be two dozen but I needed to be able to control that
+be able to control that I never even considered trying to write
+I never even considered trying to write an algorithm to place entities like
+an algorithm to place entities like there's just so many roles like if if
+there's just so many roles like if if I'm trying to place a light in the world
+I'm trying to place a light in the world we all kind of have assumptions from
+we all kind of have assumptions from being people about where a light fixture
+being people about where a light fixture might go but trying to codify that into
+might go but trying to codify that into a rule set would be really really
+a rule set would be really really difficult so I knew that I wanted to
+difficult so I knew that I wanted to place entities by hand but I didn't want
+place entities by hand but I didn't want to say like everywhere that this one
+to say like everywhere that this one module shows up there's always going to
+module shows up there's always going to be this kind of trap or this kind of
+be this kind of trap or this kind of enemy um and I you know I think the sort
+enemy um and I you know I think the sort of thing is used in uh games with
+of thing is used in uh games with handbuilt levels as well as procedural
+handbuilt levels as well as procedural games but what I did was to just kind of
+games but what I did was to just kind of abstract the concept of putting an
+abstract the concept of putting an entity into the world one step away so
+entity into the world one step away so that when the when I generate the level
+that when the when I generate the level there's a rule set that runs that says
+there's a rule set that runs that says like all right here's a thing you know
+like all right here's a thing you know as a designer I I put a a spawner into
+as a designer I I put a a spawner into the world and there's an opportunity for
+the world and there's an opportunity for something to spawn there but then
+something to spawn there but then there's a r set that's going to run and
+there's a r set that's going to run and say do I actually want to spawn
+say do I actually want to spawn something right now and if so what's it
+something right now and if so what's it going to be so the most basic version of
+going to be so the most basic version of this is like a spawner that says it
+this is like a spawner that says it always spawns and it's always this one
+always spawns and it's always this one thing and we use that like for the
+thing and we use that like for the player spawner because you always need a
+player spawner because you always need a player I could do spawners that had a
+player I could do spawners that had a random chance I did this a lot for traps
+random chance I did this a lot for traps I would you know just cover a module
+I would you know just cover a module with like spikes on the ground or trip
+with like spikes on the ground or trip wires crisscrossing it but then give
+wires crisscrossing it but then give them like a one and two or one and three
+them like a one and two or one and three chance to spawn so like the the specific
+chance to spawn so like the the specific arrangement of of the traps in that room
+arrangement of of the traps in that room will be a little bit different every
+will be a little bit different every time that
+time that runs what's more interesting that I
+runs what's more interesting that I could do is to actually randomize What
+could do is to actually randomize What entity was spawned there this is an
+entity was spawned there this is an example of when you've broken into a
+example of when you've broken into a bank vault you know there's there's a
+bank vault you know there's there's a bunch of coins to gather up from behind
+bunch of coins to gather up from behind behind the Gates and it has a 75% chance
+behind the Gates and it has a 75% chance of spawning at all and then if it does
+of spawning at all and then if it does spawn it's got a three to two chance to
+spawn it's got a three to two chance to spawn a big pile of coins which is
+spawn a big pile of coins which is actually a separate entity than just a
+actually a separate entity than just a single coin I used this also for for
+single coin I used this also for for enemies I would just place a generic
+enemies I would just place a generic enemy AI spawner and then it had a table
+enemy AI spawner and then it had a table of like here's all the enemies that can
+of like here's all the enemies that can actually be for this level and they're
+actually be for this level and they're weighted by like we want a whole bunch
+weighted by like we want a whole bunch of kind of grunt enemies but we only
+of kind of grunt enemies but we only want one really tough guy so I could do
+want one really tough guy so I could do that kind of
+that kind of thing then I needed to control the
+thing then I needed to control the population I I called this resolve
+population I I called this resolve groups which is a kind of bad name but
+groups which is a kind of bad name but basically the idea was I gather up all
+basically the idea was I gather up all like the spawners that are tagged a
+like the spawners that are tagged a certain thing like all the enemy AI
+certain thing like all the enemy AI spawners and then I run some rules I
+spawners and then I run some rules I call the set of those and I'm able to
+call the set of those and I'm able to resolve that into a subset of things I
+resolve that into a subset of things I actually want to spawn I use that for
+actually want to spawn I use that for enemy AIS for a few really rare items
+enemy AIS for a few really rare items like healing fountains that they they
+like healing fountains that they they not only heal you but increase your max
+not only heal you but increase your max health things I really needed to control
+health things I really needed to control the number of those that appear
+the number of those that appear throughout over the course of the entire
+throughout over the course of the entire game and this also let me run some
+game and this also let me run some additional rules while I was doing it
+additional rules while I was doing it like for enemies I want to enforce a
+like for enemies I want to enforce a minimum distance from the player spawn
+minimum distance from the player spawn it was a really terrible experience
+it was a really terrible experience early on in the game when like you would
+early on in the game when like you would you know I never put an enemy AI Spawner
+you know I never put an enemy AI Spawner in the same module as the player spawn
+in the same module as the player spawn it could end up like adjacent to
+it could end up like adjacent to something that had three enemies in it
+something that had three enemies in it and suddenly you know you've got
+and suddenly you know you've got monsters in your face and you've just
+monsters in your face and you've just entered the level so I just put a
+entered the level so I just put a minimum spawn on there so when it when
+minimum spawn on there so when it when it's resolving that big set of spawners
+it's resolving that big set of spawners into the small subset it's actually
+into the small subset it's actually going to use it just gets rid of
+going to use it just gets rid of anything that's near the player
+anyway spawner placement was something I didn't think a lot about until very late
+didn't think a lot about until very late in
+in development when I started I was just I
+development when I started I was just I was building modules and I put enemies
+was building modules and I put enemies in in them and I put some traps down I
+in in them and I put some traps down I put some loot I was just kind of putting
+put some loot I was just kind of putting a little bit of everything everywhere
+a little bit of everything everywhere and as as the game progressed and as I I
+and as as the game progressed and as I I you know play tested it and and felt
+you know play tested it and and felt more comfortable understanding what the
+more comfortable understanding what the game was I realized that the placement
+game was I realized that the placement items was actually really key to guiding
+items was actually really key to guiding players through the level even in a
+players through the level even in a randomly generated
+randomly generated level players are really good at
+level players are really good at perceiving repeated patterns in games
+perceiving repeated patterns in games like it's really easy when you've played
+like it's really easy when you've played the game a few times to say like oh I
+the game a few times to say like oh I recognize that that room is a dead end
+recognize that that room is a dead end it's not going to get me to the exit I
+it's not going to get me to the exit I should just not go that way because I'm
+should just not go that way because I'm you know I'm doing fine I just want to
+you know I'm doing fine I just want to get to the end of the game right now
+get to the end of the game right now instead what I started doing was I I
+instead what I started doing was I I didn't put loot like along in any room
+didn't put loot like along in any room that would have Junctions I started not
+that would have Junctions I started not putting loot in there and just putting
+putting loot in there and just putting it in dead ends so that when you're
+it in dead ends so that when you're going through the game you do some
+going through the game you do some combat you're running low on items you
+combat you're running low on items you see a dead end and you know that it's
+see a dead end and you know that it's not the way to the exit but you also
+not the way to the exit but you also know there's going to be loot there you
+know there's going to be loot there you know that's where you can go and
+know that's where you can go and replenish your bullets replenish your
+replenish your bullets replenish your money uh traps I ended up moving into
+money uh traps I ended up moving into hallways and I I use hallways kind of
+hallways and I I use hallways kind of liberally here to mean any module that
+liberally here to mean any module that has two exits whether it's literally a
+has two exits whether it's literally a hallway or an L-shaped corner or a
+hallway or an L-shaped corner or a vertical Min shift anything where the
+vertical Min shift anything where the player's experience is really just to
+player's experience is really just to Traverse the space there's not another
+Traverse the space there's not another choice to be made there that was a good
+choice to be made there that was a good place to put trups just make that
+place to put trups just make that traversal a little bit more
+traversal a little bit more interesting I also put trups in dead
+interesting I also put trups in dead ends kind of to guard the loot that was
+ends kind of to guard the loot that was a really good place for them and then
+a really good place for them and then enemies I I wanted enemies to kind of
+enemies I I wanted enemies to kind of congregate around Junctions there was no
+congregate around Junctions there was no really good way to to ensure that
+really good way to to ensure that because enemies and eldrich they wander
+because enemies and eldrich they wander randomly it kind of didn't matter where
+randomly it kind of didn't matter where I spawned them they were going to wander
+I spawned them they were going to wander all over the level wander into the traps
+all over the level wander into the traps get themselves killed but the the the
+get themselves killed but the the the target experience I had and it didn't
+target experience I had and it didn't quite work out was to have enemies at
+quite work out was to have enemies at Junctions where the player could choose
+Junctions where the player could choose to you know circumvent an encounter or
+to you know circumvent an encounter or sneak past it and have some options and
+sneak past it and have some options and use this you know the fact that there's
+use this you know the fact that there's multiple ways into the space as part of
+multiple ways into the space as part of that
+that encounter like I said this is stuff I
+encounter like I said this is stuff I didn't start thinking about until really
+didn't start thinking about until really late in eldri's development and it's
+late in eldri's development and it's kind of this is what I want to leave you
+kind of this is what I want to leave you with and this is the key takeaway is
+with and this is the key takeaway is this stuff made the game way way better
+this stuff made the game way way better and this stuff is not like mutually
+and this stuff is not like mutually exclusive from random level generation
+exclusive from random level generation the the kind of rules that as level
+the the kind of rules that as level designers you've internalized you have
+designers you've internalized you have your expert knowledge of what makes a
+your expert knowledge of what makes a good level and how to build that if I
+good level and how to build that if I had had that I would have known to do
+had had that I would have known to do this sort of stuff much earlier in the
+this sort of stuff much earlier in the game I would have been thinking about
+game I would have been thinking about these kind of things earlier instead of
+these kind of things earlier instead of having to kind of stumble through it so
+having to kind of stumble through it so that that's what I want to leave you
+that that's what I want to leave you with is I hope that as level designers
+with is I hope that as level designers you can be like super excited the way
+you can be like super excited the way that I am about procedural level design
+that I am about procedural level design but bring the expert knowledge that you
+but bring the expert knowledge that you have that people like I don't have into
+have that people like I don't have into it and find you know ways to do
+it and find you know ways to do generated levels better than what we've
+generated levels better than what we've seen before you know make make generated
+seen before you know make make generated levels that are better than eldrich uh
+levels that are better than eldrich uh because you know what makes a good level
+because you know what makes a good level and because you've got that experience
+and because you've got that experience and that practice so I think I actually
+and that practice so I think I actually blazed through this a lot faster than I
+blazed through this a lot faster than I intended so that's my talk uh thank you
+intended so that's my talk uh thank you for coming listening and we definitely
+for coming listening and we definitely have time for questions if you've got
+any so yeah go ahead and use the mics if you have any questions for David line
+you have any questions for David line them up up um this is going to roll
+them up up um this is going to roll right into the lunchtime portfolio
+right into the lunchtime portfolio review so anybody who wants to ask
+review so anybody who wants to ask questions for David we want to
+questions for David we want to prioritize those questions and then as
+prioritize those questions and then as those taper off we're going to go into
+those taper off we're going to go into the portfolio review for anybody who is
+the portfolio review for anybody who is leaving and coming back for launch or or
+leaving and coming back for launch or or trying to drop in early what we're going
+trying to drop in early what we're going to do is we're going to go through
+to do is we're going to go through anybody who has portfolios that they
+anybody who has portfolios that they want to get critiques on and if those
+want to get critiques on and if those don't take us all the way through to the
+don't take us all the way through to the beginning of the talk uh Brennan's talk
+beginning of the talk uh Brennan's talk at what time do we do your talk 145
+at what time do we do your talk 145 sorry 145
+sorry 145 14545 okay so the next talk begins at45
+14545 okay so the next talk begins at45 we'll do portfolio for you till then uh
+we'll do portfolio for you till then uh if we run out of portfolios we'll do an
+if we run out of portfolios we'll do an open Q&A with anybody who wants to talk
+open Q&A with anybody who wants to talk to the speakers until that
+point hello hi so uh I'm kind of in the same boat where I started out like with
+same boat where I started out like with programming knowledge and then I'm start
+programming knowledge and then I'm start of going towards the design so I
+of going towards the design so I understood some of your constraints um
+understood some of your constraints um one thing that you mentioned that I
+one thing that you mentioned that I haven't explored and I was curious about
+haven't explored and I was curious about was you said you had problems with the
+was you said you had problems with the verticality like you had some things and
+verticality like you had some things and I was wondering if could expand on some
+I was wondering if could expand on some of the experiences you had trying to
+of the experiences you had trying to implement more verticality and what the
+implement more verticality and what the negatives of that were sure yeah the
+negatives of that were sure yeah the question is about verticality and the
+question is about verticality and the levels and if I could expand on you know
+levels and if I could expand on you know some of the experiences I had with that
+some of the experiences I had with that building eldrid uh one of the things I I
+building eldrid uh one of the things I I just kind of skipped over in the slide
+just kind of skipped over in the slide let me see if I can get back there the
+let me see if I can get back there the when I was talking about like the safe
+when I was talking about like the safe regions in levels the image on the right
+regions in levels the image on the right here is actually the safe region for
+here is actually the safe region for vertical traversal it had to be wider
+vertical traversal it had to be wider than the one for for lateral traversal
+than the one for for lateral traversal just because
+just because like what it takes to move vertically
+like what it takes to move vertically you know move move up specifically like
+you know move move up specifically like falling is really easy in games but to
+falling is really easy in games but to move vertically you know Elder actually
+move vertically you know Elder actually has a pretty sophisticated movement
+has a pretty sophisticated movement Suite like you can mantle up onto onto
+Suite like you can mantle up onto onto two meter high objects you have powers
+two meter high objects you have powers that can just boost you into the air and
+that can just boost you into the air and things uh a rope gun so you can just
+things uh a rope gun so you can just shoot ropes into the ceiling and climb
+shoot ropes into the ceiling and climb up them it has a lot of ways to move
+up them it has a lot of ways to move vertically but I couldn't count on the
+vertically but I couldn't count on the player to have any of those at any given
+player to have any of those at any given time so I always had you know when I
+time so I always had you know when I would make a module that's supposed to
+would make a module that's supposed to connect upward I would have to build
+connect upward I would have to build like kind of these really ugly elaborate
+like kind of these really ugly elaborate staircases up and it ended up being kind
+staircases up and it ended up being kind of like the all the worst rooms in the
+of like the all the worst rooms in the games are the in the game are the ones
+games are the in the game are the ones where you're trying to move up because
+where you're trying to move up because there's no space left for anything
+there's no space left for anything interesting to to to happen there once
+interesting to to to happen there once I've got that in if I could have done
+I've got that in if I could have done something where like I If I Could Have
+something where like I If I Could Have guaranteed that the player never had to
+guaranteed that the player never had to move up and you could just sorry and you
+move up and you could just sorry and you just fell between levels then it would
+just fell between levels then it would actually be a lot easier to do that
+actually be a lot easier to do that because you know like I said falling is
+because you know like I said falling is really easy thank
+really easy thank you there um thank you very much it was
+you there um thank you very much it was really interesting thank now um I was
+really interesting thank now um I was just curious how long I see that you
+just curious how long I see that you built a lot of tools and do did a lot of
+built a lot of tools and do did a lot of tweaking I I just want to know how long
+tweaking I I just want to know how long did it took you from taking it to the
+did it took you from taking it to the like the first part until that you felt
+like the first part until that you felt that your tools were already generating
+that your tools were already generating like really good
+like really good levels right so the question is how long
+levels right so the question is how long did it take I I guess between like kind
+did it take I I guess between like kind of the first pass version of this and
+of the first pass version of this and when it was like when when the levels
+when it was like when when the levels were good or when the tools were good
+were good or when the tools were good which are you asking when the levels
+which are you asking when the levels were good when where you felt like okay
+were good when where you felt like okay I'm not touching it anymore it's good
+I'm not touching it anymore it's good yeah yeah
+yeah yeah um I'm not sure I can really say like
+um I'm not sure I can really say like the the development of the game was so
+the the development of the game was so accelerated and I was kind of even up
+accelerated and I was kind of even up until the very end I was still changing
+until the very end I was still changing things um the I also built the levels
+things um the I also built the levels chronologically which is kind of not a
+chronologically which is kind of not a best practice so like the first world in
+best practice so like the first world in the game was the first one that I built
+the game was the first one that I built and I think you can maybe see that in
+and I think you can maybe see that in the game of like the the first world is
+the game of like the the first world is a lot more experimentation like by the
+a lot more experimentation like by the end of the game I had kind of figured
+end of the game I had kind of figured some of that stuff out but the the tools
+some of that stuff out but the the tools actually didn't change too much it was
+actually didn't change too much it was just kind of like I said on that last
+just kind of like I said on that last slide it was figuring out what worked to
+slide it was figuring out what worked to make a good level and how how to guide
+make a good level and how how to guide the player in a random
+the player in a random space thank
+you hello thank you very much hi I would like to hear any comments or tips for
+like to hear any comments or tips for non-scripted people uh in and the
+non-scripted people uh in and the downfalls of using or scripting the the
+downfalls of using or scripting the the procedural system rather than using a
+procedural system rather than using a dedicated software for generating that
+dedicated software for generating that thank you was that a question okay uh
+thank you was that a question okay uh say for example Houdini who is a
+say for example Houdini who is a dedicated software for procedural
+dedicated software for procedural generation levels what are the downfalls
+generation levels what are the downfalls of actually coding your procedural stuff
+of actually coding your procedural stuff than using a 3D package right right
+than using a 3D package right right right I'm sorry I misunderstood what's
+right I'm sorry I misunderstood what's the advantage of using an existing
+the advantage of using an existing solution for for procedural systems
+solution for for procedural systems instead of writing my
+instead of writing my own so I actually haven't evaluated like
+own so I actually haven't evaluated like I mean I I didn't even know that sort of
+I mean I I didn't even know that sort of thing existed I think in in the case of
+thing existed I think in in the case of eldrich it's kind of the same problem I
+eldrich it's kind of the same problem I have coming from AI programming of like
+have coming from AI programming of like so much of procedural level generation
+so much of procedural level generation is kind of innate to what the game is I
+is kind of innate to what the game is I don't know if there's a solution out
+don't know if there's a solution out there that would suffice for exactly
+there that would suffice for exactly what I was trying to make and also I
+what I was trying to make and also I mean honestly this stuff like I probably
+mean honestly this stuff like I probably spent about two weeks working on the
+spent about two weeks working on the tech and two weeks building levels like
+tech and two weeks building levels like a relatively small portion of the time I
+a relatively small portion of the time I spent making this game was actually
+spent making this game was actually spent on this stuff it didn't take that
+spent on this stuff it didn't take that long to get you know to where to where I
+long to get you know to where to where I was able to start generating levels on
+was able to start generating levels on this you know if I were trying to do
+this you know if I were trying to do procedural levels on a big budget game
+procedural levels on a big budget game and there were much bigger requirements
+and there were much bigger requirements I probably would consider using
+I probably would consider using something like that but I don't know I
+something like that but I don't know I haven't tried
+haven't tried that all right hello um thanks for
+that all right hello um thanks for giving your talk uh sort of more just a
+giving your talk uh sort of more just a overall Development question uh you said
+overall Development question uh you said you built your own game engine for this
+you built your own game engine for this game uh how how difficult was that and
+game uh how how difficult was that and do you think it was worth it do you
+do you think it was worth it do you think that it gave you tools you needed
+think that it gave you tools you needed that you would have had wouldn't have
+that you would have had wouldn't have had otherwise or you think you might
+had otherwise or you think you might have saved time using an existing game
+have saved time using an existing game engine so the question is uh was it
+engine so the question is uh was it worth building my own engine for this
+worth building my own engine for this game so I I sort of misspoke I didn't
+game so I I sort of misspoke I didn't build the engine during the eight months
+build the engine during the eight months I was building eldrich like that that
+I was building eldrich like that that would have been impossible the uh I I've
+would have been impossible the uh I I've just kind of been as a hobby building an
+just kind of been as a hobby building an engine
+engine since eight or nine years ago and so
+since eight or nine years ago and so it's something that at this point is
+it's something that at this point is pretty mature and something that I'm
+pretty mature and something that I'm like I work very efficiently in it's
+like I work very efficiently in it's kind of like if I had my own licensed
+kind of like if I had my own licensed engine like that's just how comfortable
+engine like that's just how comfortable I am in it and and how capable I am in
+I am in it and and how capable I am in it so I I wouldn't necessarily recommend
+it so I I wouldn't necessarily recommend it to everyone for me it was kind of
+it to everyone for me it was kind of like you know I I'm more efficient using
+like you know I I'm more efficient using my own code than I would be like if I
+my own code than I would be like if I were using something like Unity or
+were using something like Unity or unreal but I wouldn't recommend it
+unreal but I wouldn't recommend it probably to anyone else I don't know if
+probably to anyone else I don't know if you have enough experience with unity or
+you have enough experience with unity or unreal but if you want to do something
+unreal but if you want to do something like this in an existing engine do you
+like this in an existing engine do you know would you have any recommendations
+know would you have any recommendations or good question
+or good question um I think there are tools on the asset
+um I think there are tools on the asset store or yeah on the asset store for
+store or yeah on the asset store for Unity um I I know that some people have
+Unity um I I know that some people have done procedural levels like in even
+done procedural levels like in even going back to like the original Unreal
+going back to like the original Unreal Engine it's sort of different because it
+Engine it's sort of different because it tends to make assumptions about like how
+tends to make assumptions about like how AI paths are built and things like it
+AI paths are built and things like it assumes that the world is static and not
+assumes that the world is static and not pieced together at runtime um but yeah
+pieced together at runtime um but yeah I'm sorry I can't really speak to
+I'm sorry I can't really speak to existing Solutions it's okay thank you
+existing Solutions it's okay thank you yeah
+yeah thanks uh if you were going to make a
+thanks uh if you were going to make a sequel to eldrich how would you modify
+sequel to eldrich how would you modify your algorithm going forward knowing
+your algorithm going forward knowing what you now know having made eldrich
+what you now know having made eldrich good question that may be something I'm
+good question that may be something I'm actually thinking about um so one of the
+actually thinking about um so one of the things I wanted to do on eldrich and I
+things I wanted to do on eldrich and I kind of just got rid of it because of
+kind of just got rid of it because of you know trying to do everything as
+you know trying to do everything as simple as possible but I wanted to have
+simple as possible but I wanted to have modules that were different sizes one of
+modules that were different sizes one of the the key constraints here is that
+the the key constraints here is that every module is just 12 M by 12 M that's
+every module is just 12 M by 12 M that's not a lot of room to work with and I had
+not a lot of room to work with and I had planned to have like support where the
+planned to have like support where the you know if if I could search the maze
+you know if if I could search the maze for a fit and I could say like well
+for a fit and I could say like well here's a space where I could put in like
+here's a space where I could put in like a whole big mind shaft and then I could
+a whole big mind shaft and then I could design that as like a sort of unique
+design that as like a sort of unique feature that would be cool in that it
+feature that would be cool in that it would give me a lot more visual variety
+would give me a lot more visual variety and sort of cohesion to the levels and
+and sort of cohesion to the levels and if I weren't doing the lovecrafting
+if I weren't doing the lovecrafting thing I think that's something I would
+thing I think that's something I would almost definitely have to do it was just
+almost definitely have to do it was just kind of a trade-off I had to make on
+kind of a trade-off I had to make on this game to get it done fast but yeah
+this game to get it done fast but yeah if I were doing that in the future I
+if I were doing that in the future I think I would want to have the ability
+think I would want to have the ability to make modules that were different
+to make modules that were different sizes that could still join
+sizes that could still join you know it would still beond the the
+you know it would still beond the the same grid as the maze I think because
+same grid as the maze I think because that's you know that's just a nice
+that's you know that's just a nice feature to have but yeah the ability to
+feature to have but yeah the ability to do to do modules that were different
+do to do modules that were different sizes would be a big one thanks
+thanks thank you thank you for the talk uh I was wondering about the overall
+uh I was wondering about the overall pacing in your
+pacing in your game uh how were you able to shape that
+game uh how were you able to shape that did you do play tests
+did you do play tests or yeah so the question is about pacing
+or yeah so the question is about pacing in the game and and and how was I able
+in the game and and and how was I able to get into a shippable state I did do a
+to get into a shippable state I did do a lot of play tests over the course of
+lot of play tests over the course of development it was also a game where one
+development it was also a game where one of my key values was like you know I
+of my key values was like you know I love immersive Sims like DSX Dishonored
+love immersive Sims like DSX Dishonored the sort of things I mentioned at first
+the sort of things I mentioned at first and so I wanted to have this sort of
+and so I wanted to have this sort of value of like play it your own way you
+value of like play it your own way you can kind of build up any set of powers
+can kind of build up any set of powers and weapons and always have a solution
+and weapons and always have a solution to the map which meant I I couldn't
+to the map which meant I I couldn't really control Pac scene at all I just
+really control Pac scene at all I just kind of had to throw a bunch of features
+kind of had to throw a bunch of features in and hope that the experience was good
+in and hope that the experience was good it ended up being kind of a system soup
+it ended up being kind of a system soup it doesn't have great pacing the only
+it doesn't have great pacing the only pacing I could do was like you know like
+pacing I could do was like you know like I said ramp up the number of enemies
+I said ramp up the number of enemies over the course of the game you know in
+over the course of the game you know in between levels I could say and I I could
+between levels I could say and I I could give like you
+give like you know scheduled item drops and say like
+know scheduled item drops and say like in the first world of the game you're
+in the first world of the game you're not going to get the most sophisticated
+not going to get the most sophisticated Powers you'll kind of you'll get there
+Powers you'll kind of you'll get there eventually um but yeah like within the
+eventually um but yeah like within the level I really had no control for like
+level I really had no control for like encounter pacing it was just kind of
+encounter pacing it was just kind of like stuff's going to happen and I hope
+like stuff's going to happen and I hope it's cool thank cool thank you
+it's cool thank cool thank you I think that's everything all right
+I think that's everything all right thank you for your time

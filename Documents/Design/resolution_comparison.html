@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Project Abyss — 해상도 비교</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 32px; }
+  h1 { color: #c9a040; margin-bottom: 8px; font-size: 24px; }
+  h2 { color: #8ab4f8; margin: 32px 0 12px; font-size: 18px; }
+  .subtitle { color: #888; margin-bottom: 24px; font-size: 14px; }
+
+  /* --- 해상도 비교 캔버스 --- */
+  .canvas-area {
+    background: #0d0d1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 24px;
+    position: relative;
+    overflow: auto;
+    margin-bottom: 32px;
+  }
+  .canvas-inner {
+    position: relative;
+    /* 1080p를 50% 축소해서 표시 */
+    width: 960px;
+    height: 540px;
+  }
+  .res-box {
+    position: absolute;
+    top: 0; left: 0;
+    border: 2px solid;
+    border-radius: 2px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: bold;
+    transition: opacity 0.2s;
+  }
+  .res-box .label {
+    background: inherit;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    line-height: 1.4;
+    text-align: right;
+  }
+
+  /* 1080p 외곽 */
+  .box-1080 { width: 960px; height: 540px; border-color: #555; background: rgba(255,255,255,0.02); }
+  .box-1080 .label { color: #777; }
+
+  /* 640x360 */
+  .box-640 { width: 320px; height: 180px; border-color: #e67e22; background: rgba(230,126,34,0.06); }
+  .box-640 .label { color: #e67e22; }
+
+  /* 480x270 */
+  .box-480 { width: 240px; height: 135px; border-color: #2ecc71; background: rgba(46,204,113,0.08); }
+  .box-480 .label { color: #2ecc71; }
+
+  /* 400x240 */
+  .box-400 { width: 200px; height: 120px; border-color: #9b59b6; background: rgba(155,89,182,0.08); }
+  .box-400 .label { color: #9b59b6; }
+
+  /* 320x180 — 현재 */
+  .box-320 { width: 160px; height: 90px; border-color: #e74c3c; background: rgba(231,76,60,0.10); border-width: 3px; }
+  .box-320 .label { color: #e74c3c; }
+
+  /* 256x224 SotN */
+  .box-sotn { width: 128px; height: 112px; border-color: #f1c40f; background: rgba(241,196,15,0.08); border-style: dashed; }
+  .box-sotn .label { color: #f1c40f; }
+
+  /* --- 실제 크기 비교 --- */
+  .actual-section { margin-top: 40px; }
+  .actual-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 24px;
+  }
+  .actual-box {
+    border: 2px solid;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    position: relative;
+  }
+  .actual-box .info {
+    position: absolute;
+    bottom: -22px;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+
+  /* 타일 그리드 오버레이 */
+  .tile-grid {
+    position: relative;
+    overflow: hidden;
+  }
+  .tile-grid canvas { display: block; }
+
+  /* --- 레퍼런스 테이블 --- */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 900px;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  th { background: #2a2a4a; color: #c9a040; padding: 10px 12px; text-align: left; border-bottom: 2px solid #444; }
+  td { padding: 8px 12px; border-bottom: 1px solid #2a2a3a; }
+  tr:hover td { background: rgba(255,255,255,0.03); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+  .tag-pixel { background: #1a3a2a; color: #2ecc71; }
+  .tag-hybrid { background: #3a2a1a; color: #e67e22; }
+  .tag-hd { background: #1a2a3a; color: #3498db; }
+  .tag-current { background: #3a1a1a; color: #e74c3c; }
+  .tag-recommend { background: #1a3a2a; color: #2ecc71; border: 1px solid #2ecc71; }
+
+  .note { background: #2a2a1a; border-left: 3px solid #c9a040; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; line-height: 1.6; }
+  .note strong { color: #c9a040; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .legend-swatch { width: 16px; height: 16px; border: 2px solid; border-radius: 2px; }
+
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .comp-card {
+    background: #1e1e3a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .comp-card h3 { color: #c9a040; font-size: 14px; margin-bottom: 8px; }
+  .comp-card .val { font-size: 28px; font-weight: bold; margin: 8px 0; }
+  .comp-card .desc { font-size: 11px; color: #888; }
+  .val-320 { color: #e74c3c; }
+  .val-480 { color: #2ecc71; }
+  .val-640 { color: #e67e22; }
+</style>
+</head>
+<body>
+
+<h1>Project Abyss — 해상도 비교 시각화</h1>
+<p class="subtitle">1080p(1920×1080) 대비 각 내부 해상도를 50% 축소하여 비교합니다 (실제 비율 유지)</p>
+
+<!-- ===== 중첩 비교 ===== -->
+<h2>1. 해상도 중첩 비교 (1080p 대비, 50% 축소)</h2>
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="border-color:#555"></div> 1080p (1920×1080)</div>
+  <div class="legend-item"><div class="legend-swatch" style="border-color:#e67e22"></div> 640×360 — Blasphemous급</div>
+  <div class="legend-item"><div class="legend-swatch" style="border-color:#2ecc71"></div> 480×270 — Dead Cells / HLD급</div>
+  <div class="legend-item"><div class="legend-swatch" style="border-color:#9b59b6"></div> 400×240 — Shovel Knight</div>
+  <div class="legend-item"><div class="legend-swatch" style="border-color:#e74c3c; border-width:3px"></div> 320×180 — 현재 Project Abyss</div>
+  <div class="legend-item"><div class="legend-swatch" style="border-color:#f1c40f; border-style:dashed"></div> 256×224 — 월하의 야상곡 (PS1)</div>
+</div>
+
+<div class="canvas-area">
+  <div class="canvas-inner">
+    <div class="res-box box-1080"><span class="label">1080p<br>1920×1080</span></div>
+    <div class="res-box box-640"><span class="label">640×360<br>×3 스케일</span></div>
+    <div class="res-box box-480"><span class="label">480×270<br>×4 스케일</span></div>
+    <div class="res-box box-400"><span class="label">400×240<br>Shovel Knight</span></div>
+    <div class="res-box box-320"><span class="label">320×180<br>현재 기준</span></div>
+    <div class="res-box box-sotn"><span class="label">256×224<br>SotN (PS1)</span></div>
+  </div>
+</div>
+
+<!-- ===== 실제 픽셀 크기 ===== -->
+<h2>2. 실제 픽셀 크기 비교 (1:1)</h2>
+<p style="color:#888; font-size:13px; margin-bottom:16px;">아래 박스들은 모니터에서의 실제 픽셀 크기입니다. 16×16 타일이 얼마나 차지하는지 확인하세요.</p>
+
+<div class="actual-row">
+  <div>
+    <p style="font-size:12px; color:#e74c3c; margin-bottom:4px; font-weight:bold;">320×180 (현재)</p>
+    <canvas id="cv320" width="320" height="180"></canvas>
+  </div>
+  <div>
+    <p style="font-size:12px; color:#2ecc71; margin-bottom:4px; font-weight:bold;">480×270 (추천)</p>
+    <canvas id="cv480" width="480" height="270"></canvas>
+  </div>
+</div>
+<div class="actual-row" style="margin-top:24px;">
+  <div>
+    <p style="font-size:12px; color:#e67e22; margin-bottom:4px; font-weight:bold;">640×360</p>
+    <canvas id="cv640" width="640" height="360"></canvas>
+  </div>
+</div>
+
+<!-- ===== 수치 비교 카드 ===== -->
+<h2>3. 해상도별 화면 내 타일 수 비교</h2>
+<div class="comparison-grid">
+  <div class="comp-card">
+    <h3>320×180</h3>
+    <div class="val val-320">20 × 11.25</div>
+    <div class="desc">타일 (16px 기준)<br>= 약 225 타일 / 화면<br>× 6 = 1080p</div>
+  </div>
+  <div class="comp-card" style="border-color:#2ecc71">
+    <h3>480×270 ⭐ 추천</h3>
+    <div class="val val-480">30 × 16.875</div>
+    <div class="desc">타일 (16px 기준)<br>= 약 506 타일 / 화면<br>× 4 = 1080p</div>
+  </div>
+  <div class="comp-card">
+    <h3>640×360</h3>
+    <div class="val val-640">40 × 22.5</div>
+    <div class="desc">타일 (16px 기준)<br>= 약 900 타일 / 화면<br>× 3 = 1080p</div>
+  </div>
+</div>
+
+<div class="note">
+  <strong>주목:</strong> 640×360에서는 한 화면에 Room 전체(40×23 타일)가 거의 다 보입니다.
+  이는 탐험의 긴장감과 미지의 영역을 해칩니다.
+  480×270은 Room의 약 75%×73%를 표시하여 적절한 "모르는 영역"을 유지하면서도 충분한 시야를 확보합니다.
+</div>
+
+<!-- ===== 레퍼런스 테이블 ===== -->
+<h2>4. 레퍼런스 게임 해상도 비교</h2>
+<table>
+  <thead>
+    <tr><th>게임</th><th>내부 해상도</th><th>타일</th><th>렌더링</th><th>1080p 배율</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Castlevania: SotN</td><td>256×224</td><td>16px</td><td><span class="tag tag-pixel">Pixel-Perfect</span></td><td>—(PS1)</td></tr>
+    <tr><td>Spelunky (Classic)</td><td>320×240</td><td>16px</td><td><span class="tag tag-pixel">Pixel-Perfect</span></td><td>×4.5</td></tr>
+    <tr><td>Celeste</td><td>320×180</td><td>8px</td><td><span class="tag tag-pixel">Pixel-Perfect</span></td><td>×6</td></tr>
+    <tr style="background:rgba(231,76,60,0.05)"><td><strong>Project Abyss (현재)</strong></td><td><strong>320×180</strong></td><td><strong>16px</strong></td><td><span class="tag tag-current">현재 기준</span></td><td><strong>×6</strong></td></tr>
+    <tr><td>Shovel Knight</td><td>400×240</td><td>16px</td><td><span class="tag tag-pixel">Pixel-Perfect</span></td><td>×4.5</td></tr>
+    <tr><td>Katana ZERO</td><td>480×270</td><td>16px</td><td><span class="tag tag-pixel">Pixel-Perfect</span></td><td>×4</td></tr>
+    <tr><td>Hyper Light Drifter</td><td>480×270</td><td>16px</td><td><span class="tag tag-pixel">Pixel-Perfect</span></td><td>×4</td></tr>
+    <tr><td>Dead Cells</td><td>480×270</td><td>16px</td><td><span class="tag tag-hybrid">Hybrid</span></td><td>×4</td></tr>
+    <tr style="background:rgba(46,204,113,0.05)"><td><strong>Project Abyss (추천)</strong></td><td><strong>480×270</strong></td><td><strong>16px</strong></td><td><span class="tag tag-recommend">추천</span></td><td><strong>×4</strong></td></tr>
+    <tr><td>Blasphemous</td><td>640×360</td><td>~24px</td><td><span class="tag tag-hybrid">Hybrid</span></td><td>×3</td></tr>
+    <tr><td>Hollow Knight</td><td>1920×1080</td><td>—</td><td><span class="tag tag-hd">HD</span></td><td>×1</td></tr>
+    <tr><td>Ori</td><td>1920×1080</td><td>—</td><td><span class="tag tag-hd">HD</span></td><td>×1</td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 영향도 분석 ===== -->
+<h2>5. 해상도 변경 시 영향 분석</h2>
+<table>
+  <thead>
+    <tr><th>항목</th><th>320×180 (현재)</th><th>480×270 (추천)</th><th>영향</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>화면 내 타일 수</td><td>20×11.25</td><td>30×16.875</td><td>시야 50% 확대 → Room 규격 재설계 필요</td></tr>
+    <tr><td>Room 크기</td><td>40×23 (2배)</td><td>60×34 (2배 유지 시)</td><td>Room 규격 확대 또는 Room 대비 비율 변경</td></tr>
+    <tr><td>Chunk 크기</td><td>5×3</td><td>5×3 유지 가능</td><td>Chunk 수가 Room당 증가</td></tr>
+    <tr><td>캐릭터 크기 (화면 비율)</td><td>화면의 1/10</td><td>화면의 1/15</td><td>캐릭터가 상대적으로 작아짐</td></tr>
+    <tr><td>점프 높이 (화면 비율)</td><td>36%</td><td>24%</td><td>점프가 상대적으로 작게 느껴짐</td></tr>
+    <tr><td>정수배 스케일링</td><td>×6 = 1080p</td><td>×4 = 1080p</td><td>둘 다 정수배 호환</td></tr>
+    <tr><td>4K 호환</td><td>×12 = 3840×2160 ✅</td><td>×8 = 3840×2160 ✅</td><td>둘 다 4K 정수배</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <strong>핵심 트레이드오프:</strong>
+  해상도를 높이면 시야가 넓어져 탐험이 편해지지만, 캐릭터와 점프가 상대적으로 작아 보이고 "미지의 영역"이 줄어듭니다.
+  320×180(Celeste급)은 긴장감이 높고, 480×270(Dead Cells급)은 시야와 긴장감의 균형이 좋습니다.
+</div>
+
+<script>
+// 타일 그리드를 그리는 함수
+function drawGrid(canvasId, w, h, tileSize) {
+  const cv = document.getElementById(canvasId);
+  const ctx = cv.getContext('2d');
+
+  // 배경
+  ctx.fillStyle = '#111122';
+  ctx.fillRect(0, 0, w, h);
+
+  // 타일 그리드
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= w; x += tileSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y <= h; y += tileSize) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  // 캐릭터 (2타일 높이, 1타일 폭)
+  const charX = Math.floor(w / 2 / tileSize) * tileSize;
+  const charY = h - tileSize * 4; // 바닥에서 2타일 위에 서있음, 바닥 2타일
+  ctx.fillStyle = 'rgba(100,180,255,0.8)';
+  ctx.fillRect(charX, charY, tileSize, tileSize * 2);
+  ctx.strokeStyle = '#6ab4ff';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(charX, charY, tileSize, tileSize * 2);
+
+  // 바닥 (2타일 높이)
+  ctx.fillStyle = 'rgba(120,80,50,0.5)';
+  ctx.fillRect(0, h - tileSize * 2, w, tileSize * 2);
+  ctx.strokeStyle = 'rgba(160,120,80,0.4)';
+  for (let x = 0; x < w; x += tileSize) {
+    ctx.strokeRect(x, h - tileSize * 2, tileSize, tileSize);
+    ctx.strokeRect(x, h - tileSize, tileSize, tileSize);
+  }
+
+  // 점프 높이 표시 (4타일)
+  const jumpTop = charY - tileSize * 4;
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = 'rgba(255,100,100,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(charX + tileSize / 2, charY);
+  ctx.lineTo(charX + tileSize / 2, jumpTop);
+  ctx.stroke();
+  // 화살표
+  ctx.beginPath();
+  ctx.moveTo(charX + tileSize / 2 - 4, jumpTop + 8);
+  ctx.lineTo(charX + tileSize / 2, jumpTop);
+  ctx.lineTo(charX + tileSize / 2 + 4, jumpTop + 8);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 점프 수평 거리 (7타일)
+  const jumpRight = charX + tileSize * 7;
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = 'rgba(100,255,100,0.5)';
+  ctx.beginPath();
+  ctx.moveTo(charX + tileSize, charY + tileSize);
+  ctx.lineTo(jumpRight, charY + tileSize);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 테두리
+  const borderColors = { cv320: '#e74c3c', cv480: '#2ecc71', cv640: '#e67e22' };
+  ctx.strokeStyle = borderColors[canvasId] || '#555';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, w, h);
+
+  // 정보 텍스트
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '11px monospace';
+  const tilesX = w / tileSize;
+  const tilesY = h / tileSize;
+  ctx.fillText(`${w}×${h}px | ${tilesX}×${tilesY} tiles | 16px grid`, 6, 14);
+
+  // 범례
+  ctx.fillStyle = 'rgba(100,180,255,0.8)';
+  ctx.fillRect(6, h - 46, 8, 8);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('캐릭터 (1×2 타일)', 18, h - 38);
+
+  ctx.strokeStyle = 'rgba(255,100,100,0.6)';
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(6, h - 28); ctx.lineTo(14, h - 28); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillText('점프 높이 (4타일)', 18, h - 24);
+
+  ctx.strokeStyle = 'rgba(100,255,100,0.5)';
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(6, h - 14); ctx.lineTo(14, h - 14); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillText('점프 거리 (7타일)', 18, h - 10);
+}
+
+drawGrid('cv320', 320, 180, 16);
+drawGrid('cv480', 480, 270, 16);
+drawGrid('cv640', 640, 360, 16);
+</script>
+
+</body>
+</html>

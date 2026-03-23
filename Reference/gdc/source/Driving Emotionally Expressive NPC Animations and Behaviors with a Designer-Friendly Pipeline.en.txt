@@ -1,0 +1,673 @@
+[Music] thank you
+I'm Gucci boyda working at Square Enix advanced technology division as an AI
+advanced technology division as an AI engineer and today I will talk about
+engineer and today I will talk about driving emotionally expressive NPC
+driving emotionally expressive NPC animations and behaviors with the design
+animations and behaviors with the design of any pipeline
+of any pipeline so first I would like to thanks all the
+so first I would like to thanks all the approvals that worked with me on this
+approvals that worked with me on this project so thanks a big thanks to them
+project so thanks a big thanks to them so as of today relationships between
+so as of today relationships between users and characters has been mostly
+users and characters has been mostly unchanging it is often one directional
+unchanging it is often one directional uh from player to character
+uh from player to character and that Square Enix have been
+and that Square Enix have been technology division we believe that the
+technology division we believe that the realization of deeper communication
+realization of deeper communication between users and characters will bring
+between users and characters will bring a completely new gameplay experience
+a completely new gameplay experience I'm a research efforts on character
+I'm a research efforts on character interaction already bought some fruits
+interaction already bought some fruits with our experimental emotional
+with our experimental emotional pipelines that I introduced at DDC 2019.
+pipelines that I introduced at DDC 2019. this pipelines allowed our NPCs to be
+this pipelines allowed our NPCs to be more aware expressive and Lively
+more aware expressive and Lively uh since that time we started a new
+uh since that time we started a new project named wonder where the
+project named wonder where the philosophy was gods do not play dice the
+philosophy was gods do not play dice the meaning was that AI based game design
+meaning was that AI based game design should not rely on random value
+should not rely on random value all the decision making should be as
+all the decision making should be as natural as possible and make sense
+natural as possible and make sense allowing the goals of the agent
+allowing the goals of the agent such is natural Institute is a project
+such is natural Institute is a project to have this emotional pipeline to allow
+to have this emotional pipeline to allow NPC to have exp emotions mood enough
+NPC to have exp emotions mood enough personalities allowing them to be Livia
+personalities allowing them to be Livia and enhance the player experience
+and enhance the player experience but this time the challenge was to bring
+but this time the challenge was to bring this pipeline to production and today on
+this pipeline to production and today on top of explaining it we will cover its
+top of explaining it we will cover its adaptability to any experience and how
+adaptability to any experience and how to balance and debug it depending on of
+to balance and debug it depending on of the needs of the designers but also on
+the needs of the designers but also on the experience
+so first what are emotions mood and personalities
+personalities depending on the paper you are looking
+depending on the paper you are looking at there are many definitions in this
+at there are many definitions in this presentation we Define them in the
+presentation we Define them in the following way
+following way so emotions are short-term feelings that
+so emotions are short-term feelings that evolve quickly over time like Joy
+evolve quickly over time like Joy distress and fear
+distress and fear and mood is a much more long-term
+and mood is a much more long-term feeling that evolve slowly but smoothly
+feeling that evolve slowly but smoothly over time like exuberance depressed and
+over time like exuberance depressed and the threat
+the threat and personalities overall defines the
+and personalities overall defines the agent depending on the experience you
+agent depending on the experience you create it may be either fixed or very
+create it may be either fixed or very slowly evolving over time like curiosity
+slowly evolving over time like curiosity shyness and laziness
+shyness and laziness so now uh what why would you want your
+so now uh what why would you want your NPCs to have Dynamic emotions moods and
+NPCs to have Dynamic emotions moods and personalities
+personalities what would this bring to your experience
+what would this bring to your experience so first let's take an example with our
+so first let's take an example with our Prototype game Wonder but without a
+Prototype game Wonder but without a motion animation or personality and mood
+so in this experience the player is a little fury that you can see on the
+little fury that you can see on the bottom left and give orders to this
+bottom left and give orders to this character Pino here we ask to use the
+character Pino here we ask to use the book and we try to use it in the way you
+book and we try to use it in the way you think is good however he did a shot into
+think is good however he did a shot into it so it was not a good use case and the
+it so it was not a good use case and the player told the Pino about that but not
+player told the Pino about that but not quite happy about it
+quite happy about it um in this game yeah you know will learn
+um in this game yeah you know will learn basically thanks to this interaction if
+basically thanks to this interaction if it's quite use case or not and being
+it's quite use case or not and being able to solve Quest and other things
+able to solve Quest and other things later
+later and I would like you to focus a bit more
+and I would like you to focus a bit more on the character itself and the way he's
+on the character itself and the way he's expressing the different thing happening
+expressing the different thing happening around him uh consider the work is
+around him uh consider the work is always the same as there is not much
+always the same as there is not much viation and the face is just a little
+viation and the face is just a little smile not changing much having some
+smile not changing much having some little uh of course animation for the
+little uh of course animation for the action but nothing very uh outstanding
+action but nothing very uh outstanding so now let's have a motion animations
+so now let's have a motion animations mood and personality uh on for this
+mood and personality uh on for this demonstration and do the same thing we
+demonstration and do the same thing we can already see that phenomo is moving
+can already see that phenomo is moving much more energetically uh thanks to
+much more energetically uh thanks to this personality is into I hear he was
+this personality is into I hear he was hitting the book which is not correct
+hitting the book which is not correct and we can see that the reaction is also
+and we can see that the reaction is also making more sense now
+making more sense now and now I try to use a stick and we'll
+and now I try to use a stick and we'll be able to be to see a bit more this
+be able to be to see a bit more this personality motion like he's very in the
+personality motion like he's very in the exuberant kind of feeling now
+exuberant kind of feeling now [Music]
+[Music] you can also see at the same time that
+you can also see at the same time that the speech is uh changing based on this
+the speech is uh changing based on this mood and personality
+mood and personality he is quite happy about this uh being
+he is quite happy about this uh being able to actually hit a ball with the bat
+uh overall personalities are a thing that evolve very slowly in this game
+that evolve very slowly in this game like about five to ten minutes you may
+like about five to ten minutes you may be able to move to one personality
+be able to move to one personality itself because it's very slow
+itself because it's very slow um I am now going to use the debug UI to
+um I am now going to use the debug UI to quickly change the personality of the
+quickly change the personality of the character and so um basically the little
+character and so um basically the little values when we have added based on the
+values when we have added based on the different personalities the characters
+different personalities the characters in two here is a bit more reserved unit
+in two here is a bit more reserved unit of personality and we are going to do
+of personality and we are going to do mostly the same kind of actions this
+mostly the same kind of actions this year a little variation
+year a little variation you can see already that uh the little
+you can see already that uh the little reactions the ways expressing all the
+reactions the ways expressing all the details mind that he may have on his
+details mind that he may have on his face when he's encountering objects that
+face when he's encountering objects that he likes of dislike
+he likes of dislike um
+um is very different from the previous
+is very different from the previous version ID and if you take a bit more
+version ID and if you take a bit more attention you can see some
+attention you can see some differentiation based on the mood he's
+differentiation based on the mood he's in two
+in two [Music]
+[Music] it's a bit maybe cuter with this
+it's a bit maybe cuter with this personalities and
+here we try to use the dumbbells this time
+time and I think it's quite a nutcase uh use
+and I think it's quite a nutcase uh use case normally but yes player for some
+case normally but yes player for some reason said it was neither a good nicer
+reason said it was neither a good nicer than lastly move to another question 19
+than lastly move to another question 19 this time we are going to show the mood
+this time we are going to show the mood so mood is basically here affecting a
+so mood is basically here affecting a little bit the mood for the animation of
+little bit the mood for the animation of the character it was not a simple easy
+the character it was not a simple easy to see during the demonstration so we
+to see during the demonstration so we have used the debugger to show a little
+have used the debugger to show a little bit more easily but I will come back to
+bit more easily but I will come back to that later
+um so now that you have seen that let's try to explain to you what is this
+try to explain to you what is this emotional Pipeline with the different
+emotional Pipeline with the different modules it has so first the immersion
+modules it has so first the immersion module it is based on the revised OCC
+module it is based on the revised OCC model from the paper the processing
+model from the paper the processing model Revisited
+model Revisited we have chosen this model because of its
+we have chosen this model because of its Simplicity and compatibility with game
+Simplicity and compatibility with game development which is not the case for a
+development which is not the case for a lot of these models for instance here
+lot of these models for instance here her event is replaced by a game event
+her event is replaced by a game event and then it's just tree exploration
+and then it's just tree exploration based on conditions
+based on conditions it is also a very well known uh Infamous
+it is also a very well known uh Infamous model that worked really well with other
+model that worked really well with other mood models that I will explain later
+um so uh follow prototype Wonder we are actually not using the world graph uh we
+actually not using the world graph uh we are using only the upper part of this
+are using only the upper part of this OCC model so let's take an example with
+OCC model so let's take an example with a popular game event
+a popular game event uh first
+uh first um we assess if this game event is going
+um we assess if this game event is going to be a positive thing or negative thing
+to be a positive thing or negative thing for the agent for instance if it's hit
+for the agent for instance if it's hit by a goal it's going to be negative
+by a goal it's going to be negative fitting except if he is a masochist
+fitting except if he is a masochist I'm visiting a delicious cage it's going
+I'm visiting a delicious cage it's going to be a positive feeling except if he
+to be a positive feeling except if he has hiatus
+has hiatus then based on the category of this event
+then based on the category of this event we can have consequence of events like
+we can have consequence of events like for instance window board because of a
+for instance window board because of a goal or my closets are wet because of
+goal or my closets are wet because of the weather because it's raining uh you
+the weather because it's raining uh you can also have action of Agents like my
+can also have action of Agents like my own actions or the action of someone
+own actions or the action of someone else and we can also have aspect event
+else and we can also have aspect event which is about hearing smelling or
+which is about hearing smelling or seeing something
+seeing something and lastly we'll have a list of emotions
+and lastly we'll have a list of emotions on the last row that we are going to
+on the last row that we are going to generate based on the branch went into
+generate based on the branch went into doing the analysis of this game event
+doing the analysis of this game event now is a popular game event
+now is a popular game event um so the player this time has been hit
+um so the player this time has been hit now hit the ball with the bat
+now hit the ball with the bat successfully
+successfully so the agent is looking at the player
+so the agent is looking at the player and he's feeling happy for the player so
+and he's feeling happy for the player so it's a positive feeling
+it's a positive feeling because it's the action of another agent
+because it's the action of another agent and we are going to advance this agent
+and we are going to advance this agent will Express a narration to other player
+will Express a narration to other player let's say now that we have a windows
+let's say now that we have a windows that broke due to the ball that has been
+that broke due to the ball that has been hit earlier by the player and this time
+hit earlier by the player and this time it's going to be the consequence of the
+it's going to be the consequence of the previous action as a player and the
+previous action as a player and the actual consequence is something bad we
+actual consequence is something bad we think the window broke so the agent is
+think the window broke so the agent is going to express distress towards this
+going to express distress towards this window
+window in this way uh emotions are going to be
+in this way uh emotions are going to be generated in our experience
+generated in our experience this model can support up to 24 emotion
+this model can support up to 24 emotion in total depending on how much of these
+in total depending on how much of these two you want to support
+two you want to support emotion can be expressed in a lot of
+emotion can be expressed in a lot of different ways it can have voice sound
+different ways it can have voice sound it can have fascia blend as I am showing
+it can have fascia blend as I am showing here on top of other animations like
+here on top of other animations like shame or distress or pride and we can
+shame or distress or pride and we can also special animation and special
+also special animation and special speech when we are actually expressing
+speech when we are actually expressing these emotions
+um of course um this emotional module can be adapted to any experience as I
+can be adapted to any experience as I said before uh even if it's quite big
+said before uh even if it's quite big what you have to start with is actually
+what you have to start with is actually it's a very basic and minimum version of
+it's a very basic and minimum version of this model that we think it is uh these
+this model that we think it is uh these three branches with actually eight
+three branches with actually eight emotions and from here uh you can
+emotions and from here uh you can actually add branches depending on what
+actually add branches depending on what you want in your experience for instance
+you want in your experience for instance if you are dealing with a known object
+if you are dealing with a known object to which the agent is able to get the
+to which the agent is able to get the liking or disliking based on the item
+liking or disliking based on the item features then it it can be interesting
+features then it it can be interesting to add this and familial aspect Branch
+to add this and familial aspect Branch to have interest and discussed as a
+to have interest and discussed as a motion
+motion if interactions between AI agents
+if interactions between AI agents themselves or AI agents and the player
+themselves or AI agents and the player are one of the key of your experience
+are one of the key of your experience then we recommend adding this related
+then we recommend adding this related consequence Branch it's basically what
+consequence Branch it's basically what we call a consequence of an action of an
+we call a consequence of an action of an agent
+agent so I will take an example to explain a
+so I will take an example to explain a little bit in detail what it is exactly
+little bit in detail what it is exactly window for instance earlier we said that
+window for instance earlier we said that the window broke due to the ball that
+the window broke due to the ball that has been hit by the player and at this
+has been hit by the player and at this time we express distress towards this
+time we express distress towards this pocket window
+pocket window well we know the agent knows that this
+well we know the agent knows that this ball has been hit by the player earlier
+ball has been hit by the player earlier so that's a player fault uh so we are
+so that's a player fault uh so we are actually going into this related
+actually going into this related consequence branch and express anger
+consequence branch and express anger towards the player
+towards the player and thanks to this actually you can also
+and thanks to this actually you can also have relationships Evolution between
+have relationships Evolution between your agents themselves horse agent is a
+your agents themselves horse agent is a player based on this emotion that are
+player based on this emotion that are being regenerated
+lastly if uai agents are able to prospect based on something happening
+prospect based on something happening around them the addition of the
+around them the addition of the prospective consequence Branch will give
+prospective consequence Branch will give great feedbacks so let's take an example
+great feedbacks so let's take an example the AI agents hear some noises in the
+the AI agents hear some noises in the stairs in the middle of the night the
+stairs in the middle of the night the agent will feel fear that may be an
+agent will feel fear that may be an intruder may be in the house
+intruder may be in the house so yeah agent is courageous and decides
+so yeah agent is courageous and decides how to check uh what is going on in the
+how to check uh what is going on in the stairs
+stairs so you check and see that actually his
+so you check and see that actually his cat was playing with the goals and one
+cat was playing with the goals and one felt of the stairs so he feels some
+felt of the stairs so he feels some relief or some kind of the actual
+relief or some kind of the actual consequence of this face is something
+consequence of this face is something positive so if we follow this model it's
+positive so if we follow this model it's going to be Joy but it's not quite
+going to be Joy but it's not quite relief so we advise you in this case to
+relief so we advise you in this case to actually add these four little branches
+actually add these four little branches below that will add the necessary
+below that will add the necessary distinction for instance belief in this
+distinction for instance belief in this case will be expressed because it is
+case will be expressed because it is confident perspective and desiable
+confident perspective and desiable consequence
+consequence however uh when it comes to perspective
+however uh when it comes to perspective in game uh it's not fun it's actually a
+in game uh it's not fun it's actually a very complex thing to do
+very complex thing to do um in Wonder we are mostly using it on
+um in Wonder we are mostly using it on SIMPLE examples where it's easy to guess
+SIMPLE examples where it's easy to guess uh what may happen in the future for
+uh what may happen in the future for instance prospecting from weather-based
+instance prospecting from weather-based even like clouds are getting darker and
+even like clouds are getting darker and darker so maybe it's going to rain or
+darker so maybe it's going to rain or player taking an apple and going in the
+player taking an apple and going in the direction of the agent maybe it will
+direction of the agent maybe it will feed the agent in this case
+feed the agent in this case so overall this model offers a lot of
+so overall this model offers a lot of flexibility and allows the design now to
+flexibility and allows the design now to basically adjust it depending on what
+basically adjust it depending on what they want to create
+they want to create while we have covered emotional
+while we have covered emotional Generations they are still two unknowns
+Generations they are still two unknowns one is emotion parameters computation
+one is emotion parameters computation and the second is how to assess
+and the second is how to assess positivity of an event
+positivity of an event as your experience may already have many
+as your experience may already have many many game events the emotional model
+many game events the emotional model would like to listen to a few of them
+would like to listen to a few of them that you have listed up in the data
+that you have listed up in the data table here we are listening to eat food
+table here we are listening to eat food or object and object visible
+or object and object visible uh they will have their event category a
+uh they will have their event category a way to compute the emotional intensity
+way to compute the emotional intensity and a way to compute the duration of
+and a way to compute the duration of these emotions and based on this
+these emotions and based on this intensity function we'll be able to
+intensity function we'll be able to assess if this event is going to be a
+assess if this event is going to be a positive thing or a negative thing for
+positive thing or a negative thing for the agent for instance hit by object is
+the agent for instance hit by object is going to be negative because it's minus
+going to be negative because it's minus the hit speed and multiplied by the item
+the hit speed and multiplied by the item weight
+weight and for heat food it's going to depend
+and for heat food it's going to depend on the liking of the items that he is
+on the liking of the items that he is currently trying to hit
+currently trying to hit um speaking about liking uh we also have
+um speaking about liking uh we also have this like this like system in our game
+this like this like system in our game and we are actually
+and we are actually um generating liking and disliking at
+um generating liking and disliking at the same time that approaching
+the same time that approaching everything emotions
+everything emotions um so here the agent has been
+um so here the agent has been electrified by your fans so we are
+electrified by your fans so we are generating uh distress towards this uh
+generating uh distress towards this uh this fence because not a pleasant
+this fence because not a pleasant feeling and at the same time we are
+feeling and at the same time we are going also towards this negative effect
+going also towards this negative effect to the fence object and it can have an
+to the fence object and it can have an intensity and a memorable duration if
+intensity and a memorable duration if you want it to be forgettable after some
+you want it to be forgettable after some times
+times and on the top right you can see that
+and on the top right you can see that currently our agent seems to like very
+currently our agent seems to like very much uh red apples
+okay so now I'll move upon to explaining the mood module
+the mood module which is a PID model
+so the PID model is a 3D space with three axis P A and D
+is a 3D space with three axis P A and D P for pleasure for arousal and default
+P for pleasure for arousal and default dominant so how pleasant is an emotion
+dominant so how pleasant is an emotion how intense is animation and how much
+how intense is animation and how much control and influence the agents may
+control and influence the agents may have over situations
+have over situations these 3D models will have inside all the
+these 3D models will have inside all the emotions that we are generating before
+emotions that we are generating before are mapped
+are mapped and one octane for this model will
+and one octane for this model will represent one mood in this case where
+represent one mood in this case where shame is we are the multiple thread
+shame is we are the multiple thread and we are supporting a different mode
+and we are supporting a different mode as you can see on the left
+in the center we have our default mid position and that is a little point that
+position and that is a little point that will move freely around this space uh
+will move freely around this space uh while all these emotions are generated
+while all these emotions are generated and yep and that's basically the PID
+and yep and that's basically the PID model so we despise the complexity of a
+model so we despise the complexity of a Swedish space we chose this model as it
+Swedish space we chose this model as it has one of uh of the few that works
+has one of uh of the few that works really well with OCC model like and
+really well with OCC model like and simple at the same time
+simple at the same time um it allows a lot of expressibility and
+um it allows a lot of expressibility and wide variations of mood and expression
+wide variations of mood and expression and it's important enough
+and it's important enough um so as I said sweetie may still be a
+um so as I said sweetie may still be a problem so we'll come back to that later
+problem so we'll come back to that later so everybody getting the updates of this
+so everybody getting the updates of this PhD model
+PhD model um when an emotion has been generating
+um when an emotion has been generating like Joy depending on the intensity it
+like Joy depending on the intensity it will move at this point we move towards
+will move at this point we move towards the joy emotion quickly or not and then
+the joy emotion quickly or not and then there is no emotion anymore
+there is no emotion anymore um the agent becomes bored so the
+um the agent becomes bored so the default mode finds a mood position and
+default mode finds a mood position and with point we'll go back slowly towards
+with point we'll go back slowly towards this development position as he got both
+this development position as he got both involved
+now expression uh mode can be expressed in a lot of different ways
+in a lot of different ways it can for instance be expressed inside
+it can for instance be expressed inside the decision making for instance having
+the decision making for instance having specific goals for specific moods also
+specific goals for specific moods also having specific set of actions
+having specific set of actions you can also influence the way the The
+you can also influence the way the The Voice we can manipulate the voice a bit
+Voice we can manipulate the voice a bit based on this mood that we are currently
+based on this mood that we are currently doing in Wonder as well and we can also
+doing in Wonder as well and we can also have a variation of Base body animation
+have a variation of Base body animation so here I am showing a single frame of
+so here I am showing a single frame of our animation and we can see that based
+our animation and we can see that based on the mood it's actually changing quite
+on the mood it's actually changing quite a lot
+and now I'm going to place a full animation and we can see a bit more in
+animation and we can see a bit more in detail what are the difference between
+detail what are the difference between all these modes so right now is a in a
+all these modes so right now is a in a fine mood so it's a bit not super
+fine mood so it's a bit not super confident in his hit now his or Stylus
+confident in his hit now his or Stylus is giving a big hit on the ground and
+is giving a big hit on the ground and when his exuberance actually jumping and
+when his exuberance actually jumping and hitting at the same time in further side
+hitting at the same time in further side it's just just a little tap on the
+it's just just a little tap on the ground very gentle
+ground very gentle um so these animations uh give a mood
+um so these animations uh give a mood taste to the base animation that we had
+taste to the base animation that we had but they are not too strong variation uh
+but they are not too strong variation uh as at the same time so they can play it
+as at the same time so they can play it well together
+um so the 3D PD model have some pros and cons and when it's come to adapt it to
+cons and when it's come to adapt it to your experience you may want to get rid
+your experience you may want to get rid of this 3D uh while this really gives a
+of this 3D uh while this really gives a vast variations of Expressions uh the
+vast variations of Expressions uh the more Dimensions the other ideas to debug
+more Dimensions the other ideas to debug and to balance and depending on the mood
+and to balance and depending on the mood Expressions also assets can go quickly
+Expressions also assets can go quickly out of end
+out of end asset cost
+asset cost so we have to find in Wonder at least we
+so we have to find in Wonder at least we have to cut it down to 2D and what to
+have to cut it down to 2D and what to choose between these uh three
+choose between these uh three combination
+combination so
+so inside this model there is one key axis
+inside this model there is one key axis pleasure pleasure is basically the
+pleasure pleasure is basically the separation between what is a positive
+separation between what is a positive emotion and what is a negative emotion
+emotion and what is a negative emotion so it's a very important axis to have a
+so it's a very important axis to have a nice evaluation of our game in
+nice evaluation of our game in expression so we are actually going to
+expression so we are actually going to look at Roswell or dominance and choose
+look at Roswell or dominance and choose between one of them and to make the
+between one of them and to make the choice what is a nice nice
+choice what is a nice nice expressibility in their ways we are
+expressibility in their ways we are going to take a look at our generated
+going to take a look at our generated emotions list what we can see in one
+emotions list what we can see in one case is that most of the emotions are
+case is that most of the emotions are actually in the original positive space
+actually in the original positive space so we are going to have a really hard
+so we are going to have a really hard time to go into the negative part of the
+time to go into the negative part of the horizontal space
+horizontal space uh in this case we think that ozone is a
+uh in this case we think that ozone is a less important axis and then we decided
+less important axis and then we decided to keep pleasure and dominance for our
+to keep pleasure and dominance for our 2D space but may not be the case for
+2D space but may not be the case for your experience
+your experience we are to adapt of course these mood
+we are to adapt of course these mood names mostly keepings a plus names
+names mostly keepings a plus names and here we are we have our 2D PID model
+and here we are we have our 2D PID model so it has now become a DP model yeah
+so it has now become a DP model yeah uh we still have to put back our emotion
+uh we still have to put back our emotion from 3D to 2D so we check the official
+from 3D to 2D so we check the official list of position for this emotion inside
+list of position for this emotion inside the PHD space from the paper
+the PHD space from the paper and what we got is this location in the
+and what we got is this location in the the cubes find the 2D space
+the cubes find the 2D space um we can see that most of them are
+um we can see that most of them are overlapping and not well positioned the
+overlapping and not well positioned the position of them is not very well
+position of them is not very well balanced in the space
+balanced in the space um well it makes sense for psychology
+um well it makes sense for psychology and all this research we opened exact
+and all this research we opened exact humans or this kind of thing but when it
+humans or this kind of thing but when it comes to game the most important thing
+comes to game the most important thing is to have a lot of variation of
+is to have a lot of variation of expression and to have the overall
+expression and to have the overall experience balance so we decided to
+experience balance so we decided to actually post all this emotion to the
+actually post all this emotion to the Border in in the square and that's our
+Border in in the square and that's our new mood space we could have done also
+new mood space we could have done also in a circle around the center if we
+in a circle around the center if we wanted to
+and here now I'm showing our experience with the UI showing the current mood how
+with the UI showing the current mood how it evolves based on the different
+it evolves based on the different emotions that has been generated we can
+emotions that has been generated we can also see the emotion model at the top
+also see the emotion model at the top our CC model
+our CC model and we can see that right now it doesn't
+and we can see that right now it doesn't feel like super happy and it is in a
+feel like super happy and it is in a hostile mood especially because the
+hostile mood especially because the player is actually not super nice to him
+player is actually not super nice to him I think it's going to be visible now
+I think it's going to be visible now with the way it's working now is not
+with the way it's working now is not super friendly however yeah based on on
+super friendly however yeah based on on now he did a successful action and the
+now he did a successful action and the player was happy so now we are able to
+player was happy so now we are able to go back a little bit inside this
+go back a little bit inside this exuberant mood
+exuberant mood because that's how this mood and
+because that's how this mood and emotional generation happen in our game
+emotional generation happen in our game um and we hope
+um and we hope it was nice
+it was nice so now personality module
+so now personality module as you can see it's a very simple
+as you can see it's a very simple structure it's just UTD parameters
+structure it's just UTD parameters between zero and one unlike laziness
+between zero and one unlike laziness curiosity and honesty
+curiosity and honesty and why it's super simple uh it can have
+and why it's super simple uh it can have actually a broad way of expressive
+actually a broad way of expressive expression inside your game
+expression inside your game um you can have different goals
+um you can have different goals available depending on the personality
+available depending on the personality or the way the actions are done also a
+or the way the actions are done also a bit different on the action available
+bit different on the action available can also change for the planning phase
+can also change for the planning phase for adding animation we can also have
+for adding animation we can also have also strong variation for instance in
+also strong variation for instance in our walking cycle based on the
+our walking cycle based on the personality we are into right now as a
+personality we are into right now as a animation is changing quite a lot the
+animation is changing quite a lot the way of speaking as I said before is
+way of speaking as I said before is changing based on the personality is
+changing based on the personality is currently into
+currently into and as I've done in GT 2019 we can also
+and as I've done in GT 2019 we can also have this default mode position uh that
+have this default mode position uh that change depending on the personality you
+change depending on the personality you are into like if you have a
+are into like if you have a angry kind of personality you may want
+angry kind of personality you may want to put your default me position more in
+to put your default me position more in the All-Star in mood so that when the
+the All-Star in mood so that when the agent got bald it will go slowly to back
+agent got bald it will go slowly to back towards this hostile mode
+um now um when it comes to personality and you
+um when it comes to personality and you want to add personality to your game we
+want to add personality to your game we advise to First actually choose where
+advise to First actually choose where you want to express them and where they
+you want to express them and where they will have influences if it's just in the
+will have influences if it's just in the decision making like in GT6 2019 for my
+decision making like in GT6 2019 for my talk as any number of personalities
+talk as any number of personalities should be manageable as it is only when
+should be manageable as it is only when it is only design cost and majority of
+it is only design cost and majority of the case it's not going to be asset
+the case it's not going to be asset related normally but if it's about
+related normally but if it's about giving inferences to animations speech
+giving inferences to animations speech or asset related applications then it
+or asset related applications then it can quickly go out of hands and that's
+can quickly go out of hands and that's the case for Wonder actually
+the case for Wonder actually uh in Wonder we have eight different
+uh in Wonder we have eight different personalities and that's that's quite a
+personalities and that's that's quite a number
+number um personalities influences both base
+um personalities influences both base animation of world idle reactions but
+animation of world idle reactions but also the way the agent is speaking um so
+also the way the agent is speaking um so that's a lot of assets to create uh for
+that's a lot of assets to create uh for instance we have eight personalities
+instance we have eight personalities with four modes and one base animation
+with four modes and one base animation as well so this make a total of 33
+as well so this make a total of 33 animations to create
+animations to create that's a lot that's way too much for
+that's a lot that's way too much for what you can handle so we decided to at
+what you can handle so we decided to at least try to cut this number down a bit
+least try to cut this number down a bit so we decided to create what we call
+so we decided to create what we call personalities principles for them that
+personalities principles for them that will go back to a few of these
+will go back to a few of these personality parameters together
+personality parameters together and thanks to this we are able to reduce
+and thanks to this we are able to reduce the number of Animation from 33 to 17.
+it was enough in our case of course decision making I can use this
+decision making I can use this personality principles if it wants but
+personality principles if it wants but you can also use these eight
+you can also use these eight personalities as before so there is no
+personalities as before so there is no problem with that
+okay now let's move to troubleshooting and speak about our different debug's
+and speak about our different debug's tools and tweaks and the balance tools
+tools and tweaks and the balance tools that we have created
+foreign
+so the first tool we have is basically personality debug we can just click on
+personality debug we can just click on this UI and set the character in a
+this UI and set the character in a specific personality right away so if
+specific personality right away so if you want to test something very quickly
+you want to test something very quickly it's very useful
+it's very useful in a similar manner we have this uh
+in a similar manner we have this uh um mood space that build UI where we can
+um mood space that build UI where we can click into and set our character to be
+click into and set our character to be in a specific mode and specific
+in a specific mode and specific personality whenever we want so that we
+personality whenever we want so that we can test all the possibility easily we
+can test all the possibility easily we can also see really right now that mood
+can also see really right now that mood heat map that is updated during the
+heat map that is updated during the World Experience allowing you to know
+World Experience allowing you to know basically how the users are playing your
+basically how the users are playing your game and if
+game and if for all players for instance the Moon is
+for all players for instance the Moon is always in the same area is not able to
+always in the same area is not able to actually to move in all the space which
+actually to move in all the space which is something you may want to know and
+is something you may want to know and try to fix
+try to fix we also have a personality history that
+we also have a personality history that allow us to know when a personality
+allow us to know when a personality changes happened what is the source and
+changes happened what is the source and how they evolve we also have emotion
+how they evolve we also have emotion history that released the different
+history that released the different parameters this emotion had when they
+parameters this emotion had when they occurred and from what source and uh at
+occurred and from what source and uh at the end we have the most important tool
+the end we have the most important tool that I will explain now the emotion of
+that I will explain now the emotion of all information that basically computes
+all information that basically computes inference score of each emotion on the
+inference score of each emotion on the mood during your playthrough so that's
+mood during your playthrough so that's the table you can see at the bottom so
+the table you can see at the bottom so for each emotion we'll have the number
+for each emotion we'll have the number of occurrences to average intensity and
+of occurrences to average intensity and the average duration it has had during
+the average duration it has had during the whole place
+the whole place and from that we are going to compute an
+and from that we are going to compute an inference score which is just the sum of
+inference score which is just the sum of this intensity multiplied by duration
+this intensity multiplied by duration for all this emotion
+so how can we use this tool um in one specific case one of the most
+um in one specific case one of the most uh
+uh known problem are difficult to balance
+known problem are difficult to balance problem is the mood is always in the
+problem is the mood is always in the same area like no matter what player
+same area like no matter what player plays it's always there and it's very
+plays it's always there and it's very hard to get away from it
+hard to get away from it well if you look at this table now we
+well if you look at this table now we can get a lot of information from it we
+can get a lot of information from it we check for instance first what is the
+check for instance first what is the highest influence score in motion and we
+highest influence score in motion and we can see that Joy is actually influencing
+can see that Joy is actually influencing at least twice more than the other
+at least twice more than the other emotion on the mood so maybe it's too
+emotion on the mood so maybe it's too much in in this instance
+much in in this instance in this case we are going to investigate
+in this case we are going to investigate joy and see what may be the problem you
+joy and see what may be the problem you consider the number of occurrencies of
+consider the number of occurrencies of this emotion is actually almost a double
+this emotion is actually almost a double to the other emotion so maybe we can try
+to the other emotion so maybe we can try to reduce this number of occurrences but
+to reduce this number of occurrences but sometimes it's not possible because it
+sometimes it's not possible because it makes sense in a game a design point of
+makes sense in a game a design point of view so we can try this time to reduce
+view so we can try this time to reduce its average intensity so that it better
+its average intensity so that it better use this range from 0 to 1 instead of
+use this range from 0 to 1 instead of always being very high
+always being very high sometimes it's still not enough uh it
+sometimes it's still not enough uh it doesn't make sense so you can do it you
+doesn't make sense so you can do it you can do a similar thing with the duration
+can do a similar thing with the duration and try to lower it a bit that does less
+and try to lower it a bit that does less influence on the mood overall
+influence on the mood overall but if everything makes sense for your
+but if everything makes sense for your design then maybe it's the other image
+design then maybe it's the other image on the counter emotions are not
+on the counter emotions are not influencing the mood enough in this case
+influencing the mood enough in this case you want to try to boost either the
+you want to try to boost either the number of times they append or the
+number of times they append or the intensity or the duration of them and at
+intensity or the duration of them and at the end yeah if you are able to get an
+the end yeah if you are able to get an influence call that are mostly balanced
+influence call that are mostly balanced between all your emotions or a bit more
+between all your emotions or a bit more positive or a bit more negative and you
+positive or a bit more negative and you can do it easily and understand easily
+can do it easily and understand easily thanks to this uh about two but you have
+thanks to this uh about two but you have to uh to aggregate your data with many
+to uh to aggregate your data with many players as players of different
+players as players of different personalities and way of playing
+personalities and way of playing so that's it for me today uh thank you
+so that's it for me today uh thank you for watching
+for watching and if you want to contact me uh here
+and if you want to contact me uh here are my informations I have a great GDC
+[Music]

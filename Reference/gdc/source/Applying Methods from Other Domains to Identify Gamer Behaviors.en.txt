@@ -1,0 +1,839 @@
+[Music] so my name is george ing and i'm the
+so my name is george ing and i'm the chief technology officer at ggwp the
+chief technology officer at ggwp the topic is applying methods from other
+topic is applying methods from other domains to identify gamer behaviors
+domains to identify gamer behaviors so while i've been a gamer i'm
+so while i've been a gamer i'm relatively new to any professional
+relatively new to any professional application to gaming
+application to gaming i've been a data scientist in a wide
+i've been a data scientist in a wide variety of domains including defense
+variety of domains including defense intelligence financial services and
+intelligence financial services and healthcare
+healthcare and professional sports
+and professional sports i've also taught game theory at uc
+i've also taught game theory at uc irvine and american university and
+irvine and american university and machine learning at uc berkeley
+machine learning at uc berkeley a bit more about ggwp
+a bit more about ggwp gwp aims to help reduce toxic and
+gwp aims to help reduce toxic and disruptive behaviors in games
+disruptive behaviors in games more specifically we use machine
+more specifically we use machine learning to identify gamer behaviors i
+learning to identify gamer behaviors i can share some examples of the type of
+can share some examples of the type of work throughout our presentation
+now it's it goes without saying that context matters
+context matters not just in identifying particular
+not just in identifying particular expressions or events that may be of
+expressions or events that may be of interest but to try to factor in context
+interest but to try to factor in context in a scalable way where possible
+a quick recap
+most of you are familiar with the fair play alliance disruptive conduct
+play alliance disruptive conduct framework
+framework we have
+we have four errors expression delivery channel
+four errors expression delivery channel impact and root cause
+impact and root cause expression is basically what form does
+expression is basically what form does it take and here we we look at detecting
+it take and here we we look at detecting behaviors and i walk through an example
+behaviors and i walk through an example to start
+to start the delivery channel where does it
+the delivery channel where does it happen in
+happen in in and around online games we won't
+in and around online games we won't cover that here
+cover that here uh impact who is affected by it in what
+uh impact who is affected by it in what ways what are the consequences we talk a
+ways what are the consequences we talk a little bit more about this
+little bit more about this and root cause why does it happen and
+and root cause why does it happen and what does it express
+what does it express so we start with looking at expression
+so we start with looking at expression um and we i'll give you a little bit of
+um and we i'll give you a little bit of background in terms of how we think
+background in terms of how we think about building models
+about building models so there's top down which starts with
+so there's top down which starts with hypothesis
+hypothesis and on the left you see a data scientist
+and on the left you see a data scientist venn diagram
+venn diagram so first i'll describe each component in
+so first i'll describe each component in it and why it's relevant
+it and why it's relevant so in order to have a hypothesis
+so in order to have a hypothesis requires domain expertise and having the
+requires domain expertise and having the right
+right mathematical background is helpful to
+mathematical background is helpful to translate a hypothesis into an
+translate a hypothesis into an appropriate test
+appropriate test so when dealing with large data sets and
+so when dealing with large data sets and running things at scale this requires
+running things at scale this requires engineering expertise
+engineering expertise um
+um in gaming obviously because of uh
+in gaming obviously because of uh machine capture there's the potential
+machine capture there's the potential for a lot of data
+for a lot of data so let's look at some specific examples
+so let's look at some specific examples from for ministry
+from for ministry so suppose i'm trying to identify
+so suppose i'm trying to identify hackers
+hackers uh domain matters because it's helpful
+uh domain matters because it's helpful to understand how hacking works
+to understand how hacking works and to understand the motivation of
+and to understand the motivation of hackers you know is it a financially
+hackers you know is it a financially motivated attack like with the crime
+motivated attack like with the crime syndicate is it a nation-state
+syndicate is it a nation-state um trying to demonstrate strength
+um trying to demonstrate strength is the goal entertainment like with
+is the goal entertainment like with script kitties
+script kitties so cheating can be seen as a specific
+so cheating can be seen as a specific type of hacking that modifies the game
+type of hacking that modifies the game the point here is that the initial
+the point here is that the initial intuition gives us guidance on how to
+intuition gives us guidance on how to ultimately scope a research question
+ultimately scope a research question so what would relevant proxy data be for
+so what would relevant proxy data be for my question how do i translate my
+my question how do i translate my question in into data in other words
+does that target data require additional collection does it require
+collection does it require pre-processing aggregation normalization
+pre-processing aggregation normalization in some form
+in some form and ultimately statistical modeling
+and ultimately statistical modeling helps inform how do we evaluate a
+helps inform how do we evaluate a hypothesis
+hypothesis the other approach we look at here is
+the other approach we look at here is bottom-up modeling which basically is
+bottom-up modeling which basically is data mining or searching for patterns
+data mining or searching for patterns within data
+within data oftentimes we don't know exactly what
+oftentimes we don't know exactly what we're looking for
+we're looking for even when we have a specific hypothesis
+even when we have a specific hypothesis we can easily misjudge the distribution
+we can easily misjudge the distribution of behaviors so for example just because
+of behaviors so for example just because when we know there's shooters out there
+when we know there's shooters out there we may not be aware of the different
+we may not be aware of the different proportions right
+proportions right most games you'll know aimbots because
+most games you'll know aimbots because people are very sensitive to it
+people are very sensitive to it but maybe some other types
+but maybe some other types are a little bit like things that just
+are a little bit like things that just reduce gun recoil are less easy to
+reduce gun recoil are less easy to detect initially because players don't
+detect initially because players don't report them as much
+in general bottom up modeling is often used to
+bottom up modeling is often used to identify the baseline in an environment
+identify the baseline in an environment common applications
+common applications are are like identifying cheats and
+are are like identifying cheats and fraud
+fraud in these cases we first define normal to
+in these cases we first define normal to be able to use a nominal detection
+be able to use a nominal detection algorithms
+algorithms to then identify abnormally bad
+to then identify abnormally bad we use both top down and bottom up
+we use both top down and bottom up modeling in our work
+modeling in our work and i'll use it here to illustrate a
+and i'll use it here to illustrate a single event detection example
+so suppose we want to build a model that detects players wrongfully not reviving
+detects players wrongfully not reviving down teammates
+down teammates well one definition of wrong is that the
+well one definition of wrong is that the player did not perform some action
+player did not perform some action that you know the designers intended or
+that you know the designers intended or that others perform regularly or that
+that others perform regularly or that improves game outcomes in some way so
+improves game outcomes in some way so let's use the second definition right so
+let's use the second definition right so we're looking at normalc
+we're looking at normalc uh we first perform some basic data
+uh we first perform some basic data analysis
+analysis and we show the results in these charts
+and we show the results in these charts um
+um so the left chart illustrates
+so the left chart illustrates um so on the y-axis you see the distance
+um so on the y-axis you see the distance to
+to the enemy and on the x-axis you see the
+the enemy and on the x-axis you see the distance to the down teammate
+distance to the down teammate we also capture how much time is left to
+we also capture how much time is left to look at a revive and we break this up
+look at a revive and we break this up into six different charts uh blue dots
+into six different charts uh blue dots represent revives that happen and red
+represent revives that happen and red dots represent cases where the teammate
+dots represent cases where the teammate was not revived
+was not revived so for the top row we have a short time
+so for the top row we have a short time left to revive we only see successful
+left to revive we only see successful revives when the teammate is very close
+revives when the teammate is very close to the down teammate
+to the down teammate um when there's more time left on the
+um when there's more time left on the bottom row we can see that the upper
+bottom row we can see that the upper left quadrants on the chart tend to be
+left quadrants on the chart tend to be mostly blue
+mostly blue and what that means is that the player
+and what that means is that the player is relatively closer to the nearest
+is relatively closer to the nearest teammate or relatively farther away from
+teammate or relatively farther away from the opponent which is what we expect
+the opponent which is what we expect um note also that we do see much more
+um note also that we do see much more variation when the time to revive
+variation when the time to revive increases substantially which also is
+increases substantially which also is what we'd expect
+what we'd expect uh the right chart summarizes
+uh the right chart summarizes information
+information by showing the average probability
+by showing the average probability revived based on the distance the down
+revived based on the distance the down team made how the different colored
+team made how the different colored lines illustrate um our way of factoring
+lines illustrate um our way of factoring an enemy distance here
+an enemy distance here this view really highlights the
+this view really highlights the correlation between distance to teammate
+correlation between distance to teammate and probability revive
+and probability revive uh even a very simplistic model clearly
+uh even a very simplistic model clearly has has some signal right but but i
+has has some signal right but but i think we can do a little bit better here
+so we've confirmed our initial hypothesis
+we've confirmed our initial hypothesis that uh it's it's possible to predict
+that uh it's it's possible to predict reviving likelihood
+reviving likelihood um
+here we we further show uh that example by using concentric circles
+by using concentric circles around the player to illustrate the
+around the player to illustrate the probability of revive based on distance
+probability of revive based on distance right and and this overland map i think
+right and and this overland map i think really helps highlight this
+really helps highlight this um
+um we acknowledge that this is far from a
+we acknowledge that this is far from a perfect model you know the distance
+perfect model you know the distance doesn't factor in like actual walking
+doesn't factor in like actual walking distance and sight lines and doesn't do
+distance and sight lines and doesn't do well in buildings
+well in buildings um but
+um but again even this baseline model does
+again even this baseline model does reasonably well
+reasonably well um we can also look at other
+um we can also look at other um potential characteristics that might
+um potential characteristics that might be relevant so we look on the right we
+be relevant so we look on the right we see things like health of player and
+see things like health of player and down teammate the number of previous
+down teammate the number of previous revives and time available which is
+revives and time available which is related
+related um to the number of previous times
+um to the number of previous times revived
+revived and other teammate position right it
+and other teammate position right it makes sense that you know unless
+makes sense that you know unless someone's covering an angle or taking
+someone's covering an angle or taking fire that the closest teammate would
+fire that the closest teammate would would be more likely to make the revive
+would be more likely to make the revive and finally since it's a battle royale
+and finally since it's a battle royale we factor in circle position as well
+we factor in circle position as well in other words if a team is far from the
+in other words if a team is far from the ring it's more likely to to not make
+ring it's more likely to to not make sense to revive in in that situation
+sense to revive in in that situation we build a richer model by using these
+we build a richer model by using these attributes and we use an ensembl tree
+attributes and we use an ensembl tree that captures these elements determine
+that captures these elements determine the probability of a revive
+the probability of a revive we then take the residuals from this
+we then take the residuals from this model to identify likely cases when
+model to identify likely cases when teammates should have revived but did
+teammates should have revived but did not or in other words when the model
+not or in other words when the model predicts the high probability of revive
+predicts the high probability of revive and the player did not revive then we'll
+and the player did not revive then we'll actually detect these incidents
+so next i want to get a little bit deeper into context uh so when we look
+deeper into context uh so when we look at root causes we also want to
+at root causes we also want to understand other relevant factors that
+understand other relevant factors that that could be tied to the vet such as
+that could be tied to the vet such as the type of player or the personas
+the type of player or the personas expectations based on game experience
+expectations based on game experience now showing example skill level
+now showing example skill level uh initiation and triggering so um
+uh initiation and triggering so um within the scope of a match or
+within the scope of a match or potentially across multiple matches if
+potentially across multiple matches if there's history between players like who
+there's history between players like who started it did someone get provoked
+started it did someone get provoked and then finally the social factors in
+and then finally the social factors in social environment and what i mean here
+social environment and what i mean here is just you know uh
+is just you know uh expectations when playing with friends
+expectations when playing with friends is very different if you're playing with
+is very different if you're playing with the you know club clan or group
+the you know club clan or group a full pre-made versus the partial
+a full pre-made versus the partial pre-made and solo queue are all very
+pre-made and solo queue are all very different environments
+different environments so uh next i'll illustrate some of these
+so uh next i'll illustrate some of these examples from games as well
+so first thing i want to look at is presonus
+so the the chart here shows different types of players as clustered by
+types of players as clustered by features such as damage and kills per
+features such as damage and kills per second average walk and loot speed uh
+second average walk and loot speed uh depending on the game we can also look
+depending on the game we can also look at things like character selection items
+at things like character selection items and ability usage health and ammo
+and ability usage health and ammo sharing etc
+sharing etc some leads just highlight skill
+some leads just highlight skill differences
+differences others show differences about how a
+others show differences about how a player likes to play the game
+player likes to play the game so using the non-revive example does our
+so using the non-revive example does our view change really if the player tends
+view change really if the player tends to play support roles
+to play support roles um it can right
+um it can right the expectation would be that this
+the expectation would be that this player would be more likely to revive in
+player would be more likely to revive in most cases so we do want to come up with
+most cases so we do want to come up with positive attributes as well we want to
+positive attributes as well we want to make sure that we're just not rewarding
+make sure that we're just not rewarding certain types of play styles unless it's
+certain types of play styles unless it's you know good game design to reward
+you know good game design to reward those those play styles for some reason
+those those play styles for some reason um but ultimately this we we do think
+um but ultimately this we we do think that
+that the persona could be a consideration
+the persona could be a consideration right different personas get triggered
+right different personas get triggered differently different personas react to
+differently different personas react to situations differently so we want to
+situations differently so we want to factor in these elements where possible
+so what about expectations players often go into games with some
+players often go into games with some expectation in how their teammates will
+expectation in how their teammates will and should play
+and should play some something that appears to be simply
+some something that appears to be simply sub-optimal strategy
+sub-optimal strategy um
+um or or not following the meta at low
+or or not following the meta at low ranks could really you know
+ranks could really you know um
+um be viewed as griefing in higher ranks so
+be viewed as griefing in higher ranks so how do we consider that difference
+how do we consider that difference so the chart shows uh friendly fire
+so the chart shows uh friendly fire proportions by ranking ability
+higher ranks as you go down unsurprisingly more of the friendly fire
+unsurprisingly more of the friendly fire occurs in lower ranks
+there's some exceptions with raises stopper and and um you know service
+stopper and and um you know service hunter's theory which if you play the
+hunter's theory which if you play the game makes a bit of sense given the
+game makes a bit of sense given the spread and impact of one and hunter
+spread and impact of one and hunter spirit course goes across the entire map
+spirit course goes across the entire map basically
+basically uh we factor in ranking experience where
+uh we factor in ranking experience where possible
+possible when we try to determine deliberateness
+when we try to determine deliberateness how that translates is usually we look
+how that translates is usually we look at low rank situations very differently
+at low rank situations very differently things are you know require a certain
+things are you know require a certain level of experience of the game before
+level of experience of the game before you can see something as being
+you can see something as being deliberate
+deliberate and and this is supported when we look
+and and this is supported when we look at the distribution of play behaviors
+at the distribution of play behaviors and strategies and and even character
+and strategies and and even character choice by iraq
+so what about initiation and responses well we believe that this is very
+well we believe that this is very relevant
+relevant um and can help inform severity
+um and can help inform severity obviously being triggered is different
+obviously being triggered is different than you know being unprovoked
+than you know being unprovoked uh here we provide some examples from
+uh here we provide some examples from the league of legends trivino
+the league of legends trivino these are from reports so we expect more
+these are from reports so we expect more toxicity than average
+toxicity than average um
+um some interesting summary statistics to
+some interesting summary statistics to share when we use simple models such as
+share when we use simple models such as uh just you know blockless detection and
+uh just you know blockless detection and word embeddings derived from them
+we see that 35 of all players made some potentially
+35 of all players made some potentially offensive statement and over 90 of these
+offensive statement and over 90 of these matches have more than one player making
+matches have more than one player making toxic statements
+toxic statements we also tagged some examples of what our
+we also tagged some examples of what our models flagged
+models flagged even
+even using our more conservative models that
+using our more conservative models that does leverage some game specific
+does leverage some game specific language still finds that over 50 of
+language still finds that over 50 of matches have more than one player making
+matches have more than one player making toxic statements so not as high but
+toxic statements so not as high but still very high
+also to qualify things i should note that not all statements are equally
+that not all statements are equally offensive of course
+offensive of course um there's general toxicity which uh
+um there's general toxicity which uh we're generously tagging here but you
+we're generously tagging here but you can you know
+can you know further filter to identity hate
+further filter to identity hate you can look at targeted versus
+you can look at targeted versus non-targeted
+non-targeted there's a lot of things that are
+there's a lot of things that are criticizing gameplay
+criticizing gameplay we also look at conversation level stuff
+we also look at conversation level stuff both negative like with bullying and
+both negative like with bullying and positive with like mentoring and
+positive with like mentoring and encouraging players
+encouraging players um
+um not surprisingly that this gets harder
+not surprisingly that this gets harder and harder right it can be problematic
+and harder right it can be problematic to uh
+to uh sift through the sarcastic you know good
+sift through the sarcastic you know good jobs and unsolicited advice that isn't
+jobs and unsolicited advice that isn't well received often in league
+well received often in league um going back to the main theme here we
+um going back to the main theme here we note that nearly 20 of these cases had a
+note that nearly 20 of these cases had a player other than the offender appear to
+player other than the offender appear to start things
+start things we try to consider the context like this
+we try to consider the context like this when a value and severity of these
+when a value and severity of these different events
+so uh related different triggers there's environmental ones as well um
+environmental ones as well um you know think about the term rage
+you know think about the term rage quitting for example
+quitting for example players are often triggered by losing
+players are often triggered by losing especially in these competitive pvp
+especially in these competitive pvp games
+games the table shows valor and friendly fire
+the table shows valor and friendly fire by score difference it's clear that when
+by score difference it's clear that when players become less concerned
+with avoiding friendly fire once the score difference is large
+score difference is large in particular one team is losing by a
+in particular one team is losing by a lot we see evidence of higher friendly
+lot we see evidence of higher friendly fire rates
+fire rates in in our case
+in in our case um while we see this as like regular
+um while we see this as like regular behavior
+behavior um we we don't adjust the severity for
+um we we don't adjust the severity for the different cases we decide not to
+the different cases we decide not to lower it or increase it
+lower it or increase it um
+um indirectly we do factor this in in wind
+indirectly we do factor this in in wind probability models which i'll describe
+probability models which i'll describe later
+later uh we do try to capture still because it
+uh we do try to capture still because it can still be relevant information to
+can still be relevant information to help inform game design
+help inform game design for example uh should a game consider
+for example uh should a game consider allowing surrender even earlier in
+allowing surrender even earlier in lopsided contests
+so uh
+uh another contextual factor is uh social
+another contextual factor is uh social ones right
+ones right uh
+uh we rarely consider events where an
+we rarely consider events where an offender and victim are part of the same
+offender and victim are part of the same full stack premade
+full stack premade we also factor in re-queuing and adding
+we also factor in re-queuing and adding to a friend's list where possible
+to a friend's list where possible um
+um essentially the standards for behavior
+essentially the standards for behavior change when you're playing with close
+change when you're playing with close contacts
+contacts there's enough of a relationship where
+there's enough of a relationship where the parties chose to play with each
+the parties chose to play with each other
+other so in the recurring case even if it was
+so in the recurring case even if it was with solos the potential victim chose to
+with solos the potential victim chose to re-cue with defending player
+re-cue with defending player which provides some evidence that either
+which provides some evidence that either the event wasn't so severe
+the event wasn't so severe or you know the the victim thought it
+or you know the the victim thought it was worth being carried so they were
+was worth being carried so they were willing to re-cue
+willing to re-cue um
+um we evaluate these events differently
+we evaluate these events differently in particular when we have a group
+in particular when we have a group playing with other groups or solos
+playing with other groups or solos sometimes these cases can be even more
+sometimes these cases can be even more serious and take on a bullying like
+serious and take on a bullying like quality where groups gang up on solos
+quality where groups gang up on solos uh going into this anecdotally
+uh going into this anecdotally we had cases where um people told us
+we had cases where um people told us about the reported player actually being
+about the reported player actually being the victim but even in our own analysis
+the victim but even in our own analysis once you're able to
+to look at report data in conjunction with gameplay data we've observed some
+with gameplay data we've observed some of these cases as well where the
+of these cases as well where the reported player is actually the victim
+reported player is actually the victim of group harassment
+of group harassment um this chart shows that for both ranked
+um this chart shows that for both ranked and unranked cases
+and unranked cases um
+um pubg players that are part of pre-made
+pubg players that are part of pre-made stay way closer together
+stay way closer together maybe even too much based on optimal
+maybe even too much based on optimal strategy
+strategy in casual games in particular uh solo
+in casual games in particular uh solo players stray more than 100 further from
+players stray more than 100 further from their teammates on average
+another event severity consideration should be the impact of the victim
+should be the impact of the victim there are special cases maybe you put
+there are special cases maybe you put cheating there certainly you put things
+cheating there certainly you put things like predatory behavior there that are
+like predatory behavior there that are beyond the scope of games but for
+beyond the scope of games but for competitive games the
+competitive games the um
+um a primary consideration is just the
+a primary consideration is just the focus on rank achievement and in these
+focus on rank achievement and in these cases the timing of the event and impact
+cases the timing of the event and impact and win percentage matter a lot
+so we look at a few examples that that
+we look at a few examples that that highlight this
+highlight this so the game state matters substantially
+so the game state matters substantially um
+um you know griefing in general is bad so
+you know griefing in general is bad so friendly fire can be bad on the chart on
+friendly fire can be bad on the chart on the left what you see is an example of a
+the left what you see is an example of a a case where the enemy's already cleared
+a case where the enemy's already cleared you only see red dots left which is one
+you only see red dots left which is one team
+team they are the defending team you can see
+they are the defending team you can see a green dot representing the spike in a
+a green dot representing the spike in a game of valoran
+game of valoran this means that the attacking team has
+this means that the attacking team has been already cleared
+been already cleared because the enemy has already been
+because the enemy has already been eliminated friendly fire this time is
+eliminated friendly fire this time is very unlikely to cause a team to lose
+very unlikely to cause a team to lose and in this case in most cases it does
+and in this case in most cases it does not
+not if you look on the chart on the bottom
+if you look on the chart on the bottom right we can further see friendly fire
+right we can further see friendly fire by round
+note that the highest friendly fire rate occurs in round 12.
+occurs in round 12. round 12 is the last round prior to
+round 12 is the last round prior to sides change
+sides change so you don't get to keep your
+so you don't get to keep your weapons or abilities or economy
+weapons or abilities or economy and
+and note that this example occurred in round
+note that this example occurred in round 12 so in this case the victim didn't
+12 so in this case the victim didn't even have to rebuy shields and weapons
+even have to rebuy shields and weapons we should still make the argument that
+we should still make the argument that the victim's death impacted his or her
+the victim's death impacted his or her kd ratio so maybe it's not zero impact
+kd ratio so maybe it's not zero impact but you can see that it's lower impact
+but you can see that it's lower impact than other potentially similar cases
+so because we feel that in competitive games uh the change in the victim's win
+games uh the change in the victim's win percentage is important
+percentage is important uh we we decided to build a win
+uh we we decided to build a win probability model for these different
+probability model for these different games
+games um and
+um and the the expected win percentage then
+the the expected win percentage then will fluctuate throughout these games
+will fluctuate throughout these games uh if we go back to the previous example
+uh if we go back to the previous example again
+again um in that case there was a greater than
+um in that case there was a greater than 99 chance that that team would win
+99 chance that that team would win uh this doesn't change at all even with
+uh this doesn't change at all even with the friendly fire there's four teammates
+the friendly fire there's four teammates left you kill one it's very likely that
+left you kill one it's very likely that one of you still manages to defuse
+one of you still manages to defuse um
+um this change is zero when the kill
+this change is zero when the kill happens in transition time
+happens in transition time um
+um so
+so again it's just more evidence that the
+again it's just more evidence that the enemy cleared case is is lower severity
+enemy cleared case is is lower severity um
+um i built similar models to this for the
+i built similar models to this for the nba and major league teams
+nba and major league teams to evaluate the value different plays
+to evaluate the value different plays for example in the nba i wanted to
+for example in the nba i wanted to evaluate the impact of a pass
+evaluate the impact of a pass um
+um that that didn't directly lead to a
+that that didn't directly lead to a score so a swing pass
+score so a swing pass um and here we can compare the expected
+um and here we can compare the expected points for that possession based on
+points for that possession based on spacing location of the team and
+spacing location of the team and opponents and skill sets
+opponents and skill sets um
+um on that possession
+on that possession after the pass and prior to that pass
+after the pass and prior to that pass and that difference will be the value
+and that difference will be the value rewarded or taken away from that player
+rewarded or taken away from that player right so games like pub g are a bit more
+right so games like pub g are a bit more complicated
+complicated than a sporting event because there are
+than a sporting event because there are many teams
+many teams so in all these battle royales
+so in all these battle royales the most obvious
+the most obvious change or impact is just
+change or impact is just the number of players and teams
+the number of players and teams remaining
+remaining so the sharp below shows a team that
+so the sharp below shows a team that ultimately wins and it shows their
+ultimately wins and it shows their probability of winning across time
+probability of winning across time throughout the game
+throughout the game so even though the team is skilled the
+so even though the team is skilled the initial probability is very low due the
+initial probability is very low due the sheer number of squads in the game
+sheer number of squads in the game notice that each time the team engages
+notice that each time the team engages and does positively their probability
+and does positively their probability increases quickly and if they engage and
+increases quickly and if they engage and do poorly
+do poorly their probability decreases
+their probability decreases so until the team is eliminated their
+so until the team is eliminated their probability should slowly climb over the
+probability should slowly climb over the course of the game
+course of the game basically because they're surviving and
+basically because they're surviving and not being eliminated
+not being eliminated we build a model that also factors in
+we build a model that also factors in the type of squad so pre-mades generally
+the type of squad so pre-mades generally have a bump because they have better
+have a bump because they have better communication although some games only
+communication although some games only match premades with pre-made so it's uh
+match premades with pre-made so it's uh it can be a moot point
+it can be a moot point um
+um pre-game skill and in-game performance
+pre-game skill and in-game performance the in-game performance idea usually is
+the in-game performance idea usually is around momentum so the concept of
+around momentum so the concept of readiness to engage in battle royale is
+readiness to engage in battle royale is there i think there's a more explicit
+there i think there's a more explicit one here um when you you know defeat or
+one here um when you you know defeat or kill off other teams you're often the
+kill off other teams you're often the ones to collect their loop
+ones to collect their loop loot
+loot um also we look at things like team
+um also we look at things like team health and equipment and distance from
+health and equipment and distance from the circle so
+the circle so let's go back to our non-revive example
+let's go back to our non-revive example for a second
+for a second what would happen if the teammate
+what would happen if the teammate decided not to revive a team
+decided not to revive a team revive his teammate
+revive his teammate what was the impact to that one
+what was the impact to that one percentage so we can see that depending
+percentage so we can see that depending on the game state that not revive could
+on the game state that not revive could have made a big difference
+have made a big difference um so
+um so maybe we
+maybe we would want to use that as a severity
+would want to use that as a severity consideration as well
+so once we create the models
+once we create the models the more important question is how do we
+the more important question is how do we actually use them and how do we
+actually use them and how do we interpret these outputs
+interpret these outputs while the models will have the benefit
+while the models will have the benefit of greater consistency and lower costs
+of greater consistency and lower costs as compared to you know any form of
+as compared to you know any form of manual review or moderation
+manual review or moderation all ml models will suffer from some
+all ml models will suffer from some inaccuracy with both false positives and
+inaccuracy with both false positives and false negatives
+false negatives it's important to consider the
+it's important to consider the ramifications of applying each model
+ramifications of applying each model positives are going to be more impactful
+positives are going to be more impactful in different situations
+in different situations for instance
+for instance for many consumer recommendation systems
+for many consumer recommendation systems the damage of recommending the wrong
+the damage of recommending the wrong movie is fairly trivial you can just
+movie is fairly trivial you can just stop the movie you can watch something
+stop the movie you can watch something else right
+else right what about some financial service
+what about some financial service applications that i've worked on
+applications that i've worked on well what about credit card holds
+well what about credit card holds if you charge your credit card outside
+if you charge your credit card outside of your location they'll often get
+of your location they'll often get blocked right people forget to uh note
+blocked right people forget to uh note or inform the credit card company that
+or inform the credit card company that they're traveling
+they're traveling um but the adverse impact is pretty
+um but the adverse impact is pretty small so a false positive just means
+small so a false positive just means that you know someone has to
+that you know someone has to uh send a text to validate or make a
+uh send a text to validate or make a call to validate that they're actually
+call to validate that they're actually using the card and then it gets
+using the card and then it gets reactivated what about loans
+reactivated what about loans um you know the the amount matters a lot
+um you know the the amount matters a lot what if it's something large like a
+what if it's something large like a mortgage what does someone wrongly
+mortgage what does someone wrongly gets denied a mortgage and then is
+gets denied a mortgage and then is unable to purchase a house
+unable to purchase a house you can see the ramifications
+you can see the ramifications of that on on someone's quality of life
+of that on on someone's quality of life um
+um i've i've had the unique
+i've i've had the unique experience of working in a wide range of
+experience of working in a wide range of environments where models were applied
+environments where models were applied with different stakes
+with different stakes the the highest stakes were around third
+the the highest stakes were around third identification where a false positive
+identification where a false positive could have led to a wrongful arrest or
+could have led to a wrongful arrest or even possibly wrongfully taking
+even possibly wrongfully taking someone's life
+someone's life so
+so in these situations obviously false
+in these situations obviously false positives have to be taken very
+positives have to be taken very seriously
+seriously and at best models are just the
+and at best models are just the components in form a manual
+components in form a manual analysis decision
+so so in general what does this mean what should we do well in theory we
+what should we do well in theory we always want to build the best algorithms
+always want to build the best algorithms or best models in practice there are
+or best models in practice there are things like development costs and
+things like development costs and ongoing maintenance costs
+ongoing maintenance costs for gaming there may be further adverse
+for gaming there may be further adverse game performance impact to store more
+game performance impact to store more events
+events right
+right in general we're more willing to take on
+in general we're more willing to take on these costs when the stakes are high
+if there are um
+um if there are if there's greater value in
+if there are if there's greater value in accuracy we want to be conservative and
+accuracy we want to be conservative and minimize these false positives
+minimize these false positives in these cases we need to accept
+in these cases we need to accept that we will have more false negatives
+that we will have more false negatives because of this trade-off
+so how does this apply to gaming specifically
+specifically i think we can be greedy when applying
+i think we can be greedy when applying warnings or other interventions that
+warnings or other interventions that have little adverse impact to players
+have little adverse impact to players they can even appear to be general
+they can even appear to be general warnings non-targeted warnings
+warnings non-targeted warnings example during load times a reminder to
+example during load times a reminder to show mission statements and player
+show mission statements and player crates have been found and be effective
+we have to be more careful when applying penalties rather than warnings because
+penalties rather than warnings because of potential false positives
+of potential false positives there are many ways to implement this
+there are many ways to implement this for example we can apply access
+for example we can apply access restrictions for different durations
+restrictions for different durations under different channels based on you
+under different channels based on you know different severity levels listed
+know different severity levels listed here in these charts as illustrative
+here in these charts as illustrative examples
+examples in general higher severity again means
+in general higher severity again means that we should be more conservative when
+that we should be more conservative when classifying events and players is bad
+classifying events and players is bad the most serious punishment in a game is
+the most serious punishment in a game is generally to ban a player from all
+generally to ban a player from all channels
+channels we should note that a seasoned player
+we should note that a seasoned player who has spent a you know decent amount
+who has spent a you know decent amount of money
+of money and time in a game
+and time in a game will be much more impacted by a band
+will be much more impacted by a band than a relatively new account
+than a relatively new account um there isn't a single solution for
+um there isn't a single solution for everyone we should consider the
+everyone we should consider the trade-offs by thinking carefully about
+trade-offs by thinking carefully about each application and the type of players
+each application and the type of players that would benefit and be adversely
+that would benefit and be adversely impacted by any proposed change
+one partial solution that we considered is um
+is um looking at reputation scores
+looking at reputation scores so what if we're concerned
+so what if we're concerned with uncertainty of any single modeled
+with uncertainty of any single modeled event or report
+event or report could we create a more complete view and
+could we create a more complete view and look at players across time and across
+look at players across time and across multiple games
+multiple games so
+so one solution is to create this you know
+one solution is to create this you know holistic reputation score that would
+holistic reputation score that would factor in inputs from multiple sources
+factor in inputs from multiple sources and events
+and events um this reputation score would be more
+um this reputation score would be more complete and consistent since it
+complete and consistent since it considers different sources so it
+considers different sources so it wouldn't suffer any biases from a single
+wouldn't suffer any biases from a single event and would have more of the
+event and would have more of the advantages of large samples
+advantages of large samples you could factor in you know
+you could factor in you know chat audio gameplay and different types
+chat audio gameplay and different types of grief
+of grief events together
+events together uh while there still could be individual
+uh while there still could be individual issues such as faulty reports
+issues such as faulty reports again the larger sample size
+again the larger sample size helps the system be right more on
+helps the system be right more on average
+average and while we could do uh well
+and while we could do uh well we could you know create
+we could you know create numerous sub scores
+numerous sub scores and components from this
+and components from this at the top level i think it's important
+at the top level i think it's important to have a single number which makes it
+to have a single number which makes it easier to interpret and use
+easier to interpret and use this is ideal for factoring different
+this is ideal for factoring different types of events weighed by many
+types of events weighed by many uh different severity levels
+uh different severity levels and and the simplicity matters because
+and and the simplicity matters because it helps people use this in some way
+it helps people use this in some way right um
+right um there's a reason why things like fico
+there's a reason why things like fico score while
+score while a lot of modelers believe they can build
+a lot of modelers believe they can build a better one are so widely adopted
+a better one are so widely adopted because it's simple and interpretable
+because it's simple and interpretable um
+um this isn't you know a solo approach
+this isn't you know a solo approach um it's it's a complimentary piece and
+um it's it's a complimentary piece and should be used with other tools such as
+should be used with other tools such as stronger penalties
+stronger penalties that should be enforced on more extreme
+that should be enforced on more extreme behaviors
+behaviors but this gives a pretty good overall
+but this gives a pretty good overall view of a player that can be used in
+view of a player that can be used in things like matchmaking and aggregate
+things like matchmaking and aggregate can be used to provide a view of the
+can be used to provide a view of the overall game health
+so speaking of overall game health uh here we we look at a sample of more than
+here we we look at a sample of more than 40 games that have been released for
+40 games that have been released for more than two years so we can evaluate
+more than two years so we can evaluate retention in a more
+retention in a more apples-to-apples type way
+apples-to-apples type way here we're trying to evaluate the impact
+here we're trying to evaluate the impact of toxicity in general
+of toxicity in general there's a lot of studies that try to
+there's a lot of studies that try to look at this but it's impossible to find
+look at this but it's impossible to find a definitive one so we're continuously
+a definitive one so we're continuously trying to refine ours we use reddit
+trying to refine ours we use reddit because you know while we have some game
+because you know while we have some game data we certainly don't have it for like
+data we certainly don't have it for like every game
+every game um
+um and for the study we use some custom
+and for the study we use some custom detection algorithms on subreddit posts
+detection algorithms on subreddit posts and comments and we use this as a proxy
+and comments and we use this as a proxy for toxicity
+for toxicity and then we group games into three
+and then we group games into three different buckets of toxicity
+different buckets of toxicity to examine the player retention impact
+to examine the player retention impact for each group over different one-year
+for each group over different one-year periods
+periods so when we compare to high toxicity
+so when we compare to high toxicity which
+which not surprisingly has the worst retention
+not surprisingly has the worst retention we mean that we find that medium
+we mean that we find that medium toxicity games have about 10 higher
+toxicity games have about 10 higher retention
+retention and low toxicity games have more than 16
+and low toxicity games have more than 16 percent higher retention than comparable
+percent higher retention than comparable high toxicity games
+high toxicity games this is significant when we consider the
+this is significant when we consider the number of players for some of these
+number of players for some of these games and the revenue impact of a few
+games and the revenue impact of a few even a few percentage points can have
+even a few percentage points can have given games of the scale
+given games of the scale this impact can further be amplified
+this impact can further be amplified when we think about it across time as
+when we think about it across time as retention rates
+retention rates can be compounded as some of these
+can be compounded as some of these issues with retention aren't addressed
+issues with retention aren't addressed by by game teams
+and and finally just just to recap given the proliferation and richness of
+given the proliferation and richness of data available in games and the vast
+data available in games and the vast number of reports that the popular games
+number of reports that the popular games need to deal with it makes sense to
+need to deal with it makes sense to automate event detection
+automate event detection um
+um teams should also account for conte
+teams should also account for conte contextual factors where possible and we
+contextual factors where possible and we showed some illustrative examples of
+showed some illustrative examples of things that we look for and obviously
+things that we look for and obviously we're just getting started as well we
+we're just getting started as well we recognize that there's a lot more that
+recognize that there's a lot more that we can do here
+we can do here um and and finally companies should
+um and and finally companies should consider the potential
+consider the potential penalties
+penalties and tie them
+and tie them to the models that they are using so
+to the models that they are using so they should consider
+they should consider the penalties that they plan and pose
+the penalties that they plan and pose and optimize models to best support
+and optimize models to best support these use cases
+these use cases if you stuck with me till then again
+if you stuck with me till then again thank you for for your time
+thank you for for your time [Music]

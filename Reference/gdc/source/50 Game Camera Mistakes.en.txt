@@ -1,0 +1,1406 @@
+[Music] all right
+all right hello
+hello uh I'm uh very happy to see that people
+uh I'm uh very happy to see that people are still uh filling in and there are so
+are still uh filling in and there are so many people here who care about uh video
+many people here who care about uh video game cameras um because I I haven't
+game cameras um because I I haven't really found a community of game
+really found a community of game developers who specialize in game
+developers who specialize in game cameras um it's true that there's at
+cameras um it's true that there's at least one book on the subject uh
+least one book on the subject uh realtime cameras by Mark Hinson um but I
+realtime cameras by Mark Hinson um but I feel like there's still a lot of room to
+feel like there's still a lot of room to uh to delve deeper into this
+uh to delve deeper into this discipline uh I want to see more Role
+discipline uh I want to see more Role Models uh talking about how they solve
+Models uh talking about how they solve problems uh with their camera
+problems uh with their camera designs uh but I actually I guess it
+designs uh but I actually I guess it kind of makes a little bit of sense that
+kind of makes a little bit of sense that uh there's not a whole lot of attention
+uh there's not a whole lot of attention being paid to cameras because the whole
+being paid to cameras because the whole point of cameras is to focus attention
+point of cameras is to focus attention on something other than
+on something other than themselves um
+themselves um cameras are most noticeable when they
+cameras are most noticeable when they fail as players we only talk about
+fail as players we only talk about cameras in order to complain when
+cameras in order to complain when they're distracting uh so I decided that
+they're distracting uh so I decided that in order to really talk about camera
+in order to really talk about camera design I have to embrace
+design I have to embrace failure so this talk is about all the
+failure so this talk is about all the things that go wrong when you're
+things that go wrong when you're developing a a game with a third person
+developing a a game with a third person camera
+camera design um I am John eski I'm a field
+design um I am John eski I'm a field engineer at back
+engineer at back company um I was sort of uh thrown into
+company um I was sort of uh thrown into this camera design thing uh by accident
+this camera design thing uh by accident actually um I was just hired as a
+actually um I was just hired as a general designer but uh I I became
+general designer but uh I I became really passionate about uh improving the
+really passionate about uh improving the the camera in the game uh it was my
+the camera in the game uh it was my first time developing a game with a
+first time developing a game with a dynamic camera uh and I discovered that
+dynamic camera uh and I discovered that it's a a massive challenge uh and I now
+it's a a massive challenge uh and I now know that this is probably the hardest
+know that this is probably the hardest style of camera to design for a video
+style of camera to design for a video game um we we can certainly learn a lot
+game um we we can certainly learn a lot from
+from cinematography but uh game cameras I
+cinematography but uh game cameras I think have a lot of their own special
+think have a lot of their own special rules they're are they're pretty hard to
+rules they're are they're pretty hard to begin with uh for any kind of
+begin with uh for any kind of game um like in in movies C camera
+game um like in in movies C camera operators can deliberately plan out each
+operators can deliberately plan out each shot in detail but as game designers we
+shot in detail but as game designers we don't have that luxury uh everything in
+don't have that luxury uh everything in the game including the camera has to
+the game including the camera has to react to what the player is doing and it
+react to what the player is doing and it has to adapt to the
+has to adapt to the situation and in order the the game
+situation and in order the the game camera to adapt to the situation we have
+camera to adapt to the situation we have to formalize the the rules of uh good
+to formalize the the rules of uh good camera design and uh teach it to the
+camera design and uh teach it to the computer to to software that so they can
+computer to to software that so they can do that uh on our
+do that uh on our behalf and I call this discipline
+behalf and I call this discipline gametography uh not the first person to
+gametography uh not the first person to use this word but I think it's a good
+one um there's basically three gamorra Styles in video games uh the the one on
+Styles in video games uh the the one on the left
+the left is uh fixed fixed angle third person so
+is uh fixed fixed angle third person so these little uh diagrams are
+these little uh diagrams are representing an avatar standing in the
+representing an avatar standing in the middle of a square room uh with a camera
+middle of a square room uh with a camera pointed at them and the one on the left
+pointed at them and the one on the left is fixed angle third person meaning uh
+is fixed angle third person meaning uh the camera never rotates um the the one
+the camera never rotates um the the one in the middle is dynamic angle third
+in the middle is dynamic angle third person and the one on the right is first
+person and the one on the right is first person um and there's a lot of
+person um and there's a lot of differences between these but the main
+differences between these but the main difference I think that uh kind of
+difference I think that uh kind of everything else revolves around is the
+everything else revolves around is the distance between the camera and the
+distance between the camera and the avatar on the left you've got you have a
+avatar on the left you've got you have a camera that's basically innately far
+camera that's basically innately far away or at least far enough away that
+away or at least far enough away that you pretty much have to tear down
+you pretty much have to tear down everything between the Avatar and the
+everything between the Avatar and the cameras in order to be able to see
+cameras in order to be able to see through all that and see the Avatar uh
+through all that and see the Avatar uh you're basically tearing down the fourth
+you're basically tearing down the fourth wall uh this is common in uh basically
+wall uh this is common in uh basically all two-dimensional games do this
+all two-dimensional games do this uh as well as honestly many
+uh as well as honestly many threedimensional games with an overhead
+threedimensional games with an overhead perspective have basically the same
+perspective have basically the same effect uh like League of
+effect uh like League of Legends um just tears down the upper
+Legends um just tears down the upper fourth
+fourth wall uh firsters games on the other hand
+wall uh firsters games on the other hand just have a distance of zero the the
+just have a distance of zero the the camera is literally inside the skull of
+camera is literally inside the skull of the Avatar this means you never have to
+the Avatar this means you never have to worry about uh losing track of where the
+worry about uh losing track of where the Avatar is because you are the
+Avatar is because you are the Avatar um and since there's no danger of
+Avatar um and since there's no danger of losing sight of the Avatar we can leave
+losing sight of the Avatar we can leave in the fourth wall that we've removed
+in the fourth wall that we've removed for the the first uh camera style um and
+for the the first uh camera style um and leaving in all of the uh parts of the
+leaving in all of the uh parts of the environment allows the camera to spin
+environment allows the camera to spin around uh without losing sight of or
+around uh without losing sight of or without like seeing a gaping hole where
+without like seeing a gaping hole where the camera used to
+the camera used to be the middle one Dynamic angle third
+be the middle one Dynamic angle third person games uh are on this weird
+person games uh are on this weird sliding scale between uh uh close and
+sliding scale between uh uh close and far camera distances uh with kind of all
+far camera distances uh with kind of all the diff downsides of
+the diff downsides of both um for Journey we did want a game
+both um for Journey we did want a game where players could look in any
+where players could look in any direction uh and explore on their own so
+direction uh and explore on their own so we couldn't use the the fixed angle
+we couldn't use the the fixed angle third
+third version uh but we also wanted you the
+version uh but we also wanted you the player to have a clear view of the
+player to have a clear view of the Avatar's body so we could use first
+Avatar's body so we could use first person and we needed something in
+person and we needed something in between uh and that means we need a
+between uh and that means we need a camera that physically fits inside the
+camera that physically fits inside the world uh alongside the Avatar and that
+world uh alongside the Avatar and that means we have to worry about all of
+means we have to worry about all of these uh Collision detection problems uh
+these uh Collision detection problems uh and keep just in general keeping the
+and keep just in general keeping the space between the camera and the Avatar
+space between the camera and the Avatar empty so that you can always see what
+empty so that you can always see what you're
+you're doing um and these design constraints
+doing um and these design constraints leave us with a whole lot of problems uh
+leave us with a whole lot of problems uh in fact there's definitely at least 50
+in fact there's definitely at least 50 problems which I have taken the liberty
+problems which I have taken the liberty of enumerating for your
+of enumerating for your convenience um I encountered most of
+convenience um I encountered most of these problems working on journey and
+these problems working on journey and usually I got it wrong the first time
+usually I got it wrong the first time it's only through iteration that these
+it's only through iteration that these problems get
+problems get fixed but uh many mistakes remain in
+fixed but uh many mistakes remain in shipped products often and some of these
+shipped products often and some of these can even still happen in
+can even still happen in Journey uh as a side note I actually
+Journey uh as a side note I actually started with a list of aund problems and
+started with a list of aund problems and had to narrow them down to fit into the
+had to narrow them down to fit into the uh the space of this talk so I'm going
+uh the space of this talk so I'm going to have to talk a little bit quickly so
+to have to talk a little bit quickly so let's get start
+let's get start started uh number one uh using a d let's
+started uh number one uh using a d let's see yes okay
+see yes okay good yes they're both animated good um
+good yes they're both animated good um using a dynamic camera when another
+using a dynamic camera when another approach would work uh Dynamic third
+approach would work uh Dynamic third person cameras are as I said are the EAS
+person cameras are as I said are the EAS the hardest kind of camera to design and
+the hardest kind of camera to design and really there's no shame in taking the
+really there's no shame in taking the easy way out if it lets you focus on
+easy way out if it lets you focus on other parts of the game to make them
+other parts of the game to make them better Dynamic cameras don't
+better Dynamic cameras don't automatically make games better in fact
+automatically make games better in fact they frequently make them worse um for
+they frequently make them worse um for example the the early 3D Mario and Zelda
+example the the early 3D Mario and Zelda games uh all had Dynamic camera angles
+games uh all had Dynamic camera angles but the more recent ones like a Super
+but the more recent ones like a Super Mario 3D World and Legend of Zelda Link
+Mario 3D World and Legend of Zelda Link Between Worlds uh these have reverted to
+Between Worlds uh these have reverted to fixed camera angles and these are highly
+fixed camera angles and these are highly respected
+respected sequels uh so yeah pay attention to the
+sequels uh so yeah pay attention to the for example the background on the image
+for example the background on the image on the left and how it swings around as
+on the left and how it swings around as the camera turns while the Right video
+the camera turns while the Right video has a a stable background because the
+has a a stable background because the camera angle is fixed so for student
+camera angle is fixed so for student projects game jams and other games
+projects game jams and other games developed under tight constraints I
+developed under tight constraints I highly recommend picking an easier
+highly recommend picking an easier camera style such as first person or
+camera style such as first person or fixed
+fixed angle um next problem is designing
+angle um next problem is designing levels and Camera behaviors that don't
+levels and Camera behaviors that don't match
+match uh uh level design and Camera design are
+uh uh level design and Camera design are closely related disciplines and they
+closely related disciplines and they need to cooperate to help players
+need to cooperate to help players navigate if you know the camera angle
+navigate if you know the camera angle ahead of time you can design the entire
+ahead of time you can design the entire level around that um and if you don't if
+level around that um and if you don't if you have a dynamic camera angle then you
+you have a dynamic camera angle then you have to make sure that the levels uh
+have to make sure that the levels uh gracefully flow from one point to the
+gracefully flow from one point to the next uh with the camera easily showing
+next uh with the camera easily showing you where you need to
+you where you need to go um meanwhile the uh the camera itself
+go um meanwhile the uh the camera itself has to be good at navigating the kinds
+has to be good at navigating the kinds of environments that are in your
+of environments that are in your game um I like this video because uh I
+game um I like this video because uh I find it telling that uh the author chose
+find it telling that uh the author chose to include the original Sid scroll game
+to include the original Sid scroll game in the top left corner of the screen uh
+in the top left corner of the screen uh yeah you can see it um so that the
+yeah you can see it um so that the player can actually tell what's going on
+player can actually tell what's going on I think that's uh a clue that this is
+I think that's uh a clue that this is not a good camera for this
+game um using global coordinates or querian to persist camera State um
+querian to persist camera State um obviously this is sort of a programmer
+obviously this is sort of a programmer oriented issue I'm afraid so I want to
+oriented issue I'm afraid so I want to get this one out of the way early um but
+get this one out of the way early um but it is also sort of a design issue it's
+it is also sort of a design issue it's it's easy to assume that a third person
+it's easy to assume that a third person camera uh for game should behave like
+camera uh for game should behave like like maybe a human holding a camera who
+like maybe a human holding a camera who can pivot around in place but in in
+can pivot around in place but in in third person games like this um the the
+third person games like this um the the focus of attention is really the Avatar
+focus of attention is really the Avatar not the camera it's not a first person
+not the camera it's not a first person game so whenever the camera rotates it
+game so whenever the camera rotates it should always be pivoting around the
+should always be pivoting around the Avatar uh uh like like a moon orbiting
+Avatar uh uh like like a moon orbiting around and
+around and that means you should it's not important
+that means you should it's not important to store the the global XYZ coordinates
+to store the the global XYZ coordinates of the camera um because you can always
+of the camera um because you can always just derive those as an offset from the
+just derive those as an offset from the Avatar um finding where it is on the uh
+Avatar um finding where it is on the uh the
+orbit and the other issue is the querian thing uh cians are uh often considered
+thing uh cians are uh often considered the correct way to represent
+the correct way to represent orientations of things uh by programmers
+orientations of things uh by programmers and they're very useful
+and they're very useful but that's not how players think uh
+but that's not how players think uh players think in terms of Oiler angles
+players think in terms of Oiler angles that means pitch and
+that means pitch and yaw uh they they rotate sideways and
+yaw uh they they rotate sideways and they look up and down that's that's how
+they look up and down that's that's how players want to control with for example
+players want to control with for example an analog stick or whatever it is you're
+an analog stick or whatever it is you're using to control control the
+using to control control the camera so use um use Oiler angles to to
+camera so use um use Oiler angles to to represent the orientation of your camera
+represent the orientation of your camera at least uh at some point in the code it
+at least uh at some point in the code it can convert to quants later uh and
+can convert to quants later uh and as for the
+as for the position um instead of storing Global
+position um instead of storing Global XYZ coordinates store like distance from
+XYZ coordinates store like distance from the Avatar and maybe like a a vertical
+the Avatar and maybe like a a vertical or lateral offset and if you want to
+or lateral offset and if you want to frame the Avatar somewhere other than
+frame the Avatar somewhere other than the center of the
+screen um using a camera distance that's likely to break line of sight um this
+likely to break line of sight um this means uh well the the line of sight but
+means uh well the the line of sight but this this like imaginary line between
+this this like imaginary line between the camera and the Avatar is very
+the camera and the Avatar is very crucial um kind of the entire camera
+crucial um kind of the entire camera code is basically designed around
+code is basically designed around keeping this line of sight uh clear uh
+keeping this line of sight uh clear uh not not all the camera code but quite a
+not not all the camera code but quite a lot of it uh and here's an example of an
+lot of it uh and here's an example of an important game uh papoo um but it this
+important game uh papoo um but it this game nevertheless fails to preserve line
+game nevertheless fails to preserve line of sight for example this pipe on the
+of sight for example this pipe on the left y um and if
+left y um and if if the camera was closer to the Avatar
+if the camera was closer to the Avatar by default it would be a lot harder for
+by default it would be a lot harder for this sort of uh problem to
+this sort of uh problem to occur
+um allowing obstacles to break line of sight from the side um this is the most
+sight from the side um this is the most common way that obstacles will break
+common way that obstacles will break line of
+line of sight and the the simplest way to fix
+sight and the the simplest way to fix the problem is to just detect uh by
+the problem is to just detect uh by casting a ray from the avatar of the
+casting a ray from the avatar of the camera detect when the uh Avatar has
+camera detect when the uh Avatar has been included and just push the camera
+been included and just push the camera immediately closer to the uh to the
+immediately closer to the uh to the Avatar um but uh that that is a cut that
+Avatar um but uh that that is a cut that is a camera cut and if all you're doing
+is a camera cut and if all you're doing is changing the position of the camera
+is changing the position of the camera that violates the 30°
+that violates the 30° rule uh in cinema the 30° rule means all
+rule uh in cinema the 30° rule means all camera Cuts should change the angle by
+camera Cuts should change the angle by at least 30 Dees uh and failing to do
+at least 30 Dees uh and failing to do that creates uh a jarring sense of
+that creates uh a jarring sense of motion so it it's much more pleasant
+motion so it it's much more pleasant when uh an obstacle is threatening to
+when uh an obstacle is threatening to break line of sight to
+break line of sight to preemptively uh turn out of the way uh
+preemptively uh turn out of the way uh so for example in this case the camera
+so for example in this case the camera swings to the right to avoid the
+swings to the right to avoid the obstacle on the
+obstacle on the left uh and and you can detect these
+left uh and and you can detect these obstacles early with Ray casts that I
+obstacles early with Ray casts that I call whiskers uh you can see the the
+call whiskers uh you can see the the green arrows on the the
+green arrows on the the diagram um and if any of those whiskers
+diagram um and if any of those whiskers detect an obstacle you can use that to
+detect an obstacle you can use that to preemptively swing away uh and if
+preemptively swing away uh and if necessary you can reuse results from
+necessary you can reuse results from previous frames to reduce processor load
+previous frames to reduce processor load if that's uh a
+problem um however uh we have our first conflict
+conflict um pushing away from an obstacle like
+um pushing away from an obstacle like that uh while while the player is trying
+that uh while while the player is trying to swing towards it so in Journey and in
+to swing towards it so in Journey and in many games like this the the player has
+many games like this the the player has a control stick or something to control
+a control stick or something to control the camera and it is important to to
+the camera and it is important to to always honor the player's intent uh so
+always honor the player's intent uh so if the player wants to turn the camera
+if the player wants to turn the camera one way the camera must turn that
+one way the camera must turn that direction otherwise the player will be
+direction otherwise the player will be very
+very frustrated um which means uh in we come
+frustrated um which means uh in we come across these situations where the the
+across these situations where the the camera wants to swing away from an
+camera wants to swing away from an obstacle but player is swinging it
+obstacle but player is swinging it towards the obstacle and in that case
+towards the obstacle and in that case the only solution as far as I know is to
+the only solution as far as I know is to pull the camera closer but as long as we
+pull the camera closer but as long as we know ahead of time that the obstacle is
+know ahead of time that the obstacle is on the side that we're trying to avoid
+on the side that we're trying to avoid and the player is swinging towards it we
+and the player is swinging towards it we can gradually uh interpolate the camera
+can gradually uh interpolate the camera closer towards the Avatar so that by the
+closer towards the Avatar so that by the time the obstacle is in the way we're
+time the obstacle is in the way we're already squeezing by it by getting
+already squeezing by it by getting closer
+uh letting the player push the camera inside an
+inside an obstacle
+um we still want to prevent breaking line of sight of course uh so as I said
+line of sight of course uh so as I said move the camera closer uh to avoid the
+move the camera closer uh to avoid the obstacle and we may need to use some uh
+obstacle and we may need to use some uh actual uh sphere Collision detection
+actual uh sphere Collision detection I'll get into that a little bit later uh
+I'll get into that a little bit later uh to avoid to make sure that the camera
+to avoid to make sure that the camera doesn't accidentally find itself inside
+doesn't accidentally find itself inside the obstacle that you're pushing the
+the obstacle that you're pushing the camera
+camera towards um letting independent forces
+towards um letting independent forces compete to push the
+compete to push the camera um the as we've seen we need to
+camera um the as we've seen we need to deal with this special case where uh
+deal with this special case where uh obstacle avoidance says to do one thing
+obstacle avoidance says to do one thing and cam control say to do another thing
+and cam control say to do another thing um but this is hardly the only special
+um but this is hardly the only special case we have to deal with uh the camera
+case we have to deal with uh the camera has to satisfy many constraints at a
+has to satisfy many constraints at a time and uh if constraints are allowed
+time and uh if constraints are allowed to compete with each other by applying
+to compete with each other by applying forces in opposite directions they'll
+forces in opposite directions they'll often cancel out uh without satisfying
+often cancel out uh without satisfying either
+either constraint but uh we can we can organize
+constraint but uh we can we can organize the constraints a little bit better
+the constraints a little bit better because we know that there are seven
+because we know that there are seven axes or degrees of freedom that matter
+axes or degrees of freedom that matter to the camera uh there's ya pitch and
+to the camera uh there's ya pitch and roll and uh the horizontal uh vertical
+roll and uh the horizontal uh vertical and like forward backward offsets uh and
+and like forward backward offsets uh and field of view those are the seven
+field of view those are the seven degrees of freedom and we can organize
+degrees of freedom and we can organize all of the constraints According to
+all of the constraints According to which degree of Freedom they matter to
+which degree of Freedom they matter to uh this is uh separation of concerns
+uh this is uh separation of concerns basically uh which is a programming
+basically uh which is a programming principle and for uh the the problem
+principle and for uh the the problem that I described earlier with the
+that I described earlier with the swinging toward and away from an
+swinging toward and away from an obstacle those both apply to the yaw
+obstacle those both apply to the yaw axis so we can get all the forces that
+axis so we can get all the forces that apply the ya axis and prioritize them uh
+apply the ya axis and prioritize them uh and in this case we know that the player
+and in this case we know that the player control has the priority
+uh number nine is keeping narrow columns from breaking line of
+from breaking line of sight um it is important as I've said to
+sight um it is important as I've said to avoid breaking line of sight however
+avoid breaking line of sight however there are cases where here you can see
+there are cases where here you can see that this uh this column breaks line of
+that this uh this column breaks line of sight with the uh the avatar on the
+sight with the uh the avatar on the right and it would be more trouble than
+right and it would be more trouble than it's worth for the camera to try to
+it's worth for the camera to try to avoid letting that happen it actually
+avoid letting that happen it actually looks pretty Grace in this case to just
+looks pretty Grace in this case to just swing around the obstacle or on the
+swing around the obstacle or on the outside
+outside um and you can accomplish this uh or the
+um and you can accomplish this uh or the in Journey we accomplish this by tagging
+in Journey we accomplish this by tagging obstacles based on whether or not
+obstacles based on whether or not they're allowed to break line of sight
+they're allowed to break line of sight uh and this one this particular obstacle
+uh and this one this particular obstacle is very narrow the the the player should
+is very narrow the the the player should be able to track the Avatar with their
+be able to track the Avatar with their eyes even though the Avatar is
+eyes even though the Avatar is temporarily eclipsed
+10 is letting the camera intersect narrow columns so I just explained that
+narrow columns so I just explained that it's okay to let this narrow column
+it's okay to let this narrow column break line of sight however it's not
+break line of sight however it's not okay to uh let the obstacle actually
+okay to uh let the obstacle actually Collide into the camera itself uh that
+Collide into the camera itself uh that would be uh confusing to the
+would be uh confusing to the player uh so this is where uh more
+player uh so this is where uh more ordinary Collision detection algorithms
+ordinary Collision detection algorithms like a a sphere Collision check uh is
+like a a sphere Collision check uh is helpful you can check
+helpful you can check if the the camera itself is uh touching
+if the the camera itself is uh touching the the column and if so just push it
+the the column and if so just push it out until it's not touching
+anymore um interpreting a hill as a wall to be avoided uh journey is full of sand
+to be avoided uh journey is full of sand dunes with a smooth slopes and like any
+dunes with a smooth slopes and like any other obstacle it is important to keep
+other obstacle it is important to keep line of sight from colliding with the
+line of sight from colliding with the sand dunes however um we don't
+sand dunes however um we don't necessarily want to swing sideways away
+necessarily want to swing sideways away from the hills it actually makes more
+from the hills it actually makes more sense to rise the camera above the
+sense to rise the camera above the hill um so in the case of Journey I
+hill um so in the case of Journey I actually just skip uh Collision
+actually just skip uh Collision detection with whisker whiskers and Sand
+detection with whisker whiskers and Sand Dunes but you can also try checking the
+Dunes but you can also try checking the uh the surface normal of the uh the
+uh the surface normal of the uh the slope to to see if it's the kind of
+slope to to see if it's the kind of obstacle that you should be swinging
+obstacle that you should be swinging away from or Rising
+away from or Rising above uh swinging sideways when AUD has
+above uh swinging sideways when AUD has come from behind um so far all of the
+come from behind um so far all of the obstacle avoidance has been these the
+obstacle avoidance has been these the this the sideways uh whisker um swinging
+this the sideways uh whisker um swinging around but uh line of sight uh can be
+around but uh line of sight uh can be broken from many directions there's the
+broken from many directions there's the sides and then there's also behind for
+sides and then there's also behind for example if the the Avatar if the if the
+example if the the Avatar if the if the player is making the Avatar run towards
+player is making the Avatar run towards the camera and the camera is backing up
+the camera and the camera is backing up it can be uh backed up into a corner and
+it can be uh backed up into a corner and if the camera finds itself backed into a
+if the camera finds itself backed into a corner then swinging either direction
+corner then swinging either direction won't actually get it out it won't help
+won't actually get it out it won't help at all
+at all uh so in this case you should use a ray
+uh so in this case you should use a ray cast like immediately behind the camera
+cast like immediately behind the camera to detect if it's being backed into a
+to detect if it's being backed into a corner and if so just pull closer
+corner and if so just pull closer without swinging
+without swinging sideways uh 13 is letting the camera's
+sideways uh 13 is letting the camera's near clipping plane intersect the Avatar
+near clipping plane intersect the Avatar um this is a technical problem that uh
+um this is a technical problem that uh pretty much all virtual cameras have
+pretty much all virtual cameras have what's called a near clipping plane and
+what's called a near clipping plane and anything closer to that gets cut off and
+anything closer to that gets cut off and leaves a big gaping hole in the
+leaves a big gaping hole in the object um
+object um so we want to make sure that
+so we want to make sure that this almost never happens or never
+this almost never happens or never happens preferably so there needs to be
+happens preferably so there needs to be enough space between the Avatar and any
+enough space between the Avatar and any adjacent walls for the camera to fit his
+adjacent walls for the camera to fit his near clipping plane through the
+near clipping plane through the space um and one way you can do that is
+space um and one way you can do that is by making sure that the the Avatar's
+by making sure that the the Avatar's Collision radius is wider than the
+Collision radius is wider than the actual Avatar uh so that they'll never
+actual Avatar uh so that they'll never actually like press up right up against
+actually like press up right up against the wall so you can like still fit the
+the wall so you can like still fit the uh the camera between the model and the
+uh the camera between the model and the wall
+wall um 14 is using the same camera distance
+um 14 is using the same camera distance for all angles um in particular I'm
+for all angles um in particular I'm talking about up and down uh tilting um
+talking about up and down uh tilting um if you're if you're looking up that
+if you're if you're looking up that means the camera has to swing downwards
+means the camera has to swing downwards to keep the Avatar in view while you're
+to keep the Avatar in view while you're looking at the sky but if your camera is
+looking at the sky but if your camera is swinging downwards it's going to crash
+swinging downwards it's going to crash into the ground unless you make it uh
+into the ground unless you make it uh closer
+closer so um some games uh will make the camera
+so um some games uh will make the camera crash into the ground and then pull
+crash into the ground and then pull closer but I prefer to have a smooth
+closer but I prefer to have a smooth curve that kind of knows in advance what
+curve that kind of knows in advance what the the the shape of the floor and it
+the the the shape of the floor and it can uh uh kind of glide into the
+can uh uh kind of glide into the position at the the Avatar's feet for a
+position at the the Avatar's feet for a worm's eye
+worm's eye view um it's also good to extend this
+view um it's also good to extend this curve the other direction uh so when
+curve the other direction uh so when you're looking downwards and you swing
+you're looking downwards and you swing the camera
+the camera up um this uh looking downwards means
+up um this uh looking downwards means the Horizon is the long no longer in The
+the Horizon is the long no longer in The View
+View and if you you can just see this little
+and if you you can just see this little patch of ground around the Avatar it
+patch of ground around the Avatar it could feel a little bit
+could feel a little bit claustrophobic uh so I recommend pulling
+claustrophobic uh so I recommend pulling the camera out a little bit when you're
+the camera out a little bit when you're looking downwards so you can have a
+looking downwards so you can have a little bit more uh uh to to see around
+little bit more uh uh to to see around the Avatar so you don't feel as uh
+the Avatar so you don't feel as uh closed
+closed in uh 15 using the same field of view
+in uh 15 using the same field of view for worm's eye and standard
+for worm's eye and standard angles um the uh the sky is really
+angles um the uh the sky is really really big it's nice to be able to take
+really big it's nice to be able to take in more of the sky at once and in
+in more of the sky at once and in reality uh as humans we use our
+reality uh as humans we use our peripheral vision to to see the most or
+peripheral vision to to see the most or all of the sky uh we can see almost 180°
+all of the sky uh we can see almost 180° uh to our sides um so in order to create
+uh to our sides um so in order to create the same feeling when uh the game is
+the same feeling when uh the game is looking at the sky it should uh ex
+looking at the sky it should uh ex expand its field of view as it's
+expand its field of view as it's transitioning to a bird's eye view you
+transitioning to a bird's eye view you can kind of see uh being the sides of
+can kind of see uh being the sides of the canyon uh filling in in the sides of
+the canyon uh filling in in the sides of the uh the video clip
+the uh the video clip here um and that that just makes you
+here um and that that just makes you feel more like you are the character
+feel more like you are the character looking the way the character would
+look um let's see 16 is Shifting pitch distance and field The View
+distance and field The View independently uh so as I explained as
+independently uh so as I explained as the camera is pitching up and down um
+the camera is pitching up and down um the the distance needs to change and the
+the the distance needs to change and the field of view also needs to
+field of view also needs to change um but if these if these uh
+change um but if these if these uh degrees of freedom are not uh completely
+degrees of freedom are not uh completely linked together then you can create this
+linked together then you can create this weird effect where like as you look up
+weird effect where like as you look up or down the the field of view will
+or down the the field of view will change and that will affect the size of
+change and that will affect the size of everything on the screen because field
+everything on the screen because field of view is
+of view is zoom um but then the distance will also
+zoom um but then the distance will also change and it'll change in the opposite
+change and it'll change in the opposite direction so you might end up with the
+direction so you might end up with the Avatar appearing to expand and then
+Avatar appearing to expand and then shrink or Shrink and then expand um so
+shrink or Shrink and then expand um so it's best to make sure that the uh the
+it's best to make sure that the uh the the distance and the field of view are
+the distance and the field of view are both like derived from the pitch so that
+both like derived from the pitch so that they transition together like
+they transition together like gears um however you do end up with
+gears um however you do end up with situations where other other factors
+situations where other other factors want to affect the distance in field of
+want to affect the distance in field of view so in that case uh you can kind of
+view so in that case uh you can kind of have like a a base distance of field of
+have like a a base distance of field of view that drive from pitch and then
+view that drive from pitch and then other uh modifiers can like uh be
+other uh modifiers can like uh be multipliers or offsets to the the base
+multipliers or offsets to the the base field
+field view uh 17 not cutting when the Avatar
+view uh 17 not cutting when the Avatar passes through opaque
+passes through opaque areas uh this is a case where the line
+areas uh this is a case where the line of sight is being threatened from the
+of sight is being threatened from the front which is actually super rare
+front which is actually super rare because the Avatar itself has collision
+because the Avatar itself has collision and will prevent obstacles from hitting
+and will prevent obstacles from hitting the the front of the line of
+the the front of the line of sight um but there are cases for example
+sight um but there are cases for example this this sandall in
+this this sandall in Journey uh where an opaque
+Journey uh where an opaque uh surface uh it can still be passed
+uh surface uh it can still be passed through uh and in that case the the only
+through uh and in that case the the only thing it can really do to uh bring back
+thing it can really do to uh bring back line of sight is to
+cut 18 is letting Cuts remap directional controls um up on the on the analog
+controls um up on the on the analog stick means go forward but but but
+stick means go forward but but but forward is determined byy what whatever
+forward is determined byy what whatever Direction the camera is looking in and
+Direction the camera is looking in and when the camera suddenly rotates to a
+when the camera suddenly rotates to a different direction um forward changes
+different direction um forward changes and then uh up on the control stick
+and then uh up on the control stick changes and players they physically
+changes and players they physically can't teleport their thumb when the
+can't teleport their thumb when the camera
+camera Cuts U they need a moment to adapt to
+Cuts U they need a moment to adapt to the New Direction so this is a good
+the New Direction so this is a good opportunity for either like a cut scene
+opportunity for either like a cut scene or some kind of transition effect or or
+or some kind of transition effect or or just put the player in a situation where
+just put the player in a situation where they're not in danger of uh being
+they're not in danger of uh being attacked or anything like that when when
+attacked or anything like that when when the cut happens because players do need
+the cut happens because players do need a moment to
+adapt uh alter alternatively you could also try to interpolate the forward
+also try to interpolate the forward Direction during a cut um I don't know
+Direction during a cut um I don't know how well that works but some people do
+how well that works but some people do it I've seen it
+it I've seen it happen um 19 is breaking the player
+happen um 19 is breaking the player sense of
+sense of direction um remapping controls is a
+direction um remapping controls is a temporary problem because the player can
+temporary problem because the player can quickly adapt to whatever the forward
+quickly adapt to whatever the forward Direction is on the camera
+Direction is on the camera but um cuts that change the camera angle
+but um cuts that change the camera angle also create a longer term loss of the
+also create a longer term loss of the player's sense of
+player's sense of direction uh I think players use
+direction uh I think players use primarily two different techniques for
+primarily two different techniques for navigating uh dead reckoning which is um
+navigating uh dead reckoning which is um keeping track of all the uh changes in
+keeping track of all the uh changes in your position and orientation um so like
+your position and orientation um so like if I rotate my body 180° I know that
+if I rotate my body 180° I know that North is now South
+North is now South or uh but a camera cut uh sorry the the
+or uh but a camera cut uh sorry the the the second technique is recognizing
+the second technique is recognizing landmarks so dead reckoning and
+landmarks so dead reckoning and recognizing
+recognizing landmarks and Camera
+landmarks and Camera Cuts uh they they make dead reckoning
+Cuts uh they they make dead reckoning impossible you can't tell all the time
+impossible you can't tell all the time when a camera Cuts how much it has been
+when a camera Cuts how much it has been rotated so you don't know how to how
+rotated so you don't know how to how much to rotate your mental model of the
+much to rotate your mental model of the map so uh this is a a crucial moment to
+map so uh this is a a crucial moment to make sure that the the camera is is
+make sure that the the camera is is showing the player uh e either
+showing the player uh e either recognizable landmarks or or something
+recognizable landmarks or or something to to help them understand where they
+to to help them understand where they are uh when the camera is cutting so
+are uh when the camera is cutting so that they uh they don't lose their sense
+that they uh they don't lose their sense of direction too too
+badly uh 20 is violating the 180° rule this is uh a commonly known rule in
+this is uh a commonly known rule in cinematography uh the 180 degree rule
+cinematography uh the 180 degree rule means um don't cut the camera such that
+means um don't cut the camera such that two subjects like characters talking to
+two subjects like characters talking to each other uh swap sides uh that means
+each other uh swap sides uh that means like don't rotate the camera behind them
+like don't rotate the camera behind them that kind of a
+that kind of a thing um but fortunately we don't
+thing um but fortunately we don't actually have to worry about the one a
+actually have to worry about the one a degree rule very often in games because
+degree rule very often in games because uh as I've explained uh cuts are
+uh as I've explained uh cuts are dangerous and we should avoid using them
+dangerous and we should avoid using them whenever
+whenever possible uh however there are situations
+possible uh however there are situations where 180° rule does apply especially
+where 180° rule does apply especially during cutcenes
+during cutcenes um so like at the end of a cut scene uh
+um so like at the end of a cut scene uh you should be showing the the player uh
+you should be showing the the player uh what they they need to be seeing to be
+what they they need to be seeing to be able to
+able to navigate
+navigate um
+um yeah 21 is focusing only on the
+yeah 21 is focusing only on the Avatar um so far I've only been talking
+Avatar um so far I've only been talking about the Avatar but the the the player
+about the Avatar but the the the player also needs to see other stuff in the
+also needs to see other stuff in the environment in order to navigate for
+environment in order to navigate for example the player needs to be able to
+example the player needs to be able to see the terrain immediately around the
+see the terrain immediately around the the Avatar's feet to see whether or not
+the Avatar's feet to see whether or not they're going to bump into a wall or
+they're going to bump into a wall or whether they're going to fall off a
+whether they're going to fall off a cliff and they also need to track uh
+cliff and they also need to track uh keep track of things that are far away
+keep track of things that are far away like uh the mountain on the horizon in
+like uh the mountain on the horizon in Journey or the partner they're traveling
+Journey or the partner they're traveling with uh so number 22 is relying on
+with uh so number 22 is relying on players to be controlling the camera at
+players to be controlling the camera at all
+all times um for for many players
+times um for for many players controlling an avatar and a camera at
+controlling an avatar and a camera at the same time is a lot like patting your
+the same time is a lot like patting your head and rubbing your belly
+head and rubbing your belly um you can see uh this is beyond good
+um you can see uh this is beyond good and evil and this player is probably
+and evil and this player is probably pretty good at this game but they still
+pretty good at this game but they still end up like jerking the camera around um
+end up like jerking the camera around um because this game doesn't have any
+because this game doesn't have any automatic guidance for the
+automatic guidance for the camera so uh I recommend whenever
+camera so uh I recommend whenever possible the camera should be doing its
+possible the camera should be doing its best to look where the player wants to
+best to look where the player wants to see um in advance so that the player
+see um in advance so that the player doesn't have to be controlling
+it 23 is leaving the camera yaw alone while the player is running and the
+while the player is running and the simplest way to help the players see
+simplest way to help the players see where they're going is to show them
+where they're going is to show them where they're already going uh just take
+where they're already going uh just take the direction that the player is running
+the direction that the player is running in um and map that to the the the yaw of
+in um and map that to the the the yaw of the camera so it kind of like drift
+the camera so it kind of like drift behind the the Avatar as they're
+behind the the Avatar as they're running uh however even this rule has a
+running uh however even this rule has a little bit of nuance uh for example if
+little bit of nuance uh for example if the player is running right into a wall
+the player is running right into a wall it doesn't do them any good to to like
+it doesn't do them any good to to like show them a direct view of the wall
+show them a direct view of the wall because there's nothing Beyond it uh so
+because there's nothing Beyond it uh so uh use use the player's velocity to
+uh use use the player's velocity to figure out where they're going rather
+figure out where they're going rather than the direction they're pressing on
+than the direction they're pressing on the analog stick because they may be
+the analog stick because they may be pressing in like or even worse they may
+pressing in like or even worse they may be running into an invisible wall and
+be running into an invisible wall and you you don't want to taunt the player
+you you don't want to taunt the player by showing them Beyond The Invisible you
+by showing them Beyond The Invisible you all you want to swing the camera around
+all you want to swing the camera around the other direction to show them where
+the other direction to show them where they should be going
+uh 24 is making it hard to judge distances uh I love this game a lot but
+distances uh I love this game a lot but this is a uh a situation where the
+this is a uh a situation where the challenge is created entirely by the
+challenge is created entirely by the camera kind of refusing to align with
+camera kind of refusing to align with Direction you're going
+Direction you're going in um the problem is that uh the screen
+in um the problem is that uh the screen is
+is two-dimensional and and even if you've
+two-dimensional and and even if you've got some kind of threedimensional screen
+got some kind of threedimensional screen depth perception is pretty weak um
+depth perception is pretty weak um players are much better at judging
+players are much better at judging distances that align with the plane of
+distances that align with the plane of the
+the screen um and there's the so for example
+screen um and there's the so for example if you have a top view it you're good at
+if you have a top view it you're good at judging um all horizontal motion whereas
+judging um all horizontal motion whereas if you have a side view you're good at
+if you have a side view you're good at judging vertical motion and also
+judging vertical motion and also horizontal motion on one
+horizontal motion on one axis uh and in this case uh for this
+axis uh and in this case uh for this catwalk the most important thing for the
+catwalk the most important thing for the player is to know how far they are from
+player is to know how far they are from either side of the catwalk um that which
+either side of the catwalk um that which means that the camera really should be
+means that the camera really should be like pointing right down the cat catwalk
+like pointing right down the cat catwalk so you can see so you can like align
+so you can see so you can like align that axis with the the sideway sideways
+that axis with the the sideway sideways AIS of the
+screen excuse me uh 25 is uh looking straight ahead as the Avatar approaches
+straight ahead as the Avatar approaches a
+a cliff um when when player when people
+cliff um when when player when people walk towards a ledge they will look down
+walk towards a ledge they will look down uh to see what's below and the camera
+uh to see what's below and the camera should do the same
+should do the same thing uh you can cast more ra is uh kind
+thing uh you can cast more ra is uh kind of kind of a downwards Ray in front of
+of kind of a downwards Ray in front of the Avatar to see if there's any uh drop
+the Avatar to see if there's any uh drop in front of the Avatar and if you detect
+in front of the Avatar and if you detect a drop uh the camera can rotate its
+a drop uh the camera can rotate its pitch to swing into a bird's eye
+pitch to swing into a bird's eye view and an additional benefit of this
+view and an additional benefit of this um in addition to just showing you
+um in addition to just showing you what's down there um the camera is ready
+what's down there um the camera is ready to get out of the way if the player
+to get out of the way if the player falls off the cliff um otherwise if the
+falls off the cliff um otherwise if the player if the camera is level when you
+player if the camera is level when you fall off a cliff the and the Avatar
+fall off a cliff the and the Avatar Falls then the camera wants to fall with
+Falls then the camera wants to fall with it and will crash into the cliff
+it and will crash into the cliff itself but if it's looking uh from a
+itself but if it's looking uh from a bird's eye view it can just like slip
+bird's eye view it can just like slip over the The
+Edge uh 26 is keeping the camera level when the Avatar is running up or down a
+when the Avatar is running up or down a slope um the uh the same kind of
+slope um the uh the same kind of technique uh for Cliffs applies to
+technique uh for Cliffs applies to slopes uh detect like what the the
+slopes uh detect like what the the height of ground is in front of you and
+height of ground is in front of you and if it's above or below you can look up
+if it's above or below you can look up and down um however uh some people might
+and down um however uh some people might try to just use like the shape of the
+try to just use like the shape of the terrain directly under the player's feet
+terrain directly under the player's feet um but if it's bumpy terrain that might
+um but if it's bumpy terrain that might give you noisy information so you should
+give you noisy information so you should be really uh doing some kind of R cast
+be really uh doing some kind of R cast uh ahead of the player to figure out the
+uh ahead of the player to figure out the like the average slope of the
+terrain um 27 is misusing rule of thirds uh rule of thirds is uh another
+thirds uh rule of thirds is uh another well-known rule from
+well-known rule from cinematography uh basically says the
+cinematography uh basically says the pictures are more attractive when the
+pictures are more attractive when the subjects are off center usually facing
+subjects are off center usually facing inwards um this is a simple way to
+inwards um this is a simple way to improve the perceived quality of your
+improve the perceived quality of your camera design but the the wrong way to
+camera design but the the wrong way to implement it is to uh to rotate the
+implement it is to uh to rotate the camera in place um like if you if you're
+camera in place um like if you if you're trying to implement rule of thirds by
+trying to implement rule of thirds by holding a physical camera in your hands
+holding a physical camera in your hands you'll probably just rotate your hands a
+you'll probably just rotate your hands a little bit and you're pivoting in place
+little bit and you're pivoting in place um but
+um but again um a a game camera should never
+again um a a game camera should never pivot in place it should be rotating
+pivot in place it should be rotating around the Avatar uh when it's doing
+around the Avatar uh when it's doing rotations so instead in order to create
+rotations so instead in order to create an off-center avatar you can just slide
+an off-center avatar you can just slide the camera
+sideways um the uh there's a problem here however which is
+there's a problem here however which is that players use the center of the
+that players use the center of the screen to aim their analog stick if you
+screen to aim their analog stick if you have the player on the off center while
+have the player on the off center while they're running they'll get confused
+they're running they'll get confused about what direction they're running
+about what direction they're running in um so in Journey we only use rule of
+in um so in Journey we only use rule of thirds when the player is standing still
+thirds when the player is standing still when they have to be running or when the
+when they have to be running or when the player's puring the analog stick uh we
+player's puring the analog stick uh we make the Avatar drift back to the
+make the Avatar drift back to the center uh and I'm showing a clip from sh
+center uh and I'm showing a clip from sh shadow of the claes here because it's
+shadow of the claes here because it's actually an interesting counter example
+actually an interesting counter example um in this game I think it's okay that
+um in this game I think it's okay that the horse is off center as you're riding
+the horse is off center as you're riding it because in this game you're not using
+it because in this game you're not using the analog stick to to aim actually
+the analog stick to to aim actually you're pressing like the gas pedal to go
+you're pressing like the gas pedal to go forwards uh and then you just use the
+forwards uh and then you just use the analog stick to press left and right to
+analog stick to press left and right to steer um so in this case um the I think
+steer um so in this case um the I think it's okay that the player doesn't need
+it's okay that the player doesn't need to associate up on the analog stick with
+to associate up on the analog stick with the center of the
+the center of the screen because you don't use the analog
+screen because you don't use the analog stick to go forward
+stick to go forward um 28 is using the same logic for ground
+um 28 is using the same logic for ground and air
+and air motion um I've mostly been talking about
+motion um I've mostly been talking about ground motion so far uh but depending on
+ground motion so far uh but depending on the kind kind of game you have there may
+the kind kind of game you have there may be different kinds of uh Locomotion in
+be different kinds of uh Locomotion in the game and journey you have running
+the game and journey you have running and flying um Shadow the Colossus has as
+and flying um Shadow the Colossus has as we said the the horse um and uh these
+we said the the horse um and uh these different uh Transportation modes uh
+different uh Transportation modes uh take different paths and trajectories
+take different paths and trajectories through space and the player needs to be
+through space and the player needs to be able to make different kinds of
+able to make different kinds of judgments um and in the case of flying
+judgments um and in the case of flying and
+and journey um what goes up always must come
+journey um what goes up always must come down and it's important to always show
+down and it's important to always show the player where they're going to
+the player where they're going to land um
+land um so uh especially when you're running out
+so uh especially when you're running out of juice in in Journey you have like
+of juice in in Journey you have like special amount of or limited amount of
+special amount of or limited amount of flying juice so like at the very
+flying juice so like at the very beginning you might be flying upwards
+beginning you might be flying upwards and the camera will look up to show you
+and the camera will look up to show you where you're going but as you're running
+where you're going but as you're running out of juice it's important to tilt the
+out of juice it's important to tilt the camera downwards so that you're prepared
+camera downwards so that you're prepared to land at any time uh to see where
+to land at any time uh to see where you're going to
+land 29 is relying entirely on procedural camera behaviors um pretty
+procedural camera behaviors um pretty much all the camera behaviors I've
+much all the camera behaviors I've described so far uh are just automatic
+described so far uh are just automatic things that it does to respond to the
+things that it does to respond to the environment and to the
+environment and to the player um but uh Ray casting is is only
+player um but uh Ray casting is is only going to tell you the shape of the train
+going to tell you the shape of the train it doesn't tell you what's
+it doesn't tell you what's important um we as game designers need
+important um we as game designers need to decide this this this other character
+to decide this this this other character in the game is important or this this
+in the game is important or this this mountain is important and the the player
+mountain is important and the the player needs to see these things so uh in in
+needs to see these things so uh in in our in our Maps or in levels we we add
+our in our Maps or in levels we we add uh scripted hints to tell the camera in
+uh scripted hints to tell the camera in this cont contact sens sensitive
+this cont contact sens sensitive situation uh the camera should be
+situation uh the camera should be pointing at this particular Target
+um I think camera hints become even more important in small closed environments
+important in small closed environments because Dynamic
+because Dynamic cameras are pretty good at open
+cameras are pretty good at open environments where whether there's not
+environments where whether there's not very many obstacles but in small closed
+very many obstacles but in small closed environments there's a lot of stuff for
+environments there's a lot of stuff for the camera to watch out for uh and the
+the camera to watch out for uh and the more we can help it out the
+more we can help it out the better um and here I have an example
+better um and here I have an example from Journey of a large Tower it's a
+from Journey of a large Tower it's a very it's a mostly complex uh sorry
+very it's a mostly complex uh sorry convex shape uh which means there's like
+convex shape uh which means there's like a pretty well- defined center of the
+a pretty well- defined center of the Tower and as long as the camera is on
+Tower and as long as the camera is on the other side of the avatar from the
+the other side of the avatar from the center of the tower uh then you can have
+center of the tower uh then you can have a pretty clear view of what's going on
+a pretty clear view of what's going on here so this is a a a scripted hint in
+here so this is a a a scripted hint in the game that's that's not a general
+the game that's that's not a general purpose
+behavior um 30 is letting players make themselves lost and
+themselves lost and confused um players do love to explore
+confused um players do love to explore and we want to enable them to do so but
+and we want to enable them to do so but we also want to make sure they don't get
+we also want to make sure they don't get too
+too lost and the simplest solution employed
+lost and the simplest solution employed by many games is to put an error Arrow
+by many games is to put an error Arrow or radar on the screen uh I feel that
+or radar on the screen uh I feel that these are a bit heavy-handed we do not
+these are a bit heavy-handed we do not use them in Journey uh I prefer relying
+use them in Journey uh I prefer relying on uh subtle camera tricks to suggest
+on uh subtle camera tricks to suggest the direction to to
+the direction to to go um for example as I as I said when
+go um for example as I as I said when you're running up against a the boundary
+you're running up against a the boundary of the world Journey the camera will
+of the world Journey the camera will spin around the to show the opposite
+spin around the to show the opposite direction to to point you back towards
+direction to to point you back towards the uh the center or where you're
+the uh the center or where you're supposed to
+supposed to go um another thing you might try doing
+go um another thing you might try doing is detecting whether or not the player
+is detecting whether or not the player has backtracked a significant distance
+has backtracked a significant distance uh and if they have then uh spin the
+uh and if they have then uh spin the camera around to to point them forwards
+again uh 31 is rotating to look at nearby
+nearby Targets um when you have a scripted hint
+Targets um when you have a scripted hint that's telling the camera to look at for
+that's telling the camera to look at for example uh another character or Avatar
+example uh another character or Avatar who is standing right next to you uh
+who is standing right next to you uh maybe your first uh approach would be to
+maybe your first uh approach would be to make uh the camera rotate to point at it
+make uh the camera rotate to point at it but if you keep doing that um on the
+but if you keep doing that um on the left you see Batman Arkham Asylum uh and
+left you see Batman Arkham Asylum uh and the camera just keep spinning around
+the camera just keep spinning around because these these two things that in
+because these these two things that in close proximity keep kind of basically
+close proximity keep kind of basically dancing around each other and it's hard
+dancing around each other and it's hard to keep up with that kind of
+to keep up with that kind of rotation um but fortunately there's an
+rotation um but fortunately there's an alternative approach here which is to
+alternative approach here which is to just uh pull the camera either to the
+just uh pull the camera either to the side or or back to include more uh more
+side or or back to include more uh more in its view um in this in Journey For
+in its view um in this in Journey For example what happens is the camera pulls
+example what happens is the camera pulls out right about now to to show both
+out right about now to to show both avatars without doing any rotation uh
+avatars without doing any rotation uh and that that just is uh less
+and that that just is uh less disorienting and more
+graceful 32 is translating to look at distant Targets this is this is the
+distant Targets this is this is the opposite situation if you have a nearby
+opposite situation if you have a nearby thing uh you should uh Slide the camera
+thing uh you should uh Slide the camera sideways or backwards to include it but
+sideways or backwards to include it but if you have a a distant thing like
+if you have a a distant thing like something on the horizon of the screen
+something on the horizon of the screen um or like the sun for example uh no
+um or like the sun for example uh no amount of sliding the camera around
+amount of sliding the camera around would change the position of the sun on
+would change the position of the sun on the screen so the correct thing to do in
+the screen so the correct thing to do in that case is to
+rotate uh 33 is letting the Avatar's own body ACC clude targets
+body ACC clude targets ahead um if if you're rotating the
+ahead um if if you're rotating the camera to point at something uh and the
+camera to point at something uh and the Avatar is in the center of the screen
+Avatar is in the center of the screen there's a danger that the Avatar itself
+there's a danger that the Avatar itself will actually uh eclipse what you're
+will actually uh eclipse what you're looking at um you can point either to
+looking at um you can point either to the side or you can uh uh this would be
+the side or you can uh uh this would be a good opportunity for will of thirds to
+a good opportunity for will of thirds to slide to the side so the Avatar is on
+slide to the side so the Avatar is on the side of the screen uh but any case
+the side of the screen uh but any case you should just be be aware of this
+you should just be be aware of this situation um often the the easiest thing
+situation um often the the easiest thing to do is to just make sure that the
+to do is to just make sure that the camera is tilted down slightly so it can
+camera is tilted down slightly so it can see over the top of the Avatar's
+see over the top of the Avatar's head 34 is giving the player control
+head 34 is giving the player control over the camera and then taking it away
+over the camera and then taking it away um uh it's very frustrating to give
+um uh it's very frustrating to give players control only to take it away
+players control only to take it away again later so when you're making these
+again later so when you're making these scripted camera hints you should be
+scripted camera hints you should be aware that or at least enable the player
+aware that or at least enable the player to override the hints whenever
+to override the hints whenever possible um
+possible um and if if you have to make a hint that
+and if if you have to make a hint that will override player control make sure
+will override player control make sure it's in a situation where the camera is
+it's in a situation where the camera is already looking at everything that the
+already looking at everything that the player needs to see so that they won't
+player needs to see so that they won't feel the need to control
+it 35 is immediately applying a a a hint to a scripted hint to control the camera
+to a scripted hint to control the camera after the player has finished turning
+after the player has finished turning the camera to look at something um if
+the camera to look at something um if the player's deliberately controlling
+the player's deliberately controlling the camera they
+the camera they probably want to be looking uh wherever
+probably want to be looking uh wherever they pointed the camera and if you have
+they pointed the camera and if you have a like a scripted hint that's always on
+a like a scripted hint that's always on and always trying to push the camera in
+and always trying to push the camera in a certain direction uh as soon as you
+a certain direction uh as soon as you stop overriding it it'll start it'll
+stop overriding it it'll start it'll kick in again and turn the camera so the
+kick in again and turn the camera so the there should be like a little delay
+there should be like a little delay after controlling the camera where the
+after controlling the camera where the camera will continue to look where the
+camera will continue to look where the players want it wants it to be pointed
+players want it wants it to be pointed um and either after delay or after maybe
+um and either after delay or after maybe the the out the player started moving
+the the out the player started moving again uh then you can let the the hint
+again uh then you can let the the hint kick in
+again uh 36 is not letting experts
+36 is not letting experts explore um even if the the player is
+explore um even if the the player is technically still in control of the the
+technically still in control of the the camera and constantly controlling it it
+camera and constantly controlling it it can be frustrating when overbearing
+can be frustrating when overbearing hints are uh constantly trying to get
+hints are uh constantly trying to get them to go in a different
+them to go in a different direction uh especially when expert are
+direction uh especially when expert are replaying a game um they're likely to
+replaying a game um they're likely to want to go to new places so after the
+want to go to new places so after the hints have helped the players establish
+hints have helped the players establish their goals uh the hint can be
+their goals uh the hint can be disengaged to allow the player to to
+disengaged to allow the player to to find their own direct their own way to
+find their own direct their own way to get
+get there 37 is not providing inverted
+there 37 is not providing inverted controls this is a big problem uh I
+controls this is a big problem uh I think pretty much everyone in the game
+think pretty much everyone in the game industry kind of knows about this
+industry kind of knows about this problem especially first per shter
+problem especially first per shter developers um but uh a significant
+developers um but uh a significant fraction of the game plan population
+fraction of the game plan population wants uh up to be down and the other
+wants uh up to be down and the other half uh or larger fraction wants down to
+half uh or larger fraction wants down to be down and up to be up
+be down and up to be up um and they probably will either refuse
+um and they probably will either refuse to play their game or just complain a
+to play their game or just complain a whole lot about the game if they can't
+whole lot about the game if they can't uh set the the uh controls to be the way
+uh set the the uh controls to be the way they want so make sure you have an
+they want so make sure you have an option somewhere in the game to invert
+option somewhere in the game to invert the AES this is actually the only option
+the AES this is actually the only option we have in Journey um for controls
+we have in Journey um for controls 38 is responding to Accidental
+38 is responding to Accidental controller input um in Journey we made
+controller input um in Journey we made the uh decision to support two different
+the uh decision to support two different inputs for controlling the camera
+inputs for controlling the camera there's the the analog stick and there's
+there's the the analog stick and there's also the actual like uh gyroscope or uh
+also the actual like uh gyroscope or uh orientation of the the PS2 controller um
+orientation of the the PS2 controller um and this is uh partly left over from
+and this is uh partly left over from flower where you control the game with
+flower where you control the game with the the tilting the controller um
+the the tilting the controller um honestly I think it make it made a lot
+honestly I think it make it made a lot more sense in flower because it's the
+more sense in flower because it's the only thing you do in the game uh whereas
+only thing you do in the game uh whereas in Journey it's more of a a a pat your
+in Journey it's more of a a a pat your head and rub your belly type of a
+head and rub your belly type of a problem uh and we end up in Journey with
+problem uh and we end up in Journey with uh people often a tilting the controller
+uh people often a tilting the controller accidentally and accidentally making the
+accidentally and accidentally making the camera swing around um there are reasons
+camera swing around um there are reasons why we we supported the the Tilt I think
+why we we supported the the Tilt I think it it is uh an intuitive control for
+it it is uh an intuitive control for especially new
+especially new players um um but I I'm I think at the
+players um um but I I'm I think at the very least we probably should have had
+very least we probably should have had an option to disable
+it 39 is using linear sensitivity especially on the analog stick um analog
+especially on the analog stick um analog sticks don't have much range
+sticks don't have much range um often it doesn't matter much honestly
+um often it doesn't matter much honestly because players have a tendency to push
+because players have a tendency to push the stick all of the way you kind of saw
+the stick all of the way you kind of saw this in the Beyond Good and Evil clip
+this in the Beyond Good and Evil clip where the the player kept twitching the
+where the the player kept twitching the camera um but I think it would have been
+camera um but I think it would have been nicer to provide sort of an intermediate
+nicer to provide sort of an intermediate or a a very slow way a way to control
+or a a very slow way a way to control the camera very slowly for fine tuning
+the camera very slowly for fine tuning the camera Direction um and it can do
+the camera Direction um and it can do that by uh stretching the the input axis
+that by uh stretching the the input axis from the uh the analog stick into a sort
+from the uh the analog stick into a sort of an S curve that uh uh reduces the the
+of an S curve that uh uh reduces the the neutral
+positions uh 40 is letting the camera pivot drift too far so this means um
+pivot drift too far so this means um well in order to smooth out uh camera
+well in order to smooth out uh camera motion for example if you have in an
+motion for example if you have in an avatar there's jerk uh dashing back and
+avatar there's jerk uh dashing back and forth um it's nice to smooth it out by
+forth um it's nice to smooth it out by uh letting the the Avatar Drift from the
+uh letting the the Avatar Drift from the center of the
+center of the screen uh but if you do that too much if
+screen uh but if you do that too much if you let the camera uh be too lazy then
+you let the camera uh be too lazy then the Avatar might actually run outside
+the Avatar might actually run outside the screen and that's a
+the screen and that's a problem um so if it if you're using an
+problem um so if it if you're using an elastic band type thing to make the uh
+elastic band type thing to make the uh the camera attracted to the Avatar uh
+the camera attracted to the Avatar uh make sure it has a limit to to how far
+make sure it has a limit to to how far the Avatar can get from the center of
+the Avatar can get from the center of the
+the screen um and you might actually want uh
+screen um and you might actually want uh the the camera to look ahead of the
+the the camera to look ahead of the Avatar um for example in Yoshi's Island
+Avatar um for example in Yoshi's Island um if if the player is running in a
+um if if the player is running in a certain direction for a little while uh
+certain direction for a little while uh the camera will adjust by looking ahead
+the camera will adjust by looking ahead of
+of Yoshi however uh problem 41 using a
+Yoshi however uh problem 41 using a small field of
+small field of view um
+view um another when the camera Zooms in on a
+another when the camera Zooms in on a tiny little thing uh then tiny little
+tiny little thing uh then tiny little motions become large motions um and
+motions become large motions um and zooming in exaggerates the speed of
+zooming in exaggerates the speed of everything and zooming out um makes
+everything and zooming out um makes everything impar to move much
+everything impar to move much slower uh and here's a game uh that is
+slower uh and here's a game uh that is uh I think nostalgic for a lot of people
+uh I think nostalgic for a lot of people I enjoy the game quite a lot um
+I enjoy the game quite a lot um but when I tried this is an example of a
+but when I tried this is an example of a game where when I try to show it to some
+game where when I try to show it to some of my friends they're not able to play
+of my friends they're not able to play the game because the camera just moves
+the game because the camera just moves too
+too rapidly uh this is this is something I
+rapidly uh this is this is something I care about a lot this is called
+care about a lot this is called simulation sickness it's when people uh
+simulation sickness it's when people uh play games and just from playing the
+play games and just from playing the game and watching the the screen they
+game and watching the the screen they they feel
+they feel sick and um
+sick and um I wish that Yoshi's Island for example
+I wish that Yoshi's Island for example or many other games would would zoom out
+or many other games would would zoom out a bit more so you have a bit more uh
+a bit more so you have a bit more uh space to look around and the camera
+space to look around and the camera won't have to to move as quickly to keep
+won't have to to move as quickly to keep up with the the action on the
+up with the the action on the screen um uh and on the subject of
+screen um uh and on the subject of zooming out this is also applicable to
+zooming out this is also applicable to firstperson shooter games uh I don't
+firstperson shooter games uh I don't have a clip but you could easily put a
+have a clip but you could easily put a first person shooter clip on on the
+first person shooter clip on on the screen
+screen um uh this is first person shooters are
+um uh this is first person shooters are actually probably the most common
+actually probably the most common trigger for simulation sickness and the
+trigger for simulation sickness and the the way that people usually recommend
+the way that people usually recommend that players deal with it is by going
+that players deal with it is by going into the configuration for the game
+into the configuration for the game they're playing and expanding the
+they're playing and expanding the default field of
+default field of view uh and as I explained this has the
+view uh and as I explained this has the effect of making everything uh appear to
+effect of making everything uh appear to move slower and I think this is a a good
+move slower and I think this is a a good way to to deal with this situation and
+way to to deal with this situation and if you're making a first person shooter
+if you're making a first person shooter um especially for console where you
+um especially for console where you don't always have as much configuration
+don't always have as much configuration options include a way to expand the
+options include a way to expand the field of view or just have expanded by
+field of view or just have expanded by default so that you don't exclude
+default so that you don't exclude players who would otherwise be made Sick
+players who would otherwise be made Sick by your
+by your game uh 42 is rapidly shifting field of
+game uh 42 is rapidly shifting field of view this is actually uh increasing a
+view this is actually uh increasing a problem in firstperson Shooters um uh
+problem in firstperson Shooters um uh when when aiming with a sniper rifle or
+when when aiming with a sniper rifle or other type of a weapon with a scope uh
+other type of a weapon with a scope uh the camera often Zooms in rapidly um and
+the camera often Zooms in rapidly um and also racing games do this when you're
+also racing games do this when you're boosting uh the camera will uh zoom out
+boosting uh the camera will uh zoom out to to make it feel like you're going
+to to make it feel like you're going faster uh and these kinds of things are
+faster uh and these kinds of things are also triggers for simulation sickness so
+also triggers for simulation sickness so be
+aware 43 is shaking the camera um screen Shake is an effect that is commonly used
+Shake is an effect that is commonly used in all excuse me all kinds of video
+in all excuse me all kinds of video games uh it's popular because it
+games uh it's popular because it emphasizes impacts that happens in the
+emphasizes impacts that happens in the game game world and and alongside
+game game world and and alongside vibration um this is uh used to make the
+vibration um this is uh used to make the game feel more
+game feel more real um some people say that screen
+real um some people say that screen Shake is the easiest way to make a game
+Shake is the easiest way to make a game feel more polished uh so it's clearly a
+feel more polished uh so it's clearly a very useful tool for game developers but
+very useful tool for game developers but I want you to be aware that uh not all
+I want you to be aware that uh not all players
+players experience um shaking in the same way
+experience um shaking in the same way the the right amount of shake for you
+the the right amount of shake for you might be too much shake for someone
+might be too much shake for someone else uh so again I uh urge you to have
+else uh so again I uh urge you to have accessibility settings for tuning down
+accessibility settings for tuning down uh effects like screen Shake um I have a
+uh effects like screen Shake um I have a clip
+clip from uh TowerFall here and I'm uh I'm
+from uh TowerFall here and I'm uh I'm told that TowerFall actually does
+told that TowerFall actually does include uh a setting to turn off the
+include uh a setting to turn off the camera effects so I'm including it here
+camera effects so I'm including it here as as a good
+example uh 44 bouncing the camera with the Avatar's walk cycle this is another
+the Avatar's walk cycle this is another common one especially in over the head
+common one especially in over the head games over the shoulder
+games over the shoulder games um this again is to to make the
+games um this again is to to make the camera feel more real but um feeling
+camera feel more real but um feeling real to you might not feel real to
+real to you might not feel real to someone else it might feel nauseous to
+someone else it might feel nauseous to someone
+someone else um nauseating rather the the goal
+else um nauseating rather the the goal uh is to the same as screen Shake again
+uh is to the same as screen Shake again to make it feel more real and the effect
+to make it feel more real and the effect is similar camera bobbing is just a
+is similar camera bobbing is just a longer slower uh shake and equally
+longer slower uh shake and equally likely to trigger simulation sickness so
+likely to trigger simulation sickness so you should be able to disable that as
+you should be able to disable that as well um I have seen plenty of games with
+well um I have seen plenty of games with an option to disable this this is a
+an option to disable this this is a common one do it
+please um translating or or sliding up and down or rotating up and down um when
+and down or rotating up and down um when the Avatar is
+the Avatar is jumping uh a lot of games um both third
+jumping uh a lot of games um both third person and side
+person and side scrollers uh are have the cam camera
+scrollers uh are have the cam camera kind of locked onto the Avatar when they
+kind of locked onto the Avatar when they jump um and that means like at the
+jump um and that means like at the moment when they jump and when they land
+moment when they jump and when they land the camera has this rup start and stop
+the camera has this rup start and stop uh and that can be triggering as well so
+uh and that can be triggering as well so um this is another situation where we
+um this is another situation where we know what goes up must come
+know what goes up must come down and uh we know that the camera the
+down and uh we know that the camera the the Avatar is probably not in danger of
+the Avatar is probably not in danger of going off the top of the screen so we
+going off the top of the screen so we can just let the the camera stay in
+can just let the the camera stay in place as long as they're uh just jumping
+place as long as they're uh just jumping up and down in place uh and uh often
+up and down in place uh and uh often what happens like in in Mario games what
+what happens like in in Mario games what happens is the camera Waits until the
+happens is the camera Waits until the player has landed on a a higher surface
+player has landed on a a higher surface before moving
+before moving upwards um in Journey uh we use sort of
+upwards um in Journey uh we use sort of a a rubber band to to smooth out the the
+a a rubber band to to smooth out the the rapid vertical motions that happen on
+rapid vertical motions that happen on the
+screen um 46 is rapidly transitioning to a new camera
+a new camera position um this this happens often in
+position um this this happens often in games I think I think actually uh some
+games I think I think actually uh some game developers take the rule of not
+game developers take the rule of not cutting a bit too far in games um Zelda
+cutting a bit too far in games um Zelda games are the 3D Zelda games are
+games are the 3D Zelda games are especially bad at this uh I think these
+especially bad at this uh I think these camera transitions might as well be
+camera transitions might as well be camera cuts um but because they're uh
+camera cuts um but because they're uh smooth transitions um but they're really
+smooth transitions um but they're really fast smooth transitions they create a
+fast smooth transitions they create a sense of motion it wouldn't be there
+sense of motion it wouldn't be there with a cut
+47 is maintaining pitch speed until hitting the
+hitting the limit um one of the downsides of using
+limit um one of the downsides of using Oiler angles is that uh there's gimbal
+Oiler angles is that uh there's gimbal lock and another problem is if you look
+lock and another problem is if you look straight up and down uh so you pretty
+straight up and down uh so you pretty much never want to have the uh allow the
+much never want to have the uh allow the player to look straight up and down you
+player to look straight up and down you want to have like some limit of how how
+want to have like some limit of how how high and down they can
+high and down they can look um but I've seen a lot of games
+look um but I've seen a lot of games will will make it so that if you're
+will will make it so that if you're pressing like up on the the camera
+pressing like up on the the camera control stick it will rapidly move the
+control stick it will rapidly move the camera upwards up until hitting the
+camera upwards up until hitting the limit and then it'll come to an abrupt
+limit and then it'll come to an abrupt stop uh and it's much better to to
+stop uh and it's much better to to anticipate hitting the top end to to
+anticipate hitting the top end to to slow down as you approach the
+limit uh
+48 uh this is probably a controversial thing to put as a mistake but uh what I
+thing to put as a mistake but uh what I mean by this is uh that as games get
+mean by this is uh that as games get more and more lifelike and and they're
+more and more lifelike and and they're getting better at better at simulating
+getting better at better at simulating motion um they're
+motion um they're also getting better at better at
+also getting better at better at triggering simulation sickness because
+triggering simulation sickness because simulation sickness is uh what happens
+simulation sickness is uh what happens when there's a mismatch between uh what
+when there's a mismatch between uh what you see uh the motion that you see and
+you see uh the motion that you see and the motion that you
+the motion that you feel um and I know that the Oculus Rift
+feel um and I know that the Oculus Rift developers are doing their best to
+developers are doing their best to improve it and I I'm sure they are
+improve it and I I'm sure they are improving it um but for the purposes of
+improving it um but for the purposes of uh maximizing your audience
+uh maximizing your audience uh and not excluding anybody I urge
+uh and not excluding anybody I urge everyone to to not make games
+everyone to to not make games exclusively for the Oculus Rift um make
+exclusively for the Oculus Rift um make sure there's always some other way to
+sure there's always some other way to play the game because some people I
+play the game because some people I think will probably never be able to
+think will probably never be able to play an Oculus Rift or at least not in
+play an Oculus Rift or at least not in the the next few
+years um 49 testing with a narrow demographic uh children especially uh
+demographic uh children especially uh are eager to to point out flaws and and
+are eager to to point out flaws and and and other people who uh who don't uh
+and other people who uh who don't uh have a personal relationship with you uh
+have a personal relationship with you uh will be eager to criticize
+will be eager to criticize you uh but you you may need to pry a bit
+you uh but you you may need to pry a bit with testers uh because uh I know from
+with testers uh because uh I know from experience that some people who have
+experience that some people who have simulation sickness uh don't want to
+simulation sickness uh don't want to admit it it feels like a weakness uh and
+admit it it feels like a weakness uh and you want to make sure that they feel
+you want to make sure that they feel comfortable um telling you when there's
+comfortable um telling you when there's a problem with your game because uh I'm
+a problem with your game because uh I'm sure that none of you want your
+sure that none of you want your customers to feel
+customers to feel sick
+um and 50 uh writing a general constraint
+constraint solver um given the complexity of all of
+solver um given the complexity of all of these uh uh constraints that I've been
+these uh uh constraints that I've been describing it's probably tempting to
+describing it's probably tempting to just come up with a function that like
+just come up with a function that like evaluates uh how effectively each of
+evaluates uh how effectively each of these constraints has been uh satis
+these constraints has been uh satis Saied and to just try to optimize and
+Saied and to just try to optimize and pick the one angle that satisfies them
+pick the one angle that satisfies them all the best and let the computer kind
+all the best and let the computer kind of figure out which one that is which
+of figure out which one that is which angle that is um but I believe this is
+angle that is um but I believe this is actually almost never the right approach
+actually almost never the right approach um because when you let the computer do
+um because when you let the computer do all the work it can be very difficult to
+all the work it can be very difficult to predict what the results are going to be
+predict what the results are going to be and if you can't predict it then you
+and if you can't predict it then you can't really design it you have to be
+can't really design it you have to be able to iterate on the design with
+able to iterate on the design with changes that affect affect the behavior
+changes that affect affect the behavior in somewhat predictable
+in somewhat predictable ways uh so I think it's it's important
+ways uh so I think it's it's important to deeply understand the relationship
+to deeply understand the relationship between the different camera constraints
+between the different camera constraints uh so that you're able to prioritize or
+uh so that you're able to prioritize or otherwise figure out how to satisfy all
+otherwise figure out how to satisfy all the constraints or as best as possible
+um let's see so the devil is in the
+so the devil is in the details uh this uh solutions that work
+details uh this uh solutions that work for Journey might not work for you um so
+for Journey might not work for you um so this Li list can uh serve as criteria to
+this Li list can uh serve as criteria to help you evaluate how well your
+help you evaluate how well your Solutions work um but it's not a
+Solutions work um but it's not a replacement for doing your own research
+replacement for doing your own research uh so uh many of you will have to uh do
+uh so uh many of you will have to uh do some of the same kind of uh research and
+some of the same kind of uh research and development uh that we have to do on
+development uh that we have to do on Journey so uh good luck and first of all
+Journey so uh good luck and first of all uh I think I have two minutes for
+uh I think I have two minutes for questions one two two minutes for
+questions one two two minutes for questions um uh anyone have any hello
+hi so you mentioned a few uh options that you think everybody should have you
+that you think everybody should have you Bob uh field of view camera Shake do you
+Bob uh field of view camera Shake do you think it's worthwhile to combine all
+think it's worthwhile to combine all those into a single option for people
+those into a single option for people with simulation sickness um that may be
+with simulation sickness um that may be a good idea although I think there's
+a good idea although I think there's there's some differences in how people
+there's some differences in how people experience simulation sickness so so
+experience simulation sickness so so some things they're triggering to some
+some things they're triggering to some person some people might not be
+person some people might not be triggering to someone else did you find
+triggering to someone else did you find that a lot of people with simulation
+that a lot of people with simulation sickness were very familiar with what
+sickness were very familiar with what precisely it was that caused their
+precisely it was that caused their simulation sickness that is actually a
+simulation sickness that is actually a good question the that is not always the
+good question the that is not always the case but
+case but if the these options can be surfaced you
+if the these options can be surfaced you can you can let people know uh about
+can you can let people know uh about them so that they'll they'll know what
+them so that they'll they'll know what to look for uh to to figure it out okay
+to look for uh to to figure it out okay thanks so I know a bunch of us are
+thanks so I know a bunch of us are probably going to go run and try to fix
+probably going to go run and try to fix our third person cameras and while you
+our third person cameras and while you mentioned that like there's not a one-
+mentioned that like there's not a one- siiz fits all there's definitely also
+siiz fits all there's definitely also some principles that maybe extrapolate y
+some principles that maybe extrapolate y not to put you on the spot any chance
+not to put you on the spot any chance you're going to like make a Unity Plugin
+you're going to like make a Unity Plugin or something that's like a starting
+or something that's like a starting point that already acknowledges some of
+point that already acknowledges some of the major stuff so we can start from
+the major stuff so we can start from there instead of like having to recreate
+there instead of like having to recreate some of these foundations I'm deeply
+some of these foundations I'm deeply considering it it's a matter of having
+considering it it's a matter of having time fair
+time fair enough thank you um you can I think I
+enough thank you um you can I think I have one more question uh so you
+have one more question uh so you mentioned modifying field of view in
+mentioned modifying field of view in order to uh help with simulation
+order to uh help with simulation sickness however in competitive
+sickness however in competitive firstperson Shooters field of view can
+firstperson Shooters field of view can also be important to the players's
+also be important to the players's ability to react to things on the edge
+ability to react to things on the edge of their uh Vision so it's actually a
+of their uh Vision so it's actually a balance concern do you have any thoughts
+balance concern do you have any thoughts or experience with how to strike a
+or experience with how to strike a reasonable balance between those two
+reasonable balance between those two constraints um well um I remember
+constraints um well um I remember reading about in Quake people are
+reading about in Quake people are deliberately expanding field of view for
+deliberately expanding field of view for an advantage um so sounds like expanded
+an advantage um so sounds like expanded field of view is an advantage for every
+field of view is an advantage for every just do
+it all right um uh you can uh contact me on Twitter um I can probably find my way
+on Twitter um I can probably find my way over to the uh to the uh the wrap-up
+over to the uh to the uh the wrap-up room somehow uh thank you

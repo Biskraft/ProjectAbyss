@@ -1,0 +1,395 @@
+hi everyone it's me Tim today I want to
+talk about optimization
+now I'm primarily going to be talking
+about code optimization though I'll
+touch a little later on about how you
+can optimize other parts of the game
+but basically what I'm talking about is
+making code and Scripts
+that are faster and Tighter
+faster means it uses less processor
+Cycles
+and Tighter means it uses less memory
+frequently optimization is a trade-off
+of these two things you unroll Loops so
+they're
+faster but take up more memory
+or you store extra things so they don't
+have to be recalculated so you trade off
+and use more memory so you can save on
+Cycles
+however that's not always the case in
+wonderfully rare circumstances you can
+find faster smaller code
+the big thing about optimizations that I
+often find myself explaining to people
+who aren't programming
+programmer people who often you know are
+above me in the chain is that you cannot
+do this early
+you have to wait to see where
+Cycles are being spent where memory is
+being used and then decide
+how to
+save memory and Cycles perfect example
+of this I was talking
+um
+the I think it was yesterday about
+the different demos we did for Fallout
+and the very first demo we did which was
+two years before Fallout shipped was not
+optimized it shouldn't have been
+you don't want to optimize something
+that early and then have all those
+optimizations go to waste when you end
+up adding more code changing features
+it's
+it's it just shouldn't be done that
+early
+a good example if you watch the Arcanum
+prototype code though that is an example
+though of something that we did very
+early on once we made those prototypes
+in
+Arcanum and had everything reference
+them for the rest of the game that saved
+tons and tons of memory it actually cost
+us a little though on Cycles you
+couldn't just here's an object look at
+the field there's your data sometimes
+just look at the object it doesn't have
+that field now I've got to go to another
+object and get the data there
+but the amount of memory it saved was
+huge so we were willing to take the
+extra few Cycles to look up some data
+now frequently at least
+15 20 years ago and longer
+we used to optimize code by rewriting
+the C code because we wrote everything
+in CC was what much faster and could be
+optimized Faster by the compiler than C
+plus plus but even then we would
+sometimes take that c code and rewrite
+it into Assembly Language
+so you would look for Loops that were
+commonly executed you would look for
+places that seemed slow in your profiler
+and
+you would look at the code and you'd
+figure out how to write much tighter
+assembly code
+up until about 15 20 years ago a human
+could probably write better code than a
+compiler this has changed
+but it's not universally true
+people can still write better assembly
+code in specific cases
+later starting about 20 years ago we
+started really using more
+compiler optimization Flags which did
+similar work as a human optimizing it
+wrote assembly and you could say you
+know I want this to be faster I want
+this to be use less space
+so there are different optimization
+Flags you could choose and you could do
+it
+the easiest way was to take an entire
+module and optimize it a certain way but
+you could also with using what are
+called pragmas isolate specific sections
+of code and say I want this optimized a
+certain way or I want optimization
+turned off
+because sometimes optimization from
+compilers just didn't work
+um sometimes it would
+not get smaller or faster like the flag
+said it was going to do sometimes it
+introduced bugs
+in all those cases what you were
+supposed to do is look under the hood
+and by that I mean there are ways to get
+the compiler to show you the Assembly
+Language output it had generated when it
+compiled your code you look at what got
+created and you fix it
+um if it's not super important you can
+also turn off optimization just for that
+area where you can like I said you can
+take practice and go just for this area
+I don't optimize for time
+and then it would not make that mistake
+when it recompiled it
+I have noticed a lot of younger
+programmers or I should say less
+experienced programmers don't seem to
+know how to do this I've even run in a
+program I said didn't know that was
+possible that didn't know that you could
+look up
+the Assembly Language output from a
+compiler
+even those that did often viewed it as a
+waste of time basically saying
+it's faster just to start playing with
+different optimization Flags
+optimize for different things or
+optimized for to different
+um targets and you could sometimes
+specify how much optimization you wanted
+to do the flags took parameters
+so I found a lot of programmers with
+just if something broke they would
+start randomly turning off the
+optimization Flags until it worked again
+personally this scared me a little bit
+because doing work
+without knowledge
+bothered me
+but I did witness it being very quickly
+a method to bring the code back up to
+functional State much faster than it
+would have taken for me to comb through
+the assembly
+so I get it and I get why people do it
+let's just say I think there's a
+trade-off and I think both tools should
+be in your toolbox
+these days too
+um optimization is a little different
+back in my day we had to optimize
+for almost every video card that came
+out especially when super VGA first came
+out they were all handled differently
+all handled in assembly you had to write
+different ones for each one it wasn't
+even an optimization it was just getting
+it functional it was hard to write one
+piece of code that worked on multiple
+video cards
+but even now PlayStations and Xboxes
+their Hardware worked differently
+especially the PlayStation 3 when I made
+South Park the Stick of Truth the cell
+architecture of
+the PS3 made it harder to write for and
+even harder to debug for you would place
+a break point on a piece of code
+and then you'd watch as it would hit
+that piece of code and then stop maybe
+right there or right before because
+multiple processors were running the
+code and they were distributed
+so you didn't always stop exactly where
+you wanted to that took me a while to
+get used to
+I've often seen the argument too that
+optimization these days isn't nearly as
+critical which I understand my argument
+is it still important
+I see a lot of wasted cycles and wasted
+memory
+in uh
+some Modern games that I worked on I
+would see programmers recalculate a
+value whenever they needed it
+even though that value was not going to
+change
+just to avoid either passing that data
+to other functions or
+not wanting to store it and then marking
+it as dirty that's what we would
+commonly do we calculate a value and
+whenever anything that that value
+dependent on would change it would just
+Mark that value as dirty so if your
+value was clean you knew you could use
+it and you did not have to recalculate
+it if you saw it as dirty then you'd
+call and recalculate it
+that's not done very frequently anymore
+I would often see
+programmers create a large array of data
+just to get a single element
+this was something I saw on the gamer
+worked on a programmer would ask for an
+array of creatures in the area
+purely to get the one that was nearest
+to the player
+which meant they would
+call function which would look at all
+the objects collecting just the
+creatures then would put all of them in
+an array then it would sort the array
+then it would grab the zeroth one off
+the array and throw everything away
+I replace that
+with a function that
+whenever a creature moved
+it would calculate its distance to the
+player
+and if it was now the closest one
+replaced the
+value of closest NPC to the player with
+that value
+if it wasn't then I knew it didn't have
+to do anything
+similarly if something died it would say
+okay everyone has to recalculate who's
+the closest living one to the player
+these are ways of doing optimization
+that meant when you wanted to know the
+closest one which frequently happened
+you didn't have to make a an array and
+do a sort
+grab one and throw it away that
+optimization made it both faster and use
+less memory
+so like I said at the beginning and also
+I commented on when we when I talked
+about doing the six different demos for
+Fallout optimization is really important
+but you can't do it early
+it's necessarily something that's
+delayed so that later on when a lot of
+your code is stable
+a lot of your data's in so you see
+what's going to be processed by your
+algorithms that's a time to do
+optimization
+something that you learned very early on
+in Computer Sciences there's a lot of
+different sort algorithms
+there's no one best one because some
+sort algorithms don't work well if the
+array is already nearly sorted
+some don't work well if there's more to
+sort past a certain value like if
+there's only a few objects to sort most
+sorting algorithms work in the same
+amount of time so Implement one that is
+easy to use and doesn't use a lot of
+extra memory
+if you have a lot of things to sort you
+often then have to pay attention to
+exactly the pros and cons of the Sorting
+algorithm you're using there's also one
+called Radix sort which uses a lot of
+memory but
+you can sort things very quickly with it
+there's just some things about the data
+that have to be true
+because optimization is both something
+that gets pushed to the end of the
+project and it's very difficult to
+estimate
+it's very hard to find a programmer I
+don't know if I've ever found a
+programmer and I've worked with some
+smart programmers that can look at a
+piece of code and will tell you how long
+it will take to optimize it they often
+just have to try different optimization
+techniques until they get it fast enough
+or the memory is small enough
+so optimization often moves into the
+crunch portion
+of game development
+I'm not 100 sure what the solution to
+this is because better management isn't
+something that applies to this I I've
+never met a producer who could do crunt
+who could do optimization better than a
+programmer but I've also met very few
+programmers if any I don't think I've
+met any programmer that can properly
+estimate the time to optimize code
+so right there that tells me that
+there's something that's going to
+be unpredictable and how long it will
+take to achieve the target of
+fewer Cycles less memory
+but will require extra time when you get
+to the end of your games development
+so good luck people who think that can
+be managed away
+now one other thing is optimization as
+I've described here is really part of
+programming but design and art can help
+a great deal with this with
+understanding what's expensive to ask
+for and what's cheap to ask for
+and then self-limiting the expense of
+asks
+a good example of that is
+if your game's gonna have static and
+dynamic lighting decide do you really
+need that are there lots of lights that
+move around
+because static lighting is cheaper
+if you're going to have a lot of dynamic
+lights ask how much are you going to
+have is there an upper limit of how many
+lights can be moving at once
+because that's also
+methods of lighting can be adapted
+depending on your answers to those
+questions
+I know an example that happened in
+Fallout the original Fallout for the
+design optimization is the original drug
+design every drug worked wildly
+different than every other drug the
+effects were different how long they
+lasted not just length but the number of
+effects they could have and the type of
+effects they had and
+it was going to be so complex to code it
+would have taken months and I remember
+suggesting
+and working with the lead designer to
+come up with a new generic drug system
+which was here is a set of effects drugs
+can have
+they can
+vary the effects per drug they can vary
+the length of time they can make
+different
+um time periods where they happen so
+that way you can take a drug and you get
+one effect and then after a while you
+get another effect and then maybe after
+a while you get a third effect you can
+have drugs that
+maybe make you really perceptive but
+then when the drug starts to wear off
+you get really weak and then they
+everything goes back to normal you can
+even make drugs that have permanent
+effects but I just they do something and
+then they do something else and it never
+comes back to to balance
+however once we had that generic drug
+system it worked great and it worked for
+all drugs so after that lots of drugs
+could be created with pure data and the
+code was fine
+so I guess my final word on optimization
+for all of the people in management and
+non-programmers is please listen to your
+coders when they describe how things are
+going to be made and then optimized keep
+in mind that many programmers are
+introverts so just try to listen extra
+hard
+I know that has saved me on many of my
+projects and
+I also try to speak extra clearly when
+I'm talking about optimization of my own
+code
+so I hope that helped you all understand
+exactly what is going on when your
+programmers say I need to optimize this
+piece of code

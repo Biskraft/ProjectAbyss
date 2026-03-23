@@ -1,0 +1,932 @@
+[Music] my name is robin virich
+my name is robin virich i'm a gameplay and ai programmer at
+i'm a gameplay and ai programmer at cappy games
+cappy games uh in the last two and a half years or
+uh in the last two and a half years or so i've been working on below
+so i've been working on below blows this top-down survival exploration
+blows this top-down survival exploration roguelike game
+roguelike game where the player comes to an island
+where the player comes to an island dives down into these depths
+dives down into these depths and explores the world fighting enemies
+and explores the world fighting enemies trying to stay alive
+trying to stay alive um my pardon below was building the dark
+um my pardon below was building the dark which is this complicated tentacle
+which is this complicated tentacle monster enemy
+monster enemy uh and today i'm gonna be talking about
+uh and today i'm gonna be talking about the
+the process of building the dark but to
+process of building the dark but to start
+start we'll start with a short video of the
+we'll start with a short video of the dark and some of its behaviors
+dark and some of its behaviors starting out a little sneaky here
+moving into some more world interactions messing around with
+messing around with other enemies in the world
+and then into full combat encounters
+[Music]
+okay so what is the dark uh the dark is this technical monster
+uh the dark is this technical monster obviously um
+obviously um it's this omnipotent ancient evil that's
+it's this omnipotent ancient evil that's been sealed away in the island
+been sealed away in the island with this god-like intelligence but it's
+with this god-like intelligence but it's also something that's really sadistic
+also something that's really sadistic and natural and animalistic
+and natural and animalistic we often talk about like a cat with a
+we often talk about like a cat with a mouse um sort of playing with its food
+mouse um sort of playing with its food sort of style and there's a thematic
+sort of style and there's a thematic balance between these two things
+balance between these two things between the planned cohesive
+between the planned cohesive intelligence of the dark and this
+intelligence of the dark and this reactive animalistic nature
+reactive animalistic nature and so today i'm going to be talking
+and so today i'm going to be talking about the iterative dev process
+about the iterative dev process going building this crazy thing um some
+going building this crazy thing um some of the unique challenges
+of the unique challenges and uh technical solutions that we had
+and uh technical solutions that we had to come up with to solve these
+to come up with to solve these increasingly complicated problems
+increasingly complicated problems okay so let's get started with some
+okay so let's get started with some background
+background so a dark tentacle is a 30 bone mesh
+so a dark tentacle is a 30 bone mesh you can see it playing this bespoke
+you can see it playing this bespoke squirmy idle animation so we have a
+squirmy idle animation so we have a pipeline from maya to create these sort
+pipeline from maya to create these sort of animations
+of animations and then on top of that there's a second
+and then on top of that there's a second layer which is a kinematic chain
+layer which is a kinematic chain and this is the kind of the core of all
+and this is the kind of the core of all the movement of the dark in the game
+the movement of the dark in the game i'm moving around a bass node here
+i'm moving around a bass node here and there's also a tip target node which
+and there's also a tip target node which is sort of where the dark is looking at
+is sort of where the dark is looking at it's the inverse kinematic target
+it's the inverse kinematic target of the tentacle and the ai is going to
+of the tentacle and the ai is going to be moving
+be moving both of these two pieces around the base
+both of these two pieces around the base and tip target
+and tip target and then we blend these together so we
+and then we blend these together so we can create uh
+can create uh separating sorry we can separate ai
+separating sorry we can separate ai logic from the animation
+logic from the animation by basically building it into a blend
+by basically building it into a blend tree so you can see i'm moving it around
+tree so you can see i'm moving it around but it's also playing this sort of idle
+but it's also playing this sort of idle animation in the background
+animation in the background and we can change either of these things
+and we can change either of these things independently which helps the pipeline
+independently which helps the pipeline from a code standpoint uh there's a base
+from a code standpoint uh there's a base entity and there's a tip target entity
+entity and there's a tip target entity like i said
+like i said and the c plus sorry there's a c plus
+and the c plus sorry there's a c plus plus side that's pumping
+plus side that's pumping updates into the lua behaviors it's
+updates into the lua behaviors it's on the lewis side there's a lua
+on the lewis side there's a lua hierarchical finite state machine
+hierarchical finite state machine that has a behavior stack and we can
+that has a behavior stack and we can push and pop behaviors onto that stack
+push and pop behaviors onto that stack so in this example we have like a stock
+so in this example we have like a stock behavior that's pursuing
+behavior that's pursuing and then if the player gets too close
+and then if the player gets too close it'll retreat and then go back to pursue
+it'll retreat and then go back to pursue and then that lua side can also call
+and then that lua side can also call back into the c plus plus side to do
+back into the c plus plus side to do more complicated things like movement or
+more complicated things like movement or animation
+animation okay so where do we start we have these
+okay so where do we start we have these basic systems
+basic systems um we knew we wanted combat in the game
+um we knew we wanted combat in the game obviously with this thing
+obviously with this thing so let's start with that let's move
+so let's start with that let's move around a single tentacle and make it
+around a single tentacle and make it attack
+so there's two parts of this simply move and attack
+and attack start with move so the movement
+start with move so the movement system in the game is uh basically a
+system in the game is uh basically a function of taking
+function of taking a current position which is the tip and
+a current position which is the tip and base position
+base position and a target position pumping it through
+and a target position pumping it through some move function
+some move function and outputting a goal position i'm not
+and outputting a goal position i'm not going to be talking about locomotion
+going to be talking about locomotion we'll just say that's handled separately
+we'll just say that's handled separately and we'll start ignore with ignoring
+and we'll start ignore with ignoring clipping for now
+so let's talk about a pursue behavior we want to move the tip target
+want to move the tip target to the player and then pull and push the
+to the player and then pull and push the bass away
+bass away from from that tip target so we'll draw
+from from that tip target so we'll draw a line between the tip target and the
+a line between the tip target and the player
+player we'll move it out by a little bit then
+we'll move it out by a little bit then find a line between the base and the new
+find a line between the base and the new tip target position
+tip target position grab the length of the arm and then
+grab the length of the arm and then starting from the tip target
+starting from the tip target pull back away from the player
+pull back away from the player and within a little bit of wiggle room
+and within a little bit of wiggle room kind of place the base along that line
+and then we get a final goal position out of this
+so this works and now we need to perform the attack and this is very simply
+the attack and this is very simply playing an attack animation there's an
+playing an attack animation there's an attack system that's linked into the
+attack system that's linked into the animation system
+animation system i won't get into detail on that i'm just
+i won't get into detail on that i'm just gonna do this
+so we have basic reactive movement this works but immediately we had some
+works but immediately we had some problems
+problems so this animation is actually the exact
+so this animation is actually the exact same attack animation that i showed
+same attack animation that i showed before
+before but since the arm is in this weird state
+but since the arm is in this weird state this
+this the kinematic chain is in a weird
+the kinematic chain is in a weird position
+position the animation is blending poorly how we
+the animation is blending poorly how we fix this it's a very difficult problem
+fix this it's a very difficult problem we started out saying actually let's
+we started out saying actually let's just not fix it let's keep the arm
+just not fix it let's keep the arm straight which is kind of thematically
+straight which is kind of thematically what we wanted anyways
+what we wanted anyways um so that works out and then we just
+um so that works out and then we just introduced some constraints saying that
+introduced some constraints saying that you can't turn too much on the kinematic
+you can't turn too much on the kinematic chains you can't get into a super wonky
+chains you can't get into a super wonky position
+position and then also during those animations
+and then also during those animations we'll lock the kinematics
+we'll lock the kinematics so we'll say we don't want the
+so we'll say we don't want the kinematics to influence this during the
+kinematics to influence this during the attack
+using these constraints our attacks are much more consistent and a lot less
+much more consistent and a lot less wonky
+clipping becomes an issue obviously immediately you can't clip through walls
+immediately you can't clip through walls it's super unfair
+it's super unfair we always kind of made the concession
+we always kind of made the concession that we could clip through things while
+that we could clip through things while moving around a little bit
+moving around a little bit cover it up with some smoke and mirrors
+cover it up with some smoke and mirrors like some particle effects or something
+like some particle effects or something but you can't it's unfair to attack a
+but you can't it's unfair to attack a player through a wall
+so to fix this we did some radial shape casts which basically just means shape
+casts which basically just means shape cast around
+cast around a target in a circle and i'll go through
+a target in a circle and i'll go through that process quickly
+that process quickly so say we have this setup we're trying
+so say we have this setup we're trying to get to that player on the on the left
+to get to that player on the on the left there
+there we take a box shape this is the shape
+we take a box shape this is the shape we're going to cast
+we're going to cast and see it's only a third of the arm and
+and see it's only a third of the arm and that's because the player is really only
+that's because the player is really only ever interacting with the tip
+ever interacting with the tip we don't need the whole base to be um
+we don't need the whole base to be um the whole tentacle rather to be
+the whole tentacle rather to be like not clipping through things it's
+like not clipping through things it's just the tip that we care about
+just the tip that we care about and we make it a little bit larger than
+and we make it a little bit larger than the arm to accommodate animations as
+the arm to accommodate animations as well
+well this little wiggle room so rotate this
+this little wiggle room so rotate this to face the target
+to face the target and cast it forward hits an obstacle so
+and cast it forward hits an obstacle so we'll rotate out around
+we'll rotate out around in a circle around the target in both
+in a circle around the target in both directions cast those
+directions cast those one of them hits the target which means
+one of them hits the target which means there's nothing in the way that's good
+there's nothing in the way that's good we can go there
+we can go there so so um adding on to that pursuit
+so so um adding on to that pursuit behavior we now have an unobstructed
+behavior we now have an unobstructed goal position
+goal position then we pipe that into the pursue
+then we pipe that into the pursue behavior to get our final position
+so using shape cast we can prevent clipping we're able to move
+clipping we're able to move and attack reasonably fairly
+and attack reasonably fairly but so this is functional if it's not
+but so this is functional if it's not really interesting um
+really interesting um we didn't really want to introduce
+we didn't really want to introduce combat at the beginning of the game we
+combat at the beginning of the game we always wanted the dark to ramp up from
+always wanted the dark to ramp up from sort of a foreshadowing creepy sneaky
+sort of a foreshadowing creepy sneaky guy
+guy into something with a little more flavor
+into something with a little more flavor interacting with the world a bit more to
+interacting with the world a bit more to something that's high difficulty combat
+something that's high difficulty combat with interesting fights so the next
+with interesting fights so the next obvious step is to
+obvious step is to add a little bit of flavor with these
+add a little bit of flavor with these world interactions
+world interactions so we wanted to add a little bit of
+so we wanted to add a little bit of personality the dark inhabits this world
+personality the dark inhabits this world so we wanted to interact with it
+so we wanted to interact with it create a bit of atmosphere and the key
+create a bit of atmosphere and the key point here is that the player is no
+point here is that the player is no longer the target
+longer the target so some examples of these behaviors
+so some examples of these behaviors might be like eating rats
+might be like eating rats or like stealing gems off the level or
+or like stealing gems off the level or killing cultists
+and i'm going to talk about stealing gems today so that looks something like
+gems today so that looks something like this
+this the dark moves in picks up the gem
+the dark moves in picks up the gem and steals it off the level the player
+and steals it off the level the player needs gems in the game to
+needs gems in the game to refill their lantern and various other
+refill their lantern and various other things so it's pulling resources away
+things so it's pulling resources away from the player
+so since the player is no longer the target we immediately hit some issues
+target we immediately hit some issues where
+where it's just ignoring the player obviously
+it's just ignoring the player obviously if there's no code to
+if there's no code to make it react to the player it's not
+make it react to the player it's not going to care and
+going to care and it the player starts being able to see
+it the player starts being able to see the like severed end of the base of the
+the like severed end of the base of the tentacle
+tentacle something actually i'll note here too is
+something actually i'll note here too is all these videos are debug videos
+all these videos are debug videos there's always fog around the player
+there's always fog around the player and they can only see that first third
+and they can only see that first third that i showed in the shapecast video
+that i showed in the shapecast video okay so how do we prevent this
+okay so how do we prevent this non-reactive behavior
+non-reactive behavior back to the movement rules we had push
+back to the movement rules we had push and pull before
+and pull before we added obstructions let's add some new
+we added obstructions let's add some new ones so we'll add
+ones so we'll add keeping the base off the level and
+keeping the base off the level and staying on the opposite side of the
+staying on the opposite side of the target so you can see as the player's
+target so you can see as the player's running around
+running around the gem there that's fallen the arm is
+the gem there that's fallen the arm is on the opposite side of the target
+so these new rules allow a lot more reaction we can target
+reaction we can target non-player targets and have the dark
+non-player targets and have the dark still react to the player
+still react to the player but this quickly explodes into a long
+but this quickly explodes into a long function chain of rules
+function chain of rules and what ends up happening with this is
+and what ends up happening with this is it's hard to guarantee
+it's hard to guarantee any sort of behavior consistency so i
+any sort of behavior consistency so i can say like steal a gem
+can say like steal a gem it'll run through this and figure out
+it'll run through this and figure out where to go and do that but i can't say
+where to go and do that but i can't say steal a gem within three seconds um
+steal a gem within three seconds um and every time that we ask it to steal a
+and every time that we ask it to steal a gem it's taking a little bit longer
+gem it's taking a little bit longer or it depends on the situation right
+or it depends on the situation right like if there's a level with lots of
+like if there's a level with lots of stuff in the way it might take a little
+stuff in the way it might take a little different detour to get there and it's
+different detour to get there and it's uh kind of difficult to tune this like
+uh kind of difficult to tune this like it's hard to add and remove things or
+it's hard to add and remove things or know which order these things should be
+know which order these things should be in and there's a sort of implicit order
+in and there's a sort of implicit order of execution
+of execution issue that's happening here
+so we have all these disparate concerns let's move into a utility system
+let's move into a utility system and the way that works is we're going to
+and the way that works is we're going to generate positions around the target
+generate positions around the target and we're going to apply a score to each
+and we're going to apply a score to each of these positions and then choose the
+of these positions and then choose the best score
+best score so the first step of the process is just
+so the first step of the process is just remove any completely invalid positions
+remove any completely invalid positions like and these in this case the arms
+like and these in this case the arms would be just clipping through some
+would be just clipping through some rocks or something
+rocks or something so we'll just get rid of those
+and then we run through each of those different rules or heuristics
+different rules or heuristics individually
+individually so line of sight might be an example
+so line of sight might be an example like these ones aren't going to be
+like these ones aren't going to be clipping into that rock but they're not
+clipping into that rock but they're not going to be able to see past it
+going to be able to see past it so it's worse than if there's an open
+so it's worse than if there's an open space
+space red is bad and green is good let's make
+red is bad and green is good let's make that clear
+that clear uh also uh travel distance is another
+uh also uh travel distance is another example if we wanted the arm to not move
+example if we wanted the arm to not move around too much to not
+around too much to not you know take a super long time to
+you know take a super long time to complete its task
+complete its task and then in the end we combine these all
+and then in the end we combine these all together and find the best one i'll just
+together and find the best one i'll just note that there's probably nine i think
+note that there's probably nine i think there's more than two rules in the
+there's more than two rules in the system here's a quick video of an
+system here's a quick video of an in-game tool um that is showing this so
+in-game tool um that is showing this so i have a selected arm and you can see as
+i have a selected arm and you can see as i'm running around the level
+i'm running around the level it's recalculating the best positions
+it's recalculating the best positions for the arm to be in
+for the arm to be in based on the geometry and the rules that
+based on the geometry and the rules that we've set up
+so we've gone from something like this which has this implicit order of
+which has this implicit order of execution or
+execution or behavior through order of execution and
+behavior through order of execution and something that's hard to change
+something that's hard to change to something a bit more flat where we
+to something a bit more flat where we take the initial and goal position
+take the initial and goal position and score each one independently and
+and score each one independently and also
+also we have the ability to add configurable
+we have the ability to add configurable weights to this
+weights to this so what this results in is again those
+so what this results in is again those order of execution concerns are gone
+order of execution concerns are gone because we're doing these all
+because we're doing these all independently
+independently it's really easy to add a rule to this
+it's really easy to add a rule to this um
+um and since we're in this iterative
+and since we're in this iterative process right now or at this point in
+process right now or at this point in the
+the in the process we need to have something
+in the process we need to have something a little more extensible
+a little more extensible and it's also easy to configure we can
+and it's also easy to configure we can say that we care more about like
+say that we care more about like avoiding the player than you know
+avoiding the player than you know hiding the base or something like that
+so this works we have utility positioning
+positioning it's providing consistent and extensible
+it's providing consistent and extensible movement
+movement but we're still noticing that our
+but we're still noticing that our positioning or sorry our
+positioning or sorry our our pathing is um looking a bit weird so
+our pathing is um looking a bit weird so the paths up to this point are all
+the paths up to this point are all circular around the target
+circular around the target and this makes the cross level paths
+and this makes the cross level paths take a long time and
+take a long time and also lateral movement with a tentacle
+also lateral movement with a tentacle like looks weird like if the tentacles
+like looks weird like if the tentacles moving like this it just really looks
+moving like this it just really looks unnatural
+unnatural so it's better to kind of move forward
+so it's better to kind of move forward and backward like this pull out and kind
+and backward like this pull out and kind of hide that and then pull back in
+of hide that and then pull back in so to do that we introduced a few
+so to do that we introduced a few different
+different pathing strategies depending on the type
+pathing strategies depending on the type of movement we were doing so the first
+of movement we were doing so the first one is direct pads
+one is direct pads simple quick movements the second one is
+simple quick movements the second one is oval paths where the arm will pull out
+oval paths where the arm will pull out into the fog move do that lateral
+into the fog move do that lateral movement and then pull back into the
+movement and then pull back into the final position
+final position and then finally the extension of that
+and then finally the extension of that for very large movements is
+for very large movements is pulling out teleporting and moving back
+pulling out teleporting and moving back in
+okay so this allows some faster movement looks a little more natural and we're
+looks a little more natural and we're interacting with the world a bit more
+interacting with the world a bit more now so we have these world
+now so we have these world reactions working things are extensible
+reactions working things are extensible and configurable
+and configurable but it still feels really empty because
+but it still feels really empty because there's only one or two tentacles up to
+there's only one or two tentacles up to this point
+this point so let's add some more tentacles
+first thing we try to crank up the tentacle count and it's completely
+tentacle count and it's completely random chaos
+random chaos it's insanity all the arms are trying to
+it's insanity all the arms are trying to like kill the same rat at the same time
+like kill the same rat at the same time because they're not communicating with
+because they're not communicating with each other
+each other so we want to create something more
+so we want to create something more cohesive and there's three major
+cohesive and there's three major questions that come
+questions that come up when we're working with this the
+up when we're working with this the first one is how do we control those
+first one is how do we control those groups of tentacles to
+groups of tentacles to achieve the same sort of task how do we
+achieve the same sort of task how do we choose
+choose what they do once we have that sort of
+what they do once we have that sort of control and
+control and how does this scale up how many arms can
+how does this scale up how many arms can we do how does this run on a computer
+let's start with the controlling tentacles
+tentacles we create we created this concept of the
+we create we created this concept of the dark brain which is this cohesive center
+dark brain which is this cohesive center of the dark it's going to manage the
+of the dark it's going to manage the technical behaviors the spawning and
+technical behaviors the spawning and despawning of them and make high level
+despawning of them and make high level decisions
+run into this the fundamental issue i think is um
+think is um groups versus individuals so we want to
+groups versus individuals so we want to be able to control
+be able to control these groups of tentacles to work
+these groups of tentacles to work together but we still want them to act
+together but we still want them to act as individuals and respond
+as individuals and respond to player input or world input like if
+to player input or world input like if the player hits a tentacle we want it to
+the player hits a tentacle we want it to have a hurt reaction um so we can move
+have a hurt reaction um so we can move all of this into the brain
+all of this into the brain but that we try that it quickly becomes
+but that we try that it quickly becomes hard to manage and change
+hard to manage and change and controlling every single small
+and controlling every single small decision of every single arm it just
+decision of every single arm it just bloats everything and and makes it
+bloats everything and and makes it unmanageable to work with
+unmanageable to work with so where do we draw this line
+so where do we draw this line essentially how much does the brain
+essentially how much does the brain control and how much do the arms control
+control and how much do the arms control we introduced this concept of tasks to
+we introduced this concept of tasks to kind of manage this
+kind of manage this so tasks are multi-armed behaviors
+so tasks are multi-armed behaviors and they have assigned arms and a target
+and they have assigned arms and a target some examples might be like eat enemy
+some examples might be like eat enemy you might have like three arms come in
+you might have like three arms come in and kind of like eat an enemy
+and kind of like eat an enemy up and these are all managed by the dark
+up and these are all managed by the dark brain
+brain so these manage high level goals and
+so these manage high level goals and arms are going to
+arms are going to keep managing their own world reactions
+keep managing their own world reactions separately and
+separately and they're going to communicate with each
+they're going to communicate with each other the task in the arms through
+other the task in the arms through message passing which i'll talk about in
+message passing which i'll talk about in a second
+a second and arms can refuse commands from tasks
+and arms can refuse commands from tasks if they're in an invalid state
+if they're in an invalid state so let's mention the tasks have a
+so let's mention the tasks have a configured set of targets as well
+configured set of targets as well associated with them so we set this up
+associated with them so we set this up when we build the task like you can't
+when we build the task like you can't steal the player it just sort of makes
+steal the player it just sort of makes sense
+sense so let's go through this example of a
+so let's go through this example of a two arm attack task where we have two
+two arm attack task where we have two arms that come in and attack something
+arms that come in and attack something when the task is made it needs some arms
+when the task is made it needs some arms to run
+to run so there's this pool of arms that the
+so there's this pool of arms that the brain creates when it spawns in the
+brain creates when it spawns in the world
+world the task is going to choose a couple
+the task is going to choose a couple arms from this pool
+arms from this pool and those two arms are going to be
+and those two arms are going to be chosen and they're going to start in an
+chosen and they're going to start in an idle state
+idle state so the first thing that happens is the
+so the first thing that happens is the task is running and it's like okay i
+task is running and it's like okay i need to start a pursuit it asks arm6 to
+need to start a pursuit it asks arm6 to start this approach
+start this approach it's available no problem it starts
+it's available no problem it starts pursuing
+pursuing and then during that time the player
+and then during that time the player comes around and hits the other arm
+comes around and hits the other arm and so it's in this hurt state it's like
+and so it's in this hurt state it's like kind of recoiling or retreating a little
+kind of recoiling or retreating a little bit
+bit and when the task asks the that arm to
+and when the task asks the that arm to do something it can't so it says no
+so what do we do when it says no um the first thing you can do is just cancel
+first thing you can do is just cancel out completely
+out completely the second option we found was much
+the second option we found was much better is trading arms
+better is trading arms so if the task has two arms associated
+so if the task has two arms associated with it
+with it it's going to find another arm that's
+it's going to find another arm that's close by and available if one of them is
+close by and available if one of them is hurt or in an invalid state and
+hurt or in an invalid state and trade those two out and this leads to
+trade those two out and this leads to some faster behavior
+some faster behavior completion and also a lot more cohesion
+completion and also a lot more cohesion so
+so it just makes sense that if you have a
+it just makes sense that if you have a bunch of limbs you're probably going to
+bunch of limbs you're probably going to use another limb if one of them gets
+use another limb if one of them gets hurt
+it creates more consistent timing with this arm trading and
+this arm trading and and feels more cohesive and we can
+and feels more cohesive and we can create these multi-armed goals with
+create these multi-armed goals with these tasks so we have a system to do
+these tasks so we have a system to do this now
+this now the second question is what do we do
+we built this concept of task target pairs
+pairs um which is basically a verb in a noun
+um which is basically a verb in a noun like eat rats and attack cultists
+like eat rats and attack cultists or attack rats and you weigh those
+or attack rats and you weigh those against each other to create a full
+against each other to create a full configuration
+configuration so we'll go through a decision making
+so we'll go through a decision making process here say we have this
+process here say we have this configuration of these task target pairs
+and we the first thing we do is look around and say okay are the targets
+around and say okay are the targets available
+available for our configuration there's no gems
+for our configuration there's no gems right now so we can't do that task
+right now so we can't do that task and it's not just whether the target's
+and it's not just whether the target's available or not there are other
+available or not there are other considerations like
+considerations like sometimes there's cooldowns or recent
+sometimes there's cooldowns or recent player actions that are going to feed
+player actions that are going to feed into the weighting of these different
+into the weighting of these different rules or the final weight and then once
+rules or the final weight and then once that's done we take all of the
+that's done we take all of the uh the remaining task target pairs and
+uh the remaining task target pairs and do a
+do a weighted random choice um and
+weighted random choice um and weighted random is used here just to
+weighted random is used here just to create a little bit more decision
+create a little bit more decision variety
+variety but it's still bounded with the
+but it's still bounded with the configuration and the weights that we
+configuration and the weights that we create
+so right the dark can now make some decisions and we can configure those
+decisions and we can configure those last pieces will this run well so what's
+last pieces will this run well so what's the performance like
+the performance like the major scaling up problems we found
+the major scaling up problems we found were performance and
+were performance and audio so i'll talk about each of these
+audio so i'll talk about each of these performance a lot of it was just
+performance a lot of it was just moving from blue to c plus plus blue is
+moving from blue to c plus plus blue is okay but it's just not even
+okay but it's just not even close to as fast as plus plus so get
+close to as fast as plus plus so get that out of the way
+that out of the way and we're also finding that the physics
+and we're also finding that the physics thread is maxed out
+thread is maxed out and we figured out that it's because of
+and we figured out that it's because of those shape casts from before
+those shape casts from before like sometimes there's 72 shape casts
+like sometimes there's 72 shape casts per frame
+per frame per arm um because if it's a really
+per arm um because if it's a really dense level there might be
+dense level there might be like not a lot of valid positions for
+like not a lot of valid positions for the arm to go
+the arm to go we can't really reuse this stuff because
+we can't really reuse this stuff because there's lots of different targets moving
+there's lots of different targets moving around and the
+around and the dark's doing lots of things but maybe we
+dark's doing lots of things but maybe we can pre-process something
+can pre-process something um i'll note that the levels are
+um i'll note that the levels are procedurally generated here again
+procedurally generated here again um because
+um because uh so it has to be a run time like it
+uh so it has to be a run time like it has to be at the level generation time
+has to be at the level generation time it can't be a priori stuff
+it can't be a priori stuff so what can we cache so let's go back to
+so what can we cache so let's go back to the shape cast again
+the shape cast again we'll split the world up into a grid and
+we'll split the world up into a grid and we'll choose the tile where the player
+we'll choose the tile where the player currently is
+currently is and say okay we want to cache some
+and say okay we want to cache some information about the obstructions
+information about the obstructions around this tile
+around this tile so again same shaped cast system from
+so again same shaped cast system from before
+before we continue rotating and fill a full
+we continue rotating and fill a full circle around that
+circle around that cast those in and we'll get this we have
+cast those in and we'll get this we have three okay directions here
+three okay directions here and five obstructed ones so we're going
+and five obstructed ones so we're going to try to map this into something we can
+to try to map this into something we can cache into that tile
+cache into that tile so we can do is say obstructed is one
+so we can do is say obstructed is one okay unobstructed is zero
+okay unobstructed is zero and then actually just create a bit mask
+and then actually just create a bit mask that stores
+that stores the obstructed state for these alias
+the obstructed state for these alias directions in a circle
+directions in a circle so we store this in that tile and um in
+so we store this in that tile and um in the game we actually have 64-bit
+the game we actually have 64-bit uh cache tiles so there's about five
+uh cache tiles so there's about five degrees of accuracy
+degrees of accuracy here which turned out to be enough and
+here which turned out to be enough and we just do this for the whole level
+we just do this for the whole level so this is a crazy debug view of the
+so this is a crazy debug view of the obstruction cache as we call it
+so that works that makes the lookups fast we don't need to do anything at
+fast we don't need to do anything at runtime we can do that at level gen time
+runtime we can do that at level gen time during a load
+during a load and we have i'm going to skip over the
+and we have i'm going to skip over the actual generation of that for now
+actual generation of that for now and the second major issue we had was
+and the second major issue we had was audio we had one emitter per arm and
+audio we had one emitter per arm and once we scaled that up
+once we scaled that up we had tons of emitters all over the
+we had tons of emitters all over the place and it was just way too noisy and
+place and it was just way too noisy and hard to control
+hard to control so for that we use an influence map
+so for that we use an influence map every frame the arm is going to
+every frame the arm is going to each arm is going to pump influence into
+each arm is going to pump influence into this map more red is a higher influence
+this map more red is a higher influence you can see there's more red around
+you can see there's more red around those clumps of arms there
+and we use this influence map in audio like this so instead of having
+like this so instead of having an emitter per arm we have two emitters
+an emitter per arm we have two emitters so we split the level in half
+so we split the level in half and and the influence map in half down
+and and the influence map in half down the center wherever the player is
+the center wherever the player is on the left side we move the left
+on the left side we move the left emitter and on the right side we move
+emitter and on the right side we move the
+the right emitter to the highest influence
+right emitter to the highest influence tile
+tile and that represents essentially the
+and that represents essentially the highest density of arms in an area
+highest density of arms in an area and we also then feed that influence
+and we also then feed that influence value
+value into the audio event so that the audio
+into the audio event so that the audio designer can say
+designer can say okay if the influence is one there's
+okay if the influence is one there's probably about one arm there if the
+probably about one arm there if the influence is 10 there's about 10 arms
+influence is 10 there's about 10 arms and you can create these different
+and you can create these different layers and
+layers and kind of change the sound as necessary to
+kind of change the sound as necessary to create the sense of
+create the sense of groups and you know lots of different
+groups and you know lots of different kind of
+kind of lots of technical groups together
+lots of technical groups together without overloading it with
+without overloading it with an emitter per arm okay so that works
+an emitter per arm okay so that works out pretty well
+out pretty well uh we can use this to control our audio
+uh we can use this to control our audio so things are working here our perf's
+so things are working here our perf's pretty good
+pretty good everything's doing what they should we
+everything's doing what they should we can configure what they're doing what do
+can configure what they're doing what do we do now
+we do now now the final core component of all of
+now the final core component of all of this is that combat system
+this is that combat system and we always wanted combat to be this
+and we always wanted combat to be this whole dark experience where all the arms
+whole dark experience where all the arms are together
+are together and filling the available space around
+and filling the available space around the player and focusing in on the player
+the player and focusing in on the player and at the same time we can't have any
+and at the same time we can't have any of that as much randomness as we do with
+of that as much randomness as we do with the world interactions which is just
+the world interactions which is just mostly for flavor it needs to be much
+mostly for flavor it needs to be much more consistent
+more consistent and learnable and readable
+and learnable and readable and this boils down to these main
+and this boils down to these main questions here so how do we use that
+questions here so how do we use that full space
+full space how do we create any interesting and
+how do we create any interesting and more readable attacks and remove that
+more readable attacks and remove that randomness
+randomness and how do we pace out the fight once we
+and how do we pace out the fight once we have that working
+have that working so we'll use full space first so we go
+so we'll use full space first so we go back to the obstruction cache we
+back to the obstruction cache we basically transformed this data into
+basically transformed this data into what we call fronts
+what we call fronts and what a front is is a contiguous
+and what a front is is a contiguous piece of space around the player that's
+piece of space around the player that's unobstructed
+unobstructed so it's a piece of the circle that
+so it's a piece of the circle that doesn't have anything in the way of it
+doesn't have anything in the way of it basically
+basically and these are basically areas where an
+and these are basically areas where an arm could be
+arm could be so show a quick video of uh an
+so show a quick video of uh an in-game tool that loads
+with this in action oops there we go okay so as i'm running
+there we go okay so as i'm running around the level you can see it
+around the level you can see it regenerating
+regenerating um the fronts based on the positions of
+um the fronts based on the positions of or where the player is and the
+or where the player is and the obstructions around there
+obstructions around there and you can see those white lines those
+and you can see those white lines those are the ideal directions of arms
+are the ideal directions of arms and there's a heuristic back in the
+and there's a heuristic back in the movement system that says try to go to
+movement system that says try to go to your ideal direction
+your ideal direction so the arms are trying to get to those
+so the arms are trying to get to those positions and they're basically just
+positions and they're basically just distributed across the available fronts
+distributed across the available fronts so that creates a
+so that creates a big surrounding full use of space
+big surrounding full use of space the next logical step here is to go into
+the next logical step here is to go into formations which are basically just
+formations which are basically just configurations of fronts
+configurations of fronts and these allowed us allowed us to
+and these allowed us allowed us to create recognizable patterns of arms
+create recognizable patterns of arms so here's an example of a surround
+so here's an example of a surround formation we have a semi-circle
+formation we have a semi-circle formation like this
+formation like this we have a flank formation so opposite
+we have a flank formation so opposite sides
+sides three-prong formation
+yeah so these two things together allow us to create some
+us to create some interesting and readable changes in the
+interesting and readable changes in the darks positioning but how do we uh
+darks positioning but how do we uh create something that's how do we create
+create something that's how do we create attacks that are more consistent now
+attacks that are more consistent now and we do this through attack tasks so
+and we do this through attack tasks so these tasks are
+these tasks are just regular tasks except they have a
+just regular tasks except they have a couple of special properties the first
+couple of special properties the first is they combine with the formations um
+is they combine with the formations um and those two things together kind of
+and those two things together kind of form a tell
+form a tell so an example of this is if we had a one
+so an example of this is if we had a one two three attack it would usually show
+two three attack it would usually show up in a three-prong formation
+up in a three-prong formation or if we have a one-two attack where
+or if we have a one-two attack where it's like boom boom that would usually
+it's like boom boom that would usually show up in like a flank formation
+show up in like a flank formation so opposite sides so we can use those to
+so opposite sides so we can use those to kind of communicate to the player what's
+kind of communicate to the player what's coming up next
+coming up next and the second piece that's important
+and the second piece that's important with attack tasks is they have strict
+with attack tasks is they have strict timing
+timing so if it's going to take too long we
+so if it's going to take too long we just cancel out we don't
+just cancel out we don't sometimes we'll trade arms but
+sometimes we'll trade arms but oftentimes we need to ensure the
+oftentimes we need to ensure the consistency and learnability
+consistency and learnability of the attack task or the attack
+of the attack task or the attack and that's much more important than
+and that's much more important than necessarily completing the task
+necessarily completing the task so we just cancel out a lot more often
+so we just cancel out a lot more often and replace them with new ones
+cool so the attack tasks give us very consistent timing
+consistent timing we can use the space in a really
+we can use the space in a really readable way now using the combination
+readable way now using the combination with formations
+with formations and our last piece here is how do we
+and our last piece here is how do we pace this out so that it's
+pace this out so that it's interesting and um you know creates a
+interesting and um you know creates a dramatic
+dramatic experience for the fight gives the
+experience for the fight gives the player a little bit of breathing room at
+player a little bit of breathing room at times
+times instead of just constantly bombarding
+instead of just constantly bombarding our main solution for this was what we
+our main solution for this was what we called stances
+called stances um stances were pulled and kind of
+um stances were pulled and kind of influenced inspired rather by
+influenced inspired rather by like sort of watching boxing matches or
+like sort of watching boxing matches or like fencing or something
+like fencing or something where when you start you see the two
+where when you start you see the two fighters sort of on the outside
+fighters sort of on the outside of the ring and then maybe they'll move
+of the ring and then maybe they'll move in and they'll be like kind of ready to
+in and they'll be like kind of ready to you know getting ready to punch and like
+you know getting ready to punch and like throw a punch or two
+throw a punch or two and then they'll move back out and maybe
+and then they'll move back out and maybe if they got hit they'll move back out
+if they got hit they'll move back out and like recover for a second or
+and like recover for a second or something
+something and that's essentially what we're trying
+and that's essentially what we're trying to go for here and so if we map that on
+to go for here and so if we map that on to what we have
+to what we have we have a relaxed stance where the dark
+we have a relaxed stance where the dark sort of stalking in the background
+sort of stalking in the background there's a setup where it's preparing and
+there's a setup where it's preparing and it's showing the player like i'm going
+it's showing the player like i'm going to attack you now
+to attack you now and then there's a pounce where it
+and then there's a pounce where it actually goes through and does a bunch
+actually goes through and does a bunch of attacks
+of attacks and then it's jumping in and out of
+and then it's jumping in and out of these and this is really effective to
+these and this is really effective to show the player
+show the player what the arms might do and where they
+what the arms might do and where they are in the fight but it's also
+are in the fight but it's also a really good feedback source for the
+a really good feedback source for the player where if the dark jumps into that
+player where if the dark jumps into that pounce stance
+pounce stance and the player gets in a few hits and
+and the player gets in a few hits and then the dark pulls back out into
+then the dark pulls back out into a recovery or a um setup stance
+a recovery or a um setup stance then you can kind of just assume that oh
+then you can kind of just assume that oh i heard it
+i heard it it feels like i'm making progress by
+it feels like i'm making progress by doing that
+so stances are here to help pace out the fight
+fight all right so there's a bunch of stuff
+all right so there's a bunch of stuff i'll just go over quickly what we're
+i'll just go over quickly what we're talking about today
+talking about today we started with a basic movement with
+we started with a basic movement with one tentacle the kinematic constraints
+one tentacle the kinematic constraints that we added to avoid wonky animations
+that we added to avoid wonky animations and the shape cast we used for clipping
+and the shape cast we used for clipping moved into the world interactions adding
+moved into the world interactions adding some flavor how we used utility
+some flavor how we used utility positioning to manage and control
+positioning to manage and control the positioning concerns of the
+the positioning concerns of the tentacles
+tentacles uh and how we added pathing styles to
+uh and how we added pathing styles to create something a little bit more
+create something a little bit more natural um we
+natural um we ramped up the tentacles and introduced
+ramped up the tentacles and introduced the dark brain and tasks
+the dark brain and tasks as well as arm trading to control
+as well as arm trading to control multiple arms together to
+multiple arms together to achieve the same goal
+we talked about the obstruction cache and how that was how we cached that
+and how that was how we cached that information on level load or generation
+information on level load or generation for fast obstruction lookups and the
+for fast obstruction lookups and the influence map used to move the audio
+influence map used to move the audio emitters around and finally combat
+emitters around and finally combat and how the fronts and formations helped
+and how the fronts and formations helped us use the available space
+us use the available space and um how we use the tack tasks to
+and um how we use the tack tasks to create consistency
+create consistency and finally stances and how they helped
+and finally stances and how they helped us pace out the fight
+us pace out the fight and that's it thank you
+some time for questions yep one minute
+this is really cool the inverse schematics uh
+fills feels now like a little bit underutilized uh just because
+underutilized uh just because we're having to keep in the straight
+we're having to keep in the straight lines yeah um
+lines yeah um did you did you explore any in like
+did you did you explore any in like doing more with that in um breaking out
+doing more with that in um breaking out of straight lines or having
+of straight lines or having like slither around obstacles or
+like slither around obstacles or anything interesting like that
+anything interesting like that um the slithering around obstacles not
+um the slithering around obstacles not so much
+so much in terms of what we did with the inverse
+in terms of what we did with the inverse kinematics
+kinematics it was mostly about like trying to so
+it was mostly about like trying to so the other thing is like
+the other thing is like from the design perspective or from the
+from the design perspective or from the direction we wanted them to be straight
+direction we wanted them to be straight like
+like most of the time keeping them straight
+most of the time keeping them straight was good and adding a little bit of
+was good and adding a little bit of curve
+curve was more just flavor so we've just
+was more just flavor so we've just mostly played around with just
+mostly played around with just essentially that those constraint values
+essentially that those constraint values and how they mapped
+and how they mapped so the way we map them is actually
+so the way we map them is actually exponentially so the tip
+exponentially so the tip has higher more direct constraints like
+has higher more direct constraints like it has to stay straighter
+it has to stay straighter and the base is a little bit more loose
+and the base is a little bit more loose and by doing that you can get these
+and by doing that you can get these attacks where it's kind of coming into
+attacks where it's kind of coming into the side
+the side and bends around but the tip still stays
+and bends around but the tip still stays straight
+straight if that makes any sense um that was sort
+if that makes any sense um that was sort of the extent
+of the extent i mean we played around with it a bit
+i mean we played around with it a bit but in terms of what we actually shipped
+but in terms of what we actually shipped that's about it
+oh hey hey this muted hi okay uh so i saw the
+muted hi okay uh so i saw the attacking like the the point the cache
+attacking like the the point the cache of the location where you you restore
+of the location where you you restore the
+the you store the eight directions of the
+you store the eight directions of the attacking like in a radio fashion
+attacking like in a radio fashion um is this uh in the game all the way
+um is this uh in the game all the way access aligned
+access aligned like eight but with the four of them
+like eight but with the four of them aligned x and y
+aligned x and y yeah and so first so there's actually
+yeah and so first so there's actually 64. um
+64. um because we store a full 64-bit number in
+because we store a full 64-bit number in there okay um and yeah and they're
+there okay um and yeah and they're aliased to the same directions in each
+aliased to the same directions in each tile oh yeah because i thought it was
+tile oh yeah because i thought it was only eight but if it's four it's
+only eight but if it's four it's maybe it should be like high enough to
+maybe it should be like high enough to ignore the direction
+ignore the direction exactly yeah like five degrees is about
+exactly yeah like five degrees is about okay yeah thanks
+okay yeah thanks so here's the question when when it
+so here's the question when when it comes to
+comes to everything you put together here reuse
+everything you put together here reuse is always good right yep
+is always good right yep so do you feel like there's things
+so do you feel like there's things obviously knowledge and lessons
+obviously knowledge and lessons identified right i see this from the
+identified right i see this from the brits if you guys haven't heard this we
+brits if you guys haven't heard this we don't learn anything we identify it and
+don't learn anything we identify it and then hopefully learn
+then hopefully learn uh but kidding aside do you feel like
+uh but kidding aside do you feel like there's other things you've built that
+there's other things you've built that now you'll be able to reuse
+now you'll be able to reuse especially if it's a different type of
+especially if it's a different type of game
+game it's an interesting question i mean it's
+it's an interesting question i mean it's a pretty weird thing to build in the
+a pretty weird thing to build in the first place
+first place absolutely but by the same token in some
+absolutely but by the same token in some ways it's like swarming right with just
+ways it's like swarming right with just customized terrain
+customized terrain yeah yeah sort of that yeah i think a
+yeah yeah sort of that yeah i think a lot of like the sort of
+lot of like the sort of thing i would pull out of this is just
+thing i would pull out of this is just the importance of directionality in this
+the importance of directionality in this and considering that as opposed to
+and considering that as opposed to like positioning really like directions
+like positioning really like directions matter more than positions or something
+matter more than positions or something like that so
+like that so maybe that's my main takeaway other than
+maybe that's my main takeaway other than that um
+that um i don't know okay thank you thanks
+i don't know okay thank you thanks okay that's it thanks guys

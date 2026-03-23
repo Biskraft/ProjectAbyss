@@ -1,0 +1,789 @@
+[Music]
+all right let's get right into it here's the agenda for this talk we're
+here's the agenda for this talk we're gonna introduce ourselves
+gonna introduce ourselves we're going to talk about the audio
+we're going to talk about the audio direction for division to the snowdrop
+direction for division to the snowdrop engine the raycast based runtime audio
+engine the raycast based runtime audio systems in snowdrop we're gonna cover
+systems in snowdrop we're gonna cover procedural reverb and ambient systems
+procedural reverb and ambient systems for interiors we're going to talk about
+for interiors we're going to talk about immersive weather sounds and dolby atmos
+immersive weather sounds and dolby atmos support and we'll finish off with a
+support and we'll finish off with a short conclusion so my name is Simon
+short conclusion so my name is Simon cough cough I'm an RD director for the
+cough cough I'm an RD director for the division series I've worked on division
+division series I've worked on division one two and farcry Assassin's Creed and
+one two and farcry Assassin's Creed and World in Conflict hi my name is Robert
+World in Conflict hi my name is Robert Benton an audio programmer on the snow
+Benton an audio programmer on the snow job team and similarly I worked in
+job team and similarly I worked in Division three with Simon and previously
+Division three with Simon and previously I've worked on other games at least hip
+I've worked on other games at least hip 4 and Guitar Hero live as examples so we
+4 and Guitar Hero live as examples so we work at massive entertainment which is a
+work at massive entertainment which is a huge soft studio it's been open since
+huge soft studio it's been open since 1997 located in the south of Sweden in
+1997 located in the south of Sweden in malmö and became part of the use of
+malmö and became part of the use of family in 2008 last year we grew beyond
+family in 2008 last year we grew beyond more than 670 staff including 50
+more than 670 staff including 50 different nationalities currently we're
+different nationalities currently we're working on a division to an avatar the
+working on a division to an avatar the audio team during peak production were
+audio team during peak production were around 25 people on division 2 you
+around 25 people on division 2 you collaborating across observe studios in
+collaborating across observe studios in the UK stays in Europe but the core team
+the UK stays in Europe but the core team is around 12 people at massive so this
+is around 12 people at massive so this talk is obviously based around the game
+talk is obviously based around the game we shaped last year called the division
+we shaped last year called the division 2 and I wanted to kind of first show the
+2 and I wanted to kind of first show the kind of core pillars of the game which
+kind of core pillars of the game which is that it is a modern Clancy shooter
+is that it is a modern Clancy shooter RPG it's grounded in reality set in a
+RPG it's grounded in reality set in a collapsing world where you are agents of
+collapsing world where you are agents of change and it's always online and code
+change and it's always online and code friendly in simple terms it's a
+friendly in simple terms it's a third-person online co-op shooter in a
+third-person online co-op shooter in a huge open world where you get sent in as
+huge open world where you get sent in as a last resort to try and save the city
+a last resort to try and save the city and fight the enemy factions that seek
+and fight the enemy factions that seek to take control amongst the chaos so
+to take control amongst the chaos so whilst the first game was set in New
+whilst the first game was set in New York we decided to have the sequel to be
+York we decided to have the sequel to be set in Washington DC and why is that
+set in Washington DC and why is that well we wanted to give our players a
+well we wanted to give our players a fresh play field
+fresh play field IDC is obviously a vastly different
+IDC is obviously a vastly different compared to to New York City it's an
+compared to to New York City it's an iconic location with plenty of
+iconic location with plenty of recognizable landmarks that helps ground
+recognizable landmarks that helps ground things in reality and timeline where 7
+things in reality and timeline where 7 months later after the events of the
+months later after the events of the first game it's also hot summer instead
+first game it's also hot summer instead of winter in New York and it's also has
+of winter in New York and it's also has vastly different nature and wildlife
+vastly different nature and wildlife which also gave us a lot of
+which also gave us a lot of opportunities with sound so here's a
+opportunities with sound so here's a small teaser from the second game
+[Music] how could this have happened here of all
+how could this have happened here of all the capitals of all the nations on earth
+none more vigilant [Music]
+[Music] safeguarded
+safeguarded prepared
+was it vanity [Music]
+bad luck or something more sinister one thing is beyond question this is where
+thing is beyond question this is where we push back this is our defining moment
+if we fail our nation Falls
+we are the free world's last line of defense
+defense [Music]
+so the audio direction for division - obviously we're a Tom Clancy brand so we
+obviously we're a Tom Clancy brand so we wanted to keep things as grounded as
+wanted to keep things as grounded as possible and we can't really go too much
+possible and we can't really go too much into sci-fi land the world in our game
+into sci-fi land the world in our game plays a huge part so making it dynamic
+plays a huge part so making it dynamic responsive and immersive was key we
+responsive and immersive was key we really wanted to have polished mix that
+really wanted to have polished mix that adapts to player actions and location so
+adapts to player actions and location so the player can really tell what's going
+the player can really tell what's going on just with help of audio the goals for
+on just with help of audio the goals for the team were to improve on they
+the team were to improve on they establish that identity that we did in
+establish that identity that we did in the first game but with better assets
+the first game but with better assets improved workflow and tools and again
+improved workflow and tools and again the worlds that we're building are huge
+the worlds that we're building are huge so we need to come up with a way a smart
+so we need to come up with a way a smart way to implement and utilize the world
+way to implement and utilize the world that's already built in our advantage
+that's already built in our advantage yes we also wanted to increase variety
+yes we also wanted to increase variety and quality of our assets and the
+and quality of our assets and the snowdrop engine so the snowdrop engine
+snowdrop engine so the snowdrop engine is developed in malmo by massive it's a
+is developed in malmo by massive it's a cross-platform engine it has a graphical
+cross-platform engine it has a graphical editor and most of the behavior is node
+editor and most of the behavior is node based it's flexible and has a modular
+based it's flexible and has a modular architecture which allows you to make
+architecture which allows you to make different types of games with it and we
+different types of games with it and we also have an abstraction that connects
+also have an abstraction that connects us to the wiser audio middleware which
+us to the wiser audio middleware which allows us to do all our sound design and
+allows us to do all our sound design and there's an example of the different
+there's an example of the different types of games that you can make with
+types of games that you can make with snowdrop here are some things they're
+snowdrop here are some things they're already shipped obviously the first few
+already shipped obviously the first few divisions are very similar but then you
+divisions are very similar but then you have Mario rabbits versus Kingdom battle
+have Mario rabbits versus Kingdom battle and fractured but whole and StarLink
+and fractured but whole and StarLink battle for Atlas these are many other
+battle for Atlas these are many other soft super soft titles that are in
+soft super soft titles that are in production they're using snowdrop so the
+production they're using snowdrop so the question is why you snowdrop one of the
+question is why you snowdrop one of the main things that we try to maintain is a
+main things that we try to maintain is a quick iteration speed we want to empower
+quick iteration speed we want to empower the end user which is why we have the
+the end user which is why we have the node base editing better real time
+node base editing better real time processing based on the physical
+processing based on the physical properties of the game world leverage of
+properties of the game world leverage of offline background processes so we have
+offline background processes so we have nightly builds that do a lot of data
+nightly builds that do a lot of data processing for us
+processing for us and better reuse of in our case custom
+and better reuse of in our case custom DSP algorithms so we're not constantly
+DSP algorithms so we're not constantly authoring you plug-ins for every game
+authoring you plug-ins for every game and so before we go into the meat of
+and so before we go into the meat of this talk I wanted to go back and
+this talk I wanted to go back and mention the two problems that we wanted
+mention the two problems that we wanted to solve going into the division to it
+to solve going into the division to it is how do we increase the quality and
+is how do we increase the quality and variety of the audio in our game and it
+variety of the audio in our game and it is how do we decrease manual labor
+is how do we decrease manual labor we found that Ray casts for audio was a
+we found that Ray casts for audio was a good solution for us so before we go
+good solution for us so before we go into the different systems based around
+into the different systems based around that let's learn about the basics for
+that let's learn about the basics for recasts so ray casts what are they used
+recasts so ray casts what are they used for
+for this diagram just demonstrates a planned
+this diagram just demonstrates a planned view of a very simple l-shaped room and
+view of a very simple l-shaped room and the black dot is where the player is
+the black dot is where the player is supposed to be and I'm demonstrating a
+supposed to be and I'm demonstrating a tray cast pointing out and where they
+tray cast pointing out and where they hit tells us where the walls are so the
+hit tells us where the walls are so the raycast can be used to determine space
+raycast can be used to determine space around the player acoustics is about
+around the player acoustics is about spaces of air between materials
+estimating their spaces helps us make sonic decisions that match the players
+sonic decisions that match the players view so in a case where you have
+view so in a case where you have different types of materials I've just
+different types of materials I've just adapted this diagram to show you that we
+adapted this diagram to show you that we have metal we have concrete with brick
+have metal we have concrete with brick and we have some chain link fence and
+and we have some chain link fence and here we had the same ray cast but
+here we had the same ray cast but ideally we want to ignore the chain link
+ideally we want to ignore the chain link fence because that won't actually have
+fence because that won't actually have an effect on the way the sound is
+an effect on the way the sound is propagated so the important thing is we
+propagated so the important thing is we have to contextualize the raycast
+concrete walls block sound chain link fences do not block sound how do you
+fences do not block sound how do you differentiate materials so we have this
+differentiate materials so we have this concept of single hit ray casts piercing
+concept of single hit ray casts piercing hit ray casts and material IDs so in an
+hit ray casts and material IDs so in an example where we are doing piercing ray
+example where we are doing piercing ray cast what happens is is that we've go
+cast what happens is is that we've go from the point of origin so again the
+from the point of origin so again the way the black dot is where the player is
+way the black dot is where the player is standing looking at them from above and
+standing looking at them from above and then we're a cast out towards the brick
+then we're a cast out towards the brick wall but first we hit a chain-link fence
+wall but first we hit a chain-link fence we look at the material ID and we go we
+we look at the material ID and we go we don't care so we then have to re raycast
+don't care so we then have to re raycast we hit another trailing thinks we don't
+we hit another trailing thinks we don't care and so on until we eventually hit
+care and so on until we eventually hit something we do care so the thing about
+something we do care so the thing about heavy use of Ray casting is it's very
+heavy use of Ray casting is it's very CPU expensive so
+CPU expensive so vital that's done efficiently as you can
+vital that's done efficiently as you can see from this diagram we've done a bunch
+see from this diagram we've done a bunch of raycast when in actual fact ideally
+of raycast when in actual fact ideally we would have want to do just one have
+we would have want to do just one have to be very conservative about how much
+to be very conservative about how much we use them because we're working
+we use them because we're working towards for CPU budgets piercing raycast
+towards for CPU budgets piercing raycast a material Turing as a huge performance
+a material Turing as a huge performance hit this is a problem so I just want to
+hit this is a problem so I just want to show you this is a screenshot I just
+show you this is a screenshot I just took from inside Washington DC the left
+took from inside Washington DC the left hand side is the normal rendered view
+hand side is the normal rendered view with some gizmos from the editor and the
+with some gizmos from the editor and the right hand side is actually showing the
+right hand side is actually showing the triangles are actually drawn in the
+triangles are actually drawn in the renderer marked up according to material
+renderer marked up according to material ID so those different colors mark up
+ID so those different colors mark up whether it's concrete glass steel that
+whether it's concrete glass steel that kind of thing the triangles are marked
+kind of thing the triangles are marked up with a very specific bit mask so it's
+up with a very specific bit mask so it's material based bit masks used by red
+material based bit masks used by red cast to ignore certain mid triangles so
+cast to ignore certain mid triangles so as the red cast goes through the world
+as the red cast goes through the world we can basically check the triangle go
+we can basically check the triangle go do I care about this triangle or not
+do I care about this triangle or not what we did instead was was that we
+what we did instead was was that we ended up essentially marking up the
+ended up essentially marking up the world according to what we collide with
+world according to what we collide with being whether it's actually acoustically
+being whether it's actually acoustically a peak or not so here we have the same
+a peak or not so here we have the same diagram again only now I'm now
+diagram again only now I'm now demonstrating what actually blocks sound
+demonstrating what actually blocks sound or what doesn't snow drops audio record
+or what doesn't snow drops audio record only see acoustically Ipek materials
+only see acoustically Ipek materials this helps reduce complexity most of the
+this helps reduce complexity most of the time single hit ray casting replaces the
+time single hit ray casting replaces the piercing ray cast that you saw before
+piercing ray cast that you saw before and there's no need to use material IDs
+and there's no need to use material IDs there's no material ID filtering anymore
+there's no material ID filtering anymore so by reducing that complexity we can
+so by reducing that complexity we can enables it to do more ray cast than we
+enables it to do more ray cast than we could do before it's available as a
+could do before it's available as a filter and their litter for debugging
+filter and their litter for debugging which is how I made the screen shot so
+which is how I made the screen shot so one of the first systems were designed
+one of the first systems were designed around ray casts was bubble space and
+around ray casts was bubble space and the idea is to basically determine the
+the idea is to basically determine the average width around the player it's a
+average width around the player it's a real-time geometry based array cast
+real-time geometry based array cast system that determines not only width
+system that determines not only width but also if there's anything obstructing
+but also if there's anything obstructing above the player it's used to blend it's
+above the player it's used to blend it's basically to ensure that the audio
+basically to ensure that the audio experience of the player is varied and
+experience of the player is varied and the Bay is varied on based on the
+the Bay is varied on based on the surroundings of the player and it's used
+surroundings of the player and it's used to blend between different type of
+to blend between different type of ambience pads
+ambience pads reverbs random effects and even
+reverbs random effects and even switching weapon tails so we have a
+switching weapon tails so we have a video to show how the system works keep
+video to show how the system works keep in mind that this was really early in
+in mind that this was really early in development
+[Music]
+so let's get into the core module so we have these high-level requirements we
+have these high-level requirements we need to get the sound designers a metric
+need to get the sound designers a metric for the free air around the players
+for the free air around the players horizon a metric for the free air above
+horizon a metric for the free air above the player bearing in mind in Division
+the player bearing in mind in Division two the player can't leave the ground
+two the player can't leave the ground unless they are go through an animation
+unless they are go through an animation the metrics must be consistent this is
+the metrics must be consistent this is very important because the sound
+very important because the sound designers need to hook into those
+designers need to hook into those metrics how they mix sound and they need
+metrics how they mix sound and they need to be reliable metrics not must not be
+to be reliable metrics not must not be unstable or appear glitchy as the player
+unstable or appear glitchy as the player moves around the world we don't want any
+moves around the world we don't want any weird edge cases the only active metric
+weird edge cases the only active metric sorry be the only active when the metric
+sorry be the only active when the metric is invalidated by the players view
+is invalidated by the players view position so we measure and then we stop
+position so we measure and then we stop until the player moves again we don't
+until the player moves again we don't remesh that way we can save as a bit of
+remesh that way we can save as a bit of CPU time so here is a another plan view
+CPU time so here is a another plan view and I just want to explain four phases
+and I just want to explain four phases so one two three four the black dot is
+so one two three four the black dot is the player's position the green dots are
+the player's position the green dots are a ray cast that's ended and hit nothing
+a ray cast that's ended and hit nothing and a red dot is where a red cars had
+and a red dot is where a red cars had hit something and the black outline is
+hit something and the black outline is the wall so what we're having here is is
+the wall so what we're having here is is that at each or these phases the Ray
+that at each or these phases the Ray casts are going after three evenly
+casts are going after three evenly spaced directions and then they rotate a
+spaced directions and then they rotate a little bit so the over the course of
+little bit so the over the course of four phases they've covered a full 360
+four phases they've covered a full 360 so we've actually got not just three
+so we've actually got not just three points but we actually have twelve the
+points but we actually have twelve the raycast horizontally around the player
+raycast horizontally around the player it occurs once per frame three ray casts
+it occurs once per frame three ray casts outwards evenly spaced around the player
+outwards evenly spaced around the player position the distance of the two
+position the distance of the two shortest ray casts are averaged so if we
+shortest ray casts are averaged so if we have hits that is
+have hits that is new average is then added to a four
+new average is then added to a four element short history buffer so the idea
+element short history buffer so the idea is we're recording the last four
+is we're recording the last four measurements we took and then we're
+measurements we took and then we're constantly working out what the averages
+constantly working out what the averages now then the result of that is is that
+now then the result of that is is that way this diagram is showing how the
+way this diagram is showing how the player can move around the world so if
+player can move around the world so if one two three four this is the player
+one two three four this is the player moving around and you can see the
+moving around and you can see the resulting horizontal space growing and
+resulting horizontal space growing and contracting depending on the space
+contracting depending on the space around it so I'll give all the updates
+around it so I'll give all the updates from an average of three smallest values
+from an average of three smallest values in the short history buffer the raycast
+in the short history buffer the raycast directions rotate 112 returned as I
+directions rotate 112 returned as I demonstrated in the diagram beforehand
+demonstrated in the diagram beforehand right raycasting begins again and then
+right raycasting begins again and then the final metric smooths out over 16
+the final metric smooths out over 16 frames approximately half a second until
+frames approximately half a second until it reaches the new target value the
+it reaches the new target value the moving average updates the real-time
+moving average updates the real-time parameter control in wise if the Delta
+parameter control in wise if the Delta is significant if it's a very small
+is significant if it's a very small value less than 5% we don't bother
+value less than 5% we don't bother changing it and we also spare some CPU
+changing it and we also spare some CPU on that final metric keeps updating
+on that final metric keeps updating while the player is moving or until 16
+while the player is moving or until 16 frames have passed the reason why we do
+frames have passed the reason why we do this is if a player stops moving we
+this is if a player stops moving we still have a history buffer to work
+still have a history buffer to work through so essentially once the player
+through so essentially once the player stops are moving we keep processing for
+stops are moving we keep processing for 16 frames and then it stops for the
+16 frames and then it stops for the zenith plane for above us we do
+zenith plane for above us we do something quite different so here we're
+something quite different so here we're a cast vertically above the player as
+a cast vertically above the player as you can see there are three ray casts
+you can see there are three ray casts occurs once before aim three ray cast
+occurs once before aim three ray cast upwards evenly spaced around the player
+upwards evenly spaced around the player position all three height measurements
+position all three height measurements have to approximately agree with their
+have to approximately agree with their average if you see in this diagram I've
+average if you see in this diagram I've placed a cube above the player which
+placed a cube above the player which means that one of the raycast hit it and
+means that one of the raycast hit it and the other two did not in this instance
+the other two did not in this instance the red dot represents the ray cast that
+the red dot represents the ray cast that we don't agree with because it doesn't
+we don't agree with because it doesn't match the average so therefore we would
+match the average so therefore we would only be looking at the two green ones to
+only be looking at the two green ones to actually use that as our height metric
+actually use that as our height metric when they do agree the target value is
+when they do agree the target value is updated the final metric smooths out
+updated the final metric smooths out over four frames until it reaches the
+over four frames until it reaches the new target value yes and here are some
+new target value yes and here are some examples of how we been using the value
+examples of how we been using the value that we get from the system at the
+that we get from the system at the bottom there you see our switch
+bottom there you see our switch container which contains three random
+container which contains three random containers with our weapons
+containers with our weapons for a weapon and we have large street
+for a weapon and we have large street narrow street and open field and as you
+narrow street and open field and as you can see that switch container is
+can see that switch container is actually controlled by game parameter
+actually controlled by game parameter which is called GP bubble width so when
+which is called GP bubble width so when the value is zero two zero two point
+the value is zero two zero two point four five I think roughly there we use
+four five I think roughly there we use the narrow street tails if the value is
+the narrow street tails if the value is bigger than zero to five then we use the
+bigger than zero to five then we use the large street tails and if the value is
+large street tails and if the value is larger than zero point eight we switch
+larger than zero point eight we switch our weapon tails to the open field tails
+our weapon tails to the open field tails and this gives a nice effect where the
+and this gives a nice effect where the weapons sound like they adapt to the
+weapons sound like they adapt to the environment in which they're being shot
+environment in which they're being shot another example of us of us using the
+another example of us of us using the value is modifying the random effects in
+value is modifying the random effects in the ambience to be louder and triggered
+the ambience to be louder and triggered more often when in a more narrow space
+more often when in a more narrow space [Music]
+[Music] finally also here's an example of us
+finally also here's an example of us blending between a different exterior
+blending between a different exterior reverbs so depending again on the width
+reverbs so depending again on the width value we fade in and out different
+value we fade in and out different convolution reverbs everything from
+convolution reverbs everything from alleys to streets to cross roads etc so
+alleys to streets to cross roads etc so the next system we're going to talk
+the next system we're going to talk about is slap back and this is a player
+about is slap back and this is a player centric outdoors system and the goal
+centric outdoors system and the goal here was to really add more variety to
+here was to really add more variety to our weapon tails
+our weapon tails it creates emitters on buildings on
+it creates emitters on buildings on building walls around the player and it
+building walls around the player and it replicates the player short pattern with
+replicates the player short pattern with a few distance based effects and folds
+a few distance based effects and folds around so this gives the player more
+around so this gives the player more spatial awareness it gives the guns kind
+spatial awareness it gives the guns kind of a nice feel again helping with
+of a nice feel again helping with spatial awareness
+okay so what's actually going on the following diagram is a plan view again
+following diagram is a plan view again so the black dot is a pay position and
+so the black dot is a pay position and we're ray casting in six directions
+we're ray casting in six directions horizontally around the player the red
+horizontally around the player the red dots represent when we hit something and
+dots represent when we hit something and those blue lines are the surface normal
+those blue lines are the surface normal we get back from that that ray cast hit
+we get back from that that ray cast hit green dots when we hit nothing and then
+green dots when we hit nothing and then blue dot is where we think there is a
+blue dot is where we think there is a reflection point so the rule that we use
+reflection point so the rule that we use is similar to optics where we
+is similar to optics where we essentially use the surface normal to
+essentially use the surface normal to infer where the reflection point should
+infer where the reflection point should be so what we do is we use a 3d emitter
+be so what we do is we use a 3d emitter pool we compute once per frame if the
+pool we compute once per frame if the players movement exceeds a certain
+players movement exceeds a certain threshold that's important so we don't
+threshold that's important so we don't keep processing ray casts around the
+keep processing ray casts around the azimuth and upwards of the player
+azimuth and upwards of the player position we use simple 3d geometry to
+position we use simple 3d geometry to infer new candidate reflection points
+infer new candidate reflection points from Ray cars positions and normals so
+from Ray cars positions and normals so what we're actually doing is is we're
+what we're actually doing is is we're creating candidates we first have
+creating candidates we first have already asked out those six candidate
+already asked out those six candidate positions and we may get some reflection
+positions and we may get some reflection points some blue dots we then compare
+points some blue dots we then compare the raycast position again so we're a
+the raycast position again so we're a cast out from the black dot to the blue
+cast out from the black dot to the blue dot and see if we actually get the same
+dot and see if we actually get the same result if we do then that kind of date
+result if we do then that kind of date is good if we don't that means it's just
+is good if we don't that means it's just an anomalous so we basically remove it
+an anomalous so we basically remove it from the candidate list any duplicates
+from the candidate list any duplicates also because you might end up with blue
+also because you might end up with blue dots overlapping each other they also
+dots overlapping each other they also get removed and this is what we call a
+get removed and this is what we call a basically a series of sanity checks
+basically a series of sanity checks there are existing reflection points
+there are existing reflection points that we had from the last time we
+that we had from the last time we processed if they aren't updated they
+processed if they aren't updated they get cold and the idea is is that what
+get cold and the idea is is that what they're they're streaming something so
+they're they're streaming something so they fade out with a 200 millisecond
+they fade out with a 200 millisecond fade-out and then any kind of light
+fade-out and then any kind of light reflections left over become a new point
+reflections left over become a new point and they start playing again so they
+and they start playing again so they start streaming it completes a series of
+start streaming it completes a series of sanity checks as I said to remove
+sanity checks as I said to remove erroneous reflection points duplicates
+erroneous reflection points duplicates or near duplicates based on threshold so
+or near duplicates based on threshold so sometimes they don't line up exactly but
+sometimes they don't line up exactly but they might be close enough to cause a
+they might be close enough to cause a climbing effects and remove them anyway
+climbing effects and remove them anyway so what is actually causing the
+so what is actually causing the streaming to occur so we have here the
+streaming to occur so we have here the idea of a double buffer so the
+idea of a double buffer so the broadcaster module is this place where
+broadcaster module is this place where sound is recorded and played back
+sound is recorded and played back it's supports multiple broadcast
+it's supports multiple broadcast channels up to eight each broadcast
+channels up to eight each broadcast journal consists of up to eight audio
+journal consists of up to eight audio channels so when I talk about a
+channels so when I talk about a broadcast channel
+broadcast channel I just mean a brought like a radio
+I just mean a brought like a radio channel essentially or some kind of not
+channel essentially or some kind of not sound so what's happening is is that
+sound so what's happening is is that we've registered so every time Y is
+we've registered so every time Y is finished is render it calls back to the
+finished is render it calls back to the system and it says please swap these two
+system and it says please swap these two pointers we have one pointing at the
+pointers we have one pointing at the record buffer and one of the playback
+record buffer and one of the playback buffer and they're constantly swapping
+buffer and they're constantly swapping frame by frame that's what I mean by
+frame by frame that's what I mean by double buffer system some of you'll be
+double buffer system some of you'll be familiar with this some of you will not
+familiar with this some of you will not be in a sense it's like a digital tape
+be in a sense it's like a digital tape loop so we have a record head and a
+loop so we have a record head and a playback head so whilst one pointer is
+playback head so whilst one pointer is recording in another one is playing out
+recording in another one is playing out the loop gets moved on from a callback
+the loop gets moved on from a callback register in the rendering trainer as I
+register in the rendering trainer as I already said this actually adds a little
+already said this actually adds a little bit latency so if our buffer size is a
+bit latency so if our buffer size is a thousand 24 samples that means the
+thousand 24 samples that means the latency we add by creating this um this
+latency we add by creating this um this recording loop is a thousand 24 samples
+recording loop is a thousand 24 samples but we're not so bothered by that
+but we're not so bothered by that because we can add a bigger delay in a
+because we can add a bigger delay in a moment anyway so we just take that on
+moment anyway so we just take that on the chin so how do we take sound into
+the chin so how do we take sound into the record buffer we have a sync plug-in
+the record buffer we have a sync plug-in inside wise this is a fake audio device
+inside wise this is a fake audio device so it looks like an audio device the
+so it looks like an audio device the natural fact it's communicating with the
+natural fact it's communicating with the broadcast module what it's doing is is
+broadcast module what it's doing is is essentially taking when Y is is
+essentially taking when Y is is essentially completing its render passes
+essentially completing its render passes and all the master mixer graph endpoints
+and all the master mixer graph endpoints it then sends sound that has gone to
+it then sends sound that has gone to that particular bus to the record buffer
+that particular bus to the record buffer based on the record channel it's been
+based on the record channel it's been setting the plug-in of which there are
+setting the plug-in of which there are eight sends audio to the broadcast
+eight sends audio to the broadcast record head as I said and then controls
+record head as I said and then controls what broadcast channel it uses and how
+what broadcast channel it uses and how many audio channels it needs
+many audio channels it needs it's called once at the end of each
+it's called once at the end of each render pass so everytime we render out a
+render pass so everytime we render out a thousand 24 samples this gets called at
+thousand 24 samples this gets called at the end now the receiver plug-in is
+the end now the receiver plug-in is reading out from the from the broadcast
+reading out from the from the broadcast system it gets audio from the
+system it gets audio from the broadcasters playback head it's
+broadcasters playback head it's triggered by the core module play event
+triggered by the core module play event so essentially when you
+so essentially when you this actor mixer Graff every time there
+this actor mixer Graff every time there one of those nodes that has this plug-in
+one of those nodes that has this plug-in on it is called to basically play out it
+on it is called to basically play out it starts rendering a bus it's faded out by
+starts rendering a bus it's faded out by the core module stop event as I said
+the core module stop event as I said that was that 200 millisecond fade-out
+that was that 200 millisecond fade-out that's what causes it so the control is
+that's what causes it so the control is what broadcast channel it reads from so
+what broadcast channel it reads from so the idea is is that you can record out
+the idea is is that you can record out to one channel but you can have multiple
+to one channel but you can have multiple things reading from that so we could
+things reading from that so we could actually have multiple receiver plugins
+actually have multiple receiver plugins reading out from the same playback head
+reading out from the same playback head it gets his audio channel layout from
+it gets his audio channel layout from the broadcaster by way of the sync
+the broadcaster by way of the sync plug-in so whatever the the channel
+plug-in so whatever the the channel layout was if we said it was 7.1 that's
+layout was if we said it was 7.1 that's what we receive its called once at the
+what we receive its called once at the beginning of each render pass and as you
+beginning of each render pass and as you see from the diagram I just basically
+see from the diagram I just basically did why I mean is is that when the
+did why I mean is is that when the academics our graph is calls it's no
+academics our graph is calls it's no surrender that's when this is called the
+surrender that's when this is called the actual effect is then applied to the
+actual effect is then applied to the receiving end so after we get sound back
+receiving end so after we get sound back from the from the broadcaster we then
+from the from the broadcaster we then apply a delay effect so we had to make a
+apply a delay effect so we had to make a custom wise effect plug-in the reason
+custom wise effect plug-in the reason why we did this is because we need the
+why we did this is because we need the flit solve the problem of flipper
+flit solve the problem of flipper flexible delay time so just to explain
+flexible delay time so just to explain that we have a circular buffer so what
+that we have a circular buffer so what happens is as each sample time
+happens is as each sample time progresses we have two pointers tracing
+progresses we have two pointers tracing each other and the gap between them if
+each other and the gap between them if the delay we actually get in this case
+the delay we actually get in this case is about two seconds of delay because
+is about two seconds of delay because that's not what we need to actually have
+that's not what we need to actually have a realistic delay effect in the world
+a realistic delay effect in the world the input sample buffer is constantly
+the input sample buffer is constantly being updated and then as the output
+being updated and then as the output samples are pulled out we actually do a
+samples are pulled out we actually do a power complementary interpolation
+power complementary interpolation basically because we are moving so
+basically because we are moving so quickly we have to be able to
+quickly we have to be able to essentially move out any artifacts and
+essentially move out any artifacts and this is what deals with that problem we
+this is what deals with that problem we also have phase control because
+also have phase control because reflections usually come back the
+reflections usually come back the opposite phase they went in this is
+opposite phase they went in this is actually an oversimplification but it's
+actually an oversimplification but it's a good optimization and we also have
+a good optimization and we also have some filter EQ in the plugin so that we
+some filter EQ in the plugin so that we could actually modify the sound that
+could actually modify the sound that gets reflected back and then that
+gets reflected back and then that becomes the outputs our port which goes
+becomes the outputs our port which goes to the output buffer and that's what
+to the output buffer and that's what gets sent on from the source plug-in
+gets sent on from the source plug-in into the actor mixer node
+into the actor mixer node as I said it has built-in EQ and phase
+as I said it has built-in EQ and phase inversion there's one instance per
+inversion there's one instance per slapback emitter so as we play through a
+slapback emitter so as we play through a slapback emitter this effect is at the
+slapback emitter this effect is at the end of its DSP chain before it gets sent
+end of its DSP chain before it gets sent back into the into the mix engine of
+back into the into the mix engine of wise okay so just to demonstrate here
+wise okay so just to demonstrate here the top left one is the that's the Sigma
+the top left one is the that's the Sigma plug-in so when I said before you set
+plug-in so when I said before you set the draw cross channel and the number of
+the draw cross channel and the number of audio channels we actually need to
+audio channels we actually need to describe and that basically gives us
+describe and that basically gives us what gets recorded the bottom left is
+what gets recorded the bottom left is the source plug-in so that's what's
+the source plug-in so that's what's coming back from the broadcaster and
+coming back from the broadcaster and then all we do there is select what
+then all we do there is select what channel we want to read in and then the
+channel we want to read in and then the actual emitters of course a 3d so
+actual emitters of course a 3d so therefore we position them accordingly
+therefore we position them accordingly and then what we do is is then we have
+and then what we do is is then we have the delay time is predicated by those
+the delay time is predicated by those raycast we were making the distance from
+raycast we were making the distance from the player to the raycast reflection
+the player to the raycast reflection point is what we compute for the delay
+point is what we compute for the delay time and as you can see here the actual
+time and as you can see here the actual the conversion scale we use isn't
+the conversion scale we use isn't actually a realistic one we wanted to
+actually a realistic one we wanted to have a kind of like a movie type
+have a kind of like a movie type dramatic effect so that's why it's
+dramatic effect so that's why it's curved like that yeah and here's an
+curved like that yeah and here's an example of us using this lap back bus
+example of us using this lap back bus here on a weapon a shot sound at first
+here on a weapon a shot sound at first we tried it on the whole weapon sound
+we tried it on the whole weapon sound and quickly realized that we maybe don't
+and quickly realized that we maybe don't want to have the weapon mechanics being
+want to have the weapon mechanics being reflected off of walls so that's why
+reflected off of walls so that's why it's applied to the shot only so the
+it's applied to the shot only so the next thing we're gonna talk about today
+next thing we're gonna talk about today is procedural ambience and before we go
+is procedural ambience and before we go further into this I just wanted to do a
+further into this I just wanted to do a quick shout out to Ubisoft reflections
+quick shout out to Ubisoft reflections audio team especially Septimus and Andy
+audio team especially Septimus and Andy Mucha who were integral for basically
+Mucha who were integral for basically designing and coding the system but
+designing and coding the system but basically the idea here was to kind of
+basically the idea here was to kind of add more variety and remove the manual
+add more variety and remove the manual labor from the sound designers for
+labor from the sound designers for covering all of our interior spaces in
+covering all of our interior spaces in Division two we had over 2.5 thousand
+Division two we had over 2.5 thousand rooms what we call interior rooms
+rooms what we call interior rooms the problem the problem that we wanted
+the problem the problem that we wanted to solve is that we didn't really have
+to solve is that we didn't really have enough time for applying manual sound
+enough time for applying manual sound design and reverb design for each of
+design and reverb design for each of those spaces so we thought about how can
+those spaces so we thought about how can we use the already existing geometry and
+we use the already existing geometry and data and basically design the system a
+data and basically design the system a procedural offline system to generate
+procedural offline system to generate impulse responses for each room and
+impulse responses for each room and those impulses would be based on each
+those impulses would be based on each room size and the materials of those of
+room size and the materials of those of those rooms and also coupled with that
+those rooms and also coupled with that we designed the custom wise convolution
+we designed the custom wise convolution we were plugin to load those impulse
+we were plugin to load those impulse responses at runtime and we even took it
+responses at runtime and we even took it one step further and use the IRS that
+one step further and use the IRS that were generated for each room to create
+were generated for each room to create an ambience sound for each of those
+an ambience sound for each of those rooms as well combined we did this using
+rooms as well combined we did this using come the IRS combined with brown noise
+come the IRS combined with brown noise and the web wet signal of the props of
+and the web wet signal of the props of that room but I'll go into more detail
+that room but I'll go into more detail about that shortly
+so the convolution implementation is active when the player is indoors we
+active when the player is indoors we know the player is indoors because of
+know the player is indoors because of terrain markup which is also used by the
+terrain markup which is also used by the graphics people its instance partition
+graphics people its instance partition completion engine so we have multiple
+completion engine so we have multiple engines and then we can appropriate them
+engines and then we can appropriate them as needed the actual processing occurs
+as needed the actual processing occurs and snow drops when we talk about a
+and snow drops when we talk about a custom convolution plugin the actual
+custom convolution plugin the actual plugin part is best feeding sound back
+plugin part is best feeding sound back from snowdrop the total number of
+from snowdrop the total number of convolution engines is scalable as it
+convolution engines is scalable as it happens that we used for this time but
+happens that we used for this time but that's that's a couple according to how
+that's that's a couple according to how much CPU bandwidth we had to play with
+much CPU bandwidth we had to play with the customized effect calls into
+the customized effect calls into snowdrop via a dedicated interface so
+snowdrop via a dedicated interface so that's how we've done it we have
+that's how we've done it we have basically a callback interface to pull
+basically a callback interface to pull out the audio that we processed inside
+out the audio that we processed inside snowdrop okay and this is a debug view
+snowdrop okay and this is a debug view of the kind of thing when you start ray
+of the kind of thing when you start ray tracing inside a large space like that
+tracing inside a large space like that all of those white markers are
+all of those white markers are reflection points generated by the ray
+reflection points generated by the ray cast what we do is is that we generate
+cast what we do is is that we generate an impulse response that is static for
+an impulse response that is static for the room space so this would be one
+the room space so this would be one single impulse response but because we
+single impulse response but because we purposely filter out the other
+purposely filter out the other reflections first all you hear is of the
+reflections first all you hear is of the relate reflections and in actual fact
+relate reflections and in actual fact they don't really change that much so it
+they don't really change that much so it doesn't really matter that the player
+doesn't really matter that the player around that space with our three pretty
+around that space with our three pretty changing let's hear it
+he's trying to get behind you cover the target get back off
+cover won't save you
+important thing to mention is that we didn't use this system everywhere of
+didn't use this system everywhere of course where we wanted to use ambience
+course where we wanted to use ambience to kind of help the narrative of the
+to kind of help the narrative of the game or if the space was a very
+game or if the space was a very particular space we of course design
+particular space we of course design manual ambiences and reverbs for those
+manual ambiences and reverbs for those spaces and simply did an override for
+spaces and simply did an override for whatever was generated there by the
+whatever was generated there by the procedural system but we were really
+procedural system but we were really happy with the way the reverbs were
+happy with the way the reverbs were sounding and so we wanted to basically
+sounding and so we wanted to basically find out if there was any way of using
+find out if there was any way of using those reverbs to generate an ambience
+those reverbs to generate an ambience pad for those rooms as well and since
+pad for those rooms as well and since our game basically takes place in a
+our game basically takes place in a scenario where most spaces are abandoned
+scenario where most spaces are abandoned we wanted to avoid making create the
+we wanted to avoid making create the sound of an empty office tasks for our
+sound of an empty office tasks for our sound designers so we're thinking about
+sound designers so we're thinking about what actually defines the room tone and
+what actually defines the room tone and we're experimenting in wise with noise
+we're experimenting in wise with noise and reverbs and here's a little example
+and reverbs and here's a little example of how we reach the conclusion that
+of how we reach the conclusion that reverb is actually a very integral part
+reverb is actually a very integral part of a room tone here's just using noise
+of a room tone here's just using noise in wise a short example of this
+[Music]
+you
+[Music]
+so whilst researching the this topic of acoustics and rooms and room tones
+acoustics and rooms and room tones another interesting concept we found is
+another interesting concept we found is critical distance and this is basically
+critical distance and this is basically where the level of the direct sound
+where the level of the direct sound equals the level of the reflected sound
+equals the level of the reflected sound so in the graph here you can see the
+so in the graph here you can see the black sound pressure line flattening out
+black sound pressure line flattening out as its passes the critical distance
+as its passes the critical distance point this knowledge gave us more
+point this knowledge gave us more confidence to use generated IR s from
+confidence to use generated IR s from the rooms to create the actual ambient
+the rooms to create the actual ambient sounds so in the North line process
+sounds so in the North line process there were two virtual microphones
+there were two virtual microphones placed in each room at 22 centimeters
+placed in each room at 22 centimeters apart which is roughly the average head
+apart which is roughly the average head size and they recorded the wet sound of
+size and they recorded the wet sound of the props blended it with brown noise
+the props blended it with brown noise and produced perfect 15-second loops for
+and produced perfect 15-second loops for each of those spaces here house how is
+each of those spaces here house how is the results actually sounded in the game
+the results actually sounded in the game and obviously they are not meant to be
+and obviously they are not meant to be played this loud
+[Music] so now we're gonna talk a bit about
+so now we're gonna talk a bit about immersive weather sounds we knew that
+immersive weather sounds we knew that weather was gonna play a huge part in
+weather was gonna play a huge part in our game and so therefore I wanted us to
+our game and so therefore I wanted us to see if we could create a system that
+see if we could create a system that gives the weather sounds more depth so
+gives the weather sounds more depth so we created an emitter manager to control
+we created an emitter manager to control all of the emitters on all of the props
+all of the emitters on all of the props in our game and this allowed us to
+in our game and this allowed us to basically play back the sounds of rain
+basically play back the sounds of rain or wind playing on the actual props it's
+or wind playing on the actual props it's of course material based so depending on
+of course material based so depending on what material the prop is that would be
+what material the prop is that would be taking into account when playing back
+taking into account when playing back the sound and it's also a cool thing
+the sound and it's also a cool thing because it's props that otherwise don't
+because it's props that otherwise don't make any sound like tables or road signs
+make any sound like tables or road signs but we can actually play sound on the
+but we can actually play sound on the NAM on them now if it rains or if
+NAM on them now if it rains or if there's a heavy wind
+nice to see you agent
+there
+you
+so it was actually when I first heard what we did in the prototype for the
+what we did in the prototype for the first weather system experiment we did
+first weather system experiment we did when I heard sounds of rain above me
+when I heard sounds of rain above me that I was thinking that Atmos would be
+that I was thinking that Atmos would be Dolby Atmos would be a really nice fit
+Dolby Atmos would be a really nice fit for our game and as we kept developing
+for our game and as we kept developing the game the systems that we designed
+the game the systems that we designed whether that's bubble bubble space slap
+whether that's bubble bubble space slap a slap back or as I mentioned the
+a slap back or as I mentioned the weather sounds or even like the in game
+weather sounds or even like the in game things like helicopters and drones it
+things like helicopters and drones it just made sense to kind of try out this
+just made sense to kind of try out this technology and the first time I tried it
+technology and the first time I tried it I felt not only that was enhancing the
+I felt not only that was enhancing the mix in the vertical plane but also in
+mix in the vertical plane but also in the horizontal one where I could feel
+the horizontal one where I could feel better perception of enemies behind me
+better perception of enemies behind me and things in front of me just felt like
+and things in front of me just felt like we gave the mix that much more clarity
+we gave the mix that much more clarity so it was a pretty obvious choice and
+so it was a pretty obvious choice and Dolby were also very helpful with
+Dolby were also very helpful with integrating this into our game and of
+integrating this into our game and of course not everyone has Dolby Atmos
+course not everyone has Dolby Atmos Theater at home but most of us have
+Theater at home but most of us have headphones which Dolby supports with
+headphones which Dolby supports with Atmos for headphones so yeah method was
+Atmos for headphones so yeah method was a really good fit and this brings us to
+a really good fit and this brings us to the quick summary of the talk today so
+the quick summary of the talk today so we talked about us wanting to create a
+we talked about us wanting to create a dynamic audio experience for our players
+dynamic audio experience for our players and we utilized already existing
+and we utilized already existing geometry and ray casts to analyze the
+geometry and ray casts to analyze the surroundings we then use that output of
+surroundings we then use that output of the raycast to modulate and change the
+the raycast to modulate and change the soundscape the procedural system helped
+soundscape the procedural system helped us with greater variety more quality and
+us with greater variety more quality and less manual labor and Atmos was a great
+less manual labor and Atmos was a great match for the systems that we designed
+match for the systems that we designed and it opened up for more space in the
+and it opened up for more space in the mix thank you very much for listening
+mix thank you very much for listening thank you oh by the way if you want to
+thank you oh by the way if you want to find out more about the sound of the
+find out more about the sound of the division 2 you can search for for it on
+division 2 you can search for for it on YouTube

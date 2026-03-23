@@ -1,0 +1,1718 @@
+[Music] hello all right cool i'm on
+hello all right cool i'm on uh hey everyone
+uh hey everyone i hope you're having a good morning
+i hope you're having a good morning uh bright and early here this is early
+uh bright and early here this is early for me um
+for me um i'm here today to talk about real-time
+i'm here today to talk about real-time cloth solutions on marvel's spider-man
+cloth solutions on marvel's spider-man uh
+uh my name is sophie brennan i'm a
+my name is sophie brennan i'm a character td i work at insomniac games
+character td i work at insomniac games uh we are
+uh we are celebrating our 25th year anniversary
+celebrating our 25th year anniversary this year uh that's a long time for a
+this year uh that's a long time for a game studio to be around i just want to
+game studio to be around i just want to acknowledge that uh apparently we're
+acknowledge that uh apparently we're doing all right we're doing good and
+doing all right we're doing good and here's to many more
+here's to many more so a little bit about me i am a
+so a little bit about me i am a character td as i said or rigor or
+character td as i said or rigor or technical anime or whatever you want to
+technical anime or whatever you want to call me i have around seven years
+call me i have around seven years experience uh obviously i just shipped
+experience uh obviously i just shipped uh spider-man
+uh spider-man before that i worked on lone echo uh
+before that i worked on lone echo uh which was a
+which was a a game for the oculus
+a game for the oculus vr game and then before that they
+vr game and then before that they ordered 1886 for
+ordered 1886 for ps4 uh firstly i just want to say thank
+ps4 uh firstly i just want to say thank you to our entire team at insomniac
+you to our entire team at insomniac obviously this project wouldn't be
+obviously this project wouldn't be possible without them
+possible without them uh insomniac
+uh insomniac we try to stay like really humble and
+we try to stay like really humble and acknowledge each other as frequently as
+acknowledge each other as frequently as we can i like to carry this through and
+we can i like to carry this through and say
+say you know while i'm doing a talk today
+you know while i'm doing a talk today like
+like everyone's involvement in this is super
+everyone's involvement in this is super important and i just want to say thank
+important and i just want to say thank you because they're an awesome team
+you because they're an awesome team so
+so uh without further ado let's talk a
+uh without further ado let's talk a little bit about spider-man and firstly
+little bit about spider-man and firstly i have a little cloth reel prepared to
+i have a little cloth reel prepared to show you kind of
+show you kind of what
+what how many various solutions and and where
+how many various solutions and and where the cloth was in our game so here's a
+the cloth was in our game so here's a little bit
+little bit [Music]
+cool so now you guys got a little idea about what we did uh let's begin
+about what we did uh let's begin at the start so
+at the start so what kind of existing cloth techniques
+what kind of existing cloth techniques can already exist out there
+can already exist out there so first of all we have skinning to
+so first of all we have skinning to existing joints uh the advantages of
+existing joints uh the advantages of this
+this you know cheapest method it's easy to
+you know cheapest method it's easy to maintain all the stuff's already there
+maintain all the stuff's already there right depending on where
+right depending on where the cloth is though it can look bad it's
+the cloth is though it can look bad it's unrealistic
+unrealistic complex articulated areas suffer
+complex articulated areas suffer if you have
+if you have [Music]
+[Music] a sleeve that's modeled
+a sleeve that's modeled hanging down when you twist your arm the
+hanging down when you twist your arm the pose doesn't adhere to gravity i'm sure
+pose doesn't adhere to gravity i'm sure you've seen that in many games before
+we also have animated cloth joints so i hope you guys enjoy the picture on the
+hope you guys enjoy the picture on the right here we actually don't have any
+right here we actually don't have any keyframed cloth in the game so i just
+keyframed cloth in the game so i just let you run wild with your imagination
+let you run wild with your imagination and say
+and say imagine a man animating all these
+imagine a man animating all these controls
+controls so
+so the pros of this is that it can look
+the pros of this is that it can look awesome depending on how talented your
+awesome depending on how talented your animation team is
+animation team is but there's a ton of disadvantages which
+but there's a ton of disadvantages which is it's super time consuming to do
+is it's super time consuming to do it's really difficult to animate cloth
+it's really difficult to animate cloth convincingly and hard to make it look
+convincingly and hard to make it look realistic
+realistic there's also baked simulated cloth
+there's also baked simulated cloth joints
+joints the advantages of this is that it's
+the advantages of this is that it's accurate and realistic
+accurate and realistic depending on how your setup is
+depending on how your setup is disadvantages are
+disadvantages are that it's time consuming as well
+that it's time consuming as well it's hard to maintain especially in a
+it's hard to maintain especially in a game dev environment where we're always
+game dev environment where we're always iterating
+iterating if we you know change the scene we'll
+if we you know change the scene we'll need another pass it needs to be
+need another pass it needs to be re-baked and and resembled and baked
+re-baked and and resembled and baked down and then the output is the curves
+down and then the output is the curves that are really nasty for animators if
+that are really nasty for animators if they actually want to edit that stuff
+they actually want to edit that stuff so then we have real-time cloth
+so then we have real-time cloth which the advantages are it's super
+which the advantages are it's super flexible and reacts well to change
+flexible and reacts well to change because you know it's already been
+because you know it's already been calculated at real time
+calculated at real time but
+but also it responds dynamically to player
+also it responds dynamically to player movement so if a player is controlling a
+movement so if a player is controlling a character which is what we had in our
+character which is what we had in our game and they flick the stick around
+game and they flick the stick around there should be you know follow through
+there should be you know follow through and overlapping action that normal like
+and overlapping action that normal like baked simulation couldn't give us
+baked simulation couldn't give us the disadvantages are is that because
+the disadvantages are is that because we're running at real time the cloth
+we're running at real time the cloth quality can be quite low and detailed
+quality can be quite low and detailed cloth is really out of scope for us it's
+cloth is really out of scope for us it's also an extra expense in engine versus
+also an extra expense in engine versus just running an animation and uh this
+just running an animation and uh this one can be specific to whatever kind of
+one can be specific to whatever kind of cloth solution you're using but most
+cloth solution you're using but most lack self collisions so if you have
+lack self collisions so if you have layers of cloth they won't react with
+layers of cloth they won't react with each other
+each other so
+so why did we decide to choose real time
+why did we decide to choose real time over all the other options out there
+over all the other options out there and uh so
+and uh so one of the internal pillars for
+one of the internal pillars for spider-man was to create a believable
+spider-man was to create a believable world and with that realistic cloth fit
+world and with that realistic cloth fit in there right
+in there right to make a world that
+to make a world that felt believable it had to look
+felt believable it had to look believable as well and look real
+believable as well and look real uh on previous projects as well we'd
+uh on previous projects as well we'd fallen down a rabbit hole the simulation
+fallen down a rabbit hole the simulation and it was really really time consuming
+and it was really really time consuming especially for our team and in a project
+especially for our team and in a project this size it just it really wasn't
+this size it just it really wasn't feasible for us to spend this amount of
+feasible for us to spend this amount of time
+time uh simming things and also
+uh simming things and also you know animators time is valuable too
+you know animators time is valuable too we didn't want to take up animate or
+we didn't want to take up animate or time on animating cloth and you know if
+time on animating cloth and you know if you know any animators they probably
+you know any animators they probably hate it anyways
+hate it anyways uh and most importantly as i mentioned
+uh and most importantly as i mentioned earlier this responded to player control
+earlier this responded to player control which was a benefit that none of the
+which was a benefit that none of the other methods had
+other methods had so
+a big component of real-time cloth are the tools used to achieve it so
+the tools used to achieve it so we had two choices which were develop
+we had two choices which were develop your own proprietary tech
+your own proprietary tech or
+or use an existing third-party middleware
+use an existing third-party middleware [Music]
+[Music] so
+so developing your own tech has pros and
+developing your own tech has pros and cons right pros are you have complete
+cons right pros are you have complete control over what features you want and
+control over what features you want and need to focus on you can design the
+need to focus on you can design the workflow to match your needs
+workflow to match your needs but the cons are is a huge upfront cost
+but the cons are is a huge upfront cost it will come online probably way later
+it will come online probably way later than you need it which is usually
+than you need it which is usually immediately
+immediately and it will require maintenance and
+and it will require maintenance and you'll have no external support
+you'll have no external support for us this was just not simply in our
+for us this was just not simply in our budget
+budget with the results that we wanted to
+with the results that we wanted to achieve so we decided to go third party
+achieve so we decided to go third party and the choices out there are fairly
+and the choices out there are fairly limited but we already had used havoc
+limited but we already had used havoc and house for our soft and rigid body
+and house for our soft and rigid body physics and we'd used the cloth
+physics and we'd used the cloth technology and and sunset so it was a
+technology and and sunset so it was a pretty easy step for us to just continue
+pretty easy step for us to just continue on with havoc
+on with havoc so
+so while i want to cover some more general
+while i want to cover some more general topics in this talk it's really
+topics in this talk it's really important to give you context around the
+important to give you context around the tools that we're using so for that
+tools that we're using so for that reason i'm going to give you a little
+reason i'm going to give you a little intro into havoc itself
+intro into havoc itself so havoc is essentially kind of plug and
+so havoc is essentially kind of plug and play and that it supports a
+play and that it supports a 3d program like
+3d program like max or mile with a plug-in that you
+max or mile with a plug-in that you install
+install and then also it has its api which will
+and then also it has its api which will plug into your end engine
+plug into your end engine and uh
+and uh so from there like you will you will be
+so from there like you will you will be in maya or max and you'll generate your
+in maya or max and you'll generate your your sum mesh and it will either output
+your sum mesh and it will either output that into a file or there's like the mon
+that into a file or there's like the mon the model there's a non-modal way as
+the model there's a non-modal way as well so model is when all the data is
+well so model is when all the data is contained within the program itself and
+contained within the program itself and non-modal is when it spits it out to
+non-modal is when it spits it out to external files and uses its own like
+external files and uses its own like executables to manage that but either
+executables to manage that but either way it takes the content that you
+way it takes the content that you generate and the 3d package puts it into
+generate and the 3d package puts it into the filter manager havoc's filter
+the filter manager havoc's filter manager which is basically
+manager which is basically where they handle all of the systems
+where they handle all of the systems across you know all their physics
+across you know all their physics components
+components uh it basically runs a series of
+uh it basically runs a series of filters and operations on it to send the
+filters and operations on it to send the cloth you know prepare the data and send
+cloth you know prepare the data and send the data to the cloth setup tool
+the data to the cloth setup tool otherwise known as the cst the cst is
+otherwise known as the cst the cst is basically where you set up all the
+basically where you set up all the behaviors for your cloth so this is
+behaviors for your cloth so this is where you set up
+where you set up gravity dampening
+gravity dampening the radius assign collision
+the radius assign collision capsules all that and then it outputs
+capsules all that and then it outputs that to a data file a dot hkt which is
+that to a data file a dot hkt which is read by the cloth api and the engine
+read by the cloth api and the engine so here's a little visual just of what
+so here's a little visual just of what the actual tool pipeline looks we use
+the actual tool pipeline looks we use maya specifically so i'm sorry if you're
+maya specifically so i'm sorry if you're a max user i won't be covering the
+a max user i won't be covering the pipeline for that
+pipeline for that we take it from maya into the filter
+we take it from maya into the filter manager so you can see the purple box
+manager so you can see the purple box down there is the filter manager and
+down there is the filter manager and then from there that launches the cloth
+then from there that launches the cloth setup tool where we can iterate on our
+setup tool where we can iterate on our cloth setup
+cloth setup and let's talk a little bit about so
+and let's talk a little bit about so vertex versus bone cloth and what does
+vertex versus bone cloth and what does that mean havoc supports both vertex
+that mean havoc supports both vertex cloth is when your sim mesh is your
+cloth is when your sim mesh is your render mesh so it's basically a direct
+render mesh so it's basically a direct connection um
+connection um this means you have to have the correct
+this means you have to have the correct materials applied to the sim mesh also
+materials applied to the sim mesh also means that it isn't possible for it to
+means that it isn't possible for it to do double-sided cloth
+do double-sided cloth and the resolution of the mesh has to be
+and the resolution of the mesh has to be fairly low to run well in engine
+fairly low to run well in engine it also means any content changes to
+it also means any content changes to this cloth might change the behavior of
+this cloth might change the behavior of the cloth itself as well
+the cloth itself as well and
+and irregular shapes aren't great for
+irregular shapes aren't great for swimming havoc prefers quads and
+swimming havoc prefers quads and therefore like you have to make sure you
+therefore like you have to make sure you give it a quartered mesh
+give it a quartered mesh there's also bone cloth which is what we
+there's also bone cloth which is what we used
+used uh and this is different in that
+uh and this is different in that the sim mesh will drive a bunch of
+the sim mesh will drive a bunch of joints
+joints uh
+uh on this on the surface of it which you
+on this on the surface of it which you can in turn use to drive your render
+can in turn use to drive your render mesh and this allows for the possibility
+mesh and this allows for the possibility of additional animation as well because
+of additional animation as well because you're using joints
+you're using joints uh for us that was give us the ability
+uh for us that was give us the ability to turn off the cloth and override it if
+to turn off the cloth and override it if necessary however as you can see there's
+necessary however as you can see there's a lot more intermediate steps and it
+a lot more intermediate steps and it complicates the process
+complicates the process so there's a lot more layers of content
+so there's a lot more layers of content to debug when things go wrong
+to debug when things go wrong so here's the content author and tools
+so here's the content author and tools in maya
+in maya there's a mesh properties toolbox which
+there's a mesh properties toolbox which allows us to assign
+allows us to assign vertex selection sets and this is where
+vertex selection sets and this is where we would set which vertices are simming
+we would set which vertices are simming versus which ones are pinned and also
+versus which ones are pinned and also allows us to uh create little selection
+allows us to uh create little selection sets for optimization purposes for
+sets for optimization purposes for example if you only want an operation to
+example if you only want an operation to run on a smaller subset of vertices
+run on a smaller subset of vertices instead of the whole mesh
+there's also the mesh properties toolbox for painting vertex properties so here
+for painting vertex properties so here you'll see i'm painting properties on
+you'll see i'm painting properties on the mesh this is the distance it's just
+the mesh this is the distance it's just like a paint weighting interface
+like a paint weighting interface and uh
+and uh this this can control many things like
+this this can control many things like distance mass minimum normals particle
+distance mass minimum normals particle radius basically anything that's in
+radius basically anything that's in exposed in the havoc cloth tool
+exposed in the havoc cloth tool you can probably paint custom virus
+you can probably paint custom virus information for
+information for and
+and you can see here i'm painting on the
+you can see here i'm painting on the mesh
+mesh uh and you can also set
+uh and you can also set min max limits on the properties so
+min max limits on the properties so you'll see me toggling the the overall
+you'll see me toggling the the overall distance to change you know
+distance to change you know the limit of the properties themselves
+the limit of the properties themselves uh there's also collisions so you need
+uh there's also collisions so you need to get your cough collide with your mesh
+to get your cough collide with your mesh you need to assign and create colliders
+you need to assign and create colliders uh
+uh you can do this with the havoc
+you can do this with the havoc uh bone collider toolbox and basically
+uh bone collider toolbox and basically you just select a joint assign a
+you just select a joint assign a collider to it and mess with the
+collider to it and mess with the properties on it the properties are
+properties on it the properties are radius
+radius height and taper
+height and taper and you can also through this interface
+and you can also through this interface add your own custom collision shapes and
+add your own custom collision shapes and there's a variety of methods that havoc
+there's a variety of methods that havoc uses to get that into the engine
+and uh finally here i think this is our cloth
+finally here i think this is our cloth cst tool
+cst tool um there's no native api inside like for
+um there's no native api inside like for you
+you inside the the
+inside the the havoc to let you alter the properties
+havoc to let you alter the properties live so all the cloth data is authored
+live so all the cloth data is authored and loaded into game
+and loaded into game and the cst is where the magic happens
+and the cst is where the magic happens so it contains ways to create and assign
+so it contains ways to create and assign some meshes apply properties constraints
+some meshes apply properties constraints colliders
+colliders they can get pretty in-depth but for the
+they can get pretty in-depth but for the sake of brevity know that almost all the
+sake of brevity know that almost all the settings related to general behavior are
+settings related to general behavior are set here where the specifics of those
+set here where the specifics of those behaviors are added in the content
+behaviors are added in the content creation part of the process or in our
+creation part of the process or in our case maya
+oops uh oh sorry i forgot about this
+uh oh sorry i forgot about this obviously when you get it into the
+obviously when you get it into the engine you want to debug it right so
+engine you want to debug it right so uh havoc has an inbuilt debugger it
+uh havoc has an inbuilt debugger it draws the havoc sim mesh and colliders
+draws the havoc sim mesh and colliders it lets you filter specific elements and
+it lets you filter specific elements and it also provides performance information
+it also provides performance information as you can see there
+as you can see there so let's talk a little bit about some of
+so let's talk a little bit about some of the initial tests that we ran on cloth
+the initial tests that we ran on cloth so we first started with
+so we first started with our and our demons
+our and our demons and our thugs
+and our thugs they both have very distinctive behavior
+they both have very distinctive behavior but uh and very different clothing so
+but uh and very different clothing so for the thugs they needed baggy loose
+for the thugs they needed baggy loose pants and for the inner demons smart
+pants and for the inner demons smart suit jackets that held form
+suit jackets that held form so here's some initial tests
+so here's some initial tests we used them to test our animated normal
+we used them to test our animated normal maps and how they would work on the
+maps and how they would work on the cloth as well
+cloth as well and also to see how many enemies we
+and also to see how many enemies we could draw on screen at once with cloth
+could draw on screen at once with cloth and the answer is apparently a lot
+through this we wrote up some internal documentation in the process however the
+documentation in the process however the workflow was workflow sorry was pretty
+workflow was workflow sorry was pretty complicated with many points of
+complicated with many points of potential error and this would continue
+potential error and this would continue to cause us a lot of problems and
+to cause us a lot of problems and headaches
+headaches down a line
+down a line so this is where i jumped in oh this is
+so this is where i jumped in oh this is all previous to when i joined insomniac
+all previous to when i joined insomniac so for clarity before touching before
+so for clarity before touching before joining the company i'd really really
+joining the company i'd really really touch cloth beyond the proprietary cloth
+touch cloth beyond the proprietary cloth set up at my previous company reddit
+set up at my previous company reddit dawn and even then my exposure to it was
+dawn and even then my exposure to it was minimal so perhaps this was a bit of a
+minimal so perhaps this was a bit of a bonus because i came in with fresh eyes
+bonus because i came in with fresh eyes and my first test case was
+and my first test case was mj and mg had a few things that made her
+mj and mg had a few things that made her a challenge which were an extreme crouch
+a challenge which were an extreme crouch pose she had to be under one meter high
+pose she had to be under one meter high for designer metrics which i actually
+for designer metrics which i actually went into my backyard and tried to shoot
+went into my backyard and tried to shoot reference of me crouching
+reference of me crouching uh and run walking at the same time
+uh and run walking at the same time under one meter and it just it isn't
+under one meter and it just it isn't really possible to be honest but
+really possible to be honest but um
+um it was really hard so
+it was really hard so uh it was a very extreme pose she also
+uh it was a very extreme pose she also had two layers of clothing which was her
+had two layers of clothing which was her outer jacket
+outer jacket uh and her inner jacket she had a
+uh and her inner jacket she had a ponytail and a scarf so she had a lot of
+ponytail and a scarf so she had a lot of like layers on her
+like layers on her and um
+and um even though uh so i ran that our first
+even though uh so i ran that our first test through her uh apologies i don't
+test through her uh apologies i don't have any um
+have any um captures from that probably for a reason
+captures from that probably for a reason um
+um we just quite quickly i was able to
+we just quite quickly i was able to identify that there was issues in the
+identify that there was issues in the pipeline so authoring content took a
+pipeline so authoring content took a really long time
+really long time and exports were failing often and we
+and exports were failing often and we didn't really know why and you can see
+didn't really know why and you can see there in the picture that's our infamous
+there in the picture that's our infamous white cube that indicated everything
+white cube that indicated everything went wrong and you're terrible and maybe
+went wrong and you're terrible and maybe you should cry a little bit
+you should cry a little bit uh also iteration was really really slow
+uh also iteration was really really slow so
+so um and this was partially because there
+um and this was partially because there was a debugging disconnect so
+was a debugging disconnect so we were unable to see our cloth draw on
+we were unable to see our cloth draw on top of our assets directly in engine and
+top of our assets directly in engine and obviously this means that there's a
+obviously this means that there's a little bit of guesswork involved when it
+little bit of guesswork involved when it comes to finding out where your problems
+comes to finding out where your problems come from
+come from especially when you have layered
+especially when you have layered elements on top of each other and
+elements on top of each other and multiple colliders
+multiple colliders we lack enough debug information to even
+we lack enough debug information to even like
+like draw which elements
+draw which elements were
+were which so without labeling we were kind
+which so without labeling we were kind of in the dark is where our issues were
+of in the dark is where our issues were coming from
+coming from and yeah that that meant information was
+and yeah that that meant information was hard to parse and without any filtering
+hard to parse and without any filtering we couldn't isolate bits of the setup
+we couldn't isolate bits of the setup which is usually you know the best
+which is usually you know the best method of solving problems
+method of solving problems so
+so i began to streamline the pipeline so my
+i began to streamline the pipeline so my first thing was i wanted to address
+first thing was i wanted to address anything that could be automated there
+anything that could be automated there were a lot of different windows as you
+were a lot of different windows as you saw there was a lot of repetitive
+saw there was a lot of repetitive actions i wanted to try and minimize
+actions i wanted to try and minimize that and make the process a lot more uh
+that and make the process a lot more uh straightforward
+straightforward so my first goal was to
+so my first goal was to when when you're setting up you
+when when you're setting up you obviously you get the content from maya
+obviously you get the content from maya you send it to the havoc filter manager
+you send it to the havoc filter manager where it does all the filtering stuff
+where it does all the filtering stuff and then that goes to the cloth setup
+and then that goes to the cloth setup tool now the filter manager
+tool now the filter manager um we were running some kind of specific
+um we were running some kind of specific stuff in there that i found we could
+stuff in there that i found we could really generalize and actually make a
+really generalize and actually make a template from if we were smart enough so
+template from if we were smart enough so this was this was a process that
+this was this was a process that you know was stopping us because we were
+you know was stopping us because we were doing generating content then jumping
+doing generating content then jumping into this filter manager and then you
+into this filter manager and then you know setting up the filters and then
+know setting up the filters and then exporting it
+exporting it to the cloth setup tool and then once
+to the cloth setup tool and then once again editing content so
+again editing content so the first thing i did was find a way to
+the first thing i did was find a way to genericize the template enough that
+genericize the template enough that boom i could remove that cloth sorry the
+boom i could remove that cloth sorry the filter manager and we could take our
+filter manager and we could take our content straight from maya into the
+content straight from maya into the cloth setup tool
+cloth setup tool i also developed a ui it's not a very
+i also developed a ui it's not a very fancy ui but it did its job
+fancy ui but it did its job which was uh i had it house all the
+which was uh i had it house all the tools that have it gave us uh so they
+tools that have it gave us uh so they were easily accessible so you can see
+were easily accessible so you can see there we have the mesh channels toolbox
+there we have the mesh channels toolbox and cloth collision toolbox we went over
+and cloth collision toolbox we went over earlier you could also launch the cloth
+earlier you could also launch the cloth setup tool the havoc visual debugger and
+setup tool the havoc visual debugger and the filter manager all from within this
+the filter manager all from within this tool and you could that nice big green
+tool and you could that nice big green button is when the one you wanted to
+button is when the one you wanted to press when you wanted to export or
+press when you wanted to export or update your file
+update your file and on the left here
+and on the left here to get the joints into havoc the way we
+to get the joints into havoc the way we wanted to we had to create selection
+wanted to we had to create selection sets and these uh selection sets
+sets and these uh selection sets were necessary because uh the methods
+were necessary because uh the methods that the other methods that the filter
+that the other methods that the filter manager had weren't always great at
+manager had weren't always great at capturing the exact joints we needed so
+capturing the exact joints we needed so we would pass them in
+we would pass them in uh with a selection set that was
+uh with a selection set that was selected on
+selected on uh export
+uh export we also had
+we also had our filter manager sorry our filter
+our filter manager sorry our filter export node so havoc has a habit of when
+export node so havoc has a habit of when you go to export
+you go to export basically going through every single
+basically going through every single node in the scene and
+node in the scene and that's a big problem when you have big
+that's a big problem when you have big scenes with lots of blend shapes and
+scenes with lots of blend shapes and lots of mesh and lots of proxy mesh and
+lots of mesh and lots of proxy mesh and uh
+uh would basically make her export times
+would basically make her export times huge so
+huge so the the first thing i could do here was
+the the first thing i could do here was like
+like make sure that it was only exporting
+make sure that it was only exporting what it needed so we just created a
+what it needed so we just created a filter set for that
+filter set for that unfortunately havoc doesn't have a
+unfortunately havoc doesn't have a support for um
+support for um doing two selection sets upon export so
+doing two selection sets upon export so i had to find another way to pass
+i had to find another way to pass information and it apparently the best
+information and it apparently the best thing i could come to was a visibility
+thing i could come to was a visibility toggle which if any of you use maya in
+toggle which if any of you use maya in any kind of frequent basis you'll know
+any kind of frequent basis you'll know that there's about five thousand ways to
+that there's about five thousand ways to hide and unhide uh nodes in the scene
+hide and unhide uh nodes in the scene so i had to write this very brute force
+so i had to write this very brute force method that went through every node in
+method that went through every node in the scene captured every possibility of
+the scene captured every possibility of its visibility state saved that then i
+its visibility state saved that then i had it the ones that weren't in the list
+had it the ones that weren't in the list and then exported and then restored the
+and then exported and then restored the state of them um but that's it was kind
+state of them um but that's it was kind of brute force but the the the benefit
+of brute force but the the the benefit of that was it cut down our export times
+of that was it cut down our export times dramatically because no longer we
+dramatically because no longer we passing the you know 50 60 70 blend
+passing the you know 50 60 70 blend shapes in the file
+so another one of our big challenges was to
+another one of our big challenges was to get the cloth on our playable characters
+get the cloth on our playable characters and since this was all dynamic we needed
+and since this was all dynamic we needed to test the clock while moving the
+to test the clock while moving the player to be able to test the motion on
+player to be able to test the motion on it
+it uh since the content had to be authored
+uh since the content had to be authored before export we needed the iteration
+before export we needed the iteration time to be as small as possible so it's
+time to be as small as possible so it's changing one small value caused an asset
+changing one small value caused an asset rebuild and if that meant reloading the
+rebuild and if that meant reloading the game or reloading the level every time
+game or reloading the level every time it was going to be really hard to create
+it was going to be really hard to create quality assets within a reasonable time
+quality assets within a reasonable time frame so we needed the updates to be
+frame so we needed the updates to be live so we worked with our core
+live so we worked with our core department our engine department to make
+department our engine department to make sure we could do this at run time
+sure we could do this at run time without massive reloads and this video
+without massive reloads and this video shows me changing the particle radius
+shows me changing the particle radius see i'm exporting it there and i'm now
+see i'm exporting it there and i'm now i'm waiting for it to come into game
+i'm waiting for it to come into game a second
+a second let's rebuild the asset
+boom so
+so that was a wee bit of a wait but that is
+that was a wee bit of a wait but that is nothing compared to reloading the game
+nothing compared to reloading the game and that was amazing for us our core
+and that was amazing for us our core team worked tirelessly to give us that
+team worked tirelessly to give us that feature because that meant that instead
+feature because that meant that instead of reloading a game every time we wanted
+of reloading a game every time we wanted to see a change we just press a button
+to see a change we just press a button and it would rebuild the asset and load
+and it would rebuild the asset and load it in
+so now we've made provence to our pipeline let's talk through some
+pipeline let's talk through some specific cloth examples we had
+specific cloth examples we had oops
+oops uh our first example was our full body
+uh our first example was our full body lab coats
+lab coats so
+so we knew we were going to need these
+we knew we were going to need these early on there was a pivotal scene early
+early on there was a pivotal scene early in the game where peo and pete
+in the game where peo and pete has the combination of the two peter and
+has the combination of the two peter and otto uh finally develop a working
+otto uh finally develop a working prototype for their prophetics research
+prototype for their prophetics research uh and we needed to showcase what we
+uh and we needed to showcase what we could do with the system so we knew the
+could do with the system so we knew the quality bar was high
+quality bar was high we you also meet uh oh at the beginning
+we you also meet uh oh at the beginning of the game and i knew peter was going
+of the game and i knew peter was going to be playable in these lab coats with
+to be playable in these lab coats with the challenge of creating real-time
+the challenge of creating real-time cloth for both cinematics and
+the complexity i gameplay to be able to share the setup between both gameplay
+share the setup between both gameplay and cinematics in hindsight while this
+and cinematics in hindsight while this was easier for us as an implementation
+was easier for us as an implementation it made for quite the challenge because
+it made for quite the challenge because the needs of each setup could be
+the needs of each setup could be dramatically different
+dramatically different so the first thing we did was we bought
+so the first thing we did was we bought a lab coat offline
+a lab coat offline online sorry and we looked at both
+online sorry and we looked at both official lab coats and costumes and we
+official lab coats and costumes and we ended up with this which was the closest
+ended up with this which was the closest we could get to our concept art and then
+we could get to our concept art and then we did a bunch of stuff like running
+we did a bunch of stuff like running around in it and
+around in it and you know doing some arm poses and
+you know doing some arm poses and whatnot
+whatnot uh we recorded some general movement and
+uh we recorded some general movement and you can see here
+you can see here our
+our fellow td
+fellow td bell modeling it for me because one the
+bell modeling it for me because one the quotes were looking like i was wearing
+quotes were looking like i was wearing some sort of bend bag
+some sort of bend bag and uh and i was nowhere near as buff as
+and uh and i was nowhere near as buff as peter so
+but this gave us a good starting point uh although we ended up going with a
+uh although we ended up going with a kind of heavier cloth and we also spot
+kind of heavier cloth and we also spot uh shot specific shot references so we
+uh shot specific shot references so we knew what poses we were going to hit
+knew what poses we were going to hit from our mocap and we knew we had a
+from our mocap and we knew we had a couple trickier ones that might be
+couple trickier ones that might be difficult to hit the fluff alone so we
+difficult to hit the fluff alone so we took some specific shots for that so
+took some specific shots for that so here's an example of one versus in the
+here's an example of one versus in the game
+game and from the other side as well
+and from the other side as well so here's some early screenshots of our
+so here's some early screenshots of our first tests as you can see here
+first tests as you can see here you know obviously needed some work but
+you know obviously needed some work but we started our sim from the pictorials
+we started our sim from the pictorials down and we simmed the sleeves as well
+down and we simmed the sleeves as well but we needed to do a ton of extra work
+but we needed to do a ton of extra work to kind of hit the quality bar that we
+to kind of hit the quality bar that we needed so
+needed so we dived into making some blend shapes
+we dived into making some blend shapes for it and as mentioned earlier we
+for it and as mentioned earlier we wanted some very specific shapes
+wanted some very specific shapes especially around the shoulders
+especially around the shoulders that weren't going to be possible with
+that weren't going to be possible with the real-time sim
+the real-time sim also because we weren't running on the
+also because we weren't running on the shoulders themselves so we developed two
+shoulders themselves so we developed two types of corrective shapes we developed
+types of corrective shapes we developed a generic system for bending the arm and
+a generic system for bending the arm and reaching the arms up and forward
+reaching the arms up and forward and we also developed very specific
+and we also developed very specific shapes that would come on
+shapes that would come on in very specific poses in cinematics
+in very specific poses in cinematics like this one
+so here's a small example of what these blend shapes look like in action and uh
+blend shapes look like in action and uh where and how we use them so you can see
+where and how we use them so you can see on the left we have our blind shapes on
+on the left we have our blind shapes on the right we don't have our blend shapes
+the right we don't have our blend shapes and that little debug ui there is the
+and that little debug ui there is the little is probably hard to read for you
+little is probably hard to read for you but a little orange and yellow entries
+but a little orange and yellow entries are the blend shapes triggering on and
+are the blend shapes triggering on and off and animating on and off for each uh
+off and animating on and off for each uh shot here
+oops
+so um for a finishing touch we weren't really we weren't able to get enough
+really we weren't able to get enough detail with just blend shapes or cloth i
+detail with just blend shapes or cloth i mean we'd already at this point doubled
+mean we'd already at this point doubled the resolution of our lab coats to get
+the resolution of our lab coats to get the silhouette on some specific shapes
+the silhouette on some specific shapes but it still wasn't cutting it so we
+but it still wasn't cutting it so we made use of our animated normal wrinkle
+made use of our animated normal wrinkle maps uh to get the detail we need we
+maps uh to get the detail we need we needed
+needed so you can see
+so you can see in this video here in our
+in this video here in our our tools
+our tools i'm animating that normal value up and
+i'm animating that normal value up and down and then in game on the right you
+down and then in game on the right you can see i have this custom attribute
+can see i have this custom attribute called ignum labcoat custom where we
+called ignum labcoat custom where we stored that texture map and actually
+stored that texture map and actually we
+we we assigned in the material at least one
+we assigned in the material at least one channel to cinematic textures where we
+channel to cinematic textures where we would swap them as we needed per shot
+finally one final hack can i had to do is her cloth didn't
+is her cloth didn't support
+support collision with the environment itself
+collision with the environment itself so
+so uh many of our rigs would include like a
+uh many of our rigs would include like a cloth collision plane which was
+cloth collision plane which was basically just a plane collider or some
+basically just a plane collider or some sort of ground plane uh and the actual
+sort of ground plane uh and the actual uh rig file itself that animators would
+uh rig file itself that animators would animate and our vanity vanity system uh
+animate and our vanity vanity system uh worked with cloth collisions so we were
+worked with cloth collisions so we were able to toggle this on and off
+able to toggle this on and off so here you can see it
+so here you can see it uh we generally turned it off for the
+uh we generally turned it off for the sleeves because the sleeves slightly
+sleeves because the sleeves slightly penetrating the table was better than
+penetrating the table was better than them completely freaking out because
+them completely freaking out because they were pinned between two colliders
+they were pinned between two colliders but we used that to shift the lab coats
+but we used that to shift the lab coats out of the way when they were bending
+out of the way when they were bending over and whatnot we use that in a bunch
+over and whatnot we use that in a bunch of places all across the game
+of places all across the game now you can see it he's easy
+now you can see it he's easy easy
+so let's move on to our second example which was uh suits
+which was uh suits so we had a lot of suits in the game
+so we had a lot of suits in the game like so many suits it's stupid
+like so many suits it's stupid uh mr negative was one of our biggest
+uh mr negative was one of our biggest villains or one of the big villains in
+villains or one of the big villains in the game and he needed to look the part
+the game and he needed to look the part he was smooth dressed and clean cut and
+he was smooth dressed and clean cut and that needed to be shown in these suits
+that needed to be shown in these suits we also had suits being used for all of
+we also had suits being used for all of these thugs as well as norman osborne
+these thugs as well as norman osborne so the big part of the suits was them to
+so the big part of the suits was them to actually hold their form especially when
+actually hold their form especially when characters lifted their arms right a
+characters lifted their arms right a good suit that's well tailored will hold
+good suit that's well tailored will hold its cut when you lift your arms
+its cut when you lift your arms so once again we dressed up per bell in
+so once again we dressed up per bell in a
+a suit and he
+suit and he modeled it for us and we took a bunch of
+modeled it for us and we took a bunch of reference footage of bending arms and
+reference footage of bending arms and lifting arms and we you know paid
+lifting arms and we you know paid attention to how
+attention to how the arms moved how the shoulders bunched
+the arms moved how the shoulders bunched and the arm before this reference
+and the arm before this reference you know we knew that
+you know we knew that it was going to be the same deal getting
+it was going to be the same deal getting this jacket to work we're going to need
+this jacket to work we're going to need additional
+additional uh you know work with both real-time
+uh you know work with both real-time cloth and blend shapes so here's an
+cloth and blend shapes so here's an early progress shot of
+early progress shot of us working on this is specifically
+us working on this is specifically bill's work on the train sequence
+bill's work on the train sequence with mr negative so that was a first
+with mr negative so that was a first pass you see the jacket isn't lifting at
+pass you see the jacket isn't lifting at all
+all um we do have real-time cloth swimming
+um we do have real-time cloth swimming though
+though uh secondary pass we wanted to get a
+uh secondary pass we wanted to get a little bit more movement out of that so
+little bit more movement out of that so you'll see
+you'll see it lifting a fair bit but we're still
+it lifting a fair bit but we're still not there yet shoulder shapes don't look
+not there yet shoulder shapes don't look you know as good as they could
+and finally what we shipped with with the shaders as well which made a
+with the shaders as well which made a big difference you can see that jacket
+big difference you can see that jacket opens all the way up looks awesome
+opens all the way up looks awesome took a lot of work
+so uh once again as i said we crafted some
+uh once again as i said we crafted some specific blend shapes and these were
+specific blend shapes and these were first simulated in a marvelous designer
+first simulated in a marvelous designer by our character artists and then we
+by our character artists and then we sculpted them
+sculpted them you know eternally to hit the shapes
+you know eternally to hit the shapes that we needed and this was a really
+that we needed and this was a really long process of a lot of back and forth
+long process of a lot of back and forth so there was no shortcut to this we just
+so there was no shortcut to this we just had to
+had to you know test it out see how it looks
+you know test it out see how it looks and send it back for for more tweaks
+and send it back for for more tweaks but on but luckily unlike the lab coats
+but on but luckily unlike the lab coats a lot of suits were mostly black or had
+a lot of suits were mostly black or had effects on them which meant uh it was
+effects on them which meant uh it was much more forgiving overall when we were
+much more forgiving overall when we were doing blend shapes
+so let's talk a little bit about how we made the suits left when their arms
+made the suits left when their arms lifted especially with the real-time
+lifted especially with the real-time cloth because the big issue was uh when
+cloth because the big issue was uh when you lift your arms if the real-time
+you lift your arms if the real-time cloth
+cloth mesh them doesn't move with it then it's
+mesh them doesn't move with it then it's going to mean remain sit at the hips and
+going to mean remain sit at the hips and it's going to collide if colliders no
+it's going to collide if colliders no longer sync up to where the mesh is so
+longer sync up to where the mesh is so we needed to have the two matching
+we needed to have the two matching so
+so first we had our rivet mesh so this was
+first we had our rivet mesh so this was the direct duplicate of our sim mesh
+the direct duplicate of our sim mesh and we would also have a series of cloth
+and we would also have a series of cloth control joints and there wasn't just
+control joints and there wasn't just four oops keep going
+four oops keep going uh there was more than that but
+uh there was more than that but you know this gives you the point and
+you know this gives you the point and these were uh driving the rivet mesh
+these were uh driving the rivet mesh with clusters smooth uh skinned a smooth
+with clusters smooth uh skinned a smooth gradient to the top and this stuff
+gradient to the top and this stuff doesn't go to game so it doesn't matter
+doesn't go to game so it doesn't matter that we were using clusters to control
+that we were using clusters to control it
+from there we also drove this rivet mesh with a bunch of other things because
+with a bunch of other things because this was all additive so they were being
+this was all additive so they were being driven by oops but
+driven by oops but fast there they were being driven by our
+fast there they were being driven by our core skeleton joints or pelvis spine
+core skeleton joints or pelvis spine joints they were skin it was skin to
+joints they were skin it was skin to that but also on top of that remember
+that but also on top of that remember those blend shapes we were last looking
+those blend shapes we were last looking at we're adding those two on top of that
+at we're adding those two on top of that so we gotta wrap the former uh match the
+so we gotta wrap the former uh match the rivet mesh to the blend shapes that we
+rivet mesh to the blend shapes that we were authoring and then applied them as
+were authoring and then applied them as blend shapes on top of that
+blend shapes on top of that and they were being driven directly by
+and they were being driven directly by the rig deformation controls themselves
+the rig deformation controls themselves so the rivet mesh was called as such
+so the rivet mesh was called as such because it had a bunch of joints stuck
+because it had a bunch of joints stuck to it with oops rivet or point on
+to it with oops rivet or point on surface
+surface nodes or however you would like to drive
+nodes or however you would like to drive it but basically it was driving a bunch
+it but basically it was driving a bunch of
+of nodes underneath it
+nodes underneath it and those nodes were skinned to our
+and those nodes were skinned to our cloths and mesh so now our cloths and
+cloths and mesh so now our cloths and mesh
+mesh would go into game
+would go into game not only with animator adjustments but
+not only with animator adjustments but with any movement from the blend shapes
+with any movement from the blend shapes so our collision could stay accurate
+so our collision could stay accurate uh and that cloth sun mesh
+uh and that cloth sun mesh was obviously been simmed by havoc
+was obviously been simmed by havoc being sent uh was driving a bunch of
+being sent uh was driving a bunch of cloth joints
+cloth joints from that which were skin to our render
+from that which were skin to our render mesh
+mesh so looking at that we had two things
+so looking at that we had two things feeding into our engine we had our cloth
+feeding into our engine we had our cloth control joints that were skinned to the
+control joints that were skinned to the cloth sim mesh
+cloth sim mesh and we had
+and we had our joints that were driven by the
+our joints that were driven by the cloths and mesh being skinned to the
+cloths and mesh being skinned to the render mesh and those were both been
+render mesh and those were both been sent to engine
+sent to engine so if you look at it as a whole it's not
+so if you look at it as a whole it's not too bad pretty clever way of getting our
+too bad pretty clever way of getting our blend shapes on our our cloth set up
+blend shapes on our our cloth set up because inherently havoc didn't support
+because inherently havoc didn't support blend shapes onto some meshes
+so uh another thing was is we had this wind
+another thing was is we had this wind effect if the video would play
+hang on
+sorry guys i don't know why that one's not playing
+not playing um
+um we had a wind effect which was a
+we had a wind effect which was a rippling on the suit and this was
+rippling on the suit and this was generated by a series of oops i see a
+generated by a series of oops i see a play button
+play button no
+no no
+no why would it tease me like that
+these are all in one big mega slide thing so it's probably got messed up
+thing so it's probably got messed up somewhere
+somewhere sorry about that but um yeah they were
+sorry about that but um yeah they were offered with uh noisy blend shapes so we
+offered with uh noisy blend shapes so we basically just added the noise
+basically just added the noise multiplier onto a series of blend shapes
+multiplier onto a series of blend shapes and they were there was about 12 of them
+and they were there was about 12 of them and it would just cycle through them all
+and it would just cycle through them all and this gave a rippling effect on the
+and this gave a rippling effect on the jacket itself
+jacket itself this was different to spider-man's suit
+this was different to spider-man's suit because
+because uh
+uh that was done by animating normals
+that was done by animating normals however because the suits were so dark
+however because the suits were so dark normal animation would be lost so we had
+normal animation would be lost so we had to create like a moving surface to get
+to create like a moving surface to get the wind rippling effect
+the wind rippling effect and after this we tuned our shapes and
+and after this we tuned our shapes and behavior in the cloth ties and sleeves
+behavior in the cloth ties and sleeves all that stuff to get the weight and
+all that stuff to get the weight and dampening of the cloth feeling correct
+dampening of the cloth feeling correct so if all these three elements which
+so if all these three elements which were blend shapes driving the sim
+were blend shapes driving the sim real-time cloth and corrective blend
+real-time cloth and corrective blend shapes uh helped sell the look of the
+shapes uh helped sell the look of the suit jackets in spider-man
+suit jackets in spider-man so our final example is mj and i
+so our final example is mj and i mentioned mj earlier in the setup so
+mentioned mj earlier in the setup so let's go over particulars so once again
+let's go over particulars so once again she had her hair
+she had her hair her scarf her outer jacket and inner
+her scarf her outer jacket and inner jacket
+jacket also meant to be playing a video
+also meant to be playing a video um
+um yes sorry these separate elements had
+yes sorry these separate elements had their challenges uh
+their challenges uh but the biggest issue was that again we
+but the biggest issue was that again we had no cloth to cloth collision built in
+had no cloth to cloth collision built in so we had to be very careful with our
+so we had to be very careful with our limits and use collision capsules
+limits and use collision capsules smartly to make sure we didn't have
+smartly to make sure we didn't have cloth clipping issues for us i mean in
+cloth clipping issues for us i mean in cloth that was our biggest hurdle right
+cloth that was our biggest hurdle right if you've played spider-man
+if you've played spider-man uh a big
+uh a big part of our challenge was we didn't want
+part of our challenge was we didn't want cloth clipping and you might notice a
+cloth clipping and you might notice a lot of other games the cloth semi clips
+lot of other games the cloth semi clips all over the place and they kind of just
+all over the place and they kind of just don't care what happens and we didn't
+don't care what happens and we didn't want that for our believable world so uh
+want that for our believable world so uh to avoid this as much as we could we
+to avoid this as much as we could we built a lot of cloth scenarios that
+built a lot of cloth scenarios that would avoid those kind of or cloth
+would avoid those kind of or cloth setups that would avoid those kind of
+setups that would avoid those kind of scenarios
+scenarios so uh here's an example this is really
+so uh here's an example this is really not working today
+not working today uh another moving video i'm afraid
+uh another moving video i'm afraid here's an example of the same meshes on
+here's an example of the same meshes on the left and the behavior and game on
+the left and the behavior and game on the right
+the right so
+you can see all the different sim meshes we have her hair we have the ponytail we
+we have her hair we have the ponytail we have the scarf the inner and outer
+have the scarf the inner and outer jacket
+jacket and much like our other setups we used a
+and much like our other setups we used a series of blend shapes to enhance the
+series of blend shapes to enhance the shoulder and elbow shapes on mj's jacket
+shoulder and elbow shapes on mj's jacket but on top of that she had the layer
+but on top of that she had the layer jacket and not only that with mj's
+jacket and not only that with mj's crouching position
+crouching position it would often get caught between her
+it would often get caught between her her torso and her legs
+her torso and her legs so
+so some games avoid that trap by like
+some games avoid that trap by like modelling the legs to fall to the side
+modelling the legs to fall to the side but we didn't want to do that we didn't
+but we didn't want to do that we didn't want to compromise
+want to compromise so
+so uh what we did was we
+uh what we did was we i had to
+i had to have a concession where i did give in
+have a concession where i did give in and give animators controls and they'd
+and give animators controls and they'd use them to pause the the the mesh the
+use them to pause the the the mesh the sun mesh out of the way so that it would
+sun mesh out of the way so that it would naturally fall to the sides instead of
+naturally fall to the sides instead of being caught
+being caught between the torso and the legs when
+between the torso and the legs when first simming
+first simming and we actually did sim the two separate
+and we actually did sim the two separate layers of the jacket because i could
+layers of the jacket because i could have sent put them in one sem but then
+have sent put them in one sem but then and skinned them maybe differently but i
+and skinned them maybe differently but i would have risked clipping especially
+would have risked clipping especially how close the layers were
+how close the layers were but this wouldn't have got such
+but this wouldn't have got such realistic behavior so the main trick
+realistic behavior so the main trick from for this was to make sure that the
+from for this was to make sure that the inner layer had very very strict
+inner layer had very very strict distance limitations
+distance limitations that meant that it couldn't really
+that meant that it couldn't really escape this very tight cone of
+escape this very tight cone of forward-back behavior but had some nice
+forward-back behavior but had some nice side-to-side motion
+and this is really not good for me right now
+once again this the the scarf was overall was a
+this the the scarf was overall was a fairly similar setup however
+fairly similar setup however the side to side motion
+the side to side motion we wanted to limit it because the jacket
+we wanted to limit it because the jacket was on either side of the scarf
+was on either side of the scarf so
+so to do this we added small colliders
+to do this we added small colliders parented to mj's test chest to keep it
+parented to mj's test chest to keep it within a small range
+within a small range however we didn't want to reduce the
+however we didn't want to reduce the overall range of her scarf because
+overall range of her scarf because she bent over a lot and if we did that
+she bent over a lot and if we did that we would hit a wall
+we would hit a wall so uh
+so uh by adding two colliders on the side of
+by adding two colliders on the side of the scarf that parented to her chest we
+the scarf that parented to her chest we kept it in this very
+kept it in this very narrow area which allowed it to have a
+narrow area which allowed it to have a lot of forward motion but no side to
+lot of forward motion but no side to side to avoid all the clipping that came
+side to avoid all the clipping that came with that
+and once again
+yeah the same with the ponytail we md wore it in a
+with the ponytail we md wore it in a variety of outfits however it would have
+variety of outfits however it would have to work with each outfit so we didn't
+to work with each outfit so we didn't want to double this up by like you know
+want to double this up by like you know duplicating the sim mesh and the geomesh
+duplicating the sim mesh and the geomesh out
+out so we tried to coax it within a range of
+so we tried to coax it within a range of using colliders not only that but we
+using colliders not only that but we when we needed to to limit the side to
+when we needed to to limit the side to side motion we couldn't
+side motion we couldn't actually constrain it with colliders on
+actually constrain it with colliders on the head because it would look really
+the head because it would look really weird if she turned her head very fast
+weird if she turned her head very fast so
+so and eventually we've what we did instead
+and eventually we've what we did instead was we lengthened the sim mesh way past
+was we lengthened the sim mesh way past the point of the sim and widened it a
+the point of the sim and widened it a ton and this prevented it from twisting
+ton and this prevented it from twisting and getting caught between her shoulders
+and getting caught between her shoulders and her neck
+and her neck so you can see
+oh no this must be an old version or something
+okay guys this is real bad i'm sorry um
+um there were some scenarios as well where
+there were some scenarios as well where so yeah this was the picture of the
+so yeah this was the picture of the setup and then there were some scenarios
+setup and then there were some scenarios as well of uh mg jumping from
+as well of uh mg jumping from the
+the top of the penthouse where this scenario
+top of the penthouse where this scenario we couldn't we couldn't do
+we couldn't we couldn't do because we had to
+because we had to um we had to create a unique setup
+um we had to create a unique setup and we didn't have time for that so at
+and we didn't have time for that so at this point we just gave it to the
+this point we just gave it to the animators and they did it with cloth
+animators and they did it with cloth controls entirely
+controls entirely so
+so let's get on to some nitty gritty with
+let's get on to some nitty gritty with havoc's best practices
+havoc's best practices um
+um this is more specific to havoc itself
+this is more specific to havoc itself but since this is what we're offering
+but since this is what we're offering with i'm i thought it'd be good to share
+with i'm i thought it'd be good to share the knowledge here
+the knowledge here uh there was a lot of learning curves
+uh there was a lot of learning curves for us on this so i just want to make
+for us on this so i just want to make sure um
+sure um you know spread the knowledge so
+you know spread the knowledge so first of all mess of gravity despite how
+first of all mess of gravity despite how wrong it feels
+wrong it feels so we know gravity to be this fixed
+so we know gravity to be this fixed number but actually in havoc
+number but actually in havoc we used it a lot to
+we used it a lot to [Music]
+[Music] basically cheat whether things were
+basically cheat whether things were heavier or lighter and even though it
+heavier or lighter and even though it felt so so wrong it worked so so right
+we also used the bone driven method so that we could have thickness on our mesh
+that we could have thickness on our mesh as as talked about earlier
+as as talked about earlier we turned on motion transfer which was
+we turned on motion transfer which was an attribute on the cloth for playable
+an attribute on the cloth for playable characters and if you play games and you
+characters and if you play games and you stop a character in a dime usually
+stop a character in a dime usually there's a lot of overlap or sorry
+there's a lot of overlap or sorry overshoot on the the sim where it goes
+overshoot on the the sim where it goes crazy because it's velocity is coming to
+crazy because it's velocity is coming to a complete halt so um the motion
+a complete halt so um the motion transfer and havoc's cloth allows uh
+transfer and havoc's cloth allows uh basically puts a limit on the velocity
+basically puts a limit on the velocity it can achieve so that when you stop a
+it can achieve so that when you stop a character on a dime the cloth doesn't
+character on a dime the cloth doesn't overshoot and go like super fast it just
+overshoot and go like super fast it just settles back down and this worked really
+settles back down and this worked really well for us so that you know when a
+well for us so that you know when a player was flicking the stick back and
+player was flicking the stick back and forth the cloth not only
+forth the cloth not only behaved realistically but didn't like go
+behaved realistically but didn't like go through all our colliders and make us
+through all our colliders and make us all cry for all of our hard work getting
+all cry for all of our hard work getting destroyed by players once again
+destroyed by players once again so and then we use mass to weigh things
+so and then we use mass to weigh things down but a caveat to this is it needs to
+down but a caveat to this is it needs to be painted
+be painted having the mass attribute is you know
+having the mass attribute is you know changing that static attitude attribute
+changing that static attitude attribute doesn't do anything mass needs context
+doesn't do anything mass needs context so you need to have that painted on the
+so you need to have that painted on the mesh itself
+mesh itself um
+and then soft gradients rocks so i just most of my skinning and most of my or
+most of my skinning and most of my or rather most of my attributes i painted i
+rather most of my attributes i painted i usually just painted 50
+usually just painted 50 you know solid 50
+you know solid 50 like filled and not filled and then i
+like filled and not filled and then i would just smooth between the two
+would just smooth between the two without selecting the top top loops and
+without selecting the top top loops and that literally got me 99 of the behavior
+that literally got me 99 of the behavior so i just use soft gradients all over
+so i just use soft gradients all over the place
+the place and here's some more uh
+and here's some more uh stuff specific to the
+stuff specific to the [Music]
+[Music] the collider the constraints themselves
+the collider the constraints themselves so havoc has a series of constraints
+so havoc has a series of constraints it's kind of overwhelming sometimes so
+it's kind of overwhelming sometimes so here's some good ones the standards and
+here's some good ones the standards and stretch link constraints were always on
+stretch link constraints were always on our set up standard link basically made
+our set up standard link basically made the cloth you know
+the cloth you know like constrain the particles to each
+like constrain the particles to each other uh and the stretch link made it so
+other uh and the stretch link made it so that it wouldn't stretch out super super
+that it wouldn't stretch out super super long
+long we use bent length and pen stiffness to
+we use bent length and pen stiffness to add stiffness uh usually in slightly
+add stiffness uh usually in slightly different ways
+different ways volume constraint tried to take the
+volume constraint tried to take the cloth back to how it was in bind but it
+cloth back to how it was in bind but it was overall expensive and it didn't
+was overall expensive and it didn't really get as results we liked so we
+really get as results we liked so we tended to avoid it
+tended to avoid it bone particle angles and blown bone
+bone particle angles and blown bone global plane could be used to constrain
+global plane could be used to constrain a stem within a predefined area kind of
+a stem within a predefined area kind of look a lot like distance
+look a lot like distance um
+um but it was a nice alternative if you
+but it was a nice alternative if you didn't want to mess around with your
+didn't want to mess around with your distance attribute because you'd got
+distance attribute because you'd got that working the way you'd like
+that working the way you'd like and overall uh these were the areas that
+and overall uh these were the areas that are actually marked in red are the areas
+are actually marked in red are the areas that we would tend to sim so we would
+that we would tend to sim so we would avoid complex articulation areas which
+avoid complex articulation areas which were the thigh and the hips
+were the thigh and the hips the you know ankles shoulders especially
+the you know ankles shoulders especially the neck uh we try to keep things in
+the neck uh we try to keep things in this area to avoid over complicating
+this area to avoid over complicating things
+things and uh
+and uh for our sum mesh
+for our sum mesh uh
+uh you know the instinct is to get your
+you know the instinct is to get your mesh and then create an average mesh
+mesh and then create an average mesh which is you know between the two
+which is you know between the two between the outer and inner shell of
+between the outer and inner shell of your mesh but actually we just we found
+your mesh but actually we just we found out that if you kept on the inside of
+out that if you kept on the inside of the mesh
+the mesh uh if there was any thickness there
+uh if there was any thickness there wasn't any guesswork when it came to
+wasn't any guesswork when it came to collidables because if you use the
+collidables because if you use the middle of the mesh
+middle of the mesh then there would be some arbitrary
+then there would be some arbitrary distance between your cloth and your
+distance between your cloth and your collision capsules that was challenging
+collision capsules that was challenging to account for so remove the guesswork
+to account for so remove the guesswork and make the sim mesh on the inside so
+and make the sim mesh on the inside so it's closest to your collision capsules
+it's closest to your collision capsules speaking of collision capsules uh
+speaking of collision capsules uh there's so there's custom collision
+there's so there's custom collision capsules and there's
+capsules and there's standard capsules and i found that we
+standard capsules and i found that we got smoother results by layering up
+got smoother results by layering up multiple collision capsules versus
+multiple collision capsules versus custom collision objects so even for an
+custom collision objects so even for an oddly shaped thing like a torso i would
+oddly shaped thing like a torso i would use a series of multiple collision
+use a series of multiple collision capsules
+capsules instead of a custom shape
+instead of a custom shape some very rough napkin math
+some very rough napkin math uh this is my own math
+uh this is my own math uh so it's probably totally wrong but
+uh so it's probably totally wrong but it made it seem like it took up to six
+it made it seem like it took up to six collision capsules to make the cost of
+collision capsules to make the cost of one single collision
+one single collision custom collision shape so
+custom collision shape so i tended to stick with the capsules
+i tended to stick with the capsules themselves and also
+themselves and also there was i found that there was
+there was i found that there was jittering or
+jittering or harsh transitions if i went from if
+harsh transitions if i went from if a sim mesh slid over a collision capsule
+a sim mesh slid over a collision capsule and went to a custom
+and went to a custom collision mesh
+collision mesh uh and so the rounder the capsules were
+uh and so the rounder the capsules were also the less likely they were to create
+also the less likely they were to create big lumps or oddities in the sim itself
+big lumps or oddities in the sim itself also we talked a little bit earlier
+also we talked a little bit earlier about kind of nailing down your sim mesh
+about kind of nailing down your sim mesh this is there's differences between the
+this is there's differences between the high and low resolution meshes
+high and low resolution meshes so because they had a behavioral link
+so because they had a behavioral link right the higher
+right the higher the resolution the more salty the cloth
+the resolution the more salty the cloth the lower the resolution the more stiff
+the lower the resolution the more stiff the cloth felt
+the cloth felt um
+you have to be really careful with this one because
+one because there was a
+there was a there were some areas where we uh
+there were some areas where we uh started with a mesh did a lot of work on
+started with a mesh did a lot of work on it realized that we actually had to
+it realized that we actually had to increase the resolution of the mesh
+increase the resolution of the mesh because the collisions the collision
+because the collisions the collision capsules were
+capsules were kind of sliding through the mesh at
+kind of sliding through the mesh at certain points and we did that we had to
+certain points and we did that we had to rebalance pretty much everything because
+rebalance pretty much everything because the behavior was completely changed so
+the behavior was completely changed so try and nail down your smesh resolution
+try and nail down your smesh resolution before you're doing other iterations on
+before you're doing other iterations on it otherwise you're um
+it otherwise you're um causing yourself a ton of rework down
+causing yourself a ton of rework down there down the line later if you decide
+there down the line later if you decide to change it
+to change it so now that we've got some tips and
+so now that we've got some tips and tricks covered uh what else can you do
+tricks covered uh what else can you do well if you're lucky enough like us at
+well if you're lucky enough like us at insomniac you might have an in-house
+insomniac you might have an in-house engine team and you might want to get
+engine team and you might want to get yourself some extra features so
+yourself some extra features so out of the box havoc was able to get us
+out of the box havoc was able to get us a lot but we still needed our engine our
+a lot but we still needed our engine our extra engine support and luckily this is
+extra engine support and luckily this is where our awesome core team came in so
+where our awesome core team came in so the first thing they did was they
+the first thing they did was they removed cinematic cloth pop and you may
+removed cinematic cloth pop and you may have seen that in other games where
+have seen that in other games where you go into a cutscene and all the cloth
+you go into a cutscene and all the cloth like was crazy and then settles for a
+like was crazy and then settles for a second and this usually happens because
+second and this usually happens because a character is teleporting in space and
+a character is teleporting in space and the cloth is accelerating at like
+the cloth is accelerating at like infinite miles per hour and it finally
+infinite miles per hour and it finally stops
+stops and it freaks out so
+and it freaks out so we had our core engineers work
+we had our core engineers work tirelessly to remove that by basically
+tirelessly to remove that by basically pausing the cloth sim when we were
+pausing the cloth sim when we were transporting characters and
+transporting characters and giving them a couple of frames to settle
+giving them a couple of frames to settle before we went into a cinematic
+um also as a side note it's really great
+also as a side note it's really great having an in-house engine team they get
+having an in-house engine team they get to directly interface with and give
+to directly interface with and give feedbacks and questions too so i just
+feedbacks and questions too so i just want to say or ask questions so i just
+want to say or ask questions so i just want to say thank you to our core team
+want to say thank you to our core team as well
+as well they also added on events for turning on
+they also added on events for turning on and off cloth when we needed it
+and off cloth when we needed it so there was as i said there's points in
+so there was as i said there's points in the game we needed to disable it and
+the game we needed to disable it and they added events that supported that
+they added events that supported that and as well as that they added some kind
+and as well as that they added some kind of real-time events for us to adjust
+of real-time events for us to adjust gravity and dampening on the fly because
+gravity and dampening on the fly because there was a couple of instances in the
+there was a couple of instances in the game where no matter how we tried we
+game where no matter how we tried we couldn't get a cloth to a cloth set up
+couldn't get a cloth to a cloth set up to behave how we wanted and like a
+to behave how we wanted and like a single shot and
+single shot and rather than completely duplicate the
+rather than completely duplicate the setup and swap it out
+setup and swap it out uh for a single shot
+uh for a single shot core gave us the ability to have
+core gave us the ability to have custom custom stuff that we could then
+custom custom stuff that we could then alter at runtime
+alter at runtime so what we're finding
+so what we're finding it was
+it was cloth realtime cloth was great for
+cloth realtime cloth was great for overall movement
+and detail could be added with blend shapes and normal maps
+shapes and normal maps it was good uh for oh sorry it was good
+it was good uh for oh sorry it was good to give animator control so despite my
+to give animator control so despite my want for not make burdening animators
+want for not make burdening animators with any kind of animator cloth controls
+with any kind of animator cloth controls it still came in handy and we really
+it still came in handy and we really still needed it in quite a few
+still needed it in quite a few circumstances because you know when we
+circumstances because you know when we needed that we really really needed it
+needed that we really really needed it it requires a lot of iteration so be
+it requires a lot of iteration so be prepared to spend a lot of time on
+prepared to spend a lot of time on polish
+polish and uh some behavior changes have
+and uh some behavior changes have knock-on effects so when you think
+knock-on effects so when you think you're just gonna adjust a small thing
+you're just gonna adjust a small thing like the radius or say the
+like the radius or say the the dampening of of a setup it can
+the dampening of of a setup it can completely throw all your other finely
+completely throw all your other finely tuned
+tuned attributes out of whack so
+attributes out of whack so be cautious of that
+be cautious of that and how can we improve going forward
+and how can we improve going forward so we'd love to be able to have more
+so we'd love to be able to have more real-time iterations so instead of
+real-time iterations so instead of outputting the cloth stuff to a
+outputting the cloth stuff to a data file and then loading that in being
+data file and then loading that in being able to adjust cloth real time on the
+able to adjust cloth real time on the fly would be amazing because
+fly would be amazing because uh
+uh you know it would give us more instant
+you know it would give us more instant debugging and feedback and we could
+debugging and feedback and we could alter properties it will to see what
+alter properties it will to see what kind of effects they were having on the
+kind of effects they were having on the behavior
+behavior it'd be nice to have better debug
+it'd be nice to have better debug display and feedback uh this was a big
+display and feedback uh this was a big problem for us as covered earlier and
+problem for us as covered earlier and been able to support that with more
+been able to support that with more stuff rendered an engine on top of her
+stuff rendered an engine on top of her characters would have would be really
+characters would have would be really useful going forward and also swappable
+useful going forward and also swappable cloth profiles so we usually had one
+cloth profiles so we usually had one cloth profile per character and if we
+cloth profile per character and if we had to
+had to change that for a character we had to
+change that for a character we had to duplicate
+duplicate uh the setup or the entire asset itself
+uh the setup or the entire asset itself and the ability to swap out cloth
+and the ability to swap out cloth profiles on the fly would be awesome
+profiles on the fly would be awesome because if we really like to set up on a
+because if we really like to set up on a particular scene we could save that out
+particular scene we could save that out and then know that it's always going to
+and then know that it's always going to behave on that particular scene and then
+behave on that particular scene and then iterate with on other scenes without
+iterate with on other scenes without damaging the work we did on the previous
+damaging the work we did on the previous scene
+scene so in conclusion
+so in conclusion uh
+uh did we deliver on a promise i believe we
+did we deliver on a promise i believe we did we made some amazing realistic and
+did we made some amazing realistic and believable cloth
+believable cloth uh and but not only that but it was
+uh and but not only that but it was abundant it was everywhere cloth was on
+abundant it was everywhere cloth was on our enemies it was in the characters you
+our enemies it was in the characters you you you talked to the npcs and our vast
+you you talked to the npcs and our vast cast of main characters as well across
+cast of main characters as well across the glance or depot we had around 70
+the glance or depot we had around 70 different assets with active real-time
+different assets with active real-time cloth and that doesn't include all the
+cloth and that doesn't include all the separate setups inside the models
+separate setups inside the models themselves as well as the fact that for
+themselves as well as the fact that for example our inner demon thug faction was
+example our inner demon thug faction was one model entirely so
+one model entirely so having that times 70 was pretty crazy
+having that times 70 was pretty crazy and we all did we did this with our
+and we all did we did this with our small and versatile rigging team there
+small and versatile rigging team there was no one on the team that was solely
+was no one on the team that was solely dedicated to cloth we all you know did
+dedicated to cloth we all you know did our part and made a little bit
+our part and made a little bit uh for the game
+uh for the game and so while we were at it we improved
+and so while we were at it we improved our cloth pipeline and tools a lot so
+our cloth pipeline and tools a lot so our engine team worked with us to give
+our engine team worked with us to give us the best results and whether it it's
+us the best results and whether it it's removing cloth pops or better and
+removing cloth pops or better and quicker reloads
+quicker reloads uh from start to end the project of the
+uh from start to end the project of the project the pipeline was transformed
+project the pipeline was transformed i also helped streamline the content
+i also helped streamline the content side as i removed as much room for error
+side as i removed as much room for error as i could and made our content pipeline
+as i could and made our content pipeline much more straightforward and perhaps
+much more straightforward and perhaps finally this is subjective but i believe
+finally this is subjective but i believe we made some of the best real-time cloth
+we made some of the best real-time cloth ever developed especially on such a
+ever developed especially on such a large scale open moral game
+large scale open moral game well we pushed the bar and the the tech
+well we pushed the bar and the the tech for real-time cloth and for that i'm
+for real-time cloth and for that i'm proud of us in their entire team
+proud of us in their entire team insomniac
+and that is me speaking of we are hiring if you wish to join us
+we are hiring if you wish to join us i am ready to take questions and i
+i am ready to take questions and i apologize for the mishaps and the
+apologize for the mishaps and the presentation you can reach me also at
+presentation you can reach me also at twitter my dm is waffles
+so i meant to say my handle is waffles and dms are always open but you know
+and dms are always open but you know whatever
+do you have time for questions i have a question for you yep sure
+i have a question for you yep sure fantastic presentation great job sophie
+fantastic presentation great job sophie i'm on my second playthrough of your
+i'm on my second playthrough of your game and absolutely love it thank you uh
+game and absolutely love it thank you uh seems like you put a lot of work into
+seems like you put a lot of work into working around weaknesses and
+working around weaknesses and deficiencies in havoc yes and i'm
+deficiencies in havoc yes and i'm curious if you could go back and choose
+curious if you could go back and choose it seems like that choice was made
+it seems like that choice was made before you started yeah did you choose
+before you started yeah did you choose to use havoc again or on your next
+to use havoc again or on your next project
+project would you use havoc again or try
+would you use havoc again or try something else
+something else i mean we're always open to looking at
+i mean we're always open to looking at improving our pipeline but we have
+improving our pipeline but we have invested a lot in making havoc work for
+invested a lot in making havoc work for us a lot better so it also
+us a lot better so it also makes sense to keep using it there also
+makes sense to keep using it there also isn't a lot of other alternatives out
+isn't a lot of other alternatives out there and to develop your own cloth
+there and to develop your own cloth in-house which i know a lot of other
+in-house which i know a lot of other studios do is a really really big
+studios do is a really really big undertaking so that's something we'd
+undertaking so that's something we'd have to evaluate at a company-wide level
+have to evaluate at a company-wide level whether or not it's worth pursuing that
+whether or not it's worth pursuing that but for us i mean our process has
+but for us i mean our process has massively changed since the beginning of
+massively changed since the beginning of the project to the end and i wouldn't
+the project to the end and i wouldn't want that work to be wasted at the same
+want that work to be wasted at the same time
+time but thank you it was a good question
+but thank you it was a good question okay i have a question um great job um
+okay i have a question um great job um that was pretty amazing uh and
+that was pretty amazing uh and i was just curious about the so the
+i was just curious about the so the pipeline from the sim cloth to the
+pipeline from the sim cloth to the joints do you have like an average of
+joints do you have like an average of how many joints
+how many joints we're talking about
+we're talking about uh it really depended on the setup but
+uh it really depended on the setup but like
+like i don't know i'm trying to think about
+i don't know i'm trying to think about it here or lab coats because they were
+it here or lab coats because they were simulated from the
+simulated from the the
+the the kind of chest level down i think we
+the kind of chest level down i think we had like
+maybe like eight chains of eight joints so two
+eight chains of eight joints so two chains of each one yeah it was that when
+chains of each one yeah it was that when we added cloth to a model it was no like
+we added cloth to a model it was no like small thing like there had to be a lot
+small thing like there had to be a lot of resolution on the cloth and the cloth
+of resolution on the cloth and the cloth joints uh to get the kind of results we
+joints uh to get the kind of results we needed um i don't i don't think we there
+needed um i don't i don't think we there was a couple of simulations where we
+was a couple of simulations where we kind of went
+kind of went like
+like over that with uh i think rio she wears
+over that with uh i think rio she wears like her her entire top is simmed and i
+like her her entire top is simmed and i think in that one we have a vertex
+think in that one we have a vertex vertice story per
+vertice story per uh
+uh joint per vertex on this mesh yeah
+joint per vertex on this mesh yeah because because it was a full body thing
+because because it was a full body thing uh we wanted to be as accurate as
+uh we wanted to be as accurate as possible but yeah for most of it it was
+possible but yeah for most of it it was a series of chains of joints and uh it
+a series of chains of joints and uh it really depended on the complexity of the
+really depended on the complexity of the set up how many joints we put in there
+set up how many joints we put in there but it was always it was always quite a
+but it was always it was always quite a lot it was always more than the body rig
+lot it was always more than the body rig itself wow
+itself wow yeah thank you
+hey there amazing talk thank you very much uh quick question could you maybe
+much uh quick question could you maybe please elaborate a bit on the on how you
+please elaborate a bit on the on how you actually manage to eliminate the problem
+actually manage to eliminate the problem of a
+of a cloth popping whenever a character is
+cloth popping whenever a character is teleported or a cut scene starts or
+teleported or a cut scene starts or whatever
+whatever oh so that would be much more of a
+oh so that would be much more of a question for engineers
+question for engineers but as far as i was aware they were um
+but as far as i was aware they were um basically pausing the sim telling the
+basically pausing the sim telling the sim to stop evaluating before they knew
+sim to stop evaluating before they knew a character was going to teleport they'd
+a character was going to teleport they'd teleport the character so the sim would
+teleport the character so the sim would be unaware that the character had moved
+be unaware that the character had moved and then they'd always give it a couple
+and then they'd always give it a couple of seconds to settle a couple of frames
+of seconds to settle a couple of frames sorry before the the the cinematic to
+sorry before the the the cinematic to let the sim settle into place in its new
+let the sim settle into place in its new pose because usually not only was it a
+pose because usually not only was it a teleport but it was also a pose change
+teleport but it was also a pose change uh
+uh that being said we made sure that a lot
+that being said we made sure that a lot of our cloth when we were doing dramatic
+of our cloth when we were doing dramatic teleports on our characters animation
+teleports on our characters animation had to match the pose from
+had to match the pose from uh
+uh from
+from between the moves because
+between the moves because if they match the pose then it was
+if they match the pose then it was much less likely to cause any kind of
+much less likely to cause any kind of popping issues as well so it was a
+popping issues as well so it was a little bit of content uh changes we had
+little bit of content uh changes we had to do and also
+to do and also changes uh on the engine to make sure
+changes uh on the engine to make sure that it was it was smooth
+that it was it was smooth thank you
+hey hello hi there i'm here
+hi there i'm here thank you for your talk i was curious if
+thank you for your talk i was curious if you
+you used the same techniques for environment
+used the same techniques for environment art like
+art like flags or maybe
+flags or maybe curtains and did you if you did
+curtains and did you if you did did you have any kind of interaction
+did you have any kind of interaction with other region bodies
+with other region bodies uh so as far as i'm aware all of our
+uh so as far as i'm aware all of our like flags and things in the background
+like flags and things in the background were all vertex animation so they were
+were all vertex animation so they were all
+all uh pre-simmed and then cashed out into
+uh pre-simmed and then cashed out into like olympic caches or something similar
+like olympic caches or something similar like that
+like that and then
+and then they also because of that didn't have
+they also because of that didn't have any kind of
+any kind of real-time physics running on them so
+real-time physics running on them so they didn't have any kind of need for
+they didn't have any kind of need for reacting with other collidables or other
+reacting with other collidables or other interactive objects they were usually
+interactive objects they were usually out of the way but the player couldn't
+out of the way but the player couldn't get at them anyways
+get at them anyways okay thank you thank you thank you
+okay thank you thank you thank you hi um i was wondering given your current
+hi um i was wondering given your current setup and how you're hoping to move
+setup and how you're hoping to move forward how realistic would be to add
+forward how realistic would be to add removing cloth or putting on a shirt
+removing cloth or putting on a shirt sorry the question was do you think
+sorry the question was do you think you'll soon be able to like put on one
+you'll soon be able to like put on one of those like the suits or remove it or
+of those like the suits or remove it or have a character interact with it oh you
+have a character interact with it oh you mean like a
+mean like a like a disrobing scene or something like
+like a disrobing scene or something like that
+that no
+no no i mean so we had instances like that
+no i mean so we had instances like that with our with um
+with our with um specifically a couple of points peter
+specifically a couple of points peter pulls off his mask in the game
+pulls off his mask in the game and uh those were often a mix of sims
+and uh those were often a mix of sims and maya and also animator
+and maya and also animator animators animating to have
+animators animating to have like cloth removal scenes like
+like cloth removal scenes like especially real time like i feel like
+especially real time like i feel like that it would be such a challenge that
+that it would be such a challenge that it wouldn't make sense to do it in real
+it wouldn't make sense to do it in real time you'd probably want it because
+time you'd probably want it because usually it's for a cinematic instance
+usually it's for a cinematic instance so you'd probably want to you know do
+so you'd probably want to you know do that with big simulations because you
+that with big simulations because you have a lot more control over the
+have a lot more control over the situation
+situation at that time
+at that time and there's a lot more solutions out
+and there's a lot more solutions out there for that
+there for that thank you thank you
+quite quite often when you simulate clothes especially in real time you have
+clothes especially in real time you have this jiggly motion
+this jiggly motion from just not enough iterations or
+from just not enough iterations or low resolution
+low resolution and the usual way to to solve it is
+and the usual way to to solve it is apply drug and
+apply drug and drag and air resistance and i noticed
+drag and air resistance and i noticed that in your videos
+that in your videos there is a fair amount of drag i'm
+there is a fair amount of drag i'm wondering if you hit the point when the
+wondering if you hit the point when the artists wanted you to remove the drag
+artists wanted you to remove the drag but at the same time
+but at the same time keep
+keep cloth feeling dense
+cloth feeling dense so that it doesn't
+so that it doesn't fall like this but rather fall like this
+fall like this but rather fall like this yes yes and if so then
+yes yes and if so then what were your solutions well so first
+what were your solutions well so first of all we were the artists in this case
+of all we were the artists in this case we were the ones authoring the cloth and
+we were the ones authoring the cloth and uh
+uh and usually providing feedback on the
+and usually providing feedback on the cloth
+cloth um
+um i would say that we did sacrifice
+i would say that we did sacrifice behavior a lot of the time for
+behavior a lot of the time for the ability for
+the ability for for the fact that we didn't want it to
+for the fact that we didn't want it to clip
+clip and um because of that it meant that
+and um because of that it meant that like a lot of our cloth setups could be
+like a lot of our cloth setups could be quite restricted and generally i settled
+quite restricted and generally i settled on getting behavior that meant that the
+on getting behavior that meant that the cloth was much more
+cloth was much more um
+um stable
+stable than than trying to tune it for a
+than than trying to tune it for a specific type of behavior so
+specific type of behavior so in the instance of like drag like
+in the instance of like drag like a lot of time i don't know if i'd pay
+a lot of time i don't know if i'd pay like as much attention to that as i was
+like as much attention to that as i was just making sure that it didn't go
+just making sure that it didn't go through the legs or whatever because
+through the legs or whatever because especially if your character's wearing
+especially if your character's wearing like black pants and you've got a white
+like black pants and you've got a white lab coat and it goes straight through
+lab coat and it goes straight through like for me that is instantly much more
+like for me that is instantly much more noticeable and uh takes care of the
+noticeable and uh takes care of the experience more than it not behaving
+experience more than it not behaving like one to one as it should
+like one to one as it should so and there are in instances where we
+so and there are in instances where we didn't have to worry about collision i'm
+didn't have to worry about collision i'm sure we would play with the behavior of
+sure we would play with the behavior of the cloth a lot more but
+the cloth a lot more but definitely we were we were accounting
+definitely we were we were accounting for um keeping the
+for um keeping the not breaking the realism uh of uh
+not breaking the realism uh of uh clipping stuff over anything else
+clipping stuff over anything else of course thank you yep cheers
+thanks for a great presentation um i'm wondering how much did you have to use
+wondering how much did you have to use events in the cutscenes to control the
+events in the cutscenes to control the cloth
+cloth not that much so a lot of that like
+not that much so a lot of that like my approach to doing cloth was
+my approach to doing cloth was make sure that the base is as good as i
+make sure that the base is as good as i get it and we
+get it and we like those things can quickly scale out
+like those things can quickly scale out of control uh and like
+of control uh and like if you altered the behavior in a scene
+if you altered the behavior in a scene then if you made changes to the base
+then if you made changes to the base cloth it wasn't additive or wouldn't
+cloth it wasn't additive or wouldn't didn't wouldn't take that into account
+didn't wouldn't take that into account so it was kind of like a permanent
+so it was kind of like a permanent change to the cloth
+change to the cloth so we always tried to solve the solution
+so we always tried to solve the solution it solved the cloth at the root rather
+it solved the cloth at the root rather than then use the
+than then use the the events that would affect in runtime
+the events that would affect in runtime and uh this is mainly just because
+and uh this is mainly just because yeah like that that that stuff gets wear
+yeah like that that that stuff gets wear out of hand way fast and i'd rather have
+out of hand way fast and i'd rather have a solid core solution than be patching
+a solid core solution than be patching things all over the place
+things all over the place yeah and if you were teleporting a
+yeah and if you were teleporting a character like within a cutscene
+character like within a cutscene were that
+were that did your system
+did your system solve that as well did you have to
+solve that as well did you have to specify like now the character is
+specify like now the character is teleporting we had flags we had flags
+teleporting we had flags we had flags that that we would set on characters to
+that that we would set on characters to say this character is teleporting and
+say this character is teleporting and please apply this kind of behavior on
+please apply this kind of behavior on them so yeah okay cool cheers
+hi uh you said that you were missing in-game
+you said that you were missing in-game debug for the
+debug for the growth yep
+growth yep visualization
+visualization was it hard to do for the core team i i
+was it hard to do for the core team i i don't know
+don't know if how
+if how uh
+uh has the possibility or or the api for
+has the possibility or or the api for for for doing some
+for for doing some some things like that
+some things like that so the question was uh we lacked debug
+so the question was uh we lacked debug information and
+information and oh sorry
+oh sorry were you gonna say something else
+were you gonna say something else oh so we lacked information debug
+oh so we lacked information debug information and the the engine and was
+information and the the engine and was was this hard to add for core and it was
+was this hard to add for core and it was less of this would have been hard to add
+less of this would have been hard to add for core and that like our core team is
+for core and that like our core team is uh amazing but they are always like
+uh amazing but they are always like planned
+planned way ahead in advance and um
+way ahead in advance and um you know
+you know pitching for their time uh is you you
+pitching for their time uh is you you have to have like a pretty strong case
+have to have like a pretty strong case and we were able to work around the
+and we were able to work around the constraints we were given given that
+constraints we were given given that however uh af now this project is done
+however uh af now this project is done our core team has is taking time into
+our core team has is taking time into adding debug information into our engine
+adding debug information into our engine and they are kind of trying to give us
+and they are kind of trying to give us those features now but it was one of
+those features now but it was one of those things that came online as we were
+those things that came online as we were making the game and you know we didn't
+making the game and you know we didn't we
+we our core team just just couldn't give
+our core team just just couldn't give the time at the time there was much more
+the time at the time there was much more pressing issues to solve
+pressing issues to solve and we had workarounds for it okay so it
+and we had workarounds for it okay so it wasn't a limitation in havoc but no no
+wasn't a limitation in havoc but no no no but it was something that our core
+no but it was something that our core team would definitely have to build
+team would definitely have to build themselves like havoc allow it has api
+themselves like havoc allow it has api you know hooks to let you do that it
+you know hooks to let you do that it just they need to write it and we just
+just they need to write it and we just didn't have the time scope for that
+didn't have the time scope for that thank you cheers
+thank you cheers hi sophie uh fantastic presentation i'm
+hi sophie uh fantastic presentation i'm sorry to keep you a very quick one would
+sorry to keep you a very quick one would you worry too much about a character say
+you worry too much about a character say for example if you had a car to the cape
+for example if you had a car to the cape and it would fall for ledge would you
+and it would fall for ledge would you worry too much about that
+worry too much about that clipping in to the platform that's just
+clipping in to the platform that's just falling off for example uh so
+falling off for example uh so the the so the question was if we had a
+the the so the question was if we had a character for cape were we worried about
+character for cape were we worried about the cape clipping until edge well
+the cape clipping until edge well most of our characters didn't have cloth
+most of our characters didn't have cloth that long
+that long at least playable characters so
+at least playable characters so for example the only one i think that
+for example the only one i think that had cloth that long was maybe sable and
+had cloth that long was maybe sable and sable was always in cinematics
+sable was always in cinematics uh at least in the base game so
+uh at least in the base game so you know we we just had to make sure the
+you know we we just had to make sure the cinematic was kind of planned around
+cinematic was kind of planned around that and that we accounted for that as
+that and that we accounted for that as well and if for example she was going to
+well and if for example she was going to jump over a ledge and the cloth was
+jump over a ledge and the cloth was going to catch we would make sure that
+going to catch we would make sure that actually happens by adding in some sort
+actually happens by adding in some sort of collider object but yeah
+of collider object but yeah it would be nice to get also collision
+it would be nice to get also collision with the environment as well
+with the environment as well but
+but for our purposes like that was needed so
+for our purposes like that was needed so rarely that we were able to animate it
+rarely that we were able to animate it with colliders and the files themselves
+with colliders and the files themselves thank you very much
+thank you very much cheers thank you
+sales we're good time out all right we're done thank you

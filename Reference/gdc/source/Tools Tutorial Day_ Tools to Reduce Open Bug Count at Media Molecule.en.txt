@@ -1,0 +1,1277 @@
+[Music] hello my name is Amy Phillips I am a
+hello my name is Amy Phillips I am a tools programmer at Media Molecule and
+tools programmer at Media Molecule and today I would like to tell you about the
+today I would like to tell you about the tools that we've written to keep the
+tools that we've written to keep the number of open bugs low so firstly why
+number of open bugs low so firstly why do you want less open bugs well because
+do you want less open bugs well because if you are being stopped from working by
+if you are being stopped from working by bugs you're not getting on with the fun
+bugs you're not getting on with the fun bit of making games and we all want to
+bit of making games and we all want to do the kind of creative bit and so if we
+do the kind of creative bit and so if we can keep the number of bugs low we can
+can keep the number of bugs low we can all get on with the core bit so what
+all get on with the core bit so what we've done is connect a bunch of
+we've done is connect a bunch of off-the-shelf tools together by writing
+off-the-shelf tools together by writing a bit of bespoke code but using other
+a bit of bespoke code but using other people's stuff as well which means that
+people's stuff as well which means that we get the advantages of writing our own
+we get the advantages of writing our own stuff because we're quite a small team
+stuff because we're quite a small team we don't have the time to write entirely
+we don't have the time to write entirely our own stuff a little bit about dreams
+our own stuff a little bit about dreams it is a user-generated content game it's
+it is a user-generated content game it's kind of like LittleBigPlanet only much
+kind of like LittleBigPlanet only much much much more so so you can sculpt
+much much more so so you can sculpt things you can then stamp them down to
+things you can then stamp them down to make an environment you can add a
+make an environment you can add a character to that environment and then
+character to that environment and then you can completely change the character
+you can completely change the character so you can like Reese Culp your
+so you can like Reese Culp your character you can animate your character
+character you can animate your character you can animate the environment as well
+you can animate the environment as well you can add in sound effects you can
+you can add in sound effects you can create your own music so it's a really
+create your own music so it's a really cool creative sandbox and everything
+cool creative sandbox and everything that we're shipping the dream so we're
+that we're shipping the dream so we're shipping like a game with dreams
+shipping like a game with dreams everything that were shipping we're
+everything that were shipping we're making within dreams so it means that
+making within dreams so it means that our code has to be really stable
+our code has to be really stable otherwise the level designers the
+otherwise the level designers the artists the audio people can't do any
+artists the audio people can't do any work so Media Molecule we've got about
+work so Media Molecule we've got about 50 employees and in the tools Department
+50 employees and in the tools Department there's me I do two days a week there's
+there's me I do two days a week there's Daniel kidney he's five days a week and
+Daniel kidney he's five days a week and we've recently gained Alex Parker
+we've recently gained Alex Parker who also works full-time so we've been
+who also works full-time so we've been to one point four programmers and went
+to one point four programmers and went out to two point four programmers so we
+out to two point four programmers so we really want to get lots of bang for our
+really want to get lots of bang for our buck in terms of these tools and also
+buck in terms of these tools and also because Media Molecule is a very flat
+because Media Molecule is a very flat hierarchy it means that any tool that we
+hierarchy it means that any tool that we make has to improve people's lives
+make has to improve people's lives significantly otherwise they're not
+significantly otherwise they're not going to bother to use it so the tools
+going to bother to use it so the tools I'm talking about today are in regular
+I'm talking about today are in regular use in our studio so they've proved that
+use in our studio so they've proved that they are useful so I'm going to show you
+they are useful so I'm going to show you a video of dreams this is our trailer
+a video of dreams this is our trailer video to give you a better idea of what
+video to give you a better idea of what we're making
+we're making [Music]
+[Music] Treena
+Treena [Music]
+the old fears they still haunt me [Music]
+- no way
+and our awake
+we'll have faced the worst parts of myself I need to listen to that quiet
+myself I need to listen to that quiet noise
+noise me
+to make something again we'll make it me and you
+[Music] [Applause]
+sorry my poor laptop was really struggling to play that video right so
+struggling to play that video right so what I'm going to do is give you a quick
+quick go around the lifecycle of a bug telling you a little bit about the tools
+telling you a little bit about the tools that we've got and then after that so
+that we've got and then after that so you'll know kind of where they fit and
+you'll know kind of where they fit and then after that I'll go into a bit more
+then after that I'll go into a bit more detail so if anything doesn't make any
+detail so if anything doesn't make any sense then don't worry it will probably
+sense then don't worry it will probably be explained in more detail later and if
+be explained in more detail later and if not there's questions at the end oh and
+not there's questions at the end oh and also you will be emailed an evaluation
+also you will be emailed an evaluation form please fill it in I was supposed to
+form please fill it in I was supposed to say that at the beginning so we start
+say that at the beginning so we start off a bug gets written and it gets
+off a bug gets written and it gets checked in so now it's gone orange
+checked in so now it's gone orange because it's now starting to affect
+because it's now starting to affect programmers it's not as far as the
+programmers it's not as far as the artists the designers and the audio
+artists the designers and the audio people but it will be stopping
+people but it will be stopping programmers from working so our first
+programmers from working so our first line of defense is Autobot which is our
+line of defense is Autobot which is our automated testing system and I'll tell
+automated testing system and I'll tell you a bit more about how that works and
+you a bit more about how that works and what we've done to make the flow of bugs
+what we've done to make the flow of bugs smooth and to help QA to put all the
+smooth and to help QA to put all the information into the bugs from Autobot
+information into the bugs from Autobot then I'm going to talk about our next
+then I'm going to talk about our next line of defense which is QA so when they
+line of defense which is QA so when they find a bug what have we done to help
+find a bug what have we done to help them to report that bug make sure all
+them to report that bug make sure all the information is accurate and to
+the information is accurate and to attach information without having to
+attach information without having to faff around like copying screenshots
+faff around like copying screenshots from like one folder to another we try
+from like one folder to another we try and make everything one button click so
+and make everything one button click so it's really simple you don't get any
+it's really simple you don't get any mistakes and you don't waste time which
+mistakes and you don't waste time which then frees QA up to kind of break our
+then frees QA up to kind of break our game in new and inventive ways rather
+game in new and inventive ways rather than just kind of going through the
+than just kind of going through the boilerplate stuff
+boilerplate stuff so if a bug gets past Autobot gets past
+so if a bug gets past Autobot gets past QA and then it gets into the build that
+QA and then it gets into the build that gets deployed and starts to stop our
+gets deployed and starts to stop our level designers from working so that's
+level designers from working so that's where it gets to that red state and I'm
+where it gets to that red state and I'm going to tell you about the report a bug
+going to tell you about the report a bug button that we've added to a Chrome
+button that we've added to a Chrome extension so that level designers can
+extension so that level designers can very easily report a bug and we can make
+very easily report a bug and we can make sure that the information they report is
+sure that the information they report is accurate then when the bug gets assigned
+accurate then when the bug gets assigned out by production we've already attached
+out by production we've already attached all sorts of information to it to make
+all sorts of information to it to make productions life easier and to make sure
+productions life easier and to make sure that the bug goes to the right person
+that the bug goes to the right person straight away so we don't have bugs kind
+straight away so we don't have bugs kind of bouncing around and not being fixed
+of bouncing around and not being fixed because they haven't reached the right
+because they haven't reached the right person so for example in a bug will have
+person so for example in a bug will have the assert message will have the
+the assert message will have the programmer who added the assert will
+programmer who added the assert will have the call stack will have a link to
+have the call stack will have a link to recap which will have a core dump it'll
+recap which will have a core dump it'll have the tty it'll have a video of the
+have the tty it'll have a video of the last 60 seconds before the game crashed
+last 60 seconds before the game crashed it'll have the perforce revision of the
+it'll have the perforce revision of the build that the bug was seen on so you
+build that the bug was seen on so you know kind of which build it should repo
+know kind of which build it should repo on so if we can get as much information
+on so if we can get as much information in there as possible it means that
+in there as possible it means that productions job is easier when farming
+productions job is easier when farming the bugs out then when the bug gets
+the bugs out then when the bug gets assigned out to a programmer or a level
+assigned out to a programmer or a level designer I'll talk about the tools that
+designer I'll talk about the tools that we've written to help them to repo the
+we've written to help them to repo the bug including my favorite button in JIRA
+bug including my favorite button in JIRA which is in one button press it will
+which is in one button press it will replay the replay on your dev kit and it
+replay the replay on your dev kit and it will repro the bug for you so you don't
+will repro the bug for you so you don't have to follow through like step-by-step
+have to follow through like step-by-step instructions or anything it's just one
+instructions or anything it's just one button press and it repros on your
+button press and it repros on your decade then when you fixed the bug we've
+decade then when you fixed the bug we've got some more tools to help you to check
+got some more tools to help you to check that you've fixed it check that you
+that you've fixed it check that you haven't broken anything else whilst
+haven't broken anything else whilst doing the fix then once you've checked
+doing the fix then once you've checked in your fix more tools for QA to verify
+in your fix more tools for QA to verify the fix and of course it goes back
+the fix and of course it goes back through
+through our automated testing system to check
+our automated testing system to check that nothing else got broken on the way
+that nothing else got broken on the way and then job done you've deployed a new
+and then job done you've deployed a new build everyone can now work again and
+build everyone can now work again and create cool stuff so starting off with
+create cool stuff so starting off with Autobot which is our automated testing
+Autobot which is our automated testing system it runs after every check-in so
+system it runs after every check-in so you check your code in Jenkins notices
+you check your code in Jenkins notices that there's new code does it build
+that there's new code does it build Autobot notices that there's a new build
+Autobot notices that there's a new build and runs a suite of tests on that build
+and runs a suite of tests on that build and it checks for asserts crashes hangs
+and it checks for asserts crashes hangs checks for out of syncs not on numbers
+checks for out of syncs not on numbers and some logic errors so it runs each
+and some logic errors so it runs each test twice to check for out of syncs the
+test twice to check for out of syncs the first time around it dumps out a bunch
+first time around it dumps out a bunch of sync points second time around it
+of sync points second time around it compares with the sync points so you
+compares with the sync points so you know immediately if your deterministic
+know immediately if your deterministic game code is not actually deterministic
+game code is not actually deterministic anymore
+anymore so it takes about between 10 and 20
+so it takes about between 10 and 20 minutes to run our smoke test we found
+minutes to run our smoke test we found that keeping it under 20 minutes is the
+that keeping it under 20 minutes is the the sweet spot between making sure that
+the sweet spot between making sure that you get enough coverage but also making
+you get enough coverage but also making sure that you're not rolling too many
+sure that you're not rolling too many revisions into each test so you can use
+revisions into each test so you can use easily tell which check-in it was that
+easily tell which check-in it was that broke something and also making sure
+broke something and also making sure that programmers get immediate feedback
+that programmers get immediate feedback on the stuff that they've checked in
+on the stuff that they've checked in because you want your head still to be
+because you want your head still to be in the same space of the the code that
+in the same space of the the code that you've just checked in and when you go
+you've just checked in and when you go back to fix something if there are
+back to fix something if there are issues with it so once it runs the test
+issues with it so once it runs the test oh yes it also runs some more in-depth
+oh yes it also runs some more in-depth tests overnight because we're not
+tests overnight because we're not checking in as much overnight we've got
+checking in as much overnight we've got some larger suites that test like
+some larger suites that test like sculpting in depth and we've got some
+sculpting in depth and we've got some more detailed out-of-sync tests so if
+more detailed out-of-sync tests so if something is flagged as being out of
+something is flagged as being out of sync in the smoke test it gets added to
+sync in the smoke test it gets added to the out of sync test which then dumps
+the out of sync test which then dumps out a lot more information about what it
+out a lot more information about what it was that went out of sync and because
+was that went out of sync and because it's less busy over night we can just
+it's less busy over night we can just doesn't matter about the whole 20 minute
+doesn't matter about the whole 20 minute limit we can just add in loads of tests
+limit we can just add in loads of tests results are emailed out so the email
+results are emailed out so the email goes to QA it goes to the tools team and
+goes to QA it goes to the tools team and it goes to anyone who checks something
+it goes to anyone who checks something in that was included in that build so
+in that was included in that build so you get to check whether you've broken
+you get to check whether you've broken something or whether your code has has
+something or whether your code has has all passed so here is the top of the
+all passed so here is the top of the email and you can see from the subject
+email and you can see from the subject line that I summarized what the
+line that I summarized what the differences were because programmers are
+differences were because programmers are not going to read all their emails
+not going to read all their emails they're not even going to open all their
+they're not even going to open all their emails so if you've broken something you
+emails so if you've broken something you need it to be really obvious from the
+need it to be really obvious from the subject line so you get that a surplus
+subject line so you get that a surplus one there's an extra cert and then when
+one there's an extra cert and then when you open the email there's a more wordy
+you open the email there's a more wordy description of what it was you broke so
+description of what it was you broke so in this case there's a new assert
+in this case there's a new assert message but it broke 88 tests which is
+message but it broke 88 tests which is like nearly half of the tests so you've
+like nearly half of the tests so you've clearly broken something really quite
+clearly broken something really quite important I need to fix it and then
+important I need to fix it and then there's a link to the assert messages
+there's a link to the assert messages section where you can scroll down and
+section where you can scroll down and get more information so I'm just going
+get more information so I'm just going to kind of nip through this you probably
+to kind of nip through this you probably can't see it but I like describe it to
+can't see it but I like describe it to you so firstly you've got a new picture
+you so firstly you've got a new picture so you can easily see what the new thing
+so you can easily see what the new thing was ie this is something you broke you
+was ie this is something you broke you get the call stack you get the assert
+get the call stack you get the assert message you get the programmer who added
+message you get the programmer who added the assert you get a list at the bottom
+the assert you get a list at the bottom of all of the replays that failed this
+of all of the replays that failed this test and included there is the command
+test and included there is the command line that we you would use in Visual
+line that we you would use in Visual Studio to repro exactly what Autobot ran
+Studio to repro exactly what Autobot ran to make it easy to reprint fix and you
+to make it easy to reprint fix and you also get a summary of the last five
+also get a summary of the last five results so you can see color coded when
+results so you can see color coded when it broke and you can also see a list of
+it broke and you can also see a list of the changes that went in to that build
+the changes that went in to that build who checked them in and if you click on
+who checked them in and if you click on the link it takes you to a swarm page
+the link it takes you to a swarm page which tells you what files got checked
+which tells you what files got checked in and it shows you the disk of those
+in and it shows you the disk of those files so in this case it's run out of
+files so in this case it's run out of GPU long memory and you would have a
+GPU long memory and you would have a look through those three revisions that
+look through those three revisions that got checked in and see who was using
+got checked in and see who was using more of that memory and then go and nag
+more of that memory and then go and nag them to fix it and by the new button
+them to fix it and by the new button occasionally there's also a JIRA button
+occasionally there's also a JIRA button cause I look up in JIRA to see if
+cause I look up in JIRA to see if there's an existing bug for this and it
+there's an existing bug for this and it looks like based on a cert message and
+looks like based on a cert message and based on call stack but with the line
+based on call stack but with the line numbers stripped out because they tend
+numbers stripped out because they tend to change and that's a clickable link so
+to change and that's a clickable link so if there's a JIRA bug then you can click
+if there's a JIRA bug then you can click on it go to the bug engineer read a bit
+on it go to the bug engineer read a bit more information
+more information fix it market fixed so that's the email
+fix it market fixed so that's the email the results are also viewable via a web
+the results are also viewable via a web UI so the email is more useful for
+UI so the email is more useful for programmers the web UI is more designed
+programmers the web UI is more designed for QA to use and they can filter the
+for QA to use and they can filter the results they can sort the results they
+results they can sort the results they can see kind of what it was that failed
+can see kind of what it was that failed about the results but we've added some
+about the results but we've added some some interesting buttons to the web UI
+some interesting buttons to the web UI so there's the JIRA button that you can
+so there's the JIRA button that you can see there that orange and blue one and
+see there that orange and blue one and that as with the email it goes off to
+that as with the email it goes off to JIRA looks to see if there exists a bug
+JIRA looks to see if there exists a bug if there does and the bug is assigned
+if there does and the bug is assigned out to a programmer so it's in the right
+out to a programmer so it's in the right state it's going to get fixed hopefully
+state it's going to get fixed hopefully soon QA don't need to do anything about
+soon QA don't need to do anything about it then that JIRA button is blue
+it then that JIRA button is blue if the JIRA button is orange like in
+if the JIRA button is orange like in this one that means that the bug is not
+this one that means that the bug is not in the right state so either someone's
+in the right state so either someone's marked it as fixed and it's not fixed or
+marked it as fixed and it's not fixed or it hasn't been assigned out to a
+it hasn't been assigned out to a programmer so QA need to click on that
+programmer so QA need to click on that button go to JIRA and make sure that the
+button go to JIRA and make sure that the bug ends up in the right state so that
+bug ends up in the right state so that it can then be fixed if there is no bug
+it can then be fixed if there is no bug in JIRA for the issue then you get the
+in JIRA for the issue then you get the red bug button
+red bug button and that brings up the JIRA create issue
+and that brings up the JIRA create issue screen and it pre-fills a whole load of
+screen and it pre-fills a whole load of information basically all the
+information basically all the information that we've got out of
+information that we've got out of Autobot we try and pre-fill it into the
+Autobot we try and pre-fill it into the bug to save QA time and to save them
+bug to save QA time and to save them copying and pasting stuff around so it
+copying and pasting stuff around so it will attach the replay it will mark
+will attach the replay it will mark which revision it was seen in it will
+which revision it was seen in it will put in the assert message it will insert
+put in the assert message it will insert the programmer who added the assert
+the programmer who added the assert because in perforce you can go and look
+because in perforce you can go and look up who added a particular line of code
+up who added a particular line of code so that gives production a good idea of
+so that gives production a good idea of who to start with when they're assigning
+who to start with when they're assigning it out it will also do a link to recap
+it out it will also do a link to recap so recap is a Sony server where you can
+so recap is a Sony server where you can upload core dumps and you can upload
+upload core dumps and you can upload your symbols and it will give you a web
+your symbols and it will give you a web interface for browsing those core dumps
+interface for browsing those core dumps and you can see the call stack and you
+and you can see the call stack and you can see the TTY and you can upload like
+can see the TTY and you can upload like the last 60 seconds of video so we
+the last 60 seconds of video so we upload all of our crashes and asserts to
+upload all of our crashes and asserts to recap and then we put a link in the bug
+recap and then we put a link in the bug to recap so that programmers can click
+to recap so that programmers can click on it can see very easily the call stack
+on it can see very easily the call stack and can easily see what went wrong there
+and can easily see what went wrong there is also the launch button and the launch
+is also the launch button and the launch button takes the replay and launches it
+button takes the replay and launches it on your dev kit on your test kit on
+on your dev kit on your test kit on whatever build you're running so it
+whatever build you're running so it doesn't have to be like a build running
+doesn't have to be like a build running from Visual Studio you could be running
+from Visual Studio you could be running a package build and this will still
+a package build and this will still launch that replay on your build so you
+launch that replay on your build so you can have a look at the replay
+can have a look at the replay and check that it's doing what you think
+and check that it's doing what you think it's doing so one of our early problems
+it's doing so one of our early problems with the automated testing system was
+with the automated testing system was that we were replaying a replay and by
+that we were replaying a replay and by the way a replay is an initial state
+the way a replay is an initial state plus a bunch of inputs which can then be
+plus a bunch of inputs which can then be rerun and you get the same thing
+rerun and you get the same thing and inputs would be controller inputs it
+and inputs would be controller inputs it would be like any text that you've input
+would be like any text that you've input any inputs into the system so you would
+any inputs into the system so you would if you were replaying a replay you would
+if you were replaying a replay you would expect to get the same end state as well
+expect to get the same end state as well but say for example you had a replay
+but say for example you had a replay where you were stamping down like five
+where you were stamping down like five cubes and you were stamping them down
+cubes and you were stamping them down using the trigger button because that
+using the trigger button because that was the button at the time then you've
+was the button at the time then you've recorded you replay Autobot is running
+recorded you replay Autobot is running it everything's happy then a bit later
+it everything's happy then a bit later someone changes the button mappings so
+someone changes the button mappings so now stamp is not on the trigger anymore
+now stamp is not on the trigger anymore it's on X and your replay is still
+it's on X and your replay is still running it's not asserting it's not
+running it's not asserting it's not crashing Autobot thinks that everything
+crashing Autobot thinks that everything is good but actually it's not testing
+is good but actually it's not testing what you thought it was testing it's not
+what you thought it was testing it's not stamping down the cubes anymore so our
+stamping down the cubes anymore so our first attempt at trying to detect this
+first attempt at trying to detect this was dumping out the game state as Jason
+was dumping out the game state as Jason at the end and then we would do a diff
+at the end and then we would do a diff so we'd have a control run where someone
+so we'd have a control run where someone had watched the replay and said yes it's
+had watched the replay and said yes it's doing the right thing and we would store
+doing the right thing and we would store the Jason game States after that and
+the Jason game States after that and then for every subsequent run on later
+then for every subsequent run on later builds we would diff the Jason game
+builds we would diff the Jason game State and so you would be able to see if
+State and so you would be able to see if it had changed but it turns out that's
+it had changed but it turns out that's quite brittle because people add things
+quite brittle because people add things into the game state they take them out
+into the game state they take them out things move around and a diff of a
+things move around and a diff of a chastened game state is not very useful
+chastened game state is not very useful to a QA person to know whether a replay
+to a QA person to know whether a replay is doing the right thing so our next
+is doing the right thing so our next attempt was screenshots and you can see
+attempt was screenshots and you can see up on screen you get a screenshot from
+up on screen you get a screenshot from the end of the control run and then you
+the end of the control run and then you get a screenshot from the end of this
+get a screenshot from the end of this run that's just run and a human can very
+run that's just run and a human can very easily look at those two screenshots and
+easily look at those two screenshots and see yes it did do the same thing it's
+see yes it did do the same thing it's put down the same gadgets everything's
+put down the same gadgets everything's in the same place so this replay has
+in the same place so this replay has completed successfully and we don't do
+completed successfully and we don't do like a binary compare of those
+like a binary compare of those screenshots because they are actually
+screenshots because they are actually different by our sky rendering is not
+different by our sky rendering is not deterministic the UI for the PAL
+deterministic the UI for the PAL has changed the thermometer has changed
+has changed the thermometer has changed slightly but to a human eye you can see
+slightly but to a human eye you can see that it's done the right thing and so it
+that it's done the right thing and so it means that QA can just scroll through
+means that QA can just scroll through the results and check by eye that it's
+the results and check by eye that it's doing the right thing which saves a huge
+doing the right thing which saves a huge amount of time because we did have one
+amount of time because we did have one poor guy poor getting used to have to
+poor guy poor getting used to have to press the launch button and watch the
+press the launch button and watch the replays on a regular basis to check that
+replays on a regular basis to check that they were doing the right thing so then
+they were doing the right thing so then that frees him up to again do more
+that frees him up to again do more creative braking of our game rather than
+creative braking of our game rather than the kind of boilerplate stuff we
+the kind of boilerplate stuff we recently added some performance stuff so
+recently added some performance stuff so Alex Parker who joined us recently has
+Alex Parker who joined us recently has added in some performance tracking but
+added in some performance tracking but it's very much kind of work in progress
+it's very much kind of work in progress we're hoping that we'll be able to pick
+we're hoping that we'll be able to pick up when we have spikes in the framerate
+up when we have spikes in the framerate for example and be able to see exactly
+for example and be able to see exactly which revision those came in at so how
+which revision those came in at so how does it all fit together from a tech
+does it all fit together from a tech perspective we have a MySQL database
+perspective we have a MySQL database which we use to store which tests we
+which we use to store which tests we have and which tests run as part of
+have and which tests run as part of which suite so I what replays get run if
+which suite so I what replays get run if you run a smoke test what replays get
+you run a smoke test what replays get run if you run like a more in-depth
+run if you run like a more in-depth sculpt that kind of thing so that's in
+sculpt that kind of thing so that's in the database and we also store the
+the database and we also store the results of each run in the database we
+results of each run in the database we use a django web UI on top of that which
+use a django web UI on top of that which then means that QA can add in new
+then means that QA can add in new replays they can browse the results and
+replays they can browse the results and it means they don't have to do database
+it means they don't have to do database queries it puts it all into a nice
+queries it puts it all into a nice clickable web UI for QA so it means that
+clickable web UI for QA so it means that QA have complete control and I don't
+QA have complete control and I don't have to do anything to maintain it which
+have to do anything to maintain it which is excellent so to run the actual tests
+is excellent so to run the actual tests we have some Python scripts so Django
+we have some Python scripts so Django uses Python so we wrote the rest in
+uses Python so we wrote the rest in Python so that we could share code we've
+Python so that we could share code we've got a script that watches for new build
+got a script that watches for new build and puts in test requests we've got
+and puts in test requests we've got another script that grabs the test
+another script that grabs the test request
+request since each replay off to a dev kit with
+since each replay off to a dev kit with the relevant elf it gets back the
+the relevant elf it gets back the results it pauses the TTY it puts the
+results it pauses the TTY it puts the results into the database and then we
+results into the database and then we have a third script that cleans up after
+have a third script that cleans up after everything else so this system generates
+everything else so this system generates a huge amount of data and we don't want
+a huge amount of data and we don't want to make IT cry so we have to delete the
+to make IT cry so we have to delete the results after a day or two we delete the
+results after a day or two we delete the screenshots from the runs after a few
+screenshots from the runs after a few days we have to kind of go in there and
+days we have to kind of go in there and clean things up now all of this used to
+clean things up now all of this used to be on one box and that was when we had
+be on one box and that was when we had so 5 6 dev kits in the wall of dev kits
+so 5 6 dev kits in the wall of dev kits and it was all kind of ticking along ok
+and it was all kind of ticking along ok until we got up to like 9 10 11 dev kits
+until we got up to like 9 10 11 dev kits and then it all went horribly wrong
+and then it all went horribly wrong because we were using Orbis control to
+because we were using Orbis control to launch our tests which is a tool from
+launch our tests which is a tool from Sony that takes your tests and launches
+Sony that takes your tests and launches it on a dev kit and that was using 5% of
+it on a dev kit and that was using 5% of CPU for each test that it was running so
+CPU for each test that it was running so when you've got like 9 10 dev kits
+when you've got like 9 10 dev kits that's 50% your CPU gone Network
+that's 50% your CPU gone Network neighborhood took another 30% so
+neighborhood took another 30% so basically the tests were running and we
+basically the tests were running and we would get in the results back and then
+would get in the results back and then we went to put them in the database and
+we went to put them in the database and we didn't have enough CPU to do the
+we didn't have enough CPU to do the database insert so we split it up into
+database insert so we split it up into two boxes we have perceptor which does
+two boxes we have perceptor which does the database and the web UI and then
+the database and the web UI and then we've got optimus prime that runs the
+we've got optimus prime that runs the scripts launches them on the dev kits
+scripts launches them on the dev kits and gets the results and that works
+and gets the results and that works quite nicely and we've now got a wall of
+quite nicely and we've now got a wall of 27 their kits so it's toasty warm in
+27 their kits so it's toasty warm in that area of the office I was going to
+that area of the office I was going to put a photo in but Panny I'm not allowed
+ah yes so we were using Orbis control to launch
+so we were using Orbis control to launch our tests and that was fine until we
+our tests and that was fine until we came across a really bad hang and by a
+came across a really bad hang and by a hang I mean when the game is still
+hang I mean when the game is still running it's just stuck in for example a
+running it's just stuck in for example a while one loop on the main thread so
+while one loop on the main thread so it's running it's not crashed it's not
+it's running it's not crashed it's not asserted but it's not actually getting
+asserted but it's not actually getting anywhere so we were launching these
+anywhere so we were launching these tests they were hanging so that was then
+tests they were hanging so that was then using up at dev kit we didn't have a
+using up at dev kit we didn't have a timeout because there's no timeout
+timeout because there's no timeout functionality in orbit control and we
+functionality in orbit control and we had only written an overall the timeout
+had only written an overall the timeout so you could hang all of the dev kits
+so you could hang all of the dev kits and eventually the overall timeout would
+and eventually the overall timeout would timeout but then most of your tests
+timeout but then most of your tests hadn't run and you didn't get very
+hadn't run and you didn't get very useful results so we replaced all this
+useful results so we replaced all this control with our own ps4 launcher
+control with our own ps4 launcher there's a target manager API that we
+there's a target manager API that we used from Sony which you can use to
+used from Sony which you can use to launch builds on your dev kit I wrote
+launch builds on your dev kit I wrote some timeout functionality in the
+some timeout functionality in the launcher and this also meant that we
+launcher and this also meant that we could upload our core dumps to recap
+could upload our core dumps to recap which gives us a lot more information
+which gives us a lot more information about crashes and hangs because when a
+about crashes and hangs because when a ps4 launcher detected a hang it would
+ps4 launcher detected a hang it would send a signal to the dev kit saying core
+send a signal to the dev kit saying core dump and then once you have the core
+dump and then once you have the core dump you could see where it had hung so
+dump you could see where it had hung so you had a call stack for where your
+you had a call stack for where your while 1 loop was that someone had put in
+while 1 loop was that someone had put in humane threat and we've got some bonus
+humane threat and we've got some bonus features as well in that you can change
+features as well in that you can change the language you can change a pro dev
+the language you can change a pro dev kit to behave like a pro or behave like
+kit to behave like a pro or behave like a normal ps4 so that's kind of nice too
+a normal ps4 so that's kind of nice too a little bit more about the replay
+a little bit more about the replay system which I kind of touched upon
+system which I kind of touched upon earlier so our game update is
+earlier so our game update is deterministic which means that if you
+deterministic which means that if you have an initial game state and a bunch
+have an initial game state and a bunch of inputs and you can rerun them and
+of inputs and you can rerun them and you'll get the same result there's a
+you'll get the same result there's a couple of drawbacks we've had it's the
+couple of drawbacks we've had it's the first is serialize revision if you've
+first is serialize revision if you've got one of these replays you want to be
+got one of these replays you want to be able to run it on later builds as well
+able to run it on later builds as well you
+you want to just be able to test a single
+want to just be able to test a single build which means that when you
+build which means that when you serialize in your game state you need to
+serialize in your game state you need to know what you're going to expect to be
+know what you're going to expect to be reading so if I have added variables I
+reading so if I have added variables I need to bump serialized revision so that
+need to bump serialized revision so that then I will know whether if I'm supposed
+then I will know whether if I'm supposed to be reading in that new variable or
+to be reading in that new variable or not but having this one kind of central
+not but having this one kind of central serialize revision firstly it's a point
+serialize revision firstly it's a point of contention for programmers because
+of contention for programmers because anyone who's adding or removing stuff
+anyone who's adding or removing stuff from the game state needs to to bump it
+from the game state needs to to bump it and also if you branch your code it's a
+and also if you branch your code it's a bit of a nightmare because it doesn't
+bit of a nightmare because it doesn't deal with being in a branch you can't
+deal with being in a branch you can't increment serialize revision in the
+increment serialize revision in the branch if you're also going to be
+branch if you're also going to be incrementing it on trunk because then
+incrementing it on trunk because then you've got two revisions that mean
+you've got two revisions that mean different things so what we do is when
+different things so what we do is when we branch to do a green build we have a
+we branch to do a green build we have a very short-lived branch and if anyone
+very short-lived branch and if anyone needs to do a fix in the branch that
+needs to do a fix in the branch that bump serialize revision we pull a whole
+bump serialize revision we pull a whole new branch which is not ideal but it
+new branch which is not ideal but it kind of works for us and the replay
+kind of works for us and the replay system is very important for us for
+system is very important for us for reaper in bugs
+so that's autobot on to QA so if a QA I've written a Chrome extension and if
+I've written a Chrome extension and if you've not come across a Chrome
+you've not come across a Chrome extension it runs in the Chrome browser
+extension it runs in the Chrome browser and you install it into your Chrome
+and you install it into your Chrome browser it's written in JavaScript and
+browser it's written in JavaScript and it can access REST API s so it can query
+it can access REST API s so it can query JIRA it can query recap equal can query
+JIRA it can query recap equal can query our game server it gets information
+our game server it gets information about what tabs you've got open in
+about what tabs you've got open in chrome and you can change the HTML
+chrome and you can change the HTML within those tabs so if I detect a JIRA
+within those tabs so if I detect a JIRA tab I can add extra buttons into the
+tab I can add extra buttons into the JIRA tab and I did look at doing it as a
+JIRA tab and I did look at doing it as a JIRA extension but I backed quickly away
+JIRA extension but I backed quickly away from that and the Chrome extension was
+from that and the Chrome extension was much simpler it can also access your
+much simpler it can also access your cookies so we use that to find out what
+cookies so we use that to find out what your psn login is which then means that
+your psn login is which then means that I can
+I can find your dev kit for our server and
+find your dev kit for our server and talk to it and it can display some
+talk to it and it can display some notifications on your screen so we use
+notifications on your screen so we use the Chrome extension for QA to add extra
+the Chrome extension for QA to add extra buttons to JIRA so there's one button
+buttons to JIRA so there's one button that attaches a screenshot in one click
+that attaches a screenshot in one click so you press the button in your JIRA web
+so you press the button in your JIRA web page it goes off to your dev kit takes a
+page it goes off to your dev kit takes a screenshot and attaches it to the bug
+screenshot and attaches it to the bug that you're currently creating or
+that you're currently creating or looking at so in one button press it's
+looking at so in one button press it's done all the work for you and you don't
+done all the work for you and you don't have to be browsing around to find the
+have to be browsing around to find the screenshot and it makes sure that you
+screenshot and it makes sure that you get the right screenshot as well we have
+get the right screenshot as well we have the same functionality for starting and
+the same functionality for starting and stopping replays so you can start a
+stopping replays so you can start a replay from the JIRA page you can repro
+replay from the JIRA page you can repro the bug on your dev kit and then you can
+the bug on your dev kit and then you can stop the replay and it will attach the
+stop the replay and it will attach the replay to the bug that you're creating
+replay to the bug that you're creating and finally there's a button for them
+and finally there's a button for them that will fill in details of for example
+that will fill in details of for example the perforce revision that you're
+the perforce revision that you're currently running and the game location
+currently running and the game location where you are
+where you are so which dream you're in whereabouts are
+so which dream you're in whereabouts are you within that dream and again with the
+you within that dream and again with the perforce revision because it's like five
+perforce revision because it's like five numbers it's really handy just to be
+numbers it's really handy just to be able to click a button and get it filled
+able to click a button and get it filled in without having to kind of try and
+in without having to kind of try and remember those numbers make sure they
+remember those numbers make sure they end up in the right order because you
+end up in the right order because you tend to get quite a lot of mistakes
+tend to get quite a lot of mistakes oh no I've gone the wrong way sorry so
+oh no I've gone the wrong way sorry so on to the designers the artists and the
+on to the designers the artists and the audio people so we want to make sure
+audio people so we want to make sure that everyone is running the game within
+that everyone is running the game within the same environment and that is where
+the same environment and that is where dashboard comes in dashboard is a tool
+dashboard comes in dashboard is a tool that we've written in-house and firstly
+that we've written in-house and firstly when you boot it up it checks that
+when you boot it up it checks that you've got all the dependencies
+you've got all the dependencies installed so if you've like got target
+installed so if you've like got target manager remote viewer server all the
+manager remote viewer server all the dependencies that we use from within the
+dependencies that we use from within the Sony tools it checks you've got them
+Sony tools it checks you've got them installed and it checks that you've got
+installed and it checks that you've got them installed at the right version and
+them installed at the right version and if you don't gives you a button that you
+if you don't gives you a button that you can click and it will run the installer
+can click and it will run the installer so that makes sure that everyone
+so that makes sure that everyone in the company has the right software
+in the company has the right software installed it's up to date so we don't
+installed it's up to date so we don't get any weird bugs because of that then
+get any weird bugs because of that then once you've done your dependencies onto
+once you've done your dependencies onto the builds tab and that gives you a list
+the builds tab and that gives you a list of the the current builds that we have
+of the the current builds that we have available on our server and you can fill
+available on our server and you can fill in build notes so QA will fill in build
+in build notes so QA will fill in build notes and you can see kind of what's
+notes and you can see kind of what's broken and there's a button that will
+broken and there's a button that will update you to the latest green build
+update you to the latest green build because we want everyone to be on the
+because we want everyone to be on the same build and on latest code so we want
+same build and on latest code so we want to make it really easy for them to be on
+to make it really easy for them to be on latest code and finally there's a button
+latest code and finally there's a button to launch that build on your dev kit and
+to launch that build on your dev kit and that also checks that you've got the
+that also checks that you've got the right SDK installed on your dev kit
+right SDK installed on your dev kit because we've had weird bugs in the past
+because we've had weird bugs in the past so if you don't have the right SDK then
+so if you don't have the right SDK then it will go away it will install the SDK
+it will go away it will install the SDK on your dev kit for you and then it will
+on your dev kit for you and then it will run the build quick note on a cert so we
+run the build quick note on a cert so we have fatal asserts and they're included
+have fatal asserts and they're included in the build that we give to our level
+in the build that we give to our level designers and artists we decided this
+designers and artists we decided this kind of near the beginning of the
+kind of near the beginning of the project because we wanted to make sure
+project because we wanted to make sure that if you add an assert in your code
+that if you add an assert in your code it really is a broken thing and we want
+it really is a broken thing and we want to make sure that people fix them as
+to make sure that people fix them as soon as possible so if you hit an assert
+soon as possible so if you hit an assert then it stops and it's not recoverable
+then it stops and it's not recoverable it's not skippable you have to go fix it
+so what does the Chrome extension do for designers they have got a report bug
+designers they have got a report bug button which is the yellow button in the
+button which is the yellow button in the middle there if they click on that
+middle there if they click on that button it will open up a JIRA web page
+button it will open up a JIRA web page in the create issues it will pre-fill
+in the create issues it will pre-fill what revision they're running because
+what revision they're running because that's not been particularly accurate in
+that's not been particularly accurate in the past so it goes off to their dev kit
+the past so it goes off to their dev kit says what revision of dreams are you
+says what revision of dreams are you running and fills that in for them it
+running and fills that in for them it fills in the game location for them and
+fills in the game location for them and they've also got the same buttons that
+they've also got the same buttons that QA have got to attach screenshots and to
+QA have got to attach screenshots and to attach replays so it makes it very easy
+attach replays so it makes it very easy for a level designer who's having an
+for a level designer who's having an issue
+issue to fill in a bug and then send that off
+to fill in a bug and then send that off to QA and QA don't have to do very much
+to QA and QA don't have to do very much extra work
+extra work they might add in like a repro rate or
+they might add in like a repro rate or something and then they assign it out to
+something and then they assign it out to a programmer so very quickly all the
+a programmer so very quickly all the relevant information has been
+relevant information has been distributed to the programmer who can
+distributed to the programmer who can fix it
+fix it there's no Chinese whispers and you know
+there's no Chinese whispers and you know it's accurate so this is a picture of
+it's accurate so this is a picture of the Chrome extension and as you go down
+the Chrome extension and as you go down the screen it's kind of checking that
+the screen it's kind of checking that everything is working properly with the
+everything is working properly with the Chrome extension so if any of this goes
+Chrome extension so if any of this goes red then the artist knows that they need
+red then the artist knows that they need to take some action and it does explain
+to take some action and it does explain to them what the action is that they
+to them what the action is that they need to take to fix it so if you get
+need to take to fix it so if you get down to the bottom and you get a
+down to the bottom and you get a screenshot it means it can talk to your
+screenshot it means it can talk to your dev kit everything's working fine so
+we've now got a bug in JIRA we need to route it to the right person and we've
+route it to the right person and we've auto-filled lots and lots of information
+auto-filled lots and lots of information which is really useful for production to
+which is really useful for production to farm the bug out so we've put in the
+farm the bug out so we've put in the assert message we've put in the
+assert message we've put in the programmer who added the assert and
+programmer who added the assert and there is a bit of a gotcha here in that
+there is a bit of a gotcha here in that we have an assert in our game for if it
+we have an assert in our game for if it goes out of sync and it's part of a
+goes out of sync and it's part of a macro which means that one programmer
+macro which means that one programmer added this assert so it means that any
+added this assert so it means that any out of sync bugs it says yet Dave I did
+out of sync bugs it says yet Dave I did this one so give it to Dave so poor Dave
+this one so give it to Dave so poor Dave ends up with a lot of our sink bugs and
+ends up with a lot of our sink bugs and luckily Dave knows the code very well
+luckily Dave knows the code very well and can kind of farm them out to the
+and can kind of farm them out to the right programmer but at some point I
+right programmer but at some point I need to go in and maybe change it so
+need to go in and maybe change it so that it looks up the variable that goes
+that it looks up the variable that goes out of sync and see who added that
+out of sync and see who added that variable for example instead that would
+variable for example instead that would be more useful information for tracking
+be more useful information for tracking and down and out of sync haven't go
+and down and out of sync haven't go around to that yet I can also if anyone
+around to that yet I can also if anyone wants to talk to me about perforce or
+wants to talk to me about perforce or joy afterwards I'm not going to go in
+joy afterwards I'm not going to go in here but I've had all sorts of fun and
+here but I've had all sorts of fun and games trying to off against perforce so
+games trying to off against perforce so yes you got the assert message you got
+yes you got the assert message you got the programmer who added it got the call
+the programmer who added it got the call stack you've got the perforce revision
+stack you've got the perforce revision where it went wrong you've got a replay
+where it went wrong you've got a replay so you can reproduce it you've got a
+so you can reproduce it you've got a screenshot you've got a link to recap
+screenshot you've got a link to recap where you've got the core dump
+where you've got the core dump you've got the tty you've got a video of
+you've got the tty you've got a video of the last 60 seconds of gameplay so you
+the last 60 seconds of gameplay so you should be able to figure out who to give
+should be able to figure out who to give the bug to so then the bug is assigned
+the bug to so then the bug is assigned out to a programmer and there are two
+out to a programmer and there are two more buttons in the Chrome extension so
+more buttons in the Chrome extension so there is the launch replay button which
+there is the launch replay button which is my favorite button and I've got a
+is my favorite button and I've got a video of it here so I start off with
+video of it here so I start off with dreams booted up in a debugger on my dev
+dreams booted up in a debugger on my dev kit then when I go to a bug in JIRA
+kit then when I go to a bug in JIRA which has got a replay attached to it I
+which has got a replay attached to it I get a button at the top and this button
+get a button at the top and this button is added by the Chrome extension and
+is added by the Chrome extension and when I hit this button it the Chrome
+when I hit this button it the Chrome extension downloads the replay data from
+extension downloads the replay data from JIRA it sends it via our server on to my
+JIRA it sends it via our server on to my dev kit so my dev kit then start
+dev kit so my dev kit then start replaying that replay data and
+replaying that replay data and eventually it hits the assert and there
+eventually it hits the assert and there we go we've repaid their cert in the
+we go we've repaid their cert in the debugger so I hit break I can see what's
+debugger so I hit break I can see what's asserted I can fix the code and then
+asserted I can fix the code and then once I fix the code I can rerun the
+once I fix the code I can rerun the replay and check my fix cool so that's
+replay and check my fix cool so that's my favorite button it's very cool we
+my favorite button it's very cool we also have another button to launch the
+also have another button to launch the game location so it replays are very
+game location so it replays are very handy for programmers but because you've
+handy for programmers but because you've stored the initial game state they're
+stored the initial game state they're less useful for content people because
+less useful for content people because any fixes to the content won't be
+any fixes to the content won't be reflected in the replay so we also have
+reflected in the replay so we also have this idea of game location which is like
+this idea of game location which is like a dream ID and a location within that
+a dream ID and a location within that dream so launch game location will
+dream so launch game location will launch an artist into their dream at a
+launch an artist into their dream at a particular point so for example if QA
+particular point so for example if QA was saying this tree over here is too
+was saying this tree over here is too green they would attach the game
+green they would attach the game location and then the artist could
+location and then the artist could launch into it and see the tree that
+launch into it and see the tree that they were talking about and fix it and
+they were talking about and fix it and then when QA go to check the fix they
+then when QA go to check the fix they can launch the game location and see the
+can launch the game location and see the new less green tree so once you've
+new less green tree so once you've tested once you've fixed the code how do
+tested once you've fixed the code how do you test it you can use the launch
+you test it you can use the launch replay button again and then check that
+replay button again and then check that the replay finishes rather than
+the replay finishes rather than asserting or crashing you can also
+asserting or crashing you can also submit a bill to Autobot so we have a
+submit a bill to Autobot so we have a script and it doesn't take any
+script and it doesn't take any command-line parameters because I wanted
+command-line parameters because I wanted to make it as simple as possible to run
+to make it as simple as possible to run so you can just double click on it and
+so you can just double click on it and it takes your local code builds a
+it takes your local code builds a package uploads that package to Autobot
+package uploads that package to Autobot and then kicks off a smoke test which
+and then kicks off a smoke test which will then when
+will then when completes email you the results so if
+completes email you the results so if you've made a fix that touches like lots
+you've made a fix that touches like lots of bits of code or we all have bits of
+of bits of code or we all have bits of code in our code base where you know
+code in our code base where you know that if you go into that and change like
+that if you go into that and change like one one fix you will break three other
+one one fix you will break three other things so if you've been in one of those
+things so if you've been in one of those kind of dangly bits of code you can kick
+kind of dangly bits of code you can kick off an Autobot run before you check in
+off an Autobot run before you check in and just check that you're not going to
+and just check that you're not going to break everything and we also have a
+break everything and we also have a script to mark both as fixed so
+script to mark both as fixed so previously when you checked in a fix you
+previously when you checked in a fix you would put in your perforce checking
+would put in your perforce checking comment a reference to the bug that you
+comment a reference to the bug that you had fixed and a comment about like what
+had fixed and a comment about like what it was that you had changed and then you
+it was that you had changed and then you would go to JIRA and you would go to the
+would go to JIRA and you would go to the bug and you would put in what perforce
+bug and you would put in what perforce revision you had just submitted which
+revision you had just submitted which again bit error-prone and you would put
+again bit error-prone and you would put in a comment about what you did so
+in a comment about what you did so you're kind of putting the same
+you're kind of putting the same information in in two places so we've
+information in in two places so we've just got a script that passes the
+just got a script that passes the perforce check in comments after every
+perforce check in comments after every successful build and if there is a
+successful build and if there is a comment of the form with the exclamation
+comment of the form with the exclamation mark and then number that means I fixed
+mark and then number that means I fixed that bug number and it will go off to
+that bug number and it will go off to JIRA check that that bug is in the in
+JIRA check that that bug is in the in progress states if it is then it adds a
+progress states if it is then it adds a comment to the bug saying Amy fixed this
+comment to the bug saying Amy fixed this bug in perforce revision 320 this is the
+bug in perforce revision 320 this is the check-in comment that she put into
+check-in comment that she put into perforce and then it marks it as fixed
+perforce and then it marks it as fixed for me so it just means that when you're
+for me so it just means that when you're fixing bugs it takes out a little bit of
+fixing bugs it takes out a little bit of effort and if we can take out lots and
+effort and if we can take out lots and lots of little bits of effort then
+lots of little bits of effort then everyone is working much more quickly
+everyone is working much more quickly and we save time over all right so
+and we save time over all right so you've fixed the bug you've checked it
+you've fixed the bug you've checked it in now QA need to verify your fix and
+in now QA need to verify your fix and you can use the chrome extension JIRA
+you can use the chrome extension JIRA button to launch the replay so QA can
+button to launch the replay so QA can watch the replay and check that it
+watch the replay and check that it doesn't reproduce they can add a replay
+doesn't reproduce they can add a replay to Autobots so if it hadn't been picked
+to Autobots so if it hadn't been picked up by any of the Autobot test Suites
+up by any of the Autobot test Suites then they can think about adding a
+then they can think about adding a replay and they would want to add a new
+replay and they would want to add a new replay they wouldn't want to use the
+replay they wouldn't want to use the replay for the bug because you want to
+replay for the bug because you want to keep them really really short and you
+keep them really really short and you want to make sure that the screenshot at
+want to make sure that the screenshot at the end shows everything that you have
+the end shows everything that you have changed as part of that replay you want
+changed as part of that replay you want to make sure that the screenshot at the
+to make sure that the screenshot at the end shows you that the replay did what
+end shows you that the replay did what you thought it did I would also like to
+you thought it did I would also like to track stuff that gets fixed by Autobot
+track stuff that gets fixed by Autobot because if autobot has reported a bug
+because if autobot has reported a bug and QA have kind of prefilled that bug
+and QA have kind of prefilled that bug in an Autobot can also detect that that
+in an Autobot can also detect that that bug has been fixed and it can add a
+bug has been fixed and it can add a comment on to the JIRA bug so that then
+comment on to the JIRA bug so that then when a programmer goes to fix it they
+when a programmer goes to fix it they can see that it's already been fixed but
+can see that it's already been fixed but I haven't done that yet must do that
+I haven't done that yet must do that maybe next week oh I've gone the wrong
+maybe next week oh I've gone the wrong way right so in summary the tools we
+way right so in summary the tools we have we have Autobot which is our
+have we have Autobot which is our automated testing system which is a
+automated testing system which is a MySQL database django web UI on top and
+MySQL database django web UI on top and a bunch of python scripts we use JIRA
+a bunch of python scripts we use JIRA for our bug tracking which has gone
+for our bug tracking which has gone awesome REST API we use recap for
+awesome REST API we use recap for storing our core dumps and TTY and video
+storing our core dumps and TTY and video they have a REST API which is improving
+they have a REST API which is improving rapidly we use deterministic replays and
+rapidly we use deterministic replays and they're essential for the repoing of our
+they're essential for the repoing of our bugs our game server can forward a
+bugs our game server can forward a message from the web side on to a dev
+message from the web side on to a dev kit and then can send the result back to
+kit and then can send the result back to the web side which is used by a bunch of
+the web side which is used by a bunch of these tools and it's all linked together
+these tools and it's all linked together with the Chrome extension which has kind
+with the Chrome extension which has kind of got fingers in many many pies so it's
+of got fingers in many many pies so it's all about trying to make sure
+all about trying to make sure that we find the bugs early we attach
+that we find the bugs early we attach all the information that we need to
+all the information that we need to route them to the right person and to
+route them to the right person and to repro them and then we want to make it
+repro them and then we want to make it really simple to repro the bug and to
+really simple to repro the bug and to mark it fixed and it's just a bunch of
+mark it fixed and it's just a bunch of little things trying to make sure that
+little things trying to make sure that people have the information in front of
+people have the information in front of them at the right time and trying to
+them at the right time and trying to make sure trying to make little
+make sure trying to make little improvements to the workflow and all the
+improvements to the workflow and all the little improvements kind of add up to a
+little improvements kind of add up to a really nice smooth slick workflow and
+really nice smooth slick workflow and then suddenly you've got less bugs which
+then suddenly you've got less bugs which is awesome
+is awesome so does anyone have any questions
+hi super cool doc I'm curious about the human validation of screenshots for the
+human validation of screenshots for the smoke test you mentioned that testing
+smoke test you mentioned that testing the game stake was too error-prone or
+the game stake was too error-prone or had too much variation so does that mean
+had too much variation so does that mean that for every smoke test that's being
+that for every smoke test that's being run there is a validation by a QA person
+run there is a validation by a QA person for every test because that seems like a
+for every test because that seems like a lot of stuff yeah they don't check
+lot of stuff yeah they don't check everyone so I think it's about once a
+everyone so I think it's about once a day they will pick a test and we'll just
+day they will pick a test and we'll just scroll through and then the ones that
+scroll through and then the ones that are more likely to fail I guess well no
+are more likely to fail I guess well no they would look at all of the results
+they would look at all of the results from a smoke test so a smoke test is
+from a smoke test so a smoke test is about 200 tests so they can very quickly
+about 200 tests so they can very quickly scroll through and just kind of see by
+scroll through and just kind of see by eye and yeah they wouldn't do it for
+eye and yeah they wouldn't do it for every single one Thanks
+hi there I was wondering what you do to track which programmer added asserts is
+track which programmer added asserts is that some sort of metadata or is that
+that some sort of metadata or is that just like the DIF history that you look
+just like the DIF history that you look through there is a command and so the p4
+through there is a command and so the p4 command line I think it's p4 Thank You
+command line I think it's p4 Thank You p4 changes so you can run that and you
+p4 changes so you can run that and you can pass in like which revision you're
+can pass in like which revision you're interested in and which line which I
+interested in and which line which I think yes so you can run that and it
+think yes so you can run that and it will tell you who submitted that change
+will tell you who submitted that change that makes sense so that's used to route
+that makes sense so that's used to route to the programmer is a follow-up
+to the programmer is a follow-up question what do you do when programmers
+question what do you do when programmers leave either go on leave or leave the
+leave either go on leave or leave the company when you're out those then you
+company when you're out those then you would have I guess the programmer would
+would have I guess the programmer would have handed their code over so
+have handed their code over so production should know kind of who they
+production should know kind of who they have handed each code area over to but
+have handed each code area over to but yes it would say in the bug this assert
+yes it would say in the bug this assert was added by Fred who has left
+was added by Fred who has left so then production would know who Fred's
+so then production would know who Fred's bugs should go to okay thanks thank you
+Hey hi I'm at what point did Media Molecule decide to have designated tools
+Molecule decide to have designated tools programmers like how did you manage like
+programmers like how did you manage like having the benefit of a designated Tools
+having the benefit of a designated Tools program as opposed to them working just
+program as opposed to them working just full-time on the project
+full-time on the project ah I guess as far back as I can remember
+ah I guess as far back as I can remember we've as you know we haven't always had
+we've as you know we haven't always had a dedicated tools programmer I can't
+a dedicated tools programmer I can't remember when we hired our first tools
+remember when we hired our first tools programmer I guess it would be when we
+programmer I guess it would be when we got to about sort of 12 ish programmers
+got to about sort of 12 ish programmers although I'm not sure I can remember but
+although I'm not sure I can remember but actually it's been really really useful
+actually it's been really really useful because you write all these tools and
+because you write all these tools and then all the other program has become
+then all the other program has become more productive and it's not just the
+more productive and it's not just the programmers the QA people become more
+programmers the QA people become more productive
+productive everyone gets more stuff done and it's
+everyone gets more stuff done and it's quite hard to kind of put aside time to
+quite hard to kind of put aside time to invest in tools and infrastructure but
+invest in tools and infrastructure but actually we found that it's been really
+actually we found that it's been really useful and it has kind of paid back the
+useful and it has kind of paid back the time that we've invested cause things
+time that we've invested cause things hey I'm a QA manager and I'm kind of
+hey I'm a QA manager and I'm kind of interested in like how did you implement
+interested in like how did you implement the process at the very beginning
+the process at the very beginning together maybe together with QA like how
+together maybe together with QA like how did that implementation kind of work so
+did that implementation kind of work so you mean how did we implement the
+you mean how did we implement the process of like the bug flow around lis
+process of like the bug flow around lis and automation I don't know maybe it was
+and automation I don't know maybe it was a process you iterated on back from
+a process you iterated on back from LittleBigPlanet or was this a completely
+LittleBigPlanet or was this a completely new it's definitely been very iterative
+new it's definitely been very iterative so I guess it started off with Daniel
+so I guess it started off with Daniel kidney writing autobot and so he kind of
+kidney writing autobot and so he kind of plugged together autobot for us and
+plugged together autobot for us and we've added lots to it and we've kind of
+we've added lots to it and we've kind of connected it up to other things as
+connected it up to other things as we went along but yes very iteratively
+we went along but yes very iteratively in that we kind of added that dashboard
+in that we kind of added that dashboard was completely set for it we already had
+was completely set for it we already had dashboard and yeah we just kind of added
+dashboard and yeah we just kind of added things in whenever we see a problem with
+things in whenever we see a problem with the workflow we try and fix it and then
+the workflow we try and fix it and then it kind of gradually gets better but
+it kind of gradually gets better but there wasn't some kind of grand plan at
+there wasn't some kind of grand plan at the beginning this is what we're going
+the beginning this is what we're going to do it just kind of happened okay
+to do it just kind of happened okay thank you so the last two questions
+thank you so the last two questions answer my question
+answer my question I just want a little clarify so this
+I just want a little clarify so this this whole summary of your current tool
+this whole summary of your current tool setup it started used to basically you
+setup it started used to basically you started arriving that during media
+started arriving that during media molecules earliest projects is that true
+molecules earliest projects is that true like it's it didn't just start with
+like it's it didn't just start with recurrent dreams Department right I
+recurrent dreams Department right I suppose so dashboard we had for a little
+suppose so dashboard we had for a little big planet and tearaway so we've had
+big planet and tearaway so we've had dashboard for a long time
+dashboard for a long time autobot is new for dreams we did have
+autobot is new for dreams we did have some automated testing on
+some automated testing on LittleBigPlanet but it was very
+LittleBigPlanet but it was very error-prone and it was mostly broken and
+error-prone and it was mostly broken and we didn't kind of give the resource to
+we didn't kind of give the resource to kind of develop it and make it stable
+kind of develop it and make it stable and make it useful I guess we were more
+and make it useful I guess we were more concentrated on just kind of shipping
+concentrated on just kind of shipping the game rather than investing in tools
+the game rather than investing in tools whereas like this time round we've had a
+whereas like this time round we've had a bit more time so we've been able to
+bit more time so we've been able to write or more cool stuff and the Chrome
+write or more cool stuff and the Chrome extension is completely new because I
+extension is completely new because I was messing around with Chrome
+was messing around with Chrome extensions in my friend free time like I
+extensions in my friend free time like I went along to a game jam and was writing
+went along to a game jam and was writing a Chrome extension and then realized
+a Chrome extension and then realized quite how powerful it was the fact that
+quite how powerful it was the fact that you could like take this HTML web page
+you could like take this HTML web page and just insert your own HTML so you
+and just insert your own HTML so you could just add buttons wherever you
+could just add buttons wherever you wanted which is really cool so yeah that
+wanted which is really cool so yeah that came about just kind of by lucky
+came about just kind of by lucky accident after a game jam so yes most of
+accident after a game jam so yes most of it is new thank you and oh and I've just
+it is new thank you and oh and I've just thought of another tool that we have
+thought of another tool that we have that I didn't actually mean
+that I didn't actually mean it's really cool so we have a tool where
+it's really cool so we have a tool where you can record video and you can record
+you can record video and you can record performance data in the form of
+performance data in the form of telemetry and then you can display them
+telemetry and then you can display them together so you can see where you've got
+together so you can see where you've got performance spikes you can click on the
+performance spikes you can click on the performance spikes in the web UI and it
+performance spikes in the web UI and it will take you to the video of where the
+will take you to the video of where the performance problem was so you can see
+performance problem was so you can see what was on screen and what the game was
+what was on screen and what the game was doing at that point which I didn't talk
+doing at that point which I didn't talk about in this talk cuz it didn't fit I
+about in this talk cuz it didn't fit I didn't have time
+didn't have time it's very cool okay sorry for my
+it's very cool okay sorry for my accident but you what was the possible
+accident but you what was the possible motivation to do your engine
+motivation to do your engine deterministic it was for doing
+deterministic it was for doing deterministic replay or to do network
+deterministic replay or to do network and to do some lob step and it was
+and to do some lob step and it was interesting so so you're saying why did
+interesting so so you're saying why did we make it deterministic because one
+we make it deterministic because one gene is not deterministic like most of
+gene is not deterministic like most of the engine I even if I see the benefit
+the engine I even if I see the benefit of having deterministic replay I not
+of having deterministic replay I not sure if I want to invest in making
+sure if I want to invest in making mention deterministic only - yes fair
+mention deterministic only - yes fair point it is a lot of work making your
+point it is a lot of work making your engine deterministic and keeping it
+engine deterministic and keeping it deterministic so we use Autobot to check
+deterministic so we use Autobot to check for out of syncs but we do regularly
+for out of syncs but we do regularly find out of syncs and have to fix them I
+find out of syncs and have to fix them I guess we already wanted it to be
+guess we already wanted it to be deterministic because if someone makes
+deterministic because if someone makes something in dreams we want it to play
+something in dreams we want it to play the same on everybody's ps4 we don't
+the same on everybody's ps4 we don't want people to be able to create levels
+want people to be able to create levels that will run in multiple different ways
+that will run in multiple different ways because then they could create something
+because then they could create something where you press the button and the door
+where you press the button and the door opened and then if it wasn't
+opened and then if it wasn't deterministic then some people might
+deterministic then some people might play it and they press the button and
+play it and they press the button and the door doesn't open and that would not
+the door doesn't open and that would not be ideal for players they want to be
+be ideal for players they want to be able to create stuff and know that
+able to create stuff and know that everyone will see that stuff exactly the
+everyone will see that stuff exactly the same so that's one reason also
+same so that's one reason also multiplayer
+multiplayer it's very handy for multiplayer and yes
+it's very handy for multiplayer and yes for repairing bugs and also another
+for repairing bugs and also another quick question you said you for assign
+quick question you said you for assign the burg first you you you go to what
+the burg first you you you go to what you assert but probably on your company
+you assert but probably on your company I probably don't want to be the guy but
+I probably don't want to be the guy but implement but I will be after I do Twila
+implement but I will be after I do Twila over eristic light like the last that
+over eristic light like the last that change in the in the in the call stack
+change in the in the in the call stack whatever it is even if it's not do
+whatever it is even if it's not do assess its moment so one thing we do do
+assess its moment so one thing we do do is we go back to the email so in the
+is we go back to the email so in the email you've got an idea of who checked
+email you've got an idea of who checked in and broke it so you can see that
+in and broke it so you can see that there's three revisions there it's kind
+there's three revisions there it's kind of small but there's three revisions and
+of small but there's three revisions and you know it was one of those three that
+you know it was one of those three that broke it so you do get extra information
+broke it so you do get extra information there but no we've not tried anything
+there but no we've not tried anything other than looking at who added the
+other than looking at who added the assert and yes it's a good point yeah if
+assert and yes it's a good point yeah if you fall off the end of an array then I
+you fall off the end of an array then I don't know who added that assert thank
+don't know who added that assert thank you for the talk my question was you
+you for the talk my question was you mentioned that you use Autobot to test
+mentioned that you use Autobot to test for really scary changes have you
+for really scary changes have you thought about making Autobot part of a
+thought about making Autobot part of a pre commit or like pre checking process
+pre commit or like pre checking process rather than in post and I was just
+rather than in post and I was just wondering if you had tried that out and
+wondering if you had tried that out and how it went
+how it went we haven't tried it we did think about
+we haven't tried it we did think about it briefly but I T are very nervous
+it briefly but I T are very nervous about messing with perforce so they
+about messing with perforce so they won't even let me add a commit hook to
+won't even let me add a commit hook to kind of get the check in comment at the
+kind of get the check in comment at the moment because you just don't mess with
+moment because you just don't mess with perforce
+perforce great thank you hey so it sounds like
+great thank you hey so it sounds like devs can use autobot for one-off changes
+devs can use autobot for one-off changes before they submit and do you
+before they submit and do you automatically run Autobot when they
+automatically run Autobot when they submit and they get results is that
+submit and they get results is that every check-in and then is that gauntlet
+every check-in and then is that gauntlet like it doesn't go to the main depot
+like it doesn't go to the main depot before passes tests or ass you're saying
+before passes tests or ass you're saying how does it work in terms of Wenders
+how does it work in terms of Wenders Autobot run compared to when you check
+Autobot run compared to when you check in and is anyone else protected from me
+in and is anyone else protected from me submitting a change that breaks if I
+submitting a change that breaks if I just sleep do I get it right away or
+just sleep do I get it right away or doesn't have to pass on a while before
+doesn't have to pass on a while before actually okay so what happens is you
+actually okay so what happens is you check in the change so it's immediately
+check in the change so it's immediately available and anyone can get latest and
+available and anyone can get latest and we'll get your code then Jenkins puts
+we'll get your code then Jenkins puts the bill together of the latest code
+the bill together of the latest code then autobot spots the new build and
+then autobot spots the new build and runs the tests and then emails the
+runs the tests and then emails the results so yes you do have like a 15 20
+results so yes you do have like a 15 20 minute window where the code has not
+minute window where the code has not been tested we don't really know what
+been tested we don't really know what state it's in so you might get latest
+state it's in so you might get latest and get completely broken code so you
+and get completely broken code so you have solutions for tools to help with
+have solutions for tools to help with that you know it's a cause of problem in
+that you know it's a cause of problem in the studio when people sink and it just
+the studio when people sink and it just doesn't build or it crashes or something
+doesn't build or it crashes or something and we don't what we do is the person
+and we don't what we do is the person who broke it has to fix it really
+who broke it has to fix it really quickly that is our current scheme yes
+quickly that is our current scheme yes we could think about kind of I know that
+we could think about kind of I know that some companies have schemes whereby you
+some companies have schemes whereby you check into a branch and that branch only
+check into a branch and that branch only gets merged across if it passes a bunch
+gets merged across if it passes a bunch of tests so we could look at that but we
+of tests so we could look at that but we haven't yet thank you hi so if a member
+haven't yet thank you hi so if a member on your QA team comes up with some sort
+on your QA team comes up with some sort of a test case for something that should
+of a test case for something that should be covered by automation but isn't the
+be covered by automation but isn't the code necessarily hasn't broken yet but
+code necessarily hasn't broken yet but it should be covered via automation
+it should be covered via automation because maybe future codes gonna break
+because maybe future codes gonna break it how do you have that QA team member
+it how do you have that QA team member handle that like do they write it it up
+handle that like do they write it it up as if it were a ticket do they
+as if it were a ticket do they contribute to the automation scripts
+contribute to the automation scripts themselves or just
+themselves or just their process so the tests that get run
+their process so the tests that get run as in autobot are completely controlled
+as in autobot are completely controlled by QA so if a QA member came up with a
+by QA so if a QA member came up with a new test they would record a replay of
+new test they would record a replay of that test they would use the web UI to
+that test they would use the web UI to submit that replay to Autobot auto what
+submit that replay to Autobot auto what would run that replay once and check
+would run that replay once and check that it completes then it would be added
+that it completes then it would be added to the database as a new test and then
+to the database as a new test and then that QA member could go in to the web UI
+that QA member could go in to the web UI again and say I want that test to run as
+again and say I want that test to run as part of the smoke test or as part of the
+part of the smoke test or as part of the sculpt suite they get to choose which
+sculpt suite they get to choose which suite it goes in and then every time
+suite it goes in and then every time that suite runs that test will then run
+that suite runs that test will then run thank you
+you said that keeping a game deterministic has been difficult for you
+deterministic has been difficult for you could you give any examples of the main
+could you give any examples of the main problems you see with determinism and
+problems you see with determinism and there any tips you have for people that
+there any tips you have for people that want to make their games deterministic
+want to make their games deterministic initialize your variables that is like
+initialize your variables that is like I'd say 50% of our error sinks are
+I'd say 50% of our error sinks are uninitialized variables
+uninitialized variables don't use R and so use a random number
+don't use R and so use a random number generator that you seed and use
+generator that you seed and use deterministically if you want the
+deterministically if you want the deterministic random number yeah we
+deterministic random number yeah we don't we've not come across that one but
+don't we've not come across that one but yes point of values is keys sorry
+yes point of values is keys sorry fixed timestamp / physics yes I don't
+fixed timestamp / physics yes I don't know in detail kind of how Anton has
+know in detail kind of how Anton has made our physics deterministic so Anton
+made our physics deterministic so Anton has kind of written our physics engine
+has kind of written our physics engine and all I know is it that it simulates
+and all I know is it that it simulates stuff as if it was made out of balls but
+stuff as if it was made out of balls but that is about the limit of my knowledge
+that is about the limit of my knowledge I'm afraid my question is about
+I'm afraid my question is about integration of our robot I guess with
+integration of our robot I guess with each game it might be sort of video
+each game it might be sort of video syncretic how to get the
+syncretic how to get the play working I mean you could drop a
+play working I mean you could drop a user right into a certain location on a
+user right into a certain location on a map in a game but to recreate the exact
+map in a game but to recreate the exact games data I imagine from game to game
+games data I imagine from game to game is a little bit different even if you
+is a little bit different even if you have atomic unit tests and asserts in
+have atomic unit tests and asserts in there I just wondering if you have any
+there I just wondering if you have any recommendations for best practices for
+recommendations for best practices for kind of writing that and is tracked
+kind of writing that and is tracked enough way they would work across
+enough way they would work across multiple games I suppose you need a bunk
+multiple games I suppose you need a bunk a bunch of functionality for it to work
+a bunch of functionality for it to work so you need to be able to serialize out
+so you need to be able to serialize out your game state in some way you need to
+your game state in some way you need to be able to then apply inputs on top of
+be able to then apply inputs on top of that so you would need a replay system
+that so you would need a replay system I'm sorry I've kind of lost the gist of
+I'm sorry I've kind of lost the gist of your question sorry yeah I guess I'm
+your question sorry yeah I guess I'm just sort of wondering if there are any
+just sort of wondering if there are any recommendations overall for writing a
+recommendations overall for writing a like a replay system and writing your
+like a replay system and writing your code abstract enough to do the things
+code abstract enough to do the things like they're saying like serialization
+like they're saying like serialization no game stays I guess we've not really
+no game stays I guess we've not really structured it particularly around the
+structured it particularly around the whole replay system our code although
+whole replay system our code although the replay system did go in very early
+the replay system did go in very early on so I mean we've written some code
+on so I mean we've written some code that makes it easy to serialize out your
+that makes it easy to serialize out your game state and to take into account
+game state and to take into account serialized revision so when you add a
+serialized revision so when you add a variable to the game state we have
+variable to the game state we have macros that you use to add that variable
+macros that you use to add that variable or to remove that variable which will
+or to remove that variable which will automatically do will generate the code
+automatically do will generate the code for you that kind of checks against
+for you that kind of checks against serialize revision so we do have that
+serialize revision so we do have that and then yeah I mean the stuff for kind
+and then yeah I mean the stuff for kind of saving out the stuff is saving out
+of saving out the stuff is saving out the inputs just kind of sterilizes out
+the inputs just kind of sterilizes out the inputs and then the stuff for
+the inputs and then the stuff for serializing out things like text that
+serializing out things like text that we've input we have a buffer for kind of
+we've input we have a buffer for kind of extra messages
+extra messages that you can serialize into but
+that you can serialize into but different subsystems serialize into that
+different subsystems serialize into that buffer in slightly different ways just
+buffer in slightly different ways just because different people wrote it
+because different people wrote it because we do have quite a variety of
+because we do have quite a variety of code at Media Molecule
+code at Media Molecule depending on who wrote it quite often
+depending on who wrote it quite often you can look at it and find who wrote it
+you can look at it and find who wrote it just by looking at what the variables
+just by looking at what the variables were named and kind of how it was put
+were named and kind of how it was put together which is kind of handy cool
+together which is kind of handy cool thank you
+thank you [Applause]

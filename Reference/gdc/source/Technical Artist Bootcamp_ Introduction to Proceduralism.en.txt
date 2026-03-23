@@ -1,0 +1,1500 @@
+[Music]
+big ant for Ozzy he's doing a great job and then yeah so yeah the joke is that
+and then yeah so yeah the joke is that Jeff finally passed the baton over to us
+Jeff finally passed the baton over to us and it's goods great and we're looking
+and it's goods great and we're looking forward to kind of the next few years of
+forward to kind of the next few years of GDC and so my name is Luis cruel and I'm
+GDC and so my name is Luis cruel and I'm a senior technical artist of side
+a senior technical artist of side effects side effects is a software
+effects side effects is a software company I and I'll go into that a little
+company I and I'll go into that a little bit later but welcome to my talk this is
+bit later but welcome to my talk this is a great crowd I'm super excited to be
+a great crowd I'm super excited to be here so what I'm gonna be talking about
+here so what I'm gonna be talking about a little bit I'm gonna talk about the
+a little bit I'm gonna talk about the definition of procedural ISM it's kind
+definition of procedural ISM it's kind of like a weird buzzword right now to
+of like a weird buzzword right now to where it's kind of like PBR and there's
+where it's kind of like PBR and there's there's people think that it's a magic
+there's people think that it's a magic silver bullet and everything can be
+silver bullet and everything can be solve a procedural ISM then I want to
+solve a procedural ISM then I want to talk a little bit about how we will roll
+talk a little bit about how we will roll out a procedural 2 system and basically
+out a procedural 2 system and basically you're going to start out by basically
+you're going to start out by basically building tools for you and then you're
+building tools for you and then you're gonna move on and building tools for
+gonna move on and building tools for others and then you're gonna start
+others and then you're gonna start building tools for everybody and then
+building tools for everybody and then there's kind of mind shifts that change
+there's kind of mind shifts that change when you kind of hit each of those
+when you kind of hit each of those stages my background so I was in game
+stages my background so I was in game development for about 10 years and then
+development for about 10 years and then recently I switched to be a software
+recently I switched to be a software development and my job is exactly the
+development and my job is exactly the same so basically before I used to write
+same so basically before I used to write tools and maybe like 10 20 people in the
+tools and maybe like 10 20 people in the studio you use them and then every now
+studio you use them and then every now and then I'll get an email be like hey
+and then I'll get an email be like hey this is broken can you fix this come to
+this is broken can you fix this come to my desk same thing happens but now it's
+my desk same thing happens but now it's just the whole industry which is awesome
+just the whole industry which is awesome so I write tools and then the tools get
+so I write tools and then the tools get built into Houdini and then everybody
+built into Houdini and then everybody can use it and then those throw email me
+can use it and then those throw email me with broken stuff and I'll go to fix
+with broken stuff and I'll go to fix them and I'll go visit them and help
+them and I'll go visit them and help them so it's it's an awesome it's a
+them so it's it's an awesome it's a really great job and this is not a
+really great job and this is not a Houdini sales pitch so I'm gonna try as
+Houdini sales pitch so I'm gonna try as much as possible to kind of keep it up
+much as possible to kind of keep it up here to wear it as a procedural software
+here to wear it as a procedural software system you could implement this and
+system you could implement this and anything with scripting but just kind of
+anything with scripting but just kind of like at a high level just I'm gonna
+like at a high level just I'm gonna mention a little bit of Houdini but this
+mention a little bit of Houdini but this is not like entirely about it so what
+is not like entirely about it so what the hell is procedural content
+the hell is procedural content generation and then some people call it
+generation and then some people call it PCG which is procedural content
+PCG which is procedural content generation there's some talks in the AI
+generation there's some talks in the AI summit that I'm going to be immediately
+summit that I'm going to be immediately after so there's this weird kind of
+after so there's this weird kind of misconception of like what is this and
+misconception of like what is this and how does it work if you're familiar with
+how does it work if you're familiar with substance which most people here are
+substance which most people here are that's procedural ISM so it's basically
+that's procedural ISM so it's basically you're writing little algorithms to make
+you're writing little algorithms to make content and that's the simplest of it
+content and that's the simplest of it like I would even say
+like I would even say righto rigging procedural ISM because
+righto rigging procedural ISM because you're basically just writing procedures
+you're basically just writing procedures to build content at the end of it so
+to build content at the end of it so this is a couple of examples so Brad
+this is a couple of examples so Brad Smith as an awesome artist used to be a
+Smith as an awesome artist used to be a naughty dog now it's a topic and then he
+naughty dog now it's a topic and then he just does a bunch of substance designer
+just does a bunch of substance designer stuff and yeah we were building art with
+stuff and yeah we were building art with these little node networks to kind of
+these little node networks to kind of make content and then Magnus Larsen does
+make content and then Magnus Larsen does the same thing but instead of using 2d
+the same thing but instead of using 2d he does it in 3d and that's where
+he does it in 3d and that's where Houdini comes and it's the same kind of
+Houdini comes and it's the same kind of workflow is just you're you're working
+workflow is just you're you're working with nodes but instead of doing 2d
+with nodes but instead of doing 2d operations you do in 3d operations so
+operations you do in 3d operations so this is the only Houdini slide that I'll
+this is the only Houdini slide that I'll show just for people that are not
+show just for people that are not familiar what it is the same operations
+familiar what it is the same operations that you would have in any other
+that you would have in any other software like extrusion creating
+software like extrusion creating primitives beveling so it's all
+primitives beveling so it's all basically notes that you just drop down
+basically notes that you just drop down and then you would use it like you would
+and then you would use it like you would and then the nice thing is that it's
+and then the nice thing is that it's non-destructive because of the
+non-destructive because of the procedural nature so you can kind of go
+procedural nature so you can kind of go back up to the level the top level
+back up to the level the top level change the input and then everything
+change the input and then everything would just kind of calculate itself and
+would just kind of calculate itself and updated so here I just have a simple
+updated so here I just have a simple sphere and then I have a cube that I can
+sphere and then I have a cube that I can kind of boolean them together and move
+kind of boolean them together and move them around and then at any point I can
+them around and then at any point I can go into that chain and then change the
+go into that chain and then change the inputs so this is a super super basic
+inputs so this is a super super basic tool where you get the idea of if you're
+tool where you get the idea of if you're kind of familiar with the kind of what
+kind of familiar with the kind of what substances to photoshop Houdini is - any
+substances to photoshop Houdini is - any other kind of 3d software app so at
+other kind of 3d software app so at least now you guys have some context of
+least now you guys have some context of what I'm talking about the other thing
+what I'm talking about the other thing too is there's different types of
+too is there's different types of procedural ISM that's where some of the
+procedural ISM that's where some of the confusion comes from so there's like
+confusion comes from so there's like offline cos procedural ISM which is like
+offline cos procedural ISM which is like the substance and Houdini thing that
+the substance and Houdini thing that like basically we're building things
+like basically we're building things offline and there were just baking
+offline and there were just baking static meshes that go into a game engine
+static meshes that go into a game engine there's low time procedural ISM which is
+there's low time procedural ISM which is kind of like Minecraft that's like while
+kind of like Minecraft that's like while the game is loading things will get
+the game is loading things will get generated and then they'll get baked
+generated and then they'll get baked down into static content and then
+down into static content and then there's runtime procedural ISM which is
+there's runtime procedural ISM which is kind of like the the vibe and the tilt
+kind of like the the vibe and the tilt brush to where people are sweeping
+brush to where people are sweeping curves and then like as they're moving
+curves and then like as they're moving their hands a procedural is kind of
+their hands a procedural is kind of taking that curve input and then doing
+taking that curve input and then doing things to it and placing a ribbon around
+things to it and placing a ribbon around it for this talk I'm going to focus
+it for this talk I'm going to focus mainly on the offline because I feel
+mainly on the offline because I feel that's the most relevant for kind of
+that's the most relevant for kind of game development as a whole sure some
+game development as a whole sure some people might be already kind of going
+people might be already kind of going into the runtime and the low time but
+into the runtime and the low time but for like 90% of the population I think
+for like 90% of the population I think that the trick is just how do you
+that the trick is just how do you automate your pipelines and how do you
+automate your pipelines and how do you make them a little bit
+make them a little bit so I'm hoping that out of this talk you
+so I'm hoping that out of this talk you guys can get at least enough ammunition
+guys can get at least enough ammunition to where you can go back to your studio
+to where you can go back to your studio and be like hey this is something that
+and be like hey this is something that we should at least think about and kind
+we should at least think about and kind of further explore a little bit so why
+of further explore a little bit so why should you clear you like crunch
+should you clear you like crunch have you ever crunched you will have you
+have you ever crunched you will have you ever lost work because someone came back
+ever lost work because someone came back and it was like yeah that the artists
+and it was like yeah that the artists final but design had changed that we
+final but design had changed that we played that aside in a play like rap so
+played that aside in a play like rap so we have to go back and we have to change
+we have to go back and we have to change it and then you just have to eat that
+it and then you just have to eat that work and you just have to rebuild
+work and you just have to rebuild everything and then you have your
+everything and then you have your habitat to cut stuff because you like it
+habitat to cut stuff because you like it just couldn't have enough man cycles to
+just couldn't have enough man cycles to build something because the idea was too
+build something because the idea was too big or there's just way too much work to
+big or there's just way too much work to be able to pull it off so the idea with
+be able to pull it off so the idea with procedural ISM is that then you try to
+procedural ISM is that then you try to minimize all of those you're still going
+minimize all of those you're still going to have crunch probably you're still
+to have crunch probably you're still gonna have a little bit less work but
+gonna have a little bit less work but the idea is that if you have a kind of
+the idea is that if you have a kind of automated pipeline that you can change
+automated pipeline that you can change the input in the beginning and then kind
+the input in the beginning and then kind of have things fun away the way through
+of have things fun away the way through ideal you're minimizing all of these
+ideal you're minimizing all of these problems so the first misconception is
+problems so the first misconception is that procedure content generation is
+that procedure content generation is this weird ball thing that Indies do for
+this weird ball thing that Indies do for roguelikes with procedural dungeon
+roguelikes with procedural dungeon generation sure that's also true but
+generation sure that's also true but that's not exclusively what procedural
+that's not exclusively what procedural content generation is and then on the
+content generation is and then on the flip side people say procedural content
+flip side people say procedural content generation is this thing that you need a
+generation is this thing that you need a whole development team for so like you
+whole development team for so like you have the snowdrop engine that you have
+have the snowdrop engine that you have like volumes that you can push and pull
+like volumes that you can push and pull and building generate and then the whole
+and building generate and then the whole cities get generated automatically so
+cities get generated automatically so there's this it's they're both true but
+there's this it's they're both true but they're also both false so they're the
+they're also both false so they're the scope is so big that don't get too hung
+scope is so big that don't get too hung up on the definition of it just kind of
+up on the definition of it just kind of figure out how can I apply this to me
+figure out how can I apply this to me don't look at too much of what other
+don't look at too much of what other people are doing just use it as
+people are doing just use it as inspiration but try to kind of frame it
+inspiration but try to kind of frame it in your own problems that you're trying
+in your own problems that you're trying to solve so the usual evolution that I
+to solve so the usual evolution that I see in kind of different Studios and
+see in kind of different Studios and it's kind of fun to see where the stages
+it's kind of fun to see where the stages of development of kind of opting
+of development of kind of opting procedural ISM is usually you start with
+procedural ISM is usually you start with one kind of champion that is like I have
+one kind of champion that is like I have a crazy idea and I used to say that I
+a crazy idea and I used to say that I like I have this crack-smoking idea that
+like I have this crack-smoking idea that is just like off the wall and I have
+is just like off the wall and I have that I'm gonna pitch this for this whole
+that I'm gonna pitch this for this whole crazy system and then they'll do it and
+crazy system and then they'll do it and they'll pull it off and then now people
+they'll pull it off and then now people start to notice and they're like holy
+start to notice and they're like holy like that that actually worked and then
+like that that actually worked and then you're gonna have like a few people kind
+you're gonna have like a few people kind of gathering around them and being like
+of gathering around them and being like okay how do you how did you do that can
+okay how do you how did you do that can you build this something slightly
+you build this something slightly different can I use your tools to do it
+different can I use your tools to do it and then those people start using and
+and then those people start using and that's gonna be like the badass theme of
+that's gonna be like the badass theme of the studio and that's the hard problem
+the studio and that's the hard problem team and they're basically like the the
+team and they're basically like the the Wizards and then ideally you kind of be
+Wizards and then ideally you kind of be able to distill that out into a
+able to distill that out into a production at large and that's the
+production at large and that's the really hard part is basically kind of
+really hard part is basically kind of going from this kind of small team agile
+going from this kind of small team agile movement to like a big engine deployment
+movement to like a big engine deployment kind of level so I'm going to go through
+kind of level so I'm going to go through each of these stages and kind of help
+each of these stages and kind of help you through at least know what you're
+you through at least know what you're gonna run into and kind of how to kind
+gonna run into and kind of how to kind of muscle your way through or just
+of muscle your way through or just understand what the problems are going
+understand what the problems are going to be so we'll start with proof of
+to be so we'll start with proof of concept so this you're gonna see is a
+concept so this you're gonna see is a lot like just regular tool development
+lot like just regular tool development so you just identified the problem
+so you just identified the problem figure out how to make time to fix the
+figure out how to make time to fix the problem and then you fix the problem so
+problem and then you fix the problem so how do you identify the problem walk
+how do you identify the problem walk around and this is like if you guys are
+around and this is like if you guys are tech artists you know just walk around
+tech artists you know just walk around to the tool the studio and figure like
+to the tool the studio and figure like talk to people and walk around and then
+talk to people and walk around and then the one thing that I would say is for
+the one thing that I would say is for procedural ISM in particular find out
+procedural ISM in particular find out what's boring and repetitive because I'm
+what's boring and repetitive because I'm gonna talk a little bit about this but
+gonna talk a little bit about this but some people are scared of procedural ism
+some people are scared of procedural ism and they think that that's going to
+and they think that that's going to displace their jobs but the idea here is
+displace their jobs but the idea here is you're taking things that no one wants
+you're taking things that no one wants to do they're kind of just shoveling
+to do they're kind of just shoveling assets through pipelines and then all
+assets through pipelines and then all the boring and repetitive things and all
+the boring and repetitive things and all the little bottlenecks are the perfect
+the little bottlenecks are the perfect candidates to be automated because if
+candidates to be automated because if something is so repetitive that
+something is so repetitive that basically the artist can just shut off
+basically the artist can just shut off their brain and then just do all just
+their brain and then just do all just yeah I click this then I click this and
+yeah I click this then I click this and I click this and then I move this file
+I click this and then I move this file to here and then I bring this file over
+to here and then I bring this file over here that should just be automated and
+here that should just be automated and that's a perfect candidate for you to
+that's a perfect candidate for you to hit the other thing too is understand
+hit the other thing too is understand the arc flow so people joke that I say
+the arc flow so people joke that I say that you have to basically talk to a
+that you have to basically talk to a robot or I talk to artists and then
+robot or I talk to artists and then build robots that will replace them
+build robots that will replace them that's not true but the idea is that you
+that's not true but the idea is that you do talk to artists and then you figure
+do talk to artists and then you figure out what the workflow is and any try to
+out what the workflow is and any try to automate as much as possible while
+automate as much as possible while leaving control points and that's the
+leaving control points and that's the crucial part is that you want to build
+crucial part is that you want to build an automated system but you want to
+an automated system but you want to leave control where the artist wants
+leave control where the artist wants control so you need to kind of expose
+control so you need to kind of expose the hooks to where any point in the
+the hooks to where any point in the pipeline they can go in and they have
+pipeline they can go in and they have feel like they have control and then go
+feel like they have control and then go through the process yourself and this is
+through the process yourself and this is especially good for tech artists because
+especially good for tech artists because we can actually do it so sometimes with
+we can actually do it so sometimes with like tools programmers they'll just get
+like tools programmers they'll just get a list of this is all the stuff that we
+a list of this is all the stuff that we want and then they'll just go check
+want and then they'll just go check let's check let's check with checklist
+let's check let's check with checklist and just give you the tool and it's like
+and just give you the tool and it's like yeah technically that's what I want
+yeah technically that's what I want to do but you missed half the point and
+to do but you missed half the point and I forgot to say that yeah there's this
+I forgot to say that yeah there's this other pain point so if you actually do
+other pain point so if you actually do the process yourself you will see that
+the process yourself you will see that yeah no you guys don't even bother doing
+yeah no you guys don't even bother doing any of this just like completely Hotwire
+any of this just like completely Hotwire the whole thing and go from A to B way
+the whole thing and go from A to B way faster
+faster this is it's fun because it is the same
+this is it's fun because it is the same process as a tech artist - so a little
+process as a tech artist - so a little bit yeah so the misconception is that
+bit yeah so the misconception is that I'm training my replacement and this is
+I'm training my replacement and this is an actual conversation that I had with
+an actual conversation that I had with someone to where I was like okay talk to
+someone to where I was like okay talk to a designer how do you build procedural
+a designer how do you build procedural levels and then I guy was like listen
+levels and then I guy was like listen man I went to China one time and then I
+man I went to China one time and then I had to train a replacement team to
+had to train a replacement team to basically I came back and then I got
+basically I came back and then I got laid off because basically I trained my
+laid off because basically I trained my outsourcers so I feel like I'm having
+outsourcers so I feel like I'm having the same conversation and this is and
+the same conversation and this is and this is not just in the games industry
+this is not just in the games industry just like out everywhere you hear a lot
+just like out everywhere you hear a lot about automation we had conversations
+about automation we had conversations last night about it just know that
+last night about it just know that people are gonna have that kind of
+people are gonna have that kind of built-in resentment and built-in
+built-in resentment and built-in resistance sometimes and you just kind
+resistance sometimes and you just kind of have to know how to word it the way I
+of have to know how to word it the way I like to word it is we don't want to take
+like to word it is we don't want to take your job we want to make you more
+your job we want to make you more productive we want that's why we build
+productive we want that's why we build tools and then it is the same way but
+tools and then it is the same way but there's a little bit of a mind shift
+there's a little bit of a mind shift that needs to happen with people with
+that needs to happen with people with procedural system they they don't see
+procedural system they they don't see them necessarily as tools they see them
+them necessarily as tools they see them as the next step of tools so there's a
+as the next step of tools so there's a little bit of that and then there's this
+little bit of that and then there's this thing as the goldfish paradigm which
+thing as the goldfish paradigm which kind of ties into that which is you will
+kind of ties into that which is you will build as much content as you have time
+build as much content as you have time for so the goldfish will grow for as
+for so the goldfish will grow for as much size as the fish tank is so the
+much size as the fish tank is so the fact that now we kind of displace the
+fact that now we kind of displace the time and we may production shorter that
+time and we may production shorter that just means you're going to build more
+just means you're going to build more content and then sure like maybe down
+content and then sure like maybe down the line you're gonna get someone greedy
+the line you're gonna get someone greedy that's gonna see it and be like oh I can
+that's gonna see it and be like oh I can make a game in six months that means I'm
+make a game in six months that means I'm gonna make 10 games a year with like a
+gonna make 10 games a year with like a bunch of teams that's technically that
+bunch of teams that's technically that could happen but that's not what we're
+could happen but that's not what we're kind of aiming for we're just aiming for
+kind of aiming for we're just aiming for you still have the regular game cycle
+you still have the regular game cycle but you're building more content better
+but you're building more content better games more fulfilling experiences and
+games more fulfilling experiences and ideally Europe changing the things in
+ideally Europe changing the things in the beginning so you're like alleviating
+the beginning so you're like alleviating the crunch and you're kind of making the
+the crunch and you're kind of making the ideas kind of stick a little bit better
+ideas kind of stick a little bit better and that's really the true go for it but
+and that's really the true go for it but like any kind of tool there's you can
+like any kind of tool there's you can take it for good or you can take it for
+take it for good or you can take it for bad so the first example I want to talk
+bad so the first example I want to talk about is basically the simplest kind of
+about is basically the simplest kind of tool that I could come up with which is
+tool that I could come up with which is making baseboards and crown molding so
+making baseboards and crown molding so the usual workflow
+the usual workflow you would go and your Google baseboards
+you would go and your Google baseboards and then you find out the profile that
+and then you find out the profile that you want and then you're like okay cool
+you want and then you're like okay cool I like those and then I want to try to
+I like those and then I want to try to build this for my game and then you
+build this for my game and then you bring it in and then you bring in the
+bring it in and then you bring in the image and then you go with the Tres tool
+image and then you go with the Tres tool and you go boom boom boom and you start
+and you go boom boom boom and you start to kind of going and then nobody got
+to kind of going and then nobody got time for that this is just a giant waste
+time for that this is just a giant waste of time
+of time so the first change that would do is
+so the first change that would do is that will look at manufacturer specs so
+that will look at manufacturer specs so like a lot of these things that we're
+like a lot of these things that we're building is out in the real world so you
+building is out in the real world so you can just go directly to the manufacturer
+can just go directly to the manufacturer and get the exact specs that you can you
+and get the exact specs that you can you need and then you would do instead of
+need and then you would do instead of tracing things by hand you would build a
+tracing things by hand you would build a trace node that we have and then you
+trace node that we have and then you just build the line and then you sweep
+just build the line and then you sweep it and I have the same kind of tool that
+it and I have the same kind of tool that will do the same workflow and because
+will do the same workflow and because it's procedurally instead of every time
+it's procedurally instead of every time you need to make a change or every time
+you need to make a change or every time you need to make a variation you just
+you need to make a variation you just have a system that you have you don't
+have a system that you have you don't have to go and kind of fudge the points
+have to go and kind of fudge the points by hand again you just kind of feed it
+by hand again you just kind of feed it more things and then the system would
+more things and then the system would just kind of go and make things which is
+just kind of go and make things which is a better way of working my opinion so
+a better way of working my opinion so now you have this kind of procedural
+now you have this kind of procedural straight line for this stuff we want
+straight line for this stuff we want corners right so we want the kind of
+corners right so we want the kind of concave and convex versions of it so you
+concave and convex versions of it so you can make a modular side out of it and
+can make a modular side out of it and then again the worst case scenario is
+then again the worst case scenario is someone would just put two of them
+someone would just put two of them together and then vert weld them hand by
+together and then vert weld them hand by hand and then they'll kind of fudge them
+hand and then they'll kind of fudge them and then kind of get it aligned again
+and then kind of get it aligned again nobody got time for that so the way I
+nobody got time for that so the way I like to do it is I actually clip it so
+like to do it is I actually clip it so it's kind of like a real operation
+it's kind of like a real operation that's like you just mitered the thing
+that's like you just mitered the thing so you just cut it a 45 and then 45 and
+so you just cut it a 45 and then 45 and then you show them both together
+then you show them both together some people even on some of the comments
+some people even on some of the comments is you want to sweep it along a curve
+is you want to sweep it along a curve the problem with that is that that's not
+the problem with that is that that's not generic enough so you could do it with
+generic enough so you could do it with just like a instead of sweeping and
+just like a instead of sweeping and along a straight line you sweep it of
+along a straight line you sweep it of course a 90 degree angle but then if you
+course a 90 degree angle but then if you have any kind of minut variations or if
+have any kind of minut variations or if you want to build a general system which
+you want to build a general system which I'm going to talk a little bit further
+I'm going to talk a little bit further down the line a mitering approach is a
+down the line a mitering approach is a little bit better and work on a general
+little bit better and work on a general purpose so is keep that in mind towards
+purpose so is keep that in mind towards like if you're building something if you
+like if you're building something if you can extrapolate that to the next level
+can extrapolate that to the next level of how this can be useful for another
+of how this can be useful for another thing and not just for the one problem
+thing and not just for the one problem I'm trying to solve that's helpful so
+I'm trying to solve that's helpful so now I have a full set so now I basically
+now I have a full set so now I basically have a baseboard with a concave corner
+have a baseboard with a concave corner and a con
+and a con corner and then because it's
+corner and then because it's non-destructive I can just feed any
+non-destructive I can just feed any input into it and then I just get the
+input into it and then I just get the whole set so this is by far like the
+whole set so this is by far like the argument that's like oh it doesn't take
+argument that's like oh it doesn't take me too long to trace a curve right it's
+me too long to trace a curve right it's just like like a couple of hours I'll go
+just like like a couple of hours I'll go in it's like yeah but you could do it in
+in it's like yeah but you could do it in seconds and then the idea is like the
+seconds and then the idea is like the next step is instead of feeding one
+next step is instead of feeding one input we just feed a sheet of inputs and
+input we just feed a sheet of inputs and now any tool or any asset that you need
+now any tool or any asset that you need to build you just kind of run it through
+to build you just kind of run it through the pipeline you just have like infinite
+the pipeline you just have like infinite number of assets basically but it still
+number of assets basically but it still art-directed it's still controlled it
+art-directed it's still controlled it still fit what you want it to look like
+still fit what you want it to look like but all other kind of boring little
+but all other kind of boring little repetitive work is kind of gone so now
+repetitive work is kind of gone so now you have a tool and then maybe make this
+you have a tool and then maybe make this tool and maybe make something else and
+tool and maybe make something else and then it's it's like people start to
+then it's it's like people start to notice and the way usually works is you
+notice and the way usually works is you make a tool and then you just use it
+make a tool and then you just use it yourself because it's so fast that
+yourself because it's so fast that you'll be like you're the guy and then
+you'll be like you're the guy and then it's like hey do you need baseboards
+it's like hey do you need baseboards just ask me the baseboards feed me the
+just ask me the baseboards feed me the thing I'll just run it through my system
+thing I'll just run it through my system and then I'll spit it up for you and it
+and then I'll spit it up for you and it takes no time but ideally you want to
+takes no time but ideally you want to kind of diffuse that out because then
+kind of diffuse that out because then you become a bottleneck yourself and you
+you become a bottleneck yourself and you kind of want to displace that you want
+kind of want to displace that you want to make the tools easy enough for other
+to make the tools easy enough for other people to use then you're gonna start
+people to use then you're gonna start basically building tools for other
+basically building tools for other people but the problem with building
+people but the problem with building tools for other people is that you have
+tools for other people is that you have to convince the kind of task keepers and
+to convince the kind of task keepers and the producers that it is worth spending
+the producers that it is worth spending the time and now it needs to be a little
+the time and now it needs to be a little bit more robust and you have to kind of
+bit more robust and you have to kind of capsulate the problem a little bit you
+capsulate the problem a little bit you can't just have like the sake tool that
+can't just have like the sake tool that you just know where all the inputs are
+you just know where all the inputs are you kind of have to kind of extrapolate
+you kind of have to kind of extrapolate it up a level again much like regular
+it up a level again much like regular tool development the one thing that I
+tool development the one thing that I will say is don't argue for time to show
+will say is don't argue for time to show it there will always be people saying
+it there will always be people saying that it can't be done there's always
+that it can't be done there's always always going to be people that's saying
+always going to be people that's saying they can do it faster by hand if you
+they can do it faster by hand if you believe strongly on it just do it so I
+believe strongly on it just do it so I had a great example I used to work on a
+had a great example I used to work on a previous company and we just had like
+previous company and we just had like head topologies and we had like 200
+head topologies and we had like 200 heads that we needed to change the
+heads that we needed to change the topology on and there's a big argument
+topology on and there's a big argument whether or not that was worth doing and
+whether or not that was worth doing and with I was like well if we change to
+with I was like well if we change to another head then we're in line with
+another head then we're in line with other Studios and they give us better
+other Studios and they give us better tools but the argument was like well
+tools but the argument was like well there's gonna be like it's like 200
+there's gonna be like it's like 200 heads it's gonna take you like 2 two-men
+heads it's gonna take you like 2 two-men weeks to kind of go and wheat apologize
+weeks to kind of go and wheat apologize all of them and it's just like it's not
+all of them and it's just like it's not worth the time the real problem was like
+worth the time the real problem was like a political thing so it was kind of
+a political thing so it was kind of being
+being guys so one of the guys Johnny who's a
+guys so one of the guys Johnny who's a Houdini wizard over at EA basically he
+Houdini wizard over at EA basically he just went he was like I just wrote a
+just went he was like I just wrote a script overnight and I just batch all
+script overnight and I just batch all the heads and the problem is gone and
+the heads and the problem is gone and it's like the next time we went to the
+it's like the next time we went to the meeting they were like okay well this is
+meeting they were like okay well this is gonna take forever and psych no it's
+gonna take forever and psych no it's nice done and then the real problem like
+nice done and then the real problem like surface that it's like oh they don't
+surface that it's like oh they don't want to change it it wasn't because of
+want to change it it wasn't because of the tool or the time it was because of
+the tool or the time it was because of some other reason but kind of being able
+some other reason but kind of being able to just do it by yourself and being like
+to just do it by yourself and being like just take out the whole middle layer of
+just take out the whole middle layer of argument and there's no time and it's
+argument and there's no time and it's it's it's it's worth doing and a little
+it's it's it's worth doing and a little bit of the ask for forgiveness and uh
+bit of the ask for forgiveness and uh permission kind of plies here and the
+permission kind of plies here and the other thing too is that build a little
+other thing too is that build a little prototype a lot of these tools can be
+prototype a lot of these tools can be built with very simple nodes and you can
+built with very simple nodes and you can kind of do a proof of concept and kind
+kind of do a proof of concept and kind of show it if you can't look at examples
+of show it if you can't look at examples of people doing it there's a lot of
+of people doing it there's a lot of people doing procedural ISM now so
+people doing procedural ISM now so there's a lot of talks from you aid
+there's a lot of talks from you aid they'd have a great stuff on SSX how
+they'd have a great stuff on SSX how they built the whole mountain generation
+they built the whole mountain generation system there's a lot of stuff of
+system there's a lot of stuff of uncharted how they're doing procedural
+uncharted how they're doing procedural destruction and using Houdini for that
+destruction and using Houdini for that stuff and then there's ya just go out
+stuff and then there's ya just go out and then see generally what you're
+and then see generally what you're trying to do and there's a lot of
+trying to do and there's a lot of resources either on GDC at SIGGRAPH or
+resources either on GDC at SIGGRAPH or on our website the other way to approach
+on our website the other way to approach pitching tools is as you're buying time
+pitching tools is as you're buying time and this is kind of a weird mind thing
+and this is kind of a weird mind thing because if you say hey I need whatever
+because if you say hey I need whatever five thousand dollars to buy this piece
+five thousand dollars to buy this piece of software but that's gonna save you a
+of software but that's gonna save you a lot of time people don't see that as
+lot of time people don't see that as like on a budgeting mindset it's like
+like on a budgeting mindset it's like people are free because I'm already
+people are free because I'm already paying for people so I don't want to pay
+paying for people so I don't want to pay this much money that will give me
+this much money that will give me theoretically like X more people that
+theoretically like X more people that are just production like man time it's
+are just production like man time it's still it's a weird kind of like non
+still it's a weird kind of like non logical argument that you have to have
+logical argument that you have to have but just try to pitch it as time it's
+but just try to pitch it as time it's like you're not buying software for then
+like you're not buying software for then you need more people to write the
+you need more people to write the software you're just buying the software
+software you're just buying the software that can just automate the whole process
+that can just automate the whole process or you're building the software it's not
+or you're building the software it's not necessarily buying but the time that
+necessarily buying but the time that you're using to build it the other thing
+you're using to build it the other thing to use like buy get the binds from the
+to use like buy get the binds from the team so the worst thing you can do is
+team so the worst thing you can do is come up with a cool idea about how the
+come up with a cool idea about how the Turing system should be built and then
+Turing system should be built and then you go and you try to shove it down the
+you go and you try to shove it down the terrain team's throat that's never gonna
+terrain team's throat that's never gonna work like sometimes you can muscle
+work like sometimes you can muscle through it and sometimes you get some
+through it and sometimes you get some people that are like oh yeah I can see
+people that are like oh yeah I can see the light 90% of the time
+the light 90% of the time you need to kind of work with them
+you need to kind of work with them throughout the whole process and kind of
+throughout the whole process and kind of get buy-in from them as you're
+get buy-in from them as you're developing the tools so then they feel
+developing the tools so then they feel vested in it otherwise they're just like
+vested in it otherwise they're just like even if the tool is good and it's better
+even if the tool is good and it's better and it's faster just a logical argument
+and it's faster just a logical argument of like I didn't build it I don't know
+of like I didn't build it I don't know who did this it's not good enough
+who did this it's not good enough because I didn't come up with it and
+because I didn't come up with it and those are again in the kind of argument
+those are again in the kind of argument land it's it's subtle differences but
+land it's it's subtle differences but you're gonna run into it and I know that
+you're gonna run into it and I know that card lets me personally very logical
+card lets me personally very logical very just like hey just clearly this is
+very just like hey just clearly this is more efficient we should just use this
+more efficient we should just use this and I'd be like oh you get kind of more
+and I'd be like oh you get kind of more emotional arguments with it the other
+emotional arguments with it the other thing to say is like just show how fast
+thing to say is like just show how fast people can do it shows some tools to
+people can do it shows some tools to some clients and they're like like this
+some clients and they're like like this just like shows me that we're working
+just like shows me that we're working way too slow and then just looking at
+way too slow and then just looking at some of these tools as like see people
+some of these tools as like see people just like drawing curves and then whole
+just like drawing curves and then whole cities apply and it's like Jesus Christ
+cities apply and it's like Jesus Christ like we're placing parking meters by
+like we're placing parking meters by hand and like we've did that in games
+hand and like we've did that in games it's like yeah but but I need control
+it's like yeah but but I need control where the parking meters are because of
+where the parking meters are because of like the way it's frame it's like no you
+like the way it's frame it's like no you don't like just please just just just
+don't like just please just just just see how fast you can do it and then
+see how fast you can do it and then people are gonna be like well like
+people are gonna be like well like placing a parking meter is just like
+placing a parking meter is just like really fast I can do it like super fast
+really fast I can do it like super fast I can just like clicking and then I'll
+I can just like clicking and then I'll drag I'll drag drag drag and it's like
+drag I'll drag drag drag and it's like yeah but if you want change and if the
+yeah but if you want change and if the street move now you have either floating
+street move now you have either floating parking meters you have to go in and
+parking meters you have to go in and every time someone changes that you have
+every time someone changes that you have to go and update it so there's a little
+to go and update it so there's a little bit of that again like oh it just takes
+bit of that again like oh it just takes me five minutes but it shouldn't take
+me five minutes but it shouldn't take you any time and then that's it's those
+you any time and then that's it's those little five minutes is what bleeds
+little five minutes is what bleeds production dry it's not like the big
+production dry it's not like the big tools that take months like the big
+tools that take months like the big tools that take months usually are the
+tools that take months usually are the things that kind of solve production the
+things that kind of solve production the little paper cuts is what kind of
+little paper cuts is what kind of destroys you the second example that
+destroys you the second example that I'll go into is this pipe tool and this
+I'll go into is this pipe tool and this is basically like something that you
+is basically like something that you want to hand off to an artist and you
+want to hand off to an artist and you want to kind of extrapolate things out a
+want to kind of extrapolate things out a little bit and then you just now you
+little bit and then you just now you have a tool that you just take a curve
+have a tool that you just take a curve and then you get a pipe out of it and
+and then you get a pipe out of it and this is kind of just a traditional
+this is kind of just a traditional problem they have the thing I have is
+problem they have the thing I have is you want to break down the problem a
+you want to break down the problem a little bit so you want to take the curve
+little bit so you want to take the curve you don't understand how that workflow
+you don't understand how that workflow is and then how do kind of you would
+is and then how do kind of you would come up with the solution for it so the
+come up with the solution for it so the way I would come up with this is you
+way I would come up with this is you take the curve input and then you
+take the curve input and then you separate the corners from the straights
+separate the corners from the straights and then you will build the straights
+and then you will build the straights and then you build the corners and then
+and then you build the corners and then you assemble it together and you have a
+you assemble it together and you have a pipe so fairly kind of straightforward
+pipe so fairly kind of straightforward workflow
+workflow so let's go that hand by a hair of
+so let's go that hand by a hair of step-by-step so you start with the curve
+step-by-step so you start with the curve is an input as a nice bonus another
+is an input as a nice bonus another thing that people like to do is on line
+thing that people like to do is on line curves to surfaces which is a giant
+curves to surfaces which is a giant waste of time so basically here's what I
+waste of time so basically here's what I like to do is you take the curves and
+like to do is you take the curves and then you take the first and last points
+then you take the first and last points and then you project it into the surface
+and then you project it into the surface that you're gonna do it get the surface
+that you're gonna do it get the surface normals out and then you stitch that
+normals out and then you stitch that back into the curve so now the kind of
+back into the curve so now the kind of connections are always going to be
+connections are always going to be perfect because that's the giant most
+perfect because that's the giant most waste of time thing that I've ever seen
+waste of time thing that I've ever seen but that's one of those that's like we
+but that's one of those that's like we don't know what's like we don't come up
+don't know what's like we don't come up with this and it's like we don't know
+with this and it's like we don't know what's out there and we don't know how
+what's out there and we don't know how to fix it so we don't know the problems
+to fix it so we don't know the problems we have then we want to separate the
+we have then we want to separate the straight from the corners this is very
+straight from the corners this is very straightforward basically you just take
+straightforward basically you just take each line segment and then you kind of
+each line segment and then you kind of like carve them a little bit so we kind
+like carve them a little bit so we kind of spread them out a little bit and now
+of spread them out a little bit and now you have basically the two kind of
+you have basically the two kind of problems that's isolated and then you
+problems that's isolated and then you model a pipe so the way I model the pipe
+model a pipe so the way I model the pipe in that example is you take a cylinder
+in that example is you take a cylinder and then you sweep a you sweep a circle
+and then you sweep a you sweep a circle through a through a line and then you
+through a through a line and then you put two cylinders at the end of it then
+put two cylinders at the end of it then I made some little BS screws that just
+I made some little BS screws that just look like something and then you merge
+look like something and then you merge the the long kind of pipe part of it
+the the long kind of pipe part of it with the kind of end caps with it and
+with the kind of end caps with it and then you do a little bit of a beveling
+then you do a little bit of a beveling at the end of it not fancy but really
+at the end of it not fancy but really really basic modeling but it kind of
+really basic modeling but it kind of from a far away it kind of looks and
+from a far away it kind of looks and that's the other thing too that's like
+that's the other thing too that's like if you talk to an artist I'll be like oh
+if you talk to an artist I'll be like oh no I will like bring this into ZBrush
+no I will like bring this into ZBrush and like manually like do divert the the
+and like manually like do divert the the welding and all this other things it's
+welding and all this other things it's like yeah but then you this little tiny
+like yeah but then you this little tiny pipe on the corner of the ceiling that
+pipe on the corner of the ceiling that no one's gonna see does it need that
+no one's gonna see does it need that much attention sometimes yeah and then
+much attention sometimes yeah and then you that's the part that you can have to
+you that's the part that you can have to go through is like do you build
+go through is like do you build something procedurally or then you give
+something procedurally or then you give that freedom back to the artist and be
+that freedom back to the artist and be like okay fine just build the pipes give
+like okay fine just build the pipes give me the pipe pieces and then I'll
+me the pipe pieces and then I'll manually place those so those are the
+manually place those so those are the two approaches so then I'll just place
+two approaches so then I'll just place those just take each of those little
+those just take each of those little side like segments that I did and then I
+side like segments that I did and then I would run it through the little pipe
+would run it through the little pipe generate through that just kind of strew
+generate through that just kind of strew the the main salon and it puts the two
+the the main salon and it puts the two things at the end and inputs it does the
+things at the end and inputs it does the bellami and then the corner is actually
+bellami and then the corner is actually the same tool because you just have
+the same tool because you just have something that sweeps a circle along a
+something that sweeps a circle along a curve and then you put at two caps at
+curve and then you put at two caps at the end of it and then you you add a
+the end of it and then you you add a little screws to it so now you're done
+little screws to it so now you're done and you have a tool that is kind of
+and you have a tool that is kind of fairly straightforward fairly logical
+fairly straightforward fairly logical anyone should be able to go in and do it
+anyone should be able to go in and do it but now you have this kind of cool
+but now you have this kind of cool system that is like this pipes are
+system that is like this pipes are solved and now for your production of
+solved and now for your production of the rest of the game it's like you can
+the rest of the game it's like you can you can be the pipe guy or a dealer you
+you can be the pipe guy or a dealer you hand this off to the artist where you
+hand this off to the artist where you just be like okay here's your pipe tool
+just be like okay here's your pipe tool just draw as many curves as your heart
+just draw as many curves as your heart desires and then you just run this
+desires and then you just run this through this tool and then you have your
+through this tool and then you have your all the pipes you need so in the last
+all the pipes you need so in the last stage which is the heart stage is now
+stage which is the heart stage is now you kind of have maybe we did this pipe
+you kind of have maybe we did this pipe tool and maybe like five environment
+tool and maybe like five environment artists use it and that's all you need
+artists use it and that's all you need because you don't have that many pipes
+because you don't have that many pipes on your game but now you're trying to
+on your game but now you're trying to build these kind of like larger systems
+build these kind of like larger systems like a building generator or like a room
+like a building generator or like a room generator how do you get into that so
+generator how do you get into that so the way I like to think of it is
+the way I like to think of it is basically you have this thing connected
+basically you have this thing connected subsystems and I used to have a friend
+subsystems and I used to have a friend any problem that you ask him you'd be
+any problem that you ask him you'd be like you know man the spaceship is a
+like you know man the spaceship is a complex problem there's a lot of moving
+complex problem there's a lot of moving parts it's not like you can just it's
+parts it's not like you can just it's it's it's it's complicated
+it's it's it's complicated but kind of try to feed what the
+but kind of try to feed what the critical path is and know what your
+critical path is and know what your starting over here you need to get over
+starting over here you need to get over there
+there build little milestones of failure
+build little milestones of failure points that you can abort but then kind
+points that you can abort but then kind of know what's the minimum valuable
+of know what's the minimum valuable product that you need to build like any
+product that you need to build like any other tool but it applies very much so
+other tool but it applies very much so to procedural ISM the idea here too is
+to procedural ISM the idea here too is that if you kind of know what the whole
+that if you kind of know what the whole pipeline you can just selectively
+pipeline you can just selectively replace pieces of the pipeline with
+replace pieces of the pipeline with procedural ISM and then leave the kind
+procedural ISM and then leave the kind of things that are a little bit more
+of things that are a little bit more close to people's heart or things that
+close to people's heart or things that people want to do and then you so keep
+people want to do and then you so keep the eye on the prize so you might be
+the eye on the prize so you might be like yeah I built you a pipe tool but
+like yeah I built you a pipe tool but that pipe tool was gonna tie with the
+that pipe tool was gonna tie with the cable tool which is gonna tie to the
+cable tool which is gonna tie to the room tool which is going to tie to the
+room tool which is going to tie to the city tool so you kind of start with
+city tool so you kind of start with little pieces but kind of keep an eye on
+little pieces but kind of keep an eye on the prize and kind of know where you're
+the prize and kind of know where you're gonna go
+gonna go the other approach for this is that
+the other approach for this is that there is no plan B and we either do it
+there is no plan B and we either do it or we fail and that's a bold move but it
+or we fail and that's a bold move but it works sometimes so caleb howard from EA
+works sometimes so caleb howard from EA was like when we did SSX we needed to do
+was like when we did SSX we needed to do 300 tracks we either did 300 tracks or
+300 tracks we either did 300 tracks or we failed we couldn't do this by hand
+we failed we couldn't do this by hand the problem was so big that if
+the problem was so big that if procedural ISM didn't work we would just
+procedural ISM didn't work we would just not ship the game and that's that's the
+not ship the game and that's that's the option and then that that puts a little
+option and then that that puts a little bit of what I like to say the panic
+bit of what I like to say the panic threshold which producers will start
+threshold which producers will start because - like procedural systems aren't
+because - like procedural systems aren't like regular art that's just like every
+like regular art that's just like every week I make 5 widgets and then I can see
+week I make 5 widgets and then I can see 5 widgets being built every week and
+5 widgets being built every week and then if a week 5 widgets weren't built I
+then if a week 5 widgets weren't built I know that I dipped
+know that I dipped little bit procedural ISM is like okay I
+little bit procedural ISM is like okay I don't have anything and then I have a
+don't have anything and then I have a thousand widgets and then then that that
+thousand widgets and then then that that panic kind of goes away but then it
+panic kind of goes away but then it didn't work and then like the widgets
+didn't work and then like the widgets needs to change somehow and then the
+needs to change somehow and then the panic starts to creep back up and then
+panic starts to creep back up and then they start and then and then finally
+they start and then and then finally like the widgets work and then the panic
+like the widgets work and then the panic kind of goes away and then the thing
+kind of goes away and then the thing system is stable and people kind of but
+system is stable and people kind of but know that like and it's it's
+know that like and it's it's uncomfortable to kind of be in those
+uncomfortable to kind of be in those meetings because people are like hey
+meetings because people are like hey what's happening with this and he's like
+what's happening with this and he's like it's coming it's like it's really close
+it's coming it's like it's really close and it's like how close it's like I
+and it's like how close it's like I don't know it's like it yeah it's like
+don't know it's like it yeah it's like I'll keep building it and then I'll keep
+I'll keep building it and then I'll keep hitting another wall and then I'll go
+hitting another wall and then I'll go through that wall and then I'll go to
+through that wall and then I'll go to the next wall and at one point there's
+the next wall and at one point there's no more walls and it works but until
+no more walls and it works but until that point happens I can't tell you and
+that point happens I can't tell you and then people get really nervous and
+then people get really nervous and they're like well let's start with plan
+they're like well let's start with plan B and let's start getting some people
+B and let's start getting some people actually building the widget by hand but
+actually building the widget by hand but kind of try to stick with it and kind of
+kind of try to stick with it and kind of try to kind of show them that it's
+try to kind of show them that it's normal to kind of panic and it's normal
+normal to kind of panic and it's normal to kind of not trust the new system but
+to kind of not trust the new system but know that other people are doing it and
+know that other people are doing it and that it's a proven thing at this point
+that it's a proven thing at this point it's not like this weird oddball new
+it's not like this weird oddball new workflow the other misconception is that
+workflow the other misconception is that once it starts working people are like
+once it starts working people are like procedural ISM everything we don't need
+procedural ISM everything we don't need artists like let's make a game with like
+artists like let's make a game with like five guys and let's just like it's like
+five guys and let's just like it's like software development so there's gonna be
+software development so there's gonna be bugs on the design there's gonna be
+bugs on the design there's gonna be things like ambiguity that an artist
+things like ambiguity that an artist said that they needed something and that
+said that they needed something and that they don't have it or then you're gonna
+they don't have it or then you're gonna build this beautiful building tool and
+build this beautiful building tool and then someone gives you just bad modular
+then someone gives you just bad modular sets that completely break everything
+sets that completely break everything and then it doesn't work so there's no
+and then it doesn't work so there's no such thing as an off-the-shelf solution
+such thing as an off-the-shelf solution yet and that's the part that we kind of
+yet and that's the part that we kind of need to build as a community and kind of
+need to build as a community and kind of start getting kind of more standards and
+start getting kind of more standards and kind of building it to that we get to
+kind of building it to that we get to the point that's like everyone wants to
+the point that's like everyone wants to build their own procedural system
+build their own procedural system because there isn't the one building
+because there isn't the one building generator that's of like just like just
+generator that's of like just like just works for everybody
+works for everybody so everybody has their own things like I
+so everybody has their own things like I want to do a premium building so my
+want to do a premium building so my buildings are completely different I
+buildings are completely different I want to do an old-west building so it's
+want to do an old-west building so it's completely different until someone comes
+completely different until someone comes up with the PBR of buildings that is
+up with the PBR of buildings that is like you just can't mess this up you
+like you just can't mess this up you just give it a curve and then you saw
+just give it a curve and then you saw like which style you want and then you
+like which style you want and then you get better curves than anything and
+get better curves than anything and that's I think where substance did
+that's I think where substance did really well towards just like you just
+really well towards just like you just have a library of really good materials
+have a library of really good materials yeah you want to make gold go make gold
+yeah you want to make gold go make gold but the gold that they give you is
+but the gold that they give you is pretty good so then people start to kind
+pretty good so then people start to kind of go down that kind of pedestal of like
+of go down that kind of pedestal of like my gold is better than
+my gold is better than it's like yeah do you really want to
+it's like yeah do you really want to spend 30 hours building a procedural
+spend 30 hours building a procedural wood shirt go and spend and do that but
+wood shirt go and spend and do that but like 90% of the time you can just find
+like 90% of the time you can just find something that is already done at a
+something that is already done at a quality that you like and then kind of
+quality that you like and then kind of move on so for my final example I have
+move on so for my final example I have this modular set which is as you can see
+this modular set which is as you can see it's very similar to a something I
+it's very similar to a something I showed earlier today but it's kind of
+showed earlier today but it's kind of like the extrapolation so the problem
+like the extrapolation so the problem that I have in this one is I have
+that I have in this one is I have something that is excised and I need to
+something that is excised and I need to fit it in something that is why size and
+fit it in something that is why size and then the way I usually start with is
+then the way I usually start with is like okay I'll just place it there and
+like okay I'll just place it there and then I'll place another one and then the
+then I'll place another one and then the way we do it by hand is like okay I have
+way we do it by hand is like okay I have a wall segment I'll put wall segment
+a wall segment I'll put wall segment wall segment and then I'll put some
+wall segment and then I'll put some weird oddball little corner shape that
+weird oddball little corner shape that didn't fit because people didn't really
+didn't fit because people didn't really apply to the grid or it didn't just kind
+apply to the grid or it didn't just kind of fell off and now I have this one
+of fell off and now I have this one custom piece that it's like a weird
+custom piece that it's like a weird corner and ideally what I would like to
+corner and ideally what I would like to do is that with like the procedural
+do is that with like the procedural system to calculate how many things can
+system to calculate how many things can I fit there and then distribute the
+I fit there and then distribute the weight of that scaling slightly by all
+weight of that scaling slightly by all the pieces so then you get a little bit
+the pieces so then you get a little bit like a 5% squish on each asset but it's
+like a 5% squish on each asset but it's not noticeable and you don't have all
+not noticeable and you don't have all these weird little custom end caps that
+these weird little custom end caps that you have to figure out how to do it so
+you have to figure out how to do it so again the math of this this is the only
+again the math of this this is the only math of the whole talk it's fairly
+math of the whole talk it's fairly straightforward so if you have something
+straightforward so if you have something that is too wide and you have something
+that is too wide and you have something that is one why'd you put you figure out
+that is one why'd you put you figure out what the size needs to be so you need to
+what the size needs to be so you need to multiply it by two so that's just like a
+multiply it by two so that's just like a basic kind of ratio what you have to
+basic kind of ratio what you have to multiply it and then if you do it one by
+multiply it and then if you do it one by one it starts to get easy but then the
+one it starts to get easy but then the real problem is when you have something
+real problem is when you have something that is like 360 7.50 8/8 and it's like
+that is like 360 7.50 8/8 and it's like okay then I just want a system that
+okay then I just want a system that deals with that and I don't have to want
+deals with that and I don't have to want to worry about that so if you have
+to worry about that so if you have something that's 5 you divide 5 by 2 and
+something that's 5 you divide 5 by 2 and you kind of figure out how to do it and
+you kind of figure out how to do it and then the other problem they have to do
+then the other problem they have to do is the number of segments so how many of
+is the number of segments so how many of these because I don't want to just get
+these because I don't want to just get one really long segment I want to figure
+one really long segment I want to figure out how many of these segments can I fit
+out how many of these segments can I fit in this wall size and then I want to
+in this wall size and then I want to kind of subdivide it so you're just
+kind of subdivide it so you're just divided by 2 and you kind of round it so
+divided by 2 and you kind of round it so you got an integer and then you figure
+you got an integer and then you figure out the individual size of those so you
+out the individual size of those so you kind of have the individual piece it's
+kind of have the individual piece it's gonna be a scale of like a smallest
+gonna be a scale of like a smallest small scale of what the original one was
+small scale of what the original one was so you kind of get the full watching my
+so you kind of get the full watching my job like how do you call it
+job like how do you call it just the whole don't whole math and it I
+just the whole don't whole math and it I know like you guys will go over
+know like you guys will go over and kind of look it over but it's it's
+and kind of look it over but it's it's really simple math you just kind of you
+really simple math you just kind of you have the wall piece you figure out how
+have the wall piece you figure out how many widgets you want to put in it and
+many widgets you want to put in it and then you figure out what is the Delta of
+then you figure out what is the Delta of the full-size versus the widget size
+the full-size versus the widget size that I got divided and then it does just
+that I got divided and then it does just how much you need to scale things by but
+how much you need to scale things by but once you have that and now you have a
+once you have that and now you have a system that you can do this and then it
+system that you can do this and then it was just like oh crap that's magic but
+was just like oh crap that's magic but it's like it's like three little
+it's like it's like three little equations but it's really like now you
+equations but it's really like now you have a tool that just places things
+have a tool that just places things along a wall panel and you don't have to
+along a wall panel and you don't have to deal with it and then things will
+deal with it and then things will stretch up to a threshold and then
+stretch up to a threshold and then they'll kind of move to the next as a
+they'll kind of move to the next as a stretch but on the opposite way and then
+stretch but on the opposite way and then Oh kind of start growing and then if you
+Oh kind of start growing and then if you put that with the real asset you get
+put that with the real asset you get something that looks like that and as
+something that looks like that and as you can see it's like yeah you got a
+you can see it's like yeah you got a little bit of a stretching and you can
+little bit of a stretching and you can see it really bad when it's moving but
+see it really bad when it's moving but when you kind of freeze it it's kind of
+when you kind of freeze it it's kind of imperceptible so now you have this thing
+imperceptible so now you have this thing that you can squish but I also have a
+that you can squish but I also have a way to kind of miter things right so
+way to kind of miter things right so then I have ways to kind of make things
+then I have ways to kind of make things squish this way but then I can also
+squish this way but then I can also figure out how to put corner pieces so
+figure out how to put corner pieces so what this means is that I can have a
+what this means is that I can have a room generator so I can just make a
+room generator so I can just make a thing that just takes a box as an input
+thing that just takes a box as an input and then I can make rooms with it with
+and then I can make rooms with it with really basic math and it just works and
+really basic math and it just works and you can see how this starts to
+you can see how this starts to extrapolate so we started with the
+extrapolate so we started with the baseboard that I was like what the hell
+baseboard that I was like what the hell is this baseboard for but now we get to
+is this baseboard for but now we get to the point that you could see how it's
+the point that you could see how it's wrapped like this to a building so right
+wrapped like this to a building so right now this is the first war instead of
+now this is the first war instead of kind of having things facing inside I'll
+kind of having things facing inside I'll face them outside same kind of technique
+face them outside same kind of technique and then you just build things up and
+and then you just build things up and then you do the same thing when you're
+then you do the same thing when you're building things up to where it's like
+building things up to where it's like you divide things equally and you kind
+you divide things equally and you kind of put the first floor in the last floor
+of put the first floor in the last floor and kind of squish the middle parts but
+and kind of squish the middle parts but getting to this stage to where it's like
+getting to this stage to where it's like now you have tools and that's how people
+now you have tools and that's how people work that's a hard kind of mind thing
+work that's a hard kind of mind thing people need to drink the kool-aid and
+people need to drink the kool-aid and they have to be like a min I get it
+they have to be like a min I get it that's how I want to work I don't want
+that's how I want to work I don't want to place things by hand and ever again
+to place things by hand and ever again so there's the costume both and kind of
+so there's the costume both and kind of getting to that there's a lot of ego of
+getting to that there's a lot of ego of people being like I'm really fast and
+people being like I'm really fast and unreal and there's a bunch of tools and
+unreal and there's a bunch of tools and I can just blue blue blue and it's like
+I can just blue blue blue and it's like yeah I'm sure you could but like getting
+yeah I'm sure you could but like getting to that stage is kind of really
+to that stage is kind of really important you're gonna get pushed back
+important you're gonna get pushed back and the best way is kind of like use
+and the best way is kind of like use these stalks use other thoughts that
+these stalks use other thoughts that people are doing with procedural ISM and
+people are doing with procedural ISM and kind of help drive that home and kind of
+kind of help drive that home and kind of show the light a little bit
+show the light a little bit as if were so the other thing too is
+as if were so the other thing too is that I like to think about this vertical
+that I like to think about this vertical monopoly - where if you have one drive
+monopoly - where if you have one drive with one driverless car in the road
+with one driverless car in the road that's great because you have something
+that's great because you have something that's automated and is driving by
+that's automated and is driving by yourself but the moment that you have a
+yourself but the moment that you have a person driving the car now the automated
+person driving the car now the automated system needs to figure out how to drive
+system needs to figure out how to drive around the bad driver and there's all
+around the bad driver and there's all these other kind of problems associated
+these other kind of problems associated with it so the real system is like when
+with it so the real system is like when all of the driverless groaned the whole
+all of the driverless groaned the whole pipeline is automated what does that
+pipeline is automated what does that open up so it's like when you have the
+open up so it's like when you have the whole thing that you can make a room you
+whole thing that you can make a room you can make a building you can make a city
+can make a building you can make a city you can place anything what does that
+you can place anything what does that open up like now you can have massive
+open up like now you can have massive worlds or you can have small worlds and
+worlds or you can have small worlds and lots of them so getting to that stage
+lots of them so getting to that stage that like the whole pipeline is
+that like the whole pipeline is automated is kind of like the golden
+automated is kind of like the golden Grail a few studios are getting really
+Grail a few studios are getting really close to it but you're gonna start to
+close to it but you're gonna start to seeing that kind of paradigm shift of
+seeing that kind of paradigm shift of just like now games are massive and
+just like now games are massive and there's just a lot of content and
+there's just a lot of content and they're all triple-a and then a lot of
+they're all triple-a and then a lot of people won't know that they're being
+people won't know that they're being used procedurally which is the nice part
+used procedurally which is the nice part so it doesn't have that kind of stank on
+so it doesn't have that kind of stank on it that is like oh it's just fractals
+it that is like oh it's just fractals and random seeds so that's that's
+and random seeds so that's that's there's a little bit of so just over all
+there's a little bit of so just over all the the pros and cons of kind of going
+the the pros and cons of kind of going procedural so it's non-destructive so
+procedural so it's non-destructive so you can kind of change your mind because
+you can kind of change your mind because that never happens in production you
+that never happens in production you have a whole pipeline that is as much
+have a whole pipeline that is as much automated as possible and the really
+automated as possible and the really nice thing is that you can have a
+nice thing is that you can have a process that is parallel so now you
+process that is parallel so now you don't have this waterfall pipeline
+don't have this waterfall pipeline anymore you can have the character
+anymore you can have the character starting and you can already start
+starting and you can already start reading and animating and know that once
+reading and animating and know that once the character is done the system would
+the character is done the system would just pick it up and transfer weights and
+just pick it up and transfer weights and everything is done so now you don't have
+everything is done so now you don't have this like a lighting get screwed always
+this like a lighting get screwed always because they're just at the end of the
+because they're just at the end of the pipeline and then they're just going to
+pipeline and then they're just going to eat the the little crunch at the end of
+eat the the little crunch at the end of it it's like no they can start lighting
+it it's like no they can start lighting in the beginning because everything is
+in the beginning because everything is already in place and we're just kind of
+already in place and we're just kind of building the the shell for it but as
+building the the shell for it but as things kind of resin everything kind of
+things kind of resin everything kind of comes together the cons for it is that
+comes together the cons for it is that there is a longer rainbow there is an
+there is a longer rainbow there is an investment upfront that you kind of have
+investment upfront that you kind of have to go through it there's this perceived
+to go through it there's this perceived loss of control which is perceived in
+loss of control which is perceived in the beginning and there's a lot of
+the beginning and there's a lot of people that are like yeah I don't have
+people that are like yeah I don't have the control but then really it's like
+the control but then really it's like well did I really need the control of
+well did I really need the control of like manually placing the screws on the
+like manually placing the screws on the wall no like if I just draw a spline on
+wall no like if I just draw a spline on it that's enough control for me and then
+it that's enough control for me and then it's new and different and that means
+it's new and different and that means it's scary and that's something that you
+it's scary and that's something that you kind of have to be cognizant of as
+kind of have to be cognizant of as you're kind of pitching things through
+you're kind of pitching things through that just on that emotional level people
+that just on that emotional level people are like
+are like I've been doing games for 20 years and
+I've been doing games for 20 years and that's how I've done it and we've always
+that's how I've done it and we've always done it this way you're coming and he's
+done it this way you're coming and he's telling me that there's completely
+telling me that there's completely different way of working I don't like
+different way of working I don't like that I want it like there's job security
+that I want it like there's job security and me knowing the pipeline and me
+and me knowing the pipeline and me knowing how it's done
+knowing how it's done if you come in and displace that that's
+if you come in and displace that that's scary so it's something that you kind of
+scary so it's something that you kind of have to be aware of and it's work with
+have to be aware of and it's work with them and it's as much as an emotional
+them and it's as much as an emotional coaching as it is just like a production
+coaching as it is just like a production building so then as you kind of like if
+building so then as you kind of like if you hitch that level of okay now we have
+you hitch that level of okay now we have a procedural system and like we can
+a procedural system and like we can build anything that we want it's just
+build anything that we want it's just iterating and basically like each of
+iterating and basically like each of those modules can be better you can
+those modules can be better you can build a better poly reducer you can
+build a better poly reducer you can build a better quad remeasure you can
+build a better quad remeasure you can build a better transfer of weight so you
+build a better transfer of weight so you can better build it better you being so
+can better build it better you being so you can kind of start driving that and
+you can kind of start driving that and then you can also start tying you a I
+then you can also start tying you a I driven systems to it which I have a talk
+driven systems to it which I have a talk in 10 minutes over there which is
+in 10 minutes over there which is basically you now you have this black
+basically you now you have this black box that takes input but now we have
+box that takes input but now we have this other thing that can make inputs to
+this other thing that can make inputs to drive this black box and then now you
+drive this black box and then now you start to get a really cool interesting
+start to get a really cool interesting approach that you have the artists are
+approach that you have the artists are kind of curating the content more than
+kind of curating the content more than manually generating them which is a
+manually generating them which is a little bit of different but it's kind of
+little bit of different but it's kind of Democrat Democrat ties is it a little
+Democrat Democrat ties is it a little bit so it's a little bit of if I can
+bit so it's a little bit of if I can just draw a paper map and make a level
+just draw a paper map and make a level out of it now QA can build maps like
+out of it now QA can build maps like that you don't need to be a master world
+that you don't need to be a master world builder and unreal wizard to be able to
+builder and unreal wizard to be able to make a map anyone can make a map even if
+make a map anyone can make a map even if it's just a white box and that gets us
+it's just a white box and that gets us really closer to where we need to be
+really closer to where we need to be which is 3ds to expensive to make right
+which is 3ds to expensive to make right now there's all sorts of fields that are
+now there's all sorts of fields that are trying to get into 3d with like
+trying to get into 3d with like photogrammetry and like historical
+photogrammetry and like historical preservation and archaeology and all
+preservation and archaeology and all these other things that are trying to
+these other things that are trying to get it but is just too damn expensive
+get it but is just too damn expensive because it just takes too long so
+because it just takes too long so getting it to where building content is
+getting it to where building content is cheaper you're not gonna be running out
+cheaper you're not gonna be running out of jobs there's plenty of 3d work to go
+of jobs there's plenty of 3d work to go around here's just a matter of kind of
+around here's just a matter of kind of distributing it from being in the games
+distributing it from being in the games industry to going out wide which i think
+industry to going out wide which i think is the next evolution for for our kind
+is the next evolution for for our kind of crew so that's the rest of it come
+of crew so that's the rest of it come say hi tomorrow we have a Houdini
+say hi tomorrow we have a Houdini training day
+training day so I'm going to be talking from noon to
+so I'm going to be talking from noon to one and it's gonna be over at the
+one and it's gonna be over at the Marriott and then we're gonna have booth
+Marriott and then we're gonna have booth talks I have two talks every day and
+talks I have two talks every day and then you can just come by I have another
+then you can just come by I have another talk right after this so I don't think I
+talk right after this so I don't think I can hang around too much for questions
+can hang around too much for questions but I will but then if you can't grab me
+but I will but then if you can't grab me grab me over there and that's all I got
+grab me over there and that's all I got and how long do I have ten minutes
+and how long do I have ten minutes twenty okay so we have so we have two
+twenty okay so we have so we have two options
+options choose-your-own-adventure we can do QA
+choose-your-own-adventure we can do QA and we can just chat and kind of talk
+and we can just chat and kind of talk over whatever questions you guys have or
+over whatever questions you guys have or I have more content that I can just
+I have more content that I can just ramble for another 20 minutes and show
+ramble for another 20 minutes and show of hands who wants questions who has
+of hands who wants questions who has questions okay then I will go on to
+questions okay then I will go on to bounce around and then just lightning
+bounce around and then just lightning around more okay bones round so
+around more okay bones round so these are the things that didn't make it
+these are the things that didn't make it to the talk and then now I just got to
+to the talk and then now I just got to talk as the talk is over so another
+talk as the talk is over so another example that I wanted to talk about was
+example that I wanted to talk about was dirt skirts this didn't really fit my
+dirt skirts this didn't really fit my perfect paradigm of you have a perfect
+perfect paradigm of you have a perfect little thing and then you move on and
+little thing and then you move on and you kind of like it's a sequential
+you kind of like it's a sequential sequence of examples but it's just kind
+sequence of examples but it's just kind of like another thing that people do
+of like another thing that people do we lost months of work doing this in a
+we lost months of work doing this in a previous title and then the idea here is
+previous title and then the idea here is you have a piece of geometry that's
+you have a piece of geometry that's colliding with another piece of geometry
+colliding with another piece of geometry and you want to make a little trim
+and you want to make a little trim because that line is really ugly so the
+because that line is really ugly so the two inputs to the system are gonna be
+two inputs to the system are gonna be have a piece of terrain or a piece of
+have a piece of terrain or a piece of flat geometry and then you gonna have a
+flat geometry and then you gonna have a rock that is a piece of just another
+rock that is a piece of just another piece of geometry so the way we do it is
+piece of geometry so the way we do it is we boolean them together and then that
+we boolean them together and then that basically with a new system you get a
+basically with a new system you get a curve that is the boolean that is
+curve that is the boolean that is basically where the two things meet so
+basically where the two things meet so now you have a piece of geometry that is
+now you have a piece of geometry that is kind of like unified the rock with the
+kind of like unified the rock with the terrain and then you can have a curve
+terrain and then you can have a curve that is where the two of them meet then
+that is where the two of them meet then you just sweep some geometry along that
+you just sweep some geometry along that scene we convert that to a volume so now
+scene we convert that to a volume so now we kind of have like a little donut that
+we kind of have like a little donut that is like the kind of skirt for it and
+is like the kind of skirt for it and then we do an intersect with that Union
+then we do an intersect with that Union that we had originally so now we kind of
+that we had originally so now we kind of have a just the skirt part of the the
+have a just the skirt part of the the kind of two parts of it then we offset
+kind of two parts of it then we offset that by the normal
+that by the normal and that just kind of makes z-fighting
+and that just kind of makes z-fighting doesn't hate us and then we add some
+doesn't hate us and then we add some vert off at the edges of it to kind of
+vert off at the edges of it to kind of fade it a little bit and then we add UVs
+fade it a little bit and then we add UVs procedurally by just doing some like
+procedurally by just doing some like planar mapping because it doesn't really
+planar mapping because it doesn't really matter because you're gonna put some
+matter because you're gonna put some noisy texture here anyways and then you
+noisy texture here anyways and then you apply the material so that's kind of the
+apply the material so that's kind of the the secret of building dirt skirts and
+the secret of building dirt skirts and now you just have a system that it's
+now you just have a system that it's like oh now you just have you just have
+like oh now you just have you just have geometry and then things and then just
+geometry and then things and then just make dirt scores for the whole map so we
+make dirt scores for the whole map so we started to do that previously we didn't
+started to do that previously we didn't have this boolean tool so it kind of
+have this boolean tool so it kind of didn't work as well but now with 16 we
+didn't work as well but now with 16 we have a lot of stool new stuff that makes
+have a lot of stool new stuff that makes this super easy and then the other thing
+this super easy and then the other thing which is my main talks and other things
+which is my main talks and other things is basically this crazy stuff that I'm
+is basically this crazy stuff that I'm doing called vertex animation textures
+doing called vertex animation textures some who has seen any other stuff online
+some who has seen any other stuff online all right sweet so this isn't sixteen
+all right sweet so this isn't sixteen Houdini 16 and it's basically a way of
+Houdini 16 and it's basically a way of gaining geometry caching and Ben is
+gaining geometry caching and Ben is gonna talk a little bit about that too
+gonna talk a little bit about that too his talk so I'm really happy to kind of
+his talk so I'm really happy to kind of like as talks are happening at GDC you
+like as talks are happening at GDC you already have a DCC app that can do this
+already have a DCC app that can do this stuff so it's a way of getting geometry
+stuff so it's a way of getting geometry caches into a game engine using textures
+caches into a game engine using textures so the way that works is and we had
+so the way that works is and we had another skip button casing right now the
+another skip button casing right now the time but there's four different ways of
+time but there's four different ways of doing this caching so there's the we
+doing this caching so there's the we call soft which is the same topology all
+call soft which is the same topology all the way through the pipeline so it's
+the way through the pipeline so it's like cloth and soft body dynamics and
+like cloth and soft body dynamics and that kind of stuff rigid which is moving
+that kind of stuff rigid which is moving chunks so it's basically you have a
+chunks so it's basically you have a bridge your body destruction fluids
+bridge your body destruction fluids which is like a changing topology and
+which is like a changing topology and then sprite for a camera facing cards so
+then sprite for a camera facing cards so I'm gonna go a little bit into those so
+I'm gonna go a little bit into those so the the soft basically you can get this
+the the soft basically you can get this stuff so you can get cloth simulations
+stuff so you can get cloth simulations you can get oceans you can get soft
+you can get oceans you can get soft bodies and you can actually get skin
+bodies and you can actually get skin meshes which is really cool so the
+meshes which is really cool so the Uncharted guys give a little peek on
+Uncharted guys give a little peek on this and the PAR gonna have another talk
+this and the PAR gonna have another talk this week on how they did the chickens
+this week on how they did the chickens in uncharted 4 by basically using this
+in uncharted 4 by basically using this kind of technique and tying it with
+kind of technique and tying it with their particle system because in the
+their particle system because in the particle system you can just spit out
+particle system you can just spit out static meshes but then if you can have a
+static meshes but then if you can have a shader that has animation on it and I
+shader that has animation on it and I have static meshes with animation just
+have static meshes with animation just running around the world and you can
+running around the world and you can just spit out hundreds of these and
+just spit out hundreds of these and they're fairly fast so what the hell is
+they're fairly fast so what the hell is happening underneath the hood so the way
+happening underneath the hood so the way we stored the data is we have the
+we stored the data is we have the the textures which is actually a really
+the textures which is actually a really good format because you have every pixel
+good format because you have every pixel has red green and blue component which
+has red green and blue component which means we can put a XY and Z position in
+means we can put a XY and Z position in it and then we just basically store that
+it and then we just basically store that and it's uncompressed and then we make
+and it's uncompressed and then we make the UVs basically be lined up
+the UVs basically be lined up horizontally on the mesh so you have a
+horizontally on the mesh so you have a second UV set that just kind of like it
+second UV set that just kind of like it stripped out horizontally and then on
+stripped out horizontally and then on the texture side you basically just put
+the texture side you basically just put every pixel is a point and then every
+every pixel is a point and then every frame is a row so then the shader
+frame is a row so then the shader actually needs to be super simple which
+actually needs to be super simple which is just you take the second UV set and
+is just you take the second UV set and you just scroll down and then it kind of
+you just scroll down and then it kind of does the piano roll thing where it just
+does the piano roll thing where it just kind of keeps setting the world
+kind of keeps setting the world positions and the normals every frame
+positions and the normals every frame which works really well so this is the
+which works really well so this is the unreal shader which is not super
+unreal shader which is not super complicated so the kind of interesting
+complicated so the kind of interesting part is in the bottom to where and this
+part is in the bottom to where and this is online and I have it on my Twitter
+is online and I have it on my Twitter but basically it's the hard part is just
+but basically it's the hard part is just calculating the UVs and kind of
+calculating the UVs and kind of scrolling it down but that's really it
+scrolling it down but that's really it and then you just sample the two
+and then you just sample the two textures on the vertex shader and then
+textures on the vertex shader and then you just set the position in the world
+you just set the position in the world position offset and then you set the
+position offset and then you set the normals and you have to do some
+normals and you have to do some shenanigans in unreal and specific
+shenanigans in unreal and specific because you have to pass it through the
+because you have to pass it through the custom UV Channel so it gets calculated
+custom UV Channel so it gets calculated in the vertex shader and then you pick
+in the vertex shader and then you pick it up from the vertex shader and pass it
+it up from the vertex shader and pass it to the pixel shader so what else can we
+to the pixel shader so what else can we do with this so we can do destruction
+do with this so we can do destruction and instead of storing positions and
+and instead of storing positions and normals we can store positions and
+normals we can store positions and rotation and your two textures so now
+rotation and your two textures so now you have this kind of same they have two
+you have this kind of same they have two exactly the same simulations just export
+exactly the same simulations just export a different way so one way is using the
+a different way so one way is using the texture animation the other way is using
+texture animation the other way is using joints so the same kind of system that
+joints so the same kind of system that the way the artists work is the same and
+the way the artists work is the same and then they just output the data the way
+then they just output the data the way they need to upload it but the cool
+they need to upload it but the cool thing is if you're going to try to do
+thing is if you're going to try to do something with like 3000 joints that
+something with like 3000 joints that would most of your consoles but
+would most of your consoles but with this thing we can kind of get it
+with this thing we can kind of get it and it's super fast and it just it just
+and it's super fast and it just it just works and the textures not that huge
+works and the textures not that huge because you just have three thousand by
+because you just have three thousand by a hundred texture and then you can kind
+a hundred texture and then you can kind of fudge it a little bit or you can
+of fudge it a little bit or you can basically get I got 1k by 1k texture so
+basically get I got 1k by 1k texture so for this we basically store the position
+for this we basically store the position in the quaternion and on the texture and
+in the quaternion and on the texture and then we store the pivot of each chunk in
+then we store the pivot of each chunk in the vertex color and then all of the
+the vertex color and then all of the chunks verts have the same UV so
+chunks verts have the same UV so basically because they have the same
+basically because they have the same movies that you sample the same position
+movies that you sample the same position and rotate
+and rotate so they kind of move as a single unit
+so they kind of move as a single unit and then they basically have to do just
+and then they basically have to do just the the the movement of the position and
+the the the movement of the position and then the rotation but because you have
+then the rotation but because you have the pivot you know how to rotate it from
+the pivot you know how to rotate it from there and it just works and then let's
+there and it just works and then let's see so then the next one is the sexy one
+see so then the next one is the sexy one which I really like because there's
+which I really like because there's really no way of doing this besides
+really no way of doing this besides going into a lambic but then Alembic has
+going into a lambic but then Alembic has its own problems of basically
+its own problems of basically recalculating the geometry every frame
+recalculating the geometry every frame Ben is going to talk Friday a better way
+Ben is going to talk Friday a better way of doing this so like I always like to
+of doing this so like I always like to say this is the artists solution to the
+say this is the artists solution to the problem like ideally you get a proper
+problem like ideally you get a proper graphics engineer that can Hotwire the
+graphics engineer that can Hotwire the data into your graphics card but in our
+data into your graphics card but in our cases that were just kind of like
+cases that were just kind of like bootstrapping things together it's like
+bootstrapping things together it's like yeah we just write it detectors and read
+yeah we just write it detectors and read it because it works on people and then
+it because it works on people and then the graphics programs like no textures
+the graphics programs like no textures are horrible why are you doing that but
+are horrible why are you doing that but it's like hey man it works and you kind
+it's like hey man it works and you kind of move on with it so then you can get
+of move on with it so then you can get things like this kind of stuff which I
+things like this kind of stuff which I really like and it's just you can change
+really like and it's just you can change the topology and it just it opens up a
+the topology and it just it opens up a lot a lot of really cool effects and
+lot a lot of really cool effects and what we're doing here is is the same
+what we're doing here is is the same thing as we did before it we're
+thing as we did before it we're restoring the position and the normals
+restoring the position and the normals of every point and you have the option
+of every point and you have the option of an additional color texture if you
+of an additional color texture if you want to get the the type of that color
+want to get the the type of that color from the simulation but then you store a
+from the simulation but then you store a cloud of triangles which is basically
+cloud of triangles which is basically the maximum amount of triangles you
+the maximum amount of triangles you could get in your whole sequence and
+could get in your whole sequence and then every frame you just set the
+then every frame you just set the position and on or most of the the quads
+position and on or most of the the quads and then if there's no position and
+and then if there's no position and normal so get collapse down to zero so
+normal so get collapse down to zero so every frame the kind of the the mesh
+every frame the kind of the the mesh gets reassembled and because it's
+gets reassembled and because it's already there and you're not really
+already there and you're not really creating geometry every frame it's
+creating geometry every frame it's actually really fast and it's fairly
+actually really fast and it's fairly cheap so like for this particle effect I
+cheap so like for this particle effect I have something that is five thousand
+have something that is five thousand tries and 99 frames so you can see I
+tries and 99 frames so you can see I have I need to have uncompressed
+have I need to have uncompressed textures because if I try to do block
+textures because if I try to do block compression on this with just the whole
+compression on this with just the whole data will get munched but we can kind of
+data will get munched but we can kind of keep it uncompressed and it's still like
+keep it uncompressed and it's still like six Meg's for the whole particle I have
+six Meg's for the whole particle I have some stuff to basically collapse the
+some stuff to basically collapse the normal into the alpha of the diffuse so
+normal into the alpha of the diffuse so that are the position so then you only
+that are the position so then you only need one texture at 6 Meg's and then the
+need one texture at 6 Meg's and then the mesh is tiny is like 600 K so compared
+mesh is tiny is like 600 K so compared to if you're trying to try to do this in
+to if you're trying to try to do this in Alembic and have like a 50 Mac cache or
+Alembic and have like a 50 Mac cache or something more massive
+something more massive yeah this is fairly efficient I haven't
+yeah this is fairly efficient I haven't run numbers on it yet because it's too
+run numbers on it yet because it's too kind of bleeding to new I just finished
+kind of bleeding to new I just finished getting the bugs worked out Saturday
+getting the bugs worked out Saturday that's why it's not on the main talk and
+that's why it's not on the main talk and then the last one is basically sprites
+then the last one is basically sprites and then this is if you want to kind of
+and then this is if you want to kind of get GPU particles but you can actually
+get GPU particles but you can actually sim it and get it
+sim it and get it art-directed and kind of get it doing
+art-directed and kind of get it doing exactly what I want it to do and then
+exactly what I want it to do and then you kind of bring it into the game and
+you kind of bring it into the game and kind of have the same look so what we do
+kind of have the same look so what we do here is similar to the other one too
+here is similar to the other one too where instead of storing this triangle
+where instead of storing this triangle cloud we just store quiet cloud and then
+cloud we just store quiet cloud and then we basically move the positions of each
+we basically move the positions of each of those to where they need to be and
+of those to where they need to be and then we just make the shader be camera
+then we just make the shader be camera facing so it's very all the techniques
+facing so it's very all the techniques kind of build on top of each other and
+kind of build on top of each other and then yeah so this is the kind of whole
+then yeah so this is the kind of whole shebang of the things like the sprite is
+shebang of the things like the sprite is not on this one but you can see how and
+not on this one but you can see how and this is me making bad art because I'm
+this is me making bad art because I'm like a lazy artist I went to art school
+like a lazy artist I went to art school but I became a tech artists because I'm
+but I became a tech artists because I'm lazy and I don't like spending time
+lazy and I don't like spending time making art but if you get like a real
+making art but if you get like a real proper and you can swing by the booth
+proper and you can swing by the booth and we have better examples of like
+and we have better examples of like Magnus doing some amazing like lava do
+Magnus doing some amazing like lava do you guys might have seen online this if
+you guys might have seen online this if you give this to a proper artist and
+you give this to a proper artist and knows what they're doing with you're
+knows what they're doing with you're gonna get some amazing stuff and that's
+gonna get some amazing stuff and that's really the end of it alright so now I'll
+really the end of it alright so now I'll take questions and then we can go over
+take questions and then we can go over the next thing
+the next thing thank you again second
+questions
+hey so great talk just I feel much less alone right now okay this is absolutely
+alone right now okay this is absolutely everything I think since many years so
+everything I think since many years so it's really cool to see all these people
+it's really cool to see all these people listening to this and the the sometimes
+listening to this and the the sometimes when y'all check out it's in your
+when y'all check out it's in your company you feel bit alone and yeah it's
+company you feel bit alone and yeah it's all the the thing that nobody believe
+all the the thing that nobody believe its magic and okay it's not a ball so
+its magic and okay it's not a ball so it's very interesting and I feel
+it's very interesting and I feel something is missing a bit to this talk
+something is missing a bit to this talk maybe anything because it's just a short
+maybe anything because it's just a short but it's most of the time we try to
+but it's most of the time we try to solve problems we try to automate things
+solve problems we try to automate things so there is some kind of defined problem
+so there is some kind of defined problem and we try to find a solution but also
+and we try to find a solution but also sometimes we find something new yeah we
+sometimes we find something new yeah we answer a question nobody asked and
+answer a question nobody asked and that's very interesting too because it's
+that's very interesting too because it's not always trying to fix a productivity
+not always trying to fix a productivity problem sometimes it's also art and it's
+problem sometimes it's also art and it's another way to do art it's just using
+another way to do art it's just using anything CODIS Creole its software's
+anything CODIS Creole its software's anything to do art and what do you think
+anything to do art and what do you think about this I think it's awesome and I
+about this I think it's awesome and I think that's where it gets into really
+think that's where it gets into really interesting land because you move from
+interesting land because you move from tech artists being this kind of
+tech artists being this kind of firefighting unit to being the people
+firefighting unit to being the people making the content and being the people
+making the content and being the people that there are the only people that
+that there are the only people that could pull this off so when I was in
+could pull this off so when I was in production I was that like I was the
+production I was that like I was the river guy and I was the kind of heart
+river guy and I was the kind of heart problem guy so and it's still in the
+problem guy so and it's still in the problem space but like if you can get to
+problem space but like if you can get to the point that that card is driving that
+the point that that card is driving that and they'll be like hey there's this
+and they'll be like hey there's this crazy new game that is possible only
+crazy new game that is possible only because of this new system that I came
+because of this new system that I came up with that is that that's absolutely
+up with that is that that's absolutely like I come from a broken down
+like I come from a broken down production jaded environment so I'm just
+production jaded environment so I'm just looking at the next problem but yeah
+looking at the next problem but yeah seeing it as a there's just a wide open
+seeing it as a there's just a wide open field and now the tech heart is it's
+field and now the tech heart is it's kind of driving it and it went into
+kind of driving it and it went into another thing
+another thing okay yeah absolutely no I that's where I
+okay yeah absolutely no I that's where I want to get to to where that card is are
+want to get to to where that card is are the ones making the content and then
+the ones making the content and then we're the ones kind of pushing you
+we're the ones kind of pushing you forward very very good point
+forward very very good point Thanks yeah everybody thank you so much
+Thanks yeah everybody thank you so much and then come talk to me afterwards
+and then come talk to me afterwards they're in the booth and then it's up
+they're in the booth and then it's up next

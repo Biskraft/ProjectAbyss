@@ -1,0 +1,1095 @@
+[Music] hi everyone I would remind you to shut
+hi everyone I would remind you to shut down your devices or you demo released
+down your devices or you demo released and also if you can answer the survey
+and also if you can answer the survey after the talk would be interesting
+after the talk would be interesting all right you guys all ready okay
+all right you guys all ready okay alright so my name is Julian uber and
+alright so my name is Julian uber and I'm a technical lead at Ubisoft Montreal
+I'm a technical lead at Ubisoft Montreal and this is the art of the destruction
+and this is the art of the destruction so how many of you have played Rainbow
+so how many of you have played Rainbow six alright well that's pretty good so
+six alright well that's pretty good so as you probably know there's a lot of
+as you probably know there's a lot of instruction there in blue six each and I
+instruction there in blue six each and I mean did literally the core feature of
+mean did literally the core feature of the game as far as gameplay is concerned
+the game as far as gameplay is concerned so how do we actually make it so that's
+so how do we actually make it so that's a lot of the things happening and I'll
+a lot of the things happening and I'll cover that and you know we start from
+cover that and you know we start from pretty humble beginnings and made it
+pretty humble beginnings and made it into a really nice feature so let's
+into a really nice feature so let's start
+start so what's procedural destruction well
+so what's procedural destruction well first thing it can be a lot of different
+first thing it can be a lot of different things different techniques but let's
+things different techniques but let's just generalize it and say it's a change
+just generalize it and say it's a change in this ticket of an object that's
+in this ticket of an object that's really generated at runtime so you can
+really generated at runtime so you can have a different input different output
+have a different input different output so the outcome can be really unique
+so the outcome can be really unique which is totally in a position to be
+which is totally in a position to be fragmented destruction which most games
+fragmented destruction which most games do where the outcome is really fixed I
+do where the outcome is really fixed I mean you have a face that breaks it's
+mean you have a face that breaks it's always going to break the same always
+always going to break the same always going to be the same pieces whether you
+going to be the same pieces whether you Ram it with a car a baseball bat or you
+Ram it with a car a baseball bat or you know put a bullet so let's go back to
+know put a bullet so let's go back to our story in late 2012 we were given the
+our story in late 2012 we were given the mandate to come up with Priscilla glass
+mandate to come up with Priscilla glass for Rainbow six so that was we already
+for Rainbow six so that was we already had done like a lot of destruction
+had done like a lot of destruction before but you know we came up with
+before but you know we came up with something like this so this is looks
+something like this so this is looks pretty simple but we're really creating
+pretty simple but we're really creating new geometry at run time
+new geometry at run time it looks good we change normals with
+it looks good we change normals with light decals that was
+light decals that was you know three years ago or more in that
+you know three years ago or more in that that really was a changing point for the
+that really was a changing point for the project they they really liked it so we
+project they they really liked it so we generalized to other materials and then
+generalized to other materials and then they kind of clicked wow we could
+they kind of clicked wow we could actually have a game based instruction
+actually have a game based instruction so do you have something they gave some
+so do you have something they gave some some resources and we did a concept tech
+some resources and we did a concept tech demo in early 2013 which is very cool
+demo in early 2013 which is very cool and it's more or less place and Montreal
+and it's more or less place and Montreal studio so there was really a benchmark
+studio so there was really a benchmark for distraction for a really long time
+for distraction for a really long time internally a lot of people worked on it
+internally a lot of people worked on it and I mean doesn't look very good for
+and I mean doesn't look very good for something that's three years old it's a
+something that's three years old it's a year with you know we with boolean 3d
+year with you know we with boolean 3d instruction at the time we've wood
+instruction at the time we've wood breaking bricks breaking with windows
+breaking bricks breaking with windows floors ceilings what-have-you
+floors ceilings what-have-you explosions bullets love particles that
+explosions bullets love particles that looks very cool of course pre fragment
+looks very cool of course pre fragment destruction I mean you might as well do
+destruction I mean you might as well do it and that worked really nicely of
+it and that worked really nicely of course at that time that was in 60fps
+course at that time that was in 60fps that wasn't robust that was not online
+that wasn't robust that was not online we had literally no tools for it so we
+we had literally no tools for it so we had a lot of work to cover to make it in
+had a lot of work to cover to make it in our real feature you know didn't run
+our real feature you know didn't run awhile but you get the idea I mean you
+awhile but you get the idea I mean you started with something super clean you
+started with something super clean you should shoot destroy and you end up
+should shoot destroy and you end up something like this it does really
+something like this it does really strike the imagination a bit right so
+strike the imagination a bit right so all right fast forward to the late 2015
+all right fast forward to the late 2015 leaf release rental six it's a pretty
+leaf release rental six it's a pretty good success it worked really nicely so
+good success it worked really nicely so the actual tech and you know the concept
+the actual tech and you know the concept didn't change a lot in those three years
+didn't change a lot in those three years right or in nearly three years but we've
+right or in nearly three years but we've a lot of steps to do to make it work so
+a lot of steps to do to make it work so that's why I'm actually going to talk
+that's why I'm actually going to talk about in this talk right so first I'll
+about in this talk right so first I'll talk about the real blast which is
+talk about the real blast which is really the team the product everything
+really the team the product everything then you know our destructions made
+then you know our destructions made Rainbow six siege now you could actually
+Rainbow six siege now you could actually think about your your potential
+think about your your potential distraction solution or you know
+distraction solution or you know whatever feature you want to do would
+whatever feature you want to do would actually interact with the game then
+actually interact with the game then really dive in our you know variety of
+really dive in our you know variety of destruction technology and then talk
+destruction technology and then talk about performance and online which are
+about performance and online which are really two two topics for Rainbow six
+really two two topics for Rainbow six and finally conclude all right so real
+and finally conclude all right so real last for a really small team mostly
+last for a really small team mostly programmers we've been at it for a bit
+programmers we've been at it for a bit more than five years now and we're a
+more than five years now and we're a part of the technology group which I
+part of the technology group which I will come to a bit later first out shout
+will come to a bit later first out shout out to Alexis we man that me a lot for a
+out to Alexis we man that me a lot for a presentation and I mean he's my esteemed
+presentation and I mean he's my esteemed colleague so I worked with him every day
+colleague so I worked with him every day alright technology group that's some
+alright technology group that's some kind of separate division inside Ubisoft
+kind of separate division inside Ubisoft where we do rnd and develop common
+where we do rnd and develop common technologies and promote sharing between
+technologies and promote sharing between productions so we build up expertise on
+productions so we build up expertise on you know destruction dynamic navmesh you
+you know destruction dynamic navmesh you are networking animation a lot of
+are networking animation a lot of different things which i mean in the end
+different things which i mean in the end we accumulate expertise and we
+we accumulate expertise and we essentially do mandates and productions
+essentially do mandates and productions and in the end make bigger better gains
+and in the end make bigger better gains so real blast the product itself is thus
+so real blast the product itself is thus a complete destruction solution we've
+a complete destruction solution we've preforming to destruction receive
+preforming to destruction receive destruction in runtime so of course in
+destruction in runtime so of course in the engine but there's also some tools
+the engine but there's also some tools behind that so everything that used to
+behind that so everything that used to generate the content like fragmentation
+generate the content like fragmentation tools which can use in in max or Amaya
+tools which can use in in max or Amaya we have a distraction properties editor
+we have a distraction properties editor which is used to set up you know let's
+which is used to set up you know let's say what kind of physics you want to use
+say what kind of physics you want to use what kind of principle technique you
+what kind of principle technique you want to use and finally an external
+want to use and finally an external debugger so we can keep track of
+debugger so we can keep track of whatever is that thing because as you
+whatever is that thing because as you might know if you try to debug you know
+might know if you try to debug you know complex geometry all the rooms and you
+complex geometry all the rooms and you don't see anything it's really painful
+don't see anything it's really painful but the last three points I'm not
+but the last three points I'm not actually going to talk about in this
+actually going to talk about in this presentation because that would be a bit
+presentation because that would be a bit wrong but we are going to cover that in
+wrong but we are going to cover that in Ubisoft booth at for today if you guys
+Ubisoft booth at for today if you guys are interested all right collaborations
+are interested all right collaborations as I said before we've been at it for a
+as I said before we've been at it for a while so we did the mandates on a few
+while so we did the mandates on a few productions
+productions some worked out some didn't but we
+some worked out some didn't but we really first ship destruction with AC 4
+really first ship destruction with AC 4 Black Flag with the naval forts and it
+Black Flag with the naval forts and it was it don't work nicely too liked it
+was it don't work nicely too liked it and then recently of course it's a core
+and then recently of course it's a core feature of Randall 6 siege
+feature of Randall 6 siege so let's Ivan to Rainbow six siege
+so let's Ivan to Rainbow six siege furrows who didn't play the game let me
+furrows who didn't play the game let me summarize it really simply you have
+summarize it really simply you have attackers on one end they want to get in
+attackers on one end they want to get in neutralize accept or rescue the hostage
+neutralize accept or rescue the hostage it used means like destruction to get in
+it used means like destruction to get in and do everything and then you've
+and do everything and then you've defenders on one end on the other hand
+defenders on one end on the other hand sort that one up block dispatcher the
+sort that one up block dispatcher the attackers invaders and funnel so there's
+attackers invaders and funnel so there's really a NASA metric gameplay terrorism
+really a NASA metric gameplay terrorism we're on the one any of destruction is a
+we're on the one any of destruction is a gameplay opportunity so you can actually
+gameplay opportunity so you can actually make paths that you can go true or you
+make paths that you can go true or you know maybe you can make murder oles or
+know maybe you can make murder oles or kills or you can shoot your walls and on
+kills or you can shoot your walls and on the other set the other end you can you
+the other set the other end you can you know barricade reinforced walls to
+know barricade reinforced walls to prevent your opponent's to go true so it
+prevent your opponent's to go true so it really opens up opens up a lot to
+really opens up opens up a lot to gameplay and makes it fresh so that
+gameplay and makes it fresh so that every game is really different so in
+every game is really different so in practice in the game the the
+practice in the game the the environments are really like
+environments are really like destructible elements or you know
+destructible elements or you know there's only four isn't but they're
+there's only four isn't but they're really prevalent in game so we have
+really prevalent in game so we have trapdoors three control a verticality of
+trapdoors three control a verticality of levels
+levels if barricades that you know they don't
+if barricades that you know they don't block a lot but they'll block visibility
+block a lot but they'll block visibility and make a lot of sound are broken
+and make a lot of sound are broken line-of-sight floors so these you break
+line-of-sight floors so these you break and you can actually shoot true or send
+and you can actually shoot true or send grenades true but you can the player
+grenades true but you can the player will never go to be able to go true and
+will never go to be able to go true and of course you're reachable walls which
+of course you're reachable walls which is definitely the iconic destruction of
+is definitely the iconic destruction of Rainbow six things so okay I mean you
+Rainbow six things so okay I mean you think you've use your destruction tag
+think you've use your destruction tag that's on simple right
+that's on simple right that's it I mean it worked three years
+that's it I mean it worked three years ago let's just put it in game
+ago let's just put it in game yeah that's not that simple so let me
+yeah that's not that simple so let me drink a bit all right
+drink a bit all right in reality does come out at a pretty ice
+in reality does come out at a pretty ice price because you need
+price because you need if you want to go with coherence and of
+if you want to go with coherence and of environments that work for your players
+environments that work for your players you need to model destruction rating
+you need to model destruction rating because you'll be able to see through
+because you'll be able to see through walls you'll be able to see inside
+walls you'll be able to see inside cupboards so what's there in your
+cupboards so what's there in your cupboards so it really ends up with a
+cupboards so it really ends up with a lot of destruction creating some some
+lot of destruction creating some some stuff you wouldn't see before you need
+stuff you wouldn't see before you need to model now so that's a lot of more
+to model now so that's a lot of more work it's your artist thing to do and
+work it's your artist thing to do and they need to do it in a good way so that
+they need to do it in a good way so that it's physically valuable in your project
+it's physically valuable in your project so you need to do some artists ringing
+so you need to do some artists ringing because it'll change their modeling
+because it'll change their modeling style you need to know a bit more about
+style you need to know a bit more about physics because sometimes they don't and
+physics because sometimes they don't and then it's also a really huge game
+then it's also a really huge game changer for designers you'll need to
+changer for designers you'll need to come up with a visual language for
+come up with a visual language for instruction but at the same time it's a
+instruction but at the same time it's a really cool new variable and you already
+really cool new variable and you already can play with and it finally of course
+can play with and it finally of course nothing's ever free it does got
+nothing's ever free it does got something it'll cost more in the physics
+something it'll cost more in the physics side because you'll more dynamic objects
+side because you'll more dynamic objects and it'll cost more in a rendering side
+and it'll cost more in a rendering side for plus every reason which I'll come
+for plus every reason which I'll come back to later and finally your runtime
+back to later and finally your runtime instruction itself it's not gonna be
+instruction itself it's not gonna be free so let's say you still want to bite
+free so let's say you still want to bite in and you do it then how do you
+in and you do it then how do you actually interact with the other systems
+actually interact with the other systems in the game so one way to do it which is
+in the game so one way to do it which is the way we did it is really simple I
+the way we did it is really simple I mean the game feeds you inputs right and
+mean the game feeds you inputs right and that drives destruction destruction
+that drives destruction destruction itself it can be some kind of black box
+itself it can be some kind of black box but in the end you can make it so that
+but in the end you can make it so that your output the information you give
+your output the information you give back to the game it's the structure in a
+back to the game it's the structure in a way that everyone every stakeholder as
+way that everyone every stakeholder as the information it needs to do its job
+the information it needs to do its job so it can be you know what broke what
+so it can be you know what broke what weapon was used
+weapon was used where are the parts now and all kind of
+where are the parts now and all kind of details so you can feed that information
+details so you can feed that information for sound effects ai and for example
+for sound effects ai and for example just for AI navigation you'll need to
+just for AI navigation you'll need to update your own avatars broken or if you
+update your own avatars broken or if you just breached your wall you don't want
+just breached your wall you don't want your AI to be stuck and waiting by an
+your AI to be stuck and waiting by an open wall right also if you make your
+open wall right also if you make your information good enough well it Candis
+information good enough well it Candis for everything is also can be used for
+for everything is also can be used for AI
+AI visibility you can make sure that you
+visibility you can make sure that you don't over recast for nothing so you
+don't over recast for nothing so you don't make your AI too smart so it can
+don't make your AI too smart so it can attach you through off at any moment and
+attach you through off at any moment and then it's also used for a song
+then it's also used for a song preparation which is a really huge
+preparation which is a really huge feature in Rainbow six siege so
+feature in Rainbow six siege so depending on you know parallel openings
+depending on you know parallel openings and in walls it'll change the acoustic
+and in walls it'll change the acoustic or rooms I'd it's a really important
+or rooms I'd it's a really important feature of a game because players really
+feature of a game because players really rely on that and then they rely on the I
+rely on that and then they rely on the I call even everything the information we
+call even everything the information we give them and finally well you know it's
+give them and finally well you know it's a game every gameplay programmer is
+a game every gameplay programmer is gonna expect some kind of behaviors
+gonna expect some kind of behaviors sometimes right you want something that
+sometimes right you want something that will break all the time and not rely on
+will break all the time and not rely on chance or you know pursue obstruction
+chance or you know pursue obstruction you need to feed that you need to
+you need to feed that you need to address that kind of problem because
+address that kind of problem because we're making a game it's not just attack
+we're making a game it's not just attack it's it's a game right so there's a lot
+it's it's a game right so there's a lot of things you need to think about but in
+of things you need to think about but in the end if you do that so it's really
+the end if you do that so it's really manageable so alright a bit more about
+manageable so alright a bit more about their real - tech this will be pretty
+their real - tech this will be pretty high level of course I mean if you do
+high level of course I mean if you do instruction technology it could be super
+instruction technology it could be super different it could be super similar but
+different it could be super similar but in the end like three five models are
+in the end like three five models are pretty sooner so our basic concept is
+pretty sooner so our basic concept is simple objects that are made of
+simple objects that are made of different parts should be model
+different parts should be model differently or I mean separately in your
+differently or I mean separately in your objects that I guess it does seem logic
+objects that I guess it does seem logic you don't grow glass out of trees or you
+you don't grow glass out of trees or you know everything's made of different
+know everything's made of different parts and you can put a lot of effort
+parts and you can put a lot of effort and intelligence in your materials and
+and intelligence in your materials and then you know once everything small in
+then you know once everything small in different parts it's super easy to the
+different parts it's super easy to the fragmentation will be coherent that will
+fragmentation will be coherent that will make sense physically and on that topic
+make sense physically and on that topic fragmentation itself it creates a are
+fragmentation itself it creates a are key right you start from something not
+key right you start from something not broken and then you break it in multiple
+broken and then you break it in multiple parts the intermediate steps you can
+parts the intermediate steps you can actually keep them and you reuse them
+actually keep them and you reuse them for efficient rendering or efficient
+for efficient rendering or efficient physics which is something we do and
+physics which is something we do and finally you want to have some kind of
+finally you want to have some kind of instruction model so you can simulate
+instruction model so you can simulate your state of your objects and there are
+your state of your objects and there are so thing we did is really simple right
+so thing we did is really simple right the fragments the leaf fragments in your
+the fragments the leaf fragments in your tree our nodes in a graph and edges in
+tree our nodes in a graph and edges in the graph our physical connections
+the graph our physical connections between fragments so if you if you have
+between fragments so if you if you have depth and you end up with a really nice
+depth and you end up with a really nice graph and I mean everyone knows what a
+graph and I mean everyone knows what a graph is there's plenty of algorithms in
+graph is there's plenty of algorithms in graph you can use you know my min flow
+graph you can use you know my min flow max-flow min-cut for example in you know
+max-flow min-cut for example in you know a lot of interesting all variants it's
+a lot of interesting all variants it's it's a good concept to talk about and
+it's a good concept to talk about and then that graph you can use it to manage
+then that graph you can use it to manage the state of your objects if connections
+the state of your objects if connections are broken or you know no edges in your
+are broken or you know no edges in your graphs well it means that things aren't
+graphs well it means that things aren't touching anymore
+touching anymore they can be totally independent objects
+they can be totally independent objects in your game later on as furthermore you
+in your game later on as furthermore you can actually integrate your personal
+can actually integrate your personal destruction in that kind of model you
+destruction in that kind of model you can just decide that your leaves or in
+can just decide that your leaves or in the theater perceivably destructible
+the theater perceivably destructible depending on your topology or your
+depending on your topology or your techniques and then the residual can
+techniques and then the residual can change the collision can change you can
+change the collision can change you can remove them from the graph and replace
+remove them from the graph and replace them with tied fragments and that works
+them with tied fragments and that works really nicely is a fully current model
+really nicely is a fully current model so what about the special thing we did
+so what about the special thing we did for Rainbow six well we develop
+for Rainbow six well we develop something which we call surface
+something which we call surface destruction exclusively for Rainbow six
+destruction exclusively for Rainbow six you know we start from the glass and
+you know we start from the glass and generalizing anything but you know it
+generalizing anything but you know it might find some like limit limiting that
+might find some like limit limiting that you say oh it works only on planar like
+you say oh it works only on planar like objects but in practice you know in
+objects but in practice you know in closed environments and the wall and
+closed environments and the wall and houses and everything there's a lot of
+houses and everything there's a lot of planes around and the great strength of
+planes around and the great strength of it is that you you can use whatever -
+it is that you you can use whatever - you want to cut it it's super easy to
+you want to cut it it's super easy to have your artists come up with a model
+have your artists come up with a model Laura or generate new models method
+Laura or generate new models method mathematically that will create 2d 2d
+mathematically that will create 2d 2d patterns and in general as far as the
+patterns and in general as far as the algorithms go
+algorithms go it's pretty robust it's fast it's not
+it's pretty robust it's fast it's not too hard to implement conceptually it's
+too hard to implement conceptually it's pretty simple so what would you actually
+pretty simple so what would you actually do that well first step you think you're
+do that well first step you think you're a planner and like objects you just
+a planner and like objects you just tricked a 2d model out of it you just
+tricked a 2d model out of it you just find a projection basis you protect it
+find a projection basis you protect it that's it and let's say later you get
+that's it and let's say later you get some input from the gameplay you you
+some input from the gameplay you you correlate the input with your material
+correlate the input with your material you decide it should break this way or
+you decide it should break this way or that kind of pattern you generate the
+that kind of pattern you generate the pattern end up with new polygons and
+pattern end up with new polygons and then your intersect your 2d polygons
+then your intersect your 2d polygons with your cutter so you can use a lot of
+with your cutter so you can use a lot of all versions I mean it's not nothing new
+all versions I mean it's not nothing new as far as this tree is concerned but you
+as far as this tree is concerned but you know for example where everything this
+know for example where everything this is really simple conceptually and you
+is really simple conceptually and you can generalize it to work for pretty
+can generalize it to work for pretty complex polygons and you know once
+complex polygons and you know once you're done with that you can
+you're done with that you can interpolate new properties in your you
+interpolate new properties in your you v's and so on but you know in the end
+v's and so on but you know in the end you want to push it to do physics or
+you want to push it to do physics or different rendering so you triangulate
+different rendering so you triangulate just a lot of solutions for
+just a lot of solutions for triangulation you know you could use the
+triangulation you know you could use the lone a or you know any other algorithms
+lone a or you know any other algorithms as far as the range elastic is concerned
+as far as the range elastic is concerned we use your clipping it's not the most
+we use your clipping it's not the most optimal algorithm that's for sure but
+optimal algorithm that's for sure but it's pretty robust and it did endl the
+it's pretty robust and it did endl the most common cases which is really simple
+most common cases which is really simple small holes in walls so that was a great
+small holes in walls so that was a great success for us so once you're done with
+success for us so once you're done with the triangulation well it's trivial to
+the triangulation well it's trivial to just make a treating model out of it you
+just make a treating model out of it you just extrude you reuse your projection
+just extrude you reuse your projection basis you just invert it and then voila
+basis you just invert it and then voila you have a 3d mesh so a bit more on the
+you have a 3d mesh so a bit more on the topic of cutters well there's a lot of
+topic of cutters well there's a lot of different cutters out there or you can
+different cutters out there or you can think about but in general there's like
+think about but in general there's like really three families you have some that
+really three families you have some that will define a parameter like you know an
+will define a parameter like you know an ellipse or a square or something that
+ellipse or a square or something that could be driven by the gameplay or not
+could be driven by the gameplay or not if some that will define inner Fryman
+if some that will define inner Fryman slike afro noise and you have something
+slike afro noise and you have something that might mix a bit of the two like the
+that might mix a bit of the two like the glass cutter I've seen you and also the
+glass cutter I've seen you and also the wood in the in the video actually the
+wood in the in the video actually the wood
+wood texture cutter was used for the wood is
+texture cutter was used for the wood is a really cool concept right you or the
+a really cool concept right you or the artists more or less draws exactly what
+artists more or less draws exactly what he wants movie space and a terrible
+he wants movie space and a terrible title ghouls Rufus and then once you get
+title ghouls Rufus and then once you get the inputs from a game play you can you
+the inputs from a game play you can you can just find where you are in your UV
+can just find where you are in your UV space do your query bring that back to
+space do your query bring that back to you visa to 2d space and use that for
+you visa to 2d space and use that for your intersection and you'll have
+your intersection and you'll have something that's I mean really
+something that's I mean really interesting a really high detail and you
+interesting a really high detail and you know artists will have to model that
+know artists will have to model that manually so it's it's a really nice and
+manually so it's it's a really nice and racing thing so what do we have now
+racing thing so what do we have now except some water you might end up with
+except some water you might end up with something like this that's programmer
+something like this that's programmer art of course even my soul there's a lot
+art of course even my soul there's a lot of vertices looks kind of organic that's
+of vertices looks kind of organic that's interesting but there's something
+interesting but there's something missing right you want to improve that
+missing right you want to improve that visual look so normally what you would
+visual look so normally what you would do and you know some kind of shooting
+do and you know some kind of shooting game or whatever you would use deck
+game or whatever you would use deck holes or decals or whatever you call
+holes or decals or whatever you call them but we we were kind of hoping for a
+them but we we were kind of hoping for a better solution so we want for something
+better solution so we want for something that's a bit more generalized which we
+that's a bit more generalized which we call decorations essentially these are
+call decorations essentially these are really full geometry like they can be
+really full geometry like they can be either managed like surfaces but that
+either managed like surfaces but that are going to be only 2d and then you can
+are going to be only 2d and then you can place them however you want it can be
+place them however you want it can be inside of transparency you have Jack's
+inside of transparency you have Jack's they can be placed on top back what have
+they can be placed on top back what have you so they're super flexible but and
+you so they're super flexible but and and you can actually manage them through
+and you can actually manage them through the lifetime of your wall or object if
+the lifetime of your wall or object if it splits in multiple parts you can
+it splits in multiple parts you can still keep them it's easy to manage but
+still keep them it's easy to manage but on the flip side you'll pay more for
+on the flip side you'll pay more for that iterator CPU rendering or memory
+that iterator CPU rendering or memory and good thing also that it kind of
+and good thing also that it kind of feels like a normal thing for artists
+feels like a normal thing for artists also to work with they're used to
+also to work with they're used to placing decals and you know visual stuff
+placing decals and you know visual stuff and walls or you know just to dress up
+and walls or you know just to dress up so there's basically fact basically two
+so there's basically fact basically two types of decorations Yocum if the ones
+types of decorations Yocum if the ones are really deco like so you
+are really deco like so you they're really basically stickers on the
+they're really basically stickers on the surface they'll get they can get cut
+surface they'll get they can get cut along with the surface and that's pretty
+along with the surface and that's pretty easy to manage and then you can have
+easy to manage and then you can have some they're really violent features so
+some they're really violent features so a your vertices or edges so you can
+a your vertices or edges so you can place things inside and play some color
+place things inside and play some color and the trick about it is that once the
+and the trick about it is that once the feature your attach to is gone well I
+feature your attach to is gone well I can just remove them it's easy to look
+can just remove them it's easy to look up whether your edge is still present or
+up whether your edge is still present or your vertex is still present so that's a
+your vertex is still present so that's a really good way to approach your problem
+really good way to approach your problem so that might end up with something like
+so that might end up with something like this definitely looks better it's still
+this definitely looks better it's still programmer art but I mean these are real
+programmer art but I mean these are real textures looks like what you're
+textures looks like what you're expecting
+expecting you still keep the real residual feel of
+you still keep the real residual feel of it and it's looking at it better so in
+it and it's looking at it better so in practice I mean in the game it can look
+practice I mean in the game it can look something like this so that's
+something like this so that's interesting all right performance now as
+interesting all right performance now as you might know Rainbow six siege is
+you might know Rainbow six siege is really running at 60 fps in PvP so just
+really running at 60 fps in PvP so just that by itself is a huge talent enough
+that by itself is a huge talent enough even without destruction so say you go
+even without destruction so say you go for with the destruction you've done
+for with the destruction you've done what you needed to give the info well
+what you needed to give the info well that's still going to impact the other
+that's still going to impact the other systems your AI or navigation in your
+systems your AI or navigation in your sound preparation they kind of need to
+sound preparation they kind of need to be dynamic now so they will need to
+be dynamic now so they will need to invest some time in some effort into
+invest some time in some effort into that durin during sight you know you can
+that durin during sight you know you can barely use static lighting there's a lot
+barely use static lighting there's a lot more dynamic shadows you're less
+more dynamic shadows you're less occluders because your walls might be
+occluders because your walls might be broken at any moment and you can see
+broken at any moment and you can see more objects because your walls can be
+more objects because your walls can be broken at any minute so that topic is
+broken at any minute so that topic is complex by itself so if you're if you
+complex by itself so if you're if you guys are interested in that you can go
+guys are interested in that you can go see Giles talk actually just after the
+see Giles talk actually just after the socket 3:30
+socket 3:30 I'm sure it'll be really interesting so
+I'm sure it'll be really interesting so what about physics
+what about physics you know once you've destroyed something
+you know once you've destroyed something the physics shapes are really bound to
+the physics shapes are really bound to be really concave so you might think
+be really concave so you might think I'll Carol just use
+I'll Carol just use for that and let my physics malware do
+for that and let my physics malware do it that's really going to be super
+it that's really going to be super costly and so you don't want to add
+costly and so you don't want to add towards that so what you can do is you
+towards that so what you can do is you can massage your data a bit you can
+can massage your data a bit you can remove the small holes because they're
+remove the small holes because they're not really useful you won't be able to
+not really useful you won't be able to navigate to them anyway you can reduce
+navigate to them anyway you can reduce desolation but you gotta take I mean you
+desolation but you gotta take I mean you got to be careful about the original
+got to be careful about the original shape the surface and then you can do a
+shape the surface and then you can do a lot of other things we went for some
+lot of other things we went for some kind of a collection of convex shapes so
+kind of a collection of convex shapes so because we know the front and back
+because we know the front and back planes then we already only do like
+planes then we already only do like convex hulls in 2d so it's faster
+convex hulls in 2d so it's faster alright so what about debris if you I
+alright so what about debris if you I guess you guys might have played the
+guess you guys might have played the game there's a lot debris in the game
+game there's a lot debris in the game when you've just fully like you just
+when you've just fully like you just ruction and that's all non procedure cut
+ruction and that's all non procedure cut debris we decided pretty early in the
+debris we decided pretty early in the project that this would be a cost we
+project that this would be a cost we could actually avoid so if you remember
+could actually avoid so if you remember again back to the event system already
+again back to the event system already the output if you give a lot of good
+the output if you give a lot of good quality input outputs are you can place
+quality input outputs are you can place really nice meshes of the right places
+really nice meshes of the right places with the right physics and look really
+with the right physics and look really good and then you can in sense those and
+good and then you can in sense those and you can recycle them super aggressively
+you can recycle them super aggressively and that'll tell them that will make it
+and that'll tell them that will make it really attractive as far as physics is
+really attractive as far as physics is concerned so bit other tricks you can
+concerned so bit other tricks you can make sure that timing fragments won't
+make sure that timing fragments won't collide together you know you have an
+collide together you know you have an explosion with something that's super
+explosion with something that's super complex maybe you don't need to see the
+complex maybe you don't need to see the five hundred fragments in the end maybe
+five hundred fragments in the end maybe for them is going to be sufficient and
+for them is going to be sufficient and you can also you know of course use
+you can also you know of course use boxes all the time and if you're lucky
+boxes all the time and if you're lucky you can just use avec effects for really
+you can just use avec effects for really small details alright so what about
+small details alright so what about destruction performance itself drink
+destruction performance itself drink some water first
+well they said before Rainbow six siege 60fps that was a given and it was
+60fps that was a given and it was requested of us that we do not impact
+requested of us that we do not impact framerate
+framerate I found simple of course it is not but
+I found simple of course it is not but you know this this section is about it
+you know this this section is about it and we need to be indeterministic for
+and we need to be indeterministic for online play because every players should
+online play because every players should see the same thing so as far as budgets
+see the same thing so as far as budgets are concerned we didn't really have a
+are concerned we didn't really have a clear budget I'm improving into
+clear budget I'm improving into destruction because it was a really big
+destruction because it was a really big risk I mean we which ship black flag
+risk I mean we which ship black flag before and it's easy to manage but
+before and it's easy to manage but personal destruction that was a
+personal destruction that was a different beast altogether so we were
+different beast altogether so we were given roughly six milliseconds for a
+given roughly six milliseconds for a wall
+wall so really to procedural layers as far as
+so really to procedural layers as far as memory is concerned approximately 25
+memory is concerned approximately 25 miles on GPU and 350 mags
+miles on GPU and 350 mags Mary Mary itself was not a huge issue
+Mary Mary itself was not a huge issue during production we made sure to keep
+during production we made sure to keep our footprint as lean as possible but
+our footprint as lean as possible but again that was not where with a lot of
+again that was not where with a lot of effort really we worked a lot on
+effort really we worked a lot on performance I mean it was the most risky
+performance I mean it was the most risky part with issues for a while because
+part with issues for a while because it's it's really data-driven right if
+it's it's really data-driven right if the artist decided that it should be
+the artist decided that it should be super complex and really cool-looking or
+super complex and really cool-looking or might cost something in the end and one
+might cost something in the end and one thing though it was really pumped wrong
+thing though it was really pumped wrong so we use the collection techniques that
+so we use the collection techniques that I used to make it work so first my thing
+I used to make it work so first my thing okay I'll just multi trade everything if
+okay I'll just multi trade everything if that works I mean it's super trivial to
+that works I mean it's super trivial to make sure that the object basis
+make sure that the object basis distraction works independently maybe
+distraction works independently maybe you can do a bit of order and make sure
+you can do a bit of order and make sure that you know once your objects are open
+that you know once your objects are open multiple parts yeah all of these can be
+multiple parts yeah all of these can be simulated independently that'll work
+simulated independently that'll work also then you can make sure that pursue
+also then you can make sure that pursue instruction itself if you have multiple
+instruction itself if you have multiple destruction and to doing the same object
+destruction and to doing the same object you can multi get them I work also but
+you can multi get them I work also but still not out you can confer turf or
+still not out you can confer turf or multi traded aliens but that's a lot of
+multi traded aliens but that's a lot of effort which we didn't do what we did
+effort which we didn't do what we did instead is really make sure
+instead is really make sure and synchronous that made distraction
+and synchronous that made distraction really manageable even if we we said
+really manageable even if we we said okay in this case at the moment he's
+okay in this case at the moment he's taking hundred milliseconds it doesn't
+taking hundred milliseconds it doesn't affect the Kingsley feel it doesn't
+affect the Kingsley feel it doesn't affect your rendering so that really
+affect your rendering so that really like the blood pressure a lot of people
+like the blood pressure a lot of people in the project Lord quite a bit of
+in the project Lord quite a bit of course you've bad thing really to depth
+course you've bad thing really to depth you have some delay in there the actual
+you have some delay in there the actual game perception and did the destruction
+game perception and did the destruction itself but you know with the facts and
+itself but you know with the facts and uneven forwarding mechanism because you
+uneven forwarding mechanism because you know the engine is always sing something
+know the engine is always sing something from the past potentially that'll
+from the past potentially that'll working away so in practice oh you can
+working away so in practice oh you can do that is that you know in your engine
+do that is that you know in your engine sticking you every frame so you get
+sticking you every frame so you get woken up because you have an input and
+woken up because you have an input and you start you're a big job and you send
+you start you're a big job and you send out to the some kind of a synchronous
+out to the some kind of a synchronous job scheduler that's not gonna mess up
+job scheduler that's not gonna mess up too much with the rest of the engine
+too much with the rest of the engine then you gotta talk with your engine
+then you gotta talk with your engine guys and then you say okay I don't I
+guys and then you say okay I don't I don't need to update until my jobs are
+don't need to update until my jobs are done and then later on you say I'm done
+done and then later on you say I'm done I push my results in the engine and
+I push my results in the engine and that's it so you see it doesn't reduce
+that's it so you see it doesn't reduce some kind of lag but if your destruction
+some kind of lag but if your destruction is not to slow its we're going to be
+is not to slow its we're going to be very noticeable and one thing you can
+very noticeable and one thing you can actually do which is very cool is you
+actually do which is very cool is you can do pre distraction so if you know
+can do pre distraction so if you know destructions coming along and I don't
+destructions coming along and I don't know ten frames because the players
+know ten frames because the players starting the animation or an explosion
+starting the animation or an explosion might as well do it early so that it'll
+might as well do it early so that it'll really syncs up at the end of your
+really syncs up at the end of your animation so you similarly you get the
+animation so you similarly you get the input from the game's limit early and
+input from the game's limit early and with some kind of singing mechanism and
+with some kind of singing mechanism and then you start your thing and when to
+then you start your thing and when to get once the game pls says oh I want my
+get once the game pls says oh I want my results now and you just put your
+results now and you just put your results and that we did for example for
+results and that we did for example for the sheet chars and it worked really
+the sheet chars and it worked really nicely
+nicely we could actually have put a lot more
+we could actually have put a lot more details in those and that would have
+details in those and that would have worked
+worked of course might impact some
+of course might impact some systems that we didn't do it but that's
+systems that we didn't do it but that's something we could could have done all
+something we could could have done all right next up times icing if
+right next up times icing if distractions the synchronous and you're
+distractions the synchronous and you're still taking hundred milliseconds well
+still taking hundred milliseconds well your engine guys are not going to like
+your engine guys are not going to like you because you might be pushing yeah he
+you because you might be pushing yeah he said that you might be pushing other
+said that you might be pushing other things that were in a critical path so
+things that were in a critical path so you might end up affecting your frame
+you might end up affecting your frame rate so one thing you can do is that you
+rate so one thing you can do is that you can make sure that you can split up your
+can make sure that you can split up your work in smaller parts so that I love the
+work in smaller parts so that I love the side effect that might take more time in
+side effect that might take more time in long term because you feel the overhead
+long term because you feel the overhead of being scheduled more but that really
+of being scheduled more but that really helps out so what we did is really we
+helps out so what we did is really we split in multiple steps the basic level
+split in multiple steps the basic level and then we went with our more complex
+and then we went with our more complex time slicing in the lower levels so
+time slicing in the lower levels so there's no really super obvious solution
+there's no really super obvious solution in C++ and there's a star here because
+in C++ and there's a star here because yes I know about futures and then maybe
+yes I know about futures and then maybe you could just stop your threads or
+you could just stop your threads or something but you know we're in a game
+something but you know we're in a game environment we try to be scheduler
+environment we try to be scheduler friendly so we're scheduled like
+friendly so we're scheduled like everything else so what you can do and
+everything else so what you can do and which we did is that you keep some kind
+which we did is that you keep some kind of state variable a pretty huge state
+of state variable a pretty huge state variable that says exactly where you are
+variable that says exactly where you are and what you're doing but you can
+and what you're doing but you can actually like make it so that this is a
+actually like make it so that this is a really huge thing that you can use for
+really huge thing that you can use for you know temporary arrays so the Indiana
+you know temporary arrays so the Indiana it's useful because you've a lot less
+it's useful because you've a lot less allocations so in practice you might
+allocations so in practice you might have something like this you can see the
+have something like this you can see the girl that's good that's a really super
+girl that's good that's a really super simple example in prep you know in our
+simple example in prep you know in our code it doesn't look like this but you
+code it doesn't look like this but you can have macros that you can turn off
+can have macros that you can turn off easily and you have some kind of state
+easily and you have some kind of state variable that can be either is in or
+variable that can be either is in or visible and you can check whether you've
+visible and you can check whether you've time left to continue working and
+time left to continue working and essentially decide some kind of do-while
+essentially decide some kind of do-while with the switch that works raining
+with the switch that works raining nicely but then you're trying to debug
+nicely but then you're trying to debug it's super painful to debug because you
+it's super painful to debug because you do a few steps and then goes out and
+do a few steps and then goes out and come in and then every few steps and
+come in and then every few steps and it's really super painful but you know
+it's really super painful but you know if you have a macro or something you can
+if you have a macro or something you can turn it off well might as well do it
+turn it off well might as well do it because in the end if you need to do
+because in the end if you need to do back your algorithms you don't want to
+back your algorithms you don't want to you know suffer the cost of context
+you know suffer the cost of context switching yourself so general it will
+switching yourself so general it will help you debug all your problems and
+help you debug all your problems and that's a great way to make it work
+that's a great way to make it work so you don't have talked about the
+so you don't have talked about the synchronicity time singing a song but in
+synchronicity time singing a song but in general you know
+general you know once that's really working correctly
+your review you get a point where you can actually run the full engine and
+can actually run the full engine and release you can run your instruction
+release you can run your instruction code in the bug and you won't even
+code in the bug and you won't even notice it so I guess it proves the point
+notice it so I guess it proves the point that is useful so optimization is always
+that is useful so optimization is always going to be your boss or the engine team
+going to be your boss or the engine team thing or cut it could be faster or
+thing or cut it could be faster or algorithms could be faster so of course
+algorithms could be faster so of course you're expected to optimize that's given
+you're expected to optimize that's given its games as its the games industry
+its games as its the games industry after all but you can do make it maybe a
+after all but you can do make it maybe a bit harder you can measure your
+bit harder you can measure your performance and then optimize your
+performance and then optimize your bottlenecks really making it better so
+bottlenecks really making it better so we're super lucky in Rainbow six with a
+we're super lucky in Rainbow six with a great expertise by pairing CEO that
+great expertise by pairing CEO that develop you know telemetry and captures
+develop you know telemetry and captures for testers game sessions and with
+for testers game sessions and with automatic tests and everything that made
+automatic tests and everything that made it really I would I wouldn't say easy
+it really I would I wouldn't say easy but was simpler to find our problems so
+but was simpler to find our problems so if you guys are interested in that I
+if you guys are interested in that I would really advise you to see our ISA
+would really advise you to see our ISA stock which is an F I'd telemetry
+stock which is an F I'd telemetry building infrastructure for big data and
+building infrastructure for big data and games development tomorrow at five three
+games development tomorrow at five three and I mean that was a really cool guy
+and I mean that was a really cool guy also all right next up limit degenerate
+also all right next up limit degenerate cases thumbs logic but you need to talk
+cases thumbs logic but you need to talk to the artists and maybe that was you
+to the artists and maybe that was you don't play it
+don't play it always the same language who you kind of
+always the same language who you kind of need to do some training about that and
+need to do some training about that and then you can also disable features that
+then you can also disable features that you don't need you know for example the
+you don't need you know for example the copper example maybe after an explosion
+copper example maybe after an explosion whatever parts are the ground they might
+whatever parts are the ground they might not need to react a lot except being
+not need to react a lot except being pushed away from the physics and then
+pushed away from the physics and then finally you can be creative about it you
+finally you can be creative about it you can have features that will help you
+can have features that will help you bound complexity so one example we did
+bound complexity so one example we did is the cell structure so when a player
+is the cell structure so when a player shoots multiple bullets near so instead
+shoots multiple bullets near so instead of making it so it looks like cheese we
+of making it so it looks like cheese we decided we'll make a bigger hole because
+decided we'll make a bigger hole because in the end it just looks better and the
+in the end it just looks better and the game designer guys like it the players
+game designer guys like it the players like it and it's better for performance
+like it and it's better for performance so might as well do it all right next up
+so might as well do it all right next up runtime locations that's something we
+runtime locations that's something we fixed later later in the project where I
+fixed later later in the project where I get not too lazy but not too super
+get not too lazy but not too super careful about it but for on-time
+careful about it but for on-time allegations they do cost something as
+allegations they do cost something as most of the time you'll lock and multi
+most of the time you'll lock and multi drills and environments for your locator
+drills and environments for your locator so that does because of course in some
+so that does because of course in some cases you've no choice you need to
+cases you've no choice you need to allocate because it's something you're
+allocate because it's something you're gonna keep forever but you gotta have
+gonna keep forever but you gotta have some kind of better strategies you can
+some kind of better strategies you can have ibrid each stack Aries so for some
+have ibrid each stack Aries so for some things that you expect that most of the
+things that you expect that most of the time will be small could have working
+time will be small could have working data structures I mean really big
+data structures I mean really big buffers for your work or you know you
+buffers for your work or you know you can have pools of first lived objects
+can have pools of first lived objects you know for example date the events I
+you know for example date the events I was talking about they don't live that
+was talking about they don't live that long they'd have a couple frames so
+long they'd have a couple frames so instead of creating new wins deleting
+instead of creating new wins deleting them you can just keep them and of
+them you can just keep them and of course you can have any small good news
+course you can have any small good news all right so as far as benchmarks go
+all right so as far as benchmarks go these are really not I wouldn't I
+these are really not I wouldn't I wouldn't stake my life on it
+wouldn't stake my life on it we identified a couple of times at most
+we identified a couple of times at most so takuto we take with a heap of salt so
+so takuto we take with a heap of salt so on PC it's kind of fast
+on PC it's kind of fast bullets are pretty cheap so we're clear
+bullets are pretty cheap so we're clear the first numbers actually personal
+the first numbers actually personal chakram second number is the visual
+chakram second number is the visual update and the physics update so as far
+update and the physics update so as far as bullet holes were concerned we never
+as bullet holes were concerned we never change of physics that's pretty cheap
+change of physics that's pretty cheap for explosions all that comes a bit more
+for explosions all that comes a bit more because we do change a lot more things
+because we do change a lot more things so on PC we're still way way under the
+so on PC we're still way way under the approximate tree milliseconds mark but
+approximate tree milliseconds mark but you know when you put in more things
+you know when you put in more things like walls with layers of wood on top
+like walls with layers of wood on top and everything in Canon goes a bit crazy
+and everything in Canon goes a bit crazy but we're synchronous a lap in two
+but we're synchronous a lap in two frames later three frames leader and the
+frames later three frames leader and the engine guys aren't too too angry about
+engine guys aren't too too angry about it
+it all right it's a lot about online now
+all right it's a lot about online now that's had before issue of a gameplay
+that's had before issue of a gameplay feature er needs to be deterministic
+feature er needs to be deterministic because every player needs to see it the
+because every player needs to see it the same way or experience in the same way
+same way or experience in the same way any of course it means it needs to be
+any of course it means it needs to be replicated so you might think I'll just
+replicated so you might think I'll just on all my meshes already desk work well
+on all my meshes already desk work well that's not really gonna work you're
+that's not really gonna work you're still always trying to minimize
+still always trying to minimize bandwidth usage so instead of you know
+bandwidth usage so instead of you know doing that we just send events over D
+doing that we just send events over D over to a network and then we expect the
+over to a network and then we expect the destruction system to be entirely
+destruction system to be entirely deterministic that itself is not as
+deterministic that itself is not as somewhat of a problem but we'll come to
+somewhat of a problem but we'll come to that later as far as physics are
+that later as far as physics are concerned the rule of thumb here is
+concerned the rule of thumb here is don't do it
+don't do it you've seen it destructions like an
+you've seen it destructions like an asynchronous so just thinking when
+asynchronous so just thinking when destruction is happening or finishing
+destruction is happening or finishing not going to be super simple characters
+not going to be super simple characters will impact your dynamic object so
+will impact your dynamic object so that's that's a problem by itself so if
+that's that's a problem by itself so if you don't need to do it don't do it
+you don't need to do it don't do it as far as Rainbow six is concerned every
+as far as Rainbow six is concerned every dynamic object is really small this is
+dynamic object is really small this is impact gameplay so I mean shooting goes
+impact gameplay so I mean shooting goes true structural and dynamic objects is
+true structural and dynamic objects is Mary is not even replicated because it
+Mary is not even replicated because it might not make sense for the other
+might not make sense for the other players go back to determinism
+players go back to determinism what we did is we sold a contract
+what we did is we sold a contract between a game and destruction system so
+between a game and destruction system so we asked for the same inputs exactly the
+we asked for the same inputs exactly the same inputs in the same word so we made
+same inputs in the same word so we made it so that our system wouldn't actually
+it so that our system wouldn't actually react well to that
+react well to that so same inputs a last review all right
+so same inputs a last review all right yeah maybe not a lot of the times you'll
+yeah maybe not a lot of the times you'll have data compression because maybe you
+have data compression because maybe you don't need a full full range of values
+don't need a full full range of values but if you do that then locally you also
+but if you do that then locally you also need to apply data compression and then
+need to apply data compression and then if you're a client your compressor your
+if you're a client your compressor your data send it to the hosts looks at it so
+data send it to the hosts looks at it so impressive and compresses it and then
+impressive and compresses it and then the recompress is it incentives and our
+the recompress is it incentives and our client well everyone needs that exactly
+client well everyone needs that exactly get some value so you need to have some
+get some value so you need to have some kind of symmetric compression doesn't
+kind of symmetric compression doesn't mean lossless I mean the first the first
+mean lossless I mean the first the first compression will lose some information
+compression will lose some information but if you just stick around with
+but if you just stick around with compressed values you shouldn't always
+compressed values you shouldn't always end up with the same thing so that's
+end up with the same thing so that's what I actually written there here as
+what I actually written there here as far as ordering is concerned normally
+far as ordering is concerned normally nuts not to complex we were lucky in
+nuts not to complex we were lucky in Rainbow six siege the network layer was
+Rainbow six siege the network layer was guaranteeing that so we didn't have to
+guaranteeing that so we didn't have to do anything but you might have network
+do anything but you might have network bursts everything so you need to make it
+bursts everything so you need to make it so that your destructions not sensitive
+so that your destructions not sensitive to having multiple inputs in the same
+to having multiple inputs in the same frame so that's one thing you can
+frame so that's one thing you can possibly just process one every frame
+possibly just process one every frame and maybe it'll work out as far as the
+and maybe it'll work out as far as the randomness is concerned I mean we're
+randomness is concerned I mean we're talking about Priscilla destructions so
+talking about Priscilla destructions so you think the outcome must be unique
+you think the outcome must be unique whatever items well if you want to still
+whatever items well if you want to still have that kind of randomness input or
+have that kind of randomness input or randomness feeling or you can have a
+randomness feeling or you can have a random number generator that's really
+random number generator that's really based on that some kind of common value
+based on that some kind of common value you can use so in Rainbow six siege I
+you can use so in Rainbow six siege I mean with perfect replication of inputs
+mean with perfect replication of inputs the actual it position that's really
+the actual it position that's really going to be a pretty good value so you
+going to be a pretty good value so you can use that and Senor random number
+can use that and Senor random number generator in there and you know if your
+generator in there and you know if your granary is good enough no one's ever
+granary is good enough no one's ever going to notice that not totally random
+going to notice that not totally random and as far as random number generators
+and as far as random number generators are used in in C++ you can start them in
+are used in in C++ you can start them in tread local storage and makes it super
+tread local storage and makes it super easy to use just get out take some care
+easy to use just get out take some care about time sizing all right so what
+about time sizing all right so what about different states
+about different states I mean you've messages from the past
+I mean you've messages from the past from you know other clients or when your
+from you know other clients or when your nose for example or just because you're
+nose for example or just because you're a synchronous or you can have messages
+a synchronous or you can have messages from the future because the host is
+from the future because the host is quite possibly in events than you so you
+quite possibly in events than you so you need to be tolerant of that and robust
+need to be tolerant of that and robust so in our case we have some kind of
+so in our case we have some kind of history of what happened before so we
+history of what happened before so we can not rollback but to retarget inputs
+can not rollback but to retarget inputs and then we have some kind of mechanism
+and then we have some kind of mechanism and and the information we have so we
+and and the information we have so we can roll back for expected past values
+can roll back for expected past values that's that's it for that so what about
+that's that's it for that so what about some feedback you know when you blaze
+some feedback you know when you blaze shooter you expect you expect some kind
+shooter you expect you expect some kind of instant feedback and shooting so in
+of instant feedback and shooting so in the context of Rainbow six siege that
+the context of Rainbow six siege that you expect to have a whole when you
+you expect to have a whole when you shoot something if it's supposed to
+shoot something if it's supposed to great game of course
+great game of course so when you play online maybe sending
+so when you play online maybe sending your message to us and getting back
+your message to us and getting back might not be that matter problem when
+might not be that matter problem when when you're playing on the internet
+when you're playing on the internet that's a lot of latency so you can't you
+that's a lot of latency so you can't you can't actually make it work this way but
+can't actually make it work this way but if you do instruction locally then does
+if you do instruction locally then does break ordering so the game broke its
+break ordering so the game broke its contract so how do you actually cope
+contract so how do you actually cope with that well and if only it was a
+with that well and if only it was a really problem because you've seen the
+really problem because you've seen the self-destruction feature before you know
+self-destruction feature before you know a lot of small holes becomes a big girl
+a lot of small holes becomes a big girl well if the ordering of that changes you
+well if the ordering of that changes you might end up with they're really
+might end up with they're really different old and then everyone's just
+different old and then everyone's just diverging to different values and it
+diverging to different values and it just breaks the game so what we did is
+just breaks the game so what we did is well we separated this feature in two
+well we separated this feature in two parts there's the small hole happening
+parts there's the small hole happening and then there's the actual damage for
+and then there's the actual damage for the surface that's you're gonna be used
+the surface that's you're gonna be used for the
+for the the bigger damage so as far as this is
+the bigger damage so as far as this is concerned you're the originator you
+concerned you're the originator you shoot on something usually small and
+shoot on something usually small and then you send a message to the host with
+then you send a message to the host with the full full information and the O's
+the full full information and the O's sends back the message to everyone but
+sends back the message to everyone but you you get the special message just for
+you you get the special message just for you you just do that on the damaged
+you you just do that on the damaged thing for the big rolls and then that
+thing for the big rolls and then that makes it that every damage that's dealt
+makes it that every damage that's dealt I was always gonna be done through the
+I was always gonna be done through the host so it's fully order so you might
+host so it's fully order so you might think well it's not really perfect
+think well it's not really perfect solution you might have ended up with
+solution you might have ended up with something different you know the
+something different you know the originator might have some small
+originator might have some small differences and individuals or might
+differences and individuals or might have if doles are really wrong gleaming
+have if doles are really wrong gleaming or - Bing or something might end up
+or - Bing or something might end up different but in practice we've we've
+different but in practice we've we've done a lot of death and we end up with
+done a lot of death and we end up with the same number of vertices in the same
+the same number of vertices in the same places you know you might have some
+places you know you might have some small differences but it's so many of
+small differences but it's so many of all it is not a problem okay
+all it is not a problem okay other solutions we know there was talk
+other solutions we know there was talk at some point well maybe that's not good
+at some point well maybe that's not good enough
+enough so we we thought about the solution that
+so we we thought about the solution that would be really a good solution super
+would be really a good solution super boss we called it to roll back
+boss we called it to roll back essentially if you're a client and you
+essentially if you're a client and you do something locally you can keep track
+do something locally you can keep track of it and then when you receive messages
+of it and then when you receive messages from the host if there are not messages
+from the host if there are not messages from your from here it's tack you undo
+from your from here it's tack you undo your changes apply deals messages and
+your changes apply deals messages and redo your messages that seems super
+redo your messages that seems super logical that'll work oh of course when
+logical that'll work oh of course when you get the message that's your message
+you get the message that's your message your music you just remove your stack
+your music you just remove your stack but that'll work really nicely if your
+but that'll work really nicely if your latency is not too bad because your
+latency is not too bad because your stack might be become a really really
+stack might be become a really really really tall and then just on doing your
+really tall and then just on doing your to work in a redoing network might be a
+to work in a redoing network might be a lot of effort
+lot of effort you're wasting that might not be good
+you're wasting that might not be good for you so of course we didn't do it we
+for you so of course we didn't do it we might actually think about it for a land
+might actually think about it for a land environments in the future but so far so
+environments in the future but so far so good
+good so I know I talk really fast that I'm
+so I know I talk really fast that I'm kind of in now so what about future you
+kind of in now so what about future you know
+know I talked very briefly about tools but
+I talked very briefly about tools but we're still in process and make it
+we're still in process and make it making it easy and fun to work with
+making it easy and fun to work with because there's a lot of things you can
+because there's a lot of things you can do right for every different input you
+do right for every different input you can have a different output so how would
+can have a different output so how would you actually prison that to the artists
+you actually prison that to the artists and make it clear that's some work in
+and make it clear that's some work in itself we've also worked on curved
+itself we've also worked on curved surfaces so we think extended a bit
+surfaces so we think extended a bit concept so you can have curved walls and
+concept so you can have curved walls and so on and we actually already ship that
+so on and we actually already ship that and season one for Rainbow six and then
+and season one for Rainbow six and then your mind the other destruction types we
+your mind the other destruction types we can go with yeah plastic deformations
+can go with yeah plastic deformations stress on us is fully treating boolean
+stress on us is fully treating boolean technique and then Jurong will just
+technique and then Jurong will just optimize and make it look better so
+optimize and make it look better so that's kind of confusing huh so what
+that's kind of confusing huh so what about takeaways if you want to do
+about takeaways if you want to do destruction give yourself a favor and
+destruction give yourself a favor and take a full team of it there's so many
+take a full team of it there's so many different technical frauds you know
+different technical frauds you know whether that's your technical your
+whether that's your technical your runtime destruction or the impact you
+runtime destruction or the impact you have in gameplay or in the tools you
+have in gameplay or in the tools you really need multiple people or and up
+really need multiple people or and up and then the only in also some kind of
+and then the only in also some kind of technical advisory for the artist they
+technical advisory for the artist they don't need training that's for sure and
+don't need training that's for sure and then you also need a really clear
+then you also need a really clear production volume you know you might
+production volume you know you might come up with a really best technique
+come up with a really best technique whatsoever if if the production says I I
+whatsoever if if the production says I I don't think we have the budget to you
+don't think we have the budget to you know Tim today is what it works it's not
+know Tim today is what it works it's not gonna make it in a game so as far as the
+gonna make it in a game so as far as the you know environments or destructible
+you know environments or destructible environments are concerned you've got to
+environments are concerned you've got to do it really early because it's a lot of
+do it really early because it's a lot of investment and there's a lot of inertia
+investment and there's a lot of inertia to fight sometimes also so finally
+to fight sometimes also so finally dynamic environments like destructible
+dynamic environments like destructible or you know just living environments to
+or you know just living environments to stay it's we're not going backwards to
+stay it's we're not going backwards to fully static worlds so you might as well
+fully static worlds so you might as well embrace it and of course destructions
+embrace it and of course destructions also kick ass
+also kick ass so promote innovation and change bite
+so promote innovation and change bite the bullet
+the bullet do it alright finally remember
+do it alright finally remember John's talk tomorrow three three
+John's talk tomorrow three three let's talk tomorrow at 5:30 and you guys
+let's talk tomorrow at 5:30 and you guys can reach me at Point / Doppler sorry at
+can reach me at Point / Doppler sorry at ubisoft point calm calm for questions or
+ubisoft point calm calm for questions or eight males or love letters I am open
+eight males or love letters I am open for it any questions
+for it any questions [Applause]
+what are your thoughts in general on sparse voxels and how that compares to
+sparse voxels and how that compares to your technique both in terms of
+your technique both in terms of performance and easy enough
+performance and easy enough implementation that's a really really
+implementation that's a really really interesting question as far as voxels
+interesting question as far as voxels and as far as voxels in general I'm sure
+and as far as voxels in general I'm sure that they're really great but you might
+that they're really great but you might not end up exactly what a visual you
+not end up exactly what a visual you look you want and it's it's a huge step
+look you want and it's it's a huge step for an engine to switch to voxels if
+for an engine to switch to voxels if they're actually working on a game
+they're actually working on a game whatsoever and didn't do that's a lot of
+whatsoever and didn't do that's a lot of inertia when you're off and now somewhat
+inertia when you're off and now somewhat big company it's a huge huge change so
+big company it's a huge huge change so when you work on really like normal
+when you work on really like normal geometry or meshes it makes it a say
+geometry or meshes it makes it a say more and swallowable no more simpler for
+more and swallowable no more simpler for them to accept it
+other questions if you're too shy i'ii be sticking around for a couple of
+i'ii be sticking around for a couple of minutes or you can actually meet me and
+minutes or you can actually meet me and alex at the u-visa flange at four we'll
+alex at the u-visa flange at four we'll talk a bit about tools and answer
+talk a bit about tools and answer questions in general all right thank you
+questions in general all right thank you [Applause]

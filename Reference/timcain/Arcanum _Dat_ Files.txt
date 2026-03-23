@@ -1,0 +1,265 @@
+hi everyone it's me Tim today I want to
+talk about arcanum's dat files
+dat yesterday's video was all about all
+the data that Arcanum had I was talking
+about how much we had a lot of data and
+we had to store
+it and if you've ever tried to mess
+around in the Arcanum folders you're
+noticed that the data most of the data
+is kept in big monolithic files whose
+extension is dat for
+data I want to talk
+about real quickly how we did that and
+then why we did that um because it makes
+sense if you're just curious about
+making a game or if you're curious about
+modding a game or patching a game
+because there's a whole bunch of reasons
+we do
+these quickly the how what we do is we
+at some point when we had all the files
+for the game we would write them
+sequentially
+into a file so all the data in the game
+is in one big file as we write them we
+keep a list of the file name and where
+it started where the beginning of that
+file is in that big file the offset from
+the
+beginning that table gets stored when
+we're done writing out that whole data
+file we store it at the end and we go
+back and we write right at the beginning
+what the offset is for that table
+so then when the game goes to open a DAT
+file it opens a DAT file reads that
+first offset jumps deep in the file and
+reads out that list of files and their
+offsets then whenever something in the
+game wants to open one of those files
+the game finds it on this list and then
+just in that one file that we have open
+seeks to that location and then reads in
+the file
+boom big question is why do we do this
+why not just make directories and throw
+the files in there and just when you
+want to open a file just call your
+operating systems file open and get the
+file seems like that would be a lot
+easier and we did do that in
+development but there's a bunch of
+reasons why you don't want to do that on
+a shipping product and I'll go through
+them here the first one is you only for
+all those files thousands tens of
+thousands potentially hundreds of
+thousands you only have to keep one file
+pointer
+open it turns out that it is a lot
+faster to seek from the beginning of an
+already opened file to an offset within
+it it's a lot faster to do that than to
+call open on the file so you save a lot
+of time but in one of those rare
+tradeoffs where you save both time and
+uh memory it also uses a lot this memory
+because whenever you open a file your
+operating system
+creates in memory a lot of data
+associated with that open file and so if
+you have 50 open files you're keeping 50
+of those open file memory structures
+around well we only had one open file
+instead of 50 so lot less memory being
+used another reason we do this is hard
+drives use something called sector sizes
+which is the
+minimum
+size of a
+stored of a sector
+so typical typically these are like 512
+bytes what this means is if you store a
+file that's 100
+bytes you're going to use 512 bytes on
+the hard drive you're not well you're
+not going to really use it you're going
+to use 100 but the remaining 412 bytes
+are part of the sector that that first
+100 by are in and they can't be
+reused um it has to do with how the hard
+drive keeps file tables and the the the
+number the size of those file tables the
+bigger your sector size the smaller
+those file entry tables but the more
+wastage you have per file
+currently a hard drive ranges anywhere
+from a sector size of about 512 bytes up
+to 4K bytes and it even be outside of
+that but that's that's the general range
+so let's think about that for a second
+let's say you had a,1 100 byte files and
+this is not unreasonable you may have
+you know for
+every perk and skill and attribute in
+the game you may have a little file that
+describes how it works you know in a in
+a small little data file so that
+designers can go in and mess with the
+parameters on that thing so let's say
+you have a th000 of them 1,100 byte
+files you would think that would use
+100,000k on the hard drive no with the
+ranges I told you about sector sizes
+those files are going to use anything
+anywhere from
+512k to 4 Meg which is a lot bigger than
+100K so if you stored all those 1,100
+byte files in one file then it would be
+100K so you're going to save a lot of
+hard drive space if you do this
+technique
+and that right then back back in the 90s
+you had people had hard drives that were
+you know 128 Meg 256 Meg they weren't
+very big so you had to try to make your
+game have as small footprint as
+possible another reason we did it if
+weever we needed to update a file let's
+say
+that you wanted to patch your game the
+way we would do that is we stored all of
+our files in these dats the the dats
+themselves were numbered so for Arcanum
+it was called Arcanum 1 dat Arcanum 2
+dat Arcanum 3 dat and when we would go
+to open these dat files when the game
+would start up it would say just find
+all the DAT files and open them in
+numerical order the reason we did that
+is if any subsequent DAT file contained
+the same file as a previous one that new
+file overrode the old one and remember
+we we would read in a list of all the
+files and where they're off
+were what this meant was if you found a
+file XXX in Arcanum 1. and then later on
+you find the same file XXX and Arcanum
+4.at it's the Arcanum 4.at that you
+remember you throw away the information
+for Arcanum 1. actually you overwrite it
+so you basically say oh you want to open
+file XXX that's in Arcanum
+4 this many this big this much of an
+offset we do that
+so when we make patches if you patch
+your game you usually send out a new
+executable and some new data we'd send
+out a new executable which just
+overwrite the previous executable but
+then you'd send out the patch as the
+next numbered executable so if we
+shipped Arcanum with Arcanum 1 through
+four that if we did a patch it would be
+Arcanum
+5.d and any file in there if it had the
+same name as the previous one would
+overwrite it so we could patch if we had
+bad data or we wanted to do some
+balancing or we wanted to change how
+some items worked we could just change
+that data and then put that in a higher
+numbered dat and would overwrite the
+earlier one that was great it made made
+patches much easier and again
+smaller it also helped with modding we
+wanted people to be able to mod our
+games easily so modders we shipped with
+those tools you had a tool called DB
+maker that was part of Arcanum and the
+game would ship with it modders could
+take all the files that were going into
+their mods and place them in their dat
+mod files mod dat files Got Loaded after
+the base game so that meant all the data
+in the modders data files over Road
+based game so if you wanted to change
+the way an item worked you just wrote
+out a new version of that item if you
+wanted to change the way a creature
+worked you just wrote out a new uh file
+for that creature you could change art
+you could change sounds you could
+override anything you wanted and you
+wouldn't have to go find it entry in
+some table somewhere all you had to know
+was I don't want a gun to sound like you
+know gun
+shoot. wve you make your own gun shoot.
+wve and now yours takes precedence over
+the games so that right there made some
+modding things much
+easier another reason we did this is
+because of compression again um we were
+trying to save space for people because
+space was a premium especially in the
+90s and the early 2000s so some of you
+have three different ways you could do
+compression with this technique one you
+could do no you could do nothing just
+don't bother compressing any of the
+files you're already saving space like I
+said by putting them into one big file
+because you're not losing all that
+sector wastage so let's take that as the
+Baseline and then talk about a couple
+other things you can do and how it
+compares to this as a baseline you could
+compress the DAT
+files when you distribute them you know
+run it through like pkzip or raw or
+something or make your own compression
+but then when you decompress it you just
+put the do file as is on the hard drive
+this means that downloading your game or
+copying it from the installed discs
+would go a lot
+faster but it would take up the same
+amount of space on the hard drive as if
+you didn't do compression within the
+data
+file but if you
+compress the that file both in
+distribution and on the hard drive this
+not only makes the download
+or copy faster but it gives you a much
+smaller hard drive footprint than even
+you'd get with the Baseline however it's
+slower to load a file now because when
+you seek to the beginning of the file
+you now have to run it through a
+decompressor in to get it into memory
+which is just a little slower than if
+you could just read the data out raw
+so depending on how big our dat files
+were and where the state of the average
+hard Drive was you saw one of these
+three things being used for D files now
+these days a lot of the reasons I just
+mentioned don't matter as much you know
+computers are faster hard drives are
+bigger we have more memory on the
+computer so people don't care as much
+however some of the things I've
+mentioned still matter um people still
+want to be able to distribute games
+easily they want people to be able to
+mod them easily so putting all of your
+files into one monolithic dat file
+actually helps with that
+so I hope this kind of explains and
+maybe takes yesterday's video about
+Arcanum data and gives you some context
+for how all that data was used and
+distributed by the game

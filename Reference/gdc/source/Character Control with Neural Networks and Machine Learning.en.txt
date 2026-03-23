@@ -1,0 +1,1569 @@
+[Music] okay
+okay so these are two assassin's creed games
+so these are two assassin's creed games syndicate and origins the most recent
+syndicate and origins the most recent one so syndicate came out in
+one so syndicate came out in 2015 and origins came out in 2017
+2015 and origins came out in 2017 and if we look at the size of the maps
+and if we look at the size of the maps in this game
+in this game we'll see that it's grown incredibly so
+we'll see that it's grown incredibly so it's grown about
+it's grown about 250 times larger in the span of a couple
+250 times larger in the span of a couple of years
+of years so this is like the kind of increase
+so this is like the kind of increase in scope which players expect from
+in scope which players expect from ubisoft games
+ubisoft games but this talks about animation so does
+but this talks about animation so does anyone want to hazard a guess how many
+anyone want to hazard a guess how many animations were in
+animations were in assassin's creed origins so
+assassin's creed origins so there was roughly 15 000 animations in
+there was roughly 15 000 animations in this game
+this game so uh it had like a three-year
+so uh it had like a three-year development cycle
+development cycle so that means on average there was about
+so that means on average there was about 20 animations
+20 animations added to get added a day so that's 20
+added to get added a day so that's 20 animations that need to be recorded in
+animations that need to be recorded in the motion capture studio
+the motion capture studio cleaned up by motion capture technicians
+cleaned up by motion capture technicians they need to be
+they need to be processed by animators edited tweaked
+processed by animators edited tweaked and then they need to be put in game by
+and then they need to be put in game by a designer and they need to be tested
+a designer and they need to be tested and qced by testers so that's
+and qced by testers so that's an incredible incredible amount of work
+an incredible incredible amount of work and the question is what are people
+and the question is what are people going to expect
+going to expect in a few years time from ubisoft games
+in a few years time from ubisoft games in regards to animations
+in regards to animations are they going to expect 100 000
+are they going to expect 100 000 animations or a million animations like
+animations or a million animations like what is the sort of scale we're talking
+what is the sort of scale we're talking about so
+about so i work for la forge which is ubisoft's
+i work for la forge which is ubisoft's main r d department in montreal
+main r d department in montreal and one of the initiatives i'm working
+and one of the initiatives i'm working on is basically trying to tackle this
+on is basically trying to tackle this question so how can we
+question so how can we prepare for this scaling up which is
+prepare for this scaling up which is bound to happen
+bound to happen and i've been working with a bunch of
+and i've been working with a bunch of people there in particular simon clave
+people there in particular simon clave who did some previous work on motion
+who did some previous work on motion matching and so today
+matching and so today what i really want to show to you is our
+what i really want to show to you is our philosophy and how we've been thinking
+philosophy and how we've been thinking about how we might be able to scale
+about how we might be able to scale these systems up
+these systems up okay so let's have a look at the
+okay so let's have a look at the background so
+background so the most high level overview of an
+the most high level overview of an animation system looks something like
+animation system looks something like this
+this we have some player input this goes into
+we have some player input this goes into this
+this black box animation system and as output
+black box animation system and as output we get a pose
+we get a pose but we don't actually send the button
+but we don't actually send the button presses directly what we do is we
+presses directly what we do is we convert them into some kind of high
+convert them into some kind of high level representation of what we want
+level representation of what we want like
+like where we want the player to go which
+where we want the player to go which direction we want them to be facing
+direction we want them to be facing these sorts of things
+these sorts of things so this we're going to call gameplay and
+so this we're going to call gameplay and one nice thing is that we can also use
+one nice thing is that we can also use inputs from npcs or other sorts of
+inputs from npcs or other sorts of controllers
+so what we actually do with this animation system typically
+animation system typically or at least the way it's been done in
+or at least the way it's been done in many of the large ubisoft games
+many of the large ubisoft games is that basically here we have a state
+is that basically here we have a state machine
+machine and we have a bunch of different nodes
+and we have a bunch of different nodes in the state machine
+in the state machine and each of them represent like a state
+and each of them represent like a state the character can be in
+the character can be in and that roughly means like what
+and that roughly means like what animation the player is playing so here
+animation the player is playing so here we might have a state
+we might have a state which means the character is in
+which means the character is in locomotion and we can click on this
+locomotion and we can click on this state
+state and what happens is it pops open and
+and what happens is it pops open and inside are many many more states
+inside are many many more states and we can click on another one of these
+and we can click on another one of these states so maybe we click on a walking
+states so maybe we click on a walking state
+state and inside there's a whole bunch more
+and inside there's a whole bunch more states so
+states so it's like hierarchical this state
+it's like hierarchical this state machine inside and more states and more
+machine inside and more states and more transitions and more logic for how to
+transitions and more logic for how to move between states
+move between states so maybe we click on another one like a
+so maybe we click on another one like a maybe this is like the turn right
+maybe this is like the turn right mode of the walking state of locomotion
+mode of the walking state of locomotion and it pops up another state machine and
+and it pops up another state machine and we can click again so maybe here we have
+we can click again so maybe here we have the turning right
+the turning right to idle state of the walking state
+to idle state of the walking state machine of locomotion etc
+machine of locomotion etc and we can click on this one and what it
+and we can click on this one and what it pops open is something different
+pops open is something different so inside here we have a blend tree and
+so inside here we have a blend tree and a blendery is basically saying
+a blendery is basically saying how can we blend a bunch of different
+how can we blend a bunch of different animations
+animations and what conditions are we using to
+and what conditions are we using to blend them to produce the final pose we
+blend them to produce the final pose we give as output so we can click on one of
+give as output so we can click on one of these nodes in the blend tree as well
+these nodes in the blend tree as well oh and it pops up another blend tree so
+oh and it pops up another blend tree so this thing is like hierarchical as well
+this thing is like hierarchical as well and we can go down again and now maybe
+and we can go down again and now maybe finally we get to the data
+finally we get to the data okay so now we actually have inside this
+okay so now we actually have inside this final node all the way down
+final node all the way down we have a clip uh which we've recorded
+we have a clip uh which we've recorded in the motion capture studio
+in the motion capture studio maybe been touched up by animators and
+maybe been touched up by animators and the file name
+the file name looks something crazy like this so it's
+looks something crazy like this so it's some sort of
+some sort of crazy string describing exactly what's
+crazy string describing exactly what's happening in this clip
+happening in this clip and so our data flow looks like this we
+and so our data flow looks like this we get our input from gameplay
+get our input from gameplay we're going all the way through this
+we're going all the way through this crazy state machine through the
+crazy state machine through the blendtree
+blendtree all the way to get to the data here and
+all the way to get to the data here and then we're outputting the pose of the
+then we're outputting the pose of the character based on this
+character based on this and you may think i'm like exaggerating
+and you may think i'm like exaggerating for comic effect
+for comic effect but actually it's much much worse than
+but actually it's much much worse than you could ever imagine
+you could ever imagine so like i said there's 15 000 animations
+so like i said there's 15 000 animations this is for the latest assassin's creed
+this is for the latest assassin's creed i asked them to run some stats for me
+i asked them to run some stats for me about 15 000 animations about 5 000
+about 15 000 animations about 5 000 states
+states in this state machine and it's about 12
+in this state machine and it's about 12 levels deep
+levels deep so that's the kind of magnitude we're
+so that's the kind of magnitude we're talking about
+talking about and okay so you may think okay so that's
+and okay so you may think okay so that's how it is
+how it is but it shipped many many successful
+but it shipped many many successful games and made
+games and made lots and lots of money so what's the
+lots and lots of money so what's the problem so the problem is this right
+problem so the problem is this right we have a director and the director
+we have a director and the director comes to you one day
+comes to you one day and you're maintaining the state machine
+and you're maintaining the state machine and he says
+and he says we want the player character to be able
+we want the player character to be able to be injured so we want him to be
+to be injured so we want him to be walking around injured
+walking around injured and so you're maintaining the state
+and so you're maintaining the state machine and you think uh well what could
+machine and you think uh well what could i do to add this to the state machine
+i do to add this to the state machine okay so one thing you could do is you
+okay so one thing you could do is you could add an injured node at every
+could add an injured node at every single leaf state
+single leaf state and just have a kind of transition which
+and just have a kind of transition which switches between being injured and not
+switches between being injured and not but some states don't make sense when
+but some states don't make sense when injured so maybe some whole parts of
+injured so maybe some whole parts of this
+this hierarchical state machine don't really
+hierarchical state machine don't really make sense when you're injured
+make sense when you're injured so you need to do something like go
+so you need to do something like go through this whole state machine and
+through this whole state machine and work out when it makes sense to be
+work out when it makes sense to be injured and when it doesn't
+injured and when it doesn't another option is we could kind of
+another option is we could kind of duplicate this whole graph
+duplicate this whole graph and replace all the data in it with like
+and replace all the data in it with like injured versions of the same data
+injured versions of the same data but we sort of had the same issue which
+but we sort of had the same issue which is that
+is that some states or some leafs we might not
+some states or some leafs we might not have recorded any injured data or
+have recorded any injured data or injured data might not make sense
+injured data might not make sense so we might have to kind of jump back to
+so we might have to kind of jump back to the original tree at random points
+the original tree at random points and finally we could just try and hack
+and finally we could just try and hack something together for this case
+something together for this case but of course if you do this and you
+but of course if you do this and you have too many hacks then the technical
+have too many hacks then the technical debt builds up
+debt builds up and you start to get a lot of trouble
+and you start to get a lot of trouble but anyway
+but anyway your boss wants you to do this so you
+your boss wants you to do this so you have to do something so you do something
+have to do something so you do something and then sometime later the director
+and then sometime later the director comes back to you again
+comes back to you again and he says great so the next scene the
+and he says great so the next scene the character's injured he's also tired
+character's injured he's also tired and he gets stabbed in the eye halfway
+and he gets stabbed in the eye halfway through so we need locomotion for all of
+through so we need locomotion for all of these different things
+these different things so then your action is something like
+so then your action is something like this
+so the dream the dream would be a setup more like this okay
+more like this okay so day one the director comes to you we
+so day one the director comes to you we want the player character to be injured
+want the player character to be injured day two we go to the motion capture
+day two we go to the motion capture studio we capture a bunch of injured
+studio we capture a bunch of injured motion we'd limp around or whatever
+motion we'd limp around or whatever day three we grab all these files from
+day three we grab all these files from the motion capture studio
+the motion capture studio we drag and drop them into our system
+we drag and drop them into our system and day four everything works
+day five director says okay now we want the character to be
+the character to be injured tired and he gets stabbed in the
+injured tired and he gets stabbed in the eye so we do this at the motion capture
+eye so we do this at the motion capture studio we go and stab ourselves in the
+studio we go and stab ourselves in the eye
+eye drag and drop everything works
+drag and drop everything works great okay so what this really is
+great okay so what this really is talking about is like scalability so how
+talking about is like scalability so how can we have a process
+can we have a process for building animation systems which is
+for building animation systems which is scalable and it doesn't give us a
+scalable and it doesn't give us a headache every time we want to add
+headache every time we want to add something new
+something new so that's what this talk is all about
+so that's what this talk is all about and these are the three kind of
+and these are the three kind of ideas in this talk and really these are
+ideas in this talk and really these are ideas that come from machine learning in
+ideas that come from machine learning in some way so
+some way so what we ideally want is a generalized
+what we ideally want is a generalized solution which can work for many
+solution which can work for many different cases
+different cases and to get this what we need to do is
+and to get this what we need to do is specify exactly what variables we want
+specify exactly what variables we want in the system
+in the system and to get this working well we need to
+and to get this working well we need to think more carefully about how we manage
+think more carefully about how we manage our data so these are kind of the three
+our data so these are kind of the three stages i'm going to talk about
+stages i'm going to talk about so first we'll talk about data
+so first we'll talk about data separation
+separation so if we have a look again at our
+so if we have a look again at our setup which we had before there's kind
+setup which we had before there's kind of an awkward thing which is that
+of an awkward thing which is that conceptually all the data is living
+conceptually all the data is living inside this state machine
+inside this state machine so the first kind of conceptual step is
+so the first kind of conceptual step is to have a separate database
+to have a separate database and to pull your data out and have it
+and to pull your data out and have it live in the database
+live in the database and have your state machine rather than
+and have your state machine rather than outputting a pose
+outputting a pose actually output a kind of a pointer of
+actually output a kind of a pointer of some kind or a file name with a time
+some kind or a file name with a time so of course you're thinking yeah
+so of course you're thinking yeah obviously this is how we actually do it
+obviously this is how we actually do it in practice like we don't
+in practice like we don't actually have the data living inside the
+actually have the data living inside the state machine
+state machine but there's like an important conceptual
+but there's like an important conceptual difference here
+difference here and if we want to blend well we can have
+and if we want to blend well we can have the blending kind of happen after this
+the blending kind of happen after this data retrieval stage
+data retrieval stage we ask for multiple different animations
+we ask for multiple different animations and we have we give the different
+and we have we give the different weights as well
+weights as well and there's an the kind of important
+and there's an the kind of important conceptual reason why
+conceptual reason why we want to separate out this data this
+we want to separate out this data this database
+database is that the first thing we can do which
+is that the first thing we can do which is really nice
+is really nice is get rid of this craziness with the
+is get rid of this craziness with the file name
+file name so we have our file names in our
+so we have our file names in our database and we have our file name or
+database and we have our file name or some sort of pointer coming from the
+some sort of pointer coming from the state machine
+state machine and the first kind of step is to
+and the first kind of step is to basically replace
+basically replace all of these things which were in this
+all of these things which were in this description the file name
+description the file name with tags so now what the state machine
+with tags so now what the state machine outputs is basically a list of tags for
+outputs is basically a list of tags for what it
+what it desires the motion to be like and we can
+desires the motion to be like and we can have similar tags
+have similar tags in our data so for example
+in our data so for example this is like a little prototype
+this is like a little prototype tool we have for tagging our data so
+tool we have for tagging our data so here we have a really long
+here we have a really long take this is about 15 minutes of raw
+take this is about 15 minutes of raw animation data
+animation data and what we've got done is we've gone
+and what we've got done is we've gone and tagged all the different sections
+and tagged all the different sections for what they represent
+for what they represent and in a sense this is the same as
+and in a sense this is the same as editing or cutting up this clip into
+editing or cutting up this clip into small sections
+small sections and your tags can be as detailed or
+and your tags can be as detailed or simple as you like so
+simple as you like so for example if you have a cut scene you
+for example if you have a cut scene you could have a unique tag just for this
+could have a unique tag just for this cut scene
+cut scene and your state machine could output this
+and your state machine could output this tag or you can have very general tags
+tag or you can have very general tags like just
+like just walking or locomotion or turning these
+walking or locomotion or turning these sorts of things
+sorts of things so you have a lot of flexibility when
+so you have a lot of flexibility when you use these tags instead of the file
+you use these tags instead of the file names
+names and you can also have multiple ranges
+and you can also have multiple ranges inside these files so that's pretty nice
+inside these files so that's pretty nice so already there's a lot of nice things
+so already there's a lot of nice things so one thing is that
+so one thing is that your state machine development doesn't
+your state machine development doesn't depend on your database so you can
+depend on your database so you can update your state machine and update
+update your state machine and update your database separately
+your database separately you can also swap out your database for
+you can also swap out your database for new characters so you can keep your
+new characters so you can keep your state machine logic exactly the same
+state machine logic exactly the same and just swap out the database if you
+and just swap out the database if you have a different style of character
+have a different style of character or you can have some sort of fallback
+or you can have some sort of fallback database so if the state machine
+database so if the state machine requests
+requests a set of tags which are not in your
+a set of tags which are not in your database you can fall back to some more
+database you can fall back to some more general database
+general database and the overall kind of idea is that
+and the overall kind of idea is that let's move away from thinking about
+let's move away from thinking about assets
+assets and start thinking about databases as a
+and start thinking about databases as a whole so
+whole so and move away from kind of file names
+and move away from kind of file names and start thinking about tags
+and start thinking about tags and have a separate process for motion
+and have a separate process for motion retrieval so
+retrieval so what we've basically done is kind of got
+what we've basically done is kind of got this
+this classic game development set up with
+classic game development set up with file names and assets and tags and
+file names and assets and tags and editing these sorts of things and we've
+editing these sorts of things and we've moved and put it into a database which
+moved and put it into a database which is really how machine learning
+is really how machine learning people think about data so that's the
+people think about data so that's the first stage done
+first stage done so now i'm going to talk about
+so now i'm going to talk about specifying the desired variables
+specifying the desired variables okay so let's have a look at our
+okay so let's have a look at our setup again so okay we've improved some
+setup again so okay we've improved some things
+things but we still have this really huge
+but we still have this really huge state machine here and this state
+state machine here and this state machine is kind of a complex thing
+machine is kind of a complex thing because it's a mix of
+because it's a mix of gameplay and animation so some states
+gameplay and animation so some states are purely aesthetic so
+are purely aesthetic so maybe like a turn 25 degrees or
+maybe like a turn 25 degrees or something like this
+something like this it doesn't really have any meaning in
+it doesn't really have any meaning in gameplay it's just there so that we can
+gameplay it's just there so that we can play a slightly different animation
+play a slightly different animation and we have some states which are
+and we have some states which are important for gameplay so maybe if the
+important for gameplay so maybe if the character is
+character is falling over or if the character is
+falling over or if the character is doing a role
+doing a role that's actually a different thing in
+that's actually a different thing in game play and you can
+game play and you can you can perform different actions
+you can perform different actions depending on these states
+depending on these states so one thing which would be really nice
+so one thing which would be really nice is if we could separate out
+is if we could separate out this big state machine into purely
+this big state machine into purely gameplay
+gameplay related states and purely aesthetic ones
+related states and purely aesthetic ones so one thing we can do is this we get
+so one thing we can do is this we get our
+our state machine and we get just the kind
+state machine and we get just the kind of gameplay simplified gameplay version
+of gameplay simplified gameplay version so only states which have some
+so only states which have some meaningful
+meaningful thing to do with gameplay that we keep
+thing to do with gameplay that we keep and all the aesthetic states we remove
+and all the aesthetic states we remove and we pull in all the other data
+and we pull in all the other data related to the aesthetics from outside
+related to the aesthetics from outside so for example the fact that the
+so for example the fact that the character is male may this is kind of
+character is male may this is kind of like a global variable or
+like a global variable or or something we can get in from outside
+or something we can get in from outside or
+or things from gameplay like where we want
+things from gameplay like where we want the characters to be going
+the characters to be going what speed they want to be going at
+what speed they want to be going at where they want to be looking lots of
+where they want to be looking lots of these things have nothing to do
+these things have nothing to do with gameplay they're not man they're
+with gameplay they're not man they're not they don't change the gameplay at
+not they don't change the gameplay at all they're purely aesthetic
+all they're purely aesthetic so we can pull these right through and
+so we can pull these right through and kind of bypass this
+kind of bypass this state machine and
+state machine and we can tag exactly the same variables in
+we can tag exactly the same variables in exactly the same properties
+exactly the same properties in our data so
+in our data so these are actually numerical values so
+these are actually numerical values so that's kind of the main difference now
+that's kind of the main difference now they're not just tags
+they're not just tags some of these are like numerical values
+some of these are like numerical values which we also have labeled in our
+which we also have labeled in our database
+database so we need to kind of change a little
+so we need to kind of change a little bit how we look up
+bit how we look up uh which clip to play next and the basic
+uh which clip to play next and the basic idea you can
+idea you can use is just filter out the clips where
+use is just filter out the clips where the tags don't match
+the tags don't match and return the nearest numerical match
+and return the nearest numerical match for the rest of the numerical inputs
+for the rest of the numerical inputs okay so that's how we do this and we're
+okay so that's how we do this and we're going to call this
+going to call this matching because it's not really like
+matching because it's not really like querying a database anymore
+querying a database anymore it's more like trying to find the best
+it's more like trying to find the best match for the desired inputs
+match for the desired inputs and something kind of magical happens
+and something kind of magical happens now which is that this
+now which is that this state machine sort of disappears into
+state machine sort of disappears into gameplay so now
+gameplay so now maintaining the state machine is really
+maintaining the state machine is really like the role of the gameplay
+like the role of the gameplay programmers
+programmers and as animation programmers what we're
+and as animation programmers what we're really doing
+really doing is the stuff on the left hand side of
+is the stuff on the left hand side of this
+this so now if we think that the gameplay is
+so now if we think that the gameplay is the state machine is purely a gameplay
+the state machine is purely a gameplay construct now our animation system looks
+construct now our animation system looks more like this
+more like this all we have is this matching component
+all we have is this matching component where we try and get the user input and
+where we try and get the user input and we match it to something in the data
+we match it to something in the data there's one kind of extra step which is
+there's one kind of extra step which is that
+that we don't want gameplay to specify timing
+we don't want gameplay to specify timing animation so we want them to say
+animation so we want them to say what kind of sort of animation they want
+what kind of sort of animation they want but we don't want to say okay we want
+but we don't want to say okay we want them we want an animation which is kind
+them we want an animation which is kind of halfway through
+of halfway through playing or something like this and one
+playing or something like this and one thing we can do is
+thing we can do is we can use the previous pose which was
+we can use the previous pose which was output by our system
+output by our system to describe the timing animation so
+to describe the timing animation so maybe the previous pose
+maybe the previous pose was the character with the right foot
+was the character with the right foot down so now we know when we match our
+down so now we know when we match our next
+next frame we want to output or our next clip
+frame we want to output or our next clip we want to play that it should start
+we want to play that it should start with the right foot down and this setup
+with the right foot down and this setup is
+is basically extremely similar conceptually
+basically extremely similar conceptually to what was shipped in for honor and
+to what was shipped in for honor and what was called motion matching at the
+what was called motion matching at the time
+time so there was a gameplay state machine
+so there was a gameplay state machine and there was tags and numerical
+and there was tags and numerical variables coming in
+variables coming in and there was this kind of matching
+and there was this kind of matching happening with the database
+happening with the database so this is a little clip from for on
+so this is a little clip from for on where you can see a bit how it's working
+where you can see a bit how it's working so here we see all the different
+so here we see all the different potential clips in the database which
+potential clips in the database which could be played next
+could be played next and essentially the system is picking
+and essentially the system is picking the one which most closely matches the
+the one which most closely matches the desired user input so here
+desired user input so here the desired user input is the red
+the desired user input is the red trajectory along the ground
+trajectory along the ground and it's picking the which best
+and it's picking the which best matches that
+and one of the really nice things about this setup is that
+this setup is that unlike this big state machine new
+unlike this big state machine new variables are really easy to add
+variables are really easy to add so for example uh if we had the
+so for example uh if we had the injured if we wanted to add add an
+injured if we wanted to add add an injured state to the character
+injured state to the character we just have an additional input saying
+we just have an additional input saying whether the character should be injured
+whether the character should be injured and we add this as an additional tag in
+and we add this as an additional tag in our database
+so the idea here is that instead of states we want to describe the animation
+states we want to describe the animation we want by variables
+we want by variables instead of querying this database we
+instead of querying this database we want to have some sort of fuzzy matching
+want to have some sort of fuzzy matching where we just try and
+where we just try and roughly get the best clip that matches
+roughly get the best clip that matches and we need to annotate these variables
+and we need to annotate these variables in the data so we need to annotate these
+in the data so we need to annotate these tags on these numerical variables
+tags on these numerical variables so that kind of gets us to the point of
+so that kind of gets us to the point of motion matching and something that's
+motion matching and something that's been shipped in for honor and something
+been shipped in for honor and something which has been proven pretty effective
+which has been proven pretty effective so what's next right what's the next
+so what's next right what's the next step how far can we push this
+step how far can we push this so that's the third point here which is
+so that's the third point here which is talking about generalizing the solution
+talking about generalizing the solution so i have a minor warning which is that
+so i have a minor warning which is that when you talk about generalization often
+when you talk about generalization often the way we generalize is by using math
+the way we generalize is by using math so there is a couple of equations i hope
+so there is a couple of equations i hope that's okay
+okay so let's have a look at our setup again
+again uh the first thing we can do is we can
+uh the first thing we can do is we can move the pose over to the right hand
+move the pose over to the right hand side it doesn't really matter the fact
+side it doesn't really matter the fact that it's
+that it's it's looping around we can actually just
+it's looping around we can actually just consider it as part of the input
+consider it as part of the input and we can think of this matching
+and we can think of this matching process
+process as a mathematical function which takes
+as a mathematical function which takes a big list of numbers takes a vector and
+a big list of numbers takes a vector and just produces another vector so produces
+just produces another vector so produces a big list of numbers
+a big list of numbers and the way we can think about it is
+and the way we can think about it is something like this so let's say we have
+something like this so let's say we have an input
+an input or on the right here the way we can
+or on the right here the way we can represent it as a big list of numbers is
+represent it as a big list of numbers is something like this so for example
+something like this so for example we can have this sort of enumeration
+we can have this sort of enumeration where we just give a one hot vector
+where we just give a one hot vector to say whether the character is male or
+to say whether the character is male or female
+female similarly for whichever kind of general
+similarly for whichever kind of general state they're in like locomotion
+state they're in like locomotion idol falling this can also be an
+idol falling this can also be an enumeration
+enumeration similarly for the style and the
+similarly for the style and the numerical values we can just give
+numerical values we can just give directly so this can be the
+directly so this can be the the position the character wants to be
+the position the character wants to be in in the future
+in in the future the speed they want to be going at where
+the speed they want to be going at where they're looking
+they're looking we can also have the pose so for example
+we can also have the pose so for example if we had the pose as output as our y
+if we had the pose as output as our y here we can represent it by using the
+here we can represent it by using the position of
+position of each of the joints position and rotation
+each of the joints position and rotation of each of the joints so here with the
+of each of the joints so here with the first joint position first joint
+first joint position first joint rotation
+rotation second joint position second joint
+second joint position second joint rotation and then the final joint so
+rotation and then the final joint so whatever we give as input and whatever
+whatever we give as input and whatever we give is output we can represent them
+we give is output we can represent them as two huge big lists of numbers
+as two huge big lists of numbers and we can see our function our matching
+and we can see our function our matching as a mathematical function which maps
+as a mathematical function which maps from one to the other
+from one to the other and when we think about our database in
+and when we think about our database in this regard
+this regard what we actually have are pairs of x's
+what we actually have are pairs of x's and y's pairs of
+and y's pairs of x's and corresponding y's so for each
+x's and corresponding y's so for each pose in our database each y
+pose in our database each y we have all the associated variables and
+we have all the associated variables and tags
+tags so this is our kind of associated x
+so this is our kind of associated x so our database now is really just pairs
+so our database now is really just pairs of
+of x's and corresponding y's and our
+x's and corresponding y's and our matching function is just a function
+matching function is just a function that uses this database to map from x's
+that uses this database to map from x's to y's
+to y's and this is exactly what we call
+and this is exactly what we call supervised learning in the machine
+supervised learning in the machine learning community so it's
+learning community so it's using a database of x's and y's to learn
+using a database of x's and y's to learn a mapping from
+a mapping from x to y
+and we don't call this matching in the machine line community we call it a
+machine line community we call it a regression okay
+regression okay so motion matching is a special case of
+so motion matching is a special case of this regression
+this regression called nearest neighbor regression
+called nearest neighbor regression so we can think about all these things
+so we can think about all these things in terms of existing machine learning
+in terms of existing machine learning concepts so i'll explain how that works
+concepts so i'll explain how that works now
+now so basically in nearest neighbor
+so basically in nearest neighbor regression what we're doing is we're
+regression what we're doing is we're taking
+taking our x which we get as input and we're
+our x which we get as input and we're calculating the distance to all the x's
+calculating the distance to all the x's in our database
+in our database and we're returning the y with the
+and we're returning the y with the smallest
+smallest distance to our x so for example here we
+distance to our x so for example here we calculate the distance to all these x's
+calculate the distance to all these x's and we see that this x1 has the smallest
+and we see that this x1 has the smallest distance
+distance so we return y1 we return the pose y1
+so we return y1 we return the pose y1 so when we're doing this matching and
+so when we're doing this matching and finding the nearest numerical match
+finding the nearest numerical match this is exactly the same as doing
+this is exactly the same as doing nearest neighbor regression
+nearest neighbor regression all right so all of this has been a
+all right so all of this has been a little bit conceptual so let's actually
+little bit conceptual so let's actually see a real example
+see a real example so here's some training data we use or
+so here's some training data we use or some of the training data
+some of the training data so it's really just a kind of really
+so it's really just a kind of really long
+long 15-minute take of unstructured
+15-minute take of unstructured locomotion
+and we got about 200 megabytes of this training data
+training data with various different characters all
+with various different characters all different things
+and our input x what we want to give is we're going to give
+we're going to give the current uh the previous frame joint
+the current uh the previous frame joint positions
+positions so positions of the joints in the
+so positions of the joints in the previous frame their velocities how fast
+previous frame their velocities how fast they're moving
+they're moving uh and also our target is going to be
+uh and also our target is going to be where we want the character to be in one
+where we want the character to be in one second's time
+second's time what velocity we want them to be going
+what velocity we want them to be going at and which direction we want them to
+at and which direction we want them to be facing
+be facing and our output y is actually going to be
+and our output y is actually going to be a block of animation so we're going to
+a block of animation so we're going to output a one second
+output a one second block of animation all the joint
+block of animation all the joint positions and all the joint rotations
+positions and all the joint rotations uh for one second and our function f
+uh for one second and our function f what we're gonna do is we're gonna call
+what we're gonna do is we're gonna call it every one second so every time we
+it every one second so every time we need a new block we're gonna call it
+need a new block we're gonna call it get that new block and put it in or if
+get that new block and put it in or if the user input changes
+the user input changes they just specify a new desired position
+they just specify a new desired position or direction
+or direction we're going to call it straight away and
+we're going to call it straight away and get a new block straight away
+get a new block straight away so let's see what happens if we use
+so let's see what happens if we use nearest neighbor regression
+nearest neighbor regression so what we get is we get a system like
+so what we get is we get a system like this so we have the character
+this so we have the character and he's following the desired user
+and he's following the desired user input
+input and the kind of most noticeable thing is
+and the kind of most noticeable thing is that there's a kind of click
+that there's a kind of click so every time the nearest neighbor
+so every time the nearest neighbor regression chooses a different clip to
+regression chooses a different clip to play from
+play from you get this instantaneous jump where
+you get this instantaneous jump where it's switching clips
+it's switching clips but what we can do is we can add some
+but what we can do is we can add some blending okay so how
+blending okay so how now we have a little bit of blending
+now we have a little bit of blending between clips to make sure they kind of
+between clips to make sure they kind of blend smoothly between each
+blend smoothly between each other and we get quite a nice system so
+other and we get quite a nice system so it's pretty responsive
+it's pretty responsive and most importantly we get lots of kind
+and most importantly we get lots of kind of diverse interesting
+of diverse interesting locomotion it doesn't look particularly
+locomotion it doesn't look particularly formulaic
+formulaic and we can get lots of different variety
+and we can get lots of different variety as well
+so this result looks pretty much like most
+most motion matching you've seen because
+motion matching you've seen because that's basically what it is
+that's basically what it is it's essentially doing motion matching
+it's essentially doing motion matching but under a more general framework
+but under a more general framework and the memory and runtime are both
+and the memory and runtime are both fairly reasonable so we have about 200
+fairly reasonable so we have about 200 megabytes of data one millisecond so
+megabytes of data one millisecond so it's obviously not fast
+it's obviously not fast but for the amount of variety and the
+but for the amount of variety and the amount of different
+amount of different motions you see and for the simplicity
+motions you see and for the simplicity of it it's pretty good
+so there's kind of one interesting thing if we frame this more generally as we
+if we frame this more generally as we have
+have which is that there's not just kind of a
+which is that there's not just kind of a few types of regression there's actually
+few types of regression there's actually an insane amount so
+an insane amount so this is the contents page from a
+this is the contents page from a supervised learning library called
+supervised learning library called scikit-learn
+scikit-learn and we can see nearest neighbor
+and we can see nearest neighbor regression is down here so it's not some
+regression is down here so it's not some obscure edge case it's actually quite a
+obscure edge case it's actually quite a popular
+popular machine learning algorithm and we can
+machine learning algorithm and we can see there are some other ones so for
+see there are some other ones so for example
+example here's an algorithm called gaussian
+here's an algorithm called gaussian processes so these were
+processes so these were pretty popular for a long time before
+pretty popular for a long time before neural networks
+neural networks and basically they do a smooth
+and basically they do a smooth interpolation of the data
+interpolation of the data so let's see if we could just replace
+so let's see if we could just replace nearest neighbor regression with
+nearest neighbor regression with gaussian processes and see what happens
+gaussian processes and see what happens so here we we get our database we train
+so here we we get our database we train a gaussian process and we plug this in
+a gaussian process and we plug this in as our function f
+as our function f so what happens is something like this
+so what happens is something like this so
+so it basically doesn't work right it looks
+it basically doesn't work right it looks pretty bizarre
+pretty bizarre and we're not really sure what's going
+and we're not really sure what's going on and
+on and gaussian processes they're kind of uh
+gaussian processes they're kind of uh limited in scalability so they scale
+limited in scalability so they scale really poorly with the amount of data
+really poorly with the amount of data you train them on
+you train them on and i could only use about a thousand
+and i could only use about a thousand samples for training them
+samples for training them so maybe we just didn't use enough data
+so maybe we just didn't use enough data so let's look again at our contents page
+so let's look again at our contents page oh
+oh so there's neural networks great so the
+so there's neural networks great so the hot thing at the moment
+hot thing at the moment so we can try these and see what happens
+so we can try these and see what happens okay so
+okay so one nice thing about these is we've got
+one nice thing about these is we've got virtually unlimited data capacity
+virtually unlimited data capacity and we can throw away the data once it's
+and we can throw away the data once it's trained
+trained and they're fast to evaluate with low
+and they're fast to evaluate with low memory usage so
+memory usage so as far as our goal of scalability is
+as far as our goal of scalability is concerned they seem
+concerned they seem like the ideal thing to use right
+like the ideal thing to use right okay so uh how many of you know how a
+okay so uh how many of you know how a neural network works
+neural network works okay fair amount that's good so i'm
+okay fair amount that's good so i'm going to give my like
+going to give my like little five-minute rundown of neural
+little five-minute rundown of neural networks
+networks so don't worry it's just going to be
+so don't worry it's just going to be quick
+quick so a neural network like all machine
+so a neural network like all machine learning algorithms is just a function
+learning algorithms is just a function so for example this is
+so for example this is a simple function you kind of recognize
+a simple function you kind of recognize from high school
+from high school it takes some input and produces some
+it takes some input and produces some output and as we've
+output and as we've seen these are represented basically by
+seen these are represented basically by vectors big lists of numbers
+vectors big lists of numbers and a single layer of a neural network
+and a single layer of a neural network is described by the
+is described by the this a function that looks like this so
+this a function that looks like this so these
+these variables w and b are the weights of the
+variables w and b are the weights of the neural network
+neural network so we have the input
+so we have the input x and y the input and output x and y on
+x and y the input and output x and y on either side
+either side and the first operation we do is we
+and the first operation we do is we multiply this big vector
+multiply this big vector x by this weight matrix w
+x by this weight matrix w and we add another vector which is the
+and we add another vector which is the bias b which is another
+bias b which is another another set of weights for the network
+another set of weights for the network and then we pass this through an
+and then we pass this through an activation function
+activation function and the activation function is basically
+and the activation function is basically a simple function
+a simple function which produces some sort of bend or
+which produces some sort of bend or non-linearity
+non-linearity in the in the out in the output
+in the in the out in the output so it's actually super super simple and
+so it's actually super super simple and super familiar it looks exactly like
+super familiar it looks exactly like this
+this really basic function we can think of
+really basic function we can think of from high school
+from high school and when we stack we have a deep neural
+and when we stack we have a deep neural network we're basically just nesting
+network we're basically just nesting this equation
+this equation in upon itself so
+in upon itself so this equation is going to be exactly the
+this equation is going to be exactly the equation we use for our f
+equation we use for our f in this machine learning problem so it
+in this machine learning problem so it should be kind of immediately obvious
+should be kind of immediately obvious how simple and how small and compact
+how simple and how small and compact this using this sort of function is so
+this using this sort of function is so it's really nothing complicated
+it's really nothing complicated and the whole thing is encoded by these
+and the whole thing is encoded by these weights these w's and these b's
+weights these w's and these b's so this is why we can throw away our
+so this is why we can throw away our database once it's trained
+database once it's trained and the way we train it is fairly simple
+and the way we train it is fairly simple as well so what we do is we
+as well so what we do is we put all of our x's in our database
+put all of our x's in our database through this function
+through this function and we see what numbers they produce and
+and we see what numbers they produce and we compare them to the y's in our
+we compare them to the y's in our databases and then we basically use this
+databases and then we basically use this to update the network weights so there's
+to update the network weights so there's a bunch of different algorithms for
+a bunch of different algorithms for doing this
+doing this and we repeat it thousands and thousands
+and we repeat it thousands and thousands of times and eventually we have the
+of times and eventually we have the weights and biases
+weights and biases which work for this particular function
+which work for this particular function so
+so i think it's kind of you can see why
+i think it's kind of you can see why it's exciting from a scalability
+it's exciting from a scalability standpoint to use neural networks
+standpoint to use neural networks because they're very very small very
+because they're very very small very very compact
+very compact and we can understand uh the size and
+and we can understand uh the size and the computational complexity of how
+the computational complexity of how they're working and it's completely
+they're working and it's completely independent of
+independent of the size of our training data so we can
+the size of our training data so we can do this we train a neural network
+do this we train a neural network and then we throw away our data and it
+and then we throw away our data and it looks something like this
+looks something like this so it's still basically not really
+so it's still basically not really working
+working it's doing kind of something but it's
+it's doing kind of something but it's not
+not doing what we want right so why is this
+doing what we want right so why is this the reason is that like machine learning
+the reason is that like machine learning it's not it's not this magic black box
+it's not it's not this magic black box you can't just train this neural network
+you can't just train this neural network with no
+with no regard for anything and the results
+regard for anything and the results you're going to get are going to depend
+you're going to get are going to depend so much on how you represent your input
+so much on how you represent your input how you represent your output
+how you represent your output and how and when you use this function f
+and how and when you use this function f okay so
+okay so it's not as simple as it's not as nice
+it's not as simple as it's not as nice as just looking at this big content
+as just looking at this big content space for supervised learning and just
+space for supervised learning and just picking an algorithm and trying it out
+picking an algorithm and trying it out and additionally there's something
+and additionally there's something really uh bad about the problem we're
+really uh bad about the problem we're trying to solve which is this function f
+trying to solve which is this function f isn't well defined so for example
+isn't well defined so for example uh if we have the character standing
+uh if we have the character standing still and we say
+still and we say go forward so we just give him a target
+go forward so we just give him a target in the future to go forward
+in the future to go forward there's two different choices so he
+there's two different choices so he could either lead with his left foot or
+could either lead with his left foot or he could lead with his right foot
+he could lead with his right foot and both of these choices will get him
+and both of these choices will get him to the goal
+to the goal but the neural network or whatever
+but the neural network or whatever machine learning algorithm you're using
+machine learning algorithm you're using it doesn't know which one to choose so
+it doesn't know which one to choose so what it tends to do
+what it tends to do is it just produces an average of them
+is it just produces an average of them both and this is what you see when you
+both and this is what you see when you see the character kind of floating along
+see the character kind of floating along the ground
+the ground it's an average of using your left foot
+it's an average of using your left foot and using your right foot
+and using your right foot so the question is can we resolve this
+so the question is can we resolve this ambiguity so
+ambiguity so irregardless of tweaking our input and
+irregardless of tweaking our input and our output representation
+our output representation it looks like we need to solve this
+it looks like we need to solve this problem first if we're going to have any
+problem first if we're going to have any chance of getting it working
+chance of getting it working so the answer is obviously yes we can
+so the answer is obviously yes we can and one way we can do it is by
+and one way we can do it is by specifying the timing directly so we can
+specifying the timing directly so we can use this concept of the phase
+use this concept of the phase to tell us exactly the timing of our
+to tell us exactly the timing of our left foot and our right foot and how
+left foot and our right foot and how we're cycling through our animation
+we're cycling through our animation so for example the phase we can say it's
+so for example the phase we can say it's a variable where
+a variable where when your left foot first goes down it's
+when your left foot first goes down it's zero when your right foot goes down it's
+zero when your right foot goes down it's pi
+pi and when your left goes down again it's
+and when your left goes down again it's two pi so it's this kind of cyclic
+two pi so it's this kind of cyclic variable which is cycling between zero
+variable which is cycling between zero and two pi
+and two pi and then one idea is we could use a
+and then one idea is we could use a separate
+separate f depending on what the current phase of
+f depending on what the current phase of the character is
+the character is so assuming the character is always has
+so assuming the character is always has some value for his phase representing
+some value for his phase representing where he is in this cycle
+where he is in this cycle we can try and use a different f so
+we can try and use a different f so let's try and do this in the kind of
+let's try and do this in the kind of most simple way possible
+most simple way possible what we can do is we can separate all
+what we can do is we can separate all our x's and y's in our database
+our x's and y's in our database into different bins depending on the
+into different bins depending on the phase so all of our data where the
+phase so all of our data where the character's got his right foot down
+character's got his right foot down it's going to go in a different bin to
+it's going to go in a different bin to all the data where a character has his
+all the data where a character has his left foot down for example
+left foot down for example and then at runtime given the phase we
+and then at runtime given the phase we basically select which bin we want to
+basically select which bin we want to use
+use and we use the the function we've
+and we use the the function we've trained for this particular bin
+trained for this particular bin to generate our y from our x so let's
+to generate our y from our x so let's see how this works
+see how this works so let's say we've binned our data like
+so let's say we've binned our data like this so we have
+this so we have six different functions along this face
+six different functions along this face space which we bind our data into
+space which we bind our data into and we get a new phase at runtime
+and we get a new phase at runtime so now we see which bin this is we see
+so now we see which bin this is we see which data is there which function we've
+which data is there which function we've trained f
+trained f and we use this to produce our y from rx
+and we use this to produce our y from rx okay so that's
+okay so that's how we're going to do it so let's try
+how we're going to do it so let's try this again with a bunch of different
+this again with a bunch of different machine learning algorithms and see what
+machine learning algorithms and see what happens
+happens so we're going to set it up a little bit
+so we're going to set it up a little bit differently our input will be exactly
+differently our input will be exactly the same
+the same the previous pose of the character and
+the previous pose of the character and where we want to go in one second
+where we want to go in one second but our output now is just going to be
+but our output now is just going to be one frame so we're not going to output a
+one frame so we're not going to output a block of animation we're just going to
+block of animation we're just going to have but one frame at a time
+have but one frame at a time and what we're going to do is we're
+and what we're going to do is we're going to select our function f depending
+going to select our function f depending on our phase
+on our phase call it to get our next pose of the
+call it to get our next pose of the character and then update our phase
+character and then update our phase value so
+value so we also measure how much the phase
+we also measure how much the phase changes at each
+changes at each frame so for each uh each frame in the
+frame so for each uh each frame in the in the database we have the change in
+in the database we have the change in the face
+the face and we update this so let's try it with
+and we update this so let's try it with nearest neighbor regression and see what
+nearest neighbor regression and see what happens
+happens so here we kind of get something that
+so here we kind of get something that looks pretty similar to our original
+looks pretty similar to our original nearest neighbor regression where we
+nearest neighbor regression where we were outputting blocks of animation that
+were outputting blocks of animation that was like motion matching
+was like motion matching so that's kind of a good sign that
+so that's kind of a good sign that things are roughly working
+things are roughly working as intended and one thing you'll notice
+as intended and one thing you'll notice is that the
+is that the cycle of the locomotion is kind of much
+cycle of the locomotion is kind of much more strongly preserved in this
+more strongly preserved in this setup so uh in the other one maybe there
+setup so uh in the other one maybe there was more kind of diverse
+was more kind of diverse movement where the phase could change
+movement where the phase could change fast or slow and
+fast or slow and different stepping patterns here we
+different stepping patterns here we really kind of see the cycle going on
+really kind of see the cycle going on and on
+and on and we have the same kind of jumping
+and we have the same kind of jumping issue where when it jumps to a new clip
+issue where when it jumps to a new clip it kind of clicks we could also add
+it kind of clicks we could also add blending like before and we get a nice
+blending like before and we get a nice result
+result so let's see how the gaussian process
+so let's see how the gaussian process fares in this case
+fares in this case so it basically doesn't work again
+so it basically doesn't work again so i don't know what this means so
+so i don't know what this means so probably it means that
+probably it means that having lots of data is very important
+having lots of data is very important right
+right and we can sort of see that the phase is
+and we can sort of see that the phase is still cycling
+still cycling it just looks a bit bizarre so we kind
+it just looks a bit bizarre so we kind of have some feeling that our phase
+of have some feeling that our phase thing is working
+thing is working we're not just getting this gliding
+we're not just getting this gliding motion but the quality of the output is
+motion but the quality of the output is not great
+not great and there are some other kind of
+and there are some other kind of questions we can ask about this approach
+questions we can ask about this approach like
+like what if the phase is in between two
+what if the phase is in between two different bins
+different bins uh and what about when it suddenly
+uh and what about when it suddenly switches to a new bin
+switches to a new bin then maybe we'll get some sort of
+then maybe we'll get some sort of discontinuity or some sort of jump
+discontinuity or some sort of jump and it seems like a waste to train
+and it seems like a waste to train multiple functions f so
+multiple functions f so in each of these bins we have a
+in each of these bins we have a different f but lots of them are going
+different f but lots of them are going to be extremely similar because
+to be extremely similar because they're only just kind of a little bit
+they're only just kind of a little bit in time different from the previous one
+in time different from the previous one and how can we use a neural network to
+and how can we use a neural network to attempt this same problem all right so
+attempt this same problem all right so this is basically uh where we're at for
+this is basically uh where we're at for some
+some previous research i did called phase
+previous research i did called phase function neural networks
+function neural networks and this is exactly what we did now so
+and this is exactly what we did now so the basic idea is that we have a neural
+the basic idea is that we have a neural network
+network where the weights are generated from the
+where the weights are generated from the phase directly
+phase directly so the weights are generated as a
+so the weights are generated as a function of the phase
+function of the phase and they change continuously and
+and they change continuously and smoothly along with the phase
+smoothly along with the phase so as a diagram it looks something like
+so as a diagram it looks something like this what we have
+this what we have as input first is our phase variable and
+as input first is our phase variable and the phase variable
+the phase variable it loops around in this circle
+it loops around in this circle and we have kind of four sets of
+and we have kind of four sets of different neural network weights
+different neural network weights and we have our phase function here so
+and we have our phase function here so what this does
+what this does is it's basically interpolating these
+is it's basically interpolating these four sets of different neural network
+four sets of different neural network weights
+weights depending on what the phase value is so
+depending on what the phase value is so for each different phase value we get a
+for each different phase value we get a slightly different mix of these four
+slightly different mix of these four different neural network weights
+different neural network weights and these interpolated weights they get
+and these interpolated weights they get given as the main weights to
+given as the main weights to our normal neural network which maps
+our normal neural network which maps from
+from x's to y's so here we have our
+x's to y's so here we have our neural network which our equation which
+neural network which our equation which i showed before which takes an x
+i showed before which takes an x and produces a y so if we do this in
+and produces a y so if we do this in exactly our same setup as before we get
+exactly our same setup as before we get something that looks like this so
+something that looks like this so it's still not perfect it's not
+it's still not perfect it's not completely
+completely extremely responsive but the quality of
+extremely responsive but the quality of the generated motion is actually quite
+the generated motion is actually quite nice and it's smooth and it
+nice and it's smooth and it varies continuously so if we continue
+varies continuously so if we continue tweaking these x and these y's
+tweaking these x and these y's and we continue tweaking this f and we
+and we continue tweaking this f and we try and incorporate all our best
+try and incorporate all our best practices for how we train a neural
+practices for how we train a neural network
+network then we get something that looks more
+then we get something that looks more like this so
+like this so what we have in the end is we have a
+what we have in the end is we have a character which can
+character which can follow a trajectory nicely and produce
+follow a trajectory nicely and produce kind of nice natural movement
+and to show how scalable this is we also trained it on a bunch of data where the
+trained it on a bunch of data where the character is going over rough terrain
+character is going over rough terrain so here we had about a gigabyte of data
+so here we had about a gigabyte of data where the character
+where the character was going over different rough terrain
+was going over different rough terrain so it was kind of roughly
+so it was kind of roughly i think an hour and a half of data we
+i think an hour and a half of data we captured walking over different rough
+captured walking over different rough terrain
+terrain so we can see that the scalability is
+so we can see that the scalability is really there we can train on absolutely
+really there we can train on absolutely huge amounts of data and it works and it
+huge amounts of data and it works and it adapts to all these different varieties
+adapts to all these different varieties varied situations
+and we can also give these kind of tags which i described in the beginning so
+which i described in the beginning so here we tag
+here we tag whether the character should be
+whether the character should be crouching or not crouching and we can
+crouching or not crouching and we can give a continuous tag here based on the
+give a continuous tag here based on the height of the ceiling
+height of the ceiling and the character will kind of naturally
+and the character will kind of naturally and somewhat smoothly adapt
+and somewhat smoothly adapt or we can give kind of somewhat more
+or we can give kind of somewhat more discreet tags so here we give a tag
+discreet tags so here we give a tag saying that the character should be
+saying that the character should be jumping at this point in the future
+jumping at this point in the future and that's what the character does so it
+and that's what the character does so it sees that in the database
+sees that in the database the only place where this tag was
+the only place where this tag was present was in jumping motions
+present was in jumping motions so this is what it plays and because
+so this is what it plays and because we're also giving his input the height
+we're also giving his input the height of the
+of the terrain under the character he can
+terrain under the character he can somewhat adapt
+somewhat adapt his style of jump based on what's below
+his style of jump based on what's below him
+and the really nice thing is that once we have this neural network working
+we have this neural network working the performance is pretty good for the
+the performance is pretty good for the amount of data it was trained on so
+amount of data it was trained on so as in the kind of most compact way what
+as in the kind of most compact way what we can get is
+we can get is just 10 megabytes of neural network
+just 10 megabytes of neural network weights
+weights with a runtime of about one millisecond
+with a runtime of about one millisecond so 10 megabytes is pretty incredible if
+so 10 megabytes is pretty incredible if you think that it was trained
+you think that it was trained on literally gigabytes of motion data
+on literally gigabytes of motion data and we've thrown all of this away and we
+and we've thrown all of this away and we just keep this 10 megabytes
+just keep this 10 megabytes all in this particular phase function
+all in this particular phase function neural network approach
+neural network approach we can do some sort of pre-computation
+we can do some sort of pre-computation which uses more memory but can
+which uses more memory but can evaluate a bit faster so it's definitely
+evaluate a bit faster so it's definitely delivering what it promises in regards
+delivering what it promises in regards to
+to scalability when it comes to data
+scalability when it comes to data so that's how you can kind of generalize
+so that's how you can kind of generalize this solution
+this solution frame it in a more classic machine
+frame it in a more classic machine learning way and try out a bunch of
+learning way and try out a bunch of different experiments to see what works
+different experiments to see what works so in conclusion uh there are a couple
+so in conclusion uh there are a couple of sacrifices we have to make for this
+of sacrifices we have to make for this approach
+approach so you have to give up precise control
+so you have to give up precise control so
+so if we think about those 15 000
+if we think about those 15 000 animations that were made for assassin's
+animations that were made for assassin's creed origins
+creed origins at some point we're just not going to be
+at some point we're just not going to be able to hand author all these animations
+able to hand author all these animations so we have to think about ways which can
+so we have to think about ways which can scale
+scale and lots of these ways we can scale are
+and lots of these ways we can scale are going to require giving up precise
+going to require giving up precise control in many contexts
+control in many contexts it also requires learning a whole new
+it also requires learning a whole new skill set so doing machine learning
+skill set so doing machine learning programming is a completely different
+programming is a completely different beast to normal programming
+beast to normal programming and it's very difficult and requires
+and it's very difficult and requires lots of different skills which
+lots of different skills which you may not have learned in school or
+you may not have learned in school or may not have learned over your career
+may not have learned over your career and finally it doesn't deal with a large
+and finally it doesn't deal with a large number of special cases so it's not like
+number of special cases so it's not like we can just throw out everything
+we can just throw out everything we've got already and just use this
+we've got already and just use this thing to replace everything
+thing to replace everything there's going to have to be some period
+there's going to have to be some period of overlap between old systems and new
+of overlap between old systems and new systems
+systems but for scalability animation quality
+but for scalability animation quality is kind of losing the battle against
+is kind of losing the battle against complexity so every time someone wants
+complexity so every time someone wants to push
+to push with the current approach of the state
+with the current approach of the state machine to add a new
+machine to add a new way of doing things it's kind of
+way of doing things it's kind of suffering against the complexity of the
+suffering against the complexity of the system
+system and we can use machine learning to try
+and we can use machine learning to try and balance this fight or at least some
+and balance this fight or at least some ideas from machine learning
+ideas from machine learning and these ideas might be one of the best
+and these ideas might be one of the best ways we can try and make progress
+ways we can try and make progress in this direction so some things we're
+in this direction so some things we're looking at in the future so how can we
+looking at in the future so how can we remove this phase variable
+remove this phase variable deal with non-cyclic motions how can we
+deal with non-cyclic motions how can we scale to these hundreds of different
+scale to these hundreds of different styles so we talked about all these
+styles so we talked about all these different tags
+different tags what if we had tags what if we had a
+what if we had tags what if we had a huge database with
+huge database with hundreds of different styles and all of
+hundreds of different styles and all of these were tagged in detail
+these were tagged in detail would this work and how would it work
+would this work and how would it work and how can we continue to improve the
+and how can we continue to improve the quality so
+quality so in some sense you can't get better
+in some sense you can't get better quality than just playing back the
+quality than just playing back the motion capture
+motion capture data directly uh but how can we
+data directly uh but how can we throw out the motion capture data and
+throw out the motion capture data and still retain a really high quality
+still retain a really high quality solution
+solution so i have a couple of bloopers so you
+so i have a couple of bloopers so you can see what it's really like to do
+can see what it's really like to do machine learning every day so you have
+machine learning every day so you have some nice artifacts like this
+some nice artifacts like this or one like this
+and this is like a nice moonwalk he was doing
+okay thank you very much
+so if you have any questions you can come up to the mics
+come up to the mics hi hello uh great talk great work thanks
+hi hello uh great talk great work thanks for for sharing
+for for sharing two short ones i didn't get how do you
+two short ones i didn't get how do you generate the clips for the training data
+generate the clips for the training data how are you controlling the character
+how are you controlling the character and the second one how do you get any
+and the second one how do you get any research paper that you can mention we
+research paper that you can mention we can get the details
+can get the details thank you uh
+thank you uh the clips for the training data are
+the clips for the training data are taken from
+taken from this big long database of long captures
+this big long database of long captures we did
+we did so if we're talking about having one
+so if we're talking about having one second clips we basically have
+second clips we basically have overlapping one second clips all the way
+overlapping one second clips all the way through the database
+through the database unless it was kind of tagged as junk and
+unless it was kind of tagged as junk and uh for the paper
+uh for the paper uh if you google face functioned neural
+uh if you google face functioned neural networks
+networks uh it will pop up hey great talk
+uh it will pop up hey great talk um in your diagram of the phase neural
+um in your diagram of the phase neural network
+network it looked like you had a separate
+it looked like you had a separate network that was feeding weights into
+network that was feeding weights into the
+the existing neural network is there a
+existing neural network is there a reason why you couldn't just use the
+reason why you couldn't just use the phase as an
+phase as an input variable input feature into the
+input variable input feature into the set did that
+set did that yield errors or something yeah so you
+yield errors or something yeah so you can use the phase as an additional input
+can use the phase as an additional input variable
+variable and it works somewhat but the quality
+and it works somewhat but the quality is not as high so the kind of details
+is not as high so the kind of details for why that is is a bit complicated to
+for why that is is a bit complicated to explain
+explain but roughly you can think about it as
+but roughly you can think about it as when you give the phase in at the side
+when you give the phase in at the side it's really much more similar to binning
+it's really much more similar to binning the data into really separate bins
+the data into really separate bins whereas where you give it in at the top
+whereas where you give it in at the top it's more like
+it's more like giving another variable saying how to
+giving another variable saying how to blend between the whole database at once
+blend between the whole database at once so giving it in the side is really like
+so giving it in the side is really like taking a slice
+taking a slice of this database with just the phase
+of this database with just the phase values you want
+values you want i don't know great time um i wanted to
+i don't know great time um i wanted to ask about the tagging process
+ask about the tagging process and uh is it are you looking towards
+and uh is it are you looking towards automating that kind of thing or
+automating that kind of thing or a very manual process and kind of who
+a very manual process and kind of who would do that kind of work because
+would do that kind of work because you know as the data scales obviously
+you know as the data scales obviously that's a lot of word to toggle that did
+that's a lot of word to toggle that did yeah so i guess one of the great things
+yeah so i guess one of the great things about doing this tagging
+about doing this tagging is that you can also use it to train
+is that you can also use it to train class
+class classifiers animation classifiers
+classifiers animation classifiers so you'd hope that you could get to a
+so you'd hope that you could get to a point where you have a large enough
+point where you have a large enough database where from then
+database where from then on you can do the tagging automatically
+on you can do the tagging automatically with a classifier
+with a classifier thank you
+uh hello um i was wondering how much iteration was done
+iteration was done for representing the data going into the
+for representing the data going into the neural network uh
+neural network uh because i could see the rotation as part
+because i could see the rotation as part of the pose being very hard to
+of the pose being very hard to [Music]
+[Music] be consumed by a neural network and for
+be consumed by a neural network and for a neural network to make sense of
+a neural network to make sense of uh rotational data yeah
+uh rotational data yeah so there's a lot of iteration that's
+so there's a lot of iteration that's kind of the black magic
+kind of the black magic of uh machine learning and
+of uh machine learning and that's why you need to have a good
+that's why you need to have a good intuition and do lots of different
+intuition and do lots of different experiments
+experiments so you can see exactly how we got the
+so you can see exactly how we got the results we did
+results we did in our paper if you look it up
+in our paper if you look it up but yeah that's one thing you need to
+but yeah that's one thing you need to play around a lot with to get good
+play around a lot with to get good results
+results all right thank you
+um excellent talk very interesting so a lot of the examples that i've i've
+so a lot of the examples that i've i've seen for both this talk and motion
+seen for both this talk and motion matching we're
+matching we're drive we're largely for like character
+drive we're largely for like character locomotion
+locomotion navigation animation if you're say
+navigation animation if you're say working in a space where
+working in a space where like maybe you have a very sophisticated
+like maybe you have a very sophisticated combat simulation in your game
+combat simulation in your game does have you found any success in this
+does have you found any success in this approach for
+approach for you know driving additive animations or
+you know driving additive animations or layered animations through something
+layered animations through something like this maybe something where
+like this maybe something where your animation data doesn't necessarily
+your animation data doesn't necessarily have variables like speed or
+have variables like speed or character intent it's maybe just
+character intent it's maybe just something like i got shot and
+something like i got shot and yeah something like that so you can use
+yeah something like that so you can use uh
+uh the motion matching stuff to drive
+the motion matching stuff to drive events so in for honor
+events so in for honor the attacks are actually matched too so
+the attacks are actually matched too so you'll have an input which says
+you'll have an input which says please play this style of attack in this
+please play this style of attack in this amount of time
+amount of time and it will try and match the best one
+and it will try and match the best one for the current pose and other
+for the current pose and other factors so probably you should go to the
+factors so probably you should go to the ufc talk tomorrow
+ufc talk tomorrow i'm sure they're going to be talking a
+i'm sure they're going to be talking a lot more about that sort of stuff and
+lot more about that sort of stuff and i'm sure it'll be super super insightful
+i'm sure it'll be super super insightful thanks for the tip
+hi great talk is it possible to incrementally train these sorts of
+incrementally train these sorts of neural networks so if i add
+neural networks so if i add a couple of new clips of a new kind of
+a couple of new clips of a new kind of turn or something i don't have to
+turn or something i don't have to necessarily retrain
+necessarily retrain the whole thing for tens of hours of
+the whole thing for tens of hours of computation time
+computation time uh so in theory
+uh so in theory yeah there is some research showing how
+yeah there is some research showing how you can incrementally train
+you can incrementally train neural networks so i don't have any
+neural networks so i don't have any personal experience doing this
+personal experience doing this but the research is there at least it
+but the research is there at least it just needs to be tried out i think
+hello uh has this approach been applied to quadrupeds
+to quadrupeds uh not to my knowledge uh i guess we'll
+uh not to my knowledge uh i guess we'll see
+see one nice thing about this approach for
+one nice thing about this approach for quadrupeds is
+quadrupeds is that um well it's very hard to get a
+that um well it's very hard to get a quadruped to
+quadruped to act but you can get a whole bunch of raw
+act but you can get a whole bunch of raw animation data from a quadruped by
+animation data from a quadruped by just putting it in a motion capture
+just putting it in a motion capture studio
+studio thank you hi great talk
+thank you hi great talk uh question did you have to overlay a
+uh question did you have to overlay a lot of ik
+lot of ik like to lock the hands and feet and did
+like to lock the hands and feet and did you try to
+you try to augment the rotation data with the
+augment the rotation data with the absolute position of the giants uh so
+absolute position of the giants uh so there is a little so in the examples i
+there is a little so in the examples i showed there was no
+showed there was no ik or anything uh all the joints were
+ik or anything uh all the joints were represented in the character space
+represented in the character space rather than the local space
+rather than the local space uh in the previous paper with the guy
+uh in the previous paper with the guy walking over the terrain
+walking over the terrain there was a little bit of ik not that
+there was a little bit of ik not that much it's not
+much it's not that strongly required it again depends
+that strongly required it again depends on your your representation and these
+on your your representation and these sorts of things
+sorts of things thank you uh how many
+thank you uh how many uh supervisor training data do you use
+uh supervisor training data do you use sorry how many uh train
+sorry how many uh train training data do you use
+training data do you use uh so in the stuff i was showing here
+uh so in the stuff i was showing here it was about 200 megabytes which i think
+it was about 200 megabytes which i think it's probably about kind of
+it's probably about kind of half an hour to an hour of data so you
+half an hour to an hour of data so you saw in the clip
+saw in the clip there was kind of three of us in the
+there was kind of three of us in the motion capture studio
+motion capture studio doing a whole bunch of random locomotion
+doing a whole bunch of random locomotion moves
+moves and i think we did about you know half
+and i think we did about you know half an hour of
+an hour of that something like that thank you
+uh great work um i was curious for fine you know you mentioned that you
+fine you know you mentioned that you lose this fine detail
+lose this fine detail do you switch to another system when you
+do you switch to another system when you have to like animate
+have to like animate like cut scenes sort of thing where
+like cut scenes sort of thing where somebody has to pick up a bottle or you
+somebody has to pick up a bottle or you know pick something specific up can you
+know pick something specific up can you use this for that or is it not
+use this for that or is it not yeah you can you can just work something
+yeah you can you can just work something you can just switch to the different
+you can just switch to the different system there's no reason why not
+system there's no reason why not but you could also potentially do it in
+but you could also potentially do it in the same system
+the same system like i was saying you could actually tag
+like i was saying you could actually tag the cutscene with one specific
+the cutscene with one specific tag and say this is a super high
+tag and say this is a super high priority tag
+priority tag so please make sure make sure you start
+so please make sure make sure you start this cut scene when it goes but
+this cut scene when it goes but when you want that much control it's
+when you want that much control it's probably easier to
+probably easier to blend out too cool
+uh thanks great talk um thanks for uh making it very approachable
+making it very approachable um two questions how do you i don't like
+um two questions how do you i don't like this mic
+this mic how do you approach fine tuning
+how do you approach fine tuning where does that fall now between the
+where does that fall now between the animation lead
+animation lead and the programmer on the neural network
+and the programmer on the neural network side of things
+side of things with this approach and then have you
+with this approach and then have you also taken the second question is have
+also taken the second question is have you taken this
+you taken this and applied it in a layered fashion like
+and applied it in a layered fashion like run and gun where
+run and gun where you're kind of breaking apart into
+you're kind of breaking apart into different sub components
+different sub components um so as far as fine tuning is concerned
+um so as far as fine tuning is concerned it's still quite early and we need
+it's still quite early and we need probably dedicated tools to make the
+probably dedicated tools to make the tuning a viable option
+tuning a viable option so if your data is relatively small and
+so if your data is relatively small and you're doing something like motion
+you're doing something like motion matching
+matching you can actually edit the data and that
+you can actually edit the data and that works pretty well uh if you're training
+works pretty well uh if you're training a neural network it's much harder to
+a neural network it's much harder to guarantee what the results are going to
+guarantee what the results are going to be like
+be like and probably will need uh dedicated
+and probably will need uh dedicated tools
+tools and your second question was layering so
+and your second question was layering so layering yeah and things like that the
+layering yeah and things like that the kind of philosophy of
+kind of philosophy of machine learning is not to separate out
+machine learning is not to separate out things into layers
+things into layers and rather you hope that it learns in
+and rather you hope that it learns in some sense
+some sense what is a layer and what isn't a layer
+what is a layer and what isn't a layer for example the crouching
+for example the crouching you saw although we never captured any
+you saw although we never captured any crouching on rough terrain
+crouching on rough terrain if you crouch and you go over the rough
+if you crouch and you go over the rough terrain in our little demo
+terrain in our little demo it does actually somewhat adapt the feed
+it does actually somewhat adapt the feed positions and these sorts of things
+positions and these sorts of things so it's somehow learned that crouching
+so it's somehow learned that crouching is kind of independent of
+is kind of independent of what the other actions you do on rough
+what the other actions you do on rough terrain are so
+terrain are so the hope is that if you provide it with
+the hope is that if you provide it with enough data it will learn to do
+enough data it will learn to do all these sorts of layering operations
+all these sorts of layering operations for you and
+for you and you can keep everything in one system
+you can keep everything in one system that's the idea cool thank you
+hello thank you and very exciting talk so i want to ask you about the network
+so i want to ask you about the network neural network training so how do you
+neural network training so how do you decide
+decide how many layers you use how many nodes
+how many layers you use how many nodes in each node
+in each node and then the activation function you use
+and then the activation function you use and then either you normalize the input
+and then either you normalize the input or not so do you find everything
+or not so do you find everything now optimized or do you think there are
+now optimized or do you think there are still work to do
+still work to do to find the optimized solution uh
+to find the optimized solution uh yeah so there are some kind of rules of
+yeah so there are some kind of rules of thumb
+thumb and intuitions you pick up if you do
+and intuitions you pick up if you do machine learning and
+machine learning and you can also read the previous
+you can also read the previous literature to see what
+literature to see what research is doing similar applications
+research is doing similar applications have done to get a kind of rough idea of
+have done to get a kind of rough idea of how you might want to structure your
+how you might want to structure your neural network yeah there's always going
+neural network yeah there's always going to be improvements and actually that's
+to be improvements and actually that's one of the best things about
+one of the best things about using neural networks is that you can
+using neural networks is that you can import all the future improvements
+import all the future improvements people come up with so
+people come up with so maybe tomorrow someone will come up with
+maybe tomorrow someone will come up with a new activation function which
+a new activation function which improves everything we can implement
+improves everything we can implement that pretty much
+that pretty much then and there tomorrow morning try it
+then and there tomorrow morning try it and see what happens
+and see what happens and if it solves all our problems that's
+and if it solves all our problems that's amazing so
+amazing so one huge benefit of generalizing and
+one huge benefit of generalizing and making it more like a general machine
+making it more like a general machine learning framework is
+learning framework is to borrow from these other people who
+to borrow from these other people who are developing these things
+are developing these things thank you
+um nicole lazaro from zeo and uh followed white rabbit i was curious
+followed white rabbit i was curious really really great talk and definitely
+really really great talk and definitely very approachable i was
+very approachable i was curious about taking this approach to
+curious about taking this approach to other you know aspects of
+other you know aspects of animation and like if you had like an
+animation and like if you had like an errol flynn
+errol flynn you know kind of style of motion like
+you know kind of style of motion like maybe in the attacks or something like
+maybe in the attacks or something like that
+that would that approach locomotion is how
+would that approach locomotion is how the character moves is important and you
+the character moves is important and you want to have different kinds of motion
+want to have different kinds of motion for different types of characters
+for different types of characters but if you have your star character with
+but if you have your star character with you know different special kind of moves
+you know different special kind of moves will that will this approach work or
+will that will this approach work or what changes
+what changes yeah so it's a bit difficult if you
+yeah so it's a bit difficult if you really want handcrafted animation
+really want handcrafted animation because you need
+because you need such vast quantities of data to get good
+such vast quantities of data to get good results
+results so probably my advice would be
+so probably my advice would be to start with a database of locomotion
+to start with a database of locomotion data which is motion captured and large
+data which is motion captured and large and to try and come up with procedural
+and to try and come up with procedural tweaks which
+tweaks which automatically stylize this motion
+automatically stylize this motion in the way you want or something like
+in the way you want or something like this so that you can
+this so that you can easily produce large amounts of stylized
+easily produce large amounts of stylized data
+data and if you can do that then yeah it
+and if you can do that then yeah it works in exactly the same way
+works in exactly the same way it can work for stylized motion too
+it can work for stylized motion too thank you
+okay i think that's everyone thank you very much

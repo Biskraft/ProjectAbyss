@@ -1,0 +1,3 @@
+# Category:Sprites
+
+Category: Artwork

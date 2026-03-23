@@ -1,0 +1,463 @@
+[Music] hello
+hello everyone uh before we get started I need
+everyone uh before we get started I need to remind everyone to turn off their
+to remind everyone to turn off their phone and please kindly fill up the
+phone and please kindly fill up the survey at the end uh when you receive
+survey at the end uh when you receive them the
+email okay so bonjour hi today I'm very excited to talk to you about turning a
+excited to talk to you about turning a photo of a person to a 3D mesh with a
+photo of a person to a 3D mesh with a rig for
+rig for games my name is neep and a technical
+games my name is neep and a technical art director in the past I was a teacher
+art director in the past I was a teacher and worked on mini games at different
+and worked on mini games at different companies my co-author is Hector Leon a
+companies my co-author is Hector Leon a research engineer and we are currently
+research engineer and we are currently at EA in the seed
+at EA in the seed team seed is an acronym for search for
+team seed is an acronym for search for Extraordinary experiences division which
+Extraordinary experiences division which is an applied research and Innovation
+is an applied research and Innovation group where we explore build and help
+group where we explore build and help Define the future of interactive
+Define the future of interactive entertainment here's today's agenda
+entertainment here's today's agenda where I will explain our different
+where I will explain our different projects and how they are combined
+projects and how they are combined together to go from a single photo to a
+together to go from a single photo to a facial rig starting from an input image
+facial rig starting from an input image it reconstructs an avatar
+it reconstructs an avatar refines it Finds Its expressions and
+refines it Finds Its expressions and puts it onto a
+puts it onto a rig so this is the full pipeline that
+rig so this is the full pipeline that will be presented but don't worry it
+will be presented but don't worry it will be shown in chunks to better
+will be shown in chunks to better explain each part of the
+explain each part of the process so let's get started with a bit
+process so let's get started with a bit of introduction into the field and what
+of introduction into the field and what we're trying to
+we're trying to improve so imagine that you are working
+improve so imagine that you are working on a project that requires 10 to 20 main
+on a project that requires 10 to 20 main characters
+characters and each character needs a face that can
+and each character needs a face that can show various emotions and expressions
+show various emotions and expressions creating each of these face rigs can
+creating each of these face rigs can take weeks or even months to complete
+take weeks or even months to complete and that's because there are so many
+and that's because there are so many details that go into animating a
+details that go into animating a realistic face like capturing different
+realistic face like capturing different Expressions eye movements and facial
+Expressions eye movements and facial features for larger projects you might
+features for larger projects you might also have secondary characters friends
+also have secondary characters friends family members or background characters
+family members or background characters they still need expressive faces of
+they still need expressive faces of course but to save time and resources
+course but to save time and resources they may have fewer and simpler
+they may have fewer and simpler Expressions however if not done
+Expressions however if not done carefully this can make the animation
+carefully this can make the animation seem less
+seem less immersive and when it comes to creating
+immersive and when it comes to creating a facial rig that can accommodate a wide
+a facial rig that can accommodate a wide range of identities there are several
+range of identities there are several challenges to consider you see each
+challenges to consider you see each person has unique facial features which
+person has unique facial features which means that a one- siiz fits-all approach
+means that a one- siiz fits-all approach simply won't work the example here are
+simply won't work the example here are courtesy from triple
+courtesy from triple gangers and as you can see different
+gangers and as you can see different people have different skin tones nose
+people have different skin tones nose eyes lips as well as facial proportions
+eyes lips as well as facial proportions and
+and structures capturing all these
+structures capturing all these variations can be a daunting task and
+variations can be a daunting task and when it comes to representing different
+when it comes to representing different races genders and ages the difficulty
+races genders and ages the difficulty becomes even more significant
+another challenge in facial rigging is capturing the diversity of Expressions
+capturing the diversity of Expressions that people make after all our faces are
+that people make after all our faces are incredibly expressive and there are
+incredibly expressive and there are countless ways that we convey emotions
+countless ways that we convey emotions and
+and reactions and of course there's yet
+reactions and of course there's yet another challenge in facial rigging
+another challenge in facial rigging which is the diversity of controls that
+which is the diversity of controls that can be used to animate the Expressions
+can be used to animate the Expressions so all our internal Solutions presented
+so all our internal Solutions presented today are rig agnostic so in can work on
+today are rig agnostic so in can work on any of these
+any of these rigs but for Simplicity sake I will demo
+rigs but for Simplicity sake I will demo only on our internal facial rigging
+only on our internal facial rigging solution created by the tools and Tech
+solution created by the tools and Tech team called face
+rig so the process will not create a new rig every time instead it will use a
+rig every time instead it will use a reference rig to optimize and replace
+reference rig to optimize and replace existing blend shapes so that the
+existing blend shapes so that the animations can be later shared between
+animations can be later shared between characters
+characters and now this is very important for game
+and now this is very important for game projects to save time and space as well
+projects to save time and space as well as support face
+as support face customization now that I've given enough
+customization now that I've given enough context where do we start with data of
+context where do we start with data of course so I will go over what kind of
+course so I will go over what kind of data and how it is
+processed here's the full pipeline again so let's concentrate on the
+again so let's concentrate on the foundation the data and specific
+foundation the data and specific expression scans which could be captured
+expression scans which could be captured in many different
+in many different ways in the next few example we scann
+ways in the next few example we scann our old colleague York
+scheller and there's a few requirements the data must have a consistent topology
+the data must have a consistent topology and stabilized we used uh matar
+and stabilized we used uh matar implementation as shown
+here the next part can be summarized into three ideally all three parts are
+into three ideally all three parts are iterated together but this is not always
+iterated together but this is not always the case in
+the case in production so an artist will decompose
+production so an artist will decompose the expression scans into their isolated
+the expression scans into their isolated blend
+blend shapes the blend shapes must be ensured
+shapes the blend shapes must be ensured that they are playing properly with
+that they are playing properly with their rig
+their rig controls and that it can also be
+controls and that it can also be intuitively
+intuitively animated all this is done iteratively by
+animated all this is done iteratively by different people on the
+different people on the team and to accelerate the pipeline we
+team and to accelerate the pipeline we will use instead a process internally
+will use instead a process internally called phas Optimum to do this Loop
+called phas Optimum to do this Loop automatically of course the user can
+automatically of course the user can always edit the the output later
+on face optim uses rig inversion to estimate the rig controls animation so
+estimate the rig controls animation so it can solve the blend shapes please
+it can solve the blend shapes please take a look at our paper provided here
+take a look at our paper provided here for
+information so going back to the pipeline
+pipeline pH optim is launched right after the
+pH optim is launched right after the cleanup of the
+cleanup of the scans and in this example 44 discrete
+scans and in this example 44 discrete Expressions plus the neutral are used
+Expressions plus the neutral are used but any number can work and I've tried
+but any number can work and I've tried it myself with two expressions and
+it myself with two expressions and results still work pretty
+results still work pretty well the process is launched to one of
+well the process is launched to one of our servers and here's the result in
+our servers and here's the result in Maya the rec controls are solved for
+Maya the rec controls are solved for every input expressions and you can
+every input expressions and you can still modify anything the rig acts like
+still modify anything the rig acts like a regularizer which constrains the shape
+a regularizer which constrains the shape region and
+region and expressiveness this is very obvious
+expressiveness this is very obvious around the uh ears and chest
+region I'll let you appreciate a bit the animation
+so I did mention that any number of scans can work so what about continuous
+scans can work so what about continuous motion if you can afford higher quality
+motion if you can afford higher quality as well as able to capture and process
+as well as able to capture and process 4D animation
+4D animation data the requirements are the same as
+data the requirements are the same as before the data must have a consistent
+before the data must have a consistent topology and stabilized we used the
+topology and stabilized we used the tracking solution from Metar as shown
+tracking solution from Metar as shown here and here's the result so pH optim
+here and here's the result so pH optim is using the full 10,000 frames for the
+is using the full 10,000 frames for the solve where it optimized the blend
+solve where it optimized the blend shapes and animated the r controls so
+shapes and animated the r controls so notice the fat and muscles are
+notice the fat and muscles are wellmaintained but is of course
+wellmaintained but is of course dependent on the flexibility of the rig
+dependent on the flexibility of the rig as shown here you can still modify the
+as shown here you can still modify the animation using the rig as shown
+before that should be the last awkward silence on the other hand if you don't
+silence on the other hand if you don't want to scan or scal a full set of
+want to scan or scal a full set of Expressions what could the solution
+Expressions what could the solution be so let's go back to the pipeland F
+be so let's go back to the pipeland F chart it would be reasonable to think
+chart it would be reasonable to think that with all the scans that were
+that with all the scans that were already processed be put into a
+already processed be put into a database and in turn that database be
+database and in turn that database be used to generate the blend shape for the
+used to generate the blend shape for the rig later
+rig later on that tool is internally called called
+on that tool is internally called called face mixer with a single neutral it will
+face mixer with a single neutral it will infer the best blend
+infer the best blend shapes and we've set up a web service to
+shapes and we've set up a web service to enable anyone at EA to test and use it
+enable anyone at EA to test and use it on their project as well as an API call
+on their project as well as an API call for direct use in Maya or other dcc's
+for direct use in Maya or other dcc's and gitlab Source uh source code
+and gitlab Source uh source code access in the next example I will
+access in the next example I will demonstrate its usage with a whip
+demonstrate its usage with a whip service
+service face mixer requires a neutral mesh that
+face mixer requires a neutral mesh that uses our Universal face
+topology once the user has navigated to the face mixer web page they can input
+the face mixer web page they can input that obj file into the field the web
+that obj file into the field the web service was made by my colleague it
+service was made by my colleague it and then the user selects the database
+and then the user selects the database that they
+that they want click on
+want click on submit and wait a minute or two the
+submit and wait a minute or two the service will return a zip file with all
+service will return a zip file with all the generated blend
+the generated blend shaps so how does pH mixer work we have
+shaps so how does pH mixer work we have a database of 59 different faces with
+a database of 59 different faces with around 467 blend shapes which were
+around 467 blend shapes which were generated using face
+generated using face Optimum as well as nine region masks to
+Optimum as well as nine region masks to help the optimization
+help the optimization process for each region masks we find
+process for each region masks we find the best identity in the database as a
+the best identity in the database as a weighted number
+weighted number and apply their contribution for each
+and apply their contribution for each blend
+shapes here's the result uh in Maya for a new head that is not in the database
+a new head that is not in the database so the quality result will vary
+so the quality result will vary depending on the diversity of the
+depending on the diversity of the database in this case the results are
+database in this case the results are mediocre since we do not have many
+mediocre since we do not have many samples of face with this morphology and
+samples of face with this morphology and of course 59 heads in the database is
+of course 59 heads in the database is quite small
+by now you're probably wondering how face mixer and face optim compare in
+face mixer and face optim compare in terms of
+terms of quality so I've chosen a few frames with
+quality so I've chosen a few frames with the main differences highlighted here so
+the main differences highlighted here so notice the lips the chin the jaw regions
+notice the lips the chin the jaw regions are of course better on face
+opum here mostly the corner of the
+lips deep this uh shape works well enough in both
+enough in both case and face mixer had a really hard
+case and face mixer had a really hard time on this
+time on this one now that the blend shapes and the
+one now that the blend shapes and the rig part is done let's move on to the
+rig part is done let's move on to the other
+other part so here's what's been shown
+part so here's what's been shown before what comes next is a tool called
+before what comes next is a tool called face bot it's a process that can
+face bot it's a process that can generate and upress a face using
+generate and upress a face using numbers or using a mesh with or without
+textures the first part is a preview mode where it will generate meshes
+mode where it will generate meshes diffuse and nor map from a light latent
+diffuse and nor map from a light latent space the textures are generated at 512
+space the textures are generated at 512 and the meshes at 9,000 vertices and
+and the meshes at 9,000 vertices and runs not really real time but
+almost the second part is meant to increase the resolution of textures from
+increase the resolution of textures from 512 to 2K a diffusion image to image
+512 to 2K a diffusion image to image method is used to pro to upress them
+method is used to pro to upress them automatically same thing for the normal
+map however when applied together for rendering the results are not
+rendering the results are not photo so how do we increase the
+photo so how do we increase the realism we can use another image to
+realism we can use another image to image translation method but this isn't
+image translation method but this isn't really usable for real time as it takes
+really usable for real time as it takes a few seconds to generate each
+a few seconds to generate each images so we will optimize the data for
+images so we will optimize the data for our traditional rendering pipeline by
+our traditional rendering pipeline by using the image to image as a reference
+using the image to image as a reference to do so we'll use differentiable
+to do so we'll use differentiable rendering and of course if you can do it
+rendering and of course if you can do it on one then you can do it on many many
+on one then you can do it on many many the example shown here is the
+the example shown here is the interpolation between random latent
+numbers the generated data also works under different lighting
+under different lighting conditions since the textures are
+PBR hopefully by now you are dying to know how this is done so let's go over
+know how this is done so let's go over how facebot is able to convert the
+how facebot is able to convert the references to real-time compatible data
+references to real-time compatible data meant for games
+meant for games inspired by traditional computer vision
+inspired by traditional computer vision techniques it will simulate photometric
+techniques it will simulate photometric stereo and photogrametry by varying the
+stereo and photogrametry by varying the Lights and Camera positions which will
+Lights and Camera positions which will then be used for our optimization
+then be used for our optimization process here's the light position that
+process here's the light position that we used for the process manually placed
+we used for the process manually placed in
+in blender and the camera
+blender and the camera positions here's an image of image
+positions here's an image of image translation from different pair of
+translation from different pair of Lights and Camera combinations notice
+Lights and Camera combinations notice how the identity is not maintained
+how the identity is not maintained properly during the translation process
+properly during the translation process so we need different strategies to
+so we need different strategies to reduce this
+noise one of which is to use perceptual loss at the last
+Epoch the optimization is also done in a CO to fine manner notice how the lips
+CO to fine manner notice how the lips are slowly closing to match the
+reference we solve for the
+mesh and textures but subsurface scattering is not taken into
+scattering is not taken into account the initial State on the left is
+account the initial State on the left is the previous diffusion process that
+the previous diffusion process that upscaled the texture from 522 2K and on
+upscaled the texture from 522 2K and on the right after it was optimized
+the right after it was optimized same for the roughness
+same for the roughness map and the norm
+map you might be wondering now where does the uh input photo come into play
+does the uh input photo come into play since face poot does not take photos
+since face poot does not take photos directly a mesh and diffuse must be
+directly a mesh and diffuse must be generated first the next part is a uh is
+generated first the next part is a uh is a project from Hector Leon and I will
+a project from Hector Leon and I will present his section on his
+present his section on his behalf so here's the pipeline so far
+behalf so here's the pipeline so far the next process is phes called
+the next process is phes called Maria so what is Maria Maria is a
+Maria so what is Maria Maria is a consumer level Avatar acquisition system
+consumer level Avatar acquisition system it receives as input a single picture
+it receives as input a single picture from a consumer device and it outputs a
+from a consumer device and it outputs a mesh and a
+mesh and a texture this Avatar is represented with
+texture this Avatar is represented with numbers you we use what is called a
+numbers you we use what is called a morphable model shown here that uses
+morphable model shown here that uses dimensionality reduction PCA in this
+dimensionality reduction PCA in this case to represent the mesh and textures
+case to represent the mesh and textures with parameters it allows us to use
+with parameters it allows us to use matrix multiplication to obtain the
+matrix multiplication to obtain the final Avatar which works nicely with ML
+algorithms Maria is an optimization algorithm what this uh what this system
+algorithm what this uh what this system optimizes are the Avatar parameters that
+optimizes are the Avatar parameters that we've just talked about it also
+we've just talked about it also optimizes other rendering parameters
+optimizes other rendering parameters like camera position and field of
+like camera position and field of view so given a Target
+view so given a Target image with an initial set of parameters
+image with an initial set of parameters the goal is to optimize these parameters
+the goal is to optimize these parameters until the Avatar looks like the input
+until the Avatar looks like the input image Hector uses a differentiable
+image Hector uses a differentiable render to match the Avatar to the Target
+render to match the Avatar to the Target image among other modules like Landmark
+image among other modules like Landmark detector and a face encoder that
+detector and a face encoder that extracts facial features
+uh here are some reconstructions the left column is the input image the
+left column is the input image the middle one is the Avatar overlaid over
+middle one is the Avatar overlaid over the image and the right one is the
+the image and the right one is the generated Avatar now let's see how we
+generated Avatar now let's see how we take the generated Avatar and make them
+take the generated Avatar and make them more foro
+more foro real we will now combine Hector's
+real we will now combine Hector's project and my
+project and my own so let's go back to the
+own so let's go back to the flowchart and where we
+flowchart and where we are so let's go over what it implies
+are so let's go over what it implies given an
+given an image we use
+image we use Maria to obtain a coar mesh and an
+Maria to obtain a coar mesh and an initial diffuse texture of
+initial diffuse texture of 512 then we use facebot to upress the
+512 then we use facebot to upress the diffuse texture generate a nor map and
+diffuse texture generate a nor map and roughness map to 2K X 2K it is then
+roughness map to 2K X 2K it is then optimized to get a photo real
+optimized to get a photo real look up
+look up next one of the missing piece were the
+next one of the missing piece were the eyes uh luckily mat lar and shubam choa
+eyes uh luckily mat lar and shubam choa were working on an automated fitting
+were working on an automated fitting process and we asked uh to place the
+process and we asked uh to place the eyes using the
+photo sorry I'm just going
+to so here's an example including the eye fitting and also when the lighting
+eye fitting and also when the lighting isn't optimal uh and the video showed
+isn't optimal uh and the video showed the step byep
+a few more examples on different photos to show that it can work on any
+identities what about
+animation there are different ways to generate the blend shapes for the rig to
+generate the blend shapes for the rig to animate but the quickest route is to use
+animate but the quickest route is to use face
+mixer with the previous example as the input here's the result of face mixer in
+input here's the result of face mixer in Maya since there's no wrinkle map on
+Maya since there's no wrinkle map on this preview scene the corner of the
+this preview scene the corner of the mouth unchanging nor map looks a bit
+mouth unchanging nor map looks a bit weird also the quality is very dependent
+weird also the quality is very dependent on our database and to improve it we'll
+on our database and to improve it we'll have to use our better data in the near
+have to use our better data in the near future
+the second option is using
+is using facebot since it's also trained to
+facebot since it's also trained to generate the Expressions similar to the
+generate the Expressions similar to the ones scanned in the first few
+ones scanned in the first few slides to do so a simplified deformation
+slides to do so a simplified deformation field is sent to
+facebot with the identity of the person in this case it was a randomly
+person in this case it was a randomly generated head from face
+butt and a few hours later the mesh and textures are all generated for each
+textures are all generated for each expressions from the deformation
+data it can then be sent to face optim but this is not the normal pipeline when
+but this is not the normal pipeline when we serve the users since the generation
+we serve the users since the generation time is very long
+which comes to our last question of how can we best serve the
+can we best serve the users so if you've worked with python
+users so if you've worked with python before you've probably had the challenge
+before you've probably had the challenge of trying to deploy packages to users uh
+of trying to deploy packages to users uh it would be possible to have the user
+it would be possible to have the user install all the required packages and
+install all the required packages and use all their vram and CPU processing
+use all their vram and CPU processing power which would completely stop them
+power which would completely stop them from doing any kind of work so instead
+from doing any kind of work so instead we adopted the same philosophy as face
+we adopted the same philosophy as face mixer and use a web interface for the
+mixer and use a web interface for the user the required input is an image
+user the required input is an image there's no hard constraint as long as
+there's no hard constraint as long as one phase is
+there the user inputs it on the web page courtesy of
+courtesy of ITN clicks on
+ITN clicks on submit it will
+submit it will upload if the user has provided many
+upload if the user has provided many identities then they will be launched in
+identities then they will be launched in parallel on deform
+parallel on deform computers when they come back they click
+computers when they come back they click on view
+on view history where the results are
+history where the results are ready click on download and a zip file
+ready click on download and a zip file will be
+created here are the result
+textures and the previe video as well as the mesh on the rig as a
+myfile I was also curious to compare the real scans that was made versus the
+real scans that was made versus the hallucinated mesh from the
+hallucinated mesh from the process as expected it's not even close
+process as expected it's not even close so we need to improve our algorithms and
+so we need to improve our algorithms and data set however the seat has been
+data set however the seat has been planted for future
+work in conclusion I'd like to thank our other team members for their help and
+support and that's [Applause]
+it I'm open for a question I think my throat is about to die so let's not do
+throat is about to die so let's not do it too too long hi um I wanted to ask
+it too too long hi um I wanted to ask about uh facebot what exactly are you
+about uh facebot what exactly are you yeah maybe you explained it but I'm I'm
+yeah maybe you explained it but I'm I'm not sure okay how exactly are you
+not sure okay how exactly are you generating a diffuse maps and normal
+generating a diffuse maps and normal maps are you using a sort of stable
+maps are you using a sort of stable diffusion or something similar yeah so
+diffusion or something similar yeah so facebot has multiple
+facebot has multiple modules and uh uh it's basically uh a
+modules and uh uh it's basically uh a neural network that was trained on uh uh
+neural network that was trained on uh uh on different data sets that already has
+on different data sets that already has uh diffuse and norap so it's your your
+uh diffuse and norap so it's your your own proprietary Network yeah yeah uh we
+own proprietary Network yeah yeah uh we we also Source um our own data set and
+we also Source um our own data set and we also bought
+we also bought some does that answer your question yes
+some does that answer your question yes thank you okay thank
+you hi there I'll have a question um in the beginning of the talk you mentioned
+the beginning of the talk you mentioned you have like a web service for
+you have like a web service for uploading Faceook to apply blend shapes
+uploading Faceook to apply blend shapes to those and I'm just curious earlier
+to those and I'm just curious earlier you also said that you had like they had
+you also said that you had like they had to had the same like number of polygons
+to had the same like number of polygons and the same like mesh ordering how do
+and the same like mesh ordering how do you kind of like ensure that your
+you kind of like ensure that your artists upload the correct mesh that
+artists upload the correct mesh that works with the system yeah so the
+works with the system yeah so the question is how how do we enforce um
+question is how how do we enforce um proper data on the web service yeah uh
+proper data on the web service yeah uh well we don't really uh we make the
+well we don't really uh we make the assumption that that people know the
+assumption that that people know the limitations so the only thing that we
+limitations so the only thing that we check is uh is is it exactly that amount
+check is uh is is it exactly that amount of vertex and do you like distribute a
+of vertex and do you like distribute a base face to art teams to use to build
+base face to art teams to use to build against the system yeah so the for many
+against the system yeah so the for many years there there was a um a push to use
+years there there was a um a push to use a universal pH topology um so with uh
+a universal pH topology um so with uh varying success um so we are just hoping
+varying success um so we are just hoping that people are using the right one the
+that people are using the right one the hope and pray that's amazing anyway uh
+hope and pray that's amazing anyway uh it's very incredible work thank you so
+it's very incredible work thank you so much thank
+you all right good okay well if there's no more any questions um we can probably
+no more any questions um we can probably stop here thank you very very much
+[Music]

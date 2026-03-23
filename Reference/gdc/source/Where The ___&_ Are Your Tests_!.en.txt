@@ -1,0 +1,915 @@
+[Music] hello
+hello i'm kevin dill i'm a senior solutions
+i'm kevin dill i'm a senior solutions engineer at kythera ai and before we get
+engineer at kythera ai and before we get going just a quick shameless plug so
+going just a quick shameless plug so i've been at kythera for about a year
+i've been at kythera for about a year and a half now
+and a half now and it's really been a dream job for me
+and it's really been a dream job for me because a lot of my career has been
+because a lot of my career has been about trying to find reusable
+about trying to find reusable architectures build reusable tools and
+architectures build reusable tools and then carry those with me from project to
+then carry those with me from project to project to project and obviously as a
+project to project and obviously as a middleware company that's what kythera
+middleware company that's what kythera is all about
+is all about so we have a really solid sort of
+so we have a really solid sort of end-to-end ai solution
+end-to-end ai solution if you're looking for some tools so you
+if you're looking for some tools so you don't have to build them yourself if
+don't have to build them yourself if you're looking for some help building
+you're looking for some help building the ai for your game either way
+the ai for your game either way i definitely encourage you to reach out
+i definitely encourage you to reach out and have a talk with us that's the kind
+and have a talk with us that's the kind of thing we can we can help with my
+of thing we can we can help with my email is here there will be more contact
+email is here there will be more contact information at the end of the talk
+information at the end of the talk but enough about that because this is
+but enough about that because this is not a talk about kythera this is a talk
+not a talk about kythera this is a talk about testing um so this is me here i am
+about testing um so this is me here i am in my office away from the office
+in my office away from the office i've been an ai developer for over 20
+i've been an ai developer for over 20 years at this point in games and
+years at this point in games and simulations i mean i would say for
+simulations i mean i would say for probably the last 15 years i've been
+probably the last 15 years i've been what i would call really unit test
+what i would call really unit test curious right excited by the idea of
+curious right excited by the idea of unit testing excited by the promises
+unit testing excited by the promises that it seems to bring
+that it seems to bring but time and time again i would try and
+but time and time again i would try and get tests going in a project um and i
+get tests going in a project um and i would find i was spending far more time
+would find i was spending far more time fighting with the tests rewriting them
+fighting with the tests rewriting them maintaining them
+maintaining them things like that then on any benefit
+things like that then on any benefit that i was possibly getting back from
+that i was possibly getting back from them
+them then about probably six or seven years
+then about probably six or seven years ago sorry but so unit testing just
+ago sorry but so unit testing just didn't seem to work well for games right
+didn't seem to work well for games right and that's something that i've heard a
+and that's something that i've heard a lot of people say in one way or another
+lot of people say in one way or another and then about six or seven years ago it
+and then about six or seven years ago it finally clicked right it finally just
+finally clicked right it finally just worked so i had built my own test
+worked so i had built my own test framework for a project i was working on
+framework for a project i was working on um and since then i've been consistently
+um and since then i've been consistently building tests for most of the work that
+building tests for most of the work that i do um
+i do um initially on my own because that was a
+initially on my own because that was a project where i was working by myself
+project where i was working by myself and now at kythera we already had a test
+and now at kythera we already had a test framework before i got here um and a
+framework before i got here um and a bunch of tests for it and i've been
+bunch of tests for it and i've been working with the engineers to get us
+working with the engineers to get us writing more tests and using it together
+writing more tests and using it together more consistently and especially doing
+more consistently and especially doing it as a team we're really starting to
+it as a team we're really starting to see major benefits um that pay off far
+see major benefits um that pay off far beyond the cost of writing the tests
+beyond the cost of writing the tests so this talk is going to be about first
+so this talk is going to be about first why you should test um what i'm doing
+why you should test um what i'm doing differently from sort of conventional
+differently from sort of conventional unit testing i've had a lot of software
+unit testing i've had a lot of software engineering gurus looking at well those
+engineering gurus looking at well those aren't unit tests those aren't they
+aren't unit tests those aren't they aren't integration tests they aren't
+aren't integration tests they aren't feature tests i don't know quite what
+feature tests i don't know quite what those are um so i'm gonna drill into
+those are um so i'm gonna drill into that a little bit and talk about it um
+that a little bit and talk about it um and hopefully figure out how to get it
+and hopefully figure out how to get it working in games um some tips and tricks
+working in games um some tips and tricks once you've gotten that far that have
+once you've gotten that far that have worked for me to try and be more
+worked for me to try and be more effective with my testing um and finally
+effective with my testing um and finally a few takeaways that'll hopefully help
+a few takeaways that'll hopefully help you get out over that initial hurdle and
+you get out over that initial hurdle and get started with testing
+get started with testing um
+um so some quick definitions before i get
+so some quick definitions before i get going um if i say gaia that's the game
+going um if i say gaia that's the game ai architecture a lot of you have
+ai architecture a lot of you have probably heard me talk about it before
+probably heard me talk about it before it's a modular ai architecture i
+it's a modular ai architecture i developed at lockheed martin i've used
+developed at lockheed martin i've used it on a bunch of different things i gave
+it on a bunch of different things i gave an ai summit talk about it in 2016. i
+an ai summit talk about it in 2016. i wrote a game ai pro 3 article about it
+wrote a game ai pro 3 article about it if you want to know more it's there i
+if you want to know more it's there i won't mention it much but when it comes
+won't mention it much but when it comes up i just wanted you to know what that
+up i just wanted you to know what that is
+is and csn is city scale navigation um this
+and csn is city scale navigation um this is the main feature that i've been
+is the main feature that i've been working on at kythera so this is what
+working on at kythera so this is what most of my examples are going to be from
+most of my examples are going to be from because this is what i'm writing tests
+because this is what i'm writing tests for right now
+for right now it's a new feature under development
+it's a new feature under development where we're going to fill large open
+where we're going to fill large open worlds with ambient vehicles and
+worlds with ambient vehicles and pedestrians
+pedestrians and it uses a graph based spatial
+and it uses a graph based spatial representation rather than our
+representation rather than our underlying nav mesh so you can see here
+underlying nav mesh so you can see here is an example
+is an example of the graph that i use in a lot of the
+of the graph that i use in a lot of the tests
+tests and you know because
+and you know because vehicles drive on in lanes on roads and
+vehicles drive on in lanes on roads and pedestrians walk on crosswalks those are
+pedestrians walk on crosswalks those are all pretty linear and a graph is a
+all pretty linear and a graph is a really natural representation for that
+really natural representation for that um
+um so this is my one sort of by the book
+so this is my one sort of by the book software engineering slide
+software engineering slide what is a unit test
+what is a unit test according to standard lore
+according to standard lore um and i just want to do this really
+um and i just want to do this really quickly because hopefully everybody
+quickly because hopefully everybody already knows but a unit test is an
+already knows but a unit test is an automated piece of code that invokes a
+automated piece of code that invokes a unit of work in the system right the
+unit of work in the system right the smallest thing that you can that you can
+smallest thing that you can that you can check and then checks a single
+check and then checks a single assumption about the behavior of that
+assumption about the behavior of that unit of work
+unit of work and a good unit test should be all of
+and a good unit test should be all of these things i'm not going to go into
+these things i'm not going to go into them now because we'll come back to them
+them now because we'll come back to them and the idea is you're going to have
+and the idea is you're going to have lots of these hundreds of them right
+lots of these hundreds of them right each testing a single assumption about
+each testing a single assumption about one thing
+one thing they're going to be in their own library
+they're going to be in their own library that depends on the game library it's
+that depends on the game library it's going to be written alongside the code
+going to be written alongside the code in c plus or whatever language you
+in c plus or whatever language you normally develop in and it's going to
+normally develop in and it's going to cover as much of the code as possible so
+cover as much of the code as possible so you're validating that as much of the
+you're validating that as much of the code as possible works the way that you
+code as possible works the way that you think it should it's run every time you
+think it should it's run every time you build so you hit ctrl shift b watch it
+build so you hit ctrl shift b watch it compile and then the tests run and
+compile and then the tests run and immediately tell you whether they pass
+immediately tell you whether they pass or fail it's run on continuous
+or fail it's run on continuous integration so if for some reason you
+integration so if for some reason you didn't run it or you missed something um
+didn't run it or you missed something um it gets caught in continuous integration
+it gets caught in continuous integration and if the tests fail it warrants the
+and if the tests fail it warrants the team so they don't pull the bad code and
+team so they don't pull the bad code and it's run in the nightly build um so that
+it's run in the nightly build um so that it can run on all the targets that we
+it can run on all the targets that we don't have time to do in continuous
+don't have time to do in continuous integration
+integration so why do this right i mean this means
+so why do this right i mean this means writing a bunch of extra code
+writing a bunch of extra code maintaining a bunch of extra code that's
+maintaining a bunch of extra code that's going to take time we don't have a lot
+going to take time we don't have a lot of extra time on most game projects
+of extra time on most game projects so why
+so why um
+um the first really major benefit is that
+the first really major benefit is that you get instant feedback right as soon
+you get instant feedback right as soon as you make a mistake
+as you make a mistake you know right away that there's a bug
+you know right away that there's a bug the best time to fix a bug is just after
+the best time to fix a bug is just after you wrote it because all of the code is
+you wrote it because all of the code is fresh in your head right everything that
+fresh in your head right everything that you're doing
+you're doing the way it connects up to everything
+the way it connects up to everything else all of that is right there as
+else all of that is right there as opposed to when you come back later and
+opposed to when you come back later and you have to try and rebuild that but
+you have to try and rebuild that but it's imperfect it's also the safest time
+it's imperfect it's also the safest time to fix a bug you are least likely to
+to fix a bug you are least likely to make another bug because all of that is
+make another bug because all of that is fresh in your head
+fresh in your head it's like the easy button for bug
+it's like the easy button for bug finding right when a test fails you know
+finding right when a test fails you know exactly where the bug is it's in the
+exactly where the bug is it's in the code you just wrote or you in the code
+code you just wrote or you in the code that the test is testing as opposed to
+that the test is testing as opposed to getting a bug report from qa and then
+getting a bug report from qa and then you blame it on animation and they blame
+you blame it on animation and they blame it on somebody else and then it gets
+it on somebody else and then it gets thrown back to you and you market no
+thrown back to you and you market no repro and then the testers say no it
+repro and then the testers say no it definitely happens and throw it back
+definitely happens and throw it back right and then you finally start to dig
+right and then you finally start to dig in and try and find it and you realize
+in and try and find it and you realize it is you and you're really embarrassed
+it is you and you're really embarrassed all of that time is saved because you
+all of that time is saved because you know exactly where it is and you have an
+know exactly where it is and you have an immediate repro case because the tests
+immediate repro case because the tests are repeatable because they do the same
+are repeatable because they do the same thing when you run them again if you
+thing when you run them again if you have some difficult to reproduce hard to
+have some difficult to reproduce hard to catch bug like you've got one vehicle is
+catch bug like you've got one vehicle is speeding up only a little bit another
+speeding up only a little bit another vehicle slowing down but not enough to
+vehicle slowing down but not enough to stop and there's a traffic light that's
+stop and there's a traffic light that's about to turn red and on the far side of
+about to turn red and on the far side of the traffic light there's a crosswalk
+the traffic light there's a crosswalk with a pedestrian that's going to go
+with a pedestrian that's going to go across it and in this combination of
+across it and in this combination of things something goes wrong and in csn
+things something goes wrong and in csn we have definitely found cases where
+we have definitely found cases where it's weird combinations like that right
+it's weird combinations like that right when we get a test that catches that or
+when we get a test that catches that or we set up the situation in game so that
+we set up the situation in game so that the test catches it then we can just
+the test catches it then we can just rerun the the test and hit the problem
+rerun the the test and hit the problem again and again and again and iterate
+again and again and again and iterate really really quickly trying to find it
+really really quickly trying to find it this is may speed it seem a little
+this is may speed it seem a little strange but stick with me on this one
+strange but stick with me on this one the tests document the code in a really
+the tests document the code in a really powerful way right so they let you step
+powerful way right so they let you step in and see what's happening with fully
+in and see what's happening with fully instantiated objects it's much better to
+instantiated objects it's much better to go in the in the debugger and see the
+go in the in the debugger and see the object with all the data filled out and
+object with all the data filled out and everything hooked up than it is to try
+everything hooked up than it is to try and look at the header files and figure
+and look at the header files and figure out how everything hooks up especially
+out how everything hooks up especially when you're getting back up to speed on
+when you're getting back up to speed on some feature that you worked on a while
+some feature that you worked on a while ago or when you're trying to look at
+ago or when you're trying to look at somebody else's code and you want to get
+somebody else's code and you want to get up to speed with what what they did
+up to speed with what what they did going and looking at the tests really
+going and looking at the tests really helps and i'll give you a concrete
+helps and i'll give you a concrete example of this
+example of this the first thing that i worked on when i
+the first thing that i worked on when i came to kythera was the csn path planner
+came to kythera was the csn path planner right so as you recall csn works on a
+right so as you recall csn works on a graph rather than a nav mesh so it
+graph rather than a nav mesh so it needed its own path planner and most of
+needed its own path planner and most of the time we don't use it most of the
+the time we don't use it most of the time we have a scheduler that just picks
+time we have a scheduler that just picks it random when it comes to an
+it random when it comes to an intersection
+intersection but
+but we expect that the designers will want
+we expect that the designers will want to build missions where a vehicle goes a
+to build missions where a vehicle goes a certain place
+certain place and they're going to want to take
+and they're going to want to take advantage of all the code in csn to make
+advantage of all the code in csn to make it
+it follow the rules of the road and and
+follow the rules of the road and and look good in all of that so they need a
+look good in all of that so they need a path planner that works with csn
+path planner that works with csn um
+um as i said this was the first thing that
+as i said this was the first thing that i built when i came to kythera so we did
+i built when i came to kythera so we did it pretty early um and they just weren't
+it pretty early um and they just weren't ready for it yet so it wasn't hooked up
+ready for it yet so it wasn't hooked up in game for almost a year and by the
+in game for almost a year and by the time they got ready to hook it up i was
+time they got ready to hook it up i was off on another project um so michael's a
+off on another project um so michael's a co-worker of mine um he came to me and
+co-worker of mine um he came to me and he said tell me how this works and i
+he said tell me how this works and i started talking about how well it gives
+started talking about how well it gives you all the lanes that the vehicle could
+you all the lanes that the vehicle could use so it's not always cutting to the
+use so it's not always cutting to the inside and and
+inside and and going on and on and i had vehicles on
+going on and on and i had vehicles on the brain because that's usually what we
+the brain because that's usually what we think about first and he said well yeah
+think about first and he said well yeah but hang on because i'm working on
+but hang on because i'm working on pedestrians does it handle crosswalks
+pedestrians does it handle crosswalks well
+well i don't know crosswalks are kind of
+i don't know crosswalks are kind of tricky and i remember we had some
+tricky and i remember we had some trouble with them because if you notice
+trouble with them because if you notice here for instance we have this crosswalk
+here for instance we have this crosswalk that's going across these vehicle lanes
+that's going across these vehicle lanes um and it breaks off in the middle of
+um and it breaks off in the middle of this sidewalk here whereas everywhere
+this sidewalk here whereas everywhere else our lanes connect up end to end i
+else our lanes connect up end to end i mean that caused us a lot of trouble i
+mean that caused us a lot of trouble i remember that they weren't working when
+remember that they weren't working when i first worked on path planning and i
+i first worked on path planning and i don't know if i ever got them working
+don't know if i ever got them working with the path planner so let's find out
+with the path planner so let's find out we go to the test file start down at the
+we go to the test file start down at the bottom because it would be one of the
+bottom because it would be one of the last things that i did and sure enough
+last things that i did and sure enough here's pedestrian crosswalk three right
+here's pedestrian crosswalk three right it's the third of three tests um so it
+it's the third of three tests um so it creates a start position it creates a
+creates a start position it creates a destination position it tells the tests
+destination position it tells the tests that those both have to be valid calling
+that those both have to be valid calling into the is valid code that's built into
+into the is valid code that's built into csn um so this is one of the things i
+csn um so this is one of the things i like to do and we'll come back to this
+like to do and we'll come back to this is
+is have a lot of checking that i'm doing
+have a lot of checking that i'm doing so that i can catch a lot of different
+so that i can catch a lot of different bugs
+bugs it then calls the path planner plans a
+it then calls the path planner plans a path it prints that out so that if the
+path it prints that out so that if the test fails we can see what it actually
+test fails we can see what it actually found easily instead of having to try
+found easily instead of having to try and inspect the objects in the debugger
+and inspect the objects in the debugger um here's the path that it expects to
+um here's the path that it expects to follow and that looks like this by the
+follow and that looks like this by the way
+way so it's coming down across this
+so it's coming down across this crosswalk there's a crosswalk here and
+crosswalk there's a crosswalk here and there's a third crosswalk here um so and
+there's a third crosswalk here um so and yes this test does paths pass so it is
+yes this test does paths pass so it is definitely going across crosswalks um
+definitely going across crosswalks um and finally it checks that right so this
+and finally it checks that right so this is where it checks that those two paths
+is where it checks that those two paths are the same and it also does a bunch of
+are the same and it also does a bunch of other checking
+other checking that this path object from csn is
+that this path object from csn is well-formed and that everything is
+well-formed and that everything is kosher
+kosher um
+um so not only does this let us confirm
+so not only does this let us confirm that yes
+that yes we did get as far as implementing this
+we did get as far as implementing this feature
+feature but also it made it a lot easier for
+but also it made it a lot easier for michael to get in and understand things
+michael to get in and understand things like how does it handle this special
+like how does it handle this special case where it breaks off in the middle
+case where it breaks off in the middle of a lane
+of a lane because i still don't know how to do how
+because i still don't know how to do how it does that i don't remember what i did
+it does that i don't remember what i did but instead of me having to go back and
+but instead of me having to go back and help him try and figure it out or him
+help him try and figure it out or him spending a lot of time sort of fighting
+spending a lot of time sort of fighting through and digging in he just sets a
+through and digging in he just sets a break point and sees what it does there
+break point and sees what it does there it is um so it's just a lot quicker to
+it is um so it's just a lot quicker to get up to speed
+get up to speed the last thing that i'll give for
+the last thing that i'll give for benefits um is that the tests give you a
+benefits um is that the tests give you a safety net any time the code changes and
+safety net any time the code changes and this is game development our code
+this is game development our code changes all the time we have to tune we
+changes all the time we have to tune we have to balance
+have to balance we have to find the fun we have features
+we have to find the fun we have features that change we have to fix bugs
+that change we have to fix bugs hopefully we have some time to do some
+hopefully we have some time to do some refactoring now and then um
+refactoring now and then um game code probably changes more than
+game code probably changes more than code in most other industries and i
+code in most other industries and i think that's one of the reasons why
+think that's one of the reasons why testing at the code level like unit
+testing at the code level like unit tests do can be really challenging
+tests do can be really challenging but it's also really powerful because
+but it's also really powerful because when i go and make a change
+when i go and make a change i'm going to test the thing that i
+i'm going to test the thing that i changed that it fixed what i thought it
+changed that it fixed what i thought it was going to fix but i it's really
+was going to fix but i it's really difficult to test everything else that
+difficult to test everything else that might have broken in that process and i
+might have broken in that process and i can throw it to qa for regression
+can throw it to qa for regression testing um but they're coming down from
+testing um but they're coming down from the top they're not coming up from the
+the top they're not coming up from the bottom so they're testing in different
+bottom so they're testing in different ways and they're going to find different
+ways and they're going to find different bugs there are a lot of bugs that unit
+bugs there are a lot of bugs that unit testing will find much more naturally
+testing will find much more naturally than than qa will
+than than qa will so again i'll give you an example just
+so again i'll give you an example just as quickly as i can um so one of the
+as quickly as i can um so one of the features i've been working on is at very
+features i've been working on is at very high level of detail pedestrians are
+high level of detail pedestrians are going to avoid each other using orca
+going to avoid each other using orca which we already have so we're just
+which we already have so we're just really hooking it up at lower level of
+really hooking it up at lower level of detail um they just walk right through
+detail um they just walk right through each other so this requires that we add
+each other so this requires that we add a component onto the entity when the lod
+a component onto the entity when the lod is raised and then remove that component
+is raised and then remove that component when the lod drops back down the problem
+when the lod drops back down the problem is when we spawn a player in we go from
+is when we spawn a player in we go from the lowest lod because there was nobody
+the lowest lod because there was nobody there to the highest lod because the
+there to the highest lod because the player is standing right there so the
+player is standing right there so the first thing we do is spawn some actors
+first thing we do is spawn some actors because we don't have any pedestrians at
+because we don't have any pedestrians at the lowest lod um that's far enough away
+the lowest lod um that's far enough away that we just don't model them and when
+that we just don't model them and when we spawn them in we create that
+we spawn them in we create that avoidance component for them because
+avoidance component for them because we're spawning them in at high lod
+we're spawning them in at high lod and then we go through all of the actors
+and then we go through all of the actors that are in the area where the lod is
+that are in the area where the lod is changing and we change them from low to
+changing and we change them from low to high and in the process of doing that
+high and in the process of doing that among other things we create an
+among other things we create an avoidance component for them so that
+avoidance component for them so that they will avoid each other
+they will avoid each other and then we crash because we just
+and then we crash because we just created two avoidance components
+created two avoidance components and they conflict with each other
+and they conflict with each other so it seems really natural to just
+so it seems really natural to just reverse the order of operations right
+reverse the order of operations right first change the lod on any existing
+first change the lod on any existing actors and then spawn in any new actors
+actors and then spawn in any new actors so that they only get one avoidance
+so that they only get one avoidance component but does that create another
+component but does that create another bug is it safe
+bug is it safe probably but it's a pretty complex
+probably but it's a pretty complex system and there could easily be some
+system and there could easily be some dependency either that we know about or
+dependency either that we know about or that we didn't realize that it would
+that we didn't realize that it would break
+break so now unfortunately we have no tests
+so now unfortunately we have no tests for this so i have to go a lot slower i
+for this so i have to go a lot slower i have to be a lot more careful in my
+have to be a lot more careful in my testing i have to go interrupt sandy
+testing i have to go interrupt sandy who's the guy who wrote the spawning
+who's the guy who wrote the spawning system in the first place and check with
+system in the first place and check with him like does this seem like it's safe
+him like does this seem like it's safe um and
+um and in the end i just feel a lot more
+in the end i just feel a lot more nervous about it so it slows me down
+nervous about it so it slows me down and it misses the opportunity to catch
+and it misses the opportunity to catch bugs early
+bugs early so hopefully by now i've got you at
+so hopefully by now i've got you at least unit test curious right hopefully
+least unit test curious right hopefully by now you're going wow that sounds
+by now you're going wow that sounds pretty good i wish i had some of that um
+pretty good i wish i had some of that um but
+but i'm not sure how am i going to get it to
+i'm not sure how am i going to get it to work for games because that problem is
+work for games because that problem is still out there so
+still out there so so the first thing i think we need to do
+so the first thing i think we need to do of course we all recognize this slide
+of course we all recognize this slide from earlier is change this assault this
+from earlier is change this assault this definition because it's too restrictive
+definition because it's too restrictive um so instead let's say that a unit test
+um so instead let's say that a unit test in quotes is an automated piece of code
+in quotes is an automated piece of code that invokes the system and tests it and
+that invokes the system and tests it and yes i still call them unit tests even
+yes i still call them unit tests even though software engineer gurus will tell
+though software engineer gurus will tell me those aren't unit tests there's
+me those aren't unit tests there's something else i don't know what they
+something else i don't know what they are
+are um
+um and so here's our list of things that a
+and so here's our list of things that a good unit test should be
+good unit test should be and these ones are critical it needs to
+and these ones are critical it needs to be fully automated we need to run it
+be fully automated we need to run it every time we build the whole point is
+every time we build the whole point is to catch bugs early
+to catch bugs early so it needs to be readable so that when
+so it needs to be readable so that when we get a bug we can easily understand
+we get a bug we can easily understand what actually happened what we expected
+what actually happened what we expected to happen and why that thing is wrong
+to happen and why that thing is wrong it needs to be maintainable the code is
+it needs to be maintainable the code is going to change and as it does the tests
+going to change and as it does the tests will often need to change as well so we
+will often need to change as well so we can't just hack them in we have to treat
+can't just hack them in we have to treat them as first class code
+them as first class code it needs to be consistent meaning that
+it needs to be consistent meaning that it always returns the same result it
+it always returns the same result it always does the same thing it always
+always does the same thing it always exercises the same code paths
+exercises the same code paths for the reasons that i already said
+for the reasons that i already said because that's how we get those really
+because that's how we get those really powerful repro cases where when we catch
+powerful repro cases where when we catch some hard to reproduce bug now we have
+some hard to reproduce bug now we have an easy way to reproduce it and where we
+an easy way to reproduce it and where we can use the test to intentionally create
+can use the test to intentionally create things like that
+things like that um and it needs to be order agnostic
+um and it needs to be order agnostic meaning that i can run them in any order
+meaning that i can run them in any order they don't depend on one another and
+they don't depend on one another and i'll get to the reason for that in just
+i'll get to the reason for that in just a moment
+a moment yes they need to be fast but let's not
+yes they need to be fast but let's not get crazy here they don't need to run in
+get crazy here they don't need to run in 30 seconds right a single cpp compile
+30 seconds right a single cpp compile for me takes about 30 seconds um so
+for me takes about 30 seconds um so sorry they don't need to run in three
+sorry they don't need to run in three seconds which is the standard sort of if
+seconds which is the standard sort of if you google that's how fast they say they
+you google that's how fast they say they should be
+should be um
+um architera tests take
+architera tests take a couple of minutes two three minutes to
+a couple of minutes two three minutes to run the whole way and that's slower than
+run the whole way and that's slower than i would like i have some ideas about how
+i would like i have some ideas about how to fix it someday i'll do it but is it
+to fix it someday i'll do it but is it the most important thing hell no i've
+the most important thing hell no i've got a milestone next week that's the
+got a milestone next week that's the most important thing when i get some
+most important thing when i get some free time i'll speed them up i can work
+free time i'll speed them up i can work with them even though they run slowly
+with them even though they run slowly the biggest thing that i do is i take
+the biggest thing that i do is i take the test that i'm working on and i put
+the test that i'm working on and i put them up at the top and that's as easy as
+them up at the top and that's as easy as going into the cmake file and putting
+going into the cmake file and putting that test file at the top of the list um
+that test file at the top of the list um so those ones run first right if i've
+so those ones run first right if i've got a fast compiled i had control shift
+got a fast compiled i had control shift b it compiles i watched until my tests
+b it compiles i watched until my tests my new tests have passed and then i can
+my new tests have passed and then i can go back to work and i should circle back
+go back to work and i should circle back later and check if something else broke
+later and check if something else broke um in case i broke something in some
+um in case i broke something in some other system and didn't realize it if i
+other system and didn't realize it if i forget then when i check the code in
+forget then when i check the code in it'll run on the continuous integration
+it'll run on the continuous integration server and if i broke something that'll
+server and if i broke something that'll get sent out to the whole team and i'll
+get sent out to the whole team and i'll be embarrassed and next time i'll
+be embarrassed and next time i'll remember to do it
+i don't care if they run in memory the real point of this was to get them to
+real point of this was to get them to run fast but the gaia tests for instance
+run fast but the gaia tests for instance take about 10 to 20 seconds to run
+take about 10 to 20 seconds to run um and
+um and they're all every one of them is an xml
+they're all every one of them is an xml file that gets loaded in when the tests
+file that gets loaded in when the tests run disk is fast these days keep it in
+run disk is fast these days keep it in memory if you can but if there's a
+memory if you can but if there's a reason to hit the disk or the network or
+reason to hit the disk or the network or the database or whatever else if that's
+the database or whatever else if that's going to let you test something more
+going to let you test something more effectively
+effectively then by all means do it
+then by all means do it and
+and being atomic
+being atomic i feel like this is actually what was
+i feel like this is actually what was screwing me up right so trying to test
+screwing me up right so trying to test the smallest possible piece and totally
+the smallest possible piece and totally isolated by building mocks for all of
+isolated by building mocks for all of the other systems and then those have to
+the other systems and then those have to be maintained
+be maintained this was a nightmare
+this was a nightmare right
+right instead when i step up the level of
+instead when i step up the level of granularity and i test for instance at
+granularity and i test for instance at the behavior tree level or in gaia at
+the behavior tree level or in gaia at the reasoner level
+the reasoner level then i'm testing say i'm testing my
+then i'm testing say i'm testing my selector node or my sequence node right
+selector node or my sequence node right and i'm building some custom test nodes
+and i'm building some custom test nodes for some of the pieces underneath that
+for some of the pieces underneath that but i'm exercising a lot of
+but i'm exercising a lot of decision-making logic throughout the
+decision-making logic throughout the architecture and i've got these roots
+architecture and i've got these roots that are growing down into the
+that are growing down into the architecture and sort of touching
+architecture and sort of touching different things having more
+different things having more opportunities to find bugs and
+opportunities to find bugs and broadening out my coverage
+broadening out my coverage almost for free
+almost for free so you want them to be focused enough
+so you want them to be focused enough that when a test fails you can get in
+that when a test fails you can get in and find where the problem is as easily
+and find where the problem is as easily as possible but it's also nice if they
+as possible but it's also nice if they actually branch out and test more than
+actually branch out and test more than just the thing you're intentionally
+just the thing you're intentionally testing because you'll catch bugs in
+testing because you'll catch bugs in other places i found a bug for instance
+other places i found a bug for instance where my distance squared function was
+where my distance squared function was taking the square root and that had been
+taking the square root and that had been in there for probably five years and
+in there for probably five years and top-down testing never caught it right
+top-down testing never caught it right but when i wrote a test and just threw
+but when i wrote a test and just threw in there oh and by the way the distance
+in there oh and by the way the distance should be this and it wasn't
+should be this and it wasn't then we found it
+then we found it and boy was that embarrassing
+and boy was that embarrassing um
+um so
+so that's really the core of it to me is
+that's really the core of it to me is get that granularity right test the
+get that granularity right test the bigger pieces and don't be afraid to
+bigger pieces and don't be afraid to have your tests
+have your tests that call into things that have
+that call into things that have dependencies that are testing more code
+dependencies that are testing more code so on to sort of nuts and bolts tips and
+so on to sort of nuts and bolts tips and tricks to you know now you're building
+tricks to you know now you're building tests you're testing at a good level of
+tests you're testing at a good level of granularity um how do you get it to work
+granularity um how do you get it to work one of the big things i think that
+one of the big things i think that messes people up especially early on
+messes people up especially early on is that you need to come in through the
+is that you need to come in through the class interface right and so often times
+class interface right and so often times your test library is um dynamically
+your test library is um dynamically linking so you need to come in through
+linking so you need to come in through the api which may not even be all of
+the api which may not even be all of your public interfaces
+your public interfaces um if you're exposing things just for
+um if you're exposing things just for the tests right it's either moving them
+the tests right it's either moving them into the public interface or maybe
+into the public interface or maybe making the test a friend class of the
+making the test a friend class of the thing it's testing or something like
+thing it's testing or something like that that's a really bad idea that's a
+that that's a really bad idea that's a really bad code smell
+not only because you've got stuff in the public interface that shouldn't be there
+public interface that shouldn't be there but more importantly that's a sign that
+but more importantly that's a sign that you're trying to test too small you're
+you're trying to test too small you're testing implementation details and those
+testing implementation details and those are the things that are going to change
+are the things that are going to change the fastest
+the fastest you want to test
+you want to test through the interface because that's
+through the interface because that's going to change less often refactors for
+going to change less often refactors for instance aren't going to break it
+instance aren't going to break it but you can't test everything through
+but you can't test everything through the api right you can call a function
+the api right you can call a function and see that what you got back is what
+and see that what you got back is what you expect but you can't test a lot of
+you expect but you can't test a lot of the details that went on in that
+the details that went on in that and so you can't really get in and test
+and so you can't really get in and test everything at the code level so how do
+everything at the code level so how do we solve that the solution that has
+we solve that the solution that has worked for me is to inject my tests into
+worked for me is to inject my tests into the code what do i mean by that use
+the code what do i mean by that use asserts
+asserts use errors use warnings make your errors
+use errors use warnings make your errors and warnings cause test failures among
+and warnings cause test failures among other things then you clean up all your
+other things then you clean up all your damn warnings and they'll become useful
+damn warnings and they'll become useful again
+again if they're unexpected if errors and
+if they're unexpected if errors and warnings are expected you should have a
+warnings are expected you should have a way to tell the tesla hey i'm expecting
+way to tell the tesla hey i'm expecting to get three three warnings or three
+to get three three warnings or three errors right and then do things like
+errors right and then do things like load a bad data file and confirm that
+load a bad data file and confirm that you actually get them so you can test
+you actually get them so you can test that your data load catches errors
+that your data load catches errors properly
+this means that the code checks that the edge cases work correctly and it's much
+edge cases work correctly and it's much more natural than having a separate set
+more natural than having a separate set of tests to check that
+of tests to check that um as the code changes
+um as the code changes the asserts and errors and warnings in
+the asserts and errors and warnings in the code will naturally change as part
+the code will naturally change as part of rewriting the code you put those in
+of rewriting the code you put those in your code anyway
+your code anyway um and then you have tests that just
+um and then you have tests that just called the code to give those asserts a
+called the code to give those asserts a chance to happen and the tests can
+chance to happen and the tests can deliberately try and set up edge cases
+deliberately try and set up edge cases to confirm that yes it does the right
+to confirm that yes it does the right thing when the input is zero or whatever
+thing when the input is zero or whatever the case may be
+the case may be um sorry so this actually was meant to
+um sorry so this actually was meant to be much earlier um so we have
+be much earlier um so we have hundreds and hundreds of lines for
+hundreds and hundreds of lines for example um that validate um that the the
+example um that validate um that the the csn network
+csn network is correctly formed probably over a
+is correctly formed probably over a thousand lines at this point that
+thousand lines at this point that nothing is duplicated that everything
+nothing is duplicated that everything hooks up correctly that if i've got a
+hooks up correctly that if i've got a connection from here to here that i also
+connection from here to here that i also have a reverse connection from there to
+have a reverse connection from there to there all of that kind of stuff every
+there all of that kind of stuff every time we ran into a bug we added
+time we ran into a bug we added something to these validate functions
+something to these validate functions they are if daft out if you're not in a
+they are if daft out if you're not in a debug build um they're hit every time
+debug build um they're hit every time you load a level if you are in a debug
+you load a level if you are in a debug build but we also have a bunch of tasks
+build but we also have a bunch of tasks that
+that load different levels including that map
+load different levels including that map that i showed you and we found a bunch
+that i showed you and we found a bunch of bugs because the validate gets found
+of bugs because the validate gets found and we find oh there's a bug in the way
+and we find oh there's a bug in the way the graph is getting formed in this case
+once you've got tests injected into your code
+tests injected into your code then you can do things like write stress
+then you can do things like write stress tests and this is a great place to start
+tests and this is a great place to start right just load a large map create lots
+right just load a large map create lots of entities and let it run for a while
+of entities and let it run for a while um when you're trying to exercise
+um when you're trying to exercise something like our scheduler which is
+something like our scheduler which is what controls what all the vehicles and
+what controls what all the vehicles and pedestrians do normally
+pedestrians do normally so we load in in this case this map
+so we load in in this case this map which is pretty big
+which is pretty big we create a ton of vehicles and
+we create a ton of vehicles and pedestrians
+pedestrians then we start with a very small time
+then we start with a very small time step and we go through a thousand
+step and we go through a thousand iterations incrementing the time step
+iterations incrementing the time step each time and then calling updates so
+each time and then calling updates so this among other things tests that as
+this among other things tests that as your frame rate gets really bad does
+your frame rate gets really bad does that cause problems and the answer was
+that cause problems and the answer was yeah it does we find bugs that way and
+yeah it does we find bugs that way and then we also have again just testing
+then we also have again just testing everything that we can think of so here
+everything that we can think of so here i'm testing serialization that we use
+i'm testing serialization that we use for networking um every 200 frames so
+for networking um every 200 frames so the schedules have time to change a
+the schedules have time to change a bunch and then i try serializing them
+bunch and then i try serializing them um
+um this test takes about 30 seconds to run
+this test takes about 30 seconds to run so that's too slow to do it every time i
+so that's too slow to do it every time i compile so we have this slow test filter
+compile so we have this slow test filter we're using the google test framework um
+we're using the google test framework um so this itself isn't built into google
+so this itself isn't built into google test but there are really easy ways um
+test but there are really easy ways um to disable tests that that is what this
+to disable tests that that is what this is leveraging and i have a compiler
+is leveraging and i have a compiler directive that if it's enabled then i'll
+directive that if it's enabled then i'll run this test if it's disabled i don't
+run this test if it's disabled i don't it's enabled in the nightly build and on
+it's enabled in the nightly build and on continuous integration
+continuous integration i don't usually have it enabled when i'm
+i don't usually have it enabled when i'm working
+working but
+but i build my code i write my own tests my
+i build my code i write my own tests my faster tests i make sure that they all
+faster tests i make sure that they all pass
+pass then if i'm being good i go into cmake i
+then if i'm being good i go into cmake i click the box i recompile which only
+click the box i recompile which only takes a minute because it's only a
+takes a minute because it's only a couple of files that change i run the
+couple of files that change i run the tests again and i make sure that the
+tests again and i make sure that the slow tests pass if i'm being lazy or i
+slow tests pass if i'm being lazy or i forget to do that and i broke something
+forget to do that and i broke something you know or these catch something which
+you know or these catch something which they often do because they can catch
+they often do because they can catch those weird edge cases
+those weird edge cases then it'll break in continuous
+then it'll break in continuous integration and send out the email to
+integration and send out the email to the whole team and i'll be embarrassed
+the whole team and i'll be embarrassed and next time i'll run the slow tests
+and next time i'll run the slow tests before i commit
+before i commit so that's i think probably all i have
+so that's i think probably all i have time for as far as take away or sorry as
+time for as far as take away or sorry as far as tips and tricks um there's so
+far as tips and tricks um there's so much else that i wanted to talk about
+much else that i wanted to talk about and had to cut out um so hopefully a
+and had to cut out um so hopefully a future talk and i would love to see
+future talk and i would love to see talks from others there have been really
+talks from others there have been really few talks especially about unit testing
+few talks especially about unit testing like really getting into the code and
+like really getting into the code and testing um and
+testing um and i would love ideas
+i would love ideas from from all the rest of you as well
+from from all the rest of you as well um but i wanted to give just a few what
+um but i wanted to give just a few what are the reasons that we fail in the
+are the reasons that we fail in the games industry um and you know the
+games industry um and you know the takeaways that i hope will let you get
+takeaways that i hope will let you get over the hump and get started with this
+over the hump and get started with this um so the first reason that we often
+um so the first reason that we often fail is that it's just overwhelming
+fail is that it's just overwhelming right you've got all of this code none
+right you've got all of this code none of it's under test
+of it's under test where do you even begin
+where do you even begin don't angst about having perfect
+don't angst about having perfect coverage if you have anything under test
+coverage if you have anything under test that's better than not having anything
+that's better than not having anything under test
+under test michael feathers who's one of the real
+michael feathers who's one of the real unit testing gurus
+unit testing gurus said that
+said that bad tests run often are better than good
+bad tests run often are better than good tests that aren't run at all
+tests that aren't run at all so
+so you know as long as the tests aren't so
+you know as long as the tests aren't so bad i would add that they're slowing you
+bad i would add that they're slowing you down more than they're helping you but
+down more than they're helping you but you'll know if that's happening um so
+you'll know if that's happening um so get anything tested right start with
+get anything tested right start with your next line of code or start with the
+your next line of code or start with the next bug you fix put in a test to make
+next bug you fix put in a test to make sure that bug doesn't come back and now
+sure that bug doesn't come back and now you're doing regression testing at the
+you're doing regression testing at the code level
+code level that's complementing the regression
+that's complementing the regression testing the qa does
+testing the qa does the next problem and this was the one
+the next problem and this was the one that killed me so many times when i
+that killed me so many times when i tried to get started is that especially
+tried to get started is that especially early on while i was figuring out what
+early on while i was figuring out what to do i just didn't have enough time the
+to do i just didn't have enough time the test maintenance was way bigger than the
+test maintenance was way bigger than the test payoff
+test payoff if you find that this is happening think
+if you find that this is happening think about your level of granularity try
+about your level of granularity try writing coarser tests to test bigger
+writing coarser tests to test bigger systems and then implicitly test the
+systems and then implicitly test the smaller systems because they call down
+smaller systems because they call down into it
+into it build the validation into your code make
+build the validation into your code make it so that your errors and your warnings
+it so that your errors and your warnings are test failures so that you don't have
+are test failures so that you don't have to assert everything get asserts in
+to assert everything get asserts in there if you have more expensive things
+there if you have more expensive things that you want to put in errors and
+that you want to put in errors and warnings
+warnings if deaf debug them or something like
+if deaf debug them or something like that
+and try and get that coverage broad in the easy cheap ways
+the easy cheap ways and as soon as you start finding bugs
+and as soon as you start finding bugs and seeing how easy it is to dig in and
+and seeing how easy it is to dig in and fix those bugs when you got a test
+fix those bugs when you got a test pointing right at them
+pointing right at them you'll start to really appreciate having
+you'll start to really appreciate having the tests there
+the tests there the last thing that kills us is a lack
+the last thing that kills us is a lack of buy-in or a lack of discipline right
+of buy-in or a lack of discipline right in the games industry we often tend to
+in the games industry we often tend to be cowboys we're pretty arrogant we know
+be cowboys we're pretty arrogant we know that we work in a really hard industry
+that we work in a really hard industry and we're all pretty smart to be here
+and we're all pretty smart to be here but that doesn't change the fact that
+but that doesn't change the fact that tests will let us be more effective work
+tests will let us be more effective work faster
+faster so there are times when it's not the
+so there are times when it's not the right time to do it
+right time to do it um
+um as i said right now we've got a big
+as i said right now we've got a big milestone and i just came back onto csn
+milestone and i just came back onto csn recently um and as i did i started say
+recently um and as i did i started say especially because i've been working on
+especially because i've been working on this talk so i've been thinking about it
+this talk so i've been thinking about it a lot like you know let's try this out
+a lot like you know let's try this out let's see you know when we move a task
+let's see you know when we move a task into the review column just write on
+into the review column just write on there where the tests are and then the
+there where the tests are and then the reviewer can go and run the tests and
+reviewer can go and run the tests and look at it that way maybe instead of
+look at it that way maybe instead of having an online code review
+having an online code review and i immediately got back from the
+and i immediately got back from the project manager how long is that going
+project manager how long is that going to take because we've got this really
+to take because we've got this really tight milestone do we have time for it
+tight milestone do we have time for it and my answer was well it's not going to
+and my answer was well it's not going to cost me any time because i am going to
+cost me any time because i am going to build the test anyway i can't not test
+build the test anyway i can't not test my code that's ridiculous
+my code that's ridiculous um but
+um but well we do have some guys on the team
+well we do have some guys on the team who've been doing testing with me and
+who've been doing testing with me and and um who are definitely up to speed
+and um who are definitely up to speed and and bought into it we have a couple
+and and bought into it we have a couple of guys who haven't really drunk the
+of guys who haven't really drunk the kool-aid yet and i will concede that
+kool-aid yet and i will concede that maybe this week isn't the week for them
+maybe this week isn't the week for them to try and figure out how to start
+to try and figure out how to start testing you know fair enough but we have
+testing you know fair enough but we have to circle back um and the project
+to circle back um and the project manager is totally on board with yes we
+manager is totally on board with yes we want this maybe just not right now um so
+want this maybe just not right now um so you have to circle back you have to have
+you have to circle back you have to have that discipline to even when you set it
+that discipline to even when you set it aside for a little while to come back to
+aside for a little while to come back to it
+it um
+and you know so at the end of the day my answer to that like how long is this
+answer to that like how long is this going to take is we don't have time to
+going to take is we don't have time to not write tests
+not write tests because
+because there's some overhead and startup costs
+there's some overhead and startup costs to be sure but once you get going they
+to be sure but once you get going they will improve your velocity you will
+will improve your velocity you will notice it and
+notice it and especially
+especially they will help you when you get to that
+they will help you when you get to that crazy
+crazy end stage where any mistake could sync
+end stage where any mistake could sync the game right just before you ship
+the game right just before you ship having that safety net in place
+having that safety net in place having the ability to better test the
+having the ability to better test the code yourself before you throw it to qa
+code yourself before you throw it to qa all of that is really going to help in
+all of that is really going to help in that end stage get it out the door part
+that end stage get it out the door part but if you've given up on it before then
+but if you've given up on it before then then you won't have that to help you
+then you won't have that to help you so that's all i've got
+so that's all i've got thank you for listening i hope this has
+thank you for listening i hope this has helped i've been wanting to give this
+helped i've been wanting to give this talk for a while now and it's you know
+talk for a while now and it's you know really been trying to figure out what is
+really been trying to figure out what is it
+it that's made it different for me that
+that's made it different for me that that caused it to just
+that caused it to just flip on and start working
+flip on and start working so
+so hopefully this is helpful as promised
+hopefully this is helpful as promised here's contact information if you want
+here's contact information if you want to talk about ai talk about testing
+to talk about ai talk about testing definitely reach out i love talking
+definitely reach out i love talking about that kind of stuff
+about that kind of stuff if you're looking for some help with
+if you're looking for some help with some tools or looking for some help
+some tools or looking for some help building your ai reach out about that
+building your ai reach out about that too i love building ai and that is
+too i love building ai and that is something that that we can help you out
+something that that we can help you out with
+with um
+um so that's it
+so that's it again thank you for listening and i will
+again thank you for listening and i will see you on the other side
+[Music]
+you

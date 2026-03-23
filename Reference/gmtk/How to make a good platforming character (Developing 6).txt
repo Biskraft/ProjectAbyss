@@ -1,0 +1,288 @@
+﻿Hi, my name's Mark and I am 
+making a video game about magnets.
+So in the previous episode of this series 
+I looked at the feedback on my MVP,  
+and if there's one thing I really need to 
+improve, it's the feel of the character.
+This little robot guy just feels slow and floaty, 
+there's that annoying hitch whenever you land,  
+the jump is way too big, and 
+the throw is overly complex.
+So I've spent the last month and a half completely 
+overhauling the character and I'm pretty pleased  
+with what I've come up with. So please sit 
+back and let me show you what I've made.
+Okay, so before I jumped into Unity I set 
+myself four key goals with this character  
+controller. Goal number one is just to make it 
+feel really good to move around the environment,  
+really tune those physics just right. Goal two 
+was to simplify the aiming system down to a single  
+button. Goal three was to add character, charm, 
+and personality to both the robot and the magnet.  
+And goal four was to add in accessibility options 
+like rebindable controls and colourblind options.
+So I opened up yet another blank Unity project and 
+started working on the character. Though I did go  
+and get a character controller off the 
+internet to make sure I got the basics  
+right. Now there's a bunch of really good ones 
+online: there's this one which I used for the MVP.  
+This one from tarodev feels very good if 
+you're making a platformer. And Mix & Jam  
+made one entirely inspired by Celeste. But 
+I actually went with one from a much smaller  
+youtube channel called Shinjingi. I like it 
+because it's actually a very small amount  
+of code which means I can use it for the absolute 
+basics, but put my own spin on it. So Shinjingi’s  
+character controller is just a box that moves 
+around and there's a few numbers to play with.
+For movement there's acceleration and top speed, 
+so I can make the character get going immediately  
+for that very fast, responsive, snappy feel.
+And for jumping this character 
+actually has something really crucial:  
+two types of gravity. You've got one for going up,  
+which should feel a bit low and floaty 
+- and another for coming back down,  
+which should be very high gravity and snaps you 
+back to the ground. That makes it feel amazing.
+And so I just fiddled around with these 
+numbers for quite a long time until I had it  
+feeling nice to move around this simple blocky 
+environment. After that I set about adding in  
+a few extra features that I documented 
+in my video on Celeste's movement system.
+So first up: jump buffer. Basically, whenever 
+you're coding a jump you first ask if the player  
+is currently on the ground, and if yes, let 
+them jump. But this means if you press jump a  
+split second before you land, the game 
+ignores your command and it feels crappy. So  
+instead when the player hits the button 
+the game should keep requesting a jump  
+for a few frames and then you'll do a jump 
+if you hit the ground within that window.
+Next up, coyote time: the opposite of the 
+jump buffer. Basically if you jump just after  
+you leave a platform, again the jump won't 
+register because you're not on the ground.  
+So we remember that the 
+player has been on a platform  
+for a few frames after they leave it, and 
+allow them to jump during that time. Again,  
+this feels better than punishing the player for 
+being a few pixels too late with their jump.
+We also need variable jump height. This has been 
+in game since Super Mario Bros.: you know, you  
+press the button for a short hop, 
+or hold the button down for a big  
+springy leap. To achieve this 
+I just check if the player has  
+let go of the jump button and throw on that 
+heavy downward gravity, like, immediately.
+And finally, it's never fun to bump your head 
+when you get a little too close to a platform  
+or bonk off the edge of a platform because you're 
+not quite high enough. This was easily fixed by  
+changing the character's collider from a box 
+to a capsule. Now it rounds things easily.
+And at this point I feel really happy with 
+how the character controls. It just feels  
+good to move around an environment. Especially 
+when compared to the robot from the MVP. But  
+I can make it feel even better with some juice.
+So I went back to that tarodev controller and, 
+uh, stole some of the excellent effects like  
+dust particles when you run, jump, and land. 
+And this really lovely little tilt when you're  
+running. I also changed the pixel art. It’s 
+still an orange robot with a single wheel and a  
+face on a screen but it just looks more cute 
+and cartoony now. To really sell the cartoon  
+effect I added some animations, so when 
+the robot jumps his screen pops up first…  
+and then the wheel joins a second later. I found 
+that when working with video game animation you  
+really have to cut out the anticipation 
+part of the animation to make things  
+feel more responsive. So the robot just like 
+immediately pops up when you hit jump. Likewise,  
+animations need to instantly interrupt each 
+other to account for changes in player input.  
+That's not a hard and fast rule for every type 
+of game, but it's definitely what this one needs.
+Oh, before I finish, now that the robot works 
+nicely on simple basic blocky platforms I did want  
+to try a couple other things. So… slopes! They 
+feel really nice with the wheel and it means I can  
+add more height and verticality to levels without 
+having the player jump constantly all the time.
+And moving platforms were a nightmare. Because 
+of the way this character controller is coded,  
+it doesn't gel perfectly with the Unity physics 
+system so I was basically stuck. Luckily I've  
+got the GMTK Discord which is full of super 
+smart people who know Unity much better than  
+me. User GuitarKid really sorted this one 
+out with some black magic that essentially  
+tracks the velocity of the moving platform and 
+adds it to the player's velocity. But, you know,  
+way more complex than that. For what it's 
+worth though, I figured out how to make  
+the character be able to jump along 
+with the platform. So hooray for me.
+At this point it feels like I 
+have completed the first goal  
+to make a character feel good to control. 
+So next up it's on to throwing the magnet.
+Luckily, a lot of this code 
+worked pretty nicely in the MVP,  
+like picking up nearby objects, 
+aiming with a trajectory arc,  
+and magnetically snapping to metallic surfaces. 
+And so I could bring a lot of that over  
+without rewriting it from scratch. Though I 
+did want to, like I say, redo the controls.
+I wanted to put everything on one button so now 
+you can press the button to pick up the magnet,  
+and then hold it down to enter aim mode, 
+and release to throw it. Or just press  
+it once to throw it quickly. I also added in 
+mouse support. And this was a little tricky:  
+a mouse and a controller analogue stick 
+are similar, but they're not identical.  
+And so making something work seamlessly 
+across both is a real challenge. But  
+I got it done and so that's goal two 
+completed: to simplify the aiming system.
+I also wanted to add more animation as part of 
+the throw. I decided to make the robot, like,  
+swing the magnet behind itself so it really feels 
+like you're chucking this thing across the screen.  
+I also gave the magnet different facial 
+expressions. I added some screen shake - that  
+feels good. I also added a particle burst when you 
+change polarity. And I added some nice new visuals  
+for the magnetism system. Thanks to Dan Root from 
+Video Game Animation Study, the YouTube channel,  
+for advice on this. He suggested the big 
+chevron arrows that point towards the panel.
+And I think with that, that's goal three 
+met. Both the robot and the magnet now have  
+charm and personality. They feel like 
+proper little video game characters.
+Oh and I also wired up all the sound 
+effects but they're just placeholders  
+so I'm keeping them on mute for now. Sound 
+design is a… future problem to figure out.
+Finally, there was that fourth 
+goal: adding in accessibility.
+You know, when it comes to putting in 
+accessibility options I feel like you  
+have to pick the right moment. You don't want 
+to do it too soon when it's just a prototype  
+and ideas and code are constantly changing and 
+being thrown out. And you definitely don't want to  
+do it too late, like really close to release, when 
+retrofitting those options into the code would be  
+a nightmare. You want to do it now basically. 
+I’m still pretty early on in development  
+but this is hopefully final game code. So it's 
+the perfect time to implement some options.  
+And so I tried to put in as much stuff as I 
+could like remapping controls. An option to  
+toggle aiming on and off, instead of having 
+to hold a button. A low sensitivity snap  
+aim. An option to turn off particles and 
+trails and screen shake and more. Oh,  
+and I also needed to add in colourblind support. 
+This is a game all about red and blue and  
+while those are pretty distinguishable with 
+most forms of colourblindness, I wanted to  
+add in some options just in case. So by making 
+the magnet actually black and white by default  
+I could then apply a colourful tint in code and 
+that way let you put basically whatever colour  
+you want on the magnets, and apply that same 
+colour to all the panels in the game as well.  
+I posted this on Twitter and people suggested I 
+should add symbols as well and… okay you can now  
+show symbols as well! A plus and a minus show 
+up which tell you where the magnet will sail to.
+Now I have to admit accessibility 
+stuff is pretty hard. Like,  
+it's really time consuming and it adds so 
+much extra stuff to your code. There was  
+one option I wanted to have in the game but had 
+to drop it because it just added so much extra  
+junk to an already messy and oversized script. 
+But other than that I've got a lot of stuff  
+in the game and I'm pretty proud of that. 
+Accessibility is really important and I'm  
+pleased to have it in the game now. And that also 
+means that goal four is well and truly ticked.
+So overall I am very happy with this character 
+controller. I mean, especially when I compare it  
+to the disaster that is the MVP character. In a 
+lot of genres the main character is the backbone  
+of the game ,and so it just needs to feel good to  
+move around the world. And with 
+this controller I think it does.
+Though to validate it I had to do one important 
+thing: I crossed my fingers and sent a demo to  
+Noel Berry, one of the creators of Celeste. And he 
+played it and he said that it feels pretty good,  
+which, you know, made my friggin’ week! 
+And if you want to try it for yourself  
+everyone who backs GMTK on Patreon now has 
+access to a special, super short demo room.
+But while it does feel very good to get this thing 
+done, I have to admit I am exhausted. Remember,  
+the MVP - a complete, playable, 10 level game 
+took me 30 days to complete. But this one single  
+character moving around a simple test room took 
+almost two months of long hard work. I'm talking  
+full days just coding, problem solving, and bug 
+fixing. Thank you to everyone in the GMTK discord  
+who played various builds of the game and told 
+me suggestions, bug fixes, and other oversights.
+And I mean I'm still not done. The camera is 
+a placeholder, there's no death and respawn,  
+and the magnetism system is still a bit 
+broken in places and needs some more code.  
+But I think ultimately I do need to give 
+myself a bit of a break: this was a long sprint  
+of development. And I mean part of game dev is 
+being aware and cognisant of your productivity  
+and energy and mood. And I have to say I am 
+nearing burnout on this project so I think the  
+smart thing to do would be to put Unity down for 
+a while, focus on some other types of GMTK video,  
+and also think about the project more generally.
+Like, what is the next step for this project,  
+now that the character controller is 
+done? I think some time away from the  
+coal face of making games will give me a much 
+needed perspective on where I should go next.
+So until then, uh, oh wait! I won 
+the award! I won the Unity award,  
+the best devlog 2021. Thank you so much 
+to everyone who took time to vote for the  
+show over at Unity. I don't really get 
+anything but it's still a good feeling.
+Also congratulations to all the other amazing 
+nominees. These are great youtube channels you  
+should definitely watch and subscribe 
+to. Special congratulations to Jonas  
+who has finally finished Will You Snail 
+after four long years of development.
+I did say that I would release a basics 
+of Unity tutorial if I won the award and  
+I will keep that promise, but right 
+now I don't think I can look at Unity  
+for a good month or so. But sometime in the future 
+I will release that as a thank you. Until then,  
+thank you so much for watching and I'll 
+see you when I see you. Thanks, bye.

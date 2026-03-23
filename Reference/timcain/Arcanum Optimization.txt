@@ -1,0 +1,452 @@
+hi everyone it's me Tim today I want to
+talk about Arcanum
+optimization this comes from a set of
+questions from uh a viewer diiz who asks
+a few topic suggestions for upcoming
+videos how to optimize game code how to
+even find what is wise to
+optimize and different ways to measure
+results of optimization and a bunch more
+questions too that didn't have to do
+with optimization so so I'm going to
+stop it right there I may get the other
+ones later but let me just talk about
+optimization and I've decided to go back
+to Arcanum because I can talk about that
+code I own that code I can look at that
+code I looked at that code and
+um it lets me just be much
+more specific about what I'm going to
+talk about now I already have a general
+optimization video which I'll link below
+which talks about basic techniques for
+code optimization like when to do them
+uh when sometimes changing the design
+specification can lead to faster code or
+code that uses less memory so sometimes
+the optimization is not in code it's
+change your design even just a little
+bit and you can end up with way better
+code I also have a video on the specific
+memory savings that we got in Arcanum
+through object compaction I will
+summarize it again here but I recommend
+watching that video too uh it's called
+prototype and structures it's linked
+below
+now this video is going to be about
+specific
+optimizations that we used in
+Arcanum Arcanum was way bigger than
+Fallout uh and we did it with four
+programmers it was set in an open world
+which was huge so we were trying to deal
+with not only how to store all of that
+but how to do calculations over things
+like creatures because there could be
+tens of thousands hundreds of thousands
+of creatures if we tried to load every
+creature that was in the instance you
+were in cuz when you were out in in the
+terrain in the open map we couldn't
+possibly load every sector so we had to
+load things in and out as needed and
+that's where the optimization came in so
+let me talk about memory optimization
+and time optimization differently and I
+start with memory let me summarize what
+we did in Arcanum in Arcanum we did
+something called object compaction where
+an object only stored how it differed
+from the Prototype it was based on for
+many things that prototype stored almost
+everything so if you had an item like a
+dagger or an object like you know a
+zombie almost everything you need to
+know about that creature is stored in
+its prototype how many hit points it has
+total how it does attacks um what art to
+use all that stored in the Prototype
+typically the only thing that changed
+between the object and the Prototype was
+where it was located in the world which
+might be in the world or in your
+inventory and it's it's current hit
+points the maximum hit points were
+whatever was in the
+Prototype unless of course the designer
+wanted to drop it down and say these are
+really tough zombies I'm going to give
+them 50% more hit points which you could
+do also items would store their current
+number of charges creatures would store
+ability use like if there was an ability
+that they could only use you know once
+every 30 seconds that then the timer
+would of course be part of the
+object what we did and a lot of this was
+done by uh Mark Harrison who's one of
+the programmers he used bit fields to
+indicate in an object What fields were
+present in that object and if they
+weren't present then it meant go to the
+prototype to get it so let's say you
+wanted to look up you know hit points
+and that was the fourth field that would
+have been on the object if we were
+storing all of it so you look and you
+count in four bits so you skip over the
+first three bits you get to the fourth
+one and if it's a one that means you
+grab it from here from the object if
+it's a zero that means go grab it from
+the Prototype now if the first three
+Fields were zero that meant the first
+field in the object was hit points if
+one of those first three if any of those
+first weren't zero it meant you had to
+skip over a certain number of fields to
+get to the hit points and Mark made a
+whole thing I think it was called Big
+bits that stored an array so you could
+have bits as long as you wanted you
+weren't restricted to 32 and we either
+knew how big they were going to be or
+that was stored somewhere so you knew
+how many bites to skip over if if Fields
+existed in the object but you were
+looking for a field later
+on here's what I want to point out all
+of that stuff the the big bits and the
+that you have to
+store that was extra memory that was in
+each object but even with that bitfield
+overhead we saved so much memory because
+there were tons of objects in the world
+that were used a ton but almost never
+differed from the Prototype walls props
+like trees and rocks those almost always
+just varied from the prototype by their
+location that it's it's here The Rock
+here where the Prototype may not even
+specify location everything else about
+it the art it used its maximum hit
+points everything were never varied the
+this was true for items and monsters as
+well so all the swords in the game there
+was just one sword prototype and it
+stored everything you need to know about
+a sword what animations to use what it
+looked like in
+inventory how much damage it did all of
+that the only that varied usually if
+someone had sword was where it was
+located and if it had been been damaged
+at all now if you wanted to make a plus
+one sword you had two options you could
+say here's the sword prototype and
+here's the plus one sword which
+varies because it's two hit field it has
+a plus one in it instead of a zero maybe
+the damage also has plus one that's one
+way to do it or you could make a
+prototype if you think you're going to
+have a lot of plus one swords you can
+make a plus one sword prototype and then
+they could all refer to that it was
+basically a trade-off on how often If an
+item was going to be used a
+lot make a prototype otherwise just
+store the Delta from the base prototype
+and you're done monsters were the same
+way if the monster used most of the same
+art almost all the same abilities and
+all that just different Delta it from
+the
+Prototype you can see a lot more detail
+in the Arcanum prototype and structure
+video that's
+linked we also had TIG which I talk
+about in a video about TIG TIG managed
+memory for Arcanum the way it the way
+Tig did that is when you initialized TIG
+which was a static library that Linked
+In to Arcanum we also used it in
+Temple when TIG would start it would
+allocate one gig gigantic block of
+memory and the reason for this is it
+then managed everything within that
+block to reduce fragmentation I'll talk
+about how it did
+that one hu another big advantage of
+having TIG manage all the memory is in C
+in many C compilers if you called malok
+saying give me a block of of memory if
+you did it in thebug mode it would set
+all of those to zero in it would set all
+the memory in that block to zero but on
+release it didn't do that which led to
+some weird issues between the two so we
+in TIG we had malok and kok malok was
+give me me allocate memory cak was
+allocate the memory but clear it off to
+zero so if you if you needed it to be
+cleared out you called cak but a lot of
+times you didn't need it you you you
+weren't going to look in it and you
+could just it could be random garbage
+stuff it just meant you could be since
+the programmer knew what they were doing
+it led to faster memory
+allocation when you got a pointer back
+to a me a block in that giant block of
+memory you didn't get a pointer you got
+a handle and when you wanted to use it
+you had to lock the handle and when you
+locked the handle it returned an actual
+pointer to where the block was and then
+when you were done you unlocked it and
+the block was now free to be moved
+around and that's what we did
+unlocked
+blocks inside that giant block of memory
+could be moved around and the reason you
+do that is after you do a lot of memory
+allocation and freeing you might
+allocate a block allocate another block
+allocate a third block and then free the
+second block so now you've got a hole in
+the in between these two blocks and if
+you try to allocate a big a block bigger
+than that one you can't use that one
+because these two blocks are here well
+the nice thing is about the handles is
+if t two blocks weren't locked we could
+just slide the third one down and touch
+the first one and now you have all the
+space over here free as long as we know
+no one's accessing that memory it's free
+for us to move anywhere you want and
+then when you call um lock on the handle
+you've got you get a new pointer but
+because it you don't care what the
+pointer was because it was locked before
+you're fine that did wonders for
+handling in real time memory
+fragmentation we also put guard bites at
+the beginning and end of every block so
+if you asked for 1,000 bytes we really
+give you like 1,8 and the four guard
+bites at the front and four guard bites
+at the end we did that because whenever
+a handle
+was locked or freed we could peek at
+those guard bites and see if they had
+changed from whatever pattern we wrote
+into those guard bites when we allocated
+the memory if that pattern had changed
+that meant somebody stomped memory that
+helped us find a ton of memory issues so
+those are the two main ways we handled
+memory in Arcanum now let me talk about
+how we did time we used a
+third-party program I think it was from
+Intel called vune I Googled and it still
+exists and this one is from Intel but
+the one I'm describing is how we used it
+25 years ago the one now is way more
+powerful it handles paralyzation it
+handles threading um you can measure how
+good your multiple threads are running
+we mainly use it to determine how much
+time was spent in each function in C
+these were C so it's functions
+the time would be turned in a
+hierarchical map so let's say you had
+function a and inside function a it
+called B and C so you might get returned
+that you spent 100 milliseconds in
+function a but then if you look you can
+see well I also spent 50 milliseconds in
+B and 30 in
+C you could then that meant you only
+spent 20 in
+a that meant if you really wanted to get
+bang out of your buck for optimization
+you really wanted to optimize function B
+because that's you were spending most of
+your time but you had to look at a
+because if B did very little work but
+was in a loop being called an a then
+you're you wanted to concentrate on
+optimizing that Loop maybe you could
+unroll it maybe you could get rid maybe
+you don't have to Loop over everything
+you're you're looping in maybe you could
+store it differently so as you're
+looping you can tell okay I've got to
+something that's too far away or
+something that the timer is that isn't
+ready to be processed so I don't have to
+process everything in that
+Loop or if it's just being called once
+you know you got to optimize inside
+function B but the important thing is
+you're optimizing to get that 50
+milliseconds down if you can cut it in
+half you just saved 25 milliseconds
+which is one quarter of the time spent
+but if you spend your time optimizing
+function a even if you cut that in half
+you only go from 20 to 10 so you only
+save 10% so vune really helped us zoom
+in on where we needed to optimize our
+code for time
+another thing we
+did is we didn't let functions have a
+lot of time I talked about in Arcanum
+scripts we would only give it a certain
+amount of time and if it exceeded it we
+would throw an error message and say
+this script spent too much time it's how
+we caught a lot of infinite Loops um or
+also just scripts that we're trying to
+do too much and then whoever wrote the
+script would have to shorten
+it for
+AI creatures would get heartbeat to
+decide what they wanted to do and that
+heartbeat was proportional to their
+distance so things that were close to
+the player got faster heart rate beats
+and things that were farther away got
+slower heartbeats until finally past a
+certain point they got no heartbeat at
+all the reason we did this is it let
+you creatures that were near the player
+would react faster and we scene is
+always moving where if they were off
+screen it was okay if they decided to
+move from here to here and maybe just
+teleport you can't see them so it didn't
+matter that they're only getting a
+heartbeat every 2 seconds 4 seconds 10
+seconds if they're really far away you
+weren't seeing what they were doing
+anyway that worked really well we also
+reduced Time by only calculating things
+when we needed them so let's say you
+needed the distance of things I don't
+know to use for that heartbeat
+calculation you might calculate the
+distance between say the player and a
+monster and then store it in there and
+put a dirty bit on
+it if either the monster or the player
+moves you mark that calculation as dirty
+which means the next time someone goes
+to get that
+distance they know it's dirty and they
+have to recalculate it the nice thing
+about this is that that at the cost of
+that one little bit that many times you
+could store in the in the data itself if
+you knew you didn't need the full range
+of values that that field could store
+you could just put a dirty bit at the
+top the nice thing about this is during
+a heartbeat of a creature it might check
+several times its distance to the player
+but it never had to recalculate it
+because nothing could move inside that
+heart rate that heartbeat similarly in
+between things that were really close to
+the player that were getting fast
+heartbeats neither of them may have
+moved you know if they're getting
+heartbeats every 10 milliseconds nothing
+may have moved so it just saved on a lot
+of that calculation you can do the same
+thing in unity in updates if you want to
+store something and Market is dirty that
+way the update can say if it's not dirty
+I won't recalculate
+it similarly you
+can reduce Time by reducing the number
+of times you Loop over things I talked
+about this before you can also do it for
+Collision for Collision you don't want
+to check every object against every
+other object in the world you can use
+something smart like a quad tree to
+partition the world space and then only
+check things that are near You by saying
+well you have to be a leaf of the same
+parent and quality quad tree you can
+look up quad tree if you want to know
+what I'm talking about and that way
+you're not checking my Collision against
+everything in the world you're only
+collect checking my Collision against
+things that are near Mii in the quad
+tree now yes you have to maintain the
+quad tree but again it's you update the
+things in the quad tree Once then lots
+of things can do really fast comparisons
+but keep in mind that this is a Time
+memory tradeoff you're storing a quad
+tree memory so you don't have to do as
+many calculations time you need to be
+really careful whenever you're doing
+optimizations because usually time
+optimizations often increase memory use
+and vice
+versa and what I'm talking about too
+is true in C and maybe not C+ or C
+because you don't you tend not to handle
+memory when you create a new object in
+C++ or in C you may not
+be capable of intercepting the memory
+allocation and redirecting it to your
+own allocator and if you can't that
+means you can't control the memory
+defragment defragmentation you can still
+try to reduce how many how much memory
+you you use but it's actual control is
+outside of your it's it's allocation may
+be outside of your
+control also if you use a library or
+game engine they're going to be doing a
+lot of things outside of your control
+that you can't you can't do anything
+with unity doesn't let you see code for
+their engine unreal does I've talked
+about if you go to if you modify in real
+engine code though now you have your own
+modifications and when new updates come
+out you either have to fold your
+modifications in or not and just go with
+the new
+version there are ways around this for
+example I in several games I worked on I
+got around unity's update by not having
+an update in an object that I created
+and instead I had it managed by a
+manager class the manager class got an
+update and then decided which of its
+children needed an update and when
+that way I
+wasn't slaved to unity's update when
+Unity felt like I got an update I
+updated my objects when I wanted to
+update them so there's ways around this
+but if you're using third party
+libraries and game engines there are
+ways around it but you are limited in
+what you can do that's one reason I like
+making my own game engine
+anyway I hope this was a good insight
+into how to do time and space
+optimizations and I hope thequiz that
+this answered your question or at least
+your first three questions

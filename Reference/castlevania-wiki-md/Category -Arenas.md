@@ -1,0 +1,3 @@
+# Category:Arenas
+
+Category: Environments

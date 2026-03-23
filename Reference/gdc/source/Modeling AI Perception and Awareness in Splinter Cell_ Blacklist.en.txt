@@ -1,0 +1,892 @@
+[Music] all right so everybody I'm Martin Walsh
+all right so everybody I'm Martin Walsh and my talk is modeling AI perception
+and my talk is modeling AI perception and awareness in Splinter Cell blacklist
+and awareness in Splinter Cell blacklist it's a 25-minute talk so I'm gonna try
+it's a 25-minute talk so I'm gonna try to keep it pretty tight
+to keep it pretty tight including this intro but I do want to
+including this intro but I do want to let you guys know I'm from Ubisoft
+let you guys know I'm from Ubisoft Toronto I was the AI lead on blacklist
+Toronto I was the AI lead on blacklist the AI tech lead on Splinter Cell
+the AI tech lead on Splinter Cell Conviction and I have about ten years
+Conviction and I have about ten years experience in the industry so why
+experience in the industry so why perception and awareness well I mean if
+perception and awareness well I mean if the an your game doesn't always
+the an your game doesn't always magically know where the player is you
+magically know where the player is you need some type of perception and
+need some type of perception and awareness model and with more and more
+awareness model and with more and more games incorporating stealth elements how
+games incorporating stealth elements how these models function can really shape
+these models function can really shape the quality of the experience you
+the quality of the experience you provide and blacklist obviously has a
+provide and blacklist obviously has a very heavy stealth component so for us
+very heavy stealth component so for us these models are extremely important but
+these models are extremely important but before I start describing them I just
+before I start describing them I just want to talk about three characteristics
+want to talk about three characteristics that I think these models need to
+that I think these models need to display to be really good so first of
+display to be really good so first of all they need to feel fair right I mean
+all they need to feel fair right I mean if you're sort of you know getting
+if you're sort of you know getting detected can really be the difference
+detected can really be the difference between success and like chucking your
+between success and like chucking your controller at this screen especially if
+controller at this screen especially if you if you feel that that detection was
+you if you feel that that detection was unfair in the second is they need to
+unfair in the second is they need to provide consistent feedback right so you
+provide consistent feedback right so you need to have some idea of how the AI is
+need to have some idea of how the AI is gonna react with the reacting to so that
+gonna react with the reacting to so that you can strategize and improve and the
+you can strategize and improve and the third is that they need to demonstrate
+third is that they need to demonstrate intelligence right if your opponents
+intelligence right if your opponents feel dumb then you really get no
+feel dumb then you really get no satisfaction in beating them but you
+satisfaction in beating them but you know what's interesting is is not being
+know what's interesting is is not being dumb doesn't necessarily mean being
+dumb doesn't necessarily mean being smart and what it actually means is
+smart and what it actually means is always being plausible and that's
+always being plausible and that's something that I'll come back to a lot
+something that I'll come back to a lot throughout this talk and finally it's
+throughout this talk and finally it's it's interesting to note that there's
+it's interesting to note that there's often a conflict that exists between
+often a conflict that exists between fairness consistency and intelligence
+fairness consistency and intelligence and that's something that's important to
+and that's something that's important to be aware of and all allude to that as
+be aware of and all allude to that as well throughout the presentation so I'm
+well throughout the presentation so I'm gonna talk about four types of
+gonna talk about four types of perception and awareness but before I
+perception and awareness but before I jump in I just want to let you guys know
+jump in I just want to let you guys know when to stop saying perception and
+when to stop saying perception and awareness because it's really long and
+awareness because it's really long and annoying to say and and although there
+annoying to say and and although there are two different things
+are two different things you know awareness almost always follows
+you know awareness almost always follows right after perception so in this talk
+right after perception so in this talk I'm going to kind of use those two terms
+I'm going to kind of use those two terms interchangeably okay so the four models
+interchangeably okay so the four models I'm going to talk
+I'm going to talk about a visual environmental auditory
+about a visual environmental auditory and social and contextual with the two
+and social and contextual with the two most common obviously being visual and
+most common obviously being visual and auditory so let's jump right in so
+auditory so let's jump right in so visual perception so often right this is
+visual perception so often right this is how we think about vision in game show
+how we think about vision in game show you the classic vision Conan and this
+you the classic vision Conan and this does a decent job of modeling like
+does a decent job of modeling like what's directly in front of the NPC and
+what's directly in front of the NPC and what you should detect pretty quickly
+what you should detect pretty quickly but it's not a great model it doesn't do
+but it's not a great model it doesn't do a good job of modeling cliff peripheral
+a good job of modeling cliff peripheral vision it doesn't really model vision at
+vision it doesn't really model vision at a distance very well so this is vision
+a distance very well so this is vision in real life right this is how we see in
+in real life right this is how we see in real life so we actually have close to
+real life so we actually have close to like 180 degrees of vision but as things
+like 180 degrees of vision but as things move away from our focal point we start
+move away from our focal point we start to see them less and less clearly this
+to see them less and less clearly this is vision in blacklist so if I were you
+is vision in blacklist so if I were you I'd be thinking like what the hell is
+I'd be thinking like what the hell is all this crap right but honestly all
+all this crap right but honestly all that stuff really is there for a reason
+that stuff really is there for a reason I'll describe a couple of things that
+I'll describe a couple of things that you're seeing here so first of all we do
+you're seeing here so first of all we do actually have the standard vision cone
+actually have the standard vision cone which is that Orange V that I've marked
+which is that Orange V that I've marked out there and this reflects the area
+out there and this reflects the area where the NPC you know can see detail
+where the NPC you know can see detail and should be able to spot the player
+and should be able to spot the player pretty quickly and we actually had
+pretty quickly and we actually had multiple nested cones so player
+multiple nested cones so player obviously would get spotted faster in
+obviously would get spotted faster in the inner most cone and we also have
+the inner most cone and we also have those coffin-shaped boxes that you can
+those coffin-shaped boxes that you can see on the outside mark by those yellow
+see on the outside mark by those yellow lines and this defines the entire area
+lines and this defines the entire area that the NPC should be able to see
+that the NPC should be able to see what's interesting to note about these
+what's interesting to note about these boxes is that you know as opposed to a
+boxes is that you know as opposed to a cone that expands at a distance they
+cone that expands at a distance they actually shrink at a distance which
+actually shrink at a distance which models the fact that you know you'll
+models the fact that you know you'll still tend to notice things that are
+still tend to notice things that are directly in front of you even at a
+directly in front of you even at a distance but not necessarily the things
+distance but not necessarily the things that are off to the side and these are
+that are off to the side and these are also nested in here we're displaying the
+also nested in here we're displaying the outermost and so for each of these our
+outermost and so for each of these our designer had to specify how many nested
+designer had to specify how many nested shapes there were their sizes and the
+shapes there were their sizes and the linear detection range for each where
+linear detection range for each where the men of that range is the time to
+the men of that range is the time to detect the player when he's closest to
+detect the player when he's closest to the NPC in the max obviously at the
+the NPC in the max obviously at the farthest and our designer had to specify
+farthest and our designer had to specify that sort of per player stance per
+that sort of per player stance per difficulty and per archetype so there's
+difficulty and per archetype so there's a lot of fun for a designer and then
+a lot of fun for a designer and then what happens at runtime is these shapes
+what happens at runtime is these shapes get checked in order and then the time
+get checked in order and then the time range of the first inclusive shape is
+range of the first inclusive shape is used and you know there are also other
+used and you know there are also other shapes there that I've point
+shapes there that I've point which is the peripheral vision shape
+which is the peripheral vision shape there's also those kind of wings that
+there's also those kind of wings that you can see in the back of the NPC which
+you can see in the back of the NPC which is their 6n shade I'm not going to talk
+is their 6n shade I'm not going to talk about those but you sort of get the idea
+about those but you sort of get the idea but you know obviously being in a shape
+but you know obviously being in a shape isn't enough to get detected right you
+isn't enough to get detected right you have to be seen in other words
+have to be seen in other words unobstructed and you have to be lit and
+unobstructed and you have to be lit and so what our detection model does it
+so what our detection model does it raycast to eight different bones on the
+raycast to eight different bones on the players body one per frame and then
+players body one per frame and then depending on the stance it takes more or
+depending on the stance it takes more or less bones to be detected so in this
+less bones to be detected so in this case you can see Sam Fisher is in cover
+case you can see Sam Fisher is in cover and so that that's the stance that
+and so that that's the stance that actually takes the most bones and here
+actually takes the most bones and here there are only two bones that are
+there are only two bones that are visible to the NPC so detection hasn't
+visible to the NPC so detection hasn't actually started yet so then finally
+actually started yet so then finally once enough flip bones are seen that's
+once enough flip bones are seen that's when the player starts getting detected
+when the player starts getting detected right and so that's when that range
+right and so that's when that range based timer kicks in you can see it
+based timer kicks in you can see it represented by that HUD which is
+represented by that HUD which is actually a growing art and the tuning of
+actually a growing art and the tuning of this timing and feedback is really
+this timing and feedback is really critical to the player right this
+critical to the player right this represents really his window of
+represents really his window of opportunity to break line-of-sight or
+opportunity to break line-of-sight or maybe kill the NPC otherwise he's going
+maybe kill the NPC otherwise he's going to get detected so you know naturally
+to get detected so you know naturally with the model this complex you know we
+with the model this complex you know we tuned it a couple times by eye and then
+tuned it a couple times by eye and then we were good to go know it was brutal it
+we were good to go know it was brutal it was it was a nightmare actually so what
+was it was a nightmare actually so what happened was our designer tweaked it
+happened was our designer tweaked it until you know he thought it was fun and
+until you know he thought it was fun and and our creative director thought it was
+and our creative director thought it was fun and and then we went to play tests
+fun and and then we went to play tests and the results were awful they were all
+and the results were awful they were all over the place some people thought they
+over the place some people thought they were getting detected too fast I'm too
+were getting detected too fast I'm too slow so our designer combed through
+slow so our designer combed through hours of play test video and he and enta
+hours of play test video and he and enta fied sort of three major issues that we
+fied sort of three major issues that we had so the first was that we had some
+had so the first was that we had some special case code so so our designers
+special case code so so our designers wanted it that in certain situations if
+wanted it that in certain situations if the player was in cover the NPC would
+the player was in cover the NPC would walk right by him without detecting him
+walk right by him without detecting him even if our model said he should have
+even if our model said he should have been detected and this was actually fun
+been detected and this was actually fun in a lot of situations but we found in
+in a lot of situations but we found in the video that actually what was
+the video that actually what was happening sometimes is that the NPC's
+happening sometimes is that the NPC's flashlight would would be lighting up
+flashlight would would be lighting up the player sort of at random and then he
+the player sort of at random and then he still wouldn't be detecting them so our
+still wouldn't be detecting them so our solution to this unfortunately was just
+solution to this unfortunately was just more special case code which is
+more special case code which is essentially just you know if lit by
+essentially just you know if lit by flashlight ignore the other code so I
+flashlight ignore the other code so I mean not necessarily our finest moment
+mean not necessarily our finest moment but it worked so the second issue that
+but it worked so the second issue that we found was that the players were
+we found was that the players were getting detected too easily at a
+getting detected too easily at a distance and specifically at a distance
+distance and specifically at a distance but when they weren't directly in front
+but when they weren't directly in front of the NPC so obviously this is what led
+of the NPC so obviously this is what led to us changing
+to us changing just had regular boxes and we changed
+just had regular boxes and we changed them to these coffin shaped boxes that I
+them to these coffin shaped boxes that I talked about and the third thing was
+talked about and the third thing was that we were finding that players were
+that we were finding that players were just getting on that it was actually too
+just getting on that it was actually too easy overall so once we kind of got rid
+easy overall so once we kind of got rid of those other issues then actually the
+of those other issues then actually the players players found it too easy and so
+players players found it too easy and so an allusion to that was that we just
+an allusion to that was that we just kept tweaking and and we literally did
+kept tweaking and and we literally did that till the end of the project and
+that till the end of the project and what happened was that you know after
+what happened was that you know after every play test the results started to
+every play test the results started to converge so that by the final play test
+converge so that by the final play test very few participants actually mentioned
+very few participants actually mentioned vision one way or the other
+vision one way or the other in the couple that did were sort of
+in the couple that did were sort of split on the issue so we really kind of
+split on the issue so we really kind of felt like we'd hit our sweet spot so in
+felt like we'd hit our sweet spot so in the end we were really happy with the
+the end we were really happy with the results but it wasn't easy getting there
+results but it wasn't easy getting there obviously and you know one thing we
+obviously and you know one thing we realized was that the players actually
+realized was that the players actually wanted a more sophisticated and less
+wanted a more sophisticated and less forgiving vision model than we had
+forgiving vision model than we had initially anticipated and you know if I
+initially anticipated and you know if I had to do it again I'd probably try to
+had to do it again I'd probably try to play test this a lot earlier than we did
+play test this a lot earlier than we did so the second type of awareness I want
+so the second type of awareness I want to talk about is environmental awareness
+to talk about is environmental awareness which our illustrious mayor Rob Ford is
+which our illustrious mayor Rob Ford is doing a great job of displaying now but
+doing a great job of displaying now but for us environmental awareness really
+for us environmental awareness really means two things so the first is you
+means two things so the first is you know being aware of the layout right so
+know being aware of the layout right so Leo tells you stuff like you know for
+Leo tells you stuff like you know for example I'm in a large room it's
+example I'm in a large room it's connected to a hallway by two doors or
+connected to a hallway by two doors or maybe if there was a window by a window
+maybe if there was a window by a window and once you have that type of
+and once you have that type of information you can you can start
+information you can you can start reasoning about the players location and
+reasoning about the players location and interesting ways right with respect to
+interesting ways right with respect to the environment so you can start
+the environment so you can start thinking about stuff like he's hiding in
+thinking about stuff like he's hiding in a dead-end or you know he's sniping us
+a dead-end or you know he's sniping us from a rooftop that we can't get to and
+from a rooftop that we can't get to and I'll actually discuss that specific
+I'll actually discuss that specific example a bit later on and then the
+example a bit later on and then the second is awareness of objects or more
+second is awareness of objects or more specifically like awareness to changes
+specifically like awareness to changes in objects like a door that got opened
+in objects like a door that got opened or a light that got turned on or
+or a light that got turned on or something like that so so why is this
+something like that so so why is this important for us right well one reason
+important for us right well one reason is that our encounters can start
+is that our encounters can start anywhere right so you could have
+anywhere right so you could have literally stealth your way through like
+literally stealth your way through like three quarters of the level you get
+three quarters of the level you get detected there and that's where our
+detected there and that's where our encounter starts right so that's in
+encounter starts right so that's in contrast to a lot of sort of more linear
+contrast to a lot of sort of more linear shooters where they can stage the
+shooters where they can stage the encounters but unlike a lot of stealth
+encounters but unlike a lot of stealth games we didn't want you know being
+games we didn't want you know being detected to be a failure condition we
+detected to be a failure condition we want you to reset and in fact we wanted
+want you to reset and in fact we wanted you to then be able to play the game
+you to then be able to play the game like a cover shooter with the added
+like a cover shooter with the added ability of being able to vanish or maybe
+ability of being able to vanish or maybe outflanked the NPCs and then recreate
+outflanked the NPCs and then recreate those initial stealth conditions so
+those initial stealth conditions so older versions of Splinter Cell only
+older versions of Splinter Cell only supported a max of four active NPCs so
+supported a max of four active NPCs so those guys always had something to do
+those guys always had something to do and shooting actually wasn't really an
+and shooting actually wasn't really an option but for us and in conviction as
+option but for us and in conviction as well we had 12 active NPCs and the
+well we had 12 active NPCs and the player can see them all the times he has
+player can see them all the times he has vision modes that he can use to see them
+vision modes that he can use to see them through walls he could outflank them
+through walls he could outflank them during combat so really those guys need
+during combat so really those guys need to be doing something intelligent all
+to be doing something intelligent all the time and using the old system which
+the time and using the old system which again was just designed for for and also
+again was just designed for for and also all they were concerned with was getting
+all they were concerned with was getting line-of-sight on the player what
+line-of-sight on the player what happened was a lot of time did you see
+happened was a lot of time did you see NPCs that were staring at the player
+NPCs that were staring at the player through walls which obviously doesn't
+through walls which obviously doesn't look intelligent so on conviction we
+look intelligent so on conviction we developed a solution to this that we
+developed a solution to this that we call the t's it's a new AI modeled the
+call the t's it's a new AI modeled the environment for us with he stands for a
+environment for us with he stands for a tactical environment that we're in a
+tactical environment that we're in a system and so what this consists of it's
+system and so what this consists of it's essentially position nodes that are
+essentially position nodes that are linked to other position nodes through
+linked to other position nodes through choke nodes and what that represents
+choke nodes and what that represents here is you can see that red position
+here is you can see that red position know that I've marked out and it's above
+know that I've marked out and it's above that blue area and so what it says is is
+that blue area and so what it says is is that blue area is connected to that
+that blue area is connected to that yellow area you can't see the position
+yellow area you can't see the position node for that because it's inside the
+node for that because it's inside the room through that green choke node which
+room through that green choke node which represents the door
+represents the door and so now NPCs have a lot more info
+and so now NPCs have a lot more info about the environment right and so in
+about the environment right and so in the case where an NPC can't or maybe
+the case where an NPC can't or maybe even shouldn't engage the player he can
+even shouldn't engage the player he can now go ahead and guard the door or
+now go ahead and guard the door or window or whatever choke it is that's
+window or whatever choke it is that's leading to the player and that obviously
+leading to the player and that obviously produces much more believable behavior
+produces much more believable behavior and what's interesting about this we
+and what's interesting about this we actually auto-generated it so the way it
+actually auto-generated it so the way it worked was our level designers would
+worked was our level designers would paint the navmesh so they'd you know
+paint the navmesh so they'd you know paint the blue area in the yellow area
+paint the blue area in the yellow area and then we'd auto generate the position
+and then we'd auto generate the position nodes in the choke nodes but then we
+nodes in the choke nodes but then we allow the designers to manipulate them
+allow the designers to manipulate them and the reason for that was that we
+and the reason for that was that we actually used them sort of not just to
+actually used them sort of not just to identify the area that's directly below
+identify the area that's directly below them but they were actually fallback
+them but they were actually fallback positions for our NPCs so if they
+positions for our NPCs so if they couldn't find a piece of cover on that
+couldn't find a piece of cover on that would give them a line of sight on the
+would give them a line of sight on the door they knew they could always fall
+door they knew they could always fall back to those positions like in this
+back to those positions like in this case you can see the designer actually
+case you can see the designer actually attached a second position note to that
+attached a second position note to that choke node that I didn't mark um and we
+choke node that I didn't mark um and we actually used the T's for tons of stuff
+actually used the T's for tons of stuff other than just that we used it for
+other than just that we used it for coordinating room entries we did it
+coordinating room entries we did it hierarchical pathfinding with it even
+hierarchical pathfinding with it even used it to calculate audio distance and
+used it to calculate audio distance and I'll talk about that in a second
+so and as I mentioned inserted the second thing is awareness of changes to
+second thing is awareness of changes to objects in the environment we actually
+objects in the environment we actually got a ton of mileage out of NPCs
+got a ton of mileage out of NPCs noticing things like open doors or
+noticing things like open doors or windows and to do this we use a really
+windows and to do this we use a really simple system called the changed actor
+simple system called the changed actor system so the idea was that when an
+system so the idea was that when an actor would change state it would create
+actor would change state it would create an event with a lifetime and then the
+an event with a lifetime and then the first NPC to witness that event would
+first NPC to witness that event would claim it and then depending on his
+claim it and then depending on his statement was going on it could it could
+statement was going on it could it could prompt a minor investigation and so I
+prompt a minor investigation and so I mean this could have been used
+mean this could have been used tactically by the player but really was
+tactically by the player but really was mostly there to give the impression of
+mostly there to give the impression of intelligence and awareness and this was
+intelligence and awareness and this was a really easy win for us and it was
+a really easy win for us and it was actually something that was mentioned
+actually something that was mentioned specifically in a couple of reviews and
+specifically in a couple of reviews and it you know it's kind of ironic but not
+it you know it's kind of ironic but not all that surprising that you know the
+all that surprising that you know the tease was this long and complicated
+tease was this long and complicated system to develop but like nobody
+system to develop but like nobody mentioned the fact that are in PCs could
+mentioned the fact that are in PCs could guard doors although you know they
+guard doors although you know they probably would have mentioned that if
+probably would have mentioned that if they were staring through walls but you
+they were staring through walls but you know as soon as the NPC's remark that a
+know as soon as the NPC's remark that a door was opened and that's what people
+door was opened and that's what people notice meant now that's a bit um so the
+notice meant now that's a bit um so the third type of perception is auditory so
+third type of perception is auditory so you know in general it's pretty simple
+you know in general it's pretty simple right every audio event has a distance
+right every audio event has a distance and a priority if an NPCs in range of
+and a priority if an NPCs in range of that event then I'll hear it and I'll
+that event then I'll hear it and I'll react differently based on the event
+react differently based on the event based on who else's and range is current
+based on who else's and range is current state etc we actually two major issues
+state etc we actually two major issues with our audio events so one was
+with our audio events so one was actually act accurately calculating the
+actually act accurately calculating the audio distance so obviously you know the
+audio distance so obviously you know the Euclidean straight-line distance isn't
+Euclidean straight-line distance isn't good enough right in a stealth game you
+good enough right in a stealth game you don't want to be heard through walls and
+don't want to be heard through walls and stuff like that um so we tried using our
+stuff like that um so we tried using our sound engine where sound engine wasn't
+sound engine where sound engine wasn't actually optimized to calculate sort of
+actually optimized to calculate sort of the distance between two random points
+the distance between two random points in a world and there was another issue
+in a world and there was another issue as well which is that our audio data was
+as well which is that our audio data was often out of sync with our level data
+often out of sync with our level data which caused all kinds of false positive
+which caused all kinds of false positive bugs and stuff like that so we started
+bugs and stuff like that so we started using the tease and the way that we did
+using the tease and the way that we did this was and the tease could tell us
+this was and the tease could tell us sort of the rule path or like you know
+sort of the rule path or like you know the the path in rooms between the the
+the the path in rooms between the the source and the destination which would
+source and the destination which would be where the NPC was so and then we just
+be where the NPC was so and then we just took the sum of the straight-line
+took the sum of the straight-line distance so in other words it was the
+distance so in other words it was the distance between sort of the source of
+distance between sort of the source of the audio events the closest choke node
+the audio events the closest choke node to the closest choke node of the room
+to the closest choke node of the room leading to the next node etc all the way
+leading to the next node etc all the way to the NPC and the results were actually
+to the NPC and the results were actually accurate enough that once we made that
+accurate enough that once we made that switch we never looked back
+switch we never looked back they worked really well for us yeah and
+they worked really well for us yeah and the second problem with with auditory
+the second problem with with auditory Benzes it's really a general problem
+Benzes it's really a general problem actually which is it can feel really
+actually which is it can feel really unfair to sort of you know be creating
+unfair to sort of you know be creating sounds that get noticed by NPCs that you
+sounds that get noticed by NPCs that you don't even see right a guy around the
+don't even see right a guy around the corner could potentially hear the sound
+corner could potentially hear the sound that you make and you won't know why and
+that you make and you won't know why and you may not even know that you made a
+you may not even know that you made a sound right don't really directly
+sound right don't really directly control the sounds that you're making
+control the sounds that you're making and so what would happen is you know the
+and so what would happen is you know the way we found this was in internal
+way we found this was in internal reviews our creative director you know
+reviews our creative director you know he'd be playing the game and then he'd
+he'd be playing the game and then he'd get detected and you wouldn't know
+get detected and you wouldn't know widened chuck the controller and he can
+widened chuck the controller and he can you look at me and and and sometimes you
+you look at me and and and sometimes you know what we do do we pause the game and
+know what we do do we pause the game and we'd free camera on the corner and we'd
+we'd free camera on the corner and we'd say look max you know there's the you
+say look max you know there's the you know there's there's the npc and here's
+know there's there's the npc and here's where you were and you know sometimes
+where you were and you know sometimes he'd agree he'd be like you know yeah
+he'd agree he'd be like you know yeah that you know I guess I guess it made
+that you know I guess I guess it made sense that he heard me but that didn't
+sense that he heard me but that didn't actually stop him from complaining the
+actually stop him from complaining the next time it happened and and ultimately
+next time it happened and and ultimately he was right right I mean it's it's kind
+he was right right I mean it's it's kind of irrelevant the player can't pause the
+of irrelevant the player can't pause the game the player can't freecam through
+game the player can't freecam through the level and so one thing that we
+the level and so one thing that we learned here and also in tuning some
+learned here and also in tuning some visual stuff is that it's really only
+visual stuff is that it's really only important what's plausible from the
+important what's plausible from the players point of view right it doesn't
+players point of view right it doesn't matter what the NPC can see or hear sort
+matter what the NPC can see or hear sort of from a simulation perspective it's
+of from a simulation perspective it's what the end it's what the player thinks
+what the end it's what the player thinks the NPC should be able to see or hear so
+the NPC should be able to see or hear so I mean you know one way that we could
+I mean you know one way that we could have solved this was like brute force we
+have solved this was like brute force we could have just tuned down the distance
+could have just tuned down the distance of all of our audio events but then that
+of all of our audio events but then that would create you know a bunch of other
+would create you know a bunch of other problems right like you don't want to be
+problems right like you don't want to be kind of running down the hallway towards
+kind of running down the hallway towards an NPC with his back turned and then you
+an NPC with his back turned and then you can only hear you sort of at the last
+can only hear you sort of at the last second and you know it just you'd stab
+second and you know it just you'd stab him in the neck just as he's turning
+him in the neck just as he's turning around because not only does that sort
+around because not only does that sort of make them feel dumb but but also it's
+of make them feel dumb but but also it's game breaking alright you just run
+game breaking alright you just run through the entire game stabbing
+through the entire game stabbing everyone in the net so this is a bit
+everyone in the net so this is a bit this was a big problem right I mean if
+this was a big problem right I mean if you think about it - for two NPC's at
+you think about it - for two NPC's at exactly the same distance from the
+exactly the same distance from the player it can feel fair to get detected
+player it can feel fair to get detected by the guy that you can see and unfair
+by the guy that you can see and unfair to get detected by the guy who's right
+to get detected by the guy who's right around the corner so I mean we
+around the corner so I mean we considered having some HUD feedback for
+considered having some HUD feedback for this which might help but I mean design
+this which might help but I mean design really wanted minimal HUD I'm so in the
+really wanted minimal HUD I'm so in the end we solved this in two ways
+end we solved this in two ways so the first thing we did was that NPCs
+so the first thing we did was that NPCs that are off screen and far enough away
+that are off screen and far enough away from the player that it's sort of
+from the player that it's sort of plausible that
+plausible that that they didn't hear had their hearing
+that they didn't hear had their hearing reduced by half for some events now and
+reduced by half for some events now and we actually applied this to some
+we actually applied this to some indirect visual events as well like
+indirect visual events as well like seeing an NPC get shot and the result of
+seeing an NPC get shot and the result of this that literally the the the game
+this that literally the the the game instantly became more fun and almost as
+instantly became more fun and almost as important for me our creative director
+important for me our creative director stop complaining
+stop complaining by the way that image is not supposed to
+by the way that image is not supposed to be a creative director complaining in it
+be a creative director complaining in it that's an NPC you can't hear and then
+that's an NPC you can't hear and then the second thing we did is one to
+the second thing we did is one to provide better feedback to the player
+provide better feedback to the player may actually overhauled our entire BART
+may actually overhauled our entire BART system and our entire sort of dialogue
+system and our entire sort of dialogue system on blacklist and because you know
+system on blacklist and because you know if the NPC calls out what he hears right
+if the NPC calls out what he hears right if you if you if you're running and then
+if you if you if you're running and then you hear an NPC you go hey I heard
+you hear an NPC you go hey I heard footsteps
+footsteps then you instantly know what you did the
+then you instantly know what you did the problem is you obviously don't want to
+problem is you obviously don't want to hear that line over and over again it's
+hear that line over and over again it's pretty kind of on the nose and so what
+pretty kind of on the nose and so what we did is we developed a three tiered
+we did is we developed a three tiered bark system where the the first tier was
+bark system where the the first tier was were very specific all the way down to
+were very specific all the way down to the third tier that was much more
+the third tier that was much more generic and then what we do is as we ran
+generic and then what we do is as we ran out of you know Tier one barks to play
+out of you know Tier one barks to play we drop down to tier two and then two or
+we drop down to tier two and then two or three and so the result was that as a
+three and so the result was that as a player you sort of bought the specific
+player you sort of bought the specific feedback you needed the first couple
+feedback you needed the first couple times that you did something and then
+times that you did something and then you know what like I said as we ran out
+you know what like I said as we ran out of those specific things and you we
+of those specific things and you we could give more generic buy responses
+could give more generic buy responses there so the last type of awareness that
+there so the last type of awareness that I want to discuss is social and
+I want to discuss is social and contextual and this is something that
+contextual and this is something that actually a lot of action games don't
+actually a lot of action games don't model at all so we did this for two
+model at all so we did this for two reasons so first of all it makes the
+reasons so first of all it makes the NPC's seem more intelligent and more
+NPC's seem more intelligent and more aware right and in an arguing you spend
+aware right and in an arguing you spend you spend more time looking at the NPC's
+you spend more time looking at the NPC's than you do in a lot of games now but we
+than you do in a lot of games now but we also use the system to create anti
+also use the system to create anti exploits in the form of group behaviors
+exploits in the form of group behaviors and I'll talk about that in a second so
+and I'll talk about that in a second so specifically I'm gonna give you two
+specifically I'm gonna give you two examples the first I'll talk about our
+examples the first I'll talk about our conversation system and in the second
+conversation system and in the second I'll show you one of our combat anti
+I'll show you one of our combat anti exploit strategies so in a lot of games
+exploit strategies so in a lot of games if you interrupt two NPC's talking it
+if you interrupt two NPC's talking it usually does one or two things that
+usually does one or two things that either kind of completely breaks the
+either kind of completely breaks the conversation and those NPCs just kind of
+conversation and those NPCs just kind of walk off on their own or the
+walk off on their own or the conversation restarts somehow but it
+conversation restarts somehow but it feels pretty robotic and so in arguing
+feels pretty robotic and so in arguing when NPCs are in a conversation
+when NPCs are in a conversation they're actually in a group behavior and
+they're actually in a group behavior and so what that means is that they
+so what that means is that they automatically become aware of each other
+automatically become aware of each other and that allows them to actually discuss
+and that allows them to actually discuss minor events in context so we had our
+minor events in context so we had our narrative a guy wrote specific reaction
+narrative a guy wrote specific reaction and break out and rejoin lines for each
+and break out and rejoin lines for each conversation we had you hear that in a
+conversation we had you hear that in a second and also you know if one NPC
+second and also you know if one NPC stops talking or doesn't respond because
+stops talking or doesn't respond because he went to go investigate an event the
+he went to go investigate an event the other is aware so he'll you know maybe
+other is aware so he'll you know maybe go and investigate the spot where he
+go and investigate the spot where he thinks his buddy should have been and
+thinks his buddy should have been and just those things really give the
+just those things really give the impression of social and contextual
+impression of social and contextual awareness so here's a little video that
+awareness so here's a little video that demonstrates what I'm talking about
+sniff really a little wind on taking flying lessons
+only shows evictions watch the family thank you
+thank you very okay that works
+very okay that works take a look
+come on talk to me
+[Applause]
+yes we and we really like that um and so yeah the last thing I want to talk about
+yeah the last thing I want to talk about is the combat anti exploit I was
+is the combat anti exploit I was referring to so in this case it's
+referring to so in this case it's unreachable so you know depending on
+unreachable so you know depending on where the player is and in what the
+where the player is and in what the situation is the AI may not be able to
+situation is the AI may not be able to or may not want to directly engage the
+or may not want to directly engage the player in combat and in that case we had
+player in combat and in that case we had group behaviors which would play out as
+group behaviors which would play out as the situation unfolded and specific
+the situation unfolded and specific dialogue lines that would give feedback
+dialogue lines that would give feedback to the player on what they were doing
+to the player on what they were doing but you know what's interesting to know
+but you know what's interesting to know and what you hear in this video is that
+and what you hear in this video is that those lines aren't just call-outs they
+those lines aren't just call-outs they don't just announce I'm throwing a
+don't just announce I'm throwing a grenade or I'm flanking or whatever but
+grenade or I'm flanking or whatever but they were actually discussion so you
+they were actually discussion so you know I didn't feel like the NPC's were
+know I didn't feel like the NPC's were just announcing what they were doing but
+just announcing what they were doing but it felt like they were tactically
+it felt like they were tactically coordinating this actually gave a more
+coordinating this actually gave a more interesting feedback to the player so in
+interesting feedback to the player so in this example what you're gonna see is
+this example what you're gonna see is the players ambushing the NPC is from an
+the players ambushing the NPC is from an unreachable rooftop which we know thanks
+unreachable rooftop which we know thanks to the tease and you can hear them call
+to the tease and you can hear them call that out and you can hear them
+that out and you can hear them coordinate a strategy to deal with that
+coordinate a strategy to deal with that and so the way we did this was so first
+and so the way we did this was so first of all like I said we could identify the
+of all like I said we could identify the player was in an unreachable area
+player was in an unreachable area because we knew that there were that the
+because we knew that there were that the choke nodes that were leading to like
+choke nodes that were leading to like all the choke nodes that were leading to
+all the choke nodes that were leading to the player and T's were non crossable by
+the player and T's were non crossable by NPCs and also I didn't mention it before
+NPCs and also I didn't mention it before but we gave the Uglies the power to sort
+but we gave the Uglies the power to sort of mark up those areas a bit more so we
+of mark up those areas a bit more so we could know if he was on a small rooftop
+could know if he was on a small rooftop or a balcony or whatever and then when
+or a balcony or whatever and then when we detected that scenario we would kick
+we detected that scenario we would kick off a contextual group behavior and we
+off a contextual group behavior and we actually had you know different
+actually had you know different varieties of those in variations within
+varieties of those in variations within them so for example if this was you know
+them so for example if this was you know the second or third time that they'd
+the second or third time that they'd seen the player in an area like this
+seen the player in an area like this they would have used the again version
+they would have used the again version which has had some dialogue substitution
+which has had some dialogue substitution so yeah take a look
+[Applause]
+so and one thing that's interesting there is if so here they're the player
+there is if so here they're the player sort of tried to outflank the NPC's
+sort of tried to outflank the NPC's range that's what you saw of it if you
+range that's what you saw of it if you would have started picking them off from
+would have started picking them off from that rooftop that behavior would have
+that rooftop that behavior would have branched into the retreat behavior one
+branched into the retreat behavior one of those guys would have called oh you
+of those guys would have called oh you know he's ambushing us and started
+know he's ambushing us and started laying down suppressive fire while the
+laying down suppressive fire while the other guys fell back to cover and again
+other guys fell back to cover and again we we were able to find good spots kind
+we we were able to find good spots kind of hiding spots for them also using the
+of hiding spots for them also using the t's so that is it just before I just
+t's so that is it just before I just want to say thank you to everyone who
+want to say thank you to everyone who came out to support from Ubisoft to Nick
+came out to support from Ubisoft to Nick Zak and Heather for helping me out with
+Zak and Heather for helping me out with this presentation to the whole AI team
+this presentation to the whole AI team who made all this cool stuff and
+who made all this cool stuff and everyone we worked really closely with
+everyone we worked really closely with Chris Josh and the entire blacklist team
+Chris Josh and the entire blacklist team thanks a lot
+today I think I actually do have time for questions yes those videos said it
+for questions yes those videos said it all huh
+all huh I have a question about the here over
+I have a question about the here over here Oh
+the question about the the coffin shaped perception boxes yes did that help a lot
+perception boxes yes did that help a lot in terms of if the player is on a
+in terms of if the player is on a different level he doesn't expect to be
+different level he doesn't expect to be perceived or if he's climbing onto
+perceived or if he's climbing onto something so it's a really good point
+something so it's a really good point yeah I didn't mention that but yeah
+yeah I didn't mention that but yeah those like you saw those boxes were
+those like you saw those boxes were capped at the top that was exactly and
+capped at the top that was exactly and that was actually a metric that was sort
+that was actually a metric that was sort of used by level design so that when
+of used by level design so that when they would put pipes across the ceiling
+they would put pipes across the ceiling and stuff like that they had to make
+and stuff like that they had to make sure that those pipes were outside of
+sure that those pipes were outside of that box yeah absolutely
+that box yeah absolutely Thanks okay so when you have these
+Thanks okay so when you have these cooperative tactics like flanking and
+cooperative tactics like flanking and covering fire and things like that who's
+covering fire and things like that who's making the decisions to choose those
+making the decisions to choose those tactics who's like giving commands to
+tactics who's like giving commands to those characters is there like a leader
+those characters is there like a leader follower relationship is there a
+follower relationship is there a centralized yeah that does that so we
+centralized yeah that does that so we have yeah we have essentially a director
+have yeah we have essentially a director an AI manager essentially that would
+an AI manager essentially that would detect those scenarios and then
+detect those scenarios and then essentially kickoff those behaviors and
+essentially kickoff those behaviors and we would elect so some of those
+we would elect so some of those scenarios did have leaders but we would
+scenarios did have leaders but we would elect those leaders on the fly
+elect those leaders on the fly essentially but we would prioritize
+essentially but we would prioritize certain archetypes he didn't see it
+certain archetypes he didn't see it there but we had for example a heavy
+there but we had for example a heavy archetype so if a heavy archetype was
+archetype so if a heavy archetype was present he would become the leader of
+present he would become the leader of that group hi so good talk thank you
+that group hi so good talk thank you one thing is like do you think the
+one thing is like do you think the balancing the perception because you
+balancing the perception because you said that you are yet like some kind of
+said that you are yet like some kind of balancing on a different difficulty
+balancing on a different difficulty level for the game yes so is that enough
+level for the game yes so is that enough for giving like a good experience to the
+for giving like a good experience to the user because sometime if you play an
+user because sometime if you play an easy game mode that you will get a
+easy game mode that you will get a really different experience for who
+really different experience for who plays the the heavy one but you get an
+plays the the heavy one but you get an experience different from their behavior
+experience different from their behavior side and not only from the fact that the
+side and not only from the fact that the game is simpler or harder it's true and
+game is simpler or harder it's true and I mean it's a tough balance right so
+I mean it's a tough balance right so yeah you don't want to like completely
+yeah you don't want to like completely nerf the AI for you know and low
+nerf the AI for you know and low difficulty yeah absolutely it's a tough
+difficulty yeah absolutely it's a tough that's a tough balance too it's it's
+that's a tough balance too it's it's tough to balance difficulty during
+tough to balance difficulty during stealth like overall combat balancing is
+stealth like overall combat balancing is I think so yeah it's it's what so but
+I think so yeah it's it's what so but like it's more like how much like did
+like it's more like how much like did you leave to the level designer or the
+you leave to the level designer or the game designer to balance was it there
+game designer to balance was it there like I'm a bit like less control to them
+like I'm a bit like less control to them to avoid that they were no give them a
+to avoid that they were no give them a lot of control but I mean we work really
+lot of control but I mean we work really closely with our like you know our the
+closely with our like you know our the AI designers is with us and our and our
+AI designers is with us and our and our lead designer was always with us like it
+lead designer was always with us like it wasn't you know I don't know if you've
+wasn't you know I don't know if you've been to any Dai summit
+been to any Dai summit sounds like there's this big divide
+sounds like there's this big divide between design and programming sometimes
+between design and programming sometimes but for us it's not it's we're really
+but for us it's not it's we're really one big team and so we work together
+one big team and so we work together they don't they're not gonna do anything
+they don't they're not gonna do anything that's gonna make our guys look stupid
+that's gonna make our guys look stupid basically thanks a lot question on the
+basically thanks a lot question on the perception again with regards to those
+perception again with regards to those coffins did you link that to any kind of
+coffins did you link that to any kind of bone on the npcs in terms of if they
+bone on the npcs in terms of if they were looking or is that completely based
+were looking or is that completely based on facing angle of the or the root node
+on facing angle of the or the root node or so that that's a great question we
+or so that that's a great question we actually we did some kind of of
+actually we did some kind of of complicated stuff for that right so in
+complicated stuff for that right so in in when they're in Idol we actually
+in when they're in Idol we actually linked it to the facing and the reason
+linked it to the facing and the reason we did that was we wanted to give some
+we did that was we wanted to give some ability to the animators to create some
+ability to the animators to create some kind of cool idle animations without
+kind of cool idle animations without kind of like you know it sucks if you're
+kind of like you know it sucks if you're kind of sneaking up on an NPC and the
+kind of sneaking up on an NPC and the guy turns to sneeze and because he did
+guy turns to sneeze and because he did that you get detected right
+that you get detected right whereas when they were in search and in
+whereas when they were in search and in combat where they're sort of facing was
+combat where they're sort of facing was a lot more sorry their their head look
+a lot more sorry their their head look was a lot more deliberate than it was
+was a lot more deliberate than it was linked directly to the to the to the
+linked directly to the to the to the head look so for example to touch back
+head look so for example to touch back on what Alex asked earlier if they were
+on what Alex asked earlier if they were going upstairs or if they were looking
+going upstairs or if they were looking up then that the entire thing would tilt
+up then that the entire thing would tilt with them basically thanks so I think it
+with them basically thanks so I think it was someone over there waiting yeah just
+was someone over there waiting yeah just a quick question regarding the using the
+a quick question regarding the using the T's for audio yes I'm just curious if
+T's for audio yes I'm just curious if did that thing exist beforehand I was
+did that thing exist beforehand I was curious if you could have done the same
+curious if you could have done the same with maybe like a what do you call this
+with maybe like a what do you call this I'm trying to put a path line function
+I'm trying to put a path line function basically well but the problem with path
+basically well but the problem with path find is you need a nav mesh right so
+find is you need a nav mesh right so then if your path if you want to know if
+then if your path if you want to know if one guy in a balcony here's another guy
+one guy in a balcony here's another guy in a balcony he don't actually want the
+in a balcony he don't actually want the Pathfinder since you want some other dis
+Pathfinder since you want some other dis so for us are any any two areas that
+so for us are any any two areas that were linked whether it was sort of walk
+were linked whether it was sort of walk ably or vision
+ably or vision those were all linked in that way that
+those were all linked in that way that you saw so there it was that it was a
+you saw so there it was that it was a door but I sort of briefly mentioned
+door but I sort of briefly mentioned that you know when when Sam was on the
+that you know when when Sam was on the rooftop we knew that and we knew was
+rooftop we knew that and we knew was unreachable because all of the nodes
+unreachable because all of the nodes that were linked to him yeah just about
+that were linked to him yeah just about the difficulty balancing did you
+the difficulty balancing did you actually change the distances in the
+actually change the distances in the shapes of those objects already do you
+shapes of those objects already do you more like balance the time that it takes
+more like balance the time that it takes to actually detect everything okay quick
+to actually detect everything okay quick question following up the tease so let's
+question following up the tease so let's say when Sam was up on the rooftop and
+say when Sam was up on the rooftop and he would make a pretty significant noise
+he would make a pretty significant noise with the AI not really be able to hear
+with the AI not really be able to hear him because the T's were not connected
+him because the T's were not connected no no that's it it was connected right
+no no that's it it was connected right so like I said it was connected but the
+so like I said it was connected but the choke node that connected it was non
+choke node that connected it was non walkable but okay so they did that
+walkable but okay so they did that mattered for the NPC's to know that they
+mattered for the NPC's to know that they couldn't get up there but it was still
+couldn't get up there but it was still linked through teams essentially
+speaking of noise and detection and stuff like that I noticed in one of your
+stuff like that I noticed in one of your screenshots Sam was crouching next to
+screenshots Sam was crouching next to what looked like an air conditioner
+what looked like an air conditioner something like that did you model the
+something like that did you model the noise that he was making with ambient
+noise that he was making with ambient noise as well so there's a relative
+noise as well so there's a relative thing if you're in the middle of a you
+thing if you're in the middle of a you know Factory or crouching next to or you
+know Factory or crouching next to or you had your rainstorm for example was there
+had your rainstorm for example was there different thresholds of noise that's an
+different thresholds of noise that's an excellent question it's it's something
+excellent question it's it's something that we considered doing but we didn't
+that we considered doing but we didn't actually we didn't actually do it we had
+actually we didn't actually do it we had a couple of areas in the game when we
+a couple of areas in the game when we did some special stuff for that but it
+did some special stuff for that but it wasn't it was an engineering thing that
+wasn't it was an engineering thing that we did oh did you want me to make that
+we did oh did you want me to make that announcement for you so I have a special
+announcement for you so I have a special announcement from Dave if I don't know
+announcement from Dave if I don't know if Aaron canary is here but Dave has
+if Aaron canary is here but Dave has your laptop chargers
+should've come here and should've come hey if you had any kind of when one a I
+hey if you had any kind of when one a I actually found the player if there was
+actually found the player if there was any other system that actually sent that
+any other system that actually sent that awareness or perception to the other a
+awareness or perception to the other a eyes or if they all immediately knew
+eyes or if they all immediately knew about it no they I mean we had to
+about it no they I mean we had to propagate explicitly right so the idea
+propagate explicitly right so the idea was that if you yeah I didn't actually
+was that if you yeah I didn't actually talk about that but the idea is that
+talk about that but the idea is that even once you've got detected you were
+even once you've got detected you were only detected by that single NPC and he
+only detected by that single NPC and he had to propagate that detection somehow
+had to propagate that detection somehow to all of his buddy so either by gunfire
+to all of his buddy so either by gunfire or by yelling basically so that was
+or by yelling basically so that was their would they have to would they talk
+their would they have to would they talk to each other that would they have any
+to each other that would they have any kind of bonus to find Sam now that
+kind of bonus to find Sam now that someone has seen him and is engaged or
+someone has seen him and is engaged or are they all basically stuck in the same
+are they all basically stuck in the same awareness routine that they were already
+awareness routine that they were already in I'm not sure I completely understand
+in I'm not sure I completely understand the question but basically what would
+the question but basically what would happen is you know it would it would so
+happen is you know it would it would so you know let's say all of the NPC's are
+you know let's say all of the NPC's are in idle because nothing's happened yet
+in idle because nothing's happened yet and then you know the the one of them
+and then you know the the one of them spots Sam and he starts firing then
+spots Sam and he starts firing then because another NPC heard gunfire that
+because another NPC heard gunfire that would then transition him into combat
+would then transition him into combat essentially and then he would be in
+essentially and then he would be in combat against player and then you know
+combat against player and then you know like I mentioned earlier if you were
+like I mentioned earlier if you were able to outflank them and disappear they
+able to outflank them and disappear they would sort of go back and start
+would sort of go back and start searching for you kind of a follow up on
+searching for you kind of a follow up on that one how much how much did a a eyes
+that one how much how much did a a eyes behavior change if they knew that your
+behavior change if they knew that your character was there but you know just
+character was there but you know just weren't wondering because there's a lot
+weren't wondering because there's a lot of games that it's like I and the one I
+of games that it's like I and the one I think of immediately cuz I'm playing at
+think of immediately cuz I'm playing at the most recently sky rewards oh that
+the most recently sky rewards oh that was just the wind you've got a dead body
+was just the wind you've got a dead body right next to you clearly it was just
+right next to you clearly it was just the wind yeah that's that's a really
+the wind yeah that's that's a really good question yeah we did a lot for that
+good question yeah we did a lot for that actually so first of all we never ever
+actually so first of all we never ever let them return to sort of pure idle so
+let them return to sort of pure idle so like you know you wouldn't be in a
+like you know you wouldn't be in a gunfight one second then you know
+gunfight one second then you know munching on a sandwich or whatever the
+munching on a sandwich or whatever the next second but the the other thing we
+next second but the the other thing we actually had a difference between sort
+actually had a difference between sort of pre combat and post combat search so
+of pre combat and post combat search so in that one slide where I talked about
+in that one slide where I talked about barks the
+barks the this weird screen each other probably
+this weird screen each other probably nobody got but that was there was a
+nobody got but that was there was a piece of our liked entire barks matrix
+piece of our liked entire barks matrix was this huge kind of table that had all
+was this huge kind of table that had all that stuff in there sorry renetto guys
+that stuff in there sorry renetto guys did a fantastic job with that and
+did a fantastic job with that and basically got it it altered their
+basically got it it altered their behavior so they would investigate
+behavior so they would investigate differently and altered their dialogue
+differently and altered their dialogue so there was a difference between you
+so there was a difference between you know like like we think someone's here
+know like like we think someone's here you know he's made some somethings made
+you know he's made some somethings made a bunch of noise and we're looking
+a bunch of noise and we're looking around versus there's a pile of bodies
+around versus there's a pile of bodies or we you know there's a we've just been
+or we you know there's a we've just been in a gunfight so yeah absolutely we say
+in a gunfight so yeah absolutely we say that there were several stages we don't
+that there were several stages we don't think it you know nothing's here - there
+think it you know nothing's here - there might be something here - we know
+might be something here - we know there's something here - there's
+there's something here - there's something here that's trying to kill us
+something here that's trying to kill us that would ya even - there was something
+that would ya even - there was something trying to kill us and now we don't know
+trying to kill us and now we don't know where it is all right that's it thanks a
+where it is all right that's it thanks a lot guys
+lot guys [Applause]

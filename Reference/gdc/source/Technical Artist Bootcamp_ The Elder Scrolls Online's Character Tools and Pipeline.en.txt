@@ -1,0 +1,1194 @@
+hello I'm Richard cat and I'll be speaking today about the character
+speaking today about the character pipeline I worked on on at ZeniMax
+pipeline I worked on on at ZeniMax online studios for the Elder Scrolls
+online studios for the Elder Scrolls online I'm going to talk in detail about
+online I'm going to talk in detail about the character rigging pipeline in the
+the character rigging pipeline in the rigging tool the animation tools and
+rigging tool the animation tools and I'll wrap up the talk with a short
+I'll wrap up the talk with a short post-mortem from my perspective as a
+post-mortem from my perspective as a senior technical artist on a team of
+senior technical artist on a team of well over a hundred developers I'm going
+well over a hundred developers I'm going to compress six years of development
+to compress six years of development into about 60 minutes so it might go a
+into about 60 minutes so it might go a little quick and in contrast of a quick
+little quick and in contrast of a quick development cycle that Louise and Brian
+development cycle that Louise and Brian talked about earlier today this is a
+talked about earlier today this is a quite a long project that I've been on
+quite a long project that I've been on first let me tell you a little about
+first let me tell you a little about myself I received a bachelor's degree in
+myself I received a bachelor's degree in fine arts from the college of new jersey
+fine arts from the college of new jersey I started in the games industry in 1997
+I started in the games industry in 1997 over seventeen years ago back then it
+over seventeen years ago back then it wasn't just it wasn't enough just to be
+wasn't just it wasn't enough just to be a competent artist he also had to be a
+a competent artist he also had to be a fairly competent with some of the
+fairly competent with some of the technical aspects of game development as
+technical aspects of game development as well
+well my first industry job was at Sierra
+my first industry job was at Sierra online working on the MMO middle-earth
+online working on the MMO middle-earth online I worked at the ocher studio for
+online I worked at the ocher studio for about a year and a half until it was
+about a year and a half until it was shut down I was a 3d generalist I
+shut down I was a 3d generalist I touched every stage of a character from
+touched every stage of a character from concept the game I was doing concept
+concept the game I was doing concept model UV texture skinning animation and
+model UV texture skinning animation and technical art we were working in 3d
+technical art we were working in 3d studio max version 2.0 and the first
+studio max version 2.0 and the first release of max script and I built a
+release of max script and I built a layer system that max did not include
+layer system that max did not include back then max didn't have layers in
+back then max didn't have layers in version 2.0 and a sprite rendering
+version 2.0 and a sprite rendering system that cut time for getting a
+system that cut time for getting a character from max into the game from 8
+character from max into the game from 8 hours to 30 minutes my second job was at
+hours to 30 minutes my second job was at the 3do company in Redwood City
+the 3do company in Redwood City California where I worked on three Might
+California where I worked on three Might and Magic titles Crusaders of might
+and Magic titles Crusaders of might magic warriors of Might and Magic and
+magic warriors of Might and Magic and shifters the parenthetical of might
+shifters the parenthetical of might magics until the sequel
+magics until the sequel Warriors I started at 3do doing more the
+Warriors I started at 3do doing more the same thing I was doing it Sierra concept
+same thing I was doing it Sierra concept model UV texture skinning animation and
+model UV texture skinning animation and tech art within my first few months
+tech art within my first few months there I was promoted though I was
+there I was promoted though I was promoted to lead artist where I ended up
+promoted to lead artist where I ended up doing a lot less character work and a
+doing a lot less character work and a lot more of everything else UI design
+lot more of everything else UI design and scripting particle effects and
+and scripting particle effects and scripting and I was managing a team of
+scripting and I was managing a team of between four to eight artists plus
+between four to eight artists plus outsources most of what I've done since
+outsources most of what I've done since 3yo has been character technical art
+3yo has been character technical art over the past 11 years I've worked at
+over the past 11 years I've worked at z-axis visual concept secret level and
+z-axis visual concept secret level and the max online of those 11 years five of
+the max online of those 11 years five of those years working in maya and six
+those years working in maya and six years working in 3d studio max some of
+years working in 3d studio max some of the titles i shipped over that time
+the titles i shipped over that time x-men the official game Fantastic Four
+x-men the official game Fantastic Four rides the Silver Surfer and Ironman but
+rides the Silver Surfer and Ironman but I'm here to talk to you about my work on
+I'm here to talk to you about my work on the Elder Scrolls online Elder Scrolls
+the Elder Scrolls online Elder Scrolls online or ESO is a massively multiplayer
+online or ESO is a massively multiplayer online role-playing game MMORPG or just
+online role-playing game MMORPG or just MMO for short ESO is a progression to
+MMO for short ESO is a progression to online from the popular Elder Scrolls
+online from the popular Elder Scrolls single-player RPG series from Bethesda
+single-player RPG series from Bethesda Softworks birth of the game studio Elder
+Softworks birth of the game studio Elder Scrolls 3 morrowind Elder Scrolls for
+Scrolls 3 morrowind Elder Scrolls for Oblivion and elderscrolls v skyrim
+Oblivion and elderscrolls v skyrim Skyrim came out during ESO production I
+Skyrim came out during ESO production I started working on ESO in 2008 and the
+started working on ESO in 2008 and the game shipped in 2014 after numerous
+game shipped in 2014 after numerous style and design revamps
+ESO is an MMO Massa's is the operative word here we had ten playable races
+word here we had ten playable races multiplied by two genders mostly
+multiplied by two genders mostly variations on human or else we also had
+variations on human or else we also had to be stray tsa's the Khajiit or headed
+to be stray tsa's the Khajiit or headed humanoids and the argonians or lizard
+humanoids and the argonians or lizard headed humanoids so we didn't have a
+headed humanoids so we didn't have a huge variation in playable race Anatomy
+huge variation in playable race Anatomy but we did need to expose to the players
+but we did need to expose to the players a system for customizing their playable
+a system for customizing their playable characters physiques and faces we had a
+characters physiques and faces we had a very ambitious 90 yes nine zero unique
+very ambitious 90 yes nine zero unique monster rigs some of those rigs had as
+monster rigs some of those rigs had as many as 4 or 5 mesh variations these
+many as 4 or 5 mesh variations these humanoid monster rigs were built on a
+humanoid monster rigs were built on a custom rigging system and toolset we had
+custom rigging system and toolset we had been established as a 3d studio as a 3ds
+been established as a 3d studio as a 3ds max studio but most of the animators
+max studio but most of the animators came from a maya background early on we
+came from a maya background early on we wanted to avoid using biped as an
+wanted to avoid using biped as an animation framework so we built
+animation framework so we built proprietary animation rigs and tools
+proprietary animation rigs and tools which evolved over the first few years
+which evolved over the first few years of the project there were several major
+of the project there were several major limitations from tech we needed to
+limitations from tech we needed to render up to 200 players on screen in
+render up to 200 players on screen in our player-versus-player battles so the
+our player-versus-player battles so the characters needed to be a single draw
+characters needed to be a single draw call each for most of the project
+call each for most of the project DirectX 9 was our minimum spec so every
+DirectX 9 was our minimum spec so every conceivable potentially movable parts on
+conceivable potentially movable parts on a humanoid character needed to be
+a humanoid character needed to be influenced by 77 bones or less and there
+influenced by 77 bones or less and there would be no LEDs either geometry or
+would be no LEDs either geometry or skeleton every different worm the formal
+skeleton every different worm the formal part had to be accounted for in the 77
+part had to be accounted for in the 77 bone limit hair loincloths tail shoulder
+bone limit hair loincloths tail shoulder armor eyeballs weapons passes etc
+armor eyeballs weapons passes etc originally monsters and NPCs were going
+originally monsters and NPCs were going to be limited to 56 bones but that
+to be limited to 56 bones but that constraint was removed pretty early on
+constraint was removed pretty early on and everything was allowed up for the 77
+and everything was allowed up for the 77 bone limit
+we were tied to 3ds max 2010 for the entirety of production 3ds max has no
+entirety of production 3ds max has no useful referencing for animation there
+useful referencing for animation there are two referencing systems and max but
+are two referencing systems and max but neither one is suitable for character
+neither one is suitable for character animation xrefs either replace your
+animation xrefs either replace your animation controllers with an xref
+animation controllers with an xref controller for emerging copies of source
+controller for emerging copies of source controllers with no updates and no
+controllers with no updates and no hierarchy changes possible containers
+hierarchy changes possible containers still seem like a work in progress and
+still seem like a work in progress and in 2010 I don't think they've been
+in 2010 I don't think they've been updated much since they were pretty
+updated much since they were pretty awkward to use with animated characters
+so we needed a system that embedded rigs in each max scene and that could be
+in each max scene and that could be updated via batch there's a couple of
+updated via batch there's a couple of major disadvantages with this custom
+major disadvantages with this custom animation scene setups get blown away
+animation scene setups get blown away when a rig is updated and embedded rigs
+when a rig is updated and embedded rigs and scenes easily become out of sync the
+and scenes easily become out of sync the latest master rig for a character one
+latest master rig for a character one animator Dave Sunita authored a rough
+animator Dave Sunita authored a rough animation rig before I was hired which
+animation rig before I was hired which we used as a starting point and that's
+we used as a starting point and that's what I just said the 3ds max scene that
+what I just said the 3ds max scene that contained the rig already had acquired
+contained the rig already had acquired tons of crust cost our orphan custom
+tons of crust cost our orphan custom attributes unused materials and
+attributes unused materials and animation controllers one thing max is
+animation controllers one thing max is good at is accumulating this craft but
+good at is accumulating this craft but it's bad as allowing you to clean it out
+it's bad as allowing you to clean it out once contaminated so from the start we
+once contaminated so from the start we knew we needed a way to build brand-new
+knew we needed a way to build brand-new rigs and fresh uncontaminated scenes I
+started by just disassembling and script to fiying the rig I broke down the
+to fiying the rig I broke down the animation rig in the modules base torso
+animation rig in the modules base torso legs arms hands head robe and cape and
+legs arms hands head robe and cape and tail
+at the same time I created a template skeleton guide rig a skeleton with
+skeleton guide rig a skeleton with freely movable joint locations the guide
+freely movable joint locations the guide rig could be saved out to an XML file
+rig could be saved out to an XML file and rebuilt in the scene from the XML
+and rebuilt in the scene from the XML file each module in the animation rig
+file each module in the animation rig then built along the guide rig locations
+once the initial generic humanoid template rig was set up rigging and
+template rig was set up rigging and humanoid was as simple as duplicating
+humanoid was as simple as duplicating the template skeleton adjusting joint
+the template skeleton adjusting joint locations clicking the build rig button
+locations clicking the build rig button and then skinning it about half the
+and then skinning it about half the animations in the game about five
+animations in the game about five thousand out of about ten thousand we're
+thousand out of about ten thousand we're authored on the standard humanoid rig
+authored on the standard humanoid rig for player characters NPCs and some
+for player characters NPCs and some humanoid monsters on the surface it's
+humanoid monsters on the surface it's pretty easy to sit down and start
+pretty easy to sit down and start animating with but it has a deep array
+animating with but it has a deep array of options baked into the basic rig or
+of options baked into the basic rig or spine only had two bones because of our
+spine only had two bones because of our low bone limit it was SK only it had
+low bone limit it was SK only it had options for rotational space switching
+options for rotational space switching to the parent body or route you rotate
+to the parent body or route you rotate the abdomen and the chest could
+the abdomen and the chest could optionally main follow it or maintain
+optionally main follow it or maintain its orientation relative to the hips or
+its orientation relative to the hips or the world we also had switches on many
+the world we also had switches on many controls in the rig so the animators
+controls in the rig so the animators could animate using Max's tcd quaternion
+could animate using Max's tcd quaternion controllers instead of the rigs default
+controllers instead of the rigs default Euler XYZ controllers the head defaults
+Euler XYZ controllers the head defaults to a named system but it can we switch
+to a named system but it can we switch to animate an FK or can be switched to n
+to animate an FK or can be switched to n made an FK in aim mode we have an auto
+made an FK in aim mode we have an auto neck that inherits about half of the
+neck that inherits about half of the heads orientation the auto deck has an
+heads orientation the auto deck has an XY switch for forward-facing necks in
+XY switch for forward-facing necks in the case of humanoids with extremely
+the case of humanoids with extremely hunched shoulders or quadrupeds the eyes
+hunched shoulders or quadrupeds the eyes have independent look at target that can
+have independent look at target that can follow the head or world in an FK
+follow the head or world in an FK override the head aim and head and neck
+override the head aim and head and neck FK controls have space switching and
+FK controls have space switching and will return Ian's switching like the
+will return Ian's switching like the torso
+our legs Rik only but that generally wasn't a problem the foot control could
+wasn't a problem the foot control could be switched from root space to body
+be switched from root space to body space in the case the character needed
+space in the case the character needed to leave the ground we have a hip sludge
+to leave the ground we have a hip sludge control to tweak the femur and hip joint
+control to tweak the femur and hip joint the foot has a bunch of driven
+the foot has a bunch of driven attributes roll it ball heel toe tip a
+attributes roll it ball heel toe tip a twist with a sliding pivot and a few
+twist with a sliding pivot and a few different tilts the arms were built with
+different tilts the arms were built with fake FK the bones thought they're in AI
+fake FK the bones thought they're in AI K at all times but the FK hand control
+K at all times but the FK hand control was an AI K control that was a child of
+was an AI K control that was a child of the floor on control as was the elbow
+the floor on control as was the elbow pull vector control when we switched to
+pull vector control when we switched to ika the bones constraints would blend
+ika the bones constraints would blend between different sets of controls
+there's an AI kfk snap built-ins custom attribute on the wrist config
+custom attribute on the wrist config node like other modules the arm controls
+node like other modules the arm controls have space switching an oil or
+have space switching an oil or quaternion switching the hands have two
+quaternion switching the hands have two layers of finger attributes a set of
+layers of finger attributes a set of meta properties and a set of finer per
+meta properties and a set of finer per digit properties all the keyable
+digit properties all the keyable channels lived on the config bar but had
+channels lived on the config bar but had some two-way wires so we could so they
+some two-way wires so we could so they could be posed in the viewport as well
+could be posed in the viewport as well we use paul neill penn attribute holder
+we use paul neill penn attribute holder on the config bar it made it easy to
+on the config bar it made it easy to bake save poses into the rig at build
+bake save poses into the rig at build time for most of the project our player
+time for most of the project our player characters were going to be able to
+characters were going to be able to equip capes
+equip capes so our rigs had a cape module the tails
+so our rigs had a cape module the tails for the beast races were originally
+for the beast races were originally going to just follow the Cape animations
+going to just follow the Cape animations then we added neutrally exclusive tails
+then we added neutrally exclusive tails so the character could either have
+so the character could either have something skinned to the cape bones or
+something skinned to the cape bones or the tail bones but not at the same time
+the tail bones but not at the same time with the capes unlocked from the tails
+with the capes unlocked from the tails we still couldn't move the capes very
+we still couldn't move the capes very much because we still have the support
+much because we still have the support weapon docking on the characters backs
+weapon docking on the characters backs eventually we cut capes to reclaim some
+eventually we cut capes to reclaim some texture atlas space for high resolution
+texture atlas space for high resolution weapons in first-person camera view but
+weapons in first-person camera view but our tails are still driven by phantom
+our tails are still driven by phantom cape controls in the rig they have some
+cape controls in the rig they have some space switching to follow
+space switching to follow you follow the back or pelvis depending
+you follow the back or pelvis depending on whether it's a caper tail there's
+on whether it's a caper tail there's also an eye que mode for the Cape but I
+also an eye que mode for the Cape but I don't think it ever got any use from the
+don't think it ever got any use from the player animations one feature that did
+player animations one feature that did get a lot of use of the procedural wave
+get a lot of use of the procedural wave settings to drive a looping sine wave
+settings to drive a looping sine wave like motion with a couple of sliders as
+like motion with a couple of sliders as any self-respecting RPG does we have
+any self-respecting RPG does we have robes and dresses unfortunately we have
+robes and dresses unfortunately we have no game side simulation so and we only
+no game side simulation so and we only had four bones allocated to the robe the
+had four bones allocated to the robe the animators basically just wanted it to
+animators basically just wanted it to stay out of their way so a large
+stay out of their way so a large majority of the robe animation was
+majority of the robe animation was driven automatically by the leg motion
+driven automatically by the leg motion then the animators could clean up any
+then the animators could clean up any outstanding issues with the FK controls
+outstanding issues with the FK controls that's had on top of the automation this
+that's had on top of the automation this is how we ended up driving the robe one
+is how we ended up driving the robe one bone in the front between the shins one
+bone in the front between the shins one bone in the back between the calves and
+bone in the back between the calves and one on each sides of the lower legs the
+one on each sides of the lower legs the front and back bones maintained a
+front and back bones maintained a position between the lower legs oriented
+position between the lower legs oriented to the plane between the lower legs and
+to the plane between the lower legs and force outward when necessary to preserve
+force outward when necessary to preserve volume the side bones then slid around
+volume the side bones then slid around the calf centers to maintain volume
+the calf centers to maintain volume there the actual lower legs themselves
+there the actual lower legs themselves weren't weighted to the robe geometry
+the weapon controls can be docked at several locations on the character's
+several locations on the character's back and hips and there's an eye casus
+back and hips and there's an eye casus and built-ins built in to plant the
+and built-ins built in to plant the weapons on the ground but humanoids
+weapons on the ground but humanoids weren't the only characters in our game
+The Watcher is a take on the classic fantasy beholder character a giant
+fantasy beholder character a giant flying eyeball but the Watchers most
+flying eyeball but the Watchers most obvious feature are 15 arms three main
+obvious feature are 15 arms three main arms with leaf like mittens for
+arms with leaf like mittens for mid-sized tentacles and eight smaller
+mid-sized tentacles and eight smaller minor tentacles the main arms had
+minor tentacles the main arms had independent controls for F ki k and
+independent controls for F ki k and could also be driven procedurally with
+could also be driven procedurally with the same system we used on humanoid
+the same system we used on humanoid tails the middle tentacles were driven
+tails the middle tentacles were driven mainly by the ambient procedural motion
+mainly by the ambient procedural motion with an FK layer on top to refine the
+with an FK layer on top to refine the motion and fix collisions
+motion and fix collisions the eight minor tentacles were all
+the eight minor tentacles were all driven by a single set of procedural
+driven by a single set of procedural settings with a phased setting to keep
+settings with a phased setting to keep them all different different shapes at
+them all different different shapes at any given frame and of course like the
+any given frame and of course like the mid-size tentacle the minor ones had an
+mid-size tentacle the minor ones had an FK tweak layer on top as well
+we had a snake module that we use for various creatures a plain old snake
+various creatures a plain old snake critter a giant snake monster was
+critter a giant snake monster was pictured that had a torso section
+pictured that had a torso section that'll we stay vertical an ice race
+that'll we stay vertical an ice race that look like a flying snake skeleton
+that look like a flying snake skeleton that sort of swam through the air and
+that sort of swam through the air and two different Nagas like monsters the
+two different Nagas like monsters the two arms Lamia and the four armed
+two arms Lamia and the four armed harvester it took a lot of iteration to
+harvester it took a lot of iteration to iron out the kinks and the snake rig
+iron out the kinks and the snake rig there's a spline I can understand is has
+there's a spline I can understand is has no consistency for up vectors so I only
+no consistency for up vectors so I only use the position position from the
+use the position position from the spline acade to drive the ore and drove
+spline acade to drive the ore and drove the orientation with another layer of
+the orientation with another layer of helper nodes but it was easy to flip
+helper nodes but it was easy to flip those as well when they look at targets
+those as well when they look at targets turn 90 degrees on any axis so we ended
+turn 90 degrees on any axis so we ended up subdividing the chain by adding more
+up subdividing the chain by adding more point helpers constrained between the
+point helpers constrained between the bones on the spline I K so that we could
+bones on the spline I K so that we could twist the controls at least 360 degrees
+twist the controls at least 360 degrees before the bones started flipping when
+before the bones started flipping when our second winged demon type character
+our second winged demon type character came up the animator working on it
+came up the animator working on it showed me a God award three
+showed me a God award three behind-the-scenes video on YouTube the
+behind-the-scenes video on YouTube the rig featured in the video was for a
+rig featured in the video was for a Manticore the wings on the creature had
+Manticore the wings on the creature had a single master billowing control that
+a single master billowing control that drove the shape of the wing membrane I
+drove the shape of the wing membrane I built something similar for a wing rig
+built something similar for a wing rig but the wings on our gargoyle and
+but the wings on our gargoyle and grievous Twilight characters only had
+grievous Twilight characters only had about 40 polygons so the results weren't
+about 40 polygons so the results weren't as awesome as they could have been
+we ended up with two different kinds of quadrupedal eggs predators like bears
+quadrupedal eggs predators like bears wolves and cats have four legs with
+wolves and cats have four legs with three short hand segments a majority of
+three short hand segments a majority of the limb is humerus and forearm forearm
+the limb is humerus and forearm forearm the module we used for those had an IKE
+the module we used for those had an IKE a chain from shoulder to wrist like
+a chain from shoulder to wrist like similar to a biped hoofed animals can
+similar to a biped hoofed animals can have much longer carpool or tarsal
+have much longer carpool or tarsal segments and their knees sometimes don't
+segments and their knees sometimes don't even come below the bottom of their
+even come below the bottom of their torsos three or four bone I catch aims
+torsos three or four bone I catch aims are unpredictable and Max released so
+are unpredictable and Max released so the solution I used for these kinds of
+the solution I used for these kinds of limbs incorporated to Bonica chains into
+limbs incorporated to Bonica chains into a larger hole the module for those limbs
+a larger hole the module for those limbs and some predator hind limbs had an IKE
+and some predator hind limbs had an IKE a chain that started at the knee and
+a chain that started at the knee and ended between the carpals and phalanges
+ended between the carpals and phalanges the wrist or ankle was in the middle of
+the wrist or ankle was in the middle of the chain the thigh then had a tog
+the chain the thigh then had a tog toggle Bowl aim toward the ika control
+toggle Bowl aim toward the ika control on the ground there was a need tweak
+on the ground there was a need tweak control to get some specific shapes and
+control to get some specific shapes and stretch the leg a little bit which the
+stretch the leg a little bit which the animators tended to abuse quadrupeds
+animators tended to abuse quadrupeds torsos could switch between ika and FK
+torsos could switch between ika and FK depending on the shape the animators
+depending on the shape the animators wanted to achieve an end and in
+wanted to achieve an end and in animation the body route defaulted to a
+animation the body route defaulted to a position near the center of mass but
+position near the center of mass but could slide up and down the length of
+could slide up and down the length of the torso so it could pivot anywhere
+the torso so it could pivot anywhere from the neck to the tail the rig's
+from the neck to the tail the rig's themselves are the products of a suite
+themselves are the products of a suite of tools authored to create and edit the
+of tools authored to create and edit the rigs the pipeline looks something like
+rigs the pipeline looks something like this a master xml metadata file that
+this a master xml metadata file that contains with the locations of each
+contains with the locations of each character's specific data relative to
+character's specific data relative to itself the master files called rig build
+itself the master files called rig build bed XML each character had about ten XML
+bed XML each character had about ten XML files and one clean machine just the
+files and one clean machine just the mesh no crust when we build a rig it
+mesh no crust when we build a rig it looks up the character in the rig build
+looks up the character in the rig build metadata file and finds a character's
+metadata file and finds a character's rig config file which tells us what
+rig config file which tells us what modules to build for that character for
+modules to build for that character for instance we'll build the guide skeleton
+instance we'll build the guide skeleton first the config file will just say yes
+first the config file will just say yes bill the guide skeleton
+bill the guide skeleton the scripts look up the locations the
+the scripts look up the locations the guide skills and XML on the rig build
+guide skills and XML on the rig build meta file and then runs the guide
+meta file and then runs the guide skeleton XML through some scripts that
+skeleton XML through some scripts that build the skeleton in the scene then we
+build the skeleton in the scene then we go back to the config file to see what
+go back to the config file to see what other modules to build for this rig look
+other modules to build for this rig look up the location of the XML data for each
+up the location of the XML data for each relevant module and build the module
+relevant module and build the module from the XML data after initially
+from the XML data after initially setting up and building a rig once the
+setting up and building a rig once the rig could be constructed from these few
+rig could be constructed from these few components in just a few seconds this is
+components in just a few seconds this is the tool we use to build the rigs the
+the tool we use to build the rigs the character list is built from the rig
+character list is built from the rig build XML file and when you select the
+build XML file and when you select the character it loads character specific
+character it loads character specific rig config file that can describe its
+rig config file that can describe its what what to build for this character
+what what to build for this character which modules the build the left pane is
+which modules the build the left pane is a list of rig modules in our library and
+a list of rig modules in our library and the right pane is a view of selected
+the right pane is a view of selected characters rig config.xml telling the
+characters rig config.xml telling the tool which modules to build when we
+tool which modules to build when we click build the tool collects the list
+click build the tool collects the list of modules for this character to build
+of modules for this character to build for this character and sends the list to
+for this character and sends the list to a max rep function that builds each
+a max rep function that builds each module in order along the guide skeleton
+module in order along the guide skeleton and when it's done it deletes the guide
+and when it's done it deletes the guide skeleton this is a simple max UI floater
+skeleton this is a simple max UI floater for editing the guide skeleton also
+for editing the guide skeleton also known as the proportion skeleton it
+known as the proportion skeleton it builds and saves the guide skeleton and
+builds and saves the guide skeleton and has tools for mirroring location to
+has tools for mirroring location to locator positions aligning locators and
+locator positions aligning locators and globally scaling the rig via translation
+globally scaling the rig via translation it has some editing functionality but we
+it has some editing functionality but we always just added joints in the text
+always just added joints in the text editor position the joints and Max and
+editor position the joints and Max and REE save the XML also builds and saves
+REE save the XML also builds and saves the mesh skeleton to verify hierarchy
+the mesh skeleton to verify hierarchy and for editing additional export data
+so we lay out the skeleton set up the rig code additional bits is needed and
+rig code additional bits is needed and build the rig some nodes get
+build the rig some nodes get automatically placed in layers and sets
+automatically placed in layers and sets but many don't so we sort all the nodes
+but many don't so we sort all the nodes and - nicely named layers sort controls
+and - nicely named layers sort controls into various selection sets and adjust
+into various selection sets and adjust the size and location of any controls
+the size and location of any controls that are hard to see now we want to save
+that are hard to see now we want to save all that sorting and cleanup so we don't
+all that sorting and cleanup so we don't have to do it ever again that's where
+have to do it ever again that's where this tool comes in the unbuild rig tool
+this tool comes in the unbuild rig tool it shows another view of the characters
+it shows another view of the characters XML files from the rig build ed XML
+XML files from the rig build ed XML metafile it has perforce integration so
+metafile it has perforce integration so we can check out files click Save and
+we can check out files click Save and resubmit them now the rig is built and
+resubmit them now the rig is built and we need to skin the mesh to follow it
+we need to skin the mesh to follow it some monsters only have a single mesh
+some monsters only have a single mesh and that's it some have multiple mesh
+and that's it some have multiple mesh barians and our dynamic characters are
+barians and our dynamic characters are playable races and other humanoids there
+playable races and other humanoids there are a whole a whole nother level of
+are a whole a whole nother level of crazy the main interface of the skin
+crazy the main interface of the skin weights here shows visible geometry in
+weights here shows visible geometry in the scene and will tell you if each mesh
+the scene and will tell you if each mesh has a skin modifier and shows you each
+has a skin modifier and shows you each each weight files per for status after
+each weight files per for status after we skinned the mesh this panel lets us
+we skinned the mesh this panel lets us save the skin out to an XML file with
+save the skin out to an XML file with weights per vertex it has per force
+weights per vertex it has per force integration and we can sync edit add
+integration and we can sync edit add submit and revert the weights and xml
+submit and revert the weights and xml files right from the panel when we
+files right from the panel when we rebuild the rig assuming the mesh
+rebuild the rig assuming the mesh doesn't get updated the saved weights
+doesn't get updated the saved weights file will get applied to the mesh and
+file will get applied to the mesh and that only works if the meshes vertex
+that only works if the meshes vertex order or vertex count don't change
+however the weight file also contains enough vertex and face info to rebuild a
+enough vertex and face info to rebuild a facsimile of the original mesh when the
+facsimile of the original mesh when the mesh topology has to change we use
+mesh topology has to change we use another mode in this tool to get the old
+another mode in this tool to get the old weights onto the new geometry the tool
+weights onto the new geometry the tool rebuilds the original mesh from the
+rebuilds the original mesh from the saved XML skin weights file and loads
+saved XML skin weights file and loads the per vertex weights onto the new
+the per vertex weights onto the new temporary mesh it applies Max's skin
+temporary mesh it applies Max's skin wrap modifier to the target mesh
+wrap modifier to the target mesh interpolates the weights from the source
+interpolates the weights from the source to temporary mesh and then converts the
+to temporary mesh and then converts the skin wrap to a skin modifier then it
+skin wrap to a skin modifier then it deletes the temporary mesh now we can
+deletes the temporary mesh now we can clean up anything that's been transfer
+clean up anything that's been transfer from the skin
+from the skin rap well and resave the xml with the
+rap well and resave the xml with the correct per vertex waves that was what
+correct per vertex waves that was what that slide was like most games we have a
+that slide was like most games we have a four influence per vertex limit on skin
+four influence per vertex limit on skin weights I don't like to work with the
+weights I don't like to work with the skins preset to a four influence limit I
+skins preset to a four influence limit I leave it at the twenty influence default
+leave it at the twenty influence default because I don't want max that matically
+because I don't want max that matically remove influence as well as I'm working
+remove influence as well as I'm working so ever weight cleaner utility which
+so ever weight cleaner utility which removes weights below threshold and
+removes weights below threshold and removes the smallest influences above
+removes the smallest influences above the limit of for our dynamic character
+the limit of for our dynamic character part system allows players to wear a
+part system allows players to wear a huge assortment of mixed armor sets so
+huge assortment of mixed armor sets so the geometry is broken up into body
+the geometry is broken up into body parts eighths of the basic body that's
+parts eighths of the basic body that's torso heads upper arms lower arms hands
+torso heads upper arms lower arms hands upper legs lower legs and feet another
+upper legs lower legs and feet another half doesn't deformable clothing bits
+half doesn't deformable clothing bits each of those had about a dozen
+each of those had about a dozen variations per gender at launch but
+variations per gender at launch but we've had a mandate since launch to add
+we've had a mandate since launch to add more silhouette variation in the armor
+more silhouette variation in the armor so we're up to about 30 variants on some
+so we're up to about 30 variants on some body sections now on top of that we have
+body sections now on top of that we have a metric ton of hair and adornment
+a metric ton of hair and adornment variations and dozens of rigid armor
+variations and dozens of rigid armor attachments for all of this to work we
+attachments for all of this to work we needed to synchronize the seams between
+needed to synchronize the seams between all these parts skin weights and vertex
+all these parts skin weights and vertex normals the normals needed to be
+normals the normals needed to be contiguous for shading purposes and Max
+contiguous for shading purposes and Max has poor support for vertex normals in
+has poor support for vertex normals in general the base editable poly doesn't
+general the base editable poly doesn't have any support to view or edit vertex
+have any support to view or edit vertex normals max traditionally derived vertex
+normals max traditionally derived vertex normals from its face smoothing groups
+normals from its face smoothing groups the editable poly does support vertex
+the editable poly does support vertex normals though but you need to edit them
+normals though but you need to edit them in an edit normal modifier Caleta then
+in an edit normal modifier Caleta then collapse it down so our cropping normals
+collapse it down so our cropping normals tool needed to apply edit normal
+tool needed to apply edit normal modifiers to the source and target
+modifiers to the source and target meshes copy the normals and then
+meshes copy the normals and then collapse them down back to weights the
+collapse them down back to weights the dynamic character meshes actually each
+dynamic character meshes actually each have two sets of weights the animation
+have two sets of weights the animation skeleton bone weights and the second set
+skeleton bone weights and the second set of weights for customizing character's
+of weights for customizing character's body shape and facial features both sets
+body shape and facial features both sets had to have their scene
+had to have their scene match up exactly every forearm has to
+match up exactly every forearm has to have the same exact weights where it
+have the same exact weights where it meets the upper arms and all the upper
+meets the upper arms and all the upper arms had to have the same exact weights
+arms had to have the same exact weights at the floor arms at the same team we
+at the floor arms at the same team we created a discman templates of seam
+created a discman templates of seam locations to apply weights to multiple
+locations to apply weights to multiple targets at once every studio a workout
+targets at once every studio a workout ate up creating a variation of this tool
+ate up creating a variation of this tool to do batches and max or Maya scenes it
+to do batches and max or Maya scenes it takes a list of file a chunk of maxpro
+takes a list of file a chunk of maxpro code to run on each file with an
+code to run on each file with an optional resave after the script
+optional resave after the script executes it runs everything through a
+executes it runs everything through a try/catch construct to avoid batches
+try/catch construct to avoid batches ending prematurely and saves out a log
+ending prematurely and saves out a log file with success or fail results to
+file with success or fail results to review after long batches we ended up
+review after long batches we ended up doing a lot with max with custom
+doing a lot with max with custom attributes but max doesn't provide much
+attributes but max doesn't provide much for viewing or editing the contents of a
+for viewing or editing the contents of a custom attributes parameters this tool
+custom attributes parameters this tool recursos through each object and
+recursos through each object and modifiers and lets us view or edit data
+modifiers and lets us view or edit data we can directly enter values for simple
+we can directly enter values for simple types or elements of complex types like
+types or elements of complex types like vectors or matrices and pick objects for
+vectors or matrices and pick objects for max object tabs and it automatically
+max object tabs and it automatically inserts node transform monitors for weak
+inserts node transform monitors for weak referencing it can grow or shrink
+referencing it can grow or shrink parameter tabs - we also have a suite of
+parameter tabs - we also have a suite of tools that face the artists and
+tools that face the artists and animators the pipeline started simple
+animators the pipeline started simple and there was ever time or reason to
+and there was ever time or reason to expand it much further
+expand it much further later the users would just add a startup
+later the users would just add a startup script path and three studio max
+script path and three studio max preferences it was a single startup
+preferences it was a single startup script in the target path and it built
+script in the target path and it built the tools menu that's in max at startup
+the tools menu that's in max at startup and that was about all there was to it
+and that was about all there was to it the tools all ran from network path I
+the tools all ran from network path I would develop them in a source
+would develop them in a source controlled local folder and push them to
+controlled local folder and push them to a user run network path when they were
+a user run network path when they were ready the tools that didn't have any DLL
+ready the tools that didn't have any DLL or other binary components so we never
+or other binary components so we never had any network access conflicts the
+had any network access conflicts the coolest thing was that I could fix bugs
+coolest thing was that I could fix bugs and update scripts on the network and
+and update scripts on the network and then the artist could rerun the tools
+then the artist could rerun the tools from the menu and see the updates
+from the menu and see the updates without even needing to restart max
+the animators use this tool daily the animation transfer panel it allows the
+animation transfer panel it allows the animators to update rigs and single
+animators to update rigs and single themes or multiple teams since our rigs
+themes or multiple teams since our rigs have to live in each Maxine and it wraps
+have to live in each Maxine and it wraps up the wraps the functionality of Max's
+up the wraps the functionality of Max's xaf or XML animation format but with
+xaf or XML animation format but with additional custom data that this tool
+additional custom data that this tool packed into xaf files perforce status is
+packed into xaf files perforce status is integrated into the UI so animators can
+integrated into the UI so animators can see what's up the date or who has what
+see what's up the date or who has what file checked out at a glance and they
+file checked out at a glance and they can sync and check out max and xaf files
+the rigs have data-driven display panels for toggling visibility of controls in
+for toggling visibility of controls in the rig they were designed to take up as
+the rig they were designed to take up as little screen real estate as possible
+little screen real estate as possible it's offered as an XML file and that
+it's offered as an XML file and that file is encoded and stored in the rig
+file is encoded and stored in the rig when the rig is built the panel
+when the rig is built the panel interprets the encoded data and it
+interprets the encoded data and it constructs the panel on demand the same
+constructs the panel on demand the same tech is used for other panels for
+tech is used for other panels for visibility of mesh body parts and for
+visibility of mesh body parts and for trick for dress trajectories the
+trick for dress trajectories the animators use a pose tool to save load
+animators use a pose tool to save load and mirror single poses the poses are
+and mirror single poses the poses are saved in an XML file the tool has
+saved in an XML file the tool has options for working in world space or
+options for working in world space or local space whole character selection
+local space whole character selection and has perforce integration to show the
+and has perforce integration to show the status of the post files and sync edit
+status of the post files and sync edit and submit them into the Depot 3d studio
+and submit them into the Depot 3d studio max has animation layers they were
+max has animation layers they were introduced around max 2009 but for my
+introduced around max 2009 but for my first six months on the project we were
+first six months on the project we were working in max release 9 which predated
+working in max release 9 which predated the animation layers we use Max's freeze
+the animation layers we use Max's freeze transform system to create 0 default
+transform system to create 0 default values on controls it's a macro script
+values on controls it's a macro script included with Max for many years it
+included with Max for many years it creates a list controller on the
+creates a list controller on the position of rotation tracks and stuff
+position of rotation tracks and stuff the current transform into controllers
+the current transform into controllers at the first index of the list labelled
+at the first index of the list labelled frozen and then creates new controllers
+frozen and then creates new controllers the second index labeled 0 and sets as
+the second index labeled 0 and sets as default in my I would just build up a
+default in my I would just build up a hierarchy of empty transform however our
+hierarchy of empty transform however our tools made assumptions about this frozen
+tools made assumptions about this frozen transform list controller paradigm when
+transform list controller paradigm when controllers when animators needed to use
+controllers when animators needed to use animation Max's Anna when
+animation Max's Anna when with when animators tried to use Max's
+with when animators tried to use Max's animation layers it would collapse
+animation layers it would collapse everything blow away the frozen
+everything blow away the frozen transform list controllers and break our
+transform list controllers and break our rigs and end tools so we brewed up our
+rigs and end tools so we brewed up our own version of the animation layers that
+own version of the animation layers that respected the freeze transform list
+respected the freeze transform list controllers the animation layer system
+controllers the animation layer system kept track of additional lists
+kept track of additional lists controllers and layer membership via an
+controllers and layer membership via an XML file embedded in a single string
+XML file embedded in a single string property on a custom attribute
+property on a custom attribute collapsing the layers worked perky for
+collapsing the layers worked perky for cable actress for cable tracks and
+cable actress for cable tracks and distributed the values as one would
+distributed the values as one would expect but since they were just more
+expect but since they were just more lists controllers animators could
+lists controllers animators could replace default layer controllers with
+replace default layer controllers with non keyable controllers a noise
+non keyable controllers a noise controller for jitter or position can
+controller for jitter or position can straight to fake a hand holding a
+straight to fake a hand holding a character's head then the animator could
+character's head then the animator could bake the results down into keys if they
+bake the results down into keys if they wished the animation transfer panel
+wished the animation transfer panel needed to peek into xaf files during
+needed to peek into xaf files during load read some custom data into the from
+load read some custom data into the from the file to see if there were animation
+the file to see if there were animation layers in the saved xif if there if
+layers in the saved xif if there if there were it would need to build out
+there were it would need to build out the additional animation layer
+the additional animation layer controllers before loading the animation
+controllers before loading the animation data into the rig the dynamics panel was
+data into the rig the dynamics panel was originally created with the intent of
+originally created with the intent of breaking characters with three studio
+breaking characters with three studio maxes have a reactor dynamic system it
+maxes have a reactor dynamic system it allowed the animators to group rig bones
+allowed the animators to group rig bones into separately definable sets of
+into separately definable sets of animatable controls the key frame
+animatable controls the key frame independent of hierarchy and then blend
+independent of hierarchy and then blend to and from the normal rig behavior
+to and from the normal rig behavior ultimately it did see some creative uses
+ultimately it did see some creative uses but mainly for key framing instead of
+but mainly for key framing instead of reactor dynamics our tools weren't tied
+reactor dynamics our tools weren't tied to specific object names but they were
+to specific object names but they were tied to specific set and layer names
+tied to specific set and layer names which rolls which were shared across all
+which rolls which were shared across all rigs if you merge in objects from
+rigs if you merge in objects from another file in 3d studio max layers
+another file in 3d studio max layers with the same names get combined and
+with the same names get combined and selection sets don't merge at all the
+selection sets don't merge at all the namespace tool led animators define a
+namespace tool led animators define a Maya like name space for up to four
+Maya like name space for up to four characters in the single scene it
+characters in the single scene it switches a character out of namespace
+switches a character out of namespace mode so they can perform tool operations
+mode so they can perform tool operations like low to save animation or export
+like low to save animation or export it was a little clumsy but was a quick
+it was a little clumsy but was a quick solution around system ecstasy s
+solution around system ecstasy s systemic problems and the tools and rigs
+systemic problems and the tools and rigs that would take too long to fix 3ds max
+that would take too long to fix 3ds max is built in ghosting only ghosts the
+is built in ghosting only ghosts the currently selected mesh and the options
+currently selected mesh and the options are only accessible in a tab in the
+are only accessible in a tab in the preferences the ghosting tool allows for
+preferences the ghosting tool allows for color and alpha settings interval
+color and alpha settings interval settings forward or backward ghosting
+settings forward or backward ghosting and of course any specified mesh they
+and of course any specified mesh they just it uses 3d studio max as point
+just it uses 3d studio max as point cache modifier which is surprisingly
+cache modifier which is surprisingly Responder surprisingly responsive with
+Responder surprisingly responsive with five to ten meshes I mentioned earlier
+five to ten meshes I mentioned earlier about our built in parallel oiler and
+about our built in parallel oiler and TCB rotation tracks on many of our rig
+TCB rotation tracks on many of our rig controls this is a tool to convert the
+controls this is a tool to convert the Euler to quaternion and vice-versa
+Euler to quaternion and vice-versa either one to one key conversion or
+either one to one key conversion or baked out a keeper frame of an animator
+baked out a keeper frame of an animator found weird wobbly wheel or gambling
+found weird wobbly wheel or gambling something they've already animated it's
+something they've already animated it's pretty easy to convert a time segment to
+pretty easy to convert a time segment to TCB keys and smooth out their arcs our
+TCB keys and smooth out their arcs our character team had a subgroup devoted to
+character team had a subgroup devoted to character customization one of the
+character customization one of the character ARS gave me a some
+character ARS gave me a some specifications for a rig to allow the
+specifications for a rig to allow the other customization artists to sculpt
+other customization artists to sculpt body and face shapes I worked the rig
+body and face shapes I worked the rig into our pipeline it gets built just
+into our pipeline it gets built just like an animation rig even though it has
+like an animation rig even though it has a different set of requirements and a
+a different set of requirements and a different user base our character
+different user base our character artists are good at what they do but on
+artists are good at what they do but on average they're a little more tech
+average they're a little more tech syllabic than the animators so their
+syllabic than the animators so their interface for the customization rig
+interface for the customization rig tries to support them with a ton of
+tries to support them with a ton of callbacks to make sure they're working
+callbacks to make sure they're working in the correct pose in a rig and make
+in the correct pose in a rig and make sure they're not editing poses with Auto
+sure they're not editing poses with Auto key off the customization artists work
+key off the customization artists work on the rig in local Maxine's and save
+on the rig in local Maxine's and save out save out single poses to be merged
+out save out single poses to be merged into a master customization rig the UI
+into a master customization rig the UI sync scene control selection with
+sync scene control selection with labelled buttons and shaped buttons
+labelled buttons and shaped buttons similar to the animation rig display
+similar to the animation rig display panel with layout is authored next in an
+panel with layout is authored next in an XML file encoded into the rig at Build
+XML file encoded into the rig at Build time and then
+time and then rendered by the panel when it's opened
+we made extensive use of 3ds Max's custom attributes in the animation rig
+custom attributes in the animation rig at its simplest their Maya like
+at its simplest their Maya like animatable user-defined property stored
+animatable user-defined property stored in a parameter block max then lets you
+in a parameter block max then lets you embed user interfaces to interact with
+embed user interfaces to interact with these user-defined properties but it's
+these user-defined properties but it's all maxscript so you can embed some
+all maxscript so you can embed some pretty complicated functionality into
+pretty complicated functionality into these custom attributes and they live in
+these custom attributes and they live in the rig so that makes them extremely
+the rig so that makes them extremely portable I told you this was going to be
+portable I told you this was going to be a post mortem we made a number of
+a post mortem we made a number of decisions during the course of the
+decisions during the course of the production that worked out pretty well
+the rigging system was for the most part data-driven we used XML as our data
+data-driven we used XML as our data format 3ds Max's integration of dotnet
+format 3ds Max's integration of dotnet made this easy
+made this easy everyone has system dot XML on their
+everyone has system dot XML on their computers Jason might have been a better
+computers Jason might have been a better format for data but it would have meant
+format for data but it would have meant distributing additional dll's to the
+distributing additional dll's to the artists it's easier to do perforce
+artists it's easier to do perforce merges on text data files over binaries
+merges on text data files over binaries or even over code as I mentioned earlier
+or even over code as I mentioned earlier we use one big metadata file called rig
+we use one big metadata file called rig build XML which is a huge file
+build XML which is a huge file containing a flat list of characters
+containing a flat list of characters with sub sub element pointers to
+with sub sub element pointers to character specific XML files everything
+character specific XML files everything in the rig was broken down into
+in the rig was broken down into text-based data descriptions XML files
+text-based data descriptions XML files described are skeletons layers set
+described are skeletons layers set skinning poses animations and where to
+skinning poses animations and where to find all that data looking forward it
+find all that data looking forward it might be beneficial to abstract this
+might be beneficial to abstract this data a little further and have the file
+data a little further and have the file point to character specific meta files
+point to character specific meta files and containing the sub element file
+and containing the sub element file locations for each character it would
+locations for each character it would make it easier to find what you're
+make it easier to find what you're looking for in a smaller file
+I think the honest one including vertex and face data in our skin files of pure
+and face data in our skin files of pure win so there's there's enough
+win so there's there's enough information to recreate original meshes
+information to recreate original meshes and skin rat to updated topologies one
+and skin rat to updated topologies one of our tech artists recently used that
+of our tech artists recently used that data to allow customization artists to
+data to allow customization artists to preview part meshes and max while they
+preview part meshes and max while they construct new armor parts in the future
+construct new armor parts in the future we might add more mesh data like you v's
+we might add more mesh data like you v's or vertex normals to totally remove the
+or vertex normals to totally remove the dependency on clean mesh living in a 3ds
+dependency on clean mesh living in a 3ds max scene but I think we'll probably end
+max scene but I think we'll probably end up moving to the data over to FBX to
+up moving to the data over to FBX to make a future switch to Maya easier
+there are two types of artists the ones that give way more feedback than
+that give way more feedback than possible to respond to and those that
+possible to respond to and those that bang their heads against the tools and
+bang their heads against the tools and silent frustration the artists that
+silent frustration the artists that provide feedback are the ones that help
+provide feedback are the ones that help make the tools and rigs better for
+make the tools and rigs better for everyone no tool or rig is perfect and
+everyone no tool or rig is perfect and some requests are ridiculous but
+some requests are ridiculous but listening responding and prioritizing is
+listening responding and prioritizing is important we can't fix tools we don't
+important we can't fix tools we don't know how frustrating they are to use in
+know how frustrating they are to use in a perfect world the technical artists
+a perfect world the technical artists would be using those tools too but
+would be using those tools too but schedule constraints caused this to
+schedule constraints caused this to happen far less often than desirable
+there's also two kinds of meetings good meetings and bad meetings we had a lot
+meetings and bad meetings we had a lot of meetings and most of them were good
+of meetings and most of them were good one solution-focused don't bear off
+one solution-focused don't bear off topic and make sure everyone has all the
+topic and make sure everyone has all the information they need to make informed
+information they need to make informed decisions in the meeting and on their
+decisions in the meeting and on their own we had daily check-ins and
+own we had daily check-ins and bottleneck checks I think most studios
+bottleneck checks I think most studios do this nowadays but it wasn't always as
+do this nowadays but it wasn't always as right as regular earlier in my career at
+right as regular earlier in my career at sauce we generically refer to it as
+sauce we generically refer to it as scrum but it's not really capital s
+scrum but it's not really capital s scrum producers tend to focus on
+scrum producers tend to focus on checklists of tasks in the art pipeline
+checklists of tasks in the art pipeline they're just too many message
+they're just too many message dependencies to be too flexible or agile
+dependencies to be too flexible or agile with the schedule
+modular rigging made our timelines feasible we can prototype new monsters
+feasible we can prototype new monsters on existing modules and branch them
+on existing modules and branch them later if we need something more unique
+later if we need something more unique rigging speed with King when creating 90
+rigging speed with King when creating 90 plus different monster rigs for the
+plus different monster rigs for the animator everything is familiar but
+animator everything is familiar but inconsistent between rigs further along
+inconsistent between rigs further along into production fixes modifications into
+into production fixes modifications into behavior on one rig propagate to older
+behavior on one rig propagate to older stuff for instance we made significant
+stuff for instance we made significant Fiske sixes to the snake tail rig to
+Fiske sixes to the snake tail rig to correct flipping issues and we were able
+correct flipping issues and we were able to apply that fix to the other monster
+to apply that fix to the other monster monsters that use that module i sat in
+monsters that use that module i sat in the animator bullpen I could peek over
+the animator bullpen I could peek over my shoulder over my monitor or over the
+my shoulder over my monitor or over the cubicle wall to communicate with the
+cubicle wall to communicate with the animators who are using the rig's that I
+animators who are using the rig's that I was building they could do the same to
+was building they could do the same to ask me questions it required a minimum
+ask me questions it required a minimum of energy to hop 5 feet to help someone
+of energy to hop 5 feet to help someone at their desk finally we had a ton of
+at their desk finally we had a ton of experience on our team two out of six of
+experience on our team two out of six of our senior animators were former lead
+our senior animators were former lead animators at their previous studios
+animators at their previous studios across the rest of the art team we had
+across the rest of the art team we had so we have so many 10 year game dev
+so we have so many 10 year game dev veterans when you're talking to people
+veterans when you're talking to people with this level of experience it makes
+with this level of experience it makes explanations much easier veteran artists
+explanations much easier veteran artists often have good technical chops they had
+often have good technical chops they had to be pretty technical to have been an
+to be pretty technical to have been an artist back in the day sorry for the
+artist back in the day sorry for the cliche but experienced developers are
+cliche but experienced developers are the most valuable asset a game studio
+the most valuable asset a game studio has
+the politically correct version of what went wrong but I believe that every
+went wrong but I believe that every mistake is a learning experience
+we should have pushed harder to adopt Maya as our DCC working around 3ds Max's
+Maya as our DCC working around 3ds Max's limitations to the full time job for
+limitations to the full time job for example 3d studio max has various UI
+example 3d studio max has various UI features that are just not scriptable
+features that are just not scriptable also certain features like skin are only
+also certain features like skin are only accessible in script if it's selected in
+accessible in script if it's selected in the UI and for speed complex rigs such
+the UI and for speed complex rigs such as ours can be downright sluggish and
+as ours can be downright sluggish and max reference rigs would have made
+max reference rigs would have made rigged updates infinitely easier and may
+rigged updates infinitely easier and may have made some things possible to update
+have made some things possible to update that we were just too afraid to do
+that we were just too afraid to do because of the time labor and potential
+because of the time labor and potential for broken animations after a batch
+for broken animations after a batch update we should have pushed harder for
+update we should have pushed harder for a better game tech such as cloth dangly
+a better game tech such as cloth dangly bits hair foot and our mic a and state
+bits hair foot and our mic a and state machines all we had was export the
+machines all we had was export the entire skeleton as an FK animation and a
+entire skeleton as an FK animation and a programmer title out of it together
+programmer title out of it together behind the wall of code we used our DS
+behind the wall of code we used our DS or rad game tools
+or rad game tools grannie as an animation platform but we
+grannie as an animation platform but we weren't even using all the features
+weren't even using all the features success in that system even though we
+success in that system even though we fought against it until the end
+fought against it until the end eventually
+eventually pretty much every humanoid and player
+pretty much every humanoid and player character used a single animation set
+character used a single animation set the set grew and grew and had infinite
+the set grew and grew and had infinite refinement passes but at the cost of
+refinement passes but at the cost of variation among race races and genders
+variation among race races and genders the physical and skeletal variation
+the physical and skeletal variation between races and genders had to be
+between races and genders had to be reduced to almost nothing because our
+reduced to almost nothing because our retargeting couldn't handle it we had
+retargeting couldn't handle it we had poor man's our my K for females using
+poor man's our my K for females using two-handed weapons but it was difficult
+two-handed weapons but it was difficult to set up or edit
+there was a word I saw players used to describe our animation in beta
+describe our animation in beta Genki in my opinion our animations look
+Genki in my opinion our animations look pretty consistently fluid and believable
+pretty consistently fluid and believable in max but the animations became
+in max but the animations became extremely compressed after export we
+extremely compressed after export we experimented with flatter hierarchies
+experimented with flatter hierarchies but that caused issues with blending
+but that caused issues with blending upper body upper body and lower body
+upper body upper body and lower body motion and it was during our flirtation
+motion and it was during our flirtation with impacts driven by code which didn't
+with impacts driven by code which didn't understand a non-standard hierarchy we
+understand a non-standard hierarchy we did have a processor written that was
+did have a processor written that was supposed to isolate and compress
+supposed to isolate and compress separate branches of the skeleton
+separate branches of the skeleton hierarchy differently based on the
+hierarchy differently based on the motion in each animation but I don't
+motion in each animation but I don't think it ever made it into our pipeline
+compression was worst where it mattered the most feet which were supposed to be
+the most feet which were supposed to be planted on the ground jittered visibly
+planted on the ground jittered visibly weapon arcs at the end of a long chain
+weapon arcs at the end of a long chain from the root up the spine down the arm
+from the root up the spine down the arm terminating in a weapon bone became jigs
+terminating in a weapon bone became jigs AG W shapes instead of smooth arcs our
+AG W shapes instead of smooth arcs our exporter in conjunction with 3ds max
+exporter in conjunction with 3ds max sampled subframes making single frame
+sampled subframes making single frame modes which is problematic similarly we
+modes which is problematic similarly we had fake parent space switches for
+had fake parent space switches for shooting a weapon temporarily to free a
+shooting a weapon temporarily to free a hand to cast a spell and that looks fine
+hand to cast a spell and that looks fine in max but never worked perfectly in the
+in max but never worked perfectly in the game because the Shia's weapon was still
+game because the Shia's weapon was still a child of the hand the sheath weapon
+a child of the hand the sheath weapon was told out of hand for a game of this
+was told out of hand for a game of this caliber being limited to so few bones
+caliber being limited to so few bones with harsh at launch we had no skeletal
+with harsh at launch we had no skeletal ello DS we made a lot of sacrifices and
+ello DS we made a lot of sacrifices and compromises for the bone limitations we
+compromises for the bone limitations we really could have used more than three
+really could have used more than three bones for a cape for bones for a robe or
+bones for a cape for bones for a robe or two bones for hair or even nine bones
+two bones for hair or even nine bones for a hand instead of a full 16 full
+for a hand instead of a full 16 full voiceover
+voiceover first person view were tacked on late in
+first person view were tacked on late in development and saw their scope creep
+development and saw their scope creep wide open without getting the tech or
+wide open without getting the tech or manpower supported we release the game
+manpower supported we release the game at launch with only a single bone slappy
+at launch with only a single bone slappy jaw we finally adopted face effects for
+jaw we finally adopted face effects for NPC conversation post launch but really
+NPC conversation post launch but really should a plan better and shipped with it
+should a plan better and shipped with it in the first place something I've been
+in the first place something I've been interested in exploring lately is some
+interested in exploring lately is some studios moving away from a rig that does
+studios moving away from a rig that does everything at all times and using a
+everything at all times and using a later base rig with extendable control
+later base rig with extendable control construction tools our animation rig was
+construction tools our animation rig was a monstrosity of confusing panels and
+a monstrosity of confusing panels and options it was heavy and slow and this
+options it was heavy and slow and this built then configure it and the built-in
+built then configure it and the built-in configuration options made overhauling
+configuration options made overhauling modules impossible without breaking
+modules impossible without breaking existing animations a lighter simple rig
+existing animations a lighter simple rig would basically just be an FK rig one
+would basically just be an FK rig one IKr push a button to construct an IKE a
+IKr push a button to construct an IKE a control overlay on the fly and then
+control overlay on the fly and then possibly collapse it back to FK when
+possibly collapse it back to FK when you're done especially if we move to
+you're done especially if we move to adopt motion capture in the future this
+adopt motion capture in the future this could be the way to go as mentioned
+could be the way to go as mentioned several times 3ds max does not have
+several times 3ds max does not have usable referencing so our rigs were
+usable referencing so our rigs were duplicated in every animation scene we
+duplicated in every animation scene we should have implemented frequent
+should have implemented frequent automatic batch rig updates to ensure
+automatic batch rig updates to ensure all of our animation scenes were always
+all of our animation scenes were always on the up-to-date rigs when things broke
+on the up-to-date rigs when things broke we would have been able to find the
+we would have been able to find the offending systems as soon as they failed
+offending systems as soon as they failed rather than sometimes months later
+always listen to your instincts otherwise known as don't believe the
+otherwise known as don't believe the artists animators swore they didn't want
+artists animators swore they didn't want to control picker UI for three years
+to control picker UI for three years until they did part of that was
+until they did part of that was different animators coming onto the team
+different animators coming onto the team with different methods and styles of
+with different methods and styles of working always assumed animators need
+working always assumed animators need more than one character in the scene our
+more than one character in the scene our name space tool had too many limitations
+name space tool had too many limitations and most tools were written with the
+and most tools were written with the assumption that there will only be a
+assumption that there will only be a single rig and in a Mac scene again the
+single rig and in a Mac scene again the animators said that they would never
+animators said that they would never need more than one rig in a scene
+need more than one rig in a scene because there was no tech to support
+because there was no tech to support paired animations later on we realized
+paired animations later on we realized we needed to sync multiple characters
+we needed to sync multiple characters and cut scenes and mount writer
+and cut scenes and mount writer animations the hacky name space system I
+animations the hacky name space system I put together for one-off cutscenes ended
+put together for one-off cutscenes ended up being used for entire mount writer
+up being used for entire mount writer suites which then made it difficult to
+suites which then made it difficult to update the rigs and the scenes with
+update the rigs and the scenes with tools that didn't support the namespaces
+tools that didn't support the namespaces it was like an animator tools arms race
+it was like an animator tools arms race I started out with good intentions and
+I started out with good intentions and keeping our maxscript tools strictly
+keeping our maxscript tools strictly layered between library functions tools
+layered between library functions tools functions and UI functionality but
+functions and UI functionality but eventually random functions and tools
+eventually random functions and tools layer ended up being crossed used in
+layer ended up being crossed used in other tools encapsulation of functions
+other tools encapsulation of functions into structs was a thing that was
+into structs was a thing that was obvious in 2008 but became standard
+obvious in 2008 but became standard across the tech art forums by 2011 some
+across the tech art forums by 2011 some of our tools especially UIs were updated
+of our tools especially UIs were updated to this format but many old tools and
+to this format but many old tools and libraries remain as big clumps of global
+libraries remain as big clumps of global functions the iteration cycle on our
+functions the iteration cycle on our customization rig was pretty bad it took
+customization rig was pretty bad it took 20 to 30 minutes per iteration from a
+20 to 30 minutes per iteration from a max I'd fix the CNET in game especially
+max I'd fix the CNET in game especially if I had to rebuild the rig building the
+if I had to rebuild the rig building the template skeleton building deformation
+template skeleton building deformation rig building the animation skills and
+rig building the animation skills and emerging in the raw matches only took 30
+emerging in the raw matches only took 30 seconds the slowest part of the build
+seconds the slowest part of the build was loading the skin weights on to
+was loading the skin weights on to dozens of meshes it took 10 minutes I
+dozens of meshes it took 10 minutes I think part of that huge limitations a
+think part of that huge limitations a part of that was the huge limitation and
+part of that was the huge limitation and max the skin modifier requires that it
+max the skin modifier requires that it is active in the modifier panel to do
+is active in the modifier panel to do any scripted modifications
+any scripted modifications even with redraw off it's slow then the
+even with redraw off it's slow then the export took five minutes and there is no
+export took five minutes and there is no hot loading of the customization rig
+hot loading of the customization rig in-game so we needed to fully quit and
+in-game so we needed to fully quit and restart the game which took another five
+restart the game which took another five to ten minutes on our dev server finally
+to ten minutes on our dev server finally the most for most of the projects there
+the most for most of the projects there was no technical art team and what did
+was no technical art team and what did exist was not seen as being at the same
+exist was not seen as being at the same level of the other art sub disciplines
+level of the other art sub disciplines we needed more tech artists earlier for
+we needed more tech artists earlier for three years it was just me and I was
+three years it was just me and I was assigned to report to the lead animator
+assigned to report to the lead animator for the next two years after that it was
+for the next two years after that it was just me and a junior tech artist both
+just me and a junior tech artist both under the lead animator we were not seen
+under the lead animator we were not seen as equal as as other disciplines and
+as equal as as other disciplines and therefore had little voiced or advocate
+therefore had little voiced or advocate in the studio finally just a couple
+in the studio finally just a couple months before launch
+months before launch we hired a lead technical artist merged
+we hired a lead technical artist merged one tools programmer and one technical
+one tools programmer and one technical modeler onto the team and hired another
+modeler onto the team and hired another tech artist with the programming
+tech artist with the programming background but it was too little too
+background but it was too little too late by the time this happened we were
+late by the time this happened we were encoding art lock for launch the Elder
+encoding art lock for launch the Elder Scrolls online has been in release for
+Scrolls online has been in release for 11 months but as a live MMO we've
+11 months but as a live MMO we've released tons of new content and
+released tons of new content and features since launch ZeniMax recently
+features since launch ZeniMax recently announced that we're going to transition
+announced that we're going to transition to buy the play which means it will no
+to buy the play which means it will no longer be a monthly subscription
+longer be a monthly subscription required to play we're going and we're
+required to play we're going and we're looking forward to our imminent launch
+looking forward to our imminent launch for PlayStation 4 and Xbox one I wanted
+for PlayStation 4 and Xbox one I wanted to give a shout out to these fine folks
+to give a shout out to these fine folks who contributed to the game and what
+who contributed to the game and what time is it 10 minutes left anybody have
+time is it 10 minutes left anybody have questions
+questions [Applause]
+okay thanks thanks for coming and hope I didn't put anybody is asleep
+didn't put anybody is asleep hello hey got one before you over here
+hello hey got one before you over here oh hi how you doing
+oh hi how you doing good talk thank you very much yes so
+good talk thank you very much yes so you're talking about trying to push the
+you're talking about trying to push the Maya and adopting that what do you see
+Maya and adopting that what do you see that as a realistic goal this far into
+that as a realistic goal this far into the project I'm assuming it's a live
+the project I'm assuming it's a live game that's going to have continual
+game that's going to have continual support right well we are looking
+support right well we are looking forward to a future prod product and you
+forward to a future prod product and you know nowadays with FBX it's fairly easy
+know nowadays with FBX it's fairly easy to get stuff from max Tamiya as long as
+to get stuff from max Tamiya as long as the rig on the other end kind of
+the rig on the other end kind of supports the input so we're talk we're
+supports the input so we're talk we're talking about doing some of that just
+talking about doing some of that just like rebuilding our system in Maya and
+like rebuilding our system in Maya and then loading all the animations into it
+then loading all the animations into it and see what happens yes so further on
+and see what happens yes so further on in that I've worked in environments
+in that I've worked in environments where 3ds Max and Maya both used in the
+where 3ds Max and Maya both used in the same environment and it can be a little
+same environment and it can be a little tricky so if that was adopted to the
+tricky so if that was adopted to the animation pipeline would you also push
+animation pipeline would you also push for that being adopted by the
+for that being adopted by the environment or add to the studio
+environment or add to the studio probably not it's mostly be facin team
+probably not it's mostly be facin team that I keep that separate yeah okay yeah
+that I keep that separate yeah okay yeah thank you very much all right the
+thank you very much all right the questions you mentioned our iTunes so
+questions you mentioned our iTunes so which method you use to solve a clear
+which method you use to solve a clear problem which what I mean you use which
+problem which what I mean you use which matter to solve an universe kinematic
+matter to solve an universe kinematic problem you use what you only use the
+problem you use what you only use the beauty in a cage handler or you have
+beauty in a cage handler or you have your own now this built-in solver
+your own now this built-in solver whatever the look at the hierarchy
+whatever the look at the hierarchy depending or whatever it's called and
+depending or whatever it's called and another question is I heard a saying
+another question is I heard a saying that if you want to import your
+that if you want to import your animation into game you need to remove
+animation into game you need to remove the eye cave before you do the import
+the eye cave before you do the import well just just samples the the skeleton
+well just just samples the the skeleton as as if the whole thing was just an FK
+as as if the whole thing was just an FK so I mean I know you need to bake all
+so I mean I know you need to bake all the end mission
+the end mission and they import do you need juicing it
+and they import do you need juicing it ain't necessary to remove the ite before
+ain't necessary to remove the ite before you import the know the exporter just
+you import the know the exporter just just sample whatever the whatever the
+just sample whatever the whatever the skeleton is doing at any particular for
+skeleton is doing at any particular for in does amount matter how the skeleton
+in does amount matter how the skeleton is driven like I have that one tool the
+is driven like I have that one tool the dynamics tool where I'm you know
+dynamics tool where I'm you know changing constraint on the skeletons go
+changing constraint on the skeletons go from you know from the regular rig
+from you know from the regular rig behavior to a whole separate set of
+behavior to a whole separate set of controls that have no hierarchy
+controls that have no hierarchy whatsoever so that you can break
+whatsoever so that you can break skeletons up or you know did some crazy
+skeletons up or you know did some crazy stuff with you know with golems that are
+stuff with you know with golems that are made of rocks and stuff make the rocks
+made of rocks and stuff make the rocks all fall apart and tumble around and the
+all fall apart and tumble around and the hierarchically in max that's still a
+hierarchically in max that's still a hierarchy but controlled entirely by a
+hierarchy but controlled entirely by a separate set of controllers controls the
+separate set of controllers controls the thing is that I think of dudes animation
+thing is that I think of dudes animation it's down whether i KS existing it
+it's down whether i KS existing it doesn't affect animation itself but it
+doesn't affect animation itself but it also takes some cpu time so I think to
+also takes some cpu time so I think to the efficiency part maybe I've heard of
+the efficiency part maybe I've heard of seen that if you want to like improve
+seen that if you want to like improve your efficiency you need to remove the
+your efficiency you need to remove the okay but I don't know yeah we don't have
+okay but I don't know yeah we don't have any I Cal in-game side no in the client
+any I Cal in-game side no in the client so I think it's always Korea anybody
+so I think it's always Korea anybody else hi I'm not sure this is a really
+else hi I'm not sure this is a really big question but like on the Elder
+big question but like on the Elder Scroll line there's a lot of a dialogue
+Scroll line there's a lot of a dialogue for NPC and I know they have a like
+for NPC and I know they have a like lip-sync on it and that animation was
+lip-sync on it and that animation was like manually created by any major or
+like manually created by any major or there was like kind of a technical thing
+there was like kind of a technical thing going off yeah well at launch we all we
+going off yeah well at launch we all we had was the jaw flapping clicked one
+had was the jaw flapping clicked one bone and that was driven by just the
+bone and that was driven by just the audio waveforms the after launch we
+audio waveforms the after launch we implemented face effects and that was
+implemented face effects and that was all generated
+all generated procedurally dictating and automatically
+procedurally dictating and automatically by the face effects system okay thank
+by the face effects system okay thank you
+[Applause]

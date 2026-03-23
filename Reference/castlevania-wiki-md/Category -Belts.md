@@ -1,0 +1,3 @@
+# Category:Belts
+
+Category: Accessories

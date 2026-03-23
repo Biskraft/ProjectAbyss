@@ -1,0 +1,1511 @@
+[Music] welcome to the knee of the curve I'm
+welcome to the knee of the curve I'm David hunt Bosh on the rigging tuck our
+David hunt Bosh on the rigging tuck our lead at Bungie I'm for Sutherland I'm
+lead at Bungie I'm for Sutherland I'm also reading tech artist and leader of
+also reading tech artist and leader of the Maya tech tools development group
+the Maya tech tools development group that funding we heard you talk about the
+that funding we heard you talk about the radiant tools work we did to help create
+radiant tools work we did to help create testing so forest and I are both riggers
+testing so forest and I are both riggers and were also scripters because in order
+and were also scripters because in order to do rigging a well it really is
+to do rigging a well it really is necessary to also do scripting rigging
+necessary to also do scripting rigging is complicated stuff and there's
+is complicated stuff and there's thousands of files that you need to
+thousands of files that you need to maintain animation files 3-hour files
+maintain animation files 3-hour files and it wouldn't be possible to do by
+and it wouldn't be possible to do by hand to be able to keep up with this
+hand to be able to keep up with this amount of work so we need to harness the
+amount of work so we need to harness the power of computers and speak their own
+power of computers and speak their own language and and operate them with with
+language and and operate them with with scripting and we've taken this beyond
+scripting and we've taken this beyond mere automation and taking it to a level
+mere automation and taking it to a level of fully fledged tool development
+of fully fledged tool development because it naturally arises out of this
+because it naturally arises out of this scripted rigging that you can make tools
+scripted rigging that you can make tools and help people like animators be more
+and help people like animators be more efficient and we also write the tools
+efficient and we also write the tools that are the gateway for their exporting
+that are the gateway for their exporting content into the game and at one time
+content into the game and at one time long ago all this was doable the
+long ago all this was doable the leadership of this was doable by one
+leadership of this was doable by one person me but that time is long gone
+person me but that time is long gone we're at a really big company and we
+we're at a really big company and we have a lot to do so it is awesome to
+have a lot to do so it is awesome to have forests here leading up Maya tech
+have forests here leading up Maya tech and for us we're doing a much better job
+and for us we're doing a much better job than I possibly could thank you very
+than I possibly could thank you very much so at at Bungie all of this is
+much so at at Bungie all of this is within the umbrella of tech art as tech
+within the umbrella of tech art as tech artists we're a support crew we're here
+artists we're a support crew we're here to help we enable other departments to
+to help we enable other departments to do their work and I love approaching
+do their work and I love approaching rigging from this standpoint because
+rigging from this standpoint because rigging is intrinsically the place where
+rigging is intrinsically the place where 3d art and animation come together it's
+3d art and animation come together it's this collaboration I feel that from this
+this collaboration I feel that from this standpoint of a support crew we are
+standpoint of a support crew we are really able to serve that collaboration
+really able to serve that collaboration well so let's take a look at the table
+well so let's take a look at the table of contents first want to talk a little
+of contents first want to talk a little bit about destiny and why we chose this
+bit about destiny and why we chose this approach to rigging and we can give a
+approach to rigging and we can give a tour of our rigging system and Forrest
+tour of our rigging system and Forrest is going to go into detail about how
+is going to go into detail about how we've set up our code base in Python and
+we've set up our code base in Python and then we'll talk about how we used it to
+then we'll talk about how we used it to create destiny I'm starting off in
+create destiny I'm starting off in pre-production building new characters
+pre-production building new characters and
+and later in production when they're already
+later in production when they're already animated and how we can stay agile and
+animated and how we can stay agile and and update those rigs as we go and an
+and update those rigs as we go and an enforce is going to give us a tour of
+enforce is going to give us a tour of these tools that we've built for the
+these tools that we've built for the animators mainly and also tools for
+animators mainly and also tools for automatically building rigs so before we
+automatically building rigs so before we start we want to add a brief disclaimer
+start we want to add a brief disclaimer the reading strategies we are presenting
+the reading strategies we are presenting here are based on the needs of our
+here are based on the needs of our project and the needs of the design 3d
+project and the needs of the design 3d art and animation teams at Bungie this
+art and animation teams at Bungie this of course is not the only way or the
+of course is not the only way or the right way for everyone to do rigging but
+right way for everyone to do rigging but it has worked well for us so we want to
+it has worked well for us so we want to share it with all of you we chose to
+share it with all of you we chose to prioritize two main things in our
+prioritize two main things in our rigging system the first one being
+rigging system the first one being demand focusing it on the need to create
+demand focusing it on the need to create lots and lots of rigs is critical
+lots and lots of rigs is critical because our project is so large the
+because our project is so large the second one being agility we are a highly
+second one being agility we are a highly played test driven studio as we make
+played test driven studio as we make things and play test them we discover
+things and play test them we discover how to make them better as riggers we
+how to make them better as riggers we need to help them enable these changes
+need to help them enable these changes at all stages of production while
+at all stages of production while continuing to maintain our high quality
+continuing to maintain our high quality bar so let's talk a little bit about the
+bar so let's talk a little bit about the large scope of rigging work for you how
+large scope of rigging work for you how to do for destiny
+and here they are the combatant characters of destiny so here's some
+characters of destiny so here's some screenshots of the enemy races and there
+screenshots of the enemy races and there are all the base units plus all of the
+are all the base units plus all of the variants and you can see how many rigs
+variants and you can see how many rigs we had to build this is just the
+we had to build this is just the combatants there's also all the players
+combatants there's also all the players cinematic characters the vehicles
+cinematic characters the vehicles weapons props and list goes on and on
+weapons props and list goes on and on and so there's just a really high
+and so there's just a really high magnitude of rigs we had to build
+magnitude of rigs we had to build there's a lot of fun but there's also a
+there's a lot of fun but there's also a lot of work and a lot of these variants
+lot of work and a lot of these variants they're seeing here are these ultra
+they're seeing here are these ultra characters are they have special bones
+characters are they have special bones of their own they had they need extra
+of their own they had they need extra animation controls so there's often
+animation controls so there's often customized rigging going on in there too
+another challenge we had was building a whole new engine
+whole new engine so our tools were constantly evolving
+so our tools were constantly evolving and changing as we went and as tools
+and changing as we went and as tools developers ourselves we had to stay in
+developers ourselves we had to stay in touch with that change so the key to you
+touch with that change so the key to you know do all of this was being agile with
+know do all of this was being agile with our rigging and I love this picture
+our rigging and I love this picture because it really speaks to me about
+because it really speaks to me about what it felt like to be on the rigging
+what it felt like to be on the rigging team at Bungie you know can be it can be
+team at Bungie you know can be it can be scary at times feel like that boats
+scary at times feel like that boats about to flip over and we're hanging off
+about to flip over and we're hanging off the edge but this is the kind of
+the edge but this is the kind of challenge that we live for and we love
+challenge that we live for and we love it and because we found that when you're
+it and because we found that when you're making a big giant new IP you can't just
+making a big giant new IP you can't just make things and lock them down you have
+make things and lock them down you have to constantly keep updating and changing
+to constantly keep updating and changing them if you're going to make the game
+them if you're going to make the game work and be the best it can be
+work and be the best it can be so as riggers it's our job to support
+so as riggers it's our job to support that change as best we can and I staying
+that change as best we can and I staying agile so so a Bungie we make games we
+agile so so a Bungie we make games we love to play these are some shots of the
+love to play these are some shots of the rigging tech our team keeping an agile
+rigging tech our team keeping an agile on one of the old ships just like the
+on one of the old ships just like the World Cup we're passionate players of
+World Cup we're passionate players of our own games so just for fun we decided
+our own games so just for fun we decided themed a lot of these slides in this
+themed a lot of these slides in this presentation to look like destiny that
+presentation to look like destiny that being said we just don't play games all
+being said we just don't play games all day long we still had a number of
+day long we still had a number of problems to solve in order to help
+problems to solve in order to help create the other help the other teams
+create the other help the other teams create great content we need to help
+create great content we need to help alleviate rigging production bottlenecks
+so the solution we came up with to remain agile is what were called tools
+remain agile is what were called tools based rigging we're not just talking
+based rigging we're not just talking about the scripts and tools to go with
+about the scripts and tools to go with your rigs we're talking about a way to
+your rigs we're talking about a way to completely merge the rigs and tools so
+completely merge the rigs and tools so that they're unified from their creation
+that they're unified from their creation and onward through their lifetime and
+and onward through their lifetime and animation the rig that animators
+animation the rig that animators interact with isn't just a static piece
+interact with isn't just a static piece of content it's actually a user
+of content it's actually a user interface to a deeper set of tools and
+interface to a deeper set of tools and functionality under the hood to enable
+functionality under the hood to enable functionality even further we have built
+functionality even further we have built a lot of GUI based windows with buttons
+a lot of GUI based windows with buttons and sliders just like all the windows
+and sliders just like all the windows you see here this way of animating is
+you see here this way of animating is awesome for supporting agility which
+awesome for supporting agility which makes it the right choice for our
+makes it the right choice for our productions at Bungie a lot of this
+productions at Bungie a lot of this tools based approach is driven by the
+tools based approach is driven by the freeform animation style pioneered by
+freeform animation style pioneered by guys like Rick Lee Co one of our
+guys like Rick Lee Co one of our animation leads if you haven't seen it
+animation leads if you haven't seen it yet it's worth checking out as GDC talk
+yet it's worth checking out as GDC talk from last year where he went into a lot
+from last year where he went into a lot of great detail on how freeform
+of great detail on how freeform animation works all right now let's talk
+animation works all right now let's talk about rigging and there I am about to
+about rigging and there I am about to solo the vault of glass never mind I'm
+solo the vault of glass never mind I'm away from my fire team and rigging is a
+away from my fire team and rigging is a whole lot more fun on a team all right
+whole lot more fun on a team all right so here are some design pillars that we
+so here are some design pillars that we often come back to when we're talking
+often come back to when we're talking about building our rigging system and
+about building our rigging system and how we like to approach it so our rigs
+how we like to approach it so our rigs are assembled using modular components
+are assembled using modular components this really helps us share our rigging
+this really helps us share our rigging that we build with as many things as we
+that we build with as many things as we can and these components are all built
+can and these components are all built to support animation retargeting so that
+to support animation retargeting so that you can add and remove these on the fly
+you can add and remove these on the fly in an animation scene and save the
+in an animation scene and save the animators work the resulting rig is
+animators work the resulting rig is relatively straightforward and the key
+relatively straightforward and the key to it is that it can be modified so it
+to it is that it can be modified so it can modified by the animators in several
+can modified by the animators in several ways we provide a whole set of tools
+ways we provide a whole set of tools which they can use and forest is going
+which they can use and forest is going to give us an awesome tour of that later
+to give us an awesome tour of that later on but we also encourage the animators
+on but we also encourage the animators to go ahead and hack the rigs using
+to go ahead and hack the rigs using locators and constraints of whatever
+locators and constraints of whatever they want to do because this is a
+they want to do because this is a natural part of the whole ecosystem
+natural part of the whole ecosystem where they will innovate new things and
+where they will innovate new things and they will come up with really clever
+they will come up with really clever things that will then sometimes build
+things that will then sometimes build into Python tools and offer to the rest
+into Python tools and offer to the rest of the people we definitely aren't the
+of the people we definitely aren't the kind of breeding
+kind of breeding that is telling them what to do you know
+that is telling them what to do you know we have a nice kind of balance back and
+we have a nice kind of balance back and forth and it's really important to let
+forth and it's really important to let them keep innovating and it's a big part
+them keep innovating and it's a big part of our process so talking about rigging
+of our process so talking about rigging I like to think of it in kind of two
+I like to think of it in kind of two main categories and one of them is the
+main categories and one of them is the deformation rig and the deformation rate
+deformation rig and the deformation rate can be thought of as techniques for
+can be thought of as techniques for changing the shape of the model for
+changing the shape of the model for animation so the most fundamental part
+animation so the most fundamental part of this is the skeleton and the way it
+of this is the skeleton and the way it moves the model is with a smooth bind of
+moves the model is with a smooth bind of skinning so our engine offers both
+skinning so our engine offers both classic linear skinning and dual
+classic linear skinning and dual quaternion we have a couple special
+quaternion we have a couple special bones on the skeleton that are driven by
+bones on the skeleton that are driven by the engine to automatically rotate the
+the engine to automatically rotate the shoulders and the wrists to look good
+shoulders and the wrists to look good and there's a bunch of other stuff we
+and there's a bunch of other stuff we can do with vertex shaders like blend
+can do with vertex shaders like blend shapes and some procedural stuff and
+shapes and some procedural stuff and channel driven animation by the
+channel driven animation by the animators plus a lot of cool stuff like
+animators plus a lot of cool stuff like physics simulation and if you missed it
+physics simulation and if you missed it yesterday there was a great talk by our
+yesterday there was a great talk by our bunch of character tech our team but
+bunch of character tech our team but don't worry if you missed it it's going
+don't worry if you missed it it's going to be hosted on the Autodesk Area
+to be hosted on the Autodesk Area website so big thanks to Thomson Aki and
+website so big thanks to Thomson Aki and Natalie Burke
+now let's talk about the control rig so the control rig is what the animators
+the control rig is what the animators interact with there's a picture of it
+interact with there's a picture of it right here I'm sitting out to build a
+right here I'm sitting out to build a control rig it can be daunting to try to
+control rig it can be daunting to try to think of building the whole thing at
+think of building the whole thing at once because there's a lot of moving
+once because there's a lot of moving parts and it's also not that obvious how
+parts and it's also not that obvious how that would be shared between different
+that would be shared between different kinds of characters if you were to build
+kinds of characters if you were to build one so I got its great inspiration from
+one so I got its great inspiration from an Autodesk master class back in 2006 by
+an Autodesk master class back in 2006 by Jason Schleifer called animator friendly
+Jason Schleifer called animator friendly rigging and it really inspired me to
+rigging and it really inspired me to think of the break in regions where you
+think of the break in regions where you can kind of take parts of the body like
+can kind of take parts of the body like the head neck and arms and legs and
+the head neck and arms and legs and individually approach them and think
+individually approach them and think about well what's the best way to rig
+about well what's the best way to rig this and how it an animator want to
+this and how it an animator want to interact with it how would it behave in
+interact with it how would it behave in game and you can develop specialized
+game and you can develop specialized rigging for that part of the body and it
+rigging for that part of the body and it really made a ton of sense and it's also
+really made a ton of sense and it's also like well obvious how the left side of
+like well obvious how the left side of the body would share with the right side
+the body would share with the right side of the body because you've rigged the
+of the body because you've rigged the arm once and you can run the scripts
+arm once and you can run the scripts again and rake the other side so I took
+again and rake the other side so I took this idea back and started working on it
+this idea back and started working on it and I discovered that it's not quite as
+and I discovered that it's not quite as modular as I would like because if
+modular as I would like because if you're rigging an arm the way the arm
+you're rigging an arm the way the arm joins the clavicle and that joins to the
+joins the clavicle and that joins to the spine is very very specific to that part
+spine is very very specific to that part of the body so we have all kinds of
+of the body so we have all kinds of different props and rigs in our game
+different props and rigs in our game some you know mechanical objects and you
+some you know mechanical objects and you know skybox objects and I would love to
+know skybox objects and I would love to just share that cool thing I made so I
+just share that cool thing I made so I did notice that they have this in common
+did notice that they have this in common these regions have associated bone
+these regions have associated bone chains so here they are being
+chains so here they are being highlighted and if we look at them in
+highlighted and if we look at them in terms of these bone chains it's a lot
+terms of these bone chains it's a lot easier to think of like very truly
+easier to think of like very truly modular components very very generic
+modular components very very generic that could be shared across a whole
+that could be shared across a whole library of different kinds of rigs
+library of different kinds of rigs whether there are character or not so
+whether there are character or not so now it becomes important to figure out
+now it becomes important to figure out how to track these bone chains and the
+how to track these bone chains and the first idea is naming conventions so I
+first idea is naming conventions so I think many of us riggers have found
+think many of us riggers have found value in creating a consistent naming
+value in creating a consistent naming convention that's great I think it's
+convention that's great I think it's good practice but it becomes limiting
+good practice but it becomes limiting because you see here we have the arm one
+because you see here we have the arm one arm to arm three it's real easy to think
+arm to arm three it's real easy to think about writing a Python script to
+about writing a Python script to identify the start in the end of the
+identify the start in the end of the but what if you wanted to call him
+but what if you wanted to call him something different because parts of the
+something different because parts of the body are like the shoulder and the wrist
+body are like the shoulder and the wrist and the elbow and that's how people tend
+and the elbow and that's how people tend to think about it so I don't like to be
+to think about it so I don't like to be locked into this way of doing it if I
+locked into this way of doing it if I want that data to track the bone chain I
+want that data to track the bone chain I wonder if there's another way I'm not
+wonder if there's another way I'm not saying don't do a naming convention I'm
+saying don't do a naming convention I'm saying don't rely on too much so it's
+saying don't rely on too much so it's another way Maya provides this thing
+another way Maya provides this thing called joint labeling and it's
+called joint labeling and it's attributes on the joints it has a site
+attributes on the joints it has a site in region and it does just what I said
+in region and it does just what I said it says right shoulder and right hand so
+it says right shoulder and right hand so that's great but it doesn't necessarily
+that's great but it doesn't necessarily track the bone chains in an easily
+track the bone chains in an easily understandable way by a script so that's
+understandable way by a script so that's not quite gonna work for our chain
+not quite gonna work for our chain metadata we came to this system called
+metadata we came to this system called chain markup that uses a combination of
+chain markup that uses a combination of both and it lets us call the names of
+both and it lets us call the names of the bones whatever we want and what this
+the bones whatever we want and what this is is some attributes on the bones where
+is is some attributes on the bones where we say the chain root is called arm and
+we say the chain root is called arm and the chain end is called arm we also
+the chain end is called arm we also identify a terminator which can help us
+identify a terminator which can help us understand the orientation of the final
+understand the orientation of the final joint and then the side we actually use
+joint and then the side we actually use joint labeling in Maya system because
+joint labeling in Maya system because it's already there and we like to use
+it's already there and we like to use that for other purposes like interfacing
+that for other purposes like interfacing with MotionBuilder so that's great now
+with MotionBuilder so that's great now we can track these bone chains and and
+we can track these bone chains and and our rigging system can easily identify
+our rigging system can easily identify how to apply these generic rig
+how to apply these generic rig components that we're gonna be building
+components that we're gonna be building you can name it whatever you want now
+you can name it whatever you want now and so here are some examples that are
+and so here are some examples that are much more than a human friendly I'm not
+much more than a human friendly I'm not necessarily recommending this but you
+necessarily recommending this but you can do whatever you want with that name
+can do whatever you want with that name now okay
+now okay this character is ready to upgrade to
+this character is ready to upgrade to level 30 and get some control rig
+level 30 and get some control rig components on it okay so on the arm
+components on it okay so on the arm there are several components there are
+there are several components there are several bone chains but on the main bone
+several bone chains but on the main bone chain we apply this component called the
+chain we apply this component called the FK I K component and it's pretty
+FK I K component and it's pretty straightforward stuff I think most
+straightforward stuff I think most rigging systems have one of these this
+rigging systems have one of these this is where the animators are able to do an
+is where the animators are able to do an animated switch between the forward K
+animated switch between the forward K and inverse kinematics systems and
+and inverse kinematics systems and they're both really useful for different
+they're both really useful for different things you know FK is for free swinging
+things you know FK is for free swinging animations you get nice arcs
+animations you get nice arcs and I K is great for contacting objects
+and I K is great for contacting objects and they do need the ability to create
+and they do need the ability to create an animated switch between them so the
+an animated switch between them so the rig component comes with both of them
+rig component comes with both of them built in on the legs it's a very similar
+built in on the legs it's a very similar structure and it's great that our
+structure and it's great that our rigging system lets us share this great
+rigging system lets us share this great work that was done on the arm down to
+work that was done on the arm down to the leg and we've added just a few
+the leg and we've added just a few things here for the need to contact the
+things here for the need to contact the ground have some remote pivots for
+ground have some remote pivots for walking and for controlling the toe but
+walking and for controlling the toe but ultimately it's very similar to the one
+ultimately it's very similar to the one we saw out there an animator has the
+we saw out there an animator has the choice to animate like this and actually
+choice to animate like this and actually have seen animators do this we're in a
+have seen animators do this we're in a walk cycle do animated switch between
+walk cycle do animated switch between each step I think it was Matt Kelly he
+each step I think it was Matt Kelly he and I formed the corpus callosum the
+and I formed the corpus callosum the bridge between creativity and analysis
+bridge between creativity and analysis between rigging and animation and all
+between rigging and animation and all the technical animators are part of this
+the technical animators are part of this bundle of nerve fibers they like to
+bundle of nerve fibers they like to think about really really really clever
+think about really really really clever folks and we have a great collaboration
+on the chest there are two bone Jane's we're going to look at the RFK component
+we're going to look at the RFK component right here this is a great example of
+right here this is a great example of one that was actually developed and
+one that was actually developed and devised by Rick Lee Co one of our lead
+devised by Rick Lee Co one of our lead technical amperes so he demonstrated how
+technical amperes so he demonstrated how useful this could be with his own Mel
+useful this could be with his own Mel script and we took it into our Python
+script and we took it into our Python system and built what is now the
+system and built what is now the standard way of controlling chest and it
+standard way of controlling chest and it has a top control and a bottom control
+has a top control and a bottom control that are the main ones and the middle
+that are the main ones and the middle controls automatically rotate to create
+controls automatically rotate to create a blended result so the animators can
+a blended result so the animators can get a really nice pose very quickly and
+get a really nice pose very quickly and easily if they want to they can go into
+easily if they want to they can go into detail on the middle one but they don't
+detail on the middle one but they don't necessarily have to and our our
+necessarily have to and our our animation engineers then we're able to
+animation engineers then we're able to implement this at runtime so here we're
+implement this at runtime so here we're showing on the sparrow the the Guardian
+showing on the sparrow the the Guardian is showing his chest joints and the
+is showing his chest joints and the middle joint is automatically derived as
+middle joint is automatically derived as part of our runtime rig and thanks to
+part of our runtime rig and thanks to Eric Brown and so this is a really
+Eric Brown and so this is a really helpful thing for animation retargeting
+helpful thing for animation retargeting so that characters with different
+so that characters with different lengths vines can share their animation
+lengths vines can share their animation and if animators had created detailed
+and if animators had created detailed animation on the middle joint then it
+animation on the middle joint then it will come through if they specify but
+will come through if they specify but otherwise it can have a lower memory
+otherwise it can have a lower memory usage and
+usage and can share between different skeletons
+can share between different skeletons this is really really useful okay the
+this is really really useful okay the shoulders and wrists are controlled by
+shoulders and wrists are controlled by this one called the multi axis twist fix
+this one called the multi axis twist fix up and this is another one that's part
+up and this is another one that's part of our runtime rig what it does we have
+of our runtime rig what it does we have a version in my end version in our
+a version in my end version in our runtime engine and this this will blend
+runtime engine and this this will blend the result of the parent and the
+the result of the parent and the grandparent to automatically twist the
+grandparent to automatically twist the shoulder and it's great for keeping like
+shoulder and it's great for keeping like large shoulder pads from inter
+large shoulder pads from inter penetrating the body too much it's also
+penetrating the body too much it's also great for saving keyframe animation data
+great for saving keyframe animation data in-game we have lower memory cost
+in-game we have lower memory cost because you don't have to store those
+because you don't have to store those key frames we also have a prop component
+key frames we also have a prop component and it's very simple on the rig it's a
+and it's very simple on the rig it's a single FK control but this is an
+single FK control but this is an interface to a much larger set of tools
+interface to a much larger set of tools created by our rigger Xavier so this is
+created by our rigger Xavier so this is gives them access to a whole library of
+gives them access to a whole library of rigs that can import a whole rig of its
+rigs that can import a whole rig of its own that exports its own animation data
+own that exports its own animation data and we have utilities for aligning the
+and we have utilities for aligning the hands and switching what is controlling
+hands and switching what is controlling which one is driving whether hands are
+which one is driving whether hands are following the gun or the guns are
+following the gun or the guns are following the hand it really speeds up
+following the hand it really speeds up animators workflow to not have to go and
+animators workflow to not have to go and file browse through a directory and
+file browse through a directory and import maybe the wrong file and then
+import maybe the wrong file and then guess about the alignment of the hands
+guess about the alignment of the hands they just hit a button and it saves a
+they just hit a button and it saves a lot of time not only in their working
+lot of time not only in their working day but less bugs to fix at the end I
+day but less bugs to fix at the end I know that might have been our problem to
+know that might have been our problem to fix later
+fix later it's really good to solve it nicely this
+it's really good to solve it nicely this yellow control in the middle is what we
+yellow control in the middle is what we call the cog it is a center of gravity
+call the cog it is a center of gravity control and it is an offshoot of the
+control and it is an offshoot of the pelvis as a single FK control and seen
+pelvis as a single FK control and seen here in this animation it gives the
+here in this animation it gives the animators the freedom to do things like
+animators the freedom to do things like splitting the rotation and translation
+splitting the rotation and translation differently between the hips and and the
+differently between the hips and and the COG so right here it's only translating
+COG so right here it's only translating even though the character is rotating
+even though the character is rotating and you also noticed that it is kind of
+and you also noticed that it is kind of drifting away from the body it's because
+drifting away from the body it's because the animator has chosen to represent
+the animator has chosen to represent what is more of the true center of mass
+what is more of the true center of mass of the character which drifts as the
+of the character which drifts as the character changes that's pose and we
+character changes that's pose and we have a tool
+have a tool center-mass tool which enables them to
+center-mass tool which enables them to approximate that position automatically
+and here's the pedestal component at the base and this controls the topmost bone
+base and this controls the topmost bone in the game skeleton in the control rig
+in the game skeleton in the control rig though it is actually the opposite it is
+though it is actually the opposite it is not the topmost control of the rig
+not the topmost control of the rig hierarchy it's actually a sibling and
+hierarchy it's actually a sibling and it's very important for being able to
+it's very important for being able to move at a very precise speed while you
+move at a very precise speed while you can have variation movement of the hips
+can have variation movement of the hips independently and you can also have the
+independently and you can also have the feed plant on the ground because if the
+feed plant on the ground because if the base of your character was moving you
+base of your character was moving you have to counter animating it also has an
+have to counter animating it also has an aim vector as seen in this animation is
+aim vector as seen in this animation is what we call an aim screen these are
+what we call an aim screen these are actually a series of still poses that
+actually a series of still poses that define where the guns pointing and the
+define where the guns pointing and the whole body can be used in these poses
+whole body can be used in these poses and aim vector unambiguously tells the
+and aim vector unambiguously tells the engine where the character is aiming so
+engine where the character is aiming so we can get a very precise aim with that
+we can get a very precise aim with that we can also create them for the head for
+we can also create them for the head for the eyes separately independently and
+the eyes separately independently and blend those two to our liking okay
+blend those two to our liking okay that's it for our tour of the control
+that's it for our tour of the control rig and on the rig components I'd like
+rig and on the rig components I'd like to take a quick close up on the chest
+to take a quick close up on the chest region there's two components on the
+region there's two components on the chest the first one on the pelvis we
+chest the first one on the pelvis we apply a reverse component so this is a
+apply a reverse component so this is a forward k component where the off the
+forward k component where the off the pivot is offset to the child so you get
+pivot is offset to the child so you get kind of a offset where very nice and
+kind of a offset where very nice and tight control over the upper body and
+tight control over the upper body and ammeters need this level of precision
+ammeters need this level of precision when they're creating game content and
+when they're creating game content and the upper chest region is controlled by
+the upper chest region is controlled by the RF K which I described before and as
+the RF K which I described before and as I mentioned we have a version of this at
+I mentioned we have a version of this at runtime and this component is pretty
+runtime and this component is pretty cool because you can apply it to an
+cool because you can apply it to an arbitrary length bone chain and it's
+arbitrary length bone chain and it's pretty neat to see it blending a whole
+pretty neat to see it blending a whole lot of bones in the spine together
+lot of bones in the spine together simultaneously if any would like to hear
+simultaneously if any would like to hear more about how this is built we can talk
+more about how this is built we can talk afterwards we didn't have time to
+afterwards we didn't have time to include it here but it's a pretty simple
+include it here but it's a pretty simple trick we were able to find a way to get
+trick we were able to find a way to get without any flipping up to 180 degrees
+without any flipping up to 180 degrees probably good enough for our characters
+okay now I'd like to do a hands-on demo of building one of these rig components
+of building one of these rig components it's kind of to demonstrate that you can
+it's kind of to demonstrate that you can put whatever kind of rigging you want
+put whatever kind of rigging you want into one of these components and forest
+into one of these components and forest will go and talk about how they can be
+will go and talk about how they can be made standardized to fit within our tool
+made standardized to fit within our tool system with the Python so this is the FK
+system with the Python so this is the FK IQ component of the arm so to build this
+IQ component of the arm so to build this we're going to first start off by
+we're going to first start off by duplicating the arm joint chain we're
+duplicating the arm joint chain we're gonna create two copies one of them for
+gonna create two copies one of them for the FK and the other for the eye K now
+the FK and the other for the eye K now we're going to rig the FK chain and Here
+we're going to rig the FK chain and Here I am applying some control flags as we
+I am applying some control flags as we call them these are what the animators
+call them these are what the animators interact with that blue polygon cubes
+interact with that blue polygon cubes you can use whatever shape you want and
+you can use whatever shape you want and some people prefer NURBS curves and
+some people prefer NURBS curves and that's totally fine it's just a shape
+that's totally fine it's just a shape node it's really easy to swap our
+node it's really easy to swap our animators have chosen to prefer these
+animators have chosen to prefer these polygons so that's what we do now we'll
+polygons so that's what we do now we'll rig the ika chain so I'm gonna add an
+rig the ika chain so I'm gonna add an IKE a handle the shoulder and the wrist
+IKE a handle the shoulder and the wrist and then let's us translate the end
+and then let's us translate the end effector is great for contacting objects
+effector is great for contacting objects and I'm going to apply control flag
+and I'm going to apply control flag shapes to that as well
+now we need a way to switch between these two sets of controls so I'm
+these two sets of controls so I'm creating another control flag just
+creating another control flag just another polygon shape and on to that I'm
+another polygon shape and on to that I'm going to add a custom attribute called
+going to add a custom attribute called FK I case which and that attribute is
+FK I case which and that attribute is going to drive the visibility of these
+going to drive the visibility of these two controls so we're only looking at
+two controls so we're only looking at the ones that we're using and it's also
+the ones that we're using and it's also going to blend the constraint weights so
+going to blend the constraint weights so that the resulting joint chain follows
+that the resulting joint chain follows one or the other okay
+one or the other okay that's pretty much finished now I can
+that's pretty much finished now I can create a test animation and so you
+create a test animation and so you notice during this demo I built this all
+notice during this demo I built this all manually by hand and that's a great
+manually by hand and that's a great thing to do when you're first figuring
+thing to do when you're first figuring out what you want in a rig component but
+out what you want in a rig component but as soon as you decide what you want it's
+as soon as you decide what you want it's really important to take the next step
+really important to take the next step of writing a script to generate it
+of writing a script to generate it automatically because
+automatically because enough times of redoing this the 10th
+enough times of redoing this the 10th time in a row and staying up all night
+time in a row and staying up all night and you realize there's got to be a
+and you realize there's got to be a better way and then scripting is
+better way and then scripting is definitely that all right great now I'm
+definitely that all right great now I'm gonna talk about scene organization hi
+gonna talk about scene organization hi there that's the rig component I just
+there that's the rig component I just built and take a look at the outliner
+built and take a look at the outliner it's a giant mess I wouldn't want to
+it's a giant mess I wouldn't want to ship this out to the animators in this
+ship this out to the animators in this condition because it's really not easy
+condition because it's really not easy to know what to interact with and things
+to know what to interact with and things might get deleted or and looking in the
+might get deleted or and looking in the dependency graph it's also a tangled web
+dependency graph it's also a tangled web of confusion and yes it makes sense for
+of confusion and yes it makes sense for how Maya actually functions but it
+how Maya actually functions but it doesn't make that much sense for someone
+doesn't make that much sense for someone like me later coming back to find the
+like me later coming back to find the parts that I want so what we do is we
+parts that I want so what we do is we create these things called meta nodes
+create these things called meta nodes and all it is is a network node with
+and all it is is a network node with custom attributes and connections to
+custom attributes and connections to parts of the rig and it helps us
+parts of the rig and it helps us organize the scene so here I am
+organize the scene so here I am organizing the outliner I'm going to
+organizing the outliner I'm going to parent the internal workings into a do
+parent the internal workings into a do not touch group I'm going to parent the
+not touch group I'm going to parent the animator controls into a nice public
+animator controls into a nice public group that they know to interact with
+now it's all nice and clean I can collapse down to one node and on the
+collapse down to one node and on the meta node itself in the dependency graph
+meta node itself in the dependency graph out here I can now create a custom add
+out here I can now create a custom add connections to the inner workings of the
+connections to the inner workings of the rig and that enables our scripts to be
+rig and that enables our scripts to be able to find specific parts of it so and
+able to find specific parts of it so and that is the interface between the Maya
+that is the interface between the Maya scene and our Python code which forest
+scene and our Python code which forest is going to elaborate on I originally
+is going to elaborate on I originally presented this idea back in GDC of 2009
+presented this idea back in GDC of 2009 it's been really exciting to see how
+it's been really exciting to see how people have innovated on this I know
+people have innovated on this I know that David who is at Harmonix at the
+that David who is at Harmonix at the time and Jason parks who is at Sony at
+time and Jason parks who is at Sony at the time and Christopher built their own
+the time and Christopher built their own versions of this and kind of did amazing
+versions of this and kind of did amazing things with it so guys if you're out
+things with it so guys if you're out there if you're watching come and talk
+there if you're watching come and talk to me I want to hear what you've been
+to me I want to hear what you've been doing next and there was a student at
+doing next and there was a student at University of Washington I know by the
+University of Washington I know by the name of Jason Garrett Jones who saw the
+name of Jason Garrett Jones who saw the talk and decided to implement the whole
+talk and decided to implement the whole thing in Python and he did such a good
+thing in Python and he did such a good job we ended up hiring him and now he
+job we ended up hiring him and now he was one of the key architects on our new
+was one of the key architects on our new system which makes the use of
+system which makes the use of object-oriented Python
+object-oriented Python in Pinal in a really awesome way so we
+in Pinal in a really awesome way so we had originally even considered calling
+had originally even considered calling this talk object-oriented rigging
+this talk object-oriented rigging because object-oriented is so useful and
+because object-oriented is so useful and it's so powerful there's ever any debate
+it's so powerful there's ever any debate about Mel Bertha's Python there is no
+about Mel Bertha's Python there is no debate that object-oriented it makes it
+debate that object-oriented it makes it so much more effective so and Forrest
+so much more effective so and Forrest will demonstrate to you exactly why in
+will demonstrate to you exactly why in just a minute okay so I mentioned that
+just a minute okay so I mentioned that we can add and remove these rig
+we can add and remove these rig components I'm gonna talk about an
+components I'm gonna talk about an example of where you might want to do
+example of where you might want to do that here's a first-person animation
+that here's a first-person animation we're close up on the gun and we're
+we're close up on the gun and we're looking at the fingers and the fingers
+looking at the fingers and the fingers are contacting the gun so here they are
+are contacting the gun so here they are in I K I can translate the end and have
+in I K I can translate the end and have the middle solve and get a nice result
+the middle solve and get a nice result and the pole vector helps me choose the
+and the pole vector helps me choose the orientation it's really how you want to
+orientation it's really how you want to be animating if you're contacting object
+be animating if you're contacting object otherwise if you're an FK here we switch
+otherwise if you're an FK here we switch back to FK you're rotating and there's a
+back to FK you're rotating and there's a lot of work to do to make it look like
+lot of work to do to make it look like it's actually touching the gun so I
+it's actually touching the gun so I could have applied an F ki k switch to
+could have applied an F ki k switch to each one of these fingers but you saw
+each one of these fingers but you saw how many nodes there are in construction
+how many nodes there are in construction of that rig component it would really
+of that rig component it would really bog down the Maya scene and make it slow
+bog down the Maya scene and make it slow for animators to interact with so this
+for animators to interact with so this is the perfect place for adding or
+is the perfect place for adding or moving a trig component and that's what
+moving a trig component and that's what happened just there with our tool the
+happened just there with our tool the finger okay so it automatically switches
+finger okay so it automatically switches all of the fingers it removes one
+all of the fingers it removes one component bakes the animation down to
+component bakes the animation down to the bones and applies the other one was
+the bones and applies the other one was saving the animation now I can translate
+saving the animation now I can translate the hand and the fingers will nicely
+the hand and the fingers will nicely stay on the gun all of our rig
+stay on the gun all of our rig components are built to support this and
+components are built to support this and it has bought us just so much
+it has bought us just so much flexibility in our system so highly
+flexibility in our system so highly recommended and if you'd like to hear
+recommended and if you'd like to hear more about first-person animation Dave
+more about first-person animation Dave Helsby just did a talk yesterday about
+Helsby just did a talk yesterday about all of the art of first-person animation
+all of the art of first-person animation and it'll be available on the GDC volt
+all right over the forest all right who's ready to look at some code all
+who's ready to look at some code all right yeah and I know I am
+right yeah and I know I am we have about 69 pages of code to go
+we have about 69 pages of code to go through but a dozen doesn't syntax
+through but a dozen doesn't syntax errors
+errors let's see we'll fire some bugs and yeah
+let's see we'll fire some bugs and yeah we'll kick off the build yeah this is
+we'll kick off the build yeah this is it's gonna be great actually I'm joking
+it's gonna be great actually I'm joking finally at 45 pages of code alright so
+finally at 45 pages of code alright so in this animation clip each of the
+in this animation clip each of the fingers is now being controlled by their
+fingers is now being controlled by their own eye component just like the FP
+own eye component just like the FP animation each of the eye components is
+animation each of the eye components is represented by a class in Python by
+represented by a class in Python by using the rig as a tool animators can
+using the rig as a tool animators can add to Psych a to any finger or fall
+add to Psych a to any finger or fall fingers do their work and remove the eye
+fingers do their work and remove the eye K when they've finished they could also
+K when they've finished they could also just leave it in place in the scene for
+just leave it in place in the scene for future work and all of our other tools
+future work and all of our other tools will still work so the component is
+will still work so the component is designed to work on any finger we only
+designed to work on any finger we only have to write or patch the code once if
+have to write or patch the code once if there is a patch involved we can update
+there is a patch involved we can update an existing setup right in the scene and
+an existing setup right in the scene and the animator can continue working so
+the animator can continue working so here are some simple code that shows the
+here are some simple code that shows the create method for the eye cave finger
+create method for the eye cave finger component class all it needs is a start
+component class all it needs is a start and end joint and a side and region name
+and end joint and a side and region name in order to create itself on any joint
+in order to create itself on any joint chain all of our components use the same
+chain all of our components use the same type of chain system to avoid the naming
+type of chain system to avoid the naming convention problem this solidifies the
+convention problem this solidifies the idea that rigs are tools we can create
+idea that rigs are tools we can create an IKE a component an FK component or
+an IKE a component an FK component or any other type of component on a joint
+any other type of component on a joint chain just by using the markup
+chain just by using the markup animators can switch to different
+animators can switch to different components as needed so after the create
+components as needed so after the create function we include all the functions
+function we include all the functions common for any component by making sure
+common for any component by making sure all the components in the scene have
+all the components in the scene have similar setups we can perform a wide
+similar setups we can perform a wide variety of tasks knowing that each
+variety of tasks knowing that each component will handle themselves
+component will handle themselves appropriately when our code comes across
+appropriately when our code comes across the scene node in instantiates the class
+the scene node in instantiates the class as an object in Mize memory and we now
+as an object in Mize memory and we now have access to all the methods within
+have access to all the methods within the class the methods do things like add
+the class the methods do things like add and remove the component connect to
+and remove the component connect to other components switch between states
+other components switch between states or pretty much anything else we wanted
+or pretty much anything else we wanted to do so that's how the components look
+to do so that's how the components look as code objects let's take a look at the
+as code objects let's take a look at the scene nodes again the class name is
+scene nodes again the class name is stored an attribute on a custom matter
+stored an attribute on a custom matter node by storing information like this we
+node by storing information like this we can get an all-access pass to the code
+can get an all-access pass to the code by currying the notes type and get even
+by currying the notes type and get even more specific by using sign and region X
+more specific by using sign and region X rig typist stored here
+rig typist stored here sigh the stored here and region it
+sigh the stored here and region it became more effective to encode metadata
+became more effective to encode metadata like this as nodes with attributes and
+like this as nodes with attributes and connections so that each rig knows about
+connections so that each rig knows about itself and can communicate with other
+itself and can communicate with other rigs and components in the scene if we
+rigs and components in the scene if we look at the finger example we can query
+look at the finger example we can query the scene for the active rig and get all
+the scene for the active rig and get all finger components on that rig or we can
+finger components on that rig or we can just query the current selection and
+just query the current selection and final currently selected finger controls
+final currently selected finger controls in this case we have the middle finger
+in this case we have the middle finger selected in either case we can just
+selected in either case we can just attach the finger like a component in
+attach the finger like a component in place to the fingers and get them ready
+place to the fingers and get them ready for the animator to use but using the
+for the animator to use but using the methods and functions on the component
+so now that we've seen the scene notes let's dive a little bit deeper into the
+let's dive a little bit deeper into the underlying structure of the code object
+underlying structure of the code object itself this is the top-level node from
+itself this is the top-level node from which our components inherit from we
+which our components inherit from we call this an x-ray node earlier we
+call this an x-ray node earlier we referred to it as a meta node the code
+referred to it as a meta node the code for the class is on the left side or ex
+for the class is on the left side or ex reg nodes are set up like this we don't
+reg nodes are set up like this we don't use an int to create our notes directly
+use an int to create our notes directly although it makes sense to do so but we
+although it makes sense to do so but we want to control the creation ourselves
+want to control the creation ourselves instead we actually use a create method
+instead we actually use a create method to spawn a note in the scene which calls
+to spawn a note in the scene which calls the init which calls the new and
+the init which calls the new and ultimately returns the correct type of
+ultimately returns the correct type of node for us to use as a code object we
+node for us to use as a code object we can get the children of the node is
+can get the children of the node is correct class objects and filter by
+correct class objects and filter by inherited classes in this example dot
+inherited classes in this example dot get extra children of type FK component
+get extra children of type FK component returns type FK component instead of
+returns type FK component instead of extra node and we can access all the
+extra node and we can access all the methods associated with the FK component
+methods associated with the FK component class by using generic components we
+class by using generic components we have less reliance on naming conventions
+have less reliance on naming conventions and can perform operations on all
+and can perform operations on all components to the same type like FK
+components to the same type like FK switching patch updating or getting all
+switching patch updating or getting all the joints per component for export into
+the joints per component for export into the game engine this further allows us
+the game engine this further allows us to remain agile and keep our rigs
+to remain agile and keep our rigs dynamic by using components that inherit
+dynamic by using components that inherit from X rig note we get all the
+from X rig note we get all the functionality of the extra node class as
+functionality of the extra node class as well
+well additionally we chose to wrap the X ray
+additionally we chose to wrap the X ray nodes with a PI node so we can get PI
+nodes with a PI node so we can get PI node inheritance for free in this
+node inheritance for free in this example
+example doubtless connections works as though it
+doubtless connections works as though it was a PI node and returns to us a list
+was a PI node and returns to us a list of connections to the selected index
+of connections to the selected index finger flag boom so now that we've seen
+finger flag boom so now that we've seen how the X ray node is set up let's take
+how the X ray node is set up let's take a look and see how a rig component tree
+a look and see how a rig component tree is designed in this example the FK I K
+is designed in this example the FK I K component class tree inherits from
+component class tree inherits from multiple classes and interfaces we get
+multiple classes and interfaces we get all the functions from each tree to keep
+all the functions from each tree to keep our code lean the key is we aren't just
+our code lean the key is we aren't just reading a mop and arm modularity we are
+reading a mop and arm modularity we are actually reading in class and
+actually reading in class and associating the arm class to the
+associating the arm class to the controller class
+controller class it's totally based on inheritance this
+it's totally based on inheritance this is how it works the component class
+is how it works the component class inherits from X rig node as soon as it's
+inherits from X rig node as soon as it's unlocked once component is available
+unlocked once component is available both animatable component and fix-up
+both animatable component and fix-up component can use it f ki K component
+component can use it f ki K component inherits from animatable component class
+inherits from animatable component class as well as other components that use the
+as well as other components that use the animated controls like the s FK
+animated controls like the s FK component the fix of component also
+component the fix of component also inherits from the component class but
+inherits from the component class but since this components joints are handled
+since this components joints are handled by the runtime rigging game actually
+by the runtime rigging game actually doesn't have any user facing animatable
+doesn't have any user facing animatable controls it's used for components like
+controls it's used for components like the multi twist access fix-up component
+the multi twist access fix-up component which is used in places like shoulders
+which is used in places like shoulders to handle better deformations
+to handle better deformations you guys ready to file a bug so let's
+you guys ready to file a bug so let's take a look at a few use cases let's
+take a look at a few use cases let's assume we need to get all the control
+assume we need to get all the control flags for a character in order to set a
+flags for a character in order to set a key we can query the control flags on a
+key we can query the control flags on a character by asking the control rig for
+character by asking the control rig for all of its associated controls to do
+all of its associated controls to do this we ask the control rig for all
+this we ask the control rig for all components of type animatable component
+components of type animatable component and then ask each component for a stock
+and then ask each component for a stock get flag method here we've just assigned
+get flag method here we've just assigned the list result to a variable called all
+the list result to a variable called all flags so let's say we need to switch all
+flags so let's say we need to switch all the I take controls on the rig to FK we
+the I take controls on the rig to FK we can query the control rig for all
+can query the control rig for all components of a line switch interface
+components of a line switch interface and then ask each component for its dot
+and then ask each component for its dot set to FK method calling it to make the
+set to FK method calling it to make the switch here we've set up a batch like
+switch here we've set up a batch like process to switch the rig in the scene
+process to switch the rig in the scene with FK I K controls and set them all to
+with FK I K controls and set them all to FK by you
+FK by you for loop just as easy as that so now
+for loop just as easy as that so now that we've seen how class inheritance
+that we've seen how class inheritance works in our system and how we can use
+works in our system and how we can use it let's take a look at another way that
+it let's take a look at another way that we connect nodes to classes to help keep
+we connect nodes to classes to help keep the creation of extra nodes at a minimum
+the creation of extra nodes at a minimum we use an attribute called dot bungee
+we use an attribute called dot bungee flag this single attribute lets us
+flag this single attribute lets us interface with a flag class directly the
+interface with a flag class directly the flag class enables us to turn a specific
+flag class enables us to turn a specific type of object into a class wrapper in
+type of object into a class wrapper in our case we're using a joint type of
+our case we're using a joint type of object it just happens to have a polygon
+object it just happens to have a polygon as its shape node this turns an object
+as its shape node this turns an object in Maya into a Python class instance
+in Maya into a Python class instance it's much simpler than X rig node
+it's much simpler than X rig node because there is only one class instead
+because there is only one class instead of a branching tree of classes but the
+of a branching tree of classes but the power of this lies in the fact that we
+power of this lies in the fact that we can add extra functionality to objects
+can add extra functionality to objects in the scene by only adding an attribute
+in the scene by only adding an attribute and gaining an entire Python class from
+and gaining an entire Python class from there we get functions that allow us to
+there we get functions that allow us to generate rig controls on the fly or
+generate rig controls on the fly or perform functions and already controls
+perform functions and already controls with this attribute each rig component
+with this attribute each rig component knows about its own flags for easy
+knows about its own flags for easy traversal and each flag knows about its
+traversal and each flag knows about its component we can also do things like
+component we can also do things like replace the control flags with other
+replace the control flags with other shapes customize them for a specific rig
+shapes customize them for a specific rig or even change them for a specific
+or even change them for a specific animator so let's see how all this comes
+animator so let's see how all this comes together in rig templates we'll start by
+together in rig templates we'll start by creating a player rig rig templates are
+creating a player rig rig templates are comprised of any number of rig
+comprised of any number of rig components which use common utility
+components which use common utility functions to make up a control rig it
+functions to make up a control rig it could be a regular the simple two joint
+could be a regular the simple two joint structure or something more complex like
+structure or something more complex like a character with four arms and a couple
+a character with four arms and a couple of props by using templates we can
+of props by using templates we can generate the rig quickly to deliver it
+generate the rig quickly to deliver it to the animators if we need to change
+to the animators if we need to change the character like alter the number of
+the character like alter the number of limbs adjust the skeleton or modify the
+limbs adjust the skeleton or modify the number of rig controls we can easily do
+number of rig controls we can easily do that in a template and regenerate the
+that in a template and regenerate the rig in a matter of minutes the rig
+rig in a matter of minutes the rig components also draw from common utility
+components also draw from common utility scripts where we can share a lot of the
+scripts where we can share a lot of the general-purpose functionality between
+general-purpose functionality between different rig components so let's create
+different rig components so let's create a fallen captain rig components are an
+a fallen captain rig components are an excellent design pattern for
+excellent design pattern for object-oriented programming
+object-oriented programming which is of course how Python works this
+which is of course how Python works this native inheritance behavior lets us
+native inheritance behavior lets us share code between components and
+share code between components and because of this componentized
+because of this componentized architecture we can also update and add
+architecture we can also update and add functionality on the fly while
+functionality on the fly while preserving the underlying measure
+preserving the underlying measure animation so that's pretty much it
+animation so that's pretty much it that's how our recombinants work we
+that's how our recombinants work we assemble them in a script that we call
+assemble them in a script that we call the rig template to construct them into
+the rig template to construct them into a complete control rig for a character a
+a complete control rig for a character a vehicle or a prop the break template is
+vehicle or a prop the break template is simply assigning components and
+simply assigning components and connecting them to other parts of the
+connecting them to other parts of the body
+thanks a little light don't do that
+awesome so that's a tour of our rigging system and how it's built and now we'd
+system and how it's built and now we'd love to talk about how we used it to
+love to talk about how we used it to help build destiny so starting out in
+help build destiny so starting out in pre-production we're sitting out to
+pre-production we're sitting out to build a whole bunch of new characters so
+build a whole bunch of new characters so that often starts from some beautiful
+that often starts from some beautiful flow of concept art as we see on the
+flow of concept art as we see on the left and it ends up over here and a
+left and it ends up over here and a fully fledged game character as seen on
+fully fledged game character as seen on the right so here is the work that's
+the right so here is the work that's needed to to get that you start with a
+needed to to get that you start with a concept card you make a model you do
+concept card you make a model you do some rigging and then you do some
+some rigging and then you do some animation but if you do just that and
+animation but if you do just that and call it done it doesn't always end up
+call it done it doesn't always end up with the character that works that well
+with the character that works that well because what looks good on 2d concept
+because what looks good on 2d concept art once you see it moving it might have
+art once you see it moving it might have problems like the legs might not be long
+problems like the legs might not be long enough to create a good locomotion cycle
+enough to create a good locomotion cycle or the arms might not even be able to
+or the arms might not even be able to reach the gun we've seen things like
+reach the gun we've seen things like this happen from time to time so we've
+this happen from time to time so we've developed a different process which
+developed a different process which really attempts to accelerate change at
+really attempts to accelerate change at this early stage when it's easy to do
+this early stage when it's easy to do when there's not a whole bunch of data
+when there's not a whole bunch of data depending on it so we stay closely
+depending on it so we stay closely organized as interdisciplinary group of
+organized as interdisciplinary group of concept art modelling rigging an
+concept art modelling rigging an animation and we go through multiple
+animation and we go through multiple phases of development where we're
+phases of development where we're rereading this thing every step of the
+rereading this thing every step of the way and it wouldn't be possible without
+way and it wouldn't be possible without what Forrest mention about the rig
+what Forrest mention about the rig template script that can get us that
+template script that can get us that control rig back
+control rig back instantaneously so we can move bones
+instantaneously so we can move bones around change the skeleton and then make
+around change the skeleton and then make the rig and we have various ways with
+the rig and we have various ways with saving animation which I'll talk about
+saving animation which I'll talk about the post-production section so how this
+the post-production section so how this works is it starts out with some concept
+works is it starts out with some concept art and here's some 2d concept art but I
+art and here's some 2d concept art but I think these days there's a lot of 3d
+think these days there's a lot of 3d accounts that start happening as well
+accounts that start happening as well people would make a awesome sketch in
+people would make a awesome sketch in ZBrush but it's very same thing I want
+ZBrush but it's very same thing I want to call that thing done not a good idea
+to call that thing done not a good idea we would put that through the same
+we would put that through the same process here that we're doing well we
+process here that we're doing well we were next go to a block model and I know
+were next go to a block model and I know it's not the phone captain but bear with
+it's not the phone captain but bear with me that's what a block model looks like
+me that's what a block model looks like and it's a bunch of rigid chunks that
+and it's a bunch of rigid chunks that are parented to the skeleton and what
+are parented to the skeleton and what we're doing here is were avoiding all of
+we're doing here is were avoiding all of the really time-consuming parts of
+the really time-consuming parts of everybody's process for rigging the
+everybody's process for rigging the skinning for modelers that's the UV
+skinning for modelers that's the UV layout and the high-res modeling the
+layout and the high-res modeling the texturing normalmap ripping we just wait
+texturing normalmap ripping we just wait on that hold on and then we'll test it
+on that hold on and then we'll test it will animate it and we'll bring it back
+will animate it and we'll bring it back and we'll try it again after we make
+and we'll try it again after we make some changes based on what we learned
+some changes based on what we learned and animators will give some great
+and animators will give some great screenshots of like oh I want to make
+screenshots of like oh I want to make this pose but I'm not quite able to do
+this pose but I'm not quite able to do it with the proportions like this what
+it with the proportions like this what if we change the length of the legs and
+if we change the length of the legs and we really work together as a group to
+we really work together as a group to get the right balance and what finally
+get the right balance and what finally results is a really nicely performing
+results is a really nicely performing character in game but often takes like
+character in game but often takes like multiple rounds through this process of
+multiple rounds through this process of iteration until finally result in a nice
+iteration until finally result in a nice stable character model and rig that all
+stable character model and rig that all the departments can go off in parallel
+the departments can go off in parallel and do all the great work high res
+and do all the great work high res modeling animators can create the
+modeling animators can create the hundreds of animations that we'll need
+hundreds of animations that we'll need for the gameplay systems and so forth so
+for the gameplay systems and so forth so here is a video of some pre-production
+here is a video of some pre-production this is not this video was not created
+this is not this video was not created for GDC it was created for an early team
+for GDC it was created for an early team meeting where we're doing a sort of
+meeting where we're doing a sort of concept animation and early models are
+concept animation and early models are being put on rigs and animated to just
+being put on rigs and animated to just explore the characters performance and
+explore the characters performance and we also have early builds of the game
+we also have early builds of the game where we are doing play testing what
+where we are doing play testing what does it like to shoot at these
+does it like to shoot at these characters and often you'll see a small
+characters and often you'll see a small thumbnail in the top left and that's so
+thumbnail in the top left and that's so we can just make sure is it readable
+we can just make sure is it readable from a distance and can the designers
+from a distance and can the designers feel like is that a threat does the
+feel like is that a threat does the player know what to do so here we see
+player know what to do so here we see the Cabal the Cabal is a block model
+the Cabal the Cabal is a block model it's a very early stage compared to some
+it's a very early stage compared to some of the other characters that were
+of the other characters that were farther along and we're learning a lot
+farther along and we're learning a lot about how these characters actually work
+about how these characters actually work at this stage and we're doing what's
+at this stage and we're doing what's necessary to make them
+necessary to make them really really cool so big thanks to the
+really really cool so big thanks to the character animation team and the
+character animation team and the characters 3d art team thanks a lot for
+characters 3d art team thanks a lot for letting us share your work here we also
+letting us share your work here we also have a high VOC er high buggers at the
+have a high VOC er high buggers at the gray model stage kind of in the middle
+gray model stage kind of in the middle okay so here's what it looks like with
+okay so here's what it looks like with the progress meters at the bottom
+the progress meters at the bottom showing that we kind of started a block
+showing that we kind of started a block model like the Cabal legionary and move
+model like the Cabal legionary and move on to a gray model where we are applying
+on to a gray model where we are applying skinning we can see how deformations
+skinning we can see how deformations work you get a little bit more detailed
+work you get a little bit more detailed and hone in on actual bone positions and
+and hone in on actual bone positions and finally at a production model so we're
+finally at a production model so we're ready to at that point with the Fallen
+ready to at that point with the Fallen character to go out and do real
+character to go out and do real animation and modeling one of the keys
+animation and modeling one of the keys to making this work is some tools we've
+to making this work is some tools we've built for the 3d artists so we have one
+built for the 3d artists so we have one called one-button skinning and which
+called one-button skinning and which we've heard about from previous GDC talk
+we've heard about from previous GDC talk yes I'm gonna give that reference and
+yes I'm gonna give that reference and included later and we have animation
+included later and we have animation previews a one-button skinning imports a
+previews a one-button skinning imports a pretty skinned version of the model and
+pretty skinned version of the model and does it Maya
+does it Maya copy skins so they get rigging for free
+copy skins so they get rigging for free and the modelers can see what it's going
+and the modelers can see what it's going to look like when it's rigged an
+to look like when it's rigged an animation preview is a tool little tool
+animation preview is a tool little tool I wrote for them to actually bring these
+I wrote for them to actually bring these animations into the scene that the
+animations into the scene that the animators have made and they can test it
+animators have made and they can test it out with one bun skinning and animation
+out with one bun skinning and animation to just see exactly how everything is
+to just see exactly how everything is going to collapse and create better
+going to collapse and create better looking results and it's awesome because
+looking results and it's awesome because when it comes to our desk for rigging
+when it comes to our desk for rigging most of these problems are already
+most of these problems are already solved and we just connect the dots and
+solved and we just connect the dots and send it to the other direction it's
+send it to the other direction it's awesome really work love working with
+awesome really work love working with character artists you know how to work
+character artists you know how to work that way okay so that's pre-production
+that way okay so that's pre-production we've done our best to do all the
+we've done our best to do all the changes up front but the reality of
+changes up front but the reality of making games is a little bit of an
+making games is a little bit of an inherently chaotic process and that's
+inherently chaotic process and that's not bad that's just how it is and later
+not bad that's just how it is and later on we'll discover that sometimes things
+on we'll discover that sometimes things need to change so we're gonna go through
+need to change so we're gonna go through a couple of scenarios and just for fun
+a couple of scenarios and just for fun I've seen them as bounties so the first
+I've seen them as bounties so the first one for a modest XP game is let's say
+one for a modest XP game is let's say the character model changes and we're
+the character model changes and we're gonna need to update that in the
+gonna need to update that in the animation scenes and this is not a real
+animation scenes and this is not a real problem it's actually a really common
+problem it's actually a really common just part of the process for example on
+just part of the process for example on our player
+our player we have a lot of player dear and I see a
+we have a lot of player dear and I see a warlock standing in the back thank you
+warlock standing in the back thank you very much and you need to be able to
+very much and you need to be able to update these independently so that's
+update these independently so that's where it's great to keep your
+where it's great to keep your deformation rigging your control rig
+deformation rigging your control rig separate like this unless you update
+separate like this unless you update them independently so for example here I
+them independently so for example here I am doing a sweet Nova bomb and that's
+am doing a sweet Nova bomb and that's what it looks like in the animation
+what it looks like in the animation scene where a animator will be working
+scene where a animator will be working on it so if they're going to start out
+on it so if they're going to start out creating this animation the first rig
+creating this animation the first rig they would import is a hunter and that
+they would import is a hunter and that will not do if you're ranking a warlock
+will not do if you're ranking a warlock animation they have totally different
+animation they have totally different silhouettes the hunter has a cape the
+silhouettes the hunter has a cape the warlock has a robe so we need to know
+warlock has a robe so we need to know what it's going to look like so we use
+what it's going to look like so we use this process called explant
+this process called explant and what does is it imports the render
+and what does is it imports the render scene and for each bone in the old
+scene and for each bone in the old skeleton it will get a list of the
+skeleton it will get a list of the connections and it will rewire them to
+connections and it will rewire them to new skeleton at that point it's safe to
+new skeleton at that point it's safe to swap the namespace and purge the old one
+swap the namespace and purge the old one it works just like that it's really
+it works just like that it's really simple and it works really nicely a lot
+simple and it works really nicely a lot of studios will use referencing to solve
+of studios will use referencing to solve this problem and Miocene referencing is
+this problem and Miocene referencing is where you can make changes to one file
+where you can make changes to one file and have it automatically get propagated
+and have it automatically get propagated to multiple files and that works great
+to multiple files and that works great but it comes along with a few
+but it comes along with a few limitations like for example you cannot
+limitations like for example you cannot modify the dag hierarchy and that is
+modify the dag hierarchy and that is something we need to do constantly with
+something we need to do constantly with our freeform rigging and animation
+our freeform rigging and animation system so we've been able to overcome
+system so we've been able to overcome those limitations by this technique
+those limitations by this technique called explant alright that bounty is
+called explant alright that bounty is complete let's move on to the next one
+so for a slightly higher XP game here let's say we need to add new bones to
+let's say we need to add new bones to the skeleton and in that we have to also
+the skeleton and in that we have to also add controls for the animators to
+add controls for the animators to animate those bones so in this example
+animate those bones so in this example we have the nexus boss and the Venus
+we have the nexus boss and the Venus Nexus strike and at first he didn't have
+Nexus strike and at first he didn't have that shield and the designers came to us
+that shield and the designers came to us and said look he's just too easy to kill
+and said look he's just too easy to kill so we gotta do something about this and
+so we gotta do something about this and we decided to add a rotating shield as a
+we decided to add a rotating shield as a lot more gameplay makes it more fun more
+lot more gameplay makes it more fun more challenging so we do everything we can
+challenging so we do everything we can as riggers to make this happen and we
+as riggers to make this happen and we have a simple technique here we called
+have a simple technique here we called patch update so patch update starts with
+patch update so patch update starts with that
+that plan the thing we saw in the previous
+plan the thing we saw in the previous bounty and once that imports the new
+bounty and once that imports the new skeleton with the new bones then we run
+skeleton with the new bones then we run a small Python script called patch
+a small Python script called patch update that will just add the new rig
+update that will just add the new rig components and it works we don't even
+components and it works we don't even need to bake animations really easy to
+need to bake animations really easy to do well upgrade these the rig version we
+do well upgrade these the rig version we can track and know did you get this
+can track and know did you get this upgrade ok moving on to the next one so
+upgrade ok moving on to the next one so now let's say that we have to apply
+now let's say that we have to apply these fixes in a thousand different
+these fixes in a thousand different files so I don't want to stay up all
+files so I don't want to stay up all night and do that I would rather have
+night and do that I would rather have the computer do it so we have developed
+the computer do it so we have developed a tool Jason Garrett Jones did thank you
+a tool Jason Garrett Jones did thank you very much Jason called problem spotter
+very much Jason called problem spotter that lets us write Python script analyze
+that lets us write Python script analyze files for known problems in our rigs and
+files for known problems in our rigs and it can produce an XML report which will
+it can produce an XML report which will tell us where the problem actually
+tell us where the problem actually exists and we might have thought there
+exists and we might have thought there was a problem a thousand files but maybe
+was a problem a thousand files but maybe there's only problem in 10 files so
+there's only problem in 10 files so great we can do apply a targeted fix and
+great we can do apply a targeted fix and only touch the files that need it and if
+only touch the files that need it and if we want we can let that thing run
+we want we can let that thing run automatically and apply the fix if we've
+automatically and apply the fix if we've developed that fix in Python so if it
+developed that fix in Python so if it doesn't require a manual QA then we'll
+doesn't require a manual QA then we'll just the computer run overnight you know
+just the computer run overnight you know I love taking coffee breaks when when
+I love taking coffee breaks when when this happens I feel like my computer is
+this happens I feel like my computer is doing as much work as it possibly could
+doing as much work as it possibly could and I'm working hard by going to get
+and I'm working hard by going to get some coffee
+some coffee humans are good at that stuff so we've
+humans are good at that stuff so we've also applied problem spotter here to the
+also applied problem spotter here to the top of the rig toolbar it's that blue
+top of the rig toolbar it's that blue shield at the top so whenever animators
+shield at the top so whenever animators are in their scenes if they encounter
+are in their scenes if they encounter one of these known problems
+one of these known problems the shield turns red and they can just
+the shield turns red and they can just click that button and it applies the fix
+click that button and it applies the fix it's really nice to distribute that kind
+it's really nice to distribute that kind of fixing okay so now we're moving on to
+of fixing okay so now we're moving on to the exotic bounty this one's going to be
+the exotic bounty this one's going to be hard okay so let's say we need to change
+hard okay so let's say we need to change that skeleton in ways that will totally
+that skeleton in ways that will totally break the animations and like I said we
+break the animations and like I said we tried in pre-production to make it
+tried in pre-production to make it alright but we know how reality works we
+alright but we know how reality works we often have to change things later so we
+often have to change things later so we have this great tool called reanimate
+have this great tool called reanimate err and we first built it for riggers to
+err and we first built it for riggers to go in and fix problems with scenes like
+go in and fix problems with scenes like this and do animation retargeting but it
+this and do animation retargeting but it was so useful we
+was so useful we user interface on it and let the
+user interface on it and let the animators use it and now it has become
+animators use it and now it has become one of the core parts of our animation
+one of the core parts of our animation pipeline this is how we transfer motion
+pipeline this is how we transfer motion capture onto our rigs and whole bunch of
+capture onto our rigs and whole bunch of other great stuff that Forrest is going
+other great stuff that Forrest is going to talk about so what it is is skeleton
+to talk about so what it is is skeleton to regulate targeting and each one of
+to regulate targeting and each one of our big components knows how to apply
+our big components knows how to apply itself to a big skeleton so I can rip
+itself to a big skeleton so I can rip individual poses like this we call it
+individual poses like this we call it pose ripping and it might be useful if
+pose ripping and it might be useful if you're gonna repurpose this walk cycle
+you're gonna repurpose this walk cycle into something else maybe I'll make a
+into something else maybe I'll make a walk variant or a cinematic animation
+walk variant or a cinematic animation and with the sparse keyframes an
+and with the sparse keyframes an animator can go in and really do big
+animator can go in and really do big work on it and get a nice head start or
+work on it and get a nice head start or they might decide I want to transfer the
+they might decide I want to transfer the whole animation right onto this rig they
+whole animation right onto this rig they can do that with a single button click
+can do that with a single button click transfer motion to break and here we are
+transfer motion to break and here we are that warlock is walking now and my work
+that warlock is walking now and my work is done let's go collect some rewards oh
+is done let's go collect some rewards oh one more thing it can work on different
+one more thing it can work on different skeletons so reanimate or knows how to
+skeletons so reanimate or knows how to analyze these different skills even
+analyze these different skills even though I have different topologies they
+though I have different topologies they might even have different spine joint
+might even have different spine joint number of spine joints by analyzing the
+number of spine joints by analyzing the chain mark up the joint names and the
+chain mark up the joint names and the information in the rig components we can
+information in the rig components we can take this fallen animation and apply it
+take this fallen animation and apply it to a player so I have brought the fallen
+to a player so I have brought the fallen into the scene scaled him down close to
+into the scene scaled him down close to the player and voila I have a warlock
+the player and voila I have a warlock animation now and it's not perfect you
+animation now and it's not perfect you can see the arms or different lengths
+can see the arms or different lengths you might get some hyperextension but
+you might get some hyperextension but it's a great starting point we have
+it's a great starting point we have other tools like transversing
+other tools like transversing retargeting for getting a more precise
+retargeting for getting a more precise result I didn't have time for that one I
+result I didn't have time for that one I can talk about it later if you want all
+can talk about it later if you want all right these bounties are finished let's
+right these bounties are finished let's head back to the tower and see what we
+head back to the tower and see what we got oh sweet exotic chest Engram and a
+got oh sweet exotic chest Engram and a legendary primary I'm hoping for the
+legendary primary I'm hoping for the heart of the praxic fire motive light
+heart of the praxic fire motive light oh well I can go and reroll my inventor
+oh well I can go and reroll my inventor weapons okay alright vanquish you're
+weapons okay alright vanquish you're eight this is a great Auto rifle for PvP
+eight this is a great Auto rifle for PvP but I already have one so let's compare
+but I already have one so let's compare it to the one I have and I see what the
+it to the one I have and I see what the randomly rolled stats look like oh not
+randomly rolled stats look like oh not as much stability
+as much stability I see so stability is very important for
+I see so stability is very important for being agile we know how important
+being agile we know how important agility is for rigging so I'm gonna
+agility is for rigging so I'm gonna dismantle that get some more ascendant
+dismantle that get some more ascendant energy
+energy thanks a lot cryptarch alright so let's
+thanks a lot cryptarch alright so let's take a look at some more than animation
+take a look at some more than animation tools we animator is indeed one of the
+tools we animator is indeed one of the most amazing tools within our animation
+most amazing tools within our animation and rigging toolset we have applied it
+and rigging toolset we have applied it as a standard on all of our rigs
+as a standard on all of our rigs therefore they can all retarget
+therefore they can all retarget animation from their skeleton back
+animation from their skeleton back another control rate this has saved us a
+another control rate this has saved us a ton of times in fact expose the tool
+ton of times in fact expose the tool that you see here this is our save our
+that you see here this is our save our pose save and restore tool is this is
+pose save and restore tool is this is built on Ray animator it has a standard
+built on Ray animator it has a standard features of any pose library pose saving
+features of any pose library pose saving mirroring sharing between users but it
+mirroring sharing between users but it can also restore on a component level
+can also restore on a component level because of our system we can grab only
+because of our system we can grab only finger rotations and apply to the rig or
+finger rotations and apply to the rig or we can grab only upper body components
+we can grab only upper body components if we want expose can also apply a pose
+if we want expose can also apply a pose based on any Flags position or rotation
+based on any Flags position or rotation which is excellent for getting foot
+which is excellent for getting foot placement correct expose gets its power
+placement correct expose gets its power by using the fundamental parts of the
+by using the fundamental parts of the way components work and because each rig
+way components work and because each rig is built with its functionality in mind
+is built with its functionality in mind it is compatible with any rig in fact
+it is compatible with any rig in fact you can transfer poses between
+you can transfer poses between characters as well even if they have a
+characters as well even if they have a different number of components pretty
+different number of components pretty sure I'd try to put a player animation
+sure I'd try to put a player animation on a player ship once it's kind of
+on a player ship once it's kind of interesting so with our rigs tightly
+interesting so with our rigs tightly integrated into our Python tools and
+integrated into our Python tools and unlocks the door to writing all kinds of
+unlocks the door to writing all kinds of other awesome tools for animation we
+other awesome tools for animation we developed these tools to help the
+developed these tools to help the animator work with the rig easily if the
+animator work with the rig easily if the rig is in the wrong control scheme it
+rig is in the wrong control scheme it takes a ton of counter animation to make
+takes a ton of counter animation to make it move the way they want so in this
+it move the way they want so in this case we see an animator working away and
+case we see an animator working away and he wants to adjust the pose in his fist
+he wants to adjust the pose in his fist of havoc here
+of havoc here so he's rotating this fine but as you
+so he's rotating this fine but as you can see the hands don't say planted on
+can see the hands don't say planted on the ground so using the
+the ground so using the context-sensitive toolbar that we've
+context-sensitive toolbar that we've developed for them on the left there
+developed for them on the left there they can easily switch both arms to I K
+they can easily switch both arms to I K and the arms will stay planted I guess
+and the arms will stay planted I guess we included a character picker in there
+we included a character picker in there as well to make it even easier great so
+as well to make it even easier great so so now they can rotate the the spine and
+so now they can rotate the the spine and the hands will stay planted on the
+the hands will stay planted on the ground which is exactly what they want
+ground which is exactly what they want well let's say they want to do something
+well let's say they want to do something slightly more drastic and adjust the COG
+slightly more drastic and adjust the COG control here well unfortunately the
+control here well unfortunately the hands don't stay planted because they're
+hands don't stay planted because they're actually following the parent space of
+actually following the parent space of the COG so no problem we can just grab
+the COG so no problem we can just grab the hand flex here and easily switch
+the hand flex here and easily switch them to what we call F super this is our
+them to what we call F super this is our topmost node in the rig and now the
+topmost node in the rig and now the hands will say locked into that position
+hands will say locked into that position and they can freely adjust the COG
+and they can freely adjust the COG however they want and hands will stay
+however they want and hands will stay planted that's pretty sweet
+planted that's pretty sweet they can also still adjust the spine and
+they can also still adjust the spine and hands will definitely still stay planted
+hands will definitely still stay planted that works for rotation - excellent
+that works for rotation - excellent alright so perhaps he's going to
+alright so perhaps he's going to transition back into the the rifle pose
+transition back into the the rifle pose but he doesn't have a weapon ok well
+but he doesn't have a weapon ok well let's take a look at the Armory here and
+let's take a look at the Armory here and we sort of gave them a list of any kind
+we sort of gave them a list of any kind of weapon that they were gonna want
+of weapon that they were gonna want we'll just equip the standard assault
+we'll just equip the standard assault rifle for now he didn't win at the
+rifle for now he didn't win at the cryptarch so great he now has a rifle
+cryptarch so great he now has a rifle notice everything stayed in place it
+notice everything stayed in place it just added on the fly so in this case
+just added on the fly so in this case the animator only wants to adjust the
+the animator only wants to adjust the the prop here but the hands aren't
+the prop here but the hands aren't following so of course we can just use
+following so of course we can just use our weapon tool our widget here and have
+our weapon tool our widget here and have a easy button selection to have a hands
+a easy button selection to have a hands follow the space of the weapon and it's
+follow the space of the weapon and it's looking pretty good right there and all
+looking pretty good right there and all they have to do is animate that one flag
+they have to do is animate that one flag works for rotation and
+works for rotation and translation as well and both I hands
+translation as well and both I hands will follow but it looks like there's a
+will follow but it looks like there's a problem his left hand isn't in the right
+problem his left hand isn't in the right position it's kind of floating off in
+position it's kind of floating off in space well using the weapon tool or
+space well using the weapon tool or widget here we can easily snap to a
+widget here we can easily snap to a predefined position on the weapon just
+predefined position on the weapon just to keep consistency and lo and behold
+to keep consistency and lo and behold the hands are still set to follow so it
+the hands are still set to follow so it makes it pretty easy for them and with a
+makes it pretty easy for them and with a few button clicks you now has a weapon
+few button clicks you now has a weapon equipped and he's holding in the right
+equipped and he's holding in the right way so we've developed our component
+way so we've developed our component structure to make it easy for us to
+structure to make it easy for us to write advanced functionality and expose
+write advanced functionality and expose it in the window base you I just like
+it in the window base you I just like the rig toolbar you see here everything
+the rig toolbar you see here everything is constrained to the top there we call
+is constrained to the top there we call this the active rig it can be interacted
+this the active rig it can be interacted with in a multitude of ways including
+with in a multitude of ways including the multi constrain example where the
+the multi constrain example where the hands can be set to follow the weapon so
+hands can be set to follow the weapon so multi constraint is very useful but
+multi constraint is very useful but since it becomes built into the rig it
+since it becomes built into the rig it can only depend on parts of its own self
+can only depend on parts of its own self there's another way we have solved this
+there's another way we have solved this problem and this way is even more
+problem and this way is even more flexible the over driver tool lets the
+flexible the over driver tool lets the animators Drive rig controls by anything
+animators Drive rig controls by anything in the scene like in this cinematic shot
+in the scene like in this cinematic shot where the pistol needs to change hands
+where the pistol needs to change hands from one character to another we can
+from one character to another we can tell the control to have its position
+tell the control to have its position and/or its rotation be driven by another
+and/or its rotation be driven by another object or even be driven by world
+object or even be driven by world coordinates the flexibility in the
+coordinates the flexibility in the system is that over driver is completely
+system is that over driver is completely compatible with all the other tools so
+compatible with all the other tools so they know to treat it as a rig control
+they know to treat it as a rig control just like any other rig control this
+just like any other rig control this means that it also works with our pose
+means that it also works with our pose save and restore tool our transfer
+save and restore tool our transfer animation tool and our component add and
+animation tool and our component add and remove functions as well as the other
+remove functions as well as the other tools what we have found is that there
+tools what we have found is that there isn't necessarily one right way of doing
+isn't necessarily one right way of doing a lot of these things and rigging an
+a lot of these things and rigging an animation but more that it's great to
+animation but more that it's great to have a variety of tools for animators to
+have a variety of tools for animators to mix and match if the specific behavior
+mix and match if the specific behavior they might need for a given animation
+yeah that's right overdrive so it's it's great that all of
+overdrive so it's it's great that all of our characters have access to all these
+our characters have access to all these animation tools or a game design calls
+animation tools or a game design calls for all other kinds of things that need
+for all other kinds of things that need rigging animation too we're telling of
+rigging animation too we're telling of vehicles weapons props environment
+vehicles weapons props environment objects skybox objects they all need
+objects skybox objects they all need rigs
+rigs because they are created from the same
+because they are created from the same rig component system they have access to
+rig component system they have access to all these animation tools everything
+all these animation tools everything automatically inherits the functionality
+automatically inherits the functionality with zero extra work needed by riggers
+with zero extra work needed by riggers because of the way we design the
+because of the way we design the components that being said animator
+components that being said animator still needs standard rigs to work with
+still needs standard rigs to work with while maintaining the core functionality
+while maintaining the core functionality of retargeting and modularity so there
+of retargeting and modularity so there are so many rigs in destiny that riggers
+are so many rigs in destiny that riggers couldn't possibly have created all them
+couldn't possibly have created all them by ourselves we removed ourselves as a
+by ourselves we removed ourselves as a bottleneck in the pipeline by building
+bottleneck in the pipeline by building tools for artists to create their own
+tools for artists to create their own rigs majority of the props for
+rigs majority of the props for cinematics environments and skies were
+cinematics environments and skies were made by the artists in those departments
+made by the artists in those departments using tools like this one they create
+using tools like this one they create rig render tool this is the big
+rig render tool this is the big satellite dish from the final cosmonaut
+satellite dish from the final cosmonaut mission and it was automatically
+mission and it was automatically generated the tool automatically creates
+generated the tool automatically creates either a single node rig for basic
+either a single node rig for basic placement in the world or a full FK rig
+placement in the world or a full FK rig like you see here with components that
+like you see here with components that get connected in the same order as the
+get connected in the same order as the skeletal hierarchy so we initially set
+skeletal hierarchy so we initially set up to me set out to make a rig builder
+up to me set out to make a rig builder tool to go beyond simple rigs like the
+tool to go beyond simple rigs like the satellite dish but as we were designing
+satellite dish but as we were designing it we realize it's also useful as an
+it we realize it's also useful as an animation tool because of the way our
+animation tool because of the way our rig components can add and remove
+rig components can add and remove themselves while preserving animation
+themselves while preserving animation naturally the next stage of our rig
+naturally the next stage of our rig building tools led us to create a tool
+building tools led us to create a tool that gives animators the freedom to
+that gives animators the freedom to adjust the rigs themselves the animators
+adjust the rigs themselves the animators can start with one of the default rigs
+can start with one of the default rigs to add or remove as they go or they can
+to add or remove as they go or they can start out with a skeleton and add only
+start out with a skeleton and add only the components they need to craft a
+the components they need to craft a particular animation either way they
+particular animation either way they have a complete freedom to animate
+have a complete freedom to animate comfortably and all animation is
+comfortably and all animation is preserved while constructing their rigs
+preserved while constructing their rigs so this video demonstrates the power of
+so this video demonstrates the power of having a modular system animators can
+having a modular system animators can add or remove components that will
+add or remove components that will depending on the needs of the animation
+depending on the needs of the animation work they can strip off an FK I K
+work they can strip off an FK I K component replace it with FK or they can
+component replace it with FK or they can replace the F the reverse foot component
+replace the F the reverse foot component with a standard high K sometimes
+with a standard high K sometimes animation calls for new pivot point to
+animation calls for new pivot point to be set to an elbow or knee they can
+be set to an elbow or knee they can remove this existing component start the
+remove this existing component start the chain at the clavicle or the hip to
+chain at the clavicle or the hip to pivot from the desired location
+pivot from the desired location some animators like to keyframe on the
+some animators like to keyframe on the skeleton itself and only add arcaded
+skeleton itself and only add arcaded legs all this is possible while
+legs all this is possible while preserving animation
+preserving animation like keeping the system flexible we can
+like keeping the system flexible we can put more of the reading in the animators
+put more of the reading in the animators hands and give them a freedom to use the
+hands and give them a freedom to use the tools however they need to so final
+tools however they need to so final thoughts let's summarize everything that
+thoughts let's summarize everything that we just learned the rig is thought of in
+we just learned the rig is thought of in terms of regions so we can add or remove
+terms of regions so we can add or remove components as necessary this greatly
+components as necessary this greatly increases our agility and allows us to
+increases our agility and allows us to iterate quickly components are designed
+iterate quickly components are designed to be generic so we can use them
+to be generic so we can use them wherever we need to for example an F ki
+wherever we need to for example an F ki KEK component isn't defined as an arm it
+KEK component isn't defined as an arm it can be used on any three joint chain
+can be used on any three joint chain that needs the functionality doesn't
+that needs the functionality doesn't even need to be a character it could be
+even need to be a character it could be a vehicle spider tank components are
+a vehicle spider tank components are required to be retarget of all and as
+required to be retarget of all and as lossless as possible we can update
+lossless as possible we can update components at any time and preserve
+components at any time and preserve animation content along the way the
+animation content along the way the tools complement the components and
+tools complement the components and interface with classes keeping it lean
+interface with classes keeping it lean by sharing code animators are totally
+by sharing code animators are totally happy with the freedom to hack away
+happy with the freedom to hack away knowing that their tools is still work
+there you go go space magic yeah this is our whole team this is using our actual
+our whole team this is using our actual characters because we like to play yeah
+characters because we like to play yeah we like to dance
+we like to dance yeah who doesn't like to dance sweet all
+yeah who doesn't like to dance sweet all right well thanks to all the people that
+right well thanks to all the people that helped us out yeah we had a great time
+you

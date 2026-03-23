@@ -1,0 +1,1434 @@
+[Music]
+hello and welcome to simple and powerful animation
+simple and powerful animation compression i am nicholas frechette
+compression i am nicholas frechette a programming consultant and the work
+a programming consultant and the work i'll be presenting today
+i'll be presenting today was done for idos montreal earlier last
+was done for idos montreal earlier last year
+year i am to remind you to please turn off
+i am to remind you to please turn off noise making devices
+noise making devices and at the end if everything goes well
+and at the end if everything goes well we should have time for questions
+we should have time for questions and i'll be waiting as well at the
+and i'll be waiting as well at the wrap-up room on 30-22
+wrap-up room on 30-22 on this floor
+before we begin i'd like to thank two other contributors
+other contributors who helped me along with the work i'll
+who helped me along with the work i'll be presenting here today
+be presenting here today first frederick zimmer with whom i
+first frederick zimmer with whom i bounced
+bounced every idea here as well as many many
+every idea here as well as many many more
+more that didn't make it into the
+that didn't make it into the presentation and both him
+presentation and both him and luke mamacast contributed immensely
+and luke mamacast contributed immensely with their past experiences working with
+with their past experiences working with animation compression
+animation compression and the results and the lessons they
+and the results and the lessons they learned
+learned on doing so and of course none of this
+on doing so and of course none of this would have been possible without
+would have been possible without idos montreal
+idos montreal we'll first begin with a bit of context
+we'll first begin with a bit of context why
+why we needed to revisit character animation
+we needed to revisit character animation compression in 2016
+compression in 2016 and what essentially prompt all of this
+and what essentially prompt all of this we'll then move on and take a quick look
+we'll then move on and take a quick look at the classic solutions
+at the classic solutions in the industry to this well-known
+in the industry to this well-known problem and
+problem and what we looked at to inspire from
+what we looked at to inspire from and of course we'll finish with our own
+and of course we'll finish with our own special blend
+special blend a new twist on an old technique and the
+a new twist on an old technique and the surprising results that we got out of it
+so last year i was contracted by a game team
+team working with a game engine from rise of
+working with a game engine from rise of the tomb raider which was released
+the tomb raider which was released in 2015 on the xbox one
+in 2015 on the xbox one and of course they already had character
+and of course they already had character animation compression
+animation compression and in fact they dated as far back as
+two decades so they've been totally battle tested
+battle tested they've been used in dozens of aaa
+they've been used in dozens of aaa titles
+titles and the primary compression algorithm is
+and the primary compression algorithm is based on linear key reduction
+based on linear key reduction and they also had a fallback less
+and they also had a fallback less aggressive algorithm
+aggressive algorithm based on simple quantization and we'll
+based on simple quantization and we'll cover both of these flavors
+cover both of these flavors in a bit later
+in a bit later now the primary compression algorithm
+now the primary compression algorithm offered a pretty good size and it hadn't
+offered a pretty good size and it hadn't been an issue
+been an issue so far in the past or even today
+so far in the past or even today but as we were ramping up the number of
+but as we were ramping up the number of characters
+characters on and off the screen that we're
+on and off the screen that we're animating
+animating we started to notice that the
+we started to notice that the compression was a little bit slower than
+compression was a little bit slower than we would have liked
+we would have liked and we were starting to get more and
+and we were starting to get more and more issues with accuracy
+more issues with accuracy unfortunately the legacy algorithm did
+unfortunately the legacy algorithm did not expose
+not expose parameters that were very intuitive to
+parameters that were very intuitive to tweak
+tweak and animators failing to get the
+and animators failing to get the accuracy that they needed
+accuracy that they needed on a clip per clip basis would revert to
+on a clip per clip basis would revert to the less
+the less aggressive algorithm and this was slowly
+aggressive algorithm and this was slowly pushing the size and the memory
+pushing the size and the memory footprint higher and higher as time went
+footprint higher and higher as time went on
+on and eventually this culminated in a big
+and eventually this culminated in a big problem for cinematics
+problem for cinematics cinematics of course need very high
+cinematics of course need very high accuracy
+accuracy they're iconic moments in our game
+they're iconic moments in our game there's a lot of time and energy
+there's a lot of time and energy and money that goes into making them as
+and money that goes into making them as nice as we can possibly make them
+nice as we can possibly make them they're also somewhat exotic you can
+they're also somewhat exotic you can have all kinds of things and characters
+have all kinds of things and characters that get animated from animals to props
+that get animated from animals to props to destruction
+to destruction [Music]
+[Music] and the camera can get very close to
+and the camera can get very close to them so it's very important
+them so it's very important to get very high accuracy and of course
+to get very high accuracy and of course size and the memory footprint still
+size and the memory footprint still matter for cinematics
+matter for cinematics you walk into a room and if you need to
+you walk into a room and if you need to load from the disc
+load from the disc a very large cinematic then that takes a
+a very large cinematic then that takes a lot of time and of course you have to
+lot of time and of course you have to live with the runtime memory footprint
+live with the runtime memory footprint as well
+as well but the problem grew bigger than that
+but the problem grew bigger than that and we reached a point
+and we reached a point where about 40 percent of our clips use
+where about 40 percent of our clips use the less aggressive algorithm and that's
+the less aggressive algorithm and that's a significant
+a significant amount and the reason we got here is
+amount and the reason we got here is because the quality is getting
+because the quality is getting higher and higher as we collectively
+higher and higher as we collectively push the quality
+push the quality of our games higher and so time is
+of our games higher and so time is really the enemy and this number will
+really the enemy and this number will only ever
+only ever go up with time so it prompted us to
+go up with time so it prompted us to revisit
+revisit the animation compression but
+the animation compression but unfortunately
+unfortunately the legacy code was not quite ideal to
+the legacy code was not quite ideal to work with
+work with by virtue of being very old it
+by virtue of being very old it aged somewhat poorly like a lot of codes
+aged somewhat poorly like a lot of codes tends to do
+tends to do and sadly the data format was not
+and sadly the data format was not streaming friendly so we couldn't use it
+streaming friendly so we couldn't use it as a technique to fix our issues with
+as a technique to fix our issues with cinematics we needed a new approach
+cinematics we needed a new approach and last but not least nobody really
+and last but not least nobody really wanted to get near it
+wanted to get near it the code was in a state where it wasn't
+the code was in a state where it wasn't particularly
+particularly and a number of people had tried in the
+and a number of people had tried in the past to improve on it
+past to improve on it and failed to significantly do so
+and failed to significantly do so so faced with these problems we designed
+so faced with these problems we designed a number of goals to come up with a new
+a number of goals to come up with a new solution
+solution first and foremost we wanted to tackle
+first and foremost we wanted to tackle cinematics
+cinematics first they're a more isolated problem if
+first they're a more isolated problem if we ever end up breaking anything
+we ever end up breaking anything it only affects a small part of the game
+it only affects a small part of the game and we don't grind the whole production
+and we don't grind the whole production floor to a halt
+floor to a halt and it's also a little bit easier
+and it's also a little bit easier because we can use streaming if we need
+because we can use streaming if we need to
+to and they're also very good candidates
+and they're also very good candidates because they have the highest accuracy
+because they have the highest accuracy requirement
+requirement we wanted to keep it as simple as
+we wanted to keep it as simple as possible the time budget for this was
+possible the time budget for this was only
+only 20 days which is very short in those 20
+20 days which is very short in those 20 days i had to
+days i had to of course take a look at the old legacy
+of course take a look at the old legacy code figure out if there's anything to
+code figure out if there's anything to be done with it
+be done with it implement whatever new solution that we
+implement whatever new solution that we can come up with
+can come up with and of course if we need to do streaming
+and of course if we need to do streaming it needs to fit
+it needs to fit in that time frame as well
+if we going to build this for the future we want the decompression to be as
+we want the decompression to be as fast as possible we want it to scale to
+fast as possible we want it to scale to large numbers of bones
+large numbers of bones which are always increasing with
+which are always increasing with cinematics
+cinematics and the recent and not so recent
+and the recent and not so recent hardware trends
+hardware trends is for more memory and more cores but
+is for more memory and more cores but each individual core
+each individual core is not dramatically becoming faster and
+is not dramatically becoming faster and faster
+faster and essentially this means that it's
+and essentially this means that it's becoming more and more
+becoming more and more common to have a slightly larger memory
+common to have a slightly larger memory footprint if it means that we can
+footprint if it means that we can work a bit faster essentially memory is
+work a bit faster essentially memory is becoming cheaper
+becoming cheaper than cycles of course we want very high
+than cycles of course we want very high accuracy as i've mentioned
+accuracy as i've mentioned it's an important problem for us and we
+it's an important problem for us and we don't want to go back to yesteryear
+don't want to go back to yesteryear where we had
+where we had foot sliding and these sort of vibrating
+foot sliding and these sort of vibrating artifacts
+artifacts we also had a small set of secondary
+we also had a small set of secondary goals
+goals obviously we wanted to keep the size as
+obviously we wanted to keep the size as small as possible but
+small as possible but it wasn't the primary issue for us
+it wasn't the primary issue for us primarily
+primarily because we were hoping to fix that
+because we were hoping to fix that through streaming if we had to
+through streaming if we had to but we don't want to leave any stones
+but we don't want to leave any stones unturned of course
+unturned of course ideally we want nothing or very little
+ideally we want nothing or very little to tweak for our animators i think we
+to tweak for our animators i think we could all agree that animators time is
+could all agree that animators time is much better spent
+much better spent creating content polishing content then
+creating content polishing content then it is spent
+it is spent tweaking compression settings in the
+tweaking compression settings in the hope that the algorithm is not going to
+hope that the algorithm is not going to butcher their work
+butcher their work and last but not least it would be
+and last but not least it would be really nice if we would supersede
+really nice if we would supersede that decades-old code and failing to do
+that decades-old code and failing to do so at least replace
+so at least replace the weaker algorithm used by 40
+the weaker algorithm used by 40 of our clip
+so armed with these goals we took a look at the existing solutions in the
+at the existing solutions in the industry that we could inspire from and
+industry that we could inspire from and they roughly fall into four families or
+they roughly fall into four families or categories
+categories signal processing curve fitting linear
+signal processing curve fitting linear key reduction
+key reduction and simple key quantization so we'll
+and simple key quantization so we'll talk a little bit about those
+talk a little bit about those first up we have signal processing
+first up we have signal processing and this category probably the most
+and this category probably the most common or famous
+common or famous is based on wavelets but you also have
+is based on wavelets but you also have things like principal component analysis
+things like principal component analysis and various data-based approaches now
+and various data-based approaches now unfortunately they're
+unfortunately they're way too complex and even a cursory
+way too complex and even a cursory overview
+overview in the presentation here today would be
+in the presentation here today would be far too long
+far too long so i will redirect you to my blog if
+so i will redirect you to my blog if you're curious about this
+you're curious about this there's a link on the last slide
+there's a link on the last slide and i go in depth as much as i could on
+and i go in depth as much as i could on the topic
+the topic we chose not to inspire from this
+we chose not to inspire from this technique primarily because it was far
+technique primarily because it was far too complex
+too complex for our needs next
+for our needs next we looked at curve fitting curves
+we looked at curve fitting curves are a very elegant solution for
+are a very elegant solution for animation data
+animation data it's what is typically used in maya max
+it's what is typically used in maya max and motion builder to represent
+and motion builder to represent animation data to animators
+animation data to animators and the reason is very obvious if you
+and the reason is very obvious if you look at the graph here on the right
+look at the graph here on the right the green curve fits on about 60 key
+the green curve fits on about 60 key frames or so
+frames or so but i only need 10 control points to
+but i only need 10 control points to represent
+represent the whole curve so it's very dense
+the whole curve so it's very dense data wise it's very compact and it can
+data wise it's very compact and it can very accurately represent
+very accurately represent the animation data so on the upside it's
+the animation data so on the upside it's a very sensible choice
+a very sensible choice it makes sense it's common because it's
+it makes sense it's common because it's apt
+apt and it's also very compact but the
+and it's also very compact but the downsides
+downsides are that for us the original curves from
+are that for us the original curves from maya were not
+maya were not accessible through our existing pipeline
+accessible through our existing pipeline essentially this would have meant
+essentially this would have meant that we would have had to recalculate
+that we would have had to recalculate the curves
+the curves from our already discretized data
+from our already discretized data decompression is also somewhat slow with
+decompression is also somewhat slow with this technique
+this technique primarily because you for every track
+primarily because you for every track rotation and translation you need to
+rotation and translation you need to search which control points
+search which control points you need to interpolate from at a
+you need to interpolate from at a particular point in time
+particular point in time and you need to search over and over now
+and you need to search over and over now you can keep it fast
+you can keep it fast by sorting your data and introducing a
+by sorting your data and introducing a cursor but that's
+cursor but that's somewhat medium implementation and
+somewhat medium implementation and complexity you have to write a lot of
+complexity you have to write a lot of code to get it right
+code to get it right and get it competitive and i wasn't sure
+and get it competitive and i wasn't sure if i had
+if i had enough time in the 20 days that i had
+enough time in the 20 days that i had it's also not so great for motion
+it's also not so great for motion capture data or any sort of data that is
+capture data or any sort of data that is very noisy such as offline simulation
+very noisy such as offline simulation destruction
+destruction clot or hair simulation and the reason
+clot or hair simulation and the reason for that
+for that is that the data by nature of being very
+is that the data by nature of being very noisy is not
+noisy is not easily representable as a curve and the
+easily representable as a curve and the overhead of each control point becomes
+overhead of each control point becomes too great
+we also looked at linear key reduction it's conceptually very similar to curve
+it's conceptually very similar to curve fitting
+fitting instead of using a spline interpolation
+instead of using a spline interpolation function such as hermite
+function such as hermite we use linear interpolation
+we use linear interpolation so we have our discretized samples and
+so we have our discretized samples and we'll
+we'll iterate on them and identify keys that
+iterate on them and identify keys that can be linearly interpolated from their
+can be linearly interpolated from their neighbors
+neighbors and when we find them we can just drop
+and when we find them we can just drop them because they're trivially
+them because they're trivially reconstructable
+reconstructable so the technique is reasonably simple
+so the technique is reasonably simple and quick to implement
+and quick to implement it's also reasonably compact we make
+it's also reasonably compact we make some
+some minimal amount of effort to exploit the
+minimal amount of effort to exploit the redundancy in the data
+redundancy in the data and it's very common it was similar to
+and it's very common it was similar to the legacy implementation based on it
+the legacy implementation based on it so it's very uh already known by the
+so it's very uh already known by the animators and the other programmers
+animators and the other programmers working with this
+working with this unfortunately it was also similar to the
+unfortunately it was also similar to the existing
+existing technique as i mentioned others had
+technique as i mentioned others had tried to improve on it and failed and i
+tried to improve on it and failed and i wasn't sure in the amount of time that
+wasn't sure in the amount of time that we had
+we had that i could significantly improve on it
+that i could significantly improve on it using the same technique
+using the same technique it's also like curve fitting suffering
+it's also like curve fitting suffering from the same issues of
+from the same issues of slow decompression and again you can use
+slow decompression and again you can use the same tricks to keep it fast
+the same tricks to keep it fast which require some time to implement and
+which require some time to implement and get right
+get right and again it's not terribly great for
+and again it's not terribly great for motion capture or noisy data
+motion capture or noisy data because again there's not a lot of
+because again there's not a lot of redundancy to exploit
+and the last technique is the simplest one by far
+one by far it's just simple quantization we have
+it's just simple quantization we have our discretized samples
+our discretized samples and we make no effort to remove any of
+and we make no effort to remove any of them we retain everything and instead
+them we retain everything and instead just focus
+just focus on using a reduced number of bits to
+on using a reduced number of bits to represent them
+so it's really dead simple which means that it's very fast to implement
+that it's very fast to implement very fast to decompress as well there's
+very fast to decompress as well there's hardly any code
+hardly any code that goes into this and it's also a
+that goes into this and it's also a solid foundation
+solid foundation upon which to build on because the other
+upon which to build on because the other two techniques like linear key reduction
+two techniques like linear key reduction and curve fitting
+and curve fitting essentially build on top of this the
+essentially build on top of this the remaining keys that you use to
+remaining keys that you use to interpolate
+interpolate or the curve control points are
+or the curve control points are generally stored on a reduced number of
+generally stored on a reduced number of bits as well
+so of course the downside of the technique is that it's not very compact
+technique is that it's not very compact the old legacy implementation that was
+the old legacy implementation that was causing our size to balloon up
+causing our size to balloon up was it was essentially built around this
+was it was essentially built around this and it was an issue but we deemed it
+and it was an issue but we deemed it good enough
+good enough because we knew we could get it in a
+because we knew we could get it in a streaming friendly format
+streaming friendly format very quickly and solve our problem
+very quickly and solve our problem through that so we decided
+through that so we decided to build on simple quantization and then
+to build on simple quantization and then later on if we have more time
+later on if we have more time we can build more complex solutions on
+we can build more complex solutions on top
+so our solution essentially breaks down into four categories or sections
+into four categories or sections we'll first talk about range reduction
+we'll first talk about range reduction and how we use it to increase accuracy
+and how we use it to increase accuracy and be more aggressive with compression
+and be more aggressive with compression we'll talk about uniform segmenting
+we'll talk about uniform segmenting and how we use it for the same purpose
+and how we use it for the same purpose as well as to speed up
+as well as to speed up streaming we'll talk about constant
+streaming we'll talk about constant tracks or
+tracks or and animated tracks and the ratios
+and animated tracks and the ratios that that we see in the wild
+that that we see in the wild and of course we'll talk about
+and of course we'll talk about quantization and the number of bits that
+quantization and the number of bits that we use
+we use per component
+range reduction boils down to talking about our tracks or animator tracks
+about our tracks or animator tracks in terms of their range of motion so for
+in terms of their range of motion so for example in a specific clip
+example in a specific clip i might have my elbow rotate by 120
+i might have my elbow rotate by 120 degrees around some axis
+degrees around some axis of course the t radical range is the
+of course the t radical range is the full 360 degrees but in this particular
+full 360 degrees but in this particular clip it's only 120.
+clip it's only 120. if i want to quantize it on four bits
+if i want to quantize it on four bits the natural thing to do is to split the
+the natural thing to do is to split the full range
+full range onto 16 intervals and that gives me a
+onto 16 intervals and that gives me a precision of 22 and a half degrees
+precision of 22 and a half degrees and it's immediately obvious what the
+and it's immediately obvious what the issue here
+issue here i have a lot of intervals that fall far
+i have a lot of intervals that fall far outside
+outside the actual effective range of my clip
+the actual effective range of my clip so the smart thing to do is of course
+so the smart thing to do is of course instead
+instead to partition our effective range into
+to partition our effective range into our 16 intervals
+our 16 intervals which increases our precisions by 3 in
+which increases our precisions by 3 in this example here
+this example here up to 7.5 degrees
+of course the trade-off is that we now have someone
+have someone we need to store the range minimum value
+we need to store the range minimum value as well as the range extent
+as well as the range extent in order to reconstruct our values
+in order to reconstruct our values we have to normalize our values within
+we have to normalize our values within that range as well
+that range as well which is good for us because it means
+which is good for us because it means that after this step
+that after this step our rotation translation and scale data
+our rotation translation and scale data is now
+is now use the same units as the scale value
+use the same units as the scale value within the range between zero and one
+within the range between zero and one and of course reconstructing the value
+and of course reconstructing the value and performing
+and performing range expansion is trivial it's a
+range expansion is trivial it's a multiply
+multiply and add which is very efficient with the
+and add which is very efficient with the hardware
+we need six scalar values to represent a full track range each track type
+a full track range each track type rotation translation and scale
+rotation translation and scale they all have three components and we
+they all have three components and we need the minimum any extents for each
+need the minimum any extents for each we store these six scalar values
+we store these six scalar values as full precision floats in our clip
+as full precision floats in our clip metadata
+metadata which boils down to 24 bytes per
+which boils down to 24 bytes per animated track
+so with this it means that we can increase our accuracy
+increase our accuracy with a small overhead which allows us to
+with a small overhead which allows us to be much more aggressive in the
+be much more aggressive in the compression
+compression of the actual track data because we can
+of the actual track data because we can be more lossy because the loss is not as
+be more lossy because the loss is not as visible anymore
+visible anymore sadly this is not great for short clips
+sadly this is not great for short clips if i only have two or three keyframes
+if i only have two or three keyframes obviously the overhead of the range
+obviously the overhead of the range information is going to offset a lot of
+information is going to offset a lot of the gains that i'm
+the gains that i'm otherwise going to have but in a general
+otherwise going to have but in a general case it's
+case it's absolutely worth it and range reduction
+absolutely worth it and range reduction is a cornerstone
+is a cornerstone of our algorithm
+next we have uniform partitioning we decided to
+decided to split our clips into blocks of 16 key
+split our clips into blocks of 16 key frames for three reasons
+frames for three reasons and y16 just because it seemed the
+and y16 just because it seemed the sensible values but in truth
+sensible values but in truth we haven't had time to try anything else
+we haven't had time to try anything else and it worked out all right for us
+so the primary reason for uniform partitioning is that is that it makes
+partitioning is that is that it makes seeking within the clip very fast and
+seeking within the clip very fast and easy
+easy for a specific point in time that i want
+for a specific point in time that i want to sample
+to sample i can quickly with a simple index table
+i can quickly with a simple index table find which blocks i need to interpolate
+find which blocks i need to interpolate from
+from and this of course also makes it makes
+and this of course also makes it makes it very easy
+it very easy to perform streaming ahead of time
+to perform streaming ahead of time finding out which blocks i need and
+finding out which blocks i need and bringing them into memory
+and last but not least it allows us to do range reduction
+do range reduction again a second time per block
+again a second time per block so we have two levels of range reduction
+so we have two levels of range reduction first at the whole clip
+first at the whole clip level and once more for within each
+level and once more for within each block
+block and again we store the range information
+and again we store the range information metadata within each block
+metadata within each block our six scalars this time are quantized
+our six scalars this time are quantized onto eight bits because they're
+onto eight bits because they're essentially between zero and one
+essentially between zero and one and that yields six bytes per animated
+and that yields six bytes per animated track
+track you do have to be careful though because
+you do have to be careful though because we quantize the range information here
+we quantize the range information here it means that the normalization step is
+it means that the normalization step is now lossy and you have to take into
+now lossy and you have to take into account that loss
+account that loss in order to get accurate results
+we also have a lot of constant tracks a character might have 200 bones with
+character might have 200 bones with three tracks per bones that's 600 tracks
+three tracks per bones that's 600 tracks but obviously not everything is animated
+but obviously not everything is animated in
+in every clip so i wanted to know the
+every clip so i wanted to know the proportions that we had
+proportions that we had to try and figure out what was the best
+to try and figure out what was the best way
+way to to take advantage of that so i
+to to take advantage of that so i analyzed about 3500 clips
+analyzed about 3500 clips from various main characters
+from various main characters and i found out that bones are constant
+and i found out that bones are constant about 65 percent of the time
+about 65 percent of the time and there are the bind pose 45 of the
+and there are the bind pose 45 of the time
+time and that makes sense because facial
+and that makes sense because facial bones ik bones camera bones
+bones ik bones camera bones they're only ever animated in the clips
+they're only ever animated in the clips that actually need them
+tracks are also constant 87 of the time and the bind pose 79 percent
+of the time and the bind pose 79 percent of the time
+of the time and again this makes sense because while
+and again this makes sense because while rotation is very often animated
+rotation is very often animated the translation and the scale is very
+the translation and the scale is very rarely
+rarely uh animated in fact scale in my data set
+uh animated in fact scale in my data set was
+was the bind pose 99.8 percent of the time
+the bind pose 99.8 percent of the time so to take advantage of this we use two
+so to take advantage of this we use two bit sets
+bit sets that we store in our clip metadata we
+that we store in our clip metadata we have one bit
+have one bit per track that tells us whether the
+per track that tells us whether the track is the buying pose or not
+track is the buying pose or not and if it is then of course we can drop
+and if it is then of course we can drop the entire track because it's trivially
+the entire track because it's trivially reconstructable at runtime
+reconstructable at runtime and our second bit set is again one bit
+and our second bit set is again one bit per track
+per track which tells us whether the track is
+which tells us whether the track is constant or not
+constant or not and if it's constant then we store the
+and if it's constant then we store the one key that we need
+one key that we need with full precision in our clip metadata
+with full precision in our clip metadata and from this follows that if a track is
+and from this follows that if a track is not the bind pose and it's not constant
+not the bind pose and it's not constant then it's animated and variable and it's
+then it's animated and variable and it's quantized and compressed
+quantized and compressed normally
+and that takes us to the quantization step
+step and originally i did like almost all the
+and originally i did like almost all the implementations out in the world do
+implementations out in the world do and i hard coded the number of bits to
+and i've seen as low as 12 in the wild and that was that and it worked and it
+and that was that and it worked and it was entirely equivalent
+was entirely equivalent to the old legacy implementation
+but one day in the shower i had a striking moment where i
+striking moment where i i thought well what if i try to brute
+i thought well what if i try to brute force search
+force search what is the best bit rate per clip it's
+what is the best bit rate per clip it's not that hard
+not that hard so we try 16 15 and then we go as low as
+so we try 16 15 and then we go as low as we can
+we can up until we exceed some error thresholds
+up until we exceed some error thresholds and that worked out and that gave us
+and that worked out and that gave us good gain
+good gain and then i started thinking well now
+and then i started thinking well now that my bit rate
+that my bit rate is not hard coded anymore it's variable
+is not hard coded anymore it's variable how far can i push this
+how far can i push this so a logical next step was
+so a logical next step was to observe that the rotation the
+to observe that the rotation the translation and the scale data is it's
+translation and the scale data is it's very different
+very different the units are different the data behaves
+the units are different the data behaves very differently
+very differently it makes sense to um to store
+it makes sense to um to store our bit rate one for rotation
+our bit rate one for rotation one for translation and one for scale
+one for translation and one for scale independently
+independently and so that's what i did i brute force
+and so that's what i did i brute force searched three bit rates per clip
+searched three bit rates per clip for each track track type
+for each track track type and again that gave us very good gains
+and again that gave us very good gains and if we can do it per clip
+and if we can do it per clip it's also very trivial to now do it per
+it's also very trivial to now do it per block
+block and this takes us to the last logical
+and this takes us to the last logical step that we can take this to
+step that we can take this to and it's well can i find the best
+and it's well can i find the best individual track rate for per track
+individual track rate for per track per block and of course this is
+per block and of course this is this is really the holy grail here
+this is really the holy grail here because this new variable bitrate is
+because this new variable bitrate is absolutely ideal for animation data
+absolutely ideal for animation data it's ideal for our hierarchical data
+it's ideal for our hierarchical data like everybody else out there our
+like everybody else out there our animation data is compressed in local
+animation data is compressed in local space
+space of the parent bone this means that
+of the parent bone this means that every bone has a little bit of error due
+every bone has a little bit of error due to compression
+to compression and the error accumulates down the
+and the error accumulates down the hierarchy when we reconstruct it for
+hierarchy when we reconstruct it for skinning for example so of course
+skinning for example so of course parent bones contribute more error by
+parent bones contribute more error by virtue of being higher in a hierarchy
+virtue of being higher in a hierarchy so they need more bits to retain more
+so they need more bits to retain more precision
+precision and conversely children don't need as
+and conversely children don't need as much precision because they don't
+much precision because they don't contribute as much error and they
+contribute as much error and they only require fewer bits and with a
+only require fewer bits and with a variable bit rate
+variable bit rate we can entirely do this we also have
+we can entirely do this we also have exotic tracks we might have a track
+exotic tracks we might have a track that's very noisy for some reason in a
+that's very noisy for some reason in a clip
+clip or has a very wide range of values which
+or has a very wide range of values which requires
+requires unusually high accuracy or more bits
+unusually high accuracy or more bits and with a variable bitrate we don't
+and with a variable bitrate we don't need to bias the whole clip
+need to bias the whole clip negatively it's also great for temporal
+negatively it's also great for temporal coherence
+coherence in cinematics it's not unusual to have
+in cinematics it's not unusual to have all your characters
+all your characters animated in sync with clips that are all
+animated in sync with clips that are all the same length
+the same length but if a character is off screen for a
+but if a character is off screen for a while he's still animated but he doesn't
+while he's still animated but he doesn't move
+move and with a variable bitrate we can of
+and with a variable bitrate we can of course
+course use fewer bits if not zero for the parts
+use fewer bits if not zero for the parts where they're not moving
+where they're not moving and this of course adapts to all kinds
+and this of course adapts to all kinds of animation data regardless of how it
+of animation data regardless of how it looks
+we settled on 16 possible bit rates 0 3 4 5 up to 16
+0 3 4 5 up to 16 and 23 and the reason why we need a
+and 23 and the reason why we need a higher
+higher than 16 is that some clips have
+than 16 is that some clips have unusually high
+unusually high precision requirements for example world
+precision requirements for example world space cinematics
+space cinematics might have the root bone be very far or
+might have the root bone be very far or the camera bone move very far
+the camera bone move very far or maybe you're throwing a weapon very
+or maybe you're throwing a weapon very far ahead like an arrow
+far ahead like an arrow so you need more than 16 bones and a few
+so you need more than 16 bones and a few rare cases
+unfortunately 23 was perhaps a bad and naive choice
+naive choice chosen a bit prematurely initially i
+chosen a bit prematurely initially i just selected it because it was the same
+just selected it because it was the same as the float mantissa minus
+as the float mantissa minus in this the sign bit and that seems like
+in this the sign bit and that seems like a sensible choice at the time
+a sensible choice at the time but of course as as i was writing the
+but of course as as i was writing the presentation
+presentation i realized that the dequantization step
+i realized that the dequantization step requires
+requires our integer to be uniquely representable
+our integer to be uniquely representable as a floating point number
+as a floating point number and accurately representable and of
+and accurately representable and of course it turns out that a 32-bit float
+course it turns out that a 32-bit float can only accurately and uniquely
+can only accurately and uniquely represent integers up to six
+represent integers up to six significant digits essentially what this
+significant digits essentially what this means is that there's some rounding
+means is that there's some rounding happening here
+happening here that we hadn't foreseen so maybe
+that we hadn't foreseen so maybe something like 19
+something like 19 might be enough but really in truth we
+might be enough but really in truth we could probably really measure it i don't
+could probably really measure it i don't know whether
+know whether the rounding is really a big issue or
+the rounding is really a big issue or not or an f19 would be better
+not or an f19 would be better there's definitely room for improvement
+there's definitely room for improvement here
+we do have one edge case which is when a track bitrate is zero it means that the
+track bitrate is zero it means that the track is
+track is constant within the block now of course
+constant within the block now of course if the track is constant
+if the track is constant then we don't need range information
+then we don't need range information because our track extent
+because our track extent is zero and when that happens
+is zero and when that happens we reuse the 48 bits that we had for our
+we reuse the 48 bits that we had for our range information and we store
+range information and we store our constant key at that memory location
+our constant key at that memory location with 16 bits per component
+with 16 bits per component which is typically enough precision for
+which is typically enough precision for what we need
+so so far on the compression side almost everything is very very trivial
+everything is very very trivial we have our bit sets we have our
+we have our bit sets we have our normalization within the
+normalization within the the range that we're calculating it's a
+the range that we're calculating it's a bunch of min max it's very trivial
+bunch of min max it's very trivial the only really complex step is
+the only really complex step is the bitrate selection and to figure out
+the bitrate selection and to figure out how to do that we need to talk about two
+how to do that we need to talk about two things
+things first we need a way to compare bit rates
+first we need a way to compare bit rates which bitrate is superior or inferior to
+which bitrate is superior or inferior to which other bitrate
+which other bitrate now it's obvious that a bitrate is
+now it's obvious that a bitrate is better if it's slower because it means a
+better if it's slower because it means a lower memory footprint
+lower memory footprint but it's only acceptable if it doesn't
+but it's only acceptable if it doesn't make us exceed
+make us exceed some error thresholds so it's very
+some error thresholds so it's very important to be able
+important to be able to accurately and precisely measure the
+to accurately and precisely measure the error that we introduce
+error that we introduce and so we'll talk about our error metric
+and so we'll talk about our error metric function
+function and we also need a way to be smart about
+and we also need a way to be smart about attacking the problem
+attacking the problem up until now i've been brute forcing
+up until now i've been brute forcing which bitrate
+which bitrate is the best but now that i
+is the best but now that i reach this point i have 600 tracks only
+reach this point i have 600 tracks only a handful
+a handful or 50 80 or so that are animated but i
+or 50 80 or so that are animated but i have
+have 16 permutations to try per track it's a
+16 permutations to try per track it's a it's a huge search space and we can't
+it's a huge search space and we can't afford to brute force anymore so we need
+afford to brute force anymore so we need a smart way to attract to attack this
+so measuring accuracy it's really really important
+important and in fact it's an absolute cornerstone
+and in fact it's an absolute cornerstone of our algorithm
+of our algorithm and you'll see why uh later
+and you'll see why uh later it's important because our algorithm
+it's important because our algorithm uses it to converge
+uses it to converge on a solution and of course we use it as
+on a solution and of course we use it as well
+well to compare our results with the other
+to compare our results with the other compression algorithms in the engine
+compression algorithms in the engine and other engines you might be surprised
+and other engines you might be surprised to learn that it's often overlooked and
+to learn that it's often overlooked and poorly implemented
+poorly implemented even in state-of-the-art game engines
+even in state-of-the-art game engines such as we
+such as we what we had before and there's no
+what we had before and there's no standard way to do this
+standard way to do this either in the industry or academia
+either in the industry or academia they all have their own special flavor
+they all have their own special flavor of how to measure error and of course
+of how to measure error and of course we are no different and i will be
+we are no different and i will be presenting our own flavor here today
+presenting our own flavor here today there's three criterias that an air
+there's three criterias that an air metric
+metric really needs to meet that are critically
+really needs to meet that are critically important
+important it needs to account for the fact that
+it needs to account for the fact that our data is hierarchical in nature
+our data is hierarchical in nature it needs to account for the aggregate
+it needs to account for the aggregate transformer
+transformer transform the rotation the translation
+transform the rotation the translation and the scale
+and the scale and it also needs to account for the
+and it also needs to account for the fact that we have a visual mesh
+fact that we have a visual mesh something that we often forget with
+something that we often forget with animation data because we're working
+animation data because we're working with the skeleton
+so the hierarchy is very important as i mentioned
+mentioned the air accumulates down the hierarchy
+the air accumulates down the hierarchy this makes it very obvious that if you
+this makes it very obvious that if you use a local space error metric
+use a local space error metric you're not getting the full view of the
+you're not getting the full view of the true error that you're introducing
+true error that you're introducing so that's bad we really want to be using
+so that's bad we really want to be using an object space our metric
+an object space our metric because it allows us to see the full
+because it allows us to see the full impact of our changes
+impact of our changes in bitrate selection
+the aggregate error is also very important it's very common sadly
+important it's very common sadly to measure the error with the the bone
+to measure the error with the the bone position or the leaf bone position
+position or the leaf bone position but of course it ignores the rotation
+but of course it ignores the rotation and the scale contribution of that
+and the scale contribution of that individual bone
+individual bone and we need to take into account the
+and we need to take into account the full transform because the air
+full transform because the air can be anywhere not just on the
+can be anywhere not just on the translation
+and last but not least the error that we might measure on the skeleton
+might measure on the skeleton is not the same or equivalent as we
+is not the same or equivalent as we would measure it on the visual mesh
+would measure it on the visual mesh the skeleton is never really visible
+the skeleton is never really visible right the visual mesh
+right the visual mesh is what the users what the designers
+is what the users what the designers with the animators what everybody sees
+with the animators what everybody sees and the error is not the same because
+and the error is not the same because with rotation and scale
+with rotation and scale the air actually increases the further
+the air actually increases the further away you get from the bone
+away you get from the bone and we can visualize it like this here
+and we can visualize it like this here suppose i have
+suppose i have a bone with some rotational error if i
+a bone with some rotational error if i have a vertex that's skinned on that
+have a vertex that's skinned on that bone
+bone and it's very close to the bone the
+and it's very close to the bone the linear displacement
+linear displacement as a result in red here
+as a result in red here from that rotational error is going to
+from that rotational error is going to be fairly small
+be fairly small but if my vertex is much further away
+but if my vertex is much further away for with the same rotational error all
+for with the same rotational error all of a sudden my linear displacement
+of a sudden my linear displacement is much larger so of course it's very
+is much larger so of course it's very important
+important property and we need to take it into
+property and we need to take it into account in our aromatic function
+and we can observe that the vertex displacement on the visual mesh
+displacement on the visual mesh is really the true measure of our
+is really the true measure of our accuracy it's what everybody sees it
+accuracy it's what everybody sees it makes sense
+makes sense that's what we should be measuring and
+that's what we should be measuring and we end up with skinning
+we end up with skinning being essentially our error metric
+being essentially our error metric function
+function and it satisfies of course all three
+and it satisfies of course all three criteria that we just talked about
+criteria that we just talked about now unfortunately it's way too slow a
+now unfortunately it's way too slow a character might have
+character might have 200 bones but it could easily have 50
+200 bones but it could easily have 50 000 vertices
+000 vertices or much more the mesh information
+or much more the mesh information might not even be available in your
+might not even be available in your animation compression pipeline at that
+animation compression pipeline at that point in your pipeline
+point in your pipeline and you might not even know the true
+and you might not even know the true mesh if you're doing mesh
+mesh if you're doing mesh sharing between the skeletons
+and of course some bones don't even have any vertices that are skinned on them ik
+any vertices that are skinned on them ik bones camera bones or the root bones of
+bones camera bones or the root bones of the characters
+the characters they don't have any vertices that are
+they don't have any vertices that are directly skinned on them that we can use
+directly skinned on them that we can use so instead we use virtual vertices
+so instead we use virtual vertices these allow us to approximate the
+these allow us to approximate the skinning
+skinning they satisfy of course all three
+they satisfy of course all three criteria by virtue of being the same
+criteria by virtue of being the same process
+process and it's also very intuitive to tweak
+and it's also very intuitive to tweak it's simply the vertex
+it's simply the vertex distance from the bone so we approximate
+distance from the bone so we approximate the skinning with a uniform
+the skinning with a uniform shell if you will and the output
+shell if you will and the output is of course an object space
+is of course an object space displacement
+displacement like we want
+like we want in practice internally we settled on
+in practice internally we settled on three centimeters
+three centimeters for our normal bones which comprise 99
+for our normal bones which comprise 99 of all our bones for main characters
+of all our bones for main characters props and so on
+props and so on and we also have one meter for high
+and we also have one meter for high accuracy bones
+accuracy bones and which is which is of course animator
+and which is which is of course animator defined and data driven
+defined and data driven with the exception that the root bone
+with the exception that the root bone is always considered to be high accuracy
+is always considered to be high accuracy just because i wanted to be extra
+just because i wanted to be extra conservative with the data
+so now that we can properly measure our error in which bitrate is superior
+our error in which bitrate is superior or inferior to each other bitrate
+or inferior to each other bitrate we need a smart way to trim our search
+we need a smart way to trim our search space
+space so that we can compress you know in this
+so that we can compress you know in this century
+century so we decided to do a two-phase approach
+so we decided to do a two-phase approach to tackle the problem we do a first pass
+to tackle the problem we do a first pass to find an approximate solution
+to find an approximate solution and then we do a second pass to refine
+and then we do a second pass to refine it to the local minimum
+it to the local minimum and this is an important distinction the
+and this is an important distinction the algorithm i'll be presenting here today
+algorithm i'll be presenting here today does not find the globally optimal
+does not find the globally optimal solution of what is
+solution of what is the best bit rate for all tracks in all
+the best bit rate for all tracks in all blocks
+blocks we simply find a decent local minimum
+we simply find a decent local minimum so there's definitely some room for
+so there's definitely some room for improvement here in the future perhaps
+and the way the algorithm works is like this
+this initially we'll set all our tracks
+initially we'll set all our tracks to have the maximum amount of accuracy
+to have the maximum amount of accuracy the highest bit rate possible here
+the highest bit rate possible here 23. and then we begin the first pass
+23. and then we begin the first pass and the goal of the first pass is to
+and the goal of the first pass is to lower all the bit rates
+lower all the bit rates simultaneously in lockstep
+as much as we can up until we exceed an error threshold and then we stop
+error threshold and then we stop with the exception that the root bone
+with the exception that the root bone here on the top left
+here on the top left remains locked to full precision during
+remains locked to full precision during the first pass
+the first pass and the reason for this is that in world
+and the reason for this is that in world space cinematics or any
+space cinematics or any clip that requires unusually high
+clip that requires unusually high precision on the part of the
+precision on the part of the root bone here would negatively bias
+root bone here would negatively bias the first pass so we leave it fixed
+the first pass so we leave it fixed for now and so we lower our bit rate
+for now and so we lower our bit rate as much as we can up until we can't
+as much as we can up until we can't anymore
+anymore and then the second pass begins and the
+and then the second pass begins and the goal of the second pass
+goal of the second pass is to iterate over each track
+is to iterate over each track individually and lower the bitrate as
+individually and lower the bitrate as much as we can
+much as we can up until we've processed all the tracks
+up until we've processed all the tracks without exceeding
+without exceeding our error thresholds
+so in a sense we minimize the bitrate very aggressively here
+very aggressively here it also means that we maximize the error
+it also means that we maximize the error up to our threshold very aggressively
+up to our threshold very aggressively and it'll be made obvious in a future
+and it'll be made obvious in a future slide
+slide this makes the threshold critically
+this makes the threshold critically important
+important if it's too high it's immediately
+if it's too high it's immediately obvious because we maximize the error
+obvious because we maximize the error up to it i tried
+up to it i tried one millimeter in object space and it
+one millimeter in object space and it proved
+proved far too high for a third person
+far too high for a third person camera on a normal character there was
+camera on a normal character there was no air that was visible no foot sliding
+no air that was visible no foot sliding no vibration
+no vibration but as soon as the camera came up close
+but as soon as the camera came up close to the character you could see the
+to the character you could see the artifacts
+artifacts somewhat fairly obviously which this
+somewhat fairly obviously which this essentially made it
+essentially made it absolutely unsuitable for cinematics or
+absolutely unsuitable for cinematics or whenever you're backing out
+whenever you're backing out on a wall and the camera is pushed in
+on a wall and the camera is pushed in closer to the character
+we settled on hard-coding a tenth of a millimeter
+millimeter as our accuracy threshold now a tenth of
+as our accuracy threshold now a tenth of a millimeter to put it into perspective
+a millimeter to put it into perspective is about the average width of a human
+is about the average width of a human hair
+hair so this is really awesome it essentially
+so this is really awesome it essentially means that our animations
+means that our animations look pretty much like they do in maya
+look pretty much like they do in maya there's no visual
+there's no visual difference that you can see
+and now we get to the results the fun part unfortunately the game
+part unfortunately the game this is going to be futurely shipped on
+this is going to be futurely shipped on has not been announced yet
+has not been announced yet and so i can't show any fancy videos and
+and so i can't show any fancy videos and even if i could
+even if i could they would look essentially like they do
+they would look essentially like they do in maya so that would not be
+in maya so that would not be terribly fun instead what i did is i ran
+terribly fun instead what i did is i ran the compression
+the compression on a large number of clips i aggregated
+on a large number of clips i aggregated the results i generated a bunch of
+the results i generated a bunch of charts
+charts and i took out some concrete examples to
+and i took out some concrete examples to kind of
+kind of give you a glimpse of how it performs in
+give you a glimpse of how it performs in the real world
+so i aggregated about 3900 clips for various characters
+various characters including the main character the total
+including the main character the total compression time
+compression time was 3.2 hours on a single tread or 10
+was 3.2 hours on a single tread or 10 minutes
+minutes multithreaded on my desktop
+multithreaded on my desktop the total sum of the clip lens is about
+the total sum of the clip lens is about 5.4
+5.4 hours at 30fps so it's definitely very
+hours at 30fps so it's definitely very significant
+significant and representative of our game as a
+and representative of our game as a whole
+here we have the distribution of the number of key frames per clip
+of the number of key frames per clip and there's really only two things i
+and there's really only two things i want to point out here the first
+want to point out here the first is that we have about 22 of our clips
+is that we have about 22 of our clips that are very short
+that are very short they use one block or less
+they use one block or less those obviously are not going to
+those obviously are not going to compress too well by virtue of having
+compress too well by virtue of having more
+more overhead and we have in fact
+overhead and we have in fact up to 11 that use half a block or less
+up to 11 that use half a block or less which is not great fortunately for us
+which is not great fortunately for us we have about 49 of our clips they use
+we have about 49 of our clips they use three blocks or more
+three blocks or more and that are going to compress very well
+the total size on disk was about 168 megs
+megs for the sample set and in comparison the
+for the sample set and in comparison the legacy size of the same set
+legacy size of the same set was around 300 megs now keep in mind
+was around 300 megs now keep in mind this was
+this was for 60 linear key reduction
+for 60 linear key reduction and 40 percent uh the legacy simple
+and 40 percent uh the legacy simple quantization
+quantization the average number of animated tracks
+the average number of animated tracks is 56.
+here we have the distribution of the error
+error per clip in millimeters and this slides
+per clip in millimeters and this slides makes it
+makes it bleedingly obvious that the algorithm
+bleedingly obvious that the algorithm maximizes the air
+maximizes the air up to the threshold as early as the 15th
+up to the threshold as early as the 15th percentile or so
+percentile or so already the error is almost equal to the
+already the error is almost equal to the threshold
+but never exceeding it which is what we wanted
+here we have the distribution for our compression ratio
+compression ratio in logarithmic scale and we can see on
+in logarithmic scale and we can see on the far
+the far left that there's a lot of clips that
+left that there's a lot of clips that don't compress too well as we suspected
+don't compress too well as we suspected they're probably very short and even the
+they're probably very short and even the median
+median 18 to 1 is not terribly great but
+18 to 1 is not terribly great but there's a lot of clips
+there's a lot of clips on the right that compress very very
+on the right that compress very very well
+well and there's even quite a few exotic
+and there's even quite a few exotic clips that compress
+clips that compress on abnormally well 3 000 to 1 is
+on abnormally well 3 000 to 1 is definitely not representative
+definitely not representative but there were definitely about 10 to 20
+but there were definitely about 10 to 20 of those
+of those so i'm not quoting the average here
+so i'm not quoting the average here because it would obviously be very
+because it would obviously be very biased and meaningless
+biased and meaningless a quick word about the compression ratio
+a quick word about the compression ratio is that it's
+is that it's absolutely meaningless unless you and i
+absolutely meaningless unless you and i use the same formula to calculate the
+use the same formula to calculate the raw size
+raw size and here my formula is the number of key
+and here my formula is the number of key frames
+frames times the number of bones times 36 bytes
+times the number of bones times 36 bytes per bone and the 36 bytes comes from the
+per bone and the 36 bytes comes from the fact that every bone key
+fact that every bone key has three tracks and each track is
+has three tracks and each track is three components or three floats
+three components or three floats which yields 36 bytes
+and here here is probably my favorite slide
+slide this is the distribution of which bit
+this is the distribution of which bit rates
+rates ended up being selected so horizontally
+ended up being selected so horizontally we have our bitrate buckets
+we have our bitrate buckets 0 3 4 5 up to 23
+0 3 4 5 up to 23 and vertically we have how often it was
+and vertically we have how often it was selected by the algorithm
+and there's two distributions here in blue
+blue is in our second phase of our algorithm
+is in our second phase of our algorithm when we go over each track individually
+when we go over each track individually and we lower the bitrate as much as we
+and we lower the bitrate as much as we can
+can in blue we started at the root going
+in blue we started at the root going toward the leafs bones
+toward the leafs bones or parent first children after and in
+or parent first children after and in orange we do the opposite we start with
+orange we do the opposite we start with the children
+the children and we go up towards the parent and the
+and we go up towards the parent and the root
+root originally when i wrote the algorithm i
+originally when i wrote the algorithm i started at the root going towards the
+started at the root going towards the leaves and it
+leaves and it seems like a sensible choice to me and
+seems like a sensible choice to me and then as i was generating this slide
+then as i was generating this slide i wondered would the distribution look
+i wondered would the distribution look really different
+really different if i flipped the loop and went the other
+if i flipped the loop and went the other way around
+way around and it turned out that it did and we can
+and it turned out that it did and we can see on the far left
+see on the far left that in orange by starting with the
+that in orange by starting with the children first
+children first we have a larger incidence of
+we have a larger incidence of lower bitrates zero three four up to
+lower bitrates zero three four up to eight we have much more of them
+eight we have much more of them and this makes sense conceptually
+and this makes sense conceptually because we have more children
+because we have more children than we have parents but of course
+than we have parents but of course by starting with the children first it
+by starting with the children first it forces
+forces our parents to retain more precision
+our parents to retain more precision for the same error and so we also
+for the same error and so we also on the right of the graph we can see
+on the right of the graph we can see starting at 13 14
+starting at 13 14 15 16 and 23 you can't see them they're
+15 16 and 23 you can't see them they're not zero they're just
+not zero they're just very small but they're all higher
+very small but they're all higher starting with the children going towards
+starting with the children going towards the parents
+and essentially the net result of this is that starting with the children first
+is that starting with the children first going up
+going up is two percent smaller in memory for no
+is two percent smaller in memory for no change in compression time
+change in compression time no change in accuracy no change in
+no change in accuracy no change in decompression time
+decompression time and of course there's probably other
+and of course there's probably other ways order other orderings that you
+ways order other orderings that you could think of to try here
+could think of to try here i did try to take the best of the two
+i did try to take the best of the two essentially doubling
+essentially doubling the compression time but the
+the compression time but the result was less than a tenth of a
+result was less than a tenth of a percent
+percent so definitely not worth it so
+so definitely not worth it so essentially we ended up with about 10
+essentially we ended up with about 10 of our tracks using three or four bits
+of our tracks using three or four bits or less per component
+or less per component almost a quarter 22 percent using up to
+almost a quarter 22 percent using up to six
+six or less and almost half 47 percent
+or less and almost half 47 percent using eight or less and this is really
+using eight or less and this is really uh what surprised me the most about our
+uh what surprised me the most about our results
+results if a year ago you had come to me and
+if a year ago you had come to me and told me that i could store a significant
+told me that i could store a significant amount
+amount of rotation and translations on three or
+of rotation and translations on three or four bits per component
+four bits per component which is nine or twelve a byte a byte
+which is nine or twelve a byte a byte and a half
+and a half for a whole rotation or a translation
+for a whole rotation or a translation and do so with submillimeter accuracy
+and do so with submillimeter accuracy i definitely never would have believed
+i definitely never would have believed you without data to back it up
+you without data to back it up and it turned out that it was entirely
+and it turned out that it was entirely possible
+here are some concrete examples that i pulled out from the set
+pulled out from the set these are all for our main character
+these are all for our main character we have a short scramble animation which
+we have a short scramble animation which is very fast
+is very fast we have a normal idle slow animation
+we have a normal idle slow animation we have a regular walk cycle and
+we have a regular walk cycle and of course a very long cinematic
+of course a very long cinematic the number of animated tracks ranges
+the number of animated tracks ranges from
+from 11 to 16 so fairly low
+we have of course the raw size compressed size yielding us
+compressed size yielding us a compression ratio which is very decent
+a compression ratio which is very decent between
+between 20 to 1 and 32 to 1 and we can see the
+20 to 1 and 32 to 1 and we can see the cinematic compressing very well
+cinematic compressing very well with 28 to 1.
+with 28 to 1. i also extracted the average key frame
+i also extracted the average key frame size because i thought
+size because i thought it was very telling this is the number
+it was very telling this is the number of bytes
+of bytes to represent all tracks at a particular
+to represent all tracks at a particular point in time so a whole keyframe
+point in time so a whole keyframe across all tracks and what we can see
+across all tracks and what we can see here is that essentially fits between
+here is that essentially fits between three and five cache lines
+three and five cache lines so when we're sampling our clip we need
+so when we're sampling our clip we need to interpolate between two keyframes
+to interpolate between two keyframes so we need to read twice that amount of
+so we need to read twice that amount of bytes essentially to interpolate
+bytes essentially to interpolate of course there's other things like the
+of course there's other things like the range information that you need to read
+range information that you need to read but the track data is very dense and
+but the track data is very dense and compact
+compact it's all linear and it contributes
+it's all linear and it contributes directly
+directly to our decompression speed being very
+to our decompression speed being very very fast
+very fast these numbers are on the xbox one in
+these numbers are on the xbox one in microsecond
+microsecond and they range between 27 and 33
+and they range between 27 and 33 and there's a number of things that we
+and there's a number of things that we can say about this number here
+can say about this number here the first is it's about half or twice as
+the first is it's about half or twice as fast as the old legacy linear
+fast as the old legacy linear key reduction algorithm and it's also
+key reduction algorithm and it's also much more
+much more predictable and consistent the old
+predictable and consistent the old algorithm
+algorithm varied a lot in decompression time
+varied a lot in decompression time depending on how far along in the clip
+depending on how far along in the clip we were
+we were whereas here now it's always very
+whereas here now it's always very predictable
+predictable it also probably could be a little bit
+it also probably could be a little bit lower i did not get to spend as much
+lower i did not get to spend as much time on it
+time on it optimizing as i would have hoped and
+optimizing as i would have hoped and there remains some low hanging fruits
+another reason why the decompression is very fast is that
+very fast is that our compression format for our rotations
+our compression format for our rotations is the same as at the runtime when we're
+is the same as at the runtime when we're blending our poses
+blending our poses and that format is the quaternion
+and that format is the quaternion logarithm it's essentially
+logarithm it's essentially the rotation axis multiplied by the
+the rotation axis multiplied by the rotation angle so three floats
+rotation angle so three floats so that means essentially that there's
+so that means essentially that there's no conversion to or from quaternion
+no conversion to or from quaternion there's no square root to reconstruct
+there's no square root to reconstruct anything
+anything that keeps it very fast
+that keeps it very fast these numbers are also somewhat of a
+these numbers are also somewhat of a worse case
+worse case because they're for the main character
+because they're for the main character which has more bones typically ranging
+which has more bones typically ranging between 180 and
+between 180 and 200 i believe for the cinematic whereas
+200 i believe for the cinematic whereas our npcs have of course
+our npcs have of course far fewer bones than this and will
+far fewer bones than this and will decompress
+decompress even faster
+so in conclusion we've really hit a sweet spot with the technique
+sweet spot with the technique it's very fast to decompress and it
+it's very fast to decompress and it would be hard
+would be hard to make it significantly faster it's
+to make it significantly faster it's also reasonably compact
+also reasonably compact so much so that we decided to use it
+so much so that we decided to use it across the board
+across the board and supersede all the legacy stuff
+and supersede all the legacy stuff and we did not even need to resort to
+and we did not even need to resort to streaming because the memory footprint
+streaming because the memory footprint was good enough at that time
+was good enough at that time and it's also very high accuracy and
+and it's also very high accuracy and tunable
+tunable which makes it future-proof if the
+which makes it future-proof if the number of bones increases
+number of bones increases if the data increases in complexity
+if the data increases in complexity the algorithm will adapt very well
+the algorithm will adapt very well it's also very versatile it works out
+it's also very versatile it works out right out of the box regardless of the
+right out of the box regardless of the animation
+animation the rig or however the data looks if
+the rig or however the data looks if it's noisy or not noisy
+it's noisy or not noisy it adapts very well there's nothing to
+it adapts very well there's nothing to tweak for the animators
+tweak for the animators it's excessively rare uh for us to go
+it's excessively rare uh for us to go and mark a bone as
+and mark a bone as high accuracy and when we do we
+high accuracy and when we do we typically do on the rig
+typically do on the rig and then it just works everywhere else
+and then it just works everywhere else and it's good enough that we don't need
+and it's good enough that we don't need any more a fallback
+any more a fallback compression algorithm for when it messes
+compression algorithm for when it messes up
+up because it always meets our accuracy
+because it always meets our accuracy requirements
+requirements so one algorithm for all our animations
+and of course it's bleedingly simple it took 20 to 25 days to implement
+it took 20 to 25 days to implement and there's so little code and it's so
+and there's so little code and it's so easy to comprehend
+easy to comprehend that there's been no maintenance on it
+that there's been no maintenance on it only a single bug surfaced in the first
+only a single bug surfaced in the first month
+month and it's been in use for over a year now
+and it's been in use for over a year now and this
+and this makes it very easy to build on and
+makes it very easy to build on and improve and i'm sure you can think of
+improve and i'm sure you can think of many ways
+many ways that this could be improved on
+and that's it we reached the questions you're feel free to go
+you're feel free to go on my blog i discuss all of these
+on my blog i discuss all of these techniques
+techniques and i'll be posting uh the content of
+and i'll be posting uh the content of the
+the presentation in deeper detail as well
+presentation in deeper detail as well in due time and if we exceed the time
+in due time and if we exceed the time for the questions i'll be at room 30 22
+for the questions i'll be at room 30 22 at the end of the hall
+[Applause]
+hi great talk um what was the workflow for animators so you'd create an
+for animators so you'd create an animation clip
+animation clip then you'd have to go through this
+then you'd have to go through this algorithm how did that work out
+algorithm how did that work out right so before our animation clips
+right so before our animation clips would be imported into some animation
+would be imported into some animation set for a particular character and
+set for a particular character and typically it would use the default
+typically it would use the default algorithm with the default settings and
+algorithm with the default settings and then if
+then if in game they saw that the accuracy was
+in game they saw that the accuracy was not as good
+not as good as they would like they would go and
+as they would like they would go and change the compression settings
+change the compression settings as needed and typically fall back on the
+as needed and typically fall back on the lesser compression algorithm
+lesser compression algorithm but now with the new algorithm there's
+but now with the new algorithm there's nothing that's exposed for the animator
+nothing that's exposed for the animator to tweak we hard-coded the threshold
+to tweak we hard-coded the threshold to keep it simple but in truth it might
+to keep it simple but in truth it might be a bit
+be a bit overly conservative so the compression
+overly conservative so the compression was already part of their workflow
+was already part of their workflow yes absolutely it was it was always
+yes absolutely it was it was always present for the last 20 years
+present for the last 20 years it was just bold
+thanks hi uh you say you store the quaternion
+hi uh you say you store the quaternion logarithms
+logarithms yes and that avoids the square root but
+yes and that avoids the square root but if you need the quaternion
+if you need the quaternion that's you need a cosine right
+that's you need a cosine right is that yes internally when we're
+is that yes internally when we're blending our poses
+blending our poses we use quaternions logarithms okay
+we use quaternions logarithms okay during the blending process so we only
+during the blending process so we only ever convert to quaternions
+ever convert to quaternions at the very end once we have the final
+at the very end once we have the final blended pose
+blended pose we convert it to quaternions and
+we convert it to quaternions and matrices and then we work with that for
+matrices and then we work with that for skinning
+skinning okay i was just curious wow yeah so we
+okay i was just curious wow yeah so we used quaternions throughout so i was
+used quaternions throughout so i was yeah it was a very unusual choice
+yeah it was a very unusual choice it was the only engine i ever saw using
+it was the only engine i ever saw using quaternion logarithms for blending
+quaternion logarithms for blending but it remains a very sensible choice
+but it remains a very sensible choice for the compression format
+for the compression format because it's three floats as opposed to
+because it's three floats as opposed to four for quaternion
+four for quaternion and it may not be the best
+and it may not be the best representation but it's definitely
+representation but it's definitely legit okay thank you
+i think you touched on this a little bit but did you notice any artifacting
+but did you notice any artifacting with going between any
+with going between any any additive animations being at a
+any additive animations being at a different compression rate than
+different compression rate than the animation that they were being
+the animation that they were being applied to
+applied to the well with a tenth of a millimeter
+the well with a tenth of a millimeter it was never very visible the only
+it was never very visible the only instances where we saw artifacts
+instances where we saw artifacts were with very very large props where
+were with very very large props where the vertices were much much further away
+the vertices were much much further away than
+than than our one meter threshold allowed and
+than our one meter threshold allowed and in those instances
+in those instances because the actual value of uh of the
+because the actual value of uh of the vertex distance was not exposed only the
+vertex distance was not exposed only the boolean for default or high precision we
+boolean for default or high precision we added intermediary bones that are never
+added intermediary bones that are never animated
+animated just so that the final bone that we're
+just so that the final bone that we're skinned on is actually closer to our
+skinned on is actually closer to our threshold
+threshold and that was good enough for us all
+and that was good enough for us all these bones by virtue of being never
+these bones by virtue of being never animated they compress trivially so you
+animated they compress trivially so you saw it in your attachments not in your
+saw it in your attachments not in your blending
+blending yeah okay thank you hi
+yeah okay thank you hi uh excellent talk um regarding the
+uh excellent talk um regarding the measuring accuracy you said like you use
+measuring accuracy you said like you use the mesh vertex to join detail
+the mesh vertex to join detail um i was just wondering uh would the
+um i was just wondering uh would the curvature of the track would be a better
+curvature of the track would be a better heuristic
+heuristic to uh choose a bitrate i'm i'm sorry can
+to uh choose a bitrate i'm i'm sorry can you repeat what would be a better year
+you repeat what would be a better year uh the curvature of the track because it
+uh the curvature of the track because it kind of
+kind of tells you the acceleration of the value
+tells you the acceleration of the value would
+would that be a better heuristic right so
+that be a better heuristic right so you're
+you're wondering if using uh basically the
+wondering if using uh basically the velocity
+velocity uh would be a better area to
+uh would be a better area to store the precision right um it's it's
+store the precision right um it's it's possible you could definitely
+possible you could definitely factor it in into the metric function
+factor it in into the metric function okay the metric function you can
+okay the metric function you can make arbitrarily complicated and you
+make arbitrarily complicated and you could definitely use this for example
+could definitely use this for example with
+with blend shape animated coefficients or but
+blend shape animated coefficients or but then the data is not hierarchical
+then the data is not hierarchical anymore you would have a different
+anymore you would have a different error metric but you didn't try that
+error metric but you didn't try that no we haven't uh we haven't tried that i
+no we haven't uh we haven't tried that i went
+went straight to this because it was somewhat
+straight to this because it was somewhat close to what unreal 4 uses for example
+close to what unreal 4 uses for example but i generalized it with virtual
+but i generalized it with virtual vertices over
+vertices over every bone and not just the extremities
+every bone and not just the extremities cool thank you
+hi uh what was the worst case steps in terms of hierarchy of the bones of the
+terms of hierarchy of the bones of the animation that you compressed
+animation that you compressed that's a good question i think for most
+that's a good question i think for most characters it doesn't uh really go
+characters it doesn't uh really go uh most of our characters are humanoids
+uh most of our characters are humanoids so the depth is maybe five or six
+so the depth is maybe five or six it what we did have some animals though
+it what we did have some animals though i believe we had some sort of large
+i believe we had some sort of large predatory cat feline
+predatory cat feline which obviously had much more bones for
+which obviously had much more bones for the tail
+the tail and the paws and the spine was also a
+and the paws and the spine was also a bit longer and
+bit longer and that particular character is really what
+that particular character is really what caused the most issues and prompted the
+caused the most issues and prompted the whole discussion
+whole discussion over uh the compression artifacts in the
+over uh the compression artifacts in the first place
+first place okay great because we had a case where
+okay great because we had a case where the character actually carried a chain
+the character actually carried a chain or something
+or something then that was a nightmare so we had to
+then that was a nightmare so we had to actually flat the sinks out
+actually flat the sinks out in terms of skeleton yeah that's why an
+in terms of skeleton yeah that's why an object space aromatic is very important
+object space aromatic is very important because that way regardless of how deep
+because that way regardless of how deep the chain is you always have the true
+the chain is you always have the true measure
+measure of the error and that's introduced but
+of the error and that's introduced but that sounds like it will start out max
+that sounds like it will start out max maxed out from the beginning so yeah
+maxed out from the beginning so yeah probably that wasn't effective
+probably that wasn't effective thank you all right so i believe that's
+thank you all right so i believe that's yeah almost all the time we have all
+yeah almost all the time we have all right thank you
+right thank you you

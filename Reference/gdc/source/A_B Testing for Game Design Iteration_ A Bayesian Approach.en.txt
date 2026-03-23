@@ -1,0 +1,1945 @@
+[Music] okay last talk I'm hopefully not gonna
+okay last talk I'm hopefully not gonna make it too hard for you guys but a
+make it too hard for you guys but a little bit of mathematical content to
+little bit of mathematical content to wake you all up to from a Friday
+wake you all up to from a Friday afternoon first off I'll just introduce
+afternoon first off I'll just introduce myself so I've been in the game industry
+myself so I've been in the game industry for quite a while
+for quite a while started long time ago doing a Commodore
+started long time ago doing a Commodore 64 game development then was that
+64 game development then was that co-founder and CEO of havoc the physics
+co-founder and CEO of havoc the physics special effects company and then a core
+special effects company and then a core which is a lure virtual music virtual
+which is a lure virtual music virtual machine company which got salt to havoc
+machine company which got salt to havoc and then now swerve and swerve is a
+and then now swerve and swerve is a company focus is really on app and game
+company focus is really on app and game developers developing mobile titles and
+developers developing mobile titles and we provide a series of you know platform
+we provide a series of you know platform tools and technologies for those guys
+tools and technologies for those guys from analytics to a/b testing to to
+from analytics to a/b testing to to messaging and targeting and all that
+messaging and targeting and all that sort of cool stuff if you're interested
+sort of cool stuff if you're interested come and talk to me afterwards that's
+come and talk to me afterwards that's all I'm gonna say about swerve so part
+all I'm gonna say about swerve so part of what we do in swerve is a be testing
+of what we do in swerve is a be testing and we've been involved in that for the
+and we've been involved in that for the last three years and so have evolved our
+last three years and so have evolved our architecture quite considerably you know
+architecture quite considerably you know over those three years and I thought I'd
+over those three years and I thought I'd give you some some information on how
+give you some some information on how we've evolved that some of the
+we've evolved that some of the background to the design of the current
+background to the design of the current system that we have and some of the
+system that we have and some of the learnings as a result of running tests
+learnings as a result of running tests in a wild you know with millions of
+in a wild you know with millions of users and just you know how that's
+users and just you know how that's worked out for us I also wanted to sort
+worked out for us I also wanted to sort of do a little bit of soapboxing
+of do a little bit of soapboxing comparing perhaps at the sort of more
+comparing perhaps at the sort of more classical experimental design approach a
+classical experimental design approach a frequentist approach to say that the
+frequentist approach to say that the more current Bayesian approach although
+more current Bayesian approach although Bayes is arguably an older technology so
+Bayes is arguably an older technology so I'm not trying to say you know either is
+I'm not trying to say you know either is you know perfect but I think certainly
+you know perfect but I think certainly the evolving opinion is that Bayesian
+the evolving opinion is that Bayesian approach is a much more suitable
+approach is a much more suitable approach for the sorts of things that we
+approach for the sorts of things that we do in this industry and I'll try and
+do in this industry and I'll try and make that case and do some degree of
+make that case and do some degree of comparing you know and contrasting the
+comparing you know and contrasting the two different approaches so first off
+two different approaches so first off just in case and I'm sure I don't need
+just in case and I'm sure I don't need to do this terribly terribly much but I
+to do this terribly terribly much but I just introduced the concept to baby
+just introduced the concept to baby testing and the Hawaii baby testing well
+testing and the Hawaii baby testing well we all know now it's it's all about
+we all know now it's it's all about rapid iteration you know it's about
+rapid iteration you know it's about getting to soft launch in our titles as
+getting to soft launch in our titles as early as we can getting them in front of
+early as we can getting them in front of an audience sort of using that
+an audience sort of using that information that we get from how they
+information that we get from how they interact with the game to essentially
+interact with the game to essentially get to a final launch and then you're
+get to a final launch and then you're constantly iterating that game service
+constantly iterating that game service and the idea is you're looking at how
+and the idea is you're looking at how users interact with the service the
+users interact with the service the things that are working the things that
+things that are working the things that are not working the things that are
+are not working the things that are monetizing well things that aren't
+monetizing well things that aren't monetizing well and you use that data to
+monetizing well and you use that data to hopefully upgrade and adapt this service
+hopefully upgrade and adapt this service to user behavior and that's that's the
+to user behavior and that's that's the idea in order to do that you need a
+idea in order to do that you need a framework that allows you to make
+framework that allows you to make changes very rapidly inside the game and
+changes very rapidly inside the game and you need a sort of an underpinning data
+you need a sort of an underpinning data science that gives you the confidence to
+science that gives you the confidence to be able to make decisions in an
+be able to make decisions in an appropriate way decisions that are
+appropriate way decisions that are informed by data and informed by you
+informed by data and informed by you know real actionable results ultimately
+know real actionable results ultimately what we're trying to do is balance an
+what we're trying to do is balance an equation right now I'm sort of glossing
+equation right now I'm sort of glossing over obviously there are a lot of
+over obviously there are a lot of different types of developers and lots
+different types of developers and lots of different types of business models
+of different types of business models and this probably is a talk that focuses
+and this probably is a talk that focuses a little bit more on the assumption of a
+a little bit more on the assumption of a free-to-play style style model but I
+free-to-play style style model but I think a lot of these ideas translate to
+think a lot of these ideas translate to any any sort of model but fundamentally
+any any sort of model but fundamentally you're there's a cost to you in
+you're there's a cost to you in developing your game there's a cost to
+developing your game there's a cost to you in serving the game to your users
+you in serving the game to your users and that course needs to be balanced by
+and that course needs to be balanced by the things that the users gain value out
+the things that the users gain value out of inside of your game the things they
+of inside of your game the things they pay for so either they pay upfront in
+pay for so either they pay upfront in some premium title or they pay after the
+some premium title or they pay after the fact with you know in-game items or
+fact with you know in-game items or upgrades or whatever but fundamentally
+upgrades or whatever but fundamentally you know there's a lot of different
+you know there's a lot of different activities that you're going to get
+activities that you're going to get involved and that hopefully you know
+involved and that hopefully you know accrue to a lifetime value for your
+accrue to a lifetime value for your users that balances the equation of you
+users that balances the equation of you know the spends that you have to get the
+know the spends that you have to get the user into the game in the first place so
+user into the game in the first place so I'm going to look at some of the the a
+I'm going to look at some of the the a be testing techniques that we can use on
+be testing techniques that we can use on the right-hand side of this sort of
+the right-hand side of this sort of equation we're not gonna be interested
+equation we're not gonna be interested it at all at this stage and how we get
+it at all at this stage and how we get users into the app but it's more what do
+users into the app but it's more what do we do after they arrive in their first
+we do after they arrive in their first session how can we interact with them
+session how can we interact with them and how can we learn from their behavior
+and how can we learn from their behavior and obviously this is the equation which
+and obviously this is the equation which find a balance we want an aura why we
+find a balance we want an aura why we want to make money you know a profit and
+want to make money you know a profit and fundamentally we want to make sure that
+fundamentally we want to make sure that we're making more money than we're
+we're making more money than we're spending so or owari is an interesting
+spending so or owari is an interesting thing and lifetime value is perhaps an
+thing and lifetime value is perhaps an even more intangible thing to get your
+even more intangible thing to get your head around you know arguably lifetime
+head around you know arguably lifetime value is an infinite series you know you
+value is an infinite series you know you wait for long enough
+wait for long enough and people will spend more and more in
+and people will spend more and more in your game and eventually they'll stop
+your game and eventually they'll stop playing so over what period of time do
+playing so over what period of time do you want to measure this and what sort
+you want to measure this and what sort of time frame do you have in order to
+of time frame do you have in order to make changes inside of the game so you
+make changes inside of the game so you know just looking very quickly at some
+know just looking very quickly at some data from games on our service this is a
+data from games on our service this is a classic profile of you know popular
+classic profile of you know popular games with high volumes and users and
+games with high volumes and users and this is showing the spend curve this is
+this is showing the spend curve this is where spending happens inside the game
+where spending happens inside the game based on you know from day one install
+based on you know from day one install how how early in the game are people
+how how early in the game are people spending and how much revenue comes in
+spending and how much revenue comes in in those early stages and it turns out
+in those early stages and it turns out the vast majority of the revenue the
+the vast majority of the revenue the vast majority of people's engagement
+vast majority of people's engagement with your title tends to be in the very
+with your title tends to be in the very early stages of their in you know their
+early stages of their in you know their play so usually you know fifty percent
+play so usually you know fifty percent of revenue comes in the first thirty
+of revenue comes in the first thirty days the other fifty is spread over
+days the other fifty is spread over maybe a year or longer so it's all about
+maybe a year or longer so it's all about having a very quick reaction time being
+having a very quick reaction time being able to fire out tests and test things
+able to fire out tests and test things and look at what users are doing and
+and look at what users are doing and react very quickly in order to sort of
+react very quickly in order to sort of maximize your ROI so nearly finished my
+maximize your ROI so nearly finished my a/b testing soap box you need to
+a/b testing soap box you need to understand what users are doing which is
+understand what users are doing which is about analytics and getting data in nena
+about analytics and getting data in nena an ability to test hypotheses against
+an ability to test hypotheses against your users you want to be able to try
+your users you want to be able to try things out and see what works and see
+things out and see what works and see what doesn't work and essentially use a
+what doesn't work and essentially use a data-driven approach to making those
+data-driven approach to making those decisions and finally need a way to sort
+decisions and finally need a way to sort of act on the data you're seeing you
+of act on the data you're seeing you need to push out content or lock in
+need to push out content or lock in changes or you know adapt the game
+changes or you know adapt the game service very very rapidly and that sort
+service very very rapidly and that sort of promotes the idea of having a
+of promotes the idea of having a data-driven layer on your game which is
+data-driven layer on your game which is something in the game in this way we
+something in the game in this way we know a lot of that you know in sort of
+know a lot of that you know in sort of separating tools from run times it's
+separating tools from run times it's exactly the same concept can be used for
+exactly the same concept can be used for a/b testing and for live update of the
+a/b testing and for live update of the game service so the mechanics of an a/b
+game service so the mechanics of an a/b test are very simple at any given point
+test are very simple at any given point in time you have an apophysis you want
+in time you have an apophysis you want to test you split your users into
+to test you split your users into separate user groups you show them
+separate user groups you show them different variations of the game
+different variations of the game different content different price points
+different content different price points different whatever you look at the data
+different whatever you look at the data coming back in and you assess the
+coming back in and you assess the validity of that data you try to
+validity of that data you try to determine is this actionable or not use
+determine is this actionable or not use statistics to do that and that's
+statistics to do that and that's actually where we're going to focus the
+actually where we're going to focus the talk today on and then ultimately you
+talk today on and then ultimately you want to choose some winning variation or
+want to choose some winning variation or treatment and push that out then to all
+treatment and push that out then to all your users and this cycle continues ad
+your users and this cycle continues ad nauseam
+nauseam you know on the successful game
+you know on the successful game developers who are really adopting a/b
+developers who are really adopting a/b testing or running multiple tests in
+testing or running multiple tests in parallel against different segments of
+parallel against different segments of users and you know having to deal with
+users and you know having to deal with some of the complexities of that but
+some of the complexities of that but essentially it's all the time testing
+essentially it's all the time testing and all the time updating so from a
+and all the time updating so from a platform perspective the mechanics are
+platform perspective the mechanics are quite simple you know at a high level we
+quite simple you know at a high level we have a game which is being served
+have a game which is being served typically with a back-end server
+typically with a back-end server restoring game station and user user a
+restoring game station and user user a save play and all that sort of stuff and
+save play and all that sort of stuff and so on the left hand side you have your
+so on the left hand side you have your bi stack your analytic stack your your
+bi stack your analytic stack your your testing platform and as the game is
+testing platform and as the game is uploading or as the game is being
+uploading or as the game is being started users are being bucketed into a
+started users are being bucketed into a or B groups and they're getting custom
+or B groups and they're getting custom content so the a group gets one version
+content so the a group gets one version of the game and the B group gets the
+of the game and the B group gets the second version of the game now I'm not
+second version of the game now I'm not going to get into the details of serving
+going to get into the details of serving that but think of that as a content
+that but think of that as a content management system where the content that
+management system where the content that you get streamed down to the game
+you get streamed down to the game depends on what user group yurina what
+depends on what user group yurina what behavioral target group you're in and
+behavioral target group you're in and that content might be just different
+that content might be just different imagery it might be data at controlling
+imagery it might be data at controlling the flow of a UI or it could be price
+the flow of a UI or it could be price point information or whatever the users
+point information or whatever the users then play the game interact with it
+then play the game interact with it hopefully enjoy that game and as you're
+hopefully enjoy that game and as you're doing that you're a streaming event data
+doing that you're a streaming event data back to your back-end service and the
+back to your back-end service and the event data is essentially tied by is the
+event data is essentially tied by is the user in population a or population B and
+user in population a or population B and you use that to generate pretty graphs
+you use that to generate pretty graphs and you know boot up tableau and do a
+and you know boot up tableau and do a lots of analysis and ultimately based on
+lots of analysis and ultimately based on that data you make a choice and you lock
+that data you make a choice and you lock in perhaps variation a or variation B so
+in perhaps variation a or variation B so you have this sort of feedback loop
+you have this sort of feedback loop where content is all the time being
+where content is all the time being deployed with logic to the game the game
+deployed with logic to the game the game players are playing away and that data
+players are playing away and that data is coming back promoting us to to make
+is coming back promoting us to to make different choices of that content and
+different choices of that content and this is sort of a constantly adapting
+this is sort of a constantly adapting and shifting system and that sort of
+and shifting system and that sort of operates nearly in parallel to your
+operates nearly in parallel to your regular game development cycle where
+regular game development cycle where you're pushing at new you know app
+you're pushing at new you know app updates every two weeks or every four
+updates every two weeks or every four weeks or whatever it is these sorts of
+weeks or whatever it is these sorts of iterations can happen in in hours or
+iterations can happen in in hours or even minutes and if you automate some of
+even minutes and if you automate some of this you can happen in seconds so what
+this you can happen in seconds so what would you want to test in your game well
+would you want to test in your game well anything of course anything that's
+anything of course anything that's available to be tested can be tested and
+available to be tested can be tested and the types of things that we see people
+the types of things that we see people testing typically the low-hanging fruits
+testing typically the low-hanging fruits are things like messages
+are things like messages you know different layouts of of UI
+you know different layouts of of UI different message content different
+different message content different calls to action all that sort of thing
+calls to action all that sort of thing tutorial flow is another classic one so
+tutorial flow is another classic one so looking at building into your game sort
+looking at building into your game sort of a data-driven view of the tutorial
+of a data-driven view of the tutorial being able to dynamically reconfigure
+being able to dynamically reconfigure the tutorial on the fly and essentially
+the tutorial on the fly and essentially thinking in the tutorial like a state
+thinking in the tutorial like a state machine that you can sort of play with
+machine that you can sort of play with as users are interacting with it so this
+as users are interacting with it so this is an example of an actual tutorial and
+is an example of an actual tutorial and there was a chokepoint who our users are
+there was a chokepoint who our users are falling off at say the seventh or eighth
+falling off at say the seventh or eighth stage in the tutorial and that's a good
+stage in the tutorial and that's a good motivator to go in there and try and
+motivator to go in there and try and maybe test different versions of
+maybe test different versions of whatever it is you're presenting to the
+whatever it is you're presenting to the user there because it's clearly not
+user there because it's clearly not working so well then you can get into
+working so well then you can get into this sort of the economy of the game and
+this sort of the economy of the game and there's a whole ton of this for the
+there's a whole ton of this for the stuff that goes on in the background and
+stuff that goes on in the background and you know the simple things to think
+you know the simple things to think about are our changing price but
+about are our changing price but typically you don't just change price
+typically you don't just change price that's a bit too disruptive to your to
+that's a bit too disruptive to your to your users you typically go in and look
+your users you typically go in and look at marketing activities and if you've
+at marketing activities and if you've got an in-game story you can look at
+got an in-game story you can look at promotions and discounts and you know
+promotions and discounts and you know trying out different discounts at
+trying out different discounts at different points in time you could try
+different points in time you could try out different exchange rates a classic
+out different exchange rates a classic technique in economy management in games
+technique in economy management in games is as users progress through the game
+is as users progress through the game you sort of induce an inflationary
+you sort of induce an inflationary effect into the games economy things get
+effect into the games economy things get more expensive and sort of you sort of
+more expensive and sort of you sort of know this intuitively but how more
+know this intuitively but how more expensive and how quickly do that is it
+expensive and how quickly do that is it sort of like a game balancing an economy
+sort of like a game balancing an economy balancing thing and you can use a/b
+balancing thing and you can use a/b testing to test that out and to test
+testing to test that out and to test different exchange rates something
+different exchange rates something that's used quite a lot is your sort of
+that's used quite a lot is your sort of price sets and the pricing that's
+price sets and the pricing that's available to users now you're not
+available to users now you're not changing the value of anything here
+changing the value of anything here you're not saying something that was two
+you're not saying something that was two dollars is now four dollars you're just
+dollars is now four dollars you're just essentially changing the inventory
+essentially changing the inventory that's available in the store and in
+that's available in the store and in this case it's you know coin bundles or
+this case it's you know coin bundles or whatever and if you look at these price
+whatever and if you look at these price sets just a little bit closely you'll
+sets just a little bit closely you'll see that as you go from top to bottom
+see that as you go from top to bottom we're sort of increasing the value of
+we're sort of increasing the value of some of these things in in fairly subtle
+some of these things in in fairly subtle ways in fact the users are arguably
+ways in fact the users are arguably getting better value because we've
+getting better value because we've increased a price point from you know $1
+increased a price point from you know $1 to $2 but we've more than doubled the
+to $2 but we've more than doubled the number of gems they're getting so it's
+number of gems they're getting so it's not an unfair thing but all we're doing
+not an unfair thing but all we're doing is we're sort of changing the choices
+is we're sort of changing the choices that users have inside of the store
+that users have inside of the store which is exactly the same as a retail
+which is exactly the same as a retail manager are laying at their shelves in
+manager are laying at their shelves in the deciding what things to
+the deciding what things to based on key places on the shelf and we
+based on key places on the shelf and we have exactly the same problem of
+have exactly the same problem of scarcity in games
+scarcity in games if scarcity of screen space so what
+if scarcity of screen space so what typically happens here is testing has
+typically happens here is testing has motivated the different price points and
+motivated the different price points and as users go through the game and perhaps
+as users go through the game and perhaps become a paying user you start shifting
+become a paying user you start shifting around the inventory that's available
+around the inventory that's available for them to purchase again to try and
+for them to purchase again to try and you know increase the monetization
+you know increase the monetization inside the game by basically getting out
+inside the game by basically getting out of the way of the user typically people
+of the way of the user typically people who pay a lot in games unlike paying a
+who pay a lot in games unlike paying a lot of games don't pay at the lower
+lot of games don't pay at the lower price points they prefer to pay at the
+price points they prefer to pay at the higher price points so you know this is
+higher price points so you know this is a way to to allow them to do that here's
+a way to to allow them to do that here's some examples of that in action so this
+some examples of that in action so this is a sort of a complex graph I'll try
+is a sort of a complex graph I'll try and step through it on the bottom we
+and step through it on the bottom we have the value of the very first
+have the value of the very first purchase a user makes out of one of
+purchase a user makes out of one of those sort of price sets one of those
+those sort of price sets one of those gem bundles and there's multiple
+gem bundles and there's multiple different price points they can purchase
+different price points they can purchase at so let's say the $2 the $5 15 30 and
+at so let's say the $2 the $5 15 30 and 70 so you know a classic stratification
+70 so you know a classic stratification of pricing inside of a game or a
+of pricing inside of a game or a free-to-play game and you can see that
+free-to-play game and you can see that there are users who purchase first right
+there are users who purchase first right over there on the on the 70 dollar line
+over there on the on the 70 dollar line and some of these guys and continue to
+and some of these guys and continue to purchase at the 70 dollar level so
+purchase at the 70 dollar level so that's what this sort of second faded
+that's what this sort of second faded line means each user their first
+line means each user their first purchased at 70 and then their total
+purchased at 70 and then their total purchase so far is 140 and you can see
+purchase so far is 140 and you can see the steps further up as users continue
+the steps further up as users continue to purchase so these guys up here are
+to purchase so these guys up here are our VIPs these are the guys who are
+our VIPs these are the guys who are spending lots of money in the game you
+spending lots of money in the game you know clearly a high disposable income
+know clearly a high disposable income but some of the things to notice here
+but some of the things to notice here are a be testing smears so what we've
+are a be testing smears so what we've done here is we've looked at different
+done here is we've looked at different price points and we've looked to see can
+price points and we've looked to see can we shift say a price point that was $28
+we shift say a price point that was $28 to $29 or $30 and look at the price
+to $29 or $30 and look at the price elasticity the sensitivity of the users
+elasticity the sensitivity of the users to those changes now again you're you're
+to those changes now again you're you're shifting you're also giving them better
+shifting you're also giving them better value you're adding you know to the coin
+value you're adding you know to the coin bundles that they get but you're just
+bundles that they get but you're just looking at their sensitivity to the
+looking at their sensitivity to the specific price point and that's you know
+specific price point and that's you know classic a be testing used to try and mix
+classic a be testing used to try and mix very small changes in the economy very
+very small changes in the economy very small changes in the inventory which can
+small changes in the inventory which can have big impacts on the actual
+have big impacts on the actual underlying revenue itself here's
+underlying revenue itself here's something else that you want to test the
+something else that you want to test the sort of marketing activities inside of
+sort of marketing activities inside of your applications something that people
+your applications something that people do a lot in games
+do a lot in games obviously is ask the users can I send
+obviously is ask the users can I send you a push notification or would you
+you a push notification or would you like to register on Facebook or would
+like to register on Facebook or would you like to tweet the thing you dis
+you like to tweet the thing you dis experienced or whatever it is so these
+experienced or whatever it is so these are sort of ways to increase the
+are sort of ways to increase the virality of your game and to do that the
+virality of your game and to do that the last thing you want to do is just ask
+last thing you want to do is just ask them right when they install because
+them right when they install because everyone says no because there's no
+everyone says no because there's no benefit to a user at that point they
+benefit to a user at that point they haven't learned anything about the game
+haven't learned anything about the game so a classic thing to test for is let's
+so a classic thing to test for is let's wait let's create a sort of a marketing
+wait let's create a sort of a marketing strategy it says we'll wait for a little
+strategy it says we'll wait for a little while wait until the user has played the
+while wait until the user has played the game a couple of times let's say three
+game a couple of times let's say three sessions and then we look at a key point
+sessions and then we look at a key point inside the game that we know people have
+inside the game that we know people have shown high engagement after I say
+shown high engagement after I say there's a video reward sequence at the
+there's a video reward sequence at the end of completing a level so right at
+end of completing a level so right at the end of the level if you play a
+the end of the level if you play a pre-roll video and then you'll ask the
+pre-roll video and then you'll ask the user would you like to share your
+user would you like to share your experience on Facebook and at that point
+experience on Facebook and at that point you bring up the Facebook registration
+you bring up the Facebook registration page so the lots of choices that have
+page so the lots of choices that have been made there and the danger is to
+been made there and the danger is to assume that you have and intuitive you
+assume that you have and intuitive you know a good opinion as to you know the
+know a good opinion as to you know the best place to make that call to action
+best place to make that call to action happen inside the app the best thing to
+happen inside the app the best thing to do is to have lots of opinions and to
+do is to have lots of opinions and to try them all out against your users and
+try them all out against your users and see which one works best so for example
+see which one works best so for example how many sessions do I wait one two
+how many sessions do I wait one two three four five try them all out test
+three four five try them all out test different groups of users and see what
+different groups of users and see what your sort of conversion rate is for
+your sort of conversion rate is for their Facebook call-to-action in this
+their Facebook call-to-action in this example so this is an example of testing
+example so this is an example of testing the marketing logic inside of your game
+the marketing logic inside of your game so the when and the where so what you
+so the when and the where so what you end up with is data and this is sort of
+end up with is data and this is sort of the classic result you'll get from
+the classic result you'll get from running a multi treatment a a B test
+running a multi treatment a a B test that's a sort of a a bit of a
+that's a sort of a a bit of a contradiction in terms I agree but a B
+contradiction in terms I agree but a B no one else is actually doing a/b
+no one else is actually doing a/b testing in games they're all doing sort
+testing in games they're all doing sort of multivariate testing or multi
+of multivariate testing or multi treatment testing or constant
+treatment testing or constant optimization but we just call it an a/b
+optimization but we just call it an a/b test just for simplicity of
+test just for simplicity of communication so here you can see an a/b
+communication so here you can see an a/b test running with I think it's four
+test running with I think it's four variants and you can see over time the
+variants and you can see over time the pattern of behavior is changing our
+pattern of behavior is changing our confidence in the winning variants has
+confidence in the winning variants has changed dramatically certainly from the
+changed dramatically certainly from the start you can see there's a huge amount
+start you can see there's a huge amount of oscillation and then things slowly
+of oscillation and then things slowly settle down but there's still an
+settle down but there's still an inherent amount of noise and this is the
+inherent amount of noise and this is the challenge you face so if you're running
+challenge you face so if you're running these sorts of tests you have to have an
+these sorts of tests you have to have an underpinning mathematical model
+underpinning mathematical model - really you know validation the choices
+- really you know validation the choices you're making you can't just look on
+you're making you can't just look on Tuesday and say conversion rate a is
+Tuesday and say conversion rate a is higher I'll go with conversion rate a
+higher I'll go with conversion rate a you need to you know know what's
+you need to you know know what's happening underneath that so in this
+happening underneath that so in this case here for example you know the start
+case here for example you know the start of the test looked like one of these
+of the test looked like one of these variants you know the yellow one was
+variants you know the yellow one was winning but very quickly the blue and
+winning but very quickly the blue and start to take over and at some point
+start to take over and at some point you're gonna make a decision to lock in
+you're gonna make a decision to lock in a result otherwise you're gonna run the
+a result otherwise you're gonna run the test for too long and you know lose out
+test for too long and you know lose out on possible extra revenue or extra
+on possible extra revenue or extra audience engagement as well as the
+audience engagement as well as the question is a how do you produce this
+question is a how do you produce this data how do you produce these
+data how do you produce these probabilities or these confidence levels
+probabilities or these confidence levels and B when do you decide to lock it and
+and B when do you decide to lock it and result so I'm making an assumption here
+result so I'm making an assumption here that we're not looking at a multi-armed
+that we're not looking at a multi-armed bandit style scenario we're just looking
+bandit style scenario we're just looking at something that is managed by a
+at something that is managed by a product manager to look at data and then
+product manager to look at data and then lock in a result which is sort of a
+lock in a result which is sort of a classic a/b test so I'm gonna run
+classic a/b test so I'm gonna run through how how we do that and
+through how how we do that and ultimately we want to look at you know
+ultimately we want to look at you know conversion rates over time and we want
+conversion rates over time and we want to see clear separations between them
+to see clear separations between them before we make our judgment so I'm gonna
+before we make our judgment so I'm gonna use a very simple and rather silly
+use a very simple and rather silly example and apologies to all the
+example and apologies to all the copyright owners that I'm clearly
+copyright owners that I'm clearly walking over at the moment so kind of
+walking over at the moment so kind of candy crush fault is a obviously a
+candy crush fault is a obviously a fictional title and what we're gonna do
+fictional title and what we're gonna do is we're gonna launch this title and
+is we're gonna launch this title and we're gonna try out some different
+we're gonna try out some different variations of it and see impacts on a
+variations of it and see impacts on a conversion raishin the conversion rate
+conversion raishin the conversion rate we look at is day 1 retention the least
+we look at is day 1 retention the least understood and most overused KPI in the
+understood and most overused KPI in the game industry but that's a topic for
+game industry but that's a topic for another talk so let's imagine our
+another talk so let's imagine our fundamental conversion rate for day 1 is
+fundamental conversion rate for day 1 is 30% which means 30% you just come back
+30% which means 30% you just come back on the second day in tamar game and i'm
+on the second day in tamar game and i'm pretty happy with that but i'd like to
+pretty happy with that but i'd like to push that up a little bit so what I do
+push that up a little bit so what I do is I start playing around with the
+is I start playing around with the gameplay now I have no idea how you
+gameplay now I have no idea how you actually played this game I'm actually
+actually played this game I'm actually quite intrigued it might try and code
+quite intrigued it might try and code this up someday I suspect it'll slow
+this up someday I suspect it'll slow down the speed of a cannibal style you
+down the speed of a cannibal style you know infinite runner but anyway imagine
+know infinite runner but anyway imagine we've made some gameplay change and this
+we've made some gameplay change and this is obviously the change I've made here
+is obviously the change I've made here has absolutely no bearing on the math
+has absolutely no bearing on the math and there's an impact obviously on the
+and there's an impact obviously on the game there's an impact for the number of
+game there's an impact for the number of users who come back the second day and
+users who come back the second day and in this case we were expecting a 30 day
+in this case we were expecting a 30 day at 30 percent table in retention and in
+at 30 percent table in retention and in fact we saw no users
+fact we saw no users back the next day so whatever we did
+back the next day so whatever we did with the game we've completely destroyed
+with the game we've completely destroyed it now the question we asked ourselves
+it now the question we asked ourselves at this point is after 50 users we've
+at this point is after 50 users we've saw that we've seen none of them return
+saw that we've seen none of them return on day two so that's a really bad result
+on day two so that's a really bad result and I guess the panic attack starts to
+and I guess the panic attack starts to settle in really quite the question when
+settle in really quite the question when you ask yourself is how bad is this and
+you ask yourself is how bad is this and is it enough information now for me to
+is it enough information now for me to say well I should stop that or I should
+say well I should stop that or I should move and make a change to the game and
+move and make a change to the game and revert at the change I've just done
+revert at the change I've just done that's the sort of an interesting
+that's the sort of an interesting question I'm gonna sort of asked that
+question I'm gonna sort of asked that question both from a frequentist
+question both from a frequentist perspective and a bayesian perspective
+perspective and a bayesian perspective so first off the null hypothesis view of
+so first off the null hypothesis view of the world this is the way we think about
+the world this is the way we think about it so the null hypothesis states well in
+it so the null hypothesis states well in the absence of anything else we assume
+the absence of anything else we assume that the change you made had no impact
+that the change you made had no impact and underlying my assumption is that
+and underlying my assumption is that have a model for how users are coming
+have a model for how users are coming back to my game
+back to my game 30% of in return and I have some idea of
+30% of in return and I have some idea of what variability I have in that 30% so
+what variability I have in that 30% so from day to day so that gives us a
+from day to day so that gives us a spread and this is usually modeled in
+spread and this is usually modeled in some sort of you know normal
+some sort of you know normal distribution or a binomial or whatever
+distribution or a binomial or whatever so my null hypothesis is that there's no
+so my null hypothesis is that there's no difference so having observed the users
+difference so having observed the users I assume from day one that there's no
+I assume from day one that there's no difference between that and my 30% use
+difference between that and my 30% use case what I'm trying to do is I'm trying
+case what I'm trying to do is I'm trying to disprove that I'm trying to say well
+to disprove that I'm trying to say well actually based in the data the null
+actually based in the data the null hypothesis clearly doesn't hold anymore
+hypothesis clearly doesn't hold anymore and if I saw a retention rate say maybe
+and if I saw a retention rate say maybe of thirty five percent I don't have
+of thirty five percent I don't have enough information at the moment to
+enough information at the moment to dispute the null hypothesis and I'd
+dispute the null hypothesis and I'd probably accept it but if I saw a
+probably accept it but if I saw a conversion rate that was off the charts
+conversion rate that was off the charts I'd probably start thinking about their
+I'd probably start thinking about their null hypothesis is no longer true and so
+null hypothesis is no longer true and so I reject it so in our case we've got a
+I reject it so in our case we've got a zero percent conversion rate which is
+zero percent conversion rate which is obvious very bad and it's office
+obvious very bad and it's office off the charts so we would reject the
+off the charts so we would reject the null hypothesis and this is our
+null hypothesis and this is our frequentist result and that's actually
+frequentist result and that's actually the result of a classic a/b test but
+the result of a classic a/b test but what does that result tell us so
+what does that result tell us so essentially it means that the 30 percent
+essentially it means that the 30 percent conversion rate that we had previously
+conversion rate that we had previously is unlikely to be the new conversion
+is unlikely to be the new conversion rate that we're seeing now that's
+rate that we're seeing now that's actually all it really tells us doesn't
+actually all it really tells us doesn't say anything else about how unlikely
+say anything else about how unlikely that is it just says it's unlikely to be
+that is it just says it's unlikely to be now we capture that information in
+now we capture that information in what's called a p-value or a confidence
+what's called a p-value or a confidence value and a confidence values it's based
+value and a confidence values it's based on you know normal distributions and
+on you know normal distributions and standard deviations and all that good
+standard deviations and all that good stuff and what we say is if the value we
+stuff and what we say is if the value we sort of within 95% of the main center of
+sort of within 95% of the main center of the bell curve we accept it if it's
+the bell curve we accept it if it's outside of that we reject it and in our
+outside of that we reject it and in our case is lurking outside of that now what
+case is lurking outside of that now what the p-value actually captures is the
+the p-value actually captures is the probability of observing a result which
+probability of observing a result which is our as extreme a result assumed in
+is our as extreme a result assumed in the null hypothesis is true so that's a
+the null hypothesis is true so that's a bit of a tongue twister and it's quite
+bit of a tongue twister and it's quite hard to get your your head around but
+hard to get your your head around but it's it's essentially saying the
+it's it's essentially saying the probability of the observations you see
+probability of the observations you see in the data given the model so we sort
+in the data given the model so we sort of assume the model is true and we look
+of assume the model is true and we look at the data and we try to disprove the
+at the data and we try to disprove the model that's how sort of null hypothesis
+model that's how sort of null hypothesis testing works and what you end up with
+testing works and what you end up with is sort of a truth table like this where
+is sort of a truth table like this where okay maybe the hypothesis is true and we
+okay maybe the hypothesis is true and we accept it which is a good result but
+accept it which is a good result but maybe the hypothesis is true there's no
+maybe the hypothesis is true there's no difference but we reject it we see an
+difference but we reject it we see an outlier and we say actually I think I
+outlier and we say actually I think I made a good positive change to my game
+made a good positive change to my game here and I accept that as being
+here and I accept that as being something I'll make a change on but in
+something I'll make a change on but in fact that's the false positive and
+fact that's the false positive and that's where that's the root of evil you
+that's where that's the root of evil you know for null hypothesis testing in in
+know for null hypothesis testing in in the a B world so I'm going to sort of
+the a B world so I'm going to sort of talk about these false positives a
+talk about these false positives a p-value is a number between 0 and 1 and
+p-value is a number between 0 and 1 and usually what we say is if it's less than
+usually what we say is if it's less than point zero five we accept that there
+point zero five we accept that there obviously has been a big change it's not
+obviously has been a big change it's not just you to random noise and we make the
+just you to random noise and we make the change and we lock it into our game if
+change and we lock it into our game if it's a positive change and a p-value of
+it's a positive change and a p-value of less than 0.05 simply says the retention
+less than 0.05 simply says the retention rates are different if you sample this
+rates are different if you sample this thing 90 you know 95 times out of 100
+thing 90 you know 95 times out of 100 that retention rate will actually be a
+that retention rate will actually be a different retention rate and if you dig
+different retention rate and if you dig into it and try and express exactly what
+into it and try and express exactly what that means it says that there the date
+that means it says that there the date of you seen supports a rejection of the
+of you seen supports a rejection of the null hypothesis and that's essentially
+null hypothesis and that's essentially saying the probability of seeing a
+saying the probability of seeing a result is extreme is this is less than
+result is extreme is this is less than 5% and that's again really tricky to
+5% and that's again really tricky to even communicate you know to your CFO or
+even communicate you know to your CFO or tea or headed designer or anything like
+tea or headed designer or anything like that so that's sort of leading to an
+that so that's sort of leading to an argument that p-values are difficult for
+argument that p-values are difficult for us to Intuit about their sort of
+us to Intuit about their sort of unwieldy to work with and it'd be nice
+unwieldy to work with and it'd be nice to have something else which was just a
+to have something else which was just a probability is one better than the other
+probability is one better than the other give me that probability and that turns
+give me that probability and that turns out is exactly what a Bayesian approach
+out is exactly what a Bayesian approach gives you and if you don't have to sort
+gives you and if you don't have to sort of Wrangell your head around you know
+of Wrangell your head around you know normal distributions and null
+normal distributions and null and rejections and non rejections the
+and rejections and non rejections the other problem with this approach is
+other problem with this approach is peaking so the classic thing people do
+peaking so the classic thing people do is set up these a/b tests and they just
+is set up these a/b tests and they just constantly observe the result and once
+constantly observe the result and once the result gets below point zero five to
+the result gets below point zero five to say I'm done and that's a really bad
+say I'm done and that's a really bad thing to do it turns out what you should
+thing to do it turns out what you should be doing is sort of looking at the power
+be doing is sort of looking at the power of your test deciding in advance how big
+of your test deciding in advance how big a change so I want to be able to detect
+a change so I want to be able to detect so let's say I want to be let X a five
+so let's say I want to be let X a five percent change and retention I need to
+percent change and retention I need to have you know observed that retention
+have you know observed that retention change over time I need to know how that
+change over time I need to know how that distribution looks like so I need to
+distribution looks like so I need to have some idea of the variance of the
+have some idea of the variance of the standard deviation of the retention
+standard deviation of the retention stash and that gives us a number of
+stash and that gives us a number of participants and typically that number
+participants and typically that number of participants will be say 10,000 or
+of participants will be say 10,000 or 100,000 or it's hugely dependent on the
+100,000 or it's hugely dependent on the size of change you wanna you want to
+size of change you wanna you want to detect if you need to detect a really
+detect if you need to detect a really small change you know a shift of
+small change you know a shift of retention from 30 to 31 you probably
+retention from 30 to 31 you probably need to observe a very large number of
+need to observe a very large number of users to essentially compensate for the
+users to essentially compensate for the noise that's in your system so what does
+noise that's in your system so what does it mean this means people typically
+it mean this means people typically ignore this and say well I've computed
+ignore this and say well I've computed all this and I see I need a hundred
+all this and I see I need a hundred thousand users I start my test and I
+thousand users I start my test and I immediately start looking at the graphs
+immediately start looking at the graphs and the p-values and as soon as I see
+and the p-values and as soon as I see something hitting a point zero five I
+something hitting a point zero five I say stop I'm good to go I've got the
+say stop I'm good to go I've got the result of on a C and what that means is
+result of on a C and what that means is it's saying I'm taking the very first
+it's saying I'm taking the very first time that the noise has pushed my P
+time that the noise has pushed my P score below 0.05 which is a really bad
+score below 0.05 which is a really bad thing to do what that does is it
+thing to do what that does is it increases the chances of you getting a
+increases the chances of you getting a false positive and it's actually quite
+false positive and it's actually quite bad let's imagine during the course of
+bad let's imagine during the course of your test you were prepared to accept a
+your test you were prepared to accept a 5% false positive ratio so you're
+5% false positive ratio so you're running a test and you expect that one
+running a test and you expect that one in 20 times I'll accept the result and
+in 20 times I'll accept the result and it'll be wrong if you look at that test
+it'll be wrong if you look at that test ten times in succession before it's
+ten times in succession before it's actually reached a conclusion you're
+actually reached a conclusion you're actually increasing the likelihood of
+actually increasing the likelihood of you seeing a false positive by a factor
+you seeing a false positive by a factor of five which means you need essentially
+of five which means you need essentially a factor five more observations to
+a factor five more observations to compensate for that so people generally
+compensate for that so people generally speaking don't realize that it was a
+speaking don't realize that it was a good blog post by Evan Miller that I
+good blog post by Evan Miller that I guess anybody who knows about a/b
+guess anybody who knows about a/b testing has come across before but it's
+testing has come across before but it's sort of I've just parted his data here
+sort of I've just parted his data here and it's a really good exposition of
+and it's a really good exposition of some of the problems that exist so the
+some of the problems that exist so the second problem or the third problem
+second problem or the third problem should I say is the family-wise error
+should I say is the family-wise error and this is you know multiple if you
+and this is you know multiple if you have multiple treatments again you know
+have multiple treatments again you know that chances of
+that chances of you seeing a false positive if you've
+you seeing a false positive if you've more than one treatment increases every
+more than one treatment increases every time you add a new treatment so for
+time you add a new treatment so for example if you have two treatments your
+example if you have two treatments your false positive rate for exactly the same
+false positive rate for exactly the same test is now up to sort of nine point
+test is now up to sort of nine point seven five percent so again it's nearly
+seven five percent so again it's nearly doubled and people tend not to correct
+doubled and people tend not to correct for that in their AP tests okay that's
+for that in their AP tests okay that's the bad news sort of and now the good
+the bad news sort of and now the good news the Bayesian view the Bayesian view
+news the Bayesian view the Bayesian view takes a completely different approach
+takes a completely different approach and it basically says we have an
+and it basically says we have an expected retention rate it's 30% that's
+expected retention rate it's 30% that's what we saw before so that we've a
+what we saw before so that we've a knowledge that our system without any
+knowledge that our system without any changes has a thirty percent retention
+changes has a thirty percent retention rate I'm going to look at the data and
+rate I'm going to look at the data and based on the data I'm going to update my
+based on the data I'm going to update my view on what they're likely retention
+view on what they're likely retention rate actually is so I have a model of
+rate actually is so I have a model of what it was before I have data coming in
+what it was before I have data coming in and I use that to create a model of what
+and I use that to create a model of what it might be now and in this example with
+it might be now and in this example with 50 users all not having being retained
+50 users all not having being retained what actually happens is we get now a
+what actually happens is we get now a new expected retention rate which is 15%
+new expected retention rate which is 15% and if you look at these shapes of these
+and if you look at these shapes of these curves these curves give us a sort of a
+curves these curves give us a sort of a our belief in that retention rate and
+our belief in that retention rate and the first one had a 30% with us fairly
+the first one had a 30% with us fairly large spread the second one is centered
+large spread the second one is centered 15 percent but a tighter sort of spread
+15 percent but a tighter sort of spread which means that were actually a bit
+which means that were actually a bit more confident about the 15 percent
+more confident about the 15 percent number than we were about the 30 percent
+number than we were about the 30 percent number now because we've observed some
+number now because we've observed some results but the nice thing about this is
+results but the nice thing about this is it still admits the fact that we might
+it still admits the fact that we might be wrong and it's something that's
+be wrong and it's something that's immediately usable but it looked like
+immediately usable but it looked like now the conversion rate is 15 percent
+now the conversion rate is 15 percent but I'm prepared to accept more data and
+but I'm prepared to accept more data and when you're dealing with these sorts of
+when you're dealing with these sorts of systems runs of failed conversions
+systems runs of failed conversions happen all the time and you have to be
+happen all the time and you have to be very careful about that so I'm going to
+very careful about that so I'm going to go through and talk about this and real
+go through and talk about this and real examples from games and I'm going to
+examples from games and I'm going to show you how you build up this Bayesian
+show you how you build up this Bayesian approach to a/b testing but the
+approach to a/b testing but the difference between the frequenters view
+difference between the frequenters view and the Bayesian view is essentially the
+and the Bayesian view is essentially the Bayesian view gives you the probability
+Bayesian view gives you the probability of the model given the data if you
+of the model given the data if you remember their frequentist one was the
+remember their frequentist one was the probability of the data given the model
+probability of the data given the model so the model in the frequent us of you
+so the model in the frequent us of you is sort of locked in here we're sort of
+is sort of locked in here we're sort of saying as we see new data will update
+saying as we see new data will update this model will sort of learn what the
+this model will sort of learn what the new shape of our probability
+new shape of our probability distributions are and use that to make
+distributions are and use that to make an assessment so trying to put some
+an assessment so trying to put some trying to get a little bit less abstract
+trying to get a little bit less abstract about that that a canonical example is
+about that that a canonical example is there the coin flipping so I'm gonna
+there the coin flipping so I'm gonna stick with that you know coin it has a
+stick with that you know coin it has a head and it has a tail just in case he
+head and it has a tail just in case he didn't know when he flip it one of those
+didn't know when he flip it one of those comes up and with a 50% probability it's
+comes up and with a 50% probability it's heads or tails or are we got that bit so
+heads or tails or are we got that bit so let's say we run an experiment for a
+let's say we run an experiment for a period of time and look at the number of
+period of time and look at the number of flips just look at this you can see
+flips just look at this you can see immediately there are runs so we see
+immediately there are runs so we see series is where you get you know seven
+series is where you get you know seven heads in a row or five tails in a row
+heads in a row or five tails in a row and that's completely expected people
+and that's completely expected people get very confused about random systems
+get very confused about random systems sometimes and think that's that mustn't
+sometimes and think that's that mustn't be random anymore but ultimately we get
+be random anymore but ultimately we get a series of heads and tails and you look
+a series of heads and tails and you look at the sort of the trend of those heads
+at the sort of the trend of those heads or tails over time you look at the
+or tails over time you look at the distribution of the or let's say that
+distribution of the or let's say that the percentage of heads and see how that
+the percentage of heads and see how that works and what we see is you know early
+works and what we see is you know early on it's all over the shop but eventually
+on it's all over the shop but eventually after enough observations it settles
+after enough observations it settles down so it's settling down to an
+down so it's settling down to an expected value which anybody has a
+expected value which anybody has a status background it knows this stuff
+status background it knows this stuff pretty well but the point here is early
+pretty well but the point here is early stages even something as simple as a
+stages even something as simple as a coin exhibits a whole lot of noise and
+coin exhibits a whole lot of noise and if you are sort of modeling that and
+if you are sort of modeling that and trying to produce data out of that you
+trying to produce data out of that you have to be very aware do you need to you
+have to be very aware do you need to you know run a lot of data before you see
+know run a lot of data before you see anything that's actionable that gives
+anything that's actionable that gives you any real value for the long run
+you any real value for the long run average of the coin so just a bit of
+average of the coin so just a bit of terminology just to get things straight
+terminology just to get things straight so I'm going to so I've got the
+so I'm going to so I've got the probability of an event X we can talk
+probability of an event X we can talk about the probability the joint
+about the probability the joint probability of event x and y so x and y
+probability of event x and y so x and y and then we're also going to look at the
+and then we're also going to look at the probabilities of X given Y so X assuming
+probabilities of X given Y so X assuming Y has happened what's the probability
+Y has happened what's the probability then of X happening so these three
+then of X happening so these three things together are going to be used in
+things together are going to be used in the Bayesian way for us to essentially
+the Bayesian way for us to essentially trying to figure out what's the
+trying to figure out what's the probability of the model being true
+probability of the model being true given the data that we've seen so let's
+given the data that we've seen so let's look at our heads and tails model
+look at our heads and tails model there's a nice sort of function that
+there's a nice sort of function that captures the probability of tails or our
+captures the probability of tails or our heads in this case so we'll assume heads
+heads in this case so we'll assume heads represents one in tail to 0 and the
+represents one in tail to 0 and the probability of heads given some
+probability of heads given some parameter of our coin is given by this
+parameter of our coin is given by this preneur distribution which many you
+preneur distribution which many you might have seen before
+might have seen before this theater thing is the fairness
+this theater thing is the fairness parameter so if it's 0.5 it says it's
+parameter so if it's 0.5 it says it's equally likely to be heads and tails if
+equally likely to be heads and tails if it's point two it's more likely to be
+it's point two it's more likely to be tails at this point eight it's more
+tails at this point eight it's more likely to be heads so it's a nice
+likely to be heads so it's a nice parameter
+parameter that gives us a control think of that
+that gives us a control think of that now is your conversion rate your day 1
+now is your conversion rate your day 1 retention you know theta is your day 1
+retention you know theta is your day 1 retention probability and in this case
+retention probability and in this case we're assume their day when retention is
+we're assume their day when retention is 50% so every time we flip a coin every
+50% so every time we flip a coin every time we play a game user comes back the
+time we play a game user comes back the next day or not with a 50% probability
+next day or not with a 50% probability so for a fair coin that's 50% or 0.5 and
+so for a fair coin that's 50% or 0.5 and if you sort of push point 5 through that
+if you sort of push point 5 through that Bernoulli distribution you'll see that
+Bernoulli distribution you'll see that the probability of heads is 0.5 and the
+the probability of heads is 0.5 and the probability of tails is 0.5 so there's
+probability of tails is 0.5 so there's nothing particularly exciting with that
+nothing particularly exciting with that so that's just a probability for a
+so that's just a probability for a single throw but we're more interested
+single throw but we're more interested in lots of users and the distribution of
+in lots of users and the distribution of those guys so you build up Bernoulli
+those guys so you build up Bernoulli sorry it's not a binomial distribution
+sorry it's not a binomial distribution by essentially running the Bernoulli
+by essentially running the Bernoulli process multiple times so flipping
+process multiple times so flipping multiple coins and then looking at the
+multiple coins and then looking at the proportion of those flips that are heads
+proportion of those flips that are heads or tails and in this case you just have
+or tails and in this case you just have to account for the combinatorial with
+to account for the combinatorial with the NZXT
+the NZXT so just graphing that here is 20 coins
+so just graphing that here is 20 coins or sorry 20 tosses and here's the
+or sorry 20 tosses and here's the distribution of the expected number of
+distribution of the expected number of heads and as you'd expect we'd expect
+heads and as you'd expect we'd expect the number of heads to be around 10 if
+the number of heads to be around 10 if it's a fair coin but we also allow for
+it's a fair coin but we also allow for the fact that there are possibilities it
+the fact that there are possibilities it might be 15 order possibilities it might
+might be 15 order possibilities it might be 5 but with significantly lower
+be 5 but with significantly lower probability so this captures our sort of
+probability so this captures our sort of view of you know how likely it is for a
+view of you know how likely it is for a different number of heads to arise now
+different number of heads to arise now for an unfair coin it shifts so this is
+for an unfair coin it shifts so this is an unfair coin where it's more likely to
+an unfair coin where it's more likely to come up tails as opposed to heads if it
+come up tails as opposed to heads if it was heads
+was heads it'll be shifting to the right hand side
+it'll be shifting to the right hand side and here the Caesar parameter is
+and here the Caesar parameter is pointing okay what we have here is a
+pointing okay what we have here is a model of the probability of number of
+model of the probability of number of heads we can actually turn that on its
+heads we can actually turn that on its head and no pun intended and think about
+head and no pun intended and think about as a likelihood imagine we observed a
+as a likelihood imagine we observed a series of flips heads and tails so 20 of
+series of flips heads and tails so 20 of those and we had this data set and the
+those and we had this data set and the question we wanted to ask instead is
+question we wanted to ask instead is what's the likelihood of theta what's
+what's the likelihood of theta what's the likelihood of theta be heard the
+the likelihood of theta be heard the coin being fair I see 50 percent has 54
+coin being fair I see 50 percent has 54 in tails that means it's very likely
+in tails that means it's very likely theta is 0.5 but if I saw 10 heads and 2
+theta is 0.5 but if I saw 10 heads and 2 tails the likelihood of 7.5 is quite low
+tails the likelihood of 7.5 is quite low so we can use exactly the same sort of
+so we can use exactly the same sort of function to capture likelihood of a
+function to capture likelihood of a particular value of theta and here are
+particular value of theta and here are some graphs of that so let's say you did
+some graphs of that so let's say you did one or two throws and you saw one head
+one or two throws and you saw one head one head means there's also one
+one head means there's also one so we get this sort of fairly smooth
+so we get this sort of fairly smooth distribution to say well there's nothing
+distribution to say well there's nothing really to be gained her we don't we
+really to be gained her we don't we haven't learned very much all we've
+haven't learned very much all we've learned is that there is at least one
+learned is that there is at least one head and one tail in this coin so the
+head and one tail in this coin so the probability of tails being zero is zero
+probability of tails being zero is zero as we flip more and more times we start
+as we flip more and more times we start gaining confidence about what the actual
+gaining confidence about what the actual this model parameter is this theta this
+this model parameter is this theta this fairness value and again think of this
+fairness value and again think of this fairness value as your day 1 retention
+fairness value as your day 1 retention or your conversion rate for an ad are
+or your conversion rate for an ad are the likelihood of a sudden to to
+the likelihood of a sudden to to purchase an item in a store it's all the
+purchase an item in a store it's all the same sort of process give or take
+same sort of process give or take so this captures our view of how likely
+so this captures our view of how likely a value of theta is given data that
+a value of theta is given data that we've observed which is going to be
+we've observed which is going to be useful in a second so X is going to be
+useful in a second so X is going to be our observations the number of heads
+our observations the number of heads seatrout that we've just talked about is
+seatrout that we've just talked about is a model of parameter our model is
+a model of parameter our model is essentially that binomial and the
+essentially that binomial and the parameter is essentially this fairness
+parameter is essentially this fairness value that we've talked about so it's a
+value that we've talked about so it's a value from 0 to 1 what we've looked at
+value from 0 to 1 what we've looked at so far in this sort of likelihood is the
+so far in this sort of likelihood is the probability of a given set of data given
+probability of a given set of data given theta so the probability of x given
+theta so the probability of x given theta and that's what that previous
+theta and that's what that previous distribution gave us that's actually if
+distribution gave us that's actually if you recall very similar to what the
+you recall very similar to what the frequentist view is the probability of
+frequentist view is the probability of the data given the model right what we
+the data given the model right what we actually want to do is to determine the
+actually want to do is to determine the probability of the model itself we want
+probability of the model itself we want to say is it true that the conversion
+to say is it true that the conversion rate is 30% we don't actually want to
+rate is 30% we don't actually want to know is it likely that we saw a
+know is it likely that we saw a conversion rate to 28% if the conversion
+conversion rate to 28% if the conversion rate was actually 30% it's the wrong
+rate was actually 30% it's the wrong question to be asking we really want to
+question to be asking we really want to say what's the conversion region what's
+say what's the conversion region what's the probability that our model is
+the probability that our model is correct that conversion rate is 30% so
+correct that conversion rate is 30% so that's what we'd like to get now looking
+that's what we'd like to get now looking at those two you know PX given theta and
+at those two you know PX given theta and P see the given axis like they're
+P see the given axis like they're they're fairly similar but be very
+they're fairly similar but be very careful these are not the same thing
+careful these are not the same thing they don't interact P if P of x given C
+they don't interact P if P of x given C it is not P Fe to give an X and a nice
+it is not P Fe to give an X and a nice way to intuit about that is just to put
+way to intuit about that is just to put something real in there so this is
+something real in there so this is obviously a different version of latex
+obviously a different version of latex being used to produce these diagrams so
+being used to produce these diagrams so the probability of it being cloudy given
+the probability of it being cloudy given that it's raining think about that if
+that it's raining think about that if it's raining it's very likely to be clad
+it's raining it's very likely to be clad sweet amazing that probability is high
+sweet amazing that probability is high right it's not equal to the probability
+right it's not equal to the probability that it's raining given it's cloudy and
+that it's raining given it's cloudy and again think about that if it's clarity
+again think about that if it's clarity the likelihood of it raining is actually
+the likelihood of it raining is actually a good deal less maybe 20% at a time
+a good deal less maybe 20% at a time that is clarity of actually rains or
+that is clarity of actually rains or maybe less or maybe more in San
+maybe less or maybe more in San Francisco so these two things are
+Francisco so these two things are clearly not the same and what we want to
+clearly not the same and what we want to do is try and find out the right-hand
+do is try and find out the right-hand side given the left-hand side so we'll
+side given the left-hand side so we'll just do a little bit of math and we end
+just do a little bit of math and we end up with this rule here I'm not gonna go
+up with this rule here I'm not gonna go through the math but folks who are
+through the math but folks who are interested it's just the conjoint
+interested it's just the conjoint probability expressed in terms of the
+probability expressed in terms of the conditional probabilities so this thing
+conditional probabilities so this thing here is basically saying the probability
+here is basically saying the probability of Y given X is the same as the
+of Y given X is the same as the probability of x given Y times the
+probability of x given Y times the probability of Y divided by the
+probability of Y divided by the probability of X and if we use expand at
+probability of X and if we use expand at the probability of X into something a
+the probability of X into something a little bit larger we've actually done
+little bit larger we've actually done something very interesting we've managed
+something very interesting we've managed to figure out a way to relate the sort
+to figure out a way to relate the sort of frequentist view of the world with
+of frequentist view of the world with the Bayesian view of the world we now
+the Bayesian view of the world we now can relate the probability of the model
+can relate the probability of the model given the data to something which is
+given the data to something which is about the probability of the data given
+about the probability of the data given the model and that's exactly what we
+the model and that's exactly what we want to be able to do and Bayes rule is
+want to be able to do and Bayes rule is this this is what Bayesian statistics
+this this is what Bayesian statistics and Bayesian inference is essentially
+and Bayesian inference is essentially all about so there's two different forms
+all about so there's two different forms discrete and continuous you know we're
+discrete and continuous you know we're working pretty much with a discrete form
+working pretty much with a discrete form here and if you start taking this and
+here and if you start taking this and applying it back to our model of the
+applying it back to our model of the coin what does that look like well first
+coin what does that look like well first off the probability of Y given X is what
+off the probability of Y given X is what we're looking for it's the probability
+we're looking for it's the probability that our retention rate is 30% or the
+that our retention rate is 30% or the probability that the coin is fair given
+probability that the coin is fair given the data that we use observed so far
+the data that we use observed so far given the fact we've seen no user is out
+given the fact we've seen no user is out of 50 users returning what's the
+of 50 users returning what's the probability that the retention rate is
+probability that the retention rate is still 30% that's the question we're
+still 30% that's the question we're asking and we relate it to what we know
+asking and we relate it to what we know which is a model of how coin flipping
+which is a model of how coin flipping happens so this in this case it's gonna
+happens so this in this case it's gonna be our binomial and that's our
+be our binomial and that's our likelihood we also have a probability of
+likelihood we also have a probability of the model itself and this is a one of
+the model itself and this is a one of the really interesting parts about
+the really interesting parts about Bayesian we say what's the probability
+Bayesian we say what's the probability of theta now theta if you think about it
+of theta now theta if you think about it is the fairness so this is a way of you
+is the fairness so this is a way of you expressing to the system how much you
+expressing to the system how much you believe that the coin is fair and you
+believe that the coin is fair and you might not believe it's fair at all you
+might not believe it's fair at all you might have no information
+might have no information case you say I don't know anything about
+case you say I don't know anything about peer theatre or you might say well
+peer theatre or you might say well actually I'm very sure it's a fair coin
+actually I'm very sure it's a fair coin I'll say Pia Thea is 0.5 and plug that
+I'll say Pia Thea is 0.5 and plug that in and this down here one of the better
+in and this down here one of the better term is just a normalizing term we're
+term is just a normalizing term we're dealing with probability distributions
+dealing with probability distributions so they need to sum to one so this
+so they need to sum to one so this underneath that is just the integral of
+underneath that is just the integral of the thing that's on the top so we don't
+the thing that's on the top so we don't need to get too concerned about that so
+need to get too concerned about that so if you just break that item these are
+if you just break that item these are the classic terms people use in Bayesian
+the classic terms people use in Bayesian so that the probability of the model
+so that the probability of the model given the data the thing we're looking
+given the data the thing we're looking for is the posterior the probability of
+for is the posterior the probability of the data given the model is the binomial
+the data given the model is the binomial thing and this is the likelihood this is
+thing and this is the likelihood this is something we we sort of choose we choose
+something we we sort of choose we choose a model that maps to the process we're
+a model that maps to the process we're trying to test for a probability of the
+trying to test for a probability of the model itself the model parameter is our
+model itself the model parameter is our prior and that's the thing that we use
+prior and that's the thing that we use that's our industry knowledge comes into
+that's our industry knowledge comes into play here and we can say Peter should be
+play here and we can say Peter should be something because I understand that my
+something because I understand that my retention rate should be 30 percent I
+retention rate should be 30 percent I plugged that in so it's a really good
+plugged that in so it's a really good way of bringing your industry experience
+way of bringing your industry experience to bear and the last thing is just a
+to bear and the last thing is just a normalizing factor so this captures this
+normalizing factor so this captures this sort of prior captures our belief
+sort of prior captures our belief captures our belief in the model how
+captures our belief in the model how strongly do we think that our prior
+strongly do we think that our prior experience is right and there's a number
+experience is right and there's a number of ways of doing that and you know we
+of ways of doing that and you know we might say for our coin well we think
+might say for our coin well we think it's pretty fair it's likely that the
+it's pretty fair it's likely that the theta is 0.5 but we're going to allow
+theta is 0.5 but we're going to allow for the fact that well we haven't seen
+for the fact that well we haven't seen it being manufactured so we're not
+it being manufactured so we're not completely sure you know we haven't
+completely sure you know we haven't measured that we haven't weighed it we
+measured that we haven't weighed it we haven't looked to see if it's a dual
+haven't looked to see if it's a dual sided coin I mean I do leaded coin or we
+sided coin I mean I do leaded coin or we might decide actually I've seen you know
+might decide actually I've seen you know someone play with this a magician has
+someone play with this a magician has been using it on stage and it's clearly
+been using it on stage and it's clearly you know being doctored so I'll model up
+you know being doctored so I'll model up by a distribution which is different
+by a distribution which is different which is skewed maybe to the right hand
+which is skewed maybe to the right hand side it's more likely I believe that
+side it's more likely I believe that this coin is going to come up heads and
+this coin is going to come up heads and that's you can encode that
+that's you can encode that straightforwardly into the prior so it's
+straightforwardly into the prior so it's a normal distribution it just needs to
+a normal distribution it just needs to sum to one and that allows you to
+sum to one and that allows you to capture your your understanding so what
+capture your your understanding so what we do in Bayesian is we plug all that
+we do in Bayesian is we plug all that together and we try to iterate based on
+together and we try to iterate based on data towards an understanding of how
+data towards an understanding of how good that model is so we start off with
+good that model is so we start off with essentially an initial guess we have a
+essentially an initial guess we have a prior we say we believe the coin is fair
+prior we say we believe the coin is fair and we create a distribution based on
+and we create a distribution based on that we plug it in we know what our
+that we plug it in we know what our likelihood is because it's the binomial
+likelihood is because it's the binomial in this case
+in this case we observe data coin tosses so we look
+we observe data coin tosses so we look at ten tosses and see how many heads or
+at ten tosses and see how many heads or tails there are we plug that into our
+tails there are we plug that into our likelihood function multiply all that
+likelihood function multiply all that together and we get a new you know
+together and we get a new you know result at the left hand side which is
+result at the left hand side which is the posterior and this new result is
+the posterior and this new result is essentially a new distribution it says
+essentially a new distribution it says based on everything we've seen our
+based on everything we've seen our belief in the Thetas and our likelihoods
+belief in the Thetas and our likelihoods this is our best guess now as to how
+this is our best guess now as to how fair the coin is and it's still a
+fair the coin is and it's still a distribution of probabilities and what
+distribution of probabilities and what we can do now is plug that back in and
+we can do now is plug that back in and say all right we'll use that as a
+say all right we'll use that as a starting point for the next iteration
+starting point for the next iteration and then we get a lovely sort of
+and then we get a lovely sort of iterative loop where we can continually
+iterative loop where we can continually refine and plug in the data we see plug
+refine and plug in the data we see plug in the new data that we get and evolve
+in the new data that we get and evolve over time this probability that the coin
+over time this probability that the coin is fair or the conversion rate is
+is fair or the conversion rate is actually 30% so selecting priors is
+actually 30% so selecting priors is tricky now the great thing today is with
+tricky now the great thing today is with computers and you know numerical methods
+computers and you know numerical methods and you know PI NC and lots of great
+and you know PI NC and lots of great mathematical libraries out there we sort
+mathematical libraries out there we sort of don't have to worry about some of
+of don't have to worry about some of this stuff but typically in the past
+this stuff but typically in the past people used what's known as a conjugate
+people used what's known as a conjugate prior to make all this simple so just
+prior to make all this simple so just very quickly I'll describe that this is
+very quickly I'll describe that this is a likelihood function when you plug it
+a likelihood function when you plug it in to the previous page you get
+in to the previous page you get something horrible like this so
+something horrible like this so obviously this is a scary function lots
+obviously this is a scary function lots of things can go wrong here but the most
+of things can go wrong here but the most important thing is we've got a prior
+important thing is we've got a prior here and here so we're gonna multiply
+here and here so we're gonna multiply our binomial by a prior we hope that
+our binomial by a prior we hope that that will come out to something that's
+that will come out to something that's easy to work with and then underneath
+easy to work with and then underneath we've got this integral with a prior
+we've got this integral with a prior again a bit messy to deal with so is
+again a bit messy to deal with so is there some way we can sort of stack the
+there some way we can sort of stack the odds in our favor and make life easy
+odds in our favor and make life easy well you can by using what's known as a
+well you can by using what's known as a conjugate prior so we would like that
+conjugate prior so we would like that multiplying the prior by this binomial
+multiplying the prior by this binomial thing is there something that looks
+thing is there something that looks basically like a binomial again so that
+basically like a binomial again so that when we multiply again it looks again
+when we multiply again it looks again like a binomial and we can just deal
+like a binomial and we can just deal with this algebraically or other than
+with this algebraically or other than numerically similarly we'd like that
+numerically similarly we'd like that integral just to be tractable ideally
+integral just to be tractable ideally it's you know analytical so I can
+it's you know analytical so I can actually just run a formula and get a
+actually just run a formula and get a number at the end and that turns out to
+number at the end and that turns out to be fairly straightforward for a lots of
+be fairly straightforward for a lots of different distributions so that's what a
+different distributions so that's what a conjugate prior is it's something that
+conjugate prior is it's something that just works nicely in this sort of
+just works nicely in this sort of formula and the conjugate prior we use
+formula and the conjugate prior we use for a binomial is something called a
+for a binomial is something called a beta a beta function a beta distribution
+beta a beta function a beta distribution sure they say and that's if you look at
+sure they say and that's if you look at the shape of it just look at how it's
+the shape of it just look at how it's written it's sort of similar to that pie
+written it's sort of similar to that pie no Meah up
+no Meah up is in fact a specialization of a beta
+is in fact a specialization of a beta function so I'm not going to get into
+function so I'm not going to get into this this is the you know the the
+this this is the you know the the normalizing term but just to say it's a
+normalizing term but just to say it's a factorial at the end of the day this
+factorial at the end of the day this it's an integer value it's really easy
+it's an integer value it's really easy to work with so a big scary integral
+to work with so a big scary integral turns out to be just a couple of
+turns out to be just a couple of multiplies on a computer so it's very
+multiplies on a computer so it's very straightforward to code out and it turns
+straightforward to code out and it turns out this beta function previously we had
+out this beta function previously we had the probability of a head or a tail we
+the probability of a head or a tail we can actually create a prior that mapped
+can actually create a prior that mapped to the number of heads and tails you
+to the number of heads and tails you seen before literally by plugging in for
+seen before literally by plugging in for this first parameter a the number of
+this first parameter a the number of heads plus 1 and the second parameter be
+heads plus 1 and the second parameter be the number of tails plus 1 so if you
+the number of tails plus 1 so if you flip a coin let's see 10 heads in five
+flip a coin let's see 10 heads in five tails stick in 11 and six for the a and
+tails stick in 11 and six for the a and B parameters and that is a beta prior
+B parameters and that is a beta prior that represents exactly here our
+that represents exactly here our knowledge about that coin to date and
+knowledge about that coin to date and you use that to kicks throughout the
+you use that to kicks throughout the system it's really simple so here is
+system it's really simple so here is just examples of that beta distribution
+just examples of that beta distribution and this is sort of an interesting one
+and this is sort of an interesting one this is a I have no information yet I've
+this is a I have no information yet I've never flipped a coin in fact I don't
+never flipped a coin in fact I don't even know if there's a head or a tail so
+even know if there's a head or a tail so it can't say anything about it so
+it can't say anything about it so essentially it's an uninformed prior
+essentially it's an uninformed prior it's just uniform we know nothing after
+it's just uniform we know nothing after say flipping a coin you might find a
+say flipping a coin you might find a came up two tails so what this means is
+came up two tails so what this means is I know of evidence that tails exists but
+I know of evidence that tails exists but I've no evidence that heads actually
+I've no evidence that heads actually exists so I can't say the probability of
+exists so I can't say the probability of heads being zero is is is is nonzero so
+heads being zero is is is is nonzero so we get this for the strange slope to
+we get this for the strange slope to distribution as soon as I see a head I
+distribution as soon as I see a head I start getting the classic sort of bell
+start getting the classic sort of bell curve shaped thing and different shapes
+curve shaped thing and different shapes of A's and B's give you things that look
+of A's and B's give you things that look like exactly like the binomials we saw
+like exactly like the binomials we saw earlier and that's true because there's
+earlier and that's true because there's always a beta to match a binomial so
+always a beta to match a binomial so plug it in again it looks a bit scary
+plug it in again it looks a bit scary but we have our binomial and we have our
+but we have our binomial and we have our beta we multiply those things together
+beta we multiply those things together and we get something that looks like
+and we get something that looks like this that also sort of seems like it's
+this that also sort of seems like it's relatively scary but it's actually
+relatively scary but it's actually really simple all this happened is we've
+really simple all this happened is we've changed the values of a and B in our
+changed the values of a and B in our beta function essentially and that turns
+beta function essentially and that turns out the Bayesian update step in full
+out the Bayesian update step in full Bayesian inference engine using
+Bayesian inference engine using binomials which powers certainly this
+binomials which powers certainly this were of a B testing system involves just
+were of a B testing system involves just adding one number to another that's
+adding one number to another that's fundamentally what you're doing
+fundamentally what you're doing and then some stuff afterwards to
+and then some stuff afterwards to interpret the results so I'll skip over
+interpret the results so I'll skip over that so putting it together we first off
+that so putting it together we first off decide in a prior which captures our
+decide in a prior which captures our belief about how strong that the coin is
+belief about how strong that the coin is biased and not just as a function with a
+biased and not just as a function with a certain shape we want our experiment and
+certain shape we want our experiment and observe some data for heads and tails
+observe some data for heads and tails based on that we update our view of what
+based on that we update our view of what the posterior distribution is our model
+the posterior distribution is our model is and using that we can sort of feed it
+is and using that we can sort of feed it back into the system and keep going and
+back into the system and keep going and essentially at any point in time we have
+essentially at any point in time we have a new belief about how well our model
+a new belief about how well our model represents the coin or represents that
+represents the coin or represents that conversion rate at some point you stop
+conversion rate at some point you stop and say I've done enough some conversion
+and say I've done enough some conversion has has been achieved or I see a result
+has has been achieved or I see a result that I'm happy with it's gonna be above
+that I'm happy with it's gonna be above a certain threshold and we will talk a
+a certain threshold and we will talk a little bit about that now so this is
+little bit about that now so this is what it looks like when you run that
+what it looks like when you run that it's an iteration process and all that's
+it's an iteration process and all that's really happening is the shape of the
+really happening is the shape of the beta is changing representing how
+beta is changing representing how confident we now are in this model and
+confident we now are in this model and at any point in time we can stop and say
+at any point in time we can stop and say this is what we think our conversion
+this is what we think our conversion rate is it's looking at this is about
+rate is it's looking at this is about 30% with a spread of you know point one
+30% with a spread of you know point one now if we plug that in to an actual
+now if we plug that in to an actual experiment and start running it so we
+experiment and start running it so we start off with an uniform prior that is
+start off with an uniform prior that is we we don't have any prior knowledge at
+we we don't have any prior knowledge at all over this coin and let's say the
+all over this coin and let's say the coin is actually fair it's it's theta
+coin is actually fair it's it's theta parameter is 0.5 and we start flipping
+parameter is 0.5 and we start flipping it and seeing what happens so you get
+it and seeing what happens so you get two heads to tails ten heads eleven
+two heads to tails ten heads eleven tails 31 heads 29 tails and as we go we
+tails 31 heads 29 tails and as we go we can see what's happening is we're
+can see what's happening is we're increasing our certainty that this coin
+increasing our certainty that this coin looks like it's fair that the dotted
+looks like it's fair that the dotted line there represents the 0.5 line we
+line there represents the 0.5 line we can see that even though it's still even
+can see that even though it's still even though it's it's centered at 0.5 we're
+though it's it's centered at 0.5 we're still allowing for the fact that we
+still allowing for the fact that we might not have seen all that examples of
+might not have seen all that examples of the coins behavior and so we're allowing
+the coins behavior and so we're allowing for the fact that it could be 0.6 0.7 or
+for the fact that it could be 0.6 0.7 or something lower but as you see more data
+something lower but as you see more data that tightness starts to happen and
+that tightness starts to happen and essentially we get more and more
+essentially we get more and more confident about the spread of the actual
+confident about the spread of the actual true distribution so we're pretty sure
+true distribution so we're pretty sure this coin is fair because it looks like
+this coin is fair because it looks like this one is very close to 0.5 at its
+this one is very close to 0.5 at its peak let's say we have prior knowledge
+peak let's say we have prior knowledge that the coin is fair all right so we're
+that the coin is fair all right so we're actually starting off with something
+actually starting off with something like this this is our prior we've drawn
+like this this is our prior we've drawn this curve ourselves say previously we
+this curve ourselves say previously we solve 50 heads in 50 tails and now
+solve 50 heads in 50 tails and now we start the experiment but essentially
+we start the experiment but essentially the same sort of data run it a few times
+the same sort of data run it a few times and you can see even though we're sort
+and you can see even though we're sort of getting the same data coming in it's
+of getting the same data coming in it's not exactly the same that's pretty close
+not exactly the same that's pretty close generally this shape of the curve hasn't
+generally this shape of the curve hasn't changed at all what's really happened is
+changed at all what's really happened is nothing has come in to upset our belief
+nothing has come in to upset our belief that this coin is actually fair and in
+that this coin is actually fair and in fact all we've done is we've improved
+fact all we've done is we've improved our certainty it's become sort of
+our certainty it's become sort of tighter let's look at the opposite case
+tighter let's look at the opposite case where we start off with a biased coin
+where we start off with a biased coin and we start observing what the true
+and we start observing what the true cases so we start off with no prior
+cases so we start off with no prior we've no previous knowledge at all we've
+we've no previous knowledge at all we've we haven't seen the coin being made and
+we haven't seen the coin being made and we start observing the result and in
+we start observing the result and in this case you can see that over time we
+this case you can see that over time we build up a profile that I had this coin
+build up a profile that I had this coin is definitely unfair it's sort of offset
+is definitely unfair it's sort of offset a right-hand side certainly that the
+a right-hand side certainly that the mass of our probability distribution is
+mass of our probability distribution is not centered around 0.5 so we'd say if
+not centered around 0.5 so we'd say if that's you know it probably an unfair
+that's you know it probably an unfair coin given what we've seen now what
+coin given what we've seen now what happens if we start out with a
+happens if we start out with a preconceived bias that we think this
+preconceived bias that we think this coin is fair what does that mean
+coin is fair what does that mean well actually I changes things and this
+well actually I changes things and this is maybe the negative side of priors so
+is maybe the negative side of priors so if we're pretty certain the coin is fair
+if we're pretty certain the coin is fair and then we start observing it and then
+and then we start observing it and then it comes up like a very unfair coin we
+it comes up like a very unfair coin we see maybe 20 heads and 4 tails all that
+see maybe 20 heads and 4 tails all that those has really shifted slightly
+those has really shifted slightly because there's a weight of evidence
+because there's a weight of evidence already expressed in the prior and
+already expressed in the prior and that's we're working with the prior is
+that's we're working with the prior is really important you need to be very
+really important you need to be very clear about how much you know confidence
+clear about how much you know confidence or how much certainty you put into that
+or how much certainty you put into that prior because it'll impede progress in
+prior because it'll impede progress in your experiment if you're really sure
+your experiment if you're really sure but that's a good thing because it means
+but that's a good thing because it means that you're saying I'm really sure the
+that you're saying I'm really sure the conversion rate is 30% I want to see a
+conversion rate is 30% I want to see a heck of a lot of evidence before I'm
+heck of a lot of evidence before I'm prepared to accept that it's not so in
+prepared to accept that it's not so in this case we're not sure of anything so
+this case we're not sure of anything so when do you reject well quite simply we
+when do you reject well quite simply we reject based on you know how far into
+reject based on you know how far into the center of the bell curve or into the
+the center of the bell curve or into the center that the mass is the observation
+center that the mass is the observation that we have and in this case we can use
+that we have and in this case we can use it we can look at the credible interval
+it we can look at the credible interval and this is just looking at the
+and this is just looking at the probability distribution figuring out
+probability distribution figuring out for 95% of the masses this is where it's
+for 95% of the masses this is where it's sort of similar to no the pathless
+sort of similar to no the pathless testing and then checking to see if the
+testing and then checking to see if the 0.5 value is inside the data in this
+0.5 value is inside the data in this case it is so we would express this as
+case it is so we would express this as saying you know we're 95% confident that
+saying you know we're 95% confident that this
+this his fare similarly with the previous one
+his fare similarly with the previous one with the uniform prior and the biased
+with the uniform prior and the biased coin you know we're pretty confident
+coin you know we're pretty confident were greater than 95% confident that
+were greater than 95% confident that this coin is unfair in this case so it's
+this coin is unfair in this case so it's outside like credible interval so the
+outside like credible interval so the prior captures our belief captures our
+prior captures our belief captures our experience and it's a really creative
+experience and it's a really creative way mathematically to get business
+way mathematically to get business knowledge and intuition into a system
+knowledge and intuition into a system like this
+like this which the Nala pathes approach has no
+which the Nala pathes approach has no real easy way to do strong beliefs means
+real easy way to do strong beliefs means that we need lots of evidence to
+that we need lots of evidence to conflict our belief which is good means
+conflict our belief which is good means I really need to be convinced before I'm
+I really need to be convinced before I'm prepared to accept that this coin isn't
+prepared to accept that this coin isn't fair it also provides inertia and it
+fair it also provides inertia and it allows convergence a lot more quickly if
+allows convergence a lot more quickly if indeed your your belief is true and with
+indeed your your belief is true and with enough samples though you know the
+enough samples though you know the importance of the prior diminishes so
+importance of the prior diminishes so that's a good thing as well and it acts
+that's a good thing as well and it acts like a really nice filter at the start
+like a really nice filter at the start of your test so the noise of the start
+of your test so the noise of the start of your test essentially is reducing
+of your test essentially is reducing differently but a decent choice of prior
+differently but a decent choice of prior that makes the experience for product
+that makes the experience for product manager or an analyst looking at the a/b
+manager or an analyst looking at the a/b tests it makes it a lot easier for them
+tests it makes it a lot easier for them so let's look at running a test so we've
+so let's look at running a test so we've got our kind of candy crush bolt thing
+got our kind of candy crush bolt thing again we got a very using variation a
+again we got a very using variation a and B we start observing results for
+and B we start observing results for both a and B and looking at the
+both a and B and looking at the conversion rates what we have now is
+conversion rates what we have now is sort of two of those coin flipping tests
+sort of two of those coin flipping tests and we we accept the fact that there's
+and we we accept the fact that there's probably two conversion rates here and
+probably two conversion rates here and we just want to know which of those is
+we just want to know which of those is better so with multiple variants things
+better so with multiple variants things are a little trickier we're no longer
+are a little trickier we're no longer dealing with one distribution we're
+dealing with one distribution we're actually dealing with a two-dimensional
+actually dealing with a two-dimensional distribution and in order to actually
+distribution and in order to actually evaluate the results we start getting
+evaluate the results we start getting into a little bit more hairy stuff
+into a little bit more hairy stuff that's where the computers to start
+that's where the computers to start shining so we can start using sort of
+shining so we can start using sort of quadrature rules and other things like
+quadrature rules and other things like Markov chain Monte Carlo but here's what
+Markov chain Monte Carlo but here's what you're actually doing you're getting
+you're actually doing you're getting surfaces for a to vary into test or a to
+surfaces for a to vary into test or a to treatment test if you've a three
+treatment test if you've a three treatment test it's now a volume and for
+treatment test it's now a volume and for treatment view into four dimensions and
+treatment view into four dimensions and it gets harder to think about or to
+it gets harder to think about or to visualize but the sort of 2d or to
+visualize but the sort of 2d or to audacity version is fairly
+audacity version is fairly straightforward so this is our
+straightforward so this is our conversion expectation for a and a
+conversion expectation for a and a conversion expectation for B the two
+conversion expectation for B the two different versions of the game and in
+different versions of the game and in both cases a sort of centered or close
+both cases a sort of centered or close to that 30% which I should have
+to that 30% which I should have skewed one way and this is what we try
+skewed one way and this is what we try to evaluate we're trying to say is a
+to evaluate we're trying to say is a better than B and a is better than B if
+better than B and a is better than B if essentially the area under the curve
+essentially the area under the curve where theta is greater than C to be you
+where theta is greater than C to be you know is larger that's essentially what
+know is larger that's essentially what we're trying to evaluate which is this
+we're trying to evaluate which is this thing here so we just look at the area
+thing here so we just look at the area where you know theta a is greater than
+where you know theta a is greater than zero B we integrate under the curve we
+zero B we integrate under the curve we compute the volume of that shape and we
+compute the volume of that shape and we say is it you know greater on the
+say is it you know greater on the right-hand side on the left-hand side
+right-hand side on the left-hand side and was greater on the right-hand side
+and was greater on the right-hand side and a is better squared on the left-hand
+and a is better squared on the left-hand side B is better and the volume gives us
+side B is better and the volume gives us our degree of certainty and it's a
+our degree of certainty and it's a really cool way of saying I am 75
+really cool way of saying I am 75 percent certain that a is better than B
+percent certain that a is better than B it gives us a real number to work with
+it gives us a real number to work with our probability to work with which is
+our probability to work with which is why it's so useful well prior might we
+why it's so useful well prior might we use for our game so in this case we have
+use for our game so in this case we have a prior which is say 30 percent but we
+a prior which is say 30 percent but we need to figure out a spread how certain
+need to figure out a spread how certain am I about the 30 percent conversion
+am I about the 30 percent conversion rate for for day 1 retention well maybe
+rate for for day 1 retention well maybe I'm not very certain at all well what I
+I'm not very certain at all well what I can do is I can look at the history of
+can do is I can look at the history of the game so maybe I run the game for a
+the game so maybe I run the game for a month and I actually have data to say
+month and I actually have data to say what saw the conversion rates are what
+what saw the conversion rates are what sort of retention rates was what they're
+sort of retention rates was what they're saying and here's an actual game that's
+saying and here's an actual game that's you know available now with a conversion
+you know available now with a conversion rate it ran about 30 percent for day one
+rate it ran about 30 percent for day one and that's the spread so what we can do
+and that's the spread so what we can do is we can just very simply fit a data to
+is we can just very simply fit a data to that in this case it was a beta with an
+that in this case it was a beta with an A of 42 and a B of 94 really simple to
+A of 42 and a B of 94 really simple to do with you know Python or and then you
+do with you know Python or and then you feed that into your system and you start
+feed that into your system and you start running your bayesian analysis you
+running your bayesian analysis you iterate with all the data you see you
+iterate with all the data you see you iterate with the coin tosses people do
+iterate with the coin tosses people do or do not convert and you observe the
+or do not convert and you observe the results and you can observe a result all
+results and you can observe a result all the time and make a choice at any point
+the time and make a choice at any point in time you look at this and nothing's
+in time you look at this and nothing's really settled down so we can see that
+really settled down so we can see that one variant looks like it's doing better
+one variant looks like it's doing better than the other it was oscillating a bit
+than the other it was oscillating a bit at the start this used a uniform prior
+at the start this used a uniform prior so early oscillation is classic there
+so early oscillation is classic there and but we're probably saying at this
+and but we're probably saying at this point that we're 80 percent sure that
+point that we're 80 percent sure that the top variant is better that's
+the top variant is better that's probably not a good point to stuff you
+probably not a good point to stuff you really want to let this run for a little
+really want to let this run for a little bit longer and so need been running for
+bit longer and so need been running for a few days so here's some examples of
+a few days so here's some examples of real tests that have run this is sort of
+real tests that have run this is sort of how we read out the result of a test
+how we read out the result of a test this is a control and for variance or a
+this is a control and for variance or a for treatment test and in this case the
+for treatment test and in this case the mathematicians among you should be
+mathematicians among you should be revolting because there's no such thing
+revolting because there's no such thing as one
+as one percent certainty and a leasing but we
+percent certainty and a leasing but we round up from 99.99 to a hundred so
+round up from 99.99 to a hundred so forgive us - at least it just looks
+forgive us - at least it just looks nicer on the dashboard so what we're
+nicer on the dashboard so what we're reading out here is the probability of
+reading out here is the probability of any one of those treatments being the
+any one of those treatments being the outright winner or the probability that
+outright winner or the probability that they beat the control in this case
+they beat the control in this case here's how that test ran for a while so
+here's how that test ran for a while so again it was a uniform prior in this
+again it was a uniform prior in this case an uninformed prior to say so lots
+case an uninformed prior to say so lots of noise at the start but it eventually
+of noise at the start but it eventually settled down into a very you know stable
+settled down into a very you know stable result all the other treatments were
+result all the other treatments were practically 0% and we were very certain
+practically 0% and we were very certain that one of these treatments was by far
+that one of these treatments was by far and away the winner so that became
+and away the winner so that became actionable very quickly and here's how
+actionable very quickly and here's how the conversion rate looked over time so
+the conversion rate looked over time so again at the start this is actual you
+again at the start this is actual you know is it 30 percent or is it 31
+know is it 30 percent or is it 31 percent for four day one conversion in
+percent for four day one conversion in this case it was measuring something
+this case it was measuring something else but that credible interval that I
+else but that credible interval that I talked about we're actually tracking
+talked about we're actually tracking that over time as well and that's a good
+that over time as well and that's a good thing to do because it gives you an idea
+thing to do because it gives you an idea of the separation of the different
+of the separation of the different treatments and how confident you are
+treatments and how confident you are what you really want to see is a full
+what you really want to see is a full separation of your 95 percent incredible
+separation of your 95 percent incredible intervals to be really sure that these
+intervals to be really sure that these are different conversion rates but again
+are different conversion rates but again it depends on how you're setting up the
+it depends on how you're setting up the experiment here's what it looks like
+experiment here's what it looks like when it's not so successful or not so is
+when it's not so successful or not so is a bad term this is a successful test but
+a bad term this is a successful test but the result wasn't a success so that the
+the result wasn't a success so that the change we made didn't actually have the
+change we made didn't actually have the right impact that we wanted to see so
+right impact that we wanted to see so this is what it looked like the control
+this is what it looked like the control very very quickly drowned out the
+very very quickly drowned out the treatment and after a couple of
+treatment and after a couple of observations and you can see they're
+observations and you can see they're literally the spiciness of this grab
+literally the spiciness of this grab sort of represents the number of
+sort of represents the number of observations and it very quickly you
+observations and it very quickly you know drowned at the treatment so we we
+know drowned at the treatment so we we kill that test fairly quickly and this
+kill that test fairly quickly and this was the observed conversion rate other
+was the observed conversion rate other posterior so again you can see that
+posterior so again you can see that initially we've so little data that
+initially we've so little data that probability distributions of both the
+probability distributions of both the control and the variant are overlapping
+control and the variant are overlapping you know our beta distributions are
+you know our beta distributions are essentially all over or overlapping each
+essentially all over or overlapping each other and you can figure this is just a
+other and you can figure this is just a visualization of the shape of the beta
+visualization of the shape of the beta distribution sort of tightening over
+distribution sort of tightening over time as we were more and more certain
+time as we were more and more certain about the true conversion rate of each
+about the true conversion rate of each of our population groups now we're
+of our population groups now we're making some big assumptions here first
+making some big assumptions here first off that users are independent this
+off that users are independent this isn't such a great assumption to be
+isn't such a great assumption to be making for example in multiplayer games
+making for example in multiplayer games if you're running a test where you know
+if you're running a test where you know there can be an interaction between
+there can be an interaction between users then you have to be very careful
+users then you have to be very careful about the design of your test
+about the design of your test it also seems that users convert very
+it also seems that users convert very quickly in fact the model assumes users
+quickly in fact the model assumes users convert instantaneously so that's not
+convert instantaneously so that's not great friend say you're looking at a day
+great friend say you're looking at a day 30 retention test so you have to sort of
+30 retention test so you have to sort of frame that slightly differently but I
+frame that slightly differently but I don't have time to get into that here
+don't have time to get into that here and the other thing we assume is that
+and the other thing we assume is that probability the probability of
+probability the probability of conversion is independent of time that's
+conversion is independent of time that's also untrue you know sometimes people
+also untrue you know sometimes people might purchase things more frequently
+might purchase things more frequently during the lunch time and less likely to
+during the lunch time and less likely to purchase you know I four o'clock in the
+purchase you know I four o'clock in the afternoon so there is a sort of a
+afternoon so there is a sort of a relationship between time and conversion
+relationship between time and conversion rates so you have to make sure you
+rates so you have to make sure you counter for that in some of that the
+counter for that in some of that the modeling and really a lot of the
+modeling and really a lot of the complexity of Bayesian you know a/b
+complexity of Bayesian you know a/b testing really comes in the later stage
+testing really comes in the later stage stuff the implementation of it basically
+stuff the implementation of it basically B test is really straightforward this is
+B test is really straightforward this is what it looks like if you try to run an
+what it looks like if you try to run an a/b test without any corrections on a
+a/b test without any corrections on a conversion that happens long time into
+conversion that happens long time into the game let's say you know after seven
+the game let's say you know after seven or eight days of play in this case
+or eight days of play in this case actually is not this is probably about
+actually is not this is probably about three or four hours into play and I'm
+three or four hours into play and I'm looking at the data but you can see that
+looking at the data but you can see that the conversion rate hasn't settled down
+the conversion rate hasn't settled down it's sort of starting to become
+it's sort of starting to become asymptotic to something so when you're
+asymptotic to something so when you're running tests and if you see something
+running tests and if you see something like this in your own graphs wait until
+like this in your own graphs wait until it flattens out so that you can see our
+it flattens out so that you can see our my population has actually reached a
+my population has actually reached a stable conversion rate and have a decent
+stable conversion rate and have a decent estimator so some benefits and features
+estimator so some benefits and features of Bayesian it's continuously observable
+of Bayesian it's continuously observable and this is genius
+and this is genius unlike the null hypothesis stuff where
+unlike the null hypothesis stuff where you have to set up the tests in advance
+you have to set up the tests in advance and being fairly rigorous about that
+and being fairly rigorous about that basically just look at it and you get a
+basically just look at it and you get a new probability every day our minute
+new probability every day our minute even second depending on how you
+even second depending on how you implement the infrastructure so there's
+implement the infrastructure so there's no need to think about population sizes
+no need to think about population sizes in advance you just let your users flow
+in advance you just let your users flow over your test and you look at the
+over your test and you look at the results and you build up but every new
+results and you build up but every new piece of data you have a new model that
+piece of data you have a new model that represents what we believe about the
+represents what we believe about the game we can incorporate prior knowledge
+game we can incorporate prior knowledge using that the prior which is really
+using that the prior which is really cool the ability to bring in your own
+cool the ability to bring in your own business knowledge or your own
+business knowledge or your own experience from previous tests or
+experience from previous tests or experience about what you know about
+experience about what you know about games and bring that to bear I think
+games and bring that to bear I think sort of factor that into the
+sort of factor that into the mathematical you know implementation is
+mathematical you know implementation is really cool and the result at any point
+really cool and the result at any point in time is a true probability it's a
+in time is a true probability it's a value from zero to one that you can sort
+value from zero to one that you can sort of Intuit about and doesn't have any
+of Intuit about and doesn't have any strange special casing about null
+strange special casing about null hypotheses and false positives are
+hypotheses and false positives are well clearly can have false positives
+well clearly can have false positives but it doesn't have any that strangeness
+but it doesn't have any that strangeness of a p-value and as well as that it
+of a p-value and as well as that it gives you a magnitude of the difference
+gives you a magnitude of the difference between population groups a magnitude of
+between population groups a magnitude of the effect you're seeing again with null
+the effect you're seeing again with null hypothesis all you get to know is is it
+hypothesis all you get to know is is it or is it not likely to be due to that
+or is it not likely to be due to that distribution so it's a binary choice for
+distribution so it's a binary choice for as in Bayesian you get a magnitude and
+as in Bayesian you get a magnitude and the probability and I'll makes for a
+the probability and I'll makes for a much better assessment to the results of
+much better assessment to the results of the test and frankly it's a really great
+the test and frankly it's a really great framework for building lots of different
+framework for building lots of different analyses inside your game so you know
+analyses inside your game so you know get onto your your analysts get onto
+get onto your your analysts get onto your data scientists in your companies
+your data scientists in your companies and get them to build a Bayesian
+and get them to build a Bayesian framework because you can start to you
+framework because you can start to you know look at lots of other different
+know look at lots of other different things and not just simple a/b tests so
+things and not just simple a/b tests so some useful links that's just for those
+some useful links that's just for those of you other download the paper or the
+of you other download the paper or the talk later I particularly recommend that
+talk later I particularly recommend that first link if you haven't heard about
+first link if you haven't heard about count Davidson's the probabilistic
+count Davidson's the probabilistic programming thing in Python it's a book
+programming thing in Python it's a book written in ipython so it's fully
+written in ipython so it's fully interactive is the most genius thing
+interactive is the most genius thing I've come across in in the last year so
+I've come across in in the last year so if you just google for a Bayesian
+if you just google for a Bayesian hacking I think it is our Bayesian
+hacking I think it is our Bayesian hackers you'll come across it absolutely
+hackers you'll come across it absolutely brilliant book I can't recommend it
+brilliant book I can't recommend it enough it's not finished so it's a lot
+enough it's not finished so it's a lot of errata
+of errata to come but it's it's brief other than
+to come but it's it's brief other than that I just like to thank you for your
+that I just like to thank you for your time and ask if there's any questions
+time and ask if there's any questions thank you
+so with one question there we might use that I should have one over there that
+that I should have one over there that the microphone so I'm gonna go with him
+the microphone so I'm gonna go with him for us right
+for us right oh sorry even the previously yes hi
+oh sorry even the previously yes hi thanks
+thanks so one thing that I think most people
+so one thing that I think most people who have worked with MT MC know is that
+who have worked with MT MC know is that it is quite computationally expensive
+it is quite computationally expensive and I'm wondering whether you have
+and I'm wondering whether you have successfully scaled some of these
+successfully scaled some of these approaches to tens of thousands hundreds
+approaches to tens of thousands hundreds of thousands millions of users or
+of thousands millions of users or whether you do some kind of sampling or
+whether you do some kind of sampling or use closed-form kind of solutions or how
+use closed-form kind of solutions or how it is that you run this at scale yeah
+it is that you run this at scale yeah good good question and in fact the if
+good good question and in fact the if you're rerunning this or your computing
+you're rerunning this or your computing the the results every knees or in every
+the the results every knees or in every new observation clearly that's an issue
+new observation clearly that's an issue so we batch that up for a start so we
+so we batch that up for a start so we look at series of observations and then
+look at series of observations and then we sort of recompute at regular
+we sort of recompute at regular intervals to be honest most of the tests
+intervals to be honest most of the tests we run are actually straightforward we
+we run are actually straightforward we don't even have to resort to the MCMC
+don't even have to resort to the MCMC stuff and we can use this analytic
+stuff and we can use this analytic closed form solutions that exist out
+closed form solutions that exist out there for computing the area under a
+there for computing the area under a multi-dimensional sort of beta functions
+multi-dimensional sort of beta functions so there's a good there's a very good
+so there's a good there's a very good Java library whose name I sort of forget
+Java library whose name I sort of forget at the moment but if you ping me after
+at the moment but if you ping me after it's by email I'll send it to you and
+it's by email I'll send it to you and that's a great library that we use
+that's a great library that we use internally you know for computing these
+internally you know for computing these integrals okay I think it's C so I'm not
+integrals okay I think it's C so I'm not trying to defend
+trying to defend frequentist statistics but one nice
+frequentist statistics but one nice thing about the neyman-pearson approach
+thing about the neyman-pearson approach is that it at least gives you a way to
+is that it at least gives you a way to think about inferential risk for type 1
+think about inferential risk for type 1 type 2 error with respect to sample size
+type 2 error with respect to sample size and I'm wondering in your setting are
+and I'm wondering in your setting are the sample sizes typically so big that
+the sample sizes typically so big that you don't really have to to worry about
+you don't really have to to worry about it too much so that the data just flows
+it too much so that the data just flows in and at some point you're credible
+in and at some point you're credible intervals are obvious and then you're
+intervals are obvious and then you're done yeah I think you're absolutely
+done yeah I think you're absolutely right I'm not sure this is probably an
+right I'm not sure this is probably an untrue statement but we haven't needed
+untrue statement but we haven't needed to really think about that too much
+to really think about that too much because sample sizes are deaf and in the
+because sample sizes are deaf and in the hundreds of thousands of users and
+hundreds of thousands of users and beyond in which case you know you don't
+beyond in which case you know you don't really have to think too too much about
+really have to think too too much about this which is the good news certainly if
+this which is the good news certainly if you were doing a test which I'd you know
+you were doing a test which I'd you know need 50 users then you know I have to be
+need 50 users then you know I have to be very careful you know if
+very careful you know if be careful of degrees of freedom and all
+be careful of degrees of freedom and all that sort of stuff but generally by
+that sort of stuff but generally by switching to a Bayesian approach and by
+switching to a Bayesian approach and by just relying on the fact that there's
+just relying on the fact that there's lots of observations we haven't had to
+lots of observations we haven't had to get too deep into that stuff but I think
+get too deep into that stuff but I think you're absolutely right there's a I
+you're absolutely right there's a I think there's a deeper set of knowledge
+think there's a deeper set of knowledge on the sort of frequentist approach out
+on the sort of frequentist approach out there the experimental design research
+there the experimental design research in in sort of frequentist is rich and
+in in sort of frequentist is rich and vast what I sort of like about Bayesian
+vast what I sort of like about Bayesian it's just simple to be honest from my
+it's just simple to be honest from my perspective so I was able to understand
+perspective so I was able to understand a little bit better Cheers yeah thank
+a little bit better Cheers yeah thank you it was a very concise talk on be
+you it was a very concise talk on be seen as something as I'm sure you know
+seen as something as I'm sure you know there's always a really big divided
+there's always a really big divided against frequent ism and yeah and
+against frequent ism and yeah and Bayesian ISM especially in a situation I
+Bayesian ISM especially in a situation I have been dealing with lots of basically
+have been dealing with lots of basically stats 101 or someone who has an
+stats 101 or someone who has an undergrad with math had really you know
+undergrad with math had really you know yellow sample size or bring up these
+yellow sample size or bring up these things about Bayesian is and then what
+things about Bayesian is and then what kind of experiences have you had working
+kind of experiences have you had working with companies or clients of saying hey
+with companies or clients of saying hey this stuff really does work or what
+this stuff really does work or what advice do you have for basically
+advice do you have for basically converting people to the benefits of
+converting people to the benefits of Bayesian ISM I can only go really from
+Bayesian ISM I can only go really from our own experience because largely when
+our own experience because largely when we taught with companies we divorce them
+we taught with companies we divorce them from the complexities of how we
+from the complexities of how we implement this in some cases we'll talk
+implement this in some cases we'll talk directly to their data scientist and get
+directly to their data scientist and get into it
+into it but in my experience getting to grips
+but in my experience getting to grips with and creating a very robust sort of
+with and creating a very robust sort of frequences approach to this we found
+frequences approach to this we found quite tricky and we went a good deal
+quite tricky and we went a good deal down the road of doing that you know
+down the road of doing that you know looking at correction factors and done
+looking at correction factors and done it and all that sort of things but
+it and all that sort of things but eventually decided to make the switch
+eventually decided to make the switch based on some advice that we got a
+based on some advice that we got a couple of years ago and since then
+couple of years ago and since then things have just gone so much easier I
+things have just gone so much easier I think horses for courses I think in the
+think horses for courses I think in the high tech in the computer world which I
+high tech in the computer world which I come from the computer science world I
+come from the computer science world I think there's a natural affinity to
+think there's a natural affinity to Bayesian because it you know it unlocks
+Bayesian because it you know it unlocks itself once you had the capability of
+itself once you had the capability of running these calculations at scale
+running these calculations at scale where you can divorce yourself from
+where you can divorce yourself from having to figure out really complex
+having to figure out really complex you know conjugate priors and can just
+you know conjugate priors and can just rely on what are also tricky things that
+rely on what are also tricky things that MCMC methods and things like that it's
+MCMC methods and things like that it's just sort of it's our model view of the
+just sort of it's our model view of the world I think a lot better so you know I
+world I think a lot better so you know I wouldn't personally get into the
+wouldn't personally get into the you know the a versus B comparison of
+you know the a versus B comparison of those two schools we have just found
+those two schools we have just found Bayesian that's it suits our team better
+Bayesian that's it suits our team better yeah if you start taking advantage of
+yeah if you start taking advantage of some of the more complex methods you
+some of the more complex methods you touched on like doing real values
+touched on like doing real values instead of discrete so let's say you're
+instead of discrete so let's say you're optimizing for revenue your ARP ARP ARP
+optimizing for revenue your ARP ARP ARP Dao and you also want to do multivariate
+Dao and you also want to do multivariate testing so you're kind of pushing it to
+testing so you're kind of pushing it to the most of what you talked on do any
+the most of what you talked on do any new challenges emerge there tractability
+new challenges emerge there tractability of the computation or needing to switch
+of the computation or needing to switch to different methods
+to different methods I guess so far word maybe we haven't
+I guess so far word maybe we haven't gone far enough into this to to hit up
+gone far enough into this to to hit up again some of those intractability
+again some of those intractability issues we found the majority of the use
+issues we found the majority of the use cases that we've come across can be
+cases that we've come across can be actually nearly trivially solved with
+actually nearly trivially solved with Basel II know you do have to implement
+Basel II know you do have to implement hierarchical methods you have to get
+hierarchical methods you have to get into things that are beyond binomial and
+into things that are beyond binomial and negative binomial and Brownian and all
+negative binomial and Brownian and all that for this stuff but fundamentally
+that for this stuff but fundamentally once you choose the right model and once
+once you choose the right model and once you choose the you know the right
+you choose the you know the right Bayesian approach it all sort of falls
+Bayesian approach it all sort of falls that we we haven't come across an issue
+that we we haven't come across an issue for us in terms of computational
+for us in terms of computational tractability yet now I think the
+tractability yet now I think the direction that we find ourselves going
+direction that we find ourselves going in is away from the sort of more curated
+in is away from the sort of more curated av-test approach to the more automated
+av-test approach to the more automated optimization and multi armed bandits and
+optimization and multi armed bandits and starting to think more on sort of that
+starting to think more on sort of that direction and I think that's very
+direction and I think that's very interesting where you can just sort of
+interesting where you can just sort of automate across a you know a parameter
+automate across a you know a parameter space of different options but and
+space of different options but and that's that's where we're going to spend
+that's that's where we're going to spend most of our time thank you
+most of our time thank you sure in terms of a company looking to
+sure in terms of a company looking to buy a system like this can you talk
+buy a system like this can you talk about like the return on an investment
+about like the return on an investment like say a company wasn't doing this
+like say a company wasn't doing this sort of approach and then a year later
+sort of approach and then a year later was adopting it what sort of effect
+was adopting it what sort of effect would you expect to see in the revenue
+would you expect to see in the revenue and business model that's entirely a
+and business model that's entirely a function of to what degree testing
+function of to what degree testing becomes incorporated into the culture of
+becomes incorporated into the culture of the company so I think you know there's
+the company so I think you know there's no again there's no silver bullet a
+no again there's no silver bullet a piece of technology or a cool platform
+piece of technology or a cool platform doesn't actually deliver the or awhi in
+doesn't actually deliver the or awhi in and of itself it sort of has to nearly
+and of itself it sort of has to nearly infiltrate itself into the the way you
+infiltrate itself into the the way you develop the game and the way you develop
+develop the game and the way you develop the economy
+the economy the way you manage the store or whatever
+the way you manage the store or whatever and you know I think that's still an
+and you know I think that's still an ongoing story like I can't tell you any
+ongoing story like I can't tell you any specific examples of customers working
+specific examples of customers working with us because we sort of measure or a
+with us because we sort of measure or a line on an AV test by AP test basis but
+line on an AV test by AP test basis but each of those has value you know on an
+each of those has value you know on an individual test could be worth a hundred
+individual test could be worth a hundred bucks could be worth ten thousand bucks
+bucks could be worth ten thousand bucks depending on what needed you you shift
+depending on what needed you you shift you know I think some companies have
+you know I think some companies have defined their success in the basis of
+defined their success in the basis of always being testing and so I think it's
+always being testing and so I think it's does huge value to embedding that in
+does huge value to embedding that in your culture there's obviously a
+your culture there's obviously a spectrum you know what it all just to be
+spectrum you know what it all just to be data-driven and testing there's still
+data-driven and testing there's still also about design and incubation okay so
+also about design and incubation okay so a different question you you talked a
+a different question you you talked a little bit about it
+little bit about it how do you tell if a change is good or
+how do you tell if a change is good or not good you know a games got a huge
+not good you know a games got a huge surface area of things you could change
+surface area of things you could change yeah if you change everything every day
+yeah if you change everything every day it's a menace yeah you can't say oh yeah
+it's a menace yeah you can't say oh yeah so really an interesting question is is
+so really an interesting question is is like I have a whole bunch of ideas that
+like I have a whole bunch of ideas that my game designers want to do which one
+my game designers want to do which one is the one that I should try first a
+is the one that I should try first a very interesting one not quite a
+very interesting one not quite a philosophical question but in a kind of
+philosophical question but in a kind of optimization and problem you know if in
+optimization and problem you know if in the limits you could express every
+the limits you could express every parameter of the game to an a beat or an
+parameter of the game to an a beat or an optimization system a whole point here
+optimization system a whole point here that's of a diminishing lower return
+that's of a diminishing lower return that you know just got to complex and
+that you know just got to complex and are changing too many things I have no
+are changing too many things I have no idea the answer to that question our
+idea the answer to that question our advice to any company and working with
+advice to any company and working with a/b testing certainly to begin with is
+a/b testing certainly to begin with is keep it simple you know talk to your
+keep it simple you know talk to your your your CFO talk to your the guy who
+your your CFO talk to your the guy who owns the P&L and ask him you know what
+owns the P&L and ask him you know what do you want what's the business goal and
+do you want what's the business goal and then work back from that into what
+then work back from that into what things inside the game can impact on
+things inside the game can impact on that business goal most quickly and
+that business goal most quickly and generally speaking that's something to
+generally speaking that's something to do with you know the economy or the
+do with you know the economy or the monetization mechanisms inside the game
+monetization mechanisms inside the game and things that directly impact on
+and things that directly impact on early-stage sort of engagement when
+early-stage sort of engagement when retention and that's usually where we
+retention and that's usually where we start out and then over time you start
+start out and then over time you start building more and more tests and I think
+building more and more tests and I think we're still early
+we're still early actually certainly for mobile a be
+actually certainly for mobile a be testing and this sort of technique in
+testing and this sort of technique in general you know in the limit you think
+general you know in the limit you think about an auto adapting game based on
+about an auto adapting game based on what users are doing you know some sort
+what users are doing you know some sort of crazy machine learning
+of crazy machine learning that adapts itself but I think that's
+that adapts itself but I think that's the limit we'll never want to reach I
+the limit we'll never want to reach I suspect okay listen thank you very much
+suspect okay listen thank you very much for your time and enjoy your beers
+for your time and enjoy your beers [Applause]

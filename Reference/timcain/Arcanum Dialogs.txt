@@ -1,0 +1,313 @@
+hi everyone it's me Tim and today I'm
+going to walk you through an Arcanum
+dialogue file explains how everything
+works and along the way kind of explain
+why we did it this way so I'm going to
+put the file up boom so this is a the
+actual example NPC dialog file that I
+made back when we were making Arcanum to
+show people who would want to make
+dialogues for the game kind of how it
+worked so let me walk through how this
+works um the ooh I think they're blue
+they look light gray to me but I'm
+pretty sure I made them blue the blue
+lines are NPC lines and all the lines
+between NPC lines are PC responses let
+me tell you how those are broken down
+because these are very um it's very easy
+to write these but each column means
+something something different so column
+B is the number of the dialogue line so
+if you say you know hey I'm having an
+error thrown on dialogue line three it's
+what's in column B it's not the row and
+this is important because later I'll
+explain how we ended up processing these
+Excel spreadsheets into plain text files
+by the way yeah if I didn't make that
+clear we wrote all of our Arcanum
+dialogues in Excel we didn't have time
+to make a tool so we used Excel and then
+later on we export them as dialog files
+so column D was called the text line the
+text column um and column F was called
+the G field now in an
+NPC line uh those often look the same
+because what that was
+is the text field was the NPC response
+if the player character was male and the
+g field was the NPC response if the
+player character was female because many
+languages require those lines to be
+translated differently even though in
+English 90% of the time look they look
+the same true the dialogue writer could
+say how are you today sir and how are
+you today ma'am on the different lines
+frequently they didn't often they were
+just the same line how are you today so
+we had to include that for the
+localization reasons
+then the H
+column was
+the M the IQ field um it was the if it
+was a number it was the minimum IQ that
+the player needed or the um yeah the
+player needed to say that line I don't
+believe it was used in yes it was not
+used for NPCs they could automatically
+say their line now if the I field is
+negative that means it's a maximum IQ
+the player character can't exceed the
+absolute value of that number so if you
+wrote neg5 that would mean only people
+only players with a intelligence of five
+or lower could say
+it and then the J field is the test
+field the test field is a
+test to see if the player can even say
+that line again this was left empty on
+NPC lines so
+it NPCs could just always say their line
+if they got directed to by a
+script but the player character you
+would only see that line appear in their
+list of options if they matched it if
+the tests in here I'll go over in a
+second what the tests are there are a
+lot of them um the L column is the
+response Line This is if
+this line is selected by the player even
+if it generates if it's generated
+dialogue which I'll talk about it will
+ultimately jump to that line in the
+dialogue file as the next NPC response
+unless it was a zero if it a zero that
+means we're done this is an exit line if
+it's
+negative then it means take the absolute
+value of that line and jump into the
+associated dialogue
+script and run the script commands that
+are there this was only done if if there
+were too many script commands you wanted
+to run then would fit in the next field
+and the final field which is the n
+column which is called the result field
+these the result field
+are script elements they're very similar
+to scripts they were just a few op codes
+that would be executed if if it was a
+player line if the player selects this
+line then the result field
+are run if an NPC speaks the line then
+the result field is executed Now by
+speak the line I mean actually say it in
+conversation because there are there are
+script commands to take these lines
+whether it's a player line or an npcc
+line and float it over your head like a
+as a bark or float message or something
+else
+if if it's used in that capacity the
+result line is ignored uh it's only if
+it appears in a
+dialogue so that's effectively what a
+dialogue line is so let me explain how
+some of these work in here um I highly
+recommend that you watch the generated
+dialogue video that I made because it is
+as you can see the first three lines of
+this dialogue are all all the player
+responses are generated so let me go
+over what it means also you notice at
+the end starting at Q I've just written
+things down that's because anything past
+that last bracket on P was were just
+ignored so you could write notes over
+there to yourself and that's what I'm
+using here so line two is Bon because
+that's being used on a player it stands
+for barter because the player saying it
+the player will ask the NPC hey I would
+like to buy some items I would like to
+see what you have in inventory I'd like
+to see what you're selling and it opens
+up an entire subtree where the NPC a
+agrees to do it and then opens up the
+the UI for bartering and then when that
+is done it would go to line eight which
+if you look at line eight is the NPC
+going is there anything else line three
+is U colon 12 UK colon
+is asking the NPC to use a skill on your
+behalf they're all numbered skill 12 was
+repair so this would generate a line
+saying the for the player saying I would
+like you to repair something for me and
+again that would make an entire
+generated subtree where you would select
+the item you want repaired the NPC would
+tell you how much it would cost you'd
+either give them money or say you want
+to give them money but not have enough
+or refuse whatever that all happens in
+the
+Ukon subtree and then when it's done you
+can see that its L column is eight so
+once again the NPC after all the stuff
+is done with repair it would go is there
+anything else
+and then line four is the last generated
+dialogue that's Kon that stood for ask a
+question um this would again open up a
+generated dialog tree with a variety of
+questions that the player could ask
+based on the story state of the game and
+when that was done you see that
+it's when it's done um it would go to
+line 22 which is cut off of the bottom
+but then it's like anything else you
+need to know so
+that's that's that okay line five it
+says I need you to do
+something now notice that there is a
+field in
+the test column which is J it says fo fo
+says that the player can only say this
+if the NPC he's talking to is a follower
+it's currently a follower so if they are
+then this line would appear and say I
+need you to do something would jump line
+15 and say what do you want me to
+do and if you look at all the results
+it's move away the player respones move
+away move closer wait here disband or go
+back all of those have something in
+their end colum which is their result
+field if you say move away it um calls s
+so which is a op code for spread out so
+the the NPC will literally move uh far
+far away from you and maintain a farther
+uh follow distance if you say move
+closer it ex it execute sorry the dogs
+in here it executes SC which is stay
+close and it makes them closer in their
+formation if you say wait here it does
+wa which makes them leave the party and
+stand where they're currently standing
+and wait for you to come back if you say
+disband it's LV which makes them leave
+the party
+entirely um in fact and if you go back
+to line six you can see that the player
+says let's go but if you look at the J
+column the test field is wa it can that
+that line let's go can only be say said
+to a follower that's in weight
+mode and when you use this line look at
+the result field it's UW which is
+unweight
+so that's kind of a highle general idea
+of how these things worked um just to
+give you anide idea the there were a
+huge number of test codes not all of
+them could be used on both PCS and NPCs
+some could be used on PCS only some
+could be used on NPC's only a lot were
+usable on both I believe there were one
+two three there were about oo two dozen
+of these test
+codes um there were also in the result
+fields that things that could happen
+there was also probably another two
+dozen of those so if there wasn't a
+result op code for you to use keep in
+mind you could always for the line
+number you jump to give a negative
+number and jump to a script and do
+everything in a script and you can I
+have a whole video on how Arcanum
+scripting worked
+so in effect what this dialogue system
+let you do
+was
+generate really complex trees with NPCs
+where
+the NPC or the player the NPC doing
+saying a line or the player picking a
+line could cause effects to happen in
+the world and lines could
+be chosen not to appear for some states
+that the player was in so you could have
+lots of player responses but at any
+given time they couldn't show all of
+them now as I mentioned we did not parse
+the EXL files directly and I had three
+reasons for that
+one it was faster to extract this to a
+text file and read it from a text file
+then to parse the Excel file there's a
+lot of extraneous data in a an Excel
+file so it was slower to parse an Excel
+file and back in the '90s and early
+2000s every cycle
+counted s related to that Excel files
+were way bigger than you would think
+they would be when we extracted
+just this data to a text file much much
+smaller and again we had to load these
+files in order to process them and
+memory was was at a premium uh in fact I
+believe the uh now that I think about it
+we had a macro in our Excel you could
+just press a button and it would write
+it out to a text file uh Jason Anderson
+wrote that macro the man had many
+skills and then the third reason that I
+didn't process Excel files is formats
+changed all the time a new version of an
+Excel file would come out I wasn't going
+to write new parsing functions every
+time Microsoft felt like updating
+the format of a Excel file so writing it
+out to a uh text file meant it was
+faster to read it was less memory to
+read and I only had to write that import
+function
+once so
+if you look if you ever crack open the
+um Arcanum that files you will see a lot
+of files with the dlg suffix those are
+plain text files and when you look them
+up you'll see something very similar to
+this Excel spreadsheet but it's in plain
+text by the way the other huge Advantage
+we had in doing this as Excel
+spreadsheets and keeping the row numbers
+separate from the uh dialog line numberb
+was if you wanted to
+renumber
+the the rows to make space so you could
+insert more player responses or you just
+wanted to organize your NPC lines and
+get NPC like you had several NPC
+statements and you wanted to add an
+extra one in because it made sense to be
+with those you could do that trivially
+in Excel and it wouldn't affect any of
+the line numbers in B in the B column
+you because they were disassociated they
+normally had nothing to do with the row
+so that worked really well and then when
+you wrote it out to
+a the text file you lost all the row
+numbers but we didn't do use them for
+anything so it was fine anyway this was
+our primitive but very powerful method
+of doing dialogue files in Arcanum
+whether you want to mod
+or uh make a dialogue system
+yourself you know have fun with
+this

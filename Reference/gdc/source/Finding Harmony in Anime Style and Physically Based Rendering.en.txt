@@ -1,0 +1,704 @@
+[Music]
+thank you
+all right everybody Welcome to GBC today our topic is finding Harmony anime
+today our topic is finding Harmony anime style and physically based rendering
+style and physically based rendering so first a brief introduction about me
+so first a brief introduction about me and my team
+and my team my name is shenzhou I joined net East
+my name is shenzhou I joined net East games back in 2014 and worked for
+games back in 2014 and worked for attention division which is one little
+attention division which is one little net East game studios with TNT honcho
+net East game studios with TNT honcho and also in Guangzhou and Shanghai
+and also in Guangzhou and Shanghai as a technical lead my work is mainly
+as a technical lead my work is mainly focused on game engine and Graphics
+focused on game engine and Graphics development collaborating with artists
+development collaborating with artists and Technical artists to build games
+and Technical artists to build games with nice looking visuals and acceptable
+with nice looking visuals and acceptable performance budgets over the years I
+performance budgets over the years I have worked on and shipped several
+have worked on and shipped several online mobile games as you can see most
+online mobile games as you can see most of them are manga or Anime styled
+of them are manga or Anime styled currently we are working on
+currently we are working on extraordinary once Mirage which is a
+extraordinary once Mirage which is a multi-character RPG based on the same IP
+multi-character RPG based on the same IP as our online game if children wants
+as our online game if children wants mobile
+mobile here is a real-time rendering from the
+here is a real-time rendering from the day
+for this game we are trying to create a world that combines our style of anime
+world that combines our style of anime an elemental photorealism
+an elemental photorealism with nearly 100 playable characters and
+with nearly 100 playable characters and over 100 levels
+over 100 levels including indoor settings with
+including indoor settings with compressed lighting modern day City and
+compressed lighting modern day City and outdoor environments in both day and
+outdoor environments in both day and night conditions
+night conditions which brings us to today's topic
+which brings us to today's topic the game is targeting all platforms of
+the game is targeting all platforms of mobile devices and PCs and it's built
+mobile devices and PCs and it's built with our in-house game engine Messiah
+with our in-house game engine Messiah I should point out since the games
+I should point out since the games during development so any images show
+during development so any images show here don't represent the final quality
+this presentation is split into two parts
+parts part one is some background knowledge on
+part one is some background knowledge on the anime art style its typical
+the anime art style its typical characteristics traditional cell shading
+characteristics traditional cell shading techniques Its Real World limitations
+techniques Its Real World limitations and some possible solutions for
+and some possible solutions for combining cell shading and physically
+combining cell shading and physically based rendering well in part two I'll
+based rendering well in part two I'll introduce our goals and methods for
+introduce our goals and methods for building a physics-based game world
+building a physics-based game world where preserving notable anime features
+where preserving notable anime features in all characters using a single pass
+in all characters using a single pass defer rendering pipeline special
+defer rendering pipeline special lighting and Shadow techniques with
+lighting and Shadow techniques with customized shading models as well as an
+customized shading models as well as an in-game look down pipeline we built for
+in-game look down pipeline we built for integrating characters with all the
+integrating characters with all the environments and finally conclusions
+environments and finally conclusions so first what is an anime art style but
+so first what is an anime art style but in other words what makes characters
+in other words what makes characters feel like they are anime
+feel like they are anime here is a classic theme from the
+here is a classic theme from the traditional 2D animation
+traditional 2D animation we can see a lot of traits of anime in
+we can see a lot of traits of anime in this scene
+this scene looking at the character the most
+looking at the character the most obvious clue is a flat face with
+obvious clue is a flat face with mineralized colors and shadows
+mineralized colors and shadows another clue is the silhouette lines
+another clue is the silhouette lines which are important for creating a sense
+which are important for creating a sense of form and structure for example a
+of form and structure for example a piece of curved line can become the
+piece of curved line can become the character's nose
+character's nose and if we look closer we see the face is
+and if we look closer we see the face is in a non-prespective projection
+in a non-prespective projection which is just saying the size and
+which is just saying the size and position of mouse and nodes are of
+position of mouse and nodes are of Center the mouse is a bit off to the
+Center the mouse is a bit off to the right
+right moving onto the hair
+moving onto the hair the character's hair has a renal
+the character's hair has a renal anastropic specular shine we like to
+anastropic specular shine we like to call this a shiny headband
+call this a shiny headband and then the eyes and eyebrows they can
+and then the eyes and eyebrows they can be partially blocked by logs of hair but
+be partially blocked by logs of hair but redrawn on top of it because it's the
+redrawn on top of it because it's the see-through hair
+see-through hair and to keep the clean look of anime
+and to keep the clean look of anime images especially around the face in
+images especially around the face in most cases they use only one main light
+most cases they use only one main light source and the Shadows have hard edges
+source and the Shadows have hard edges formed by hair blocking light
+formed by hair blocking light these traits are the stylistic
+these traits are the stylistic conventions of enemy craters formed over
+conventions of enemy craters formed over many decades and they come together from
+many decades and they come together from the anime art style that audiences have
+the anime art style that audiences have come to expect
+come to expect to render this art style in real time a
+to render this art style in real time a lot of solutions have already been
+lot of solutions have already been explored sets to the emergence and
+explored sets to the emergence and popularity of enemy games on the market
+so we started to work on our first tune Style game in 2014 and to get our feet
+Style game in 2014 and to get our feet wet we first experimented with 2D
+wet we first experimented with 2D Sprites
+Sprites because it was simple and 100
+because it was simple and 100 controllable by concept artists we used
+controllable by concept artists we used morph animation for each piece of Sprite
+morph animation for each piece of Sprite in the shading simple just sample the
+in the shading simple just sample the texture and blends with a unified Globe
+texture and blends with a unified Globe lighting from thin ambient map
+lighting from thin ambient map this had the added benefit of being
+this had the added benefit of being performance friendly for mobile devices
+performance friendly for mobile devices at that time
+at that time by my head in recent years other games
+by my head in recent years other games have started using additional techniques
+have started using additional techniques for 2D like adding localized lighting
+for 2D like adding localized lighting and rigging which brings more variety to
+and rigging which brings more variety to the Sprite stack
+the Sprite stack then in 2015 inspired by the GDC talk
+then in 2015 inspired by the GDC talk Guilty Gear XR art style we started to
+Guilty Gear XR art style we started to explore shell shading in our game
+explore shell shading in our game cell shading also known as tomb shading
+cell shading also known as tomb shading is a type of non-photorealistic
+is a type of non-photorealistic rendering technique designed to make
+rendering technique designed to make computer Graphics appear like their hand
+computer Graphics appear like their hand drawn the basic principle is pretty
+drawn the basic principle is pretty intuitive to reduce the color gradient
+intuitive to reduce the color gradient to a base color and the shadow color a
+to a base color and the shadow color a step function is used by passing The Dot
+step function is used by passing The Dot product of normal Vector from geometry
+product of normal Vector from geometry in the light Direction
+in the light Direction and after that we can add online
+and after that we can add online Silhouettes to the geometry during
+Silhouettes to the geometry during post-processing using Edge detection or
+post-processing using Edge detection or natural backface tasks with vertex
+natural backface tasks with vertex biasing
+biasing we explored a lot of techniques or
+we explored a lot of techniques or tricks in real-time cell shading in our
+tricks in real-time cell shading in our previous games as shown on the right
+previous games as shown on the right most of them focus on character
+most of them focus on character rendering for example fixed upper cap
+rendering for example fixed upper cap the lighting to get the best look for
+the lighting to get the best look for each individual character
+each individual character we can use new Step functions to create
+we can use new Step functions to create tiny gradients between light and dark
+tiny gradients between light and dark for the skin which mimics the feel of
+for the skin which mimics the feel of subsurface scattering
+subsurface scattering or use multi-channel wrap textures for
+or use multi-channel wrap textures for easier artists to control
+easier artists to control modified normal Vector in vertices for
+modified normal Vector in vertices for lighting and pre-integrated facial
+lighting and pre-integrated facial Shadow masks to seal most light
+Shadow masks to seal most light directions
+directions and customize some mappings to enhance
+and customize some mappings to enhance color Precision in HDR Pipeline and many
+color Precision in HDR Pipeline and many others so on all of them are designed to
+others so on all of them are designed to keep the final shading result as close
+keep the final shading result as close as possible to the anime art style a
+as possible to the anime art style a hand-drawn concept art
+cell shading is great for making games look like anime especially for the
+look like anime especially for the characters
+characters because most 2D animations focus on the
+because most 2D animations focus on the characters and less on the environment
+characters and less on the environment for games that's not always true
+for games that's not always true in our previous game
+in our previous game MMORPG set in modern day City
+MMORPG set in modern day City cell shading had limited our environment
+cell shading had limited our environment design and in turn diminishing the
+design and in turn diminishing the player exploration experience
+player exploration experience and it was hard to create complex scenes
+and it was hard to create complex scenes with lots of details since hand drawing
+with lots of details since hand drawing the base color is a critical part of the
+the base color is a critical part of the cell shading process
+cell shading process this step didn't have player standards
+this step didn't have player standards so results varied from artists to
+so results varied from artists to artists
+artists last but not least as mobile devices
+last but not least as mobile devices correctly in terms of performance many
+correctly in terms of performance many modern rendering techniques become
+modern rendering techniques become feasible on all platforms but we found
+feasible on all platforms but we found it very hard to introduce them into a
+it very hard to introduce them into a game based on Cell shading
+game based on Cell shading compared to traditional cell shading
+compared to traditional cell shading physically based rendering imposes fuel
+physically based rendering imposes fuel restrictions
+restrictions it describes both the mathematical
+it describes both the mathematical Theory as well as its practical
+Theory as well as its practical implementations
+implementations PBR decouples material and lighting so
+PBR decouples material and lighting so it's easy to create assets which are
+it's easy to create assets which are well suited to all kinds of lighting
+well suited to all kinds of lighting environments
+environments a wide range of materials can be defined
+a wide range of materials can be defined quantitatively using close to real world
+quantitatively using close to real world physical parameters
+physical parameters and the most important law the
+and the most important law the standardized PBR production process has
+standardized PBR production process has been widely adopted by the game industry
+been widely adopted by the game industry and that level of universal acceptance
+and that level of universal acceptance means KMS at creation and be outsourced
+means KMS at creation and be outsourced to many external suppliers which is very
+to many external suppliers which is very helpful for building a large frame wall
+so we started to explore the possibility of creating a physics-based world while
+of creating a physics-based world while keeping anime charms here is the
+keeping anime charms here is the side-by-side comparison of the concept
+side-by-side comparison of the concept art from our current extraordinary ones
+art from our current extraordinary ones mobile and our upcoming new game based
+mobile and our upcoming new game based on the same IP
+on the same IP we found that skin especially around the
+we found that skin especially around the face eyes and hair as a major factor of
+face eyes and hair as a major factor of what gives us look and feel of anime
+what gives us look and feel of anime imagine a photorealistic hat on a
+imagine a photorealistic hat on a cartoon body that will feel really
+cartoon body that will feel really bizarre in auto place but the reverse
+bizarre in auto place but the reverse actually feels quite harmonious
+actually feels quite harmonious realistic materials and cloths such as
+realistic materials and cloths such as silks velvet or translucent materials
+silks velvet or translucent materials are acceptable
+are acceptable and complex lighting Shadow will be a
+and complex lighting Shadow will be a plus as long as they contribute a
+plus as long as they contribute a harmonious along look to the character
+harmonious along look to the character prove this opinion we conducted a survey
+prove this opinion we conducted a survey with these two concept Arts above among
+with these two concept Arts above among a group of core players from our
+a group of core players from our external one's mobile game
+external one's mobile game everyone interviewed a breed that both
+everyone interviewed a breed that both pictures are the same anime character
+pictures are the same anime character that they are currently playing in game
+that they are currently playing in game and over 70 percentile people prefer the
+and over 70 percentile people prefer the new version on the right
+new version on the right and most of them are anime fans
+so here comes the ghost for our game's graphics combine the look and feel of
+graphics combine the look and feel of anime and PBR build a wide variety of
+anime and PBR build a wide variety of materials suited for all kinds of
+materials suited for all kinds of lighting environments and take advantage
+lighting environments and take advantage of modern rendering techniques while
+of modern rendering techniques while keeping the graphics flexible to handle
+keeping the graphics flexible to handle everything from low and mobile devices
+everything from low and mobile devices to high-end PCS and try to keep a low
+to high-end PCS and try to keep a low overhead to be compatible with as many
+overhead to be compatible with as many devices as possible
+this is what we get in our game as you can see the entire environment is under
+can see the entire environment is under photorealism While most of the traits of
+photorealism While most of the traits of anime mentioned above can be found on
+anime mentioned above can be found on the character
+the character so in general our approach is to create
+so in general our approach is to create a graphics pipeline using a
+a graphics pipeline using a photorealistic defer shading framework
+photorealistic defer shading framework supporting various factors such as
+supporting various factors such as sunlight local lights like Global
+sunlight local lights like Global illumination shadows and ambient
+illumination shadows and ambient illusion
+illusion by adding special shading models for
+by adding special shading models for parts of the character like rendering
+parts of the character like rendering skin hair and eyes and observing the
+skin hair and eyes and observing the constraints of energy conservation when
+constraints of energy conservation when integrating different pxdf functions
+integrating different pxdf functions we implemented custom rendering
+we implemented custom rendering techniques to imitate Noble features
+techniques to imitate Noble features into the anime which leads to a very
+into the anime which leads to a very similar look and feel
+similar look and feel but we and we built an in-game look
+but we and we built an in-game look their pipeline for capture and
+their pipeline for capture and environment artists to perform 70 checks
+environment artists to perform 70 checks on material textures and ensure the
+on material textures and ensure the overall shading results looks harmonious
+overall shading results looks harmonious from all feasible positions and angles
+from all feasible positions and angles in the game world
+here is our minimal G buffer layout for mobile devices which is designed to be
+mobile devices which is designed to be compatible and performant for as many
+compatible and performant for as many devices as possible as a low end are
+devices as possible as a low end are devices with Max color attachments
+devices with Max color attachments equals to four under gles
+equals to four under gles we keep the color buffer as thin as 128
+we keep the color buffer as thin as 128 bits to meet the performance guidance of
+bits to meet the performance guidance of Mali gpus
+Mali gpus thanks to the TBD architecture of modern
+thanks to the TBD architecture of modern mobile gpus
+mobile gpus fragment shaders can read the render
+fragment shaders can read the render targets data from time memory perform
+targets data from time memory perform calculations and write composition
+calculations and write composition results back
+results back the G buffer generating defer lighting
+the G buffer generating defer lighting and composition are implemented in a
+and composition are implemented in a single render pass
+single render pass this is very important not only for
+this is very important not only for different shading with limited memory
+different shading with limited memory and bandwidth but also some custom anime
+and bandwidth but also some custom anime stylization passes we will introduce
+stylization passes we will introduce later
+first the main light source mostly the sun and moon were Outdoors or some major
+sun and moon were Outdoors or some major locolite went indoors
+locolite went indoors to support variety shading models for
+to support variety shading models for characters such as Skin hair and eyes we
+characters such as Skin hair and eyes we use a hybrid forward and deferred
+use a hybrid forward and deferred lighting method
+lighting method for the forward part when generating the
+for the forward part when generating the G buffers we calculate the indirect
+G buffers we calculate the indirect light using baked light maps for static
+light using baked light maps for static models to restore line info for dynamic
+models to restore line info for dynamic models interpreting the sh coefficients
+models interpreting the sh coefficients from light props to get the incident
+from light props to get the incident lighting function
+lighting function materials emission is also added to
+materials emission is also added to debuff Ray
+debuff Ray and for those anime style shading models
+and for those anime style shading models they are shaded with indirect and direct
+they are shaded with indirect and direct main light while the G buffer is being
+main light while the G buffer is being generated
+generated and the results are also stored in 2G
+and the results are also stored in 2G buffering just like what we normally do
+buffering just like what we normally do in a forward rendering pipeline
+in a forward rendering pipeline what beta stencil is marked as forward
+what beta stencil is marked as forward Shady so those pixels can mask out when
+Shady so those pixels can mask out when the GPU comes to this particular main
+the GPU comes to this particular main light
+light the reason for pre-calculating the main
+the reason for pre-calculating the main light is that not all parameters for
+light is that not all parameters for anime style shading models can be held
+anime style shading models can be held in The Limited G buffer channels
+in The Limited G buffer channels this step also gives us speed boost for
+this step also gives us speed boost for the lighting pass since fewer Branch
+the lighting pass since fewer Branch instructions are needed for integrating
+instructions are needed for integrating different bxdfc fragment Shader
+different bxdfc fragment Shader we also sample the Cascadia Shadow map
+we also sample the Cascadia Shadow map in the map for image based specular
+in the map for image based specular lighting and the real-time reflection
+lighting and the real-time reflection map in the base and lighting path
+map in the base and lighting path which is done by lots of other games as
+which is done by lots of other games as well
+well a significant advantage of the first
+a significant advantage of the first shading is that we have an easier time
+shading is that we have an easier time rendering large numbers of dynamic
+rendering large numbers of dynamic lights
+lights these local lights helps a lot to make
+these local lights helps a lot to make the environment and character looks well
+the environment and character looks well integrated
+we put all the points spot and wrap lights in a single subpass
+lights in a single subpass the number of Shadow producing lines is
+the number of Shadow producing lines is limited according to the device
+limited according to the device performance level
+performance level Shadow Maps attached for those Shadow
+Shadow Maps attached for those Shadow lines and updated when needed
+lines and updated when needed other long Shadow Lights often text as
+other long Shadow Lights often text as ambient light in a drawing instance with
+ambient light in a drawing instance with simple calculations
+simple calculations for devices with apple 11 and later rest
+for devices with apple 11 and later rest all the groups helps to increase the
+all the groups helps to increase the parallelization of the gpu's fragment
+parallelization of the gpu's fragment Shader for shading all these lights
+the most notable trait of anime characters have their flat faces
+characters have their flat faces we implement this using the two to
+we implement this using the two to method of Shifting normals to the Face
+method of Shifting normals to the Face Forward vector
+Forward vector the current density is provided by
+the current density is provided by texture so artists get precise control
+texture so artists get precise control of lighting in the face
+of lighting in the face for example the soft edges of the cheeks
+for example the soft edges of the cheeks and the Shadows around the nose teeth
+and the Shadows around the nose teeth vertex normals are not enough because
+vertex normals are not enough because they can be modified by skeletal
+they can be modified by skeletal animation and aren't very accurate after
+animation and aren't very accurate after interpolation
+interpolation the lighting equation are kept the same
+the lighting equation are kept the same except we specify a normal Vector for
+except we specify a normal Vector for calculation
+calculation so the phase can still interface with
+so the phase can still interface with multiple local lights naturally
+multiple local lights naturally and to avoid flickering lights on the
+and to avoid flickering lights on the character during slight movements such
+character during slight movements such as breathing
+as breathing the phase samples lower degree of
+the phase samples lower degree of spherical harmonics for the GI part
+the flat face gets along quite well with physically based materials in the front
+physically based materials in the front view but sometimes getting Overexposed
+view but sometimes getting Overexposed color when looking at from the site
+color when looking at from the site under certain lighting angles
+under certain lighting angles the lighting with a specified normal
+the lighting with a specified normal Vector going forward from the face is
+Vector going forward from the face is mathematically correct
+mathematically correct but the resulting image looks off when
+but the resulting image looks off when viewed from the right
+viewed from the right here is a set of diagrams to illustrate
+here is a set of diagrams to illustrate this problem
+this problem for normal human faces light reflection
+for normal human faces light reflection is a range of values where the flat
+is a range of values where the flat enemy phase acts as one single plane
+enemy phase acts as one single plane so our solution is for localized
+so our solution is for localized low-casting Shadows to relate the light
+low-casting Shadows to relate the light from bxdf using wrap function affected
+from bxdf using wrap function affected by V Dot l and for the main light we use
+by V Dot l and for the main light we use a pre-compute pass for statistical
+a pre-compute pass for statistical coverage
+coverage calculation using a shadow map which
+calculation using a shadow map which will be mentioned later
+will be mentioned later by doing this we get more natural
+by doing this we get more natural looking results
+and for rendering skin other than the phase we use a differentiating model
+phase we use a differentiating model to make skin on the body feel like part
+to make skin on the body feel like part of the environment we use the same
+of the environment we use the same lighting equations as physically based
+lighting equations as physically based materials but intentionally manipulates
+materials but intentionally manipulates the colors
+the colors instead of an artist giving us a shadow
+instead of an artist giving us a shadow color or ramp texture like in
+color or ramp texture like in traditional cell shading the color
+traditional cell shading the color manipulation is hard-coded and then
+manipulation is hard-coded and then turned into a formula for the pixel
+turned into a formula for the pixel Shader this is important especially for
+Shader this is important especially for multicult games since hand-drawn colors
+multicult games since hand-drawn colors differ from artists to artists which
+differ from artists to artists which will lead to a lot of color variance
+will lead to a lot of color variance when placing multiple characters into
+when placing multiple characters into single shots
+single shots for this shading model we preserve the
+for this shading model we preserve the enemy characteristics of hard
+enemy characteristics of hard transitions from light to dark
+transitions from light to dark then we shift the Hue by the luminance
+then we shift the Hue by the luminance of direct light and the increased
+of direct light and the increased saturation especially for dark areas and
+saturation especially for dark areas and edges according to the saturation of
+edges according to the saturation of direct and indirect lines
+direct and indirect lines by manipulating the color we get
+by manipulating the color we get enhanced structural details and better
+enhanced structural details and better contrast
+contrast next we'll talk about Shadow rendering
+next we'll talk about Shadow rendering most cell shading games don't bother
+most cell shading games don't bother with incrementing tested Shadow for
+with incrementing tested Shadow for their characters since they usually
+their characters since they usually calculate a generalized Shadow column
+calculate a generalized Shadow column using a well-designed algorithm well for
+using a well-designed algorithm well for PBR detailed shadows and ambient
+PBR detailed shadows and ambient occlusions are important components
+occlusions are important components we need to make the two coexist
+we need to make the two coexist harmoniously since many parts of the
+harmoniously since many parts of the character's body use realistic materials
+character's body use realistic materials like a lot of things we use a Cascadia
+like a lot of things we use a Cascadia Shadow map for the main light
+Shadow map for the main light and since anime style castings often
+and since anime style castings often feature extreme close-up shots
+feature extreme close-up shots where the characters face might occupy
+where the characters face might occupy the entire screen
+the entire screen the Shadows also need to be high quality
+the Shadows also need to be high quality especially self-shadows produced by
+especially self-shadows produced by Fringe soloxo hair which are the only
+Fringe soloxo hair which are the only foam structures on top of flat face
+foam structures on top of flat face and we have to create hard outline
+and we have to create hard outline Shadows for our anime style faces
+Shadows for our anime style faces this is showing the same casting but
+this is showing the same casting but with different wrenches for the light
+with different wrenches for the light box
+box from 0.2 to 0.8
+from 0.2 to 0.8 as we can see in the image traditional
+as we can see in the image traditional per objects Shadow map like the 0.8
+per objects Shadow map like the 0.8 results still leads to soft Shadows
+results still leads to soft Shadows around the face
+around the face which is not what we want for our anime
+which is not what we want for our anime style
+style to achieve more accurate close-up
+to achieve more accurate close-up Shadows we implemented the view adaptive
+Shadows we implemented the view adaptive Shadow system forecasting let's support
+Shadow system forecasting let's support distances from close-ups to
+distances from close-ups to multi-personal versions
+multi-personal versions this is done by calculating several
+this is done by calculating several Pivot Point capsules in screen space
+Pivot Point capsules in screen space then adjusting the center position and
+then adjusting the center position and size of frustum when generating Shadow
+size of frustum when generating Shadow map of the First cast tape to frame the
+map of the First cast tape to frame the characters tightly within the camera
+characters tightly within the camera the Adaptive algorithm can be fitted for
+the Adaptive algorithm can be fitted for nearly all the shots in the game and
+nearly all the shots in the game and it's how we achieve that 0.2 short above
+it's how we achieve that 0.2 short above but there are still edge cases that
+but there are still edge cases that require manual adjustments we provide a
+require manual adjustments we provide a one-click method for artists to adjust
+one-click method for artists to adjust the Shadow and they see feet and aligned
+the Shadow and they see feet and aligned for timeline frames
+for timeline frames lighting and Shadow can be customized
+lighting and Shadow can be customized for individual shots during cutscenes
+for individual shots during cutscenes while it doesn't work with outdoor
+while it doesn't work with outdoor environments due to the time of day
+environments due to the time of day system
+system we added the hair Shadow proxy pass to
+we added the hair Shadow proxy pass to create a nice self-shadow on face and
+create a nice self-shadow on face and adding lighting circumstances
+adding lighting circumstances a simplify scaling to mesh with the same
+a simplify scaling to mesh with the same skinny data as a hair is drawn between G
+skinny data as a hair is drawn between G buffer and lighting with a slight vertex
+buffer and lighting with a slight vertex position offset according to the phase
+position offset according to the phase vector and Main light Direction
+vector and Main light Direction we fetch the basic data from cheap
+we fetch the basic data from cheap buffer and override the result by
+buffer and override the result by recalculating only the indirect light
+recalculating only the indirect light from light process we weaken the
+from light process we weaken the indirect light result
+indirect light result so there's a hair shadow look is always
+so there's a hair shadow look is always there even built from the backlight
+there even built from the backlight from this perspective the header has a
+from this perspective the header has a hair Shadow proxy logically works as a
+hair Shadow proxy logically works as a shadow and ambient occlusion pass and
+shadow and ambient occlusion pass and it's only applied to the face since we
+it's only applied to the face since we can determine that by the underlying
+can determine that by the underlying shading model ID
+shading model ID besides self Shadows we also want you to
+besides self Shadows we also want you to have environment shadows in our game
+have environment shadows in our game which brings the partial Shadow program
+which brings the partial Shadow program this is where light is messed out
+this is where light is messed out irregularly for the face for instance if
+irregularly for the face for instance if a character was standing under a tree
+a character was standing under a tree there should be depth or Shadows on his
+there should be depth or Shadows on his face
+face these Shadows are totally out of control
+these Shadows are totally out of control and makes the enemy face like a mess
+and makes the enemy face like a mess so now our solution is to use a
+so now our solution is to use a pre-compute pass for operators face in a
+pre-compute pass for operators face in a line shaped render Target
+line shaped render Target and we built a polygon for each phase in
+and we built a polygon for each phase in fragment Shader find the average in
+fragment Shader find the average in Shadow value from the shadow maps and
+Shadow value from the shadow maps and store it into one pixel
+store it into one pixel self-shadow is filtered out by adjusting
+self-shadow is filtered out by adjusting the depth in light space when comparing
+the depth in light space when comparing to the shadow map on Dynamic objects
+to the shadow map on Dynamic objects now when we load the corresponding pixel
+now when we load the corresponding pixel we get a flattened shadow on the face
+we get a flattened shadow on the face it floats of uniform data for each
+it floats of uniform data for each character are passed to GPU full
+character are passed to GPU full pre-computing notice that there's one
+pre-computing notice that there's one standing for weather the same character
+standing for weather the same character as last frame as an edit burners this
+as last frame as an edit burners this gave us smooth Shadow transitions
+gave us smooth Shadow transitions temporarily for free which is very
+temporarily for free which is very helpful when navigating within the game
+helpful when navigating within the game the NS choking specular Hair Shine is a
+the NS choking specular Hair Shine is a typical anime trait also known as the
+typical anime trait also known as the shiny headband
+shiny headband we share the hair with classic Model
+we share the hair with classic Model which shifts tangents along to the
+which shifts tangents along to the direction of the normal
+direction of the normal but we don't use the traditional half
+but we don't use the traditional half angle Vector for strand specular
+angle Vector for strand specular lighting because when there are multiple
+lighting because when there are multiple local lights nearby
+local lights nearby the shine will become spread out of
+the shine will become spread out of course the hair strand in each Direction
+course the hair strand in each Direction which were realistic doesn't convey the
+which were realistic doesn't convey the sense of enemy art
+sense of enemy art instead we use a fixed Vector
+instead we use a fixed Vector interpolated from view Direction and
+interpolated from view Direction and Main lights Direction
+Main lights Direction install the main light specular Mass
+install the main light specular Mass into G buffer and reuse it instead of
+into G buffer and reuse it instead of ggx for other local lights
+ggx for other local lights by doing this we get a concentrated
+by doing this we get a concentrated anime shine spot as shown in figure 3.
+anime shine spot as shown in figure 3. the see-through hair is another
+the see-through hair is another important trait in anime since the eyes
+important trait in anime since the eyes and eyebrows are important for conveying
+and eyebrows are important for conveying the captors personality some comic
+the captors personality some comic artists choose to draw them on top of
+artists choose to draw them on top of the hair
+the hair the standard way to achieve a
+the standard way to achieve a translucent Loop is using Alpha blend
+translucent Loop is using Alpha blend which doesn't work well here
+which doesn't work well here because the Shadows would also be
+because the Shadows would also be Blended and make the hair look dirty
+Blended and make the hair look dirty we accomplish this effect by using
+we accomplish this effect by using programmable blending in the J buffer
+programmable blending in the J buffer generating pests
+generating pests the hair is drawn with lowest priority
+the hair is drawn with lowest priority so the GPU can fetch the underlying
+so the GPU can fetch the underlying trading model ID and distinguish the
+trading model ID and distinguish the maxed out eyes to perform a different
+maxed out eyes to perform a different ratio of blending
+ratio of blending on devices that do not support separate
+on devices that do not support separate problem mode a natural Joy pass is
+problem mode a natural Joy pass is needed for feeding the other G buffers
+since we are using a deferred rendering pipeline traditional translucent
+pipeline traditional translucent materials are Blended after the lighting
+materials are Blended after the lighting test which leads to inconsistent
+test which leads to inconsistent lighting results from opaque elements
+lighting results from opaque elements because only constraint lights are being
+because only constraint lights are being calculated
+calculated to implement these materials correctly
+to implement these materials correctly we store the triangle face info inside
+we store the triangle face info inside the shading model ID with different
+the shading model ID with different diesel patterns stored in G buffer and
+diesel patterns stored in G buffer and we run a dedicated convolution blur path
+we run a dedicated convolution blur path to do pattern recognization in the
+to do pattern recognization in the correct multi-layer color blending and
+correct multi-layer color blending and finally the colors are merged back into
+finally the colors are merged back into the sink using a stencil mask
+clean throughout lines another notable features for anime while not existing
+features for anime while not existing photorealistic rendering we try to keep
+photorealistic rendering we try to keep the outline as seen as one or two pixels
+the outline as seen as one or two pixels by including normals in clip space with
+by including normals in clip space with consideration for the render Target size
+consideration for the render Target size the second settles most vertex normal
+the second settles most vertex normal data are stored in vertex color for use
+data are stored in vertex color for use by silhouette vertex Trader
+by silhouette vertex Trader we draw the lines in G buffers ordinary
+we draw the lines in G buffers ordinary render elements with a specified shading
+render elements with a specified shading model ID
+model ID by doing this this way we preserve the
+by doing this this way we preserve the ability to render these lines later to
+ability to render these lines later to correspond with different environments
+correspond with different environments and also keeps the right linear text
+and also keeps the right linear text buffer for use in lighting and post
+buffer for use in lighting and post processes
+processes for example depth of fields
+for example depth of fields but because these lines are so thin they
+but because these lines are so thin they may simply disappear after anti-aliasing
+may simply disappear after anti-aliasing to deal with temporal anti-aliasing we
+to deal with temporal anti-aliasing we did some special treatment on those
+did some special treatment on those pixels in velocity buffer with less wool
+pixels in velocity buffer with less wool view projected to recalculate the
+view projected to recalculate the precise position
+precise position foreign
+animations also contribute to the anime field
+field using non-perspective perspective
+using non-perspective perspective projection for the eyes nose and mouths
+projection for the eyes nose and mouths is a local feature in 2D
+is a local feature in 2D anime characters often have large eyes
+anime characters often have large eyes but tiny noses and mouths this makes
+but tiny noses and mouths this makes their 3D model looks natural from the
+their 3D model looks natural from the front but also when built from the site
+front but also when built from the site to prep for this we build an Adaptive
+to prep for this we build an Adaptive facial modifier system based on four to
+facial modifier system based on four to six poses manipulated from fixed angles
+six poses manipulated from fixed angles by animation artists and adjust the bone
+by animation artists and adjust the bone matrices at runtime corresponding to the
+matrices at runtime corresponding to the original animation data and the patient
+original animation data and the patient yell of the cameras all over the camera
+yell of the cameras all over the camera in the in the facial space
+in the in the facial space we simplify the calculation at runtime
+we simplify the calculation at runtime the modifier bones are all set up using
+the modifier bones are all set up using the same coordinate space
+the same coordinate space since we are building a game with nearly
+since we are building a game with nearly 100 playable characters and over 100
+100 playable characters and over 100 Levels we need to check if the
+Levels we need to check if the characters can integrate harmonious with
+characters can integrate harmonious with all the environments
+all the environments we used a lot of custom shading models
+we used a lot of custom shading models besides the standard dbr ones in our
+besides the standard dbr ones in our characters
+characters so as the amount of things that needed
+so as the amount of things that needed to be checked through we built an
+to be checked through we built an in-game pipeline for validation and sign
+in-game pipeline for validation and sign off new characters and environment
+off new characters and environment assets
+assets for characters we provided artists with
+for characters we provided artists with an engine look Dev tool with vested
+an engine look Dev tool with vested environment switching and neatly
+environment switching and neatly arranged reference spheres in standard
+arranged reference spheres in standard PBR routines and metallic gradient to
+PBR routines and metallic gradient to help them quickly correct for issues in
+help them quickly correct for issues in customer shading models on the complex
+customer shading models on the complex lighting conditions
+lighting conditions and we have a fast Health parade mode to
+and we have a fast Health parade mode to check for the consistency of anime
+check for the consistency of anime shading models in a given environment
+shading models in a given environment since those non-standard parameters can
+since those non-standard parameters can vary from artists to artists
+vary from artists to artists and as for environment design the tool
+and as for environment design the tool has an option to quickly Place
+has an option to quickly Place characters randomly in a level at a
+characters randomly in a level at a specified density we can pile a bunch of
+specified density we can pile a bunch of characters on top of the generated mesh
+characters on top of the generated mesh and auto rotate them or play random
+and auto rotate them or play random animations and augment
+animations and augment on larger levels the characters are
+on larger levels the characters are placed in a fixed area of interest and
+placed in a fixed area of interest and can update it when in-game camera flies
+can update it when in-game camera flies over the entire map
+over the entire map this is how we do look depth with a
+this is how we do look depth with a large number of characters and
+large number of characters and environment combinations
+environment combinations using real-time tools to help the
+using real-time tools to help the character and the environment team get
+character and the environment team get immediate feedback and hit and iterate
+immediate feedback and hit and iterate and polish the game
+finally let's look at the summary in this presentation
+in this presentation we talked about stylistic conventions of
+we talked about stylistic conventions of nmar Staff different approaches of
+nmar Staff different approaches of achieving enemy style visual Creation in
+achieving enemy style visual Creation in game
+game and our choice for external one's Mirage
+and our choice for external one's Mirage I share some key techniques we used for
+I share some key techniques we used for recreating anime features in 3D and how
+recreating anime features in 3D and how to coexist in harmony with physically
+to coexist in harmony with physically based rendering
+based rendering the thought process for bringing modern
+the thought process for bringing modern Graphics techniques to stylized
+Graphics techniques to stylized rendering can also be applied to other
+rendering can also be applied to other hairstyles
+hairstyles that's all hope this presentation has
+that's all hope this presentation has given you some food for thought if you
+given you some food for thought if you have any questions please feel free to
+have any questions please feel free to contact me by email
+contact me by email thank you for listening
+thank you for listening [Applause]
+[Applause] [Music]

@@ -1,0 +1,3 @@
+# Category:Collectibles
+
+Category: Items

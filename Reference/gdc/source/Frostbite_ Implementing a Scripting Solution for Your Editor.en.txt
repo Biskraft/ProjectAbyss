@@ -1,0 +1,1670 @@
+[Music] Eston right on cool so yeah welcome to
+Eston right on cool so yeah welcome to my presentation my name is matt dole i'm
+my presentation my name is matt dole i'm a tech art director on frost bite at
+a tech art director on frost bite at Electronic Arts and the presentation
+Electronic Arts and the presentation here is called implementing a scripting
+here is called implementing a scripting solution for your editor alright so that
+solution for your editor alright so that we know what we're talking about when we
+we know what we're talking about when we talk about scripting we're talking about
+talk about scripting we're talking about these types of scripting and these
+these types of scripting and these customizable tools so to get a feeling
+customizable tools so to get a feeling for the audience here who here has not
+for the audience here who here has not written any scripting or code whatsoever
+written any scripting or code whatsoever show of hands who's not written any
+show of hands who's not written any scripting or code whatsoever so that's
+scripting or code whatsoever so that's really cool I've given presentations
+really cool I've given presentations where there's a lot of artists or
+where there's a lot of artists or designers or people that are new to this
+designers or people that are new to this but being exposed to it realize that
+but being exposed to it realize that it's not limited only to tech artists
+it's not limited only to tech artists and engineers it's something that a much
+and engineers it's something that a much broader audience can actually utilize so
+broader audience can actually utilize so if you're familiar with Miele obviously
+if you're familiar with Miele obviously they've got my embedded language Mel
+they've got my embedded language Mel scripting they also have Python we have
+scripting they also have Python we have e a guest previous Softimage head Python
+e a guest previous Softimage head Python and many other scripting languages 3d
+and many other scripting languages 3d studio max has max script Photoshop has
+studio max has max script Photoshop has JavaScript and then when I'm talking
+JavaScript and then when I'm talking about unity I'm talking about the unity
+about unity I'm talking about the unity editor specifically and being able to
+editor specifically and being able to customize that so all of this should
+customize that so all of this should kind of start to paint a picture of
+kind of start to paint a picture of where we're going with this presentation
+where we're going with this presentation is about the editor that you use to
+is about the editor that you use to create content and descripting
+create content and descripting functionality that you can use in those
+functionality that you can use in those editors for both automation and
+editors for both automation and customizing that so let's look at what
+customizing that so let's look at what we did with frostbite and creating
+we did with frostbite and creating something called FB script obviously FB
+something called FB script obviously FB could most likely stand for frostbite
+could most likely stand for frostbite how the the idea that scripting and
+how the the idea that scripting and powers game developers is something I
+powers game developers is something I obviously believe in and it does this by
+obviously believe in and it does this by providing a framework for customizing
+providing a framework for customizing the existing solution to meet any needs
+the existing solution to meet any needs that it might emerge during production
+that it might emerge during production you don't always know what you're
+you don't always know what you're getting into at the start right but
+getting into at the start right but obviously that isn't in a vacuum it
+obviously that isn't in a vacuum it isn't in a bubble it has to be built on
+isn't in a bubble it has to be built on a foundation of something that exists
+a foundation of something that exists before that so we're familiar with the
+before that so we're familiar with the adage that success starts with standing
+adage that success starts with standing on the shoulders of giants and that's no
+on the shoulders of giants and that's no different here so there's a few really
+different here so there's a few really cool technologies that this is built on
+cool technologies that this is built on Avalon edit which I'll go into a little
+Avalon edit which I'll go into a little bit of detail on as well as ironpython
+bit of detail on as well as ironpython all stacks on top of this frostbite
+all stacks on top of this frostbite platform key think point out here though
+platform key think point out here though is that this is all going down into the
+is that this is all going down into the domain of dotnet applications and so I
+domain of dotnet applications and so I know that's a very common domain but is
+know that's a very common domain but is an important thing to point out that
+an important thing to point out that it's a a lot of the details that will be
+it's a a lot of the details that will be going over do have that requirement and
+going over do have that requirement and then the largest requirement the most
+then the largest requirement the most important thing about all of this isn't
+important thing about all of this isn't really just about creating some script
+really just about creating some script editor where you can write some lines of
+editor where you can write some lines of text and have it execute and do
+text and have it execute and do something the really key thing is how
+something the really key thing is how this is actually used in production the
+this is actually used in production the game teams that use this effectively and
+game teams that use this effectively and not only using it effectively but then
+not only using it effectively but then sharing it across a community so that is
+sharing it across a community so that is also very key so as I go through a lot
+also very key so as I go through a lot of the implementation details it will
+of the implementation details it will keep a lot of this in mind so we'll look
+keep a lot of this in mind so we'll look at not only building up a scripting
+at not only building up a scripting editor that scripting API the language
+editor that scripting API the language all of that kind of stuff the technology
+all of that kind of stuff the technology that it interfaces but then as well as
+that it interfaces but then as well as how it actually gets used in production
+how it actually gets used in production and how to facilitate all of that cool
+and how to facilitate all of that cool so for those of you that don't know what
+so for those of you that don't know what frostbite is it's not the easiest Google
+frostbite is it's not the easiest Google search execute with caution
+search execute with caution avoid images the shattered hand should
+avoid images the shattered hand should give you some kind of an indication of
+give you some kind of an indication of what you might be in for but
+what you might be in for but in terms of the name of our technology
+in terms of the name of our technology this stuff originates from Sweden which
+this stuff originates from Sweden which is an all half the year in darkness and
+is an all half the year in darkness and cold so comes from an inspired place but
+cold so comes from an inspired place but in terms of creating games the vision of
+in terms of creating games the vision of all of this is empowering the game
+all of this is empowering the game creators to create the future of gaming
+creators to create the future of gaming so that's something that we're striving
+so that's something that we're striving towards and although we never feel like
+towards and although we never feel like we're there where we've achieved you
+we're there where we've achieved you know the very best technology or the
+know the very best technology or the very best editors that's always what
+very best editors that's always what we're aiming towards and if you look at
+we're aiming towards and if you look at the game teams that are using this
+the game teams that are using this technology and shipping games I believe
+technology and shipping games I believe it's being used to great success so if
+it's being used to great success so if we look at how scripting has been used
+we look at how scripting has been used in all of these different editors we've
+in all of these different editors we've got battlefield here which is a
+got battlefield here which is a first-person shooter got racing sport
+first-person shooter got racing sport stylized games such as garden warfare
+stylized games such as garden warfare and Dragon Age Inquisition here's just a
+and Dragon Age Inquisition here's just a little video to give a flavor of that
+little video to give a flavor of that diversity so frostbite was originally
+diversity so frostbite was originally created for battlefield and then the
+created for battlefield and then the next game that used frostbite outside of
+next game that used frostbite outside of battle field outside of dice was Need
+battle field outside of dice was Need for Speed and we're seeing it also being
+for Speed and we're seeing it also being used in sports titles now and this game
+used in sports titles now and this game was really fun to work on and to play
+was really fun to work on and to play and it just kind of breaks the mold in
+and it just kind of breaks the mold in terms of you know what to expect from
+terms of you know what to expect from you know the typical fare of gritty and
+you know the typical fare of gritty and real and then we've got you know at
+real and then we've got you know at least on many charts out there game of
+least on many charts out there game of the year not all of them but it's still
+the year not all of them but it's still a proud accomplishment there to be in
+a proud accomplishment there to be in that league they're cool so this is how
+that league they're cool so this is how scripting was used in these different
+scripting was used in these different games here we've got a battlefield using
+games here we've got a battlefield using it for data inspection and optimization
+it for data inspection and optimization we've got Need for Speed using it for a
+we've got Need for Speed using it for a number of things but out of the gates it
+number of things but out of the gates it was used heavily for stress testing the
+was used heavily for stress testing the editor limitations and look at that what
+editor limitations and look at that what that actually means in just a moment
+sports have been using it for batch asset conversion a whole bunch of other
+asset conversion a whole bunch of other things on garden warfare which I'll look
+things on garden warfare which I'll look in later in a bit more detail it was
+in later in a bit more detail it was used
+used to automate the setup of thousands of
+to automate the setup of thousands of different assets earlier on in
+different assets earlier on in production with enough time to actually
+production with enough time to actually test gameplay ramifications and then as
+test gameplay ramifications and then as well on the Dragon Age an absolutely
+well on the Dragon Age an absolutely monstrous game the largest game I've
+monstrous game the largest game I've ever seen in production and a very high
+ever seen in production and a very high quality to so to actually dig through
+quality to so to actually dig through all of that data that gets generated by
+all of that data that gets generated by so many people actually contributing to
+so many people actually contributing to create that definitely we leveraged
+create that definitely we leveraged scripting to do a lot of testing and
+scripting to do a lot of testing and optimizations on that project so as I
+optimizations on that project so as I mentioned frostbite was originally used
+mentioned frostbite was originally used to create the original Battlefield
+to create the original Battlefield franchise games and then subsequent
+franchise games and then subsequent versions of battlefield later that team
+versions of battlefield later that team was dice and dice created while
+was dice and dice created while battlefield and also created these tools
+battlefield and also created these tools and technology called frostbite so they
+and technology called frostbite so they had a solution that worked really well
+had a solution that worked really well for them and if they needed to extend it
+for them and if they needed to extend it or add functionality or anything they
+or add functionality or anything they were very well-versed in that
+were very well-versed in that environment the editors that was being
+environment the editors that was being used for inside of frostbite is called
+used for inside of frostbite is called frost ed I guess if you say fast it
+frost ed I guess if you say fast it sounds frosted the the key distinction
+sounds frosted the the key distinction here though is that when you have a team
+here though is that when you have a team like this I mean you're going to find
+like this I mean you're going to find scripting is going to be useful anyways
+scripting is going to be useful anyways but they didn't find as much of the need
+but they didn't find as much of the need out of the gates because they're still
+out of the gates because they're still building the technology and every time
+building the technology and every time they bumped into something that they
+they bumped into something that they couldn't do they could add it but as
+couldn't do they could add it but as soon as you start looking at having more
+soon as you start looking at having more than one game and especially more than
+than one game and especially more than one type of game it is really key to be
+one type of game it is really key to be able to have as much flexibility there
+able to have as much flexibility there as possible without needing to go
+as possible without needing to go through that whole process of not only
+through that whole process of not only designing implementing getting first
+designing implementing getting first functional testing and then iterating on
+functional testing and then iterating on that really slow loop can be quite
+that really slow loop can be quite challenging and especially worth noting
+challenging and especially worth noting I was one of the members on that need
+I was one of the members on that need for speed the run team which was located
+for speed the run team which was located in Vancouver Canada and the Frostbite
+in Vancouver Canada and the Frostbite team is located in Stockholm Sweden so
+team is located in Stockholm Sweden so when their work day would end just as
+when their work day would end just as they're leaving work we're arriving to
+they're leaving work we're arriving to work and so there wasn't a lot of
+work and so there wasn't a lot of crossover there
+crossover there was really tricky then to kind of
+was really tricky then to kind of wrangle that communication we could send
+wrangle that communication we could send an email but then we would expect maybe
+an email but then we would expect maybe a result if we're lucky some crossover
+a result if we're lucky some crossover but mostly the next day and so when you
+but mostly the next day and so when you have a new team that's using this kind
+have a new team that's using this kind of technology with that kind of a
+of technology with that kind of a communication gap there's a lot of
+communication gap there's a lot of challenges that present themselves not
+challenges that present themselves not only are the engineers on your team
+only are the engineers on your team trying to learn the stuff so that then
+trying to learn the stuff so that then can later support you but that support
+can later support you but that support isn't immediately there so it should
+isn't immediately there so it should seem fairly apparent looking at these
+seem fairly apparent looking at these two screenshots that racing games can be
+two screenshots that racing games can be very different both visually but
+very different both visually but especially in the experience compared to
+especially in the experience compared to a first-person shooter so when we're
+a first-person shooter so when we're setting up to actually create this game
+setting up to actually create this game there's a lot of unknowns and this all
+there's a lot of unknowns and this all is leading in towards adding a scripting
+is leading in towards adding a scripting solution in an editor to accomplish a
+solution in an editor to accomplish a lot of this stuff but we'll see how we
+lot of this stuff but we'll see how we get there in just a second the Need for
+get there in just a second the Need for Speed the run game this goes back a
+Speed the run game this goes back a while and we'll look at some more recent
+while and we'll look at some more recent games soon here but this was the
+games soon here but this was the starting point and it was a really cool
+starting point and it was a really cool and ambitious project the experience
+and ambitious project the experience that we were trying to build was a race
+that we were trying to build was a race from San Francisco to New York and what
+from San Francisco to New York and what we ended up building was 5,000 square
+we ended up building was 5,000 square kilometers of terrain extracted from
+kilometers of terrain extracted from USGS satellite data handcrafted with
+USGS satellite data handcrafted with extra erosion details and all of that
+extra erosion details and all of that kind of fun mess and the thousands
+kind of fun mess and the thousands hundreds of thousands of assets placed
+hundreds of thousands of assets placed and creating this a sense of speed as we
+and creating this a sense of speed as we raced through that world at a hundred
+raced through that world at a hundred meters a second which is you know 260
+meters a second which is you know 260 miles an hour in some cars so it gives
+miles an hour in some cars so it gives an idea of what we were trying to
+an idea of what we were trying to achieve and then how do we apply
+achieve and then how do we apply technology towards achieving that well
+technology towards achieving that well we had experience creating racing games
+we had experience creating racing games but not creating racing games on this
+but not creating racing games on this new platform and so when we started to
+new platform and so when we started to create nuclear speed to run we had
+create nuclear speed to run we had previous games and lots of data that we
+previous games and lots of data that we could look at that we are really
+could look at that we are really familiar with and in this case we had
+familiar with and in this case we had over you know 80,000 different assets
+over you know 80,000 different assets placed in the world of Need for Speed
+placed in the world of Need for Speed undercover
+undercover so the idea was that we would bring that
+so the idea was that we would bring that stuff over into this frostbite ecosystem
+stuff over into this frostbite ecosystem bring it into the editor you know turn
+bring it into the editor you know turn slide sliders turn knobs get a feeling
+slide sliders turn knobs get a feeling for cause and effect on a data set that
+for cause and effect on a data set that we were familiar with but it wasn't as
+we were familiar with but it wasn't as simple as that because the automation
+simple as that because the automation systems and everything for dealing
+systems and everything for dealing importing an old set of data wasn't
+importing an old set of data wasn't readily available and so that's
+readily available and so that's something that we actually had to build
+something that we actually had to build up so what we ended up with was an
+up so what we ended up with was an experience that was much larger than any
+experience that was much larger than any previous game that we had created and we
+previous game that we had created and we had over 20 levels with each one of
+had over 20 levels with each one of those containing roughly 40,000
+those containing roughly 40,000 different placements in it so that added
+different placements in it so that added up easily ten times as many as our
+up easily ten times as many as our previous game so how we originally got a
+previous game so how we originally got a lot of this stuff through the pipeline
+lot of this stuff through the pipeline was creating c-sharp plugins was
+was creating c-sharp plugins was extending the initial functionality of
+extending the initial functionality of the editor Oh wasn't making all of these
+the editor Oh wasn't making all of these kinds of improvements in order to
+kinds of improvements in order to accomplish that it did take weeks to get
+accomplish that it did take weeks to get that first functional look at it even
+that first functional look at it even after we had all of that data through
+after we had all of that data through and we're looking at like you know it's
+and we're looking at like you know it's quite a volume of data just from the
+quite a volume of data just from the previous game no one person is going to
+previous game no one person is going to look through all of those different
+look through all of those different assets and try and start tweaking and
+assets and try and start tweaking and tuning it because even once we had a
+tuning it because even once we had a bunch of this stuff in an editor there's
+bunch of this stuff in an editor there's a whole lot of stuff that became
+a whole lot of stuff that became apparent it's like well how does this
+apparent it's like well how does this stuff get bundled how do you put it on
+stuff get bundled how do you put it on disk how do you stream it off of disk
+disk how do you stream it off of disk how do we do all of these kinds of
+how do we do all of these kinds of optimizations for texture compression
+optimizations for texture compression level of details of how this stuff will
+level of details of how this stuff will render efficiently or the most
+render efficiently or the most efficiently so all of that stuff takes
+efficiently so all of that stuff takes tuning and a bit of experimentation and
+tuning and a bit of experimentation and iteration and to iterate over that money
+iteration and to iterate over that money that much data is just simply going to
+that much data is just simply going to take a lot of time if you're going to
+take a lot of time if you're going to try and achieve that by hand but with
+try and achieve that by hand but with scripting is you can apply a rule set
+scripting is you can apply a rule set and then apply that across a broad set
+and then apply that across a broad set of data I think we get the high level
+of data I think we get the high level concepts there but without that
+concepts there but without that scripting functionality that wasn't
+scripting functionality that wasn't readily available so we set out to
+readily available so we set out to create this so what is the Frostbite
+create this so what is the Frostbite editor scripting what is that
+editor scripting what is that so we had scripting solutions to port a
+so we had scripting solutions to port a lot of data over from you know 3d studio
+lot of data over from you know 3d studio max to Maya we could use all of these
+max to Maya we could use all of these different scripting languages to that we
+different scripting languages to that we could do data conversion inside a
+could do data conversion inside a photoshop and we had scripting languages
+photoshop and we had scripting languages to do that we didn't currently have a
+to do that we didn't currently have a scripting language inside a frostbite so
+scripting language inside a frostbite so when we implemented this is what it all
+when we implemented this is what it all turned into and we'll look at actually
+turned into and we'll look at actually how to implement this in just a moment
+how to implement this in just a moment but this was the solution that we came
+but this was the solution that we came up with it was ironpython
+up with it was ironpython plus a sin layer that thin layer I
+plus a sin layer that thin layer I described as a thin layer instead of an
+described as a thin layer instead of an API and an IDE and that's what we call
+API and an IDE and that's what we call EFI script let's give this slide a
+EFI script let's give this slide a second to load up here so you can see
+second to load up here so you can see the video playing there I'm just going
+the video playing there I'm just going to cue off the slide in the background
+to cue off the slide in the background there so it was an epic experience that
+there so it was an epic experience that we ended up crafting it turned out well
+we ended up crafting it turned out well especially from a visual point of view
+especially from a visual point of view the worlds looked amazing we could
+the worlds looked amazing we could travel through all of this awesome
+travel through all of this awesome terrain between San Francisco to New
+terrain between San Francisco to New York and we could have it as close to
+York and we could have it as close to real as possible
+real as possible and in getting there we built up a lot
+and in getting there we built up a lot of scripts to help not only in the
+of scripts to help not only in the initial data conversion of the previous
+initial data conversion of the previous game but as well as working with across
+game but as well as working with across many different domains
+many different domains from the worlds the lighting the audio
+from the worlds the lighting the audio all of that kind of stuff and the key
+all of that kind of stuff and the key things there that we utilize is what
+things there that we utilize is what you'd use scripting for anything is just
+you'd use scripting for anything is just to query the hidden information about
+to query the hidden information about data it's not always exposed to you in a
+data it's not always exposed to you in a UI to automate the technical and
+UI to automate the technical and repetitive tasks gets things done faster
+repetitive tasks gets things done faster and it's less error-prone and you can
+and it's less error-prone and you can quickly create tools and extend
+quickly create tools and extend functionality and there's all sorts of
+functionality and there's all sorts of caveats there in terms of just how much
+caveats there in terms of just how much you want to do in scripting versus
+you want to do in scripting versus something like c-sharp or creating an
+something like c-sharp or creating an application but I can get into a bit
+application but I can get into a bit more of that later so let's look at
+more of that later so let's look at implementation details so iron pythons
+implementation details so iron pythons first up
+this is the lair that's built on top of frosted again it is a dotnet application
+frosted again it is a dotnet application and I should say that originally when I
+and I should say that originally when I was first looking at that application I
+was first looking at that application I was considering okay well I need an
+was considering okay well I need an ability to go in there and automate
+ability to go in there and automate stuff because that's just what I'm
+stuff because that's just what I'm familiar with I don't know of an
+familiar with I don't know of an environment or a a production that I
+environment or a a production that I haven't been able to do that I
+haven't been able to do that I originally wanted c-sharp that's
+originally wanted c-sharp that's something that was really familiar to me
+something that was really familiar to me I had experience using just on the side
+I had experience using just on the side not specifically eye-dea but just
+not specifically eye-dea but just looking at the functionality and things
+looking at the functionality and things like unity 3d and they have really nice
+like unity 3d and they have really nice scripting functionality in there with
+scripting functionality in there with c-sharp and not only on the runtime but
+c-sharp and not only on the runtime but in the editor as well and so you get a
+in the editor as well and so you get a lot of stuff for that you get an IDE you
+lot of stuff for that you get an IDE you could be using monodevelop you could be
+could be using monodevelop you could be using Visual Studio you don't have to
+using Visual Studio you don't have to create a script editor any not in that
+create a script editor any not in that environment you can have access to all
+environment you can have access to all of those different assemblies that you
+of those different assemblies that you would in your project so if you wanted
+would in your project so if you wanted to have if you want to implement
+to have if you want to implement something that framework is really
+something that framework is really apparent right aways but there are
+apparent right aways but there are limitations there and those limitations
+limitations there and those limitations are things that I wasn't actually fully
+are things that I wasn't actually fully aware of at the time Python especially
+aware of at the time Python especially ironpython was a very new technology at
+ironpython was a very new technology at the time this goes back to maybe 2007
+the time this goes back to maybe 2007 you know that's too far back 2008 or 9 I
+you know that's too far back 2008 or 9 I think anyways the cool thing Iren - can
+think anyways the cool thing Iren - can actually do absolutely everything that
+actually do absolutely everything that c-sharp can do it has full access to
+c-sharp can do it has full access to everything in c-sharp and it can do more
+everything in c-sharp and it can do more which is okay cool what we're doing is
+which is okay cool what we're doing is actually starting with c-sharp and
+actually starting with c-sharp and adding additional functionality and that
+adding additional functionality and that additional functionality is a dynamic
+additional functionality is a dynamic environment and this is a bit tricky to
+environment and this is a bit tricky to get wrap a head around if you're an
+get wrap a head around if you're an engineer and you're jumping into Visual
+engineer and you're jumping into Visual Studio you have an idea about the
+Studio you have an idea about the structure and the framework and an
+structure and the framework and an algorithm of sorts of what you're going
+algorithm of sorts of what you're going to be building up and then you'll build
+to be building up and then you'll build it compile it and then test a lot of
+it compile it and then test a lot of assumptions whereas in a dynamic
+assumptions whereas in a dynamic environment specifically what we'll be
+environment specifically what we'll be looking at it's very highly iterative we
+looking at it's very highly iterative we use a terminology called repple or repl
+use a terminology called repple or repl so read eval print loop and sometimes
+so read eval print loop and sometimes you'll execute it ad hoc you'll have
+you'll execute it ad hoc you'll have write a couple lines and then execute
+write a couple lines and then execute those couple lines no come
+those couple lines no come Eiling required and then test your
+Eiling required and then test your assumptions and proceed so this is the
+assumptions and proceed so this is the solution that we created we'll look at
+solution that we created we'll look at it in action but what does this actually
+it in action but what does this actually look like to implement it like is it
+look like to implement it like is it really heavy like how do you how do you
+really heavy like how do you how do you apply this to an application consider
+apply this to an application consider you have an application that's written
+you have an application that's written in net and you want to add this to it is
+in net and you want to add this to it is it going to be a big challenge and the
+it going to be a big challenge and the answer to that is no that might seem
+answer to that is no that might seem like a little bit of a daunting wall of
+like a little bit of a daunting wall of text but that's actually everything
+text but that's actually everything that's required to add ironpython
+that's required to add ironpython to an application and well you might
+to an application and well you might very well be able to find this kind of
+very well be able to find this kind of information online somewhere what we'll
+information online somewhere what we'll be doing is taking it a step further and
+be doing is taking it a step further and looking at how to connect not only
+looking at how to connect not only ironpython into a dotnet application but
+ironpython into a dotnet application but then connect that with an editor and
+then connect that with an editor and with a production solution here so but
+with a production solution here so but before we would proceed beyond all of
+before we would proceed beyond all of this and and this slide right here can
+this and and this slide right here can get a little bit much to look at it's a
+get a little bit much to look at it's a bit hand wavy it's like okay yeah sure
+bit hand wavy it's like okay yeah sure you can write some code and get a result
+you can write some code and get a result but let's see it in action so that's
+but let's see it in action so that's that's what you see is a screenshot but
+that's what you see is a screenshot but let's actually see this video here play
+let's actually see this video here play out I think is worth taking four minutes
+out I think is worth taking four minutes although it's a bit of a fast ride here
+although it's a bit of a fast ride here what we're going to see is from the
+what we're going to see is from the download the ironpython dll is to
+download the ironpython dll is to setting up a dotnet application and
+setting up a dotnet application and applying ironpython in four minutes
+applying ironpython in four minutes you know sped up a little bit in some
+you know sped up a little bit in some spots just to speed up the download
+spots just to speed up the download speed or whatnot
+speed or whatnot but I think from a high level you'll
+but I think from a high level you'll quickly appreciate that in order to get
+quickly appreciate that in order to get something like this stood up it doesn't
+something like this stood up it doesn't cost a lot so there we go we've created
+cost a lot so there we go we've created a new WinForms project I know it's a
+a new WinForms project I know it's a little bit old compared to WPF but this
+little bit old compared to WPF but this for simplicity sake we can see we can
+for simplicity sake we can see we can block stuff in really quickly here so
+block stuff in really quickly here so you've added a list box a text box a
+you've added a list box a text box a button we've named the button execute we
+button we've named the button execute we double click on it we get that
+double click on it we get that functionality in there for what happens
+functionality in there for what happens when you click that button and we'll add
+when you click that button and we'll add those details in a moment
+those details in a moment and then we'll add a new folder for
+and then we'll add a new folder for references because that ironpython
+references because that ironpython dll is that we just downloaded need
+dll is that we just downloaded need someplace to put them so go and find
+someplace to put them so go and find that zip file we'll grab those dll's and
+that zip file we'll grab those dll's and drag them into that reference folder and
+drag them into that reference folder and there you go you have a place on disk
+there you go you have a place on disk where they're referenced but now we need
+where they're referenced but now we need to plug them into that solution so you
+to plug them into that solution so you go to references do a browse browse to
+go to references do a browse browse to that spot on disk that you just saved
+that spot on disk that you just saved them to and now you have access to all
+them to and now you have access to all those dll's in your solution cool next
+those dll's in your solution cool next up we have to add a little using line
+up we have to add a little using line they're just a simple one if you just
+they're just a simple one if you just reference in that Microsoft hosting
+reference in that Microsoft hosting scripting one we set up the script run
+scripting one we set up the script run time and the engine a distinction there
+time and the engine a distinction there is the engine that is the thing that
+is the engine that is the thing that evaluates the scripts and the run time
+evaluates the scripts and the run time is the thing that manages memory and
+is the thing that manages memory and scope and this is just for an example so
+scope and this is just for an example so we create an example class and it does
+we create an example class and it does not a lot we have a public function in
+not a lot we have a public function in there that will simply just return a
+there that will simply just return a string that says hello
+and then we initialize that example class we initialize the script engine
+and after you execute a script it has to output somewhere you could use it
+output somewhere you could use it somewhere else in an application or you
+somewhere else in an application or you could output it as a text to some output
+could output it as a text to some output window so in this case we're just going
+window so in this case we're just going to fill up that list box with the
+to fill up that list box with the results that are being output from the
+results that are being output from the script and here we're initializing what
+script and here we're initializing what are we doing we're adding the example
+are we doing we're adding the example class as a global variable this is a big
+class as a global variable this is a big distinction here where you can have any
+distinction here where you can have any any class whatsoever any object exposed
+any class whatsoever any object exposed to scripting in this manner and that's
+to scripting in this manner and that's why it's thrown in a four local mode
+why it's thrown in a four local mode even though we're just adding one for
+even though we're just adding one for right now cool and then we click the
+right now cool and then we click the button and that passes the text that we
+button and that passes the text that we had in the text editor it passes that
+had in the text editor it passes that into the scripting engine the results or
+into the scripting engine the results or piped out back to that memory string and
+piped out back to that memory string and then passed into the list box so that we
+then passed into the list box so that we can see it in the UI so that's in really
+can see it in the UI so that's in really short order setting up absolutely
+short order setting up absolutely everything that you need we compile it
+everything that you need we compile it build run we type in something really
+build run we type in something really simple like one plus one it's a hey
+simple like one plus one it's a hey we've got a calculator that's using
+we've got a calculator that's using Python to do you know Python scripting
+Python to do you know Python scripting you could type in any Python script
+you could type in any Python script there and it would execute in this case
+there and it would execute in this case we have access to dotnet functionality
+we have access to dotnet functionality as well so there were grabbing our
+as well so there were grabbing our example class we're executing that
+example class we're executing that method and it says hello is the result
+method and it says hello is the result so super simple super high-level but I
+so super simple super high-level but I think that you can see very quickly that
+think that you can see very quickly that you have implementation implementation
+you have implementation implementation details that anyone could utilize is
+details that anyone could utilize is pretty cool I think I probably have a
+pretty cool I think I probably have a secret agenda in showing that because
+secret agenda in showing that because any application that I find myself using
+any application that I find myself using I would love to find scripting available
+I would love to find scripting available inside of it
+inside of it because that gives me the hooks
+because that gives me the hooks available to add in additional
+available to add in additional functionality in is lightweight a form
+functionality in is lightweight a form as possible all right
+as possible all right so I'm going into a little bit more of a
+so I'm going into a little bit more of a production solution slide from there we
+production solution slide from there we have we can see the groundwork
+have we can see the groundwork that's all foundational stuff and if you
+that's all foundational stuff and if you have that in place there's a few things
+have that in place there's a few things that you can add on top of that and
+that you can add on top of that and there you have a production solution so
+there you have a production solution so the examples that I'm going to be
+the examples that I'm going to be showing our simplified versions to not
+showing our simplified versions to not go into all of the the crust of whatever
+go into all of the the crust of whatever it is that you would create would
+it is that you would create would definitely look a little bit heavier
+definitely look a little bit heavier than what I'm about to show but I'll
+than what I'm about to show but I'll cover just enough detail to see how
+cover just enough detail to see how everything cooks together how it all
+everything cooks together how it all connects so let's take a look before I
+connects so let's take a look before I look at the coding examples let's look
+look at the coding examples let's look at it in action so this is a video of
+at it in action so this is a video of the editor crosshead and the scripting
+the editor crosshead and the scripting editor FB script interfacing with each
+editor FB script interfacing with each other and here we have a bunch of things
+other and here we have a bunch of things going on we have the thin wrapper
+going on we have the thin wrapper exposed as FB we have an assembly
+exposed as FB we have an assembly exposed as world render we have a data
+exposed as world render we have a data Explorer on the left hand sides just a
+Explorer on the left hand sides just a bunt list of assets very common a lot of
+bunt list of assets very common a lot of different editors we can select those
+different editors we can select those things and we can store whatever we have
+things and we can store whatever we have selected in a variable we specify and
+selected in a variable we specify and the command to do that's really simple
+the command to do that's really simple so you can just say hey I've got this
+so you can just say hey I've got this thin wrapper called FP and that FB lets
+thin wrapper called FP and that FB lets me to say something like get assets from
+me to say something like get assets from data Explorer selection so that's
+data Explorer selection so that's straightforward and then we can iterate
+straightforward and then we can iterate over that list of assets that we have
+over that list of assets that we have selected and confirm our assumptions we
+selected and confirm our assumptions we can say hey I think I selected some
+can say hey I think I selected some stuff and I suspect it's going to be in
+stuff and I suspect it's going to be in this list of this variable is a list
+this list of this variable is a list test let Assumption go yeah it actually
+test let Assumption go yeah it actually is so we go okay now I know that each
+is so we go okay now I know that each one of these assets that is going to be
+one of these assets that is going to be available now inside of this script I
+available now inside of this script I can store it iteratively
+can store it iteratively inside of that loop as the outdoor light
+inside of that loop as the outdoor light is what I want to get access to from
+is what I want to get access to from that asset and then not only can you get
+that asset and then not only can you get assets from a list of assets you can
+assets from a list of assets you can also kind of pare down into assets so
+also kind of pare down into assets so look at component pieces however they
+look at component pieces however they did that happens to be set up I know
+did that happens to be set up I know it's all very specific to frostbite I
+it's all very specific to frostbite I think the general principle applies
+think the general principle applies whether you have access to the member
+whether you have access to the member properties and functions
+properties and functions and so there I run a quick query so the
+and so there I run a quick query so the outdoor light Sun rotation forex it
+outdoor light Sun rotation forex it happens to be at 120 execute that line
+happens to be at 120 execute that line that returns the result to the output
+that returns the result to the output field but you can type in any value and
+field but you can type in any value and execute that and what I'm clicking on
+execute that and what I'm clicking on there is just execute current line so
+there is just execute current line so it's not the entire script that gets to
+it's not the entire script that gets to reevaluate it's just that one line so
+reevaluate it's just that one line so any portion of your script you can
+any portion of your script you can always just execute ad hoc that way and
+always just execute ad hoc that way and find out further information about that
+find out further information about that or you know operate on that data so
+or you know operate on that data so that's the high-level idea I mean it's a
+that's the high-level idea I mean it's a super simple example but it's just
+super simple example but it's just enough I think to give us an idea of
+enough I think to give us an idea of what we're going in for when I start
+what we're going in for when I start talking about further implementation
+talking about further implementation details all right so ironpython
+details all right so ironpython exceptions is the thing that was missing
+exceptions is the thing that was missing from that very first simple example that
+from that very first simple example that very first simple example allows us to
+very first simple example allows us to do things like one plus one and it will
+do things like one plus one and it will return a value of two so that's fairly
+return a value of two so that's fairly intuitive and straightforward but if we
+intuitive and straightforward but if we were to type in something like a plus B
+were to type in something like a plus B it was like well what the heck is that
+it was like well what the heck is that you haven't defined it yet and you'd
+you haven't defined it yet and you'd want to throw some sort of an exception
+want to throw some sort of an exception so to do that is actually not that
+so to do that is actually not that difficult and so I'm not going to go
+difficult and so I'm not going to go into the details because it's also a
+into the details because it's also a self problem so just like some of the
+self problem so just like some of the other examples I'll be looking at later
+other examples I'll be looking at later including Avalon edit there are
+including Avalon edit there are solutions that are already out there
+solutions that are already out there that we can utilize and so this is a
+that we can utilize and so this is a really good resource so I can point you
+really good resource so I can point you towards dev Hawk net has a lot more than
+towards dev Hawk net has a lot more than just this particular example but this is
+just this particular example but this is where I started here we can see setting
+where I started here we can see setting up the trace back framework here the
+up the trace back framework here the idea of the awareness of that it exists
+idea of the awareness of that it exists is more key than exactly how to do it
+is more key than exactly how to do it but what's going on right here is we
+but what's going on right here is we have a hook there into that exception so
+have a hook there into that exception so anytime there's a problem with a script
+anytime there's a problem with a script that gets run it has a mechanism to pipe
+that gets run it has a mechanism to pipe that exception back and tell us you know
+that exception back and tell us you know what's it going to tell us it's going to
+what's it going to tell us it's going to say what line number did a script fail
+say what line number did a script fail and what was the error message and then
+and what was the error message and then we can do something meaningful with that
+we can do something meaningful with that information
+information there's a bunch of other stuff going on
+there's a bunch of other stuff going on in here
+in here but again we're not going to linger on
+but again we're not going to linger on this particular side of things what I
+this particular side of things what I want to do is move on and look at the
+want to do is move on and look at the script engine initialization and in
+script engine initialization and in particular the scope management so as
+particular the scope management so as long as you have exception handling
+long as you have exception handling setups that's great and you can see
+setups that's great and you can see right here in the initialization you've
+right here in the initialization you've got this engine set trace this is kind
+got this engine set trace this is kind of kicking all of that stuff off we're
+of kicking all of that stuff off we're going into reset scope so this is
+going into reset scope so this is important because there's a bunch of
+important because there's a bunch of stuff that's going to happen here that
+stuff that's going to happen here that helps us hook into an editor let's look
+helps us hook into an editor let's look at that all right
+at that all right so in scope by default we have
+so in scope by default we have assemblies Python paths aliases you
+assemblies Python paths aliases you could throw in a whole ton of stuff into
+could throw in a whole ton of stuff into here but it can also be quite simple so
+here but it can also be quite simple so in this case what we want to do is just
+in this case what we want to do is just iterate over all the assemblies that are
+iterate over all the assemblies that are available in the application that we're
+available in the application that we're having scripting in so that's pretty
+having scripting in so that's pretty cool
+cool we can go everything that you would have
+we can go everything that you would have access to if you were inside of c-sharp
+access to if you were inside of c-sharp you now have access to inside scripting
+you now have access to inside scripting with that simple iteration loop and then
+with that simple iteration loop and then we can also throw a whole bunch of other
+we can also throw a whole bunch of other stuff at it we can say here's a list of
+stuff at it we can say here's a list of Python libraries that we can have access
+Python libraries that we can have access to and then we can also declare a bunch
+to and then we can also declare a bunch of objects we could have single pins or
+of objects we could have single pins or whatever the case may be
+whatever the case may be but you could build up a bunch of
+but you could build up a bunch of structures in there that you just have
+structures in there that you just have access now as well inside of scripting
+access now as well inside of scripting so how you passing all that stuff in and
+so how you passing all that stuff in and that was a very high-level quick
+that was a very high-level quick overview of ironpython
+overview of ironpython implementation and let's look at what
+implementation and let's look at what that last bit of stuff that we just saw
+that last bit of stuff that we just saw and how that connects with the Effie
+and how that connects with the Effie script editor
+so inside of the FB script editor inside of any kind of scripting editor solution
+of any kind of scripting editor solution that you would look at I highly
+that you would look at I highly recommend looking at Avalon at it I
+recommend looking at Avalon at it I found it really easy to use and it
+found it really easy to use and it solves all of those common problems that
+solves all of those common problems that you would expect as a bar of entry for
+you would expect as a bar of entry for any kind of text editor would be it
+any kind of text editor would be it LimeWire or notepad plus plus or
+LimeWire or notepad plus plus or whatever the case may be
+whatever the case may be you're going to end up with Avalon edit
+you're going to end up with Avalon edit having syntax highlighting bolding code
+having syntax highlighting bolding code completion all of that fun this so
+completion all of that fun this so before getting into a few more code
+before getting into a few more code looking slides you can see a quick video
+looking slides you can see a quick video of this stuff in action and what we're
+of this stuff in action and what we're looking at here just illustrating the
+looking at here just illustrating the idea behind importing something that we
+idea behind importing something that we should be familiar with the system
+should be familiar with the system namespace in c-sharp annette in
+namespace in c-sharp annette in particular and in this case what we're
+particular and in this case what we're doing is where as we're typing we're
+doing is where as we're typing we're getting code completion so okay that's
+getting code completion so okay that's cool a couple other things that are
+cool a couple other things that are available here as well as asking for
+available here as well as asking for help on giving functions as well as and
+help on giving functions as well as and I just a subtle one a kind of something
+I just a subtle one a kind of something I missed too as the video is playing but
+I missed too as the video is playing but right out of the gate when we executed
+right out of the gate when we executed that first line import system it wasn't
+that first line import system it wasn't in scope after we executed it is and so
+in scope after we executed it is and so it bolds the system so syntax
+it bolds the system so syntax highlighting can help us with more than
+highlighting can help us with more than just keywords and all of that kind of
+just keywords and all of that kind of stuff can help us understand what's in
+stuff can help us understand what's in scope so that in the component pieces
+scope so that in the component pieces again is easy access to dotnet functions
+again is easy access to dotnet functions here we can see a ironpython script that
+here we can see a ironpython script that says hey what's whether a file exists or
+says hey what's whether a file exists or not and then we can see the code
+not and then we can see the code required to expose that and make it
+required to expose that and make it available to the scripting so there it
+available to the scripting so there it is just adding in all of the assemblies
+is just adding in all of the assemblies available there
+now what about that code completion stuff the drop-down menus and all of
+stuff the drop-down menus and all of that like how where are we pulling that
+that like how where are we pulling that information from how does that get
+information from how does that get passed from something that the script
+passed from something that the script that executes something to an editor
+that executes something to an editor that as you're typing is giving you some
+that as you're typing is giving you some feedback so that's in two places it's in
+feedback so that's in two places it's in a public execute script method what does
+a public execute script method what does that mean it means that yeah okay when
+that mean it means that yeah okay when you want to hit that play button or
+you want to hit that play button or execute script button or whatever it is
+execute script button or whatever it is that executes multiple lines of code or
+that executes multiple lines of code or one line of code or whatever the case
+one line of code or whatever the case may be that same functionality there
+may be that same functionality there that you're going to execute a large
+that you're going to execute a large script with that same functionality can
+script with that same functionality can get called as you're typing so you can
+get called as you're typing so you can pass in and this is the key point to the
+pass in and this is the key point to the next one you can pass in the previous
+next one you can pass in the previous word so it is helpful to have a very
+word so it is helpful to have a very simple script parser that will parse
+simple script parser that will parse your script find what the previous word
+your script find what the previous word was and then pass that into the
+was and then pass that into the scripting engine so you can do things
+scripting engine so you can do things like well let's take a look you can do
+like well let's take a look you can do things like this where you have access
+things like this where you have access to your script engine so you can call
+to your script engine so you can call that execute script function and as
+that execute script function and as you're typing you can get that previous
+you're typing you can get that previous word and you can do a directory on it
+word and you can do a directory on it like if if you're not familiar with
+like if if you're not familiar with Python if you type dir bracket and then
+Python if you type dir bracket and then inside of those brackets you're going to
+inside of those brackets you're going to put in a variable that variable then
+put in a variable that variable then will be what will you get as an output
+will be what will you get as an output from that is you'll get a list of the
+from that is you'll get a list of the member methods and properties so because
+member methods and properties so because we're calling that in code there what we
+we're calling that in code there what we can see here is what we can see here is
+can see here is what we can see here is that we have not only the ability to
+that we have not only the ability to [Music]
+[Music] execute the script from any anywhere
+execute the script from any anywhere from any part of your c-sharp
+from any part of your c-sharp application but we can also execute that
+application but we can also execute that on the fly so as we're typing that
+on the fly so as we're typing that system that I all got file as soon as
+system that I all got file as soon as you hit that dot that dot triggers an
+you hit that dot that dot triggers an event and it says okay cool I'm going to
+event and it says okay cool I'm going to look for a list of members in attributes
+look for a list of members in attributes that belong to system do file and then
+that belong to system do file and then it gives us that list in that drop-down
+it gives us that list in that drop-down menu and that would be the same thing as
+menu and that would be the same thing as if we'd put that whole thing
+if we'd put that whole thing brackets can get something as an output
+and when I just one more thing story on that last slide there is if some of
+that last slide there is if some of these functionalities here might not
+these functionalities here might not look familiar but if you did investigate
+look familiar but if you did investigate the Avalon edit there because it has
+the Avalon edit there because it has such nice interfaces there for building
+such nice interfaces there for building up code completion boxes here you can
+up code completion boxes here you can see those in action as well and we're
+see those in action as well and we're just passing in the results into that
+just passing in the results into that code completion go and we can do the
+code completion go and we can do the same thing with Python scripts so it
+same thing with Python scripts so it actually goes beyond that and I'll
+actually goes beyond that and I'll reiterate this point later with an
+reiterate this point later with an example in production but there's so
+example in production but there's so much more that you can do in this space
+much more that you can do in this space so it's not just about going here's an
+so it's not just about going here's an application I'll bring everything that
+application I'll bring everything that application can see and now I want to
+application can see and now I want to have that in a scripting environment
+have that in a scripting environment obviously here we're looking at an
+obviously here we're looking at an example where we can go okay here's a
+example where we can go okay here's a whole bunch of Python libraries but you
+whole bunch of Python libraries but you can dynamically add a whole bunch of
+can dynamically add a whole bunch of Python libraries later through calls
+Python libraries later through calls from your script not only can you do
+from your script not only can you do that you can also add reference to
+that you can also add reference to references to zamel to help with UI and
+references to zamel to help with UI and you can add in references to dll's to
+you can add in references to dll's to help with well if you wanted to create
+help with well if you wanted to create an application or a library with a whole
+an application or a library with a whole bunch of functionality you wanted to
+bunch of functionality you wanted to write that in c-sharp using visual
+write that in c-sharp using visual studio
+studio that's all good you can have that dll as
+that's all good you can have that dll as long as it's a dotnet dll you can have
+long as it's a dotnet dll you can have that available inside of the script
+that available inside of the script environment as well
+environment as well now syntax highlighting I'm not going to
+now syntax highlighting I'm not going to go along long we all get this fairly
+go along long we all get this fairly standard bar bar of entry into script
+standard bar bar of entry into script editing but I just want to reiterate
+editing but I just want to reiterate that point that I called out earlier to
+that point that I called out earlier to there if you type in something into this
+there if you type in something into this editor everything is just going to be
+editor everything is just going to be text and especially if you know Python
+text and especially if you know Python it's going to be very dynamic so there's
+it's going to be very dynamic so there's no going to be really any strong typing
+no going to be really any strong typing anything going on
+anything going on however after you execute something it
+however after you execute something it will exist in scope and it's that
+will exist in scope and it's that reflection of what is in memory that can
+reflection of what is in memory that can tell us stop back to the editor and so
+tell us stop back to the editor and so as soon as we've imported system or as
+as soon as we've imported system or as soon as we've executed anything that
+soon as we've executed anything that registers something in memory as long as
+registers something in memory as long as it's being executed it's there in memory
+it's being executed it's there in memory it's going to go bold to help us give
+it's going to go bold to help us give that indication
+that's really useful for repple workflows and something else is just
+workflows and something else is just more of a counterpart to code completion
+more of a counterpart to code completion so if you hit dot and you get a
+so if you hit dot and you get a drop-down list in this case if you hit
+drop-down list in this case if you hit the pipe if you use the Python command
+the pipe if you use the Python command help and then throw in any object into
+help and then throw in any object into help you're going to get some
+help you're going to get some documentation if there's something that
+documentation if there's something that exists for that so in this case we can
+exists for that so in this case we can get documentation both from Python
+get documentation both from Python commands and from.net commands and that
+commands and from.net commands and that was the SP script editor I think there's
+was the SP script editor I think there's about three slides for the FB modules
+about three slides for the FB modules just a thin wrapper so it should be
+just a thin wrapper so it should be fairly light and then we'll look at
+fairly light and then we'll look at production examples alright so a thin
+production examples alright so a thin wrapper then wrapper we should be just
+wrapper then wrapper we should be just that should be very thin really light
+that should be very thin really light and accessible if you wanted to go you
+and accessible if you wanted to go you know into the guts and access absolutely
+know into the guts and access absolutely everything to do everything well you
+everything to do everything well you actually do have access through
+actually do have access through scripting to do that you can also go
+scripting to do that you can also go into c-sharp to do that but to make
+into c-sharp to do that but to make something accessible to a community of
+something accessible to a community of people that are going to be building
+people that are going to be building stuff and using it
+stuff and using it documentation helps but it is really
+documentation helps but it is really important to make sure that it is
+important to make sure that it is intuitive and easy to use as possible
+intuitive and easy to use as possible for new users so here we're looking at a
+for new users so here we're looking at a list of commands that should seem really
+list of commands that should seem really simple create guess all you want to
+simple create guess all you want to create from stuff you've got a create
+create from stuff you've got a create command you want to edit some stuff you
+command you want to edit some stuff you got an edit command you want to get or
+got an edit command you want to get or query some information you've got that
+query some information you've got that the user commands is an interesting
+the user commands is an interesting aside but it's a very reflective system
+aside but it's a very reflective system so the user commands actually helps us
+so the user commands actually helps us reflect into the scripting engine itself
+reflect into the scripting engine itself and modify parameters about the
+and modify parameters about the scripting environment a bit crazy but
+scripting environment a bit crazy but anyways it's there and also just various
+anyways it's there and also just various utilities that you'd want to expose so
+utilities that you'd want to expose so this is an example of that so here you
+this is an example of that so here you import that thin wrapper called FB so
+import that thin wrapper called FB so it's a thin wrapper import it and of
+it's a thin wrapper import it and of course Lee in your case it could be
+course Lee in your case it could be called absolutely anything I go with a
+called absolutely anything I go with a two letter designation so it's easy to
+two letter designation so it's easy to type one letter designation too easy to
+type one letter designation too easy to conflict someone else want to use a
+conflict someone else want to use a single variable name but with F be
+single variable name but with F be imported with that thin wrapper imported
+imported with that thin wrapper imported we can do things like as soon as we hit
+we can do things like as soon as we hit FBI
+FBI we get that first list what do you want
+we get that first list what do you want to do do you want to get or creator or
+to do do you want to get or creator or what do I want to get some information
+what do I want to get some information so I hit get and they'll say what do you
+so I hit get and they'll say what do you want to get and it's like a whole list
+want to get and it's like a whole list of assets of like you know you want to
+of assets of like you know you want to get a mesh or a texture or what and get
+get a mesh or a texture or what and get that list and then you go oh I want to
+that list and then you go oh I want to get I just want to get assets from the
+get I just want to get assets from the data explorer selection so that gives us
+data explorer selection so that gives us a quick easy flowing path to actually
+a quick easy flowing path to actually get the information that we want and
+get the information that we want and here we can go get a high-level idea of
+here we can go get a high-level idea of how to build up a thin wrapper for me
+how to build up a thin wrapper for me it's really easy to say that it helps to
+it's really easy to say that it helps to say you know if the sub modules read
+say you know if the sub modules read like English it's easier to follow so in
+like English it's easier to follow so in this case some examples that I would
+this case some examples that I would pick out so you have a level a theme and
+pick out so you have a level a theme and in that scene is some layers so you can
+in that scene is some layers so you can ask that question you can say FBI get
+ask that question you can say FBI get layers from scene and then you can pass
+layers from scene and then you can pass in maybe a filter to say okay only get
+in maybe a filter to say okay only get me two layers with this string in it or
+me two layers with this string in it or something I think you get the idea there
+something I think you get the idea there and we saw that video earlier of
+and we saw that video earlier of executing scripts seeing that update not
+executing scripts seeing that update not only in the properties of an object but
+only in the properties of an object but also update in the editor and in this
+also update in the editor and in this case is just reiterating that point so
+case is just reiterating that point so here we're saying yep we can query
+here we're saying yep we can query assets we can query component we can
+assets we can query component we can pare down into the data and find the
+pare down into the data and find the information that we want and as soon as
+information that we want and as soon as we have access to that data we can
+we have access to that data we can modify it so that is what we've
+modify it so that is what we've accomplished with all of that and the
+accomplished with all of that and the interesting thing too and a touch on it
+interesting thing too and a touch on it coming up here is especially on the
+coming up here is especially on the Dragon Age side of things but it's
+Dragon Age side of things but it's really easy to spend you know a small
+really easy to spend you know a small amount of time but still you know maybe
+amount of time but still you know maybe I take a couple minutes to write to
+I take a couple minutes to write to accomplish what that you could change
+accomplish what that you could change with a slider right so from a tech art
+with a slider right so from a tech art perspective it always gets a bit tricky
+perspective it always gets a bit tricky to justify how much time to spend
+to justify how much time to spend scripting something that you can do very
+scripting something that you can do very readily or easily with the UI so the key
+readily or easily with the UI so the key point is always trade tracing it back to
+point is always trade tracing it back to how you batch scripts that and automate
+how you batch scripts that and automate it over tens or thousands of assets
+it over tens or thousands of assets they're so high-level goals are
+they're so high-level goals are implementing a thin wrapper
+implementing a thin wrapper exposing commonly used commands you just
+exposing commonly used commands you just get a strong basic script a strong
+get a strong basic script a strong starting point abstract queries the
+starting point abstract queries the easily accessed asset so if if that same
+easily accessed asset so if if that same functionality existed but it was like
+functionality existed but it was like nested in some you know some namespace
+nested in some you know some namespace inside of some object inside some other
+inside of some object inside some other object sub object if that functionality
+object sub object if that functionality is buried away just to expose that at a
+is buried away just to expose that at a higher level especially if it's commonly
+higher level especially if it's commonly used and then provide a consistent
+used and then provide a consistent intuitive way to get started with
+intuitive way to get started with scripting all right
+scripting all right production examples so all of that was
+production examples so all of that was the implementation details of how to
+the implementation details of how to hook up a scripting solution in an
+hook up a scripting solution in an editor specifically a dotnet editor but
+editor specifically a dotnet editor but what value does any of that have if
+what value does any of that have if we're not actually using it in
+we're not actually using it in production and creating something that
+production and creating something that can be appreciated so here we're going
+can be appreciated so here we're going to look at some production examples from
+to look at some production examples from Dragon Age Inquisition garden warfare
+Dragon Age Inquisition garden warfare and Battlefield should be noted that
+and Battlefield should be noted that across the community of people using
+across the community of people using cross by da-da there's maybe about 200
+cross by da-da there's maybe about 200 or more people using FP scripts creating
+or more people using FP scripts creating them and writing them this concludes
+them and writing them this concludes tech artists designers engineers a
+tech artists designers engineers a surprisingly wide set of people and
+surprisingly wide set of people and they're using it to help make you know
+they're using it to help make you know the redundant or repetitive parts of
+the redundant or repetitive parts of their job you know a bit faster and less
+their job you know a bit faster and less error-prone so let's take a look at that
+so garden warfare is first up and before I go running down that road going hey
+I go running down that road going hey look at what we did on garden warfare I
+look at what we did on garden warfare I know because I sit through these
+know because I sit through these sessions too in the back of my mind is
+sessions too in the back of my mind is going well how can I use that what does
+going well how can I use that what does that mean to me and so when I go into
+that mean to me and so when I go into this detail it's important for me to try
+this detail it's important for me to try and find a way that how does this how
+and find a way that how does this how does this apply to someone outside of
+does this apply to someone outside of zomboss academy or yeh or wherever so
+zomboss academy or yeh or wherever so let's take a look so when I mentioned
+let's take a look so when I mentioned earlier that in on garden warfare that
+earlier that in on garden warfare that we set up thousands of assets
+we set up thousands of assets automatically
+automatically what does that mean it's like okay well
+what does that mean it's like okay well you click a button then you get a
+you click a button then you get a thousand assets and they're done and
+thousand assets and they're done and it's not quite what I meant what I mean
+it's not quite what I meant what I mean is that you set up the framework for
+is that you set up the framework for those assets and what does the framework
+those assets and what does the framework of an asset mean like we thought that it
+of an asset mean like we thought that it was really simple right well I mean most
+was really simple right well I mean most of us here I'm guessing are savvy enough
+of us here I'm guessing are savvy enough to realize that anything that you see
+to realize that anything that you see rendered on screen isn't just one thing
+rendered on screen isn't just one thing it's a it's composed of many and what
+it's a it's composed of many and what are those things so we start with
+are those things so we start with concept art we get it we have an idea
+concept art we get it we have an idea maybe as a word document or something
+maybe as a word document or something and then it gets represented as some
+and then it gets represented as some concept again could be text or it could
+concept again could be text or it could be an image and then when we have that
+be an image and then when we have that that concept we apply we start creating
+that concept we apply we start creating something something physical but it's
+something something physical but it's still not in the game it's just like
+still not in the game it's just like okay this is our first steps towards
+okay this is our first steps towards this and we create models sometimes
+this and we create models sometimes really high res models and we ZBrush or
+really high res models and we ZBrush or whatever the case may be - like sculpt
+whatever the case may be - like sculpt something that's way too big to actually
+something that's way too big to actually fit in the game we build up textures and
+fit in the game we build up textures and the textures are like way higher
+the textures are like way higher resolution then we'll actually use in
+resolution then we'll actually use in the game and we start building up you
+the game and we start building up you know this really nice looking thing of
+know this really nice looking thing of diffuse and specular normals and all of
+diffuse and specular normals and all of that goodness and then we start applying
+that goodness and then we start applying it with shaders and materials we start
+it with shaders and materials we start building up something that we're
+building up something that we're starting to say hey I get it this is
+starting to say hey I get it this is what we're making I mean then we start
+what we're making I mean then we start seeing something in the game eventually
+seeing something in the game eventually with but maybe it's not moving yet maybe
+with but maybe it's not moving yet maybe it's just like oh this is how it renders
+it's just like oh this is how it renders with this engine with these lighting
+with this engine with these lighting conditions or whatever and then we
+conditions or whatever and then we excuse me hook up a game play like how
+excuse me hook up a game play like how does it respond to button clicks what is
+does it respond to button clicks what is the animation doing the visual effects
+the animation doing the visual effects we obviously all of that requires
+we obviously all of that requires skeletons and character rigs and then
+skeletons and character rigs and then the component parts need to get rigged
+the component parts need to get rigged and how they get swapped in and out so
+and how they get swapped in and out so the way we've got guy running around and
+the way we've got guy running around and he's got a stateflow
+he's got a stateflow and how he responds to all of that kind
+and how he responds to all of that kind of stuff and we've got audio as well so
+that stuff even though it could be a really simple thing can be quite complex
+really simple thing can be quite complex so it's also not something that you
+so it's also not something that you understand exactly how it all connects
+understand exactly how it all connects together at the beginning of a project
+together at the beginning of a project you see
+you see you go you go like does this work does
+you go you go like does this work does this connect over here and as you kind
+this connect over here and as you kind of build up enough assets and you start
+of build up enough assets and you start to see how it all connects together you
+to see how it all connects together you start identifying patterns and you're
+start identifying patterns and you're going okay I get it you know this this
+going okay I get it you know this this type of a thing is always going to
+type of a thing is always going to connect this way the interesting thing
+connect this way the interesting thing is after you actually start to digest
+is after you actually start to digest that and you start to appreciate just
+that and you start to appreciate just okay this is what we're doing right now
+okay this is what we're doing right now if you take a moment and pause right
+if you take a moment and pause right there you realize that it's actually
+there you realize that it's actually really complex because you came about it
+really complex because you came about it organically and you got to that point
+organically and you got to that point not because you're like oh this is the
+not because you're like oh this is the best way to design how everything should
+best way to design how everything should get connected together it's like no this
+get connected together it's like no this is actually what you know it's a
+is actually what you know it's a creative process if that diagram doesn't
+creative process if that diagram doesn't make your brain melt the idea is that
+make your brain melt the idea is that each one of those nodes has a lot of
+each one of those nodes has a lot of properties and additional values beneath
+properties and additional values beneath it yet so it's less of a an array of
+it yet so it's less of a an array of things it's more of a matrix that goes
+things it's more of a matrix that goes quite deep and that's just a single
+quite deep and that's just a single asset so you're like wow okay you know
+asset so you're like wow okay you know there's a lot of button clicking going
+there's a lot of button clicking going on just to connect the dots for an
+on just to connect the dots for an artist or a designer or someone to go
+artist or a designer or someone to go okay I'm going to build something and
+okay I'm going to build something and every time they're building something
+every time they're building something they're going okay this connects to that
+they're going okay this connects to that this connects to that disconnects to
+this connects to that disconnects to that that takes a lot of time so what we
+that that takes a lot of time so what we did on this project was once we had that
+did on this project was once we had that figured out and we had a way that was
+figured out and we had a way that was consistent enough we could script how a
+consistent enough we could script how a lot of this stuff gets connected
+lot of this stuff gets connected together using placeholder assets so we
+together using placeholder assets so we build up a volume say for a head prop or
+build up a volume say for a head prop or something like that and that volume
+something like that and that volume would say that's where that head prop be
+would say that's where that head prop be it a hat or something needs to exist
+it a hat or something needs to exist within its just parameters to say here's
+within its just parameters to say here's your guidelines but this is this is
+your guidelines but this is this is where it's going to exist that's how
+where it's going to exist that's how it's going to function but it's not the
+it's going to function but it's not the real asset yet and then we throw the
+real asset yet and then we throw the concept art on it and it would look ugly
+concept art on it and it would look ugly I mean the concept art mapped onto some
+I mean the concept art mapped onto some geometry it looks completely out of
+geometry it looks completely out of place but you get the idea of what it's
+place but you get the idea of what it's going to turn into at a glance and then
+going to turn into at a glance and then we do a whole bunch of other things but
+we do a whole bunch of other things but the end of all of that stuff
+the end of all of that stuff is that we could use a framework of real
+is that we could use a framework of real assets so we could use real geometry
+assets so we could use real geometry real textures all of that kind of stuff
+real textures all of that kind of stuff it just doesn't look the way it should
+it just doesn't look the way it should yet and the things that that tells us is
+yet and the things that that tells us is you know how much memory is it going to
+you know how much memory is it going to consume how is that going to perform
+consume how is that going to perform run-time how are you going to swap these
+run-time how are you going to swap these things out how is that going to
+things out how is that going to interface with the UI how is that going
+interface with the UI how is that going to work with the progression of the game
+to work with the progression of the game as you unlock things or get weapon
+as you unlock things or get weapon upgrades or whatever the case may be all
+upgrades or whatever the case may be all of those questions that usually you
+of those questions that usually you don't get to by the time it usually
+don't get to by the time it usually comes as a after you've created all of
+comes as a after you've created all of this content you can front load a lot of
+this content you can front load a lot of that so that was a really cool success
+that so that was a really cool success and a learning experience from that
+and a learning experience from that project it was a few more guys kicking
+project it was a few more guys kicking around and that's just to highlight that
+around and that's just to highlight that it isn't always just physical geometry
+it isn't always just physical geometry sometimes it's a particle effects or
+sometimes it's a particle effects or visual effects or sometimes it's audio
+visual effects or sometimes it's audio or sometimes immediate it spans across
+or sometimes immediate it spans across all of those domains so that is another
+all of those domains so that is another thing that I did want to mention was
+thing that I did want to mention was that beyond actually being able to get
+that beyond actually being able to get an early look at how everything fits
+an early look at how everything fits together
+together it also helps smooth over its production
+it also helps smooth over its production grease if you will so that a lot of
+grease if you will so that a lot of these different domains can be working
+these different domains can be working and they can be building stuff and they
+and they can be building stuff and they don't have to be waiting on the next
+don't have to be waiting on the next person to finish whatever it is that
+person to finish whatever it is that they're doing because we have a
+they're doing because we have a placeholder for that all right
+placeholder for that all right battlefield so battlefield daniel
+battlefield so battlefield daniel Rashidi at battlefields a fairly
+Rashidi at battlefields a fairly talented technical artist created
+talented technical artist created something that you know was way beyond
+something that you know was way beyond anything I imagined FV script would be
+anything I imagined FV script would be used for and he found a lot of new ways
+used for and he found a lot of new ways to utilize this technology that I hadn't
+to utilize this technology that I hadn't seen it used before as well so that was
+seen it used before as well so that was including using loosely bound zamel and
+including using loosely bound zamel and dotnet dll's as I've mentioned earlier
+dotnet dll's as I've mentioned earlier so not everything had to be written in
+so not everything had to be written in scripting some of this stuff some of the
+scripting some of this stuff some of the components of it could be written
+components of it could be written somewhere else and then imported into
+somewhere else and then imported into this ecosystem the cool thing is being
+this ecosystem the cool thing is being inside of that ecosystem you're now in a
+inside of that ecosystem you're now in a highly iterative environment so you can
+highly iterative environment so you can take some of those well understood
+take some of those well understood component pieces and then add them into
+component pieces and then add them into this so let's see that in action an
+this so let's see that in action an interesting thing is we're going to look
+interesting thing is we're going to look at something that Daniel made for
+at something that Daniel made for Battlefield it's called the level
+Battlefield it's called the level scanner and Mace made a lot of different
+scanner and Mace made a lot of different types of tools now we're looking at that
+types of tools now we're looking at that and it was used to great success on
+and it was used to great success on battlefield for understanding their
+battlefield for understanding their large data set but it was also used as
+large data set but it was also used as well on Dragon Age and let's take a look
+well on Dragon Age and let's take a look at that
+here's a video alright so that's the level scanner and it kind of picked up a
+level scanner and it kind of picked up a little bit light there but we'll come
+little bit light there but we'll come back to the starting thing just in a
+back to the starting thing just in a moment so the whole thing there is that
+moment so the whole thing there is that you've got all of this information about
+you've got all of this information about your data a lot of this information is
+your data a lot of this information is abstract it's not ever in one place it's
+abstract it's not ever in one place it's using information from a whole bunch of
+using information from a whole bunch of different places to figure stuff out
+different places to figure stuff out you can sort it based on a number of
+you can sort it based on a number of different parameters and in this
+different parameters and in this particular case it's found an asset that
+particular case it's found an asset that has reasonably well implemented LOD s
+has reasonably well implemented LOD s but it's used a lot in one given level
+but it's used a lot in one given level that was the rock example and then this
+that was the rock example and then this other example right here for the door
+other example right here for the door where it's only used once in a level is
+where it's only used once in a level is missing the it has an LOD but the LOD is
+missing the it has an LOD but the LOD is not optimized as much as what is what it
+not optimized as much as what is what it could be so this gives you a sense of
+could be so this gives you a sense of going ah we've got all of this data we'd
+going ah we've got all of this data we'd want to dedicate our time and money and
+want to dedicate our time and money and efforts so that we're going to make this
+efforts so that we're going to make this game run as efficiently as possible but
+game run as efficiently as possible but we can't just start with the very first
+we can't just start with the very first asset we see and then go from there we
+asset we see and then go from there we want to have a sense of where to start
+want to have a sense of where to start first and so all of this all of this UI
+first and so all of this all of this UI and everything else he put into the
+and everything else he put into the hands of the art teams and they could
+hands of the art teams and they could get a better sense of how to prioritize
+get a better sense of how to prioritize their efforts of where they wanted to
+their efforts of where they wanted to spend time optimizing for runtime
+spend time optimizing for runtime performance and memory and all that
+so that takes us that's a bit of a segue to Dragon Age because we saw some Dragon
+to Dragon Age because we saw some Dragon Age assets there so jefra now another
+Age assets there so jefra now another really smart guy and really practical
+really smart guy and really practical too so he had to approach solving
+too so he had to approach solving problems from many different angles and
+problems from many different angles and obviously not everyone is going to
+obviously not everyone is going to include FB script and another key thing
+include FB script and another key thing too is that when you set out you're not
+too is that when you set out you're not going to be creating content really
+going to be creating content really using scripting or automated process I
+using scripting or automated process I mean you can you can use procedural
+mean you can you can use procedural techniques and everything else but
+techniques and everything else but ultimately a creative process is going
+ultimately a creative process is going to be involved and I and that's going to
+to be involved and I and that's going to be the starting point anyways so the big
+be the starting point anyways so the big thing to point out here is that on
+thing to point out here is that on Dragon Age I mean my mind
+Dragon Age I mean my mind short-circuited when I was looking at
+short-circuited when I was looking at that project and looking at the data
+that project and looking at the data sets and trying to understand even what
+sets and trying to understand even what someone could do to to try and optimize
+someone could do to to try and optimize for all of the different platforms that
+for all of the different platforms that it was released on and when you look at
+it was released on and when you look at almost 20,000 different visual effects
+almost 20,000 different visual effects 20,000 different assets in the visual
+20,000 different assets in the visual effects folder alone it's pretty
+effects folder alone it's pretty phenomenal and you click on one of those
+phenomenal and you click on one of those things it's like okay let's look at this
+things it's like okay let's look at this dragon VFX for when it lands hard and
+dragon VFX for when it lands hard and then you go okay open that thing up and
+then you go okay open that thing up and you get like all of these other assets
+you get like all of these other assets that it's referencing in there so you've
+that it's referencing in there so you've got oh I've got this debris and dust and
+got oh I've got this debris and dust and all of that kind of stuff and you click
+all of that kind of stuff and you click on one of those and you go into there
+on one of those and you go into there and it's got like all of these things of
+and it's got like all of these things of how to actually render and animate and
+how to actually render and animate and do all of that kind of stuff with a
+do all of that kind of stuff with a visual effect and then you've got all of
+visual effect and then you've got all of that information for each of the
+that information for each of the different platforms that it's targeted
+different platforms that it's targeted towards so it's a bit much and I think
+towards so it's a bit much and I think what they did was a really cool thing is
+what they did was a really cool thing is they just target ultra quality they just
+they just target ultra quality they just try and build this thing up for the best
+try and build this thing up for the best possible visual results that they could
+possible visual results that they could and then they would do a very smart
+and then they would do a very smart approach a pass on it to try and get it
+approach a pass on it to try and get it to progressively be as high visual
+to progressively be as high visual quality as possible while meeting the
+quality as possible while meeting the memory and performance restraints as you
+memory and performance restraints as you look at the lower end systems another
+look at the lower end systems another key thing to about this is that if you I
+key thing to about this is that if you I like this quote here is if the process
+like this quote here is if the process is technical and repetitive we can
+is technical and repetitive we can script it to save time and reduce user
+script it to save time and reduce user errors and it's that and reduce user
+errors and it's that and reduce user errors that really resonates with me too
+errors that really resonates with me too because it's not just about hey we got
+because it's not just about hey we got this done fast
+this done fast you can have an army of people getting
+you can have an army of people getting something done faster but you also end
+something done faster but you also end up with a lot of errors so it's just a
+up with a lot of errors so it's just a nice thing that we can use scripting for
+nice thing that we can use scripting for and if I look at this next slide here to
+and if I look at this next slide here to talks to some of the Bioware's
+talks to some of the Bioware's experiences with this and again talking
+experiences with this and again talking to the point - how much time do you
+to the point - how much time do you spend scripting something versus you
+spend scripting something versus you know if army of people or or if even
+know if army of people or or if even just a few people just spent like really
+just a few people just spent like really a lot of time working on something and
+a lot of time working on something and it is a tricky balancing act to
+it is a tricky balancing act to understand oh maybe I should not wait
+understand oh maybe I should not wait too much time doing something that
+too much time doing something that didn't really save a lot of time so it
+didn't really save a lot of time so it was Dave Shafer who's the lead svt at
+was Dave Shafer who's the lead svt at Bioware there did a return on investment
+Bioware there did a return on investment analysis and they measured that they
+analysis and they measured that they saved 30 months based on just QF QA
+saved 30 months based on just QF QA efforts alone through FB scripts and not
+efforts alone through FB scripts and not every script saved time so actually if I
+every script saved time so actually if I look at that last slide there again it's
+look at that last slide there again it's a couple other things I want to mention
+a couple other things I want to mention too is they had to ask other questions
+too is they had to ask other questions like some scripts that you're running
+like some scripts that you're running are actually doing things that are
+are actually doing things that are physically not possible no matter how
+physically not possible no matter how many button clicks you throw at it so
+many button clicks you throw at it so there are some scripts like that and so
+there are some scripts like that and so try to make that distinction of could
+try to make that distinction of could this have been done by hand no this is
+this have been done by hand no this is new functionality added that we just
+new functionality added that we just couldn't have even tried to take on
+couldn't have even tried to take on without this I mean then in addition to
+without this I mean then in addition to that of all of the things created if we
+that of all of the things created if we see in the lower end spectrum there were
+see in the lower end spectrum there were scripts that were arguably a waste of
+scripts that were arguably a waste of time so you know maybe more time was
+time so you know maybe more time was spent creating something and it wasn't
+spent creating something and it wasn't used as much as it was anticipated and
+used as much as it was anticipated and you didn't get your return on investment
+you didn't get your return on investment there but by far and large you're going
+there but by far and large you're going to find the medium is going to return a
+to find the medium is going to return a significant value and then every once in
+significant value and then every once in a while you hit the jackpot really like
+a while you hit the jackpot really like wow that was really taking up a lot of
+wow that was really taking up a lot of time by hand but we really saved a lot
+time by hand but we really saved a lot of time and so you see those edge cases
+of time and so you see those edge cases there as well oh and one other thing too
+there as well oh and one other thing too I wanted to point out - on this slide is
+I wanted to point out - on this slide is this is a quote here by Darren Clarke
+this is a quote here by Darren Clarke and just a key thing there is the fact
+and just a key thing there is the fact that when you free when you free up the
+that when you free when you free up the time on your team you can spend more
+time on your team you can spend more time testing other areas so it's if you
+time testing other areas so it's if you kind of applying your scripts to those
+kind of applying your scripts to those technical things that can be automated
+technical things that can be automated and that requires our technical tests
+and that requires our technical tests the things that you need creative people
+the things that you need creative people in this case QA are creative people that
+in this case QA are creative people that help us understand what's the quality of
+help us understand what's the quality of a product in this case gameplay
+a product in this case gameplay experiences are we can get their time
+experiences are we can get their time dedicated a much more effective way in
+dedicated a much more effective way in that way all right so next step I've
+that way all right so next step I've talked about well let's see here I've
+talked about well let's see here I've talked a while about stuff in the past
+talked a while about stuff in the past and that stuff I mean it's it's a bit
+and that stuff I mean it's it's a bit tricky I'm a generalist and I think of
+tricky I'm a generalist and I think of my mind like a revolving door so that
+my mind like a revolving door so that stuff comes in and then it goes out and
+stuff comes in and then it goes out and then I have to really try hard to go
+then I have to really try hard to go back and dig it up and understand it
+back and dig it up and understand it again
+again I'm always far more excited about the
+I'm always far more excited about the next steps so this stuff has me really
+next steps so this stuff has me really excited going forward it's okay we've
+excited going forward it's okay we've done some stuff and it was valuable in
+done some stuff and it was valuable in that shift games and that's cool but
+that shift games and that's cool but what does the future hold and what are
+what does the future hold and what are we going to do with that
+we going to do with that so Michael sharp at criterion has
+so Michael sharp at criterion has created something that we're planning to
+created something that we're planning to use internally it's called he's named it
+use internally it's called he's named it community toolbox while this is not
+community toolbox while this is not immediately applicable to this audience
+immediately applicable to this audience you're not going on cool I want to use
+you're not going on cool I want to use community toolbox it's not a application
+community toolbox it's not a application that we're trying to pitch or sell or
+that we're trying to pitch or sell or it's going to be used upside VA but the
+it's going to be used upside VA but the idea here is behind how to connect a lot
+idea here is behind how to connect a lot of people that are building stuff and
+of people that are building stuff and then wanting to share it between teams
+then wanting to share it between teams studios domains whatever the case may be
+studios domains whatever the case may be and so that's what I want to look at
+and so that's what I want to look at here is how to best fit to facilitate
+here is how to best fit to facilitate that so I've got a video let's take a
+that so I've got a video let's take a peek
+all right so he set up a web portal and that's really nice everyone can access
+that's really nice everyone can access it across the company we can download
+it across the company we can download this tool the installation process is
+this tool the installation process is fairly straightforward about a lot of
+fairly straightforward about a lot of options or buttons or fields or things
+options or buttons or fields or things to fill up we just download it we launch
+to fill up we just download it we launch Frost it it matches up the environment
+Frost it it matches up the environment system there with that and then we've
+system there with that and then we've got that new tool that's available in
+got that new tool that's available in the taskbar so accessibility is always
+the taskbar so accessibility is always really key here we're looking at a
+really key here we're looking at a looked at visual environment we're just
+looked at visual environment we're just getting a feel for how certain things
+getting a feel for how certain things render behave with camera and all that
+render behave with camera and all that kind of stuff when you normally move a
+kind of stuff when you normally move a camera around and frosted and most
+camera around and frosted and most editors you're using a mouse you're
+editors you're using a mouse you're using the mouse probably the Alt key or
+using the mouse probably the Alt key or something like that and clicking and
+something like that and clicking and dragging and orbiting and zooming and
+dragging and orbiting and zooming and trucking and all that that's a normal
+trucking and all that that's a normal way but if you want to use a controller
+way but if you want to use a controller you could now this isn't functionality
+you could now this isn't functionality that was created by the frosted team
+that was created by the frosted team it's something that mike hooked up was a
+it's something that mike hooked up was a bunch of other component pieces here to
+bunch of other component pieces here to interface with an Xbox controller in the
+interface with an Xbox controller in the editor so how did he do that well
+editor so how did he do that well without closing frosted there he just
+without closing frosted there he just browsed on the website there that had
+browsed on the website there that had this available clicked on that DLL or
+this available clicked on that DLL or that plug-in and clicked install and
+that plug-in and clicked install and then went back to frosted and there it
+then went back to frosted and there it is available so now it's the Xbox
+is available so now it's the Xbox controller doing all sorts of additional
+controller doing all sorts of additional functionality like tilt and all of that
+functionality like tilt and all of that kind of stuff so again less about the
+kind of stuff so again less about the exact specifics of what's going on right
+exact specifics of what's going on right here and more about the idea behind hey
+here and more about the idea behind hey when you have a framework that actually
+when you have a framework that actually supports scripting there's more to just
+supports scripting there's more to just there's more to it than just scripting
+there's more to it than just scripting there all these other kind of hooks that
+there all these other kind of hooks that you can plug in various plugins into no
+you can plug in various plugins into no pun intended and a lot of additional
+pun intended and a lot of additional functionality there so that's cool you
+functionality there so that's cool you have something that's really accessible
+have something that's really accessible but this other thing right here is
+but this other thing right here is really key to and this is something that
+really key to and this is something that he's created called script pad and the
+he's created called script pad and the way this functions is inside of that
+way this functions is inside of that same ecosystem the idea of being able to
+same ecosystem the idea of being able to browse the tools and things that other
+browse the tools and things that other people are writing
+multiple teams and then when you find something that you're interested or want
+something that you're interested or want to actually test out that it's readily
+to actually test out that it's readily available they're right inside of the
+available they're right inside of the editor so in this case we've got a test
+editor so in this case we've got a test camera there that we're pulling down as
+camera there that we're pulling down as a test from Bioware and we're going okay
+a test from Bioware and we're going okay cool we've got a slider here and it's
+cool we've got a slider here and it's adjusting the zoom of the camera we can
+adjusting the zoom of the camera we can look at the Edit script so you can peek
+look at the Edit script so you can peek behind the functionality of any given
+behind the functionality of any given tool there and this is all inside the
+tool there and this is all inside the editor so it's not like we had need to
+editor so it's not like we had need to have visual studio burner that we need
+have visual studio burner that we need to have any other kind of a bunch of
+to have any other kind of a bunch of stuff to go and figure out how was
+stuff to go and figure out how was something done all of that stuff is
+something done all of that stuff is packaged up together there and then
+packaged up together there and then because we had previously downloaded the
+because we had previously downloaded the script prior we don't need to do that
+script prior we don't need to do that again so it's just illustrating that we
+again so it's just illustrating that we can always grab any existing tool that's
+can always grab any existing tool that's on the machine or we can always grab an
+on the machine or we can always grab an updated version of it and in this
+updated version of it and in this particular example we're going okay well
+particular example we're going okay well it's common in a pipeline to get a
+it's common in a pipeline to get a gooood or some sort of reference but
+gooood or some sort of reference but isn't exactly the name of an object so
+isn't exactly the name of an object so someone created a tool that will allow
+someone created a tool that will allow us to take a good put that into a simple
+us to take a good put that into a simple text field hit a button and it would
+text field hit a button and it would find where like the asset using that
+find where like the asset using that good is in a scene and frame it
+good is in a scene and frame it selection and then we can look at the
+selection and then we can look at the code behind that as well and it's a
+code behind that as well and it's a script and it references a whole bunch
+script and it references a whole bunch stuff but also has lots of revisions and
+stuff but also has lots of revisions and this is the key thing for me going
+this is the key thing for me going forward is in trying to build to
+forward is in trying to build to implement to support and maintain this
+implement to support and maintain this kind of a solution it's easy enough on
+kind of a solution it's easy enough on one team with a handful of people using
+one team with a handful of people using it as you get into the hundreds of
+it as you get into the hundreds of people using something and they're
+people using something and they're across multiple versions of your editor
+across multiple versions of your editor and to try and maintain while okay they
+and to try and maintain while okay they have this script but it's for a
+have this script but it's for a different version of the editor how you
+different version of the editor how you maintain all of that I'm really excited
+maintain all of that I'm really excited to look at solutions like this that will
+to look at solutions like this that will help manage that and then there's all
+help manage that and then there's all sorts of searches and filters and
+sorts of searches and filters and advanced filters to not only find a tool
+advanced filters to not only find a tool of a given name but also even go deeper
+of a given name but also even go deeper than that and say find me all the tools
+than that and say find me all the tools that use this keyword or a bit of code
+that use this keyword or a bit of code in it
+all right wrapping up so yes indeed on the shoulders of giants
+the shoulders of giants lots of people contributing and helping
+lots of people contributing and helping and supporting and all of that not the
+and supporting and all of that not the least of which Ludovic Sawant is the guy
+least of which Ludovic Sawant is the guy who introduced me to ironpython help
+who introduced me to ironpython help kick this thing off I've done a lot of
+kick this thing off I've done a lot of the implementation since then but big
+the implementation since then but big shout out to Ludo dev Hawk found is an
+shout out to Ludo dev Hawk found is an invaluable resource online Avalon added
+invaluable resource online Avalon added another invaluable resource huge respect
+another invaluable resource huge respect for while the initial inventor of
+for while the initial inventor of ironpython Jim Hutton and subsequent
+ironpython Jim Hutton and subsequent maintain maintainer of that Jeff Hardy
+maintain maintainer of that Jeff Hardy and a huge long list of credits and
+and a huge long list of credits and thanks and really the list does go on
+thanks and really the list does go on and here we are with questions so and a
+and here we are with questions so and a quick reminder to evaluation so there
+quick reminder to evaluation so there you go a little guide they take three
+you go a little guide they take three clicks
+[Applause]
+we got a mic on
+Oh looks like we need a house excuse me it looks like we need help with the mic
+it looks like we need help with the mic here hello okay when you're showing when
+here hello okay when you're showing when you were showing the autocomplete for
+you were showing the autocomplete for the Python you said you were evaluating
+the Python you said you were evaluating the Python code before that
+the Python code before that how are you dealing with side effects in
+how are you dealing with side effects in there sorry I understood the question is
+there sorry I understood the question is when I'm showing the autocomplete
+when I'm showing the autocomplete dialogue if for the ironpython
+dialogue if for the ironpython what was the second part of the question
+what was the second part of the question um how are you dealing with the with
+um how are you dealing with the with like if I have code that has side
+like if I have code that has side effects I'd like to tell something but
+effects I'd like to tell something but you're also evaluating it just to do the
+you're also evaluating it just to do the autocomplete in there so I say define
+autocomplete in there so I say define like creating objects or something and
+like creating objects or something and then you to out-cook it on the object if
+then you to out-cook it on the object if I understand the question is how to how
+I understand the question is how to how to distinguish the difference between a
+to distinguish the difference between a property on a code completion and a
+property on a code completion and a method that's going to do something and
+method that's going to do something and perhaps what the parameters are for that
+perhaps what the parameters are for that method am I getting that right no it's
+method am I getting that right no it's just like so if you're in the script
+just like so if you're in the script you're creating an object and then later
+you're creating an object and then later further down the script you're offering
+further down the script you're offering all the autocomplete options on that
+all the autocomplete options on that object if you have to evaluate that
+object if you have to evaluate that multiple times aren't you creating the
+multiple times aren't you creating the object multiple times and when you have
+object multiple times and when you have a group of side-effects on that oh I
+a group of side-effects on that oh I think it's just for memory and scope
+think it's just for memory and scope management and if you have something
+management and if you have something already in memory and you're looking at
+already in memory and you're looking at a property of that in memory and then
+a property of that in memory and then another property of that memory the
+another property of that memory the concern is about how that exists inside
+concern is about how that exists inside of scope and is there any knock on door
+of scope and is there any knock on door issues with that also this if I'm like
+issues with that also this if I'm like in the level I'm creating whole objects
+in the level I'm creating whole objects by actually placing like I don't know
+by actually placing like I don't know trees in the level of something yeah
+trees in the level of something yeah wouldn't I be running that open over
+wouldn't I be running that open over again just for the autocomplete yeah the
+again just for the autocomplete yeah the interesting thing about this is that
+interesting thing about this is that it's actually just referencing it's just
+it's actually just referencing it's just references so it doesn't duplicate
+references so it doesn't duplicate anything in memory so when we're looking
+anything in memory so when we're looking at an object that is there and we want
+at an object that is there and we want to access it we can change your value on
+to access it we can change your value on it and it's changing the value because
+it and it's changing the value because it's reference to the actual object it
+it's reference to the actual object it changes the value on the object itself
+changes the value on the object itself it doesn't exist more than once
+it doesn't exist more than once right okay so you're only always
+right okay so you're only always revaluing the current line not the
+revaluing the current line not the entire script that's correct yes okay
+entire script that's correct yes okay thanks well given that you originally
+thanks well given that you originally wanted to start with c-sharp
+wanted to start with c-sharp now that Microsoft released Project
+now that Microsoft released Project Rosslyn and f-sharp toy providers would
+Rosslyn and f-sharp toy providers would you still go back to iron Python
+you still go back to iron Python that's a good question I'd actually have
+that's a good question I'd actually have to learn more about that I mean if
+to learn more about that I mean if you're available afterwards I'd love to
+you're available afterwards I'd love to chat we're cool thank you hi hello hey
+chat we're cool thank you hi hello hey um another question about kind of more
+um another question about kind of more policy really if you're opening up those
+policy really if you're opening up those tools and the the last slide you showed
+tools and the the last slide you showed we've got to cover an online community
+we've got to cover an online community where people could share scripts and so
+where people could share scripts and so on do you have any kind of security
+on do you have any kind of security concerns about basically allowing
+concerns about basically allowing anybody to write code that effectively
+anybody to write code that effectively Reds up running on anybody else's
+Reds up running on anybody else's machine yeah that's a really good
+machine yeah that's a really good question um it's funny because the
+question um it's funny because the amount of stuff that we exposed and
+amount of stuff that we exposed and frosted is actually truly terrifying to
+frosted is actually truly terrifying to the engineers that wrote it and they're
+the engineers that wrote it and they're like well what if everything breaks like
+like well what if everything breaks like someone's going to use it incorrectly
+someone's going to use it incorrectly and stuffs just going to you know stop
+and stuffs just going to you know stop working the environment that we work in
+working the environment that we work in with perforce is a decent safety net so
+with perforce is a decent safety net so you can actually run mayhem on a
+you can actually run mayhem on a complete data set but that's your local
+complete data set but that's your local copy and nothing gets submitted until
+copy and nothing gets submitted until it's validated but that validation step
+it's validated but that validation step is really key so we did really large
+is really key so we did really large batch processes on like tons of data on
+batch processes on like tons of data on dragon age for example but we spent a
+dragon age for example but we spent a day or two with QA validating and making
+day or two with QA validating and making sure all of the runtime implement sorry
+sure all of the runtime implement sorry the runtime implicate try that again
+the runtime implicate try that again the runtime implications of that were
+the runtime implications of that were all sound and so yeah there is actually
+all sound and so yeah there is actually due diligence required to make sure that
+due diligence required to make sure that what you're doing especially in broad
+what you're doing especially in broad strokes holds up thank you I
+how much word did you have to do to the code of your editor to expose all this
+code of your editor to expose all this functionality or did you get most of it
+functionality or did you get most of it for free because you were doing
+for free because you were doing everything with c-sharp we got most of
+everything with c-sharp we got most of it for free because we're doing
+it for free because we're doing everything with c-sharp especially on
+everything with c-sharp especially on dotnet there are tricky bits there's if
+dotnet there are tricky bits there's if you have really risk-averse or really I
+you have really risk-averse or really I don't know I mean there's there are ways
+don't know I mean there's there are ways in which you could implement a dotnet
+in which you could implement a dotnet solution that
+solution that wouldn't be as readily excuse-me readily
+wouldn't be as readily excuse-me readily exposed but yeah if anything that's
+exposed but yeah if anything that's declared as a public function if it
+declared as a public function if it isn't private or protected will be there
+isn't private or protected will be there for you to utilize as you need oh thanks
+when you're using the scripts are you able to like undo and redo the effects
+able to like undo and redo the effects that they do yes and no there are some
+that they do yes and no there are some commands that are wrapped that way
+commands that are wrapped that way inside of the frost editor and we have a
+inside of the frost editor and we have a road map in play for future improvements
+road map in play for future improvements towards that to better handle undo redo
+towards that to better handle undo redo but for the most part especially for
+but for the most part especially for just doing a property change or whatever
+just doing a property change or whatever the future is yes but at the moment it's
+the future is yes but at the moment it's a bit it's a bit sparse that way yeah so
+a bit it's a bit sparse that way yeah so how you explain it then if you would go
+how you explain it then if you would go in the for loop and go through all the
+in the for loop and go through all the objects and change like one property and
+objects and change like one property and all of them so you'd have to undo to
+all of them so you'd have to undo to each and every object and separately on
+each and every object and separately on the like if you did something wrong
+the like if you did something wrong that's possible or yet a batch call a
+that's possible or yet a batch call a reset value or something like that okay
+reset value or something like that okay thank you while you're working on this
+thank you while you're working on this did you guys end up implementing
+did you guys end up implementing debuggers or like ways to visualize like
+debuggers or like ways to visualize like the current state of the Python
+the current state of the Python environment yes it's something I did
+environment yes it's something I did implement fairly early although I
+implement fairly early although I haven't seen it in as wide use in
+haven't seen it in as wide use in production the dev Hawk website has some
+production the dev Hawk website has some really good examples of it they're in
+really good examples of it they're in play as well you absolutely can and I
+play as well you absolutely can and I have it hooked up in a prototype fashion
+have it hooked up in a prototype fashion where you could put in a breakpoint hit
+where you could put in a breakpoint hit those break points and on a breakpoint
+those break points and on a breakpoint inspect or watch all sorts of variables
+inspect or watch all sorts of variables and modify those variables on the fly so
+and modify those variables on the fly so all of that stuff is possible I've seen
+all of that stuff is possible I've seen it in practice but getting it really
+it in practice but getting it really slick so that it's you know
+slick so that it's you know production-ready is a bit more tricky
+cool thank you everyone

@@ -1,0 +1,378 @@
+hi everyone it's me Tim today I want to
+talk about coding rules for your game
+and using scripts for the exceptions now
+this is something that I've talked about
+a lot came up most recently in a video I
+did on using Game Mechanics for
+storytelling and in the comments for
+that video infinite Warrior who I think
+is like all the other Warriors but
+uncountably
+bigger asked me to explain quote how
+utilizing the mechanical as opposed to
+the scripted approach might be able to
+mitigate some of that seemingly
+necessary kind of wonkiness unquote
+basically talking about bizarre States
+you can get into in some
+games now I've linked that video Below
+on Mechanics for storytelling but I've
+also linked my video on emergent game
+play and another one on how to do mul
+how to get multiple Quest Solutions out
+of your game more easily and they all
+basically rely on the approach I
+mentioned in the title which
+is try to get your system mechanics
+coded as simply and as directly as
+possible try to cover almost all the
+cases so that the rare exception
+is what gets
+scripted not tons of the game being
+scripted script should be used
+surgically saying oh in this one case
+we're going to do this thing that's
+slightly different now I've played many
+RPGs that rely on scripts to handle
+their game State and changes to game
+State the bugs that you see arise from
+that I'm sure you've all seen in games
+where
+you do something that's not
+expected maybe you shoot an NPC and he
+keeps talking even though he's lying
+there dead or you shoot a guard from a
+distance and as you approach the the
+house the the dead body rotate towards
+you and says stop thief it's because
+somebody handled with scripts what
+should have been handled in code
+and that's the biggest problem with
+scripts is that they miss things um and
+even worse than that even if one script
+catches things catches it a dozen others
+may miss it so code mechanics are great
+because they they catch they often catch
+things that scripts Miss and if you do
+miss something in code you change it in
+one place and it's caught everywhere and
+I'll go into
+that let me give you an example of a
+very simple example that could be in
+just about any RPG you've played and
+I'll talk about the do's and don'ts
+about how this should be done let's say
+that your player is given a quest to go
+to some House break in and steal an
+item now what you what you should do and
+I think most people would understand and
+accept this is there should be code for
+stealth you know
+handling whether or not uh NPCs
+especially hosle NPCs cu notice you
+react to you and there should be code
+for how to pick a
+lock you do not so that's what you want
+to do you want code for those you do not
+want to put a script on every
+guard on every window on every door or
+even areas like oh this is a brightly
+lit area I'm going to put a big script
+trigger here so if the player enters it
+the guards go oh look there's a thief
+over there you do not want to do that
+there are so many that can go
+wrong
+similarly I think everybody would agree
+that
+guards probably should have a code on
+them so that they have the Kos kill on
+site flag on them if they ever see the
+player they just attack them and yeah
+they can do a bark and go hey you're not
+supposed to be here and attack what you
+do not want to do is add scripts to all
+those guards to make them attack the
+player because again there are so many
+ways those scripts could go wrong
+um if they don't see the the player the
+player's stealthy the player's invisible
+uh the guard has been knocked
+unconscious unless every script you
+write checks all those conditions all
+the time you're going to have a failure
+and it's going to be really noticeable
+by the
+player this is where I start to see
+things that people don't do you do want
+to Mark the item the player's coming to
+steal for the quest as a quest item
+maybe if you're really good if you if if
+you you can convince the programmers to
+do this and all the designers to fill in
+the data not only when it's marked as a
+quest item not only is it a flag saying
+I'm a quest item but there's a pointer
+back to the quest it's a quest item
+four this way it's handled in code that
+as soon as the player through whatever
+means picks up that item and it goes
+into their
+inventory automatically the quest is
+Advanced from find the item to now you
+have the item go back to the quest
+giver and you can put in safeguards like
+oh it's a quest item so you can't
+accidentally drop it you can't
+accidentally sell it either the game
+warns you you're about to do that or it
+just disallows it all together and maybe
+what you decide to do with Quest items
+changes during development you
+originally were asking but QA told you
+it's really annoying just don't let me
+do that so it stops asking and
+just doesn't let you do that trivial to
+change in one spot in code a pain to
+change if you've handled Quest items in
+scripts
+everywhere what you and there's other
+reasons though you do not want to put
+scripts on the item you do not want to
+put a script on the item itself saying
+oh I've been picked up am I being picked
+up by the player because maybe you know
+and some of my games companions could
+pick up and maybe that counts maybe it
+doesn't you do not want to put a script
+on the chest saying oh they've accessed
+the chest I'm going to go ahead and
+Advance the quest maybe they don't take
+the item or maybe they take the item and
+they put it back
+in what you really don't want to do is
+to put a script on the room itself and
+yes I've seen people do this where as
+soon as the script is triggered when
+they enter the room it starts watching
+for the player to pick up the
+item first of all
+that means the script is activating
+every single frame tick or if you have a
+separate tick heart rate for scripts
+every single tick it's going did he pick
+it up yet did he pick it up yet did he
+pick it up yet incredibly wasteful
+incredibly wasteful
+code so much easier just to in your code
+for the players picked up an item you go
+oh is it a quest item great let me
+adjust anything needs
+adjusting I mentioned I mentioned this
+earlier but the advantage to all this is
+notice that code is in one spot you
+usually
+have a and I like to code this way a
+place where whenever the player picks up
+an item there's one place in the game it
+goes through this is usually where you
+pick up you check can they pick it up
+and that checks things
+like is this an item that can be picked
+up uh is it too heavy is their inventory
+already full things like that well that
+means you've set up your code so that
+there is a choke point in the code where
+you know it flows through there that's a
+great place to check once you know they
+can pick it up and they're about to put
+it in their inventory check right at
+that spot see if it's a quest item very
+unlikely that that will cause
+bugs
+scripts every single script out there
+will have to check for it manually if
+you don't do it in code and some of
+they're going to do it differently and
+some of them are going to do it
+wrong so the way you should be thinking
+about scripts just like my title
+suggests
+is scripts are for that rare event that
+general rules somehow aren't covering
+and you may think I'll just make rules
+that are incredibly General and they
+will cover everything and I won't need
+scripts well that might happen I've
+worked on too many RPGs to find out that
+occasionally you're going to have the
+thing that can't be be covered in the
+rules it's special maybe it's a boss
+creature maybe it's a special artifact
+level item but it needs to do something
+special so my rules for scripts is if
+you have to use it if there's no way
+this can be part of the coded general
+rule set if you have if so so if you
+have to use a script first put the
+script as close as possible to the
+action it's testing
+for
+example if you just want to if you for
+some reason you need a script knowing
+that the player is broken into a house
+don't put the script on a door because
+what if the player climbs in through a
+window or climbs up to the roof and
+comes down through a hatch you you can't
+guarantee they're going to get in that
+one door and you may think you've set it
+up to do it but there was a speedrun for
+the outer worlds where I was surprised
+how somebody got into an area and it's
+because when I played the area the
+electric fence couldn't be jumped over
+but later on a level designer went oh
+I'm going to put some crates over here
+and a speedrunner found out you could
+jump on the crates and then jump over
+the fence now that was a perfectly valid
+way of getting in he the the level
+designer didn't break anything but it
+made me go oh if there had been a script
+on the gate it would have totally missed
+the fact that the player found another
+way
+in similarly let's say you want to put a
+script on an NPC seeing the
+player
+um yes you can put the the script on
+that on that NPC and saying if he sees
+the player this is what happens you
+don't want to put the trigger on an area
+that would activate when the player
+enters it because maybe
+the when the player enters that area
+maybe the NPC is a guard with a walk
+path and he's nowhere near the player so
+he shouldn't be seeing the player or
+maybe the NPC has turned around and
+isn't facing that area so it's super
+confusing if suddenly whoops around and
+goes aha maybe the player is invisible
+or has a really good stealth so there's
+no way the NPC should have been able to
+see him and this is going to confuse the
+player because it's like I thought the
+game worked this way and in this one
+spot it works this other way worse what
+if the player already knocked the NPC
+unconscious
+or Worse has killed the
+NPC if the script Triggers on the NPC
+seeing the player the C code should
+never fire that script because an
+unconscious or dead NPC doesn't see the
+player if you try to do it handle this
+all on scripting where you just have a
+script on the NPC and it's constantly
+checking to see if the NPC sees the
+player you may miss that and like I said
+earlier I'm sure you've all seen things
+where a dead guard turns to face someone
+or says something that's
+bad the one last thing I want to say
+about scripts are if a script tests a
+condition condition try to have that
+condition something that's in code this
+can be things like if the NPC can see
+the player have that cany player be a
+code condition where the script calls
+that and then code says yes he can see
+the player no he can't see the player
+similarly is the NPC close to the
+player um is the does the NPC have this
+item on them or are they wielding this
+item you want all these tests to be in
+code for two big reasons one it's
+probably faster and more efficient for
+the code to test that than for the
+script scripts tend to be interpreted
+tend to be slow even if they're compiled
+I guarantee you the code will probably
+be more efficient and second what I said
+earlier if you decide to change what it
+means to see the player maybe
+invisibility is 100% maybe you're
+changing the rules and how stealth works
+if you decide what what it means for an
+NPC to be close cl to the player so
+you're checking is close to maybe you
+change that you want to change it
+everywhere not in just one spot and you
+don't want to have to go and change
+dozens of scripts because they all
+decided on a different distance for
+meaning close
+to now especially if you w watch my
+one-on multiple Quest Solutions I think
+Fallout was successful because we used
+mechanics so heavily and just
+supplemented it with scripts because we
+tried to keep scripting as
+close to and specific to what it was
+testing that was very specific to a very
+particular situation and we let code
+handle everything else and that's why
+the rescue Tandy from the cons Quest had
+so many solutions because most of them
+were handled through code and the level
+designer and the the quest designer
+didn't even have to think about putting
+those Solutions in and by the way um I'm
+a huge advocate for using uh for games
+using mechanics not just for gameplay
+but also for story advancement which is
+why there was that whole using Mechanics
+for storytelling
+video now Arcanum also maintained Quest
+and story States in code meaning whether
+a quest was you know mentioned achieved
+completed botched whether a story
+whether story was in state you know act
+one or act four that was all maintained
+in code while it could be adjusted via
+scripts the
+the um the reason we maintained it and
+you had to access it and you had to
+conditionally test it through code was
+that prevented a lot of weird things
+from happening um some of the biggest
+ones
+were letting the player turn down a
+quest he'd already completed which was
+weird you know it's like you show up
+with a quest item and and the person
+goes I want you to go find something
+it's great instead if the dialogue could
+go oh I see you have the item I asked
+for or
+worse it completed quests from being
+botched after they were completed so if
+you were supposed to rescue the princess
+and if she died while you were returning
+her that would botch the
+quest but if you'd already retrieved her
+and she's back at the castle and later
+on something happens and she dies in the
+castle that shouldn't bot your already
+completed Quest it's done they thanked
+you you've gotten your reward and you've
+left the princess is no longer your
+concern code helped prevent that scripts
+on the other
+hand were a nightmare if you tried to do
+things through that so just remember
+this rule code the rules script the
+exceptions and I think that will make
+your RPG much more robust

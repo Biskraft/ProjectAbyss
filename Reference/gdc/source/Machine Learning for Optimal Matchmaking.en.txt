@@ -1,0 +1,1438 @@
+[Music] hi I'm Josh Menke welcome to my talk on
+hi I'm Josh Menke welcome to my talk on machine learning for optimal matchmaking
+machine learning for optimal matchmaking now I've been working in matchmaking for
+now I've been working in matchmaking for over 16 years at this point and I
+over 16 years at this point and I actually do have a background in machine
+actually do have a background in machine learning but I've never actually seen
+learning but I've never actually seen the two combined I've used machine
+the two combined I've used machine learning to figure out player skills but
+learning to figure out player skills but that's just a number that goes into
+that's just a number that goes into matchmaking I've never actually used
+matchmaking I've never actually used machine learning to do the matchmaking
+machine learning to do the matchmaking itself and in this case I'm not actually
+itself and in this case I'm not actually the creator of what I'll be talking
+the creator of what I'll be talking about today I'm a consumer of it a
+about today I'm a consumer of it a client the person who actually did all
+client the person who actually did all the work in the research and came up
+the work in the research and came up with this really nice method his name is
+with this really nice method his name is Tom Minka and he is a researcher at
+Tom Minka and he is a researcher at Microsoft Research I work for 343
+Microsoft Research I work for 343 industries on Halo and this I was one of
+industries on Halo and this I was one of the and one of the clients of this work
+the and one of the clients of this work along with Ryan clevon who is works
+along with Ryan clevon who is works worked on gears of war at the coalition
+worked on gears of war at the coalition we both had interest in improving
+we both had interest in improving matchmaking through machine learning and
+matchmaking through machine learning and I will say in my sixth in my over 16
+I will say in my sixth in my over 16 years of matchmaking this is probably
+years of matchmaking this is probably the biggest leap forward I've seen in
+the biggest leap forward I've seen in terms of how you do match me so I hope
+terms of how you do match me so I hope you enjoy it I think it's great and
+you enjoy it I think it's great and let's get on with the talk
+let's get on with the talk so let's first explain what type of
+so let's first explain what type of matchmaking were actually talking about
+matchmaking were actually talking about matchmaking is the way that players in
+matchmaking is the way that players in competitive multiplayer games find other
+competitive multiplayer games find other players to compete against and play with
+players to compete against and play with and so the way this works is you have a
+and so the way this works is you have a group of players who wants to play a
+group of players who wants to play a match or and these players could be
+match or and these players could be submitting a request to matchmake from
+submitting a request to matchmake from all over the world not necessarily
+all over the world not necessarily together but they want to match and so
+together but they want to match and so they send some information to a
+they send some information to a matchmaker something about their skill
+matchmaker something about their skill their location other information that
+their location other information that could be useful don't worry too much
+could be useful don't worry too much about that yet and then that information
+about that yet and then that information is then used by the matchmaker
+is then used by the matchmaker to place these players into matches and
+to place these players into matches and into teams to play against each other
+into teams to play against each other that's the type of matchmaking that
+that's the type of matchmaking that we'll be working with today and talking
+we'll be working with today and talking about how to improve and since we're
+about how to improve and since we're talking about using machine learning we
+talking about using machine learning we should probably define that as well so
+should probably define that as well so for this talk a simple definition we can
+for this talk a simple definition we can use of machine learning is an algorithm
+use of machine learning is an algorithm that Tunes itself using data rather than
+that Tunes itself using data rather than being tuned
+being tuned by hand now we may be asking how do we
+by hand now we may be asking how do we put these together well match making
+put these together well match making algorithms are traditionally tuned by
+algorithms are traditionally tuned by hand and what we're going to suggest is
+hand and what we're going to suggest is we can use machine learning to tune our
+we can use machine learning to tune our match making algorithms automatically
+match making algorithms automatically instead from the data so let's talk
+instead from the data so let's talk first about how matchmaking is done
+first about how matchmaking is done today so the state-of-the-art
+today so the state-of-the-art matchmaking today is pretty much like
+matchmaking today is pretty much like this you hope you put the players go in
+this you hope you put the players go in the matchmaker kind of hopes that it can
+the matchmaker kind of hopes that it can make the best possible match out of the
+make the best possible match out of the players and then it waits eventually it
+players and then it waits eventually it settles for something worse and that
+settles for something worse and that goes across whatever your matchmaking on
+goes across whatever your matchmaking on but for example for skill the matchmaker
+but for example for skill the matchmaker sees a player and it hopes to find the
+sees a player and it hopes to find the same size same skilled player for that
+same size same skilled player for that player to magic to match with and if it
+player to magic to match with and if it can't it'll wait and eventually it
+can't it'll wait and eventually it settles for an imbalance matched and
+settles for an imbalance matched and that's basically how matchmaking is
+that's basically how matchmaking is worked for a pretty long time when we're
+worked for a pretty long time when we're talking about automated matchmaking and
+talking about automated matchmaking and this is kind of how it goes again just
+this is kind of how it goes again just interview how it works over time you
+interview how it works over time you have our matchmaker and a player comes
+have our matchmaker and a player comes and says hey I'd like to play and then
+and says hey I'd like to play and then he waits because there's no one else to
+he waits because there's no one else to match me equipment with him yet then
+match me equipment with him yet then another player comes along then the
+another player comes along then the matchmaker says well these two aren't
+matchmaker says well these two aren't quite a good match I'll wait a little
+quite a good match I'll wait a little bit longer because there could be
+bit longer because there could be something better come along player three
+something better come along player three comes along and it says well player
+comes along and it says well player three still not great but player one's
+three still not great but player one's been waiting for a while and it's better
+been waiting for a while and it's better than matching against player two so I
+than matching against player two so I guess we'll create that match at player
+guess we'll create that match at player one and three they'll play the other and
+one and three they'll play the other and then player four comes along and it's
+then player four comes along and it's like Oh player four would have been the
+like Oh player four would have been the perfect match with player one oh well
+perfect match with player one oh well too late now I guess four will get to go
+too late now I guess four will get to go play with player two and we'll just
+play with player two and we'll just settle for it now you've noticed what I
+settle for it now you've noticed what I mentioned that it it could say to itself
+mentioned that it it could say to itself Oh player four would have been perfect
+Oh player four would have been perfect and that's because if the matchmaker
+and that's because if the matchmaker knew what was coming it could create
+knew what was coming it could create optimal matches they could have waited
+optimal matches they could have waited for player four it would have known oh
+for player four it would have known oh wait player four is gonna come I know
+wait player four is gonna come I know it's gonna I know player four is coming
+it's gonna I know player four is coming and so I'll wait and then when player 4
+and so I'll wait and then when player 4 comes like if player one a better match
+comes like if player one a better match than I have been giving him and so if
+than I have been giving him and so if matchmakers knew the whole future then
+matchmakers knew the whole future then you could solve matchmaking just with
+you could solve matchmaking just with combinatorial optimization
+combinatorial optimization over the known future so the idea here
+over the known future so the idea here the key point for this presentation for
+the key point for this presentation for how this method works is we'll use
+how this method works is we'll use machine learning to predict what's
+machine learning to predict what's coming and then because we know what's
+coming and then because we know what's coming we can just use optimization
+coming we can just use optimization methods to create these massive these
+methods to create these massive these matches but before we get to anything
+matches but before we get to anything too fancy let's start with how
+too fancy let's start with how conventional matchmakers work today and
+conventional matchmakers work today and then use that as a jumping off point to
+then use that as a jumping off point to see how it can improve them and where
+see how it can improve them and where the machine learning comes in so when we
+the machine learning comes in so when we first create a matchmaker today we
+first create a matchmaker today we generally start by setting up a set of
+generally start by setting up a set of rules for the matchmaker to use to
+rules for the matchmaker to use to create matches and here I've given the
+create matches and here I've given the example of the types of rules that we
+example of the types of rules that we need first we definitely need to define
+need first we definitely need to define what a match looks like so in this case
+what a match looks like so in this case we need to let the matchmaker know that
+we need to let the matchmaker know that hey we need eight players and we need
+hey we need eight players and we need them as two teams of four and then often
+them as two teams of four and then often you have some kind of expansion over
+you have some kind of expansion over latency where you say hey we really want
+latency where you say hey we really want the latency between our between the
+the latency between our between the players and the server's are playing on
+players and the server's are playing on to be no more than 50 milliseconds but
+to be no more than 50 milliseconds but as the players weight will excrete
+as the players weight will excrete increase that tolerance to allow to up
+increase that tolerance to allow to up to 200 milliseconds you also tend to do
+to 200 milliseconds you also tend to do a similar thing with the skill gap it
+a similar thing with the skill gap it starts small and grows over time you
+starts small and grows over time you also have some bookkeeping type of awk
+also have some bookkeeping type of awk of variables to match on like the build
+of variables to match on like the build versions need to match the players need
+versions need to match the players need to be playing the same game there the
+to be playing the same game there the game needs to be able to talk to the
+game needs to be able to talk to the server and playlists must must match
+server and playlists must must match which in Halo we use playlists identify
+which in Halo we use playlists identify what players are asking to play we can
+what players are asking to play we can players can only play with each other on
+players can only play with each other on MUC game modes that they both want to
+MUC game modes that they both want to play together so you have some simple
+play together so you have some simple values like that
+values like that so this set of rules that tells the
+so this set of rules that tells the matchmaker these things need to match up
+matchmaker these things need to match up for our players for fun here's sort of
+for our players for fun here's sort of an example of what that looks like in
+an example of what that looks like in like JSON the highlighted area show kind
+like JSON the highlighted area show kind of how we would set up an expansion rule
+of how we would set up an expansion rule where we're saying hey you know we want
+where we're saying hey you know we want them to have start off at a difference
+them to have start off at a difference of point two and skill in this in this
+of point two and skill in this in this case but you can increase that over time
+case but you can increase that over time by a certain amount up to a certain
+by a certain amount up to a certain point don't get too hung up on that but
+point don't get too hung up on that but that's kind of how that works this is
+that's kind of how that works this is how we're setting up rules the key thing
+how we're setting up rules the key thing to notice here is that a rule is
+to notice here is that a rule is generally a set of numbers
+generally a set of numbers and that's where later on had to give a
+and that's where later on had to give a little bit of a hint we're optimizing
+little bit of a hint we're optimizing over a set of numbers which there's a
+over a set of numbers which there's a lot of pretty straightforward ways to
+lot of pretty straightforward ways to optimize over numbers if you know what
+optimize over numbers if you know what to look for so again the matchmaker has
+to look for so again the matchmaker has this set of rules and over time players
+this set of rules and over time players are coming in and it's looking at those
+are coming in and it's looking at those rules and using them to set up those
+rules and using them to set up those matches and we're an actual request from
+matches and we're an actual request from a player will look something like this
+a player will look something like this the players sending over a creation time
+the players sending over a creation time because the matchmaker needs to keep
+because the matchmaker needs to keep track of how long is the player waited
+track of how long is the player waited it's sending over an ID of the player so
+it's sending over an ID of the player so it knows who is who it tells us how good
+it knows who is who it tells us how good the player is something about their
+the player is something about their location in maybe in the form of a
+location in maybe in the form of a latency table I give the example here
+latency table I give the example here that if a player's favorite data center
+that if a player's favorite data center is east us then you could also just say
+is east us then you could also just say that they are in East us player rather
+that they are in East us player rather than keeping all of the ping information
+than keeping all of the ping information it just depends on what your goals are
+it just depends on what your goals are and like I said again the player is
+and like I said again the player is going to indicate their playlist ID what
+going to indicate their playlist ID what they actually want to play and they're
+they actually want to play and they're gonna have some information about their
+gonna have some information about their build version other more bookkeeping
+build version other more bookkeeping type items and so the matchmaker
+type items and so the matchmaker compares for quests of this nature
+compares for quests of this nature between different players it checks each
+between different players it checks each rule that it has and decides whether or
+rule that it has and decides whether or not Bob can match Alice so for example
+not Bob can match Alice so for example it checks hey is the skill gap between
+it checks hey is the skill gap between these two less than ten in this case
+these two less than ten in this case it's five for Alice's 32 Bob is 27 so
+it's five for Alice's 32 Bob is 27 so they can match that's okay and if all
+they can match that's okay and if all the rules pass then then two players two
+the rules pass then then two players two teams whatever have you are able to
+teams whatever have you are able to match and play together now there's some
+match and play together now there's some issues with this approach though as
+issues with this approach though as you'll notice first these rules apply
+you'll notice first these rules apply globally to all players in the world
+globally to all players in the world that are matchmaking which means the
+that are matchmaking which means the same threshold the same gaps that are
+same threshold the same gaps that are allowed are the same everywhere and this
+allowed are the same everywhere and this can be an issue because it may be that
+can be an issue because it may be that if I'm in the UK and I have to play
+if I'm in the UK and I have to play against a u.s. player I may want a
+against a u.s. player I may want a tighter skill gap in that situation then
+tighter skill gap in that situation then I would be willing to accept if I were
+I would be willing to accept if I were to play locally I might be okay
+to play locally I might be okay sacrificing a bit of fairness if my
+sacrificing a bit of fairness if my latency at my connection to the server
+latency at my connection to the server is better so that creates a bit of an
+is better so that creates a bit of an issue already
+issue already and also these rules tend to be static
+and also these rules tend to be static they tend to be the same whether you are
+they tend to be the same whether you are in a time of
+in a time of high-population traffic or low
+high-population traffic or low population traffic and what that means
+population traffic and what that means is during off-peak hours the players
+is during off-peak hours the players will always wait for your rules to
+will always wait for your rules to expand if you're using rules of that
+expand if you're using rules of that type that expand if your rules are
+type that expand if your rules are saying look for a good match but then
+saying look for a good match but then wait for a while and accept a bad match
+wait for a while and accept a bad match then you are building in a wait time
+then you are building in a wait time that is unnecessary in your off-peak
+that is unnecessary in your off-peak hours because those better matches
+hours because those better matches they're just not ever going to happen so
+they're just not ever going to happen so why are you making your players wait for
+why are you making your players wait for them and that's a general point of this
+them and that's a general point of this talk is if your matchmaker was a bit
+talk is if your matchmaker was a bit smarter it would never make your players
+smarter it would never make your players wait for matches that it knew we're not
+wait for matches that it knew we're not going to happen so if your only takeaway
+going to happen so if your only takeaway that you take back to your game is hey
+that you take back to your game is hey let's measure some real-time statistics
+let's measure some real-time statistics on our population and on our ticket
+on our population and on our ticket rates and then don't expand and so just
+rates and then don't expand and so just change our rules real time so that when
+change our rules real time so that when the pop goes down they are immediately
+the pop goes down they are immediately start off pre expanded you will already
+start off pre expanded you will already have a nice improvement for your players
+have a nice improvement for your players in terms of wait time at least so static
+in terms of wait time at least so static rules are inflexible causes some
+rules are inflexible causes some problems and there's some consequences
+problems and there's some consequences that all of these kind of come together
+that all of these kind of come together to cause in terms of both your making
+to cause in terms of both your making players wait yeah you're not dealing
+players wait yeah you're not dealing with the regional versus global
+with the regional versus global differences between them and here's kind
+differences between them and here's kind of what happens when you do that so
+of what happens when you do that so before I get into that let me define a
+before I get into that let me define a term I'm going to show to show you what
+term I'm going to show to show you what happens because of this and that term is
+happens because of this and that term is predictability predictability is a
+predictability predictability is a measure we use to tell us how often the
+measure we use to tell us how often the better team wins and so it's sort of a
+better team wins and so it's sort of a measure of unfairness so if it was 50
+measure of unfairness so if it was 50 percent that would mean that this match
+percent that would mean that this match is unpredictable between the two teams
+is unpredictable between the two teams and so because it's a perfectly fair
+and so because it's a perfectly fair match it's close to a draw
+match it's close to a draw but if it's like 90 percent that means
+but if it's like 90 percent that means the better team is winning nine out of
+the better team is winning nine out of ten times and it's just not as fair so I
+ten times and it's just not as fair so I will be referencing predictability as a
+will be referencing predictability as a measure of fairness as it throughout the
+measure of fairness as it throughout the talk and that's what that means can can
+talk and that's what that means can can the can can the worst team have a shot
+the can can the worst team have a shot at winning that match so let's look at
+at winning that match so let's look at some graphs again to show the
+some graphs again to show the consequences of using these conventional
+consequences of using these conventional matchmaking so on the Left what I'm
+matchmaking so on the Left what I'm showing here and the first graph is how
+showing here and the first graph is how many players are looking for a match and
+many players are looking for a match and you'll notice there's a pretty wide
+you'll notice there's a pretty wide swing between
+swing between bottom in the top here and that wide
+bottom in the top here and that wide swing is what leads to some of these
+swing is what leads to some of these problems that we've talked about and
+problems that we've talked about and that first one is here is the wait time
+that first one is here is the wait time that during high population times
+that during high population times players are waiting for about 20 seconds
+players are waiting for about 20 seconds for match but that goes up to close to
+for match but that goes up to close to 60 70 80 seconds a mat of wait time so
+60 70 80 seconds a mat of wait time so their wait time is increasing a lot
+their wait time is increasing a lot because of that shift in population in
+because of that shift in population in addition you see the same type of effect
+addition you see the same type of effect on other metrics that may be important
+on other metrics that may be important to you like on the left here there's
+to you like on the left here there's that predictability metric I mentioned
+that predictability metric I mentioned player fairness is going from being
+player fairness is going from being somewhat fair at at about 70 percent
+somewhat fair at at about 70 percent chance for the best team to win all the
+chance for the best team to win all the way up to like near a hundred percent
+way up to like near a hundred percent chance they will win every time this is
+chance they will win every time this is a pretty big change over time in
+a pretty big change over time in consistency of the match fairness and
+consistency of the match fairness and you see a similar issue with latency
+you see a similar issue with latency that players during the good population
+that players during the good population times of the day high traffic they're
+times of the day high traffic they're having very very good latency this is
+having very very good latency this is access latency meaning over what you
+access latency meaning over what you would get on compared to what your best
+would get on compared to what your best you could have in which case players are
+you could have in which case players are an average going from around 1012
+an average going from around 1012 latency all the way up to close to 100
+latency all the way up to close to 100 milliseconds of latency as the day
+milliseconds of latency as the day changes now with this graph I'm trying
+changes now with this graph I'm trying to illustrate an even worse aspect of
+to illustrate an even worse aspect of having these static rules for
+having these static rules for matchmaking what this graph shows is the
+matchmaking what this graph shows is the trade-off between wait time which is on
+trade-off between wait time which is on the x-axis and predictability on the
+the x-axis and predictability on the y-axis you want that predictability to
+y-axis you want that predictability to be close to 50% you want it to be as low
+be close to 50% you want it to be as low as you can go the optimal point of this
+as you can go the optimal point of this graph would be the bottom left corner
+graph would be the bottom left corner and along this curve you will see what
+and along this curve you will see what your options are for that trade-off how
+your options are for that trade-off how long do you want to make your players
+long do you want to make your players wait to get what predictability you want
+wait to get what predictability you want now in static rule matchmaking though
+now in static rule matchmaking though you usually pick a predictability and
+you usually pick a predictability and you just deal with whatever the wait
+you just deal with whatever the wait time is but this graph shows us that
+time is but this graph shows us that there's sort of an optimal point at that
+there's sort of an optimal point at that knee of the curve depending on what's
+knee of the curve depending on what's important to you as a designer but
+important to you as a designer but ideally you're not going to want to make
+ideally you're not going to want to make a player wait as if you look at this
+a player wait as if you look at this graph and you're making them wait 134
+graph and you're making them wait 134 seconds for a match that is 52 percent
+seconds for a match that is 52 percent predictability and that's pretty good
+predictability and that's pretty good that means your your worst players are
+that means your your worst players are having a forty eight percent chance to
+having a forty eight percent chance to win you could but if you were going for
+win you could but if you were going for 51 percent
+51 percent you have to more than double their wait
+you have to more than double their wait time it looks like here so at that point
+time it looks like here so at that point is it really reasonable to keep
+is it really reasonable to keep increasing the fairness where the amount
+increasing the fairness where the amount of fairness you're going to get out of a
+of fairness you're going to get out of a long wait time isn't worth it anymore
+long wait time isn't worth it anymore it's just going up too high
+it's just going up too high now that's and that tends to be a
+now that's and that tends to be a problem with the static rule it's never
+problem with the static rule it's never going to capture what this graph looks
+going to capture what this graph looks like because this graph changes
+like because this graph changes throughout the day and there are going
+throughout the day and there are going to be a different good point to pick
+to be a different good point to pick depending on what time of day it is if
+depending on what time of day it is if it's a low traffic part of the day
+it's a low traffic part of the day you're going to want to wait at much
+you're going to want to wait at much less of waiting a long time it's going
+less of waiting a long time it's going to get not going to buy you very much in
+to get not going to buy you very much in terms of how good your matches so this
+terms of how good your matches so this just shows another kind of trade-off
+just shows another kind of trade-off between just fairness and wait time
+between just fairness and wait time that's important to matchmaking so again
+that's important to matchmaking so again let's review the consequences of
+let's review the consequences of choosing the current conventional way
+choosing the current conventional way that we match me so conventional
+that we match me so conventional matchmaking what we have there is uh we
+matchmaking what we have there is uh we ignore the real timing incoming request
+ignore the real timing incoming request rate at a given time of day we don't
+rate at a given time of day we don't take into account that there's a lot
+take into account that there's a lot more people looking for matches right
+more people looking for matches right now than usual or vice-versa we also
+now than usual or vice-versa we also were to ignore the skilled distribution
+were to ignore the skilled distribution at that time of day like we don't look
+at that time of day like we don't look at are there good players around right
+at are there good players around right now and we don't look at regional
+now and we don't look at regional distribution in folks maybe the
+distribution in folks maybe the population traffic is low globally but
+population traffic is low globally but it's high and say the EU at which point
+it's high and say the EU at which point we would want you players to be able to
+we would want you players to be able to have a different matchmaking preference
+have a different matchmaking preference and this results in either long wait
+and this results in either long wait times as players wait for rules to
+times as players wait for rules to expand and firt to learn that as the
+expand and firt to learn that as the system tries to account for the fact
+system tries to account for the fact that population traffic has changed or
+that population traffic has changed or we have to deal with it and accept
+we have to deal with it and accept matches that we know are bad in order to
+matches that we know are bad in order to have faster wait times neither of which
+have faster wait times neither of which are really that great so and and why
+are really that great so and and why would we give players an extra long
+would we give players an extra long match an extra long wait time followed
+match an extra long wait time followed by just as bad a match it's like the
+by just as bad a match it's like the worst of both worlds they're getting
+worst of both worlds they're getting both long waits and bad matches so we
+both long waits and bad matches so we need a more optimal approach to do this
+need a more optimal approach to do this and this is where we come into the
+and this is where we come into the approach that we decided to look at and
+approach that we decided to look at and before we talk about optimal we have to
+before we talk about optimal we have to define what is optimal and for us in
+define what is optimal and for us in order to define that we came up with a
+order to define that we came up with a utility function so we can actually put
+utility function so we can actually put a number on optimal so our matchmaker
+a number on optimal so our matchmaker could optimize over that value in
+could optimize over that value in addition this approach uses real time
+addition this approach uses real time statistics we look at both the arrival
+statistics we look at both the arrival rate of players and their skill
+rate of players and their skill distribution and we take into account
+distribution and we take into account that by region so we know how many
+that by region so we know how many players in each region are coming in for
+players in each region are coming in for matches and we know what their skill
+matches and we know what their skill distribution is at any time of the day
+distribution is at any time of the day then we use machine learning in order to
+then we use machine learning in order to predict what's going to happen in the
+predict what's going to happen in the future so that we can you then use an
+future so that we can you then use an optimizer to optimize over those future
+optimizer to optimize over those future matches that we predict will happen and
+matches that we predict will happen and so let's define again what optimal is
+so let's define again what optimal is because we have a utility function that
+because we have a utility function that gives us a number that we put on optimal
+gives us a number that we put on optimal and to do this we just wait a number of
+and to do this we just wait a number of metrics we feel are important or we let
+metrics we feel are important or we let our designers weight them and the
+our designers weight them and the metrics we chose for our approach for
+metrics we chose for our approach for weight time we assume that players don't
+weight time we assume that players don't want to wait forever we assume skill gap
+want to wait forever we assume skill gap is important and we represent that as
+is important and we represent that as predictability as I explained earlier we
+predictability as I explained earlier we also have something called equal run win
+also have something called equal run win rate which is basically do bad players
+rate which is basically do bad players win just as much as good players and is
+win just as much as good players and is that important to you or can you have
+that important to you or can you have decent skill gaps but it's always in the
+decent skill gaps but it's always in the favor of the of the good players is that
+favor of the of the good players is that important or not and of course latency
+important or not and of course latency how important is it that players have
+how important is it that players have good ping on the servers that they play
+good ping on the servers that they play on and so what what this method does
+on and so what what this method does which we call true match is it adapts in
+which we call true match is it adapts in real-time to optimize those metrics and
+real-time to optimize those metrics and matches so again it is using real-time
+matches so again it is using real-time statistics predicting what's coming and
+statistics predicting what's coming and then just optimizing over our utility
+then just optimizing over our utility function to give the type of matches
+function to give the type of matches that our designers have told us are
+that our designers have told us are important so before going into any more
+important so before going into any more details let's look at a high level
+details let's look at a high level comparison between our proposed changes
+comparison between our proposed changes and conventional matchmaking so here's
+and conventional matchmaking so here's some of the important aspects we wanted
+some of the important aspects we wanted we want to call out first tuning rather
+we want to call out first tuning rather than tuning the values of your match
+than tuning the values of your match maker by hand true match will do for you
+maker by hand true match will do for you real time throughout the day and
+real time throughout the day and automatically you don't have to do those
+automatically you don't have to do those hand to knee and this means that instead
+hand to knee and this means that instead of being able to only tune once a month
+of being able to only tune once a month or whenever players complained you just
+or whenever players complained you just let true master the tuning for you all
+let true master the tuning for you all the time and in addition an important
+the time and in addition an important aspect of what you can do with true
+aspect of what you can do with true match is that instead of your rules
+match is that instead of your rules applying only globally to everybody
+applying only globally to everybody true match can can customize those rules
+true match can can customize those rules to apply to players and regions
+to apply to players and regions specifically so every region and every
+specifically so every region and every skill bucket has its own set of rules to
+skill bucket has its own set of rules to help it optimize its own matchmaking and
+help it optimize its own matchmaking and in addition this allows us to do
+in addition this allows us to do predictions at our region and a skill
+predictions at our region and a skill level so we can tell a player how long
+level so we can tell a player how long they will wait and that wait time is
+they will wait and that wait time is customized by that players region where
+customized by that players region where they're at and with their skill level
+they're at and with their skill level lists which is a great which is great
+lists which is a great which is great for players it also means that because
+for players it also means that because we have these predictions if a
+we have these predictions if a prediction doesn't look like what
+prediction doesn't look like what actually happens and this happens
+actually happens and this happens consistently that can we can do some
+consistently that can we can do some form of automatic alerting we can have
+form of automatic alerting we can have the system let us know hey there's
+the system let us know hey there's something wrong going on traumatic isn't
+something wrong going on traumatic isn't able to predict correctly that
+able to predict correctly that something's going on that's unexpected
+something's going on that's unexpected right now those types of things are a
+right now those types of things are a lot more difficult to catch in standard
+lot more difficult to catch in standard conventional matchmaking when
+conventional matchmaking when matchmaking is not working out the way
+matchmaking is not working out the way you think it should you often don't find
+you think it should you often don't find out about it until players start
+out about it until players start complaining so it gives us some nice
+complaining so it gives us some nice automated monitoring and alerting so in
+automated monitoring and alerting so in addition right now the system which we
+addition right now the system which we call true match is has launched with
+call true match is has launched with Gears of War 5 and in Halo 5 we've
+Gears of War 5 and in Halo 5 we've switched over to it and there's some
+switched over to it and there's some potential here to make it a standard
+potential here to make it a standard service that third-party folks can use
+service that third-party folks can use as well so let's get back to talking
+as well so let's get back to talking about our utility function and we review
+about our utility function and we review that so we have this we call a unified
+that so we have this we call a unified objective function every match is going
+objective function every match is going to have a wait time it's going to have a
+to have a wait time it's going to have a skill gap it's going to have a player
+skill gap it's going to have a player all the players Layton sees from within
+all the players Layton sees from within the match and we can measure wind rates
+the match and we can measure wind rates over our sections of our population that
+over our sections of our population that can all go into a single value that
+can all go into a single value that represents the utility of our system of
+represents the utility of our system of a match of a certain amount of time of
+a match of a certain amount of time of day of a region whatever we would like
+day of a region whatever we would like that utility to be and those like
+that utility to be and those like equations versus looking at graphs this
+equations versus looking at graphs this is kind of what our utility equation
+is kind of what our utility equation looks like it's a weighted sum over
+looks like it's a weighted sum over these items that we think are important
+these items that we think are important now something that we tend to do to make
+now something that we tend to do to make it easy for designers to use then we set
+it easy for designers to use then we set the weight weight on wait time to be
+the weight weight on wait time to be just 1 what and what that means is that
+just 1 what and what that means is that all of the other weights
+all of the other weights how long you would wait to have one more
+how long you would wait to have one more better of each of those so for example
+better of each of those so for example if you set w3 for latency if you set
+if you set w3 for latency if you set that to ten you're willing to wait ten
+that to ten you're willing to wait ten more seconds for one millisecond better
+more seconds for one millisecond better of latency and that makes it easier for
+of latency and that makes it easier for our designers to trade off how important
+our designers to trade off how important each of these items are they can trade
+each of these items are they can trade them off directly on time 1% more
+them off directly on time 1% more predictability is one second more of
+predictability is one second more of wait time that's what we tell that's
+wait time that's what we tell that's what we can put into our utility which
+what we can put into our utility which is very nice and there's some nice ways
+is very nice and there's some nice ways we can use these utility functions we
+we can use these utility functions we don't have to use them at the global
+don't have to use them at the global level we could actually put a utility
+level we could actually put a utility function on every game title and even
+function on every game title and even drill down to every player they can have
+drill down to every player they can have each have their own utility function to
+each have their own utility function to tell the matchmaker what's important to
+tell the matchmaker what's important to them they also are really nice to use to
+them they also are really nice to use to evaluate any change you make to
+evaluate any change you make to matchmaking because if you already know
+matchmaking because if you already know what is important to you then changing
+what is important to you then changing other aspects outside of that will
+other aspects outside of that will change the utility and you can then see
+change the utility and you can then see if that utility is still what you wanted
+if that utility is still what you wanted it to be if you're still meeting the
+it to be if you're still meeting the goals now if you have some already
+goals now if you have some already existing thresholds and gaps that you're
+existing thresholds and gaps that you're using in your matchmaker we've had we
+using in your matchmaker we've had we have a few ways we've used that I won't
+have a few ways we've used that I won't go too much into detail on right now for
+go too much into detail on right now for time but it's not difficult to
+time but it's not difficult to reverse-engineer those values to what
+reverse-engineer those values to what weights they would want to be in your
+weights they would want to be in your utility function and so now it's the
+utility function and so now it's the step back at a high level again and look
+step back at a high level again and look at how the true match algorithm actually
+at how the true match algorithm actually works what it's what it's sort of path
+works what it's what it's sort of path is that it takes but it's act the actual
+is that it takes but it's act the actual steps it goes through so first it's
+steps it goes through so first it's going to count the requests it's seeing
+going to count the requests it's seeing by type so that's regular intervals true
+by type so that's regular intervals true match measure measures how many players
+match measure measures how many players are we seeing in each region in every
+are we seeing in each region in every different skill bucket that's important
+different skill bucket that's important to us and that lets true match have a
+to us and that lets true match have a good idea of what type of players are
+good idea of what type of players are coming in what does the population look
+coming in what does the population look like right now that lets us predict what
+like right now that lets us predict what is going to come soon and so then we
+is going to come soon and so then we have as an optimizer which then chooses
+have as an optimizer which then chooses the best rules given what we expect from
+the best rules given what we expect from that population count to create the best
+that population count to create the best matches to create the best utility
+matches to create the best utility because it now know
+because it now know what's coming and after we've chosen
+what's coming and after we've chosen those rules it dead match makes and
+those rules it dead match makes and players play matches and they see what
+players play matches and they see what happens and then after that we measure
+happens and then after that we measure the results true match we'll look at
+the results true match we'll look at okay I made these types of matches did
+okay I made these types of matches did they match what I'd hoped would happen
+they match what I'd hoped would happen with these players did they get the
+with these players did they get the matches I wanted them to have and did
+matches I wanted them to have and did the population behave how I expected and
+the population behave how I expected and using those measurements true match then
+using those measurements true match then updates itself it updates the way that
+updates itself it updates the way that it understands how to connect those
+it understands how to connect those counts that's getting with what action
+counts that's getting with what action is going to happen when we match make
+is going to happen when we match make and after it's updated itself to be more
+and after it's updated itself to be more accurate for that time of day it then
+accurate for that time of day it then goes back and recounts again to see what
+goes back and recounts again to see what population looks like and we keep going
+population looks like and we keep going on this cycle yeah a typical cycle time
+on this cycle yeah a typical cycle time could be about 15 minutes where it is
+could be about 15 minutes where it is constantly measuring the population
+constantly measuring the population changing the matchmaking rules
+changing the matchmaking rules themselves and also improving its own
+themselves and also improving its own ability to do the matchmaking to do
+ability to do the matchmaking to do those estimates to create those rules so
+those estimates to create those rules so let's we'll take some time and go into
+let's we'll take some time and go into these these sections a little more in
+these these sections a little more in detail so let's talk about the
+detail so let's talk about the components of true match I talked about
+components of true match I talked about counting so the first component we have
+counting so the first component we have here is the population tracker that's
+here is the population tracker that's kind of where discounting happens the
+kind of where discounting happens the player request for matchmaking go into
+player request for matchmaking go into the population tracker and it tracks how
+the population tracker and it tracks how many players are coming in of each
+many players are coming in of each different type it then creates a
+different type it then creates a population model which is just a simpler
+population model which is just a simpler version of all the requests that are
+version of all the requests that are coming in to explain to the true match
+coming in to explain to the true match system what it expects to happen what
+system what it expects to happen what what what what the population currently
+what what what the population currently looks like sorry not as much what's
+looks like sorry not as much what's going to happen but what the population
+going to happen but what the population looks like right now then we have a
+looks like right now then we have a little system called the metric
+little system called the metric predictor it's job is to take the
+predictor it's job is to take the current model of the population and use
+current model of the population and use that to predict what would happen given
+that to predict what would happen given the matchmaking rules so there's already
+the matchmaking rules so there's already some rules set up there's some default
+some rules set up there's some default rules that are made at initialization
+rules that are made at initialization that exist the metric predictor will
+that exist the metric predictor will take the rules state as it is right now
+take the rules state as it is right now and take the population model and then
+and take the population model and then it will predict this is where some of
+it will predict this is where some of that machine learning comes in it'll
+that machine learning comes in it'll predict okay if this is the population
+predict okay if this is the population and if these are your current
+and if these are your current matchmaking rules
+matchmaking rules this is what I expect to happen if you
+this is what I expect to happen if you match make that way so it then tells the
+match make that way so it then tells the optimizer this is the expected utility
+optimizer this is the expected utility of the matches that will be made because
+of the matches that will be made because of the rules that you gave me this lets
+of the rules that you gave me this lets the optimizer decide whether it likes
+the optimizer decide whether it likes that expected utility and if not it can
+that expected utility and if not it can change itself before any matches
+change itself before any matches actually have been made it can change
+actually have been made it can change itself based on the predicted utility
+itself based on the predicted utility and create better rules for the Matt for
+and create better rules for the Matt for the better rules for matchmaking before
+the better rules for matchmaking before the players use them and it could go
+the players use them and it could go through a few cycles of this improving
+through a few cycles of this improving the rules before they're actually
+the rules before they're actually applied so again we've modeled the
+applied so again we've modeled the population we predict based on the rules
+population we predict based on the rules and that model what's going to happen
+and that model what's going to happen with those rules and then we tell them
+with those rules and then we tell them optimizer to do a better job in a conic
+optimizer to do a better job in a conic so you can do that so let's dig in a
+so you can do that so let's dig in a little bit onto how that population
+little bit onto how that population tracking actually works just a little
+tracking actually works just a little bit the population tracker needs to take
+bit the population tracker needs to take a stream of requests coming in from the
+a stream of requests coming in from the players and create a population model to
+players and create a population model to inform our metric predictor and the way
+inform our metric predictor and the way we do that is we assume that the
+we do that is we assume that the population isn't changing too fast that
+population isn't changing too fast that the population rate isn't going to
+the population rate isn't going to change too much right now and that
+change too much right now and that actually tends to be reasonable and then
+actually tends to be reasonable and then we need to be able to return to the
+we need to be able to return to the metric predictor what we can about what
+metric predictor what we can about what the population looks like right now and
+the population looks like right now and there's a few ways to do that a simple
+there's a few ways to do that a simple way would just be to use a circular
+way would just be to use a circular buffer where you just hold on to the
+buffer where you just hold on to the last say thousand requests and then you
+last say thousand requests and then you use those thousand requests to calculate
+use those thousand requests to calculate on-the-fly
+on-the-fly the statistics of the players that have
+the statistics of the players that have come in and handoff just basically to
+come in and handoff just basically to say okay in the last thousand matches
+say okay in the last thousand matches this percent came from EU and this is
+this percent came from EU and this is what the skill distribution of those
+what the skill distribution of those players were that's kind of what the
+players were that's kind of what the Metra predictor needs to know about
+Metra predictor needs to know about maybe a more compact way would it be to
+maybe a more compact way would it be to be something more like a histogram or
+be something more like a histogram or you're tracking the counts of the number
+you're tracking the counts of the number of players you've seen within a certain
+of players you've seen within a certain bucket of skill and within the different
+bucket of skill and within the different buckets of Regents and that's more in
+buckets of Regents and that's more in practice what we do so that we can in
+practice what we do so that we can in theory have millions of players being
+theory have millions of players being represented in just a compact histogram
+represented in just a compact histogram and be going a little more detail onto
+and be going a little more detail onto what this ends up giving us is we stored
+what this ends up giving us is we stored those request rates and
+those request rates and given a request type we can then return
+given a request type we can then return the rates of that type at any given time
+the rates of that type at any given time and by type
+and by type I mean I'm combining what skill bucket
+I mean I'm combining what skill bucket were you in and what region bucket you
+were you in and what region bucket you were you in and so the example here at
+were you in and so the example here at the bottom is what it might look like
+the bottom is what it might look like I'm a Brazilian player for in Brazil we
+I'm a Brazilian player for in Brazil we are seeing 0.01 requests per second for
+are seeing 0.01 requests per second for example for players between skills 0.3
+example for players between skills 0.3 and point 4 we've got a skill bucket and
+and point 4 we've got a skill bucket and we have a region and for all the regions
+we have a region and for all the regions and all the skill buckets the population
+and all the skill buckets the population model can tell the Metra predictor what
+model can tell the Metra predictor what those rates look like so it knows what
+those rates look like so it knows what the population looks like real time and
+the population looks like real time and again customized by skill and region and
+again customized by skill and region and so with the Metra predictor can do with
+so with the Metra predictor can do with that is if it knows the population model
+that is if it knows the population model and it also knows the rules that the
+and it also knows the rules that the matchmaker is currently using it can
+matchmaker is currently using it can predict using those rules
+predict using those rules what kind of matchmaking is going to
+what kind of matchmaking is going to happen it'll predict for every region
+happen it'll predict for every region and for every skill bucket the wait time
+and for every skill bucket the wait time for those players what their pings are
+for those players what their pings are going to be how fair the matches is are
+going to be how fair the matches is are going to be and it makes those
+going to be and it makes those predictions for every single match and
+predictions for every single match and then eventually it gets back what
+then eventually it gets back what actually happened it finds out per
+actually happened it finds out per ticket how long did this player actually
+ticket how long did this player actually wait what was his real latency what was
+wait what was his real latency what was the fairness of that match and because
+the fairness of that match and because it gets those actual metrics back the
+it gets those actual metrics back the metric predictor can then use machine
+metric predictor can then use machine learning to update its own internal
+learning to update its own internal model of how the population and the
+model of how the population and the rules connects to those predicted
+rules connects to those predicted metrics and because it becomes more
+metrics and because it becomes more accurate it's feeding that information
+accurate it's feeding that information later into the optimizer which can then
+later into the optimizer which can then optimize more accurately and we'll go a
+optimize more accurately and we'll go a little bit more into more details about
+little bit more into more details about that because that metric predictor has
+that because that metric predictor has what are called free parameters inside
+what are called free parameters inside of it that are tuned with that feedback
+of it that are tuned with that feedback so let's go a little bit more in so so
+so let's go a little bit more in so so yeah let's go more into that how that
+yeah let's go more into that how that Metra predictor works so for each of
+Metra predictor works so for each of those metrics for latency for fairness
+those metrics for latency for fairness for wait time each of those has its own
+for wait time each of those has its own formula you can think of that formula as
+formula you can think of that formula as a mini little machine learning model
+a mini little machine learning model each of those formulas because it's like
+each of those formulas because it's like a little machine learning model has some
+a little machine learning model has some parameters inside
+parameters inside that are updated and adapted over time
+that are updated and adapted over time given the real given the reality of what
+given the real given the reality of what happened so there can be more and more
+happened so there can be more and more accurate about its predictions and
+accurate about its predictions and that's important and so women will step
+that's important and so women will step into a little bit of a quick example of
+into a little bit of a quick example of how one of our formulas work and that is
+how one of our formulas work and that is the wait time formula this is pretty
+the wait time formula this is pretty important because this is how the model
+important because this is how the model knows what the wait time is going to be
+knows what the wait time is going to be it's going to predict on average how
+it's going to predict on average how long players are going to wait and that
+long players are going to wait and that prediction is important to the optimizer
+prediction is important to the optimizer because it's going to update the rules
+because it's going to update the rules based on the predictions about the wait
+based on the predictions about the wait time and so the optimizer can look at
+time and so the optimizer can look at this prediction and say oh if I make the
+this prediction and say oh if I make the rules this way players are going to wait
+rules this way players are going to wait too long so let me adjust the rules and
+too long so let me adjust the rules and then I will ask the Metra predictor
+then I will ask the Metra predictor again okay what about these this set of
+again okay what about these this set of rules how long will they wait with this
+rules how long will they wait with this set and the vector predictor can then
+set and the vector predictor can then give back a prediction in the optimizer
+give back a prediction in the optimizer can then say okay that's fine I don't
+can then say okay that's fine I don't need to change any more so let's talk
+need to change any more so let's talk about what just one of those formulas
+about what just one of those formulas look like that I call sort of a mini
+look like that I call sort of a mini machine learning model so this version
+machine learning model so this version on this slide is not the adaptable
+on this slide is not the adaptable adaptive sort of machine learning
+adaptive sort of machine learning version this is just a static
+version this is just a static approximation to what the wait time will
+approximation to what the wait time will be given what it knows about how many
+be given what it knows about how many requests are likely to be able to match
+requests are likely to be able to match with player T so I got this beaten for
+with player T so I got this beaten for every player whose player T there's some
+every player whose player T there's some set of matches that he can match with
+set of matches that he can match with given that this formula don't worry too
+given that this formula don't worry too much about the details of this formula
+much about the details of this formula it's not as important just to know that
+it's not as important just to know that there is one it says this you could
+there is one it says this you could reverse-engineer this if you want don't
+reverse-engineer this if you want don't do in your head right now but this will
+do in your head right now but this will return a wait time for 1v1 matches now
+return a wait time for 1v1 matches now so that's the first problem right our
+so that's the first problem right our matches are often for before so in order
+matches are often for before so in order to make this better without having to
+to make this better without having to manually figure out all the different
+manually figure out all the different aspects of matchmaking and population
+aspects of matchmaking and population dynamics that will modify this equation
+dynamics that will modify this equation we just add some parameters we add a
+we just add some parameters we add a scale which is the C and we add a shift
+scale which is the C and we add a shift which is B and both of these values are
+which is B and both of these values are just learned from the data so it just
+just learned from the data so it just learns based on the type of data it's
+learns based on the type of data it's getting back what it should actually how
+getting back what it should actually how it should modify slightly this
+it should modify slightly this formula to be more accurate in its
+formula to be more accurate in its predictions and so for a little bit of
+predictions and so for a little bit of intuition here that C value goes up
+intuition here that C value goes up depending on how many players are in
+depending on how many players are in each match so if it was just one V one
+each match so if it was just one V one then the value is one but as we add more
+then the value is one but as we add more players we are now calculating how long
+players we are now calculating how long do I need to wait for one more player
+do I need to wait for one more player and then another player so that just
+and then another player so that just scales up correctly in addition the
+scales up correctly in addition the buffering time that gets more to the
+buffering time that gets more to the point that most conventional matchmakers
+point that most conventional matchmakers and we we did build this on top of a
+and we we did build this on top of a conventional matchmaker will allow some
+conventional matchmaker will allow some men a time to gather the tickets
+men a time to gather the tickets together and that is a sort of a buffer
+together and that is a sort of a buffer fluff time that needs to be worked in to
+fluff time that needs to be worked in to the formula to account for and so that
+the formula to account for and so that it will learn how long that amount of
+it will learn how long that amount of time is for your particular matchmaking
+time is for your particular matchmaking population and matchmaker so this is
+population and matchmaker so this is just an example of the fact that it will
+just an example of the fact that it will improve and adapt the way it even just
+improve and adapt the way it even just predicts wait time all throughout the
+predicts wait time all throughout the day appropriately and without having to
+day appropriately and without having to be manually tuned and again there's a
+be manually tuned and again there's a formula just like this for every other
+formula just like this for every other aspect of the metric predictor and we
+aspect of the metric predictor and we don't have time to go into each of them
+don't have time to go into each of them but there's a similar one so that it is
+but there's a similar one so that it is even it's able to refine and become more
+even it's able to refine and become more and more accurate on how it predicts
+and more accurate on how it predicts what's gonna happen to fairness when we
+what's gonna happen to fairness when we tweak a rule what's going to happen to
+tweak a rule what's going to happen to latency when the rules changed so that
+latency when the rules changed so that is an extra beaut valuable input for our
+is an extra beaut valuable input for our optimizer which we will get to
+optimizer which we will get to so the optimizer so I keep talking about
+so the optimizer so I keep talking about this optimizer that makes rules somehow
+this optimizer that makes rules somehow now if you remember if you think back I
+now if you remember if you think back I showed you sort of an example what our
+showed you sort of an example what our rules look like at the very beginning
+rules look like at the very beginning and there are a bunch of numbers right
+and there are a bunch of numbers right it's it's a usually some variable like
+it's it's a usually some variable like skill gap some attribute like the skill
+skill gap some attribute like the skill gap and a value that says the skill gap
+gap and a value that says the skill gap can't be more than some number so the
+can't be more than some number so the rules in our matchmaker we don't
+rules in our matchmaker we don't actually have the matchmaker write out a
+actually have the matchmaker write out a bunch of random rules that comes up with
+bunch of random rules that comes up with we actually pick the form of the rules
+we actually pick the form of the rules we still have some attribute and a
+we still have some attribute and a number that it's worked on by that
+number that it's worked on by that attribute the difference here is that
+attribute the difference here is that instead of us manually choosing what
+instead of us manually choosing what that number should be we let the
+that number should be we let the optimizer
+optimizer figure out what that number
+figure out what that number it picks that number value so in other
+it picks that number value so in other words the optimizer is just searching
+words the optimizer is just searching over this vector of numbers or each
+over this vector of numbers or each number is just a number that goes into
+number is just a number that goes into one of our rules and there's a lot of
+one of our rules and there's a lot of very straightforward off-the-shelf ways
+very straightforward off-the-shelf ways to do that you could use gradient
+to do that you could use gradient descent you can use branch and bound but
+descent you can use branch and bound but the end of the day at this point you
+the end of the day at this point you just have a vector of numbers that you
+just have a vector of numbers that you can tweak with your algorithm you can
+can tweak with your algorithm you can tweak and move them up and down and you
+tweak and move them up and down and you have a utility function which is coming
+have a utility function which is coming now from your metric predictor you're
+now from your metric predictor you're trusting that your metric predictor is
+trusting that your metric predictor is telling you what what how those rules
+telling you what what how those rules are going to affect the matches you're
+are going to affect the matches you're trusting that it is accurate about
+trusting that it is accurate about simulating in a matter of sense
+simulating in a matter of sense what type of matchmaking happens given
+what type of matchmaking happens given your rules so now you just use
+your rules so now you just use optimization you give it a set of
+optimization you give it a set of numbers and you tweak those numbers and
+numbers and you tweak those numbers and then you ask your Metra predictor what
+then you ask your Metra predictor what the utility was and then you can keep
+the utility was and then you can keep going and refining those different
+going and refining those different numbers in your rules until you have
+numbers in your rules until you have what you hope is an optimal set of rules
+what you hope is an optimal set of rules so again our rules let's talk again
+so again our rules let's talk again about what these rules look like so
+about what these rules look like so here's a fairly classic rulership
+here's a fairly classic rulership starting point so skill gap this is a
+starting point so skill gap this is a rule that says hey you know what the
+rule that says hey you know what the skill gap between any two players can't
+skill gap between any two players can't has to be less than some parameter
+has to be less than some parameter that's our number that's what that red
+that's our number that's what that red parameter that's what's going to be
+parameter that's what's going to be optimized now the question is is this a
+optimized now the question is is this a good rule to use is this the type of
+good rule to use is this the type of rule we should be using this is a very
+rule we should be using this is a very conventional classical way to do this
+conventional classical way to do this that most of you out there are probably
+that most of you out there are probably using and when you do this you end up
+using and when you do this you end up with that graph that we talked about
+with that graph that we talked about again this graph is what is going to be
+again this graph is what is going to be optimized over this is the
+optimized over this is the predictability represents the skill gap
+predictability represents the skill gap and then you have the wait time on the
+and then you have the wait time on the bottom so you want to pick what the
+bottom so you want to pick what the optimizer is going to do is pick the
+optimizer is going to do is pick the point on this blue line that gives the
+point on this blue line that gives the best utility now if you decide that both
+best utility now if you decide that both predictability and wait time are equally
+predictability and wait time are equally important that will result in you
+important that will result in you picking something on the knee of this
+picking something on the knee of this curve and that's the line you're
+curve and that's the line you're optimizing over so an important thing to
+optimizing over so an important thing to think about is that the form of rule you
+think about is that the form of rule you choose decides what this line looks like
+choose decides what this line looks like and so you can ask ourselves are we
+and so you can ask ourselves are we picking the best form of the rule is
+picking the best form of the rule is there a better line we could actually
+there a better line we could actually get and
+get and lines different again every time a day
+lines different again every time a day this line changes so every two different
+this line changes so every two different times of day you're going to reoptimize
+times of day you're going to reoptimize but even still at a given time of day
+but even still at a given time of day is this rule creating a good line or
+is this rule creating a good line or could I create an even better line if I
+could I create an even better line if I change what the rule looked like and
+change what the rule looked like and that's the question Microsoft Research
+that's the question Microsoft Research asked of course because they're
+asked of course because they're brilliant they wanted to ask and make
+brilliant they wanted to ask and make sure they're picking the right line and
+sure they're picking the right line and to do that they had to change the form
+to do that they had to change the form of the curve of the form of that formula
+of the curve of the form of that formula first to an equivalent form it's the
+first to an equivalent form it's the same it's just as equipmen you can still
+same it's just as equipmen you can still do a raw skill gap like you were before
+do a raw skill gap like you were before but the putting in a form that allows
+but the putting in a form that allows them to search conveniently over all
+them to search conveniently over all possible curves to optimize on so we're
+possible curves to optimize on so we're not just optimizing on a curve first
+not just optimizing on a curve first we're gonna optimize over what's the
+we're gonna optimize over what's the best curve to pick to optimize on so
+best curve to pick to optimize on so what they did was they did a bunch of
+what they did was they did a bunch of math they wrote a proof I'll spare you
+math they wrote a proof I'll spare you for now on but they proved you can
+for now on but they proved you can rewrite this type of rule differently
+rewrite this type of rule differently instead of being just give me the skill
+instead of being just give me the skill gap needs to be less than some number
+gap needs to be less than some number you can instead say no some function of
+you can instead say no some function of the skills the difference in a function
+the skills the difference in a function of each skill can just always be less
+of each skill can just always be less than the number one so you don't need to
+than the number one so you don't need to change it can always just be one your
+change it can always just be one your your rule doesn't need to actually
+your rule doesn't need to actually change what the skill gap is you just
+change what the skill gap is you just change that function and I give a little
+change that function and I give a little example here don't get too caught up in
+example here don't get too caught up in it if you don't want to but basically if
+it if you don't want to but basically if you want if the rule if you wanted the
+you want if the rule if you wanted the rule to be the skill gap can't be more
+rule to be the skill gap can't be more than 0.5 between two players then you
+than 0.5 between two players then you basically make that F function just be
+basically make that F function just be two times the skill and that'll get you
+two times the skill and that'll get you right back it by using that form to the
+right back it by using that form to the skill gap can't be more than 0.5 now
+skill gap can't be more than 0.5 now this is already I want to point out as a
+this is already I want to point out as a nice improvement because now what this
+nice improvement because now what this is telling you is you don't actually
+is telling you is you don't actually have to change the rule in your
+have to change the rule in your matchmaker the matchmaker itself could
+matchmaker the matchmaker itself could have the exact same rule which is just a
+have the exact same rule which is just a minus B has to be always less than 1
+minus B has to be always less than 1 what you're changing is what you're
+what you're changing is what you're putting in for a and B you're changing
+putting in for a and B you're changing you're making up changing the players
+you're making up changing the players skill that you put in rather than
+skill that you put in rather than actually changing the matchmaker and so
+actually changing the matchmaker and so if you can't again if you don't have
+if you can't again if you don't have time to fully implement true match
+time to fully implement true match implementing this aspect is very key
+implementing this aspect is very key because it makes it easier for you to
+because it makes it easier for you to real-time tune potentially what the gap
+real-time tune potentially what the gap is so he instead of actually changing
+is so he instead of actually changing the skill gap that you allow you just
+the skill gap that you allow you just change the skills as they go in and I
+change the skills as they go in and I think that's that's a pretty cool way to
+think that's that's a pretty cool way to do it so they use this form that I spoke
+do it so they use this form that I spoke about they use that form of rule to
+about they use that form of rule to search over all possible rules to find
+search over all possible rules to find the best rule they should be using so
+the best rule they should be using so that you can search along the best curve
+that you can search along the best curve and they did it they found the best
+and they did it they found the best curve but we don't actually use the one
+curve but we don't actually use the one they found in practice because they
+they found in practice because they found one that's almost as good but
+found one that's almost as good but really simple to use well relatively
+really simple to use well relatively simple let's go over what they found
+simple let's go over what they found that is easy to use and again what I
+that is easy to use and again what I mean here is well I'll show in a second
+mean here is well I'll show in a second what will review the curves again but
+what will review the curves again but first let me tell you what we found we
+first let me tell you what we found we found that instead of saying hey the
+found that instead of saying hey the skill gap can't be any more than some
+skill gap can't be any more than some number we've mapped the skills first and
+number we've mapped the skills first and this case the mapping we use is we take
+this case the mapping we use is we take the players skill and we find what
+the players skill and we find what percentile is that skilling is this
+percentile is that skilling is this player at 97% a player or is a an eighty
+player at 97% a player or is a an eighty percentile what is the percentile so
+percentile what is the percentile so we're no longer using the raw skill but
+we're no longer using the raw skill but we're using a percentile of the skill
+we're using a percentile of the skill and then we scale that percentile that
+and then we scale that percentile that scaling value that is the parameter that
+scaling value that is the parameter that actually gets changed that actually gets
+actually gets changed that actually gets optimized over by true match and what
+optimized over by true match and what that does is whatever scale you put in
+that does is whatever scale you put in there it represents how wide of a
+there it represents how wide of a percentile you're willing to matchmake
+percentile you're willing to matchmake over instead of matchmaking on the raw
+over instead of matchmaking on the raw gap you're saying instead of saying this
+gap you're saying instead of saying this player could match between 1.5 and 2.5
+player could match between 1.5 and 2.5 you're saying no this player can match
+you're saying no this player can match between the 80th percentile and the 82nd
+between the 80th percentile and the 82nd percentile so the gap is always a
+percentile so the gap is always a percent of the population which means
+percent of the population which means that the gap is the same for everybody
+that the gap is the same for everybody all players get access to all the same
+all players get access to all the same amount of other players and because
+amount of other players and because every player sees the same number of
+every player sees the same number of players they can match with wait time is
+players they can match with wait time is constant across everyone and that's why
+constant across everyone and that's why I have the slide I save map the skills
+I have the slide I save map the skills so the wait time is constant and
+so the wait time is constant and everyone has the same way time and so
+everyone has the same way time and so let me go through an example to
+let me go through an example to illustrate it because it's a little
+illustrate it because it's a little tricky of a concept
+tricky of a concept so let's go through this this this
+so let's go through this this this example and remember a gap of one is
+example and remember a gap of one is okay because we don't actually change
+okay because we don't actually change the gap that's required so our rule will
+the gap that's required so our rule will always allow if the gap is 1 and we're
+always allow if the gap is 1 and we're gonna pick a scale of 10 which should
+gonna pick a scale of 10 which should mean that players can match between 10
+mean that players can match between 10 percent of the of the population
+percent of the of the population give her a plus or minus so let's let's
+give her a plus or minus so let's let's kind of look at this so we have some
+kind of look at this so we have some players a B and C now their skills are
+players a B and C now their skills are as written point 5 1.0 and 1.5 these are
+as written point 5 1.0 and 1.5 these are above average players that's assume that
+above average players that's assume that the middle is about zero now if we just
+the middle is about zero now if we just stopped here and used our rule did no
+stopped here and used our rule did no other transformation well remember skill
+other transformation well remember skill gap of 1 is okay so player a and C okay
+gap of 1 is okay so player a and C okay maybe they're right on the border they
+maybe they're right on the border they could match but a can match B and B
+could match but a can match B and B cannot see that's the kind of skill gap
+cannot see that's the kind of skill gap approach but now let's map them onto
+approach but now let's map them onto percentiles these are the percentiles
+percentiles these are the percentiles that would be associated with these
+that would be associated with these players if those skills values were from
+players if those skills values were from a normal distribution a standard normal
+a normal distribution a standard normal so here's those percentiles a would be
+so here's those percentiles a would be in the 69 percentile C's good player in
+in the 69 percentile C's good player in the top 90 third he's a 93rd percentile
+the top 90 third he's a 93rd percentile so top seven percent player now again if
+so top seven percent player now again if we're allowing a gap of one and we do
+we're allowing a gap of one and we do nothing else but just map them to
+nothing else but just map them to percentiles these players could all
+percentiles these players could all match each other because they're all
+match each other because they're all within one but remember the scale is 10
+within one but remember the scale is 10 so we would multiply each of these by 10
+so we would multiply each of these by 10 to get what is actually the final scaled
+to get what is actually the final scaled skill used for comparison and again
+skill used for comparison and again we've said that a distance of 1 is okay
+we've said that a distance of 1 is okay so in this case a cannot match B because
+so in this case a cannot match B because they are not within one of each other
+they are not within one of each other however B can match C so unlike our raw
+however B can match C so unlike our raw skill approach this is changed thing
+skill approach this is changed thing we're change things at a who is closer
+we're change things at a who is closer to the middle of the distribution a is
+to the middle of the distribution a is going to be a little more finicky in who
+going to be a little more finicky in who they will match skill wise because the
+they will match skill wise because the population is denser there whereas B and
+population is denser there whereas B and especially C as they move out farther on
+especially C as they move out farther on the population density they have a wider
+the population density they have a wider skill raw skill gap but they still see
+skill raw skill gap but they still see the same amount of population just over
+the same amount of population just over a wider gap and again this allows us to
+a wider gap and again this allows us to ensure that the wait time is the same
+ensure that the wait time is the same for all of our players now you may ask
+for all of our players now you may ask okay so you've told me what like why are
+okay so you've told me what like why are we doing all this so let's get back to
+we doing all this so let's get back to the
+the we did this because we're trying to ask
+we did this because we're trying to ask ourselves what type of rules should true
+ourselves what type of rules should true match be optimizing over and we wanted
+match be optimizing over and we wanted to search the space of all possible
+to search the space of all possible rules which Microsoft Research did for
+rules which Microsoft Research did for us because they're very smart and find
+us because they're very smart and find what rules should we use and I submitted
+what rules should we use and I submitted that we use a rule that does this type
+that we use a rule that does this type of transformation and the question is is
+of transformation and the question is is it really that good and here is a
+it really that good and here is a simulation we did to show how good it is
+simulation we did to show how good it is so given the same type of data the
+so given the same type of data the yellow line is our original classic
+yellow line is our original classic standard skill gap type curve so if we
+standard skill gap type curve so if we were to use the original curve we pick
+were to use the original curve we pick the original rule of just has to be
+the original rule of just has to be smaller than some skill gap we're stuck
+smaller than some skill gap we're stuck with that yellow curve that's the best
+with that yellow curve that's the best we can do is to search along that curve
+we can do is to search along that curve and find the optimal point for our
+and find the optimal point for our utility but like I said earlier you want
+utility but like I said earlier you want to be in the bottom left corner that's
+to be in the bottom left corner that's the best you can be that blue curve
+the best you can be that blue curve that's what you get if you choose that
+that's what you get if you choose that other form of rule that constant wait
+other form of rule that constant wait time that scaled percentile type of rule
+time that scaled percentile type of rule so we have found a more optimal rule
+so we have found a more optimal rule space to search this way as well so not
+space to search this way as well so not only do we optimize over the best set of
+only do we optimize over the best set of rules to pick weight to talk we're not
+rules to pick weight to talk we're not only we optimizing each rules setting we
+only we optimizing each rules setting we are optimizing the form of the rule
+are optimizing the form of the rule itself and so this is a great type of
+itself and so this is a great type of rule to use so another takeaway you
+rule to use so another takeaway you could pull from this even if you can't
+could pull from this even if you can't implement full true match is instead of
+implement full true match is instead of matchmaking on the skill gap matchmake
+matchmaking on the skill gap matchmake on the percentile gap matchmake so that
+on the percentile gap matchmake so that players can match makes a within 1 or 2
+players can match makes a within 1 or 2 percentile of where they are at on on on
+percentile of where they are at on on on the skill curve so again at the end of
+the skill curve so again at the end of the day this is what we ended up with
+the day this is what we ended up with for our rules they compared skill
+for our rules they compared skill percentiles instead of skills and
+percentiles instead of skills and everyone sees the same size pool of
+everyone sees the same size pool of players to match with and we can scale
+players to match with and we can scale those percentiles as the population
+those percentiles as the population changes during our high traffic times we
+changes during our high traffic times we can say you match within 1% of the
+can say you match within 1% of the population during low traffic that can
+population during low traffic that can be dialed down to within 10% and again
+be dialed down to within 10% and again it's like doubly optimal right we've got
+it's like doubly optimal right we've got optimal curve and we find the optimal
+optimal curve and we find the optimal point on the optimal curve
+point on the optimal curve now what about regions how does this
+now what about regions how does this work because we've talked a little bit
+work because we've talked a little bit about regions well basically the way we
+about regions well basically the way we implement this is that every pair of
+implement this is that every pair of regions hasn't has their own optimized
+regions hasn't has their own optimized rule so when I am comparing a u.s.
+rule so when I am comparing a u.s. player to an EU player there's a rule
+player to an EU player there's a rule just for that comparison which makes it
+just for that comparison which makes it so that we can optimize over what that
+so that we can optimize over what that gap should be between those players and
+gap should be between those players and let me do a little example to walk
+let me do a little example to walk through what that effectively does so
+through what that effectively does so here we go we have an EU player she is
+here we go we have an EU player she is waiting for matchmaking right now if
+waiting for matchmaking right now if this was conventional matchmaking she
+this was conventional matchmaking she would say timeout after waiting for five
+would say timeout after waiting for five minutes because I've just not enough
+minutes because I've just not enough fish in the pool she's fishing she's
+fish in the pool she's fishing she's waited five minutes she was not able to
+waited five minutes she was not able to find a full match that way and so she's
+find a full match that way and so she's done and so in the conventional approach
+done and so in the conventional approach when this would happen she would say
+when this would happen she would say well I cannot find a match in the EU so
+well I cannot find a match in the EU so I will manually choose to allow matching
+I will manually choose to allow matching in the US which she's not as happy about
+in the US which she's not as happy about because US matches have worst latency
+because US matches have worst latency but she'll deal with it just so she can
+but she'll deal with it just so she can find a match now this is somewhat
+find a match now this is somewhat suboptimal because she just wasted five
+suboptimal because she just wasted five minutes finding this out now here's the
+minutes finding this out now here's the true match approach instead of first
+true match approach instead of first trying in one pool and then trying in
+trying in one pool and then trying in another pool she will search both pools
+another pool she will search both pools at the same time but with slightly
+at the same time but with slightly different sized Nets her net for the EU
+different sized Nets her net for the EU pool will be larger meaning that she is
+pool will be larger meaning that she is willing to accept a larger skill gap
+willing to accept a larger skill gap than she would accept in the u.s. just
+than she would accept in the u.s. just so she can get more play more players
+so she can get more play more players from the EU to play with so she's
+from the EU to play with so she's fishing with a larger net in in the EU
+fishing with a larger net in in the EU and in the u.s. she will cast a net at
+and in the u.s. she will cast a net at the same time that will be smaller so
+the same time that will be smaller so it's less likely to catch fish from the
+it's less likely to catch fish from the u.s. pool so basically what she's able
+u.s. pool so basically what she's able to do is represent her personal
+to do is represent her personal preferences for where she wants to
+preferences for where she wants to search by the size of the nets now the
+search by the size of the nets now the match will be made
+match will be made as soon as there are a total of say
+as soon as there are a total of say seven fish in both nets so she could
+seven fish in both nets so she could catch some from the US and from some
+catch some from the US and from some from the EU but in theory shall still
+from the EU but in theory shall still see the same slice of the population as
+see the same slice of the population as everybody else available to matchmake in
+everybody else available to matchmake in a reasonable amount of time with a good
+a reasonable amount of time with a good trade-off in her preferences so let's
+trade-off in her preferences so let's look at what happens when you apply true
+look at what happens when you apply true match to a real-life situation the
+match to a real-life situation the example we are taking here came from
+example we are taking here came from halo 5 in 6 player free-for-all which is
+halo 5 in 6 player free-for-all which is 6 players who are all playing against
+6 players who are all playing against each other to see who can win this is a
+each other to see who can win this is a good choice for us for true match
+good choice for us for true match because this is a playlist that has a
+because this is a playlist that has a very wide request rate over the course
+very wide request rate over the course of a day the amount of tickets that are
+of a day the amount of tickets that are coming in at a trough time can be a
+coming in at a trough time can be a tenth of what we'll see at our peak
+tenth of what we'll see at our peak times it is not a crazy popular playlist
+times it is not a crazy popular playlist first one of our not as popular ones so
+first one of our not as popular ones so it actually makes it a good example for
+it actually makes it a good example for what happens when you apply true match
+what happens when you apply true match and so let's see what happens at when we
+and so let's see what happens at when we use it so what I want to show here I
+use it so what I want to show here I need to be able to compare it to
+need to be able to compare it to something so you have some sort of idea
+something so you have some sort of idea of whether it's working right or not but
+of whether it's working right or not but here here we're looking at the actual
+here here we're looking at the actual utility over the course of time that we
+utility over the course of time that we ran this the utility from using true
+ran this the utility from using true match is that yellow line and you'll
+match is that yellow line and you'll notice that over the course of a day it
+notice that over the course of a day it is relatively flat meaning that yes it
+is relatively flat meaning that yes it was impacted by the lower population but
+was impacted by the lower population but it did okay now what the blue line is is
+it did okay now what the blue line is is something we call an Oracle because this
+something we call an Oracle because this is what would happen if I did have to
+is what would happen if I did have to choose conventional static rules but I
+choose conventional static rules but I knew the future so I could pick the very
+knew the future so I could pick the very best static rule for the whole day for
+best static rule for the whole day for just that one day and that's what you
+just that one day and that's what you see here you'll see that it was not able
+see here you'll see that it was not able to maintain as high of a utility despite
+to maintain as high of a utility despite perfect knowledge during the lower pop
+perfect knowledge during the lower pop times a day and that's going to
+times a day and that's going to translate to some interesting artifacts
+translate to some interesting artifacts in our other metrics that we care about
+in our other metrics that we care about so let's go look and see where these
+so let's go look and see where these true match made these trade-offs so
+true match made these trade-offs so here's the skill gap as represented by
+here's the skill gap as represented by predictability you can see here that
+predictability you can see here that what happened was that true match
+what happened was that true match decided to raise the predictability
+decided to raise the predictability which is equivalent to raising the
+which is equivalent to raising the allowed skill gap
+allowed skill gap he matches that are not as fair and so
+he matches that are not as fair and so it decided to maintain the utility that
+it decided to maintain the utility that it was asked for it would create matches
+it was asked for it would create matches that are less fare so they could still
+that are less fare so they could still be somewhat timely whereas the static
+be somewhat timely whereas the static rule decided or would basically what
+rule decided or would basically what doesn't really have as much of a choice
+doesn't really have as much of a choice because it's more static but the best
+because it's more static but the best static rule we could pick did not do
+static rule we could pick did not do that and for the most part kept that
+that and for the most part kept that predictability the same so the matches
+predictability the same so the matches were more fair on the Oracle during
+were more fair on the Oracle during those off hours but we'll see that the
+those off hours but we'll see that the trade-off may not have been worth it as
+trade-off may not have been worth it as we switch to look at what the wait times
+we switch to look at what the wait times did so we see here with the wait time
+did so we see here with the wait time true max kept the wait times down to
+true max kept the wait times down to still under five minutes whereas the
+still under five minutes whereas the Oracle if we just pick the best static
+Oracle if we just pick the best static possible rule known ahead of time is
+possible rule known ahead of time is taking players up well past the
+taking players up well past the 10-minute mark into even 15-minute wait
+10-minute mark into even 15-minute wait times just to keep a difference of about
+times just to keep a difference of about what 10 percent or so in fairness which
+what 10 percent or so in fairness which perhaps does not seem to line up with
+perhaps does not seem to line up with what our utility so again we see the
+what our utility so again we see the nice benefit of using true match is that
+nice benefit of using true match is that despite wide variances in the amount of
+despite wide variances in the amount of players who are available to play we can
+players who are available to play we can keep those metrics more flat so the
+keep those metrics more flat so the takeaway from this experiment is we are
+takeaway from this experiment is we are able to get the same utility as the
+able to get the same utility as the Oracle during our normal population
+Oracle during our normal population hours but cut in half relative to the
+hours but cut in half relative to the Oracle during the off hours we're this
+Oracle during the off hours we're this allows us to drop the wait time by 72%
+allows us to drop the wait time by 72% compared to using static rules even if
+compared to using static rules even if we knew the perfect static rule and yes
+we knew the perfect static rule and yes we are trading 13% predictability
+we are trading 13% predictability fairness for those we're trading that
+fairness for those we're trading that off instead of waiting an extra 600
+off instead of waiting an extra 600 seconds or an extra 10 minutes of wait
+seconds or an extra 10 minutes of wait time which seems fine from the design
+time which seems fine from the design intent we generally don't ask our
+intent we generally don't ask our players to wait three times as long in
+players to wait three times as long in order for just 13% more fairness so the
+order for just 13% more fairness so the takeaway there is true match is doing
+takeaway there is true match is doing what we expected as we asked it for from
+what we expected as we asked it for from the design intent so let's go into what
+the design intent so let's go into what didn't some nice takeaways overall from
+didn't some nice takeaways overall from true match are first of all because we
+true match are first of all because we have a utility function that trades off
+have a utility function that trades off wait time this allows our designers to
+wait time this allows our designers to wait the importance of different
+wait the importance of different characteristics of matchmaking directly
+characteristics of matchmaking directly against how long players will
+against how long players will to improve each of those different
+to improve each of those different metrics you want a better latency
+metrics you want a better latency well how much how long are you willing
+well how much how long are you willing to wait for one millisecond better of
+to wait for one millisecond better of pain you want it to be more fair okay
+pain you want it to be more fair okay how long are you willing to wait for 1%
+how long are you willing to wait for 1% 3% or 5% improvement in fairness we can
+3% or 5% improvement in fairness we can do all of those directly through the
+do all of those directly through the utility function another really cool
+utility function another really cool aspect of true match is that because we
+aspect of true match is that because we have that metric predictor predicting
+have that metric predictor predicting all those all your metrics we can tell
+all those all your metrics we can tell players individually customized to that
+players individually customized to that player how long they are likely to wait
+player how long they are likely to wait for a match we can give nice customized
+for a match we can give nice customized personalized predicted wait times this
+personalized predicted wait times this is something that's sort of a been a
+is something that's sort of a been a holy grail for me in my career in
+holy grail for me in my career in matchmaking to set player expectations
+matchmaking to set player expectations on how long they're going to wait and
+on how long they're going to wait and how those be accurate by not only taking
+how those be accurate by not only taking into account how much traffic we're
+into account how much traffic we're seeing right now but how many people are
+seeing right now but how many people are coming through from your region and how
+coming through from your region and how many players are coming through at your
+many players are coming through at your skill level so we can set those
+skill level so we can set those expectations and we're using real-time
+expectations and we're using real-time statistics in true match and real-time
+statistics in true match and real-time feedback so that we can create optimal
+feedback so that we can create optimal rules and optimize how well we're
+rules and optimize how well we're predicting the effects of those rules
+predicting the effects of those rules all throughout the day in ways that you
+all throughout the day in ways that you just can't practically do manually so
+just can't practically do manually so the machine learning is helping us tune
+the machine learning is helping us tune real-time and this results in some nice
+real-time and this results in some nice real-time optimized matches for our
+real-time optimized matches for our players which we're trading off the wait
+players which we're trading off the wait time the skill gaps of latency although
+time the skill gaps of latency although things are important to us real-time
+things are important to us real-time based on the time of day now I wanted to
+based on the time of day now I wanted to go through some simple improvements that
+go through some simple improvements that I've covered somewhat of in this talk
+I've covered somewhat of in this talk just remind you of things you can do
+just remind you of things you can do even if you can't implement all of true
+even if you can't implement all of true match today and one of them is what I
+match today and one of them is what I talked about with using percentiles for
+talked about with using percentiles for matchmaking instead of matchmaking
+matchmaking instead of matchmaking directly on the raw skill gap and to do
+directly on the raw skill gap and to do this one way to do it is to just as
+this one way to do it is to just as often as you can per hour say three or
+often as you can per hour say three or four times an hour update your own model
+four times an hour update your own model of the population have some way maybe
+of the population have some way maybe you're just tracking simply the
+you're just tracking simply the quantiles of cross your skill
+quantiles of cross your skill distribution during every time of day
+distribution during every time of day just have an idea what those are and
+just have an idea what those are and then and how what the amount of
+then and how what the amount of population you have and then you have to
+population you have and then you have to have some kind of mapping that map's
+have some kind of mapping that map's player skills to
+player skills to percentiles if a player skills 5.2 what
+percentiles if a player skills 5.2 what percentile is that if that's the 87th
+percentile is that if that's the 87th percentile or whatever it may be and
+percentile or whatever it may be and then once you have a way of mapping
+then once you have a way of mapping players onto their percentiles you match
+players onto their percentiles you match make on percentile instead of
+make on percentile instead of matchmaking on the raw gap and you use
+matchmaking on the raw gap and you use your real-time statistics to change the
+your real-time statistics to change the scale based on how much population you
+scale based on how much population you have at every given time of day that
+have at every given time of day that alone is definitely not as good as full
+alone is definitely not as good as full true match but it will let your players
+true match but it will let your players feel like they don't have to wait an
+feel like they don't have to wait an extra long time during low traffic times
+extra long time during low traffic times of the day to get what's going to be a
+of the day to get what's going to be a bad match anyways so just something to
+bad match anyways so just something to think about if you can't take away
+think about if you can't take away everything from true match today take
+everything from true match today take away some of these points to use and
+away some of these points to use and that's all I have thanks for coming if
+that's all I have thanks for coming if you have some questions you can tweet
+you have some questions you can tweet them at me
+them at me you could try to contact me in my
+you could try to contact me in my discord you can use the comments section
+discord you can use the comments section I really I'm enjoying using true match
+I really I'm enjoying using true match myself in Halo 5 it solved a lot of the
+myself in Halo 5 it solved a lot of the sort of issues I've had over time at
+sort of issues I've had over time at matchmaking and I hope this has been
+matchmaking and I hope this has been useful to you as well
+useful to you as well thank you for coming

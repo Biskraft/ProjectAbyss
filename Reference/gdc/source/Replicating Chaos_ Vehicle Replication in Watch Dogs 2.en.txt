@@ -1,0 +1,788 @@
+my name is Matt del Bosque I'm a team lead programmer to be soft Toronto and
+lead programmer to be soft Toronto and today I'm going to talk to you about
+today I'm going to talk to you about some of the stuff we did for vehicle
+some of the stuff we did for vehicle replication in watchdogs - the best
+replication in watchdogs - the best place to start is for me to explain the
+place to start is for me to explain the chaos part of the talk so let me show
+chaos part of the talk so let me show you chaos here we go
+you chaos here we go so watchdogs two's bounty mode is a
+so watchdogs two's bounty mode is a multiplayer game mode where three human
+multiplayer game mode where three human players team up together to take down a
+players team up together to take down a fourth player and they do that alongside
+fourth player and they do that alongside a whole bunch of ai-controlled cops and
+a whole bunch of ai-controlled cops and basically everyone gets into these cars
+basically everyone gets into these cars you get these crazy high speed chases
+you get these crazy high speed chases everyone's crashing into each other
+everyone's crashing into each other it's an insane lot of fun to play but
+it's an insane lot of fun to play but getting all of that to replicate nicely
+getting all of that to replicate nicely was a bit of a challenge so I'm going to
+was a bit of a challenge so I'm going to talk to you about some of the solutions
+talk to you about some of the solutions we came up with today so first of all a
+we came up with today so first of all a little bit about our network
+little bit about our network architecture so it's only four players
+architecture so it's only four players completely peer-to-peer so there's no
+completely peer-to-peer so there's no server in the middle that's kind of the
+server in the middle that's kind of the master of everything and although we're
+master of everything and although we're only supporting four players there's
+only supporting four players there's actually a lot of entities to replicate
+actually a lot of entities to replicate so all of those cops driving alongside
+so all of those cops driving alongside you pedestrians on foot all these things
+you pedestrians on foot all these things do add up to a lot of entities and those
+do add up to a lot of entities and those entities their authority is completely
+entities their authority is completely distributed so all those police they're
+distributed so all those police they're actually earned by different players
+actually earned by different players which adds some extra complication so
+which adds some extra complication so when I first started working on this I'd
+when I first started working on this I'd done a lot of character replication in
+done a lot of character replication in my background so and I figured all the
+my background so and I figured all the techniques that I knew and loved that
+techniques that I knew and loved that just apply them to vehicles and it was
+just apply them to vehicles and it was going to be super easy
+going to be super easy well it didn't quite turn out to be the
+well it didn't quite turn out to be the case so what's harder about vehicles
+case so what's harder about vehicles first of all vehicles drive fast so even
+first of all vehicles drive fast so even if you have a little bit of lag say 100
+if you have a little bit of lag say 100 milliseconds that's 2 to 3 metres
+milliseconds that's 2 to 3 metres difference in their position which is
+difference in their position which is like half a car length to a full car
+like half a car length to a full car length and say you're working on a race
+length and say you're working on a race well that's the difference between
+well that's the difference between winning and losing now we don't have
+winning and losing now we don't have races in watchdogs - but the same
+races in watchdogs - but the same principles apply and
+principles apply and I'm going to talk about some of that
+I'm going to talk about some of that later on the other things that cars do
+later on the other things that cars do that people don't is they collide with
+that people don't is they collide with each other so there's a lot of rigid
+each other so there's a lot of rigid body physics that come into play that
+body physics that come into play that cause them to interfere and react with
+cause them to interfere and react with each other and on top of that we're not
+each other and on top of that we're not just dealing with players and versus
+just dealing with players and versus players colliding but there's a lot of
+players colliding but there's a lot of traffic in the in the open world in
+traffic in the in the open world in watchdogs too so there's actually a lot
+watchdogs too so there's actually a lot of things that you're going to be
+of things that you're going to be crashing with and the other interesting
+crashing with and the other interesting thing I discovered while working on this
+thing I discovered while working on this is that when you're looking at vehicles
+is that when you're looking at vehicles driving around the human eye is really
+driving around the human eye is really really sensitive to irregular velocities
+really sensitive to irregular velocities so if you're dead reckoning algorithm
+so if you're dead reckoning algorithm has got a few little inconsistencies and
+has got a few little inconsistencies and even a car going in the straight line
+even a car going in the straight line and it's not perfect going perfectly at
+and it's not perfect going perfectly at the same velocity
+the same velocity it's actually really noticeable for the
+it's actually really noticeable for the player and that adds more more
+player and that adds more more complications so what I'm going to talk
+complications so what I'm going to talk about today first of all how we go about
+about today first of all how we go about debugging trajectories I'll talk about
+debugging trajectories I'll talk about the technique that we use for dead
+the technique that we use for dead reckoning which is called projective
+reckoning which is called projective velocity blending with a little bit of a
+velocity blending with a little bit of a twist for vehicles I'll talk about how
+twist for vehicles I'll talk about how we use snapshot buffers to interpolate
+we use snapshot buffers to interpolate and extrapolate our positions I'll talk
+and extrapolate our positions I'll talk about how we deal with collisions and
+about how we deal with collisions and finally I'll cover some of our and solve
+finally I'll cover some of our and solve problems and future research directions
+problems and future research directions so the most important thing you can do
+so the most important thing you can do when working on dead reckoning is
+when working on dead reckoning is debugging your trajectories so this is
+debugging your trajectories so this is the color scheme I'm gonna be using for
+the color scheme I'm gonna be using for the rest of the talk and I'll explain it
+the rest of the talk and I'll explain it quickly the red dots are the
+quickly the red dots are the authoritative snapshots that you've
+authoritative snapshots that you've received from the master the kind of
+received from the master the kind of blue dotted lines they're the
+blue dotted lines they're the extrapolations from those dots so it's a
+extrapolations from those dots so it's a prediction of where we think the master
+prediction of where we think the master is going to go and finally the green
+is going to go and finally the green path is the actual path that you've
+path is the actual path that you've calculated from your dead reckoning then
+calculated from your dead reckoning then that the car has taken and really the
+that the car has taken and really the goal is to get the Green Line matching
+goal is to get the Green Line matching up to the red dots as closely as
+up to the red dots as closely as possible because then you've replicated
+possible because then you've replicated exactly what happened on the other end
+exactly what happened on the other end the algorithm that we use for dead
+the algorithm that we use for dead reckoning is called projective velocity
+reckoning is called projective velocity blending it's very well known I've used
+blending it's very well known I've used it a lot for care
+it a lot for care dead reckoning in the past and he still
+dead reckoning in the past and he still works pretty well for vehicles I want to
+works pretty well for vehicles I want to explain the math the maths but I will
+explain the math the maths but I will explain sort of how it works basically
+explain sort of how it works basically let's say we have a replica at this
+let's say we have a replica at this position p0 going with a certain
+position p0 going with a certain velocity and we receive a snapshot from
+velocity and we receive a snapshot from the master the blue one that says hey
+the master the blue one that says hey actually you meant to be over here
+actually you meant to be over here traveling with this velocity so what we
+traveling with this velocity so what we have to do is correct for that and what
+have to do is correct for that and what we do is we interpolate from the current
+we do is we interpolate from the current local velocity to the predicted master
+local velocity to the predicted master velocity over a short period of time
+velocity over a short period of time which gives us this this blended orange
+which gives us this this blended orange trajectory and then we interpolate
+trajectory and then we interpolate between the two over that same period of
+between the two over that same period of time so that the final trajectory that
+time so that the final trajectory that you take is that light green path which
+you take is that light green path which basically takes you to from where you
+basically takes you to from where you were to where you should have been and
+were to where you should have been and it's pretty smooth and pretty nice I'll
+it's pretty smooth and pretty nice I'll show you a video of what this looks like
+show you a video of what this looks like so this is a car driving round in
+so this is a car driving round in circles
+circles I've reduced the snapshots and right
+I've reduced the snapshots and right here for FX so you can sort of see the
+here for FX so you can sort of see the artifacts a bit better and you'll notice
+artifacts a bit better and you'll notice that circle but it's taking it's not
+that circle but it's taking it's not very smooth right and one of the reasons
+very smooth right and one of the reasons for that if you look at the blue lines
+for that if you look at the blue lines the extrapolated predictions well it's
+the extrapolated predictions well it's always in a straight line right it
+always in a straight line right it doesn't know that this car is actually
+doesn't know that this car is actually driving around the corner so you're dead
+driving around the corner so you're dead reckoning is trying to match to this
+reckoning is trying to match to this very irregular polygon and you get this
+very irregular polygon and you get this little jerky results so what can we do
+little jerky results so what can we do to improve that well ideally we don't
+to improve that well ideally we don't use a straight line for a prediction we
+use a straight line for a prediction we predict that our car is turning around
+predict that our car is turning around the circle that's going to be the best
+the circle that's going to be the best way to to get a better result now
+way to to get a better result now interestingly how do we how do we work
+interestingly how do we how do we work that out so we already transmit the
+that out so we already transmit the steering angle of the cars wheels which
+steering angle of the cars wheels which in theory should be enough but actually
+in theory should be enough but actually it's not and the reason is that a very
+it's not and the reason is that a very cool simulation is actually really
+cool simulation is actually really complex so in real life and enough in a
+complex so in real life and enough in a simulation if you have the turning angle
+simulation if you have the turning angle of the cars wheels to actually predict
+of the cars wheels to actually predict where it's going to go it's a factor of
+where it's going to go it's a factor of a whole lot of things
+a whole lot of things the vehicles current velocity the tire
+the vehicles current velocity the tire temperature the friction with the road
+temperature the friction with the road surface you actually have to take all of
+surface you actually have to take all of that into account to work it out
+that into account to work it out properly and so this was a bit too much
+properly and so this was a bit too much and it was it would have been a
+and it was it would have been a challenge with our engine to do that
+challenge with our engine to do that having said that what we the other
+having said that what we the other information we have we have the position
+information we have we have the position the velocity the angular velocity that
+the velocity the angular velocity that we already transmitted anyway and what
+we already transmitted anyway and what we ended up using is just the your
+we ended up using is just the your component of the angular velocity which
+component of the angular velocity which work it we can then use that to do a
+work it we can then use that to do a very simple kind of 2d integration to
+very simple kind of 2d integration to predict whether cars going to go now you
+predict whether cars going to go now you might notice there's something wrong
+might notice there's something wrong with that because if your car's kind of
+with that because if your car's kind of turning in a nice circle then that's
+turning in a nice circle then that's really easy but if you're sliding and
+really easy but if you're sliding and turning then your prediction it would be
+turning then your prediction it would be wrong but for our game actually this
+wrong but for our game actually this wasn't an issue because the cars in
+wasn't an issue because the cars in watchdogs - they're not tuned to drip
+watchdogs - they're not tuned to drip not a game about drifting so for all of
+not a game about drifting so for all of us for our game this simple solution was
+us for our game this simple solution was actually the best and then the result
+actually the best and then the result looks something like this so what you
+looks something like this so what you can see now our extrapolation the blue
+can see now our extrapolation the blue lines they going nicely around the
+lines they going nicely around the corner and dead wreckin trajectory well
+corner and dead wreckin trajectory well it's not now it's a perfect circle so
+that's super nice and we can move on to the next technique so the next technique
+the next technique so the next technique we used is it's called snapshot buffers
+we used is it's called snapshot buffers the theory there is that instead of just
+the theory there is that instead of just extrapolating from the snapshots that
+extrapolating from the snapshots that we've received we wait a little while we
+we've received we wait a little while we buffer the snapshots that we've received
+buffer the snapshots that we've received and we interpolate between the last two
+and we interpolate between the last two so what's good about that is that by
+so what's good about that is that by interpolating between two nine snapshots
+interpolating between two nine snapshots we representing a much more accurate
+we representing a much more accurate trajectory so we're actually
+trajectory so we're actually representing something that really
+representing something that really genuinely happened because we have all
+genuinely happened because we have all the information what's bad about that is
+the information what's bad about that is that we're now rendering something
+that we're now rendering something further back in time and I'm going to
+further back in time and I'm going to talk about why that's an issue
+talk about why that's an issue first an example so we have a car
+first an example so we have a car driving in a straight line sends a
+driving in a straight line sends a snapshot to another machine it takes a
+snapshot to another machine it takes a while to arrive we keep driving we keep
+while to arrive we keep driving we keep driving
+driving we finally send another snapshot and now
+we finally send another snapshot and now we have enough information to start our
+we have enough information to start our interpolation so in this example our
+interpolation so in this example our replica is five frames behind the master
+replica is five frames behind the master now why is that an issue I'll give you
+now why is that an issue I'll give you an example this is a picture of taken on
+an example this is a picture of taken on two machines there's two car driving at
+two machines there's two car driving at high speed through an intersection at 90
+high speed through an intersection at 90 degrees to each other
+degrees to each other and the so the same picture the exact
+and the so the same picture the exact same moment in time and what you're
+same moment in time and what you're going to notice is on the left-hand side
+going to notice is on the left-hand side they've crashed into each other and on
+they've crashed into each other and on the right-hand side well they know we're
+the right-hand side well they know we're near each other and if we superimpose
+near each other and if we superimpose the two you kind of see this effect that
+the two you kind of see this effect that I was talking about with the half to a
+I was talking about with the half to a full car and differences in this case
+full car and differences in this case it's actually a bit a big difference
+it's actually a bit a big difference because one player thought he crashed
+because one player thought he crashed into the other guy and the other player
+into the other guy and the other player didn't see anything at all so that's the
+didn't see anything at all so that's the sort of problems that we get when we
+sort of problems that we get when we interpolating too much having said that
+interpolating too much having said that just because we're buffering all these
+just because we're buffering all these snapshots well we don't have to
+snapshots well we don't have to interpolate between them there's nothing
+interpolate between them there's nothing stopping us from actually extrapolating
+stopping us from actually extrapolating from the last received one and what this
+from the last received one and what this gives us is we introduced this really
+gives us is we introduced this really simple concept which is basically a time
+simple concept which is basically a time offset and what that really means it's
+offset and what that really means it's really easy to understand it's how far
+really easy to understand it's how far back in time do we want to render this
+back in time do we want to render this car and then we so if we take the time
+car and then we so if we take the time offset
+offset you know subtract it from the current
+you know subtract it from the current time if that lands between to receive
+time if that lands between to receive snapshots then we can use the calculator
+snapshots then we can use the calculator trajectory if that time offset is ahead
+trajectory if that time offset is ahead of the last receive snapshot then we go
+of the last receive snapshot then we go back to extrapolation I'll look and for
+back to extrapolation I'll look and for us this is really easy because we
+us this is really easy because we time-stamping our snapshots anyway so we
+time-stamping our snapshots anyway so we can do those calculations pretty easily
+can do those calculations pretty easily I'll show you an example so again we
+I'll show you an example so again we have a car traveling at a bit of an
+have a car traveling at a bit of an angle now it's sent to send a snapshot
+angle now it's sent to send a snapshot to the other peer
+to the other peer and now we've decided to extrapolate now
+and now we've decided to extrapolate now because we don't have as much
+because we don't have as much information we're kind of extrapolating
+information we're kind of extrapolating the wrong way in this example now we've
+the wrong way in this example now we've received another snapshot that's
+received another snapshot that's basically ahead of us in time and we can
+basically ahead of us in time and we can switch back to an interpolator
+switch back to an interpolator trajectory and so the end result in this
+trajectory and so the end result in this case is that replica is only five three
+case is that replica is only five three frames behind the master which is a
+frames behind the master which is a little bit closer and reduces those
+little bit closer and reduces those effects of mist collisions that I was
+effects of mist collisions that I was talking about obviously that you can see
+talking about obviously that you can see the trajectory right it's not perfect
+the trajectory right it's not perfect it's a mix of interpolation and
+it's a mix of interpolation and extrapolation but it's still a better
+extrapolation but it's still a better result because we kind of getting the
+result because we kind of getting the the best of both worlds to some extent
+the best of both worlds to some extent the challenge here really is tuning the
+the challenge here really is tuning the time offset and there's no real magic
+time offset and there's no real magic formula here we spend a lot of time
+formula here we spend a lot of time playing the game under different
+playing the game under different scenarios adjusting until we got
+scenarios adjusting until we got something we were happy with and it's
+something we were happy with and it's really a balancing act between
+really a balancing act between too much interpolation and you're going
+too much interpolation and you're going to miss collisions and too much
+to miss collisions and too much extrapolations which is going to cause
+extrapolations which is going to cause more discontinuous trajectories
+more discontinuous trajectories potential D sinks and that sort of stuff
+potential D sinks and that sort of stuff the formula we ended up coming up with
+the formula we ended up coming up with in watchdogs to is basically this it's
+in watchdogs to is basically this it's kind of a factor of the measured lag to
+kind of a factor of the measured lag to that period plus a bit of a constant
+that period plus a bit of a constant value and we calculate that every frame
+value and we calculate that every frame but it's highly damp we clamp it to
+but it's highly damp we clamp it to something sane and although I said
+something sane and although I said constant value the constant value is
+constant value the constant value is actually variable because it's
+actually variable because it's proportional to the speed of the vehicle
+proportional to the speed of the vehicle and basically if you're traveling slowly
+and basically if you're traveling slowly then miss collisions unless is less of
+then miss collisions unless is less of an issue so you can interpolate a bit
+an issue so you can interpolate a bit more which means we reduce no we
+more which means we reduce no we increase the time offset so you can go a
+increase the time offset so you can go a bit further back in time and it's still
+bit further back in time and it's still gonna work pretty well now with all that
+gonna work pretty well now with all that in place we were pretty happy with that
+in place we were pretty happy with that dead reckoning cars driving around we're
+dead reckoning cars driving around we're looking very good but then our testers
+looking very good but then our testers started to try and break the game and
+started to try and break the game and they were crashing cars into each other
+they were crashing cars into each other and starting to report issues they were
+and starting to report issues they were saying hey that collisions they don't
+saying hey that collisions they don't really play out the same in multiplayer
+really play out the same in multiplayer as they do
+as they do singleplayer let me show you a video you
+singleplayer let me show you a video you have to pay attention because you it's
+have to pay attention because you it's it's a bit subtle the first time so this
+it's a bit subtle the first time so this is two cars two players crashing into
+is two cars two players crashing into each other a master versus a replica I'm
+each other a master versus a replica I'm going to show you this again okay so
+going to show you this again okay so something's not quite right about that
+something's not quite right about that if you play the game in single-player
+if you play the game in single-player and you have two cars crashing into each
+and you have two cars crashing into each other with the collision they kind of
+other with the collision they kind of stop right or they might push each other
+stop right or they might push each other out of the way a little bit but what
+out of the way a little bit but what you're seeing here in multiplayer is
+you're seeing here in multiplayer is that they crash and then go shooting out
+that they crash and then go shooting out far away from each other at high speed
+far away from each other at high speed that's not right this is not what we
+that's not right this is not what we want so what happened how do we figure
+want so what happened how do we figure that out so as we know there should not
+that out so as we know there should not be this shouldn't be happening there
+be this shouldn't be happening there should be kind of stopping the way we
+should be kind of stopping the way we ended up tracking this down is we we
+ended up tracking this down is we we have a tool on the engine that lets us
+have a tool on the engine that lets us record the states of every entity and
+record the states of every entity and kind of play it back and look at
+kind of play it back and look at everything frame by frame and kind of
+everything frame by frame and kind of really analyze it and figure out what's
+really analyze it and figure out what's going on so I'm now going to show you a
+going on so I'm now going to show you a frame by frame analysis so what we have
+frame by frame analysis so what we have is two cars about to crash into each
+is two cars about to crash into each other
+other there's the replica on the left the
+there's the replica on the left the master on the right so far so good again
+master on the right so far so good again so far so good
+so far so good now they've collided into each other
+now they've collided into each other that's still fine now this is where it
+that's still fine now this is where it gets interesting
+gets interesting what you can see there the replica is
+what you can see there the replica is still continuing in a straight line you
+still continuing in a straight line you can see the extrapolation there which is
+can see the extrapolation there which is basically it's based on the snapshot
+basically it's based on the snapshot that's before the collision so the
+that's before the collision so the extrapolation is basically saying well
+extrapolation is basically saying well keep driving I don't know that you've
+keep driving I don't know that you've crashed into anything so the only thing
+crashed into anything so the only thing I can predict is that you're going to
+I can predict is that you're going to keep driving straight and again we
+keep driving straight and again we continue we continue and finally we
+continue we continue and finally we receive a snapshot from the master that
+receive a snapshot from the master that says hey you crashed into something you
+says hey you crashed into something you meant to be further back from where you
+meant to be further back from where you currently are so then our dead reckoning
+currently are so then our dead reckoning corrects for that then starts pulling
+corrects for that then starts pulling the car backwards but basically while
+the car backwards but basically while this is
+this is going on what's really happened is you
+going on what's really happened is you kind of have these bunch of frames where
+kind of have these bunch of frames where the replica is pushing pushing pushing
+the replica is pushing pushing pushing and that rigid body is imparting a huge
+and that rigid body is imparting a huge velocity to that car and that's what's
+velocity to that car and that's what's sending him shooting backwards and
+sending him shooting backwards and basically the other things happening on
+basically the other things happening on the other machine where this cars
+the other machine where this cars getting pushed and he goes flying
+getting pushed and he goes flying backwards and the end result what
+backwards and the end result what everybody sees is this kind of massive
+everybody sees is this kind of massive high-speed ejection so we don't want
+high-speed ejection so we don't want that how do we go about solving this
+that how do we go about solving this well like I said we not receive the
+well like I said we not receive the packet that tells us about the collision
+packet that tells us about the collision so we don't have that information on the
+so we don't have that information on the on the replica side and really this is
+on the replica side and really this is an unsolvable problem in our case
+an unsolvable problem in our case because we fully peer-to-peer no one has
+because we fully peer-to-peer no one has authority about the collision there's no
+authority about the collision there's no one true picture of what that collision
+one true picture of what that collision should actually look like and this is
+should actually look like and this is when I really wish I had a server
+when I really wish I had a server because the server could be
+because the server could be authoritative and make all those
+authoritative and make all those decisions for us but we don't so we have
+decisions for us but we don't so we have to live with that so what can we do we
+to live with that so what can we do we know that the collision is going to
+know that the collision is going to happen right those rigid bodies they're
+happen right those rigid bodies they're going to be crashing into each other
+going to be crashing into each other they're going to be applying forces to
+they're going to be applying forces to each other whether we like it or not so
+each other whether we like it or not so why don't we try and live with it
+why don't we try and live with it instead and basically what we really
+instead and basically what we really want to do is give the local physics a
+want to do is give the local physics a chance to simulate the collision and
+chance to simulate the collision and basically after a short period of time
+basically after a short period of time we then blend back into the correct dead
+we then blend back into the correct dead reckoned trajectory and really what we
+reckoned trajectory and really what we ended up putting together was a tunable
+ended up putting together was a tunable a blend factor that blends between two
+a blend factor that blends between two velocities so one is the velocity that's
+velocities so one is the velocity that's imparted by the rigidbody simulation and
+imparted by the rigidbody simulation and the other is the velocity that takes you
+the other is the velocity that takes you to the dead reckoned position and we
+to the dead reckoned position and we basically have to blend between those
+basically have to blend between those two and decide what we want and the goal
+two and decide what we want and the goal is really to let something believable
+is really to let something believable happen locally and then give time for a
+happen locally and then give time for a snapshot to arrive that takes the
+snapshot to arrive that takes the collision into account and then we can
+collision into account and then we can blend back into it what's hard there is
+blend back into it what's hard there is tuning the blend factor again
+tuning the blend factor again there's no real magic formula we played
+there's no real magic formula we played the game a lot we spent a long time
+the game a lot we spent a long time crashing cars into each other under
+crashing cars into each other under different scenarios and came up with
+different scenarios and came up with stuff that looked good and really
+stuff that looked good and really there's two parts that you need to tune
+there's two parts that you need to tune one is while there is a collision whilst
+one is while there is a collision whilst your blend factor how much of the local
+your blend factor how much of the local physics velocity you take Bursar's the
+physics velocity you take Bursar's the dead breakin velocity and when the
+dead breakin velocity and when the collision finishes how quickly do you go
+collision finishes how quickly do you go back to full dead reckoning and what we
+back to full dead reckoning and what we ended up shipping with is a graph that
+ended up shipping with is a graph that looks a bit something like something
+looks a bit something like something like this so before you have a collision
+like this so before you have a collision you're fully in dead reckoning as soon
+you're fully in dead reckoning as soon as you collide with something we there's
+as you collide with something we there's a short period of time when we switch to
+a short period of time when we switch to full local physics so that recommended
+full local physics so that recommended is ignored completely and we just
+is ignored completely and we just simulate the the rigid bodies locally
+simulate the the rigid bodies locally and then we kind of go to this halfway
+and then we kind of go to this halfway stage where we're taking a little bit of
+stage where we're taking a little bit of the dead reckoned trajectory but still
+the dead reckoned trajectory but still mostly local physics and then when we
+mostly local physics and then when we come out of the collision we ran back up
+come out of the collision we ran back up to full dead reckoning
+to full dead reckoning the other interesting thing here is that
+the other interesting thing here is that we ramp back up a lot quicker for bikes
+we ramp back up a lot quicker for bikes versus cars this is because bikes
+versus cars this is because bikes they're smaller they're lightweight so
+they're smaller they're lightweight so they kind of go in and out of collisions
+they kind of go in and out of collisions a lot quicker so we want to go back to
+a lot quicker so we want to go back to dead reckoning a lot quicker and this is
+dead reckoning a lot quicker and this is a video of what you might get afterwards
+so I mean it's still not perfect and it's really hard to show this in a video
+it's really hard to show this in a video but what you notice there is the car
+but what you notice there is the car didn't go shooting all the way down the
+didn't go shooting all the way down the street he kind of got pushed out of the
+street he kind of got pushed out of the way a little bit but that was it so this
+way a little bit but that was it so this was a much better result now one
+was a much better result now one interesting side effect that arises is
+interesting side effect that arises is because we now we have now a short
+because we now we have now a short period where we fully in local physics
+period where we fully in local physics we have no guarantees that for that
+we have no guarantees that for that period of time the collisions going to
+period of time the collisions going to play out the same on both tiers for
+play out the same on both tiers for example if your two cars crash into each
+example if your two cars crash into each other and on one machine it's kind of
+other and on one machine it's kind of pushed this way and on the other machine
+pushed this way and on the other machine it's pushed that way then when you blend
+it's pushed that way then when you blend back to dead reckoning you cannot have
+back to dead reckoning you cannot have this weeds you're gonna have this weird
+this weeds you're gonna have this weird sliding kind of effect which is very
+sliding kind of effect which is very jarring so we we want to avoid that and
+jarring so we we want to avoid that and there's no there's no magic way of doing
+there's no there's no magic way of doing that there there's no silver bullet but
+that there there's no silver bullet but what we can do to try and help this a
+what we can do to try and help this a little bit is before the collisions
+little bit is before the collisions about to start if our vehicles were
+about to start if our vehicles were theoretically closer to their master
+theoretically closer to their master positions then the collision is more
+positions then the collision is more likely to play out the same on both
+likely to play out the same on both machines which should reduce those kinds
+machines which should reduce those kinds of issues how can we do that what we
+of issues how can we do that what we ended up doing is putting in an
+ended up doing is putting in an algorithm that predicted that there was
+algorithm that predicted that there was a collision that was imminent and
+a collision that was imminent and increased the extrapolation in those
+increased the extrapolation in those cases the the theory behind that is if
+cases the the theory behind that is if you're about to crash into something
+you're about to crash into something you're very unlikely to steer out of the
+you're very unlikely to steer out of the way so for AI controlled vehicles we can
+way so for AI controlled vehicles we can guarantee that because we we have
+guarantee that because we we have control over that but even for player
+control over that but even for player vehicles there's only a short time
+vehicles there's only a short time window so it's very unlikely that
+window so it's very unlikely that they're going to avoid the collision
+they're going to avoid the collision completely and so by extrapolating a bit
+completely and so by extrapolating a bit more we bring things a little bit closer
+more we bring things a little bit closer together and it makes the problems just
+together and it makes the problems just a little bit less likely and every
+a little bit less likely and every little bit helps and actually we already
+little bit helps and actually we already had an algorithm for predicting
+had an algorithm for predicting collisions from our AI systems so we
+collisions from our AI systems so we basically hooked that up to the to the
+basically hooked that up to the to the dead reckoning logic and it gave us it
+dead reckoning logic and it gave us it gave us a heuristic about how likely you
+gave us a heuristic about how likely you are to collide with something and we use
+are to collide with something and we use the
+the to modify the time offset so basically
+to modify the time offset so basically if you're likely to crash into something
+if you're likely to crash into something we kind of reduced the time offset which
+we kind of reduced the time offset which basically causes the vehicle to be
+basically causes the vehicle to be extrapolated more and what I've just
+extrapolated more and what I've just described there this is more or less
+described there this is more or less what we ship with wash dogs too but
+what we ship with wash dogs too but another story is a lot of many problems
+another story is a lot of many problems that are still outstanding I'm going to
+that are still outstanding I'm going to cover some of them today but there's
+cover some of them today but there's many others I'll talk about collisions
+many others I'll talk about collisions with static geometry differences in time
+with static geometry differences in time offsets and what I'm dubbing the uncanny
+offsets and what I'm dubbing the uncanny valley so when you're if you have a car
+valley so when you're if you have a car that's kind of crashed into something
+that's kind of crashed into something and you're actually meant to be over
+and you're actually meant to be over here it's not too bad because you can
+here it's not too bad because you can sort of push this car out of the way and
+sort of push this car out of the way and get to it you meant to be but if you're
+get to it you meant to be but if you're colliding with static geometry like a
+colliding with static geometry like a brick wall well the brick wall is not
+brick wall well the brick wall is not going to give way so you're kind of
+going to give way so you're kind of stuck and worse than that is trees
+stuck and worse than that is trees because trees in a game and not
+because trees in a game and not destructible and they're tall and skinny
+destructible and they're tall and skinny so it's actually easier to end up on the
+so it's actually easier to end up on the wrong side of the tree and then you get
+wrong side of the tree and then you get things that look like this so this is
+things that look like this so this is exactly rated for effect you're not
+exactly rated for effect you're not actually going to see this in the game
+actually going to see this in the game unless you're really really unlucky but
+unless you're really really unlucky but it kind of gives you an idea of what
+it kind of gives you an idea of what happens when things go wrong and there
+happens when things go wrong and there are sort of ways to improve that one of
+are sort of ways to improve that one of the possibilities is to just stay out of
+the possibilities is to just stay out of the position maybe if you're on the
+the position maybe if you're on the wrong side of the tree maybe it's not so
+wrong side of the tree maybe it's not so bad you can get away with that in some
+bad you can get away with that in some cases the other one that we could try
+cases the other one that we could try it's kind of soft body physics so maybe
+it's kind of soft body physics so maybe just disable the collision on the tree
+just disable the collision on the tree and slide your way through the tree or
+and slide your way through the tree or there for a little bit of penetration
+there for a little bit of penetration something like that and of course with
+something like that and of course with the dead reckoning there's always the
+the dead reckoning there's always the fallback scenario of just teleporting to
+fallback scenario of just teleporting to where you're going to go that's all
+where you're going to go that's all something that you have to do at some
+something that you have to do at some point but really the goal is to reduce
+point but really the goal is to reduce the jittering effects because that's
+the jittering effects because that's what the player is going to notice
+what the player is going to notice generally in watchdogs 2 what we ended
+generally in watchdogs 2 what we ended up doing is more the first option kind
+up doing is more the first option kind of leaving cars a little bit out of
+of leaving cars a little bit out of position if we detect this you're
+position if we detect this you're colliding with too many things and
+colliding with too many things and you're not getting to where you're more
+you're not getting to where you're more beware would just let it sit there and
+beware would just let it sit there and kind of hope for the best
+the other interesting problem is that I've talked about what we do with time
+I've talked about what we do with time offsets for vehicles but that doesn't
+offsets for vehicles but that doesn't apply for pedestrians pedestrians much
+apply for pedestrians pedestrians much prefer to be interpolated and that's
+prefer to be interpolated and that's because they don't have to worry about
+because they don't have to worry about missed collisions or any of that they if
+missed collisions or any of that they if you and they travel a lot slower so
+you and they travel a lot slower so using interpolation gives you much
+using interpolation gives you much better looking trajectories so
+better looking trajectories so pedestrians and generally it's not much
+pedestrians and generally it's not much of an issue because if your player is on
+of an issue because if your player is on foot you're interacting with other
+foot you're interacting with other players characters on foot and your time
+players characters on foot and your time offsets they're pretty similar and then
+offsets they're pretty similar and then if your players in the car you're
+if your players in the car you're interacting with other characters in
+interacting with other characters in cars and again your time offsets are
+cars and again your time offsets are pretty similar where all of these Falls
+pretty similar where all of these Falls falls apart is when the two intersect
+falls apart is when the two intersect and then you get things like this where
+and then you get things like this where one the pedestrians just been missed and
+one the pedestrians just been missed and on the other machine he's been run over
+on the other machine he's been run over and he's flying through the air and rag
+and he's flying through the air and rag dolling now this is important because
+dolling now this is important because keep in mind the goal of bouncy mode is
+keep in mind the goal of bouncy mode is to take down another player and running
+to take down another player and running someone over with your car is a really
+someone over with your car is a really good way of taking someone down and so
+good way of taking someone down and so then you get these cases where you know
+then you get these cases where you know I think I killed you know you didn't yes
+I think I killed you know you didn't yes I did blah blah blah
+I did blah blah blah which is very frustrating and I think
+which is very frustrating and I think the way we can improve this is the same
+the way we can improve this is the same collision prediction algorithm that I
+collision prediction algorithm that I talked about could be applied for armed
+talked about could be applied for armed cars versus pedestrians where if you're
+cars versus pedestrians where if you're about to run over someone we extrapolate
+about to run over someone we extrapolate both a bit more and we we get a bit
+both a bit more and we we get a bit closer on each end the difference is
+closer on each end the difference is that pedestrians are much more
+that pedestrians are much more maneuverable so they could jump out of
+maneuverable so they could jump out of the way at the last minute so it doesn't
+the way at the last minute so it doesn't fully help and the other thing is we do
+fully help and the other thing is we do have a similar issue for breaker balls
+have a similar issue for breaker balls but there's no real gameplay impact if
+but there's no real gameplay impact if one player drives through a bus stop and
+one player drives through a bus stop and destroys it but it didn't happen on the
+destroys it but it didn't happen on the other machine it's not a big deal right
+other machine it's not a big deal right it's just debris that doesn't really
+it's just debris that doesn't really interfere with anything
+interfere with anything the other interesting thing I want to
+the other interesting thing I want to talk about is one of something that I've
+talk about is one of something that I've dubbed the uncanny valley so with
+dubbed the uncanny valley so with everything we've done so far our dead
+everything we've done so far our dead reckon tragic
+reckon tragic they were looking very good right our
+they were looking very good right our trajectories were matching up very
+trajectories were matching up very closely to the master snapshots the
+closely to the master snapshots the percentage of error was very low but
+percentage of error was very low but actually playing the game it still
+actually playing the game it still didn't feel quite right you could still
+didn't feel quite right you could still sort of tell that you were looking at
+sort of tell that you were looking at the replicated car rather than a master
+the replicated car rather than a master and there's lots of little things that
+and there's lots of little things that really add up so for example minor
+really add up so for example minor weight shifts kind of get lost in
+weight shifts kind of get lost in replication the other one is that cars
+replication the other one is that cars actually don't rotate around their
+actually don't rotate around their center of mass so dead reckoning
+center of mass so dead reckoning algorithms usually deal with just a
+algorithms usually deal with just a point with angular velocity around it
+point with angular velocity around it and we map that to the car center of
+and we map that to the car center of mass but actually it's a lot more
+mass but actually it's a lot more complex than that and then there's the
+complex than that and then there's the other issue with that I mentioned
+other issue with that I mentioned earlier with the sensitivity to even
+earlier with the sensitivity to even slightly inconsistent velocities and
+slightly inconsistent velocities and that became noticeable as well one of
+that became noticeable as well one of the things we did do here was apply a
+the things we did do here was apply a bunch of post-process moving to our dead
+bunch of post-process moving to our dead raconteur check Therese just to at least
+raconteur check Therese just to at least even out smooth out those inconsistent
+even out smooth out those inconsistent velocities what's a bit awkward there is
+velocities what's a bit awkward there is that post-process smoothing kinda has to
+that post-process smoothing kinda has to coexist with projective velocity
+coexist with projective velocity Blandings so that reckoning is meant to
+Blandings so that reckoning is meant to give you a nice smooth trajectory but in
+give you a nice smooth trajectory but in practice it didn't so we put this thing
+practice it didn't so we put this thing on top of it which kind of canceled out
+on top of it which kind of canceled out the results a little bit so felt awkward
+the results a little bit so felt awkward and dirty but hey the results look good
+and dirty but hey the results look good so whatever moving on there's a few
+so whatever moving on there's a few areas I'd like to research a lot more in
+areas I'd like to research a lot more in the future
+the future number one I'm very interested in
+number one I'm very interested in machine learning kind of things because
+machine learning kind of things because I think that reckoning is very
+I think that reckoning is very applicable to machine learning it's kind
+applicable to machine learning it's kind of this thing where we're gonna have an
+of this thing where we're gonna have an error we can compare the result of
+error we can compare the result of algorithm to where it should have been
+algorithm to where it should have been and make it adapt itself to reduce that
+and make it adapt itself to reduce that percentage of error and basically the
+percentage of error and basically the holy grail for me is all the stuff I
+holy grail for me is all the stuff I talked about when I had to do this
+talked about when I had to do this manual tuning of variables and really
+manual tuning of variables and really play the game a lot I don't want to do
+play the game a lot I don't want to do that I want a robot to do that for me
+that I want a robot to do that for me and the other one that interests me is
+and the other one that interests me is smoothing algorithms what we did for the
+smoothing algorithms what we did for the post-process smoothing was very
+post-process smoothing was very simplistic
+simplistic I'm specifically interested in Kalman
+I'm specifically interested in Kalman filters because I think they bring many
+filters because I think they bring many others concepts together they're a lot
+others concepts together they're a lot harder to deal with and put in place and
+harder to deal with and put in place and tune but I think there's something there
+tune but I think there's something there I want to try and so finally if you
+I want to try and so finally if you remember anything from this talk number
+remember anything from this talk number one if you're working on that reckoning
+one if you're working on that reckoning debug your trajectories get your testers
+debug your trajectories get your testers to record everything to turn on all of
+to record everything to turn on all of the debug rendering and all of your
+the debug rendering and all of your debugging first and when you get a bug
+debugging first and when you get a bug about a desync you get everything that's
+about a desync you get everything that's led up to that distinct so you can try
+led up to that distinct so you can try and figure it out and finally for me I
+and figure it out and finally for me I found that even though we're dealing
+found that even though we're dealing with very mathematical algorithms and
+with very mathematical algorithms and all these equations there's still a lot
+all these equations there's still a lot of art to the science we still end up
+of art to the science we still end up tuning variables to make something feel
+tuning variables to make something feel good which is completely opposite to to
+good which is completely opposite to to all my scientific instincts anyway
+all my scientific instincts anyway that's it for me I've got time for maybe
+that's it for me I've got time for maybe one question or you can catch me in the
+one question or you can catch me in the wrap-up lunch afterwards and I'm talking
+wrap-up lunch afterwards and I'm talking at the Ubisoft lounge I've got a whole
+at the Ubisoft lounge I've got a whole bunch of extra problems to talk about if
+bunch of extra problems to talk about if you're interested in that that I didn't
+you're interested in that that I didn't get a chance to cover today thanks
+get a chance to cover today thanks everyone
+everyone [Applause]
+[Applause] one question guy yes so you guys were
+one question guy yes so you guys were talking about how authorities
+talking about how authorities distributed between different clients I
+distributed between different clients I imagine that as one client goes away you
+imagine that as one client goes away you kind of have to transfer Authority and
+kind of have to transfer Authority and usually that introduces kind of like a
+usually that introduces kind of like a time hop
+time hop yeah or something where you guys able to
+yeah or something where you guys able to do anything about that er we we did a
+do anything about that er we we did a bit yes we is a bit especially with cars
+bit yes we is a bit especially with cars travelling in a straight line when you
+travelling in a straight line when you switch over it's exactly that it's going
+switch over it's exactly that it's going backwards and basically what we did
+backwards and basically what we did there was kind of slowed it down so we
+there was kind of slowed it down so we know we've transferred Authority we know
+know we've transferred Authority we know it's driving in a straight line so
+it's driving in a straight line so instead of going backwards we just
+instead of going backwards we just slowed down a bit to kind of let it
+slowed down a bit to kind of let it catch up again and do you guys clamp the
+catch up again and do you guys clamp the extrapolation along a plane so that if
+extrapolation along a plane so that if some if car is like bouncing up and down
+some if car is like bouncing up and down you don't over extrapolate like up or
+you don't over extrapolate like up or yeah we we had do I mean yes that was an
+yeah we we had do I mean yes that was an issue for sure some of that stuff part
+issue for sure some of that stuff part of the solution there is to let physics
+of the solution there is to let physics simulate the the z-axis basically so
+simulate the the z-axis basically so don't extrapolate upwards if you're kind
+don't extrapolate upwards if you're kind of close to the ground you let physics
+of close to the ground you let physics kind of keep you close right but there's
+kind of keep you close right but there's where this goes wrong if you're jumping
+where this goes wrong if you're jumping over you know jumping over a hill or
+over you know jumping over a hill or whatever which we do because there's a
+whatever which we do because there's a lot of hills in our game then you do let
+lot of hills in our game then you do let dead reckoning kind of kick in and
+dead reckoning kind of kick in and predict the vertical part of it and that
+predict the vertical part of it and that makes sense unless someone else has a
+makes sense unless someone else has a different question I have one more so
+different question I have one more so usually like vehicle replication in
+usually like vehicle replication in games like Halo and other places use the
+games like Halo and other places use the information about that hey this is a car
+information about that hey this is a car so we know we can limit interactions in
+so we know we can limit interactions in a certain way but it seems like you guys
+a certain way but it seems like you guys were generally replicating as if it was
+were generally replicating as if it was a generic physics object so what do you
+a generic physics object so what do you think about using some of these methods
+think about using some of these methods on replicating generic physics objects
+on replicating generic physics objects and not specifically just cars and
+and not specifically just cars and multiplayer scenarios yeah I mean you
+multiplayer scenarios yeah I mean you you're right a lot of it was treating it
+you're right a lot of it was treating it as a general physics object we did have
+as a general physics object we did have a lot of sort of car specific awareness
+a lot of sort of car specific awareness the example that I'm thinking of now is
+the example that I'm thinking of now is knowing that you're a bike versus a car
+knowing that you're a bike versus a car for example where we we put different
+for example where we we put different clamps on certain things and adjust the
+clamps on certain things and adjust the numbers differently
+numbers differently is that makes sense does that answer
+is that makes sense does that answer your question yeah I figured you guys
+your question yeah I figured you guys like the collision prediction also yeah
+like the collision prediction also yeah all that stuff does change right
+all that stuff does change right although it's it is rigid bodies it they
+although it's it is rigid bodies it they still a bit more than that but the
+still a bit more than that but the general basics sounded like you could
+general basics sounded like you could easily apply it just general physics for
+easily apply it just general physics for sure yes yes thank you thanks everyone

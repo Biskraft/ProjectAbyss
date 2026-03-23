@@ -1,0 +1,1686 @@
+[Music]
+good morning welcome to gdc 2017.
+welcome to gdc 2017. thank you for getting up on monday
+thank you for getting up on monday morning and coming to see us
+morning and coming to see us this is the math for game programmers
+this is the math for game programmers tutorial we're going to be doing
+tutorial we're going to be doing sessions throughout the day on
+sessions throughout the day on various topics in math in games so feel
+various topics in math in games so feel free to
+free to join for whichever sessions you like i'm
+join for whichever sessions you like i'm supposed to
+supposed to ask you and remind you please silence
+ask you and remind you please silence your phones or your pagers
+your phones or your pagers if you're a drug dealer and
+at the end of the session if you haven't been to gdc before or if you have it's
+been to gdc before or if you have it's good to be reminded you'll be getting an
+good to be reminded you'll be getting an email
+email that asks you to review the session
+that asks you to review the session please do uh the review
+please do uh the review it just takes a second and we really
+it just takes a second and we really appreciate and read the feedback that
+appreciate and read the feedback that you give
+you give so um so today's schedule we're gonna be
+so um so today's schedule we're gonna be doing uh two one-hour talks this morning
+doing uh two one-hour talks this morning with myself and then mike acton and then
+with myself and then mike acton and then we're going to break for lunch
+we're going to break for lunch and then we're going to have a number of
+and then we're going to have a number of half hour talks in the afternoon
+half hour talks in the afternoon and we'll have this schedule up as we go
+and we'll have this schedule up as we go okay so first i just want to get a sense
+okay so first i just want to get a sense of who's in the room so
+of who's in the room so um please raise your hand if this is
+um please raise your hand if this is your first gdc
+your first gdc ever awesome that's about half
+ever awesome that's about half two-thirds of the room and then put
+two-thirds of the room and then put those hands back up please
+those hands back up please and also if you've been to gc but you've
+and also if you've been to gc but you've never been to this tutorial before
+never been to this tutorial before okay so that's mostly first-timers uh
+okay so that's mostly first-timers uh please raise your hand if you're a
+please raise your hand if you're a student
+student only a few an educator
+only a few an educator a couple as well uh or if you work in
+a couple as well uh or if you work in games full-time
+games full-time okay the vast majority of them okay
+okay the vast majority of them okay so my talk is space-based
+so my talk is space-based random generation um more like
+random generation um more like why be random when you can be noisy or
+why be random when you can be noisy or i'm going to make a claim that
+i'm going to make a claim that anything random can do noise can do
+anything random can do noise can do better
+so i'm a game designer programmer i've been
+been coding since the apple ii my
+coding since the apple ii my background's in physics
+background's in physics i've been doing this professionally a
+i've been doing this professionally a long time and i present
+long time and i present regularly at the gdc and i teach now at
+regularly at the gdc and i teach now at smu guild hall which is a grad school
+smu guild hall which is a grad school for game development
+for game development i've worked at a bunch of companies i
+i've worked at a bunch of companies i was a tech director or lead programmer
+was a tech director or lead programmer at each of those companies
+at each of those companies and i've worked with a bunch of
+and i've worked with a bunch of companies on a bunch of projects
+companies on a bunch of projects so today we're talking about number
+so today we're talking about number generators
+generators right from rand to whatever else
+right from rand to whatever else we're going to talk about some noise
+we're going to talk about some noise functions and i'm going to get into that
+functions and i'm going to get into that a little bit
+a little bit just a couple of revisions of smooth or
+just a couple of revisions of smooth or fractal noise like purlin noise or
+fractal noise like purlin noise or simplex noise
+simplex noise i'm going to make a case that i think
+i'm going to make a case that i think noise is more
+noise is more valuable in some cases than random or
+valuable in some cases than random or can even supersede random
+can even supersede random and then we'll of course try to give
+and then we'll of course try to give some application and context for all
+some application and context for all this stuff
+this stuff so the talk is for anyone who's
+so the talk is for anyone who's interested in procedural content
+interested in procedural content generation that's been a hot topic
+generation that's been a hot topic lately
+lately of course anyone who's just rolling dice
+of course anyone who's just rolling dice for random outcomes in general
+for random outcomes in general if you're using ran this talk is
+if you're using ran this talk is definitely for you even if you're using
+definitely for you even if you're using the mercen twister or something you
+the mercen twister or something you think is more sophisticated
+think is more sophisticated this talk is for you or if you're doing
+this talk is for you or if you're doing any sort of
+any sort of noise or hash functions and you're using
+noise or hash functions and you're using something like md5 or sha or something
+something like md5 or sha or something you found on
+you found on stack overflow this is definitely a talk
+stack overflow this is definitely a talk for you
+for you okay so some example use cases just to
+okay so some example use cases just to frame
+frame um what is this because everything
+um what is this because everything context
+context is king right uh depends on what we're
+is king right uh depends on what we're doing so
+doing so uh one of the most popular things we're
+uh one of the most popular things we're going to use random
+going to use random numbers for and noise is for generating
+numbers for and noise is for generating procedure worlds right and everyone
+procedure worlds right and everyone thinks about
+thinks about you know height maps generating
+you know height maps generating mountains and lakes and yes we can do
+mountains and lakes and yes we can do that
+that or generating random dungeons for
+or generating random dungeons for roguelikes or something yes we can do
+roguelikes or something yes we can do that
+that there's a lot more we can generate
+there's a lot more we can generate though right we might generate planets
+though right we might generate planets or villages spaceships
+or villages spaceships flowers random npcs with random genders
+flowers random npcs with random genders and personalities and backgrounds and
+and personalities and backgrounds and professions random quests right so
+professions random quests right so there's a lot of other things we might
+there's a lot of other things we might want to do with
+want to do with generation other than just mountains
+generation other than just mountains there are some harder problems that are
+there are some harder problems that are more nuanced too
+more nuanced too and uh shay pierce is going to talk
+and uh shay pierce is going to talk about this a little bit this afternoon
+about this a little bit this afternoon where we might want to um create
+where we might want to um create uh discreet and distinct things uh
+uh discreet and distinct things uh in a near infinite world or we may want
+in a near infinite world or we may want to place
+to place objects in a really large world right
+objects in a really large world right and so for example in minecraft you can
+and so for example in minecraft you can run forever
+run forever but every now and then there are
+but every now and then there are periodic trees or periodic villages and
+periodic trees or periodic villages and how do we decide
+how do we decide where to place those if we can't figure
+where to place those if we can't figure out where to place them all
+out where to place them all the time because the world is infinite
+the time because the world is infinite right so we need to do all this
+right so we need to do all this kind of on the fly we might want to do
+kind of on the fly we might want to do particle effects we might have a million
+particle effects we might have a million particles each one doing a random thing
+particles each one doing a random thing that can get really weird if we're doing
+that can get really weird if we're doing it badly um
+it badly um there are a lot of ai algorithms
+there are a lot of ai algorithms nowadays that require algorithm uh
+nowadays that require algorithm uh randomness whether it's markov chains
+randomness whether it's markov chains genetic algorithms uh monte carlo circle
+genetic algorithms uh monte carlo circle and and again going back to the
+and and again going back to the minecraft example we might want to
+minecraft example we might want to have chunks that generate in random
+have chunks that generate in random order right so if the player runs to the
+order right so if the player runs to the west he discovers a mountain
+west he discovers a mountain great there's a mountain there he then
+great there's a mountain there he then only sees half of the mountain so only
+only sees half of the mountain so only half of the mountain's been generated
+half of the mountain's been generated he then runs away from it goes south
+he then runs away from it goes south comes all the way back around
+comes all the way back around and approaches the mountain from the
+and approaches the mountain from the other side the mountain better still be
+other side the mountain better still be there and the west side
+there and the west side better match for the east side we may
+better match for the east side we may want to trade seeds right i may want to
+want to trade seeds right i may want to tell my friend
+tell my friend hey you should try this map try this
+hey you should try this map try this seed from this word or this number
+seed from this word or this number it's a really cool map it's got a tower
+it's a really cool map it's got a tower in the middle of the jungle something
+in the middle of the jungle something like that
+generation and noise can also be the ultimate form of network compression
+ultimate form of network compression right if i have 22 gigs of data that i
+right if i have 22 gigs of data that i generated
+generated i can send it to you with an almost
+i can send it to you with an almost infinite to one compression if i just
+infinite to one compression if i just send you
+send you right so that's a huge advantage that's
+right so that's a huge advantage that's the same with disc
+the same with disc compression right if i generate some
+compression right if i generate some mountain as long as the mountain's
+mountain as long as the mountain's unchanged i don't need to save it on
+unchanged i don't need to save it on disk i can just throw it away and
+disk i can just throw it away and regenerate it
+regenerate it on demand so it's the ultimate form of
+on demand so it's the ultimate form of compression as well
+compression as well all right so briefly i want to talk
+all right so briefly i want to talk about what we actually want out of our
+about what we actually want out of our number generators which ones should we
+number generators which ones should we actually use or not use
+actually use or not use we keep hearing different things a
+we keep hearing different things a couple of limitations of random number
+couple of limitations of random number generators
+generators i talk about noise functions as an
+i talk about noise functions as an alternative
+alternative and entertain the possibility of can we
+and entertain the possibility of can we make a random number generator that's
+make a random number generator that's based on noise
+based on noise or noise that's based on random number
+or noise that's based on random number generators uh and then a couple of
+generators uh and then a couple of tidbits
+tidbits so that's where we're gonna go with this
+so that's where we're gonna go with this so first of all what do we wanna look
+so first of all what do we wanna look for in a random number generator
+for in a random number generator um what makes one good
+um what makes one good well i think academics would start
+well i think academics would start answering well it depends on the period
+answering well it depends on the period of the blah blah blah no no it really
+of the blah blah blah no no it really depends who's asking
+depends who's asking right if you're at the nsa you have very
+right if you're at the nsa you have very different needs
+different needs for your random algorithms than if
+for your random algorithms than if you're working on minecraft
+you're working on minecraft then if you're working at a casino game
+then if you're working at a casino game right
+right so it really depends who's asking so
+so it really depends who's asking so what do i want in an rng
+what do i want in an rng as a game developer who's interested in
+as a game developer who's interested in procedural content generation
+procedural content generation do i want fair statistical distribution
+do i want fair statistical distribution right it's kind of it's random enough
+right it's kind of it's random enough yes i very much want that and 99
+yes i very much want that and 99 fair and statistical is much better and
+fair and statistical is much better and more important than 95 percent fair it
+more important than 95 percent fair it doesn't have to be
+doesn't have to be absolutely perfect but we really start
+absolutely perfect but we really start noticing the differences
+noticing the differences with fall off we want it to not repeat
+with fall off we want it to not repeat right
+right for flipping heads tails tails heads
+for flipping heads tails tails heads heads heads heads heads heads heads
+heads heads heads heads heads heads heads heads
+heads heads we don't want that to happen except
+we don't want that to happen except actually we do
+actually we do in the sense that it can and will happen
+in the sense that it can and will happen and we so we want it to happen as much
+and we so we want it to happen as much as it should
+as it should right do we want
+right do we want some really long repeat period where if
+some really long repeat period where if we run the random number generator it
+we run the random number generator it will
+will only finish its cycle after the sun has
+only finish its cycle after the sun has long burned out and died
+long burned out and died that's really important right probably
+that's really important right probably that doesn't matter so much as long as
+that doesn't matter so much as long as it can go
+it can go you know billions or something really
+you know billions or something really who cares at some point
+who cares at some point i'm going to make this point in a
+i'm going to make this point in a different way later however we probably
+different way later however we probably do want to make sure that it
+do want to make sure that it doesn't repeat too too quickly so as
+doesn't repeat too too quickly so as long as we can get millions billions out
+long as we can get millions billions out of the sequence we're probably in the
+of the sequence we're probably in the ballpark of
+ballpark of okay and most of the random number
+okay and most of the random number generators you'll deal with
+generators you'll deal with have a sequence length a period of in
+have a sequence length a period of in the billions
+the billions so probably not a big deal we want to be
+so probably not a big deal we want to be able to seed it right we want to be able
+able to seed it right we want to be able to say
+to say i'm going to give you the seed of 15 and
+i'm going to give you the seed of 15 and then go go go generate a world
+then go go go generate a world and that's totally different than if i
+and that's totally different than if i give it a 17 and i said generate the
+give it a 17 and i said generate the world
+world so we want to be able to seed it i want
+so we want to be able to seed it i want to be able to use
+to be able to use uh more than just a few seeds so maybe
+uh more than just a few seeds so maybe 32 bit that would give me 4 billion
+32 bit that would give me 4 billion seeds that's
+seeds that's plenty right there's a lot of random
+plenty right there's a lot of random number generators that have
+number generators that have pickiness about seeds like use any seed
+pickiness about seeds like use any seed you want oh except
+you want oh except don't use even numbers please use large
+don't use even numbers please use large primes and definitely don't use zero
+primes and definitely don't use zero so i'd rather not have that if i can
+so i'd rather not have that if i can warm it avoid it
+warm it avoid it some rngs have this sort of uh
+some rngs have this sort of uh warm-up period where you get some lousy
+warm-up period where you get some lousy values before you start getting really
+values before you start getting really good values
+good values and actually some of the most well-known
+and actually some of the most well-known generators are
+generators are some of the worst at this this is not
+some of the worst at this this is not something that i want because oftentimes
+something that i want because oftentimes i'm going to want to seed something and
+i'm going to want to seed something and then generate five numbers and seed
+then generate five numbers and seed something else and generate 20.
+something else and generate 20. so it's those numbers at the beginning
+so it's those numbers at the beginning of the sequence that i want the most
+of the sequence that i want the most so i don't want this warm up
+statistically it is important for me that the bits are independent right if i
+that the bits are independent right if i look at
+look at if you give me 32 random bits then there
+if you give me 32 random bits then there should be
+should be a 50 chance that any one of them is on
+a 50 chance that any one of them is on or off at any time and a 50
+or off at any time and a 50 chance that any one of them agrees or
+chance that any one of them agrees or disagrees at any time right there
+disagrees at any time right there shouldn't be correlated with each other
+shouldn't be correlated with each other spatially and then um temporally meaning
+spatially and then um temporally meaning that the next result and the next result
+that the next result and the next result shouldn't have anything to do with the
+shouldn't have anything to do with the previous
+previous result at least not recognizably
+result at least not recognizably platform independence i definitely
+platform independence i definitely definitely definitely want this if i
+definitely definitely want this if i have
+have an android client and an ios client and
+an android client and an ios client and a mac and a pc client all connect to
+a mac and a pc client all connect to something
+something and they're trading seeds over the
+and they're trading seeds over the network that thing i generate from the
+network that thing i generate from the seed you sent me better be the same as
+seed you sent me better be the same as this thing you sent even though you have
+this thing you sent even though you have a totally different cpu than me
+a totally different cpu than me right you might be on a 32-bit
+right you might be on a 32-bit um arm or whatever and i might be on a
+um arm or whatever and i might be on a 64-bit intel
+64-bit intel it could be quite different i would love
+it could be quite different i would love to have order independence
+to have order independence random access right where i could just
+random access right where i could just sort of jump ahead in the sequence and
+sort of jump ahead in the sequence and jump behind i want to say give me the
+jump behind i want to say give me the 75th
+75th random number in this sequence
+random number in this sequence unfortunately that's something
+unfortunately that's something random number generators do not do very
+random number generators do not do very well
+well we'll talk about that more and then of
+we'll talk about that more and then of course i need this reproducibility
+course i need this reproducibility this determinism right if i give you the
+this determinism right if i give you the seed 17
+seed 17 i better get the same results as the
+i better get the same results as the next time i give you the seed 17.
+next time i give you the seed 17. and this is crucial to most of the
+and this is crucial to most of the purposes we're going to do with this
+purposes we're going to do with this how important is speed we may end up
+how important is speed we may end up wanting to generate a lot of random
+wanting to generate a lot of random numbers like a lot a lot a lot and we
+numbers like a lot a lot a lot and we may want to do it
+may want to do it in real time some of the most
+in real time some of the most interesting algorithms we can do
+interesting algorithms we can do require us to generate millions of
+require us to generate millions of random numbers so this does matter
+and we also may want to have thousands or tens of thousands
+or tens of thousands of random number generators that we're
+of random number generators that we're going to instantiate that each one is
+going to instantiate that each one is feeding us different numbers
+feeding us different numbers so we may also care about the ability to
+so we may also care about the ability to whip up another generator and have it
+whip up another generator and have it start cranking on numbers
+start cranking on numbers memory footprint how much memory does
+memory footprint how much memory does each rng
+each rng have if i've got 10 000 of them am i
+have if i've got 10 000 of them am i going to care am i going to notice is
+going to care am i going to notice is that going to be
+that going to be megs and megs of memory or not
+can i run it in parallel right if i have multiple threads
+multiple threads can they all be rolling random numbers
+can they all be rolling random numbers at the same time um
+at the same time um is this thread safe can i use one
+is this thread safe can i use one rng one generator that multiple threads
+rng one generator that multiple threads are saying hey give me numbers give me
+are saying hey give me numbers give me numbers
+numbers or does each thread have to create its
+or does each thread have to create its own generator which is not the end of
+own generator which is not the end of the world
+the world okay so which rngs are out there what
+okay so which rngs are out there what can we use
+can we use i'm going to go really quickly through
+i'm going to go really quickly through this but just a sense of what kinds of
+this but just a sense of what kinds of things
+things there are so the simplest random number
+there are so the simplest random number generators
+generators like these are literally boiled down to
+like these are literally boiled down to if you can see the code on the bottom
+if you can see the code on the bottom here some internal state
+here some internal state say some number and we multiply it by
+say some number and we multiply it by some weird number say a big prime
+some weird number say a big prime and then that's our new state oh and
+and then that's our new state oh and then we return it to you
+then we return it to you and then the next time you call it we
+and then the next time you call it we take that new state and we mudge it some
+take that new state and we mudge it some more and then we return it to you so we
+more and then we return it to you so we kind of are constantly chewing and
+kind of are constantly chewing and mangling our state and returning it
+mangling our state and returning it this sucks because if i put in a
+this sucks because if i put in a seed of zero meaning i start the state
+seed of zero meaning i start the state off at zero then it will be zero times
+off at zero then it will be zero times i don't care because zero is zero and
+i don't care because zero is zero and then it will just be stuck at zero
+then it will just be stuck at zero forever
+forever right in the numerical recipes
+right in the numerical recipes they improve this and these are called
+they improve this and these are called mixed congruential
+mixed congruential generators where they just multiply by
+generators where they just multiply by something and add a number
+something and add a number great and supposedly this i thought was
+great and supposedly this i thought was what rand was but
+what rand was but my results later in this tell me that
+my results later in this tell me that it's doing something even more sinister
+it's doing something even more sinister okay so that's great why not just use
+okay so that's great why not just use rand it's been the standard forever
+rand it's been the standard forever everyone knows how to use it
+everyone knows how to use it well probably you know that rand only
+well probably you know that rand only gives you so many numbers right zero to
+gives you so many numbers right zero to thirty two thousand
+thirty two thousand um okay well if i wanted a 32-bit
+um okay well if i wanted a 32-bit ram i'll just mash three rands together
+ram i'll just mash three rands together right maybe bit shift
+right maybe bit shift so i could make something called triple
+so i could make something called triple rand right where i take
+rand right where i take these see if you can see my mouse cursor
+these see if you can see my mouse cursor these 15 bits that it's giving me and
+these 15 bits that it's giving me and actually the bottom two bits are a
+actually the bottom two bits are a little bit statistically
+little bit statistically wonky no problem we'll just generate
+wonky no problem we'll just generate rand
+rand shift it over from some bits generate
+shift it over from some bits generate rand shift it over
+rand shift it over and then mash those together now we get
+and then mash those together now we get 32 good bits
+32 good bits of random
+of random unfortunately ran's not that fast when
+unfortunately ran's not that fast when we start doing millions and millions of
+we start doing millions and millions of calls and of course it's not going to
+calls and of course it's not going to get any better if we call it three times
+get any better if we call it three times just to try to get better results
+just to try to get better results and rand does not do well at all
+and rand does not do well at all statistically
+statistically in terms of how evenly distributed the
+in terms of how evenly distributed the random numbers are
+random numbers are those triple rand can do fine
+those triple rand can do fine also random maintains a global state so
+also random maintains a global state so if i have 16 different threads i can say
+if i have 16 different threads i can say s rand to seed it
+s rand to seed it to number 17 and then i call rand rand
+to number 17 and then i call rand rand rand
+rand if some other thread is doing that as
+if some other thread is doing that as well it's fighting
+well it's fighting with me and it's disrupting my sequence
+with me and it's disrupting my sequence right so it's absolutely the worst thing
+right so it's absolutely the worst thing for me to
+for me to have in terms of multi-threading
+have in terms of multi-threading and that's just the beginning of rand's
+and that's just the beginning of rand's problems so let's look at a couple of uh
+problems so let's look at a couple of uh sort of quantitative grades of how well
+sort of quantitative grades of how well these things do
+these things do and how fast they are so identity here
+and how fast they are so identity here is
+is a random number generator where every
+a random number generator where every time you say give me another number it
+time you say give me another number it says okay
+says okay one two three four five that's all it is
+one two three four five that's all it is so obviously that doesn't do very well
+so obviously that doesn't do very well uh and i have these different tests and
+uh and i have these different tests and we could talk about them later if
+we could talk about them later if there's time but
+there's time but on average are the bits 50 percent on or
+on average are the bits 50 percent on or off
+off on average are bits independent from
+on average are bits independent from each other is the next number more
+each other is the next number more more likely to be higher that should be
+more likely to be higher that should be true 50
+true 50 of the time when i look at each byte are
+of the time when i look at each byte are the bytes distributed over the different
+the bytes distributed over the different possibilities nicely
+possibilities nicely and then if i mod by all the different
+and then if i mod by all the different numbers from one to a million
+numbers from one to a million and do that a ton of times does it
+and do that a ton of times does it statistically mod
+statistically mod you know spread nicely so if i do this
+you know spread nicely so if i do this rand mod 7
+rand mod 7 do i tend to get about even results
+do i tend to get about even results across the seven
+across the seven buckets and you can see here uh these
+early and common random number generators most of them do not do well
+generators most of them do not do well at all on these statistical tests
+at all on these statistical tests this triple rand does much better
+this triple rand does much better thankfully
+thankfully if we look at the call time this is the
+if we look at the call time this is the top here
+top here you can see i can make quite a number of
+you can see i can make quite a number of calls per millisecond
+calls per millisecond but triple rand is down to 10 000 calls
+but triple rand is down to 10 000 calls per millisecond which
+per millisecond which seems pretty fast unless again we're
+seems pretty fast unless again we're going to be doing millions of them
+going to be doing millions of them so not bad i would say uh you're fired
+so not bad i would say uh you're fired for all of them except for this triple
+for all of them except for this triple ran so far
+ran so far okay there's some other ones to consider
+okay there's some other ones to consider i'm not gonna go in too much detail but
+i'm not gonna go in too much detail but uh if you have to leave in this talk
+uh if you have to leave in this talk right now i would say the one takeaway
+right now i would say the one takeaway is at least use something like this xor
+is at least use something like this xor shift one
+shift one it's like rand that doesn't suck um and
+it's like rand that doesn't suck um and it's a simple
+it's a simple algorithm where you just sort of um bit
+algorithm where you just sort of um bit shift around and xor with yourself and
+shift around and xor with yourself and you do that enough times
+you do that enough times surprisingly it has very good
+surprisingly it has very good statistical results
+statistical results and there's various other variations of
+and there's various other variations of it
+it now by now probably many of you are
+now by now probably many of you are thinking well geez why don't you just
+thinking well geez why don't you just get with the program we all know there's
+get with the program we all know there's mere sand twister and that's the best
+mere sand twister and that's the best thing right and it's in the simplest
+thing right and it's in the simplest standard now let's take a look
+standard now let's take a look first of all it's not simple right if i
+first of all it's not simple right if i call rand on the right
+call rand on the right it does a bunch of stuff and one of
+it does a bunch of stuff and one of those things is every now and then it
+those things is every now and then it calls twist which is a bunch of stuff on
+calls twist which is a bunch of stuff on the left
+the left with a for loop right branches this
+with a for loop right branches this doesn't smell that fast to me
+doesn't smell that fast to me and sure enough it's not we'll go more
+and sure enough it's not we'll go more into that in a second
+into that in a second here's another one that's intel actually
+here's another one that's intel actually has some really cool random generates on
+has some really cool random generates on generators on their website
+generators on their website this is one i took from their website
+this is one i took from their website everyone can
+everyone can obviously understand this code right so
+obviously understand this code right so you'll see what's going on there
+so let's look at how these do when i look at these different number
+look at these different number random number generators you can see now
+random number generators you can see now everything triple random below is
+everything triple random below is scoring pretty well mercen twister
+scoring pretty well mercen twister actually only scores a 98
+actually only scores a 98 there's another set of tests you can
+there's another set of tests you can apply to these which i'll
+apply to these which i'll talk about at the end if there's time
+talk about at the end if there's time but these are more simple and direct to
+but these are more simple and direct to what i wanted
+what i wanted so actually mercen twister was not the
+so actually mercen twister was not the strongest these xor shifts were slightly
+strongest these xor shifts were slightly better
+better and if you look at the time to run them
+and if you look at the time to run them mercen twister's pretty fast but the xor
+mercen twister's pretty fast but the xor shifts
+shifts are better quality and they're faster
+are better quality and they're faster all right that's interesting um there's
+all right that's interesting um there's another thing that's interesting here to
+another thing that's interesting here to note is mercen twister
+note is mercen twister notice it takes to seed it uh it's
+notice it takes to seed it uh it's hundreds of times slower than any other
+hundreds of times slower than any other thing
+thing it's so complicated to see the structure
+it's so complicated to see the structure and it's also got a lot of memory
+and it's also got a lot of memory okay all of these functions are based on
+okay all of these functions are based on the central idea of a recurrence
+the central idea of a recurrence relation function
+relation function and that's basically just to say any rng
+and that's basically just to say any rng just pick one
+just pick one it's basically amounts to this take your
+it's basically amounts to this take your state do something funky to it
+state do something funky to it and return that and then that's your
+and return that and then that's your state for next time
+state for next time and then you do something funky to that
+and then you do something funky to that and so as long as you pick the right
+and so as long as you pick the right funky
+funky this thing will create a long chain of
+this thing will create a long chain of interesting things hopefully
+okay so lastly i'll just mention there's std random device it's a new thing i
+std random device it's a new thing i don't know if it was c plus plus 11 or
+don't know if it was c plus plus 11 or something added
+something added this is something you should not use for
+this is something you should not use for your random number generation
+your random number generation this is meant to be physically actually
+this is meant to be physically actually really random right
+really random right like i don't know if it's based on the
+like i don't know if it's based on the temperature of the core or something
+temperature of the core or something like that i don't know how you do that
+like that i don't know how you do that on a computer
+on a computer but it's meant to be an actual random
+but it's meant to be an actual random not a pseudo-random
+not a pseudo-random for games that's not really useful at
+for games that's not really useful at all unless perhaps you want something
+all unless perhaps you want something super random-y just to kick off your
+super random-y just to kick off your random number generator
+random number generator okay so i want to talk about the
+okay so i want to talk about the limitations of
+limitations of these random number generators all of
+these random number generators all of the ones we just discussed
+many of them have restrictions on the seeds like i said if you use a
+seeds like i said if you use a seed of an even number or seed them with
+seed of an even number or seed them with zero
+zero half of them break right off the gate
+half of them break right off the gate and a lot of them have even weirder
+and a lot of them have even weirder rules like you should use a seed that's
+rules like you should use a seed that's a prime or a seed that's a prime that's
+a prime or a seed that's a prime that's one less than a power of two or
+one less than a power of two or something like that
+something like that that's no use for me if i want to have
+that's no use for me if i want to have different planets with id numbers or
+different planets with id numbers or npcs
+npcs with id numbers and this npc is id
+with id numbers and this npc is id number 12.
+number 12. please generate yourself based on that
+please generate yourself based on that seed right well
+seed right well what if that c doesn't play well with
+what if that c doesn't play well with the random number generator am i just
+the random number generator am i just going to get a really
+going to get a really lame npc or i'm going to get a lot of
+lame npc or i'm going to get a lot of clones of the same
+clones of the same npc there's a bigger complaint i have
+npc there's a bigger complaint i have which is that
+which is that when we say seeds in these random number
+when we say seeds in these random number generators
+generators um i i think it's kind of misleading
+um i i think it's kind of misleading they're not really giving us a whole new
+they're not really giving us a whole new set of random numbers they're just
+set of random numbers they're just jumping us
+jumping us into a different starting point in that
+into a different starting point in that same sequence
+same sequence right so if the sequence is a billion
+right so if the sequence is a billion numbers long we might start halfway into
+numbers long we might start halfway into it if we use one c
+it if we use one c we might start a third of the way into
+we might start a third of the way into it if we use a different seed
+it if we use a different seed and this is why the mathematicians get
+and this is why the mathematicians get us all excited about
+us all excited about something like marissa and twister
+something like marissa and twister having a ridiculously
+having a ridiculously long sequence a period before it repeats
+long sequence a period before it repeats is because when you sort of jump into it
+is because when you sort of jump into it you're not likely to sort of find
+you're not likely to sort of find familiar territory that you were in
+familiar territory that you were in before
+before hopefully but the seeds are not really
+hopefully but the seeds are not really a different set of random numbers
+a different set of random numbers they're just a different starting point
+they're just a different starting point i mentioned the slow warm up right
+i mentioned the slow warm up right meristem twister included
+meristem twister included produces weak values before it starts
+produces weak values before it starts getting statistically strong
+getting statistically strong and that's fine if you're doing
+and that's fine if you're doing scientific programming you want to have
+scientific programming you want to have 250 million uh random results and you
+250 million uh random results and you want them to be statistically sound
+want them to be statistically sound it's not fine if you want to just make
+it's not fine if you want to just make an npc and you need six
+an npc and you need six die rolls and they're all bad thread
+die rolls and they're all bad thread safety
+safety is important uh something like mercen
+is important uh something like mercen twister and most of them
+twister and most of them uses an internal state so it's not
+uses an internal state so it's not thread safe every call to it
+thread safe every call to it modifies the random number generator
+modifies the random number generator however
+however you can instantiate a different
+you can instantiate a different generator on each thread and then
+generator on each thread and then you can each thread can hammer on its
+you can each thread can hammer on its own generator no problem
+own generator no problem however you can still have the case
+however you can still have the case where this thread
+where this thread seeds with the number five this set
+seeds with the number five this set thread seeds with the number seven
+thread seeds with the number seven and this thread is pulling numbers uh
+and this thread is pulling numbers uh and this one
+and this one faster than this other one and actually
+faster than this other one and actually because we're still all pulling out of
+because we're still all pulling out of the same sequence and numbers we can
+the same sequence and numbers we can kind of
+kind of sort of sync up and so i can
+sort of sync up and so i can pass you or lap you or even come in sync
+pass you or lap you or even come in sync with you in the same
+with you in the same part of the number sequence and of
+part of the number sequence and of course rand we said do not use across
+course rand we said do not use across threads because it has this global state
+order to dependency this is the my single biggest objection to these random
+single biggest objection to these random number generators
+number generators every call affects the next one so
+every call affects the next one so whatever you
+whatever you generate has to be generated in a strict
+generate has to be generated in a strict order
+order if i give you the seed 17 that's not
+if i give you the seed 17 that's not enough you have to generate the same
+enough you have to generate the same npcs tiles maps weapons loot
+npcs tiles maps weapons loot drop whatever particles in exactly the
+drop whatever particles in exactly the same order that i did
+same order that i did or else the sequence gets disrupted
+or else the sequence gets disrupted right so it's very sequential it's
+right so it's very sequential it's highly ordered
+highly ordered this sucks when say we want to generate
+this sucks when say we want to generate infinite number of things
+infinite number of things out of order so
+out of order so just to illustrate that point so let's
+just to illustrate that point so let's say i have
+say i have some world that's an infinite world
+some world that's an infinite world right and i can go as far as i want
+right and i can go as far as i want and the world just keeps generating over
+and the world just keeps generating over and over and over and over
+and over and over and over well if i see that there's a island over
+well if i see that there's a island over here
+here let me get some island okay so i don't
+let me get some island okay so i don't know if you can see in the distance
+know if you can see in the distance there's an island that's kind of half
+there's an island that's kind of half generated and i'm going to back away
+generated and i'm going to back away from it
+from it and then i'm going to go around here and
+and then i'm going to go around here and now i'd go exploring
+now i'd go exploring i'm going faster than the thing can
+i'm going faster than the thing can catch up at the moment
+catch up at the moment but if i then approach from the east
+but if i then approach from the east instead of from the south
+instead of from the south i still have to come up with that same
+i still have to come up with that same island that i would have before
+island that i would have before right so i can't roll a bunch of random
+right so i can't roll a bunch of random numbers ahead of time and just figure
+numbers ahead of time and just figure out where all the islands are because
+out where all the islands are because there's an infinite number of them
+there's an infinite number of them and i need to be able to encounter them
+and i need to be able to encounter them in random order
+so we have poor random access how do you jump 100 numbers
+jump 100 numbers ahead in the sequence in any normal
+ahead in the sequence in any normal traditional
+traditional random number generator you just have to
+random number generator you just have to roll 100 times right to skip ahead for
+roll 100 times right to skip ahead for some reason if you needed to do that
+some reason if you needed to do that you want to jump back three in the
+you want to jump back three in the sequence sorry can't do it
+sequence sorry can't do it maybe if you knew oh i was generated
+maybe if you knew oh i was generated from seed
+from seed 2261 and i'm 1400 calls in
+2261 and i'm 1400 calls in you could reseed and then call 3 1397
+you could reseed and then call 3 1397 right that's ridiculous
+right that's ridiculous so we have terrible random access
+so we have terrible random access we also have non-trivial instantiation
+we also have non-trivial instantiation like i said there's a lot of
+like i said there's a lot of interesting algorithms that happen in
+interesting algorithms that happen in procedural generation that require us to
+procedural generation that require us to have
+have thousands or tens of thousands or even
+thousands or tens of thousands or even hundreds of thousands
+hundreds of thousands of different random number generators
+of different random number generators instantiated
+instantiated so if we can't make them fast and if
+so if we can't make them fast and if they're not small in memory that
+they're not small in memory that actually takes
+actually takes tons of tools away from us takes tons of
+tons of tools away from us takes tons of algorithmic
+algorithmic interesting procedural content options
+interesting procedural content options off the table
+off the table and then there's the lack of temporal
+and then there's the lack of temporal and spatial coherence and by that i just
+and spatial coherence and by that i just mean
+mean if you want to have a slope that's
+if you want to have a slope that's random heights and you're kind of
+random heights and you're kind of smoothing it out between them you have
+smoothing it out between them you have to generate the numbers ahead of time
+to generate the numbers ahead of time and remember them in order to smooth
+and remember them in order to smooth between them
+between them right you can't go back and say wait
+right you can't go back and say wait wait what was the number before too late
+wait what was the number before too late so it means you have to end up writing
+so it means you have to end up writing all this extra code
+all this extra code and storing all this extra data and if
+and storing all this extra data and if you're still
+you're still really really jonesing on percent
+really really jonesing on percent twister i'll just quote
+twister i'll just quote wikipedia places a load on memory caches
+wikipedia places a load on memory caches somewhat slow fails tests
+somewhat slow fails tests not appropriate for monte carlo
+not appropriate for monte carlo simulations outputs nearly the same
+simulations outputs nearly the same sequence for many iterations
+all right so i'm not saying mercen twister is bad i'm saying
+twister is bad i'm saying when you talk to anyone on the street a
+when you talk to anyone on the street a game developer you ask them what do they
+game developer you ask them what do they know about random numbers they'll say oh
+know about random numbers they'll say oh rand is bad you should use mere satin
+rand is bad you should use mere satin twister that's the one thing they know
+twister that's the one thing they know and i'm saying that's not necessarily
+and i'm saying that's not necessarily true
+it's heavy weight every rng you instantiate is 2k
+instantiate is 2k of memory which i still can't believe
+of memory which i still can't believe uh it's slow to instantiate i'm sure in
+uh it's slow to instantiate i'm sure in part because of running mucking around
+part because of running mucking around and all that
+and all that memory it has a lumpy cost amortization
+memory it has a lumpy cost amortization right
+right we said uh we roll a random number
+we said uh we roll a random number random number random number and then
+random number random number and then every now and then it has to say hold on
+every now and then it has to say hold on a sec
+a sec and then go spin up a whole another
+and then go spin up a whole another batch of numbers for us right
+batch of numbers for us right so the times are even inconsistent it's
+so the times are even inconsistent it's got these cold starts where it gives us
+got these cold starts where it gives us crappy numbers at first
+crappy numbers at first it's strictly sequential it's got
+it's strictly sequential it's got sensitive seeds right don't put a zero
+sensitive seeds right don't put a zero in the seed don't put some other numbers
+in the seed don't put some other numbers in there
+in there even just seeds with a lot of zeros and
+even just seeds with a lot of zeros and the bits can confound it
+the bits can confound it and it's super cash unfriendly when
+and it's super cash unfriendly when you're mucking around this 2k of memory
+you're mucking around this 2k of memory and your cache lines are 64 bytes
+and your cache lines are 64 bytes you're going to be not going to be cash
+you're going to be not going to be cash hot even for something as simple as a
+hot even for something as simple as a random number generation
+random number generation call at least its quality is amazing
+call at least its quality is amazing right
+okay not so much so let's look at noise functions and compare them so
+noise functions and compare them so a noise function uh what i mean by that
+a noise function uh what i mean by that is uh
+is uh like an infinite table with a bunch of
+like an infinite table with a bunch of numbers in it right i put in the number
+numbers in it right i put in the number seven
+seven and i get out the number point zero nine
+and i get out the number point zero nine and then if i put in the number four i
+and then if i put in the number four i get this
+get this if i put in a seven again i will again
+if i put in a seven again i will again get point zero nine
+get point zero nine so it's just a lookup table effectively
+so it's just a lookup table effectively but since it's a function it's just math
+but since it's a function it's just math it's like an infinitely large table that
+it's like an infinitely large table that takes zero bytes
+takes zero bytes other than the code and
+other than the code and basically these work uh
+basically these work uh all more or less like this when you put
+all more or less like this when you put in a position the number seven
+in a position the number seven it mangles the bits around mashes
+it mangles the bits around mashes matches matches and returns
+matches matches and returns something that's random but it was based
+something that's random but it was based on that seven it started with those bits
+on that seven it started with those bits so it's always going to give the same
+so it's always going to give the same result
+result so all these noise functions are
+so all these noise functions are basically the same in the sense that
+basically the same in the sense that they
+they take what you give them and they mash it
+take what you give them and they mash it up great it
+up great it has zero state so we can instantiate
+has zero state so we can instantiate millions of them no problem in fact we
+millions of them no problem in fact we don't even have to instantiate them
+don't even have to instantiate them their functions
+their functions right we just call them um there's no
+right we just call them um there's no recurrence relation it's not
+recurrence relation it's not taking a state and eating itself and and
+taking a state and eating itself and and then that's the next state
+then that's the next state right there's no leftover or state which
+right there's no leftover or state which means it's totally thread safe
+means it's totally thread safe you can call it from a thousand threads
+you can call it from a thousand threads all at once no one's bothered by it at
+all at once no one's bothered by it at all
+all and now we have true random access right
+and now we have true random access right you want to jump forward
+you want to jump forward no problem just ask what's at 107 in the
+no problem just ask what's at 107 in the table you want to jump back three
+table you want to jump back three just ask what's at slot four you can ask
+just ask what's at slot four you can ask any slot anytime any order
+any slot anytime any order no problem lastly we can integrate true
+no problem lastly we can integrate true seeds into this where it's not just the
+seeds into this where it's not just the same sequence and we're like kind of
+same sequence and we're like kind of looking at a different part of the table
+looking at a different part of the table each seed can give us a totally
+each seed can give us a totally different set of an infinite
+different set of an infinite near infinite set of numbers
+okay whoops so we can also do two-dimensional noise three-dimensional
+two-dimensional noise three-dimensional noise and the
+noise and the same idea is the same the basic idea is
+same idea is the same the basic idea is the same imagine again an infinite
+the same imagine again an infinite or near infinite table of x and y and i
+or near infinite table of x and y and i can plug in any x and y
+can plug in any x and y like 2 comma 0 and i'll get a 0.05 or i
+like 2 comma 0 and i'll get a 0.05 or i can plug in a 0 comma 2 and get a
+can plug in a 0 comma 2 and get a different number
+different number so i wanted a different number for every
+so i wanted a different number for every xy combination
+xy combination more or less and i always want the same
+more or less and i always want the same number for the same
+number for the same x y so again it's like an infinite
+x y so again it's like an infinite two-dimensional table
+two-dimensional table for no bytes unfortunately noses noise
+for no bytes unfortunately noses noise is only good for certain things right we
+is only good for certain things right we don't use it for very much
+don't use it for very much maybe if we had an rpg and we have
+maybe if we had an rpg and we have different grass tiles we might
+different grass tiles we might have the position of the tile look up
+have the position of the tile look up into noise to say oh i'm grass tile
+into noise to say oh i'm grass tile number three or i'm grass tile number
+number three or i'm grass tile number two
+two now that's nice if you've used purlin
+now that's nice if you've used purlin noise
+noise uh you'll know that a noise function is
+uh you'll know that a noise function is the basis of that so
+the basis of that so we have to have one for that um
+we have to have one for that um and that's usually all people use these
+and that's usually all people use these things for
+things for we can do more so first of all like the
+we can do more so first of all like the grass example
+grass example we can use noise to make things more
+we can use noise to make things more organic right if you have 10
+organic right if you have 10 000 orcs if each orc uses noise based on
+000 orcs if each orc uses noise based on his own unique id
+his own unique id to determine is he a little bit more
+to determine is he a little bit more slouched are his forearms stretched is
+slouched are his forearms stretched is his skin a little bit
+his skin a little bit redder are his teeth a little bit longer
+redder are his teeth a little bit longer now you have an army of
+now you have an army of all orcs all different right
+all orcs all different right even if i have this say this grass here
+even if i have this say this grass here i love this picture from chris berkey
+i love this picture from chris berkey um if i just apply some noise to it it
+um if i just apply some noise to it it looks organic
+looks organic right just mild moderate small
+right just mild moderate small variations
+variations that's totally predictable okay
+that's totally predictable okay fortunately because we can skip ahead
+fortunately because we can skip ahead and behind and anywhere in the sequence
+and behind and anywhere in the sequence this is super useful for generating
+this is super useful for generating world chunks planets villages
+world chunks planets villages npcs we can generate them in any order
+npcs we can generate them in any order it doesn't matter
+it doesn't matter whether the player in your rpg goes to
+whether the player in your rpg goes to this village first and talks to these
+this village first and talks to these people
+people and then this other village second and
+and then this other village second and we generate them on demand
+we generate them on demand the result will be the same if he goes
+the result will be the same if he goes to the villages in the opposite order
+to the villages in the opposite order because each village is not generated
+because each village is not generated from a sequence
+from a sequence but from these uh noise functions
+but from these uh noise functions so it also means that if we want to know
+so it also means that if we want to know where things are going to be
+where things are going to be no need to generate everything up front
+no need to generate everything up front we can always generate the numbers on
+we can always generate the numbers on demand
+demand and they're always going to be
+and they're always going to be consistent right and because we can
+consistent right and because we can generate them in a new order that means
+generate them in a new order that means in x order or in y order that's a really
+in x order or in y order that's a really hard problem for
+hard problem for rngs and there's no need to store
+rngs and there's no need to store massive amounts of data we can always
+massive amounts of data we can always just
+just reproduce it in fact your computer just
+reproduce it in fact your computer just keeps getting
+keeps getting faster and faster and faster and memory
+faster and faster and faster and memory is not keeping up so
+is not keeping up so in many cases it's faster to compute
+in many cases it's faster to compute something than it is to even to look it
+something than it is to even to look it up nowadays
+up nowadays especially if the lookup tables are
+especially if the lookup tables are really big so don't be afraid of letting
+really big so don't be afraid of letting the cpu do a little work
+the cpu do a little work and it's also really useful for placing
+and it's also really useful for placing scattered objects within an infinite
+scattered objects within an infinite space
+space and this is a very hard problem but it's
+and this is a very hard problem but it's one that you're going to encounter if
+one that you're going to encounter if you do
+you do a lot of procedural generation so let me
+a lot of procedural generation so let me give an example of that
+give an example of that so um here is i don't know if you can
+so um here is i don't know if you can see that
+see that a random
+a random function right i'm just showing a bunch
+function right i'm just showing a bunch of different random values
+of different random values and if you're familiar with purlin noise
+and if you're familiar with purlin noise which we've done talks on in the past
+which we've done talks on in the past parallel noise is like a
+parallel noise is like a fancier version of this which takes
+let me do it like that it takes a simple smoothed function that's based on it's
+smoothed function that's based on it's going up
+going up slope or down slope based on some random
+slope or down slope based on some random noise
+noise and it layers noise upon noise upon
+and it layers noise upon noise upon noise and you get these really
+noise and you get these really interesting
+interesting sort of crunchy cool results
+sort of crunchy cool results okay so if we have this and this is an
+okay so if we have this and this is an infinite landscape right this goes on
+infinite landscape right this goes on forever
+forever um much like minecraft so now let's say
+um much like minecraft so now let's say i need to place
+i need to place things throughout the landscape like i
+things throughout the landscape like i need trees every so often
+need trees every so often i need villages every so often well one
+i need villages every so often well one of the best ways you can do that
+of the best ways you can do that is if you're using a noise function or
+is if you're using a noise function or especially a smooth noise function
+especially a smooth noise function you can look for wherever there's a
+you can look for wherever there's a local
+local maxima like a peak of a mountain can
+maxima like a peak of a mountain can everyone see those blue
+everyone see those blue stripes so if i zoom out a little bit
+stripes so if i zoom out a little bit you can see
+you can see there's going to be mountains pretty
+there's going to be mountains pretty regularly here but as i increase
+regularly here but as i increase the noisiness of the noise i'm going to
+the noisiness of the noise i'm going to get more peaks right now i have kind of
+get more peaks right now i have kind of a double peak
+a double peak at the top of that mountain and so i can
+at the top of that mountain and so i can easily say i want to have
+easily say i want to have fewer trees i want to have more trees i
+fewer trees i want to have more trees i want to have trees that are moderately
+want to have trees that are moderately spaced
+spaced um and i can even say oh you're going
+um and i can even say oh you're going along there are scarce scant trees in
+along there are scarce scant trees in the plains
+the plains but as you get into the foresty areas
+but as you get into the foresty areas i'm going to slowly crease
+i'm going to slowly crease increase the tree density knob and we're
+increase the tree density knob and we're just going to get more trees and this is
+just going to get more trees and this is infinite trees mathematically
+infinite trees mathematically predestined from no matter which way you
+predestined from no matter which way you go
+go we just know where they're going to be
+we just know where they're going to be and we can ask any piece of the world
+and we can ask any piece of the world where the trees where the villages
+so this local maxima trick is really nice again only really works with
+nice again only really works with noise but you can still do it with um
+noise but you can still do it with um let me uh
+um even with flat noise right just like this we could still
+right just like this we could still decide to say hey
+decide to say hey there's a tree anywhere where the noise
+there's a tree anywhere where the noise value of where
+value of where some squares noise value is higher than
+some squares noise value is higher than all of the guys around
+all of the guys around it so this would be a tree and this
+it so this would be a tree and this could be a tree and this could be a tree
+could be a tree and this could be a tree and that algorithm again works even
+and that algorithm again works even better if we've got
+better if we've got smooth noise like purlin noise
+smooth noise like purlin noise and we can just locate the local maxima
+and we can just locate the local maxima right so all the mountain tops here
+right so all the mountain tops here i can highlight so i can make the noise
+i can highlight so i can make the noise as crunchy
+as crunchy or as smooth as i like to get more dense
+or as smooth as i like to get more dense force or less dense force and this just
+force or less dense force and this just goes on forever right
+so i can use this local maxima with trick which is really nice
+trick which is really nice and it works even better with smooth
+and it works even better with smooth noise it's easy to adjust the density so
+noise it's easy to adjust the density so you can say
+you can say there's a lot of treasure chests
+there's a lot of treasure chests spawning in this area
+spawning in this area and we have real seeds we're not just
+and we have real seeds we're not just jumping to a different place in a
+jumping to a different place in a sequence if i give you a seed 17
+sequence if i give you a seed 17 you have a totally different in infinite
+you have a totally different in infinite table of numbers you're pulling from
+table of numbers you're pulling from than my infinite number uh table of
+than my infinite number uh table of numbers i'm pulling from
+which totally eliminates that problem of i might catch up with you
+i might catch up with you just through bad luck in the sequence
+just through bad luck in the sequence okay so let's now try to relate
+okay so let's now try to relate rngs and noise and see how are they the
+rngs and noise and see how are they the same and how are they different
+same and how are they different okay so pretty much all rngs look like
+okay so pretty much all rngs look like this top thing
+it's a thing that has state you say give me another number
+me another number i'm calling that function rand and it
+i'm calling that function rand and it mangles its internal state and returns
+mangles its internal state and returns that to you more or less this is what
+that to you more or less this is what basically all of those random number
+basically all of those random number generators do the noise function is
+generators do the noise function is almost the same but the difference is
+almost the same but the difference is subtle
+subtle there is no state there's no class
+there is no state there's no class there's no object
+there's no object right we just pass in a position and
+right we just pass in a position and then we do that same funkiness but then
+then we do that same funkiness but then we just
+we just return it right away that's really the
+return it right away that's really the only difference
+only difference nothing mystical here right
+so can we build random number generators if we do want numbers in sequence
+if we do want numbers in sequence that are based on noise could we build
+that are based on noise could we build a noise function
+sorry could we build a noise function out of random number generators that's
+out of random number generators that's what i'm asking first
+what i'm asking first so this is kind of like pretending
+so this is kind of like pretending something that you're
+something that you're not to be something you're not so here
+not to be something you're not so here is a random number generator
+is a random number generator and it does exactly what i said right it
+and it does exactly what i said right it does funcifies its state and then
+does funcifies its state and then returns the state to you
+returns the state to you i can make a noise function out of this
+i can make a noise function out of this it's a little ghetto but i can basically
+it's a little ghetto but i can basically say okay hold on i'll construct a random
+say okay hold on i'll construct a random number generator
+number generator and i'll seed it with that position you
+and i'll seed it with that position you gave me and then i'll return the first
+gave me and then i'll return the first number in the sequence
+number in the sequence from that seed this totally works so
+from that seed this totally works so using this you could use rand
+using this you could use rand or mersan twister or xor shift to
+or mersan twister or xor shift to generate those minecraft worlds
+generate those minecraft worlds it's not fast right you're constructing
+it's not fast right you're constructing these things all the time
+these things all the time and if you don't want to construct it
+and if you don't want to construct it you could make this be like a local
+you could make this be like a local static or something but now you've
+static or something but now you've ruined it now there's
+ruined it now there's state that's lingering and it's not a
+state that's lingering and it's not a strict noise function
+strict noise function so yes we can do that but it's not
+so yes we can do that but it's not pretty
+pretty and it's not fast right we have to pay
+and it's not fast right we have to pay for the construction the initialization
+for the construction the initialization the seeding
+the seeding as well as the rand itself of whatever
+as well as the rand itself of whatever rng we used
+rng we used and we said for something like mars and
+and we said for something like mars and twister that's not fast
+twister that's not fast at all okay can we go the other way
+at all okay can we go the other way around can we
+around can we make uh rngs that are based on noise
+make uh rngs that are based on noise so again we're kind of present
+so again we're kind of present pretending to be something we're not
+pretending to be something we're not let's see how it goes so this is now a
+let's see how it goes so this is now a thing it's a class an
+thing it's a class an object it's an rng and this is going to
+object it's an rng and this is going to be my special rng i made that's based on
+be my special rng i made that's based on noise
+noise let's say that it has one piece of state
+let's say that it has one piece of state which is the current position
+which is the current position into the noise and we'll say that starts
+into the noise and we'll say that starts off at zero
+off at zero and then it has a function rand and what
+and then it has a function rand and what does rand do
+does rand do it just says
+do something funky based on my position and then advance
+and then advance so basically this is just like you're
+so basically this is just like you're looking at the table that infinite table
+looking at the table that infinite table from the noise
+from the noise and you just say give me another random
+and you just say give me another random number give me another random number
+number give me another random number give me another random number and i'm
+give me another random number and i'm just
+just surfing down the table no problem
+surfing down the table no problem and actually that's pretty fast and tiny
+and actually that's pretty fast and tiny and it won't repeat right because it's
+and it won't repeat right because it's not munging itself it can't get into
+not munging itself it can't get into some weird cycle where
+some weird cycle where zero be gets zero or anything like that
+zero be gets zero or anything like that or even one we get seven begs two
+or even one we get seven begs two because one because seven begins two
+because one because seven begins two because it's based on this ever
+because it's based on this ever increasing position
+increasing position it's extremely unlikely to be cyclic
+it's extremely unlikely to be cyclic since it's not based on this
+since it's not based on this self-munging function right
+self-munging function right okay it's tiny it's fast how tiny how
+okay it's tiny it's fast how tiny how fast
+fast like it's not faster than an actual rng
+like it's not faster than an actual rng right
+right well obviously that would depend on the
+well obviously that would depend on the noise function so let's go back to noise
+noise function so let's go back to noise functions i want to give you a couple of
+functions i want to give you a couple of examples so
+examples so if i have some noise function i'm going
+if i have some noise function i'm going to say for this talk i'm going to frame
+to say for this talk i'm going to frame them all like this you put in a position
+them all like this you put in a position and you get out some mangled random bits
+and you get out some mangled random bits like you looked it up in that in
+like you looked it up in that in imaginary table so there's a lot of ways
+imaginary table so there's a lot of ways you can do this
+you can do this one way is to multiply by some big prime
+one way is to multiply by some big prime number
+number y prime well if i multiply by 12
+y prime well if i multiply by 12 then i know that the result will be a
+then i know that the result will be a multiple of
+multiple of 3 and 4 right if i multiply by
+3 and 4 right if i multiply by 2 or any even number then i'm guaranteed
+2 or any even number then i'm guaranteed to only get even numbers out
+to only get even numbers out so generally we want to only multiply by
+so generally we want to only multiply by prime numbers we like big prime numbers
+prime numbers we like big prime numbers because they're going to just
+because they're going to just mash all the bits there's going to be
+mash all the bits there's going to be crazy carries everywhere it's going to
+crazy carries everywhere it's going to massively overflow no problem we love
+massively overflow no problem we love that
+that it's going to smell unrecognizable we
+it's going to smell unrecognizable we could add something to it
+could add something to it that changes it up a little bit it
+that changes it up a little bit it doesn't have as much effect as the big
+doesn't have as much effect as the big prime multiply we could square it
+prime multiply we could square it right this helps make it whatever the
+right this helps make it whatever the result is it's
+result is it's not likely to be linearly related to the
+not likely to be linearly related to the input because
+input because it's squared we can as we saw with
+it's squared we can as we saw with xor uh random member generators we could
+xor uh random member generators we could uh xor yourself with your own bits
+uh xor yourself with your own bits shifted over this is surprisingly
+shifted over this is surprisingly effective
+effective for mangling things so whatever we do
+for mangling things so whatever we do we're going to mangle mango mango mangle
+we're going to mangle mango mango mangle and then return
+and then return some unrecognizable thing that's
+some unrecognizable thing that's strictly based on what you put
+strictly based on what you put passed in right all right
+passed in right all right so you're like cool i love this i'm
+so you're like cool i love this i'm going to go i forgot what he said
+going to go i forgot what he said stack overflow give me a noise function
+stack overflow give me a noise function this is what you get on stack overflow
+this is what you get on stack overflow um only returns odd numbers yes
+um only returns odd numbers yes good lib noise i go look up lib noise
+good lib noise i go look up lib noise it's a nice
+it's a nice really awesome sql source library what's
+really awesome sql source library what's their noise function it's the exact same
+their noise function it's the exact same function with a different shift and
+function with a different shift and different
+different constants
+when you think about it noise functions really are just kind of like a very
+really are just kind of like a very special
+special hash function right so a hash function
+hash function right so a hash function traditionally is
+traditionally is i put a um a paragraph of text
+i put a um a paragraph of text in or a bunch of file of a bunch of data
+in or a bunch of file of a bunch of data and it chews on and choose on choosing
+and it chews on and choose on choosing it and comes up with a big mysterious
+it and comes up with a big mysterious number
+number right this could be like a crc or
+right this could be like a crc or something like that
+something like that really if we want to just put in an int
+really if we want to just put in an int and get out a mashed
+and get out a mashed up number we could just think of that as
+up number we could just think of that as a hash in a sense
+a hash in a sense all right there's a bunch of hash
+all right there's a bunch of hash numbers we can look at
+numbers we can look at uh when perlin ken perlin posted his
+uh when perlin ken perlin posted his perlin noise originally this is the hash
+perlin noise originally this is the hash function he recommended
+function he recommended so there's a bunch of numbers that's the
+so there's a bunch of numbers that's the numbers zero to 255
+numbers zero to 255 scrambled twice and then he does a bunch
+scrambled twice and then he does a bunch of things where he looks up
+of things where he looks up just to help you understand what's going
+just to help you understand what's going on here this p is this table so it's a
+on here this p is this table so it's a lookup in the table
+lookup in the table with an offset and a lookup in the table
+with an offset and a lookup in the table nested nested nested lookups
+nested nested nested lookups right so if this table is 512 bytes
+right so if this table is 512 bytes right away we might be having a bunch of
+right away we might be having a bunch of l2 cache misses right something like
+l2 cache misses right something like that
+all right so let's look at how these do there's a identity we said
+there's a identity we said is the most boring one of all and
+is the most boring one of all and bernstein lib noise stack overflow purl
+bernstein lib noise stack overflow purl and hash you can see they all got d's or
+and hash you can see they all got d's or f's pretty much i'm impressed that
+f's pretty much i'm impressed that bernstein
+bernstein got lower than identity in terms of
+got lower than identity in terms of quality that's
+quality that's that's tough to beat purlin hash was the
+that's tough to beat purlin hash was the best out of these but you can see
+best out of these but you can see it's painfully slow by comparison to the
+it's painfully slow by comparison to the other ones
+other ones all right we can do better aha right we
+all right we can do better aha right we have some real hash functions why are we
+have some real hash functions why are we monkeying around with this
+monkeying around with this home brew crap right let's use md5 let's
+home brew crap right let's use md5 let's use
+use sha1 we just had the first real 128-bit
+sha1 we just had the first real 128-bit collision of sha-1 i think like this
+collision of sha-1 i think like this week
+week um that's what these look like right
+um that's what these look like right start instead of saying i have some big
+start instead of saying i have some big file for you to hash mr md5 you just say
+file for you to hash mr md5 you just say oh i got all i got for you is a little
+oh i got all i got for you is a little integer please hash that and then it
+integer please hash that and then it does its magic and these are complex
+does its magic and these are complex algorithms right there i think sha at
+algorithms right there i think sha at least came out of the nsa or something
+least came out of the nsa or something great see how they do so there's a ton
+great see how they do so there's a ton of these guys
+of these guys and if you look at them if i look at the
+and if you look at them if i look at the quality of them i've kind of mostly
+quality of them i've kind of mostly ish sorted them by quality so you can
+ish sorted them by quality so you can see there's a bunch of ones that suck
+see there's a bunch of ones that suck especially the ones you'd get from
+especially the ones you'd get from libnoys or stack overflow and in the
+libnoys or stack overflow and in the searches i've done
+searches i've done there's some other ones uh md5 does
+there's some other ones uh md5 does great
+great pretty good at least sha does pretty
+pretty good at least sha does pretty good crc does great and then this murmur
+good crc does great and then this murmur thing does pretty great so there's some
+thing does pretty great so there's some interesting ones
+interesting ones when you look at md5 and sha1 which are
+when you look at md5 and sha1 which are the ones
+the ones the hash functions i think of when i
+the hash functions i think of when i think of a proper hash function
+think of a proper hash function they're slow right not just like
+they're slow right not just like twice as slow they're 100 times as slow
+twice as slow they're 100 times as slow as some of the other hash functions
+as some of the other hash functions and for something if i can already get a
+and for something if i can already get a pretty darn good quality
+pretty darn good quality with something else why would i use that
+with something else why would i use that and the reason is that md5 and sha are
+and the reason is that md5 and sha are like
+like way over engineered for our simple
+way over engineered for our simple purposes right
+purposes right they're to be cryptographically sound
+they're to be cryptographically sound across any
+across any body of data of any size we don't need
+body of data of any size we don't need that we just need
+that we just need putting it in get out something cool so
+putting it in get out something cool so don't use those it's way overkill
+don't use those it's way overkill unless you are actually hashing
+unless you are actually hashing something for security
+something for security so of course thinking that you know the
+so of course thinking that you know the world doesn't have enough hash functions
+world doesn't have enough hash functions i had to write my
+i had to write my own because i'm masochist so i took my
+own because i'm masochist so i took my stab at this and tried a couple
+stab at this and tried a couple different things i finally came this is
+different things i finally came this is my third one
+my third one and i'd use just a combination of these
+and i'd use just a combination of these are prime numbers
+are prime numbers so multiplying bit shifting et cetera
+so multiplying bit shifting et cetera after i wrote that of course then as c
+after i wrote that of course then as c plus
+plus 11 came out and they introduced std hash
+11 came out and they introduced std hash into the language that's a little
+into the language that's a little simpler than this
+simpler than this so maybe i should have used that let's
+so maybe i should have used that let's see how those do
+see how those do okay so cpp hash at the bottom you can
+okay so cpp hash at the bottom you can see actually does quite well
+see actually does quite well and they're much faster they're three
+and they're much faster they're three times faster than any of these other
+times faster than any of these other good ones
+good ones and then the one i wrote also does very
+and then the one i wrote also does very well and is
+well and is even faster than those so so far it's
+even faster than those so so far it's pretty good might great i'll use my own
+pretty good might great i'll use my own hash function
+hash function but note to self if you don't want to do
+but note to self if you don't want to do that or you don't want to download my
+that or you don't want to download my stuff or trust my code or whatever
+stuff or trust my code or whatever you can probably trust the people who
+you can probably trust the people who wrote std hash it's fast it's good if
+wrote std hash it's fast it's good if you want a good noise function
+you want a good noise function i would say that's a really good go-to
+i would say that's a really good go-to and out of all the ones that don't suck
+and out of all the ones that don't suck uh
+uh pretty much tied for fastest are mine
+pretty much tied for fastest are mine and cpp hash
+so of the hash or noise functions that don't suck these are
+don't suck these are mostly tied for fastest and then again
+mostly tied for fastest and then again these massive heavy-duty
+these massive heavy-duty industrial grade hash functions you
+industrial grade hash functions you really don't need and you don't need to
+really don't need and you don't need to be spending
+be spending 200 times as long to get basically the
+200 times as long to get basically the same quality
+same quality slightly better results i use mine
+slightly better results i use mine because i know what it does and i
+because i know what it does and i absolutely know for sure
+absolutely know for sure that on all the platforms it does the
+that on all the platforms it does the same thing now if i go and read the
+same thing now if i go and read the specs
+specs which i haven't bothered to do because
+which i haven't bothered to do because i'm lazy on std hash maybe it's
+i'm lazy on std hash maybe it's guaranteed that it will never change the
+guaranteed that it will never change the algorithm
+algorithm i seriously doubt it maybe it's
+i seriously doubt it maybe it's guaranteed that it works
+guaranteed that it works the same across all platforms no
+the same across all platforms no questions asked i seriously doubt it
+questions asked i seriously doubt it i know mine works that way so
+i know mine works that way so there is some merit to be able to
+there is some merit to be able to control those things yourself
+okay so we said that we could have seeds in our noise functions right
+have seeds in our noise functions right and we said not just are they seeds
+and we said not just are they seeds they're
+they're really really good seeds where one seed
+really really good seeds where one seed can give you a totally different table
+can give you a totally different table of
+of numbers so really with a noise function
+numbers so really with a noise function the seed is quite simple instead of
+the seed is quite simple instead of setting up some state of a random number
+setting up some state of a random number generator we're just involving it in the
+generator we're just involving it in the mangling process
+mangling process and for me experimentation has shown
+and for me experimentation has shown again if i
+again if i insert the seed pretty early in the
+insert the seed pretty early in the sequence so it gets plenty mangled but
+sequence so it gets plenty mangled but not
+not as the first thing otherwise it just has
+as the first thing otherwise it just has the same
+the same effect as a position it ends up giving
+effect as a position it ends up giving me
+me very good results so that's what i use
+very good results so that's what i use for all my stuff
+of course if we wanted to use std hash we could easily seed it as well
+we could easily seed it as well the cool thing about hash is that it can
+the cool thing about hash is that it can hash anything
+hash anything and so you can just make a hasher that
+and so you can just make a hasher that takes
+takes both the position and the seed and it
+both the position and the seed and it will hash them together
+will hash them together and this actually produces pretty good
+and this actually produces pretty good results too
+results too all right so we said we want 2d noise 3d
+all right so we said we want 2d noise 3d noise right for perlin noise or anything
+noise right for perlin noise or anything else or for determining where those
+else or for determining where those trees are on our landscape
+trees are on our landscape so assuming we have some 1d noise
+so assuming we have some 1d noise function that has a position and maybe
+function that has a position and maybe an optional seed
+an optional seed um how would we get a 2d position well
+um how would we get a 2d position well there's a lot of different ways and we
+there's a lot of different ways and we could write custom
+could write custom different ones that weave in the x and y
+different ones that weave in the x and y and z
+and z positions in different ways but one of
+positions in different ways but one of the standard practices that again you
+the standard practices that again you would find on
+would find on stack overflow or something is just to
+stack overflow or something is just to take the x-coordinate
+take the x-coordinate and add it to the y-coordinate that's
+and add it to the y-coordinate that's been multiplied by some massive prime
+been multiplied by some massive prime number
+number and actually that turns out to be quite
+and actually that turns out to be quite good it's almost impossible to have
+good it's almost impossible to have anything that's recognizable along
+anything that's recognizable along x versus y so that really basically
+x versus y so that really basically munches the x and y together into a
+munches the x and y together into a single
+single one-dimensional position which we then
+one-dimensional position which we then look up in the table
+look up in the table by the table i mean the noise function
+by the table i mean the noise function same thing with
+same thing with 3d we could just munge the x and the y
+3d we could just munge the x and the y and the z
+and the z using different prime numbers right and
+using different prime numbers right and we want them to be orders of magnitude
+we want them to be orders of magnitude different so that they're not even
+different so that they're not even coming close so that's just any small
+coming close so that's just any small change
+change in x or y or z will have a dramatic
+in x or y or z will have a dramatic effect
+okay so can we build a random number generator out of a noise function
+generator out of a noise function hell yes we can and it's fast
+hell yes we can and it's fast tiny non-cyclic thread safe
+tiny non-cyclic thread safe ish how tiny how fast depends on that
+ish how tiny how fast depends on that noise function
+noise function let me now build that rng out of
+let me now build that rng out of cpp std hash
+cpp std hash and out of my own hash and let's see how
+and out of my own hash and let's see how they compare to the other random number
+they compare to the other random number generators like mercen twister
+generators like mercen twister you can see at the bottom here on the
+you can see at the bottom here on the quality scale we've got
+quality scale we've got 99s for a lot of these the cpp hash
+99s for a lot of these the cpp hash doesn't do quite as well
+doesn't do quite as well when you ask for numbers in sequence
+when you ask for numbers in sequence which is what this is going to do
+which is what this is going to do so it's not quite as statistically good
+so it's not quite as statistically good unfortunately
+unfortunately but but it's still pretty good
+but but it's still pretty good and if you look at the speeds up here so
+and if you look at the speeds up here so this column here is the speed of how
+this column here is the speed of how many rands i can call per second
+many rands i can call per second again the one that i wrote is the
+again the one that i wrote is the fastest
+fastest out of all these it's fast to seed it's
+out of all these it's fast to seed it's fast to rand and
+fast to rand and obviously it's fast to get noise from
+obviously it's fast to get noise from because
+because that's what it was built off of and
+that's what it was built off of and again with mercen twister if i did that
+again with mercen twister if i did that trick where
+trick where i seed to jump to a place and then say
+i seed to jump to a place and then say give me a value and then i seed to jump
+give me a value and then i seed to jump to a place and give me a value to give
+to a place and give me a value to give this random access
+this random access that's pathologically slow
+that's pathologically slow right a thousand times slower
+okay so let's wrap this up some tidbits and takeaways noise is
+some tidbits and takeaways noise is awesome that's my takeaway for you noise
+awesome that's my takeaway for you noise is awesome
+is awesome love it things that rng simply can't
+love it things that rng simply can't or can't do at least without bending
+or can't do at least without bending over backwards to pretend it's noise
+over backwards to pretend it's noise which it isn't and it's bad at
+coincidentally noise happens to make better rngs than
+better rngs than the rngs themselves and i'm not an
+the rngs themselves and i'm not an academic researcher so but this blows my
+academic researcher so but this blows my mind that
+mind that this seems like such an obvious thing so
+this seems like such an obvious thing so i would love if there are researchers in
+i would love if there are researchers in the room to
+the room to contact me afterwards and we can talk
+contact me afterwards and we can talk more about this if there's something i'm
+more about this if there's something i'm missing here that's
+missing here that's obvious but i've generated tons and tons
+obvious but i've generated tons and tons and tons of stuff with this and it
+and tons of stuff with this and it does great another takeaway just don't
+does great another takeaway just don't use rand
+use rand i know it's convenient but um i mean for
+i know it's convenient but um i mean for this demo here i was using glbegin
+this demo here i was using glbegin right so who am i to say don't use
+right so who am i to say don't use something but um
+something but um don't use it it's just bad it's lousy
+don't use it it's just bad it's lousy you can do so much better
+you can do so much better and faster and it would take you five
+and faster and it would take you five minutes to set up a function that smells
+minutes to set up a function that smells just like rand but
+just like rand but outperforms it in every way honestly
+outperforms it in every way honestly mercen twister for all it's cooked up to
+mercen twister for all it's cooked up to be isn't the
+be isn't the silver bullet that i thought it was and
+silver bullet that i thought it was and uh i got excited about it and i'm not
+uh i got excited about it and i'm not really anymore
+really anymore i'm not sure you really need it my
+i'm not sure you really need it my advice in general is keep things small
+advice in general is keep things small simple fast and flexible
+simple fast and flexible control them so you know exactly what
+control them so you know exactly what they do
+they do noise for the win so um i will put
+noise for the win so um i will put some code if you're interested in any of
+some code if you're interested in any of this stuff uh
+this stuff uh by maybe the end of next week uh all of
+by maybe the end of next week uh all of the
+the slides from all the talks today will be
+slides from all the talks today will be on math4gameprogrammers.com
+on math4gameprogrammers.com including this i'll just give you a
+including this i'll just give you a quick look at this so here's the
+quick look at this so here's the basic noise function and then i have a
+basic noise function and then i have a library of simple convenience functions
+library of simple convenience functions like give me 2d noise 3d noise 40 noise
+like give me 2d noise 3d noise 40 noise give it to me as floats give it to me as
+give it to me as floats give it to me as floats from negative one to one whatever
+floats from negative one to one whatever you want it i also have that little rng
+you want it i also have that little rng i built on top of it
+i built on top of it which can you can seed it you can change
+which can you can seed it you can change the seed you can
+the seed you can fast forward or rewind it or you can
+fast forward or rewind it or you can just uh
+just uh tell it give me a random float give me a
+tell it give me a random float give me a random bite give me a random direction
+random bite give me a random direction vector
+vector whatever role random chance there's a
+whatever role random chance there's a lot of little things like this you put
+lot of little things like this you put them in your
+them in your your math libraries they take nothing to
+your math libraries they take nothing to write they take nothing to call
+write they take nothing to call and you're going to use them all the
+and you're going to use them all the time real random chance just you pass in
+time real random chance just you pass in the probability of it returning true
+the probability of it returning true right useful how many times have you
+right useful how many times have you written where you roll a number and then
+written where you roll a number and then you check
+you check the thing right why not just check
+the thing right why not just check something in the code reads more simply
+something in the code reads more simply that is all i have thank you guys very
+that is all i have thank you guys very much
+i think we have time for just a couple questions if anyone has any uh if you do
+questions if anyone has any uh if you do please
+please come on up to this mike and please again
+come on up to this mike and please again don't forget to fill out your feedback
+don't forget to fill out your feedback forms we really appreciate it
+forms we really appreciate it and be back in
+and be back in 20 minutes for mike acton to talk about
+20 minutes for mike acton to talk about the coding game challenge
+the coding game challenge math yes hi i make a learning game so
+math yes hi i make a learning game so it's really important for
+it's really important for me to know the um the problems that the
+me to know the um the problems that the k
+k that the kids saw during their play
+that the kids saw during their play experience
+experience and i have them set up so that they're
+and i have them set up so that they're deterministically random
+deterministically random but i'm running into a problem where
+but i'm running into a problem where certain games the problems that the kids
+certain games the problems that the kids are doing
+are doing affect outcomes of future problems and
+affect outcomes of future problems and so i came to this talk kind of looking
+so i came to this talk kind of looking to see if noise could
+to see if noise could help me to be able to replay their whole
+help me to be able to replay their whole levels
+levels without having to know exactly what they
+without having to know exactly what they did at a certain point
+did at a certain point yeah and this is your software that you
+yeah and this is your software that you you guys control yeah absolutely
+you guys control yeah absolutely if you just effectively you just
+if you just effectively you just have each puzzle generate itself uh or
+have each puzzle generate itself uh or each game
+each game completely independent of the others and
+completely independent of the others and so when if they're doing one game
+so when if they're doing one game and it affects the other outcome of the
+and it affects the other outcome of the other that means typically
+other that means typically you have one random number generator and
+you have one random number generator and you're pulling numbers off of it and
+you're pulling numbers off of it and then
+then you leave it alone and then you just
+you leave it alone and then you just continue pulling numbers off of it so at
+continue pulling numbers off of it so at the very least
+the very least without changing anything you could
+without changing anything you could reseed the random number generator
+reseed the random number generator with a new puzzle and then the pass will
+with a new puzzle and then the pass will have no effect
+have no effect but noise would also be a solution but
+but noise would also be a solution but in your case probably just
+in your case probably just seed more often is my my advice hey
+seed more often is my my advice hey hi um i was wondering if i'm just
+hi um i was wondering if i'm just missing something is there any reason
+missing something is there any reason not to just use the seed as
+not to just use the seed as another dimension in the function yeah
+another dimension in the function yeah that's a great question
+that's a great question really
+really [Music]
+[Music] for me i wanted the seed to have
+for me i wanted the seed to have so i'll say the short answer is no
+so i'll say the short answer is no there's no
+there's no reason not to the longer answer is
+reason not to the longer answer is i like to have the seed that gets
+i like to have the seed that gets mangled more deeply in the noise
+mangled more deeply in the noise whereas for me i'm a little bit kind of
+whereas for me i'm a little bit kind of lazily
+lazily mashing the xyz together in kind of a
+mashing the xyz together in kind of a simple way whereas i want the seed to be
+simple way whereas i want the seed to be more deeply involved in the random
+more deeply involved in the random number generation so the number the
+number generation so the number the table feels
+table feels drastically different as opposed to just
+drastically different as opposed to just kind of shifted i haven't done thorough
+kind of shifted i haven't done thorough testing with it but that was my
+testing with it but that was my intuition on it
+intuition on it okay thanks yeah but i suspect you could
+okay thanks yeah but i suspect you could do that just fine in fact
+do that just fine in fact i've used 2d purlin noise all the time
+i've used 2d purlin noise all the time where i'm striping across it and if i
+where i'm striping across it and if i want a different set i just stripe
+want a different set i just stripe across it differently and that works
+across it differently and that works yeah hi uh i was wanting to ask you
+yeah hi uh i was wanting to ask you how do you select like good co-prime
+how do you select like good co-prime numbers
+numbers for special hashing like 2d 3d etc
+for special hashing like 2d 3d etc because if they're too big
+because if they're too big then the overflow it starts
+then the overflow it starts like getting influenced into the results
+like getting influenced into the results so how do you select them
+so how do you select them and uh you are specifically talking
+and uh you are specifically talking about if i'm combining the x and the y
+about if i'm combining the x and the y how much should i multiply y by um
+how much should i multiply y by um because i had problems uh
+because i had problems uh i had that in big numbers because they
+i had that in big numbers because they overflow and then
+overflow and then it's like it starts creating a pattern
+it's like it starts creating a pattern as well
+as well well if if you're multiplying by primes
+well if if you're multiplying by primes the overflow
+the overflow actually just throws the extra bits off
+actually just throws the extra bits off the end and actually
+the end and actually most of the common random number
+most of the common random number generators as well
+generators as well rely on the fact that multiplying by
+rely on the fact that multiplying by primes with overflow
+primes with overflow stays random and stays interesting so as
+stays random and stays interesting so as long as those are
+long as those are largest prime numbers my understanding
+largest prime numbers my understanding is that it won't be a problem
+is that it won't be a problem i think if there's if it's non-prime
+i think if there's if it's non-prime then you're making forcing it to be odd
+then you're making forcing it to be odd or even and if it's small
+or even and if it's small then it could be recognizable so in fact
+then it could be recognizable so in fact if it doesn't overflow you should be
+if it doesn't overflow you should be suspicious that like you might be able
+suspicious that like you might be able to tell where it came from
+to tell where it came from does that make sense okay yeah like
+does that make sense okay yeah like multiply with overflow is really hard to
+multiply with overflow is really hard to track i guess in hindsight
+track i guess in hindsight okay yeah any other
+okay yeah any other questions all right thank you guys and
+questions all right thank you guys and be back here in 20 minutes

@@ -1,0 +1,1227 @@
+good afternoon everyone my name is jii trough I'll be kicking off the open
+trough I'll be kicking off the open world hour here at the summit today so
+world hour here at the summit today so first a little bit about me I started
+first a little bit about me I started off in the industry in 2004 at EA Sports
+off in the industry in 2004 at EA Sports working on central technology and the
+working on central technology and the FIFA soccer franchise as an animation
+FIFA soccer franchise as an animation and AI programmer for a few years
+and AI programmer for a few years then I moved over to Ubisoft Montreal
+then I moved over to Ubisoft Montreal where I was the programmer and
+where I was the programmer and realization director for AI on Far Cry 3
+realization director for AI on Far Cry 3 and currently I'm at Avalanche Studios
+and currently I'm at Avalanche Studios in New York working as a programmer
+in New York working as a programmer helping lead character development in AI
+helping lead character development in AI player mechanics and animation so the
+player mechanics and animation so the structure of the talk is a little bit
+structure of the talk is a little bit high-level more concepts and techniques
+high-level more concepts and techniques I've worked with and are currently
+I've worked with and are currently developing a lot of these ideas aren't
+developing a lot of these ideas aren't limited to just open-world games but
+limited to just open-world games but they apply definitely directly to them
+they apply definitely directly to them I'll be focusing on three major themes
+I'll be focusing on three major themes particularly the design behavior and
+particularly the design behavior and realization of open-world AI and I've
+realization of open-world AI and I've tried to be as structured as possible
+tried to be as structured as possible but I encourage you to keep these themes
+but I encourage you to keep these themes in the back of your mind as I go back
+in the back of your mind as I go back and forth between them throughout the
+and forth between them throughout the talk so I want to start by first talking
+talk so I want to start by first talking about what makes a game an open-world
+about what makes a game an open-world game when we think of open-world games
+game when we think of open-world games we think about size and scale we think
+we think about size and scale we think about freedom freedom to explore to pick
+about freedom freedom to explore to pick and choose what to play to kind of pick
+and choose what to play to kind of pick and choose how we want to play we think
+and choose how we want to play we think of a living and breathing simulation
+of a living and breathing simulation that makes up the world and all of these
+that makes up the world and all of these things are pretty important elements in
+things are pretty important elements in open-world games today and along with
+open-world games today and along with those elements a key ingredient for us
+those elements a key ingredient for us at Avalanche is this idea of a sandbox
+at Avalanche is this idea of a sandbox so we want to put the fantasy in the
+so we want to put the fantasy in the hands of the player and when we want to
+hands of the player and when we want to allow the player to be able to craft
+allow the player to be able to craft their own gameplay experiences and we
+their own gameplay experiences and we want to really try to have all these
+want to really try to have all these systems that interact with each other
+systems that interact with each other and we want to extend that idea to all
+and we want to extend that idea to all aspects of gameplay so the admissions or
+aspects of gameplay so the admissions or world sim or challenges and we don't
+world sim or challenges and we don't want to limit it to any one of these and
+want to limit it to any one of these and that sounds great and it is until
+that sounds great and it is until somebody pees in your
+somebody pees in your sandbox so in the sense that we can
+sandbox so in the sense that we can build this awesome world but when
+build this awesome world but when somebody else is in charge things that
+somebody else is in charge things that you don't expect to happen are most
+you don't expect to happen are most certainly going to happen and they're
+certainly going to happen and they're probably going to find their way onto
+probably going to find their way onto YouTube so giving the player control
+YouTube so giving the player control means you as a designer developer don't
+means you as a designer developer don't have it and that raises obvious
+have it and that raises obvious challenges for REI we need REI to be
+challenges for REI we need REI to be adaptable and reactive
+adaptable and reactive we need them to scale well to deal with
+we need them to scale well to deal with the size and all the different contexts
+the size and all the different contexts in the world we need them to be
+in the world we need them to be interesting enough and well realized for
+interesting enough and well realized for the player to be able to engage with
+the player to be able to engage with them in a long period of time and
+them in a long period of time and discover all the ways that they can
+discover all the ways that they can interact with with the AI and in terms
+interact with with the AI and in terms of realisation that's pretty much what
+of realisation that's pretty much what players now expect from all our games
+players now expect from all our games linear or otherwise so I want to start
+linear or otherwise so I want to start by talking about this idea of
+by talking about this idea of maintaining longevity we can think of
+maintaining longevity we can think of our games as having several sort of core
+our games as having several sort of core gameplay loops right you can be in
+gameplay loops right you can be in combat you can be an exploration you
+combat you can be an exploration you could be in a challenge and we want our
+could be in a challenge and we want our player to have or create variation in
+player to have or create variation in these different loops so the challenge
+these different loops so the challenge is really dealing with repetitiveness
+is really dealing with repetitiveness and providing the right motivation that
+and providing the right motivation that encourages the player to be creative and
+encourages the player to be creative and keep playing the game
+keep playing the game so we can do things like add constraints
+so we can do things like add constraints that trying creation you know things
+that trying creation you know things like different environments time limits
+like different environments time limits for our missions changing the amount of
+for our missions changing the amount of enemies that show up all of these things
+enemies that show up all of these things might work but there's no guarantee that
+might work but there's no guarantee that it will cause the player to actually try
+it will cause the player to actually try something different okay well you know
+something different okay well you know let's introduce unique and scripted
+let's introduce unique and scripted gameplay and force the player to engage
+gameplay and force the player to engage in a different form of gameplay and
+in a different form of gameplay and while this is important it works really
+while this is important it works really well for linear and structured games and
+well for linear and structured games and it's a little bit tricky for open-world
+it's a little bit tricky for open-world so the motivation to repeat a scripted
+so the motivation to repeat a scripted sequence is really low and there's a
+sequence is really low and there's a lack of discovery that happens you're
+lack of discovery that happens you're not going to discover any new elements
+not going to discover any new elements the second time around so what can we do
+the second time around so what can we do so to deal with this we can start with
+so to deal with this we can start with the player behaviors first this idea is
+the player behaviors first this idea is not new in any way Paul toujours
+not new in any way Paul toujours actually talked about this in the past
+actually talked about this in the past where he uses AI techniques and
+where he uses AI techniques and representations to actually analyze and
+representations to actually analyze and profile gameplay so we can extend that
+profile gameplay so we can extend that to the player and the idea is to
+to the player and the idea is to actually represent or script the
+actually represent or script the intended player up front as sort of a
+intended player up front as sort of a design exercise like you would do for
+design exercise like you would do for any non player character in the game and
+any non player character in the game and this is really easy for us to do and
+this is really easy for us to do and we've developed languages and techniques
+we've developed languages and techniques on actually how to model perception and
+on actually how to model perception and behavior that's what we do as AI
+behavior that's what we do as AI programmers so doing this we can really
+programmers so doing this we can really identify from an AI point of view what
+identify from an AI point of view what new actual enemy types or new enemy
+new actual enemy types or new enemy behaviors we're going to need to
+behaviors we're going to need to motivate the player to do something
+motivate the player to do something different sort of like input and we can
+different sort of like input and we can see this you know we can see if it can
+see this you know we can see if it can actually be clearly communicated to the
+actually be clearly communicated to the player sort of like having the right
+player sort of like having the right perception in place to ensure that the
+perception in place to ensure that the player has the information he needs to
+player has the information he needs to make those decisions and you know to
+make those decisions and you know to really drive the point home think of a
+really drive the point home think of a simple context of even picking a car for
+simple context of even picking a car for a challenge if you were to actually
+a challenge if you were to actually script that behavior for an AI if you
+script that behavior for an AI if you didn't give the AI any information about
+didn't give the AI any information about the race he's gonna pick randomly and
+the race he's gonna pick randomly and then he's gonna have a really poor
+then he's gonna have a really poor experience without knowing not knowing
+experience without knowing not knowing what the race is about and that's the
+what the race is about and that's the same sort of exercise you go through
+same sort of exercise you go through starting with the player behaviors up
+starting with the player behaviors up front makes the design player centric
+front makes the design player centric and that's really beneficial for
+and that's really beneficial for open-world games and it's important to
+open-world games and it's important to remember that we can trust the player to
+remember that we can trust the player to create variation on their own as they
+create variation on their own as they interact with the systems within the
+interact with the systems within the world in unique in different ways so for
+world in unique in different ways so for example in Far Cry 3 you know running
+example in Far Cry 3 you know running into an outpost with enemies when a
+into an outpost with enemies when a tiger is actually chasing you is going
+tiger is actually chasing you is going to create a different combat experience
+to create a different combat experience as just going in alone it's this overlap
+as just going in alone it's this overlap of systems which which is what's really
+of systems which which is what's really interesting so the next thing I actually
+interesting so the next thing I actually want to talk about is dealing with this
+want to talk about is dealing with this variation when you introduce freedom
+variation when you introduce freedom you're gonna have to deal with the wide
+you're gonna have to deal with the wide range of situations and that is one of
+range of situations and that is one of the biggest challenges for us so if you
+the biggest challenges for us so if you look at a game like Just Cause 2
+look at a game like Just Cause 2 the player here can actually travel
+the player here can actually travel extremely fast from one end to the other
+extremely fast from one end to the other he can choose to get up in the air
+he can choose to get up in the air whenever he wants he can drive actual
+whenever he wants he can drive actual you know a wide range of vehicles into
+you know a wide range of vehicles into different combat situations
+different combat situations quite literally anything can happen and
+quite literally anything can happen and this makes a lot of things really
+this makes a lot of things really difficult so you know things like
+difficult so you know things like staging our characters positioning them
+staging our characters positioning them and and things like controlling pace all
+and and things like controlling pace all of this become very challenging and
+of this become very challenging and Aniki kicker here is that it's it's hard
+Aniki kicker here is that it's it's hard to deliver a consistent player
+to deliver a consistent player experience that's positive and this is a
+experience that's positive and this is a huge advantage that linear games have
+huge advantage that linear games have over open-world games you know they can
+over open-world games you know they can better control things like setting up
+better control things like setting up pace they can set up very specific
+pace they can set up very specific situations that the player must play
+situations that the player must play through and even though it's a singular
+through and even though it's a singular experience they can guarantee that it's
+experience they can guarantee that it's a solid and positive experience so for
+a solid and positive experience so for our AI and our characters we definitely
+our AI and our characters we definitely need a systemic and non-scripted
+need a systemic and non-scripted solution to deal with this problem you
+solution to deal with this problem you know in our current games we choose to
+know in our current games we choose to deal with this in layers so if we look
+deal with this in layers so if we look at this example of AI positioning here
+at this example of AI positioning here we have a bunch of AI around the player
+we have a bunch of AI around the player and we don't want to lose this idea of a
+and we don't want to lose this idea of a sort of nonlinear 360 degree combat
+sort of nonlinear 360 degree combat situation so our first simple heuristic
+situation so our first simple heuristic would be to get within range of the
+would be to get within range of the player and this can work has some Saab
+player and this can work has some Saab vyas issues you know the player could
+vyas issues you know the player could end up feeling swarmed there's no real
+end up feeling swarmed there's no real feeling of progression and with this
+feeling of progression and with this sort of simple approach there's
+sort of simple approach there's absolutely no control on pacing so let's
+absolutely no control on pacing so let's build on top of that so first we add a
+build on top of that so first we add a layer of behavioral annotation to the
+layer of behavioral annotation to the world in this case you know we can add
+world in this case you know we can add cover objects data driving behaviors is
+cover objects data driving behaviors is a constant theme in our solutions giving
+a constant theme in our solutions giving our level designers this control to
+our level designers this control to actually place objects in the world
+actually place objects in the world which have associated behavior allows
+which have associated behavior allows them to now control and guide
+them to now control and guide positioning while keeping things
+positioning while keeping things systemic associating behavior with the
+systemic associating behavior with the environment also makes it really easy to
+environment also makes it really easy to realize those actions and this makes it
+realize those actions and this makes it very
+very mincing for the player well what about
+mincing for the player well what about the NPCs that actually don't find or
+the NPCs that actually don't find or have any cover so we choose to add in a
+have any cover so we choose to add in a you know a backup behavior like utility
+you know a backup behavior like utility based positioning so you know using a
+based positioning so you know using a simple utility map that's relative to
+simple utility map that's relative to the player allows for much better
+the player allows for much better positioning than simply running within
+positioning than simply running within range and simple heuristics could
+range and simple heuristics could include you know the current occupancy
+include you know the current occupancy on the map to prevent clustering the
+on the map to prevent clustering the current distance to the player or the
+current distance to the player or the distance from where I am to the new
+distance from where I am to the new point I want to go to all of these
+point I want to go to all of these things help stage our characters better
+things help stage our characters better so we've got our environment and we've
+so we've got our environment and we've got our utility fallback now I want to
+got our utility fallback now I want to come back to this idea of providing a
+come back to this idea of providing a good player experience which is what
+good player experience which is what linear games have over open-world games
+linear games have over open-world games so we can actually add a layer to
+so we can actually add a layer to specifically contribute to this and I
+specifically contribute to this and I call this on screen realization it's an
+call this on screen realization it's an example of it so you know focus
+example of it so you know focus positioning based on what the player
+positioning based on what the player sees so some examples of this are a eyes
+sees so some examples of this are a eyes that are actually on screen choose to
+that are actually on screen choose to pick lateral covers over covers that are
+pick lateral covers over covers that are actually in front of them are behind
+actually in front of them are behind them and this allows for a lot better
+them and this allows for a lot better staging and realization for our AI we
+staging and realization for our AI we can do things like sliding in to cover
+can do things like sliding in to cover sideways and it looks cool and it's
+sideways and it looks cool and it's engaging for the player we can do things
+engaging for the player we can do things like a eyes that are actually on screen
+like a eyes that are actually on screen will choose to you will choose positions
+will choose to you will choose positions that keep them on-screen you know this
+that keep them on-screen you know this is really annoying when when NPC
+is really annoying when when NPC characters run off screen you have to
+characters run off screen you have to chase after them one spotted a eyes can
+chase after them one spotted a eyes can tend to stay within quadrants of
+tend to stay within quadrants of positioning and so you know the player
+positioning and so you know the player can have this relative knowledge of
+can have this relative knowledge of where they are even if they go
+where they are even if they go off-screen and you know we heavily also
+off-screen and you know we heavily also use this for behavior synchronization or
+use this for behavior synchronization or distribution and all of these things
+distribution and all of these things really add to that player experience
+finally we can add a layer of pseudo scripting to provide our Aldi's a lot
+scripting to provide our Aldi's a lot more control if and when they need it
+more control if and when they need it and I use the term pseudo scripting
+and I use the term pseudo scripting because what we really want here is to
+because what we really want here is to allow our level designers to treat our
+allow our level designers to treat our AI like we want them to actually be like
+AI like we want them to actually be like free-spirited parents when it comes to
+free-spirited parents when it comes to our systemic AI an example of this is
+our systemic AI an example of this is like area restriction
+like area restriction where you can actually keep the AI bound
+where you can actually keep the AI bound to specific locations allowing for
+to specific locations allowing for better can better control in pace and
+better can better control in pace and giving the player sense of progression
+giving the player sense of progression while again keeping things systemic so
+while again keeping things systemic so to sort of summarize try and use a
+to sort of summarize try and use a layered systemic approach to deal with
+layered systemic approach to deal with variation and hues heuristics that cater
+variation and hues heuristics that cater for the player experience so we want to
+for the player experience so we want to build systems and not Moments systems
+build systems and not Moments systems that work with and for the player not
+that work with and for the player not just in specific moments of gameplay so
+just in specific moments of gameplay so slightly shifting our focus now on to
+slightly shifting our focus now on to behavior specifically as players we want
+behavior specifically as players we want NPC's in our games to behave
+NPC's in our games to behave compellingly and this includes having a
+compellingly and this includes having a wide range of actions to perform and
+wide range of actions to perform and meaningful ways to respond to those
+meaningful ways to respond to those different contexts and in open-world
+different contexts and in open-world games we need to worry about the size of
+games we need to worry about the size of the world and the complexity of
+the world and the complexity of decisions for our NPCs and for this next
+decisions for our NPCs and for this next section I'd like to go into more details
+section I'd like to go into more details about how we specifically deal with
+about how we specifically deal with behaviors so for the kinds of games
+behaviors so for the kinds of games we're making the goal is to have an
+we're making the goal is to have an annotated world that provides enough
+annotated world that provides enough contextual information to allow our AI
+contextual information to allow our AI to behave systemically so we really
+to behave systemically so we really wanted a way to represent our behaviors
+wanted a way to represent our behaviors that reduce complexity and are easy to
+that reduce complexity and are easy to understand and and this empowers our
+understand and and this empowers our designers and our players so an
+designers and our players so an avalanche we use behavior trees for our
+avalanche we use behavior trees for our NPCs in our games I'm not going to
+NPCs in our games I'm not going to really go into details about the pros
+really go into details about the pros and cons of different AI architectures
+and cons of different AI architectures but I want to iterate our motivations
+but I want to iterate our motivations for doing this and why that helps us so
+for doing this and why that helps us so currently we have our designers that
+currently we have our designers that actually do all our behavior scripting
+actually do all our behavior scripting and behavior trees are extremely
+and behavior trees are extremely designer and developer friendly they're
+designer and developer friendly they're easy for our designers to actually
+easy for our designers to actually understand and script how the AI will
+understand and script how the AI will actually behave in different situations
+actually behave in different situations within the trees we can also give them
+within the trees we can also give them specific control on how those behaviors
+specific control on how those behaviors will be realized so here's an example of
+will be realized so here's an example of a behavior tree and our behavior tree
+a behavior tree and our behavior tree editor it's been developed by our very
+editor it's been developed by our very own euro team Jacobsen designers go in
+own euro team Jacobsen designers go in there author tweak and debug behaviors
+there author tweak and debug behaviors directly so the tool supports debug
+directly so the tool supports debug your frame execution through the replay
+your frame execution through the replay of game frames we can pause go back a
+of game frames we can pause go back a few frames step through you know find
+few frames step through you know find out what's going on just the way you
+out what's going on just the way you would do bug a regular program these
+would do bug a regular program these visualization and debugging aspects have
+visualization and debugging aspects have vastly improved development time and
+vastly improved development time and made the creation of new behaviors a lot
+made the creation of new behaviors a lot more robust and manageable so you know
+more robust and manageable so you know going into sort of now the advantages of
+going into sort of now the advantages of behavior trees for us behavior trees
+behavior trees for us behavior trees inherently support a predetermined
+inherently support a predetermined priority of behaviors to execute and
+priority of behaviors to execute and this works really well for us we've
+this works really well for us we've chosen to have our NPCs have a unique
+chosen to have our NPCs have a unique set of core deterministic behaviors now
+set of core deterministic behaviors now this helps us deal with um complexity
+this helps us deal with um complexity and it also keeps a realization cost low
+and it also keeps a realization cost low and also makes it easier to debug but a
+and also makes it easier to debug but a key advantage is that it makes it much
+key advantage is that it makes it much more obvious to the player so making
+more obvious to the player so making behaviors obvious to the player in our
+behaviors obvious to the player in our games allows for them to interact with
+games allows for them to interact with with the AI in meaningful ways you know
+with the AI in meaningful ways you know if the player doesn't understand what's
+if the player doesn't understand what's happening it isn't happening at all
+behavior trees also support a multi layered architecture and this makes
+layered architecture and this makes things like pseudo scripting really easy
+things like pseudo scripting really easy so you know we can override and
+so you know we can override and influence behaviors simply by having a
+influence behaviors simply by having a scripted layer exist on top of any level
+scripted layer exist on top of any level of our tree and we do this heavily for
+of our tree and we do this heavily for staging and setting up setting up our
+staging and setting up setting up our characters and also for setting up
+characters and also for setting up specific scenes for driving narrative
+specific scenes for driving narrative forward in game this layering also helps
+forward in game this layering also helps us maintain context when handling events
+us maintain context when handling events that the AI must react to open-world
+that the AI must react to open-world games are extremely reactive and the
+games are extremely reactive and the advantage of this is that the deeper you
+advantage of this is that the deeper you are in the tree the more clearer the
+are in the tree the more clearer the context of the situation so we can
+context of the situation so we can choose to actually handle these events
+choose to actually handle these events at any level and at that lowest level if
+at any level and at that lowest level if we need to and have fallback handling in
+we need to and have fallback handling in place for other cases and this helps us
+place for other cases and this helps us deal with realization and improve it so
+deal with realization and improve it so you know you might think that having a
+you know you might think that having a predetermined set of core behaviors
+predetermined set of core behaviors actually limits behavior variety
+actually limits behavior variety and while this seems limiting we use the
+and while this seems limiting we use the concept of sub behaviors to sprinkle in
+concept of sub behaviors to sprinkle in variation so you can think of sub
+variation so you can think of sub behaviors as really small mini behaviors
+behaviors as really small mini behaviors that can either run in parallel with
+that can either run in parallel with your core behavior to simply provide
+your core behavior to simply provide realization variety or temporarily
+realization variety or temporarily actually interrupt a core behavior to
+actually interrupt a core behavior to perform a specific action and the choice
+perform a specific action and the choice is really up to you here um so we use a
+is really up to you here um so we use a lot of these little mini behaviors to
+lot of these little mini behaviors to create variety and break up behavior
+create variety and break up behavior synchronization sub behaviors are also a
+synchronization sub behaviors are also a really great place to use fuzzy logic in
+really great place to use fuzzy logic in terms of you know when you want to
+terms of you know when you want to choose to actually execute them so a
+choose to actually execute them so a quick example here say you have two NPS
+quick example here say you have two NPS that are run pcs that are running their
+that are run pcs that are running their core cover behavior you know they're
+core cover behavior you know they're peeking and shooting they're evaluating
+peeking and shooting they're evaluating for better cover they're doing all that
+for better cover they're doing all that fun stuff and one of the npc's suddenly
+fun stuff and one of the npc's suddenly decides to reposition so he simply
+decides to reposition so he simply writes that information onto our
+writes that information onto our blackboard as Michael pointed out
+blackboard as Michael pointed out there's information for everyone to read
+there's information for everyone to read and the cover behavior itself can simply
+and the cover behavior itself can simply have a sub sub behavior running that
+have a sub sub behavior running that reads this value and plays a one-off
+reads this value and plays a one-off animation to ask him to move forward
+animation to ask him to move forward this really doesn't need to be
+this really doesn't need to be synchronized at all it gives the
+synchronized at all it gives the illusion of coordination and it adds
+illusion of coordination and it adds behavioral variety you can choose how
+behavioral variety you can choose how often to select these sub behaviors and
+often to select these sub behaviors and they have a high chance of actually
+they have a high chance of actually being reused so you can reuse the sub
+being reused so you can reuse the sub behavior in in a search behavior or in
+behavior in in a search behavior or in any other behavior um if you choose to
+any other behavior um if you choose to so recently we've actually extended our
+so recently we've actually extended our behavior trees to support external trees
+behavior trees to support external trees external trees our behavior trees that
+external trees our behavior trees that can be loaded in from an external source
+can be loaded in from an external source and are run through the main behavior
+and are run through the main behavior tree so currently these are plugged in
+tree so currently these are plugged in throughout the environment and game
+throughout the environment and game objects in the world themselves can
+objects in the world themselves can specify these external trees and this
+specify these external trees and this again helps us data drive behavior so in
+again helps us data drive behavior so in my in my previous example the sub
+my in my previous example the sub behavior actually talked about of
+behavior actually talked about of actually playing that one-off animation
+actually playing that one-off animation it could actually be specified in the
+it could actually be specified in the cover object Excel itself and and
+cover object Excel itself and and executed by the NPC through an external
+executed by the NPC through an external tree
+tree other examples of
+other examples of we use this our contextual actions that
+we use this our contextual actions that are spread across the world of the world
+are spread across the world of the world and NPC search for them and interact
+and NPC search for them and interact with with those objects so in my final
+with with those objects so in my final section I'd like to talk a little bit
+section I'd like to talk a little bit about how we go about realization and
+about how we go about realization and making our actual characters believable
+making our actual characters believable so a realization is important because
+so a realization is important because it's the secret sauce it's what makes
+it's the secret sauce it's what makes everything come together I mean Daniel
+everything come together I mean Daniel brewer brewer yesterday talked about you
+brewer brewer yesterday talked about you know how everything came together when
+know how everything came together when he was building that NPC and it includes
+he was building that NPC and it includes everything from animation to sounds -
+everything from animation to sounds - barks but for the purpose of this
+barks but for the purpose of this presentation I'd like to focus on
+presentation I'd like to focus on behavior and animation so the biggest
+behavior and animation so the biggest challenges here are maintaining fidelity
+challenges here are maintaining fidelity for a wide range of situations and
+for a wide range of situations and dealing with the limited amount of
+dealing with the limited amount of memory so when it comes to AI and
+memory so when it comes to AI and animation it's common practice to have a
+animation it's common practice to have a layered setup where your AI and
+layered setup where your AI and animation systems are quite separated
+animation systems are quite separated like in most games in our system we use
+like in most games in our system we use state machines for representing our
+state machines for representing our character States and animations AI info
+character States and animations AI info is actually gathered by our behavior
+is actually gathered by our behavior trees the trees are evaluated and they
+trees the trees are evaluated and they can send events to our state machine the
+can send events to our state machine the NPCs can transition from state to state
+NPCs can transition from state to state and and perform their associated actions
+so in our actual system we have several state machines that actually link to
+state machines that actually link to different animation layers within the
+different animation layers within the animation system while we actually want
+animation system while we actually want to keep our animation system separated
+to keep our animation system separated from our AI and state logic there are
+from our AI and state logic there are actual advantages in keeping the
+actual advantages in keeping the behavior trees and state machines in
+behavior trees and state machines in sync there's a lot of situations I've
+sync there's a lot of situations I've seen where behavior tree logic continues
+seen where behavior tree logic continues to run even when the state machine can't
+to run even when the state machine can't and more importantly shouldn't handle
+and more importantly shouldn't handle the requests so say for example you have
+the requests so say for example you have an npc that's sliding into cover well
+an npc that's sliding into cover well you probably you know don't want this
+you probably you know don't want this character to be running his look at
+character to be running his look at behavior and try to look at other
+behavior and try to look at other characters while doing this so it's
+characters while doing this so it's important to provide this feedback loop
+important to provide this feedback loop from your state machine back to your
+from your state machine back to your behavior trees and have the trees
+behavior trees and have the trees actually understand what state the
+actually understand what state the character is in so in our system we use
+character is in so in our system we use the concept of state bits that inform
+the concept of state bits that inform the behavior tree on what state the
+the behavior tree on what state the characters in
+characters in the state it's a really simple concept
+the state it's a really simple concept the state bits are simply set on
+the state bits are simply set on entering a state and are removed when
+entering a state and are removed when you exit we've also extended this idea
+you exit we've also extended this idea of data driving behaviors to the
+of data driving behaviors to the character system as well so previously
+character system as well so previously our character logic was encapsulated in
+our character logic was encapsulated in in what we call character controllers
+in what we call character controllers these tended to be extremely cumbersome
+these tended to be extremely cumbersome and very bug prone because they handled
+and very bug prone because they handled a lot of logic and were shared across
+a lot of logic and were shared across many states so you can imagine a lot of
+many states so you can imagine a lot of special special case branching and it
+special special case branching and it made debugging a huge pain so now we've
+made debugging a huge pain so now we've actually moved over to more of a
+actually moved over to more of a component based setup with the
+component based setup with the introduction of state tasks you can
+introduction of state tasks you can think of state tasks as little snippets
+think of state tasks as little snippets of code and each state can actually pick
+of code and each state can actually pick and choose what state task it wants to
+and choose what state task it wants to run so anything from handling specific
+run so anything from handling specific input to updating camera settings to
+input to updating camera settings to actually all the way to how we actually
+actually all the way to how we actually update our character motion is now
+update our character motion is now handled in state tasks and you know it's
+handled in state tasks and you know it's modular and it can be reused so this
+modular and it can be reused so this whole thing has been exposed to our
+whole thing has been exposed to our scripting system as well so we can
+scripting system as well so we can actually data drive character logic and
+actually data drive character logic and this again speeds up development time
+this again speeds up development time and helps us deal with handling lots of
+and helps us deal with handling lots of different character behaviors in context
+similar to external behavior trees we also use what we call external state
+also use what we call external state machines this is a way for us to
+machines this is a way for us to actually load in an external state
+actually load in an external state machine along with an entire external
+machine along with an entire external set of States transitions and a default
+set of States transitions and a default set of animations and connected up to
+set of animations and connected up to the original state machine to extend it
+the original state machine to extend it on the fly
+on the fly once we're done with it we simply
+once we're done with it we simply disconnect this machine so with this
+disconnect this machine so with this approach game objects themselves can
+approach game objects themselves can specify external state machines that
+specify external state machines that they want to use and we can actually go
+they want to use and we can actually go in and override those default set of
+in and override those default set of animations all of our NPC interactions
+animations all of our NPC interactions within the world are handled this way so
+within the world are handled this way so for example I'll use ladders as an
+for example I'll use ladders as an example
+example the ladders can specify an external
+the ladders can specify an external state machine for the the external state
+state machine for the the external state machine for interacting with objects and
+machine for interacting with objects and the ladder game object itself can
+the ladder game object itself can override the default
+override the default animations with ladder specific ones so
+animations with ladder specific ones so the external state machine and the
+the external state machine and the ladder animations aren't actually loaded
+ladder animations aren't actually loaded in unless the ladders are part of that
+in unless the ladders are part of that location and so with an even placement
+location and so with an even placement of these interactions within the world
+of these interactions within the world we can save on memory for our animations
+we can save on memory for our animations there are also a whole bunch of
+there are also a whole bunch of non-standard ish features that we do
+non-standard ish features that we do within our animation system like heavily
+within our animation system like heavily relying on warping techniques using
+relying on warping techniques using specific additive and I case systems
+specific additive and I case systems that help us improve fidelity and save
+that help us improve fidelity and save memory but I'll have to save that for
+memory but I'll have to save that for another talk and you can find me later
+another talk and you can find me later if you want more info but to summarize
+if you want more info but to summarize if you haven't been listening for the
+if you haven't been listening for the last half hour here your key takeaways
+last half hour here your key takeaways focus on player centric and systemic
+focus on player centric and systemic solutions when dealing with open-world
+solutions when dealing with open-world AI take advantage of layering both at a
+AI take advantage of layering both at a behavior and animation level and data
+behavior and animation level and data drive as much as possible not just
+drive as much as possible not just values or parameters but don't be afraid
+values or parameters but don't be afraid to data drive behavior and character
+to data drive behavior and character logic as well I'd like to thank Niklas
+logic as well I'd like to thank Niklas Narine and Omar Shakir for their help in
+Narine and Omar Shakir for their help in putting this presentation together I'd
+putting this presentation together I'd like to thank all of you as well now
+like to thank all of you as well now please welcome Aaron canary who will
+please welcome Aaron canary who will talk about open-world AI in Saints Row
+Oh quick show of hands who has shipped an open-world game maybe five ten
+an open-world game maybe five ten percent who is currently working on an
+percent who is currently working on an open-world game okay so I'm going to be
+open-world game okay so I'm going to be continuing the talk on an open-world AI
+continuing the talk on an open-world AI I'm gonna hit three main topics today
+I'm gonna hit three main topics today open-world response scalability and
+open-world response scalability and environmental interaction I feel like
+environmental interaction I feel like these are unique but also really
+these are unique but also really important aspects in making open-world
+important aspects in making open-world games and because it's a short talk I'll
+games and because it's a short talk I'll assume you already know all of the ins
+assume you already know all of the ins and outs of normal AI and implementation
+and outs of normal AI and implementation so you don't have to take pictures these
+so you don't have to take pictures these slides will be available on our website
+slides will be available on our website my name is Erin canary I started my
+my name is Erin canary I started my gaming career on saints row 2 where I
+gaming career on saints row 2 where I made AI intentionally look drunk Red
+made AI intentionally look drunk Red Faction guerrilla I made a number of
+Faction guerrilla I made a number of gameplay systems and activities saints
+gameplay systems and activities saints row the third irie engineered core
+row the third irie engineered core combat for faster iteration and
+combat for faster iteration and employment and a number of special AI
+employment and a number of special AI behaviors and stands were for I was the
+behaviors and stands were for I was the only AI programmer before the expansion
+only AI programmer before the expansion and then after the expansion I became
+and then after the expansion I became the AI lead but after being at volition
+the AI lead but after being at volition for seven years I still feel like the
+for seven years I still feel like the new guy because we have titles going
+new guy because we have titles going back to 1995 and most of those guys are
+back to 1995 and most of those guys are still around also just to update
+still around also just to update everyone we were part of the THQ
+everyone we were part of the THQ bankruptcy but we were bought out by
+bankruptcy but we were bought out by Koch media the Coalition was picked up
+Koch media the Coalition was picked up by Koch media you may know them as Deep
+by Koch media you may know them as Deep Silver also a releasing Dead Island
+Silver also a releasing Dead Island series among
+series among many others and in case you've been
+many others and in case you've been living under a rock sands for the third
+living under a rock sands for the third is a third-person open-world shooter
+adventure series with a comedic plot and a large variety of gameplay activities
+a large variety of gameplay activities first topic open-world responds so
+first topic open-world responds so sansar - we developed a lot of world
+sansar - we developed a lot of world systems and spawning systems that would
+systems and spawning systems that would react to things happening in the world
+react to things happening in the world when cars caught on fire fire trucks
+when cars caught on fire fire trucks would come put the fires out
+would come put the fires out when pedestrians died ambulances will
+when pedestrians died ambulances will come revive the pedestrians and when
+come revive the pedestrians and when pedestrians saw something violent
+pedestrians saw something violent happening they would pull out their cell
+happening they would pull out their cell phone and call the cops and then moments
+phone and call the cops and then moments later the cops would arrive and kind of
+later the cops would arrive and kind of walk around and see what was going on
+but we also had a system called notoriety and this was to kind of punish
+notoriety and this was to kind of punish the player for for being violent in the
+the player for for being violent in the open world and to give that sense of a
+open world and to give that sense of a real place and this would spawn police
+real place and this would spawn police cars swat cars boats Apaches and tanks
+cars swat cars boats Apaches and tanks this tended to escalate quite quickly
+this tended to escalate quite quickly depending on how violent the player was
+depending on how violent the player was but at the end of the project it was it
+but at the end of the project it was it became pretty evident that we spent most
+became pretty evident that we spent most of time on this large scope of all the
+of time on this large scope of all the things that could that could come and be
+things that could that could come and be in the world and we didn't really focus
+in the world and we didn't really focus on the player experience so sansar 3 we
+on the player experience so sansar 3 we started looking at how do we vary the
+started looking at how do we vary the gameplay and we developed a number of
+gameplay and we developed a number of specialist AI that would encourage the
+specialist AI that would encourage the player to react differently and in these
+player to react differently and in these situations cause the player to dodge to
+situations cause the player to dodge to kite to take cover to flank and this
+kite to take cover to flank and this really helped break up the pacing of of
+really helped break up the pacing of of the gameplay keep it a little bit more
+the gameplay keep it a little bit more dynamic so that's the first key takeaway
+dynamic so that's the first key takeaway a very year players response and having
+a very year players response and having AI and spawning systems respond to
+AI and spawning systems respond to current events it makes the world feel
+current events it makes the world feel alive but
+alive but it's often better to provoke the player
+it's often better to provoke the player to play the game differently the early
+to play the game differently the early concept of open world combat pacing
+concept of open world combat pacing through the notoriety system was to
+through the notoriety system was to spawn a vehicle every X seconds up until
+spawn a vehicle every X seconds up until you hit a cap and to escalate the fight
+you hit a cap and to escalate the fight you would change the spawn rate and the
+you would change the spawn rate and the cap and we this had a problem where we
+cap and we this had a problem where we we typically called this the trickle or
+we typically called this the trickle or the flood either there was not enough
+the flood either there was not enough enemies to challenge a player or there's
+enemies to challenge a player or there's too many enemies and this often is is
+too many enemies and this often is is very vulnerable to balance changes but
+very vulnerable to balance changes but it's also dependent on who's playing the
+it's also dependent on who's playing the game whether or not they can handle the
+game whether or not they can handle the spawn rate and we thought this was
+spawn rate and we thought this was pretty dependable but then and
+pretty dependable but then and development sr3 we found there were
+development sr3 we found there were really big unintended difficulty spikes
+really big unintended difficulty spikes and it took some testing but we found
+and it took some testing but we found out that this was actually coming from
+out that this was actually coming from the ambient system notoriety would spawn
+the ambient system notoriety would spawn six cops to attack the player and the
+six cops to attack the player and the immune system would bond four cops to go
+immune system would bond four cops to go get doughnuts and these four cops
+get doughnuts and these four cops getting doughnuts would see the player
+getting doughnuts would see the player and turn around and attack him so now
+and turn around and attack him so now you're easy encounter just doubled in
+you're easy encounter just doubled in size and these kinds of accidental
+size and these kinds of accidental overlaps seem to be happening more and
+overlaps seem to be happening more and more frequently because we had more
+more frequently because we had more spawn systems in Saints Row 3 we had
+spawn systems in Saints Row 3 we had flash points which were kind of like
+flash points which were kind of like outpost or static locations in the world
+outpost or static locations in the world where many enemies would spawn and they
+where many enemies would spawn and they would kind of loiter there and and have
+would kind of loiter there and and have some activities that they were doing and
+some activities that they were doing and this conflicted with notoriety because
+this conflicted with notoriety because if you walked into one of these and you
+if you walked into one of these and you already had 12 enemies and the notoriety
+already had 12 enemies and the notoriety we changed notoriety so that it would
+we changed notoriety so that it would measure how many these people already
+measure how many these people already existed and just backfill how many ever
+existed and just backfill how many ever it wanted to just bond at the time it
+it wanted to just bond at the time it wasn't until a little sensor before we
+wasn't until a little sensor before we finally rewrote the spawning - spawning
+finally rewrote the spawning - spawning waves this is kind of your typical
+waves this is kind of your typical survival mode
+survival mode and but as you can see here it still
+and but as you can see here it still doesn't handle the variety of enemies
+doesn't handle the variety of enemies that we had on the screen here you can
+that we had on the screen here you can actually pick out seven different enemy
+actually pick out seven different enemy types and I assure you there was no
+types and I assure you there was no designer or a piece of data that
+designer or a piece of data that intended this to happen so we've still
+intended this to happen so we've still got some work to do on it
+got some work to do on it but the takeaway is to try to have all
+but the takeaway is to try to have all of your systems work together to
+of your systems work together to communicate or have a management layer
+communicate or have a management layer to maintain the big picture of what is
+to maintain the big picture of what is attacking the player so we kind of had
+attacking the player so we kind of had this escalation and we had added some
+this escalation and we had added some variety and but then we had just kind of
+variety and but then we had just kind of you climax and you just stay there
+you climax and you just stay there forever the only way to get rid of this
+forever the only way to get rid of this notoriety was to just run away you had
+notoriety was to just run away you had to go back to your safe house or go to
+to go back to your safe house or go to some designated location to to make the
+some designated location to to make the notoriety stop attacking you we really
+notoriety stop attacking you we really wanted to have the player beat notoriety
+wanted to have the player beat notoriety as a saint would and to do this we
+as a saint would and to do this we wanted to look at using a dramatic arc
+wanted to look at using a dramatic arc so that way you can kind of climax and
+so that way you can kind of climax and then fall off and have the have that
+then fall off and have the have that victory condition of being really
+victory condition of being really satisfied that you that you completed
+satisfied that you that you completed something but the problem with us was we
+something but the problem with us was we never really put a resolution on
+never really put a resolution on notoriety before because they we didn't
+notoriety before because they we didn't want to reward players for just
+want to reward players for just slaughtering police left and right
+slaughtering police left and right surprisingly we have morals and so in
+surprisingly we have morals and so in Saints Row 4 we changed notoriety to be
+Saints Row 4 we changed notoriety to be aliens and now it was perfectly okay for
+aliens and now it was perfectly okay for us to reward players for killing them
+this resulted in in the warden this is the the capstone AI for the notoriety
+the the capstone AI for the notoriety system and you can see this kind of
+system and you can see this kind of follows a dramatic arc of there's
+follows a dramatic arc of there's there's really intense combat followed
+there's really intense combat followed by some suspense and then finally some
+by some suspense and then finally some gratification when you finally beat it
+gratification when you finally beat it and now you know that notoriety is done
+and now you know that notoriety is done you have completed it later in
+you have completed it later in production we found that players wanted
+production we found that players wanted to exit notoriety and earlier so we came
+to exit notoriety and earlier so we came up with the golden SID
+up with the golden SID this is a high-speed chase where you
+this is a high-speed chase where you chase a character through the city and
+chase a character through the city and it follows the same dramatic arc of
+it follows the same dramatic arc of high-intensity gratification and relief
+high-intensity gratification and relief so the takeaway here is to try to make
+so the takeaway here is to try to make your open-world experience rewarding and
+your open-world experience rewarding and also dramatic pacing and cool animation
+also dramatic pacing and cool animation and effects are a pretty good way to do
+and effects are a pretty good way to do this Santa has always been a really
+this Santa has always been a really fast-paced game and since there are four
+fast-paced game and since there are four introduced superpowers so our typical
+introduced superpowers so our typical response of spawning a car 100 meters
+response of spawning a car 100 meters away and having it drive to you was
+away and having it drive to you was completely obsolete so we needed to find
+completely obsolete so we needed to find new ways to bring the action to the
+new ways to bring the action to the player almost instantaneously and then
+player almost instantaneously and then also there was a problem of players
+also there was a problem of players could simply jump over a building and
+could simply jump over a building and exit all AI combat AI had no ability to
+exit all AI combat AI had no ability to follow them or chase them over top of
+follow them or chase them over top of buildings so our first response this was
+buildings so our first response this was the teleportal these were destructible
+the teleportal these were destructible monster closets that could spawn
+monster closets that could spawn anywhere over open navmesh
+anywhere over open navmesh and we could pop these in right in front
+and we could pop these in right in front of the player and have them start
+of the player and have them start dropping enemies and thankfully this was
+dropping enemies and thankfully this was supported by the context of our game
+second method we used was transmogrification which is a fun word
+transmogrification which is a fun word we made up it would transform an
+we made up it would transform an existing enemy into a more difficult
+existing enemy into a more difficult enemy and do it in a very obvious
+enemy and do it in a very obvious in-your-face way so the player knew
+in-your-face way so the player knew something was going on and then the
+something was going on and then the third method we used was enemies just
+third method we used was enemies just falling from the sky we use some camera
+falling from the sky we use some camera tricks to get this to happen right in
+tricks to get this to happen right in front of the player and introduce him
+front of the player and introduce him into combat
+into combat immediately this was also used for a
+immediately this was also used for a specialist and I think at one time we
+specialist and I think at one time we had it running on Roddy Piper but
+had it running on Roddy Piper but actually the takeaway here is to to be
+actually the takeaway here is to to be creative try to find ways to present AI
+creative try to find ways to present AI to the player that that is in the
+to the player that that is in the context of the game and also sports the
+context of the game and also sports the mechanics and the pacing of the game so
+mechanics and the pacing of the game so the whole takeaway I'm just gonna wrap
+the whole takeaway I'm just gonna wrap all the section up is to to bring all of
+all the section up is to to bring all of your spawning systems together to
+your spawning systems together to provide a varied and rewarding
+provide a varied and rewarding experience next I want to go into some
+experience next I want to go into some scalability challenges we've had in
+scalability challenges we've had in open-world games and later you'll see
+open-world games and later you'll see how these tie into the environmental
+how these tie into the environmental interaction so one of the systems I've
+interaction so one of the systems I've been in charge of iterating on on the
+been in charge of iterating on on the sanctuary franchise is line of sights
+sanctuary franchise is line of sights processing and of course your line of
+processing and of course your line of sight is proportional to the number of
+sight is proportional to the number of NPCs you have we typically have 75 NPCs
+NPCs you have we typically have 75 NPCs so off the top of your head you might
+so off the top of your head you might think well where's cases all 75 are
+think well where's cases all 75 are attacking player or 75 are attacking 72
+attacking player or 75 are attacking 72 are attacking you and some friends and
+are attacking you and some friends and then well we also allow scripting for
+then well we also allow scripting for some reason so then there are there's a
+some reason so then there are there's a base invasion where
+base invasion where you have a large number of allies and a
+you have a large number of allies and a large number of enemies and you can see
+large number of enemies and you can see this is this is almost growing
+this is this is almost growing exponentially
+so in this scenario this worst-case scenario you're looking at around 1,500
+scenario you're looking at around 1,500 line of sight checks and we throttle
+line of sight checks and we throttle them at four per frame so this would
+them at four per frame so this would take 12 seconds to resolve and that's
+take 12 seconds to resolve and that's way way too long so here's kind of more
+way way too long so here's kind of more of an average run-of-the-mill case Ford
+of an average run-of-the-mill case Ford versus 17 and we did a lot of work on
+versus 17 and we did a lot of work on iterating and to see how we can
+iterating and to see how we can prioritize and filter which four line of
+prioritize and filter which four line of sight checks you're going to do every
+sight checks you're going to do every frame and this had an additional cost to
+frame and this had an additional cost to it but here you'll see the the green
+it but here you'll see the the green lines are the completed line of sight
+lines are the completed line of sight checks and the blue lines are the
+checks and the blue lines are the deferred ones and also if you look down
+deferred ones and also if you look down in the corner you'll see delays between
+in the corner you'll see delays between 1 and 11 seconds and then it gets worse
+so with this with this extreme bias down in the green letters are the green
+in the green letters are the green numbers you'll see you can get
+numbers you'll see you can get reasonable response time but the this
+reasonable response time but the this causes some starvation and some AI that
+causes some starvation and some AI that simply just don't respond to anything
+simply just don't respond to anything off screen and then this happened
+they they scripted a mission where there were three teams all hostile to each
+were three teams all hostile to each other and this just gets worse and so
+other and this just gets worse and so now we're looking at even even longer
+now we're looking at even even longer response times so this happened
+response times so this happened basically right before we ship Saints
+basically right before we ship Saints Row three and more or less it was okay
+Row three and more or less it was okay because in this scenario there was so
+because in this scenario there was so many things blowing up and so many
+many things blowing up and so many people shooting each other as long as
+people shooting each other as long as they weren't standing still doing
+they weren't standing still doing nothing it looked okay but Saints are
+nothing it looked okay but Saints are before we started looking at okay how
+before we started looking at okay how can we do more than four frame this is a
+can we do more than four frame this is a ridiculous
+ridiculous we tried optimizing and prioritizing
+we tried optimizing and prioritizing things that didn't work so let's just
+things that didn't work so let's just try some brute force methods to see what
+try some brute force methods to see what else we can do so I started looking at
+else we can do so I started looking at multi-threaded raycast
+multi-threaded raycast and we wrote our own code to do this
+and we wrote our own code to do this work on the on up to four processors or
+work on the on up to four processors or on all the SPU's and and this we wanted
+on all the SPU's and and this we wanted this to use it for immediate results we
+this to use it for immediate results we wanted to just say okay do all of these
+wanted to just say okay do all of these right now
+right now he was managed as as many as we tell you
+he was managed as as many as we tell you to do on all the threads and just let me
+to do on all the threads and just let me know as soon as it's done and this
+know as soon as it's done and this actually led to some interesting
+actually led to some interesting techniques I'll get into later was the
+techniques I'll get into later was the the flying AI and the jumping AI but to
+the flying AI and the jumping AI but to get back to the line of sight casting we
+get back to the line of sight casting we had the perception system in the
+had the perception system in the line-of-sight deferred system we'd build
+line-of-sight deferred system we'd build up a queue and it it would process the
+up a queue and it it would process the four in the main thread Saints are four
+four in the main thread Saints are four we did the same queue however we
+we did the same queue however we determined that while we were processing
+determined that while we were processing effects there was nothing going on in
+effects there was nothing going on in the worker threads so we said okay let's
+the worker threads so we said okay let's push all of them we can into the worker
+push all of them we can into the worker threads but there's more than one thread
+threads but there's more than one thread and there's more than one system that is
+and there's more than one system that is not multi-threaded so now we're just
+not multi-threaded so now we're just using up all the idle space in
+using up all the idle space in the worker threads and instead of doing
+the worker threads and instead of doing four raycast we're now doing 80 so now
+four raycast we're now doing 80 so now all of a sudden prioritising doesn't
+all of a sudden prioritising doesn't really matter as much because we can do
+really matter as much because we can do so many of these and what used to take
+so many of these and what used to take 15 seconds now we can do less than one
+15 seconds now we can do less than one second and if you do want to prioritize
+second and if you do want to prioritize them to just do the guys on-screen right
+them to just do the guys on-screen right in front of you you're getting response
+in front of you you're getting response time of 0.1 seconds and this was
+time of 0.1 seconds and this was excellent
+excellent so takeaway here is to try to multi
+so takeaway here is to try to multi thread whatever you can when you have
+thread whatever you can when you have this number of n number of NPCs and AI
+this number of n number of NPCs and AI running you end up with you know N
+running you end up with you know N squared hard problems and throwing all
+squared hard problems and throwing all the threads you can at it is sometimes
+the threads you can at it is sometimes the only way to solve it
+next I'm going to dig into some architecture changes we made as you're
+architecture changes we made as you're probably familiar finite state machines
+probably familiar finite state machines really fun to use and over to projects
+really fun to use and over to projects they kind of get messy this was our
+they kind of get messy this was our third game in the series and it was we
+third game in the series and it was we just called it spaghetti code at that
+just called it spaghetti code at that point there was there was so much
+point there was there was so much overhead and just adding I just want to
+overhead and just adding I just want to add one new action and it would take me
+add one new action and it would take me like a day and a half to just fill out
+like a day and a half to just fill out the blank functions before I could start
+the blank functions before I could start writing any code and the number of
+writing any code and the number of dependencies between the new state and
+dependencies between the new state and all the other states that already
+all the other states that already existed it was just ridiculous and the
+existed it was just ridiculous and the worst part was the more you add to it
+worst part was the more you add to it the worse it gets so we were we were
+the worse it gets so we were we were done with finite state machines we need
+done with finite state machines we need to look for something else I mean the
+to look for something else I mean the world has moved on so we wanted
+world has moved on so we wanted something to reduce our overhead so that
+something to reduce our overhead so that we could really pump these things out we
+we could really pump these things out we could we could work on the real code
+could we could work on the real code that we wanted to work on and we wanted
+that we wanted to work on and we wanted something more modular so that we could
+something more modular so that we could reuse things very easily we were also
+reuse things very easily we were also concerned with performance and again we
+concerned with performance and again we have 75 NPCs and there's also San Sora's
+have 75 NPCs and there's also San Sora's very
+very fast paced games very volatile so we had
+fast paced games very volatile so we had used planners before we actually had one
+used planners before we actually had one in-house but we didn't really feel
+in-house but we didn't really feel committed to using it because we didn't
+committed to using it because we didn't want to plan that far ahead the the game
+want to plan that far ahead the the game state and the world changes so
+state and the world changes so frequently we we weren't sure if there
+frequently we we weren't sure if there was gonna be a strong benefit in it and
+was gonna be a strong benefit in it and we also wanted something very
+we also wanted something very deterministic we didn't we don't tend to
+deterministic we didn't we don't tend to roll dice because we we consider the
+roll dice because we we consider the player the largest random variable so to
+player the largest random variable so to kind of walk you through this a little
+kind of walk you through this a little bit it closely resembles a behavior tree
+bit it closely resembles a behavior tree but like I said we were already pretty
+but like I said we were already pretty familiar with a planner so we started
+familiar with a planner so we started with a list of goals and you iterate
+with a list of goals and you iterate over these list of goals until you find
+over these list of goals until you find one that's valid at your current time
+one that's valid at your current time and then that list of goals has a list
+and then that list of goals has a list of actions to go through and try and it
+of actions to go through and try and it will go through those until it can find
+will go through those until it can find one and there was there was essentially
+one and there was there was essentially one behavior tree for all the AI and
+one behavior tree for all the AI and then this allowed us to work out all the
+then this allowed us to work out all the dependencies we needed to and these
+dependencies we needed to and these dependencies were fairly strong because
+dependencies were fairly strong because because it was well the dependencies
+because it was well the dependencies were represented in the data so it was
+were represented in the data so it was very easy to iterate on these very
+very easy to iterate on these very quickly and determine where the problems
+quickly and determine where the problems were but this was complicated enough
+were but this was complicated enough that we kind of said after a pony you
+that we kind of said after a pony you know this is this is programmer only
+know this is this is programmer only designers don't really want to dig in
+designers don't really want to dig in this deep
+this deep however designers are we're highly
+however designers are we're highly encouraged to filter the goals and
+encouraged to filter the goals and actions that each AI could do and tweak
+actions that each AI could do and tweak the parameters on those goals and
+the parameters on those goals and actions and this this became pretty
+actions and this this became pretty powerful the first time we realized the
+powerful the first time we realized the power of this was a producer came in and
+power of this was a producer came in and said hey you guys
+said hey you guys make Burt Reynolds a follower so since
+make Burt Reynolds a follower so since we well but he can't use guns and he
+we well but he can't use guns and he can't die for legal reasons so we had
+can't die for legal reasons so we had already had and vulnerability as as a
+already had and vulnerability as as a flag and a table and we already had
+flag and a table and we already had melee behaviors and and the movement and
+melee behaviors and and the movement and stuff that we needed so this took about
+stuff that we needed so this took about five minutes
+five minutes it was just copying around some data in
+it was just copying around some data in a table and Burt Reynolds was done also
+a table and Burt Reynolds was done also another explanation of this if you find
+another explanation of this if you find yourself writing is Burt Reynolds and
+yourself writing is Burt Reynolds and code you're not doing data-driven
+code you're not doing data-driven correctly Burt Reynolds is the sum of
+correctly Burt Reynolds is the sum of the parts parts that should be reused
+the parts parts that should be reused for other AI down the road to really hit
+for other AI down the road to really hit this home I'll go through the word and
+this home I'll go through the word and this is one of the most unique AI we had
+this is one of the most unique AI we had in the game and definitely the one that
+in the game and definitely the one that we iterated on the longest however if
+we iterated on the longest however if you actually break down what his
+you actually break down what his behaviors are he had 26 behaviors and 13
+behaviors are he had 26 behaviors and 13 of them were completely copied from the
+of them were completely copied from the Saints Row 3 cop basic movement getting
+Saints Row 3 cop basic movement getting light sight shooting a lot of these
+light sight shooting a lot of these things were exact exactly the same had
+things were exact exactly the same had not changed and then a lot of the
+not changed and then a lot of the behaviors that we made for the word and
+behaviors that we made for the word and we also reused on many many other AI in
+we also reused on many many other AI in the main game and DLC so you can see
+the main game and DLC so you can see there's a lot of reuse here there's only
+there's a lot of reuse here there's only 30 behaviors here that remain completely
+30 behaviors here that remain completely unique to the to the warden so takeaway
+unique to the to the warden so takeaway here is make your job easy because
+here is make your job easy because you're going to be doing it a lot and
+you're going to be doing it a lot and reduce your overhead will will pay huge
+reduce your overhead will will pay huge dividends in the long run being
+dividends in the long run being data-driven is one really good way to do
+data-driven is one really good way to do this and focusing on your efficiency up
+this and focusing on your efficiency up front will allow you to be more
+front will allow you to be more possible and creative down the road next
+possible and creative down the road next I'm gonna get into environment
+I'm gonna get into environment interaction which is talking about how
+interaction which is talking about how to connect the player and the AI to his
+to connect the player and the AI to his surroundings in a more meaningful way
+surroundings in a more meaningful way and this can be difficult to do in a
+and this can be difficult to do in a large city or world one of the basic
+large city or world one of the basic ways we did this was action nodes action
+ways we did this was action nodes action nodes are a custom set of animations
+nodes are a custom set of animations props dialog and these were placed I
+props dialog and these were placed I think we had nearly 500 of these placed
+think we had nearly 500 of these placed around the the open world and more
+around the the open world and more inside of interiors but these were
+inside of interiors but these were actually really important to the
+actually really important to the experience because it would it would not
+experience because it would it would not only make the world feel alive but also
+only make the world feel alive but also kind of ground the player when they're
+kind of ground the player when they're when they're done doing something
+when they're done doing something absolutely ridiculous it kind of brings
+absolutely ridiculous it kind of brings them back down to to something normal
+them back down to to something normal they can relate to but what I really
+they can relate to but what I really want to talk about is 500 action nodes
+want to talk about is 500 action nodes hand placed in the world that's a lot of
+hand placed in the world that's a lot of data and that takes man weeks to do even
+data and that takes man weeks to do even on a good pipeline so we're actually
+on a good pipeline so we're actually focusing a lot of effort now on how to
+focusing a lot of effort now on how to improve that pipeline and make that more
+improve that pipeline and make that more efficient so we can do these do more of
+efficient so we can do these do more of these at higher quality next I'm
+these at higher quality next I'm actually going to hit on reusing markup
+actually going to hit on reusing markup we had some procedural systems like the
+we had some procedural systems like the road block system and what this would do
+road block system and what this would do was it would find existing road data in
+was it would find existing road data in the world and it had we made sets of two
+the world and it had we made sets of two three and four lane road blocks and it
+three and four lane road blocks and it would match these to the existing roads
+would match these to the existing roads around the player and this was this was
+around the player and this was this was awesome because it was perfectly
+awesome because it was perfectly scalable to the entire world we didn't
+scalable to the entire world we didn't have to add any markup data to the world
+have to add any markup data to the world to get this to work
+so again just reuse your markup however there's caveat to this working
+however there's caveat to this working without markup or reusing markup as it
+without markup or reusing markup as it was not intended to be used can be very
+was not intended to be used can be very tricky here we have an example of a
+tricky here we have an example of a brute who is going over to pick up a
+brute who is going over to pick up a propane tank just throw it at the enemy
+propane tank just throw it at the enemy or whatever however the collision data
+or whatever however the collision data on this is about twice as large as the
+on this is about twice as large as the actual propane tank so this doesn't line
+actual propane tank so this doesn't line up it looks pretty bad this was taken
+up it looks pretty bad this was taken from a bug report saying yeah this
+from a bug report saying yeah this collision date is terrible but that's
+collision date is terrible but that's really that's really the point is that
+really that's really the point is that when someone made this collision data
+when someone made this collision data they weren't thinking about how brutes
+they weren't thinking about how brutes were going to pick up things so it's
+were going to pick up things so it's it's you have to make some assumptions
+it's you have to make some assumptions about your data but then you also have
+about your data but then you also have to go back and correct it where it is
+to go back and correct it where it is wrong we were able to iterate this and
+wrong we were able to iterate this and fix most of the bugs and it was a it was
+fix most of the bugs and it was a it was fairly reliable when it when it shipped
+fairly reliable when it when it shipped however sometimes it's not as easy as
+however sometimes it's not as easy as marking a propane tank when we switched
+marking a propane tank when we switched over to sensor for we were it was
+over to sensor for we were it was originally an expansion pack and we re
+originally an expansion pack and we re themed the city to to be more alien like
+themed the city to to be more alien like and the biggest problem for me was that
+and the biggest problem for me was that now players could run up walls and jump
+now players could run up walls and jump on rooftops where there was no nav mesh
+on rooftops where there was no nav mesh no markup because gameplay had not
+no markup because gameplay had not existed there before so how do you have
+existed there before so how do you have combat without nav mesh this was kind of
+combat without nav mesh this was kind of an interesting problem so we invented
+an interesting problem so we invented some jumpin code and this was completely
+some jumpin code and this was completely not reliant on nav mesh at all this was
+not reliant on nav mesh at all this was using leveraging the raycast
+using leveraging the raycast multi-threaded stuff I was talking about
+multi-threaded stuff I was talking about earlier where you're just going to do
+earlier where you're just going to do ray cast down from the sky or down from
+ray cast down from the sky or down from your height map of where the helicopters
+your height map of where the helicopters fly
+fly and first thing you can do is find where
+and first thing you can do is find where they hit the ground and then run a
+they hit the ground and then run a heuristic to sort which ones are most
+heuristic to sort which ones are most appealing to the AI and then test jump
+appealing to the AI and then test jump arcs to multiple of these at the same
+arcs to multiple of these at the same time since we can multi thread these
+time since we can multi thread these there's a little bit lower cost to
+there's a little bit lower cost to batching them up and then you can
+batching them up and then you can evaluate and choose whichever one you
+evaluate and choose whichever one you feel is most appropriate period is in
+feel is most appropriate period is in game as you can see the the AI is
+game as you can see the the AI is actually jumping down to the ground in
+actually jumping down to the ground in this scenario and it's it's running
+this scenario and it's it's running heuristics on all the phases of this -
+heuristics on all the phases of this - to isolate the best the best in position
+to isolate the best the best in position but this when we implemented this
+but this when we implemented this behavior was only intended to be used on
+behavior was only intended to be used on the word knee so we knew there was only
+the word knee so we knew there was only one AI running this in the world because
+one AI running this in the world because we were a little afraid it might be
+we were a little afraid it might be expensive but the designers loved it and
+expensive but the designers loved it and they wanted to use it more so we
+they wanted to use it more so we determined well followers kind of needed
+determined well followers kind of needed to be able to chase the player around
+to be able to chase the player around and while specialists need it to chase
+and while specialists need it to chase the player around and then it just kind
+the player around and then it just kind of caught fire in missions and
+of caught fire in missions and activities and everyone just started
+activities and everyone just started using it and the profiling guy never
+using it and the profiling guy never hunted me down so and then we also
+hunted me down so and then we also wanted to do flying because who doesn't
+wanted to do flying because who doesn't want to do following a guy but we didn't
+want to do following a guy but we didn't have mark up dia we didn't have voxels
+have mark up dia we didn't have voxels or anything like that so so we started
+or anything like that so so we started with just a simple avoidance algorithm
+with just a simple avoidance algorithm and well of course you can say well what
+and well of course you can say well what about the u-shape how do you get out of
+about the u-shape how do you get out of u-shape without a path fighting so we
+u-shape without a path fighting so we actually just tried well let's do a ray
+actually just tried well let's do a ray cast away from the player every frame
+cast away from the player every frame and we'll cache these up over time and
+and we'll cache these up over time and then what they act hey I can actually do
+then what they act hey I can actually do is query these this cache of Ray cast
+is query these this cache of Ray cast and say well which one of these is
+and say well which one of these is further away than me and so then they
+further away than me and so then they knew ok if I move to this position I
+knew ok if I move to this position I will now have line of sight to the
+will now have line of sight to the player and this didn't always work it
+player and this didn't always work it worked good enough and typically when it
+worked good enough and typically when it didn't work the AI was stuck in a corner
+didn't work the AI was stuck in a corner where they couldn't see you and you
+where they couldn't see you and you couldn't see them so it wasn't really
+couldn't see them so it wasn't really noticeable so little tricks here it is
+noticeable so little tricks here it is in game the these AI on flying bikes are
+in game the these AI on flying bikes are chasing the player through a tunnel and
+chasing the player through a tunnel and this was really responsive and this is
+this was really responsive and this is something that like our helicopter I
+something that like our helicopter I could never do because they were not
+could never do because they were not that memorable and also because there's
+that memorable and also because there's there's no height navmesh in a tunnel
+there's no height navmesh in a tunnel this was really useful for interiors and
+this was really useful for interiors and very complex overpasses and industrial
+very complex overpasses and industrial areas where there's lots of catwalks and
+areas where there's lots of catwalks and these guys would just follow you down a
+these guys would just follow you down a rabbit hole a few if you went down one I
+rabbit hole a few if you went down one I this is a really tricky though I
+this is a really tricky though I consider this high-risk high-reward
+consider this high-risk high-reward development because it there's a lot of
+development because it there's a lot of bugs with it but when it works it works
+bugs with it but when it works it works everywhere across the entire city where
+everywhere across the entire city where you don't have to have markup data that
+you don't have to have markup data that is takes up a lot of memory and
+is takes up a lot of memory and is uh takes up a lot of time to do it
+is uh takes up a lot of time to do it manually so to wrap it up here I think
+manually so to wrap it up here I think we should all consider in our open world
+we should all consider in our open world games how to provide the player with a
+varied experience a rewarding experience with some pacing how to make the AI and
+with some pacing how to make the AI and developer better faster stronger more
+developer better faster stronger more efficient at their job and how to live
+efficient at their job and how to live with or without markup data it's a it's
+with or without markup data it's a it's a very more important question and niya
+a very more important question and niya I do we have time for questions
+I do we have time for questions five minutes for questions all right
+five minutes for questions all right thank you very much
+a great Red Tails question for G first a request please make a full talk about
+request please make a full talk about player modeling player modeling and the
+player modeling player modeling and the questions are may be linked can you talk
+questions are may be linked can you talk a little bit about annotation what
+a little bit about annotation what annotation and what you did and do you
+annotation and what you did and do you use the external state machines for
+use the external state machines for anything else than animation okay so the
+anything else than animation okay so the first question in terms of player
+first question in terms of player modeling basically that's just ur design
+modeling basically that's just ur design exercise for you to be able to
+exercise for you to be able to understand what what actual AI
+understand what what actual AI components you can actually add to
+components you can actually add to create variety and again and with
+create variety and again and with regards to external state machines it's
+regards to external state machines it's about really overriding or connecting up
+about really overriding or connecting up so the memory itself of the actual state
+so the memory itself of the actual state machine needs to exist as well so if you
+machine needs to exist as well so if you have them specified externally ins and
+have them specified externally ins and split across the world you can only load
+split across the world you can only load in what you need so it's it's more of
+in what you need so it's it's more of the states themselves and also the
+the states themselves and also the animations and okay can you perceive
+animations and okay can you perceive that an affordance exist in the world
+that an affordance exist in the world when there is a state machine attached
+when there is a state machine attached to it so but because the actual game
+to it so but because the actual game object is separated from the state state
+object is separated from the state state machine you can you can still search for
+machine you can you can still search for those game objects and you can think of
+those game objects and you can think of things like you only load in you only
+things like you only load in you only connect up the state machine when you
+connect up the state machine when you actually enter trigger volume for
+actually enter trigger volume for example that's when you actually on the
+example that's when you actually on the fly hook it up
+all right let's thank him again it was a lot of information a lot of really good
+lot of information a lot of really good stuff preciate it

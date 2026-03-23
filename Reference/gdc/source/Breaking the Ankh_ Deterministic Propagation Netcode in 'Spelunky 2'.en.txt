@@ -1,0 +1,1623 @@
+[Music] hello everyone this is breaking the
+hello everyone this is breaking the young deterministic propagation netcode
+young deterministic propagation netcode in spelunkytube
+in spelunkytube please remember to silence your phone
+please remember to silence your phone fill out the feedback form and enjoy
+fill out the feedback form and enjoy life
+to introduce a bit myself i'm guillermo and i've been balancing the last five
+and i've been balancing the last five years of my life with working at blade
+years of my life with working at blade works and helping as part of the
+works and helping as part of the teaching staff of local universities
+teaching staff of local universities where i try my best to improve the
+where i try my best to improve the system from within
+system from within i consider myself an imperfect training
+i consider myself an imperfect training program solver who happens to be working
+program solver who happens to be working on his match overviews master thesis
+on his match overviews master thesis and enjoys creating and experiencing all
+and enjoys creating and experiencing all kinds of fiction
+i'd also like to introduce bleedworks we are a medium-sized studio specialized in
+are a medium-sized studio specialized in high quality game porting that does a
+high quality game porting that does a bit of publishing and co-development
+bit of publishing and co-development we have been very lucky to work with
+we have been very lucky to work with incredibly talented developers from all
+incredibly talented developers from all over the world on also in the titles
+over the world on also in the titles including
+including the original spelunky hd port
+the original spelunky hd port also i am very thankful for the to the
+also i am very thankful for the to the whole
+whole bleedworks team for being a great
+bleedworks team for being a great community and to management for
+community and to management for providing me the extreme flexibility
+providing me the extreme flexibility needed to contribute mentoring students
+needed to contribute mentoring students and new developers at both open
+and new developers at both open university of catalonia and university
+university of catalonia and university of barcelona
+now for all of you who aren't familiar with the spelunky series spelunky is a
+with the spelunky series spelunky is a precision platformer run based game
+precision platformer run based game designed by deregu
+designed by deregu in spelunky each run is different due to
+in spelunky each run is different due to changing room layouts and there is no
+changing room layouts and there is no progression
+progression because of this the focus of the game is
+because of this the focus of the game is put on the player which change through
+put on the player which change through the emerging stories
+the emerging stories experience it on each run and
+experience it on each run and well that will provo each run will also
+well that will provo each run will also provide a lot of knowledge and practice
+provide a lot of knowledge and practice more specifically spelunky 2 introduces
+more specifically spelunky 2 introduces a lot of novelties to the series such as
+a lot of novelties to the series such as real-time liquid physics and online
+real-time liquid physics and online multiplayer
+multiplayer you can get more information about
+you can get more information about spelunky2 in directview.org
+i'd also like to introduce these tall goals so that you can identify if it is
+goals so that you can identify if it is interesting for you
+this talk is about how the online stack of splunky2 works it's about the
+of splunky2 works it's about the problems we didn't expect the netcode
+problems we didn't expect the netcode the servers the decisions and the
+the servers the decisions and the problems that surprised us even after
+problems that surprised us even after doing our homework and reading all
+doing our homework and reading all previous literature and watching
+previous literature and watching watched related talks more specifically
+watched related talks more specifically we will talk
+we will talk we will try to avoid the topics related
+we will try to avoid the topics related to determinism problems optimization
+to determinism problems optimization clock drifting and general engine design
+clock drifting and general engine design that previous talks covered in leader
+so let's start from the beginning after being introduced to the project by
+after being introduced to the project by the top priority was evaluating the
+the top priority was evaluating the situation the constraints and getting
+situation the constraints and getting familiar with the codebase
+familiar with the codebase the most significant constraint was
+the most significant constraint was probably that we wanted to keep the
+probably that we wanted to keep the world as alive as possible so in order
+world as alive as possible so in order to do so we decided
+to do so we decided that everything should update without
+that everything should update without camera aware optimizations
+camera aware optimizations this would limit a lot us into
+this would limit a lot us into what kind of optimizations we could do
+what kind of optimizations we could do also a possible area a possible arena
+also a possible area a possible arena mode
+mode had to be
+had to be as fair as possible and because it's a
+as fair as possible and because it's a punishing precision platforming game
+punishing precision platforming game we wanted to minimize input delay and
+we wanted to minimize input delay and target a local multiplayer field without
+target a local multiplayer field without nonsense interpolations and following
+nonsense interpolations and following game mechanics
+game mechanics i believe this led the team to decide
+i believe this led the team to decide that rollback netcode would be a perfect
+that rollback netcode would be a perfect fit and it makes a lot
+fit and it makes a lot a lot of sense
+a lot of sense next were staffing constraints because
+next were staffing constraints because the whole game including work done on
+the whole game including work done on all three supported platforms and the 53
+all three supported platforms and the 53 patches to date
+patches to date were around 8 man years of engineering
+were around 8 man years of engineering work
+work and maybe at its one week
+and maybe at its one week peak time we had around four concurrent
+peak time we had around four concurrent engineers at peak
+engineers at peak so that means that not a lot of
+so that means that not a lot of resources can be dedicated to a site
+resources can be dedicated to a site feature such as online multiplayer so
+feature such as online multiplayer so using other solutions would have
+using other solutions would have significantly increased engineering man
+significantly increased engineering man years or maybe even delayed the game
+years or maybe even delayed the game also keeping up with the constant
+also keeping up with the constant changes which were on average around 60
+changes which were on average around 60 changes per patch with a weekly patch
+changes per patch with a weekly patch would have been a bit insane
+would have been a bit insane world circulates codebase constraints
+world circulates codebase constraints spelunky2 codebase as far as i know
+spelunky2 codebase as far as i know tries to keep the feel of spelunky hd
+tries to keep the feel of spelunky hd while providing online mechanics and a
+while providing online mechanics and a testbed for new mechanics and features
+testbed for new mechanics and features that you wanted to try
+that you wanted to try this in itself leads to a very flexible
+this in itself leads to a very flexible code base that isn't very catchy
+code base that isn't very catchy friendly however performance profiling
+friendly however performance profiling didn't look as bad as to raise any
+didn't look as bad as to raise any alarms
+alarms thought it was definitely in need of
+thought it was definitely in need of work early on replays were introduced to
+work early on replays were introduced to guarantee
+guarantee that the required amount for rollback
+that the required amount for rollback net code
+net code the required amount of determinism for
+the required amount of determinism for robot network netcode was
+robot network netcode was was provided these combos replace and
+was provided these combos replace and determinism is very powerful and we have
+determinism is very powerful and we have used it in multiple projects replace
+used it in multiple projects replace will show up again later in the tool but
+will show up again later in the tool but i'd recommend everyone who hasn't
+i'd recommend everyone who hasn't watched the retro city rampage talk to
+watched the retro city rampage talk to on on the topic of replace automatic
+on on the topic of replace automatic testing towards it
+testing towards it other than that the existing netcode
+other than that the existing netcode didn't work out of the box after laying
+didn't work out of the box after laying around for around three years
+around for around three years and considering how small it was and
+and considering how small it was and still is we decided to redo it in order
+still is we decided to redo it in order to be way more familiar with the code
+to be way more familiar with the code so before getting to the meet let me
+so before getting to the meet let me provide a sales page of robot netcode
+provide a sales page of robot netcode rollback synchronization is a technique
+rollback synchronization is a technique that given enough compute time and a
+that given enough compute time and a deterministic update function
+deterministic update function keeps in sync any game without worrying
+keeps in sync any game without worrying about mechanics latency or cheats
+about mechanics latency or cheats in most reasonable network conditions
+in most reasonable network conditions players will feel exactly like local
+players will feel exactly like local multiplayer also programmers will be
+multiplayer also programmers will be able to program the online multiplayer
+able to program the online multiplayer as if it was a local multiplayer game so
+as if it was a local multiplayer game so that's obviously great not to mention
+that's obviously great not to mention the point of cheating not being really
+the point of cheating not being really possible without the agreement of all
+possible without the agreement of all participating players
+participating players so well i mean it's perfect that will be
+so well i mean it's perfect that will be everything thank you for coming to my
+everything thank you for coming to my gdc talk you can buy drawback netcode
+gdc talk you can buy drawback netcode shirts in the gift shop see you
+shirts in the gift shop see you but wait hold it stay around for a bit
+but wait hold it stay around for a bit longer before closing the case let's see
+longer before closing the case let's see how
+how let's let's see how rollback works
+let's let's see how rollback works drawback is based on a deterministic
+drawback is based on a deterministic approach to netcode the domestic netcode
+approach to netcode the domestic netcode is built on a design where each possible
+is built on a design where each possible state is the result of running the
+state is the result of running the update function with a specific input
+update function with a specific input gamestate and time step for this to
+gamestate and time step for this to happen a lot of considerations must go
+happen a lot of considerations must go into developing the game including
+into developing the game including avoiding the use of system calls cpu
+avoiding the use of system calls cpu instructions and
+instructions and events and more things i mean previous
+events and more things i mean previous talks have done a really great job
+talks have done a really great job explaining this so for the specific case
+explaining this so for the specific case of rollback we use this property to
+of rollback we use this property to predict the state assuming unknown
+predict the state assuming unknown inputs
+inputs will be unchanged and when our
+will be unchanged and when our prediction is wrong not if when our
+prediction is wrong not if when our prediction is strong we roll back the
+prediction is strong we roll back the state to the last good known prediction
+state to the last good known prediction and run the simulation this means that
+and run the simulation this means that for this to work we need to copy and
+for this to work we need to copy and store multiple copies of the state
+store multiple copies of the state so now that we have seen a bit more
+so now that we have seen a bit more let's talk about the negatives first of
+let's talk about the negatives first of all in order to process
+all in order to process a rollback of a given amount of frames
+a rollback of a given amount of frames that many frames should run in a
+that many frames should run in a reasonable amount of time also because
+reasonable amount of time also because multiple copies of the game state needs
+multiple copies of the game state needs to exist in the hip
+to exist in the hip this means that the game must make
+this means that the game must make copies
+copies and sometimes restore previous
+and sometimes restore previous properties this is what causes memory to
+properties this is what causes memory to become entangled with space
+become entangled with space and
+and the whole
+the whole memory space trade-off stops being a
+memory space trade-off stops being a trade-off
+trade-off also because it's built so heavy on
+also because it's built so heavy on determinism this means that information
+determinism this means that information can be hidden from the clients it's not
+can be hidden from the clients it's not important at all for spelunky but it
+important at all for spelunky but it might be in other games
+the game also needs to run deterministically in all platforms and
+deterministically in all platforms and that will take part in multiplayer as
+that will take part in multiplayer as and this is no small feat
+and this is no small feat and finally the it's worth mentioning
+and finally the it's worth mentioning that the resource management becomes
+that the resource management becomes much more complex when working with
+much more complex when working with rollback netcode
+rollback netcode with all this context in mind we started
+with all this context in mind we started optimizing the game because maybe 3 6
+optimizing the game because maybe 3 6 frames in 16 milliseconds aren't enough
+frames in 16 milliseconds aren't enough for rollback after all that will give us
+for rollback after all that will give us around 64 milliseconds of flawless
+around 64 milliseconds of flawless latency support but would that be enough
+latency support but would that be enough we knew it wouldn't be enough so in
+we knew it wouldn't be enough so in order to investigate how to improve this
+order to investigate how to improve this we performed
+we performed we did performance profiling
+we did performance profiling and we evaluated areas of potential
+and we evaluated areas of potential improvement the four main areas of
+improvement the four main areas of improvement were entities in red
+improvement were entities in red liquids in dark blue memory overhead
+liquids in dark blue memory overhead which is light blue and automated
+which is light blue and automated resource memory management
+so the most interesting optimization surface after all were memory operations
+surface after all were memory operations as we have seen drawback directly ties
+as we have seen drawback directly ties space to time this is pretty bad for
+space to time this is pretty bad for some
+some kind of games such as splunky as you can
+kind of games such as splunky as you can see in the blue portion of the
+see in the blue portion of the performance stats
+performance stats probably between 25 and 65 percent of
+probably between 25 and 65 percent of the time depending on mispredictions and
+the time depending on mispredictions and the generated level were spent on memory
+the generated level were spent on memory copies
+copies this was because this was especially
+this was because this was especially annoying because memory usage had all
+annoying because memory usage had all had very little in surface of
+had very little in surface of improvement
+improvement or lead programmer mickey had always
+or lead programmer mickey had always kept this in mind and was always and the
+kept this in mind and was always and the whole memory was very optimized with
+whole memory was very optimized with custom allocators and most data
+custom allocators and most data structures using small data
+structures using small data data types bit fields and also
+data types bit fields and also structured parking by hand in order to
+structured parking by hand in order to avoid padding
+avoid padding as such a lot of systems such as
+as such a lot of systems such as particles
+particles run in the non-deterministic state in
+run in the non-deterministic state in order to reduce the the deterministic
+order to reduce the the deterministic state size
+state size and the memory copy operation also
+and the memory copy operation also didn't have a significant improvement
+didn't have a significant improvement surprise
+surprise so what do you do when a big challenge
+so what do you do when a big challenge comes up obviously you
+comes up obviously you do nothing move on to something else and
+do nothing move on to something else and start looking for a solution for a
+start looking for a solution for a solution to it
+solution to it so we moved on one of the first areas we
+so we moved on one of the first areas we tried to optimize liquids liquid physics
+tried to optimize liquids liquid physics are one of the most delicate parts of
+are one of the most delicate parts of spelunky ii due to determinism
+spelunky ii due to determinism performance and
+performance and the cost that
+the cost that well every single particle must update
+well every single particle must update every single frame so
+every single frame so so it's pretty heavy performance wise
+so it's pretty heavy performance wise uh we had been using liquid fan a very
+uh we had been using liquid fan a very nice
+nice a very nice nice library that implements
+a very nice nice library that implements particle
+particle based
+based liquid physics on top of box 2d
+liquid physics on top of box 2d optimizing this map made a lot of sense
+optimizing this map made a lot of sense because we were running the liquid
+because we were running the liquid simulation in parallel to entities
+simulation in parallel to entities and a few other systems so optimizing
+and a few other systems so optimizing most of the code base wouldn't improve
+most of the code base wouldn't improve anything
+anything as long as liquids were the bottleneck
+as long as liquids were the bottleneck it also meant that optimizing liquids
+it also meant that optimizing liquids wasn't going to solve the problem by
+wasn't going to solve the problem by itself since then entities would become
+itself since then entities would become the bottleneck but it was a good start
+the bottleneck but it was a good start so we were trying to optimize leakage by
+so we were trying to optimize leakage by moving away from particle based
+moving away from particle based solutions
+solutions for this purpose we researched a lot
+for this purpose we researched a lot of alternatives in order to get
+of alternatives in order to get significant performance gains starting
+significant performance gains starting with building our own vectorized
+with building our own vectorized backwards moving list squares material
+backwards moving list squares material point method and it was our it was
+point method and it was our it was really fast like 8 times faster for 10
+really fast like 8 times faster for 10 10 times more particles
+10 times more particles it also allowed us to play around with
+it also allowed us to play around with deformable materials such as snow and
+deformable materials such as snow and jelly however we ended up reverting to
+jelly however we ended up reverting to liquid fun because at big granularities
+liquid fun because at big granularities the leakage didn't feel really right in
+the leakage didn't feel really right in grid based methods and that small
+grid based methods and that small granularities
+granularities well small granularities were very
+well small granularities were very frustrating because of the game
+frustrating because of the game mechanics of spelunky
+mechanics of spelunky you could be killed by
+you could be killed by a bunch of lava that was very small and
+a bunch of lava that was very small and you didn't see
+you didn't see and it didn't it wasn't as clear as to
+and it didn't it wasn't as clear as to when lava would kill you and when it
+when lava would kill you and when it wouldn't
+wouldn't other alternatives we evaluated were lbm
+other alternatives we evaluated were lbm and cellular automata solutions
+and cellular automata solutions but due to the continuous movement of
+but due to the continuous movement of push blocks and moving platforms
+push blocks and moving platforms in spelunkitu this would have required
+in spelunkitu this would have required to discretize the space at a very small
+to discretize the space at a very small granularity which would have added a lot
+granularity which would have added a lot of inconsistencies and other performance
+of inconsistencies and other performance overhead
+overhead this in turn
+this in turn meant that we couldn't optimize liquids
+meant that we couldn't optimize liquids that much so we had to optimize the
+that much so we had to optimize the automated memory management it was
+automated memory management it was pretty easy we went ahead and made
+pretty easy we went ahead and made the the cleanup process around five
+the the cleanup process around five times faster by using a more cache
+times faster by using a more cache friendly data structure based in room
+friendly data structure based in room drawing hood
+drawing hood addressing
+and then you keep working working working and one day you
+working and one day you can call it a
+can call it a minus 403 based on release date
+minus 403 based on release date the idea of preparation netcode pops up
+the idea of preparation netcode pops up the deterministic propagation
+the deterministic propagation is
+is essentially are thinking of the
+essentially are thinking of the relationship between lockstep and
+relationship between lockstep and rollback
+rollback in order to explain this i really like
+in order to explain this i really like the analogy of time travel and
+the analogy of time travel and multiverses in the deterministic
+multiverses in the deterministic rollback model it's as if you messed up
+rollback model it's as if you messed up the past so you decide to go back fix
+the past so you decide to go back fix exit and return to the present to see a
+exit and return to the present to see a more synchronized world
+more synchronized world with deterministic preparation you
+with deterministic preparation you instead are always living in the cure
+instead are always living in the cure and in the current universe and then one
+and in the current universe and then one day you just wake up at the start of
+day you just wake up at the start of your update look and are in a different
+your update look and are in a different more synchronized universe by
+more synchronized universe by by magic
+by magic so implementation wise the main idea is
+so implementation wise the main idea is to have multiple states that are updated
+to have multiple states that are updated simultaneously so you have a fair
+simultaneously so you have a fair simulation that does nothing special
+simulation that does nothing special nothing sings and we know
+nothing sings and we know we
+we well we know
+well we know everyone's last input
+everyone's last input we pick it and use it to simulate the
+we pick it and use it to simulate the next frame so it's pretty much always
+next frame so it's pretty much always wrong
+wrong but
+but only slightly or wrong
+only slightly or wrong then a second simulation exists which is
+then a second simulation exists which is just a regular log step simulation that
+just a regular log step simulation that only knows the truth and which for
+only knows the truth and which for everyone's inputs before running a frame
+everyone's inputs before running a frame and then
+and then well the information it has it's always
+well the information it has it's always ground truth
+ground truth finally we have at least one propagation
+finally we have at least one propagation simulation that forks the log step
+simulation that forks the log step simulation and predicts unknown inputs
+simulation and predicts unknown inputs until it becomes the new present
+until it becomes the new present replacing the existing present with a
+replacing the existing present with a more synchronized universe
+more synchronized universe so if we show this in a more visual
+so if we show this in a more visual format we can see that there are
+format we can see that there are multiple blocks that access fully
+multiple blocks that access fully independent memory and have different
+independent memory and have different time constraints and a few interesting
+time constraints and a few interesting properties
+properties this model mitigates the cost of resigns
+this model mitigates the cost of resigns in the game
+in the game the amount of state copies you need to
+the amount of state copies you need to keep around is drastically reduced to a
+keep around is drastically reduced to a constant value regardless of the rating
+constant value regardless of the rating window it's much easier to multi-thread
+window it's much easier to multi-thread than rollback model since by itself each
+than rollback model since by itself each simulation
+simulation can be used
+can be used can be using a different
+can be using a different thread with different memory and also
+thread with different memory and also given equal compute power for each
+given equal compute power for each simulation there is an equivalent an
+simulation there is an equivalent an equilibrium that guarantees that the
+equilibrium that guarantees that the propagator can catch up with the present
+propagator can catch up with the present also because each simulation can run in
+also because each simulation can run in a separate thread
+a separate thread in a transient functional manner cache
+in a transient functional manner cache is improved as less thrashing occurs and
+is improved as less thrashing occurs and pretty much no locking is required
+pretty much no locking is required except when swapping states
+also it's pretty nice that only one operation preparation is required
+operation preparation is required and these
+and these because only one copy operation
+because only one copy operation preparation is required it disentangles
+preparation is required it disentangles space from time so it allows us to start
+space from time so it allows us to start trading of memory for time again
+so to sum everything up you can see here a totally obvious objective comparison
+a totally obvious objective comparison table designed by a committee of myself
+table designed by a committee of myself of no one else who is obviously not
+of no one else who is obviously not based towards
+based towards his own solution
+his own solution compared to comparing what i consider
+compared to comparing what i consider the ideal net code features
+the ideal net code features so first of all as you can see netcode
+so first of all as you can see netcode not based on determinism in the first
+not based on determinism in the first column is reactive and it's very
+column is reactive and it's very implementation specific so it must be
+implementation specific so it must be customized for individual game events
+customized for individual game events mechanics and entities this kind of
+mechanics and entities this kind of netcode requires a huge amount of work
+netcode requires a huge amount of work and care
+and care that grows with the game scope
+that grows with the game scope so in order to provide a good experience
+so in order to provide a good experience prevent cheating and keep up with the
+prevent cheating and keep up with the gameplay logic and
+gameplay logic and project scale you need to add more
+project scale you need to add more resources to developing the netcode
+resources to developing the netcode compare that with input delay or
+compare that with input delay or lockstep netcode
+lockstep netcode that only requires
+that only requires determinism and doesn't really have any
+determinism and doesn't really have any extra performance requirements or
+extra performance requirements or extrapolation issues it's a really good
+extrapolation issues it's a really good model for some generals
+model for some generals but
+but the maximum delay before the game
+the maximum delay before the game becomes unplayable it's pretty low
+becomes unplayable it's pretty low especially with with action games so
+especially with with action games so it's not perfect
+it's not perfect drawback netcode on the other side
+drawback netcode on the other side improves a lot this a lot
+improves a lot this a lot by trading off performance but in which
+by trading off performance but in which it wastes this cache usage and dice
+it wastes this cache usage and dice performance to actively use the space it
+performance to actively use the space it can be mitigated in multiple ways and
+can be mitigated in multiple ways and can be potentially improved with kernel
+can be potentially improved with kernel support for only copying memory pages on
+support for only copying memory pages on right and mapping page by hand but
+right and mapping page by hand but unfortunately this is not available on
+unfortunately this is not available on most platforms
+most platforms finally preparation netcode refines
+finally preparation netcode refines determinism in order to mitigate
+determinism in order to mitigate mitigate the performance requirements
+mitigate the performance requirements introduced by rollback while also
+introduced by rollback while also providing some additional features at a
+providing some additional features at a small development cost when compared to
+small development cost when compared to other solutions
+and then after talking a lot about this we decided to do
+this we decided to do nothing it was something we
+nothing it was something we that we believed it would be required
+that we believed it would be required if a nintendo switch version would ever
+if a nintendo switch version would ever be a thing
+be a thing but since it required a lot of changes
+but since it required a lot of changes from from the existing version in order
+from from the existing version in order to work well with our codeways
+to work well with our codeways and
+and fix the update so it had no side effects
+fix the update so it had no side effects we decided to
+we decided to stop working here and focus on other
+stop working here and focus on other things
+things so we start working on bad things things
+so we start working on bad things things that have nothing to do with the store
+that have nothing to do with the store we talk with sony
+we talk with sony we
+we work on the game we decide
+work on the game we decide to add support for about 60 hertz which
+to add support for about 60 hertz which is something that doesn't play well with
+is something that doesn't play well with the deterministic network and is often
+the deterministic network and is often implemented either by increasing update
+implemented either by increasing update rates or by having variable delta time
+rates or by having variable delta time so we decide to go instead with an a
+so we decide to go instead with an a different solution
+different solution we decided to use interpolation in order
+we decided to use interpolation in order to support higher update rates
+to support higher update rates this idea was validated through the
+this idea was validated through the creation of a prototype called super
+creation of a prototype called super thoughtpoi platformer that would run at
+thoughtpoi platformer that would run at 20 updates per second and we
+20 updates per second and we interpolated to arbitrary frame rates
+interpolated to arbitrary frame rates it's something that works really great
+it's something that works really great and the improvement was very obvious and
+and the improvement was very obvious and perceptible to the members of the team
+perceptible to the members of the team with 144 earth screens and even though
+with 144 earth screens and even though it still has a couple of glitches we
+it still has a couple of glitches we think that this is a great approach to
+think that this is a great approach to get most of the benefits from an
+get most of the benefits from an increased refresh rate without
+increased refresh rate without increasing compute costs
+increasing compute costs similarly it would have been interesting
+similarly it would have been interesting to treat most of the world but the
+to treat most of the world but the players at a rate of 10 to 20 updates
+players at a rate of 10 to 20 updates per second while keeping the players at
+per second while keeping the players at higher updates rates in order to improve
+higher updates rates in order to improve performance that but that would have
+performance that but that would have required too many changes at that stage
+required too many changes at that stage that could introduce unintended and
+that could introduce unintended and unnoticeable
+unnoticeable change to gameplay that we didn't want
+change to gameplay that we didn't want to deal with at that stage of
+to deal with at that stage of development
+development so we spend weeks meeting platform
+so we spend weeks meeting platform requirements fixing books and deck and
+requirements fixing books and deck and then it
+then it it just
+it just launches on on ps4 so the game is out on
+launches on on ps4 so the game is out on ps4 we are barely able to release the
+ps4 we are barely able to release the day one patch in time
+day one patch in time and then we
+and then we crash with the ugly part of
+crash with the ugly part of rollback we have seen the wood we have
+rollback we have seen the wood we have seen the bat now we will see the ugly
+seen the bat now we will see the ugly part of
+part of degradation
+degradation a rollback netcode and other determinism
+a rollback netcode and other determinism [Music]
+[Music] based netcode that
+based netcode that that does extrapolation such as
+that does extrapolation such as propagation itself
+propagation itself degrades souffle for i mean
+degrades souffle for i mean for free so sick i can't even express in
+for free so sick i can't even express in english how bad
+english how bad it degrades
+it degrades so let me show this to you with a couple
+so let me show this to you with a couple of videos publicly available recorded on
+of videos publicly available recorded on the day one okay
+the day one okay so you can see
+so you can see the in this video how
+the in this video how well how rollback works well the
+well how rollback works well the character is joking a ghost
+character is joking a ghost everything works okay it's it's a happy
+everything works okay it's it's a happy it's a happy day for the player on day
+it's a happy day for the player on day one on ps4
+one on ps4 here you can see a very different a very
+here you can see a very different a very different game a game that is pretty
+different game a game that is pretty much turn based a game that
+much turn based a game that runs at most at 10 frames per second
+runs at most at 10 frames per second as you can see this is pretty bad and
+as you can see this is pretty bad and fully broken and unacceptable
+let's compare this with a simple interpolation i developed for a title
+interpolation i developed for a title called full metal furies released by
+called full metal furies released by cellar door games just keep looking at
+cellar door games just keep looking at the top right enemy
+the top right enemy in the left gif
+in the left gif gift and you can see the enemy in orange
+gift and you can see the enemy in orange where
+where with the last known server position
+with the last known server position and the enemy in
+and the enemy in regular
+regular sprite
+sprite with the local position okay in this
+with the local position okay in this situation there was very bad network
+situation there was very bad network conditions over 20 percent of packet
+conditions over 20 percent of packet loss up to one second of jitter you can
+loss up to one second of jitter you can see how simple interpolation manages to
+see how simple interpolation manages to hide all of these in a way that isn't
+hide all of these in a way that isn't noticeable to players in the game
+noticeable to players in the game it just looks great
+it just looks great especially when you compare that to this
+especially when you compare that to this ok
+ok you can see that there are a lot of
+you can see that there are a lot of teleports that it doesn't seem to work
+teleports that it doesn't seem to work well it's extrapolation at its best
+well it's extrapolation at its best okay if you notice the difference what
+okay if you notice the difference what whenever determinism messes up or
+whenever determinism messes up or extrapolation kicks in
+extrapolation kicks in it goes very wrong
+it goes very wrong okay if it's if the romanism goes wrong
+okay if it's if the romanism goes wrong well the game
+well the game each player starts playing a completely
+each player starts playing a completely different game and
+different game and nothing seems to make sense about the
+nothing seems to make sense about the movement of other players
+movement of other players and if
+and if clock drifts due to extrapolate clock
+clock drifts due to extrapolate clock drifts extrapolation begins to go crazy
+drifts extrapolation begins to go crazy and it's not very playable at all
+and it's not very playable at all so well that was the first day we spent
+so well that was the first day we spent a lot of now we we move on to the second
+a lot of now we we move on to the second day we decided to stay awake until
+day we decided to stay awake until pretty late watching stream identifying
+pretty late watching stream identifying issues we conclude
+issues we conclude we investigate and conclude that the
+we investigate and conclude that the issue
+issue is
+is caused by very high latency locations to
+caused by very high latency locations to our server that we didn't take into
+our server that we didn't take into consideration and also to people who
+consideration and also to people who depending on the internet on the
+depending on the internet on the internet's mood had big latency spikes
+internet's mood had big latency spikes that made the game
+that made the game the game update spiral out of control
+the game update spiral out of control with simulation times going growing
+with simulation times going growing it's with its frame
+okay so you might be asking yourselves how could performance spiral out of
+how could performance spiral out of control that much
+control that much well um
+well um [Music]
+[Music] spelunky 2
+spelunky 2 didn't really take more than one
+didn't really take more than one millisecond to run
+millisecond to run a full update on a 90 year old death pc
+a full update on a 90 year old death pc so how did this happen
+so how did this happen well it was due to a combination of
+well it was due to a combination of catcher rollback misprediction latency
+catcher rollback misprediction latency and
+and core speed
+core speed because the game is to the players will
+because the game is to the players will often assume that it shouldn't require
+often assume that it shouldn't require much resources and it should work on all
+much resources and it should work on all hardware
+hardware this is not the case at all for spelunky
+this is not the case at all for spelunky to we wanted the world to feel alive we
+to we wanted the world to feel alive we wanted the player to ask what the fritz
+wanted the player to ask what the fritz happened here
+happened here that there is this turkey that why
+that there is this turkey that why what happened why is there meat there
+what happened why is there meat there i mean it's
+i mean it's that kind of things makes the experience
+that kind of things makes the experience much better
+much better so this meant that the whole stage had
+so this meant that the whole stage had to update its frame regardless of player
+to update its frame regardless of player position
+position which is in itself pretty challenging
+which is in itself pretty challenging during due to the sheer size of this
+during due to the sheer size of this of the destructive fully destructible
+of the destructive fully destructible stage
+stage real-time physics dual layers of
+real-time physics dual layers of findings and collisions not to mention
+findings and collisions not to mention that everything can interact with
+that everything can interact with everything and by interrupt i mean
+everything and by interrupt i mean explode freeze crush right or whatever
+explode freeze crush right or whatever you can imagine
+you can imagine also don't forget that the game has huge
+also don't forget that the game has huge stages
+stages with two fluffing layers i mean can you
+with two fluffing layers i mean can you look at both pictures
+look at both pictures and say it's just one level with two
+and say it's just one level with two layers i mean that's huge that's one
+layers i mean that's huge that's one level what you can see over here
+so since changing the way that matchmaking worked
+changing the way that matchmaking worked doing to expand more regions
+doing to expand more regions wasn't trivial
+wasn't trivial we decided to work on a single threaded
+we decided to work on a single threaded version of the propagation netcode
+version of the propagation netcode so other cores are used by liquids and
+so other cores are used by liquids and particles
+particles so it's not really that the whole
+so it's not really that the whole implementation was single core but the
+implementation was single core but the both simulation didn't run at the same
+both simulation didn't run at the same time
+time okay so so it should have worked fine as
+okay so so it should have worked fine as far
+far as long as we could have pushed four
+as long as we could have pushed four updates per frame
+updates per frame and the main the main objective was
+and the main the main objective was fixing the turn-based spelunky issue but
+fixing the turn-based spelunky issue but it turns out the additional memory
+it turns out the additional memory copying keeps it kept in it unplayable
+copying keeps it kept in it unplayable after profiling the cost for running
+after profiling the cost for running four updates per frame
+four updates per frame with the copies required to replace the
+with the copies required to replace the state for each simulation we found out
+state for each simulation we found out that some levels such as blood or olmec
+that some levels such as blood or olmec were clogging at 30 at over 30 frames
+were clogging at 30 at over 30 frames per second
+per second at over 30 milliseconds per frame
+so at this point we were pretty exhausted we
+exhausted we were thinking whoa this is what
+were thinking whoa this is what but in the last push we managed to
+but in the last push we managed to improve a lot this the experience before
+improve a lot this the experience before publishing the
+publishing the the last patch of the week i believe
+the last patch of the week i believe this it was the seventh patch
+this it was the seventh patch the two main improvements were abusing
+the two main improvements were abusing virtual memory
+virtual memory in order to swap the game states without
+in order to swap the game states without copying
+copying and
+and we also
+we also also added another improvement by
+also added another improvement by skipping the cpu cache using platform
+skipping the cpu cache using platform specific functionality so that let us
+specific functionality so that let us that allowed us to reduce execution time
+that allowed us to reduce execution time a lot
+but unfortunately it wasn't perfect yet
+unfortunately it wasn't perfect yet okay so now the game worked pretty well
+okay so now the game worked pretty well on ps4 against ps4
+on ps4 against ps4 but because some frames didn't make it
+but because some frames didn't make it to the 60
+to the 60 16 millisecond barrier
+16 millisecond barrier this meant that some
+this meant that some in some situations such as when one
+in some situations such as when one player was using a ps4 and the other was
+player was using a ps4 and the other was using a ps4 pro
+using a ps4 pro the performance would have
+the performance would have diverged too much
+diverged too much and
+and well we have a system that allows us to
+well we have a system that allows us to accelerate or slow down frames but it
+accelerate or slow down frames but it has some limits in order to feel good
+has some limits in order to feel good to make the game feel better
+to make the game feel better so well in these situations the game was
+so well in these situations the game was not able to catch up okay what this
+not able to catch up okay what this meant if you check the video is that in
+meant if you check the video is that in some situations
+some situations the the game would work would seemingly
+the the game would work would seemingly work well and then when cpu was bought
+work well and then when cpu was bought there the the
+there the the the other universe would catch up with
+the other universe would catch up with the present and replace the the current
+the present and replace the the current the current one you can see this is this
+the current one you can see this is this is pretty bad uh fortunately a lot of
+is pretty bad uh fortunately a lot of people were playing ps4 ps4 so it wasn't
+people were playing ps4 ps4 so it wasn't that bad to a big portion of for
+that bad to a big portion of for of our player base but the problem was
+of our player base but the problem was that a lot of
+that a lot of a lot of friends played
+a lot of friends played were playing using different system
+were playing using different system different ps4 systems so
+different ps4 systems so so
+so for them
+for them all games would at some point if they
+all games would at some point if they reach a deep enough
+reach a deep enough portion of the game
+portion of the game be fully unplayable
+okay so on a side note from all the the bad the bad news
+bad the bad news we
+we we were really happy that adding an
+we were really happy that adding an option to big input delay was a well
+option to big input delay was a well received decision okay we believed from
+received decision okay we believed from the very beginning that it was the right
+the very beginning that it was the right choice
+choice because everyone has its own preference
+because everyone has its own preference but we were worried it may cause a lot
+but we were worried it may cause a lot of a swarm of the same lag reports
+of a swarm of the same lag reports because people because of people
+because people because of people lowering their delay to zero or
+lowering their delay to zero or increasing it too much but it didn't
+increasing it too much but it didn't happen
+happen so this proved a good decision since
+so this proved a good decision since players different players have different
+players different players have different preferences for example i don't care if
+preferences for example i don't care if the game has one or two or three frames
+the game has one or two or three frames of constant input delay it's very
+of constant input delay it's very important for me that it is constant
+important for me that it is constant however instead toni caveyo bleed warzeo
+however instead toni caveyo bleed warzeo didn't enjoy
+didn't enjoy the game with more than one frame of
+the game with more than one frame of input delay and some people like colin
+input delay and some people like colin norway the blue spelunker
+norway the blue spelunker well are were also very thrilled to know
+well are were also very thrilled to know that they could they could disable
+that they could they could disable all input delay
+all input delay even if that meant having frequent
+even if that meant having frequent extrapolation glitches but a much better
+extrapolation glitches but a much better experience
+experience a popular streamer of spelunky too
+a popular streamer of spelunky too called chanagir
+called chanagir has been making a lot of content with
+has been making a lot of content with pretty much everything spelunky to
+pretty much everything spelunky to related including page patch notes
+related including page patch notes and for example he prefers to have input
+and for example he prefers to have input delay at the default value because it
+delay at the default value because it makes for a much better viewer
+makes for a much better viewer experience
+experience in his twitch channel
+back to the main topic in order to get preparation fully working we needed to
+preparation fully working we needed to make the game able to run multiple
+make the game able to run multiple instances of the simulation concurrently
+instances of the simulation concurrently we needed each universe to do its thing
+we needed each universe to do its thing this was a problem as our update
+this was a problem as our update function wasn't made with this in mind
+function wasn't made with this in mind so it had a lot of side effects and
+so it had a lot of side effects and existing optimizations used shared data
+existing optimizations used shared data outside the deterministic state which
+outside the deterministic state which meant we couldn't make this really easy
+meant we couldn't make this really easy or fast
+or fast this meant that we had to make a lot of
+this meant that we had to make a lot of very small
+very small and deliberate changes so that
+and deliberate changes so that everything would work well without
+everything would work well without crashes race conditions and all kinds of
+crashes race conditions and all kinds of issues
+issues so eventually we get a pretty solid
+so eventually we get a pretty solid playable version
+playable version it has multi-instance and you can play
+it has multi-instance and you can play it with
+it with for at least
+for at least 60 min 60 minutes without crashes so we
+60 min 60 minutes without crashes so we decide to release that preview version
+decide to release that preview version so that we can spot any unforeseen
+so that we can spot any unforeseen problems and avoid what happened on ps4
+problems and avoid what happened on ps4 it was very useful we received a lot of
+it was very useful we received a lot of feedback and patched on daily basis
+feedback and patched on daily basis using discord to distribute the patches
+using discord to distribute the patches both using this code and releasing a
+both using this code and releasing a preview
+preview proved very useful
+proved very useful it gave us using discord gave us a tight
+it gave us using discord gave us a tight control over who could play the preview
+control over who could play the preview through the use of roles that could be
+through the use of roles that could be revolved when needed
+revolved when needed and discord also facilitated
+and discord also facilitated receiving feedback sharing files and
+receiving feedback sharing files and updating updating the win
+so in the end deciding how many people and
+in the end deciding how many people and who and why we would invite to the
+who and why we would invite to the reveal was hard we didn't know
+reveal was hard we didn't know how many crashes
+how many crashes due to obscure race conditions
+due to obscure race conditions there could be we didn't know how long
+there could be we didn't know how long it would take to get the game to a
+it would take to get the game to a playable state for more than 10 hours
+playable state for more than 10 hours we didn't expect many problems and the
+we didn't expect many problems and the build was definitely playable so we
+build was definitely playable so we wanted to invite people that were very
+wanted to invite people that were very vocal and could complain about this
+vocal and could complain about this as to improve as many things as possible
+as to improve as many things as possible while while we were setting up the new
+while while we were setting up the new server fleet and adding some some pc
+server fleet and adding some some pc specific features such as the discord
+specific features such as the discord and steam bytes
+okay so this led us to multiple inviting criteria
+criteria starting with everyone that had created
+starting with everyone that had created something cool such a mode a modding
+something cool such a mode a modding tool streams video spanners
+tool streams video spanners and pretty much everything which ended
+and pretty much everything which ended up being a very good decision
+up being a very good decision that would give them early material for
+that would give them early material for their content and also it had some
+their content and also it had some unexpected perks for us
+unexpected perks for us such as being able to watch a 10 hour
+such as being able to watch a 10 hour stream at higher speed in order to
+stream at higher speed in order to investigate issues that happened or
+investigate issues that happened or could happen
+this also ended up building a lot of hype
+hype building a lot of hype has been a very
+building a lot of hype has been a very weird experience
+weird experience we'll see later how this was both good
+we'll see later how this was both good and bad for for us
+and well we invited more groups of people and we invited a group that was
+people and we invited a group that was already playing online we wanted to
+already playing online we wanted to improve their life
+improve their life as streaming a precision platformer is a
+as streaming a precision platformer is a super experience
+super experience and it was very nice from them to
+and it was very nice from them to provide us with feedback comparing our
+provide us with feedback comparing our solution to compared to a streaming
+solution to compared to a streaming solution
+solution we were also
+we were also inviting some people that had somehow
+inviting some people that had somehow problematic setups such as people that
+problematic setups such as people that didn't meet the minimum requirements
+didn't meet the minimum requirements people that didn't play on north america
+people that didn't play on north america or europe
+or europe and people who had very bad internet
+and people who had very bad internet connection
+connection all this helped us evaluate some of the
+all this helped us evaluate some of the most extreme and worst cases
+most extreme and worst cases and finally we also wanted to reward
+and finally we also wanted to reward users that were active on multiple
+users that were active on multiple communities such as reddit steam discord
+communities such as reddit steam discord and twitter
+and twitter we believed this would be the to the
+we believed this would be the to the best of everyone's interest
+best of everyone's interest because
+because in the in the in the current world it's
+in the in the in the current world it's very it's very hard to keep up with
+very it's very hard to keep up with everything that goes around and
+everything that goes around and communicative people
+communicative people that are honest and
+that are honest and they
+they express their opinion in all platforms
+express their opinion in all platforms without sugar coating the truth
+without sugar coating the truth are very helpful
+are very helpful especially when empowered with
+especially when empowered with first-hand information
+first-hand information so that they can
+so that they can so that we can in some way be more
+so that we can in some way be more transparent to our community
+also during the preview days we took one of the best decisions adding
+of the best decisions adding the best feature i haven't seen praised
+the best feature i haven't seen praised and often determinism talks
+and often determinism talks imagine the following situation there is
+imagine the following situation there is a ghost issue that our awesome cool team
+a ghost issue that our awesome cool team at lollipop robot had tried to reproduce
+at lollipop robot had tried to reproduce for a very extended period of time
+for a very extended period of time at the zinc at all neck
+at the zinc at all neck however no matter what they tried it was
+however no matter what they tried it was impossible to reproduce the issue
+impossible to reproduce the issue and not much information was provided by
+and not much information was provided by the seven ps4 players that had reported
+the seven ps4 players that had reported this issue
+this issue so after more than a month we believed
+so after more than a month we believed that it was the same issue that was
+that it was the same issue that was affecting other players
+affecting other players the game just couldn't keep up
+the game just couldn't keep up a month a month later during the preview
+a month a month later during the preview two people including
+two people including one streamer that was a streamer had
+one streamer that was a streamer had that was streaming had a full dashing
+that was streaming had a full dashing life so after watching it we went ahead
+life so after watching it we went ahead and made a special build in a few hours
+and made a special build in a few hours with this specific feature and asked
+with this specific feature and asked them to play again
+them to play again six hours later the bug was fixed
+six hours later the bug was fixed as you can see the scene was a very
+as you can see the scene was a very heavy scene this is the same frame
+heavy scene this is the same frame running in both games it's very early in
+running in both games it's very early in the olmec level so it was where no one
+the olmec level so it was where no one could reproduce it even more
+could reproduce it even more after
+after a whole month of time testing fiddling
+a whole month of time testing fiddling around with settings running automatic
+around with settings running automatic surf tests with all i
+surf tests with all i with our iplayers etc
+with our iplayers etc see at this point if you told me that it
+see at this point if you told me that it was caused because of a game setting
+was caused because of a game setting such as a screen shake i would have said
+such as a screen shake i would have said okay makes sense
+okay makes sense it's something we expect it's something
+it's something we expect it's something we are very careful with but mistakes
+we are very careful with but mistakes happen so it wouldn't increase replacing
+happen so it wouldn't increase replacing at all pretty sure everyone working with
+at all pretty sure everyone working with determinism has experienced something
+determinism has experienced something similar but what if you told me that the
+similar but what if you told me that the code had already rolled the random
+code had already rolled the random numbers outside the branch
+numbers outside the branch well at that point i would have assumed
+well at that point i would have assumed that the screenshot wasn't deterministic
+that the screenshot wasn't deterministic but why was it happening
+but why was it happening if the deterministic code was only
+if the deterministic code was only if the screen shake code was fully
+if the screen shake code was fully deterministic
+deterministic well it turns out that after some at
+well it turns out that after some at some point
+some point the number generator we had
+the number generator we had had this very common check if you are
+had this very common check if you are rolling a random number and the maximum
+rolling a random number and the maximum value is the same value or less than the
+value is the same value or less than the minimum value return the minimum value
+minimum value return the minimum value this would mean that if you wanted to
+this would mean that if you wanted to roll a number before between 4 and 4 the
+roll a number before between 4 and 4 the result was 4 so why even bother rolling
+result was 4 so why even bother rolling the random number generator
+the random number generator well of right
+well of right of course
+of course this doesn't apply to deterministic
+this doesn't apply to deterministic online multiplication gains so the
+online multiplication gains so the internal state of the random number
+internal state of the random number generator would be sync at this point
+generator would be sync at this point when investigating how this could happen
+when investigating how this could happen we notice that this code comes from a
+we notice that this code comes from a very early comment probably something we
+very early comment probably something we inherited from a previous title
+inherited from a previous title from the from a previous title meaning
+from the from a previous title meaning spanky hd it was a little optimization
+spanky hd it was a little optimization that wouldn't matter in most code bases
+that wouldn't matter in most code bases but not here so how did we manage to
+but not here so how did we manage to reproduce this and fix it within six
+reproduce this and fix it within six hours
+hours meet replay tech replay thread tech is
+meet replay tech replay thread tech is an awesome piece piece of software great
+an awesome piece piece of software great for testing iterating and going we also
+for testing iterating and going we also used automatic debugging for snapping
+used automatic debugging for snapping out determinism books but that's a story
+out determinism books but that's a story for another day that should be told by
+for another day that should be told by another person
+another person network replays are crucial it's
+network replays are crucial it's something we had used in multiple
+something we had used in multiple earlier titles to do network debugging
+earlier titles to do network debugging the general idea is that at any given
+the general idea is that at any given point in time a replay capable of
+point in time a replay capable of recreating the whole session can be sent
+recreating the whole session can be sent to the development team
+to the development team so if a book happens with a properly
+so if a book happens with a properly working replay system hooked at a very
+working replay system hooked at a very low level a single file can be sent to
+low level a single file can be sent to the development team that will provide
+the development team that will provide all information needed to investigate
+all information needed to investigate the issue
+the issue these will make issues that are almost
+these will make issues that are almost impossible to reproduce even after two
+impossible to reproduce even after two months 100 100 percent reproducible
+months 100 100 percent reproducible and will empower whatever programming
+and will empower whatever programming whatever the programmer is using
+so he can for example
+he can for example live in a situation similar to the movie
+live in a situation similar to the movie groundhog day in an environment with the
+groundhog day in an environment with the book
+book in that situation it is trivial to
+in that situation it is trivial to allocate memory at a deterministic
+allocate memory at a deterministic address and to assign a deterministic id
+address and to assign a deterministic id to staff in the world so that you know
+to staff in the world so that you know that freaky ghost with iv 37 on frame 42
+that freaky ghost with iv 37 on frame 42 causes a crash
+causes a crash because of stop
+because of stop furthermore it will make each iteration
+furthermore it will make each iteration faster since you will know better each
+faster since you will know better each time you run the replay
+time you run the replay you can do binary search you can note
+you can do binary search you can note down frames ids and it doesn't require
+down frames ids and it doesn't require the reporter to try to find a specific
+the reporter to try to find a specific steps
+steps a set of specific steps or guidelines to
+a set of specific steps or guidelines to reproduce an issue
+reproduce an issue none no steps at all
+none no steps at all it can be of help even to catch
+it can be of help even to catch race conditions by rolling multiple
+race conditions by rolling multiple times each frame
+times each frame and it's properly implemented it also
+and it's properly implemented it also allows to swap between release and the
+allows to swap between release and the book without losing information
+book without losing information furthermore because the developer has
+furthermore because the developer has both the code and the replay it's easy
+both the code and the replay it's easy to check
+to check that the issue has been fixed by
+that the issue has been fixed by applying a code change at an exact frame
+applying a code change at an exact frame and replying and replaying the the
+and replying and replaying the the replay to see if the bug no longer
+replay to see if the bug no longer happens
+happens honestly if something
+honestly if something in development could be called a
+in development could be called a superpower or cheat it's this and it's
+superpower or cheat it's this and it's baffling that this text tech is pretty
+baffling that this text tech is pretty much nowhere by default specifically
+much nowhere by default specifically especially when so many engines rely on
+especially when so many engines rely on virtual machines for script execution
+virtual machines for script execution so
+so while the preview was ongoing we were we
+while the preview was ongoing we were we went forward with the plans to expand
+went forward with the plans to expand our server click which we did in
+our server click which we did in multiple stages we felt reassured doing
+multiple stages we felt reassured doing this as glenn clinton kept thrashing out
+this as glenn clinton kept thrashing out reliability at the edge
+reliability at the edge and we have had a pretty bad experience
+and we have had a pretty bad experience on previous peer-to-peer titles
+on previous peer-to-peer titles regarding horse bandwidth and not
+regarding horse bandwidth and not traversal so we started the preview with
+traversal so we started the preview with a single chicago a single server in
+a single chicago a single server in chicago that was later during the
+chicago that was later during the following two weeks expanded to 14
+following two weeks expanded to 14 servers pretty much everywhere in the
+servers pretty much everywhere in the globe
+globe the positives experience that players of
+the positives experience that players of the preview reported including popular
+the preview reported including popular streamers playing for more than 10 hours
+streamers playing for more than 10 hours a session
+a session without any sort of crash or the scene
+without any sort of crash or the scene were generating a lot of hype in the
+were generating a lot of hype in the community so we decided to rush
+community so we decided to rush a public beta so that everyone could
+a public beta so that everyone could enjoy an online multiplayer on spelunky
+enjoy an online multiplayer on spelunky 2 before christmas
+2 before christmas as a side note for everyone or for
+as a side note for everyone or for everyone or anyone trying to build a
+everyone or anyone trying to build a similar infer infrastructure as an indie
+similar infer infrastructure as an indie if you use a deterministic model for
+if you use a deterministic model for networking you can use pretty much any
+networking you can use pretty much any server with a fair share of cpu time and
+server with a fair share of cpu time and good feeding regardless of ram and
+good feeding regardless of ram and storage
+storage there are a lot of services service
+there are a lot of services service providers other than
+providers other than amazon web services google
+amazon web services google a compute platform and asu
+a compute platform and asu so be careful about bandwidth look for a
+so be careful about bandwidth look for a provider that gives you a free coupon to
+provider that gives you a free coupon to test their servers
+test their servers and
+and check that they have helpful features
+check that they have helpful features for your use case
+for your use case for some examples of helpful features
+for some examples of helpful features are digital social bandwidth pooling and
+are digital social bandwidth pooling and boltz bolter shoot down after reaching a
+boltz bolter shoot down after reaching a specified amount of bandwidth which are
+specified amount of bandwidth which are great ways to avoid unexpected expenses
+regarding tech or backends search cc plus plus hot reloading dynamic
+plus plus hot reloading dynamic libraries that run on freebsville
+the whole reliability of the system that has four processes including the c the
+has four processes including the c the server is great and even after more than
+server is great and even after more than 50 patches across 20 days
+50 patches across 20 days during more than half a year we have
+during more than half a year we have only had one partial interruption of
+only had one partial interruption of service
+service regarding implementation details it's
+regarding implementation details it's nothing too fancy we are just batching a
+nothing too fancy we are just batching a few received buffered syscalls to
+few received buffered syscalls to receive truncated but truncated data
+receive truncated but truncated data into fixed size buffers that are always
+into fixed size buffers that are always therefore
+therefore the most interesting design choices are
+the most interesting design choices are probably the leaderboard system that is
+probably the leaderboard system that is designed so that clients fetch the whole
+designed so that clients fetch the whole leaderboard as a compressed blocks
+leaderboard as a compressed blocks through
+through content delivery networks non-complexity
+content delivery networks non-complexity and and also
+and and also the lobby matchmaking system which is
+the lobby matchmaking system which is unreliable by design so communication is
+unreliable by design so communication is performed by merging changes to a
+performed by merging changes to a desired stated structure that defines
+desired stated structure that defines how the client envisions itself in the
+how the client envisions itself in the future
+future it works nice it's easy to implement
+it works nice it's easy to implement it's easy to test but
+it's easy to test but it's a very bad model to provide
+it's a very bad model to provide meaningful error handling on logins
+so was using a hosted service instead of peer-to-peer a good idea
+instead of peer-to-peer a good idea for whom you may ask
+for whom you may ask it it provides guarantees regarding
+it it provides guarantees regarding quality of services allows players
+quality of services allows players behind asymmetric
+behind asymmetric behind a
+behind a symmetric knot to play together and
+symmetric knot to play together and makes cross-play easier for
+makes cross-play easier for deterministic game games it's also
+deterministic game games it's also something that provides us explicit
+something that provides us explicit timeline of events
+timeline of events and makes it easier to compensate for
+and makes it easier to compensate for latency
+latency however it's also very harsh
+however it's also very harsh especially as an indie you can have
+especially as an indie you can have someone in each time zone looking out
+someone in each time zone looking out for the so if any problem arises
+for the so if any problem arises you might take a lot of time to react
+you might take a lot of time to react this didn't happen to us but it
+this didn't happen to us but it concerned me to the point of waking up
+concerned me to the point of waking up up during weeks in the middle of the
+up during weeks in the middle of the night with nine months to check if the
+night with nine months to check if the server was up
+server was up in the end having an android app to
+in the end having an android app to check the pleat health helped a lot
+check the pleat health helped a lot getting over it
+getting over it another frustrating point is that the
+another frustrating point is that the player base becomes smaller on consoles
+player base becomes smaller on consoles because of cape kidney this is annoying
+because of cape kidney this is annoying because as more small games often don't
+because as more small games often don't have the luxury of having big player
+have the luxury of having big player bases so keeping a portion ends up with
+bases so keeping a portion ends up with way more dead online modes on consoles
+way more dead online modes on consoles where no one is playing online while on
+where no one is playing online while on pc you can find two or three players if
+pc you can find two or three players if you wait a bit of time
+you wait a bit of time this is the case for
+this is the case for many small games and it's even more
+many small games and it's even more frustrating when it's the platform
+frustrating when it's the platform keeping players who paid for your game
+keeping players who paid for your game and and they want to play on the servers
+and and they want to play on the servers we pay for
+we pay for it's also
+it's also a bit annoying because it's the past of
+a bit annoying because it's the past of the path of most resistance
+the path of most resistance regarding requirements going with
+regarding requirements going with independent servers and cross play seems
+independent servers and cross play seems to be very biased
+to be very biased and focus on free-to-play titles with
+and focus on free-to-play titles with in-app purchases or games that are full
+in-app purchases or games that are full services with leaks print systems party
+services with leaks print systems party system blanket systems etc it's a pity
+system blanket systems etc it's a pity that it has become so complex we want
+that it has become so complex we want cross-play so our players can have fun
+cross-play so our players can have fun we don't want account system we don't
+we don't want account system we don't want retention techniques daily missions
+want retention techniques daily missions enough purchases and definitely we don't
+enough purchases and definitely we don't want to exploit the variable ratio and
+want to exploit the variable ratio and interval schedule of reinforcement to
+interval schedule of reinforcement to give the player spending we just want
+give the player spending we just want them to play with their friends
+them to play with their friends regardless of platform
+so the promise day comes and we release the public online beta on
+and we release the public online beta on steam so that everyone can play it was a
+steam so that everyone can play it was a beautiful day at wednesday the 13th
+beautiful day at wednesday the 13th the sky was taking a beautiful orange
+the sky was taking a beautiful orange shade during sunrise and the day went
+shade during sunrise and the day went month
+month no i'm not superstitious but maybe we
+no i'm not superstitious but maybe we have we should have waited for the 16
+have we should have waited for the 16 too soon to sum everything up first
+too soon to sum everything up first multiple world services went down this
+multiple world services went down this was bad because that would prove
+was bad because that would prove discouraged presence and this courage
+discouraged presence and this courage presence is what made the invite system
+presence is what made the invite system work well
+work well we didn't have this information at the
+we didn't have this information at the beginning so we were investigating what
+beginning so we were investigating what was going on
+was going on it was a catastrophe or money wasn't
+it was a catastrophe or money wasn't something we had recently added
+something we had recently added dynamically assigning matchmaking
+dynamically assigning matchmaking servers based on quality of service to
+servers based on quality of service to the matchmaking service fortunately a
+the matchmaking service fortunately a very cool community member called gary
+very cool community member called gary who also has been developing a lot of
+who also has been developing a lot of stuff to mold spelunky too happened to
+stuff to mold spelunky too happened to work at this board that pointed to us
+work at this board that pointed to us that this could be the problem and it
+that this could be the problem and it would be
+would be outside of our control so we went ahead
+outside of our control so we went ahead and did a pair of random lines before
+and did a pair of random lines before releasing the build
+releasing the build and then the steam invite system had
+and then the steam invite system had stopped working it didn't make much
+stopped working it didn't make much sense we had to investigate however
+sense we had to investigate however because of the hype for the online
+because of the hype for the online release was huge probably thanks to
+release was huge probably thanks to multiple streamers such as chocolate
+multiple streamers such as chocolate cake chanagir hectic x craig tita yujari
+cake chanagir hectic x craig tita yujari and
+and oduro and more were playing during the
+oduro and more were playing during the preview
+preview and other players such as akira or red
+and other players such as akira or red scam were also making videos of the
+scam were also making videos of the multiplayer
+multiplayer so it was huge to the point
+so it was huge to the point that 30 percent of the message sent
+that 30 percent of the message sent during all the lifetime of the discord
+during all the lifetime of the discord server three months
+server three months had been sent that day it was huge to
+had been sent that day it was huge to the point we had to disallow all people
+the point we had to disallow all people without any special role to chat for an
+without any special role to chat for an hour so huge that we had two rates of
+hour so huge that we had two rates of more than 200 people so huge that it was
+more than 200 people so huge that it was the day of the year that most people
+the day of the year that most people joined the server so huge that remote
+joined the server so huge that remote reactions or message became a problem so
+reactions or message became a problem so incredibly huge that even then many
+incredibly huge that even then many players decided to buy nitro and boost
+players decided to buy nitro and boost the server in order to get a special
+the server in order to get a special role and toll effectively making our
+role and toll effectively making our discord pay to chat
+discord pay to chat so we decided to release a seat it went
+so we decided to release a seat it went wrong steam bytes were broken and lots
+wrong steam bytes were broken and lots of people couldn't join through discord
+of people couldn't join through discord too we had no idea of what was causing
+too we had no idea of what was causing the invite problem we investigated and
+the invite problem we investigated and investigated and investigated and
+investigated and investigated and investigated we couldn't reproduce it
+investigated we couldn't reproduce it but there could why
+but there could why at some point point near 1am
+at some point point near 1am after trying to do pretty much
+after trying to do pretty much everything i happened to miss click the
+everything i happened to miss click the build an event and ended clicking the
+build an event and ended clicking the revealed event both invites
+revealed event both invites on steam and discord were working again
+on steam and discord were working again and
+and they didn't break anymore to this day
+they didn't break anymore to this day obviously some object of the build was
+obviously some object of the build was corrupt and for some reason it didn't
+corrupt and for some reason it didn't trigger a reveal
+trigger a reveal it's something that every now and then
+it's something that every now and then happens so we always do a reveal before
+happens so we always do a reveal before submitting a patch but that day had been
+submitting a patch but that day had been so chaotic with google going down and
+so chaotic with google going down and all the moderation we had to do
+all the moderation we had to do that protocols were broken and we paid
+that protocols were broken and we paid for it
+for it but what if i told you that that wasn't
+but what if i told you that that wasn't told that at the same time we were
+told that at the same time we were investigating people playing near canada
+investigating people playing near canada were having problems what if i told you
+were having problems what if i told you that after fixing that and waking up the
+that after fixing that and waking up the next morning we noticed
+next morning we noticed some emails from our service provider
+some emails from our service provider for that specific server stating hey we
+for that specific server stating hey we are having adidos here
+are having adidos here either way it was a fun crazy day
+either way it was a fun crazy day in the end tall went good enough so we
+in the end tall went good enough so we can't complain but it dip down something
+can't complain but it dip down something sometimes i think
+sometimes i think maybe we should have waited for weapons
+so a few days that day later we released the playstation 4 preparation network
+the playstation 4 preparation network version and the feedback is very
+version and the feedback is very positive with expressions such as online
+positive with expressions such as online on ps4 feels amazing now and today i
+on ps4 feels amazing now and today i played with a friend and it was really
+played with a friend and it was really the best time the feedback from the pc
+the best time the feedback from the pc version was also very encouraging and
+version was also very encouraging and this feedback was the best christmas
+this feedback was the best christmas present that the community could have
+present that the community could have given us
+given us so what's adding online multiplayer a
+so what's adding online multiplayer a good idea i don't think that multiplayer
+good idea i don't think that multiplayer by default is a good idea the rationale
+by default is a good idea the rationale being that net code takes a lot of time
+being that net code takes a lot of time to implement and you have to wait what
+to implement and you have to wait what the multiplayer will bring to the table
+the multiplayer will bring to the table against what you could implement in that
+against what you could implement in that amount of time of course for games that
+amount of time of course for games that rely on increasing on increasing ltv and
+rely on increasing on increasing ltv and retention it's another issue but from
+retention it's another issue but from our point of view it just may not be
+our point of view it just may not be worse for all games
+worse for all games you may feel inclined to add it because
+you may feel inclined to add it because it's requested but keep in mind it will
+it's requested but keep in mind it will always be requested it has been
+always be requested it has been requested in kerbal gone home and life
+requested in kerbal gone home and life is strange because it's a very appealing
+is strange because it's a very appealing concept and each person has its own
+concept and each person has its own preferences however going that way the
+preferences however going that way the stream of requests will never end much
+stream of requests will never end much waking both keep lobby browser cross
+waking both keep lobby browser cross play field player versus player invite
+play field player versus player invite codes friendliest reconnection race
+codes friendliest reconnection race modes battle royales
+modes battle royales progress achievements 8-player
+progress achievements 8-player multiplayer voice chat text chat quick
+multiplayer voice chat text chat quick chat pinging markers custom online
+chat pinging markers custom online controller mappings land modes more
+controller mappings land modes more randoms in the online matches which is
+randoms in the online matches which is something we can't even control drop in
+something we can't even control drop in options to customize online user
+options to customize online user interface see that online multiplayer
+interface see that online multiplayer etc it will never end
+etc it will never end also we believe that the arcade view of
+also we believe that the arcade view of online multiplayer is a good option we
+online multiplayer is a good option we don't want to optimize our attention we
+don't want to optimize our attention we don't want enough purchases we just want
+don't want enough purchases we just want the players
+the players to go online and play as if they were
+to go online and play as if they were using arcade cabinets with multiplayer
+using arcade cabinets with multiplayer and a leaderboard
+and a leaderboard and we believe that this approach for
+and we believe that this approach for spelunky worked really well
+spelunky worked really well enter server analytics it let us measure
+enter server analytics it let us measure big community reactions such as also as
+big community reactions such as also as such as when an awesome korean streamer
+such as when an awesome korean streamer boeing by the name of nocturo invited
+boeing by the name of nocturo invited viewers to play online you can see the
+viewers to play online you can see the spikes in the chart how a lot of players
+spikes in the chart how a lot of players were in lobbies but the amount of
+were in lobbies but the amount of ongoing runes didn't change that much
+ongoing runes didn't change that much in general a server dashboard feels very
+in general a server dashboard feels very satisfying to look at
+satisfying to look at analytics have proven very soon very
+analytics have proven very soon very useful in many situations such as
+useful in many situations such as keeping calm when someone says that the
+keeping calm when someone says that the server doesn't work but there are 700
+server doesn't work but there are 700 online
+online 700 online players it also helps its
+700 online players it also helps its scheduling patches in order to avoid of
+scheduling patches in order to avoid of a
+a of in order to release them enough peak
+of in order to release them enough peak hours to avoid inconvincing or player
+hours to avoid inconvincing or player base
+base and
+and it allows us to verify that the
+it allows us to verify that the bandwidth usage
+bandwidth usage well that we avoided i wanted a
+well that we avoided i wanted a bandwidth a huge bandwidth cost by using
+bandwidth a huge bandwidth cost by using the right providers overall we are
+the right providers overall we are really happy with our setup it's
+really happy with our setup it's understandable assume that some people
+understandable assume that some people assume it costs a lot but for the
+assume it costs a lot but for the deterministic net code the needs
+deterministic net code the needs means that probably costs
+means that probably costs 10 years of the whole fleet
+10 years of the whole fleet costs less than the year than the
+costs less than the year than the average yearly salary of a junior game
+average yearly salary of a junior game developer that just left college
+developer that just left college so we believe it's a pretty reasonable
+so we believe it's a pretty reasonable and cheap
+and cheap price to pay in order to improve player
+price to pay in order to improve player stability and experience
+stability and experience before christmas we also managed to
+before christmas we also managed to squeeze in the last part we wanted the
+squeeze in the last part we wanted the community to have invite codes we
+community to have invite codes we believe that in my invite codes are a
+believe that in my invite codes are a great way for communities to
+great way for communities to allow inviting through any platform
+allow inviting through any platform including things such as whatsapp or
+including things such as whatsapp or people that are in offline modes
+people that are in offline modes and it will also be very useful for
+and it will also be very useful for cross play two details worth mentioning
+cross play two details worth mentioning are that the invite codes are
+are that the invite codes are automatically copied from the clipboard
+automatically copied from the clipboard and password
+and password and that we decided not to show the
+and that we decided not to show the invite code by default so that streamers
+invite code by default so that streamers could keep
+could keep a code room private
+a code room private private when inviting specific guests
+moving on to the last big topic of the tool
+tool problems we do not have much problems
+problems we do not have much problems with determinism probably thanks to the
+with determinism probably thanks to the culture of determinism and a very small
+culture of determinism and a very small engineering time team
+engineering time team however
+however extrapolation working as intended has
+extrapolation working as intended has been an issue
+been an issue it has been brought on multiple dbc
+it has been brought on multiple dbc talks and it's something that most
+talks and it's something that most people including us
+people including us find unacceptable unfortunately this can
+find unacceptable unfortunately this can happen
+happen in rollback and propagation if
+in rollback and propagation if under certain circumstances
+under certain circumstances uh also
+uh also clock drifting of machines that that
+clock drifting of machines that that don't meet the requirements was quite a
+don't meet the requirements was quite a problem and is quite a problem
+however the biggest problem of
+of of all
+of all the
+the the most significant problem was
+the most significant problem was and this
+and this the
+the ambiguous feedback will receive
+ambiguous feedback will receive so ambiguous feedback
+so ambiguous feedback you may know this
+you may know this this game called chinese whispers or
+this game called chinese whispers or broken telephone
+broken telephone it seems a lot like that i mean
+it seems a lot like that i mean the users try to communicate
+the users try to communicate a problem a problem they are having
+a problem a problem they are having using the best description they can
+using the best description they can provide with the knowledge they have and
+provide with the knowledge they have and that tends to be the game
+that tends to be the game design
+design the game
+the game crashed the game whatever
+crashed the game whatever the the point of it is that all these
+the the point of it is that all these you will see all these words being used
+you will see all these words being used as if they as if all words were perfect
+as if they as if all words were perfect synonyms
+synonyms you'll see
+you'll see people say that lag is stuttering that
+people say that lag is stuttering that clock drifting is crashing that
+clock drifting is crashing that disconnections are sluggish that input
+disconnections are sluggish that input delay is the same
+delay is the same all combinations are possible
+all combinations are possible and it makes very hard to know what
+and it makes very hard to know what problem
+problem a user has in order to help
+a user has in order to help the user
+the user enjoy the game
+enjoy the game so regarding other open challenges one
+so regarding other open challenges one of the open challenges we are still
+of the open challenges we are still facing
+facing is as mentioned before extrapolation
+is as mentioned before extrapolation it's something we are considering
+it's something we are considering addressing by adding some sort of output
+addressing by adding some sort of output delay we believe that buffering the last
+delay we believe that buffering the last and stage of remote player
+and stage of remote player and then
+and then using a passed state to render the
+using a passed state to render the remote players might mitigate an
+remote players might mitigate an enough this to actually remove input
+enough this to actually remove input delay in a non-competitive mode where
+delay in a non-competitive mode where other players positions doesn't need to
+other players positions doesn't need to be that accurate
+be that accurate also regarding matchmaking we have been
+also regarding matchmaking we have been running a b testing
+running a b testing global comparing global matchmaking on
+global comparing global matchmaking on ps4 versus regional matchmaking on pc
+ps4 versus regional matchmaking on pc and this has been going on for a few
+and this has been going on for a few months and we are still unsure of what
+months and we are still unsure of what approach is the better the best approach
+approach is the better the best approach regional matchmaking provides a great
+regional matchmaking provides a great experience but creates fragmentation
+experience but creates fragmentation it's hard to find a match of peak hours
+it's hard to find a match of peak hours so most users rely on the discord server
+so most users rely on the discord server to find a match that may provide a worse
+to find a match that may provide a worse network experience on the other side
+network experience on the other side non-rational matchmaking makes
+non-rational matchmaking makes matchmaking actually useful but every
+matchmaking actually useful but every now and then we receive sporadic
+now and then we receive sporadic complaints of people that found a match
+complaints of people that found a match with someone on the other side of the
+with someone on the other side of the world and had a supported experience
+world and had a supported experience it's something we are still debating
+it's something we are still debating about and in the end the best solution
+about and in the end the best solution might be mixing both so players can fall
+might be mixing both so players can fall back to a global matchmaking
+back to a global matchmaking another open challenge is how to handle
+another open challenge is how to handle computers not meeting meeting minimum
+computers not meeting meeting minimum requirements
+requirements because you can lower the resolution to
+because you can lower the resolution to almost zero
+almost zero without
+without with pretty much any pc
+with pretty much any pc supporting direct
+supporting direct x 11
+x 11 a bit through an integra in the graphics
+a bit through an integra in the graphics the graph integrated graphics or
+the graph integrated graphics or dedicated
+dedicated can actually run spelunky true even way
+can actually run spelunky true even way below minimum requirements this means
+below minimum requirements this means instead of four cores a single core
+instead of four cores a single core pentium 4 computer we have seen this in
+pentium 4 computer we have seen this in real life so we have a lot of players
+real life so we have a lot of players unable to enjoy online because of
+unable to enjoy online because of hardware keep in mind that this is not
+hardware keep in mind that this is not exclusive of potato pcs but also happens
+exclusive of potato pcs but also happens to laptops running on battery happens to
+to laptops running on battery happens to desktop pcs that just caught the last
+desktop pcs that just caught the last the latest windows update
+the latest windows update happens when one computer has only one
+happens when one computer has only one fast core
+fast core and
+and the rest of the cores are very slow and
+the rest of the cores are very slow and happens two high-end
+happens two high-end intel laptops that can substain
+intel laptops that can substain boost
+boost for only a very short amount of time and
+for only a very short amount of time and then throttle a lot
+then throttle a lot external programs that show
+external programs that show notifications also sometimes cause lag
+notifications also sometimes cause lag spikes frame drops and sporadic
+spikes frame drops and sporadic extrapolation teleports it's something
+extrapolation teleports it's something we detected early in 2021 and we're
+we detected early in 2021 and we're still considering how to approach this
+still considering how to approach this as we were able to conclude without a
+as we were able to conclude without a doubt that 32 of the 36 cases in which
+doubt that 32 of the 36 cases in which players were seeing constant teleports
+players were seeing constant teleports were caused by this it's a problem for
+were caused by this it's a problem for us because other than detecting this
+us because other than detecting this reliable it reliably it doesn't seem to
+reliable it reliably it doesn't seem to have an obvious solution as micro
+have an obvious solution as micro pausing with wood actually hurt
+pausing with wood actually hurt a lot precision platforming we could
+a lot precision platforming we could also slow more the game below 57 updates
+also slow more the game below 57 updates per second but it may throw experienced
+per second but it may throw experienced players out of read
+players out of read and it may be exploitable in arena we
+and it may be exploitable in arena we may
+may be able to show this information in the
+be able to show this information in the heart but it could cause discrimination
+heart but it could cause discrimination there are also many unexpected feelings
+there are also many unexpected feelings interesting findings one of them was
+interesting findings one of them was that probably eight percent of players
+that probably eight percent of players experiencing the internet microcodes of
+experiencing the internet microcodes of more than three seconds we didn't see
+more than three seconds we didn't see this coming and we have found a variety
+this coming and we have found a variety of reasons for this cheap routers with
+of reasons for this cheap routers with adapters performing background scans and
+adapters performing background scans and esp service microcodes we plan on
+esp service microcodes we plan on increasing the disconnect windows but we
+increasing the disconnect windows but we first need to find a way to mitigate the
+first need to find a way to mitigate the damage that we see
+damage that we see not meeting requirements could do in
+not meeting requirements could do in these situations
+these situations also regarding cross-play requirements
+also regarding cross-play requirements we didn't expect platforms to be so
+we didn't expect platforms to be so focused on one size fits all
+focused on one size fits all requirements clearly designed for in-app
+requirements clearly designed for in-app purchases and games as a service that
+purchases and games as a service that doesn't fit at all indie games we would
+doesn't fit at all indie games we would appreciate if this was revised in the
+appreciate if this was revised in the future
+future as
+as their requirements are an overkill for
+their requirements are an overkill for an arcade-like online multiplayer
+an arcade-like online multiplayer finally we
+finally we found out why
+found out why many people couldn't connect to the
+many people couldn't connect to the server to any of the 30 servers it
+server to any of the 30 servers it wasn't it wasn't because a network
+wasn't it wasn't because a network problem was because of players not
+problem was because of players not following mother's instructions it
+following mother's instructions it caught us by surprise but
+caught us by surprise but finally it made sense why some layout
+finally it made sense why some layout books that were fixed in the past kept
+books that were fixed in the past kept happening on being recorded on a
+happening on being recorded on a separate note modding can cause these
+separate note modding can cause these things we haven't been able to analyze
+things we haven't been able to analyze this in depth
+this in depth because of how time consuming it is but
+two out of the three early long investigations of the scene of hard
+investigations of the scene of hard things in the wild
+things in the wild were caused by mods still modding is
+were caused by mods still modding is great we announced it we will evaluate
+great we announced it we will evaluate we would evaluate it early on and our
+we would evaluate it early on and our plan was to fix up some books then
+plan was to fix up some books then evaluate it
+evaluate it however because of the of all the
+however because of the of all the problems that came up while developing
+problems that came up while developing the online multiplayer we
+the online multiplayer we didn't manage to do this in time and
+didn't manage to do this in time and somehow the a full-blown
+somehow the a full-blown modding community with more than 800
+modding community with more than 800 mods became a thing because before the
+mods became a thing because before the online was released
+online was released and with no tools and a lot of reverse
+and with no tools and a lot of reverse engineering work we are sure that mods
+engineering work we are sure that mods are here to stay and while it's slow
+are here to stay and while it's slow priority we want to integrate mods with
+priority we want to integrate mods with online in a safe way for everyone
+online in a safe way for everyone but right now it's real west
+but right now it's real west [Music]
+[Music] so this will be everything thank you for
+so this will be everything thank you for coming to my gbc talk i hope you have
+coming to my gbc talk i hope you have enjoyed the talk a lot and feel free to
+enjoyed the talk a lot and feel free to ask me whatever have a good day
+you

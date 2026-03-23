@@ -1,0 +1,1175 @@
+[Music] right hello everyone my name is Nikolai
+right hello everyone my name is Nikolai and I'm the technical lead at Ubisoft
+and I'm the technical lead at Ubisoft massive and today I'm going to talk to
+massive and today I'm going to talk to you about global illumination in tone
+you about global illumination in tone classes the division before we begin
+classes the division before we begin I've been asked to remind you to turn
+I've been asked to remind you to turn down your mobile phones and to fill out
+down your mobile phones and to fill out your evaluations at the end and if you
+your evaluations at the end and if you got questions at the end please step up
+got questions at the end please step up to the mics at the ale so a couple of
+to the mics at the ale so a couple of words very briefly about the division
+words very briefly about the division it's an open world online RPG and it's
+it's an open world online RPG and it's based on massifs in health snowdrop
+based on massifs in health snowdrop engine so today I'm going to cover
+engine so today I'm going to cover snowdrop solution for ambient light ink
+snowdrop solution for ambient light ink which we call precomputed radiance
+which we call precomputed radiance transfer fraud so purity pros for short
+transfer fraud so purity pros for short with PRT probes what we can get is an
+with PRT probes what we can get is an accurate approximation of global
+accurate approximation of global elimination in real time both on
+elimination in real time both on consoles and on PC we support dynamic
+consoles and on PC we support dynamic light sources such as the Sun the sky
+light sources such as the Sun the sky point spot and area lights as well and
+point spot and area lights as well and we are able to evaluate the light bounce
+we are able to evaluate the light bounce from these light sources with a great
+from these light sources with a great degree of accuracy our method was
+degree of accuracy our method was developed with production in mind and
+developed with production in mind and it's fast its GPU friendly and also has
+it's fast its GPU friendly and also has very low memory requirements so with
+very low memory requirements so with purity probes lights can be added
+purity probes lights can be added removed or modified without needing to
+removed or modified without needing to rebake and this provides instant
+rebake and this provides instant feedback to our lighting artists we is
+feedback to our lighting artists we is exactly the same techniques both for
+exactly the same techniques both for indoors and outdoors and we also take
+indoors and outdoors and we also take special care to prevent light bleeding
+special care to prevent light bleeding the light coming through building walls
+the light coming through building walls and also between the interior rooms so
+and also between the interior rooms so here are some comparison images which
+here are some comparison images which show the contribution of the PRT probes
+show the contribution of the PRT probes at the top we have the normal output of
+at the top we have the normal output of our renderer and at the bottom I've
+our renderer and at the bottom I've turned off the ambient lighting and
+turned off the ambient lighting and replaced it with a solid black color so
+replaced it with a solid black color so you can see the contribution better so
+you can see the contribution better so here's some more examples from more
+here's some more examples from more indoor type areas nice time again top is
+indoor type areas nice time again top is the normal output and at the bottom you
+the normal output and at the bottom you can see what happens when we switch off
+can see what happens when we switch off the ambient lighting completely so
+the ambient lighting completely so here's the agenda of the talk today
+here's the agenda of the talk today first I'm going to give you a very
+first I'm going to give you a very high-level overview of the features of
+high-level overview of the features of our approach next I'm going to talk
+our approach next I'm going to talk about how we pre compute the radiance
+about how we pre compute the radiance transfer online/offline sorry then we
+transfer online/offline sorry then we get to the more interesting and exciting
+get to the more interesting and exciting parts about what we do at runtime on the
+parts about what we do at runtime on the GPU and finally I'm going to talk about
+GPU and finally I'm going to talk about some of the problems that we encountered
+some of the problems that we encountered during production and I'm going to show
+during production and I'm going to show you some ugly screenshots so the
+you some ugly screenshots so the division is set in an open world our
+division is set in an open world our version of Manhattan is quite large in
+version of Manhattan is quite large in more than six square kilometers we have
+more than six square kilometers we have almost two million total lines displaced
+almost two million total lines displaced throughout the environment our artists
+throughout the environment our artists have hand placed about 222 thousand
+have hand placed about 222 thousand vehicles in about 28,000 garbage paths
+vehicles in about 28,000 garbage paths and the size of the world and the number
+and the size of the world and the number of objects in it makes traditional
+of objects in it makes traditional methods such as light mapping static
+methods such as light mapping static light and I think unfeasible for
+light and I think unfeasible for production in order to manage our costs
+production in order to manage our costs it was clear that we had to do with a
+it was clear that we had to do with a pro based approach and as probably most
+pro based approach and as probably most of you know here light probes or
+of you know here light probes or Iranians for loops are kind of similar
+Iranians for loops are kind of similar to a 3d light map so rather than using a
+to a 3d light map so rather than using a UV texture set to index them use the
+UV texture set to index them use the position and the normals of whatever it
+position and the normals of whatever it is that you render so from the
+is that you render so from the production point of view this is very
+production point of view this is very good because the artists don't have to
+good because the artists don't have to worry about unwrapping v's we also don't
+worry about unwrapping v's we also don't have to trigger a rebake whenever
+have to trigger a rebake whenever somebody just changes slightly a model
+somebody just changes slightly a model and this is especially important when
+and this is especially important when you have a lot of models that are placed
+you have a lot of models that are placed throughout the world that are instants
+throughout the world that are instants throughout worse for example a generic
+throughout worse for example a generic car or a generic brick wall so the
+car or a generic brick wall so the division also features a day/night cycle
+division also features a day/night cycle and because of this the quality of the
+and because of this the quality of the ambient lighting becomes really
+ambient lighting becomes really important our artists can't really cheat
+important our artists can't really cheat and said the Sun Direction to make their
+and said the Sun Direction to make their environment look as good as possible and
+environment look as good as possible and also due to the tall buildings that we
+also due to the tall buildings that we have in New York we have certain areas
+have in New York we have certain areas that are in shadow throughout the day so
+that are in shadow throughout the day so they can only receive ambient lighting
+they can only receive ambient lighting the PRT probes allow our artists who
+the PRT probes allow our artists who tweak the lighting for any particular
+tweak the lighting for any particular time of day and immediately provide an
+time of day and immediately provide an accurate approximation of the global
+accurate approximation of the global illumination at that point and they can
+illumination at that point and they can do that without waiting for a long
+do that without waiting for a long rebate process during the night
+rebate process during the night our Maysles source of lighting comes
+our Maysles source of lighting comes from local lights point spots and area
+from local lights point spots and area lights which are placed throughout the
+lights which are placed throughout the world we don't do the typical Hollywood
+world we don't do the typical Hollywood night thing where you get still a strong
+night thing where you get still a strong directional lights but just blue so in
+directional lights but just blue so in the previous iteration of our technology
+the previous iteration of our technology this that we did for far cry
+this that we did for far cry the secondary bounce from these lights
+the secondary bounce from these lights would have to be actually baked inside
+would have to be actually baked inside of the probes but for the division what
+of the probes but for the division what we were able to do is to make these
+we were able to do is to make these light sources completely dynamic in
+light sources completely dynamic in dynamic and also editable as well the
+dynamic and also editable as well the lights can be freely added you can
+lights can be freely added you can remove them you can modify them as you
+remove them you can modify them as you wish and you also get instant feedback
+wish and you also get instant feedback applies to how a specific environment
+applies to how a specific environment will look during the night
+the division also features many interior spaces a lot of these are often very
+spaces a lot of these are often very large and densely propped our artists
+large and densely propped our artists tried to light them in a realistic way
+tried to light them in a realistic way as a general rule we don't use hacks
+as a general rule we don't use hacks such as negative lights and we also try
+such as negative lights and we also try to avoid doing things like artificially
+to avoid doing things like artificially raising the ambient light level instead
+raising the ambient light level instead we just solely rely on the PRT probes to
+we just solely rely on the PRT probes to get good lighting a lot of the interiors
+get good lighting a lot of the interiors also have large windows and openings and
+also have large windows and openings and as such are affected by the day/night
+as such are affected by the day/night cycle as well so this all fits together
+cycle as well so this all fits together quite nicely with our pro based approach
+quite nicely with our pro based approach however we have to take special care in
+however we have to take special care in order to prevent light bleeding between
+order to prevent light bleeding between the different rooms we also support
+the different rooms we also support different weather conditions in the
+different weather conditions in the division so we have clear sky we have
+division so we have clear sky we have overcast we have snowstorms and even we
+overcast we have snowstorms and even we have blizzards and weather in game is
+have blizzards and weather in game is actually randomized by script that runs
+actually randomized by script that runs on the server each weather preset
+on the server each weather preset defines its own lighting and the artist
+defines its own lighting and the artist can tweak tweak things such as the Sun
+can tweak tweak things such as the Sun the sky color the cloud type the density
+the sky color the cloud type the density of the clouds and so on and so forth one
+of the clouds and so on and so forth one interesting thing is that the weather
+interesting thing is that the weather preset also determines how much snow is
+preset also determines how much snow is going to build up on the different
+going to build up on the different surfaces and this is a phase if
+surfaces and this is a phase if effectively changing the brdf or the
+effectively changing the brdf or the shaders of the surfaces on the fly it
+shaders of the surfaces on the fly it would be a problem if we were to go with
+would be a problem if we were to go with the completely static GI solution but
+the completely static GI solution but because of the way we do PRT this we can
+because of the way we do PRT this we can achieve quite easily with just a few
+achieve quite easily with just a few share their instructions and at the
+share their instructions and at the minimal rendering cost so let me show
+minimal rendering cost so let me show you now a brief time lapse of of how
+you now a brief time lapse of of how everything fixed together inside the
+everything fixed together inside the game so the white spheres that you see
+game so the white spheres that you see here are the probes where we've
+here are the probes where we've completed the lighting and you can see
+completed the lighting and you can see how the ambient lighting changes
+how the ambient lighting changes some moves across the sky so they get
+some moves across the sky so they get the correct light bounce from from the
+the correct light bounce from from the buildings and from the street here we
+buildings and from the street here we have an example of the different weather
+have an example of the different weather conditions suddenly becomes a lot for
+conditions suddenly becomes a lot for here and this is where our volumetric
+here and this is where our volumetric fog solution is going to kick in
+fog solution is going to kick in finally at night we see that most of the
+finally at night we see that most of the illumination actually comes from the
+illumination actually comes from the streetlights and here you have another
+streetlights and here you have another example of the volumetric fog being
+example of the volumetric fog being affected by the process all so after
+affected by the process all so after this brief introduction let's now go
+this brief introduction let's now go into detail about how we implement it
+into detail about how we implement it PRT inside snowdrop so pre computed
+PRT inside snowdrop so pre computed transients transfer or PRT refers to a
+transients transfer or PRT refers to a family of rendering techniques where we
+family of rendering techniques where we figure out what the light transport is
+figure out what the light transport is between surfaces for a particular fixed
+between surfaces for a particular fixed scene and this P or T we can store it
+scene and this P or T we can store it per vertex in a texture or in the probes
+per vertex in a texture or in the probes just like we did for Far Cry in the
+just like we did for Far Cry in the space of this presentation I can only
+space of this presentation I can only give you just a very short background
+give you just a very short background impurity but if you want to get more
+impurity but if you want to get more information I recommend looking at the
+information I recommend looking at the course notes from SIGGRAPH 2005 they're
+course notes from SIGGRAPH 2005 they're really good so impurity in general we
+really good so impurity in general we only can support distant light sources
+only can support distant light sources such as HDR environment probe or
+such as HDR environment probe or directional lights for varkari I did
+directional lights for varkari I did develop a solution where we could also
+develop a solution where we could also support dynamic localized but
+support dynamic localized but unfortunately they turned out to be too
+unfortunately they turned out to be too heavy and inaccurate and it didn't make
+heavy and inaccurate and it didn't make it to the final release high frequency
+it to the final release high frequency shadows are also possible but so far I
+shadows are also possible but so far I have not been particularly suited to
+have not been particularly suited to games unfortunately because of the
+games unfortunately because of the complicated shaders that are required so
+complicated shaders that are required so in the bottom image here you can see an
+in the bottom image here you can see an example of PRT done with a nonlinear
+example of PRT done with a nonlinear wavelet basis so you can see the sharp
+wavelet basis so you can see the sharp shadows and the reflections and
+shadows and the reflections and generally that's just not possible on
+generally that's just not possible on the GPUs with that particular wavelet
+the GPUs with that particular wavelet basis approach
+so to get around with these limitations what we did was we just decided to use
+what we did was we just decided to use brute force rather than looking for
+brute force rather than looking for something elegant and compact to
+something elegant and compact to represent PRT like all of these academic
+represent PRT like all of these academic papers do we just were an explicit list
+papers do we just were an explicit list of all of the surfaces that are visible
+of all of the surfaces that are visible from a particular probe so we have a
+from a particular probe so we have a list of surface or surfer elements each
+list of surface or surfer elements each one of them has a position I'll be doing
+one of them has a position I'll be doing a normal so color and a normal and
+a normal so color and a normal and various other attributes such as how
+various other attributes such as how much snow can build up and so on and so
+much snow can build up and so on and so forth and it's quite similar to having G
+forth and it's quite similar to having G buffer cube map per probe but not quite
+here is our circled several debug view which hopefully will make this a little
+which hopefully will make this a little bit more clear so for each probe what we
+bit more clear so for each probe what we do is we draw a green line from the
+do is we draw a green line from the probe towards the surface that that
+probe towards the surface that that probe sees so I said it's kind of
+probe sees so I said it's kind of similar to Jeep of cube map but you can
+similar to Jeep of cube map but you can also think of it as firing lots of rice
+also think of it as firing lots of rice from the probes and just storing the
+from the probes and just storing the first hit you just store the surface
+first hit you just store the surface properties there so for each direction
+properties there so for each direction where we don't have any geometry we
+where we don't have any geometry we assumed that the sky is visible and what
+assumed that the sky is visible and what that gives us is a spherical shadow term
+that gives us is a spherical shadow term per probe it's somewhat similar to a
+per probe it's somewhat similar to a large-scale directional ambient
+large-scale directional ambient occlusion and you can see in these two
+occlusion and you can see in these two images to the right how this works
+images to the right how this works compared to SSAO sseo is a lot more
+compared to SSAO sseo is a lot more local and enhances basically the corners
+local and enhances basically the corners of the objects the pre computed sky
+of the objects the pre computed sky visibility on the other hand works on a
+visibility on the other hand works on a much larger scale and can pick up
+much larger scale and can pick up occlusion from the train terminal tunnel
+occlusion from the train terminal tunnel in this case and from some of the
+in this case and from some of the buildings
+and since we're using probes we count we can't only precompute radians transfer
+can't only precompute radians transfer for just a particular normal we have to
+for just a particular normal we have to do it for the entire sphere and the way
+do it for the entire sphere and the way we do it is the way we did it for the
+we do it is the way we did it for the Far Cry series with a transfer basis so
+Far Cry series with a transfer basis so in the top left image here you can see
+in the top left image here you can see the light probe the HDR light probe of
+the light probe the HDR light probe of Grace Cathedral top right you see the
+Grace Cathedral top right you see the cosine convolution which tells us how a
+cosine convolution which tells us how a purely diffuse surface is going to be
+purely diffuse surface is going to be illuminated from that particular light
+illuminated from that particular light probe and what we're looking for is to
+probe and what we're looking for is to get a compact representation of the
+get a compact representation of the light of the cosine convolution of the
+light of the cosine convolution of the light probe or to compress it in some
+light probe or to compress it in some way and one standard way to do this is
+way and one standard way to do this is to represent it as coefficients of a
+to represent it as coefficients of a particular transfer basis and here at
+particular transfer basis and here at the bottom I've shown you a comparison
+the bottom I've shown you a comparison of two of the most common choices that
+of two of the most common choices that you can have for transfer basis in prt
+you can have for transfer basis in prt bottom left we have second-order
+bottom left we have second-order spherical harmonics they are somewhat
+spherical harmonics they are somewhat equivalent to having like a principal
+equivalent to having like a principal light direction so in this example that
+light direction so in this example that would be my principal light direction
+would be my principal light direction and in the single ambient value an
+and in the single ambient value an easier problem with that is if you have
+easier problem with that is if you have two strong light sources coming from the
+two strong light sources coming from the opposite directions then you only can
+opposite directions then you only can raise the ambient value but you lose any
+raise the ambient value but you lose any sense of directionality on the plus
+sense of directionality on the plus sides this is actually very good for
+sides this is actually very good for GPUs because you can just store it as
+GPUs because you can just store it as for floating point values and to the
+for floating point values and to the bottom right we can see another
+bottom right we can see another representation the half-life to ambient
+representation the half-life to ambient cube this isn't a real basis it's it's
+cube this isn't a real basis it's it's not real orthogonal basis is it's really
+not real orthogonal basis is it's really just six vectors that are axis aligned
+just six vectors that are axis aligned and what we do is we just compute the
+and what we do is we just compute the how much light each one of these vectors
+how much light each one of these vectors Rafi
+Rafi receive so essentially what we do is we
+receive so essentially what we do is we just compute the cosine convolution for
+just compute the cosine convolution for six different normals again the problem
+six different normals again the problem here is that if you want to have a
+here is that if you want to have a rotating light source instead of
+rotating light source instead of actually seeing it rotate you will see
+actually seeing it rotate you will see it fade in or fade out from one of the
+it fade in or fade out from one of the directions and then fading to the other
+directions and then fading to the other so it's actually just gonna blend
+so it's actually just gonna blend smoothly rather than actually seeing it
+smoothly rather than actually seeing it rotate and this is because basis vectors
+rotate and this is because basis vectors are fixed on the other hand after
+are fixed on the other hand after evaluating different choices for the
+evaluating different choices for the transfer basis we finally settled on the
+transfer basis we finally settled on the half-life to ambient cube basis which is
+half-life to ambient cube basis which is also quite GPU friendly as it only
+also quite GPU friendly as it only requires six floats so very shortly what
+requires six floats so very shortly what we do is we just compute pre computed
+we do is we just compute pre computed ruddiness transfer for the six normals
+ruddiness transfer for the six normals and we at runtime what we'll do is just
+and we at runtime what we'll do is just a single blend between those six vectors
+a single blend between those six vectors and here you can see the isolated
+and here you can see the isolated arranges from each particular direction
+arranges from each particular direction so top sorry left right top bottom front
+so top sorry left right top bottom front to back so essentially if we want to
+to back so essentially if we want to shade something we just figure out how
+shade something we just figure out how to blend properly between these six
+to blend properly between these six different values so let me talk about
+different values so let me talk about how we actually generate radians
+how we actually generate radians transfer we have to start with placing
+transfer we have to start with placing the probes in the world and we do this
+the probes in the world and we do this automatically in two major ways first we
+automatically in two major ways first we have a grid of Ray casts there are
+have a grid of Ray casts there are spread four meters apart so we just fire
+spread four meters apart so we just fire rate top down and we spawn a probe at
+rate top down and we spawn a probe at every hit we also do a bunch of
+every hit we also do a bunch of additional rate cuts in order to to move
+additional rate cuts in order to to move the probe slightly to nudge it so that
+the probe slightly to nudge it so that it doesn't intersect any objects one
+it doesn't intersect any objects one other thing that we do is we also
+other thing that we do is we also automatically spawn probes alongside the
+automatically spawn probes alongside the building walls and this helps to make a
+building walls and this helps to make a smooth gradient and to prevent the
+smooth gradient and to prevent the buildings from looking flat and most
+buildings from looking flat and most most of this is down to the sky
+most of this is down to the sky visibility that we also compute because
+visibility that we also compute because the probes at the bottom are going to be
+the probes at the bottom are going to be a lot darker than
+a lot darker than probes that are at the top so how do we
+probes that are at the top so how do we store that data on disk we divide the
+store that data on disk we divide the probes into a 2d grid of sectors each
+probes into a 2d grid of sectors each sector is 64 by 64 meters and can hold a
+sector is 64 by 64 meters and can hold a maximum of 1000 probes typically we
+maximum of 1000 probes typically we expect to have about 300 to 400 probes I
+expect to have about 300 to 400 probes I think the maximum that we've seen is
+think the maximum that we've seen is about 960 and that sort of depends on
+about 960 and that sort of depends on how many buildings you've got inside of
+how many buildings you've got inside of a particular area how tall they are how
+a particular area how tall they are how many floors you got for a particular
+many floors you got for a particular interior and so on so we store the
+interior and so on so we store the probes simply as just this very simple
+probes simply as just this very simple array but you can probably also try to
+array but you can probably also try to organize them in some sort of bounding
+organize them in some sort of bounding volume hierarchy in order to be able to
+volume hierarchy in order to be able to do spatial queries fast and these
+do spatial queries fast and these sectors at runtime they're streamed in
+sectors at runtime they're streamed in as the player moves around we keep a
+as the player moves around we keep a maximum of 25 sector slowly at any one
+maximum of 25 sector slowly at any one time so if we want to relight a large
+time so if we want to relight a large number of probes every frame
+number of probes every frame you can't just for the list of surface
+you can't just for the list of surface will probe and try to relight that it's
+will probe and try to relight that it's just going to be too slow
+just going to be too slow so what we have to do some optimizations
+so what we have to do some optimizations in order to have the GPU do less work
+in order to have the GPU do less work for frame and to do that the first trick
+for frame and to do that the first trick that we do is that in each sector all
+that we do is that in each sector all the probes are actually sharing the same
+the probes are actually sharing the same surface circles
+surface circles this way we can relight all the surface
+this way we can relight all the surface in one go and then the probes will
+in one go and then the probes will actually reference those and not do any
+actually reference those and not do any duplicate work and you can see that this
+duplicate work and you can see that this would actually work quite nicely here in
+would actually work quite nicely here in the images to the right you can see that
+the images to the right you can see that the probes that reference the same
+the probes that reference the same roughly the same surface all the time so
+roughly the same surface all the time so with that we're we're actually able to
+with that we're we're actually able to reduce the number of the number of
+reduce the number of the number of surface that we relied on the GPU quite
+surface that we relied on the GPU quite dramatically and you could use a very
+dramatically and you could use a very sophisticated clustering algorithm here
+sophisticated clustering algorithm here but we just didn't have enough time to
+but we just didn't have enough time to implement it so we just went with a very
+implement it so we just went with a very simple two level hash great I'm gonna
+simple two level hash great I'm gonna show you some details of that right now
+so we have two levels for our grid and the first level each cell in the grid
+the first level each cell in the grid averages the positions the normals the
+averages the positions the normals the colors and everything else for the
+colors and everything else for the surface we use the surfer position and
+surface we use the surfer position and also the principal normal direction of
+also the principal normal direction of the surfer in order to index into the
+the surfer in order to index into the grid and we do that in order to avoid
+grid and we do that in order to avoid averaging surfaces that have drastically
+averaging surfaces that have drastically different opposite directions so the
+different opposite directions so the cell size cell size here for this grid
+cell size cell size here for this grid determine is how much work you're gonna
+determine is how much work you're gonna have to do at run time in order to to
+have to do at run time in order to to compute the lighting and you have to be
+compute the lighting and you have to be careful here because if you set this to
+careful here because if you set this to course you gonna have problems for
+course you gonna have problems for example with narrow spotlights because
+example with narrow spotlights because you're just simply evaluating the the
+you're just simply evaluating the the lighting get a very at a very coarse
+lighting get a very at a very coarse grid we found that for our game one
+grid we found that for our game one meter cube was actually a very good
+meter cube was actually a very good compromise between performance and
+compromise between performance and quality
+so the second grade level averages multiple circles into one irradiance
+multiple circles into one irradiance brick and this is an optimization that
+brick and this is an optimization that is required in order to reduce the
+is required in order to reduce the amount of work we have to do for probes
+amount of work we have to do for probes so rather than the probe referencing
+so rather than the probe referencing each individual circles it actually
+each individual circles it actually references a brick instead so you have
+references a brick instead so you have to do a lot less computation per probe
+to do a lot less computation per probe here and again you can I have to be
+here and again you can I have to be careful here if you set this size too
+careful here if you set this size too large then you're going to have
+large then you're going to have inaccuracies if you set it too small
+inaccuracies if you set it too small then your performance is not gonna be
+then your performance is not gonna be that great and for us for meter cube
+that great and for us for meter cube cell size works quite nicely so now
+cell size works quite nicely so now we're going to go through a very
+we're going to go through a very high-level overview of how we actually
+high-level overview of how we actually store all that data on disk so for each
+store all that data on disk so for each sector we have
+sector we have our array of probes that you can see
+our array of probes that you can see here on the left each probe has its own
+here on the left each probe has its own position and also the half-life 2 MB M
+position and also the half-life 2 MB M cube coefficients for this curve is
+cube coefficients for this curve is ability so we only store the scale
+ability so we only store the scale visibility poor probe it also has a
+visibility poor probe it also has a range two indices into an array of brick
+range two indices into an array of brick factors so brick factor basically
+factors so brick factor basically defines how much influence how much
+defines how much influence how much light a particular probe receives from
+light a particular probe receives from our irradiance brick and again we just
+our irradiance brick and again we just have half life to ambient coefficients
+have half life to ambient coefficients of 6 float values and also we have a
+of 6 float values and also we have a particular and we also have a brick
+particular and we also have a brick image that is a index into our
+image that is a index into our irradiance array array this brick array
+so the bricks is the brick is very simple it just has two indices that
+simple it just has two indices that define a range inside the circle array
+define a range inside the circle array that you see here on to the right and
+that you see here on to the right and finally we get to the last part the
+finally we get to the last part the surface where we just store anything
+surface where we just store anything that we need to do in order to be able
+that we need to do in order to be able to relight them so their position the
+to relight them so their position the color normal and any other attributes so
+color normal and any other attributes so in order to generate this we have an
+in order to generate this we have an offline baking process we start by
+offline baking process we start by rendering GDL for cube maps for all the
+rendering GDL for cube maps for all the probes inside a certain sector we read
+probes inside a certain sector we read back the G buffers to the CPU we
+back the G buffers to the CPU we unprojected Texas the humid Texas and
+unprojected Texas the humid Texas and compress the normals and so on and so
+compress the normals and so on and so forth after we've done with rendering
+forth after we've done with rendering all of the cube maps what we do is we
+all of the cube maps what we do is we put the surface into the hash grid in
+put the surface into the hash grid in order to get the average surface and
+order to get the average surface and also the irradiance bricks and as we do
+also the irradiance bricks and as we do that on the CPU we can start actually
+that on the CPU we can start actually rendering the other sectors that are in
+rendering the other sectors that are in the queue so we do that interleaved and
+the queue so we do that interleaved and all of this takes around 5 to 6 second
+all of this takes around 5 to 6 second per sector again it really depends on
+per sector again it really depends on how many
+how many probes and what geometry you're gonna
+probes and what geometry you're gonna have in that particular part of the
+have in that particular part of the world so for the Manhattan map that
+world so for the Manhattan map that equates to about one gigabyte of data on
+equates to about one gigabyte of data on disk we have about four thousand sectors
+disk we have about four thousand sectors 1 million probe and fifty six million
+1 million probe and fifty six million surface and we can generate the entire
+surface and we can generate the entire data set of line in about eight hours
+data set of line in about eight hours but here our lighting artists don't ever
+but here our lighting artists don't ever have to do that manually and they can
+have to do that manually and they can only do it once and then work off of
+only do it once and then work off of that particular nightly set of data so I
+that particular nightly set of data so I hope everybody is still awake up to that
+hope everybody is still awake up to that and we're going to go to the more
+and we're going to go to the more exciting part the rendering what's
+exciting part the rendering what's happening at run time on the GPU so
+happening at run time on the GPU so super high-level summary of what we're
+super high-level summary of what we're doing every frame and I'm going to go
+doing every frame and I'm going to go into details about each one of these
+into details about each one of these super shortly we start by real lighting
+super shortly we start by real lighting all the surface and the brakes so this
+all the surface and the brakes so this is simply calculating the lighting and
+is simply calculating the lighting and every circle and then summing it up for
+every circle and then summing it up for a particular brick very simple the next
+a particular brick very simple the next thing that we do is we relied the probes
+thing that we do is we relied the probes we compute the lighting that comes from
+we compute the lighting that comes from the sky and then we just add it to the
+the sky and then we just add it to the lighting that is referenced by every
+lighting that is referenced by every single brick and finally at the bottom
+single brick and finally at the bottom here we put everything into an
+here we put everything into an irradiance volume so this is just this
+irradiance volume so this is just this is just a normal volume texture that has
+is just a normal volume texture that has a single RGB color for each each one of
+a single RGB color for each each one of the six directions and we use that for
+the six directions and we use that for shading so each frame we start by taking
+shading so each frame we start by taking our PRT data for the probes we plug in
+our PRT data for the probes we plug in the new lighting environment and get the
+the new lighting environment and get the probe irradiance back and this is not
+probe irradiance back and this is not just a simple blend between different
+just a simple blend between different irradiance solutions for different types
+irradiance solutions for different types of Bay and allows us to have very
+of Bay and allows us to have very accurate lighting at a specific time and
+accurate lighting at a specific time and to capture GI
+to capture GI facts that are otherwise impossible to
+facts that are otherwise impossible to capture because they're very short
+capture because they're very short duration and here's the right you have
+duration and here's the right you have an example of such an effect so in the
+an example of such an effect so in the left image we get a strong orange light
+left image we get a strong orange light bounce that's coming from the top
+bounce that's coming from the top falling because it's directly
+falling because it's directly illuminated by the Sun and this happens
+illuminated by the Sun and this happens only for us very few minutes during the
+only for us very few minutes during the day so if you were to do to basically
+day so if you were to do to basically pre compute irradiance for certain times
+pre compute irradiance for certain times a day you have to be very lucky or
+a day you have to be very lucky or sample it quite quite densely in order
+sample it quite quite densely in order to be able to capture that and at other
+to be able to capture that and at other times the Purple Line is in shallow so
+times the Purple Line is in shallow so the wall of the building is primarily
+the wall of the building is primarily illuminated by the Sun and the boss from
+illuminated by the Sun and the boss from from the street so how do we do that
+from the street so how do we do that it's actually super very surprisingly
+it's actually super very surprisingly simple this is some pseudocode for me as
+simple this is some pseudocode for me as a programmer it's quite easy to
+a programmer it's quite easy to understand this I hope it will be for
+understand this I hope it will be for you as well first we can give the
+you as well first we can give the radiance at every brick for each brick
+radiance at every brick for each brick we just go from the list of every circle
+we just go from the list of every circle we compute the lighting there and
+we compute the lighting there and finally we average overage that for that
+finally we average overage that for that particular brick and that compute
+particular brick and that compute lighting function is nothing more but
+lighting function is nothing more but like in your deferred shading function
+like in your deferred shading function you can just reuse that given the normal
+you can just reuse that given the normal the position the albedo you can just
+the position the albedo you can just compute their lighting from that one as
+compute their lighting from that one as well so as the Sun lighting and the
+well so as the Sun lighting and the shadowing is evaluated per circle we can
+shadowing is evaluated per circle we can achieve much better accuracy than our
+achieve much better accuracy than our previous PRT methods such as the one
+previous PRT methods such as the one that we used in Far Cry 3 where the
+that we used in Far Cry 3 where the shadowing term was just approximated per
+shadowing term was just approximated per probe with some spherical harmonics
+probe with some spherical harmonics coefficients and here we can see the
+coefficients and here we can see the difference that this makes we have a
+difference that this makes we have a scene here where the Sun Direction
+scene here where the Sun Direction changes changes throughout the day and
+changes changes throughout the day and the irradiance of the Sun isolated here
+the irradiance of the Sun isolated here to the right changes
+to the right changes quite dramatically we just have a
+quite dramatically we just have a difference of what is it three hours and
+difference of what is it three hours and you can see how much difference it makes
+you can see how much difference it makes just for the solution and this is
+just for the solution and this is something that you cannot very easily
+something that you cannot very easily capture with PRT and you also have to
+capture with PRT and you also have to sample quite densely if we were going
+sample quite densely if we were going for different probe sites and computing
+for different probe sites and computing them for a specific time of day so one
+them for a specific time of day so one thing that you have to be careful about
+thing that you have to be careful about if you're going to implement this is
+if you're going to implement this is that the dynamic shell map from the Sun
+that the dynamic shell map from the Sun actually follows the player and is only
+actually follows the player and is only guaranteed to cover the visible frost
+guaranteed to cover the visible frost notes all of the surface so any surface
+notes all of the surface so any surface that are outside of the first time do
+that are outside of the first time do not have a valid shadow map so depending
+not have a valid shadow map so depending on your indexing mode you will just get
+on your indexing mode you will just get strange results and to illustrate the
+strange results and to illustrate the disastrous effects of this what I've
+disastrous effects of this what I've done is I've just completely turned the
+done is I've just completely turned the shadow from the Sun and you can see that
+shadow from the Sun and you can see that it sort of looks alright but you get
+it sort of looks alright but you get like weird ambience where certain
+like weird ambience where certain objects are illuminated even though they
+objects are illuminated even though they are completely in shadow so this is just
+are completely in shadow so this is just incorrect we could solve this by
+incorrect we could solve this by rendering a dedicated shadow map that
+rendering a dedicated shadow map that would cover all of the surface but that
+would cover all of the surface but that would be too expensive so what we do
+would be too expensive so what we do instead is we just keep track we just
+instead is we just keep track we just keep a history of whether a particular
+keep a history of whether a particular circle has a valid shadow sample and we
+circle has a valid shadow sample and we just use the last known value and it's
+just use the last known value and it's kind of ok because the Sun doesn't
+kind of ok because the Sun doesn't actually change direction that that fast
+so another improvement over our previous PRT implementation is that we can easily
+PRT implementation is that we can easily incorporate local light sources point
+incorporate local light sources point spot area lights what you have to do is
+spot area lights what you have to do is simply to light each surfer with this
+simply to light each surfer with this and you automatically get the correct
+and you automatically get the correct light mouse in that compute lighting
+light mouse in that compute lighting function that we saw on in the
+function that we saw on in the pseudocode and in order to do this we
+pseudocode and in order to do this we just have to do a little bit of extra
+just have to do a little bit of extra work on the CPU in order to figure out
+work on the CPU in order to figure out which lights intersect the sector's
+which lights intersect the sector's bounding box and then we just simply
+bounding box and then we just simply store these their properties into GPU
+store these their properties into GPU constants and upload them to the GPU and
+constants and upload them to the GPU and then we've done one nice optimization
+then we've done one nice optimization that we also do is that license our mark
+that we also do is that license our mark this topic so you can't actually shoot
+this topic so you can't actually shoot them or they won't change
+them or they won't change they won't blink or they won't move we
+they won't blink or they won't move we just stored them in a separate buffer we
+just stored them in a separate buffer we compute them once and then store them
+compute them once and then store them and just we add them and this allows us
+and just we add them and this allows us to support many more light sources than
+to support many more light sources than I thought originally would be possible
+I thought originally would be possible so I'm going to show you now a quick
+so I'm going to show you now a quick video of how dynamic light sources work
+video of how dynamic light sources work with snowdrop so here what we have is a
+with snowdrop so here what we have is a spot light very bright spot light bell
+spot light very bright spot light bell bass shining towards them all and the
+bass shining towards them all and the wall is multicolored is godlike these
+wall is multicolored is godlike these different tiles so as the light moves it
+different tiles so as the light moves it lights up the tiles and then the probes
+lights up the tiles and then the probes captured the bounce from them so you get
+captured the bounce from them so you get this really nice multicolored effect so
+this really nice multicolored effect so as I mentioned in the beginning of the
+as I mentioned in the beginning of the talk each one of our weather presets
+talk each one of our weather presets also defines how much snow is going to
+also defines how much snow is going to build up from the different surfaces and
+build up from the different surfaces and in order to support this we just stores
+in order to support this we just stores tiny bit of data that tells us how much
+tiny bit of data that tells us how much snow is supposed to accumulate on that
+snow is supposed to accumulate on that particular surface so then simply when
+particular surface so then simply when we relied the bricks we read the value
+we relied the bricks we read the value from the weather preset of how much snow
+from the weather preset of how much snow we're supposed to go and then we just
+we're supposed to go and then we just lurk between the original the original
+lurk between the original the original color of the surface and purely white
+color of the surface and purely white and you can see here a comparison of
+and you can see here a comparison of what it looks like to the right here
+what it looks like to the right here here to the left I've turned the effect
+here to the left I've turned the effect off so what we get is like this still
+off so what we get is like this still kind of correct but not quite
+kind of correct but not quite grayish ambience that's coming to the
+grayish ambience that's coming to the probe and to the right you have a much
+probe and to the right you have a much more pronounced
+more pronounced white ambient light from the bottom so
+white ambient light from the bottom so it works really nicely and it's very
+it works really nicely and it's very cheap so as some of you probably figure
+cheap so as some of you probably figure out by now we only pre compute a single
+out by now we only pre compute a single bounce for the surface for the PRT and
+bounce for the surface for the PRT and in order to simulate additional bounces
+in order to simulate additional bounces one of our programmers figured out a
+one of our programmers figured out a very nice way to do that we just used
+very nice way to do that we just used the computer T radians from the previous
+the computer T radians from the previous frame and we feed it back to the current
+frame and we feed it back to the current surface when we do the lighting so it's
+surface when we do the lighting so it's circle just stores an index to the probe
+circle just stores an index to the probe that is closest to it and just uses that
+that is closest to it and just uses that as an ambient lighting term and this
+as an ambient lighting term and this feedback loop allows us to capture the
+feedback loop allows us to capture the load by the light bouncing from the
+load by the light bouncing from the light from the sky bouncing from the
+light from the sky bouncing from the floor and you can see the effect here in
+floor and you can see the effect here in the bottom image here just a little bit
+the bottom image here just a little bit of a close-up if you just use a single
+of a close-up if you just use a single bounce then the ceilings I don't to be
+bounce then the ceilings I don't to be quite dark once you turn on the feedback
+quite dark once you turn on the feedback loop then suddenly everything gets a lot
+loop then suddenly everything gets a lot more correctly illuminated couple more
+more correctly illuminated couple more comparison images to the lattice so here
+comparison images to the lattice so here we have an outdoor environment and the
+we have an outdoor environment and the feedback loop just makes everything
+feedback loop just makes everything brighter and brings up the bottom of the
+brighter and brings up the bottom of the light probes so it illuminates the
+light probes so it illuminates the bottom of the objects so in although it
+bottom of the objects so in although it works very nicely for outdoor
+works very nicely for outdoor environments for indoor environments
+environments for indoor environments it's not the effects is not quite as
+it's not the effects is not quite as pronounced here again to the left you
+pronounced here again to the left you see the effect of a single bounce and
+see the effect of a single bounce and the right you see the effect when we
+the right you see the effect when we turn on the feedback loop so you can see
+turn on the feedback loop so you can see just a tiny tiny bit of difference where
+just a tiny tiny bit of difference where the probes are a little bit brighter but
+the probes are a little bit brighter but in reality it doesn't give you much so
+in reality it doesn't give you much so the next thing that we have to do after
+the next thing that we have to do after we've done the bricks and the radiance
+we've done the bricks and the radiance from
+from from the bricks we have to go through
+from the bricks we have to go through each probe and relight the probes so
+each probe and relight the probes so first what we do is we compute the
+first what we do is we compute the irradiance from the sky for that it's a
+irradiance from the sky for that it's a very simple process we render the entire
+very simple process we render the entire sky to assembly to a very small texture
+sky to assembly to a very small texture and then we project we compute the
+and then we project we compute the cosine convolution of that and we store
+cosine convolution of that and we store it as just basis coefficients of the
+it as just basis coefficients of the half-life to ambient cube basis and now
+half-life to ambient cube basis and now all that we have to do here is just to
+all that we have to do here is just to multiply that with this car visibility
+multiply that with this car visibility that is stored inside of the probe so
+that is stored inside of the probe so what do we have to render a small
+what do we have to render a small texture mainly because our skybox uses a
+texture mainly because our skybox uses a large combination of techniques which
+large combination of techniques which are difficult to express analytically we
+are difficult to express analytically we do have the prism sky model but also on
+do have the prism sky model but also on top of that we have this six point
+top of that we have this six point lighting cloud textures that allow us to
+lighting cloud textures that allow us to dynamically relight them based on where
+dynamically relight them based on where the Sun is so here you see the same
+the Sun is so here you see the same scene with different sky configurations
+scene with different sky configurations the bay sky color is the same for both
+the bay sky color is the same for both scenes but at the top you don't really
+scenes but at the top you don't really have any clothes and you have this blue
+have any clothes and you have this blue type ambience which is captured by the
+type ambience which is captured by the probes and on the bottom you have quite
+probes and on the bottom you have quite quadrant quite a lot more sky coverage
+quadrant quite a lot more sky coverage so these the sky is actually more
+so these the sky is actually more grayish rather than blue and this is
+grayish rather than blue and this is also correctly captured inside of the
+also correctly captured inside of the from our PRT solution is no dope this is
+from our PRT solution is no dope this is another example where we have this time
+another example where we have this time the same clouds the same base color
+the same clouds the same base color colour but we've just moved the Sun so
+colour but we've just moved the Sun so it's like it's sunset or sunrise I don't
+it's like it's sunset or sunrise I don't quite remember so in one of the in one
+quite remember so in one of the in one of the cases the clouds are very orangey
+of the cases the clouds are very orangey and to the bottom you see it during
+and to the bottom you see it during during the day so the clouds are now
+during the day so the clouds are now whitish and you can see how this is also
+whitish and you can see how this is also correctly reflected in the light probes
+so finally what we have to do after we've computed the Iranians from the sky
+we've computed the Iranians from the sky we just simply have to add the lighting
+we just simply have to add the lighting that comes from the sky with the
+that comes from the sky with the lighting that comes from the bricks and
+lighting that comes from the bricks and then we get the final result so we just
+then we get the final result so we just go through all of our brick factors and
+go through all of our brick factors and add them up that's it and then we've
+add them up that's it and then we've done we've got the probes completely
+done we've got the probes completely relieved so let's talk about the things
+relieved so let's talk about the things that you're probably very interested in
+that you're probably very interested in the performance I have to preface this
+the performance I have to preface this by saying that the performance kind of
+by saying that the performance kind of depends on where you are in the world
+depends on where you are in the world how many probes you've got how many
+how many probes you've got how many surfaces and so on
+surfaces and so on but the numbers I'm going to give you
+but the numbers I'm going to give you are quite representative so every frame
+are quite representative so every frame what we do is we've relied to full
+what we do is we've relied to full sectors the one that the player is in
+sectors the one that the player is in and also we choose one other from the
+and also we choose one other from the sectors that are currently loaded so
+sectors that are currently loaded so this is done in a GPU compute task just
+this is done in a GPU compute task just right after the shadow right now we
+right after the shadow right now we actually have to compute task 1 to
+actually have to compute task 1 to relight the surface and bricks and want
+relight the surface and bricks and want to relight the probes themselves so this
+to relight the probes themselves so this is also done with ASIC computer on
+is also done with ASIC computer on consoles which is running at the same
+consoles which is running at the same time as we do the G before rendering
+some example timings for the Xbox one it takes about one millisecond we turn this
+takes about one millisecond we turn this by putting the computer in nan a signal
+by putting the computer in nan a signal normally though this this one's a thing
+normally though this this one's a thing and it doesn't really matter if we turn
+and it doesn't really matter if we turn it on and off it's just absolutely the
+it on and off it's just absolutely the same performance it does it's not that
+same performance it does it's not that expensive at all and the time here is
+expensive at all and the time here is roughly split 60% 40% between lighting
+roughly split 60% 40% between lighting bricks and surface versus lighting
+bricks and surface versus lighting probes on the PC on a gtx 760
+probes on the PC on a gtx 760 it takes about half a millisecond to do
+it takes about half a millisecond to do the same
+the same the same amount of data and the timing
+the same amount of data and the timing here is roughly split 50-50 between
+here is roughly split 50-50 between lighting bricks and lighting probes
+so once we've run the relighting computer the next step is to put all of
+computer the next step is to put all of the Iranians data into one volume up and
+the Iranians data into one volume up and we do this in order to have trilinear
+we do this in order to have trilinear filtering and in order to support large
+filtering and in order to support large objects or small objects the volume map
+objects or small objects the volume map follows the camera and covers 100 by 50
+follows the camera and covers 100 by 50 I 50 by 100 meters with 32 by 16 by 32
+I 50 by 100 meters with 32 by 16 by 32 voxels and we use a single texture for
+voxels and we use a single texture for all of the six basis directions and the
+all of the six basis directions and the shader computes just an offset into that
+shader computes just an offset into that texture in order to figure out where to
+texture in order to figure out where to read from so this volume map is used
+read from so this volume map is used both in the different lighting paths in
+both in the different lighting paths in the forward lighting path so we have
+the forward lighting path so we have consistent consistent lighting between
+consistent consistent lighting between purely opaque objects and also
+purely opaque objects and also transparent objects or particles so 100
+transparent objects or particles so 100 by 50 by 100 meters with such relatively
+low dimensional volume up will create probe leading so this is just the effect
+probe leading so this is just the effect where you have the trilinear filtering
+where you have the trilinear filtering reading the wrong values so basically
+reading the wrong values so basically you have the effect of a light bleeding
+you have the effect of a light bleeding through a thin surface such as such as
+through a thin surface such as such as the wall of a building and you hear it
+the wall of a building and you hear it at the top right you can see an example
+at the top right you can see an example of this what happens is that the probes
+of this what happens is that the probes on the outside gets illuminated by the
+on the outside gets illuminated by the sky and this incorrectly illuminates the
+sky and this incorrectly illuminates the interior the entrance here so you get
+interior the entrance here so you get like this sort of wrong blueish ambience
+like this sort of wrong blueish ambience and in order to fix this we use a
+and in order to fix this we use a separate volume texture for both indoor
+separate volume texture for both indoor and outdoor we for a particular mobile
+and outdoor we for a particular mobile we know which room it
+we know which room it and we write that volume inside the
+and we write that volume inside the stencil buffer then in the deferred
+stencil buffer then in the deferred lighting pass what we can do is we can
+lighting pass what we can do is we can read from the stencil and figure out
+read from the stencil and figure out whether to read from the outdoor or from
+whether to read from the outdoor or from the indoor from the indoor volume
+the indoor from the indoor volume texture we also try to prevent bleeding
+texture we also try to prevent bleeding between different rooms and we did that
+between different rooms and we did that by determining what the extent of the
+by determining what the extent of the room is in volume space and then
+room is in volume space and then clamping our reads just to just to this
+clamping our reads just to just to this particular AABB in the volume map and of
+particular AABB in the volume map and of course this only works if you have rooms
+course this only works if you have rooms which are axis aligned and you can see
+which are axis aligned and you can see the effects of these fixes in the bottom
+the effects of these fixes in the bottom right here so we have a lot more correct
+right here so we have a lot more correct ambience so the entrance to the
+ambience so the entrance to the staircases alot looks a lot more natural
+outside of the volume map we shade using up to the large 2d texture which we call
+up to the large 2d texture which we call the fallback texture and this is a
+the fallback texture and this is a single 2d texture that covers the entire
+single 2d texture that covers the entire world each pixel inside of it represents
+world each pixel inside of it represents a single sector probe and we compute the
+a single sector probe and we compute the information for that by just placing a
+information for that by just placing a probe like very high up in the
+probe like very high up in the environment and for this one we don't
+environment and for this one we don't actually do any of the light bounces we
+actually do any of the light bounces we just compute the radius from the sky so
+just compute the radius from the sky so you can see the effect of the distance
+you can see the effect of the distance shading in these two comparison images
+shading in these two comparison images to the left I've turned it off
+to the left I've turned it off completely so the buildings far down the
+completely so the buildings far down the streets are now suddenly completely
+streets are now suddenly completely black and to the right
+black and to the right afternoon back home and you can see that
+afternoon back home and you can see that it's almost like an invisible blend
+it's almost like an invisible blend between the volume up and the fall back
+between the volume up and the fall back texture so it works rather nicely as
+texture so it works rather nicely as pretty much everybody else we use
+pretty much everybody else we use ambient occlusion as a shadow term for
+ambient occlusion as a shadow term for the indirect lighting ambient occlusion
+the indirect lighting ambient occlusion can come from a couple of sources so
+can come from a couple of sources so things like as a CEO it can be baked
+things like as a CEO it can be baked into the models into the materials into
+into the models into the materials into the textures as well and it also comes
+the textures as well and it also comes from the sky visibility of the probes so
+from the sky visibility of the probes so for sseo and the baked in ambient
+for sseo and the baked in ambient occlusion we store it in a separate
+occlusion we store it in a separate channel with our G buffer ideally what
+channel with our G buffer ideally what you want to do is to only to use this
+you want to do is to only to use this ambient occlusion for the sky term only
+ambient occlusion for the sky term only so you don't really want to apply that
+so you don't really want to apply that to the secondary bounce that's coming
+to the secondary bounce that's coming from the bricks but we kind of cheat
+from the bricks but we kind of cheat here and apply to everything in order to
+here and apply to everything in order to not having to store two terms and not
+not having to store two terms and not having to use more than one volume map
+having to use more than one volume map so one of the things that we've found
+so one of the things that we've found during the project is that it's
+during the project is that it's difficult to make sseo good underneath
+difficult to make sseo good underneath vehicles one of our tech artists came up
+vehicles one of our tech artists came up with this cool way to fake ambient
+with this cool way to fake ambient occlusion with just a squeeze paste
+occlusion with just a squeeze paste projected vehicle and you can see the
+projected vehicle and you can see the difference that this makes in the
+difference that this makes in the comparison images to the right at the
+comparison images to the right at the top the decals are switched off so the
+top the decals are switched off so the vehicle kind of looks disconnected from
+vehicle kind of looks disconnected from the street whereas at the bottom you
+the street whereas at the bottom you suddenly get this idea that it's
+suddenly get this idea that it's actually something that's grounded and
+actually something that's grounded and it actually casts a shadow and this is
+it actually casts a shadow and this is just done with a very simple texture
+just done with a very simple texture boat box in the vehicle prop you can see
+boat box in the vehicle prop you can see here some screenshots from our snow drop
+here some screenshots from our snow drop editor the vehicle isn't just a simple
+editor the vehicle isn't just a simple model is actually an old graph with a
+model is actually an old graph with a lot of parameters that you can tweak and
+lot of parameters that you can tweak and you can also place place this additional
+you can also place place this additional primitives inside of it in that case is
+primitives inside of it in that case is just an invisible box that has a simple
+just an invisible box that has a simple gradient texture and that texture just
+gradient texture and that texture just writes out to the dedicated G buffer
+writes out to the dedicated G buffer Channel it's very simple but it also
+Channel it's very simple but it also works surprisingly well
+so snowdrop also uses the purity probes in the volumetric fog rendering we just
+in the volumetric fog rendering we just use the standard frame arching and
+use the standard frame arching and sample the
+sample the lighting environment in order to
+lighting environment in order to simulate scattering from participating
+simulate scattering from participating media particles in addition to the Sun
+media particles in addition to the Sun and the local lights we also sample the
+and the local lights we also sample the ambient lighting that comes from the
+ambient lighting that comes from the probes themselves as an optimization we
+probes themselves as an optimization we store the average irradiance for all of
+store the average irradiance for all of the six basis direction in a separate
+the six basis direction in a separate volume up so just a single RGB volume up
+volume up so just a single RGB volume up and this is what we actually sample and
+and this is what we actually sample and do trilinear filtering on as we're
+do trilinear filtering on as we're remarking and it kind of works because
+remarking and it kind of works because the scattering is supposed to scatter in
+the scattering is supposed to scatter in all directions so taking the average
+all directions so taking the average ambient lighting is correct in this case
+so we've come to the final section of the presentation where I'm going to talk
+the presentation where I'm going to talk to you about some of the problems that
+to you about some of the problems that we encountered with our approach during
+we encountered with our approach during production and as promised I'm going to
+production and as promised I'm going to show you some ugly screenshots so it's
+show you some ugly screenshots so it's no drop initially was using an
+no drop initially was using an irradiance volume like pretty much a lot
+irradiance volume like pretty much a lot of other games but with a twist instead
+of other games but with a twist instead of having a breaking step for the probe
+of having a breaking step for the probe soft line what we would do is we would
+soft line what we would do is we would render q maps on the fly and then store
+render q maps on the fly and then store them on disk so as you were working
+them on disk so as you were working around we would render the cube maps and
+around we would render the cube maps and store them in a cache and this works
+store them in a cache and this works very nicely with one major drawback is
+very nicely with one major drawback is that the update rate isn't really fast
+that the update rate isn't really fast enough so what you could see is visible
+enough so what you could see is visible light pop likes a particular area would
+light pop likes a particular area would be dark and suddenly boom it would
+be dark and suddenly boom it would become brightest we we render the probes
+become brightest we we render the probes and as a whole we decided that this
+and as a whole we decided that this wasn't quite suitable for our
+wasn't quite suitable for our requirements like the day/night cycle or
+requirements like the day/night cycle or the dynamic lighting you just couldn't
+the dynamic lighting you just couldn't get it to work fast enough in order to
+get it to work fast enough in order to in order to have the dynamic lighting
+in order to have the dynamic lighting that we wanted so when we switch to PRT
+that we wanted so when we switch to PRT probes we started with eight basis
+probes we started with eight basis vectors that cover the entire sphere and
+vectors that cover the entire sphere and you can see those eight basis vectors as
+you can see those eight basis vectors as the white dots on the probes there
+the white dots on the probes there this worked fine except that at some
+this worked fine except that at some points the artist noticed that the
+points the artist noticed that the streets were a bit too dark they just
+streets were a bit too dark they just couldn't put their finger quite on why
+couldn't put their finger quite on why but everything seems a little bit too
+but everything seems a little bit too dark so we sat down and eventually
+dark so we sat down and eventually realized that it was because none of the
+realized that it was because none of the vectors actually pointed straight up or
+vectors actually pointed straight up or straight down so this meant that the
+straight down so this meant that the light from the sky or the bounce from
+light from the sky or the bounce from the street we couldn't actually
+the street we couldn't actually represent it properly we could just
+represent it properly we could just blend between two vectors that were
+blend between two vectors that were pointing this way so for that reason we
+pointing this way so for that reason we decided to go back to half-life 2 MB mq
+decided to go back to half-life 2 MB mq basis and it uses six basis vectors
+basis and it uses six basis vectors which is fewer so you would think it's
+which is fewer so you would think it's less accurate but it actually is better
+less accurate but it actually is better for our needs because there's one vector
+for our needs because there's one vector that points straight up so it can
+that points straight up so it can capture the lighting from the sky
+capture the lighting from the sky accurately and then there's another one
+accurately and then there's another one that points straight down so it can
+that points straight down so it can capture the balls from the terrain on
+capture the balls from the terrain on the street during production we also had
+the street during production we also had occasional problems where the automatic
+occasional problems where the automatic probe placement algorithm would decide
+probe placement algorithm would decide that it was going to stop working
+that it was going to stop working properly and for various reasons probes
+properly and for various reasons probes would not be spawned in certain areas
+would not be spawned in certain areas and this causes dark spots in the
+and this causes dark spots in the irradiance volume so like places where
+irradiance volume so like places where we just don't have any lighting
+we just don't have any lighting information and to the right here we
+information and to the right here we have one such location we have this
+have one such location we have this particular building and on one of two of
+particular building and on one of two of the floors you just don't have any
+the floors you just don't have any probes and you can also kind of see it
+probes and you can also kind of see it on the on the crane there to the right
+on the on the crane there to the right as well and this is just caused because
+as well and this is just caused because the the probes just missed the crane
+the the probes just missed the crane completely so you don't spawn anything
+completely so you don't spawn anything there and we have also a special debug
+there and we have also a special debug tool for these situations which would
+tool for these situations which would color these areas with a high light
+color these areas with a high light color so that we can easily spot them
+color so that we can easily spot them and to solve problems like bass is not
+and to solve problems like bass is not fun and also requires quite a lot of
+fun and also requires quite a lot of coder effort and we were thinking that
+coder effort and we were thinking that the way to address this in the future is
+the way to address this in the future is to give
+to give art is more control over how the probes
+art is more control over how the probes are placed so to allow them to add new
+are placed so to allow them to add new probes to move the automatic probes
+probes to move the automatic probes allow around in order to adjust things
+allow around in order to adjust things since you fine-tune all of the details
+since you fine-tune all of the details one other possibility that we were
+one other possibility that we were thinking about is to support UV mapping
+thinking about is to support UV mapping for the buildings so for large
+for the buildings so for large structures so effectively what we would
+structures so effectively what we would do is we would compute the same sort of
+do is we would compute the same sort of PRT but instead of six direction we will
+PRT but instead of six direction we will just compute it for the four three
+just compute it for the four three direction in the tangent space and this
+direction in the tangent space and this allow us to this will allow our artists
+allow us to this will allow our artists to control the resolution of the PRT a
+to control the resolution of the PRT a lot more effectively so we also have the
+lot more effectively so we also have the problem that sometimes probes are
+problem that sometimes probes are missing from indoor entrances and
+missing from indoor entrances and because we have the outdoor and indoor
+because we have the outdoor and indoor volumes this presents itself as a sharp
+volumes this presents itself as a sharp line transition between the indoors and
+line transition between the indoors and the outdoors and you can see it here in
+the outdoors and you can see it here in the comparisons images to the right
+the comparisons images to the right where I've just isolated the ambient
+where I've just isolated the ambient lighting so one might solve this is to
+lighting so one might solve this is to automate the placement of the probes so
+automate the placement of the probes so that we spawn them at particular
+that we spawn them at particular entrances and windows unfortunately we
+entrances and windows unfortunately we only thought of that quite late during
+only thought of that quite late during the production so this didn't make it in
+the production so this didn't make it in the final game luckily for us these type
+the final game luckily for us these type of artifacts are not so visible when you
+of artifacts are not so visible when you have full shading on because the change
+have full shading on because the change in material actually masks the
+in material actually masks the transition as well so one of the other
+transition as well so one of the other areas where we thought we could improve
+areas where we thought we could improve is the resolution of our solution it's
+is the resolution of our solution it's fairly easy to change the grid sizes and
+fairly easy to change the grid sizes and so on so it's just a bunch of parameters
+so on so it's just a bunch of parameters that you put into the baking but you
+that you put into the baking but you have to be careful about the performance
+have to be careful about the performance cost in order for us to increase the
+cost in order for us to increase the resolution of the probes what we have to
+resolution of the probes what we have to do is to look into optimizing the baking
+do is to look into optimizing the baking times first and also to optimize the
+times first and also to optimize the compression just because we don't want
+compression just because we don't want to
+to our memory budget and as I mentioned as
+our memory budget and as I mentioned as well we only pre compute the single
+well we only pre compute the single bonds and we approach you we approximate
+bonds and we approach you we approximate the rest with just coarsely at runtime
+the rest with just coarsely at runtime and this is primarily because we just
+and this is primarily because we just didn't have enough time to make a more
+didn't have enough time to make a more complicated complex solver offline but I
+complicated complex solver offline but I think as we move on to for the next
+think as we move on to for the next iteration of snowdrop what we have to do
+iteration of snowdrop what we have to do is actually to buy the bulletin to
+is actually to buy the bulletin to implement the proper GPU path tracer
+implement the proper GPU path tracer that will allow us to capture the
+that will allow us to capture the multiple bounces when we bake the probes
+so finally just a couple of words our tech snowdrop was developed at the same
+tech snowdrop was developed at the same time as the division and because of time
+time as the division and because of time constraints sometimes we did not have
+constraints sometimes we did not have enough time to do proper bug fixing
+enough time to do proper bug fixing instead we just gave the artist some
+instead we just gave the artist some parameters to say here tweak this until
+parameters to say here tweak this until it kind of looks right so this
+it kind of looks right so this effectively sort of hides the problem
+effectively sort of hides the problem but doesn't really solve them and at the
+but doesn't really solve them and at the end what happened was that we have a
+end what happened was that we have a huge mass of parameters each one of them
+huge mass of parameters each one of them had sort of obscure effects or once we
+had sort of obscure effects or once we feed we fix the bugs we just
+feed we fix the bugs we just disconnected it in order not to for it
+disconnected it in order not to for it not to mess up the solution so
+not to mess up the solution so something's straight up don't work some
+something's straight up don't work some things don't work eggs expect that and
+things don't work eggs expect that and it's very confusing for the lighting
+it's very confusing for the lighting artists because they don't know which
+artists because they don't know which things actually have which things
+things actually have which things actually will allow them to tweak the
+actually will allow them to tweak the lighting and this sort of showed us that
+lighting and this sort of showed us that proper bug fixing is very important
+proper bug fixing is very important rather than just giving some numbers to
+rather than just giving some numbers to the artists and letting them tweak
+the artists and letting them tweak things by themselves so we we're
+things by themselves so we we're thinking that for the next iteration of
+thinking that for the next iteration of snowdrop we have to simplify the
+snowdrop we have to simplify the interface and just provide just a couple
+interface and just provide just a couple of intuitive sliders that people can
+of intuitive sliders that people can tweak okay I have to thank all my
+tweak okay I have to thank all my colleagues at massive at the end of the
+colleagues at massive at the end of the presentation especially NR and Dennis
+presentation especially NR and Dennis who did a lot of the work so if you've
+who did a lot of the work so if you've got any questions this is my email the
+got any questions this is my email the websites for massive fan
+websites for massive fan Ubisoft so we're done I think we have
+Ubisoft so we're done I think we have about five minutes for questions I would
+about five minutes for questions I would like to step up to the microphone please
+thank you for sharing good idea and I have a question how long does it take to
+have a question how long does it take to very crew and the placement approve it
+very crew and the placement approve it any man you try to put it yeah we
+any man you try to put it yeah we mention it in one of the slides it takes
+mention it in one of the slides it takes about eight hours of course it depends
+about eight hours of course it depends on like the speed of your engine and the
+on like the speed of your engine and the type of Jim's really have and I think
+type of Jim's really have and I think there are many many data period
+there are many many data period under-wing Priya in San Aditya and some
+under-wing Priya in San Aditya and some will pop up will probably okay I think
+will pop up will probably okay I think what what how do you thin English if you
+what what how do you thin English if you feel more comfortable we can talk later
+feel more comfortable we can talk later also be here to answer questions as well
+also be here to answer questions as well so feel free to come and ask me so I
+so feel free to come and ask me so I will try to if it's a little bit easier
+will try to if it's a little bit easier okay thank you
+okay thank you yeah right yes my question is I don't
+yeah right yes my question is I don't know if you mentioned that how do you
+know if you mentioned that how do you update the video grid like which grid
+update the video grid like which grid cell corresponds to which probe in the
+cell corresponds to which probe in the world it's one thing so basically the
+world it's one thing so basically the probes aren't really tied to any
+probes aren't really tied to any particular grits because we can spawn
+particular grits because we can spawn them at multiple locations we also nagy
+them at multiple locations we also nagy them a little bit they can be spawn that
+them a little bit they can be spawn that right right so my question is like for
+right right so my question is like for each cell you find the closest probe for
+each cell you find the closest probe for each level yet that's right so we just
+each level yet that's right so we just find the closest probe offline which
+find the closest probe offline which it's just a dumb thing that just goes
+it's just a dumb thing that just goes for each each of the probes and figures
+for each each of the probes and figures out which one is the closest that's it
+out which one is the closest that's it so another question is have you
+so another question is have you experimented with like cascaded approach
+experimented with like cascaded approach having several grids like more
+having several grids like more resolution it's it's a good idea I think
+resolution it's it's a good idea I think in general we just didn't have enough
+in general we just didn't have enough time to utilize it
+time to utilize it okay thank you thank you um did you ever
+okay thank you thank you um did you ever have problems with um incorrect lighting
+have problems with um incorrect lighting at the edge of a sector because say
+at the edge of a sector because say there was a large building at the edge
+there was a large building at the edge of this sector and then on the sector
+of this sector and then on the sector beside it was only taking those all of
+beside it was only taking those all of the time it's it's there's like all
+the time it's it's there's like all sorts of weird things that you're gonna
+sorts of weird things that you're gonna see but most of the time they kind of
+see but most of the time they kind of masked because we do trilinear filtering
+masked because we do trilinear filtering as well so you don't just do one sector
+as well so you don't just do one sector and then another sector you actually do
+and then another sector you actually do Trentino filtering between the two
+Trentino filtering between the two different sectors so it's kind of masked
+different sectors so it's kind of masked but the problem is there yes thank you
+but the problem is there yes thank you yes I wanted to know how you validated
+yes I wanted to know how you validated the accuracy of your solution like do
+the accuracy of your solution like do you have a tracer or anything like that
+you have a tracer or anything like that is just way now does that kind of
+is just way now does that kind of artistic we just tweaked it until it
+artistic we just tweaked it until it looked fine and our our director said
+looked fine and our our director said this is good so what's the disk size of
+this is good so what's the disk size of the writing data it's in one of the
+the writing data it's in one of the slides it's about one gigs so it's
+slides it's about one gigs so it's fairly low and you can basically make
+fairly low and you can basically make that as large as you want by increasing
+that as large as you want by increasing the the properties all right thank you
+the the properties all right thank you very much
+very much [Applause]

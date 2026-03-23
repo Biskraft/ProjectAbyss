@@ -1,0 +1,333 @@
+hi everyone it's me Tim today I want to
+talk about status effect
+implementation why am I talking about
+this somebody recently said hey I really
+liked your quest implementation video
+and I'm like I haven't really done like
+a kind of a more nitty-gritty
+implementation video in a while so let
+me talk about this status effects are
+what I call any effect that's placed on
+an object in the world it's usually a
+creature like you know you may throw a
+DOT on a creature so every now then they
+have fire on them and every now and then
+they take fire damage but not always you
+might throw a spell on a door that says
+this door is being held you know like in
+place like a like a hold portal spell
+from DND or you may summon a weapon or
+you may summon a zombie and all those
+are what I call status effects because
+they place an effect in the world that
+usually has a particular running time
+and then they cleans it
+up I've done this in I've written status
+effect systems for Fallout and
+Arcanum and pillars they're usually very
+similar um so I'm going to talk about
+how to code them at a very high level if
+you like the quest implementation video
+which I'll link below it's kind of like
+that one um the exact data structures
+that you're going to use really depend
+on your system and by System I mean
+the engine you've chosen to use and the
+the game you're making because I would
+do different things depending on how
+your game handles maps and objects and
+even whether you're making turn-based
+combat or not and I'll get into all
+that usually when you however create a
+stru a data structure for a status
+effect it's going to have to include a
+number of things that I think were in
+every status effect system I ever made
+that data truck usually has the target
+object which is usually a creature but
+not always sometimes it's like I said it
+may be a door maybe a tree sometimes
+it's a location like you may put a glyph
+down and anybody walks into it takes
+damage so that status effect is placed
+on a location there's usually a Caster
+uh it's often the player maybe an enemy
+there's Source information where do I go
+like when I need to look up information
+about this status effect when I'm
+running it where do I go did it come
+from a spell did it come from an item
+did it come from a creature that just a
+creature ability
+and that and then any data you need to
+manage it from moment to moment which is
+usually its tick rate how much time is
+remaining pointers to objects associated
+with this status fact like if you summon
+a zombie you're going to have to keep a
+pointer on that
+zombie then when you have that structure
+you really need to make three
+distinct methods that are associated
+with it that's I call it I call them
+begin tick and end be SK is when you
+actually create the status effect so you
+create a new one and add it to a list
+where is that list kept well it depends
+on your system and again your engine and
+the game you're making sometimes you
+want a master list of every status
+effect that is currently active
+sometimes you will keep those lists
+though separated they're kept on the
+creature or the object that has it on
+them or they're kept on the Caster who
+created it so here's every status effect
+created by this particular Caster or you
+may have a list of the ones that are in
+the you may do that and then for ones
+that are in the world you can maintain a
+World list and the reason for this is it
+depends on how they tick which I'll talk
+about when I get to the tick
+part so you're you're still creating the
+stat effect you have to create any
+objects that are associated with it you
+may like summon three zombies you're
+going to create three distinct zombie
+objects and keep track of them here but
+you may also have to create anything
+that's part of the UI ux for this status
+effect a sound may start icons may
+appear on the UI somewhere there may be
+particle effects associated with this
+thing you may be something on the ground
+or there maybe swirling or you know
+they're just smoke or whatever you have
+to create those things and then keep
+references to them in this status effect
+this running data structure for the
+status effect so you can maintain them
+and then then clean them up so let's get
+into the tick part CU that's that's kind
+of the meat of a status effect
+is periodically and it depends on your
+system how often this periodically is
+you have to tick the status effects they
+get an update now if you have a master
+list you just decided to keep a list of
+all status effects that are active in
+the world great that list can get an
+update and just check to see if any of
+the status effects on that list need an
+update otherwise if you're keeping them
+on creatures or objects or on the world
+and there's an Associated World status
+effect list those things need
+updates how you do them depends on what
+kind of status effects you're making if
+you're making a real- Time game you
+probably want to call that update
+every game update which is usually
+associated with your frame rate or you
+know if you m Unity there's a update
+function we used to call it Heartbeats
+those happen really rapidly and then you
+check to see if anything on your list
+needs an update I found the most
+efficient way to do this is you sort
+your list
+by the thing that needs the next update
+and there may be multiple things so then
+when time advances a little bit and you
+call back to the update everything at
+the beginning of the list that needs an
+update is handled and then as soon as
+you get to the thing that doesn't need
+an update you know because they're
+sorted by when they need an update
+there's nothing else left on the list so
+you can usually do that really quick
+if you're making a turn-based game like
+turn-based combat then what you usually
+do is you either maintain a master
+list and then it's checked every turn so
+every time it becomes a new turn you
+check everything on that Master list to
+see if it needs to be updated or status
+Factor kept on the creature for example
+if you cast a DOT on someone The Dot may
+go on the creature and then every turn
+that creature gets that dot activates or
+you may keep it on the Caster so every
+status effect that a Caster's
+responsible for out in the world is
+handled when the Caster gets his update
+really depends on the status effects for
+a DOT I'd probably keep it on the target
+for a hold portal on a door I'd probably
+keep it on the caster and then when it
+when it time expires it it has a
+reference to the door and it goes out
+and takes it off
+so the things you do on a tick which I
+have kind of touched on already is you
+definitely need to check the time
+remaining on that status effect and
+decide if it's time to remove it which
+is the third thing I'm going to talk
+about ending a status effect otherwise
+you do maintenance associated with that
+status effect like I mentioned applying
+damage over time but some effects change
+over time their size may change they may
+start big and Shrink or they may expand
+you've got to manage that here they may
+in addition to changing size they may
+change damage damage type you may have
+something that starts off you
+know with a electrical bolt and
+electrifies everything here but then a
+fire ring spreads out so you have to
+manage that here in the in the tick
+portion of your status effect system and
+then of course the UI gets updated maybe
+your UI shows how many seconds are let
+are remaining on either a spell the
+Caster through or a DOT that's on a
+creature or whatever so if you can see
+that icon
+you may want there may be a bar going
+down it may be changing color it may be
+changing shape whatever you need to do
+to maintain that UI and also sounds may
+change so you've got to do that here in
+the tick and then the third important
+part of a status effect is the ending of
+the status effect this is
+where you clean up any ancillary objects
+like you may have summoned three
+zombies they get killed when the when
+the uh status effect ends it may leave
+if they're dead may leave the the dead
+body if they're if they're still running
+around I shouldn't say they're alive
+they're un alive then it may have them
+fall over and die or they may just
+disappear that you decide what what
+effect you want to do and you do that
+here in the end tick for the status
+effect you also clean up the UI and you
+finally remove the status effect from
+whatever list you were keeping it on
+either a master list or the ones by
+creature or by object or by
+World here's the really important thing
+that you have to remember when you're
+doing this this end for a status effect
+can be called from a lot of different
+places it is frequently called from The
+Tick method because the tick started and
+it went oh the time has expired on the
+status effect end it so you may call
+Tick and then tick calls end however
+lots of other things may call end the a
+creature may die and therefore the
+status specs that are on if had a DOT on
+it you may want to remove it or a Caster
+may die and you may have a roll saying
+any spells that Caster is
+maintaining get wiped this is where you
+do it and that means that the death of a
+Target or the death of a Caster may end
+a status effect so that end status
+effect may be being called from a lot of
+places and you have to make sure that no
+matter where it's called it's safe to do
+it when a map is left and all the
+objects on that map are being destroyed
+any Associated status effect is probably
+also destroyed although I'll get I'll
+talk for in a second really briefly
+about what you want to do if you want to
+load save
+those so make sure that your end tick
+can be called from a wide variety of
+places in your game safely that's it you
+got to think about that when you write
+it what are you referencing in that make
+sure those objects are still
+valid so that's the begin end or let's
+begin tick end methods status facts are
+awesome and you can see by the way way
+I've just generally described them you
+can use them for a ton of things these
+can be what primarily are the engine
+that run abilities and spells and traps
+in your world all kinds of things can
+really under the hood be a status effect
+be careful though status effects are so
+versatile that they're frequently easy
+to abuse and they tend to get abused
+because people go oh we're already have
+a status effect for this can I also do
+this a typical example may be I warned
+you like when you leave a map and things
+get destroyed you may find people going
+well I don't want it to be destroyed if
+I cast hold portal on that door and then
+I go down to the next dungeon level and
+if I come back up if it's still within
+that 10-minute time limit I will still
+want that there which means you have to
+save off that status
+effect with the time it was the player
+was leaving that map and then when you
+reenter the map you have to somehow
+reload that status effect as a Delta
+difference on that map and check to see
+if a the Caster is still alive and B if
+the timer is expired and then call an
+end call potentially a ticker an end
+when it's safe to do so on that door so
+you have to make sure that door has been
+loaded be careful saving status effects
+can be difficult it depends on how you
+kept the list is it a master list is it
+a list on the object is it a list on the
+Caster the biggest issue I had with
+saving status effects were with the
+associated objects the Target the caster
+and anything that they may have that any
+object that may have been summoned even
+if it's like a particle effect object if
+you made fog if you cast a wall of fog
+and then you jumped off the map and you
+came back and that wall of fog should
+still be active it's got to be
+reconstructed that object it' have to
+recreate that wall
+and figure out where it was and how it's
+oriented it might be that it was saved
+when you left the map and then you just
+have to reattach the status effect to
+it's like oh there's that wall of fog
+that I created I'm going to when it when
+the map is reloaded I'm going to
+reattach it or you may have to
+reconstruct it for you know I may have
+to create an object Orient it and
+reconnect to it it really depends on
+your system I'm just warning you that
+the save and load on status effects were
+probably one of the one of the more
+difficult things of saving and loading I
+have a whole video by the way on saving
+and loading I recommend you watch it I
+will link it
+below anyway without going into details
+on anyone's system that is a very highle
+description of how you should write
+status effects for your RPGs and I hope
+any of you who are making a status
+effect system found this useful

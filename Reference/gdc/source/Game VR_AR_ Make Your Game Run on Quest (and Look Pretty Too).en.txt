@@ -1,0 +1,1082 @@
+[Music]
+hello my name is Alena ham this talk is called make your game run on the quest
+called make your game run on the quest and look pretty too we'll be talking
+and look pretty too we'll be talking about art optimization on the oculus
+about art optimization on the oculus quest VR headset now how to make art
+quest VR headset now how to make art assets which will look good and perform
+assets which will look good and perform well
+well we'll cover the basic do's and don'ts
+we'll cover the basic do's and don'ts for asset creation and setup and how
+for asset creation and setup and how visual choices can impact performance so
+visual choices can impact performance so a bit about me and why I'm giving this
+a bit about me and why I'm giving this talk I'm a 3d artist and art manager at
+talk I'm a 3d artist and art manager at the indie studio phenomena here in San
+the indie studio phenomena here in San Francisco I spend most of my time
+Francisco I spend most of my time creating art assets breaking down our
+creating art assets breaking down our assets and setting up assets in game I
+assets and setting up assets in game I worked on the title Luna as shown here
+worked on the title Luna as shown here which was my first VR title since then
+which was my first VR title since then I've worked on a few more a our VR
+I've worked on a few more a our VR projects including two VR projects
+projects including two VR projects developed exclusively for the quest our
+developed exclusively for the quest our first quest project was in development
+first quest project was in development before the device was released and the
+before the device was released and the latest project is releasing in about a
+latest project is releasing in about a month or two unfortunately I can't show
+month or two unfortunately I can't show stills from either of these projects
+stills from either of these projects today so I have to bear with some of my
+today so I have to bear with some of my art tests
+so why am I giving this talk well even though I had already shipped a VR game
+though I had already shipped a VR game when we first got our quest devices I
+when we first got our quest devices I was honestly pretty mystified and not a
+was honestly pretty mystified and not a performance engineer so there's a lot I
+performance engineer so there's a lot I don't know about how rendering works but
+don't know about how rendering works but I still needed to make a lot of
+I still needed to make a lot of decisions about how to make art assets
+decisions about how to make art assets for this device it was hard for me to
+for this device it was hard for me to know what art assets were going to be a
+know what art assets were going to be a problem and what was not should I treat
+problem and what was not should I treat it like a mobile phone or like of the
+it like a mobile phone or like of the art game or a VR game running on mints
+art game or a VR game running on mints pack and how it all dis affect the
+pack and how it all dis affect the overall look at the game I wasn't sure
+there were some guides and documentation that got me started and there are
+that got me started and there are fortunately more now but the guides in
+fortunately more now but the guides in the documentation were pretty technical
+the documentation were pretty technical what I needed was more practical less
+what I needed was more practical less here's how the hardware works guidelines
+here's how the hardware works guidelines geared towards art production and
+geared towards art production and direction that covered a wide range of
+direction that covered a wide range of our asset types tools techniques and
+our asset types tools techniques and their limitations so that's what I'm
+their limitations so that's what I'm trying to put together here a practical
+trying to put together here a practical guide for those of you who are new to
+guide for those of you who are new to the quest but we really want to make
+the quest but we really want to make your game look beautiful in this cool
+your game look beautiful in this cool new device its meaning of the quest
+new device its meaning of the quest let's start there how cool is it that we
+let's start there how cool is it that we have a mobile VR headset now honestly I
+have a mobile VR headset now honestly I had a lot of fun after the quest launch
+had a lot of fun after the quest launch sharing games with people in unexpected
+sharing games with people in unexpected places did you know it still works on a
+places did you know it still works on a train but what I love about this device
+train but what I love about this device is that it really changes who can access
+is that it really changes who can access VR most people don't get sick from it
+VR most people don't get sick from it since the sixth off is pretty good but
+since the sixth off is pretty good but also you don't need a gaming PC to run a
+also you don't need a gaming PC to run a VR app those two things alone just blow
+VR app those two things alone just blow open the doors on who can access VR in a
+open the doors on who can access VR in a lot of the talks I've seen this is
+lot of the talks I've seen this is normally where the speaker would explain
+normally where the speaker would explain the quests cool new tile renderer and
+the quests cool new tile renderer and how it's able to do what it does because
+how it's able to do what it does because it changes the buffer fragment meet more
+it changes the buffer fragment meet more or whatever but I make art so if that
+or whatever but I make art so if that interests you please learn about it from
+interests you please learn about it from an engineer what you need to know or
+an engineer what you need to know or what I needed to know is what arts
+what I needed to know is what arts restrictions as a mobile device when it
+restrictions as a mobile device when it comes to rendering
+comes to rendering what are its VR restrictions and what
+what are its VR restrictions and what are the special quest only restrictions
+are the special quest only restrictions because restrictions aren't bad they
+because restrictions aren't bad they just change the artistic decisions we
+just change the artistic decisions we make
+make and so we need to know what they are so
+and so we need to know what they are so we can learn how to work with them I'll
+we can learn how to work with them I'll go over a variety of these restrictions
+go over a variety of these restrictions or performance guidelines whatever you
+or performance guidelines whatever you want to call them the first one I want
+want to call them the first one I want to discuss is the one I had the least
+to discuss is the one I had the least familiarity with when I started my first
+familiarity with when I started my first quest project let's talk about draw
+quest project let's talk about draw calls I sometimes go to schools and tell
+calls I sometimes go to schools and tell classrooms full of kids what my job is
+classrooms full of kids what my job is and how cool and creative it is they
+and how cool and creative it is they always seem to ask it's art but you use
+always seem to ask it's art but you use computers so do you do a lot of math I
+computers so do you do a lot of math I usually lie and say no because while I
+usually lie and say no because while I do some math every day it's usually
+do some math every day it's usually pretty simple and anyone who can learn
+pretty simple and anyone who can learn to use a 3d modeling program and
+to use a 3d modeling program and probably learn to type 360 you /
+probably learn to type 360 you / whatever into a calculator so now we
+whatever into a calculator so now we have to do some math but again it's
+have to do some math but again it's simple draw calls or how many times in
+simple draw calls or how many times in every frame the computer needs to draw
+every frame the computer needs to draw an object these drawings stack up into
+an object these drawings stack up into layers and create the final frame a PC
+layers and create the final frame a PC can have several hundred draw calls per
+can have several hundred draw calls per frame and not slowed down but the
+frame and not slowed down but the question really needs you to keep that
+question really needs you to keep that number under about 120 an artist
+number under about 120 an artist actually have the base impact on this
+actually have the base impact on this number so we need to make sure we don't
+number so we need to make sure we don't add unnecessary draw cause while we make
+add unnecessary draw cause while we make art for the game because 120 is a very
+art for the game because 120 is a very easy number to hit okay time for the
+easy number to hit okay time for the math first each separate object is a
+math first each separate object is a draw call so if you have for example a
+draw call so if you have for example a character on a plane with a skybox then
+character on a plane with a skybox then you have three draw calls one for each
+you have three draw calls one for each character plane
+character plane skybox okay that doesn't seem too bad
+skybox okay that doesn't seem too bad maybe make sure you merge environment
+maybe make sure you merge environment pieces as much as possible right well
+pieces as much as possible right well second each separate material on an
+second each separate material on an object is a draw call okay that
+object is a draw call okay that character actually has four different
+character actually has four different materials applied well that's a draw
+materials applied well that's a draw call per material so we're at six four
+call per material so we're at six four on the character plus one skybox plus
+on the character plus one skybox plus one a ground plane
+one a ground plane okay the math is easy but as a 3d artist
+okay the math is easy but as a 3d artist I need to use different materials and
+I need to use different materials and objects a lot
+counting drawer calls isn't something we're used to needing to take into
+we're used to needing to take into consideration so just by keeping this
+consideration so just by keeping this math in mind when setting up models and
+math in mind when setting up models and textures you can keep this number down
+textures you can keep this number down try to keep each separate object whether
+try to keep each separate object whether static or skin to a single material if
+static or skin to a single material if possible atlas textures and merge meshes
+possible atlas textures and merge meshes in environments where you can cool so we
+in environments where you can cool so we can make better choices when setting up
+can make better choices when setting up materials and models but we can't keep
+materials and models but we can't keep track of the whole game in her head so
+track of the whole game in her head so we need to be able to look at what the
+we need to be able to look at what the actual number of draw calls is during
+actual number of draw calls is during runtime to make sure we're on target so
+runtime to make sure we're on target so let's talk tools there are a couple
+let's talk tools there are a couple tools I use a lot to keep an eye on
+tools I use a lot to keep an eye on performance or try to figure out what's
+performance or try to figure out what's affecting performance the first of these
+affecting performance the first of these is render doc render doc connects with
+is render doc render doc connects with requests and allows you to capture
+requests and allows you to capture single frames from the game and break
+single frames from the game and break them down into calls and other
+them down into calls and other information you can use it to find out
+information you can use it to find out if something is taking more drop calls
+if something is taking more drop calls than you anticipated or something is
+than you anticipated or something is rendering on the wrong layer or one time
+rendering on the wrong layer or one time I was able to find there was a non
+I was able to find there was a non optimized light that was casting shadows
+optimized light that was casting shadows everywhere and I had overlooked it it's
+everywhere and I had overlooked it it's just a really great insight into the
+just a really great insight into the nuts and bolts of the images being drawn
+nuts and bolts of the images being drawn especially because draw calls can be a
+especially because draw calls can be a big performance hit on this device it's
+big performance hit on this device it's very useful to be able to look over that
+very useful to be able to look over that information even as an artist so here's
+information even as an artist so here's a screenshot from render doc I've
+a screenshot from render doc I've highlighted here where the draw calls
+highlighted here where the draw calls are listed and you can actually tab
+are listed and you can actually tab through each draw call and see what's
+through each draw call and see what's rendering you can look at the textures
+rendering you can look at the textures being used and the basic mesh that's
+being used and the basic mesh that's being drawn as well there's a ton more
+being drawn as well there's a ton more information you can get from render doc
+information you can get from render doc but just being able to inspect the draw
+but just being able to inspect the draw calls and see what's being drawn has
+calls and see what's being drawn has been a lifesaver for me
+second of all frame rate this top could also be called how to make your game run
+also be called how to make your game run at frame rate on the quest because frame
+at frame rate on the quest because frame rate or frames per second there's
+rate or frames per second there's probably the most important performance
+probably the most important performance indicator we care about in VR you need
+indicator we care about in VR you need at least sixty preferably 72 frames per
+at least sixty preferably 72 frames per second a little frame lag on your phone
+second a little frame lag on your phone or console game and it's annoying but
+or console game and it's annoying but frame lag in VR can make it player feel
+frame lag in VR can make it player feel sick or even fall over if you make the
+sick or even fall over if you make the most beautiful VR game but it runs at 30
+most beautiful VR game but it runs at 30 frames per second no one will play it
+frames per second no one will play it and everyone who tries will get sick so
+and everyone who tries will get sick so you can use any FPS counter that you
+you can use any FPS counter that you want but oculus puts out a tool called
+want but oculus puts out a tool called of your metrics which basically outputs
+of your metrics which basically outputs performance information on the screen
+performance information on the screen most of these numbers don't mean much to
+most of these numbers don't mean much to me but if that frames per second counter
+me but if that frames per second counter is at 72 I know I'm good if it's below
+is at 72 I know I'm good if it's below say 65 I should probably fix something
+say 65 I should probably fix something and sure it might be something non
+and sure it might be something non aren't related which is taking your
+aren't related which is taking your frame rate but let's be honest it's
+frame rate but let's be honest it's probably the art in this image every
+probably the art in this image every option is this blade which looks insane
+option is this blade which looks insane I usually just leave on the frame for
+I usually just leave on the frame for second graph and counter maybe a few
+second graph and counter maybe a few other things I couldn't get screenshot
+other things I couldn't get screenshot of how I set up mine though because it
+of how I set up mine though because it doesn't seem to show up in regularly
+doesn't seem to show up in regularly captured photos or a render doc
+captured photos or a render doc additionally if you're a total nerd you
+additionally if you're a total nerd you can just leave OVR metrics on under
+can just leave OVR metrics on under quest and see what the frame rate of
+quest and see what the frame rate of your favorite games is managing to
+your favorite games is managing to achieve
+achieve sorry developers okay really quickly
+sorry developers okay really quickly let's go over some basics for setting up
+let's go over some basics for setting up mobile VR rendering I don't want to
+mobile VR rendering I don't want to dedicate a lot of time to these but I
+dedicate a lot of time to these but I think it's worth mentioning to get
+think it's worth mentioning to get started
+their forward rendering depth fast rendering single-pass stereo
+rendering single-pass stereo anti-aliasing and fix motivated
+anti-aliasing and fix motivated rendering forward rendering you'll need
+rendering forward rendering you'll need to use forward rendering the crest is a
+to use forward rendering the crest is a mobile device and that's the rule for
+mobile device and that's the rule for mobile devices right now make sure you
+mobile devices right now make sure you find out what poured rendering entails
+find out what poured rendering entails and means as far as art assets the
+and means as far as art assets the biggest bummer here is that decals don't
+biggest bummer here is that decals don't work in Flour rendering mode so you'll
+work in Flour rendering mode so you'll actually have to hide your texture
+actually have to hide your texture scenes properly in unity you can use the
+scenes properly in unity you can use the lightweight render pipeline which is
+lightweight render pipeline which is part of their new scriptable render
+part of their new scriptable render pipeline it's set up for forward
+pipeline it's set up for forward rendering and a few other things which
+rendering and a few other things which are really helpful in VR I found this to
+are really helpful in VR I found this to be really cool and useful without even
+be really cool and useful without even using the full power of the new script
+using the full power of the new script will render pipeline and in real if
+will render pipeline and in real if you're not doing some magic like pulling
+you're not doing some magic like pulling a different branch of the engine their
+a different branch of the engine their settings for VAR gun during are here in
+settings for VAR gun during are here in the project settings depths rendering
+the project settings depths rendering there's no depth rendering the hardware
+there's no depth rendering the hardware just doesn't do this I think so
+just doesn't do this I think so no fun shaders that use depth info this
+no fun shaders that use depth info this includes soft particles but don't worry
+includes soft particles but don't worry this doesn't mean you can't have some
+this doesn't mean you can't have some kind of fog it's just not as fancy we'll
+kind of fog it's just not as fancy we'll revisit fog though later a single pass
+revisit fog though later a single pass stereo is a technique which saves you
+stereo is a technique which saves you performance by basically drawing both
+performance by basically drawing both eyes as one image rather than drawing
+eyes as one image rather than drawing one eye and then drawing the other eye
+one eye and then drawing the other eye this is on by default and unities
+this is on by default and unities lightweight render pipeline and an
+lightweight render pipeline and an unreal it's here in these settings you
+unreal it's here in these settings you need it you want it its anti-aliasing
+need it you want it its anti-aliasing without anti-aliasing things look ugly
+without anti-aliasing things look ugly really fast in forward rendering mode
+really fast in forward rendering mode you have multisample anti-aliasing and
+you have multisample anti-aliasing and four times as good if your performance
+four times as good if your performance can handle it
+can handle it eight times is a bit of overkill
+eight times is a bit of overkill depending on your game style I think but
+depending on your game style I think but use what you can get away with it's in
+use what you can get away with it's in the project settings and unreal and in
+the project settings and unreal and in your lightweight render pipeline asset
+your lightweight render pipeline asset and unity
+and unity alright one last thing for general
+alright one last thing for general rendering settings is fixed fogey ated
+rendering settings is fixed fogey ated rendering this can come in handy
+rendering this can come in handy especially when you're stretching your
+especially when you're stretching your rendering budget as much as possible
+rendering budget as much as possible what this does is it lowers the pixel
+what this does is it lowers the pixel resolution on the edges of the screen so
+resolution on the edges of the screen so they don't take as much time to render
+they don't take as much time to render that part of the image this works
+that part of the image this works because the output image and in VR is a
+because the output image and in VR is a little warped or fish-eyed to
+little warped or fish-eyed to accommodate the distortion of the lens
+accommodate the distortion of the lens so there's a little resolution wiggle
+so there's a little resolution wiggle room in those areas that are being
+room in those areas that are being squished at the edges and this isn't
+squished at the edges and this isn't necessarily a trade-off we perceive less
+necessarily a trade-off we perceive less detailed information in our periphery so
+detailed information in our periphery so the player may not even notice it too
+the player may not even notice it too much and you could potentially save
+much and you could potentially save quite a bit of performance although if
+quite a bit of performance although if done somewhat aggressively fixed fovea
+done somewhat aggressively fixed fovea tag rendering can creep further into the
+tag rendering can creep further into the middle of the render to the point where
+middle of the render to the point where you can start to see the drop-off in
+you can start to see the drop-off in resolution pretty obviously these images
+resolution pretty obviously these images show what part of the screen is affected
+show what part of the screen is affected and how much there's a left and right I
+and how much there's a left and right I love fixed bow via dredging only affects
+love fixed bow via dredging only affects a little part of the screen and doesn't
+a little part of the screen and doesn't drop the resolution that much but turned
+drop the resolution that much but turned up high more of those communitive and
+up high more of those communitive and the drop-off in resolution is a lot
+the drop-off in resolution is a lot stronger you can see this a little bit
+stronger you can see this a little bit more obviously in this render of the
+more obviously in this render of the Occulus home here i've turned it on low
+Occulus home here i've turned it on low and high for comparison you can also
+and high for comparison you can also turn it off altogether of course
+turn it off altogether of course particularly on the couch and on the
+particularly on the couch and on the dome cross beams you can see the
+dome cross beams you can see the pixelation that occurs in the higher
+pixelation that occurs in the higher contrast areas as the resolution drops
+contrast areas as the resolution drops so I've played some games where it was
+so I've played some games where it was obviously set up pretty high and I
+obviously set up pretty high and I really only noticed it when standing
+really only noticed it when standing still
+still anytime I actively played and was
+anytime I actively played and was looking around it became less noticeable
+looking around it became less noticeable but another as I found it could be
+but another as I found it could be really distracting even if it was on a
+really distracting even if it was on a more moderate setting if there was a
+more moderate setting if there was a really high contrast values in that part
+really high contrast values in that part of the screen things such as stars
+of the screen things such as stars become really noisy when the resolution
+become really noisy when the resolution drops
+drops that said if you use fixed ova turd
+that said if you use fixed ova turd rendering the start subtle so there's
+rendering the start subtle so there's not a hard line of resolution drop in
+not a hard line of resolution drop in the players view and be aware of the
+the players view and be aware of the noise it might make in high contrast
+noise it might make in high contrast areas now that we've covered the basics
+areas now that we've covered the basics of performance that's really jump into
+of performance that's really jump into the artistic side of all this first
+the artistic side of all this first lights and shadows lights are already a
+lights and shadows lights are already a known source of performance issues so
+known source of performance issues so there's no surprise there there's a
+there's no surprise there there's a reason we have things like light matte
+reason we have things like light matte baking and light and shadow distance
+baking and light and shadow distance calling etc lights are expensive but how
+calling etc lights are expensive but how to light your game is also when your
+to light your game is also when your biggest artistic choices so how do you
+biggest artistic choices so how do you balance what you want to do with what
+balance what you want to do with what you have time for because with enough
+you have time for because with enough time and effort you can have a pretty
+time and effort you can have a pretty nicely lit game in in the traditional
+nicely lit game in in the traditional PBR sense not a next-gen console or
+PBR sense not a next-gen console or anything but pretty darn good someday
+anything but pretty darn good someday the games have set up really great
+the games have set up really great lighting but the catch is it's probably
+lighting but the catch is it's probably all baked down if you can bake it you
+all baked down if you can bake it you can probably have it which sounds like
+can probably have it which sounds like an easy answer and there's absolutely
+an easy answer and there's absolutely nothing wrong with doing that it's a
+nothing wrong with doing that it's a very old and well use process and it can
+very old and well use process and it can yield really great results but it takes
+yield really great results but it takes extra time and effort to make baked like
+extra time and effort to make baked like it didn't look good and it's important
+it didn't look good and it's important to think about whether your projects
+to think about whether your projects timeline can afford the amount of time
+timeline can afford the amount of time it takes to do light mapping if you only
+it takes to do light mapping if you only have once you've seen the light probably
+have once you've seen the light probably not a big deal of light method but if
+not a big deal of light method but if you have 12 well you'd better have a
+you have 12 well you'd better have a pretty big team then so can you have non
+pretty big team then so can you have non baked lights yes you can have one
+baked lights yes you can have one dynamic or stationary light they're much
+dynamic or stationary light they're much more expensive at runtime because they
+more expensive at runtime because they need to update every frame in order to
+need to update every frame in order to change how the effect moving objects
+change how the effect moving objects such as the player's hands most mobile
+such as the player's hands most mobile devices can't handle too many dynamic
+devices can't handle too many dynamic lights but one is enough for your needs
+lights but one is enough for your needs if you're careful especially if you're
+if you're careful especially if you're baking down more complex lighting also
+baking down more complex lighting also why waste computation
+why waste computation even if you can get away with one
+even if you can get away with one directional light and the whole scene
+directional light and the whole scene and still have it look okay
+and still have it look okay still thinking about baking out the
+still thinking about baking out the static area so you've wiggle room for
+static area so you've wiggle room for other things
+other things what about dynamic shadows yes but
+what about dynamic shadows yes but dynamic shadows are probably have the
+dynamic shadows are probably have the worst performance impact out of anything
+worst performance impact out of anything light and shadow related so really think
+light and shadow related so really think about how much you want them and where
+about how much you want them and where you can only have one shadow casting
+you can only have one shadow casting light at a time so if it would look odd
+light at a time so if it would look odd or you'd have to spend time you don't
+or you'd have to spend time you don't have orchestrating which light is
+have orchestrating which light is casting shadows when then think about
+casting shadows when then think about whether they're worth having at all
+whether they're worth having at all I personally recommend just leaving them
+I personally recommend just leaving them out unless everything else is running
+out unless everything else is running really light then you can get away with
+really light then you can get away with some object casting hard shadows no soft
+some object casting hard shadows no soft shadows for example here bonfire and
+shadows for example here bonfire and half-and-half both use them but both
+half-and-half both use them but both these games are only rendering a few
+these games are only rendering a few characters at a time and have a pretty
+characters at a time and have a pretty limited environment if your game looks
+limited environment if your game looks like one of these then sure the
+like one of these then sure the half-and-half example is the closest
+half-and-half example is the closest with the players shadow and they look
+with the players shadow and they look fine as hard shadows and they're
+fine as hard shadows and they're actually a lot of fun to play with if
+actually a lot of fun to play with if you're going for something more
+you're going for something more realistic or have a lot more things to
+realistic or have a lot more things to render then save yourself the headache
+render then save yourself the headache and just try and do without them the
+and just try and do without them the quest is probably not the best platform
+quest is probably not the best platform for your shadow puppet puzzler what
+for your shadow puppet puzzler what about unlit looks or looks with the
+about unlit looks or looks with the simplified lighting if these kinds of
+simplified lighting if these kinds of styles could work for your games
+styles could work for your games aesthetic then I'd recommend using them
+aesthetic then I'd recommend using them for example virtual virtual reality it
+for example virtual virtual reality it looks great on the quest it's a go-to
+looks great on the quest it's a go-to example for me because I've played it on
+example for me because I've played it on both the rift and the quest and I really
+both the rift and the quest and I really don't notice the drop in the art quality
+don't notice the drop in the art quality on the quest it seems there aren't any
+on the quest it seems there aren't any dynamic shadows in the game the
+dynamic shadows in the game the characters and the player moved objects
+characters and the player moved objects don't cache shadows but static meshes
+don't cache shadows but static meshes have shadows so I've assumed they've
+have shadows so I've assumed they've been baked in it almost fools you into
+been baked in it almost fools you into thinking that more things have shadows
+thinking that more things have shadows than they do especially since the
+than they do especially since the objects then themselves are cel-shaded
+objects then themselves are cel-shaded so the illusion is pretty complete
+another example is nog which technically isn't a game that's out on the quest but
+isn't a game that's out on the quest but it is out on the go and I've always
+it is out on the go and I've always thought it was a great use of the unlit
+thought it was a great use of the unlit style it's bright and interesting on its
+style it's bright and interesting on its own and since this game wasn't developed
+own and since this game wasn't developed for VR initially I assume it's just the
+for VR initially I assume it's just the style choice so if a bold graphic style
+style choice so if a bold graphic style works and then use it also styles that
+works and then use it also styles that use faked lighting or light and shadows
+use faked lighting or light and shadows that are painted in can look really good
+that are painted in can look really good and save a lot on performance totally
+and save a lot on performance totally unlit is going to be the easiest to make
+unlit is going to be the easiest to make performance and PBR is going to be the
+performance and PBR is going to be the most difficult and time-consuming bear
+most difficult and time-consuming bear in mind your projects timeline and
+in mind your projects timeline and resources and try to find a balance of
+resources and try to find a balance of what you can do but is what you really
+what you can do but is what you really need for the aesthetic goal of your game
+next up is shaders materials and textures so here you must need to
+textures so here you must need to remember that mobile devices need things
+remember that mobile devices need things to run a little lighter
+to run a little lighter I mentioned the lightweight render
+I mentioned the lightweight render pipeline earlier and things like that
+pipeline earlier and things like that will get you far but you also have to
+will get you far but you also have to keep a count of what's going into your
+keep a count of what's going into your materials textures don't go crazy on
+materials textures don't go crazy on texture resolutions this isn't one of
+texture resolutions this isn't one of those next gen consoles running a 4k
+those next gen consoles running a 4k textures per character is a mobile
+textures per character is a mobile device and crunching all those pixels
+device and crunching all those pixels has a cost in addition to texture size
+has a cost in addition to texture size be conservative with the number of
+be conservative with the number of textures needed for each material use
+textures needed for each material use what you really need and what can really
+what you really need and what can really contribute to the look because they'll
+contribute to the look because they'll add up over time what this means
+add up over time what this means artistically is that some cool PVR looks
+artistically is that some cool PVR looks that require a ton of textures at high
+that require a ton of textures at high resolutions aren't going to perform well
+resolutions aren't going to perform well maybe if your game is limited in the
+maybe if your game is limited in the number of environments and props needing
+number of environments and props needing textures you can push for that look but
+textures you can push for that look but generally you want a look that requires
+generally you want a look that requires less Maps overall you can still texture
+less Maps overall you can still texture everything in your game while keeping
+everything in your game while keeping things performant but be mindful of what
+things performant but be mindful of what you're doing
+you're doing use some tiling textures try to use
+use some tiling textures try to use reuse textures as much as possible
+reuse textures as much as possible also don't forget to pay attention to
+also don't forget to pay attention to your mid levels and filtering or your
+your mid levels and filtering or your beautiful textures will look like Pixley
+beautiful textures will look like Pixley garbage shaders obviously shaders can
+garbage shaders obviously shaders can have some impact shader complexity is
+have some impact shader complexity is measured in the number of instructions
+measured in the number of instructions and you can preview shader complexity in
+and you can preview shader complexity in some engines to kind of keep an eye on
+some engines to kind of keep an eye on how complex things are getting overall
+how complex things are getting overall on the quest it's good to ask if you can
+on the quest it's good to ask if you can get away with a lighter shader and test
+get away with a lighter shader and test complex ones that you make it's also
+complex ones that you make it's also important to keep an eye on the number
+important to keep an eye on the number of textures needed in the shader and how
+of textures needed in the shader and how much of the screen space the texture
+much of the screen space the texture will fill on my first quest project I
+will fill on my first quest project I spent a couple of days trying to figure
+spent a couple of days trying to figure out what was impacting performance on
+out what was impacting performance on one scene before we discovered it was
+one scene before we discovered it was the water shader the shader didn't seem
+the water shader the shader didn't seem that complex but since I acupiont an
+that complex but since I acupiont an extended way into the distance it ended
+extended way into the distance it ended up being really expensive to draw all
+up being really expensive to draw all the textures over and over a quick
+the textures over and over a quick redesign of its looked really increased
+redesign of its looked really increased performance and that seen a lot that
+performance and that seen a lot that said don't be afraid of shaders at all
+said don't be afraid of shaders at all some instructions are really lightweight
+some instructions are really lightweight and shooters are kind of beautiful math
+and shooters are kind of beautiful math magic that you can use to make really
+magic that you can use to make really interesting effects and styles in your
+interesting effects and styles in your game on my most recent quest project I
+game on my most recent quest project I opted to use a style of texturing which
+opted to use a style of texturing which uses gradient swatches instead of unique
+uses gradient swatches instead of unique textures in the style you add a light
+textures in the style you add a light and shadow gradient to the color swatch
+and shadow gradient to the color swatch and then adjust the models you v's
+and then adjust the models you v's placement so that it sort of looks lit
+placement so that it sort of looks lit initially I was going to do the
+initially I was going to do the gradients in texture and bake them down
+gradients in texture and bake them down in Photoshop but I experimented with
+in Photoshop but I experimented with setting that up in the shader so that I
+setting that up in the shader so that I could just the gradients and what their
+could just the gradients and what their color was room to room and create a
+color was room to room and create a slightly different lighting look so
+slightly different lighting look so while the shader is more complex than an
+while the shader is more complex than an unlit shader it still has less
+unlit shader it still has less performance impact than a lidar and it
+performance impact than a lidar and it gives me a lot more control over the
+gives me a lot more control over the look I'm aiming for
+materials one thing which is quest specific there's a slight performance
+specific there's a slight performance hit every time you draw call switches
+hit every time you draw call switches materials or switches shaders so if it's
+materials or switches shaders so if it's drawing an object using one material and
+drawing an object using one material and then goes to the next object it's using
+then goes to the next object it's using a different material or different shader
+a different material or different shader there's performance a so there's a big
+there's performance a so there's a big incentive to atlas as much as you can
+incentive to atlas as much as you can and try to reduce the number of unique
+and try to reduce the number of unique materials needed so maybe you have for
+materials needed so maybe you have for animating props in a scene for example
+animating props in a scene for example which are similar looking but all
+which are similar looking but all different rigs and therefore different
+different rigs and therefore different draw calls you still get better
+draw calls you still get better performance if those four skinned meshes
+performance if those four skinned meshes are all using the same material even
+are all using the same material even though there's still separate draw calls
+though there's still separate draw calls it might also be advantageous to limit
+it might also be advantageous to limit the number of shaders being used in a
+the number of shaders being used in a scene for that same reason splitting out
+scene for that same reason splitting out functionality that you don't always need
+functionality that you don't always need in one shader tutu sounds smart but if
+in one shader tutu sounds smart but if you're using both quite often maybe just
+you're using both quite often maybe just see how it performs if you just use the
+see how it performs if you just use the more complex one for everything again it
+more complex one for everything again it really depends on how many objects and
+really depends on how many objects and how complex of a shader as a 3d artist
+how complex of a shader as a 3d artist my first question when starting to
+my first question when starting to develop for the quest was of course
+develop for the quest was of course what's my poly count the initial numbers
+what's my poly count the initial numbers I heard from oculus were pretty
+I heard from oculus were pretty understandable given that it's a mobile
+understandable given that it's a mobile device and I had made mobile games
+device and I had made mobile games before but 3d artists we always want
+before but 3d artists we always want more Poly's so I couldn't just accept
+more Poly's so I couldn't just accept the number I had to be sure
+the number I had to be sure so the poly limit given by oculus is 50
+so the poly limit given by oculus is 50 to 100k Verde's which is okay I've made
+to 100k Verde's which is okay I've made do with less but I did some tests ok so
+do with less but I did some tests ok so just because some static mesh tests with
+just because some static mesh tests with no physics or lights or gameplay can
+no physics or lights or gameplay can handle half-a-million Poly's doesn't
+handle half-a-million Poly's doesn't mean that's true of the final game
+mean that's true of the final game scenario but I have consistently
+scenario but I have consistently overshot oculus is recommended poly
+overshot oculus is recommended poly count in almost every scene I've made
+count in almost every scene I've made and so long as the other systems are
+and so long as the other systems are kept light I can almost double the
+kept light I can almost double the recommended numbers in fact on my most
+recommended numbers in fact on my most recent project I opted for style which
+recent project I opted for style which demands more mid poly models
+demands more mid poly models but has a really lightweight shaders and
+but has a really lightweight shaders and textures and uses no lights at all so I
+textures and uses no lights at all so I can get away with needing extra Polly's
+can get away with needing extra Polly's in that style it did some tests and
+in that style it did some tests and found out that most of my scenes in that
+found out that most of my scenes in that project averaged about 150 K I did start
+project averaged about 150 K I did start hitting some ceilings but only when I
+hitting some ceilings but only when I was being really lazy with my poly count
+was being really lazy with my poly count and again everything adds up so if you
+and again everything adds up so if you really want a PBR look with lights and
+really want a PBR look with lights and some dynamic shadows maybe you don't
+some dynamic shadows maybe you don't have the wiggle room in your poly count
+have the wiggle room in your poly count and you should aim for the target that
+and you should aim for the target that oculus gives I was I think that I was
+oculus gives I was I think that I was only able to really push this number due
+only able to really push this number due to the lack of lighting and textures in
+to the lack of lighting and textures in my project style so what about the
+my project style so what about the classic methods of loader lowering poly
+classic methods of loader lowering poly count they're still there and they still
+count they're still there and they still work so that's good but they have a
+work so that's good but they have a couple caveats as well instancing yeah
+couple caveats as well instancing yeah it can really help with poly count but
+it can really help with poly count but remember our draw calls only certain
+remember our draw calls only certain kinds of instances actually draw on one
+kinds of instances actually draw on one call and some types still render each
+call and some types still render each instance on a different call so you you
+instance on a different call so you you might save Poly's but add draw calls and
+might save Poly's but add draw calls and since draw calls are more of an impact
+since draw calls are more of an impact hit be cautious with instancing and make
+hit be cautious with instancing and make sure that it's also batching the draw
+sure that it's also batching the draw calls together
+calls together well let's guys batching more in a
+well let's guys batching more in a moment LEDs are also a great way to keep
+moment LEDs are also a great way to keep your poly count in check I would
+your poly count in check I would particularly recommend that you use LEDs
+particularly recommend that you use LEDs for foliage and other things which
+for foliage and other things which repeat a lot depending on which engineer
+repeat a lot depending on which engineer using certain instances will also work
+using certain instances will also work with LEDs so you can kind of get away
+with LEDs so you can kind of get away with two-for-one combining them to one
+with two-for-one combining them to one draw call and still using LEDs
+okay so what can you do artistically when working with lower poly count first
+when working with lower poly count first of all remember that all games involves
+of all remember that all games involves some amount of poly monitoring even
+some amount of poly monitoring even next-gen games don't just throw ZBrush
+next-gen games don't just throw ZBrush sculpts into the engine so even if you
+sculpts into the engine so even if you don't want a low poly aesthetic you're
+don't want a low poly aesthetic you're already working with a normal pipeline
+already working with a normal pipeline you just need to be a little more
+you just need to be a little more cautious than on a traditional
+cautious than on a traditional platformer and keep an eye on how your
+platformer and keep an eye on how your attempts to reduce poly count may affect
+attempts to reduce poly count may affect draw calls second think about in racing
+draw calls second think about in racing a low poly look I actually really love
+a low poly look I actually really love low poly styles and generally model low
+low poly styles and generally model low poly stuff it's not everyone's cup of
+poly stuff it's not everyone's cup of tea and it certainly doesn't work for
+tea and it certainly doesn't work for every game but it can work for every
+every game but it can work for every type of game and even if a low poly
+type of game and even if a low poly style is not what you want for your game
+style is not what you want for your game looking at how visual problems are
+looking at how visual problems are solved with less Polly's can help you
+solved with less Polly's can help you overcome poly count problems that you're
+overcome poly count problems that you're dealing with this is a difficult thing
+dealing with this is a difficult thing to show examples of because it's one of
+to show examples of because it's one of the places where artistic creativity and
+the places where artistic creativity and technical implementation really
+technical implementation really intersect without many rules but as an
+intersect without many rules but as an example foliage can be difficult to make
+example foliage can be difficult to make performant especially if you're trying
+performant especially if you're trying to use a lot of cards so looking at
+to use a lot of cards so looking at foliage in low poly games might help you
+foliage in low poly games might help you find a way to create foliage which still
+find a way to create foliage which still suits your game style but doesn't rely
+suits your game style but doesn't rely on all those cards you can still hit the
+on all those cards you can still hit the visual target you want by learning to
+visual target you want by learning to construct an asset in a different way
+construct an asset in a different way just look at these games regardless of
+just look at these games regardless of the final poly count which I don't know
+the final poly count which I don't know because I didn't make these these games
+because I didn't make these these games lean into a certain low poly aesthetic
+lean into a certain low poly aesthetic such as faceting on the enemies and
+such as faceting on the enemies and super hot or the chunky shapes and job
+super hot or the chunky shapes and job simulator or the simplified graphics
+simulator or the simplified graphics graphic shapes in virtual virtual
+graphic shapes in virtual virtual reality they all look great and distinct
+reality they all look great and distinct from one another so even if you're a
+from one another so even if you're a little cautious poly count is probably
+little cautious poly count is probably not going to be where you hit
+not going to be where you hit performance walls I really only see this
+performance walls I really only see this being an issue for pretty large scale
+being an issue for pretty large scale games with lots of large environments
+games with lots of large environments and lots of foliage but that said
+and lots of foliage but that said looking to low poly styles to solve
+looking to low poly styles to solve various visual problems may help your
+various visual problems may help your game look more polished than simply
+game look more polished than simply trying to
+trying to traditional high-to-low pipeline and
+traditional high-to-low pipeline and just forcing it even lower all right
+just forcing it even lower all right back to batching speaking abilities and
+back to batching speaking abilities and instances and poly counts I'm gonna draw
+instances and poly counts I'm gonna draw jump back into our draw call math and
+jump back into our draw call math and discuss matching I found matching to be
+discuss matching I found matching to be really useful and I feel it's important
+really useful and I feel it's important to cover the matching options so
+to cover the matching options so batching is when the engine takes in
+batching is when the engine takes in normally separate objects and draws them
+normally separate objects and draws them all the same call as a quick example
+all the same call as a quick example this is what happens to all the quads
+this is what happens to all the quads that are generated in a dust mote
+that are generated in a dust mote particle system so that each particle is
+particle system so that each particle is in a draw call so that's batching but
+in a draw call so that's batching but you can also batch with regular static
+you can also batch with regular static meshes in the game which sounds great
+meshes in the game which sounds great but batching isn't going to magically
+but batching isn't going to magically solve all your draw call needs they come
+solve all your draw call needs they come with some strict rules too but knowing
+with some strict rules too but knowing what's going on with batching can help
+what's going on with batching can help you set things up a little better I
+you set things up a little better I don't want to get too into the weeds
+don't want to get too into the weeds because there are different methods and
+because there are different methods and rules depending on which engine you use
+rules depending on which engine you use but what's important is figuring out
+but what's important is figuring out whether the batching is costing more
+whether the batching is costing more performance to compute than just adding
+performance to compute than just adding some draw calls and merging meshes it's
+some draw calls and merging meshes it's something that which may be on a
+something that which may be on a case-by-case basis depending on what
+case-by-case basis depending on what kind of lighting are using or other
+kind of lighting are using or other things which may affect performance but
+things which may affect performance but at least it's good to know what tools
+at least it's good to know what tools you have there are two types of batching
+you have there are two types of batching and unity dynamic batching and static
+and unity dynamic batching and static batching unity will dynamically batch
+batching unity will dynamically batch objects under 300 verts which is the
+objects under 300 verts which is the same mesh and material there are a few
+same mesh and material there are a few more rules to this but the point is that
+more rules to this but the point is that it largely happens without you having to
+it largely happens without you having to set much up the drawback to dynamic
+set much up the drawback to dynamic batching is that it comes with some
+batching is that it comes with some computation per object batched so if a
+computation per object batched so if a ton of objects are being matched
+ton of objects are being matched together it might actually not save you
+together it might actually not save you much performance but for a smaller
+much performance but for a smaller number of objects it's actually pretty
+number of objects it's actually pretty great and then there's static batching
+great and then there's static batching marking an object as static and unity
+marking an object as static and unity tells unity that the object doesn't move
+tells unity that the object doesn't move and therefore can be batched this static
+and therefore can be batched this static batching works with higher poly objects
+batching works with higher poly objects than the dynamic badging basically what
+than the dynamic badging basically what it does is it merges meshes together
+it does is it merges meshes together into one object and then draws that
+into one object and then draws that using separate calls for different
+using separate calls for different materials this means it comes to the
+materials this means it comes to the higher memory overhead since it's saving
+higher memory overhead since it's saving out that merged mesh so again you don't
+out that merged mesh so again you don't get it for free but it is a great way to
+get it for free but it is a great way to consolidate your scenes after set
+consolidate your scenes after set dressing there are a couple methods of
+dressing there are a couple methods of batching and unreal as well the main one
+batching and unreal as well the main one is instant static meshes unreal
+is instant static meshes unreal already deals with instancing meshes
+already deals with instancing meshes pretty well but converting some static
+pretty well but converting some static meshes into a proper incident static
+meshes into a proper incident static mesh will combine them into one call
+mesh will combine them into one call however you can end up with this kind of
+however you can end up with this kind of situation where I have really combined
+situation where I have really combined all my draw calls but I've also far
+all my draw calls but I've also far exceeded my poly count and nothing is
+exceeded my poly count and nothing is getting called and the LOD is aren't
+getting called and the LOD is aren't working so my advice is to go straight
+working so my advice is to go straight to a different type of instance when
+to a different type of instance when working on the quest from in realm and
+working on the quest from in realm and that is the hierarchical instance static
+that is the hierarchical instance static mesh these are my favorite you kind of
+mesh these are my favorite you kind of get everything here LOD x' batching
+get everything here LOD x' batching meshes into one call instance calling
+meshes into one call instance calling they're kind of amazing
+they're kind of amazing the only drawback to hierarchical and
+the only drawback to hierarchical and some static meshes is just working with
+some static meshes is just working with them since you can't comfortably move
+them since you can't comfortably move the instances around however it is
+the instances around however it is pretty easy to create a tool which runs
+pretty easy to create a tool which runs it through all the instances in the
+it through all the instances in the scene and converts them to an AI
+scene and converts them to an AI hierarchical instance static mesh if you
+hierarchical instance static mesh if you really need a lot of instancing
+really need a lot of instancing instances of something hierarchical
+instances of something hierarchical instance static meshes are really the
+instance static meshes are really the way to go in unreal I've used these a
+way to go in unreal I've used these a lot especially with natural elements
+lot especially with natural elements like rocks which can ticket duplicate it
+like rocks which can ticket duplicate it out quite a bit and of course not all
+out quite a bit and of course not all Polly's are the same skin meshes are
+Polly's are the same skin meshes are more expensive because they're being
+more expensive because they're being deformed and I don't think there's
+deformed and I don't think there's really any benchmark for how many skin
+really any benchmark for how many skin meshes you can have per scene or how
+meshes you can have per scene or how many Polly's can be skinned versus
+many Polly's can be skinned versus static it's going to depend on your
+static it's going to depend on your games overall performance as well as the
+games overall performance as well as the rig itself higher poly meshes or skin
+rig itself higher poly meshes or skin meshes with a higher
+meshes with a higher of influences per-vertex are going to be
+of influences per-vertex are going to be heavier the number of vertex influences
+heavier the number of vertex influences can really hit performance this isn't
+can really hit performance this isn't true for just the quest is true for most
+true for just the quest is true for most platforms particularly mobile platforms
+platforms particularly mobile platforms so when painting weights on skin meshes
+so when painting weights on skin meshes I try to stick to two to three joints
+I try to stick to two to three joints influencing each bird as much as
+influencing each bird as much as possible I will do three for things that
+possible I will do three for things that need to be really smooth but I would
+need to be really smooth but I would recommend not going above four and
+recommend not going above four and balance the number of joint influences
+balance the number of joint influences you have in your rigs against how many
+you have in your rigs against how many animating meshes you need at any given
+animating meshes you need at any given point this is why the quality levels can
+point this is why the quality levels can adjust how many bones influence of
+adjust how many bones influence of vertex it's just a big impact on
+vertex it's just a big impact on performance if you're still unsure about
+performance if you're still unsure about how many animating meshes you can use in
+how many animating meshes you can use in a scene run some tests
+a scene run some tests use a scene with static poly count
+use a scene with static poly count that's a good average for your game and
+that's a good average for your game and throw some rough rigs in I just added
+throw some rough rigs in I just added multiples of five to ten until I start
+multiples of five to ten until I start to see performance drops too many
+to see performance drops too many animating characters can be a quick way
+animating characters can be a quick way to tank a framerate but at the same time
+to tank a framerate but at the same time you want to use as much as you can
+you want to use as much as you can because the animation really brings
+because the animation really brings games to life bear in mind though that
+games to life bear in mind though that animation controllers with a lot of
+animation controllers with a lot of layers can also impact performance so if
+layers can also impact performance so if you're planning some really intense
+you're planning some really intense animation controllers and be sure to
+animation controllers and be sure to test those as well
+issues around transparency is one of the aspects of the quest that's not obvious
+aspects of the quest that's not obvious transparency isn't a big issue on most
+transparency isn't a big issue on most platforms probably because of the
+platforms probably because of the differences in the hardware but
+differences in the hardware but transparency objects need to be handled
+transparency objects need to be handled with a lot of care when developing for
+with a lot of care when developing for the quest the problem seems to stem from
+the quest the problem seems to stem from overdraw which is when multiple objects
+overdraw which is when multiple objects or multiple Poly's are being drawn on
+or multiple Poly's are being drawn on top of one another this already affects
+top of one another this already affects performance because you're taking time
+performance because you're taking time to draw things which maybe aren't even
+to draw things which maybe aren't even seen but overdraw is basically
+seen but overdraw is basically unavoidable to some extent in all games
+unavoidable to some extent in all games it becomes a problem on the quest is
+it becomes a problem on the quest is when one object is transparent and so
+when one object is transparent and so both objects will affect the final pixel
+both objects will affect the final pixel in the image in this example here I've
+in the image in this example here I've put the wall in front of several other
+put the wall in front of several other objects and you can see that those
+objects and you can see that those objects are still being drawn but you
+objects are still being drawn but you can't actually see them that's an
+can't actually see them that's an example of overdraw and transparency
+example of overdraw and transparency you're drawing all those objects but
+you're drawing all those objects but multiple of those objects are affecting
+multiple of those objects are affecting the final outcome small objects like
+the final outcome small objects like dust motes or text don't have a big
+dust motes or text don't have a big impact because they don't overlap each
+impact because they don't overlap each other a lot and don't occupy a lot of
+other a lot and don't occupy a lot of screen space but larger transparent
+screen space but larger transparent objects like large cloud or fog cards
+objects like large cloud or fog cards effect sprites or even head bubble
+effect sprites or even head bubble transition fades can be a real
+transition fades can be a real performance issue especially if you're
+performance issue especially if you're struggling to keep your frame rate up my
+struggling to keep your frame rate up my best advice to you is to avoid using
+best advice to you is to avoid using transparency techniques that can occupy
+transparency techniques that can occupy a large part of the screen especially if
+a large part of the screen especially if they're going to layer a lot you can use
+they're going to layer a lot you can use transparency here and there but you need
+transparency here and there but you need to make make sure to keep it as small
+to make make sure to keep it as small and infrequent as possible and test it
+and infrequent as possible and test it on the quest whenever you're going to
+on the quest whenever you're going to add something like this so because
+add something like this so because transparency is not normally a big issue
+transparency is not normally a big issue for game art it gets a little tricky to
+for game art it gets a little tricky to work around not using it so here are a
+work around not using it so here are a few quick tips don't use big soft cloud
+few quick tips don't use big soft cloud or fog cards for soft particles you need
+or fog cards for soft particles you need depth Pass rendering and you
+depth Pass rendering and you which we don't have on mobile so they'll
+which we don't have on mobile so they'll just clip through hard meshes and they
+just clip through hard meshes and they won't look great anyway I find sometimes
+won't look great anyway I find sometimes that really soft alpha cards don't also
+that really soft alpha cards don't also look as good in build as they do an
+look as good in build as they do an engine so be sure to text test your
+engine so be sure to text test your effects on the headset the old style of
+effects on the headset the old style of fog linear fog or vertex fog the form is
+fog linear fog or vertex fog the form is really well on the quest I've really
+really well on the quest I've really pushed this and made it do some really
+pushed this and made it do some really interesting things so as long as you
+interesting things so as long as you have enough vertices to support it it
+have enough vertices to support it it can work really well try to avoid using
+can work really well try to avoid using plant cards or foliage cards there are
+plant cards or foliage cards there are other ways to make plants than just
+other ways to make plants than just cards explore some styles that don't use
+cards explore some styles that don't use as many cards and maybe rely on Polly's
+as many cards and maybe rely on Polly's for the plant shapes for sprites use
+for the plant shapes for sprites use meshes fitted to the image to reduce as
+meshes fitted to the image to reduce as much overdraw as possible engines and
+much overdraw as possible engines and sprite support software already makes
+sprite support software already makes this really easy to do so there's no
+this really easy to do so there's no reason to render everything on big quads
+reason to render everything on big quads especially since you're not as confined
+especially since you're not as confined on the Polly's also you can pick a more
+on the Polly's also you can pick a more graphic look for effects and use meshes
+graphic look for effects and use meshes instead of transparent cards here on the
+instead of transparent cards here on the right I've made some soap bubbles and
+right I've made some soap bubbles and rather than using an alpha for
+rather than using an alpha for transparency I've kept the style really
+transparency I've kept the style really graphic
+graphic these are mesh renderers they still read
+these are mesh renderers they still read clearly but I don't have to worry about
+clearly but I don't have to worry about performance as much for these also
+performance as much for these also there's a setting in particle systems
+there's a setting in particle systems called max particle size which is really
+called max particle size which is really helpful it'll prevent particles from
+helpful it'll prevent particles from taking up too much screen space so that
+taking up too much screen space so that way your frame rate won't drop just
+way your frame rate won't drop just because some dust mote got really close
+because some dust mote got really close to the camera and using the full screen
+to the camera and using the full screen mesh fade for transitions is easy but
+mesh fade for transitions is easy but can also affect the framerate and if
+can also affect the framerate and if you're already pushing performance maybe
+you're already pushing performance maybe try some different transition styles or
+try some different transition styles or build it into the shader and if you do
+build it into the shader and if you do use a mesh for transitions make sure to
+use a mesh for transitions make sure to disable the object when it's fully
+disable the object when it's fully transparent it should only be visible
+transparent it should only be visible during the transition so if you develop
+during the transition so if you develop for VR at all do you know that
+for VR at all do you know that post-processing is already somewhat
+post-processing is already somewhat problematic and not just for performance
+problematic and not just for performance reasons some post effects just don't
+reasons some post effects just don't translate well into VR largely due to
+translate well into VR largely due to the differences
+the differences between the images shown to each eye
+between the images shown to each eye however there are plenty of things like
+however there are plenty of things like blue color correction or color grading
+blue color correction or color grading which are really helpful on the quest
+which are really helpful on the quest however the tile renderer makes any
+however the tile renderer makes any traditional post-processing really slow
+traditional post-processing really slow like really slow because that post means
+like really slow because that post means after all the draw calls are done and
+after all the draw calls are done and sending the back image back through to
+sending the back image back through to get processed again is really a bad idea
+get processed again is really a bad idea on this hardware so while it's one of
+on this hardware so while it's one of the biggest performance disappointments
+the biggest performance disappointments for art on this platform it largely just
+for art on this platform it largely just means that the traditional or built-in
+means that the traditional or built-in post-processing tools are not going to
+post-processing tools are not going to cut it you have to implement what you
+cut it you have to implement what you need in other ways
+need in other ways color correction for example can be done
+color correction for example can be done before the image is complete you can add
+before the image is complete you can add color correction into the shader and
+color correction into the shader and adjust it from there even seen the scene
+adjust it from there even seen the scene using global parameters cards can be
+using global parameters cards can be used in places where you really really
+used in places where you really really want some bloom since you can't get a
+want some bloom since you can't get a whole image style bloom pass but the
+whole image style bloom pass but the thing to keep in mind with
+thing to keep in mind with post-processing is that it's just a tool
+post-processing is that it's just a tool to achieve a visual goal if you can't
+to achieve a visual goal if you can't use the tool you know it doesn't mean
+use the tool you know it doesn't mean that you give up on the work that you
+that you give up on the work that you needed it to do assess the effect you
+needed it to do assess the effect you wanted and figure out other ways to get
+wanted and figure out other ways to get those results visually so I've talked a
+those results visually so I've talked a lot about testing things to figure out
+lot about testing things to figure out what could be affecting your frame rate
+what could be affecting your frame rate or before I'm committing yourself to a
+or before I'm committing yourself to a new technique or asset style all over
+new technique or asset style all over your game but what makes a good test to
+your game but what makes a good test to find out what's affecting performance in
+find out what's affecting performance in a scene I start by eliminating or
+a scene I start by eliminating or changing the big offenders and making a
+changing the big offenders and making a build with those changes for example I
+build with those changes for example I might disable or change the lighting
+might disable or change the lighting scenario or try removing a complex
+scenario or try removing a complex shader sometimes I'll replace high poly
+shader sometimes I'll replace high poly meshes with lower poly ones just to see
+meshes with lower poly ones just to see if reducing the poly count helps I ran
+if reducing the poly count helps I ran this test one time on a very frustrating
+this test one time on a very frustrating scene where I replaced every mesh with a
+scene where I replaced every mesh with a cube just to make sure that the poly
+cube just to make sure that the poly count wasn't the problem
+count wasn't the problem version control is very important here
+version control is very important here because you can revert all this this is
+because you can revert all this this is the same garden scene that I've been
+the same garden scene that I've been using through the whole talk but I've
+using through the whole talk but I've just selected every mesh filter and
+just selected every mesh filter and replaced it with a cube
+replaced it with a cube obviously the poly count is going to be
+obviously the poly count is going to be a lot lower so if I still had problems
+a lot lower so if I still had problems at this point I can eliminate a couple
+at this point I can eliminate a couple things the best thing you can do to keep
+things the best thing you can do to keep performance and check on the quest is
+performance and check on the quest is the test often during development that
+the test often during development that way if the framerate does drop suddenly
+way if the framerate does drop suddenly you'll kind of know what's new and seen
+you'll kind of know what's new and seen and therefore most likely the cause
+and therefore most likely the cause there are things to be cautious about
+there are things to be cautious about while testing though or you'll end up
+while testing though or you'll end up with misleading information so now I'm
+with misleading information so now I'm doing this example here I've put some
+doing this example here I've put some fog cards into a really lightweight
+fog cards into a really lightweight scene mainly to show how bad the
+scene mainly to show how bad the clipping looks but there's no lights and
+clipping looks but there's no lights and hardly any textures hardly any geo or
+hardly any textures hardly any geo or other effects in the scene so of course
+other effects in the scene so of course it's still running at 72 frames for a
+it's still running at 72 frames for a second nothing else is going on the
+second nothing else is going on the scene isn't representative of a finished
+scene isn't representative of a finished scene in the game unless it is well then
+scene in the game unless it is well then the act is this the important thing is
+the act is this the important thing is that you try to make your test scenes
+that you try to make your test scenes have the same complexity so that you're
+have the same complexity so that you're using a reasonably similar number of
+using a reasonably similar number of draw calls or using the same lighting
+draw calls or using the same lighting complexity if your test scene is really
+complexity if your test scene is really lightweight to render then anything you
+lightweight to render then anything you test in there may behave differently
+test in there may behave differently when added into a more completed scene
+when added into a more completed scene in your game so how do you translate all
+in your game so how do you translate all this information into decisions about
+this information into decisions about how your game looks from the beginning
+how your game looks from the beginning well most importantly know your budget
+well most importantly know your budget how big is your game how many people are
+how big is your game how many people are making this game what is their expertise
+making this game what is their expertise what does your timeline look like if the
+what does your timeline look like if the answer to these questions is you have a
+answer to these questions is you have a lot of people and plenty of time then
+lot of people and plenty of time then try to make your game look like whatever
+try to make your game look like whatever you want you can afford to spend time to
+you want you can afford to spend time to explore and finesse the performance if
+explore and finesse the performance if the answer sounds like most games you
+the answer sounds like most games you have a few people in a less than ideal
+have a few people in a less than ideal amount of time then aim for a style or
+amount of time then aim for a style or make choices within your desired style
+make choices within your desired style which eliminate problems and overhead
+which eliminate problems and overhead on my most recent quest project we had a
+on my most recent quest project we had a pretty short production timeline I had
+pretty short production timeline I had done this piece which you've seen
+done this piece which you've seen throughout the talk as a test of using
+throughout the talk as a test of using the gradient swatches instead of
+the gradient swatches instead of traditional texture maps before I even
+traditional texture maps before I even had the project get started look I
+had the project get started look I didn't even use the whole texture map
+didn't even use the whole texture map but for this really short project I
+but for this really short project I opted to use this method along with an
+opted to use this method along with an unlit shader and they saved a lot of
+unlit shader and they saved a lot of time not having to worry about creating
+time not having to worry about creating textures managing Texel Dex density and
+textures managing Texel Dex density and adjusting lights and I used that time in
+adjusting lights and I used that time in other places like effects and animation
+other places like effects and animation and shaders so don't feel like this form
+and shaders so don't feel like this form an art style around your time and
+an art style around your time and resources and then you can focus your
+resources and then you can focus your time on making your art look good
+time on making your art look good instead of focusing on making it perform
+instead of focusing on making it perform and while the two are never inseparable
+and while the two are never inseparable spending time making your game look
+spending time making your game look polished is always better than trying to
+polished is always better than trying to squeeze in new techniques that you don't
+squeeze in new techniques that you don't have time to optimize so in summary
+have time to optimize so in summary tests often and keep an eye on your draw
+tests often and keep an eye on your draw calls the cautious with lighting and
+calls the cautious with lighting and shadows and try to set those up smart in
+shadows and try to set those up smart in the beginning so that you can save
+the beginning so that you can save yourself trouble down the line you'll
+yourself trouble down the line you'll need to get creative with some things
+need to get creative with some things like post-processing and transparency
+like post-processing and transparency since a lot of the traditional methods
+since a lot of the traditional methods can affect performance if you're not
+can affect performance if you're not careful
+careful but generally try to have fun and make
+but generally try to have fun and make what you want because you can achieve
+what you want because you can achieve some really great art on the quest by
+some really great art on the quest by just applying a little knowledge of how
+just applying a little knowledge of how it works thank you for listening to this
+it works thank you for listening to this talk if you would like to contact me or
+talk if you would like to contact me or check out more of my art you can see my
+check out more of my art you can see my website or catch me on Twitter I'm
+website or catch me on Twitter I'm Lina's teapot or Alena Hale on most
+Lina's teapot or Alena Hale on most platforms so I'm pretty easy to find
+platforms so I'm pretty easy to find thank you again for listening I hope
+thank you again for listening I hope this was really helpful and I hope this
+this was really helpful and I hope this helps you make some more great VR games

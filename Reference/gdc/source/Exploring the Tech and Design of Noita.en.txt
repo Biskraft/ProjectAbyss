@@ -1,0 +1,795 @@
+[Music] we're going to be talking about
+we're going to be talking about exploring the tech and design of noitan
+exploring the tech and design of noitan because the game is not out yet i'm just
+because the game is not out yet i'm just going to show you a trailer
+going to show you a trailer and hopefully it'll explain a little bit
+and hopefully it'll explain a little bit about the game
+about the game we had some trouble getting the audio
+we had some trouble getting the audio working so it's not
+working so it's not again this is the curse of mine
+[Music]
+so uh thank you this is essentially us uh there's three
+this is essentially us uh there's three of us and then this is our uh
+of us and then this is our uh audio department here and uh
+audio department here and uh so the talk is going to be divided into
+so the talk is going to be divided into two parts and the first part we're going
+two parts and the first part we're going to talk about the tech stuff
+to talk about the tech stuff and then it's going to be the design
+and then it's going to be the design stuff and i'm just going to say
+stuff and i'm just going to say right now that the design part is
+right now that the design part is there's not
+there's not probably going to be enough time to go
+probably going to be enough time to go into too much detail about it so it's
+into too much detail about it so it's going to be a bit more
+going to be a bit more rambly but
+rambly but for the tech so we have a custom engine
+for the tech so we have a custom engine that's called falling everything
+that's called falling everything and you can kind of see from the trailer
+and you can kind of see from the trailer we can do sand
+we can do sand and we can do liquids of all kinds
+and we can do liquids of all kinds and then we can do gases as well
+and then we can do gases as well and and for the last thing is like we
+and and for the last thing is like we also have like rigid bodies
+also have like rigid bodies in there and essentially i'm going to
+in there and essentially i'm going to talk to how we've
+talk to how we've sort of done all of that and how that is
+sort of done all of that and how that is sort of being accomplished
+sort of being accomplished and we're going to start at the basics
+and we're going to start at the basics by traveling back
+by traveling back into a much better time period into the
+into a much better time period into the 90s
+90s when you could type into a text editor
+when you could type into a text editor and characters would appear immediately
+and characters would appear immediately so back back in the 90s i got started in
+so back back in the 90s i got started in quick basic
+quick basic and i discovered in quick basic that
+and i discovered in quick basic that you can do this thing where you can put
+you can do this thing where you can put a pixel under the screen
+a pixel under the screen by pset and you can ask for a color of a
+by pset and you can ask for a color of a pixel
+pixel by point by so you point at something
+by point by so you point at something and you ask what the color of that is
+and you ask what the color of that is and with this amazing technology i was
+and with this amazing technology i was able to
+able to essentially write a sand simulation so
+essentially write a sand simulation so what's what's happening here is
+what's what's happening here is uh it's testing that if there's a sand
+uh it's testing that if there's a sand pixel here
+pixel here it's looking at the line below it
+it's looking at the line below it if that's empty then move down and then
+if that's empty then move down and then if that's occupied it looks
+if that's occupied it looks uh to the left and the right to the down
+uh to the left and the right to the down left and the right and it moves in that
+left and the right and it moves in that direction
+direction and with that you essentially get this
+and with that you essentially get this which is
+which is a rudimentary sand simulation and this
+a rudimentary sand simulation and this is like 95 percent of our tech
+is like 95 percent of our tech is this
+then i really quickly discovered that you can also do water and it's
+you can also do water and it's essentially the same
+essentially the same algorithm but at the very end of that
+algorithm but at the very end of that you also like check to the left and to
+you also like check to the left and to the right and if they're empty you move
+the right and if they're empty you move in that direction
+in that direction so with that all of it sort of settles
+so with that all of it sort of settles down and now you've got
+down and now you've got water and sand and then the gases
+water and sand and then the gases are just like inverse of this so
+are just like inverse of this so that it's not that complicated it's now
+that it's not that complicated it's now you all know
+you all know if you've been wondering um but we're
+if you've been wondering um but we're travel
+travel forward in time uh about 12 years and
+forward in time uh about 12 years and i'm using visual
+i'm using visual c plus plus 6.0 and i do not know how
+c plus plus 6.0 and i do not know how good my life is
+good my life is and i ended up making this game called
+and i ended up making this game called bloody zombies
+bloody zombies and this was made in 2008 and it was
+and this was made in 2008 and it was made for gamma 256
+made for gamma 256 and it was a competition where you had
+and it was a competition where you had to make a game that used resolution 256
+to make a game that used resolution 256 times 256 or lower so
+times 256 or lower so while i was working on this this is
+while i was working on this this is essentially using the same
+essentially using the same algorithm as in the quick basic one
+algorithm as in the quick basic one but what i discovered is you can also
+but what i discovered is you can also like
+like make it a bit more liquid-like i'll show
+make it a bit more liquid-like i'll show you more
+you more gifs of or gifs so you can make it more
+gifs of or gifs so you can make it more liquid-like
+liquid-like by adding another sort of a simulation
+by adding another sort of a simulation which is like this particle simulation
+which is like this particle simulation and so the thing that's happening in in
+and so the thing that's happening in in this like when the player jumps into the
+this like when the player jumps into the blood and it splatters all around what's
+blood and it splatters all around what's happening is taking one of those pixels
+happening is taking one of those pixels out of that falling sand simulation
+out of that falling sand simulation and it's putting it into a separate
+and it's putting it into a separate particle simulation and it's tracking
+particle simulation and it's tracking its velocity and gravity in there
+its velocity and gravity in there and it's traveling in that until it hits
+and it's traveling in that until it hits another pixel in the world
+another pixel in the world and then it gets put back into the
+and then it gets put back into the falling sand simulation
+falling sand simulation right so with this you can make things a
+right so with this you can make things a lot more
+lot more liquid-like and not just like this
+liquid-like and not just like this blobby thing that's falling down
+blobby thing that's falling down and we're using this technique still to
+and we're using this technique still to this day in noita
+so after i was done with bloody zombies which was kind of like a
+bloody zombies which was kind of like a quick game
+quick game i made crayon physics and then
+i made crayon physics and then after that i was interested in like can
+after that i was interested in like can i add rigid bodies to the simulation
+i add rigid bodies to the simulation i was using visual studio c plus plus
+and it turns out you can add rigid bodies to this
+bodies to this but it's a bit more complicated
+but it's a bit more complicated and essentially the way this works is
+and essentially the way this works is i'm using box 2d for the rigid body
+i'm using box 2d for the rigid body stuff
+stuff and it's sort of like integrated with
+and it's sort of like integrated with this falling sand simulation
+this falling sand simulation so the way it works is you have all the
+so the way it works is you have all the pixels that belong to a rigid body
+pixels that belong to a rigid body they know their material and they know
+they know their material and they know they want to be one sort of rigid body
+they want to be one sort of rigid body and what you do with all those pixels is
+and what you do with all those pixels is you apply a marching square
+you apply a marching square algorithm to it and that marching
+algorithm to it and that marching squares algorithm essentially produces
+squares algorithm essentially produces this outline
+this outline of all where all the pixels are
+of all where all the pixels are and that's a lot of vertices so what you
+and that's a lot of vertices so what you do then is you
+do then is you give it a document specker algorithm and
+give it a document specker algorithm and that's
+that's essentially the smooths that out so you
+essentially the smooths that out so you get a lot less
+get a lot less vertices and once you haven't like
+vertices and once you haven't like to smooth it out
+mesh you give it into a triangulation algorithm and you get a
+algorithm and you get a bunch of triangles and at this point
+bunch of triangles and at this point you're at a stage where you can just
+you're at a stage where you can just give those triangles into box 2d and in
+give those triangles into box 2d and in box 2d can sort of simulate those
+box 2d can sort of simulate those bodies and the sort of final step to
+bodies and the sort of final step to this is that every pixel
+this is that every pixel that's here it knows its uv
+that's here it knows its uv coordinates inside of that
+coordinates inside of that triangle and it knows which body it
+triangle and it knows which body it belongs to
+belongs to so that's the way it can kind of like
+so that's the way it can kind of like figure out its new position
+figure out its new position and and the way you put these two
+and and the way you put these two simulations together so you have two
+simulations together so you have two different simulations at this stage
+different simulations at this stage the way you put them together is
+at the very beginning of the frame you take your
+take your rigid body pixels out of the world
+rigid body pixels out of the world then you run your falling science
+then you run your falling science simulation one step and you run your box
+simulation one step and you run your box 2d one step
+2d one step and then you put your pixels rigid body
+and then you put your pixels rigid body pixels back
+pixels back into the world and they get their
+into the world and they get their updated positions from
+updated positions from box 2d right and
+box 2d right and there might be this case where there's a
+there might be this case where there's a pixel now in the way
+pixel now in the way of a rigid body and what you do in that
+of a rigid body and what you do in that case you just take that pixel out and
+case you just take that pixel out and you put it into that bloody zombies
+you put it into that bloody zombies particle system and you throw it into
+particle system and you throw it into the air so what ends up happening with
+the air so what ends up happening with that is
+that is is you get these you know splashes
+is you get these you know splashes like well that's not a good example let
+like well that's not a good example let me give you a better example here
+me give you a better example here so like when this this body hits the
+so like when this this body hits the water
+water all those water pixels get thrown into
+all those water pixels get thrown into the world
+the world so that's pretty much pretty much it
+so that's pretty much pretty much it we have to do a bit more to it so like
+we have to do a bit more to it so like one thing is like if one of these pixels
+one thing is like if one of these pixels gets destroyed you have to recalculate
+gets destroyed you have to recalculate all of the
+all of the marching squares and the box 2d body
+marching squares and the box 2d body stuff and whatnot
+stuff and whatnot and for the rest of the world wherever
+and for the rest of the world wherever there's like study
+there's like study static i'm using static and air quotes
+static i'm using static and air quotes because
+because you know there's nothing really static
+you know there's nothing really static in our game uh
+in our game uh static stuff uses two the first
+static stuff uses two the first two steps of that algorithm so you do
+two steps of that algorithm so you do marching squares and douglas picker and
+marching squares and douglas picker and then you just make these hollow bodies
+then you just make these hollow bodies of the world and you only have to do
+of the world and you only have to do that
+that in places where there are rigid bodies
+in places where there are rigid bodies or
+or places where they're going to be rigid
+places where they're going to be rigid bodies
+bodies and that saves you a lot of
+so that's pretty much the tech
+there is one more step to it and this is well there's two more steps to it so
+well there's two more steps to it so we're getting to visual studio 2013
+we're getting to visual studio 2013 and i have here a video of it taking
+and i have here a video of it taking eight minutes to boot up
+eight minutes to boot up and i'm making all of you suffer through
+and i'm making all of you suffer through this
+because i've had to suffer through it so sort of the last step
+sort of the last step of this process of making the tech of
+of this process of making the tech of noita was that
+noita was that i had it running in this 256 times 256
+i had it running in this 256 times 256 area but it's really hard to
+area but it's really hard to make good gameplay in like 256 times
+make good gameplay in like 256 times 256.
+256. so the last step was like figuring out
+so the last step was like figuring out how to make like a really big world
+how to make like a really big world we can sort of have everything sort of
+we can sort of have everything sort of simulated
+simulated and the problem was that it was just
+and the problem was that it was just like taking so much cpu time to test all
+like taking so much cpu time to test all the pixels
+the pixels that it was getting really complicated
+that it was getting really complicated to do that so
+to do that so the solution to this was to figure out
+the solution to this was to figure out how to multi-tread
+how to multi-tread the sort of falling science simulation
+and essentially the way it's done is
+it's done is the sort of world is divided into these
+the sort of world is divided into these 64 times 64 chunks
+64 times 64 chunks and each of those chunks keeps a
+and each of those chunks keeps a dirty rect of things that it needs to
+dirty rect of things that it needs to update
+update so you can see here the dirty wrecks
+so you can see here the dirty wrecks that are getting updated
+that are getting updated and what this alone like even if you
+and what this alone like even if you don't multithread this
+don't multithread this what this alone does is like it removes
+what this alone does is like it removes like
+like so many of the pixels that you have to
+so many of the pixels that you have to test because
+test because very often the world ends up in some
+very often the world ends up in some sort of semi-stable state
+sort of semi-stable state so then you don't have to update that
+so then you don't have to update that much stuff
+much stuff but you can also multithread this pretty
+but you can also multithread this pretty easily
+and the problem with multithreading a simulation like this
+simulation like this is because it's using the same buffer so
+is because it's using the same buffer so there's no
+there's no not like two buffers uh you have to make
+not like two buffers uh you have to make sure
+sure that another tread is not updating the
+that another tread is not updating the same pixel as you're updating
+same pixel as you're updating because if there's like two threads
+because if there's like two threads trying to update the same pixel
+trying to update the same pixel all hell breaks loose and everything is
+all hell breaks loose and everything is destroyed
+so the way to do this is you or the way we did it is uh we update the
+or the way we did it is uh we update the world in this sort of a
+world in this sort of a checker pattern fashion
+so at the we do four update rounds of the world
+the world so at the very beginning you gather
+so at the very beginning you gather all the things that have to be updated
+all the things that have to be updated and then you pick
+and then you pick like in this case we're picking these
+like in this case we're picking these white ones here
+white ones here and what it allows things to do
+and what it allows things to do is this guarantees that any pixel that's
+is this guarantees that any pixel that's getting updated in this
+getting updated in this can go 32 pixels in any direction
+can go 32 pixels in any direction and it's guaranteed that another tread
+and it's guaranteed that another tread won't update it
+won't update it so like you can see here this green area
+so like you can see here this green area are
+are all the pixels where it can kind of like
+all the pixels where it can kind of like travel to
+travel to and so the multitrading is essentially
+and so the multitrading is essentially like you take
+like you take sort of every fourth chunk and you throw
+sort of every fourth chunk and you throw them into a tread pool
+them into a tread pool then you wait for all of those to be
+then you wait for all of those to be calculated
+calculated then you do the next set of four
+then you do the next set of four 64 64 areas you throw those into a
+64 64 areas you throw those into a thread pool
+thread pool you wait until they're done uh you do it
+you wait until they're done uh you do it once more
+once more and then you do it once more and then
+and then you do it once more and then you've essentially
+you've essentially managed to multithread the simulation
+managed to multithread the simulation and get a lot more out of your
+and get a lot more out of your cpus
+uh the real final bit because like we have a
+have a sort of a continuous big world it's
+sort of a continuous big world it's probably the most standard technique of
+probably the most standard technique of this
+this which is essentially just streaming so
+which is essentially just streaming so in this this yellow
+in this this yellow rectangle bit here represents
+rectangle bit here represents the screen and all of these other
+the screen and all of these other rectangulars are uh 512 512
+rectangulars are uh 512 512 areas of the world so as you sort of
+areas of the world so as you sort of travel around in the world the
+travel around in the world the procedural generation system is
+procedural generation system is generating new worlds as you're going
+generating new worlds as you're going and we try to keep 12 of these in there
+and we try to keep 12 of these in there at the same time
+at the same time and then we just like take the furthest
+and then we just like take the furthest one and we write it to the disk
+one and we write it to the disk and then you read it back if you ever go
+and then you read it back if you ever go there and this
+there and this all of this sort of creates this uh very
+all of this sort of creates this uh very nice
+nice uh feeling that the sort of whole world
+uh feeling that the sort of whole world is being simulated
+is being simulated all the time even though we're kind of
+all the time even though we're kind of like cleverly
+like cleverly figuring out what needs to be updated
+so that was the tech
+and now we're off into the design i just want to say that the tech part is
+i just want to say that the tech part is for for us it was or for me it's been
+for for us it was or for me it's been the sort of easier thing to work on and
+the sort of easier thing to work on and it's a game design that has been
+it's a game design that has been more complicated and difficult and the
+more complicated and difficult and the reason
+reason for that is that for the tech stuff you
+for that is that for the tech stuff you can
+can ask these falsifiable questions like you
+ask these falsifiable questions like you can ask does this look like water
+can ask does this look like water is it running at 60 frames a second yes
+is it running at 60 frames a second yes it's kind of done
+it's kind of done but when you come to game design you
+but when you come to game design you have all these questions like is this
+have all these questions like is this game fun
+game fun and it's like well depends who's asking
+and it's like well depends who's asking the question who's who's answering like
+the question who's who's answering like i enjoy kicking ragdolls around for like
+i enjoy kicking ragdolls around for like eight hours a day
+eight hours a day but like i don't know if anyone else is
+but like i don't know if anyone else is going to do that enjoy that
+going to do that enjoy that so for us the real question is like
+so for us the real question is like hopefully the tech was kind of cool and
+hopefully the tech was kind of cool and impressive but
+impressive but does it produce interesting gameplay
+and the answer to that is i mean the game's not out so we don't quite
+the game's not out so we don't quite know but the answer to this is very
+know but the answer to this is very complicated
+complicated uh
+so the naive answer to this question does it produce interesting gameplay and
+does it produce interesting gameplay and this is the position i had when i sort
+this is the position i had when i sort of started this
+of started this is that of course this is going to
+is that of course this is going to produce all this interesting gameplay
+produce all this interesting gameplay it's going to work as like this
+it's going to work as like this perpetual motion machine of emerging
+perpetual motion machine of emerging gameplay
+gameplay and i was kind of right this physics
+and i was kind of right this physics engine works in that way that there's a
+engine works in that way that there's a lot of emergent stuff that happens
+lot of emergent stuff that happens but what i did not realize is that
+but what i did not realize is that emerging gameplay comes in two colors
+emerging gameplay comes in two colors you've got the cool and interesting
+you've got the cool and interesting thing that everyone
+thing that everyone is always hyped about and you think when
+is always hyped about and you think when you hear the words emerging gameplay
+you hear the words emerging gameplay but it also comes in this game breaking
+but it also comes in this game breaking fashion
+fashion that can just like completely devastate
+that can just like completely devastate your game
+your game so this is the early prototype i did and
+so this is the early prototype i did and it's the idea is that you have like this
+it's the idea is that you have like this 2d building
+2d building and what i didn't realize is like if you
+and what i didn't realize is like if you simulate all of that it's going to end
+simulate all of that it's going to end up as like this
+up as like this pile of rubble at the bottom of the
+pile of rubble at the bottom of the screen
+screen and it was this is kind of cool in a way
+and it was this is kind of cool in a way but like how are you going to build a
+but like how are you going to build a game out of this
+game out of this when all your level design is just gonna
+when all your level design is just gonna it's gonna end up as a rubble
+it's gonna end up as a rubble and you can imagine like building a game
+and you can imagine like building a game on top of a system like this
+on top of a system like this it's gonna be like nightmare uh
+it's gonna be like nightmare uh so really the process of
+so really the process of making noita has really been a process
+making noita has really been a process of sort of trial and error
+of sort of trial and error and a process of sort of trying to tame
+and a process of sort of trying to tame this
+this emergent chaos beast that is our physics
+emergent chaos beast that is our physics engine
+engine and to find the game that sort of like
+and to find the game that sort of like maximizes the good emergence stuff while
+maximizes the good emergence stuff while sort of minimizing the
+sort of minimizing the bad ones and the way we've approached
+bad ones and the way we've approached this is
+this is just testing a lot of things so we've
+just testing a lot of things so we've tested a bunch of different games we've
+tested a bunch of different games we've tested a lot of
+tested a lot of different things and it's because it's
+different things and it's because it's so hard to know like
+so hard to know like if you put something in there is it the
+if you put something in there is it the coolest thing or the thing that's going
+coolest thing or the thing that's going to break the game
+[Music] uh
+uh so besides testing a bunch of different
+so besides testing a bunch of different games
+games uh what's ended up happening often is
+uh what's ended up happening often is we've made changes
+we've made changes and then we've sort of ended at a sort
+and then we've sort of ended at a sort of local maxima
+of local maxima so local maximum is sort of a place
+so local maximum is sort of a place where the game was kind of
+where the game was kind of fun but we felt that there could be
+fun but we felt that there could be something much better out there and we
+something much better out there and we didn't but we didn't know what
+didn't but we didn't know what what we should be doing to get there so
+what we should be doing to get there so as an example of
+as an example of that sort of a thing
+this is our earlier version of of the game and
+game and the player had this tool where they
+the player had this tool where they could like
+could like dig through everything this drill
+dig through everything this drill and it was kind of fun you'd get this at
+and it was kind of fun you'd get this at the very beginning of the game
+the very beginning of the game and it was kind of fun and interesting
+and it was kind of fun and interesting to go around the world using this
+to go around the world using this this tool but the problem with it
+this tool but the problem with it was that it essentially broke all the
+was that it essentially broke all the combat
+combat gameplay because like what you would do
+gameplay because like what you would do is you drill this hole into a wall
+is you drill this hole into a wall and you shoot all the enemies through
+and you shoot all the enemies through that tiny hole
+that tiny hole and then it was it was kind of fun but
+and then it was it was kind of fun but it was also kind of like breaking the
+it was also kind of like breaking the whole game uh combat gameplay
+whole game uh combat gameplay so what we ended up doing at some point
+so what we ended up doing at some point was just like
+was just like taking the drill out completely and what
+taking the drill out completely and what ended up happening there for a while
+ended up happening there for a while was that the game got a lot worse
+was that the game got a lot worse because like the whole procedural
+because like the whole procedural generation system was built
+generation system was built with that in mind that he would go
+with that in mind that he would go through everything
+through everything and it was kind of worse for a while
+and it was kind of worse for a while until we actually fixed everything and
+until we actually fixed everything and then we were actually at a better
+then we were actually at a better position
+position than we started
+[Music] and sort of besides being stuck at these
+and sort of besides being stuck at these sort of local maximas which happens very
+sort of local maximas which happens very often
+often we few times sort of managed to push the
+we few times sort of managed to push the game forward
+game forward in a big splash into something better
+in a big splash into something better and one of those things was when we
+and one of those things was when we decided to sort of make it
+decided to sort of make it roguelike which means it's a permadeath
+roguelike which means it's a permadeath game with procedural generation
+game with procedural generation uh
+what really happened when we sort of made a rope light was that
+made a rope light was that we managed to sort of shift this sort of
+we managed to sort of shift this sort of like we have this emerging chaos beast
+like we have this emerging chaos beast that is our physics engine we're sort of
+that is our physics engine we're sort of shifting uh
+shifting uh dealing with it first into the player
+dealing with it first into the player and then b to the sort of random nature
+and then b to the sort of random nature of the game
+of the game so like because the world's out there to
+so like because the world's out there to kill you you as a player have to pay
+kill you you as a player have to pay attention to it
+attention to it and sort of be because of the random
+and sort of be because of the random nature of the game
+nature of the game uh we we got to put back some stuff so
+uh we we got to put back some stuff so for example the drill that i mentioned
+for example the drill that i mentioned earlier that
+earlier that broke our previous game that wasn't
+broke our previous game that wasn't roguelike
+roguelike it has made its comeback in in noita
+it has made its comeback in in noita and because the game is random you as a
+and because the game is random you as a player you can't like
+player you can't like build all your strategies around just
+build all your strategies around just like finding this one tool and beating
+like finding this one tool and beating the game with it
+the game with it because it's not that good it can sort
+because it's not that good it can sort of go back
+of go back into the game and be there and it's
+into the game and be there and it's actually kind of fun as a player like
+actually kind of fun as a player like now
+now as a player like finding this drill
+as a player like finding this drill and then figuring out how to use it and
+and then figuring out how to use it and then figuring out that you can kind of
+then figuring out that you can kind of break a bit of the combat if you use
+break a bit of the combat if you use that that's like an exciting thing like
+that that's like an exciting thing like you think you're really clever and you
+you think you're really clever and you found something that the designers don't
+found something that the designers don't know and it's kind of like an exciting
+know and it's kind of like an exciting moment
+moment but we've gotten away with a lot of that
+but we've gotten away with a lot of that stuff because because of the random
+stuff because because of the random nature
+nature uh another thing making it permanent
+uh another thing making it permanent really fixed us
+really fixed us for us is uh you can essentially get a
+for us is uh you can essentially get a new world every time you play
+new world every time you play so previously it used to be uh
+so previously it used to be uh it used to be sort of a similar game but
+it used to be sort of a similar game but you it would be like
+you it would be like like in terraria that when you died your
+like in terraria that when you died your stuff would remain in the world and you
+stuff would remain in the world and you could go
+could go pick that up but the problem with that
+pick that up but the problem with that was because we have such a
+was because we have such a highly dynamic world he's a player you
+highly dynamic world he's a player you could like
+could like let's say you have to get into this
+let's say you have to get into this portal and
+portal and you fill out this place with lava and
+you fill out this place with lava and it's a persistent world
+it's a persistent world then you sort of essentially screw to
+then you sort of essentially screw to yourself you can't
+yourself you can't never make it there anymore
+never make it there anymore but because we we have a permadeath game
+but because we we have a permadeath game we don't really care about that that
+we don't really care about that that much
+much so like you if you as a player you're
+so like you if you as a player you're kind of like dumb enough to
+kind of like dumb enough to block your progress in the game that's
+block your progress in the game that's that's on you
+that's on you you get a new chance when you die and
+you get a new chance when you die and hopefully you'll die very quickly
+or very likely you're gonna uh
+so i'm going to talk about a few more things hopefully
+things hopefully we have time so the this is probably the
+we have time so the this is probably the thing that's most obvious to people is
+thing that's most obvious to people is like when we
+like when we made it a roguelite we managed to make
+made it a roguelite we managed to make it like we can make it a challenging
+it like we can make it a challenging game
+game and the benefit of that for us is
+and the benefit of that for us is in a moment the benefit of that for us
+in a moment the benefit of that for us is
+is [Music]
+[Music] you as a player you really have to pay
+you as a player you really have to pay attention to the world
+attention to the world and the physics and how it works
+because the physics are there out to kill you
+and related note to this was one of the prototypes we did
+prototypes we did you played as a sort of god like entity
+you played as a sort of god like entity and you could
+and you could like spam lightning everywhere and kill
+like spam lightning everywhere and kill everyone and it was really fun
+everyone and it was really fun for about 20 minutes like being the
+for about 20 minutes like being the super powerful
+super powerful entity but
+entity but the problem with this was that you
+the problem with this was that you wouldn't essentially pay that much
+wouldn't essentially pay that much attention to the physics of the world
+attention to the physics of the world like the physics simulation turned into
+like the physics simulation turned into sort of a visual effect for you
+sort of a visual effect for you instead of being a thing that you had to
+instead of being a thing that you had to pay attention to
+pay attention to but now making this a roguelite has sort
+but now making this a roguelite has sort of allowed us to
+of allowed us to uh have our cake and eat it too so at
+uh have our cake and eat it too so at the very beginning
+the very beginning of the game you sort of as a player have
+of the game you sort of as a player have to pay a lot of attention to the world
+to pay a lot of attention to the world but if you make it far enough there you
+but if you make it far enough there you can become like super powerful and you
+can become like super powerful and you just like destroy everything in this one
+just like destroy everything in this one uh and the reason we did not like figure
+uh and the reason we did not like figure out that we should make this a
+out that we should make this a roguelite and permanent game at the very
+roguelite and permanent game at the very beginning
+beginning actually i think we had a very good
+actually i think we had a very good reason for that and the
+reason for that and the idea behind that was that it's going to
+idea behind that was that it's going to be super annoying playing this game
+be super annoying playing this game and you're going to get killed because
+and you're going to get killed because of like a physics glitch or some sort of
+of like a physics glitch or some sort of physics thing that's going to kill you
+physics thing that's going to kill you and you don't understand what's
+and you don't understand what's happening
+and and sort of our fix to that has been to try and fix as many of the glitches
+to try and fix as many of the glitches as possible
+as possible or make it so that if there's a glitch
+or make it so that if there's a glitch that we haven't figured out how to
+that we haven't figured out how to fix that it's not going to kill you
+fix that it's not going to kill you so like right now the rigid bodies
+so like right now the rigid bodies don't damage the player but they damage
+don't damage the player but they damage the enemies in there
+the enemies in there and the reason for that is we haven't
+and the reason for that is we haven't like figured out that maybe sometimes
+like figured out that maybe sometimes the rigid bodies can get
+the rigid bodies can get kind of like wobbly in a place and
+kind of like wobbly in a place and there's going to be huge forces that
+there's going to be huge forces that would kill the player immediately
+would kill the player immediately so we're just like let's just disable
+so we're just like let's just disable that that seems to work decently
+that that seems to work decently it'll probably make its comeback later
+it'll probably make its comeback later [Music]
+but the other part of that which which i have realized during this process is
+have realized during this process is that it's really about
+that it's really about communication to the player
+so if the player dies because of something like there's lava that drops
+something like there's lava that drops out of nowhere
+out of nowhere they're going to be super they might be
+they're going to be super they might be super pissed at the game if they think
+super pissed at the game if they think that's like a glitch or some random
+that's like a glitch or some random thing
+thing but if the player notices that there's
+but if the player notices that there's like a wooden plank here and there's
+like a wooden plank here and there's lava on top of that
+lava on top of that and they walk underneath there and then
+and they walk underneath there and then the wooden blank sets on fire and the
+the wooden blank sets on fire and the lava drops on them
+lava drops on them then if the player sees that they're
+then if the player sees that they're going to
+going to blame themselves for it they're going to
+blame themselves for it they're going to be like oh i wasn't careful enough like
+be like oh i wasn't careful enough like there was this thing
+there was this thing and really the difference between
+and really the difference between someone like hating your primitive game
+someone like hating your primitive game and sort of blaming themselves for it
+and sort of blaming themselves for it really is almost
+really is almost i think communication of like of these
+i think communication of like of these emerging systems
+emerging systems and if you look at some
+and if you look at some classic games like if you look at net
+classic games like if you look at net hack
+hack net hack is actually really good at
+net hack is actually really good at communicating what's happening
+communicating what's happening in in there like it stops the game stops
+in in there like it stops the game stops and there's a line on top of the screen
+and there's a line on top of the screen that says
+that says that actually says what's happening in
+that actually says what's happening in the world
+the world and there's a funny thing like when you
+and there's a funny thing like when you add the sort of communication thing
+add the sort of communication thing there
+there that happens is you as a player sort of
+that happens is you as a player sort of attribute
+attribute more to the emergent system than
+more to the emergent system than actually
+actually might even be in there so
+might even be in there so we had a sort of a thing where you would
+we had a sort of a thing where you would get
+get stained by the liquids that you walk
+stained by the liquids that you walk through
+through so for example uh if you got covered in
+so for example uh if you got covered in blood you'd be red and whatnot and it
+blood you'd be red and whatnot and it was purely visual at some point
+was purely visual at some point and then we added like let's make it so
+and then we added like let's make it so that if you're covered in oil you're
+that if you're covered in oil you're more likely to ignite
+more likely to ignite and that was kind of confusing to people
+and that was kind of confusing to people like they didn't realize that okay
+like they didn't realize that okay they're going to get
+they're going to get get ignited so the last thing we just
+get ignited so the last thing we just did was we added these
+did was we added these ui icons on top of you as a player that
+ui icons on top of you as a player that indicate
+indicate which liquid you're covered in so the
+which liquid you're covered in so the blue one here indicates you're wet
+blue one here indicates you're wet and as soon as that went in it went from
+and as soon as that went in it went from being like this obscure
+being like this obscure thing that no one got into a thing where
+thing that no one got into a thing where people started
+people started attributing things to this so like they
+attributing things to this so like they said oh i'm wet now so i'll probably
+said oh i'm wet now so i'll probably take more damage from being electrocuted
+take more damage from being electrocuted and that wasn't implemented in there but
+and that wasn't implemented in there but everyone sort of assumed that that's the
+everyone sort of assumed that that's the case
+case and to demonstrate like as an anecdote
+and to demonstrate like as an anecdote how powerful this thing was
+how powerful this thing was we had like when you're wet now i think
+we had like when you're wet now i think you take more damage from being
+you take more damage from being electrocuted but when you're wet you're
+electrocuted but when you're wet you're not as easily
+not as easily you don't ignite as easily and that was
+you don't ignite as easily and that was actually implemented in there
+actually implemented in there and then we broke it at some point and
+and then we broke it at some point and for like two months it was not working
+for like two months it was not working but we all sort of assumed that it's
+but we all sort of assumed that it's working there and we're just like
+working there and we're just like avoiding it because it's like it's
+avoiding it because it's like it's communicating this thing
+communicating this thing and i think like some games like dwarf
+and i think like some games like dwarf fortress and the sims for example
+fortress and the sims for example managed to like rise above to a certain
+managed to like rise above to a certain level where players actually
+level where players actually attribute more to the emerging systems
+attribute more to the emerging systems that actually are in there
+that actually are in there but okay that's that's about all the
+but okay that's that's about all the things that i have i think we have like
+things that i have i think we have like few minutes for questions
+few minutes for questions we have one question or two two minutes
+we have one question or two two minutes okay thank you
+okay thank you [Applause]
+[Applause] hello hey um i'm curious uh you
+hello hey um i'm curious uh you mentioned
+mentioned that uh the simulation was single
+that uh the simulation was single buffered everything happened on the same
+buffered everything happened on the same buffer yes is there a reason or did you
+buffer yes is there a reason or did you try double buffering
+try double buffering uh well originally it was just that's
+uh well originally it was just that's the way
+the way it got going uh but
+it got going uh but later on i realized like you can't like
+later on i realized like you can't like if you do a double buffer then you have
+if you do a double buffer then you have to actually update everything
+to actually update everything right unless you sort of double buffer
+right unless you sort of double buffer every junk
+every junk separately but then you have to sort of
+separately but then you have to sort of maintain two different buffers
+maintain two different buffers and and for i don't think there's
+and and for i don't think there's different kinds of simulations that you
+different kinds of simulations that you can do if you
+can do if you do double buffered uh falling sand stuff
+do double buffered uh falling sand stuff is much more harder i think
+is much more harder i think because then you have to figure out
+because then you have to figure out where does this pixel have to go
+where does this pixel have to go because right now pixels can only occupy
+because right now pixels can only occupy one place
+one place cool thanks
+great talk thank you um thank you i wanted to ask about
+wanted to ask about uh the procedural level generation like
+uh the procedural level generation like how did you get that part going for you
+how did you get that part going for you okay uh as would
+okay uh as would so i forgot to mention that we've been
+so i forgot to mention that we've been working on this game for like seven
+working on this game for like seven six years now so we've tried a lot of
+six years now so we've tried a lot of things
+things and for procedural generation we've
+and for procedural generation we've tried a few different things and
+tried a few different things and there are a few different things in the
+there are a few different things in the game right now but the main part of it
+game right now but the main part of it is using sean barrett's
+is using sean barrett's herringbone wang tile set
+herringbone wang tile set so essentially the
+so essentially the what it is is like if everyone here
+what it is is like if everyone here knows how spelunky does procedural
+knows how spelunky does procedural generation
+generation so spelunky does like four times four uh
+so spelunky does like four times four uh squares and those squares can be
+squares and those squares can be connected
+connected with certain rules uh
+with certain rules uh the herringbone wang tile set is
+the herringbone wang tile set is essentially
+essentially uh do we have anything happen how can i
+uh do we have anything happen how can i i'll demonstrate it with these things so
+i'll demonstrate it with these things so it's it's like
+it's it's like this sort of like a brick shape and then
+this sort of like a brick shape and then you put another brick shape that goes
+you put another brick shape that goes down like this
+down like this and then one that goes like this and one
+and then one that goes like this and one that goes like this
+that goes like this and there are certain rules like how
+and there are certain rules like how those can be connected
+those can be connected and the benefit of that to like the
+and the benefit of that to like the splunky style which is like squares
+splunky style which is like squares is that you don't see the seam as easily
+is that you don't see the seam as easily because like there's not a seam that
+because like there's not a seam that goes throughout the whole world where
+goes throughout the whole world where you see like oh this is the part where
+you see like oh this is the part where we are on this grid and this is the part
+we are on this grid and this is the part where around the screen
+do we have are we done okay if there are more questions i think
+okay if there are more questions i think there's some sort of a place out there
+there's some sort of a place out there and i can and hopefully answer those
+and i can and hopefully answer those thank you so much for everyone

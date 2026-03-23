@@ -1,0 +1,445 @@
+[Music] okay let's do this
+oh
+[Music]
+well we had a lot of water on Uncharted 3 um this talk is about creating the
+3 um this talk is about creating the flood effects in Uncharted three um e
+flood effects in Uncharted three um e and cook I work at naughty
+and cook I work at naughty dog um a little bit about me uh I've
+dog um a little bit about me uh I've been in the industry for about 11 years
+been in the industry for about 11 years um most of that has been at um
+um most of that has been at um Electronic Arts working on Metal of
+Electronic Arts working on Metal of Honor and then naughty dog working on
+Honor and then naughty dog working on the Uncharted series and now I'm working
+the Uncharted series and now I'm working on the last of us our new game uh
+on the last of us our new game uh Naughty Dog uh which looks really
+Naughty Dog uh which looks really exciting
+exciting um let's see uh before all that I
+um let's see uh before all that I studied graphic design um with a minor
+studied graphic design um with a minor in computer science at the University of
+in computer science at the University of North Texas and uh that computer science
+North Texas and uh that computer science minor is becoming more and more valuable
+minor is becoming more and more valuable uh as a effects artist in games um and I
+uh as a effects artist in games um and I think it's going to continue uh in that
+think it's going to continue uh in that direction for
+direction for sure so in Uncharted we did lots of
+sure so in Uncharted we did lots of kinds of water we did puddles we did
+kinds of water we did puddles we did waterfalls
+waterfalls oceans and floods is what we're going to
+oceans and floods is what we're going to talk about today
+uh first of all I just wanted to give a shout out to the Naughty Dog Engineers
+shout out to the Naughty Dog Engineers because they really do an amazing job at
+because they really do an amazing job at um eeking all the performance out of uh
+um eeking all the performance out of uh the PS3 that's possible and uh we really
+the PS3 that's possible and uh we really couldn't get the the level of visual
+couldn't get the the level of visual quality that we get without their
+quality that we get without their amazing work so first shout
+amazing work so first shout out and this is the effect we're going
+out and this is the effect we're going to be looking at
+today with no
+so as an artist I look back on this and I still just feel like there's something
+I still just feel like there's something missing it's kind of hard to put my
+missing it's kind of hard to put my finger on it but oh maybe it's Subway
+finger on it but oh maybe it's Subway sandwich $5 foot
+sandwich $5 foot long um so to make the effect we started
+long um so to make the effect we started with a fluid Sim we did a pretty coarse
+with a fluid Sim we did a pretty coarse fluid Sim inside of
+fluid Sim inside of Houdini uh and we were able to iterate
+Houdini uh and we were able to iterate pretty quickly and um use it as prev
+pretty quickly and um use it as prev visualiz ation to work out timing and
+visualiz ation to work out timing and the flow and the amount of water and um
+the flow and the amount of water and um all those details um pretty rapidly uh
+all those details um pretty rapidly uh without having to go uh back and forth
+without having to go uh back and forth into the game um but it wasn't just for
+into the game um but it wasn't just for PR visualization we ended up using it um
+PR visualization we ended up using it um throughout the whole production of the
+throughout the whole production of the effect uh we created the the in-game
+effect uh we created the the in-game mesh from the
+mesh from the simulation um we also us you know looked
+simulation um we also us you know looked at the simulation um for insiration on
+at the simulation um for insiration on uh like where the particles should be
+uh like where the particles should be spraying and uh the direction and speed
+spraying and uh the direction and speed and all of that um and then finally we
+and all of that um and then finally we we used the actual Sim data to push the
+we used the actual Sim data to push the rigid bodies all the um debris in the
+rigid bodies all the um debris in the hallway all the boxes and things uh
+hallway all the boxes and things uh those are pushed Along by the actual Sim
+those are pushed Along by the actual Sim data and since the mesh came from the
+data and since the mesh came from the Sim data the particles were inspired by
+Sim data the particles were inspired by the Sim data and then the rigid bodies
+the Sim data and then the rigid bodies were pushed by it it all kind of comes
+were pushed by it it all kind of comes together and it
+together and it matches um so to create the mesh um we
+matches um so to create the mesh um we had uh we had to figure out how we were
+had uh we had to figure out how we were going to do this because the surface
+going to do this because the surface obviously has to morph
+obviously has to morph constantly um we considered possibly
+constantly um we considered possibly doing a point cache but uh quickly
+doing a point cache but uh quickly rejected that idea um because it would
+rejected that idea um because it would require a lot of new tech that we just
+require a lot of new tech that we just didn't want to invest the time in in
+didn't want to invest the time in in building um we did a first attempt uh
+building um we did a first attempt uh which um was more programmatic and
+which um was more programmatic and parametric in nature where it was
+parametric in nature where it was allowing us to basically um Glide bumps
+allowing us to basically um Glide bumps across the surface uh we abandoned that
+across the surface uh we abandoned that because it was very uh hard to work with
+because it was very uh hard to work with as an artist and uh we just couldn't get
+as an artist and uh we just couldn't get the level of fidelity that we wanted um
+the level of fidelity that we wanted um and so we decided to go with the brute
+and so we decided to go with the brute force method which was essentially to do
+force method which was essentially to do um skeletal meshes uh because our engine
+um skeletal meshes uh because our engine supports skeletal meshes really well um
+supports skeletal meshes really well um and to do one joint per vertex um the
+and to do one joint per vertex um the engineers actually were able to uh
+engineers actually were able to uh increase our ver our joint count to
+increase our ver our joint count to about 580 joints per
+about 580 joints per mesh um which wasn't quite enough to get
+mesh um which wasn't quite enough to get the entire flood but uh I I'll cover
+the entire flood but uh I I'll cover that in a
+that in a bit um in order to optimize uh
+bit um in order to optimize uh fortunately we had sort of a fixed
+fortunately we had sort of a fixed camera angle we knew that the camera was
+camera angle we knew that the camera was going to be tracking away from the flood
+going to be tracking away from the flood itself looking back at it and so instead
+itself looking back at it and so instead of uh using a a mesh of squares um I
+of uh using a a mesh of squares um I elongated those um so if you look at it
+elongated those um so if you look at it top down they're actually rectangles uh
+top down they're actually rectangles uh which allowed me to cut out about a
+which allowed me to cut out about a third or 2/3 actually um of the the
+third or 2/3 actually um of the the points and therefore the joints uh that
+points and therefore the joints uh that were going to be required and when
+were going to be required and when you're looking at it head on because of
+you're looking at it head on because of the way perspective kind of squishes it
+the way perspective kind of squishes it all it looks like a uniformly covered
+all it looks like a uniformly covered mesh so we used a ray casting method to
+mesh so we used a ray casting method to um to uh kind of extract a surface from
+um to uh kind of extract a surface from the fluid Sim uh this was also done in
+the fluid Sim uh this was also done in Houdini um but sort of the default um
+Houdini um but sort of the default um way that you would do a ray cast is to
+way that you would do a ray cast is to just cast along the normals of the
+just cast along the normals of the surface and in this case that would be
+surface and in this case that would be just going completely vertically up and
+just going completely vertically up and uh that was going to cause some some
+uh that was going to cause some some problems some artifacts that we didn't
+problems some artifacts that we didn't like um and so I experimented with
+like um and so I experimented with casting the Rays more in the direction
+casting the Rays more in the direction of the camera and uh that actually
+of the camera and uh that actually solved a lot of our
+problems um so you can see here with this diagram that um casting Rays along
+this diagram that um casting Rays along the normal uh uh in that striped area
+the normal uh uh in that striped area that's that's creating an error
+that's that's creating an error where um there's meant to be an overhang
+where um there's meant to be an overhang but there's actually just a wall and the
+but there's actually just a wall and the camera is looking you know right at that
+camera is looking you know right at that and it looks horrible
+and it looks horrible so changing the direction that we're
+so changing the direction that we're casting from to face the camera a bit
+casting from to face the camera a bit more it reduces the errors altogether
+more it reduces the errors altogether because of the way the water is kind of
+because of the way the water is kind of shaped but um also the errors are more
+shaped but um also the errors are more hidden from the camera so that really
+hidden from the camera so that really helped the
+helped the look so like I said before um uh there
+look so like I said before um uh there were more than 580 points required for
+were more than 580 points required for this Hall flood so had to actually like
+this Hall flood so had to actually like make three separate meshes um that were
+make three separate meshes um that were all driven by their own
+all driven by their own skeletons um and because
+skeletons um and because uh that gets a bit tedious to work with
+uh that gets a bit tedious to work with um I created a a little tool that would
+um I created a a little tool that would allow us to um uh treat the entire
+allow us to um uh treat the entire surface as one thing even though it's in
+surface as one thing even though it's in the game uh according to the game data
+the game uh according to the game data it's actually three separate things um
+it's actually three separate things um and uh it allows us to build it all as
+and uh it allows us to build it all as one thing and it really cuts down on the
+one thing and it really cuts down on the iteration time uh it's not as important
+iteration time uh it's not as important on this one because it was only three
+on this one because it was only three meshes but we Ed this technique um in
+meshes but we Ed this technique um in other parts of the game including like
+other parts of the game including like in some sand simulations with flowing
+in some sand simulations with flowing sand and uh it became more valuable
+sand and uh it became more valuable there because some of those surfaces
+there because some of those surfaces were like 12 to 14 separate patches uh
+were like 12 to 14 separate patches uh which would just be insane to to iterate
+which would just be insane to to iterate on if you were doing it all by
+on if you were doing it all by hand so here's what it looks like with
+hand so here's what it looks like with just a surface and no Shader on it it's
+just a surface and no Shader on it it's a little bit dark on this display but
+a little bit dark on this display but you can see a little bit how it's
+morphing so the surface Shader we use the um sort of our standard water Shader
+the um sort of our standard water Shader that we used uh throughout the game and
+that we used uh throughout the game and other types of water uh
+other types of water uh it's a really big Shader and it has lots
+it's a really big Shader and it has lots of features but these are some of the
+of features but these are some of the relevant ones for this effect um it does
+relevant ones for this effect um it does refraction which basically takes a copy
+refraction which basically takes a copy of the screen buffer and it distorts the
+of the screen buffer and it distorts the UV lookup based on uh the normal so the
+UV lookup based on uh the normal so the normal will uh change where it's going
+normal will uh change where it's going to look at the the screen texture uh and
+to look at the the screen texture uh and then also the depth so the deeper the
+then also the depth so the deeper the water is the further away from
+water is the further away from uh the um screen pixel that it would
+uh the um screen pixel that it would show without refraction uh the further
+show without refraction uh the further from that it gets so it gets more
+from that it gets so it gets more distorted the deeper it is and then
+distorted the deeper it is and then there's also um opacity based on depth
+there's also um opacity based on depth that helps it to look like um there's
+that helps it to look like um there's particulate in the water uh so where
+particulate in the water uh so where it's deeper it gets more
+it's deeper it gets more opaque um and then for reflection um the
+opaque um and then for reflection um the surface changes so much and it's it's
+surface changes so much and it's it's anything but a flat plane so doing
+anything but a flat plane so doing real-time Reflections wasn't really an
+real-time Reflections wasn't really an option but the cube map uh was totally
+option but the cube map uh was totally adequate so we did that with frel to um
+adequate so we did that with frel to um make it a stronger reflection on
+make it a stronger reflection on glancing angles sort of standard
+glancing angles sort of standard reflection stuff um and then uh lastly
+reflection stuff um and then uh lastly we did foam on the surface
+we did foam on the surface um which just kind of helps it look a
+um which just kind of helps it look a bit more turned
+bit more turned up here it is with
+the surface Shader so it lacks it really lacks a lot
+Shader so it lacks it really lacks a lot of the visceral quality that it needed
+of the visceral quality that it needed to have um if you wanted the player to
+to have um if you wanted the player to feel like uh he's really being chased
+feel like uh he's really being chased away by this giant Deluge of water so um
+away by this giant Deluge of water so um that actually came from the particles um
+that actually came from the particles um particles ended up being just the the
+particles ended up being just the the real um the really important part of the
+real um the really important part of the effect the surface was sort of
+effect the surface was sort of secondary um we ended up doing 31
+secondary um we ended up doing 31 separate emits that were all uh hand key
+separate emits that were all uh hand key frame animated um to match the animation
+frame animated um to match the animation of the water and uh eight different
+of the water and uh eight different particle definitions so eight different
+particle definitions so eight different types of particles that those emitters
+types of particles that those emitters were
+were emitting so we have a at NAU dog we have
+emitting so we have a at NAU dog we have a really uh great tool set and uh run
+a really uh great tool set and uh run time to go along with it um it's our um
+time to go along with it um it's our um UI is all done through Maya and we share
+UI is all done through Maya and we share a lot of the same features that um Maya
+a lot of the same features that um Maya particles
+particles have
+have um one thing we can do that's really
+um one thing we can do that's really useful is create custom attributes so we
+useful is create custom attributes so we can store off any kind of Uh custom data
+can store off any kind of Uh custom data that we
+that we want um and we can we can give those
+want um and we can we can give those data
+data values uh using
+values uh using Expressions expressions are huge if
+Expressions expressions are huge if you're unfamiliar with Expressions you
+you're unfamiliar with Expressions you should get familiar with them and um beg
+should get familiar with them and um beg your programmers to uh add it to your
+your programmers to uh add it to your tool set cuz it's it's super flexible
+tool set cuz it's it's super flexible allows you to um to manipulate data uh
+allows you to um to manipulate data uh pretty much any way you want um our
+pretty much any way you want um our expressions are really similar to Maya's
+expressions are really similar to Maya's Expressions uh we can even piggy back
+Expressions uh we can even piggy back off of Maya's like um syntax error
+off of Maya's like um syntax error detection and all that um so if you know
+detection and all that um so if you know my Expressions you pretty much know
+my Expressions you pretty much know naughty
+expressions and then we have the ability to use ramps um create gradients
+to use ramps um create gradients basically and um we can use our custom
+basically and um we can use our custom attributes as indices into the ramp so
+attributes as indices into the ramp so we can pick where on the ramp we want to
+we can pick where on the ramp we want to pull a a color or a value um using the
+pull a a color or a value um using the custom attributes and we can define
+custom attributes and we can define those through Expressions so it all
+those through Expressions so it all comes together and gives you a lot of
+comes together and gives you a lot of power and then we can also send these
+power and then we can also send these custom attributes to the
+custom attributes to the Shader uh which allows you to further um
+Shader uh which allows you to further um control the way the effect looks by
+control the way the effect looks by controlling Shader attributes and stuff
+controlling Shader attributes and stuff like that um so it's all very powerful
+like that um so it's all very powerful and then one of the other cool features
+and then one of the other cool features I mean there's a lot of them but this is
+I mean there's a lot of them but this is just one last one I wanted to mention is
+just one last one I wanted to mention is um custom orientation so our Sprites
+um custom orientation so our Sprites don't necessarily have to face the
+don't necessarily have to face the camera and they don't necessarily have
+camera and they don't necessarily have to be velocity aligned
+to be velocity aligned uh we can use our custom attributes and
+uh we can use our custom attributes and Define vectors that will Orient the
+Define vectors that will Orient the particles any way we want super flexible
+particles any way we want super flexible it's really nice and all of this is due
+it's really nice and all of this is due to Marshall Robin uh he's um pretty much
+to Marshall Robin uh he's um pretty much the loan programmer at n dog who does
+the loan programmer at n dog who does all of the effects stuff he's really
+all of the effects stuff he's really incredible he has a talk today at 2:30
+incredible he has a talk today at 2:30 in room 309 so go to that if you want to
+in room 309 so go to that if you want to learn more about Uncharted effects from
+learn more about Uncharted effects from a more programmer
+a more programmer technical
+technical perspective so um as every game affs
+perspective so um as every game affs artists as aware fill rate is the Enemy
+artists as aware fill rate is the Enemy Number One so we do do a couple of
+Number One so we do do a couple of things to um get around the fill rate
+things to um get around the fill rate problem and allow us to draw a lot more
+problem and allow us to draw a lot more particles uh which in this effect gives
+particles uh which in this effect gives it the really full like frothy look at
+it the really full like frothy look at the the front of the wave uh we render
+the the front of the wave uh we render our particles to a quarter res buffer so
+our particles to a quarter res buffer so um already we're drawing one qu of the
+um already we're drawing one qu of the pixels um so that's a big gain and then
+pixels um so that's a big gain and then uh with most of the effects that we do
+uh with most of the effects that we do they're roughly round shaped um and the
+they're roughly round shaped um and the corners of a quad are usually completely
+corners of a quad are usually completely transparent so we just chop them off and
+transparent so we just chop them off and make octagons instead of quads and it's
+make octagons instead of quads and it's a good tradeoff um between number of
+a good tradeoff um between number of points and uh number of pixels drawn
+points and uh number of pixels drawn because pixel we're usually fill rate
+because pixel we're usually fill rate bound so that's a a really nice win as
+bound so that's a a really nice win as well so um the main particle that you
+well so um the main particle that you notice in the effect is the froth
+notice in the effect is the froth particle uh this these are the color and
+particle uh this these are the color and Alpha uh Maps used for the froth
+Alpha uh Maps used for the froth particle uh they're based on Source
+particle uh they're based on Source photography done by a colleague of mine
+photography done by a colleague of mine at naughty dog named iy ikram he's a
+at naughty dog named iy ikram he's a great photographer I love photos by
+great photographer I love photos by ii.com
+um and then to get more variation uh we had four um different uh looks and just
+had four um different uh looks and just the color and Alpha and then to get uh
+the color and Alpha and then to get uh more variety we just um smush around the
+more variety we just um smush around the UVS using this color texture
+UVS using this color texture map and then the other main feature of
+map and then the other main feature of the the Shader is um Sparkles before I
+the the Shader is um Sparkles before I added the Sparkles it really did look
+added the Sparkles it really did look like flat dry cards um it still had a
+like flat dry cards um it still had a real um Lively motion to it and stuff
+real um Lively motion to it and stuff like that but it didn't really feel like
+like that but it didn't really feel like water um but just adding a little glints
+water um but just adding a little glints of light really helped a lot and that
+of light really helped a lot and that was achieved with this um on the left
+was achieved with this um on the left the um it's like a black field with
+the um it's like a black field with sparse white dots and then that's
+sparse white dots and then that's multiplied by a uniform noise that
+multiplied by a uniform noise that scrolled across it and it ends up just
+scrolled across it and it ends up just making it twinkle basically
+so um the quarter res buffer um buys us a lot um back in terms of uh fill rate
+a lot um back in terms of uh fill rate but um it also is half or a quarter of
+but um it also is half or a quarter of the resolution so it's it makes things
+the resolution so it's it makes things look a lot more fuzzy so to combat that
+look a lot more fuzzy so to combat that um I did custom M Maps I took the um
+um I did custom M Maps I took the um Alpha and the color texture into
+Alpha and the color texture into Photoshop and down sampled using nearest
+Photoshop and down sampled using nearest neighbor uh filter ing which gives it a
+neighbor uh filter ing which gives it a much better histogram the the lower
+much better histogram the the lower image the lower Standalone image is the
+image the lower Standalone image is the nearest neighbor sampled one and the top
+nearest neighbor sampled one and the top one is is a bilinear filtering and uh
+one is is a bilinear filtering and uh you can see that there's just higher
+you can see that there's just higher contrast and a Sharper Image uh so I
+contrast and a Sharper Image uh so I recommend doing that if your if you your
+recommend doing that if your if you your engine supports it um this is what it
+engine supports it um this is what it looks like inside our previewer our
+looks like inside our previewer our material previewer um one thing to note
+material previewer um one thing to note is that the sparkles on this the scale
+is that the sparkles on this the scale of them is not correct that's because um
+of them is not correct that's because um the scale is controlled by a user
+the scale is controlled by a user variable that's passed from the particle
+variable that's passed from the particle so when I was showing you the particle
+so when I was showing you the particle UI and you had the ability to pass data
+UI and you had the ability to pass data to the Shader that's this is one of the
+to the Shader that's this is one of the things that's affected by that so when
+things that's affected by that so when you run the effect in the game the
+you run the effect in the game the Sparkles are uh smaller not so big and
+Sparkles are uh smaller not so big and Blobby so Keith gett um he was the lead
+Blobby so Keith gett um he was the lead effects artist on Uncharted 3 and he's
+effects artist on Uncharted 3 and he's doing a talk that'll cover more of our
+doing a talk that'll cover more of our um t uh techniques and tricks uh that we
+um t uh techniques and tricks uh that we use for shaders if you're interested in
+use for shaders if you're interested in that
+that so go hit that one
+so go hit that one up so here it is with just
+particles so particle lighting turned out to be really huge um it really sits
+out to be really huge um it really sits it into the environment and gives it
+it into the environment and gives it depth and uh the color variation that
+depth and uh the color variation that makes it look much more realistic um you
+makes it look much more realistic um you can see it looks really flat without the
+can see it looks really flat without the particle lighting first thing to know
+particle lighting first thing to know about the lighting is that it was a hack
+about the lighting is that it was a hack um we didn't really have good lighting
+um we didn't really have good lighting techniques for particles in Uncharted 3
+techniques for particles in Uncharted 3 we basically used a lot of hacks um this
+we basically used a lot of hacks um this hack was um using two ramps one ramp ran
+hack was um using two ramps one ramp ran the length of the hall um so the darker
+the length of the hall um so the darker area at the top is sort of the back
+area at the top is sort of the back recessed area and then the the light
+recessed area and then the the light spots are where there's um light and the
+spots are where there's um light and the hall shining on it and then one cross
+hall shining on it and then one cross the width of it and the two are
+the width of it and the two are multiplied together and it basically
+multiplied together and it basically makes sort of a low reses looking
+makes sort of a low reses looking texture uh and that's projected down
+texture uh and that's projected down straight down onto the particles and the
+straight down onto the particles and the wonderful thing about this was that it
+wonderful thing about this was that it was all done with existing Tech uh we
+was all done with existing Tech uh we didn't have to go to programmers and and
+didn't have to go to programmers and and ask them to implement this kind of
+ask them to implement this kind of lighting which is sort of a pseudo light
+lighting which is sort of a pseudo light map kind of technique um just with the
+map kind of technique um just with the flexible tool that we already had we
+flexible tool that we already had we were able to come up with this idea and
+were able to come up with this idea and implement it without any programmer
+implement it without any programmer support so here's the final image with
+support so here's the final image with lit
+particles and that's pretty much [Applause]
+[Applause] it so
+naughty dog is hiring uh Candace Walker I think she's going to be outside the
+I think she's going to be outside the room you can check with her um If U see
+room you can check with her um If U see if there's a spot for you uh there's
+if there's a spot for you uh there's another shout out there and then of
+another shout out there and then of course I wanted to thank all of
+course I wanted to thank all of you um appreciate you coming and I
+you um appreciate you coming and I wanted to mention that there is um a
+wanted to mention that there is um a mobile evaluation uh and check your spam
+mobile evaluation uh and check your spam filter and your email to make sure that
+filter and your email to make sure that you get that and fill it
+you get that and fill it out um and at this point I can take a
+out um and at this point I can take a couple questions there's a couple of
+couple questions there's a couple of mics if you have questions please step
+mics if you have questions please step up to the
+mic hey awesome awesome talk um question I have is um Houdini is used a lot in
+I have is um Houdini is used a lot in film effects a lot of game guys um these
+film effects a lot of game guys um these proprietary
+proprietary engines what sort of took you guys down
+engines what sort of took you guys down that right did you hire someone who was
+that right did you hire someone who was a Houdini expert or did you guys um
+a Houdini expert or did you guys um train in it uh basically between
+train in it uh basically between Uncharted 2 and Uncharted 3 uh I started
+Uncharted 2 and Uncharted 3 uh I started learning Houdini because I I knew how
+learning Houdini because I I knew how flexible it was and and how um sort of a
+flexible it was and and how um sort of a more technically minded artist can
+more technically minded artist can actually make really useful tools and
+actually make really useful tools and stuff like that so I started learning
+stuff like that so I started learning that and then put it to use in Uncharted
+that and then put it to use in Uncharted 3 it was basically just my call it was a
+3 it was basically just my call it was a little hard to convince them to to Shell
+little hard to convince them to to Shell out the money for it cuz it's really
+out the money for it cuz it's really expensive but we got over that
+hurdle hi um what was the uh purpose for uh taking the uh over here
+uh taking the uh over here sorry uh taking the fluid from Houdini
+sorry uh taking the fluid from Houdini into Maya was that just uh because of
+into Maya was that just uh because of the pipeline that you guys had for uh
+the pipeline that you guys had for uh The Joint placements and all that yeah
+The Joint placements and all that yeah actually um uh it was a little unclear I
+actually um uh it was a little unclear I we did the fluid Sim in Houdini and we
+we did the fluid Sim in Houdini and we actually created um the mesh with the
+actually created um the mesh with the mesh animation inside of Houdini brought
+mesh animation inside of Houdini brought that mesh over we left the fluid Simon
+that mesh over we left the fluid Simon Houdini brought the mesh over with its
+Houdini brought the mesh over with its animation and then that tool that I was
+animation and then that tool that I was showing that I created also like adds
+showing that I created also like adds all the joints at all the points and
+all the joints at all the points and sets it all up to be used in the
+game okay um I will be outside to field more questions um just wanted to mention
+more questions um just wanted to mention that this will be in the GDC Vault um

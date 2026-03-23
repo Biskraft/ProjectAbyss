@@ -1,0 +1,869 @@
+[Music] hi guys
+hi guys my name is chris evans i'm
+my name is chris evans i'm one of the lead technical animators at
+one of the lead technical animators at epic i kind of specialize in special
+epic i kind of specialize in special projects
+which may make me an odd choice to be giving this
+giving this this talk uh so
+this talk uh so over the years since my university days
+over the years since my university days i've been a bit of a michelangelo file
+i've been a bit of a michelangelo file i have i've been told that i have more
+i have i've been told that i have more books on michelangelo than they have in
+books on michelangelo than they have in the shtadel art library in frankfurt
+the shtadel art library in frankfurt this is actually a plaster cast of
+this is actually a plaster cast of david's
+david's face that i have at home i've
+face that i have at home i've studied michelangelo for a long time and
+studied michelangelo for a long time and i'm a big fan
+i'm a big fan and big geek and part of that
+and big geek and part of that was you know 1999 i was at siggraph
+was you know 1999 i was at siggraph because i'm old
+because i'm old and i saw some of the work that was done
+and i saw some of the work that was done scanning
+scanning the david and i've always been
+the david and i've always been interested in that so i thought it'd be
+interested in that so i thought it'd be an interesting
+an interesting thing to take a look at and that's what
+thing to take a look at and that's what we're talking about today
+we're talking about today at epic we really like complex
+at epic we really like complex challenges so
+challenges so we have this kind of 20 time where we
+we have this kind of 20 time where we can go and do our own little endeavors
+can go and do our own little endeavors and i was the games chair at siggraph
+and i was the games chair at siggraph last year and we thought hey you know
+last year and we thought hey you know this might be a really cool
+this might be a really cool thing to do if we can work it out with
+thing to do if we can work it out with the italian government and all the
+the italian government and all the parties
+parties involved and in the end when it comes to
+involved and in the end when it comes to like
+like complex challenges we we didn't just
+complex challenges we we didn't just want to i didn't just want to get the
+want to i didn't just want to get the statue in but i wanted to kind of
+statue in but i wanted to kind of recreate the tribune
+recreate the tribune and allowed you to kind of write a
+and allowed you to kind of write a scaffold to any
+scaffold to any part of the statue and really look at it
+part of the statue and really look at it up close
+so to give you kind of a background on the scanning of the david the dave was
+the scanning of the david the dave was scanned in
+scanned in 1998 by mark lavoy and his team from
+1998 by mark lavoy and his team from stanford
+stanford it was a huge undertaking it took them
+it was a huge undertaking it took them 30 nights of hard work so basically
+30 nights of hard work so basically every night this the museum would close
+every night this the museum would close and then they'd wheel in
+and then they'd wheel in their like laser scanner and
+their like laser scanner and set up these trusses and um work on
+set up these trusses and um work on scanning the statue piece by piece by
+scanning the statue piece by piece by piece
+piece uh up until like 4am and then they'd
+uh up until like 4am and then they'd pack their stuff away and go to sleep
+pack their stuff away and go to sleep and the museum would open again
+and the museum would open again in the morning but it was a true labor
+in the morning but it was a true labor of love
+of love it's it's interesting they scanned so
+it's it's interesting they scanned so much
+much data that it wasn't really pieced
+data that it wasn't really pieced together until about 2009
+together until about 2009 so that was a different paper but that
+so that was a different paper but that that kind of
+that kind of tells you how high fidelity the data set
+tells you how high fidelity the data set is
+is it's down to pretty much the quarter
+it's down to pretty much the quarter millimeter
+millimeter the scans are it's been presented over
+the scans are it's been presented over the years at siggraph multiple times
+the years at siggraph multiple times many you you may have seen many geometry
+many you you may have seen many geometry processing papers that come out
+processing papers that come out use the david data set
+use the david data set or at least attempt to use one of the
+or at least attempt to use one of the versions of the data set because it's
+versions of the data set because it's very hard to do anything with
+very hard to do anything with the the billion point data set
+the the billion point data set it is a billion points
+it is a billion points when i was in university uh they
+when i was in university uh they released something called scan view
+released something called scan view stanford released something called scan
+stanford released something called scan view
+view what scanview allowed you to do was
+what scanview allowed you to do was tumble around like a
+tumble around like a 300 polygon representation of the david
+300 polygon representation of the david or
+or of one of michelangelo's other statues
+of one of michelangelo's other statues that they scanned
+that they scanned and then it would freeze and when you
+and then it would freeze and when you stopped tumbling it
+stopped tumbling it it would queer their server and send you
+it would queer their server and send you back like a high-res jpeg of what you're
+back like a high-res jpeg of what you're looking at
+looking at so i was there in my dorm room like
+so i was there in my dorm room like eating all my bandwidth like
+eating all my bandwidth like looking at like every nook and cranny of
+looking at like every nook and cranny of the david like you could see
+the david like you could see the chisel marks you could see the
+the chisel marks you could see the unfinished top of the head it was really
+unfinished top of the head it was really really cool
+really cool i think back then you know it was uh i
+i think back then you know it was uh i think 99 or 2000.
+think 99 or 2000. back then i even tried to like set up a
+back then i even tried to like set up a little photogrammetry rig and then but
+little photogrammetry rig and then but they could detect if you were taking the
+they could detect if you were taking the same view and just rotating a little bit
+same view and just rotating a little bit or something but i just thought it was
+or something but i just thought it was so cool i really wanted to see that data
+so cool i really wanted to see that data i was really into sculpture back then
+i was really into sculpture back then and even back then he was just
+and even back then he was just one of my heroes
+so the data itself it has no uvs it was basically laser scanned there's
+it was basically laser scanned there's no uvs
+no uvs it's all ranged data there's multiple
+it's all ranged data there's multiple representations
+representations of that data there's a 7 million
+of that data there's a 7 million representation there's a 50 million
+representation there's a 50 million and there's a billion representation
+and there's a billion representation which is the one that took about 10
+which is the one that took about 10 years to piece together
+years to piece together so these different representations
+so these different representations they don't really match each other
+they don't really match each other they're warped in different ways
+they're warped in different ways so being able to use one and then reach
+so being able to use one and then reach up into another one
+up into another one is very complicated because the data
+is very complicated because the data sets aren't aligned
+sets aren't aligned you can't just bake the billion down
+you can't just bake the billion down onto the 50 million or vice versa
+onto the 50 million or vice versa a billion points is a lot of data
+a billion points is a lot of data i um one of my close friends mark alan
+i um one of my close friends mark alan he we were having a discussion just
+he we were having a discussion just about data sets this size and
+about data sets this size and um he was one of the original architects
+um he was one of the original architects of houdini and he
+of houdini and he and he was saying oh we're going to work
+and he was saying oh we're going to work on some geometry processing stuff maybe
+on some geometry processing stuff maybe we can talk about this
+we can talk about this and he's like i just thought about it a
+and he's like i just thought about it a billion points that's like a gigabyte
+billion points that's like a gigabyte just if they're if they're bulls and
+just if they're if they're bulls and he's like
+he's like let's make him vertices okay now it's 32
+let's make him vertices okay now it's 32 gigs of ram and
+gigs of ram and he's like connectivity yeah i think
+he's like connectivity yeah i think you're on your own
+you're on your own um but it's it's definitely definitely
+um but it's it's definitely definitely interesting that
+interesting that data that was captured in the 90s today
+data that was captured in the 90s today we still just don't have a way to
+we still just don't have a way to visualize
+visualize it's just so so much so much data
+it's just so so much so much data so i kind of talked about how the
+so i kind of talked about how the different representations that people
+different representations that people had pieced together over the years
+had pieced together over the years didn't really match
+didn't really match we weren't gonna so it started as myself
+we weren't gonna so it started as myself and then i slowly started
+and then i slowly started building this ragtag bunch inside of
+building this ragtag bunch inside of epic to take a look at this stuff
+epic to take a look at this stuff adam scott who's one of our awesome
+adam scott who's one of our awesome character modelers on special projects
+character modelers on special projects you may have seen him talking um just
+you may have seen him talking um just the other day about the andy circus work
+the other day about the andy circus work we did with three lateral
+we did with three lateral or uh the siren demo i kind of roped him
+or uh the siren demo i kind of roped him into this
+into this what what sculptor wouldn't want to see
+what what sculptor wouldn't want to see you know the data such higher
+you know the data such higher the david at such high res but we knew
+the david at such high res but we knew from early on we're not going to be
+from early on we're not going to be piecing together the billion point set i
+piecing together the billion point set i mean i could load
+mean i could load individual kind of voxelized chunks of
+individual kind of voxelized chunks of it but
+it but we couldn't so we needed to figure out
+we couldn't so we needed to figure out how we're going to kind of cross back
+how we're going to kind of cross back and forth
+and forth between these different data sets
+there are lots of scanning artifacts so the lower res data sets people had
+the lower res data sets people had already
+already written test algorithms and stuff to
+written test algorithms and stuff to fill a lot of the holes to figure out a
+fill a lot of the holes to figure out a lot of the artifacts
+lot of the artifacts as you got more and as you got higher
+as you got more and as you got higher and higher res
+and higher res there were some pretty gnarly scanning
+there were some pretty gnarly scanning artifacts and stuff that i also didn't
+artifacts and stuff that i also didn't want to
+want to start cleaning up by hand and i'm not
+start cleaning up by hand and i'm not you know i'm a technical animator i'm
+you know i'm a technical animator i'm not going to write an algorithm to to
+not going to write an algorithm to to help me with that
+help me with that just to give you an example on the 50
+just to give you an example on the 50 million data set
+million data set this is how many issues one of the
+this is how many issues one of the geometry processing programs found
+geometry processing programs found with that some of the holes are larger
+with that some of the holes are larger than others some of them are
+than others some of them are very small but it's all a bunch of
+very small but it's all a bunch of issues
+issues that normal geometry processing
+that normal geometry processing pipelines that we use and games would
+pipelines that we use and games would definitely have a problem with
+so i'm going to talk a little bit about the pipeline that we
+the pipeline that we went through to get to kind of shoehore
+went through to get to kind of shoehore the shoehorn this into uh
+the shoehorn this into uh unreal engine so we started with the
+unreal engine so we started with the the one of the lowest approximate
+the one of the lowest approximate approximations
+approximations um well i think so this one came from
+um well i think so this one came from the 50 million
+the 50 million uh like a down res to 10 and then we
+uh like a down res to 10 and then we took that into zbrush
+took that into zbrush from there in zbrush we did a udem
+from there in zbrush we did a udem layout
+layout in zbrush so we tried to give it uvs
+in zbrush so we tried to give it uvs and again all of this work we're giving
+and again all of this work we're giving back to the digital michelangelo project
+back to the digital michelangelo project at stanford
+at stanford so whereas it would had this
+so whereas it would had this representation without these things
+representation without these things before
+before you know now stanford's going to have
+you know now stanford's going to have like a nice zbrush model with udem
+like a nice zbrush model with udem layout and stuff for future
+layout and stuff for future people if they want to mess with the
+people if they want to mess with the data set so
+data set so the zbrush sub sub d3 was 2.7 million
+the zbrush sub sub d3 was 2.7 million but it's pretty much undistinguishable
+but it's pretty much undistinguishable from the 50 because we had vector
+from the 50 because we had vector displacement
+displacement like with zbrush as you go down under
+like with zbrush as you go down under the hood it retains a lot of those
+the hood it retains a lot of those details
+details and for me because it was a very
+and for me because it was a very difficult
+difficult kind of non-rigid mesh alignment problem
+kind of non-rigid mesh alignment problem because i wanted to get into that 50
+because i wanted to get into that 50 billion data set
+billion data set we had to really align the meshes
+we had to really align the meshes somehow and the ways that we did that
+somehow and the ways that we did that was by
+was by creating a low-res cage with zbrush but
+creating a low-res cage with zbrush but also
+also loading kind of the 50 million
+loading kind of the 50 million into instant meshes which is i think one
+into instant meshes which is i think one of the coolest programs i've ever seen
+of the coolest programs i've ever seen it's just like magic very rarely does a
+it's just like magic very rarely does a paper come along
+paper come along and the authors decide hey we're going
+and the authors decide hey we're going to make an application and then hey that
+to make an application and then hey that application like works better than most
+application like works better than most standard software packages that i have
+standard software packages that i have to use every day
+to use every day but instameshes allows you to
+but instameshes allows you to artistically paint
+artistically paint well first off it picks a beautiful edge
+well first off it picks a beautiful edge flow this is the sample edge flow that
+flow this is the sample edge flow that it generated for the david
+it generated for the david and you can see by default clicking one
+and you can see by default clicking one button it's already
+button it's already realized that you know along the sling
+realized that you know along the sling it's going to put the edges here along
+it's going to put the edges here along the face it's done a pretty good job
+the face it's done a pretty good job you can go and you can artistically draw
+you can go and you can artistically draw exactly what edge flow you want where
+exactly what edge flow you want where and then it kicks out an example of
+and then it kicks out an example of exactly what it's going to build
+exactly what it's going to build with quads and and placed pull polygons
+with quads and and placed pull polygons so this is kind of an example of
+so this is kind of an example of down raising the 50 into something that
+down raising the 50 into something that i wanted to go and then
+i wanted to go and then use to wrap and so for wrapping
+use to wrap and so for wrapping i originally tried and then we finally
+i originally tried and then we finally got to work
+got to work wrap three which i don't know if you
+wrap three which i don't know if you guys have used wrap three
+guys have used wrap three it's a really great software for
+it's a really great software for wrapping one mesh to another it's for
+wrapping one mesh to another it's for kind of
+kind of non-rigid mesh alignment you pick the
+non-rigid mesh alignment you pick the different correspondences we use this
+different correspondences we use this all the time to cast different head
+all the time to cast different head scans into
+scans into different facial topologies you can just
+different facial topologies you can just pick a couple correspondence points on
+pick a couple correspondence points on the two meshes
+the two meshes and then it will warp one mesh into the
+and then it will warp one mesh into the other
+so it's really made for taking a low res mesh and wrapping another
+low res mesh and wrapping another the first time i fed it different kind
+the first time i fed it different kind of decimated versions of the david
+of decimated versions of the david it was just like no not not going to
+it was just like no not not going to work
+work and i contacted them and we walked
+and i contacted them and we walked through some of the issues
+through some of the issues and it's just it's it's very very
+and it's just it's it's very very difficult to non-rigidly align
+difficult to non-rigidly align one scan to another scan
+so in the end what we did is as i was mentioning on the previous slide
+mentioning on the previous slide we ended up wrapping the z brush
+we ended up wrapping the z brush the zbrush sub d3 itself and then once
+the zbrush sub d3 itself and then once that was wrapped we bring that back into
+that was wrapped we bring that back into zbrush and reapply the vector
+zbrush and reapply the vector displacement
+displacement and then we had kind of a version that
+and then we had kind of a version that matched all of the
+matched all of the like different i don't say they're
+like different i don't say they're warped just the way it's scanned
+warped just the way it's scanned um they can be slightly off just very
+um they can be slightly off just very very slightly
+very slightly but when you're talking about like a 20
+but when you're talking about like a 20 foot high statue i mean slightly
+foot high statue i mean slightly is you know that the toe's five inches
+is you know that the toe's five inches off at the base
+off at the base by the time you get there because there
+by the time you get there because there are a bunch of different scans all the
+are a bunch of different scans all the way up the length of the of the statue
+way up the length of the of the statue uh so this was the the uv layout here
+uh so this was the the uv layout here um we used udims in ue4 to kind of
+um we used udims in ue4 to kind of maximize the uh uv space so you can see
+maximize the uh uv space so you can see here how it's broken up we gave a lot of
+here how it's broken up we gave a lot of uv
+uv space to um to the face and then
+the body and you can see the legs and the base down there is like
+the base down there is like just a little bit of uv space compared
+just a little bit of uv space compared to the face but
+to the face but that was because we really wanted to
+that was because we really wanted to scan at least the face get the
+scan at least the face get the representation of
+representation of kind of the head and shoulder area in in
+kind of the head and shoulder area in in ue4
+ue4 down to the quarter millimeter so we
+down to the quarter millimeter so we were able to get the statue represented
+were able to get the statue represented in ue4
+in ue4 baked to a millimeter resolution from
+baked to a millimeter resolution from the millimeter data set
+the millimeter data set but when it came to the face we looked
+but when it came to the face we looked up into the billion data set
+up into the billion data set and we now had our data set
+and we now had our data set or our model and zbrush matching the
+or our model and zbrush matching the billion
+billion model so here we're allowed to go in and
+model so here we're allowed to go in and now i can
+now i can piece together all these chunks that
+piece together all these chunks that make up the face
+make up the face and then i can bake those across but
+and then i can bake those across but to bake those across i just couldn't
+to bake those across i just couldn't find a program
+find a program that could load up you know what does
+that could load up you know what does this load up like a
+this load up like a just 20 million polygons just for the
+just 20 million polygons just for the face
+face and decimate that down into something
+and decimate that down into something that we could ingest into zbrush
+that we could ingest into zbrush so one of my friends uh kevin
+so one of my friends uh kevin what got a guy on our team kevin vassey
+what got a guy on our team kevin vassey she was like
+she was like hey so why don't we try blender because
+hey so why don't we try blender because blender's awesome
+blender's awesome and i was like look if you know if the
+and i was like look if you know if the standard
+standard if the standard mesh tools like mesh lab
+if the standard mesh tools like mesh lab and all these things that you know
+and all these things that you know people that write these papers use can't
+people that write these papers use can't do it like blender's not gonna be able
+do it like blender's not gonna be able to do it
+to do it and um i remember one one weekend we had
+and um i remember one one weekend we had like one software package going all the
+like one software package going all the way over the weekend and then it crashed
+way over the weekend and then it crashed like three days into the
+like three days into the the down resting of the face and then in
+the down resting of the face and then in 12 minutes
+12 minutes blender just popped out a mesh it was
+blender just popped out a mesh it was indistinguishable
+indistinguishable i think it was just a couple million it
+i think it was just a couple million it was
+was significantly lower low enough that we
+significantly lower low enough that we could load it into zbrush
+could load it into zbrush and use it to transfer the details
+and use it to transfer the details across to our mesh but that was amazing
+across to our mesh but that was amazing i mean you can see here the meshes are
+i mean you can see here the meshes are indistinguishable but on one side i
+indistinguishable but on one side i think it's like 20 million on the other
+think it's like 20 million on the other side it's like
+side it's like three so
+three so we had this high-res face we had
+we had this high-res face we had everything aligned um
+everything aligned um but you know my topology was
+but you know my topology was from instant or no it wasn't from
+from instant or no it wasn't from instant messages at that point it was
+instant messages at that point it was just from the zbrush downrise
+just from the zbrush downrise but to recapture all those details in
+but to recapture all those details in zbrush
+zbrush we wanted the even even on the cage mesh
+we wanted the even even on the cage mesh we wanted the face to be higher
+we wanted the face to be higher resolution
+resolution and around this time we were also
+and around this time we were also working on the digital mic seymour
+working on the digital mic seymour and that's our in-house face topology so
+and that's our in-house face topology so we used rap3
+we used rap3 and we just wrapped mike seymour's face
+and we just wrapped mike seymour's face onto the david
+onto the david because we were kind of running out of
+because we were kind of running out of time and that worked really really well
+time and that worked really really well so adam uh was able to bake the details
+so adam uh was able to bake the details across
+across and as you can see here at the quarter
+and as you can see here at the quarter millimeter resolution mesh
+millimeter resolution mesh you can um you know in the experience
+you can um you know in the experience you can ride the scaffold right up to
+you can ride the scaffold right up to date of its face
+date of its face and you can see the chisel marks from
+and you can see the chisel marks from the rasp chisel that he used here
+the rasp chisel that he used here above the brow where he left it a bit
+above the brow where he left it a bit unfinished i mean he he was told that
+unfinished i mean he he was told that the statue was going to be seen like on
+the statue was going to be seen like on the top of like on the duomo
+the top of like on the duomo and then nobody would get really up
+and then nobody would get really up close to it unfortunately
+close to it unfortunately he did such a good job it's curse of
+he did such a good job it's curse of competence you know that they wanted it
+competence you know that they wanted it down where everybody could see it
+down where everybody could see it really up close this is a screenshot
+really up close this is a screenshot from in the experience kind of showing
+from in the experience kind of showing the um peter sumaceni he
+the um peter sumaceni he did a really good job setting up
+did a really good job setting up lighting exactly like
+lighting exactly like so i had modeled the inside of the
+so i had modeled the inside of the tribune which is where it's stored in
+tribune which is where it's stored in florence and he did a great job lighting
+florence and he did a great job lighting it
+it to where it looks almost exactly like it
+to where it looks almost exactly like it does
+does there in florence here you can see kind
+there in florence here you can see kind of the
+of the the rasp chisel here there are so many
+the rasp chisel here there are so many details of the statue that come across
+details of the statue that come across uh
+uh it's kind of an annotated experience so
+it's kind of an annotated experience so you can click different uh you enter a
+you can click different uh you enter a mode and then there's little
+mode and then there's little spheres you can click on and then you
+spheres you can click on and then you hear my voice kind of drawing on about
+hear my voice kind of drawing on about the statue but um little things like the
+the statue but um little things like the crack to arm
+crack to arm like in 1527 they were riding and some
+like in 1527 they were riding and some people
+people entered the palazzo vecchio like some
+entered the palazzo vecchio like some dude threw like a bench out a window
+dude threw like a bench out a window just because he was angry
+just because he was angry well the bench just like lopped off the
+well the bench just like lopped off the david's arm outside
+david's arm outside imagine being that dude that's like oh
+hit the dusty trail you know like uh so um yeah you can see all of those fixes
+um yeah you can see all of those fixes that were made over time it's it's
+that were made over time it's it's really interesting
+really interesting um even that that's what the body at the
+um even that that's what the body at the one millimeter
+one millimeter resolution this was the final topology
+resolution this was the final topology that we ended up using
+and then this is the the tribune here so we tried doing like in a
+here so we tried doing like in a radiance bake
+radiance bake from the skylight itself uh pete set up
+from the skylight itself uh pete set up like i don't know how many lights as
+like i don't know how many lights as soon as i unhit his layer and unreal
+soon as i unhit his layer and unreal like
+like my world just became wireframes of
+my world just became wireframes of lights pointing everywhere
+lights pointing everywhere um but it's it's using the the dome
+um but it's it's using the the dome itself to bake a lot of the illumination
+itself to bake a lot of the illumination and then
+and then there's a bunch of little spots that
+there's a bunch of little spots that they have set up in florence that just
+they have set up in florence that just highlight
+highlight the statue itself so looking at a couple
+the statue itself so looking at a couple things
+things that could probably be better
+that could probably be better the experience we use the vive and we
+the experience we use the vive and we were
+were it was really awesome that they gave us
+it was really awesome that they gave us this extension box so basically the
+this extension box so basically the extension box would come out into the
+extension box would come out into the middle
+middle and then we had full five cord length
+and then we had full five cord length around the middle so someone can walk
+around the middle so someone can walk around the entire statue
+around the entire statue but it's not the experience is not a
+but it's not the experience is not a teleport around
+teleport around experience it's very much you're on a
+experience it's very much you're on a wooden scaffold
+wooden scaffold and you can completely walk around the
+and you can completely walk around the entire statue in 3d at life size
+entire statue in 3d at life size and ride a scaffold up to any
+and ride a scaffold up to any to anywhere you want even way above his
+to anywhere you want even way above his head and look and look down
+head and look and look down we only really had time to look up into
+we only really had time to look up into the billion data set
+the billion data set to do a quarter millimeter bake on the
+to do a quarter millimeter bake on the face
+face but um like i said we're gonna give this
+but um like i said we're gonna give this stuff back to stanford and if in the
+stuff back to stanford and if in the future someone wants to do
+future someone wants to do that kind of bake on the entire on the
+that kind of bake on the entire on the entire body that that would be
+entire body that that would be a pretty interesting science project it
+a pretty interesting science project it would be nice to see
+would be nice to see some of the unfinished marks on the tree
+some of the unfinished marks on the tree behind his leg
+behind his leg and different areas at that that
+and different areas at that that resolution
+resolution and it would be great to see some more
+and it would be great to see some more statues they
+statues they uh the team when they were there they
+uh the team when they were there they scanned uh
+scanned uh dusk and dawn and some of the medici
+dusk and dawn and some of the medici chat chapel statues
+chat chapel statues and um there were some some artifacts
+and um there were some some artifacts and stuff there's there's quite a
+and stuff there's there's quite a there's three or four statues i think
+there's three or four statues i think you can look at on scan view even to
+you can look at on scan view even to this day
+this day but it'd be cool to see some more of the
+but it'd be cool to see some more of the statues
+statues in vr and i could envision in the future
+in vr and i could envision in the future with other data like scan the world it's
+with other data like scan the world it's a bunch of guys that go out and try to
+a bunch of guys that go out and try to scan statues around
+scan statues around the world be cool to have like a
+the world be cool to have like a sculpture loader
+sculpture loader that would load it kind of at the exact
+that would load it kind of at the exact size that is supposed to be
+size that is supposed to be viewed as the sculptor originally
+viewed as the sculptor originally intended
+but so i just wanted to thank the people that were able to help me create the
+that were able to help me create the experience
+experience it was like a learning process it was
+it was like a learning process it was the first level i ever made in
+the first level i ever made in in ue4 so that was good it got me out of
+in ue4 so that was good it got me out of maya for a couple days
+maya for a couple days but um that's about it if you guys have
+but um that's about it if you guys have any questions
+any questions um be sure to fill out uh the little
+um be sure to fill out uh the little email they send you i think it'd be
+email they send you i think it'd be really great to see more
+really great to see more people talking about kind of working to
+people talking about kind of working to get
+get sculpture or fresco or any you know ways
+sculpture or fresco or any you know ways to experience
+to experience things in vr at a high quality that you
+things in vr at a high quality that you can't really experience
+can't really experience without traveling there i mean it's
+without traveling there i mean it's pretty interesting to be able to
+pretty interesting to be able to also see things from different views
+also see things from different views maybe the different views the way the
+maybe the different views the way the sculptor originally intended
+sculptor originally intended it that we put the david up on the duomo
+it that we put the david up on the duomo and you can check him out from there
+and you can check him out from there you know he he he changed a lot of the
+you know he he he changed a lot of the proportions just to be seen from that
+proportions just to be seen from that angle
+angle originally but uh sure
+originally but uh sure questions hear
+questions hear a little bit more about people's
+a little bit more about people's feedback like
+feedback like artists sculpture sculpture when they
+artists sculpture sculpture when they see
+see david in vr it was um
+david in vr it was um i feel i almost feel bad telling you how
+i feel i almost feel bad telling you how awesome it is when uh
+awesome it is when uh originally we had planned to to have it
+originally we had planned to to have it here but it didn't really work out um
+here but it didn't really work out um there were some i never thought i mean
+there were some i never thought i mean i'm a michelangelo geek so i thought
+i'm a michelangelo geek so i thought like oh
+like oh this is pretty cool maybe some people
+this is pretty cool maybe some people think it's cool there are some people
+think it's cool there are some people that took the gogs off and they were
+that took the gogs off and they were like crying and i was like
+like crying and i was like wow it was pretty it's pretty uh
+wow it was pretty it's pretty uh crazy because you you just don't expect
+crazy because you you just don't expect it to be
+it to be so large when you put the goggles on and
+so large when you put the goggles on and you're there on a scaffold and you kind
+you're there on a scaffold and you kind of look up at the statue
+of look up at the statue and you don't expect the detail and kind
+and you don't expect the detail and kind of the hair
+of the hair and areas around the face and
+and areas around the face and a lot of people didn't realize certain
+a lot of people didn't realize certain things he did with the eyes to cast
+things he did with the eyes to cast shadows and stuff some people said oh
+shadows and stuff some people said oh it's little hearts or something but
+it's little hearts or something but it's it's just really interesting to be
+it's it's just really interesting to be able to see the statue up close
+able to see the statue up close uh what do you do for materials did the
+uh what do you do for materials did the stanford data have any color and did you
+stanford data have any color and did you try to capture any of the or
+try to capture any of the or any of the subsurface stuff yeah so it
+any of the subsurface stuff yeah so it had a whole bunch of color i think there
+had a whole bunch of color i think there were like
+were like 40 000 photographs of color that we had
+40 000 photographs of color that we had to use as reference because
+to use as reference because they were all i think it was film stuff
+they were all i think it was film stuff and we had access to it
+and we had access to it but we just didn't have time so pete
+but we just didn't have time so pete went in
+went in and he lit it and then we used the
+and he lit it and then we used the images that we had
+images that we had so that's probably the thing that is the
+so that's probably the thing that is the most everything is super ground truth
+most everything is super ground truth when it comes to the mesh
+when it comes to the mesh but when it came to and if i can go back
+but when it came to and if i can go back to my first slide
+to my first slide when it comes to the lighting or the
+when it comes to the lighting or the surfacing
+surfacing we really had to kind of try
+we really had to kind of try as light-handedly as possible to add
+as light-handedly as possible to add something
+something and one of the most of the stuff that we
+and one of the most of the stuff that we used as reference was pre-cleaning
+used as reference was pre-cleaning so you saw like you can really see the
+so you saw like you can really see the chisel marks because it's a bit gritty
+chisel marks because it's a bit gritty they have since cleaned him with like a
+they have since cleaned him with like a you know fancy process and he doesn't
+you know fancy process and he doesn't really look like that anymore but that
+really look like that anymore but that was the data set we had so we just tried
+was the data set we had so we just tried to keep
+to keep kind of adhere to that right so it's
+kind of adhere to that right so it's just photographs it wasn't like
+just photographs it wasn't like registered to the points or anything no
+registered to the points or anything no no i couldn't even get a macbeth chart
+no i couldn't even get a macbeth chart so we yeah i wanted to just white white
+so we yeah i wanted to just white white balance everything
+anybody else
+you can either walk over there or yell and i can repeat your question into the
+and i can repeat your question into the microphone
+um i'm just wondering if stanford or other people have continued to do this
+other people have continued to do this with more statues and sort of what the
+with more statues and sort of what the time frame is
+time frame is now to scan versus the 30 days that it
+now to scan versus the 30 days that it took
+took so mark levoy and his team scanned this
+so mark levoy and his team scanned this stuff in the 90s
+stuff in the 90s he's now at google um he is the licensor
+he's now at google um he is the licensor of the data in the us if someone wants
+of the data in the us if someone wants to do something with it
+to do something with it he told me um he he's been in the
+he told me um he he's been in the experience and he took the goggles off
+experience and he took the goggles off and he was like
+and he was like holy crap he's like i sure am glad i
+holy crap he's like i sure am glad i replied to that email from the animator
+replied to that email from the animator at epic
+at epic but he was blown away and
+but he was blown away and they did a lot of scanning of different
+they did a lot of scanning of different statues
+statues and it's in the archive but there's not
+and it's in the archive but there's not really anyone
+really anyone using those at the moment for for
+using those at the moment for for anything like this
+anything like this there are other statues like saint
+there are other statues like saint anthony and i mean there's there's other
+anthony and i mean there's there's other statues that are more life-sized
+statues that are more life-sized that are interesting to walk around but
+that are interesting to walk around but there's no plans that i know of
+there's no plans that i know of unless like people's enthusiasm and this
+unless like people's enthusiasm and this have and this has kicked some
+have and this has kicked some people into gear
+um i was wondering if um what are your thoughts on
+thoughts on larger scale virtual tourism like the
+larger scale virtual tourism like the pyramids of giza
+pyramids of giza or the great wall of china or something
+or the great wall of china or something like that would it be possible in
+like that would it be possible in today's
+today's or future technology to have that kind
+or future technology to have that kind of
+of level of detail for those kind of
+level of detail for those kind of super large projects
+um i i've been taking stereo photos for like 20 years
+like 20 years like i love stereo 3d i do feel that
+like i love stereo 3d i do feel that especially just like stereo photography
+especially just like stereo photography i mean you feel the parallax it feels
+i mean you feel the parallax it feels like you know
+like you know like almost like you're there just
+like almost like you're there just visually so i do think that could be
+visually so i do think that could be possible
+possible um i think you'll always get some kind
+um i think you'll always get some kind of resistance from the people
+of resistance from the people that sell all of the mouse pads and
+that sell all of the mouse pads and tourist stuff at those places
+tourist stuff at those places i don't think it'll ever supplant the
+i don't think it'll ever supplant the actual experience of going there but
+actual experience of going there but some people just can't
+some people just can't you know so it's really interesting uh
+you know so it's really interesting uh so is it this also raises a a lot of
+so is it this also raises a a lot of questions in terms of just ip
+questions in terms of just ip you know because it's a it's stuff
+you know because it's a it's stuff that's public domain
+that's public domain you know if you go into a museum and you
+you know if you go into a museum and you take a picture of something
+take a picture of something you know that is in the public domain
+you know that is in the public domain it's a slave reproduction so it's like
+it's a slave reproduction so it's like you could then go print mouse pads so it
+you could then go print mouse pads so it was really really great for
+was really really great for for mark and for the team back in italy
+for mark and for the team back in italy to allow us to show the demo
+to allow us to show the demo but it had the caveats of everything
+but it had the caveats of everything being
+being encrypted and it was really super on
+encrypted and it was really super on lockdown
+lockdown so it's with data sets like that i mean
+so it's with data sets like that i mean to be able to capture some of the
+to be able to capture some of the experiences to the level to replicate
+experiences to the level to replicate them
+them means you're going to have to like live
+means you're going to have to like live there for 30 days and the people that
+there for 30 days and the people that own those things aren't going to let
+own those things aren't going to let people come in and mark had said that it
+people come in and mark had said that it was an amazing thing that that they let
+was an amazing thing that that they let him and his team go in and scan it
+him and his team go in and scan it because it was at the time even
+because it was at the time even newspapers in florence it was like
+newspapers in florence it was like america is just going to make a digital
+america is just going to make a digital david and nobody's going to visit you
+david and nobody's going to visit you know it was
+know it was he definitely said it was kind of just
+he definitely said it was kind of just an amazing thing that they
+an amazing thing that they let that happen and they've had to be
+let that happen and they've had to be very respectful
+very respectful of the data and of the digital
+of the data and of the digital michelangelo
+michelangelo project itself has to be very respectful
+project itself has to be very respectful of that stuff
+of that stuff and keep it on lockdown
+hi um so i'm wondering if this project actually available publicly for people
+actually available publicly for people to experience with
+to experience with or that goes right into the next
+or that goes right into the next question
+question no because i'm actually with stanford i
+no because i'm actually with stanford i work for stanford university
+work for stanford university yeah and uh i'm wondering also like
+yeah and uh i'm wondering also like do you know which department that mark
+do you know which department that mark was in when he uh
+was in when he uh processed this scandal i should have put
+processed this scandal i should have put a link if you just google
+a link if you just google digital michelangelo project there's
+digital michelangelo project there's the the whole web page as it was in 99
+the the whole web page as it was in 99 is still there and you can get a lot of
+is still there and you can get a lot of information
+information uh as you guys know when as soon as
+uh as you guys know when as soon as something hits a video car i mean with
+something hits a video car i mean with directx ripper and
+directx ripper and it's so easy to rip meshes out of stuff
+it's so easy to rip meshes out of stuff uh no
+uh no we would never be able to um to have it
+we would never be able to um to have it when we want to show it as an experience
+when we want to show it as an experience at a single place like at a conference
+at a single place like at a conference we have to ask uh for uh to be granted
+we have to ask uh for uh to be granted the right to show it
+the right to show it and then it has to be kind of on
+and then it has to be kind of on lockdown with uh encryption
+lockdown with uh encryption and um and it's pretty yeah it would
+and um and it's pretty yeah it would unfortunately it would never work uh
+unfortunately it would never work uh putting online
+putting online the sistine ceiling however yes i have
+the sistine ceiling however yes i have seen that
+seen that yeah the sistine ceiling there's enough
+yeah the sistine ceiling there's enough slavish reproductions
+slavish reproductions of images out there that someone could
+of images out there that someone could piece together sistine ceiling in its
+piece together sistine ceiling in its public domain
+public domain by themselves maybe in their bedroom
+by themselves maybe in their bedroom but uh yeah in this case the data is
+but uh yeah in this case the data is only
+only you know you're only going to find the
+you know you're only going to find the data in in that data set and that's
+data in in that data set and that's not something that's shared but for
+not something that's shared but for researchers
+researchers he he grants the data all the time to be
+he he grants the data all the time to be used in papers and things
+used in papers and things thank you yep
+thank you yep i see that the the data was uh taken in
+and uh nothing was done with it until 2009.
+2009. when did you complete the project um
+when did you complete the project um i worked on it for about six months uh
+i worked on it for about six months uh with adam and and peter
+with adam and and peter and shane helped me with uh some of the
+and shane helped me with uh some of the learning the engine in the ui
+learning the engine in the ui um but it was about six months from
+um but it was about six months from start to finish
+start to finish but just in spare time like we call it
+but just in spare time like we call it like a 20
+like a 20 time project i mean when you in 2009
+time project i mean when you in 2009 was you mean it was completed in 2009
+was you mean it was completed in 2009 there was a paper at siggraph i had
+there was a paper at siggraph i had mentioned the author of the paper
+mentioned the author of the paper where it was a new mesh alignment
+where it was a new mesh alignment algorithm and they said
+algorithm and they said and you know to show how well this works
+and you know to show how well this works we're going to piece together the whole
+we're going to piece together the whole billion
+billion point date data set for the first time
+point date data set for the first time i'm wondering if you
+i'm wondering if you uh if you had the choice to do your own
+uh if you had the choice to do your own scans would do you think if you have the
+scans would do you think if you have the choice to do photogrammetry
+choice to do photogrammetry would you be able to get the same
+would you be able to get the same results no no way not even
+results no no way not even close well i mean who knows in
+close well i mean who knows in photogrametry you know
+photogrametry you know you're just limited by how many cameras
+you're just limited by how many cameras and what sensors you're dealing with and
+and what sensors you're dealing with and how
+how um the the data is really really
+um the the data is really really high-res
+high-res and yeah i don't i don't i love
+and yeah i don't i don't i love photogrammetry and i do a lot of
+photogrammetry and i do a lot of photogrammetry
+photogrammetry but the the details that are captured in
+but the the details that are captured in this data set
+this data set um yeah i it's hard it's just hard to
+um yeah i it's hard it's just hard to compare
+compare even if in vr because in vr it's really
+even if in vr because in vr it's really you really
+you really uh the quality you're not getting the
+uh the quality you're not getting the same quality that
+same quality that obviously the scans uh are able to
+obviously the scans uh are able to capture
+capture uh so even with doing you mean like
+uh so even with doing you mean like normal maps in stereo view or which like
+normal maps in stereo view or which like baking it to normal maps versus parallax
+baking it to normal maps versus parallax occlusion or
+occlusion or i mean getting the same the the final
+i mean getting the same the the final at putting the the final nvr using
+at putting the the final nvr using photographer tree you would be able to
+photographer tree you would be able to tell
+tell to tell the difference between the scans
+to tell the difference between the scans and um
+and um if you like i said it depends on your
+if you like i said it depends on your budget
+budget i can i guess i can totally picture a
+i can i guess i can totally picture a photogrammetry rig that could do as
+photogrammetry rig that could do as good of a job with a lot of macro lenses
+good of a job with a lot of macro lenses and a big structure
+and a big structure i just i do a lot of photogrammetry and
+i just i do a lot of photogrammetry and uh yeah i i think it could get there
+uh yeah i i think it could get there yeah it's just the lit the laser scan
+yeah it's just the lit the laser scan picked up even the the smallest detail
+picked up even the the smallest detail but it's a bunch of swatches you go like
+but it's a bunch of swatches you go like and then you have a swatch
+and then you have a swatch so in uh for many years at seagraph it
+so in uh for many years at seagraph it was how do we align all these swatches
+was how do we align all these swatches because that's how cyberware laser
+because that's how cyberware laser scanners worked back then
+scanners worked back then it didn't just auto align it like
+it didn't just auto align it like photogrammetry where it just figures out
+photogrammetry where it just figures out all the views and then
+all the views and then does a pretty good job of making one
+does a pretty good job of making one mesh out of them it's a whole bunch of
+mesh out of them it's a whole bunch of little pieces
+little pieces thank you yep
+all righty well i think we're out of time thank you guys very much
+time thank you guys very much thanks for coming out

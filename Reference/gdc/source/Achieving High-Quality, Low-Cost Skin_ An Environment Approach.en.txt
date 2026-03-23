@@ -1,0 +1,737 @@
+[Music] bigger than I thought I'd be getting so
+bigger than I thought I'd be getting so I don't know if I should feel excited or
+I don't know if I should feel excited or nervous about that but in any case thank
+nervous about that but in any case thank you for being here to hear me speak
+you for being here to hear me speak about our skin texturing workflow that
+about our skin texturing workflow that we've been developing specifically in
+we've been developing specifically in terms of how normal details are handled
+terms of how normal details are handled and I'll be speaking about it from the
+and I'll be speaking about it from the angle of how we developed it by drawing
+angle of how we developed it by drawing from environment texturing principles so
+from environment texturing principles so before jumping into it I'll just give a
+before jumping into it I'll just give a quick overview of what I'll be covering
+quick overview of what I'll be covering today so I'll start off with a brief
+today so I'll start off with a brief introduction followed by a look at our
+introduction followed by a look at our previous skin texturing workflow the
+previous skin texturing workflow the steps involved in that and some of the
+steps involved in that and some of the issues that that raised then I'll
+issues that that raised then I'll explain how the heck and environment
+explain how the heck and environment artists got involved way the skin
+artists got involved way the skin texturing workflow for characters after
+texturing workflow for characters after that I'll in developing this new
+that I'll in developing this new workflow it was really important that we
+workflow it was really important that we understood what skin really looked like
+understood what skin really looked like especially in terms of common patterns
+especially in terms of common patterns and characteristics so at this point I
+and characteristics so at this point I would go over the steps that we did to
+would go over the steps that we did to try to understand human skin better and
+try to understand human skin better and the conclusions that resulted from that
+the conclusions that resulted from that investigation afterwards building from
+investigation afterwards building from these observations we designed this new
+these observations we designed this new skin texturing workflow so I'll describe
+skin texturing workflow so I'll describe how that works and show some screenshots
+how that works and show some screenshots of our test results and then finally
+of our test results and then finally I'll close off by sharing the ways that
+I'll close off by sharing the ways that we're trying to push this workflow even
+we're trying to push this workflow even further and then maybe answer some of
+further and then maybe answer some of your questions so to start off let me
+your questions so to start off let me introduce myself my name is Adele bueno
+introduce myself my name is Adele bueno and I'm the chief environment artist at
+and I'm the chief environment artist at Square Enix headquarters in Tokyo I've
+Square Enix headquarters in Tokyo I've worked on environments in past games
+worked on environments in past games such as blood-borne The Last of Us
+such as blood-borne The Last of Us uncharted 3 and most recently Final
+uncharted 3 and most recently Final Fantasy 15 and currently I'm part of a
+Fantasy 15 and currently I'm part of a group called the advanced technology
+group called the advanced technology division and we're a central technology
+division and we're a central technology group or multidisciplinary central
+group or multidisciplinary central technology group and at square-enix
+technology group and at square-enix there's a bunch of different games that
+there's a bunch of different games that are being developed for several
+are being developed for several platforms using all different kinds of
+platforms using all different kinds of technologies so
+technologies so ATD we're responsible for developing
+ATD we're responsible for developing tools and pipelines and workflows for
+tools and pipelines and workflows for all these different games and our
+all these different games and our department is pretty engineer heavy but
+department is pretty engineer heavy but we do have two artists one of whom is me
+we do have two artists one of whom is me and the other being Eduardo Moe's Anna
+and the other being Eduardo Moe's Anna who is the chief character artist and
+who is the chief character artist and was actually the one who kick-started
+was actually the one who kick-started this whole investigation when he decided
+this whole investigation when he decided to look at the previous skin texturing
+to look at the previous skin texturing workflow that was in place at the time
+workflow that was in place at the time so this is where we started this is Agni
+so this is where we started this is Agni she was created for a tech demo that was
+she was created for a tech demo that was released about four years ago and the
+released about four years ago and the method that was done to to texture this
+method that was done to to texture this character was basically that same
+character was basically that same workflow that was in place so for normal
+workflow that was in place so for normal details that was basically handled by
+details that was basically handled by two maps the map that did basically all
+two maps the map that did basically all of the heavy lifting was a sculpted
+of the heavy lifting was a sculpted custom one to one normal map and this
+custom one to one normal map and this handled all the facial details from
+handled all the facial details from micro detail or tertiary detail which is
+micro detail or tertiary detail which is like tiny pores and micro wrinkles all
+like tiny pores and micro wrinkles all the way up to primary and secondary
+the way up to primary and secondary details or macro details so that
+details or macro details so that includes folds pockets of fat large scar
+includes folds pockets of fat large scar is basically the large forms that you'll
+is basically the large forms that you'll see on the face and because of the
+see on the face and because of the amount and range of detail that this map
+amount and range of detail that this map needed to cover the resolutions for this
+needed to cover the resolutions for this one two one needed to be pretty big so
+one two one needed to be pretty big so at least two K even for K for cinematics
+at least two K even for K for cinematics and in some special situations even
+and in some special situations even bigger than that we also use the tiling
+bigger than that we also use the tiling micro detail map then this one was
+micro detail map then this one was shared across all characters and this
+shared across all characters and this was a lot smaller and is basically just
+was a lot smaller and is basically just a generic noise and the purpose of this
+a generic noise and the purpose of this map was to add some texture so to speak
+map was to add some texture so to speak to the skin basically it's to break up
+to the skin basically it's to break up that spec a bit now there are a couple
+that spec a bit now there are a couple issues with this workflow and there are
+issues with this workflow and there are two main ones that we identified the
+two main ones that we identified the first one obviously was the texture size
+first one obviously was the texture size so a minimum 2k map just for a single
+so a minimum 2k map just for a single character just for a small part of a
+character just for a small part of a single character model we thought was a
+single character model we thought was a bit much but because this map had to
+bit much but because this map had to handle really fine tiny poor details
+handle really fine tiny poor details that resolution was necessary
+that resolution was necessary but even still even using 2k or even 4k
+but even still even using 2k or even 4k resolution we still weren't really happy
+resolution we still weren't really happy with the results
+with the results now the second issue was with the micro
+now the second issue was with the micro detail map so since we were using just a
+detail map so since we were using just a generic noise it wasn't actually useful
+generic noise it wasn't actually useful in terms of adding meaningful detail to
+in terms of adding meaningful detail to the face model but also the poor types
+the face model but also the poor types on faces differ so much on different
+on faces differ so much on different parts of the face that we also couldn't
+parts of the face that we also couldn't get away with just choosing one actual
+get away with just choosing one actual port type and then applying that
+port type and then applying that uniformly throughout the face however we
+uniformly throughout the face however we did notice one thing and that was with
+did notice one thing and that was with the unique map the custom map that was
+the unique map the custom map that was you know unique for each character so
+you know unique for each character so you for you nor if you ignored the micro
+you for you nor if you ignored the micro details and just focused on the larger
+details and just focused on the larger forms the primary and secondary details
+forms the primary and secondary details they could all actually be represented
+they could all actually be represented by much lower texture resolutions so we
+by much lower texture resolutions so we could go all the way down to 1k even 5
+could go all the way down to 1k even 5 12 maps which is significantly lower
+12 maps which is significantly lower than what we were using but of course
+than what we were using but of course what about the tertiary details and it
+what about the tertiary details and it was this need to represent this range of
+was this need to represent this range of details on the same map they need to
+details on the same map they need to display small details and wider forms at
+display small details and wider forms at the same time there was the root of all
+the same time there was the root of all of our problems but when broken down in
+of our problems but when broken down in this way when phrased in this particular
+this way when phrased in this particular way it actually started to seem like a
+way it actually started to seem like a familiar challenge and that's because it
+familiar challenge and that's because it was basically this is the same kind of
+was basically this is the same kind of challenge that environment texture
+challenge that environment texture artists face on a regular basis so I'm
+artists face on a regular basis so I'm assuming there's going to be some non
+assuming there's going to be some non environment artists in the room so just
+environment artists in the room so just to kind of give a quick overview of what
+to kind of give a quick overview of what it's like to texture environments
+it's like to texture environments environments tend to have much lower
+environments tend to have much lower memory budgets relative to the amount of
+memory budgets relative to the amount of assets that we have to create which can
+assets that we have to create which can range in size from like small pebbles
+range in size from like small pebbles and grains of sand all the way to big
+and grains of sand all the way to big mountains right and so to deal with that
+mountains right and so to deal with that the majority of the textures that we use
+the majority of the textures that we use are tiling textures and to create even
+are tiling textures and to create even more variations will blend these
+more variations will blend these different tiling textures together and
+different tiling textures together and this allows us to maintain fidelity at
+this allows us to maintain fidelity at close distances while still keeping
+close distances while still keeping texture sizes fairly low so we thought
+texture sizes fairly low so we thought why not give this a try for skin now the
+why not give this a try for skin now the idea of texturing character is using
+idea of texturing character is using tiling tech
+tiling tech yours is not really a new concept so we
+yours is not really a new concept so we were already kind of doing it before
+were already kind of doing it before with that micro detailed math and for
+with that micro detailed math and for cloth for instance it's being this
+cloth for instance it's being this technique of using tiling textures is
+technique of using tiling textures is being used for cloth weaves to add
+being used for cloth weaves to add detail to fabric so maybe we were onto
+detail to fabric so maybe we were onto something approaching skin as if it were
+something approaching skin as if it were an environment it was worth the try at
+an environment it was worth the try at least
+least so when approaching environment art
+so when approaching environment art creation the first step is to try and
+creation the first step is to try and identify the basic common elements that
+identify the basic common elements that you can repeat throughout so for skin
+you can repeat throughout so for skin obviously this meant starting with pores
+obviously this meant starting with pores but we didn't want to just jump in
+but we didn't want to just jump in without first gating an understanding of
+without first gating an understanding of the patterns that make up skin so what
+the patterns that make up skin so what we wanted to do first was to try to find
+we wanted to do first was to try to find the common poor patterns that are found
+the common poor patterns that are found across most if not all faces in terms of
+across most if not all faces in terms of shape and placement and that meant
+shape and placement and that meant looking at a lot of reference so what we
+looking at a lot of reference so what we did was we gathered photos and then I
+did was we gathered photos and then I went around and scanned several faces in
+went around and scanned several faces in the office and honestly as an
+the office and honestly as an environment artist it was kind of fun
+environment artist it was kind of fun for me because as for environments the
+for me because as for environments the references that I tend to look at our
+references that I tend to look at our rocks and dirt and bricks lots of bricks
+rocks and dirt and bricks lots of bricks so it was kind of cool too even though I
+so it was kind of cool too even though I spent quite a quite an amount of time
+spent quite a quite an amount of time looking at faces over and over again it
+looking at faces over and over again it was a it was a bit of a welcome change
+was a it was a bit of a welcome change from what I usually did so I looked at
+from what I usually did so I looked at faces such as these these are all my
+faces such as these these are all my co-workers by the way and actually I
+co-workers by the way and actually I have to kind of set aside for just a
+have to kind of set aside for just a small snippet so that dapper fellow to
+small snippet so that dapper fellow to the left most of the slide is our lead
+the left most of the slide is our lead graphics engineer and the truth is
+graphics engineer and the truth is everybody who volunteered to be scanned
+everybody who volunteered to be scanned it was a super awesome
+it was a super awesome I really appreciated it it's not easy to
+I really appreciated it it's not easy to put on the stocking and sit still it's
+put on the stocking and sit still it's really awkward to have me scan them but
+really awkward to have me scan them but Jason went the extra mile cuz he usually
+Jason went the extra mile cuz he usually has I browse and I asked him to shave
+has I browse and I asked him to shave and I wasn't expecting to go all out so
+and I wasn't expecting to go all out so it's worth to mention he is the most
+it's worth to mention he is the most loyal game developer that I've ever
+loyal game developer that I've ever worked with so yeah he deserves a bit of
+worked with so yeah he deserves a bit of extra recognition
+so yeah so getting back to it oops I think I went a bit ahead so getting back
+think I went a bit ahead so getting back to it
+to it what we did with these references was
+what we did with these references was try to identify as many micro details as
+try to identify as many micro details as possible and then afterwards simplify
+possible and then afterwards simplify them into basic commonly occurring
+them into basic commonly occurring shapes and these were conclusions so
+shapes and these were conclusions so first in terms of shape
+first in terms of shape we found that skin detail could be
+we found that skin detail could be generalized into the very technical
+generalized into the very technical terms of dot and line patterns as you
+terms of dot and line patterns as you can see here and just to kind of add to
+can see here and just to kind of add to that we found that we can combine these
+that we found that we can combine these simple patterns to create even more
+simple patterns to create even more complicated patterns so for instance
+complicated patterns so for instance this kind of cross hatching effect
+this kind of cross hatching effect although it looks quite different from
+although it looks quite different from the previous shapes that identified
+the previous shapes that identified before can actually be created just by
+before can actually be created just by combining lines in different
+combining lines in different orientations and the one I actually
+orientations and the one I actually forgot to indicate this here but this
+forgot to indicate this here but this one on the right actually also has a dot
+one on the right actually also has a dot pattern layered on top of that too the
+pattern layered on top of that too the one exception was the nose so we
+one exception was the nose so we initially tried to generalize this just
+initially tried to generalize this just by applying a dot pattern to and
+by applying a dot pattern to and modifying that a bit but we found that
+modifying that a bit but we found that nose pores are quite a unique shape on
+nose pores are quite a unique shape on their own and so that ended up becoming
+their own and so that ended up becoming its own category the second clusion was
+its own category the second clusion was regarding placement so we found that
+regarding placement so we found that certain kinds of patterns tend to be
+certain kinds of patterns tend to be found in the same areas of the face
+found in the same areas of the face across many different people for
+across many different people for instance with the dot pores found more
+instance with the dot pores found more concentrated on the apples of the cheeks
+concentrated on the apples of the cheeks Lyons found between the cheek and the
+Lyons found between the cheek and the mouth whatever this fold is called and
+mouth whatever this fold is called and various combinations of both throughout
+various combinations of both throughout the face so I actually went through each
+the face so I actually went through each set of facial photos and categorized and
+set of facial photos and categorized and color-coded as many variations as I
+color-coded as many variations as I could and this is a simplified version
+could and this is a simplified version of the poor placement map that resulted
+of the poor placement map that resulted from our observations of people's skin
+from our observations of people's skin with the different colored areas
+with the different colored areas representing the different types of
+representing the different types of patterns that could be generalised
+patterns that could be generalised across many faces the third
+across many faces the third characteristic was directionality so we
+characteristic was directionality so we notice that at neutral expression
+notice that at neutral expression certain areas of the face were stretched
+certain areas of the face were stretched by default and so initially we
+by default and so initially we identified many more basic pour patterns
+identified many more basic pour patterns until we realize that some of them were
+until we realize that some of them were actually the previous dot and Lyon
+actually the previous dot and Lyon patterns I had mentioned before just
+patterns I had mentioned before just stretched so for instance this example
+stretched so for instance this example right here looks quite different from
+right here looks quite different from that basic non directional dot pattern
+that basic non directional dot pattern that I identified before and indeed if
+that I identified before and indeed if you were to sculpt it you would sculpt
+you were to sculpt it you would sculpt it quite differently than you let's say
+it quite differently than you let's say you would sculpt the pores on the apples
+you would sculpt the pores on the apples of the cheeks but what this is is still
+of the cheeks but what this is is still basically that same dot that dot poor
+basically that same dot that dot poor pattern but just stretched along these
+pattern but just stretched along these directional lines so we found that in
+directional lines so we found that in general pores on human skin tend to
+general pores on human skin tend to follow the same directional pattern
+follow the same directional pattern across many different faces so there are
+across many different faces so there are some variations to this as well like for
+some variations to this as well like for instance with age a lot of these
+instance with age a lot of these directional lines tend to be stronger to
+directional lines tend to be stronger to get that again technical term droopiness
+get that again technical term droopiness in the face but in general you won't get
+in the face but in general you won't get a lot of variation from or deviation
+a lot of variation from or deviation from this this directionality map so
+from this this directionality map so armed with these observations we set
+armed with these observations we set about to design and improve skin texture
+about to design and improve skin texture workflow with the following goals in
+workflow with the following goals in mind so the first one was to reduce
+mind so the first one was to reduce texture memory I mean this was the
+texture memory I mean this was the reason that we set out to redesign our
+reason that we set out to redesign our previous workflow in the first place and
+previous workflow in the first place and we aim to achieve that by either
+we aim to achieve that by either reducing texture resolution per map
+reducing texture resolution per map sharing textures across multiple models
+sharing textures across multiple models or if we were lucky a combination of
+or if we were lucky a combination of both second we wanted to try to reduce
+both second we wanted to try to reduce texture authoring time to be honest this
+texture authoring time to be honest this wasn't actually a main priority but we
+wasn't actually a main priority but we wanted to make sure that whatever
+wanted to make sure that whatever changes we made to the workflow didn't
+changes we made to the workflow didn't translate to more work for the artist
+translate to more work for the artist even with these goals in mind however we
+even with these goals in mind however we still wanted to make sure that the
+still wanted to make sure that the quality of the micro details was
+quality of the micro details was actually better than what we were able
+actually better than what we were able to achieve before with our previous
+to achieve before with our previous workflow so we decided to evaluate this
+workflow so we decided to evaluate this by two main factors one how good the
+by two main factors one how good the details look up close compared to our
+details look up close compared to our previous workflow and two
+previous workflow and two we were able to accurately reflect the
+we were able to accurately reflect the variation in detail that skin actually
+variation in detail that skin actually has you know we spent so much time
+has you know we spent so much time looking at faces and and investigating
+looking at faces and and investigating characteristics of the face that we
+characteristics of the face that we really wanted to make sure to represent
+really wanted to make sure to represent that as much as possible so with that in
+that as much as possible so with that in mind this is how we broke down the
+mind this is how we broke down the details for a new workflow for the
+details for a new workflow for the primary and secondary details and that
+primary and secondary details and that includes again large wrinkles pockets of
+includes again large wrinkles pockets of fat scars basically large forms that you
+fat scars basically large forms that you can easily see on the face that was all
+can easily see on the face that was all still sculpted that was sculpted on a
+still sculpted that was sculpted on a custom one-to-one map the main
+custom one-to-one map the main difference was that we did not include
+difference was that we did not include the micro detail so no pores nothing
+the micro detail so no pores nothing smaller than 0.5 centimeters and so
+smaller than 0.5 centimeters and so because of that we could get all these
+because of that we could get all these details down to a 512 sometimes 1k if
+details down to a 512 sometimes 1k if necessary especially for hero characters
+necessary especially for hero characters and because we didn't have to include
+and because we didn't have to include all these micro details in the sculpt we
+all these micro details in the sculpt we found that sculpting time was reduced in
+found that sculpting time was reduced in general across the artist who tested it
+general across the artist who tested it by about 40% and in the case of scans we
+by about 40% and in the case of scans we could just basically use the smooth scan
+could just basically use the smooth scan data and bake that directly onto the low
+data and bake that directly onto the low poly and use that as is so this is an
+poly and use that as is so this is an example of what a sculpt in this new
+example of what a sculpt in this new workflow looks like so you can see all
+workflow looks like so you can see all the major forms are represented there's
+the major forms are represented there's some tiny fine details but that's just
+some tiny fine details but that's just that just kind of came out out of
+that just kind of came out out of sculpting habit from our artists and
+sculpting habit from our artists and when baked onto a 512 all of the details
+when baked onto a 512 all of the details that matter those were all preserved for
+that matter those were all preserved for the tertiary details this is where the
+the tertiary details this is where the workflow really differed from what we
+workflow really differed from what we were doing before
+were doing before so for these micro details we
+so for these micro details we represented these with four basic shapes
+represented these with four basic shapes indicating the different of four basic
+indicating the different of four basic for textures indicating the four
+for textures indicating the four different shapes so we have our dot
+different shapes so we have our dot pores lines in different directions and
+pores lines in different directions and the nose in the Alpha Channel and in
+the nose in the Alpha Channel and in each one there is a cavity map that we
+each one there is a cavity map that we stuck in the Alpha Channel of each
+stuck in the Alpha Channel of each texture and we use these as a mask to
+texture and we use these as a mask to add detail to the albedo and rough
+add detail to the albedo and rough roughness passes so one thing that
+roughness passes so one thing that artists could do was just by vertex
+artists could do was just by vertex painting they could control how the
+painting they could control how the different details blended and place
+different details blended and place exactly place the details exactly where
+exactly place the details exactly where they wanted to so just by painting in
+they wanted to so just by painting in different shades of gray and overlaying
+different shades of gray and overlaying certain details they could make
+certain details they could make characters look older younger more
+characters look older younger more wrinkled just by making certain details
+wrinkled just by making certain details stronger or weaker and this is an
+stronger or weaker and this is an example of what these different vertex
+example of what these different vertex channels look like so as you can see
+channels look like so as you can see each detail is mapped to RGB a vertex
+each detail is mapped to RGB a vertex color channels and these are painted
+color channels and these are painted these could be painted in Maya Maya has
+these could be painted in Maya Maya has a vertical there or depending on the
+a vertical there or depending on the engine that you're using
+engine that you're using I know Unreal 4 has a vertex painting
+I know Unreal 4 has a vertex painting tool in engine so you could actually
+tool in engine so you could actually import your models and paint it right
+import your models and paint it right there and to speed up vertex painting we
+there and to speed up vertex painting we would start out by importing colors from
+would start out by importing colors from a standard poor placement map and we
+a standard poor placement map and we realized that we could do this because
+realized that we could do this because as mentioned earlier the same patterns
+as mentioned earlier the same patterns tend to be found in the same areas of
+tend to be found in the same areas of the face
+the face so for NPCs that was basically it like
+so for NPCs that was basically it like we would load it from the standard map
+we would load it from the standard map and the resulting vertex color was used
+and the resulting vertex color was used as is but even for hero characters it
+as is but even for hero characters it ended up being useful as a good jumping
+ended up being useful as a good jumping off point for artists to do the rest of
+off point for artists to do the rest of the work that they wanted to do and that
+the work that they wanted to do and that way they wouldn't have to start from
+way they wouldn't have to start from scratch every time so this on the left
+scratch every time so this on the left is what that standard map looks like and
+is what that standard map looks like and this was never actually loaded in game
+this was never actually loaded in game and in Maya or in some of our in-house
+and in Maya or in some of our in-house engines also an unreal you can import
+engines also an unreal you can import the vertex colors from like a Targa or
+the vertex colors from like a Targa or something like that and for NPCs that
+something like that and for NPCs that would be basically it but yeah this
+would be basically it but yeah this would work
+would work and this map pretty well with the
+and this map pretty well with the earlier poor placement map that I showed
+earlier poor placement map that I showed you earlier
+so directionality was another important characteristic that we identified in our
+characteristic that we identified in our observations and to apply that in this
+observations and to apply that in this new workflow we decided to use
+new workflow we decided to use a smear map to control directionality so
+a smear map to control directionality so what that is is basically 2d vector
+what that is is basically 2d vector vector offsets and works similar to a
+vector offsets and works similar to a flow map and you would author that
+flow map and you would author that similarly to how you would author a flow
+similarly to how you would author a flow map as well and these would have a
+map as well and these would have a direct influence on the UVs to mimic
+direct influence on the UVs to mimic that look of stretching that I was
+that look of stretching that I was talking about earlier and this map can
+talking about earlier and this map can be shared or custom so depending on the
+be shared or custom so depending on the character for NPCs we used a few
+character for NPCs we used a few standard smear maps and I say a few
+standard smear maps and I say a few because we had a couple for instance one
+because we had a couple for instance one for older characters and one for younger
+for older characters and one for younger characters but since in certain areas
+characters but since in certain areas and for certain individuals directional
+and for certain individuals directional directionality and stretching can vary
+directionality and stretching can vary significantly between different models
+significantly between different models we also wanted artists to have the
+we also wanted artists to have the option to create their own custom smear
+option to create their own custom smear map for each character so this depending
+map for each character so this depending on if it was a hero character or an NPC
+on if it was a hero character or an NPC it could either be shared or or a custom
+it could either be shared or or a custom map so I have a video for you guys but I
+map so I have a video for you guys but I won't load it directly from here at
+won't load it directly from here at skort UNIX different teams use different
+skort UNIX different teams use different engines and we have this set up in
+engines and we have this set up in in-house engines but for this talk we
+in-house engines but for this talk we chose to do all of our examples in
+chose to do all of our examples in unreal unreal for for a couple of
+unreal unreal for for a couple of reasons
+reasons so one everyone has access to unreal you
+so one everyone has access to unreal you guys are probably familiar with it or
+guys are probably familiar with it or can be familiar with it and the whole
+can be familiar with it and the whole point of sharing this workflow at this
+point of sharing this workflow at this point is that you guys can all do it and
+point is that you guys can all do it and try it yourselves but also we have a few
+try it yourselves but also we have a few teams that are using unreal to develop
+teams that are using unreal to develop their games so it made sense yeah so
+their games so it made sense yeah so that's been a lot of words but it'll
+that's been a lot of words but it'll probably be easier to demonstrate in a
+probably be easier to demonstrate in a video okay all right so in this one I'm
+video okay all right so in this one I'm just applying the different details with
+just applying the different details with our GBA channels and vertex painting
+our GBA channels and vertex painting that and we have the ability to adjust
+that and we have the ability to adjust the intensity and scale globally for
+the intensity and scale globally for each detail through sliders and in this
+each detail through sliders and in this example we actually have the dot pours
+example we actually have the dot pours layered twice so this was actually kind
+layered twice so this was actually kind of interesting to see how our artists
+of interesting to see how our artists used it so some people used it just to
+used it so some people used it just to kind of add some general bumpiness to
+kind of add some general bumpiness to the skin so they scaled it real
+the skin so they scaled it real big and you'd have this kind of you know
+big and you'd have this kind of you know just general unevenness and other people
+just general unevenness and other people used it to scaled it really small and
+used it to scaled it really small and had like really really fine micro pores
+had like really really fine micro pores on there so as I was saying before
+on there so as I was saying before depending on how you paint these details
+depending on how you paint these details you can paint in different shades of
+you can paint in different shades of gray and the artist has full flexibility
+gray and the artist has full flexibility on where and how intense certain details
+on where and how intense certain details are editing each detail is also a lot
+are editing each detail is also a lot easier so compared to the old workflow
+easier so compared to the old workflow of separating these details in ZBrush
+of separating these details in ZBrush layers editing them was also was quite
+layers editing them was also was quite difficult but here you can kind of
+difficult but here you can kind of experiment with scale you can erase it
+experiment with scale you can erase it will but preserve you know for instance
+will but preserve you know for instance you can I'm just going to pause it for a
+you can I'm just going to pause it for a second you can choose to edit only only
+second you can choose to edit only only lines only wrinkles but leave the pores
+lines only wrinkles but leave the pores intact and this last bit if you just pay
+intact and this last bit if you just pay attention to where the arrows are
+attention to where the arrows are pointing to it'll you'll see the effect
+pointing to it'll you'll see the effect of the curvature of these wrinkles by
+of the curvature of these wrinkles by toggling the smear map on and off so
+toggling the smear map on and off so it's I hope it's big enough on there you
+it's I hope it's big enough on there you can just see the curvature changing a
+can just see the curvature changing a bit okay all right
+so this is how we this is how I break down the how the textures are are so
+down the how the textures are are so hard the details are summarized in the
+hard the details are summarized in the different textures so as I mentioned
+different textures so as I mentioned before the primary and secondary details
+before the primary and secondary details are still sculpted but on a much smaller
+are still sculpted but on a much smaller map and again like the previous workflow
+map and again like the previous workflow this is still custom to each character
+this is still custom to each character and the tertiary details this time are
+and the tertiary details this time are handled by either 4 128 by 128 detail
+handled by either 4 128 by 128 detail maps or their outlets together into a
+maps or their outlets together into a slightly larger 256 by 256 texture Atlas
+slightly larger 256 by 256 texture Atlas and these are shared across all human
+and these are shared across all human characters then for the smear map that's
+characters then for the smear map that's on average about 256 by 256 and this
+on average about 256 by 256 and this handled the directionality or the static
+handled the directionality or the static stretching of the skin and this was
+stretching of the skin and this was shared or not shared depending on the
+shared or not shared depending on the importance of the character and also the
+importance of the character and also the I guess the choice of the artists and
+I guess the choice of the artists and their since I'm assuming we're all
+their since I'm assuming we're all visual people are at least uh maybe it's
+visual people are at least uh maybe it's easier to understand this by you know
+easier to understand this by you know through visual means these are the
+through visual means these are the relative to exercises comparing the old
+relative to exercises comparing the old workflow in the new workflow so the
+workflow in the new workflow so the textures that are outlined in yellow
+textures that are outlined in yellow those again are custom to each character
+those again are custom to each character the ones in green are shared and still
+the ones in green are shared and still comparing the lowest resolution scenario
+comparing the lowest resolution scenario of our old workflow with the highest
+of our old workflow with the highest resolution scenario of our new workflow
+resolution scenario of our new workflow there's still a considerable improvement
+there's still a considerable improvement in terms of texture memory and this is
+in terms of texture memory and this is what that looks like applied to an
+what that looks like applied to an actual model so this is again using the
+actual model so this is again using the old workflow compared to the new and in
+old workflow compared to the new and in terms of close-ups so this is a for
+terms of close-ups so this is a for Caden or Mille map that's applied on
+Caden or Mille map that's applied on here compared to the largest normal map
+here compared to the largest normal map that's applied to this is a 512 and I
+that's applied to this is a 512 and I mean you'd never go you'd probably never
+mean you'd never go you'd probably never go this close ever to a character scale
+go this close ever to a character scale but now you can if you want to so I
+but now you can if you want to so I don't know you could come up with some
+don't know you could come up with some creative shots using using this
+creative shots using using this technique
+so we created some different lighting scenarios just to test how the pores
+scenarios just to test how the pores react if they were acting the way that
+react if they were acting the way that we expected them to under different
+we expected them to under different lighting scenarios so I'm just gonna
+lighting scenarios so I'm just gonna scroll through them so you can see we
+scroll through them so you can see we got kind of creative with this we don't
+got kind of creative with this we don't really get to do fun lighting so this
+really get to do fun lighting so this one's my favorite one it's kind of a Sin
+one's my favorite one it's kind of a Sin City sort of thing it's quite different
+City sort of thing it's quite different from final fantasy so it was it was kind
+from final fantasy so it was it was kind of interesting for us yeah so we're
+of interesting for us yeah so we're always looking to improve what we're
+always looking to improve what we're working on and there's some things that
+working on and there's some things that we plan our planning for our next steps
+we plan our planning for our next steps like to try to improve this workflow
+like to try to improve this workflow even further one of them is to try and
+even further one of them is to try and use procedural substances in lieu of
+use procedural substances in lieu of bitmaps so at the moment the textures
+bitmaps so at the moment the textures that we're using our source from scans
+that we're using our source from scans mixed with a bit of hand sculpting but
+mixed with a bit of hand sculpting but with substances we think that we can
+with substances we think that we can reduce extra memory even further and
+reduce extra memory even further and also add some more customizability at
+also add some more customizability at the pattern level another thing that
+the pattern level another thing that we're doing is looking at poor
+we're doing is looking at poor distortion for facial animation so
+distortion for facial animation so making sure that in addition to static
+making sure that in addition to static stretching the animated stretching also
+stretching the animated stretching also matched with facial animation so that's
+matched with facial animation so that's my colleague cheetah kazuhisa he is
+my colleague cheetah kazuhisa he is working on that and it's a separate
+working on that and it's a separate system but we're making sure that our
+system but we're making sure that our different workflows complement each
+different workflows complement each other another thing that's really
+other another thing that's really important that we want to try to push
+important that we want to try to push even further is increasing ways for
+even further is increasing ways for customization so one way is to add two
+customization so one way is to add two layers of rgba instead of just one so
+layers of rgba instead of just one so currently we're we have four basic
+currently we're we have four basic patterns for each channel rgba but with
+patterns for each channel rgba but with two were thinking with that extra set of
+two were thinking with that extra set of details we could either have entirely
+details we could either have entirely new different set of details or have the
+new different set of details or have the same ones but have the ability to have
+same ones but have the ability to have different scales and different
+different scales and different intensities at different parts of the
+intensities at different parts of the face and lastly one of the things we're
+face and lastly one of the things we're looking into is allowing for optional
+looking into is allowing for optional masks to allow for deckle up
+masks to allow for deckle up location so for instance in the case of
+location so for instance in the case of war paint yeah okay and I don't know if
+war paint yeah okay and I don't know if there's a moral to GDC talks but if
+there's a moral to GDC talks but if there is the moral to this story is that
+there is the moral to this story is that in inter departments of collaboration is
+in inter departments of collaboration is good so nowadays skill sets are so
+good so nowadays skill sets are so specific and so defined and so
+specific and so defined and so specialized that we don't really get to
+specialized that we don't really get to talk to each other much so for instance
+talk to each other much so for instance in terms of character artists and
+in terms of character artists and environment artists we have completely
+environment artists we have completely different workflows we use the same
+different workflows we use the same software but in completely different
+software but in completely different ways and we don't really get this chance
+ways and we don't really get this chance to work together in production and
+to work together in production and that's a real shame because for instance
+that's a real shame because for instance in this case the solution to one of the
+in this case the solution to one of the problems that one of our departments was
+problems that one of our departments was having was already put in practice for a
+having was already put in practice for a while and the point is inspiration can
+while and the point is inspiration can come from unlikely places and no harm
+come from unlikely places and no harm can ever come from just talking to each
+can ever come from just talking to each other more so yeh before finishing I
+other more so yeh before finishing I just like to give some special thanks to
+just like to give some special thanks to a bunch of people who helped
+a bunch of people who helped significantly in developing this
+significantly in developing this workflow so first to Eduardo Mehsana who
+workflow so first to Eduardo Mehsana who is the chief character artist
+is the chief character artist and did all the art for this
+and did all the art for this presentation and also co-developed this
+presentation and also co-developed this workflow with me also to Jason Lacroix
+workflow with me also to Jason Lacroix and cheetah kazuhisa who in addition to
+and cheetah kazuhisa who in addition to being fabulous models their faces are in
+being fabulous models their faces are in the slides they're also really helpful
+the slides they're also really helpful in providing feedback and advice
+in providing feedback and advice Ishihara as well tested this workflow
+Ishihara as well tested this workflow extensively and gave a lot of useful
+extensively and gave a lot of useful feedback and the other names on here
+feedback and the other names on here Graham Murray Hendricks Kubek and Paul
+Graham Murray Hendricks Kubek and Paul Chandler are just some of the other
+Chandler are just some of the other models that that I have in my slides and
+models that that I have in my slides and were kind enough to let me use their
+were kind enough to let me use their images so yeah I think I think we have
+images so yeah I think I think we have time for questions right so if you've
+time for questions right so if you've got any questions
+got any questions [Applause]
+[Applause] very work I had a quick question about
+very work I had a quick question about the smear map did you have any problem
+the smear map did you have any problem with singularities due to the
+with singularities due to the directionality of it but sorry part of
+directionality of it but sorry part of me with the smear map you said there was
+me with the smear map you said there was some 2d vectors on there then you have
+some 2d vectors on there then you have any problem with singularities occurring
+any problem with singularities occurring due to just not in our experience I mean
+due to just not in our experience I mean like to be fair we we only had a few
+like to be fair we we only had a few artist test this this workflow and they
+artist test this this workflow and they would author smear maps like let's say
+would author smear maps like let's say in Mari some of the one of them like
+in Mari some of the one of them like kind of hacked the vertex paint
+kind of hacked the vertex paint functionality in Maya to try to create a
+functionality in Maya to try to create a smear map that way I don't recommend it
+smear map that way I don't recommend it but no problems that we had ever really
+but no problems that we had ever really come up so yeah I hope that answers your
+come up so yeah I hope that answers your question
+question Thanks any other questions
+hi nice great talk um I kind of missed on when you were painting on the face
+on when you were painting on the face which application while using it in
+which application while using it in house so it's the ZBrush sure oh that's
+house so it's the ZBrush sure oh that's actually in unreal for using the vertex
+actually in unreal for using the vertex paint tool and unreal okay so I mean I'm
+paint tool and unreal okay so I mean I'm not saying that you need to use that oh
+not saying that you need to use that oh sorry I guess the question was like what
+sorry I guess the question was like what was a tool that I was using in that
+was a tool that I was using in that video it depends on your own workflow it
+video it depends on your own workflow it depends on your in-house engine like not
+depends on your in-house engine like not all engines have that in engine vertex
+all engines have that in engine vertex paint capability so in that case you
+paint capability so in that case you could use Maya because Maya has that
+could use Maya because Maya has that ability but I thought it would just be
+ability but I thought it would just be easier to to demonstrate and unreal
+easier to to demonstrate and unreal in this case hi hi I think this thing is
+in this case hi hi I think this thing is really cool and I have a question about
+really cool and I have a question about production on this is if these things in
+production on this is if these things in use are old man or man's skin I think
+use are old man or man's skin I think that would be perfect but how do you
+that would be perfect but how do you treat this on some teenager or young
+treat this on some teenager or young girl's face would you still like use the
+girl's face would you still like use the same way because you know the young
+same way because you know the young ladies maybe maybe show the beauty of
+ladies maybe maybe show the beauty of his skin and how do you balance it
+his skin and how do you balance it so the question was I guess he
+so the question was I guess he understands how this workflow applies to
+understands how this workflow applies to men but how would it work for for
+men but how would it work for for prettier people I guess and the truth is
+prettier people I guess and the truth is that you can use it for for women
+that you can use it for for women smoother skin and younger skin as well
+smoother skin and younger skin as well because even young skin also has pores
+because even young skin also has pores they're just a lot finer and less
+they're just a lot finer and less pronounced so in this example we we use
+pronounced so in this example we we use an older character with more pronounced
+an older character with more pronounced details just so you could see it better
+details just so you could see it better but it would still be the same workflow
+but it would still be the same workflow just applied a lot light more lightly
+just applied a lot light more lightly either the way that you paint it or
+either the way that you paint it or through the global parameter it's just
+through the global parameter it's just kind of scaling that all down okay thank
+kind of scaling that all down okay thank you
+hi this goes a little bit beyond the scope of the panel discussion but I was
+scope of the panel discussion but I was wondering if you could provide any
+wondering if you could provide any additional insights onto achieving more
+additional insights onto achieving more accurate subsurface scattering Maps I
+accurate subsurface scattering Maps I traditionally see them they're more hand
+traditionally see them they're more hand painted and kind of artistic decisions
+painted and kind of artistic decisions but I'd love to know if you've explored
+but I'd love to know if you've explored anything with facial tissue depths or
+anything with facial tissue depths or achieving greater accuracy with actual
+achieving greater accuracy with actual real-life subsurface scattering on skin
+real-life subsurface scattering on skin so the question was about subsurface
+so the question was about subsurface scattering which again for this
+scattering which again for this presentation we kind of focused more on
+presentation we kind of focused more on just texturing and normal details if you
+just texturing and normal details if you want you can email me that question I
+want you can email me that question I could try to forward it to somebody who
+could try to forward it to somebody who might be looking at that right now
+might be looking at that right now well certainly I sincerely appreciate
+well certainly I sincerely appreciate that okay thanks thank you so much yeah
+that okay thanks thank you so much yeah we're good okay all right thanks cuz if
+we're good okay all right thanks cuz if you use like a RGB mask instead of using
+you use like a RGB mask instead of using vertex color for your placement yes
+vertex color for your placement yes actually so the question was if we can
+actually so the question was if we can use an RGB a mask instead of vertex
+use an RGB a mask instead of vertex color you absolutely could the point
+color you absolutely could the point with using vertex color was to reduce
+with using vertex color was to reduce texture memory so that's one of the
+texture memory so that's one of the things that we're trying to do now like
+things that we're trying to do now like how to layer to RGB a instead of you
+how to layer to RGB a instead of you know just adding more and more maps
+know just adding more and more maps because the point is to try to like
+because the point is to try to like reduces yeah reduced extra memory as
+reduces yeah reduced extra memory as much as possible but you totally could
+much as possible but you totally could okay thank you
+[Applause]
+you

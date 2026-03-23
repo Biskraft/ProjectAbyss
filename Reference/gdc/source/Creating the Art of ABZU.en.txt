@@ -1,0 +1,654 @@
+[Music]
+all right everyone can you guys hear me all right I apologize my voice is kind
+all right I apologize my voice is kind of I hoped but um thank you very much
+of I hoped but um thank you very much for coming to creating the art of Abzu
+for coming to creating the art of Abzu I'm Matt Nava you might have seen my
+I'm Matt Nava you might have seen my work on these games I was the art
+work on these games I was the art director on flower and journey after
+director on flower and journey after journey shipped I started a new studio
+journey shipped I started a new studio to create small games like that called
+to create small games like that called giant squid and our first project was
+giant squid and our first project was called Abzu and absolute is this
+called Abzu and absolute is this underwater adventure game where you kind
+underwater adventure game where you kind of explore the ocean and there's a very
+of explore the ocean and there's a very vibrant world full of fish based on
+vibrant world full of fish based on real-life fish and for those of you
+real-life fish and for those of you haven't seen much of it I have a little
+haven't seen much of it I have a little clip of it that should show you what
+clip of it that should show you what it's like
+it's like [Music]
+[Music] [Applause]
+[Applause] so the game is actually very much
+so the game is actually very much inspired by my own experience of scuba
+inspired by my own experience of scuba diving this is me on the right there and
+diving this is me on the right there and our lead engineer on the project Brian
+our lead engineer on the project Brian ballot after going on a scuba diving
+ballot after going on a scuba diving research trip and when the game uses
+research trip and when the game uses Unreal Engine 4 it took three years to
+Unreal Engine 4 it took three years to make and we had 10 people working on it
+make and we had 10 people working on it at the peak team size we had no
+at the peak team size we had no dedicated animator and this was crazy
+dedicated animator and this was crazy because we have tons of characters in
+because we have tons of characters in this game tons of fish so the underwater
+this game tons of fish so the underwater setting presented this technical art
+setting presented this technical art challenge that not a lot of games have
+challenge that not a lot of games have to tackle we had to do huge amounts of
+to tackle we had to do huge amounts of interactive fish huge amounts of
+interactive fish huge amounts of interactive kelp and we needed to have
+interactive kelp and we needed to have terrain that could was really capable of
+terrain that could was really capable of supporting rapid iteration and we also
+supporting rapid iteration and we also needed to have art directive all
+needed to have art directive all volumetric lighting and a hemisphere so
+volumetric lighting and a hemisphere so I can tell you a little bit about how we
+I can tell you a little bit about how we solve some of those problems so the
+solve some of those problems so the first one we had to do is fish and the
+first one we had to do is fish and the game features over 200 species based on
+game features over 200 species based on real species from around the world at
+real species from around the world at any one time there might be 10,000 fish
+any one time there might be 10,000 fish swimming on screen so the first attempts
+swimming on screen so the first attempts that we did to create these fish was
+that we did to create these fish was using skeletal rigs and this is kind of
+using skeletal rigs and this is kind of the typical way you do character
+the typical way you do character animation and so this is a skeletal rig
+animation and so this is a skeletal rig you can kind of see that what's really
+you can kind of see that what's really nice about skeletal rigs is that you
+nice about skeletal rigs is that you have joints everywhere that you allow
+have joints everywhere that you allow you to control the character completely
+you to control the character completely you can open their mouth you can do
+you can open their mouth you can do silly stuff like that you can really
+silly stuff like that you can really make it do whatever you want but the
+make it do whatever you want but the problem comes when you have lots and
+problem comes when you have lots and lots of characters because updating all
+lots of characters because updating all those joints for all those fish is
+those joints for all those fish is really expensive the other really cool
+really expensive the other really cool thing you can do with joints is you can
+thing you can do with joints is you can procedurally animate their spine to curl
+procedurally animate their spine to curl them along the path that they swim on so
+them along the path that they swim on so you can see here the shark is using a
+you can see here the shark is using a skeletal rig and can curve as it swims
+skeletal rig and can curve as it swims and that's a really really important
+and that's a really really important effect for swimming so when you have
+effect for swimming so when you have lots of fish each one of these
+lots of fish each one of these characters needs to have an entire
+characters needs to have an entire skeleton of joints there's like 60 to
+skeleton of joints there's like 60 to 100 joints and every frame you have to
+100 joints and every frame you have to update all of those joints per fish so
+update all of those joints per fish so instead of just having 10,000 fish to
+instead of just having 10,000 fish to update
+update you have ten thousand times 100 joints
+you have ten thousand times 100 joints which is crazy so we had to figure out a
+which is crazy so we had to figure out a different way to get the density that we
+different way to get the density that we wanted and our answer to that was static
+wanted and our answer to that was static mesh instancing which is a technique
+mesh instancing which is a technique that's usually used for doing grass or
+that's usually used for doing grass or other kinds of foliage on the ground and
+other kinds of foliage on the ground and we actually wrote our own variant of
+we actually wrote our own variant of this kind of system for Abzu that allows
+this kind of system for Abzu that allows us to pipe in the small amount of data
+us to pipe in the small amount of data per instance that allowed us to animate
+per instance that allowed us to animate the fish each one individually but we
+the fish each one individually but we didn't know how to make a static mesh
+didn't know how to make a static mesh animate because doesn't have joints it
+animate because doesn't have joints it can't bend or anything like that so we
+can't bend or anything like that so we had to figure out how to do these a swim
+had to figure out how to do these a swim cycle for the fish a bite animation
+cycle for the fish a bite animation because the game features a full
+because the game features a full ecosystem where fish are eating each
+ecosystem where fish are eating each other and we needed to be able to do
+other and we needed to be able to do that thing where it curls along its path
+that thing where it curls along its path so I'm going to tell you how we figured
+so I'm going to tell you how we figured out how to do that with static meshes so
+out how to do that with static meshes so the swim cycle we used the vertex
+the swim cycle we used the vertex animation and the material of the fish
+animation and the material of the fish and what I found when I was animating
+and what I found when I was animating this fish was that you to create a swim
+this fish was that you to create a swim cycle you really need just a few basic
+cycle you really need just a few basic components the side-to-side translation
+components the side-to-side translation a yaw rotation and some panning
+a yaw rotation and some panning rotations along the spine so I'll show
+rotations along the spine so I'll show you a little bit about how that works
+you a little bit about how that works this is a an unreal our swim shader so
+this is a an unreal our swim shader so this is a giant trevally fish and in the
+this is a giant trevally fish and in the material we just animate the vertices
+material we just animate the vertices and here you can see we're just doing a
+and here you can see we're just doing a side-to-side motion with a sine wave
+side-to-side motion with a sine wave that's pulling all the vertices back and
+that's pulling all the vertices back and forth and the next motion we do is a yaw
+forth and the next motion we do is a yaw rotation around the objects pivot and
+rotation around the objects pivot and you basically can see that it's just a
+you basically can see that it's just a very simple rotation and then we have
+very simple rotation and then we have these kind of crazier rotations where we
+these kind of crazier rotations where we pan the rotation along the spine so we
+pan the rotation along the spine so we get this kind of rolling thing and he
+get this kind of rolling thing and he looks really insane
+looks really insane so you have this roll and then we also
+so you have this roll and then we also have a panning yaw and this one's really
+have a panning yaw and this one's really crazy too because you guys see further
+crazy too because you guys see further down from the pivot point it distorts so
+down from the pivot point it distorts so if you have a really long thing this
+if you have a really long thing this doesn't work but for most of the fish in
+doesn't work but for most of the fish in the game is fine so when you add all
+the game is fine so when you add all those together
+those together with an offset between those curves you
+with an offset between those curves you get kind of a swimming motion so here we
+get kind of a swimming motion so here we bring in the side-to-side rotation
+bring in the side-to-side rotation eyesight's assigned translation that is
+eyesight's assigned translation that is add the rotation and then bring in the
+add the rotation and then bring in the panning rotations for the role see
+panning rotations for the role see and also the yaw so what you get is this
+and also the yaw so what you get is this kind of gooey swimming fish
+kind of gooey swimming fish so we did one trick which was to mask
+so we did one trick which was to mask those panning rotations just to the back
+those panning rotations just to the back half of the fish so here you can see I'm
+half of the fish so here you can see I'm just kind of dialing in this mask that
+just kind of dialing in this mask that just puts those on the tail end and when
+just puts those on the tail end and when you look at it all of a sudden you have
+you look at it all of a sudden you have a swim cycle that has no joints and is
+a swim cycle that has no joints and is on a static mesh which is really cool
+on a static mesh which is really cool and it looks just as good as a swim
+and it looks just as good as a swim cycle you do with joints and what's
+cycle you do with joints and what's really neat is that you can control this
+really neat is that you can control this all with one parameter so you just have
+all with one parameter so you just have one speed variable that you have to pipe
+one speed variable that you have to pipe in and we drive that with the
+in and we drive that with the acceleration of the fish in a simulation
+acceleration of the fish in a simulation not the velocity which was a kind of
+not the velocity which was a kind of important point because if you would
+important point because if you would drive it with acceleration then you'll
+drive it with acceleration then you'll have these kind of flickers of the tail
+have these kind of flickers of the tail when he's accelerating and then he'll
+when he's accelerating and then he'll Coast which is very much more lifelike
+Coast which is very much more lifelike so here's an action this is a scene from
+so here's an action this is a scene from the game with about you can see in the
+the game with about you can see in the corner there I think it's about 11,000
+corner there I think it's about 11,000 fish or something these are giant
+fish or something these are giant Rivoli's and they all are swimming with
+Rivoli's and they all are swimming with a unique timing of their swim cycle at
+a unique timing of their swim cycle at the same time and it's really because we
+the same time and it's really because we figured out how to do this static mesh
+figured out how to do this static mesh instancing system that we were able to
+instancing system that we were able to do this many fish when you have when we
+do this many fish when you have when we tried to do this scene with skeleton
+tried to do this scene with skeleton fish we only could get like 30 fish on
+fish we only could get like 30 fish on the screen so it's is a huge difference
+the screen so it's is a huge difference so the next thing we have to do was the
+so the next thing we have to do was the bite animation and this one's a little
+bite animation and this one's a little harder to do just with sine waves in a
+harder to do just with sine waves in a shader so we ended up figuring out this
+shader so we ended up figuring out this method using blend shapes and we use a
+method using blend shapes and we use a sequence of blend shapes in order to
+sequence of blend shapes in order to make the fish bite so here you can see
+make the fish bite so here you can see we just had to blend shapes one that
+we just had to blend shapes one that opens the mouth and one that extends the
+opens the mouth and one that extends the mouth forward and when you play these in
+mouth forward and when you play these in sequence so you open the mouth and then
+sequence so you open the mouth and then you push it forward then you close the
+you push it forward then you close the mouth
+mouth and then you pull it back you get this
+and then you pull it back you get this kind of squash and stretch bite
+kind of squash and stretch bite animation here you can see it happening
+animation here you can see it happening being driven by some curves and we add
+being driven by some curves and we add this kind of squash and stretch so that
+this kind of squash and stretch so that when you zoom out you can really see
+when you zoom out you can really see that motion from far away because a lot
+that motion from far away because a lot of times in the game user there's a lot
+of times in the game user there's a lot of fish on screen they're small on
+of fish on screen they're small on screen so you need to see it was very
+screen so you need to see it was very exaggerated biting and we actually
+exaggerated biting and we actually figured out a way to oh here he is in
+figured out a way to oh here he is in the game boom is a bad CUDA man so we
+the game boom is a bad CUDA man so we figured out a way to use this blend
+figured out a way to use this blend shape sequence idea to do more complex
+shape sequence idea to do more complex animations so this is a skeletal mesh of
+animations so this is a skeletal mesh of a crab and we just have four poses for
+a crab and we just have four poses for his legs and we were able to do this
+his legs and we were able to do this really complex motion purely with blend
+really complex motion purely with blend shapes and even this little pinching
+shapes and even this little pinching thing when diver comes close to the
+thing when diver comes close to the crabs they try and pinch you pretty
+crabs they try and pinch you pretty silly and we use this to do other things
+silly and we use this to do other things too like bird flight cycles this one
+too like bird flight cycles this one uses eight different poses and it
+uses eight different poses and it allowed us to do a lot of really
+allowed us to do a lot of really detailed animation for things that
+detailed animation for things that really were small on screen it's pretty
+really were small on screen it's pretty cool there's a really neat technique and
+cool there's a really neat technique and one thing that's kind of interesting is
+one thing that's kind of interesting is that we actually create those poses for
+that we actually create those poses for the blend shapes we created full
+the blend shapes we created full skeletal rigs just to create those poses
+skeletal rigs just to create those poses so we save the ton of joints on these
+so we save the ton of joints on these crabs that are like tiny you know
+crabs that are like tiny you know they're they would have been 41 joints
+they're they would have been 41 joints per crabs crazy so big wind and the last
+per crabs crazy so big wind and the last thing we had to do to make these fish
+thing we had to do to make these fish really seem real was to do a turning
+really seem real was to do a turning curl animation so here we can see one of
+curl animation so here we can see one of the sharks that the curls turned off and
+the sharks that the curls turned off and you can see when they do tight turns
+you can see when they do tight turns they spin around like a board and this
+they spin around like a board and this is really exaggerated all the longer the
+is really exaggerated all the longer the fishes and they when they chase fish
+fishes and they when they chase fish they really do these twisting motions so
+they really do these twisting motions so we had to figure out something to make
+we had to figure out something to make them curl and what we'd ended up doing
+them curl and what we'd ended up doing was using blendspace a blend space of
+was using blendspace a blend space of blend shapes essentially and you can see
+blend shapes essentially and you can see here we pose the character in these four
+here we pose the character in these four kind of curled poses with an in-between
+kind of curled poses with an in-between pose for each one that allowed us to
+pose for each one that allowed us to have a kind of rotating interpolation as
+have a kind of rotating interpolation as the blend shape is brought onto the
+the blend shape is brought onto the character and we have to write this
+character and we have to write this ourselves into the engine as well here
+ourselves into the engine as well here you can see it in action but there's a
+you can see it in action but there's a problem because it all works fine if
+problem because it all works fine if your perfectly aligned in these
+your perfectly aligned in these directions the tail will Bend but if you
+directions the tail will Bend but if you try and do a 45 by combining two so you
+try and do a 45 by combining two so you go to the side and up then the tail gets
+go to the side and up then the tail gets twice as long because blend shapes are
+twice as long because blend shapes are additive so we had to actually create a
+additive so we had to actually create a third blend shape that was a negative
+third blend shape that was a negative blend space a blend shape that would
+blend space a blend shape that would pull it back so when we did three at a
+pull it back so when we did three at a time that led us to 45 degree angles and
+time that led us to 45 degree angles and if you look just at that fixed blend
+if you look just at that fixed blend shape it's insane because it pulls the
+shape it's insane because it pulls the tail like the opposite direction and it
+tail like the opposite direction and it makes this really crazy-looking shark we
+makes this really crazy-looking shark we had to actually create a script that
+had to actually create a script that would in Maya that would automatically
+would in Maya that would automatically generate that pose because we had no
+generate that pose because we had no idea model that and you can see how
+idea model that and you can see how these were the corrective blend shapes
+these were the corrective blend shapes for the 45-degree poses so when you add
+for the 45-degree poses so when you add that to the fish you can see that he
+that to the fish you can see that he does this nice turn when he does a sharp
+does this nice turn when he does a sharp turn there he curls his body and this
+turn there he curls his body and this was really important for making them
+was really important for making them feel more fluid and so that's basically
+feel more fluid and so that's basically how we got a whole lot of fish to
+how we got a whole lot of fish to animate with some pretty high fidelity
+animate with some pretty high fidelity animation much cheaper than with bones
+animation much cheaper than with bones the next thing that we had to solve was
+the next thing that we had to solve was doing kelp and kelp is crazy because we
+doing kelp and kelp is crazy because we thought we had a lot of fish but there's
+thought we had a lot of fish but there's way more kelp leaves it's insane and we
+way more kelp leaves it's insane and we actually started with joints again
+actually started with joints again because we didn't learn our lesson but
+because we didn't learn our lesson but that quickly didn't work out so we did a
+that quickly didn't work out so we did a different one with static meshes and
+different one with static meshes and this is a video of an early build of
+this is a video of an early build of Abzu with a very static kelp forest we
+Abzu with a very static kelp forest we did this very simple kind of leaf push
+did this very simple kind of leaf push when it gets close to the diver which
+when it gets close to the diver which isn't really ideal it really doesn't
+isn't really ideal it really doesn't capture what we saw when we actually
+capture what we saw when we actually went diving this is very dynamic
+went diving this is very dynamic kind of fluid motion on leaves being
+kind of fluid motion on leaves being driven by tides and all this so what we
+driven by tides and all this so what we ended up doing was reusing the static
+ended up doing was reusing the static mesh instancing system that we made for
+mesh instancing system that we made for the fish to do these leaves but instead
+the fish to do these leaves but instead of driving them with shaders we drove
+of driving them with shaders we drove them with very simple rope simulations
+them with very simple rope simulations and stuck them on long rope simulations
+and stuck them on long rope simulations for the stalks so you can see here by
+for the stalks so you can see here by doing it that way we were actually able
+doing it that way we were actually able to get them to collide every single leaf
+to get them to collide every single leaf to collide with the diver and a small
+to collide with the diver and a small subset of larger creatures like this man
+subset of larger creatures like this man array you see it pushing the the kelp
+array you see it pushing the the kelp there and it you can see the we actually
+there and it you can see the we actually have about three 350,000 leaves in the
+have about three 350,000 leaves in the scene and this scene also has a ton of
+scene and this scene also has a ton of fish so static mesh insisting is really
+fish so static mesh insisting is really cool next thing up was terrain and the
+cool next thing up was terrain and the game we really didn't know what the
+game we really didn't know what the design of the game was as we were making
+design of the game was as we were making it and we had to figure out how big
+it and we had to figure out how big these levels were and and what I quickly
+these levels were and and what I quickly learned was that the sculpting and
+learned was that the sculpting and painting paradigm for authoring
+painting paradigm for authoring landscapes is not really ideal for
+landscapes is not really ideal for iteration if you paint a landscape to
+iteration if you paint a landscape to make it be higher or lower say you make
+make it be higher or lower say you make a mountain and then you realize the
+a mountain and then you realize the mountains too big or too small or needs
+mountains too big or too small or needs to rotate or needs to translate in the
+to rotate or needs to translate in the world that's really hard because you
+world that's really hard because you have to erase it and repaint it
+have to erase it and repaint it somewhere else and that's really slow so
+somewhere else and that's really slow so what we wanted to do was keep using the
+what we wanted to do was keep using the move scale rotate paradigm that we use
+move scale rotate paradigm that we use for moving and rotating were things like
+for moving and rotating were things like rocks and other objects and what we came
+rocks and other objects and what we came up with this was this idea of terrain
+up with this was this idea of terrain height patches so we created a library
+height patches so we created a library of static meshes that look like bits of
+of static meshes that look like bits of a terrain and then we just kind of bash
+a terrain and then we just kind of bash them together and here's a little
+them together and here's a little demonstration so this is one of the
+demonstration so this is one of the static mesh pipe patches and you can
+static mesh pipe patches and you can just duplicate it around create a little
+just duplicate it around create a little terrain there and you can see their
+terrain there and you can see their their individual meshes but we have a
+their individual meshes but we have a tool that projects a height map onto
+tool that projects a height map onto them and when you look at that wireframe
+them and when you look at that wireframe now it's a height map with LOD and
+now it's a height map with LOD and everything like that
+everything like that so what's really nice is that you can
+so what's really nice is that you can create features of the landscape
+create features of the landscape duplicate them rotate them scale them
+duplicate them rotate them scale them and really quickly build out your
+and really quickly build out your landscape using the same tools that use
+landscape using the same tools that use to move every other object in the scene
+to move every other object in the scene so this really helped us create the
+so this really helped us create the landscapes quickly and change the design
+landscapes quickly and change the design as we needed and another benefit of this
+as we needed and another benefit of this was because you're using the same tool
+was because you're using the same tool to move your landscape and your objects
+to move your landscape and your objects you can move them the same time so if I
+you can move them the same time so if I print an instance have a rock here and I
+print an instance have a rock here and I need to align the terrain with it I can
+need to align the terrain with it I can create high patches that alignment that
+create high patches that alignment that rock and then I can select all of those
+rock and then I can select all of those patches and the rock together and move
+patches and the rock together and move them or duplicate them to basically keep
+them or duplicate them to basically keep features and terrain tied together and
+features and terrain tied together and you don't ever have to switch to
+you don't ever have to switch to painting which is actually whenever you
+painting which is actually whenever you switch paradigms kind of in authoring
+switch paradigms kind of in authoring that's a very slow thing it really slows
+that's a very slow thing it really slows down your process so this was really a
+down your process so this was really a good optimization for our pipeline and
+good optimization for our pipeline and here you can see one of the levels in
+here you can see one of the levels in Abzu kind of zoomed out and if I take
+Abzu kind of zoomed out and if I take away all of the rocks you can see all
+away all of the rocks you can see all the high patches that we use to make the
+the high patches that we use to make the floors for these areas and we used lots
+floors for these areas and we used lots of them to create lots of little
+of them to create lots of little different height terrains and we
+different height terrains and we extended this idea of using the move
+extended this idea of using the move scale rotate tools to painting the color
+scale rotate tools to painting the color on the terrain too so we had this idea
+on the terrain too so we had this idea of stamps that would put down color and
+of stamps that would put down color and you can move them rotate them as well
+you can move them rotate them as well and we even had splines that would drop
+and we even had splines that would drop stamps kind of like a Photoshop brush
+stamps kind of like a Photoshop brush and so what's really nice about that is
+and so what's really nice about that is you're not thinking about paint strokes
+you're not thinking about paint strokes anymore you're thinking about features
+anymore you're thinking about features and and that really is a good
+and and that really is a good distinction to make when you're creating
+distinction to make when you're creating levels so the last thing here is the way
+levels so the last thing here is the way we did our atmospherics and we did a lot
+we did our atmospherics and we did a lot of tests with Ray marching and volume
+of tests with Ray marching and volume metrics and all this sort of thing what
+metrics and all this sort of thing what we found was that we ended up shipping
+we found was that we ended up shipping simple linear fog and the reason was
+simple linear fog and the reason was this was much easier to control and we
+this was much easier to control and we just had a tunable fall-off curve for
+just had a tunable fall-off curve for this fog and it looked something like
+this fog and it looked something like this and we stored this curve volumetric
+this and we stored this curve volumetric volumetrically in a space so in one room
+volumetrically in a space so in one room you might have a different fall-off than
+you might have a different fall-off than another and what we did was we stored
+another and what we did was we stored this kind of
+this kind of as the fog goes away from the camera we
+as the fog goes away from the camera we stored this far distance number which is
+stored this far distance number which is where the fog becomes completely opaque
+where the fog becomes completely opaque and we stored a transition distance
+and we stored a transition distance where we could set the fog transparency
+where we could set the fog transparency in between those two distances we
+in between those two distances we created what we call the silhouette
+created what we call the silhouette range where we actually dim the lights
+range where we actually dim the lights in the level we just had very simple
+in the level we just had very simple directional and ambient lighting and
+directional and ambient lighting and when you dim the lights there it kind of
+when you dim the lights there it kind of creates this murky feeling and I'll show
+creates this murky feeling and I'll show you here so this is without dimming the
+you here so this is without dimming the lights just a very simple linear fog and
+lights just a very simple linear fog and you can see out in the distance it gets
+you can see out in the distance it gets very kind of in distinguished but when
+very kind of in distinguished but when we dim the lights in that transition
+we dim the lights in that transition area then you can start to see these
+area then you can start to see these murky silhouettes and it really sold the
+murky silhouettes and it really sold the idea of being underwater so you can see
+idea of being underwater so you can see this is where the transition distance
+this is where the transition distance kind of starts and the silhouette range
+kind of starts and the silhouette range here is really what's really important
+here is really what's really important because we could tune how wide that was
+because we could tune how wide that was and how far that was and you could see
+and how far that was and you could see basically further than the fog by seeing
+basically further than the fog by seeing these silhouettes and still maintain
+these silhouettes and still maintain this atmospheric kind of quality it
+this atmospheric kind of quality it makes it feel underwater and the one
+makes it feel underwater and the one thing that saved us and I've really
+thing that saved us and I've really saved us design in this game was
+saved us design in this game was creating these things we called portal
+creating these things we called portal cards and we used these to highlight
+cards and we used these to highlight specific silhouettes in the game and
+specific silhouettes in the game and it's really simple concept it's just a
+it's really simple concept it's just a card that you use so this is an
+card that you use so this is an environment in the game that has a
+environment in the game that has a tunnel that's kind of hard to see so we
+tunnel that's kind of hard to see so we drop in this portal card which is
+drop in this portal card which is essentially a plane that has a material
+essentially a plane that has a material on it that fades out when you get close
+on it that fades out when you get close to it the camera gets close to it and we
+to it the camera gets close to it and we have some fall-off on it that we can
+have some fall-off on it that we can control and what we do is we scale these
+control and what we do is we scale these things to intersect with some of the
+things to intersect with some of the level geometry so you can see we just
+level geometry so you can see we just cover this door with it and the magic
+cover this door with it and the magic starts to happen when you start to tune
+starts to happen when you start to tune this depth fade parameter which
+this depth fade parameter which essentially fades out as it gets closer
+essentially fades out as it gets closer to objects in the scene depth and what
+to objects in the scene depth and what that does is it makes this fake fog
+that does is it makes this fake fog effect that brightens an area and
+effect that brightens an area and highlights an important so without it
+highlights an important so without it you can't even see the way to go forward
+you can't even see the way to go forward and when you turn it on you can actually
+and when you turn it on you can actually see where you're going so we actually
+see where you're going so we actually use these to direct the player and it
+use these to direct the player and it was really important because that base
+was really important because that base file
+file check fog get us so far but we had to
+check fog get us so far but we had to highlight specific areas so take you
+highlight specific areas so take you really quickly through a scene as it was
+really quickly through a scene as it was built up we had this work mode lighting
+built up we had this work mode lighting which led us to see the whole scene and
+which led us to see the whole scene and kind of an evenly lit lighting that week
+kind of an evenly lit lighting that week so we could actually see what we're
+so we could actually see what we're doing we could toggle that on and off
+doing we could toggle that on and off and the first thing we did was add
+and the first thing we did was add volumetric ambient and directional light
+volumetric ambient and directional light so we have just a very simple
+so we have just a very simple directional light an ambient light
+directional light an ambient light without much going on but we store their
+without much going on but we store their color and brightness individually in
+color and brightness individually in areas of the scene so you can see that
+areas of the scene so you can see that there's local contrast around the door
+there's local contrast around the door in the distance and then we also do the
+in the distance and then we also do the same thing with fog with the silhouette
+same thing with fog with the silhouette range to help us see deeper where we
+range to help us see deeper where we need to see like that door in the
+need to see like that door in the distance as well as you can see further
+distance as well as you can see further there and then we add portal cards to
+there and then we add portal cards to highlight ridges and things like this so
+highlight ridges and things like this so you can actually see here this is where
+you can actually see here this is where we placed these cards and finally we add
+we placed these cards and finally we add light rays and our light ray tech was
+light rays and our light ray tech was essentially the same as our portal card
+essentially the same as our portal card tech it was just automatically placed
+tech it was just automatically placed just very long thin portal cards that
+just very long thin portal cards that would kind of animate scaling up and
+would kind of animate scaling up and down and that's how we did our lighting
+down and that's how we did our lighting so that's pretty much how we created the
+so that's pretty much how we created the environments and fish in Abzu and how we
+environments and fish in Abzu and how we solve some of the technical challenges
+solve some of the technical challenges that an underwater environment presents
+that an underwater environment presents thank you very much
+thank you very much [Applause]
+so I think there might be a time for some questions if anyone has any can
+some questions if anyone has any can walk up to the mic and ask away
+walk up to the mic and ask away hi hi um beautiful game thank you there
+hi hi um beautiful game thank you there was a the one thing I didn't quite get
+was a the one thing I didn't quite get is how the fog is volumetric in the
+is how the fog is volumetric in the sense that you can see that doorway in
+sense that you can see that doorway in the distance how do you like poke a hole
+the distance how do you like poke a hole through the fog
+through the fog so what's crazy is that every eight by
+so what's crazy is that every eight by eight meters we kind of have a
+eight meters we kind of have a volumetric voxel of fog and so it's not
+volumetric voxel of fog and so it's not very it's pretty coarse data but in that
+very it's pretty coarse data but in that eight by eight meters we store the color
+eight by eight meters we store the color of the lighting and also the curve of
+of the lighting and also the curve of the fall off so it doesn't accumulate
+the fall off so it doesn't accumulate over distance it's not like a
+over distance it's not like a participating participating media
+participating participating media simulation where we actually are
+simulation where we actually are accumulating it's just a simple linear
+accumulating it's just a simple linear fall-off so even if something's way out
+fall-off so even if something's way out far if that has a curve that's pushed it
+far if that has a curve that's pushed it will show through so it's it's like a
+will show through so it's it's like a lot more simple than it actually seems
+lot more simple than it actually seems actually if that makes sense yeah can I
+actually if that makes sense yeah can I ask one more little question yeah
+ask one more little question yeah absolutely
+absolutely um if you could talk a little bit about
+um if you could talk a little bit about the like the pathing and the flocking
+the like the pathing and the flocking quality of the fish like you say to see
+quality of the fish like you say to see how they animate everything but how do
+how they animate everything but how do they animate as a group how do they
+they animate as a group how do they interact with the player yeah that was a
+interact with the player yeah that was a big challenge we had to figure out how
+big challenge we had to figure out how to get the behavior to act right and it
+to get the behavior to act right and it was a big challenge that our lead
+was a big challenge that our lead engineer Brian the guy in this scuba
+engineer Brian the guy in this scuba suit solved and it was basically this
+suit solved and it was basically this amazing simulation of each fish had
+amazing simulation of each fish had awareness of all the other fish and
+awareness of all the other fish and they're all kind of not only segmented
+they're all kind of not only segmented in space so that things that were fish
+in space so that things that were fish that were near each other knew about
+that were near each other knew about closeby fish but ignored further away
+closeby fish but ignored further away fish but we also made sure that they
+fish but we also made sure that they were near each other in memory so that
+were near each other in memory so that they could look up each other's position
+they could look up each other's position quickly so we were constantly shifting
+quickly so we were constantly shifting the fish's position in memory depending
+the fish's position in memory depending on how close they were at other fish and
+on how close they were at other fish and that let us have each fish be aware of a
+that let us have each fish be aware of a lot of fish around it and then align
+lot of fish around it and then align with them or chase them and when you
+with them or chase them and when you create a bunch of those kind of simple
+create a bunch of those kind of simple rules like just a line or a void and you
+rules like just a line or a void and you add a whole bunch of these otamatone
+add a whole bunch of these otamatone fish into the scene then those behavior
+fish into the scene then those behavior of spiraling fish just emerge it's a
+of spiraling fish just emerge it's a really cool phenomenon and this kind of
+really cool phenomenon and this kind of how fish actually swim so we studied a
+how fish actually swim so we studied a lot of actual fish behavior that's
+lot of actual fish behavior that's phenomenal
+phenomenal thank you guys really cool yeah thank
+thank you guys really cool yeah thank you yeah hey great game and I was just
+you yeah hey great game and I was just wondering if you attempted underwater
+wondering if you attempted underwater caustics at all our caustics there were
+caustics at all our caustics there were caustics in the game but it was totally
+caustics in the game but it was totally fake
+fake we were like can we do like really cool
+we were like can we do like really cool rate rate stuff and like no that's crazy
+rate rate stuff and like no that's crazy what we used was very simple it's called
+what we used was very simple it's called the light function and unreal or kind of
+the light function and unreal or kind of a good gobo effects also known as and
+a good gobo effects also known as and it's just an animating texture with a
+it's just an animating texture with a couple scrolling masks and that's it
+couple scrolling masks and that's it yeah nothing crazy so what I wanted to
+yeah nothing crazy so what I wanted to hear thanks thank you I hear a big fan
+hear thanks thank you I hear a big fan of your work and talking about in
+of your work and talking about in Journey you had like a submarine scene
+Journey you had like a submarine scene scenario even though there wasn't any
+scenario even though there wasn't any water so what where it was a different
+water so what where it was a different approach within that submarine scene in
+approach within that submarine scene in Journey and absolute well in journey the
+Journey and absolute well in journey the part you're talking about we tried to
+part you're talking about we tried to get this idea of kind of an underwater
+get this idea of kind of an underwater environment like this idea that there
+environment like this idea that there was life in the depths but we weren't
+was life in the depths but we weren't trying to figure out how to actually go
+trying to figure out how to actually go solve you know effects that we're
+solve you know effects that we're actually like what you see in the ocean
+actually like what you see in the ocean so absolut was definitely kind of
+so absolut was definitely kind of attempting to become simulate more
+attempting to become simulate more realistically the effects that you see
+realistically the effects that you see underwater so it's a bit more of a
+underwater so it's a bit more of a inspired by the truth of the ocean yes
+inspired by the truth of the ocean yes alright thanks you yeah hi there
+alright thanks you yeah hi there it's a curious about some of your
+it's a curious about some of your materials and if you guys tried to
+materials and if you guys tried to approach it without using textures or
+approach it without using textures or instead actually use textures on the
+instead actually use textures on the fish if that was like a more efficient
+fish if that was like a more efficient approach or what your thoughts were on
+approach or what your thoughts were on that yeah so we the game had a ton of
+that yeah so we the game had a ton of materials and let's set that the idea is
+materials and let's set that the idea is was to create materials that didn't
+was to create materials that didn't emphasize texture so they used texture
+emphasize texture so they used texture everywhere but they're very subtle or
+everywhere but they're very subtle or low contrast and we did a lot of work to
+low contrast and we did a lot of work to make sure that the angular kind of
+make sure that the angular kind of shapes of the geometry would really show
+shapes of the geometry would really show through to give the unique style of the
+through to give the unique style of the game and we wanted to use that to kind
+game and we wanted to use that to kind of create more iconic fish
+of create more iconic fish we were inspired by a real fish but they
+we were inspired by a real fish but they we wanted to make sure that they really
+we wanted to make sure that they really represented kind of everyone's idealized
+represented kind of everyone's idealized version of them so that they were more
+version of them so that they were more memorable yeah thank you yep go ahead
+memorable yeah thank you yep go ahead aye
+aye you mentioned terrain stamps using that
+you mentioned terrain stamps using that to transition between different colors
+to transition between different colors on your terrain
+on your terrain I did notice playing the game there were
+I did notice playing the game there were some some areas that had spots with very
+some some areas that had spots with very soft fall offs was I using the same tech
+soft fall offs was I using the same tech or was that using some sort of like a
+or was that using some sort of like a point light system or yeah so we had
+point light system or yeah so we had there was soft areas where we just had
+there was soft areas where we just had color that was affecting like one
+color that was affecting like one material type so that was kind of
+material type so that was kind of texturing that type but then we had hard
+texturing that type but then we had hard transitions between material types so
+transitions between material types so there was never a soft transition
+there was never a soft transition between say grass and sand but within
+between say grass and sand but within sand there might be a soft transition of
+sand there might be a soft transition of color so there might be blue sand as
+color so there might be blue sand as smoothly transitions to white sand
+smoothly transitions to white sand something like that so I think we have
+something like that so I think we have time for one more question I guess it's
+time for one more question I guess it's degeneration I think so much I'm so
+degeneration I think so much I'm so surprised a lot of there is no dedicated
+surprised a lot of there is no dedicated animator in your team but I'm curious of
+animator in your team but I'm curious of the number graphic artists the
+the number graphic artists the programmer and game designers sure so at
+programmer and game designers sure so at our peak team size we had 10 people and
+our peak team size we had 10 people and we had one environment artists who was
+we had one environment artists who was helping build meshes and fish I was also
+helping build meshes and fish I was also doing that I did most of the animation
+doing that I did most of the animation we had one animator contractor come on
+we had one animator contractor come on later in the development to help us
+later in the development to help us finish it out we have hired an animator
+finish it out we have hired an animator now because we learned our lesson so
+now because we learned our lesson so hopefully we want to be working so hard
+hopefully we want to be working so hard on that in the future we have one
+on that in the future we have one amazing graphics engineer who did all of
+amazing graphics engineer who did all of that lighting and stuff like that thank
+that lighting and stuff like that thank you cool all right guys thank you so
+you cool all right guys thank you so much
+much [Applause]
+you

@@ -1,0 +1,1641 @@
+[Music] [Applause]
+[Applause] thank you
+in 1986 fred brooks proclaimed that there would be no single
+that there would be no single development that would deliver one order
+development that would deliver one order of magnitude improvement
+of magnitude improvement in a decade in software engineering
+in a decade in software engineering fast forward 30 years this slide was
+fast forward 30 years this slide was presented by chelsea finn at the dprl
+presented by chelsea finn at the dprl boot camp at uc berkeley last summer
+boot camp at uc berkeley last summer and what this slide is showing is that
+and what this slide is showing is that every generation
+every generation of machine learning algorithm is a 10x
+of machine learning algorithm is a 10x improvement on the last
+improvement on the last that means that a problem that was taken
+that means that a problem that was taken 100 million
+100 million steps just a few years ago is now take
+steps just a few years ago is now take it's now been able to be
+it's now been able to be learned in real time on a robot in about
+learned in real time on a robot in about 20 minutes
+20 minutes and we're seeing these improvements not
+and we're seeing these improvements not every 10 years but every 6 to 12 months
+every 10 years but every 6 to 12 months so my hypothesis is if reinforcement
+so my hypothesis is if reinforcement learning along with reward functions if
+learning along with reward functions if we can apply that to software
+we can apply that to software development
+development that will result in a multi-magnitude
+that will result in a multi-magnitude improvement in
+improvement in productivity reliability and in
+productivity reliability and in simplicity and to use
+simplicity and to use video game ai as proof
+so today i want to take you through a couple of stages i want to talk about
+couple of stages i want to talk about kind of a brief give you a brief taste
+kind of a brief give you a brief taste of reinforcement learning
+of reinforcement learning and then i want to share the results of
+and then i want to share the results of the research that i've been working on
+the research that i've been working on into this space first a little bit about
+into this space first a little bit about my background
+my background i started in the 1980s on the commodore
+i started in the 1980s on the commodore 64.
+64. i'm dyslexic dysgraphic i also have adhd
+i'm dyslexic dysgraphic i also have adhd and i really struggled at school and
+and i really struggled at school and traditional learning
+traditional learning but i had this aptitude to be able to
+but i had this aptitude to be able to understand a computer
+understand a computer and i had this passion for video games
+and i had this passion for video games and so while i was failing at school i
+and so while i was failing at school i was winning contracts to make video
+was winning contracts to make video games and i left school at 15
+games and i left school at 15 and to join the industry over the next
+and to join the industry over the next 25 years
+25 years i worked my way up and grew with as the
+i worked my way up and grew with as the industry grew
+industry grew working in multi-disciplines so in
+working in multi-disciplines so in engineering production and creative
+engineering production and creative direction
+direction and at the end i was an executive
+and at the end i was an executive producer with xbox up in microsoft
+over the last couple of years i've been working in a couple of different areas
+working in a couple of different areas so on the on the one hand i'm working
+so on the on the one hand i'm working with neuroscientists and people
+with neuroscientists and people at the bleeding edge of academic
+at the bleeding edge of academic research
+research on like projects that take three to five
+on like projects that take three to five years
+years to bring to market from neuroscience and
+to bring to market from neuroscience and i also work with a
+i also work with a a guy called nils liar who is um he is
+a guy called nils liar who is um he is one of the fathers of video
+one of the fathers of video on the internet um and he's also a vc so
+on the internet um and he's also a vc so i work with him building his companies
+i work with him building his companies and both of those kind of pull into this
+and both of those kind of pull into this research that i do
+research that i do into reinforcement learning which i
+into reinforcement learning which i started about three years ago
+so there's a problem for me with learning reinforcement
+learning reinforcement learning if you look at this equation at
+learning if you look at this equation at the bottom here
+the bottom here i literally cannot read that and to make
+i literally cannot read that and to make to make matters worse my big hack for
+to make matters worse my big hack for reading complex materials is to use
+reading complex materials is to use voice to text software but
+math notation breaks that software so i've i've i have a couple of kind of
+so i've i've i have a couple of kind of tricks that i've used so the first thing
+tricks that i've used so the first thing and most important thing for me is
+and most important thing for me is building
+building a mental model and the second thing i
+a mental model and the second thing i would say is get hands-on and get
+would say is get hands-on and get hands-on as quickly as you can
+hands-on as quickly as you can and i say don't waste your time with all
+and i say don't waste your time with all these online courses that
+these online courses that um that you see everywhere because
+um that you see everywhere because you're going to be writing
+you're going to be writing gradient descent algorithms in python
+gradient descent algorithms in python and that really doesn't
+and that really doesn't offer you a lot of advantage other
+offer you a lot of advantage other things if you're dyslexic i recommend
+things if you're dyslexic i recommend doing podcast videos
+doing podcast videos i also have learned to skim read papers
+i also have learned to skim read papers the one
+the one online course place that i did find is
+online course place that i did find is machine learningmastery.com
+machine learningmastery.com that is built for engineers who want to
+that is built for engineers who want to learn machine learning
+learn machine learning so it's high on the engineering and low
+so it's high on the engineering and low on the
+on the math background so if we think about
+math background so if we think about this model here this is the classic
+this model here this is the classic reinforcement model that was created by
+reinforcement model that was created by sutton umbalto in the 70s and 80s
+sutton umbalto in the 70s and 80s um and the picture on the the left there
+um and the picture on the the left there is from the atari deep mined paper
+is from the atari deep mined paper um so to give you a little kind of
+um so to give you a little kind of instinct or try and build your mental
+instinct or try and build your mental model of how this is working so the
+model of how this is working so the environment in this case are raw pixels
+environment in this case are raw pixels coming in
+coming in and they go into a convolutional neural
+and they go into a convolutional neural network and if you think of that as
+network and if you think of that as compressing the pictures so the problem
+compressing the pictures so the problem space becomes much less than having to
+space becomes much less than having to work on the ro
+work on the ro the raw pixels and then there's an
+the raw pixels and then there's an action space so in the case of breakout
+action space so in the case of breakout you can you can go left you can go right
+you can you can go left you can go right or you can
+or you can just do nothing the third step
+just do nothing the third step is delayed discounting so
+is delayed discounting so when it gets rewarded the end of the
+when it gets rewarded the end of the game or a reward of a point
+game or a reward of a point it steps back in time and gives a
+it steps back in time and gives a discount of that to those previous steps
+discount of that to those previous steps and then each of those each individual
+and then each of those each individual frame
+frame and that reward and the step that it
+and that reward and the step that it took the action that it took
+took the action that it took they go into something called an
+they go into something called an experience replay buffer
+experience replay buffer and this is uh there's a million uh this
+and this is uh there's a million uh this is a million big
+is a million big right and uh it randomly samples that
+right and uh it randomly samples that and that is really the core of the
+and that is really the core of the deep qn algorithm it does no planning
+deep qn algorithm it does no planning it's not thinking about anything in the
+it's not thinking about anything in the future but it is able to
+future but it is able to find this advanced strategy
+find this advanced strategy of working its way around the the side
+of working its way around the the side of the breakout
+of the breakout one thing just to talk about is the
+one thing just to talk about is the exploration versus exploitation
+exploration versus exploitation trade-off
+trade-off so exploration is just randomly
+so exploration is just randomly searching inside the environment
+searching inside the environment exploitation is taking the the the feed
+exploitation is taking the the the feed the signal that has the highest highest
+the signal that has the highest highest future reward
+future reward and there's a trade-off there and and
+and there's a trade-off there and and algorithms have to
+algorithms have to work in different ways to to explore the
+work in different ways to to explore the space
+space in an efficient way for the deep qn
+in an efficient way for the deep qn paper
+paper they had a very naive approach they just
+they had a very naive approach they just for the first million steps
+for the first million steps were totally random and then they reduce
+were totally random and then they reduce that so that
+that so that over time two percent of the choices
+over time two percent of the choices would be random
+would be random but i wanted to step back to dyslexia
+but i wanted to step back to dyslexia and
+and neuroscience and automaticity because it
+neuroscience and automaticity because it turns out that us as humans have this
+turns out that us as humans have this trade-off as well and different
+trade-off as well and different different like sets of people
+will explore problems in a different way so there's a researcher in the uk called
+so there's a researcher in the uk called rod nicholson and he researched
+rod nicholson and he researched dyslexics and he found that for them to
+dyslexics and he found that for them to learn
+learn things through rote memorization and
+things through rote memorization and automaticity
+automaticity it took n times the square root of n so
+it took n times the square root of n so if it takes 100 times
+if it takes 100 times 100 repetitions for a normal student to
+100 repetitions for a normal student to learn the math times table it would take
+learn the math times table it would take a thousand repetitions but the trade-off
+a thousand repetitions but the trade-off there is that the
+there is that the the dyslexic will find we'll be looking
+the dyslexic will find we'll be looking at more
+at more different solutions in life so i
+different solutions in life so i recommend you do keep them
+recommend you do keep them on your team in terms of the landscape
+on your team in terms of the landscape so if you want to get your hands dirty
+so if you want to get your hands dirty and start playing with reinforcement
+and start playing with reinforcement learning today
+learning today these are three of the many players but
+these are three of the many players but i think these are the top ones to look
+i think these are the top ones to look at
+at so first deep mind they
+so first deep mind they write some really great papers and do a
+write some really great papers and do a lot of research that
+lot of research that you're probably familiar with um the
+you're probably familiar with um the frameworks
+frameworks that they have starcraft 2 if you're a
+that they have starcraft 2 if you're a starcraft player that's maybe a good
+starcraft player that's maybe a good place to start
+place to start and deepmind lab but they're not so good
+and deepmind lab but they're not so good at publishing algorithms
+at publishing algorithms they did publish a one version of the
+they did publish a one version of the dqn
+dqn openai that's where they excel so their
+openai that's where they excel so their baselines has
+baselines has nine world-class algorithms that you can
+nine world-class algorithms that you can use it's all open source
+use it's all open source and they have open ai open air gym
+and they have open ai open air gym framework that has classic control at
+framework that has classic control at atari mojoco
+atari mojoco and they also built universe on top of
+and they also built universe on top of that that allows you to
+that that allows you to play games like gta or flash games or to
+play games like gta or flash games or to learn against those games
+learn against those games and the the new kid on the block is
+and the the new kid on the block is unity and danny's going to talk about
+unity and danny's going to talk about this and so they launched
+this and so they launched ml agents last year and so they already
+ml agents last year and so they already have a couple of algorithm
+have a couple of algorithm algorithms there and they have at least
+different sample environments that you can use
+can use the first thing that i did with machine
+the first thing that i did with machine learning and this is going back two or
+learning and this is going back two or three years was i
+three years was i i was playing around with a soccer some
+i was playing around with a soccer some soccer ai
+soccer ai and i took a high cost function and i
+and i took a high cost function and i sampled
+sampled you know this over 24 hours this this
+you know this over 24 hours this this this function i put it into a linear
+this function i put it into a linear regression
+regression um so i had a mod i learned this and i
+um so i had a mod i learned this and i put the model back into the game
+put the model back into the game and i was saying that this was choosing
+and i was saying that this was choosing the same
+the same outcome as the function 90 to 95 of the
+outcome as the function 90 to 95 of the time
+time and so that gave me enough kind of
+and so that gave me enough kind of confidence to carry on looking at this
+confidence to carry on looking at this space
+space and today i've kind of built up my own
+and today i've kind of built up my own system i call it analog i started before
+system i call it analog i started before unity had
+unity had um created their system and
+um created their system and what my system does is it bridges
+what my system does is it bridges between open ai's baselines and unity
+between open ai's baselines and unity and it gives me this nice ui
+and it gives me this nice ui so that it kind of like being adhd i
+so that it kind of like being adhd i remember what i was working on when i go
+remember what i was working on when i go back and just finish the training run
+back and just finish the training run so next i want to talk about the
+so next i want to talk about the research that i've been doing and share
+research that i've been doing and share some of the results
+some of the results the the first area i'm going to share
+the the first area i'm going to share here is using reinforcement learning for
+here is using reinforcement learning for locomotion
+locomotion so if you think why we might want to do
+so if you think why we might want to do this well locomotion is
+this well locomotion is very hard to get right and and it's very
+very hard to get right and and it's very expensive is a big part of our budgets
+expensive is a big part of our budgets and it'd be good to have an extra tool
+and it'd be good to have an extra tool set to be able to do that
+so the video here is from deepmind this is a character that's
+is a character that's learnt completely from scratch with the
+learnt completely from scratch with the reinforcement algorithm
+reinforcement algorithm and the one in the bottom left from the
+and the one in the bottom left from the same paper
+same paper and this one is from the open ai where
+and this one is from the open ai where they took that
+they took that algorithm and they improved on it using
+algorithm and they improved on it using something called parameter noise
+something called parameter noise and the photo in the bottom left there
+and the photo in the bottom left there is um this is from a talk
+is um this is from a talk from a couple of gdcs ago from ben fodie
+from a couple of gdcs ago from ben fodie he was talking about
+he was talking about physics and making against his physics
+physics and making against his physics and he
+and he came up with this idea to use a midi
+came up with this idea to use a midi controller to tune all the parameters
+controller to tune all the parameters that you need to do just to do a 2d game
+that you need to do just to do a 2d game that he was doing
+that he was doing um and so be good if we could um
+um and so be good if we could um you know put that to rest and give give
+you know put that to rest and give give people the ability to
+people the ability to to learn those things so in terms of the
+to learn those things so in terms of the methodology
+methodology um i'm building the architecture on top
+um i'm building the architecture on top of my analog i'm using
+of my analog i'm using a couple of algorithms actor and ddpg
+a couple of algorithms actor and ddpg and i went through some stages so
+and i went through some stages so initially i wanted to use my naivety of
+initially i wanted to use my naivety of not really
+not really knowing unity not really knowing the
+knowing unity not really knowing the physics system
+physics system inside unity and
+inside unity and i'm taking the baselines of the mojoko
+i'm taking the baselines of the mojoko which is
+which is the world-class gold standard physics
+the world-class gold standard physics engine
+engine and with majoko it's the the simulations
+and with majoko it's the the simulations are so strong that if you train a model
+are so strong that if you train a model on majoka you can put it onto
+on majoka you can put it onto a real-life robot and it will reproduce
+a real-life robot and it will reproduce that
+that and then i went through stages of
+and then i went through stages of progressively kind of looking more into
+progressively kind of looking more into the research
+the research to improve my outcomes so
+to improve my outcomes so initially things worked very well i was
+initially things worked very well i was able to get this little worm
+able to get this little worm moving and i was able to create recreate
+moving and i was able to create recreate the the
+the the and from the joko um but to give you a
+and from the joko um but to give you a sense of the the time that took and in
+sense of the the time that took and in terms of the experimentation so there's
+terms of the experimentation so there's 44 different experiments just for the
+44 different experiments just for the ants
+ants and that's when over 86 million training
+and that's when over 86 million training steps
+steps um so to get things you know when i
+um so to get things you know when i plugged it in some
+plugged it in some other characters um the hopper or the
+other characters um the hopper or the humanoid
+humanoid um i started to see that i'm getting
+um i started to see that i'm getting some some results but they're
+some some results but they're they're kind of strange right they don't
+they're kind of strange right they don't look like you're seeing in the papers
+look like you're seeing in the papers um and so to address that i dug into the
+um and so to address that i dug into the research some more
+research some more and one of the most important things i
+and one of the most important things i found was that
+found was that a lot of the finesse comes from tuning
+a lot of the finesse comes from tuning the reward functions and also the
+the reward functions and also the termination function
+termination function so if you see at the top we've got the
+so if you see at the top we've got the hopper and it will terminate the hopper
+hopper and it will terminate the hopper so say it's failed if the angle goes
+so say it's failed if the angle goes over
+over you know more than 20 degrees either way
+you know more than 20 degrees either way it also has
+it also has things like a cost function so it's kind
+things like a cost function so it's kind of
+of penalizing the the the ai
+penalizing the the the ai for um over-exertion um and the one on
+for um over-exertion um and the one on the bottom is the
+the bottom is the open uh sorry the deep mind
+open uh sorry the deep mind reward function for the for the walker
+reward function for the for the walker um and that has things that we wanted
+um and that has things that we wanted for being upright
+for being upright and and the the height
+and and the the height so there i was able to get uh reproduce
+so there i was able to get uh reproduce the
+the the benchmarks the the ones we're seeing
+the benchmarks the the ones we're seeing on the left are
+on the left are on the top that's about a million steps
+on the top that's about a million steps and the one on the right is about three
+and the one on the right is about three million
+million um and then the final stage
+um and then the final stage i went through is comparing the results
+i went through is comparing the results with
+with the mojoko and i was able to
+the mojoko and i was able to see that the training the training time
+see that the training the training time was within about five percent
+was within about five percent and the steps were within about 10
+and the steps were within about 10 percent it
+percent it does train differently which is it was
+does train differently which is it was kind of nice because the algorithm
+kind of nice because the algorithm gets around problems that you may have
+gets around problems that you may have in the physics implementation
+in the physics implementation so in conclusion i've been able to
+so in conclusion i've been able to reproduce the hopper and walker
+reproduce the hopper and walker inside the commercial game engine i
+inside the commercial game engine i expect that those deep mind results so
+expect that those deep mind results so having more
+having more elaborate obstacles will be
+elaborate obstacles will be reproducible and this is definitely
+reproducible and this is definitely worthy of more study
+worthy of more study in terms of future work there's a lot of
+in terms of future work there's a lot of new algorithms that i'd like to
+new algorithms that i'd like to look at as well as mix in motion capture
+look at as well as mix in motion capture data
+data with reward functions in terms of the
+with reward functions in terms of the total scope i
+total scope i added this up last night so everything i
+added this up last night so everything i did in that space was
+did in that space was 380 experiments and that's about 750
+380 experiments and that's about 750 million steps so
+million steps so the second area that i'm going to talk
+the second area that i'm going to talk about is
+about is learning and advanced control in 99
+learning and advanced control in 99 training steps
+training steps so the the reason to to do this is that
+so the the reason to to do this is that often
+often the problems that we we want to solve
+the problems that we we want to solve are pretty simple
+are pretty simple right they may not have the same problem
+right they may not have the same problem space
+space as learning locomotion and we might may
+as learning locomotion and we might may want to retrain this very quickly
+want to retrain this very quickly so this was an exercise to see how how
+so this was an exercise to see how how far
+far um how how much i could optimize it and
+um how how much i could optimize it and what were the steps i need to do to be
+what were the steps i need to do to be able to optimize it
+able to optimize it the problem space i created was teaching
+the problem space i created was teaching the ai to hold fire so it's got two
+the ai to hold fire so it's got two actions it can
+actions it can uh it can have fire or not hol you know
+uh it can have fire or not hol you know not not pressed fire but it's got a
+not not pressed fire but it's got a whole fire over
+whole fire over a number an appropriate number of frames
+a number an appropriate number of frames to hit the target
+to hit the target an appropriate distance and so we know
+an appropriate distance and so we know from usability that like people like my
+from usability that like people like my wife have struggled
+wife have struggled learning this control um so i thought
+learning this control um so i thought it'd be fun to train an
+it'd be fun to train an ai um the
+ai um the the way to get this down is i i use
+the way to get this down is i i use something called a grid search so this
+something called a grid search so this is taking the number of layers in the
+is taking the number of layers in the neural network
+neural network and the layer size and just running
+and the layer size and just running iteration over
+iteration over iteration until i'm seeing a trend or a
+iteration until i'm seeing a trend or a convergence on one combination
+convergence on one combination and then taking in another variable so
+and then taking in another variable so in this case the number
+in this case the number the number of stacks to the number of
+the number of stacks to the number of observations
+observations um previous observations that it takes
+um previous observations that it takes in a row
+in a row and then doing a search to break that
+and then doing a search to break that down into 99 steps so
+down into 99 steps so i was very surprised i was able to get
+i was very surprised i was able to get it to train this quickly
+it to train this quickly one caveat is that there
+one caveat is that there the the solution to the problem is
+the the solution to the problem is probably correlated to the design of the
+probably correlated to the design of the network
+network and there isn't a lot of resign a lot of
+and there isn't a lot of resign a lot of research over
+research over that so we know that this there's a
+that so we know that this there's a correlation but we don't necessarily
+correlation but we don't necessarily know
+know okay for this problem what network
+okay for this problem what network should we do
+should we do the third area i want to present today
+the third area i want to present today is
+is the case for real time server of
+the case for real time server of real reinforcement learning so let's say
+real reinforcement learning so let's say you want to publish a game
+you want to publish a game today you have your python backend
+today you have your python backend that's doing your reinforcement learning
+that's doing your reinforcement learning could you publish that using some of the
+could you publish that using some of the technology that we use in multiplayer
+technology that we use in multiplayer games here
+games here so my inspiration was um for the visual
+so my inspiration was um for the visual reaction delay
+reaction delay so on average we have a 250 millisecond
+so on average we have a 250 millisecond delay between
+delay between the visual stimulus and being able to
+the visual stimulus and being able to react
+react my method was to train a friend 20
+my method was to train a friend 20 frames a second with a 10
+frames a second with a 10 step delay so it's 200 milliseconds
+step delay so it's 200 milliseconds delay
+delay and what i found is that this slowed
+and what i found is that this slowed down learning by about 30 percent
+down learning by about 30 percent so it's not a silver bullet but it is
+so it's not a silver bullet but it is worth
+worth looking at if you want to launch the day
+looking at if you want to launch the day and get a bring a product to market
+and get a bring a product to market okay so that concludes my talk
+okay so that concludes my talk and i'm going to hand over to wolf and
+and i'm going to hand over to wolf and please come find me i love talking about
+please come find me i love talking about this stuff
+this stuff thank you very much all right that's
+thank you very much all right that's been my talk
+been my talk that's been my talk it's been great
+that's been my talk it's been great talking to you all we'll move on uh
+talking to you all we'll move on uh hi uh i'm wolf uh and i'm from google
+hi uh i'm wolf uh and i'm from google and
+and uh the reason why you're listening to me
+uh the reason why you're listening to me is because
+is because i am the technical lead for developer
+i am the technical lead for developer relations for tensorflow
+relations for tensorflow uh tensorflow is a giant framework that
+uh tensorflow is a giant framework that does machine learning and a bunch of
+does machine learning and a bunch of other stuff
+other stuff it's built by the brain team at google
+it's built by the brain team at google and i'm not going to talk to you about
+and i'm not going to talk to you about tensorflow much at all because honestly
+tensorflow much at all because honestly there's no way i'm going to teach it to
+there's no way i'm going to teach it to you all in 20 minutes
+you all in 20 minutes um but um we are at this sort of
+um but um we are at this sort of uh oh and i should go back and say that
+uh oh and i should go back and say that i'm also a game developer i've been a
+i'm also a game developer i've been a game developer i actually worked on
+game developer i actually worked on applying machine learning to aaa games
+applying machine learning to aaa games uh like a decade ago
+uh like a decade ago um it's tricky it's interesting and what
+um it's tricky it's interesting and what i wanted to share with you today here
+i wanted to share with you today here oh well sorry uh and as we alluded to
+oh well sorry uh and as we alluded to before
+before you know we're at this sort of magical
+you know we're at this sort of magical time in machine learning where
+time in machine learning where things that we that a decade ago that we
+things that we that a decade ago that we thought we were going to be able to do
+thought we were going to be able to do we just can't uh or sorry we finally can
+we just can't uh or sorry we finally can do
+do things like self-driving cars and uh
+things like self-driving cars and uh obviously you know our friends in london
+obviously you know our friends in london uh having success playing games
+uh having success playing games we have we're beginning to apply machine
+we have we're beginning to apply machine learning and deep learning
+learning and deep learning to medical data which is pretty amazing
+to medical data which is pretty amazing and actually getting quite uh
+and actually getting quite uh interesting results uh that's
+interesting results uh that's uh looking at retina scans and of course
+uh looking at retina scans and of course making little stompy robots which
+making little stompy robots which you know everybody likes stompy robots
+you know everybody likes stompy robots that's he's in our lab
+that's he's in our lab but in this talk uh as game developer i
+but in this talk uh as game developer i want to take you on a tour of a bunch of
+want to take you on a tour of a bunch of things that i find interesting
+things that i find interesting in machine learning ways to make your
+in machine learning ways to make your the process of making games
+the process of making games more interesting more exciting more
+more interesting more exciting more efficient but i'm not really going to
+efficient but i'm not really going to talk about
+talk about npcs because npcs are cool but you know
+npcs because npcs are cool but you know it's a different problem
+it's a different problem so let's start with part one let's talk
+so let's start with part one let's talk about statistics
+about statistics so your players are all out there
+so your players are all out there creating data
+creating data and in that data you are finding out
+and in that data you are finding out about the kinds of things they like and
+about the kinds of things they like and they don't like to do and
+they don't like to do and you should be taking advantage of that
+you should be taking advantage of that you should be ah there we go you should
+you should be ah there we go you should be taking advantage of that
+be taking advantage of that so you know is your player going to quit
+so you know is your player going to quit today is your player going to spend
+today is your player going to spend today these are all sort of time series
+today these are all sort of time series models you can use
+models you can use uh you can learn to do anomaly detection
+uh you can learn to do anomaly detection with cheating
+with cheating you can learn about uh check if they're
+you can learn about uh check if they're grieving you can find out if they bought
+grieving you can find out if they bought x are they going to buy why
+x are they going to buy why these are all sorts of things you should
+these are all sorts of things you should be doing and you know talking about
+be doing and you know talking about sentiment analysis
+sentiment analysis you know this is a this is a well
+you know this is a this is a well studied problem learning you know
+studied problem learning you know learning about your community and
+learning about your community and learning the kinds of things that
+learning the kinds of things that they're saying
+they're saying uh and trying to figure out if they're
+uh and trying to figure out if they're saying the right things or things that
+saying the right things or things that maybe you don't want so much
+maybe you don't want so much this can make your game a more
+this can make your game a more interesting experience and more
+interesting experience and more uh pleasant experience for your users
+uh pleasant experience for your users you should be totally doing this there's
+you should be totally doing this there's open source models where you can try
+open source models where you can try this stuff out
+this stuff out um it's a lot of fun and you know you
+um it's a lot of fun and you know you can set up a service to
+can set up a service to do things like sentiment analysis or or
+do things like sentiment analysis or or time series prediction
+time series prediction and make your game more efficient but
+and make your game more efficient but i want to talk about things that would
+i want to talk about things that would affect
+affect kind of the look and the feel of the
+kind of the look and the feel of the game directly that the player interacts
+game directly that the player interacts with
+with rather than the sort of subtle things uh
+rather than the sort of subtle things uh how many of you know about style
+how many of you know about style transfer
+transfer yeah some of you uh so style transfer is
+yeah some of you uh so style transfer is uh the idea that you take the semantic
+uh the idea that you take the semantic structure of an
+structure of an image like this picture of a food dog i
+image like this picture of a food dog i took in japan and
+took in japan and uh uh a model trained on like a
+uh uh a model trained on like a famous uh piece of art like hokusai's
+famous uh piece of art like hokusai's wave and you put them together and you
+wave and you put them together and you get sort of hocus-sized food dog
+get sort of hocus-sized food dog this is kind of a neat trick and it
+this is kind of a neat trick and it comes out of the research we did into
+comes out of the research we did into finding out
+finding out how convolutional networks actually do
+how convolutional networks actually do their work
+their work so you find out that the beginning level
+so you find out that the beginning level uh uh layers on a network can find
+uh uh layers on a network can find you know like uh small features like
+you know like uh small features like lines and circles and things and then as
+lines and circles and things and then as you go down you see textures and
+you go down you see textures and eventually it's detecting
+eventually it's detecting or activating around groups of of of
+or activating around groups of of of features like
+features like dog faces and things like that and with
+dog faces and things like that and with that you can do things like style
+that you can do things like style transfer you can do deep dream and i'm
+transfer you can do deep dream and i'm not going to show you pictures of deep
+not going to show you pictures of deep dream because they're really trippy but
+dream because they're really trippy but you can look it up on the internet
+you can look it up on the internet that's where you like imagine dogs on
+that's where you like imagine dogs on everything
+there's actually a really great paper we published recently uh on distill.pub
+published recently uh on distill.pub about how to understand what's going on
+about how to understand what's going on inside convolutional networks
+inside convolutional networks it's totally fun i recommend checking it
+it's totally fun i recommend checking it out
+out style transfer is the kind of thing that
+style transfer is the kind of thing that you can actually do with a good gpu
+you can actually do with a good gpu the frame rate um in this example we're
+the frame rate um in this example we're actually blending between multiple
+actually blending between multiple kinds of uh styles at the same time and
+kinds of uh styles at the same time and you can imagine as a game developer
+you can imagine as a game developer using
+using style transfer to uh like bring up that
+style transfer to uh like bring up that emotional punch
+emotional punch that you need in your game you know by
+that you need in your game you know by by beginning to add one of these effects
+by beginning to add one of these effects based on art that maybe your artist drew
+based on art that maybe your artist drew uh to get this so we're blending between
+uh to get this so we're blending between like
+like pastelly and wooden i mean think about
+pastelly and wooden i mean think about the ways you can do this it's pretty
+the ways you can do this it's pretty neat
+neat and of course there's other image
+and of course there's other image transformations like cyclogan
+transformations like cyclogan where this is from the berkeley ai
+where this is from the berkeley ai research this isn't uh
+research this isn't uh and there's you can go try it out
+and there's you can go try it out and here you can do transformations
+and here you can do transformations between uh
+between uh things like you know horses to zebras
+things like you know horses to zebras and apply other kinds of style
+and apply other kinds of style the neat thing about this is it doesn't
+the neat thing about this is it doesn't need paired images to do it
+need paired images to do it so uh we had a student at the jeju ml
+so uh we had a student at the jeju ml camp in korea that we did last year
+camp in korea that we did last year she was doing uh image simplification so
+she was doing uh image simplification so what she's really doing is converting
+what she's really doing is converting like pencils to inks without actually
+like pencils to inks without actually having an entire
+having an entire corpus of inks to train on she just had
+corpus of inks to train on she just had some inked things and some
+some inked things and some some pencils and then she was able using
+some pencils and then she was able using a variant of cycle again to
+a variant of cycle again to do an okay job of kind of inking in this
+do an okay job of kind of inking in this picture it's nothing that your artist
+picture it's nothing that your artist would probably
+would probably be completely happy with but it's
+be completely happy with but it's something you can do in a hurry if you
+something you can do in a hurry if you want to try something out
+so let's talk about generators speaking of generated images
+text generators are fun um they're just an example of the kinds of things you
+an example of the kinds of things you can generate
+can generate um rnn generated text it's been around
+um rnn generated text it's been around for a while it's kind of fun
+for a while it's kind of fun you predict sequences of text andre
+you predict sequences of text andre carpathi has a just wonderful blog post
+carpathi has a just wonderful blog post about the unreasonable effectiveness of
+about the unreasonable effectiveness of recurrent neural networks
+recurrent neural networks um uh there's a guy some folks uh got
+um uh there's a guy some folks uh got together
+together uh it's called robo-rosewater and they
+uh it's called robo-rosewater and they began they took all the cards in magic
+began they took all the cards in magic the gathering and poured them into an
+the gathering and poured them into an rnn and then began
+rnn and then began predicting more uh
+predicting more uh cards and on a per character basis not
+cards and on a per character basis not on a per word basis
+on a per word basis so sometimes it's sort of nonsense but
+so sometimes it's sort of nonsense but as you train the network it becomes more
+as you train the network it becomes more and more plausible and with
+and more plausible and with the thousands upon thousands of magic
+the thousands upon thousands of magic the gathering cards you eventually get
+the gathering cards you eventually get into kind of fun stuff
+into kind of fun stuff uh there's they actually made an entire
+uh there's they actually made an entire draft deck out of
+draft deck out of uh rnn generated things only about 40 of
+uh rnn generated things only about 40 of the cards are playable according to this
+the cards are playable according to this blog post but
+blog post but nonetheless everybody's really excited
+nonetheless everybody's really excited to try out these things
+to try out these things um and i actually just for fun i did
+um and i actually just for fun i did this how many of you played dominion
+this how many of you played dominion i did this with dominion dominion
+i did this with dominion dominion doesn't have nearly as many cards so
+doesn't have nearly as many cards so you run the risk of overfitting pretty
+you run the risk of overfitting pretty badly but i ended up generating this
+badly but i ended up generating this totally ludicrous night card
+totally ludicrous night card uh or dame card where uh you reveal the
+uh or dame card where uh you reveal the top three cards of your deck you look
+top three cards of your deck you look through your discard pile then you trash
+through your discard pile then you trash a car there's not a treasure and then
+a car there's not a treasure and then you look through your discard pile again
+you look through your discard pile again because the network is just in this
+because the network is just in this little like loop
+little like loop and then eventually you trash a card in
+and then eventually you trash a card in the trash
+the trash costing three to six and then you gain
+costing three to six and then you gain one of them so this is a very silly card
+one of them so this is a very silly card but the thing to think about is you know
+but the thing to think about is you know if you have a lot of content pouring it
+if you have a lot of content pouring it into a giant hopper and sort of shaking
+into a giant hopper and sort of shaking it around and having it sort of generate
+it around and having it sort of generate things back to you
+things back to you can give you perspective on ideas that
+can give you perspective on ideas that you haven't had before you know the fact
+you haven't had before you know the fact they can make an entire draft deck out
+they can make an entire draft deck out of completely
+of completely uh novel magic the gathering cards is
+uh novel magic the gathering cards is pretty playable
+pretty playable um with hard work and editing means that
+um with hard work and editing means that you know this is a tool this is a little
+you know this is a tool this is a little thing generating a way
+thing generating a way you as an artist are still doing all
+you as an artist are still doing all kinds of work
+kinds of work but uh uh you know you have this
+but uh uh you know you have this this this helper that's making you uh
+this this helper that's making you uh efficient and
+efficient and creative so let's talk about image
+creative so let's talk about image transformation
+transformation so this is a task called super
+so this is a task called super resolution um
+resolution um and it's it's a an area of study and
+and it's it's a an area of study and basically you start with the
+basically you start with the uh high resolution photos on the left
+uh high resolution photos on the left you down sample them
+you down sample them and then you learn the mapping between
+and then you learn the mapping between the down sample
+the down sample pixelated images to the high resolution
+pixelated images to the high resolution images
+images and then at any point you can hand a low
+and then at any point you can hand a low resolution photo and it will generate a
+resolution photo and it will generate a high resolution photo for you
+high resolution photo for you um which is crazy but it totally works
+um which is crazy but it totally works and
+and uh not all of them are perfectly
+uh not all of them are perfectly convincing
+convincing but uh you can imagine handing this off
+but uh you can imagine handing this off to your pixel artists and them having
+to your pixel artists and them having fun you can imagine heading it to your
+fun you can imagine heading it to your players
+players and having them sort of poke around with
+and having them sort of poke around with some pixels and generating art that's in
+some pixels and generating art that's in style into your game
+style into your game things like this uh neural editing is a
+things like this uh neural editing is a really interesting
+really interesting task and there's a lot of different
+task and there's a lot of different kinds of ways of doing it
+kinds of ways of doing it and once you have one of these models
+and once you have one of these models you're starting to do this adversarial
+you're starting to do this adversarial uh training stuff you can start
+uh training stuff you can start generating things so this is uh there's
+generating things so this is uh there's a japanese
+a japanese uh engineer uh started took a giant
+uh engineer uh started took a giant database full of japanese pop star faces
+database full of japanese pop star faces and then just began generating more pop
+and then just began generating more pop star phases
+which again can be another way of sort of shuffling your data around and trying
+of shuffling your data around and trying to find something new and interesting
+to find something new and interesting and and
+and and uh give you ideas and now we're getting
+uh give you ideas and now we're getting into
+into tasks that are a little bit more like
+tasks that are a little bit more like what uh your artist might do this is
+what uh your artist might do this is infill
+infill painting so in infill painting you
+painting so in infill painting you basically give part of an image
+basically give part of an image to a trained network and it tries to
+to a trained network and it tries to fill in what's missing
+fill in what's missing uh without any context uh in this uh
+uh without any context uh in this uh thing we have in the upper right hand
+thing we have in the upper right hand corner that's a human trying to fill in
+corner that's a human trying to fill in the the painting
+the the painting lower left hand corner we're using kind
+lower left hand corner we're using kind of an average loss on a network
+of an average loss on a network and you get kind of an average result
+and you get kind of an average result um uh and you know if there were a car
+um uh and you know if there were a car in there
+in there sometimes cars come out kind of brown
+sometimes cars come out kind of brown because that's the average color of a
+because that's the average color of a car
+car no car very few cars are brown but if
+no car very few cars are brown but if you average them all together but if you
+you average them all together but if you use adversarial loss
+use adversarial loss uh where you have another piece of your
+uh where you have another piece of your network that's saying
+network that's saying this picture is not true and
+this picture is not true and and it makes that as you know this is
+and it makes that as you know this is not what cars look like
+not what cars look like you eventually end up with these kind of
+you eventually end up with these kind of much more crisp things
+much more crisp things and again this is this is you know an
+and again this is this is you know an artist can totally do this work but this
+artist can totally do this work but this might be a way for artists to be faster
+might be a way for artists to be faster or more efficient or get ideas
+or more efficient or get ideas okay now let's talk about latent spaces
+okay now let's talk about latent spaces uh and here i'm going to be talking
+uh and here i'm going to be talking about uh project magenta
+about uh project magenta uh most of their work project magenta is
+uh most of their work project magenta is a team
+a team at google that works on the intersection
+at google that works on the intersection between art
+between art and machine learning and i just really
+and machine learning and i just really love their stuff
+variational auto encoders what are these well
+well you take an image and you encode it into
+you take an image and you encode it into some
+some latent vector z and then you
+latent vector z and then you train another decoder that takes this
+train another decoder that takes this sort of compressed format this just a
+sort of compressed format this just a series of floating point numbers and you
+series of floating point numbers and you expand it out to make the image back
+expand it out to make the image back again and what you're trying to do is
+again and what you're trying to do is reduce the loss between the picture on
+reduce the loss between the picture on the left and the picture on the right
+the left and the picture on the right and you also have another kind of loss
+and you also have another kind of loss in the middle in the late latent
+in the middle in the late latent uh vector where you're trying to make
+uh vector where you're trying to make the latent vector
+the latent vector of these variables contain the most
+of these variables contain the most information they can
+information they can it's complicated to explain but that's
+it's complicated to explain but that's basically what you're up to and
+basically what you're up to and when you're done you end up with the
+when you're done you end up with the vector space
+vector space that can describe a lot of things
+that can describe a lot of things and a whole bunch of things that the
+and a whole bunch of things that the network has never seen before
+network has never seen before and with the you know with the the
+and with the you know with the the special loss you end up with a a smooth
+special loss you end up with a a smooth space of describable things that doesn't
+space of describable things that doesn't have
+have like a lot of holes in it like a lot of
+like a lot of holes in it like a lot of weird jumps or nonsense in it
+weird jumps or nonsense in it um so you want to train on a big data
+um so you want to train on a big data set uh and we wanted to work on sketch
+set uh and we wanted to work on sketch data so we
+data so we asked our friends at the google creative
+asked our friends at the google creative lab to make a game
+lab to make a game and in that game we asked people
+and in that game we asked people randomly on the internet to draw
+randomly on the internet to draw objects that they know about like
+objects that they know about like drawbear and then the ai would try to
+drawbear and then the ai would try to guess whether or not they had drawn a
+guess whether or not they had drawn a bear
+bear and it was a fun game but it also
+and it was a fun game but it also generated a huge data set of sketches
+generated a huge data set of sketches of a common object so
+of a common object so going back to this picture imagine these
+going back to this picture imagine these aren't pixels imagine these are now
+aren't pixels imagine these are now vector drawings so now we have a vector
+vector drawings so now we have a vector drawing of a cat
+drawing of a cat and then we pour it into this fancy
+and then we pour it into this fancy encoder which is now no longer
+encoder which is now no longer convolutional but instead the sort of
+convolutional but instead the sort of lstm thing
+lstm thing goes into the vector and back out again
+goes into the vector and back out again uh
+uh and so we can actually reconstruct the
+and so we can actually reconstruct the drawing of the
+drawing of the cat and you can see it's kind of
+cat and you can see it's kind of generalizing
+generalizing because if you draw a sideways cat you
+because if you draw a sideways cat you and you draw a human input and then the
+and you draw a human input and then the output is another sideways cat and if i
+output is another sideways cat and if i draw a cat face
+draw a cat face with five whiskers i get a cat waist cat
+with five whiskers i get a cat waist cat face with six whiskers because
+face with six whiskers because most cats have balanced whiskers in the
+most cats have balanced whiskers in the data set if i draw a three-eyed cat i
+data set if i draw a three-eyed cat i get a
+get a two-eyed cat for obvious reasons and if
+two-eyed cat for obvious reasons and if i pass in a toothbrush well the model
+i pass in a toothbrush well the model hasn't been trained on toothbrushes so i
+hasn't been trained on toothbrushes so i get
+get toothbrush cat and we can do it with
+toothbrush cat and we can do it with pigs and
+pigs and as well if the model trained on pigs pig
+as well if the model trained on pigs pig face pig face sideways pig sideways pig
+face pig face sideways pig sideways pig eight legged pig four-legged pig and
+eight legged pig four-legged pig and truck
+truck you get truck pig
+you get truck pig um and because this is a vector
+um and because this is a vector description of this and this is a giant
+description of this and this is a giant vector space you can begin to do vector
+vector space you can begin to do vector math
+math inside this space so if we pick any two
+inside this space so if we pick any two points in this
+points in this in this space we can interpolate
+in this space we can interpolate linearly between these things and then
+linearly between these things and then we can ask the decoder to
+we can ask the decoder to uh generate a picture in each one of
+uh generate a picture in each one of those things even though it hasn't
+those things even though it hasn't actually seen necessarily this
+actually seen necessarily this particular point in space before
+particular point in space before and so in this case we're interpolating
+and so in this case we're interpolating between a cat face and a pig
+between a cat face and a pig and you can see as we get closer and
+and you can see as we get closer and closer to pig it begins taking on
+closer to pig it begins taking on both the sidewaysness of the pig and
+both the sidewaysness of the pig and also the little curly tail eventually
+also the little curly tail eventually pops up in the snout because that's the
+pops up in the snout because that's the thing that distinguishes the concept of
+thing that distinguishes the concept of a pig and a cat
+a pig and a cat really when you think about it on
+really when you think about it on drawings of the scale
+drawings of the scale and we can do it as well interpolating
+and we can do it as well interpolating between cats and trucks
+between cats and trucks um i just the little the cat that's just
+um i just the little the cat that's just to the right of the middle one is like
+to the right of the middle one is like my favorite cat
+my favorite cat i love that guy and with a model like
+i love that guy and with a model like this as well
+this as well you can begin to do image completion you
+you can begin to do image completion you can start drawing something and then it
+can start drawing something and then it will try
+will try like oh i've seen this before let me let
+like oh i've seen this before let me let me see if i can help and with a little
+me see if i can help and with a little bit of variance you can draw all kinds
+bit of variance you can draw all kinds of different kinds of
+of different kinds of of say mosquitoes if you have a model
+of say mosquitoes if you have a model chained on mosquitoes
+chained on mosquitoes and again thinking about the kind of
+and again thinking about the kind of work that you do from day to day you may
+work that you do from day to day you may not actually want
+not actually want you would obviously not necessarily take
+you would obviously not necessarily take any of this art but you might try it
+any of this art but you might try it just to see it try it on for size see
+just to see it try it on for size see what it looks like
+what it looks like and you can do it with fonts too this is
+and you can do it with fonts too this is here we're interpolating between the uh
+here we're interpolating between the uh sans serif fonts
+sans serif fonts and serif fonts in the upper left and
+and serif fonts in the upper left and the upper right
+the upper right and we can sort of and the results are
+and we can sort of and the results are in the lower right there kind of going
+in the lower right there kind of going back and forth between
+back and forth between serifs and boldy and less bold and more
+serifs and boldy and less bold and more seraphi
+seraphi and again you can imagine trying this
+and again you can imagine trying this out in fact this is a little toy you can
+out in fact this is a little toy you can play with if you follow that link
+play with if you follow that link it's totally neat um
+it's totally neat um and lastly with these latent spaces we
+and lastly with these latent spaces we can also describe music
+can also describe music so uh here with this was just published
+so uh here with this was just published last thursday
+last thursday music vae is uh basically
+music vae is uh basically has a giant space of melodies and then
+has a giant space of melodies and then you can interpolate between any two
+you can interpolate between any two places in this melody space
+places in this melody space so let's let's take a listen whoop that
+so let's let's take a listen whoop that didn't work let's
+didn't work let's let's try actually pressing the button
+let's try actually pressing the button and take a listen
+so this is the first melody
+[Music] [Applause]
+[Applause] [Music]
+[Music] okay
+okay [Music]
+[Music] [Applause]
+[Applause] [Music]
+pretty nice [Applause]
+[Applause] [Music]
+so it's really cool and it's open source so we have blog posts
+it's open source so we have blog posts and more uh uh ways to play with this
+and more uh uh ways to play with this and other ways to think about it
+and other ways to think about it so i'm running out of time so let me
+so i'm running out of time so let me wrap up um
+wrap up um i know this from being a game developer
+i know this from being a game developer myself making games as hard
+myself making games as hard and when i think about all the things i
+and when i think about all the things i spent time i spent making games a huge
+spent time i spent making games a huge amount of it was
+amount of it was trying things and throwing them away
+trying things and throwing them away over and over and over again trying to
+over and over and over again trying to find
+find in the latent space of games what the
+in the latent space of games what the fun thing actually is
+fun thing actually is and what the beautiful thing is actually
+and what the beautiful thing is actually is and i think tools like this and
+is and i think tools like this and thinking about these problems like this
+thinking about these problems like this uh might be a really interesting way
+uh might be a really interesting way to become more creative and more
+to become more creative and more efficient although
+efficient although i will warn you machine learning is uh
+i will warn you machine learning is uh can be a lot of work up front for
+can be a lot of work up front for uh good results later so by no means am
+uh good results later so by no means am i promising you you will get things done
+i promising you you will get things done faster but you might try a lot more
+faster but you might try a lot more things
+things so going back to the very beginning
+so going back to the very beginning right now you know there's tools right
+right now you know there's tools right away where machine learning can make you
+away where machine learning can make you uh make your game more efficient or uh
+uh make your game more efficient or uh more
+more uh more easy to manage
+uh more easy to manage but later on i think you know uh and
+but later on i think you know uh and even now with some of these tools that
+even now with some of these tools that we're bringing out
+we're bringing out and people are building in the community
+and people are building in the community deep learning can help you generate you
+deep learning can help you generate you know sort of unique
+know sort of unique interesting and compelling content but
+interesting and compelling content but we will
+we will we always need artists and programmers
+we always need artists and programmers and designers
+and designers because machines know what they've been
+because machines know what they've been taught and you're the people out there
+taught and you're the people out there being creative
+being creative and you know these things are here to
+and you know these things are here to help you and
+help you and uh uh if you want to know more about any
+uh uh if you want to know more about any of this stuff
+of this stuff tensorflow.org is great place to go
+tensorflow.org is great place to go obviously a lot of the research i talked
+obviously a lot of the research i talked about here although by no means all of
+about here although by no means all of it because we talked about other stuff
+it because we talked about other stuff not by google research.googleblog.com
+not by google research.googleblog.com and
+and magenta has its own link there
+magenta has its own link there that's it thank you very much
+okay um this is gonna be a tough act to follow because i don't even have
+follow because i don't even have audio in my presentation so
+audio in my presentation so anyway um i'm i'm danny lang i'm running
+anyway um i'm i'm danny lang i'm running the ai and machine learning team at
+the ai and machine learning team at unity
+unity and for those of
+and for those of you who don't know me because this is my
+you who don't know me because this is my first time at
+first time at at the ai summit here
+at the ai summit here i have been leading the machine learning
+i have been leading the machine learning efforts at microsoft
+efforts at microsoft and amazon and uber
+and amazon and uber at both amazon and uber i rolled out a
+at both amazon and uber i rolled out a machine learning platforms that
+machine learning platforms that basically been used
+basically been used in every corner of both companies and
+coming to unity i decided to to deal with with one of the
+decided to to deal with with one of the harder questions in this world
+harder questions in this world which is what is ai and
+i was a bit involved in some of the alexa work people ask me
+alexa work people ask me all the time is alexandria is that ai
+all the time is alexandria is that ai i'm like nah i don't think so it's sort
+i'm like nah i don't think so it's sort of
+of really hardwired though there's a lot of
+really hardwired though there's a lot of machine learning in there
+machine learning in there um on the speech recognition part and
+um on the speech recognition part and the text to speech part
+the text to speech part so there's a lot of small elements here
+so there's a lot of small elements here and there but
+and there but they're not really ai yeah and then of
+they're not really ai yeah and then of course there's all the recommendations
+course there's all the recommendations work i did some of that at amazon you
+work i did some of that at amazon you know netflix all these recommendations
+know netflix all these recommendations is that ai
+is that ai no it's not really it's machine learning
+no it's not really it's machine learning but again there's some very very good
+but again there's some very very good elements in there there's actually some
+elements in there there's actually some really incredible stuff going on say in
+really incredible stuff going on say in the work on recommendations some of
+the work on recommendations some of the latent vectors that the previous
+the latent vectors that the previous speaker mentioned that's
+speaker mentioned that's really advanced stuff that goes on in
+really advanced stuff that goes on in there thought detection for your credit
+there thought detection for your credit card that's another fantastic area of
+card that's another fantastic area of detecting
+detecting uh strange patterns in there and uh
+uh strange patterns in there and uh and and and and catch the bad guys uh
+and and and and catch the bad guys uh when they tinker with your credit card
+when they tinker with your credit card yeah
+yeah equity trading a lot of machine learning
+equity trading a lot of machine learning there
+there where you're getting you know tens of
+where you're getting you know tens of thousands of new sources and you try to
+thousands of new sources and you try to trade stock
+trade stock facebook feed you know get all the best
+facebook feed you know get all the best fake news for you
+fake news for you and and then of course one thing that ai
+and and then of course one thing that ai is really
+is really uh that is in every other job title on
+uh that is in every other job title on linkedin
+linkedin i think in my title i had sort of doubts
+i think in my title i had sort of doubts that you know people gonna
+that you know people gonna talk about me behind my back uh but now
+talk about me behind my back uh but now everybody has it so i feel like
+everybody has it so i feel like like an everyday joe now um so
+like an everyday joe now um so what about real intelligence yeah and uh
+what about real intelligence yeah and uh if you i hate people doing this showing
+if you i hate people doing this showing definitions from the dictionary but
+definitions from the dictionary but it's something about about you know your
+it's something about about you know your ability to acquire
+ability to acquire and apolog apply uh knowledge and skills
+and apolog apply uh knowledge and skills uh so it doesn't really that that's sort
+uh so it doesn't really that that's sort of too abstract for me too
+of too abstract for me too so i thought a lot about it and
+so i thought a lot about it and when you really think about intelligence
+when you really think about intelligence it's in its inaction around us
+it's in its inaction around us it's basically the senses and processes
+it's basically the senses and processes that nature
+that nature gave all living things so
+gave all living things so that they can run around or grow
+that they can run around or grow by consuming energy yeah so they have to
+by consuming energy yeah so they have to eat
+eat uh to survive yeah they have to to grow
+uh to survive yeah they have to to grow uh they have to consume energy they also
+uh they have to consume energy they also have to avoid getting eaten
+have to avoid getting eaten um or at least you know delay the
+um or at least you know delay the process of becoming energy themselves
+process of becoming energy themselves yeah
+yeah they have to multiply we're not going to
+they have to multiply we're not going to go deeply into that today
+go deeply into that today and they have to be very careful with
+and they have to be very careful with physics in particular you know
+physics in particular you know with inertia and gravity you know when
+with inertia and gravity you know when you climb after that apple and you fall
+you climb after that apple and you fall down and break you
+down and break you break something and kill yourself etc so
+break something and kill yourself etc so this kind of intelligence in
+this kind of intelligence in action uh is is really everywhere around
+action uh is is really everywhere around us yeah
+us yeah it's from bacteria which are not
+it's from bacteria which are not particularly intelligent but they have
+particularly intelligent but they have some stuff built into them that make
+some stuff built into them that make them a little smarter
+them a little smarter bees are a little smarter than that and
+bees are a little smarter than that and humans we are
+humans we are so sometimes sometimes very smart
+so sometimes sometimes very smart sometimes not so smart yeah
+sometimes not so smart yeah um so it's really all that intelligence
+um so it's really all that intelligence is made from infrastructure yeah
+is made from infrastructure yeah so it's really the the evolution created
+so it's really the the evolution created a
+a complex apparatus for that yeah chemical
+complex apparatus for that yeah chemical mechanisms cellular structure all this
+mechanisms cellular structure all this stuff was created
+stuff was created so that nature the version of nature we
+so that nature the version of nature we live in
+live in survives and grows yeah there may be
+survives and grows yeah there may be another version of nature that
+another version of nature that failed because it forgot some of these
+failed because it forgot some of these things here here
+things here here and and we see that organized organisms
+and and we see that organized organisms have messaging systems that's what
+have messaging systems that's what neuroscience is about
+neuroscience is about and we had developed sensors you know
+and we had developed sensors you know like a vision came around 450 million
+like a vision came around 450 million years ago
+years ago that suddenly led to uh the creatures at
+that suddenly led to uh the creatures at that time uh suddenly having a very
+that time uh suddenly having a very different life and
+different life and life and evolution took them in a very
+life and evolution took them in a very different direction yeah
+different direction yeah so so if you think about the game engine
+so so if you think about the game engine yeah it's pretty close to what i talked
+yeah it's pretty close to what i talked about it
+about it it's a 3d environment where there's a
+it's a 3d environment where there's a physics engine
+physics engine so so things have inertia there's
+so so things have inertia there's gravity here
+gravity here and it's a controlled self sufficient
+and it's a controlled self sufficient ecosystem
+ecosystem that sort of mimics the real world yeah
+that sort of mimics the real world yeah so uh looking at that that's actually a
+so uh looking at that that's actually a an awesome environment
+an awesome environment for really working with your private ai
+for really working with your private ai biodome yeah so at
+biodome yeah so at unity we launched ml agents because it
+unity we launched ml agents because it adds
+adds one last thing to that equation
+one last thing to that equation of the three environment physics engine
+of the three environment physics engine and that's that's the
+and that's that's the mechanisms the neural science mechanisms
+mechanisms the neural science mechanisms yeah
+yeah that all those things in that game
+that all those things in that game engine can now start
+engine can now start exhibiting some kind of intelligence
+exhibiting some kind of intelligence surviving in that 3d
+surviving in that 3d world with a physics engine yeah
+world with a physics engine yeah so what is unity ml agents it's uh
+so what is unity ml agents it's uh essentially a it's open source
+essentially a it's open source it's an ai toolkit
+it uses environments which are worlds which are unity-based so you can create
+which are unity-based so you can create your own
+your own uh your own biodome yeah do you remember
+uh your own biodome yeah do you remember the biodomes
+the biodomes you can create that in unity and then
+you can create that in unity and then you can add
+you can add npcs in there you can add agents
+npcs in there you can add agents and they essentially game objects that
+and they essentially game objects that are attached
+are attached to an agent the agent can observe
+to an agent the agent can observe and that's actually the the census yeah
+and that's actually the the census yeah you you can have a camera in the agent
+you you can have a camera in the agent so it you can see visually or you can
+so it you can see visually or you can have some ray tracing going on
+have some ray tracing going on you can have collision you can basically
+you can have collision you can basically mimic
+mimic everything that nature created yeah uh
+everything that nature created yeah uh let's see how many sensors is it that we
+let's see how many sensors is it that we have
+have some people say five um i see that's you
+some people say five um i see that's you know we can taste and smell
+know we can taste and smell and see feel and hear
+and see feel and hear yeah but there's something about we also
+yeah but there's something about we also feel
+feel heat cold stuff we can also feel the
+heat cold stuff we can also feel the balance
+balance and we can feel movement we have to have
+and we can feel movement we have to have many sensors yeah all those sensors you
+many sensors yeah all those sensors you can actually build into
+can actually build into into your into your game objects think
+into your into your game objects think about it you can actually invent new
+about it you can actually invent new sensors
+sensors uh we actually had a guy he did a lidar
+uh we actually had a guy he did a lidar you know the laser thing
+you know the laser thing that robots and self-driving cars have
+that robots and self-driving cars have boom
+boom add that as an asset into unity and now
+add that as an asset into unity and now you have another sensor
+you have another sensor so so observation observations of these
+so so observation observations of these game objects or the agent
+game objects or the agent is really about sensors they can take
+is really about sensors they can take actions
+actions they can move around and when they
+they can move around and when they accomplish something they can sort of
+accomplish something they can sort of send a signal back and say success
+send a signal back and say success or they maybe fall over and die and they
+or they maybe fall over and die and they failed to have success yeah that's the
+failed to have success yeah that's the reward signals here
+reward signals here and then we use reinforcement learning
+and then we use reinforcement learning um we talked a bit about
+um we talked a bit about first speaker spoke a bit about
+first speaker spoke a bit about reinforcement learning today
+reinforcement learning today so it's essentially the the idea of
+so it's essentially the the idea of running a simulation
+running a simulation learning from that simulation which is
+learning from that simulation which is basically uh
+basically uh coming up let the system come up the
+coming up let the system come up the policy uh
+policy uh that is essential and optimal always
+that is essential and optimal always think about a policy as an optimal
+think about a policy as an optimal mapping
+mapping between what you see and what you do
+between what you see and what you do yeah
+yeah so there's always the random policy
+so there's always the random policy which is you know you throw a coin
+which is you know you throw a coin to make decisions yeah but that's not
+to make decisions yeah but that's not that's not an optimal policy
+that's not an optimal policy so we try to let the system learn the
+so we try to let the system learn the optimal policy
+optimal policy and then when you have that policy you
+and then when you have that policy you can now move into the inference phase
+can now move into the inference phase which is you can let the system play out
+in the diagram very briefly this is what it looks like
+it looks like you have the learning environment that's
+you have the learning environment that's unity the big gray thing
+unity the big gray thing there's a python site to it the python
+there's a python site to it the python the python
+the python part of it it provides you with the
+part of it it provides you with the mechanisms and the ability to hook
+mechanisms and the ability to hook algorithms up
+algorithms up outside unity so we're doing all of our
+outside unity so we're doing all of our work on tensorflow but you you can put
+work on tensorflow but you you can put hook it up with your favorite machine
+hook it up with your favorite machine learning system
+learning system but if you go to to the ml agent github
+but if you go to to the ml agent github uh there will be uh this of how to how
+uh there will be uh this of how to how to download uh
+to download uh and install and get tensorflow hooked up
+and install and get tensorflow hooked up with this yeah so you have that training
+with this yeah so you have that training taking
+taking site outside unity then inside unity
+site outside unity then inside unity there's the academy
+there's the academy that embeds a communicator that you
+that embeds a communicator that you don't have to care much about but that's
+don't have to care much about but that's the thing that sort of takes things from
+the thing that sort of takes things from insanity
+insanity in your in your unity environment out to
+in your in your unity environment out to the to the
+the to the for training outside yeah so in in in
+for training outside yeah so in in in the academy
+the academy you have basically agents
+you have basically agents that's game objects you have game
+that's game objects you have game objects attached to agents and they can
+objects attached to agents and they can do stuff
+do stuff as i said observe and have actions and
+as i said observe and have actions and send rewards
+send rewards and there are one or more brains the
+and there are one or more brains the brains is sort of what you try to build
+brains is sort of what you try to build here
+here and that's what i call that's the new
+and that's what i call that's the new science
+science part of our biodome
+training scenarios so we already heard about some of them
+about some of them but uh this this is actually
+but uh this this is actually why i'm so excited and why we're doing
+why i'm so excited and why we're doing him all agents because
+him all agents because by making basically democratizing ai so
+by making basically democratizing ai so that everybody not just the big
+that everybody not just the big corporations can play with this
+corporations can play with this yeah it is really bringing it out and
+yeah it is really bringing it out and what i hope you you take home from this
+what i hope you you take home from this is that there's so much to be done
+is that there's so much to be done you're just scratching the surface
+you're just scratching the surface and what we're trying to do with the ml
+and what we're trying to do with the ml agents at unity is to
+agents at unity is to open the door for you to take this and
+open the door for you to take this and run with it yeah
+run with it yeah so i'm going to give you some examples
+so i'm going to give you some examples and this is you can just imagine how
+how many opportunities there are here when i when i go through this is like
+when i when i go through this is like as an example you have a single agent
+as an example you have a single agent with a single brain doing something yeah
+with a single brain doing something yeah it's a very very simple combination
+it's a very very simple combination that can be you know a game object
+that can be you know a game object trying to get from a to b
+trying to get from a to b or learn to get from a to b with some
+or learn to get from a to b with some obstacles in between yeah single agent
+obstacles in between yeah single agent single brain
+single brain uh fairly straightforward but then you
+uh fairly straightforward but then you can also have
+can also have examples of uh multiple agents
+examples of uh multiple agents uh with a single brain yeah and and and
+uh with a single brain yeah and and and what that does is that it sort of
+what that does is that it sort of gives you an opportunity to have a lot
+gives you an opportunity to have a lot of action going on
+of action going on a lot of reward signals coming back in
+a lot of reward signals coming back in but you you
+but you you you accumulate all that knowledge in the
+you accumulate all that knowledge in the single brain
+there's also adversarial self-play you have two agents
+have two agents have a single brain single set of skills
+have a single brain single set of skills but for each agent uh the reward signals
+but for each agent uh the reward signals are inversion i try to beat this guy and
+are inversion i try to beat this guy and this guy tries to beat me
+this guy tries to beat me and we feed all women into a single
+and we feed all women into a single brain so we get two guys who are
+brain so we get two guys who are actually really really good at playing
+actually really really good at playing each
+each playing against each other yeah and they
+playing against each other yeah and they make each other better and better
+make each other better and better because all the experience goes into the
+because all the experience goes into the same brain yeah
+same brain yeah so you can see a lot of this computer
+so you can see a lot of this computer science stuff is really sounds more like
+science stuff is really sounds more like what we do every day together
+what we do every day together by learning and exchanging information
+by learning and exchanging information and playing games
+and playing games and i'm not even computer games but
+and i'm not even computer games but maybe even you know soccer games or
+maybe even you know soccer games or things like that where we
+things like that where we we we do things together so it brings me
+we we do things together so it brings me on to cooperative
+on to cooperative and competitive multi-agent scenarios
+and competitive multi-agent scenarios where we have multiple agents multiple
+where we have multiple agents multiple brains
+brains they may have shared or inverse rewards
+they may have shared or inverse rewards here
+so hopefully you can understand that the opportunities here of working
+the opportunities here of working and combining these brains and agents
+and combining these brains and agents and the rewards
+and the rewards are are basically endless um
+are are basically endless um i'm gonna tell you about
+i'm gonna tell you about comments so so the training environments
+comments so so the training environments that's basically the the the setting
+that's basically the the the setting uh in which your game objects are doing
+uh in which your game objects are doing things yeah
+things yeah and uh what we've been doing is that
+and uh what we've been doing is that we've provided you with
+we've provided you with with a bunch of
+with a bunch of training environments that you can just
+training environments that you can just grab and start
+grab and start playing with which means you can
+playing with which means you can actually go home and do all these
+actually go home and do all these things i show you right away but you can
+things i show you right away but you can also take these training environments
+also take these training environments and change them yeah or you can clone
+and change them yeah or you can clone them and then
+them and then change them like crazy yeah there's no
+change them like crazy yeah there's no limits here so a lot of the work going
+limits here so a lot of the work going on in reinforcement learning
+on in reinforcement learning and other machine learning and ai areas
+and other machine learning and ai areas ends up being a lot of papers that you
+ends up being a lot of papers that you read and then you're kind of oh i wish i
+read and then you're kind of oh i wish i could try this
+could try this this is what we we're giving you here is
+this is what we we're giving you here is this ability to actually
+this ability to actually uh stop maybe even writing all those
+uh stop maybe even writing all those papers and actually do some of these
+papers and actually do some of these things and share them um i'm going to
+things and share them um i'm going to show you
+show you a few examples uh
+a few examples uh here's the 3d balancing ball it's one
+here's the 3d balancing ball it's one brain
+brain with 12 agents and
+with 12 agents and i'm going to show you the video here so
+i'm going to show you the video here so it's
+it's uh it's about balancing a ball and a pad
+uh it's about balancing a ball and a pad and it's 12 agents and
+and it's 12 agents and the observation of for these a 12 agents
+the observation of for these a 12 agents is actually the
+is actually the the the location and velocity of the
+the the location and velocity of the ball
+ball so where where's the ball rolling based
+so where where's the ball rolling based on that input
+on that input yeah when we run this with with 12
+yeah when we run this with with 12 agents
+agents they learn to they learn from scratch
+they learn to they learn from scratch uh what we call tabula rasa yeah from a
+uh what we call tabula rasa yeah from a clean slate
+clean slate they learn to balance that ball in 30
+they learn to balance that ball in 30 seconds yeah
+seconds yeah in this case by adding 12 agents in
+in this case by adding 12 agents in there
+there it's it's it's a way of just generating
+it's it's it's a way of just generating more data yeah
+more data yeah and i just said something very important
+and i just said something very important there because what we use the unity
+there because what we use the unity engine to here is to generate the data
+engine to here is to generate the data and we need tons of data
+and we need tons of data to train these systems yeah i'll show
+to train these systems yeah i'll show you another one here
+you another one here it's it's basically two brains it's it's
+it's it's basically two brains it's it's it's it's two-person talk or
+it's it's two-person talk or four people two in each team playing
+four people two in each team playing soccer yeah so it's really two brains
+soccer yeah so it's really two brains and four agents so before i run it i
+and four agents so before i run it i just have to explain that there's a
+just have to explain that there's a there's a there's a goalie brain and a
+there's a there's a goalie brain and a striker
+striker brain yeah the two goalies they both
+brain yeah the two goalies they both share brain because that job is the same
+share brain because that job is the same and the two strikers share brain because
+and the two strikers share brain because their job is the same yeah but they're
+their job is the same yeah but they're in two different teams
+in two different teams so they are in the rewards are inversed
+so they are in the rewards are inversed because they're trying to beat the other
+because they're trying to beat the other guys yeah
+guys yeah um
+so you see uh in this case the observation is actor raycast yeah so
+observation is actor raycast yeah so that you will see
+that you will see the little square agents i apologize for
+the little square agents i apologize for the graphics here but it's sort of to
+the graphics here but it's sort of to keep things simple
+keep things simple has a little eye yeah they are one-eyed
+has a little eye yeah they are one-eyed and they
+and they uh look at the strikers by the way
+uh look at the strikers by the way have you noticed the strikers are
+have you noticed the strikers are looking sideways all the time
+looking sideways all the time yeah but the goalies are looking forward
+yeah but the goalies are looking forward yeah because the goalies need to look at
+yeah because the goalies need to look at the ball coming against them
+the ball coming against them but actually when you're a striker with
+but actually when you're a striker with a 180 degrees view point of view
+a 180 degrees view point of view then if you're on the side looking
+then if you're on the side looking at the field from the side you see the
+at the field from the side you see the most
+most if we would now end that view of field
+if we would now end that view of field they will probably start turning a lot
+they will probably start turning a lot more around to
+more around to to scan the space here so that's one
+to scan the space here so that's one thing that's important
+thing that's important to remember here is that you have
+to remember here is that you have opportunity to to
+opportunity to to basically put a camera
+basically put a camera on the agent or put a camera over the
+on the agent or put a camera over the entire world yeah so in this case in
+entire world yeah so in this case in soccer here the agents
+soccer here the agents actually don't see everything they only
+actually don't see everything they only see their point of view
+see their point of view they don't see the entire world you
+they don't see the entire world you could in other cases
+could in other cases have cameras that show the entire world
+have cameras that show the entire world let's do some
+let's do some uh oh that was a joke that was not
+uh oh that was a joke that was not supposed to get in here
+supposed to get in here uh but it's it's wall jumping um
+uh but it's it's wall jumping um where we basically give a agent
+where we basically give a agent uh uh two two brains because it needs to
+uh uh two two brains because it needs to do
+do two different things yeah it needs to to
+two different things yeah it needs to to learn to
+learn to to push another block next to the wall
+to push another block next to the wall so it can step up on the block and get
+so it can step up on the block and get over
+over the wall yeah so look there is cheating
+the wall yeah so look there is cheating it could jump on the low wall here but
+it could jump on the low wall here but in this case it it
+in this case it it it has to to basically learn two skills
+it has to to basically learn two skills yeah so one one is pushing the block and
+yeah so one one is pushing the block and i want to tell you how it learns that
+i want to tell you how it learns that because this is again so fascinating
+because this is again so fascinating yeah
+yeah because it learns that through
+because it learns that through curriculum learning so what we do
+curriculum learning so what we do and we support this directly in in ml
+and we support this directly in in ml agents
+agents we basically give you a chance to teach
+we basically give you a chance to teach the agent the simplest case
+the agent the simplest case where the wall is actually just a tiny
+where the wall is actually just a tiny tiny tiny
+tiny tiny and then we make the wall taller and
+and then we make the wall taller and taller as the agent
+taller as the agent reach some objective
+reach some objective some some some threshold with the low
+some some some threshold with the low wall then make the wall higher yeah
+wall then make the wall higher yeah and what's so fascinating is that you
+and what's so fascinating is that you get
+get a better model out of curriculum
+a better model out of curriculum learning
+learning rather than just let the agent try out
+rather than just let the agent try out to scale the tall wall right away
+to scale the tall wall right away actually well you can see the orange one
+actually well you can see the orange one is its ability
+is its ability to scale the tall wall just
+to scale the tall wall just never seen the the low wall yeah so it's
+never seen the the low wall yeah so it's a bit like when you go to school and go
+a bit like when you go to school and go to first grade and second grade third
+to first grade and second grade third grade you sort of learn
+grade you sort of learn things step wise yeah instead of just
+things step wise yeah instead of just jumping right into it
+jumping right into it isn't it weird that these systems in
+isn't it weird that these systems in with all their primitive technology from
+with all their primitive technology from tensorflow wherever it comes from
+tensorflow wherever it comes from exhibit that same behavior yeah it's the
+exhibit that same behavior yeah it's the same behavior that
+same behavior that that that building up building upon a
+that that building up building upon a previous learned skill we have seen
+previous learned skill we have seen other examples of that
+other examples of that where if you want to build a robot hand
+where if you want to build a robot hand that really grabs stuff
+that really grabs stuff you teach it a lot of primitive things
+you teach it a lot of primitive things it can do
+it can do and then it gets much better at learning
+and then it gets much better at learning the hard task
+the hard task so that that's an important message
+so that that's an important message because it's really
+because it's really uh it really tells everybody that you
+uh it really tells everybody that you need to sort of take this out of pure
+need to sort of take this out of pure research
+research and really put it in the hands of a lot
+and really put it in the hands of a lot of people because they would actually do
+of people because they would actually do you know be able to explore many more
+you know be able to explore many more aspects of this
+aspects of this i want to mention another one which is
+i want to mention another one which is essentially a sweet little one using
+essentially a sweet little one using lstm
+lstm which is is basically called long
+which is is basically called long short-term memory it's the ability
+short-term memory it's the ability to remember something and use it later
+to remember something and use it later on so what this little blue
+on so what this little blue uh uh cube does is that it goes and look
+uh uh cube does is that it goes and look at the big cube
+at the big cube and then if the big cube is red and goes
+and then if the big cube is red and goes to that side and if it's orange goes to
+to that side and if it's orange goes to the other side but
+the other side but it has to do two things again yeah it
+it has to do two things again yeah it has to
+has to use raycast identify the color of the
+use raycast identify the color of the the first cube and then decide where to
+the first cube and then decide where to go and find its way over there
+go and find its way over there and end up in the right corner so again
+and end up in the right corner so again two two different things here
+two two different things here so it works goes to the on side this
+so it works goes to the on side this means goes to the red side go to the
+means goes to the red side go to the orange side
+orange side looks at that and then go to the one
+looks at that and then go to the one side yeah so it
+side yeah so it is an example of the use of
+is an example of the use of specific of memory yeah
+specific of memory yeah i think that's fascinating too
+with the unity engine we have high fidelity graphics we have physics we
+fidelity graphics we have physics we have rich
+have rich assets i mentioned the radar lighter
+assets i mentioned the radar lighter stuff like that as sensors
+stuff like that as sensors and uh you can create scalable
+and uh you can create scalable simulations where you and
+simulations where you and in theory you can run you know 100 000
+in theory you can run you know 100 000 instances of unity
+instances of unity and gather data and uh oh sorry i went
+and gather data and uh oh sorry i went too fast here
+too fast here i just want to show this uh if it runs
+i just want to show this uh if it runs is it running yeah here we go
+is it running yeah here we go um we are working with with uh
+um we are working with with uh microsoft and uh and and the city of
+microsoft and uh and and the city of belgium
+belgium and and the idea here is to to actually
+and and the idea here is to to actually train a machine learning system to uh
+train a machine learning system to uh detect
+detect dangerous uh traffic situations uh
+dangerous uh traffic situations uh through cameras yeah but the traditional
+through cameras yeah but the traditional way of doing this would be to
+way of doing this would be to record hours and hours of video and have
+record hours and hours of video and have a thousand people hand labeling the
+a thousand people hand labeling the video etc yeah to train the machine
+video etc yeah to train the machine learning system
+learning system and what we're doing here is we're
+and what we're doing here is we're showing that you can actually create
+showing that you can actually create these
+these uh scenarios that
+uh scenarios that in unity that will basically kind of
+in unity that will basically kind of fool the machine learning system i think
+fool the machine learning system i think this is the real world here
+this is the real world here and train it yeah and on on a very sad
+and train it yeah and on on a very sad day like today
+day like today uh when there was a pedestrian killed by
+uh when there was a pedestrian killed by an uber self-driving vehicle
+an uber self-driving vehicle this is kind of a way to
+this is kind of a way to to train vehicles train machine learning
+to train vehicles train machine learning systems
+systems uh in a
+uh in a in an artificial environment before you
+in an artificial environment before you actually bring them out in the real
+actually bring them out in the real world yeah so both the cell driving cars
+world yeah so both the cell driving cars for robots and also for systems that
+for robots and also for systems that actually
+actually deal with what we call real world
+deal with what we call real world situations it's a fantastic environment
+situations it's a fantastic environment for doing that and this is sort of when
+for doing that and this is sort of when you look at ml agents and then
+you look at ml agents and then you kind of put them on steroids okay
+you kind of put them on steroids okay that was all i had for today and i
+that was all i had for today and i appreciate your time
+appreciate your time you

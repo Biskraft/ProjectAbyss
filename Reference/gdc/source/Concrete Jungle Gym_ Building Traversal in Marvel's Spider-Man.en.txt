@@ -1,0 +1,2114 @@
+[Music] my name is doug sheehan i'm one of the
+my name is doug sheehan i'm one of the lead gameplay programmers at insomniac
+lead gameplay programmers at insomniac games
+games and we're here to talk about building
+and we're here to talk about building traversal in marvel spider-man
+traversal in marvel spider-man so let's just jump right in so in the
+so let's just jump right in so in the fall of 2014
+fall of 2014 uh i found out insomniac games was
+uh i found out insomniac games was making a spider-man game and that i was
+making a spider-man game and that i was going to be assigned to bring his
+going to be assigned to bring his traversal to life
+traversal to life this was not only going to be the
+this was not only going to be the biggest game in insomniac's history but
+biggest game in insomniac's history but it was also using a legendary ip that
+it was also using a legendary ip that had
+had really heavily infested and rabbit hand
+really heavily infested and rabbit hand fan base
+fan base and it had an unrivaled expectation of
+and it had an unrivaled expectation of quality for anything that we'd ever made
+quality for anything that we'd ever made and as someone that as a poor college
+and as someone that as a poor college student holed up in bookstores and read
+student holed up in bookstores and read spider-man comics
+spider-man comics the idea of making spider-man swing was
+the idea of making spider-man swing was super exciting
+super exciting and also at the same time completely and
+and also at the same time completely and utterly terrifying
+utterly terrifying fortunately we had the game's vision
+fortunately we had the game's vision statement as a starting point which was
+statement as a starting point which was play like a superhero movie feels
+play like a superhero movie feels so we kind of set up on our journey too
+so we kind of set up on our journey too as the saying goes make you feel like
+as the saying goes make you feel like spider-man
+spider-man so what does plane like a superhero
+so what does plane like a superhero movie feels even mean for traversal
+movie feels even mean for traversal well with swinging as our starting point
+well with swinging as our starting point we decided on a few core beliefs
+we decided on a few core beliefs that would kind of guide the features
+that would kind of guide the features development so the first thing we
+development so the first thing we acknowledged was that we wanted to
+acknowledged was that we wanted to target a pretty broad audience
+target a pretty broad audience spider-man has a really big worldwide
+spider-man has a really big worldwide following and we wanted as many people
+following and we wanted as many people as possible to be able to play and enjoy
+as possible to be able to play and enjoy the game
+the game however we knew that we had the issue
+however we knew that we had the issue that most gamers don't really have any
+that most gamers don't really have any muscle memory for swinging
+muscle memory for swinging unlike say a third person shooter or a
+unlike say a third person shooter or a first person shooter most folks don't
+first person shooter most folks don't have any brain map for how to make
+have any brain map for how to make swinging go and function
+swinging go and function so to add to the challenge we start the
+so to add to the challenge we start the game out by chucking you out a window
+game out by chucking you out a window giving you the control and saying all
+giving you the control and saying all right swing time
+right swing time go so wanting that first moment to feel
+go so wanting that first moment to feel just right we knew we had to get the
+just right we knew we had to get the controls to a point where they were easy
+controls to a point where they were easy to learn
+to learn but hard to master next we wanted
+but hard to master next we wanted traversal and swinging in particular to
+traversal and swinging in particular to be rooted in physics
+be rooted in physics this was really vital to give players a
+this was really vital to give players a sense of believability that feeling that
+sense of believability that feeling that they could actually swing through new
+they could actually swing through new york as a superhero that that was really
+york as a superhero that that was really going to be possible for them
+going to be possible for them and following that swing lines just had
+and following that swing lines just had to attach to in-world geometry no
+to attach to in-world geometry no questions asked
+questions asked this was extremely important in order to
+this was extremely important in order to ground the simulation correctly
+ground the simulation correctly but also we were mostly terrified that a
+but also we were mostly terrified that a bunch of angry fans would tell us that
+bunch of angry fans would tell us that we were ruining their childhood if we
+we were ruining their childhood if we didn't do it
+so finally we wanted to have a dynamic camera the look and feel of swinging
+camera the look and feel of swinging needed to be fluid
+needed to be fluid fast exciting and especially cinematic
+fast exciting and especially cinematic we needed a camera that helped translate
+we needed a camera that helped translate all that high-flying acrobatics
+all that high-flying acrobatics and velocity into a really visceral
+and velocity into a really visceral experience for the player something that
+experience for the player something that they could just feel in their gut
+they could just feel in their gut so today i'm going to show you kind of
+so today i'm going to show you kind of how we achieve those core principles by
+how we achieve those core principles by taking you through the process by which
+taking you through the process by which we created traversal
+we created traversal the biggest key to our success is
+the biggest key to our success is iteration for a lot of the elements i'll
+iteration for a lot of the elements i'll show you
+show you not just what we ended up actually
+not just what we ended up actually shipping but where we started where we
+shipping but where we started where we failed what we learned and how we got
+failed what we learned and how we got better
+better and so however knowing when you needed
+and so however knowing when you needed to improve isn't necessarily always
+to improve isn't necessarily always obvious to you
+obvious to you it came from a steady diet of play
+it came from a steady diet of play testing and learning how players
+testing and learning how players interacted with the game and where it
+interacted with the game and where it was failing them
+was failing them this meant we had to stay really
+this meant we had to stay really flexible in our execution and always
+flexible in our execution and always looking to be greater
+looking to be greater so before we can actually swing we have
+so before we can actually swing we have to have something to attach to
+to have something to attach to so as stated we wanted swinging to be
+so as stated we wanted swinging to be accessible and this meant that we needed
+accessible and this meant that we needed to think a bit about attach points from
+to think a bit about attach points from the player's perspective
+the player's perspective namely what is the player actually going
+namely what is the player actually going to be responsible for when it comes to
+to be responsible for when it comes to picking an attach point and what is the
+picking an attach point and what is the system going to be responsible for
+system going to be responsible for and doing to help them so we first
+and doing to help them so we first decided that we wanted players really
+decided that we wanted players really just thinking about
+just thinking about where they wanted to go rather than
+where they wanted to go rather than where they were attaching
+where they were attaching this removed a pretty significant burden
+this removed a pretty significant burden from the player and let them focus on
+from the player and let them focus on additional layers of gameplay
+additional layers of gameplay like chasing cars dodging bullets
+like chasing cars dodging bullets rockets and the occasional pigeon
+rockets and the occasional pigeon the player would communicate their
+the player would communicate their directional intent with the with the
+directional intent with the with the analog stick and then the system would
+analog stick and then the system would take it from there
+take it from there so our first attempt at finding attach
+so our first attempt at finding attach points was to comb the environment using
+points was to comb the environment using an array of raycasts
+an array of raycasts this was designed to minimize the
+this was designed to minimize the required effort from design and
+required effort from design and environment and to ensure that we were
+environment and to ensure that we were actually attaching the geometry
+actually attaching the geometry but this presented a number of problems
+but this presented a number of problems that we just couldn't overcome at the
+that we just couldn't overcome at the end of the day
+end of the day the biggest issue is that raycasts
+the biggest issue is that raycasts simply didn't provide enough resolution
+simply didn't provide enough resolution for
+for us our line lengths would often exceed
+us our line lengths would often exceed 50 meters and even with a respectable
+50 meters and even with a respectable density of raycast we were getting these
+density of raycast we were getting these 20 meter gaps at full range
+20 meter gaps at full range this was enough to not only miss small
+this was enough to not only miss small objects that we wanted to swing from
+objects that we wanted to swing from like flagpoles and radio towers
+like flagpoles and radio towers but it would completely miss large
+but it would completely miss large sections of buildings entirely
+sections of buildings entirely specifically an additional issue we
+specifically an additional issue we recognized is that corners were often
+recognized is that corners were often the optimal swing points
+the optimal swing points and raycasts were just really bad at
+and raycasts were just really bad at finding those positions because of the
+finding those positions because of the resolution problem
+resolution problem so a more obvious problem is that
+so a more obvious problem is that raycasts can't hit things that don't
+raycasts can't hit things that don't have collision
+have collision this was particularly problematic with
+this was particularly problematic with trees in areas like central park
+trees in areas like central park and even if those objects did have a
+and even if those objects did have a little bit of collision for the trunk or
+little bit of collision for the trunk or something like that
+something like that we still weren't going to be able to
+we still weren't going to be able to find them because of the resolution
+find them because of the resolution issue
+issue and finally as we'll talk about later a
+and finally as we'll talk about later a lot of points require some additional
+lot of points require some additional fix up after you find that initial point
+fix up after you find that initial point doing these adjustments by collision
+doing these adjustments by collision checks could prove really costly and
+checks could prove really costly and a performance hit when processing dozens
+a performance hit when processing dozens of potential attach points
+of potential attach points and they still might not really be what
+and they still might not really be what we want
+we want so with those raycasts coming up short
+so with those raycasts coming up short we moved on we decided to use a markup
+we moved on we decided to use a markup based approach
+based approach by wrapping our buildings in box volumes
+by wrapping our buildings in box volumes that approximate the shape of the
+that approximate the shape of the building
+building we could find those nearby volumes
+we could find those nearby volumes process them on a face-by-face basis
+process them on a face-by-face basis and then only then perform a final
+and then only then perform a final raycast on that point to get their true
+raycast on that point to get their true attach point on the geometry
+attach point on the geometry but moving to moving to market provided
+but moving to moving to market provided a number of advantages
+a number of advantages that were absent when using raycasts
+that were absent when using raycasts first point collection was really fast
+first point collection was really fast by using kind of a cache friendly sphere
+by using kind of a cache friendly sphere database uh that was just our data it
+database uh that was just our data it significantly helped with scalability in
+significantly helped with scalability in terms of being able to have a lot of
+terms of being able to have a lot of markup out in the world and be able to
+markup out in the world and be able to process it quickly
+process it quickly by using the shape information we
+by using the shape information we effectively now had infinite resolution
+effectively now had infinite resolution for point placement on each face of the
+for point placement on each face of the volume
+volume this allowed us to easily find edges and
+this allowed us to easily find edges and corners and never have to worry about
+corners and never have to worry about missing smaller objects
+missing smaller objects and finally by using markup we were able
+and finally by using markup we were able to afford designers a lot of additional
+to afford designers a lot of additional control over various gameplay aspects
+control over various gameplay aspects like custom swing parameters and where
+like custom swing parameters and where you could and couldn't swing so the main
+you could and couldn't swing so the main drawback with markup was placement
+drawback with markup was placement scalability we had a huge world full of
+scalability we had a huge world full of things that were going to require the
+things that were going to require the markup and placing all of this by hand
+markup and placing all of this by hand and maintaining it through production as
+and maintaining it through production as environment was constantly changing
+environment was constantly changing was going to be an enormous amount of
+was going to be an enormous amount of upkeep and potential bugs so our
+upkeep and potential bugs so our solution to that involved a couple of
+solution to that involved a couple of primary tools
+primary tools first we had to handle the buildings
+first we had to handle the buildings fortunately we were using a system
+fortunately we were using a system called houdini
+called houdini to help us generate the geometry for our
+to help us generate the geometry for our environment out of building blocks
+environment out of building blocks this software could also then be
+this software could also then be leveraged to analyze that geometry and
+leveraged to analyze that geometry and procedurally place volumes
+procedurally place volumes to approximate our building shapes for
+to approximate our building shapes for objects outside of houdini's operation
+objects outside of houdini's operation we deployed our engine's prefab system
+we deployed our engine's prefab system this bundled up markup with all of those
+this bundled up markup with all of those objects that we place and every time an
+objects that we place and every time an instance was put down it would just
+instance was put down it would just bring the markup in with it so we didn't
+bring the markup in with it so we didn't have to worry about it
+have to worry about it so with our markup now populating the
+so with our markup now populating the world we needed to actually do something
+world we needed to actually do something kind of useful for it rather than just
+kind of useful for it rather than just stare at it
+stare at it and at any point the immediate area can
+and at any point the immediate area can be filled with just hundreds of volumes
+be filled with just hundreds of volumes that are all potential swing points and
+that are all potential swing points and we needed to filter through all that to
+we needed to filter through all that to find the best one
+find the best one so in order to pick that final attach
+so in order to pick that final attach point uh we need to start with a
+point uh we need to start with a reasonable reference point as our ideal
+reasonable reference point as our ideal position
+position here we kind of have a top-down view of
+here we kind of have a top-down view of our hero surrounded by buildings
+our hero surrounded by buildings and the player influence over point
+and the player influence over point selection comes from the input on the
+selection comes from the input on the left stick
+left stick and as stated before we want the player
+and as stated before we want the player thinking only about where they're going
+thinking only about where they're going not specifically where they're attaching
+not specifically where they're attaching so the input direction really just kind
+so the input direction really just kind of provides a starting point
+of provides a starting point from that input direction we can then
+from that input direction we can then apply an ideal slope and a line length
+apply an ideal slope and a line length to transform the input direction into a
+to transform the input direction into a position that represents kind of our
+position that represents kind of our ideal attach point where we would want
+ideal attach point where we would want to go if we had
+to go if we had you know infinite attach points all over
+you know infinite attach points all over and moving back to a top-down view
+and moving back to a top-down view we can then use that position to
+we can then use that position to generate two more points on each face
+generate two more points on each face the first one is the point that's
+the first one is the point that's closest to a reference point and the
+closest to a reference point and the next is a raycast point along our ideal
+next is a raycast point along our ideal line direction which is then just
+line direction which is then just clamped to the
+clamped to the volume bounds so we can then
+volume bounds so we can then blend between those two points to get
+blend between those two points to get our output point for any situation
+our output point for any situation the closest point is most useful when
+the closest point is most useful when you want to swing along the face and
+you want to swing along the face and swing parallel to it
+swing parallel to it while the right cast point is most
+while the right cast point is most useful when you're swinging directly at
+useful when you're swinging directly at the object
+the object and then we can just kind of blend
+and then we can just kind of blend between those based on what your input
+between those based on what your input is relative to the face normal to get
+is relative to the face normal to get one that's most appropriate
+one that's most appropriate so now that we have a point we need to
+so now that we have a point we need to refine it a little bit in order to make
+refine it a little bit in order to make it more effective
+it more effective our blended point can change the slope
+our blended point can change the slope and the line length a lot which can lead
+and the line length a lot which can lead to really long flat lines short and
+to really long flat lines short and steep lines
+steep lines and everything kind of in between so we
+and everything kind of in between so we really wanted to try and give the player
+really wanted to try and give the player a more kind of consistent rhythm with
+a more kind of consistent rhythm with swinging
+swinging and that meant that we needed to try and
+and that meant that we needed to try and keep those lines as consistent as
+keep those lines as consistent as possible
+possible so we wanted to move things around a
+so we wanted to move things around a little bit to get closer to the ideal
+little bit to get closer to the ideal so this is an example of shifting the
+so this is an example of shifting the attach point up just a little bit in
+attach point up just a little bit in order to get closer to that ideal slope
+order to get closer to that ideal slope which had gotten kind of overly
+which had gotten kind of overly flattened by the closest point
+flattened by the closest point calculation
+calculation by moving more towards this ideal slope
+by moving more towards this ideal slope you can see that we prevent the player
+you can see that we prevent the player from having quite so much
+from having quite so much an excessive drop during the swing which
+an excessive drop during the swing which will then make it more consistent as
+will then make it more consistent as they go swing to swing and more
+they go swing to swing and more predictable
+predictable so now that we've generated this field
+so now that we've generated this field of points across a whole bunch of markup
+of points across a whole bunch of markup faces
+faces and we need to actually decide which one
+and we need to actually decide which one is going to be our swing point for this
+is going to be our swing point for this frame
+frame so we do this by scoring each of the
+so we do this by scoring each of the points and taking the best one
+points and taking the best one our scoring algorithm is then geared to
+our scoring algorithm is then geared to fulfill that desire of translating that
+fulfill that desire of translating that stick input to a point that moves us in
+stick input to a point that moves us in the desired direction
+the desired direction so our first scoring element is how the
+so our first scoring element is how the face normal relates to input direction
+face normal relates to input direction as i said you're trying to swing
+as i said you're trying to swing parallel uh to the faces where possible
+parallel uh to the faces where possible in this case
+in this case and so the input direction means that
+and so the input direction means that the player will be able to swing along
+the player will be able to swing along that surface in the direction they
+that surface in the direction they desire
+desire now because corners provide the player
+now because corners provide the player the most control we do try and snap
+the most control we do try and snap points uh two edges when they're nearby
+points uh two edges when they're nearby so we can then use the best normal
+so we can then use the best normal available on that entire sweep of the
+available on that entire sweep of the corner
+corner to compare against input for our score
+to compare against input for our score calculation we can also give corners a
+calculation we can also give corners a bonus when we're trying to turn if that
+bonus when we're trying to turn if that corner is going to help us
+corner is going to help us make that turn but taking input into
+make that turn but taking input into account
+account we start with the angle between the
+we start with the angle between the input direction and the direction of the
+input direction and the direction of the attach point and then we score that
+attach point and then we score that delta
+delta and for range we're looking for points
+and for range we're looking for points that match kind of our ideal length and
+that match kind of our ideal length and then it just falls off in either
+then it just falls off in either direction as we deviate from that
+direction as we deviate from that and we apply a similar falloff method
+and we apply a similar falloff method for slope as the angle moves away from
+for slope as the angle moves away from our ideal
+our ideal and once we have all that together we
+and once we have all that together we can do a weighted sum
+can do a weighted sum and the highest score is going to win
+so here you can see it all coming together in game the blue boxes
+together in game the blue boxes are our market volumes and you can see a
+are our market volumes and you can see a little bit of debug info about each
+little bit of debug info about each point score floating above it
+point score floating above it that kind of helps us figure out when we
+that kind of helps us figure out when we try to debug
+try to debug why one point is better than another
+why one point is better than another point particularly if we didn't want
+point particularly if we didn't want that to be the case we can go
+that to be the case we can go adjust those weighting values in order
+adjust those weighting values in order to
+to tune swinging to make it so that we're
+tune swinging to make it so that we're continuing to get the expected point
+continuing to get the expected point so now that we have our attach point we
+so now that we have our attach point we can talk about what happens
+can talk about what happens when you're actually on the line so as
+when you're actually on the line so as stated we wanted to have a physics-based
+stated we wanted to have a physics-based system that we modify the results of so
+system that we modify the results of so we're going to start with the physics
+we're going to start with the physics and then proceed to kind of mess with
+and then proceed to kind of mess with the universe a little bit
+the universe a little bit so the two basic forces involved in the
+so the two basic forces involved in the pendulum are gravity and tension
+pendulum are gravity and tension as you can see here the tension is a
+as you can see here the tension is a factor of line length angle
+factor of line length angle and gravity all in the direction of the
+and gravity all in the direction of the line and it's kind of responsible for
+line and it's kind of responsible for pulling that bob of the pendulum in a
+pulling that bob of the pendulum in a circle around the center of the system
+circle around the center of the system we also break gravity up into its two
+we also break gravity up into its two component vectors here one parallel to
+component vectors here one parallel to the line and one perpendicular
+the line and one perpendicular the perpendicular portion represents
+the perpendicular portion represents that kind of restoring force it's a
+that kind of restoring force it's a thing that makes the pendulum oscillate
+thing that makes the pendulum oscillate back and forth
+back and forth and the parallel portion is what's left
+and the parallel portion is what's left and you'll see in our calculations we
+and you'll see in our calculations we can actually cancel that out with part
+can actually cancel that out with part of tension to simplify the math a little
+of tension to simplify the math a little bit
+bit which we do here so when actually
+which we do here so when actually calculating this encode we internally
+calculating this encode we internally just set the mass to one since we're not
+just set the mass to one since we're not really dealing with a variable mass
+really dealing with a variable mass system and we can tune gravity how we
+system and we can tune gravity how we want to
+want to and after a bit of simplification we
+and after a bit of simplification we apply the remaining forces of tension
+apply the remaining forces of tension and perpendicular gravity to our
+and perpendicular gravity to our velocity also just for a little bit more
+velocity also just for a little bit more accuracy we do four iterations each
+accuracy we do four iterations each frame to run the entire thing at about
+frame to run the entire thing at about 120 hertz
+120 hertz so when we're talking about how we
+so when we're talking about how we wanted swinging to feel the number one
+wanted swinging to feel the number one thing that came up was that swings
+thing that came up was that swings needed to feel fluid
+needed to feel fluid this led to a couple of rules that drove
+this led to a couple of rules that drove uh drove a variety of other elements
+uh drove a variety of other elements within the swing system
+within the swing system first we wanted to avoid slack lines we
+first we wanted to avoid slack lines we wanted to keep the player feeling like
+wanted to keep the player feeling like they were swinging
+they were swinging not falling so by keeping the line taut
+not falling so by keeping the line taut at all times it gave the player a much
+at all times it gave the player a much more predictable experience and
+more predictable experience and prevented kind of bounciness and sudden
+prevented kind of bounciness and sudden change in direction as that as that
+change in direction as that as that slack line goes taut
+slack line goes taut from a free fall and this led to
+from a free fall and this led to the need that once a line is shortened
+the need that once a line is shortened it generally stays that length
+it generally stays that length we do look for opportunities to try and
+we do look for opportunities to try and kind of restore lost line length when
+kind of restore lost line length when possible but doing so too quickly feels
+possible but doing so too quickly feels really wrong to people and so we had to
+really wrong to people and so we had to be really careful to do that with
+be really careful to do that with caution
+caution so our first goal or our first goal on
+so our first goal or our first goal on getting a new line is then giving a
+getting a new line is then giving a player a good experience of just
+player a good experience of just getting into the swing but the initial
+getting into the swing but the initial setup poses an immediate challenge
+setup poses an immediate challenge the incoming velocity is almost always
+the incoming velocity is almost always very very different than the velocity
+very very different than the velocity that's going to be tangent to the swing
+that's going to be tangent to the swing arc
+arc and we don't want to just snap it
+and we don't want to just snap it because that's going to feel like a
+because that's going to feel like a sudden change in direction and just give
+sudden change in direction and just give players whiplash
+players whiplash so however we just if we just let the
+so however we just if we just let the simulation play out as is
+simulation play out as is you get something that looks a bit like
+you get something that looks a bit like this because of our rule that we don't
+this because of our rule that we don't allow the line to lengthen again the
+allow the line to lengthen again the velocity running into the center of the
+velocity running into the center of the swing arc shortens the line up
+swing arc shortens the line up considerably
+considerably and this can result in losing the
+and this can result in losing the entirety of the swings dip as well as
+entirety of the swings dip as well as causing a really rapid acceleration in
+causing a really rapid acceleration in angular velocity
+angular velocity that's hard for players to react to they
+that's hard for players to react to they just get shot up in the air without
+just get shot up in the air without knowing what happened
+knowing what happened so to improve we blend the incoming
+so to improve we blend the incoming velocity towards the tangent direction
+velocity towards the tangent direction of the swing arc a little bit on each
+of the swing arc a little bit on each iteration
+iteration this helps maintain healthier line
+this helps maintain healthier line lengths and improves the expected
+lengths and improves the expected behavior and the angular velocity
+behavior and the angular velocity and the player can also now feel a lot
+and the player can also now feel a lot more significant drop on the swing arc
+more significant drop on the swing arc compared to the previous motion path
+compared to the previous motion path so now that they're into the swing the
+so now that they're into the swing the player is going to want to further mess
+player is going to want to further mess around with their motion
+around with their motion in order to move themselves around so we
+in order to move themselves around so we do this with just a simple accelerated
+do this with just a simple accelerated rotation on the total velocity
+rotation on the total velocity we scale that turn speed based on your
+we scale that turn speed based on your max we scale that turn speed based on
+max we scale that turn speed based on where you are in the swing arc so you
+where you are in the swing arc so you get more control of the trough
+get more control of the trough less up at the apexes so you kind of
+less up at the apexes so you kind of come to a stall that feels about right
+come to a stall that feels about right and we can also adjust the turn speed
+and we can also adjust the turn speed based on whether you're turning with the
+based on whether you're turning with the attach point or away from the attach
+attach point or away from the attach point
+point so when it comes to managing speed while
+so when it comes to managing speed while on the line things are going to vary a
+on the line things are going to vary a lot from swing to swing
+lot from swing to swing the two biggest influences on speed for
+the two biggest influences on speed for any given swing will be the amount of
+any given swing will be the amount of speed the hero brings in
+speed the hero brings in as well as the gravity that's applied
+as well as the gravity that's applied during the swing that's going to
+during the swing that's going to accelerate them throughout the swing arc
+accelerate them throughout the swing arc so due to streaming considerations we
+so due to streaming considerations we also needed to stay below
+also needed to stay below about a 10 second average speed of 30
+about a 10 second average speed of 30 meters per second so that we could avoid
+meters per second so that we could avoid loading stalls and just get everything
+loading stalls and just get everything in as we're
+in as we're hurtling through the world so we start
+hurtling through the world so we start by deciding what our horizontal terminal
+by deciding what our horizontal terminal velocity is for any given swing
+velocity is for any given swing as a baseline this is done by
+as a baseline this is done by translating our fall speed into a max
+translating our fall speed into a max speed while never letting it actually
+speed while never letting it actually slow you down so we don't cut your
+slow you down so we don't cut your incoming speed at all
+incoming speed at all so this ends up feeling pretty natural
+so this ends up feeling pretty natural to players because they're basically
+to players because they're basically using gravity to help generate speed
+using gravity to help generate speed and it helps with streaming because in
+and it helps with streaming because in order to generate fall speed they have
+order to generate fall speed they have to be
+to be just falling for a while which is going
+just falling for a while which is going to have drag which is going to slow
+to have drag which is going to slow their horizontal speed
+their horizontal speed which helps our average speed so once
+which helps our average speed so once they're attached we let normal physics
+they're attached we let normal physics accelerate them up to the max speed and
+accelerate them up to the max speed and we go from there
+we go from there but to enforce that terminal velocity we
+but to enforce that terminal velocity we do kind of a little bit of a weird thing
+do kind of a little bit of a weird thing we only cap the hero's horizontal speed
+we only cap the hero's horizontal speed and this can have a little bit of an odd
+and this can have a little bit of an odd side effect in some cases where you're
+side effect in some cases where you're actually slowing down in 3d
+actually slowing down in 3d through the downswing but it does help
+through the downswing but it does help you get through these really long
+you get through these really long swing arcs a lot faster get down to the
+swing arcs a lot faster get down to the trough get down to where you want to be
+trough get down to where you want to be in a better way and the slowdown doesn't
+in a better way and the slowdown doesn't come into play too often and most
+come into play too often and most players are completely unaware it's
+players are completely unaware it's happening due to a lot of other speed
+happening due to a lot of other speed cues going on like camera rotation
+cues going on like camera rotation environment motion motion blur screen
+environment motion motion blur screen effects everything else that we're just
+effects everything else that we're just throwing at them to try and sell
+throwing at them to try and sell sell that speed now on the other side of
+sell that speed now on the other side of the swing on the upswing
+the swing on the upswing gravity is going to be slowing you down
+gravity is going to be slowing you down so however we do have a few things that
+so however we do have a few things that we wanted to take into account on this
+we wanted to take into account on this side of the swing
+side of the swing first we want players to feel like
+first we want players to feel like gravity is appropriately slowing them
+gravity is appropriately slowing them down so it needs to feel
+down so it needs to feel physically correct and natural but with
+physically correct and natural but with line lengths being highly variable it
+line lengths being highly variable it creates kind of an inconsistent timing
+creates kind of an inconsistent timing to the various release levels something
+to the various release levels something we wanted to try and
+we wanted to try and kind of close the close the gap on so we
+kind of close the close the gap on so we also don't want to slow the player down
+also don't want to slow the player down too much when they're near the trough we
+too much when they're near the trough we want to keep
+want to keep let them keep that hard-earned speed
+let them keep that hard-earned speed just a little bit longer so that they
+just a little bit longer so that they can use it to fling themselves through
+can use it to fling themselves through the world
+the world and from there we account for all this
+and from there we account for all this by implementing a variable gravity
+by implementing a variable gravity upswing at any given point on the
+upswing at any given point on the upswing your gravity is going to be
+upswing your gravity is going to be determined by a combination of your
+determined by a combination of your current speed
+current speed and where you are on the swing arc what
+and where you are on the swing arc what this ends up doing is really helping
+this ends up doing is really helping swing timing be a lot more consistent
+swing timing be a lot more consistent and allowing more swings to move through
+and allowing more swings to move through the full range of release points so the
+the full range of release points so the player ends up having a much more
+player ends up having a much more predictable time
+predictable time and can get those high releases even if
+and can get those high releases even if they're not necessarily moving that fast
+they're not necessarily moving that fast so with the basics out now in place i
+so with the basics out now in place i want to talk a bit about our experience
+want to talk a bit about our experience of refining the swinging mechanics over
+of refining the swinging mechanics over the course of production again we go
+the course of production again we go back to our usability driven iterative
+back to our usability driven iterative approach and pro initial goals
+approach and pro initial goals we really wanted the player to feel the
+we really wanted the player to feel the momentum in physics but we also wanted
+momentum in physics but we also wanted swinging to be accessible
+swinging to be accessible so usability testing proves a critical
+so usability testing proves a critical element in iterating on this
+element in iterating on this accessibility this is because developers
+accessibility this is because developers quickly become their own worst testers
+quickly become their own worst testers and i say this all the time to people to
+and i say this all the time to people to work with because
+work with because basically we just know too much about
+basically we just know too much about how things work and we're generally
+how things work and we're generally really quick to forgive ourselves
+really quick to forgive ourselves because our code is amazing and shame on
+because our code is amazing and shame on you for suggesting otherwise
+you for suggesting otherwise so we also tend to play the game in a
+so we also tend to play the game in a very particular way
+very particular way the way we designed it real players
+the way we designed it real players however will interact with the game in a
+however will interact with the game in a number of unexpected and sometimes
+number of unexpected and sometimes confounding ways stressing elements of
+confounding ways stressing elements of the system that the developer may
+the system that the developer may never encounter so finally you need to
+never encounter so finally you need to make sure
+make sure functionality lines up with player
+functionality lines up with player expectations as a developer we
+expectations as a developer we may have a perfectly rational
+may have a perfectly rational explanation for why something works the
+explanation for why something works the way it does put to a player it just
+way it does put to a player it just seems
+seems weird broken confusing or just not any
+weird broken confusing or just not any fun whatsoever
+fun whatsoever so what do we find well players suck at
+so what do we find well players suck at managing physics
+managing physics so forces will often act against their
+so forces will often act against their desires attach points aren't really
+desires attach points aren't really directly player driven leading to a lot
+directly player driven leading to a lot of variability
+of variability and world geometry is complex and
+and world geometry is complex and difficult for many players to
+difficult for many players to effectively navigate while tethered to
+effectively navigate while tethered to an attach point
+an attach point the end result was that players felt
+the end result was that players felt that they lacked in they kind of lacked
+that they lacked in they kind of lacked control over the in-game results
+control over the in-game results this was despite everything working just
+this was despite everything working just as intended when we made the initial
+as intended when we made the initial version of swinging
+version of swinging so how do we approach solving this
+so how do we approach solving this problem we injected a number of assists
+problem we injected a number of assists into swinging to help smooth out the
+into swinging to help smooth out the experience giving them a few less things
+experience giving them a few less things to worry about and moving the system's
+to worry about and moving the system's behavior to be closer to the player
+behavior to be closer to the player expectations
+expectations wherever possible algo our goal was to
+wherever possible algo our goal was to keep these as invisible to the players
+keep these as invisible to the players we could
+we could and we found that if you deviated too
+and we found that if you deviated too far from real physics players would
+far from real physics players would notice and often they would react pretty
+notice and often they would react pretty negatively to it
+negatively to it so our first major usability problem was
+so our first major usability problem was that players felt like it was basically
+that players felt like it was basically impossible to swing in a straight line
+impossible to swing in a straight line the result of the simulation was
+the result of the simulation was creating a mismatch between the player's
+creating a mismatch between the player's input intent
+input intent and the character motion and that and
+and the character motion and that and the results were confusing and
+the results were confusing and frustrating a lot of our players
+frustrating a lot of our players so the reason this was happening is that
+so the reason this was happening is that forces were conspiring to move the
+forces were conspiring to move the character in a way
+character in a way that it would settle underneath the
+that it would settle underneath the attach point as you might imagine with a
+attach point as you might imagine with a normal pendulum
+normal pendulum the tension force has this component
+the tension force has this component that moves towards the attach point and
+that moves towards the attach point and gravity just reinforces that to continue
+gravity just reinforces that to continue to pull you down
+to pull you down so in this video you'll be able to see
+so in this video you'll be able to see what happens when the tension forces are
+what happens when the tension forces are in full effect
+in full effect uh the player is going to be trying to
+uh the player is going to be trying to swing straight down the middle of the
+swing straight down the middle of the street here
+street here but they're consistently getting pulled
+but they're consistently getting pulled sideways towards the attach point
+sideways towards the attach point when they then try and counter steer to
+when they then try and counter steer to get back to the middle their next
+get back to the middle their next attachment goes on the other side of the
+attachment goes on the other side of the street
+street and they it just increases frustration
+and they it just increases frustration so to top all this off that
+so to top all this off that zigzagging motion also slows them down
+zigzagging motion also slows them down for their straight line speed
+for their straight line speed and they just feel like they can't
+and they just feel like they can't really build up that momentum that
+really build up that momentum that they're looking for
+they're looking for so how do you fight gravity well you
+so how do you fight gravity well you cheat so
+cheat so we move the simulation pivot away from
+we move the simulation pivot away from the wall
+the wall into a position that will help us swing
+into a position that will help us swing straighter while leaving the visible
+straighter while leaving the visible attach point
+attach point on the wall we then can blend that pivot
+on the wall we then can blend that pivot position back
+position back uh back over time or when the player is
+uh back over time or when the player is turning this makes sure that turns do
+turning this makes sure that turns do pivot on the right place and on the
+pivot on the right place and on the visible place
+visible place and that if you settle underneath the
+and that if you settle underneath the attach point you're settling under the
+attach point you're settling under the visual one not the one that we've moved
+visual one not the one that we've moved away
+away so this motion was detectable to players
+so this motion was detectable to players particularly when we a b tested it but
+particularly when we a b tested it but we found that most felden actually
+we found that most felden actually worked more as they expected
+worked more as they expected aligning their input desire to the
+aligning their input desire to the results so in this video you'll see that
+results so in this video you'll see that pivot tweaking is going to be fully
+pivot tweaking is going to be fully active
+active and the player can maintain a lot more
+and the player can maintain a lot more consistent center line and build speed a
+consistent center line and build speed a lot more easily
+lot more easily and their directional intent is
+and their directional intent is transferred a lot more cleanly to motion
+so the next usability problem was that players felt they weren't really able to
+players felt they weren't really able to get a swing line when their body was at
+get a swing line when their body was at or near the top of a building
+or near the top of a building this was happening because we required
+this was happening because we required an attach point to be just a minimum
+an attach point to be just a minimum height above you
+height above you and we do that because it prevents you
+and we do that because it prevents you from just flying over the pivot point or
+from just flying over the pivot point or requiring that we just like slam you
+requiring that we just like slam you straight down in order to get you under
+straight down in order to get you under it
+it however this rule was completely hidden
+however this rule was completely hidden from the player and there was not really
+from the player and there was not really any reason though for them to expect or
+any reason though for them to expect or anticipate that it was there
+anticipate that it was there an additional reason this can occur is
+an additional reason this can occur is that players perception of the character
+that players perception of the character position for the world is pretty murky
+position for the world is pretty murky when they're in the air and all the
+when they're in the air and all the buildings are pretty far off to the side
+buildings are pretty far off to the side and players are just frankly pretty
+and players are just frankly pretty impatient when falling and spamming that
+impatient when falling and spamming that r2 button and trying to get a swingline
+r2 button and trying to get a swingline so what do we do well once a cheater
+so what do we do well once a cheater always a cheater
+always a cheater we secretly allow the simulation attach
+we secretly allow the simulation attach point to rise above the building edge
+point to rise above the building edge this would raise the valid attach point
+this would raise the valid attach point ceiling and let people attach a little
+ceiling and let people attach a little bit sooner
+bit sooner it also had this nice side effect of
+it also had this nice side effect of improving lines that were previously
+improving lines that were previously good but not
+good but not really all that great and so player
+really all that great and so player awareness of this was actually almost
+awareness of this was actually almost zero it's actually pretty hard to notice
+zero it's actually pretty hard to notice a vertical shift in the pivot point when
+a vertical shift in the pivot point when you're swinging underneath it
+you're swinging underneath it so our next usability problem was our
+so our next usability problem was our game director special which is that
+game director special which is that players were often over steering when
+players were often over steering when trying to turn and clipping into the
+trying to turn and clipping into the edges of buildings
+edges of buildings and so our solution here is to do a
+and so our solution here is to do a number of collision tests to scan the
+number of collision tests to scan the world for problem cases
+world for problem cases we send a kona checks forward looking
+we send a kona checks forward looking for things that we might run into so
+for things that we might run into so that we can nudge you just a little to
+that we can nudge you just a little to the left or the right
+the left or the right and we would also send a series of
+and we would also send a series of checks kind of forward and sideways
+checks kind of forward and sideways looking for gaps in upcoming walls this
+looking for gaps in upcoming walls this gave us a clue that we might want to
+gave us a clue that we might want to dampen your steering values a little bit
+dampen your steering values a little bit so that you don't over
+so that you don't over steer when trying to make a turn and
+steer when trying to make a turn and slam yourself into the wall instead of
+slam yourself into the wall instead of clearing that wall and swinging into the
+clearing that wall and swinging into the gap
+gap so these two things combine to give
+so these two things combine to give players a hugely empowering feeling of
+players a hugely empowering feeling of just made it without
+just made it without really noticing that we were the ones
+really noticing that we were the ones letting them make it
+letting them make it so yet another consistent problem was
+so yet another consistent problem was that players would often have a line
+that players would often have a line that was just long enough to smack them
+that was just long enough to smack them right into the top of a building that
+right into the top of a building that they were that they thought they were
+they were that they thought they were going to clear
+going to clear and this was kind of particularly bad
+and this was kind of particularly bad because players as we said didn't have
+because players as we said didn't have any control over line length
+any control over line length so they were quick to blame us for all
+so they were quick to blame us for all their problems
+their problems so the solution then is to just shorten
+so the solution then is to just shorten the line slowly but dynamically in order
+the line slowly but dynamically in order to get it
+to get it just short enough to clear that building
+just short enough to clear that building so we'd use collision to scan ahead for
+so we'd use collision to scan ahead for the maximum height and then we would
+the maximum height and then we would slowly raise the player through the
+slowly raise the player through the swing until the new line length
+swing until the new line length was just short enough to clear that
+was just short enough to clear that building
+building so one final element to talk about uh is
+so one final element to talk about uh is how we shorten the line to keep players
+how we shorten the line to keep players above the ground
+above the ground so we do this because our ground and
+so we do this because our ground and rooftops are so littered with cars and
+rooftops are so littered with cars and props and pedestrians and squirrels and
+props and pedestrians and squirrels and other things that trying to navigate and
+other things that trying to navigate and swing through all that would be
+swing through all that would be basically impossible
+basically impossible we didn't want players face planing into
+we didn't want players face planing into the ground all the time and we also
+the ground all the time and we also didn't want them becoming just a bug on
+didn't want them becoming just a bug on a windshield
+a windshield so similar to clearing buildings we'd
+so similar to clearing buildings we'd use collision to get the ground tight
+use collision to get the ground tight and then we'd scale that vertical motion
+and then we'd scale that vertical motion on their downswing
+on their downswing in order to keep them above the ground
+in order to keep them above the ground and have kind of a swing floor so that
+and have kind of a swing floor so that they could get that nice street sweeping
+they could get that nice street sweeping feel
+feel so once a player's time on the line is
+so once a player's time on the line is complete it's time for what ends up
+complete it's time for what ends up being one of the most satisfying
+being one of the most satisfying elements of swinging
+elements of swinging flinging yourself off the line across
+flinging yourself off the line across the world with reckless abandon
+the world with reckless abandon so when doing so we have two sets of
+so when doing so we have two sets of data for letting go we have releasing
+data for letting go we have releasing and jumping
+and jumping jumping gives you a lot more acrobatic
+jumping gives you a lot more acrobatic motion higher
+motion higher a lot more height and more speed but
+a lot more height and more speed but just simple releasing has simpler
+just simple releasing has simpler animations and allows you to take a
+animations and allows you to take a follow-up action more quickly so
+follow-up action more quickly so players get to choose between the two
+players get to choose between the two based on what they're trying to do
+based on what they're trying to do one of the really nice gameplay features
+one of the really nice gameplay features of swinging when it comes to these
+of swinging when it comes to these releases is the inherent analog nature
+releases is the inherent analog nature of how release points
+of how release points translate into exit direction so a
+translate into exit direction so a player can choose to release low
+player can choose to release low to get more speed or hold on just a
+to get more speed or hold on just a little bit longer to get more height
+little bit longer to get more height now our first approach to swing releases
+now our first approach to swing releases was very metric driven
+was very metric driven something that was totally sane based on
+something that was totally sane based on insomniac's platforming history
+insomniac's platforming history so we define a desired jump height and a
+so we define a desired jump height and a time to peak for various release points
+time to peak for various release points and speeds along the swing arc and then
+and speeds along the swing arc and then kind of blend those values from those
+kind of blend those values from those key from those key points
+key from those key points for any to get one for any release point
+for any to get one for any release point the goal was to make jumps feel
+the goal was to make jumps feel predictable and consistent so that
+predictable and consistent so that players could plan ahead and get their
+players could plan ahead and get their next move going
+next move going we had this model for about two years
+we had this model for about two years and we were getting mostly positive
+and we were getting mostly positive feedback on it but there was always this
+feedback on it but there was always this kind of undercurrent
+kind of undercurrent uh pointing at a lack of player
+uh pointing at a lack of player satisfaction players felt like jumps
+satisfaction players felt like jumps were too heavy and that their momentum
+were too heavy and that their momentum on the swingline wasn't really
+on the swingline wasn't really translating to their jumps
+translating to their jumps this was because the metric different
+this was because the metric different approach was changing gravity
+approach was changing gravity significantly for any given release
+significantly for any given release point
+point based on player speed to hit that jump
+based on player speed to hit that jump height target that we had set
+height target that we had set instead of feeling really rewarding with
+instead of feeling really rewarding with an expected amount of fling players kind
+an expected amount of fling players kind of physics feel was being violated
+of physics feel was being violated and they felt that they were being
+and they felt that they were being penalized somehow we had this model in
+penalized somehow we had this model in for
+for the uh helicopter chase demo in 2017
+the uh helicopter chase demo in 2017 when a lot of people online were saying
+when a lot of people online were saying oh the swinging looks slow
+oh the swinging looks slow and so part of that was this kind of
+and so part of that was this kind of heaviness to the swing
+heaviness to the swing excuse me to the swing jumps so to fix
+excuse me to the swing jumps so to fix this
+this we move to a more free release model
+we move to a more free release model they'll let go of all those controlling
+they'll let go of all those controlling metrics in order to keep a
+metrics in order to keep a fixed gravity for each release point
+fixed gravity for each release point this is the only design factor into the
+this is the only design factor into the jump
+jump other than your velocity on the
+other than your velocity on the swingline and as we wanted to remove
+swingline and as we wanted to remove anything else that was going to feel
+anything else that was going to feel artificial
+artificial so once implemented this change created
+so once implemented this change created a much more natural translation of swing
+a much more natural translation of swing speed to jump size
+speed to jump size that better match player expectation we
+that better match player expectation we saw an immediate increase in fun factor
+saw an immediate increase in fun factor as players were now able to fling
+as players were now able to fling themselves across the world with just
+themselves across the world with just abandon
+abandon which led to a greatly increased sense
+which led to a greatly increased sense of speed and joy and just general
+of speed and joy and just general cohesiveness of the entire swinging
+cohesiveness of the entire swinging experience so stepping away from the
+experience so stepping away from the simulation side for a minute i want to
+simulation side for a minute i want to talk just a little bit about how the
+talk just a little bit about how the animation for swinging is implemented on
+animation for swinging is implemented on the code side
+the code side this is mostly going to be about the
+this is mostly going to be about the mechanics of how we pick animations to
+mechanics of how we pick animations to play
+play and then adjust them to more accurately
+and then adjust them to more accurately represent the underlying simulation
+represent the underlying simulation so when we first started talking about
+so when we first started talking about swinging the gameplay and animation
+swinging the gameplay and animation groups laid out some high level goals
+groups laid out some high level goals for how we wanted the animation to look
+for how we wanted the animation to look and feel this included having fluid
+and feel this included having fluid animation over the course of the swing
+animation over the course of the swing arc
+arc having a clean entry animation from our
+having a clean entry animation from our air pose through the sling and into the
+air pose through the sling and into the swing
+swing the character's body obviously wanted to
+the character's body obviously wanted to align to the web line so that it felt
+align to the web line so that it felt right
+right and we needed to have this kind of
+and we needed to have this kind of well-timed kick at the trough in order
+well-timed kick at the trough in order to sell momentum
+to sell momentum and for a player cue as to where they
+and for a player cue as to where they were in the swing arc
+were in the swing arc so our first iteration of animating the
+so our first iteration of animating the swing we approached the seamless
+swing we approached the seamless animation through the swing arc by
+animation through the swing arc by actually just using a single animation
+actually just using a single animation the animator created an on-the-line
+the animator created an on-the-line animation that started at the drop
+animation that started at the drop horizon and went all the way through to
+horizon and went all the way through to the apex horizon
+the apex horizon in code we would then drive the
+in code we would then drive the animation's time based on where the
+animation's time based on where the player was
+player was in the swing arc for any given frame so
+in the swing arc for any given frame so in order to get our clean entry
+in order to get our clean entry animations we created
+animations we created separate swing intro animations for
+separate swing intro animations for different points along the swing arc
+different points along the swing arc these animations would end pose matched
+these animations would end pose matched with the full swing animation so that
+with the full swing animation so that the blend of the swing would be seamless
+the blend of the swing would be seamless and when a player began a swing we'd we
+and when a player began a swing we'd we would calculate where they were in the
+would calculate where they were in the swing arc
+swing arc and blend between those different kind
+and blend between those different kind of pointed animations in order to get
+of pointed animations in order to get one specifically for that angle
+one specifically for that angle we would then continue to dynamically
+we would then continue to dynamically blend that value
+blend that value during the entirety of that intro
+during the entirety of that intro animation so that we would get a nice
+animation so that we would get a nice match
+match for the final pose of the swing as they
+for the final pose of the swing as they go into that swing animation
+go into that swing animation in order to get the body uh in order to
+in order to get the body uh in order to get the body to align without having to
+get the body to align without having to make duplicate swing arc animations we
+make duplicate swing arc animations we then deployed partial animations to just
+then deployed partial animations to just kind of adjust the final body angle
+kind of adjust the final body angle we use this on both the body to go side
+we use this on both the body to go side to side as well as the arms for kind of
+to side as well as the arms for kind of a final fix up when those weren't uh
+a final fix up when those weren't uh when those weren't matching
+when those weren't matching so after iterating on this model for
+so after iterating on this model for most of production
+most of production we had some things that worked just as
+we had some things that worked just as expected these included the entry
+expected these included the entry animation system working really really
+animation system working really really well
+well it allowed smooth entry and timing into
+it allowed smooth entry and timing into the swing animation
+the swing animation and our adjustment partials did a really
+and our adjustment partials did a really good job at aligning the character to
+good job at aligning the character to the swingline with minimal amount of
+the swingline with minimal amount of additional animation required finally
+additional animation required finally the animation through the swing arc was
+the animation through the swing arc was fluid
+fluid but the system presented a few
+but the system presented a few limitations that were capping the
+limitations that were capping the animator's creativity
+animator's creativity first we had really limited variability
+first we had really limited variability in the swing getting any variation in
+in the swing getting any variation in this model required animating a brand
+this model required animating a brand new swing from start to finish one end
+new swing from start to finish one end to the other
+to the other and if you wanted to do something
+and if you wanted to do something different you had to make another one
+different you had to make another one and another one and another one
+and another one and another one and so next we had very very perceptible
+and so next we had very very perceptible animation time scaling
+animation time scaling line lengths and player speeds are
+line lengths and player speeds are highly variable which was borne out in
+highly variable which was borne out in highly variable arc speeds
+highly variable arc speeds and with a fixed number of animation
+and with a fixed number of animation frames scaling over a variable time
+frames scaling over a variable time range
+range we would get these really easy to feel
+we would get these really easy to feel time scaling artifacts and this was
+time scaling artifacts and this was especially evident
+especially evident when we get these really slow sluggish
+when we get these really slow sluggish kick throughs
+kick throughs that lacked any impact whatsoever on
+that lacked any impact whatsoever on longer lines or slower swings
+longer lines or slower swings so we had a couple new goals enable
+so we had a couple new goals enable variety and reduce the time scaling
+variety and reduce the time scaling we accomplished we attacked these by
+we accomplished we attacked these by breaking the swing arc up into pieces
+breaking the swing arc up into pieces that we then animated separately
+that we then animated separately we would animate the downswing and the
+we would animate the downswing and the upswing independently
+upswing independently all the way through the trough which let
+all the way through the trough which let us kind of overlap the uh the kick
+us kind of overlap the uh the kick animation wherever we wanted to kind of
+animation wherever we wanted to kind of overlap that
+overlap that inflection point we would then continue
+inflection point we would then continue to drive the animation time as before
+to drive the animation time as before on the up and down swing animations as
+on the up and down swing animations as they weren't as susceptible to the
+they weren't as susceptible to the visible scaling as the kicks
+visible scaling as the kicks as the kick animations were so
+as the kick animations were so once we were in a swing we would
+once we were in a swing we would estimate the time to trough uh during
+estimate the time to trough uh during the downswing so that we could trigger
+the downswing so that we could trigger that kick animation at just the right
+that kick animation at just the right time
+time in order to be able to play it at full
+in order to be able to play it at full speed this instantly made our kicks feel
+speed this instantly made our kicks feel a lot more powerful and consistent
+a lot more powerful and consistent it also meant that we could plug in a
+it also meant that we could plug in a variety of animations into the kick
+variety of animations into the kick portion without needing to reanimate the
+portion without needing to reanimate the rest of the swing
+rest of the swing but animators be animators and we
+but animators be animators and we weren't done yet they wanted more
+weren't done yet they wanted more so by breaking the swing animation into
+so by breaking the swing animation into pieces it allowed us to now have a lot
+pieces it allowed us to now have a lot more variety in the way we constructed
+more variety in the way we constructed the animation for the swing
+the animation for the swing we were able to introduce custom kicks
+we were able to introduce custom kicks and spins with custom upswings we had
+and spins with custom upswings we had hard catch variations of the downswing
+hard catch variations of the downswing and all of these things could be played
+and all of these things could be played with or without one another to get a
+with or without one another to get a whole bunch of
+whole bunch of custom a whole bunch of custom swings
+custom a whole bunch of custom swings and unique swings that look different as
+and unique swings that look different as you went from one swing to the next and
+you went from one swing to the next and add a lot more
+add a lot more texture and flavor to swinging in the
+texture and flavor to swinging in the game
+game so this new iteration helped us solve
+so this new iteration helped us solve our major problems by allowing us to
+our major problems by allowing us to create a lot more animation variety and
+create a lot more animation variety and it also helped us eliminate the
+it also helped us eliminate the animation scaling for the most notable
+animation scaling for the most notable portion of the swing
+portion of the swing so one final problem worth noting was
+so one final problem worth noting was that with all of the various moves that
+that with all of the various moves that spider-man can do he would often end up
+spider-man can do he would often end up in poses
+in poses that didn't really play nicely with our
+that didn't really play nicely with our swing intro animations
+swing intro animations we needed to either wait for the
+we needed to either wait for the animation to get to a point where the
+animation to get to a point where the character could blend
+character could blend into the intro better or live with
+into the intro better or live with really really bad looking blends as we
+really really bad looking blends as we tried to get into those sling animations
+tried to get into those sling animations so to solve this animation wanted to add
+so to solve this animation wanted to add a lot more variety to swing intros
+a lot more variety to swing intros but programming didn't really want to
+but programming didn't really want to manage each of those clips manually
+manage each of those clips manually so to push that work over to the content
+so to push that work over to the content creators we added a data driven setup
+creators we added a data driven setup that allowed animators to tell the game
+that allowed animators to tell the game what the next animation would be
+what the next animation would be from the current time in the active
+from the current time in the active animation they'd mark up the section of
+animation they'd mark up the section of a jump animation with data that would
+a jump animation with data that would point to custom slinging animations
+point to custom slinging animations and this allowed them to cleanly get of
+and this allowed them to cleanly get of all these out of all these crazy
+all these out of all these crazy acrobatic poses
+acrobatic poses with custom slings that made the
+with custom slings that made the traversal feel a lot more seamless and
+traversal feel a lot more seamless and the character feel a lot more dynamic
+the character feel a lot more dynamic so kind of stepping away now from
+so kind of stepping away now from animation i want to talk a bit about our
+animation i want to talk a bit about our approach to the traversal camera
+approach to the traversal camera we knew from previous games that good
+we knew from previous games that good motion and animation only goes so far in
+motion and animation only goes so far in translating the experience to the player
+translating the experience to the player the camera is actually often most the
+the camera is actually often most the most important aspect and conveying
+most important aspect and conveying elements of speed and translation
+elements of speed and translation in a way that gives the player that kind
+in a way that gives the player that kind of visceral connection to the action
+of visceral connection to the action that's on the screen
+that's on the screen so when we started out our top level
+so when we started out our top level goals for the traversal camera
+goals for the traversal camera we came up with three main items that we
+we came up with three main items that we found important after early prototyping
+found important after early prototyping with kind of a mostly static camera
+with kind of a mostly static camera first we wanted to minimize the amount
+first we wanted to minimize the amount of player input was required
+of player input was required this is because players would often need
+this is because players would often need to be using the face buttons and we
+to be using the face buttons and we didn't want to require them to have to
+didn't want to require them to have to switch between that and the stick input
+switch between that and the stick input that was just a lot of camera management
+that was just a lot of camera management that we didn't want people to mess with
+that we didn't want people to mess with next we needed to accentuate the
+next we needed to accentuate the pendulum motion and the forces on the
+pendulum motion and the forces on the line
+line and finally we wanted to communicate a
+and finally we wanted to communicate a sense of speed to the player
+sense of speed to the player so we have a pretty long history of
+so we have a pretty long history of third-person games at insomniac and
+third-person games at insomniac and we've generally started with a follow
+we've generally started with a follow camera model that tries to have the
+camera model that tries to have the camera looking
+camera looking in the same direction as the hero's
+in the same direction as the hero's velocity so while successful in other
+velocity so while successful in other games
+games in other contexts it did present a few
+in other contexts it did present a few problems for spider-man particularly
+problems for spider-man particularly with
+with at the high speeds that spider-man could
+at the high speeds that spider-man could move and how much we had to let you see
+move and how much we had to let you see where you were going
+where you were going so the biggest issue was that when we
+so the biggest issue was that when we tuned it effectively
+tuned it effectively um you you were to where you were going
+um you you were to where you were going it was extremely susceptible to these
+it was extremely susceptible to these sudden these sudden changes in velocity
+sudden these sudden changes in velocity causing large changes in view direction
+causing large changes in view direction the camera just swing around
+the camera just swing around incessantly on people this had this
+incessantly on people this had this feedback loop with camera relative
+feedback loop with camera relative controls where the camera would change a
+controls where the camera would change a lot which would change your input a lot
+lot which would change your input a lot change your camera a lot and you just
+change your camera a lot and you just get into this death spiral
+get into this death spiral so in order to fix the problem we move
+so in order to fix the problem we move to a model based on the player more
+to a model based on the player more dragging the camera around this was done
+dragging the camera around this was done by we'd predict the player's position
+by we'd predict the player's position based on their current speed and then
+based on their current speed and then we'd use that to calculate how it would
+we'd use that to calculate how it would drag
+drag more of a camera boom and how that would
+more of a camera boom and how that would change the rotation
+change the rotation this ended up being a lot less noisy
+this ended up being a lot less noisy with velocity changes as the frame of it
+with velocity changes as the frame of it as the frame to frame delta was
+as the frame to frame delta was generally a whole lot smaller
+generally a whole lot smaller so with the camera now following us more
+so with the camera now following us more appropriately i want to talk a bit about
+appropriately i want to talk a bit about how we accentuate the pendulum motion
+how we accentuate the pendulum motion on the of the player through camera
+on the of the player through camera motion in addition to just
+motion in addition to just feeling better this also actually helped
+feeling better this also actually helped address two major usability issues
+address two major usability issues that a more stan more static camera was
+that a more stan more static camera was presenting
+presenting first as stated before players weren't
+first as stated before players weren't really noticing the full extent of
+really noticing the full extent of vertical translation the character was
+vertical translation the character was actually performing
+actually performing players were also presenting a really
+players were also presenting a really poor level of comprehension of where
+poor level of comprehension of where they
+they actually were in the swing arc they were
+actually were in the swing arc they were frequently hanging on for too long
+frequently hanging on for too long releasing high
+releasing high losing all the forward momentum and
+losing all the forward momentum and wondering when the hell happened
+wondering when the hell happened so the first thing we manipulate to help
+so the first thing we manipulate to help sell the swing arc is the camera's pitch
+sell the swing arc is the camera's pitch we try and roughly match uh the swing
+we try and roughly match uh the swing arcs pitch in order to feel that motion
+arcs pitch in order to feel that motion through the camera as you can see here
+through the camera as you can see here we want to keep the pitch a little more
+we want to keep the pitch a little more flattened off
+flattened off on the downswing so that you can keep
+on the downswing so that you can keep your eyes on the horizon and keep an eye
+your eyes on the horizon and keep an eye on where you're going
+on where you're going and then on the upswing we tend to
+and then on the upswing we tend to exaggerate the pitch a little bit
+exaggerate the pitch a little bit in order to communicate that rise more
+in order to communicate that rise more effectively and let them feel like
+effectively and let them feel like they're moving up without getting too
+they're moving up without getting too far into the upswing
+far into the upswing so the next element we added to help the
+so the next element we added to help the player feel the swing arc more was to
+player feel the swing arc more was to move the character's position and screen
+move the character's position and screen space down and then
+space down and then back up over the course of the swing
+back up over the course of the swing this created kind of a real world
+this created kind of a real world physical tracking response from the
+physical tracking response from the player
+player that would reinforce the in-game motion
+that would reinforce the in-game motion as they kind of looked down and looked
+as they kind of looked down and looked up with the player with the character
+up with the player with the character moving on screen
+moving on screen so when it came to turning we really
+so when it came to turning we really wanted to get that get players to feel
+wanted to get that get players to feel that they were kind of whipping around a
+that they were kind of whipping around a corner at high speed
+corner at high speed and bringing that same sensation you get
+and bringing that same sensation you get when you're kind of in a turning car
+when you're kind of in a turning car leading to the side
+leading to the side and to get this effect we apply a little
+and to get this effect we apply a little bit of roll to the camera when turning
+bit of roll to the camera when turning and scale it based on the line angle and
+and scale it based on the line angle and turn speed
+turn speed but a word of caution here we did have
+but a word of caution here we did have to be careful not to push it too far due
+to be careful not to push it too far due to motion sickness concerns
+to motion sickness concerns we did add an option to scale it down or
+we did add an option to scale it down or turn it off entirely for people that had
+turn it off entirely for people that had problems with that so now that we have
+problems with that so now that we have players feeling the translation and
+players feeling the translation and traversal we need to make sure that they
+traversal we need to make sure that they actually felt the speed
+actually felt the speed so this means we needed to layer as many
+so this means we needed to layer as many visual cues as possible to help
+visual cues as possible to help sell not just the current speed but
+sell not just the current speed but changes in speed
+changes in speed probably the most impactful thing to
+probably the most impactful thing to sensing speed through the world is going
+sensing speed through the world is going to be field of view
+to be field of view a wider field of view tends to elongate
+a wider field of view tends to elongate objects in front of you making it feel
+objects in front of you making it feel like you're covering more ground
+like you're covering more ground and it also brings a lot of peripheral
+and it also brings a lot of peripheral objects into view that are going to be
+objects into view that are going to be moving
+moving really fast by you so you get a lot more
+really fast by you so you get a lot more of that relative motion feel
+of that relative motion feel in order to really sell the changes in
+in order to really sell the changes in speed we're constantly updating the
+speed we're constantly updating the game's field of view while traversing
+game's field of view while traversing to deal with sudden speed changes we
+to deal with sudden speed changes we rely more on actually adjusting the
+rely more on actually adjusting the camera's follow distance as
+camera's follow distance as you don't want to bounce field of view
+you don't want to bounce field of view around too much it gets really weird um
+around too much it gets really weird um we have certain kind of explosive moves
+we have certain kind of explosive moves that create a spring action on the
+that create a spring action on the camera so that it falls back
+camera so that it falls back before blending closer again this gives
+before blending closer again this gives those moves much bigger sense of impact
+those moves much bigger sense of impact like the characters boosting away
+like the characters boosting away suddenly leaving the camera in the dust
+suddenly leaving the camera in the dust and then it has to play catch up a
+and then it has to play catch up a little bit
+little bit so here you'll be able to see all that
+so here you'll be able to see all that coming together to show the sense of
+coming together to show the sense of speed
+speed there's a little bit of depot here on
+there's a little bit of depot here on the side to give you a better idea of
+the side to give you a better idea of how the field of view and follow
+how the field of view and follow distance are changing as it goes through
+distance are changing as it goes through the action
+good all right so the final bit of camera
+all right so the final bit of camera development i want to talk about
+development i want to talk about is related to how the camera is handled
+is related to how the camera is handled when we perform a variety of traversal
+when we perform a variety of traversal moves
+moves so our first version of the traversal
+so our first version of the traversal camera treated each move as its kind of
+camera treated each move as its kind of special
+special unique item this was driven by a desire
+unique item this was driven by a desire to make every move as cinematic as
+to make every move as cinematic as possible with the thought that if you
+possible with the thought that if you string together a bunch of really
+string together a bunch of really cinematic moves you're going to get
+cinematic moves you're going to get something extra special super cinematic
+something extra special super cinematic this presented a couple of problems
+this presented a couple of problems though in this video
+though in this video from an early vertical slice you'll see
+from an early vertical slice you'll see some of the issues with the everything
+some of the issues with the everything as a special snowflake
+as a special snowflake and how that kind of breaks down you'll
+and how that kind of breaks down you'll see that going from move to move
+see that going from move to move would cause a change in framing and
+would cause a change in framing and field of view that could kind of muddle
+field of view that could kind of muddle the perception of speed
+the perception of speed and rapid sequencing of moves would
+and rapid sequencing of moves would create a very noisy relationship between
+create a very noisy relationship between the world the character and the view
+so how do we get better well we started with a more unified model for our all of
+with a more unified model for our all of our traversal moves that had a speed
+our traversal moves that had a speed driven field of view and follow distance
+driven field of view and follow distance that would stay consistent across all of
+that would stay consistent across all of the different moves
+the different moves we also smoothed out any adjustments we
+we also smoothed out any adjustments we were doing to offsets to make those
+were doing to offsets to make those changes feel less aggressive and
+changes feel less aggressive and not kind of upset the player so here
+not kind of upset the player so here you're gonna see that we got ended up
+you're gonna see that we got ended up getting some pretty good results
+getting some pretty good results uh you're gonna get a lot more
+uh you're gonna get a lot more consistent perception of speed when
+consistent perception of speed when moving from one move to another
+moving from one move to another the camera ends up being a lot more
+the camera ends up being a lot more predictable to the player and one move
+predictable to the player and one move flows into the next without
+flows into the next without feeling like there's a major state
+feeling like there's a major state change that the player has to suddenly
+change that the player has to suddenly adjust to
+adjust to this proved a lot more fun and
+this proved a lot more fun and predictable to players and gave an
+predictable to players and gave an overall better experience
+all right so as we started to get a full set of traversal moves in the game and
+set of traversal moves in the game and playing with them more both internally
+playing with them more both internally and through usability we found that
+and through usability we found that unsurprisingly our first version was
+unsurprisingly our first version was rarely good enough
+rarely good enough so this led to a lot of feedback that
+so this led to a lot of feedback that motion felt stiff and imprecise
+motion felt stiff and imprecise players weren't able to navigate as well
+players weren't able to navigate as well as they wanted a lot of moves weren't
+as they wanted a lot of moves weren't matching expectations
+matching expectations and they were unable to actually land
+and they were unable to actually land where they wanted to so we started kind
+where they wanted to so we started kind of revisiting things
+of revisiting things so with wall run our first pass was set
+so with wall run our first pass was set up to actually be locked to either be
+up to actually be locked to either be horizontal or vertical with no
+horizontal or vertical with no in between and no ability to switch the
+in between and no ability to switch the entry was based on a combination of
+entry was based on a combination of character velocity
+character velocity input direction the walls facing and it
+input direction the walls facing and it had a heavy bias towards maintaining
+had a heavy bias towards maintaining your current momentum
+your current momentum so if you're going really fast
+so if you're going really fast horizontally you are really likely to
+horizontally you are really likely to get a horizontal wall run
+get a horizontal wall run the single biggest problem we had was
+the single biggest problem we had was that wall run entry direction was really
+that wall run entry direction was really poorly mapped to player expectations
+poorly mapped to player expectations they never really understood the concept
+they never really understood the concept of momentum driving the entry direction
+of momentum driving the entry direction and how that overwhelmed their input
+and how that overwhelmed their input this was made even worse because there
+this was made even worse because there was just no ability to switch from
+was just no ability to switch from horizontal to vertical
+horizontal to vertical if they didn't get what they wanted and
+if they didn't get what they wanted and on top of that the camera direction
+on top of that the camera direction versus a vertical wall
+versus a vertical wall was making input to entry mapping even
+was making input to entry mapping even more confusing
+more confusing can you tell me in this image pushing up
+can you tell me in this image pushing up on the stick is that supposed to make
+on the stick is that supposed to make you go
+you go forward or up a lot of players had
+forward or up a lot of players had didn't really know what they wanted to
+didn't really know what they wanted to do in that situation
+do in that situation so players would often try to compensate
+so players would often try to compensate for this by pointing the camera where
+for this by pointing the camera where they wanted to go
+they wanted to go but the system was paying zero attention
+but the system was paying zero attention to the camera and so it wasn't helping
+to the camera and so it wasn't helping them
+them so with our big problems identified we
+so with our big problems identified we set out to make some changes
+set out to make some changes the first thing we did was to add analog
+the first thing we did was to add analog steering this created a lot more
+steering this created a lot more in-between values for entry direction
+in-between values for entry direction as well as giving players the ability to
+as well as giving players the ability to adjust on the fly if they weren't happy
+adjust on the fly if they weren't happy with their entry direction
+with their entry direction then we revisited our entry direction
+then we revisited our entry direction process as a whole we added a
+process as a whole we added a camera-driven influence to help players
+camera-driven influence to help players uh to help translate player intent to
+uh to help translate player intent to in-game results and we then
+in-game results and we then significantly amped up the effect of
+significantly amped up the effect of player input over momentum so that they
+player input over momentum so that they had a lot more control over the results
+had a lot more control over the results and what happened get on the output
+and what happened get on the output so these combined to result in a
+so these combined to result in a significant reduction in player
+significant reduction in player frustration
+frustration so for in-air control once they're off
+so for in-air control once they're off the line just flying through the air
+the line just flying through the air we wanted the player to have an initial
+we wanted the player to have an initial or we had an initial approach that
+or we had an initial approach that heavily flavored momentum again we were
+heavily flavored momentum again we were looking at that momentum thing over and
+looking at that momentum thing over and over again in the first rev
+over again in the first rev so this meant that in air steering was
+so this meant that in air steering was fairly stiff and players needed to rely
+fairly stiff and players needed to rely on web moves like webs
+on web moves like webs like swinging and web zip for rapid
+like swinging and web zip for rapid direction change the idea was that would
+direction change the idea was that would make your swing releases more meaningful
+make your swing releases more meaningful and consequential
+and consequential but this model presented a number of
+but this model presented a number of problems in play testing much like
+problems in play testing much like everything else seems to
+everything else seems to the first first swing speeds amplify
+the first first swing speeds amplify small differences in angle
+small differences in angle over large over large distances this
+over large over large distances this made it almost impossible to be precise
+made it almost impossible to be precise if you
+if you if you tried to release off a line and
+if you tried to release off a line and you saw something in the distance little
+you saw something in the distance little variations in that angle would cause
+variations in that angle would cause big variations in where you ended up in
+big variations in where you ended up in addition
+addition players were really just terrible at
+players were really just terrible at thinking ahead to manage their speed
+thinking ahead to manage their speed while there are tools to slow down they
+while there are tools to slow down they generally go as
+generally go as fast as possible to their destination
+fast as possible to their destination and only once they're there do they try
+and only once they're there do they try and stop
+and stop this usually ends up with the player
+this usually ends up with the player kind of fumbling around and orbiting
+kind of fumbling around and orbiting their destination as they try and get
+their destination as they try and get closer and just having a bad time
+closer and just having a bad time so finally players were having a lot of
+so finally players were having a lot of difficulty reacting quickly to changes
+difficulty reacting quickly to changes in situation or
+in situation or geometry so in order to help solve these
+geometry so in order to help solve these problems we had to put more control
+problems we had to put more control back in players hands and let go of some
+back in players hands and let go of some of our really strict momentum-based
+of our really strict momentum-based concepts
+concepts to start we significantly increased the
+to start we significantly increased the nr turn speeds this immediately helped
+nr turn speeds this immediately helped players react a lot more quickly to
+players react a lot more quickly to dynamic elements
+dynamic elements and it also allowed people to more
+and it also allowed people to more effectively set up their next move
+effectively set up their next move increasing their ability to chain moves
+increasing their ability to chain moves and just basically use the full suite of
+and just basically use the full suite of traversal elements
+traversal elements later on we massively increase the
+later on we massively increase the amount of drag applied to the
+amount of drag applied to the to the player when pulling back on the
+to the player when pulling back on the stick this let players feel a lot more
+stick this let players feel a lot more precise when they were reaching their
+precise when they were reaching their destination because they could go from
+destination because they could go from 60 to zero in a very short time
+60 to zero in a very short time overall this led to a lot fewer
+overall this led to a lot fewer instances of players fumbling around
+instances of players fumbling around their destination and let people feel
+their destination and let people feel like they could kind of stick the
+like they could kind of stick the landing
+landing so the next thing we need to address uh
+so the next thing we need to address uh from specific was our
+from specific was our more specific world interaction moves so
+more specific world interaction moves so when we started making the game
+when we started making the game we knew that we wanted to make the city
+we knew that we wanted to make the city feel like a big part of traversal
+feel like a big part of traversal and spider-man's interaction with the
+and spider-man's interaction with the world needed to be tangible
+world needed to be tangible and while swinging and web zip did
+and while swinging and web zip did require geometry to work
+require geometry to work you were still kind of mid-air and
+you were still kind of mid-air and disconnected when using them we wanted
+disconnected when using them we wanted something that was a little more tactile
+something that was a little more tactile so our first version was zipping through
+so our first version was zipping through the legs of a water tower with our web
+the legs of a water tower with our web tunnel move
+tunnel move this was really cinematic from a
+this was really cinematic from a presentation standpoint and it really
+presentation standpoint and it really fulfilled the fantasy of interacting
+fulfilled the fantasy of interacting with those specific objects
+with those specific objects but it did have a few shortcomings the
+but it did have a few shortcomings the first problem is that the move has a
+first problem is that the move has a pretty rigid directionality
+pretty rigid directionality there wasn't a lot of room for players
+there wasn't a lot of room for players to modify the direction going through
+to modify the direction going through the object because it was
+the object because it was a fixed structure and in addition the
+a fixed structure and in addition the entry angles were pretty limited you
+entry angles were pretty limited you could only engage the web tunnel from a
+could only engage the web tunnel from a limited angle range
+limited angle range before it started to look really weird
+before it started to look really weird of kind of getting sucked in sideways
+of kind of getting sucked in sideways and turning through this thing
+and turning through this thing so in this case we recognize that web
+so in this case we recognize that web tunnel had some inherent limitations
+tunnel had some inherent limitations that we weren't going to be able to get
+that we weren't going to be able to get over
+over in addition we like to have we liked
+in addition we like to have we liked having the move as it was for certain
+having the move as it was for certain situations that cinematic presentation
+situations that cinematic presentation was really effective for certain things
+was really effective for certain things so instead we created point launch a
+so instead we created point launch a move where you could zip to a point on
+move where you could zip to a point on top of an object and then spring back
+top of an object and then spring back off instantly with a big jump
+off instantly with a big jump we were able to get the desired world
+we were able to get the desired world interaction we were looking for with web
+interaction we were looking for with web tunnels along with a number of
+tunnels along with a number of additional benefits
+additional benefits first the player could enter and exit a
+first the player could enter and exit a point launch from any direction
+point launch from any direction and because we needed just a point the
+and because we needed just a point the opportunity for placement in the world
+opportunity for placement in the world had
+had increased dramatically so once point
+increased dramatically so once point launch was implemented we started to
+launch was implemented we started to notice that we had a lot of traversal
+notice that we had a lot of traversal moves that were treating
+moves that were treating that we were treating as unique we had
+that we were treating as unique we had new names for them and we thought they
+new names for them and we thought they were all special but to the player they
+were all special but to the player they all felt like the same thing in this
+all felt like the same thing in this case that was
+case that was go to a thing so as you can see we had
+go to a thing so as you can see we had separate unique button combinations for
+separate unique button combinations for going to a perch point launching and
+going to a perch point launching and zipping to a wall
+zipping to a wall to make things worse point launch only
+to make things worse point launch only worked on perches
+worked on perches which were a special kind of point but
+which were a special kind of point but we had a very similar move that worked
+we had a very similar move that worked on perches and edges
+on perches and edges and ultimately this led to a lot of
+and ultimately this led to a lot of problems with the player's ability to
+problems with the player's ability to kind of mentally map these for this
+kind of mentally map these for this variety of controls to what felt to them
+variety of controls to what felt to them like the same action so they'd fumble a
+like the same action so they'd fumble a lot to the wrong thing
+lot to the wrong thing and just generally get themselves
+and just generally get themselves screwed up so our solution was then to
+screwed up so our solution was then to merge
+merge all of this into a single input space
+all of this into a single input space using the triggers
+using the triggers this helped to ensure that the button to
+this helped to ensure that the button to action mapping in the player's brain was
+action mapping in the player's brain was a lot more one-to-one
+a lot more one-to-one however it's not just a matter of
+however it's not just a matter of merging buttons it's never that simple
+merging buttons it's never that simple it did require us to adapt some of the
+it did require us to adapt some of the moves as well
+moves as well first we expanded point launch to work
+first we expanded point launch to work on all edges uh which ended up being a
+on all edges uh which ended up being a win for the player and we merged it with
+win for the player and we merged it with zip to perch
+zip to perch we then moves it to wall to be an a-mode
+we then moves it to wall to be an a-mode only action so that its targeting didn't
+only action so that its targeting didn't conflict with the other moves that it
+conflict with the other moves that it was sharing buttons with
+was sharing buttons with so after iterating our controls by doing
+so after iterating our controls by doing things like changing buttons and adding
+things like changing buttons and adding moves
+moves there's a few major takeaways from this
+there's a few major takeaways from this section that i feel are pretty important
+section that i feel are pretty important uh first if the player expectation and
+uh first if the player expectation and system designs are not aligned then your
+system designs are not aligned then your controls just fail and the player
+controls just fail and the player experience is going to drop
+experience is going to drop we spent a lot of time giving
+we spent a lot of time giving long-winded design reasons why our
+long-winded design reasons why our controls were the way they were
+controls were the way they were when they started but ultimately players
+when they started but ultimately players will just never get the most out of a
+will just never get the most out of a system that they have trouble using
+system that they have trouble using and the next lesson would be that trying
+and the next lesson would be that trying to add analog input and behavior to our
+to add analog input and behavior to our moves
+moves helped add depth utility freedom and
+helped add depth utility freedom and flow to our moves and just increase the
+flow to our moves and just increase the players experience
+players experience so as we were getting towards the end of
+so as we were getting towards the end of production and our core mechanics were
+production and our core mechanics were all in place we started to drive down
+all in place we started to drive down to the next level of usability feedback
+to the next level of usability feedback we found that players were still
+we found that players were still feeling that the experience had a
+feeling that the experience had a somewhat kind of stuttery rhythm
+somewhat kind of stuttery rhythm where it would feel incredibly smooth at
+where it would feel incredibly smooth at times but they were kind of consistently
+times but they were kind of consistently getting these little snags and hiccups
+getting these little snags and hiccups that were breaking their momentum
+that were breaking their momentum so as we kept gathering information we
+so as we kept gathering information we found that most of the problems boiled
+found that most of the problems boiled down to just a few cases across the city
+down to just a few cases across the city in response we created a kind of small
+in response we created a kind of small palette of moves that would help
+palette of moves that would help maintain flow to get around those rough
+maintain flow to get around those rough edges
+edges many of these moves were designed to be
+many of these moves were designed to be a natural extension from the character's
+a natural extension from the character's current action
+current action so they didn't require any input one of
+so they didn't require any input one of the players who feel like they were
+the players who feel like they were expertly executing these moves that
+expertly executing these moves that would often require unnatural reflexes
+would often require unnatural reflexes if they wanted to execute them manually
+if they wanted to execute them manually so my first example here shows one of
+so my first example here shows one of our biggest issues
+our biggest issues you'd kind of clip a corner causing a
+you'd kind of clip a corner causing a short wall run that would then eject you
+short wall run that would then eject you sideways
+sideways the sudden change in direction would
+the sudden change in direction would often surprise players and would frankly
+often surprise players and would frankly frequently create situations that were
+frequently create situations that were difficult to recover from
+difficult to recover from as they were kind of exiting at a high
+as they were kind of exiting at a high enough velocity they'd often get clear
+enough velocity they'd often get clear across the street before they knew what
+across the street before they knew what the hell happened to them
+the hell happened to them so we kind of fixed this by adding just
+so we kind of fixed this by adding just a small little move to redirect you
+a small little move to redirect you parallel
+parallel to your incoming velocity if you were
+to your incoming velocity if you were only wall running for a really short
+only wall running for a really short time
+time this very quickly got the player back in
+this very quickly got the player back in action with a consistent reference
+action with a consistent reference direction and they were able to just
+direction and they were able to just get right back to what they were doing
+get right back to what they were doing so the next example looks more at a case
+so the next example looks more at a case where players didn't really have a tool
+where players didn't really have a tool to change direction easily
+to change direction easily if a player was wall running up a
+if a player was wall running up a building and wanted to corner over it
+building and wanted to corner over it they would have to clear the building
+they would have to clear the building and then figure out what their next move
+and then figure out what their next move was once they could actually see what
+was once they could actually see what was above them
+was above them this led to kind of this gap in flow
+this led to kind of this gap in flow while players processed that view
+while players processed that view and caused a lot of stall for them
+and caused a lot of stall for them to fix this we added a move that the
+to fix this we added a move that the player could trigger before clearing the
+player could trigger before clearing the wall
+wall to get over the edge and redirect their
+to get over the edge and redirect their velocity all in one shot this added a
+velocity all in one shot this added a little layer of skill which was nice
+little layer of skill which was nice and it added some depth while letting
+and it added some depth while letting players a lot more efficiently navigate
+players a lot more efficiently navigate over these buildings
+over these buildings so a lot of our additional moves
+so a lot of our additional moves centered around trying to traverse
+centered around trying to traverse through space
+through space near walls and how that conflicts with
+near walls and how that conflicts with our art team's desire to have a lot of
+our art team's desire to have a lot of stuff sticking out of those walls and
+stuff sticking out of those walls and into our play space
+into our play space the biggest factor here was fire escapes
+the biggest factor here was fire escapes it just didn't feel like new york
+it just didn't feel like new york without them but they were basically the
+without them but they were basically the total arch nemesis for the traversal
+total arch nemesis for the traversal team
+team the entire production we ended up making
+the entire production we ended up making a lot of vaulting moves both from the
+a lot of vaulting moves both from the air and from wall run and from swing
+air and from wall run and from swing to get around these as well as
+to get around these as well as completely custom ladder climbing web
+completely custom ladder climbing web move to kind of
+move to kind of climb them like a ladder up a fire
+climb them like a ladder up a fire escape stack we also needed to deal with
+escape stack we also needed to deal with signs hanging out of buildings
+signs hanging out of buildings particularly in places like chinatown
+particularly in places like chinatown and a lot of small little outcroppings
+and a lot of small little outcroppings and changes in wall contour
+and changes in wall contour that were too small to just wall run
+that were too small to just wall run over but they were too
+over but they were too big to just wall run over but too small
+big to just wall run over but too small to actually run on
+to actually run on entirely so and today that wraps up our
+entirely so and today that wraps up our journey that we went on with creating
+journey that we went on with creating traversal for marvel spider-man
+traversal for marvel spider-man we had a whole lot of fun along the way
+we had a whole lot of fun along the way working with such a great character but
+working with such a great character but there are definitely a few
+there are definitely a few key things i believe any developer can
+key things i believe any developer can learn from our experience here
+learn from our experience here first when creating mechanics start with
+first when creating mechanics start with a simple implementation
+a simple implementation and then add complexity only as you
+and then add complexity only as you uncover new problems
+uncover new problems by keeping things simple early we were
+by keeping things simple early we were able to avoid going too far down a path
+able to avoid going too far down a path that our players wouldn't respond to
+that our players wouldn't respond to which in many cases
+which in many cases kept us from wasting work we ended up
+kept us from wasting work we ended up with a system that had a whole lot of
+with a system that had a whole lot of features
+features but many of the additions were things
+but many of the additions were things that we could never have anticipated
+that we could never have anticipated needing or wanting ahead of time
+needing or wanting ahead of time second you have to stay flexible in your
+second you have to stay flexible in your approach to creating mechanics we were
+approach to creating mechanics we were initially really resistant to some of
+initially really resistant to some of the best changes because we had all the
+the best changes because we had all the design reasons listed out why it was
+design reasons listed out why it was working like it was supposed to
+working like it was supposed to and clearly it was the feedback that was
+and clearly it was the feedback that was a problem by allowing the game to evolve
+a problem by allowing the game to evolve we came to a final product that was far
+we came to a final product that was far superior to what we thought was the
+superior to what we thought was the right approach
+right approach earlier in development and finally you
+earlier in development and finally you are your own worst tester and in some
+are your own worst tester and in some cases the rest of your dev team quickly
+cases the rest of your dev team quickly catches up with being terrible
+catches up with being terrible developers know exactly how their
+developers know exactly how their systems work and they're just
+systems work and they're just and they're in the way they're supposed
+and they're in the way they're supposed to be used so when you play the game it
+to be used so when you play the game it will often work exactly as you expected
+will often work exactly as you expected different players will play the game in
+different players will play the game in wildly different ways and you'll never
+wildly different ways and you'll never know where the real problems and edge
+know where the real problems and edge cases are until you let them loosen your
+cases are until you let them loosen your game
+game even with external play testers you
+even with external play testers you should always challenge yourself
+should always challenge yourself and others to try to play the game in
+and others to try to play the game in different ways and try and have a
+different ways and try and have a different experience with the
+different experience with the mapping what your controls are into the
+mapping what your controls are into the game
+game so that's it for me thanks so much for
+so that's it for me thanks so much for coming
+and it looks like we've got about 10 minutes for some q a
+minutes for some q a gonna start over here hello uh so the
+gonna start over here hello uh so the problem space you're working in seemed
+problem space you're working in seemed like it required like a ton of different
+like it required like a ton of different skill sets to effectively solve these
+skill sets to effectively solve these problems like cinematography
+problems like cinematography physics game design you know a whole
+physics game design you know a whole bunch of others how did you
+bunch of others how did you what was like the composition of your
+what was like the composition of your team like and how did you kind of
+team like and how did you kind of effectively organize around these
+effectively organize around these different skill sets to solve these
+different skill sets to solve these problems
+problems so um we had what we call the traversal
+so um we had what we call the traversal pod which consisted of
+pod which consisted of a couple of programmers a handful of
+a couple of programmers a handful of animators a designer
+animators a designer as well as just everybody else looking
+as well as just everybody else looking at traversal in general so we'd have
+at traversal in general so we'd have effects people that would come in and
+effects people that would come in and help with effects
+help with effects our animation director would also kind
+our animation director would also kind of be looking at things from a
+of be looking at things from a cinematography standpoint as well as our
+cinematography standpoint as well as our you know the animators in the traversal
+you know the animators in the traversal pod and so it was really just getting it
+pod and so it was really just getting it was an
+was an extremely collaborative environment and
+extremely collaborative environment and getting all the different people from
+getting all the different people from all the different disciplines with
+all the different disciplines with eyeballs on it and everybody looking for
+eyeballs on it and everybody looking for ways to give input on how to improve
+ways to give input on how to improve things
+things thanks
+i was it any uh inspiration draw from spider-man 2's web slinging
+spider-man 2's web slinging mechanics uh i mean we early on we
+mechanics uh i mean we early on we definitely played all of the games
+definitely played all of the games um you know spider-man 2 did a lot of
+um you know spider-man 2 did a lot of really great things so did ultimate
+really great things so did ultimate spider-man so did web of shadows so did
+spider-man so did web of shadows so did asm ii
+asm ii like those were all teams that had a lot
+like those were all teams that had a lot of really great ideas
+of really great ideas that they executed in different ways and
+that they executed in different ways and so um we definitely took things from
+so um we definitely took things from them there was definitely that sense of
+them there was definitely that sense of you know
+you know the biggest thing we got through the
+the biggest thing we got through the history of spider-man games was your
+history of spider-man games was your webs better darn well attached to
+webs better darn well attached to buildings
+buildings but when we took it from there we ended
+but when we took it from there we ended up at the end of the day wanting to make
+up at the end of the day wanting to make something that was also kind of our own
+something that was also kind of our own and i think we sort of hit that by
+and i think we sort of hit that by having a traversal system that layered a
+having a traversal system that layered a lot of different moves together
+lot of different moves together to make you feel like you had a wider
+to make you feel like you had a wider palate thank you
+palate thank you um what were some of the challenges and
+um what were some of the challenges and solutions you had
+solutions you had with um swing heavy combat situations
+with um swing heavy combat situations such as like the final
+such as like the final doc ock fight which was on a rooftop
+doc ock fight which was on a rooftop yeah
+yeah so that created kind of a lot of weird
+so that created kind of a lot of weird things and we actually had the ability
+things and we actually had the ability to
+to basically have a config data set
+basically have a config data set that kind of parameterized how swinging
+that kind of parameterized how swinging worked and so one of the things we were
+worked and so one of the things we were able to do was make a duplicate data set
+able to do was make a duplicate data set that was entirely reparameterized for
+that was entirely reparameterized for different situations
+different situations so when we were inside gct inside grand
+so when we were inside gct inside grand central or when we were in a combat
+central or when we were in a combat arena like a boss fight
+arena like a boss fight we could sit there and basically just
+we could sit there and basically just change all the parameters for how
+change all the parameters for how swinging worked in order to make it fit
+swinging worked in order to make it fit that space a little bit better we didn't
+that space a little bit better we didn't want to deviate too far we needed to be
+want to deviate too far we needed to be kind of make sense to the player
+kind of make sense to the player but it did let us make sure that we
+but it did let us make sure that we weren't kind of overshooting things when
+weren't kind of overshooting things when you weren't getting um
+you weren't getting um when you're outside it's these big huge
+when you're outside it's these big huge swings that give you a lot of height and
+swings that give you a lot of height and a lot of stuff like that if you're
+a lot of stuff like that if you're inside or in a boss arena
+inside or in a boss arena that becomes a problem if you're
+that becomes a problem if you're constantly getting yourself flung up in
+constantly getting yourself flung up in the air with nothing to swing from and
+the air with nothing to swing from and just have to free fall for a while so
+just have to free fall for a while so um that re-parameterization really
+um that re-parameterization really helped us to make things
+helped us to make things fit whatever situation we were dealing
+fit whatever situation we were dealing with thank you
+hi uh thanks for the talk really really excellent
+excellent um so i have a question about
+um so i have a question about uh what you said earlier where you would
+uh what you said earlier where you would do animation blending to correct the way
+do animation blending to correct the way spider-man was facing
+spider-man was facing during uh swing but with all of his cool
+during uh swing but with all of his cool poses and so on
+poses and so on how did you prevent that blend from
+how did you prevent that blend from creating like
+creating like strange artifacts during the animation
+strange artifacts during the animation uh i mean
+uh i mean i'll give a lot of credit there to our
+i'll give a lot of credit there to our animation team with uh elliot grossman
+animation team with uh elliot grossman who did a lot of the animation work and
+who did a lot of the animation work and to our core engine
+to our core engine programmer for animation johnny garrett
+programmer for animation johnny garrett they made a sweet animation system and a
+they made a sweet animation system and a bunch of sweet animations that did a
+bunch of sweet animations that did a really cool stuff
+really cool stuff for the most part the blending ended up
+for the most part the blending ended up we just made sure to kind of control
+we just made sure to kind of control where those things go
+where those things go and we made sure to control when we use
+and we made sure to control when we use them so that they didn't get too far
+them so that they didn't get too far outside of what we needed
+outside of what we needed we also had the side effect that when
+we also had the side effect that when you're swinging you're kind of out in
+you're swinging you're kind of out in the air so
+the air so unlike if you're on the ground or
+unlike if you're on the ground or somewhere where you have to really kind
+somewhere where you have to really kind of hand plant on things and touch things
+of hand plant on things and touch things if there was a little bit of drift from
+if there was a little bit of drift from those partials and stuff it didn't
+those partials and stuff it didn't really matter as much
+really matter as much for swinging and so it gave us a lot
+for swinging and so it gave us a lot more freedom to kind of play with that
+more freedom to kind of play with that stuff we just had to make sure that
+stuff we just had to make sure that visually you were lined up with the line
+visually you were lined up with the line and it felt like those forces were
+and it felt like those forces were correct
+correct and at that point we were good to go all
+and at that point we were good to go all right thanks
+right thanks hey um it seems like throughout
+hey um it seems like throughout development you're changing like gravity
+development you're changing like gravity settings adding new mechanics that
+settings adding new mechanics that spider-man can use
+spider-man can use how did you like work alongside the
+how did you like work alongside the level design team like during this
+level design team like during this process to make sure that
+process to make sure that all their work isn't like thrown away as
+all their work isn't like thrown away as soon as you change like a huge
+soon as you change like a huge fundamental setting or something
+fundamental setting or something that was one of the biggest challenges
+that was one of the biggest challenges we had um
+we had um you know working on not necessarily a
+you know working on not necessarily a new ip
+new ip new ip to us um we didn't really have
+new ip to us um we didn't really have all the mechanics locked down
+all the mechanics locked down until part you know we were well into
+until part you know we were well into production before things started to get
+production before things started to get locked down which as you said creates
+locked down which as you said creates challenges for
+challenges for the design team a lot of it came down to
+the design team a lot of it came down to the design mirror in our pod josue
+the design mirror in our pod josue basically did a lot of work of trying to
+basically did a lot of work of trying to maintain things consistently he actually
+maintain things consistently he actually built the metrics for the entire city
+built the metrics for the entire city by himself and then it was done and then
+by himself and then it was done and then we actually generated geometry after
+we actually generated geometry after that through houdini so
+that through houdini so we got a lot of consistency in the open
+we got a lot of consistency in the open world by just having that go through one
+world by just having that go through one person
+person for interiors and stuff we just tried to
+for interiors and stuff we just tried to set up some metrics and
+set up some metrics and go from there i would say that kind of
+go from there i would say that kind of swinging on interiors is something that
+swinging on interiors is something that i think
+i think we didn't make as good as we would have
+we didn't make as good as we would have liked because it was such a it was such
+liked because it was such a it was such a big move and we didn't have the time
+a big move and we didn't have the time to
+to really focus on that but we were able to
+really focus on that but we were able to use that reparameterization
+use that reparameterization to make it work for most of the spaces
+to make it work for most of the spaces that we needed it awesome
+hi uh excellent talk thank you so much great game definitely stealing all your
+great game definitely stealing all your math
+math uh i noticed that uh in this talk about
+uh i noticed that uh in this talk about traversal you didn't really talk about
+traversal you didn't really talk about the wall climbing at all
+the wall climbing at all like walking around i'm assuming it
+like walking around i'm assuming it might have either been outside the scope
+might have either been outside the scope but this talk are not super relevant but
+but this talk are not super relevant but um that's a system that i've actually
+um that's a system that i've actually messed around with uh for my own game
+messed around with uh for my own game and i'm curious if it was ever supposed
+and i'm curious if it was ever supposed to be a
+to be a sort of a bigger element of reversal
+sort of a bigger element of reversal than it was and then you clamped it
+than it was and then you clamped it because it was too complicated
+because it was too complicated or any edge cases like that um so wall
+or any edge cases like that um so wall crawl was really you know it's really
+crawl was really you know it's really identifiable with the character
+identifiable with the character but it has this um it has this problem
+but it has this um it has this problem for games
+for games which is when you do it you can only go
+which is when you do it you can only go so fast or you look like a weird
+so fast or you look like a weird salamander
+salamander um and usually when people are on a wall
+um and usually when people are on a wall they
+they want to interact out from the wall
+want to interact out from the wall there's nowhere to put your camera
+there's nowhere to put your camera except for inside of you or something
+except for inside of you or something and so it creates a lot of these
+and so it creates a lot of these gameplay problems our designers
+gameplay problems our designers in some ways had trouble figuring out
+in some ways had trouble figuring out even how to use it um
+even how to use it um our buildings had a lot of complexity to
+our buildings had a lot of complexity to their geometry that added a lot of
+their geometry that added a lot of a lot of complexity to the wall crawl
+a lot of complexity to the wall crawl stuff we actually had uh ross mckintosh
+stuff we actually had uh ross mckintosh one of our programmers was working on it
+one of our programmers was working on it for
+for um probably a couple years working on
+um probably a couple years working on some wall crawl stuff and
+some wall crawl stuff and you know it's it's like it's a really
+you know it's it's like it's a really really complicated problem to deal with
+really complicated problem to deal with all of that geometry
+all of that geometry i noticed that you like hard clamped it
+i noticed that you like hard clamped it to go around corners of specific
+to go around corners of specific animations so it didn't actually have to
+animations so it didn't actually have to deal with like artifacts and stuff yeah
+deal with like artifacts and stuff yeah so we tried to kind of scope down in
+so we tried to kind of scope down in places where we could to make to
+places where we could to make to take some things that were really hard
+take some things that were really hard problems and make them into um
+problems and make them into um a little bit simpler problems and so we
+a little bit simpler problems and so we we did that
+we did that wherever we could with wall crawl we
+wherever we could with wall crawl we tried we still wanted to make sure and
+tried we still wanted to make sure and fulfill that kind of fantasy element
+fulfill that kind of fantasy element while having most of the game focused on
+while having most of the game focused on this
+this big fast speed traversal and so we just
+big fast speed traversal and so we just chose to
+chose to have wall crawl be something that we you
+have wall crawl be something that we you know implemented as well as we could
+know implemented as well as we could but didn't try to over focus on makes
+but didn't try to over focus on makes sense thank you so much
+sense thank you so much hey um amazing talk um totally loved it
+hey um amazing talk um totally loved it uh we have
+uh we have we tried to build a spider-man game as
+we tried to build a spider-man game as one of our prototypes and we really
+one of our prototypes and we really really failed to
+really failed to do it um so one of the things i handed
+do it um so one of the things i handed out about was you mentioned that
+out about was you mentioned that we use used box volumes for collision
+we use used box volumes for collision detections and that
+detections and that so how did you decide which objects in
+so how did you decide which objects in the scene you'd go to was it like
+the scene you'd go to was it like applied to everything that he could
+applied to everything that he could attach to and if so how did you maintain
+attach to and if so how did you maintain the performance
+the performance as to where you detect the collision
+as to where you detect the collision occurs does it happen
+occurs does it happen in a particular area and how so so is
+in a particular area and how so so is sorry
+sorry uh was your question like how do we
+uh was your question like how do we decide where to place markup and where
+decide where to place markup and where not to
+not to yeah uh so for the most part we wanted
+yeah uh so for the most part we wanted to in the in the open world we marked up
+to in the in the open world we marked up everything uh we like i was saying we
+everything uh we like i was saying we used our procedurally generating
+used our procedurally generating uh system houdini well it's not ours
+uh system houdini well it's not ours it's middleware that we license but
+it's middleware that we license but um to place a lot of that stuff so it
+um to place a lot of that stuff so it was kind of everywhere
+was kind of everywhere um for interiors and things we would
+um for interiors and things we would just decide if the space was in metric
+just decide if the space was in metric and we would
+and we would place or not place things based on
+place or not place things based on whether it was in metric for that
+whether it was in metric for that um and other than that we would just
+um and other than that we would just find other things that we wanted to
+find other things that we wanted to attach to like tree tops and stuff like
+attach to like tree tops and stuff like that and just place mark up there that's
+that and just place mark up there that's where we could use our prefabs to say
+where we could use our prefabs to say okay this object is always going to come
+okay this object is always going to come bundled with this markup so every time
+bundled with this markup so every time it gets out there it's populated with
+it gets out there it's populated with that markup so
+that markup so it really just came down to anything
+it really just came down to anything that as much as possible anything that
+that as much as possible anything that looked like you should be able to swing
+looked like you should be able to swing from it we tried to get markup on it um
+from it we tried to get markup on it um do you have any performance issues in
+do you have any performance issues in trying to find out which place to attach
+trying to find out which place to attach to or like whether anything you have to
+to or like whether anything you have to optimize
+optimize uh we had a few things we went through a
+uh we had a few things we went through a number of iterations on
+number of iterations on um on that we ended up getting better by
+um on that we ended up getting better by like i said like using kind of a sphere
+like i said like using kind of a sphere database and some search query
+database and some search query um to kind of pack all the data in as
+um to kind of pack all the data in as much as we could
+much as we could um really helped us kind of speed things
+um really helped us kind of speed things up we ended up being able to move it off
+up we ended up being able to move it off onto a job on
+onto a job on kind of another thread so that it could
+kind of another thread so that it could happen in the background and so it ended
+happen in the background and so it ended up taking even in an area that was
+up taking even in an area that was highly dense it ended up taking
+highly dense it ended up taking on the ps4 probably in a dense area
+on the ps4 probably in a dense area about two milliseconds to process and
+about two milliseconds to process and chug through everything so it wasn't
+chug through everything so it wasn't necessarily cheap
+necessarily cheap but it didn't get it wasn't too
+but it didn't get it wasn't too untractable either cool thank you
+untractable either cool thank you hi thank you for your impressive
+hi thank you for your impressive sessions
+sessions so i'm making a swinging player game
+so i'm making a swinging player game and like a spiderman so if you
+and like a spiderman so if you will make the real spiderman so what do
+will make the real spiderman so what do you
+you change spec war game design
+change spec war game design what was your question sorry i didn't
+what was your question sorry i didn't sorry so so what do you
+sorry so so what do you change for boyer game
+change for boyer game like spiderman what do we kind of change
+like spiderman what do we kind of change to make a game like spider-man
+to make a game like spider-man uh so go through the
+uh so go through the town and uh swing
+town and uh swing with rope so
+with rope so so is it kind of how do we have to
+so is it kind of how do we have to change the city to make swinging work
+change the city to make swinging work yeah yeah you're right
+yeah yeah you're right gotcha okay so it's actually interesting
+gotcha okay so it's actually interesting we had a lot of tests early on
+we had a lot of tests early on talking about how um how wide the
+talking about how um how wide the streets needed to be
+streets needed to be if you actually take full new york with
+if you actually take full new york with streets they're actually really terrible
+streets they're actually really terrible for swinging because your line angles
+for swinging because your line angles end up being like too far to the side
+end up being like too far to the side so we did a lot of tests to figure out
+so we did a lot of tests to figure out what the right widths were for the
+what the right widths were for the streets
+streets a lot of metric tests early on and so we
+a lot of metric tests early on and so we had to kind of play around with all of
+had to kind of play around with all of that really early
+that really early in order to find what the right
+in order to find what the right distances were before we kind of
+distances were before we kind of populated the entire city with stuff so
+populated the entire city with stuff so it was kind of just progressing things a
+it was kind of just progressing things a little bit
+little bit a little bit at a time in lockstep as we
+a little bit at a time in lockstep as we were kind of iterating on the design
+were kind of iterating on the design side and on the world construction side
+side and on the world construction side and iterating on the swing side to make
+and iterating on the swing side to make sure those two things kind of work
+sure those two things kind of work together in a really nice way
+together in a really nice way thank you cool
+thank you cool there's other questions all right i
+there's other questions all right i think we're out of time thanks guys

@@ -1,0 +1,1119 @@
+[Music] so so welcome to automated testing and
+so so welcome to automated testing and profiling for Call of Duty my name is
+profiling for Call of Duty my name is Jonathan Thalberg and I work for
+Jonathan Thalberg and I work for Activision central tech as a technical
+Activision central tech as a technical director so I wrote a build server
+director so I wrote a build server called compass which is used for all the
+called compass which is used for all the automated testing and profiling of all
+automated testing and profiling of all the Call of Duty games and I'm going to
+the Call of Duty games and I'm going to talk a bit about how compass came to be
+talk a bit about how compass came to be what it looks like and how it works so I
+what it looks like and how it works so I actually worked for a small Activision
+actually worked for a small Activision satellite tech group in the UK called
+satellite tech group in the UK called central technology north and we get
+central technology north and we get assigned to help out on different games
+assigned to help out on different games as needed and back in 2011 we were
+as needed and back in 2011 we were helping out with Bundys new game called
+helping out with Bundys new game called Bethany so at the time Bungie didn't
+Bethany so at the time Bungie didn't have the automated testing
+have the automated testing infrastructure that they have now so
+infrastructure that they have now so sometimes you might grab the build and
+sometimes you might grab the build and it might not work and then you might not
+it might not work and then you might not necessarily know whether was your fault
+necessarily know whether was your fault or whether someone else had broke it and
+or whether someone else had broke it and this was a particular problem for us
+this was a particular problem for us because we were in a separate office in
+because we were in a separate office in a different time zone so it wasn't as
+a different time zone so it wasn't as easy to ask other people whether their
+easy to ask other people whether their version works and also we were among the
+version works and also we were among the first purple - well first people to work
+first purple - well first people to work on PlayStation 3 version so that meant
+on PlayStation 3 version so that meant that it wasn't tested quite as much yes
+that it wasn't tested quite as much yes so to help us I set up a little build
+so to help us I set up a little build server that would build and ruin the
+server that would build and ruin the game continuously on PlayStation 3 to
+game continuously on PlayStation 3 to make sure that was still working
+make sure that was still working I'd been experimenting with different
+I'd been experimenting with different build servers and one I really liked was
+build servers and one I really liked was one called build BOTS bill bot is an
+one called build BOTS bill bot is an open-source build server written in
+open-source build server written in Python it's used by various people like
+Python it's used by various people like Mozilla and chromium which is the
+Mozilla and chromium which is the open-source counterparts of the Google
+open-source counterparts of the Google Chrome web browser and and the UI that
+Chrome web browser and and the UI that they've built for it that chrome you
+they've built for it that chrome you build for it is really interesting and I
+build for it is really interesting and I particularly like this which is the
+particularly like this which is the console page so at the top here you see
+console page so at the top here you see the kind of overall build status all
+the kind of overall build status all different parts of the build and then
+different parts of the build and then down the bottom here you can
+down the bottom here you can see new check-ins come in at the top and
+see new check-ins come in at the top and then all the boxes indicates whether a
+then all the boxes indicates whether a particular task on that check-in is
+particular task on that check-in is currently being tested or it's green or
+currently being tested or it's green or red if that task has failed or succeeded
+red if that task has failed or succeeded on other build servers that are used up
+on other build servers that are used up until this point of this information
+until this point of this information would be spread across lots of different
+would be spread across lots of different pages and so I really like this idea of
+pages and so I really like this idea of having it all on one page and the other
+having it all on one page and the other thing that I liked about buildbot was
+thing that I liked about buildbot was the way the build was configured so all
+the way the build was configured so all other build servers that are used open
+other build servers that are used open to that point you'd configure them by
+to that point you'd configure them by going on to a web page and like changing
+going on to a web page and like changing forms on a web page but buildbot was
+forms on a web page but buildbot was configured using code using Python code
+configured using code using Python code and this is what's known as
+and this is what's known as configuration as code and I'll get in
+configuration as code and I'll get in later I'll talk later about why that's
+later I'll talk later about why that's so great so I got this automated testing
+so great so I got this automated testing up for running on build watts and there
+up for running on build watts and there was still a couple of things that I
+was still a couple of things that I wasn't happy with so I had a couple of
+wasn't happy with so I had a couple of had a little wishlist of other things
+had a little wishlist of other things that I wants to do differently so first
+that I wants to do differently so first of all bill pod didn't know about deaf
+of all bill pod didn't know about deaf kids so if you know about worker PC so
+kids so if you know about worker PC so if work at PC would go down it wouldn't
+if work at PC would go down it wouldn't run tests on that but if a deaf kid
+run tests on that but if a deaf kid would go down it would continue to try
+would go down it would continue to try run tests on that and then the page
+run tests on that and then the page would go green and it looked like
+would go green and it looked like something broken but actually was fine
+something broken but actually was fine so what I really wanted was a build
+so what I really wanted was a build server where deaf kids and workers were
+server where deaf kids and workers were treated at the same level where it would
+treated at the same level where it would understand whether a deaf kid was up or
+understand whether a deaf kid was up or down just as well as it would know
+down just as well as it would know whether a PC was up or down and also
+whether a PC was up or down and also although the configuration was done in
+although the configuration was done in Python which is cool if you wanted to
+Python which is cool if you wanted to update the configuration you'd have to
+update the configuration you'd have to check it out
+check it out upload it to your build server and then
+upload it to your build server and then run a little batch file which would
+run a little batch file which would reload it and what I really wanted was
+reload it and what I really wanted was to be able to check the configuration
+to be able to check the configuration into source control and have it pick up
+into source control and have it pick up pick it up directly from source control
+pick it up directly from source control and then the last thing that I wanted
+and then the last thing that I wanted was to have screenshots and performance
+was to have screenshots and performance and memory stats deeply integrated into
+and memory stats deeply integrated into the UI of the build server
+the UI of the build server so we'd built automation with
+so we'd built automation with screenshots and perf stats before but
+screenshots and perf stats before but viewing the screenshots always felt
+viewing the screenshots always felt disjointed from the rest of the build
+disjointed from the rest of the build server it was like it was a separate
+server it was like it was a separate thing and I had this vision of having a
+thing and I had this vision of having a performance graph where you'd see a
+performance graph where you'd see a performance spike and you could hover
+performance spike and you could hover over the spike and see which check-in
+over the spike and see which check-in was responsible for that spike so I
+was responsible for that spike so I wanted a build server that could do all
+wanted a build server that could do all of these things but there wasn't one
+of these things but there wasn't one available so I decided to write my own
+available so I decided to write my own build server from scratch and this this
+build server from scratch and this this became a hobby project during destiny so
+became a hobby project during destiny so I would be working on it in a spare time
+I would be working on it in a spare time or while we were traveling to America on
+or while we were traveling to America on the plane or at the hotel and that's how
+the plane or at the hotel and that's how compass was born so after working on
+compass was born so after working on destiny my group CTN was moved on to
+destiny my group CTN was moved on to Call of Duty advanced warfare by
+Call of Duty advanced warfare by sledgehammer games and so I set up
+sledgehammer games and so I set up compass for them as well and at this
+compass for them as well and at this point compass was still running out of
+point compass was still running out of our little office in Warrington and it
+our little office in Warrington and it was basically just a couple of pcs that
+was basically just a couple of pcs that had cobbled together and a couple of
+had cobbled together and a couple of deaf kids next to my desk and a
+deaf kids next to my desk and a sledgehammer didn't have automated
+sledgehammer didn't have automated testing of the game yet so they had all
+testing of the game yet so they had all the other stuff for programming but this
+the other stuff for programming but this was providing them that extra bit of
+was providing them that extra bit of automated testing and the next projects
+automated testing and the next projects we worked on was call of duty infinite
+we worked on was call of duty infinite warfare with a finish award and for that
+warfare with a finish award and for that one we decided to set up a compass
+one we decided to set up a compass server actually at Infinity Ward and we
+server actually at Infinity Ward and we also decided that we wanted a compass to
+also decided that we wanted a compass to do like all of the continuous
+do like all of the continuous integration so take over all stuff that
+integration so take over all stuff that was previously running in Jenkins and
+was previously running in Jenkins and teamcity and it became kind of the hub
+teamcity and it became kind of the hub of all build so everything's at infinity
+of all build so everything's at infinity ward and we quickly scaled it up to 100
+ward and we quickly scaled it up to 100 hundreds of VMs and many dozens of deaf
+hundreds of VMs and many dozens of deaf kids and this this ended up being really
+kids and this this ended up being really popular and before long all the other
+popular and before long all the other Call of Duty Studios also adopted a
+Call of Duty Studios also adopted a compass wholesale and compass is now
+compass wholesale and compass is now used as I said for all automated testing
+used as I said for all automated testing and profiling of all Call of Duty games
+and profiling of all Call of Duty games so here are some numbers to give you an
+so here are some numbers to give you an idea of the scope
+idea of the scope of what we're dealing with so across all
+of what we're dealing with so across all of the Call of Duty studios we have
+of the Call of Duty studios we have roughly 700 worker pcs so they could be
+roughly 700 worker pcs so they could be VMs or they could be physical pcs each
+VMs or they could be physical pcs each one is at least four cause some of them
+one is at least four cause some of them are many more cores like 20 or 30
+are many more cores like 20 or 30 depending on what they're doing we have
+depending on what they're doing we have roughly 300 dev kits so that's all
+roughly 300 dev kits so that's all Playstations and Xbox is across all
+Playstations and Xbox is across all studios added together and we have just
+studios added together and we have just shy of a thousand unique users so unique
+shy of a thousand unique users so unique users would be anyone looking at the web
+users would be anyone looking at the web app to check the states of the build or
+app to check the states of the build or maybe producers looking at stats or also
+maybe producers looking at stats or also anyone that's using compass to test
+anyone that's using compass to test their code to kick-off presubmit
+their code to kick-off presubmit pre-commit builds for example and we run
+pre-commit builds for example and we run around 50,000 tasks per day so that's
+around 50,000 tasks per day so that's about one task every other second so
+about one task every other second so next I'd like to show you a bit of what
+next I'd like to show you a bit of what it looks like so this is the the
+it looks like so this is the the signature page of compass it's it's the
+signature page of compass it's it's the console page which as you can see it's
+console page which as you can see it's inspired by chromium's console page new
+inspired by chromium's console page new check-ins this is a time-lapse video of
+check-ins this is a time-lapse video of what it looks like you can see new
+what it looks like you can see new check-ins come in at the top and then
+check-ins come in at the top and then the tasks appear and they go yellow when
+the tasks appear and they go yellow when they're in progress and then they go red
+they're in progress and then they go red or green when I finished all the tasks
+or green when I finished all the tasks from left to right are kind of in
+from left to right are kind of in chronological order so on the left hand
+chronological order so on the left hand side you might have compiling of the
+side you might have compiling of the game code compiling the tools code then
+game code compiling the tools code then in the middle you might have the asset
+in the middle you might have the asset conversion and then on the right hand
+conversion and then on the right hand side you'd have the actual running of
+side you'd have the actual running of the game and then we take screenshots
+the game and then we take screenshots while we were in the game and then at
+while we were in the game and then at the far right you can see the the
+the far right you can see the the screenshots that resulted from that so
+screenshots that resulted from that so here's an example you can see someone
+here's an example you can see someone made a check-in over here and you see
+made a check-in over here and you see two things going red and then the fix
+two things going red and then the fix comes in over here so aunt goes green
+comes in over here so aunt goes green again so you can see exactly when things
+again so you can see exactly when things are broken and who broke them and which
+are broken and who broke them and which things exactly are broken so this page
+things exactly are broken so this page is perfect for looking at the current
+is perfect for looking at the current status of the build if you want to see
+status of the build if you want to see if something is broken you can just look
+if something is broken you can just look at the top of the page and then if you
+at the top of the page and then if you want to find out who broke it you can
+want to find out who broke it you can just scroll down and see where it
+just scroll down and see where it started going red and it's also good for
+started going red and it's also good for if you made a check-in and you want to
+if you made a check-in and you want to kind of follow it through and see what's
+kind of follow it through and see what's going on you can see your check-in
+going on you can see your check-in appear and you can you can see all the
+appear and you can you can see all the tasks go yellow and then go green if
+tasks go yellow and then go green if check-ins come in faster than build
+check-ins come in faster than build server can handle it will skip tasks and
+server can handle it will skip tasks and these then show up on the console page
+these then show up on the console page as translucent boxes so for example here
+as translucent boxes so for example here a bunch of check-ins came in a very
+a bunch of check-ins came in a very short period of time and the build
+short period of time and the build server didn't manage to test all of
+server didn't manage to test all of those things for all of those chickens
+those things for all of those chickens and so we've got these translucent boxes
+and so we've got these translucent boxes here which I'll just skip tasks we have
+here which I'll just skip tasks we have tooltips so you can hover over a failed
+tooltips so you can hover over a failed cell and that will then give you a
+cell and that will then give you a little error synopsis so you can quickly
+little error synopsis so you can quickly see what went wrong there so in this
+see what went wrong there so in this example you can see the game's crashed
+example you can see the game's crashed and in the red arrow box here you can
+and in the red arrow box here you can see the call stack of the crash so
+see the call stack of the crash so having the screenshots on the console
+having the screenshots on the console page was one of these ideas that worked
+page was one of these ideas that worked out really well it turns out that it
+out really well it turns out that it makes a lot of intuitive sense for
+makes a lot of intuitive sense for people to have them there they even if
+people to have them there they even if nobody's ever explained compass student
+nobody's ever explained compass student before they can look at this page and
+before they can look at this page and you go okay I can see that there's a
+you go okay I can see that there's a check-in and I can see a screenshot so
+check-in and I can see a screenshot so that means compass is running the game
+that means compass is running the game and the game is running correctly
+and the game is running correctly because I can see a screenshot of what
+because I can see a screenshot of what it looks like and of course having the
+it looks like and of course having the screenshots is also super useful for
+screenshots is also super useful for debugging like small graphical changes
+debugging like small graphical changes that maybe people might have noticed
+that maybe people might have noticed from day-to-day you can just like click
+from day-to-day you can just like click on these screenshots and page through
+on these screenshots and page through them and then quickly find where
+them and then quickly find where something like that might have happened
+one thing that we do struggle with with this kind of visualization is the the
+this kind of visualization is the the kind of horizontal space so there's a
+kind of horizontal space so there's a limit to the number of boxes obviously
+limit to the number of boxes obviously that you can fit on screen so for big
+that you can fit on screen so for big builds like the nightly build where we
+builds like the nightly build where we test every single map of every single
+test every single map of every single platform in the game we run out of space
+platform in the game we run out of space and so
+and so we just use a horizontal scrollbar
+another thing that we did find is that the high information density for some
+the high information density for some people initially when they see it can be
+people initially when they see it can be off-putting it can be kind of scary and
+off-putting it can be kind of scary and so it's still useful to have a big
+so it's still useful to have a big overall is the whole build read or is
+overall is the whole build read or is the whole build green traffic light
+the whole build green traffic light screen so this is what we have for
+screen so this is what we have for Infinity Ward the other Studios have
+Infinity Ward the other Studios have similar things so here it's the main
+similar things so here it's the main branch and the dev branch and it's if
+branch and the dev branch and it's if everything is green and this this thing
+everything is green and this this thing will go green and if any errors are in
+will go green and if any errors are in there then you get this thing going red
+there then you get this thing going red and you get to the list of all errors
+and you get to the list of all errors that are currently happening so this is
+that are currently happening so this is what we use Infinity Ward in the common
+what we use Infinity Ward in the common room on the TVs for example we did
+room on the TVs for example we did experiment with having the console page
+experiment with having the console page on a TV but it's just too much
+on a TV but it's just too much information to cram onto a little TV and
+information to cram onto a little TV and to kind of absorb from a distance
+to kind of absorb from a distance whereas this page is perfect for that so
+whereas this page is perfect for that so this is the measurements page this is
+this is the measurements page this is this has got the the deep integration
+this has got the the deep integration between the stats and the build server
+between the stats and the build server that I was talking about so right now
+that I was talking about so right now this page is showing the number of
+this page is showing the number of shader assets in the game so along the
+shader assets in the game so along the x-axis is the build number
+x-axis is the build number it's the builds and then the y-axis is
+it's the builds and then the y-axis is your measurement so in this case it's
+your measurement so in this case it's the number of assets and each dot
+the number of assets and each dot represents a bill so each dot is
+represents a bill so each dot is basically a check in if you scroll down
+basically a check in if you scroll down on this page you can see this you can
+on this page you can see this you can see the list of all of the other stats
+see the list of all of the other stats that were output by that task and on the
+that were output by that task and on the right hand side you can see little spark
+right hand side you can see little spark lines that can give you quick enough
+lines that can give you quick enough overview of what all these stats have
+overview of what all these stats have been doing recently so you can see the
+been doing recently so you can see the assets are kind of like constantly on
+assets are kind of like constantly on the rise going up and then in the middle
+the rise going up and then in the middle you can see that all of a sudden it
+you can see that all of a sudden it drops a little bit so if you were to
+drops a little bit so if you were to click on that spark line you'll then
+click on that spark line you'll then show you in the big graph over here and
+show you in the big graph over here and you can then click on the exact dot that
+you can then click on the exact dot that was responsible for this drop and then I
+was responsible for this drop and then I don't even read it but over on the right
+don't even read it but over on the right hand side here you can then read the the
+hand side here you can then read the the description of the change list that was
+description of the change list that was responsible for that drop so in this
+responsible for that drop so in this case someone did some memory
+case someone did some memory optimizations there
+optimizations there move some assets so here's a related
+move some assets so here's a related page which we call the nightly overview
+page which we call the nightly overview page so every night we run a test which
+page so every night we run a test which teleports the player to dozens of
+teleports the player to dozens of different locations on every single map
+different locations on every single map in the game and then each location we
+in the game and then each location we wait for 30 seconds and we captured
+wait for 30 seconds and we captured performance data and all this
+performance data and all this performance days is then aggregated and
+performance days is then aggregated and presented on this page so each of these
+presented on this page so each of these rows is a different map you can see the
+rows is a different map you can see the map name in the top left corner and then
+map name in the top left corner and then each of these columns is a different map
+each of these columns is a different map location a different screenshot location
+location a different screenshot location where we've done that 30-second capture
+where we've done that 30-second capture and then this is this row shows the
+and then this is this row shows the percentage of time within that 30
+percentage of time within that 30 seconds that the game was running on or
+seconds that the game was running on or above our target FPS which is 60 fps and
+above our target FPS which is 60 fps and then this is the average GPU time in
+then this is the average GPU time in milliseconds and average CPU time in
+milliseconds and average CPU time in milliseconds if a cell is yellow that
+milliseconds if a cell is yellow that means it's it's close to going over
+means it's it's close to going over budget or just on budgets and if it's
+budget or just on budgets and if it's red it's definitely over budget and we
+red it's definitely over budget and we also show these up/down arrows so that
+also show these up/down arrows so that indicates that whether that measurement
+indicates that whether that measurement went up or down significantly compared
+went up or down significantly compared to the previous night's bills if you
+to the previous night's bills if you hover over a cell you can see a little
+hover over a cell you can see a little graph that shows the trend so you can
+graph that shows the trend so you can kind of get an idea of over the past few
+kind of get an idea of over the past few weeks whether this stutters be going up
+weeks whether this stutters be going up or whether it's been going down and you
+or whether it's been going down and you also get a screenshot so you get an idea
+also get a screenshot so you get an idea of what that location looks like and
+of what that location looks like and sometimes that might give you a clue if
+sometimes that might give you a clue if a particular location is slow about why
+a particular location is slow about why that might be slow and if you don't
+that might be slow and if you don't click on this cell that would then take
+click on this cell that would then take you to that graph view that I showed you
+you to that graph view that I showed you before and you can then dig in more into
+before and you can then dig in more into the detail so let's say the GPU purpose
+the detail so let's say the GPU purpose got worse you can drill down into
+got worse you can drill down into exactly which bits of GPU performance
+exactly which bits of GPU performance got worse like whether it's
+got worse like whether it's post-processing or opaque or whatever so
+post-processing or opaque or whatever so this page is used a lot by artists
+this page is used a lot by artists artists will look at this page and look
+artists will look at this page and look at their map
+at their map and then look at which part of their map
+and then look at which part of their map are slow and then we'll go and optimize
+are slow and then we'll go and optimize them and then check in the optimizations
+them and then check in the optimizations and they'll come back the next day and
+and they'll come back the next day and look at the difference and see whether
+look at the difference and see whether their optimizations works and see
+their optimizations works and see whether maybe morning - doing so one
+whether maybe morning - doing so one thing worth mentioning is how we come up
+thing worth mentioning is how we come up with these screenshot locations so we
+with these screenshot locations so we have testers play the game and then
+have testers play the game and then based on those playthroughs we kind of
+based on those playthroughs we kind of judge which are the slowest the worst
+judge which are the slowest the worst performing parts of those map which are
+performing parts of those map which are the most problem areas and then we enter
+the most problem areas and then we enter the coordinates of those locations into
+the coordinates of those locations into a text file check that into source
+a text file check that into source control and compass then uses those
+control and compass then uses those locations to produce stable repeatable
+locations to produce stable repeatable measurements which we can meaningfully
+measurements which we can meaningfully compare a day to day so we specifically
+compare a day to day so we specifically don't try to automate a playthrough of
+don't try to automate a playthrough of the whole game sort of automatically
+the whole game sort of automatically humans are better at that kind of thing
+humans are better at that kind of thing and the way we try and do these things
+and the way we try and do these things is by kind of making automating not
+is by kind of making automating not everything that a QA tester would do but
+everything that a QA tester would do but just automating the bits that are boring
+just automating the bits that are boring or the bits that Boreas to like not
+or the bits that Boreas to like not replace testers but like empower them or
+replace testers but like empower them or make them more productive so they can
+make them more productive so they can concentrate some things that humans are
+concentrate some things that humans are good at like exploratory testing ok so
+good at like exploratory testing ok so next I'll talk a bit about how compass
+next I'll talk a bit about how compass works on the inside so one of the things
+works on the inside so one of the things that's very different about compass is
+that's very different about compass is the way that tasks to work or what you'd
+the way that tasks to work or what you'd call jobs in Jenkins so the most common
+call jobs in Jenkins so the most common way that jobs are configured
+way that jobs are configured traditionally in build service is via
+traditionally in build service is via web UI like with these kind of forms so
+web UI like with these kind of forms so you might be able to make a new task and
+you might be able to make a new task and choose from a different set of steps
+choose from a different set of steps like sync source control or run a shell
+like sync source control or run a shell command and then you to fill out
+command and then you to fill out different fields in the form to choose
+different fields in the form to choose exactly how it will run so encompass all
+exactly how it will run so encompass all of this is done using Python so instead
+of this is done using Python so instead of filling out a GUI form you take the
+of filling out a GUI form you take the thing that you put in the GUI form and
+thing that you put in the GUI form and it becomes a parameter to a function so
+it becomes a parameter to a function so in this case the function is SH which
+in this case the function is SH which executes a shell command
+so here's another example so at the top is how in Jenkins you would build a
+is how in Jenkins you would build a visual studio solution and at the bottom
+visual studio solution and at the bottom is encompassed like how you do that you
+is encompassed like how you do that you call the build solution function which
+call the build solution function which is a piece of code that we've written
+is a piece of code that we've written which will use Emma's build to build
+which will use Emma's build to build your solution it will scrape the output
+your solution it will scrape the output it will classify warnings and errors and
+it will classify warnings and errors and it will do things like if there was a
+it will do things like if there was a peb corruption it will delete all the
+peb corruption it will delete all the PDB files and Reese rots we try to build
+and here's another example of how you would set up a perforce repository in
+would set up a perforce repository in Jenkins and encompass so encompass each
+Jenkins and encompass so encompass each task is basically just a Python function
+task is basically just a Python function and we call these automation scripts so
+and we call these automation scripts so here's an example of things that you
+here's an example of things that you might find in a compass task so at the
+might find in a compass task so at the top for the sink function that will sync
+top for the sink function that will sync source control so in this case it will
+source control so in this case it will sync the dev source control repository
+sync the dev source control repository and then the SH function map that runs a
+and then the SH function map that runs a shell command so in this case it runs
+shell command so in this case it runs echo hello world measurement new adds a
+echo hello world measurement new adds a measurement to the task so the graphs
+measurement to the task so the graphs that I showed you before with all those
+that I showed you before with all those measurements and the sparklines each one
+measurements and the sparklines each one of those is added by calling this
+of those is added by calling this function so all perfs that's memory
+function so all perfs that's memory starts bill durations it all goes
+starts bill durations it all goes through this function and then store
+through this function and then store let's say you compile XE and you want to
+let's say you compile XE and you want to store that XE to be used by subsequent
+store that XE to be used by subsequent task you call the store function and
+task you call the store function and then it gets stored in the central
+then it gets stored in the central location for other tasks so get hold of
+and this is what that task would then look like in the compass UI if you run
+look like in the compass UI if you run it so you can see all these functions
+it so you can see all these functions have generated steps so there's the sync
+have generated steps so there's the sync step and there's the shell step and
+step and there's the shell step and there's a store step and here I've
+there's a store step and here I've clicked on the shell step and then you
+clicked on the shell step and then you can see the output for it which is hello
+can see the output for it which is hello world
+so another part of compass is compass has an API a Python API for talking to a
+has an API a Python API for talking to a deaf kids so it's like a Python wrapper
+deaf kids so it's like a Python wrapper around the Xbox or Playstation API that
+around the Xbox or Playstation API that you might get from Sony or Microsoft and
+you might get from Sony or Microsoft and this allows you to do things like the
+this allows you to do things like the Kinect for deaf kids reset its upload
+Kinect for deaf kids reset its upload files download files launch a game take
+files download files launch a game take screenshots that kind of stuff so here
+screenshots that kind of stuff so here is an example of how you might use it
+is an example of how you might use it you say you get hold of a PlayStation 4
+you say you get hold of a PlayStation 4 you reset the PlayStation 4 and then you
+you reset the PlayStation 4 and then you launch your game you wait for 20 seconds
+launch your game you wait for 20 seconds and then you capture a screenshot of
+and then you capture a screenshot of whatever is on screen at that point and
+whatever is on screen at that point and that screenshot then gets sent to the
+that screenshot then gets sent to the build server and it'll appear in the UI
+build server and it'll appear in the UI there and if the game crashes we have
+there and if the game crashes we have code for detecting that the game's
+code for detecting that the game's crushed and we can then capture a crash
+crushed and we can then capture a crash dump of that crash we scrape the call
+dump of that crash we scrape the call stack out of that crash and that's then
+stack out of that crash and that's then how we generate that call stack that I
+how we generate that call stack that I showed you in that slide before in that
+showed you in that slide before in that red box and we also do things like we
+red box and we also do things like we zip up the EXCI and the symbols in the
+zip up the EXCI and the symbols in the crash and attacks that's the task as
+crash and attacks that's the task as well so if you see the crash if anyone
+well so if you see the crash if anyone sees a crash they can just click on it
+sees a crash they can just click on it and download that open it up and then
+and download that open it up and then load it immediately into the debugger
+load it immediately into the debugger and start debugging that crash so with
+and start debugging that crash so with traditional build servers the list of
+traditional build servers the list of steps that make up a task would live on
+steps that make up a task would live on the server you might have put them in in
+the server you might have put them in in a GUI and it might just store them in a
+a GUI and it might just store them in a database and then when it comes time to
+database and then when it comes time to run a task the server goes okay what's
+run a task the server goes okay what's the first thing to do
+the first thing to do sync source control so it connects to
+sync source control so it connects to the worker and tell us the worker to
+the worker and tell us the worker to sing source control and then it goes the
+sing source control and then it goes the next thing to do is run a shell command
+next thing to do is run a shell command so then send the worker tell the worker
+so then send the worker tell the worker to run a shell command and this is how
+to run a shell command and this is how compass was designed originally as well
+compass was designed originally as well so we'd have this Python script and it
+so we'd have this Python script and it would run on the server and whenever you
+would run on the server and whenever you called like a sage function it would
+called like a sage function it would connect to the worker and run like the
+connect to the worker and run like the command on the worker but it turned out
+command on the worker but it turned out that actually made things quite
+that actually made things quite complicated because within the script
+complicated because within the script you constantly had to reason about the
+you constantly had to reason about the worker and the server for example if you
+worker and the server for example if you were if you wanted to read a file we
+were if you wanted to read a file we contents of a phial of the work you'd
+contents of a phial of the work you'd have to first connect to the worker and
+have to first connect to the worker and download that file to the server and
+download that file to the server and then you could open it up at server so
+then you could open it up at server so we changed it and now compass works like
+we changed it and now compass works like this
+this so the compass server when it runs the
+so the compass server when it runs the task connects to the worker and it tells
+task connects to the worker and it tells it to run an automation script and from
+it to run an automation script and from then on everything every that worker
+then on everything every that worker knows everything about the task it knows
+knows everything about the task it knows which a source control repos to sync it
+which a source control repos to sync it knows which steps to run and if there is
+knows which steps to run and if there is a file to store itself uploads it to the
+a file to store itself uploads it to the central repository and the server
+central repository and the server basically just gets told by the work of
+basically just gets told by the work of what's happened so if a new step comes
+what's happened so if a new step comes in or there's a new measurement to
+in or there's a new measurement to register that information gets sent to
+register that information gets sent to the server and the server then logs that
+the server and the server then logs that and it makes it appear in the UI so it
+and it makes it appear in the UI so it means that a job is just a simple Python
+means that a job is just a simple Python script and if you want to read a file
+script and if you want to read a file you just use the normal Python API to
+you just use the normal Python API to read a file so what are the benefits of
+read a file so what are the benefits of just having these simple Python scripts
+just having these simple Python scripts for your tasks so one benefit is that
+for your tasks so one benefit is that you can just debug scripts as if they
+you can just debug scripts as if they were normal Python like you don't you
+were normal Python like you don't you don't actually need a build server to
+don't actually need a build server to run them so you can just take your
+run them so you can just take your favorite Python debugger and load up
+favorite Python debugger and load up your script and iterate on it like that
+your script and iterate on it like that and that's in fact how a lot of these
+and that's in fact how a lot of these things get written just locally on your
+things get written just locally on your PC without a build server it's easy to
+PC without a build server it's easy to write and easy to understand because
+write and easy to understand because it's just - there's loads of reference
+it's just - there's loads of reference on the internet and python is an easy
+on the internet and python is an easy language to learn and you also have all
+language to learn and you also have all the power of Python Python has a huge
+the power of Python Python has a huge ecosystem of packages which can do
+ecosystem of packages which can do anything from image processing to
+anything from image processing to reading or writing any file format that
+reading or writing any file format that you might like or connecting to
+you might like or connecting to databases and you can just include you
+databases and you can just include you can just import that stuff and use it
+can just import that stuff and use it straight off but then the biggest
+straight off but then the biggest benefits arguably come from the fact
+benefits arguably come from the fact that your configuration is checked into
+that your configuration is checked into source control so the benefits are of
+source control so the benefits are of course you have history so you can now
+course you have history so you can now use your source control history to see
+use your source control history to see when things have change who changed them
+when things have change who changed them and why they change them you have the
+and why they change them you have the ability to read
+ability to read old check-ins so let's say if you were
+old check-ins so let's say if you were renaming directory and you have a piece
+renaming directory and you have a piece of conflict that points to that
+of conflict that points to that directory
+directory maybe traditionally you would do it by
+maybe traditionally you would do it by renaming the directory checking that in
+renaming the directory checking that in that the build would break then you
+that the build would break then you would have to go onto your server and
+would have to go onto your server and change the conflict to point to the new
+change the conflict to point to the new directory and the build would work again
+directory and the build would work again then maybe if you wanted to build an old
+then maybe if you wanted to build an old build where the directory will still
+build where the directory will still have the old name then that wouldn't
+have the old name then that wouldn't work and with checking your all of your
+work and with checking your all of your configuration into source control these
+configuration into source control these things live together and can be checked
+things live together and can be checked in together so everything works much
+in together so everything works much more smoothly it works as you would
+more smoothly it works as you would expect and another cool benefits of
+expect and another cool benefits of being able to have these things as
+being able to have these things as check-ins is you can use your your proof
+check-ins is you can use your your proof build or your pre commit build system on
+build or your pre commit build system on this so you could make drastic changes
+this so you could make drastic changes through configuration have like new
+through configuration have like new tasks or new dependencies change the way
+tasks or new dependencies change the way resources are allocated and all this
+resources are allocated and all this stuff will be isolated in your little
+stuff will be isolated in your little manual build so all the all the other
+manual build so all the all the other stuff that runs in your build server is
+stuff that runs in your build server is still using the normal configuration or
+still using the normal configuration or you can isolate a big test your changes
+another benefit is you can branch your configuration and it just integrates
+configuration and it just integrates alongside your code so anytime you do an
+alongside your code so anytime you do an integration if you rename the directory
+integration if you rename the directory and wander branch but it's the newer
+and wander branch but it's the newer branch and all that stuff will just work
+branch and all that stuff will just work and be integrated I should expect and
+and be integrated I should expect and the last point which is possibly one of
+the last point which is possibly one of the most interesting points is that by
+the most interesting points is that by allowing by checking your configuration
+allowing by checking your configuration into source control and by having these
+into source control and by having these simple Python scripts that you can edit
+simple Python scripts that you can edit you're empowering your developers to
+you're empowering your developers to take ownership of tests and add tests
+take ownership of tests and add tests like if you traditionally you might have
+like if you traditionally you might have like a person that owns the build server
+like a person that owns the build server or maybe team of people that owns the
+or maybe team of people that owns the build server and that if your game
+build server and that if your game coders want to add a test or they want
+coders want to add a test or they want to make some change do this they don't
+to make some change do this they don't have to like to talk this team of people
+have to like to talk this team of people to get that to happen and risk the way
+to get that to happen and risk the way this works
+this works anyone can make these changes to add
+anyone can make these changes to add like change things and and it turns out
+like change things and and it turns out that that is very empowering lots of
+that that is very empowering lots of people do that so people do things like
+people do that so people do things like adding validation tests or new file
+adding validation tests or new file formats or tracking the hashes of
+formats or tracking the hashes of converted data so they can make sure
+converted data so they can make sure that the asset pipeline is deterministic
+that the asset pipeline is deterministic or bigger things like a physics
+or bigger things like a physics programmer zyw out of the system to make
+programmer zyw out of the system to make compass generate heat map data for
+compass generate heat map data for collision for collision mesh so the
+collision for collision mesh so the artists can then use that to figure out
+artists can then use that to figure out which part of the map have dense
+which part of the map have dense collision that needs to be optimized and
+collision that needs to be optimized and you can find loads of examples of people
+you can find loads of examples of people all over the place that I like adding
+all over the place that I like adding their own little pieces to compass it's
+their own little pieces to compass it's a very powerful thing so there are
+a very powerful thing so there are drawbacks to doing it like this you have
+drawbacks to doing it like this you have to you have a learning curve if you have
+to you have a learning curve if you have a learning curve in terms of you have to
+a learning curve in terms of you have to learn Python and you have to learn the
+learn Python and you have to learn the compass API like the sh function I
+compass API like the sh function I showed you and there's also a learning
+showed you and there's also a learning curve in terms of you have to understand
+curve in terms of you have to understand how the build server works because it's
+how the build server works because it's different compared to other things and
+different compared to other things and there's also a set of costs like which
+there's also a set of costs like which Jenkins you could just like click a
+Jenkins you could just like click a button and saver in this command and it
+button and saver in this command and it will do it for you but with compass you
+will do it for you but with compass you have to either you can't do anything
+have to either you can't do anything until you've checked in some scripts
+until you've checked in some scripts into source control so to help people
+into source control so to help people get over that learning curve and get
+get over that learning curve and get over that set-up cost I actually set up
+over that set-up cost I actually set up all of the automation scripts for the
+all of the automation scripts for the studios like the initial versions of it
+studios like the initial versions of it and I maintained it myself originally
+and I maintained it myself originally and then I wrote tutorials and arrow
+and then I wrote tutorials and arrow documentation on how people do this
+documentation on how people do this stuff themselves and using that the
+stuff themselves and using that the people at Studios taught them how to do
+people at Studios taught them how to do this stuff and over time they've started
+this stuff and over time they've started taking responsibility for it and found
+taking responsibility for it and found that once people get that it's just the
+that once people get that it's just the Python scripts they're away they'll
+Python scripts they're away they'll build loads of stuff on top of it and
+build loads of stuff on top of it and some studios have written a huge huge
+some studios have written a huge huge systems on top of compass it's a very
+systems on top of compass it's a very good place to put extra things so a
+good place to put extra things so a quick note on provisioning so I've said
+quick note on provisioning so I've said that
+that and it it's Python to us that run on
+and it it's Python to us that run on workers so we need Python but we also
+workers so we need Python but we also need Visual Studio and PlayStation and
+need Visual Studio and PlayStation and Xbox SDK so how do we get all that
+Xbox SDK so how do we get all that software onto the workers so we
+software onto the workers so we currently manage all suffer installation
+currently manage all suffer installation using something called puppets which is
+using something called puppets which is open-source software and the way it
+open-source software and the way it works is each worker has the puppets
+works is each worker has the puppets service that's every 20 minutes connects
+service that's every 20 minutes connects to a puppet master which knows what
+to a puppet master which knows what should be installed and the worker then
+should be installed and the worker then compares that against what is currently
+compares that against what is currently installed and together they figure out
+installed and together they figure out what needs to be uninstalled or what new
+what needs to be uninstalled or what new software needs to be installed and it
+software needs to be installed and it means that everything needs to be
+means that everything needs to be installed via scripts and installing
+installed via scripts and installing things via command line is not always
+things via command line is not always the happiest path on Windows and puppet
+the happiest path on Windows and puppet comes from Linux originally so there is
+comes from Linux originally so there is an amount of work involved in writing
+an amount of work involved in writing all of those scripts and in fact it's a
+all of those scripts and in fact it's a person's pretty much full-time job to
+person's pretty much full-time job to manage all of that stuff across all of
+manage all of that stuff across all of the Call of Duty Studios there also
+the Call of Duty Studios there also issues with doing it this way for
+issues with doing it this way for example if you run an install on a
+example if you run an install on a hundred workers you might find that or
+hundred workers you might find that or one or two workers the install failed
+one or two workers the install failed for some reason and then the build will
+for some reason and then the build will fail on that worker and someone has
+fail on that worker and someone has their manually going to figure out
+their manually going to figure out what's wrong and apply some kind of fix
+what's wrong and apply some kind of fix and we sometimes also have to pause
+and we sometimes also have to pause compass because it could take up to 20
+compass because it could take up to 20 minutes for everything to have installed
+minutes for everything to have installed this new software and in that time
+this new software and in that time you're kind of in limbo so you might
+you're kind of in limbo so you might need to pause it and once the new
+need to pause it and once the new software has been installed there is no
+software has been installed there is no way to then go back and run and all the
+way to then go back and run and all the bills because that would expect the
+bills because that would expect the older SDK to be used so it kind of
+older SDK to be used so it kind of defeats some of the benefits that you
+defeats some of the benefits that you get from checking your configuration
+get from checking your configuration into source control so we're looking at
+into source control so we're looking at the possibility of using Windows
+the possibility of using Windows containers to solve some of those
+containers to solve some of those problems that I've just mentioned so
+problems that I've just mentioned so containers are little lightweight VMs
+containers are little lightweight VMs that you install all of your software
+that you install all of your software into and then you can upload those to
+into and then you can upload those to all your workers and the workers going
+all your workers and the workers going to switch between containers almost
+to switch between containers almost instantly so it's still a very new
+instantly so it's still a very new technology but we're talking to people
+technology but we're talking to people at Mike
+at Mike soft and Sony about ironing our last few
+soft and Sony about ironing our last few wrinkles and we're pretty hopeful that
+wrinkles and we're pretty hopeful that we'll be able to start switching to
+we'll be able to start switching to containers this year so next I wanted to
+containers this year so next I wanted to talk a bit about two relatively unusual
+talk a bit about two relatively unusual features in compass namely arrow
+features in compass namely arrow bucketing and auto retrying so an
+bucketing and auto retrying so an interesting thing we do encompasses
+interesting thing we do encompasses arrow bucketing so when you do loads of
+arrow bucketing so when you do loads of automated testing like these 50000 tasks
+automated testing like these 50000 tasks per day some of them are going to fail
+per day some of them are going to fail and they're not always going to be tied
+and they're not always going to be tied to specific check-ins sometimes things
+to specific check-ins sometimes things just feel randomly for example defecates
+just feel randomly for example defecates sometimes fail in mysterious ways or it
+sometimes fail in mysterious ways or it might be a booking the asset conversion
+might be a booking the asset conversion which left something in a funny state
+which left something in a funny state which means tasks who then fail when
+which means tasks who then fail when they hit this specific worker and might
+they hit this specific worker and might not always be immediately like obvious
+not always be immediately like obvious what's causing these things so we've
+what's causing these things so we've added this feature to track the
+added this feature to track the occurrence of errors and to make it
+occurrence of errors and to make it easier to figure out how often they
+easier to figure out how often they happen and when they started happening
+happen and when they started happening so encompass any time a task fails we
+so encompass any time a task fails we produce a single sentence summary of
+produce a single sentence summary of that error called the error key and we
+that error called the error key and we get this by looking at the log file we
+get this by looking at the log file we look at the error logs in the lock file
+look at the error logs in the lock file so for example this group of Airlines
+so for example this group of Airlines here and then based on those lines we
+here and then based on those lines we generate this arrow key so in this
+generate this arrow key so in this example it would be this it's it's an
+example it would be this it's it's an assert and the task failure is then book
+assert and the task failure is then book assured based on that arrow key so each
+assured based on that arrow key so each bucket contains all of the tasks that
+bucket contains all of the tasks that failed with that arrow key so whether
+failed with that arrow key so whether it's an assert in the game or whether
+it's an assert in the game or whether it's a problem connecting to a deaf kid
+it's a problem connecting to a deaf kid or whether it's an energy to a worker
+or whether it's an energy to a worker running out of memory all of these
+running out of memory all of these things are grouped into their own
+things are grouped into their own buckets so this idea is quite common you
+buckets so this idea is quite common you might maybe when you send your game out
+might maybe when you send your game out you might collect fresh dumps and then
+you might collect fresh dumps and then you might take the call stack of those
+you might take the call stack of those crush tons and then buckets the crashes
+crush tons and then buckets the crashes based on those call stacks this is
+based on those call stacks this is basically the same idea but we're using
+basically the same idea but we're using log file log messages and log errors to
+log file log messages and log errors to look at them instead of using
+look at them instead of using don't call stacks so this era book thing
+don't call stacks so this era book thing then gives us some very useful
+then gives us some very useful information so this is the the era book
+information so this is the the era book at page 4 unable to allocate memory
+at page 4 unable to allocate memory error so as you can see it has this this
+error so as you can see it has this this little calendar view
+little calendar view so each square represents a day and the
+so each square represents a day and the color of the square represents the
+color of the square represents the number of times that this error happened
+number of times that this error happened on that day so the darker it is the more
+on that day so the darker it is the more times it happened so this allows you to
+times it happened so this allows you to really easily see like if you had a
+really easily see like if you had a build and it has an error in you really
+build and it has an error in you really easily see has it happened before and
+easily see has it happened before and how often is it happening and when did
+how often is it happening and when did it start happening so in this example
+it start happening so in this example you can hover over here and you can see
+you can hover over here and you can see that the first recorded occurrence is on
+that the first recorded occurrence is on the 6th of October which is probably
+the 6th of October which is probably when we started tracking that and you
+when we started tracking that and you can see that there's been an uptick in
+can see that there's been an uptick in out of memory errors since January and
+out of memory errors since January and then further down the page you can see a
+then further down the page you can see a list of recent occurrences so you can
+list of recent occurrences so you can see the task that is happening in and as
+see the task that is happening in and as you can see is happening a lot in the
+you can see is happening a lot in the run game MP battle xb3 task so that
+run game MP battle xb3 task so that means that on Xbox one the MP battle map
+means that on Xbox one the MP battle map is out of memory and sometimes errors
+is out of memory and sometimes errors are happening on specific resources and
+are happening on specific resources and you can see there's a column way you can
+you can see there's a column way you can see what resource or what deaf gets or
+see what resource or what deaf gets or work or something happened on so you can
+work or something happened on so you can spot that kind of pattern very easily as
+spot that kind of pattern very easily as well and if we also show the screenshots
+well and if we also show the screenshots at the end so if there's a person in
+at the end so if there's a person in that you can kind of quickly go to that
+that you can kind of quickly go to that and you can also associate information
+and you can also associate information with the error books itself so for
+with the error books itself so for example this error has a bug a link to a
+example this error has a bug a link to a book associated with it so this is super
+book associated with it so this is super useful like if you have an error in your
+useful like if you have an error in your build this will allow you to immediately
+build this will allow you to immediately see has this happened before and if so
+see has this happened before and if so you can like go and visit the book and
+you can like go and visit the book and see is anyone working on it what's the
+see is anyone working on it what's the conversation been about this so far
+conversation been about this so far maybe it's already me physics but it
+maybe it's already me physics but it hasn't been integrated into your branch
+hasn't been integrated into your branch yet so all this information you can get
+yet so all this information you can get by tying errors in your build server
+by tying errors in your build server with a book tracker another feature that
+with a book tracker another feature that we have is related to error pocketing is
+we have is related to error pocketing is called auto retry so auto retry refers
+called auto retry so auto retry refers to the automatic retrying of tasks
+to the automatic retrying of tasks failed and to be honest the idea of
+failed and to be honest the idea of automatically retrying tasks used to
+automatically retrying tasks used to horrify me I used to think that if you
+horrify me I used to think that if you have errors that's due to books and you
+have errors that's due to books and you should fix all of the books in your
+should fix all of the books in your continuous integration in your build but
+continuous integration in your build but it turns out that sometimes you might
+it turns out that sometimes you might have books that don't happen very often
+have books that don't happen very often maybe they're rare books maybe in your
+maybe they're rare books maybe in your game and maybe fix in that particular
+game and maybe fix in that particular book is not on people's top priority
+book is not on people's top priority list at that time and sometimes there
+list at that time and sometimes there might even be things that are beyond
+might even be things that are beyond your control and if you keep these
+your control and if you keep these errors lingering in your bills
+errors lingering in your bills then it'll keep going red and it will
+then it'll keep going red and it will keep like sending people email saying
+keep like sending people email saying broken the pills and it will keep making
+broken the pills and it will keep making that big status page go red and it kind
+that big status page go red and it kind of it degrades the faith that people
+of it degrades the faith that people have in your system for detecting errors
+so what we did is for each error buckets you can specify an action and any time a
+you can specify an action and any time a task fails with that error this action
+task fails with that error this action will happen so for example you could say
+will happen so for example you could say if this particular error happens then
+if this particular error happens then retry that task up to three times and
+retry that task up to three times and that'd be perfect for some kind of rare
+that'd be perfect for some kind of rare race condition book in your game that
+race condition book in your game that you don't want to pollute you buy your
+you don't want to pollute you buy your console page let's say another thing
+console page let's say another thing that we can do is enable cool downloads
+that we can do is enable cool downloads so let's say you have error and it only
+so let's say you have error and it only happens on a particular resource it's
+happens on a particular resource it's tied to a specific resource what can
+tied to a specific resource what can happen then like let's say your resource
+happen then like let's say your resource your worker PC or your deaf kids are out
+your worker PC or your deaf kids are out of disk-based maybe and every single
+of disk-based maybe and every single time a task runs on this particular
+time a task runs on this particular worker it'll fail immediately you can
+worker it'll fail immediately you can get into a situation where lots of tasks
+get into a situation where lots of tasks hit this one worker very quickly and
+hit this one worker very quickly and it'll generate loads of errors in your
+it'll generate loads of errors in your build and so this cool down mode is
+build and so this cool down mode is perfect for that because it means that
+perfect for that because it means that whenever a task hits this error the
+whenever a task hits this error the resource the worker or deaf kit that it
+resource the worker or deaf kit that it ran on gets put into a cool-down mode
+ran on gets put into a cool-down mode where it's not allowed to run any more
+where it's not allowed to run any more tasks for a couple of minutes and then
+tasks for a couple of minutes and then we retry that worker on the we retry
+we retry that worker on the we retry that task on a different worker so it
+that task on a different worker so it kind of
+kind of it's you still have to go and fix that
+it's you still have to go and fix that our deaf kids but it changes it from
+our deaf kids but it changes it from being like a kind of dramatic problem
+being like a kind of dramatic problem where everything goes red and it needs
+where everything goes red and it needs solving right now this is something that
+solving right now this is something that someone can deal with in due time a
+someone can deal with in due time a couple of hours and then the other thing
+couple of hours and then the other thing we do is we have a disabled note so if
+we do is we have a disabled note so if you know that this resource if it's this
+you know that this resource if it's this error it's just not going to be usable
+error it's just not going to be usable again then you can just have it
+again then you can just have it automatically be disabled and no more
+automatically be disabled and no more tasks you'll know if ever and this can
+tasks you'll know if ever and this can potentially also be useful if there was
+potentially also be useful if there was a particular error and when this error
+a particular error and when this error happens you want to keep the state of
+happens you want to keep the state of that worker PC exactly as it is so you
+that worker PC exactly as it is so you can look into it you could use it for
+can look into it you could use it for that as well so the system does turn out
+that as well so the system does turn out to be very useful it saves the build
+to be very useful it saves the build maintain is a lot of time they don't
+maintain is a lot of time they don't necessarily need to look into super rare
+necessarily need to look into super rare intermittent failures as much and it
+intermittent failures as much and it means that they can spend more time on
+means that they can spend more time on more grave things one thing one piece of
+more grave things one thing one piece of feedback that have had is that some
+feedback that have had is that some people find it unnerving to see a task
+people find it unnerving to see a task go red and then have it retried and so
+go red and then have it retried and so you've got green so I would recommend if
+you've got green so I would recommend if you do something like this that you
+you do something like this that you allow some way to surface those errors
+allow some way to surface those errors and you want to hide the errors from
+and you want to hide the errors from people that don't care of them like
+people that don't care of them like artists maybe but there might be people
+artists maybe but there might be people that do care about them like the build
+that do care about them like the build maintainer so they do need a way still
+maintainer so they do need a way still to be able to see all that stuff
+to be able to see all that stuff happened so what problems did we have
+happened so what problems did we have with compass what was hard about writing
+with compass what was hard about writing compass writing a fully-featured build
+compass writing a fully-featured build server took a long time over all it took
+server took a long time over all it took many years but I started with a very
+many years but I started with a very simple tool I didn't set out to write
+simple tool I didn't set out to write like a grand a grand system I started
+like a grand a grand system I started with a very simple thing and then you
+with a very simple thing and then you just kind of slowly grew over time one
+just kind of slowly grew over time one definite pain point was stability so for
+definite pain point was stability so for automated testing itself if the test
+automated testing itself if the test fails every now and again it's not the
+fails every now and again it's not the end of the world necessarily but if your
+end of the world necessarily but if your build server is the thing that gets
+build server is the thing that gets relied on for making gold master bills
+relied on for making gold master bills and you try to ship your game it needs
+and you try to ship your game it needs to be 100 percent rock-solid and it is
+to be 100 percent rock-solid and it is now but we definitely have had problems
+now but we definitely have had problems in the past for example at one point we
+in the past for example at one point we relied on a Python package that had
+relied on a Python package that had with it and what would happen is if a
+with it and what would happen is if a person cancelled the task we would use
+person cancelled the task we would use this package to terminate the process
+this package to terminate the process associated with that task and all of the
+associated with that task and all of the child processes the whole process tree
+child processes the whole process tree but due to a bug in this package it
+but due to a bug in this package it would occasionally also terminate a
+would occasionally also terminate a random of the process and very
+random of the process and very occasionally this other random process
+occasionally this other random process will be compas itself and so all of
+will be compas itself and so all of compass reboots and all the tasks would
+compass reboots and all the tasks would stop and that was quite tricky and quite
+stop and that was quite tricky and quite stressful to debug while hundreds and
+stressful to debug while hundreds and hundred people are relying near stuff to
+hundred people are relying near stuff to work
+we have also run into issues of scalability is obviously easy to write
+scalability is obviously easy to write something that runs on a couple of pcs
+something that runs on a couple of pcs under your desk but when we started
+under your desk but when we started scaling up to hundreds of VMs at
+scaling up to hundreds of VMs at Infinity Ward then there were definitely
+Infinity Ward then there were definitely places where I had to go back in and
+places where I had to go back in and optimize things and another thing that
+optimize things and another thing that we struggled with which I guess isn't
+we struggled with which I guess isn't related necessarily to a compass is
+related necessarily to a compass is moving data around when you have 300 dev
+moving data around when you have 300 dev kits and they're constantly running
+kits and they're constantly running these tests it consumes you need to it
+these tests it consumes you need to it consumes a lot of data it consumes a lot
+consumes a lot of data it consumes a lot of game data right so it can like take a
+of game data right so it can like take a lot of network bandwidth so we've done
+lot of network bandwidth so we've done various thing to try and reduce that so
+various thing to try and reduce that so we don't upload all of the data to the
+we don't upload all of the data to the console and then run it like that we
+console and then run it like that we have the console stream the data so it's
+have the console stream the data so it's not uploading textures and uploading
+not uploading textures and uploading audio files that's not going to use and
+audio files that's not going to use and also we try and not transfer things that
+also we try and not transfer things that haven't changed either by taking on our
+haven't changed either by taking on our data and chopping you up into little
+data and chopping you up into little bits and only transferring the bits that
+bits and only transferring the bits that I've changed or another method that one
+I've changed or another method that one of the studio's uses is we have like a
+of the studio's uses is we have like a nightly build that we upload to all of
+nightly build that we upload to all of the deaf kits and then each build after
+the deaf kits and then each build after that is uploaded as a patch on that base
+that is uploaded as a patch on that base build and then maintenance maintaining
+build and then maintenance maintaining the automation RIT on top of compost
+the automation RIT on top of compost texture take up a lot of time again it's
+texture take up a lot of time again it's not necessarily specific to campus but
+not necessarily specific to campus but if you have a lot of this stuff running
+if you have a lot of this stuff running you just have to churn tune from your
+you just have to churn tune from your game and your tooling changing
+game and your tooling changing maybe something runs out of disk space
+maybe something runs out of disk space or you've overloaded your servers the
+or you've overloaded your servers the behavior of deaf kits can change as they
+behavior of deaf kits can change as they get flashed to the newer versions and
+get flashed to the newer versions and there's just a constant a number of
+there's just a constant a number of things that you'll have to deal with and
+things that you'll have to deal with and that's why write stuff like the Auto
+that's why write stuff like the Auto retry to try and reduce the workload
+retry to try and reduce the workload that's associated with that so I've
+that's associated with that so I've shown you various features of compass
+shown you various features of compass the console page curve overview page I
+the console page curve overview page I ended up writing a build server from
+ended up writing a build server from scratch but I don't necessarily expect
+scratch but I don't necessarily expect everyone in the audience to start
+everyone in the audience to start writing around build server that'd be a
+writing around build server that'd be a bit crazy so to finish up with I wanted
+bit crazy so to finish up with I wanted to give you some tips on how you might
+to give you some tips on how you might able to implement the features that I've
+able to implement the features that I've shown you on top of your own existing
+shown you on top of your own existing systems so all the web app UI that I've
+systems so all the web app UI that I've shown you like the console page and the
+shown you like the console page and the peripheral view page they're all written
+peripheral view page they're all written in Python and flask so flask is really
+in Python and flask so flask is really easy to get started with there's lots of
+easy to get started with there's lots of tutorials and the Internet's and so if
+tutorials and the Internet's and so if you wanted to write something like this
+you wanted to write something like this what you could do one approach would be
+what you could do one approach would be to have your existing test code write
+to have your existing test code write data to a JSON file or to my sequel
+data to a JSON file or to my sequel server and then you could write a little
+server and then you could write a little flash web that would then pull that and
+flash web that would then pull that and then present that to the user and
+then present that to the user and something like a periphery page would be
+something like a periphery page would be pretty straightforward to make like that
+pretty straightforward to make like that of course those are the ways and some
+of course those are the ways and some build servers might allow you to write a
+build servers might allow you to write a Java plug-in so that would be another
+Java plug-in so that would be another approach so another thing I showed you
+approach so another thing I showed you was this the tracking and graphing of
+was this the tracking and graphing of performance and memory stats so for this
+performance and memory stats so for this you could take a look at in flux DB and
+you could take a look at in flux DB and graph honor so in flux DB and graph
+graph honor so in flux DB and graph honor are both also open source software
+honor are both also open source software in flux DB is a database like my sequel
+in flux DB is a database like my sequel but it's specifically designed to store
+but it's specifically designed to store stats metrics so you could have your
+stats metrics so you could have your automated tests upload data into you in
+automated tests upload data into you in flux DB and then you use go fan Agra fan
+flux DB and then you use go fan Agra fan is like a web app which allows you to
+is like a web app which allows you to build custom graphs and build custom
+build custom graphs and build custom dashboards and it can pull data from all
+dashboards and it can pull data from all kinds of sources like Prometheus and
+kinds of sources like Prometheus and influx DB an elastic
+influx DB an elastic and we actually used this stack as well
+and we actually used this stack as well with call of duty so we have the kind of
+with call of duty so we have the kind of basic graphs that we use inside the
+basic graphs that we use inside the build server but for writing more custom
+build server but for writing more custom dashboards or for writing more
+dashboards or for writing more complicated graphs we didn't want to
+complicated graphs we didn't want to like rewrite all of this kind of stuff
+like rewrite all of this kind of stuff in the build server so we also all the
+in the build server so we also all the metrics also get piped into in flux DB
+metrics also get piped into in flux DB and anyone can then write their own
+and anyone can then write their own dashboard a goof on also allows you to
+dashboard a goof on also allows you to alert things so one thing that you might
+alert things so one thing that you might be able to do is send your memory stats
+be able to do is send your memory stats into influx DB and then with graph an
+into influx DB and then with graph an you could detect when it goes over a
+you could detect when it goes over a certain memory budget let's say and then
+certain memory budget let's say and then could send you like a slack notification
+could send you like a slack notification or an email or something like that and
+or an email or something like that and then finally if your build server
+then finally if your build server doesn't support configurations code you
+doesn't support configurations code you might be able to get some of the
+might be able to get some of the benefits by moving some of your logic
+benefits by moving some of your logic out of the build servers GUI and into
+out of the build servers GUI and into scripts that you check into source
+scripts that you check into source control so instead of using a bunch of
+control so instead of using a bunch of specialized steps for running different
+specialized steps for running different batch files or whatever you could have a
+batch files or whatever you could have a single run shell script and that can
+single run shell script and that can then execute the Python script and that
+then execute the Python script and that could then sink more stuff from source
+could then sink more stuff from source control there are drawbacks like there
+control there are drawbacks like there are sort of trade-offs for this for
+are sort of trade-offs for this for example obviously if you put everything
+example obviously if you put everything into one step the default behavior would
+into one step the default behavior would be that all the log outputs would appear
+be that all the log outputs would appear in one place and also it means that if
+in one place and also it means that if you use any like Jenkins plugins for
+you use any like Jenkins plugins for example like for example the building of
+example like for example the building of a visual studio solution you might have
+a visual studio solution you might have to like rewrite some of that stuff
+to like rewrite some of that stuff yourself so that's a story of compass I
+yourself so that's a story of compass I hope this is giving you bittern insights
+hope this is giving you bittern insights into what goes on to making call of duty
+into what goes on to making call of duty and making all the automated testing and
+and making all the automated testing and profiling happening cool duty and I just
+profiling happening cool duty and I just don't thank all my colleagues at
+don't thank all my colleagues at Activision Central and all the activist
+Activision Central and all the activist videos because automated testing at the
+videos because automated testing at the skills huge and without all of their
+skills huge and without all of their help this would not be possible and
+help this would not be possible and finally if you'd like to talk to me
+finally if you'd like to talk to me about any of these things or if you have
+about any of these things or if you have any questions about how we do stuff I'd
+any questions about how we do stuff I'd be very happy to answer questions so
+be very happy to answer questions so please feel free to get in touch also
+please feel free to get in touch also rose and look out for talented people so
+rose and look out for talented people so if you're interested in that please
+if you're interested in that please such as well thank you very much
+such as well thank you very much [Applause]

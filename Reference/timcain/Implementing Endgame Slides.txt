@@ -1,0 +1,282 @@
+hi everyone it's me Tim and today I want
+to talk to you about implementing
+endgame
+slides I know I've talked about slides
+before and in a way this is going to be
+a companion video to the one I did last
+month on how to do the beginning of
+video games but end slides is something
+that I've done in a lot of my games
+starting with Fallout my games are kind
+of known for having choice and content
+quence called
+CNC which just a side note CNC used to
+refer to the game command and Conquer
+and for a brief period in the 90s the
+CNC Music Factory that song I got the
+power very popular in that Simpsons
+episode where Homer thinks Bart's gay
+anyway it was a really funny period of
+time where people started talking
+about the CNC in my games and I had no
+no idea what they were talking about
+because CNC was already a well-used uh
+acronym anyway so choice and consequence
+basically it means in my games you
+usually have many choices you can
+make and a lot of those have
+consequences that happen during the game
+some happen right away some happen
+during the game but a few of them have
+very long-term
+consequences
+and one of the things that we wanted to
+do ever since back in Fallout was
+replayability of our games we've we put
+so much choice in the game that there's
+no way you can experience all the
+content in one playthrough you just
+can't I mean if you kill someone you're
+not going to talk to them if you you
+know rescue Tandy she's not going to get
+killed by the Raiders so it's just real
+choice and consequence usually means you
+have to replay the game because of that
+I wanted the game to show what the
+long-term consequences of your choices
+were and that led to us put putting in
+slides and the slides worked out really
+well in Fallout and we had such a good
+time doing it for
+Arcanum we tried to make even more um we
+did it also on Temple uh we did to some
+extent on
+vampire
+um and then we brought it back for outer
+worlds I want to talk to you about how
+we implemented them and how some things
+were easier than we thought and other
+things were
+suffer basically these slides are
+implemented by using a set of tracking
+variables as the game is played we
+record decisions the player makes
+now some of those tracking variables are
+specific for slides but you would be
+surprised how
+many variables already
+exist to do other things so you don't
+really need to make new variables just
+to use for slides for example Le while
+the player is playing the game they're
+doing quests and some of them they're
+completing and that gets stored some of
+them they fail that gets stored there
+also
+frequently narrative designers store
+variables to remember what path the
+player took in the dialogue
+or variables are used to record what
+achievements that the player got while
+they were playing the game so in
+addition the end slides in addition to
+looking at particular variables that are
+stored for the purpose of the end slides
+to look at they can also look at what
+quest you finished or what quest you
+failed what achievements you got um some
+of the things you may have said in
+dialogue whether or not certain NPCs are
+dead what the rea the ones that are
+living what their reaction state to the
+player is and also what the uh what
+factions have certain reactions to you
+so you can look up like does this
+faction love the player or vilify the
+player those kind of things I mean you'd
+be surprised when you go and look at the
+game State data what's saved away in a
+save game how many end slides you could
+make just based on that data alone
+so what we always did is we made a bunch
+of end slides based on that entire set
+of data the the specific tracking data
+but then all the other things as well
+and it turned out quickly that this
+these end slides were extraordinarily
+dependent on the narrative designers so
+you you really have to get them on board
+with wanting to do this because they're
+the ones that are ultimately going to
+know all the big decisions and Choice
+points that the player's going to make
+throughout the story and any of them
+that can't be tracked via Quest or
+achievement or any of the other
+variables are going to need specific
+slide variables or basically Global
+variables that are used only by the slid
+show at the end and the reason these
+slides are going to be super dependent
+on your narrative designers are you're
+going to have they're going to have to
+be responsible for tracking all those
+important
+events they're going to have to be
+responsible for making sure that they
+have slides for all those events and
+that may seem simple but a lot of those
+slides are you're going to have to be
+very careful about overlapping or
+interdependent events for example you
+may have a slide
+if if you kill person a and person B
+becomes the ruler you want to slide for
+them that but if you kill and and if you
+kill person B and person a becomes the
+ruler you want to slide for that but
+what if you don't kill either of them
+who becomes the ruler then what if you
+kill both of them who becomes the ruler
+then just just right there you have four
+potential slides you're going to have to
+make maybe there's a a co- rolling side
+where a and b roll together or get
+married or whatever um and then if you
+kill both of them maybe it causes an
+uproar in the Kingdom so you need slides
+for all this and you need to make sure
+that your narrative designers are
+tracking these things one thing that
+happened in several of my games where
+and people discovered this when they
+went to mod them later is the logic
+wasn't correct in the slides and either
+a slide showed up when it shouldn't have
+or the slide just didn't show up and I
+talked about this when I said designers
+did a lot of QA of the game at the end
+because they were the ones who had to
+look to see if the game was doing what
+people wanted QA can only tell you if
+the game seems to do something strange
+or buggy they can tell you that it seems
+to be an error they can't always catch
+hey the game did this but the design
+said it should do this the designers are
+the best ones to catch that similarly if
+you see a slide
+appear and you didn't do anything to
+make it happen you can report that and
+go I don't understand why this slide
+came up about you know A and B ruling
+together because I killed both A and B
+but if a slide doesn't appear that was
+supposed
+to if you're not the narrative designer
+in charge of that you had no idea that
+slide was supposed to appear so there's
+no bug to enter it wasn't hey I killed a
+and b and it didn't say anything about
+it it was you did a lot of things it
+doesn't say about you don't know that's
+a bug so a big problem we've run into on
+end slides is the narrative designers
+really have to own and track that system
+now there is some dependency in end
+slides on Art because you know their
+pieces start and somebody has to make
+them but since they're usually
+unanimated slides sometimes done in 2D
+but sometimes you can just use
+screenshots from the game you could take
+a picture of a town and a screenshot of
+a town and say this town thrived you
+could take a picture of that town when
+it's being attacked by Bandits or when
+it's burning or on fire or something and
+saying this town didn't survive and it's
+perfectly fine and players are more
+interested in what the narrator is
+saying than particularly what's on the
+slide as long as the slid supports it so
+we found that the slides themselves
+weren't that big of a generation cost it
+was bigger for the narrative
+people now because of all these
+dependencies despite me wanting a lot of
+end slides my games have literally
+varied on how many end slides they've
+had how many conditions we caught how
+many different slides we end up showing
+now believe me when I tell you the goal
+is always to have as many as possible CU
+it's very disappointing when you did
+something that you thought were was
+important and then the game doesn't
+recognize it at the end the whole point
+of
+CNC is to have the game recognize at
+some point all the major decisions you
+made turns out by necessity Ides kind of
+have to come last you have to have all
+those quests in place you have to have
+those NPCs in place and they have to be
+debugged because if you spend time
+making ins slides and then take out a
+quest or remove an entire area which
+means you may lose some NPCs then you've
+made a lot of stuff for nothing so
+because of that end slides tend to be
+made at the very end of game development
+well the other two big things that
+happen to the end of game development
+are bug fixing and
+optimization and those things always
+take priority over the end slides so
+while it's true that your narrative
+designers and your artists tend to have
+the most free time towards the end it's
+the
+programmers um and the uh n QA that are
+super busy right at the end of a
+game sometimes you just can't spare the
+resources to implement the end slides
+so my games have always had a varying
+amount of end slides and trust me when I
+say I always wanted more but I'm usually
+happy with what I got if you are
+planning to make end slides yourself
+what I would do is as you're making the
+game every single Choice point ask
+yourself is this something that's going
+to show a con consequence right away or
+at some point later in the game and if
+yes great if
+not ask yourself is this something
+that's going to have a long-term effect
+that's pretty major and if so write down
+what the different slides are your need
+for that choice point and move on that
+way when you get to the end of the game
+you have this list of slides you want to
+show you can decide how many of those
+can already be determined from variables
+you already have
+and then the few that don't you need to
+go into a dialogue or script and set
+that variable so you know that the
+player made that particular choice and
+then you can have that slide come up
+this is something that in Fallout we
+scrambled to do it at the end and then
+in Arcanum and Temple and vampire we
+thought a headon and for outer worlds we
+thought of it right from the very
+beginning we were paying attention to
+things like that anyway I hope this
+helps you implement
+end game slides and I hope you think of
+them as a nice bookend to how you choose
+to begin your
+game

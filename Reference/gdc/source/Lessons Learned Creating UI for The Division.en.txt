@@ -1,0 +1,1162 @@
+[Music] hello just gonna start off with the
+hello just gonna start off with the basics
+basics please put your cell phones on quiet
+please put your cell phones on quiet otherwise I'm gonna get very distracted
+otherwise I'm gonna get very distracted and it'll be really funny and also don't
+and it'll be really funny and also don't forget to fill in your evaluations at
+forget to fill in your evaluations at the end of the session so that hopefully
+the end of the session so that hopefully I can get invited back so my name is
+I can get invited back so my name is Chris savoir and I was the lead UI
+Chris savoir and I was the lead UI programmer on Tom Clancy's the division
+programmer on Tom Clancy's the division in my role I created the UI solution
+in my role I created the UI solution that we use in the game and I had the
+that we use in the game and I had the fortunate opportunity to help develop a
+fortunate opportunity to help develop a lot of the core technologies used in the
+lot of the core technologies used in the snowdrop engine today I'd like to share
+snowdrop engine today I'd like to share some of the hard lessons that we learned
+some of the hard lessons that we learned while building the UI system for
+while building the UI system for snowdrop and the division for those who
+snowdrop and the division for those who haven't played it Tom Clancy's the
+haven't played it Tom Clancy's the division is a third-person cover based
+division is a third-person cover based shooter online RPG it's a Tom Clancy
+shooter online RPG it's a Tom Clancy game where you play as a high tech
+game where you play as a high tech government agent during the fall of New
+government agent during the fall of New York due to a virus outbreak one of the
+York due to a virus outbreak one of the key pieces of technology is an AR system
+key pieces of technology is an AR system that links your character to the central
+that links your character to the central AI system Isaac which will feed your
+AI system Isaac which will feed your character with information about your
+character with information about your current situation and the world around
+current situation and the world around you so it was very early on that we
+you so it was very early on that we decided that we wanted to make a fully
+decided that we wanted to make a fully digest
+every UI element that went into the game was framed in the idea that this wasn't
+was framed in the idea that this wasn't just for the player but also for the
+just for the player but also for the character that you play so here's the
+character that you play so here's the plan for today
+plan for today I'll start by covering a bit how our
+I'll start by covering a bit how our node graph and UI technology work then I
+node graph and UI technology work then I want to talk about the importance of
+want to talk about the importance of rapid iteration and the various things
+rapid iteration and the various things that we did to improve it after that
+that we did to improve it after that I'll get into some of the gritty details
+I'll get into some of the gritty details of how we work and some of the
+of how we work and some of the performance issues that we faced and in
+performance issues that we faced and in the final part I just have some general
+the final part I just have some general lessons about what went well and what we
+lessons about what went well and what we would like to improve upon in the future
+so what makes no drop so special the division was the first game to ship on
+division was the first game to ship on the snowdrop engine that we developed at
+the snowdrop engine that we developed at massive at the heart of our engine lies
+massive at the heart of our engine lies a powerful node graph visual scripting
+a powerful node graph visual scripting system the single system is used to
+system the single system is used to create content for many parts of the
+create content for many parts of the engine from familiar shaders and
+engine from familiar shaders and scripting but also for particle systems
+scripting but also for particle systems graphical objects animations and
+graphical objects animations and behaviors and many more including of
+behaviors and many more including of course UI as a quick example of how it
+course UI as a quick example of how it all works I recorded myself doing a
+all works I recorded myself doing a quick healthbar prototype first I output
+quick healthbar prototype first I output the health as text by concatenating the
+the health as text by concatenating the current and maximum health though you
+current and maximum health though you should try to avoid concatenated strings
+should try to avoid concatenated strings because it doesn't really work well with
+because it doesn't really work well with localization but in this example it's
+localization but in this example it's okay so I just do a quick test here to
+okay so I just do a quick test here to make sure that the values are responding
+make sure that the values are responding I'm then just gonna add a bit of a
+I'm then just gonna add a bit of a background to the element that's going
+background to the element that's going to change color based on your total
+to change color based on your total health I also add a blurred background
+health I also add a blurred background to it mostly out of habit but this
+to it mostly out of habit but this really is what adds a lot of readability
+really is what adds a lot of readability to the UI elements in our game I use a
+to the UI elements in our game I use a gradient to transition the colors as you
+gradient to transition the colors as you get damaged so green for good and red
+get damaged so green for good and red for red give it a test it's all working
+for red give it a test it's all working as designed now I'm just going to move
+as designed now I'm just going to move it into 3d space so and then I attach it
+it into 3d space so and then I attach it to the player
+to the player unfortunately we move it into 3d it gets
+unfortunately we move it into 3d it gets really really huge so I need to scale it
+really really huge so I need to scale it down a bit and then I just move it above
+down a bit and then I just move it above the players head since the player
+the players head since the player position is generally at the foot and
+position is generally at the foot and then I basically just enable it and game
+then I basically just enable it and game hit save and then we have a new piece of
+hit save and then we have a new piece of UI running in the game so you might have
+UI running in the game so you might have noticed that at no point was there any
+noticed that at no point was there any direct manipulation of the UI this is
+direct manipulation of the UI this is one of the main differences in the
+one of the main differences in the snowdrop UI system is that we have no
+snowdrop UI system is that we have no canvas to be honest this just started
+canvas to be honest this just started with a problem of time we focused on
+with a problem of time we focused on developing the node system first before
+developing the node system first before the UI tools but every time the topic
+the UI tools but every time the topic came up to add direct canvas
+came up to add direct canvas manipulation it didn't really feel worth
+manipulation it didn't really feel worth the time investment another big
+the time investment another big difference is that we run in immediate
+difference is that we run in immediate mode instead of retained mode put simply
+mode instead of retained mode put simply this just means that we redraw the UI
+this just means that we redraw the UI every frame instead of trying to pre
+every frame instead of trying to pre generate everything on screen while this
+generate everything on screen while this does come with a performance cost it
+does come with a performance cost it also means that being dynamic and
+also means that being dynamic and flexible are at the root of the system
+flexible are at the root of the system we'll get more into the performance cost
+we'll get more into the performance cost of that later
+of that later the system is also vector graphic driven
+the system is also vector graphic driven we tend to prefer to build shapes with
+we tend to prefer to build shapes with triangles instead of using texture
+triangles instead of using texture masking this comes with a few key
+masking this comes with a few key benefits first is that we can reduce the
+benefits first is that we can reduce the GPU load by only rendering the pixels
+GPU load by only rendering the pixels that we use and the second is that our
+that we use and the second is that our tech artists can really flex their
+tech artists can really flex their creativity so this effect was made by
+creativity so this effect was made by one of our technical artists while just
+one of our technical artists while just experimenting with various data
+experimenting with various data processing and POI rendering techniques
+by using primarily vector graphics it allow us to render all the UI at 4k on
+allow us to render all the UI at 4k on ps4 Pro without really having to change
+ps4 Pro without really having to change any of the data whatsoever
+any of the data whatsoever finally our UI system is tightly
+finally our UI system is tightly integrated with our overall render
+integrated with our overall render pipeline and it uses the same shader
+pipeline and it uses the same shader backend this means that we can share
+backend this means that we can share shader techniques and have access to the
+shader techniques and have access to the same render resources as any other
+same render resources as any other system in the game like the depth and
+system in the game like the depth and the normal buffers any artist that has
+the normal buffers any artist that has made a shader for 3d object or particle
+made a shader for 3d object or particle system can easily jump in and make you a
+system can easily jump in and make you a ders for the UI since UI can just render
+ders for the UI since UI can just render overtop of everything it makes it very
+overtop of everything it makes it very easy to add new post effects into the
+easy to add new post effects into the pipeline as well many of our skill post
+pipeline as well many of our skill post effects were done in the UI system here
+effects were done in the UI system here I built a small UI to test a few of them
+I built a small UI to test a few of them out
+out I just enable it in game and hit save
+I just enable it in game and hit save and then I can just test that all these
+and then I can just test that all these effects are working well in the game to
+effects are working well in the game to get information from the game a coder
+get information from the game a coder just writes a new node to provide that
+just writes a new node to provide that information like the position or health
+information like the position or health of the entity that I used earlier to get
+of the entity that I used earlier to get more information we just add more nodes
+more information we just add more nodes we had nearly 5,500 nodes when we
+we had nearly 5,500 nodes when we shipped the recent survival DLC last
+shipped the recent survival DLC last Christmas these nodes may have been made
+Christmas these nodes may have been made for the UI but they can also be used in
+for the UI but they can also be used in any other system like graphical objects
+any other system like graphical objects to make them react to the player's
+to make them react to the player's presence here I have a turret object
+presence here I have a turret object that I made out of made out of a few
+that I made out of made out of a few different meshes identify the head parts
+different meshes identify the head parts of it and I can use the player's
+of it and I can use the player's position so that the turret will always
+position so that the turret will always face the player
+and then I just hit save and then it's updated in-game and tracking the players
+updated in-game and tracking the players position nodes in snowdrop can do much
+position nodes in snowdrop can do much more than just getting set data in the
+more than just getting set data in the UI system they act as a visual scripting
+UI system they act as a visual scripting language so we have many nodes that
+language so we have many nodes that affect the flow of execution with
+affect the flow of execution with branching and looping most of our
+branching and looping most of our systems share a high level of
+systems share a high level of interconnectivity so from the UI we can
+interconnectivity so from the UI we can add objects to the world run skills or
+add objects to the world run skills or spawn separate UI objects on the other
+spawn separate UI objects on the other side world objects and skills can also
+side world objects and skills can also spawn UI the freedom of our nodes does
+spawn UI the freedom of our nodes does come at a bit of a cost it can sometimes
+come at a bit of a cost it can sometimes be difficult to understand who's doing
+be difficult to understand who's doing what and where certain things are coming
+what and where certain things are coming from for that we do have a very thorough
+from for that we do have a very thorough dependency tracking system so you can
+dependency tracking system so you can always figure out who is owning wyden
+always figure out who is owning wyden who's the responsibility of things the
+who's the responsibility of things the snow drop graph system is also very
+snow drop graph system is also very extensible it's very easy to add new
+extensible it's very easy to add new data types to the system it's actually
+data types to the system it's actually almost too easy when I made this slide
+almost too easy when I made this slide we were up to 278 data types they range
+we were up to 278 data types they range from basic types like int or float to
+from basic types like int or float to very complex types that have custom
+very complex types that have custom behaviors and editors associated like
+behaviors and editors associated like the gradient that I showed earlier the
+the gradient that I showed earlier the numbers of types in the system doesn't
+numbers of types in the system doesn't really affect anything however since at
+really affect anything however since at runtime it all gets optimized away to
+runtime it all gets optimized away to make life easier we have a system to
+make life easier we have a system to enable automatic conversion between
+enable automatic conversion between types which you can see by the yellow
+types which you can see by the yellow lines here it's also easy to make nodes
+lines here it's also easy to make nodes that support multiple data types to
+that support multiple data types to either avoid conversion costs or to
+either avoid conversion costs or to optimize for specific cases and if code
+optimize for specific cases and if code doesn't provide enough data users can
+doesn't provide enough data users can just make their own variables using
+just make their own variables using almost any available data type and we
+almost any available data type and we also have global variables mainly store
+also have global variables mainly store content creators can just shoot
+content creators can just shoot themselves in the foot all the time
+themselves in the foot all the time while it's a bit hacky to glue systems
+while it's a bit hacky to glue systems together using global variables they
+together using global variables they can't easily solve problems that would
+can't easily solve problems that would take much more time to code a system for
+take much more time to code a system for we did ship with around 1,600 Global's
+we did ship with around 1,600 Global's actually our entire menu system was done
+actually our entire menu system was done using purely guild global variables
+using purely guild global variables which more or less worked
+the best thing to come out of having a single graph system is that in a lot of
+single graph system is that in a lot of cases work done in one system would
+cases work done in one system would benefit all systems during the
+benefit all systems during the development of our UI system we added
+development of our UI system we added better variable support timeline based
+better variable support timeline based animations and expanded on supporting
+animations and expanded on supporting arrays of data all of these features
+arrays of data all of these features have benefitted and been used in many
+have benefitted and been used in many other graph systems in the engine we
+other graph systems in the engine we also have assets in snowdrop that we
+also have assets in snowdrop that we call compounds
+call compounds they're basically node graph snippets
+they're basically node graph snippets they're used in the UI to create
+they're used in the UI to create reusable behaviors like buttons or
+reusable behaviors like buttons or common Styles like how many shadow
+common Styles like how many shadow layers to use however since they can be
+layers to use however since they can be used in any system we also have a wealth
+used in any system we also have a wealth of generic compounds that can be used
+of generic compounds that can be used just about anywhere we have about 3,000
+just about anywhere we have about 3,000 of them in having everyone work with the
+of them in having everyone work with the same language just generally helps out
+same language just generally helps out around the office as well it means that
+around the office as well it means that level scripters artists coders and
+level scripters artists coders and designers all speak the same base
+designers all speak the same base language so while each graph system
+language so while each graph system might work in slightly different ways we
+might work in slightly different ways we at least have a common ground for
+at least have a common ground for communication so that's a little taste
+communication so that's a little taste of the snowdrop engine but its biggest
+of the snowdrop engine but its biggest secret lies in its iteration times
+secret lies in its iteration times iteration is one of our core pillars in
+iteration is one of our core pillars in the snowdrop engine in every system tool
+the snowdrop engine in every system tool and piece of code we constantly think of
+and piece of code we constantly think of ways to see our changes faster and
+ways to see our changes faster and faster this starts with our code base
+faster this starts with our code base we're constantly keeping an eye on
+we're constantly keeping an eye on compile times in general compile times
+compile times in general compile times for coders is only around a minute and
+for coders is only around a minute and especially now that we've upgraded to
+especially now that we've upgraded to the visuals - in Studio 2015 compiler
+the visuals - in Studio 2015 compiler with its improved link times and it's
+with its improved link times and it's really worth upgrading to that if you if
+really worth upgrading to that if you if you haven't already it helps a lot we
+you haven't already it helps a lot we advocate both refactoring code to make
+advocate both refactoring code to make it more efficient and removing code that
+it more efficient and removing code that isn't used anymore to keep our code
+isn't used anymore to keep our code blade base as small and clean as
+blade base as small and clean as possible we also make sure startup times
+possible we also make sure startup times are very fast as well getting to the
+are very fast as well getting to the character select screen or to the start
+character select screen or to the start page of our editor is actually just a
+page of our editor is actually just a few seconds loading into Manhattan can
+few seconds loading into Manhattan can take a minute or two since it is such a
+take a minute or two since it is such a huge level but opening in our editor is
+huge level but opening in our editor is actually quite quick
+actually quite quick since were able to stream load
+since were able to stream load everything much more aggressively in
+everything much more aggressively in that case and our users can also hide
+that case and our users can also hide large parts of the level so that they
+large parts of the level so that they can work much more efficiently for the
+can work much more efficiently for the UI specifically it starts with being a
+UI specifically it starts with being a what-you-see-is-what-you-get editor
+what-you-see-is-what-you-get editor being connected to the game and seeing
+being connected to the game and seeing results immediately and it ends with
+results immediately and it ends with only having to hit save to see your
+only having to hit save to see your changes running in-game this has been
+changes running in-game this has been absolutely key to developing things like
+absolutely key to developing things like our menu system and our mega map so not
+our menu system and our mega map so not only do we build UI and see the results
+only do we build UI and see the results right away but we're always connected to
+right away but we're always connected to live data so in our editor viewport we
+live data so in our editor viewport we get a lot more flexibility to play
+get a lot more flexibility to play around with ideas or even make some
+around with ideas or even make some debug features like these debug UI
+debug features like these debug UI graphs that show our input actions
+graphs that show our input actions reacting in real-time it's not just the
+reacting in real-time it's not just the UI that updates live but nearly all data
+UI that updates live but nearly all data in our game we can save an object in the
+in our game we can save an object in the editor and it updates immediately world
+editor and it updates immediately world or change our input scripting or just
+or change our input scripting or just about any piece of data our goal is that
+about any piece of data our goal is that the only time a developer needs to
+the only time a developer needs to restart the editor is when getting a new
+restart the editor is when getting a new version and even then they should be
+version and even then they should be able to get back to where they were in
+able to get back to where they were in very little time the less time they
+very little time the less time they spend getting up and running the more
+spend getting up and running the more time they have to make content as one
+time they have to make content as one last element to interation times is that
+last element to interation times is that we implement continuous integration with
+we implement continuous integration with live deployment what this means is that
+live deployment what this means is that as soon as a programmer submits their
+as soon as a programmer submits their code our build machines will pick it up
+code our build machines will pick it up compile the various targets do some
+compile the various targets do some basic testing and once all of that
+basic testing and once all of that passes the bill does Amy and Mail have
+passes the bill does Amy and Mail have made available to the development floor
+made available to the development floor we found that overall the benefits of a
+we found that overall the benefits of a coder being able to fix a bug or add a
+coder being able to fix a bug or add a feature and have that change on the
+feature and have that change on the floor in under 30 minutes far outweigh
+floor in under 30 minutes far outweigh any risk of a bad change causing
+any risk of a bad change causing problems in production our UI team all
+problems in production our UI team all sit together so our artists and coders
+sit together so our artists and coders are only a few feet away from each other
+are only a few feet away from each other we're constantly working back and forth
+we're constantly working back and forth implementing nodes and features being
+implementing nodes and features being able to react to them quickly enough so
+able to react to them quickly enough so that they're never really blocked from
+that they're never really blocked from working on a future this connection to
+working on a future this connection to the artists is what really shaped our UI
+the artists is what really shaped our UI system to what it is today we use
+system to what it is today we use compounds which are those reusable
+compounds which are those reusable groups of nodes for sharing
+groups of nodes for sharing functionality
+functionality these are an important part of our
+these are an important part of our workflow we can take any other graph or
+workflow we can take any other graph or set of nodes and create a reusable
+set of nodes and create a reusable component out of them these can then be
+component out of them these can then be used in any other graph that supports
+used in any other graph that supports the nodes that it contains a great
+the nodes that it contains a great feature of them is that we can quickly
+feature of them is that we can quickly replace them with code this allows
+replace them with code this allows artists to create complex systems that
+artists to create complex systems that they need and we can easily replace them
+they need and we can easily replace them with an optimized cone system if the if
+with an optimized cone system if the if the need arises writing code for a
+the need arises writing code for a finished system is way faster than
+finished system is way faster than having a coder trying to guess what an
+having a coder trying to guess what an artist might need iteration however does
+artist might need iteration however does come with a bit of a cost that's best
+come with a bit of a cost that's best summed up by Uncle Ben with great power
+summed up by Uncle Ben with great power comes great responsibility
+comes great responsibility when it becomes so easy to make tiny
+when it becomes so easy to make tiny changes and then another and then
+changes and then another and then another it also becomes easy to get lost
+another it also becomes easy to get lost in your work usually this just results
+in your work usually this just results in having to kick people out of the
+in having to kick people out of the office because they're having way too
+office because they're having way too much fun working unfortunate other cases
+much fun working unfortunate other cases it might cause features to take a bit
+it might cause features to take a bit longer by losing track of time while
+longer by losing track of time while trying to perfect them so it's good to
+trying to perfect them so it's good to make sure that you have clear goals and
+make sure that you have clear goals and deadlines in place where people will
+deadlines in place where people will just keep iterating forever towards the
+just keep iterating forever towards the end of a project quicker or iteration
+end of a project quicker or iteration can be really great for being able to
+can be really great for being able to squash those last-minute bugs but it
+squash those last-minute bugs but it also really helps to have someone in
+also really helps to have someone in place that can also shut down the
+place that can also shut down the process those simple little changes at
+process those simple little changes at the end of a project can also easily
+the end of a project can also easily lead to introducing new bugs so now it's
+lead to introducing new bugs so now it's time to get into some of the details of
+time to get into some of the details of how the system works the actual UI
+how the system works the actual UI system of snowdrop is deceptively simple
+system of snowdrop is deceptively simple the basic setup is that everything is
+the basic setup is that everything is split between widgets and graphics
+split between widgets and graphics widgets take up space and are our
+widgets take up space and are our primary source of mouse input graphics
+primary source of mouse input graphics are used to add flavor and are generally
+are used to add flavor and are generally sized relative to the widget there on
+sized relative to the widget there on the funny thing is that we only really
+the funny thing is that we only really have five widgets instead of giving our
+have five widgets instead of giving our designers buttons and combo boxes and
+designers buttons and combo boxes and very complex widgets we just gave them
+very complex widgets we just gave them the very basics the very basics and let
+the very basics the very basics and let them build the functionality they need
+them build the functionality they need it turns out you don't need to have a
+it turns out you don't need to have a very complex widget library to ship
+very complex widget library to ship games especially on consoles so it all
+games especially on consoles so it all starts with a window this
+starts with a window this basically just tells the system where to
+basically just tells the system where to start a new UI element when combined
+start a new UI element when combined with coordinate frame that can be in
+with coordinate frame that can be in either 2d or 3d it will automatically
+either 2d or 3d it will automatically vertically stack all widgets given to it
+vertically stack all widgets given to it and it also is there to control how UI
+and it also is there to control how UI elements layer over top of each other
+elements layer over top of each other text is our primary mode of
+text is our primary mode of communication all our fonts are
+communication all our fonts are generated on the fly to keep memory down
+generated on the fly to keep memory down to what we use the system has a rich
+to what we use the system has a rich formatting library to help customize
+formatting library to help customize text in additional ways by adding icons
+text in additional ways by adding icons line breaks coloring and much more
+images are the second mode of communication though most of the time
+communication though most of the time we're just using flat colors or
+we're just using flat colors or gradients instead of actual textures and
+gradients instead of actual textures and it supports a bit more than just your
+it supports a bit more than just your basic import of DDS files we have sprite
+basic import of DDS files we have sprite sheet systems and for improved
+sheet systems and for improved performance or we can just support any
+performance or we can just support any loose image that you care to use the
+loose image that you care to use the stack container is pretty much the only
+stack container is pretty much the only thing we have for sorting elements it
+thing we have for sorting elements it just literally puts things on one on top
+just literally puts things on one on top of each other or there's an option on it
+of each other or there's an option on it you can put things beside each other as
+you can put things beside each other as well so you can stack vertically or
+well so you can stack vertically or horizontally the scroll box is probably
+horizontally the scroll box is probably the only complicated widget that we have
+the only complicated widget that we have and it basically just moves the its
+and it basically just moves the its internal con contents around and defines
+internal con contents around and defines a clip area that's used to so that so
+a clip area that's used to so that so that it won't render outside of a
+that it won't render outside of a defined space so it's pretty much used
+defined space so it's pretty much used for just scrolling content around and
+for just scrolling content around and clipping it off for graphics we get a
+clipping it off for graphics we get a whole seven types of graphics starting
+whole seven types of graphics starting with more text because sometimes you
+with more text because sometimes you want more text in the background not
+want more text in the background not just in the foreground we found that
+just in the foreground we found that there are a lot of cases where we wanted
+there are a lot of cases where we wanted to define space with a widget but then
+to define space with a widget but then use the text in the background to have a
+use the text in the background to have a lot more flexibility with how its
+lot more flexibility with how its rendered and displayed in the graphics
+rendered and displayed in the graphics you get more than just your basic square
+you get more than just your basic square images so we're able to cut some corners
+images so we're able to cut some corners here or curve them
+lines are can be used for a lot of things like pointing things out in the
+things like pointing things out in the world or framing other elements points
+world or framing other elements points are great for effects you can make a
+are great for effects you can make a random mess or a more controlled effect
+random mess or a more controlled effect with just a little bit of math and then
+with just a little bit of math and then we have arbitrary shapes because
+we have arbitrary shapes because sometimes even artists don't know what
+sometimes even artists don't know what they want sectors are a really cool
+they want sectors are a really cool graphic that we have they're basically
+graphic that we have they're basically just circles or more parts of circles
+just circles or more parts of circles anything that you see that's a circle
+anything that you see that's a circle and the division was made with one of
+and the division was made with one of the sector nodes that we have and it
+the sector nodes that we have and it really helped to sort of define that
+really helped to sort of define that that graphic style of the division and
+that graphic style of the division and then finally we have custom graphics
+then finally we have custom graphics which is basically everything else
+which is basically everything else because something like drawing all of
+because something like drawing all of the streets of Manhattan through the
+the streets of Manhattan through the regular line node was a little bit too
+regular line node was a little bit too much for that node to handle so making a
+much for that node to handle so making a quick custom node for that is was much
+quick custom node for that is was much better equipped to handle the amount of
+better equipped to handle the amount of data in a much more efficient way we
+data in a much more efficient way we also have a node that allows us to draw
+also have a node that allows us to draw almost any regular graphical object
+almost any regular graphical object directly in the UI so it can be layered
+directly in the UI so it can be layered properly with the UI but that's pretty
+properly with the UI but that's pretty much it we have a few other minor bells
+much it we have a few other minor bells and whistles but these twelve elements
+and whistles but these twelve elements comprise the bulk of the work that's
+comprise the bulk of the work that's done every day in the UI system by
+done every day in the UI system by keeping the basic usage of the system as
+keeping the basic usage of the system as simple as possible it allows to build up
+simple as possible it allows to build up complex behaviors in layers where the
+complex behaviors in layers where the designers and artists have full control
+designers and artists have full control at each step so this might come as a
+at each step so this might come as a surprise to some of you but the snowdrop
+surprise to some of you but the snowdrop engine does not currently have any form
+engine does not currently have any form of reflection that is like there's no
+of reflection that is like there's no way to automatically expose the inner
+way to automatically expose the inner workings of the data to has two editors
+workings of the data to has two editors today almost all nodes are written by
+today almost all nodes are written by coders and but a bulk of the nodes
+coders and but a bulk of the nodes however are quite trivial so for easy
+however are quite trivial so for easy nodes we just declare the number of
+nodes we just declare the number of inputs and output pins the types and use
+inputs and output pins the types and use this handy calculate method to do the
+this handy calculate method to do the processing this allows programmers to
+processing this allows programmers to add simple functionality very quickly
+in other cases it gets a little more complex this is most of the code for
+complex this is most of the code for this little node which goes through a
+this little node which goes through a lot of pain to output a matrix but it is
+lot of pain to output a matrix but it is a it's a really really good matrix like
+a it's a really really good matrix like high-quality perfect matrix it might
+high-quality perfect matrix it might seem like a lot of work to manually
+seem like a lot of work to manually declare each node but it also means that
+declare each node but it also means that we have nodes that do exactly what they
+we have nodes that do exactly what they need and no more we can craft each node
+need and no more we can craft each node to be as simple or as complex as we need
+to be as simple or as complex as we need to be and with short iteration times
+to be and with short iteration times it's not nearly as bad as it sounds by
+it's not nearly as bad as it sounds by coding each node in this way we have
+coding each node in this way we have full control over how they execute do
+full control over how they execute do they need to run every frame can they be
+they need to run every frame can they be evaluated on startup or even having to
+evaluated on startup or even having to bug nodes that remove themselves from
+bug nodes that remove themselves from the final game and in the editor we can
+the final game and in the editor we can customize nearly every aspect so complex
+customize nearly every aspect so complex nodes are easy to work with for example
+nodes are easy to work with for example when selecting any UI node you see the
+when selecting any UI node you see the element in the editor that's selected
+element in the editor that's selected and our positional nodes provide
+and our positional nodes provide elements in the viewport so you can
+elements in the viewport so you can interact with them directly
+unfortunately our UI is not a cheap system I'll break down a typical game
+system I'll break down a typical game frame so you can see what's going on I'm
+frame so you can see what's going on I'm going to use this scene which is in the
+going to use this scene which is in the middle of the fight that takes place
+middle of the fight that takes place while trying to establish your base of
+while trying to establish your base of operations that happens fairly early on
+operations that happens fairly early on in the game here's a snapshot of our
+in the game here's a snapshot of our in-game profiler running on console
+in-game profiler running on console there's a lot of one unused CPU time in
+there's a lot of one unused CPU time in this frame but that's actually to be
+this frame but that's actually to be expected since the fight isn't really
+expected since the fight isn't really that that heavy of a fight to the left
+that that heavy of a fight to the left we have the update of our game systems
+we have the update of our game systems input agents and the player and a few
+input agents and the player and a few other things to the right we have a big
+other things to the right we have a big block that is the Colleen and the update
+block that is the Colleen and the update of all our graphical objects and
+of all our graphical objects and particle systems this generally will
+particle systems this generally will fill up as much CPU time as it can to
+fill up as much CPU time as it can to try to offload the the GPU and then in
+try to offload the the GPU and then in the middle we have the UI which is all
+the middle we have the UI which is all the orange bits it takes up a decent
+the orange bits it takes up a decent chunk but it is also very multi-threaded
+chunk but it is also very multi-threaded early in the frame we do a small bit of
+early in the frame we do a small bit of management to prepare for the updates to
+management to prepare for the updates to come
+come next we do a few high-priority graphs
+next we do a few high-priority graphs that need to finish before the rest of
+that need to finish before the rest of the UI system can run this is mostly
+the UI system can run this is mostly preparing a bunch of matrices that will
+preparing a bunch of matrices that will be used by other UI system so we don't
+be used by other UI system so we don't have to constantly recalculate them then
+have to constantly recalculate them then we get to the bulk of the work executing
+we get to the bulk of the work executing the node graphs with a little tail for
+the node graphs with a little tail for preparing the render commands for the
+preparing the render commands for the frame and this last area is the time we
+frame and this last area is the time we take on the CPU side of the render
+take on the CPU side of the render thread submitting data to the GPU I'd
+thread submitting data to the GPU I'd show the GPU cost but it's almost
+show the GPU cost but it's almost non-existent most of the time stain and
+non-existent most of the time stain and budget while developing our rich
+budget while developing our rich complicated UI has been a major
+complicated UI has been a major challenge since we're so CPU heavy the
+challenge since we're so CPU heavy the areas here represent about 12
+areas here represent about 12 milliseconds of total work updating
+milliseconds of total work updating nearly 100 root grafts per frame in
+nearly 100 root grafts per frame in total we run over 300 graphs per frame
+total we run over 300 graphs per frame across all our various systems
+across all our various systems comprising of nearly 30,000 nodes
+multi-threading should now be basic knowledge for coders this is just the
+knowledge for coders this is just the world we live in today my four year old
+world we live in today my four year old phone had four cores current consoles
+phone had four cores current consoles have eight and these numbers are just
+have eight and these numbers are just going to keep increasing we no longer
+going to keep increasing we no longer have a simple 33 millisecond for 30 FPS
+have a simple 33 millisecond for 30 FPS on either console it's around 200
+on either console it's around 200 milliseconds across all available cores
+milliseconds across all available cores and all those cords need to be shared
+and all those cords need to be shared among so many complex and interconnected
+among so many complex and interconnected systems that it's no longer an option to
+systems that it's no longer an option to just let one or two of the tech guys fix
+just let one or two of the tech guys fix everything all coders need to be on
+everything all coders need to be on board now
+board now even our freshest interns will run into
+even our freshest interns will run into a need to solve complex threading issues
+a need to solve complex threading issues very quickly when starting a massive and
+very quickly when starting a massive and to make things worse multi-threading is
+to make things worse multi-threading is extremely complex for games at our high
+extremely complex for games at our high level we have a tasking system to sort
+level we have a tasking system to sort dependencies between systems and allow
+dependencies between systems and allow major systems to run in parallel at the
+major systems to run in parallel at the mid level we have a few different ways
+mid level we have a few different ways of processing work and multiple threads
+so our systems like the UI can go wide and then at the low level you just have
+and then at the low level you just have to work diligently with different access
+to work diligently with different access patterns to ensure safe access to data
+patterns to ensure safe access to data so first off you need to make sure that
+so first off you need to make sure that every coder understands all the
+every coder understands all the threading primitives at hand and when to
+threading primitives at hand and when to use them like only using spin locks for
+use them like only using spin locks for very tiny operations and always avoiding
+very tiny operations and always avoiding mutex
+mutex as much as possible second is to make
+as much as possible second is to make sure that every coder understands the
+sure that every coder understands the various types of access patterns that
+various types of access patterns that are commonly used every game system has
+are commonly used every game system has different requirements that need to be
+different requirements that need to be optimized for some systems can use
+optimized for some systems can use deferred processing but others that need
+deferred processing but others that need to stay frame synched might need to
+to stay frame synched might need to operate in designated safe areas during
+operate in designated safe areas during the frame for best for performance while
+the frame for best for performance while some other non-critical systems are
+some other non-critical systems are totally okay with just having mutexes to
+totally okay with just having mutexes to protect their data and multi-threading
+protect their data and multi-threading isn't just a challenge for coders
+isn't just a challenge for coders anymore either I'm sure most games end
+anymore either I'm sure most games end up with loads of global variables to tie
+up with loads of global variables to tie systems together when and when artists
+systems together when and when artists can interact with those in multiple
+can interact with those in multiple threads they can run into the same
+threads they can run into the same issues that coders we had a lot of
+issues that coders we had a lot of issues before shipping with our menu
+issues before shipping with our menu states because those were managed with
+states because those were managed with global variables it took us a while to
+global variables it took us a while to figure out that it was actually a
+figure out that it was actually a threading problem that was causing some
+threading problem that was causing some of our last-minute bugs and when your
+of our last-minute bugs and when your script system is multi-threaded who
+script system is multi-threaded who controls what's threaded and what isn't
+controls what's threaded and what isn't trying to figure out how to run things
+trying to figure out how to run things efficiently it can be a challenge and
+efficiently it can be a challenge and it's usually where coders still need to
+it's usually where coders still need to step in the UI uses a simple high low
+step in the UI uses a simple high low priority system to split dependencies
+priority system to split dependencies but our graph objects and particles have
+but our graph objects and particles have a much more rigorous set of options and
+a much more rigorous set of options and constraints since there's just so many
+constraints since there's just so many of them in the world on the other side
+of them in the world on the other side our scripts don't do much threading at
+our scripts don't do much threading at all but that's mainly because they're
+all but that's mainly because they're running on our servers which use a
+running on our servers which use a completely different threading model to
+completely different threading model to our main game unfortunately I don't have
+our main game unfortunately I don't have a lot of answers here it's an area that
+a lot of answers here it's an area that we're still focusing a lot of effort on
+we're still focusing a lot of effort on solving and it's a work in progress
+solving and it's a work in progress what does help is having more technical
+what does help is having more technical artists that is artists or designers
+artists that is artists or designers that have a lot more technical expertise
+that have a lot more technical expertise than you would normally expect often
+than you would normally expect often having experience with scripting
+having experience with scripting languages or other node based tools so
+languages or other node based tools so life isn't always a rosy 30fps sometimes
+life isn't always a rosy 30fps sometimes you just end up in a bad situation and
+you just end up in a bad situation and need to figure out what's going on in
+need to figure out what's going on in this example we see a huge outlier in
+this example we see a huge outlier in our thread times and we already see the
+our thread times and we already see the graph name that's causing the issue so
+graph name that's causing the issue so we can already start to take a look into
+we can already start to take a look into what's what's going on here
+what's what's going on here so we clearly see that as a mega map
+so we clearly see that as a mega map that's acting up but what's going on and
+that's acting up but what's going on and it's no drop we have the tools to be
+it's no drop we have the tools to be able to see where the cost is going in a
+able to see where the cost is going in a graph
+graph following the cost of the the mega map
+following the cost of the the mega map we find out that unfortunately in this
+we find out that unfortunately in this case it's just trying to do too much at
+case it's just trying to do too much at once so there's no easy fix
+once so there's no easy fix unfortunately executing over 8,000 nodes
+unfortunately executing over 8,000 nodes and the single thread is still too much
+and the single thread is still too much for the system to handle so the two
+for the system to handle so the two choices we have are can we multi thread
+choices we have are can we multi thread this or can we just do things more
+this or can we just do things more efficiently in this case the answer was
+efficiently in this case the answer was to try to move work into multiple
+to try to move work into multiple threads in general almost all of our
+threads in general almost all of our performance issues our performance
+performance issues our performance improvements fell into one of these two
+improvements fell into one of these two categories the easy one is just simply
+categories the easy one is just simply simply identifying what work can be put
+simply identifying what work can be put in out of the threads so instead of
+in out of the threads so instead of rendering each enemy's health bar and
+rendering each enemy's health bar and name in a single loop we can split it up
+name in a single loop we can split it up to run across threads the second
+to run across threads the second category and the area where we saw the
+category and the area where we saw the biggest gains by far was converting
+biggest gains by far was converting loops into data arrays so even better
+loops into data arrays so even better than looping over each enemy or even
+than looping over each enemy or even processing them in multiple threads is
+processing them in multiple threads is just do them all at the same time this
+just do them all at the same time this was the most powerful part of our node
+was the most powerful part of our node graph system since any interpreted
+graph system since any interpreted system has overhead and processing you
+system has overhead and processing you need to be able to do more with less in
+need to be able to do more with less in our case it's about 300 to 500
+our case it's about 300 to 500 instructions of setup to execute a
+instructions of setup to execute a single node plus a virtual function call
+single node plus a virtual function call we can either write complex nodes that
+we can either write complex nodes that try to do all the work for us or use
+try to do all the work for us or use arrays of data to do all the work in a
+arrays of data to do all the work in a single pass to support this we have a
+single pass to support this we have a lot of fun ways to work with data like
+lot of fun ways to work with data like filtering based on complex conditions
+filtering based on complex conditions and this is in this example I can
+and this is in this example I can quickly filter a list of entities based
+quickly filter a list of entities based on how close they are to the player an
+on how close they are to the player an interesting side effect of this is that
+interesting side effect of this is that as programmers start to become more
+as programmers start to become more familiar with the system they start to
+familiar with the system they start to learn new and interesting ways to work
+learn new and interesting ways to work with data I think that data driven
+with data I think that data driven development is an area that all programs
+development is an area that all programs can benefit from knowing a lot more
+can benefit from knowing a lot more intimately in addition to making low
+intimately in addition to making low level systems data-driven we should also
+level systems data-driven we should also think of how to make our content more
+think of how to make our content more data-driven there's no point in having a
+data-driven there's no point in having a super optimized render pipeline when a
+super optimized render pipeline when a very basic scripts are taking up all
+very basic scripts are taking up all your CPU
+this is an example graph I made when developing for loops in the UI system it
+developing for loops in the UI system it does a brute-force collision between 100
+does a brute-force collision between 100 squares as they try to get out of each
+squares as they try to get out of each other's way while at work the approach
+other's way while at work the approach was very slow taking 20 milliseconds to
+was very slow taking 20 milliseconds to run the graph compare this with the same
+run the graph compare this with the same approach using arrays I still need to
+approach using arrays I still need to loop over each bug but I don't need a
+loop over each bug but I don't need a second recursive loop this approach does
+second recursive loop this approach does the exact same work in only 0.6
+the exact same work in only 0.6 milliseconds and not only is it faster
+milliseconds and not only is it faster it actually took about 100 or 30% fewer
+it actually took about 100 or 30% fewer nodes to do the same work sometimes
+nodes to do the same work sometimes though it's the small features that make
+though it's the small features that make a big difference one of the best little
+a big difference one of the best little things we added was the ability to hold
+things we added was the ability to hold the control button and mouse over any UI
+the control button and mouse over any UI element and show what file that's being
+element and show what file that's being drawn from when you have data from all
+drawn from when you have data from all over the place it's hard to keep track
+over the place it's hard to keep track of so this became essential to being
+of so this became essential to being able to quickly track down bugs in the
+able to quickly track down bugs in the end especially when it's in graphs that
+end especially when it's in graphs that may not be done by your team to ease the
+may not be done by your team to ease the localization of burden burden we added a
+localization of burden burden we added a few small features that drastically
+few small features that drastically reduced the implementation overhead like
+reduced the implementation overhead like automatically trying to figure out what
+automatically trying to figure out what to show for a given game action on
+to show for a given game action on console or on PC or on PC with a console
+console or on PC or on PC with a console controller since we ship the the
+controller since we ship the the division in Arabic we also added support
+division in Arabic we also added support for right-to-left languages through
+for right-to-left languages through various means and any list of UI
+various means and any list of UI elements you can quickly reverse the the
+elements you can quickly reverse the the order so for tech and for text we have
+order so for tech and for text we have an auto justification mode that will be
+an auto justification mode that will be left to right depending on the current
+left to right depending on the current language we already had a system in
+language we already had a system in place to input data into our strings so
+place to input data into our strings so we simply extended it so that we can
+we simply extended it so that we can interpret numbers into language specific
+interpret numbers into language specific replacement rules it turns out there are
+replacement rules it turns out there are very concrete rules for every language
+very concrete rules for every language about what types of replacements to
+about what types of replacements to exist for different numbers I suggest
+exist for different numbers I suggest you check out that link for more
+you check out that link for more information
+another one was an in-game test for color blindness since the UI had a lot
+color blindness since the UI had a lot of render control and also has the final
+of render control and also has the final render pass it was really easy to just
+render pass it was really easy to just transform all the colors in a way that
+transform all the colors in a way that can be you
+can be you to see where you might be having
+to see where you might be having difficulty with certain colors we use
+difficulty with certain colors we use this to figure out what colors we needed
+this to figure out what colors we needed to change for our various colorblind
+to change for our various colorblind options we simply enable it in our
+options we simply enable it in our in-game debug menu which was also made
+in-game debug menu which was also made with our UI system and then we can we
+with our UI system and then we can we used it to see what item colors worked
+used it to see what item colors worked and didn't work in with various
+and didn't work in with various different colorblind so I hope you're
+different colorblind so I hope you're able to take away a few things from our
+able to take away a few things from our experience on the division like the
+experience on the division like the importance of iteration threading and
+importance of iteration threading and data I do have a few other things that
+data I do have a few other things that we learned and or that we would like to
+we learned and or that we would like to do better in the future that I would
+do better in the future that I would like to share it's very easy for me to
+like to share it's very easy for me to say that our UI system is just as
+say that our UI system is just as equally developed by our artists as it
+equally developed by our artists as it was by our coders every feature was
+was by our coders every feature was reviewed and approved by the team
+reviewed and approved by the team members we're always delivering code for
+members we're always delivering code for someone else so the user should have a
+someone else so the user should have a say and how it works in the end
+throughout the whole project we had a constant feedback loop with our tools
+constant feedback loop with our tools and systems any request or complaint was
+and systems any request or complaint was considered and addressed if possible
+considered and addressed if possible it's most important to do this during
+it's most important to do this during crunch when everyone is really really
+crunch when everyone is really really stressed that we take time to listen and
+stressed that we take time to listen and see if we can do even some small things
+see if we can do even some small things to improve development sometimes it's
+to improve development sometimes it's just simple little things like trying to
+just simple little things like trying to reduce the number of clicks required to
+reduce the number of clicks required to do common operations or finally fixing
+do common operations or finally fixing that editor crash that's causing just
+that editor crash that's causing just one person to constantly restart by the
+one person to constantly restart by the end of the project I had a huge list of
+end of the project I had a huge list of features and improvements that we didn't
+features and improvements that we didn't get a chance to implement we've been
+get a chance to implement we've been slowly tackling them so that we can just
+slowly tackling them so that we can just continue to improve the tools for our
+continue to improve the tools for our users
+to get the most out of your code I think threading and data need to be in the
+threading and data need to be in the back of your minds at all time
+back of your minds at all time multi-threading was considered a lot for
+multi-threading was considered a lot for the internals of the UI system but not
+the internals of the UI system but not as much for the users we had a lot of
+as much for the users we had a lot of hard to track issues towards the end
+hard to track issues towards the end that could have been prevented with some
+that could have been prevented with some tools for users to manage their data
+tools for users to manage their data better getting data models correct can
+better getting data models correct can be a challenge but it's well worth the
+be a challenge but it's well worth the effort it took us a while to fully
+effort it took us a while to fully appreciate the power of a data driven
+appreciate the power of a data driven approach but it made the single biggest
+approach but it made the single biggest difference in performance in the
+difference in performance in the division while our UI system is very
+division while our UI system is very powerful
+powerful the main complaint that we get over and
+the main complaint that we get over and over is that it's too complicated to use
+over is that it's too complicated to use it does take a while for someone to
+it does take a while for someone to really get into and most of our work is
+really get into and most of our work is done by technical artists that usually
+done by technical artists that usually have some scripting background the big
+have some scripting background the big reason for the difficulty is the lack of
+reason for the difficulty is the lack of direct canvas manipulation I firmly
+direct canvas manipulation I firmly believe now though that had we added it
+believe now though that had we added it it would have actually limited the
+it would have actually limited the creativity even if it did make some
+creativity even if it did make some things easier to do by removing the
+things easier to do by removing the canvas the designer has to really work
+canvas the designer has to really work hard to understand the system and it was
+hard to understand the system and it was through this special connection that a
+through this special connection that a lot of magic really started to happen
+lot of magic really started to happen with the division we're constantly
+with the division we're constantly trying to improve our workflow but in
+trying to improve our workflow but in ways that doesn't dumb down the entire
+ways that doesn't dumb down the entire system I've been against adding direct
+system I've been against adding direct canvas manipulation because I believe it
+canvas manipulation because I believe it would just make our artists lazy and
+would just make our artists lazy and take a lot of creativity out of our
+take a lot of creativity out of our design as is a usual case it's hard to
+design as is a usual case it's hard to find time to prepare documentation and
+find time to prepare documentation and it's and good examples during
+it's and good examples during development we tried to make it a
+development we tried to make it a priority and we do have a bunch of wiki
+priority and we do have a bunch of wiki pages and video tutorials and things
+pages and video tutorials and things like that but there's always room for
+like that but there's always room for more I think the biggest problem that we
+more I think the biggest problem that we had wasn't necessarily the lack of
+had wasn't necessarily the lack of documentation but the organization of it
+documentation but the organization of it you can have all the help pages in the
+you can have all the help pages in the world but if you can't find them it's
+world but if you can't find them it's not going to help
+and I find this is one of the most important left but often overlooked
+important left but often overlooked lessons that I can offer is just keep it
+lessons that I can offer is just keep it simple it's very easy for programmers to
+simple it's very easy for programmers to fall in the trap of overthinking things
+fall in the trap of overthinking things more often than not the solution is much
+more often than not the solution is much easier than it seems I find boring from
+easier than it seems I find boring from test-driven development can help a lot
+test-driven development can help a lot here you start by writing the what you
+here you start by writing the what you need the code to do and then you fill in
+need the code to do and then you fill in the code to do that and then you stop if
+the code to do that and then you stop if you added any more code than you needed
+you added any more code than you needed then you added too much code the same
+then you added too much code the same goes for tools it can often be a bit of
+goes for tools it can often be a bit of a balancing act between what someone
+a balancing act between what someone thinks they need and what they actually
+thinks they need and what they actually need but simple tools that work
+need but simple tools that work consistently and quickly without
+consistently and quickly without crashing are going to be far more useful
+crashing are going to be far more useful than barely functioning complex tools
+that actually went a lot quicker than I thought
+so I hope you're able to get some ideas out of our experience on the division to
+out of our experience on the division to improve your own games and engines at
+improve your own games and engines at this point I'd just like to give a shout
+this point I'd just like to give a shout out to Anders Johansson and our lead UI
+out to Anders Johansson and our lead UI designer and lars Vincent our lead UI
+designer and lars Vincent our lead UI artist on the division because I firmly
+artist on the division because I firmly believe that they were as much a part of
+believe that they were as much a part of making this UI system as any of our
+making this UI system as any of our coders if anyone has any questions about
+coders if anyone has any questions about anything related to snowdrop or the
+anything related to snowdrop or the division I'm more than happy to answer
+division I'm more than happy to answer as best I can thank you for listening
+I enjoyed that thank you thanks you talked about how users still ask for the
+talked about how users still ask for the ability to directly manipulate the
+ability to directly manipulate the canvas but you reason that forcing them
+canvas but you reason that forcing them to understand the system resulted in a
+to understand the system resulted in a lot of magic can you describe that more
+lot of magic can you describe that more I was really surprised to hear that so
+I was really surprised to hear that so yeah all of our grab node graph systems
+yeah all of our grab node graph systems are basically like scripting lines
+are basically like scripting lines languages so you're basically you're
+languages so you're basically you're building the logic to build your UI
+building the logic to build your UI system and like every time we sit down
+system and like every time we sit down and we evaluate and we're like what's
+and we evaluate and we're like what's gonna cause to to bring this sort of
+gonna cause to to bring this sort of direct canvas manipulation and then we
+direct canvas manipulation and then we plug in the numbers and we're like okay
+plug in the numbers and we're like okay it's gonna take like three months or
+it's gonna take like three months or four months or whatever and then at the
+four months or whatever and then at the end it's like what are really going to
+end it's like what are really going to improve the situation for for people
+improve the situation for for people it's like okay we might get some things
+it's like okay we might get some things to be able to just like stretch and move
+to be able to just like stretch and move things but you can already do that with
+things but you can already do that with the nodes once you get a chance to learn
+the nodes once you get a chance to learn them so it's just it's it's that level
+them so it's just it's it's that level it's like when we when we think about
+it's like when we when we think about the decoder investment to just add all
+the decoder investment to just add all of the work it just it never feels worth
+of the work it just it never feels worth it hi oh sorry I worked on a similar
+it hi oh sorry I worked on a similar system on a much smaller scale and I was
+system on a much smaller scale and I was wondering how did you handle merge
+wondering how did you handle merge conflicts putting all your code into
+conflicts putting all your code into Data not well it became a bit of an
+Data not well it became a bit of an issue but post-launch when we had a lot
+issue but post-launch when we had a lot of a lot of different branches and stuff
+of a lot of different branches and stuff like that we actually ended up
+like that we actually ended up implementing
+implementing instead of well as sort of like a quick
+instead of well as sort of like a quick fix we basically set it up so that you
+fix we basically set it up so that you can't modify data into branches and then
+can't modify data into branches and then we just have some processes in place so
+we just have some processes in place so that like if you obviously you have to
+that like if you obviously you have to buy once you know that you're causing a
+buy once you know that you're causing a conflict between the branches then you
+conflict between the branches then you can sort of take the steps necessary to
+can sort of take the steps necessary to resolve that ahead of time instead of
+resolve that ahead of time instead of having ending up in a situation where
+having ending up in a situation where you have lots of data modified in
+you have lots of data modified in multiple branches and then you end up in
+multiple branches and then you end up in the merge hell so so by just adding a
+the merge hell so so by just adding a quick feature that basically said I'm
+quick feature that basically said I'm about to cause a conflict it allowed us
+about to cause a conflict it allowed us to sort of get
+to sort of get of the problems it's awesome thank you
+of the problems it's awesome thank you hi I was wondering who your team handled
+hi I was wondering who your team handled like ownership of cross-disciplinary
+like ownership of cross-disciplinary issues like for the main menu you had to
+issues like for the main menu you had to frame the character and also put the UI
+frame the character and also put the UI up so how was like how were you able to
+up so how was like how were you able to communicate and make sure like the
+communicate and make sure like the framing worked and showed the UI at the
+framing worked and showed the UI at the same time I'm not sure I kind of get the
+same time I'm not sure I kind of get the question I mean for the for the case in
+question I mean for the for the case in the main menu
+the main menu that's all controlled sort of an inner
+that's all controlled sort of an inner UI system so so the UI takes control the
+UI system so so the UI takes control the camera and frames it and I think we even
+camera and frames it and I think we even add a couple lights in the world to make
+add a couple lights in the world to make sure that the players lit at all times
+sure that the players lit at all times even at night but that was the UI team
+even at night but that was the UI team that handled that it was the UI team I
+that handled that it was the UI team I mean we also communicate very closely
+mean we also communicate very closely with all the other teams and stuff like
+with all the other teams and stuff like that just to make sure that like like I
+that just to make sure that like like I said we added a bunch of lights in the
+said we added a bunch of lights in the world so that we're not busting their
+world so that we're not busting their light budget and things like that so so
+light budget and things like that so so most of most of the people on the
+most of most of the people on the division we all work fairly close
+division we all work fairly close together so there's actually a lot of
+together so there's actually a lot of cross-disciplinary
+cross-disciplinary like crossover and stuff like that thank
+like crossover and stuff like that thank you hey um could you talk a little bit
+you hey um could you talk a little bit about how you build in your graphs and
+about how you build in your graphs and execute them or how you optimize them
+execute them or how you optimize them well for that I guess one of the things
+well for that I guess one of the things I was going to suggest is is like hands
+I was going to suggest is is like hands up would anyone be interested in sort of
+up would anyone be interested in sort of a live demo of the UI system okay Wow
+a live demo of the UI system okay Wow all right in that case at one o'clock at
+all right in that case at one o'clock at the Ubisoft booth I'll I'll have the
+the Ubisoft booth I'll I'll have the editor up and running and I can give a
+editor up and running and I can give a live demo and then sort of go over sort
+live demo and then sort of go over sort of the Det general process whew thank
+of the Det general process whew thank you I just interested a little bit more
+you I just interested a little bit more information about the loops versus data
+information about the loops versus data arrays is that distinction as in you're
+arrays is that distinction as in you're then passing the full array to the node
+then passing the full array to the node and handling that code side rather than
+and handling that code side rather than knowing execution in loops or exactly so
+knowing execution in loops or exactly so so the way our node system is built is
+so the way our node system is built is that each piece of data it doesn't
+that each piece of data it doesn't matter if it's one or more
+matter if it's one or more and so the code like so then we move
+and so the code like so then we move that looping basically indirectly into
+that looping basically indirectly into code and then we remove all the overhead
+code and then we remove all the overhead of the actual script processing and it
+of the actual script processing and it made a huge like as as the example I
+made a huge like as as the example I showed it made one graph go from 20
+showed it made one graph go from 20 milliseconds to 0.6 and so we got we got
+milliseconds to 0.6 and so we got we got those gains pretty much anytime we did
+those gains pretty much anytime we did that it was games like that and if you
+that it was games like that and if you looked at being our to write the nodes
+looked at being our to write the nodes back down into coding and pile them into
+back down into coding and pile them into code to remove that over it one of the
+code to remove that over it one of the problems is is just since we have our
+problems is is just since we have our node system that works in a whole bunch
+node system that works in a whole bunch of different ways like we have the same
+of different ways like we have the same system that works in a whole bunch of
+system that works in a whole bunch of different contexts it's just it's a huge
+different contexts it's just it's a huge amount of work to both write the code
+amount of work to both write the code that does the work and then also make
+that does the work and then also make sure that it compiles down to proper
+sure that it compiles down to proper code that's going to work in all
+code that's going to work in all situations however we do have some types
+situations however we do have some types of graphs like our shader graphs which
+of graphs like our shader graphs which effectively do that they're basically
+effectively do that they're basically generating the shader code so it's
+generating the shader code so it's definitely something that we've sort of
+definitely something that we've sort of talked to it talked about but it's it's
+talked to it talked about but it's it's I think it's a hard in our case it's a
+I think it's a hard in our case it's a hard thing to do on such like a global
+hard thing to do on such like a global scale just because all our graphs
+scale just because all our graphs actually function in very different ways
+actually function in very different ways thank you you alluded to giving
+thank you you alluded to giving developers control over certain
+developers control over certain rendering aspects like the depth buffer
+rendering aspects like the depth buffer things like that could you explain a
+things like that could you explain a little bit about how much flexibility
+little bit about how much flexibility there is in terms of where widgets and
+there is in terms of where widgets and graphics can be rendered and how they
+graphics can be rendered and how they interact with post effects and things
+interact with post effects and things like that sure so the UI system is like
+like that sure so the UI system is like it's it's directly integrated into the
+it's it's directly integrated into the renderer or so so we pretty much on a
+renderer or so so we pretty much on a feature by feature basis we can sort of
+feature by feature basis we can sort of add and remove whatever we want we just
+add and remove whatever we want we just know we need to put the time and to do
+know we need to put the time and to do it so when we shift the division are you
+it so when we shift the division are you I actually had seven render passes and
+I actually had seven render passes and would make use of some of the data
+would make use of some of the data that's generated from the game so the
+that's generated from the game so the game's depth buffer and things like that
+game's depth buffer and things like that at various different points and then we
+at various different points and then we could sort of use the different data
+could sort of use the different data during the different passes to achieve a
+during the different passes to achieve a whole bunch of different effects so we
+whole bunch of different effects so we use them for things like highlighting
+use them for things like highlighting enemies behind walls after we pulse and
+enemies behind walls after we pulse and things like that
+things like that that
+that yeah help hi
+yeah help hi I was late so tell me if I asking about
+I was late so tell me if I asking about something that you talking about I have
+something that you talking about I have a rather simple question how you handle
+a rather simple question how you handle stuff like by outing what is centered
+stuff like by outing what is centered topping cleft or something like this is
+topping cleft or something like this is this like anchoring uncovering it's
+this like anchoring uncovering it's so-so
+so-so when I explain so we have a window we
+when I explain so we have a window we have coordinate frames and our 2d
+have coordinate frames and our 2d coordinate frame basically supports all
+coordinate frame basically supports all the anchoring for that and so you can
+the anchoring for that and so you can anchor it to the left you can position
+anchor it to the left you can position things based on pixel or percentage
+things based on pixel or percentage positions and then we also have a
+positions and then we also have a built-in support for like safe areas on
+built-in support for like safe areas on consoles and multi-screen support on on
+consoles and multi-screen support on on PC for different things like that low
+PC for different things like that low cost cutting kiss something like that
+cost cutting kiss something like that right lock house Coleen scalene yeah
+right lock house Coleen scalene yeah yeah we have a I think we can do like
+yeah we have a I think we can do like automatic skin and a lot of the scaling
+automatic skin and a lot of the scaling we do on our own just because we found
+we do on our own just because we found that especially with things in 3d versus
+that especially with things in 3d versus 2d there like there's there isn't sort
+2d there like there's there isn't sort of a an automatic scaling that's applied
+of a an automatic scaling that's applied to everything there's a few options for
+to everything there's a few options for for different types of automatic scaling
+for different types of automatic scaling but we just found like different UI and
+but we just found like different UI and different situations would have slightly
+different situations would have slightly different requirements so we sort of
+different requirements so we sort of just kept those all as options that
+just kept those all as options that indeed manipulate in each situation and
+indeed manipulate in each situation and any errors in context of scaling if you
+any errors in context of scaling if you have any problems when move from one for
+have any problems when move from one for example you know one sky pink for
+example you know one sky pink for example
+example and another from five two percent more
+and another from five two percent more and things like do you have gap between
+and things like do you have gap between some elements and they look differently
+some elements and they look differently oh yes something like I mean I guess
+oh yes something like I mean I guess it's it's hard to I guess explain
+it's it's hard to I guess explain without an example maybe that's
+without an example maybe that's something at the live demo I can try to
+something at the live demo I can try to to sort of sort out how we do that but
+to sort of sort out how we do that but generally like if you within a an
+generally like if you within a an individual element if you scale it it's
+individual element if you scale it it's gonna scale uniformly so you're not
+gonna scale uniformly so you're not going to introduce gaps or anything like
+going to introduce gaps or anything like that if you have multiple different
+that if you have multiple different elements and you're trying to manage the
+elements and you're trying to manage the scaling between them in a synchronous
+scaling between them in a synchronous way then if you mess up the math then
+way then if you mess up the math then you can end up in a bad situation
+so now I had a question about clipping so when you when you can bring up the
+so when you when you can bring up the main menu you can do at any point in the
+main menu you can do at any point in the game and you could be right close to a
+game and you could be right close to a wall or you could be flipping the next
+wall or you could be flipping the next to an object how did you deal it
+to an object how did you deal it clipping and I had to follow another
+clipping and I had to follow another question about the mega map originally
+question about the mega map originally you had the the mega map kind of start
+you had the the mega map kind of start off as part of the game world so I think
+off as part of the game world so I think it was in the first reveal that you guys
+it was in the first reveal that you guys showed the mega map was kind of like in
+showed the mega map was kind of like in the sea are you fading out the complete
+the sea are you fading out the complete city to gray when you're doing the mega
+city to gray when you're doing the mega ramp now in the game was that just
+ramp now in the game was that just because of clipping issues and that kind
+because of clipping issues and that kind of thing
+of thing right so for the main menu clipping in
+right so for the main menu clipping in general we just detect as soon as the
+general we just detect as soon as the camera hits something we found that it
+camera hits something we found that it was there were too many edge cases when
+was there were too many edge cases when trying to keep the camera in a safe
+trying to keep the camera in a safe space so we found in the end it was just
+space so we found in the end it was just better to as soon as we the camera just
+better to as soon as we the camera just hit something and we're going to clip we
+hit something and we're going to clip we sort of go into this mode where we kind
+sort of go into this mode where we kind of blank out the world using the turn
+of blank out the world using the turn remember the term but we basically just
+remember the term but we basically just use sort of like the general colour of
+use sort of like the general colour of the world so so it's not like a fixed
+the world so so it's not like a fixed colour that we sort of like we don't
+colour that we sort of like we don't grey out the world to a fixed color we
+grey out the world to a fixed color we do it to a color that sort of makes
+do it to a color that sort of makes sense to the current state of the world
+sense to the current state of the world for the Mega map we do a similar
+for the Mega map we do a similar technique
+technique most cases when you bring up the mega
+most cases when you bring up the mega map you're gonna still see the world a
+map you're gonna still see the world a little bit and then we just we sort of
+little bit and then we just we sort of fade it out for for like for clipping
+fade it out for for like for clipping like you know because there's going to
+like you know because there's going to be things that and for readability
+be things that and for readability because off we have found that towards
+because off we have found that towards the end like when you had the world and
+the end like when you had the world and mega map at the same time it just became
+mega map at the same time it just became too noisy and was hard to to read and
+too noisy and was hard to to read and make use of it so you get it for a
+make use of it so you get it for a moment when you first open the mega map
+moment when you first open the mega map but then we fade out the world so that
+but then we fade out the world so that you're focused on using the map all
+you're focused on using the map all right I guess that's a that's about it
+right I guess that's a that's about it so yeah one o'clock today at the Ubisoft
+so yeah one o'clock today at the Ubisoft booth I'll have a live demo of the the
+booth I'll have a live demo of the the snowdrop engine up and running and if
+snowdrop engine up and running and if anyone wants to see how the UI system
+anyone wants to see how the UI system works feel free to stop by thank you

@@ -1,0 +1,5 @@
+# Category:Policy
+
+This is a list of policy pages for this Wikia.  Please also see :Category:Help, and the policy pages on the Central Wikia.
+
+Category: Organisation

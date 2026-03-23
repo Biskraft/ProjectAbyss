@@ -1,0 +1,797 @@
+[Music]
+thank you
+my name is Nolan Carnahan I'm an engine and Graphics programmer at emberlab the
+and Graphics programmer at emberlab the studio that made Cana Bridge of spirits
+studio that made Cana Bridge of spirits and in this talk I'm going to cover some
+and in this talk I'm going to cover some of the VFX and Tech art that went into
+of the VFX and Tech art that went into realizing the dead zone restoration
+realizing the dead zone restoration sequences and the roundabilities in game
+so for some context Amber lab is a small Animation Studio turned game studio and
+Animation Studio turned game studio and Canon Bridge experience was our first
+Canon Bridge experience was our first big game
+big game the studio had previously worked on VFX
+the studio had previously worked on VFX for commercials and short films
+for commercials and short films but I imagine more of you would probably
+but I imagine more of you would probably recognize the team's work on terrible
+recognize the team's work on terrible fate a Majora's Mask fan film that went
+fate a Majora's Mask fan film that went viral
+viral apparently five years ago because time
+apparently five years ago because time has no meaning at this point
+uh that said I personally joined the team to work on Cana and while I
+team to work on Cana and while I certainly did a lot of work on the
+certainly did a lot of work on the content I'll be presenting I do want to
+content I'll be presenting I do want to stress that it was definitely a team
+stress that it was definitely a team effort across art programming and design
+effort across art programming and design to arrive at where we did
+to arrive at where we did so for anyone not familiar with the game
+so for anyone not familiar with the game Kingdom Bridge of spirits is a third
+Kingdom Bridge of spirits is a third person action adventure game featuring
+person action adventure game featuring the spirit guide Cana and her fluffy
+the spirit guide Cana and her fluffy round Spirit companions called the rot
+round Spirit companions called the rot throughout the game you come across this
+throughout the game you come across this corruption covering the land that we
+corruption covering the land that we call Dead Zone which usually manifests
+call Dead Zone which usually manifests in locations tied to lingering Spirits
+in locations tied to lingering Spirits suffering struggling with some sort of
+suffering struggling with some sort of tragedy from their past
+tragedy from their past in Universe the rod Spirits are a key
+in Universe the rod Spirits are a key component of the cycle of death and
+component of the cycle of death and rebirth and can eat away the dead zone
+rebirth and can eat away the dead zone to restore balance
+to restore balance by using the rod Cana is able to destroy
+by using the rod Cana is able to destroy the dead zone Hearts the source of the
+the dead zone Hearts the source of the corruption and upon doing so the player
+corruption and upon doing so the player is rewarded with the restoration of the
+is rewarded with the restoration of the environment we call these sequences Dead
+environment we call these sequences Dead Zone clears
+Zone clears and in this talk we'll discuss the goals
+and in this talk we'll discuss the goals that we had established for these Dead
+that we had established for these Dead Zone clears showcase some of our earlier
+Zone clears showcase some of our earlier prototypes and break down the different
+prototypes and break down the different layers of VFX and Tech art that went
+layers of VFX and Tech art that went into
+into achieving our Visual and storytelling
+achieving our Visual and storytelling goals and then finally share some
+goals and then finally share some concluding thoughts and some lessons
+concluding thoughts and some lessons learned
+learned so starting from the goals we first
+so starting from the goals we first wanted the dead zones to feel
+wanted the dead zones to feel threatening to the player in harsh
+threatening to the player in harsh contrast to the inviting nature of the
+contrast to the inviting nature of the rest of the world
+rest of the world the spaces should not only be filled
+the spaces should not only be filled with spiky roots and boldest growths and
+with spiky roots and boldest growths and thick fog but the transition back to the
+thick fog but the transition back to the healed version of the forest should be
+healed version of the forest should be obvious and noticeable
+obvious and noticeable we also wanted these Dead Zone clear
+we also wanted these Dead Zone clear transitions to take place in real time
+transitions to take place in real time as much as possible the transitions in
+as much as possible the transitions in some of our prototypes hit a lot of
+some of our prototypes hit a lot of environmental changes behind cutscenes
+environmental changes behind cutscenes which felt somewhat disconnected from
+which felt somewhat disconnected from the player's actions bringing it closer
+the player's actions bringing it closer to the gameplay makes it more fun to do
+to the gameplay makes it more fun to do and it makes the player want to do it
+and it makes the player want to do it over and over again
+over and over again and finally since the rot Spirit
+and finally since the rot Spirit companions are such a key component to
+companions are such a key component to fighting back The Dead Zone we wanted to
+fighting back The Dead Zone we wanted to make sure that the VFX make sure that
+make sure that the VFX make sure that the VFX feedback reinforced their place
+the VFX feedback reinforced their place in the story
+as Canada has access to a variety of rock-powered right power and special
+rock-powered right power and special abilities we wanted those abilities to
+abilities we wanted those abilities to have a smaller scale version of the
+have a smaller scale version of the cleaning feedback scene and the dead
+cleaning feedback scene and the dead zone clear sequences as well
+so these prototypes showcase an early version of dead zone one with larger
+version of dead zone one with larger spaces packed full of corruption tall
+spaces packed full of corruption tall enough to physically block the player
+enough to physically block the player however this Vision wound up changing
+however this Vision wound up changing over time because of both Art and Design
+over time because of both Art and Design considerations
+considerations in this early version the player could
+in this early version the player could throw a bait to attract the rot or move
+throw a bait to attract the rot or move them around directly like the rock cloud
+them around directly like the rock cloud and the shipped version of the game
+and the shipped version of the game this version is obviously quite crude
+this version is obviously quite crude lacking any sort of feedback when the
+lacking any sort of feedback when the larger Dead Zone clumps are getting
+larger Dead Zone clumps are getting destroyed
+this later prototype used a render Target to mask out areas that were
+Target to mask out areas that were cleaned by the rod which is then sampled
+cleaned by the rod which is then sampled by other materials the cleaning of the
+by other materials the cleaning of the landscape material was somewhat
+landscape material was somewhat successful and closely resembles what we
+successful and closely resembles what we shipped however these larger Dead Zone
+shipped however these larger Dead Zone columns push their vertices down into
+columns push their vertices down into the terrain which causes a lot of weird
+the terrain which causes a lot of weird visual artifacts when the player is
+visual artifacts when the player is slicing through the middle of a mesh
+slicing through the middle of a mesh in addition to the visuals we had a
+in addition to the visuals we had a couple other problems with this version
+couple other problems with this version the meshes needed to be very high poly
+the meshes needed to be very high poly in order to support this deformation
+in order to support this deformation and Lawn popping would be exacerbated
+and Lawn popping would be exacerbated when you're cutting into a mesh
+when you're cutting into a mesh handling Collision was also very
+handling Collision was also very challenging as we did not want to
+challenging as we did not want to dynamically adjust the Collision based
+dynamically adjust the Collision based on which parts of the model were cleaned
+on which parts of the model were cleaned and instead we just wound up disabling
+and instead we just wound up disabling collision and we made the player take
+collision and we made the player take damage when they walked through it which
+damage when they walked through it which didn't look very good either
+didn't look very good either as these Collision SATs Collision issues
+as these Collision SATs Collision issues also caused problems for nav mesh
+also caused problems for nav mesh generation and other things with the
+generation and other things with the like we wound up going away from this
+like we wound up going away from this approach to ensure that the combat
+approach to ensure that the combat worked well in these spaces
+yeah in this last bit of prototype footage you can see how a prototype Dead
+footage you can see how a prototype Dead Zone clear was not yet accomplished in
+Zone clear was not yet accomplished in real time you might notice that these
+real time you might notice that these blue and purple flowers only appear
+blue and purple flowers only appear after the camera cuts to Black
+after the camera cuts to Black this flower growing in during the
+this flower growing in during the cutscene is meant to incept the idea in
+cutscene is meant to incept the idea in the player's mind that the plants grew
+the player's mind that the plants grew back in but it's not quite the same as
+back in but it's not quite the same as seeing it actually happen during
+seeing it actually happen during gameplay
+so next I'm going to talk about how we built the final version of the Dead
+built the final version of the Dead zones in the engine
+zones in the engine they're roughly four layers or
+they're roughly four layers or ingredients involved and each of them
+ingredients involved and each of them uses different solutions to solve their
+uses different solutions to solve their unique problems
+unique problems the first is the landscape the base
+the first is the landscape the base layer of the terrain and then after that
+layer of the terrain and then after that I'll cover the foliage and how it builds
+I'll cover the foliage and how it builds on how the landscape is cleaned
+on how the landscape is cleaned and next I'll cover the improvements
+and next I'll cover the improvements that we made to how we handled larger
+that we made to how we handled larger Dead Zone meshes
+Dead Zone meshes and finally I'll cover the systems that
+and finally I'll cover the systems that we built to drive lighting and Ambience
+we built to drive lighting and Ambience when the player is in the dead zones and
+when the player is in the dead zones and how we turn them off during the clear
+how we turn them off during the clear sequences
+sequences so I'll now go over each of these layers
+so I'll now go over each of these layers in detail and show how they all work
+in detail and show how they all work together
+together our landscape material supports two
+our landscape material supports two additive layers that can be painted on
+additive layers that can be painted on top of the underlying material
+top of the underlying material in unreal this requires checking the no
+in unreal this requires checking the no weight blend checkbox on the landscape
+weight blend checkbox on the landscape layer info
+layer info the first is a dead mask that just makes
+the first is a dead mask that just makes the underlying material appear dead
+the underlying material appear dead and the second is a harmful variant of
+and the second is a harmful variant of The Dead Zone that slows the player down
+The Dead Zone that slows the player down and will kill them if they stand on it
+and will kill them if they stand on it for too long
+for too long the Dead mask tints and desaturates the
+the Dead mask tints and desaturates the base color and makes the material appear
+base color and makes the material appear a little bit glossier by modifying the
+a little bit glossier by modifying the roughness
+roughness and on the other hand that harmful Dead
+and on the other hand that harmful Dead Zone one layers a different tiling
+Zone one layers a different tiling material on top of the underlying
+material on top of the underlying material which makes the border between
+material which makes the border between the two a little bit more clear
+the two a little bit more clear this layer also modifies the physics
+this layer also modifies the physics material so that we can detect when the
+material so that we can detect when the player is standing on top of it
+so to implement the cleaning effect we have a we have gameplay objects right to
+have a we have gameplay objects right to a top-down render Target that is
+a top-down render Target that is centered on the player's location
+centered on the player's location the red channel of this texture encodes
+the red channel of this texture encodes the clean state so for example when the
+the clean state so for example when the player destroys a dead zone art a
+player destroys a dead zone art a circular shape extends outward and marks
+circular shape extends outward and marks different areas as being cleaned the
+different areas as being cleaned the material uses the pixels World space
+material uses the pixels World space position to compute the correct location
+position to compute the correct location at which to sample from this texture and
+at which to sample from this texture and the value that is sampled is used to
+the value that is sampled is used to fade off both of the additive Dead Zone
+fade off both of the additive Dead Zone layers on the landscape material
+layers on the landscape material since the landscape can be visible from
+since the landscape can be visible from afar we actually have two render targets
+afar we actually have two render targets set up in a similar manner to cascading
+set up in a similar manner to cascading Shadow Maps one render Target of higher
+Shadow Maps one render Target of higher resolution covers the area surrounding
+resolution covers the area surrounding the player
+the player immediately surrounding the player and a
+immediately surrounding the player and a second lower resolution render Target
+second lower resolution render Target covers a much larger area which allows
+covers a much larger area which allows us to have dead zone appear being
+us to have dead zone appear being cleaned even from very far away
+cleaned even from very far away just like in cascaded Shadow Maps we
+just like in cascaded Shadow Maps we also ensure that these
+also ensure that these we also ensure that the render Target is
+we also ensure that the render Target is snapped to the nearest Texel so we don't
+snapped to the nearest Texel so we don't have any weird sampling artifacts from
+have any weird sampling artifacts from it smoothly interpolating between
+it smoothly interpolating between when you're moving small distances
+when you're moving small distances there are a couple of limitations with
+there are a couple of limitations with this approach one of the obvious ones is
+this approach one of the obvious ones is that the render Target is top down so we
+that the render Target is top down so we can't have dead zones layered on top of
+can't have dead zones layered on top of each other but this didn't really wind
+each other but this didn't really wind up being a problem in practice
+up being a problem in practice this also only supports cleaning dead
+this also only supports cleaning dead zone so while we thought that
+zone so while we thought that dynamically authoring Dead Zone might be
+dynamically authoring Dead Zone might be interesting from a gameplay perspective
+interesting from a gameplay perspective we didn't wind up actually pursuing that
+we didn't wind up actually pursuing that um so yeah just above the landscape we
+um so yeah just above the landscape we have ground cover meshes like our grass
+have ground cover meshes like our grass clovers and flowers which add depth to
+clovers and flowers which add depth to the terrain as well as other larger
+the terrain as well as other larger plants
+plants um like Ferns and some other stuff
+um like Ferns and some other stuff we use unreal's built-in instance
+we use unreal's built-in instance foliage system to place and render these
+foliage system to place and render these assets
+assets for assets that need to be used in the
+for assets that need to be used in the dead zones we set up two foliage types
+dead zones we set up two foliage types for each plant both a clean version and
+for each plant both a clean version and a dead zone version and we use the
+a dead zone version and we use the appropriate version when doing level
+appropriate version when doing level dressing so if the artist is placing
+dressing so if the artist is placing assets on top of somewhere where they
+assets on top of somewhere where they painted Dead Zone on the landscape they
+painted Dead Zone on the landscape they would make sure that they Place The Dead
+would make sure that they Place The Dead Zone versions of the assets
+Zone versions of the assets instead
+instead and so obviously we also need two sets
+and so obviously we also need two sets of materials as well and the deadline
+of materials as well and the deadline foliage types have different materials
+foliage types have different materials assigned that support being cleaned
+assigned that support being cleaned having two sets of foliage types and
+having two sets of foliage types and materials did lead to some minor issues
+materials did lead to some minor issues like keeping both of these in sync when
+like keeping both of these in sync when we were making changes to things like
+we were making changes to things like material parameters But ultimately I
+material parameters But ultimately I think this wound up being the right call
+think this wound up being the right call we had tried out using a single foliage
+we had tried out using a single foliage type that could detect when it was in
+type that could detect when it was in dead zone but that added additional
+dead zone but that added additional complexity around detecting what
+complexity around detecting what Landscapes what landscape layers were
+Landscapes what landscape layers were below the mesh which is not super easy
+below the mesh which is not super easy to do out of the box
+to do out of the box it also increased the Shader complexity
+it also increased the Shader complexity for every mesh even though most meshes
+for every mesh even though most meshes weren't going to be transitioning
+weren't going to be transitioning from cleaned to dead zone
+from cleaned to dead zone and so given the asset density that we
+and so given the asset density that we were targeting it didn't really seem to
+were targeting it didn't really seem to be a trade-off that was worth making
+um so these foliage types are generally cleaned the same way as the terrain by
+cleaned the same way as the terrain by sampling from the red Channel and that
+sampling from the red Channel and that cleaning render Target that I mentioned
+cleaning render Target that I mentioned earlier
+earlier and they use that value to learn colors
+and they use that value to learn colors and other material parameters
+and other material parameters you might also notice that some Dead
+you might also notice that some Dead Zone plants scale down and disappear
+Zone plants scale down and disappear when cleaned this is handled by scaling
+when cleaned this is handled by scaling the mesh in the vertex Shader based on
+the mesh in the vertex Shader based on that same value sampled by the texture
+that same value sampled by the texture are sampled from the texture I should
+are sampled from the texture I should say
+say this does leave us with a problem though
+this does leave us with a problem though in that if we remove a lot of dead zone
+in that if we remove a lot of dead zone versions of plants we are left with bare
+versions of plants we are left with bare patches of the landscape exposed
+patches of the landscape exposed so we solved this problem by having
+so we solved this problem by having other plants grow back in and fill in
+other plants grow back in and fill in those bare spots
+those bare spots certain materials actually start with a
+certain materials actually start with a scale of zero and they scale up instead
+scale of zero and they scale up instead based on the value sampled from this
+based on the value sampled from this time the blue Channel instead of the red
+time the blue Channel instead of the red Channel
+Channel one big reason that we separated these
+one big reason that we separated these into two separate channels is we want
+into two separate channels is we want the flowers and other plants to grow in
+the flowers and other plants to grow in a little bit delayed relative to When
+a little bit delayed relative to When The Dead Zone gets cleaned so having
+The Dead Zone gets cleaned so having them separated into two channels allows
+them separated into two channels allows the viewer to take them in as two
+the viewer to take them in as two separate events and it makes everything
+separate events and it makes everything feel a little bit less in sync
+feel a little bit less in sync adding this amount of being a big win
+adding this amount of being a big win from an art Direction perspective as
+from an art Direction perspective as well as it enabled the artist to dress
+well as it enabled the artist to dress spaces with Vibrant Plants and large
+spaces with Vibrant Plants and large flowers that would not look correct in a
+flowers that would not look correct in a dead zone space even if we did
+dead zone space even if we did desaturate the colors
+desaturate the colors so whenever the dead zone clear occurs
+so whenever the dead zone clear occurs all of these plants rush back in and
+all of these plants rush back in and they fill the space with life this also
+they fill the space with life this also allowed us to stop loading in levels to
+allowed us to stop loading in levels to bring in assets and have it all occur in
+bring in assets and have it all occur in real time
+real time one obvious drawback of scaling foliage
+one obvious drawback of scaling foliage like this in the vertex Shader is that
+like this in the vertex Shader is that there are locations where we have two
+there are locations where we have two versions of plants in the same area we
+versions of plants in the same area we have dead zone plants that scale down
+have dead zone plants that scale down and we have the plants that grow back in
+and we have the plants that grow back in and they scale back on top of those ones
+and they scale back on top of those ones to optimize this we could have
+to optimize this we could have theoretically written some code to
+theoretically written some code to modify like the instance foliage system
+modify like the instance foliage system and have some code that like tries to
+and have some code that like tries to call out zero scale instances or
+call out zero scale instances or something like that but we didn't
+something like that but we didn't actually have the time to make any big
+actually have the time to make any big changes so instead we just made sure
+changes so instead we just made sure that we didn't go overboard with this
+that we didn't go overboard with this effect
+effect at least any of the zero scale instances
+at least any of the zero scale instances all of the triangles that are generated
+all of the triangles that are generated from them have zero area and so they at
+from them have zero area and so they at least get cold during rasterization
+and then one final bit of visual polish on the ground cover assets is what we
+on the ground cover assets is what we call
+call overgrowth
+overgrowth the green channel in the cleaning render
+the green channel in the cleaning render Target encodes an additional value that
+Target encodes an additional value that we use to temporarily saturate colors
+we use to temporarily saturate colors and scale up plants beyond their normal
+and scale up plants beyond their normal size
+size you can see this effect take place when
+you can see this effect take place when destroying a dead zone heart or removing
+destroying a dead zone heart or removing the rot in the rot cloud form through
+the rot in the rot cloud form through the grass
+the grass this effect provides some additional
+this effect provides some additional bounce during Dead Zone clears it makes
+bounce during Dead Zone clears it makes everything just feel a little bit more
+everything just feel a little bit more animated
+and finally you can see all this work on the foliage shaders come together in the
+the foliage shaders come together in the context of a dead zone clear
+context of a dead zone clear it is easier I think to see it in the
+it is easier I think to see it in the viewport rather than the debug render
+viewport rather than the debug render Target view but the blue channel is
+Target view but the blue channel is slightly delayed to the red channel so
+slightly delayed to the red channel so you might notice that the flowers grow
+you might notice that the flowers grow in a little bit after all of the grass
+in a little bit after all of the grass turns green
+turns green also note that the green overgrowth
+also note that the green overgrowth channel is the only one that does not
+channel is the only one that does not stick around after the clear that effect
+stick around after the clear that effect is temporary
+the next ingredient is the larger Dead Zone meshes in the space this includes
+Zone meshes in the space this includes the bulbous gnarl Dead Zone pods but
+the bulbous gnarl Dead Zone pods but also trees with some larger Dead Zone
+also trees with some larger Dead Zone growth sprouting out of them
+growth sprouting out of them these larger meshes are great at
+these larger meshes are great at blocking progression through a space and
+blocking progression through a space and they help sell the idea that the dead
+they help sell the idea that the dead zone is taking over
+zone is taking over whenever a dead zone clear occurs these
+whenever a dead zone clear occurs these meshes dissolve out allowing the player
+meshes dissolve out allowing the player to get past them
+to get past them these meshes are actually blueprints
+these meshes are actually blueprints rather than instance foliage a big
+rather than instance foliage a big reason for that is we did not want to
+reason for that is we did not want to use the cleaning render Target
+use the cleaning render Target um since we would run into the same
+um since we would run into the same issue that we had with the prototypes
+issue that we had with the prototypes where things would be we would just be
+where things would be we would just be cutting through the middle of a mesh
+cutting through the middle of a mesh whenever those effects were going off
+whenever those effects were going off and another problem is that the during
+and another problem is that the during The Dead Zone clear the cleaning effect
+The Dead Zone clear the cleaning effect moves out so quickly that it would wipe
+moves out so quickly that it would wipe over these larger Assets in a fraction
+over these larger Assets in a fraction of a second which wouldn't look good
+of a second which wouldn't look good either
+either so instead what we do is we dissolve out
+so instead what we do is we dissolve out all of these assets on their own
+all of these assets on their own timeline by giving them more time the
+timeline by giving them more time the player actually has a chance to take all
+player actually has a chance to take all of this in
+of this in compared to the Prototype version where
+compared to the Prototype version where the meshes could be either could be
+the meshes could be either could be partially cleaned these meshes are
+partially cleaned these meshes are binary they're either cleaned or not
+binary they're either cleaned or not so that makes it easy to disable
+so that makes it easy to disable Collision on these when they're cleaned
+Collision on these when they're cleaned to make the dissolve still feel
+to make the dissolve still feel connected to the dead zone heart's
+connected to the dead zone heart's destruction we built a tool to adjust
+destruction we built a tool to adjust the time that it takes for each one to
+the time that it takes for each one to start dissolving out
+start dissolving out so what happens is when the The Dead
+so what happens is when the The Dead Zone cleaning effect goes out these
+Zone cleaning effect goes out these meshes are not dissolved by the time the
+meshes are not dissolved by the time the cleaning effect reaches them but rather
+cleaning effect reaches them but rather they start dissolving out when the dead
+they start dissolving out when the dead zone clear hits them
+zone clear hits them and that gives them enough time to sort
+and that gives them enough time to sort of be spaced out and they have and they
+of be spaced out and they have and they just dissolve out on their own timeline
+just dissolve out on their own timeline and they can take as long however
+and they can take as long however however long they need in order for it
+however long they need in order for it to look good
+the dissolving Shader is a pretty typical noise-based dissolve that
+typical noise-based dissolve that brightens the edges to cover up the
+brightens the edges to cover up the transition a lot of the assets also
+transition a lot of the assets also spawn particle effects like little
+spawn particle effects like little splashes and snapping roots and a little
+splashes and snapping roots and a little bit of distortion to help cover stuff up
+bit of distortion to help cover stuff up some assets like trees also lurk between
+some assets like trees also lurk between two separate diffuse textures which just
+two separate diffuse textures which just gives us a little bit more texture
+gives us a little bit more texture variation you might notice that there's
+variation you might notice that there's a little bit of moss growing in back
+a little bit of moss growing in back here on the tree
+here on the tree and note that for the handful of assets
+and note that for the handful of assets like trees that stick around after the
+like trees that stick around after the clear we don't actually disable
+clear we don't actually disable Collision on those as well
+um so as with most things that are blueprint adjacent we did run into some
+blueprint adjacent we did run into some performance problems with our initial
+performance problems with our initial setup for these assets
+setup for these assets we had originally set up These
+we had originally set up These Blueprints using Dynamic material
+Blueprints using Dynamic material instances to allow training the dissolve
+instances to allow training the dissolve parameters for instance but we moved
+parameters for instance but we moved away from that since it breaks
+away from that since it breaks instancing
+instancing since version 422 unreal automatically
+since version 422 unreal automatically instances draw cap draw calls that share
+instances draw cap draw calls that share the same mesh and materials which can
+the same mesh and materials which can significantly reduce the amount of drop
+significantly reduce the amount of drop calls they can submitted to the GPU
+calls they can submitted to the GPU but since Dynamic material instances can
+but since Dynamic material instances can have different values for their
+have different values for their different Shader parameters they need to
+different Shader parameters they need to be rendered as separate draw calls
+the other problem is that it's expensive on the CPU side to update a lot of
+on the CPU side to update a lot of material parameters
+material parameters the default interface for updating
+the default interface for updating material parameters involves looking up
+material parameters involves looking up the parameters by name which involves a
+the parameters by name which involves a lot of string comparisons this was
+lot of string comparisons this was especially bad during level streaming
+especially bad during level streaming because we would wind up updating a few
+because we would wind up updating a few parameters on hundreds of dead zone
+parameters on hundreds of dead zone blueprints
+blueprints and on some of our levels we were paying
+and on some of our levels we were paying something like 30 milliseconds just to
+something like 30 milliseconds just to create the dynamic material instances
+create the dynamic material instances and update all of the parameters on
+and update all of the parameters on these assets just so they could get into
+these assets just so they could get into the correct State on the level load
+the correct State on the level load so to solve these problems we switch to
+so to solve these problems we switch to using an unreal feature called custom
+using an unreal feature called custom primitive data custom primitive data
+primitive data custom primitive data gives you access to 32 floating Point
+gives you access to 32 floating Point numbers on a per primitive level that
+numbers on a per primitive level that can be modified just like material
+can be modified just like material parameters but it does not require you
+parameters but it does not require you to make Dynamic material instances just
+to make Dynamic material instances just to set these values on a per primitive
+to set these values on a per primitive basis or per instance basis
+basis or per instance basis um so as you can see in these images
+um so as you can see in these images that I stole from the unreal
+that I stole from the unreal documentation page
+documentation page in the Shader instead of reading the
+in the Shader instead of reading the parameter value by name you instead
+parameter value by name you instead index into that float array
+index into that float array so you just specify the the number of
+so you just specify the the number of the index that you want to use instead
+the index that you want to use instead since a lot of our Shader parameters are
+since a lot of our Shader parameters are actually exposed from Material functions
+actually exposed from Material functions and not the material itself
+and not the material itself we set aside we set up like a convention
+we set aside we set up like a convention to set aside specific indices to be used
+to set aside specific indices to be used for certain effects so that would allow
+for certain effects so that would allow us to avoid any conflicts if we just
+us to avoid any conflicts if we just drop in random material functions into
+drop in random material functions into different materials
+different materials so for example
+so for example index 0 might be always set aside to
+index 0 might be always set aside to store the dissolve amount or index one
+store the dissolve amount or index one might be set aside to always store a
+might be set aside to always store a desaturation value or something like
+desaturation value or something like that
+that so since we don't need Dynamic material
+so since we don't need Dynamic material instances anymore the renderer is able
+instances anymore the renderer is able to instance all of these Dead Zone
+to instance all of these Dead Zone meshes
+meshes and another thing that is also a benefit
+and another thing that is also a benefit is that since the parameters are
+is that since the parameters are referenced by index instead of by name
+referenced by index instead of by name updating these values on the CPU side is
+updating these values on the CPU side is a lot easier because we avoid all of
+a lot easier because we avoid all of those string comparisons
+those string comparisons custom primitive data does have some
+custom primitive data does have some drawbacks though one big one is that it
+drawbacks though one big one is that it is a per primitive setting
+is a per primitive setting and that means that if you have multiple
+and that means that if you have multiple materials on the same mesh and you want
+materials on the same mesh and you want them to have different
+them to have different different values for their Shader
+different values for their Shader parameters you won't be able to do that
+parameters you won't be able to do that so in
+so in in our cases whenever we ran into that
+in our cases whenever we ran into that we wound up just falling back to using
+we wound up just falling back to using Dynamic material instances for those for
+Dynamic material instances for those for those meshes
+so the final key component to the dead zone is the lighting and ambience
+zone is the lighting and ambience all of the lighting in Cana is real time
+all of the lighting in Cana is real time which gave us the ability to finally
+which gave us the ability to finally took finely tune the look of each area
+took finely tune the look of each area in the game including the dead zones
+in the game including the dead zones lighting artists control the lighting in
+lighting artists control the lighting in different regions by using custom
+different regions by using custom post-process volumes similar to the
+post-process volumes similar to the built-in unreal post-process volumes our
+built-in unreal post-process volumes our volumes Drive the lighting and fog
+volumes Drive the lighting and fog parameters based on the camera location
+parameters based on the camera location fading in the values as the camera gets
+fading in the values as the camera gets closer
+closer artists can modify a variety of
+artists can modify a variety of properties like sun or Skylight
+properties like sun or Skylight intensity or fog density and plenty of
+intensity or fog density and plenty of the other in-depth parameters that get
+the other in-depth parameters that get exposed on the light and fog components
+exposed on the light and fog components so that they can finely tune the look of
+so that they can finely tune the look of the space
+similar to post-process volumes all of the parameter overrides are optional so
+the parameter overrides are optional so a volume only needs to specify a value
+a volume only needs to specify a value for things that it actually wants to
+for things that it actually wants to override
+override for dead zones in particular we
+for dead zones in particular we generally just decrease the sun
+generally just decrease the sun intensity increase the fog density and
+intensity increase the fog density and bring in a little bit of chromatic
+bring in a little bit of chromatic aberration
+aberration and all of these parameters are not
+and all of these parameters are not actually stored on the volumes
+actually stored on the volumes themselves but we store them in data
+themselves but we store them in data asset configuration files
+asset configuration files swapping out the configs in the editor
+swapping out the configs in the editor is a very easy thing to do and it can be
+is a very easy thing to do and it can be a great way to find a config that is
+a great way to find a config that is close to what you're looking for when
+close to what you're looking for when you're setting up the lighting in a
+you're setting up the lighting in a space
+space another benefit of having the lighting
+another benefit of having the lighting configs the separate files is that it
+configs the separate files is that it avoids a lot of the source control
+avoids a lot of the source control conflicts where people would run into
+conflicts where people would run into issues having to check out the same
+issues having to check out the same levels
+so for each Dead Zone we wind up setting up a post-process volume that controls
+up a post-process volume that controls the look of that particular space when
+the look of that particular space when it is a dead zone
+it is a dead zone and during the design clear we gradually
+and during the design clear we gradually Fade Out the contribution of that dead
+Fade Out the contribution of that dead zone post-process volume to avoid a
+zone post-process volume to avoid a lighting pop
+lighting pop artists can also preview the
+artists can also preview the contribution of the volume by toggling
+contribution of the volume by toggling in editor so this makes it very easy
+in editor so this makes it very easy when you're setting up the lighting for
+when you're setting up the lighting for a space to see both the before and after
+a space to see both the before and after version of The Dead Zone clear
+so finally in this breakdown video you can see how all of the different layers
+can see how all of the different layers come together for the final product
+come together for the final product starting from just the landscape having
+starting from just the landscape having the foliage having the rest of the scene
+the foliage having the rest of the scene come in having these Dead Zone meshes
+come in having these Dead Zone meshes which you'll see dissolve out slowly
+which you'll see dissolve out slowly once they get hit back to clear and then
+once they get hit back to clear and then the lighting and the fog changes that
+the lighting and the fog changes that dissolve out at the beginning
+so now I'm going to talk about how we achieved the rot powered special
+achieved the rot powered special abilities in the game there were two big
+abilities in the game there were two big goals that we wanted to accomplish with
+goals that we wanted to accomplish with these abilities
+these abilities first we wanted to make sure that we
+first we wanted to make sure that we captured the collective nature of the
+captured the collective nature of the rot and their role in cleaning dead zone
+while the rot are typically animated characters represented by skeletal
+characters represented by skeletal meshes they transition through different
+meshes they transition through different representations during these abilities
+representations during these abilities including Olympic geometry caches for
+including Olympic geometry caches for fast morphing Transitions and Niagara
+fast morphing Transitions and Niagara particles for when the rock are swarming
+particles for when the rock are swarming together
+so first the geometry caches are used in cases where it would be hard to
+cases where it would be hard to synchronously animate multiple rod
+synchronously animate multiple rod so to create the geometry caches we
+so to create the geometry caches we animated low poly rot meshes to follow
+animated low poly rot meshes to follow animation curves there are generally
+animation curves there are generally only a few base curves that are then
+only a few base curves that are then tweaked slightly to create different
+tweaked slightly to create different path variations for other route to
+path variations for other route to follow this ensures that there's some
+follow this ensures that there's some level of visual cohesion as all of the
+level of visual cohesion as all of the rot are swarming in
+rot are swarming in the meshes are also stretched as their
+the meshes are also stretched as their velocity increases with care taken to
+velocity increases with care taken to preserve their overall volume
+preserve their overall volume you can see these used at the beginning
+you can see these used at the beginning of the the rot bow and bomb abilities as
+of the the rot bow and bomb abilities as well as the rod hammer
+for swarming behaviors we use a niagrism where each Rod is represented by a
+where each Rod is represented by a particle
+particle the normal skeletal mesh versions of the
+the normal skeletal mesh versions of the rot can be quite expensive
+rot can be quite expensive and so we wind up scaling down the
+and so we wind up scaling down the number of Roth that are visible on
+number of Roth that are visible on screen depending on what platform you're
+screen depending on what platform you're playing on
+playing on however we wanted to ensure that the
+however we wanted to ensure that the user could see all of their collected
+user could see all of their collected rot when they're in the Rock cloud form
+rot when they're in the Rock cloud form so we chose to represent them with
+so we chose to represent them with static meshes in the Niagara particle
+static meshes in the Niagara particle system to reduce their animation and
+system to reduce their animation and rendering cost
+rendering cost this Niagara simulation runs on the CPU
+this Niagara simulation runs on the CPU so that we can easily keep the particle
+so that we can easily keep the particle locations in sync with the rock
+locations in sync with the rock characters this allows us to switch from
+characters this allows us to switch from the particle system version to the
+the particle system version to the skeletal mesh version relatively
+skeletal mesh version relatively seamlessly
+the Niagara simulation distributes rot along a spline
+along a spline when binding enemies the spline is
+when binding enemies the spline is generated dynamically by adding points
+generated dynamically by adding points that follow in the animated path
+that follow in the animated path as you can see here this is the version
+as you can see here this is the version that just has the has the spline
+that just has the has the spline on the other hand when in the Rock cloud
+on the other hand when in the Rock cloud form the splines actually follow the
+form the splines actually follow the bones in the skeletal mesh this ensures
+bones in the skeletal mesh this ensures that the spine has a consistent length
+that the spine has a consistent length and the distribution and has a good
+and the distribution and has a good distribution even when the cloud is
+distribution even when the cloud is standing still
+standing still the Run particles are attracted to
+the Run particles are attracted to points that rotate around this spline
+points that rotate around this spline the radius and angle of rotation of the
+the radius and angle of rotation of the attraction points
+attraction points is somewhat randomized per particle
+is somewhat randomized per particle these settings are also controlled both
+these settings are also controlled both by curves that allow you to Define how
+by curves that allow you to Define how the values change over the length of the
+the values change over the length of the spline so you might have a you might
+spline so you might have a you might want more thickness at the head and less
+want more thickness at the head and less at the tail
+at the tail and they're also controlled by scalar
+and they're also controlled by scalar values that can be adjusted so for
+values that can be adjusted so for example you can globally scale up the
+example you can globally scale up the radius if for example the player
+radius if for example the player collects more ROM
+these Niagara pair excuse me these Niagara parameters can also be driven
+Niagara parameters can also be driven over time by animation curves this
+over time by animation curves this allows animators to adjust the
+allows animators to adjust the simulation's behavior to better match
+simulation's behavior to better match the animation
+the animation so for example if the rock cloud is
+so for example if the rock cloud is moving fast the attraction strength
+moving fast the attraction strength might need to be higher to prevent the
+might need to be higher to prevent the particles from lagging behind
+particles from lagging behind to accomplish this we just have some
+to accomplish this we just have some blueprint code that samples specific
+blueprint code that samples specific animation curves by name and it routes
+animation curves by name and it routes those values into the Niagara system
+we animate these values as scalars rather than absolute values to avoid
+rather than absolute values to avoid stopping any other Global changes that
+stopping any other Global changes that are being passed in like for example if
+are being passed in like for example if we're adjusting the radius based on how
+we're adjusting the radius based on how many rot you have
+foreign so in this breakdown of the Ron Hammer
+so in this breakdown of the Ron Hammer you can actually see all three stages
+you can actually see all three stages starting with these rots swirling in as
+starting with these rots swirling in as a geometry cache
+a geometry cache and then turning into a Niagara particle
+and then turning into a Niagara particle system as they come bouncing out
+and then finally they change back into their skeletal mesh form when they hit
+their skeletal mesh form when they hit the ground and come tumbling out
+as previously mentioned these abilities also are tied into the dead zone
+also are tied into the dead zone cleaning system all of the abilities
+cleaning system all of the abilities right to the cleaning render Target so
+right to the cleaning render Target so that they affect the landscape and the
+that they affect the landscape and the foliage but they don't affect the larger
+foliage but they don't affect the larger Dead Zone meshes which is good in our
+Dead Zone meshes which is good in our case
+case not everything cleans in a circular
+not everything cleans in a circular shape however so we need to add support
+shape however so we need to add support for drawing trails to this render Target
+for drawing trails to this render Target while this was originally built to
+while this was originally built to provide the feedback when moving around
+provide the feedback when moving around the rock Cloud we wound up using it in a
+the rock Cloud we wound up using it in a variety of places like the bind feedback
+variety of places like the bind feedback or the bounce during the rod hammer or
+or the bounce during the rod hammer or the cleaning Trail Left Behind from the
+the cleaning Trail Left Behind from the raw Arrow
+one problem we ran into was that the cleaning mask render Target is top down
+cleaning mask render Target is top down so there isn't really an easy way to
+so there isn't really an easy way to encode that cleaning is happening at a
+encode that cleaning is happening at a particular height value
+particular height value so one of the early problems that we ran
+so one of the early problems that we ran into
+into was for example if you take the right
+was for example if you take the right arrow and you fire it into the air
+arrow and you fire it into the air ideally the cleaning effect should
+ideally the cleaning effect should decrease as the arrow gets higher off of
+decrease as the arrow gets higher off of the ground
+the ground but
+but in our naive approach it didn't do that
+in our naive approach it didn't do that so we fixed this by just simply
+so we fixed this by just simply performing traces down to find how high
+performing traces down to find how high off the ground it was whenever we were
+off the ground it was whenever we were adding a point to the trail
+adding a point to the trail and then depending on the distance to
+and then depending on the distance to the ground we adjusted the strength for
+the ground we adjusted the strength for that point
+that point and the Shader takes that into account
+and the Shader takes that into account and it fades out the effect
+so put all together we think the dynamic feedback for these abilities gives them
+feedback for these abilities gives them the impression that the player is
+the impression that the player is fighting back The Dead Zone every time
+fighting back The Dead Zone every time they use the raw in combat
+so hopefully that gives you a brief overview of how we achieved The Dead
+overview of how we achieved The Dead Zone Transitions and Rod abilities in
+Zone Transitions and Rod abilities in Cana Bridge experience I think that
+Cana Bridge experience I think that there are two big takeaways for us that
+there are two big takeaways for us that we've already somewhat alluded to
+we've already somewhat alluded to first ideally the VFX is used to
+first ideally the VFX is used to reinforce the World building rather than
+reinforce the World building rather than just using it to make stuff look cool
+just using it to make stuff look cool especially in our case we struggled a
+especially in our case we struggled a lot to establish how the rot actually
+lot to establish how the rot actually cleaned Dead Zone but we found that good
+cleaned Dead Zone but we found that good VFX feedback did a lot of heavy lifting
+VFX feedback did a lot of heavy lifting when it came to getting players to
+when it came to getting players to understand and accept how the stuff
+understand and accept how the stuff worked
+worked and second we derived a lot of value by
+and second we derived a lot of value by building stuff in layers
+building stuff in layers so while none of the individual parts of
+so while none of the individual parts of the Dead Zone equation are particularly
+the Dead Zone equation are particularly complicated each layer provides
+complicated each layer provides different feedback from the last
+different feedback from the last and they all work to produce something
+and they all work to produce something greater than the sum of its parts
+greater than the sum of its parts and by staggering the effects of these
+and by staggering the effects of these layers across time we were able to make
+layers across time we were able to make each part read separately from the
+each part read separately from the others instead of getting lost in the
+others instead of getting lost in the noise
+so I guess we're a little short on time for questions so I will say if anybody
+for questions so I will say if anybody has questions I'll probably be hanging
+has questions I'll probably be hanging out in the room 204 down the hallway if
+out in the room 204 down the hallway if anybody wants to ask questions afterward
+anybody wants to ask questions afterward um and you can also shoot me an email if
+um and you can also shoot me an email if you want to my email is on the slide my
+you want to my email is on the slide my work email and I'll try to get back to
+work email and I'll try to get back to you and if you have any other things
+you and if you have any other things that you want to contact the studio
+that you want to contact the studio about you can always hit up our contact
+about you can always hit up our contact email contact at numberlab.com
+email contact at numberlab.com but um I guess I just want to thank you
+but um I guess I just want to thank you all for your attention and um
+all for your attention and um yeah I want to thank everybody else who
+yeah I want to thank everybody else who worked on this content and helped me
+worked on this content and helped me prepare this presentation because it was
+prepare this presentation because it was certainly a good bit of work
+certainly a good bit of work thanks
+thanks [Applause]
+[Applause] [Music]

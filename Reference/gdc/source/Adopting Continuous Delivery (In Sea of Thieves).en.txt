@@ -1,0 +1,1382 @@
+hello my name is Jeff assault ani I'm lead software engineer working for air
+lead software engineer working for air game studio we are part of Microsoft and
+game studio we are part of Microsoft and today I'm gonna talk about where is
+today I'm gonna talk about where is Jamie in adopting continuous delivery
+Jamie in adopting continuous delivery for our latest title called sea of
+for our latest title called sea of thieves is there anybody here who
+thieves is there anybody here who doesn't work in games industry okay just
+doesn't work in games industry okay just a couple so this slide should be
+a couple so this slide should be familiar to most of you I'll quickly go
+familiar to most of you I'll quickly go through that it's games are developed as
+through that it's games are developed as monolithic applications in C++ and we
+monolithic applications in C++ and we use three main phases and we use
+use three main phases and we use waterfall process to develop games we
+waterfall process to develop games we have a pre-production or prototyping
+have a pre-production or prototyping phase when the size of the team is quite
+phase when the size of the team is quite small and the purpose is to come up with
+small and the purpose is to come up with the idea about the game come up about
+the idea about the game come up about the story define what the game is about
+the story define what the game is about prove out the technology and come up
+prove out the technology and come up with the roadmap for the game and once
+with the roadmap for the game and once we get the funding and greenlight we go
+we get the funding and greenlight we go into production phase that's where the
+into production phase that's where the size of the team increases significantly
+size of the team increases significantly and the main purpose here is to develop
+and the main purpose here is to develop as many features as possible that we
+as many features as possible that we defined earlier on that can last
+defined earlier on that can last sometimes in one to two years and once
+sometimes in one to two years and once that's finished we going to bug fixing
+that's finished we going to bug fixing phase that's where we're getting close
+phase that's where we're getting close to the release date and we can't really
+to the release date and we can't really move that and we had the same time we
+move that and we had the same time we face mountain of bugs maybe about 10,000
+face mountain of bugs maybe about 10,000 bucks that we have to now go and fix for
+bucks that we have to now go and fix for the release date and everybody's point
+the release date and everybody's point everybody crunches everybody work long
+everybody crunches everybody work long hours it's quite stressful people make a
+hours it's quite stressful people make a lot of sacrifices to make sure game is
+lot of sacrifices to make sure game is out on time at high quality and at this
+out on time at high quality and at this stage we heavily rely on manual testing
+stage we heavily rely on manual testing to prove that game works and catch bugs
+to prove that game works and catch bugs for us and usually for Triple A games we
+for us and usually for Triple A games we have one big release followed by handful
+have one big release followed by handful of updates and the main team moves on to
+of updates and the main team moves on to the next project
+the next project and they don't have to worry about
+and they don't have to worry about maintainability of the codebase
+could you raise your hand if you familiar with your thieves or you place
+familiar with your thieves or you place your thieves good so sea of thieves is a
+your thieves good so sea of thieves is a multiplayer cooperative adventure game
+multiplayer cooperative adventure game that we are working on a rare and the
+that we are working on a rare and the idea is that there is no predefined
+idea is that there is no predefined story there are emergent stories that
+story there are emergent stories that develop as a result of simple mechanics
+develop as a result of simple mechanics in the game when you go and form a crew
+in the game when you go and form a crew with your friends or with strangers and
+with your friends or with strangers and you go on an adventure for this game we
+you go on an adventure for this game we decided to change our business model and
+decided to change our business model and develop this game as a service the
+develop this game as a service the difference between developing this game
+difference between developing this game as a service compared to traditional
+as a service compared to traditional process that I just explained is as
+process that I just explained is as opposed to working for three years and
+opposed to working for three years and then release the game at the end we
+then release the game at the end we supposed to release the game much
+supposed to release the game much earlier and are involving our community
+earlier and are involving our community and our players we evolve the game based
+and our players we evolve the game based on their feedback that hopefully leads
+on their feedback that hopefully leads to a better game there's more fun for
+to a better game there's more fun for our players so far we've done over 150
+our players so far we've done over 150 releases of CO thieves there are
+releases of CO thieves there are technical alpha players and that's by
+technical alpha players and that's by far the most number of releases that any
+far the most number of releases that any title have done on Xbox platform and a
+title have done on Xbox platform and a game is live this week it came out this
+game is live this week it came out this week earlier this week and this is the
+week earlier this week and this is the amazing team at rare will work on the
+amazing team at rare will work on the project now I'm going to talk about why
+project now I'm going to talk about why we decided to adopt continuous delivery
+because we changed our business model it meant that we wanted to sustainably
+meant that we wanted to sustainably deliver new features to our players of a
+deliver new features to our players of a long period of time and we know that
+long period of time and we know that every time we wanted to release we used
+every time we wanted to release we used to crunch so if you didn't change
+to crunch so if you didn't change anything you would have had continuous
+anything you would have had continuous crunch as opposed to continuous delivery
+crunch as opposed to continuous delivery so it was quite important that we
+so it was quite important that we reduced the crunch as much as possible
+reduced the crunch as much as possible and therefore have happier developers we
+and therefore have happier developers we wanted to get fast feedback from our
+wanted to get fast feedback from our players so then we can deliver a better
+players so then we can deliver a better quality game that is more fun and on top
+quality game that is more fun and on top of that we wanted to reduce the cost of
+of that we wanted to reduce the cost of having large manual testing I did not
+having large manual testing I did not even rely on them to prove the game
+even rely on them to prove the game works the problem with relying on
+works the problem with relying on testing to tell us if the game works or
+testing to tell us if the game works or not is
+not is what we found is the moment we don't
+what we found is the moment we don't have that manual testing our developers
+have that manual testing our developers were not feeling confident to go and
+were not feeling confident to go and make any changes to the code base
+make any changes to the code base because they were not sure if they're
+because they were not sure if they're going to introduce any new issues or not
+going to introduce any new issues or not I wanted to clarify a distinction
+I wanted to clarify a distinction between doing continuous delivery and
+between doing continuous delivery and doing frequent releases there are
+doing frequent releases there are probably some games out there that
+probably some games out there that release regularly but that doesn't
+release regularly but that doesn't necessarily mean that they are doing
+necessarily mean that they are doing continuous delivery the difference is
+continuous delivery the difference is for those companies they still use the
+for those companies they still use the traditional process to develop their
+traditional process to develop their features they've reduced the time so as
+features they've reduced the time so as opposed to spending three years they
+opposed to spending three years they spent let's say three months and they
+spent let's say three months and they plan these features that overlap with
+plan these features that overlap with each other so then they can release them
+each other so then they can release them what let's say one month from each other
+what let's say one month from each other and on the other hand when we are doing
+and on the other hand when we are doing continuous delivery we might still
+continuous delivery we might still choose to release once every month but
+choose to release once every month but we have other candidates that if we
+we have other candidates that if we choose to we kind of see it release when
+choose to we kind of see it release when you're doing continuous delivery you can
+you're doing continuous delivery you can easily go from let's say releasing once
+easily go from let's say releasing once a month to releasing once every two
+a month to releasing once every two weeks because you have many candidates
+weeks because you have many candidates to choose from whereas in the
+to choose from whereas in the traditional process you don't really
+traditional process you don't really have any other candidates so you can't
+have any other candidates so you can't easily go from releasing once a month to
+easily go from releasing once a month to releasing once every two weeks now I'm
+releasing once every two weeks now I'm going to talk about how you're adopting
+going to talk about how you're adopting continuous delivery our developers are
+continuous delivery our developers are responsible for quality of the work and
+responsible for quality of the work and prove that a feature works we found that
+prove that a feature works we found that it's very inefficient to manually verify
+it's very inefficient to manually verify the game it can take days until we get
+the game it can take days until we get feedback where the game works or not so
+feedback where the game works or not so therefore our developers write automated
+therefore our developers write automated tests we'd have about 40,000 automated
+tests we'd have about 40,000 automated tests and we run about 4 million tests a
+tests and we run about 4 million tests a day 90% of our tests are unit tests
+day 90% of our tests are unit tests written in C++ and the remaining 10% are
+written in C++ and the remaining 10% are larger tests the tests bigger systems
+larger tests the tests bigger systems like these are end-to-end tests some of
+like these are end-to-end tests some of them are performances and memory tests
+them are performances and memory tests take longer to run and when our
+take longer to run and when our developers fix parts they usually try to
+developers fix parts they usually try to add some tests to prove that they fix
+add some tests to prove that they fix the bug
+you work hard to make sure our game is always shippable we prioritize fixing
+always shippable we prioritize fixing bugs and broken tests over working on
+bugs and broken tests over working on new features if our build is broken or
+new features if our build is broken or we have an incident which means we can't
+we have an incident which means we can't ship the game we lock our Depot we don't
+ship the game we lock our Depot we don't let other people to add changes on top
+let other people to add changes on top of that I'm not sure if you have
+of that I'm not sure if you have experienced this or not but we were
+experienced this or not but we were seeing that a lot of times if somebody's
+seeing that a lot of times if somebody's trying to investigate when the build is
+trying to investigate when the build is broken and somebody has add more changes
+broken and somebody has add more changes on top of that makes that investigations
+on top of that makes that investigations more difficult so we wanted to avoid
+more difficult so we wanted to avoid that so therefore we locked the depot
+that so therefore we locked the depot and what we do is we try to identify the
+and what we do is we try to identify the change that caused the problem and back
+change that caused the problem and back that out again what we found is it's a
+that out again what we found is it's a lot less stressful for our developers if
+lot less stressful for our developers if they come up with a fix in their own
+they come up with a fix in their own time as opposed to try to fix the build
+time as opposed to try to fix the build was everybody's blocked and we have
+was everybody's blocked and we have build lights and TV screens across the
+build lights and TV screens across the studio to notify everybody when the
+studio to notify everybody when the build is broken so you can't really miss
+build is broken so you can't really miss that and as a result of this the quality
+that and as a result of this the quality of the game looks something like this
+of the game looks something like this green line compared it to traditional
+green line compared it to traditional process where the quality is low
+process where the quality is low generally for most of the project and it
+generally for most of the project and it only gets to the high level towards the
+only gets to the high level towards the end of the project when they fixing bugs
+end of the project when they fixing bugs and that's one of the main reason that
+and that's one of the main reason that we can't really ship the game when we
+we can't really ship the game when we are at the stage like for most of the
+are at the stage like for most of the project because the quality is very low
+project because the quality is very low compared to the Green Line there we try
+compared to the Green Line there we try to make sure our bills as much as
+to make sure our bills as much as possible have small number of changes in
+possible have small number of changes in them because what we found is when
+them because what we found is when something goes wrong and there's only
+something goes wrong and there's only let's say a handful of changes in there
+let's say a handful of changes in there it's a lot easier to know which change
+it's a lot easier to know which change broke the bill as opposed to when we
+broke the bill as opposed to when we have 500 changes in there or let's say
+have 500 changes in there or let's say even more on top of that when we have so
+even more on top of that when we have so many changes they might interact badly
+many changes they might interact badly with each other and so there so what we
+with each other and so there so what we found is actually the risk grows
+found is actually the risk grows exponentially the more changes we have
+exponentially the more changes we have but on top of that our developers try to
+but on top of that our developers try to break down the work into smaller chunks
+break down the work into smaller chunks so they can ideally submit once a day
+so now I'm going to talk about what traditionally we used to set up our
+traditionally we used to set up our branches we used to form break the game
+branches we used to form break the game into different features and form teams
+into different features and form teams around each feature and each feature
+around each feature and each feature team used to go to their own branch and
+team used to go to their own branch and work on the feature and once that was
+work on the feature and once that was completed they would manage it back into
+completed they would manage it back into main or trunk and at some point before
+main or trunk and at some point before the release needs to create a queue a
+the release needs to create a queue a branch fix the bugs and then create a
+branch fix the bugs and then create a release branch and release from there so
+release branch and release from there so there were some problems with this
+there were some problems with this approach we could get really painful
+approach we could get really painful merge conflicts especially if you're
+merge conflicts especially if you're working let's say on a feature branch
+working let's say on a feature branch for a month or two months and now we
+for a month or two months and now we want to measure all of that back and on
+want to measure all of that back and on top of that because we are using
+top of that because we are using centralized source control systems like
+centralized source control systems like perforce major are not easily measure
+perforce major are not easily measure conflicts are not easy to resolve some
+conflicts are not easy to resolve some people argue that if you use git it
+people argue that if you use git it helps with merge conflicts but the
+helps with merge conflicts but the problem is that about 95% of the content
+problem is that about 95% of the content of the game is binary files and as I'm
+of the game is binary files and as I'm sure you're aware it's very difficult to
+sure you're aware it's very difficult to mention this binary file so if two
+mention this binary file so if two people end up changing the same binary
+people end up changing the same binary files in different branches when we try
+files in different branches when we try to measure them back we have to override
+to measure them back we have to override one or the other one on top of that we
+one or the other one on top of that we might give semantic conflicts semantic
+might give semantic conflicts semantic conflicts means if somebody goes let's
+conflicts means if somebody goes let's say try to refactor a function and split
+say try to refactor a function and split it into two because it was too long
+it into two because it was too long everything might merge fine but we're
+everything might merge fine but we're not going to know that that
+not going to know that that functionality is not complete until
+functionality is not complete until later on when it gets into queue a
+later on when it gets into queue a branch and again because we don't really
+branch and again because we don't really get any feedback until changes are in
+get any feedback until changes are in queue a branch the feedback loop is
+queue a branch the feedback loop is extremely long we're not going to know
+extremely long we're not going to know if our feature works whether or not
+if our feature works whether or not until maybe weeks and on top of that if
+until maybe weeks and on top of that if we identify critical issues that
+we identify critical issues that requires fixes now we have to go and
+requires fixes now we have to go and integrate that change into my many many
+integrate that change into my many many branches and this is kind of the idea
+branches and this is kind of the idea behind continuous integration as well
+behind continuous integration as well well it says that if something is
+well it says that if something is let's say like mage conflicts our
+let's say like mage conflicts our natural reaction is to do them as few
+natural reaction is to do them as few times as possible let's say you do a
+times as possible let's say you do a marriage and it's really painful you
+marriage and it's really painful you want to you don't want to do this again
+want to you don't want to do this again for another 3 months but actually what
+for another 3 months but actually what happens is the next thing we're going to
+happens is the next thing we're going to do this is even more difficult so what
+do this is even more difficult so what we should do instead is we should resist
+we should do instead is we should resist that temptation and try to do that
+that temptation and try to do that integration as often as possible ideally
+integration as often as possible ideally daily so therefore we use the trunk base
+daily so therefore we use the trunk base development where all the features are
+development where all the features are developed simultaneously on main and it
+developed simultaneously on main and it relieves from main we don't create
+relieves from main we don't create release branches so everything is work
+release branches so everything is work on main and release from there and what
+on main and release from there and what allows us to work this way is using
+allows us to work this way is using feature toggles we use two types of
+feature toggles we use two types of toggles
+toggles the first one is compiler on toggle
+the first one is compiler on toggle which we define the toggles that we want
+which we define the toggles that we want to switch on at compile time and when
+to switch on at compile time and when the game is compared it would compile
+the game is compared it would compile out the feature that we don't want to
+out the feature that we don't want to ship to players this allows us to have
+ship to players this allows us to have in progress features and hide them when
+in progress features and hide them when we release we also use dynamic taco
+we release we also use dynamic taco where all the features are still
+where all the features are still compared in and we ship them to our
+compared in and we ship them to our players but then we choose to switch
+players but then we choose to switch that feature on or off based on some
+that feature on or off based on some criteria let's say we want to test a
+criteria let's say we want to test a feature that we just developing we want
+feature that we just developing we want to give it to small number of players to
+to give it to small number of players to learn something quickly or prove that he
+learn something quickly or prove that he works and build confidence so we use
+works and build confidence so we use dynamic toggles for that purpose and
+dynamic toggles for that purpose and here is an example of implementation of
+here is an example of implementation of compile toggle we use Jason farms to
+compile toggle we use Jason farms to define our features and our C++ code is
+define our features and our C++ code is simple if statement so he checks to see
+simple if statement so he checks to see if it's enabled do this otherwise do
+if it's enabled do this otherwise do that the dynamic toggle is slightly more
+that the dynamic toggle is slightly more complicated we still use the same JSON
+complicated we still use the same JSON file to define these features and the
+file to define these features and the way it works is when our server starts
+way it works is when our server starts it talks to our services to get the list
+it talks to our services to get the list of features that are toggled on when the
+of features that are toggled on when the client starts it talks to the same set
+client starts it talks to the same set of services to get the list as well
+of services to get the list as well and when clients try to join the server
+and when clients try to join the server they send the list to the
+they send the list to the several compares the two lists if they
+several compares the two lists if they match it allows the client to join the
+match it allows the client to join the server otherwise you will reject the
+server otherwise you will reject the client that was quite intentional
+client that was quite intentional because we didn't want different clients
+because we didn't want different clients with different set of toggles to be
+with different set of toggles to be playing with each other we also try to
+playing with each other we also try to continuously improve our cycle time
+continuously improve our cycle time cycle time is the time it takes from
+cycle time is the time it takes from somebody deciding to make a change
+somebody deciding to make a change analyze their work implement the world
+analyze their work implement the world get it revealed and submit it to our
+get it revealed and submit it to our source control system a CI server -
+source control system a CI server - verifies the change and pass the manual
+verifies the change and pass the manual verification and finally its release to
+verification and finally its release to retail or production and here are some
+retail or production and here are some of the benefits of having the short
+of the benefits of having the short cycle time but having short cycle time
+cycle time but having short cycle time we can get fast feedback which we can
+we can get fast feedback which we can find out if we can release let's say
+find out if we can release let's say make a change and give it to our players
+make a change and give it to our players we can soon find out if it works or not
+we can soon find out if it works or not which hopefully leads to better quality
+which hopefully leads to better quality game it allows us to work in small
+game it allows us to work in small batches which leads to lower risk
+batches which leads to lower risk because we don't need to worry about
+because we don't need to worry about piling a lot of change because we are
+piling a lot of change because we are going to release regularly because it's
+going to release regularly because it's so easy to do that I also reduces
+so easy to do that I also reduces handovers if we want to have fast cycle
+handovers if we want to have fast cycle time we cannot afford to pass the work
+time we cannot afford to pass the work to different teams and hand it over to
+to different teams and hand it over to them which means we have to restructure
+them which means we have to restructure our teams
+our teams therefore they are cross-functional and
+therefore they are cross-functional and the team is responsible for the
+the team is responsible for the end-to-end time and the whole process
+end-to-end time and the whole process from working on the feature on to give
+from working on the feature on to give it to players and get feedback from that
+it to players and get feedback from that and in addition if you find a problem
+and in addition if you find a problem and they say we find a critical bug we
+and they say we find a critical bug we can easily respond and release a patch
+deployment pipeline is the implementation of our process for
+implementation of our process for working and delivering these features
+working and delivering these features and for this project for Co thieves
+and for this project for Co thieves we formed a new team of many generalist
+we formed a new team of many generalist engineers to implement this deployment
+engineers to implement this deployment pipeline and that's the team that I lead
+pipeline and that's the team that I lead at rare and here are some of the
+at rare and here are some of the examples of the things we do we've
+examples of the things we do we've developed our test framework
+developed our test framework we are responsible for our workflow for
+we are responsible for our workflow for our developers for our artists to make
+our developers for our artists to make changes and get them into source control
+changes and get them into source control system we look after our infrastructure
+system we look after our infrastructure and implement our pipeline and here are
+and implement our pipeline and here are some specific things we've done to
+some specific things we've done to improve the cycle time we've developed a
+improve the cycle time we've developed a system to identify flaky tests
+system to identify flaky tests flaky tests are tests that you run them
+flaky tests are tests that you run them once they fail we run them again on the
+once they fail we run them again on the same set of change and this time they
+same set of change and this time they pass so you're not really sure they're
+pass so you're not really sure they're not deterministic I talked about them in
+not deterministic I talked about them in latest slides we implemented the feature
+latest slides we implemented the feature toggle in our code base we regularly try
+toggle in our code base we regularly try to improve our build time and our cook
+to improve our build time and our cook time and we have tried to paralyze
+time and we have tried to paralyze running our tests across many machines
+next practice we do is tackling technical debt if you on the traditional
+technical debt if you on the traditional process when we don't address technical
+process when we don't address technical debt the velocity looks like this red
+debt the velocity looks like this red line here and velocity is the rate that
+line here and velocity is the rate that we can deliver features to our players
+we can deliver features to our players at the beginning the velocity might be
+at the beginning the velocity might be high we can work on features easily but
+high we can work on features easily but what we find is after wide you get as
+what we find is after wide you get as the code base grows it takes longer and
+the code base grows it takes longer and longer to work on features and develop
+longer to work on features and develop them on the other hand when we're
+them on the other hand when we're dealing with technical debt the velocity
+dealing with technical debt the velocity looks more like this green line where
+looks more like this green line where maybe at the beginning the velocity is
+maybe at the beginning the velocity is lower but over time as the code base
+lower but over time as the code base grows and more people work on the
+grows and more people work on the project the velocity doesn't drop it
+project the velocity doesn't drop it actually might even increase and the
+actually might even increase and the important thing here is that there's a
+important thing here is that there's a point in time when these two lines
+point in time when these two lines crosses and the people who argue against
+crosses and the people who argue against doing a tackling technical debt they
+doing a tackling technical debt they think that a project would be done
+think that a project would be done before these two line crosses but what
+before these two line crosses but what we found is unless the projects going to
+we found is unless the projects going to last maybe three to six months you're
+last maybe three to six months you're definitely gonna cross these this point
+definitely gonna cross these this point so it's well worth the effort to tackle
+so it's well worth the effort to tackle technical debt but at the same we don't
+technical debt but at the same we don't have zero technical debt all the time
+have zero technical debt all the time sometimes we intentionally accumulate
+sometimes we intentionally accumulate some technical debt because let's say we
+some technical debt because let's say we want to prioritize delivering a feature
+want to prioritize delivering a feature to our players quickly to learn
+to our players quickly to learn something from that
+something from that but what we do is once that's done we go
+but what we do is once that's done we go back and pay that technical debt I would
+back and pay that technical debt I would argue that continuous improvement is
+argue that continuous improvement is probably our most important practice
+probably our most important practice because we try to build a learning
+because we try to build a learning organization to learn from mistakes
+organization to learn from mistakes problems failures and get better every
+problems failures and get better every day our teams do regular retrospectives
+day our teams do regular retrospectives usually every two weeks which they sit
+usually every two weeks which they sit down and talk about what went well what
+down and talk about what went well what went wrong and what can they do to
+went wrong and what can they do to improve if something happens which means
+improve if something happens which means that we can't ship the game like we have
+that we can't ship the game like we have an incident usually do playing let's
+an incident usually do playing let's post mortems where the purpose isn't
+post mortems where the purpose isn't there to blame somebody who caused the
+there to blame somebody who caused the issue but to understand what we ended up
+issue but to understand what we ended up in this situation and how we can avoid
+in this situation and how we can avoid this so we don't not in the same
+this so we don't not in the same situation again in future and more
+situation again in future and more importantly we try to allocate time to
+importantly we try to allocate time to complete the actions that we identify in
+complete the actions that we identify in these meetings because what we found is
+these meetings because what we found is if we just sit down and talk about these
+if we just sit down and talk about these problems or we don't
+problems or we don't allocate time then people stop coming to
+allocate time then people stop coming to these meetings and they will lose faith
+these meetings and they will lose faith in it and these sort of practices that I
+in it and these sort of practices that I just explained here we didn't have these
+just explained here we didn't have these when we started the project we didn't
+when we started the project we didn't sit down and say these are the things we
+sit down and say these are the things we want to do what we did instead was we
+want to do what we did instead was we read what other people have done talk to
+read what other people have done talk to them especially from other industries
+them especially from other industries and apply them to our own context and
+and apply them to our own context and kept the practices that make sense and
+kept the practices that make sense and help us solve our problems and I fully
+help us solve our problems and I fully expect in probably in a year's time it
+expect in probably in a year's time it would maybe adopting some new practices
+would maybe adopting some new practices because we want to keep adapting to our
+because we want to keep adapting to our to our situation now I'm going to talk
+to our situation now I'm going to talk about challenges we've had in a docking
+about challenges we've had in a docking continuous delivery one of our first
+continuous delivery one of our first challenges was changing our developers
+challenges was changing our developers mindset to adopt testing mindset we're
+mindset to adopt testing mindset we're coming from a place where some of our
+coming from a place where some of our developers would argue that they know
+developers would argue that they know their area of code base so well that
+their area of code base so well that they can easily make changes without
+they can easily make changes without introducing new bugs but what we wanted
+introducing new bugs but what we wanted to do is promote shared code ownership
+to do is promote shared code ownership we wanted everybody to feel confident
+we wanted everybody to feel confident that they can go and
+that they can go and make changes to different area of the
+make changes to different area of the codebase so therefore we had to have
+codebase so therefore we had to have some tests to catch issues if they're
+some tests to catch issues if they're not familiar with that codebase so what
+not familiar with that codebase so what we did was we started with a small core
+we did was we started with a small core team who all believed in this idea and
+team who all believed in this idea and we gradually added more people to the
+we gradually added more people to the team and everybody who joined the team
+team and everybody who joined the team went through an onboarding process
+went through an onboarding process including some test training we also had
+including some test training we also had a separate prototype team using
+a separate prototype team using different codebase and even different
+different codebase and even different game engine because what we found is in
+game engine because what we found is in the past that prototype code could end
+the past that prototype code could end up being the production code and by
+up being the production code and by actually having separate codebase our
+actually having separate codebase our developers had to go and we implement
+developers had to go and we implement that feature using a different level of
+that feature using a different level of G we also do mandatory code reviews for
+G we also do mandatory code reviews for every checking's
+every checking's and as part of that code review we
+and as part of that code review we always check to make sure we have
+always check to make sure we have adequate testing when people trying to
+adequate testing when people trying to make changes commit stage having a fast
+make changes commit stage having a fast compensation is another challenge for us
+compensation is another challenge for us commit stage is the first stage of our
+commit stage is the first stage of our pipeline and its job is to reject
+pipeline and its job is to reject changes that would invalidate our
+changes that would invalidate our release candidate as quickly as possible
+release candidate as quickly as possible and here is example of the things we do
+and here is example of the things we do in commit stage we compile code we sync
+in commit stage we compile code we sync from source control system we compile
+from source control system we compile code and cook assets and create our
+code and cook assets and create our build artifacts and we run small set of
+build artifacts and we run small set of tests to prove that game largely still
+tests to prove that game largely still works and then we use these artifacts
+works and then we use these artifacts are generated for later stages of our
+are generated for later stages of our pipeline you have to bear in mind that
+pipeline you have to bear in mind that just because coming stage past doesn't
+just because coming stage past doesn't mean that we can ship the game because
+mean that we can ship the game because we have other tests like as I mentioned
+we have other tests like as I mentioned like performance tester we run later on
+like performance tester we run later on that give us better indication and our
+that give us better indication and our developers wait for when they commit
+developers wait for when they commit their change for the commit stage to
+their change for the commit stage to pass before they start the new world
+pass before they start the new world go home go to meeting or go to lunch
+go home go to meeting or go to lunch because we expect them to deal with it
+because we expect them to deal with it if anything goes wrong
+if anything goes wrong [Music]
+and here are some of the lessons we've learned in trying to deal with having a
+learned in trying to deal with having a fast commit stage we need to
+fast commit stage we need to continuously improve we made a mistake
+continuously improve we made a mistake in this project begin with where we
+in this project begin with where we spent some time try to improve the
+spent some time try to improve the commit stage and he reached an
+commit stage and he reached an acceptable level then we stopped we
+acceptable level then we stopped we moved on to do some other work but what
+moved on to do some other work but what we found was after a couple of months we
+we found was after a couple of months we were back to where we were before so we
+were back to where we were before so we try to continuously improve commit stage
+try to continuously improve commit stage because as people add more code add more
+because as people add more code add more tests and more content everything takes
+tests and more content everything takes longer sometimes some of the our
+longer sometimes some of the our optimization can lead to having more
+optimization can lead to having more complicated system so every time we try
+complicated system so every time we try to look at an optimization and a
+to look at an optimization and a solution we assess it to see does it
+solution we assess it to see does it improve the complexity or reduces the
+improve the complexity or reduces the complexity of our system and generally
+complexity of our system and generally we go in favor of the solutions that
+we go in favor of the solutions that reduce the complexity of our system and
+reduce the complexity of our system and we want to monitor the stability and
+we want to monitor the stability and confidence in the build as we optimize
+confidence in the build as we optimize it because we don't want to have fast
+it because we don't want to have fast commit stage that people don't really
+commit stage that people don't really trust because we stopped running tests
+trust because we stopped running tests because they were taking too long to run
+because they were taking too long to run and we try to identify and stop doing
+and we try to identify and stop doing unnecessary work as opposed to trying to
+unnecessary work as opposed to trying to do those unnecessary work quickly and
+do those unnecessary work quickly and here are some specific things that make
+here are some specific things that make commit stage long as I'm sure many of
+commit stage long as I'm sure many of you have experienced come party large
+you have experienced come party large C++ code base takes very long time so we
+C++ code base takes very long time so we use distributed build systems where it
+use distributed build systems where it distributes all the compiled tasks on
+distributes all the compiled tasks on different machines and then bring the
+different machines and then bring the results back and link on the on one on
+results back and link on the on one on the machine we work really hard to make
+the machine we work really hard to make sure we can reliably use incremental
+sure we can reliably use incremental build and this goes back to what I was
+build and this goes back to what I was saying earlier about stopping
+saying earlier about stopping unnecessary work let's say in a build if
+unnecessary work let's say in a build if you only change 5% of our code base we
+you only change 5% of our code base we don't need to go and compile that 95% of
+don't need to go and compile that 95% of the code if they haven't changed we
+the code if they haven't changed we should be able to rely on incremental
+should be able to rely on incremental build and only compile that 5% of our
+build and only compile that 5% of our code has changed we have a relatively
+code has changed we have a relatively speaking huge build farm about 150
+speaking huge build farm about 150 physical pcs the help with this and they
+physical pcs the help with this and they have two CPUs with 64 to 128 gigabytes
+have two CPUs with 64 to 128 gigabytes of memory with envy and
+as much as we like we cannot afford to run all of those 40,000 tests that we
+run all of those 40,000 tests that we have so we need to make sure we identify
+have so we need to make sure we identify and prioritize the tests that are most
+and prioritize the tests that are most valuable for us and to begin with what
+valuable for us and to begin with what we did was we prioritize running tests
+we did was we prioritize running tests they were failing more often in our
+they were failing more often in our coming stage and stopped running tests
+coming stage and stopped running tests that were not failing and that was a
+that were not failing and that was a good start well then there were some
+good start well then there were some problems with this let's say an area of
+problems with this let's say an area of code place has been stapled and nobody's
+code place has been stapled and nobody's been changing it so we stopped running
+been changing it so we stopped running those tests but as soon as somebody went
+those tests but as soon as somebody went and make some changes to that area now
+and make some changes to that area now they didn't have any coverage in our
+they didn't have any coverage in our commit stage and they would find a later
+commit stage and they would find a later on when we run that there's our later
+on when we run that there's our later stages so the feedback loop was too long
+stages so the feedback loop was too long so instead what we did is we develop
+so instead what we did is we develop another system that runs each test and
+another system that runs each test and creates a map to see which code farms it
+creates a map to see which code farms it covers and then when we trying to run
+covers and then when we trying to run the commit stage on a build it looks at
+the commit stage on a build it looks at the changes in that build and see which
+the changes in that build and see which files are there look at this map and
+files are there look at this map and find the test that covers those code
+find the test that covers those code files and only runs those tests we found
+files and only runs those tests we found that that gives us much better
+that that gives us much better confidence in the test every run game
+confidence in the test every run game packages are quite big these days
+packages are quite big these days between 100 250 gigabyte and we may not
+between 100 250 gigabyte and we may not need the whole game package to run some
+need the whole game package to run some of our unit tests but still they are
+of our unit tests but still they are tests that we run in our pipeline that
+tests that we run in our pipeline that requires the whole game package so
+requires the whole game package so having just fast network connection to
+having just fast network connection to transfer this helps our build agents
+transfer this helps our build agents have local cache to store this build
+have local cache to store this build artifacts let's say it built an agent
+artifacts let's say it built an agent DiNozzo build artifact to run some tests
+DiNozzo build artifact to run some tests at one stage of our pipeline
+at one stage of our pipeline later on he tries to run another set of
+later on he tries to run another set of tests on the same build as opposed to
+tests on the same build as opposed to have to go and download the build again
+have to go and download the build again they can use their local cache and our
+they can use their local cache and our build agents can serve artifacts between
+build agents can serve artifacts between each other which helps from all the
+each other which helps from all the agents going to the server to download
+agents going to the server to download the build
+flaky test has been another big problem for us especially when we started you
+for us especially when we started you are not sure how to write to test so a
+are not sure how to write to test so a lot of tests that we wrote at the
+lot of tests that we wrote at the beginning and are being flaky and here
+beginning and are being flaky and here is the problem with having flaky test
+is the problem with having flaky test because when we have flaky test they
+because when we have flaky test they infect our automated test and when they
+infect our automated test and when they fail you're not sure if it's because of
+fail you're not sure if it's because of a change we break you introduce or
+a change we break you introduce or because of flakiness and what's even
+because of flakiness and what's even worse you can also fail other people's
+worse you can also fail other people's build which means that then we lose
+build which means that then we lose people developers lose confidence in our
+people developers lose confidence in our system and therefore they are not
+system and therefore they are not feeling comfortable go on making changes
+feeling comfortable go on making changes which means then eventually they are
+which means then eventually they are slower to develop new features and here
+slower to develop new features and here are some of the lessons we've learned in
+are some of the lessons we've learned in dealing with flaky tests actually having
+dealing with flaky tests actually having fear deterministic test is much better
+fear deterministic test is much better than having lots of tests that are flaky
+than having lots of tests that are flaky and we try to work hard to make sure
+and we try to work hard to make sure these flaky tests don't infect our
+these flaky tests don't infect our pipeline and we try to quarantine them
+pipeline and we try to quarantine them and we either try to fix them and move
+and we either try to fix them and move them out of quarantine or we just go and
+them out of quarantine or we just go and delete them if they're not valuable and
+delete them if they're not valuable and didn't provide coverage for us here are
+didn't provide coverage for us here are some of the common causes of having a
+some of the common causes of having a flaky test for us using random weights
+flaky test for us using random weights let's say sleep for five seconds as an
+let's say sleep for five seconds as an example let's say the service starts as
+example let's say the service starts as a new test is waiting for a client to
+a new test is waiting for a client to launch so it waits for five seconds
+launch so it waits for five seconds everything might be fine at the
+everything might be fine at the beginning but as we add more content the
+beginning but as we add more content the client takes longer to boot which means
+client takes longer to boot which means that when it gets close to that five
+that when it gets close to that five seconds sometimes you might fail or pass
+seconds sometimes you might fail or pass because sometimes you might just go over
+because sometimes you might just go over five seconds and sometimes it's not and
+five seconds and sometimes it's not and tested are not isolated they can fail
+tested are not isolated they can fail depending on what tests ran before them
+depending on what tests ran before them let's say if a test relies on some state
+let's say if a test relies on some state to be set but doesn't set them depending
+to be set but doesn't set them depending on what tests ran before those other
+on what tests ran before those other tests might be overriding those states
+tests might be overriding those states so these tests might randomly fail or
+so these tests might randomly fail or pax depending on what I'll test ran
+pax depending on what I'll test ran before them
+before them and for some of our tests that we rely
+and for some of our tests that we rely on external dependencies like some
+on external dependencies like some remote services they can just fail if
+remote services they can just fail if the remote service goes down without
+the remote service goes down without actually us introducing an issue so
+actually us introducing an issue so another challenge here is how much time
+another challenge here is how much time we should allocate for improvement we
+we should allocate for improvement we have three types of work the first
+have three types of work the first category is planned work or the work
+category is planned work or the work that we do that we plan to do like let's
+that we do that we plan to do like let's say develop features and that's the kind
+say develop features and that's the kind of work that let's say business and
+of work that let's say business and production wants us to spend most of our
+production wants us to spend most of our time but the reality is that we also
+time but the reality is that we also have to do some unplanned work let's say
+have to do some unplanned work let's say fix bugs does a game crashes or serious
+fix bugs does a game crashes or serious problems that we have to go and deal
+problems that we have to go and deal with that prevents us from actually
+with that prevents us from actually developing feature the third category is
+developing feature the third category is the improvement work and these are the
+the improvement work and these are the work that would address the root cause
+work that would address the root cause of those bugs or the incidents that
+of those bugs or the incidents that we've had and there is no rule about how
+we've had and there is no rule about how much time you should spend for each
+much time you should spend for each category but there is a very good
+category but there is a very good feedback mechanism there if we notice
+feedback mechanism there if we notice that we spend too much time doing
+that we spend too much time doing unplanned work it means that we are
+unplanned work it means that we are probably not spending enough time doing
+probably not spending enough time doing the improvement work which indicates
+the improvement work which indicates that we need to spend more time doing
+that we need to spend more time doing improvement work and here are some of
+improvement work and here are some of the challenges we've had in releasing
+the challenges we've had in releasing weekly with confidence as I mentioned
+weekly with confidence as I mentioned game packages are quite big so we want
+game packages are quite big so we want to make sure every time you release our
+to make sure every time you release our patch sizes are as small as possible to
+patch sizes are as small as possible to make our life simpler we only allow one
+make our life simpler we only allow one version of the game that everybody use
+version of the game that everybody use at any given time we don't allow a
+at any given time we don't allow a different version of the game to be live
+different version of the game to be live which means that every time somebody
+which means that every time somebody wants to play and we have released an
+wants to play and we have released an update they have to go and update and if
+update they have to go and update and if that update is let's say 20 gigabyte
+that update is let's say 20 gigabyte people would soon stop playing our game
+the other challenge is delivering new features regularly because traditionally
+features regularly because traditionally like let's say our designers they want
+like let's say our designers they want to only release the feature to players
+to only release the feature to players when the whole experience
+when the whole experience is complete but that might take let's
+is complete but that might take let's say three to six months unless for a big
+say three to six months unless for a big feature so it requires a change in
+feature so it requires a change in mindset to say how can I break this
+mindset to say how can I break this experience that might take three months
+experience that might take three months into smaller chunks that we can still
+into smaller chunks that we can still release ideally weekly to our players
+release ideally weekly to our players but still is the full experience when
+but still is the full experience when it's completed as much as we like to we
+it's completed as much as we like to we cannot prevent issues going out to our
+cannot prevent issues going out to our players because games are complex
+players because games are complex systems therefore we try to minimize the
+systems therefore we try to minimize the impact of something when something goes
+impact of something when something goes wrong as an example let's say one of our
+wrong as an example let's say one of our services is down which means players
+services is down which means players cannot buy or sell items in the game we
+cannot buy or sell items in the game we don't only go into crashes every time
+don't only go into crashes every time somebody goes into a shop to let say buy
+somebody goes into a shop to let say buy or sell items it's much better if game
+or sell items it's much better if game detects at and let's say put the sign on
+detects at and let's say put the sign on the shop to say shopkeepers away come
+the shop to say shopkeepers away come back later and then removes that sign
+back later and then removes that sign when the service is back online and the
+when the service is back online and the other thing is we try to identify these
+other thing is we try to identify these issues as quickly as possible so then we
+issues as quickly as possible so then we can thanks for having fast cycle time we
+can thanks for having fast cycle time we can respond quickly to them and finally
+can respond quickly to them and finally the certification process platform
+the certification process platform holders like Microsoft they have a
+holders like Microsoft they have a certification process and certification
+certification process and certification team traditionally for us that process
+team traditionally for us that process could take one being sometimes up to two
+could take one being sometimes up to two weeks
+weeks so our release frequency is bound by
+so our release frequency is bound by that so for this project because we
+that so for this project because we wanted to release regularly we started a
+wanted to release regularly we started a lot of conversation with the
+lot of conversation with the certification team and we did a great
+certification team and we did a great collaboration with them where they
+collaboration with them where they evolved the process and as opposed to
+evolved the process and as opposed to again trying to prevent these issues
+again trying to prevent these issues from going out they trusted us that we
+from going out they trusted us that we can do it ourselves and instead they
+can do it ourselves and instead they agreed to monitor some key metrics for
+agreed to monitor some key metrics for us in retail and as long as those key
+us in retail and as long as those key metrics let's say crash rate as an
+metrics let's say crash rate as an example was below a certain level they
+example was below a certain level they they trusted us to keep releasing and
+they trusted us to keep releasing and the agreement was if we find a problem
+the agreement was if we find a problem suddenly let's say crash rate increases
+suddenly let's say crash rate increases significantly then they can jump in and
+significantly then they can jump in and have a conversation to understand what
+have a conversation to understand what has gone wrong and we got to a point
+has gone wrong and we got to a point right now where from this point that we
+right now where from this point that we have a build on
+have a build on available for a player to play it's
+available for a player to play it's about six hours
+about six hours that's much improvement from what we had
+that's much improvement from what we had before that was a week just under two
+before that was a week just under two weeks and here are some of the takeaways
+weeks and here are some of the takeaways from my talk we try to work in small
+from my talk we try to work in small batches to reduce the risk of reducing
+batches to reduce the risk of reducing regularly because we want to make sure
+regularly because we want to make sure we can release regularly in safety so we
+we can release regularly in safety so we can learn fast and therefore have better
+can learn fast and therefore have better quality game that is more fun for our
+quality game that is more fun for our players as much as we'd like to we
+players as much as we'd like to we cannot prevent issues so we are prepared
+cannot prevent issues so we are prepared for something to go wrong but instead we
+for something to go wrong but instead we work really hard to make sure we can
+work really hard to make sure we can respond really quickly to these
+respond really quickly to these incidents and we try to continuously
+incidents and we try to continuously improve so every day we are better than
+improve so every day we are better than the daily fare day before and we are not
+the daily fare day before and we are not done with continuous delivery by no
+done with continuous delivery by no means we've been on this journey for
+means we've been on this journey for four or five years and there are still
+four or five years and there are still room for much improvements so you're
+room for much improvements so you're gonna carry any proving before I go I
+gonna carry any proving before I go I wanted to talk about two books that have
+wanted to talk about two books that have been very influential on me and my
+been very influential on me and my friends at rare continuous delivery book
+friends at rare continuous delivery book by Jace humble and Dave Farley it's a
+by Jace humble and Dave Farley it's a great book that goes through much more
+great book that goes through much more detail about the principles that I
+detail about the principles that I talked about here and the goal by
+talked about here and the goal by Conrad's which talks about theory of
+Conrad's which talks about theory of constraint it's an amazing book if you
+constraint it's an amazing book if you want if you're working on improving your
+want if you're working on improving your cycle time and optimizing your pipeline
+cycle time and optimizing your pipeline by reducing bottlenecks
+the authors are continuously literally book sorry have a test which they say if
+book sorry have a test which they say if you can ship your product to your
+you can ship your product to your audience by push of a button when you
+audience by push of a button when you are on the beach having a cocktail it's
+are on the beach having a cocktail it's a good indication that you're doing in a
+a good indication that you're doing in a good job but we released the game this
+good job but we released the game this week I'm not at the beach having a
+week I'm not at the beach having a cocktail but I'm here at the conference
+cocktail but I'm here at the conference giving you a talk so we could I don't
+giving you a talk so we could I don't think we could have done this if you're
+think we could have done this if you're not practicing these continuous delivery
+not practicing these continuous delivery practices so thank you for your time and
+practices so thank you for your time and listening to me
+listening to me [Applause]
+does anybody have any questions all right you mention about bringing your
+right you mention about bringing your small core team on board and starting
+small core team on board and starting bringing more people how long did that
+bringing more people how long did that process take in terms of timeline and
+process take in terms of timeline and how was what was the size of the team
+how was what was the size of the team you started with and growing I think it
+you started with and growing I think it was about four or five developers when
+was about four or five developers when we started and then we gradually added
+we started and then we gradually added more I cannot remember exactly how long
+more I cannot remember exactly how long it took but thank you maybe after the
+it took but thank you maybe after the first month then we brought new
+first month then we brought new developers but he was gradual he wasn't
+developers but he was gradual he wasn't southern like southern hi I've got a
+southern like southern hi I've got a question about the automated testing
+question about the automated testing that you're doing were you doing
+that you're doing were you doing test-driven development where you're
+test-driven development where you're writing the tests first
+writing the tests first or were you retrospectively adding the
+or were you retrospectively adding the tests to two new features and a
+tests to two new features and a subsequent question for legacy systems
+subsequent question for legacy systems how did you implement tests for them did
+how did you implement tests for them did you ensure coverage for them or did you
+you ensure coverage for them or did you just leave them as is so I think very
+just leave them as is so I think very few people did test-driven development
+few people did test-driven development not everybody did that but the important
+not everybody did that but the important thing was when they were trying to check
+thing was when they were trying to check in their changes we made sure there was
+in their changes we made sure there was some test the important thing for us was
+some test the important thing for us was that when somebody added some change
+that when somebody added some change there was some accompanying tests for
+there was some accompanying tests for that there are some other benefits with
+that there are some other benefits with doing test-driven development like which
+doing test-driven development like which leads to more modular code smaller
+leads to more modular code smaller functions are but testable so it has
+functions are but testable so it has other benefits there but we didn't
+other benefits there but we didn't mandate that we left them up to
+mandate that we left them up to developers and I think very few did that
+developers and I think very few did that and your second question could you
+and your second question could you repeat that again and about legacy
+repeat that again and about legacy systems were you testing legacy systems
+systems were you testing legacy systems in the same way as new features and no
+in the same way as new features and no so for the area especially that we were
+so for the area especially that we were not touching we didn't bother adding any
+not touching we didn't bother adding any tests because we couldn't and we were
+tests because we couldn't and we were using unreal so which is a huge legacy
+using unreal so which is a huge legacy code so we didn't try to go on add a lot
+code so we didn't try to go on add a lot of tests for unreal code okay thank you
+hey-ya fabulous to look thank you I could ask a hundred questions but I'm
+could ask a hundred questions but I'm specifically you mentioned you've done a
+specifically you mentioned you've done a lot of work to make sure that you could
+lot of work to make sure that you could trust incremental builds that's right if
+trust incremental builds that's right if you could talk a little bit about what
+you could talk a little bit about what work did you do because one of the
+work did you do because one of the problems we had because we were had
+problems we had because we were had about hundred 50 agents and the state of
+about hundred 50 agents and the state of the bill wasn't the same because if an
+the bill wasn't the same because if an agent wasn't used for a while then the
+agent wasn't used for a while then the cash could have been quite out of date
+cash could have been quite out of date or because our developers new personal
+or because our developers new personal bills which they upload their changes by
+bills which they upload their changes by our CI system to be tested before they
+our CI system to be tested before they commit so some of those are trials might
+commit so some of those are trials might be newer and doesn't match the code that
+be newer and doesn't match the code that exists so we did a lot of work to make
+exists so we did a lot of work to make sure we did not in this situation where
+sure we did not in this situation where like somebody can't do a person or bit
+like somebody can't do a person or bit effects uh much worse and we end up
+effects uh much worse and we end up using that object for that does a match
+using that object for that does a match the source code in our game that was the
+the source code in our game that was the main thing did a lot of cleanup work to
+main thing did a lot of cleanup work to make sure they work reliably - thank you
+okay so then you cheap version I suppose any time that happens you still have
+any time that happens you still have features some other features still in
+features some other features still in progress that's you which you turn off
+progress that's you which you turn off video toggles do you do anything to
+video toggles do you do anything to prevent shipping content belonging to
+prevent shipping content belonging to those soft on features so for content if
+those soft on features so for content if they are not referenced by the game
+they are not referenced by the game because like if it's at a very early
+because like if it's at a very early stage that is just being prototype
+stage that is just being prototype they're not reference pile in the game
+they're not reference pile in the game so therefore they not being shipped but
+so therefore they not being shipped but if they start to be referenced in the
+if they start to be referenced in the game we would ship them so that's one of
+game we would ship them so that's one of the things that we can improve because
+the things that we can improve because essentially yes we are shipping some
+essentially yes we are shipping some content that are not being referenced by
+content that are not being referenced by the game yet or used by the game so do
+the game yet or used by the game so do you have some mechanism if you turn a
+you have some mechanism if you turn a feature off then it's no longer
+feature off then it's no longer reference do you detect no no we don't
+reference do you detect no no we don't have that yet though right but that's
+have that yet though right but that's something that we can definitely do
+something that we can definitely do thank you thank you Hey
+how do you deal with version and content mismatches between client and server
+mismatches between client and server when you have like a bunch of content
+when you have like a bunch of content creators and a bunch of client
+creators and a bunch of client developers a bunch of server developers
+developers a bunch of server developers all trying to work on their own boxes
+all trying to work on their own boxes with their own features how do you like
+with their own features how do you like have a shared environment that everyone
+have a shared environment that everyone is hitting or is everyone setting up the
+is hitting or is everyone setting up the services on their own boxes locally so
+services on their own boxes locally so everybody work like we don't keep
+everybody work like we don't keep multiple versions we because everybody
+multiple versions we because everybody work on the trunk or main we just have
+work on the trunk or main we just have the same version so if we let's say
+the same version so if we let's say change an asset format everybody who
+change an asset format everybody who update would get that version answer
+update would get that version answer your question no like Stan I'm making
+your question no like Stan I'm making that change right sure
+that change right sure and I want to like manually test it just
+and I want to like manually test it just like quick smoke test it sure without
+like quick smoke test it sure without having to like figure out exactly how
+having to like figure out exactly how I'm going to like automated test it is
+I'm going to like automated test it is there a way I can set up the game and
+there a way I can set up the game and services and and so I can do this yes so
+services and and so I can do this yes so we have we develop some tools that allow
+we have we develop some tools that allow to improve the local workflow that like
+to improve the local workflow that like you can just press a button there like
+you can just press a button there like compares this client the services of the
+compares this client the services of the services and cook the assets so then yes
+services and cook the assets so then yes you can then I didn't even deploy to
+you can then I didn't even deploy to your xbox and tested on your xbox or
+your xbox and tested on your xbox or your PC yes we develop a tool to allow
+your PC yes we develop a tool to allow us to do that because manually doing it
+us to do that because manually doing it was quite difficult one quick question
+was quite difficult one quick question how big how many people are currently
+how big how many people are currently working in this one branch Depot I think
+working in this one branch Depot I think probably 150 people well how do you deal
+probably 150 people well how do you deal with the problem of the builds been
+with the problem of the builds been broken and now it's unlocked and
+broken and now it's unlocked and everybody just like dumps all their
+everybody just like dumps all their stuff in so what we found is that longer
+stuff in so what we found is that longer is locked there more this chance of
+is locked there more this chance of people dumping a lot of things so that's
+people dumping a lot of things so that's why we try to back out the change
+why we try to back out the change because if somebody trying to come up
+because if somebody trying to come up with the fix it would take a lot longer
+with the fix it would take a lot longer so we try to usually deal with the build
+so we try to usually deal with the build break within 10 minutes or so so we
+break within 10 minutes or so so we don't keep the default lock for a long
+don't keep the default lock for a long period of time great thanks
+period of time great thanks thank you
+thank you hey I wonder when do make code review
+hey I wonder when do make code review before integrating community to Toronto
+before integrating community to Toronto after so yes it is before before we do
+after so yes it is before before we do that so we do the code review if it
+that so we do the code review if it passes then you're allowed to check in
+passes then you're allowed to check in your changes to your track thank you
+how do you deal with the multiplicative like complexity of different feature
+like complexity of different feature toggles so say there's five features
+toggles so say there's five features that could be on and off are you testing
+that could be on and off are you testing all the different configurations of
+all the different configurations of those or do you just you don't know the
+those or do you just you don't know the test pass for it until a month later
+test pass for it until a month later when you do finally turn it on that's a
+when you do finally turn it on that's a good question so what we tend to do we
+good question so what we tend to do we we first of all we try to keep that set
+we first of all we try to keep that set as small as possible so if a feature is
+as small as possible so if a feature is done we try to remove the toggle so it's
+done we try to remove the toggle so it's always on but also we treat the whole
+always on but also we treat the whole set as as one set because it makes the
+set as as one set because it makes the testing a lot easier so if let's say we
+testing a lot easier so if let's say we make a bill and there's a problem in one
+make a bill and there's a problem in one of the features that we toggled on you
+of the features that we toggled on you just read off all of the features
+just read off all of the features because otherwise testing them would be
+because otherwise testing them would be very difficult the combination could be
+very difficult the combination could be I mean the test matrix would be very
+I mean the test matrix would be very complicated very soon so yes we just
+complicated very soon so yes we just take and to make our lives easier we
+take and to make our lives easier we just treat them as a set then we switch
+just treat them as a set then we switch all of them off I see cool thank you I
+all of them off I see cool thank you I thank you for the informative talk but I
+thank you for the informative talk but I had a question on the unit testing can
+had a question on the unit testing can you elaborate further as far as are your
+you elaborate further as far as are your developers bringing to the table
+developers bringing to the table initially with the start of the project
+initially with the start of the project their own set of unit tests or are they
+their own set of unit tests or are they sharing or propagating unit tests across
+sharing or propagating unit tests across the team especially if there's one where
+the team especially if there's one where it's found to be a key metric or a key
+it's found to be a key metric or a key set of tasks that they're evaluating
+set of tasks that they're evaluating that could be shared I guess I'm looking
+that could be shared I guess I'm looking for more information as far as the
+for more information as far as the continuous development improvements and
+continuous development improvements and process improvements if that didn't make
+process improvements if that didn't make sense I I'll try to rephrase myself I
+sense I I'll try to rephrase myself I apologize okay
+apologize okay basically you're developers especially
+basically you're developers especially if they're newer ones on the team
+if they're newer ones on the team they're focusing on unit testing are
+they're focusing on unit testing are they bringing to the table their own set
+they bringing to the table their own set of units
+of units can those be shared or are they
+can those be shared or are they developing them on the fly yes they
+developing them on the fly yes they develop them as they work on yes okay
+develop them as they work on yes okay but as I said like we had this problem
+but as I said like we had this problem that like with flaky tests and that was
+that like with flaky tests and that was the main reason was because when we
+the main reason was because when we started we didn't know how to write good
+started we didn't know how to write good tests so a lot of these unit tests
+tests so a lot of these unit tests severe at were flaky okay but people
+severe at were flaky okay but people learn from that and improve therefore
+learn from that and improve therefore that the tests that they added later on
+that the tests that they added later on were much more deterministic okay thank
+were much more deterministic okay thank you you're welcome
+you you're welcome hi a good talk because you have 150
+hi a good talk because you have 150 developers on head when you're
+developers on head when you're refactoring for technical debt
+refactoring for technical debt ubiquitous feature that's ubiquitous
+ubiquitous feature that's ubiquitous across the code base touching lots of
+across the code base touching lots of files integrate interacting with lots of
+files integrate interacting with lots of other systems did you run into any
+other systems did you run into any issues I have any tips on dealing with
+issues I have any tips on dealing with changes that need to be made to reduce
+changes that need to be made to reduce technical debt that actually affect a
+technical debt that actually affect a lot of developers because it affects a
+lot of developers because it affects a lot of systems yet so that would that
+lot of systems yet so that would that was one of the problems we had as well
+was one of the problems we had as well fortune not many people had to do that
+fortune not many people had to do that so the number of people had to deal with
+so the number of people had to deal with this was small and the the trick was
+this was small and the the trick was then again using feature toggles how can
+then again using feature toggles how can they as opposed to let's say editing
+they as opposed to let's say editing tens or hundreds of far anything
+tens or hundreds of far anything submitted together how they can ideally
+submitted together how they can ideally try to use feature toggles to hide some
+try to use feature toggles to hide some office know so they don't suddenly have
+office know so they don't suddenly have to commit all of them together it goes
+to commit all of them together it goes back to what I was saying about breaking
+back to what I was saying about breaking down the work into smaller increments so
+down the work into smaller increments so they can like make a few changes submit
+they can like make a few changes submit that then make another change sub me
+that then make another change sub me that and touch a smaller number of
+that and touch a smaller number of forces the post is going quite a bit but
+forces the post is going quite a bit but sometimes you can't avoid that sometimes
+sometimes you can't avoid that sometimes you have to do that and it's very
+you have to do that and it's very painful what we try to minimize that as
+painful what we try to minimize that as much as possible while the sorry I don't
+much as possible while the sorry I don't have any specific I don't think other
+have any specific I don't think other than try to minimize that as much as you
+than try to minimize that as much as you can hey where does that a worker fit
+can hey where does that a worker fit into all that sorry
+into all that sorry like how do you manage your data because
+like how do you manage your data because this is very very oriented yes
+this is very very oriented yes sorry that's in the same sort trunk in
+sorry that's in the same sort trunk in main so all our data everything is there
+main so all our data everything is there as well but your for example do Europe I
+as well but your for example do Europe I don't know your audio designer
+don't know your audio designer they can't really code themselves
+they can't really code themselves automated testing so who does it for
+automated testing so who does it for them
+them oh they write some tests really yes our
+oh they write some tests really yes our sons and guys they write some tests as
+sons and guys they write some tests as well but there's a difference because
+well but there's a difference because you have the source sound and then this
+you have the source sound and then this could being converted that would use in
+could being converted that would use in the game they don't need to write test
+the game they don't need to write test for the source sounds it's only for the
+for the source sounds it's only for the when you they can easily work on there's
+when you they can easily work on there's the source files as much as they like
+the source files as much as they like without having to add any tests but when
+without having to add any tests but when they try to hook it into the game that's
+they try to hook it into the game that's when they need to put some tests okay so
+when they need to put some tests okay so for example for your level design and
+for example for your level design and your I don't know VFX your customization
+your I don't know VFX your customization so they all write their own tests to
+so they all write their own tests to make sure that nothing's broken
+make sure that nothing's broken yeah well obviously the test that they
+yeah well obviously the test that they write is at a different level to what
+write is at a different level to what program is right now sometimes the
+program is right now sometimes the programmers have to go and help these
+programmers have to go and help these guys to write tests or ask programmers
+guys to write tests or ask programmers to write the tests for them but we
+to write the tests for them but we encourage our like artists to write some
+encourage our like artists to write some tests if they can and also they try to
+tests if they can and also they try to do code reviews as well fun for artists
+do code reviews as well fun for artists but yeah thank you
+but yeah thank you hi I'm when you said that you were
+hi I'm when you said that you were toggling these switches on and off to
+toggling these switches on and off to enable code did you mention if that is
+enable code did you mention if that is its own like you have a pull request and
+its own like you have a pull request and a code review on that change or is there
+a code review on that change or is there like an out-of-band way that you update
+like an out-of-band way that you update those switches no it's part of the same
+those switches no it's part of the same change let's say you want to toggle the
+change let's say you want to toggle the feature on but it needs some like a
+feature on but it needs some like a small pieces left you complete it and
+small pieces left you complete it and then it allows you to toggle the feature
+then it allows you to toggle the feature on so you include that change along like
+on so you include that change along like the toggle along with your change your
+the toggle along with your change your last change and you submit both of them
+last change and you submit both of them together and gets revealed because
+together and gets revealed because sometimes these tacos when you want to
+sometimes these tacos when you want to turn them on you should have to check
+turn them on you should have to check with like other people from other
+with like other people from other disciplines as well and make sure they
+disciplines as well and make sure they kind of sign off because like
+kind of sign off because like potentially you releasing this feature
+potentially you releasing this feature now to your players so you want to make
+now to your players so you want to make sure that place is production signed off
+sure that place is production signed off on that as well but usually we encourage
+on that as well but usually we encourage it to like the last change that enables
+it to like the last change that enables us to now release this toggle feature to
+us to now release this toggle feature to our players to turn the toggle on along
+our players to turn the toggle on along with that change together to make that
+with that change together to make that change
+change atomic awesome because if anything goes
+atomic awesome because if anything goes wrong then we can back out and the
+wrong then we can back out and the toggle is offers oh yeah great thanks
+toggle is offers oh yeah great thanks you're welcome
+you're welcome hey for your targeted testing so you
+hey for your targeted testing so you said you had 40,000 tests you don't run
+said you had 40,000 tests you don't run the entire test suite when you're doing
+the entire test suite when you're doing your targeted testing was that based on
+your targeted testing was that based on code coverage and was that a hand
+code coverage and was that a hand curated map or is that you used a code
+curated map or is that you used a code coverage tool to then map that in so we
+coverage tool to then map that in so we use we used to use a code coverage tool
+use we used to use a code coverage tool and when we stopped using that so we
+and when we stopped using that so we came up we wrote our own tool which said
+came up we wrote our own tool which said it runs each test every basically a once
+it runs each test every basically a once a day he runs all the tests each test
+a day he runs all the tests each test and then tracks which code fancy touches
+and then tracks which code fancy touches they create so it's all automated we
+they create so it's all automated we don't do that manually because it's
+don't do that manually because it's gonna take a long time great time map I
+gonna take a long time great time map I maintain that and that was all
+maintain that and that was all internally developed but you guys are
+internally developed but you guys are way too bad thank you so what if you
+way too bad thank you so what if you wanted to upgrade the Unreal Engine
+wanted to upgrade the Unreal Engine could you do that or did you already do
+could you do that or did you already do that yes we did a couple of times but
+that yes we did a couple of times but then we at some point we stopped because
+then we at some point we stopped because he was taking far too long to integrate
+he was taking far too long to integrate a new version of engine but because we
+a new version of engine but because we had these tests again they were helping
+had these tests again they were helping us but otherwise he would have been very
+us but otherwise he would have been very difficult to integrate the new version
+difficult to integrate the new version and try to release we got to a point
+and try to release we got to a point when in the same week that we integrated
+when in the same week that we integrated a new version of engine we also released
+a new version of engine we also released the game couple of days later to our
+the game couple of days later to our internal audience but it was thanks to
+internal audience but it was thanks to these tests otherwise it would have been
+these tests otherwise it would have been very difficult to test them right just
+very difficult to test them right just kind of covered most of that or it it
+kind of covered most of that or it it covered the area that we we were
+covered the area that we we were modifying and we were changing what I
+modifying and we were changing what I mean it was quite common that like we
+mean it was quite common that like we take a new version and then something
+take a new version and then something will be broken but again we were trying
+will be broken but again we were trying to detect them as early as possible and
+to detect them as early as possible and try to respond to those issues or as you
+try to respond to those issues or as you fail it's possible to do that that's
+fail it's possible to do that that's doable yes okay cool
+doable yes okay cool hey great talk two questions
+hey great talk two questions firstly does this involve both the
+firstly does this involve both the clients and the whole back-end part of
+clients and the whole back-end part of the of the game yes okay cool and
+the of the game yes okay cool and secondly do the same teams is it one
+secondly do the same teams is it one team that implements them both the
+team that implements them both the clients and the backend yes that's right
+clients and the backend yes that's right go so they write tests for everything
+go so they write tests for everything and integrates all right
+and integrates all right when a test gets broken who fixes it
+when a test gets broken who fixes it the tests are broken the person who
+the tests are broken the person who caused the break okay if they said
+caused the break okay if they said because like we try to keep the number
+because like we try to keep the number of changes in a built as small as
+of changes in a built as small as possible so it should be really easy to
+possible so it should be really easy to identify if you look at a couple of
+identify if you look at a couple of changes in there you should be able to
+changes in there you should be able to easily identify who broke it and then
+easily identify who broke it and then you ask the person okay and do you have
+you ask the person okay and do you have any dedicated people to basically take
+any dedicated people to basically take care of the automated tests the
+care of the automated tests the framework is there a dedicated team for
+framework is there a dedicated team for that or is it line work
+that or is it line work well the framework and the tests
+well the framework and the tests themselves we have been tested to test
+themselves we have been tested to test the test framework tools and everything
+the test framework tools and everything they are in the same Depot in the same
+they are in the same Depot in the same main branch and the deployment pipeline
+main branch and the deployment pipeline team are responsible for writing the
+team are responsible for writing the test framework but at the same time we
+test framework but at the same time we don't write the test our developers
+don't write the test our developers write the test because they want to
+write the test because they want to prove that their feature works otherwise
+prove that their feature works otherwise I have to do it manually and they don't
+I have to do it manually and they don't want to do that manually okay so there
+want to do that manually okay so there is no one that's actually dedicated to
+is no one that's actually dedicated to working exclusively only on writing
+working exclusively only on writing tests on fixing tests no okay thanks hey
+tests on fixing tests no okay thanks hey at one point you had said that
+at one point you had said that prototyping is critical to effective
+prototyping is critical to effective testing could you elaborate a little bit
+testing could you elaborate a little bit more on what you mean by prototyping do
+more on what you mean by prototyping do you recall what I mean sorry I don't
+you recall what I mean sorry I don't recall the specific instance but you
+recall the specific instance but you there was something to come that came up
+there was something to come that came up where you said there was prototyping was
+where you said there was prototyping was important might have been when you were
+important might have been when you were bringing team members on let me see is
+bringing team members on let me see is it you mean no the third point there
+it you mean no the third point there which having a separate prototype yeah
+which having a separate prototype yeah yeah right there so so what as I
+yeah right there so so what as I mentioned so the what we found in the
+mentioned so the what we found in the past was when we are working on
+past was when we are working on prototype the quality level is quite
+prototype the quality level is quite different for production code like you
+different for production code like you don't have to write tests if you prefer
+don't have to write tests if you prefer hard things because you want to quickly
+hard things because you want to quickly test stuff and I see if that feels right
+test stuff and I see if that feels right and that kind of stuff so we didn't want
+and that kind of stuff so we didn't want them to kind of put that level of
+them to kind of put that level of quality for prototype so having separate
+quality for prototype so having separate code base and using even different game
+code base and using even different game engine it allowed them to
+engine it allowed them to work on that it can be isolated okay
+work on that it can be isolated okay well the same thing what we found in the
+well the same thing what we found in the past was that could easily end up being
+past was that could easily end up being the variation we used in production
+the variation we used in production because they might be difficult to
+because they might be difficult to justify because there might somebody
+justify because there might somebody might say ah but this works kind of
+might say ah but this works kind of works and why don't we use it so having
+works and why don't we use it so having this separation they had no choice they
+this separation they had no choice they have to go and re implement that feature
+have to go and re implement that feature that they just prototype in the
+that they just prototype in the production code with tests on everything
+production code with tests on everything great that make sense thanks this is ask
+great that make sense thanks this is ask you a question yeah cool like great tool
+you a question yeah cool like great tool thank you
+thank you I was thinking in terms of the commits
+I was thinking in terms of the commits themselves presumably each commit is
+themselves presumably each commit is from a single developer that's right so
+from a single developer that's right so how how much come how weighty is each
+how how much come how weighty is each commit because they frequently use
+commit because they frequently use feature branches for working on
+feature branches for working on something so it kind of you know maybe a
+something so it kind of you know maybe a couple of days
+couple of days do you see individual commits having
+do you see individual commits having that much work in or they smaller no
+that much work in or they smaller no there are quite small because we
+there are quite small because we encourage our developers to do check-ins
+encourage our developers to do check-ins every day not everybody does that some
+every day not everybody does that some people do but some people don't on
+people do but some people don't on average I think we do about three to
+average I think we do about three to four checking's each like our developers
+four checking's each like our developers do three to four check-ins a week which
+do three to four check-ins a week which means if they're not doing it every day
+means if they're not doing it every day they don't every other day and therefore
+they don't every other day and therefore then the number of changes like far as
+then the number of changes like far as they have is relatively small so and
+they have is relatively small so and they don't use another flat feature
+they don't use another flat feature branch or anything everybody work on
+branch or anything everybody work on trunk right and when your code review in
+trunk right and when your code review in one of those commits presuming that
+one of those commits presuming that source in line with development so I
+source in line with development so I would do a commit someone is there ready
+would do a commit someone is there ready to review pretty much straightaway so
+to review pretty much straightaway so they do the review before they commit I
+they do the review before they commit I can again one thing we found is the
+can again one thing we found is the smaller the change easier for people to
+smaller the change easier for people to review because if you try to review an
+review because if you try to review an is small it's a lot easier for people to
+is small it's a lot easier for people to reason about a revisit because we had
+reason about a revisit because we had often like sometimes we had this problem
+often like sometimes we had this problem where the if the chain was too big the
+where the if the chain was too big the person reviewing it will send it back
+person reviewing it will send it back and ask the person to break it into
+and ask the person to break it into smaller chunks so their review different
+smaller chunks so their review different pieces supposedly I mean this one big
+pieces supposedly I mean this one big change that they want to review right so
+change that they want to review right so does the review process have much
+does the review process have much latency to to that connec process yeah
+latency to to that connec process yeah right so that's one problem we had and
+right so that's one problem we had and but one way to tackle that was to
+but one way to tackle that was to encourage developers to have smaller
+encourage developers to have smaller changes because more people are willing
+changes because more people are willing to review smaller changes than big
+to review smaller changes than big right so he helped definitely oh great
+right so he helped definitely oh great thank you
+thank you you're welcome okay first thanks for for
+you're welcome okay first thanks for for the talk great talk and excellent
+the talk great talk and excellent discussion from the back beer I'm gonna
+discussion from the back beer I'm gonna be selfish I have two questions sure we
+be selfish I have two questions sure we have for five minutes okay first for the
+have for five minutes okay first for the delivery pipeline team is it a single
+delivery pipeline team is it a single team supporting all your programs and
+team supporting all your programs and your entire studio yes that's right okay
+your entire studio yes that's right okay excellent
+excellent and then second question when you and
+and then second question when you and the team at rare first decided to stand
+the team at rare first decided to stand up this team and kind of restructure
+up this team and kind of restructure your approach to development how did you
+your approach to development how did you the engineering team and leadership kind
+the engineering team and leadership kind of build a business case to get buy-in
+of build a business case to get buy-in from the entire studio so our software
+from the entire studio so our software director also was quite supportive in
+director also was quite supportive in this and the leadership team but at the
+this and the leadership team but at the same time because we were changing the
+same time because we were changing the business model and we knew that we want
+business model and we knew that we want we have to sustainably deliver new
+we have to sustainably deliver new features for a long period of time we
+features for a long period of time we couldn't really rely on manual Testament
+couldn't really rely on manual Testament like the type of game that we have we
+like the type of game that we have we can't really manually test everything so
+can't really manually test everything so these were the main reasons though we
+these were the main reasons though we had for for adopting testing
+had for for adopting testing specifically because we couldn't really
+specifically because we couldn't really do it otherwise we had to I don't know
+do it otherwise we had to I don't know how how many like testers four for four
+how how many like testers four for four years originally what we didn't want to
+years originally what we didn't want to do okay excellent thank you
+do okay excellent thank you hi great talk oh I have a quick question
+hi great talk oh I have a quick question that sort of tangential to the talk here
+that sort of tangential to the talk here you mentioned briefly that you would
+you mentioned briefly that you would release toggles to the world with a
+release toggles to the world with a small set of players having them turned
+small set of players having them turned on can you discuss a little bit of
+on can you discuss a little bit of detail about how friends playing
+detail about how friends playing together deal with these different
+together deal with these different toggles so if so people with different
+toggles so if so people with different toggles we don't let them to play
+toggles we don't let them to play together because the server will reject
+together because the server will reject the clients that have different versions
+the clients that have different versions and the way we implemented it is we
+and the way we implemented it is we actually use there's this concept of
+actually use there's this concept of title IDs for Xbox games and actually we
+title IDs for Xbox games and actually we had to title like these one title ID for
+had to title like these one title ID for these features that we want to give to
+these features that we want to give to small number of players and then use the
+small number of players and then use the other title ID that goes to wider
+other title ID that goes to wider audience which meant that actually they
+audience which meant that actually they couldn't play with each other
+couldn't play with each other so in that case end-users know already
+so in that case end-users know already that they're playing two different
+that they're playing two different versions of the game it's not actually
+versions of the game it's not actually like an a/b test to evaluate necess over
+like an a/b test to evaluate necess over so it's not like kind of transparent or
+so it's not like kind of transparent or anything it is actually you need to know
+anything it is actually you need to know that you are playing this kind of almost
+that you are playing this kind of almost bleeding aged version or this kind of
+bleeding aged version or this kind of more stable version but again I
+more stable version but again I mentioned that there are room to
+mentioned that there are room to improvement that's one of the things we
+improvement that's one of the things we try to do that how we can avoid that so
+try to do that how we can avoid that so we don't need to keep to title like this
+we don't need to keep to title like this how we can do the same thing we just
+how we can do the same thing we just using one title I think so these are the
+using one title I think so these are the things that we aren't going to work on
+things that we aren't going to work on so in that sense it's a relatively
+so in that sense it's a relatively limited test for home in that sort of
+limited test for home in that sort of situation ok cool thank you you're
+situation ok cool thank you you're welcome ok thank you for your time
+welcome ok thank you for your time [Applause]

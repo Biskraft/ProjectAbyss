@@ -1,0 +1,666 @@
+[Music]
+I'm a programmer at paradox development studio which is based in Stockholm we do
+studio which is based in Stockholm we do strategy games Christian down here he
+strategy games Christian down here he told me that this is going to be the
+told me that this is going to be the shortest paradox experience ever and I
+shortest paradox experience ever and I think that's true
+I've worked in the Solaris team the past two and a half years and I came in quite
+two and a half years and I came in quite early into the team we were like five
+early into the team we were like five people at that time or something and I
+people at that time or something and I worked mostly on the AI and this talk is
+worked mostly on the AI and this talk is about how to break down like a massive
+about how to break down like a massive universe of complex elements into
+universe of complex elements into manageable variables to create emergent
+manageable variables to create emergent NPC's in the game before I start I just
+NPC's in the game before I start I just want to ask how many of you are
+want to ask how many of you are designers okay like a third or something
+designers okay like a third or something and programmers the rest okay
+right so the agenda or the background of this presentation is that we make really
+this presentation is that we make really complex games in terms of the amount of
+complex games in terms of the amount of input and the dependencies that the AI
+input and the dependencies that the AI needs to process to create a human-like
+needs to process to create a human-like behavior so it's really about how we use
+behavior so it's really about how we use data-driven design to solve this and
+data-driven design to solve this and make complex AI simple what I will be
+make complex AI simple what I will be covering today is a presentation of the
+covering today is a presentation of the game why data-driven design is used in
+game why data-driven design is used in the AI some concrete examples of how we
+the AI some concrete examples of how we do this and a few things to keep in mind
+do this and a few things to keep in mind with it's this method method finally I
+with it's this method method finally I will summarize it all and hopefully
+will summarize it all and hopefully we'll have some time for questions so
+we'll have some time for questions so stellaris is a grand strategy game where
+stellaris is a grand strategy game where you play an empire managing your
+you play an empire managing your resources economy politics or diplomacy
+resources economy politics or diplomacy and military in order to survive in
+and military in order to survive in space and hopefully expand unlike our
+space and hopefully expand unlike our other games the Laureus is a non
+other games the Laureus is a non historical game so if the AI is quite
+historical game so if the AI is quite different but it still follows the
+different but it still follows the general theme of our games with high
+general theme of our games with high replayability depth and subject matter
+so here you see the galaxy map in stellaris every colored circle on this
+stellaris every colored circle on this map is an empire with a different set of
+map is an empire with a different set of behaviors what's important to understand
+behaviors what's important to understand about our games is that the AI needs to
+about our games is that the AI needs to do exactly the same thing as a human
+do exactly the same thing as a human player so it needs to last throughout
+player so it needs to last throughout the game and this creates a very
+the game and this creates a very different challenge compared to other
+different challenge compared to other games where the AIS might be obstacles
+games where the AIS might be obstacles instead of opponents
+I prepared a short trailer really to see Peggy 12
+ever since the dawn of our civilization we've been reaching for the heavens
+we've been reaching for the heavens our first man rocket was a crude device
+our first man rocket was a crude device far more advanced vessels would follow
+far more advanced vessels would follow but for two centuries we stared along
+but for two centuries we stared along the way at the vast ocean of stars
+the way at the vast ocean of stars beyond our solar system fearing them
+beyond our solar system fearing them forever out of reach
+forever out of reach [Music]
+[Music] in one swift stroke the invention of the
+in one swift stroke the invention of the warp drive changed our world anew
+warp drive changed our world anew Frontierland and the start of an intense
+Frontierland and the start of an intense race to colonize the far reaches of
+race to colonize the far reaches of space began we named her nemesis
+space began we named her nemesis 9,000 brave souls heading toward an
+9,000 brave souls heading toward an issue the star most likely to have an
+issue the star most likely to have an orbiting planet suitable for our first
+orbiting planet suitable for our first colony
+colony two weeks and five days into the mission
+two weeks and five days into the mission we received necess final message
+we received necess final message panicked voices broken why's that
+panicked voices broken why's that alien message in boss
+our first generation of warships would lead the rescue operations
+lead the rescue operations we arrived we soon located the remains
+we arrived we soon located the remains of nemesis floating the darkness
+of nemesis floating the darkness and approaching us a fleet of alien
+and approaching us a fleet of alien warships their technology and far beyond
+warships their technology and far beyond ours
+ours salvaged technology from ephesus these
+salvaged technology from ephesus these and managed to decipher our
+and managed to decipher our communications
+communications so they recounted the story
+so they recounted the story a large unidentified ship had entered
+a large unidentified ship had entered their system despite Romanian warning
+their system despite Romanian warning would not change course and a trigger
+would not change course and a trigger was pulled
+it is a galaxy
+there are an untold number of species border disputes
+border disputes tension and betrayal
+all right so now you should have a decent idea about the game so let's go
+decent idea about the game so let's go into why we chose to use data-driven
+into why we chose to use data-driven design some of the benefits of this
+design some of the benefits of this method which you're probably familiar
+method which you're probably familiar with is separating the data from the
+with is separating the data from the logic making the data accessible
+logic making the data accessible descriptors and designers it's also a
+descriptors and designers it's also a good way of controlling state changes
+good way of controlling state changes from the input data rather than in code
+from the input data rather than in code as well as a modular way of building
+as well as a modular way of building features this is these are general
+features this is these are general benefits but I want to go more into
+benefits but I want to go more into depth about why is the Laureus benefits
+depth about why is the Laureus benefits from this model first of all we make
+from this model first of all we make content-heavy games to the left on the
+content-heavy games to the left on the picture you have a list of the current
+picture you have a list of the current information that the AI needs to process
+information that the AI needs to process to output certain behaviors as you can
+to output certain behaviors as you can see our AI needs to handle a large set
+see our AI needs to handle a large set of data and it needs to process each of
+of data and it needs to process each of these elements differently depending on
+these elements differently depending on the dependencies that is that they have
+the dependencies that is that they have so for example a policy can be locked by
+so for example a policy can be locked by a technology which you need to research
+a technology which you need to research and whether the AI wants to have that
+and whether the AI wants to have that policy or not can depend on the Empire
+policy or not can depend on the Empire ethos or government type or something
+ethos or government type or something else if we will use the concept of state
+else if we will use the concept of state machines behavior trees or decision
+machines behavior trees or decision trees for the AI we would need to go
+trees for the AI we would need to go through all the combinations that these
+through all the combinations that these elements in the list can create with
+elements in the list can create with each other and not only would that be
+each other and not only would that be time-consuming it will cause probably a
+time-consuming it will cause probably a massive performance issues and still
+massive performance issues and still result in a rather predictable AI which
+result in a rather predictable AI which is the opposite of what we want so in
+is the opposite of what we want so in short there are multiple valid options
+short there are multiple valid options for our AI to make it each decision
+for our AI to make it each decision point and we want to pick the one that
+point and we want to pick the one that is the ones that are most rings
+is the ones that are most rings reasonable rather than the best one
+reasonable rather than the best one every single time it's also worth
+every single time it's also worth mentioning that the term utility AI has
+mentioning that the term utility AI has been thrown around a lot these days and
+been thrown around a lot these days and this is probably something that falls on
+this is probably something that falls on there
+there that category all right so secondly our
+that category all right so secondly our games should have high replayability
+games should have high replayability this is one of our game pillars this is
+this is one of our game pillars this is important because we want our players to
+important because we want our players to be able to play the games for a long
+be able to play the games for a long time one example of how we satisfy this
+time one example of how we satisfy this condition in the game is by having
+condition in the game is by having randomly generated galaxies including
+randomly generated galaxies including random AIS we don't really know what
+random AIS we don't really know what qualities the AI will have until we've
+qualities the AI will have until we've started that particular session so
+started that particular session so working with data-driven design in our
+working with data-driven design in our way enables emergent behavior for the AI
+way enables emergent behavior for the AI and it can basically make decisions and
+and it can basically make decisions and situations that the designers or the
+situations that the designers or the programmers or anyone else for it matter
+programmers or anyone else for it matter in the team hasn't foreseen it also
+in the team hasn't foreseen it also creates that sense of uniqueness and
+creates that sense of uniqueness and unpredictability that you want to have
+unpredictability that you want to have when playing against NPCs another thing
+when playing against NPCs another thing is that our games have long lifetimes
+is that our games have long lifetimes Crusader Kings was released in 2012 and
+Crusader Kings was released in 2012 and we still make new content for it today
+we still make new content for it today and this is not only because we want to
+and this is not only because we want to keep our fans happy is also to be able
+keep our fans happy is also to be able to release grow our player base sorry
+to release grow our player base sorry and I wanted to give you some numbers
+and I wanted to give you some numbers here but since our IPO we've been really
+here but since our IPO we've been really secret with all the numbers so you just
+secret with all the numbers so you just have to take my word for it but we've
+have to take my word for it but we've like massively increased our player base
+like massively increased our player base since we first released Crusader Kings
+since we first released Crusader Kings until now to be able to add content
+until now to be able to add content years after release we need to have a
+years after release we need to have a game that is easy to add new content
+game that is easy to add new content with little support from programmers
+with little support from programmers because we have really small teams at
+because we have really small teams at paradox and the teams are even smaller
+paradox and the teams are even smaller after release we also want to be able to
+after release we also want to be able to rebalance and and scale the game worth
+rebalance and and scale the game worth mentioning is that Crusader Kings only
+mentioning is that Crusader Kings only has one programmer at the moment so just
+has one programmer at the moment so just imagine if you would spend all this time
+imagine if you would spend all this time on the AI finally we want our games to
+on the AI finally we want our games to be moddable this is one of my favourite
+be moddable this is one of my favourite mods where you can determine the shape
+mods where you can determine the shape of our of the galaxy in this case the
+of our of the galaxy in this case the PDX logo by being not friendly we enable
+PDX logo by being not friendly we enable or enable ourselves to create a strong
+or enable ourselves to create a strong and a connection to our community and to
+and a connection to our community and to learn from people outside the studio
+learn from people outside the studio it's part of our mission to make games
+it's part of our mission to make games where the players can create their own
+where the players can create their own stories and this is one way of doing
+stories and this is one way of doing that so to sum it up the NPC's in
+that so to sum it up the NPC's in stellaris need to be scalable for new
+stellaris need to be scalable for new content model be able to transform a
+content model be able to transform a large set of data to different behaviors
+large set of data to different behaviors and be unique in order to support game
+and be unique in order to support game replayability now you know the why so
+replayability now you know the why so let's go into how its implemented right
+let's go into how its implemented right so the tools for this is really really
+so the tools for this is really really simple we have a trigger in this case we
+simple we have a trigger in this case we have and has ethic trigger that checks
+have and has ethic trigger that checks if a certain scope for example an empire
+if a certain scope for example an empire is militarist or not which is an ethos
+is militarist or not which is an ethos or ethic and this trigger returns true
+or ethic and this trigger returns true if that condition is satisfied else
+if that condition is satisfied else false that trigger we can then use to
+false that trigger we can then use to put a certain weight on one of our
+put a certain weight on one of our objects in the database and most of our
+objects in the database and most of our elements are objects in a database like
+elements are objects in a database like buildings traditions ascension perks
+buildings traditions ascension perks policies edicts and so on so every
+policies edicts and so on so every building has an AI weight and there is a
+building has an AI weight and there is a base say 10 in this case and then we add
+base say 10 in this case and then we add a modifier where we use that trigger to
+a modifier where we use that trigger to check if if this is militarist then we
+check if if this is militarist then we will add multiply it better by a factor
+will add multiply it better by a factor of 2
+of 2 and later than in code we use all these
+and later than in code we use all these weights to randomize which of these
+weights to randomize which of these we're going to use so say we have three
+we're going to use so say we have three options a B and C and they have the
+options a B and C and they have the different weights of five five and ten
+different weights of five five and ten then we have a total weight of twenty
+then we have a total weight of twenty and the chances for each of these being
+and the chances for each of these being chosen is twenty five twenty five and
+chosen is twenty five twenty five and fifty percent
+here are some other examples because we don't have to randomize the weights
+don't have to randomize the weights every single time we can for example
+every single time we can for example just use the weight with the that is
+just use the weight with the that is highest like we do with policies for
+highest like we do with policies for example we can also have an allow
+example we can also have an allow trigger that we use from two to not even
+trigger that we use from two to not even add that object to the list of weights
+add that object to the list of weights so we basically just skip it
+the final way or example that I'm going to tell you about today is that we can
+to tell you about today is that we can use it as fractions so say you have
+use it as fractions so say you have unlocked the tech for cruisers and you
+unlocked the tech for cruisers and you only want the AI to build cruisers from
+only want the AI to build cruisers from now then you just set the weights of
+now then you just set the weights of Corvettes and destroyers to zero once
+Corvettes and destroyers to zero once that tech is unlocked and every time the
+that tech is unlocked and every time the AI will build a new ship it will just
+AI will build a new ship it will just build a cruiser alright so all of these
+build a cruiser alright so all of these tools are great but if they're just used
+tools are great but if they're just used independently and randomly it's really
+independently and randomly it's really hard to create that sense of good game
+hard to create that sense of good game balance and a human like AI so we want
+balance and a human like AI so we want to be able to expect a certain behavior
+to be able to expect a certain behavior and similar to a human player it should
+and similar to a human player it should have a certain style of playing but
+have a certain style of playing but still have room for some
+still have room for some unpredictability and for this we
+unpredictability and for this we implemented personalities going back to
+implemented personalities going back to this image that I showed you earlier
+this image that I showed you earlier every colored circle represents an
+every colored circle represents an empire in our game and each of the
+empire in our game and each of the empires that are played by NPCs have
+empires that are played by NPCs have been assigned a personality and this
+been assigned a personality and this will be like their backbone
+will be like their backbone of their behavior the personalities are
+of their behavior the personalities are visualized in a game in the diplomacy
+visualized in a game in the diplomacy screens and every interaction with the
+screens and every interaction with the AIS will enhance that experience through
+AIS will enhance that experience through the dialogues and it's really important
+the dialogues and it's really important here to actually connect the dialogues
+here to actually connect the dialogues and the way of communicating with the
+and the way of communicating with the personalities to get that realistic
+personalities to get that realistic sense so a quick description of how we
+sense so a quick description of how we choose the personalities it's really
+choose the personalities it's really really simple we just start off with say
+really simple we just start off with say around 20 personalities and each
+around 20 personalities and each personality is weighted differently
+personality is weighted differently depending on traits ethics government
+depending on traits ethics government type whatever you add in script and once
+type whatever you add in script and once we have this we can then randomize which
+we have this we can then randomize which one first we actually will get like two
+one first we actually will get like two options maybe or more that will render
+options maybe or more that will render like weights above zero and from those
+like weights above zero and from those two we will randomize which one it will
+two we will randomize which one it will pick and the personality then has a set
+pick and the personality then has a set of behaviors that is connected to it so
+of behaviors that is connected to it so this is a way to make choices without
+this is a way to make choices without having to randomize and calculate the
+having to randomize and calculate the behavior for the AI every single time
+behavior for the AI every single time and it's the part of the AI that is
+and it's the part of the AI that is predictable in this case for example we
+predictable in this case for example we have that hegemonic imperialists will
+have that hegemonic imperialists will enslave they will not purge they will
+enslave they will not purge they will build robots they will conquer planets
+build robots they will conquer planets they will vassal eyes etc it can also
+they will vassal eyes etc it can also add that even the AI personalities are
+add that even the AI personalities are objects in the database that you can use
+objects in the database that you can use for your triggers okay so one of the
+for your triggers okay so one of the benefits with this model is that it's
+benefits with this model is that it's really easy to keep your code simple and
+really easy to keep your code simple and clean for the coming expansion we added
+clean for the coming expansion we added two features of traditions and ascension
+two features of traditions and ascension perks to enable more
+perks to enable more customization and to add more
+customization and to add more interesting choices for the player and
+interesting choices for the player and its two fairly big features in terms of
+its two fairly big features in terms of content I'm sure our content designers
+content I'm sure our content designers will agree to that
+will agree to that but in terms of code it was less than a
+but in terms of code it was less than a day's work so basically what we do in
+day's work so basically what we do in this code is we go through the list of
+this code is we go through the list of ascension perks we list all the weights
+ascension perks we list all the weights store them and then we use a random
+store them and then we use a random weighted algorithm to choose which one
+weighted algorithm to choose which one of these we actually want and then
+of these we actually want and then finally post a command to do it exposing
+finally post a command to do it exposing as much of the AI as possible in script
+as much of the AI as possible in script does not only make the code easier when
+does not only make the code easier when you separate the AI design from
+you separate the AI design from programming the programmer can focus on
+programming the programmer can focus on what she does best and we'll also have
+what she does best and we'll also have more time to allocate to other other
+more time to allocate to other other tasks you also empower your content
+tasks you also empower your content designers and maybe I should add that
+designers and maybe I should add that content designers at paradox are
+content designers at paradox are scripters and designers by enabling them
+scripters and designers by enabling them to script the AI behavior independently
+to script the AI behavior independently from us similarly it exposes the AI to
+from us similarly it exposes the AI to the motors which means that they can do
+the motors which means that they can do a lot of cool stuff as a side effect
+a lot of cool stuff as a side effect though they can easily introduce bugs or
+though they can easily introduce bugs or crashes into the game we can of course
+crashes into the game we can of course reduce this by having good tool
+reduce this by having good tool descriptions and adapting the code so
+descriptions and adapting the code so that we can handle scripters but the
+that we can handle scripters but the second part is easier said than done
+another benefit is that you will save a lot of time by being able to balance and
+lot of time by being able to balance and tune the game in tune the AI in game and
+tune the game in tune the AI in game and I don't know about you but I spent quite
+I don't know about you but I spent quite some time compiling so I rather not do
+some time compiling so I rather not do that one thing that you need to consider
+that one thing that you need to consider though when you do this is that by
+though when you do this is that by moving a lot of things to script you
+moving a lot of things to script you will also force the content designers or
+will also force the content designers or scripters and designers to actually be
+scripters and designers to actually be aware of stuff that they usually aren't
+aware of stuff that they usually aren't so by setting a lot of the ai's behavior
+so by setting a lot of the ai's behavior in script we also move the performance
+in script we also move the performance issues there so we need to make them
+issues there so we need to make them aware of how to use the script
+aware of how to use the script efficiently and the code also needs to
+efficiently and the code also needs to be designed for performance and this is
+be designed for performance and this is something that I wished we had focused
+something that I wished we had focused more on early on finally debugging of
+more on early on finally debugging of the system need tools and I don't know
+the system need tools and I don't know how many of you saw this panel
+how many of you saw this panel discussion on the Monday but it was a
+discussion on the Monday but it was a very good overview of the most common
+very good overview of the most common issues of debugging AI
+issues of debugging AI including stellaris but force the lor is
+including stellaris but force the lor is specifically I think the AI is fairly
+specifically I think the AI is fairly easy to write in debug the part that is
+easy to write in debug the part that is difficult is that the behavior is
+difficult is that the behavior is unexpected sometimes which we want in
+unexpected sometimes which we want in many cases but to be able to see when it
+many cases but to be able to see when it is doing something the hey student we
+is doing something the hey student we need to play the game a lot so we
+need to play the game a lot so we basically have to play the game I think
+basically have to play the game I think one of the guys said it really well at
+one of the guys said it really well at that discussion like you have to try to
+that discussion like you have to try to make to break the AI yeah future
+make to break the AI yeah future improvements for this would be to build
+improvements for this would be to build better tools them
+better tools them than we what what we have today so to
+than we what what we have today so to summarize our design will enable you to
+summarize our design will enable you to create unique NPCs with complex semi
+create unique NPCs with complex semi unpredictable behavior it's a good way
+unpredictable behavior it's a good way of processing high amounts of input data
+of processing high amounts of input data on dependencies you can tune the game in
+on dependencies you can tune the game in the AI in-game and smart friendly its
+the AI in-game and smart friendly its scalable is modular and the code will be
+scalable is modular and the code will be kept simpler and cleaner which means
+kept simpler and cleaner which means that your programmers will be happier to
+that your programmers will be happier to finish off I would like to quote our
+finish off I would like to quote our game director it's a very robust system
+game director it's a very robust system you could basically redesign almost the
+you could basically redesign almost the whole game without having to redesign
+whole game without having to redesign all of the AI and that's something there
+all of the AI and that's something there is really good I'm not open to any
+is really good I'm not open to any questions that you might have thanks
+no questions okay yeah
+you talked a lot about I guess my question basically is like if you're
+question basically is like if you're gonna do this system over again
+gonna do this system over again what is the one change that you would
+what is the one change that you would make like what is one area for
+make like what is one area for improvement in this system that you see
+what was your name Andrea yeah I listen to Andrea yesterday and I think she said
+to Andrea yesterday and I think she said something that is really good like
+something that is really good like sometimes when you do stuff you get
+sometimes when you do stuff you get blind and you think that that method is
+blind and you think that that method is the only thing you should use and like
+the only thing you should use and like what I would do differently is actually
+what I would do differently is actually evaluate when we actually need to use
+evaluate when we actually need to use the system and if there are parts where
+the system and if there are parts where we can use something else I'm not saying
+we can use something else I'm not saying we're using like data-driven design for
+we're using like data-driven design for everything we have like path finders we
+everything we have like path finders we have nav meshes whatever but there are
+have nav meshes whatever but there are some places where I think maybe behavior
+some places where I think maybe behavior trees would be better for example yeah
+trees would be better for example yeah hello
+hello I was hoping you could elaborate on on
+I was hoping you could elaborate on on what kind of things would be good to
+what kind of things would be good to automate an AI testing as opposed to not
+automate an AI testing as opposed to not automating and possibly how to go forth
+automating and possibly how to go forth with the quality assurance of an AI unit
+with the quality assurance of an AI unit testing or any kind of strategies that
+testing or any kind of strategies that you have found that work in your yes um
+you have found that work in your yes um the question was what kind of testing is
+the question was what kind of testing is it that will help this style of game
+it that will help this style of game design or code design some of the tools
+design or code design some of the tools that we use is all of our objects have
+that we use is all of our objects have IDs which we can see in game so when we
+IDs which we can see in game so when we debug we can easily break point with
+debug we can easily break point with that ID and find stuff we have like
+that ID and find stuff we have like console commands where we can just in
+console commands where we can just in game do stuff we can play as a
+game do stuff we can play as a as an AI in game we can add populations
+as an AI in game we can add populations to our planets we can own a new planet
+to our planets we can own a new planet so we can basically create those
+so we can basically create those situations that we want to test
+situations that we want to test but we've discussed unit tests at
+but we've discussed unit tests at paradox a lot like there's probably
+paradox a lot like there's probably somewhere like some way you can use it
+somewhere like some way you can use it but I personally feel like this this
+but I personally feel like this this system requires you to play the game a
+system requires you to play the game a lot and you you can't really get away
+lot and you you can't really get away from that I'm curious to know more about
+from that I'm curious to know more about the scripting of your AI from what you
+the scripting of your AI from what you showed it looked like it was very
+showed it looked like it was very limited what the designers and cryptids
+limited what the designers and cryptids could do they could just set parameters
+could do they could just set parameters and flags I guess that influenced the
+and flags I guess that influenced the decision making of the AI
+decision making of the AI but how much can they directly force the
+but how much can they directly force the AI to do something in the event of a
+AI to do something in the event of a trigger or maybe another question would
+trigger or maybe another question would be how many commands are there in the
+be how many commands are there in the scripting language that they use there
+scripting language that they use there are much more stuff that they can use
+are much more stuff that they can use than what I showed you today like they
+than what I showed you today like they have triggers they have effects that
+have triggers they have effects that they can trigger they have on action
+they can trigger they have on action events that you can put in code that's
+events that you can put in code that's special like like say a planet is
+special like like say a planet is changing owner then you can trigger an
+changing owner then you can trigger an action event for that there's lots of
+action event for that there's lots of stuff you can do in script and basically
+stuff you can do in script and basically we we do as much as we can to support
+we we do as much as we can to support them because they have a really
+them because they have a really important job
+important job the paradox like I usually tell people
+the paradox like I usually tell people that ask me like I personally believe
+that ask me like I personally believe that the content designers make our
+that the content designers make our games like we're just there to help them
+games like we're just there to help them make that thank you alright thanks for
+make that thank you alright thanks for the talk I'm one of the few designers
+the talk I'm one of the few designers that put the hand up I think so probably
+that put the hand up I think so probably following on from that question how do
+following on from that question how do you feel that the content designers work
+you feel that the content designers work with this process do they come to you
+with this process do they come to you with a lot of requests or do they find
+with a lot of requests or do they find that this is very limiting for how they
+that this is very limiting for how they work or
+work or or they did they feel empowered and with
+or they did they feel empowered and with this systems driven approach I think
+this systems driven approach I think it's both like I know like that this
+it's both like I know like that this system enables them to do much more than
+system enables them to do much more than if we would do a lot of stuff in code
+if we would do a lot of stuff in code but at the same time of course they want
+but at the same time of course they want better tools of course they want more be
+better tools of course they want more be able to do more cool stuff and that is
+able to do more cool stuff and that is something that we are working on all the
+something that we are working on all the time but it's not like it's not like
+time but it's not like it's not like they want to do something and they can't
+they want to do something and they can't and then we just ignore it then we try
+and then we just ignore it then we try to figure out a way to do it so do you
+to figure out a way to do it so do you find that the almost the modularity that
+find that the almost the modularity that this provides is a good prototype
+this provides is a good prototype process for the designers to come to you
+process for the designers to come to you with new ideas for functionality within
+with new ideas for functionality within the code
+can you please like elaborate how do you mean like functionality so this could
+mean like functionality so this could expert could quickly prototype with the
+expert could quickly prototype with the modularity of the system to come up with
+modularity of the system to come up with a whole new thing that you might want to
+a whole new thing that you might want to implement in the code is better suited
+implement in the code is better suited in the code rather than in script oh
+in the code rather than in script oh yeah so the question was if if there are
+yeah so the question was if if there are stuff.if descriptors or content
+stuff.if descriptors or content designers can come with ideas about how
+designers can come with ideas about how to implement stuff in code instead of in
+to implement stuff in code instead of in script yeah they can and they do that
+script yeah they can and they do that and when it's better to have it in code
+and when it's better to have it in code we do that sometimes for performance
+we do that sometimes for performance issues as well it's not optimal to have
+issues as well it's not optimal to have it in script that's probably more based
+it in script that's probably more based on that the code is not optimized for
+on that the code is not optimized for performance but still we have to adapt
+thanks for the talk is great I have a I guess in a way two separate questions so
+guess in a way two separate questions so you can choose to answer either or both
+you can choose to answer either or both I've dealt with a bunch of the problems
+I've dealt with a bunch of the problems that you described it several different
+that you described it several different times in my career where we've both
+times in my career where we've both developed AI and also scripting designer
+developed AI and also scripting designer scripting based systems and
+scripting based systems and encountered some many of the same kinds
+encountered some many of the same kinds of problems and I'm wondering how if you
+of problems and I'm wondering how if you encountered some of them and also how
+encountered some of them and also how you dealt with them one of the things
+you dealt with them one of the things that you didn't touch on was sometimes
+that you didn't touch on was sometimes when you introduce the opportunity for
+when you introduce the opportunity for designers to implement individual
+designers to implement individual scripts such as that one of the things
+scripts such as that one of the things that doesn't show up unless you have a
+that doesn't show up unless you have a really extensive amount of testing is to
+really extensive amount of testing is to have global interactions or combinatoric
+have global interactions or combinatoric interactions between some of the
+interactions between some of the entities that aren't visible within the
+entities that aren't visible within the scope of a given script you know he's
+scope of a given script you know he's he's scripting something for one entity
+he's scripting something for one entity and you don't really notice emergent
+and you don't really notice emergent behavior until you start playing it out
+behavior until you start playing it out in the entire system and so designers
+in the entire system and so designers can code things that look saying from
+can code things that look saying from the standpoint of one entity's behavior
+the standpoint of one entity's behavior but it turns out to be something that's
+but it turns out to be something that's exploitable in the global system or it
+exploitable in the global system or it can even break things or something like
+can even break things or something like that I was learning if you encountered
+that I was learning if you encountered any situations like that and-and-and or
+any situations like that and-and-and or if you found ways to prevent that so
+if you found ways to prevent that so that's kind of one category thing about
+that's kind of one category thing about behaviors on the AI testing I was
+behaviors on the AI testing I was learning if you had implemented anything
+learning if you had implemented anything in your system around it's partly tied
+in your system around it's partly tied into the question about unit tests but
+into the question about unit tests but around being able to force behaviors in
+around being able to force behaviors in different directions such as always
+different directions such as always choose this weighted option or always
+choose this weighted option or always choose the eccentric option of behavior
+choose the eccentric option of behavior you know either on a global level or on
+you know either on a global level or on a personality by personality basis to be
+a personality by personality basis to be able to exercise sort of different
+able to exercise sort of different vectors within the AI behavior yes so
+vectors within the AI behavior yes so I'll start with the second question and
+I'll start with the second question and the question was if we've used the
+the question was if we've used the script to actually have a set behavior
+script to actually have a set behavior for the AI so right sure something like
+for the AI so right sure something like that yeah yes and we do that like but
+that yeah yes and we do that like but that is like one of the places where I
+that is like one of the places where I think maybe data-driven design isn't the
+think maybe data-driven design isn't the best option like if you already know
+best option like if you already know that you're gonna pick the best option
+that you're gonna pick the best option every single time then you might as well
+every single time then you might as well have a tree for example but yes we do we
+have a tree for example but yes we do we do that
+do that the first question was basically if the
+the first question was basically if the content designers have put in events or
+content designers have put in events or scripts where it breaks the AI without
+scripts where it breaks the AI without us really anticipating it one version of
+us really anticipating it one version of that is like you mentioned you can break
+that is like you mentioned you can break from a performance perspective ya know
+from a performance perspective ya know in unreal somebody can write a blueprint
+in unreal somebody can write a blueprint that iterates through all actors of a
+that iterates through all actors of a class and if that's not used really
+class and if that's not used really carefully you know if you can have a
+carefully you know if you can have a terrible impact on performance but you
+terrible impact on performance but you can also break other things besides
+can also break other things besides performance ya behavior I mean we do we
+performance ya behavior I mean we do we do break the AI all the time like every
+do break the AI all the time like every single time we add something we'd
+single time we add something we'd probably break something because the
+probably break something because the challenge in a system like yours that
+challenge in a system like yours that has as many separate entities and
+has as many separate entities and different interactions between all of
+different interactions between all of them like technologies and policies and
+them like technologies and policies and all that yeah is that anything you add
+all that yeah is that anything you add can potentially have kind of a
+can potentially have kind of a combinatoric interaction with the rest
+combinatoric interaction with the rest of the system you know it could have
+of the system you know it could have interactions with everything else and
+interactions with everything else and everything else can have you know some
+everything else can have you know some form of behavior that depends on that
+form of behavior that depends on that thing that you added usually we don't
+thing that you added usually we don't have that many dependencies but let me
+have that many dependencies but let me think that kind of depends on the touch
+think that kind of depends on the touch points between the behaviors and the
+points between the behaviors and the data
+data I mean it's if I say it like that this
+I mean it's if I say it like that this it's really simple to break the AI so
+it's really simple to break the AI so basically what we have to do at each
+basically what we have to do at each point is to like go through what we work
+point is to like go through what we work what we are planning to do and then
+what we are planning to do and then actually thinking about how might this
+actually thinking about how might this break the AI and is there anything we
+break the AI and is there anything we can do about it and sometimes we find
+can do about it and sometimes we find those issues before we implement it and
+those issues before we implement it and most often there is always something
+most often there is always something that we missed so basically what we do
+that we missed so basically what we do then is to try to find a solution to it
+then is to try to find a solution to it and I mean nicely I think it's the same
+and I mean nicely I think it's the same in code really it's just that our games
+in code really it's just that our games are super super complex like they're
+are super super complex like they're even complex for a human player like
+even complex for a human player like we've added now
+we've added now personality of high minds where you
+personality of high minds where you don't have to think so much about
+don't have to think so much about politics and don't have to think when
+politics and don't have to think when you actually want to purge all the alien
+you actually want to purge all the alien pulps and stuff and I'm I think marking
+pulps and stuff and I'm I think marking implemented that for me because I got
+implemented that for me because I got tired of thinking so much like there is
+tired of thinking so much like there is so much like you can do in our games and
+so much like you can do in our games and that's that's one of the things that we
+that's that's one of the things that we want but it's also it's also one of the
+want but it's also it's also one of the biggest challenges yeah thank you yeah
+biggest challenges yeah thank you yeah hi thank you for the talk just I think
+hi thank you for the talk just I think you mentioned the word unpredictable AI
+you mentioned the word unpredictable AI at one point yeah so and the objective
+at one point yeah so and the objective is to have a more engaging experience
+is to have a more engaging experience for the human player so when it comes to
+for the human player so when it comes to unpredictable which methods do you
+unpredictable which methods do you employ to make it not predictable so
+employ to make it not predictable so just randomization of behaviors and
+just randomization of behaviors and traits based on the content that you add
+traits based on the content that you add or is it there's any learning from the
+or is it there's any learning from the human player whether their
+human player whether their aggressiveness or how they collect
+aggressiveness or how they collect resources or how they build structure
+resources or how they build structure does the AI you learn and choose
+does the AI you learn and choose different paths of behaviors based on
+different paths of behaviors based on that so the question was if the AI
+that so the question was if the AI learned from other players or if it just
+learned from other players or if it just bases its unpredictability on
+bases its unpredictability on randomization it it paces it mostly on
+randomization it it paces it mostly on randomization and it cheats a bit I mean
+randomization and it cheats a bit I mean the AI has the AI has access to all the
+the AI has the AI has access to all the data so you know is it they gathered of
+data so you know is it they gathered of the users as they play or is it data
+the users as they play or is it data that you've repop now if they'd wanted
+that you've repop now if they'd wanted yeah no it's not it's not it doesn't
+yeah no it's not it's not it doesn't learn from the players but it can see
+learn from the players but it can see stuff that the players can't see and
+stuff that the players can't see and it's not like I deliberately put in
+it's not like I deliberately put in stuff so that the AI actually cheats but
+stuff so that the AI actually cheats but it can use that data like if it's gonna
+it can use that data like if it's gonna start a war there's no point of starting
+start a war there's no point of starting it if it has like one ship and the enemy
+it if it has like one ship and the enemy has like a thousand and that would just
+has like a thousand and that would just seem dumb to any human player so we just
+seem dumb to any human player so we just avoid that by actually knowing that okay
+avoid that by actually knowing that okay this you can actually see that in game
+this you can actually see that in game human players well like the ratio
+human players well like the ratio towards an enemy but anyways we use that
+towards an enemy but anyways we use that data in order to limit the aah behavior
+data in order to limit the aah behavior to make it seem more human-like yeah
+to make it seem more human-like yeah thank you okay
+thank you okay yeah so we're out of time but come talk
+yeah so we're out of time but come talk to me if you want to discuss this more
+to me if you want to discuss this more [Applause]

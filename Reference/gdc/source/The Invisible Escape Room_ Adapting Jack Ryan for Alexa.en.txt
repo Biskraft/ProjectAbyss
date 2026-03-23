@@ -1,0 +1,1893 @@
+[Music] my name is dave grossman i will be your
+my name is dave grossman i will be your your host this morning
+your host this morning uh
+uh this is my trophy wall with which i
+this is my trophy wall with which i shamelessly hope to coerce you into
+shamelessly hope to coerce you into trusting me as an authority on on the
+trusting me as an authority on on the subject matter here it's uh i've been
+subject matter here it's uh i've been designing and writing and directing
+designing and writing and directing uh
+uh story games of various types for about
+story games of various types for about 30 years starting in the upper left
+30 years starting in the upper left there this is a laser point uh with the
+there this is a laser point uh with the secret of monkey island at lucasarts and
+secret of monkey island at lucasarts and day at day the tentacle depending on how
+day at day the tentacle depending on how old you are looks like maybe kind of an
+old you are looks like maybe kind of an old crowd you may or may not have grown
+old crowd you may or may not have grown up with
+up with a pajama sam and uh then there was a
+a pajama sam and uh then there was a there's a large section in here that
+there's a large section in here that represents my tenure at telltale games
+represents my tenure at telltale games um may rest in peace uh where i was
+um may rest in peace uh where i was directing the design and writing there
+directing the design and writing there for about a decade and then down in the
+for about a decade and then down in the lower right hand corner uh you see some
+lower right hand corner uh you see some stuff you may not have heard of before
+stuff you may not have heard of before represents uh my more recent work it's
+represents uh my more recent work it's uh they're audio games five years ago i
+uh they're audio games five years ago i became one of the founders of earplay
+became one of the founders of earplay which is a platform for making stories
+which is a platform for making stories that you you play with your voice they
+that you you play with your voice they they use voice control
+they use voice control uh and our audio only we did this first
+uh and our audio only we did this first on
+on mobile phones uh but then other other
+mobile phones uh but then other other platforms started to come along there
+platforms started to come along there were
+were voice assistants uh alexa and google
+voice assistants uh alexa and google assistant and then more recently bose
+assistant and then more recently bose made these glasses frames that have some
+made these glasses frames that have some interesting hardware in it and we
+interesting hardware in it and we expanded to support
+expanded to support all of these platforms and in this talk
+all of these platforms and in this talk i'm going to mostly talk about the voice
+i'm going to mostly talk about the voice assistance but the lessons apply pretty
+assistance but the lessons apply pretty pretty broadly
+pretty broadly we've done quite a few of these things
+we've done quite a few of these things now actually a lot more than this
+now actually a lot more than this the engine handles all kinds of stuff
+the engine handles all kinds of stuff but they are mostly
+but they are mostly kind of
+kind of branchy choice based things in the sort
+branchy choice based things in the sort of a telltale games model
+of a telltale games model and there are some specific reasons why
+and there are some specific reasons why we like to do it that way i'll get to in
+we like to do it that way i'll get to in a minute they tend to be kind of big
+a minute they tend to be kind of big compared to other skills that tell you
+compared to other skills that tell you the weather or whatever that just you
+the weather or whatever that just you kind of in and out ours you may play for
+kind of in and out ours you may play for an hour or two hours three hours some of
+an hour or two hours three hours some of them
+them it's still though not uncommon for them
+it's still though not uncommon for them to be designed and written and sometimes
+to be designed and written and sometimes implemented by a single person
+implemented by a single person and so i want to give you a window into
+and so i want to give you a window into what that process looks like from the
+what that process looks like from the ground up
+ground up let's talk about what we normally do how
+let's talk about what we normally do how we normally do it and then what happens
+we normally do it and then what happens when we break our own rules
+when we break our own rules so this will be kind of a rambling
+so this will be kind of a rambling cautionary slash inspirational tale
+cautionary slash inspirational tale and hopefully we'll have some useful
+and hopefully we'll have some useful nuggets in it for you i'm going to talk
+nuggets in it for you i'm going to talk about the technology a little bit i'm
+about the technology a little bit i'm going to get into language models quite
+going to get into language models quite a lot uh i'm going to talk about user
+a lot uh i'm going to talk about user experience design and touch a little bit
+experience design and touch a little bit on the on the writing some some tips
+on the on the writing some some tips there for for doing stuff um
+there for for doing stuff um these are kind of the the things i think
+these are kind of the the things i think of as a core of narrative design
+of as a core of narrative design and i think of a narrative designer as
+and i think of a narrative designer as being probably the most appropriate
+being probably the most appropriate person to do this by themselves if they
+person to do this by themselves if they were going to do that so just show hands
+were going to do that so just show hands who and who in the audience
+who and who in the audience self-identifies as a narrative minor in
+self-identifies as a narrative minor in some way or wants to be a good good good
+some way or wants to be a good good good you're the right crowd then and and how
+you're the right crowd then and and how many have actually tried to do this
+many have actually tried to do this tried to make a voice skill or a voice
+tried to make a voice skill or a voice app or anything
+app or anything not many okay
+not many okay but some so that's that's good good on
+but some so that's that's good good on you for for giving it a shot
+you for for giving it a shot it occurred to me last week that uh this
+it occurred to me last week that uh this talk is kind of a travelogue
+talk is kind of a travelogue so let's learn about the country that
+so let's learn about the country that we'll be visiting which is the country
+we'll be visiting which is the country of voice that has some peculiar
+of voice that has some peculiar characteristics that other countries
+characteristics that other countries don't have
+don't have for one thing your your input to one of
+for one thing your your input to one of these stories is intermittent
+these stories is intermittent the the story is not listening to the
+the the story is not listening to the player all the time it can't it's not
+player all the time it can't it's not allowed to for legal reasons privacy
+allowed to for legal reasons privacy reasons you you as the developer are not
+reasons you you as the developer are not permitted to just open up the microphone
+permitted to just open up the microphone and listen all the time so turn taking
+and listen all the time so turn taking has to happen and it's super important
+has to happen and it's super important for the audience to know when it is
+for the audience to know when it is their turn to talk
+their turn to talk so for that we use very explicit prompts
+so for that we use very explicit prompts and you could use a sound effect or a
+and you could use a sound effect or a bell or something like that but we like
+bell or something like that but we like to stay in fantasy with everything if we
+to stay in fantasy with everything if we can
+can so the way we do it is we just have a
+so the way we do it is we just have a character ask the player a direct
+character ask the player a direct question at some point in the story and
+question at some point in the story and then you the player expected to answer
+then you the player expected to answer that question that's how we let you know
+that question that's how we let you know okay it's your it's your turn
+okay it's your it's your turn there's a writing corollary to that
+there's a writing corollary to that which is that that is the only time that
+which is that that is the only time that anybody asks anybody in a direct
+anybody asks anybody in a direct question in one of our stories
+question in one of our stories and having having to write a whole you
+and having having to write a whole you know couple of hours worth of audio in
+know couple of hours worth of audio in which the characters do not ask each
+which the characters do not ask each other direct questions and never
+other direct questions and never speak in rhetorical questions
+speak in rhetorical questions strikes writers as strange and
+strikes writers as strange and uncomfortable at first
+uncomfortable at first it's not though as hard as it sounds you
+it's not though as hard as it sounds you get used to it
+get used to it second characteristic is
+second characteristic is you must make your decisions quickly
+you must make your decisions quickly in these in these stories alexa for
+in these in these stories alexa for example gives you 10 seconds to talk and
+example gives you 10 seconds to talk and then it'll shut the microphone off if
+then it'll shut the microphone off if you haven't started saying something uh
+you haven't started saying something uh it'll it'll repeat the question one time
+it'll it'll repeat the question one time and then it'll shut the skill down
+and then it'll shut the skill down entirely so you have to kind of be able
+entirely so you have to kind of be able to make that decision quickly this is
+to make that decision quickly this is mostly also about
+mostly also about not leaving the microphone open for
+not leaving the microphone open for privacy reasons
+privacy reasons so for that we we just make sure that
+so for that we we just make sure that when it is your turn to make a decision
+when it is your turn to make a decision your options there are clear simple and
+your options there are clear simple and and they are few in number and we
+and they are few in number and we enumerate them for you
+enumerate them for you right then and there and so that
+right then and there and so that dictates the nature of how you would
+dictates the nature of how you would write that that prompt it's sort of a a
+write that that prompt it's sort of a a quick summation of of your options at
+quick summation of of your options at that point in the story
+thing three voice recognition is really cool but it
+voice recognition is really cool but it is not magic amazingly it's technology
+is not magic amazingly it's technology uh so with someone who is
+uh so with someone who is mumbling or
+mumbling or turning away from the microphone or
+turning away from the microphone or maybe standing in a kitchen where dinner
+maybe standing in a kitchen where dinner is actively being prepared the sound can
+is actively being prepared the sound can get kind of muddy and if you give the
+get kind of muddy and if you give the voice recognition muddy sound it has a
+voice recognition muddy sound it has a much harder time doing its job it's easy
+much harder time doing its job it's easy for it to get confused
+for it to get confused so we try to make uh make it easier on
+so we try to make uh make it easier on the voice recognition itself by
+the voice recognition itself by making its decisions easier and we make
+making its decisions easier and we make the things that it is listening for also
+the things that it is listening for also uh clearly distinct and few in number so
+uh clearly distinct and few in number so we offer the player clear options but we
+we offer the player clear options but we also offer them specific ways to say
+also offer them specific ways to say what they want and we carefully manage
+what they want and we carefully manage those phrases again part of the writing
+those phrases again part of the writing of these things
+of these things so that they do not sound similar to one
+so that they do not sound similar to one another and all of that makes it easier
+another and all of that makes it easier for the voice recognition to do its job
+for the voice recognition to do its job under difficult circumstances which
+under difficult circumstances which difficult circumstances are more common
+difficult circumstances are more common than you might think
+than you might think these prompts tend to get uh a little
+these prompts tend to get uh a little a little awkward and they they sound
+a little awkward and they they sound they sound stilted and they stick out
+they sound stilted and they stick out but actually that's good because it
+but actually that's good because it makes them work better as prompts you
+makes them work better as prompts you sort of sit up and take notice because
+sort of sit up and take notice because somebody's talking funny at you
+somebody's talking funny at you and you go oh it must be must be my turn
+and you go oh it must be must be my turn again
+again so we will actually often go so far as
+so we will actually often go so far as to capitalize while we're writing the
+to capitalize while we're writing the the key phrases in the prompt to get the
+the key phrases in the prompt to get the voice actors to hit them harder and
+voice actors to hit them harder and sound even more stilted and
+sound even more stilted and authoritative
+authoritative uh so that then you're
+uh so that then you're again you're sort of reminded hey it
+again you're sort of reminded hey it must be my turn realism is not our
+must be my turn realism is not our primary concern here it's it's
+primary concern here it's it's functionality
+functionality so
+putting all that together we we wind up with this model where
+with this model where the stories are turn-based and they're
+the stories are turn-based and they're structured so that we can uh focus all
+structured so that we can uh focus all your options
+your options uh on a single moment
+uh on a single moment at any time and then those moments are
+at any time and then those moments are embodied in these prompt questions of
+embodied in these prompt questions of two or three distinct actions that sound
+two or three distinct actions that sound quite different from from one another
+quite different from from one another that's the usual model and and and these
+that's the usual model and and and these are good rules however if we follow them
+are good rules however if we follow them all the time this talk would be less fun
+all the time this talk would be less fun so uh last year amazon studios got in
+so uh last year amazon studios got in touch and they asked us if we wanted to
+touch and they asked us if we wanted to do a story on alexa and exclusive um
+do a story on alexa and exclusive um next to uh this um new show that they
+next to uh this um new show that they were making this jack ryan show which
+were making this jack ryan show which sounded kind of cool
+sounded kind of cool so we said all right we're in
+so we said all right we're in london we live for that stuff uh so we
+london we live for that stuff uh so we dealt a little deeper with them and the
+dealt a little deeper with them and the inspiration for what they wanted to do
+inspiration for what they wanted to do was this escape room that they had also
+was this escape room that they had also commissioned as a promotional effort for
+commissioned as a promotional effort for the show and they had uh run they built
+the show and they had uh run they built it and they ran some teams of
+it and they ran some teams of influencers through it and they did a
+influencers through it and they did a twitch stream uh of that and it was uh i
+twitch stream uh of that and it was uh i watched it it was pretty fun everybody
+watched it it was pretty fun everybody had a good time
+had a good time and one of the peculiar aspects of this
+and one of the peculiar aspects of this escape room was the alexa was built into
+escape room was the alexa was built into it there was a device in every room and
+it there was a device in every room and it sort of
+it sort of became part of the puzzle so on
+became part of the puzzle so on and their idea was they just they just
+and their idea was they just they just had such a good time with the escape
+had such a good time with the escape room they wanted to bring that feeling
+room they wanted to bring that feeling to a jack ryan story on alexa that you
+to a jack ryan story on alexa that you could then experience in your own home
+could then experience in your own home so what that meant was we were doing an
+so what that meant was we were doing an adaptation of something that was already
+adaptation of something that was already a kind of a loose adaptation of a tv
+a kind of a loose adaptation of a tv show that we hadn't seen and we hadn't
+show that we hadn't seen and we hadn't read um
+read um that's okay
+that's okay that's that's that's just what the job's
+that's that's that's just what the job's like more on difficulties getting to see
+like more on difficulties getting to see the show a little later in the talk but
+the show a little later in the talk but for now uh we wanted to um
+for now uh we wanted to um to make this story feel like an escape
+to make this story feel like an escape room and central to that feeling is this
+room and central to that feeling is this idea of exploration you want to sort of
+idea of exploration you want to sort of poke around and open things up and find
+poke around and open things up and find clues and put them together in a very
+clues and put them together in a very sort of self-directed and free form kind
+sort of self-directed and free form kind of a way
+of a way and so one of the first decisions that
+and so one of the first decisions that we made was we would take our usual
+we made was we would take our usual wisdom of this connected structure of of
+wisdom of this connected structure of of discreet moments and throw it out the
+discreet moments and throw it out the window
+window so instead
+so instead you'd be constrained only by what
+you'd be constrained only by what chapter you were in or what location you
+chapter you were in or what location you were in
+were in and instead of asking those very pointed
+and instead of asking those very pointed questions the nice prompts of uh here
+questions the nice prompts of uh here are your three options we would ask the
+are your three options we would ask the much more general question okay what do
+much more general question okay what do you want to do next tell us anything
+you want to do next tell us anything um
+um so we were already getting ourselves
+so we were already getting ourselves into trouble we knew at this point and
+into trouble we knew at this point and uh the problem was something that we
+uh the problem was something that we were already aware of from the days when
+were already aware of from the days when adventure games allowed you to
+adventure games allowed you to type in your input at the keyboard
+type in your input at the keyboard using
+using the english language and the problem is
+the english language and the problem is that there's a huge difference between
+that there's a huge difference between what you can express with your input
+what you can express with your input mechanism and in both cases here the
+mechanism and in both cases here the english language capable of expressing
+english language capable of expressing just about any thought you can have and
+just about any thought you can have and the stuff that's actually addressable by
+the stuff that's actually addressable by the game which is some tiny subset of
+the game which is some tiny subset of that because the game is made by human
+that because the game is made by human beings and in a finite amount of time
+beings and in a finite amount of time you just can't cover all that space
+you just can't cover all that space so all this blue space here in the
+so all this blue space here in the middle
+middle is frustration the audience gets really
+is frustration the audience gets really frustrated with this stuff because we're
+frustrated with this stuff because we're not just allowing them we're actually
+not just allowing them we're actually encouraging them to try things they're
+encouraging them to try things they're doomed to failure which is not a very
+doomed to failure which is not a very friendly thing to do for your audience
+friendly thing to do for your audience notice this is a problem with voice
+notice this is a problem with voice control in general this sort of
+control in general this sort of unfettered freedom of speech is a fourth
+unfettered freedom of speech is a fourth characteristic
+characteristic of the medium that by the way is the
+of the medium that by the way is the constitution of the united states
+constitution of the united states freedom of speech get it
+freedom of speech get it so we've been avoiding this problem up
+so we've been avoiding this problem up until now because we've been using these
+until now because we've been using these clear options with specific phrasing and
+clear options with specific phrasing and that uh clarifies the addressable space
+that uh clarifies the addressable space moment by moment for the for the player
+moment by moment for the for the player one of the reasons why we do it
+one of the reasons why we do it so we we realized that open structure or
+so we we realized that open structure or no we still needed to clarify like a
+no we still needed to clarify like a useful range of actions for the player
+useful range of actions for the player and these are the ones we picked they're
+and these are the ones we picked they're basically what you would find in an
+basically what you would find in an adventure game of the sort of
+adventure game of the sort of point-and-click variety
+point-and-click variety uh and they're solving the same problem
+uh and they're solving the same problem that they do in those in those old
+that they do in those in those old adventure games so the idea was at any
+adventure games so the idea was at any time a player would be able to
+time a player would be able to do any one of these nine things
+do any one of these nine things and there would be a list of about 50
+and there would be a list of about 50 targets in the in the game people and
+targets in the in the game people and objects and stuff that you would be able
+objects and stuff that you would be able to do these things too
+so the ramifications of that
+the ramifications of that bring us to the next step in our uh
+bring us to the next step in our uh awesome uh travel uh paradigm uh let's
+awesome uh travel uh paradigm uh let's talk about language for a second so how
+talk about language for a second so how many
+many in the room know when i'm when i'm
+in the room know when i'm when i'm talking about voice recognition what i
+talking about voice recognition what i mean by the phrase language model
+mean by the phrase language model anybody encountered that
+anybody encountered that okay not too many so we'll explain uh so
+okay not too many so we'll explain uh so this is this is actually kind of a big
+this is this is actually kind of a big focus of the talk because it's it's
+focus of the talk because it's it's totally unique to voice recognition
+totally unique to voice recognition medium
+medium and even if you aren't the one putting
+and even if you aren't the one putting it together it will affect your life it
+it together it will affect your life it affects everyone's life so the idea is
+affects everyone's life so the idea is there is this voodoo black box that
+there is this voodoo black box that exists between the player and the story
+exists between the player and the story and when you're when you're playing one
+and when you're when you're playing one of these things you say something
+of these things you say something and then that thing that you have said
+and then that thing that you have said gets uh digitized into a waveform and it
+gets uh digitized into a waveform and it gets sent off over the internet to
+gets sent off over the internet to amazon or google or whoever it is that's
+amazon or google or whoever it is that's doing your your voice recognition and
+doing your your voice recognition and then you what you get back from that is
+then you what you get back from that is two things you get an utterance which is
+two things you get an utterance which is its best guess at the actual words that
+its best guess at the actual words that god said
+god said and then you get what's called an intent
+and then you get what's called an intent which is the important thing for you
+which is the important thing for you it's a tokenized meaning uh
+it's a tokenized meaning uh so it's it's and you help define this
+so it's it's and you help define this it's basically
+it's basically in the in the space that you need it to
+in the in the space that you need it to be in for your uh your particular skill
+be in for your uh your particular skill and you need it distilled down like this
+and you need it distilled down like this to make your life possible you don't
+to make your life possible you don't want to be messing around with
+want to be messing around with processing the natural language that's
+processing the natural language that's an ai hard problem leave it to the
+an ai hard problem leave it to the professionals don't try and do it
+professionals don't try and do it but you do have to help this black box
+but you do have to help this black box out a little bit because it's not magic
+out a little bit because it's not magic it's technology and what you do is you
+it's technology and what you do is you provide it some sample phrases and you
+provide it some sample phrases and you group them into intents and label them
+group them into intents and label them according to your own your own intent
+according to your own your own intent names a sort of a a rough guide for uh
+names a sort of a a rough guide for uh the black box uh for how it's going to
+the black box uh for how it's going to interpret meaning in your story
+interpret meaning in your story so this example is actually is all about
+so this example is actually is all about just wanting to know what the
+just wanting to know what the temperature is outside
+temperature is outside there i've given it some phrases here
+there i've given it some phrases here that address different things there's
+that address different things there's one that doesn't mention the hot or cold
+one that doesn't mention the hot or cold at all it's just about wearing a coat
+at all it's just about wearing a coat notice that i will get now into a little
+notice that i will get now into a little parser problem my own here there's no
+parser problem my own here there's no way i'm going to be able to enumerate
+way i'm going to be able to enumerate every possible way in the english
+every possible way in the english language that you can say something
+language that you can say something that indicates an interest in in what
+that indicates an interest in in what the temperature is outside
+the temperature is outside fortunately alexa when you send this off
+fortunately alexa when you send this off to to build the language model will
+to to build the language model will happily expand on the examples
+happily expand on the examples uh that's good it does it invisibly
+uh that's good it does it invisibly which is less good so you sort of don't
+which is less good so you sort of don't know what's going on there
+know what's going on there so the good news is it will recognize
+so the good news is it will recognize things that you didn't think of which is
+things that you didn't think of which is great
+great the bad news is it will recognize things
+the bad news is it will recognize things that you didn't think of and so you'll
+that you didn't think of and so you'll get some some false positives in there
+get some some false positives in there which is another reason why we try to be
+which is another reason why we try to be very specific about what our users
+very specific about what our users should say
+should say so coming back to this jack ryan thing
+so coming back to this jack ryan thing now we've got these nine uh actions and
+now we've got these nine uh actions and about 50 objects
+about 50 objects and you multiply those together it's
+and you multiply those together it's about 450 intense we we tend to have a
+about 450 intense we we tend to have a lot of intents in our skills maybe 100
+lot of intents in our skills maybe 100 or so but this is already on the way to
+or so but this is already on the way to crazy crazytown
+crazy crazytown fortunately there is a
+fortunately there is a a feature that's supported by a lot of
+a feature that's supported by a lot of these things
+these things that you can use to ameliorate that
+that you can use to ameliorate that amazon calls it slots we call it
+amazon calls it slots we call it entities internally
+entities internally the basic idea is that it's going to
+the basic idea is that it's going to allow the machines to do more of the
+allow the machines to do more of the heavy lifting around all those intense
+heavy lifting around all those intense and that nine times 50.
+and that nine times 50. so the way it works is instead of having
+so the way it works is instead of having a separate intent for examining the
+a separate intent for examining the drawer and examining the cabinet
+drawer and examining the cabinet examining the padlock and specifying
+examining the padlock and specifying those all
+those all individually you just have a one way of
+individually you just have a one way of saying okay i want to examine a thing so
+saying okay i want to examine a thing so that utterance that thing will have
+that utterance that thing will have examine the object look at the object in
+examine the object look at the object in different ways that you might phrase
+different ways that you might phrase that
+that and but you leave a placeholder in for
+and but you leave a placeholder in for the object and then elsewhere
+the object and then elsewhere you define that list of what can go in
+you define that list of what can go in there and that's that's your 50 objects
+there and that's that's your 50 objects and each of those can have its own
+and each of those can have its own little set of utterances that that
+little set of utterances that that define it and then the computer does all
+define it and then the computer does all the hard work of meshing those together
+the hard work of meshing those together and then when you when you use it what
+and then when you when you use it what you get back is both the name of the
+you get back is both the name of the intent i want to examine something and
+intent i want to examine something and also the target of that intent i want to
+also the target of that intent i want to i want to examine the desk so that takes
+i want to examine the desk so that takes your 9 times 50 and makes it into 9 plus
+your 9 times 50 and makes it into 9 plus 50 which is much more manageable now we
+50 which is much more manageable now we hadn't uh used this much so
+hadn't uh used this much so i built a little uh test case prototype
+i built a little uh test case prototype out of the first scene and i threw some
+out of the first scene and i threw some some inputs at it that were
+some inputs at it that were designed to be as confusing as possible
+designed to be as confusing as possible i had some utterances in there that
+i had some utterances in there that differed only by one syllable and meant
+differed only by one syllable and meant different things i swapped words around
+different things i swapped words around intended for it to um still recognize
+intended for it to um still recognize that i used switch as both a verb and an
+that i used switch as both a verb and an object
+object it did really well i said none of that
+it did really well i said none of that stuff confused it actually i was very
+stuff confused it actually i was very impressed context helps it to to get the
+impressed context helps it to to get the right idea from these things
+right idea from these things so eventually we would get into trouble
+so eventually we would get into trouble with some of the built-in slot types
+with some of the built-in slot types that they have but that's later in the
+that they have but that's later in the talk for now i'll just give the general
+talk for now i'll just give the general advice that whether or not you're
+advice that whether or not you're expecting that language model to be
+expecting that language model to be problematic you should test it as early
+problematic you should test it as early as you can because it'll come up
+as you can because it'll come up and again don't forget about real world
+and again don't forget about real world situations if your office is like a nice
+situations if your office is like a nice quiet place try confusing the thing some
+quiet place try confusing the thing some some way
+some way challenge it
+so now that i've got my technical proof concept
+concept i started thinking about breaking down
+i started thinking about breaking down the actual story
+the actual story in our amazing travel travelogue
+in our amazing travel travelogue paradigm i'm gonna call it itinerary
+paradigm i'm gonna call it itinerary now the source material it's an escape
+now the source material it's an escape room it's it's more premise than story
+room it's it's more premise than story and the idea was you were cia agents and
+and the idea was you were cia agents and you were in the safe house run by the
+you were in the safe house run by the cia and for some reason it had these uh
+cia and for some reason it had these uh these echo devices all over it you
+these echo devices all over it you started in a small room and then you
+started in a small room and then you broke your way into a big room for
+broke your way into a big room for reasons that were not clear
+reasons that were not clear then you uh
+then you uh your handler calls you on the phone and
+your handler calls you on the phone and says you got to find this mcguffin it
+says you got to find this mcguffin it looks like this
+looks like this so you solve some crazy puzzles
+so you solve some crazy puzzles and then you find the mcguffin and then
+and then you find the mcguffin and then your handler immediately tells you you
+your handler immediately tells you you gotta find another one
+gotta find another one so you solve some more puzzles
+so you solve some more puzzles and then a cool thing happens your
+and then a cool thing happens your handler foxtrot is her name shows up in
+handler foxtrot is her name shows up in person and she takes the things from you
+person and she takes the things from you that you've found and then she kidnaps
+that you've found and then she kidnaps one of the people on the team and takes
+one of the people on the team and takes him away
+him away that's cool
+that's cool then everybody gets thrown into a death
+then everybody gets thrown into a death trap and then they escape and then
+trap and then they escape and then that's pretty much it it does there's no
+that's pretty much it it does there's no ending to this story you you don't find
+ending to this story you you don't find out what happens to your handler or the
+out what happens to your handler or the stuff she's stolen or anything and also
+stuff she's stolen or anything and also um
+um typical of of escape rooms there's a lot
+typical of of escape rooms there's a lot of uh ludonarrative dissonance in this
+of uh ludonarrative dissonance in this thing there are a lot of puzzles that
+thing there are a lot of puzzles that are built using thematically appropriate
+are built using thematically appropriate elements but which once you get them
+elements but which once you get them into puzzles and think about them they
+into puzzles and think about them they don't really make much sense in terms of
+don't really make much sense in terms of either story or character this bothers
+either story or character this bothers us we're a story story studio we want to
+us we're a story story studio we want to do a little a little more than that so
+do a little a little more than that so we most of that stuff got thrown out um
+we most of that stuff got thrown out um in an adaptation you want to keep
+in an adaptation you want to keep whatever works and is strong for us that
+whatever works and is strong for us that was this betrayal thing was the coolest
+was this betrayal thing was the coolest bit
+bit uh so we made that the middle of the
+uh so we made that the middle of the story and and now it has some uh some
+story and and now it has some uh some build up and some consequences we've
+build up and some consequences we've decided we'd have the team dynamic rise
+decided we'd have the team dynamic rise and fall a little bit and there was a
+and fall a little bit and there was a test of the kind of uh
+test of the kind of uh cohesiveness of the team after that
+cohesiveness of the team after that moment of betrayal uh
+moment of betrayal uh as after you've discovered that there is
+as after you've discovered that there is a mole on your team there's some sort of
+a mole on your team there's some sort of infighting and you're asked to take
+infighting and you're asked to take sides in it and um it's all good stuff
+sides in it and um it's all good stuff and then uh way down at the end we added
+and then uh way down at the end we added you get to try and catch the bad guy
+you get to try and catch the bad guy which seemed important somehow
+which seemed important somehow notice that most of this is now about
+notice that most of this is now about the team and the people on the team it's
+the team and the people on the team it's always a good thing for a story is to
+always a good thing for a story is to have people in the middle of it
+have people in the middle of it back to this idea of itinerary for a
+back to this idea of itinerary for a second on a trip
+second on a trip you want to go to some different places
+you want to go to some different places at your destination you have different
+at your destination you have different things to see and different things to
+things to see and different things to eat
+eat you go to spain you want to you go to
+you go to spain you want to you go to barcelona and you go to granada and
+barcelona and you go to granada and they're very different from each other
+they're very different from each other and that's good you want some variety
+and that's good you want some variety similarly in your story you want a
+similarly in your story you want a little variety and in tone and intention
+little variety and in tone and intention so when i get to the next step which
+so when i get to the next step which always for me is to do a broad outline
+always for me is to do a broad outline of the whole thing 10 000 feet just
+of the whole thing 10 000 feet just looking down
+looking down i decided this time to give each chapter
+i decided this time to give each chapter an inspirational tag just one word about
+an inspirational tag just one word about what it should feel like to be in that
+what it should feel like to be in that chapter
+chapter as a guide for making the pieces
+as a guide for making the pieces different in terms of what was the
+different in terms of what was the player activity
+player activity in there and where the where the tension
+in there and where the where the tension comes from escape rooms typically use
+comes from escape rooms typically use the giant timer on the wall taking down
+the giant timer on the wall taking down an hour
+an hour as as their main
+as as their main tension
+tension generator um we kept being pressured on
+generator um we kept being pressured on this project to include them literally
+this project to include them literally people were like well okay this sounds
+people were like well okay this sounds great but where's the timer uh we
+great but where's the timer uh we thought we could do a little better than
+thought we could do a little better than just having a number
+just having a number stories are good at tension and so are
+stories are good at tension and so are games
+games so let me get a little bit into the kind
+so let me get a little bit into the kind of breakdown of the different chapters
+of breakdown of the different chapters the first one was it had to be both the
+the first one was it had to be both the hook and the tutorial for the experience
+hook and the tutorial for the experience so it needed to be simple and needed to
+so it needed to be simple and needed to be short and need to be fast-paced and
+be short and need to be fast-paced and it needed to be exciting so
+it needed to be exciting so we decided to uh chuck the timer in that
+we decided to uh chuck the timer in that scene and replace it with something you
+scene and replace it with something you can't really use in an actual physical
+can't really use in an actual physical escape room which is a death trap we had
+escape room which is a death trap we had a room that was filling up with water
+a room that was filling up with water and a character who was in that water
+and a character who was in that water giving you
+giving you very frequent updates on how she was
+very frequent updates on how she was about to drown and uh you were basically
+about to drown and uh you were basically talking to her on the phone and trying
+talking to her on the phone and trying to talk her through a puzzle that was
+to talk her through a puzzle that was going to get her
+going to get her out
+out and so the water is getting higher and
+and so the water is getting higher and higher and time is running out you can
+higher and time is running out you can actually fail this scene um and she will
+actually fail this scene um and she will pretend to drown uh we want you to worry
+pretend to drown uh we want you to worry about uh the threats that we're making
+about uh the threats that we're making and take them seriously as both as a
+and take them seriously as both as a player and as a person invested in the
+player and as a person invested in the story so it's common for us to put
+story so it's common for us to put something in at the beginning that you
+something in at the beginning that you can fail and kind of have to start over
+can fail and kind of have to start over before you've invested too much time
+before you've invested too much time we refrain from actual death in this
+we refrain from actual death in this scene it's a little too early
+scene it's a little too early narratively speaking to be killing
+narratively speaking to be killing somebody else so this is actually it's a
+somebody else so this is actually it's a training exercise and they're all kind
+training exercise and they're all kind of just pretending to do their parts but
+of just pretending to do their parts but you can fail it and you have to you have
+you can fail it and you have to you have to start over and do the scene over
+to start over and do the scene over again until you get it right
+again until you get it right we also at this point we introduced the
+we also at this point we introduced the the idea of this bad guy kessel who was
+the idea of this bad guy kessel who was the the architect of the original
+the the architect of the original version of that trap that you're
+version of that trap that you're essentially training on um he's a
+essentially training on um he's a terrorist guy who not the um the guns
+terrorist guy who not the um the guns and and bombs uh authority but he's uh
+and and bombs uh authority but he's uh the guy who moves money around for for
+the guy who moves money around for for all the other terrorists he's um
+all the other terrorists he's um uh
+uh smart guy you know likes to challenge
+smart guy you know likes to challenge himself against you the allegedly
+himself against you the allegedly intelligent cia agents by trying to
+intelligent cia agents by trying to catch you in traps and also he's the
+catch you in traps and also he's the kind of person who when he leaves his
+kind of person who when he leaves his wi-fi password around on a post-it he'll
+wi-fi password around on a post-it he'll do it in code in some way that only he
+do it in code in some way that only he makes sense to him and and that you will
+makes sense to him and and that you will have to sort of puzzle out um this
+have to sort of puzzle out um this obviously is always is just a way to
+obviously is always is just a way to ground all of the crazy uh escape room
+ground all of the crazy uh escape room kinds of things you're gonna do uh in in
+kinds of things you're gonna do uh in in the story we wanted them to at least
+the story we wanted them to at least have an excuse for why they were there
+have an excuse for why they were there and so most of the most of the story
+and so most of the most of the story takes place essentially at his house
+takes place essentially at his house which is a crazy place his name by the
+which is a crazy place his name by the way was very poorly chosen uh that'll
+way was very poorly chosen uh that'll come later i'll explain why um so in the
+come later i'll explain why um so in the second chapter you and your team get
+second chapter you and your team get together and you go to berlin you go to
+together and you go to berlin you go to his uh his headquarters uh he has
+his uh his headquarters uh he has several but this one has just been
+several but this one has just been discovered by your your compatriots and
+discovered by your your compatriots and you're there you're doing exploration
+you're there you're doing exploration and puzzle solving this is the part of
+and puzzle solving this is the part of the story that feels the most like an
+the story that feels the most like an escape room uh there's codes and and and
+escape room uh there's codes and and and things like that
+things like that um you're you're uh you're discovering
+um you're you're uh you're discovering the secrets of the place um the the
+the secrets of the place um the the difference between this i think in a
+difference between this i think in a regular escape room is that
+regular escape room is that uh it you're you're more of a safe
+uh it you're you're more of a safe cracker and it's all about breaking into
+cracker and it's all about breaking into things rather than breaking out of
+things rather than breaking out of anything you're trying to get in on
+anything you're trying to get in on earth secrets it didn't make much sense
+earth secrets it didn't make much sense to put a timer on the scene at all so
+to put a timer on the scene at all so instead what we did was we put some
+instead what we did was we put some traps booby traps in the room and sort
+traps booby traps in the room and sort of made a lot of noise about those and
+of made a lot of noise about those and we we set one off pretty early in the
+we we set one off pretty early in the scene so that you would take that
+scene so that you would take that seriously
+seriously and then they they find out about that
+and then they they find out about that there's a mole on the team
+there's a mole on the team and uh and get worried about that and
+and uh and get worried about that and they start um start sniping at each
+they start um start sniping at each other and also at that point you find a
+other and also at that point you find a another small room
+another small room which is where these people keep all
+which is where these people keep all their records and so the the player
+their records and so the the player activity changes here it becomes more
+activity changes here it becomes more informational you're looking through
+informational you're looking through files and and uh finding stuff in
+files and and uh finding stuff in photographs and combining things
+photographs and combining things listening to audio recordings uh all
+listening to audio recordings uh all gathering evidence with this idea that
+gathering evidence with this idea that you're going to find out who the mole is
+you're going to find out who the mole is and it becomes increasingly
+and it becomes increasingly likely that it's somebody on your direct
+likely that it's somebody on your direct team
+team you find evidence
+you find evidence pointing to both of the people who are
+pointing to both of the people who are physically with you in the room they
+physically with you in the room they start getting upset with each other
+start getting upset with each other about this and they ask you to take
+about this and they ask you to take sides and that's where most of the
+sides and that's where most of the tension comes from in this scene
+tension comes from in this scene again there's no timer on on that scene
+again there's no timer on on that scene then uh foxtrot the handler who has been
+then uh foxtrot the handler who has been off-site until now shows up and betrays
+off-site until now shows up and betrays everybody and then knocks them all out
+everybody and then knocks them all out and then then you wake up and you're
+and then then you wake up and you're you're in an actual death trap and it
+you're in an actual death trap and it has an actual timer finally but we've
+has an actual timer finally but we've attached it to a bomb just to add a
+attached it to a bomb just to add a little extra oomph again something you
+little extra oomph again something you probably don't want to do in a real
+probably don't want to do in a real escape room but we're not in a real
+escape room but we're not in a real escape room
+escape room and what the player does in this scene
+and what the player does in this scene is a little bit adventure game you you
+is a little bit adventure game you you put together a thumbprint kit out of
+put together a thumbprint kit out of stuff that you find in the room you go
+stuff that you find in the room you go around you're just trying to find the
+around you're just trying to find the right thumbprint that'll let you unlock
+right thumbprint that'll let you unlock this phone that's going to let you stop
+this phone that's going to let you stop this bomb before it blows you up also
+this bomb before it blows you up also one of the one of the team members is
+one of the one of the team members is missing now and you're not sure if he's
+missing now and you're not sure if he's in league with the mole or what you
+in league with the mole or what you don't know why he's gone you don't think
+don't know why he's gone you don't think about that too much uh right away
+about that too much uh right away because there's a bomb ticking down but
+because there's a bomb ticking down but as soon as you as soon as you
+as soon as you as soon as you deactivate that bomb you get into the
+deactivate that bomb you get into the next room and you find him and now he's
+next room and you find him and now he's been
+been locked into one of these uh one of these
+locked into one of these uh one of these water traps
+water traps and it hasn't uh you recognize it
+and it hasn't uh you recognize it immediately from having trained on it at
+immediately from having trained on it at the beginning of the piece
+the beginning of the piece and you it hasn't been triggered yet and
+and you it hasn't been triggered yet and you know how it it gets uh it gets
+you know how it it gets uh it gets triggered if you uh if you turn off the
+triggered if you uh if you turn off the lights um
+lights um so there are it would be possible to
+so there are it would be possible to leave him behind and there are various
+leave him behind and there are various practical and emotional reasons to do
+practical and emotional reasons to do that for one you're still not really
+that for one you're still not really sure if he's on your side or not but
+sure if he's on your side or not but also practically speaking uh foxtrot is
+also practically speaking uh foxtrot is now getting away with the things that
+now getting away with the things that you've spent time finding
+you've spent time finding and uh
+and uh you have to make a call as to whether
+you have to make a call as to whether you want to spend the time to try and
+you want to spend the time to try and get him out of there and take him with
+get him out of there and take him with you and it's kind of a
+you and it's kind of a either way it makes sense
+either way it makes sense uh the trap turns out to have some
+uh the trap turns out to have some twists so that your original solutions
+twists so that your original solutions don't quite work makes it sort of a trap
+don't quite work makes it sort of a trap revisit
+revisit and both of these things also they have
+and both of these things also they have time limits on them so you can fail them
+time limits on them so you can fail them if you fail the the bomb again no one is
+if you fail the the bomb again no one is killed by that but it does destroy all
+killed by that but it does destroy all of the evidence that you were hoping to
+of the evidence that you were hoping to take home so you'll take it on the chin
+take home so you'll take it on the chin from your supervisor if you let it go
+from your supervisor if you let it go off uh and if you let the
+off uh and if you let the water trap fill up all the way then the
+water trap fill up all the way then the guy in it does die and you will also
+guy in it does die and you will also take take it on the chin from your
+take take it on the chin from your supervisor for that doesn't like it when
+supervisor for that doesn't like it when you fail stuff then the final final
+you fail stuff then the final final chapter is more of a chase and and
+chapter is more of a chase and and foxtrot is getting away on an airplane
+foxtrot is getting away on an airplane and you find her car and you're kind of
+and you find her car and you're kind of sifting through it the puzzles are
+sifting through it the puzzles are informational again but but on a timer
+informational again but but on a timer this time
+this time and you're just trying to find out like
+and you're just trying to find out like where she's going what flight she's
+where she's going what flight she's going to be on what name she's going to
+going to be on what name she's going to be traveling under so that you can
+be traveling under so that you can locate her and stop her and since uh
+locate her and stop her and since uh since there is a limited amount of times
+since there is a limited amount of times before the flight takes off you can fail
+before the flight takes off you can fail this scene too
+this scene too it doesn't uh
+it doesn't uh ruin everything but it does mean that
+ruin everything but it does mean that you don't catch her and
+you don't catch her and this guy gives you gives you a hard time
+this guy gives you gives you a hard time about it
+about it he does your performance review at the
+he does your performance review at the end we i think there's about nine or ten
+end we i think there's about nine or ten different ones that you can get
+different ones that you can get depending on what you have screwed up
+depending on what you have screwed up and what you haven't
+and what you haven't so this is a guy from the show it's
+so this is a guy from the show it's james greer he's the director of the
+james greer he's the director of the whole
+whole tpad operation speaking of the show by
+tpad operation speaking of the show by the way we haven't seen it yet by this
+the way we haven't seen it yet by this point in the process we've gone pretty
+point in the process we've gone pretty far stay tuned
+far stay tuned so next step after that outline what we
+so next step after that outline what we always do is a detailed design and the
+always do is a detailed design and the idea there is we're going to break it
+idea there is we're going to break it down into what all of the individual
+down into what all of the individual interactions are going to be in the
+interactions are going to be in the whole piece and that's normally for us
+whole piece and that's normally for us is about engineering a lot of these
+is about engineering a lot of these moments of discrete choice
+moments of discrete choice for this project we're talking about
+for this project we're talking about sort of what are the objects in the in
+sort of what are the objects in the in the chapter what happens with you know
+the chapter what happens with you know when you interact with them how does
+when you interact with them how does that drive the drama and the and the
+that drive the drama and the and the story and how does it uh how does it
+story and how does it uh how does it resolve
+resolve it's basically adventure game design
+it's basically adventure game design which i fortunately know a lot about i
+which i fortunately know a lot about i usually work out the dynamics using uh
+usually work out the dynamics using uh traditional methods
+traditional methods and adventure game design is is kind of
+and adventure game design is is kind of a different talk entirely
+a different talk entirely one which i would need another hour
+one which i would need another hour or three to cover so uh i can't really
+or three to cover so uh i can't really do it justice here so instead let's talk
+do it justice here so instead let's talk about what happens when you do do
+about what happens when you do do adventure game design on an audio
+adventure game design on an audio platform there's one thing in particular
+platform there's one thing in particular that comes up here that doesn't come up
+that comes up here that doesn't come up elsewhere
+elsewhere has to do with memory now normally in a
+has to do with memory now normally in a game when you need to interact with a
+game when you need to interact with a whole bunch of stuff
+whole bunch of stuff you have a handy persistent visual like
+you have a handy persistent visual like this to remind you of what all that
+this to remind you of what all that stuff is it's just a there's a lot of
+stuff is it's just a there's a lot of things to remember
+things to remember but on a on an audio platform
+but on a on an audio platform you got nothing
+you got nothing and we run very quickly up against the
+and we run very quickly up against the limits of human short-term memory and
+limits of human short-term memory and let's
+let's don't take my word for it let's try it
+don't take my word for it let's try it um
+um so imagine you're playing my game now
+so imagine you're playing my game now and you're standing outside the lair of
+and you're standing outside the lair of a known terrorist and you speak a code
+a known terrorist and you speak a code phrase to get in and
+phrase to get in and the door opens you go in and one of the
+the door opens you go in and one of the guys on your team starts describing the
+guys on your team starts describing the room to you and he says oh there's a
+room to you and he says oh there's a there's a desk here it's kind of a cool
+there's a desk here it's kind of a cool looking old antique one i think probably
+looking old antique one i think probably uh probably bought at auction
+uh probably bought at auction there's uh some some old rusty old
+there's uh some some old rusty old lockers kind of very industrial bolted
+lockers kind of very industrial bolted to the wall over there they don't really
+to the wall over there they don't really match anything in here
+match anything in here there's a nice looking map on the wall
+there's a nice looking map on the wall it's framed and oh the frame has hinges
+it's framed and oh the frame has hinges that's very interesting
+that's very interesting right next to that there's a cheap
+right next to that there's a cheap poster it's a periodic table of the
+poster it's a periodic table of the elements there's also a an old crt
+elements there's also a an old crt monitor it's going to be 15 years old at
+monitor it's going to be 15 years old at least
+least and on the on the floor there's a rug
+and on the on the floor there's a rug which is maybe the most garish thing
+which is maybe the most garish thing you've ever seen in your life it's all
+you've ever seen in your life it's all primary colors clashes with everything
+primary colors clashes with everything well let's start at the beginning you
+well let's start at the beginning you say let's look at that desk
+say let's look at that desk okay well looks like somebody's been
+okay well looks like somebody's been doing some work here he's got a notebook
+doing some work here he's got a notebook and
+and it's open and there's a paperweight
+it's open and there's a paperweight that's holding it open little glass one
+that's holding it open little glass one kind of nice
+kind of nice there's a bottle of something he may
+there's a bottle of something he may have been may have been drinking here
+have been may have been drinking here and also the desk has a drawer and that
+and also the desk has a drawer and that drawer is currently closed oh well we
+drawer is currently closed oh well we can't have that you say let's open the
+can't have that you say let's open the open the door i want to i want to see
+open the door i want to i want to see everything
+everything so the drawer is is stuck it doesn't
+so the drawer is is stuck it doesn't appear to be a lock on it of any sort it
+appear to be a lock on it of any sort it may just be stuck and one of your when
+may just be stuck and one of your when your
+your team members is carrying a knife and she
+team members is carrying a knife and she offers to jimmy that drawer open for you
+offers to jimmy that drawer open for you yes please do that you say and then a
+yes please do that you say and then a booby trap goes off kaboom she's uh
+booby trap goes off kaboom she's uh she's injured and there's a little uh
+she's injured and there's a little uh sequence where you have to kind of patch
+sequence where you have to kind of patch her back up again at the end of that
+her back up again at the end of that sequence she's like all right i'm ready
+sequence she's like all right i'm ready for action what next
+for action what next now
+now possibly you do have a very concrete
+possibly you do have a very concrete idea of what you want to do next but
+idea of what you want to do next but likely you have also forgotten at least
+likely you have also forgotten at least half and possibly three quarters of the
+half and possibly three quarters of the objects that have been mentioned so far
+objects that have been mentioned so far and that problem only gets worse as you
+and that problem only gets worse as you go
+go further into the into this game which i
+further into the into this game which i said is going to take more than an hour
+said is going to take more than an hour to complete
+to complete now normally we don't have this problem
+now normally we don't have this problem because we've been orchestrating the
+because we've been orchestrating the context so that you don't have to
+context so that you don't have to remember more than three things ever
+remember more than three things ever but because this is a broad and
+but because this is a broad and exploratory experience we have to take
+exploratory experience we have to take measures to aid the memory
+measures to aid the memory our k-series is kind of extreme but the
+our k-series is kind of extreme but the lesson still applies pretty much
+lesson still applies pretty much everywhere memory is a problem in an
+everywhere memory is a problem in an audio medium because you just don't have
+audio medium because you just don't have those persistent visuals reminding you
+those persistent visuals reminding you of anything at all so as a general
+of anything at all so as a general writing note you should be repeating the
+writing note you should be repeating the important information more often than
+important information more often than you think you should again make it stand
+you think you should again make it stand a little bit stilted if you have to
+a little bit stilted if you have to because realism is not the goal here
+because realism is not the goal here it's it's sort of game functionality
+it's it's sort of game functionality in our case we could
+in our case we could implement a simple list of available
+implement a simple list of available objects on demand and we did do that
+objects on demand and we did do that however
+however it's a little bit unsatisfying it's the
+it's a little bit unsatisfying it's the list gets long
+list gets long and it's hard to process while you're
+and it's hard to process while you're listening to it if there are 12 or 13
+listening to it if there are 12 or 13 things
+things and it takes you right out of the
+and it takes you right out of the fantasy to have somebody just listing
+fantasy to have somebody just listing off the objects in the room so one of
+off the objects in the room so one of the better and more effective things
+the better and more effective things that we did was to contextualize that
+that we did was to contextualize that information
+information we wrote a bunch of status reports
+we wrote a bunch of status reports and that was just a thing that you could
+and that was just a thing that you could ask a character for it give me give me a
+ask a character for it give me give me a status report
+status report and
+and instead of just listing everything for
+instead of just listing everything for you here's all of the context that you
+you here's all of the context that you have encountered so far it would sort of
+have encountered so far it would sort of take that into account what have you
+take that into account what have you finished with what have you not started
+finished with what have you not started and what what maybe have you been
+and what what maybe have you been working on recently and so it would
+working on recently and so it would focus on only the
+focus on only the things that would be interesting to you
+things that would be interesting to you right at this moment and this is part of
+right at this moment and this is part of how we're directing the experience that
+how we're directing the experience that no one can see is by kind of focusing
+no one can see is by kind of focusing the player attention with these things
+the player attention with these things you can also do a lot of redirection
+you can also do a lot of redirection with uh
+with uh the responses to
+the responses to other player actions it's kind of like
+other player actions it's kind of like doing hints when you do hints in an
+doing hints when you do hints in an adventure game you sort of if if someone
+adventure game you sort of if if someone interacts with an object and they do the
+interacts with an object and they do the wrong thing you sort of hint them
+wrong thing you sort of hint them towards doing the right thing and if
+towards doing the right thing and if they do the right thing then you sort of
+they do the right thing then you sort of hint them to what's the next interesting
+hint them to what's the next interesting thing um
+thing um that all that stuff can be used uh to
+that all that stuff can be used uh to hint at drama as well and kind of direct
+hint at drama as well and kind of direct this direct the story experience
+this direct the story experience uh these status reports are doubly
+uh these status reports are doubly useful remember that we had this
+useful remember that we had this constraint of limited time you had to
+constraint of limited time you had to answer quickly or the skill was going to
+answer quickly or the skill was going to drop well it turns out
+drop well it turns out when you're solving puzzles of the
+when you're solving puzzles of the escape room variety this is sort of
+escape room variety this is sort of inevitable that you're going to have to
+inevitable that you're going to have to stop paying attention for the skill for
+stop paying attention for the skill for a while and write something down on a
+a while and write something down on a piece of paper and either you will pause
+piece of paper and either you will pause it or it will drop out of its own accord
+it or it will drop out of its own accord but either way you're going to have to
+but either way you're going to have to start it up again and so we needed a way
+start it up again and so we needed a way when someone was starting the story back
+when someone was starting the story back up again whether it had been one minute
+up again whether it had been one minute or five minutes or they had gone to work
+or five minutes or they had gone to work and dinner and come back after 12 hours
+and dinner and come back after 12 hours a good way to just sort of jump them
+a good way to just sort of jump them back into the story and sort of remind
+back into the story and sort of remind them what they needed to be thinking
+them what they needed to be thinking about and these status reports were
+about and these status reports were perfect for that so anytime you did
+perfect for that so anytime you did start the skill from from nothing if you
+start the skill from from nothing if you had a bookmark in the middle of the
+had a bookmark in the middle of the story we would throw one of these at you
+story we would throw one of these at you super good so now ordinarily after i get
+super good so now ordinarily after i get that detailed design all done what i
+that detailed design all done what i like to do is start the implementation
+like to do is start the implementation and create a skeleton upon which i can
+and create a skeleton upon which i can then write all the dialogue i leave the
+then write all the dialogue i leave the dialog right until the very last if i
+dialog right until the very last if i can
+can however i don't always get to do that in
+however i don't always get to do that in this case we had a
+this case we had a script approval in the contract and our
+script approval in the contract and our partners needed a fair amount of time to
+partners needed a fair amount of time to to get that turned around there's a
+to get that turned around there's a whole chain of custody that goes from
+whole chain of custody that goes from you to the producer it takes a while to
+you to the producer it takes a while to get to the actual uh filmmakers or
+get to the actual uh filmmakers or tv people
+tv people to read it so the script got written on
+to read it so the script got written on paper first um
+paper first um this probably happens i'd say about half
+this probably happens i'd say about half the time we wind up having to do this
+the time we wind up having to do this just the
+just the productions being what they are
+productions being what they are the script incidentally is about 160
+the script incidentally is about 160 pages including a bunch of pseudocode in
+pages including a bunch of pseudocode in it to explain how the different pieces
+it to explain how the different pieces fit together because it's not entirely
+fit together because it's not entirely clear
+clear because this is a non-linear sort of
+because this is a non-linear sort of sort of a thing
+sort of a thing also incidentally
+also incidentally right there at the end of the script
+right there at the end of the script writing process is when i finally got to
+writing process is when i finally got to read some of the scripts from the show
+read some of the scripts from the show and actually see the show
+and actually see the show um time for a little sidebar about
+um time for a little sidebar about studio security in hollywood which is
+studio security in hollywood which is fun and interesting i want to preface
+fun and interesting i want to preface this part by saying that our our
+this part by saying that our our partners have been fantastic about this
+partners have been fantastic about this stuff they've always been really helpful
+stuff they've always been really helpful and pleasant uh i've had good
+and pleasant uh i've had good experiences with them this project was
+experiences with them this project was no exception uh amazon studios was
+no exception uh amazon studios was really good to us and i i would work
+really good to us and i i would work with them again in a minute um what you
+with them again in a minute um what you run up against though are processes that
+run up against though are processes that are not designed for you um the
+are not designed for you um the processes for working with anyone
+processes for working with anyone outside of the studio are mostly for
+outside of the studio are mostly for people who are doing things like making
+people who are doing things like making action figures and lunch boxes and those
+action figures and lunch boxes and those people
+people don't need the kind of access or
+don't need the kind of access or feedback or level of detail that you do
+feedback or level of detail that you do when you're trying to write a
+when you're trying to write a complimentary piece of fiction
+complimentary piece of fiction on top of that everybody is super
+on top of that everybody is super worried about leaks and you cannot blame
+worried about leaks and you cannot blame them for that if there's recent history
+them for that if there's recent history has has worn out a few things and if
+has has worn out a few things and if your show winds up on the internet
+your show winds up on the internet before it winds up on your own streaming
+before it winds up on your own streaming service that's really bad
+service that's really bad so consequently as a partner even one
+so consequently as a partner even one under nondisclosure it can be pretty
+under nondisclosure it can be pretty hard to get hold of a script
+hard to get hold of a script now this jack ryan project was actually
+now this jack ryan project was actually pretty smooth they were they were
+pretty smooth they were they were willing to let me have stuff but what
+willing to let me have stuff but what they didn't trust was the internet and
+they didn't trust was the internet and the mail so they weren't going to send
+the mail so they weren't going to send me anything remotely i had to go and
+me anything remotely i had to go and meet with an actual person and she would
+meet with an actual person and she would screen the show for me and then she
+screen the show for me and then she actually handed me a pile of scripts at
+actually handed me a pile of scripts at that time that i could take home and use
+that time that i could take home and use as reference the reason that it took
+as reference the reason that it took this long is that we were all really
+this long is that we were all really busy and our offices were 400 miles
+busy and our offices were 400 miles apart i'm not in l.a so
+apart i'm not in l.a so it just took a little while to to get
+it just took a little while to to get things going i've definitely had worse
+things going i've definitely had worse in fact let me let me explain about one
+in fact let me let me explain about one time when i had worse uh one time i had
+time when i had worse uh one time i had to fly to los angeles and i they took me
+to fly to los angeles and i they took me up to a weirdly deserted floor at the
+up to a weirdly deserted floor at the top of a tall building and somebody
+top of a tall building and somebody brought me the script
+brought me the script and he took the little pin out of the
+and he took the little pin out of the script so that i could move pages
+script so that i could move pages individually and he brought me a notepad
+individually and he brought me a notepad for taking notes on and a special red
+for taking notes on and a special red pen for taking notes with
+pen for taking notes with and then i sat there with the script for
+and then i sat there with the script for a couple of hours and then they came and
+a couple of hours and then they came and they took everything away and they
+they took everything away and they scanned my notes
+scanned my notes they did not just hand me a thumb drive
+they did not just hand me a thumb drive or anything no i had to fly back home
+or anything no i had to fly back home and then they sent me the notes a few
+and then they sent me the notes a few days later inside of a secure app that i
+days later inside of a secure app that i had to put on my laptop and i had to go
+had to put on my laptop and i had to go through a vetting process to get a login
+through a vetting process to get a login for that app and the notes of course
+for that app and the notes of course couldn't be exported from that app in
+couldn't be exported from that app in any way you had to view them only in the
+any way you had to view them only in the app
+app they were encoded and then there was a
+they were encoded and then there was a second app that i had to install on my
+second app that i had to install on my phone to do a numerical two-factor
+phone to do a numerical two-factor authentication every time i entered the
+authentication every time i entered the password
+password which was about every 10 minutes unless
+which was about every 10 minutes unless i kept tapping the window which of
+i kept tapping the window which of course i didn't because i was trying to
+course i didn't because i was trying to work and i just wanted to have the notes
+work and i just wanted to have the notes up there on the screen next to me so it
+up there on the screen next to me so it was like having the notes inside of a
+was like having the notes inside of a safe when the door kept kept closing on
+safe when the door kept kept closing on me
+me that project turned out fine too it's
+that project turned out fine too it's just
+just a little bit inconvenient i just want to
+a little bit inconvenient i just want to let you know what you might run up
+let you know what you might run up against
+against anyway 160 pages of script later we got
+anyway 160 pages of script later we got it sent off for approvals and now i
+it sent off for approvals and now i think i can finally do the
+think i can finally do the implementation yay i like that part um
+implementation yay i like that part um some people do use code for this
+some people do use code for this we have a tool that
+we have a tool that lets you draw little boxes and put stuff
+lets you draw little boxes and put stuff in it
+in it and connect them to create the structure
+and connect them to create the structure um this isn't it by the way this is a
+um this isn't it by the way this is a physio drawing i was asked not to show
+physio drawing i was asked not to show an actual screenshot of our tool some
+an actual screenshot of our tool some kind of a trade secret or something so i
+kind of a trade secret or something so i took that out
+took that out um but it basically it looks kind of
+um but it basically it looks kind of like this and it lets you
+like this and it lets you make little boxes that have the the
+make little boxes that have the the dialogue for each each piece and your
+dialogue for each each piece and your audio is going to get plopped on there
+audio is going to get plopped on there and then there are different kinds of
+and then there are different kinds of transitions that connect them some of
+transitions that connect them some of them are direct and some of them are
+them are direct and some of them are like you're checking conditionally some
+like you're checking conditionally some things that may have been done
+things that may have been done previously in the skill or you can check
+previously in the skill or you can check the date even or something like that and
+the date even or something like that and just go to one of the different set of
+just go to one of the different set of destinations based on that and then
+destinations based on that and then sometimes you can make it stop and
+sometimes you can make it stop and listen for some input from the from the
+listen for some input from the from the player and go different places based on
+player and go different places based on that so it's good to to get a working
+that so it's good to to get a working version up as soon as you can like i
+version up as soon as you can like i said i like to do it even before i write
+said i like to do it even before i write the dialogue as possible and the reason
+the dialogue as possible and the reason for that
+for that is is you wanna you wanna test this
+is is you wanna you wanna test this stuff you wanna get it in front of some
+stuff you wanna get it in front of some people who you don't know and who don't
+people who you don't know and who don't know your skill and who don't know what
+know your skill and who don't know what it's supposed to be
+it's supposed to be and that way you can test all your
+and that way you can test all your assumptions and and fix some problems
+assumptions and and fix some problems uh the more more complicated your piece
+uh the more more complicated your piece is the more important this is
+is the more important this is uh
+uh you start with a text-to-speech voice or
+you start with a text-to-speech voice or you can even do uh sometimes we'll do a
+you can even do uh sometimes we'll do a scratch
+scratch version just me sitting at the desk like
+version just me sitting at the desk like speaking of a microphone before you
+speaking of a microphone before you spend the money to record actual actors
+spend the money to record actual actors because that is by far the most
+because that is by far the most expensive thing that you will do
+expensive thing that you will do in the whole process you want to fix fix
+in the whole process you want to fix fix stuff before then so speaking of fixing
+stuff before then so speaking of fixing problems let's talk about some stuff
+problems let's talk about some stuff that came up because it's always it's
+that came up because it's always it's fun to hear about other people's
+fun to hear about other people's misfortunes isn't it
+misfortunes isn't it uh this is the first full test of the
+uh this is the first full test of the language model and there's always some
+language model and there's always some things that come up with that
+things that come up with that we just we try to be careful with the
+we just we try to be careful with the writing but it's sort of not possible to
+writing but it's sort of not possible to avoid
+avoid uh everything
+uh everything things like door and and drawer like
+things like door and and drawer like we've got two objects in our list that
+we've got two objects in our list that sound very much like each other easy to
+sound very much like each other easy to confuse this tends to work out though
+confuse this tends to work out though okay because the door and the drawer in
+okay because the door and the drawer in different parts of the story there
+different parts of the story there aren't any times when both of them are
+aren't any times when both of them are both available and interesting so we can
+both available and interesting so we can combine them essentially and assume that
+combine them essentially and assume that the player is referring to whichever one
+the player is referring to whichever one of them matters right now there's two
+of them matters right now there's two ways to do that we can either do it on
+ways to do that we can either do it on that structure that i just showed you
+that structure that i just showed you and we have an input for door and an
+and we have an input for door and an input for drawer and they both point to
+input for drawer and they both point to the same thing or you can literally
+the same thing or you can literally combine them as as part of the language
+combine them as as part of the language model just make them synonyms of each
+model just make them synonyms of each other and you'll just get one token back
+other and you'll just get one token back that's you know door drawer or something
+that's you know door drawer or something like that we had a few other things like
+like that we had a few other things like that in the skill
+that in the skill note in the notebook the table and the
+note in the notebook the table and the periodic table confusable under some
+periodic table confusable under some circumstances
+circumstances again they were in completely different
+again they were in completely different chapters so we just combined them
+chapters so we just combined them we we did have to change a padlock code
+we we did have to change a padlock code we learned by experience that eight is
+we learned by experience that eight is perhaps the hardest number to detect of
+perhaps the hardest number to detect of all of the numbers um it's it's a really
+all of the numbers um it's it's a really there's not much there with a natives
+there's not much there with a natives it's just like the short guttural bark
+it's just like the short guttural bark it's like a tiny tiny amount of sound so
+it's like a tiny tiny amount of sound so it's hard to compare that to anything
+it's hard to compare that to anything else that might be a tiny tiny amount of
+else that might be a tiny tiny amount of sound so we changed it to seven and this
+sound so we changed it to seven and this was a puzzle that was actually based on
+was a puzzle that was actually based on that periodic table uh so we're actually
+that periodic table uh so we're actually exchanging oxygen for nitrogen which
+exchanging oxygen for nitrogen which upon research
+upon research didn't make no sense at all it was fine
+didn't make no sense at all it was fine um okay remember this guy i said his
+um okay remember this guy i said his name was a bad choice
+name was a bad choice anybody want to guess why given what
+anybody want to guess why given what we've been talking about
+yeah so
+so there's a built-in required intent on
+there's a built-in required intent on alexa which by convention
+alexa which by convention ends the skill if there isn't anything
+ends the skill if there isn't anything hanging around to be cancelled which
+hanging around to be cancelled which there never is in our story and it's
+there never is in our story and it's what we call a universal intent which
+what we call a universal intent which means it's a valid at any point in the
+means it's a valid at any point in the skill uh so we can't do what we did with
+skill uh so we can't do what we did with the door in the drawer and make some
+the door in the drawer and make some kind of positional decision about which
+kind of positional decision about which one of those it is it's just gonna get
+one of those it is it's just gonna get confused and it's going to send a cancel
+confused and it's going to send a cancel intent and we're required at that point
+intent and we're required at that point to shut the skill down so this guy has
+to shut the skill down so this guy has thank goodness we tested that before we
+thank goodness we tested that before we went and recorded anybody expensive
+went and recorded anybody expensive saying his name he has a completely
+saying his name he has a completely different name in the skill now
+different name in the skill now never name anyone alexa either in case
+never name anyone alexa either in case you're wondering not
+you're wondering not not that we did that but yeah
+not that we did that but yeah there are some other built-in um intents
+there are some other built-in um intents stop is one of them and that obviously
+stop is one of them and that obviously does stop the skill
+does stop the skill we already knew never to include stop as
+we already knew never to include stop as a player choice it's just one of those
+a player choice it's just one of those things you avoid it comes up a lot
+things you avoid it comes up a lot actually when in a story
+actually when in a story stopping something to be one of your
+stopping something to be one of your options and we just avoid that can
+options and we just avoid that can the list of phrases that are listed that
+the list of phrases that are listed that are listened for for these built-in
+are listened for for these built-in intents
+intents is not public uh you don't know what
+is not public uh you don't know what what's in it but i can tell you now from
+what's in it but i can tell you now from personal experience that one of the
+personal experience that one of the synonyms for stop
+synonyms for stop is that turn off
+is that turn off so
+so unfortunately we had more than one
+unfortunately we had more than one puzzle that revolved around turning
+puzzle that revolved around turning something off so we couldn't really
+something off so we couldn't really engineer that out of the story at this
+engineer that out of the story at this point
+point fortunately we got lucky it doesn't
+fortunately we got lucky it doesn't really
+really cause trouble too often because if
+cause trouble too often because if there's context for it if you're turning
+there's context for it if you're turning off something
+off something the the language model is smart enough
+the the language model is smart enough to pick up on that and it'll send us a
+to pick up on that and it'll send us a turn off the thing intent instead of the
+turn off the thing intent instead of the turn off the skill intent and we don't
+turn off the skill intent and we don't stop
+stop where the trouble happens is if somebody
+where the trouble happens is if somebody is mumbling or turning away from the
+is mumbling or turning away from the microphone at exactly the wrong moment
+microphone at exactly the wrong moment uh
+uh that can take part of the speech and
+that can take part of the speech and make it sound
+make it sound muddy enough to be misinterpreted as
+muddy enough to be misinterpreted as background noise and then you lose it
+background noise and then you lose it and you just get the turn off and then
+and you just get the turn off and then it does ask you to turn the skill off
+it does ask you to turn the skill off and you have to do it or you will not
+and you have to do it or you will not pass certification
+pass certification exit is another built-in thing this is
+exit is another built-in thing this is like a hard reset that you can't even be
+like a hard reset that you can't even be nice about it with a stop we get to send
+nice about it with a stop we get to send a little message that says thanks for
+a little message that says thanks for playing with exit it just cuts it off
+playing with exit it just cuts it off instantly exit also has some hidden
+instantly exit also has some hidden synonyms
+synonyms among among which we discovered
+among among which we discovered was closed now
+was closed now what are the odds out of nine actions
+what are the odds out of nine actions we'd pick two that are hidden synonyms
+we'd pick two that are hidden synonyms for please stop the skill now
+for please stop the skill now it was here again because because the
+it was here again because because the players are providing some context about
+players are providing some context about what to close it usually doesn't get
+what to close it usually doesn't get confused but uh had i known in advance
+confused but uh had i known in advance about turn off and close i would have
+about turn off and close i would have tried to just design the thing around
+tried to just design the thing around them and i would advise you to do that
+them and i would advise you to do that too
+too one more thing about the language model
+one more thing about the language model i'm certainly talking about the language
+i'm certainly talking about the language model a lot aren't i um amazon has some
+model a lot aren't i um amazon has some great pre-made slot types for for
+great pre-made slot types for for recognizing things like numbers and the
+recognizing things like numbers and the names of cities and the names of
+names of cities and the names of countries things where there are a lot
+countries things where there are a lot of elements and potentially a lot of
+of elements and potentially a lot of ways to say them if you think about the
+ways to say them if you think about the numbers
+numbers you know 1017 isn't the only way you say
+you know 1017 isn't the only way you say that you might say 10 17 you might say
+that you might say 10 17 you might say 1017 especially if you're entering a
+1017 especially if you're entering a code on a keypad and every number has
+code on a keypad and every number has that same problem so
+that same problem so rather than actually build that thing
+rather than actually build that thing yourself and list out all of those
+yourself and list out all of those potential ways to say those things it's
+potential ways to say those things it's good to have something provided by
+good to have something provided by amazon that you can just use and i got
+amazon that you can just use and i got excited about the possibilities of these
+excited about the possibilities of these because they're all kind of good for uh
+because they're all kind of good for uh code based sort of puzzles
+code based sort of puzzles and i i used four or five of them in the
+and i i used four or five of them in the in the skill
+in the skill well one day we we discovered that um no
+well one day we we discovered that um no had stopped working for some reason you
+had stopped working for some reason you couldn't answer no to any question in
+couldn't answer no to any question in the skill including would you are you
+the skill including would you are you sure you want to start over
+sure you want to start over which is a good thing to be able to
+which is a good thing to be able to answer no to
+answer no to some investigation revealed that no was
+some investigation revealed that no was actually the word was getting returned
+actually the word was getting returned correctly but it was being flagged as a
+correctly but it was being flagged as a country
+country go figure um country was is a big intent
+go figure um country was is a big intent there's a lot in it and so it would
+there's a lot in it and so it would capture a lot of extraneous things that
+capture a lot of extraneous things that weren't listed somewhere else in the
+weren't listed somewhere else in the model so if like if the player just said
+model so if like if the player just said banana for some for some reason it would
+banana for some for some reason it would say well that sounds like a little like
+say well that sounds like a little like some of the countries in my model so i'm
+some of the countries in my model so i'm kind of i'm going to flag that as a
+kind of i'm going to flag that as a country it tries to tries to put
+country it tries to tries to put something into one of your boxes as much
+something into one of your boxes as much as it can and so that was one of the
+as it can and so that was one of the bigger boxes that we had so a lot of
+bigger boxes that we had so a lot of stuff went into it this was the only
+stuff went into it this was the only time though that something that was
+time though that something that was literally specified as part of another
+literally specified as part of another intent got trapped by that somehow
+intent got trapped by that somehow we cannot explain this we have no idea
+we cannot explain this we have no idea why that happened
+why that happened we don't know what's in the built-in
+we don't know what's in the built-in intents that's not public information
+intents that's not public information and again we don't really know what the
+and again we don't really know what the language model does with the data that
+language model does with the data that we give it up front it's voodoo it does
+we give it up front it's voodoo it does not explain itself and that's why you
+not explain itself and that's why you need to test it test it test it and then
+need to test it test it test it and then test it's more
+test it's more as it turns out there are not so many
+as it turns out there are not so many countries so we just took that built-in
+countries so we just took that built-in intent out and made our own and
+intent out and made our own and everything was fine
+everything was fine now here's probably our biggest problem
+that's nothing to do with the language model it's all us um
+model it's all us um once we got this thing in front of real
+once we got this thing in front of real people uh we realized we had not been
+people uh we realized we had not been nearly clear enough about this list of
+nearly clear enough about this list of actions and the fact that that was all
+actions and the fact that that was all all the useful things you could do and
+all the useful things you could do and people were being plagued by the parser
+people were being plagued by the parser problem which i mentioned earlier
+problem which i mentioned earlier they were trying to do all kinds of
+they were trying to do all kinds of stuff they were trying to chisel things
+stuff they were trying to chisel things and climb things and make a rope with
+and climb things and make a rope with their clothes and they were getting
+their clothes and they were getting frustrated and they were quitting the
+frustrated and they were quitting the skill and sending back bad reviews from
+skill and sending back bad reviews from the uh
+the uh the test bed fortunately this was not
+the test bed fortunately this was not live players this was test players
+live players this was test players uh so in retrospect our tutorial was was
+uh so in retrospect our tutorial was was not at all well designed in this one
+not at all well designed in this one respect of establishing that addressable
+respect of establishing that addressable space for the player
+space for the player so we we added some some extra guidance
+so we we added some some extra guidance from alexa here put some more some more
+from alexa here put some more some more comments from her in there including a
+comments from her in there including a lengthy lengthy monologue that comes up
+lengthy lengthy monologue that comes up front
+front before the story even starts that really
+before the story even starts that really just hits you over the head with like
+just hits you over the head with like i'm going to give you this list of
+i'm going to give you this list of things and that's what's useful and
+things and that's what's useful and nothing else so stick with that
+nothing else so stick with that the advice here is just be as
+the advice here is just be as heavy-handed as you can about describing
+heavy-handed as you can about describing that addressable space
+that addressable space it's not possible to overdo that and
+it's not possible to overdo that and it's super important to get that in the
+it's super important to get that in the player's mind
+player's mind we also we discovered as we always do
+we also we discovered as we always do i shouldn't point my head directly at
+i shouldn't point my head directly at this mic i don't think uh we discovered
+this mic i don't think uh we discovered as we always do that that uh a couple of
+as we always do that that uh a couple of the puzzles were too hard
+the puzzles were too hard that's we just expect that we just we
+that's we just expect that we just we just don't know which ones it's going to
+just don't know which ones it's going to be honestly until we get it in front of
+be honestly until we get it in front of people
+people and most mostly what we do for that is
+and most mostly what we do for that is we just wrote more hints uh the hints in
+we just wrote more hints uh the hints in this game were in fantasy you would just
+this game were in fantasy you would just call headquarters and they would sort of
+call headquarters and they would sort of contextually try and give you some
+contextually try and give you some advice on whatever you seem to be
+advice on whatever you seem to be working on so they're actually kind of
+working on so they're actually kind of fun to fun to hear
+fun to fun to hear now eventually
+now eventually you have to stop fixing stuff
+you have to stop fixing stuff because your recording date comes up on
+because your recording date comes up on the calendar it's some some minimal
+the calendar it's some some minimal number of days before the date you
+number of days before the date you actually have to ship you have you've
+actually have to ship you have you've pushed it as late as possible you've
+pushed it as late as possible you've pushed it a couple of days past that but
+pushed it a couple of days past that but eventually it comes up
+eventually it comes up so you got to do it and you may not be
+so you got to do it and you may not be doing recording you may be making a
+doing recording you may be making a skill where you want to do everything
+skill where you want to do everything with text-to-speech and you can do that
+with text-to-speech and you can do that some people do do that and it's cheaper
+some people do do that and it's cheaper and it's easier and you can fix it up
+and it's easier and you can fix it up right up right up to the last minute
+right up right up to the last minute without uh getting anybody in the studio
+without uh getting anybody in the studio but we feel that
+but we feel that good drama and good story need good
+good drama and good story need good actors it's just kind of a philosophy of
+actors it's just kind of a philosophy of ours so um that's cat cressida who is a
+ours so um that's cat cressida who is a good actor plays tango in the in the
+good actor plays tango in the in the story um now audio production is kind of
+story um now audio production is kind of a known quantity that you should be on
+a known quantity that you should be on another another track to really hear
+another another track to really hear about so i'm not going to get into it
+about so i'm not going to get into it too much
+too much but
+but i'll say this about the writing for it
+i'll say this about the writing for it um
+um this
+this is a non-linear kind of experience like
+is a non-linear kind of experience like i said it's broad and exploratory and
+i said it's broad and exploratory and you're recording these chapters full of
+you're recording these chapters full of audio for things
+audio for things and so
+and so you need to be aware of the potential
+you need to be aware of the potential differences
+differences in tension and tone between the
+in tension and tone between the different lines because they may be
+different lines because they may be playing next to each other really
+playing next to each other really crazily out of order so it's good to
+crazily out of order so it's good to think about that a lot
+think about that a lot kind of compress everything into a
+kind of compress everything into a smaller
+smaller range of tone and tension within a scene
+range of tone and tension within a scene and just kind of go for an overall tone
+and just kind of go for an overall tone and annotate them like crazy like this
+and annotate them like crazy like this is
+is tension level two and this is tension
+tension level two and this is tension level four and this is tension level six
+level four and this is tension level six so that way you can have like for
+so that way you can have like for example in the scene where the water is
+example in the scene where the water is filling up the room a real rise in what
+filling up the room a real rise in what you're getting back from the character
+you're getting back from the character who's who's in that trap about how dire
+who's who's in that trap about how dire things are and yet um still have it mesh
+things are and yet um still have it mesh with uh the the responses to your puzzle
+with uh the the responses to your puzzle actions that may be interleaved in there
+actions that may be interleaved in there anywhere some other stuff you might want
+anywhere some other stuff you might want to know about as a writer um
+to know about as a writer um on on alexa specifically you have a
+on on alexa specifically you have a time limit between your player
+time limit between your player interactions you're allowed four minutes
+interactions you're allowed four minutes of audio in between now four minutes is
+of audio in between now four minutes is a long time i'm going to tell you that
+a long time i'm going to tell you that is an eternity
+is an eternity writers in the room you really have to
+writers in the room you really have to keep the pace up for for interactive
+keep the pace up for for interactive audio if you go much over a minute
+audio if you go much over a minute between the player actions in one of
+between the player actions in one of these things it's even more important
+these things it's even more important than something where you have a visual
+than something where you have a visual if you go more more than a minute that
+if you go more more than a minute that better be a deliberately slow scene
+better be a deliberately slow scene and if you ever get to four minutes i'm
+and if you ever get to four minutes i'm coming over to your house and smack you
+coming over to your house and smack you on the head because it means you've
+on the head because it means you've forgotten that the player is the most
+forgotten that the player is the most important character in in your piece
+important character in in your piece just ignored
+just ignored them uh one of the limitations specific
+them uh one of the limitations specific to to alexis you get you only get five
+to to alexis you get you only get five audio files so if you're doing something
+audio files so if you're doing something complicated and you thought okay i'm
+complicated and you thought okay i'm gonna be clever and this character who
+gonna be clever and this character who may or may not be in this scene i'm just
+may or may not be in this scene i'm just gonna record their lines separately and
+gonna record their lines separately and have them in separate files and drop
+have them in separate files and drop them in
+them in in the places where they would go well
+in the places where they would go well you're going to get five different files
+you're going to get five different files pretty quickly and then it's just not
+pretty quickly and then it's just not going to work after that
+going to work after that it's very restricted if you're if you're
+it's very restricted if you're if you're doing anything complex also
+doing anything complex also gapless playback is not guaranteed um on
+gapless playback is not guaranteed um on most of these platforms and so uh
+most of these platforms and so uh again if you've got something sort of
+again if you've got something sort of going on in the background your scene is
+going on in the background your scene is in a diner and you've got you want noise
+in a diner and you've got you want noise in there plates clinking and stuff like
+in there plates clinking and stuff like that
+that you won't want to hear like these weird
+you won't want to hear like these weird silences in the middle of that so what
+silences in the middle of that so what you're going to wind up having to do
+you're going to wind up having to do is instead of
+is instead of piecing it out and playing several
+piecing it out and playing several different files back to back you have to
+different files back to back you have to make one big one you have to make a
+make one big one you have to make a whole bunch of different versions of it
+whole bunch of different versions of it to uh to take care of what are all the
+to uh to take care of what are all the conditions that might be possible going
+conditions that might be possible going into this particular moment
+into this particular moment uh i try to limit that to 32
+uh i try to limit that to 32 versions just to keep myself sane and to
+versions just to keep myself sane and to keep my uh sound designer from coming to
+keep my uh sound designer from coming to my house and doing mean things to me
+my house and doing mean things to me okay
+okay pretty good uh now that your audio is
+pretty good uh now that your audio is done you kind of plop it into the
+done you kind of plop it into the structure and uh
+structure and uh and then you're kind of ready to go once
+and then you're kind of ready to go once once that piece is done there's one last
+once that piece is done there's one last little formality you have to go through
+little formality you have to go through there's a certification process
+there's a certification process amazon's got to sign off before you can
+amazon's got to sign off before you can go live it's like going through customs
+go live it's like going through customs and a lot of the things that they will
+and a lot of the things that they will flag for you are functional things the
+flag for you are functional things the engineers will worry about
+engineers will worry about those but there are also some uh
+those but there are also some uh content policy guidelines that you
+content policy guidelines that you should just be aware of sex and violence
+should just be aware of sex and violence is a that's a typical thing i mean every
+is a that's a typical thing i mean every platform has that right don't they
+platform has that right don't they violence by the way includes unsettling
+violence by the way includes unsettling content unquote um there was a demo that
+content unquote um there was a demo that we made for a ghost story a couple of
+we made for a ghost story a couple of years ago that we think was perhaps the
+years ago that we think was perhaps the first skill to be rejected on that basis
+first skill to be rejected on that basis it was just a little bit too
+it was just a little bit too graphically grisly and and descriptive
+graphically grisly and and descriptive uh the ghost story was fine it was just
+uh the ghost story was fine it was just the demo that they wouldn't let on there
+the demo that they wouldn't let on there so watch out you're also you're not
+so watch out you're also you're not allowed to run ads and you're not
+allowed to run ads and you're not allowed to recommend other people's
+allowed to recommend other people's skills that just means amazon doesn't
+skills that just means amazon doesn't want you um getting in the way of their
+want you um getting in the way of their space of being a store you're not
+space of being a store you're not allowed to be a store there they do that
+allowed to be a store there they do that which is reasonable of them
+which is reasonable of them hate speech is explicitly prohibited i
+hate speech is explicitly prohibited i was a twitter please take notice i was
+was a twitter please take notice i was glad to see that in there um there are
+glad to see that in there um there are lots more you know maybe just uh look
+lots more you know maybe just uh look them up before you do anything
+them up before you do anything questionable
+questionable now uh jack ryan only failed
+now uh jack ryan only failed certification a couple of times and it
+certification a couple of times and it was largely on these these technical
+was largely on these these technical grounds they and they were really fast
+grounds they and they were really fast about it they got back to us
+about it they got back to us within uh
+within uh usually uh within a day and then we
+usually uh within a day and then we would fix stuff by nightfall and kind of
+would fix stuff by nightfall and kind of send it back and the whole process took
+send it back and the whole process took i think less than less than a week and
+i think less than less than a week and then we went live
+then we went live uh fortunately
+uh fortunately in time for the the launch of the show
+in time for the the launch of the show i'm happy to say
+i'm happy to say um
+um now we can do we can do dynamic content
+now we can do we can do dynamic content with our system so we continue to uh to
+with our system so we continue to uh to monitor and tweak things uh even after
+monitor and tweak things uh even after launch but basically that was it we have
+launch but basically that was it we have we have arrived at our destination
+we have arrived at our destination uh now
+uh now you you are gonna get momentarily uh an
+you you are gonna get momentarily uh an email i'm gonna
+email i'm gonna just uh remind you to fill out the
+just uh remind you to fill out the evaluations for the for this talk um the
+evaluations for the for this talk um the recommended uh excellent rating is is
+recommended uh excellent rating is is highlighted for you if you ever wanna
+highlighted for you if you ever wanna hear me speak again go ahead and give me
+hear me speak again go ahead and give me that and then we can move on to uh i
+that and then we can move on to uh i think we've got a few minutes for
+think we've got a few minutes for questions which is good
+questions which is good thank you
+thank you another
+another microphone somewhere
+uh i don't have a way to do that that would have been cool but it it is out in
+would have been cool but it it is out in public and it is free you can just uh
+public and it is free you can just uh ask amazon it's it's called uh
+ask amazon it's it's called uh jack ryan november morning and if you
+jack ryan november morning and if you just say open jack ryan to alexa then
+just say open jack ryan to alexa then she'll open it up for you
+she'll open it up for you i just wanted to
+i just wanted to thank you again for the talk but i
+thank you again for the talk but i wanted to ask um
+wanted to ask um do you use alexa
+do you use alexa like the voice to text or
+like the voice to text or text a voice
+text a voice do you use alexa's voice sometimes and
+do you use alexa's voice sometimes and what are your design considerations when
+what are your design considerations when you're choosing voice acting versus
+you're choosing voice acting versus alexa
+alexa uh well we generally treat alexa as
+uh well we generally treat alexa as sort of the host of an experience so
+sort of the host of an experience so she's always outside the fantasy uh just
+she's always outside the fantasy uh just kind of handling a little bit of maybe
+kind of handling a little bit of maybe tutorial stuff
+tutorial stuff uh kind of getting you ready or any kind
+uh kind of getting you ready or any kind of help messaging
+of help messaging that you want to ask for in the middle
+that you want to ask for in the middle of the skill
+of the skill and then everything else we try and keep
+and then everything else we try and keep in fantasy which which doesn't include
+in fantasy which which doesn't include alexa and even though in this thing the
+alexa and even though in this thing the um the escape room the original uh
+um the escape room the original uh inspirational material included alexa as
+inspirational material included alexa as as part of the of the story uh rapidly
+as part of the of the story uh rapidly became clear that we weren't actually
+became clear that we weren't actually going to be able to do that for various
+going to be able to do that for various reasons one some were functional because
+reasons one some were functional because we can't from within our skill access
+we can't from within our skill access any of alex's other abilities
+any of alex's other abilities which is the whole reason that she was
+which is the whole reason that she was in those rooms was to add things for you
+in those rooms was to add things for you and stuff like that so we would have had
+and stuff like that so we would have had to recreate all of that when you want to
+to recreate all of that when you want to and the other is uh that uh amazon is
+and the other is uh that uh amazon is understandably a little bit protective
+understandably a little bit protective about
+about what words you put into alexa's mouth
+what words you put into alexa's mouth and if you make her a character in the
+and if you make her a character in the story you got to portray her in a very
+story you got to portray her in a very particular way
+particular way and is there any reason you wouldn't
+and is there any reason you wouldn't just voice act everything that alexa had
+just voice act everything that alexa had done
+done uh like beginning tutorial middle parts
+uh like beginning tutorial middle parts right well i guess why would you
+right well i guess why would you use her versus everything
+use her versus everything as opposed to having a human sort of be
+as opposed to having a human sort of be the host sometimes we do have a human
+the host sometimes we do have a human host and usually it's me actually we
+host and usually it's me actually we have a few things where i um
+have a few things where i um come on give you a few a few pointers uh
+come on give you a few a few pointers uh the tricky bit about that is actually
+the tricky bit about that is actually just updating stuff like i said we can
+just updating stuff like i said we can we can update live after
+we can update live after after we're already out and if you
+after we're already out and if you decide oh we need to change this
+decide oh we need to change this messaging it's easier to do it with
+messaging it's easier to do it with text-to-speech than sending somebody
+text-to-speech than sending somebody into a studio now if it's me
+into a studio now if it's me you know that's not very expensive i'll
+you know that's not very expensive i'll just go and do it for free it's fine but
+just go and do it for free it's fine but uh
+uh if it's anybody else then then it's
+if it's anybody else then then it's trouble awesome
+yes uh great talk two-part question uh your 50 objects
+your 50 objects was that for each chapter or the whole
+was that for each chapter or the whole story and in hindsight was that too many
+story and in hindsight was that too many objects just enough or
+objects just enough or not enough
+not enough ah okay was okay so the 50 objects was
+ah okay was okay so the 50 objects was for the was for the whole story and
+for the was for the whole story and actually it's not even all objects um
+actually it's not even all objects um about six or eight of those things or
+about six or eight of those things or people and you use them in different
+people and you use them in different contexts there's one
+contexts there's one one of those actions was contact
+one of those actions was contact somebody so you're allowed to kind of
+somebody so you're allowed to kind of call headquarters or try and call your
+call headquarters or try and call your boss or um
+boss or um various other other people um yeah that
+various other other people um yeah that was that was actually plenty there was
+was that was actually plenty there was plenty of stuff to do you know kind of
+plenty of stuff to do you know kind of more than an hour worth of material and
+more than an hour worth of material and the
+the that second chapter actually feels very
+that second chapter actually feels very big even with the amount of stuff
+big even with the amount of stuff there's probably only about
+there's probably only about 15 or so things in there um yeah it's
+15 or so things in there um yeah it's pretty that was plenty i would i would
+pretty that was plenty i would i would hesitate to add any more than that
+uh your play's done a lot of choice-y stuff and now there's this sort of
+stuff and now there's this sort of parser-y text adventure uh do you all
+parser-y text adventure uh do you all feel like
+feel like oh yeah now we've discovered let's do
+oh yeah now we've discovered let's do let's do lots of parserie text
+let's do lots of parserie text adventures from now on do you feel like
+adventures from now on do you feel like oh man that was a fun experiment now
+oh man that was a fun experiment now we're going to go back and do choicey
+we're going to go back and do choicey stuff for the rest of time
+stuff for the rest of time okay so he's asking
+okay so he's asking is this now having done this is this
+is this now having done this is this going to change our paradigm and now
+going to change our paradigm and now we're going to do this all the time or
+we're going to do this all the time or are we going to go back and and and just
+are we going to go back and and and just do the kind of momentary choice based
+do the kind of momentary choice based stuff
+stuff the answer is neither of those is the
+the answer is neither of those is the case um
+case um this was a you know a
+this was a you know a highlighted some problems for us but we
+highlighted some problems for us but we figured out how to deal with them and we
+figured out how to deal with them and we certainly could do it again and and i
+certainly could do it again and and i think given the right situation we will
+think given the right situation we will it's a very different feel from some of
+it's a very different feel from some of our other stories and so those are those
+our other stories and so those are those are two models that i would use in
+are two models that i would use in completely different situations
+completely different situations and i think we will not limit ourselves
+and i think we will not limit ourselves to those two under any circumstances but
+to those two under any circumstances but one of the cool parts of my job is i get
+one of the cool parts of my job is i get to find new new ways to use the
+to find new new ways to use the technology which is uh i'm looking
+technology which is uh i'm looking forward to doing more more weird stuff
+forward to doing more more weird stuff this year thanks
+this year thanks thanks for the talk um i was wondering
+thanks for the talk um i was wondering having worked with both on both visual
+having worked with both on both visual games and audio games what you prefer
+games and audio games what you prefer about working in audio
+about working in audio ooh
+ooh what do i prefer about working in audio
+what do i prefer about working in audio over visual um
+over visual um mostly i like the the the sort of
+mostly i like the the the sort of inexpensive
+inexpensive comparatively uh
+comparatively uh kind of garage
+kind of garage operation feel i like to work small that
+operation feel i like to work small that lets me
+lets me experiment more take more risks and and
+experiment more take more risks and and and just generally have more control
+and just generally have more control over things
+over things uh
+uh i can i can change a lot of stuff up
+i can i can change a lot of stuff up until almost the last minute you know
+until almost the last minute you know we're doing voice recording but that
+we're doing voice recording but that that comes pretty late in the process
+that comes pretty late in the process i've always liked that from from the
+i've always liked that from from the beginning of the you know some of those
+beginning of the you know some of those earliest graphic adventures that i
+earliest graphic adventures that i worked on one of the reasons i liked
+worked on one of the reasons i liked them was the art was so simple that we
+them was the art was so simple that we were you know basically kind of doing
+were you know basically kind of doing puppet theater and we could just see
+puppet theater and we could just see what we could make out of that without
+what we could make out of that without spending too much money trying to try
+spending too much money trying to try and draw everything into uh
+and draw everything into uh you know
+you know match the speech and stuff like that
+match the speech and stuff like that thank you
+thank you hi again thank you for the talk
+hi again thank you for the talk oh sorry yes
+oh sorry yes uh obviously you are a pioneer in this
+uh obviously you are a pioneer in this field and you've done a lot of great
+field and you've done a lot of great work
+work what and you've got a lot invested in
+what and you've got a lot invested in your play
+your play what do you see is the future um what do
+what do you see is the future um what do you see is the marketplace
+you see is the marketplace in terms of
+in terms of the growth of the marketplace for the
+the growth of the marketplace for the sort of audio of these audio games and
+sort of audio of these audio games and what do you see sort of the future of
+what do you see sort of the future of this going growing what what kind of
+this going growing what what kind of technology and aspects do you see coming
+technology and aspects do you see coming next on the horizon marketplace and
+next on the horizon marketplace and future
+future okay so that's a pretty broad question
+okay so that's a pretty broad question sort of
+sort of what do i see in the future in terms of
+what do i see in the future in terms of both both marketplace and and technology
+both both marketplace and and technology uh
+uh how much time we got about about a
+how much time we got about about a minute um
+minute um okay so uh i i think quickly i think um
+okay so uh i i think quickly i think um the marketplace is still kind of uh
+the marketplace is still kind of uh nascent there are ways to make money in
+nascent there are ways to make money in it several of them um
+it several of them um nobody sort of had a you know breakout
+nobody sort of had a you know breakout like
+like this company made a billion dollars
+this company made a billion dollars doing x y or z on it but i think it's
+doing x y or z on it but i think it's it's sort of like early days of other
+it's sort of like early days of other platforms phones and things like this
+platforms phones and things like this where uh you're seeing people now
+where uh you're seeing people now starting to get into it and they're
+starting to get into it and they're starting to have lots of these machines
+starting to have lots of these machines in their houses that just listen to them
+in their houses that just listen to them all the time uh so certainly
+all the time uh so certainly there's market penetration um there's uh
+there's market penetration um there's uh interest in having things to do on the
+interest in having things to do on the on the platform and uh there's
+on the platform and uh there's monetization is built into it now so
+monetization is built into it now so there's there's just kind of um
+there's there's just kind of um uh the
+uh the things need to get
+things need to get shoved over the edge now where people
+shoved over the edge now where people are comfortable doing that and i think
+are comfortable doing that and i think that's that's right where we're at now
+that's that's right where we're at now and i think that'll happen by the next
+and i think that'll happen by the next five minutes okay and just uh google the
+five minutes okay and just uh google the um amazon versus the google
+um amazon versus the google which one do you prefer using which
+which one do you prefer using which platform
+platform oh i try to be agnostic about that okay
+oh i try to be agnostic about that okay um we'd like to publish on both if we
+um we'd like to publish on both if we can usually it's more of a business
+can usually it's more of a business decision as to you know they like
+decision as to you know they like exclusivity one the one or the other but
+exclusivity one the one or the other but um yeah we could we can we can go uh ios
+um yeah we could we can we can go uh ios and and google and amazon and bose
+and and google and amazon and bose glasses frames if we want to and
+glasses frames if we want to and that that's my preferred thing so that's
+that that's my preferred thing so that's your future deck then yeah
+your future deck then yeah uh so we're we're at an hour i think we
+uh so we're we're at an hour i think we have to go to an overflow room is that
+have to go to an overflow room is that am i accurate about that
+am i accurate about that thank you yeah okay all right uh we'll
+thank you yeah okay all right uh we'll be out out across
+thanks very much

@@ -1,0 +1,1431 @@
+[Music]
+my name is johannes dalianes i'm a rendering engineer at
+rendering engineer at ea dice i've been working there since
+ea dice i've been working there since 2014 and shipped a bunch of titles like
+2014 and shipped a bunch of titles like battlefield and battlefront
+battlefield and battlefront today so we're going to talk about ray
+today so we're going to talk about ray tracing and we're going to start off
+tracing and we're going to start off with some project background
+with some project background keep it short and then john will dive
+keep it short and then john will dive right into
+right into into the details of the gpu ray tracing
+into the details of the gpu ray tracing pipeline
+pipeline and i will talk about when he's done i
+and i will talk about when he's done i will talk about the actual
+will talk about the actual engine integration of dxr which is the
+engine integration of dxr which is the dx12 ray tracing api
+dx12 ray tracing api over the entire presentation we'll
+over the entire presentation we'll mention a lot of gpu numbers because
+mention a lot of gpu numbers because a big focus is obviously gpu performance
+a big focus is obviously gpu performance and on how to actually make this run in
+and on how to actually make this run in real time
+real time so like i said it's a battlefield v is a
+so like i said it's a battlefield v is a first-person shooter
+first-person shooter set in world war ii it was released in
+set in world war ii it was released in november 2018
+november 2018 we worked on it for about 10 months so
+we worked on it for about 10 months so we started when the game was in
+we started when the game was in full production we had four full-time
+full production we had four full-time engineers on this
+engineers on this and obviously a bunch of people from
+and obviously a bunch of people from both dice and nvidia
+both dice and nvidia helped out along the way and this was
+helped out along the way and this was the first game released with dxr
+the first game released with dxr so we're quite happy about that but it
+so we're quite happy about that but it wasn't easy
+wasn't easy it was quite challenging actually so
+it was quite challenging actually so first of all
+first of all the game was in full production it was
+the game was in full production it was decided right in the middle of
+decided right in the middle of production that we were going to do ray
+production that we were going to do ray tracing so that means
+tracing so that means all the content in the game was already
+all the content in the game was already there
+there it was not built for ray tracing at all
+it was not built for ray tracing at all so all the tech we made had to adapt to
+so all the tech we made had to adapt to the content we already had
+the content we already had we also didn't quite know how big the
+we also didn't quite know how big the engine changes would be
+engine changes would be because adding ray tracing is quite a
+because adding ray tracing is quite a complex operation it's not like a
+complex operation it's not like a post-processing pass that you just plug
+post-processing pass that you just plug in
+in and then it works even though our title
+and then it works even though our title suggested it
+suggested it just works so
+just works so yeah i also didn't really know the
+yeah i also didn't really know the performance
+performance of the turing series cards because they
+of the turing series cards because they weren't out when they started
+weren't out when they started development we had to run on older
+development we had to run on older generation gpus
+generation gpus so we had to guess a lot on how much we
+so we had to guess a lot on how much we would do ray tracing and how much would
+would do ray tracing and how much would be denoising
+be denoising how the ray count would be versus pixel
+how the ray count would be versus pixel count and so on
+count and so on as extra punishment we had to deal with
+as extra punishment we had to deal with being early adopters so
+being early adopters so we had to deal with apis not being final
+we had to deal with apis not being final constantly evolving
+constantly evolving causing us to rewrite certain systems
+causing us to rewrite certain systems and
+and then of course because it was
+then of course because it was experimental and like
+experimental and like driver hangs blue screens and so on
+driver hangs blue screens and so on and no no tools to help us along the way
+and no no tools to help us along the way so we had to develop
+so we had to develop a lot of our own tools to help with this
+a lot of our own tools to help with this but despite all of this and the short
+but despite all of this and the short time frame we managed to
+time frame we managed to shift the game and we are very happy
+shift the game and we are very happy about that
+about that and yeah thank you no john will take
+and yeah thank you no john will take over
+yeah hi everyone so i'm yan and if you looked at this talk earlier you
+if you looked at this talk earlier you might be expecting someone else
+might be expecting someone else originally yasen uludag was supposed to
+originally yasen uludag was supposed to give this part of the presentation
+give this part of the presentation and much of the work i am going to be
+and much of the work i am going to be presenting is his work
+presenting is his work unfortunately he couldn't make it so you
+unfortunately he couldn't make it so you have to make do with me
+have to make do with me so i'm yeah i'm jan i've been at dice
+so i'm yeah i'm jan i've been at dice for the last six years
+for the last six years uh right now i'm the lead for the dice
+uh right now i'm the lead for the dice rendering team
+rendering team and over those six years i've worked on
+and over those six years i've worked on everything from battlefield 4 the
+everything from battlefield 4 the battlefield 1 mirror's edge
+battlefield 1 mirror's edge i've had my hands in engine tech and
+i've had my hands in engine tech and particularly rendering during the entire
+particularly rendering during the entire duration
+duration and what i'm going to present now is
+and what i'm going to present now is essentially all the machinery
+essentially all the machinery surrounding the actual ray tracing
+surrounding the actual ray tracing so you could say that my part of the
+so you could say that my part of the presentation is an on ray tracing part
+presentation is an on ray tracing part of this ray tracing talk
+of this ray tracing talk so to frame this a little bit let's
+so to frame this a little bit let's start with a simple ray tracing pipeline
+start with a simple ray tracing pipeline just to see what steps we need to
+just to see what steps we need to perform so first we need to
+perform so first we need to decide where uh from and where to we
+decide where uh from and where to we shoot our race
+shoot our race so we'll have to do some logic to figure
+so we'll have to do some logic to figure out what we're actually gonna do
+out what we're actually gonna do then we have this magic black box which
+then we have this magic black box which johannes will detail later which is the
+johannes will detail later which is the actual intersection
+actual intersection and ray tracing part for my part of the
+and ray tracing part for my part of the presentation the only important thing is
+presentation the only important thing is that
+that we will get the material or g buffer
+we will get the material or g buffer data back from this
+data back from this since we're deferred render we from the
+since we're deferred render we from the start decided we're going to do our ray
+start decided we're going to do our ray tracing with deferred lighting as well
+tracing with deferred lighting as well so for now for like the next 30 minutes
+so for now for like the next 30 minutes this is just going to be
+this is just going to be we should raise and then magically we
+we should raise and then magically we get material data back
+get material data back okay since we just get material data we
+okay since we just get material data we actually have to light it so
+actually have to light it so we light all these results calculate the
+we light all these results calculate the radians and then we need to recombine
+radians and then we need to recombine that with our rasterized result
+that with our rasterized result that by this point will also be lit okay
+that by this point will also be lit okay let's look at these in a little bit more
+let's look at these in a little bit more detail
+detail we have a g buffer we have a sample
+we have a g buffer we have a sample point we want to potentially or we want
+point we want to potentially or we want to shoot rays from
+to shoot rays from we have the view vector and since we've
+we have the view vector and since we've decided to do reflections
+decided to do reflections the interesting part is a specular lobe
+the interesting part is a specular lobe of the brdf
+we can sample this at lots of locations i've picked some of these
+i've picked some of these um and one thing to start out with a lot
+um and one thing to start out with a lot of the parts in my talk
+of the parts in my talk are based on a presentation by thomas to
+are based on a presentation by thomas to hoviac
+hoviac and justin uludog at advances in
+and justin uludog at advances in real-time rendering 2015
+real-time rendering 2015 which was stochastic real-time screen
+which was stochastic real-time screen space reflections
+space reflections and one part here that they found out is
+and one part here that they found out is that
+that you really do not want to sample the
+you really do not want to sample the tail end of this brdf if you're not
+tail end of this brdf if you're not going to want to do crazy amounts of
+going to want to do crazy amounts of denoising or
+denoising or want to deal with a lot of fireflies so
+want to deal with a lot of fireflies so we did this from the very start we
+we did this from the very start we decided
+decided once the brdf distribution gets too low
+once the brdf distribution gets too low we're just going to chop it off
+we're just going to chop it off and normalize it so for details you can
+and normalize it so for details you can go and look at that talk
+go and look at that talk we then use a haltom sequence to choose
+we then use a haltom sequence to choose one of the rays and that's the winner
+one of the rays and that's the winner we're gonna shoot it
+we're gonna shoot it and also we will produce a lookup
+and also we will produce a lookup texture so that later when we get our 1d
+texture so that later when we get our 1d buffer of
+buffer of results we can find the screen space
+results we can find the screen space pixel it came from again
+pixel it came from again then magic now we trace rays
+then magic now we trace rays don't really care we get material back
+don't really care we get material back now we have to light it
+now we have to light it to start out with let's just look at the
+to start out with let's just look at the most simple thing you can possibly do
+most simple thing you can possibly do you loop over all your point lights
+you loop over all your point lights calculate the radians for each sum it up
+calculate the radians for each sum it up loop over spotlights
+loop over spotlights loop over reflection volumes so and so
+loop over reflection volumes so and so on and return the result
+on and return the result you're done great we have a radiance
+you're done great we have a radiance value
+value now we have to combine that with the
+now we have to combine that with the rasterize result in our case we use an
+rasterize result in our case we use an energy preserving gdx
+energy preserving gdx so we have the ratio of specular to
+so we have the ratio of specular to diffuse and we can just multiply it by
+diffuse and we can just multiply it by that
+that and add it to the output pixel and we're
+and add it to the output pixel and we're done and
+done and we use the lookup texture to fetch the
+we use the lookup texture to fetch the actual right array then you get
+actual right array then you get something like this
+something like this so this was made was just shooting one
+so this was made was just shooting one way per pixel
+way per pixel using something similar to this very
+using something similar to this very simple pipeline
+simple pipeline um what you notice here is that it's
+um what you notice here is that it's actually very noisy
+actually very noisy so even this not super rough water
+so even this not super rough water surface here
+surface here is quite noisy then other parts is
+is quite noisy then other parts is extremely slow
+extremely slow so this scene took about 18 and a half
+so this scene took about 18 and a half milliseconds just for the ray tracing
+milliseconds just for the ray tracing part of it
+part of it which yeah that's not gonna ship um
+which yeah that's not gonna ship um also one thing to notice is that there's
+also one thing to notice is that there's a lot of areas where we actually shoot
+a lot of areas where we actually shoot raised but they
+raised but they don't really contribute much because
+don't really contribute much because this specular diffuse
+this specular diffuse integral ratio is uh pretty low so we
+integral ratio is uh pretty low so we end up multiplying the result from the
+end up multiplying the result from the ray trace with a very low number
+ray trace with a very low number unless it hits something like the sky or
+unless it hits something like the sky or something extremely bright it's not
+something extremely bright it's not going to contribute
+going to contribute and starting with that we'll start with
+and starting with that we'll start with our first improvement areas where we
+our first improvement areas where we don't really
+don't really care that much what the ray trace result
+care that much what the ray trace result is maybe don't need that much race
+is maybe don't need that much race since it's going to become super blurry
+since it's going to become super blurry afterwards we're going to kick that ball
+afterwards we're going to kick that ball further to the denoiser anyway
+further to the denoiser anyway okay starting with our simplified
+okay starting with our simplified pipeline we start by adding a variable
+pipeline we start by adding a variable retracing
+retracing and for that we start with this diffuser
+and for that we start with this diffuser specular ratio which we know we will
+specular ratio which we know we will multiply the
+multiply the result uh with the radiance result
+result uh with the radiance result we split the screen into 16 by 16 pixel
+we split the screen into 16 by 16 pixel tiles
+tiles and for each tiles we check each of
+and for each tiles we check each of these tiles we check what the max
+these tiles we check what the max ratio is then you get something like
+ratio is then you get something like this
+this and then we normalize it so we divide it
+and then we normalize it so we divide it by the total sum which is pretty easy to
+by the total sum which is pretty easy to calculate
+calculate then you get like essentially what
+then you get like essentially what percentage of your total rate budget you
+percentage of your total rate budget you want to shoot in each of these cells
+want to shoot in each of these cells then we round that to the nearest power
+then we round that to the nearest power of two and we use a dithering pattern to
+of two and we use a dithering pattern to make sure we actually get close to the
+make sure we actually get close to the target result so we use a random noise
+target result so we use a random noise texture to like choose up either the
+texture to like choose up either the round down or round up result based on
+round down or round up result based on the difference
+the difference otherwise you'd end up always
+otherwise you'd end up always undershooting or always overshooting uh
+undershooting or always overshooting uh your target ray budget
+your target ray budget okay we only choose power f2 because we
+okay we only choose power f2 because we have a pretty simple way to allocate our
+have a pretty simple way to allocate our samples
+samples for 256 rays for these 16 by 16 tiles
+for 256 rays for these 16 by 16 tiles it's pretty straightforward
+it's pretty straightforward we just shoot all the rays 428 we pick a
+we just shoot all the rays 428 we pick a checkerboard pattern
+checkerboard pattern for 64 we weren't really sure what to do
+for 64 we weren't really sure what to do but if you look at like this
+but if you look at like this these little squares here and you just
+these little squares here and you just make them larger
+make them larger then you get something like this and
+then you get something like this and then you can scale that to like any
+then you can scale that to like any lower rate count and you get less and
+lower rate count and you get less and less raise
+less raise in order to actually produce more data
+in order to actually produce more data and like vary this over multiple frames
+and like vary this over multiple frames we just
+we just integrate add to the pixel count every
+integrate add to the pixel count every frame as we go through it
+frame as we go through it okay success this works on the right you
+okay success this works on the right you can see a visualization of what you get
+can see a visualization of what you get from here
+from here uh the red the red cells are shoot all
+uh the red the red cells are shoot all rays
+rays if they're bright rays uh bright red so
+if they're bright rays uh bright red so they're 256 per tile
+they're 256 per tile then blue is like i think like six or
+then blue is like i think like six or eight rays or so
+eight rays or so and yellow is like somewhere in between
+and yellow is like somewhere in between and
+and what you can see here is that very
+what you can see here is that very reflective surfaces where the reflection
+reflective surfaces where the reflection contributes a lot shoot a lot more rays
+contributes a lot shoot a lot more rays other areas still shoot race but
+other areas still shoot race but significantly less also you can see we
+significantly less also you can see we get a lot more rays and grazing angles
+get a lot more rays and grazing angles where the fresnel effect
+where the fresnel effect will like produce much more uh much
+will like produce much more uh much stronger reflections
+okay more problems you remember that the the actual tracing was extremely slow
+the actual tracing was extremely slow so a big part of that is how divergent
+so a big part of that is how divergent the race are we're shooting
+the race are we're shooting one cause of that is like us randomly
+one cause of that is like us randomly sampling the brdf
+sampling the brdf so for ypr def that will produce very
+so for ypr def that will produce very divergent rays maybe there would be some
+divergent rays maybe there would be some way to fix it
+way to fix it but you have more problems even if you
+but you have more problems even if you were to do this like even if they were
+were to do this like even if they were coherent or you had perfect reflectors
+coherent or you had perfect reflectors because art gives us content like this
+because art gives us content like this this is a wrought iron fence where each
+this is a wrought iron fence where each of these
+of these fence poles is like a square that has
+fence poles is like a square that has been twisted
+been twisted and you end up with your brave
+and you end up with your brave reflections pretty much going in all
+reflections pretty much going in all directions all the time
+directions all the time and content like this we noticed our
+and content like this we noticed our performance when
+performance when uh was about four times slower than like
+uh was about four times slower than like normal content
+normal content so if you walked up to this fence you
+so if you walked up to this fence you had like a four times lower frame rate
+had like a four times lower frame rate than you were just playing the
+than you were just playing the rest of the level that's not really
+rest of the level that's not really ideal if you want to ship this
+ideal if you want to ship this you'd at least want like average these
+you'd at least want like average these numbers out even if you take a little
+numbers out even if you take a little bit of a hit in the better scenes
+bit of a hit in the better scenes so what do we do we bin our rays so
+so what do we do we bin our rays so we like try to group rays that go into
+we like try to group rays that go into similar
+similar directions and go from similar world
+directions and go from similar world locations
+locations how do we do that we have array shooting
+how do we do that we have array shooting from the
+from the reflected of the sphere we want to
+reflected of the sphere we want to calculate a bin index
+calculate a bin index based on the screen offset of where we
+based on the screen offset of where we shot this rate we calculate some high
+shot this rate we calculate some high bits
+bits we use four bits for this two bits for
+we use four bits for this two bits for the vertical and two bits for the
+the vertical and two bits for the horizontal screen space position
+horizontal screen space position the lower 16 bits uh eight bits for
+the lower 16 bits uh eight bits for longitude and latitude we just
+longitude and latitude we just take the direction it's very simple
+take the direction it's very simple um if you visualize what this looks like
+um if you visualize what this looks like it looks something like this
+it looks something like this so you can see this kind of like in this
+so you can see this kind of like in this case it's just like noisy brdf sampling
+case it's just like noisy brdf sampling but you can see that essentially groups
+but you can see that essentially groups all the pixels with the same color
+all the pixels with the same color together
+together in a bucket how do we do than
+in a bucket how do we do than the actual binning once we have these
+the actual binning once we have these indices we have the rays
+indices we have the rays each ray knows which bin it wants to go
+each ray knows which bin it wants to go into based on this index
+into based on this index using atomic increment we calculate the
+using atomic increment we calculate the size of each of these bins
+size of each of these bins atomic increment also helpfully gives us
+atomic increment also helpfully gives us the local offset back
+the local offset back which is the index this ray will have in
+which is the index this ray will have in that bin eventually
+that bin eventually now we know the min sizes and the index
+now we know the min sizes and the index of the ray within the bin we need to
+of the ray within the bin we need to calculate
+calculate where the bin will be located in the
+where the bin will be located in the defrag result we use exclusive parallel
+defrag result we use exclusive parallel sums from mark harris
+sums from mark harris which is a cuda paper but we just
+which is a cuda paper but we just implemented it
+implemented it and then you get like the offset of the
+and then you get like the offset of the bins you re-add the local offsets
+bins you re-add the local offsets now you have array location and we just
+now you have array location and we just produce a lookup table from this
+produce a lookup table from this that we then reference when we shoot the
+that we then reference when we shoot the rays
+rays more problems this is what you get
+more problems this is what you get in our initial implementation here well
+in our initial implementation here well after you've added the denoising
+after you've added the denoising you can see that these concrete blocks
+you can see that these concrete blocks are not being reflected
+are not being reflected that's because we have a custom system
+that's because we have a custom system for like scattering objects in the level
+for like scattering objects in the level that is done very late and that
+that is done very late and that essentially we scatters them every frame
+essentially we scatters them every frame we didn't like have enough time to like
+we didn't like have enough time to like rewrite this and add these objects to
+rewrite this and add these objects to gpu world and just naively adding them
+gpu world and just naively adding them every frame would have been way too
+every frame would have been way too expensive
+expensive so there wasn't really an easy way in
+so there wasn't really an easy way in time to like add these to the ray
+time to like add these to the ray tracing world
+tracing world however if you do the same scene with
+however if you do the same scene with screen space reflections you actually
+screen space reflections you actually see these blocks
+see these blocks and we consider that sucked a lot of
+and we consider that sucked a lot of players were going to turn on rtx and
+players were going to turn on rtx and then actually saw less reflections
+then actually saw less reflections but since they show up in ssr maybe what
+but since they show up in ssr maybe what we can just do we can just take ssr and
+we can just do we can just take ssr and mush it into our ray tracing pipeline
+mush it into our ray tracing pipeline so we have arrays we do a hierarchical
+so we have arrays we do a hierarchical screen space trace
+screen space trace if it misses we give up we know we've
+if it misses we give up we know we've hit the sky who cares
+hit the sky who cares don't need to do any ray tracing for
+don't need to do any ray tracing for this array anyway
+this array anyway if we hit something instead of taking
+if we hit something instead of taking the radians we actually take the
+the radians we actually take the material data
+material data send it through a lighting pipeline and
+send it through a lighting pipeline and if we think our
+if we think our screen space trace is bad it's rejected
+screen space trace is bad it's rejected we run the full ray trace
+we run the full ray trace based on like what we know we started
+based on like what we know we started off where the screen space ray actually
+off where the screen space ray actually where we considered went bad
+where we considered went bad like it tried to move behind an object
+like it tried to move behind an object we fetched the same material back
+we fetched the same material back because we've
+because we've deferred we do deferred lighting and
+deferred we do deferred lighting and send that in the same
+send that in the same lighting path and this is why the two
+lighting path and this is why the two things match
+things match because normal screen space reflections
+because normal screen space reflections they don't take into account that things
+they don't take into account that things like specular actually are view
+like specular actually are view dependent
+dependent so you just fetch a sample on different
+so you just fetch a sample on different locations on screen and that would cause
+locations on screen and that would cause severe discontinuities since we re-light
+severe discontinuities since we re-light all of our screen space
+all of our screen space tray samples we actually get you will
+tray samples we actually get you will not see any
+not see any discontinuity here even though the
+discontinuity here even though the sample location moves by like subpixel
+sample location moves by like subpixel accuracy but that didn't turn out being
+accuracy but that didn't turn out being visible after denoising
+visible after denoising okay so if you want to implement this
+okay so if you want to implement this hierarchical screen space trace i'll
+hierarchical screen space trace i'll refer you back to sakovic katal 2015
+refer you back to sakovic katal 2015 since it is like beyond the scope of
+since it is like beyond the scope of this talk in our time
+this talk in our time one change we have to do is we have to
+one change we have to do is we have to decide when to reject race which is not
+decide when to reject race which is not that important if you just do screen
+that important if you just do screen space reflections
+space reflections so this ray here we reject and the way
+so this ray here we reject and the way we do this
+we do this is at the intersection location we
+is at the intersection location we sample the depth buffer
+sample the depth buffer and if that defers too much from where
+and if that defers too much from where the calculated intersection location
+the calculated intersection location with the depth buffer is
+with the depth buffer is we basically say well we're a little too
+we basically say well we're a little too far from the surface here maybe we're
+far from the surface here maybe we're behind an object and then we try to
+behind an object and then we try to trace that array instead
+trace that array instead so the green one here would be an
+so the green one here would be an example where we would accept the screen
+example where we would accept the screen space trace
+space trace um what do you get from that so you get
+um what do you get from that so you get decals
+decals they just work in screen space retracing
+they just work in screen space retracing so when you move the camera down you see
+so when you move the camera down you see that they vanish
+that they vanish because they come from the screen space
+because they come from the screen space but like just in a typical situation you
+but like just in a typical situation you just magically have your decals
+just magically have your decals for free also all our scattering
+for free also all our scattering works just fine this would also apply if
+works just fine this would also apply if you have like any gpu generated geometry
+you have like any gpu generated geometry it will show up in screen space
+it will show up in screen space reflections you don't have to worry
+reflections you don't have to worry about fitting bvhs to it you just get it
+about fitting bvhs to it you just get it assuming this is not particularly big
+assuming this is not particularly big object that cause a lot of this
+object that cause a lot of this occlusion this is fine
+occlusion this is fine okay now we've done our trace so
+okay now we've done our trace so we do no more changes before our actual
+we do no more changes before our actual trace when we get a raised back
+trace when we get a raised back some of these missed and some of these
+some of these missed and some of these hit um if we just light this now
+hit um if we just light this now unfortunately this happens where all the
+unfortunately this happens where all the pixels that just
+pixels that just missed everything they'd end up they
+missed everything they'd end up they don't have any lighting work to do
+don't have any lighting work to do because the sky is that
+because the sky is that you don't need to do much lighting for
+you don't need to do much lighting for the sky so
+the sky so what do we do we add a defrag operation
+what do we do we add a defrag operation this is
+this is pretty straightforward you assume each
+pretty straightforward you assume each way that is a hit is a one you traded as
+way that is a hit is a one you traded as a miss is a zero
+a miss is a zero you run exclusive parallel sums same we
+you run exclusive parallel sums same we did earlier
+did earlier calculate how many rays are hit before
+calculate how many rays are hit before the current one and then you
+the current one and then you create another lookup table to basically
+create another lookup table to basically be able to find uh
+be able to find uh just the hits and you use that when
+just the hits and you use that when fetching the data from your lighting
+fetching the data from your lighting shader
+shader here's a lighting shader fully busy now
+here's a lighting shader fully busy now great
+great except it still takes about two
+except it still takes about two milliseconds anyone who's ever written a
+milliseconds anyone who's ever written a deferred render will not be surprised
+deferred render will not be surprised based on how we did this still a problem
+based on how we did this still a problem um inspired by the further renders we
+um inspired by the further renders we just use uh purcell light
+just use uh purcell light light lists here so we splat a grid over
+light lists here so we splat a grid over the entire world
+the entire world with cells we loop over all the lights
+with cells we loop over all the lights we figure out which cell it's in
+we figure out which cell it's in we create a linked list for that cell
+we create a linked list for that cell that points back to the light data
+that points back to the light data and we keep doing that for all the other
+and we keep doing that for all the other lights so
+lights so we add append to the previous linked
+we add append to the previous linked list
+list the red light here goes into the other
+the red light here goes into the other cell we create a new linked list
+cell we create a new linked list finally the blue light that overlaps two
+finally the blue light that overlaps two cells we add to both linked lists
+cells we add to both linked lists and then when actually doing the
+and then when actually doing the lighting we just look up the
+lighting we just look up the sample we're trying to light in which
+sample we're trying to light in which cell it is we loop over all of the
+cell it is we loop over all of the lights in that cell and only apply those
+lights in that cell and only apply those that fixes that problem um
+that fixes that problem um then we have our next problem which is
+then we have our next problem which is that uh the bit the elephant in the room
+that uh the bit the elephant in the room and that it's it's really really noisy
+and that it's it's really really noisy um we heard denoising is good so i guess
+um we heard denoising is good so i guess we've expected we always have to do this
+we've expected we always have to do this so now it's actually the time we're
+so now it's actually the time we're adding a denoise pass
+adding a denoise pass when denoising you want to like figure
+when denoising you want to like figure out what your variance is you want to
+out what your variance is you want to gather lots of samples
+gather lots of samples often you do this you could shoot more
+often you do this you could shoot more more rays that's totally unacceptable so
+more rays that's totally unacceptable so we we will try to reuse spatial
+we we will try to reuse spatial information that is from other rays
+information that is from other rays around us
+around us and we want to reuse temple information
+and we want to reuse temple information that is raised in the past
+that is raised in the past and unsurprisingly um if you've paid
+and unsurprisingly um if you've paid attention
+attention stackover 2015 also did this so we'll
+stackover 2015 also did this so we'll steal
+steal ideas from that uh from that
+ideas from that uh from that presentation as well
+presentation as well they had a brdf filter which we're going
+they had a brdf filter which we're going to steal a modify and a temporal filter
+to steal a modify and a temporal filter which we're going to steal and modify
+which we're going to steal and modify so now first the brdf filter
+so now first the brdf filter it's his array there's a bdf uh specular
+it's his array there's a bdf uh specular lobe
+lobe we've been sampling hit the sphere if
+we've been sampling hit the sphere if you look at the data you have for
+you look at the data you have for neighboring rays each of them also has a
+neighboring rays each of them also has a brdf lobe
+brdf lobe with their sample and what you might
+with their sample and what you might notice i mean the surface
+notice i mean the surface you can assume that like the object
+you can assume that like the object you're reflecting off is kind of
+you're reflecting off is kind of parallel um a flat plane so and you can
+parallel um a flat plane so and you can ignore visibility and the fact that
+ignore visibility and the fact that these are view dependent you know a
+these are view dependent you know a little hand wavy and then you can
+little hand wavy and then you can basically say
+basically say you can just look at how bright would
+you can just look at how bright would these samples be if they were on our own
+these samples be if they were on our own brdf instead of the neighboring brdf
+brdf instead of the neighboring brdf and adjust them accordingly
+and adjust them accordingly this is the equation to do this this
+this is the equation to do this this might look a little complicated at first
+might look a little complicated at first but it's actually just a weighted sum
+but it's actually just a weighted sum over all of these samples you're going
+over all of these samples you're going to steal in the original paper
+to steal in the original paper this ra always ran on four samples
+this ra always ran on four samples because we have a lot of noise on our
+because we have a lot of noise on our image that didn't get us very far
+image that didn't get us very far so we run a lot more samples of this
+so we run a lot more samples of this but when you're running a lot of samples
+but when you're running a lot of samples for uh big
+for uh big like rough surfaces you don't want to
+like rough surfaces you don't want to run that many samples for
+run that many samples for very shiny surfaces or like very good
+very shiny surfaces or like very good reflectors
+reflectors because you end up just there's not much
+because you end up just there's not much that much noise in those right
+that much noise in those right so we want to have someone figure out
+so we want to have someone figure out what what kernel size should we pick for
+what what kernel size should we pick for each pixel
+each pixel okay so there's a bdf lobe we're trying
+okay so there's a bdf lobe we're trying to figure out what what kernel size
+to figure out what what kernel size should we pick
+should we pick assuming that uh what we're hitting is a
+assuming that uh what we're hitting is a plane
+plane like something like this range would be
+like something like this range would be a good area where
+a good area where samples were interested in might be like
+samples were interested in might be like somewhere in this cone
+somewhere in this cone so then we can project this cone back
+so then we can project this cone back into screen space
+into screen space and you have something like uh this brdf
+and you have something like uh this brdf shape and screen space
+shape and screen space so based on this based on your brdf
+so based on this based on your brdf which based on the roughness and the
+which based on the roughness and the angle of the surface you can essentially
+angle of the surface you can essentially calculate what shape your kernel should
+calculate what shape your kernel should have in screen space
+have in screen space now there might be samples outside of
+now there might be samples outside of this kernel but that's where you expect
+this kernel but that's where you expect most of the samples that are interesting
+most of the samples that are interesting to you
+to you uh should be one thing that i skipped
+uh should be one thing that i skipped here
+here is we don't really know how far this
+is we don't really know how far this plane is away
+plane is away this imaginary plane because we've been
+this imaginary plane because we've been randomly sampling the brdf and we know
+randomly sampling the brdf and we know the distance to that random sample
+the distance to that random sample but that's noisy like hell and that that
+but that's noisy like hell and that that plane would move
+plane would move back and forth constantly which would
+back and forth constantly which would like our kernel size would fluctuate
+like our kernel size would fluctuate which would give you pretty noisy
+which would give you pretty noisy results or pretty bad temporal stability
+results or pretty bad temporal stability so this is a random sample we
+so this is a random sample we decided to pretty straightforward since
+decided to pretty straightforward since we don't have like a lot of good data
+we don't have like a lot of good data here dude was the simplest approach we
+here dude was the simplest approach we just take all of our neighboring pixels
+just take all of our neighboring pixels in a five by five kernel and we average
+in a five by five kernel and we average them just to calculate like what is
+them just to calculate like what is the average distance to an object for
+the average distance to an object for this pixel
+this pixel it turns out this is still not
+it turns out this is still not temporarily stable so we take the second
+temporarily stable so we take the second hammer that us real-time engineers are
+hammer that us real-time engineers are used to
+used to and we just go with temporal
+and we just go with temporal reprojection
+reprojection so now this average ray distance um we
+so now this average ray distance um we reproject from the previous frame
+reproject from the previous frame based on the virtual reflection
+based on the virtual reflection [Music]
+[Music] this is also based on sokovia ketal so
+this is also based on sokovia ketal so you can fetch the
+you can fetch the correct tempo reflection from your
+correct tempo reflection from your screen space and
+screen space and yeah then we have a pretty good average
+yeah then we have a pretty good average average object distance we can use to
+average object distance we can use to calculate our kernel size
+calculate our kernel size we use a pretty high weight i think it's
+we use a pretty high weight i think it's like between 80 and 90 for the previous
+like between 80 and 90 for the previous frame
+frame because if we assume we have previous
+because if we assume we have previous frame data it's actually pretty good for
+frame data it's actually pretty good for this
+this so now we have our brdf kernel we're
+so now we have our brdf kernel we're this thread
+this thread we want to evaluate all this stuff we
+we want to evaluate all this stuff we have a pretty large kernel
+have a pretty large kernel we obviously can steal stuff from other
+we obviously can steal stuff from other threads but we have all these
+threads but we have all these pixels we don't have the data from what
+pixels we don't have the data from what we use is we use lds
+we use is we use lds to essentially um add all this extra
+to essentially um add all this extra information fetch the stuff and we can
+information fetch the stuff and we can still share everything within the warp
+still share everything within the warp our actual size are a little larger
+our actual size are a little larger because we have actually support pretty
+because we have actually support pretty large filters
+large filters in practice we run them slightly smaller
+in practice we run them slightly smaller but this is
+but this is what we can run up to
+what we can run up to and then you get something like this
+and then you get something like this that is still noisy
+that is still noisy even though we allow up to 81 taps
+so now it's time for the temporal denoising which everyone does anyway
+denoising which everyone does anyway but then you have to decide because you
+but then you have to decide because you want to get rid of ghosting what is
+want to get rid of ghosting what is actually a good sample so you need some
+actually a good sample so you need some kind of rejection metric
+kind of rejection metric particularly like if you move further
+particularly like if you move further further to your reflector
+further to your reflector or closer the size of like your uh
+or closer the size of like your uh roughness changes
+roughness changes and if you were to just you get ghosting
+and if you were to just you get ghosting of like where the very rough blurry
+of like where the very rough blurry reflection keeps
+reflection keeps staying blurry all the time because
+staying blurry all the time because you're reprojecting all the time when
+you're reprojecting all the time when you actually want it to become
+you actually want it to become sharp as uh as you move closer
+sharp as uh as you move closer uh okay if only we knew that kind of had
+uh okay if only we knew that kind of had some information what good samples were
+some information what good samples were but actually in the brdf the noise
+but actually in the brdf the noise filter earlier
+filter earlier we did look at all these other samples
+we did look at all these other samples here on the surface so we have a pretty
+here on the surface so we have a pretty good idea what the radiance values on
+good idea what the radiance values on all our surrounding pixels are
+all our surrounding pixels are this might be like have been our
+this might be like have been our distribution of our neighbors
+distribution of our neighbors we can just in the brdf filter fit uh
+we can just in the brdf filter fit uh axis line box around this
+axis line box around this and then basically send that over to the
+and then basically send that over to the temporal filter and the temporal filter
+temporal filter and the temporal filter now can just
+now can just clip the clip the sample it's taking to
+clip the clip the sample it's taking to this
+this now you'll naturally get as like this
+now you'll naturally get as like this spread of the samples you've been taking
+spread of the samples you've been taking the brdf filter became more narrow
+the brdf filter became more narrow and very naturally or you'll sharpen up
+and very naturally or you'll sharpen up your image and you will stop including
+your image and you will stop including things you shouldn't be including
+things you shouldn't be including great that helped a lot
+great that helped a lot um but we still have some noise that
+um but we still have some noise that we're trying to
+we're trying to clean up unfortunately so at this point
+clean up unfortunately so at this point we basically threw
+we basically threw everything that was vaguely physically
+everything that was vaguely physically based out of the window
+based out of the window and just said well we have this kernel
+and just said well we have this kernel size based on average distance we've
+size based on average distance we've already
+already uh calculated and i mean if you squint a
+uh calculated and i mean if you squint a little maybe that just looks like a
+little maybe that just looks like a gaussian
+gaussian so we just kind of fit a gaussian to
+so we just kind of fit a gaussian to that kernel size
+that kernel size this is by the way this can be uh
+this is by the way this can be uh stretched as anisotropic
+stretched as anisotropic so this will have width and different
+so this will have width and different width and heights
+width and heights um based on the angle so fitting this
+um based on the angle so fitting this gaussian is quite expensive we do that
+gaussian is quite expensive we do that offline
+offline then we generate a lookup texture
+then we generate a lookup texture with based on angle and roughness you
+with based on angle and roughness you can basically fetch the width and height
+can basically fetch the width and height for a unit length
+for a unit length ray t for the current screen
+ray t for the current screen and then you just have to multiply that
+and then you just have to multiply that by rate and you have your screen space
+by rate and you have your screen space kernel
+kernel and then you have a gaussian you can run
+and then you have a gaussian you can run great
+great um one thing that we've kind of done
+um one thing that we've kind of done very very wrong
+very very wrong now though is we're applying two filters
+now though is we're applying two filters that are roughly the size of the
+that are roughly the size of the projected specular lobe
+projected specular lobe and then you basically just when you
+and then you basically just when you convolve those two you just get a larger
+convolve those two you just get a larger filter
+filter so everything is just now blurrier than
+so everything is just now blurrier than it should be so if you compare this
+it should be so if you compare this against your reference image you'll
+against your reference image you'll notice like all of your reflections are
+notice like all of your reflections are rougher than you expect
+rougher than you expect easy fix we just like make both of them
+easy fix we just like make both of them smaller until the result matches
+smaller until the result matches great um now we've got rid of most of
+great um now we've got rid of most of the noise we still have some
+the noise we still have some artifacts uh but in like most actual
+artifacts uh but in like most actual in-game scenes this is much better this
+in-game scenes this is much better this is like a really
+is like a really pathological case because we're always
+pathological case because we're always sampling map zero so the very rough
+sampling map zero so the very rough reflection here is trying to denoise
+reflection here is trying to denoise horrible input data
+horrible input data so now we have our new pipeline
+so now we have our new pipeline we start off with variable ray tracing
+we start off with variable ray tracing this is in the range of point three
+this is in the range of point three uh seven milliseconds we generate some
+uh seven milliseconds we generate some rays takes about point two milliseconds
+rays takes about point two milliseconds we do the binning takes a point one five
+we do the binning takes a point one five milliseconds
+milliseconds screen space hybridization about point
+screen space hybridization about point three six milliseconds
+three six milliseconds then the actual trace which cost us
+then the actual trace which cost us about two milliseconds so
+about two milliseconds so essentially most of up to here has been
+essentially most of up to here has been pretty cheap compared with the actual
+pretty cheap compared with the actual trace
+trace and it all makes the ray tracing much
+and it all makes the ray tracing much faster
+faster um the screen space tracing gets rid of
+um the screen space tracing gets rid of about forty percent of our arrays
+so then we defrag the result here to improve the lighting
+improve the lighting takes about 0.08 milliseconds our
+takes about 0.08 milliseconds our improved lighting takes about 0.46
+improved lighting takes about 0.46 milliseconds
+milliseconds then come the expensive passes our
+then come the expensive passes our spatial filtering at about one and a
+spatial filtering at about one and a half milliseconds
+half milliseconds the temporal filter at about two four uh
+the temporal filter at about two four uh milliseconds and the image filter
+milliseconds and the image filter takes about another one millisecond that
+takes about another one millisecond that one could easily be improved i think the
+one could easily be improved i think the way we're doing our gaussian is really
+way we're doing our gaussian is really bad right now
+bad right now um in total it takes about 6.3
+um in total it takes about 6.3 milliseconds
+milliseconds um for like our entire ray tracing
+um for like our entire ray tracing pipeline
+pipeline uh i don't actually remember which gpu
+uh i don't actually remember which gpu this was taken on
+this was taken on so take this just as like relative
+so take this just as like relative numbers um but there's plenty of
+numbers um but there's plenty of benchmarks on the internet where you can
+benchmarks on the internet where you can see how slow ray tracing is so
+see how slow ray tracing is so sure you can look and find out your
+sure you can look and find out your absolute numbers very easily by googling
+absolute numbers very easily by googling um but then this is a result what this
+um but then this is a result what this gives us so compared to the 18
+gives us so compared to the 18 milliseconds of just doing intersections
+milliseconds of just doing intersections um
+um we're now at a bit over six milliseconds
+we're now at a bit over six milliseconds and we have a pretty clean image
+and we have a pretty clean image um the reflection you see here is really
+um the reflection you see here is really doesn't really show any obj
+doesn't really show any obj like big artifacts there's some but it's
+like big artifacts there's some but it's not particularly bad
+not particularly bad and otherwise it's been cleaned up so
+and otherwise it's been cleaned up so yeah
+yeah that is like everything around the
+that is like everything around the actual ray trace so now finally we get
+actual ray trace so now finally we get to the ray tracing part of the ray
+to the ray tracing part of the ray tracing presentation and i give back to
+tracing presentation and i give back to johannes
+johannes thank you
+yeah so far we ignored the actual ray tracing part
+tracing part the dxr api part i will talk about some
+the dxr api part i will talk about some practical issues that we encountered
+practical issues that we encountered and our solutions to those issues they
+and our solutions to those issues they weren't always
+weren't always super clever but they were sometimes
+super clever but they were sometimes almost
+almost often easy to implement considering our
+often easy to implement considering our timeline timescape
+timeline timescape so there are two parts that you need
+so there are two parts that you need first of all you need to find the
+first of all you need to find the intersection points in the scene so
+intersection points in the scene so building the acceleration structures
+building the acceleration structures and then once we do that we need to find
+and then once we do that we need to find the material data of that intersected
+the material data of that intersected point
+point so send it that to the shared ssr
+so send it that to the shared ssr ray tracing lighting pipeline
+so first of all we need to build the bottom level acceleration structure
+bottom level acceleration structure that is basically just some geometry
+that is basically just some geometry that is sent to the gpu the gpu
+that is sent to the gpu the gpu processes it to build the acceleration
+processes it to build the acceleration structure typically this is like
+structure typically this is like a mesh like a chair or a car or
+a mesh like a chair or a car or something and then you reuse that same
+something and then you reuse that same bottom level acceleration structure for
+bottom level acceleration structure for the entirety of
+the entirety of a bit a while as long as that mesh is
+a bit a while as long as that mesh is used
+used then you can combine multiple of these
+then you can combine multiple of these bottom level acceleration structures
+bottom level acceleration structures to create the top level acceleration
+to create the top level acceleration structure
+structure which typically contains the entire game
+which typically contains the entire game world
+so then you have objects that are not static and need to be updated each frame
+static and need to be updated each frame so for those who run a simple compute
+so for those who run a simple compute shader that transform the vertices and
+shader that transform the vertices and then rebuild the bottom level
+then rebuild the bottom level acceleration structure
+acceleration structure this process is repeated each frame and
+this process is repeated each frame and this is the topic of the next part
+this is the topic of the next part this can be quite expensive so first of
+this can be quite expensive so first of all
+all which objects do we keep in our bottom
+which objects do we keep in our bottom level except in our acceleration
+level except in our acceleration structure
+structure um in regular rendering you do frustum
+um in regular rendering you do frustum calling
+calling and you do occlusion calling and maybe
+and you do occlusion calling and maybe distance calling and some other calling
+distance calling and some other calling techniques
+techniques but these two don't work very well with
+but these two don't work very well with ray tracing because the arrays can go
+ray tracing because the arrays can go anywhere in the scene right
+anywhere in the scene right so the solution is quite simple no code
+so the solution is quite simple no code no calling for ray tracing
+no calling for ray tracing right we try that um and we have this
+right we try that um and we have this level rotterdam level basic level in
+level rotterdam level basic level in battlefield v
+battlefield v if we disable calling for ray tracing
+if we disable calling for ray tracing then we have about 20 000 top level
+then we have about 20 000 top level instances
+instances and we have about 1 000 bottom level
+and we have about 1 000 bottom level rebuilds each frame
+rebuilds each frame that is quite a lot of process the cpu
+that is quite a lot of process the cpu struggles quite a lot with this
+struggles quite a lot with this these are approximate numbers i measured
+these are approximate numbers i measured many times and i got different but the
+many times and i got different but the bottom line is it's extremely expensive
+bottom line is it's extremely expensive and also the gpu has to process all
+and also the gpu has to process all these rebuilds
+these rebuilds and it's also very expensive costs more
+and it's also very expensive costs more than many
+than many many many milliseconds more than we can
+many many milliseconds more than we can afford
+afford so what we do is we try to reduce the
+so what we do is we try to reduce the instance count
+instance count and we're going to use the calling
+and we're going to use the calling heuristic anyway even though it's wrong
+heuristic anyway even though it's wrong but that's what we have to do and we're
+but that's what we have to do and we're going to accept some minor artifacts but
+going to accept some minor artifacts but we're going to try to reduce them
+we're going to try to reduce them the idea is that objects that are far
+the idea is that objects that are far away are less important than
+away are less important than objects close to the camera unless those
+objects close to the camera unless those objects are
+objects are large than they will show in the
+large than they will show in the reflection and they actually are
+reflection and they actually are important
+important so we're trying to figure out some kind
+so we're trying to figure out some kind of heuristic that would combine these
+of heuristic that would combine these two
+two and the simplest we could think of was
+and the simplest we could think of was basically taking all the objects
+basically taking all the objects and the bombing sphere check the radius
+and the bombing sphere check the radius of this bounding sphere compare it to
+of this bounding sphere compare it to the distance to the camera
+the distance to the camera do some math and then you find a culling
+do some math and then you find a culling angle
+angle if this calling angle is lower than a
+if this calling angle is lower than a certain threshold then we simply remove
+certain threshold then we simply remove the object from the
+the object from the acceleration structure
+this is how it looks on the left side we have no calling enabled at all
+have no calling enabled at all in the center we have a four degree
+in the center we have a four degree calling cutoff on the right side we have
+calling cutoff on the right side we have 15 degrees
+15 degrees 15 degree you should probably see quite
+15 degree you should probably see quite a lot of objects missing
+a lot of objects missing four degrees a bit harder to tell from
+four degrees a bit harder to tell from these slides but if you look closer
+these slides but if you look closer you will see for instance um the wheels
+you will see for instance um the wheels of the truck have disappeared
+of the truck have disappeared some street signs some objects in the
+some street signs some objects in the far distance
+far distance but overall it looks okay and if you do
+but overall it looks okay and if you do some denoising and this is a blurry
+some denoising and this is a blurry surface it's probably not gonna matter
+surface it's probably not gonna matter too much so if you do four degree
+too much so if you do four degree calling
+calling then a thousand updates goes down with a
+then a thousand updates goes down with a factor of ten to a hundred
+factor of ten to a hundred and a twenty thousand top level
+and a twenty thousand top level instances go down to two thousand
+instances go down to two thousand so this is a huge improvement now the
+so this is a huge improvement now the cpu is happy the gpu rebuild times are
+cpu is happy the gpu rebuild times are okay
+okay um we do see some occasional popping and
+um we do see some occasional popping and missing objects but considering the
+missing objects but considering the benefits we definitely
+benefits we definitely we have to go with this approach further
+we have to go with this approach further optimizations you can do today's bottom
+optimizations you can do today's bottom level
+level acceleration structures is that
+acceleration structures is that you can stagger full and incremental
+you can stagger full and incremental updates because you can choose to either
+updates because you can choose to either do an incremental update of a bottom
+do an incremental update of a bottom level or a full update the incremental
+level or a full update the incremental one will reduce the quality of the
+one will reduce the quality of the actual
+actual acceleration structure for ray tracing
+acceleration structure for ray tracing but yeah
+but yeah since you do this each frame it will be
+since you do this each frame it will be a net win
+then you tell the driver to please build as fast as you possibly can
+as fast as you possibly can and sacrifice ray tracing quality the
+and sacrifice ray tracing quality the last thing we do is
+last thing we do is run all of this async compute during
+run all of this async compute during graphics
+graphics that saves another 0.8 milliseconds
+that saves another 0.8 milliseconds that's all about acceleration structures
+that's all about acceleration structures now we have the acceleration structure
+now we have the acceleration structure all we need to do is do the actual
+all we need to do is do the actual shading
+shading but first we need to get the material
+but first we need to get the material data so
+data so what are the requirements to get
+what are the requirements to get reflections the raster version
+reflections the raster version and the reflected surf the reflection
+and the reflected surf the reflection version
+version must match exactly so if we have one
+must match exactly so if we have one triangle that's being rasterized
+triangle that's being rasterized right and the pixel shader is executing
+right and the pixel shader is executing on the sample location at the center of
+on the sample location at the center of the triangle
+the triangle if we would shoot array at the exact
+if we would shoot array at the exact same sample location we want to have
+same sample location we want to have the exact same output obviously to our
+the exact same output obviously to our help we have the closest hit shader and
+help we have the closest hit shader and the nh shader the closest
+the nh shader the closest shader is executed on the surface
+shader is executed on the surface closest to the ray
+closest to the ray origin and the energy shader is executed
+origin and the energy shader is executed on any potential hit along the ray
+so shaders in frostbite work like this artists sit in these shadow graphs
+artists sit in these shadow graphs they take some textures and and yeah
+they take some textures and and yeah some other constants probably
+some other constants probably and then they define the output in the
+and then they define the output in the output node node which
+output node node which which is like normal roughness and yeah
+which is like normal roughness and yeah some more stuff and these graphs are
+some more stuff and these graphs are then converted in offline pipeline time
+then converted in offline pipeline time to a bunch of shader
+to a bunch of shader hls or shader codes and we have
+hls or shader codes and we have thousands of these and they are updated
+thousands of these and they are updated constantly so
+constantly so doing like manual conversion is
+doing like manual conversion is obviously not possible
+obviously not possible so we have an automatic pipeline step to
+so we have an automatic pipeline step to do this for us
+do this for us so this is our basic heat shader
+so this is our basic heat shader template in in ray tracing
+template in in ray tracing so we have a shader and we on ray
+so we have a shader and we on ray intersection we need to unpack the
+intersection we need to unpack the vertex data
+vertex data of this triangle that we hit so vertex
+of this triangle that we hit so vertex buffers and uis
+buffers and uis then we run the vertex shader three
+then we run the vertex shader three times one for each vertex
+times one for each vertex to transform this to a world space for
+to transform this to a world space for instance or
+instance or have a vertex shader fragment that can
+have a vertex shader fragment that can do anything that any artists
+do anything that any artists arbitrarily defined it to do then we
+arbitrarily defined it to do then we interpolate the results
+interpolate the results pass that to the shaded graph and write
+pass that to the shaded graph and write the resulting output to a payload
+the resulting output to a payload and that's it however there are a few
+and that's it however there are a few considerations and some troubles
+considerations and some troubles some instructions are not really
+some instructions are not really translatable well to ray tracing
+translatable well to ray tracing for instance screen space gradients and
+for instance screen space gradients and they require
+they require information from neighboring pixels and
+information from neighboring pixels and we don't have pixels so we don't have
+we don't have pixels so we don't have any neighboring pixels so our solution
+any neighboring pixels so our solution to this was simply to ignore the problem
+to this was simply to ignore the problem and hope that it didn't
+and hope that it didn't show up to be a problem um
+show up to be a problem um slightly related to this actually this
+slightly related to this actually this works we didn't do anything else in this
+works we didn't do anything else in this but slightly related to this is the
+but slightly related to this is the texture mip level
+texture mip level because the gradients are used to
+because the gradients are used to calculate the mip level
+calculate the mip level and we could spend some people have
+and we could spend some people have spent time
+spent time on how to solve this we didn't have that
+on how to solve this we didn't have that time so
+time so our solution was simply to sample mip
+our solution was simply to sample mip level zero always
+level zero always it introduces a bit of noise and it's
+it introduces a bit of noise and it's not cache efficient
+not cache efficient but this this is what we did considering
+but this this is what we did considering our the time we had
+our the time we had then there are more instructions this
+then there are more instructions this instruction flip
+instruction flip so the instruction to terminate the
+so the instruction to terminate the pixel shader as it's executing
+pixel shader as it's executing if you ignore this though you're going
+if you ignore this though you're going to run into these issues
+to run into these issues you have a tree here that's alpha tested
+you have a tree here that's alpha tested and if you're going to ignore the alpha
+and if you're going to ignore the alpha testing in the inter
+testing in the inter in the closest stitch shader it's going
+in the closest stitch shader it's going to look pretty bad
+to look pretty bad the array is going to hit and it's going
+the array is going to hit and it's going to terminate return a black color
+to terminate return a black color when it should just skip through the
+when it should just skip through the leaf node leaves
+leaf node leaves for this we used any hit shader to do
+for this we used any hit shader to do along the
+along the possible intersections along the ray we
+possible intersections along the ray we check the opacity value
+check the opacity value and check if it's actually going to be a
+and check if it's actually going to be a valid intersection or not
+valid intersection or not doing this looks pretty good however
+doing this looks pretty good however it turns out that checking these opacity
+it turns out that checking these opacity values on every
+values on every possible intersection especially for
+possible intersection especially for complex geometry like a tree which have
+complex geometry like a tree which have many overlapping triangles
+many overlapping triangles is quite expensive this is a
+is quite expensive this is a visualization of the rotterdam level
+visualization of the rotterdam level again
+again and this is uh using ray tracing
+and this is uh using ray tracing shooting direct
+shooting direct arrays into the scene and the brighter
+arrays into the scene and the brighter the pixel
+the pixel the more expensive it is to to shade and
+the more expensive it is to to shade and as you can see
+as you can see the brightest object in this scene is
+the brightest object in this scene is the is the trees and the vegetation
+yeah so summary closest each shader we always generate
+closest each shader we always generate and the heat shader is optional and we
+and the heat shader is optional and we only use them for alpha tested geometry
+only use them for alpha tested geometry and we are trying to avoid them if
+and we are trying to avoid them if possible because they're very expensive
+possible because they're very expensive and then we're on this compute shader
+and then we're on this compute shader for dynamic geometry
+right speaking of the payload so what is actually returned from all these
+actually returned from all these closest stitch shaders is a payload it's
+closest stitch shaders is a payload it's basically just
+basically just data with the same format as g buffers
+data with the same format as g buffers which is required to have
+which is required to have consistently with lighting but it serves
+consistently with lighting but it serves another good purpose it keeps the
+another good purpose it keeps the payloads small tightly packed
+payloads small tightly packed and also we can easily verify that our
+and also we can easily verify that our closest seat shader are actually doing
+closest seat shader are actually doing the right thing so what we can do is
+the right thing so what we can do is take the rasterized output
+take the rasterized output and then shoot rays in the exact same
+and then shoot rays in the exact same sample locations with the same camera
+sample locations with the same camera and everything
+and everything and just check the difference and if
+and just check the difference and if there is a non-zero
+there is a non-zero value in any pixel then you have a bug
+value in any pixel then you have a bug then you fix the bug possibly or ignore
+then you fix the bug possibly or ignore it depends on how severe it is
+it depends on how severe it is and you're done
+and you're done but then we have all these shaders that
+but then we have all these shaders that have been generated offline
+have been generated offline and we have about 3000 per level on
+and we have about 3000 per level on level low though when you run the game
+level low though when you run the game these shaders need to be compiled into
+these shaders need to be compiled into collections
+collections which is like a pso for ray tracing
+which is like a pso for ray tracing and it turns out that doing that is
+and it turns out that doing that is quite expensive any single one of these
+quite expensive any single one of these shaders
+shaders cost over 100 milliseconds typically
+cost over 100 milliseconds typically some of them are more than 100 like
+some of them are more than 100 like multiple of 100 milliseconds
+multiple of 100 milliseconds so compiling them in a single frame is
+so compiling them in a single frame is not possible so you will either have to
+not possible so you will either have to live with some popping
+live with some popping as the objects are streamed in and
+as the objects are streamed in and you're compiling shaders
+you're compiling shaders or you compile all of the shaders in the
+or you compile all of the shaders in the entire level
+entire level during load screen this is what we chose
+during load screen this is what we chose to do
+to do there is still quite a lot of time so
+there is still quite a lot of time so the first time you start a game this
+the first time you start a game this actually takes
+actually takes one and a half seconds uh one and a half
+one and a half seconds uh one and a half minutes
+minutes on a multi-core machine but on
+on a multi-core machine but on consecutive runs
+consecutive runs when the shader driver shaded cache is
+when the shader driver shaded cache is warm then it's much faster and just
+warm then it's much faster and just takes about 15
+takes about 15 15 seconds
+now we're going to talk about particles so particles
+so particles are very important in battlefield it's
+are very important in battlefield it's set during world war ii so
+set during world war ii so fire smoke and explosions are obviously
+fire smoke and explosions are obviously important
+important and when i talk about particles what i
+and when i talk about particles what i actually mean technically mean
+actually mean technically mean is transparent billboards and billboards
+is transparent billboards and billboards is
+is just a play to the plane that's always
+just a play to the plane that's always facing the camera
+facing the camera direction to render them in ray tracing
+direction to render them in ray tracing though
+though it's quite a basic algorithm you shoot
+it's quite a basic algorithm you shoot array in the top level acceleration
+array in the top level acceleration structure
+structure containing all of your opaque geometry
+containing all of your opaque geometry then you have a second acceleration
+then you have a second acceleration structure containing all your particles
+structure containing all your particles and then you shoot array with the same
+and then you shoot array with the same max t
+max t and you find the first intersection
+and you find the first intersection calculate the alpha and peak value and
+calculate the alpha and peak value and from that point you trace to the next
+from that point you trace to the next plane and keep accumulating the alpha
+plane and keep accumulating the alpha and opaque value
+and opaque value and you repeat this process until you
+and you repeat this process until you find no more intersections
+find no more intersections once you're done if you have any alpha
+once you're done if you have any alpha left you simply blend with the opaque
+left you simply blend with the opaque hit
+hit right the first problem with this
+right the first problem with this is that they are camera aligned
+is that they are camera aligned billboards that means
+billboards that means if you're not looking at them from the
+if you're not looking at them from the camera direction where they're directed
+camera direction where they're directed they're gonna look really bad you're
+they're gonna look really bad you're going to see those billboards like quite
+going to see those billboards like quite clearly when looking from a mirror
+clearly when looking from a mirror or from an on another angle we tried
+or from an on another angle we tried many things
+many things to get rid of this problem one thing we
+to get rid of this problem one thing we tried was to always rotate the particle
+tried was to always rotate the particle against the ray
+against the ray so the ray would always sit at a 90
+so the ray would always sit at a 90 degree angle
+degree angle the code was quite complex we needed to
+the code was quite complex we needed to use intersection shaders
+use intersection shaders and they are quite expensive and it
+and they are quite expensive and it didn't look quite right
+didn't look quite right i wish i had screenshots to show this
+i wish i had screenshots to show this but this was a while back um so we
+but this was a while back um so we scrapped that idea anyway
+scrapped that idea anyway we tried something far more simple and
+we tried something far more simple and that was to
+that was to a five line cone change to just simply
+a five line cone change to just simply every other particle
+every other particle rotate it 90 degrees around the y axis
+rotate it 90 degrees around the y axis it turned out to be considering the code
+it turned out to be considering the code change and the actual result it gave
+change and the actual result it gave uh we simply decided to stick with it
+as you can see here it's now much more volumetric in the reflection
+volumetric in the reflection without costing any more extra
+without costing any more extra performance basically
+performance basically the second issue with particles is
+the second issue with particles is performance so we had to accumulate
+performance so we had to accumulate intersections along this ray so if we
+intersections along this ray so if we shoot for instance one ray per pixel
+shoot for instance one ray per pixel in this case we're now going to have to
+in this case we're now going to have to shoot enraged per pixel
+shoot enraged per pixel because of this loop that we introduced
+because of this loop that we introduced and shooting race
+and shooting race is expensive so we don't want to do that
+so we wanted to have another solution this is oh yeah this is how it looks
+this is oh yeah this is how it looks this is a smoke the smoke and the fire
+this is a smoke the smoke and the fire are particles
+are particles and it costs about one millisecond to
+and it costs about one millisecond to trace this
+trace this excuse me
+so our idea was used any hit shader again
+again it's kind of the same thing you shoot
+it's kind of the same thing you shoot array and for every possible
+array and for every possible intersection point you execute a shader
+intersection point you execute a shader so basically every possible every
+so basically every possible every particle along the ring
+particle along the ring the only difference though between this
+the only difference though between this and the loop is that
+and the loop is that this and the hitchhiker thing is
+this and the hitchhiker thing is executed out of order
+executed out of order the order is undefined in which the and
+the order is undefined in which the and the charges
+the charges are executed so inspired by this paper
+are executed so inspired by this paper we made up some weighted blended order
+we made up some weighted blended order independent transparency technique
+independent transparency technique based on alpha value luminance and the
+based on alpha value luminance and the rgb of the particles
+so we use this because we want to enhance fire and
+enhance fire and like explosive things and not make them
+like explosive things and not make them let them be occluded by uh smoke and
+let them be occluded by uh smoke and stuff like that
+stuff like that just keep in mind if you try this use
+just keep in mind if you try this use this flag because any
+this flag because any shaders may be executed more than once
+shaders may be executed more than once it's quite not intuitive
+it's quite not intuitive but apparently that's an optimization
+but apparently that's an optimization they do in the driver
+they do in the driver so the result from doing this is that
+so the result from doing this is that it's much faster
+it's much faster and it looks practically the same it's
+and it looks practically the same it's only if you look very closely that you
+only if you look very closely that you can see that
+can see that since we gave more weights to the fiery
+since we gave more weights to the fiery and bright
+and bright particles that the smoke yeah it's
+particles that the smoke yeah it's slightly incorrect
+slightly incorrect basically but considering the speed up
+basically but considering the speed up we're very happy with this approach
+we're very happy with this approach and that's it for our presentation thank
+and that's it for our presentation thank you for listening
+you for listening and i think we have time for questions
+hi uh with the any hit shady you just talked about then do you take
+talked about then do you take all of the hits or do you limit it to a
+all of the hits or do you limit it to a certain number i would take all of the
+certain number i would take all of the hits all of them are cool
+so i was really really really impressed by the patch that you re
+by the patch that you re released right that doubled the
+released right that doubled the performance
+performance uh so were all the optimizations that
+uh so were all the optimizations that you talked about
+you talked about in for ship or were some of those in the
+in for ship or were some of those in the patch that you released later
+patch that you released later so which optimizations were in the patch
+so which optimizations were in the patch versus the one we shipped that's your
+versus the one we shipped that's your question
+question or were there additional things that you
+or were there additional things that you did that you didn't talk about
+did that you didn't talk about in the patch um i actually don't
+in the patch um i actually don't remember exactly what we did for the
+remember exactly what we did for the patch i think we did variable ray
+patch i think we did variable ray tracing
+tracing for the variable ray tracing was added
+for the variable ray tracing was added and
+and what else one thing i forgot to mention
+what else one thing i forgot to mention was that
+was that the alpha tested trees were quite
+the alpha tested trees were quite expensive and one thing we did
+expensive and one thing we did for the patch was to make add a lot bias
+for the patch was to make add a lot bias to all the
+to all the trees so that they were always run at
+trees so that they were always run at the lower level of detail which made
+the lower level of detail which made them a bit cheaper
+them a bit cheaper the screen space tracing was also added
+the screen space tracing was also added in that patch didn't exist before
+in that patch didn't exist before also there's a trivial optimization to
+also there's a trivial optimization to that that we didn't ship at all yet that
+that that we didn't ship at all yet that is
+is after the screen space trace about 40 of
+after the screen space trace about 40 of your rays are gone
+your rays are gone but we forgot to kind of get rid of
+but we forgot to kind of get rid of those so our
+those so our actual trace ran at like 60 occupancy it
+actual trace ran at like 60 occupancy it still does
+still does uh so we tried it out locally this gives
+uh so we tried it out locally this gives another millisecond almost
+another millisecond almost uh of performance back so
+uh of performance back so and that's just a very silly omission
+and that's just a very silly omission great job guys thanks a lot
+uh hi thank you for very impressive presentation
+presentation i i still don't understand one
+i i still don't understand one why every company use their
+why every company use their own denoiser because nvidia
+own denoiser because nvidia advertiser machine learning denoiser why
+advertiser machine learning denoiser why it's uh all the
+it's uh all the every stick used every time
+it's a one question and the second question
+question have you tried to retrace object with
+have you tried to retrace object with high overdraw
+high overdraw like trees
+like trees and do not use alpha testing and
+and do not use alpha testing and trace the rays and if
+trace the rays and if the rays is blocked by trees you stop
+the rays is blocked by trees you stop the ray
+the ray and another things for particles if you
+and another things for particles if you have denser and
+have denser and more denser particles also the benefits
+more denser particles also the benefits of ray tracing and the trace stops
+of ray tracing and the trace stops in the dense particles and you shouldn't
+in the dense particles and you shouldn't draw all particles it's like a perfect
+draw all particles it's like a perfect occlusion
+occlusion so have you tried this so the first
+so have you tried this so the first question was uh why would annoying
+question was uh why would annoying the nvidia denoiser uh i don't think we
+the nvidia denoiser uh i don't think we actually tried it but it was not as
+actually tried it but it was not as completed at the time when we started
+completed at the time when we started this work so um this is
+this work so um this is yeah from november 2017 like i know
+yeah from november 2017 like i know nvidia had improved their denoiser
+nvidia had improved their denoiser several times
+several times but i mean we started this work before
+but i mean we started this work before like the machine learning gpus were out
+like the machine learning gpus were out so that is probably like that is one of
+so that is probably like that is one of the reasons we didn't use them
+the reasons we didn't use them um and then the second question was
+um and then the second question was i didn't get the alpha-tested tree part
+i didn't get the alpha-tested tree part uh yeah yeah is that
+uh yeah yeah is that a treason if you have a lot of trees you
+a treason if you have a lot of trees you have a lot of
+have a lot of overdraw so it's maybe better use ray
+overdraw so it's maybe better use ray tracing tool
+tracing tool so our trees are top over the role
+so our trees are top over the role uh the unfortunate thing is trees are
+uh the unfortunate thing is trees are our biggest problem in ray tracing
+our biggest problem in ray tracing no matter what we do they're by far the
+no matter what we do they're by far the slowest thing for to trace and they're
+slowest thing for to trace and they're much worse than unrasterizer
+much worse than unrasterizer and we're like if you have any ideas how
+and we're like if you have any ideas how to retrace trees efficiently we're very
+to retrace trees efficiently we're very happy to hear that
+happy to hear that yeah we've asked a lot of very smart
+yeah we've asked a lot of very smart people no one has come up with a good
+people no one has come up with a good answer yet
+answer yet you can choose between geometry and
+you can choose between geometry and alpha testing in both this kind of crap
+alpha testing in both this kind of crap so just make gains without trees if you
+so just make gains without trees if you want to do ray tracing
+want to do ray tracing yeah and the same with four particles
+yeah and the same with four particles because particles have
+because particles have effects have heavy withdrawal maybe 10
+effects have heavy withdrawal maybe 10 10 times 50 times
+10 times 50 times as particles weren't as bad for us
+as particles weren't as bad for us because for particles we can use any hit
+because for particles we can use any hit which means we don't like we don't like
+which means we don't like we don't like go out of the tracing part
+go out of the tracing part like we just get all the samples and we
+like we just get all the samples and we can shade them for the bad part of that
+can shade them for the bad part of that alpha testing is you basically uh
+alpha testing is you basically uh so you want to stop when you hit the
+so you want to stop when you hit the actual intersection you have to like
+actual intersection you have to like evaluate the shader over and over again
+evaluate the shader over and over again so we have didn't have as much
+so we have didn't have as much performance issues tracing actual
+performance issues tracing actual transparencies
+transparencies compared to a rasterizer transparencies
+compared to a rasterizer transparencies are not as bad as alpha testing
+are not as bad as alpha testing alpha testing okay
+alpha testing okay thank you
+yeah if there's uh no more questions then
+then thanks everyone again thanks for coming

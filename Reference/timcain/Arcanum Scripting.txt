@@ -1,0 +1,305 @@
+hi everyone it's me Tim today I want to
+talk about scripting in
+Arcanum now I was going to compare and
+contrast it with Fallout
+scripting but Fallout script came from
+directly from Starfleet
+Academy I never used it I wasn't the one
+who integrated it
+in so while I know what it was like I
+don't
+really have any use in it
+and so I'm gonna defer that for now let
+me talk about arcanum's
+scripting one of the issues when we
+started Arcanum was we didn't have the
+budget to hire any
+scripters and the programmers already
+had so much on their plate that there
+was really no way that they were going
+to do all the scripting as well as all
+the coding so I set out to make a script
+editor for a script language that
+anybody could use not just coders I
+wanted to make it simple I wanted to
+make it
+intuitive I wanted to make it something
+that would help prevent a lot of the
+common errors I saw in Fallout which
+were things
+like um just scripts with syntax errors
+in them
+or Loops infinite loops so I tried to do
+that I wrote an editor called sock
+monkey I tried to take a video of a
+Windows video of it but none of the
+popups that happen within sock monkey
+will record so I'm just going to talk
+about
+it so every script in Arcanum had its
+own flags and these things these are
+things that we wanted to be able to test
+without actually looking into the script
+there were things like this is a trap
+script so that way if any object in the
+scene had a trap script on it that's
+what detect traps would
+highlight and it also meant
+that you know entering using that script
+using that object in any way is what
+triggered the Trap
+the script could also have Flags like
+you only run me once and then you delete
+me it could also have something called a
+Teleport trigger and what that was used
+for is normally
+you could you could only put uh scripts
+on a tile so when it got entered but if
+you teleported across an area it would
+not
+trigger the teleport
+trigger said if someone teleports from
+one area to another in a direct
+line
+then if it if any of the scripts on that
+direct line have t trigger on it run
+them anyway so every script had its own
+local counters and flags so that were
+preserved between script execution it
+could access Global rays of variables
+and flags and also it could look at any
+data that was kept on the player so
+every line in sock monkey was either a
+conditional or an action so it was
+either an if then or an action but
+secretly they were all if thens if you
+told it you wanted an action
+it just internally wrote If true then do
+this else do nothing because it would
+just always run the then and it would
+display it as an action you thought it
+was an action but internally everything
+was just a
+conditional so the way these things
+worked
+is when you
+selected whether it was an action or
+condition let's say you did a
+condition you could then select
+conditions of from a drop- down menu
+these would be things like OB has item
+or OB is within n tiles of obge and I
+explain the parameters in a second
+actions would be again selected from a
+drop down those could be things like set
+Global n or print message n or have obge
+cast spell on obge now those parameters
+I've been
+mentioning those were also selected with
+a drop down if you had a number it would
+just have you type in a number or you
+could say get the number from this local
+or Global
+variable then it would look it up on the
+appropriate list so there was a message
+list so if you said print message n you
+would look it up on the message list if
+you said they have item n it would look
+up there could be a list of items you
+could make and it would look up the nth
+one for spells there was a spell list
+there were lots of lists that were
+already available in the game and those
+were there for a lot of reasons um but
+the script system could use them as well
+what was cool about OBS though was we
+had a lot of predefined objects like
+player was an OB so you could say you
+could select player for the op you could
+select trigger which was who activated
+this script so if you opened a door you
+were the trigger you could also say
+attache so if you open the door the
+attache is the door cuz it's the one
+that has the script on it I also had a
+concept of every and any so you could
+say like every follower any
+follower everyone on team which would
+include the player and all the followers
+or anyone in party which in multiplayer
+would be all the players what was cool
+about that was every and any were great
+for conditionals you could
+say let's say there's a
+door and you can open it it's locked
+locked but if anybody has the key it can
+open you could put on the doors
+open attachment I'll talk about
+attachments in a second um you could say
+if anyone in the party has key five
+then return to default which is the door
+can be open otherwise return and it
+would skip it and I'll talk about that
+in a second too what was cool about
+every and any was not only is it great
+for conditionals you could say if you
+could also make a door
+that required everyone to have like a
+hat on or the door wouldn't open you
+could say everyone in the party had item
+and it's the hat but you can also use
+every in the loops you could say for
+everyone in party and then you could
+inside that Loop there's a special
+object called Loop object so it would
+Loop through everyone and you could run
+some actions that would happen on
+everyone in the party or if you wanted
+to test something on everyone in the
+party you could say for everyone in the
+party and then check for things on
+them originally this we didn't have a
+go-to however scripts had to be able to
+call other scripts and I soon discovered
+that because I was called on to the
+bugget that people would have script a
+call script B and then call script a and
+a loop would happen that way so I put in
+go-tos to let you jump around in your
+inside one script but I had to put
+on
+uh fail safes in the script system so if
+it ever tried to run I think it was more
+than a thousand lines it would just tap
+out and go I've executed a thousand
+lines of scripts I don't think this
+thing is ending and I never thought
+those would trigger they
+triggered uh I mentioned two return
+values this was important
+because there were lots of different
+different ways to attach a script and
+I'll talk about that in a second but if
+a script returned just said return that
+meant it would return and run whatever
+the default was supposed to happen for
+that attachment
+point um I'm sorry I have that backwards
+if it said returned to default it would
+run and do the default stuff if it said
+return then that means go back to
+whatever called me and don't do the
+default action that that's the script's
+way of saying I handled it so if you had
+a
+door and on its open attachment point
+you
+put return well the default is that you
+can open the door so if you if you pass
+back return the door would not be open
+and it would just print a message saying
+you can't open the door the return to
+default would allow you to open the door
+same thing on a
+container same thing on you could put it
+on anything you could put it on any
+anyone's use so let's talk about
+attachment points there was a big list
+of places you could attach scripts you
+could attach it on the use of it you
+could attach it on um an item being
+picked up you could attach it on an item
+being wielded you know so like you pick
+up a sword it goes to your inventory you
+wield it now you're holding on selling
+it to someone um so I'll give you an
+example of how that would work let's say
+you had an attachment point on a
+merchant for buy
+object and let's
+say what that actually says is it def it
+defaults to the NPC who's the attache
+buying an item which is the
+trigger
+if
+the if it says return if if that it he
+won't buy it his default is to buy it so
+let's say you wanted to make a special
+object that no Merchant would buy
+because for your quest you wanted to
+make it so that it couldn't be sold to a
+merchant or only one Merchant would ever
+be interested in buying it
+you
+could put scripts on your Merchants
+saying if you try to if on their attempt
+to buy this object it would just return
+so they wouldn't buy
+it similarly you could have there's a
+wield on script attachment point so
+every
+time somebody tries to wield it that
+script gets
+caught you could say if the
+creature um who's trying to wield it if
+you do return that means he can't wield
+it so it won't go on you could maybe
+make a sword that you can only wield if
+your Magic score is above 90 let's say
+so it's a sword that can only be wielded
+by super magical people in arcano you
+could check to see if the person trying
+to wield it had a magic skill of 90 and
+if they didn't you return if they did
+you return the default because the
+default of wield is put it on you is let
+let you wield it similarly for wield off
+you could test things
+like you could make a cursed item and
+say this item cannot be removed it could
+so a cursed item would just get a script
+saying return because return to the
+fault would let you remove it so return
+would not let you remove it
+then if the only way to take it off was
+to finish quest the quest would take the
+the quest script would take it off if
+the if there was a spell that could do
+it you could put a script saying when
+that spell was cast on it you can remove
+the the object can be removed so this is
+how we did a ton of things in
+Arcanum because the we would agree what
+the default would be in the code and I
+would code it that way and then in the
+few places that a person making a quest
+or an item would want it to behave
+differently he put attachments on so
+that was really cool because it let us
+have a lot of power it let non-script
+make a lot of scripts and it let us do a
+lot remember with only 14 people
+so I'm pretty sure sock monkey went out
+because it was part of like World editor
+and and um other things that we shipped
+to try to make the game
+modable I think it was a success because
+we had a lot of people on the team make
+scripts including artists and um some
+folks who had no previous experience
+doing code so I think it was pretty
+successful it also because of the the
+nature of how it wrote out the data it
+was executable really fast so scripts
+were not a huge drain and Arcanum of
+course was using every last CPU cycle it
+could get so I'd say sock monkey was a
+pretty good success for us in
+Arcanum um I wish I could show a video
+of it doing anything but sitting there
+because all the popups refused to show
+but
+I'll figure it out anyway I hope this
+answers some questions and give you some
+insight in how we did scripting in
+Arcanum

@@ -1,0 +1,596 @@
+[Music] cuz I don't oh is it ready to go alright
+cuz I don't oh is it ready to go alright hi thanks for sticking by to the end so
+hi thanks for sticking by to the end so my name is many Co are you work for
+my name is many Co are you work for Activision in the central technology
+Activision in the central technology group so today this topic I'm going to
+group so today this topic I'm going to talk about is the how to generate random
+talk about is the how to generate random number in a parallel program like
+number in a parallel program like multi-threaded program or on the GPU so
+multi-threaded program or on the GPU so I'm gonna start with a very quick
+I'm gonna start with a very quick overview of some of the big more
+overview of some of the big more standard serial or random number
+standard serial or random number generated methods just to give it some
+generated methods just to give it some context and so that we can before we can
+context and so that we can before we can go to the really the heart of what I
+go to the really the heart of what I want to talk about which is generally
+want to talk about which is generally parallel random numbers maybe it didn't
+parallel random numbers maybe it didn't sound like it's a topic that's even
+sound like it's a topic that's even worth talking about because you say
+worth talking about because you say what's the problem just start a bunch of
+what's the problem just start a bunch of threads and give each of them a separate
+threads and give each of them a separate seat and just call it a day but we can
+seat and just call it a day but we can try that but maybe your application will
+try that but maybe your application will be okay with it but there will be some
+be okay with it but there will be some verification that might not be okay and
+verification that might not be okay and I wish I won't be to show your
+I wish I won't be to show your application but I will show you some
+application but I will show you some picture when a bad random parallel
+picture when a bad random parallel random number generator is used some of
+random number generator is used some of the interesting picture that you're
+the interesting picture that you're gonna get somewhat and the parallel
+gonna get somewhat and the parallel random jump number generator we will
+random jump number generator we will introduce funny terms like leap frogging
+introduce funny terms like leap frogging and splitting but it's just say yeah
+and splitting but it's just say yeah it's the concept it's actually very
+it's the concept it's actually very simple but one of the main takeaway I
+simple but one of the main takeaway I hope is to introduce a very simple type
+hope is to introduce a very simple type of random number generation that's based
+of random number generation that's based on a cryptographic hash that's very
+on a cryptographic hash that's very simple to implement that literally can
+simple to implement that literally can be implemented in five lines of code and
+be implemented in five lines of code and has good properties and it's very very
+has good properties and it's very very parallel for any so what we would like a
+parallel for any so what we would like a random number generator is that if you
+random number generator is that if you want the world is that we should be
+want the world is that we should be really like have no correlation no
+really like have no correlation no discernible pattern the number two
+discernible pattern the number two desirable is actually very hard to
+desirable is actually very hard to achieve is that we would like the
+achieve is that we would like the program without to be the same no matter
+program without to be the same no matter how many threats or hole you're actually
+how many threats or hole you're actually running because well first is to just to
+running because well first is to just to make you're running some simulation like
+make you're running some simulation like a terrain or poorly noise you don't want
+a terrain or poorly noise you don't want your different customer to get different
+your different customer to get different kind of results it will be weird but
+kind of results it will be weird but also for your own sanity if you're
+also for your own sanity if you're artists and you have the different
+artists and you have the different number of cause you could different
+number of cause you could different result is not so good so even just
+result is not so good so even just achieving that a lot is not that easy
+achieving that a lot is not that easy already and then of course we want to be
+already and then of course we want to be fast easy to ride and doesn't take any
+fast easy to ride and doesn't take any storage and no whatever you know so but
+storage and no whatever you know so but they all we would like all them and we
+they all we would like all them and we couldn't give up on any one of them but
+couldn't give up on any one of them but hopefully I'll show some range of
+hopefully I'll show some range of options typically people in doing
+options typically people in doing scientific computing they reevaluate
+scientific computing they reevaluate random numbers a lot more than we do but
+random numbers a lot more than we do but you know we don't need to work as hard
+you know we don't need to work as hard as they do but it's good to know how
+as they do but it's good to know how they measure goodness so that you know
+they measure goodness so that you know if you're making your own at least run
+if you're making your own at least run some of the tests to make sure it's not
+some of the tests to make sure it's not completely messed up so I'm not gonna
+completely messed up so I'm not gonna talk a lot about it just by just to tell
+talk a lot about it just by just to tell you introduce that these are the usual
+you introduce that these are the usual tests and even canoe volume tool is
+tests and even canoe volume tool is still is kind of old but it's still very
+still is kind of old but it's still very good reference to talk about the semi
+good reference to talk about the semi numerical algorithms it's sort of where
+numerical algorithms it's sort of where I start started on this problem and so
+I start started on this problem and so one other way to evaluate is to look at
+one other way to evaluate is to look at the power spectrum but I since not all
+the power spectrum but I since not all of us have done for a theory and all
+of us have done for a theory and all that stuff so I just want to briefly
+that stuff so I just want to briefly mention that you can just use MATLAB or
+mention that you can just use MATLAB or some off-the-shelf thing computer power
+some off-the-shelf thing computer power spectrum or your random number and it
+spectrum or your random number and it should look like the right tool slice if
+should look like the right tool slice if you look at the mean and variance of the
+you look at the mean and variance of the of your random number basically what
+of your random number basically what you're looking for is that you don't
+you're looking for is that you don't want any particular orientation or any
+want any particular orientation or any particular frequency to be more dominant
+particular frequency to be more dominant than others others so you want a very
+than others others so you want a very flat mean
+flat mean and relatively you know small standard
+and relatively you know small standard deviation across different frequency
+deviation across different frequency bands not easy to achieve actually but
+bands not easy to achieve actually but the most commonly used random number
+the most commonly used random number generator is used a linear Kangol method
+generator is used a linear Kangol method is just a fancy term if you look at the
+is just a fancy term if you look at the actual code math is actually very simple
+actual code math is actually very simple it just say magic constant a time's your
+it just say magic constant a time's your seat and I add another magic constant
+seat and I add another magic constant and then you do modulo now most runtime
+and then you do modulo now most runtime library cheat and some of them don't
+library cheat and some of them don't include C or they pick bad ones and the
+include C or they pick bad ones and the one the most common cheat it happens on
+one the most common cheat it happens on the M because M module mm is a device
+the M because M module mm is a device and you know you know divisor is
+and you know you know divisor is expensive so we lot of time with them we
+expensive so we lot of time with them we were seeing people use modulo like a
+were seeing people use modulo like a mask by using masking which is power
+mask by using masking which is power tool which kind of works except we'll
+tool which kind of works except we'll show that that's actually it can be
+show that that's actually it can be really really bad so just to make sure
+really really bad so just to make sure you remember try to avoid using m to be
+you remember try to avoid using m to be power tool we all would try but
+power tool we all would try but hopefully we'll offer some alternative
+hopefully we'll offer some alternative and if you really must use a linear
+and if you really must use a linear control and one of the old papers called
+control and one of the old papers called Parkin Miller gave you some recipe of I
+Parkin Miller gave you some recipe of I forgot to include C but if you just
+forgot to include C but if you just google Miller you will see that
+google Miller you will see that what a couple of good choices are and
+what a couple of good choices are and the one interesting thing for me
+the one interesting thing for me personally is that that M looks kind of
+personally is that that M looks kind of I don't know anyone recognize what that
+I don't know anyone recognize what that M is but it's it's happened to be to the
+M is but it's it's happened to be to the power minus 1 to the power 31 minus 1
+power minus 1 to the power 31 minus 1 and that is a prime kind of a not you
+and that is a prime kind of a not you don't expect a number like that to be a
+don't expect a number like that to be a prime and yet it is and you want it to
+prime and yet it is and you want it to be a prime for your modulo for the
+be a prime for your modulo for the reason that you get the maximum period
+reason that you get the maximum period of your random number because that means
+of your random number because that means that your C and a and C and your seat
+that your C and a and C and your seat not going to be divisible easily by your
+not going to be divisible easily by your bio modulo number so
+bio modulo number so but that's all for now usually you'll
+but that's all for now usually you'll see one time use some variant of this
+see one time use some variant of this but usually use I would call sports
+but usually use I would call sports lighting versus versions with this but
+lighting versus versions with this but just don't use it always use your own
+just don't use it always use your own that will be my advice that's another
+that will be my advice that's another common class of random number generators
+common class of random number generators called oh sorry
+called oh sorry linear Congo is that it's simple I mean
+linear Congo is that it's simple I mean it's very if it's right and you only
+it's very if it's right and you only have a single word of state you need to
+have a single word of state you need to just store the current the last random
+just store the current the last random number but the problem is that the
+number but the problem is that the period of the random number is
+period of the random number is relatively short even if you use all the
+relatively short even if you use all the perfect magic numbers at most your
+perfect magic numbers at most your period is equal to M and if you use the
+period is equal to M and if you use the cheap M the lower bits will be highly
+cheap M the lower bits will be highly correlated so this is the most extreme
+correlated so this is the most extreme version of course you don't do that but
+version of course you don't do that but you can you would you can see how bad it
+you can you would you can see how bad it is it's one seven one seven but this is
+is it's one seven one seven but this is a side bar but for a Mersenne no prime
+a side bar but for a Mersenne no prime which is 2 to the power 31 which is that
+which is 2 to the power 31 which is that a prime that is one mind one off from a
+a prime that is one mind one off from a power tool that's actually a more
+power tool that's actually a more efficient way to compute modulo by
+efficient way to compute modulo by personal Mersenne prime it's a is that
+personal Mersenne prime it's a is that follow two lines of code
+follow two lines of code it's the party not well known but it it
+it's the party not well known but it it can be kind come in handy
+can be kind come in handy but not the drawn that too much so that
+but not the drawn that too much so that second major class of random number is
+second major class of random number is called a lactate Fibonacci it's related
+called a lactate Fibonacci it's related to some Fibonacci sequence but exactly
+to some Fibonacci sequence but exactly how it I don't even know but I'm sure it
+how it I don't even know but I'm sure it is but what you need to do is the key is
+is but what you need to do is the key is the is to concentrate on the P and the
+the is to concentrate on the P and the kill you're basically looking back at
+kill you're basically looking back at the either your combine your multiplying
+the either your combine your multiplying or combining using modulo or two
+or combining using modulo or two previous random number that you have
+previous random number that you have emitted yourself so basically you store
+emitted yourself so basically you store you know you have a circularbuffer and
+you know you have a circularbuffer and you store a way you store the previous
+you store a way you store the previous the larger of the p and q
+the larger of the p and q and then you reach back by having like a
+and then you reach back by having like a two sliding cursor and you do but the
+two sliding cursor and you do but the math is very simple that's the beauty of
+math is very simple that's the beauty of that I've like the Fibonacci generator
+that I've like the Fibonacci generator big it's is it's like a single operation
+big it's is it's like a single operation and the beauty of that is that you can
+and the beauty of that is that you can actually use module power to modular and
+actually use module power to modular and still retain reasonably okay quality so
+still retain reasonably okay quality so if you if use the multiply operator to
+if you if use the multiply operator to combine the star up here it's even it's
+combine the star up here it's even it's not as they're multiplied it can be
+not as they're multiplied it can be sorry I should use a different symbol it
+sorry I should use a different symbol it can be - it can be it can be a multiply
+can be - it can be it can be a multiply and you can be at X or so I got some
+and you can be at X or so I got some error in the slide so I apologize for
+error in the slide so I apologize for that but the most interesting ones are
+that but the most interesting ones are usually relies on either multiply either
+usually relies on either multiply either addition or multiplication so those are
+addition or multiplication so those are the the a lfg is additive reactive
+the the a lfg is additive reactive Fibonacci so that's the that's the
+Fibonacci so that's the that's the equation so he uses the a add to combine
+equation so he uses the a add to combine the pre P like that p and Q a modulo by
+the pre P like that p and Q a modulo by power to but multiply will give you a
+power to but multiply will give you a better quality so the period of elected
+better quality so the period of elected Fibonacci generator is much much bigger
+Fibonacci generator is much much bigger than than a linear Kangol is just
+than than a linear Kangol is just roughly linear Congo was roughly 2 to
+roughly linear Congo was roughly 2 to the power M so think of that this is
+the power M so think of that this is like a to the power of P which can be
+like a to the power of P which can be like a like 18 for example to another 2
+like a like 18 for example to another 2 to the power you know let's say is 12 so
+to the power you know let's say is 12 so it is a very big you know the periods
+it is a very big you know the periods that's a lot longer so its power to mod
+that's a lot longer so its power to mod relatively efficient much longer period
+relatively efficient much longer period and you can work directly in floats big
+and you can work directly in floats big leaving Congo usually at the working
+leaving Congo usually at the working integer and then convert it to flow and
+integer and then convert it to flow and that's not very modern pipeline friendly
+that's not very modern pipeline friendly because they are kind of stalled the
+because they are kind of stalled the volume point pipe and so on and so forth
+volume point pipe and so on and so forth and it's higher quality and later on we
+and it's higher quality and later on we would see that
+would see that edited version of the hubs oops oops oh
+edited version of the hubs oops oops oh I did sorry the edited version of the
+I did sorry the edited version of the ladder fibonacci can actually skip ahead
+ladder fibonacci can actually skip ahead so this is sort of like right now we
+so this is sort of like right now we don't know why we need to skip ahead bye
+don't know why we need to skip ahead bye for now just keep that in mind so the
+for now just keep that in mind so the bad thing or the other Fibonacci
+bad thing or the other Fibonacci generator is that we had the stalled
+generator is that we had the stalled state and then it's also clearly
+state and then it's also clearly sequential so meaning that until you
+sequential so meaning that until you generate the previous P or Q number you
+generate the previous P or Q number you cannot generate the next number and the
+cannot generate the next number and the multiplicative version of that you
+multiplicative version of that you cannot jump ahead so for people in
+cannot jump ahead so for people in scientific computing the ghosts or even
+scientific computing the ghosts or even in a high quality rendering like offline
+in a high quality rendering like offline rendering the ghost standard is the it's
+rendering the ghost standard is the it's called a mercenary trista if you look at
+called a mercenary trista if you look at the spectrum it's very nice
+the spectrum it's very nice this is your what you want to see it's
+this is your what you want to see it's like like white noise no pattern but if
+like like white noise no pattern but if you look at the code that implements it
+you look at the code that implements it you won't like it
+you won't like it it has a huge table and also had to
+it has a huge table and also had to store a lot of state but it's very high
+store a lot of state but it's very high quality so if you want so what I do is
+quality so if you want so what I do is my ray tracer is that I always have this
+my ray tracer is that I always have this around so that and I have a virtual like
+around so that and I have a virtual like I random I could just switch to merchant
+I random I could just switch to merchant MT if I have some weird fog
+MT if I have some weird fog I would just say oh I'm gonna try MT and
+I would just say oh I'm gonna try MT and if that part goes away I will look at my
+if that part goes away I will look at my random but generated but so it's all
+random but generated but so it's all like a go standard but you know well if
+like a go standard but you know well if you look at the code it's lots of flops
+you look at the code it's lots of flops and it's hard but not impossible to leap
+and it's hard but not impossible to leap for you require some fancy matrix
+for you require some fancy matrix factorization which I don't even want to
+factorization which I don't even want to get into very limited parallelism so
+get into very limited parallelism so it's very high quality but even in
+it's very high quality but even in offline rendering people try to not use
+offline rendering people try to not use empty when when they can get away with
+empty when when they can get away with it so this is the basic overview of
+it so this is the basic overview of serial code so again we want to do why
+serial code so again we want to do why do you want to every random numbers in
+do you want to every random numbers in parallel well modern computers yeah as
+parallel well modern computers yeah as you know we hit the limit on what a
+you know we hit the limit on what a single computer can do
+single computer can do so as well as on the GPU so for parallel
+so as well as on the GPU so for parallel random number generator we want to
+random number generator we want to maintain the original serial random
+maintain the original serial random number generators quality using those
+number generators quality using those set of tests for example and the number
+set of tests for example and the number two is that we want the same simulation
+two is that we want the same simulation result regardless of the number of cores
+result regardless of the number of cores and we would like to have minimum state
+and we would like to have minimum state or no state if possible and we want this
+or no state if possible and we want this different streams to have minimum call a
+different streams to have minimum call a correlation with each other
+correlation with each other so one of the pretty old technique from
+so one of the pretty old technique from scientific computing to construct a
+scientific computing to construct a parallel random number generator our of
+parallel random number generator our of a serial one is to use two linear Congo
+a serial one is to use two linear Congo generators and we'll just a different a
+generators and we'll just a different a multi part that use the multi part of
+multi part that use the multi part of the seats and what this picture is
+the seats and what this picture is showing is that you use your first
+showing is that you use your first generator L to generate a bunch of
+generator L to generate a bunch of initial States for and think of that
+initial States for and think of that each of them will run into its own
+each of them will run into its own thread or process and then then the our
+thread or process and then then the our generator would take that takeover and
+generator would take that takeover and then the good thing of this approach is
+then the good thing of this approach is that you don't need to know how many
+that you don't need to know how many generators you need for example you
+generators you need for example you might have to make some runtime decision
+might have to make some runtime decision that you make some computation before
+that you make some computation before you decide whether you need to to need
+you decide whether you need to to need another set of general numbers and you
+another set of general numbers and you need that if that's the case you can
+need that if that's the case you can always spawn more you can spawn a new
+always spawn more you can spawn a new new instance of the r oops oops sorry I
+new instance of the r oops oops sorry I touched you can always spawn in another
+touched you can always spawn in another instance of our using using another
+instance of our using using another iteration of L so so their
+iteration of L so so their specialization of the random tree one is
+specialization of the random tree one is called leap frogging so leap frogging is
+called leap frogging so leap frogging is the interest important in the
+the interest important in the concentrate on this picture like what
+concentrate on this picture like what each of this is imagine is running its
+each of this is imagine is running its own thread but if you look at it in the
+own thread but if you look at it in the time in adjacent horizontally there are
+time in adjacent horizontally there are three threads if you put them two
+three threads if you put them two these three numbers will have been
+these three numbers will have been generated by what would happen the
+generated by what would happen the original single threaded code so you get
+original single threaded code so you get nice reproducible results out there and
+nice reproducible results out there and and the pipe with leapfrogging you need
+and the pipe with leapfrogging you need to you need to know the number of cores
+to you need to know the number of cores so so that's a limitation so there at
+so so that's a limitation so there at least you have to fix your number call
+least you have to fix your number call ahead of time so let's say you want to
+ahead of time so let's say you want to support maximum eight cores if you have
+support maximum eight cores if you have four cores you start a to X then this
+four cores you start a to X then this algorithm will work and this is just to
+algorithm will work and this is just to show the actual initialization
+show the actual initialization conditions for for the so if you look at
+conditions for for the so if you look at the first line it really just is a
+the first line it really just is a linear Congo generator right eight times
+linear Congo generator right eight times the previous are here I say L but before
+the previous are here I say L but before it was X K which is the previous one and
+it was X K which is the previous one and then I actually dropped the C here just
+then I actually dropped the C here just to it's you know simplify things and
+to it's you know simplify things and then the key is look at the our our is
+then the key is look at the our our is that this part is it's a to the power n
+that this part is it's a to the power n which is the number of separate sequence
+which is the number of separate sequence or call you need so if you use this
+or call you need so if you use this particular combination that each ass
+particular combination that each ass individual subsequence when Konkani
+individual subsequence when Konkani together would have been the same as the
+together would have been the same as the original serial code so it's not an
+original serial code so it's not an elegant but the problem is that you need
+elegant but the problem is that you need to know how many cause or degree of
+to know how many cause or degree of parallelism out front which you know
+parallelism out front which you know sometimes we have we we couldn't we
+sometimes we have we we couldn't we might have to eat live with that but so
+might have to eat live with that but so this just to reiterate what what
+this just to reiterate what what visually what what you're getting yeah
+visually what what you're getting yeah the final sequence is same as the serial
+the final sequence is same as the serial code and each sequence that's not
+code and each sequence that's not overlap so this is the good of the
+overlap so this is the good of the serial code but you get the same
+serial code but you get the same sequence but you the choice of your
+sequence but you the choice of your random number generator is limited so
+random number generator is limited so let's say we mentioned that the
+let's say we mentioned that the multiplicative linear vector Fibonacci
+multiplicative linear vector Fibonacci is has very hard quality a long period
+is has very hard quality a long period but you could there's no way to express
+but you could there's no way to express it in the Leapfrog form and
+the bad thing is that the a to the power P or a to the power n sorry I changed
+P or a to the power n sorry I changed notation it doesn't have the same
+notation it doesn't have the same quality original qualities of the as if
+quality original qualities of the as if you generated or using a the all the
+you generated or using a the all the subsequence subsequence can candy
+subsequence subsequence can candy together would produce original
+together would produce original simulation but what your but equally
+simulation but what your but equally important is that each threats random
+important is that each threats random numbers you have good qualities and so
+numbers you have good qualities and so if you're skipping ahead the quality of
+if you're skipping ahead the quality of fix like sample of the original sequence
+fix like sample of the original sequence you're losing the original thing that
+you're losing the original thing that you're doing another modulo using a
+you're doing another modulo using a small power tool because unless you LPS
+small power tool because unless you LPS the OPR 3 in which you you have 7 6
+the OPR 3 in which you you have 7 6 cause no it is but almost everywhere
+cause no it is but almost everywhere else you get power to you know because
+else you get power to you know because someone stole took away one core or Xbox
+someone stole took away one core or Xbox week yeah but you you the power to is
+week yeah but you you the power to is going to stare you in the face unless
+going to stare you in the face unless you're the officially take away one or
+you're the officially take away one or at one virtual one but so it's not with
+at one virtual one but so it's not with always problems but the biggest one for
+always problems but the biggest one for me is this last one the the linear Congo
+me is this last one the the linear Congo generally the periods already not very
+generally the periods already not very long to the 2 power 31 at the best and
+long to the 2 power 31 at the best and you shorten it by a factor of n so very
+you shorten it by a factor of n so very quickly with more than the computer
+quickly with more than the computer image GPU you're gonna chew through your
+image GPU you're gonna chew through your random number like new no time at all
+random number like new no time at all just think about that that's that's -
+just think about that that's that's - that's not much that's not very much
+that's not much that's not very much random numbers and you if I'm running
+random numbers and you if I'm running with one pair of flops on my GPU I can
+with one pair of flops on my GPU I can just chill through it very quickly so
+just chill through it very quickly so another way that another thing is just
+another way that another thing is just called sequence splitting this doesn't
+called sequence splitting this doesn't solve the period problem but this it
+solve the period problem but this it gives but just the quality of each
+gives but just the quality of each subsequence is actually better because
+subsequence is actually better because you are you are what you are getting the
+you are you are what you are getting the same sequence for each thread
+same sequence for each thread the problem is that the same thing your
+the problem is that the same thing your period will get shorter and we need this
+period will get shorter and we need this one we need to know the this other thing
+one we need to know the this other thing we need to know the number of values to
+we need to know the number of values to know whether split so if you know up
+know whether split so if you know up front you only need three numbers per
+front you only need three numbers per thread you can you can skip ahead three
+thread you can you can skip ahead three or if you know you don't need five
+or if you know you don't need five twelve you can simplify trial but that's
+twelve you can simplify trial but that's not always we don't always know that so
+not always we don't always know that so it's a technique okay and to actually
+it's a technique okay and to actually program it if you use Ninian congroo
+program it if you use Ninian congroo it's relatively easy you just kind of
+it's relatively easy you just kind of flipped it you just moved it's just
+flipped it you just moved it's just basically reversing the role using the a
+basically reversing the role using the a to the power n on the l which is on the
+to the power n on the l which is on the right so it's very easy to cope
+so both leapfrogging and sequence splitting the only guarantee that they
+splitting the only guarantee that they don't overlap but it doesn't talk about
+don't overlap but it doesn't talk about the quality is actually usually you
+the quality is actually usually you compromise on the quality and both of
+compromise on the quality and both of them are not invariant to degree of
+them are not invariant to degree of parallelism and i don't know about you
+parallelism and i don't know about you guys but for me if the serial code and
+guys but for me if the serial code and the parallel don't for the same resale
+the parallel don't for the same resale and different run of the parallel go
+and different run of the parallel go don't for the same result it's usually a
+don't for the same result it's usually a very bad day so like the fibonacci leap
+very bad day so like the fibonacci leap frogging is actually possible it's
+frogging is actually possible it's except not it so that's where I
+except not it so that's where I introduced elective Fibonacci is that
+introduced elective Fibonacci is that because it has much longer period the M
+because it has much longer period the M can be powered tool and as long as you
+can be powered tool and as long as you use the additive the addition operator
+use the additive the addition operator but still the problem is that we have to
+but still the problem is that we have to store a lot of states for it for dr.
+store a lot of states for it for dr. Fibonacci right basically you have to
+Fibonacci right basically you have to store the larger of the P and the Q and
+store the larger of the P and the Q and it's not very easy it's not very cheap
+it's not very easy it's not very cheap reoffending when you have to start that
+reoffending when you have to start that mistake so but it is for this for
+mistake so but it is for this for running the simulation on the on the on
+running the simulation on the on the on the CPU side it is a option so I'm
+the CPU side it is a option so I'm mostly going to focus the rest of the
+mostly going to focus the rest of the talk
+talk on using a completely different way to
+on using a completely different way to attack the problem is that we look at we
+attack the problem is that we look at we try to look at random number generation
+try to look at random number generation as a cryptographic hashing problem one
+as a cryptographic hashing problem one of the mode most commonly used one is
+of the mode most commonly used one is md5 but is very expensive to compute is
+md5 but is very expensive to compute is it okay and but so I'm gonna introduce a
+it okay and but so I'm gonna introduce a really really simple one that's called
+really really simple one that's called he e8 and he a is short for tiny
+he e8 and he a is short for tiny encryption algorithm
+encryption algorithm it's literally tiny 500 500 so the core
+it's literally tiny 500 500 so the core idea of this is that you you feed some
+idea of this is that you you feed some kind of linear plan ramp to the to your
+kind of linear plan ramp to the to your to each thread so you could just some
+to each thread so you could just some kind of linear so you could be a thread
+kind of linear so you could be a thread ID or your whatever you know or and it
+ID or your whatever you know or and it could be just your some other vertex you
+could be just your some other vertex you can include in your vertex data and you
+can include in your vertex data and you and you you take each of those leaning
+and you you take each of those leaning you take the the linear ramp and you run
+you take the the linear ramp and you run it through your cryptographic hash and
+it through your cryptographic hash and so that means all there's no dependency
+so that means all there's no dependency on each other and there's no dependency
+on each other and there's no dependency on previous state you the only
+on previous state you the only dependency is input and I you will
+dependency is input and I you will produce an output so it's completely
+produce an output so it's completely deterministic and the quality of that is
+deterministic and the quality of that is not too bad it's actually almost like
+not too bad it's actually almost like empty there's a new twist it's pretty
+empty there's a new twist it's pretty pretty decent so the TA uses a network
+pretty decent so the TA uses a network that is almost the standard building
+that is almost the standard building block in almost all modern cryptographic
+block in almost all modern cryptographic algorithms it's called Phi style coder
+algorithms it's called Phi style coder and the key the interesting structure of
+and the key the interesting structure of that is that it's very elegant
+that is that it's very elegant actually it's c'mon Oh
+yes does input is split into two halves well into l0 the left and right halves
+well into l0 the left and right halves and then the key there's a key honey I'm
+and then the key there's a key honey I'm trying to a bit key that is split into
+trying to a bit key that is split into four chunks like 32-bit chunks and then
+four chunks like 32-bit chunks and then you you feed the left and the right and
+you you feed the left and the right and the key into this magic magic thing
+the key into this magic magic thing called F which is the face they'll
+called F which is the face they'll shifter or the encoder and out and then
+shifter or the encoder and out and then you feed the output back together with
+you feed the output back together with the input the input again and you mix it
+the input the input again and you mix it again so it basically just mixing bits
+again so it basically just mixing bits but the way it's mixing it is they're
+but the way it's mixing it is they're mixing in a very careful way and and the
+mixing in a very careful way and and the also it uses the Act the to half the
+also it uses the Act the to half the input to affect each other so it to
+input to affect each other so it to speed up how fast the what is called
+speed up how fast the what is called avalanche effect has been achieved the
+avalanche effect has been achieved the avalanche effect is that is that a
+avalanche effect is that is that a single bit change would propagate an
+single bit change would propagate an effect all the rest of the bit of the
+effect all the rest of the bit of the world and that allows you to hide where
+world and that allows you to hide where your bit change had has have occurred
+your bit change had has have occurred and that's what cryptographic has is try
+and that's what cryptographic has is try to do so now I'm but I'm not trying to
+to do so now I'm but I'm not trying to but this is not trying to kapag raphy
+but this is not trying to kapag raphy but the same characteristic of the fact
+but the same characteristic of the fact that you can achieve evidence quickly
+that you can achieve evidence quickly allow us to produce your chip relevant
+allow us to produce your chip relevant up with generation Thanks so the this is
+up with generation Thanks so the this is the program so the this is the match
+the program so the this is the match honey and a big he just use it no and
+honey and a big he just use it no and then and then there's a delta you just
+then and then there's a delta you just keep adding each everyone this is the
+keep adding each everyone this is the feisty old shifter which is correspond
+feisty old shifter which is correspond to the the L in them and at the Eleanor
+to the the L in them and at the Eleanor the the L and R so and then the key is
+the the L and R so and then the key is to control number of rounds for for the
+to control number of rounds for for the theory you say that your minimum needs
+theory you say that your minimum needs eight rounds or in six runs it would be
+eight rounds or in six runs it would be able to mix all the input and you have
+able to mix all the input and you have eight rounds you get okay but sixteen
+eight rounds you get okay but sixteen round you get very good result so that
+round you get very good result so that just take away you can experiment with
+just take away you can experiment with yourself
+yourself so but don't try anything that's it for
+so but don't try anything that's it for that the comment is that Delta is happen
+that the comment is that Delta is happen to be the golden ratio but you know it's
+to be the golden ratio but you know it's just just a bit of trivia and this is
+just just a bit of trivia and this is some of the applications that you can
+some of the applications that you can use continuous terrain to driver so that
+use continuous terrain to driver so that you have an infinite world or you can
+you have an infinite world or you can use it to drive some kind of texture
+use it to drive some kind of texture synthesis our probably noise but also
+synthesis our probably noise but also any kind but actually screen size grades
+any kind but actually screen size grades screen space sampling area light source
+screen space sampling area light source all can be can use this algorithm one
+all can be can use this algorithm one good package to use at least as a
+good package to use at least as a reference it's to look at this try to
+reference it's to look at this try to download this package and if you're
+download this package and if you're gonna do your own at least run compare
+gonna do your own at least run compare your without with with this man's it's
+your without with with this man's it's very good and this is the list of
+very good and this is the list of reference and the takeaway I hope is
+reference and the takeaway I hope is that look beyond linear kongu rater
+that look beyond linear kongu rater added additive like the Fibonacci is
+added additive like the Fibonacci is Werfel all except for the state but I
+Werfel all except for the state but I would say try to use te a and it might
+would say try to use te a and it might be might be useful
+be might be useful yeah thanks
+yeah thanks [Applause]
+[Applause] no questions oh please
+the cooler one actually I don't know how the CUDA learn re works yeah
+okay that is always each computing on the GP way computer and CPU and push on
+the GP way computer and CPU and push on the GPU are you talking with a random
+the GPU are you talking with a random number itself or the whole computation
+number itself or the whole computation that seems to require a lot of
+that seems to require a lot of communication that's very not desirable
+communication that's very not desirable but it's an option yeah because that
+but it's an option yeah because that will each of that is say first of all if
+will each of that is say first of all if you have any adaptive algorithm the GPU
+you have any adaptive algorithm the GPU will have two now you form the CPU code
+will have two now you form the CPU code how much random number I need and then
+how much random number I need and then if you have even more fancy algorithm
+if you have even more fancy algorithm that like even the example that
+that like even the example that motivated the could talk about why you
+motivated the could talk about why you need I named it kernel invocation if you
+need I named it kernel invocation if you have any kind of adaptive simulation in
+have any kind of adaptive simulation in which some locally you want to do very
+which some locally you want to do very fine high quality and fine meshing for
+fine high quality and fine meshing for your let's say fluid and other party one
+your let's say fluid and other party one cause that means some of the great will
+cause that means some of the great will need only a few number some of the great
+need only a few number some of the great will need like a lot and that would be
+will need like a lot and that would be very hard to for a CPU GPU community to
+very hard to for a CPU GPU community to to share that low so I would say that
+to share that low so I would say that would be a secondary that will only be
+would be a secondary that will only be good if you have existing type of
+good if you have existing type of scientific computing application that
+scientific computing application that you have to produce exactly the same bit
+you have to produce exactly the same bit as otherwise you couldn't pass your
+as otherwise you couldn't pass your government certification test then yeah
+government certification test then yeah you're part of the use that approach
+you're part of the use that approach otherwise I wouldn't I probably wouldn't
+otherwise I wouldn't I probably wouldn't use it that way yeah sure thanks
+you

@@ -1,0 +1,1545 @@
+[Music]
+hi i'm kristen merman i'm studio head emeritus at sucker punch i did a lot of
+emeritus at sucker punch i did a lot of work on melee combat and ghost of
+work on melee combat and ghost of tsushima so for the next hour or so i'm
+tsushima so for the next hour or so i'm going to try to pass along some of the
+going to try to pass along some of the things we learned while working on ghost
+things we learned while working on ghost since i'm going to cherry pick a few
+since i'm going to cherry pick a few things that worked well and skip all the
+things that worked well and skip all the things that didn't work well at all it's
+things that didn't work well at all it's pretty much a normal gdc talk here's how
+pretty much a normal gdc talk here's how the rest of the talk is laid out
+the rest of the talk is laid out i'm going to outline five basic problems
+i'm going to outline five basic problems we ran into trying to get melee combat
+we ran into trying to get melee combat to work i've got a case study or two of
+to work i've got a case study or two of a particular instance of each problem
+a particular instance of each problem type and after going through the case
+type and after going through the case studies i'll summarize what we learned
+studies i'll summarize what we learned with the catchy sounding rule about game
+with the catchy sounding rule about game design at the end of the talk i'll give
+design at the end of the talk i'll give you a slide with all five of these rules
+you a slide with all five of these rules for game design also i did a lot of the
+for game design also i did a lot of the programming on this stuff so there are
+programming on this stuff so there are some technical details the technical
+some technical details the technical details are going to be uninteresting to
+details are going to be uninteresting to many of you so i'm not going to talk
+many of you so i'm not going to talk about them in the talk instead i'm going
+about them in the talk instead i'm going to take advantage of the special nature
+to take advantage of the special nature of this year's gdc by dropping them as
+of this year's gdc by dropping them as texts into the chat window when we hit
+texts into the chat window when we hit the appropriate part of the talk so
+the appropriate part of the talk so watch the chat window for the for the
+watch the chat window for the for the notes
+next time i'll remember to do the slides i'm guessing most of you have played at
+i'm guessing most of you have played at least some of ghost if you haven't i
+least some of ghost if you haven't i recommend doing so first of all it's an
+recommend doing so first of all it's an excellent game second a lot of what i'm
+excellent game second a lot of what i'm going to talk about is going to make
+going to talk about is going to make sense if you haven't but a quick recap
+sense if you haven't but a quick recap just to remind you of what the game's
+just to remind you of what the game's about ghost tsushima is an open-world
+about ghost tsushima is an open-world action rpg set during the first mongol
+action rpg set during the first mongol invasion of japan in 1912-74 this
+invasion of japan in 1912-74 this invasion really happened its historical
+invasion really happened its historical fact including the subjugation of the
+fact including the subjugation of the island of tsushima in real life the 80
+island of tsushima in real life the 80 samurai on the island were all killed in
+samurai on the island were all killed in our story one samurai jin sakai survives
+our story one samurai jin sakai survives the opening battle and decides to fight
+the opening battle and decides to fight back against the mongols he's massively
+back against the mongols he's massively outnumbered in order to fight back he is
+outnumbered in order to fight back he is forced bit by bit to abandon everything
+forced bit by bit to abandon everything he's been taught about being a samurai
+he's been taught about being a samurai jinn learns to fight from the shadows
+jinn learns to fight from the shadows sacrificing his samurai identity to save
+sacrificing his samurai identity to save his home so that's the setup here are
+his home so that's the setup here are three primary goals that constraint or
+three primary goals that constraint or goal slash constraints we adopted while
+goal slash constraints we adopted while building the game
+building the game first the game is immersive our
+first the game is immersive our overarching goal was to build a time
+overarching goal was to build a time machine to transport the player back in
+machine to transport the player back in place in time to ancient japan so that
+place in time to ancient japan so that everything melts away and you just feel
+everything melts away and you just feel like a samurai on tsushima island
+like a samurai on tsushima island fighting off hordes of mongols second
+fighting off hordes of mongols second the game's grounded while we were trying
+the game's grounded while we were trying to build a historically accurate game we
+to build a historically accurate game we were trying to build a believable one
+were trying to build a believable one that means no monsters and no magic just
+that means no monsters and no magic just mud blood and steel the catch phrase we
+mud blood and steel the catch phrase we use to keep ourselves honest and third
+use to keep ourselves honest and third the game's accessible for just for
+the game's accessible for just for ghosts to justify it's not insignificant
+ghosts to justify it's not insignificant budget it needed to appeal to a broad
+budget it needed to appeal to a broad audience we didn't set out to make a
+audience we didn't set out to make a niche game we set out to make a game
+niche game we set out to make a game that millions of people would enjoy
+that millions of people would enjoy these three goals slash constraints
+these three goals slash constraints shaped a lot of the design so keep them
+shaped a lot of the design so keep them in mind as we move forward
+in mind as we move forward so how does melee combat fit into the
+so how does melee combat fit into the game well melee combat and specifically
+game well melee combat and specifically katana combat is central to the samurai
+katana combat is central to the samurai fantasy without katana combat that
+fantasy without katana combat that looked and felt great we couldn't
+looked and felt great we couldn't succeed
+succeed furthermore melee combat is the backbone
+furthermore melee combat is the backbone of the story we were telling the whole
+of the story we were telling the whole story relies on jin sakai being forced
+story relies on jin sakai being forced by the sheer number of enemies to adopt
+by the sheer number of enemies to adopt underhanded tactics if you can just hack
+underhanded tactics if you can just hack and slash your way through melee
+and slash your way through melee encounters without fighting dirty then
+encounters without fighting dirty then the story falls apart the whole story
+the story falls apart the whole story hinges on melee combat overwhelming you
+hinges on melee combat overwhelming you as a player
+as a player while still feeling fair just as it
+while still feeling fair just as it overwhelms jen to force you into these
+overwhelms jen to force you into these decisions jyn doesn't want to make
+decisions jyn doesn't want to make now the samurai fantasy about melee
+now the samurai fantasy about melee combat is broad fighting in a duel with
+combat is broad fighting in a duel with a single worthy enemy is certainly part
+a single worthy enemy is certainly part of it so is a desperate fight with one
+of it so is a desperate fight with one surrounded by a group of opponents and
+surrounded by a group of opponents and so is fighting alongside your fellow
+so is fighting alongside your fellow samurai in an epic battle
+samurai in an epic battle ghost melee combat needs to smoothly
+ghost melee combat needs to smoothly span this whole gamut from pure brawler
+span this whole gamut from pure brawler action to a challenging one-on-one duel
+action to a challenging one-on-one duel and that's a tall order especially since
+and that's a tall order especially since the last mainly focused game we built
+the last mainly focused game we built shipped 15 years ago and featured a
+shipped 15 years ago and featured a talking raccoon
+talking raccoon so let's be more precise about what
+so let's be more precise about what constitutes the samurai fantasy for a
+constitutes the samurai fantasy for a ghost we just decided the core of the
+ghost we just decided the core of the samurai fantasy is discipline and
+samurai fantasy is discipline and precision precise control with every
+precision precise control with every movement having a purpose a sense of
+movement having a purpose a sense of stillness and readiness despite danger
+stillness and readiness despite danger and a burst of explosive action at
+and a burst of explosive action at exactly the right moment
+exactly the right moment and discipline in all things discipline
+and discipline in all things discipline in the moment to hold back on action
+in the moment to hold back on action until the perfect opportunity
+until the perfect opportunity discipline over time as your extended
+discipline over time as your extended practice and hard work leads to mastery
+practice and hard work leads to mastery over the katana and the other soldier
+over the katana and the other soldier the arts that you study
+the arts that you study and progression is part of the samurai
+and progression is part of the samurai fantasy too
+fantasy too determined disciplined hard work over
+determined disciplined hard work over time leading to mastery that's not
+time leading to mastery that's not dissimilar to the experience of playing
+dissimilar to the experience of playing the game actually so keeping the
+the game actually so keeping the player's journey in tune with jyn's
+player's journey in tune with jyn's journey was an important goal
+journey was an important goal above all the samurai in our mind's eye
+above all the samurai in our mind's eye was skillful a master of the katana
+was skillful a master of the katana so we need to decide how the player
+so we need to decide how the player should skill
+should skill there are lots of ways for players to
+there are lots of ways for players to show skill and games precise use of
+show skill and games precise use of sticks in a shooter precisely judging
+sticks in a shooter precisely judging distance between two characters as is
+distance between two characters as is the case in many melee games we chose
+the case in many melee games we chose two things first precise timing to echo
+two things first precise timing to echo the precision the samurai fantasy and
+the precision the samurai fantasy and two second a quick and accurate reaction
+two second a quick and accurate reaction to enemy actions
+to enemy actions both having to be demonstrated and
+both having to be demonstrated and performed under high pressure from your
+performed under high pressure from your enemies but there's a problem with this
+enemies but there's a problem with this choice human reaction times are slower
+choice human reaction times are slower than you think for a simple visual
+than you think for a simple visual stimulus and a simple player response
+stimulus and a simple player response it's maybe 300 milliseconds that's
+it's maybe 300 milliseconds that's slower than you can swing a sword slower
+slower than you can swing a sword slower than jin's fast attacks in the game
+than jin's fast attacks in the game which take less than 250 milliseconds
+which take less than 250 milliseconds you can work around this though there's
+you can work around this though there's no limit on enemy reaction times in many
+no limit on enemy reaction times in many circumstances they can and should react
+circumstances they can and should react instantly to player action in fact we
+instantly to player action in fact we did some early work to give npcs more
+did some early work to give npcs more reasonable human reaction times for
+reasonable human reaction times for instance we had npcs react to your
+instance we had npcs react to your movement with a human scale delay if you
+movement with a human scale delay if you dodged to your left the npcs took a few
+dodged to your left the npcs took a few hundred milliseconds to track and this
+hundred milliseconds to track and this was a disaster it felt wrong sloppy
+was a disaster it felt wrong sloppy buggy didn't feel right at all and i
+buggy didn't feel right at all and i think this is because our expectations
+think this is because our expectations for what a sword fight looks like are
+for what a sword fight looks like are formed by movies and movies aren't very
+formed by movies and movies aren't very realistic everything is choreographed so
+realistic everything is choreographed so the actors know what's going to happen
+the actors know what's going to happen next they're anticipating they're not
+next they're anticipating they're not reacting real sword fights like real
+reacting real sword fights like real fights of any sort are incredibly messy
+fights of any sort are incredibly messy but the fantasy we're trying to hit is
+but the fantasy we're trying to hit is the movie fantasy of a sword fight clean
+the movie fantasy of a sword fight clean and precise so enemies track your
+and precise so enemies track your movement instantly
+movement instantly tech note
+tech note it's worth noting that human reaction
+it's worth noting that human reaction times are slow but human anticipation
+times are slow but human anticipation can be close to perfect it takes a while
+can be close to perfect it takes a while to react to a stimulus but you can all
+to react to a stimulus but you can all clap along to the beat of the song
+clap along to the beat of the song um
+um and one main goal
+and one main goal one final goal slash constraint
+one final goal slash constraint for combat is that we wanted the game to
+for combat is that we wanted the game to be purely skill based and part of this
+be purely skill based and part of this decision was that if you play the game
+decision was that if you play the game perfectly you won't get hit no matter
+perfectly you won't get hit no matter how many enemies are attacking you um if
+how many enemies are attacking you um if you do the right actions at the right
+you do the right actions at the right time you will not get hit this felt like
+time you will not get hit this felt like the right fit for the samurai fantasy
+the right fit for the samurai fantasy that if you played perfectly you could
+that if you played perfectly you could dance between the raindrops and make it
+dance between the raindrops and make it through any situation unscathed so where
+through any situation unscathed so where does that leave us
+does that leave us well initial enemy attacks have a
+well initial enemy attacks have a wind-up so that you have time to react
+wind-up so that you have time to react follow-up enemy attacks in a combo can
+follow-up enemy attacks in a combo can be fast since you're anticipating
+be fast since you're anticipating instead of reacting and player attacks
+instead of reacting and player attacks can also be fast since npc reaction
+can also be fast since npc reaction times aren't limited
+times aren't limited but we ran into an immediate problem
+but we ran into an immediate problem with this basic design
+with this basic design quick attacks with square were too
+quick attacks with square were too effective
+effective we assumed i have the reasonable
+we assumed i have the reasonable assumption that stabbing someone with a
+assumption that stabbing someone with a sword would interrupt their action
+sword would interrupt their action um we were trying to stay grounded so
+um we were trying to stay grounded so this seemed like a reasonable decision
+this seemed like a reasonable decision but with slow mpc wind-ups to let the
+but with slow mpc wind-ups to let the player react and fast player attacks
+player react and fast player attacks you could just poke guys during their
+you could just poke guys during their wind-up and win
+wind-up and win this did not test well but mashing was
+this did not test well but mashing was an effective strategy but it didn't feel
+an effective strategy but it didn't feel very skillful and it wasn't very fun and
+very skillful and it wasn't very fun and honestly we might have rebooted the
+honestly we might have rebooted the whole approach at this point if i
+whole approach at this point if i weren't studio head as well as the guy
+weren't studio head as well as the guy working on combat which gave me a
+working on combat which gave me a certain amount of latitude
+certain amount of latitude to stay the course most immediately
+to stay the course most immediately though we needed to work out ways to
+though we needed to work out ways to blunt the squarespan problem
+blunt the squarespan problem we looked for natural limits believable
+we looked for natural limits believable ways to stop quick attacks from being
+ways to stop quick attacks from being too effective so we added a shieldman
+too effective so we added a shieldman archetype that blocked quick attacks
+archetype that blocked quick attacks this made sense to players they didn't
+this made sense to players they didn't object
+object later on we added brutes big guys guys
+later on we added brutes big guys guys were so big that poking them with a
+were so big that poking them with a sword wouldn't interrupt their attacks
+sword wouldn't interrupt their attacks and this also worked but more
+and this also worked but more importantly we started overlapping enemy
+importantly we started overlapping enemy attack sequences we recognized that we
+attack sequences we recognized that we could start an npc wind-up
+could start an npc wind-up while the last npc was still finishing
+while the last npc was still finishing their attack sequence as long as all the
+their attack sequence as long as all the attacks landed at distinct times the
+attacks landed at distinct times the sequences could overlapped this turned
+sequences could overlapped this turned multiple enemies attacking to you
+multiple enemies attacking to you effectively into a single sequence with
+effectively into a single sequence with a long wind up only import only
+a long wind up only import only happening early at the beginning of the
+happening early at the beginning of the sequence
+sequence in the end there wasn't any magic bullet
+in the end there wasn't any magic bullet here we wanted quick attacks to be fast
+here we wanted quick attacks to be fast and powerful we wanted you to feel like
+and powerful we wanted you to feel like a samurai when you did them it took lots
+a samurai when you did them it took lots of little fixes to help keep to keep the
+of little fixes to help keep to keep the heart of this quick and powerful attack
+heart of this quick and powerful attack intact while damping its over
+intact while damping its over effectiveness
+effectiveness the first thing that we added that
+the first thing that we added that actually made you feel skillful wasn't
+actually made you feel skillful wasn't the quick attack it was a timing based
+the quick attack it was a timing based parry delaying your block until just
+parry delaying your block until just before an enemy attack lands to get a
+before an enemy attack lands to get a better result most npc attacks are
+better result most npc attacks are blockable especially in the early parts
+blockable especially in the early parts of the game it's easy to block attacks
+of the game it's easy to block attacks you just hold l1 and you're safe you're
+you just hold l1 and you're safe you're able to stand there and you'll block
+able to stand there and you'll block attacks but this simple and straight
+attacks but this simple and straight safe strategy doesn't provide any
+safe strategy doesn't provide any counter-attacking opportunities
+counter-attacking opportunities with perry's though
+with perry's though the enemy is spun past you interrupting
+the enemy is spun past you interrupting his combo and leaving him vulnerable we
+his combo and leaving him vulnerable we even interrupt any wind-ups as buddies
+even interrupt any wind-ups as buddies have started to give you a clean chance
+have started to give you a clean chance to counter-attack and this felt great
+to counter-attack and this felt great player connection was excellent you felt
+player connection was excellent you felt like you actually parried the blow and
+like you actually parried the blow and remember that's our goal our goal is to
+remember that's our goal our goal is to make the controller disappear to make
+make the controller disappear to make the player feel like they actually swing
+the player feel like they actually swing the sword or parry the strike
+the sword or parry the strike not just press buttons to make those
+not just press buttons to make those actions appear
+actions appear skill-based pairs were our first real
+skill-based pairs were our first real immersive success it felt dangerous to
+immersive success it felt dangerous to delay your block and skillful to pull it
+delay your block and skillful to pull it off
+off but there was an exploit with this there
+but there was an exploit with this there was a cheese opportunity you could
+was a cheese opportunity you could flutter the block button press block
+flutter the block button press block very quickly and parry every single
+very quickly and parry every single attack
+attack you should press the block button fast
+you should press the block button fast enough that you were guaranteed to hit
+enough that you were guaranteed to hit the wind up an enemy attack
+the wind up an enemy attack so while we loved the pairing mechanism
+so while we loved the pairing mechanism when it worked there was a spark of
+when it worked there was a spark of magic
+magic many players couldn't leave the cheese
+many players couldn't leave the cheese alone
+alone once they discovered this exploit they
+once they discovered this exploit they couldn't stop themselves from using it
+couldn't stop themselves from using it even though they weren't happy and this
+even though they weren't happy and this was an internal play test these were
+was an internal play test these were professional game developers they knew
+professional game developers they knew that this was a bug they knew that this
+that this was a bug they knew that this was an exploit they knew we would fix it
+was an exploit they knew we would fix it they knew they weren't having fun but
+they knew they weren't having fun but they kept doing it
+they kept doing it we eventually found a way to keep the
+we eventually found a way to keep the core magic of perry's intact while
+core magic of perry's intact while eliminating the exploit and there's a
+eliminating the exploit and there's a tech note about this but to simplify we
+tech note about this but to simplify we track an effective block time that
+track an effective block time that ignores button mashing and perry's end
+ignores button mashing and perry's end up being pretty foundational to ghost
+up being pretty foundational to ghost melee combat
+melee combat here's a general game design rule that
+here's a general game design rule that follows from these two examples and many
+follows from these two examples and many others like them you might think of this
+others like them you might think of this as the hide the cheese rule
+as the hide the cheese rule most players will play the game and what
+most players will play the game and what they perceive as the most effective way
+they perceive as the most effective way to make progress even if that leads to
+to make progress even if that leads to them having less fun even if they know
+them having less fun even if they know that playing the game that way isn't fun
+that playing the game that way isn't fun they'll still play it the way they think
+they'll still play it the way they think is most effective and they won't be
+is most effective and they won't be happy
+happy they kind of have two choices right
+they kind of have two choices right either they'll play the game
+either they'll play the game in the way that is effective but not fun
+in the way that is effective but not fun and resent you for making enough fun
+and resent you for making enough fun game or they'll play the game in the not
+game or they'll play the game in the not effective but fun way
+effective but fun way and resent you for making them into saps
+and resent you for making them into saps so make sure that the way the players
+so make sure that the way the players feel is the most effective way to play
+feel is the most effective way to play the game is also the most enjoyable way
+the game is also the most enjoyable way to play the game otherwise you're going
+to play the game otherwise you're going to get yourself in trouble
+to get yourself in trouble so it was pretty clear from our testing
+so it was pretty clear from our testing with players that varied uh play styles
+with players that varied uh play styles were the key to enjoying the game war if
+were the key to enjoying the game war if players who mixed up the way they played
+players who mixed up the way they played the game had more fun and they scored
+the game had more fun and they scored the game higher if they used all of
+the game higher if they used all of jen's abilities melee ranged combat
+jen's abilities melee ranged combat ghost tools stealth they consistently
+ghost tools stealth they consistently reported higher scores we wanted to
+reported higher scores we wanted to nudge more players into varied
+nudge more players into varied experiences because we thought that
+experiences because we thought that would lead to more enjoyment
+would lead to more enjoyment and it did turn out this way but it
+and it did turn out this way but it might not have right the causality arrow
+might not have right the causality arrow could have pointed the other direction
+could have pointed the other direction it was plausible in early tests that
+it was plausible in early tests that what we were seeing was that players who
+what we were seeing was that players who were enjoying the game were trying out
+were enjoying the game were trying out more parts of it rather than the other
+more parts of it rather than the other way around but in fact this did work
+way around but in fact this did work that as we encouraged players to mix
+that as we encouraged players to mix stuff up our scores went up people had
+stuff up our scores went up people had more fun
+more fun so there are two basic ways to create a
+so there are two basic ways to create a varied play experience you can vary the
+varied play experience you can vary the situations the player finds themselves
+situations the player finds themselves in so that they're using the same
+in so that they're using the same abilities in different contexts or you
+abilities in different contexts or you can provide lots of options for player
+can provide lots of options for player engagement hopes that they'll use
+engagement hopes that they'll use different abilities in the same context
+different abilities in the same context or most likely you'll provide both with
+or most likely you'll provide both with a rich set of player verbs and a
+a rich set of player verbs and a similarly rich set of game provided
+similarly rich set of game provided experiences
+experiences let's start with the player's ability
+let's start with the player's ability set providing variety
+set providing variety by giving players
+by giving players the ability to do different things
+the ability to do different things well providing a rich verb set that
+well providing a rich verb set that gives players agency on how to interact
+gives players agency on how to interact with the game's challenges is a great
+with the game's challenges is a great thing
+thing letting the players choose which verbs
+letting the players choose which verbs to use and how and when adds agency and
+to use and how and when adds agency and that's great but the problem with player
+that's great but the problem with player agency is that players tend to not use
+agency is that players tend to not use it the way you want them to in
+it the way you want them to in particular players tend to strike stick
+particular players tend to strike stick with the strategy that they find that
+with the strategy that they find that works the first strategy they find that
+works the first strategy they find that works the psychological term for this is
+works the psychological term for this is satisficing their approach works so why
+satisficing their approach works so why experiment with stuff that mostly
+experiment with stuff that mostly doesn't work that's especially true in a
+doesn't work that's especially true in a game like ghost where you're under
+game like ghost where you're under pressure the whole time
+pressure the whole time you don't have safe spaces to experiment
+you don't have safe spaces to experiment the only place to try new combat
+the only place to try new combat techniques is inside of combat so you
+techniques is inside of combat so you stick with what you have
+stick with what you have so generally ghost players needed a
+so generally ghost players needed a nudge to try new things
+nudge to try new things there are two new ways to there are two
+there are two new ways to there are two main ways to nudge players
+main ways to nudge players you can discourage them from the
+you can discourage them from the strategies you think they're overusing
+strategies you think they're overusing or you can encourage them to try new
+or you can encourage them to try new strategies the ones you think they're
+strategies the ones you think they're under using
+under using so you might try to discourage an
+so you might try to discourage an overused attack by introducing an enemy
+overused attack by introducing an enemy who blocks those attacks perfectly but
+who blocks those attacks perfectly but is vulnerable to the attack you'd like
+is vulnerable to the attack you'd like to see more of that's frustrating the
+to see more of that's frustrating the sort of locking key design breaks the
+sort of locking key design breaks the immersion we were trying to create
+immersion we were trying to create players can tell that they're playing a
+players can tell that they're playing a game and they don't like it so much
+game and they don't like it so much similarly you could limit an overused
+similarly you could limit an overused ability by having it consume ammo or
+ability by having it consume ammo or adding a timeout or having its
+adding a timeout or having its effectiveness to grade over time or when
+effectiveness to grade over time or when overused but why would you do this
+overused but why would you do this players were using the abilities they
+players were using the abilities they thought were effective and enjoyable why
+thought were effective and enjoyable why take that away from them by making those
+take that away from them by making those abilities less enjoyable and less
+abilities less enjoyable and less effective so we focused instead on
+effective so we focused instead on encouraging use of underused abilities
+encouraging use of underused abilities rather than discouraging the use of
+rather than discouraging the use of overused ones we focused on carrots
+overused ones we focused on carrots instead of sticks if you want to think
+instead of sticks if you want to think of it that way
+of it that way in our early tests it goes to shema for
+in our early tests it goes to shema for instance we did not see varied ability
+instance we did not see varied ability use uh in our play tests we track every
+use uh in our play tests we track every attack launch by the player
+attack launch by the player and early on player attacks were
+and early on player attacks were overwhelmingly light attacks um quick
+overwhelmingly light attacks um quick attacks
+attacks like 90-something percent for many
+like 90-something percent for many players players who didn't just use
+players players who didn't just use quick attacks though who mixed up their
+quick attacks though who mixed up their play styles scored the game higher they
+play styles scored the game higher they had more fun
+had more fun we wanted to nudge more players into
+we wanted to nudge more players into that varied play style our goal was to
+that varied play style our goal was to make heavy attacks more appealing
+make heavy attacks more appealing instead of just discouraging light
+instead of just discouraging light attacks
+attacks first
+first we had to make sure that the value
+we had to make sure that the value statement for heavy attacks was clear
+statement for heavy attacks was clear what is the point of using a heavy
+what is the point of using a heavy attack as a player why do i do it
+attack as a player why do i do it in ghosts the reason you use heavy
+in ghosts the reason you use heavy attacks for the most part is that they
+attacks for the most part is that they let you blast through blocks for players
+let you blast through blocks for players who want a direct approach who want to
+who want a direct approach who want to just walk up to somebody who's blocking
+just walk up to somebody who's blocking their attacks and knock down the block
+their attacks and knock down the block and then and then hit them with their
+and then and then hit them with their sword and that describes a lot of
+sword and that describes a lot of players this is pretty appealing the
+players this is pretty appealing the ability to have a direct path through a
+ability to have a direct path through a block
+block and this was mostly a communication
+and this was mostly a communication problem
+problem we could know that heavy attacks were
+we could know that heavy attacks were breaking through blocks and in fact we
+breaking through blocks and in fact we tried an approach where it only took a
+tried an approach where it only took a single heavy attack to break an npc's
+single heavy attack to break an npc's block but this felt pretty mechanical
+block but this felt pretty mechanical we decided we needed to have um to
+we decided we needed to have um to require multiple heavy attacks to break
+require multiple heavy attacks to break through a block
+through a block but communicating the the player was
+but communicating the the player was making progress during this was a
+making progress during this was a challenge and unfortunately our best
+challenge and unfortunately our best solution was adding ui to the screen
+solution was adding ui to the screen which we didn't really want to do since
+which we didn't really want to do since we were trying to minimize ui
+we were trying to minimize ui we added a meter that showed remaining
+we added a meter that showed remaining block points
+block points but that's not its real purpose the real
+but that's not its real purpose the real purpose of the block meter isn't to show
+purpose of the block meter isn't to show how many block points are left it's to
+how many block points are left it's to flash when you hit the guy with a heavy
+flash when you hit the guy with a heavy attack um in effect it's just a
+attack um in effect it's just a signaling mechanism to say the thing you
+signaling mechanism to say the thing you just did was a good thing and it had an
+just did was a good thing and it had an effect um
+effect um you can tell how many block points
+you can tell how many block points someone has left but that's not really
+someone has left but that's not really the point
+the point and in the end this helped this was what
+and in the end this helped this was what we needed to do it it did
+we needed to do it it did help people understand why they're using
+help people understand why they're using a heavy attack and so we were willing to
+a heavy attack and so we were willing to accept the compromise and actually add
+accept the compromise and actually add some more ui to a game that we really
+some more ui to a game that we really didn't want to have ui in
+didn't want to have ui in next
+next we improve the effectiveness of heavy
+we improve the effectiveness of heavy attacks we made the attacks faster to
+attacks we made the attacks faster to make them easier to use we increased the
+make them easier to use we increased the amount of block damage they did to make
+amount of block damage they did to make the direct path more appealing and these
+the direct path more appealing and these are easy changes because they both make
+are easy changes because they both make the game more grounded at the end
+the game more grounded at the end when we ship our light attack our or
+when we ship our light attack our or quick attack usage was under 65 percent
+quick attack usage was under 65 percent of all player attacks with heavy attacks
+of all player attacks with heavy attacks a little over 20 percent the rest of the
+a little over 20 percent the rest of the smattering of super attacks go stance
+smattering of super attacks go stance attack standoffs and so on and we were
+attack standoffs and so on and we were okay with that that was an easy that was
+okay with that that was an easy that was pretty good mix
+pretty good mix similarly it was a challenge to get
+similarly it was a challenge to get players to use ghost tools
+players to use ghost tools and this was a problem since ghost tools
+and this was a problem since ghost tools were a big part of the story we were
+were a big part of the story we were telling a story that jin sakai had to
+telling a story that jin sakai had to adopt underhanded techniques to win
+adopt underhanded techniques to win players were comfortable moving through
+players were comfortable moving through the game with their conventional tools
+the game with their conventional tools my katana attacks in range combat
+my katana attacks in range combat luckily most players were happy to use
+luckily most players were happy to use assassination so we weren't completely
+assassination so we weren't completely out of luck on underhanded technique
+out of luck on underhanded technique underhanded tactics but again players
+underhanded tactics but again players that did use ghost tools scored the game
+that did use ghost tools scored the game higher so we wanted to nudge the players
+higher so we wanted to nudge the players in that direction
+in that direction again we could have nerfed all the
+again we could have nerfed all the conventional player abilities but
+conventional player abilities but players were enjoying them and we didn't
+players were enjoying them and we didn't want to ruin that we could have added
+want to ruin that we could have added lock and key designs npcs that were only
+lock and key designs npcs that were only vulnerable to a particular ghost tool
+vulnerable to a particular ghost tool but that also seemed like a bad
+but that also seemed like a bad direction so we focused on making ghost
+direction so we focused on making ghost tools more appealing
+tools more appealing the most important changes were to make
+the most important changes were to make the tools easier to use we started with
+the tools easier to use we started with kunai the throwing daggers and ghost
+kunai the throwing daggers and ghost because those were the most popular tool
+because those were the most popular tool the most important change we made was to
+the most important change we made was to have the players start by throwing
+have the players start by throwing multiple daggers not a single dagger
+multiple daggers not a single dagger giving the constraints in our aiming
+giving the constraints in our aiming model that it had to be fast that you
+model that it had to be fast that you were using the joystick that daggers had
+were using the joystick that daggers had a reasonably long range we knew there
+a reasonably long range we knew there would be some imprecision in the aiming
+would be some imprecision in the aiming that players wouldn't be able to
+that players wouldn't be able to perfectly snipe a target so we leaned
+perfectly snipe a target so we leaned into that by throwing three daggers we
+into that by throwing three daggers we tripled the chance that you'd hit the
+tripled the chance that you'd hit the target you were meant to hit we do give
+target you were meant to hit we do give you feedback on which target we thought
+you feedback on which target we thought you aimed at it's the middle one of the
+you aimed at it's the middle one of the three but players didn't care that we
+three but players didn't care that we misinterpreted their input they only
+misinterpreted their input they only cared that the target they wanted to get
+cared that the target they wanted to get hit actually got hit there's a tech note
+hit actually got hit there's a tech note about this
+about this the second big change was to lock you
+the second big change was to lock you into one ghost tool at a time previously
+into one ghost tool at a time previously we thought that allowing you
+we thought that allowing you simultaneous access to all of your ghost
+simultaneous access to all of your ghost tools would increase usage
+tools would increase usage and there were people who passionately
+and there were people who passionately believed that they wanted to be able to
+believed that they wanted to be able to instantly throw a smoke bomb or a dagger
+instantly throw a smoke bomb or a dagger or a sticky bomb
+or a sticky bomb the last version about this simultaneous
+the last version about this simultaneous input model was chorded you would hold
+input model was chorded you would hold r1 and then you would press a face
+r1 and then you would press a face button with r1 down so r1 plus x would
+button with r1 down so r1 plus x would throw daggers
+throw daggers but we weren't seeing people use ghost
+but we weren't seeing people use ghost tools and we knew we needed to change
+tools and we knew we needed to change stuff so we switched we switched to a
+stuff so we switched we switched to a one ghost tool at a time model where you
+one ghost tool at a time model where you only have one ghost tool assigned to r1
+only have one ghost tool assigned to r1 at a time pressing r1 will fire that
+at a time pressing r1 will fire that ghost tool it's easy to switch but
+ghost tool it's easy to switch but fundamentally you only have one thing at
+fundamentally you only have one thing at a time
+a time and someone counter-intuitively this
+and someone counter-intuitively this created immediate uh wins like
+created immediate uh wins like immediately we saw 30 to 40 more use of
+immediately we saw 30 to 40 more use of ghost tools and this is sort of weird
+ghost tools and this is sort of weird right that like we've made it harder in
+right that like we've made it harder in some sense to use ghost tools by making
+some sense to use ghost tools by making you assign the one you want then use it
+you assign the one you want then use it and yet the usage went up so why did
+and yet the usage went up so why did this happen well you know if you look at
+this happen well you know if you look at what we've talked about earlier in this
+what we've talked about earlier in this talk it's pretty obvious why um we had
+talk it's pretty obvious why um we had added too much cognitive load to the
+added too much cognitive load to the players right it was there were too many
+players right it was there were too many things for them to think about there
+things for them to think about there were too many options for them to
+were too many options for them to consider
+consider and too many controls they could hit
+and too many controls they could hit they were under a lot of pressure and so
+they were under a lot of pressure and so they reverted back to doing the things
+they reverted back to doing the things that you cannot they hit square and
+that you cannot they hit square and triangle and made it through encounters
+triangle and made it through encounters that way by simplifying it down by
+that way by simplifying it down by reducing the cognitive load they were
+reducing the cognitive load they were able to think quicker and they could
+able to think quicker and they could keep up with the game and they could hit
+keep up with the game and they could hit r1 and fire the kunai when they wanted
+r1 and fire the kunai when they wanted to
+to the third thing that we did is a little
+the third thing that we did is a little bit more subtle
+bit more subtle it's to make sure that the ammo model
+it's to make sure that the ammo model works out we we restrict your use of uh
+works out we we restrict your use of uh ghost tools through ammo and the thing
+ghost tools through ammo and the thing about ammo limited models is that people
+about ammo limited models is that people will only use them if they feel
+will only use them if they feel confident that more ammo is easily
+confident that more ammo is easily accessible that if they're not if they
+accessible that if they're not if they feel like they might run out of ammo
+feel like they might run out of ammo they'll just hoard it
+they'll just hoard it so first we had to make sure there was
+so first we had to make sure there was lots of ammo in the world which we did
+lots of ammo in the world which we did and then we had to play some sneaky
+and then we had to play some sneaky games so
+games so in ghost if you're low on a particular
+in ghost if you're low on a particular kind of ammo you're more likely to get
+kind of ammo you're more likely to get that in an ammo drop
+that in an ammo drop we'll lean on the dice rolls a little
+we'll lean on the dice rolls a little bit but and this is important
+bit but and this is important even if you're full of kunai we will
+even if you're full of kunai we will still drop kunai for you occasionally
+still drop kunai for you occasionally and that's important because if we stop
+and that's important because if we stop dropping kunai players will conclude
+dropping kunai players will conclude there's not a lot of kunai in the world
+there's not a lot of kunai in the world and they'll stop using them so even when
+and they'll stop using them so even when you're full you'll still get stuff um to
+you're full you'll still get stuff um to so that you think there's lots of it in
+so that you think there's lots of it in the world and this all works out we end
+the world and this all works out we end up driving ghost tool usage up to being
+up driving ghost tool usage up to being like five percent of the attacks and
+like five percent of the attacks and that's not bad
+that's not bad so
+so what's my takeaway from these two case
+what's my takeaway from these two case studies well
+studies well uh first if you're trying to get a
+uh first if you're trying to get a player to use some ability don't try to
+player to use some ability don't try to force it don't make them use it don't
+force it don't make them use it don't create enemies that are only vulnerable
+create enemies that are only vulnerable to the new ability especially don't
+to the new ability especially don't hamstring the players other abilities to
+hamstring the players other abilities to get them to use the new one instead work
+get them to use the new one instead work to make the new one more appealing make
+to make the new one more appealing make the value proposition obvious be sure
+the value proposition obvious be sure players understand the reasons why the
+players understand the reasons why the new ability would be useful make sure
+new ability would be useful make sure the ability is easy to use and obviously
+the ability is easy to use and obviously effective
+effective if you must
+if you must give players an external reward for
+give players an external reward for using new abilities like an xp bonus but
+using new abilities like an xp bonus but don't hit players with a stick they
+don't hit players with a stick they don't like them
+don't like them they don't like that hand them a carrot
+they don't like that hand them a carrot instead
+let's switch to the other way of creating variety having
+the other way of creating variety having the game present new situations for the
+the game present new situations for the player to deal with
+player to deal with and in particular let's rotate back to
+and in particular let's rotate back to one of the first issues we talked about
+one of the first issues we talked about the limits of human reaction speed
+the limits of human reaction speed reading situations and reacting quickly
+reading situations and reacting quickly and accurately is a core part of the
+and accurately is a core part of the skill challenge ghost presents for
+skill challenge ghost presents for players but player reaction speeds
+players but player reaction speeds aren't constant they depend on a lot of
+aren't constant they depend on a lot of things
+things for a simple stimulus and a simple
+for a simple stimulus and a simple response
+response you can
+you can expect a quick reaction time think of a
+expect a quick reaction time think of a line of sprinters all in their starting
+line of sprinters all in their starting blocks waiting for a starter's pistol to
+blocks waiting for a starter's pistol to go off it's a simple stimulus and a
+go off it's a simple stimulus and a simple response
+simple response adding more complicated stimuli slows
+adding more complicated stimuli slows down reaction times so watching for
+down reaction times so watching for attacks from multiple npcs unsure which
+attacks from multiple npcs unsure which of them is going to attack will slow you
+of them is going to attack will slow you down or needing to look at different
+down or needing to look at different cues different wind-ups for different
+cues different wind-ups for different attacks from a single nbc that will slow
+attacks from a single nbc that will slow you down as the complexity of the
+you down as the complexity of the situation goes up player response times
+situation goes up player response times get longer
+get longer the same is true for complexity and
+the same is true for complexity and player abilities as the player considers
+player abilities as the player considers more options their reaction times slow
+more options their reaction times slow down those sprinters in their blocks
+down those sprinters in their blocks only have one option to start running
+only have one option to start running but the player has many block dodge
+but the player has many block dodge light attack heavy attack super attack
+light attack heavy attack super attack jump attack ghost tools all kinds of
+jump attack ghost tools all kinds of stuff right remember that quick and
+stuff right remember that quick and accurate reaction to this situation was
+accurate reaction to this situation was one of our core skill tests when it
+one of our core skill tests when it works well when we're dancing at the
+works well when we're dancing at the edge of what the player can do then
+edge of what the player can do then successor is rewarding
+successor is rewarding if we undershoot if we don't provide
+if we undershoot if we don't provide enough complexity then players react too
+enough complexity then players react too quick find the game too easy and find
+quick find the game too easy and find exploits if we overshoot we have too
+exploits if we overshoot we have too much complexity then players are
+much complexity then players are frustrated and feel unskilled
+frustrated and feel unskilled and so finding the right balance is
+and so finding the right balance is important we have to ladle in the right
+important we have to ladle in the right amount of complexity so that it feels
+amount of complexity so that it feels challenging and fair
+challenging and fair but is a challenge the players can
+but is a challenge the players can overcome
+overcome let's look at one way in which we ladled
+let's look at one way in which we ladled in more complexity to create a more
+in more complexity to create a more enjoyable challenge
+enjoyable challenge and it's archers we couldn't very well
+and it's archers we couldn't very well make a game about an army of mongols
+make a game about an army of mongols without including archers our
+without including archers our our early integration of archers was
+our early integration of archers was problematic especially in the
+problematic especially in the intersection of range combat in melee
+intersection of range combat in melee combat which is to say what happens when
+combat which is to say what happens when you have archers firing into a melee
+you have archers firing into a melee fight
+fight or what happens when you get into a
+or what happens when you get into a fight with archers around
+fight with archers around well you have some options you could let
+well you have some options you could let archers fire into fights and we tried
+archers fire into fights and we tried this and it was not fun you're in the
+this and it was not fun you're in the middle of a high intensity sword fight
+middle of a high intensity sword fight you've got your hands full dealing with
+you've got your hands full dealing with people with swords and spears and you
+people with swords and spears and you keep getting shot from off screen by
+keep getting shot from off screen by archers so what do you do as a player
+archers so what do you do as a player well you start every single encounter by
+well you start every single encounter by locating and eliminating all the archers
+locating and eliminating all the archers you stealth their way around and kill
+you stealth their way around and kill them all
+them all and this forces into a single repetitive
+and this forces into a single repetitive pattern in every encounter which is not
+pattern in every encounter which is not what we are after
+what we are after or you can decide that marchers don't
+or you can decide that marchers don't fire into melee scrums and we tried this
+fire into melee scrums and we tried this it was better but still not fun once you
+it was better but still not fun once you got into a sword fight the archers that
+got into a sword fight the archers that were nearby no longer had an effective
+were nearby no longer had an effective footprint they didn't have any effect on
+footprint they didn't have any effect on the fight you could just ignore them
+the fight you could just ignore them until you killed the last enemy melee
+until you killed the last enemy melee enemy at which point the archers popped
+enemy at which point the archers popped up now if you remember they were around
+up now if you remember they were around this wasn't a surprise but pretty often
+this wasn't a surprise but pretty often you'd forgotten there were archers
+you'd forgotten there were archers around during your melee fight and your
+around during your melee fight and your first uh reminder of this was getting
+first uh reminder of this was getting shot with an arrow
+shot with an arrow so neither of these two solutions are
+so neither of these two solutions are are awesome neither uh shooting into
+are awesome neither uh shooting into fights or not shooting the fights none
+fights or not shooting the fights none of these worked very well um
+of these worked very well um so uh
+so uh we
+we but we kind of needed to have archers
+but we kind of needed to have archers nearby right and we needed to have them
+nearby right and we needed to have them influence fights we because of the
+influence fights we because of the constraints we're under uh we don't have
+constraints we're under uh we don't have very many ways to mix stuff up right we
+very many ways to mix stuff up right we don't have monsters we don't have magic
+don't have monsters we don't have magic so archers have to play a role a melee
+so archers have to play a role a melee fight with archers has to feel different
+fight with archers has to feel different than a fight without archers
+than a fight without archers so what's our solution our solution was
+so what's our solution our solution was to turn archers into an audio queue
+to turn archers into an audio queue instead of a visual one when archers are
+instead of a visual one when archers are about to fire they yell nosh that's duck
+about to fire they yell nosh that's duck in mongolian by the way
+in mongolian by the way anyhow when the archers yelled doge
+anyhow when the archers yelled doge you'll see the other mongols duck which
+you'll see the other mongols duck which amplifies the queue and players believe
+amplifies the queue and players believe it or not we're quick to accept this
+it or not we're quick to accept this in-game fiction
+in-game fiction you would think that maybe they'd say
+you would think that maybe they'd say this doesn't seem right but in fact
+this doesn't seem right but in fact they're happy to take that there's a
+they're happy to take that there's a tech note about this
+tech note about this as a player
+as a player you're asked to hear the cue then react
+you're asked to hear the cue then react by dodging and if you do you won't get
+by dodging and if you do you won't get hit with the arrow direction doesn't
+hit with the arrow direction doesn't matter you don't have to track where the
+matter you don't have to track where the archers are if you hear dosh you can
+archers are if you hear dosh you can dodge and you're not going to get hit
+dodge and you're not going to get hit and this gives you one more thing to
+and this gives you one more thing to juggle during a fight in addition to
+juggle during a fight in addition to watching all the nearby mongols for
+watching all the nearby mongols for visual cues you need to listen for the
+visual cues you need to listen for the audio cues for incoming arrows
+audio cues for incoming arrows and more cues means more complexity
+and more cues means more complexity means slower player reactions which
+means slower player reactions which means a more challenging and rewarding
+means a more challenging and rewarding fight and it means that a fight with
+fight and it means that a fight with archers nearby has this added element
+archers nearby has this added element that a fight without archers doesn't
+that a fight without archers doesn't have giving us another way to vary the
+have giving us another way to vary the player experience
+player experience so
+so what's the takeaway here
+what's the takeaway here well there are lots of other ways we mix
+well there are lots of other ways we mix things up and some work better than
+things up and some work better than others so we added falcons to make
+others so we added falcons to make stealth more of a challenge or we
+stealth more of a challenge or we created different mixes of enemy
+created different mixes of enemy archetypes or we created enemy
+archetypes or we created enemy archetypes that had really different
+archetypes that had really different kinds of attacks
+kinds of attacks or we had you fight in areas where your
+or we had you fight in areas where your mobility was more limited or we had to
+mobility was more limited or we had to fight alongside allies in a lot of ways
+fight alongside allies in a lot of ways it's easier to create a varied play
+it's easier to create a varied play experience through very content because
+experience through very content because players can't avoid it
+players can't avoid it they can choose not to use the abilities
+they can choose not to use the abilities you provide them but
+you provide them but the encounters you place them and they
+the encounters you place them and they they can't avoid uh it's also a great
+they can't avoid uh it's also a great lever to nudge players into mixing up
+lever to nudge players into mixing up their play styles in natural ways a
+their play styles in natural ways a well-designed encounter can nudge the
+well-designed encounter can nudge the player who mostly engages in melee
+player who mostly engages in melee fights into getting into an archery
+fights into getting into an archery battle or can nudge players who really
+battle or can nudge players who really like to fight things straight up to use
+like to fight things straight up to use stealth occasionally so
+stealth occasionally so mix up your uh
+mix up your uh so externally for
+so externally for changing the situation is a great way to
+changing the situation is a great way to provide variety
+provide variety so let's talk about progression the
+so let's talk about progression the samurai fantasy is about discipline and
+samurai fantasy is about discipline and hard work leading to mastery that's
+hard work leading to mastery that's progression and that's a journey we
+progression and that's a journey we wanted the player to go on too
+wanted the player to go on too one of the convenient things about ghost
+one of the convenient things about ghost for us as game developers was how
+for us as game developers was how tightly the player's journey matched
+tightly the player's journey matched jyn's journey
+jyn's journey in particular the player gets better at
+in particular the player gets better at playing the game with practice they're
+playing the game with practice they're more precise with the controller their
+more precise with the controller their timing gets better their decision making
+timing gets better their decision making becomes faster and more accurate adding
+becomes faster and more accurate adding more complexity slows players down so
+more complexity slows players down so there's a temporary setback whenever we
+there's a temporary setback whenever we add a new concept but their decision
+add a new concept but their decision space getting more complicated
+space getting more complicated their decisions getting slower that
+their decisions getting slower that improves with practice
+improves with practice responses migrate from the slow parts of
+responses migrate from the slow parts of players brains to the fast parts they do
+players brains to the fast parts they do less thinking they react instinctively
+less thinking they react instinctively they get better at playing the game
+they get better at playing the game and the players knowledge increases as
+and the players knowledge increases as well they get smarter they learn new
+well they get smarter they learn new enemy types they learn or invent new
+enemy types they learn or invent new techniques they spot opportunities they
+techniques they spot opportunities they would have missed early on
+would have missed early on becoming more skilled becoming more
+becoming more skilled becoming more knowledgeable both of these mirror jin's
+knowledgeable both of these mirror jin's journey in the game and that was an
+journey in the game and that was an important consideration for us and
+important consideration for us and they're both part of progression now
+they're both part of progression now when you saw a slide about progression
+when you saw a slide about progression you probably thought we were going to
+you probably thought we were going to talk about how the gen character learns
+talk about how the gen character learns new abilities or gets new gear and
+new abilities or gets new gear and that's important but it's only one leg
+that's important but it's only one leg of the progression tripod here's how i
+of the progression tripod here's how i propose thinking about progression it's
+propose thinking about progression it's not just character progression your
+not just character progression your character is gaining new abilities or
+character is gaining new abilities or gear that's an important part of the
+gear that's an important part of the overall progression model but so is
+overall progression model but so is players getting better at playing the
+players getting better at playing the game and so as players getting smarter
+game and so as players getting smarter about how they play the game about
+about how they play the game about players knowledge increasing
+players knowledge increasing we thought about each of these
+we thought about each of these separately for ghost we wanted each to
+separately for ghost we wanted each to play a distinct role in the player's
+play a distinct role in the player's journey through what turned out to be a
+journey through what turned out to be a pretty long game the balance for your
+pretty long game the balance for your game will be different the way you
+game will be different the way you assign to each of the three areas will
+assign to each of the three areas will be different than it was for us in ghost
+be different than it was for us in ghost but thinking about them as distinct
+but thinking about them as distinct forms of progression will lead to a
+forms of progression will lead to a richer player experience
+richer player experience and here's the thing about progression
+and here's the thing about progression players are reluctant to try new things
+players are reluctant to try new things not all players but many players maybe
+not all players but many players maybe even most players so if you introduce a
+even most players so if you introduce a new player ability part way through your
+new player ability part way through your game and let players decide whether to
+game and let players decide whether to use it or not many won't
+use it or not many won't here's the key make the first experience
+here's the key make the first experience awesome the first time players use a new
+awesome the first time players use a new ability it should be easy to pull off
+ability it should be easy to pull off obviously effective and emotionally
+obviously effective and emotionally rewarding if it is they'll use it again
+rewarding if it is they'll use it again and you're in good shape if it isn't
+and you're in good shape if it isn't they'll go back to what they know
+they'll go back to what they know be careful that your efforts to create
+be careful that your efforts to create interesting progression for an ability
+interesting progression for an ability don't ruin the player's first impression
+don't ruin the player's first impression of that ability it's easy to decide when
+of that ability it's easy to decide when you're working on progression that what
+you're working on progression that what you need to do is weaken the first
+you need to do is weaken the first ability first version of the ability so
+ability first version of the ability so that the player has a reason to upgrade
+that the player has a reason to upgrade it don't do this if the first version of
+it don't do this if the first version of your ability doesn't grab the player the
+your ability doesn't grab the player the second version won't matter
+second version won't matter and in a related note be sure to front
+and in a related note be sure to front load your best ideas in your game don't
+load your best ideas in your game don't save your best stuff for the end of the
+save your best stuff for the end of the game the most important 15 minutes of
+game the most important 15 minutes of your game is the first 15 minutes the
+your game is the first 15 minutes the most important hour of your game is the
+most important hour of your game is the first hour if those two things aren't
+first hour if those two things aren't great if the first 15 minutes the first
+great if the first 15 minutes the first hour aren't great nothing else matters
+hour aren't great nothing else matters front load your best ideas if the
+front load your best ideas if the beginning of the game isn't great no one
+beginning of the game isn't great no one will make it to the end
+will make it to the end let's look at an example about making
+let's look at an example about making the first impression a strong one in the
+the first impression a strong one in the evolution of ghost melee combat one of
+evolution of ghost melee combat one of the most important things we added was
+the most important things we added was stances stances weren't there to begin
+stances stances weren't there to begin with we added them midway through the
+with we added them midway through the development of the game
+development of the game in a series of incremental steps
+in a series of incremental steps actually because we were frightened of
+actually because we were frightened of adding more complexity to the game which
+adding more complexity to the game which was already too complicated
+was already too complicated obviously stances do make the game more
+obviously stances do make the game more complicated for the player there's a
+complicated for the player there's a whole new set of things for players to
+whole new set of things for players to worry about more options to deal with in
+worry about more options to deal with in every situation and we were worried that
+every situation and we were worried that players would be overloaded well we
+players would be overloaded well we weren't wrong the extra burden of
+weren't wrong the extra burden of stances did slow players down players
+stances did slow players down players were overwhelmed and the first times we
+were overwhelmed and the first times we tested this the take-up was lower than
+tested this the take-up was lower than we wanted it to be but players really
+we wanted it to be but players really like the idea of stances they just felt
+like the idea of stances they just felt clumsy trying to use them and no one
+clumsy trying to use them and no one wants to be a clumsy samurai
+wants to be a clumsy samurai many players just stuck with the first
+many players just stuck with the first stance the one they were familiar with
+stance the one they were familiar with we offered a new stance they didn't even
+we offered a new stance they didn't even try it they knew how to win with the
+try it they knew how to win with the first dance even if it was a struggle at
+first dance even if it was a struggle at times they satisfied to use the word i
+times they satisfied to use the word i defined earlier
+defined earlier other players did switch to the second
+other players did switch to the second stance but then just stayed in it for
+stance but then just stayed in it for the rest of the game and that's also not
+the rest of the game and that's also not a great outcome so the key thing was to
+a great outcome so the key thing was to make sure that the first impression was
+make sure that the first impression was a strong one the first time they used
+a strong one the first time they used water stamps which is the first stance
+water stamps which is the first stance you earn you start with stone stance you
+you earn you start with stone stance you have to have a great experience
+have to have a great experience so
+so this first step was to make sure that
+this first step was to make sure that the value proposition is obvious water
+the value proposition is obvious water stance is really effective against guys
+stance is really effective against guys holding shields you will blast through
+holding shields you will blast through their blocks twice as fast as you will
+their blocks twice as fast as you will with stone stance
+with stone stance the number of hits to to break a shield
+the number of hits to to break a shield men's noticeably lower players can count
+men's noticeably lower players can count they can tell
+they can tell and we do subtle things too to make sure
+and we do subtle things too to make sure that the value proposition is clear like
+that the value proposition is clear like earlier we talked about how we sold
+earlier we talked about how we sold heavy attacks by having the block meter
+heavy attacks by having the block meter flash when you did a heavy attack damage
+flash when you did a heavy attack damage let you know you did the right thing
+let you know you did the right thing well if you're in the right stance and
+well if you're in the right stance and you do it you get an even bigger flash
+you do it you get an even bigger flash we don't tell you this it's just sort of
+we don't tell you this it's just sort of subtle reinforcement that you're doing
+subtle reinforcement that you're doing the right thing
+the right thing step number two is making sure to put
+step number two is making sure to put the player in a good situation
+the player in a good situation we're not in control of the timing of
+we're not in control of the timing of the player getting water stance so we
+the player getting water stance so we have dynamic training for it
+have dynamic training for it once the player gains water stance we
+once the player gains water stance we look for opportunity good opportunities
+look for opportunity good opportunities to train it to oversimplify we wait for
+to train it to oversimplify we wait for you to be one-on-one with the shieldman
+you to be one-on-one with the shieldman then the training kicks in clock slows
+then the training kicks in clock slows down we walk you through switching to
+down we walk you through switching to water stance and using water stance um
+water stance and using water stance um and that's really effective it's a
+and that's really effective it's a little bit heavy-handed especially since
+little bit heavy-handed especially since the training for stone stance is going
+the training for stone stance is going to kick in right afterwards until you're
+to kick in right afterwards until you're in the first when you're in the first
+in the first when you're in the first one-on-one situation with uh swordsman
+one-on-one situation with uh swordsman so
+so uh but it but it is effective
+uh but it but it is effective um and the third thing uh the third step
+um and the third thing uh the third step for to getting people to really engage
+for to getting people to really engage with stances was to add more
+with stances was to add more anticipation uh to them we actually uh
+anticipation uh to them we actually uh make a big deal of making progress
+make a big deal of making progress towards your next stance it's hard work
+towards your next stance it's hard work you know it doesn't come easy it doesn't
+you know it doesn't come easy it doesn't come out of the natural
+come out of the natural play through we we make you go after we
+play through we we make you go after we make you spy on uh
+make you spy on uh leaders we make you kill leaders and
+leaders we make you kill leaders and when you do we make a big deal the fact
+when you do we make a big deal the fact that you've made progress towards the
+that you've made progress towards the next stance and all this puts the player
+next stance and all this puts the player in the right headspace
+in the right headspace it prepares them for thinking that the
+it prepares them for thinking that the science is going to be a big deal so at
+science is going to be a big deal so at the point when when they get it they go
+the point when when they get it they go through this elaborate training they're
+through this elaborate training they're predisposed to think of it as being an
+predisposed to think of it as being an important thing and to engage with it
+important thing and to engage with it and that was really effective
+and that was really effective so what is the takeaway from this um
+so what is the takeaway from this um well we followed this real pretty
+well we followed this real pretty closely through all the new things we
+closely through all the new things we introduced in the game
+introduced in the game we tried to make sure that the first
+we tried to make sure that the first impression you got was a really positive
+impression you got was a really positive one so the first ghost tool you get is
+one so the first ghost tool you get is kunai because it's the easiest to use
+kunai because it's the easiest to use and most effective and we make sure that
+and most effective and we make sure that it's great out of the box and that
+it's great out of the box and that you're trained and that your first
+you're trained and that your first experience is really a good one
+experience is really a good one the first samurai armor the first
+the first samurai armor the first samurai armor you get is better in all
+samurai armor you get is better in all ways than the stuff you start with it's
+ways than the stuff you start with it's more effective it has better perks and
+more effective it has better perks and it's much sharper looking the first time
+it's much sharper looking the first time you assassinate somebody it's useful and
+you assassinate somebody it's useful and effective there's no phase of clumsy and
+effective there's no phase of clumsy and noisy assassinations when you're
+noisy assassinations when you're learning how to do it even though that
+learning how to do it even though that would have made way more sense for the
+would have made way more sense for the story because it would have made the
+story because it would have made the first impression not as good the first
+first impression not as good the first experience with something new sets the
+experience with something new sets the bar for everything that sets the tone
+bar for everything that sets the tone for everything that follows if it's not
+for everything that follows if it's not great then the player won't engage with
+great then the player won't engage with your feature they'll just set it aside
+your feature they'll just set it aside and go back to what they know
+and go back to what they know all right let's switch gears again it's
+all right let's switch gears again it's pretty clear at this point if you've
+pretty clear at this point if you've listened to this talk to this point
+listened to this talk to this point that ghost evolved a lot during its
+that ghost evolved a lot during its development it was six years we changed
+development it was six years we changed our mind about a lot of things a lot of
+our mind about a lot of things a lot of times our design process historically
+times our design process historically has been very focused on prototypes and
+has been very focused on prototypes and iteration
+iteration we did on the order of 35 full team
+we did on the order of 35 full team internal play tests during ghost
+internal play tests during ghost development we did about 25 external
+development we did about 25 external play tests and they were the external
+play tests and they were the external tests maybe half of them were took a
+tests maybe half of them were took a week long or a week long and natural
+week long or a week long and natural playthroughs of the game that's lots of
+playthroughs of the game that's lots of testing and lots of iteration
+testing and lots of iteration and if you're going to prototype and
+and if you're going to prototype and iterate your way like this if that's
+iterate your way like this if that's your way of getting through to a
+your way of getting through to a successful game then you have an
+successful game then you have an important question to answer which is
+important question to answer which is what level of execution is necessary to
+what level of execution is necessary to fairly judge an idea
+fairly judge an idea how developed does everything need to be
+how developed does everything need to be before you can tell whether the idea is
+before you can tell whether the idea is good or not how developed do the
+good or not how developed do the controls need to be but the animation or
+controls need to be but the animation or sound or camera design vfx haptics
+sound or camera design vfx haptics writing
+writing acting like how good does everything
+acting like how good does everything have to has to be
+have to has to be the most important obvious problem you
+the most important obvious problem you can
+can sorry the most obvious problem you can
+sorry the most obvious problem you can have is giving up on an idea before it
+have is giving up on an idea before it works and that is a real problem but the
+works and that is a real problem but the worst problem is not giving up an idea
+worst problem is not giving up an idea that's never going to work because
+that's never going to work because counting on a doomed idea is much better
+counting on a doomed idea is much better much worse than giving up on one that
+much worse than giving up on one that never reaches its promise
+never reaches its promise once you start counting on an idea
+once you start counting on an idea working out you start building around it
+working out you start building around it and then it becomes really hard to drop
+and then it becomes really hard to drop the bad idea without reworking
+the bad idea without reworking everything else so you keep funneling
+everything else so you keep funneling resources into it and it never really
+resources into it and it never really works
+works but if you're going to prototype an
+but if you're going to prototype an iterate you can't
+iterate you can't expect you're going to implement
+expect you're going to implement everything all the way to shippable
+everything all the way to shippable quality before you make decisions you
+quality before you make decisions you just don't have time most of our ideas
+just don't have time most of our ideas don't pan out so we have to build a
+don't pan out so we have to build a prototype and test it and somehow we
+prototype and test it and somehow we have to figure out how to get reliable
+have to figure out how to get reliable uh data from that test
+uh data from that test so
+so this can end in disaster right if you're
+this can end in disaster right if you're not careful you'll get play test data
+not careful you'll get play test data that pushes you in exactly the wrong
+that pushes you in exactly the wrong direction
+direction and it's because play testers aren't
+and it's because play testers aren't great at projecting it's hard for them
+great at projecting it's hard for them to play a prototype and imagine what
+to play a prototype and imagine what it's going to be once it's once it's
+it's going to be once it's once it's done once it's fully realized even our
+done once it's fully realized even our internal play testers even professional
+internal play testers even professional game developers aren't great at this
+game developers aren't great at this it's a really hard talent to squint in
+it's a really hard talent to squint in exactly the right way to see what the
+exactly the right way to see what the prototype will become rather than what
+prototype will become rather than what it is and there's one particular failure
+it is and there's one particular failure mode that's really dangerous
+mode that's really dangerous once the play testers will round up on
+once the play testers will round up on under implemented ideas if something is
+under implemented ideas if something is really obviously a placeholder or a
+really obviously a placeholder or a stand-in they'll imagine something
+stand-in they'll imagine something awesome in its place the platonic ideal
+awesome in its place the platonic ideal of whatever it is that you did they'll
+of whatever it is that you did they'll say this is obviously not done
+say this is obviously not done it's going to be great once it's there
+it's going to be great once it's there and secondly they will round down on
+and secondly they will round down on stuff that just needs polish
+stuff that just needs polish no you'll hear things like uh this
+no you'll hear things like uh this animation doesn't look right or the
+animation doesn't look right or the sound effects garbage or i'm not doing
+sound effects garbage or i'm not doing enough damage in this case or here's an
+enough damage in this case or here's an exploit i found this i don't like this
+exploit i found this i don't like this here's a graph of the way this can run
+here's a graph of the way this can run and we've seen stuff that looks like
+and we've seen stuff that looks like this graph way too often it's very
+this graph way too often it's very painful for me um it shows player
+painful for me um it shows player reaction to something you're iterating
+reaction to something you're iterating on time's moving from left to right here
+on time's moving from left to right here as you're making progress on an idea
+as you're making progress on an idea and like the players play testers
+and like the players play testers perceived value for the feature or the
+perceived value for the feature or the ability is going from bottom to top so
+ability is going from bottom to top so what happens well first you test the
+what happens well first you test the feature as a rough prototype and you
+feature as a rough prototype and you know it's intended but none of your play
+know it's intended but none of your play testers get it uh we'll call that in
+testers get it uh we'll call that in comprehension the very beginning of the
+comprehension the very beginning of the graph then you improve things you leave
+graph then you improve things you leave some placeholder elements but you get
+some placeholder elements but you get enough right to get people excited they
+enough right to get people excited they round up on the parts of your idea that
+round up on the parts of your idea that look like placeholders they imagine
+look like placeholders they imagine perfect solutions in all the empty slots
+perfect solutions in all the empty slots this is going to be great they say
+this is going to be great they say that's irrational exuberance then you
+that's irrational exuberance then you start finalizing polishing things you
+start finalizing polishing things you replace placeholder animations with
+replace placeholder animations with final animations and placeholder effects
+final animations and placeholder effects with final ones you put in some haptics
+with final ones you put in some haptics you play with the camera the feature is
+you play with the camera the feature is much closer to done so you test it again
+much closer to done so you test it again and people hate it the probability
+and people hate it the probability function at this point is collapsed
+function at this point is collapsed instead of possibility your play testers
+instead of possibility your play testers are just seeing disappointment and
+are just seeing disappointment and disillusionment that's despair
+disillusionment that's despair now things can go one of two ways either
+now things can go one of two ways either through hard work and insight you
+through hard work and insight you overcome the disillusionment you find
+overcome the disillusionment you find ways to hit the rewarding version of
+ways to hit the rewarding version of ideas people who are imagining during
+ideas people who are imagining during the irrational exercise phase and
+the irrational exercise phase and everyone ends up happy you end up with
+everyone ends up happy you end up with victory
+victory or you don't
+or you don't playtesters were imagining things you
+playtesters were imagining things you can't deliver and things never improve
+can't deliver and things never improve you end up in defeat
+you end up in defeat and your project won't survive too many
+and your project won't survive too many graphs that end in defeat uh and by the
+graphs that end in defeat uh and by the way
+way from personal experience this happens at
+from personal experience this happens at all scales in our play tests we see
+all scales in our play tests we see graphs that look like this for
+graphs that look like this for individual features or individual
+individual features or individual components or individual missions we
+components or individual missions we also see grass for the whole product
+also see grass for the whole product that looked like this and wow is it
+that looked like this and wow is it scary to see the scores for your game
+scary to see the scores for your game going down as you get closer to shipping
+going down as you get closer to shipping so this is bad how do you avoid grasping
+so this is bad how do you avoid grasping and defeat
+and defeat well
+well there are a few things first you have to
+there are a few things first you have to make sure you understand your
+make sure you understand your experiential target you've got something
+experiential target you've got something you want the player to feel you've got
+you want the player to feel you've got some experience you want them to have
+some experience you want them to have for most of the stuff we did in ghost we
+for most of the stuff we did in ghost we wanted them to feel like an awesome
+wanted them to feel like an awesome samurai in different ways
+samurai in different ways second
+second there needs to be some spark in your
+there needs to be some spark in your idea that makes them feel this way some
+idea that makes them feel this way some bit of magic the heart of your idea the
+bit of magic the heart of your idea the best part of your idea
+best part of your idea we'll talk about what that bit was for a
+we'll talk about what that bit was for a couple of ghost ideas in the next couple
+couple of ghost ideas in the next couple of slides but you have to know what this
+of slides but you have to know what this is when you're prototyping a feature
+is when you're prototyping a feature then you have to figure out what will
+then you have to figure out what will get in the way what will distract
+get in the way what will distract players from this magic what will
+players from this magic what will confuse them about the key part of the
+confuse them about the key part of the experience what will cause them to not
+experience what will cause them to not give you the feedback on the magic but
+give you the feedback on the magic but give you feedback on unimportant stuff
+give you feedback on unimportant stuff all of this stuff has to be
+all of this stuff has to be representative enough to not be a
+representative enough to not be a distraction
+distraction representative here means close enough
+representative here means close enough to shippable that play testers don't
+to shippable that play testers don't imagine replacing it with something
+imagine replacing it with something better
+better when they're telling you how much they
+when they're telling you how much they like the thing that you're testing they
+like the thing that you're testing they imagine what you've shown them not
+imagine what you've shown them not something they're imagining for most of
+something they're imagining for most of the stuff we did in ghost that means
+the stuff we did in ghost that means that controls have to be close to done
+that controls have to be close to done because that's the hardest thing for
+because that's the hardest thing for people to imagine animation has to be
+people to imagine animation has to be representative you have to have
+representative you have to have representative sound effects the camera
+representative sound effects the camera has to be representative sometimes other
+has to be representative sometimes other stuff like visual effects or haptic
+stuff like visual effects or haptic effects especially if they're playing a
+effects especially if they're playing a key part of the experience and this may
+key part of the experience and this may seem like a lot to have to have done at
+seem like a lot to have to have done at a almost shippable level before you can
+a almost shippable level before you can count on your testing data that's a lot
+count on your testing data that's a lot of stuff to polish
+of stuff to polish but there's even more that i've left out
+but there's even more that i've left out there's no mention of animation variety
+there's no mention of animation variety or progression or character and
+or progression or character and environment models which don't need to
+environment models which don't need to be polished in our experience the ui is
+be polished in our experience the ui is unimportant unless it's the thing you're
+unimportant unless it's the thing you're testing
+testing enemy variety unimportant how the
+enemy variety unimportant how the ability is
+ability is costed or how it's constrained not
+costed or how it's constrained not important we generally don't worry too
+important we generally don't worry too much about robustness the ability of
+much about robustness the ability of failing in some weird circumstance
+failing in some weird circumstance doesn't affect scores unless it's an
+doesn't affect scores unless it's an exploit so don't worry about it
+exploit so don't worry about it backstory integration of the world all
+backstory integration of the world all this stuff just doesn't matter it'll
+this stuff just doesn't matter it'll also get finished at some point of
+also get finished at some point of course but you can safely test without
+course but you can safely test without it you can assume that you're going to
+it you can assume that you're going to be able to fill in those blanks and not
+be able to fill in those blanks and not get not get caught out too often my
+get not get caught out too often my phrase for this is clear path to victory
+phrase for this is clear path to victory if you're not super confident that you
+if you're not super confident that you have a clear path to victory that you
+have a clear path to victory that you know how to get from the prototype to
+know how to get from the prototype to the finish line or aren't super
+the finish line or aren't super confident in how players will react to
+confident in how players will react to the ways you're going to get to the
+the ways you're going to get to the finish line then those things need to be
+finish line then those things need to be present and representative in your
+present and representative in your prototype otherwise you're rolling the
+prototype otherwise you're rolling the dice
+dice anything else can be omitted just leave
+anything else can be omitted just leave it out
+it out seriously don't even put a placeholder
+seriously don't even put a placeholder in you're just wasting your time
+in you're just wasting your time creating stuff and you're confusing the
+creating stuff and you're confusing the players so just leave it out
+players so just leave it out so let's look at a couple of examples
+so let's look at a couple of examples let's look at standoffs for instance um
+let's look at standoffs for instance um so the inspiration for this is the
+so the inspiration for this is the sakura crossover movie sunzero
+sakura crossover movie sunzero at the end of sunderland the two main
+at the end of sunderland the two main characters retreat to a hillside for a
+characters retreat to a hillside for a duel they stand each of them with their
+duel they stand each of them with their hand on their katana intense
+hand on their katana intense anticipation each waiting for movement
+anticipation each waiting for movement while the grass waves about them and
+while the grass waves about them and it's still
+it's still for an uncomfortable time then one
+for an uncomfortable time then one samurai moves but the other moves
+samurai moves but the other moves quicker and the villain falls to the
+quicker and the villain falls to the ground dead this is an awesome scene in
+ground dead this is an awesome scene in an awesome movie which you should all
+an awesome movie which you should all watch um and we really wanted to capture
+watch um and we really wanted to capture that experience in ghost
+that experience in ghost well what's the key to this what's the
+well what's the key to this what's the magic point of this and it's tension if
+magic point of this and it's tension if there's magic it's going to be capturing
+there's magic it's going to be capturing that feeling of tension this sense of
+that feeling of tension this sense of stillness and incipient danger that
+stillness and incipient danger that explodes into action
+explodes into action danger and opportunity all wrapped up
+danger and opportunity all wrapped up into one so everything in the design of
+into one so everything in the design of standoffs is focused on increasing
+standoffs is focused on increasing tension we take our time setting things
+tension we take our time setting things up to let the tension build you watch
+up to let the tension build you watch the characters walk into place
+the characters walk into place the control model isn't our standard
+the control model isn't our standard attack model usually we have you tap a
+attack model usually we have you tap a button to attack but here we have you
+button to attack but here we have you hold a button to ready yourself then
+hold a button to ready yourself then release it to attack which is inherently
+release it to attack which is inherently a tense thing
+a tense thing and we use an e jutsu attack an attack
+and we use an e jutsu attack an attack where your
+where your katana starts inside the saya and that
+katana starts inside the saya and that leaves you vulnerable too because you
+leaves you vulnerable too because you don't even have a katana drawn
+don't even have a katana drawn and finally since it's a simple stimulus
+and finally since it's a simple stimulus and response the enemy movements can be
+and response the enemy movements can be faster than their normal attacks they
+faster than their normal attacks they don't have long wind-ups in a standoff
+don't have long wind-ups in a standoff they just attack and you know this going
+they just attack and you know this going into it you know that you're going to
+into it you know that you're going to have less time to react than you do in
+have less time to react than you do in normal gameplay and that makes it feel
+normal gameplay and that makes it feel more dangerous everything points at
+more dangerous everything points at heightened tension during the standoff
+heightened tension during the standoff so we prototyped this and there were
+so we prototyped this and there were glimpses of magic it really was tense
+glimpses of magic it really was tense but rewarding even in an empty test
+but rewarding even in an empty test world so
+world so we had then the question we have to ask
+we had then the question we have to ask is what needs to be representative
+is what needs to be representative before we can trust the magic
+before we can trust the magic and in this case animation sound effects
+and in this case animation sound effects visual effects there's some time slow
+visual effects there's some time slow down which is important so we do that
+down which is important so we do that the control model and the camera but
+the control model and the camera but everything else is missing at that point
+everything else is missing at that point we don't need to worry about we did this
+we don't need to worry about we did this in test world it didn't matter
+in test world it didn't matter so
+so this was actually a point of commitment
+this was actually a point of commitment for us because
+for us because we showed a standoff as part of our demo
+we showed a standoff as part of our demo at e3 2018 so we were sort of committing
+at e3 2018 so we were sort of committing ourselves to doing this and at this
+ourselves to doing this and at this point it was only a prototype and this
+point it was only a prototype and this is not work in the game in general the
+is not work in the game in general the stand up in the demo was special rigging
+stand up in the demo was special rigging it was real you played it but it wasn't
+it was real you played it but it wasn't systemically there in the game we hadn't
+systemically there in the game we hadn't really tested it in the context of the
+really tested it in the context of the whole game but we were confident we had
+whole game but we were confident we had a clear path to victory for everything
+a clear path to victory for everything else we trusted in the magic we trusted
+else we trusted in the magic we trusted the prototype and we didn't worry too
+the prototype and we didn't worry too much about when and where you can do
+much about when and where you can do standoffs or why because the standoff
+standoffs or why because the standoff model itself was so strong
+model itself was so strong now as it turns out some of the
+now as it turns out some of the questions we had to answer were hard to
+questions we had to answer were hard to answer and we were a little bit
+answer and we were a little bit overconfident and there was a lot of
+overconfident and there was a lot of work involved to getting standoffs to
+work involved to getting standoffs to the point where they work systemically
+the point where they work systemically in the game
+in the game but it was mostly engineering work it
+but it was mostly engineering work it wasn't finding the magic it was just
+wasn't finding the magic it was just making the magic reliable there is a
+making the magic reliable there is a tech note about this with more details
+tech note about this with more details so here's another example this also
+so here's another example this also comes from e3 2018 chain assassination
+comes from e3 2018 chain assassination in that demo we showed jin leaping down
+in that demo we showed jin leaping down from the rafters of the temple and
+from the rafters of the temple and assassinating three mongols in quick
+assassinating three mongols in quick succession and in a very flashy manner
+succession and in a very flashy manner it's a great power moment and
+it's a great power moment and the nice part about this move is that
+the nice part about this move is that it's naturally limited you can't do it
+it's naturally limited you can't do it all the time you have to have three guys
+all the time you have to have three guys standing near each other uh and they
+standing near each other uh and they have to you have to be able to maneuver
+have to you have to be able to maneuver to get above the jumping range of one of
+to get above the jumping range of one of them so you really don't have to worry
+them so you really don't have to worry about it being overpowered you can
+about it being overpowered you can really crank things up
+really crank things up the magic of this is pretty obvious
+the magic of this is pretty obvious there's this uh tension to get into a
+there's this uh tension to get into a position without getting spotted uh
+position without getting spotted uh there's a feeling of mastery once you're
+there's a feeling of mastery once you're there and you're choosing your target
+there and you're choosing your target and here for once we actually went with
+and here for once we actually went with a very slow targeting model and ghost
+a very slow targeting model and ghost most of the targeting has to run really
+most of the targeting has to run really fast because we want the game to be fast
+fast because we want the game to be fast paced we want there to be lots of
+paced we want there to be lots of pressure on you but in this case we're
+pressure on you but in this case we're trying to draw out that sense of
+trying to draw out that sense of anticipation that sense of mastery that
+anticipation that sense of mastery that you're about to drop down on these guys
+you're about to drop down on these guys so the targeting model is slow and
+so the targeting model is slow and precise and finally once you trigger the
+precise and finally once you trigger the move you get this spectacle of this
+move you get this spectacle of this chain assassination with flashy moves
+chain assassination with flashy moves and flashy camera and flashy some time
+and flashy camera and flashy some time slow down just spectacle
+slow down just spectacle so what had to be representative here
+so what had to be representative here for us to trust the magic
+for us to trust the magic animation uh getting the time slow down
+animation uh getting the time slow down visual effects getting the camera in
+visual effects getting the camera in this case we needed to have the
+this case we needed to have the environment be pretty representative
+environment be pretty representative at the temple in the demo
+at the temple in the demo because this is a stealth move and the
+because this is a stealth move and the environment usually plays an important
+environment usually plays an important part in stealth abilities but everything
+part in stealth abilities but everything else is emitted we don't worry about
+else is emitted we don't worry about anything else and that was all we had to
+anything else and that was all we had to worry about getting right once we had
+worry about getting right once we had that stuff right we had a clear path to
+that stuff right we had a clear path to victory we knew we could get it to ship
+victory we knew we could get it to ship and form in the game and in fact in this
+and form in the game and in fact in this case we were right this one was easier
+case we were right this one was easier to finish than standoffs the areas where
+to finish than standoffs the areas where we left out
+we left out things we didn't have done um in fact
+things we didn't have done um in fact we're pretty straightforward to get
+we're pretty straightforward to get working we have bugs to fix but nothing
+working we have bugs to fix but nothing that really ever risked the feature
+that really ever risked the feature so
+so here's the final takeaway then um from
+here's the final takeaway then um from from this from from the last role
+from this from from the last role when you're working on something new the
+when you're working on something new the first thing you need to do is find the
+first thing you need to do is find the magic you've got some experiential
+magic you've got some experiential target in mind some emotional response
+target in mind some emotional response you want the player to have
+you want the player to have identify the magic bit of your idea that
+identify the magic bit of your idea that produces that experiential target
+produces that experiential target when you're working on the idea you
+when you're working on the idea you might only get a glimpse of the magic
+might only get a glimpse of the magic right it might not work every time maybe
+right it might not work every time maybe your timing was exactly right on
+your timing was exactly right on triggering the ability and it looked
+triggering the ability and it looked awesome and you felt like a star maybe
+awesome and you felt like a star maybe the enemies you had lined up in exactly
+the enemies you had lined up in exactly the right configuration and your
+the right configuration and your animations looked awesome maybe the
+animations looked awesome maybe the random number generator bounced your way
+random number generator bounced your way and everything clicked
+and everything clicked when that happens when you let a glimpse
+when that happens when you let a glimpse of the magic when the feature works
+of the magic when the feature works great once
+great once you've got the spark to build from your
+you've got the spark to build from your goal at that point is just to make the
+goal at that point is just to make the magic happen more reliably and usually
+magic happen more reliably and usually that's a lot easier than finding the
+that's a lot easier than finding the magic to begin with usually it's just
+magic to begin with usually it's just engineering if nothing feels like magic
+engineering if nothing feels like magic and it has to feel like magic to play
+and it has to feel like magic to play testers not just to you then you
+testers not just to you then you probably don't have a winner you don't
+probably don't have a winner you don't have something you can build your
+have something you can build your product around not everything in your
+product around not everything in your game needs to be magic but you have to
+game needs to be magic but you have to have enough magical moments or you're
+have enough magical moments or you're not going to succeed and that's the
+not going to succeed and that's the fifth rule so i've got all the way
+fifth rule so i've got all the way through five rules um and here they are
+through five rules um and here they are all on one slide five generals of game
+all on one slide five generals of game design we learned while making ghosted
+design we learned while making ghosted sushi i hope this has been helpful or
+sushi i hope this has been helpful or interesting and i hope that one or more
+interesting and i hope that one or more of these rules will uh be applicable to
+of these rules will uh be applicable to your own games um and if not it was only
+your own games um and if not it was only an hour of your time and there were
+an hour of your time and there were pretty pictures so thanks for listening
+pretty pictures so thanks for listening and uh by the way if you think it would
+and uh by the way if you think it would be fun to work on uh problems like this
+be fun to work on uh problems like this we are hiring um so you can uh go to
+we are hiring um so you can uh go to jobsuckerpunch.com and uh get in touch
+jobsuckerpunch.com and uh get in touch with us so thanks again for sitting
+with us so thanks again for sitting through this talk
+through this talk [Music]

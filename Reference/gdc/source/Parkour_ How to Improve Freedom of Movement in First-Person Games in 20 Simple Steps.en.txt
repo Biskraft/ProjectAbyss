@@ -1,0 +1,522 @@
+[Music] my name is bartosz Coulomb also known as
+my name is bartosz Coulomb also known as guava
+guava I was a little grammar responsible for
+I was a little grammar responsible for player mechanics and Dead Island and
+player mechanics and Dead Island and dying like first of all please forgive
+dying like first of all please forgive me for I have sinned I lied to you I was
+me for I have sinned I lied to you I was supposed to talk about 20 steps of
+supposed to talk about 20 steps of improving movement in fpp games but when
+improving movement in fpp games but when I actually wrote the content of this
+I actually wrote the content of this speech it was so long that we would end
+speech it was so long that we would end up talking to the end of the conference
+up talking to the end of the conference and we must have time for other amazing
+and we must have time for other amazing lectures so instead I would like to
+lectures so instead I would like to focus on three major topics crucial
+focus on three major topics crucial player mechanics implemented into dying
+player mechanics implemented into dying light parkour problems and solutions
+light parkour problems and solutions that we've encountered during their
+that we've encountered during their productions and additional details that
+productions and additional details that helped us improve the experience I hope
+helped us improve the experience I hope this lecture will help you build an
+this lecture will help you build an extent freedom of movement in your game
+extent freedom of movement in your game so first of all if we want our players
+so first of all if we want our players to be able to climb he need to know what
+to be able to climb he need to know what he can climb onto so how we describe a
+he can climb onto so how we describe a climb a ballad with its start and an
+climb a ballad with its start and an forward vector this info is enough for
+forward vector this info is enough for him to start climbing at first we had a
+him to start climbing at first we had a meeting and spoke about placement
+meeting and spoke about placement detection of those ledges and our first
+detection of those ledges and our first approach was to try put manually
+approach was to try put manually disinformation into our geometry our
+disinformation into our geometry our level designers wanted to have control
+level designers wanted to have control over the places that player could go to
+over the places that player could go to but it turned out that we ended up with
+but it turned out that we ended up with 50,000 ledges placed on a single map and
+50,000 ledges placed on a single map and we still needed more working with so
+we still needed more working with so many objects is horrible and impossible
+many objects is horrible and impossible to manage we also our memory started to
+to manage we also our memory started to shrink because we initially started
+shrink because we initially started developing dying light on an old
+developing dying light on an old generation console and memory space in
+generation console and memory space in them was [ __ ] low so we decided to
+them was [ __ ] low so we decided to take another approach detect ledges in
+take another approach detect ledges in runtime now how we did it we do a number
+runtime now how we did it we do a number of forward traces to the tackle and
+of forward traces to the tackle and obstacles in front of the play
+obstacles in front of the play for for those who heat we validate space
+for for those who heat we validate space above and below them to see if the
+above and below them to see if the player body will fit by simply measuring
+player body will fit by simply measuring the distance of the traces for those who
+the distance of the traces for those who are valid we then do a vertical trace to
+are valid we then do a vertical trace to detect the exact spot of climb being led
+detect the exact spot of climb being led those three steps has been repeated to
+those three steps has been repeated to the other side of the player because our
+the other side of the player because our game is 3d so we and also our ledge
+game is 3d so we and also our ledge definition has a start and an end then
+definition has a start and an end then we can pair those points with some angle
+we can pair those points with some angle restrictions horizontal average than
+restrictions horizontal average than vertical and create our post plausible
+vertical and create our post plausible ledges and then we can sort them by
+ledges and then we can sort them by distance and look angles to the player
+distance and look angles to the player and add another space validation with
+and add another space validation with traces y with traces instead of
+traces y with traces instead of collision collision queries because our
+collision collision queries because our physics engine did not support getting
+physics engine did not support getting results from physics queries in current
+results from physics queries in current frame and getting the results from next
+frame and getting the results from next one would be too late and all that
+one would be too late and all that turned out to be the right way to go
+turned out to be the right way to go climbing changed from frustration into
+climbing changed from frustration into pure joy of overcoming all obstacles in
+pure joy of overcoming all obstacles in players way but this new freedom created
+players way but this new freedom created two major problems so beware level
+two major problems so beware level designers and level artists now have to
+designers and level artists now have to take care of all places that player
+take care of all places that player could go to and I mean all places
+could go to and I mean all places rooftop backyards etc everything had to
+rooftop backyards etc everything had to play and look good this was pretty scary
+play and look good this was pretty scary at the beginning but eventually they got
+at the beginning but eventually they got so excited about the new gameplay
+so excited about the new gameplay possibilities that they ended up loft
+possibilities that they ended up loft working on it they also told me that it
+working on it they also told me that it actually opened their eyes on true
+actually opened their eyes on true meaning of open-world environment but
+meaning of open-world environment but this is a story for another lecture and
+this is a story for another lecture and I don't feel competent of explaining it
+I don't feel competent of explaining it the second problem was the performance
+the second problem was the performance thankfully we have super intelligent and
+thankfully we have super intelligent and resourceful programmers that managed to
+resourceful programmers that managed to come up with some magical optimizations
+come up with some magical optimizations that
+that included batching geometry around the
+included batching geometry around the players and something we call carpet of
+players and something we call carpet of traces technically we knew that we have
+traces technically we knew that we have a special case of traces with same
+a special case of traces with same direction and length so we optimize our
+direction and length so we optimize our tracing algorithm to take that into
+tracing algorithm to take that into account and perform less operation on
+account and perform less operation on budget geometry around the plate the
+budget geometry around the plate the players I don't know the exact details
+players I don't know the exact details I'm not so good at math but it did the
+I'm not so good at math but it did the trick
+trick now that we know how to detect a ledge
+now that we know how to detect a ledge in front of the player we can move to
+in front of the player we can move to another important thing if you look at
+another important thing if you look at this ledge from above you will notice
+this ledge from above you will notice that there is no space for the player
+that there is no space for the player body so player won't grab that ledge but
+body so player won't grab that ledge but this is invisible from player point of
+this is invisible from player point of view so we had to include new climbing
+view so we had to include new climbing state hang when we were designing and
+state hang when we were designing and implementing our first approach we
+implementing our first approach we didn't forget about it
+didn't forget about it but we wanted our movement to be fast
+but we wanted our movement to be fast and have smallest amount of stops as
+and have smallest amount of stops as possible later life verified our vision
+possible later life verified our vision and we had to include that into our
+and we had to include that into our ledge detection algorithm so how we did
+ledge detection algorithm so how we did it we took the results from forward
+it we took the results from forward traces from previous stage we add a
+traces from previous stage we add a different restriction above and below
+different restriction above and below above like to 10 centimeters for player
+above like to 10 centimeters for player hand but below it was more restricted 1
+hand but below it was more restricted 1 because of the player hanging body and
+because of the player hanging body and pairing and space validation was done in
+pairing and space validation was done in similar fashion to previous one but if
+similar fashion to previous one but if the player is hanging and he has some
+the player is hanging and he has some space on his left or right side we now
+space on his left or right side we now had to add additional moves to make him
+had to add additional moves to make him feel comfortable with climbing hence
+feel comfortable with climbing hence we've added side and optionally but now
+we've added side and optionally but now we have to detect places for shimmy and
+we have to detect places for shimmy and that require additional modifications to
+that require additional modifications to the algorithm but I don't want to bore
+the algorithm but I don't want to bore you with a lot of algorithm description
+you with a lot of algorithm description so I leave this topic on a lecture on
+so I leave this topic on a lecture on another occasion maybe next year if you
+another occasion maybe next year if you like this one now I want to talk about
+like this one now I want to talk about something very simple jumping this is so
+something very simple jumping this is so old mechanic that all players should
+old mechanic that all players should know how to do it right
+know how to do it right well as it turns out jumping in fpp
+well as it turns out jumping in fpp isn't as intuitive as jumping it flat
+isn't as intuitive as jumping it flat platformers the first player perspective
+platformers the first player perspective works against precision and precision is
+works against precision and precision is crucial part of our game is that a major
+crucial part of our game is that a major problem well we had test cases when
+problem well we had test cases when large part of the players would jump too
+large part of the players would jump too soon or too late all of the time so our
+soon or too late all of the time so our obstacles end up being too easy or too
+obstacles end up being too easy or too hard for large part of the players to
+hard for large part of the players to fix that problem we have to give the
+fix that problem we have to give the players additional help this help
+players additional help this help included three simple steps that we call
+included three simple steps that we call jump assist first step was to delay jump
+jump assist first step was to delay jump and wait for a better moment to jump we
+and wait for a better moment to jump we define better as there is something in
+define better as there is something in front of us like a wall or a Ledge or
+front of us like a wall or a Ledge or players just started to fall is not
+players just started to fall is not touching the ground that helps the
+touching the ground that helps the players that jump too soon at full speed
+players that jump too soon at full speed that gave us additional 1 meter of jump
+that gave us additional 1 meter of jump range the second step was allowing the
+range the second step was allowing the player to perform a jump after he fall
+player to perform a jump after he fall for a brief moment with this one we had
+for a brief moment with this one we had to be careful because soon it look
+to be careful because soon it look really bad in coop and that helped the
+really bad in coop and that helped the players that jump too late and third
+players that jump too late and third step if the player is jumping over an
+step if the player is jumping over an obstacle but doesn't really touch it we
+obstacle but doesn't really touch it we would still allow him to perform that
+would still allow him to perform that job technically it's a jump in air but
+job technically it's a jump in air but players feel more natural like they are
+players feel more natural like they are extending their like and bouncing of
+extending their like and bouncing of that object again you have to be very
+that object again you have to be very careful because it works on a short
+careful because it works on a short range like 20 centimeters from the
+range like 20 centimeters from the object those three steps result most of
+object those three steps result most of our problems and even a beginner had no
+our problems and even a beginner had no problem with jumping so frustration was
+problem with jumping so frustration was gone
+gone ok the end of part 1
+ok the end of part 1 now we can move to problems and
+now we can move to problems and solutions that we've encountered during
+solutions that we've encountered during the production animation and freedom of
+the production animation and freedom of movement when we have detected the ledge
+movement when we have detected the ledge in front of the player we will choose
+in front of the player we will choose his starting position from four
+his starting position from four positions on straight climbable ledge
+positions on straight climbable ledge one position on not climbable that there
+one position on not climbable that there is a box that you cannot climb above and
+is a box that you cannot climb above and to four positions to per site on steep
+to four positions to per site on steep climb Bible ledges this one is tricky so
+climb Bible ledges this one is tricky so bear with me after choosing correct
+bear with me after choosing correct position after choosing correct
+position after choosing correct animation player position is linearity
+animation player position is linearity set with a starting position of the
+set with a starting position of the animation with special state we call
+animation with special state we call begin in this state player is reaching
+begin in this state player is reaching his hands and legs to grab the ledge
+his hands and legs to grab the ledge this tail duration is scaled up or down
+this tail duration is scaled up or down according to player speed before the
+according to player speed before the climb this is due to the fact that we
+climb this is due to the fact that we want to avoid changing speed as much as
+want to avoid changing speed as much as possible so the movement is more fluid
+possible so the movement is more fluid in this state we are also forcing player
+in this state we are also forcing player loop direction to blend with forward
+loop direction to blend with forward direction of the climbing ledge when
+direction of the climbing ledge when this state is finished we have set the
+this state is finished we have set the player in the exact same position and
+player in the exact same position and orientation as in the animation so all
+orientation as in the animation so all we have to do right now is synchronize
+we have to do right now is synchronize the rest of the movement with the info
+the rest of the movement with the info from the animation BAM
+from the animation BAM simple right here is a sample video of
+simple right here is a sample video of the first implementation some of you may
+the first implementation some of you may notice that player character doesn't
+notice that player character doesn't quite fit into the tank like universe
+and it looked okay but played horrible why because when we initiated the climb
+why because when we initiated the climb we would actually play a cinematic that
+we would actually play a cinematic that takes away control of player hands and
+takes away control of player hands and no control feels really bad so what we
+no control feels really bad so what we do we started to do a shorter climbing
+do we started to do a shorter climbing sequence and it pushed us in the right
+sequence and it pushed us in the right direction but the problem was still
+direction but the problem was still there then we added a special state to
+there then we added a special state to the animation and when player was still
+the animation and when player was still in the middle of climb the camera was
+in the middle of climb the camera was still moving up but we allowed the
+still moving up but we allowed the player to walk it felt a lot better but
+player to walk it felt a lot better but the beginning of the climbing had this
+the beginning of the climbing had this issue and we couldn't resolve that in
+issue and we couldn't resolve that in similar manner but what we could do is
+similar manner but what we could do is to free player head from restrictions
+to free player head from restrictions and allow to look around while climbing
+and allow to look around while climbing that did the trick even when player body
+that did the trick even when player body was locked in climbing there was always
+was locked in climbing there was always some degree of control in player hands
+some degree of control in player hands with that we could rest for a while
+with that we could rest for a while until new problem showed up
+until new problem showed up something I call straight line out of
+something I call straight line out of hell when you see player history
+hell when you see player history position from above you will notice that
+position from above you will notice that his line wanted line of movement the red
+his line wanted line of movement the red line I hope it's visible it's offset a
+line I hope it's visible it's offset a little bit to the left
+little bit to the left after the clap this change depends on an
+after the clap this change depends on an angle that he approaches the left the
+angle that he approaches the left the bigger the difference from forward of
+bigger the difference from forward of the climbed Inglot the bigger the
+the climbed Inglot the bigger the changes in theory this shouldn't be a
+changes in theory this shouldn't be a big deal but as it turns out my beloved
+big deal but as it turns out my beloved colleagues from work are very creative
+colleagues from work are very creative they have created some weird-ass
+they have created some weird-ass obstacles that requires extra precision
+obstacles that requires extra precision from player control and that precision
+from player control and that precision was not possible in current
+was not possible in current implementation thankfully solution was
+implementation thankfully solution was simple allowed the player to climb on
+simple allowed the player to climb on his current forward vector instead of
+his current forward vector instead of the one from the ledge that fixed one
+the one from the ledge that fixed one problem but created two new ones the red
+problem but created two new ones the red ellipse represent
+ellipse represent presents the movement from the animation
+presents the movement from the animation as you may notice it ends before the
+as you may notice it ends before the climb Inglot this is due to the fact
+climb Inglot this is due to the fact that the animation has been prepared
+that the animation has been prepared facing directly the forward of climbing
+facing directly the forward of climbing laps so players started to fall before
+laps so players started to fall before the climb being glad we fix that by
+the climb being glad we fix that by slightly restricting the angles of climb
+slightly restricting the angles of climb so ant position would then differ more
+so ant position would then differ more than player capsule radius and allow
+than player capsule radius and allow physics to climb on higher stair hype
+physics to climb on higher stair hype midair the second problem was the hands
+midair the second problem was the hands they were grabbing the wrong places
+they were grabbing the wrong places one was going into geometry the other
+one was going into geometry the other one was grabbing the air the first one
+one was grabbing the air the first one looked easy render player hands at the
+looked easy render player hands at the end of the frame it looks easy but as we
+end of the frame it looks easy but as we use deferred rendering in our engine it
+use deferred rendering in our engine it would be very performance heavy so what
+would be very performance heavy so what we did we've cheated we scaled down the
+we did we've cheated we scaled down the hands of the player with camera
+hands of the player with camera projection matrix and it did the trick
+projection matrix and it did the trick have a look how it looks from fvp and
+have a look how it looks from fvp and from the outside
+we found a missing link a proof that people evolved from t-rex the second
+people evolved from t-rex the second hand used some trick compute each
+hand used some trick compute each position in screen space and use hand I
+position in screen space and use hand I K to set the hand in 3d space it can be
+K to set the hand in 3d space it can be too far from the original position as
+too far from the original position as the hand would stretch unnaturally what
+the hand would stretch unnaturally what we loosened then the animations a bit
+we loosened then the animations a bit and we got like 40 centimeters of
+and we got like 40 centimeters of freedom that did the trick
+freedom that did the trick last but not least I would like to talk
+last but not least I would like to talk about problems that we had with jumping
+about problems that we had with jumping it's important for me because we had
+it's important for me because we had many discussions about it and we've
+many discussions about it and we've resolved our problem in some maybe
+resolved our problem in some maybe controversial way first question is why
+controversial way first question is why we change the regulary
+we change the regulary used jump button from X to R 1 our game
+used jump button from X to R 1 our game has very complex geometry so we figure
+has very complex geometry so we figure out that we
+out that we would allow the players to have full
+would allow the players to have full control of the player even in air so air
+control of the player even in air so air control the factor in air was set to
+control the factor in air was set to 100% because we wanted the players to
+100% because we wanted the players to move as fluid as possible through our
+move as fluid as possible through our geometry but if the player wants to
+geometry but if the player wants to press the X button he will move his
+press the X button he will move his tongue dump to from right stick to press
+tongue dump to from right stick to press it
+it that means he's losing control of player
+that means he's losing control of player for a brief moment the pacing in dying
+for a brief moment the pacing in dying light is sometimes unforgiving so even
+light is sometimes unforgiving so even our short lack of control is bad so in
+our short lack of control is bad so in the end we moved the jump button to r1
+the end we moved the jump button to r1 as it grants more control over the
+as it grants more control over the players and fixed the problem the second
+players and fixed the problem the second complain about jump button was to hold
+complain about jump button was to hold or not to hold it imagine this situation
+or not to hold it imagine this situation you have two ledges in front of the
+you have two ledges in front of the player one in the window and one above
+player one in the window and one above him as they have described while
+him as they have described while searching the ledge we define which one
+searching the ledge we define which one is better
+is better by comparing the distances and look
+by comparing the distances and look angle but the distance in this case is
+angle but the distance in this case is equal because we measure it in 2d so how
+equal because we measure it in 2d so how we choose between them by slightly
+we choose between them by slightly looking above one of them the problem
+looking above one of them the problem was no matter how I tweaked this
+was no matter how I tweaked this algorithm to implement that slightly it
+algorithm to implement that slightly it never worked perfectly for some people
+never worked perfectly for some people it did and for some people it didn't
+it did and for some people it didn't what really helped is adding the
+what really helped is adding the restriction to hold the button to grab
+restriction to hold the button to grab the ledge you click you jump you grab
+the ledge you click you jump you grab the button you grab the ledge it took
+the button you grab the ledge it took some time time to teach the player how
+some time time to teach the player how it works but eventually remove all of
+it works but eventually remove all of the mention problems at some point we
+the mention problems at some point we were also experimenting with something
+were also experimenting with something similar to Assassin's Creed play style
+similar to Assassin's Creed play style when holding the trigger would switch
+when holding the trigger would switch player character into freerunning state
+player character into freerunning state in this state player would jump and grab
+in this state player would jump and grab ledges automatically and as a prototype
+ledges automatically and as a prototype it worked amazingly good but it took
+it worked amazingly good but it took away all player skill and satisfaction
+away all player skill and satisfaction of performing a perfect time jump don't
+of performing a perfect time jump don't get me wrong I love Assassin's Creed
+get me wrong I love Assassin's Creed franchise but Assassin's Creed for me is
+franchise but Assassin's Creed for me is all about the
+all about the joonie the world and the set the setting
+joonie the world and the set the setting and we wanted our game to be more about
+and we wanted our game to be more about second to second gameplay so action in
+second to second gameplay so action in every aspect of game was crucial ability
+every aspect of game was crucial ability to make mistakes to master the movement
+to make mistakes to master the movement was important this is something I
+was important this is something I noticed when I play old prince of persia
+noticed when I play old prince of persia sense of time versus prince of persia
+sense of time versus prince of persia 2008 the first one had all moves jumping
+2008 the first one had all moves jumping while running
+while running monkey bars etc preset to different
+monkey bars etc preset to different buttons so it felt very acrobatic to
+buttons so it felt very acrobatic to overcome obstacles harder but again more
+overcome obstacles harder but again more satisfying in Prince of Persia 2008 all
+satisfying in Prince of Persia 2008 all of those mentioned moves was moved to
+of those mentioned moves was moved to one button so the difficulty went down
+one button so the difficulty went down and I feel the freerunning state took
+and I feel the freerunning state took that simplification even further but
+that simplification even further but this is due to the fact that Assassin's
+this is due to the fact that Assassin's Creed and Prince of Persia are different
+Creed and Prince of Persia are different games and we figure out we shouldn't go
+games and we figure out we shouldn't go that way either the end of Part 2 small
+that way either the end of Part 2 small break okay now I want to talk about
+break okay now I want to talk about something slightly different vomiting
+something slightly different vomiting this only happens to me when I party too
+this only happens to me when I party too hard it never happens to me after gaming
+hard it never happens to me after gaming so imagine my confusion when one day my
+so imagine my confusion when one day my colleague came to me and told me this
+colleague came to me and told me this story dude I was showing our game on
+story dude I was showing our game on game event to one of the reporters from
+game event to one of the reporters from polygon
+polygon suddenly she turns pale runs out of the
+suddenly she turns pale runs out of the booth and vomits he was in short later
+booth and vomits he was in short later that day he even wrote him an email and
+that day he even wrote him an email and tell him that she felt bad for the rest
+tell him that she felt bad for the rest of the day that was a disaster we
+of the day that was a disaster we couldn't let that happen you don't wanna
+couldn't let that happen you don't wanna report a run of out of your booth you
+report a run of out of your booth you don't want the players to feel sick when
+don't want the players to feel sick when they are playing your game unfortunately
+they are playing your game unfortunately we didn't have anyone with that symptoms
+we didn't have anyone with that symptoms in our company yet well this was like
+in our company yet well this was like 2014 so no vr stuff and motion sickness
+2014 so no vr stuff and motion sickness wasn't that common thankfully
+wasn't that common thankfully we've read some articles about motion
+we've read some articles about motion sickness and prepared a built with
+sickness and prepared a built with abilities of turning and tweaking things
+abilities of turning and tweaking things that could have influenced a motion
+that could have influenced a motion sickness big help came from specialists
+sickness big help came from specialists in that manner because we have requested
+in that manner because we have requested a report in which a lot of test was
+a report in which a lot of test was conducted I hope not on students only
+conducted I hope not on students only and they figure out what caused motion
+and they figure out what caused motion sickness in our title it turned out that
+sickness in our title it turned out that frequent and often cover a target
+frequent and often cover a target movement caused motion sickness the left
+movement caused motion sickness the left one shows before the corrections the
+one shows before the corrections the right one was after the corrections in
+right one was after the corrections in the animations camera moving backward
+the animations camera moving backward when player body was moving forward that
+when player body was moving forward that created an awkward feeling players had
+created an awkward feeling players had so we had to remember to never go with
+so we had to remember to never go with camera back when moving when performing
+camera back when moving when performing a while fast-forward moves the
+a while fast-forward moves the highlighted area shows that on the left
+highlighted area shows that on the left side there is a slight bump backward and
+side there is a slight bump backward and we eliminated that in the animation and
+we eliminated that in the animation and that helped us third thing is player not
+that helped us third thing is player not being able to focus on constant element
+being able to focus on constant element on the screen adding a simple dot there
+on the screen adding a simple dot there fix that it's even invisible for you but
+fix that it's even invisible for you but your eyes automatically rely on that
+your eyes automatically rely on that constant element and amortizes all of
+constant element and amortizes all of the movement so it really helps lasting
+the movement so it really helps lasting but not last but not least is the
+but not last but not least is the distance between the TV and the player
+distance between the TV and the player when player is sitting too close to the
+when player is sitting too close to the camera his brain can stand even the
+camera his brain can stand even the slightest movement of the camera while
+slightest movement of the camera while we couldn't feel that at player homes we
+we couldn't feel that at player homes we could definitely fix that on get next
+could definitely fix that on get next game event Techland booth became larger
+game event Techland booth became larger and we made sure that the distance
+and we made sure that the distance between the player and the TV is large
+between the player and the TV is large the result no one felt motion sickness
+the result no one felt motion sickness after playing deal on events even the
+after playing deal on events even the journalist that pointed out this problem
+journalist that pointed out this problem so it was a massive relief this task was
+so it was a massive relief this task was very frustrating for me as I was fixing
+very frustrating for me as I was fixing problems that I didn't quite understand
+problems that I didn't quite understand and I couldn't see really see the
+and I couldn't see really see the results of my work but eventually we got
+results of my work but eventually we got very little negative comments about it
+very little negative comments about it so I guess we did a good job we're
+so I guess we did a good job we're running out of time so I will now give a
+running out of time so I will now give a list of things that we've implemented
+list of things that we've implemented also it will explain why we did it what
+also it will explain why we did it what I won't tell how you have to do it for
+I won't tell how you have to do it for yourself when you see parkour videos you
+yourself when you see parkour videos you will notice that freedom and fluidity of
+will notice that freedom and fluidity of movements come to the runners very
+movements come to the runners very naturally this is due to the fact that
+naturally this is due to the fact that they have very good and well-trained
+they have very good and well-trained knowledge of their bodies that helps
+knowledge of their bodies that helps when they are running on narrow walkways
+when they are running on narrow walkways when they are jumping on knee height
+when they are jumping on knee height obstacles or move their shoulders to fit
+obstacles or move their shoulders to fit into narrow ways that kind of special
+into narrow ways that kind of special awareness it's impossible to simulate in
+awareness it's impossible to simulate in FTP games player often lose obstacles
+FTP games player often lose obstacles from the rear sight due to limited fov
+from the rear sight due to limited fov or input slightly wrong direction and
+or input slightly wrong direction and falls from Heights or bumps into us to
+falls from Heights or bumps into us to compensate that problems we created a
+compensate that problems we created a couple of systems that help the player
+couple of systems that help the player balance if the player is walking on
+balance if the player is walking on narrow object or near the ledge of the
+narrow object or near the ledge of the building we would slightly correct his
+building we would slightly correct his input so he wouldn't fall avoid when
+input so he wouldn't fall avoid when player is running we would add site
+player is running we would add site speed to his movement to avoid make him
+speed to his movement to avoid make him fall into walls and does make him run
+fall into walls and does make him run much smoother use you if you look you
+much smoother use you if you look you see will a little bump to the right left
+see will a little bump to the right left this is artificial player inputs only
+this is artificial player inputs only forward direction and there is no
+forward direction and there is no collision like we prevent collision from
+collision like we prevent collision from happening so there won't be any slowdown
+happening so there won't be any slowdown and out of step if the player is has a
+and out of step if the player is has a small obstacle in front of him like 40
+small obstacle in front of him like 40 centimeters we would automatically climb
+centimeters we would automatically climb bond it because those obstacles when he
+bond it because those obstacles when he is closed them are invisible for the
+is closed them are invisible for the players so it feels very natural to walk
+players so it feels very natural to walk on them so far I was going I was talking
+on them so far I was going I was talking about moveset about things that help the
+about moveset about things that help the player move up or forward but
+player move up or forward but professional runners
+professional runners can do a lot of different stuff to go
+can do a lot of different stuff to go down to help the player move down we've
+down to help the player move down we've added several systems that allowed us to
+added several systems that allowed us to build the true image of free runner with
+build the true image of free runner with added jumping into dumpsters and braking
+added jumping into dumpsters and braking falls landing on cars jumping into water
+falls landing on cars jumping into water and swim slide down ladders and pipes
+using a zipline and enjoy the view or even break Falls by rolling those
+even break Falls by rolling those mechanism had to be used by level
+mechanism had to be used by level designers to create fun and variate
+designers to create fun and variate environment and as a wrap up where to go
+environment and as a wrap up where to go from here well sky is the limit one
+from here well sky is the limit one could add turning on shimmy so parkour
+could add turning on shimmy so parkour puzzles would be even more interesting
+puzzles would be even more interesting outside wall run with some clever level
+outside wall run with some clever level designed to support them at
+designed to support them at environmental awareness so player would
+environmental awareness so player would run when running through near obstacles
+run when running through near obstacles would touch walls and other things
+would touch walls and other things sky's the limit don't give up and you
+sky's the limit don't give up and you will succeed at the end I would like to
+will succeed at the end I would like to thank all of the people that work on
+thank all of the people that work on creating dang right all of them deserve
+creating dang right all of them deserve a round of applause so give it up for
+a round of applause so give it up for them
+them [Applause]
+you

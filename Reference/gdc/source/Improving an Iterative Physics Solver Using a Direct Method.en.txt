@@ -1,0 +1,806 @@
+[Music]
+roblox is a platform for user-generated 3d worlds of the games and the physics
+3d worlds of the games and the physics engine is a core component of the
+engine is a core component of the platform's runtime
+platform's runtime you
+this presentation will be an overview of the mathematics and implementation of
+the mathematics and implementation of the physics server inside of the roblox
+the physics server inside of the roblox engine this is the system that computes
+engine this is the system that computes the motion of constraining the rigid
+the motion of constraining the rigid bodies under the influence of forces
+since the creativity of roblox developers knows no bounds or physics
+developers knows no bounds or physics engine is required to support complex
+engine is required to support complex sometimes very complex mechanism for
+sometimes very complex mechanism for example we wouldn't be able to simulate
+example we wouldn't be able to simulate this scissor-lift using an existing
+this scissor-lift using an existing physics library this requires a more
+physics library this requires a more robust type of a constraint solver and
+robust type of a constraint solver and this will be the topic of this talk
+this will be the topic of this talk there is another requirement for a
+there is another requirement for a physics library the support for
+physics library the support for distributed physics which we will not
+distributed physics which we will not discuss here the physics engine solves
+discuss here the physics engine solves an NCP
+an NCP a linear complementarity problem and it
+a linear complementarity problem and it typically it uses an interactive solver
+typically it uses an interactive solver such as the projective gauss seidel
+such as the projective gauss seidel within a reasonable number of iterations
+within a reasonable number of iterations the protecting gauss-seidel is not able
+the protecting gauss-seidel is not able to simulate the scissor lift leading to
+to simulate the scissor lift leading to instabilities and explosions
+our main contribution is the LDL PGS solver it uses a direct method to invert
+solver it uses a direct method to invert the sub matrix corresponding to the
+the sub matrix corresponding to the equality constraints and helping the PGS
+equality constraints and helping the PGS this leads to much better behavior in
+this leads to much better behavior in the example of the scissor lift also it
+the example of the scissor lift also it behaves much better when bodies with
+behaves much better when bodies with very different masses are interacting
+very different masses are interacting the high mass ratio problem
+the high mass ratio problem the LPGA's solver has two phases the
+the LPGA's solver has two phases the symbolic phase a numeric phase in the
+symbolic phase a numeric phase in the symbolic phase which runs only once per
+symbolic phase which runs only once per mechanism its structure is analyzed and
+mechanism its structure is analyzed and an optimized LDL decomposition program
+an optimized LDL decomposition program is generated
+is generated and in the numeric phase which executes
+and in the numeric phase which executes every physics frame the mechanism state
+every physics frame the mechanism state is updated using both the PGS and the
+is updated using both the PGS and the LDL decomposition program in the next
+LDL decomposition program in the next section we will quickly cover the basics
+section we will quickly cover the basics of a constraint solver
+of a constraint solver a constraint solver deals with
+a constraint solver deals with mechanical constraints such as a ball in
+mechanical constraints such as a ball in a socket or a hinge
+it also sports other constraints including rods prismatic cylindrical
+including rods prismatic cylindrical angular limits positional limits and
+angular limits positional limits and ropes and few other constraints that
+ropes and few other constraints that don't need to have mechanical
+don't need to have mechanical equivalents
+let's define a constraint mathematically we have two or more rigid bodies
+we have two or more rigid bodies represented here by green and blue ovals
+represented here by green and blue ovals and their state is described by their
+and their state is described by their coordinates positions and orientations
+coordinates positions and orientations the orientations can be specified using
+the orientations can be specified using either rotation matrices or quaternions
+either rotation matrices or quaternions then a constraint between these bodies
+then a constraint between these bodies is a differentiable function of the
+is a differentiable function of the coordinates into a vector space of an
+coordinates into a vector space of an arbitrary dimension D this vector space
+arbitrary dimension D this vector space is called the constrained space and it's
+is called the constrained space and it's dimension is called a degree of the
+dimension is called a degree of the constraint we say that the bodies
+constraint we say that the bodies respect the constraint if the constraint
+respect the constraint if the constraint function vanishes that their coordinates
+function vanishes that their coordinates the function must have an additional
+the function must have an additional property it must be regular on the zero
+property it must be regular on the zero locus that is the Jacobian has full rank
+locus that is the Jacobian has full rank or equivalently D is the number of
+or equivalently D is the number of degrees of freedom removed by the
+degrees of freedom removed by the constraint
+constraint how do we model a ball in a socket or a
+how do we model a ball in a socket or a ball joint between two rigid bodies
+ball joint between two rigid bodies specify pivot locations in the local
+specify pivot locations in the local space of the two bodies
+space of the two bodies the constraint functions then the
+the constraint functions then the difference between these two pivot
+difference between these two pivot position transform into world space
+position transform into world space constraint function vanishes when the
+constraint function vanishes when the two are in the same location it seems
+two are in the same location it seems that there is another way to specify
+that there is another way to specify this constrain by using the tip status
+this constrain by using the tip status function between the two people
+function between the two people positions but only the first model is
+positions but only the first model is regular that is the jacobian has full
+regular that is the jacobian has full rank this is how we model a hinge
+rank this is how we model a hinge it's a ball in the socket together with
+it's a ball in the socket together with an orthogonality relationship between a
+an orthogonality relationship between a vector on one body and the plane on the
+vector on one body and the plane on the other body the degree of this constrain
+other body the degree of this constrain is 5
+now that we have a way of modeling constraints we are interested in the
+constraints we are interested in the dynamics of the rigid bodies their
+dynamics of the rigid bodies their motion therefore we need to derive the
+motion therefore we need to derive the velocity relationships at the
+velocity relationships at the constraining poses this is obtained by
+constraining poses this is obtained by taking the derivative of the constraint
+taking the derivative of the constraint function this derivative can always be
+function this derivative can always be formulated as a product of some matrix J
+formulated as a product of some matrix J times the vector of velocities
+times the vector of velocities the matrix is called the Jacobian of C
+the matrix is called the Jacobian of C as a result the jacobian is an operator
+as a result the jacobian is an operator that takes the body space velocities and
+that takes the body space velocities and produces the constraint space velocities
+produces the constraint space velocities since the time derivative of a function
+since the time derivative of a function that's zero is zero and strained bodies
+that's zero is zero and strained bodies produce no motion in the constrained
+produce no motion in the constrained space for example here's the ball in a
+space for example here's the ball in a socket constraint and its derivative
+socket constraint and its derivative which is the relative velocity of the
+which is the relative velocity of the two pivots and care has to be taken in
+two pivots and care has to be taken in taking the derivative of orientation
+taking the derivative of orientation matrices or quaternions these are
+matrices or quaternions these are expressed in terms of cross products
+expressed in terms of cross products with angular velocities but a cross
+with angular velocities but a cross product is a linear operation and can be
+product is a linear operation and can be expressed as a matrix multiplication
+expressed as a matrix multiplication as a result we can gather the velocities
+as a result we can gather the velocities into a vector and the rest into the
+into a vector and the rest into the Jacobian matrix
+Jacobian matrix the Jacobian matrix has two parts
+the Jacobian matrix has two parts corresponding to the two rigid bodies
+so far we have been looking at single constraints but in practice we want to
+constraints but in practice we want to model entire mechanism consisting of
+model entire mechanism consisting of many constraints and bodies we can stack
+many constraints and bodies we can stack all the constraints in the mechanism
+all the constraints in the mechanism into a single function called the global
+into a single function called the global constraint taking the derivative of the
+constraint taking the derivative of the global constraint we get the global
+global constraint we get the global Jacobian matrix which maps the
+Jacobian matrix which maps the velocities of rigid bodies in the
+velocities of rigid bodies in the constraint space
+constraint space practice each constraint we only affect
+practice each constraint we only affect two or three rigid bodies which means
+two or three rigid bodies which means that each row of the global Jacobian has
+that each row of the global Jacobian has only twelve or eighteen nonzero entries
+only twelve or eighteen nonzero entries here is an example of a mechanism with
+here is an example of a mechanism with four bodies and four constraints and
+four bodies and four constraints and this is how the Jacobian would look like
+this is how the Jacobian would look like each block of rows corresponds to a
+each block of rows corresponds to a constraint and each block of columns
+constraint and each block of columns corresponds to a body the most important
+corresponds to a body the most important thing to notice is that each row of the
+thing to notice is that each row of the Jacobian contains twelve nonzero
+Jacobian contains twelve nonzero elements the sparse matrix
+elements the sparse matrix we are now ready to describe the
+we are now ready to describe the integration step we have the velocities
+integration step we have the velocities at time zero and using the Euler
+at time zero and using the Euler integration step the velocities at time
+integration step the velocities at time DT are given by this equation it
+DT are given by this equation it involves the inverse mass matrix which
+involves the inverse mass matrix which is a block diagonal matrix with inverse
+is a block diagonal matrix with inverse masses and inverse inertia matrices on
+masses and inverse inertia matrices on the diagonal and the Lagrangian
+the diagonal and the Lagrangian multipliers are so called the constraint
+multipliers are so called the constraint impulses this last term comes from the
+impulses this last term comes from the Dalembert's principle it adds the
+Dalembert's principle it adds the internal forces of the constraints and
+internal forces of the constraints and this internal forces must be such that
+this internal forces must be such that the resulting velocities produced no
+the resulting velocities produced no motion in the constrained space moving
+motion in the constrained space moving the terms around we get the following
+the terms around we get the following equation it's called the linearized
+equation it's called the linearized constraint equation it involves the
+constraint equation it involves the constraint matrix K which is the product
+constraint matrix K which is the product of the Jacobian inverse mass matrix and
+of the Jacobian inverse mass matrix and the Jacobian transpose this matrix is
+the Jacobian transpose this matrix is symmetric and positive semi definite
+symmetric and positive semi definite which means its eigenvalues are
+which means its eigenvalues are non-negative it is either invertible or
+non-negative it is either invertible or it can be made invertible by adding any
+it can be made invertible by adding any positive value to its diagonal this
+positive value to its diagonal this equation is valid only for equality
+equation is valid only for equality constraints other constraints like
+constraints other constraints like collisions or limits lead to a null CP
+collisions or limits lead to a null CP which we will not cover here but the
+which we will not cover here but the structure of the problem is very similar
+structure of the problem is very similar in the next section we will discuss
+in the next section we will discuss methods to solve this equation
+additionally the constraint equation or the NCP is solved using the projected
+the NCP is solved using the projected gauss seidel this algorithmics small
+gauss seidel this algorithmics small corrections to constraints consecutively
+corrections to constraints consecutively the impulses for collisions and friction
+the impulses for collisions and friction and for inequality constraints are
+and for inequality constraints are processed using the projected gauss
+processed using the projected gauss seidel iterations where the Equality
+seidel iterations where the Equality constraints use the Gauss Seidel
+constraints use the Gauss Seidel iteration these iterations are repeated
+iteration these iterations are repeated multiple times until the system
+multiple times until the system converges usually games use a fixed
+converges usually games use a fixed number of iterations our approach
+number of iterations our approach changes the way the Equality constraints
+changes the way the Equality constraints are processed inside the PGS instead of
+are processed inside the PGS instead of processing these one at a time we use a
+processing these one at a time we use a direct method to invert the entire sub
+direct method to invert the entire sub matrix corresponding to the Equality
+matrix corresponding to the Equality constraints this fits within the
+constraints this fits within the formalism of the block gauss seidel and
+formalism of the block gauss seidel and the method we use to invert the matrix
+the method we use to invert the matrix is called the sparse LDL decomposition
+but because of performance we are not able to correct the solution using the
+able to correct the solution using the entire holonomic block constraint matrix
+entire holonomic block constraint matrix every iteration instead we do it only in
+every iteration instead we do it only in one iteration the last one or one before
+one iteration the last one or one before last a lot of iterations use normal
+last a lot of iterations use normal gauss seidel on the equality constraints
+gauss seidel on the equality constraints it turns out that this is enough to have
+it turns out that this is enough to have a very good quality simulation and as a
+a very good quality simulation and as a bonus it allows us to compute the LDL
+bonus it allows us to compute the LDL decomposition in parallel with most of
+decomposition in parallel with most of the PGS iterations let's review the PGS
+the PGS iterations let's review the PGS in details it starts with an estimate of
+in details it starts with an estimate of the solution which can be cached result
+the solution which can be cached result of the previous frame or simply the zero
+of the previous frame or simply the zero vector and it now starts the iterations
+vector and it now starts the iterations over the rows of the constraint matrix
+over the rows of the constraint matrix first calculates the residual which is
+first calculates the residual which is the measure of the error for the current
+the measure of the error for the current row and then corrects the solution by
+row and then corrects the solution by adding the residual divided by the
+adding the residual divided by the diagonal element of the constraint
+diagonal element of the constraint matrix on the current row optionally it
+matrix on the current row optionally it then projects the newly calculated
+then projects the newly calculated solution into the admissible domain it
+solution into the admissible domain it repeats this process for all rows
+repeats this process for all rows multiple time
+multiple time the bottleneck of this algorithm is this
+the bottleneck of this algorithm is this dot product between the row of K and
+dot product between the row of K and lambda it has an arbitrary number of
+lambda it has an arbitrary number of nonzero terms there is a better way to
+nonzero terms there is a better way to calculate the product ki times lambda
+calculate the product ki times lambda let's go back to the constraint equation
+let's go back to the constraint equation and write it in terms of the Jacobian
+and write it in terms of the Jacobian and the inverse mass matrix we can use
+and the inverse mass matrix we can use the associativity of the matrix
+the associativity of the matrix multiplication to isolate the Jacobian
+multiplication to isolate the Jacobian on the left side and the product of the
+on the left side and the product of the inverse mass matrix a cobia transpose
+inverse mass matrix a cobia transpose and lambda on the right side we call the
+and lambda on the right side we call the right side the vector of velocity
+right side the vector of velocity changes Delta B it's literally the
+changes Delta B it's literally the velocity changes of the rigid bodies
+velocity changes of the rigid bodies then in the gauss seidel we can replace
+then in the gauss seidel we can replace ki times lambda by ji times delta b this
+ki times lambda by ji times delta b this product has only twelve or eighteen
+product has only twelve or eighteen nonzero terms for practical strains we
+nonzero terms for practical strains we have now an improved version of the
+have now an improved version of the gauss seidel for mechanical constraints
+gauss seidel for mechanical constraints the physics simulation community it's
+the physics simulation community it's called the impulse solver but in
+called the impulse solver but in mathematics it's the catch manage method
+mathematics it's the catch manage method the solution is initialized to an
+the solution is initialized to an estimate and the vector of velocity
+estimate and the vector of velocity changes is pre computed as before we're
+changes is pre computed as before we're gonna iterate over all rows of the
+gonna iterate over all rows of the matrix
+correction to the solution is calculated with the residue are computed using the
+with the residue are computed using the new method optionally the corrected
+new method optionally the corrected solution is projected and the velocity
+solution is projected and the velocity changes are updated
+changes are updated this new algorithm uses about 50
+this new algorithm uses about 50 floating-point operations per row and a
+floating-point operations per row and a constant number of operations is good
+constant number of operations is good for an algorithm we already talked about
+for an algorithm we already talked about the block gauss seidel this is
+the block gauss seidel this is formalized using partitions of rows a
+formalized using partitions of rows a partition is a grouping into subsets
+partition is a grouping into subsets where each element is included in
+where each element is included in exactly one subset a partition of rows
+exactly one subset a partition of rows induces a block structure on the
+induces a block structure on the jacobian it's the original Jacobian but
+jacobian it's the original Jacobian but where the rows have been permitted and
+where the rows have been permitted and grouped together according to the
+grouped together according to the partition the block structure on the
+partition the block structure on the Jacobian naturally induces a block
+Jacobian naturally induces a block structure of the constraint matrix
+structure of the constraint matrix note that the square blocks on the
+note that the square blocks on the diagonal are symmetric matrices and the
+diagonal are symmetric matrices and the opposite of diagonal blocks are
+opposite of diagonal blocks are transposed of each other we will call
+transposed of each other we will call this using N and E and stands for node
+this using N and E and stands for node matrix and E for edge matrix we will see
+matrix and E for edge matrix we will see later this comes from graph theory the
+later this comes from graph theory the Gauss Seidel or the impulse solver can
+Gauss Seidel or the impulse solver can be made to work with blocks set of
+be made to work with blocks set of individual rows the things to note
+individual rows the things to note in the blocking pool solver we need to
+in the blocking pool solver we need to compute the inverse of a square matrix
+compute the inverse of a square matrix and I which might be expensive depending
+and I which might be expensive depending on the size of the block so the blocks
+on the size of the block so the blocks over doesn't support projection so this
+over doesn't support projection so this can only be used with equality
+can only be used with equality constraints
+in the blog version of the impulse over we need to evaluate the inverse of the
+we need to evaluate the inverse of the non matrix times a vector or small
+non matrix times a vector or small dimensions this is as easy as inverting
+dimensions this is as easy as inverting a matrix using naive method like hammers
+a matrix using naive method like hammers rule for example using the natural
+rule for example using the natural partition coming from grouping the rows
+partition coming from grouping the rows back constraints the null matrices will
+back constraints the null matrices will have dimensions up to six by six
+and these are invertible because we assume the constraints are regular
+assume the constraints are regular consider this idea what if we grouped
+consider this idea what if we grouped all the equality constraints together in
+all the equality constraints together in the partition but the subset PI 0
+the partition but the subset PI 0 contains all the rows of the equality
+contains all the rows of the equality constraints and other subsets containing
+constraints and other subsets containing dividual rows and 0 is then a large
+dividual rows and 0 is then a large square matrix constraint matrix of
+square matrix constraint matrix of equality constraints we denote this
+equality constraints we denote this matrix using H H stands for holonomic
+matrix using H H stands for holonomic we need now to evaluate the inverse of H
+we need now to evaluate the inverse of H times a vector but there are some
+times a vector but there are some obstacles to do that H may not be
+obstacles to do that H may not be invertible this is solved by using
+invertible this is solved by using regularization which adds compliance the
+regularization which adds compliance the mechanical constraints and makes the
+mechanical constraints and makes the system invertible it may have large
+system invertible it may have large dimensions we deal with this by using
+dimensions we deal with this by using sparse methods still it may have large
+sparse methods still it may have large tensor matrices where sparse methods
+tensor matrices where sparse methods won't help us we can increase parsecity
+won't help us we can increase parsecity by splitting bodies so how does
+by splitting bodies so how does regularization work H is symmetric
+regularization work H is symmetric positive semi definite which means the
+positive semi definite which means the angin values or nuns negative this means
+angin values or nuns negative this means that adding anything positive to the
+that adding anything positive to the diagonal makes the matrix invertible of
+diagonal makes the matrix invertible of course adding absolute values is scale
+course adding absolute values is scale dependent and it's much better to add
+dependent and it's much better to add epsilon times diagonal adding such a
+epsilon times diagonal adding such a regularization term changes the
+regularization term changes the mechanical system it makes the
+mechanical system it makes the constraints compliant
+constraints compliant traditionally other PGS engines also use
+traditionally other PGS engines also use compliance to stabilize the solution
+compliance to stabilize the solution using PGs on the regular ice system is
+using PGs on the regular ice system is equivalent to using PGS on the original
+equivalent to using PGS on the original system but damping the solutions after
+system but damping the solutions after each raw update in bullets or all the
+each raw update in bullets or all the e-library x' this term is called CFM or
+e-library x' this term is called CFM or constraint force mixing
+let's now look at the sparsity of constraint matrices or a mechanism like
+constraint matrices or a mechanism like this one which has a scissor lift on top
+this one which has a scissor lift on top of a platform with wheels the constraint
+of a platform with wheels the constraint matrix consists mostly of zeros
+this model has 50 constraints of the hinges the dimension of the matrix is
+hinges the dimension of the matrix is 246 and it's density is 12% spatial SQL
+246 and it's density is 12% spatial SQL DL processes this matrix in about 90,000
+DL processes this matrix in about 90,000 floating-point operations which on my
+floating-point operations which on my machine takes about 70 microseconds so
+machine takes about 70 microseconds so what is Olesky decomposition it says
+what is Olesky decomposition it says that I'm symmetric positive-definite
+that I'm symmetric positive-definite matrix a and we decompose into a product
+matrix a and we decompose into a product l times D times L transpose where L is a
+l times D times L transpose where L is a lower triangular matrix with ones on the
+lower triangular matrix with ones on the diagonal and these are diagonal matrix
+diagonal and these are diagonal matrix this is useful because both L inverse
+this is useful because both L inverse and D inverse can be efficiently
+and D inverse can be efficiently evaluated as operators on a vector
+Oh for any vector B inverse times V can now be evaluated by applying the inverse
+now be evaluated by applying the inverse of the decomposition factors computing
+of the decomposition factors computing the L inverse and its transpose times a
+the L inverse and its transpose times a vector and we're done using a method
+vector and we're done using a method called back substitution which is very
+called back substitution which is very efficient and inverting D is trivial as
+efficient and inverting D is trivial as it involves only inverting scalars
+it involves only inverting scalars as suppose that a has a block structure
+as suppose that a has a block structure coming from a partition of the roads
+coming from a partition of the roads and it has an LDL decomposition where D
+and it has an LDL decomposition where D is a block diagonal and L is a lower
+is a block diagonal and L is a lower triangular matrix with identity blocks
+triangular matrix with identity blocks on the diagonal and both these matrices
+on the diagonal and both these matrices inherit the block structure from a
+inherit the block structure from a but why are we using a block LDL instead
+but why are we using a block LDL instead of simple scale version its performance
+of simple scale version its performance block decomposition is much faster than
+block decomposition is much faster than in Scala decomposition as sparse block
+in Scala decomposition as sparse block matrix requires less indexation than a
+matrix requires less indexation than a scalar one next we will look into
+scalar one next we will look into details of an algorithm that produces
+details of an algorithm that produces such decomposition there are at least
+such decomposition there are at least two algorithms that produce LDL
+two algorithms that produce LDL decompositions
+decompositions the Gaussian elimination and doolittle
+the Gaussian elimination and doolittle algorithm will use only Gaussian
+algorithm will use only Gaussian elimination in this presentation
+elimination in this presentation at the core of the blog Gaussian
+at the core of the blog Gaussian elimination there is an operation called
+elimination there is an operation called a shul complement then we have a
+a shul complement then we have a symmetric block matrix where the blocks
+symmetric block matrix where the blocks are denoted by n e e transpose and s we
+are denoted by n e e transpose and s we apply the following operation to this
+apply the following operation to this matrix we multiply the top row by e
+matrix we multiply the top row by e times n inverse and subtract from the
+times n inverse and subtract from the bottom row as a result we get a matrix
+bottom row as a result we get a matrix where the bottom left block has become 0
+where the bottom left block has become 0 has been eliminated then we multiply the
+has been eliminated then we multiply the first column by n inverse times a
+first column by n inverse times a transpose and subtract on the second
+transpose and subtract on the second column resulting the top right block
+column resulting the top right block being eliminated
+being eliminated what we have done is to decompose the
+what we have done is to decompose the block matrix as a product of a lower
+block matrix as a product of a lower triangular matrix block diagonal matrix
+triangular matrix block diagonal matrix and an upper triangular matrix which is
+and an upper triangular matrix which is the transpose of the lower triangular
+the transpose of the lower triangular one and so we have obtained a block LDL
+one and so we have obtained a block LDL decomposition the algorithm that
+decomposition the algorithm that produces this block LDL decomposition is
+produces this block LDL decomposition is the block Gaussian elimination which is
+the block Gaussian elimination which is just a recursive computation of the
+just a recursive computation of the short complement
+short complement or our constraint matrix which is a
+or our constraint matrix which is a symmetric matrix of a block structure
+symmetric matrix of a block structure will group blocks even further to
+will group blocks even further to simplify the notation we'll call this
+simplify the notation we'll call this lower left column e star comma 0 and the
+lower left column e star comma 0 and the bottom right block we'll call it s 0 we
+bottom right block we'll call it s 0 we have this 2 by 2 block representation of
+have this 2 by 2 block representation of the matrix and computing the show
+the matrix and computing the show complement produces this decomposition
+complement produces this decomposition we now apply recursively the shrewder
+we now apply recursively the shrewder complement here we have a matrix that
+complement here we have a matrix that has already been partially eliminated so
+has already been partially eliminated so we already have some blocks on the top
+we already have some blocks on the top left of the diagonal and underneath and
+left of the diagonal and underneath and to the right the elements have already
+to the right the elements have already been eliminated
+been eliminated and this is the sub-matrix who will be
+and this is the sub-matrix who will be working on it is the si minus 1 matrix
+working on it is the si minus 1 matrix from the previous iteration applying the
+from the previous iteration applying the short complement we get this
+short complement we get this decomposition where the matrices on the
+decomposition where the matrices on the left and right are called
+left and right are called elementary matrices
+elementary matrices the algorithm underlying the shrew
+the algorithm underlying the shrew complement is divided in three steps
+complement is divided in three steps number one invert the node matrix n
+number one invert the node matrix n number to compute the elementary matrix
+number to compute the elementary matrix L and number three reduce the S matrix
+after the last iteration we will be left with a block diagonal matrix and the
+with a block diagonal matrix and the lower triangular matrix L that's the
+lower triangular matrix L that's the product of elementary matrices in the
+product of elementary matrices in the order that were produced and these are
+order that were produced and these are the factors of the LDL decomposition of
+the factors of the LDL decomposition of our matrix
+we can now apply the inverse of H to a vector V and this is equivalent to
+vector V and this is equivalent to applying the inverse of the factors of
+applying the inverse of the factors of the LDL decomposition in the opposite
+the LDL decomposition in the opposite order
+order the inverse of the matrix L can be
+the inverse of the matrix L can be computed using its decomposition into
+computed using its decomposition into the elementary matrices that we obtain
+the elementary matrices that we obtain during the Gaussian elimination the
+during the Gaussian elimination the inverse of each elementary matrix is
+inverse of each elementary matrix is simple to compute just negate the
+simple to compute just negate the elements below the diagonal
+elements below the diagonal and don't evaluate the product of this
+and don't evaluate the product of this matrices use this decomposition while
+matrices use this decomposition while applying to a vector
+applying to a vector and finally the inverse of D is the
+and finally the inverse of D is the block diagonal matrix consisting of the
+block diagonal matrix consisting of the inverses of the node matrices and eyes
+inverses of the node matrices and eyes but these have already been computed
+but these have already been computed during the Gaussian elimination
+let's turn our attention to the constraint matrix of equality
+constraint matrix of equality constraints H the block structure comes
+constraints H the block structure comes from partitioning the rose by
+from partitioning the rose by constraints
+constraints so the diagonal blocks and eyes
+so the diagonal blocks and eyes correspond to individual constraints and
+correspond to individual constraints and off diagonal blocks IJ's correspond to
+off diagonal blocks IJ's correspond to the interaction between two constraints
+the interaction between two constraints if they have a rigid body in common
+if they have a rigid body in common usually a lot of the CI J's are 0
+usually a lot of the CI J's are 0 because not all constraints have a rigid
+because not all constraints have a rigid bodies in common
+bodies in common and we use these zeros to help us reduce
+and we use these zeros to help us reduce the number of operations during the
+the number of operations during the Gaussian elimination
+yes absolutely this is possible and here is how we need to establish a
+is how we need to establish a relationship between space matrices and
+relationship between space matrices and graphs translate the Gaussian
+graphs translate the Gaussian elimination to a process on graphs and
+elimination to a process on graphs and pack the sparse matrix data in memory in
+pack the sparse matrix data in memory in such a way that it optimizes the block
+such a way that it optimizes the block Gaussian elimination let's dive into
+Gaussian elimination let's dive into some graph theory first we have the body
+some graph theory first we have the body graph it's the graph where the nodes are
+graph it's the graph where the nodes are rigid bodies and edges are constrained
+rigid bodies and edges are constrained between them
+between them the dual of the body graph is the
+the dual of the body graph is the constraint graph it's also called the
+constraint graph it's also called the edge graph of the body graph because
+edge graph of the body graph because it's nodes are constraints and edges are
+it's nodes are constraints and edges are common bodies between constraints
+common bodies between constraints as you can imagine the constraint graph
+as you can imagine the constraint graph is related to the constraint matrix what
+is related to the constraint matrix what this means is that nodes correspond to
+this means is that nodes correspond to diagonal blocks the node matrices and
+diagonal blocks the node matrices and edges correspond to the off diagonal
+edges correspond to the off diagonal blocks the H matrices and Gaussian
+blocks the H matrices and Gaussian elimination has an equivalent
+elimination has an equivalent operational graph called graph
+operational graph called graph elimination we'll dive into this later
+elimination we'll dive into this later here's a simple example of a dune buggy
+here's a simple example of a dune buggy with its body graph the nodes correspond
+with its body graph the nodes correspond to the following rigid bodies the main
+to the following rigid bodies the main body the wheels the knuckles that joined
+body the wheels the knuckles that joined the front wheels to the body in the
+the front wheels to the body in the steering mechanism and the steering rack
+steering mechanism and the steering rack taking the edge graph of the body graph
+taking the edge graph of the body graph we get the constraint graph this graph
+we get the constraint graph this graph represents the structure of the
+represents the structure of the constraint matrix of the equality
+constraint matrix of the equality constraints in this buggy let's turn our
+constraints in this buggy let's turn our attention to the way the Gaussian
+attention to the way the Gaussian elimination translates on to the
+elimination translates on to the constraint graph let's call the node and
+constraint graph let's call the node and I corresponding to the node matrix the
+I corresponding to the node matrix the pivot the basic operation of taking the
+pivot the basic operation of taking the shul compliment at ni does the following
+shul compliment at ni does the following to the graph one
+to the graph one it adds edges between the neighbors of
+it adds edges between the neighbors of the people and two it eliminates all
+the people and two it eliminates all edges with the pivot on this example
+edges with the pivot on this example graph let's select not 0 as the pivot
+graph let's select not 0 as the pivot and eliminate it this produces the graph
+and eliminate it this produces the graph where all neighbors of not 0 are joined
+where all neighbors of not 0 are joined by edges and edges with not 0 are
+by edges and edges with not 0 are removed
+removed note that this process creates four new
+note that this process creates four new edges meaning this fields in four zero
+edges meaning this fields in four zero blocks in the sparse matrix with nonzero
+blocks in the sparse matrix with nonzero values there is a better way if we
+values there is a better way if we permit our matrix in such a way that the
+permit our matrix in such a way that the rows corresponding to node one are at
+rows corresponding to node one are at the top we can eliminate not one instead
+the top we can eliminate not one instead doing this produces this graph where no
+doing this produces this graph where no new edges have been created and
+new edges have been created and therefore no zero elements of the sparse
+therefore no zero elements of the sparse matrix have been filled in this is much
+matrix have been filled in this is much better than eliminating nodes 0
+so now on the resulting graph let's find another node to eliminate let's try not
+another node to eliminate let's try not zero this creates a new edge but if we
+zero this creates a new edge but if we eliminate node 3 there we know new edges
+eliminate node 3 there we know new edges created and the sparsity of the matrix
+created and the sparsity of the matrix will not increase
+continuing with this algorithm we produce an elimination order if it
+produce an elimination order if it doesn't produce new edges it's called a
+doesn't produce new edges it's called a perfect elimination order in this
+perfect elimination order in this example we have a perfect elimination
+example we have a perfect elimination order and it's 1 3 0 to 4
+but not all graphs have a perfect elimination order
+elimination order the objective of the elimination game is
+the objective of the elimination game is to find an order that minimizes the
+to find an order that minimizes the number of new edges created this is an
+number of new edges created this is an np-complete problem but there are some
+np-complete problem but there are some very good heuristics
+here are two here is this the first one called minimum degree algorithm is a
+called minimum degree algorithm is a very popular method as it is very fast
+very popular method as it is very fast but it generates mediocre ordering it's
+but it generates mediocre ordering it's mostly used for very large problems with
+mostly used for very large problems with millions of nodes
+millions of nodes the second one minimum edge creation
+the second one minimum edge creation algorithm is more expensive but in
+algorithm is more expensive but in general produces much better ordering
+general produces much better ordering this is our invention and is more
+this is our invention and is more appropriate for medium-sized problems
+appropriate for medium-sized problems where the graph does not exceed hundreds
+where the graph does not exceed hundreds of nodes
+of nodes also we can afford running a more
+also we can afford running a more expensive algorithm because we only need
+expensive algorithm because we only need to compute this once per mechanism and
+to compute this once per mechanism and catch the results to reuse a refrain
+the minimum edge creation algorithm is very simple at its step it eliminates
+very simple at its step it eliminates the people that will create the minimum
+the people that will create the minimum number of new edges that is the people
+number of new edges that is the people whose neighbors have the smallest number
+whose neighbors have the smallest number of missing connections between
+of missing connections between themselves
+themselves it does require expensive service step
+it does require expensive service step but it is affordable on graphs of few
+but it is affordable on graphs of few hundreds of nodes
+by the end the graph elimination creates two lists an ordered sequence of nodes
+two lists an ordered sequence of nodes the people sequence and Forex people a
+the people sequence and Forex people a sequence of eliminated edges the edge
+sequence of eliminated edges the edge sequences the elements of the edge
+sequences the elements of the edge sequences should be in the pivot order
+before proceeding let's enjoy this animation of the elimination of the
+animation of the elimination of the scissor lift constrain graph
+with a graph elimination enhance let's go back to our sparse matrix this is
+go back to our sparse matrix this is symmetric we only store the blocks on
+symmetric we only store the blocks on and below the diagonal the node matrices
+and below the diagonal the node matrices on the diagonal are in the people
+on the diagonal are in the people sequence order and the H matrices appear
+sequence order and the H matrices appear below the diagonal also in the edge
+below the diagonal also in the edge sequence order
+sequence order the light blue blocks are those that
+the light blue blocks are those that were not present in the original matrix
+were not present in the original matrix but were filled in by the elimination
+but were filled in by the elimination these are initially zero but will
+these are initially zero but will acquire nonzero values during the
+acquire nonzero values during the process of decomposition
+the colored blocks represent all blocks that we'll need for Gaussian elimination
+that we'll need for Gaussian elimination and we can pack this contiguously in
+and we can pack this contiguously in memory we started blocks in column major
+memory we started blocks in column major order in memory but we store the
+order in memory but we store the elements of each block in row major
+elements of each block in row major order this memory layout is very
+order this memory layout is very important for efficient processing
+now let's look in details at the step of Gaussian elimination on the sparse
+Gaussian elimination on the sparse matrix
+we have the Peapod matrix we LDL decomposing place using dense LDL
+we LDL decomposing place using dense LDL which is always faster than using the
+which is always faster than using the Kramer's rule
+we compute the L matrices by multiplying the H matrices below the pivot matrix
+the H matrices below the pivot matrix in0 inverse we start the L matrices in
+in0 inverse we start the L matrices in the temporary buffer
+the temporary buffer this process can be done very
+this process can be done very efficiently the way the edge matrices
+efficiently the way the edge matrices are packed in memory it can be
+are packed in memory it can be interpreted as one block matrix and
+interpreted as one block matrix and multiply by the inverse of the pivot we
+multiply by the inverse of the pivot we don't need to keep track of the block
+don't need to keep track of the block structure next we reduce this is the
+structure next we reduce this is the most expensive part of the process as it
+most expensive part of the process as it costs proportionally to the square of
+costs proportionally to the square of the height of the edge column again we
+the height of the edge column again we don't need to keep track of the block
+don't need to keep track of the block structure above E&L matrices but we do
+structure above E&L matrices but we do need to have an index section of the
+need to have an index section of the target location in s not
+target location in s not then finally we copy the L matrices from
+then finally we copy the L matrices from the temporary buffer over the age
+the temporary buffer over the age matrices that we will no longer use and
+matrices that we will no longer use and we repeat this process with anyone at
+we repeat this process with anyone at the or decompose n1 compute L matrices
+the or decompose n1 compute L matrices reduce and replace a with L matrices
+after repeating this process on all the pivots we are left with the block LDL
+pivots we are left with the block LDL decomposition with the L matrices
+decomposition with the L matrices replacing the edge matrices and the D
+replacing the edge matrices and the D matrices replacing the node matrices and
+matrices replacing the node matrices and these node matrices are already LDL
+these node matrices are already LDL decomposed so it's easy to compute their
+decomposed so it's easy to compute their inverse operator we have one key
+inverse operator we have one key ingredient still missing indexation of
+ingredient still missing indexation of the reduction step
+the results of the reduction step which consists of multiplying the edge
+consists of multiplying the edge matrices with the L matrices are being
+matrices with the L matrices are being scattered over the rest of the sparse
+scattered over the rest of the sparse matrix the scattering needs to be
+matrix the scattering needs to be indexed this indexation is pre computed
+indexed this indexation is pre computed four pairs of indices in two rows of E
+four pairs of indices in two rows of E and L and it is called the reduction
+and L and it is called the reduction scattering indexation RSI it can use
+scattering indexation RSI it can use either pointers or indices of both node
+either pointers or indices of both node and edge matrices live in the same
+and edge matrices live in the same workspace
+workspace this array can become quite large and
+this array can become quite large and using indices rather than pointers is
+using indices rather than pointers is better because it requires less memory
+better because it requires less memory for two bytes versus eight bytes for
+for two bytes versus eight bytes for pointers on 64-bit CPUs
+why is the performance of the block LDL better than the regular LDL let D be the
+better than the regular LDL let D be the width of an edge column which is the
+width of an edge column which is the degree of the corresponding constraint
+degree of the corresponding constraint or the pivot and H be its height
+we assume that H is bigger than D which is true most of the time for complex
+is true most of the time for complex mechanism
+then we estimate the number of operations for the three phases of the
+operations for the three phases of the show compliment
+show compliment and we estimate the memory access
+and we estimate the memory access these are the dominant terms
+these are the dominant terms now modern processors are good at
+now modern processors are good at floating-point operations but are bad at
+floating-point operations but are bad at memory access and if we compute the
+memory access and if we compute the operation count over the memory access
+operation count over the memory access we get D
+we get D as a consequence the best most efficient
+as a consequence the best most efficient results are obtained with larger D as
+results are obtained with larger D as long as it stays smaller than H
+you
+let's look at the implementation of the reduction step which represents about 70
+reduction step which represents about 70 percent of the processing time it's
+percent of the processing time it's fairly simple we loop over the raw
+fairly simple we loop over the raw indices of both matrices and compute the
+indices of both matrices and compute the dot product
+dot product the result is subtracted from the
+the result is subtracted from the locations index by the ASI
+under the degree parameter which is the degree of the pivot constraint is passed
+degree of the pivot constraint is passed as a template argument
+as a template argument this allows unrolling the dot product
+this allows unrolling the dot product underlying the matrix multiplication
+underlying the matrix multiplication which has very large impact on
+which has very large impact on performance
+you now here is the implementation of a
+now here is the implementation of a single pivot elimination we have the
+single pivot elimination we have the three steps here the composition of the
+three steps here the composition of the node matrix which takes about five
+node matrix which takes about five percent of the time the computation of L
+percent of the time the computation of L which takes about twenty five percent of
+which takes about twenty five percent of time and should also be on roll over the
+time and should also be on roll over the degree and the reduction step
+degree and the reduction step and here is how you invoke this function
+and here is how you invoke this function by using a sweet statement on the degree
+by using a sweet statement on the degree or dimension of the pivot
+or dimension of the pivot the switch should handle all degrees
+the switch should handle all degrees I'll do those up to six are the most
+I'll do those up to six are the most common and should be allowed to enroll
+common and should be allowed to enroll their internal computations for
+their internal computations for performance
+the last topic we need to cover is about large dense sub matrices where space
+large dense sub matrices where space methods can't help let's look at this
+methods can't help let's look at this example of the track bagel this model
+example of the track bagel this model has three components the main body and
+has three components the main body and the two tracks
+the track consists of 40 plates connected with hinge constraint the
+connected with hinge constraint the constraint might risk as dimension 200
+constraint might risk as dimension 200 with 7.5% density it's nonzero elements
+with 7.5% density it's nonzero elements are mostly very close to the diagonal
+are mostly very close to the diagonal such a system is easily decomposed using
+such a system is easily decomposed using LDL sparse LDL processes this matrix in
+LDL sparse LDL processes this matrix in 43,000 operations in fact it has linear
+43,000 operations in fact it has linear complexity in the number of constraints
+complexity in the number of constraints in the track on the other hand the body
+in the track on the other hand the body of the vehicle has a totally different
+of the vehicle has a totally different constraint matrix it has only 20
+constraint matrix it has only 20 constraints which are mostly hinges and
+constraints which are mostly hinges and it's dimension is 88 but the density of
+it's dimension is 88 but the density of the constraint matrix is 100 percent it
+the constraint matrix is 100 percent it takes 250,000 operations to decompose
+takes 250,000 operations to decompose the complexity here is n cube in the
+the complexity here is n cube in the number of wheels this is a problem which
+number of wheels this is a problem which we have a solution called body
+we have a solution called body shattering
+shattering you
+all the shuttering we transform the system into a system of higher dimension
+system into a system of higher dimension 142 but with much lower than density of
+142 but with much lower than density of 17% here DL can decompose this in only
+17% here DL can decompose this in only 35,000 operations it turns out that this
+35,000 operations it turns out that this number of operations is linear in the
+number of operations is linear in the number of wheels
+number of wheels we went from n cube complexity to linear
+we went from n cube complexity to linear complexity
+and this is how the constraint matrix looks like after shattering
+so then sub-matrices appear where we have a rigid body with many constraints
+have a rigid body with many constraints like the body of the tank
+like the body of the tank here we introduce a method called body
+here we introduce a method called body shattering it finds bodies with many
+shattering it finds bodies with many constraints where the sum of the degrees
+constraints where the sum of the degrees should be more than 20 splits the rigid
+should be more than 20 splits the rigid body into smaller shards joins the
+body into smaller shards joins the shards using rigid joints and equally
+shards using rigid joints and equally distribute the constraint over this
+distribute the constraint over this chart
+you suppose this is the body graph of a
+suppose this is the body graph of a mechanism with a central body overloaded
+mechanism with a central body overloaded with constraints and this is the
+with constraints and this is the corresponding constraint graph you can
+corresponding constraint graph you can see that it is a complete graph
+see that it is a complete graph The Associated sparse matrix is dense we
+The Associated sparse matrix is dense we get this rigid body graph by shattering
+get this rigid body graph by shattering the central body into three pieces and
+the central body into three pieces and joining them using rigid joints the
+joining them using rigid joints the corresponding constraint graph has more
+corresponding constraint graph has more loads but less edges and constraining
+loads but less edges and constraining matrix is sparser are more efficient to
+matrix is sparser are more efficient to LDL decompose
+since we're now near the conclusion of this talk let's put all the ingredients
+this talk let's put all the ingredients of the LDL PG s solver together for
+of the LDL PG s solver together for every mechanism we have two phases the
+every mechanism we have two phases the symbolic phase that needs to be executed
+symbolic phase that needs to be executed only once and in numeric phase that runs
+only once and in numeric phase that runs every phase extreme update the symbolic
+every phase extreme update the symbolic phase takes us an input the structure of
+phase takes us an input the structure of the mechanism which is the connectivity
+the mechanism which is the connectivity data between bodies and constraints and
+data between bodies and constraints and produces the elimination sequence or the
+produces the elimination sequence or the LDL program
+LDL program the numeric face takes the current state
+the numeric face takes the current state of the mechanism and executes the PGS
+of the mechanism and executes the PGS solver in parallel with the LDL
+solver in parallel with the LDL decomposition of the constraint matrix
+decomposition of the constraint matrix then after joining the two threads
+then after joining the two threads executes one step of the block gauss
+executes one step of the block gauss seidel using the LDL decomposed matrix
+seidel using the LDL decomposed matrix to correct the constraint impulses there
+to correct the constraint impulses there is a profile capture of a solver update
+is a profile capture of a solver update we can see the PGS solver running here
+we can see the PGS solver running here and in parallel the LDL decomposition of
+and in parallel the LDL decomposition of the holonomic constraints
+the holonomic constraints finally the decomposed matrix is applied
+finally the decomposed matrix is applied to the impulses here
+this is it I hope this talk will help you build a great physics engine thanks
+you build a great physics engine thanks for watching
+for watching you

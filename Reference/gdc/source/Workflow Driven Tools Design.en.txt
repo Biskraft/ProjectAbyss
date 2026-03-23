@@ -1,0 +1,642 @@
+[Music] hi everyone
+hi everyone i'm vesa parkane i work as a senior
+i'm vesa parkane i work as a senior tools program at remedy
+tools program at remedy today i'm going to talk about how we
+today i'm going to talk about how we improve the overall design of our
+improve the overall design of our internal tools framework
+internal tools framework during the past few years so few words
+during the past few years so few words about remedy first you might don't know
+about remedy first you might don't know us from games such as max payne allen
+us from games such as max payne allen wake and quantum break
+wake and quantum break we're based in espo finland where and we
+we're based in espo finland where and we currently have about 150 employees
+currently have about 150 employees we're working on two games p7 which is
+we're working on two games p7 which is our own ip
+our own ip and on our first fps single-player
+and on our first fps single-player campaign for crossfire 2.
+so it's always important to know the reasons behind decisions leading up to a
+reasons behind decisions leading up to a design so i'm going to start with a bit
+design so i'm going to start with a bit of background of the problems we faced
+of background of the problems we faced after that i'm going to dive into what i
+after that i'm going to dive into what i actually mean by work floater and design
+actually mean by work floater and design on and how we build our current tools
+on and how we build our current tools framework are in that concept
+framework are in that concept so let's start by looking at what we had
+so let's start by looking at what we had when the products of
+when the products of quantum break started here's our
+quantum break started here's our world editor or wet as we call it in all
+world editor or wet as we call it in all of its mfc glory
+of its mfc glory it is a monolithic application
+it is a monolithic application originally built for alan wake and it
+originally built for alan wake and it has been our most important tool ever
+has been our most important tool ever since
+since but the tool has become quite outdated
+but the tool has become quite outdated not only due to its ui
+not only due to its ui but also due to the technical depth
+but also due to the technical depth which has caused several big problems
+which has caused several big problems one of the biggest problems is probably
+one of the biggest problems is probably something that is familiar to most of
+something that is familiar to most of you changing the simple things regarding
+you changing the simple things regarding opening a level as well as exporting it
+opening a level as well as exporting it making the iteration speed unbearable
+due to the monolithic design uh the code had become so tangled that it was
+had become so tangled that it was virtually impossible to determine what
+virtually impossible to determine what kind of effects
+kind of effects even seemingly small changes would have
+even seemingly small changes would have it heavily uses single tones so
+it heavily uses single tones so modifying the state
+modifying the state in one panel could cause undecided side
+in one panel could cause undecided side effects in all of them possibly causing
+effects in all of them possibly causing a lot of regression
+a lot of regression and because all the code was so tightly
+and because all the code was so tightly coupled it meant that
+coupled it meant that even the most basic tests would have
+even the most basic tests would have required initializing the whole
+required initializing the whole application which
+application which makes any kind of test difficult to
+makes any kind of test difficult to write and slow the run
+write and slow the run so we did not want to continue using mfc
+so we did not want to continue using mfc just imagine that
+just imagine that so we decided we're going to build the
+so we decided we're going to build the new tools with something more modern and
+new tools with something more modern and ultimately ended up with wpf
+ultimately ended up with wpf as a lesson learned from wet we wanted
+as a lesson learned from wet we wanted the new tools to be completely plug-in
+the new tools to be completely plug-in based
+based based uh to prevent the new call from
+based uh to prevent the new call from becoming a similar
+becoming a similar monolithic mess and because we were
+monolithic mess and because we were building
+building tools from scratch we wanted to reuse
+tools from scratch we wanted to reuse existing functionality as much as
+existing functionality as much as possible by hooking the new tools
+possible by hooking the new tools both of the engine and web so this is a
+both of the engine and web so this is a high level architecture we came up with
+high level architecture we came up with for our dot net tools and the plugin
+for our dot net tools and the plugin system there are shared csr libraries
+system there are shared csr libraries that can be used in different
+that can be used in different applications
+applications there are different plugins providing
+there are different plugins providing different back panels and background
+different back panels and background services
+services and finally there is a simple booth
+and finally there is a simple booth track strapper executable that loads
+track strapper executable that loads plugins for a given workflow based on a
+plugins for a given workflow based on a configuration file
+configuration file for example for mesh editing workflow we
+for example for mesh editing workflow we loaded asset browser
+loaded asset browser property editor and live editing
+property editor and live editing functionality for timelines we also need
+functionality for timelines we also need curve editor and timeline editor and for
+curve editor and timeline editor and for screen by la workflow we had completely
+screen by la workflow we had completely different plugins
+different plugins so let's have a look at probably the
+so let's have a look at probably the simplest workflow we had during quantum
+simplest workflow we had during quantum break
+break editing mesh properties
+editing mesh properties here we have the asset browser and a
+here we have the asset browser and a property editor to edit the current
+property editor to edit the current selection you can see that the contents
+selection you can see that the contents of the panel change when the user
+of the panel change when the user selects an asset
+selects an asset and if the user wants to view multiple
+and if the user wants to view multiple messages simultaneously he can open
+messages simultaneously he can open another property panel
+another property panel which by default follow the same
+which by default follow the same selection
+selection so the user must use the lock feature to
+so the user must use the lock feature to lock one of the panels while having the
+lock one of the panels while having the another panel to continue to follow
+another panel to continue to follow selection
+selection like simple stuff
+and for comparison here's a quick look of what the timeline editing
+of what the timeline editing looked like during quantum break it
+looked like during quantum break it required a few more panels
+required a few more panels and the thing to note here is that the
+and the thing to note here is that the asset browser panel is actually the only
+asset browser panel is actually the only one that that's common for the messenger
+one that that's common for the messenger workflow the property panels are
+workflow the property panels are completely specific to timelines as well
+completely specific to timelines as well as well as the hierarchy and the
+as well as the hierarchy and the timeline panel i'll get back to that
+timeline panel i'll get back to that soon so all in all the approach to
+soon so all in all the approach to use.net
+use.net tools was a success for quantum the
+tools was a success for quantum the development speed improved and thus we
+development speed improved and thus we could ship better tools with better ux
+could ship better tools with better ux it also
+it also made it easier to look make them look
+made it easier to look make them look significantly better
+significantly better and the plug-in framework allowed easy
+and the plug-in framework allowed easy unit testing of individual systems
+unit testing of individual systems so naturally we wanted to continue
+so naturally we wanted to continue building new functionality on top of
+building new functionality on top of our wpf tools and ultimately enable us
+our wpf tools and ultimately enable us to replace web
+but there was major design for with this plugin based loosely called design due
+plugin based loosely called design due to how the panels communicated
+to how the panels communicated when the selection changed in the asset
+when the selection changed in the asset browser panel it sent the message
+browser panel it sent the message through a multicast system called the
+through a multicast system called the mediator
+mediator to avoid tight coupling between the
+to avoid tight coupling between the panels
+panels the immediately forwarded the message to
+the immediately forwarded the message to any panels that were listening
+any panels that were listening to a given message and those panels were
+to a given message and those panels were responsible for determining how to
+responsible for determining how to handle it
+handle it in the case of the property editor it
+in the case of the property editor it was responsible for deciding if it
+was responsible for deciding if it should change the selection keep it or
+should change the selection keep it or clear it
+clear it and you could have any number of panels
+and you could have any number of panels in different states handling the same
+in different states handling the same messages so let's have
+messages so let's have a look at a concrete exam example of the
+a look at a concrete exam example of the problem that occurred when we added new
+problem that occurred when we added new panels for mesh editing workflow
+panels for mesh editing workflow to allow users to edit physics
+to allow users to edit physics definitions
+first of all you can see that it's very cumbersome to open new panels
+cumbersome to open new panels individually if they don't have button
+individually if they don't have button be open yet
+be open yet and when the user opens the panels they
+and when the user opens the panels they are empty because they haven't received
+are empty because they haven't received any selection changed messages
+any selection changed messages and now user has to manually reselect
+and now user has to manually reselect the mesh to get some content to the new
+the mesh to get some content to the new panels
+and now the user can finally select the node in the
+node in the fbx
+fbx so let's take this even a bit further
+so let's take this even a bit further now the user wants to edit the materials
+now the user wants to edit the materials as well
+as well let's see how that goes so there's a yet
+let's see how that goes so there's a yet another panel
+another panel let's drag it there
+let's drag it there we change the color
+and now we want to check out the texture as well
+as well yay we got another panel
+and and as last step now the user wants to check out some other material using
+to check out some other material using the asset browser so he searches
+the asset browser so he searches for for a specific material
+selects it and boom the mesh selection is gone because he
+is gone because he forgot to use the lock so
+forgot to use the lock so you're just looking at pumping with the
+you're just looking at pumping with the panels
+yeah just looking at the video is painful enough so you can probably
+painful enough so you can probably imagine our users going
+imagine our users going something like that
+so that and that's just the tip of the iceberg there are plenty of other
+iceberg there are plenty of other problems as well
+problems as well the loosely coupled design and the
+the loosely coupled design and the subsequently growing number of panels
+subsequently growing number of panels cause a mental load that was simply too
+cause a mental load that was simply too big to manage
+big to manage it was simply too easy to make mistakes
+it was simply too easy to make mistakes you could argue that the design also
+you could argue that the design also gave the users quite a lot of
+gave the users quite a lot of flexibility
+flexibility in terms of how they set up their
+in terms of how they set up their workflows
+workflows but that would essentially mean that you
+but that would essentially mean that you need a team of super users and not mere
+need a team of super users and not mere mortals
+it was also very difficult to read information on the screen when the
+information on the screen when the number of panels increase
+number of panels increase here you can see that it's not
+here you can see that it's not immediately obvious that there are three
+immediately obvious that there are three separate assets here
+separate assets here mesh material
+mesh material and a texture also in this version some
+and a texture also in this version some some panels did have locks and source
+some panels did have locks and source control statuses while
+control statuses while the others did not it didn't feel right
+the others did not it didn't feel right that we would duplicate the same
+that we would duplicate the same information for all the panels involving
+information for all the panels involving the same mesh if we introduced
+the same mesh if we introduced locks to all of them the users could
+locks to all of them the users could really suit themselves
+really suit themselves in the food by mixing locked states on
+in the food by mixing locked states on different panels representing
+different panels representing different parts of the same asset
+all the panels had business logic inside them because they had to work
+them because they had to work individually due to they lose a couple
+individually due to they lose a couple of design
+of design here are three examples of panels that
+here are three examples of panels that resemble each other but is having
+resemble each other but is having different business logic causing us
+different business logic causing us having to maintain three different
+having to maintain three different versions the property editor followed
+versions the property editor followed asset selection handle riding to disk
+asset selection handle riding to disk and as well as source control operations
+and as well as source control operations physics definition editor follow the
+physics definition editor follow the selection of fbx hierarchy and also
+selection of fbx hierarchy and also handle saving and source control
+handle saving and source control operations
+operations and then there were quite a few editors
+and then there were quite a few editors that simply followed some other
+that simply followed some other selection like timeline events
+selection like timeline events or notes in a node graph
+or notes in a node graph got several general problems one of the
+got several general problems one of the first for example was that if there were
+first for example was that if there were two panels editing the same data with
+two panels editing the same data with only one of them writing data to the
+only one of them writing data to the disk
+disk closing the one writing the data would
+closing the one writing the data would essentially mean that your data never
+essentially mean that your data never got saved
+got saved and user could just keep on editing and
+and user could just keep on editing and never realize that
+never realize that his changes are not
+his changes are not there yeah
+there yeah we had around 10 different variations
+we had around 10 different variations properly at one point
+properly at one point and it was very confusing that the users
+and it was very confusing that the users because they didn't behave similar to
+because they didn't behave similar to each other
+each other this also meant that the development
+this also meant that the development costs got higher after adding new
+costs got higher after adding new variations because in the worst case
+variations because in the worst case scenario
+scenario some changes had to be made in each of
+some changes had to be made in each of them and each of them had to be tested
+them and each of them had to be tested it also virtually prevented end reuse of
+it also virtually prevented end reuse of the business logic because it was tied
+the business logic because it was tied to the ui
+and adding more panels just added more complexity here is an example
+complexity here is an example of us adding a behavior tree editor if
+of us adding a behavior tree editor if we just start with one panel for editing
+we just start with one panel for editing the graph and one for editing and
+the graph and one for editing and selection everything works relatively
+selection everything works relatively fine
+fine but one of the first requirements we got
+but one of the first requirements we got from the users was that they want to be
+from the users was that they want to be able to edit multiple
+able to edit multiple multiple crafts simultaneously so how
+multiple crafts simultaneously so how would we make that work technically
+would we make that work technically in case of two graphs should the node
+in case of two graphs should the node property panel listen to both of them
+property panel listen to both of them what what about if we have two node
+what what about if we have two node properties panels should the users
+properties panels should the users manually hook them up with
+manually hook them up with specific graph and the situation would
+specific graph and the situation would get even worse if the users would want
+get even worse if the users would want to have some completely different asset
+to have some completely different asset types open simultaneously as the number
+types open simultaneously as the number of
+of of panels would just keep on increasing
+so something had to be done the problems and successes during
+and successes during quantum gave us the basis for creating
+quantum gave us the basis for creating design goals for reworking the architect
+design goals for reworking the architect architecture most importantly we need
+architecture most importantly we need the better structure
+the better structure for the application so we're not solving
+for the application so we're not solving the same problems in multiple similar
+the same problems in multiple similar use cases
+use cases context sensitivity we wanted our users
+context sensitivity we wanted our users to be able to use the tools right away
+to be able to use the tools right away just like an asset and they'll say
+just like an asset and they'll say relevant things
+relevant things this was also a technical goal it should
+this was also a technical goal it should be easy to determine
+be easy to determine in the code what the current state is
+in the code what the current state is what has been changed and so on
+what has been changed and so on we wanted to keep the flexibility of the
+we wanted to keep the flexibility of the plugin system so we could easily
+plugin system so we could easily modify the set of the panels and
+modify the set of the panels and services that we showed the users
+services that we showed the users we were easily able to unit test them
+we were easily able to unit test them and in that addition we wanted to
+and in that addition we wanted to be able to have games specific plugins
+be able to have games specific plugins and finally we should be able to reuse
+and finally we should be able to reuse the ui controllers as much as possible
+the ui controllers as much as possible to provide consistent look and feel
+to provide consistent look and feel so it was very clear that the main
+so it was very clear that the main observation
+observation main observation was that the biggest
+main observation was that the biggest mistake was providing the business logic
+mistake was providing the business logic inside the panels that apply rules to
+inside the panels that apply rules to specific workflows
+specific workflows we clearly needed something to glue
+we clearly needed something to glue together different parts of the workflow
+and this is from where the term workflow driven design comes from
+driven design comes from the application should model the
+the application should model the workflows in some way and that should be
+workflows in some way and that should be responsible for setting up all the
+responsible for setting up all the relevant things for the users by
+relevant things for the users by configuring the panels
+configuring the panels enabling the background services and
+enabling the background services and exposing the workflow specific commands
+exposing the workflow specific commands by reusing the same panels in multiple
+by reusing the same panels in multiple workflows by injecting
+workflows by injecting any custom behavior to them we can
+any custom behavior to them we can signify improve the code reusability as
+signify improve the code reusability as well as the user experience
+well as the user experience and most importantly this design allows
+and most importantly this design allows the domain experts like ai or animation
+the domain experts like ai or animation programmers
+programmers with intimate knowledge of the specific
+with intimate knowledge of the specific workflows to concentrate on
+workflows to concentrate on modeling the behavior of the workflow
+modeling the behavior of the workflow this improves things significantly as
+this improves things significantly as the tools team can concentrate
+the tools team can concentrate on building the framework and the ui
+on building the framework and the ui controls while the domain experts who
+controls while the domain experts who work closely with the users for the
+work closely with the users for the actual business logic
+actual business logic it also means that experts rarely have
+it also means that experts rarely have to dive into any wpf details
+to dive into any wpf details as those are handled in the panels and
+as those are handled in the panels and controls provided by the
+controls provided by the framework lowering the learning curve to
+framework lowering the learning curve to build new tools
+build new tools so with these points in mind we started
+so with these points in mind we started concepting the ui to get a clearer
+concepting the ui to get a clearer picture how we
+picture how we could design the architecture of the new
+could design the architecture of the new system let's look at a video of a recent
+system let's look at a video of a recent build of our tools which is quite close
+build of our tools which is quite close to the original ui design we had
+here you can see three different node editors built by ai
+editors built by ai rendering and animation teams you can
+rendering and animation teams you can see that the tools are now context aware
+see that the tools are now context aware selecting an asset opens new tab with
+selecting an asset opens new tab with relevant panels inside them
+relevant panels inside them and you can see that the source control
+and you can see that the source control status is now shown clearly in the top
+status is now shown clearly in the top right
+right corner now we're use using the same
+corner now we're use using the same property editor everywhere
+let's go back to the mesh example one more time now
+more time now you you get all the relevant panels open
+you you get all the relevant panels open when the message mesh is opened
+when the message mesh is opened you can open a material
+you can easily browse through the different materials
+different materials and if you go to the texture you can
+and if you go to the texture you can brush through those as well
+so let's move the high level technical design from the previous video we can
+design from the previous video we can easily
+easily identify the following concepts the
+identify the following concepts the panels the document hosting the panels
+panels the document hosting the panels and the data that is being read and
+and the data that is being read and written
+written a naive implementation would look
+a naive implementation would look something like this
+something like this panels are assigned to some document and
+panels are assigned to some document and then the document handles reading and
+then the document handles reading and writing the data
+writing the data however there are two major problems now
+however there are two major problems now because the panels need to know about
+because the panels need to know about the specific documents they are going to
+the specific documents they are going to be
+be they're going to be used in we would not
+they're going to be used in we would not be able to reuse them
+be able to reuse them on other workflows which is against our
+on other workflows which is against our design goals
+design goals also we're mixing low-level concepts
+also we're mixing low-level concepts like reading and writing data with the
+like reading and writing data with the document which is clearly an ui concept
+document which is clearly an ui concept making it difficult for us to use that
+making it difficult for us to use that code in other systems that might not
+code in other systems that might not even have an ui
+even have an ui the solution for the first problem is
+the solution for the first problem is relatively simple
+relatively simple we use dependency inversion to abstract
+we use dependency inversion to abstract out the document with an interface to
+out the document with an interface to prevent coupling with a specific
+prevent coupling with a specific implementation
+implementation as for the second problem we need to
+as for the second problem we need to create a new concept to abstract
+create a new concept to abstract out the details about the data we
+out the details about the data we decided to call that a context
+decided to call that a context it handles all the details about the
+it handles all the details about the data like where it's coming from how it
+data like where it's coming from how it is saved as well as tracking any changes
+is saved as well as tracking any changes to summarize the concepts on a very high
+to summarize the concepts on a very high level the document is the ui layer
+level the document is the ui layer describing how things are edited it
+describing how things are edited it works as a clue between the panels
+works as a clue between the panels commands and the data
+commands and the data the context on the other hand handles
+the context on the other hand handles all the details of what is being edited
+all the details of what is being edited it extract out
+it extract out the details from the ui allowing us to
+the details from the ui allowing us to use ui components with all kinds of
+use ui components with all kinds of different data
+different data let's look at the two main cases how all
+let's look at the two main cases how all of this is put together
+the simpler one is the configured panel to always show the same piece of data in
+to always show the same piece of data in the same panel
+the same panel for example in the case of meshes both
+for example in the case of meshes both the mesh properties and mesh viewer are
+the mesh properties and mesh viewer are configured to always show the same data
+configured to always show the same data of the same asset
+of the same asset property spans always shows the full
+property spans always shows the full contents of a metadata
+contents of a metadata file while the viewer panel shows the
+file while the viewer panel shows the mesh itself
+mesh itself the fbx is read only while the metadata
+the fbx is read only while the metadata is editable
+let's look at how the panel is configured to behave this way first we
+configured to behave this way first we need to configure the context to load
+need to configure the context to load the data
+the data we use some string id to identify the
+we use some string id to identify the piece of content and then we pass in a
+piece of content and then we pass in a method
+method that loads it loading happens nicely so
+that loads it loading happens nicely so if there's no panel requesting that data
+if there's no panel requesting that data it's never
+it's never read from the disk and now that the
+read from the disk and now that the context knows how to read the file we
+context knows how to read the file we can configure the document to host the
+can configure the document to host the property editor panel
+property editor panel we use the same id that we use to
+we use the same id that we use to register content and
+register content and to let the panel know which piece of
+to let the panel know which piece of data it should request and show when
+data it should request and show when it's opened
+the second case is a bit more involved now the document will contain a panel
+now the document will contain a panel that changes its content based on user
+that changes its content based on user interaction
+interaction let's have yet another look at the mesh
+let's have yet another look at the mesh editing and especially the physics
+editing and especially the physics definition properties panel
+definition properties panel when the user changes the selection
+when the user changes the selection inside the document using either the fbx
+inside the document using either the fbx panel or meshview panel the physics
+panel or meshview panel the physics definition panel reacts it also note
+definition panel reacts it also note that the selection is synchronized
+that the selection is synchronized between all three panels
+so we start again with the context knowing how to load the data this is
+knowing how to load the data this is configured exactly the same way as in
+configured exactly the same way as in the previous example
+the previous example but now there is a small problem we need
+but now there is a small problem we need to have an internal selection
+to have an internal selection we cannot add a property to the mess
+we cannot add a property to the mess document because that would cause a
+document because that would cause a tight coupling between the panels and
+tight coupling between the panels and the
+the mesh document implementation it would
+mesh document implementation it would also make it more cumbersome to extend
+also make it more cumbersome to extend if the number of internal selections
+if the number of internal selections would increase
+would increase so the solution in this case was to
+so the solution in this case was to introduce a concept of components which
+introduce a concept of components which is very similar to components in an
+is very similar to components in an entity component system
+entity component system we register a component responsible for
+we register a component responsible for requesting the data and maintaining the
+requesting the data and maintaining the selection
+selection now instead of depending on specific
+now instead of depending on specific document
+document the panels can depend on a generic
+the panels can depend on a generic selection provider component
+now the only thing we need to do is to hook up the panels again
+hook up the panels again because the selection provider is such
+because the selection provider is such commonly used component we made it
+commonly used component we made it simple to use
+simple to use we can just tell a panel the follow-up
+we can just tell a panel the follow-up selection with the string id
+selection with the string id and it automatically starts loosing the
+and it automatically starts loosing the selection provider and we tell the fx
+selection provider and we tell the fx hierarchy to load the fbx data and use
+hierarchy to load the fbx data and use the given selection provider to set the
+the given selection provider to set the selection
+the last problem we had to solve was tracking down the changes from multiple
+tracking down the changes from multiple sources
+sources like from several different files or
+like from several different files or from database it ended up being really
+from database it ended up being really simple because with the context we
+simple because with the context we already have a single point of entry
+already have a single point of entry to all the data and we can easily track
+to all the data and we can easily track all the changes without having
+all the changes without having to know any details about the data
+to know any details about the data itself by using the observer but
+itself by using the observer but pattern by aggregating a single stream
+pattern by aggregating a single stream of
+of all the changes happening in each
+all the changes happening in each different piece of content that have
+different piece of content that have been registered to it we can easily hook
+been registered to it we can easily hook up
+up not only panels that track the changes
+not only panels that track the changes but additional systems as well
+but additional systems as well for example we can catch each change to
+for example we can catch each change to undo stack or live at this system just
+undo stack or live at this system just by listening
+by listening that single stream
+so let's review the concepts one once more the document
+more the document is used used to configure the ui part of
+is used used to configure the ui part of the workflow
+the workflow while the context is used to read write
+while the context is used to read write and track the data used in the workflow
+and track the data used in the workflow so let's have a look at the final
+so let's have a look at the final example our screenplay workflow
+example our screenplay workflow that we created quite recently and which
+that we created quite recently and which really starts to show the benefits of
+really starts to show the benefits of this design
+this design here we have the screenplay hierarchy
+here we have the screenplay hierarchy and the screenplay editor the really
+and the screenplay editor the really cool thing here is that the data is
+cool thing here is that the data is actually stored in the database instead
+actually stored in the database instead of on disk and the document context
+of on disk and the document context system abstracts it out so we can reduce
+system abstracts it out so we can reduce the panels
+the panels like the property panels as well as
+like the property panels as well as other systems like undo redo
+here the user wants to use the dialog lines on a cinematic
+lines on a cinematic so he uses an asset browser to open a
+so he uses an asset browser to open a timeline on disk
+timeline on disk and then he just tracks the dialog unit
+and then he just tracks the dialog unit on it
+on it and that automatically creates tracks
+and that automatically creates tracks for each character and new events for
+for each character and new events for each dialog line
+each dialog line the user also wants to make some
+the user also wants to make some modifications to the screenplay
+and this causes the corresponding event in the timeline editor to be highlighted
+in the timeline editor to be highlighted because the duration changed
+because the duration changed user can now export the latest
+user can now export the latest screenplay data and then re-time the
+screenplay data and then re-time the event to match the source data
+event to match the source data and i think this really validates this
+and i think this really validates this design because there are two different
+design because there are two different workflows
+workflows screenplay writing and building
+screenplay writing and building cinematics working almost seamlessly
+cinematics working almost seamlessly together
+together and within the same ui with the same
+and within the same ui with the same controls even though the data is stored
+controls even though the data is stored and handled completely differently
+so here are the biggest benefits we've seen so far
+seen so far our productivity significantly increased
+our productivity significantly increased it allowed other teams to work on their
+it allowed other teams to work on their specific workflows and thus we've
+specific workflows and thus we've managed to add more new workflows to our
+managed to add more new workflows to our dotnet tools during the past two years
+dotnet tools during the past two years than we did during quantum break
+than we did during quantum break context sensitivity significantly
+context sensitivity significantly reduced the fumbling with the panels
+reduced the fumbling with the panels now that the panels are grouped inside
+now that the panels are grouped inside the documents the state is clear
+the documents the state is clear and reusing the same panels allows to
+and reusing the same panels allows to have better and more consistent ux
+as for the take away thinking the whole have a high level goal for
+the whole have a high level goal for your workflow high level design before
+your workflow high level design before diving the details and solving like
+diving the details and solving like problems one by one
+clearly separate different layers of the application so you can reuse test
+application so you can reuse test reuse and test the code and last and
+reuse and test the code and last and most importantly promote reusability and
+most importantly promote reusability and empower other teams
+empower other teams i strongly believe that as a tools
+i strongly believe that as a tools programmer the first and foremost
+programmer the first and foremost responsibility should be to empower
+responsibility should be to empower other people may that be either end
+other people may that be either end users or other programmers
+users or other programmers thank you
+thank you [Applause]
+[Applause] so questions
+thank you for your talk uh really interesting stuff i was wondering
+interesting stuff i was wondering how long did you uh did your team
+how long did you uh did your team work on the refactoring or just uh
+work on the refactoring or just uh cutting out the mfc and just switching
+cutting out the mfc and just switching and
+and how did you sell it to the management
+how did you sell it to the management well
+well we are still using the mfc application
+we are still using the mfc application but this is just replacing the
+but this is just replacing the framework of the the net tools the
+framework of the the net tools the loosely coupled one
+loosely coupled one and it took about half a year about two
+and it took about half a year about two people working full time to get like all
+people working full time to get like all the bits
+the bits and pieces of the framework up and
+and pieces of the framework up and running and basically we just sold it by
+running and basically we just sold it by saying that we're spending now
+saying that we're spending now half a year and then we're gonna save
+half a year and then we're gonna save like three years later on
+hi um great talk you mentioned the selection provider i was curious
+selection provider i was curious can you elaborate more on how things
+can you elaborate more on how things connect to um
+connect to um these sorts of providers like how they
+these sorts of providers like how they know which provider they want to listen
+know which provider they want to listen to
+to yeah so like i said it's
+yeah so like i said it's it's not really just the selection
+it's not really just the selection program it's kind of
+program it's kind of this component system that you can kind
+this component system that you can kind of have any kind of component there
+of have any kind of component there but in the case of selection provider we
+but in the case of selection provider we just made it work with with the same
+just made it work with with the same string id so it just
+string id so it just you give a panel the string id and then
+you give a panel the string id and then you say that it should follow a
+you say that it should follow a selection
+selection and it just met just ask looks up
+and it just met just ask looks up a selection private component for from
+a selection private component for from the document using that string id and
+the document using that string id and automatic users there
+automatic users there thank you
+i guess nothing else thank you

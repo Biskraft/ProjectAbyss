@@ -1,0 +1,935 @@
+[Music] hey everyone I'm Dave hunt I'm a
+hey everyone I'm Dave hunt I'm a technical artist and this presentation
+technical artist and this presentation is for the GDC 2020 technical art summit
+is for the GDC 2020 technical art summit which is virtual this year so I do hope
+which is virtual this year so I do hope everyone is staying safe and healthy out
+everyone is staying safe and healthy out there
+control rigs now this is the thing that helps animators create animation content
+helps animators create animation content and as a technical artist in my career
+and as a technical artist in my career I've spent a lot of time building these
+I've spent a lot of time building these kind of control rigs for animators in
+kind of control rigs for animators in game productions so while the job of the
+game productions so while the job of the control rig is to help it be easier and
+control rig is to help it be easier and faster for animators to create the
+faster for animators to create the content it actually turns out as we take
+content it actually turns out as we take a look at how this fits into production
+a look at how this fits into production pipelines that it actually introduces a
+pipelines that it actually introduces a lot of inefficiencies at times that we
+lot of inefficiencies at times that we may not always be aware of because we're
+may not always be aware of because we're just so used to it working the way it
+just so used to it working the way it usually does so let's take a look at how
+usually does so let's take a look at how this is often done and how the control
+this is often done and how the control rigs are built inside of animation
+rigs are built inside of animation productions and let's pay attention to
+productions and let's pay attention to how it actually works when iteration
+how it actually works when iteration happens because we all know how
+happens because we all know how important it is for creating fun
+important it is for creating fun gameplay so out of this let's build a
+gameplay so out of this let's build a list of requirements for the control rig
+list of requirements for the control rig that ideally we would like to support so
+that ideally we would like to support so that we can keep a nice good iteration
+that we can keep a nice good iteration cycle for our creative people on the
+cycle for our creative people on the team we do have a pretty good solution
+team we do have a pretty good solution here that we've found and that I'd like
+here that we've found and that I'd like to share today and I want to share how
+to share today and I want to share how this works in general terms so that
+this works in general terms so that anyone could implement this in any tools
+anyone could implement this in any tools context that they might be building
+context that they might be building control rigs in and then we'll show how
+control rigs in and then we'll show how we've implemented this in unity and
+we've implemented this in unity and there's some cool new features available
+there's some cool new features available which I'll describe how they work for
+which I'll describe how they work for these examples I'll be using the digital
+these examples I'll be using the digital human character from The Heretic this is
+human character from The Heretic this is the real-time film made by unity and
+the real-time film made by unity and just wanted to make sure to say that
+just wanted to make sure to say that this content examples in this
+this content examples in this presentation is not the film itself for
+presentation is not the film itself for that please check out this link and you
+that please check out this link and you can see it on the unity website alright
+can see it on the unity website alright let's get started so what do we mean
+let's get started so what do we mean when we're talking about free form
+when we're talking about free form animation workflows I'll just use an
+animation workflows I'll just use an example of laying out a 3d animated
+example of laying out a 3d animated scene so we might start out with a very
+scene so we might start out with a very simple environment that's blocked in
+simple environment that's blocked in with just basic cubes and then we can
+with just basic cubes and then we can throw in some motion capture
+throw in some motion capture of our character of walking and this
+of our character of walking and this lets us immediately start to make
+lets us immediately start to make creative choices about the camera angles
+creative choices about the camera angles and even lighting and scene composition
+and even lighting and scene composition about how we want to tell the story so
+about how we want to tell the story so in the next iteration we might get more
+in the next iteration we might get more specific about the environment so here
+specific about the environment so here we've brought in a more of a broken
+we've brought in a more of a broken concrete wall to be the environment but
+concrete wall to be the environment but notice her character is hitting his head
+notice her character is hitting his head and wouldn't it be nice if I could put
+and wouldn't it be nice if I could put on a control rig right there in the
+on a control rig right there in the scene and make some key frame
+scene and make some key frame modifications so that he ducks
+modifications so that he ducks underneath that wall and so once that's
+underneath that wall and so once that's done its it can be baked down to the
+done its it can be baked down to the skeleton and saved as new animation clip
+skeleton and saved as new animation clip well as it often happens in productions
+well as it often happens in productions they want to iterate so here we might
+they want to iterate so here we might have added some new concrete to the wall
+have added some new concrete to the wall to break up that silhouette and now our
+to break up that silhouette and now our character is hitting his head again so
+character is hitting his head again so in this case we need to add a full-body
+in this case we need to add a full-body control rig and and can make some
+control rig and and can make some keyframe animation edits so the
+keyframe animation edits so the character reaches out and holds on to
+character reaches out and holds on to the wall while he crouches underneath
+the wall while he crouches underneath all right so now that's looking how we
+all right so now that's looking how we want we can save out this new custom
+want we can save out this new custom animation clip and that's ready to go in
+animation clip and that's ready to go in this example all of these edits were
+this example all of these edits were done right here in the scene where you
+done right here in the scene where you have access to all the final rendering
+have access to all the final rendering output all the lighting is shading
+output all the lighting is shading there's anything like cloth simulation
+there's anything like cloth simulation or effects you can see it all right
+or effects you can see it all right there and it actually makes it really
+there and it actually makes it really nice and direct to do your edits right
+nice and direct to do your edits right there so why do we call it
+there so why do we call it freeform animation that's because you
+freeform animation that's because you can go back and forth between this loop
+can go back and forth between this loop as much as e1 where we're transferring
+as much as e1 where we're transferring motion from the skeleton onto the
+motion from the skeleton onto the control rig that's where it's easier to
+control rig that's where it's easier to make these edits and when you're done
+make these edits and when you're done you can bake it back down to the
+you can bake it back down to the skeleton where it might be more an
+skeleton where it might be more an optimal playback format for runtime of
+optimal playback format for runtime of course if you want to you can leave
+course if you want to you can leave those for a great constraints active so
+those for a great constraints active so they can do runtime rigging so I'll get
+they can do runtime rigging so I'll get into more detail about exactly how this
+into more detail about exactly how this works but I wanted to give this quick
+works but I wanted to give this quick definition up front here's where you can
+definition up front here's where you can learn more about this my good friend
+learn more about this my good friend Rick Lee Coe and my former colleague has
+Rick Lee Coe and my former colleague has been a real pioneer of working this way
+been a real pioneer of working this way and he was innovating these kinds of
+and he was innovating these kinds of tent techniques even before he came to
+tent techniques even before he came to work at bungee with me more than 10
+work at bungee with me more than 10 years ago and these days he's very
+years ago and these days he's very active with training and education he
+active with training and education he really cares about helping animators
+really cares about helping animators find more efficient ways of working so
+find more efficient ways of working so in 2018 he did a great GDC talk later
+in 2018 he did a great GDC talk later that year he joined me at SIGGRAPH for a
+that year he joined me at SIGGRAPH for a presentation where he went into deeper
+presentation where he went into deeper explanation of the technical pipelines
+explanation of the technical pipelines and how they work now these days he's
+and how they work now these days he's open his new online animation class
+open his new online animation class called animation Sherpa so here's where
+called animation Sherpa so here's where you can find out all about that I highly
+you can find out all about that I highly recommend it
+so let's take a look at the basic animation pipeline where we would
+animation pipeline where we would normally setup character creation for
+normally setup character creation for any kind of 3d animation usually it
+any kind of 3d animation usually it starts with some concept art and
+starts with some concept art and designing and then you do some modeling
+designing and then you do some modeling and then rigging comes along this is
+and then rigging comes along this is where we're going to focus our
+where we're going to focus our presentation today and rigging pretty
+presentation today and rigging pretty much takes place in these two parts
+much takes place in these two parts where first you need to define the
+where first you need to define the deformations and the skeleton and then
+deformations and the skeleton and then it's the control rig that gets built and
+it's the control rig that gets built and this is where the animators base all
+this is where the animators base all their content setting keyframes here
+their content setting keyframes here making poses and creating animation
+so first off let's take a look at who will be using this in my experience
+will be using this in my experience there's no two animators that are the
+there's no two animators that are the same there's a lot of different
+same there's a lot of different backgrounds they come from and this
+backgrounds they come from and this results in very different working styles
+results in very different working styles where it's really great to have this
+where it's really great to have this variety because there's a lot of
+variety because there's a lot of different advantages of different
+different advantages of different approaches whether you're more a 2d
+approaches whether you're more a 2d drawing or a technical animator are
+drawing or a technical animator are working with motion capture there's
+working with motion capture there's there's a lot of different kind of
+there's a lot of different kind of diversity that comes from this which is
+diversity that comes from this which is great for getting different kinds of
+great for getting different kinds of emotion that's needed for a game so we
+emotion that's needed for a game so we really want the control rig to be able
+really want the control rig to be able to support all these different ways of
+to support all these different ways of working an ideal world it's going to
+working an ideal world it's going to give them the optimal way of interacting
+give them the optimal way of interacting with that rig to get fast and efficient
+with that rig to get fast and efficient creation of their creative vision
+creation of their creative vision and now let's take a look at what they
+and now let's take a look at what they will be creating in it for example in a
+will be creating in it for example in a game in action game you might have a
+game in action game you might have a player character it has to do all these
+player character it has to do all these different kinds of actions through the
+different kinds of actions through the game and each one of these categories
+game and each one of these categories might represent dozens or even hundreds
+might represent dozens or even hundreds of animations that goes into creating
+of animations that goes into creating the full motion set for the character to
+the full motion set for the character to go through the game they're all very
+go through the game they're all very different actually so if we zoom in and
+different actually so if we zoom in and look at for example first-person
+look at for example first-person animation where the camera is really
+animation where the camera is really close to the hands as they're contacting
+close to the hands as they're contacting a prop and it's very dynamic because it
+a prop and it's very dynamic because it changes all the time like what's
+changes all the time like what's controlling what and how it needs to
+controlling what and how it needs to move and it needs to be very nice and
+move and it needs to be very nice and smooth and high fidelity when it's that
+smooth and high fidelity when it's that close to the camera so that's a very
+close to the camera so that's a very specific set of needs let's compare that
+specific set of needs let's compare that for example to locomotion and here we
+for example to locomotion and here we can see the characters more at a
+can see the characters more at a distance and the hands are moving free
+distance and the hands are moving free in this case it's more of a whole full
+in this case it's more of a whole full body mechanic that we're looking at
+body mechanic that we're looking at rather than a detailed close-up
+rather than a detailed close-up interaction so really the needs here are
+interaction so really the needs here are very different for what the control work
+very different for what the control work will need to be able to do for the
+will need to be able to do for the animator to get a really nice and
+animator to get a really nice and efficient way of working here's yet
+efficient way of working here's yet another example this environment world
+another example this environment world interaction that we talked about earlier
+interaction that we talked about earlier so in this example objects are
+so in this example objects are introduced that we're not even there to
+introduced that we're not even there to begin with that how could we possibly
+begin with that how could we possibly plan for all of this ahead of time and
+plan for all of this ahead of time and most importantly the control rig really
+most importantly the control rig really needs to avoid counter animation in all
+needs to avoid counter animation in all of these different situations so counter
+of these different situations so counter animation is a really important concept
+animation is a really important concept to understand here so we'll take a look
+to understand here so we'll take a look at this example counter animation is
+at this example counter animation is really anytime animator has to fight
+really anytime animator has to fight against the rig in order to get their
+against the rig in order to get their desired behavior so for example with
+desired behavior so for example with this prop he's holding a gun and in most
+this prop he's holding a gun and in most cases both hands are going to follow
+cases both hands are going to follow that gun wherever it goes so here we
+that gun wherever it goes so here we want the control rig to act as if these
+want the control rig to act as if these hands are child of the gun and that
+hands are child of the gun and that that's really great for the times when
+that's really great for the times when it is in that state but how about here
+it is in that state but how about here when it's reloading he takes the hand
+when it's reloading he takes the hand away and now it needs to move free but
+away and now it needs to move free but if I haven't changed it it's going to
+if I haven't changed it it's going to still behave like a child so that makes
+still behave like a child so that makes this movement every time I move the hand
+this movement every time I move the hand I have to fight against how its parent
+I have to fight against how its parent is working and that is what we call
+is working and that is what we call counter animation in this case if
+counter animation in this case if animators don't have a way of switching
+animators don't have a way of switching it then every single frame they need to
+it then every single frame they need to correct it and make it look right and
+correct it and make it look right and I've even seen people will pull out a
+I've even seen people will pull out a whiteboard erase marker and draw on
+whiteboard erase marker and draw on their computer monitor to make sure it's
+their computer monitor to make sure it's a smooth arc and it's just very
+a smooth arc and it's just very inefficient and after they're done with
+inefficient and after they're done with that it's even harder to make changes so
+that it's even harder to make changes so that's not what we want and the control
+that's not what we want and the control rig ideally needs to help us avoid this
+rig ideally needs to help us avoid this situation so one of the ways people try
+situation so one of the ways people try and solve this often is by building what
+and solve this often is by building what might be called an uber rig and this is
+might be called an uber rig and this is a big monolithic file that attempts to
+a big monolithic file that attempts to plan for all possible situations and
+plan for all possible situations and make all the switches that animator can
+make all the switches that animator can change in a given situation but it
+change in a given situation but it really isn't very possible to actually
+really isn't very possible to actually do this in my opinion for one it's
+do this in my opinion for one it's really complex it's it is it's slow to
+really complex it's it is it's slow to work with it's hard for animators to
+work with it's hard for animators to figure out exactly what will control
+figure out exactly what will control what and if it takes a very long time
+what and if it takes a very long time for rigging people to build - and the
+for rigging people to build - and the longer it takes to build the more you're
+longer it takes to build the more you're blocking creative progress so we don't
+blocking creative progress so we don't want that and actually even doubt if
+want that and actually even doubt if it's really impossible to think of
+it's really impossible to think of everything and advanced I think that in
+everything and advanced I think that in animation you'll always be able to find
+animation you'll always be able to find some new situation where you need to
+some new situation where you need to have a new solution for the rig so let's
+have a new solution for the rig so let's just take a look at this and imagine how
+just take a look at this and imagine how it works in a production so let's say a
+it works in a production so let's say a rigging person has taken a whole bunch
+rigging person has taken a whole bunch of time to build this control rig by
+of time to build this control rig by hand and save a file on disk that then
+hand and save a file on disk that then gets copied out to all these hundreds of
+gets copied out to all these hundreds of animations and oh what happens now when
+animations and oh what happens now when it's time to do it eration so as all the
+it's time to do it eration so as all the animations are playing out it's real
+animations are playing out it's real common to see okay well it doesn't look
+common to see okay well it doesn't look as good as we want in the given pose or
+as good as we want in the given pose or maybe the game designers say we're not
+maybe the game designers say we're not getting the desired read of the player
+getting the desired read of the player experience so we need to make some
+experience so we need to make some changes here
+in an often cases we're simply fixing the deform rig so
+we're simply fixing the deform rig so we're adding new bones that are
+we're adding new bones that are procedurally controlled to automatically
+procedurally controlled to automatically follow other bones in the skeleton and
+follow other bones in the skeleton and these might be called fix up bones twist
+these might be called fix up bones twist bones pose correction so what we'll do
+bones pose correction so what we'll do in that case is need to add them to the
+in that case is need to add them to the rig and then push out updates to all the
+rig and then push out updates to all the files where the rig is used in these
+files where the rig is used in these animations so let's plan for this in
+animations so let's plan for this in advance and make it a requirement that
+advance and make it a requirement that this control rig needs to be able to
+this control rig needs to be able to take updates okay and there's there's a
+take updates okay and there's there's a lot of common ways this is solved and
+lot of common ways this is solved and one of them is file referencing that can
+one of them is file referencing that can be really nice and fast where all of
+be really nice and fast where all of these reads from a source file that
+these reads from a source file that every time an animation is opened it
+every time an animation is opened it brings in the latest version of that new
+brings in the latest version of that new source file control rig but one of the
+source file control rig but one of the problems with that is it locks down the
+problems with that is it locks down the hierarchy so it's now read-only and
+hierarchy so it's now read-only and animators really can't change anything
+animators really can't change anything on the control rig at that point so that
+on the control rig at that point so that are very stuck now with whatever choices
+are very stuck now with whatever choices as a rigging person has made there's
+as a rigging person has made there's other ways this can be done - instead of
+other ways this can be done - instead of file referencing you can import the rig
+file referencing you can import the rig and do a copy curves solution which can
+and do a copy curves solution which can work I mean it does require some tools
+work I mean it does require some tools development to make a system like that
+development to make a system like that and there's even other solutions I've
+and there's even other solutions I've seen out there - either way this is
+seen out there - either way this is something that's good to account for and
+something that's good to account for and and build the systems to enable a nice
+and build the systems to enable a nice efficient production
+efficient production let's go farther up the chain now and
+let's go farther up the chain now and imagine what happens when there's some
+imagine what happens when there's some changes at the 3d modeling stage so
+changes at the 3d modeling stage so maybe the art director wants to get a
+maybe the art director wants to get a little bit better proportions so that
+little bit better proportions so that the poses look better in this case we
+the poses look better in this case we need to move some bones around on the
+need to move some bones around on the skeleton and we'll have to adjust the
+skeleton and we'll have to adjust the skin weights and after that's done this
+skin weights and after that's done this control rig now needs to get rebuilt
+control rig now needs to get rebuilt that's a big problem if someone has
+that's a big problem if someone has spent time by hand
+spent time by hand and manually constructing this file so
+and manually constructing this file so and they would have to get it exactly
+and they would have to get it exactly the same naming and parenting and
+the same naming and parenting and orientations and everything in order for
+orientations and everything in order for animation to still work so let's
+animation to still work so let's that stopped us from iterating let's
+that stopped us from iterating let's let's take it another requirement here
+let's take it another requirement here that we need to be able to quickly
+that we need to be able to quickly rebuild this rig and get it exactly the
+rebuild this rig and get it exactly the same as it was before
+same as it was before every time the skeleton has been
+every time the skeleton has been redefined so a lot of ways this is
+redefined so a lot of ways this is solved is by building Auto rigging tools
+solved is by building Auto rigging tools or having scripts that automatically
+or having scripts that automatically assemble the rig based on the definition
+assemble the rig based on the definition of some sort so this is great it really
+of some sort so this is great it really speeds up iteration when you can
+speeds up iteration when you can automatically rebuild the rig without
+automatically rebuild the rig without having to pull an all-nighter and great
+having to pull an all-nighter and great now that we've also got a consistent rig
+now that we've also got a consistent rig since it was built through one of these
+since it was built through one of these systems we should be able to get it on
+systems we should be able to get it on to the animations if we're lucky and the
+to the animations if we're lucky and the bone names and/or transform parenting
+bone names and/or transform parenting orientations can be similar enough and
+orientations can be similar enough and animation can still apply but if it
+animation can still apply but if it stood if it's too different than it will
+stood if it's too different than it will end up changing the way the animation
+end up changing the way the animation looks so there needs to be some fix up
+looks so there needs to be some fix up here and ideal world we want to be able
+here and ideal world we want to be able to preserve that animation when ever
+to preserve that animation when ever this new control rig is built on top of
+this new control rig is built on top of a change skeleton so often there's tools
+a change skeleton so often there's tools to solve this like motion builder where
+to solve this like motion builder where you can do offline retargeting and make
+you can do offline retargeting and make some creative choices about how to apply
+some creative choices about how to apply the old motion onto the new rig and
+the old motion onto the new rig and maybe in some cases you want to favor
+maybe in some cases you want to favor the hands holding an object other times
+the hands holding an object other times if they're hanging free you'll want to
+if they're hanging free you'll want to use a rotation based transfer so there's
+use a rotation based transfer so there's a lot of choices that can be made there
+a lot of choices that can be made there to get a quality motion retarget so
+to get a quality motion retarget so thinking about
+thinking about again we're not just animating a single
+again we're not just animating a single character games mostly often included a
+character games mostly often included a whole library of different characters
+whole library of different characters and they look different too so have
+and they look different too so have different rigs so the rigging staff will
+different rigs so the rigging staff will need to be building control rigs for
+need to be building control rigs for each of these one of different character
+each of these one of different character shapes and sizes including everything
+shapes and sizes including everything from different kinds of people because
+from different kinds of people because people have very different proportions
+people have very different proportions now if we want to make it look natural
+now if we want to make it look natural istic and real there's also creatures
+istic and real there's also creatures can have very different body proportion
+can have very different body proportion types and and all different kinds of
+types and and all different kinds of shapes maybe even props vehicles and
+shapes maybe even props vehicles and weapons so in ideal world we really want
+weapons so in ideal world we really want to have a consistent interface for the
+to have a consistent interface for the animators between all these different
+animators between all these different rigs and so how can that be done when
+rigs and so how can that be done when there's so many different rigs to build
+there's so many different rigs to build and the advanced functionality that goes
+and the advanced functionality that goes into each one of them like changing the
+into each one of them like changing the states if they were still using the uber
+states if they were still using the uber rig solution it can be very a lot of
+rig solution it can be very a lot of work and a lot of repetition and a lot
+work and a lot of repetition and a lot of duplicated work to get those rigs
+of duplicated work to get those rigs nice and consistent or the animators to
+nice and consistent or the animators to work with so a really smart way of
+work with so a really smart way of working is to make a modular rigging
+working is to make a modular rigging system and that way you can share this
+system and that way you can share this functionality and easily make a wide
+functionality and easily make a wide variety of different kinds of character
+variety of different kinds of character rigs that feel consistent when the
+rigs that feel consistent when the animators work with them so how this
+animators work with them so how this works is that you can build a library of
+works is that you can build a library of rig parts for example arms and legs and
+rig parts for example arms and legs and heads and things like that and then
+heads and things like that and then recombine them in whichever way you want
+recombine them in whichever way you want to apply to these different skeleton
+to apply to these different skeleton proportions and just and shapes and
+proportions and just and shapes and sizes so this is a great way to go it
+sizes so this is a great way to go it can be a lot faster because once you
+can be a lot faster because once you define a part the first time you can
+define a part the first time you can benefit from reusing that work in a lot
+benefit from reusing that work in a lot of different ways and it does end up
+of different ways and it does end up with a nice and consistent result that
+with a nice and consistent result that the animators get to learn to work with
+the animators get to learn to work with and even speed up their workflow more by
+and even speed up their workflow more by having consistency this is highly
+having consistency this is highly recommended it's a good way to go and
+recommended it's a good way to go and there's a lot of different ways it can
+there's a lot of different ways it can be done I mean one way is with through
+be done I mean one way is with through scripted break development and another
+scripted break development and another is through templates or prefabs and they
+is through templates or prefabs and they each have their own advantages so we
+each have their own advantages so we have a nice list of requirements now and
+have a nice list of requirements now and this is what's really going to help us
+this is what's really going to help us keep a nice iteration on our projects
+keep a nice iteration on our projects some of the best practices for how to
+some of the best practices for how to achieve this well number one we can rule
+achieve this well number one we can rule out the monolithic uber rig solution as
+out the monolithic uber rig solution as we've demonstrated that's just not very
+we've demonstrated that's just not very practical for a lot of reasons and it
+practical for a lot of reasons and it ends up putting in some bad limitations
+ends up putting in some bad limitations in the iteration process instead modular
+in the iteration process instead modular rigging is a great way to go and that
+rigging is a great way to go and that frees up us to build all different
+frees up us to build all different shapes and sizes breaks very quickly and
+shapes and sizes breaks very quickly and have a consistent result one way or
+have a consistent result one way or another - we need it to be fast how
+another - we need it to be fast how rigging gets set up and we need to
+rigging gets set up and we need to regenerate and rebuild that consistently
+regenerate and rebuild that consistently anytime the skeleton changes we also
+anytime the skeleton changes we also need to push updates out to the
+need to push updates out to the animations when either the skeleton or
+animations when either the skeleton or the rig are changed and how about this
+the rig are changed and how about this one we really would love to be able to
+one we really would love to be able to preserve animation when the control rig
+preserve animation when the control rig changes but we haven't talked about a
+changes but we haven't talked about a solution to that yet
+talk about freeform animation and to get more specific about the definition we're
+more specific about the definition we're talking about bi-directional motion
+talking about bi-directional motion transfer
+transfer so when a constraint like an AI K has a
+so when a constraint like an AI K has a solving function what's happening there
+solving function what's happening there is the bones involved with the I K
+is the bones involved with the I K system are solving to a target location
+system are solving to a target location we're now introducing the concept of an
+we're now introducing the concept of an inverse solve where the rig controls now
+inverse solve where the rig controls now are built in with the knowledge of how
+are built in with the knowledge of how to follow the skeleton so when you have
+to follow the skeleton so when you have both of those you can provide a two-way
+both of those you can provide a two-way Road where animators can choose to use
+Road where animators can choose to use this however they want in their
+this however they want in their production and like our name suggests
+production and like our name suggests this really frees them up to experiment
+this really frees them up to experiment and come up with novel solutions for
+and come up with novel solutions for these interesting situations they all
+these interesting situations they all get into with the animation so here's a
+get into with the animation so here's a demonstration of how this works here we
+demonstration of how this works here we have a three bone chain of what might be
+have a three bone chain of what might be a leg extending open and closed with
+a leg extending open and closed with very simple rotation animations based in
+very simple rotation animations based in local space so now we're gonna bake
+local space so now we're gonna bake inverse solve this to an AI K control
+inverse solve this to an AI K control rig and the ika control rig has two
+rig and the ika control rig has two targets there's the end effector target
+targets there's the end effector target and the hint or what might be called a
+and the hint or what might be called a pole vector so the inverse solve
+pole vector so the inverse solve function for this is custom and it can
+function for this is custom and it can be developed however it's needed for a
+be developed however it's needed for a given constraint for the target it's
+given constraint for the target it's very simple we're just going to align
+very simple we're just going to align the translation and rotation to the end
+the translation and rotation to the end bones position but the hint is a little
+bones position but the hint is a little bit more custom we need to do some 3d
+bit more custom we need to do some 3d math here to calculate the position out
+math here to calculate the position out front of that knee where it's based on
+front of that knee where it's based on the triangle and extends through the
+the triangle and extends through the center and to the length that feels
+center and to the length that feels comfortable for animators to interact
+comfortable for animators to interact with and if we do that each frame we can
+with and if we do that each frame we can determine the position that it would be
+determine the position that it would be nice for it to bake onto so here we have
+nice for it to bake onto so here we have exactly that same animation as we saw
+exactly that same animation as we saw before
+before transferred onto a control scheme that's
+transferred onto a control scheme that's now much easier to interact with as an
+now much easier to interact with as an animator now the motion is transferred
+animator now the motion is transferred to world space translation where it's
+to world space translation where it's very easy for me to do something like
+very easy for me to do something like this and interact with external object
+this and interact with external object like the ground so I've even added some
+like the ground so I've even added some animation to the top bone to show that
+animation to the top bone to show that the foot can stay in contact very easily
+the foot can stay in contact very easily with the ground now we're done making
+with the ground now we're done making our edits we can bake the animation back
+our edits we can bake the animation back to the skeleton and now it's playing
+to the skeleton and now it's playing back once again we'll see exactly the
+back once again we'll see exactly the same animation we saw before but the
+same animation we saw before but the keyframes are now put into local space
+keyframes are now put into local space rotation in this case it would be very
+rotation in this case it would be very hard to make an edit and keep the foot
+hard to make an edit and keep the foot on the ground because the final position
+on the ground because the final position of the foot is the result of all of the
+of the foot is the result of all of the parents working together
+Matt is going to be easier for playback in run time because often that's the
+in run time because often that's the most optimal format for playing it back
+most optimal format for playing it back so what this is really useful is for
+so what this is really useful is for example with something like editing
+example with something like editing motion capture so here in this example
+motion capture so here in this example I've actually exaggerated the drift enos
+I've actually exaggerated the drift enos by just turning up keyframe reduction so
+by just turning up keyframe reduction so that left foot or the right foot on the
+that left foot or the right foot on the ground there is drifting around a little
+ground there is drifting around a little bit I want to clean that up I can add
+bit I want to clean that up I can add too to bone a constraint and transfer
+too to bone a constraint and transfer motion to the constraints so here we
+motion to the constraints so here we have exactly the same motion I can zoom
+have exactly the same motion I can zoom in on the foot
+in on the foot look at those keyframes and start making
+look at those keyframes and start making some additions I'll set one keyframe in
+some additions I'll set one keyframe in the beginning here to lock it down and
+the beginning here to lock it down and then I'll paste that same keyframe here
+then I'll paste that same keyframe here later where the foot is leaving the
+later where the foot is leaving the ground so now I can zoom in and delete
+ground so now I can zoom in and delete the drifty keyframes in the middle and
+the drifty keyframes in the middle and keep it solid on the ground
+I'd still need to delete the rotation keyframes it's why it's a little bit
+keyframes it's why it's a little bit drifty and you want to take some more
+drifty and you want to take some more time and polish this you can make a
+time and polish this you can make a really nice-looking result those are
+really nice-looking result those are quick demonstration to show how easy it
+quick demonstration to show how easy it is to make some of these edits so what
+is to make some of these edits so what we need here
+we need here in order to make a really work workable
+in order to make a really work workable solution is as close as possible to a
+solution is as close as possible to a lossless motion transfer if I'm using FK
+lossless motion transfer if I'm using FK which is a single translation rotation
+which is a single translation rotation control per joint then I can get
+control per joint then I can get lossless motion transfer it's exactly
+lossless motion transfer it's exactly the same as we saw before but that's not
+the same as we saw before but that's not the case if we're going to a different
+the case if we're going to a different kind of control rig for example an IKE a
+kind of control rig for example an IKE a constraint where there is a lower degree
+constraint where there is a lower degree of freedom if we're going down from
+of freedom if we're going down from these five or six bones to only two
+these five or six bones to only two controls you can imagine what will
+controls you can imagine what will happen it'll have a close approximation
+happen it'll have a close approximation of that but it's not possible to get
+of that but it's not possible to get exactly the same so people can use this
+exactly the same so people can use this deliberately if they're working in an
+deliberately if they're working in an artistic authoring workflow to get a
+artistic authoring workflow to get a deliberate result maybe you want to
+deliberate result maybe you want to smooth that out or reduce some of the
+smooth that out or reduce some of the motion in the middle of that chain in
+motion in the middle of that chain in that case you can transfer to a
+that case you can transfer to a different kind of control rig so this is
+different kind of control rig so this is all part of the animation authoring
+all part of the animation authoring process which will be up to the artist
+process which will be up to the artist to use how they want for a given
+to use how they want for a given situation now parents space
+situation now parents space is another really important thing to
+is another really important thing to consider while working this way and
+consider while working this way and here's how I'll demonstrate using the
+here's how I'll demonstrate using the simple planetary system to show the
+simple planetary system to show the importance of working in the correct
+importance of working in the correct parent space
+parent space so with this planetary system here just
+so with this planetary system here just showing a moon rotating around a planet
+showing a moon rotating around a planet if I'm going to describe this using a
+if I'm going to describe this using a flat hierarchy then I'll be using world
+flat hierarchy then I'll be using world space translation keys and that's what
+space translation keys and that's what it looks like to make key frames that
+it looks like to make key frames that describe this motion so as you can see
+describe this motion so as you can see there it gets very very detailed and
+there it gets very very detailed and precise for the moon's position and you
+precise for the moon's position and you could imagine what it'd be like as an
+could imagine what it'd be like as an artist to say well what if I want the
+artist to say well what if I want the moon to speed up over time then it would
+moon to speed up over time then it would be a lot of really detailed key framing
+be a lot of really detailed key framing animation and a lot of counter animation
+animation and a lot of counter animation to try and get that to look right and if
+to try and get that to look right and if they'd be very very hard take some time
+they'd be very very hard take some time to get it to look just right well that's
+to get it to look just right well that's where it makes a lot more sense to be
+where it makes a lot more sense to be working in a ordered hierarchy where
+working in a ordered hierarchy where there's a parent-child relationship here
+there's a parent-child relationship here this way the keyframes are local spaced
+this way the keyframes are local spaced rotation and it's simply a keyframe at
+rotation and it's simply a keyframe at the start and then 360 degrees at the
+the start and then 360 degrees at the end and you can loop it you're going to
+end and you can loop it you're going to get a nice smooth motion and very simple
+get a nice smooth motion and very simple to edit if I want to make that speed up
+to edit if I want to make that speed up I can modify the tangents or add
+I can modify the tangents or add additional keyframes and it's very easy
+additional keyframes and it's very easy to work with very easy to iterate so
+to work with very easy to iterate so let's take a look at this again on the
+let's take a look at this again on the example of a first person animation or
+example of a first person animation or third person where you're contacting a a
+third person where you're contacting a a weapon so two hands here start up by
+weapon so two hands here start up by following the gun and that's great when
+following the gun and that's great when he's holding on to it but in the example
+he's holding on to it but in the example of our reload animation halfway through
+of our reload animation halfway through he takes his hand away and now we really
+he takes his hand away and now we really need to be free so what I'll do in a
+need to be free so what I'll do in a free-form animation workflow is change
+free-form animation workflow is change the parent I have a parent constraint so
+the parent I have a parent constraint so here I'm going to give it a new target
+here I'm going to give it a new target right now it's following the gun let's
+right now it's following the gun let's put it at the character root there we go
+put it at the character root there we go and
+and now I can transfer motion to those
+now I can transfer motion to those constraints
+strain and let's do it again on the IKEA constraint great now I have exactly that
+constraint great now I have exactly that same animation but it's gonna be playing
+same animation but it's gonna be playing back in a different parent space and
+back in a different parent space and while I'm animating this part where it's
+while I'm animating this part where it's free I can move the gun and the hand
+free I can move the gun and the hand remains unchanged so great that's what
+remains unchanged so great that's what we really want for this part of the
+we really want for this part of the animation I did want to mention too that
+animation I did want to mention too that there's other solutions to this that
+there's other solutions to this that might make sense in different situations
+might make sense in different situations like for example you might want to do an
+like for example you might want to do an animated switch where it remembers the
+animated switch where it remembers the state where it's in the beginning of the
+state where it's in the beginning of the animation and halfway through it does a
+animation and halfway through it does a switch to being in a new that's totally
+switch to being in a new that's totally possible here and we're not saying you
+possible here and we're not saying you have to work this way but it can be
+have to work this way but it can be cumbersome in that animated switch
+cumbersome in that animated switch example to manage this state switch
+example to manage this state switch where it's it's the aligned pose so it's
+where it's it's the aligned pose so it's really a choice of what's going to be
+really a choice of what's going to be faster and easier and for short
+faster and easier and for short animations like this there's a lot of
+animations like this there's a lot of advantages to work in this way because
+advantages to work in this way because very very fast and direct it can allow
+very very fast and direct it can allow you to keep a very simple control rake -
+you to keep a very simple control rake - another one of the challenges working
+another one of the challenges working this way is working with baked keyframes
+this way is working with baked keyframes and this is where our curve here has a
+and this is where our curve here has a keyframe every frame and that's what you
+keyframe every frame and that's what you need to get a high fidelity source
+need to get a high fidelity source quality that's exactly the same as the
+quality that's exactly the same as the previous one but it's hard to work with
+previous one but it's hard to work with as an animator sometimes so couple
+as an animator sometimes so couple solutions to offer one of them is
+solutions to offer one of them is keyframe reduction you can apply a curve
+keyframe reduction you can apply a curve filter that automatically removes keys
+filter that automatically removes keys and modifies tangents to try and keep
+and modifies tangents to try and keep the curve looking the same but it's a
+the curve looking the same but it's a trade-off between fidelity and easy to
+trade-off between fidelity and easy to work with so as you can see in the lower
+work with so as you can see in the lower example where there's more keys removed
+example where there's more keys removed the curve actually looks different so
+the curve actually looks different so we're missing some of the detail but
+we're missing some of the detail but this is a trade-off that might be worth
+this is a trade-off that might be worth making if someone wants to modify the
+making if someone wants to modify the curve and they want something that's
+curve and they want something that's easier to interact with another solution
+easier to interact with another solution is animation layers so you can easily
+is animation layers so you can easily make offsets from that baked keyframe
+make offsets from that baked keyframe and then
+and then just the delta animation curve is what's
+just the delta animation curve is what's what's worked with by the keyframe
+what's worked with by the keyframe animator there's a lot less keyframes
+animator there's a lot less keyframes there to work with so that can be faster
+there to work with so that can be faster and more direct both of these have their
+and more direct both of these have their their time in place and when you're
+their time in place and when you're working with these you can choose which
+working with these you can choose which one makes the most sense at a given time
+one makes the most sense at a given time so let's talk about how this is
+so let's talk about how this is implemented in unity in 2020 8.1 there
+implemented in unity in 2020 8.1 there are some new features in the animation
+are some new features in the animation rigging package so these are documented
+rigging package so these are documented here on the bi-directional motion
+here on the bi-directional motion transfer documentation page the new
+transfer documentation page the new commands are accessible from the context
+commands are accessible from the context menu shown here and this is right inside
+menu shown here and this is right inside of the menu that is both at the
+of the menu that is both at the constraint level and at the rig level
+constraint level and at the rig level you can transfer a group of constraints
+you can transfer a group of constraints that are bundled together as a rig all
+that are bundled together as a rig all at once from that one command
+we also added some new preferences so animators can control the keyframe
+animators can control the keyframe reduction in both directions when going
+reduction in both directions when going to the constraint and to the skeleton so
+to the constraint and to the skeleton so let's let you choose for example you
+let's let you choose for example you might want to keep easier to work with
+might want to keep easier to work with keyframes going onto the control rig but
+keyframes going onto the control rig but higher fidelity quality when going back
+higher fidelity quality when going back to the skeleton to preserve exactly what
+to the skeleton to preserve exactly what you created and all these settings here
+you created and all these settings here can be changed at any time for your
+can be changed at any time for your workload that you want to have so inside
+workload that you want to have so inside of
+of animation ringing package all of the
+animation ringing package all of the c-sharp is available in the package to
+c-sharp is available in the package to open up and look through and make
+open up and look through and make modifications if you want or make custom
+modifications if you want or make custom constraints and if you're working with
+constraints and if you're working with this in building it in your own system
+this in building it in your own system and one good thing to remember is that
+and one good thing to remember is that not all types of constraints can have an
+not all types of constraints can have an inverse solve just by the nature of what
+inverse solve just by the nature of what they are for example some constraints
+they are for example some constraints are passive like a twist correction for
+are passive like a twist correction for shoulder has no animatable controls so
+shoulder has no animatable controls so in that case it doesn't make sense to
+in that case it doesn't make sense to transfer motion to a constraint so it's
+transfer motion to a constraint so it's good to keep this as an optional
+good to keep this as an optional function that can be implemented for
+function that can be implemented for constraints where it would make sense
+constraints where it would make sense another example are physics based
+another example are physics based constraints for example the damped
+constraints for example the damped transform or the spring chained
+transform or the spring chained constraint once again there are no
+constraint once again there are no animatable controls on those so it
+animatable controls on those so it wouldn't make sense to have it try an
+wouldn't make sense to have it try an inverse solve here in the documentation
+inverse solve here in the documentation we've given a description of what you
+we've given a description of what you can expect with the motion transfer
+can expect with the motion transfer going transferring to the constraint but
+going transferring to the constraint but all of these constraints can transfer
+all of these constraints can transfer back to the skeleton because that is
+back to the skeleton because that is simply plotting the keyframes exactly to
+simply plotting the keyframes exactly to the bones ok let's take a look
+the bones ok let's take a look this can be useful in a game production
+this can be useful in a game production if two examples start out with looking
+if two examples start out with looking at an object interaction here we have an
+at an object interaction here we have an animation of a character pushing a
+animation of a character pushing a button it's really common in games to
+button it's really common in games to use runtime rigging for things like this
+use runtime rigging for things like this so here's what I'm doing with that
+so here's what I'm doing with that yellow plus shape is the end effector of
+yellow plus shape is the end effector of a two bone ik' system and I'm animating
+a two bone ik' system and I'm animating the weight of that rig constraint from 0
+the weight of that rig constraint from 0 to 1 as you can see in the keyframes so
+to 1 as you can see in the keyframes so that it blends on and it has this moment
+that it blends on and it has this moment where right when it's contacting oops
+where right when it's contacting oops back up a little bit now what I can do
+back up a little bit now what I can do is move that constraint target and the
+is move that constraint target and the hand will always keep contacting it
+hand will always keep contacting it exactly at the right place this is
+exactly at the right place this is really useful because that way an
+really useful because that way an animator doesn't have to keep creating
+animator doesn't have to keep creating new content every single time that
+new content every single time that button is in a slightly different
+button is in a slightly different position so this is great but what if we
+position so this is great but what if we try and move it up really high like this
+try and move it up really high like this it doesn't look so good
+it doesn't look so good we're pushing it too far and sometimes
+we're pushing it too far and sometimes runtime rigging has this effect where it
+runtime rigging has this effect where it feels a bit stiff or robotic or we might
+feels a bit stiff or robotic or we might just get some bad looking poses so in
+just get some bad looking poses so in this case we can use some freeform
+this case we can use some freeform animation techniques to work with it the
+animation techniques to work with it the first thing I might do is blend in a
+first thing I might do is blend in a single pose with a control rig like this
+single pose with a control rig like this and then just like I animated the weight
+and then just like I animated the weight of the iCade constraint I can bake that
+of the iCade constraint I can bake that to the skeleton and have a nice base to
+to the skeleton and have a nice base to work with where the pose is going to be
+work with where the pose is going to be much more natural I've involved this
+much more natural I've involved this shoulder twisted the spine I've rotated
+shoulder twisted the spine I've rotated his head up to look at that and it can
+his head up to look at that and it can even drop the hips a little bit or
+even drop the hips a little bit or whatever feels right next I might bring
+whatever feels right next I might bring back the runtime rigging I cake
+back the runtime rigging I cake constrain and bake animation from that
+constrain and bake animation from that little button press that he gets so that
+little button press that he gets so that actually feels like he's activating the
+actually feels like he's activating the button and finally you can transfer back
+button and finally you can transfer back to the full body control rig and make
+to the full body control rig and make some polish tweaks to the exact
+some polish tweaks to the exact interpolations and in-betweens of how it
+interpolations and in-betweens of how it looks when he's animating
+looks when he's animating so now we're done we can save out this
+so now we're done we can save out this final clip and that can be a new button
+final clip and that can be a new button press high animation which if we want to
+press high animation which if we want to we can apply some more runtime rigging
+we can apply some more runtime rigging and get some movement within that range
+this was an easy correction to make where it's already looking almost good
+where it's already looking almost good enough and we just want to make a couple
+enough and we just want to make a couple tweaks so it's nice and quick too you
+tweaks so it's nice and quick too you can save out a new animation that way
+can save out a new animation that way here's another example where we might
+here's another example where we might have an existing run animation that we
+have an existing run animation that we got from a motion library somewhere but
+got from a motion library somewhere but we want to transfer it onto our
+we want to transfer it onto our character and wherever he goes he's
+character and wherever he goes he's carrying this big heavy suitcase and
+carrying this big heavy suitcase and that just doesn't look so good there's
+that just doesn't look so good there's no weight at all and it's going right
+no weight at all and it's going right through his leg so we need to make some
+through his leg so we need to make some edits
+edits so what I'm going to do is first add a
+so what I'm going to do is first add a two bow Nike constraint and are you
+two bow Nike constraint and are you holding on to this suitcase let's set
+holding on to this suitcase let's set some key frames and put it in a good
+some key frames and put it in a good position that's looking about right okay
+position that's looking about right okay now I can play with the weight value of
+now I can play with the weight value of that weight of the ika constraint and a
+that weight of the ika constraint and a value in the right in the middle of
+value in the right in the middle of something like a 0.6 is going to give a
+something like a 0.6 is going to give a nice blended result so I'm inheriting a
+nice blended result so I'm inheriting a bit of the motion from the body it's not
+bit of the motion from the body it's not locked in space like it was before so
+locked in space like it was before so I'll transfer motion to the skeleton and
+I'll transfer motion to the skeleton and then transfer it back to the constraint
+then transfer it back to the constraint here I have
+transferred onto the I K where I can start making some animation edits so I
+start making some animation edits so I can go into the keyframes now and I
+can go into the keyframes now and I might want to do something like offset
+might want to do something like offset everything in time so it moves at a
+everything in time so it moves at a slightly delayed rate and it gets a
+slightly delayed rate and it gets a little bit more sense of a bounce and
+little bit more sense of a bounce and follow-through
+okay and I want to maybe go into individual curves like here's the
+individual curves like here's the translate Y for vertical motion and I
+translate Y for vertical motion and I might exaggerate that a little bit make
+might exaggerate that a little bit make it a bit bit larger and easier to notice
+it a bit bit larger and easier to notice okay and now I can go into something
+okay and now I can go into something like the translate Z which is the
+like the translate Z which is the forward and back motion and I can offset
+forward and back motion and I can offset that just a little bit in space and now
+that just a little bit in space and now it's up to animation to make some
+it's up to animation to make some creative choices and and add some
+creative choices and and add some quality here so it looks believable once
+quality here so it looks believable once I'm done with that single to bone okay
+I'm done with that single to bone okay constraint I can take it back down to
+constraint I can take it back down to the skeleton and weight down the rig to
+the skeleton and weight down the rig to zero so here I have it playing back on
+zero so here I have it playing back on just the skeleton next I might want to
+just the skeleton next I might want to full body control rig so I'll transfer
+full body control rig so I'll transfer motion to the constraints and start
+motion to the constraints and start making some modifications
+object like this it would affect the hips the shoulders the the spine would
+hips the shoulders the the spine would lean over in a direction and you can
+lean over in a direction and you can make all of these edits right here by
+make all of these edits right here by modifying the keyframes
+modifying the keyframes you
+right now we've ended up with the better looking result and one thing I wanted to
+looking result and one thing I wanted to demonstrate next but I ran out of time
+demonstrate next but I ran out of time was using physics so a really nice thing
+was using physics so a really nice thing to do would be putting the damper
+to do would be putting the damper transform constraint on that heavy
+transform constraint on that heavy suitcase and that would just give it a
+suitcase and that would just give it a little bit more sensitive momentum and
+little bit more sensitive momentum and more realistic follow-through so you can
+more realistic follow-through so you can play with the weight of the damped
+play with the weight of the damped transform to get it to be softening up
+transform to get it to be softening up that motion just a little bit and making
+that motion just a little bit and making it feel even heavier and more realistic
+it feel even heavier and more realistic so all of these tools exist within this
+so all of these tools exist within this nice sandbox of motion editing tools
+nice sandbox of motion editing tools which is really interesting to think
+which is really interesting to think about how to use in combination so now
+about how to use in combination so now that we have the ability to do motion
+that we have the ability to do motion editing using these freeform animation
+editing using these freeform animation workflows we can make use of these other
+workflows we can make use of these other parts that exist within unity so the
+parts that exist within unity so the kinematic ax motion matching solution
+kinematic ax motion matching solution can be used to generate a really nice
+can be used to generate a really nice and natural-looking motion controller as
+and natural-looking motion controller as the character runs around through the
+the character runs around through the game which can be recorded and then
+game which can be recorded and then baked back down to a single animation
+baked back down to a single animation clip where we can go in and make some
+clip where we can go in and make some edits like for example we're making a
+edits like for example we're making a cinematic or a cutscene we can then make
+cinematic or a cutscene we can then make it custom in a certain pose we can send
+it custom in a certain pose we can send that back to kinematical for some more
+that back to kinematical for some more motion matching and then out to the
+motion matching and then out to the gameplay where we can do runtime rigging
+gameplay where we can do runtime rigging and have it interact with the world this
+and have it interact with the world this is all within this ecosystem of tools
+is all within this ecosystem of tools that can be interchanged in very
+that can be interchanged in very creative ways and personally I'm really
+creative ways and personally I'm really excited to see how people will use this
+excited to see how people will use this and get creative and do fast iteration
+and get creative and do fast iteration to create make their creative projects
+so let's take a look once again add these requirements so we've put together
+these requirements so we've put together I'm feeling pretty good that the
+I'm feeling pretty good that the freeform animation and workflows really
+freeform animation and workflows really help speed up iteration and they address
+help speed up iteration and they address most of these issues pretty well I
+most of these issues pretty well I wouldn't say it's the solution for every
+wouldn't say it's the solution for every single situation but it's one of the
+single situation but it's one of the tools that you can now use to find a
+tools that you can now use to find a solution and it really adds a lot of
+solution and it really adds a lot of nice flexibility to these workflows so
+nice flexibility to these workflows so looking back at the animation pipeline
+looking back at the animation pipeline the old way it was the rigging people's
+the old way it was the rigging people's job to build control rig and have to
+job to build control rig and have to think of all the choices for animators
+think of all the choices for animators what we've done now is give that control
+what we've done now is give that control to the animators and let them choose how
+to the animators and let them choose how to assemble control rigs and use them
+to assemble control rigs and use them for their animation however they want
+for their animation however they want this really frees up the iterations
+this really frees up the iterations cycle and it's it's really great to be
+cycle and it's it's really great to be able to have that freedom and what we
+able to have that freedom and what we have now is much more like a sandbox
+have now is much more like a sandbox instead of a pipeline where we've opened
+instead of a pipeline where we've opened things up for experimentation and what
+things up for experimentation and what that lets animators do is take motion
+that lets animators do is take motion sources as input from all these
+sources as input from all these different places you can start with and
+different places you can start with and keyframe animation you can go back and
+keyframe animation you can go back and forth to your DCC applications with FBX
+forth to your DCC applications with FBX exporters and you can record physics or
+exporters and you can record physics or gameplay just a motion capture all of
+gameplay just a motion capture all of this can be edited using hand keyframing
+this can be edited using hand keyframing which puts it into the artistic control
+which puts it into the artistic control of the animators where it belongs so I'm
+of the animators where it belongs so I'm really excited to hear how people will
+really excited to hear how people will work this way and I was hoping and we
+work this way and I was hoping and we can have some question and answers here
+can have some question and answers here but we'll just have to take that to the
+but we'll just have to take that to the Unity forums and here's the link where
+Unity forums and here's the link where you can find that thank you very much
+you can find that thank you very much for joining us and look forward to
+for joining us and look forward to hearing how it goes
+hearing how it goes you

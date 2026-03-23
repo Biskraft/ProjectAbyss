@@ -1,0 +1,3 @@
+# Category:Ruins
+
+Category: Environments

@@ -1,0 +1,1273 @@
+[Music] so introduce myself I'm Steven McCauley
+so introduce myself I'm Steven McCauley I'm a technical leader Ubisoft Montreal
+I'm a technical leader Ubisoft Montreal and I'm sort of the lucky guy standing
+and I'm sort of the lucky guy standing up here today with a speaker's badge
+up here today with a speaker's badge that gets to talk to you about all the
+that gets to talk to you about all the cool rendering stuff we did but really
+cool rendering stuff we did but really you know is that we have big teams
+you know is that we have big teams Ubisoft Montreal and a game I'd far cry
+Ubisoft Montreal and a game I'd far cry 4 is so big that it's a real team effort
+4 is so big that it's a real team effort so I'm gonna try and make sure that I
+so I'm gonna try and make sure that I call out all the guys who worked on all
+call out all the guys who worked on all the features I'm going to talk about
+the features I'm going to talk about today so am i join Ubisoft to work on a
+today so am i join Ubisoft to work on a far cry 3 and this is a game that came
+far cry 3 and this is a game that came out two in 2012 it was really great we
+out two in 2012 it was really great we actually found the loads people liked it
+actually found the loads people liked it ago 90% Metacritic score and you know
+ago 90% Metacritic score and you know when you're working on a game that's or
+when you're working on a game that's or the game design is really fun and you
+the game design is really fun and you have a thing a really cool gameplay loop
+have a thing a really cool gameplay loop it's pretty awesome when you're gonna
+it's pretty awesome when you're gonna get to get the chance to make him kind
+get to get the chance to make him kind of a sequel and do far cry 4 based on
+of a sequel and do far cry 4 based on that so it's really cool as graphics
+that so it's really cool as graphics team as well we're able to stick a lot
+team as well we're able to stick a lot of the same people so we knew with our
+of the same people so we knew with our strengths our engine and our weaknesses
+strengths our engine and our weaknesses and we knew what we need exactly what we
+and we knew what we need exactly what we want to do to improve the engine and
+want to do to improve the engine and it's obviously some of these
+it's obviously some of these improvements I'm going to go through
+improvements I'm going to go through today so far cry 4 if you don't know
+today so far cry 4 if you don't know much about it it's an open world
+much about it it's an open world first-person shooter world about 10k by
+first-person shooter world about 10k by 10k it's pretty big we have a day/night
+10k it's pretty big we have a day/night cycle as you'd expect for an open-world
+cycle as you'd expect for an open-world game and with anything that's been a
+game and with anything that's been a dynamic time of day as a graphics
+dynamic time of day as a graphics programmer you know there's kind of a
+programmer you know there's kind of a really no hiding place and we're sending
+really no hiding place and we're sending Kier out so it's actually kind of
+Kier out so it's actually kind of country based upon Nepal um we had cross
+country based upon Nepal um we had cross platform and cross generation
+platform and cross generation development so we shipped for five
+development so we shipped for five platforms a time and which is pretty
+platforms a time and which is pretty tough I mean our mandate as a graphics
+tough I mean our mandate as a graphics team was to lead on kind of current gen
+team was to lead on kind of current gen on Xbox one and PlayStation 4 and try to
+on Xbox one and PlayStation 4 and try to keep the last gen version the same as
+keep the last gen version the same as what was shipped on Far Cry 3 to did a
+what was shipped on Far Cry 3 to did a really good job it kind of gave us a lot
+really good job it kind of gave us a lot of constraints because you had to keep
+of constraints because you had to keep the last gen version kind of running
+the last gen version kind of running which have kind of affected a lot of our
+which have kind of affected a lot of our decisions throughout the project and as
+decisions throughout the project and as the end of the project
+the end of the project I was kind of inevitable like only had
+I was kind of inevitable like only had to go back and optimize a few lower bits
+to go back and optimize a few lower bits about the ps3 you know the 360
+about the ps3 you know the 360 in the end that kind of met we had a
+in the end that kind of met we had a better product on the next III on all
+better product on the next III on all platforms the really given our mandate
+platforms the really given our mandate as a graphics team was developed their
+as a graphics team was developed their new features for the new consoles I'm
+new features for the new consoles I'm really going to talk exclusively about
+really going to talk exclusively about that kind of work
+that kind of work but I might threw a few tidbits in about
+but I might threw a few tidbits in about the ps3 and a 360 along the way so I've
+the ps3 and a 360 along the way so I've gotta what areas did we improve well we
+gotta what areas did we improve well we got looked at five areas so materials
+got looked at five areas so materials lighting vegetation and anti-aliasing
+lighting vegetation and anti-aliasing and a terrain so I'm going to cover the
+and a terrain so I'm going to cover the first four today I'm not gonna talk
+first four today I'm not gonna talk about terrain because hopefully you're
+about terrain because hopefully you're all in a car chance excellent talk just
+all in a car chance excellent talk just beforehand in the opposite room and he
+beforehand in the opposite room and he talked about the virtual texturing work
+talked about the virtual texturing work he developed and he didn't see it make
+he developed and he didn't see it make sure you gonna check out the slides it
+sure you gonna check out the slides it was really awesome work um so let's get
+was really awesome work um so let's get started with materials um so um I'll Far
+started with materials um so um I'll Far Cry 3 I did a talk
+Cry 3 I did a talk it's the graph 2012 talking about how we
+it's the graph 2012 talking about how we did some physically based shading stuff
+did some physically based shading stuff we could have had glossiness and
+we could have had glossiness and reflectivity material parameters and we
+reflectivity material parameters and we only had a monochrome specular and a bit
+only had a monochrome specular and a bit of a side ranch icon notice nowadays
+of a side ranch icon notice nowadays there's quite definition of physically
+there's quite definition of physically based keeps kind of changing like what I
+based keeps kind of changing like what I consider to be based back in 2012 is now
+consider to be based back in 2012 is now the other old way of doing things and
+the other old way of doing things and physically based now means you know LED
+physically based now means you know LED material editors and other fancy things
+material editors and other fancy things so maybe we should talk about more and
+so maybe we should talk about more and less physically based and might be a bit
+less physically based and might be a bit more accurate terms um so the goal from
+more accurate terms um so the goal from Far Cry 3 was that we wanted to improve
+Far Cry 3 was that we wanted to improve the appearance of our metals because we
+the appearance of our metals because we only had this monochrome specular
+only had this monochrome specular reflectance that didn't look very good
+reflectance that didn't look very good and we couldnt get color specular and if
+and we couldnt get color specular and if you look at something like a they're
+you look at something like a they're kind of concept art for a place like
+kind of concept art for a place like Nepal you'll see loads of gold and kind
+Nepal you'll see loads of gold and kind of bronze that we really wanted to bring
+of bronze that we really wanted to bring out um and also in the first-person
+out um and also in the first-person shooter you're finally a weapons cover
+shooter you're finally a weapons cover quite a large portion of the screen so
+quite a large portion of the screen so you can get your weapons looking really
+you can get your weapons looking really nice you know but at least part of the
+nice you know but at least part of the screen that's will look pretty awesome
+screen that's will look pretty awesome so um look like everybody else we look
+so um look like everybody else we look to the Disney model nothing too original
+to the Disney model nothing too original here which actually anisotropic ggx brdf
+here which actually anisotropic ggx brdf and corresponding Smith's geometry term
+and corresponding Smith's geometry term and just news to a standard and version
+and just news to a standard and version diffuse we look at kind of other diffuse
+diffuse we look at kind of other diffuse mode also to the Disney model but really
+mode also to the Disney model but really I really started to see it's worth it
+I really started to see it's worth it cost to this moment in time so I'm
+cost to this moment in time so I'm looking
+looking we ended up with kind of four parameters
+we ended up with kind of four parameters in this zero to one range getting really
+in this zero to one range getting really important keep all your parameters in
+important keep all your parameters in zero to one for kind of it artists and
+zero to one for kind of it artists and creativity I'm so bluffing this
+creativity I'm so bluffing this reflectance metallic and on isotropy so
+reflectance metallic and on isotropy so Disney call a reflectance specular and
+Disney call a reflectance specular and they called glossiness roughness or
+they called glossiness roughness or inverse bossiness roughness we stuck
+inverse bossiness roughness we stuck with glossiness for legacy reasons for
+with glossiness for legacy reasons for keeping Far Cry 3 kind of naming the
+keeping Far Cry 3 kind of naming the same I really won't go to go across is
+same I really won't go to go across is just yeah I want to that bit into how we
+just yeah I want to that bit into how we did that in isotropy and how we did like
+did that in isotropy and how we did like an italic so like a metallic parameter I
+an italic so like a metallic parameter I hopefully you all know about this by now
+hopefully you all know about this by now so it's pretty simple so you have this
+so it's pretty simple so you have this single or a float value that you can
+single or a float value that you can blend for your specular reflectance you
+blend for your specular reflectance you just blend from a monochrome value to
+just blend from a monochrome value to your diffuse albedo which really is any
+your diffuse albedo which really is any kind of a specular albedo at the same
+kind of a specular albedo at the same time you blend out your diffuse albedo
+time you blend out your diffuse albedo to make sure you get no diffuse lighting
+to make sure you get no diffuse lighting and lots of cool colored specular
+and lots of cool colored specular lighting and simple and it works really
+lighting and simple and it works really really great because what it means you
+really great because what it means you just need a single channel in your G
+just need a single channel in your G buffer for colored specular rather
+buffer for colored specular rather having two keystore whole other kind of
+having two keystore whole other kind of three color terms and actually this is
+three color terms and actually this is great we could use this feature then for
+great we could use this feature then for old gen consoles as well which got rid
+old gen consoles as well which got rid of the specular reflectance fixed it as
+of the specular reflectance fixed it as 0.03 and replace the value in the G
+0.03 and replace the value in the G buffer with a metallic instead oh you'd
+buffer with a metallic instead oh you'd do this approach so you do need to give
+do this approach so you do need to give your artist a little bit of training
+your artist a little bit of training because behavioral your kind of diffuse
+because behavioral your kind of diffuse textures which are no longer diffuse
+textures which are no longer diffuse really a kind of changes with that use
+really a kind of changes with that use of metallic value and it can be a little
+of metallic value and it can be a little bit confusing for people like you can't
+bit confusing for people like you can't notice in your developing say a weapon
+notice in your developing say a weapon and you've got like a metal Oh knife
+and you've got like a metal Oh knife blade and you know I could say wooden
+blade and you know I could say wooden handle we will find in the texture the
+handle we will find in the texture the wood looks quite dark when the metals
+wood looks quite dark when the metals are all going to be really quite high in
+are all going to be really quite high in that range so your artist might kind of
+that range so your artist might kind of wanted to kind of adjust them and kind
+wanted to kind of adjust them and kind of make them closer together but we gave
+of make them closer together but we gave them some good color of Photoshop color
+them some good color of Photoshop color swatches so to make sure they kind
+swatches so to make sure they kind didn't do that and have some good
+didn't do that and have some good guidelines and you know after a couple
+guidelines and you know after a couple of weeks they really caught on pretty
+of weeks they really caught on pretty well and they did some awesome kind of
+well and they did some awesome kind of work and we also introduced an austere
+work and we also introduced an austere choppy to get caller rush metals and
+choppy to get caller rush metals and also the certain types of cloth so I see
+also the certain types of cloth so I see how are the anis trouble you parameter
+how are the anis trouble you parameter increases there across those fears
+so let's look at the anisotropic ggx distribution formula which is kind of a
+distribution formula which is kind of a long and confusing there's a bit scary
+long and confusing there's a bit scary because if you actually break this down
+because if you actually break this down and we look at what we have to store in
+and we look at what we have to store in our G buffer well we need to glossiness
+our G buffer well we need to glossiness terms plus a normal tangent and by
+terms plus a normal tangent and by normal and that's when you're confusing
+normal and that's when you're confusing them because we have to pack a full
+them because we have to pack a full tangent space into the G buffer and yeah
+tangent space into the G buffer and yeah like that's gonna take a lot of values
+like that's gonna take a lot of values we think um actually we can actually
+we think um actually we can actually forward some ideas for animation
+forward some ideas for animation programmers and they wrote some this
+programmers and they wrote some this auditioning papers from Crytek and also
+auditioning papers from Crytek and also a Nicolas trickle on the bits wit blog
+a Nicolas trickle on the bits wit blog about storing tangent space as a
+about storing tangent space as a quaternion and they've kind of mastered
+quaternion and they've kind of mastered the packing tunnel for this they want to
+the packing tunnel for this they want to get animation down nice and small so
+get animation down nice and small so what we're going to store is just score
+what we're going to store is just score and I quote Ernie in ten ten ten - we're
+and I quote Ernie in ten ten ten - we're gonna store the three smallest
+gonna store the three smallest components and they're in the range
+components and they're in the range minus 1 over root 2 to 1 over root 2
+minus 1 over root 2 to 1 over root 2 because if they're any bigger they would
+because if they're any bigger they would be the biggest component so we need to
+be the biggest component so we need to do that and that's great can you just
+do that and that's great can you just pack those in to 0 to 1 range and we
+pack those in to 0 to 1 range and we have get more precision and we also
+have get more precision and we also store naknak W component of the index of
+store naknak W component of the index of the component we've dropped the 0 1 2 or
+the component we've dropped the 0 1 2 or 3 you might be thinking well can't you
+3 you might be thinking well can't you just get away with it with the storing x
+just get away with it with the storing x y&z it'll say 11 11 10 getting a bit
+y&z it'll say 11 11 10 getting a bit more precision out and we constructing
+more precision out and we constructing the W well turns out it doesn't work you
+the W well turns out it doesn't work you kind of lose a lot of precision so you
+kind of lose a lot of precision so you really need to actually drop this
+really need to actually drop this biggest component and reconstruct that
+biggest component and reconstruct that one and that says that's not too bad um
+one and that says that's not too bad um you kind of find the biggest component
+you kind of find the biggest component actually only 5 instructions if you use
+actually only 5 instructions if you use some kind GNCC embassy Victrix
+some kind GNCC embassy Victrix so come on in like a major axis problem
+so come on in like a major axis problem so you have all you actually have the
+so you have all you actually have the cube map face ID instruction where you
+cube map face ID instruction where you can just use that to get the major axis
+can just use that to get the major axis out of the x y&z and a max 3 to quickly
+out of the x y&z and a max 3 to quickly help you get to whether the W is any
+help you get to whether the W is any bigger and I'll put all the code for
+bigger and I'll put all the code for packing unpacking for turning into the G
+packing unpacking for turning into the G buffer in the appendix to this release
+buffer in the appendix to this release line so you can go check all that out
+line so you can go check all that out later when I restore slides next week um
+later when I restore slides next week um what's the quality like well I kind of
+what's the quality like well I kind of worked out it's about quality of
+worked out it's about quality of equipment to about a nice packing of
+equipment to about a nice packing of normal than eight eight eight um you do
+normal than eight eight eight um you do get a bit of faceting on smooth surfaces
+get a bit of faceting on smooth surfaces and we're con la keying on Farquhar we
+and we're con la keying on Farquhar we don't really have that many smooth
+don't really have that many smooth surfaces but if your game is kind of
+surfaces but if your game is kind of like that you might want to look again
+like that you might want to look again um I mean overall I mean the problems
+um I mean overall I mean the problems you're gonna get you gonna promise again
+you're gonna get you gonna promise again what I said the corner to the normals
+what I said the corner to the normals they could be a bit higher I do think
+they could be a bit higher I do think there's a bit more research to be done
+there's a bit more research to be done here whether we can use those ten bits a
+here whether we can use those ten bits a bit better to distribute the kind of
+bit better to distribute the kind of values better to get precision where
+values better to get precision where it's needed um you also can only store
+it's needed um you also can only store also orthonormal tangent space now
+also orthonormal tangent space now that's not so bad because actually we
+that's not so bad because actually we don't have alter normal kind of space in
+don't have alter normal kind of space in there on all maps in Sakai but what we
+there on all maps in Sakai but what we construct for that sort of arabic
+construct for that sort of arabic shading is also normal you can kind of
+shading is also normal you can kind of make those two different tangent spaces
+make those two different tangent spaces and it's actually works out okay um
+and it's actually works out okay um might be a problem if you want to do
+might be a problem if you want to do something on lean mapping which does
+something on lean mapping which does call my initial plan that we weren't so
+call my initial plan that we weren't so that's okay obviously we'd like to make
+that's okay obviously we'd like to make the speed of packing unpacking a little
+the speed of packing unpacking a little bit quicker but you know it never really
+bit quicker but you know it never really came up a notch in our profiling more so
+came up a notch in our profiling more so you optimized it um
+you optimized it um the main problem really we had was how
+the main problem really we had was how to blend decals because obviously now
+to blend decals because obviously now once you're doing some ragged quaternion
+once you're doing some ragged quaternion you can't just do some simple alpha
+you can't just do some simple alpha blending so we only supported one layer
+blending so we only supported one layer of decals and that was an art kind of
+of decals and that was an art kind of restriction and we had to kind of read
+restriction and we had to kind of read back the current like normal mode
+back the current like normal mode quaternion buffer and then reconstruct
+quaternion buffer and then reconstruct things from that was cool though is
+things from that was cool though is actually how that worked well is with
+actually how that worked well is with the virtual textures because all the
+the virtual textures because all the decals on the terrain was stored in a
+decals on the terrain was stored in a war virtual texturing so it wasn't
+war virtual texturing so it wasn't actually a poem for us at all and that
+actually a poem for us at all and that is only on kind of buildings there's
+is only on kind of buildings there's kind of nice thing about two different
+kind of nice thing about two different techniques working together and if our
+techniques working together and if our game was a little textured it kind of
+game was a little textured it kind of mend this problem went away for us um
+mend this problem went away for us um for reflections well it's a little bit
+for reflections well it's a little bit trickier we'd love to do important
+trickier we'd love to do important something or something into a key map to
+something or something into a key map to get some awesome results but we can't so
+get some awesome results but we can't so I'm kind of really grateful actually to
+I'm kind of really grateful actually to him it was Matt Pitino who brought Don
+him it was Matt Pitino who brought Don revie's article and good GPA from GPU
+revie's article and good GPA from GPU Pro one or two to my attention about to
+Pro one or two to my attention about to doing so much dropping into fir shading
+doing so much dropping into fir shading they just did a simple trip to distort
+they just did a simple trip to distort the reflection vector in a different
+the reflection vector in a different direction actually no it's not perfect
+direction actually no it's not perfect but it looks pretty good so no on the
+but it looks pretty good so no on the Left we've got Nana's toffee in the
+Left we've got Nana's toffee in the middle was put on what we had originally
+middle was put on what we had originally where we had this anisotropic highlight
+where we had this anisotropic highlight and a nice to my perfection which is a
+and a nice to my perfection which is a bit kind of broken and then on the right
+bit kind of broken and then on the right we have what happens when you actually
+we have what happens when you actually there's no trick for the anisotropic
+there's no trick for the anisotropic reflection again it's kind of not
+reflection again it's kind of not perfect but you know it's kind of a hell
+perfect but you know it's kind of a hell a lot better than doing nothing at all
+a lot better than doing nothing at all um
+um I really sure like showing pictures
+I really sure like showing pictures these knives I mean our weapons team did
+these knives I mean our weapons team did an awesome job and you know what they
+an awesome job and you know what they used a nice trophy everywhere they loved
+used a nice trophy everywhere they loved it and it's kind of reenter esting
+it and it's kind of reenter esting because it's all the problem we had on
+because it's all the problem we had on Far Cry 3 where these guys his weapons
+Far Cry 3 where these guys his weapons team they keep coming up to us and say
+team they keep coming up to us and say we don't want some fake specula on our
+we don't want some fake specula on our weapons and weak I think no no no we
+weapons and weak I think no no no we want to be physically based no fake
+want to be physically based no fake secular at all and then we gave them
+secular at all and then we gave them this ammo stroppy and that complaint
+this ammo stroppy and that complaint just completely went away they always
+just completely went away they always felt they saw some glint or some kind of
+felt they saw some glint or some kind of like something interesting going on in
+like something interesting going on in the weapons so it's going to be perhaps
+the weapons so it's going to be perhaps this they expected they wanted after all
+this they expected they wanted after all was actually just brush metal that's
+was actually just brush metal that's actually what they were looking at and
+actually what they were looking at and now we've kind of replicated the real
+now we've kind of replicated the real world a little bit better we've
+world a little bit better we've supported a wider range of materials
+supported a wider range of materials they can get what they want so next
+they can get what they want so next topic is there going to be our lighting
+topic is there going to be our lighting so there's got a three improvements he
+so there's got a three improvements he wanted to make and the first was class
+wanted to make and the first was class sky occlusion system you want to kind of
+sky occlusion system you want to kind of increase the resolution of that and the
+increase the resolution of that and the system mode Jaime wall worked on I also
+system mode Jaime wall worked on I also had an environment where we wanted to
+had an environment where we wanted to make sure that they could dealt better
+make sure that they could dealt better with time of day changes and there's
+with time of day changes and there's something dead up by a Gabriella font
+something dead up by a Gabriella font and finally we looked at the indirect
+and finally we looked at the indirect lighting we want to kind of extend our
+lighting we want to kind of extend our range beyond this call loading we have
+range beyond this call loading we have so further out about far in the distance
+so further out about far in the distance and want to fast update as well from Far
+and want to fast update as well from Far Cry 3 to vent flickering errors so for
+Cry 3 to vent flickering errors so for Scott Lestat a sky lighting model well
+Scott Lestat a sky lighting model well we used the Burnet on a sky model and
+we used the Burnet on a sky model and the pretense our model this is something
+the pretense our model this is something that she developed by assassin's creed
+that she developed by assassin's creed unity that we managed to take and it'll
+unity that we managed to take and it'll work really well for us where you kind
+work really well for us where you kind of really liked it and once you've got
+of really liked it and once you've got the sky on all we just need to generate
+the sky on all we just need to generate the lighting inferred allosteric
+the lighting inferred allosteric harmonics so that's pretty cool so one
+harmonics so that's pretty cool so one on your Far Cry 3 was our annex toward
+on your Far Cry 3 was our annex toward our sky lighting in light probes along
+our sky lighting in light probes along with our indirect lighting from which
+with our indirect lighting from which their indirect lighting was kinda based
+their indirect lighting was kinda based on probes faced it 88 meters which is
+on probes faced it 88 meters which is quite low resolution and we thought hey
+quite low resolution and we thought hey no gir kind of a difficult problem to
+no gir kind of a difficult problem to solve so hey why don't we just increase
+solve so hey why don't we just increase the sky resolution or something we could
+the sky resolution or something we could definitely do see the Sun is separate
+definitely do see the Sun is separate out our kind of sky lighting direct sky
+out our kind of sky lighting direct sky lighting from me indirect lighting and
+lighting from me indirect lighting and we did something the simple trick think
+we did something the simple trick think a lot of games have done the speed and
+a lot of games have done the speed and the CryEngine has it in we have this
+the CryEngine has it in we have this just top-down a sky occlusion map are
+just top-down a sky occlusion map are generated from a height field over the
+generated from a height field over the kind of entire scene I'm actually
+kind of entire scene I'm actually actually generates a visibility and
+actually generates a visibility and second orders forever
+second orders forever monix from this height field so high
+monix from this height field so high field it's kind of rendered on-demand we
+field it's kind of rendered on-demand we do something with streaming so our world
+do something with streaming so our world is split into 64 by 64 meter sectors and
+is split into 64 by 64 meter sectors and whenever a sector becomes visible we're
+whenever a sector becomes visible we're just going to render the height field of
+just going to render the height field of that it's really really quick means we
+that it's really really quick means we have no streaming cost and means we get
+have no streaming cost and means we get quite high resolution as well of 25
+quite high resolution as well of 25 centimeters protects all and we can't
+centimeters protects all and we can't blur this then from before we generate
+blur this then from before we generate the SH of visibility I mean the
+the SH of visibility I mean the visibility is quite simple to do we has
+visibility is quite simple to do we has just taken s SEO kind of style approach
+just taken s SEO kind of style approach we just need to sample our come a
+we just need to sample our come a blurred height field whether I take to
+blurred height field whether I take to quest on disc I stall a proportion of
+quest on disc I stall a proportion of the visible samples actually to some of
+the visible samples actually to some of the directions of the visible samples
+the directions of the visible samples then to get the directionality out once
+then to get the directionality out once we've got that we've got the direction
+we've got that we've got the direction and we've got the visibility we need to
+and we've got the visibility we need to convert that into spherical harmonics so
+convert that into spherical harmonics so what I could do is just create a
+what I could do is just create a spherical cap based on looking on the up
+spherical cap based on looking on the up to normal and let's go rotate into the
+to normal and let's go rotate into the direction that we need so how do we
+direction that we need so how do we apply this well what we're gonna do in
+apply this well what we're gonna do in the deferred lighting we're going to
+the deferred lighting we're going to sample this kind of SH sky losing
+sample this kind of SH sky losing texture do some tricks obviously the con
+texture do some tricks obviously the con 2d and we actually need to kind of
+2d and we actually need to kind of modify things based upon our height
+modify things based upon our height above the terrain so remember crawl we
+above the terrain so remember crawl we have actually blurred height field sort
+have actually blurred height field sort of something at the terrain Heights we
+of something at the terrain Heights we can have this full I use full SH
+can have this full I use full SH occlusion and then actually blend up to
+occlusion and then actually blend up to something in the height of the blur type
+something in the height of the blur type field well we're just going to kind of
+field well we're just going to kind of fade out to something fully visible
+fade out to something fully visible gives us something looks kind of 3d then
+gives us something looks kind of 3d then once we have the primary visibility
+once we have the primary visibility direction from SH we can just instructor
+direction from SH we can just instructor bent normal out of that how much neater
+bent normal out of that how much neater then to sample our second order as
+then to sample our second order as visibility and the third order Shi
+visibility and the third order Shi lighting in this pen normal direction
+lighting in this pen normal direction and just multiply them together and we
+and just multiply them together and we didn't look at using Sh product here but
+didn't look at using Sh product here but we kind of found it was a bit low res so
+we kind of found it was a bit low res so I think in the end
+so just hear some code quick code to bending the normal so she need to get
+bending the normal so she need to get the primary Direction out scare that
+the primary Direction out scare that based upon the kind of the zeros band of
+based upon the kind of the zeros band of the SH and then add that into our
+the SH and then add that into our existing normal and we normalize so
+existing normal and we normalize so let's look at some pictures so this is
+let's look at some pictures so this is kind of a scene without sky occlusion I
+kind of a scene without sky occlusion I mean even so I think it shows some nice
+mean even so I think it shows some nice stuff with having like kind of cool sky
+stuff with having like kind of cool sky lighting right you've got look at the
+lighting right you've got look at the buildings you can see different kind of
+buildings you can see different kind of shades on different faces into Hammond's
+shades on different faces into Hammond's of you and the sky version in everything
+of you and the sky version in everything start looking a lot better it's still
+start looking a lot better it's still perfect I mean quite notice we actually
+perfect I mean quite notice we actually have quite a harsh fall-off and that was
+have quite a harsh fall-off and that was actually art directed we had a few
+actually art directed we had a few tweaks in there to get looking for our
+tweaks in there to get looking for our direction wanted and what's really cool
+direction wanted and what's really cool is when we added the bent normal thin as
+is when we added the bent normal thin as well and what you might see if you look
+well and what you might see if you look to see around the building just doing
+to see around the building just doing the building in the ground but you can
+the building in the ground but you can see but very disparate lighting
+see but very disparate lighting yeah the bent normal thing it really
+yeah the bent normal thing it really softens that out so something like that
+softens that out so something like that doesn't look quite as good on the big
+doesn't look quite as good on the big screen as doesn't on the monitor so look
+screen as doesn't on the monitor so look at the slides later and you'll see but
+at the slides later and you'll see but I'll do that again so just kind of gives
+I'll do that again so just kind of gives a little bit of softness and little bit
+a little bit of softness and little bit unifies everything little bit more in
+unifies everything little bit more in the scene I'm not a direction really
+the scene I'm not a direction really light back is they felt for things
+light back is they felt for things sometimes where the buildings doing the
+sometimes where the buildings doing the ground just they felt this things didn't
+ground just they felt this things didn't look quite right so environment maps so
+look quite right so environment maps so let's ask ourselves questions so how can
+let's ask ourselves questions so how can we get a single key map to have the
+we get a single key map to have the right intensity at every single time of
+right intensity at every single time of day and well what idea of course is only
+day and well what idea of course is only just rely to our key map every frame so
+just rely to our key map every frame so what we need to do to do that well
+what we need to do to do that well relighting is some writing some we're
+relighting is some writing some we're kind of good at doing we can install G
+kind of good at doing we can install G buffers in I deferred lighting so what
+buffers in I deferred lighting so what do we do something like that for our cue
+do we do something like that for our cue maps where what we'll do Rob we're going
+maps where what we'll do Rob we're going to bake off line key maps install and
+to bake off line key maps install and serve a fully lit kind of thing we're
+serve a fully lit kind of thing we're gonna store a G buffer we go store our B
+gonna store a G buffer we go store our B dough and we restore normal then what we
+dough and we restore normal then what we need to do in our kind of frame we're
+need to do in our kind of frame we're gonna insert those along with their kind
+gonna insert those along with their kind of a real-time generated sky texture to
+of a real-time generated sky texture to fill in those black out be no pictures
+fill in those black out be no pictures pixels and we observe that into a
+pixels and we observe that into a lighting pass light based upon our Sun
+lighting pass light based upon our Sun on our sky lighting then we need to take
+on our sky lighting then we need to take that and do our pre-filtering so we can
+that and do our pre-filtering so we can have the brdf to your GX POF they'll
+have the brdf to your GX POF they'll built in there and then we're getting
+built in there and then we're getting our final a really icky map as a result
+so how do you the lighting well we do our Sun and sky lighting without any
+our Sun and sky lighting without any shadowing or occlusion because this sort
+shadowing or occlusion because this sort of required jet buffer we decided to
+of required jet buffer we decided to kind of save the memory I think in the
+kind of save the memory I think in the future we probably ought to add that
+future we probably ought to add that Dettol back into I mean get wall
+Dettol back into I mean get wall position out and I think would help
+position out and I think would help definitely help improve things um we
+definitely help improve things um we also get the indirect lighting from the
+also get the indirect lighting from the nearest probe and we normalize
+nearest probe and we normalize everything again with illuminance for
+everything again with illuminance for the ambient term and a far cry 3 we were
+the ambient term and a far cry 3 we were normalizing on key maps by the kind of
+normalizing on key maps by the kind of the color of the ambient it turned out
+the color of the ambient it turned out actually that introduced loads are kind
+actually that introduced loads are kind of banding and color distortion and just
+of banding and color distortion and just real normalizing on the luminance works
+real normalizing on the luminance works a lot better so here's some results
+a lot better so here's some results what's really cool you know seated we
+what's really cool you know seated we have a real-time sky there's no clouds
+have a real-time sky there's no clouds in there but you pick up some fancy
+in there but you pick up some fancy clouds moving you can see the Sun moving
+clouds moving you can see the Sun moving across the time moving across at this
+across the time moving across at this sky you can see that kind of in the
+sky you can see that kind of in the mountains there in the distance you can
+mountains there in the distance you can see how things the lighting shifting on
+see how things the lighting shifting on those and of course obviously you can
+those and of course obviously you can see how the ground changes lighting at
+see how the ground changes lighting at different times um also you know the
+different times um also you know the Philippines talk about the filtering
+Philippines talk about the filtering because it's really important we do this
+because it's really important we do this so what we need to do for successive MIT
+so what we need to do for successive MIT levels you to sample our GD X
+levels you to sample our GD X distribution and do some important
+distribution and do some important sampling just on its own it's a little
+sampling just on its own it's a little bit kind of slow it's really really key
+bit kind of slow it's really really key to use a filter in a porter sampling
+to use a filter in a porter sampling that was done in GPU gems too I turned
+that was done in GPU gems too I turned out that I think several Gardiner shells
+out that I think several Gardiner shells DeRussy area dice had the same idea and
+DeRussy area dice had the same idea and they kind of talked about this before me
+they kind of talked about this before me at SIGGRAPH last year we came up with
+at SIGGRAPH last year we came up with the same things the right thing to do if
+the same things the right thing to do if n was really important to match your key
+n was really important to match your key map faces together in your computer
+map faces together in your computer better occupancy obviously they're doing
+better occupancy obviously they're doing a four by four came out facing you're
+a four by four came out facing you're sending that individually to the GPU you
+sending that individually to the GPU you can have a lot of wasted performance um
+can have a lot of wasted performance um and also if your hardware supports it is
+and also if your hardware supports it is really calling backup levels together as
+really calling backup levels together as well and you're going to really fill the
+well and you're going to really fill the GPU up with work so now that all this
+GPU up with work so now that all this all was actually pretty quick they're
+all was actually pretty quick they're filtering results there you go it works
+filtering results there you go it works so yeah really really quick so for we
+so yeah really really quick so for we had want to write by one to eight key
+had want to write by one to eight key maps with HDR key maps lighting again
+maps with HDR key maps lighting again really quick generation quick filtering
+really quick generation quick filtering little bit slower but still really
+little bit slower but still really really reasonable we're bandwidth bound
+really reasonable we're bandwidth bound here daily
+here daily from Microsoft it's kind of suggested
+from Microsoft it's kind of suggested that we look at using kind of our eleven
+that we look at using kind of our eleven DLF and B ten formats it might help
+DLF and B ten formats it might help speed things up that's true
+speed things up that's true everything deal with that for the
+everything deal with that for the precision issues when I hope these times
+precision issues when I hope these times we go down a lot further as well so
+we go down a lot further as well so indirect lighting our third kind of
+indirect lighting our third kind of lighting improvement we wanted to make 4
+lighting improvement we wanted to make 4 farcry 4 um so I start off with a really
+farcry 4 um so I start off with a really cool system if here at GDC 3 years ago
+cool system if here at GDC 3 years ago you might have seen nikolai stefan often
+you might have seen nikolai stefan often McCullar McCullar sheila bair talked
+McCullar McCullar sheila bair talked about deferred radius transfer volumes
+about deferred radius transfer volumes and they develop for Far Cry 3 um so
+and they develop for Far Cry 3 um so these will like probes placed at various
+these will like probes placed at various points in the scene that stalled
+points in the scene that stalled radiance transfer information we came to
+radiance transfer information we came to looking at what wanted to do for this
+looking at what wanted to do for this system we're the number of goals um gave
+system we're the number of goals um gave me this limitation of being this kind of
+me this limitation of being this kind of cross generational game we decided right
+cross generational game we decided right we won't actually want to stick with the
+we won't actually want to stick with the same light probe set for kind of last
+same light probe set for kind of last gen and current gen we really want to
+gen and current gen we really want to extend the range of the indirect
+extend the range of the indirect lighting outs in Far Cry 3 was kind of
+lighting outs in Far Cry 3 was kind of stuck it around on our 64 meters around
+stuck it around on our 64 meters around the camera and we really wanted to go
+the camera and we really wanted to go further you can really see that kind of
+further you can really see that kind of destroying I really want to do you have
+destroying I really want to do you have faster updates as well I'm moving all
+faster updates as well I'm moving all the CPU work on to the GPU so oh here's
+the CPU work on to the GPU so oh here's an overview of what we do so offline
+an overview of what we do so offline we're gonna bake some probes we're gonna
+we're gonna bake some probes we're gonna bake this they got stall radius transfer
+bake this they got stall radius transfer information the second order Sh
+information the second order Sh so that's going to be 3 4 by 4 matrices
+so that's going to be 3 4 by 4 matrices on the CPU we're going to stream this
+on the CPU we're going to stream this probate in we're going to upload it to
+probate in we're going to upload it to the GPU and we'll update our kind of
+the GPU and we'll update our kind of page table on the GPU we seem to
+page table on the GPU we seem to calculate all readiness transfer and I'm
+calculate all readiness transfer and I'm gonna inject our probes into the clip
+gonna inject our probes into the clip map and something the deferred lighting
+map and something the deferred lighting so I'm gonna step through some of these
+so I'm gonna step through some of these in a little more detail so our world as
+in a little more detail so our world as I said before splitting 64 by 64 meter
+I said before splitting 64 by 64 meter sectors and probes are stored in cells
+sectors and probes are stored in cells and in each cell we have no creative a
+and in each cell we have no creative a PI probes so we're going to bake a
+PI probes so we're going to bake a highest level data so just the first top
+highest level data so just the first top level the probes and where we have warm
+level the probes and where we have warm sector per cell and then we're going to
+sector per cell and then we're going to join it's from Mac so you have a MIT
+join it's from Mac so you have a MIT data five levels emit data so what's in
+data five levels emit data so what's in a Cell well it's a radius transfer of
+a Cell well it's a radius transfer of propolis
+propolis so at 64 probes again this 8 by 8
+so at 64 probes again this 8 by 8 regular grid we also need to store our
+regular grid we also need to store our sh probe list as well
+sh probe list as well so this is going to be the final probes
+so this is going to be the final probes often wondered well through the radians
+often wondered well through the radians transfer they've come for this week on a
+transfer they've come for this week on a real lighting process we just saw that
+real lighting process we just saw that as well
+as well a stone was per frame it also need to
+a stone was per frame it also need to stall the dimensions of the cell so what
+stall the dimensions of the cell so what maple oval are we you know what size are
+maple oval are we you know what size are dips is it where are you in the world um
+dips is it where are you in the world um obviously once we've got all these cells
+obviously once we've got all these cells the thing is we can't have these kind of
+the thing is we can't have these kind of buffers stored individually in GPU
+buffers stored individually in GPU memory we can't have I could buffer put
+memory we can't have I could buffer put just one dr. buffer for radius travel
+just one dr. buffer for radius travel approach for cell I mean it's not only
+approach for cell I mean it's not only really slow to be working on small sets
+really slow to be working on small sets of data all you do is come from
+of data all you do is come from virtualization to have one big list so
+virtualization to have one big list so as we're going to do we're going to
+as we're going to do we're going to allocate this big fit size list of cells
+allocate this big fit size list of cells and we're gonna break that into a fixed
+and we're gonna break that into a fixed number of cells allocated for each MIT
+number of cells allocated for each MIT so in our case we have 80 cells in total
+so in our case we have 80 cells in total five mid-levels and a 16 cells permit as
+five mid-levels and a 16 cells permit as we're saying a lot using the virtual
+we're saying a lot using the virtual buffer stop here we're not using any PRT
+buffer stop here we're not using any PRT hardware so don't worry about that it's
+hardware so don't worry about that it's all done in software so as a seller
+all done in software so as a seller streamed in on the CPU well no ever free
+streamed in on the CPU well no ever free sellers available for that may play ball
+sellers available for that may play ball on the GPU well we're just gonna
+on the GPU well we're just gonna allocate well if no sellers available
+allocate well if no sellers available then we just need to discard a more
+then we just need to discard a more distant cell then as I said have
+distant cell then as I said have streamed out on the CPU while wishing to
+streamed out on the CPU while wishing to mark the sellers are free on the GPU it
+mark the sellers are free on the GPU it was pretty simple and what's called
+was pretty simple and what's called clear had this big long bit and virtual
+clear had this big long bit and virtual buffer list we now come a form I'm like
+buffer list we now come a form I'm like the radius transfer all at once really
+the radius transfer all at once really fill up the GPU it's really really quick
+fill up the GPU it's really really quick so just insert our sunlight from our
+so just insert our sunlight from our skylight take a list and output some SH
+skylight take a list and output some SH probes at the end and these are the
+probes at the end and these are the final probes going to use for lighting
+so let's talk a bit about our pace table so each MIT level actually has a page
+so each MIT level actually has a page table and these are kind of spatially
+table and these are kind of spatially indexed in a 2d grid on the XY plane and
+indexed in a 2d grid on the XY plane and this kind of page table covers the
+this kind of page table covers the entire world what we're gonna do on the
+entire world what we're gonna do on the CPU we have all these page tables myth
+CPU we have all these page tables myth and permit and we're going to combine
+and permit and we're going to combine them into one kind of filling in all the
+them into one kind of filling in all the gaps so in the end we have this kind of
+gaps so in the end we have this kind of page table which contains all the data
+page table which contains all the data data for every cell in the world and so
+data for every cell in the world and so the final page table is 160 by 160
+the final page table is 160 by 160 sectors at the highest MIT problem
+sectors at the highest MIT problem resolution
+resolution and what are you to do if you want to
+and what are you to do if you want to sample a life rave
+sample a life rave well wait do we see the sample into the
+well wait do we see the sample into the page table to find our index into the
+page table to find our index into the cell list so what cell we currently need
+cell list so what cell we currently need as a lightning data currently store that
+as a lightning data currently store that we don't care what mid blob of it is
+we don't care what mid blob of it is from the cell also Novosel rin while we
+from the cell also Novosel rin while we can calculate from our wall position
+can calculate from our wall position what probe index in that cell we need to
+what probe index in that cell we need to look at now we just need to fetch the
+look at now we just need to fetch the probe now that's great in all but
+probe now that's great in all but obviously that's not gonna have any
+obviously that's not gonna have any filtering taking not between mid levels
+filtering taking not between mid levels and not watching individual probes so
+and not watching individual probes so it's not too great and actually quite
+it's not too great and actually quite slow to do that lookup for every pixel
+slow to do that lookup for every pixel on the screen so we don't wanna do that
+on the screen so we don't wanna do that it's all we're going to do instead we're
+it's all we're going to do instead we're gonna inject our probes into a 32 by 32
+gonna inject our probes into a 32 by 32 by a 5 map so and that's like a 32 by 32
+by a 5 map so and that's like a 32 by 32 texture array 5 array levels and
+texture array 5 array levels and obviously the same size because they
+obviously the same size because they each the 32 by 32 is covering a larger
+each the 32 by 32 is covering a larger area in the world
+area in the world these are centered about the camera and
+these are centered about the camera and then the three of these textures having
+then the three of these textures having installed us 12 Sh coefficients we need
+installed us 12 Sh coefficients we need so to sample in the end of the day we
+so to sample in the end of the day we need to find what cascade our pixel is
+need to find what cascade our pixel is in you should calculate the UVs for that
+in you should calculate the UVs for that pixel for the Cascades the story cascade
+pixel for the Cascades the story cascade and also the next level cascade down and
+and also the next level cascade down and we can sample both of them and just
+we can sample both of them and just blend together based upon the distance
+so let's look at kind of what performance we kind of have so memory is
+performance we kind of have so memory is pretty low obviously there's a page
+pretty low obviously there's a page table is 25 kilobytes total cell memory
+table is 25 kilobytes total cell memory is about 640 K and you probably thinking
+is about 640 K and you probably thinking well you're doing an exchange aim we've
+well you're doing an exchange aim we've got all these massive load gigs of data
+got all these massive load gigs of data to use why is your memory so low well
+to use why is your memory so low well again as I said we're showing data sets
+again as I said we're showing data sets between kind of current gen and like
+between kind of current gen and like last gen so actually what would happen
+last gen so actually what would happen here we actually managed to optimize our
+here we actually managed to optimize our last gen memory a lot actually on
+last gen memory a lot actually on lighting system and we saved two
+lighting system and we saved two megabytes or so in total across the last
+megabytes or so in total across the last gen consoles so obviously people were
+gen consoles so obviously people were very very happy about that performance
+very very happy about that performance again radius transfers were really
+again radius transfers were really really quick and so is our injection
+really quick and so is our injection into the clip map and the full-screen
+into the clip map and the full-screen pass here the full-screen past is
+pass here the full-screen past is actually what does our sky lighting so
+actually what does our sky lighting so all the sky illusion stuff I showed you
+all the sky illusion stuff I showed you earlier
+earlier flying the third-order attic sky
+flying the third-order attic sky lighting and something to click map in
+lighting and something to click map in getting the indirect lighting out we
+getting the indirect lighting out we store that in a separate buffer now it's
+store that in a separate buffer now it's ready in the final the third lighting
+ready in the final the third lighting pass so what was great about this we
+pass so what was great about this we solved all our problems in Far Cry 3 we
+solved all our problems in Far Cry 3 we have fast updates because now we are no
+have fast updates because now we are no kind of CPU GPU synchronization it was
+kind of CPU GPU synchronization it was all going to be done on the GPU all the
+all going to be done on the GPU all the radius transfer rather than before we
+radius transfer rather than before we had a much large indirect lighting range
+had a much large indirect lighting range because now he had all these nipped
+because now he had all these nipped levels of the lighting data where you'd
+levels of the lighting data where you'd go all the way into the distance and we
+go all the way into the distance and we had a lot lower memory requirements
+had a lot lower memory requirements which as I just said was awesome for our
+which as I just said was awesome for our last gen consoles um obviously it has
+last gen consoles um obviously it has property quality issues so we have lower
+property quality issues so we have lower frequency lighting my eight-pack meets
+frequency lighting my eight-pack meets every 8 by 8 meters a kind of at best
+every 8 by 8 meters a kind of at best and also temporally as well because kind
+and also temporally as well because kind of second order and SH spherical
+of second order and SH spherical harmonics and rate so radius transfer it
+harmonics and rate so radius transfer it doesn't really pick up enough data and
+doesn't really pick up enough data and also finally we don't have our local
+also finally we don't have our local lights kind of taken into account so
+lights kind of taken into account so these are things obviously we want to
+these are things obviously we want to look at and kind of improve for the
+look at and kind of improve for the future so vegetation now legislation
+future so vegetation now legislation will actually one area that we decided
+will actually one area that we decided to completely redo for next-gen consoles
+to completely redo for next-gen consoles there's a really important part of our a
+there's a really important part of our a far cry game so well give credit to
+far cry game so well give credit to Phillip Daniel and is also asking gay
+Phillip Daniel and is also asking gay from working on this system and again it
+from working on this system and again it was a completely different it's data set
+was a completely different it's data set for iconic current gen on last gen build
+for iconic current gen on last gen build so really we did two complete different
+so really we did two complete different sets of trees our goals are thrown up in
+sets of trees our goals are thrown up in this new system were at well we want to
+this new system were at well we want to improve our little fidelity up close
+improve our little fidelity up close some we get really close to trees I'm
+some we get really close to trees I'm wanted to get improved loading and
+wanted to get improved loading and imposters as those kind of trees then go
+imposters as those kind of trees then go further away I'm also get some cool
+further away I'm also get some cool simulation a physics simulation done so
+simulation a physics simulation done so then while talking about where all the
+then while talking about where all the vegetation can mean quite a few things
+vegetation can mean quite a few things or trees bushes grass really our new
+or trees bushes grass really our new system only touched Connie's trees and
+system only touched Connie's trees and these bushes we didn't really look at
+these bushes we didn't really look at the grass at all so what we're going to
+the grass at all so what we're going to do we're going to create our trees using
+do we're going to create our trees using speed tree and we're going to put them
+speed tree and we're going to put them into the engine we're not going to use
+into the engine we're not going to use anything at the speed rerun time we're
+anything at the speed rerun time we're going to take the mesh data generated
+going to take the mesh data generated and pull that in a format that we like
+and pull that in a format that we like um I will actually how he built a tree
+um I will actually how he built a tree because of this because this is a tree
+because of this because this is a tree system a trunk and these leaf clusters
+system a trunk and these leaf clusters and also have a lot of leaf clusters and
+and also have a lot of leaf clusters and put them on a trunk we got a tree um and
+put them on a trunk we got a tree um and these are all modern individually and we
+these are all modern individually and we have three logs for the trunks and three
+have three logs for the trunks and three logs of these clusters before a tree
+logs of these clusters before a tree becomes an impostor
+becomes an impostor what's really cool is how we do the leaf
+what's really cool is how we do the leaf cluster loading Cory acting aduba
+cluster loading Cory acting aduba generate there when we want to switch
+generate there when we want to switch loads off line and I can calculate the
+loads off line and I can calculate the percentage of each leaf cluster visible
+percentage of each leaf cluster visible from 12 distances and nine viewpoints
+from 12 distances and nine viewpoints around the camera around the tree so
+around the camera around the tree so let's take a look at this so let's look
+let's take a look at this so let's look at in the left hand image this is what
+at in the left hand image this is what how many's looking at the tree the red
+how many's looking at the tree the red is going to be your kind of lot zero
+is going to be your kind of lot zero clusters the green is going to be your
+clusters the green is going to be your Lord one and your blue is can be a lot
+Lord one and your blue is can be a lot too and then if you kind of move the
+too and then if you kind of move the camera around to fix the kind of cunning
+camera around to fix the kind of cunning camera and you're going to look at sneak
+camera and you're going to look at sneak a look around the side on the right-hand
+a look around the side on the right-hand image what you're able to see is that
+image what you're able to see is that obviously the cost is closest to the
+obviously the cost is closest to the camera or the highest Lord and I say get
+camera or the highest Lord and I say get further away more more occluded by the
+further away more more occluded by the clusters in fronts they're gonna be
+clusters in fronts they're gonna be using a lower logs and obviously of
+using a lower logs and obviously of course as the tree moves into the
+course as the tree moves into the distance everything's going to turn blue
+distance everything's going to turn blue here and you're gonna have the lowest
+here and you're gonna have the lowest laden in total before everything goes to
+laden in total before everything goes to an impostor a simulation so we have all
+an impostor a simulation so we have all our physics and movement to the tree
+our physics and movement to the tree simulated on GPU and what we do there we
+simulated on GPU and what we do there we have instance bones transformed into a
+have instance bones transformed into a wall space bones so what's going to
+wall space bones so what's going to happen is we have a model bone list of
+happen is we have a model bone list of all the models in the scene and
+all the models in the scene and obviously a list of all our instances
+obviously a list of all our instances three instances in the scene and they're
+three instances in the scene and they're going to go into a computer simulation
+going to go into a computer simulation and we going to spit out a much longer
+and we going to spit out a much longer list then of all the wall space bones
+list then of all the wall space bones every tree which goes into our vertex
+every tree which goes into our vertex shader and this is great because it
+shader and this is great because it allows some really cool physics effects
+allows some really cool physics effects so this is the first point where I try
+so this is the first point where I try to play a video I can see where you're
+to play a video I can see where you're flying a buzzer and it comes down I can
+flying a buzzer and it comes down I can see all the trees moving individually
+see all the trees moving individually these bushes interacting to the buzzer
+these bushes interacting to the buzzer and even see all the grass waving as
+and even see all the grass waving as well for the grass your plashy applies
+well for the grass your plashy applies to achieve water like a simulation to
+to achieve water like a simulation to get that going as well and this is
+get that going as well and this is really cool not many games something
+really cool not many games something carefully it's kind of kind of effects
+so that's great for close to the camera what happened to me it far away um well
+what happened to me it far away um well what could some cool things generating
+what could some cool things generating have good imposters we're actually gonna
+have good imposters we're actually gonna do we're gonna take a screenshot some
+do we're gonna take a screenshot some nine view points around the camera eight
+nine view points around the camera eight perpendicular to the tree and one top
+perpendicular to the tree and one top down so I'm having a posture we can
+down so I'm having a posture we can easily blend depending a lot of you
+easily blend depending a lot of you angle what the tree should look like but
+angle what the tree should look like but we're gonna go further than that there's
+we're gonna go further than that there's actually what we're going to do good
+actually what we're going to do good deal which could take G buffer kind of
+deal which could take G buffer kind of screenshots we want to capture the
+screenshots we want to capture the albedo the normals and the material
+albedo the normals and the material properties and that gives this a lot of
+properties and that gives this a lot of Texas for a tree and again we're not
+Texas for a tree and again we're not going to stop there and even more we're
+going to stop there and even more we're going to add this kind of depth
+going to add this kind of depth billboard effect so we have one Capitol
+billboard effect so we have one Capitol low whereas depth better as well during
+low whereas depth better as well during on to Bothell paths and when we went our
+on to Bothell paths and when we went our billboards are actually tessellated into
+billboards are actually tessellated into a sixteen by sixteen grid and we're
+a sixteen by sixteen grid and we're gonna displace our vertices depend
+gonna displace our vertices depend according to the original tree depth
+what are the screenshots also great but this is a front view on the left and the
+this is a front view on the left and the side view is this of the same tree as
+side view is this of the same tree as you see all the depth applied I've been
+you see all the depth applied I've been told this actually really helps a lot
+told this actually really helps a lot when a tree is lit from the side and
+when a tree is lit from the side and also in two tree Impostors intersect so
+also in two tree Impostors intersect so like it's much better blending between
+like it's much better blending between them so it's worth doing tech good
+them so it's worth doing tech good listening of this technique and I was
+listening of this technique and I was given a few benefits later as well as
+given a few benefits later as well as I'll explain I mean occlusion standard
+I'll explain I mean occlusion standard thing everyone did a OH volumes you will
+thing everyone did a OH volumes you will seen this before but it only has a
+seen this before but it only has a benefit to our tree lighting and let's
+benefit to our tree lighting and let's give some scary looking for the text
+give some scary looking for the text numbers so for our Rosewood tree on the
+numbers so for our Rosewood tree on the right and one hundred seventy thousand
+right and one hundred seventy thousand vertices for all of the leaves it's
+vertices for all of the leaves it's worth noticing here because we have our
+worth noticing here because we have our loading system we're never going to
+loading system we're never going to render that many it's only going to be a
+render that many it's only going to be a tower eighty thousand max for that the
+tower eighty thousand max for that the causal loading that we do which allows
+causal loading that we do which allows was per half is going to high detail of
+was per half is going to high detail of course it's also probably fair to say
+course it's also probably fair to say that I'm not gonna let artists make a
+that I'm not gonna let artists make a tree line but again I'm performance
+tree line but again I'm performance we're all mostly pretty good as well our
+we're all mostly pretty good as well our tree simulation again on compute is like
+tree simulation again on compute is like really really quick
+really really quick and given for this scene there's a lot
+and given for this scene there's a lot of trees on the scene now shadows about
+of trees on the scene now shadows about millisecond G buffer about five and a
+millisecond G buffer about five and a half rendering of all this kind of alpha
+half rendering of all this kind of alpha test geometry it's pretty good
+test geometry it's pretty good so obviously we like to optimize because
+so obviously we like to optimize because trees are always expensive for everybody
+trees are always expensive for everybody everywhere um visually however I think
+everywhere um visually however I think meditation is a really tricky thing to
+meditation is a really tricky thing to get right because you know there's loads
+get right because you know there's loads of things we're not simulating and you
+of things we're not simulating and you know light bounces between blazars grass
+know light bounces between blazars grass or the light scattering between leaves
+or the light scattering between leaves what's really great is when you have
+what's really great is when you have some really cool technical artists you
+some really cool technical artists you can kind of come in at the end of the
+can kind of come in at the end of the project and just kind of do a few little
+project and just kind of do a few little cool tweaks to get things looking cool
+cool tweaks to get things looking cool I'm gonna share a few of those with you
+I'm gonna share a few of those with you suddenly wanted is a kind of a per
+suddenly wanted is a kind of a per cluster for a leaf cluster random color
+cluster for a leaf cluster random color tint so this example the first colors
+tint so this example the first colors green the second colors are red and we
+green the second colors are red and we just generate tints varying between
+just generate tints varying between those two randomly really simple really
+those two randomly really simple really effective and this is a bit of extreme
+effective and this is a bit of extreme example but you know it's not two
+example but you know it's not two different two trees you might see in
+different two trees you might see in Vermont in the autumn um
+Vermont in the autumn um loitering in to give them postures to
+loitering in to give them postures to like bring horses to life because you
+like bring horses to life because you handle this cool simulation upfront but
+handle this cool simulation upfront but then we didn't imposters they looked a
+then we didn't imposters they looked a bit flat and boring so what we're going
+bit flat and boring so what we're going to do well we just seemed like some
+to do well we just seemed like some branch motion first by doing some per
+branch motion first by doing some per vertex sine waves
+vertex sine waves this is break because we have those
+this is break because we have those tessellated billboards but actually the
+tessellated billboards but actually the vertices are going to move when the tree
+vertices are going to move when the tree is going to shift a bit and we just see
+is going to shift a bit and we just see missed them by smooth triangle waves as
+missed them by smooth triangle waves as they did of a Crytek many years ago and
+they did of a Crytek many years ago and we're also going to add some per pixel
+we're also going to add some per pixel noise as well from a texture to simulate
+noise as well from a texture to simulate leaf motion so you have the branch
+leaf motion so you have the branch motion from these big kind of
+motion from these big kind of distortions and then little per pixel
+distortions and then little per pixel noise to fake this leaf motion worked
+noise to fake this leaf motion worked really well again I'm gonna play this
+really well again I'm gonna play this video I'm not hopefully about to see the
+video I'm not hopefully about to see the difference between the noise on the
+difference between the noise on the noise off if not again take a look
+noise off if not again take a look offline I was working pretty well then
+offline I was working pretty well then you can see that things look a lot a lot
+you can see that things look a lot a lot more dynamic when the noise is on
+so I got a final topic improve today ISM attic aliasing
+attic aliasing now I hope you all saw the hold robots
+now I hope you all saw the hold robots talk at SIGGRAPH last year where he went
+talk at SIGGRAPH last year where he went into a big overview of all the
+into a big overview of all the anti-aliasing techniques we tried
+anti-aliasing techniques we tried so really all the credit to this work a
+so really all the credit to this work a toast to my house and also all the
+toast to my house and also all the difficult questions at the end please
+difficult questions at the end please yeah so um one matching a present here
+yeah so um one matching a present here is a stripped down of that talk and I'm
+is a stripped down of that talk and I'm going to talk about the things what we
+going to talk about the things what we actually finally shipped with so really
+actually finally shipped with so really this highways reconstruction
+this highways reconstruction anti-aliasing is looking at about kind
+anti-aliasing is looking at about kind of three different techniques they were
+of three different techniques they were going to apply together to get the real
+going to apply together to get the real anti-aliasing result so the first is
+anti-aliasing result so the first is edge anti-aliasing so this is pretty
+edge anti-aliasing so this is pretty self-explanatory your order well this is
+self-explanatory your order well this is what MSA is tries to deal with when you
+what MSA is tries to deal with when you have these edges in your image you know
+have these edges in your image you know see to look at temporal anti-aliasing as
+see to look at temporal anti-aliasing as well because images move in time so
+well because images move in time so you've got this kind of third dimension
+you've got this kind of third dimension we just think about a finally we have
+we just think about a finally we have temporal or super sampling so obviously
+temporal or super sampling so obviously super sampling is when we take a big
+super sampling is when we take a big image and we go down sample it to
+image and we go down sample it to something smaller and we wanted lighten
+something smaller and we wanted lighten that temporarily where we take a
+that temporarily where we take a different sample of alternative frames
+different sample of alternative frames and you have to combine this bigger
+and you have to combine this bigger image that would down sampling so the
+image that would down sampling so the payment overview of kind of how things
+payment overview of kind of how things going to work on don't go through this
+going to work on don't go through this in a bit more detail so you start with a
+in a bit more detail so you start with a current frame it's going to go into our
+current frame it's going to go into our educator sink that feeds in along with
+educator sink that feeds in along with our previous frame into the temporal
+our previous frame into the temporal super sampling a temporal aunty editing
+super sampling a temporal aunty editing shader which one outputs our final frame
+shader which one outputs our final frame and that then goes back fed in again or
+and that then goes back fed in again or frame n minus one unlike human history
+frame n minus one unlike human history buffer it's fed back in again do all
+buffer it's fed back in again do all that final temporal super sampling and
+that final temporal super sampling and temporal anti-aliasing
+temporal anti-aliasing for the next frame so edge idea this
+for the next frame so edge idea this thing well we tried a lot of techniques
+thing well we tried a lot of techniques so we looked at analytic edge
+so we looked at analytic edge anti-aliasing for alpha tested geometry
+anti-aliasing for alpha tested geometry we also really wanted what we really
+we also really wanted what we really wanted to do with the coverage
+wanted to do with the coverage reconstruction anti-aliasing that Howell
+reconstruction anti-aliasing that Howell presented a cig graph and this gave us
+presented a cig graph and this gave us by far the best performance but we had a
+by far the best performance but we had a lot of content issues the small triangle
+lot of content issues the small triangle also much we couldn't do this but I'd
+also much we couldn't do this but I'd arise checking it out for your game so
+arise checking it out for your game so we actually ended up with with SMA this
+we actually ended up with with SMA this is just temporary stabilized and we had
+is just temporary stabilized and we had normal depth and luma predicated
+normal depth and luma predicated thresholding
+so for the temple stupid sampling so this is based on work done for a
+this is based on work done for a Killzone Shadowfall so we're going to do
+Killzone Shadowfall so we're going to do this is two types of sampling so I'm
+this is two types of sampling so I'm going to use the current frame of the
+going to use the current frame of the previous frame for our two samples the
+previous frame for our two samples the previous frame sample is valid only
+previous frame sample is valid only valid if the motion flow between frames
+valid if the motion flow between frames and minus one is coherent and also the
+and minus one is coherent and also the coral color flow between frames and n
+coral color flow between frames and n minus 2 is Garant so those we need to
+minus 2 is Garant so those we need to look at those two frames so they have
+look at those two frames so they have the same sub pixel jitter that's going
+the same sub pixel jitter that's going to prevent flickering except that we
+to prevent flickering except that we didn't actually do the frame n minus 2
+didn't actually do the frame n minus 2 stuff for far cry 4 and you can actually
+stuff for far cry 4 and you can actually do can see some flickering present in
+do can see some flickering present in the game and thanks for those who are
+the game and thanks for those who are already pointed out to me this GDC so
+already pointed out to me this GDC so again what we're going to do so I just
+again what we're going to do so I just go over these metrics again so if we're
+go over these metrics again so if we're on this geometric metric which is
+on this geometric metric which is looking at a motion buffer to make sure
+looking at a motion buffer to make sure that we kind of stick with the same
+that we kind of stick with the same geometry with chocolate between the same
+geometry with chocolate between the same geometric objects so two plating for our
+geometric objects so two plating for our n minus 1 to our n sample if the motion
+n minus 1 to our n sample if the motion ends up being incoherent and we're still
+ends up being incoherent and we're still gonna do some kind of color metric on
+gonna do some kind of color metric on art and honor the N minus 1 sample so
+art and honor the N minus 1 sample so we're gonna look at the color bounding
+we're gonna look at the color bounding box around three my 3 by 3 neighborhood
+box around three my 3 by 3 neighborhood around our sample if it's close to the
+around our sample if it's close to the mean
+mean we take no new information it was close
+we take no new information it was close to the min and Max we think we have new
+to the min and Max we think we have new information we want to accumulate that
+information we want to accumulate that in its outside this window and we think
+in its outside this window and we think it's probably a fluctuation we should
+it's probably a fluctuation we should get rid of it and just to visualize that
+get rid of it and just to visualize that this gives a good graph of how we're
+this gives a good graph of how we're actually doing things hopefully that
+actually doing things hopefully that kind of makes a bit more sense in the
+kind of makes a bit more sense in the visual so we accept things around the
+visual so we accept things around the min and the max of these Peaks actually
+min and the max of these Peaks actually worth looking at we didn't actually use
+worth looking at we didn't actually use the mean in the end we actually use the
+the mean in the end we actually use the center of the pixels so also it's worth
+center of the pixels so also it's worth checking out Brian kerasys talk at
+checking out Brian kerasys talk at SIGGRAPH last year as well - and when
+SIGGRAPH last year as well - and when loads of things on this acceptance
+loads of things on this acceptance metric so I definitely want to worth
+metric so I definitely want to worth checking that out so we're gonna need to
+checking that out so we're gonna need to look at what samples we're gonna use
+look at what samples we're gonna use well sample pattern we're going to use
+well sample pattern we're going to use to maximize our two samples to get the
+to maximize our two samples to get the best image out so there's various sample
+best image out so there's various sample patterns we can try let's take a look at
+patterns we can try let's take a look at what they are well obviously just for a
+what they are well obviously just for a one-time centroid
+one-time centroid well we're gonna get some early 80s
+well we're gonna get some early 80s seeing any secret of the edge there i
+seeing any secret of the edge there i standed warms we kind of two times MSA
+standed warms we kind of two times MSA there's two times rotated grid well you
+there's two times rotated grid well you know just be better you have to actually
+know just be better you have to actually have some form
+have some form anti-aliasing there it's not great we
+anti-aliasing there it's not great we could do two times quincunx now Quinn
+could do two times quincunx now Quinn doctors interesting because it optimizes
+doctors interesting because it optimizes patterns by kind of sharing from a
+patterns by kind of sharing from a corner samples between various pixels
+corner samples between various pixels see I've got three unique rows three
+see I've got three unique rows three unique columns but of course this
+unique columns but of course this doesn't reduce a 0.5 a radius blur all
+doesn't reduce a 0.5 a radius blur all we can look at doing something like 4
+we can look at doing something like 4 times rotated grid and again that'll be
+times rotated grid and again that'll be four times samples there we can't really
+four times samples there we can't really afford that but it does get a better
+afford that but it does get a better looking result but there is a better
+looking result but there is a better pattern and that's actually this thing
+pattern and that's actually this thing called a fit quad the kind of combines
+called a fit quad the kind of combines these ideas from the four times native
+these ideas from the four times native grid and also you're kind of quincunx
+grid and also you're kind of quincunx pattern so what happens you have four
+pattern so what happens you have four unique grows your four unique columns
+unique grows your four unique columns and it does also like quincunx have this
+and it does also like quincunx have this kind of 0.5 pixel blur but you can't
+kind of 0.5 pixel blur but you can't recover backed in a post processing with
+recover backed in a post processing with unsharp mask so it's actually gonna be
+unsharp mask so it's actually gonna be okay actually you just use comparison
+okay actually you just use comparison and actually or some images well it
+and actually or some images well it looks kind of is if like the fit quad is
+looks kind of is if like the fit quad is looking pretty as good as the four times
+looking pretty as good as the four times to take your grid and if we look at some
+to take your grid and if we look at some kind of studies it turns out actually
+kind of studies it turns out actually fit quad is probably the best of them
+fit quad is probably the best of them all I don't know all the things you
+all I don't know all the things you looked at so let's go with that so how
+looked at so let's go with that so how is that going to work all we need to do
+is that going to work all we need to do when you split the pattern in half so on
+when you split the pattern in half so on frame a look a look at sample say 0 & 1
+frame a look a look at sample say 0 & 1 2 & 3 & on frame B you look at the red 0
+2 & 3 & on frame B you look at the red 0 1 2 & 3 & 4 say 4 pixels 0 then all we
+1 2 & 3 & 4 say 4 pixels 0 then all we need to do is average of 0 1 and blue
+need to do is average of 0 1 and blue and your 0 2 in red I asked you to give
+and your 0 2 in red I asked you to give this our kind of super sample image um
+this our kind of super sample image um there are obviously some tricks with
+there are obviously some tricks with this it doesn't work out quite as easy
+this it doesn't work out quite as easy as you hope because we need to do
+as you hope because we need to do actually interpret your UV the sample
+actually interpret your UV the sample positions you just use them some hlsl
+positions you just use them some hlsl interpolation modifiers of course then
+interpolation modifiers of course then you have the second problem where you
+you have the second problem where you have incorrect derivative calculations
+have incorrect derivative calculations because your spatial differences between
+because your spatial differences between the distances between the rasterization
+the distances between the rasterization samples differ and that causes some
+samples differ and that causes some quite bad problems because let's look at
+quite bad problems because let's look at term say frame a well this is render
+term say frame a well this is render with the correct MIT and then what
+with the correct MIT and then what happens when we render with frame B the
+happens when we render with frame B the D DX D dy changes and we get this over
+D DX D dy changes and we get this over sharpened myth
+sharpened myth and obviously you're going to blend
+and obviously you're going to blend between those two well we can have a few
+between those two well we can have a few issues so what do we do well assets need
+issues so what do we do well assets need to we could do if you do a few things we
+to we could do if you do a few things we could do submit flop bias between frames
+could do submit flop bias between frames seems a bit tricky we could obviously
+seems a bit tricky we could obviously trying to do things manually ourselves
+trying to do things manually ourselves but that's gonna be expensive in a bit
+but that's gonna be expensive in a bit of a pain
+of a pain actually the thing we can just do is I
+actually the thing we can just do is I just reorder our samples to make sure
+just reorder our samples to make sure that these derivatives match and it
+that these derivatives match and it turns out it's pretty straightforward to
+turns out it's pretty straightforward to do and it works pretty well so this is
+do and it works pretty well so this is same age before frame a still looks
+same age before frame a still looks great don't change anything there with a
+great don't change anything there with a frame B now everything looks pretty much
+frame B now everything looks pretty much the same as a frame a and that's great
+the same as a frame a and that's great um now so the temporal anti-aliasing so
+um now so the temporal anti-aliasing so rashly temporarily stabilized like a
+rashly temporarily stabilized like a load of our buffers takes up loads of
+load of our buffers takes up loads of memory that's cool we've got all the
+memory that's cool we've got all the next-gen right but actually really gives
+next-gen right but actually really gives a really good image quality so we look
+a really good image quality so we look at the final frame buffer the SMA there
+at the final frame buffer the SMA there are some you say spent cones motion
+are some you say spent cones motion vectors bloom they're all temporarily
+vectors bloom they're all temporarily stabilized so we have this history
+stabilized so we have this history exponential buffer and always do is
+exponential buffer and always do is here's our multi sudden visual changes
+here's our multi sudden visual changes so make sure we only accumulate new
+so make sure we only accumulate new important data into it we actually teach
+important data into it we actually teach the same acceptance metric so I just
+the same acceptance metric so I just talked about for the temporal super
+talked about for the temporal super sampling so the geometric metrics to
+sampling so the geometric metrics to compare whether the motion vectors are
+compare whether the motion vectors are the same I call a metric ting pair of
+the same I call a metric ting pair of the colors were in the same bounding box
+the colors were in the same bounding box so now we're doing this not only for a
+so now we're doing this not only for a 10-1 frame but we're good separately to
+10-1 frame but we're good separately to our full history buffer um you might
+our full history buffer um you might need to eat those values separately
+need to eat those values separately though like is some good different
+though like is some good different results um however after all this we're
+results um however after all this we're gonna use a blue lose a bit of detail
+gonna use a blue lose a bit of detail with some wider and kind of more
+with some wider and kind of more complicated kind of down sampling kernel
+complicated kind of down sampling kernel and also we have this kind of par pixel
+and also we have this kind of par pixel blur from flipped quad so this is pretty
+blur from flipped quad so this is pretty pretty okay actually we need to
+pretty okay actually we need to approximate a four taps in kernel by
+approximate a four taps in kernel by doing a half pixel blur
+doing a half pixel blur hey we've already done that with a foot
+hey we've already done that with a foot board and we asked you to do a half
+board and we asked you to do a half pixel radius a shot masking as well and
+pixel radius a shot masking as well and then to match our super sample
+then to match our super sample resolution because now our resolution is
+resolution because now our resolution is a lot higher than what we initially was
+a lot higher than what we initially was we just need to emit bias and all
+we just need to emit bias and all textures and overall we have then some
+textures and overall we have then some really high quality anti-aliasing and
+really high quality anti-aliasing and actually the performance is really
+actually the performance is really really good
+really good SMA is a millisecond and look at the
+SMA is a millisecond and look at the kind of temporal flip part plus the
+kind of temporal flip part plus the temporal ITA this thing takes about 0.65
+temporal ITA this thing takes about 0.65 I combine that with a shot off mask as
+I combine that with a shot off mask as well we've got two milliseconds then
+well we've got two milliseconds then pretty much higher and for all
+pretty much higher and for all anti-aliasing we did the manage to do
+anti-aliasing we did the manage to do the coverage reconstruction
+the coverage reconstruction anti-aliasing we probably get a little
+anti-aliasing we probably get a little bit back off that again something look
+bit back off that again something look out for the future so what's the
+out for the future so what's the conclusions gonna come to you well first
+conclusions gonna come to you well first of all I'll show you a bit of a typical
+of all I'll show you a bit of a typical form of a typical Far Cry scene it's
+form of a typical Far Cry scene it's awesome doing the cross chain game
+awesome doing the cross chain game sometimes because this is when in frame
+sometimes because this is when in frame thank you to all the artists who make
+thank you to all the artists who make good data so as I said they actually
+good data so as I said they actually they sing lead to milliseconds about
+they sing lead to milliseconds about three milliseconds to post-processing G
+three milliseconds to post-processing G buffer is obviously most expensive path
+buffer is obviously most expensive path followed up by our lighting and there's
+followed up by our lighting and there's a few miscellaneous things in there as
+a few miscellaneous things in there as well versus our tree simulation and a
+well versus our tree simulation and a various second buffer copying so the far
+various second buffer copying so the far cry 4 we match to make some significant
+cry 4 we match to make some significant rendering improvements to our engine
+rendering improvements to our engine while whilst maintaining the last gen
+while whilst maintaining the last gen build we enjoyed some and I stropping
+build we enjoyed some and I stropping metallic materials might have some
+metallic materials might have some higher fidelity sky occlusion is an
+higher fidelity sky occlusion is an indirect lighting we had a whole new and
+indirect lighting we had a whole new and vegetation system and finally we built a
+vegetation system and finally we built a new MTA as aliasing algorithm that give
+new MTA as aliasing algorithm that give us some high quality image quality at
+us some high quality image quality at the end really thanks to really everyone
+the end really thanks to really everyone the far cry 4 team especially kind of
+the far cry 4 team especially kind of these guys who worked on things for the
+these guys who worked on things for the Ike mention in the presentation
+Ike mention in the presentation especially thanks Stephen Hill for all
+especially thanks Stephen Hill for all the conversations we've had about to ACU
+the conversations we've had about to ACU and far cry 4 and Julian Mercer on as
+and far cry 4 and Julian Mercer on as well for being the GDC advisor I have a
+well for being the GDC advisor I have a lot of references please check them out
+lot of references please check them out they're all actually pretty good they're
+they're all actually pretty good they're worth your time and I'm just anyone have
+worth your time and I'm just anyone have any questions
+any questions [Applause]
+no one okay don't talk to me afterwards if you need thanks again for coming
+if you need thanks again for coming everyone
+everyone [Applause]
+you

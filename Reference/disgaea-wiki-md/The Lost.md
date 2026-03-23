@@ -1,0 +1,3 @@
+# The Lost
+
+- The Lost **is a military organization and the protagonists' primary enemy in *Disgaea 5: Alliance of Vengeance*. It is led by its Demon Emperor, Void Dark, and based in the Dark Demise Netherworld. It is focused on systematic destruction and conquest of the entire Netherworlds. The Lost's membership is mostly comprised of victims of The Lost, themselves forced to enlist or face total destruction. By the time of the game's events, Void Dark only oversees the highest level operations and decisions for The Lost, while his Demon Generals, Majorita and Bloodis, lead field operations and his Secretary handles low level central operations.*(This article is a stub)*

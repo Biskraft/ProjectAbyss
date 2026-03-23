@@ -1,0 +1,343 @@
+hi everyone it's me Tim and today I want
+to talk about how I structure
+code and this was a question from a lot
+of different people including greenia 84
+who asked that I do it using an example
+of inventory which I think is a good
+question or good uh specification
+because inventory contains a number of
+interesting things about code structure
+and it's common to a lot of
+RPGs so I'll talk about that now one
+thing that I really really want to
+stress before I even talk is no matter
+what I'm doing I like to keep system
+mechanics separate from UI so I'm going
+to explain how I do that in the context
+of inventory and I'm going to start with
+mechanics and then talk about how this
+thing becomes a component on different
+things and then how it's used by UI that
+that component so let's start with the
+basic mechanics of
+inventory
+remember because it's divorced from UI
+inventory should have no idea how it's
+being displays displayed on the screen
+it doesn't care and you should not make
+it care you will only make your code too
+complicated if you make it care so
+inventory itself should
+have
+a list of items don't know how you don't
+care how you want to store it could be a
+link list could be a dou link list could
+be an array could be a sizable array I
+don't care
+so it has this list of items here's the
+functionality that I think you need to
+include you want add item and remove
+item and that adds one into onto into
+that list and removes one removes it
+from the
+list they always
+work so they're void returning you just
+pass it an item and it either adds it in
+or if you give it an item on remove it
+finds it on the list and takes it out
+they don't return any failure codes
+why because there are associated
+functions can add and can remove that
+you should also write that if you call
+can add and it returns true boom you can
+add it it doesn't add it but you can if
+you call can remove and it returns true
+you can remove it doesn't matter you
+know it it just finds it on the list and
+and determines the condition under which
+it's removable now both can add and can
+remove have failure codes so if they
+return false they also return a failure
+code and those like can add could be you
+don't have a spot for it um it's too
+heavy um all the things that have to do
+with just putting it on that list that
+are part of the mechanics
+not that there's you know if you have a
+grid of things that you're not putting
+it on the grid correctly I'll get to
+that can
+remove can return failure codes like
+this item you know is a maybe it's a
+quest item Quest items can't be removed
+maybe it's cursed cursed items can't be
+removed whatever those are all the
+mechanics that you have then you have
+two more inventory methods equip and
+unequip to a slot so I want inventory to
+know about equipment
+slots and those like add and remove
+equip and unequip items from a
+particular slot and they do not fail so
+they have the equivalent can equip can
+unequip because you know maybe it's a
+cursed item and once you wear it you
+can't unwear it maybe it's um a class
+specific item so you're not allowed to
+equip it based on your class these are
+things that the inventory should know
+about because these are system
+mechanics you want to keep mechanics as
+clean as possible this is why you keep
+all the UI stuff out of it now there may
+be data that are stored in items like
+individual items may contain UI related
+data that they neither use nor nor
+understand for example if you make a
+grid inventory you may store the grid
+location in the item so every item knows
+what its grid location is this is only
+used by
+UI and the mechanics here neither access
+that data nor have any idea what that
+data is but I'm just saying the items
+still can have that data on them like
+they have you know weight or flags for
+whether they're cursed or class specific
+great but this the mechanics won't use
+it and then before I finish the final
+things that inventory mechanics may have
+are what I call the utility functions
+that don't have anything to do with
+adding removing equipping unequipping
+things like give me the total weight of
+all the items I've equipped or give me
+the total weight of all the items I'm
+carrying or give me the total value of
+all the items I'm carrying you might
+even want to write one like give me the
+total value of all the items of this
+type you know weapons armor you can do
+whatever you want and this is where it
+should be done now now that you have
+that that is your
+inventory component it is
+a thing you can add to objects that let
+it have an inventory because you may
+want to add it to containers and then
+you can have a bunch of different kinds
+of containers and the reason you did
+that as its own component is whether the
+container is lockable or not is part of
+the container it's not part of the
+inventory so if you want to make shelves
+or a chest those are all containers
+shelves aren't lockable chests
+are if they have a key associated with
+them the container knows about the key
+you don't have to put that in the
+inventory mechanics there's simply a
+component on container saying and here's
+how I have you know
+here's how things are put put in me
+similarly creatures can have the
+inventory component
+and that can be put on things like
+containers that you can loot um people
+you can pickpocket vendors you can buy
+and sell from and the vendors may use a
+different inventory component for what
+they sell versus what they're carrying
+um this is why sometimes when you play
+games you find a secret hidden chest
+that contains the shopkeeper sellable
+inventory um
+what I like about doing it this way too
+is you when the object gets that
+component it can call a function saying
+I don't have like equipable slots so now
+the inventory system knows okay if
+anybody calls can equip item to like
+helmet slot or armor slot I just on can
+on can equip I always return false no
+such slot and that way when a container
+gets an inventory component component
+and initializes it usually by saying
+here's how here's the total weight of
+items I can carry or the total number of
+items I can carry it will also tell it
+whether or not to turn those slots on so
+I still want the inventory system to
+handle all that but this is how the
+object it's on can tell it oh and here's
+how I want you to handle some of the
+inventory
+functions so finally now we get to
+UI and here the main reason I keep these
+separate is it's besides super clean
+code is very very frequently the
+inventory mechanics are going to be
+coded by a different programmer who is
+doing the inventory UI especially on big
+games where you have Specialists a user
+interface specialist may not write any
+of the code for the system he's creating
+the user interface for this is true for
+inventory character creation character
+maintenance level up whatever the UI
+person is writing he probably didn't
+write the mechanics system he just wants
+a very clean API into that system so now
+what do we do in the user interface for
+inventory
+so it knows the mechanics so it knows it
+can call AD but ad knows nothing about
+the UI so it's the UI that has to pay
+attention to other can add conditions
+for example the player wants to drop an
+object in their inventory if it's a grid
+maybe they have to drop it on a slot
+that's already
+empty that's something the UI would
+handle and if the the player tries to
+drop it on something the UI decides
+whether or not it's supposed to say no
+you can't drop that or if it drops it
+and picks up the object that's there or
+if it drops it and displaces the object
+that's there one over that's all ui's
+decision ultimately what would happen
+once they determine that it can be
+dropped in for no reason the UI um can
+determine then it calls can add for the
+inventory system and if that says it can
+be added then they add it and put it
+into that slot
+so this means the UI handles all the UI
+related stuff so once it's in the grid
+if you have like Auto sorting like you
+can press a button
+and you know put all the objects in of a
+particular show the objects in a
+particular type and if you want it
+sorted like not just being displayed but
+you actually want them arranged that way
+the UI would handle that and it can call
+that function in the items that says hey
+I need to store some
+um data for you like a grid location and
+the item will get that information but
+remember mechanics knows nothing about
+that doesn't care about that uh field on
+the item we'll never use
+it what I love about this is this means
+the UI knows
+about the mechanics but mechanics don't
+know about UI so this brings up one
+issue that every programmer will then
+wonder about when they have to start
+implementing this is how can the UI
+handle things
+about the things that happen in the
+encumbrance for example
+um if you go to add an item it would
+encumber the
+player it's easy in the inventory UI
+when it calls can add and it
+says yes and you could also call Total
+and do all the comparison and all that
+you could do it that way but you're
+going to have to do that you have to
+remember you have to do that every time
+anywhere in the system calls an ad if
+it's a script if it is a
+um another part of the system besides a
+the inventory UI for example let's say
+you have um a button the player can
+press that just picks up everything
+that's off the ground so it doesn't
+bring up any UI it just goes if there's
+any objects on the ground around here
+just add add them into my inventory all
+those places that call add will also
+have to call to see if the encumbrance
+has been exceeded a better way I like to
+handle this is with events
+where whenever the mechanic
+system I mean it knows you're adding
+something it can look at the total
+weight it can call the encumbrance
+because these are all mechanics level
+things it can say oh you pick something
+up and it exceeded your encumbrance I'm
+going to throw an event encumber you
+know encumbrance limit exceeded on
+player
+then anybody who wants to listen to that
+event can listen for it and handle it if
+they want maybe there's a message line
+at the bottom of your eye that just goes
+you're now
+encumbered maybe if you have the in an
+inventory UI
+open as soon as you pick up that item
+maybe you want to display that it's
+going to encumber you if you if you add
+it what's great about this is the
+encumbrance system or the mechanic
+system doesn't have have to know all the
+places in the UI that may care about the
+player getting encumbered it just goes
+hey this event this this item was added
+in and the players encumbered do throw
+the event inventory UI can listen to it
+the main HUD can listen for it and they
+can handle the event and then the event
+can be one of those things where if the
+inventory UI has already handled it then
+it can eat the event so it doesn't go up
+to the HUD and the HUD handles it so you
+you see the message come up twice what
+that's what love about events is you can
+decide who sees it in what
+order and how it gets handled and you
+don't clutter up
+the
+mechanics layer having to know about UI
+and who's going to display this error
+message it doesn't care it returns
+reasons you can or cannot add
+or drop or equip or unequip an item it
+throws events for for things like
+exceeding a weight limit and it doesn't
+care it's it's done its job that keeps
+the mechanics super clean and also very
+much in line probably with what your
+designer will write in the docs keeps
+the UI very clean
+because let's say you're playing the
+game and a bug comes up and says hey I
+picked up objects that were too heavy
+and I didn't see a message about it you
+can go
+oh the inventory listens for that
+message but the HUD doesn't I'm going to
+add the HUD as a listener for that event
+as well and if the inventory doesn't
+handle it the HUD will and that handles
+this weird case where you get in a
+dialogue with someone and they give you
+an item and it encumbered you and
+because it wasn't you know it didn't
+happen to the inventory system the
+player didn't know nope they know as
+soon as that item gets added in and the
+ad triggers that encumbrance event
+something sees it and goes ah I need to
+tell the player they're encumbered now
+so
+that is how I generally structure my
+code and I hope that makes sense and I
+hope greenya 84 specifically that
+answered your
+question

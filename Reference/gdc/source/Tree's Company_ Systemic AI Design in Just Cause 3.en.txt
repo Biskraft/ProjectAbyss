@@ -1,0 +1,1326 @@
+[Music] all right without further Ado hello
+all right without further Ado hello everybody I'm Robert Meyer I'm a game
+everybody I'm Robert Meyer I'm a game designer focusing on AI at Avalanche
+designer focusing on AI at Avalanche Studios welcome to Tre company systemic
+Studios welcome to Tre company systemic AI design in Just Cause
+AI design in Just Cause 3 to just quickly introduce myself I
+3 to just quickly introduce myself I attended NYU New York University where I
+attended NYU New York University where I studied film but also dabbled in what
+studied film but also dabbled in what was then the infancy of the NYU game
+was then the infancy of the NYU game center after that I worked at a couple
+center after that I worked at a couple of smaller and indie game studios around
+of smaller and indie game studios around New York for a while and for the last
+New York for a while and for the last three or so years I've been an AI
+three or so years I've been an AI designer at Avalanche Studios and of
+designer at Avalanche Studios and of course this talk will mostly focus on my
+course this talk will mostly focus on my time as an AI designer on Just Cause
+3 so what is AI in Just Cause 3 well just cause 3 is a chaotic over-the-top
+just cause 3 is a chaotic over-the-top open world action game where the player
+open world action game where the player has incredibly powerful traversal and
+has incredibly powerful traversal and combat mechanics there are destructible
+combat mechanics there are destructible environments loads of dynamic objects
+environments loads of dynamic objects and tons of ways for the player to mess
+and tons of ways for the player to mess around with AI the player can hijack AI
+around with AI the player can hijack AI Vehicles shoot AI out of their
+Vehicles shoot AI out of their parachutes the player can use their
+parachutes the player can use their grappling hook to tether a character to
+grappling hook to tether a character to their Jet and then fly them halfway
+their Jet and then fly them halfway across the world basically there are an
+across the world basically there are an extremely high amount of unpredictable
+extremely high amount of unpredictable things that can happen to or near the AI
+things that can happen to or near the AI at any given
+time so how did AI process everything around them all this information and
+around them all this information and make any sort of decisions well we use
+make any sort of decisions well we use Behavior trees which of course is not
+Behavior trees which of course is not that uncommon in AI Design This is what
+that uncommon in AI Design This is what our beh paper trees looked like for our
+our beh paper trees looked like for our combatants in Just Cause 3 each agent
+combatants in Just Cause 3 each agent runs one of these trees sort of as their
+runs one of these trees sort of as their brain for now just think of the leafes
+brain for now just think of the leafes at the bottom as basically sub trees
+at the bottom as basically sub trees different states that the AI can be in
+different states that the AI can be in that sort of exist in a dynamic
+that sort of exist in a dynamic prioritized
+prioritized list inside each of these sub trees if
+list inside each of these sub trees if you were to expand it you know double
+you were to expand it you know double click it go into it it would reveal much
+click it go into it it would reveal much much more Behavior tree script that
+much more Behavior tree script that controls all the actual decision making
+controls all the actual decision making and processes that this state performs
+and processes that this state performs but for now we're just going to look at
+but for now we're just going to look at this higher level abstracted
+this higher level abstracted view now in addition to behavior trees
+view now in addition to behavior trees agents in Just Cause 3 also utilize
+agents in Just Cause 3 also utilize various utility functions for the
+various utility functions for the purpose of computing things like ideal
+purpose of computing things like ideal positions to move to or which which
+positions to move to or which which eligible targets to focus on a utility
+eligible targets to focus on a utility function is a function that ranks a
+function is a function that ranks a bunch of different options according to
+bunch of different options according to their utility to an individual so here
+their utility to an individual so here this agent is ranking each position you
+this agent is ranking each position you see a sphere at based on a variety of
+see a sphere at based on a variety of things like proximity to the Target line
+things like proximity to the Target line of sight to the Target distance from
+of sight to the Target distance from other allies Etc The Greener positions
+other allies Etc The Greener positions are the ones with a higher utility score
+are the ones with a higher utility score and so those are the positions that the
+and so those are the positions that the enemy character you see is going to
+enemy character you see is going to prefer to stay around note that this
+prefer to stay around note that this utility function evaluation does not
+utility function evaluation does not actually take place inside the behavior
+actually take place inside the behavior tree itself but rather encode outside of
+tree itself but rather encode outside of it the behavior tree simply requests
+it the behavior tree simply requests give me a good combat position to move
+give me a good combat position to move to and then utility function does its
+to and then utility function does its thing and Returns the position to the AI
+thing and Returns the position to the AI so in a sense you can think of the AI in
+so in a sense you can think of the AI in Just Cause 3 as being composed primarily
+Just Cause 3 as being composed primarily of Behavior trees and these utility
+of Behavior trees and these utility functions now the problem I'm mostly
+functions now the problem I'm mostly going to talk about today stems from a
+going to talk about today stems from a few things firstly our Behavior trees
+few things firstly our Behavior trees are very bottom up each individual is
+are very bottom up each individual is making their own decisions we have very
+making their own decisions we have very few coordinators or managers of any type
+few coordinators or managers of any type it's a very individualistic system
+it's a very individualistic system originally this was built for the robust
+originally this was built for the robust and emergent systemic behaviors that
+and emergent systemic behaviors that would flourish in the open world but not
+would flourish in the open world but not for any sort of scripted content and the
+for any sort of scripted content and the behavior trees are pretty complex
+behavior trees are pretty complex they're complex enough that content
+they're complex enough that content designers are not going to be able to
+designers are not going to be able to open them and look inside and modify
+open them and look inside and modify them or understand what's going
+them or understand what's going on but of course we're still an open
+on but of course we're still an open world game with story missions set
+world game with story missions set pieces occasionally we need the AI to do
+pieces occasionally we need the AI to do specific predetermined things like
+specific predetermined things like waiting for Rico the main character to
+waiting for Rico the main character to use their grappling hook retract ability
+use their grappling hook retract ability to open a gate in this scene Rico the
+to open a gate in this scene Rico the player can be seen in a military station
+player can be seen in a military station with his ally Mario right after our
+with his ally Mario right after our fight is
+finished this being a very early mission we re en Force the power of the
+we re en Force the power of the grappling hook by asking the player to
+grappling hook by asking the player to use it to open a gate so a rescue
+use it to open a gate so a rescue vehicle can come in and pick up Mario of
+vehicle can come in and pick up Mario of course Mario's Behavior here feels very
+course Mario's Behavior here feels very scripted and instructed he's waiting for
+scripted and instructed he's waiting for the gate to open playing a special
+the gate to open playing a special animation that points at it and once the
+animation that points at it and once the gate opens he then scrambles to get into
+gate opens he then scrambles to get into the
+the vehicle so the goal of then is of course
+vehicle so the goal of then is of course to create a technical design for our AI
+to create a technical design for our AI an interface that allows the AI to still
+an interface that allows the AI to still be built on these systemic Behavior
+be built on these systemic Behavior trees and utility functions while also
+trees and utility functions while also still empowering content designers to
+still empowering content designers to create whatever scripted content they
+create whatever scripted content they desire when I talk about empowering
+desire when I talk about empowering content designers I'm specifically
+content designers I'm specifically talking about Mission designers to
+talking about Mission designers to create whatever objective sequences they
+create whatever objective sequences they can imagine World designers to create
+can imagine World designers to create unique open moments and open World
+unique open moments and open World locations and encounter designers to
+locations and encounter designers to create these sort of bite-sized
+create these sort of bite-sized narrative bits that we have procedurally
+narrative bits that we have procedurally generate in our
+generate in our world and I think to understand some of
+world and I think to understand some of the solutions that I'm about to talk
+the solutions that I'm about to talk through it helps to understand the
+through it helps to understand the division of labor of designers at
+division of labor of designers at Avalanche Studios New York
+Avalanche Studios New York the AI designers like me we're the ones
+the AI designers like me we're the ones that do all the scripting of the actual
+that do all the scripting of the actual Behavior trees themselves we work with
+Behavior trees themselves we work with AI programmers who help us build all the
+AI programmers who help us build all the lower level building blocks but we're
+lower level building blocks but we're the ones who actually put the behavior
+the ones who actually put the behavior trees together we also tune all the
+trees together we also tune all the utility functions we say it's really
+utility functions we say it's really important to stand where you have line
+important to stand where you have line of sight to the Target in fact it's five
+of sight to the Target in fact it's five times more important to stand there than
+times more important to stand there than it is to stand this amount of distance
+it is to stand this amount of distance away from an ally for example we create
+away from an ally for example we create a variety of AI templates and packages
+a variety of AI templates and packages for other designers to use really
+for other designers to use really anything technical design Rel to the AI
+anything technical design Rel to the AI we do whereas the content designers as
+we do whereas the content designers as we call it are people who might be level
+we call it are people who might be level designers or Mission designers or World
+designers or Mission designers or World designers they're the ones actually
+designers they're the ones actually placing the characters in the world and
+placing the characters in the world and importantly they can fill out the
+importantly they can fill out the exposed arguments and parameters on any
+exposed arguments and parameters on any of these character
+of these character spawners another way to think about this
+spawners another way to think about this might be by looking at the tools we use
+might be by looking at the tools we use this is our proprietary Behavior tree
+this is our proprietary Behavior tree scripting tool and so this is what me as
+scripting tool and so this is what me as an AI designer this is what I'm looking
+an AI designer this is what I'm looking at most of my
+at most of my day now for now just note that if I
+day now for now just note that if I select the root view the very top of
+select the root view the very top of this Behavior tree that gives me the
+this Behavior tree that gives me the ability to expose certain parameters
+ability to expose certain parameters certain arguments variables that the
+certain arguments variables that the content designer can then fill out when
+content designer can then fill out when they're placing this AI using this
+they're placing this AI using this Behavior tree in the
+Behavior tree in the world now the content designer they work
+world now the content designer they work in our level editor our engine and so
+in our level editor our engine and so here they've placed an enemy character
+here they've placed an enemy character using a character rule or which is a
+using a character rule or which is a thing that just spawns a character and
+thing that just spawns a character and when they select that character rule
+when they select that character rule they'll be able to see those same
+they'll be able to see those same arguments those same parameters that I
+arguments those same parameters that I as an AI designer set to be exposed from
+as an AI designer set to be exposed from the behavior
+the behavior tree so this is basically what we have
+tree so this is basically what we have to work with to solve this problem the
+to work with to solve this problem the AI designer can write the behavior tree
+AI designer can write the behavior tree set what arguments are exposed the
+set what arguments are exposed the content designer has access to those
+content designer has access to those arguments or parameters whenever they
+arguments or parameters whenever they spawn a character so the content
+spawn a character so the content designer can fill them out and then
+designer can fill them out and then whatever they fill them out with that's
+whatever they fill them out with that's data that can be read and used inside
+data that can be read and used inside the behavior
+the behavior tree now the last thing I want to cover
+tree now the last thing I want to cover before I get into the core Solutions and
+before I get into the core Solutions and methods is that I'd like to help you
+methods is that I'd like to help you form a mental model of how our Behavior
+form a mental model of how our Behavior trees actually work a lot of people do
+trees actually work a lot of people do it a little bit differently so pictured
+it a little bit differently so pictured here is how our Behavior tree flows on
+here is how our Behavior tree flows on the first frame of a combatant's life
+the first frame of a combatant's life basically this GIF is a debug view of me
+basically this GIF is a debug view of me kind of just stepping over all these sub
+kind of just stepping over all these sub trees you can see that each node can
+trees you can see that each node can return a success working or fail state
+return a success working or fail state every frame so that's what that check
+every frame so that's what that check mark gear icon or X icon represents as
+mark gear icon or X icon represents as you see me step over each sub tree so
+you see me step over each sub tree so starting at the top right on spawn you
+starting at the top right on spawn you see this yellow circle that's what we
+see this yellow circle that's what we call a sequence it will run all the
+call a sequence it will run all the nodes under it from left to right so
+nodes under it from left to right so first it runs this init sub tree which
+first it runs this init sub tree which just initializes a bunch of data like
+just initializes a bunch of data like the AI looks at what weapon they're
+the AI looks at what weapon they're spawned with and so they kind of set up
+spawned with and so they kind of set up some things based on that but that only
+some things based on that but that only ever needs to run once then it moves
+ever needs to run once then it moves over to this yellow Square called a
+over to this yellow Square called a parallel the parallel runs all nodes
+parallel the parallel runs all nodes under it every frame so first it runs an
+under it every frame so first it runs an update sub tree which looks at a bunch
+update sub tree which looks at a bunch of different data in the world and sets
+of different data in the world and sets up a bunch of internal data probably the
+up a bunch of internal data probably the most important thing that our update sub
+most important thing that our update sub tree does is it selects what combat
+tree does is it selects what combat Target this AI should focus
+Target this AI should focus on then the parallel moves over to this
+on then the parallel moves over to this green circle called a selector now don't
+green circle called a selector now don't worry about remembering any of this
+worry about remembering any of this vocabulary it's not that important just
+vocabulary it's not that important just kind of trying try to grock the general
+kind of trying try to grock the general flow of things so the selector first
+flow of things so the selector first says do I have any special behavior to
+says do I have any special behavior to run on spawn an intro behavior in this
+run on spawn an intro behavior in this case I don't so I'm going to move along
+case I don't so I'm going to move along to this green square at the bottom
+to this green square at the bottom called the dynamic selector the dynamic
+called the dynamic selector the dynamic selector checks every node under it all
+selector checks every node under it all the way from left to right every frame
+the way from left to right every frame it's sort of like a prioritized if else
+it's sort of like a prioritized if else List It checks all these different sub
+List It checks all these different sub trees to First find the one that's valid
+trees to First find the one that's valid and once it finds a valid one it's happy
+and once it finds a valid one it's happy and that's where it runs if we were look
+and that's where it runs if we were look at the next frame in this combatant's
+at the next frame in this combatant's life the second frame after they've
+life the second frame after they've spawned we see that they no longer need
+spawned we see that they no longer need to check their init subtree or if they
+to check their init subtree or if they have a special ons spawn Behavior at
+have a special ons spawn Behavior at this point they're just checking their
+this point they're just checking their update sub tree and the main Dynamic
+update sub tree and the main Dynamic selector of possible behaviors
+selector of possible behaviors below and if we look at a further frame
+below and if we look at a further frame where this AI is actually in combat
+where this AI is actually in combat we'll see once again they're only
+we'll see once again they're only checking their update sub tree and the
+checking their update sub tree and the dynamic selector but at this point the
+dynamic selector but at this point the dynamic selector only needs to advance
+dynamic selector only needs to advance as far as the combat sub tree because
+as far as the combat sub tree because the character is actively in combat this
+the character is actively in combat this combat sub tree returns working and so
+combat sub tree returns working and so the search and relax sub trees don't
+the search and relax sub trees don't need to be checked at all at this point
+need to be checked at all at this point those trees are completely irrelevant
+those trees are completely irrelevant because this AI is occupied in a higher
+because this AI is occupied in a higher priority Behavior so you can see in this
+priority Behavior so you can see in this way the dynamic selector kind of
+way the dynamic selector kind of controls implicit conditions and
+controls implicit conditions and transitions between these substates
+transitions between these substates below
+below so jumping back to our abstracted view
+so jumping back to our abstracted view looking at what we have how can we use
+looking at what we have how can we use this as AI designers to solve the
+this as AI designers to solve the problem we talked about earlier how can
+problem we talked about earlier how can we keep things systemic while still
+we keep things systemic while still allowing content designers to create
+allowing content designers to create their own custom
+their own custom content well the very first thing we
+content well the very first thing we tried were these built-in on spawn
+tried were these built-in on spawn behaviors basically maybe you could give
+behaviors basically maybe you could give a character a point and if you gave them
+a character a point and if you gave them this point they would know they wanted
+this point they would know they wanted to move there on spawn so you give them
+to move there on spawn so you give them a point they run there on spawn you give
+a point they run there on spawn you give them a path a spline they move along
+them a path a spline they move along this path on spawn but as soon as we
+this path on spawn but as soon as we baked in those options content designers
+baked in those options content designers just started asking for more right we
+just started asking for more right we immediately were faced with argument
+immediately were faced with argument creep if it's a helicopter do we want
+creep if it's a helicopter do we want them to land at the point or hover above
+them to land at the point or hover above it at what speed should they move along
+it at what speed should they move along the path do I want them to stop at the
+the path do I want them to stop at the point or move through it it's hard to
+point or move through it it's hard to really build in any of these custom ons
+really build in any of these custom ons spawn behaviors with only one or two
+spawn behaviors with only one or two simple
+simple arguments in fact this really didn't
+arguments in fact this really didn't scale well at all pictured here is just
+scale well at all pictured here is just an in development look at a portion of a
+an in development look at a portion of a subtree for a drive too style micro
+subtree for a drive too style micro Behavior as well as a screenshot for all
+Behavior as well as a screenshot for all the exposed arguments different
+the exposed arguments different parameters a Content designer might want
+parameters a Content designer might want to set up for how a character could go
+to set up for how a character could go about driving to a point we've got uh
+about driving to a point we've got uh should drive around traffic in there
+should drive around traffic in there should I reverse to the point should I
+should I reverse to the point should I wait at the point how fast do I drive to
+wait at the point how fast do I drive to the point there's like literally 50
+the point there's like literally 50 parameters about driving to a point in
+parameters about driving to a point in there and so obviously I couldn't bake
+there and so obviously I couldn't bake this into the main Behavior tree because
+this into the main Behavior tree because 99% of the time of course our characters
+99% of the time of course our characters are not driving to a point on spawn and
+are not driving to a point on spawn and content designers cannot just sort
+content designers cannot just sort through all
+through all this so obviously the natural intuition
+this so obviously the natural intuition was that any sort of these micro on
+was that any sort of these micro on spawn behaviors they need to be split
+spawn behaviors they need to be split out of the main Behavior tree and made
+out of the main Behavior tree and made into these modular pieces somehow pieces
+into these modular pieces somehow pieces that could be nicely
+compartmentalized this led us to the concept of external Behavior trees and
+concept of external Behavior trees and this concept is twofold firstly content
+this concept is twofold firstly content designers who are working in the level
+designers who are working in the level editor can add a new type of object
+editor can add a new type of object called an external tree object and this
+called an external tree object and this object simply holds another
+object simply holds another self-contained Behavior tree so whereas
+self-contained Behavior tree so whereas this character rule object you see here
+this character rule object you see here spawns a character and provides it its
+spawns a character and provides it its default Behavior tree this external tree
+default Behavior tree this external tree object doesn't do anything it just holds
+object doesn't do anything it just holds another external Behavior tree but the
+another external Behavior tree but the content designer can specify okay which
+content designer can specify okay which behavior tree is this external tree
+behavior tree is this external tree object going to hold let's say for
+object going to hold let's say for example the content designer selected a
+example the content designer selected a take cover in area micr Behavior to live
+take cover in area micr Behavior to live on this tree well now as the AI designer
+on this tree well now as the AI designer I can set up the main Behavior tree to
+I can set up the main Behavior tree to expect one of these external tree
+expect one of these external tree objects as one of the arguments to be
+objects as one of the arguments to be fed into it so now the content designer
+fed into it so now the content designer can pass in this external tree as a
+can pass in this external tree as a parameter to the main character's
+parameter to the main character's Behavior
+Behavior tree and then this external tree could
+tree and then this external tree could basically be run inside that main
+basically be run inside that main Behavior tree as if it was another sub
+Behavior tree as if it was another sub tree within it so this enabled content
+tree within it so this enabled content designers to basically feed in modular
+designers to basically feed in modular smaller micr Behavior trees as arguments
+smaller micr Behavior trees as arguments into the main big Behavior tree so now
+into the main big Behavior tree so now we could have things like drive to point
+we could have things like drive to point or take cover and area as
+or take cover and area as compartmentalized objects that would
+compartmentalized objects that would live on their own and then be fed into
+live on their own and then be fed into the main character's Behavior tree and
+the main character's Behavior tree and let me show you exactly what that looked
+like so here a Content designer has added an external tree Behavior tree
+added an external tree Behavior tree object to their scene and the first
+object to their scene and the first thing they have to do with an external
+thing they have to do with an external Behavior tree object is pick what
+Behavior tree object is pick what Behavior tree it's going to use so down
+Behavior tree it's going to use so down here they've selected a helicopter fly
+here they've selected a helicopter fly too micro Behavior as soon as they
+too micro Behavior as soon as they select the helicopter fly to point micro
+select the helicopter fly to point micro behavior that that's when this BTR args
+behavior that that's when this BTR args Behavior tree arguments section fills
+Behavior tree arguments section fills out and so all these parameters are just
+out and so all these parameters are just about how a helicopter should fly to the
+about how a helicopter should fly to the point so this content design content
+point so this content design content designer has fed in the point they want
+designer has fed in the point they want the helicopter to fly to they've checked
+the helicopter to fly to they've checked a box indicating they want the
+a box indicating they want the helicopter to land at the point and they
+helicopter to land at the point and they filled out the speed they want the
+filled out the speed they want the helicopter to fly they're at then they
+helicopter to fly they're at then they take that external Behavior tree object
+take that external Behavior tree object and feed it into the thing that actually
+and feed it into the thing that actually spawns the helicopter pilot and the
+spawns the helicopter pilot and the helicopter pilot can now run that
+helicopter pilot can now run that helicopter fly to point Behavior with
+helicopter fly to point Behavior with all those parameters baked into it and
+all those parameters baked into it and we didn't have to add all those
+we didn't have to add all those helicopter fly to point arguments to the
+helicopter fly to point arguments to the main Behavior tree
+main Behavior tree arguments so now we have the concept of
+arguments so now we have the concept of these external tree objects allowing us
+these external tree objects allowing us to create these modular micr behaviors
+to create these modular micr behaviors and feed them into the main tree so
+and feed them into the main tree so while they're provided into the tree
+while they're provided into the tree view via the main Behavior tree
+view via the main Behavior tree arguments the main tree itself still has
+arguments the main tree itself still has to choose where and how to run these
+to choose where and how to run these past in sub trees of course just doing
+past in sub trees of course just doing things on spawn which is what we've
+things on spawn which is what we've talked about so far is the most obvious
+talked about so far is the most obvious use case but this isn't enough for cont
+use case but this isn't enough for cont designers to do everything they want
+designers to do everything they want sometimes you want an agent to be purely
+sometimes you want an agent to be purely systemic on spawn but then use an
+systemic on spawn but then use an external micro Behavior at some future
+external micro Behavior at some future time under uncertain conditions if these
+time under uncertain conditions if these different places or conditions for
+different places or conditions for triggering micro behaviors got too
+triggering micro behaviors got too numerous though we'd once again end up
+numerous though we'd once again end up with a mess of arguments and an
+with a mess of arguments and an unintuitive
+unintuitive interface ultimately we realized we
+interface ultimately we realized we could do well with just three different
+could do well with just three different points of ejection as I called them
+points of ejection as I called them these external behaviors into the main
+these external behaviors into the main tree could only be fed in at these three
+tree could only be fed in at these three points but with with just these
+points but with with just these insertion points we found we could
+insertion points we found we could achieve almost every desired custom
+achieve almost every desired custom behavior in the game and we did it by
+behavior in the game and we did it by only adding a very small amount of micro
+only adding a very small amount of micro of arguments to the main Behavior
+of arguments to the main Behavior tree here's a look at kind of where
+tree here's a look at kind of where those three different insertion points
+those three different insertion points actually fed in to the main Behavior
+actually fed in to the main Behavior tree so you can see we had the intro
+tree so you can see we had the intro Behavior an interrupt behavior and an
+Behavior an interrupt behavior and an idol
+idol behavior and here is kind of how the
+behavior and here is kind of how the content designer saw those arguments
+content designer saw those arguments they had options for the idol Behavior
+they had options for the idol Behavior interrupt behavior and in behavior and
+interrupt behavior and in behavior and an object they could pass in for each of
+an object they could pass in for each of those
+now I think it's worth taking the time to understand why these points of
+to understand why these points of injection were chosen and what they're
+injection were chosen and what they're actually good for and then why we didn't
+actually good for and then why we didn't add any ones Beyond these so let's take
+add any ones Beyond these so let's take a
+a look intro behaviors were the first and
+look intro behaviors were the first and most classic use case of course on spawn
+most classic use case of course on spawn do X very simple here I spawn a rebel
+do X very simple here I spawn a rebel and I give him an intro Behavior to just
+and I give him an intro Behavior to just run to the right side of the screen
+run to the right side of the screen doesn't need much further explanation
+doesn't need much further explanation than
+than that now there is still a few things to
+that now there is still a few things to note about this implementation note that
+note about this implementation note that the Run external tree node for intro
+the Run external tree node for intro Behavior still takes place after the
+Behavior still takes place after the init and update subt trees have had
+init and update subt trees have had their chance to run this is because the
+their chance to run this is because the init and update subt trees handle a lot
+init and update subt trees handle a lot of complex important tasks like Target
+of complex important tasks like Target selection and it's good for the micro
+selection and it's good for the micro behaviors that might be run in the intro
+behaviors that might be run in the intro Behavior to be able to rely on the fact
+Behavior to be able to rely on the fact that the main Behavior tree has already
+that the main Behavior tree has already taken care of these things if it weren't
+taken care of these things if it weren't for that we'd have to reinitialize a
+for that we'd have to reinitialize a bunch of stuff in all the micro
+bunch of stuff in all the micro behaviors themselves and of course we
+behaviors themselves and of course we want to keep these micr behaviors as
+want to keep these micr behaviors as lean and modular as possible
+lean and modular as possible so we run them after that main AI has
+so we run them after that main AI has had the chance to update a bunch of
+had the chance to update a bunch of internal facts about the world and
+internal facts about the world and themselves also note that the intro
+themselves also note that the intro behavior is under this green circle
+behavior is under this green circle which is a selector for now you can just
+which is a selector for now you can just know that all this does is ensure that
+know that all this does is ensure that the intro behavior only gets attempted
+the intro behavior only gets attempted to run once on spawn and then it never
+to run once on spawn and then it never needs to get checked again after
+that now there was one extra parameter that came with intro behaviors which is
+that came with intro behaviors which is a Bo or flag I simply called always
+a Bo or flag I simply called always finish intro behavior and this turned
+finish intro behavior and this turned out to be incredibly useful
+out to be incredibly useful basically each agent in their update has
+basically each agent in their update has the ability to kick themselves out of
+the ability to kick themselves out of their own intro Behavior based on
+their own intro Behavior based on various charistics that are running in
+various charistics that are running in parallel to determine if something more
+parallel to determine if something more important has presented itself if you
+important has presented itself if you set this always finished intro Behavior
+set this always finished intro Behavior flag to true then it basically turns
+flag to true then it basically turns those heuristics
+those heuristics off so for example a world designer
+off so for example a world designer places an enemy helicopter on the other
+places an enemy helicopter on the other side of a mountain for some sort of Epic
+side of a mountain for some sort of Epic entrance she gives a helicopter pilot a
+entrance she gives a helicopter pilot a special intro Behavior to fly a specific
+special intro Behavior to fly a specific path around the mountain that she thinks
+path around the mountain that she thinks will look really cool now our player has
+will look really cool now our player has a grappling hook and a wing suit so
+a grappling hook and a wing suit so let's just say they get to the top of
+let's just say they get to the top of the mountain 1 second after the
+the mountain 1 second after the helicopter spawns and now that epic path
+helicopter spawns and now that epic path that she outlined doesn't look that
+that she outlined doesn't look that smart anymore because it takes the
+smart anymore because it takes the helicopter right past where the player
+helicopter right past where the player is already standing well with the always
+is already standing well with the always finished intro Behavior flag unchecked
+finished intro Behavior flag unchecked the enemy Pilot's heuristics will detect
+the enemy Pilot's heuristics will detect hey my I know I'm supposed to fly this
+hey my I know I'm supposed to fly this path but my target is right here in
+path but my target is right here in front of me so forget the path I'm just
+front of me so forget the path I'm just going to fight the target where I am
+going to fight the target where I am whereas if you check the box if you
+whereas if you check the box if you don't check the box then the AI will uh
+don't check the box then the AI will uh yeah if you don't check the box they'll
+yeah if you don't check the box they'll automatically exit or if you do check
+automatically exit or if you do check the box they'll be enforced to finish
+the box they'll be enforced to finish the whole path no matter what now you
+the whole path no matter what now you might think it's always smarter to not
+might think it's always smarter to not check the box let the AI systemically
+check the box let the AI systemically exit if they think something more
+exit if they think something more important has happened but if you're
+important has happened but if you're creating a mission where this is an
+creating a mission where this is an escape helicopter that's trying to
+escape helicopter that's trying to escape with stolen data or pick up a
+escape with stolen data or pick up a critically wounded Ally then it would
+critically wounded Ally then it would make perfect sense to check this box and
+make perfect sense to check this box and make sure that this AI prioritizes
+make sure that this AI prioritizes completing its
+completing its path the next up injection point I want
+path the next up injection point I want to talk about is the interrupt Behavior
+to talk about is the interrupt Behavior which also came with a trigger event an
+which also came with a trigger event an interrupt behavior is sort of like an
+interrupt behavior is sort of like an intro Behavior except the AI doesn't
+intro Behavior except the AI doesn't attempt to run it on spawn but rather
+attempt to run it on spawn but rather listens for an event in their update
+listens for an event in their update tree every frame and if this event is
+tree every frame and if this event is received that's when the AI will
+received that's when the AI will automatically make this interrupt
+automatically make this interrupt Behavior their topmost
+Behavior their topmost priority so here we have a rebel that's
+priority so here we have a rebel that's fighting an enemy soldier and about a
+fighting an enemy soldier and about a second or two into the fighting I send
+second or two into the fighting I send an event under the hood to the rebel
+an event under the hood to the rebel telling them stop what you're doing get
+telling them stop what you're doing get up and run to the square on the right
+up and run to the square on the right side of the screen for whatever reason
+side of the screen for whatever reason obviously this is a too micro and
+obviously this is a too micro and suboptimal use case for interrupt
+suboptimal use case for interrupt behaviors but it showcases what I mean
+behaviors but it showcases what I mean that they can take over the AI at any
+that they can take over the AI at any point what's great about interrupt
+point what's great about interrupt behaviors is that content designers
+behaviors is that content designers Define the trigger event themselves and
+Define the trigger event themselves and so it enables them to do it on a case-by
+so it enables them to do it on a case-by Case basis and they can be fully
+Case basis and they can be fully responsible for it meaning if a Content
+responsible for it meaning if a Content designer has a timer that they want to
+designer has a timer that they want to wait 30 seconds before triggering an
+wait 30 seconds before triggering an event or they have a counter that's
+event or they have a counter that's counting a certain amount of things
+counting a certain amount of things anything the content designer has that
+anything the content designer has that can send events they can use to trigger
+can send events they can use to trigger and interrupt Behavior
+and interrupt Behavior as you'll see later this slot turns out
+as you'll see later this slot turns out to be particularly useful for
+to be particularly useful for communicating with the mission objective
+communicating with the mission objective system and of course when the interrupt
+system and of course when the interrupt behavior is done or if it's invalid or
+behavior is done or if it's invalid or it can't run the AI resumes its main
+it can't run the AI resumes its main Dynamic selector and is as functional as
+Dynamic selector and is as functional as any other character in the
+any other character in the game lastly is the idle Behavior if
+game lastly is the idle Behavior if provided this simply just runs with a
+provided this simply just runs with a higher priority than the systemic normal
+higher priority than the systemic normal relax Behavior so a normal systemic
+relax Behavior so a normal systemic relax Behavior might have a character
+relax Behavior might have a character roaming some sidewalks or just hanging
+roaming some sidewalks or just hanging out but you can author them a spefic
+out but you can author them a spefic specific Idol Behavior using this so
+specific Idol Behavior using this so here I have a rebel that's fighting an
+here I have a rebel that's fighting an enemy soldier when they're done fighting
+enemy soldier when they're done fighting the soldier instead of doing their
+the soldier instead of doing their normal relax Behavior I just sell I tell
+normal relax Behavior I just sell I tell them to walk over to this arrow on the
+them to walk over to this arrow on the right side of the screen and stand guard
+right side of the screen and stand guard there so I've just authored a manual
+there so I've just authored a manual idle behavior for this Rebel to do
+idle behavior for this Rebel to do instead of their normal default systemic
+instead of their normal default systemic relax Behavior which would probably have
+relax Behavior which would probably have them wander off screen
+them wander off screen somewhere as you might expect idle
+somewhere as you might expect idle behaviors are great for staging
+behaviors are great for staging patrolling characters around a military
+patrolling characters around a military base or around a town and you might ask
+base or around a town and you might ask why is the idle behavior before the
+why is the idle behavior before the relaxed behavior and not somehow
+relaxed behavior and not somehow overriding it well this is kind of an
+overriding it well this is kind of an important theme imagine you have an
+important theme imagine you have an enemy that's patrolling a military base
+enemy that's patrolling a military base in a Jeep and they have a special idol
+in a Jeep and they have a special idol Behavior to drive a patrolling Jeep
+Behavior to drive a patrolling Jeep around a military base that's their
+around a military base that's their external Idol Behavior now the player
+external Idol Behavior now the player comes in they hijack the Jeep they throw
+comes in they hijack the Jeep they throw the character out the player drives the
+the character out the player drives the Jeep away and then destroys the Jeep
+Jeep away and then destroys the Jeep okay this character is going to go into
+okay this character is going to go into combat for a while trying to shoot at
+combat for a while trying to shoot at the player while they drive away then
+the player while they drive away then they're going to go into search but
+they're going to go into search but after a while they're going to go back
+after a while they're going to go back to their external Idol behavior and
+to their external Idol behavior and they're say okay time to drive my Jeep
+they're say okay time to drive my Jeep around the base again of course their
+around the base again of course their Jeep no longer exists because the player
+Jeep no longer exists because the player blew it up but because we didn't
+blew it up but because we didn't override the default relax Behavior this
+override the default relax Behavior this character can now simply fall back to
+character can now simply fall back to that normal relax behavior and be as
+that normal relax behavior and be as functional as any other AI so they'll
+functional as any other AI so they'll probably just find a good systemic spot
+probably just find a good systemic spot to stand guard near the base and they'll
+to stand guard near the base and they'll look perfectly fine
+there so why didn't we just provide options to run these micro behaviors
+options to run these micro behaviors everywhere if iner stting things is so
+everywhere if iner stting things is so safe and the behavior tree is so robust
+safe and the behavior tree is so robust why didn't I just provide all the
+why didn't I just provide all the options to the content designers well
+options to the content designers well this is in order to preserve the
+this is in order to preserve the integrity and consistency of the AI the
+integrity and consistency of the AI the decision of whether to enter combat or
+decision of whether to enter combat or search for example is very involved and
+search for example is very involved and meticulously crafted it's very important
+meticulously crafted it's very important to keep transitions between combat and
+to keep transitions between combat and search consistent and clear so the
+search consistent and clear so the player can learn them and begin to
+player can learn them and begin to anticipate and predict them furthermore
+anticipate and predict them furthermore it's important that the content designer
+it's important that the content designer can't accidentally override places where
+can't accidentally override places where the AI is about to play a special
+the AI is about to play a special animation or a key reaction because if
+animation or a key reaction because if they could they would accidentally
+they could they would accidentally compromise the visual Integrity of the
+compromise the visual Integrity of the AI as
+AI as well in many ways this is the same
+well in many ways this is the same reason why we don't expose that much
+reason why we don't expose that much tuning data as Behavior tree arguments
+tuning data as Behavior tree arguments either this is all all the tuning data
+either this is all all the tuning data is mostly decided internally by the AI
+is mostly decided internally by the AI designers instead we only expose the few
+designers instead we only expose the few things you see on the right there for
+things you see on the right there for example one thing that content designers
+example one thing that content designers often requested was an overridden range
+often requested was an overridden range they could give an enemy so let's say
+they could give an enemy so let's say they wanted to put a sniper rifle on
+they wanted to put a sniper rifle on this enemy using enemy on the top of
+this enemy using enemy on the top of this one Tower because the mission takes
+this one Tower because the mission takes the player right by this Tower and it's
+the player right by this Tower and it's going to be awesome if an enemy can use
+going to be awesome if an enemy can use a sniper to shoot at them from the tower
+a sniper to shoot at them from the tower but a sniper's default range is 120 M
+but a sniper's default range is 120 M and this Tower is 140 M High can't I
+and this Tower is 140 M High can't I just give them a you know ability to
+just give them a you know ability to override it just this once well sadly I
+override it just this once well sadly I can't because I want every sniper enemy
+can't because I want every sniper enemy in the game to be perfectly consistent
+in the game to be perfectly consistent and have the same range so once again
+and have the same range so once again the player can learn this range and
+the player can learn this range and learn to anticipate it and play around
+learn to anticipate it and play around it
+it so yeah we designed these points of
+so yeah we designed these points of injection to maximize Simplicity
+injection to maximize Simplicity flexible control robustness behavioral
+flexible control robustness behavioral consistency and visual
+consistency and visual Integrity now part of the reason working
+Integrity now part of the reason working with this micro behaviors were so easy
+with this micro behaviors were so easy and I could keep them so lean is because
+and I could keep them so lean is because we used a header file system for our
+we used a header file system for our Behavior trees as well just like you
+Behavior trees as well just like you might have a helper function in header
+might have a helper function in header file and code we had header files for
+file and code we had header files for our Behavior trees as well that could
+our Behavior trees as well that could hold very frequently used AI sub trees
+hold very frequently used AI sub trees so here we have a run and shoot sub tree
+so here we have a run and shoot sub tree which handles all the inner workings for
+which handles all the inner workings for how a character fights as they run to a
+how a character fights as they run to a point and we put that in a header file
+point and we put that in a header file we include that header file in our main
+we include that header file in our main Behavior tree so that in during standard
+Behavior tree so that in during standard systemic combat the character can use
+systemic combat the character can use that function and run to a position
+that function and run to a position determined by their utility function for
+determined by their utility function for a good place to stand in combat we can
+a good place to stand in combat we can also include that header file in our
+also include that header file in our micro behavior for running to an area
+micro behavior for running to an area aoo stands for area of operations the
+aoo stands for area of operations the only difference here the same subtree
+only difference here the same subtree gets used but the destination is an area
+gets used but the destination is an area provided by the content designer instead
+provided by the content designer instead of one internally figured out by the AI
+of one internally figured out by the AI of course the benefit of reusing these
+of course the benefit of reusing these sub trees everywhere is that as I
+sub trees everywhere is that as I improve the sub tree Once all the
+improve the sub tree Once all the behavior trees using it get that same
+behavior trees using it get that same Improvement now we had this General
+Improvement now we had this General interface and I could focus on building
+interface and I could focus on building this library of modular micr behaviors
+this library of modular micr behaviors that felt the most useful or most often
+that felt the most useful or most often requested each of these micr behaviors
+requested each of these micr behaviors could of course then have their own
+could of course then have their own particular arguments which would be
+particular arguments which would be nicely compartmentalized and I could
+nicely compartmentalized and I could focus on making sure that these were
+focus on making sure that these were dependable and
+dependable and reliable but the system still kind of
+reliable but the system still kind of had a pretty pretty big problem what if
+had a pretty pretty big problem what if a designer wanted to create a mission
+a designer wanted to create a mission where Mario the character in Just Cause
+where Mario the character in Just Cause 3 the Ally character in the blue shirt
+3 the Ally character in the blue shirt has to First Take Cover then fight with
+has to First Take Cover then fight with the player for a while then wait for the
+the player for a while then wait for the player to kind of open the gate so they
+player to kind of open the gate so they can escape and then get into the
+can escape and then get into the systemic vehicle that comes in and then
+systemic vehicle that comes in and then fight from within the vehicle once it
+fight from within the vehicle once it comes in right that's a pretty beefy
+comes in right that's a pretty beefy micro behavior and this is again is not
+micro behavior and this is again is not going to emerge naturally from our
+going to emerge naturally from our Behavior tree system at first I had no
+Behavior tree system at first I had no choice but to create these giant Mission
+choice but to create these giant Mission specific intro behaviors and this would
+specific intro behaviors and this would of course take a lot of my time to write
+of course take a lot of my time to write and debug and it turned me into a
+and debug and it turned me into a bottleneck for the mission designers
+bottleneck for the mission designers when they wanted to change how things in
+when they wanted to change how things in their mission worked obviously this was
+their mission worked obviously this was not a scalable solution there needed to
+not a scalable solution there needed to be a way for Mission designers to craft
+be a way for Mission designers to craft their own sequences without ever needing
+their own sequences without ever needing to touch Behavior tree
+to touch Behavior tree script well let's take a look at what
+script well let's take a look at what the mission designer really needed to do
+the mission designer really needed to do here they roughly want Mario to perform
+here they roughly want Mario to perform this sequence of
+this sequence of behaviors well if we abstract a away all
+behaviors well if we abstract a away all the mission specific details at a glance
+the mission specific details at a glance we have an intuition that we could maybe
+we have an intuition that we could maybe puzzle this out with the micro behaviors
+puzzle this out with the micro behaviors and the system we have
+and the system we have now maybe take cover an area can be
+now maybe take cover an area can be Mario's intro Behavior then we kind of
+Mario's intro Behavior then we kind of release him into systemic combat for a
+release him into systemic combat for a while and then we trigger these other
+while and then we trigger these other three sequence of micr behaviors as his
+three sequence of micr behaviors as his interrupt behavior when it's time for
+interrupt behavior when it's time for Mario to wait for the gate to be
+Mario to wait for the gate to be opened but wait a minute I know what
+opened but wait a minute I know what you're saying sequence of microbehaviors
+you're saying sequence of microbehaviors how do we do that we only have one slot
+how do we do that we only have one slot for an interrupt behavior on our
+for an interrupt behavior on our Behavior tree arguments well so we enter
+Behavior tree arguments well so we enter The Meta utility tree The Meta utility
+The Meta utility tree The Meta utility tree is basically just an intermediary
+tree is basically just an intermediary tree that can package a bunch of smaller
+tree that can package a bunch of smaller micro behaviors into a single Behavior
+micro behaviors into a single Behavior tree that can then be fed into one of
+tree that can then be fed into one of the main Behavior trees arguments these
+the main Behavior trees arguments these could be as simple as a sequence that
+could be as simple as a sequence that just runs three other trees one after
+just runs three other trees one after the other after the
+the other after the other so this is what it looked like to
+other so this is what it looked like to the content designer they had their
+the content designer they had their character spawner for Mario and Mario
+character spawner for Mario and Mario had two things pass into him an
+had two things pass into him an interrupt Behavior which was a sequence
+interrupt Behavior which was a sequence of micro behaviors and an intro Behavior
+of micro behaviors and an intro Behavior which is just a take cover in area
+which is just a take cover in area external tree the sequence of behaviors
+external tree the sequence of behaviors itself had three external tree arguments
+itself had three external tree arguments and those are where the three external
+and those are where the three external tree objects are fed into
+tree objects are fed into that just quickly want to touch on these
+that just quickly want to touch on these intermediary trees you don't need a lot
+intermediary trees you don't need a lot of them we only needed three one which
+of them we only needed three one which was just a sequence of trees as we've
+was just a sequence of trees as we've talked about so this was useful when you
+talked about so this was useful when you had a character that wanted to do
+had a character that wanted to do something like enter a car then drive to
+something like enter a car then drive to a point then exit the car a selector of
+a point then exit the car a selector of behaviors is more like or statements
+behaviors is more like or statements this is like try tree a and only if that
+this is like try tree a and only if that fails try tree B this is pretty useful
+fails try tree B this is pretty useful in a just cause game where you might
+in a just cause game where you might want to have a character say try to
+want to have a character say try to drive this car to that point over there
+drive this car to that point over there but if for some reason that car gets
+but if for some reason that car gets destroyed as you're moving to it or
+destroyed as you're moving to it or you're driving it then get out and run
+you're driving it then get out and run to the point
+to the point instead lastly is an external Behavior
+instead lastly is an external Behavior with autocomplete we don't really need
+with autocomplete we don't really need to dig into that one but basically it
+to dig into that one but basically it enabled us to autocomplete or Auto abort
+enabled us to autocomplete or Auto abort out of a bigger sequence or selector of
+out of a bigger sequence or selector of behaviors whenever we needed to with
+behaviors whenever we needed to with just a single event designers could
+just a single event designers could stitch together or Nest these meta
+stitch together or Nest these meta utility trees as much as they want you
+utility trees as much as they want you could have a sequence of sequences of
+could have a sequence of sequences of behaviors you could have a selector of
+behaviors you could have a selector of sequences with an autocomplete event you
+sequences with an autocomplete event you can infinitely Nest these as much as you
+can infinitely Nest these as much as you want well probably not infinitely but
+want well probably not infinitely but pretty close um and the system was very
+pretty close um and the system was very intuitive and flexible enough for
+intuitive and flexible enough for Content designers to use it scaled
+Content designers to use it scaled really well and we had basically a
+really well and we had basically a working way now where content designers
+working way now where content designers could sort of script their own
+could sort of script their own AI you'll notice that every layer at
+AI you'll notice that every layer at play here is a behavior tree the micro
+play here is a behavior tree the micro behaviors what they're organized into
+behaviors what they're organized into and the main tree that they're inserted
+and the main tree that they're inserted into and this is actually beneficial for
+into and this is actually beneficial for us for a few reasons the first is that
+us for a few reasons the first is that the AI designers can do all of this we
+the AI designers can do all of this we can quickly create different metat trees
+can quickly create different metat trees micr behaviors and work those into the
+micr behaviors and work those into the main tree without requiring any AI
+main tree without requiring any AI programmer time since each layer is a
+programmer time since each layer is a behavior tree they all fit together
+behavior tree they all fit together seamlessly in runtime and that means
+seamlessly in runtime and that means that we can debug them with our Behavior
+that we can debug them with our Behavior tree debugger which is really good
+tree debugger which is really good meaning that I could sit down with the
+meaning that I could sit down with the mission designer and debug any layer of
+mission designer and debug any layer of this whenever I wanted to
+this whenever I wanted to lastly because these all use the same AI
+lastly because these all use the same AI header files we talked about earlier it
+header files we talked about earlier it was very easy to share subt trees and
+was very easy to share subt trees and share Behavior tree script across these
+share Behavior tree script across these different layers and finally to quote
+different layers and finally to quote Damian Isa from his famous Halo 2 AI uh
+Damian Isa from his famous Halo 2 AI uh presentation only by placing the
+presentation only by placing the stimulus Behavior into the tree itself
+stimulus Behavior into the tree itself can we be assured that all the higher
+can we be assured that all the higher level and higher priority behaviors have
+level and higher priority behaviors have had their say before the stimulus
+had their say before the stimulus Behavior can consider taking action by
+Behavior can consider taking action by having this allb Behavior tree we were
+having this allb Behavior tree we were able to keep it very robust as well
+able to keep it very robust as well and yeah this three tree type interface
+and yeah this three tree type interface this of course is the tit trees company
+this of course is the tit trees company that I know you've all been waiting for
+that I know you've all been waiting for so there you
+so there you go but speaking of trees we're not out
+go but speaking of trees we're not out of the woods yet we still had a pretty
+of the woods yet we still had a pretty big problem with the mission system
+big problem with the mission system interface uh pictur the mission sequence
+interface uh pictur the mission sequence from the Mario example earlier here's a
+from the Mario example earlier here's a mapping of the player objectives in the
+mapping of the player objectives in the top row of the mission and Mario's
+top row of the mission and Mario's behaviors on the bottom row imagine that
+behaviors on the bottom row imagine that each one of these player objectives on
+each one of these player objectives on the top is sort of a checkpoint for that
+the top is sort of a checkpoint for that mission so if the player dies while
+mission so if the player dies while opening the gate somehow then they'll
+opening the gate somehow then they'll respawn at opening the gate they won't
+respawn at opening the gate they won't have to do the defeat enemies checkpoint
+have to do the defeat enemies checkpoint again but what happens if the player
+again but what happens if the player fails during the escort objective
+fails during the escort objective Mario's AI has been fed a sequence of
+Mario's AI has been fed a sequence of behaviors and will want to restart this
+behaviors and will want to restart this sequence from the start but the mission
+sequence from the start but the mission will have checkpointed to the point
+will have checkpointed to the point where the gate is already opened and so
+where the gate is already opened and so now our Ai and our mission system would
+now our Ai and our mission system would be out of sync initially Mission
+be out of sync initially Mission designers started to make alternate
+designers started to make alternate copies of spawners with different
+copies of spawners with different behaviors cut off and to accommodate
+behaviors cut off and to accommodate every possible Mission checkpoint but
+every possible Mission checkpoint but this was of course Very unwieldy for
+this was of course Very unwieldy for Mission designers to handle especially
+Mission designers to handle especially as they iterated on their checkpoint
+as they iterated on their checkpoint system the solution of course was to
+system the solution of course was to assign trees to the mission objectives
+assign trees to the mission objectives themselves not to the AI directly in
+themselves not to the AI directly in these cases so for example we would
+these cases so for example we would assign each Mission objective object had
+assign each Mission objective object had what we called a character controller
+what we called a character controller object for all the key characters so
+object for all the key characters so each Mission objective in this Mission
+each Mission objective in this Mission has a Mario character controller we
+has a Mario character controller we could feed the behavior treat that we
+could feed the behavior treat that we wanted Mario to run during that
+wanted Mario to run during that objective to that objective's character
+objective to that objective's character controller and that would automatically
+controller and that would automatically be passed to Mario as the mission
+be passed to Mario as the mission progressed so if at objective three we
+progressed so if at objective three we know we want Mario to run a sequence
+know we want Mario to run a sequence where he animates at the gate and then
+where he animates at the gate and then enters the car we can pass that sequence
+enters the car we can pass that sequence just into objective three and whether
+just into objective three and whether you're respawning restarting the mission
+you're respawning restarting the mission from objective three or you're starting
+from objective three or you're starting it from objective one Mario will get
+it from objective one Mario will get this Behavior tree right on time and
+this Behavior tree right on time and it'll work perfectly so by assigning the
+it'll work perfectly so by assigning the AI on a per character per Mission
+AI on a per character per Mission objective level rather than on the per
+objective level rather than on the per character for the whole mission level we
+character for the whole mission level we successfully synced this system with our
+successfully synced this system with our mission
+mission system now all this functionality also
+system now all this functionality also benefited a lot of systems beyond the
+benefited a lot of systems beyond the mission system as well in this random
+mission system as well in this random encounter you can see that the AI were
+encounter you can see that the AI were staged into custom intro behaviors and
+staged into custom intro behaviors and animations setting up a firing squad
+animations setting up a firing squad type scenario but once Disturbed they
+type scenario but once Disturbed they all break out into their emergent
+all break out into their emergent systemic Behavior and the results are
+systemic Behavior and the results are all the sort of emergent chaos You'
+all the sort of emergent chaos You' you'd expect the rebels start
+you'd expect the rebels start investigating some enemy corpses other
+investigating some enemy corpses other enemies happen to drive by and a fight
+enemies happen to drive by and a fight ensues and because we were able to have
+ensues and because we were able to have this sort of intro behavior that can
+this sort of intro behavior that can release into normal systemic AI there
+release into normal systemic AI there was no stress that any of this was going
+was no stress that any of this was going to work
+to work fine the design also allowed world and
+fine the design also allowed world and location designers to set up custom
+location designers to set up custom Patrol paths here we see custom Idol
+Patrol paths here we see custom Idol behaviors at work with some patrolling
+behaviors at work with some patrolling enemies Rico and a rebel drive up they
+enemies Rico and a rebel drive up they disturb the enemies out of their patrol
+disturb the enemies out of their patrol they go into combat Ric runs away
+they go into combat Ric runs away eventually those enemies go back to
+eventually those enemies go back to being relaxed and the uh enemies who are
+being relaxed and the uh enemies who are lucky enough to still be alive they
+lucky enough to still be alive they resume their patrol as
+resume their patrol as intended now is the time the
+intended now is the time the presentation where I want to take a step
+presentation where I want to take a step away from talking about Behavior trees
+away from talking about Behavior trees there were other ways that we went about
+there were other ways that we went about creating systemic AI in our game and
+creating systemic AI in our game and other ways where we needed to kind of
+other ways where we needed to kind of control that AI but we used methods that
+control that AI but we used methods that had nothing to do with behavior
+had nothing to do with behavior trees the first thing I want to talk
+trees the first thing I want to talk about is that often you need it to get a
+about is that often you need it to get a character on foot in combat from point A
+character on foot in combat from point A to point B but points and splines are
+to point B but points and splines are fragile stuff that I want to get away
+fragile stuff that I want to get away from stuff in a just cause game moves
+from stuff in a just cause game moves around a lot a lot of things get in the
+around a lot a lot of things get in the way paths that initially seemed Smart
+way paths that initially seemed Smart Start to look dumb I mean it's just
+Start to look dumb I mean it's just caused the player can basically debug
+caused the player can basically debug spawn a tank wherever they want so the
+spawn a tank wherever they want so the better solution is to utilize our
+better solution is to utilize our pre-existing concept of areas of
+pre-existing concept of areas of operations or aoos an area essentially
+operations or aoos an area essentially crops the positions that a character
+crops the positions that a character wants to consider moving to and so it
+wants to consider moving to and so it confines the space where the next
+confines the space where the next reposition here you can kind of see some
+reposition here you can kind of see some of that repositioning in action this is
+of that repositioning in action this is a mission where the player is along with
+a mission where the player is along with two friendly Ai anakah and Tio and
+two friendly Ai anakah and Tio and throughout the mission we kind of
+throughout the mission we kind of Advance through this Warehouse together
+Advance through this Warehouse together now rather than me telling anaka and Tio
+now rather than me telling anaka and Tio exactly where to move or how to move I
+exactly where to move or how to move I simply update their area of operations
+simply update their area of operations in the back of their head the area of
+in the back of their head the area of operations guides them to where they
+operations guides them to where they want to consider repositioning to the
+want to consider repositioning to the next time they want to reposition and
+next time they want to reposition and anakah and Tio make all the decisions
+anakah and Tio make all the decisions about exactly how to fight where to
+about exactly how to fight where to stand where to take cover themselves
+stand where to take cover themselves just within this bounded area that the
+just within this bounded area that the content designer can provide them
+content designer can provide them so here it was anak's decision to run up
+so here it was anak's decision to run up to that cover and take cover there all
+to that cover and take cover there all they have to do is just stay in this
+they have to do is just stay in this general
+general area here's kind of a debug screenshot
+area here's kind of a debug screenshot of how an area of operations works it
+of how an area of operations works it basically crops the utility map that
+basically crops the utility map that they use for positioning we normally
+they use for positioning we normally would make one this small in general
+would make one this small in general again you want to have these areas be as
+again you want to have these areas be as big as possible because you never know
+big as possible because you never know what could be happening and the bigger
+what could be happening and the bigger you make it the more flexible and robust
+you make it the more flexible and robust it is but of course the content needs
+it is but of course the content needs will dictate the size and remember a
+will dictate the size and remember a normal utility map as we saw earlier is
+normal utility map as we saw earlier is pretty huge a character considers about
+pretty huge a character considers about 150 square meter area of possible
+150 square meter area of possible positions and so when you crop the AO
+positions and so when you crop the AO you're cutting this down pretty
+you're cutting this down pretty drastically one important theme to this
+drastically one important theme to this though is that we still let the AI make
+though is that we still let the AI make their own systemic decisions in this
+their own systemic decisions in this case about exactly where to stand or
+case about exactly where to stand or where to take cover we're just
+where to take cover we're just constraining their decision space but
+constraining their decision space but within as generous a bounds as possible
+within as generous a bounds as possible and we'll see that come up
+and we'll see that come up again another subtler but really
+again another subtler but really effective Improvement came when we
+effective Improvement came when we stopped telling AI exactly when to do
+stopped telling AI exactly when to do things for example exactly when to move
+things for example exactly when to move to the next area just because we assign
+to the next area just because we assign them a new area doesn't mean we force
+them a new area doesn't mean we force them to move there right away instead we
+them to move there right away instead we wait for the AI to tell us that they
+wait for the AI to tell us that they want to reposition characters in combat
+want to reposition characters in combat in Just Cause 3 want to reposition
+in Just Cause 3 want to reposition fairly often so it was good enough to
+fairly often so it was good enough to update the area they want to be in and
+update the area they want to be in and then let them finish what they were
+then let them finish what they were doing before they decide to reposition
+doing before they decide to reposition this helps avoid cutting off animations
+this helps avoid cutting off animations or firing patterns too awkwardly and it
+or firing patterns too awkwardly and it also gives a nice staggering effect you
+also gives a nice staggering effect you can notice here the anak decides to get
+can notice here the anak decides to get up and start running but the other
+up and start running but the other character Tio he's kind of already
+character Tio he's kind of already running by at this point so you can see
+running by at this point so you can see that kind of Staggering effect in action
+that kind of Staggering effect in action again this happens because we just
+again this happens because we just update information in the back of their
+update information in the back of their head instead of telling them exactly
+head instead of telling them exactly what to do or exactly when to do
+it a different sort of example of affecting how AI act in a space while
+affecting how AI act in a space while still leaving decisions up to the
+still leaving decisions up to the individual is this concept of restricted
+individual is this concept of restricted areas if a Content designer wants an
+areas if a Content designer wants an area to be aggressively guarded by enemy
+area to be aggressively guarded by enemy AI where they will warn the player and
+AI where they will warn the player and eventually open fire if the player stays
+eventually open fire if the player stays there they can author one of these
+there they can author one of these invisible restricted
+invisible restricted areas importantly the content designer
+areas importantly the content designer does not need to assign certain
+does not need to assign certain characters to be the guards of this area
+characters to be the guards of this area all they have to do is place the
+all they have to do is place the restricted area why is this better that
+restricted area why is this better that instead when the player enters a
+instead when the player enters a restricted area all near nearby AI get
+restricted area all near nearby AI get alerted to it well this is because we
+alerted to it well this is because we have no way of knowing exactly which
+have no way of knowing exactly which enemies will be where at any given time
+enemies will be where at any given time in a just cause game in the first
+in a just cause game in the first example in this uh video here of course
+example in this uh video here of course these AI are expected to be in this
+these AI are expected to be in this restricted area and so they warn the
+restricted area and so they warn the player properly when he enters but in
+player properly when he enters but in the next clip AI just kind of happened
+the next clip AI just kind of happened to be nearby this restricted area and it
+to be nearby this restricted area and it would look really silly if they also
+would look really silly if they also didn't respond to the player entering
+didn't respond to the player entering this area luckily because we don't need
+this area luckily because we don't need to Stage particular guard AI we just
+to Stage particular guard AI we just have the restricted area alert all AI
+have the restricted area alert all AI nearby this kind of takes care of
+nearby this kind of takes care of itself so maybe you're starting to sense
+itself so maybe you're starting to sense a theme and that theme I want to try and
+a theme and that theme I want to try and illustrate through my own attempt at a
+illustrate through my own attempt at a grandiose uh GDC quote on AI design
+grandiose uh GDC quote on AI design which is the more chaotic and
+which is the more chaotic and unpredictable your game the more of an
+unpredictable your game the more of an intelligence Edge the runtime AI will
+intelligence Edge the runtime AI will have over the designers I'll take a
+have over the designers I'll take a break so you can all take photos of this
+break so you can all take photos of this and I know you want to let it soak in
+and I know you want to let it soak in post it to Twitter # GDC
+post it to Twitter # GDC Etc okay now seeing as Just Cause 3
+Etc okay now seeing as Just Cause 3 ranks very highly on the chaotic and
+ranks very highly on the chaotic and unpredictability scale which is part of
+unpredictability scale which is part of what makes it great this of course is a
+what makes it great this of course is a very important thing to respect for us
+very important thing to respect for us but fair warning your level designers
+but fair warning your level designers will not necessarily appreciate you
+will not necessarily appreciate you constantly telling them how much smarter
+constantly telling them how much smarter your AI is than they are so uh choose
+your AI is than they are so uh choose your words carefully maybe just tell
+your words carefully maybe just tell them the AI will have more upto-date
+them the AI will have more upto-date information that seems to go over
+information that seems to go over okay but anyways following this
+okay but anyways following this principle it becomes clear why this kind
+principle it becomes clear why this kind of annotation for the AI in a game like
+of annotation for the AI in a game like Just Cause 3 is so useful by annotation
+Just Cause 3 is so useful by annotation I'm referring to the way that content
+I'm referring to the way that content designers can mark up a space in order
+designers can mark up a space in order to influence AI to use it in a certain
+to influence AI to use it in a certain way the restricted area we looked at
+way the restricted area we looked at before is actually one kind of
+before is actually one kind of annotation a more traditional kind of
+annotation a more traditional kind of annotation is cover points all these
+annotation is cover points all these little green spheres you see here these
+little green spheres you see here these are debug drawings of particular places
+are debug drawings of particular places where an AI can consider taking cover in
+where an AI can consider taking cover in battle and again they use a utility
+battle and again they use a utility function to rank all the covers based on
+function to rank all the covers based on things like angle to the Target distance
+things like angle to the Target distance from other allies distance to the Target
+from other allies distance to the Target Etc they score each cover and they pick
+Etc they score each cover and they pick the cover with the highest score when
+the cover with the highest score when they decide that they do want to
+they decide that they do want to cover another annotation example that's
+cover another annotation example that's not combatant focused at all is what we
+not combatant focused at all is what we called systemic context actions these
+called systemic context actions these are essentially animated looping
+are essentially animated looping behaviors that can be reserved occupied
+behaviors that can be reserved occupied and engaged with by an AI for a time for
+and engaged with by an AI for a time for example a weit at the bus stop systemic
+example a weit at the bus stop systemic context action could be placed on a bus
+context action could be placed on a bus stop any eligible roaming civilian
+stop any eligible roaming civilian walking by can reserve that CA move to
+walking by can reserve that CA move to it enter it and will now Loop the
+it enter it and will now Loop the special waiting for the bus animation
+special waiting for the bus animation all sorts of places could be marked up
+all sorts of places could be marked up with a variety of these that would
+with a variety of these that would enable AI to contextually interact with
+enable AI to contextually interact with their environment and express various
+their environment and express various themes of the world through their
+themes of the world through their animations and this is much more Dynamic
+animations and this is much more Dynamic and lifelike than simply staging AI who
+and lifelike than simply staging AI who are always static and in place it's much
+are always static and in place it's much nicer to see AI coming and going from
+nicer to see AI coming and going from these different types of
+these different types of behaviors also once again this
+behaviors also once again this emphasizes directing the AI by authoring
+emphasizes directing the AI by authoring a space with optional or suggested
+a space with optional or suggested behaviors that the AI can then in real
+behaviors that the AI can then in real time decide whether to utilize or not
+time decide whether to utilize or not it's better to give the AI an option to
+it's better to give the AI an option to wait at the bus stop rather than force
+wait at the bus stop rather than force them to because this way the AI can
+them to because this way the AI can easily opt not to if say there's a tank
+easily opt not to if say there's a tank at the bus stop or a crazy fight is
+at the bus stop or a crazy fight is going on or there's a bunch of stuff on
+going on or there's a bunch of stuff on fire nearby all stuff that's more likely
+fire nearby all stuff that's more likely than not to be
+honest now when you're working with annotations often it makes sense to
+annotations often it makes sense to build some of these annotation objects
+build some of these annotation objects into the base templates of things
+into the base templates of things themselves right the entities or the
+themselves right the entities or the prefabs for example that wait for bus
+prefabs for example that wait for bus systemic context action maybe we want to
+systemic context action maybe we want to build that directly into the bus stop
+build that directly into the bus stop object so that wherever we place a bus
+object so that wherever we place a bus stop it comes with one of these wait for
+stop it comes with one of these wait for bus stop context actions maybe we want
+bus stop context actions maybe we want to build cover points into a concrete
+to build cover points into a concrete barrier so wherever World designers
+barrier so wherever World designers place these concrete barriers AI can
+place these concrete barriers AI can automatically take cover there when this
+automatically take cover there when this is done these annotation objects would
+is done these annotation objects would automatically of course accompany all
+automatically of course accompany all instances of these entities in the world
+instances of these entities in the world and there's a lot of benefits of doing
+and there's a lot of benefits of doing this one of the benefits is of course it
+this one of the benefits is of course it just saves a lot of authoring time these
+just saves a lot of authoring time these things don't need to be manually placed
+things don't need to be manually placed it usually makes sense and it's very
+it usually makes sense and it's very easy to perform Mass edits on these
+easy to perform Mass edits on these things out in the world if they're all
+things out in the world if they're all on the entity
+on the entity level and the best part is sometimes it
+level and the best part is sometimes it creates emergent unexpected and awesome
+creates emergent unexpected and awesome moments in this screenshot we had
+moments in this screenshot we had decided earlier to build in cover points
+decided earlier to build in cover points to any car wreck some Vehicles get
+to any car wreck some Vehicles get destroyed In the Heat of battle and now
+destroyed In the Heat of battle and now all of a sudden Rebels are taking cover
+all of a sudden Rebels are taking cover behind a vehicle wreck as they fight
+behind a vehicle wreck as they fight this enemy in the distance and it's just
+this enemy in the distance and it's just a completely Emergen scene that happened
+a completely Emergen scene that happened just because we built covero entities
+just because we built covero entities into car WX
+into car WX now there are some drawbacks to doing
+now there are some drawbacks to doing this the biggest is that if you build
+this the biggest is that if you build these annotations into entities things
+these annotations into entities things might start to feel too syy if every
+might start to feel too syy if every instance of an entity or a prefab
+instance of an entity or a prefab generates the same annotations it can
+generates the same annotations it can start to feel repetitive and gamey if
+start to feel repetitive and gamey if you see the same animation of a guy or a
+you see the same animation of a guy or a girl waiting for the bus at every bus
+girl waiting for the bus at every bus stop in the game it's going to start to
+stop in the game it's going to start to feel a lot less lifelike and a lot less
+feel a lot less lifelike and a lot less interesting generally we kind of just
+interesting generally we kind of just went for a hybrid approach where we
+went for a hybrid approach where we built some stuff into entities we tried
+built some stuff into entities we tried to build a variety of things into the
+to build a variety of things into the entities that it might randomly choose
+entities that it might randomly choose from but more importantly we still did a
+from but more importantly we still did a lot of it by hand and we strongly
+lot of it by hand and we strongly believed that having this hand touched
+believed that having this hand touched flavor especially to the more important
+flavor especially to the more important locations in the game really helped a
+locations in the game really helped a lot in summary to wrap up the talk we
+lot in summary to wrap up the talk we created an interface that empowered
+created an interface that empowered content creators to safely yet
+content creators to safely yet powerfully script their own AI without
+powerfully script their own AI without ever having to open a behavior tree
+ever having to open a behavior tree while making sure the core of the
+while making sure the core of the systemic brain was preserved we did this
+systemic brain was preserved we did this using modular micro behaviors on
+using modular micro behaviors on external trees that could be packaged
+external trees that could be packaged with meta utility trees and inserted
+with meta utility trees and inserted into intro interrupt or idle points we
+into intro interrupt or idle points we successfully synced this with the
+successfully synced this with the mission systems checkpointing by having
+mission systems checkpointing by having mission objectives provide the behaviors
+mission objectives provide the behaviors to be run during
+to be run during them and we influenced AI using more
+them and we influenced AI using more bottomup systemic and annotation based
+bottomup systemic and annotation based tools that could guide the AI but would
+tools that could guide the AI but would still let them decide things on their
+still let them decide things on their own terms and this of course is much
+own terms and this of course is much more accommodating to ajust cause level
+more accommodating to ajust cause level of
+of unpredictability so thank you all for
+unpredictability so thank you all for attending and listening you can find
+attending and listening you can find some info on here and I want to make
+some info on here and I want to make sure to give special thanks to the
+sure to give special thanks to the people you see there who help me with
+people you see there who help me with feedback or gathering assets for the
+feedback or gathering assets for the presentation
+thanks uh I'm not sure what time it is but uh any questions feel free to
+ask and if there's no questions that anybody want to ask oh there is great hi
+anybody want to ask oh there is great hi hi great talk um I just wondered if if
+hi great talk um I just wondered if if you had thought about and discarded
+you had thought about and discarded using a planner for something similar to
+using a planner for something similar to this as as opposed to behavior trees
+this as as opposed to behavior trees yeah the question is if we considered
+yeah the question is if we considered using a planner more than just
+using a planner more than just individual Behavior trees um we've
+individual Behavior trees um we've definitely thought about that and on
+definitely thought about that and on further projects we're exploring it it
+further projects we're exploring it it really depends on the type of game and
+really depends on the type of game and the type of problem that you want the
+the type of problem that you want the planner to solve in our case for a just
+planner to solve in our case for a just cause game you probably don't need that
+cause game you probably don't need that much tactical maneuvering to happen for
+much tactical maneuvering to happen for the AI because that's not really what
+the AI because that's not really what the game is about and so almost is
+the game is about and so almost is better suited to have a bunch of
+better suited to have a bunch of individuals running around like trying
+individuals running around like trying to manage the chaos the best they can
+to manage the chaos the best they can but there are a lot of valid cases where
+but there are a lot of valid cases where it would be nice to have a planner for
+it would be nice to have a planner for example deciding which characters should
+example deciding which characters should kind of enter combat with the player and
+kind of enter combat with the player and which should kind of keep their position
+which should kind of keep their position and hold off that's something that a
+and hold off that's something that a planner could have helped us a lot with
+planner could have helped us a lot with in Just Cause 3 and maybe we'll explore
+in Just Cause 3 and maybe we'll explore in future
+in future games yeah uh so you mentioned the
+games yeah uh so you mentioned the utility functions a number of times
+utility functions a number of times where do those live do those live in
+where do those live do those live in each AI or do they live in the objects
+each AI or do they live in the objects that the AI runs into
+that the AI runs into right so the question is where did the
+right so the question is where did the utility functions live so the utility
+utility functions live so the utility functions all live in just C++ code but
+functions all live in just C++ code but each uh AI can run an action in their
+each uh AI can run an action in their behavior tree that basically requests
+behavior tree that basically requests the outcome of that utility function so
+the outcome of that utility function so for example there's a node in the
+for example there's a node in the behavior tree called get combat position
+behavior tree called get combat position that talks to C++ code and runs the
+that talks to C++ code and runs the utility function there and then Returns
+utility function there and then Returns the best position or the AI might run an
+the best position or the AI might run an action that says give me a a good cover
+action that says give me a a good cover nearby the co that action communicates
+nearby the co that action communicates with C++ code that calculates the best
+with C++ code that calculates the best cover nearby and then returns them the
+cover nearby and then returns them the entity handle of that best cover so the
+entity handle of that best cover so the utility functions are calculated in code
+utility functions are calculated in code and the behavior tree can converse with
+and the behavior tree can converse with that
+okay hi so just C3 is a open world game so probably so something like uh so micr
+so probably so something like uh so micr Behavior tree is tged into some asset
+Behavior tree is tged into some asset and load it into the so simultaneously
+and load it into the so simultaneously or that kind of stuff can be available
+or that kind of stuff can be available or
+or sorry can you repeat the question uh so
+sorry can you repeat the question uh so can you load some asset with our other
+can you load some asset with our other asset like animation or sound with uh
+asset like animation or sound with uh micro Behavior tree so yeah it's the
+micro Behavior tree so yeah it's the question that can you put Behavior trees
+question that can you put Behavior trees on other assets like animations or
+on other assets like animations or sounds or objects or smart objects yeah
+sounds or objects or smart objects yeah yeah we're we didn't really do that that
+yeah we're we didn't really do that that much in Just Cause 3 but we can do that
+much in Just Cause 3 but we can do that you could for example potentially put a
+you could for example potentially put a behavior Tree on a building and have it
+behavior Tree on a building and have it like kind of listen to the world and
+like kind of listen to the world and like play different lighting effects or
+like play different lighting effects or dialogues BAS on if it detects like
+dialogues BAS on if it detects like explosions or whatever and you could use
+explosions or whatever and you could use a behavior tree for that we didn't end
+a behavior tree for that we didn't end up investing in that too much but that
+up investing in that too much but that is something that you can definitely do
+is something that you can definitely do and that we want to try doing is using
+and that we want to try doing is using whether it's a behavior tree or some
+whether it's a behavior tree or some other type of script this type of
+other type of script this type of scripting that can live on other
+scripting that can live on other animations or objects in the world okay
+animations or objects in the world okay thanks
+thanks y cool and I'll be around in the hall
+y cool and I'll be around in the hall afterwards if there are any other
+afterwards if there are any other questions that people or want to come
+questions that people or want to come chat thanks

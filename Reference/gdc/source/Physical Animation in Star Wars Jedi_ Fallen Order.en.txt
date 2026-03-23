@@ -1,0 +1,735 @@
+[Music] [Applause]
+[Applause] hello everyone
+hello everyone thank you all for joining us my name is
+thank you all for joining us my name is bartome varshak
+bartome varshak i'm a senior software engineer at
+i'm a senior software engineer at respawn and in this presentation i'm
+respawn and in this presentation i'm going to discuss different methods
+going to discuss different methods of using physics for animated characters
+of using physics for animated characters in star wars jedi fallen order so
+in star wars jedi fallen order so what is actually physical animation so
+what is actually physical animation so instead of simply playing an animation
+instead of simply playing an animation we can use physics to move regular
+we can use physics to move regular bodies to follow the animation pose
+bodies to follow the animation pose and one of the consequences of that is
+and one of the consequences of that is that with physics we can include
+that with physics we can include collisions so we play the same animation
+collisions so we play the same animation while at the same time
+while at the same time we can detect collisions and prevent
+we can detect collisions and prevent clipping
+clipping so in this video we have two characters
+so in this video we have two characters playing
+playing the same animation so the character on
+the same animation so the character on the left
+the left just simply plays the animation as usual
+just simply plays the animation as usual but the second character on the right
+but the second character on the right it uses physics to play the same moves
+it uses physics to play the same moves so we can see that the character on the
+so we can see that the character on the left just clips through the environment
+left just clips through the environment while the character on the right avoids
+while the character on the right avoids collisions
+collisions by slightly changing the animation
+so in general we have three main methods of driving physics
+of driving physics to follow the animation so the first
+to follow the animation so the first method
+method is using motors so the motor is a part
+is using motors so the motor is a part of the joint constraint
+of the joint constraint between regular bodies and they use a
+between regular bodies and they use a specified animation target
+specified animation target to generate the local force between
+to generate the local force between connected bodies
+connected bodies and that local force drives bodies to
+and that local force drives bodies to follow
+follow the animation target the second method
+the animation target the second method is using
+is using velocities so in this case we compute a
+velocities so in this case we compute a velocity
+velocity needed to move the body from one place
+needed to move the body from one place to another
+to another during a given frame time and in this
+during a given frame time and in this way
+way we we can force the body to move to
+we we can force the body to move to reach to the animation target
+reach to the animation target and the third method is using
+and the third method is using constraints
+constraints so in this case we create a new
+so in this case we create a new constraint
+constraint between a dynamic body of the rectal and
+between a dynamic body of the rectal and the animation target and all parameters
+the animation target and all parameters for this new constraint
+for this new constraint they define how it like we force the
+they define how it like we force the dynamic body to follow the animation
+dynamic body to follow the animation target
+target and in our game we started adding
+and in our game we started adding physical animation
+physical animation using motors so this is the first method
+using motors so this is the first method on this list
+on this list and we added it first on stormtroopers
+and we added it first on stormtroopers when they are force pulled
+when they are force pulled by the hero in this case he body is
+by the hero in this case he body is kinematic
+kinematic so it strictly follows the animation but
+so it strictly follows the animation but all the other bodies are driven
+all the other bodies are driven by motors and red poles so red
+by motors and red poles so red objects they represent a pose only from
+objects they represent a pose only from animation so without any physics added
+animation so without any physics added and we can observe how thanks to
+and we can observe how thanks to physical animation
+physical animation legs are nicely colliding and
+legs are nicely colliding and interacting actually with an environment
+interacting actually with an environment so two-way interaction
+so two-way interaction and pure animation without any physics
+and pure animation without any physics added so
+added so red objects would simply just clip full
+red objects would simply just clip full collisions
+collisions and our game uses uses
+and our game uses uses uh unreal engine 4 and nvidia physics
+uh unreal engine 4 and nvidia physics as the physics engine and i would like
+as the physics engine and i would like to share some essential details of our
+to share some essential details of our implementation so first of all there are
+implementation so first of all there are a few
+a few physics parameters that are important to
+physics parameters that are important to set up correctly
+set up correctly so the first one is the number of solver
+so the first one is the number of solver iterations
+iterations so default values in unreal are eight
+so default values in unreal are eight and one and for motors nothing
+and one and for motors nothing really works as you would expect with
+really works as you would expect with these settings
+these settings and in our game and overall when you
+and in our game and overall when you create your own implementation you need
+create your own implementation you need to
+to go higher with these settings you need
+go higher with these settings you need to find the best one that
+to find the best one that fits your implementation and your
+fits your implementation and your your needs and in our case it was 64 and
+your needs and in our case it was 64 and 32.
+32. also going forward we are using a flag e
+also going forward we are using a flag e acceleration
+acceleration which is enabled for every joint it
+which is enabled for every joint it makes it easier
+makes it easier to set up all parameters related to mass
+to set up all parameters related to mass especially
+especially and the topic of frictional restitution
+and the topic of frictional restitution so these parameters they tend to cause a
+so these parameters they tend to cause a lot of problems for physical
+lot of problems for physical animation because higher values of
+animation because higher values of friction
+friction it they make harder for physics to reach
+it they make harder for physics to reach the animation target
+the animation target and by default we use just low values
+and by default we use just low values for friction and restitution and in the
+for friction and restitution and in the case actually
+case actually of that force pulled stormtrooper we
+of that force pulled stormtrooper we actually use
+actually use no friction at all to make it easy for
+no friction at all to make it easy for the physics to reach the animation
+the physics to reach the animation target
+target and another big topic here in terms of
+and another big topic here in terms of implementation details
+implementation details is continuous collision detection so
+is continuous collision detection so it needs to be enabled to have really
+it needs to be enabled to have really high quality results
+high quality results but it is better to disable ccd between
+but it is better to disable ccd between bodies
+bodies in the same rectangle the problem
+in the same rectangle the problem overall big problem here is that with
+overall big problem here is that with ccd enabled
+ccd enabled constraint projection does not work very
+constraint projection does not work very well in physics so
+well in physics so what we what we did we actually ended up
+what we what we did we actually ended up doing
+doing that we wrote our own piece of code to
+that we wrote our own piece of code to perform linear
+perform linear projection for all joints so just for
+projection for all joints so just for every joint we kind of bring
+every joint we kind of bring two bodies together if they separate too
+two bodies together if they separate too much above
+much above a given threshold
+so in our game after force pulled stormtroopers
+stormtroopers another case where we started to use
+another case where we started to use physical animation is the death of
+physical animation is the death of stormtroopers so here we just simply
+stormtroopers so here we just simply play a death animation
+play a death animation and as you can see we can like we have
+and as you can see we can like we have really big flips and acrobatic movements
+really big flips and acrobatic movements from animations
+from animations and in in the base case we were just
+and in in the base case we were just enabling
+enabling red regular physics uh near the very end
+red regular physics uh near the very end of the animation to have that like free
+of the animation to have that like free fall
+fall with the gravity and this solution it
+with the gravity and this solution it worked really well for
+worked really well for open space but close to other collisions
+open space but close to other collisions as we can see here in this video
+as we can see here in this video it does not give good results so limbs
+it does not give good results so limbs are clipping through collisions
+are clipping through collisions and kind of overall the sequence it does
+and kind of overall the sequence it does not
+not look very natural
+so to improve that depth sequence we enable physical animation on the
+we enable physical animation on the whole character
+whole character and we are using motors for all joints
+and we are using motors for all joints but the main question
+but the main question was what to do about the root body
+was what to do about the root body which is in this case the hip body
+which is in this case the hip body it can't be kinematic because it would
+it can't be kinematic because it would easily penetrate walls as the animation
+easily penetrate walls as the animation would just
+would just simply go through the wall but we wanted
+simply go through the wall but we wanted still
+still like to make that root body to follow
+like to make that root body to follow the animation strictly to perform these
+the animation strictly to perform these big acrobatic flips so
+big acrobatic flips so we need both collisions and we need
+we need both collisions and we need follow we need that root body to follow
+follow we need that root body to follow the animation so the solution was to
+the animation so the solution was to keep the hip body
+keep the hip body as physically simulated body and create
+as physically simulated body and create a new constraint
+a new constraint for that body and the constraint is
+for that body and the constraint is between the hip body and the given
+between the hip body and the given animation target
+animation target so this new constraint kind of drags
+so this new constraint kind of drags the physics body of the hip bone to
+the physics body of the hip bone to follow
+follow the animation target and for that
+the animation target and for that constraint for that new constraint
+constraint for that new constraint we remove all degrees of freedom uh
+we remove all degrees of freedom uh so we lock both linear and angular
+so we lock both linear and angular movement for that constraint
+movement for that constraint it gives the strongest matching with the
+it gives the strongest matching with the animation to perform all these
+animation to perform all these big flips and the question was
+big flips and the question was with this new solution what happens when
+with this new solution what happens when we have an obstacle
+we have an obstacle so in other words uh what to do if the
+so in other words uh what to do if the hip body
+hip body hits the wall and the animation target
+hits the wall and the animation target still
+still pushes forward so what to do about that
+pushes forward so what to do about that physical body
+physical body which is just colliding right now with
+which is just colliding right now with the wall
+the wall so what we do we monitor the distance
+so what we do we monitor the distance between the actual
+between the actual position of the root body and that
+position of the root body and that desired animation target and
+desired animation target and if the constraint drive for that hip
+if the constraint drive for that hip body
+body is unable to reach that target within
+is unable to reach that target within some
+some threshold we just turn ragdoll to a
+threshold we just turn ragdoll to a freefall mode
+freefall mode with the gravity so this is how it looks
+with the gravity so this is how it looks uh the same sequence using physical
+uh the same sequence using physical animation
+animation so we can see how the root body detects
+so we can see how the root body detects that is unable to move
+that is unable to move through the wall and it turns the rectal
+through the wall and it turns the rectal into
+into falling with gravity
+falling with gravity so that worked really nice for our case
+so these previous scenarios they were focused on matching
+focused on matching the animation pose closely
+the animation pose closely and supporting collisions
+and supporting collisions so that was the case for stormtroopers
+so that was the case for stormtroopers in our game
+in our game but right now i would like to move um to
+but right now i would like to move um to physical animation we did for the hero
+physical animation we did for the hero and for the hero uh actually collisions
+and for the hero uh actually collisions ended up as not an important feature
+ended up as not an important feature and actually the fluidity of natural
+and actually the fluidity of natural movement
+movement uh and the smoothness of natural
+uh and the smoothness of natural movement was actually the top priority
+movement was actually the top priority for us
+for us and so we started with a ledge hank for
+and so we started with a ledge hank for the hero
+the hero so the special navigation for the hero
+so the special navigation for the hero and here hands on and forearms are
+and here hands on and forearms are kinematic so we took to follow the
+kinematic so we took to follow the animation
+animation and all the other bodies are fully
+and all the other bodies are fully physics driven
+physics driven just by motors so we can yeah we can
+just by motors so we can yeah we can nicely observe how
+nicely observe how just pure animation pose so this red
+just pure animation pose so this red object
+object is more static and physics is adding
+is more static and physics is adding this
+this nice looking layer of motion also
+nice looking layer of motion also because of that
+because of that actually animators could focus more on
+actually animators could focus more on just on core poses
+just on core poses and add and use physical animation to
+and add and use physical animation to add that
+add that additional fluidity to the motion
+additional fluidity to the motion so it worked really well uh we had
+so it worked really well uh we had really great
+really great great results with this settings so
+great results with this settings so using only motors
+using only motors uh to drive physics uh to the animation
+uh to drive physics uh to the animation pose
+pose really gives nice looking results it was
+really gives nice looking results it was it would it really adds a lot of
+it would it really adds a lot of fluidity to the motion
+fluidity to the motion and we tried to extend the same approach
+and we tried to extend the same approach to other
+to other human navigations and results were not
+human navigations and results were not so great
+so great [Music]
+[Music] so i have an example of
+so i have an example of sliding with weak model settings
+sliding with weak model settings so whenever there's an obstacle or some
+so whenever there's an obstacle or some fast changing motion
+fast changing motion the hero just swings way too much
+the hero just swings way too much so we tried with stronger motors
+so we tried with stronger motors in that case character was just too
+in that case character was just too stiff
+stiff and results were also not really
+and results were also not really satisfying us
+satisfying us and we also tried different approaches
+and we also tried different approaches mixing models with velocities for all
+mixing models with velocities for all bodies
+bodies but still we didn't have substantially
+but still we didn't have substantially better results
+better results so we tried something different
+we came up with a different solution we tried back
+tried back weaker motor settings to get that
+weaker motor settings to get that springy fluid behavior and the new
+springy fluid behavior and the new solution for us
+solution for us was a local space blend with animation
+was a local space blend with animation pose
+pose and in case of this sliding we just
+and in case of this sliding we just blend 50
+blend 50 of the physics bulbs
+of the physics bulbs so here is the final result and it
+so here is the final result and it started to look really better especially
+started to look really better especially the
+the feeling of it uh when you were
+feeling of it uh when you were controlling the hero with the stake
+controlling the hero with the stake the character really nicely reacts uh to
+the character really nicely reacts uh to your movement
+your movement it isn't too steep at the same time
+it isn't too steep at the same time reactions are not too swingy
+reactions are not too swingy and here is how it looks in the final
+and here is how it looks in the final game
+game uh we have different pose for the hero
+uh we have different pose for the hero um
+um but the whole uh this action sequence
+but the whole uh this action sequence really uh physical animation gives a lot
+really uh physical animation gives a lot of
+of additional uh fluidity and reactions to
+additional uh fluidity and reactions to every
+every uh change in movement direction or every
+uh change in movement direction or every every collision that happens
+every collision that happens so with this new kind of approach
+so with this new kind of approach we started to use to use it in other
+we started to use to use it in other cases so here is
+cases so here is climbing where we blend just
+climbing where we blend just 40 percent of physics so here
+40 percent of physics so here kind of the final result is subtle
+kind of the final result is subtle but it gives that nice fluidity to the
+but it gives that nice fluidity to the whole movement
+whole movement here we have wind fields and in this
+here we have wind fields and in this case
+case we blend 45 percent
+we blend 45 percent of physics with the animation
+of physics with the animation uh and here ropes uh
+uh and here ropes uh where we blend again forty percent of
+where we blend again forty percent of physics so we can see how my
+physics so we can see how my like legs nicely have some inertia
+like legs nicely have some inertia after we stop the the movement and
+after we stop the the movement and additionally it gives really nice
+additionally it gives really nice additional motion to the hero
+and after that we started again to have a challenging cases
+a challenging cases so this one was balanced beam hang
+so this one was balanced beam hang it was really challenging to make it
+it was really challenging to make it right we can see here that
+right we can see here that it is 50 uh physics blend
+it is 50 uh physics blend but it was really hard to find stable
+but it was really hard to find stable movement
+movement for this case uh it is because of this
+for this case uh it is because of this like
+like very aggressive characters moves and the
+very aggressive characters moves and the character just
+character just swings way too much and the whole final
+swings way too much and the whole final position
+position of the hero is just way too off
+of the hero is just way too off from the animation so we tried here
+from the animation so we tried here a different approach
+a different approach so what we did we added a partial
+so what we did we added a partial velocity drive for just one body to
+velocity drive for just one body to stabilize the movement
+stabilize the movement so here's the code how we did that so
+so here's the code how we did that so we compute first the desired linear
+we compute first the desired linear velocity
+velocity so this is the velocity needed to fully
+so this is the velocity needed to fully move the body
+move the body from the current position to the target
+from the current position to the target position
+position from the animation in one frame then
+from the animation in one frame then we read the current linear velocity of
+we read the current linear velocity of the body
+the body and we perform just linear interpolation
+and we perform just linear interpolation between that
+between that current velocity and the desired
+current velocity and the desired velocity computed in the first line
+velocity computed in the first line so this is the way we kind of like feed
+so this is the way we kind of like feed current velocity whatever is happening
+current velocity whatever is happening from physics point of view
+from physics point of view currently to that body to the desired
+currently to that body to the desired velocity that is just tries to move
+velocity that is just tries to move exactly as it is as the movement looks
+exactly as it is as the movement looks from the animation
+from the animation and the variable t is just the amount
+and the variable t is just the amount that is just the amount of the blend
+that is just the amount of the blend for the balance beam uh we use
+for the balance beam uh we use uh 50 of the velocity drive for the hip
+uh 50 of the velocity drive for the hip body
+body and here
+and here are the results of this new solution
+are the results of this new solution so using this partial velocity drive
+so using this partial velocity drive just for the hip body nicely stabilizes
+just for the hip body nicely stabilizes the whole movement
+the whole movement actually without affecting the behavior
+actually without affecting the behavior for all other bodies
+for all other bodies so we kind of keeps this fluid behavior
+so we kind of keeps this fluid behavior for all other joints
+for all other joints which are just fully driven by motors
+which are just fully driven by motors and still
+and still we don't go with too swingy motion
+we don't go with too swingy motion so we can really see how how nicely the
+so we can really see how how nicely the overall the character
+overall the character reacts to the motion
+so these previous cases they were enhancing some special navigation state
+enhancing some special navigation state for the hero
+for the hero but what about the ground movement so
+but what about the ground movement so uh we tried to do something with
+uh we tried to do something with a normal hero walking or running on the
+a normal hero walking or running on the ground
+ground but we did not see much opportunity
+but we did not see much opportunity for improvements in running or walking
+for improvements in running or walking cycles
+cycles except that starts
+except that starts stops and turnings were promising to try
+stops and turnings were promising to try our
+our new technology so uh here is the video
+new technology so uh here is the video and we focus only on the heroes arms
+and we focus only on the heroes arms and overall we have more complex logic
+and overall we have more complex logic when to start a specific physical
+when to start a specific physical animation either for
+animation either for start stop or turning
+start stop or turning and every physical animation lasts for
+and every physical animation lasts for two seconds
+two seconds and blends out during that time
+and blends out during that time it is a subtle effect as we can see on
+it is a subtle effect as we can see on the video
+the video but it smooths out some transitions
+but it smooths out some transitions between different animations
+between different animations and add some inertia to the movement
+and add some inertia to the movement and here we achieve really good results
+and here we achieve really good results with blending just
+with blending just 40 of physics so we can see how
+40 of physics so we can see how sometimes
+sometimes the arm lags behind the red object
+the arm lags behind the red object so the unused lugs behind animation
+so the unused lugs behind animation target
+target or uh after a while
+or uh after a while it kind of like with additional inertia
+it kind of like with additional inertia just just is a bit
+just just is a bit further than the animation target so
+further than the animation target so it's really
+it's really giving nice little touch physical touch
+giving nice little touch physical touch to the whole movement
+still however for uh for some cases for some occasional things uh we had a
+for some occasional things uh we had a two big difference between physics pose
+two big difference between physics pose and the desired animation pose so
+and the desired animation pose so uh we didn't want to add any velocity
+uh we didn't want to add any velocity drive because it would change the
+drive because it would change the overall behavior for motors
+overall behavior for motors and we came up with something new so
+and we came up with something new so uh we added again a new constraint
+uh we added again a new constraint this time between a wrist body and the
+this time between a wrist body and the animation target
+animation target the constraint allows for free angular
+the constraint allows for free angular movement
+movement uh but it has a distance limit
+uh but it has a distance limit for linear movement so in our case it
+for linear movement so in our case it was 10 to 5
+was 10 to 5 units so the arm is free to move
+units so the arm is free to move within the threshold um
+within the threshold um in this case of 25 units with free
+in this case of 25 units with free angular movement
+angular movement and linear movement limited to that
+and linear movement limited to that distance
+distance uh so if it is too far away from the
+uh so if it is too far away from the target
+target this constraint it broads back
+this constraint it broads back it is bringing back the constraint
+it is bringing back the constraint is bringing back closer to the animation
+is bringing back closer to the animation target
+target uh if it is within the distance
+uh if it is within the distance threshold
+threshold the arm is free to move um as desired
+the arm is free to move um as desired so with that constraint added we can see
+so with that constraint added we can see on this image that
+on this image that the arm is not so far away as it is on
+the arm is not so far away as it is on the
+the on the left image so really it is giving
+on the left image so really it is giving us
+us results exactly what we needed here
+and we had also similar uh solution to simulate physics
+simulate physics on the hero's arms during walking on the
+on the hero's arms during walking on the balance beam
+balance beam so in this case uh it gives really a
+so in this case uh it gives really a nice soft feeling
+nice soft feeling that reflects that careful movement
+that reflects that careful movement along the balance beam it was working
+along the balance beam it was working really nicely in this case
+and the third big case of physical animation in our game
+animation in our game is buddy droid bb1 so this is
+is buddy droid bb1 so this is a special character companion droid and
+a special character companion droid and spends
+spends most of the time attached to the heroes
+most of the time attached to the heroes back
+back and we wanted to add a kind of
+and we wanted to add a kind of relaxed physical animation to make the
+relaxed physical animation to make the droid
+droid react naturally to every hero's move
+so here is how it looks in the game so the bottom parts of the droid's legs
+the bottom parts of the droid's legs are kinematic and all the other bodies
+are kinematic and all the other bodies have full physics and there is no
+have full physics and there is no animation blending
+animation blending so this is 100 physics and there are no
+so this is 100 physics and there are no angular limits for any joints
+angular limits for any joints so we can see how yeah nicely
+so we can see how yeah nicely and naturally the droid behaves with
+and naturally the droid behaves with some additional inertia
+some additional inertia and it reacts to the hero's moves
+and it reacts to the hero's moves either during action or just movement
+either during action or just movement it is especially visible here during
+it is especially visible here during sliding
+sliding when the droid yeah nicely swings
+when the droid yeah nicely swings with the hero it was working really
+with the hero it was working really really well here
+still for some very fast heroes moves we had some problem to support physics
+we had some problem to support physics on the droid
+on the droid physical animation could become unstable
+physical animation could become unstable in such cases
+in such cases so somehow we had to restrict droid's
+so somehow we had to restrict droid's moves
+moves so again we add a new constraint
+so again we add a new constraint but this time between the droid's head
+but this time between the droid's head and the animation target
+and the animation target but this time we change the distance
+but this time we change the distance limit the distance threshold dynamically
+limit the distance threshold dynamically so if the body moves slowly
+so if the body moves slowly the distance is getting bigger to allow
+the distance is getting bigger to allow more
+more free movement but if the body
+free movement but if the body moves too fast the distance
+moves too fast the distance to allow that free movement is getting
+to allow that free movement is getting closer to zero to keep the head
+closer to zero to keep the head very near the animation target and
+very near the animation target and actually in the case of
+actually in the case of strict zero for very high velocity
+strict zero for very high velocity we just switch the constraint mode from
+we just switch the constraint mode from limited to locked to give the strongest
+limited to locked to give the strongest watching and this is how it looks
+for uh for this um hero like very fast movement here
+um hero like very fast movement here uh so we have a comparison on the left
+uh so we have a comparison on the left there's no constraint enabled uh so we
+there's no constraint enabled uh so we can observe
+can observe how the droid's head clips almost
+how the droid's head clips almost completely through the hero
+completely through the hero during that little moment
+during that little moment yeah exactly here and on the right where
+yeah exactly here and on the right where the constraint for the droid's head
+the constraint for the droid's head is enabled we can see that it nicely
+is enabled we can see that it nicely stays in place
+stays in place and still the droid keeps his physical
+and still the droid keeps his physical behavior
+behavior at slower speeds so we don't really
+at slower speeds so we don't really alter somehow this uh behavior during
+alter somehow this uh behavior during slower movement but whenever
+slower movement but whenever very high speed action happens
+very high speed action happens that could potentially make uh the droid
+that could potentially make uh the droid uh to to to clip through the hero or
+uh to to to clip through the hero or just become unstable
+just become unstable that constraint um is limiting
+that constraint um is limiting almost to zero its uh distance threshold
+almost to zero its uh distance threshold to keep the droid's head uh where it
+to keep the droid's head uh where it should be
+should be where the animation target is
+where the animation target is uh overall actually that implementation
+uh overall actually that implementation of physical animation for the droid was
+of physical animation for the droid was really challenging uh there were a few
+really challenging uh there were a few reasons behind
+reasons behind it so um we have 85 percent scale
+it so um we have 85 percent scale uh on the droid when it's attached to
+uh on the droid when it's attached to the hero and
+the hero and uh working and dealing with some custom
+uh working and dealing with some custom scale settings it's never really fun
+scale settings it's never really fun we had also a problem like um
+we had also a problem like um the order of the execution with
+the order of the execution with attaching so
+attaching so uh potentially uh we have uh physics
+uh potentially uh we have uh physics running on the droid when also
+running on the droid when also we have physics active on the hero so
+we have physics active on the hero so that was actually the case on uh during
+that was actually the case on uh during sliding
+sliding navigation when we had hero with some
+navigation when we had hero with some physical animation and we had also the
+physical animation and we had also the droid with physical animation
+droid with physical animation so there were really challenges to try
+so there were really challenges to try to
+to properly execute it in order um
+properly execute it in order um also we had a problem that
+also we had a problem that the droid's physical animation was
+the droid's physical animation was looking a bit differently with variable
+looking a bit differently with variable frame time
+frame time we had good looking behavior at 30 fps
+we had good looking behavior at 30 fps but we had very stiff behavior at 60fps
+but we had very stiff behavior at 60fps so all these settings all these things
+so all these settings all these things were making the droid
+were making the droid really challenging in terms of
+really challenging in terms of implementation and we came up with these
+implementation and we came up with these solutions
+solutions so in our game every physical animation
+so in our game every physical animation which does not require collisions which
+which does not require collisions which is the case of the droid and
+is the case of the droid and in many cases for the hero is running
+in many cases for the hero is running within its own
+within its own physics scene and the physics scene is
+physics scene and the physics scene is simulated at a fixed frame time
+simulated at a fixed frame time regardless of the hardware and we add
+regardless of the hardware and we add predicted movement for the remaining
+predicted movement for the remaining time left
+time left to simulate and because we have this
+to simulate and because we have this exclusive physics scenes
+exclusive physics scenes we can control when they are simulated
+we can control when they are simulated so we run
+so we run physical animation on the hero first
+physical animation on the hero first and having these results from the hero
+and having these results from the hero we prepare and run
+we prepare and run the physical animation on the droid
+the physical animation on the droid so this that was our third big
+so this that was our third big case for physical animation um in star
+case for physical animation um in star wars jedi fallen order
+wars jedi fallen order i'd like to summarize um the things
+i'd like to summarize um the things i i presented uh here so
+i i presented uh here so um i described a few important details
+um i described a few important details about
+about physics integration so the numbers of
+physics integration so the numbers of iterations
+iterations frictional institution and ccd with
+frictional institution and ccd with constraints projection
+constraints projection and i described how we use the
+and i described how we use the constraint
+constraint to drive the regular root body the heap
+to drive the regular root body the heap body
+body so that was the case for stormtroopers
+so that was the case for stormtroopers and if that root body diverges
+and if that root body diverges above some threshold from the animation
+above some threshold from the animation target
+target we turn the whole rectal to a free fall
+we turn the whole rectal to a free fall mode
+mode we also use a lot of local space
+we also use a lot of local space blending
+blending between pure animation and motor driven
+between pure animation and motor driven bodies
+bodies and actually we prefer weaker motor
+and actually we prefer weaker motor settings to achieve that
+settings to achieve that fluid behavior we also in some cases we
+fluid behavior we also in some cases we also use
+also use partial velocity drive for just one body
+partial velocity drive for just one body to stabilize the movement
+and we create a new constraint between regular body and the animation
+between regular body and the animation target to set
+target to set movement some movement limits like it
+movement some movement limits like it was the case for
+was the case for a wrist bone for the ground navigation
+a wrist bone for the ground navigation for the hero and for the draw its head
+for the hero and for the draw its head and in in case of the in the case of the
+and in in case of the in the case of the droid head
+droid head we also dynamically change that movement
+we also dynamically change that movement limit
+limit depending on the on the head velocity
+and kind of implementation detail but it was important also for us to to
+but it was important also for us to to make it right so that
+make it right so that we have separate physics scenes for
+we have separate physics scenes for the attached droid to control better the
+the attached droid to control better the flow of of the physical animation
+flow of of the physical animation and there are a few things actually i
+and there are a few things actually i wish i knew
+wish i knew before we started to work on physical
+before we started to work on physical animation
+animation uh so at the beginning it is really good
+uh so at the beginning it is really good to know
+to know uh it is a challenge but it is good to
+uh it is a challenge but it is good to know what is your goal of adding
+know what is your goal of adding physical animation in your game
+physical animation in your game do you want to support collisions while
+do you want to support collisions while playing the animation
+playing the animation uh or do you want to change visual
+uh or do you want to change visual outcome of the movement
+outcome of the movement because both cases they require quite
+because both cases they require quite different approach and different set of
+different approach and different set of settings different
+settings different features from physical animation and
+features from physical animation and of all physics parameters
+of all physics parameters they kind of influence each other
+they kind of influence each other you change one parameter and it makes
+you change one parameter and it makes something else to work better or worse
+something else to work better or worse and
+and you need to revisit previously failed
+you need to revisit previously failed cases all the time
+cases all the time you need to check your new knowledge is
+you need to check your new knowledge is it working
+it working better or worse just to apply your new
+better or worse just to apply your new solutions to some previous cases
+solutions to some previous cases and when you have active rectal
+and when you have active rectal physics which is active almost all the
+physics which is active almost all the time
+time things that normally work they kind of
+things that normally work they kind of tend to break
+tend to break for example order of updates for your
+for example order of updates for your actors entities components
+actors entities components uh some dependencies between physics and
+uh some dependencies between physics and other systems
+other systems so for example cloth needs to be after
+so for example cloth needs to be after physics for some cases
+physics for some cases or animation notifies these are things
+or animation notifies these are things that
+that uh when you don't have physics running
+uh when you don't have physics running all the time they kind of work correctly
+all the time they kind of work correctly but when you enable physics and you have
+but when you enable physics and you have a lot of dependencies with other systems
+a lot of dependencies with other systems uh you need to really be careful with
+uh you need to really be careful with these things to make it
+these things to make it work correctly
+i'd like to highlight and mention uh two previous great presentations on a
+previous great presentations on a similar topic
+similar topic so this is physics animation and
+so this is physics animation and uncharted 4
+uncharted 4 at gdc 2017 and physics driven reg dose
+at gdc 2017 and physics driven reg dose and animation
+and animation ada from gdc 2018 please check these
+ada from gdc 2018 please check these great presentations
+great presentations to find some other implementation
+to find some other implementation details how they did
+details how they did physics for their characters
+physics for their characters and respawn is hiring please check our
+and respawn is hiring please check our website
+website respond.com careers
+respond.com careers and i strongly encourage you to do it so
+and i strongly encourage you to do it so respawn is
+respawn is always hiring so please check maybe
+always hiring so please check maybe there's something interesting for you
+there's something interesting for you so thank you so much and i'm happy to
+so thank you so much and i'm happy to answer all your questions
+answer all your questions [Applause]
+[Applause] you

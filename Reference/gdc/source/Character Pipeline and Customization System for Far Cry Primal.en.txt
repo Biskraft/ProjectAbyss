@@ -1,0 +1,1403 @@
+[Music] and welcome to a presentation about the
+and welcome to a presentation about the character pipeline and customization
+character pipeline and customization system of Far Cry primal I'm Karen
+system of Far Cry primal I'm Karen O'Sullivan I'm the character technical
+O'Sullivan I'm the character technical director for far cry primal and I'm
+director for far cry primal and I'm Meridian and vo is the character
+Meridian and vo is the character pokamamil on the core primal can
+pokamamil on the core primal can everyone hear so good up the back yep
+everyone hear so good up the back yep great okay
+great okay so far cry primal hopefully most of you
+so far cry primal hopefully most of you have played it but if you haven't it's a
+have played it but if you haven't it's a [ __ ] games set in 10,000 BC so
+[ __ ] games set in 10,000 BC so prehistoric cave people times you don't
+prehistoric cave people times you don't need to know much more than that you can
+need to know much more than that you can probably fill in the blanks in your head
+probably fill in the blanks in your head some things you might need to know for
+some things you might need to know for this presentation a few buzzwords so DTC
+this presentation a few buzzwords so DTC we use it all the time you've probably
+we use it all the time you've probably heard it tons of the convention already
+heard it tons of the convention already you probably know what it means
+you probably know what it means it stands for digital content creation
+it stands for digital content creation software and that's things like 3d
+software and that's things like 3d studio max Maya blender Houdini motion
+studio max Maya blender Houdini motion builder or whatever anything that the
+builder or whatever anything that the artists or animator works in outside of
+artists or animator works in outside of the game engine we also have dunya dunya
+the game engine we also have dunya dunya is the name of the game engine that we
+is the name of the game engine that we use on far cry wolf skin so we're gonna
+use on far cry wolf skin so we're gonna be talking about will skin a lot today
+be talking about will skin a lot today it's the name of our new system to
+it's the name of our new system to assemble and customize characters and
+assemble and customize characters and DNA which is a piece of data inside that
+DNA which is a piece of data inside that that represents a whole character so
+that represents a whole character so when we started on Far Cry primal we
+when we started on Far Cry primal we were starting with the pipeline that we
+were starting with the pipeline that we used for Far Cry 3 and Far Cry 4 so that
+used for Far Cry 3 and Far Cry 4 so that was a Mac script based pipeline this is
+was a Mac script based pipeline this is unfortunately a typical Mac's viewport
+unfortunately a typical Mac's viewport from Far Cry 3 so you can see our
+from Far Cry 3 so you can see our character has maybe a couple of meshes
+character has maybe a couple of meshes for his upper body here's some pants you
+for his upper body here's some pants you know he has some arms and things he
+know he has some arms and things he doesn't have legs and he doesn't have
+doesn't have legs and he doesn't have shoes so they're probably coming from a
+shoes so they're probably coming from a totally different max flow as well he
+totally different max flow as well he doesn't have shaders so you see like
+doesn't have shaders so you see like there's no textures on this guy and that
+there's no textures on this guy and that was unfortunately very common for
+was unfortunately very common for artists in max on the previous Far Cry
+artists in max on the previous Far Cry games so
+games so what does it look like in a more
+what does it look like in a more abstract sense we'd have these big max
+abstract sense we'd have these big max files like really like you know it would
+files like really like you know it would be full of like a lot of meshes this is
+be full of like a lot of meshes this is a conservative example where we're just
+a conservative example where we're just exporting four meshes out of a max file
+exporting four meshes out of a max file after that we'd go into a game engine
+after that we'd go into a game engine and we would assemble a character from
+and we would assemble a character from different mesh parts so here we're
+different mesh parts so here we're pulling two of the meshes out of this
+pulling two of the meshes out of this Maxwell and we're using them for the
+Maxwell and we're using them for the hair and the body of this character some
+hair and the body of this character some other parts of him are probably coming
+other parts of him are probably coming from a totally different place if you
+from a totally different place if you remember that character didn't have legs
+remember that character didn't have legs or shoes so he may be pulling other
+or shoes so he may be pulling other parts of himself from a different Maxine
+parts of himself from a different Maxine that's not really great because now you
+that's not really great because now you can see if I actually wanted to work on
+can see if I actually wanted to work on this character I don't have all the
+this character I don't have all the meshes that I need to actually edit him
+meshes that I need to actually edit him because I'm gonna check out that max
+because I'm gonna check out that max flaw and I'm gonna work on stuff in
+flaw and I'm gonna work on stuff in there I'm basically blocking it from
+there I'm basically blocking it from anyone else working on any mesh that
+anyone else working on any mesh that comes out of that file so you can see in
+comes out of that file so you can see in red there's a few meshes I don't even
+red there's a few meshes I don't even need but they're locked and no one can
+need but they're locked and no one can work on them I don't really care though
+work on them I don't really care though because like who cares well if someone
+because like who cares well if someone else checks out I max file I care
+else checks out I max file I care because now I can't work on any measures
+because now I can't work on any measures that came out of that scene it gets a
+that came out of that scene it gets a bit worse again because we also had
+bit worse again because we also had skeletons and we had a big monster
+skeletons and we had a big monster skeleton on the previous Parker Games
+skeleton on the previous Parker Games and we would use that for all the
+and we would use that for all the characters and we would need that
+characters and we would need that skeleton to be up to date in all of the
+skeleton to be up to date in all of the files that had meshes in them so that
+files that had meshes in them so that meant it was really difficult for us to
+meant it was really difficult for us to actually update the skeleton on the
+actually update the skeleton on the project because we'd have to go to that
+project because we'd have to go to that source file and we changed the skeleton
+source file and we changed the skeleton but we'd also like have to change that
+but we'd also like have to change that skeleton air in Avery Maxwell so it
+skeleton air in Avery Maxwell so it became very complicated and
+became very complicated and time-consuming and it basically means
+time-consuming and it basically means you can't do it like it's just never
+you can't do it like it's just never gonna happen
+gonna happen so before we figure out what pipeline
+so before we figure out what pipeline we'd like to have we want to look at
+we'd like to have we want to look at who's the team because that's the most
+who's the team because that's the most important thing so the primary uses of
+important thing so the primary uses of the pipeline the guys that work the most
+the pipeline the guys that work the most with exporting things to the engine are
+with exporting things to the engine are actually lead character artists the TDs
+actually lead character artists the TDs and the riggers a model is also use it a
+and the riggers a model is also use it a fair bit but in this case these are the
+fair bit but in this case these are the guys that are iterating a lot back and
+guys that are iterating a lot back and forth whereas the muddlers are more
+forth whereas the muddlers are more creating the asset and then it's going
+creating the asset and then it's going through
+through her pipeline so what do I want to use
+her pipeline so what do I want to use well
+well Aldi character artist likes to use Maya
+Aldi character artist likes to use Maya he's always been using Maya and in the
+he's always been using Maya and in the past he would have to then send that to
+past he would have to then send that to max with the FBX file I like to use
+max with the FBX file I like to use Meier as well on the character TD but I
+Meier as well on the character TD but I do use max we had a rigger who liked
+do use max we had a rigger who liked Maya and we had three riggers that liked
+Maya and we had three riggers that liked max so we knew based on our team we had
+max so we knew based on our team we had to support both software packages if we
+to support both software packages if we let them use the software they want to
+let them use the software they want to use they're going to be faster they're
+use they're going to be faster they're going to be more efficient they're gonna
+going to be more efficient they're gonna have more time for polish and we can use
+have more time for polish and we can use the best tool for the job so what would
+the best tool for the job so what would that look like if we had this ideal
+that look like if we had this ideal pipeline well every mesh would be its
+pipeline well every mesh would be its own separate piece we don't want the big
+own separate piece we don't want the big max files anymore we just want to have
+max files anymore we just want to have all these separate meshes and we want to
+all these separate meshes and we want to assemble characters from them as well if
+assemble characters from them as well if I want to edit them I just want to pull
+I want to edit them I just want to pull whichever mesh I need and I open it into
+whichever mesh I need and I open it into the 3d studio max or into Maya and I
+the 3d studio max or into Maya and I want to be able to pull any of the
+want to be able to pull any of the meshes I need as well you can see down
+meshes I need as well you can see down the bottom there's the skeleton so that
+the bottom there's the skeleton so that skeleton that was hard to update now
+skeleton that was hard to update now we've made it its own asset and it can
+we've made it its own asset and it can just be pulled in first and then all the
+just be pulled in first and then all the other measures can come in and skin to
+other measures can come in and skin to it so that's really cool when I export
+it so that's really cool when I export I'm only going to check out the file
+I'm only going to check out the file that I changed so that way like even if
+that I changed so that way like even if I have all the pants on the project
+I have all the pants on the project checked out and I'm only changing one of
+checked out and I'm only changing one of them it's the only file that's locked
+them it's the only file that's locked everyone else can keep working so
+everyone else can keep working so ideally this means that how artists
+ideally this means that how artists could work in parallel maybe even on the
+could work in parallel maybe even on the same character while the mothers working
+same character while the mothers working on the hair a rigger might be working on
+on the hair a rigger might be working on the pants so how do we get there so to
+the pants so how do we get there so to understand how we went from what we had
+understand how we went from what we had and where what we got in the end first
+and where what we got in the end first let's look at the technical aspects of
+let's look at the technical aspects of where we were on 83 and 84 so we had a
+where we were on 83 and 84 so we had a very tradition trick pipeline it was all
+very tradition trick pipeline it was all introduced max 2012 a lot of maxscript
+introduced max 2012 a lot of maxscript some 3ds max plugins in C++ some trivia
+some 3ds max plugins in C++ some trivia smack specific shaders was a lot of Max
+smack specific shaders was a lot of Max scriptorium once again to bind the
+scriptorium once again to bind the shaders we also have the dependency on
+shaders we also have the dependency on the avec plugins and all these things
+the avec plugins and all these things and as you saw we have one Maxine's goes
+and as you saw we have one Maxine's goes into the pipeline and then a bunch of
+into the pipeline and then a bunch of meshes come out now if we go back a few
+meshes come out now if we go back a few years
+years ago here at GDC or colleagues dhamma
+ago here at GDC or colleagues dhamma felix and PR blazer presented a session
+felix and PR blazer presented a session entitled passenger story of a convergent
+entitled passenger story of a convergent pipeline how this is related is that the
+pipeline how this is related is that the point of that framework was to create a
+point of that framework was to create a communication framework between the game
+communication framework between the game engines and the DC C's to sort of
+engines and the DC C's to sort of extract assets from the game engine into
+extract assets from the game engine into any DCC that we wanted for marketing
+any DCC that we wanted for marketing purpose so you would be able to go into
+purpose so you would be able to go into Assassin's Creed and then select the
+Assassin's Creed and then select the characters and the world and import all
+characters and the world and import all of that in 3ds max and then there you
+of that in 3ds max and then there you would be able to like make pre-rendered
+would be able to like make pre-rendered trailers because of that they supported
+trailers because of that they supported a lot of DCC such as Julius max Maya
+a lot of DCC such as Julius max Maya Moby and to make it happen they created
+Moby and to make it happen they created a standard file format for the assets
+a standard file format for the assets which they called game X which would and
+which they called game X which would and then provide functionality to load this
+then provide functionality to load this thing into many diseases so at this
+thing into many diseases so at this point we had from the passenger
+point we had from the passenger framework the possibility to load
+framework the possibility to load standard assets in all the diseases and
+standard assets in all the diseases and the question was what if the game engine
+the question was what if the game engine was also reading this format so we would
+was also reading this format so we would be in a situation where we would be we'd
+be in a situation where we would be we'd be able to make back and forth between
+be able to make back and forth between Andy DCC and the source format and we
+Andy DCC and the source format and we could get rid completely of the
+could get rid completely of the magazines and the source files so this
+magazines and the source files so this is what we implemented we this is what
+is what we implemented we this is what the pipeline looks like now so there's
+the pipeline looks like now so there's only the guy max mesh for each asset so
+only the guy max mesh for each asset so each asset is going to be its own file
+each asset is going to be its own file there is no maximum grouping anything
+there is no maximum grouping anything anymore and the sender from technology
+anymore and the sender from technology group at Ubisoft provided us with the
+group at Ubisoft provided us with the plugins to load or standard asset
+plugins to load or standard asset formats they support many DC C's and
+formats they support many DC C's and many versions of them so we were already
+many versions of them so we were already able to load the files in for instance
+able to load the files in for instance Max and Maya but then on top of that you
+Max and Maya but then on top of that you want to create a pipeline that's going
+want to create a pipeline that's going to be able to like be customized for
+to be able to like be customized for your game engines needs so very often
+your game engines needs so very often you want to add some metadata you want
+you want to add some metadata you want to link the materials in a way that your
+to link the materials in a way that your game engine is going to understand and
+game engine is going to understand and do this kind of stuff so we we did not
+do this kind of stuff so we we did not think it was feasible for us to create
+think it was feasible for us to create one pipeline in Maya
+one pipeline in Maya and in EXO we wanted to share the
+and in EXO we wanted to share the pipeline so we're going to show now all
+pipeline so we're going to show now all the things that we did to share the
+the things that we did to share the pipeline between nice and Maya the first
+pipeline between nice and Maya the first thing was we needed to share code so we
+thing was we needed to share code so we looked at the options in the Autodesk
+looked at the options in the Autodesk packages and python is well supported
+packages and python is well supported now between Max and Maya so this is what
+now between Max and Maya so this is what the Python pipeline looks like you can
+the Python pipeline looks like you can see there's a few things there first is
+see there's a few things there first is there's some stuff like an import/export
+there's some stuff like an import/export module there with the exporter and an
+module there with the exporter and an importer these things are can IGCC
+importer these things are can IGCC agnostic but you can see there's also
+agnostic but you can see there's also some stuff like there's a GCC helpers
+some stuff like there's a GCC helpers module and in there you can see this GCC
+module and in there you can see this GCC albers file but there's also DCC helpers
+albers file but there's also DCC helpers Max and this is helpers Maya so let's
+Max and this is helpers Maya so let's look at how how that works
+look at how how that works most of the code is in the DCC agnostic
+most of the code is in the DCC agnostic higher-level code so the exporter
+higher-level code so the exporter doesn't know in which TCC training for
+doesn't know in which TCC training for instance there you see the expo geometry
+instance there you see the expo geometry function how do we exploit a geometry so
+function how do we exploit a geometry so first thing we do is we get the
+first thing we do is we get the selection from the user what did they
+selection from the user what did they select in the editor and then we are
+select in the editor and then we are going to apply some manipulation to
+going to apply some manipulation to these assets and export the assets to
+these assets and export the assets to the disk you can see the first line
+the disk you can see the first line there is like DCC helpers that get
+there is like DCC helpers that get selected nodes so obviously the API is
+selected nodes so obviously the API is in 3ds Max and Maya to do this thing are
+in 3ds Max and Maya to do this thing are going to be different so this is where
+going to be different so this is where we branch the code so we going to the
+we branch the code so we going to the lower level of the pipeline we become
+lower level of the pipeline we become like very much unit atomic operations
+like very much unit atomic operations the DC GL perspire is going to try to
+the DC GL perspire is going to try to figure out first okay which this is this
+figure out first okay which this is this if it's Maya we're going to import their
+if it's Maya we're going to import their Maya version of the code and then if
+Maya version of the code and then if it's max we're going to import the Max
+it's max we're going to import the Max version of the code so there you go
+version of the code so there you go and finally were in the low-level code
+and finally were in the low-level code and we get the selection engineers max
+and we get the selection engineers max we call the Max Plus API in Python and
+we call the Max Plus API in Python and in my recall the Maya comments we
+in my recall the Maya comments we returned we wrap the nodes into a DCC
+returned we wrap the nodes into a DCC agnostic wrapper and then we pass that
+agnostic wrapper and then we pass that to the DCC on a stick pipeline so that
+to the DCC on a stick pipeline so that the big pipeline doesn't know where we
+the big pipeline doesn't know where we are so the good thing with that is that
+are so the good thing with that is that as you go through production you're
+as you go through production you're going to build this little library that
+going to build this little library that hides the API of 3ds Max and Maya and
+hides the API of 3ds Max and Maya and you're going to have like little
+you're going to have like little operations in there such as getting a
+operations in there such as getting a selection renaming nodes deleting nodes
+selection renaming nodes deleting nodes creating nodes and each time you know
+creating nodes and each time you know you create new features at the beginning
+you create new features at the beginning you're going to have a bunch of those
+you're going to have a bunch of those operation but as you go there's going to
+operation but as you go there's going to be less and less that you need to add to
+be less and less that you need to add to this library and you're going to be able
+this library and you're going to be able to focus on the building the logic of
+to focus on the building the logic of the pipeline instead of building the
+the pipeline instead of building the library so that is how we shared code
+library so that is how we shared code now the next thing that we needed to do
+now the next thing that we needed to do was sharing a UI between the DC sees so
+was sharing a UI between the DC sees so for this we looked once again what
+for this we looked once again what supported in max in Maya this time and
+supported in max in Maya this time and we found that PI side which is the
+we found that PI side which is the Python bindings for qt4 is available in
+Python bindings for qt4 is available in a bunch of those DC's when we were
+a bunch of those DC's when we were studying production we were at the 2015
+studying production we were at the 2015 version of Max and Maya so pi set seemed
+version of Max and Maya so pi set seemed like a good fit so this is just an
+like a good fit so this is just an example of some of the tools we have in
+example of some of the tools we have in the middle you can see how node editor
+the middle you can see how node editor so this is where the artists will go in
+so this is where the artists will go in and set things like maybe LOD distances
+and set things like maybe LOD distances they can set up their simplygon settings
+they can set up their simplygon settings for LEDs for automatic generation and
+for LEDs for automatic generation and it's stored with the mesh there's a few
+it's stored with the mesh there's a few properties and other things that they
+properties and other things that they can do in there but what's really
+can do in there but what's really important there is because it's a QT UI
+important there is because it's a QT UI and because this UI is exactly the same
+and because this UI is exactly the same in both Max and Maya it's very easy for
+in both Max and Maya it's very easy for artists to switch back and forwards it
+artists to switch back and forwards it also is really easy for us to build
+also is really easy for us to build documentation because we're not
+documentation because we're not documenting a max by planning a maya
+documenting a max by planning a maya pipeline we're just documenting the
+pipeline we're just documenting the pipeline at the top is a toolbar
+pipeline at the top is a toolbar so same toolbar in Max and Maya in Maya
+so same toolbar in Max and Maya in Maya it's a shelf in max it's a toolbar that
+it's a shelf in max it's a toolbar that you move around and the icons are the
+you move around and the icons are the same in both packages and they have the
+same in both packages and they have the exact same behavior
+exact same behavior so again if an artist is switching back
+so again if an artist is switching back and forwards or if they want to migrate
+and forwards or if they want to migrate from one to the other it's really easy
+from one to the other it's really easy then for them to learn the software that
+then for them to learn the software that they're gonna be using because the
+they're gonna be using because the pipeline will be the same and lastly
+pipeline will be the same and lastly there's just a drop-down menu which you
+there's just a drop-down menu which you you know standard kind of thing you see
+you know standard kind of thing you see from the top of the application and for
+from the top of the application and for us we actually made the exact same order
+us we actually made the exact same order as the icons in the toolbar so it's
+as the icons in the toolbar so it's really simple and straight forwards so
+really simple and straight forwards so shaders if you remember back at the
+shaders if you remember back at the start I showed you this screenshot of
+start I showed you this screenshot of Max and there's just no textures no
+Max and there's just no textures no shaders so we knew that had to change
+shaders so we knew that had to change but we had to support 2d CCS so when we
+but we had to support 2d CCS so when we had a look the best option for us was
+had a look the best option for us was shader effects it was integrated in both
+shader effects it was integrated in both the 2015 version of Max and Moya
+the 2015 version of Max and Moya so that seemed like a pretty good choice
+so that seemed like a pretty good choice for us if you don't know what shader
+for us if you don't know what shader effects is it's a node based shader
+effects is it's a node based shader creation system it comes built in so you
+creation system it comes built in so you can just open it up from maximum Oya and
+can just open it up from maximum Oya and start creating shaders using nodes it
+start creating shaders using nodes it was really great for us because it meant
+was really great for us because it meant that the TDs all the artists even could
+that the TDs all the artists even could go in there and understand this thing
+go in there and understand this thing and start building the shader and for us
+and start building the shader and for us it's it's all about matching like
+it's it's all about matching like basically what the engine shaders are
+basically what the engine shaders are doing and making it easy for the artists
+doing and making it easy for the artists to work on their UV there protects color
+to work on their UV there protects color that type of thing and that also meant
+that type of thing and that also meant that the 3d programmers could focus on
+that the 3d programmers could focus on just getting the features into the
+just getting the features into the engine shaders and they didn't need to
+engine shaders and they didn't need to worry about the DCC the TVs could just
+worry about the DCC the TVs could just jump in there and quickly update the
+jump in there and quickly update the shaders whenever an engine shader
+shaders whenever an engine shader changed as well it also has a automatic
+changed as well it also has a automatic mapping so we just made it so like if
+mapping so we just made it so like if you name the texture node in the graph
+you name the texture node in the graph diffuse map or detail diffuse one detail
+diffuse map or detail diffuse one detail diffuse to it automatically maps to the
+diffuse to it automatically maps to the properties from your engine materials so
+properties from your engine materials so it's really easy and there's no extra
+it's really easy and there's no extra code like around this thing so what does
+code like around this thing so what does it look like when an artist is using
+it look like when an artist is using this pipe well there we go okay so okay
+this pipe well there we go okay so okay so here we're gonna game engine duniya
+so here we're gonna game engine duniya and we have our character we just
+and we have our character we just selected the character in the game
+selected the character in the game engine and we're going into 3d studio
+engine and we're going into 3d studio Max and we click our import button so
+Max and we click our import button so what that does is using the passion
+what that does is using the passion passenger framework it's communicating
+passenger framework it's communicating to the game engine and asking what's
+to the game engine and asking what's selected and then importing all the
+selected and then importing all the meshes for that character so I can just
+meshes for that character so I can just click on one of the meshes and I can
+click on one of the meshes and I can just make a change so you can see
+just make a change so you can see something happen
+okay so now we've made some changes to a mesh we just want to click our export
+mesh we just want to click our export button and it'll export the mesh back to
+button and it'll export the mesh back to the engine so we get this little pop-up
+the engine so we get this little pop-up it doesn't like get in your face you
+it doesn't like get in your face you don't have to click it away it's just a
+don't have to click it away it's just a little notification and when we switch
+little notification and when we switch back to the engine you can see it's
+back to the engine you can see it's already actually hot reloaded so usually
+already actually hot reloaded so usually before we even go back there like it's
+before we even go back there like it's hot reloaded now just to show that this
+hot reloaded now just to show that this pipeline is the same in Maya we're just
+pipeline is the same in Maya we're just opening the character into Maya and you
+opening the character into Maya and you can see we've got that new change that
+can see we've got that new change that we've made and we can just remove it
+we've made and we can just remove it again and then we're gonna click export
+again and then we're gonna click export and again you'll see these little
+and again you'll see these little pop-ups down the bottom these little
+pop-ups down the bottom these little notifications just telling us export
+notifications just telling us export successful
+so now if we switch back to the game engine you can see she's already hot
+engine you can see she's already hot reloaded and it's live updated so really
+reloaded and it's live updated so really fast and easy turnaround and you can see
+fast and easy turnaround and you can see that artists can use whatever they want
+that artists can use whatever they want to use so that means there's no more big
+to use so that means there's no more big scenes there's no more giant max files
+scenes there's no more giant max files we're not if an artist wants to use one
+we're not if an artist wants to use one package they're not forcing everyone
+package they're not forcing everyone else to use that and the artists can
+else to use that and the artists can just open the meshes whichever meshes
+just open the meshes whichever meshes they want into any package once it's in
+they want into any package once it's in the game engine we actually need to
+the game engine we actually need to assemble that character from different
+assemble that character from different meshes this is the old system we used I
+meshes this is the old system we used I don't want to get too into it but you
+don't want to get too into it but you can see it's kind of pretty big
+can see it's kind of pretty big confusing UI and I would wager you can't
+confusing UI and I would wager you can't guess how to use this just by looking at
+guess how to use this just by looking at it the other problem with it was it was
+it the other problem with it was it was a single user tool it was one giant
+a single user tool it was one giant database for the whole project so that
+database for the whole project so that meant that if someone wanted to work in
+meant that if someone wanted to work in there it would check it out no one else
+there it would check it out no one else could work it became a little bit
+could work it became a little bit annoying on Far Cry 3 and 4 because we
+annoying on Far Cry 3 and 4 because we were doing Co dev with a shanghai studio
+were doing Co dev with a shanghai studio who were doing animals for us so they
+who were doing animals for us so they might check out this database unlock it
+might check out this database unlock it and then if they go home at night and
+and then if they go home at night and don't check it in that means the next
+don't check it in that means the next day in Montreal none of us can work in
+day in Montreal none of us can work in there it's an even bigger problem for us
+there it's an even bigger problem for us because on primal we were actually doing
+because on primal we were actually doing co dev without Toronto team in Toronto
+co dev without Toronto team in Toronto Montreal in the same time zone so now
+Montreal in the same time zone so now you've got a database where only one
+you've got a database where only one person in two studios can never work in
+person in two studios can never work in there at the same time so it creates a
+there at the same time so it creates a giant bottleneck and it ends up being
+giant bottleneck and it ends up being mostly the readers had to be the ones
+mostly the readers had to be the ones that work in there and they really hated
+that work in there and they really hated it
+it so instead
+so instead oh no sorry this is a this is just an
+oh no sorry this is a this is just an abstract view of like what this meant so
+abstract view of like what this meant so you've got all these different meshes
+you've got all these different meshes and you load them into this little part
+and you load them into this little part database and then from the parts you
+database and then from the parts you make a character it's very simple
+make a character it's very simple nothing too complicated but also kind of
+nothing too complicated but also kind of frustrating to use so that's where we
+frustrating to use so that's where we turn to our new system which we called
+turn to our new system which we called wool skin ok so now we're going to
+wool skin ok so now we're going to describe we built the character system
+describe we built the character system and how we were based on a customization
+and how we were based on a customization system so Wolfskin like in the first
+system so Wolfskin like in the first part we show that we repurposed or
+part we show that we repurposed or Marketing framework to become a mulling
+Marketing framework to become a mulling pipeline war schemes also started before
+pipeline war schemes also started before Fakher primal and it was mostly a
+Fakher primal and it was mostly a character customization system and thing
+character customization system and thing is when we entered the production for
+is when we entered the production for factor primal we thought maybe we could
+factor primal we thought maybe we could actually turn this character
+actually turn this character customization system into a character
+customization system into a character system for building characters so that's
+system for building characters so that's what we did now I'm going to describe in
+what we did now I'm going to describe in detail how the system works and how you
+detail how the system works and how you can build a customization system like
+can build a customization system like this the one thing to understand about
+this the one thing to understand about both skin is that it's completely data
+both skin is that it's completely data oriented so it doesn't know what it's
+oriented so it doesn't know what it's customizing so you can apply it to many
+customizing so you can apply it to many things so a good way to describe data
+things so a good way to describe data oriented pipeline is to look at the data
+oriented pipeline is to look at the data and then find out what's in there so
+and then find out what's in there so there's going to be two types of data
+there's going to be two types of data I'm going to talk about in more skin
+I'm going to talk about in more skin there's the config files on one side and
+there's the config files on one side and there's the item files on the other side
+there's the item files on the other side the config files they're going to be
+the config files they're going to be shared by all the entity of the same
+shared by all the entity of the same group so for instance all the humans are
+group so for instance all the humans are going to point to the human
+going to point to the human configuration file and then and then on
+configuration file and then and then on the side you're gonna have like a bunch
+the side you're gonna have like a bunch of items that describe human parts and
+of items that describe human parts and stuff like this so the config file has
+stuff like this so the config file has three parts which I'm going to go into
+three parts which I'm going to go into in details right after but first we have
+in details right after but first we have the slot hierarchy there so the slot
+the slot hierarchy there so the slot hierarchy is just basically going to
+hierarchy is just basically going to define how you build a character so
+define how you build a character so there we have a human slot at the top
+there we have a human slot at the top then we have a morphology folder in
+then we have a morphology folder in which we have head and body and then you
+which we have head and body and then you could have a bunch of closed body parts
+could have a bunch of closed body parts stuff like this then we have solver
+stuff like this then we have solver rules wall skin runs solvers on the data
+rules wall skin runs solvers on the data to find out what it should spawn when
+to find out what it should spawn when building a character for instance there
+building a character for instance there we have a rule that undoes the conflict
+we have a rule that undoes the conflict between head mesh like the Hamish and
+between head mesh like the Hamish and the Hat mesh that could occur finally we
+the Hat mesh that could occur finally we have automation hints when we're
+have automation hints when we're building was in we found it's very
+building was in we found it's very important that it's super fast to add
+important that it's super fast to add data and so for that we created some
+data and so for that we created some automation hints that the artists can
+automation hints that the artists can make to speed up the process so let's
+make to speed up the process so let's look at the [ __ ] hierarchy for a while
+look at the [ __ ] hierarchy for a while there you have the human slot on the top
+there you have the human slot on the top it has a special meaning the top slot
+it has a special meaning the top slot but
+but I'll show it with the item then you have
+I'll show it with the item then you have stuff like the red slots they're like
+stuff like the red slots they're like body torso and bends these are typically
+body torso and bends these are typically slots in which you're going to find
+slots in which you're going to find meshes you could also have stuff in
+meshes you could also have stuff in nodes in the hierarchy such as a suit
+nodes in the hierarchy such as a suit which is basically they're just grouping
+which is basically they're just grouping a torso and a pens item you can have
+a torso and a pens item you can have other things in the slit hierarchy such
+other things in the slit hierarchy such as enumerated values of our boolean
+as enumerated values of our boolean flags there we have a gender animated
+flags there we have a gender animated value which we described can just take
+value which we described can just take male and female of values finally we can
+male and female of values finally we can have some stuff like material parameters
+have some stuff like material parameters so there we have a body paint slot and
+so there we have a body paint slot and we have some team team logo slot these
+we have some team team logo slot these are going to feed material parameters to
+are going to feed material parameters to the meshes and interact with each other
+the meshes and interact with each other and we'll see that in detail so that's
+and we'll see that in detail so that's the slot hierarchy in the config file
+the slot hierarchy in the config file now what are the items so the items it's
+now what are the items so the items it's just going to be any piece of data that
+just going to be any piece of data that I gets a particular slot in the
+I gets a particular slot in the hierarchy so if you target the top slot
+hierarchy so if you target the top slot of the hierarchy you'll basically
+of the hierarchy you'll basically describe in your full human and you're
+describe in your full human and you're going to reuse items that I get the
+going to reuse items that I get the other slots so hopefully we can look at
+other slots so hopefully we can look at a workflow video so wall skin is
+a workflow video so wall skin is integrated in Maya where the artists
+integrated in Maya where the artists work and max there we are just saying
+work and max there we are just saying okay I'm going to create a new item I
+okay I'm going to create a new item I said this is for the human config file
+said this is for the human config file and then we're targeting the top slot so
+and then we're targeting the top slot so human now we're just gonna give a name
+human now we're just gonna give a name to our character and this is going to
+to our character and this is going to create a file on disk now you can see on
+create a file on disk now you can see on the left side of all the Boscombe data
+the left side of all the Boscombe data and on the right side of an addition
+and on the right side of an addition pain because I have targeted the main
+pain because I have targeted the main the top slot there I have like pker
+the top slot there I have like pker values for all the other slots so I'm
+values for all the other slots so I'm just selecting a gender there and then
+just selecting a gender there and then I'm gonna select items that I get the
+I'm gonna select items that I get the other slots such as maybe you buddy
+other slots such as maybe you buddy maybe your shirt and some pants and
+because we are running in the DCC right now we have control over the modeling
+now we have control over the modeling pipelines so we are going to be able to
+pipelines so we are going to be able to save a file and then click an eye icon
+save a file and then click an eye icon to see the character and this is going
+to see the character and this is going to trigger a loading of the skeleton
+to trigger a loading of the skeleton loading of the gamax meshes and then put
+loading of the gamax meshes and then put that all together in the Maya port
+that all together in the Maya port and a little disclaimer here the the
+and a little disclaimer here the the loading times are shortened but this is
+loading times are shortened but this is still pretty fast so there you see I can
+still pretty fast so there you see I can just change the gender of my character
+just change the gender of my character and it's the same character which is
+and it's the same character which is loading you in in the DCCC so the
+loading you in in the DCCC so the characters look the same but with the
+characters look the same but with the adaptive morphology we can continue
+adaptive morphology we can continue editing the the character add some
+editing the the character add some clothes again changing the gender is an
+clothes again changing the gender is an atomic operation so you can just quickly
+atomic operation so you can just quickly gender swap the character and click the
+gender swap the character and click the icon and save a little loading there we
+icon and save a little loading there we go so maybe just once we're happy we're
+go so maybe just once we're happy we're going to be able to just save a file
+going to be able to just save a file integrate it into the game engine let's
+integrate it into the game engine let's go into jr. so we go into the game
+go into jr. so we go into the game engine which is a component based game
+engine which is a component based game engine so I'm just going to drop a
+engine so I'm just going to drop a character and on this character I have a
+character and on this character I have a working component in which I'm just
+working component in which I'm just going to point to the file that we just
+going to point to the file that we just created as you can see we're loading the
+created as you can see we're loading the character now because as you saw it so
+character now because as you saw it so before we have our loading of all the
+before we have our loading of all the resources in the game engine so it's the
+resources in the game engine so it's the simple skin I can go back into my I open
+simple skin I can go back into my I open my application to a change save the file
+my application to a change save the file and then it's going to watch reload the
+and then it's going to watch reload the character in the engine then we can
+character in the engine then we can start like continue customizing the
+start like continue customizing the character so before it would take us a
+character so before it would take us a really long time to integrate the
+really long time to integrate the character and as you see right now it
+character and as you see right now it takes like a minute or two to create a
+takes like a minute or two to create a character and integrate them in the game
+character and integrate them in the game engine so that was a really good force
+engine so that was a really good force so that's was how you create a DNA
+so that's was how you create a DNA character so a full character now let's
+character so a full character now let's look a little bit at the other items and
+look a little bit at the other items and now you create them and make them usable
+now you create them and make them usable for the system
+for the system so you're going to have very simple item
+so you're going to have very simple item for instance the shoes in Far Cry primal
+for instance the shoes in Far Cry primal they're unisex so it's just one mesh so
+they're unisex so it's just one mesh so maybe a shoes item is just gonna be
+maybe a shoes item is just gonna be pointing to one mesh then you have more
+pointing to one mesh then you have more complex items such as the torso items
+complex items such as the torso items there you see an easier armoire and
+there you see an easier armoire and there's a male and a female version of
+there's a male and a female version of the same mesh and these are going to be
+the same mesh and these are going to be tagged appropriately so that this'll
+tagged appropriately so that this'll work and I load them so I think we can
+work and I load them so I think we can see an example of that so let's see how
+see an example of that so let's see how the artists work with this so in this
+the artists work with this so in this tab this is the mesh tab they have a
+tab this is the mesh tab they have a quick view of every mesh that's on data
+quick view of every mesh that's on data for the project so it's really fast and
+for the project so it's really fast and easy they can just filter your link type
+easy they can just filter your link type some keywords in there and find meshes
+some keywords in there and find meshes so we just clicked we're just loading
+so we just clicked we're just loading some meshes so you can see specifically
+some meshes so you can see specifically the the meshes we're going to be working
+the the meshes we're going to be working with so it's the same meshes you just
+with so it's the same meshes you just saw before so if the artist is just
+saw before so if the artist is just finished creating these meshes and now
+finished creating these meshes and now they want to put them inside wool skin
+they want to put them inside wool skin so that they could be used by a
+so that they could be used by a character they're going to go into the
+character they're going to go into the mesh tab select the two meshes that they
+mesh tab select the two meshes that they have and they'll just click the new item
+have and they'll just click the new item button that's gonna guess automatically
+button that's gonna guess automatically that this is a human piece and it's
+that this is a human piece and it's going to be targeting the torso power
+going to be targeting the torso power now it's also going to suggest a file
+now it's also going to suggest a file name for this asset and it's gonna
+name for this asset and it's gonna suggest a folder to save that file in
+suggest a folder to save that file in every piece of wool skin daters is on
+every piece of wool skin daters is on separate files so we're not walking
+separate files so we're not walking anyone else from working if we're
+anyone else from working if we're working on parts lastly this is the
+working on parts lastly this is the again you can see like we'll skin here
+again you can see like we'll skin here and this is what it looks like when
+and this is what it looks like when you're editing a specific item so
+you're editing a specific item so there's the two meshes and there's some
+there's the two meshes and there's some tags and then we're going to be set up
+tags and then we're going to be set up so let's say it like a little bit faster
+so let's say it like a little bit faster so I'll select my two meshes click OK
+so I'll select my two meshes click OK it's giving me a file name folder and I
+it's giving me a file name folder and I just have to validate that the tags have
+just have to validate that the tags have been correctly tagged for male female
+been correctly tagged for male female for the two versions of meshes and
+for the two versions of meshes and that's about it so it's really really
+that's about it so it's really really fast and we're just gonna do one more so
+fast and we're just gonna do one more so you can get a real idea of like how easy
+you can get a real idea of like how easy it was to integrate okay so how does
+it was to integrate okay so how does that work so just the when I was
+that work so just the when I was describing in configuration file I said
+describing in configuration file I said there's a section about automate
+there's a section about automate Janine's is a really simple there's just
+Janine's is a really simple there's just two types of automation hint the first
+two types of automation hint the first is going to be a folder structure to
+is going to be a folder structure to start mapping so basically we'll skin if
+start mapping so basically we'll skin if we're creating a an item with meshes in
+we're creating a an item with meshes in the human / body folder we're just going
+the human / body folder we're just going to guess that this is a human item for
+to guess that this is a human item for the body slot likewise we have naming
+the body slot likewise we have naming convention to tags so that meshes
+convention to tags so that meshes themselves when you create the easel
+themselves when you create the easel armoire for the female character you're
+armoire for the female character you're going to name it maybe underscore F and
+going to name it maybe underscore F and in a configuration file you're going to
+in a configuration file you're going to say if you find underscore F just tag it
+say if you find underscore F just tag it female automatically
+female automatically so this enforces good practice in the
+so this enforces good practice in the data structure you'll make sure that
+data structure you'll make sure that your data is nice and organized and it
+your data is nice and organized and it also makes the creating the items really
+also makes the creating the items really fast so before we move on to a few other
+fast so before we move on to a few other things in the [ __ ] hierarchy let's look
+things in the [ __ ] hierarchy let's look at how the solver works so you saw that
+at how the solver works so you saw that I was able to change the gender and then
+I was able to change the gender and then just read out the character we're going
+just read out the character we're going to run into detail the example of how
+to run into detail the example of how the solver is running on the data so I
+the solver is running on the data so I mentioned there's the rules section in a
+mentioned there's the rules section in a configuration file and these are
+configuration file and these are basically the pieces of data I'm going
+basically the pieces of data I'm going to say this is how you select the best
+to say this is how you select the best version of the mesh's for each items
+version of the mesh's for each items that you are finding DNA so let's run
+that you are finding DNA so let's run through an example we have a very simple
+through an example we have a very simple configuration file which is just one
+configuration file which is just one rule in there and it says required tag
+rule in there and it says required tag from animal [ __ ] gender so let's just
+from animal [ __ ] gender so let's just build a DNA I'm just gonna add some
+build a DNA I'm just gonna add some items in there you can see you have body
+items in there you can see you have body a leather top and some pens and the body
+a leather top and some pens and the body and the leather top each have two mesh
+and the leather top each have two mesh versions one tag male one type female
+versions one tag male one type female and then the pants have only one version
+and then the pants have only one version which is tagged male and female so it
+which is tagged male and female so it would be a unisex match that fits both
+would be a unisex match that fits both characters I also need to select the
+characters I also need to select the gender so I'm just gonna go in my DNA
+gender so I'm just gonna go in my DNA and select a female gender
+and select a female gender now the solver is gonna run on the
+now the solver is gonna run on the character and select the right versions
+character and select the right versions so the first thing that a solver does is
+so the first thing that a solver does is to initialize a score of 0 on all the
+to initialize a score of 0 on all the mesh's versions and then run through the
+mesh's versions and then run through the rules so we run for the first rule I'm
+rules so we run for the first rule I'm quite like from an M sub gender we can
+quite like from an M sub gender we can eliminate anything that doesn't have a
+eliminate anything that doesn't have a female tag and as you can see basically
+female tag and as you can see basically we just remove them
+we just remove them versions because this is a really simple
+versions because this is a really simple example the solving is done now so we
+example the solving is done now so we have we have female messages and unisex
+have we have female messages and unisex mesh is selected now let's look at a
+mesh is selected now let's look at a more complex example on this character
+more complex example on this character hopefully oops
+hopefully oops yeah notice how she has a hair in the
+yeah notice how she has a hair in the back of her head that would clip and
+back of her head that would clip and we're going to add a hood on the
+we're going to add a hood on the character so you can see that the part
+character so you can see that the part that would be clipping has disappeared
+that would be clipping has disappeared but you can still see the fringe that
+but you can still see the fringe that she had on the front so that the visual
+she had on the front so that the visual quality of the the thing is still there
+quality of the the thing is still there there just for fun we added a boolean
+there just for fun we added a boolean flag in the DNA that makes you able to
+flag in the DNA that makes you able to select whether or not you want the hood
+select whether or not you want the hood so we also remove the hood you see there
+so we also remove the hood you see there a comeback now let's put on a big hat
+a comeback now let's put on a big hat like let's put the hood back and then I
+like let's put the hood back and then I try to put a big hat on the character
+try to put a big hat on the character and you can see likewise they had would
+and you can see likewise they had would not fit under the hood so it remove the
+not fit under the hood so it remove the hood and the hair back can I cool
+hood and the hair back can I cool effects to look really cool so let's
+effects to look really cool so let's look at how an example like this works
+look at how an example like this works so we start again from our same
+so we start again from our same configuration file but we had two rules
+configuration file but we had two rules now so the first one that we are these
+now so the first one that we are these bonus 2 covers the head in top of +1 so
+bonus 2 covers the head in top of +1 so this is basically going to be a default
+this is basically going to be a default selecting rule there we are just saying
+selecting rule there we are just saying if you have the choice between a version
+if you have the choice between a version that covers the head or that doesn't in
+that covers the head or that doesn't in top just give a bonus to this one
+top just give a bonus to this one finally we have a conditional rule in
+finally we have a conditional rule in there if the Hat has a tag is fake then
+there if the Hat has a tag is fake then you're going to as to reject covers the
+you're going to as to reject covers the head in terms so this is basically the
+head in terms so this is basically the translation of if the Hat does not fit
+translation of if the Hat does not fit under the hood then remove the hood you
+under the hood then remove the hood you could have a hat which is not tied is
+could have a hat which is not tied is fake and it would fit nicely in that
+fake and it would fit nicely in that hood so you can support those let's fill
+hood so you can support those let's fill our example our DNA so now you can see
+our example our DNA so now you can see that the hoodie has four meshes male and
+that the hoodie has four meshes male and female version again but this time
+female version again but this time there's the covers the head and doesn't
+there's the covers the head and doesn't cover the head versions the Hat has only
+cover the head versions the Hat has only two versions and they are both big
+two versions and they are both big because the Hat doesn't fit in there so
+because the Hat doesn't fit in there so once again we initialize a scored zero
+once again we initialize a scored zero to all the measure
+to all the measure and then we run through the rules the
+and then we run through the rules the gender role is going to eliminate half
+gender role is going to eliminate half of the choices again then the default
+of the choices again then the default selecting rule banished is going to try
+selecting rule banished is going to try and select the version with the hood on
+and select the version with the hood on so we give a bonus score to the female
+so we give a bonus score to the female hood but then we run the last one and we
+hood but then we run the last one and we look at all the available version in the
+look at all the available version in the Hat and we see that there is the tag is
+Hat and we see that there is the tag is fake and this rule is rejecting the
+fake and this rule is rejecting the covers the head covers the head tag in
+covers the head covers the head tag in the hoodie
+the hoodie so now solver has finished selecting
+so now solver has finished selecting right mesh versions and you can see that
+right mesh versions and you can see that the character would have the Hat on the
+the character would have the Hat on the head and she would not have the hood on
+head and she would not have the hood on her same time so that's how the solver
+her same time so that's how the solver works the good thing was having us over
+works the good thing was having us over in data and the rule is that you can
+in data and the rule is that you can come in anytime at the lid in the
+come in anytime at the lid in the prediction and try to to fix some
+prediction and try to to fix some conflicts that you have for instance on
+conflicts that you have for instance on primal lady in a prediction we noticed
+primal lady in a prediction we noticed that the Quivers were made to fit on the
+that the Quivers were made to fit on the on top of a coat so the problem was when
+on top of a coat so the problem was when we add the topless cocktails the quiver
+we add the topless cocktails the quiver would not match their body very well so
+would not match their body very well so we created a new version of the quiver
+we created a new version of the quiver to better match the mythology and in
+to better match the mythology and in just like when our two sitting with the
+just like when our two sitting with the artist we created rule and in creating
+artist we created rule and in creating the created data I created some mesh
+the created data I created some mesh variations and then put that in in the
+variations and then put that in in the game so that's it for the solver now a
+game so that's it for the solver now a little more about the slots that we
+little more about the slots that we didn't mention there so I mentioned that
+didn't mention there so I mentioned that there's some material slots in there and
+there's some material slots in there and because they're separate from all the
+because they're separate from all the meshes we can wonder how that works so
+meshes we can wonder how that works so when you define those material parameter
+when you define those material parameter slots you're going to be free of the
+slots you're going to be free of the logic of how to apply those material
+logic of how to apply those material parameters to the items so the only
+parameters to the items so the only thing that you're going to do you're
+thing that you're going to do you're going to say I have a pallet slot there
+going to say I have a pallet slot there and it just takes two colors and those
+and it just takes two colors and those colors are named so we just say okay a
+colors are named so we just say okay a palette is a main color and a secondary
+palette is a main color and a secondary color and the team skin is maybe just a
+color and the team skin is maybe just a team logo now when you create items for
+team logo now when you create items for those slots in moleskin you're just
+those slots in moleskin you're just basically going to field values for them
+basically going to field values for them so for instance I can create a palette
+so for instance I can create a palette select two colors I can create a team
+select two colors I can create a team logo and then just point to a texture
+logo and then just point to a texture and
+and I can create a lot of those but we still
+I can create a lot of those but we still are away from logic on the other hand
+are away from logic on the other hand when you create an item which uses
+when you create an item which uses meshes there you're going to have an
+meshes there you're going to have an interface that lets you override the
+interface that lets you override the parameters of this item so you're going
+parameters of this item so you're going to gather all the materials in those
+to gather all the materials in those meshes and then be able to point okay
+meshes and then be able to point okay for this item I want you to override the
+for this item I want you to override the diffuse color of this material and then
+diffuse color of this material and then put those values so you could put the
+put those values so you could put the values by hand but you could also point
+values by hand but you could also point to variables in the DNA so there we're
+to variables in the DNA so there we're just gonna say my diffuse color is the
+just gonna say my diffuse color is the main color my diffuse color to is the
+main color my diffuse color to is the secondary color and all these things
+secondary color and all these things this lets you have those automate
+this lets you have those automate cooperation that deal with the meshes
+cooperation that deal with the meshes and all the meshes are free to do
+and all the meshes are free to do whatever they want with the palette the
+whatever they want with the palette the good point the good thing with that is
+good point the good thing with that is that because we have it erogenous
+that because we have it erogenous sharers in meshes it's easier for us to
+sharers in meshes it's easier for us to have the logic in the meshes that way we
+have the logic in the meshes that way we can support many setups and variations
+can support many setups and variations instead of having you know a very strict
+instead of having you know a very strict like all the items all the shirts needs
+like all the items all the shirts needs to add the material setup like this
+another example like an example in primal I think we have some class-based
+primal I think we have some class-based body paints so the enemies they all
+body paints so the enemies they all share the same body but based on that
+share the same body but based on that class they're going to change the body
+class they're going to change the body paint of the of their body will serve
+paint of the of their body will serve some pre-order bonus for the car when he
+some pre-order bonus for the car when he as a custom tattoos was what we used it
+as a custom tattoos was what we used it for now one last detail
+for now one last detail that I want to go over is the horan
+that I want to go over is the horan slots in this hierarchy so there I just
+slots in this hierarchy so there I just mentioned that we have a skew slot
+mentioned that we have a skew slot sometimes and it groups items but
+sometimes and it groups items but there's a little more to it so let's
+there's a little more to it so let's look at an example now we have to go
+look at an example now we have to go back a little bit to the research phase
+back a little bit to the research phase of the system because this is not really
+of the system because this is not really a it's not greatly using primal but if
+a it's not greatly using primal but if you remember in Far Cry 3 and 4 we had
+you remember in Far Cry 3 and 4 we had some PvP with the team base in play so
+some PvP with the team base in play so there we just created a simple hierarchy
+there we just created a simple hierarchy we have the top and pens slot and we
+we have the top and pens slot and we have a pallet slot and then on top of
+have a pallet slot and then on top of that we have a false shoot slot and
+that we have a false shoot slot and again play slot
+again play slot so I'm creating my character and I can
+so I'm creating my character and I can just select top and pants in a palette
+just select top and pants in a palette and have my character look at the way it
+and have my character look at the way it won't now sometime you want to give a
+won't now sometime you want to give a suit to the player but you don't want
+suit to the player but you don't want them to mix and match items so there we
+them to mix and match items so there we created a hunter's or inter suit and
+created a hunter's or inter suit and it's a very specific tab that goes well
+it's a very specific tab that goes well with some very specific top pants and a
+with some very specific top pants and a palette now the this character could
+palette now the this character could like try and go into PvP mode now and
+like try and go into PvP mode now and you want to display the team color on
+you want to display the team color on after character the thing is so then you
+after character the thing is so then you can give control to the gameplay team
+can give control to the gameplay team and be like ok so I created a slot for
+and be like ok so I created a slot for you in hierarchy and the rule with the
+you in hierarchy and the rule with the hierarchy is that the higher the slot is
+hierarchy is that the higher the slot is the more on the priority it has already
+the more on the priority it has already other slots so when you put the suit it
+other slots so when you put the suit it overrides the top and pants and when I
+overrides the top and pants and when I give the gameplay team like they're
+give the gameplay team like they're override the palette they put their item
+override the palette they put their item higher in the hierarchy and they're
+higher in the hierarchy and they're going to be able to override the palette
+going to be able to override the palette now the good thing about that is that
+now the good thing about that is that energy and I now I have like three tabs
+energy and I now I have like three tabs but they all come from different levels
+but they all come from different levels in hierarchy and priority so conflict
+in hierarchy and priority so conflict solving is is handling that but it also
+solving is is handling that but it also means that it's a non-destructive
+means that it's a non-destructive operation so as soon as they exit the
+operation so as soon as they exit the arena I'm going to be able to remove the
+arena I'm going to be able to remove the gameplay item and it's going to remove
+gameplay item and it's going to remove my team color without destroying my
+my team color without destroying my customization likewise if I remove my
+customization likewise if I remove my suit I'm gonna still find my character
+suit I'm gonna still find my character there so that's it for war skin you know
+there so that's it for war skin you know we have little more details so the next
+we have little more details so the next thing we wanted to look at was variety
+thing we wanted to look at was variety so what is variety in a game like far
+so what is variety in a game like far cry it's taking all these separate
+cry it's taking all these separate meshes that we built all these separate
+meshes that we built all these separate parts and assembling them in different
+parts and assembling them in different ways to build an even greater number of
+ways to build an even greater number of characters in the past we we we do this
+characters in the past we we we do this through like random combinations
+through like random combinations whenever character spawns and we decided
+whenever character spawns and we decided to solve that a little differently for
+to solve that a little differently for this project because what we wanted to
+this project because what we wanted to do was actually do full dnas for our
+do was actually do full dnas for our NPCs and then randomly spawn full
+NPCs and then randomly spawn full characters so why would we want to do
+characters so why would we want to do that
+that the way we used to work was we would
+the way we used to work was we would have to tag meshes that worked well
+have to tag meshes that worked well together
+together so these pants work well with these
+so these pants work well with these shirts the skirt works well with these
+shirts the skirt works well with these shirts but the the hood and tunic don't
+shirts but the the hood and tunic don't work well with the one on the top left
+work well with the one on the top left so you can imagine the more and more and
+so you can imagine the more and more and more things we add this thing can just
+more things we add this thing can just swap out of control and it's a giant
+swap out of control and it's a giant maze of tags of include exclude and that
+maze of tags of include exclude and that type of thing experience showed us this
+type of thing experience showed us this is like really difficult also dangerous
+is like really difficult also dangerous because when a Lada star dropping
+because when a Lada star dropping characters in the map they're gonna see
+characters in the map they're gonna see random spawn characters but they're not
+random spawn characters but they're not gonna see every possible combination
+gonna see every possible combination that could be millions of possible
+that could be millions of possible combinations so that becomes really hard
+combinations so that becomes really hard to debug and make sure that we actually
+to debug and make sure that we actually don't have any problems especially
+don't have any problems especially because once it gets in the hands of our
+because once it gets in the hands of our players you know if this gets in the
+players you know if this gets in the hands of millions of players and each of
+hands of millions of players and each of them sees thousands of characters
+them sees thousands of characters through the course of the game they're
+through the course of the game they're gonna see combinations that we just
+gonna see combinations that we just never ever source artists the other
+never ever source artists the other issue is even if our QC team did find
+issue is even if our QC team did find issues and flag them and say hey here's
+issues and flag them and say hey here's a screenshot of a character that has
+a screenshot of a character that has meshes that don't work together or
+meshes that don't work together or they're their skin color is the wrong
+they're their skin color is the wrong color on the hands in their face that's
+color on the hands in their face that's it that's another big problem because
+it that's another big problem because now it's really hard with this mess of
+now it's really hard with this mess of tagging data to figure out like what
+tagging data to figure out like what combination of tags actually let that
+combination of tags actually let that happen so instead we decided to just
+happen so instead we decided to just simplify it and break it down into small
+simplify it and break it down into small solvable problems so what we did was we
+solvable problems so what we did was we could take a bunch of meshes that we
+could take a bunch of meshes that we knew worked well together and throw them
+knew worked well together and throw them into something we called a generator and
+into something we called a generator and that would generate random DNA's it
+that would generate random DNA's it would tell us how many possible DNA is
+would tell us how many possible DNA is we could build and we would tell it how
+we could build and we would tell it how many we would like it to build so in
+many we would like it to build so in this example maybe we built six of a
+this example maybe we built six of a possible six hundred combinations of
+possible six hundred combinations of these meshes when we're done we might go
+these meshes when we're done we might go to a different generator build another
+to a different generator build another selection of meshes and build a few more
+selection of meshes and build a few more characters and then we just keep going
+characters and then we just keep going and we keep going and we just add meshes
+and we keep going and we just add meshes that we know will work well together or
+that we know will work well together or that fit this character class throw them
+that fit this character class throw them into generators and build randomly
+into generators and build randomly generated characters but we can also
+generated characters but we can also build them by hand
+build them by hand if an artist builds a new asset and they
+if an artist builds a new asset and they want to actually you know custom build a
+want to actually you know custom build a character or if they want to tweak one
+character or if they want to tweak one that's being built by the generator and
+that's being built by the generator and sometimes we even want to pull them out
+sometimes we even want to pull them out of a list so whenever they go out of the
+of a list so whenever they go out of the generator they just get thrown into a
+generator they just get thrown into a list of NPCs to spawn but sometimes we
+list of NPCs to spawn but sometimes we want to pull them out and make them a
+want to pull them out and make them a quest giver so we can go in and like
+quest giver so we can go in and like play with it however we want and when
+play with it however we want and when we're done we have a giant list of dnas
+we're done we have a giant list of dnas for characters and then their
+for characters and then their deterministic so we can control them we
+deterministic so we can control them we can bug fix them if there's ever an
+can bug fix them if there's ever an issue we can just go into the DNA of any
+issue we can just go into the DNA of any specific character and change the items
+specific character and change the items that it's wearing or fix the bug or even
+that it's wearing or fix the bug or even debug what specific tags are causing
+debug what specific tags are causing like conflict so that's really cool and
+like conflict so that's really cool and of course if we ever find that we don't
+of course if we ever find that we don't have enough possible combinations we can
+have enough possible combinations we can just go back to that original generator
+just go back to that original generator and generate some more of that 600
+and generate some more of that 600 possible combinations so we're coming
+possible combinations so we're coming towards the end and we're just going to
+towards the end and we're just going to talk a little bit about what went right
+talk a little bit about what went right and then we'll also talk about what went
+and then we'll also talk about what went wrong so what went right we built a
+wrong so what went right we built a complete character customization and
+complete character customization and modeling pipeline we supported skinned
+modeling pipeline we supported skinned characters skeletons and Static and
+characters skeletons and Static and breakable props we didn't talk about
+breakable props we didn't talk about them but if you play through primal
+them but if you play through primal you'll see a lot of armor or helmets
+you'll see a lot of armor or helmets that can be shattered when you strike
+that can be shattered when you strike them so we we supported those as well
+them so we we supported those as well and our pipeline we had to maximize
+and our pipeline we had to maximize support so artists could use whatever
+support so artists could use whatever they wanted and riggers could use
+they wanted and riggers could use whatever they wanted we have this fast
+whatever they wanted we have this fast wool skin and game act iteration loop
+wool skin and game act iteration loop where the to the customization system
+where the to the customization system and the modeling pipeline really
+and the modeling pipeline really connected to each other and it's really
+connected to each other and it's really fast and easy to work and then integrate
+fast and easy to work and then integrate new items and lastly because all of this
+new items and lastly because all of this we actually got to do a lot of stuff
+we actually got to do a lot of stuff that we normally wouldn't bother doing
+that we normally wouldn't bother doing so for example we added DLC Julian
+so for example we added DLC Julian mentioned we have this paint that you
+mentioned we have this paint that you can unlock as a pre-order bonus and
+can unlock as a pre-order bonus and crafting costumes during the course of
+crafting costumes during the course of the game even though it's first person
+the game even though it's first person you are crafting your winter gear so
+you are crafting your winter gear so when you go into the the northern part
+when you go into the the northern part of the map it's it's frozen off and you
+of the map it's it's frozen off and you need to upgrade your gear to go there so
+need to upgrade your gear to go there so we actually were able to really easily
+we actually were able to really easily on the artists team just integrate this
+on the artists team just integrate this this upgrading clothing and we use
+this upgrading clothing and we use some of those things we saw with the
+some of those things we saw with the folder slots and things and we also use
+folder slots and things and we also use them on the NPCs as well so the NPC is
+them on the NPCs as well so the NPC is also quick winter degree when they go on
+also quick winter degree when they go on the north and then so we were able to do
+the north and then so we were able to do a few things like that that we normally
+a few things like that that we normally would have required programmers or
+would have required programmers or support and instead we could just build
+support and instead we could just build it out in data so lastly we'll just have
+it out in data so lastly we'll just have a for what went right we'll just go
+a for what went right we'll just go through a little video so you can see
+through a little video so you can see some more things about what we built
+some more things about what we built with the pipeline and see some of the
+with the pipeline and see some of the characters in action
+[Music] [Applause]
+so that was for what when right now let's talk a little bit about what went
+let's talk a little bit about what went wrong there's also obviously a lot of
+wrong there's also obviously a lot of debt as well first thing we want to talk
+debt as well first thing we want to talk about is that very commonly now in try
+about is that very commonly now in try triple-a we're not equipped to deal with
+triple-a we're not equipped to deal with transversal tests very well so there was
+transversal tests very well so there was a longer research priority we think this
+a longer research priority we think this is the direction we want to go with the
+is the direction we want to go with the character system and the thing is when
+character system and the thing is when you start pulling something in a triple
+you start pulling something in a triple engine like everything comes together so
+engine like everything comes together so it's true about characters you try to
+it's true about characters you try to you start pulling that and then get my
+you start pulling that and then get my engine tools animation online graphics
+engine tools animation online graphics they all come at the same time so when
+they all come at the same time so when you try and sit down with everybody you
+you try and sit down with everybody you all the stakeholders in a room and then
+all the stakeholders in a room and then you try to say okay this is the
+you try to say okay this is the direction that we want to go it's very
+direction that we want to go it's very hard to like have ten people agree on a
+hard to like have ten people agree on a direction especially when it's not you
+direction especially when it's not you know I think that you can see at the
+know I think that you can see at the time so the actually like there was two
+time so the actually like there was two thing on primal that helped us solve
+thing on primal that helped us solve that the first was clearing up the creek
+that the first was clearing up the creek clearing up the decision process we
+clearing up the decision process we really had a very tight schedule on
+really had a very tight schedule on primal so we agreed that we only had
+primal so we agreed that we only had like maybe a very short amount of time
+like maybe a very short amount of time to make that decision
+to make that decision so we reduced the number of stakeholders
+so we reduced the number of stakeholders we made a clear decision process and
+we made a clear decision process and that helped us the second thing is we
+that helped us the second thing is we instead of having like teams waiting for
+instead of having like teams waiting for each other you know like you have the
+each other you know like you have the engine team does their part and then we
+engine team does their part and then we wait for the tools team to do their part
+wait for the tools team to do their part and all this thing you can have like
+and all this thing you can have like scheduling conflicts and everything
+scheduling conflicts and everything instead we sort of made it more a topic
+instead we sort of made it more a topic in itself so I took over even though I
+in itself so I took over even though I wasn't a tool programmer or something I
+wasn't a tool programmer or something I took over all the parts from the
+took over all the parts from the pipeline to the tools to the engine and
+pipeline to the tools to the engine and then try to make all the characters work
+then try to make all the characters work together that way we would not be trying
+together that way we would not be trying to wait for each other the other thing
+to wait for each other the other thing was Junior is a very old engine it's
+was Junior is a very old engine it's actually based on on CryEngine that we
+actually based on on CryEngine that we bought from Crytek when Ubisoft bought
+bought from Crytek when Ubisoft bought far cry
+far cry so it's been like 15 years probably in
+so it's been like 15 years probably in use that be soft and over like very
+use that be soft and over like very large production a lot of people have
+large production a lot of people have come and gone so there's a lot of the
+come and gone so there's a lot of the engine that we don't know now so we have
+engine that we don't know now so we have lost knowledge for instance the the 3ds
+lost knowledge for instance the the 3ds max biplane was a big mystery bugs so it
+max biplane was a big mystery bugs so it creates a lot of fear in in in your
+creates a lot of fear in in in your discussion when you're like okay we
+discussion when you're like okay we think we want to change the pipeline but
+think we want to change the pipeline but we don't know it works so we don't know
+we don't know it works so we don't know we cannot evaluate it so in the end yeah
+we cannot evaluate it so in the end yeah we had to we had to like jump in the
+we had to we had to like jump in the dark let's talk a little bit about the
+dark let's talk a little bit about the future Wolfskin so we're not there to
+future Wolfskin so we're not there to make any announcements obviously but if
+make any announcements obviously but if you look at our past games in fact right
+you look at our past games in fact right there's been a lot of focus on weapons
+there's been a lot of focus on weapons vehicles animals we think because of all
+vehicles animals we think because of all skin is data oriented it's it would be a
+skin is data oriented it's it would be a good fit to extend the customization
+good fit to extend the customization take to all these things and then extend
+take to all these things and then extend the pipeline as well the other thing is
+the pipeline as well the other thing is we mentioned that you can load the
+we mentioned that you can load the assets into machine builder but right
+assets into machine builder but right now what skin is not there so we'd find
+now what skin is not there so we'd find it really cool if we could have wall
+it really cool if we could have wall skinning motion motion builder so that
+skinning motion motion builder so that the animators can just load the last
+the animators can just load the last version of the character and then have
+version of the character and then have the the cooler sets instead of right now
+the the cooler sets instead of right now where we have to export an FBX and then
+where we have to export an FBX and then for the animators to work on motion
+for the animators to work on motion builder so that's it for us
+builder so that's it for us thanks for listening to us and special
+thanks for listening to us and special thanks to everyone that worked on the
+thanks to everyone that worked on the pipeline and provided support needed to
+pipeline and provided support needed to make it possible there's a few of you in
+make it possible there's a few of you in the audience I think so thank you to
+the audience I think so thank you to everyone here as well
+everyone here as well [Applause]
+and looks like we have a few minutes for questions if anyone has questions just
+questions if anyone has questions just jump up there's a couple of mics there
+jump up there's a couple of mics there and don't forget to do the review when
+and don't forget to do the review when the server comes out hi I was wondering
+the server comes out hi I was wondering did you guys have issues with piercing
+did you guys have issues with piercing on like like tight fitting meshes
+on like like tight fitting meshes particularly like the body slot did you
+particularly like the body slot did you have to call out certain parts of the
+have to call out certain parts of the body to fix piercing issues yeah that's
+body to fix piercing issues yeah that's actually something that we identified at
+actually something that we identified at the beginning in the research phase and
+the beginning in the research phase and with the previous Far Cry games we might
+with the previous Far Cry games we might actually have different versions of the
+actually have different versions of the the naked body with different parts
+the naked body with different parts hidden or on him specifically for primal
+hidden or on him specifically for primal we actually have a lot of naked
+we actually have a lot of naked characters and a lot of their clothes
+characters and a lot of their clothes are like really loose-fitting
+are like really loose-fitting so we got really lucky on that side
+so we got really lucky on that side where because of this we actually kind
+where because of this we actually kind of wanted to keep that naked body there
+of wanted to keep that naked body there the whole time but definitely like on
+the whole time but definitely like on the previous Parker games we needed to
+the previous Parker games we needed to do with like hiding parts of the naked
+do with like hiding parts of the naked mesh in order to make sure that there
+mesh in order to make sure that there was no clipping with the outer layers of
+was no clipping with the outer layers of clothes and even potentially with
+clothes and even potentially with layering of clothes as well tuition the
+layering of clothes as well tuition the first one we can see that you can
+first one we can see that you can navigate through a different piece of
+navigate through a different piece of the body and you can see the last
+the body and you can see the last version can you navigate through the
+version can you navigate through the different version that have been pushed
+different version that have been pushed previously sometimes it's really cool to
+previously sometimes it's really cool to see the evolution of one asset and yet
+see the evolution of one asset and yet sometimes you're losing something
+sometimes you're losing something instead of ink
+instead of ink yeah it's not better than before you
+yeah it's not better than before you want yes change it's actually a really
+want yes change it's actually a really interesting thing that we actually
+interesting thing that we actually benefit from with this pipeline in the
+benefit from with this pipeline in the past all of our data like our Big Macs
+past all of our data like our Big Macs files and things would be in their own
+files and things would be in their own separate kind of data structure we
+separate kind of data structure we didn't actually keep a lot of the
+didn't actually keep a lot of the history on those things because they're
+history on those things because they're such big files especially the ZBrush
+such big files especially the ZBrush phones because now our data format that
+phones because now our data format that you you load the mesh and you save the
+you you load the mesh and you save the mesh is actually inside our project data
+mesh is actually inside our project data we always keep a history of that and so
+we always keep a history of that and so with perforce just like with standard
+with perforce just like with standard peripherals provisioning we could just
+peripherals provisioning we could just roll back between things it would be
+roll back between things it would be nice to actually link
+nice to actually link a little bit more logic there between
+a little bit more logic there between the mesh and it's texture you can feel
+the mesh and it's texture you can feel that if you have this button to and have
+that if you have this button to and have gets through the previous version yeah
+gets through the previous version yeah and the same thing it could be great
+and the same thing it could be great because you have already a lot of things
+because you have already a lot of things so yeah we did do that a few times
+so yeah we did do that a few times we're just manually and perforce rolling
+we're just manually and perforce rolling back but because you're actually
+back but because you're actually importing it from the engines or the
+importing it from the engines or the same data format the engine uses you can
+same data format the engine uses you can kind of roll back that one see the
+kind of roll back that one see the change in the engine and if you wanted
+change in the engine and if you wanted to grab it back in tomorrow you could
+to grab it back in tomorrow you could you could open it still yeah and just
+you could open it still yeah and just the second question was about the
+the second question was about the morphology of the characters because you
+morphology of the characters because you have a woman man and they are pretty a
+have a woman man and they are pretty a lot of muscle or not or something like
+lot of muscle or not or something like this yeah did you manage specific
+this yeah did you manage specific topologies it seemed to be when we see
+topologies it seemed to be when we see all the characters regenerates have
+all the characters regenerates have pretty all the same size and everything
+pretty all the same size and everything does its material you need to have some
+does its material you need to have some consistency on this of do you manage to
+consistency on this of do you manage to upgrade this maybe you already do this I
+upgrade this maybe you already do this I don't know yes so they actually share
+don't know yes so they actually share the skeleton that's for we have a lot of
+the skeleton that's for we have a lot of male and female enemies so all of the
+male and female enemies so all of the enemy animation ends up being used for
+enemy animation ends up being used for both genders we did share the base
+both genders we did share the base topology for the naked mesh and then I
+topology for the naked mesh and then I think pretty much most of the clothing
+think pretty much most of the clothing as well because they're often adapted at
+as well because they're often adapted at the low poly so we might do a high poly
+the low poly so we might do a high poly on one gender and then just adapt the
+on one gender and then just adapt the low poly sometimes so they were kept
+low poly sometimes so they were kept kind of consistent between the genders
+kind of consistent between the genders and I think that's part of it but
+and I think that's part of it but definitely the shapes were very
+definitely the shapes were very different between the genders so it did
+different between the genders so it did mean for things like shoes you know it's
+mean for things like shoes you know it's the same for hands I think there were
+the same for hands I think there were the same but once we got into the arms
+the same but once we got into the arms and the torso we would have to adapt the
+and the torso we would have to adapt the the meshes as well to fit that
+the meshes as well to fit that morphology okay thanks a lot thank you
+for the main character as well as the NPCs yeah yeah I think when we started
+NPCs yeah yeah I think when we started we weren't using hear it on the main
+we weren't using hear it on the main character and at a certain point we
+character and at a certain point we switched because it just made perfect
+switched because it just made perfect sense for us so we do use it on the on
+sense for us so we do use it on the on the main character and that's how we got
+the main character and that's how we got like the unlockable or DLC paint on the
+like the unlockable or DLC paint on the on the players arm is a is a actual
+on the players arm is a is a actual texture swap that's a separate item in
+texture swap that's a separate item in the system and the same with the
+the system and the same with the crafting of the clothing
+crafting of the clothing and if you go further in like you can
+and if you go further in like you can actually in Primal you can switch to the
+actually in Primal you can switch to the eagle and fly around and you can see
+eagle and fly around and you can see yourself third person so it was really
+yourself third person so it was really valuable for us to actually be able to
+valuable for us to actually be able to to show that progression on the
+to show that progression on the character through the game because you
+character through the game because you you actually do see him even though it's
+you actually do see him even though it's a first-person game system that prevents
+a first-person game system that prevents NPCs to get items from when Tata
+NPCs to get items from when Tata I took some crowns of very specific so
+I took some crowns of very specific so no it was really up to the artists to
+no it was really up to the artists to just choose if they wanted to share the
+just choose if they wanted to share the meshes between the player or not they're
+meshes between the player or not they're on the same skeleton and they're the
+on the same skeleton and they're the player
+player I think the player was actually the same
+I think the player was actually the same config it was the same config right yeah
+config it was the same config right yeah so is the same configures the NPCs so
+so is the same configures the NPCs so yeah they shared things in fact a lot of
+yeah they shared things in fact a lot of the things that the player wears are the
+the things that the player wears are the same for for NPC clothing especially one
+same for for NPC clothing especially one of the main narrative characters at the
+of the main narrative characters at the start of the game you meet he wears
+start of the game you meet he wears pretty much the same outfit as you your
+pretty much the same outfit as you your similar kind of war warrior type
+similar kind of war warrior type character yeah thank you
+character yeah thank you thanks hi great talk thank you thanks
+thanks hi great talk thank you thanks when I saw a miner max interface I
+when I saw a miner max interface I couldn't even know that big simple even
+couldn't even know that big simple even simple Agana
+simple Agana icon was it part of your scheme by
+icon was it part of your scheme by prying to make a roadie or it's totally
+prying to make a roadie or it's totally separate and didn't really work yes so
+separate and didn't really work yes so yeah we were using simply gun we didn't
+yeah we were using simply gun we didn't talk about it here but actually at the
+talk about it here but actually at the booth later we'll be demoing a video of
+booth later we'll be demoing a video of that but it's there we go there's the
+that but it's there we go there's the time that will be at the Ubisoft booth
+time that will be at the Ubisoft booth so 2 p.m. this afternoon will show a few
+so 2 p.m. this afternoon will show a few more videos and one of them is simply
+more videos and one of them is simply gun so there we chose to use simply gun
+gun so there we chose to use simply gun in the pipeline because before we used
+in the pipeline because before we used to have a LOD tool in max but of course
+to have a LOD tool in max but of course it's only a max and then on primal I
+it's only a max and then on primal I built one in Maya but you know that was
+built one in Maya but you know that was really good because you get different
+really good because you get different quality LEDs with those two separate
+quality LEDs with those two separate tools and simplygon is just way better
+tools and simplygon is just way better at doing it than my tool was ever so we
+at doing it than my tool was ever so we actually used the the passenger in-game
+actually used the the passenger in-game x data to send the data from either max
+x data to send the data from either max or maya off to simply go on and we
+or maya off to simply go on and we worked with our tools group to to have
+worked with our tools group to to have like a little Python API for dealing
+like a little Python API for dealing simplygon and so we send the meshes out
+simplygon and so we send the meshes out of either max room I ascend it's a
+of either max room I ascend it's a simply gun and then it comes back again
+simply gun and then it comes back again and we just get these little
+and we just get these little notifications as they start coming into
+notifications as they start coming into your Maya file so it's really good and
+your Maya file so it's really good and as well we we actually embedded a lot of
+as well we we actually embedded a lot of the simplygon settings into that node
+the simplygon settings into that node editor that I showed at the start the
+editor that I showed at the start the big thing so a lot of this stuff for
+big thing so a lot of this stuff for simplygon was set there and you could
+simplygon was set there and you could save it with the mesh so if a rigger
+save it with the mesh so if a rigger came and like did a skinning pass on
+came and like did a skinning pass on your character or something you could
+your character or something you could click regenerate first simply gum and
+click regenerate first simply gum and you would actually get the same LOD
+you would actually get the same LOD simplygon settings whenever anyone
+simplygon settings whenever anyone clicked that button so yeah thank you no
+clicked that button so yeah thank you no problem I got two questions first off is
+problem I got two questions first off is how do you manage the rigging process
+how do you manage the rigging process you know let's say character has a big
+you know let's say character has a big wolf head here and goes to down low here
+wolf head here and goes to down low here yeah how do you auto rig it cuz you know
+yeah how do you auto rig it cuz you know I saw that you got a previous within you
+I saw that you got a previous within you know all three packages yep and you can
+know all three packages yep and you can just so the characters are sharing
+just so the characters are sharing skeletons but all the extra stuff that
+skeletons but all the extra stuff that goes on top could be customized for the
+goes on top could be customized for the characters in primal we had we would put
+characters in primal we had we would put these these shared rig extra constraints
+these these shared rig extra constraints and bones and things into the core
+and bones and things into the core skeleton so they could be reused across
+skeleton so they could be reused across different characters so in the video you
+different characters so in the video you might have noticed there was some muscle
+might have noticed there was some muscle system on the character so that was set
+system on the character so that was set up in max but it we have a plug-in for
+up in max but it we have a plug-in for that so the the constraints are like a
+that so the the constraints are like a muscle constraint or look at position
+muscle constraint or look at position orientation type constraints or pose
+orientation type constraints or pose correctives like a driven key sight
+correctives like a driven key sight system so you the riggers could actually
+system so you the riggers could actually rig this in max and then there's plugins
+rig this in max and then there's plugins from Maya from motion builder as well so
+from Maya from motion builder as well so the animators see the muscle deformation
+the animators see the muscle deformation and they see the constraints in motion
+and they see the constraints in motion builder and the exact same code runs in
+builder and the exact same code runs in a game engine so all those extra bones
+a game engine so all those extra bones like there's the core 60 and then
+like there's the core 60 and then there's probably another hundred or so
+there's probably another hundred or so extra muscle bones and dynamic bones and
+extra muscle bones and dynamic bones and things so all of those kind of get saved
+things so all of those kind of get saved into this little XML description of what
+into this little XML description of what the constraint is and what bones it's
+the constraint is and what bones it's and then it gets sent to two
+and then it gets sent to two MotionBuilder for the animators to the
+MotionBuilder for the animators to the game engine for the runtime version of
+game engine for the runtime version of those constraints which should have a
+those constraints which should have a bit more at the launch at 2:00 p.m. so
+bit more at the launch at 2:00 p.m. so we also have a bit video of oh yeah yeah
+we also have a bit video of oh yeah yeah yeah I think we have to free the room so
+yeah I think we have to free the room so I think oh yeah yeah I think we thank
+I think oh yeah yeah I think we thank you thank you for come up and
+you thank you for come up and [Applause]

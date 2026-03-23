@@ -1,0 +1,846 @@
+[Music] okay let's go going so hi everybody my
+okay let's go going so hi everybody my name is Chris Liu I'm a physics engineer
+name is Chris Liu I'm a physics engineer I work on the physics team frostbite
+I work on the physics team frostbite which is EA's game engine so I've been
+which is EA's game engine so I've been asked to remind you not to video this
+asked to remind you not to video this and to fill in your evaluation forms at
+and to fill in your evaluation forms at the end so thank you in advance
+the end so thank you in advance okay so one thing I'd like to point out
+okay so one thing I'd like to point out if we start is this is physics talk but
+if we start is this is physics talk but there's no mathematics it feels sort of
+there's no mathematics it feels sort of foolishly simple when I remove the maths
+foolishly simple when I remove the maths from it so I would appreciate if you
+from it so I would appreciate if you pretend that this is really difficult if
+pretend that this is really difficult if you want to see that stuff then you can
+you want to see that stuff then you can download the technical report that I've
+download the technical report that I've written on it right now which does
+written on it right now which does contain all of the grisly details but
+contain all of the grisly details but this is only half an hour so I don't
+this is only half an hour so I don't really have time to put those in here
+really have time to put those in here okay so what is self collision what is
+okay so what is self collision what is this all about
+this all about so most people are familiar with cloth
+so most people are familiar with cloth and are familiar with the sort of
+and are familiar with the sort of attractive shapes that make on a body
+attractive shapes that make on a body and in games we often want to capture
+and in games we often want to capture these things in some way whether by you
+these things in some way whether by you know just putting it in a in a normal
+know just putting it in a in a normal map in a texture or by animating it or
+map in a texture or by animating it or by simulating it
+by simulating it more recently in games the more common
+more recently in games the more common way to do a lot of different types of
+way to do a lot of different types of clothing has been to simulate it because
+clothing has been to simulate it because the clothing is likely to be attached to
+the clothing is likely to be attached to a character that the player has control
+a character that the player has control over and in that case it's very
+over and in that case it's very difficult to capture all the defamations
+difficult to capture all the defamations that the cloth can go through just with
+that the cloth can go through just with like traditional orphan means so self
+like traditional orphan means so self collision is the phenomenon where the
+collision is the phenomenon where the cloth collides with itself and it can
+cloth collides with itself and it can wrinkle and get into piles maybe you can
+wrinkle and get into piles maybe you can knot it and you can have layers of cloth
+knot it and you can have layers of cloth which slide over each other and the the
+which slide over each other and the the layered clothing use-case in particular
+layered clothing use-case in particular covers a lot of different types of
+covers a lot of different types of clothing most of which you're probably
+clothing most of which you're probably wearing right now so I would hope you're
+wearing right now so I would hope you're familiar with that so let's talk very
+familiar with that so let's talk very briefly about how you go about
+briefly about how you go about simulating cloth like in a basic level
+simulating cloth like in a basic level most production cloth simulations that
+most production cloth simulations that try to be real-time do some kind of non
+try to be real-time do some kind of non projected gauss-seidel solver which
+projected gauss-seidel solver which sounds kind of unpleasant but what it
+sounds kind of unpleasant but what it really means is that you have a series
+really means is that you have a series of constraints between particles and
+of constraints between particles and then you just go over those constraints
+then you just go over those constraints and solve them so that they're satisfied
+and solve them so that they're satisfied so you might have length constraints
+so you might have length constraints which cause the cloth to maintain the
+which cause the cloth to maintain the same length and to solve that constraint
+same length and to solve that constraint would mean to go a for each constraint
+would mean to go a for each constraint and say well is it longer than it should
+and say well is it longer than it should be
+be if it is then we'll shorten it so that
+if it is then we'll shorten it so that it's the correct length or if it's
+it's the correct length or if it's shorter than it should be well lengthen
+shorter than it should be well lengthen it so we use the length constraints to
+it so we use the length constraints to constrain the the stretching of the
+constrain the the stretching of the cloth and the shearing and the cloth and
+cloth and the shearing and the cloth and also the bending of the cloth and if
+also the bending of the cloth and if you've got this on a run time character
+you've got this on a run time character then you probably need a bunch of other
+then you probably need a bunch of other constraints to keep the cloth in vaguely
+constraints to keep the cloth in vaguely the right sort of place and we have a
+the right sort of place and we have a lot of different types of these but one
+lot of different types of these but one of the most basic ones is that we just
+of the most basic ones is that we just have an anchor constraint which is a
+have an anchor constraint which is a sphere that the cloth point can sort of
+sphere that the cloth point can sort of live in where the center of the sphere
+live in where the center of the sphere is defined by the animation that you put
+is defined by the animation that you put into it and so in the absolute worth
+into it and so in the absolute worth case where all of your other constraints
+case where all of your other constraints have failed to keep the cloth in right
+have failed to keep the cloth in right place you can always be certain that
+place you can always be certain that it's never going to stray too far away
+it's never going to stray too far away from where it where your animation would
+from where it where your animation would have put it and then we also have
+have put it and then we also have contact constraints which is you've got
+contact constraints which is you've got some sort of collision representation of
+some sort of collision representation of the body underneath the cloth like maybe
+the body underneath the cloth like maybe a sphere for the head or a capsule for
+a sphere for the head or a capsule for the arm and you need to make sure that
+the arm and you need to make sure that the cloth stays on the outside of these
+the cloth stays on the outside of these colliders rather than going through them
+colliders rather than going through them otherwise they will be very good
+otherwise they will be very good colliders and for that we use contact
+colliders and for that we use contact constraints but wait a second why am i
+constraints but wait a second why am i representing contact with something like
+representing contact with something like a sphere or a or a capsule as just a
+a sphere or a or a capsule as just a plane so I'm going to talk now about
+plane so I'm going to talk now about discrete and continuous collision
+discrete and continuous collision detection and what it actually means to
+detection and what it actually means to use contacts and the relevance of this
+use contacts and the relevance of this will become obvious later when I talk
+will become obvious later when I talk about how this concerns self collision
+about how this concerns self collision okay so sort of obvious way to do
+okay so sort of obvious way to do collision detection in a particle based
+collision detection in a particle based simulator is to do it with discrete
+simulator is to do it with discrete calculations so that basically means
+calculations so that basically means that you don't worry about the velocity
+that you don't worry about the velocity of the point say you've got in this case
+of the point say you've got in this case we've got a like a capsule and there's a
+we've got a like a capsule and there's a point which is inside the capsule and
+point which is inside the capsule and you can very easily work out the correct
+you can very easily work out the correct way to push it
+way to push it so you push it out by the shortest path
+so you push it out by the shortest path and that is resolution of your collision
+and that is resolution of your collision and it's not too difficult to work out
+and it's not too difficult to work out whether a point is inside a capsule or
+whether a point is inside a capsule or whether a point is inside almost any
+whether a point is inside almost any other shape but there are a lot of
+other shape but there are a lot of issues with this approach when you start
+issues with this approach when you start considering velocities of the points and
+considering velocities of the points and maybe the colliders have velocity as
+maybe the colliders have velocity as well maybe they have a translation and a
+well maybe they have a translation and a rotation and in that case you start
+rotation and in that case you start getting issue issues like this where if
+getting issue issues like this where if you're doing discrete time stepping
+you're doing discrete time stepping where you have one time step and then 30
+where you have one time step and then 30 milliseconds later the point has a
+milliseconds later the point has a velocity which puts at the other side of
+velocity which puts at the other side of the collider then when you say oh it's
+the collider then when you say oh it's inside I would have pushed it out it
+inside I would have pushed it out it gets pushed out the wrong way and this
+gets pushed out the wrong way and this will show up in your conten simulator as
+will show up in your conten simulator as colliders very easily pushing their way
+colliders very easily pushing their way through the cloth and that can be very
+through the cloth and that can be very distracting and there are other issues
+distracting and there are other issues like if their velocities are high enough
+like if their velocities are high enough that it never even touches the collider
+that it never even touches the collider then you won't notice that at all and
+then you won't notice that at all and and that will I mean that's the classic
+and that will I mean that's the classic bullet through paper Effect 4 you see in
+bullet through paper Effect 4 you see in a lot of old-style physics simulations
+a lot of old-style physics simulations but there are more pernicious issues
+but there are more pernicious issues like for instance even if you don't even
+like for instance even if you don't even have any velocities in your simulation
+have any velocities in your simulation at all every point is probably connected
+at all every point is probably connected to some other constraints which are
+to some other constraints which are going to pull it around and so let's say
+going to pull it around and so let's say in this case they've pulled it into this
+in this case they've pulled it into this configuration and that's the other side
+configuration and that's the other side of the collider from where it started
+of the collider from where it started the beginning of the frame and when we
+the beginning of the frame and when we push it out it goes to the other side so
+push it out it goes to the other side so you you can't just look at the
+you you can't just look at the velocities of the points because there's
+velocities of the points because there's going to be some other movement
+going to be some other movement generated by other constraints in your
+generated by other constraints in your system so discrete collision detection
+system so discrete collision detection has a bunch of issues with it which we
+has a bunch of issues with it which we would like to fix so a classic way to
+would like to fix so a classic way to try to deal with this is using some form
+try to deal with this is using some form of continuous collision detection and
+of continuous collision detection and for the purposes of this I'm I'm using
+for the purposes of this I'm I'm using continuously in detection to mean
+continuously in detection to mean collision detection that considers the
+collision detection that considers the velocities and trajectories of the
+velocities and trajectories of the things that are trying to stop them from
+things that are trying to stop them from interpenetrating kind of a most basic
+interpenetrating kind of a most basic naughty way of doing this is just to
+naughty way of doing this is just to subdivide your time step into as many
+subdivide your time step into as many time steps as is required you just run
+time steps as is required you just run your simulation at like 4,000 Hertz or
+your simulation at like 4,000 Hertz or something and then as long as your
+something and then as long as your velocities aren't too high you'll never
+velocities aren't too high you'll never get to a point where things move too
+get to a point where things move too much in one time step
+much in one time step but this is obviously hilariously
+but this is obviously hilariously expensive so we don't do it so another
+expensive so we don't do it so another thing is to do some sort of closed form
+thing is to do some sort of closed form calculation between your your objects
+calculation between your your objects and work out in this time interval from
+and work out in this time interval from like zero to one between two different
+like zero to one between two different frames are they actually going to hit
+frames are they actually going to hit each other and even if even if they're
+each other and even if even if they're not hitting like at the beginning state
+not hitting like at the beginning state or the ending state there might be some
+or the ending state there might be some state in between where they've barely
+state in between where they've barely intersect and you can also work this out
+intersect and you can also work this out it can be very expensive for some kinds
+it can be very expensive for some kinds of primitives it can be reasonably cheap
+of primitives it can be reasonably cheap for others so it's not a good general
+for others so it's not a good general solution to the problem and then the
+solution to the problem and then the remedy for this that we use that I'm
+remedy for this that we use that I'm going to talk about now that we use in
+going to talk about now that we use in our cloth simulator and also most modern
+our cloth simulator and also most modern rigidbody simulators use we called
+rigidbody simulators use we called predictive contacts some people call
+predictive contacts some people call that speculative contacts but the idea
+that speculative contacts but the idea is that you you kind of reject the idea
+is that you you kind of reject the idea of the idea the second thing where
+of the idea the second thing where you're trying to find the time of impact
+you're trying to find the time of impact between two objects and you say well
+between two objects and you say well actually I just want to know if they're
+actually I just want to know if they're going to be vaguely in the same sort of
+going to be vaguely in the same sort of spaces each other I don't want to know
+spaces each other I don't want to know exactly if they're really going to
+exactly if they're really going to collide I just know that if they're near
+collide I just know that if they're near each other other constraints may push
+each other other constraints may push them around so that they will be going
+them around so that they will be going through each other so I just want to
+through each other so I just want to have a sort of fuzzy idea of when
+have a sort of fuzzy idea of when they're going to be in the same place as
+they're going to be in the same place as each other and if we think that one is
+each other and if we think that one is going to go through the other then we
+going to go through the other then we can generate a simplified representation
+can generate a simplified representation of the collision which is what we
+of the collision which is what we actually solve in our solver so in this
+actually solve in our solver so in this case we say oh it's probably going to go
+case we say oh it's probably going to go through the capsule so we create this
+through the capsule so we create this plane and then when we solve this
+plane and then when we solve this constraint we push it out of the plane
+constraint we push it out of the plane instead of pushing it out of the capsule
+instead of pushing it out of the capsule and even though it doesn't go to the
+and even though it doesn't go to the same place that it would go to if we
+same place that it would go to if we heard like solve a fully continuous
+heard like solve a fully continuous problem the critical thing is that it
+problem the critical thing is that it stays on the right side of the capsule
+stays on the right side of the capsule so your cloth is going to stay on the
+so your cloth is going to stay on the right side of your limb and that's very
+right side of your limb and that's very important for like the fidelity of your
+important for like the fidelity of your simulation so how does this deal in some
+simulation so how does this deal in some of the cases that we were looking at
+of the cases that we were looking at just now so in this case where it was
+just now so in this case where it was going to go all the way through we
+going to go all the way through we generate a contact and it stays on the
+generate a contact and it stays on the right side of it in this case where was
+right side of it in this case where was going to go partially if you're gonna
+going to go partially if you're gonna get pushed out of the wrong way we do
+get pushed out of the wrong way we do the same thing and in this case this
+the same thing and in this case this third case illustrates that we need to
+third case illustrates that we need to use some kind of fuzzy logic like a
+use some kind of fuzzy logic like a radius that says
+radius that says if the things are going to be close
+if the things are going to be close together like within some epsilon
+together like within some epsilon defined by how how long our constraints
+defined by how how long our constraints are then we need to generate a contact
+are then we need to generate a contact even if we don't think they're going to
+even if we don't think they're going to hit each other due to their velocities
+hit each other due to their velocities and in that case we we pull the particle
+and in that case we we pull the particle through due to some other constraints
+through due to some other constraints and it gets pushed out again in the
+and it gets pushed out again in the right direction and this really helps
+right direction and this really helps with issues where like for instance
+with issues where like for instance you've got some cloth that's rubbing
+you've got some cloth that's rubbing over a Collider that's bearing a heavy
+over a Collider that's bearing a heavy weight that's going to be pulled down by
+weight that's going to be pulled down by the other constraints it needs to be
+the other constraints it needs to be pushed back up again in the right
+pushed back up again in the right direction so what are the conditions for
+direction so what are the conditions for creating a contact well if the point
+creating a contact well if the point starts inside a Collider and obviously
+starts inside a Collider and obviously we need a contact to push it out if it
+we need a contact to push it out if it starts in the air to the collider then
+starts in the air to the collider then it might be pulled inside by other
+it might be pulled inside by other constraints so we need something to know
+constraints so we need something to know what's going to stop that from happening
+what's going to stop that from happening and if the velocities mean that it's
+and if the velocities mean that it's likely to be within that radius of the
+likely to be within that radius of the collider then we also need to generate a
+collider then we also need to generate a contact so what's the practical
+contact so what's the practical difference between two these two
+difference between two these two different types of collisions so here
+different types of collisions so here are two gifts which demonstrate the
+are two gifts which demonstrate the difference and it's quite like
+difference and it's quite like substantial we have this capsule which
+substantial we have this capsule which is going to move it's not like
+is going to move it's not like teleporting it's moving in one frame
+teleporting it's moving in one frame from one side of the picture to the
+from one side of the picture to the other in the case of discrete collision
+other in the case of discrete collision detection where we only test at the
+detection where we only test at the beginning or the end of the frame it
+beginning or the end of the frame it doesn't even notice the cloth doesn't
+doesn't even notice the cloth doesn't notice that the collider has done this
+notice that the collider has done this but in the predictive context case we
+but in the predictive context case we get the cloth reacting in a pretty nice
+get the cloth reacting in a pretty nice way so there are a lot of artifacts
+way so there are a lot of artifacts associated with using predictive
+associated with using predictive contacts like for instance you can get
+contacts like for instance you can get fake collisions the collisions that
+fake collisions the collisions that wouldn't really happen if you subdivided
+wouldn't really happen if you subdivided the time step but generally these are
+the time step but generally these are much easier to ignore than the problems
+much easier to ignore than the problems associated with it it's doing discrete
+associated with it it's doing discrete collision detection which is that your
+collision detection which is that your your cloth will just go through stuff so
+your cloth will just go through stuff so this is a nice improvement so now let's
+this is a nice improvement so now let's talk a little bit about self collision
+talk a little bit about self collision and then we'll unite these things
+and then we'll unite these things together and talk about self collision
+together and talk about self collision with protective contacts so self
+with protective contacts so self collision is cloth against itself but we
+collision is cloth against itself but we also use it to mean cloth against other
+also use it to mean cloth against other bits of cloth so for instance in these
+bits of cloth so for instance in these two situations I've got two bits of
+two situations I've got two bits of cloth which don't collide with
+cloth which don't collide with themselves they just collide with each
+themselves they just collide with each other and at a local level in terms of
+other and at a local level in terms of generating and solving constraints these
+generating and solving constraints these two problems are exactly equivalent to
+two problems are exactly equivalent to each other so there's the others no
+each other so there's the others no difference so here on the Left we have
+difference so here on the Left we have point point self collision you need to
+point point self collision you need to choose which kind of creamy
+choose which kind of creamy in your cloth you're actually going to
+in your cloth you're actually going to like run these calculations on so you
+like run these calculations on so you might say well it's a it's a triangle
+might say well it's a it's a triangle mesh there's points in the triangle mesh
+mesh there's points in the triangle mesh I'm just gonna put spheres around these
+I'm just gonna put spheres around these points and make sure that the spheres
+points and make sure that the spheres don't go through each other and that is
+don't go through each other and that is one way to do it but you can obviously
+one way to do it but you can obviously see in this gift that there's a critical
+see in this gift that there's a critical error with this which is that if the
+error with this which is that if the cloth stretches you might get gaps
+cloth stretches you might get gaps appearing between these points and
+appearing between these points and that's not going to look nice when the
+that's not going to look nice when the cloth gets entangled or it slides
+cloth gets entangled or it slides through just because your tessellation
+through just because your tessellation isn't regular enough so one way you can
+isn't regular enough so one way you can deal with this is to run a full mesh
+deal with this is to run a full mesh self collision which is where you use
+self collision which is where you use the triangles rather than the points and
+the triangles rather than the points and as you can see on the right this enables
+as you can see on the right this enables you to make the cloth much thinner
+you to make the cloth much thinner because there's a continuous surface and
+because there's a continuous surface and you don't need to worry about gaps
+you don't need to worry about gaps appearing and generally this results in
+appearing and generally this results in much higher quality so this is what
+much higher quality so this is what we've mostly concentrated on doing so
+we've mostly concentrated on doing so let's take a quick look at how you would
+let's take a quick look at how you would implement point-point collision first so
+implement point-point collision first so here's a sort of simple example of the
+here's a sort of simple example of the sort of thing you can do with this so in
+sort of thing you can do with this so in this case you've got two particles both
+this case you've got two particles both of which have some sort of radius and
+of which have some sort of radius and we're trying to work out if they're
+we're trying to work out if they're going to be within a certain distance of
+going to be within a certain distance of each other within the frame and this is
+each other within the frame and this is actually not too difficult to just solve
+actually not too difficult to just solve exactly having spent some time slagging
+exactly having spent some time slagging off time of impact calculations this is
+off time of impact calculations this is not a difficult problem to solve it's
+not a difficult problem to solve it's just finding their closest distance
+just finding their closest distance between two lines so this is not so bad
+between two lines so this is not so bad and you can work out oh they're going to
+and you can work out oh they're going to be quite near to each other so we need
+be quite near to each other so we need to generate a contact to stop them from
+to generate a contact to stop them from going through so once we know that
+going through so once we know that that's likely to happen we need some
+that's likely to happen we need some sort of representation that we're going
+sort of representation that we're going to put in the solver and solve later and
+to put in the solver and solve later and in this case you need to choose some
+in this case you need to choose some sort of normal that you're going to push
+sort of normal that you're going to push them away from each other along and what
+them away from each other along and what we do here is we just choose the normal
+we do here is we just choose the normal at the beginning of the frame you could
+at the beginning of the frame you could choose the normal like at this point the
+choose the normal like at this point the point at which they're touching but we
+point at which they're touching but we found this doesn't result in great
+found this doesn't result in great behavior in terms of like robustness so
+behavior in terms of like robustness so actually this works fine as just you
+actually this works fine as just you just choose the discreet separating
+just choose the discreet separating direction of the beginning of the frame
+direction of the beginning of the frame and make sure that they don't penetrate
+and make sure that they don't penetrate when they're pushed like a long van
+when they're pushed like a long van normal and that will keep them the same
+normal and that will keep them the same side of each other as they start at the
+side of each other as they start at the frame on and you can encode this with
+frame on and you can encode this with just the
+just the the index of each point and the normal
+the index of each point and the normal said that you know which line to project
+said that you know which line to project them long so okay let's look at full
+them long so okay let's look at full mesh collision now in order to make this
+mesh collision now in order to make this robust you need to do two different
+robust you need to do two different types of queries so there's point
+types of queries so there's point triangle on the right-hand edge edge on
+triangle on the right-hand edge edge on the left and if you don't do both
+the left and if you don't do both different types of constraint then there
+different types of constraint then there will be some configurations that you can
+will be some configurations that you can slot your cloth together in that will
+slot your cloth together in that will cause it to be able to interpenetrate so
+cause it to be able to interpenetrate so there's actually two different types of
+there's actually two different types of constraints that we need to generate and
+constraints that we need to generate and solve here so let's look at the point
+solve here so let's look at the point triangle case first so what this is much
+triangle case first so what this is much harder to solve exactly than the point
+harder to solve exactly than the point point case and the reason for that is
+point case and the reason for that is that contrary to what people most people
+that contrary to what people most people are used to in games industry all the
+are used to in games industry all the points here at deforming so there's no
+points here at deforming so there's no like rigidity that you can deal with and
+like rigidity that you can deal with and stuff like ggok isn't really going to
+stuff like ggok isn't really going to help you here so what you can do is you
+help you here so what you can do is you can't write down the equation that
+can't write down the equation that describes the distance between these
+describes the distance between these primitives so we've got a point on the
+primitives so we've got a point on the left it's got a velocity and we've got a
+left it's got a velocity and we've got a triangle on the right that's got some if
+triangle on the right that's got some if each of its vertices have velocity and
+each of its vertices have velocity and if you write it down you get a sixth
+if you write it down you get a sixth order polynomial and then effectively
+order polynomial and then effectively what we're trying to find out is does
+what we're trying to find out is does this sick little polynomial intersect
+this sick little polynomial intersect some some distance value at some point
+some some distance value at some point during the time interval between this
+during the time interval between this time step and the next time step and if
+time step and the next time step and if it goes below that dotted line then what
+it goes below that dotted line then what we probably want to generate a contact
+we probably want to generate a contact because they're going to be near to each
+because they're going to be near to each other
+other but it is not nice trying to solve this
+but it is not nice trying to solve this equation and actually even if you ignore
+equation and actually even if you ignore the part where we've got a radius on
+the part where we've got a radius on these things and you literally just try
+these things and you literally just try to find out if the point is going to
+to find out if the point is going to touch the triangle itself that is still
+touch the triangle itself that is still a cubic polynomial that is very
+a cubic polynomial that is very difficult to find the roots of and it's
+difficult to find the roots of and it's like a current current research problem
+like a current current research problem in cigarette papers to try to find an
+in cigarette papers to try to find an efficient way of doing this so we really
+efficient way of doing this so we really didn't want to do this but this is the
+didn't want to do this but this is the games industry so of course we have
+games industry so of course we have unsupported hacks to deal with this
+unsupported hacks to deal with this so notionally what we are doing I call
+so notionally what we are doing I call it a dynamic collision radius maybe that
+it a dynamic collision radius maybe that doesn't quite
+doesn't quite describe it very well what it is is we
+describe it very well what it is is we are looking at the discrete problem at
+are looking at the discrete problem at the beginning of the frame and then
+the beginning of the frame and then we're making a bunch of assumptions that
+we're making a bunch of assumptions that are not true but they help and then
+are not true but they help and then we're using those assumptions to work
+we're using those assumptions to work out if we should generate a contact and
+out if we should generate a contact and if and we have a parameter that we can
+if and we have a parameter that we can we can tweak which enables things to be
+we can tweak which enables things to be more or less conservative and the idea
+more or less conservative and the idea is that we should be really conservative
+is that we should be really conservative if we want things to be if we want the
+if we want things to be if we want the behavior to be good well we will
+behavior to be good well we will generate far too many contacts but
+generate far too many contacts but that's ok and effectively what we're
+that's ok and effectively what we're doing is we're just looking at the slope
+doing is we're just looking at the slope of this thing at the beginning of the
+of this thing at the beginning of the time step and we're saying oh well
+time step and we're saying oh well that's gonna go that's going to hit the
+that's gonna go that's going to hit the green line so let's just generate a
+green line so let's just generate a contact and we can make the green line
+contact and we can make the green line higher and that'll make it more
+higher and that'll make it more conservative will generate more contacts
+conservative will generate more contacts but that's okay so how do we go about
+but that's okay so how do we go about this we've got these points for certain
+this we've got these points for certain velocities we can look we can find with
+velocities we can look we can find with without too much difficulty the discrete
+without too much difficulty the discrete separating direction between these
+separating direction between these things the bending at the time step so
+things the bending at the time step so that's just finding the closest point
+that's just finding the closest point between this point in the triangle
+between this point in the triangle that's not so bad and then we're just
+that's not so bad and then we're just going to do all of the rest of the
+going to do all of the rest of the problem along this separating direction
+problem along this separating direction ignoring the fact that the separating
+ignoring the fact that the separating direction changes as the time step goes
+direction changes as the time step goes on so we project all the velocities that
+on so we project all the velocities that we have of these points onto this
+we have of these points onto this direction and for the triangle we can
+direction and for the triangle we can look at this the closest points to being
+look at this the closest points to being in the frame and we can use barycentric
+in the frame and we can use barycentric interpolation to find the velocity of
+interpolation to find the velocity of that point to the beginning of the frame
+that point to the beginning of the frame we say oh okay these things are going to
+we say oh okay these things are going to be getting close to each other along
+be getting close to each other along this separating direction and in this
+this separating direction and in this case it looks like they're gonna touch
+case it looks like they're gonna touch so let's generate a contact and the nice
+so let's generate a contact and the nice thing about the point triangle case is
+thing about the point triangle case is that you actually don't need any
+that you actually don't need any floating point data at all to solve a
+floating point data at all to solve a contact between these things because the
+contact between these things because the the triangle has its own normal all you
+the triangle has its own normal all you really need to encode is which side of
+really need to encode is which side of the triangle the point started the frame
+the triangle the point started the frame app so that means like which side of the
+app so that means like which side of the cloth did it start is the back face or
+cloth did it start is the back face or the front face so that's all you need
+the front face so that's all you need here so I talked about this dynamic
+here so I talked about this dynamic collision radius business this is the
+collision radius business this is the approximation that we do like to to true
+approximation that we do like to to true to continuous collision detection here's
+to continuous collision detection here's a comparison that shows you that this is
+a comparison that shows you that this is a useful thing to do actually so on the
+a useful thing to do actually so on the Left we have the dynamically generated
+Left we have the dynamically generated turned on and on the right it's turned
+turned on and on the right it's turned off and there's very obvious
+off and there's very obvious intersections in this tape when we run
+intersections in this tape when we run it so this allows you to generate
+it so this allows you to generate contacts that you wouldn't have
+contacts that you wouldn't have generated otherwise and one contact can
+generated otherwise and one contact can be the difference between your tape
+be the difference between your tape getting inextricably tangled with it
+getting inextricably tangled with it with itself and it being perfectly fine
+with itself and it being perfectly fine okay so the edge edge case we deal with
+okay so the edge edge case we deal with similarly to the point triangle case
+similarly to the point triangle case which is to say that we look at the
+which is to say that we look at the discreet separating direction of the
+discreet separating direction of the peeling of the frame and then
+peeling of the frame and then interpolate and then at that point we
+interpolate and then at that point we have these two virtual points along each
+have these two virtual points along each line which we can then apply the exact
+line which we can then apply the exact same constraint that we do in the point
+same constraint that we do in the point point case it's just that these points
+point case it's just that these points are like virtual points along each line
+are like virtual points along each line rather than real points actually in the
+rather than real points actually in the simulation and it it's just one extra
+simulation and it it's just one extra level on the math so it doesn't make it
+level on the math so it doesn't make it much more complex in this case we do
+much more complex in this case we do need to store a normal because edges in
+need to store a normal because edges in a mesh don't really have any global
+a mesh don't really have any global orientation that they don't have any
+orientation that they don't have any intrinsic orientation you might be able
+intrinsic orientation you might be able to generate some orientation from the
+to generate some orientation from the mesh neighborhood but we haven't looked
+mesh neighborhood but we haven't looked at that yet and if you want details on
+at that yet and if you want details on this I have to exercise the details
+this I have to exercise the details because this talk is short but you can
+because this talk is short but you can see them in our technical report okay so
+see them in our technical report okay so if you've done physics then you know
+if you've done physics then you know what's coming up next we talked about
+what's coming up next we talked about the broad phase so we don't do anything
+the broad phase so we don't do anything particularly special in this case
+particularly special in this case obviously you don't want to look at
+obviously you don't want to look at every combination of triangle and other
+every combination of triangle and other triangle in the mesh so what we do is we
+triangle in the mesh so what we do is we just have a basic AABB tree we look at
+just have a basic AABB tree we look at the trajectories of each primitive so if
+the trajectories of each primitive so if you're doing point versus point then it
+you're doing point versus point then it might be an ABB tree that contains the
+might be an ABB tree that contains the points as its leaves or it might be
+points as its leaves or it might be triangles and we expand them along their
+triangles and we expand them along their trajectory during the frame and then we
+trajectory during the frame and then we just expand them by the radius of the
+just expand them by the radius of the things concerned so if your cloth it's
+things concerned so if your cloth it's quite thick then we expand it by that we
+quite thick then we expand it by that we also have this extra static collision
+also have this extra static collision radius on top which is like the epsilon
+radius on top which is like the epsilon of which if things are close enough then
+of which if things are close enough then we want to generate a contact anyway so
+we want to generate a contact anyway so the takeaway for this is that we end up
+the takeaway for this is that we end up creating quite a fat AABB tree and that
+creating quite a fat AABB tree and that means that because because I'll method
+means that because because I'll method for getting things to be robust is to
+for getting things to be robust is to add radius to all of our primitives so
+add radius to all of our primitives so our things are quite said of Cuba
+our things are quite said of Cuba in fat and that actually means that
+in fat and that actually means that stuff like a k-dog tree like more
+stuff like a k-dog tree like more complex primitives probably not that
+complex primitives probably not that useful for this algorithm that's nice
+useful for this algorithm that's nice because this is nice and simple and yes
+because this is nice and simple and yes I put Erickson real-time collision
+I put Erickson real-time collision detection there that's the orange book
+detection there that's the orange book that you should get if you're interested
+that you should get if you're interested in this so we unite all these things
+in this so we unite all these things together into a tree and then we can
+together into a tree and then we can query the street to find pairs of things
+query the street to find pairs of things which may be intersecting and we can do
+which may be intersecting and we can do our narrow phase collision detection or
+our narrow phase collision detection or contact generation on those pairs okay
+contact generation on those pairs okay so let's take a quick look at how things
+so let's take a quick look at how things are offered here this is a very
+are offered here this is a very fast-paced video so I'm gonna have to
+fast-paced video so I'm gonna have to talk quickly so we've got this Maya
+talk quickly so we've got this Maya plugin here which allows you to real
+plugin here which allows you to real time simulate and tweak the cloth
+time simulate and tweak the cloth simulation so we've got a region system
+simulation so we've got a region system here which will allow you to set up
+here which will allow you to set up different regions in the mesh so here
+different regions in the mesh so here I'm painting this with the blue region
+I'm painting this with the blue region so there's two regions here and then you
+so there's two regions here and then you get this the bottom thing here which I'm
+get this the bottom thing here which I'm about to edit you get a lower triangular
+about to edit you get a lower triangular matrix which lets you choose which kind
+matrix which lets you choose which kind of self collision you get on these so
+of self collision you get on these so here I've chosen a point point so the
+here I've chosen a point point so the these two regions are going to interact
+these two regions are going to interact with each other via a point point
+with each other via a point point collision detection they're not going to
+collision detection they're not going to interact with themselves so here you can
+interact with themselves so here you can see that oh it looks alright and you can
+see that oh it looks alright and you can change the radius in real time rather
+change the radius in real time rather simulation is running however you can
+simulation is running however you can see that one piece of cloth is hovering
+see that one piece of cloth is hovering over the other so there's obviously not
+over the other so there's obviously not great and when I decrease the radius one
+great and when I decrease the radius one falls through the other so yeah we're
+falls through the other so yeah we're not keen on that and it turns out that
+not keen on that and it turns out that in order to make point point collision
+in order to make point point collision detection robust you need to make your
+detection robust you need to make your points very thick which is not good so
+points very thick which is not good so here I've changed it to use full mesh
+here I've changed it to use full mesh motion detection instead and when my
+motion detection instead and when my mouse catches up to it that's gonna yet
+mouse catches up to it that's gonna yet turn the debugger going back on and you
+turn the debugger going back on and you can see that I can make it much thinner
+can see that I can make it much thinner and like closer to the thickness of a
+and like closer to the thickness of a real piece of cloth and you see that it
+real piece of cloth and you see that it flops down nicely and stays nice and
+flops down nicely and stays nice and stable and there's a less of a shadow
+stable and there's a less of a shadow between them so you can see it's a bit
+between them so you can see it's a bit more believable and I can turn down the
+more believable and I can turn down the radius to quite small and it stays
+radius to quite small and it stays obviously you turn down the radius to 0
+obviously you turn down the radius to 0 then our method fails but that you can
+then our method fails but that you can make it fairly realistic yeah
+make it fairly realistic yeah so that is our basically our whole
+so that is our basically our whole authoring pipeline
+authoring pipeline so let's take a look at some results I
+so let's take a look at some results I when I started this I was kind of
+when I started this I was kind of comparing it with methods from the
+comparing it with methods from the academic literature from cigar papers so
+academic literature from cigar papers so that's mostly what my test case as well
+that's mostly what my test case as well and you'll see that the performance
+and you'll see that the performance numbers are atrocious but this is just
+numbers are atrocious but this is just to show that we can do the same sort of
+to show that we can do the same sort of stuff as you would do in a high quality
+stuff as you would do in a high quality simulation so here we've got a tape and
+simulation so here we've got a tape and it's uses triangle collision detection
+it's uses triangle collision detection and it and you can wrap it around nicely
+and it and you can wrap it around nicely and you don't get any nasty jittering or
+and you don't get any nasty jittering or anything it's nice and stable and here
+anything it's nice and stable and here is another classic test that you may
+is another classic test that you may have seen if you've seen cloth papers
+have seen if you've seen cloth papers from Segura cloth which falls onto a
+from Segura cloth which falls onto a sphere and it curls round and if your
+sphere and it curls round and if your simulation is working badly then it'll
+simulation is working badly then it'll generate a lot of self intersections at
+generate a lot of self intersections at this point but ours remains intersection
+this point but ours remains intersection free however this is one second per
+free however this is one second per frame so yeah you can't put this in
+frame so yeah you can't put this in again so okay what happens if we try to
+again so okay what happens if we try to do something a little bit less ambitious
+do something a little bit less ambitious so here's something that's like just a
+so here's something that's like just a couple of layers of clothing over each
+couple of layers of clothing over each other maybe there next to it like the
+other maybe there next to it like the leg of a character something like like a
+leg of a character something like like a tighten mark from destiny might look a
+tighten mark from destiny might look a lot like this if you simulated it with
+lot like this if you simulated it with cloth so we can see that immediately
+cloth so we can see that immediately they just get entangled and they never
+they just get entangled and they never disentangle and the reason for this is
+disentangle and the reason for this is that like I've put a very violent
+that like I've put a very violent violent animation on this like leg
+violent animation on this like leg collider but this is totally
+collider but this is totally representative of the sort of stuff you
+representative of the sort of stuff you might find in a game because game
+might find in a game because game characters are super human in terms of
+characters are super human in terms of the motion they can go through so this
+the motion they can go through so this is a completely unacceptable situation
+is a completely unacceptable situation and you can make this robust but it's
+and you can make this robust but it's really expensive for something for such
+really expensive for something for such a tiny piece of cloth it's really not
+a tiny piece of cloth it's really not worth it so what can we do about this
+worth it so what can we do about this well time for more tricks and hacks so
+well time for more tricks and hacks so in this case we have layers of clothing
+in this case we have layers of clothing and actually we're being really dumb
+and actually we're being really dumb because we're looking at the beginning
+because we're looking at the beginning of every frame which side of this point
+of every frame which side of this point locally is this triangle locally but
+locally is this triangle locally but actually we know that one layer should
+actually we know that one layer should be above the other layer that's like
+be above the other layer that's like global information that we can just set
+global information that we can just set up so in this case we say okay well I'm
+up so in this case we say okay well I'm just going to hard-code
+just going to hard-code which direction like which side of the
+which direction like which side of the triangle the points should be and when
+triangle the points should be and when you generate the contacts you just
+you generate the contacts you just override where was the beginning of the
+override where was the beginning of the frame and you can see that this actually
+frame and you can see that this actually becomes completely robust as a result
+becomes completely robust as a result so if your points get into the the
+so if your points get into the the region where they would generate a
+region where they would generate a contact even if it's on the wrong side
+contact even if it's on the wrong side of the triangle they'll end up popping
+of the triangle they'll end up popping up to the right side and this was pretty
+up to the right side and this was pretty nice I'd like to point out here that the
+nice I'd like to point out here that the upper layer of cloth does not come by
+upper layer of cloth does not come by with the collider it only collides with
+with the collider it only collides with the cloth so all of that motion from
+the cloth so all of that motion from that is it comes out of the self
+that is it comes out of the self collision and this is not 0.2
+collision and this is not 0.2 milliseconds per frame so they're still
+milliseconds per frame so they're still reasonably expensive but it shows you
+reasonably expensive but it shows you can get robustness with this kind of
+can get robustness with this kind of material and here is another situation
+material and here is another situation which kind of exploit the the layered
+which kind of exploit the the layered clothing idea as well you've got like
+clothing idea as well you've got like sort of a like a model of a flamenco
+sort of a like a model of a flamenco skirt I guess and there are some leg
+skirt I guess and there are some leg colliders underneath there that you
+colliders underneath there that you can't quite see but it's just being
+can't quite see but it's just being jostled around and you can see that the
+jostled around and you can see that the the two layers actually slide over each
+the two layers actually slide over each other quite convincingly you don't see
+other quite convincingly you don't see them penetrating through each other and
+them penetrating through each other and this is three milliseconds per frame so
+this is three milliseconds per frame so this is again even though it's still
+this is again even though it's still quite simple it's kind of outside the
+quite simple it's kind of outside the realm of of being put a bullet being
+realm of of being put a bullet being able to put it in again okay so it's
+able to put it in again okay so it's still expensive what are we going to do
+still expensive what are we going to do about this well in the case of layered
+about this well in the case of layered clothing which is actually a really big
+clothing which is actually a really big like subset of the sort of cloth that
+like subset of the sort of cloth that you would want to simulate in a game
+you would want to simulate in a game most bits of cloth only stay within the
+most bits of cloth only stay within the same sort of region of other layers like
+same sort of region of other layers like all the time so why are we wasting a lot
+all the time so why are we wasting a lot of time doing collision detection when
+of time doing collision detection when we're just going to end up with us
+we're just going to end up with us basically the same results every Frank
+basically the same results every Frank so what you can do is you can just like
+so what you can do is you can just like do the collision detection once at the
+do the collision detection once at the beginning or even in the pipeline and
+beginning or even in the pipeline and serialize out the results and then you
+serialize out the results and then you can solve these contacts every frame and
+can solve these contacts every frame and just see what see what the results look
+just see what see what the results look like I mean you may be solving contacts
+like I mean you may be solving contacts which wouldn't have been generated if
+which wouldn't have been generated if you had run the collision detection but
+you had run the collision detection but that may not be a huge deal so in this
+that may not be a huge deal so in this case this actually works perfectly and
+case this actually works perfectly and you see no difference at all
+you see no difference at all so we're now longer we're no longer
+so we're now longer we're no longer doing any collision detection at run
+doing any collision detection at run time
+time we're only solving the contacts and it
+we're only solving the contacts and it cuts the the total cost of the
+cuts the the total cost of the simulation by an order of magnitude so
+simulation by an order of magnitude so as long as your cloth looks like
+as long as your cloth looks like something there's isomorphic to this in
+something there's isomorphic to this in some way you can do a very efficient
+some way you can do a very efficient emulation using this hack so I was asked
+emulation using this hack so I was asked to provide a game ready asset and much
+to provide a game ready asset and much sweat and tears later here is Darth Maul
+sweat and tears later here is Darth Maul from Star Wars Battlefront 2 and thank
+from Star Wars Battlefront 2 and thank you to the battlefront 2 team for
+you to the battlefront 2 team for letting me have this so he's got this
+letting me have this so he's got this layered skirt on if you play the game
+layered skirt on if you play the game you'll see that the cloth simulation on
+you'll see that the cloth simulation on it looks good but it it doesn't have any
+it looks good but it it doesn't have any sort of layering and here he's just
+sort of layering and here he's just running through some calisthenics
+running through some calisthenics animation I mean I did this the
+animation I mean I did this the simulation myself so it's missing some
+simulation myself so it's missing some like art polish but what I want you to
+like art polish but what I want you to notice is that the layers may penetrate
+notice is that the layers may penetrate through each other like momentarily when
+through each other like momentarily when he's going through some very violent
+he's going through some very violent animation but they always resolve to
+animation but they always resolve to being the right side of each other and
+being the right side of each other and that's what's important is that the
+that's what's important is that the steady-state be not obviously broken
+steady-state be not obviously broken game is a very resistant like very happy
+game is a very resistant like very happy to be shown stuff which is broken as
+to be shown stuff which is broken as long as it doesn't stay on frame for too
+long as it doesn't stay on frame for too long but yeah so he can go through these
+long but yeah so he can go through these unrealistically violent animations and
+unrealistically violent animations and it always ends up in the right place
+it always ends up in the right place and it it matches like the art-directed
+and it it matches like the art-directed pose so this is like a real time
+pose so this is like a real time simulation and it turns out that you can
+simulation and it turns out that you can make this not overly expensive so in
+make this not overly expensive so in this case the total cost on my PC is
+this case the total cost on my PC is three hundred and eighty microseconds
+three hundred and eighty microseconds for the entire solve and of that 150
+for the entire solve and of that 150 milli micro seconds is the self
+milli micro seconds is the self collision constraints being solved and I
+collision constraints being solved and I should also point out that our cloth
+should also point out that our cloth solver is not is not multi-threaded and
+solver is not is not multi-threaded and most of it is Cindy but the the self
+most of it is Cindy but the the self collision stuff has notice Indian at all
+collision stuff has notice Indian at all so you could potentially cut that cost
+so you could potentially cut that cost by like three times so if you have the
+by like three times so if you have the right kind of asset self collision is is
+right kind of asset self collision is is totally something which you can have
+totally something which you can have right now for not too much expense and I
+right now for not too much expense and I would like to point out that as I said
+would like to point out that as I said I'm not an artist so probably other ways
+I'm not an artist so probably other ways that you could make that stuff less
+that you could make that stuff less expensive but I didn't have enough time
+expensive but I didn't have enough time to make that happen
+okay so what what sort of directions is this going to go in so as I said there's
+this going to go in so as I said there's performance left on the table there's
+performance left on the table there's other things we could do especially with
+other things we could do especially with the rails of the board phase if we
+the rails of the board phase if we wanted to invest in actually running
+wanted to invest in actually running collision detection obviously if you're
+collision detection obviously if you're not running it then you don't need to
+not running it then you don't need to optimize it another thing is that the
+optimize it another thing is that the contact caching which I talked about is
+contact caching which I talked about is very naive so we literally just generate
+very naive so we literally just generate the contacts as if we were doing it in
+the contacts as if we were doing it in in a regular simulation time step and
+in a regular simulation time step and then serialize them but maybe you could
+then serialize them but maybe you could have some kind of editor which will let
+have some kind of editor which will let the artist say well this triangle
+the artist say well this triangle contacts with this point and not this
+contacts with this point and not this one and that would probably allow you to
+one and that would probably allow you to deal with some edge cases which which
+deal with some edge cases which which wouldn't look good with this current
+wouldn't look good with this current system and of course I've shown you all
+system and of course I've shown you all these layered clothing examples and
+these layered clothing examples and tried hard to convince you that this is
+tried hard to convince you that this is a good kind of self relation but there's
+a good kind of self relation but there's lots of other kinds like tying knots and
+lots of other kinds like tying knots and scarves and like dropping tapes on the
+scarves and like dropping tapes on the floor and we don't really have a
+floor and we don't really have a performance solution for these right now
+performance solution for these right now because it's very difficult to predict
+because it's very difficult to predict which bits are going to contact which
+which bits are going to contact which other bits in a given simulation so in
+other bits in a given simulation so in that case you might have to do some
+that case you might have to do some genuine continuous collision detection
+genuine continuous collision detection with some sort of time of impact query
+with some sort of time of impact query all use the GPU of course that's always
+all use the GPU of course that's always a big hammer that you can throw at
+a big hammer that you can throw at problems so thank you very much for
+problems so thank you very much for listening to my talk and I'd like to
+listening to my talk and I'd like to acknowledge these people and remember
+acknowledge these people and remember there's a technical report and frostbite
+there's a technical report and frostbite physics is hiring so come and talk to me
+physics is hiring so come and talk to me after this and yes I think that's it so
+after this and yes I think that's it so thank you very much
+thank you very much [Applause]

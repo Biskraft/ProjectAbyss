@@ -1,0 +1,404 @@
+hi everyone it's me Tim today I wanted
+to talk about
+arcanum's procedural
+terrain generation system
+gotten some questions about this for
+years
+the fact that we did this in the late
+90s I thought was pretty cool
+it also was pretty required because
+there was no way no way we could store
+as much
+map especially Overland map as we wanted
+in the
+computers of the time we just didn't
+have the memory
+so basically the procedural generation
+was a way for us to
+generate maps and treat what we edited
+as Deltas to those Maps
+and I will explain all this but I went
+through the code to make sure I was
+accurate I've got to start at the very
+bottom this is going to get technical
+I'm not going to go into code itself but
+it does get a little technical
+so
+a tile in Arcanum
+especially if you use the world editor
+you know this it's a diamond
+it is 80 pixels by 40 pixels
+we estimated a tile to be approximately
+five feet
+um you know if because it's a square if
+it's
+viewed top down
+so that means that those are about a
+thousand tiles per mile
+now tiles could only connect in their
+diamond shape they could only connect to
+certain other tiles
+they did this based on the four
+um
+not just the four edges but they also
+they treated each we looked at each
+point of it because it connected at that
+point to three other tiles
+and there were only certain transitions
+that were possible so for example if we
+had a lot of tiles we had deep water
+shallow water
+um
+Coastal
+so it's a mixture of water and sand sand
+scrub
+grass light Forest
+Deep Forest Rocky
+hilly Mountain
+so we had a lot of terrain
+Towers could only connect to certain
+other terrain there was a basically it
+was marked each of the four corners that
+were marked as having transition
+tiles tiles they were allowed to have
+adjoining to them which meant
+so say grassland could only connect to
+sand which could only connect
+to Coast I mean grass could also connect
+to light forest and Scrub but
+if you dropped deep water
+the only thing that could be around the
+deep water would be shallow water
+and then around that shallow water you
+could do deep water again but you could
+also have
+Coast which could then transition to
+sand so if you ever dropped let's say
+you had a map of nothing but grass and
+you dropped deep water in the middle of
+it you'd see it go deep water
+shallow water
+Coast Sand Grass
+the tile types were also used to control
+player movement
+they were marked with whether the player
+could walk across them over there they
+were blocked whether they could fly
+across them or whether that was also
+blocked
+they whether they would sink in it so we
+would draw them up to their knees
+or whether they it was icy so that's
+when they would slip and fall
+tiles also controlled sound
+so the sound your footsteps made as you
+walked across it we had six different
+sound types we had walking on dirt sand
+snow Stone water and wood
+that covered everything we needed
+including inside structures
+now to save on Art because we are to
+save on space and I guess art we had to
+create some of the tiles could be
+flipped horizontally
+that was only possible if
+it looked fine when it was flipped and
+we knew the transitions would work
+even if the art was done
+flippable the artists worked really hard
+to make sure that was the case as
+frequently as possible so we could store
+less tiles you also got more variety
+because if you could take a tile and
+flip it it looked a little different and
+as long as it's so connected correctly
+you got more variety
+okay so those were titles
+the next level up receptors sectors were
+an array of 64 by 64 tiles meaning they
+were
+5120 pixels by 2560 pixels or about 320
+by 200 feet which is easy to remember if
+you knew VGA was 320 by 200 pixels
+if so if one of those pixels with a foot
+a sector is a VGA screen
+each one of those
+sectors was uniquely numbered based on
+its XY location
+in the world map which I'll get to
+explain in a second how big that was
+the fact that sectors were unique
+uniquely numbered is important so just
+remember that every sector you could say
+sector
+5102 and boom that was a unique sector
+on whatever map is loaded
+now
+at the
+map level which is a bunch of sectors
+we had a base terrain at that level
+we supported up to 32 base terrains
+there were things like grass Forest
+Mountain Water we didn't have to specify
+deeper shallow we didn't have to specify
+light or heavy force it was just very
+basic types like that
+what the
+That Base terrain was used for
+was
+Auto generation which I'll talk about in
+a bit
+we could Auto generate sectors
+and also whether a player could move
+through that sector on the world map
+the things like water and mountains were
+marked impassable
+so when we were moving you along the
+world map it tried to move you straight
+there and it would move you along around
+mountains and water where needed
+now a map in the game
+which we called the world but really it
+specifically was a map
+it defaulted to 64 by 64 sectors
+defaulted I'll get to that in a second a
+map defined for itself whether it was
+indoor outdoor
+for purposes of things like lighting
+outdoor Maps you know got day night
+lighting some backgrounds cared about
+whether you were indoors or Outdoors
+in addition to whether it being day or
+night
+we also passed that information to audio
+so if they wanted to make
+different sounds like audio ambient
+sounds at night could be different than
+daytime for the map
+they could do that now structures would
+override that if you were an indoor map
+you're always indoors but if you're an
+outdoor map if you went into a structure
+that would override it
+and
+you'd be indoors
+structures were made differently than a
+lot of other things we had a top-down
+way of doing structures as rectangles
+it's too long to go into it here so just
+know that structures exist structures
+are basically buildings but basically
+anything that we wanted to call a
+structure we could make a structure
+ability for basically it's rectangular
+things put in the world that you could
+go inside of
+now the Arcanum world map
+was 2000 by 2000 sectors mostly fought
+up at that Central continent that meant
+that Arcanum was 128 square miles 128
+miles on the side that is a large world
+for late 90s and remember you could just
+walk through this anywhere you wanted to
+go
+however
+are world maps maximum size
+was
+67 million sectors Square precisely 67
+million 108 864.
+that translates to 4.2 billion tiles
+hint unsigned to Max int
+or about 4.2 Million Miles Square so in
+theory with the Arcanum World editor you
+could make
+a map that was 4.2 million miles on a
+side
+that's a big map we never made a map
+that big
+now Maps were created in the world
+editor that we shipped with the game we
+created it with the same world editor
+the game Kim at the game you basically
+would create a map now the way we
+would uh
+treat like when you when you created the
+map you would paint sectors down on it
+you would paint one of the base terrains
+you could say let's say you're making
+a Content you can like here's a bunch of
+grass then here's them out in range and
+then here's some water that goes down
+and there's ocean all around it
+those were painting at the sector level
+if you ever wanted to
+go into a sector
+it would be procedurally generated based
+on its sector number which is its
+location
+Modified by any differences and before I
+say that because we had multiple people
+working the way our world editor worked
+at Troika was whenever anyone edited a
+sector
+it would lock it by using its sector
+number it would write it sector number
+as a file into a directory a network
+directory if that file already existed
+that meant somebody else had already
+locked it once you save the sector it
+would save it confirm that the data had
+saved correctly and then remove that
+file lock
+this was basically we knew how to do it
+back then because file creation is
+atomic so if two people tried to lock it
+at the same time one would create the
+file and the other would get file
+already exists so basically creating a
+file
+was an atomic operation and the name of
+the file which is the
+sector number we knew was unique so
+anyway you would create
+if you went into a world at a World
+editor into a particular sector to
+modify it
+we would just remember the differences
+so let's say you opened it up it would
+procedurally generate it it would
+take the base Terrain
+and
+I had algorithms for all the different
+base frames of how to create the tiles
+within it so let's say it was a grassy
+area it would put down a couple plants
+maybe a tree here and there Boulders
+flowers whatever
+it did that by seeding a random number
+generator with that sector's unique
+sector number so that random number
+generator would always generate the same
+random props to put onto the map this
+meant that every time you loaded that
+sector no matter what machine you were
+on
+whether you would ever load it before
+you would always see those props in the
+same locations the same props in the
+same locations then when you
+if you decided to edit that sector let's
+say you changed some tiles let's say you
+you know deleted one of those trees or
+put another tree over here
+it would remember those Deltas as
+changes
+ads and removals
+and store that as
+the sector's data which meant if you
+only made three changes that sector
+would get only stored with three Deltas
+so
+that it was a very efficient way of
+storing a sector
+when
+anybody else would then load that sector
+it would
+look up the base terrain type and the
+sector number generate the sector then
+go through the list of Deltas making any
+changes any additions any removals that
+you did so then it would load up and you
+would see that sector the same way the
+other person just edited it very cool
+however we leverage this in game by the
+player for example if the player dropped
+an item
+in a sector we would just add that as a
+Delta and this was really cool items new
+were they in a sector in a world in
+which case they could store that this is
+the map and sector I'm on
+or am I in a container or creature in
+both cases there's an XY where they're
+located either an XY in the world or an
+X Y in the inventory grid that we used
+and items would store that so that could
+be stored as a Delta if you dropped say
+a sword if you want went to a random
+sector and dropped a sword in the game
+we just said this sword which we
+referenced by its object ID
+is at
+dislocation so we generated a Delta on
+that map
+the sword would also confirm its
+location because it remembered where it
+was
+I could go into it but prototypes work
+the same way if you had a sword
+it just pointed to its prototype ID of
+the prototypical sword the only thing
+would have to be stored in that sword is
+any Delta so if uh
+if a designer had made a magic sword
+that had fire on it we might change the
+art ID and the Damage range and the
+damage type
+trivial when you're in the game and the
+weapon gets damaged we would store its
+current health health points as a Delta
+so if it said it had 20 Health it had 20
+Health but then you looked up the max
+Health in the Prototype because that
+would never change
+so that was pretty cool
+by the way we had plans for much bigger
+Deltas in
+sectors the world had electric put down
+structures and those were also stored as
+Deltas we were going to let players make
+structures which would have been really
+cool and they did that later in Fallout
+4.
+we also had spells that could maybe
+change terrain type maybe for a period
+of time maybe permanently
+and we could do that by just putting
+Deltas in the sectors we never
+implemented these things but it's there
+and I thought that was really cool
+um wow I've already gone on for almost
+15 minutes notice I haven't really gone
+in a tail about how structures are done
+we also had something called facades
+facades were pre-rendered tiles
+that were laid down in a particular
+order we used facades for things like
+certain large buildings and Trent uh the
+crash blimp was a facade the rule for
+facades were
+they didn't have to transition to
+anything they were just laid down in the
+order the artist said
+and that facade number was stored with
+an offset so that it knew exactly how to
+draw it to the map then it drew all the
+other tiles not trying to transition
+into the facade
+uh tiles and facade tiles were
+automatically marked as blocked
+yeah and between
+sectors having unique numbers and
+destroying their deltas
+and prototypes being the same way we
+saved so much memory
+and it also was the reason that
+arcanum's world map was so big and could
+have been
+magnitudes of size bigger we just didn't
+want a world that big but you could
+create it with the world editor that
+shipped with the game
+anyway I hope that was an interesting
+view into procedural train generation in
+a 90s isometric RPG

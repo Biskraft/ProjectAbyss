@@ -1,0 +1,1185 @@
+[Music] awesome well thank you everyone for
+awesome well thank you everyone for making it out here it's good to see
+making it out here it's good to see people doors are closing
+people doors are closing house cleaning tips please silence your
+house cleaning tips please silence your cellphone's and then because I may
+cellphone's and then because I may forget later once we get to Q&A make
+forget later once we get to Q&A make sure you step up to the microphones so
+sure you step up to the microphones so quick show of hands if I could get some
+quick show of hands if I could get some audience participation how many people
+audience participation how many people here just plain up gathered to limitary
+here just plain up gathered to limitary and I'm hoping that all the hands go up
+and I'm hoping that all the hands go up I'm seeing about 70% and then lower your
+I'm seeing about 70% and then lower your hands hold on how many have access to
+hands hold on how many have access to reports by end of week it so that how
+reports by end of week it so that how many people are more than a week before
+many people are more than a week before you can see the results of your
+you can see the results of your telemetry okay so it went from like 70%
+telemetry okay so it went from like 70% to like 30% and then 0% so I'm not sure
+to like 30% and then 0% so I'm not sure what that 40% Delta there is okay how
+what that 40% Delta there is okay how many people get access to their
+many people get access to their information submitted from the telemetry
+information submitted from the telemetry data gathering that's awesome we should
+data gathering that's awesome we should definitely talk afterwards I want to
+definitely talk afterwards I want to hear what you're doing that's cool it's
+hear what you're doing that's cool it's a hard problem so my name is Tom
+a hard problem so my name is Tom Matthews as you can see I started in the
+Matthews as you can see I started in the mid-nineties working on line of business
+mid-nineties working on line of business applications for Best Western Starwood
+applications for Best Western Starwood lodging Universal Studios after about
+lodging Universal Studios after about five years there I moved on to Microsoft
+five years there I moved on to Microsoft working on sequel server analysis
+working on sequel server analysis services which is a multi-dimensional
+services which is a multi-dimensional database architecture five years into
+database architecture five years into that I moved on to the advanced
+that I moved on to the advanced technology group helping game developers
+technology group helping game developers improve their audio implementations the
+improve their audio implementations the five years into that I moved on to three
+five years into that I moved on to three four three Studios to help them maintain
+four three Studios to help them maintain the existing halo architecture for
+the existing halo architecture for gathering telemetry and architect what
+gathering telemetry and architect what you guys are here to see the
+you guys are here to see the iteration of telemetry gathering for
+iteration of telemetry gathering for Halo 5 so if you've noticed a pattern
+Halo 5 so if you've noticed a pattern every 5 years I seem to do something
+every 5 years I seem to do something different and that was about four years
+different and that was about four years ago so I'm no longer a software senior
+ago so I'm no longer a software senior software engineer engineer I am now
+software engineer engineer I am now going to be a senior data and applied
+going to be a senior data and applied scientist so make sure you fill out the
+scientist so make sure you fill out the survey so I want to come back next year
+survey so I want to come back next year and to talk about all the cool
+and to talk about all the cool investigations we've been doing but
+investigations we've been doing but enough about me we'll start out with a
+enough about me we'll start out with a bit of interesting stuff some of the
+bit of interesting stuff some of the numbers of our launch and then we'll go
+numbers of our launch and then we'll go into how we actually achieved it so
+into how we actually achieved it so events per second seems like not a lot
+events per second seems like not a lot of people talk about it
+of people talk about it it was hard for me to find publication
+it was hard for me to find publication numbers I found one large casual app
+numbers I found one large casual app that was saying that they hit two
+that was saying that they hit two million events on their their launch day
+million events on their their launch day when they launched their big popular app
+when they launched their big popular app and when we started working on what kind
+and when we started working on what kind of architecture we would use and land on
+of architecture we would use and land on what kind of technologies we would use
+what kind of technologies we would use that was about four years ago three and
+that was about four years ago three and a half years ago and I was putting this
+a half years ago and I was putting this talk together I was like ah did we
+talk together I was like ah did we really hit big data scale I mean it
+really hit big data scale I mean it seems like we did from three years ago
+seems like we did from three years ago but times change rather rapidly so for
+but times change rather rapidly so for our launch day what we were able to do
+our launch day what we were able to do is 700,000 events per second which is
+is 700,000 events per second which is 2.5 billion events per hour
+2.5 billion events per hour so that's a pretty significant amount of
+so that's a pretty significant amount of of data turning through the systems and
+of data turning through the systems and our peak peak volumes were 831 thousand
+our peak peak volumes were 831 thousand events per second the funny story there
+events per second the funny story there is that half of that volume was actually
+is that half of that volume was actually one particular event a developer had
+one particular event a developer had left turned on for release which was a
+left turned on for release which was a composer event that was firing for every
+composer event that was firing for every object in every frame and resulted in
+object in every frame and resulted in 400,000 tons per second
+400,000 tons per second for the first few hours until we we
+for the first few hours until we we finally got around to to turning that
+finally got around to to turning that off so first first finding is make sure
+off so first first finding is make sure you're aware of the data that your game
+you're aware of the data that your game is is transmitting and the release
+is is transmitting and the release configuration and then the next highest
+configuration and then the next highest event is down at ninety ninety thousand
+event is down at ninety ninety thousand so it's a pretty exponential tale that
+so it's a pretty exponential tale that we have going so over here the general
+we have going so over here the general slide deck presentation that we are
+slide deck presentation that we are going to be presenting today is where we
+going to be presenting today is where we started like what the halo 4 and earlier
+started like what the halo 4 and earlier codebase looked like what goals we
+codebase looked like what goals we wanted as we looked into overhauling
+wanted as we looked into overhauling that and creating something new the
+that and creating something new the implementation naturally and the results
+implementation naturally and the results there will be some some findings at the
+there will be some some findings at the end so the existing at 343 we inherited
+end so the existing at 343 we inherited the halo code base from Bungie so this
+the halo code base from Bungie so this was the existing implementation of
+was the existing implementation of logging they had two different logging
+logging they had two different logging systems one was this log underscore
+systems one was this log underscore event macro and this macro was very easy
+event macro and this macro was very easy for developers to use it was like a
+for developers to use it was like a printf statement you would key in the
+printf statement you would key in the string that you wanted printed out over
+string that you wanted printed out over a telnet or to the screen or to log
+a telnet or to the screen or to log files and the parameters that would go
+files and the parameters that would go into that that system and then it would
+into that that system and then it would feed into a database architecture called
+feed into a database architecture called called data-mine the good thing is that
+called data-mine the good thing is that it was easy to use right so developers
+it was easy to use right so developers could just write using this mac for a
+could just write using this mac for a printf statement the bad thing is that
+printf statement the bad thing is that there was not really strong typing they
+there was not really strong typing they could pass anything in there and printf
+could pass anything in there and printf would do the best that it could to
+would do the best that it could to create a string that was fairly legible
+create a string that was fairly legible and there was an enforced parameter
+and there was an enforced parameter evening so there were several times
+evening so there were several times where developers would swap the events
+where developers would swap the events see the
+see the order of the parameters in the event and
+order of the parameters in the event and so the meanings of the reports that were
+so the meanings of the reports that were coming out would change right and there
+coming out would change right and there was no warnings that something was was
+was no warnings that something was was going on different other times they
+going on different other times they would change the data type itself to be
+would change the data type itself to be more or less precise so they would go
+more or less precise so they would go from like a map coordinate system that's
+from like a map coordinate system that's in world units to a normalized map
+in world units to a normalized map coordinate X&Y that was minus 1 to
+coordinate X&Y that was minus 1 to positive 1 and naturally that would mess
+positive 1 and naturally that would mess up reports that were based on that and
+up reports that were based on that and the the worst part about it is that what
+the the worst part about it is that what it did was it actually zipped up the
+it did was it actually zipped up the results of all the telemetry generated
+results of all the telemetry generated during that particular match and upload
+during that particular match and upload that zip file at the end of the match so
+that zip file at the end of the match so it was incredibly slow during internal
+it was incredibly slow during internal microsoft wide betas you're looking at
+microsoft wide betas you're looking at up to several minutes to upload the
+up to several minutes to upload the telemetry that was generated and players
+telemetry that was generated and players are just sitting there waiting for the
+are just sitting there waiting for the next match to start so naturally this
+next match to start so naturally this was compiled out of release so there
+was compiled out of release so there were on the order of 9,000 events that
+were on the order of 9,000 events that were using this log underscore message
+were using this log underscore message or log underscore critical format but
+or log underscore critical format but you didn't get any of those event
+you didn't get any of those event information from the release builder
+what they did have in the release build and and in the development builds was
+and and in the development builds was the binary logging and so this is the
+the binary logging and so this is the binary log format blf files and what
+binary log format blf files and what they they pretty much were was they were
+they they pretty much were was they were good from the perspective that they were
+good from the perspective that they were they were more compressed that that was
+they were more compressed that that was found that very easy to use what it was
+found that very easy to use what it was basically just a min copy of the struct
+basically just a min copy of the struct so they would make sure that it wouldn't
+so they would make sure that it wouldn't be doing any reordering or padding and
+be doing any reordering or padding and then they would mem copy that struck off
+then they would mem copy that struck off and send it on the wire the the downside
+and send it on the wire the the downside is that this is really really
+is that this is really really frustrating to use from a services
+frustrating to use from a services perspective because as soon as a
+perspective because as soon as a developer adds one field in the middle
+developer adds one field in the middle of their struct
+of their struct now the c-sharp code that's trying to
+now the c-sharp code that's trying to like read these two bytes and
+like read these two bytes and to put it this way and read the next
+to put it this way and read the next three bytes and interpret it this way
+three bytes and interpret it this way that starts giving you garbage results
+that starts giving you garbage results and hopefully you have a testing that
+and hopefully you have a testing that identifies that bogus values are coming
+identifies that bogus values are coming through and hopefully the change that
+through and hopefully the change that the developer did and the client results
+the developer did and the client results in bogus values that would trigger that
+in bogus values that would trigger that alerting so the big pain from a services
+alerting so the big pain from a services side besides the fact that stuff could
+side besides the fact that stuff could change on the fly is that it requires
+change on the fly is that it requires the source code to understand and
+the source code to understand and depending on the level of commenting
+depending on the level of commenting going on in your source code that could
+going on in your source code that could be easy or very difficult for a services
+be easy or very difficult for a services engineer to understand the intent of a
+engineer to understand the intent of a particular field and similar to the
+particular field and similar to the previous logging system this is
+previous logging system this is transmitting at the end of the match so
+transmitting at the end of the match so when the match is over the game takes
+when the match is over the game takes all of the statistics that it's gathered
+all of the statistics that it's gathered and aggregated and uploads it at the end
+and aggregated and uploads it at the end of the match
+so when looking at where we wanted to to move to one of the big key things was
+move to one of the big key things was thinking about those easy to use printf
+thinking about those easy to use printf style statements and the first logging
+style statements and the first logging system and trying to come up with a way
+system and trying to come up with a way that we could use that and release if
+that we could use that and release if those events were turned on so having a
+those events were turned on so having a configurable system that would generate
+configurable system that would generate telemetry in a performant way but the
+telemetry in a performant way but the real goal of this is to what I was
+real goal of this is to what I was calling in the slide summary gaming
+calling in the slide summary gaming intelligence so we've all heard of
+intelligence so we've all heard of business intelligence which is the
+business intelligence which is the information that the business guys want
+information that the business guys want my you know return of investment and our
+my you know return of investment and our pool and churn numbers and that kind of
+pool and churn numbers and that kind of thing so they're looking at you know new
+thing so they're looking at you know new unique users coming in that kind of
+unique users coming in that kind of thing but what we really wanted to do is
+thing but what we really wanted to do is make sure that developers had available
+make sure that developers had available to them the data that was most valuable
+to them the data that was most valuable for ensuring that the systems that they
+for ensuring that the systems that they were writing continue to operate as they
+were writing continue to operate as they expected so towards that end we were
+expected so towards that end we were going to focus on reliably transmitting
+going to focus on reliably transmitting telemetry in real time enabling
+telemetry in real time enabling sub-second service response so one of
+sub-second service response so one of the earlier requirements for this was
+the earlier requirements for this was having the player do something and
+having the player do something and within one second having from the user's
+within one second having from the user's perspective from the instant that they
+perspective from the instant that they started an action having services
+started an action having services perform a calculation and then having
+perform a calculation and then having that reflected in the title and the
+that reflected in the title and the users perception so you can think of it
+users perception so you can think of it as you know medals essentially you get
+as you know medals essentially you get three kills in a row within a certain
+three kills in a row within a certain time span we want the services to be
+time span we want the services to be able to be tracking that and then show
+able to be tracking that and then show the mettle within one second in a timely
+the mettle within one second in a timely fashion so what we have is
+fashion so what we have is the rough budgets that we we sketched
+the rough budgets that we we sketched down on the back of a napkin essentially
+down on the back of a napkin essentially when we first started out was that for
+when we first started out was that for the highest priority events we would
+the highest priority events we would want a message pump that was firing
+want a message pump that was firing every frame primarily because we're
+every frame primarily because we're supporting up to 400 milliseconds
+supporting up to 400 milliseconds latency so if our goal is to be
+latency so if our goal is to be responsive in a 1 second time for him if
+responsive in a 1 second time for him if that's our SLA 400 milliseconds up and
+that's our SLA 400 milliseconds up and 400 milliseconds down that's gone right
+400 milliseconds down that's gone right away so that leaves us 200 milliseconds
+away so that leaves us 200 milliseconds and client-side and in services side to
+and client-side and in services side to do our operations so we want to transmit
+do our operations so we want to transmit as fast as possible if we're waiting
+as fast as possible if we're waiting even two frames or three frames that's
+even two frames or three frames that's eating up a good 20-30 percent of the
+eating up a good 20-30 percent of the budget that we have once it's in the
+budget that we have once it's in the cloud there's a queuing and D queuing
+cloud there's a queuing and D queuing stage that has to happen in order to
+stage that has to happen in order to support horizontal scalability so that
+support horizontal scalability so that we're budgeting at 50 milliseconds
+we're budgeting at 50 milliseconds fortunately the the queuing system we're
+fortunately the the queuing system we're using comes in much under that and then
+using comes in much under that and then service code it basically leaves at 70
+service code it basically leaves at 70 milliseconds with a tiny bit of headroom
+milliseconds with a tiny bit of headroom and then you've got 50 milliseconds to
+and then you've got 50 milliseconds to throw back on the queue and 400
+throw back on the queue and 400 milliseconds
+milliseconds transmission latency again
+so for the purposes of this talk the the component that I'll be referring to is
+component that I'll be referring to is cell is the client-side component and
+cell is the client-side component and the component that I'll be referring to
+the component that I'll be referring to as Maelstrom is that those those bottom
+as Maelstrom is that those those bottom three boxes when we were going through
+three boxes when we were going through this there was storm and spark you know
+this there was storm and spark you know they were like research projects because
+they were like research projects because this was three and a half years ago and
+this was three and a half years ago and you're not sure which one is actually
+you're not sure which one is actually going to become adopted by the community
+going to become adopted by the community which ones are going to stay University
+which ones are going to stay University projects but they all were having
+projects but they all were having meteorological themed names so that's
+meteorological themed names so that's that's one reason why we settled on
+that's one reason why we settled on these so in the logging architecture
+these so in the logging architecture that we're creating there's there's
+that we're creating there's there's three primary requirements that we have
+three primary requirements that we have the first one is sequentiality the
+the first one is sequentiality the reason why this is important is because
+reason why this is important is because in a lot of the real time modeling
+in a lot of the real time modeling processing systems that are out there
+processing systems that are out there you'll actually find that they require
+you'll actually find that they require you to have a window of operations so a
+you to have a window of operations so a lot of these systems what they do is
+lot of these systems what they do is you'll collect for five minutes and then
+you'll collect for five minutes and then what you'll do is say okay as of at this
+what you'll do is say okay as of at this point in time I'm going to sort all of
+point in time I'm going to sort all of the events that I've received I'll take
+the events that I've received I'll take the oldest two and a half minutes and
+the oldest two and a half minutes and say that anything that comes in more
+say that anything that comes in more than two and a half minutes ago is now
+than two and a half minutes ago is now going to be thrown out because I've
+going to be thrown out because I've waited two and a half minutes that's the
+waited two and a half minutes that's the Layton sees that I'm willing to work
+Layton sees that I'm willing to work with and I know that anything older than
+with and I know that anything older than two and a half minutes is bogus so I'll
+two and a half minutes is bogus so I'll work on the worldview that I have with
+work on the worldview that I have with the events two and a half minutes out to
+the events two and a half minutes out to five minutes in the past and then it'll
+five minutes in the past and then it'll do its aggregation and calculations and
+do its aggregation and calculations and then two and a half minutes from now
+then two and a half minutes from now it'll do the same thing it'll sort the
+it'll do the same thing it'll sort the last five minutes
+last five minutes take the oldest two and a half minutes
+take the oldest two and a half minutes and process that again what cell and
+and process that again what cell and Maelstrom implemented what we
+Maelstrom implemented what we implemented with selim elfstrom is the
+implemented with selim elfstrom is the concept of four high priority events we
+concept of four high priority events we guarantee at least once sequentiality so
+guarantee at least once sequentiality so it's kind of like the TCP style we will
+it's kind of like the TCP style we will have acknowledgments if the host is not
+have acknowledgments if the host is not if the the cloud service is not
+if the the cloud service is not responding with an ACK in a timely
+responding with an ACK in a timely fashion we will disconnect from that
+fashion we will disconnect from that service and then connect try connecting
+service and then connect try connecting again which hopefully with the load
+again which hopefully with the load balancer will give us a host that or I
+balancer will give us a host that or I should say a cloud service entry point
+should say a cloud service entry point that is in a healthier state and
+that is in a healthier state and retransmit the events that we had been
+retransmit the events that we had been expecting to get acts so you'll get
+expecting to get acts so you'll get repeats but from a consumer perspective
+repeats but from a consumer perspective that's reading this event stream if they
+that's reading this event stream if they see an event they haven't seen before
+see an event they haven't seen before they can act on it immediately
+they can act on it immediately there's no ordering that they have to do
+there's no ordering that they have to do and that really improves on the Layton
+and that really improves on the Layton sees that we have in the service itself
+sees that we have in the service itself we also have a low priority stream and
+we also have a low priority stream and these two concepts are very decoupled
+these two concepts are very decoupled high party streams and low priority
+high party streams and low priority streams because we don't want something
+streams because we don't want something like a super spammy event that should be
+like a super spammy event that should be off to effect the high priority stream
+off to effect the high priority stream so anything that's user facing is going
+so anything that's user facing is going to go on that that high priority stream
+to go on that that high priority stream death skills which are the same thing
+death skills which are the same thing but spawn locations that kind of thing
+but spawn locations that kind of thing those are high priority oh one one thing
+those are high priority oh one one thing to note is that in the low priority
+to note is that in the low priority stream that's more of a UDP style so
+stream that's more of a UDP style so it's an at most once transmission
+it's an at most once transmission because there's no acts on the low
+because there's no acts on the low priority stream because having to
+priority stream because having to maintain that much state on such a high
+maintain that much state on such a high volume would be a bit catastrophic
+contextual events is also important so the events that we transmit are very
+the events that we transmit are very small and because we're working with the
+small and because we're working with the concept of a streaming architecture
+concept of a streaming architecture where we know the events are sequential
+where we know the events are sequential and we are subscribing to the events
+and we are subscribing to the events from the beginning of the stream the
+from the beginning of the stream the consumers and they're guaranteed the
+consumers and they're guaranteed the consumers can primarily be paying
+consumers can primarily be paying attention to the clients session so when
+attention to the clients session so when the client spins up and connects to the
+the client spins up and connects to the cloud service for the very first time it
+cloud service for the very first time it will be creating its own unique gooood
+will be creating its own unique gooood that's associating itself for the
+that's associating itself for the lifetime of that executable with that
+lifetime of that executable with that one piece of contextualization that's
+one piece of contextualization that's associated with the stream so each
+associated with the stream so each individual event doesn't get that gooood
+individual event doesn't get that gooood attached to it the and I've got numbers
+attached to it the and I've got numbers later in but the the reason why that's
+later in but the the reason why that's important is because adding even one
+important is because adding even one gooood to an event would increase our
+gooood to an event would increase our event sizes by something like twenty to
+event sizes by something like twenty to thirty percent so our events are so
+thirty percent so our events are so small and compact that adding a lot of
+small and compact that adding a lot of contextualization information would be
+contextualization information would be detrimental to the point of having this
+detrimental to the point of having this very fast system so the consumers it
+very fast system so the consumers it does shift some of the processing work
+does shift some of the processing work on to the consumers of the streams
+on to the consumers of the streams because they have to monitor for a match
+because they have to monitor for a match start event and say ok from now until I
+start event and say ok from now until I get a match end event the events that
+get a match end event the events that I'm getting are actually associated with
+I'm getting are actually associated with this match and if they wanted to do
+this match and if they wanted to do contextualization on the duration in
+contextualization on the duration in which a person was alive they would also
+which a person was alive they would also have to track spawn to death events that
+have to track spawn to death events that kind of thing but if you work with
+kind of thing but if you work with contextualization from the beginning
+contextualization from the beginning that means that
+that means that you're thinking in terms of
+you're thinking in terms of contextualization so it's it is a tax on
+contextualization so it's it is a tax on the services side but once they start
+the services side but once they start adopting that mindset it becomes easier
+adopting that mindset it becomes easier to be creating these kind of
+to be creating these kind of contextualization checkpoints and some
+contextualization checkpoints and some window processing windowed processing
+window processing windowed processing architectures like trill make it easier
+architectures like trill make it easier to identify new boundaries by creating
+to identify new boundaries by creating new events that are injected into the
+new events that are injected into the stream and finally there's compatibility
+stream and finally there's compatibility so I was I was I alluded to this earlier
+so I was I was I alluded to this earlier with the other two systems where
+with the other two systems where developers making changes to the events
+developers making changes to the events I can have very deleterious effects to
+I can have very deleterious effects to the services downstream so the
+the services downstream so the architecture we wanted to implement from
+architecture we wanted to implement from the beginning the concept of having
+the beginning the concept of having events that were both forwards and
+events that were both forwards and backwards compatible meaning that as you
+backwards compatible meaning that as you create your events the events will be
+create your events the events will be you can continue to add new fields to
+you can continue to add new fields to them but you can't change the types of
+them but you can't change the types of the fields that you've already
+the fields that you've already transmitted and this allows us to make
+transmitted and this allows us to make our reporting systems such that the
+our reporting systems such that the reports that we generate will continue
+reports that we generate will continue to work I mean there may be moles there
+to work I mean there may be moles there because people stopped transmitting old
+because people stopped transmitting old fields kind of thing we still have to
+fields kind of thing we still have to handle that but you don't have bogus
+handle that but you don't have bogus data creeping into your your code paths
+so cell stands for a common event logging library within the cell
+logging library within the cell architecture on the client we have a
+architecture on the client we have a component called the telemetry manager
+component called the telemetry manager and you can have a number of these
+and you can have a number of these telemetry managers in in Halo 5 we have
+telemetry managers in in Halo 5 we have a high priority travel imagery manager
+a high priority travel imagery manager and a low priority
+and a low priority I'm a tree manager but you could create
+I'm a tree manager but you could create one for four different services for
+one for four different services for example some studios that are adopting
+example some studios that are adopting the technology they have one manager
+the technology they have one manager that's for their own personal services
+that's for their own personal services and they have another manager that's for
+and they have another manager that's for the mmm forget what the the latest name
+the mmm forget what the the latest name is but the event racing for Xbox or etw
+is but the event racing for Xbox or etw style eventing that that's on the the
+style eventing that that's on the the Microsoft platform so there's a Salama
+Microsoft platform so there's a Salama tree manager developers interact with
+tree manager developers interact with this using a macro that's been optimized
+this using a macro that's been optimized down so that the client-side impact is
+down so that the client-side impact is 15 to 30 microseconds and I would get
+15 to 30 microseconds and I would get calls if that ever crept up to 50
+calls if that ever crept up to 50 microseconds so we spent a lot of work
+microseconds so we spent a lot of work optimizing that at macro and what it's
+optimizing that at macro and what it's doing is is pretty much just it has very
+doing is is pretty much just it has very two very small branches to determine if
+two very small branches to determine if the overall category of event has been
+the overall category of event has been turned on and the overall priority
+turned on and the overall priority threshold of the event is turned on so
+threshold of the event is turned on so and release we can set a priority
+and release we can set a priority threshold and we can turn on or off the
+threshold and we can turn on or off the categories that will be emitted and
+categories that will be emitted and that's the kind of like nuclear option
+that's the kind of like nuclear option that's the the most effective and
+that's the the most effective and broadest scoped configuration option in
+broadest scoped configuration option in our on the client side and it's also the
+our on the client side and it's also the fastest there are other filters that you
+fastest there are other filters that you can apply but those have to be processed
+can apply but those have to be processed on every event as it comes through you
+on every event as it comes through you have to crack open the event on the
+have to crack open the event on the client and that that consumes more time
+client and that that consumes more time so that macro is essentially mem copying
+so that macro is essentially mem copying on to a circular walk less buffer and I
+on to a circular walk less buffer and I put quotes there because it was
+put quotes there because it was originally implemented in a lossless
+originally implemented in a lossless fashion and turns out that that lock
+fashion and turns out that that lock list programming is as hard as all of
+list programming is as hard as all of the books say it is you'd think
+the books say it is you'd think interlocked increment you know what what
+interlocked increment you know what what can go wrong with that but you have to
+can go wrong with that but you have to do a lot of
+do a lot of fencing and thread marshaling and yeah
+fencing and thread marshaling and yeah so we addressed all those issues were
+so we addressed all those issues were pretty sure but for the preview they
+pretty sure but for the preview they didn't want to take the risk so we threw
+didn't want to take the risk so we threw some walks around it and that 15 to 30
+some walks around it and that 15 to 30 micro second number up there is actually
+micro second number up there is actually using those locks so we didn't take the
+using those locks so we didn't take the locks out because we didn't have
+locks out because we didn't have performance requirement to remove them
+performance requirement to remove them and I was keeping it safe so we actually
+and I was keeping it safe so we actually left that in I think we could get a bit
+left that in I think we could get a bit faster performance but at these speeds
+faster performance but at these speeds you're pretty much waiting for the cross
+you're pretty much waiting for the cross core synchronization issues right which
+core synchronization issues right which you have whether you're dealing with you
+you have whether you're dealing with you know locked increments or if you're
+know locked increments or if you're you're working with fast walk semantics
+you're working with fast walk semantics so might save a few microseconds off the
+so might save a few microseconds off the within the telemetry manager there's a
+within the telemetry manager there's a concept of an endpoint and there's a
+concept of an endpoint and there's a collection of endpoints that you can
+collection of endpoints that you can create
+create we've got network endpoints and telnet
+we've got network endpoints and telnet endpoints and screen endpoints that
+endpoints and screen endpoints that display on the screen if it's critical
+display on the screen if it's critical or higher and that's where I was saying
+or higher and that's where I was saying each endpoint can as it pulls an event
+each endpoint can as it pulls an event from the circular buffer and it's
+from the circular buffer and it's working directly with the copy that's on
+working directly with the copy that's on the circular buffer so it's not getting
+the circular buffer so it's not getting a copy and incurring that overhead so
+a copy and incurring that overhead so theoretically if you have a slow
+theoretically if you have a slow endpoint that could become a bottleneck
+endpoint that could become a bottleneck and and and halt the the telemetry
+and and and halt the the telemetry gathering system but we have an awful
+gathering system but we have an awful lot of testing in the studio to make
+lot of testing in the studio to make sure that that's not going to happen and
+sure that that's not going to happen and in development time we run with probably
+in development time we run with probably I want to say 10 times the volume ten to
+I want to say 10 times the volume ten to a hundred times the volume as the retail
+a hundred times the volume as the retail configuration so we're putting a lot of
+configuration so we're putting a lot of stress on that circular buffer already
+so the one thing to note if I go back one slide the message pump on the
+one slide the message pump on the network endpoint so we don't have a
+network endpoint so we don't have a telnet endpoint turned on and release
+telnet endpoint turned on and release the main endpoint that we have is the
+the main endpoint that we have is the the network in point and an end point
+the network in point and an end point that that is integrating with the
+that that is integrating with the Microsoft achievement system and present
+Microsoft achievement system and present system and our budget that we have is
+system and our budget that we have is one millisecond per frame on a single
+one millisecond per frame on a single core so we've decoupled the system in
+core so we've decoupled the system in that the C++ macro is very very fast and
+that the C++ macro is very very fast and all of the different client subsystems
+all of the different client subsystems that were interacting with and then we
+that were interacting with and then we have a worker thread on a low priority
+have a worker thread on a low priority core that's waking up every frame to
+core that's waking up every frame to pull off those events that have
+pull off those events that have accumulated in the circular buffer and
+accumulated in the circular buffer and with that our targets were two to four
+with that our targets were two to four thousand events per second before the
+thousand events per second before the circular buffer would fill up and
+circular buffer would fill up and keeping to the one millisecond per frame
+keeping to the one millisecond per frame CPU guideline and we were able to hit
+CPU guideline and we were able to hit three thousand events per second so it
+three thousand events per second so it worked out pretty well so to enable this
+worked out pretty well so to enable this we have a build time preprocessor so the
+we have a build time preprocessor so the macro covers that ease abuse bullet
+macro covers that ease abuse bullet point that that was important to us at
+point that that was important to us at the beginning and it looks a lot like
+the beginning and it looks a lot like the log underscore event macro the
+the log underscore event macro the preprocessor what it does is create the
+preprocessor what it does is create the a global schema store so at compile time
+a global schema store so at compile time on a developer's box the preprocessor
+on a developer's box the preprocessor will run as part of the build step it's
+will run as part of the build step it's a pre build step it'll parse through
+a pre build step it'll parse through write open code as an optimization
+write open code as an optimization assuming that those are the we checked
+assuming that those are the we checked out files they may have edited and
+out files they may have edited and identify if they're the new event
+identify if they're the new event parameters created or if there have been
+parameters created or if there have been new
+new events that haven't been registered in
+events that haven't been registered in the global database this is configurable
+the global database this is configurable right now we're using TFS because it
+right now we're using TFS because it allows us to do
+allows us to do ATF security credential stuff and we can
+ATF security credential stuff and we can share with with studios outside of the
+share with with studios outside of the Microsoft internal corpnet and they can
+Microsoft internal corpnet and they can still access the externally public TFS
+still access the externally public TFS address and all that so the important
+address and all that so the important thing here is that events are the schema
+thing here is that events are the schema stores stores events at the category
+stores stores events at the category level so if you have to networking
+level so if you have to networking engineers that are adding events you
+engineers that are adding events you need to create a unique identifier for
+need to create a unique identifier for that event type that they're about to
+that event type that they're about to check in and you want to make sure that
+check in and you want to make sure that they're not stopping on each other and
+they're not stopping on each other and both saying +1 to whatever review that
+both saying +1 to whatever review that they have so that the global schema
+they have so that the global schema store supports that it also supports the
+store supports that it also supports the enforcing the ever-growing schema
+enforcing the ever-growing schema requirement so which makes sure that the
+requirement so which makes sure that the parameter types aren't changing in an
+parameter types aren't changing in an unenforceable way you know they're not
+unenforceable way you know they're not going from the UN 64 down to a byte and
+going from the UN 64 down to a byte and then all of our reporting infrastructure
+then all of our reporting infrastructure I guess that would be supported going
+I guess that would be supported going from it so we just don't let them change
+from it so we just don't let them change the types really
+the types really because figuring out that logic and
+because figuring out that logic and trying to message that is a bit
+trying to message that is a bit challenging but that allows us for to
+challenging but that allows us for to have a reporting stay consistent now
+have a reporting stay consistent now this was a big pain point
+this was a big pain point unfortunately because developers sorry
+unfortunately because developers sorry my my slide timer is like 20 minutes
+my my slide timer is like 20 minutes ahead of the real world in time so I had
+ahead of the real world in time so I had a little freaked out there developers
+a little freaked out there developers were iterating on the events that they
+were iterating on the events that they wanted to generate as we're all want to
+wanted to generate as we're all want to do and every time they were compiling
+do and every time they were compiling they were compiling with each iteration
+they were compiling with each iteration which was registering their event in the
+which was registering their event in the global schema store which means that now
+global schema store which means that now they can't change the event types
+they can't change the event types because they realized they needed a UN
+because they realized they needed a UN 64 instead of a UN 32 so
+64 instead of a UN 32 so it's on the books we haven't implemented
+it's on the books we haven't implemented it yet but one of the things we need to
+it yet but one of the things we need to do is support an offline do not transmit
+do is support an offline do not transmit this data to the cloud because we're
+this data to the cloud because we're iterating on what kinds of events we
+iterating on what kinds of events we will want to transmit the reason why
+will want to transmit the reason why this defaults to the behavior that we
+this defaults to the behavior that we implemented is because we would have
+implemented is because we would have engineers that would create local
+engineers that would create local one-off builds with a bunch of
+one-off builds with a bunch of instrumentation transmitted that run the
+instrumentation transmitted that run the game with that instrumentation because
+game with that instrumentation because they're trying to track down some issue
+they're trying to track down some issue that's that's hard to debug and then
+that's that's hard to debug and then want a report from us saying hang on the
+want a report from us saying hang on the cloud you know I'm pulling up the
+cloud you know I'm pulling up the session that I just ran through and I
+session that I just ran through and I don't see my data right so there's the
+don't see my data right so there's the power of this is that developers have
+power of this is that developers have access to their data in less than a
+access to their data in less than a minute they have access to the full log
+minute they have access to the full log of events that's being generated in real
+of events that's being generated in real time and our developers are most / some
+time and our developers are most / some developers are making use of that
+developers are making use of that particular feature so and it's a really
+particular feature so and it's a really powerful feature the ones that use it
+powerful feature the ones that use it are strong advocates for it and finally
+are strong advocates for it and finally the preprocessor handles the bond
+the preprocessor handles the bond serialization and we're using bond which
+serialization and we're using bond which is a Microsoft protocol it's open source
+is a Microsoft protocol it's open source and it's similar to Google's protocol
+and it's similar to Google's protocol buffer and so it does bit packing like
+buffer and so it does bit packing like in the first four fields the first four
+in the first four fields the first four fields on an event they're ordinals
+fields on an event they're ordinals their position in that that event one
+their position in that that event one one two three four is actually stored in
+one two three four is actually stored in like the first couple bits of a
+like the first couple bits of a particular entry within the bond
+particular entry within the bond serialization format and then the next
+serialization format and then the next few bits store the type of the entity
+few bits store the type of the entity and this lets us get away with an
+and this lets us get away with an average event size of only 120 bytes you
+average event size of only 120 bytes you can't do a bit packing on goods which is
+can't do a bit packing on goods which is why if people are adding in match ID and
+why if people are adding in match ID and vehicle ID in life instance ID and all
+vehicle ID in life instance ID and all these other things your event sizes
+these other things your event sizes start start getting rather large
+so that was so that's the client-side architecture on the service side we've
+architecture on the service side we've got Maelstrom and this is is the
+got Maelstrom and this is is the Maelstrom component is is fairly small
+Maelstrom component is is fairly small because it is the it's small in concept
+because it is the it's small in concept I suppose but not not necessarily an
+I suppose but not not necessarily an implementation because its focus is to
+implementation because its focus is to be the event pipeline that all of our
+be the event pipeline that all of our other services can tie into and work
+other services can tie into and work with so we have the ingestion service
+with so we have the ingestion service and this is the primary service that the
+and this is the primary service that the clients are connecting to the clients
+clients are connecting to the clients what we're using is web WebSocket
+what we're using is web WebSocket protocol to connect up to the cloud to
+protocol to connect up to the cloud to the ingestion service we're using a
+the ingestion service we're using a single WebSocket connection for both the
+single WebSocket connection for both the high and the low priority channels which
+high and the low priority channels which which adds a little bit of complexity
+which adds a little bit of complexity and in order to multiplex over that that
+and in order to multiplex over that that path we're using AMQP which is a Queuing
+path we're using AMQP which is a Queuing protocol
+so clients are connecting to the ingestion service and then the
+ingestion service and then the Egyptian's service as it receives the
+Egyptian's service as it receives the events from the client now remember I
+events from the client now remember I said we weren't transmitting the session
+said we weren't transmitting the session information or the authentication claims
+information or the authentication claims with every event payload every frame
+with every event payload every frame what were your instead doing is
+what were your instead doing is transmitting those during the connection
+transmitting those during the connection negotiation for the WebSocket and then
+negotiation for the WebSocket and then the ingestion service keeps track of
+the ingestion service keeps track of that as part of that that WebSocket
+that as part of that that WebSocket information it will then stick that on
+information it will then stick that on to the payload that it received from the
+to the payload that it received from the client and injects that into the event
+client and injects that into the event queue that we're using in the cloud and
+queue that we're using in the cloud and that way whoever's reading off the data
+that way whoever's reading off the data then they can have access to that
+then they can have access to that session do it and say oh this is
+session do it and say oh this is something I've subscribed to I want I
+something I've subscribed to I want I want this event in this event in this
+want this event in this event in this event off thank you
+event off thank you and then we're transmitting our primary
+and then we're transmitting our primary queuing system that we're using is the
+queuing system that we're using is the urban hub which is performed quite well
+urban hub which is performed quite well for our needs
+for our needs it's it stood up to some pretty high
+it's it stood up to some pretty high volume stuff we also in the ingestion
+volume stuff we also in the ingestion service support non AMQP pads so we're
+service support non AMQP pads so we're getting telemetry from other components
+getting telemetry from other components that might only transmit JSON JSON
+that might only transmit JSON JSON payloads for example and so the
+payloads for example and so the ingestion service will take those JSON
+ingestion service will take those JSON payloads and convert them into bond
+payloads and convert them into bond those are much lower volume streams and
+those are much lower volume streams and so it's something we can do in the
+so it's something we can do in the ingestion service but for the most part
+ingestion service but for the most part the ingestion service never cracks open
+the ingestion service never cracks open any already encoded in bond
+any already encoded in bond payload its sole purpose is to take the
+payload its sole purpose is to take the claims and the session ID associated
+claims and the session ID associated with whatever it just received from the
+with whatever it just received from the client and let someone else deal with
+client and let someone else deal with authorization so ingestion service will
+authorization so ingestion service will do authentication to ensure that you're
+do authentication to ensure that you're allowed to talk to it but then the
+allowed to talk to it but then the authorization is offloaded to whoever's
+authorization is offloaded to whoever's going to actually use
+going to actually use that information so I mean that's
+that information so I mean that's Maelstrom is the event hub in the
+Maelstrom is the event hub in the addition service mostly so there's also
+addition service mostly so there's also the common API we have for consuming
+the common API we have for consuming those event streams so the API layer
+those event streams so the API layer that allows you to connect to that event
+that allows you to connect to that event stream on of a tub and then allows you
+stream on of a tub and then allows you to read the stream of events coupled
+to read the stream of events coupled with the global schema store I was
+with the global schema store I was talking about right so we have a global
+talking about right so we have a global registry of what every event should be
+registry of what every event should be interpreted as field number two it's an
+interpreted as field number two it's an nth okay that's part of the bond
+nth okay that's part of the bond protocol but understanding that that is
+protocol but understanding that that is weapon ID for example that's metadata
+weapon ID for example that's metadata that's stored in the schema store so we
+that's stored in the schema store so we have a common set of api's that allow
+have a common set of api's that allow for understanding the event streams as
+for understanding the event streams as they're coming off then we have several
+they're coming off then we have several services that feed off of the Maelstrom
+services that feed off of the Maelstrom pipeline the stats service is the
+pipeline the stats service is the primary one that is in charge of the
+primary one that is in charge of the leaderboards and the end of game stats
+leaderboards and the end of game stats that you see hopefully at the end of the
+that you see hopefully at the end of the game and the storage service is the one
+game and the storage service is the one that takes off event hub because that
+that takes off event hub because that that retains for so many days into the
+that retains for so many days into the past you can recover your services
+past you can recover your services anytime within like a seven day window
+anytime within like a seven day window and as long as you've persisted where
+and as long as you've persisted where you were in the event of queue you can
+you were in the event of queue you can spin everything up and read everything
+spin everything up and read everything out again make sure that you're using
+out again make sure that you're using the right offset funny anecdote I'm
+the right offset funny anecdote I'm there was a partner team we were working
+there was a partner team we were working with that always spun up their service
+with that always spun up their service using offset zero so they were reading
+using offset zero so they were reading from the beginning of time and at that
+from the beginning of time and at that time there weren't very many safeguards
+time there weren't very many safeguards to throttle the reading so it kind of
+to throttle the reading so it kind of took took things down during the Halo
+took took things down during the Halo so lesson learned make sure that
+so lesson learned make sure that everybody's using and persisting their
+everybody's using and persisting their offsets as part of their checkpointing
+offsets as part of their checkpointing process and also make sure that you've
+process and also make sure that you've gotten throttling naturally in there so
+gotten throttling naturally in there so storage send stuff off to blobs and then
+storage send stuff off to blobs and then later on as I'll be getting into we can
+later on as I'll be getting into we can crack open those blobs for doing some
+crack open those blobs for doing some some larger scale reporting the stat
+some larger scale reporting the stat service is essentially a state machine
+service is essentially a state machine so since we don't have to do any of the
+so since we don't have to do any of the windowing processing I think at one
+windowing processing I think at one point they did have tril implemented so
+point they did have tril implemented so they could do more complex windowed
+they could do more complex windowed processing style queries as part of the
+processing style queries as part of the event stream but at its most basic level
+event stream but at its most basic level it's not necessarily necessary they just
+it's not necessarily necessary they just read the events and increment their
+read the events and increment their internal counters and persist their
+internal counters and persist their state using I didn't go into it
+state using I didn't go into it we have several talks if you go into I
+we have several talks if you go into I think the GDC vault as well as the I
+think the GDC vault as well as the I think we've given talks that build that
+think we've given talks that build that cover how 343 uses the orleans
+cover how 343 uses the orleans technology which is another open source
+technology which is another open source technology bed that allows for these
+technology bed that allows for these things called virtual actors which are
+things called virtual actors which are essentially your your and they call them
+essentially your your and they call them stateless but stateless state machines
+stateless but stateless state machines because they're their state machines but
+because they're their state machines but then they can migrate as the servers go
+then they can migrate as the servers go up and down and everything is handled
+up and down and everything is handled for you and it's really cool tech that
+for you and it's really cool tech that we leverage a lot in 343 so I recommend
+we leverage a lot in 343 so I recommend looking into that finally we have the
+looking into that finally we have the librarian and what the librarian does is
+librarian and what the librarian does is it's cracking open finally we're
+it's cracking open finally we're cracking open these events from a bi
+cracking open these events from a bi perspective right so the stats
+components are cracking open the events that they want to read and they're
+that they want to read and they're subscribing to the events
+subscribing to the events you'll want to subscribe to in order to
+you'll want to subscribe to in order to drive the end of game leaderboards in a
+drive the end of game leaderboards in a real-time fashion but they're only
+real-time fashion but they're only really subscribing to the high priority
+really subscribing to the high priority feed which allows them to shave off like
+feed which allows them to shave off like 80% of the network volumes and
+80% of the network volumes and processing requirements that they would
+processing requirements that they would otherwise have so the librarian what it
+otherwise have so the librarian what it does is it's actually parsing the events
+does is it's actually parsing the events and we've we've stored just enough
+and we've we've stored just enough information in the headers of the events
+information in the headers of the events and bond is really great and that you
+and bond is really great and that you can deserialize in the event stream just
+can deserialize in the event stream just as much as you need and then skip the
+as much as you need and then skip the rest of the payload and not incur any of
+rest of the payload and not incur any of the overhead and deserializing the rest
+the overhead and deserializing the rest of that event so our events are
+of that event so our events are architected such that the information
+architected such that the information you need the event type ID the title ID
+you need the event type ID the title ID the session information timestamp those
+the session information timestamp those are all on the very first few dozen
+are all on the very first few dozen bytes and so the librarian is parsing
+bytes and so the librarian is parsing out that header and making a note of
+out that header and making a note of what time stamp different events
+what time stamp different events happened and so now we can do reporting
+happened and so now we can do reporting on this session observed this many of
+on this session observed this many of this kind of event and then if that's
+this kind of event and then if that's you know if we're looking for a very
+you know if we're looking for a very rare event then we can say well just
+rare event then we can say well just give us the 20 sessions where this have
+give us the 20 sessions where this have been happened for example and then we
+been happened for example and then we get the full context finally we've got
+get the full context finally we've got the telemetry Event Viewer
+the telemetry Event Viewer and the telemetry Event Viewer
+and the telemetry Event Viewer is a is a work in progress so right now
+is a is a work in progress so right now it actually just outputs a CSV file the
+it actually just outputs a CSV file the developers can open in Excel I wish I
+developers can open in Excel I wish I had a screenshot of it actually because
+had a screenshot of it actually because it gives you a lot of data but it's
+it gives you a lot of data but it's essentially the event stream in human
+essentially the event stream in human readable format but also with every
+readable format but also with every column each field has been separated
+column each field has been separated into its own column which allows you to
+into its own column which allows you to do filtering and sorting and
+do filtering and sorting and what-have-you on the fields within those
+what-have-you on the fields within those events and this has been an amazingly
+events and this has been an amazingly useful tool
+useful tool in debugging what exactly is going on in
+in debugging what exactly is going on in the game especially for like the
+the game especially for like the networking guys because networking is
+networking guys because networking is inherently a integrated problem so
+inherently a integrated problem so you've got 24 clients and the server and
+you've got 24 clients and the server and several services that are all
+several services that are all interacting and as soon as you hit a bug
+interacting and as soon as you hit a bug then you've got to figure out what it
+then you've got to figure out what it was
+was what were the states of all the
+what were the states of all the different actors at the time with that
+different actors at the time with that that negative event happened so with the
+that negative event happened so with the telemetry event viewer you can actually
+telemetry event viewer you can actually pull down all of the events from all of
+pull down all of the events from all of the clients that were connected with in
+the clients that were connected with in you know like a five minute window from
+you know like a five minute window from when the event happened you can see what
+when the event happened you can see what everybody's doing up to when the event
+everybody's doing up to when the event happened so that's been a really useful
+happened so that's been a really useful tool and because we're flushing every 30
+tool and because we're flushing every 30 to 60 seconds for the larger blobs in
+to 60 seconds for the larger blobs in storage we're able to pull up sessions
+storage we're able to pull up sessions as their their lives so somebody's
+as their their lives so somebody's saying hey you know I'm getting some
+saying hey you know I'm getting some warping going on in this game we can
+warping going on in this game we can actually load it up and see what's going
+actually load it up and see what's going on in less than a minute the corollary
+on in less than a minute the corollary to that one reason why we have to
+to that one reason why we have to support so much volume is that the
+networking guys generate the most events so there were something like 9,000
+so there were something like 9,000 events in the legacy system the old
+events in the legacy system the old system that that was log underscore
+system that that was log underscore event we migrated probably a thousand
+event we migrated probably a thousand events into cell before we really
+events into cell before we really launched and of those I would say
+launched and of those I would say probably 3/4 of them are networking
+probably 3/4 of them are networking related maybe just because they have so
+related maybe just because they have so many things that they need to track
+and then for doing our big data processing we're using Hadoop and hive
+processing we're using Hadoop and hive and we have a custom Java bond surday
+and we have a custom Java bond surday that is reading the raw blobs so we have
+that is reading the raw blobs so we have a job every hour that runs that
+a job every hour that runs that traverses through the raw blobs that are
+traverses through the raw blobs that are they're stored in bond and converts the
+they're stored in bond and converts the events that we're interested in into the
+events that we're interested in into the orc format which is it's a columnar
+orc format which is it's a columnar format so it's a very if your data is
+format so it's a very if your data is slowly changing it's a very highly
+slowly changing it's a very highly compressed and efficient way to to store
+compressed and efficient way to to store your data so if you have data that's
+your data so if you have data that's like if you always have a map name in
+like if you always have a map name in your event then it only stores the map
+your event then it only stores the map name once and then has like a vector
+name once and then has like a vector that says ok well this effect this
+that says ok well this effect this values like run length encoding this
+values like run length encoding this value applies for the next 20,000
+value applies for the next 20,000 entries for this hour so it creates very
+entries for this hour so it creates very small files and it's fairly standard of
+small files and it's fairly standard of a big data world and I just spoke to all
+a big data world and I just spoke to all of that and then we've got ad hoc and
+of that and then we've got ad hoc and regular regular reports that are running
+regular regular reports that are running in the hive query language and we're
+in the hive query language and we're also using tableau and R for
+also using tableau and R for visualization tools and to create our
+visualization tools and to create our our dashboards
+so some of the gotchas in implementing this the client implementation took time
+this the client implementation took time it took a lot of time I have to say we
+it took a lot of time I have to say we originally anticipated it to be you know
+originally anticipated it to be you know something that was on like the six month
+something that was on like the six month scale and I think we ended up spending
+scale and I think we ended up spending most of the three years continually
+most of the three years continually working on the client-side
+working on the client-side implementation and ensuring the
+implementation and ensuring the performance was right and a fair amount
+performance was right and a fair amount of that was working with the the build
+of that was working with the the build integration systems that that are a part
+integration systems that that are a part of game development right you know
+of game development right you know somebody breaks the build and you've got
+somebody breaks the build and you've got to integrate and you've got to figure
+to integrate and you've got to figure out was it here they broke the build
+out was it here they broke the build etcetera etc so a lot of people that
+etcetera etc so a lot of people that I've been working with are or on the
+I've been working with are or on the services side so helping those teams
+services side so helping those teams understand the implications of doing
+understand the implications of doing client-side development making sure they
+client-side development making sure they understand how absolutely critical it is
+understand how absolutely critical it is for a high performance low latency
+for a high performance low latency client side impact was pivotal for the
+client side impact was pivotal for the success of making this happen we
+success of making this happen we wouldn't have had client team buy off if
+wouldn't have had client team buy off if we didn't convey how much we understood
+we didn't convey how much we understood it was important to keep this at the
+it was important to keep this at the microsecond level there's this thing
+microsecond level there's this thing called a statistics event that I haven't
+called a statistics event that I haven't spoken to until now every minute the
+spoken to until now every minute the client-side writes a little histogram
+client-side writes a little histogram event into the stream that says here's
+event into the stream that says here's all the events that I've seen so that we
+all the events that I've seen so that we can do matchups to say oh well we didn't
+can do matchups to say oh well we didn't it was a high priority stream we
+it was a high priority stream we shouldn't have any dropped events but
+shouldn't have any dropped events but apparently we did drop these three
+apparently we did drop these three events we need to go investigate that we
+events we need to go investigate that we actually had to turn that off for
+actually had to turn that off for release because actually no it is in
+release because actually no it is in release but it's got an issue in that
+release but it's got an issue in that every event is sequentially incrementing
+every event is sequentially incrementing its sequence ID right everything is
+its sequence ID right everything is sequential the statistics event is
+sequential the statistics event is attached as part of the header of the
+attached as part of the header of the event
+event that sequence ID is allocated at the end
+that sequence ID is allocated at the end of the event because they've batch it's
+of the event because they've batch it's about to send it wants to report on it
+about to send it wants to report on it so we had some issues with people that
+so we had some issues with people that were doing the right thing and making
+were doing the right thing and making sure the only interpreted sequential
+sure the only interpreted sequential events but they were having all sorts of
+events but they were having all sorts of dropouts because once a minute this
+dropouts because once a minute this particular event would show up out of
+particular event would show up out of sequence so whenever you're doing these
+sequence so whenever you're doing these kinds of custom scenarios I you really
+kinds of custom scenarios I you really have to keep track of all the different
+have to keep track of all the different systems that could be impacted by it the
+systems that could be impacted by it the decision was made from the beginning
+decision was made from the beginning that a client session would be the
+that a client session would be the instance of the executable from when the
+instance of the executable from when the executable started to when the
+executable started to when the executable was terminated and released
+executable was terminated and released from memory the thing we didn't really
+from memory the thing we didn't really account for is that on the Xbox one
+account for is that on the Xbox one titles go to sleep and it could be a
+titles go to sleep and it could be a week before the person comes back and
+week before the person comes back and fires up their console again or they can
+fires up their console again or they can go off and play Netflix for several
+go off and play Netflix for several hours or days and then come back and
+hours or days and then come back and start the title again at which point the
+start the title again at which point the title instantly comes on you'll have to
+title instantly comes on you'll have to load the waiting screen or anything but
+load the waiting screen or anything but you're using the same session ID and
+you're using the same session ID and that's caused a fair amount of headaches
+that's caused a fair amount of headaches for our reporting systems because now
+for our reporting systems because now instead of carrying forward the
+instead of carrying forward the information from the previous hour and
+information from the previous hour and aggregating that information now like if
+aggregating that information now like if they're playing a campaign game and
+they're playing a campaign game and they're there mid game and then they go
+they're there mid game and then they go to sleep now you wake up a week later
+to sleep now you wake up a week later you need to figure out what map they
+you need to figure out what map they were on but because of the
+were on but because of the contextualization decisions we made that
+contextualization decisions we made that information is stored a week ago right
+information is stored a week ago right so that was a headache and it's still
+so that was a headache and it's still not solved we just have to we basically
+not solved we just have to we basically carry forward summary information for
+carry forward summary information for players as a stopgap and then things
+players as a stopgap and then things came in a bit hot and we needed to get
+came in a bit hot and we needed to get our actual business intelligence or
+our actual business intelligence or for it's going so the stream querying
+for it's going so the stream querying that we really wanted to make a lot of
+that we really wanted to make a lot of use with so we're using the non windowed
+use with so we're using the non windowed streaming analytics in our stats grains
+streaming analytics in our stats grains but we haven't had an opportunity yet to
+but we haven't had an opportunity yet to implement trail and some of these other
+implement trail and some of these other technologies like espera is one that
+technologies like espera is one that we've been looking at to have kind of
+we've been looking at to have kind of business intelligence driven streaming
+business intelligence driven streaming queries off off this stuff and as I said
+queries off off this stuff and as I said earlier the schema store caused some
+earlier the schema store caused some problems during developer iteration so
+running low on time but I do want to show you some some cool graphs right the
+show you some some cool graphs right the map balance so I don't know how many
+map balance so I don't know how many people here saw the the community news
+people here saw the the community news article about red team versus blue team
+article about red team versus blue team awesome great this is gonna be new to
+awesome great this is gonna be new to all of you so there were there were
+all of you so there were there were concerns in our community that our maps
+concerns in our community that our maps were not balanced red team versus blue
+were not balanced red team versus blue team and indeed if you if you look at
+team and indeed if you if you look at the the raw numbers you can see that
+the the raw numbers you can see that blue team seems to be doing they these
+blue team seems to be doing they these are wins versus red team wins and blue
+are wins versus red team wins and blue team seems to be winning more frequently
+team seems to be winning more frequently except for the line at the very top and
+except for the line at the very top and this is all on one map these are just
+this is all on one map these are just different game modes on that map and
+different game modes on that map and then the previous one was all up across
+then the previous one was all up across for that entire day this one is broken
+for that entire day this one is broken out by let's say I think the previous
+out by let's say I think the previous one was was all up for the entire week
+one was was all up for the entire week the next one is broken out by day but
+the next one is broken out by day but significantly it's looking at even team
+significantly it's looking at even team versus even team so it's taking out the
+versus even team so it's taking out the noise that can happen if a really strong
+noise that can happen if a really strong team is playing one color consistently
+team is playing one color consistently for some reason which which did happen
+for some reason which which did happen and so these are these are even teams
+and so these are these are even teams that we were comparing and we see
+that we were comparing and we see there's a lot of blue there
+there's a lot of blue there and then you can also do something cool
+and then you can also do something cool like looking at what is the matchmaking
+like looking at what is the matchmaking rating Delta at at which you now get an
+rating Delta at at which you now get an even win-loss rate so with that you can
+even win-loss rate so with that you can see that in some game modes red team has
+see that in some game modes red team has to be several that's like 0.3 oh I don't
+to be several that's like 0.3 oh I don't I don't really have a pointer but some
+I don't really have a pointer but some of those lines indicate that you have to
+of those lines indicate that you have to be 0.3 Moo better on the red team versus
+be 0.3 Moo better on the red team versus the blue team before you start having an
+the blue team before you start having an even match and so we wanted to look into
+even match and so we wanted to look into this and our hypothesis was that some of
+this and our hypothesis was that some of the maps allowed for blue to blend and
+the maps allowed for blue to blend and easier in fact we think the blue is just
+easier in fact we think the blue is just generally a harder color to get target
+generally a harder color to get target acquisition on because red is a much
+acquisition on because red is a much more high contrast color versus blue so
+more high contrast color versus blue so we were looking at heat maps and I'll
+we were looking at heat maps and I'll speed up through this so deaths red vs.
+speed up through this so deaths red vs. blue there's more red deaths there but
+blue there's more red deaths there but it's kind of hard to make out a pattern
+it's kind of hard to make out a pattern doesn't really show up well so what you
+doesn't really show up well so what you can do is you can look at traversals and
+can do is you can look at traversals and you can see that red basis at the bottom
+you can see that red basis at the bottom and blue basis at the top right so on
+and blue basis at the top right so on the previous slide there's more Reds
+the previous slide there's more Reds deaths on the bottom but that's Reds
+deaths on the bottom but that's Reds base right so I mean it makes sense that
+base right so I mean it makes sense that red would die more if they're spawning
+red would die more if they're spawning down there and so you can get this
+down there and so you can get this lethality matrix although looking at it
+lethality matrix although looking at it at the individual dots is it's hard to
+at the individual dots is it's hard to make out but you can see that there's
+make out but you can see that there's some patterns starting to emerge so what
+some patterns starting to emerge so what I did was we've got these things called
+I did was we've got these things called call-outs in the end the maps that tell
+call-outs in the end the maps that tell you where you are in the map so you can
+you where you are in the map so you can say oh there's somebody in upper catwalk
+say oh there's somebody in upper catwalk or lower cat Walker or what have you so
+or lower cat Walker or what have you so I actually walked the borders of these
+I actually walked the borders of these call-outs just as a prototype
+call-outs just as a prototype and outputted my my XYZ coordinates at a
+and outputted my my XYZ coordinates at a regular interval like every second throw
+regular interval like every second throw them into Excel so that I could make
+them into Excel so that I could make sure that I was collecting the right
+sure that I was collecting the right kind of information imported that into
+kind of information imported that into sequel server using a two-dimensional
+sequel server using a two-dimensional they've got a 2d query extension that's
+they've got a 2d query extension that's part of sequel server so you can do
+part of sequel server so you can do bounded queries and then correlated the
+bounded queries and then correlated the traversal information with the death
+traversal information with the death information to say okay inside this
+information to say okay inside this polygon how many does happen that kind
+polygon how many does happen that kind of thing
+of thing that resulted in this heat map which is
+that resulted in this heat map which is much more useful in my opinion and
+much more useful in my opinion and because I have the Z order I can layer
+because I have the Z order I can layer the polygons one on top of each other so
+the polygons one on top of each other so you can see the catwalks ER above the
+you can see the catwalks ER above the courtyards and now you can see that red
+courtyards and now you can see that red is not having the greatest time red
+is not having the greatest time red seems to be dying regardless now that we
+seems to be dying regardless now that we take into account traversals especially
+take into account traversals especially when red is entering blue base and blue
+when red is entering blue base and blue is finally dying when blue is entering
+is finally dying when blue is entering red base and the walls have a slight hue
+red base and the walls have a slight hue that make those opposing colors much
+that make those opposing colors much more visible except for this little blue
+more visible except for this little blue circle is really really strong in the
+circle is really really strong in the bottom right there you go
+bottom right there you go I circled it and so I loaded up the map
+I circled it and so I loaded up the map and I'm like what's going on with this
+and I'm like what's going on with this little circle that's that's curious and
+little circle that's that's curious and there's this this big red wall right
+there's this this big red wall right behind this little platform that people
+behind this little platform that people can stand on and shoot so it was kind of
+can stand on and shoot so it was kind of a nice confirmation that the hypothesis
+a nice confirmation that the hypothesis of hue versus background color and
+of hue versus background color and what-have-you was as being born out so
+what-have-you was as being born out so we took that to the map designers and
+we took that to the map designers and and they what they did was they said
+and they what they did was they said well so this particular map were at like
+well so this particular map were at like 54% blue wind versus 46% red and they
+54% blue wind versus 46% red and they said well okay if there's this bug where
+said well okay if there's this bug where the best player always in particular
+the best player always in particular scenarios
+scenarios the best player is always put on the the
+the best player is always put on the the blue team so maybe that's what we're
+blue team so maybe that's what we're seeing right so it's like fine we we
+seeing right so it's like fine we we waited for that fix to go out and did my
+waited for that fix to go out and did my yeah there we go
+yeah there we go and so we went down a percent point so
+and so we went down a percent point so the effect was there and we're able to
+the effect was there and we're able to measure it and show that and then they
+measure it and show that and then they tweaked the hue of the color to be a
+tweaked the hue of the color to be a brighter hue and the day that that or
+brighter hue and the day that that or the week that that patch went out there
+the week that that patch went out there was an immediate advantage seen now this
+was an immediate advantage seen now this is across all maps so the thing to
+is across all maps so the thing to remember when you're looking at the data
+remember when you're looking at the data is there's always another story right so
+is there's always another story right so you could be getting into it and you're
+you could be getting into it and you're like well you know let me look at a map
+like well you know let me look at a map that's that's kind of red ish so in this
+that's that's kind of red ish so in this case the advantage that red has is like
+case the advantage that red has is like a few percentage points versus the
+a few percentage points versus the column on the left which is the overall
+column on the left which is the overall advantage and the fix went out and sure
+advantage and the fix went out and sure enough that dropped by a percentage
+enough that dropped by a percentage point just like it did for the average
+point just like it did for the average across everything and the the blue color
+across everything and the the blue color went out and now red team is actually
+went out and now red team is actually getting an advantage that they didn't
+getting an advantage that they didn't have before so blue is now at a
+have before so blue is now at a consistent two or three percentage point
+consistent two or three percentage point disadvantage but that is now being bad
+disadvantage but that is now being bad on the the redder Maps right and there's
+on the the redder Maps right and there's one other map that's that's even worse
+one other map that's that's even worse than this and then they went really not
+than this and then they went really not not good so we're gonna have to do
+not good so we're gonna have to do something like a poor map color
+something like a poor map color variation or something right and I'm out
+variation or something right and I'm out of time so I'm going to I'm going to
+of time so I'm going to I'm going to play these two things and then there you
+play these two things and then there you go this is a war zone map blue team
+go this is a war zone map blue team crushing red team play it one more time
+crushing red team play it one more time and then conversely this is a blue team
+and then conversely this is a blue team versus red team or evenly matched and so
+versus red team or evenly matched and so they just that they're duking it out oh
+they just that they're duking it out oh except the wrong animation got in so it
+except the wrong animation got in so it was the same thing that's
+was the same thing that's you get my card afterwards we'll go
+you get my card afterwards we'll go outside and we'll have lots of questions
+outside and we'll have lots of questions I'm sure and I'll email you the the real
+I'm sure and I'll email you the the real animation so thank you all for your time
+animation so thank you all for your time I appreciate it
+I appreciate it [Applause]

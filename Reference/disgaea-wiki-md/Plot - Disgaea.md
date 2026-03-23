@@ -1,0 +1,46 @@
+# Plot: Disgaea
+
+*(This article is a stub)*
+*Main article: Disgaea: Hour of Darkness*
+
+## Main Story
+
+
+### Prince of the Netherworld
+thumb|250px|Etna attempts to wake Laharl from his two-year slumber.The story of Disgaea opens with Laharl rising out of an open coffin in his room. Etna, one of the castle vassals, is standing next to him, surrounded by various weapons. She explains that he has been sleeping for two years, far longer than he intended, and his father, King Krichevskoy, has died. Laharl vows to reclaim the throne, and, after consulting with Etna and his other vassals, goes to Vyers' castle.
+
+### Enter Flonne
+thumb|250px|Flonne's assassination attempt gone awry.After defeating the demon Vyers, who refers to himself as the "Dark Adonis" and is renamed "Mid-Boss" by Laharl, he meets Angel Trainee Flonne. Flonne had been sent to the Netherworld by Seraph Lamington, the ruler of Celestia, to assassinate King Krichevskoy (who was already dead). Shocked by Laharl's lack of grief at his father's death, the eternally optimistic Flonne joins Laharl's party to determine if demons are capable of feeling love. Observing them in secret is the paranoid Archangel Vulcanus, who interprets Flonne's actions as treason and is convinced that she is plotting against him.
+
+### A Hint of Kindness
+After Etna demands that Laharl pay the salary of the Prinnies that she has hired, he decides to attack the demon with the most money in the vicinity. This is Hoggmeiser at Dinero Palace. After defeating Hoggmeiser, Laharl is about to kill him, until Hoggmeiser's son rushes out and gets in the way. Flonne convinces Laharl to spare them, and Laharl lets them keep 5000HL. In response to this act, Hoggmeiser joins the party.
+
+### Gift from an Angel
+thumb|250px|Laharl returns Flonne's pendant.Vulcanus steals Flonne's pendant while the latter is asleep. Flonne promises Laharl 'something good', should he help her find her pendant, and the group head off to Blazing Core. Vulcanus is burned by the pendant and drops it, to subsequently be found by Vyers. The trio confront Vyers, and to Flonne's surprise, Vyers is unaffected by the pendant. The party clash with Vyers over the pendant and the latter is subsequently defeated. He drops the pendant while taking his leave, but Laharl is quick to retrieve it. With Laharl eager for his reward, Flonne reveals that her goal was to demonstrate to Laharl that he has kindness within his heart, causing Laharl to leave the scene in a rage.
+
+### Etna's Secret
+At one point, Flonne and Etna discover a photograph of Laharl in an embarrassing situation. Laharl refers to this as a "paparazzi shot", however, the actual contents of the photo are never actually revealed. A threat on the back of the photograph states that copies of it would be distributed if Laharl did not accept a challenge to fight for the overlordship; thus Laharl was blackmailed. Responding to this challenge, Laharl meets Maderas, a vampire. He was banished by King Krichevskoy, for stealing the King's favorite snack, black pretzels. Maderas takes advantage of Laharl's two biggest weaknesses – optimism and women with sexy bodies. Maderas was also controlling Etna by holding her memory. He had instructed her to kill the prince, but she had put him to sleep for two years by poisoning him instead. Etna eventually betrays Maderas, and along with Laharl, Flonne, and Mid-Boss, defeats him.
+
+### Laharl's Challenge
+thumb|250px|Laharl's vassals arrive to defeat Alt. Overlord.Laharl writes a letter claiming that he holds the deed of the title of Overlord, and that challengers may attempt to defeat him for it. However, as he explains to Etna, it is actually a trap to draw out anyone who would claim the title of Overlord and do away with them, leaving Laharl to be the Overlord. Laharl soon notices that many of his vassals are missing, and the Dimension Guide states that they are waiting to ambush him at Blair Forest. The group eventually encounters Alt. Overlord, who proves to be an opponent too formidable for Laharl. Suddenly, Laharl's missing vassals appear to help, declaring their loyalty to King Krichevskoy. After Alt. Overlord's defeat, the vassals return back to the castle. Afterwards, the group meets the Prism Rangers. Prism Red declares that he will defeat Laharl, but Etna incapacitates Prism Blue and Prism Yellow in midst of their transformation. Prism Red summons demons to his side and faces Laharl in battle. Finally, the group is approached by Vyers again, who stands as Laharl's last obstacle to becoming Overlord. Following his defeat, Vyers runs away once more, and Laharl proclaims that he is now the Overlord.
+
+### Of Being an Overlord
+Laharl is approached by Etna with his first task as Overlord. Etna introduces Aramis, a young boy who wants to find his missing pets. Laharl refuses the job, asking for one more fitting for the Overlord. Etna states that she will not accept Laharl as Overlord if he does not comply, and Laharl is quick to reluctantly change his mind. After finding and battling all of Aramis' pets (which turn out to be Zombies), Aramis thanks Laharl and addresses him with respect. Laharl asks Etna if she now accepts him as Overlord, who states that she accepts him "for the time being", and warns Laharl not to fail.
+
+### Reincarnation
+thumb|250px|Laharl's mother and the rest of the Prinnies reincarnate.Waking up later at night, Flonne discovers that several Prinnies are chanting and leaving the castle. Laharl, worried that his reputation will be tarnished if it is discovered that he let his vassals escape, chases after them the next morning. Eventually, he runs into Death, and the player learns that Big Sis Prinny is actually Laharl's mother; she became a Prinny because she gave her life to save him.
+
+### Captain Gordon, Defender of Earth
+thumb|250px|Captain Gordon takes up Laharl's proposal.After Laharl becomes the undisputed Overlord of the Netherworld, he meets a group of humans from Earth: Captain Gordon, Defender of Earth; Jennifer, his assistant; and the robot Thursday. Gordon has been led to believe that his mission is to assassinate Laharl due to an impending attack on Earth by the Netherworld. Laharl promises not to invade Earth if Gordon defeats him, on the condition that Gordon becomes one of his vassals if he, Laharl, wins; Gordon is embarrassed by his ensuing loss and servitude. After the Earth Defense Force appears in the Netherworld, it is revealed that Gordon was actually sent to secure a path for an invasion of the Netherworld by the humans, who had been tricked by Vulcanus.
+
+### Angels, Demons, and Humans
+thumb|250px|The trio unite!While Captain Gordon is being forced into labor by Laharl, Jennifer appears and mentions that she, Etna, and Flonne are going on a picnic. Ultimately, Laharl, Gordon, and Thursday join them and they head to the Sea of Gehenna. Mid-Boss stands in the way of the group once again, and steals their picnic basket and food. After a series of battles, they confront Mid-Boss to take the basket, only to find that he had already eaten the food. After a battle and Mid-Boss running away, Gordon is brought to the realization that their spaceship is in pieces and they have no way to return to Earth. Laharl comes to accept Gordon, Jennifer, and Thursday, and to allow them to continue fighting at his side.
+
+### Hero's Will, Overlord's Way
+General Carter sends Kurtis to the Netherworld, and eventually goes there himself on the Space Battleship Gargantua. Kurtis abducts Jennifer, and Laharl engages the EDF fleet of spaceships in a rescue attempt, destroying all but the Gargantua by himself. When Laharl and his party arrive at the Gargantua's bridge, several angels from Celestia appear and attack them. After being defeated, General Carter escapes, only to have Mid-Boss appear to give him a message.
+
+In response to this turn of events, Flonne and the rest of the party decide to go to Celestia to confront the Seraph. Vulcanus goes to Seraph Lamington, declares that Flonne is a traitor who is leading an army of demons in an invasion of Celestia, and goes to lead a group of angels to repel this "invasion". Vulcanus reveals to Laharl and his party that he intends to conquer all three worlds and rule over them as a god. After defeating Vulcanus, Laharl finally meets the Seraph and Flonne explains Vulcanus' plan and what she has learned while traveling with Laharl. The Seraph accepts her version of events and agrees that demons are, in fact, capable of feeling love. However, he declares that Flonne must be punished because she fought against other angels, and turns her into a flower. Outraged at this injustice, Laharl attacks the Seraph, initiating the game's final battle.
+
+The game has multiple endings. Depending on the way the game was played up to this point, the Seraph may or may not survive, Flonne either remains a flower, is restored to her original form, or is transformed into a Fallen Angel, and Laharl either becomes a great Overlord, disappears and leaves Etna in charge of the Netherworld, or dies and becomes a Prinny. It may also be noted that, on the Good Ending, when the spirit of Laharl's mother appears to him, Vyers appears to already know her, and the way he talks to Laharl suggests that he is King Krichevskoy.
+
+## Etna Mode

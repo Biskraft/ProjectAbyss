@@ -1,0 +1,1455 @@
+[Music] good afternoon everybody welcome to my
+good afternoon everybody welcome to my talk design a detail first I'd like to
+talk design a detail first I'd like to thank GDC and I'd especially like to
+thank GDC and I'd especially like to thank them for putting me up against the
+thank them for putting me up against the doom post-mortem I'm sure that our
+doom post-mortem I'm sure that our audiences don't overlap at all so please
+audiences don't overlap at all so please turn off your pagers and this is an
+turn off your pagers and this is an advanced design Tech Talk so I'm going
+advanced design Tech Talk so I'm going to talk very fast we're gonna cover a
+to talk very fast we're gonna cover a lot of stuff if you don't get it all
+lot of stuff if you don't get it all don't worry about it we're gonna put the
+don't worry about it we're gonna put the slides up and I'll stick around for
+slides up and I'll stick around for questions for a long time afterward and
+questions for a long time afterward and I'm just going to wait until so many
+I'm just going to wait until so many laughs the joke that's on the screen and
+laughs the joke that's on the screen and then Thank You Marty and then I'm gonna
+then Thank You Marty and then I'm gonna go on so Who am I I have 13 years of
+go on so Who am I I have 13 years of industry experience mostly as a game
+industry experience mostly as a game designer on all of the Halo games
+designer on all of the Halo games especially the first three with just a
+especially the first three with just a little bit on ODST and reach I did the
+little bit on ODST and reach I did the balancing of the campaign difficulty and
+balancing of the campaign difficulty and also the multiplayer side as well as the
+also the multiplayer side as well as the tuning of all the weapons characters
+tuning of all the weapons characters vehicles and other gameplay elements my
+vehicles and other gameplay elements my opinions do not represent those of
+opinions do not represent those of Bungie management which is probably why
+Bungie management which is probably why I don't work there anymore so last year
+I don't work there anymore so last year I gave a talk that was inspired by this
+I gave a talk that was inspired by this painting it's the Sunday afternoon on
+painting it's the Sunday afternoon on the garage shot and what's really
+the garage shot and what's really interesting about this painting is that
+interesting about this painting is that closer that you get to it the more
+closer that you get to it the more detail comes out and so that inspired me
+detail comes out and so that inspired me to do a talk where I took a really
+to do a talk where I took a really trivial detail from halo examined it
+trivial detail from halo examined it exhaustively and tried to explain the
+exhaustively and tried to explain the design process behind it and draw
+design process behind it and draw Universal conclusions from that there's
+Universal conclusions from that there's a pretty popular talk so the GCC guys
+a pretty popular talk so the GCC guys said come back next year you can do any
+said come back next year you can do any talk you want so this is going to be my
+talk you want so this is going to be my talk about what non designers need to
+talk about what non designers need to know now I'm just kidding GDC one of the
+know now I'm just kidding GDC one of the sequel
+sequel so I was looking around for inspiration
+so I was looking around for inspiration and there's a great set a series
+and there's a great set a series actually of paintings by Monet where he
+actually of paintings by Monet where he paints haystacks which is not maybe the
+paints haystacks which is not maybe the most inspiring object but what he does
+most inspiring object but what he does is he paints them from several different
+is he paints them from several different angles in different during different
+angles in different during different seasons different times a day with under
+seasons different times a day with under different lighting and so his theme was
+different lighting and so his theme was to revisit the same subject matter
+to revisit the same subject matter multiple times and so my idea was I
+multiple times and so my idea was I revisit the same design decision over
+revisit the same design decision over several different games last year I
+several different games last year I spent a little bit too much time on the
+spent a little bit too much time on the abstract I didn't get to the meet enough
+abstract I didn't get to the meet enough so I'm gonna start right in with the
+so I'm gonna start right in with the detail and anytime I get abstract and
+detail and anytime I get abstract and I'm gonna have blue slide so you can
+I'm gonna have blue slide so you can tune out if that's not interesting to
+tune out if that's not interesting to you
+you so the muzzle velocity is the speed the
+so the muzzle velocity is the speed the projectile comes out of the gun of the
+projectile comes out of the gun of the plasma rifle which is sort of the alien
+plasma rifle which is sort of the alien SMG comes out in bolts that's the name
+SMG comes out in bolts that's the name of the projectile on legendary
+of the projectile on legendary difficulty which is the hardest
+difficulty which is the hardest difficulty in the game across the Halo
+difficulty in the game across the Halo franchise and if you don't know what
+franchise and if you don't know what hail is I don't know why here so isn't
+hail is I don't know why here so isn't this the same talk as last year how much
+this the same talk as last year how much more can you say about a weapon
+more can you say about a weapon projectile well the sniper rifle was
+projectile well the sniper rifle was primarily a multiplayer talk whereas
+primarily a multiplayer talk whereas this is gonna focus largely on
+this is gonna focus largely on single-player a sniper rifle is shot by
+single-player a sniper rifle is shot by the player whereas the plasma rifle is
+the player whereas the plasma rifle is predominantly shot at the player I
+predominantly shot at the player I talked a lot about active flow sort of
+talked a lot about active flow sort of cadence and rhythm firing a weapon this
+cadence and rhythm firing a weapon this is going to be much more about reactive
+is going to be much more about reactive flow the environments effect on the
+flow the environments effect on the player the sniper rifle was primarily
+player the sniper rifle was primarily balanced for a competitive environment
+balanced for a competitive environment whereas the plasma rifle is tuned for a
+whereas the plasma rifle is tuned for a difficulty level which brings me to the
+difficulty level which brings me to the most I think important point last the
+most I think important point last the last year's talk was was about balancing
+last year's talk was was about balancing and this year's talk is about tuning so
+and this year's talk is about tuning so what's the difference well balance is
+what's the difference well balance is really fundamentally about longevity
+really fundamentally about longevity it's about being able to play the game
+it's about being able to play the game indefinitely without the developer
+indefinitely without the developer having to change things or fix things
+having to change things or fix things and so what you do is you you design an
+and so what you do is you you design an element passes you try to keep the game
+element passes you try to keep the game in a
+in a in a state that is continually playable
+in a state that is continually playable and then you release the community and
+and then you release the community and they remove all the stuff they don't
+they remove all the stuff they don't like and what you have left is something
+like and what you have left is something that at least some small set if you're
+that at least some small set if you're lucky is going to continue playing
+lucky is going to continue playing indefinitely and it has nothing to do
+indefinitely and it has nothing to do with fun in fact most the time once the
+with fun in fact most the time once the community gets them with the game it
+community gets them with the game it isn't fun anymore on the other hand
+isn't fun anymore on the other hand tuning is all about fun
+tuning is all about fun it happens all at once and usually if it
+it happens all at once and usually if it happens for one player it's going to
+happens for one player it's going to happen for most of your audience and it
+happen for most of your audience and it needs to happen before release or it's
+needs to happen before release or it's just never going to happen
+just never going to happen it's very wispy it's it's hard it's hard
+it's very wispy it's it's hard it's hard to nail down just what exactly is fun
+to nail down just what exactly is fun and that's one of the things I'm going
+and that's one of the things I'm going to try to tackle with the blue chunks
+to try to tackle with the blue chunks and it has nothing to do with balance a
+and it has nothing to do with balance a lot of times
+lot of times precisely because something is
+precisely because something is unbalanced is the reason why it's fun so
+unbalanced is the reason why it's fun so you know how looking back on Star Wars
+you know how looking back on Star Wars you thought it was about Luke and really
+you thought it was about Luke and really it's all about Darth Vader looking back
+it's all about Darth Vader looking back on halo we could have named a plasma
+on halo we could have named a plasma rifle because really that's what it's
+rifle because really that's what it's all about
+all about so before I start getting into halo
+so before I start getting into halo wanna I want you to imagine that you're
+wanna I want you to imagine that you're standing on a stage much like I'm
+standing on a stage much like I'm sitting on a stage and you're in a room
+sitting on a stage and you're in a room full of people and they're laughing at
+full of people and they're laughing at you now if you're doing stand-up comedy
+you now if you're doing stand-up comedy that's great if you're doing nude
+that's great if you're doing nude modeling not so good have you done if
+modeling not so good have you done if you these three pockets you know as long
+you these three pockets you know as long as it's only some laughter so really
+as it's only some laughter so really context is what I'm trying to get out
+context is what I'm trying to get out here it colors every experience that
+here it colors every experience that you're gonna have and it's very
+you're gonna have and it's very individual it has to do with your
+individual it has to do with your personal history and what skills and
+personal history and what skills and experience you have and it really
+experience you have and it really determines what you're expecting well
+determines what you're expecting well your standards are you'll find that for
+your standards are you'll find that for a single game they often share a context
+a single game they often share a context they have a shared background and
+they have a shared background and expectations and it's completely outside
+expectations and it's completely outside of your control perhaps you can choose
+of your control perhaps you can choose your context by choosing your audience
+your context by choosing your audience but most likely you're gonna inherit an
+but most likely you're gonna inherit an audience that you're gonna have to
+audience that you're gonna have to please so when we started halo one we
+please so when we started halo one we looked at our competition which was
+looked at our competition which was Warcraft two until we stop being an RTS
+Warcraft two until we stop being an RTS and then it was
+and then it was quake 2 which has some really unique
+quake 2 which has some really unique sort of visible projectile weapons and
+sort of visible projectile weapons and some really common guards and just a
+some really common guards and just a ludicrously fast Space Marine we played
+ludicrously fast Space Marine we played a lot of tribes which has similar kind
+a lot of tribes which has similar kind of weapons and also this jetpacking
+of weapons and also this jetpacking ludicrously fast space soldier unreal
+ludicrously fast space soldier unreal even more unique weapons and a really
+even more unique weapons and a really fast
+fast space soldier and then we looked at it
+space soldier and then we looked at it even our own game where we had the the
+even our own game where we had the the four which shot this slow projectile and
+four which shot this slow projectile and he was a really fast security officer so
+he was a really fast security officer so another aspect of context that you need
+another aspect of context that you need to look at is the community that's
+to look at is the community that's formed by your audience for us it was
+formed by your audience for us it was going to be myth fans but we weren't
+going to be myth fans but we weren't really sure they were gonna be action
+really sure they were gonna be action gamers that are they gonna be in a halo
+gamers that are they gonna be in a halo there are mat gamers who at the time
+there are mat gamers who at the time we're feeling a little betrayed because
+we're feeling a little betrayed because we're gonna be on Microsoft's console
+we're gonna be on Microsoft's console and there were Marathon fans but
+and there were Marathon fans but marathon fans totally embraced the mouse
+marathon fans totally embraced the mouse and were they going to be able to switch
+and were they going to be able to switch over to be with a controller on the
+over to be with a controller on the other hand we had this new Xbox
+other hand we had this new Xbox community which we didn't really know a
+community which we didn't really know a ton about we thought it was gonna be
+ton about we thought it was gonna be younger so maybe less sophisticated and
+younger so maybe less sophisticated and they were gonna have to do with
+they were gonna have to do with controllers so how is that going to hurt
+controllers so how is that going to hurt their input so we decided we're gonna
+their input so we decided we're gonna try to bring both of these audiences in
+try to bring both of these audiences in but it turns out the most important
+but it turns out the most important context for the plasma rifle is the
+context for the plasma rifle is the in-game context so in the story the
+in-game context so in the story the plasma rifle is used by the Covenant
+plasma rifle is used by the Covenant elites sort of the backbone of the alien
+elites sort of the backbone of the alien menace it's their assault rifle and
+menace it's their assault rifle and technically we couldn't push a lot of
+technically we couldn't push a lot of enemies on screen so each of these guys
+enemies on screen so each of these guys had to be pretty powerful so we needed a
+had to be pretty powerful so we needed a kind of a potent weapon in multiplayer
+kind of a potent weapon in multiplayer we really wanted to use every single
+we really wanted to use every single player weapon in multiplayer not just
+player weapon in multiplayer not just because then you'd be playing the same
+because then you'd be playing the same game in both arenas but because we
+game in both arenas but because we didn't really have that many weapons in
+didn't really have that many weapons in Halo one but we didn't really have a
+Halo one but we didn't really have a clear idea of what the multiplayer roll
+clear idea of what the multiplayer roll was going to be or the plasma rifle now
+was going to be or the plasma rifle now in single-player there's two things that
+in single-player there's two things that are important and one it's the most
+are important and one it's the most common scavenged weapons so inhale
+common scavenged weapons so inhale you're always picking up weapons off the
+you're always picking up weapons off the ground and since a lot of enemies use it
+ground and since a lot of enemies use it you know using those weapons yourself
+you know using those weapons yourself quite often and also it's the most
+quite often and also it's the most common enemy projectile coming at you
+common enemy projectile coming at you which means for difficulty since
+which means for difficulty since it's the most common enemy projectile
+it's the most common enemy projectile it's it's a very large factor as goes
+it's it's a very large factor as goes the plasma rifle there goes the rest of
+the plasma rifle there goes the rest of the game and actually when it comes to
+the game and actually when it comes to the franchise it's the most common enemy
+the franchise it's the most common enemy projectile and it's sort of astounding
+projectile and it's sort of astounding how the entire series can be defined by
+how the entire series can be defined by one element but if it's going to be one
+one element but if it's going to be one element it's going to be that thing that
+element it's going to be that thing that you're constantly getting shot at so of
+you're constantly getting shot at so of course you know if you can't think about
+course you know if you can't think about me you know I'm really into paper
+me you know I'm really into paper designs and so I'm not going to show you
+designs and so I'm not going to show you the paper design for the halo on plasma
+the paper design for the halo on plasma rifle because it was terrible but here
+rifle because it was terrible but here are some choice of quotes it misfires in
+are some choice of quotes it misfires in the brain and does AoE damage underwater
+the brain and does AoE damage underwater we didn't have rain and we didn't have
+we didn't have rain and we didn't have water and that was the first line like
+water and that was the first line like that was the most important thing the
+that was the most important thing the primary trigger is an instantaneous
+primary trigger is an instantaneous visible beam which is not how it ended
+visible beam which is not how it ended up at all because it's not fun to get
+up at all because it's not fun to get shot at something that that travels
+shot at something that that travels instantaneously you're supposed to hold
+instantaneously you're supposed to hold the trut second trigger to charge the
+the trut second trigger to charge the over-over charge except for halo doesn't
+over-over charge except for halo doesn't have a second trigger so I don't know
+have a second trigger so I don't know where that came from
+where that came from it's more of effective than other
+it's more of effective than other weapons against energy shields so at
+weapons against energy shields so at least you know we got some of that in
+least you know we got some of that in there and it also disables mirror fields
+there and it also disables mirror fields faster than any other weapon except for
+faster than any other weapon except for the disruptor and there's no mirror
+the disruptor and there's no mirror fields in Halo and I don't know what a
+fields in Halo and I don't know what a disruptor is so clearly we had a very
+disruptor is so clearly we had a very vague understanding of what this weapon
+vague understanding of what this weapon was supposed to be okay
+was supposed to be okay blue sides here we go what is fun
+blue sides here we go what is fun activity that you're gonna be able to
+activity that you're gonna be able to engage with this weapon in so first of
+engage with this weapon in so first of all these are going to be the three
+all these are going to be the three hours of fun it needs to be reactive it
+hours of fun it needs to be reactive it needs to be a repeatable activity and it
+needs to be a repeatable activity and it needs to be reliable so what I'm what do
+needs to be reliable so what I'm what do I mean by any of that nobody can have
+I mean by any of that nobody can have fun for you so fun requires that the
+fun for you so fun requires that the player participate and if you're going
+player participate and if you're going to participate in something it needs to
+to participate in something it needs to be interactive so that means that in
+be interactive so that means that in order to be fun something has to be
+order to be fun something has to be reactive it needs to be repeatable and
+reactive it needs to be repeatable and sort of known for saying that halo has
+sort of known for saying that halo has 30 seconds of fun which repeat over and
+30 seconds of fun which repeat over and over but I could have said that halo is
+over but I could have said that halo is fun for 30 seconds and then something
+fun for 30 seconds and then something better changed because you have to play
+better changed because you have to play that 30 seconds exactly over again it's
+that 30 seconds exactly over again it's not gonna be very much fun and so what
+not gonna be very much fun and so what this activity needs to do is resist
+this activity needs to do is resist habituation
+habituation what is a fiction you may ask so I just
+what is a fiction you may ask so I just got back from the Caribbean and being
+got back from the Caribbean and being from Seattle when we first got there the
+from Seattle when we first got there the Sun fell very very hot and after a
+Sun fell very very hot and after a little while it stopped feeling so hot I
+little while it stopped feeling so hot I didn't notice it anymore until I got a
+didn't notice it anymore until I got a horrible sunburn and what was happening
+horrible sunburn and what was happening there was my nerves of my skin were
+there was my nerves of my skin were getting habituated to the sensation of
+getting habituated to the sensation of the Sun and habituation is the reduction
+the Sun and habituation is the reduction in sensitivity when something happens
+in sensitivity when something happens over and over and over again now you
+over and over and over again now you might think this is bad is in the case
+might think this is bad is in the case of a sunburn but it's actually extremely
+of a sunburn but it's actually extremely important as I found out later when my
+important as I found out later when my summer and started to heal and it itched
+summer and started to heal and it itched madly and I couldn't sleep and I
+madly and I couldn't sleep and I couldn't have a conversation and I
+couldn't have a conversation and I couldn't even really think straight
+couldn't even really think straight because I couldn't do anything but feel
+because I couldn't do anything but feel my skin and if you didn't have a
+my skin and if you didn't have a ooh a shin you wouldn't feel like that
+ooh a shin you wouldn't feel like that all the time my situation is also a
+all the time my situation is also a really crucial learning tool so when you
+really crucial learning tool so when you see something in a game over and over
+see something in a game over and over and over you get habituated to it you
+and over you get habituated to it you stop noticing it and you start noticing
+stop noticing it and you start noticing the differences between the experiences
+the differences between the experiences that allow you to analyze them and come
+that allow you to analyze them and come up with different strategies but it's
+up with different strategies but it's also the designers mortal enemy the
+also the designers mortal enemy the weijin makes you bored so what you
+weijin makes you bored so what you should be going for in a fun experience
+should be going for in a fun experience is predictable enough that you can
+is predictable enough that you can bitchu eight to it somewhat and learn it
+bitchu eight to it somewhat and learn it but not so predictable not so habituated
+but not so predictable not so habituated Bowl that you get bored and finally
+Bowl that you get bored and finally means to be reliable it needs to be fun
+means to be reliable it needs to be fun every time for as many people of people
+every time for as many people of people as possible ideally and it turns out
+as possible ideally and it turns out these kind of reliable activities are
+these kind of reliable activities are ordinarily rare and you probably
+ordinarily rare and you probably participated in most of them by the time
+participated in most of them by the time you were five or six what I mean by that
+you were five or six what I mean by that you didn't throw a grenade before you
+you didn't throw a grenade before you were six
+were six hopefully unless you're breaking the yes
+hopefully unless you're breaking the yes or be so grenades are a staple of Halo
+or be so grenades are a staple of Halo game play but really when you look at
+game play but really when you look at the experience of throwing grenade it's
+the experience of throwing grenade it's really close to peggle which finds its
+really close to peggle which finds its roots in games like Arkanoid I mean how
+roots in games like Arkanoid I mean how many of you are itching for that ball to
+many of you are itching for that ball to go right up that crack in there
+go right up that crack in there if you don't know what our tonight is
+if you don't know what our tonight is maybe Angry Birds is a better reference
+maybe Angry Birds is a better reference for throwing grenades which goes back to
+for throwing grenades which goes back to like in physical activities like pool
+like in physical activities like pool you know what angle do I have to hit the
+you know what angle do I have to hit the bumper at in order for to make the
+bumper at in order for to make the pocket which even you know even when you
+pocket which even you know even when you were a little child throwing stuff in a
+were a little child throwing stuff in a wastepaper basket it's all that same
+wastepaper basket it's all that same kind of fundamental activity that you
+kind of fundamental activity that you could just do forever so maybe you're
+could just do forever so maybe you're not convinced
+not convinced what about melee it's another Halo
+what about melee it's another Halo staple really important part of the game
+staple really important part of the game never gets old just like it never got
+never gets old just like it never got old and final fight just like it
+old and final fight just like it convinced you to hit all those stupid
+convinced you to hit all those stupid flash banner ads I couldn't I couldn't
+flash banner ads I couldn't I couldn't find the punch a monkey there is no like
+find the punch a monkey there is no like actual copy of that on the internet
+actual copy of that on the internet anymore but which when you think about
+anymore but which when you think about it is really just a callback to to
+it is really just a callback to to whack-a-mole and whack Amole is just a
+whack-a-mole and whack Amole is just a machine playing sort of a violent
+machine playing sort of a violent version of peekaboo and this is my son
+version of peekaboo and this is my son he's super cute so I avoided the use of
+he's super cute so I avoided the use of my presentation how about the Warthog
+my presentation how about the Warthog the Warthog way slider than any actual
+the Warthog way slider than any actual vehicle just like in Mario Kart which is
+vehicle just like in Mario Kart which is very similar to skiing which is just
+very similar to skiing which is just right sliding around your socks or in
+right sliding around your socks or in her socks
+her socks preferably so why are these things fun
+preferably so why are these things fun there's a book called the brain that
+there's a book called the brain that changes itself and it talks about people
+changes itself and it talks about people who have suffered mostly brain injuries
+who have suffered mostly brain injuries or birth defects that use practice and
+or birth defects that use practice and and rote skills to sort of regenerate
+and rote skills to sort of regenerate their their their brain tissue and it
+their their their brain tissue and it says that a train or stimulate neuron
+says that a train or stimulate neuron develops 25% more branches increases its
+develops 25% more branches increases its size and and it gets a lot more blood
+size and and it gets a lot more blood supply going through it and so my theory
+supply going through it and so my theory is that just like physical exercise is
+is that just like physical exercise is fun just for the sake of exercise mental
+fun just for the sake of exercise mental exercise is fun in the same way so if
+exercise is fun in the same way so if you look at dodging which is something
+you look at dodging which is something that you did when you were a child
+that you did when you were a child there's lots and lots of things that
+there's lots and lots of things that you're doing you are you're detecting
+you're doing you are you're detecting movement in your peripheral vision
+movement in your peripheral vision and you're tracking objects as they move
+and you're tracking objects as they move across the space which translates really
+across the space which translates really well into 2d in a game like commando for
+well into 2d in a game like commando for instance but it it's even better in 3d
+instance but it it's even better in 3d where you're trying to take the
+where you're trying to take the nonlinear change in size but projectile
+nonlinear change in size but projectile as it comes toward you and determine
+as it comes toward you and determine where it's going to intersect with you
+where it's going to intersect with you and predict its trajectory or determine
+and predict its trajectory or determine the closest point that it's going to
+the closest point that it's going to reach so you know exactly how far you
+reach so you know exactly how far you have to dodge so just a quick tangent
+have to dodge so just a quick tangent the conventional wisdom is that 3d sucks
+the conventional wisdom is that 3d sucks and maybe the technology isn't there yet
+and maybe the technology isn't there yet but eventually games are gonna be in 3d
+but eventually games are gonna be in 3d they're gonna be way more fun because
+they're gonna be way more fun because they're gonna tap more directly into
+they're gonna tap more directly into those brain circuits okay games other
+those brain circuits okay games other than Halo are fun for this reason so
+than Halo are fun for this reason so your brain is really good at pattern
+your brain is really good at pattern matching actually has like physical
+matching actually has like physical hardware for that so that explains
+hardware for that so that explains things like Tetris predicting complex
+things like Tetris predicting complex systems with an almost intuition level
+systems with an almost intuition level is common you have special circuits for
+is common you have special circuits for determining a rate of change and
+determining a rate of change and especially comparing one rate of change
+especially comparing one rate of change to another so if you've ever tried to
+to another so if you've ever tried to see if your healers man I was going to
+see if your healers man I was going to last longer than a bosses life and wow
+last longer than a bosses life and wow that's what you're doing path planning
+that's what you're doing path planning is pretty obvious in a game like pac-man
+is pretty obvious in a game like pac-man but it's also when you're trying to
+but it's also when you're trying to complete three or four quests in an area
+complete three or four quests in an area you're trying to do it most efficiently
+you're trying to do it most efficiently your plasticity is sort of how you make
+your plasticity is sort of how you make new connections that you never had
+new connections that you never had before I think portal probably stretched
+before I think portal probably stretched everybody's brains a little bit and
+everybody's brains a little bit and finally another thing that you're
+finally another thing that you're hardwired for is to have a theory of
+hardwired for is to have a theory of mine to try to get inside somebody
+mine to try to get inside somebody else's head which is very useful in
+else's head which is very useful in something like Street Fighter or even
+something like Street Fighter or even it's locating my chest so back to
+it's locating my chest so back to reality okay so we need something that's
+reality okay so we need something that's reactive and repeatable reliable the
+reactive and repeatable reliable the exercises you're dodging circuits and so
+exercises you're dodging circuits and so we rewrote the plasma rifle paper design
+we rewrote the plasma rifle paper design to say it's a high rate of fire gun that
+to say it's a high rate of fire gun that shoots plasma bullets the travel at a
+shoots plasma bullets the travel at a fast but Dajjal speed so that mechanic
+fast but Dajjal speed so that mechanic works itself out in in this way we don't
+works itself out in in this way we don't want to be too fast when they give you
+want to be too fast when they give you enough time at dodge and if and also we
+enough time at dodge and if and also we wanted to be slow enough that it's a
+wanted to be slow enough that it's a continuous motion because
+continuous motion because actually just throwing you three
+actually just throwing you three throwing up 30 still frames a second if
+throwing up 30 still frames a second if you can't connect those in your brain
+you can't connect those in your brain into a single believable real object
+into a single believable real object then you can't engage those dodging
+then you can't engage those dodging circuits and we gave it a really visible
+circuits and we gave it a really visible contrail which was especially useful in
+contrail which was especially useful in the in the PAL version actually which
+the in the PAL version actually which where it's harder to dodge because
+where it's harder to dodge because you're getting fewer updates but we
+you're getting fewer updates but we didn't want to be too slow I mean it's
+didn't want to be too slow I mean it's sort of comical if the bullets are just
+sort of comical if the bullets are just hanging in air and we will still want
+hanging in air and we will still want you to experience all those near misses
+so that just brings me to a sort of a fundamental definition of game mechanics
+fundamental definition of game mechanics where you divide the potential gameplay
+where you divide the potential gameplay into two parts actions that are
+into two parts actions that are permitted and actions that aren't
+permitted and actions that aren't permitted so Barrio cannot jump over the
+permitted so Barrio cannot jump over the flag mario cannot run left they're just
+flag mario cannot run left they're just things that mario cannot do this is good
+things that mario cannot do this is good because it allows us to constrain the
+because it allows us to constrain the game but the problem is that one
+game but the problem is that one mechanic isn't isn't a game it's not
+mechanic isn't isn't a game it's not even really interactive if you only have
+even really interactive if you only have one constraint then you're not making
+one constraint then you're not making any choices I I recently made my first
+any choices I I recently made my first flash game and it's pac-man in a line
+flash game and it's pac-man in a line basically there's no ghost there's no
+basically there's no ghost there's no maze you just eat all the dots and it's
+maze you just eat all the dots and it's boring so if we look at a halo mechanic
+boring so if we look at a halo mechanic let's say that there's a mechanic where
+let's say that there's a mechanic where your handheld weapon it beats distant
+your handheld weapon it beats distant enemies right and so if they are distant
+enemies right and so if they are distant then you win if they're not distant then
+then you win if they're not distant then you lose sort of a contemporary design
+you lose sort of a contemporary design theory is they excuse me that you should
+theory is they excuse me that you should layer new mechanics on top of this one
+layer new mechanics on top of this one and if you layer up enough mechanics
+and if you layer up enough mechanics then you're gonna make a game and if
+then you're gonna make a game and if your game isn't fun they should be layer
+your game isn't fun they should be layer on more mechanics but I really think all
+on more mechanics but I really think all that does is give you a larger number of
+that does is give you a larger number of choices that you aren't making so what I
+choices that you aren't making so what I suggest is that you want to have
+suggest is that you want to have mechanics that support each other sort
+mechanics that support each other sort of like a tripod that they're leaning
+of like a tripod that they're leaning against each other and all the area
+against each other and all the area inside is the gameplay and so a game a
+inside is the gameplay and so a game a sandbox game has you know a huge area
+sandbox game has you know a huge area and maybe a more linear game has a much
+and maybe a more linear game has a much smaller area but at least there's a lots
+smaller area but at least there's a lots of different possible places that the
+of different possible places that the player can be at any given time so that
+player can be at any given time so that means that the projectile mechanics also
+means that the projectile mechanics also need to be supported by AI mechanics so
+need to be supported by AI mechanics so the elite reappears and we had them
+the elite reappears and we had them fight from the open so that you can see
+fight from the open so that you can see them find it from the open and dodging
+them find it from the open and dodging and that would teach you to dodge
+and that would teach you to dodge we also made them shoot directly at the
+we also made them shoot directly at the player because it's a lot easier to
+player because it's a lot easier to dodge something that's coming straight
+dodge something that's coming straight at you rather than trying to figure out
+at you rather than trying to figure out which direction you you're gonna need to
+which direction you you're gonna need to dodge we gave them a little bit of
+dodge we gave them a little bit of smaller error so it wasn't quite as
+smaller error so it wasn't quite as predictable and then also shooting
+predictable and then also shooting bursts so sort of like a fad a fan
+bursts so sort of like a fad a fan pattern
+pattern do-do-do-do-do they kind of swing it
+do-do-do-do-do they kind of swing it across but they don't track the player
+across but they don't track the player during a burst so if you start dodging a
+during a burst so if you start dodging a burst you're going to be able to dodge
+burst you're going to be able to dodge the rest of it the player mechanics also
+the rest of it the player mechanics also needed to support this so instead of
+needed to support this so instead of having the blazingly fast super soldier
+having the blazingly fast super soldier we had a agonizingly slow super soldier
+we had a agonizingly slow super soldier mostly relying on the acceleration of
+mostly relying on the acceleration of going left to right in order you have to
+going left to right in order you have to anticipate what you're going to dodge
+anticipate what you're going to dodge you can't just immediately move out of
+you can't just immediately move out of the way as if you were a Ferrari and we
+the way as if you were a Ferrari and we also had a narrow field field of view
+also had a narrow field field of view which is which was not not a common
+which is which was not not a common thing at the time PC games had you know
+thing at the time PC games had you know the crazy fisheye views and the reason
+the crazy fisheye views and the reason is it makes objects that are distant in
+is it makes objects that are distant in the middle of the screen feel like
+the middle of the screen feel like they're much closer and larger and that
+they're much closer and larger and that allows you to track projectiles a lot
+allows you to track projectiles a lot better because instead of being really
+better because instead of being really really really small and then also in
+really really small and then also in being huge in your face they're actually
+being huge in your face they're actually increasing as they would in the real
+increasing as they would in the real world by a inverse square law
+world by a inverse square law we gave the player shields which
+we gave the player shields which recharge after a little short time so
+recharge after a little short time so that means if you're dodging and you
+that means if you're dodging and you getting close shots it's not that risky
+getting close shots it's not that risky and so we actually increased the amount
+and so we actually increased the amount of damage that a plasma rifle will do
+of damage that a plasma rifle will do against shields but at the same time we
+against shields but at the same time we gave you body health it doesn't recharge
+gave you body health it doesn't recharge so we wanted to preserve your life by
+so we wanted to preserve your life by making you do a little bit less damage
+making you do a little bit less damage to body when it comes difficulty in Halo
+to body when it comes difficulty in Halo one is pretty straightforward we had
+one is pretty straightforward we had these red elites and they were like
+these red elites and they were like tougher versions and the blue leads they
+tougher versions and the blue leads they shot more burst they shot longer bursts
+shot more burst they shot longer bursts so they're a little bit harder
+so they're a little bit harder and we had a global weapon damage scale
+and we had a global weapon damage scale so unless Andheri everything did about
+so unless Andheri everything did about twice as much damage to the player so
+twice as much damage to the player so mechanic mechanics are universal if if
+mechanic mechanics are universal if if the game designer writes down plasma
+the game designer writes down plasma rifle bolts are Dodgeville than they are
+rifle bolts are Dodgeville than they are in abstract mechanic land but they need
+in abstract mechanic land but they need to be calibrated to make them personal
+to be calibrated to make them personal personal and effective in the real world
+personal and effective in the real world these are the actual numbers that create
+these are the actual numbers that create the experience that the mechanic is
+the experience that the mechanic is describing and make the plasma angled
+describing and make the plasma angled dodge ball for a certain player so in
+dodge ball for a certain player so in halo it was calibrated for me actually I
+halo it was calibrated for me actually I said that before actually it's not
+said that before actually it's not precisely true so ask yourself and
+precisely true so ask yourself and hopefully you're not already asking this
+hopefully you're not already asking this of yourself why did you come to this
+of yourself why did you come to this talk today confabulation the truth is
+talk today confabulation the truth is that you can't recreate your
+that you can't recreate your subconscious mind in your conscious mind
+subconscious mind in your conscious mind it's like trying to emulate an xbox on
+it's like trying to emulate an xbox on an Atari 2600 it just doesn't fit and so
+an Atari 2600 it just doesn't fit and so what you have is an internal model which
+what you have is an internal model which you use to guess at your own motivations
+you use to guess at your own motivations usually it's pretty accurate because you
+usually it's pretty accurate because you have a lot of experience with yourself
+have a lot of experience with yourself but what you should do is also build one
+but what you should do is also build one of these internal models for the player
+of these internal models for the player that way you can predict the player
+that way you can predict the player reactions and so when you're calibrating
+reactions and so when you're calibrating you're calibrating for this little
+you're calibrating for this little internal guy that you believe is what is
+internal guy that you believe is what is representative of every player so this
+representative of every player so this is my GABA
+is my GABA it's also the series of steps that led
+it's also the series of steps that led to the calibration of the plasma rifle
+to the calibration of the plasma rifle the process for me usually goes like
+the process for me usually goes like this
+this I make my best guess which in this case
+I make my best guess which in this case was 10 because I had no idea 10 is world
+was 10 because I had no idea 10 is world units per second which is a unit of
+units per second which is a unit of measurement that means absolutely
+measurement that means absolutely nothing to you and then I would try the
+nothing to you and then I would try the extremes so I would try 20 and a hug wow
+extremes so I would try 20 and a hug wow that is almost instantaneous or 1 and I
+that is almost instantaneous or 1 and I have to wait for the bullets to get to
+have to wait for the bullets to get to me and sometimes I forget they're there
+me and sometimes I forget they're there fall asleep and then they hit me so then
+fall asleep and then they hit me so then I narrow in on the value so I tried 5
+I narrow in on the value so I tried 5 and that was better but it was still way
+and that was better but it was still way too easy to dodge so I went 15 which oh
+too easy to dodge so I went 15 which oh that is too fast and then I went to 13
+that is too fast and then I went to 13 which is totally dodge ball until I
+which is totally dodge ball until I tried to pay attention to something else
+tried to pay attention to something else and shoot back and then I'm getting
+and shoot back and then I'm getting so I turned it to 11 which felt really
+so I turned it to 11 which felt really good and then after a while I kind of
+good and then after a while I kind of felt too good so then I popped up to 12
+felt too good so then I popped up to 12 12 so they experienced that your
+12 so they experienced that your calibration gives you something that you
+calibration gives you something that you need to test to use your research
+need to test to use your research obviously for us we found that players
+obviously for us we found that players could dodge the plasma bolts and that
+could dodge the plasma bolts and that felt really good for them but it had
+felt really good for them but it had some unintended consequences in Halo 1
+some unintended consequences in Halo 1 first their fighting out in open so they
+first their fighting out in open so they saw more of the enemy behaviors which is
+saw more of the enemy behaviors which is good but they also died without seeking
+good but they also died without seeking cover because they wanted to only fight
+cover because they wanted to only fight out from the open which was not so good
+out from the open which was not so good and then it was also extremely broken so
+and then it was also extremely broken so basically you can always touch the
+basically you can always touch the plasma rifle in in halo and this is why
+plasma rifle in in halo and this is why if you aim directly at the player as an
+if you aim directly at the player as an AI and the players moving
+AI and the players moving you're gonna miss so you could solve
+you're gonna miss so you could solve that by trying to lead the problem is if
+that by trying to lead the problem is if they zigzag at all you missed by even
+they zigzag at all you missed by even more if your projectile is dramatically
+more if your projectile is dramatically slower than the player then this is not
+slower than the player then this is not a solvable problem and basically if you
+a solvable problem and basically if you know that this is the case in Halo you
+know that this is the case in Halo you can break the game pretty badly on
+can break the game pretty badly on pretty much every difficulty level in an
+pretty much every difficulty level in an angry encounter so that's bad when it
+angry encounter so that's bad when it comes to multiplayer we get added
+comes to multiplayer we get added movements done so when you get shot by
+movements done so when you get shot by the plasma rifle it makes it you can't
+the plasma rifle it makes it you can't turn as fast and you can't move as fast
+turn as fast and you can't move as fast and that was to compensate for the fact
+and that was to compensate for the fact that it just wasn't you know you
+that it just wasn't you know you couldn't use it at a good range because
+couldn't use it at a good range because it was traveling so slowly but
+it was traveling so slowly but unattended consequence of that was that
+unattended consequence of that was that moving the sound was really annoying it
+moving the sound was really annoying it works okay in counter-strike when you're
+works okay in counter-strike when you're gonna get shot three times and then die
+gonna get shot three times and then die but in our game when you could take a
+but in our game when you could take a lot of hits you would just have to sit
+lot of hits you would just have to sit there and take a lot of hits which
+there and take a lot of hits which conflicted with the Halo flavor quite a
+conflicted with the Halo flavor quite a bit
+bit it was also horribly broken because you
+it was also horribly broken because you could use it on vehicles which whatever
+could use it on vehicles which whatever it was a short development cycle look
+it was a short development cycle look and I say now when it comes to legendary
+and I say now when it comes to legendary this is kind of interesting because the
+this is kind of interesting because the plasma rifle as all weapons did twice as
+plasma rifle as all weapons did twice as much damage so then my legendary are
+much damage so then my legendary are very difficult
+very difficult had some unintended consequences
+had some unintended consequences basically the the difficulty scale was
+basically the the difficulty scale was stacking with the material scale I
+stacking with the material scale I described earlier so against shields I
+described earlier so against shields I was actually doing almost four times as
+was actually doing almost four times as much damage which meant that it was
+much damage which meant that it was taking down your shields almost
+taking down your shields almost instantly the way this was badly broken
+instantly the way this was badly broken was so dodging was not actually any
+was so dodging was not actually any harder so in unnormal you could dodge
+harder so in unnormal you could dodge back and forth and every project I would
+back and forth and every project I would miss you and if a couple hit you that
+miss you and if a couple hit you that was fine you just a cover and legendary
+was fine you just a cover and legendary you could dodge it back and forth in the
+you could dodge it back and forth in the exact same way the same number of bolts
+exact same way the same number of bolts would hit you and they would kill you so
+would hit you and they would kill you so you we were actually making the game
+you we were actually making the game harder we're just making it more
+harder we're just making it more punishing but luckily we got a chance to
+punishing but luckily we got a chance to fix everything in Halo 2 so again we're
+fix everything in Halo 2 so again we're looking at the competition Ghost Recon
+looking at the competition Ghost Recon came about that time and it was
+came about that time and it was different than like an unreal and that
+different than like an unreal and that had instant projectiles it was really
+had instant projectiles it was really encouraging you to fight from cover
+encouraging you to fight from cover Rainbow six came out and it also had
+Rainbow six came out and it also had into projectiles and fighting from cover
+into projectiles and fighting from cover and Counter Strike and so basically
+and Counter Strike and so basically we're seeing a trend here people want
+we're seeing a trend here people want instant projectiles I'm finding from
+instant projectiles I'm finding from cover when we looked at their own
+cover when we looked at their own community and the halo 1 pistol is
+community and the halo 1 pistol is really unbalanced and really popular and
+really unbalanced and really popular and I would think that's probably because
+I would think that's probably because hey it's innocent projectile legendary
+hey it's innocent projectile legendary is also you know like I described before
+is also you know like I described before completely unbalanced and very popular
+completely unbalanced and very popular which means that people enjoy the
+which means that people enjoy the fighting from cover even if it's
+fighting from cover even if it's excessively punishing so we talked
+excessively punishing so we talked earlier about how fun requires
+earlier about how fun requires participation and what that means is
+participation and what that means is that fun requires buy-in basically
+that fun requires buy-in basically people will play the game that they want
+people will play the game that they want to play no matter what I did the halo 1
+to play no matter what I did the halo 1 tutorial and before giving you a weapon
+tutorial and before giving you a weapon in the original version of the tutorial
+in the original version of the tutorial I would throw you into combat an idea
+I would throw you into combat an idea was we'll teach people to run away
+was we'll teach people to run away well we tell people was running up next
+well we tell people was running up next to a guy and let them shoot you to death
+to a guy and let them shoot you to death because you can't figure out how to kill
+because you can't figure out how to kill them because you can't get on a weapon
+them because you can't get on a weapon yet people will they they go with their
+yet people will they they go with their expectation over any kind of hint
+expectation over any kind of hint store recommendation that you can make
+store recommendation that you can make again the most important context tended
+again the most important context tended to be in the game the elites in Halo 2
+to be in the game the elites in Halo 2 were not the faceless enemy that they
+were not the faceless enemy that they were in halo 1 in fact sometimes they
+were in halo 1 in fact sometimes they were allies and at some points in the
+were allies and at some points in the game you were actually playing as an
+game you were actually playing as an elite and so they needed an instant
+elite and so they needed an instant projectile weapon in their arsenal also
+projectile weapon in their arsenal also in insinger player we decided since
+in insinger player we decided since dodging is not fixable
+dodging is not fixable maybe we'll emphasize fighting from
+maybe we'll emphasize fighting from cover a little bit more and in
+cover a little bit more and in multiplayer
+multiplayer since movement sign is not fitting with
+since movement sign is not fitting with the game again we want to have some sort
+the game again we want to have some sort of instant projectile on the plasma
+of instant projectile on the plasma rifle or at least much faster projectile
+rifle or at least much faster projectile which means me together loop number cute
+which means me together loop number cute so every Christmas I asked my grandma
+so every Christmas I asked my grandma for a subscription to edge magazine and
+for a subscription to edge magazine and every Christmas I get a subscription the
+every Christmas I get a subscription the game romance me thank you grandma but
+game romance me thank you grandma but lately it's paid off because game Pro is
+lately it's paid off because game Pro is actually turning into a very good
+actually turning into a very good magazine and recently they had an
+magazine and recently they had an article called the psychology of
+article called the psychology of shooters and in it they described a
+shooters and in it they described a study done by a pair of researchers
+study done by a pair of researchers named Andrew Perez Bilski and Scott
+named Andrew Perez Bilski and Scott Rigby where they mounted half-life and
+Rigby where they mounted half-life and they had one version where there was
+they had one version where there was bloody and horrible and guts and
+bloody and horrible and guts and violence in one version where there was
+violence in one version where there was nonviolent it was sort of like a game of
+nonviolent it was sort of like a game of tag and what they found was that both
+tag and what they found was that both versions equally satisfy the basic needs
+versions equally satisfy the basic needs that they were looking for which were
+that they were looking for which were competence and autonomy and you can read
+competence and autonomy and you can read this either in game pro or on Jimmy
+this either in game pro or on Jimmy Madigan's blog psychology of Gamescom
+Madigan's blog psychology of Gamescom which I hardly recommend so their their
+which I hardly recommend so their their eventual sort of conclusion was that
+eventual sort of conclusion was that shooter if I sure satisfy human needs
+shooter if I sure satisfy human needs and because of bloody shooter and tax
+and because of bloody shooter and tax you're both satisfied competence and
+you're both satisfied competence and autonomy they're both equally fun but we
+autonomy they're both equally fun but we all know that tag of duty would not sell
+all know that tag of duty would not sell and I believe the reason is that our
+and I believe the reason is that our needs are much more complex than some
+needs are much more complex than some competence or autonomy and I figure out
+competence or autonomy and I figure out everything with graphs so let's make one
+everything with graphs so let's make one why is it is let's see
+why is it is let's see so dodging is a competence right that's
+so dodging is a competence right that's something you can good at but why is it
+something you can good at but why is it way more fun to dodge on normal than it
+way more fun to dodge on normal than it is on legendary when it kind of cheapens
+is on legendary when it kind of cheapens legendary if you can just dodge
+legendary if you can just dodge everything and covering is always a
+everything and covering is always a choice why isn't a more interesting
+choice why isn't a more interesting choice on legendary when you really
+choice on legendary when you really don't have any choice you have to go
+don't have any choice you have to go take cover and why is it more fun to
+take cover and why is it more fun to dodge
+dodge grunts and more fun to cover from elites
+grunts and more fun to cover from elites and why is it more fun to dodge if
+and why is it more fun to dodge if you're playing aggressively and it's
+you're playing aggressively and it's more fun to cover if you feel like
+more fun to cover if you feel like you're wanting to play defensively and
+you're wanting to play defensively and my answer is that a competence in a
+my answer is that a competence in a shooter specifically dodging is much
+shooter specifically dodging is much more fun when you're under low pressure
+more fun when you're under low pressure and autonomy is much more fun when
+and autonomy is much more fun when you're trying to tackle a problem that's
+you're trying to tackle a problem that's much more difficult so when games
+much more difficult so when games satisfy these complex needs that's when
+satisfy these complex needs that's when they are really fun and this complexity
+they are really fun and this complexity comes from the context that the needs
+comes from the context that the needs are being satisfied in now we already
+are being satisfied in now we already find out we can't control the context
+find out we can't control the context because that's part of the audience so
+because that's part of the audience so what we have to do is match our fun
+what we have to do is match our fun activity to the content context that
+activity to the content context that those players are already experiencing
+so for instance context can make an activity feel natural when the activity
+activity feel natural when the activity flows out of the context some great
+flows out of the context some great examples of this assassins creed there's
+examples of this assassins creed there's no question in anybody's mind that this
+no question in anybody's mind that this is intending for them to sneak and it
+is intending for them to sneak and it filled the world really really in grains
+filled the world really really in grains and you that you should be sneaking I
+and you that you should be sneaking I think the best example last year so is
+think the best example last year so is Super Meat Boy
+Super Meat Boy that poor guy is designed to die over
+that poor guy is designed to die over and over and over and over again well
+and over and over and over again well the context will also make an activity
+the context will also make an activity meaningful I think this is what Clint
+meaningful I think this is what Clint Hawking was talking about in his talk
+Hawking was talking about in his talk yesterday I'm still processing it so I'm
+yesterday I'm still processing it so I'm not exactly sure rescuing the princess
+not exactly sure rescuing the princess for making it through a mission or
+for making it through a mission or becoming the Pokemon master
+so what we did back in reality where we split the plasma pistol and apply some
+split the plasma pistol and apply some rifle bolts so that plasma pistol became
+rifle bolts so that plasma pistol became the slow dodge' believer in the plasma
+the slow dodge' believer in the plasma rifle became the faster one that forced
+rifle became the faster one that forced you to cover and then different
+you to cover and then different difficulty levels we sped up the
+difficulty levels we sped up the projectile so I normal the plasma rifle
+projectile so I normal the plasma rifle still Dajjal if you're far enough away
+still Dajjal if you're far enough away about a legendary it's never dodge able
+about a legendary it's never dodge able and we changed the air mechanics again
+and we changed the air mechanics again split them so the grunt kind of fights
+split them so the grunt kind of fights like your kid brother like to shoot
+like your kid brother like to shoot straight at you and they're really easy
+straight at you and they're really easy to confuse and if you hide they come and
+to confuse and if you hide they come and look like directly whereas they lead so
+look like directly whereas they lead so them are coming cunning they lead the
+them are coming cunning they lead the player and because they have a faster
+player and because they have a faster projectile that's okay again they track
+projectile that's okay again they track during the burst so that you have to
+during the burst so that you have to constantly dodge the entire burst and
+constantly dodge the entire burst and also they they suppress you before they
+also they they suppress you before they come sir so what that means is if you
+come sir so what that means is if you take cover they'll shoot at the cover
+take cover they'll shoot at the cover and shoot around where you they think
+and shoot around where you they think you're gonna be coming up and they'll do
+you're gonna be coming up and they'll do that for a good 15 20 seconds before
+that for a good 15 20 seconds before then coming up and very carefully from
+then coming up and very carefully from from usually a as far away as they can
+from usually a as far away as they can peeking around the cover to super still
+peeking around the cover to super still there we had two protagonists in Halo
+there we had two protagonists in Halo two there's the chief and we stopped
+two there's the chief and we stopped displaying his health because what we
+displaying his health because what we wanted to do was make it so that as soon
+wanted to do was make it so that as soon as your shields are down you ran for
+as your shields are down you ran for cover and you ran for cover with the
+cover and you ran for cover with the with this feeling of oh my goodness this
+with this feeling of oh my goodness this is really dangerous and scary but then
+is really dangerous and scary but then we increased how fast the shoes
+we increased how fast the shoes recharged you didn't have to stay in
+recharged you didn't have to stay in cover for very long because in Halo 1
+cover for very long because in Halo 1 you can just stand out of cover and
+you can just stand out of cover and dodge back and forth until your fields
+dodge back and forth until your fields came back and you were shooting the
+came back and you were shooting the whole time it's a little bit more boring
+whole time it's a little bit more boring to stand behind a rock so we wanted to
+to stand behind a rock so we wanted to take less time we even moved the shield
+take less time we even moved the shield meter right next to the motion tracker
+meter right next to the motion tracker so you could be crouching behind cover
+so you could be crouching behind cover looking at your shields and at the
+looking at your shields and at the motion tracker to see if somebody was
+motion tracker to see if somebody was coming around the cover after you for
+coming around the cover after you for the arbiter we experimented with like an
+the arbiter we experimented with like an invisibility where he could turn itself
+invisibility where he could turn itself invisible for just long enough for his
+invisible for just long enough for his shields to almost start recharging with
+shields to almost start recharging with more or less success so I already
+more or less success so I already mentioned that shots travel faster on
+mentioned that shots travel faster on legendary but we also changed how the
+legendary but we also changed how the weapon damage scale worked so first of
+weapon damage scale worked so first of all its per weapon now it's a longer
+all its per weapon now it's a longer global in Halo 2
+global in Halo 2 which meant that the plasma pistol we
+which meant that the plasma pistol we could make do a little bit more damage
+could make do a little bit more damage but not really significantly whereas the
+but not really significantly whereas the plasma rifle we can make do a lot more
+plasma rifle we can make do a lot more damage if we're gonna drive you into
+damage if we're gonna drive you into cover turns out this is a terrible way
+cover turns out this is a terrible way to balance difficulty but I didn't know
+to balance difficulty but I didn't know that at the time when we were
+that at the time when we were calibrating oh shoot we didnt calibrate
+calibrating oh shoot we didnt calibrate so almost at the end of the project our
+so almost at the end of the project our AI counts cut dramatically
+AI counts cut dramatically we had to strip objects out like crazy
+we had to strip objects out like crazy and we had very little time to
+and we had very little time to recalibrate any of the weapons so they
+recalibrate any of the weapons so they ended up being about 15 world units per
+ended up being about 15 world units per second so slightly faster than halo 1
+second so slightly faster than halo 1 and then I legendary much much faster so
+and then I legendary much much faster so the normal experience of the player
+the normal experience of the player playing with inhaler 2 was that they can
+playing with inhaler 2 was that they can dodge grunts pretty easily and at least
+dodge grunts pretty easily and at least forced him to cover sooo so far so good
+forced him to cover sooo so far so good unfortunately because we had to remove
+unfortunately because we had to remove so much cover there wasn't enough and a
+so much cover there wasn't enough and a lot of times you'd be fighting guys that
+lot of times you'd be fighting guys that were supposed to drive you into cover
+were supposed to drive you into cover and there was maybe one piece of cover
+and there was maybe one piece of cover if we remember to leave it in there and
+if we remember to leave it in there and because we had introduced havoc and elo
+because we had introduced havoc and elo 2 sometimes that cover would move so
+2 sometimes that cover would move so they would throw a grenade at you and
+they would throw a grenade at you and your cover would go flying off the cliff
+your cover would go flying off the cliff and then you be completely exposed but
+and then you be completely exposed but that's not why I was totally broken why
+that's not why I was totally broken why I was totally broken was because of the
+I was totally broken was because of the suppressing fire I talked about earlier
+suppressing fire I talked about earlier the AI would over focus to a ridiculous
+the AI would over focus to a ridiculous degree and I'll try to explain that so
+degree and I'll try to explain that so basically the way to always get the
+basically the way to always get the advantage of Halo 2 is to take cover and
+advantage of Halo 2 is to take cover and then pop out at a different spot so if
+then pop out at a different spot so if they eye shooting at you you don't go
+they eye shooting at you you don't go behind cover then you pop out from the
+behind cover then you pop out from the other side and then you get two or three
+other side and then you get two or three seconds to shoot at them before the
+seconds to shoot at them before the shoot back and then they start shooting
+shoot back and then they start shooting at you and you go back behind the cover
+at you and you go back behind the cover and you pop out on the first side and it
+and you pop out on the first side and it takes two or three seconds for them to
+takes two or three seconds for them to figure out this tactic and you can just
+figure out this tactic and you can just do it over and over and over and over
+do it over and over and over and over again and if you ever played legendary
+again and if you ever played legendary almost certainly figure this axis only
+almost certainly figure this axis only way to get through as far as multiplayer
+way to get through as far as multiplayer the faster projectiles that the plasma
+the faster projectiles that the plasma rifle had were great because they made
+rifle had were great because they made the weapon useful of range and we
+the weapon useful of range and we removed entirely the idea of movements
+removed entirely the idea of movements on from the game unfortunately there was
+on from the game unfortunately there was a bug that meant that if you were
+a bug that meant that if you were carrying an SMG which was every
+carrying an SMG which was every you know two and a plasma rifle you were
+you know two and a plasma rifle you were doing almost twice as much damage as
+doing almost twice as much damage as anybody else it was intended to reduce
+anybody else it was intended to reduce the amount of damage with that it wasn't
+the amount of damage with that it wasn't fixed to a patch and it was totally
+fixed to a patch and it was totally broken because if you put two plasma
+broken because if you put two plasma rifles together you could basically drop
+rifles together you could basically drop so many shields almost instantaneously
+so many shields almost instantaneously and also because the projectiles were
+and also because the projectiles were moving faster for the player the plasma
+moving faster for the player the plasma pistol overcharged that we added is
+pistol overcharged that we added is that's where they got the term noob
+that's where they got the term noob combo so unlettered arey the experience
+combo so unlettered arey the experience is actually harder it's not just more
+is actually harder it's not just more punishing it's actually more difficult
+punishing it's actually more difficult to dodge unfortunately it is still more
+to dodge unfortunately it is still more punishing and especially on Marines if
+punishing and especially on Marines if you're playing legend around hail a
+you're playing legend around hail a two-year Marines lifespan is about 10
+two-year Marines lifespan is about 10 seconds and it was totally broken
+seconds and it was totally broken because we had engagement distances that
+because we had engagement distances that were very far which worked fine in Halo
+were very far which worked fine in Halo 1 because the AI would close on you
+1 because the AI would close on you until until it's kind of slow
+until until it's kind of slow projectiles were effective but those
+projectiles were effective but those projectiles were affected with a much
+projectiles were affected with a much farther distance the fact they were
+farther distance the fact they were effective and arranged beyond what even
+effective and arranged beyond what even the players weapons were effective at
+the players weapons were effective at and so when you get something like a
+and so when you get something like a jetpack elite wielding two plasma rifles
+jetpack elite wielding two plasma rifles which we've already talked about is I'm
+which we've already talked about is I'm BOTS and multiplayer and then you add a
+BOTS and multiplayer and then you add a 4x multiplier on top of that and they're
+4x multiplier on top of that and they're jumping around and they have recharging
+jumping around and they have recharging energy shields you get a game that's
+energy shields you get a game that's really way too hard especially my level
+really way too hard especially my level but luckily we got to try it again a
+competition as you can see lots and lots of military games and several of them
+of military games and several of them feature cover systems now our community
+feature cover systems now our community at this point had been almost entirely
+at this point had been almost entirely single-player focus story guys but with
+single-player focus story guys but with Halo 2 Xbox Live was started to get a
+Halo 2 Xbox Live was started to get a much larger multiplayer community until
+much larger multiplayer community until they were given about roughly equal
+they were given about roughly equal weight in Halo 3 and Halo became known
+weight in Halo 3 and Halo became known for that kind of free-flowing combat
+for that kind of free-flowing combat that Halo 2 had got us you know dodging
+that Halo 2 had got us you know dodging and sidestepping and covering
+and sidestepping and covering and so a cover system where you're
+and so a cover system where you're sticking in the cover just really didn't
+sticking in the cover just really didn't fit for us so we decided against we're
+fit for us so we decided against we're we figured our audience was established
+we figured our audience was established enough that we could sort of start
+enough that we could sort of start ignoring the competition a little bit
+ignoring the competition a little bit and going our own way but again the
+and going our own way but again the Indian context was the most important
+Indian context was the most important there's no enemy elites in Halo 3 they
+there's no enemy elites in Halo 3 they switch sides on the Covenant and so
+switch sides on the Covenant and so sometimes context is not outside
+sometimes context is not outside developer control but it is outside of
+developer control but it is outside of designer control and that means there's
+designer control and that means there's no enemy plasma rifles because the
+no enemy plasma rifles because the Brutes use the Spiker and the Jackals
+Brutes use the Spiker and the Jackals uses the carbine and grunts uses an
+uses the carbine and grunts uses an dealer and so nobody on the enemy side
+dealer and so nobody on the enemy side is using the plasma rifle so does that
+is using the plasma rifle so does that mean my talk is over no it means an
+mean my talk is over no it means an interlude so pretty clearly halo 2 was a
+interlude so pretty clearly halo 2 was a misstep how much of a misstep is up for
+misstep how much of a misstep is up for interpretation but I spent a lot of time
+interpretation but I spent a lot of time after hail to ships I went on a
+after hail to ships I went on a soul-searching journey to try to find
+soul-searching journey to try to find out you know what what should we have
+out you know what what should we have done what would have been fun I looked a
+done what would have been fun I looked a lots of industry resources Raph Koster
+lots of industry resources Raph Koster says their games are edutainment Will
+says their games are edutainment Will Wright says games are exploring a
+Wright says games are exploring a possibility space far be it for me to
+possibility space far be it for me to disagree with oh right Sid Meier says
+disagree with oh right Sid Meier says games are a series of interesting
+games are a series of interesting choices but when I looked at all these
+choices but when I looked at all these descriptions that designers were giving
+descriptions that designers were giving their describing their own games not
+their describing their own games not really every game it's certainly not
+really every game it's certainly not halo so I looked into academia I hope
+halo so I looked into academia I hope there's not too many academics in here I
+there's not too many academics in here I may not make it out alive I just picked
+may not make it out alive I just picked one of their definition random games are
+one of their definition random games are an exercise of voluntary control systems
+an exercise of voluntary control systems in which there is an opposition between
+in which there is an opposition between forces confined by a procedure and rules
+forces confined by a procedure and rules in order to produce a disequilibrium
+in order to produce a disequilibrium outcome yeah these areas aren't giving
+outcome yeah these areas aren't giving us a definition that is super useful
+us a definition that is super useful what they're doing is dissecting games
+what they're doing is dissecting games into their various components which is
+into their various components which is good for categorizing not so good for
+good for categorizing not so good for building something that defies
+building something that defies categories I'm a philosopher by
+categories I'm a philosopher by background that's what my schooling is
+background that's what my schooling is about so I just kind of leaf through
+about so I just kind of leaf through some of my old philosophy texts
+some of my old philosophy texts Aristotle talks a lot about
+Aristotle talks a lot about catharsis and sort of how entertainment
+catharsis and sort of how entertainment is about bringing your yourself back
+is about bringing your yourself back into balance that's interesting
+into balance that's interesting Pascal says that games are a distraction
+Pascal says that games are a distraction from your imminent death begins Hines
+from your imminent death begins Hines says that games cannot be defined which
+says that games cannot be defined which is not helpful because then he says
+is not helpful because then he says because you already know what they are
+because you already know what they are he's just rying to make a point about
+he's just rying to make a point about language and so that doesn't help me at
+language and so that doesn't help me at all my my final conclusion was that game
+all my my final conclusion was that game desire should be philosophers I think it
+desire should be philosophers I think it actually helps you sit outside yourself
+actually helps you sit outside yourself and understand what you're thinking but
+and understand what you're thinking but philosophers are not game designers
+philosophers are not game designers shixin me Haley
+shixin me Haley in his book flow says that flow or some
+in his book flow says that flow or some people could translate that into fun is
+people could translate that into fun is the immersion of the self in an activity
+the immersion of the self in an activity and he talks about the autotelic
+and he talks about the autotelic experience and that basically means what
+experience and that basically means what you're doing is completely pouring into
+you're doing is completely pouring into yourself and it has no purpose apart
+yourself and it has no purpose apart from itself from yourself even if it's
+from itself from yourself even if it's accomplishing some other goal to other
+accomplishing some other goal to other psychologists deci and ryan talked a lot
+psychologists deci and ryan talked a lot about self-determination theory which is
+about self-determination theory which is that human needs motivate people which
+that human needs motivate people which includes players they focus a lot on
+includes players they focus a lot on intrinsic means and extrinsic means I
+intrinsic means and extrinsic means I think their research is great and I
+think their research is great and I think flow has a really great lot of
+think flow has a really great lot of great insights but I sort of have a
+great insights but I sort of have a different take on the categories which I
+different take on the categories which I will attempt to explain the graph so if
+will attempt to explain the graph so if you try to find a couple of we're
+you try to find a couple of we're thought in a ways to classify needs
+thought in a ways to classify needs you'll find that some needs are need
+you'll find that some needs are need needs meaning if you don't have them you
+needs meaning if you don't have them you feel rotten and some needs are want
+feel rotten and some needs are want needs where if you get them it's a
+needs where if you get them it's a positive emotion but if you don't have
+positive emotion but if you don't have them you're not sitting around miserable
+them you're not sitting around miserable and I decided to call those requirements
+and I decided to call those requirements for the need needs and aspirations for
+for the need needs and aspirations for the for those that are more positive but
+the for those that are more positive but also optional
+also optional now clearly games are not you're not
+now clearly games are not you're not going to die if you're not playing a
+going to die if you're not playing a game so games probably provide aspirin
+game so games probably provide aspirin means of some kind I also sort of played
+means of some kind I also sort of played off of flow and the the idea of
+off of flow and the the idea of autotelic activities to come up with two
+autotelic activities to come up with two new concepts of endo telic and EXO
+new concepts of endo telic and EXO italics so teleca's from t lee awesome
+italics so teleca's from t lee awesome swings were like the goal or the end
+swings were like the goal or the end endo and EXO a meaning inner and outer
+endo and EXO a meaning inner and outer so basically you have things that you do
+so basically you have things that you do because you want a goal that comes from
+because you want a goal that comes from outside so that's like cake right I want
+outside so that's like cake right I want cake and it's going to end up inside of
+cake and it's going to end up inside of me and I don't really care how its
+me and I don't really care how its provided I don't really care if I made
+provided I don't really care if I made the cake as long as it tastes good
+the cake as long as it tastes good whereas exotel like is actually I'm
+whereas exotel like is actually I'm being used for something so a lot of
+being used for something so a lot of causes and religions are based on this
+causes and religions are based on this but much more humbly for games is just
+but much more humbly for games is just my skills are being used to make
+my skills are being used to make something happen
+something happen which is why games need to be
+which is why games need to be interactive so that you can participate
+interactive so that you can participate in them and cause something to happen so
+in them and cause something to happen so I would put games into this upper right
+I would put games into this upper right quadrant and fun is the positive emotion
+quadrant and fun is the positive emotion that you get from for meeting those
+that you get from for meeting those needs so if you think back to the graph
+needs so if you think back to the graph fun is that quadrant of meeting and
+fun is that quadrant of meeting and exoteric aspiration a game is a series
+exoteric aspiration a game is a series of constraints on an activity that
+of constraints on an activity that reliably and repeatedly meet that
+reliably and repeatedly meet that exiting aspiration for a specific
+exiting aspiration for a specific audience and I'm pretty just I'm pretty
+audience and I'm pretty just I'm pretty sure that I just said that games are
+sure that I just said that games are about fulfilling your dreams so I'm
+about fulfilling your dreams so I'm gonna go back to the red slide sorry so
+gonna go back to the red slide sorry so what exactly is the exoteric aspiration
+what exactly is the exoteric aspiration that a plasma rifle is intended to
+that a plasma rifle is intended to fulfill well I think you have to
+fulfill well I think you have to describe these needs sort of poetically
+describe these needs sort of poetically they're not necessarily something
+they're not necessarily something reduced to a technical term so the first
+reduced to a technical term so the first one is I think they make the player feel
+one is I think they make the player feel like they're on another level there
+like they're on another level there making their enemies look dumb and
+making their enemies look dumb and running rings around them is a good good
+running rings around them is a good good sort of trope you want to manipulate
+sort of trope you want to manipulate your enemies and frighten them and play
+your enemies and frighten them and play with them free kill
+with them free kill I think the plasma rifle also fills the
+I think the plasma rifle also fills the aspiration to be cool under fire you're
+aspiration to be cool under fire you're facing danger it's real danger but you
+facing danger it's real danger but you approach it with like kind of a
+approach it with like kind of a discipline and you don't panic and you
+discipline and you don't panic and you do things just the right way and you
+do things just the right way and you know winning and also the plasma rifle
+know winning and also the plasma rifle is all about turning the tables so the
+is all about turning the tables so the enemy's trying to use the price war upon
+enemy's trying to use the price war upon you and you take it from them and you
+you and you take it from them and you use it on them and their friends much
+use it on them and their friends much more effectively than they could turns
+more effectively than they could turns out this is not just about the plasma
+out this is not just about the plasma rifle this is about every enemy weapon
+rifle this is about every enemy weapon so even though halo 3 doesn't really
+so even though halo 3 doesn't really feature the plasma rifle the legacy of
+feature the plasma rifle the legacy of the plasma rifle goes through to all the
+the plasma rifle goes through to all the other enemy weapons in the game so for
+other enemy weapons in the game so for almost every weapon that the enemy uses
+almost every weapon that the enemy uses in Halo 3 it's slower for enemies
+in Halo 3 it's slower for enemies basically they start out a little bit
+basically they start out a little bit slow and then they accelerate which
+slow and then they accelerate which gives you plenty of time to see where
+gives you plenty of time to see where it's coming in to dodging they also have
+it's coming in to dodging they also have ramped up times so the the rate of fire
+ramped up times so the the rate of fire actually increases the longer you hold
+actually increases the longer you hold down the trigger but it's much faster
+down the trigger but it's much faster for players so the player in Halo 3
+for players so the player in Halo 3 always uses the speed that the AI would
+always uses the speed that the AI would have on legendary and that includes
+have on legendary and that includes multiplayer when you're firing a weapon
+multiplayer when you're firing a weapon you don't as a player care very much
+you don't as a player care very much that it starts out slow as long as it
+that it starts out slow as long as it gets to a quick speed very faster you
+gets to a quick speed very faster you have the the range that you mean and
+have the the range that you mean and players don't burst fire at least not in
+players don't burst fire at least not in the short bursts that they eye does so
+the short bursts that they eye does so the ramp-up isn't as much of a factor
+the ramp-up isn't as much of a factor for them this means that the player can
+for them this means that the player can always turn the tables on the enemy by
+always turn the tables on the enemy by picking up their weapon and using
+picking up their weapon and using against them they eye for grunts is like
+against them they eye for grunts is like comically incompetent there are always
+comically incompetent there are always running away and panicking and putting
+running away and panicking and putting their arms up in the air and we made
+their arms up in the air and we made sure that you can kill them with a
+sure that you can kill them with a single melee attack so you can kind of
+single melee attack so you can kind of jump down amongst them like a cat of a
+jump down amongst them like a cat of a mice and just start swinging but they
+mice and just start swinging but they bleeds on the other hand are they're
+bleeds on the other hand are they're dangerous but they're it's a manageable
+dangerous but they're it's a manageable danger we added an ID and AI of
+danger we added an ID and AI of how to cover firing so when you first
+how to cover firing so when you first emerge from cover they're gonna take a
+emerge from cover they're gonna take a little while to start shooting at you
+little while to start shooting at you they're gonna shoot at you in shorter
+they're gonna shoot at you in shorter bursts with longer durations between
+bursts with longer durations between them but the longer you stay out of
+them but the longer you stay out of cover they're gonna start honing in on
+cover they're gonna start honing in on you they're gonna be more accurate
+you they're gonna be more accurate they're gonna shoot more often they're
+they're gonna shoot more often they're an issue with less time in between shots
+an issue with less time in between shots and so what this meant was that for a
+and so what this meant was that for a while you could stay out of cover but
+while you could stay out of cover but after a while without you even noticing
+after a while without you even noticing it because you probably rated the AI
+it because you probably rated the AI would just suddenly be able to start
+would just suddenly be able to start hitting you and that would drive you
+hitting you and that would drive you back into cover we reduced the damage
+back into cover we reduced the damage scale and legendary that global damage
+scale and legendary that global damage skill that was so high before because we
+skill that was so high before because we just decided the damage it's not the
+just decided the damage it's not the right way to make the game harder I
+right way to make the game harder I believe that the right way to make a
+believe that the right way to make a game harder is to make it faster so the
+game harder is to make it faster so the same experience slowed down becomes easy
+same experience slowed down becomes easy the same experience sped up becomes
+the same experience sped up becomes harder projectiles go faster the AI
+harder projectiles go faster the AI firing at leas gets shorter in fact the
+firing at leas gets shorter in fact the entire combat Seidel gets faster so it's
+entire combat Seidel gets faster so it's probably 22 seconds of fun or something
+probably 22 seconds of fun or something like that and this emerged in a concept
+like that and this emerged in a concept we call a reciprocal difficulty so
+we call a reciprocal difficulty so basically it's a form of dynamic
+basically it's a form of dynamic difficulty but it's not handled by the
+difficulty but it's not handled by the by the computer or the AI it's actually
+by the computer or the AI it's actually driven by the player so the more you
+driven by the player so the more you push a Halo encounter the more it pushes
+push a Halo encounter the more it pushes back which rewards risk because if you
+back which rewards risk because if you push really hard you can break through
+push really hard you can break through very fast as long as you can handle how
+very fast as long as you can handle how hard it's pushing back at you but at the
+hard it's pushing back at you but at the same time it forgives failure so as soon
+same time it forgives failure so as soon as you withdraw hit withdraws you'll
+as you withdraw hit withdraws you'll notice in halo the a I don't really
+notice in halo the a I don't really chase you very much and we don't punish
+chase you very much and we don't punish you at all for risking and then failing
+you at all for risking and then failing and running away your shields come back
+and running away your shields come back your health comes back AI resets
+your health comes back AI resets basically so I recently read a really
+basically so I recently read a really fascinating book called slights of mind
+fascinating book called slights of mind and it's a couple of neuroscientists who
+and it's a couple of neuroscientists who go into the world of magic and they try
+go into the world of magic and they try to learn everything they can from the
+to learn everything they can from the techniques that the magicians have to
+techniques that the magicians have to figure out what's going on inside of the
+figure out what's going on inside of the brain of the people that they're fooling
+brain of the people that they're fooling and one of the things that they talk
+and one of the things that they talk about in the context of
+about in the context of a pickpocket is that you have a
+a pickpocket is that you have a spotlight of attention and anytime you
+spotlight of attention and anytime you attend to one thing you are ignoring
+attend to one thing you are ignoring virtually everything else that is not
+virtually everything else that is not happening your spotlight so that's the
+happening your spotlight so that's the tunnel vision that we describe and
+tunnel vision that we describe and magicians exploit this feature
+magicians exploit this feature mercilessly they the doves fly up and
+mercilessly they the doves fly up and you all look up as most you probably
+you all look up as most you probably looked up just because I went like that
+looked up just because I went like that and then over here they're doing
+and then over here they're doing something else and I figured you know if
+something else and I figured you know if magicians can do that if they can use
+magicians can do that if they can use distraction then a game designer should
+distraction then a game designer should be able to do the opposite in order to
+be able to do the opposite in order to kind of hyper focus well they're
+kind of hyper focus well they're calibrating so just a random smattering
+calibrating so just a random smattering ideas I had to focus your attention I
+ideas I had to focus your attention I always create custom test spaces so that
+always create custom test spaces so that nothing else is going on except for the
+nothing else is going on except for the thing that I'm trying to calibrate you
+thing that I'm trying to calibrate you obviously can't ship a game that way
+obviously can't ship a game that way because eventually you need to try all
+because eventually you need to try all together but I found that it helps you
+together but I found that it helps you focus and not get distracted on the
+focus and not get distracted on the other things that are broken or if
+other things that are broken or if they're too fun you distract it just
+they're too fun you distract it just playing the game I use post-it notes so
+playing the game I use post-it notes so if I'm balancing the plasma rifle I'll
+if I'm balancing the plasma rifle I'll put a post-it note that says plasma
+put a post-it note that says plasma rifle on the screen right now I have one
+rifle on the screen right now I have one that says talk faster I stare at
+that says talk faster I stare at Rorschach tests and try not to see
+Rorschach tests and try not to see pictures I don't know this is like the
+pictures I don't know this is like the equivalent of last year's mouth noises
+equivalent of last year's mouth noises with the Warthog but I feel like if you
+with the Warthog but I feel like if you can prove like train your brain to go
+can prove like train your brain to go into a state where it's not looking for
+into a state where it's not looking for patterns you'll be able to see specific
+patterns you'll be able to see specific patterns and put your spotlight directly
+patterns and put your spotlight directly on them more effectively you need to
+on them more effectively you need to avoid habituation the way I do that is I
+avoid habituation the way I do that is I take periodic breaks again the custom
+take periodic breaks again the custom test spaces are ready for that because
+test spaces are ready for that because you play through it and then when you
+you play through it and then when you get to the end you just take a break or
+get to the end you just take a break or maybe you try tweaking something else
+maybe you try tweaking something else sometimes I'll intentionally break
+sometimes I'll intentionally break something I usually don't check this in
+something I usually don't check this in but I'll just I'll just break something
+but I'll just I'll just break something and play the game with a broken plasma
+and play the game with a broken plasma rifle for a while so I can away to
+rifle for a while so I can away to something else and then when I'm going
+something else and then when I'm going to back I'm more sensitive to it and I
+to back I'm more sensitive to it and I also do total recalibrations and this
+also do total recalibrations and this drives producers nuts but I'll basically
+drives producers nuts but I'll basically save off a copy blank out everything and
+save off a copy blank out everything and try to retune it from scratch and then
+try to retune it from scratch and then I'll compare the two and I'll say oh
+I'll compare the two and I'll say oh these are really close I bet you that's
+these are really close I bet you that's you know right or hey these are totally
+you know right or hey these are totally different and then I
+different and then I I have things to things to compare and
+I have things to things to compare and people could tell me what something like
+people could tell me what something like more so at the end of all that inhaler
+more so at the end of all that inhaler 3:14 world use per second about 75%
+3:14 world use per second about 75% faster on legendary any multiplayer the
+faster on legendary any multiplayer the normal experience was that even on
+normal experience was that even on legend or you can dodge for short
+legend or you can dodge for short amounts of time but eventually you have
+amounts of time but eventually you have to return it in to cover the unintended
+to return it in to cover the unintended consequences were this was that we
+consequences were this was that we started to see players sort of
+started to see players sort of standardizing how they're playing so
+standardizing how they're playing so even on normal or on legendary different
+even on normal or on legendary different quality of players they would kind of
+quality of players they would kind of have the same pattern and it was at and
+have the same pattern and it was at and we would see that a level was taking
+we would see that a level was taking about the same time for everybody to
+about the same time for everybody to complete and it wasn't badly broken
+complete and it wasn't badly broken which was a good thing a multiplayer
+which was a good thing a multiplayer people started using plasma rifle more
+people started using plasma rifle more often because it was faster it was more
+often because it was faster it was more effective and especially when combining
+effective and especially when combining arms with teammates we saw people wanted
+arms with teammates we saw people wanted you sayin weapons more and they wanted
+you sayin weapons more and they wanted to play as leads more which was useful
+to play as leads more which was useful later on and again not badly broken
+later on and again not badly broken the legendary experienced legendary is
+the legendary experienced legendary is very hard it's supposed to be but it's
+very hard it's supposed to be but it's not punishing hard it's just requires a
+not punishing hard it's just requires a very high level of skill and so we saw
+very high level of skill and so we saw people especially reviewers that we're
+people especially reviewers that we're playing on in higher difficulty levels
+playing on in higher difficulty levels were giving it a higher score and we
+were giving it a higher score and we often developed this bizarre sub
+often developed this bizarre sub community where they play solo legendary
+community where they play solo legendary Hall skulls on if you know what the
+Hall skulls on if you know what the skulls are that mean that makes it
+skulls are that mean that makes it incredibly hard but at the same time
+incredibly hard but at the same time it's still doable because we're not
+it's still doable because we're not cranking up the damage to ridiculous
+cranking up the damage to ridiculous levels so hopefully not badly broken
+levels so hopefully not badly broken which brings me no DST which was named
+which brings me no DST which was named halo 3 ODST for a reason because the
+halo 3 ODST for a reason because the sandbox didn't really change which
+sandbox didn't really change which brings me to Halo Reach where the plasma
+brings me to Halo Reach where the plasma rifle was reborn as the plasma rifle so
+rifle was reborn as the plasma rifle so our competition was
+our competition was be clear we by that time had a large
+be clear we by that time had a large collection of sub communities so there's
+collection of sub communities so there's the multiplier on the community there's
+the multiplier on the community there's a people that just wanted to jump into
+a people that just wanted to jump into Forge firefight was really popular and
+Forge firefight was really popular and one of the sub communities was halo
+one of the sub communities was halo developers basically almost every member
+developers basically almost every member of the original team had already moved
+of the original team had already moved on to the next big thing by then and
+on to the next big thing by then and fully half of the reach team was hired
+fully half of the reach team was hired after halo 3 shipped so that meant to
+after halo 3 shipped so that meant to some extent halo reach was made by the
+some extent halo reach was made by the community for the community and they're
+community for the community and they're very in tune with what the community
+very in tune with what the community wanted which brought up things like at
+wanted which brought up things like at least versus Spartans where they wanted
+least versus Spartans where they wanted total weapon parity between the elite
+total weapon parity between the elite weapons and the spartan weapons which
+weapons and the spartan weapons which meant that they needed a elite assault
+meant that they needed a elite assault rifle which is what the plasma repeater
+rifle which is what the plasma repeater eventually became and that meant well
+eventually became and that meant well basically all they wanted for that game
+basically all they wanted for that game was the insta projectiles because
+was the insta projectiles because otherwise it just wasn't fair it's hard
+otherwise it just wasn't fair it's hard to hit some human with a with a
+to hit some human with a with a dodgeball projectile and they really
+dodgeball projectile and they really were intent on going back to the feel of
+were intent on going back to the feel of Halo on back to fighting elites they
+Halo on back to fighting elites they were dual wielding there are lots more
+were dual wielding there are lots more plasma rifles in the game so according
+plasma rifles in the game so according to the Halo Reach strategy guide
+to the Halo Reach strategy guide diagonally I didn't really work on this
+diagonally I didn't really work on this game the plasma rifles prior our purpose
+game the plasma rifles prior our purpose is to disable the shields of close you
+is to disable the shields of close you know I'd forget it I'm gonna take a
+know I'd forget it I'm gonna take a lesson from the plasma rifle I'm gonna
+lesson from the plasma rifle I'm gonna kind of dodge this one it's not fair for
+kind of dodge this one it's not fair for an ex Bungie designer to talk about the
+an ex Bungie designer to talk about the decisions that the current design team
+decisions that the current design team made and I'm almost out of time anyway
+but you find that in the middle of the project things were very different than
+project things were very different than a oh three eight but by the end of the
+a oh three eight but by the end of the project they it's sort of veered back in
+project they it's sort of veered back in the direction of what we had at the end
+the direction of what we had at the end of Halo 3 so conclusions shooting
+of Halo 3 so conclusions shooting bouncing you're not the same balance is
+bouncing you're not the same balance is about longevity especially in
+about longevity especially in multiplayer and tuning is really the
+multiplayer and tuning is really the craft of making something fun which is
+craft of making something fun which is depending on which theory section you
+depending on which theory section you agreed with specialized brain circuit
+agreed with specialized brain circuit activity
+activity or performing a skilled and natural
+or performing a skilled and natural meeting in pool context or meeting ex
+meeting in pool context or meeting ex atelic aspiration the tuning process
+atelic aspiration the tuning process first you understand your audience
+first you understand your audience either by choosing it or inheriting it
+either by choosing it or inheriting it because your audience is inseparable
+because your audience is inseparable from their context then you find their
+from their context then you find their exit telecast brief that they want to do
+exit telecast brief that they want to do you choose a fun activity that is
+you choose a fun activity that is reacted repeatable reliable and keep in
+reacted repeatable reliable and keep in mind these are rare and that's why
+mind these are rare and that's why you're gonna very rarely invent an
+you're gonna very rarely invent an entirely new kind of game then you
+entirely new kind of game then you integrate the mechanics so that they
+integrate the mechanics so that they support each other and calibrate the
+support each other and calibrate the values to your internal player model
+values to your internal player model sometimes starting over from scratch and
+sometimes starting over from scratch and then verify the experience from user
+then verify the experience from user research and hopefully nothing is badly
+research and hopefully nothing is badly broken and now I am out of here I don't
+broken and now I am out of here I don't really have time for questions
+really have time for questions we have like 30 seconds left which is
+we have like 30 seconds left which is not enough time for the first question
+not enough time for the first question or you usually get out their question so
+or you usually get out their question so if you have them you can email me at
+if you have them you can email me at Jamie Greece where I have a lot more
+Jamie Greece where I have a lot more time on my hands now and I'm also
+time on my hands now and I'm also writing in more detail at a lot of the
+writing in more detail at a lot of the stuff on my website that the tip
+stuff on my website that the tip disappear calm and I have plenty of
+disappear calm and I have plenty of business cards up here if anybody has
+business cards up here if anybody has any questions they want to email me or
+any questions they want to email me or they want a personal version of this
+they want a personal version of this talk or would like to offer me a job
+talk or would like to offer me a job thank you
+thank you [Applause]

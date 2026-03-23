@@ -1,0 +1,1854 @@
+[Music] welcome to bringing players together
+welcome to bringing players together building cross play in destiny 2. today
+building cross play in destiny 2. today we're here to talk about what it took
+we're here to talk about what it took the destiny 2 team to realize the cro
+the destiny 2 team to realize the cro the cross-platform experience for
+the cross-platform experience for players the lessons we took away from
+players the lessons we took away from the development process and how they can
+the development process and how they can be applicable to you if you're looking
+be applicable to you if you're looking to bring cross-platform play to your
+to bring cross-platform play to your game so let's dive in
+game so let's dive in a little bit about me i'm john chu a
+a little bit about me i'm john chu a senior technical program manager at
+senior technical program manager at bungie in the central technology
+bungie in the central technology organization
+organization as a technical program manager we
+as a technical program manager we function as the producers for
+function as the producers for engineering-focused teams helping to
+engineering-focused teams helping to find road maps and product vision while
+find road maps and product vision while driving the execution of our various
+driving the execution of our various projects
+projects i've been at bungie for three years now
+i've been at bungie for three years now having worked on various teams for and
+having worked on various teams for and building and improving our tools around
+building and improving our tools around the engine such as improving workflows
+the engine such as improving workflows for ui designers
+for ui designers updating the destiny 2 engine for
+updating the destiny 2 engine for activities and speeding release build
+activities and speeding release build times and currently my focus is on
+times and currently my focus is on leading initiatives that span across
+leading initiatives that span across multiple teams around the studio like
+multiple teams around the studio like most recently delivering cross play for
+most recently delivering cross play for destiny 2.
+destiny 2. so that brings us to what we're here to
+so that brings us to what we're here to talk about today we'll be doing a deep
+talk about today we'll be doing a deep dive on the production of cross play and
+dive on the production of cross play and the challenges and lessons we took away
+the challenges and lessons we took away from building and releasing this feature
+from building and releasing this feature to players
+to players i'll be focusing more on the production
+i'll be focusing more on the production process team organization and some
+process team organization and some design considerations that come with
+design considerations that come with building for cross-platform and while
+building for cross-platform and while i'll touch on some of the technical
+i'll touch on some of the technical challenges that we faced it'll be more
+challenges that we faced it'll be more of an overview an explanation of the
+of an overview an explanation of the deep technical specifics is worthy of
+deep technical specifics is worthy of like a whole other session
+like a whole other session we'll have time at the end for questions
+we'll have time at the end for questions and these slides with speaker notes will
+and these slides with speaker notes will be uploaded to vault
+um so first off quick anyone here have have you played destiny 2 anyone nice
+have you played destiny 2 anyone nice most people here
+most people here um so for anyone that hasn't played
+um so for anyone that hasn't played destiny 2 is an action mmo first person
+destiny 2 is an action mmo first person shooter in which you play as a guardian
+shooter in which you play as a guardian imbued with the power of light
+imbued with the power of light protecting humanity
+protecting humanity you take on challenges and activities
+you take on challenges and activities all while shooting and looting your way
+all while shooting and looting your way to getting better gear and personalizing
+to getting better gear and personalizing your character to be the ultimate
+your character to be the ultimate monster killing machine
+monster killing machine in terms of how we build maintain and
+in terms of how we build maintain and release destiny 2 we utilize a games as
+release destiny 2 we utilize a games as service model to constantly deliver
+service model to constantly deliver updates and new content to players
+updates and new content to players our main content deliverables are yearly
+our main content deliverables are yearly expansions and four seasonal releases
+expansions and four seasonal releases during that year
+during that year initially released in 2017 destiny 2 is
+initially released in 2017 destiny 2 is now in its fifth year and 16th season of
+now in its fifth year and 16th season of being a live game most recently last
+being a live game most recently last month in february we released the witch
+month in february we released the witch queen and season of the risen
+queen and season of the risen and when it comes to platforms destiny 2
+and when it comes to platforms destiny 2 is currently available on seven
+is currently available on seven different platforms
+different platforms playstation 4 and playstation 5 xbox one
+playstation 4 and playstation 5 xbox one xbox series one xns
+xbox series one xns stadia steam and microsoft pc store
+stadia steam and microsoft pc store and lastly destiny 2 is built in our
+and lastly destiny 2 is built in our proprietary tiger engine
+proprietary tiger engine it's a large legacy code base built for
+it's a large legacy code base built for the original destiny with some parts of
+the original destiny with some parts of the engine reaching back to the halo
+the engine reaching back to the halo days of bungie there's a great 2015 jdc
+days of bungie there's a great 2015 jdc talk given by chris butcher that goes
+talk given by chris butcher that goes into in depth about the history and
+into in depth about the history and development of the tiger engine if
+development of the tiger engine if you're interested in learning more
+you're interested in learning more but needless to say there's a lot of
+but needless to say there's a lot of systems in code within our own engine
+systems in code within our own engine that are foundational and hard to change
+that are foundational and hard to change and we'll discuss some of the
+and we'll discuss some of the interesting challenges that this
+interesting challenges that this presented when building crossplay later
+presented when building crossplay later in this talk
+in this talk so now that you have a little bit of a
+so now that you have a little bit of a background of destiny 2 let's talk about
+background of destiny 2 let's talk about the crossplay project and how we went
+the crossplay project and how we went about building this experience
+about building this experience the biggest reason we wanted to build
+the biggest reason we wanted to build crossplay was to deliver on creating a
+crossplay was to deliver on creating a truly unified destiny universe
+truly unified destiny universe by releasing across many platforms
+by releasing across many platforms players can play destiny 2 from wherever
+players can play destiny 2 from wherever they wanted even other devices supported
+they wanted even other devices supported by stadia we further built towards this
+by stadia we further built towards this with with the release of our cross
+with with the release of our cross progression system cross save in 2020
+progression system cross save in 2020 this allowed players to bring their
+this allowed players to bring their guardians and all the loot and gear that
+guardians and all the loot and gear that they had spent so much time amassing on
+they had spent so much time amassing on one platform to any platform that they
+one platform to any platform that they wanted
+wanted while with cross save you can now hop
+while with cross save you can now hop between your pc and console and continue
+between your pc and console and continue the story of your guardian wherever you
+the story of your guardian wherever you wanted the one thing that was missing
+wanted the one thing that was missing was that when players cross platform
+was that when players cross platform boundaries
+boundaries that meant leaving behind the friends
+that meant leaving behind the friends that they had on one platform
+that they had on one platform people have different preferences for
+people have different preferences for the platform that they like to play
+the platform that they like to play destiny 2 with just to demonstrate of
+destiny 2 with just to demonstrate of all the people that raised their hands
+all the people that raised their hands how many of you prefer playing on pc
+how many of you prefer playing on pc playstation
+playstation xbox
+xbox stadia
+stadia i for one like playing on xbox and for
+i for one like playing on xbox and for the longest time i didn't have access to
+the longest time i didn't have access to like a gaming pc to be able to play with
+like a gaming pc to be able to play with my friends who preferred playing on
+my friends who preferred playing on steam
+steam so that's where crossplay comes in
+so that's where crossplay comes in crossplay is the culmination of all
+crossplay is the culmination of all these earlier efforts and now allowing
+these earlier efforts and now allowing you to play together with your friends
+you to play together with your friends from whatever platform you want
+from whatever platform you want now all players could exist in a single
+now all players could exist in a single destiny universe rather than segmented
+destiny universe rather than segmented ones by platform
+ones by platform and while doing this effort wasn't
+and while doing this effort wasn't creating new content like a raid or a
+creating new content like a raid or a secret exotic mission um that for
+secret exotic mission um that for players we knew that doing this was the
+players we knew that doing this was the right thing to do and would be a
+right thing to do and would be a delighter for them so for this reason we
+delighter for them so for this reason we committed to making cross play happen
+so when we first started the pre-production of cross-play guided by
+pre-production of cross-play guided by our overarching vision of creating a
+our overarching vision of creating a single destiny universe we outlined some
+single destiny universe we outlined some high-level goals for the project
+high-level goals for the project while destiny is being released on
+while destiny is being released on multiple platforms we wanted to use
+multiple platforms we wanted to use cross-play as a chance to center destiny
+cross-play as a chance to center destiny as a platform for all your social
+as a platform for all your social interactions with players that you meet
+interactions with players that you meet while in-game
+while in-game regardless of where you're playing from
+regardless of where you're playing from you should not be limited in your
+you should not be limited in your destiny experience and everyone on any
+destiny experience and everyone on any other platform should be accessible to
+other platform should be accessible to you to be friends with to communicate
+you to be friends with to communicate with and more
+with and more and while we defined goals for this
+and while we defined goals for this experience we also made sure to
+experience we also made sure to articulate constraints that we could use
+articulate constraints that we could use as razors to help make decisions along
+as razors to help make decisions along the way
+the way first was that we were date driven we
+first was that we were date driven we wanted to release cross-play as soon as
+wanted to release cross-play as soon as possible for the best player experience
+possible for the best player experience so we targeted a release of september
+so we targeted a release of september 2021.
+2021. the pre-production planning for this
+the pre-production planning for this project started in the summer of 2020
+project started in the summer of 2020 and this gave us a little over a year to
+and this gave us a little over a year to plan execute and release cross-play so
+plan execute and release cross-play so we had to scope accordingly to meet this
+we had to scope accordingly to meet this deadline
+deadline next the experience needed to be
+next the experience needed to be seamless
+seamless especially to new players we didn't want
+especially to new players we didn't want to over complicate the experience of
+to over complicate the experience of getting a new player from character
+getting a new player from character creation through to having their boots
+creation through to having their boots on the ground in the first mission
+on the ground in the first mission and lastly
+and lastly we knew we would have to collaborate a
+we knew we would have to collaborate a lot with our first party platforms like
+lot with our first party platforms like sony valve google and microsoft and we
+sony valve google and microsoft and we knew it was important to respect our
+knew it was important to respect our partner relationships with each of these
+partner relationships with each of these companies
+companies each platform has their own unique
+each platform has their own unique certification requirements and while
+certification requirements and while building cross-play we should be doing
+building cross-play we should be doing our best to adhere to the spirit of
+our best to adhere to the spirit of these requirements
+so let's talk about the actual team that built cross-play
+built cross-play this effort was a cross-team initiative
+this effort was a cross-team initiative that spanned across the studio with four
+that spanned across the studio with four core teams working together on the
+core teams working together on the experience
+experience the teams that were involved were first
+the teams that were involved were first the engine client team working on the
+the engine client team working on the lower level engine code making changes
+lower level engine code making changes to things like matchmaking and
+to things like matchmaking and networking the ui ux team working on the
+networking the ui ux team working on the ui players would be interacting with to
+ui players would be interacting with to manage all their new cross-platform
+manage all their new cross-platform friends and invites
+friends and invites the services team tasked with standing
+the services team tasked with standing up all the new game services and the
+up all the new game services and the bungie.net team working on the web and
+bungie.net team working on the web and mobile experiences for bungie.net and
+mobile experiences for bungie.net and destiny 2 companion app
+destiny 2 companion app in total there were about 50 people
+in total there were about 50 people working on this on crossplay this
+working on this on crossplay this includes all sorts of disciplines like
+includes all sorts of disciplines like engineers testers designers producers
+engineers testers designers producers and all that we also had our technical
+and all that we also had our technical account management deeply integrated on
+account management deeply integrated on the team to handle our first party
+the team to handle our first party partner relationships
+partner relationships so and additionally in addition to that
+so and additionally in addition to that there were a lot of people around the
+there were a lot of people around the studio that were involved in this effort
+studio that were involved in this effort our publishing and marketing and
+our publishing and marketing and analytics teams helping get let us
+analytics teams helping get let us engage players and how they would we're
+engage players and how they would we're playing cross play the player support
+playing cross play the player support and community teams giving us their
+and community teams giving us their player feedback and also the site
+player feedback and also the site reliability and network operations teams
+reliability and network operations teams making sure the services we were
+making sure the services we were standing up were
+standing up were healthy when they were live
+healthy when they were live and lastly this is all done while we
+and lastly this is all done while we were working
+were working remote so in terms of the development
+remote so in terms of the development timeline of cross-play as mentioned
+timeline of cross-play as mentioned before we started pre-production during
+before we started pre-production during planning during the summer of 2020.
+planning during the summer of 2020. from then it was about a year of
+from then it was about a year of development to fully release cross-play
+development to fully release cross-play with the season of the lost in august of
+along the way there were a couple milestones and events that helped us
+milestones and events that helped us we spent the first couple of months
+we spent the first couple of months working on major tech pieces of the
+working on major tech pieces of the experience while meeting with first
+experience while meeting with first party partners to get approvals for our
+party partners to get approvals for our designs
+designs this all led us to having our first
+this all led us to having our first proof of concept by the start of 2021 in
+proof of concept by the start of 2021 in which we had two platforms joining
+which we had two platforms joining together for the first time
+together for the first time we also utilized live updates to game to
+we also utilized live updates to game to the to get early versions of cross play
+the to get early versions of cross play out to players
+out to players in the season before we launched we
+in the season before we launched we released an alpha of cross-play for
+released an alpha of cross-play for bungie employees to have some cross-play
+bungie employees to have some cross-play features enabled for them and later a
+features enabled for them and later a beta in which we enabled cross-play for
+beta in which we enabled cross-play for in a strike playlist for all players to
+in a strike playlist for all players to try out
+try out these early releases helped get
+these early releases helped get cross-play out there and incrementally
+cross-play out there and incrementally build on the experience and we'll talk a
+build on the experience and we'll talk a little bit more about that later in the
+little bit more about that later in the talk
+talk and even after the full release we've
+and even after the full release we've been continuing to add more features to
+been continuing to add more features to crossplay like with extended text chat
+crossplay like with extended text chat on consoles
+on consoles it was definitely a journey to get cross
+it was definitely a journey to get cross play in the hands of players
+play in the hands of players so from that timeline you can see we
+so from that timeline you can see we used a lot of different milestones and
+used a lot of different milestones and releases to release cross-play and
+releases to release cross-play and um and one of my favorite quotes about
+um and one of my favorite quotes about the process that we used comes from
+the process that we used comes from within the studio we can't control our
+within the studio we can't control our outcomes but we can control our
+outcomes but we can control our executions
+executions we tried our very best to execute in the
+we tried our very best to execute in the best way possible to make the right
+best way possible to make the right decisions for the team the experience
+decisions for the team the experience and the player
+and the player and that's the main focus of what we
+and that's the main focus of what we wanted to share in this talk
+wanted to share in this talk because in the end that's really all you
+because in the end that's really all you can control because once it's in the
+can control because once it's in the hands of players you have don't really
+hands of players you have don't really have much control over that
+have much control over that but luckily for us crossplay was
+but luckily for us crossplay was released to a lot of positive attention
+released to a lot of positive attention from our players uniting them all
+from our players uniting them all together and letting them play and
+together and letting them play and engage with each other in a new way
+so now that we talked about the motivations and circumstances
+motivations and circumstances surrounding the making of crossplay
+surrounding the making of crossplay we'll move on to the actual lessons we
+we'll move on to the actual lessons we learned at bungie we really liked the
+learned at bungie we really liked the number seven if you were at alan
+number seven if you were at alan blaine's talk yesterday he used seven
+blaine's talk yesterday he used seven axes i have seven lessons so this
+axes i have seven lessons so this section comes in that many parts here's
+section comes in that many parts here's the seven lessons we learned in building
+the seven lessons we learned in building cross play
+cross play first up
+first up building cross play in our own engine
+building cross play in our own engine meant creating a lot of new systems from
+meant creating a lot of new systems from scratch
+scratch cross-platform play is a pretty easily
+cross-platform play is a pretty easily understood concept it's allowing
+understood concept it's allowing everyone on your various platforms to to
+everyone on your various platforms to to play together
+play together and so the conclusion is that's just
+and so the conclusion is that's just networking around bits to different
+networking around bits to different platforms right
+platforms right and i mean sure let me see
+and i mean sure let me see this head down um
+this head down um and actually i mean sure that's
+and actually i mean sure that's definitely part of it but to create a
+definitely part of it but to create a truly great cross-play experience
+truly great cross-play experience there's so much more to it
+there's so much more to it and there's a couple other reasons that
+and there's a couple other reasons that cause us to need to build so many new
+cause us to need to build so many new systems
+systems first was that we built destiny in our
+first was that we built destiny in our own proprietary engine
+own proprietary engine all the new cross-platform tech
+all the new cross-platform tech functionality for the engine needed to
+functionality for the engine needed to be created from scratch
+be created from scratch next many systems that we were using
+next many systems that we were using were based on platform level apis and
+were based on platform level apis and all these need to be recreated in engine
+all these need to be recreated in engine to support cross-platform unlike a game
+to support cross-platform unlike a game that uses a third-party engine like
+that uses a third-party engine like unity or unreal which has a lot of
+unity or unreal which has a lot of cross-plat built in we had to build a
+cross-plat built in we had to build a lot of platform equivalent systems and
+lot of platform equivalent systems and services
+services also many surrounding systems are needed
+also many surrounding systems are needed to enhance cross-play like how does your
+to enhance cross-play like how does your player
+player identify themselves across various
+identify themselves across various platforms
+platforms so let's do a run-through of all the
+so let's do a run-through of all the various systems
+various systems starting with networking
+starting with networking just to get all these guardians in the
+just to get all these guardians in the tower together core networking tech had
+tower together core networking tech had to be changed in order to enable sending
+to be changed in order to enable sending of content across various platforms
+of content across various platforms the networking changes that we made were
+the networking changes that we made were some of the biggest and scariest of bone
+some of the biggest and scariest of bone breaking changes since it's one of the
+breaking changes since it's one of the most fundamental and underlying systems
+most fundamental and underlying systems in the destiny 2 engine
+in the destiny 2 engine since we had shipped separately for
+since we had shipped separately for various platforms we had made
+various platforms we had made optimizations for each of them and this
+optimizations for each of them and this didn't all play well together when we
+didn't all play well together when we combined them for cross-play
+combined them for cross-play for example our package layout is not
+for example our package layout is not always the same across various platforms
+always the same across various platforms so we can't just network memory handles
+so we can't just network memory handles from one platform to another we ended up
+from one platform to another we ended up creating a mapping layer to communicate
+creating a mapping layer to communicate over the network with consistent handles
+over the network with consistent handles that could be mapped to appropriate
+that could be mapped to appropriate handles on a given platform
+handles on a given platform also the way we handle online sessions
+also the way we handle online sessions for fire teams had to be changed since
+for fire teams had to be changed since we could no longer rely on a single
+we could no longer rely on a single session hosted by a single player we now
+session hosted by a single player we now have to maintain separate online
+have to maintain separate online sessions for each platform
+sessions for each platform if you're interested in learning more
+if you're interested in learning more about the destiny 2 networking there's a
+about the destiny 2 networking there's a 2015 talk given by justin truman for you
+2015 talk given by justin truman for you to watch
+to watch so and there's a lot more of the
+so and there's a lot more of the technical specifics that i glossed over
+technical specifics that i glossed over um like we did with not networking but
+um like we did with not networking but needless to say these were big changes
+needless to say these were big changes and we needed to get them right to get
+and we needed to get them right to get platforms able to talk to each other and
+platforms able to talk to each other and be able to be in world together and
+be able to be in world together and these were some of the earliest pieces
+these were some of the earliest pieces that we took on
+that we took on so let's talk about player identity in a
+so let's talk about player identity in a cross-play world
+cross-play world players spend many hours in destiny 2
+players spend many hours in destiny 2 going through raids and dungeons facing
+going through raids and dungeons facing off in competitive matches all trying to
+off in competitive matches all trying to get that god roll of their favorite
+get that god roll of their favorite shotgun or trying to get the right mods
+shotgun or trying to get the right mods for their armor the guardian that you
+for their armor the guardian that you play as is an extension of yourself and
+play as is an extension of yourself and while the weapons you equip and getting
+while the weapons you equip and getting your armor to look just right is
+your armor to look just right is important equally as important is your
+important equally as important is your name and how you identify yourself to
+name and how you identify yourself to other players usually you use platform
+other players usually you use platform names like your gamer tag or your steam
+names like your gamer tag or your steam name among other names for that
+name among other names for that equivalent to identify yourself and by
+equivalent to identify yourself and by extension your character in online games
+extension your character in online games however with crossplay that's no longer
+however with crossplay that's no longer sufficient
+sufficient say on playstation you go by oryx and
+say on playstation you go by oryx and all your friends there know you by oryx
+all your friends there know you by oryx but one day with crossplay you hop onto
+but one day with crossplay you hop onto your pc and you start playing on steam
+your pc and you start playing on steam but there your profile name is salvathun
+but there your profile name is salvathun and you try to fire team up with your
+and you try to fire team up with your friends but none of them recognize you
+friends but none of them recognize you by that name
+by that name so
+so using platforms named platform names in
+using platforms named platform names in this case was no longer sufficient
+this case was no longer sufficient with crossplay it was important that we
+with crossplay it was important that we deliver a consistent experience
+deliver a consistent experience where someone is easily identifiable no
+where someone is easily identifiable no matter what platform they were playing
+matter what platform they were playing from
+we needed to create a consistent name that identifies a player that is unique
+that identifies a player that is unique so that players could find them
+so that players could find them to that end we created the concept of a
+to that end we created the concept of a bungee name this consists of a player
+bungee name this consists of a player name and a four-digit unique identifier
+name and a four-digit unique identifier for example
+for example oryx1234
+oryx1234 this allows multiple players to have the
+this allows multiple players to have the same name in this case oryx but allows
+same name in this case oryx but allows people to search for a specific person
+people to search for a specific person with the four digits
+with the four digits and guided by our earlier stated goal of
+and guided by our earlier stated goal of the project of not narrowing the new
+the project of not narrowing the new player funnel for new players logging on
+player funnel for new players logging on once crossplay was enabled we needed the
+once crossplay was enabled we needed the experience of setting a bunch name to
+experience of setting a bunch name to not be complicated or add extra time and
+not be complicated or add extra time and effort we created a seamless experience
+effort we created a seamless experience that seeds the player name of a bungee
+that seeds the player name of a bungee name from the platform that the player
+name from the platform that the player first logs on with
+first logs on with so to demonstrate
+so to demonstrate this is the screen that players i met
+this is the screen that players i met with for the first time once they logged
+with for the first time once they logged in once crossplay was enabled it tells
+in once crossplay was enabled it tells the player that their bungie name is
+the player that their bungie name is being set from their platform name in
+being set from their platform name in this case you can see on the left that
+this case you can see on the left that they were signing on for the first time
+they were signing on for the first time with steam and their profile name was
+with steam and their profile name was cosmos bng
+cosmos bng this seeds into their bungee name and
+this seeds into their bungee name and their unique the unique identifier of
+their unique the unique identifier of zero seven four eight is added to the
+zero seven four eight is added to the end as you can see on the right side
+end as you can see on the right side now that player is now known as cosmos
+now that player is now known as cosmos bng and it's what is displayed above
+bng and it's what is displayed above their head in game and in the roster
+their head in game and in the roster wherever they play it's their consistent
+wherever they play it's their consistent identity
+identity so next is friends and presence
+so next is friends and presence the concept of friends and who the
+the concept of friends and who the people you can play with was completely
+people you can play with was completely changed
+changed now your roster could have people from
+now your roster could have people from any and all platforms that destiny is
+any and all platforms that destiny is available on and that brought with it
+available on and that brought with it many new challenges
+destiny 2 is an mmo with many communities of players that are that is
+communities of players that are that is fostered by deep social mechanics
+fostered by deep social mechanics most activities are meant to be played
+most activities are meant to be played with others even if you play solo we
+with others even if you play solo we match you up with other players like
+match you up with other players like with strikes or when you free roam
+with strikes or when you free roam destiny 2 is meant to be played with
+destiny 2 is meant to be played with others
+others now that players could interact with
+now that players could interact with anyone that meant we could no longer use
+anyone that meant we could no longer use platform friend list
+platform friend list without changes you would not have
+without changes you would not have access to friends that you were making
+access to friends that you were making on other platforms
+on other platforms since you could make and have friends
+since you could make and have friends anywhere now we were exposing players to
+anywhere now we were exposing players to a whole new social network of destiny
+a whole new social network of destiny players
+players we created the bungie front service to
+we created the bungie front service to handle this new social graph for players
+handle this new social graph for players to engage with and enable them to become
+to engage with and enable them to become friends with anyone
+friends with anyone when a player friends someone in-game
+when a player friends someone in-game whatever platform they log in with they
+whatever platform they log in with they will appear on the bungie friends list
+will appear on the bungie friends list additionally platform level presence was
+additionally platform level presence was no longer enough to keep track of when
+no longer enough to keep track of when someone was playing destiny so we stood
+someone was playing destiny so we stood up a present service to track players
+up a present service to track players online and offline statuses when they
+online and offline statuses when they were playing
+were playing with this concept of a new bungie social
+with this concept of a new bungie social network we needed to make sure that all
+network we needed to make sure that all interactions people have when and have
+interactions people have when and have come to expect with social networks was
+come to expect with social networks was also present
+also present first off was being able to find people
+first off was being able to find people and to that end we had to build
+and to that end we had to build searching we kept it defining others by
+searching we kept it defining others by the bungee name
+the bungee name so as you see in the top left corner
+so as you see in the top left corner there's a search bar this is where the
+there's a search bar this is where the four-digit unique identifier comes into
+four-digit unique identifier comes into play um and it's important and this
+play um and it's important and this helps make sure that people are
+helps make sure that people are explicitly searching for the right
+explicitly searching for the right person
+person upon finding that person they're able to
+upon finding that person they're able to inspect them
+inspect them and then send them a friend request
+and then send them a friend request on the receiving side you need to be
+on the receiving side you need to be able to view incoming friend requests or
+able to view incoming friend requests or see pending ones
+see pending ones and so
+and so and finally being able to action on them
+and finally being able to action on them by being able to accept or reject
+by being able to accept or reject requests that come your way
+requests that come your way also other common social controls like
+also other common social controls like blocking and displaying your presence as
+blocking and displaying your presence as offline or online had to be respected as
+offline or online had to be respected as well with this new friend system
+the changes in identity and this new concept of bungie friends resulted in a
+concept of bungie friends resulted in a major overhaul of our roster system as
+major overhaul of our roster system as the major ui screen that players utilize
+the major ui screen that players utilize to interact with others a lot needed to
+to interact with others a lot needed to be done to account for cross-platform
+be done to account for cross-platform more information needed to be given for
+more information needed to be given for players for what platform a friend or a
+players for what platform a friend or a nearby person was playing on now we show
+nearby person was playing on now we show a little icon next to each person as you
+a little icon next to each person as you see in each of these roster entries
+see in each of these roster entries there's a little icon that indicates
+there's a little icon that indicates what platform they're on
+what platform they're on additionally to help other players with
+additionally to help other players with identifying you player detail screens
+identifying you player detail screens were updated to show all your linked
+were updated to show all your linked screen names from other platforms in
+screen names from other platforms in this case this player is playing from
+this case this player is playing from steam
+steam with the profile name tinytimgo as you
+with the profile name tinytimgo as you can see towards the bottom but their
+can see towards the bottom but their bungee name is different castor rhetoric
+bungee name is different castor rhetoric this makes it easier for people to
+this makes it easier for people to recognize you when they're inspecting
+recognize you when they're inspecting you
+so let's move on to the changes that we made to session or fire team invites
+made to session or fire team invites in destiny 2 fire teams are the group of
+in destiny 2 fire teams are the group of two to six players that you play through
+two to six players that you play through various activities with it's your squad
+various activities with it's your squad fire teams are a core social and
+fire teams are a core social and gameplay component to the game it's how
+gameplay component to the game it's how many players engage with destiny 2
+many players engage with destiny 2 content they hop online they join their
+content they hop online they join their friends on a fire team and they take on
+friends on a fire team and they take on a raid or trials match
+a raid or trials match and much like friends list we were
+and much like friends list we were relying on platforms for session invites
+relying on platforms for session invites before you could go into your roster and
+before you could go into your roster and you would see your platform front
+you would see your platform front platform friends list and send people
+platform friends list and send people invites to join your fire team but that
+invites to join your fire team but that was all using platform apis to send and
+was all using platform apis to send and they would send the receiving player a
+they would send the receiving player a notification so if you were on xbox
+notification so if you were on xbox if you were sent an invite you would see
+if you were sent an invite you would see on your in your xbox ui that you were
+on your in your xbox ui that you were invited and they get a toast
+invited and they get a toast notification and you'd be able to accept
+notification and you'd be able to accept that it would open up destiny and join
+that it would open up destiny and join your character into the fire team
+your character into the fire team but now we needed a way to to bring off
+but now we needed a way to to bring off platform players into your fire team
+platform players into your fire team there wasn't an easy way to call into
+there wasn't an easy way to call into other platforms in apis from different
+other platforms in apis from different platforms so we had to stand up another
+platforms so we had to stand up another service to from scratch to manage
+service to from scratch to manage invites for fire teams
+invites for fire teams we created the invite service to allow
+we created the invite service to allow players to create and join fire teams
+players to create and join fire teams with whoever they wanted
+with whoever they wanted we leveraged our own notification system
+we leveraged our own notification system to show players that who they had been
+to show players that who they had been invited to a fire team you can see this
+invited to a fire team you can see this on the bottom right in that gray bar
+on the bottom right in that gray bar with that notification
+with that notification additionally new ui had to be shown to
+additionally new ui had to be shown to view and manage pending invites we
+view and manage pending invites we created a new view which friend requests
+created a new view which friend requests also go through to do this
+also go through to do this from here you can see your stored
+from here you can see your stored invites which do expire after some time
+invites which do expire after some time and action on them like accepting or
+and action on them like accepting or rejecting
+rejecting accepting the invite pulls you into the
+accepting the invite pulls you into the fire team
+fire team and while fire teams act as the group of
+and while fire teams act as the group of players you play through various
+players you play through various activities of destiny 2 to really engage
+activities of destiny 2 to really engage with each other you need to be able to
+with each other you need to be able to communicate
+communicate in destiny 2 players are able to voice
+in destiny 2 players are able to voice chat
+chat and also text chat
+like many other systems our voice engine was previously using platform voice
+was previously using platform voice implementations
+implementations sony apis for playstation players to
+sony apis for playstation players to talk to each other microsoft ones for
+talk to each other microsoft ones for xbox ones and so on
+xbox ones and so on but now with fire teams that had players
+but now with fire teams that had players across all platforms
+across all platforms we weren't we if we kept it the same way
+we weren't we if we kept it the same way you wouldn't be able to talk with each
+you wouldn't be able to talk with each other
+other what emerged was the need to create java
+what emerged was the need to create java solution that would encode and decode
+solution that would encode and decode audio that was portable across all
+audio that was portable across all platforms
+platforms so we turned to using a third-party
+so we turned to using a third-party voice service to handle cross-platform
+voice service to handle cross-platform voice
+voice on the text side previously only pc
+on the text side previously only pc players were were the ones that were
+players were were the ones that were able to chat with each other and p and
+able to chat with each other and p and the only pc platform that we shipped on
+the only pc platform that we shipped on was steam
+was steam so it made sense to use steam apis in
+so it made sense to use steam apis in this case
+this case however timed with the launch of
+however timed with the launch of crossplay was also the release of
+crossplay was also the release of destiny 2 on the microsoft pc store
+destiny 2 on the microsoft pc store now with another pc platform our
+now with another pc platform our existing solution was not viable if we
+existing solution was not viable if we wanted pc players to be able to
+wanted pc players to be able to communicate
+communicate additionally guided by our goal of not
+additionally guided by our goal of not letting platform limit who you could
+letting platform limit who you could communicate with we wanted to expand
+communicate with we wanted to expand text capabilities to console players as
+text capabilities to console players as well to that end we built our own text
+well to that end we built our own text chat service to send messages to players
+chat service to send messages to players we'll talk a little bit more about the
+we'll talk a little bit more about the decisions that we made for to build our
+decisions that we made for to build our own text chat and integrate a
+own text chat and integrate a third-party voice solution a little bit
+third-party voice solution a little bit later
+so all that we covered was just the systems that we did for the in-game
+systems that we did for the in-game client but there's even more to
+client but there's even more to cross-play experience
+cross-play experience when building cross-play we knew that
+when building cross-play we knew that parts of the experience would need to be
+parts of the experience would need to be accessible from the web and mobile sites
+accessible from the web and mobile sites in our case we have bungie.net and the
+in our case we have bungie.net and the destiny 2 companion app
+destiny 2 companion app having out of game extensions of
+having out of game extensions of crossplay offered deeper ways to manage
+crossplay offered deeper ways to manage and engage with the experience like it
+and engage with the experience like it was only through bungie.net that players
+was only through bungie.net that players were able to pull all their linked
+were able to pull all their linked platform friends lists and batch send
+platform friends lists and batch send requests to see their bungee friends
+requests to see their bungee friends list
+list additionally
+additionally iteration on web and mobile is much
+iteration on web and mobile is much faster compared to shipping new updates
+faster compared to shipping new updates for your game client offering these
+for your game client offering these power user features for cross play in a
+power user features for cross play in a way that made it allowed us to iterate
+way that made it allowed us to iterate and polish these features more quickly
+and polish these features more quickly was really helpful
+was really helpful also as a peek behind the curtains one
+also as a peek behind the curtains one of the web having a web experience that
+of the web having a web experience that really helped with work arounds when we
+really helped with work arounds when we had bugs in our in the game so when we
+had bugs in our in the game so when we first launched uh player searching
+first launched uh player searching in-game was not was not actually didn't
+in-game was not was not actually didn't work and we were people were able to add
+work and we were people were able to add their friends so we were able to route
+their friends so we were able to route players to the web and mobile sites to
+players to the web and mobile sites to search for who they wanted and find who
+search for who they wanted and find who they needed and and we until we were
+they needed and and we until we were able to get a fix out the next day
+able to get a fix out the next day all up
+all up with this and everything else a lot of
+with this and everything else a lot of work went into making this experience
+work went into making this experience so in summary here's the things that we
+so in summary here's the things that we learned in having to build the many new
+learned in having to build the many new systems for and surrounding crossplay
+systems for and surrounding crossplay first when you're dealing with your own
+first when you're dealing with your own engine many core and fundamental parts
+engine many core and fundamental parts of the engine will need to be changed
+of the engine will need to be changed from things like changes in underlying
+from things like changes in underlying networking or revamping ui all this
+networking or revamping ui all this means is that when you build your own
+means is that when you build your own cross-platform tech scope and extra time
+cross-platform tech scope and extra time need to be accounted for
+need to be accounted for second when building for cross-platform
+second when building for cross-platform many of your game's pre-existing systems
+many of your game's pre-existing systems probably rely on platform apis and
+probably rely on platform apis and features your friends lists session
+features your friends lists session invites voice chat all that
+invites voice chat all that most of these features will need to be
+most of these features will need to be recreated from scratch
+recreated from scratch and in this case your mileage may vary
+and in this case your mileage may vary with because third-party engines like
+with because third-party engines like unreal or unity a lot of cross-platform
+unreal or unity a lot of cross-platform portability of services and systems is
+portability of services and systems is already built in but it's important to
+already built in but it's important to take stock of what systems you rely on
+take stock of what systems you rely on platform tech and will need to be moved
+platform tech and will need to be moved across plaid
+across plaid and third
+and third extending your cross-platform experience
+extending your cross-platform experience outside your game client to wherever
+outside your game client to wherever players engage your game can be very
+players engage your game can be very valuable
+valuable this makes it easier for players to give
+this makes it easier for players to give players more fine-grained control over
+players more fine-grained control over the many new systems that you're
+the many new systems that you're introducing
+introducing having web and mobile account for from
+having web and mobile account for from the beginning made for a truly cohesive
+the beginning made for a truly cohesive experience
+experience so next lesson is about handling
+so next lesson is about handling interdependencies
+now that you have an idea of the systems that were involved in making crossplay
+that were involved in making crossplay you have a better sense of the scale of
+you have a better sense of the scale of this large crossteam initiative and with
+this large crossteam initiative and with projects of this kind of scope comes
+projects of this kind of scope comes many complicated dependencies between
+many complicated dependencies between all the teams that are working on it and
+all the teams that are working on it and these all need to be wrangled
+these all need to be wrangled having four different teams focused on
+having four different teams focused on separate parts of the experience meant
+separate parts of the experience meant that there were many intertwined
+that there were many intertwined dependencies to make things more
+dependencies to make things more complicated we were executing under a
+complicated we were executing under a tight timeline to deliver by september
+tight timeline to deliver by september of 2021
+of 2021 this made it all the more important to
+this made it all the more important to ensure all teams were not blocked and
+ensure all teams were not blocked and could make progress
+could make progress also with everyone being remote come
+also with everyone being remote come complications of being in sync no longer
+complications of being in sync no longer were we able to have ad hoc hallway or
+were we able to have ad hoc hallway or desk conversations you couldn't just
+desk conversations you couldn't just scroll scroll up to someone's desk and
+scroll scroll up to someone's desk and ask them a question which usually helps
+ask them a question which usually helps smooth out questions and issues those
+smooth out questions and issues those didn't happen as organically when you're
+didn't happen as organically when you're working from home since you'd have to
+working from home since you'd have to message someone
+message someone so how did we approach this issue
+so how did we approach this issue we were very fortunate enough to have so
+we were very fortunate enough to have so many people working on this feature but
+many people working on this feature but with more people comes a challenge of
+with more people comes a challenge of making sure everyone is building towards
+making sure everyone is building towards the same goal
+the same goal we emphasize team alignment and
+we emphasize team alignment and providing as many avenues as possible to
+providing as many avenues as possible to identify blockers and open issues that
+identify blockers and open issues that anyone on the team was facing
+we set out to create as many opportunities as possible to ensure we
+opportunities as possible to ensure we were all building towards the same thing
+were all building towards the same thing and it's a bit cliche for me as a
+and it's a bit cliche for me as a producer to bias this way but especially
+producer to bias this way but especially in a remote work from home world the
+in a remote work from home world the solution came in the form of sinks and
+solution came in the form of sinks and meetings
+meetings what we found was that having recurring
+what we found was that having recurring sinks that pared down attendees by
+sinks that pared down attendees by feature area like everyone who was
+feature area like everyone who was working on communication or chat as well
+working on communication or chat as well as ones by discipline like everyone all
+as ones by discipline like everyone all testers or all engineers allowed us to
+testers or all engineers allowed us to focus conversations on specific topics
+focus conversations on specific topics like open issues and questions or
+like open issues and questions or upcoming integrations of certain
+upcoming integrations of certain features
+features one example of how this benefited us was
+one example of how this benefited us was by having a weekly sync to discuss
+by having a weekly sync to discuss specifically friends and presence
+specifically friends and presence by focusing in on how the bungee friend
+by focusing in on how the bungee friend service would interact with the ui and
+service would interact with the ui and everything else in the client
+everything else in the client people were able to bring up their
+people were able to bring up their questions
+questions we realized we needed to figure out how
+we realized we needed to figure out how blocking would work in a cross-play
+blocking would work in a cross-play world and this ambiguity was being felt
+world and this ambiguity was being felt by most people working on this feature
+by most people working on this feature we were able to quickly address this by
+we were able to quickly address this by having engineers and designers in the
+having engineers and designers in the same room to discuss what needed to be
+same room to discuss what needed to be done to the experience
+done to the experience this was followed up in our weekly
+this was followed up in our weekly engineering sinks for the team to
+engineering sinks for the team to discuss the feasibility of certain
+discuss the feasibility of certain technical solutions like how would we be
+technical solutions like how would we be able to ferry the data to the right
+able to ferry the data to the right places
+places also we used recurring rituals like
+also we used recurring rituals like meetings where everyone on the core team
+meetings where everyone on the core team was invited this ensured everyone was
+was invited this ensured everyone was present to be able to see how everyone
+present to be able to see how everyone was building together and how how we
+was building together and how how we were
+were how we were progressing holistically
+how we were progressing holistically also we had core team-wide weekly play
+also we had core team-wide weekly play tests this allowed the whole team to see
+tests this allowed the whole team to see the experience how the experience was
+the experience how the experience was coming together
+coming together and it was definitely a morale boost to
+and it was definitely a morale boost to see how the features that they were
+see how the features that they were working on were just kept getting added
+working on were just kept getting added more and more each week and it got more
+more and more each week and it got more polished
+polished from all these points above it's pretty
+from all these points above it's pretty clear that the approach that we took was
+clear that the approach that we took was giving team members lots of exposure to
+giving team members lots of exposure to each other to build cohesion and empower
+each other to build cohesion and empower them to identify and mitigate issues
+them to identify and mitigate issues so to sum it up
+so to sum it up creating dedicated sync points ensures
+creating dedicated sync points ensures blockers are escalated at a cross-team
+blockers are escalated at a cross-team level and handled quickly
+level and handled quickly having syncs that slice your team in
+having syncs that slice your team in multiple different ways like by working
+multiple different ways like by working group or feature area or discipline
+group or feature area or discipline allows for different opportunities to
+allows for different opportunities to discuss issues at different scales and
+discuss issues at different scales and depths
+depths next
+next when dealing with a large team that
+when dealing with a large team that might also be remote it's important to
+might also be remote it's important to make sure everyone is aligned
+make sure everyone is aligned offering as many opportunities for the
+offering as many opportunities for the team to see each other helped make sure
+team to see each other helped make sure it make it easier for people across the
+it make it easier for people across the team to proactively approach anyone else
+team to proactively approach anyone else on the team with issues that they might
+on the team with issues that they might be facing and it gives people a sense of
+be facing and it gives people a sense of how their work fits into the bigger
+how their work fits into the bigger picture
+picture and lastly if you heard all this talk
+and lastly if you heard all this talk about syncs and meetings and working
+about syncs and meetings and working groups and everything and thought that's
+groups and everything and thought that's a lot of meetings i'd agree
+a lot of meetings i'd agree sinks to build consensus across the team
+sinks to build consensus across the team come at the cost of ic time or actually
+come at the cost of ic time or actually time to do things and that's overhead on
+time to do things and that's overhead on your team
+your team so it's all the more important to find a
+so it's all the more important to find a balance
+balance admittedly for us we initially over
+admittedly for us we initially over indexed on syncs too much time spent in
+indexed on syncs too much time spent in meetings meant not enough time to do
+meetings meant not enough time to do actual work but we quickly were able to
+actual work but we quickly were able to iterate on our processes and able to
+iterate on our processes and able to find a better cadence by lifting total
+find a better cadence by lifting total meeting time for the team
+so now that we talked about the what was involved in with crossplay and how we
+involved in with crossplay and how we went about building it let's move on to
+went about building it let's move on to some of the design considerations and in
+some of the design considerations and in this lesson it's about matchmaking
+players come to destiny 2 with many different styles of play
+different styles of play for
+for from a preference for what kind of class
+from a preference for what kind of class anyone here uh warlock main
+anyone here uh warlock main um to the liking there we go
+um to the liking there we go to liking certain types of damage like
+to liking certain types of damage like solar or stasis or arc
+solar or stasis or arc the the differences in play styles don't
+the the differences in play styles don't just stop there it extends to the
+just stop there it extends to the platform you play on for example
+platform you play on for example keyboard and mouse players tend to have
+keyboard and mouse players tend to have quicker reaction times compared to
+quicker reaction times compared to console players
+console players the perception of this is especially
+the perception of this is especially important when you're in competitive
+important when you're in competitive modes
+modes when you throw them all together in
+when you throw them all together in crossplay you need to consider the types
+crossplay you need to consider the types the types of players that are coming in
+the types of players that are coming in and what they're coming with for example
+and what they're coming with for example for destiny 2 specifically there are
+for destiny 2 specifically there are some interesting challenges in the space
+some interesting challenges in the space for example the game has both
+for example the game has both competitive and cooperative modes and
+competitive and cooperative modes and players have different expectations in
+players have different expectations in how they engage in each activity like
+how they engage in each activity like with the reaction time difference maybe
+with the reaction time difference maybe when you're in a cooperative mode like a
+when you're in a cooperative mode like a strike and you don't it doesn't really
+strike and you don't it doesn't really matter but when you're in a competitive
+matter but when you're in a competitive crucible match and as a console player
+crucible match and as a console player if you're matched against pc players
+if you're matched against pc players and that you might perceive reaction
+and that you might perceive reaction time as a difference and it might feel
+time as a difference and it might feel unfair
+unfair also
+also pc and console players platforms have
+pc and console players platforms have very different security landscapes
+very different security landscapes players using hacks and exploits are
+players using hacks and exploits are something we're constantly fighting
+something we're constantly fighting against and can make for a lesser
+against and can make for a lesser experience if you're exposing a console
+experience if you're exposing a console player who might not be used to this
+player who might not be used to this so how do you make it fair for players
+so how do you make it fair for players on different platforms to play together
+on different platforms to play together while embracing full cross platform
+while embracing full cross platform figuring out how to match players on
+figuring out how to match players on different platforms in the best way was
+different platforms in the best way was an important decision that we had to
+an important decision that we had to make
+make we landed on making different
+we landed on making different matchmaking pools based on type of
+matchmaking pools based on type of activity this ensured fairness and
+activity this ensured fairness and balance while allowing players to play
+balance while allowing players to play together not all modes of the game
+together not all modes of the game needed to create different matchmaking
+needed to create different matchmaking pools
+pools there are strong player feelings about
+there are strong player feelings about fairness whether it be making
+fairness whether it be making controllers as competitive as possible
+controllers as competitive as possible with mouse and keyboard or the different
+with mouse and keyboard or the different security landscapes with console and pc
+security landscapes with console and pc we opted to keep pc players separate
+we opted to keep pc players separate from console players for certain modes
+from console players for certain modes we felt protecting players and ensuring
+we felt protecting players and ensuring fairness was the most important to
+fairness was the most important to ensure the best experience for the
+ensure the best experience for the greatest number of players
+greatest number of players we arrived at this is this decision from
+we arrived at this is this decision from conversations that we had with our
+conversations that we had with our player support and community teams who
+player support and community teams who stressed the importance of protecting
+stressed the importance of protecting players experiences
+players experiences additionally we chose to split pools we
+additionally we chose to split pools we chose not to split pools by other
+chose not to split pools by other factors like input modality like having
+factors like input modality like having a mouse and keyboard pull versus a
+a mouse and keyboard pull versus a controller pool because making that
+controller pool because making that distinction has interesting
+distinction has interesting complications
+complications so for example if you are a pc player
+so for example if you are a pc player and you plug in your controller you
+and you plug in your controller you enter into the and you kick off a
+enter into the and you kick off a competitive match you hop into your
+competitive match you hop into your controller pool but you unplug your
+controller pool but you unplug your controller right when the match starts
+controller right when the match starts and you start using your mouse and
+and you start using your mouse and keyboard in this case that distinction
+keyboard in this case that distinction of making those pulls doesn't really
+of making those pulls doesn't really matter anymore
+matter anymore so guided by that principle of fairness
+so guided by that principle of fairness and protecting players as the most
+and protecting players as the most important it made our matchmaking
+important it made our matchmaking decisions more clear
+decisions more clear starting with cooperative modes in this
+starting with cooperative modes in this case we didn't use separate pools
+case we didn't use separate pools everyone plays together
+everyone plays together there was no need to create separate
+there was no need to create separate pools of players since there was no edge
+pools of players since there was no edge one platform would have over the other
+one platform would have over the other and experience for players in modes like
+and experience for players in modes like strikes was not drastically altered
+strikes was not drastically altered so when you land in a destination and
+so when you land in a destination and you hop on your sparrow and you start
+you hop on your sparrow and you start roaming around the moon you're
+roaming around the moon you're automatically match made in world with
+automatically match made in world with players from any other platform
+players from any other platform moving to competitive is where we
+moving to competitive is where we started using different pools we created
+started using different pools we created two different matchmaking pools the
+two different matchmaking pools the first was the console pool in which we
+first was the console pool in which we have stadia xbox consoles and
+have stadia xbox consoles and playstation consoles
+playstation consoles and in this case while stadia is
+and in this case while stadia is technically a pc or you're at least
+technically a pc or you're at least streaming from one that pc is hosted
+streaming from one that pc is hosted within a data center and it's unlikely
+within a data center and it's unlikely to have exploits installed or tampering
+to have exploits installed or tampering done to the client so for this case we
+done to the client so for this case we we included it in the console pool
+we included it in the console pool then we have the pc pool in which we
+then we have the pc pool in which we have steam and microsoft pc store
+have steam and microsoft pc store players
+players so now when you launch a competitive
+so now when you launch a competitive activity where you're playing against
+activity where you're playing against other players depending on what platform
+other players depending on what platform you're playing from you'll be matchmade
+you're playing from you'll be matchmade with other players in the corresponding
+with other players in the corresponding pool you belong to
+pool you belong to that's not to say we can't create fire
+that's not to say we can't create fire teams of mixed platform players in from
+teams of mixed platform players in from different pools
+different pools we account for this by making it so that
+we account for this by making it so that pc players cannot cross over and enter
+pc players cannot cross over and enter the console pool only platforms in a
+the console pool only platforms in a console pool can cross over and play in
+console pool can cross over and play in the pc pool
+the pc pool so for example if you're a playstation
+so for example if you're a playstation player and you fire team up with your
+player and you fire team up with your friends who are on steam and load into
+friends who are on steam and load into gambit
+gambit even though you're on stadia you'll be
+even though you're on stadia you'll be playing against pc players in the match
+playing against pc players in the match this keeps the boundaries that we set
+this keeps the boundaries that we set for pc and console pools
+so bringing it all together for cross-platform gameplay
+cross-platform gameplay first
+first understanding the areas for concern for
+understanding the areas for concern for gameplay implications with
+gameplay implications with cross-platform will help guide your
+cross-platform will help guide your discussions and decisions
+discussions and decisions understanding where your players
+understanding where your players concerns and reservations lie will help
+concerns and reservations lie will help identify these areas for us that came
+identify these areas for us that came from talking to our player support and
+from talking to our player support and community teams which gave us directions
+community teams which gave us directions so we could proactively problem solve
+so we could proactively problem solve next if you're creating different pools
+next if you're creating different pools for matchmaking being deliberate for
+for matchmaking being deliberate for what reasons you're doing so is a useful
+what reasons you're doing so is a useful razer for design for us it was the
+razer for design for us it was the guiding principles of protecting player
+guiding principles of protecting player experiences and fairness that made it
+experiences and fairness that made it much easier to have discussions about
+much easier to have discussions about matchmaking pools and how we should
+matchmaking pools and how we should split up players
+split up players so the next lesson in a turn in addition
+so the next lesson in a turn in addition to the implications cross-platform has
+to the implications cross-platform has on gameplay there's also new social
+on gameplay there's also new social behaviors from players that need to be
+behaviors from players that need to be handled
+each platform possesses their own ex their own standards of acceptable social
+their own standards of acceptable social behavior when online
+behavior when online when you combine these players from all
+when you combine these players from all platforms these differences in how
+platforms these differences in how players are used to interacting with
+players are used to interacting with each other can give rise to new forms of
+each other can give rise to new forms of toxicity and harassment
+toxicity and harassment take for example the kinds of user names
+take for example the kinds of user names that are allowed on each platform
+that are allowed on each platform some platforms have strict filters
+some platforms have strict filters against profanity and derogatory
+against profanity and derogatory language but on others you can name
+language but on others you can name yourself anything that you want
+yourself anything that you want so player coming from a platform with
+so player coming from a platform with filtered names could suddenly be exposed
+filtered names could suddenly be exposed to all sorts of profanity which could
+to all sorts of profanity which could range from lewd to derogatory and
+range from lewd to derogatory and bullying
+bullying also platforms offer social controls
+also platforms offer social controls like blocking and settings to prevent
+like blocking and settings to prevent external contact but with cross play new
+external contact but with cross play new vectors for attack open up
+vectors for attack open up if you platform block an aggressor on
+if you platform block an aggressor on your account what's to prevent them from
+your account what's to prevent them from hopping over to another another platform
+hopping over to another another platform to continue harassing you
+to continue harassing you so part of the work for crossplay became
+so part of the work for crossplay became addressing these social behaviors
+addressing these social behaviors there's many forms of online harassment
+there's many forms of online harassment in games out there and when you expose
+in games out there and when you expose players to bigger populations as is the
+players to bigger populations as is the case when you bring platforms together
+case when you bring platforms together that's a risk that you take on
+that's a risk that you take on it's especially important to recognize
+it's especially important to recognize that these forms of antagonistic
+that these forms of antagonistic behavior tend to be directed at
+behavior tend to be directed at minorities and more vulnerable groups of
+minorities and more vulnerable groups of player populations
+so much like how our matchmaking pool's decision was
+decision was was guided by wanting to protect players
+was guided by wanting to protect players we did the same with social controls and
+we did the same with social controls and systems
+systems we dedicated a lot of time and effort to
+we dedicated a lot of time and effort to the space to try to prevent abuse and
+the space to try to prevent abuse and harassment
+harassment to accomplish this we focus on a couple
+to accomplish this we focus on a couple areas
+areas first we addressed user generated
+first we addressed user generated content that was associated with
+content that was associated with cross-play in this case most important
+cross-play in this case most important was the bungee name
+was the bungee name it became clear from our early
+it became clear from our early discussions that we needed to filter for
+discussions that we needed to filter for profanity since some platforms have
+profanity since some platforms have various levels of screening for user
+various levels of screening for user names
+names if there was if we didn't if there was
+if there was if we didn't if there was no platform level filtering there was a
+no platform level filtering there was a risk that inappropriate names and words
+risk that inappropriate names and words would be used in platform names and that
+would be used in platform names and that in turn would be passed in and seed the
+in turn would be passed in and seed the bungee name to prevent this we adopted a
+bungee name to prevent this we adopted a third-party solution that is versatile
+third-party solution that is versatile and context-aware
+and context-aware we'll discuss this a little bit later in
+we'll discuss this a little bit later in the talk
+another area that we worked on was to create adequate blocking systems to
+create adequate blocking systems to manage who you could interact with we
+manage who you could interact with we needed our new bungie social network to
+needed our new bungie social network to account for bad actors
+account for bad actors so in our new bungie sorry bungie block
+so in our new bungie sorry bungie block system we aimed for parity with platform
+system we aimed for parity with platform blocks but extended it to cross platform
+blocks but extended it to cross platform we made sure that bungie block
+we made sure that bungie block expands all platforms
+expands all platforms if you block a player all accounts that
+if you block a player all accounts that are associated with them are blocked
+are associated with them are blocked this ensures that if you block a
+this ensures that if you block a harasser they can't hop around to other
+harasser they can't hop around to other platforms and continue that abuse
+platforms and continue that abuse by building these systems we better
+by building these systems we better protect the player and give them more
+protect the player and give them more control over their social interactions
+control over their social interactions so here's a quick run through of the
+so here's a quick run through of the bungee box system
+bungee box system upon inspecting an offending player you
+upon inspecting an offending player you that you intend to block you're given
+that you intend to block you're given that option
+that option doing that to make it clear what this
+doing that to make it clear what this action does a prompt is shown bungie
+action does a prompt is shown bungie block prevents all forms of
+block prevents all forms of communication whether it be chat fire
+communication whether it be chat fire team invites friend requests and more
+team invites friend requests and more and once that's done there's a very
+and once that's done there's a very clear indication in the player details
+clear indication in the player details that they're blocked and this spans
+that they're blocked and this spans across all platforms that are linked to
+across all platforms that are linked to them
+them so when it comes to social systems being
+so when it comes to social systems being mixed with cross-play a lot of
+mixed with cross-play a lot of considerations need to be made
+considerations need to be made building cross-platform potentially
+building cross-platform potentially exposes players to new toxic players
+exposes players to new toxic players more players and platforms means many
+more players and platforms means many new avenues for toxicity and harassment
+new avenues for toxicity and harassment being conscious of existing social
+being conscious of existing social interactions existing in your game and
+interactions existing in your game and new ones coming with cross-platform will
+new ones coming with cross-platform will help you figure out areas where new
+help you figure out areas where new forms of harassment and abuse could come
+forms of harassment and abuse could come from
+from and additionally
+and additionally when these areas are identified
+when these areas are identified prioritizing the work to protect players
+prioritizing the work to protect players is very important for ensuring the best
+is very important for ensuring the best experience for all players for us it was
+experience for all players for us it was a requirement to land blocking to be
+a requirement to land blocking to be able to ship only then can you ensure
+able to ship only then can you ensure that you're properly protecting your
+that you're properly protecting your players
+players so next lesson
+so next lesson let's move on to some of the more
+let's move on to some of the more external factors that we faced when
+external factors that we faced when building crossplay so while you can
+building crossplay so while you can design and build the perfect
+design and build the perfect cross-platform system to be able to
+cross-platform system to be able to release you need to meet the
+release you need to meet the requirements of first party platforms
+destiny 2 ships on a lot of platforms and having previously shipped on all
+and having previously shipped on all these platforms we're pretty familiar
+these platforms we're pretty familiar with the certification requirements that
+with the certification requirements that are needed to be met
+are needed to be met so going into crossplay project we did
+so going into crossplay project we did our due diligence
+our due diligence many first parties have whole sections
+many first parties have whole sections in their certification requirements
+in their certification requirements dedicated to cross-platform play and
+dedicated to cross-platform play and their car their requirements to allow
+their car their requirements to allow for that
+for that however from our initial designs there
+however from our initial designs there were differences in what we wanted in
+were differences in what we wanted in the experience versus what first parties
+the experience versus what first parties would require
+would require some examples some platforms require
+some examples some platforms require players on their platforms to be
+players on their platforms to be primarily identified by their platform
+primarily identified by their platform names
+names or in terms of other requirements some
+or in terms of other requirements some platforms don't allow for the showing of
+platforms don't allow for the showing of logos or icons of other platforms while
+logos or icons of other platforms while you're playing on that platform
+you're playing on that platform these are just a few of the cert
+these are just a few of the cert requirements that needed to be worked
+requirements that needed to be worked through in order to ship
+through in order to ship so we had to work very closely with
+so we had to work very closely with first parties to align our requirements
+first parties to align our requirements with their requirements with our
+with their requirements with our aspirations
+aspirations one of the constituted constraints at
+one of the constituted constraints at the beginning of the project was that we
+the beginning of the project was that we respect first-party partner
+respect first-party partner relationships and work to obey the
+relationships and work to obey the spirit of requirements
+spirit of requirements it was a very long process that involved
+it was a very long process that involved a lot of meetings and engagements with
+a lot of meetings and engagements with first parties but we feel like all
+first parties but we feel like all parties came out happy
+parties came out happy it's important to call out here for that
+it's important to call out here for that first party partner relationships vary
+first party partner relationships vary drastically from studio to studio at
+drastically from studio to studio at bungie we're very fortunate to have very
+bungie we're very fortunate to have very close relationships with our first
+close relationships with our first parties and we were able to meet with
+parties and we were able to meet with them frequently to reach a mutual
+them frequently to reach a mutual understanding
+understanding so what steps did we take to accomplish
+so what steps did we take to accomplish that
+that first during pre-production we made sure
+first during pre-production we made sure to go through the requirements for each
+to go through the requirements for each platform and flag areas that differed
+platform and flag areas that differed from our designs this helped us identify
+from our designs this helped us identify areas that we needed to focus in on and
+areas that we needed to focus in on and figure out
+figure out being able to meet with first party
+being able to meet with first party partners helped us understand the sphere
+partners helped us understand the sphere of requirements and how we could make
+of requirements and how we could make that work with our intended experience
+that work with our intended experience was a long approval process but starting
+was a long approval process but starting the thinking and engagements early made
+the thinking and engagements early made sure we were set up for success
+so some key things for you to take away from our experience you need to be very
+from our experience you need to be very aware of first party requirements with
+aware of first party requirements with cross-platform play from the very
+cross-platform play from the very beginning of your production and account
+beginning of your production and account for them from in your designs it's very
+for them from in your designs it's very vital to figuring out a path forward to
+vital to figuring out a path forward to ship
+ship also executing towards your vision while
+also executing towards your vision while trying your best to respect their
+trying your best to respect their requirements allows you to deliver the
+requirements allows you to deliver the experiences that work for everyone
+experiences that work for everyone we wanted to ship something great with
+we wanted to ship something great with crossplay and on the platform partners
+crossplay and on the platform partners side they wanted to uphold their brand
+side they wanted to uphold their brand integrity
+integrity there was room between the needs of both
+there was room between the needs of both sides to be successful and from that
+sides to be successful and from that crossplay was made a reality
+so in terms of other external factors to consider when building crossplay is with
+consider when building crossplay is with third party solutions and figuring out
+third party solutions and figuring out how and when to use them to aid your
+how and when to use them to aid your development
+development like mentioned before standing up
+like mentioned before standing up cross-platform play means building a lot
+cross-platform play means building a lot of systems that were previously reliant
+of systems that were previously reliant on platform level apis and services
+on platform level apis and services when building these features a couple
+when building these features a couple specific use cases emerged that
+specific use cases emerged that complicated these systems but were still
+complicated these systems but were still necessary for example needing to ensure
+necessary for example needing to ensure a appropriate names were used for bungee
+a appropriate names were used for bungee names
+names or using a voice library that was
+or using a voice library that was portable across all platforms
+portable across all platforms handling these cases like building a new
+handling these cases like building a new language filter would have added scope
+language filter would have added scope to our project and being on such a tight
+to our project and being on such a tight timeline tough calls had to be made
+timeline tough calls had to be made certain functionalities required a lot
+certain functionalities required a lot of effort and would not fit within our
+of effort and would not fit within our timeline for example building a good
+timeline for example building a good language filter for bungee names and
+language filter for bungee names and user-generated content would be a
+user-generated content would be a massive undertaking destiny 2 supports
+massive undertaking destiny 2 supports 12 languages screening and filtering in
+12 languages screening and filtering in all these languages requires a lot of
+all these languages requires a lot of expertise and time
+expertise and time so for the specific areas of voice chat
+so for the specific areas of voice chat text chat and text content filtering and
+text chat and text content filtering and moderation we conducted make or buy
+moderation we conducted make or buy analyses on on what we needed to make
+analyses on on what we needed to make ourselves and what alternate solutions
+ourselves and what alternate solutions existed that were worth it for us to buy
+existed that were worth it for us to buy there's a lot of existing third-party
+there's a lot of existing third-party options that are immersed in these
+options that are immersed in these spaces and they build products that are
+spaces and they build products that are better than anything that we could
+better than anything that we could manage
+manage so in the case for these options
+so in the case for these options trying to investigate a third party
+trying to investigate a third party option offered a chance to save time and
+option offered a chance to save time and enable us to ship a better experience
+enable us to ship a better experience so let's first start looking at text and
+so let's first start looking at text and voice chat
+voice chat there's a lot of different options in
+there's a lot of different options in this space like playfab vibox epic games
+this space like playfab vibox epic games there's a lot of great players out there
+there's a lot of great players out there so some considerations that we made in
+so some considerations that we made in our decision was first whether a third
+our decision was first whether a third party solution had the libraries that
+party solution had the libraries that supported all the platforms that we ship
+supported all the platforms that we ship on
+on also another consideration was that the
+also another consideration was that the cost of relaying the data ourselves
+cost of relaying the data ourselves compared to using third party was
+compared to using third party was technically cheaper for handling that
+technically cheaper for handling that volume of data but what came what that
+volume of data but what came what that the cost also added up in terms of
+the cost also added up in terms of long-term upkeep and maintenance
+long-term upkeep and maintenance and lastly how easy was it to be able to
+and lastly how easy was it to be able to integrate this third-party solution what
+integrate this third-party solution what kind of documentation and support was
+kind of documentation and support was available for us to be able to integrate
+available for us to be able to integrate on the text filtering side there's a lot
+on the text filtering side there's a lot of different options that offer things
+of different options that offer things that different technologies like regex's
+that different technologies like regex's or flat lists some vendors even offer
+or flat lists some vendors even offer machine learning that are contextually
+machine learning that are contextually aware being able to distinguish the
+aware being able to distinguish the difference between someone saying you
+difference between someone saying you are an effing idiot
+are an effing idiot as bullying versus someone saying this
+as bullying versus someone saying this game is effing awesome as positive
+game is effing awesome as positive sentiment
+sentiment building that ourselves would have been
+building that ourselves would have been very difficult to train up that model
+very difficult to train up that model and would require a lot of language
+and would require a lot of language expertise in terms of staffing
+expertise in terms of staffing other things to include in this space
+other things to include in this space are also making sure that any filtering
+are also making sure that any filtering solution supported all the languages
+solution supported all the languages that we needed and also figuring out
+that we needed and also figuring out what moderation tools were available
+what moderation tools were available with each of these solutions for
+with each of these solutions for repeated offenders and how it compares
+repeated offenders and how it compares to the tools that we currently have and
+to the tools that we currently have and how we could use them to better support
+how we could use them to better support our player support teams
+our player support teams all these considerations were made to
+all these considerations were made to combat toxic social behavior
+combat toxic social behavior being highly aware of the needs of your
+being highly aware of the needs of your game and making sure a solution fully
+game and making sure a solution fully addresses those is key to making these
+addresses those is key to making these decisions
+decisions if something fits right it's a great
+if something fits right it's a great candidate to use to save time and from
+candidate to use to save time and from having to build from scratch
+having to build from scratch so what did we end up doing
+so what did we end up doing for us
+for us we ended up integrating a third-party
+we ended up integrating a third-party voice chat solution to save on the
+voice chat solution to save on the maintenance overhead if we had built it
+maintenance overhead if we had built it ourselves we found an external solution
+ourselves we found an external solution to handle voice
+to handle voice this allowed us to direct our attention
+this allowed us to direct our attention to landing other parts of the crossplay
+to landing other parts of the crossplay experience
+experience for text filtering and moderation the
+for text filtering and moderation the massive amount of work it would have
+massive amount of work it would have taken to build and support the system
+taken to build and support the system for so many languages also led us to
+for so many languages also led us to integrate a third party
+integrate a third party it's important to call out in this case
+it's important to call out in this case that in our experience it did take a
+that in our experience it did take a significant amount of time to integrate
+significant amount of time to integrate both these solutions
+both these solutions choosing to buy a solution that requires
+choosing to buy a solution that requires engineering work and to get it working
+engineering work and to get it working within your game and the benefits are
+within your game and the benefits are not instant
+not instant additionally when you when you go with a
+additionally when you when you go with a third party you're effectively tying
+third party you're effectively tying your game to another product the
+your game to another product the releases and updates to that are
+releases and updates to that are dependent on someone else and you don't
+dependent on someone else and you don't necessarily have the most control over
+necessarily have the most control over that
+that and in terms of the last maker by
+and in terms of the last maker by analysis for text chat while there are a
+analysis for text chat while there are a lot of solutions out there that
+lot of solutions out there that accomplish what we needed we felt that
+accomplish what we needed we felt that being able to control our own text chat
+being able to control our own text chat platform from which we could build
+platform from which we could build deeper integrations offered a lot of
+deeper integrations offered a lot of potential so for that case we ended up
+potential so for that case we ended up building our own text chat
+building our own text chat what we ended up building ourselves
+what we ended up building ourselves versus buying was unique to our game and
+versus buying was unique to our game and needs
+needs when faced with decisions like this it's
+when faced with decisions like this it's important to consider what features are
+important to consider what features are fundamental to the experience that
+fundamental to the experience that you're building
+you're building identifying what was within scope to
+identifying what was within scope to land made it clear where we should be
+land made it clear where we should be exploring third party partnerships
+exploring third party partnerships whether your team actually needs to be
+whether your team actually needs to be building certain features
+building certain features so with so many pre-existing solutions
+so with so many pre-existing solutions out there knowing what needs to be built
+out there knowing what needs to be built in-house is important for determining
+in-house is important for determining scope
+scope figuring out if you're building a
+figuring out if you're building a certain system for things like
+certain system for things like maintaining a competitive advantage will
+maintaining a competitive advantage will help adjust your priorities
+help adjust your priorities and lastly
+and lastly one important note is that integrating a
+one important note is that integrating a third-party solution is not a silver
+third-party solution is not a silver bullet
+bullet adding any kind of new tech in always
+adding any kind of new tech in always takes time and can't be done instantly
+takes time and can't be done instantly that needs to be considered with your
+that needs to be considered with your planning and timelines
+planning and timelines in our case when it came to integrating
+in our case when it came to integrating third parties we did end up being
+third parties we did end up being overscoped and land needs these
+overscoped and land needs these integrations wouldn't fit within our
+integrations wouldn't fit within our timeline so we ended up pushing these
+timeline so we ended up pushing these integrations into
+integrations into slipping them into a later release
+slipping them into a later release but from a longer term outlook one of
+but from a longer term outlook one of the things that we did save on was the
+the things that we did save on was the maintenance and upkeep if we had built
+maintenance and upkeep if we had built these systems ourselves
+these systems ourselves it's the classic iron triangle problem
+it's the classic iron triangle problem of production scope versus time versus
+of production scope versus time versus cost
+cost looking into a third party option may
+looking into a third party option may help you find solutions when faced with
+help you find solutions when faced with trying to find a balance
+trying to find a balance and now the last lesson that we learned
+and now the last lesson that we learned from building cross play and in this
+from building cross play and in this case it comes from how we went about
+case it comes from how we went about releasing it taking advantage of destiny
+releasing it taking advantage of destiny 2 as a live service game
+2 as a live service game cross play was built for an existing
+cross play was built for an existing game so this release needed to not
+game so this release needed to not disrupt our existing players
+disrupt our existing players but there's a lot of moving parts that
+but there's a lot of moving parts that were coming with this project and it was
+were coming with this project and it was a massive thing to bring to this game we
+a massive thing to bring to this game we had created the most amount of new
+had created the most amount of new services since the original destiny 2
+services since the original destiny 2 and we had broken a lot of bones like
+and we had broken a lot of bones like the things with networking to make it
+the things with networking to make it possible for platforms to play with each
+possible for platforms to play with each other
+other this was all under a tight timeline to
+this was all under a tight timeline to deliver such a huge experience
+deliver such a huge experience there were big concerns about how it
+there were big concerns about how it would all come together if we were using
+would all come together if we were using a single release and that posed a huge
+a single release and that posed a huge risk
+risk if we chose to release in a single
+if we chose to release in a single season we'd only have one try to get it
+season we'd only have one try to get it right
+right so what did we do
+so what did we do we ended up spreading out the release of
+we ended up spreading out the release of crossplay and its many systems over
+crossplay and its many systems over multiple releases and seasons
+multiple releases and seasons incrementally adding more functionality
+incrementally adding more functionality as we went along
+as we went along since there were many big changes coming
+since there were many big changes coming in we wanted to give more time to get
+in we wanted to give more time to get them in and let them bake and stabilize
+them in and let them bake and stabilize after which they could be tested at
+after which they could be tested at scale with a live population
+scale with a live population we embraced this method of incrementally
+we embraced this method of incrementally building and releasing crossplay
+building and releasing crossplay we scaled from a small 10-person
+we scaled from a small 10-person internal play test from making sure
+internal play test from making sure things weren't crashing to later a
+things weren't crashing to later a studio-wide play test of about 500
+studio-wide play test of about 500 people
+people doing this at an increased scale allowed
+doing this at an increased scale allowed us to test all our tech changes across
+us to test all our tech changes across all the various platforms and all
+all the various platforms and all content
+content when it came to releasing in the live
+when it came to releasing in the live game we used earlier seasons to
+game we used earlier seasons to introduce big tech pieces we front
+introduce big tech pieces we front loaded the work to get big bone breaking
+loaded the work to get big bone breaking changes like the new networking changes
+changes like the new networking changes in early
+in early this allowed us to get these features
+this allowed us to get these features checked into builds very early in the
+checked into builds very early in the development cycle so we had plenty of
+development cycle so we had plenty of time to bake to test and stabilize
+time to bake to test and stabilize having these big changes out of the way
+having these big changes out of the way early and stabilized helped us give us
+early and stabilized helped us give us more confidence to tackle the other
+more confidence to tackle the other systems for cross-play
+we also used an earlier season to introduce new ui and some some of the
+introduce new ui and some some of the systems being built for cosplay to start
+systems being built for cosplay to start getting feedback and live testing
+getting feedback and live testing in the season ahead of our launch we
+in the season ahead of our launch we created an internal alpha for bungie
+created an internal alpha for bungie employees to start using crossplay
+employees to start using crossplay in the live retail game employees were
+in the live retail game employees were given access to additional features like
+given access to additional features like the new roster ui the bungie friends
+the new roster ui the bungie friends list and more
+list and more employees were actually able to
+employees were actually able to cross-play with the public for months
+cross-play with the public for months ahead of the actual release
+ahead of the actual release this helped us get out some initial
+this helped us get out some initial experience bugs and fix them before we
+experience bugs and fix them before we had players trying out crossplay and it
+had players trying out crossplay and it also gave the team a better sense of how
+also gave the team a better sense of how crossplay would feel
+crossplay would feel also to really stress test our new
+also to really stress test our new networking and matchmaking tech we
+networking and matchmaking tech we conducted a live a limited live beta we
+conducted a live a limited live beta we enabled it in a strike playlist and all
+enabled it in a strike playlist and all players in the game were able to
+players in the game were able to participate this and try out cosplay
+participate this and try out cosplay the high amount of participation in this
+the high amount of participation in this beta helped us test out and exercise
+beta helped us test out and exercise these new code paths that we were
+these new code paths that we were creating
+creating between the internal alpha and public
+between the internal alpha and public beta we were able to gain more
+beta we were able to gain more confidence in what we were building
+confidence in what we were building committing to earlier releases and
+committing to earlier releases and landing the components necessary
+landing the components necessary affirmed our timelines and helped us
+affirmed our timelines and helped us finish building crossplace strong also
+finish building crossplace strong also as an added plus this helped build some
+as an added plus this helped build some buzz and excitement around cosplay
+buzz and excitement around cosplay and while we saw the internal alpha and
+and while we saw the internal alpha and public beta as as net positives it
+public beta as as net positives it wasn't without some bloopers it turns
+wasn't without some bloopers it turns out having parts of crossplay available
+out having parts of crossplay available in your game earlier than the release
+in your game earlier than the release made for some funny occasions where some
+made for some funny occasions where some players stumbled into cross play earlier
+players stumbled into cross play earlier than intended
+than intended and so but like the thing to realize is
+and so but like the thing to realize is that when you're adding such large
+that when you're adding such large features to your live game
+features to your live game that sometimes unexpected things happen
+that sometimes unexpected things happen overall we saw these as funny
+overall we saw these as funny occurrences that exposed some bugs and
+occurrences that exposed some bugs and these were just accidents that continued
+these were just accidents that continued to get cross play on the minds of
+to get cross play on the minds of players and build excitement
+players and build excitement using the live game to ship parts of
+using the live game to ship parts of crossplay early really helped us ensure
+crossplay early really helped us ensure a smooth launch
+a smooth launch by front loading the big bone breaking
+by front loading the big bone breaking changes during your development you can
+changes during your development you can introduce high risk changes to your game
+introduce high risk changes to your game earlier and give them time to stabilize
+earlier and give them time to stabilize having a scaled down version available
+having a scaled down version available in earlier releases helps you build
+in earlier releases helps you build confidence in what you are building and
+confidence in what you are building and offers an avenue for early feedback and
+offers an avenue for early feedback and improve the full release version
+improve the full release version and lastly giving internal employees
+and lastly giving internal employees early access to cross play and with real
+early access to cross play and with real players is a useful mechanism
+players is a useful mechanism it enables you to test out these new
+it enables you to test out these new systems in the live game that might not
+systems in the live game that might not be publicly ready without the risk of
+be publicly ready without the risk of exposing your players to a lower quality
+exposing your players to a lower quality experience
+and with that those were the seven lessons that we learned from building
+lessons that we learned from building cross play that was a lot that we
+cross play that was a lot that we covered because it was a very long
+covered because it was a very long journey for the team
+journey for the team so if you're looking to build your own
+so if you're looking to build your own cross-platform experience for your game
+cross-platform experience for your game here's the key takeaways that i think
+here's the key takeaways that i think are most valuable to you and your team
+are most valuable to you and your team first
+first making cross-play can mean building many
+making cross-play can mean building many new systems and services especially if
+new systems and services especially if you rely if you're relying on platform
+you rely if you're relying on platform apis or using your own engine that might
+apis or using your own engine that might not support cross platform
+not support cross platform next while many of these functionalities
+next while many of these functionalities were handled internally finding
+were handled internally finding opportunities to use third party
+opportunities to use third party solutions helps you scope down while
+solutions helps you scope down while executing on a tight timeline
+executing on a tight timeline next first party requirements affect the
+next first party requirements affect the design of the experience and from the
+design of the experience and from the very start of your planning you should
+very start of your planning you should be taking these into account
+cross-platform play with established behaviors has cross-platform play in a
+behaviors has cross-platform play in a game with established behaviors has very
+game with established behaviors has very deep implications on how players
+deep implications on how players interact both gameplay-wise and socially
+interact both gameplay-wise and socially and sometimes that means exposing
+and sometimes that means exposing players to potentially new toxic players
+players to potentially new toxic players and behaviors
+and behaviors that is a risk that you take on and you
+that is a risk that you take on and you need to ensure that you are properly
+need to ensure that you are properly protecting your players
+it's good to front load big bone breaking changes to deep engine code so
+breaking changes to deep engine code so that you have plenty of time to bake and
+that you have plenty of time to bake and stabilize risky features
+stabilize risky features and if possible
+and if possible using multiple release vehicles to
+using multiple release vehicles to gradually add more functionality across
+gradually add more functionality across play allows you to scale out testing
+play allows you to scale out testing with a live population in general helps
+with a live population in general helps build confidence in your project coming
+build confidence in your project coming together
+together and that's what we learned from building
+and that's what we learned from building crossplay thank you for listening
+crossplay thank you for listening hopefully you were able to take some of
+hopefully you were able to take some of these lessons and apply them to your
+these lessons and apply them to your game as a note of thanks this was only
+game as a note of thanks this was only made this talk was only made possible
+made this talk was only made possible because so many people worked so hard to
+because so many people worked so hard to make cross play happen special thanks
+make cross play happen special thanks goes out to all the bungos out there who
+goes out to all the bungos out there who worked on crossplay to make and made
+worked on crossplay to make and made such an amazing experience for players
+such an amazing experience for players also i'd like to thank veronica
+also i'd like to thank veronica peshteriano for being an amazing advisor
+peshteriano for being an amazing advisor for guiding me through the talk process
+for guiding me through the talk process and also thanks to caitlin you who
+and also thanks to caitlin you who helped shape a lot of the format and
+helped shape a lot of the format and content of this talk and lastly thank
+content of this talk and lastly thank you to the cas and event support staff
+you to the cas and event support staff for making sure gdc runs smoothly
+for making sure gdc runs smoothly there's a couple more talks given by
+there's a couple more talks given by some other bungee folks if you're
+some other bungee folks if you're interested in attending they're
+interested in attending they're happening tomorrow
+happening tomorrow and also we're hiring if you're
+and also we're hiring if you're interested in working at bungie we have
+interested in working at bungie we have many openings across disciplines check
+many openings across disciplines check out our careers page and follow us on
+out our careers page and follow us on twitter at bungie careers
+twitter at bungie careers there's a qr code
+there's a qr code and thank you again i've been john chu
+and thank you again i've been john chu and now for some q a
+hi john hi uh first of all a great great panel absolutely loved it and uh wanted
+panel absolutely loved it and uh wanted to congratulate you all uh my wife and i
+to congratulate you all uh my wife and i are returning players the uh launch
+are returning players the uh launch across play i mean incredibly successful
+across play i mean incredibly successful it's wonderful
+it's wonderful glad to hear that yeah totally i had a
+glad to hear that yeah totally i had a question for you so um and also thank
+question for you so um and also thank you uh our logo samurai was up there
+you uh our logo samurai was up there definitely appreciate that
+definitely appreciate that so i can uh understand that
+so i can uh understand that neurosymbolic ai to intervene and
+neurosymbolic ai to intervene and redirect users and situations of
+redirect users and situations of toxicity was likely out of scope in this
+toxicity was likely out of scope in this situation and you know you all were
+situation and you know you all were moving very quickly on this project yeah
+moving very quickly on this project yeah what did you all end up going with in
+what did you all end up going with in terms of a third-party solution to
+terms of a third-party solution to combat toxicity um so what we ended up
+combat toxicity um so what we ended up going with was unique to our game in our
+going with was unique to our game in our case and um
+case and um and so it's unique because based on
+and so it's unique because based on business discussions and also some of
+business discussions and also some of the design considerations in terms of
+the design considerations in terms of filtering as i mentioned before we went
+filtering as i mentioned before we went with also a machine learning one but was
+with also a machine learning one but was a little bit more directly applicable to
+a little bit more directly applicable to the user generated content we can talk a
+the user generated content we can talk a little bit later in terms of like the
+little bit later in terms of like the actual vendor that we used and because
+actual vendor that we used and because like part of it was like i wasn't part
+like part of it was like i wasn't part of those business discussions but also
+of those business discussions but also we can we can just talk about that yeah
+we can we can just talk about that yeah all good big fan thank you thank you
+hi um sorry oh yeah but one second here um question from uh online chat uh was
+um question from uh online chat uh was there any automated testing to validate
+there any automated testing to validate cross-play features if so what did that
+cross-play features if so what did that look like um so yeah we so part of it
+look like um so yeah we so part of it was there was some automated testing in
+was there was some automated testing in terms of some of the tools that we were
+terms of some of the tools that we were using to help
+using to help create like connection oh so actually
+create like connection oh so actually the question was was there any automated
+the question was was there any automated testing sorry i forgot to repeat the
+testing sorry i forgot to repeat the question um so the answer is there was
+question um so the answer is there was some automated testing that we did in
+some automated testing that we did in this case um there were some tools that
+this case um there were some tools that were created to help create
+were created to help create cross-platform cross-platform friends
+cross-platform cross-platform friends and see your friends lists and also make
+and see your friends lists and also make sure you test that out also things like
+sure you test that out also things like with cross-platform clans and also
+with cross-platform clans and also automating the changing of bungee names
+automating the changing of bungee names a lot of that was automated to help test
+a lot of that was automated to help test out a lot of those systems so that's
+out a lot of those systems so that's most of what we did for automation there
+hi there uh hi john thanks for the talk it was really awesome uh i was curious
+it was really awesome uh i was curious because i
+because i i know it's a problem that i kind of run
+i know it's a problem that i kind of run into previously but with the naming
+into previously but with the naming convention in regards to how um you had
+convention in regards to how um you had to make the bungie username so that
+to make the bungie username so that people were identified across platforms
+people were identified across platforms did you ever run into complications when
+did you ever run into complications when someone decided to change their username
+someone decided to change their username especially the initial one that was kind
+especially the initial one that was kind of taken into the bungee name yeah
+of taken into the bungee name yeah that's a great question so the question
+that's a great question so the question was did we run into any complications of
+was did we run into any complications of changing names and
+changing names and the answer is the short answer is yes
+the answer is the short answer is yes there was a lot of interesting
+there was a lot of interesting complications with that and that's where
+complications with that and that's where it were it became especially important
+it were it became especially important to use that third-party content
+to use that third-party content filtering solution to be able to ensure
+filtering solution to be able to ensure that we were properly filtering for the
+that we were properly filtering for the right names and in the case that we
+right names and in the case that we ended up having to release the feature
+ended up having to release the feature for bungie name changes a little bit
+for bungie name changes a little bit later from our release so we had a
+later from our release so we had a couple months in between and we actually
+couple months in between and we actually just recently enabled that um
+just recently enabled that um because we wanted to get the system
+because we wanted to get the system right so that when players were changing
+right so that when players were changing their names we were allowing for the
+their names we were allowing for the right way to do that so like we were
+right way to do that so like we were properly filtering for them that we had
+properly filtering for them that we had the right mechanisms to do that to be
+the right mechanisms to do that to be able to track whether or not we they
+able to track whether or not we they could and how how we went about doing
+could and how how we went about doing that so there were complications and yes
+that so there were complications and yes we relied on that thank you
+hi john great a great talk um i had a question about your uh your kind of two
+question about your uh your kind of two your two player poles that you you built
+your two player poles that you you built for for kind of your pc your and your
+for for kind of your pc your and your console players did you ever consider
+console players did you ever consider uh making those a little bit more
+uh making those a little bit more dynamic for players that you identified
+dynamic for players that you identified as trustworthy or
+as trustworthy or or at the offset bad actors yeah so the
+or at the offset bad actors yeah so the question is did we make any
+question is did we make any considerations about making the polls a
+considerations about making the polls a little bit more dynamic to account for
+little bit more dynamic to account for bad actors
+bad actors um we're good actors or good actors yeah
+um we're good actors or good actors yeah two
+two so
+so the way we built the matchmaking pool
+the way we built the matchmaking pool system was actually we built it in a way
+system was actually we built it in a way that was robust enough to allow for
+that was robust enough to allow for arbitrary pool creation did like so we
+arbitrary pool creation did like so we can make those changes in the future and
+can make those changes in the future and while we we limited it to but based on
+while we we limited it to but based on platform that the the player was on we
+platform that the the player was on we allow it so that any activity going
+allow it so that any activity going forward you can customize how those
+forward you can customize how those pools were made so in those cases like
+pools were made so in those cases like if in the future you have some activity
+if in the future you have some activity in which it might give just
+in which it might give just playstation players an advantage somehow
+playstation players an advantage somehow or xbox players an advantage in some way
+or xbox players an advantage in some way we we would be able to control for that
+we we would be able to control for that in terms of how we split up the pools
+in terms of how we split up the pools for that specific activity we're taking
+for that specific activity we're taking it so we wanted to we built it in a way
+it so we wanted to we built it in a way to allow keep the door open for the
+to allow keep the door open for the future to be able to do that as well
+future to be able to do that as well cool thank you
+cool thank you cool so thank you very much for the talk
+cool so thank you very much for the talk john uh quick question was it worth it
+john uh quick question was it worth it because it took about a year of effort
+because it took about a year of effort 50 engineers and assorted people huge
+50 engineers and assorted people huge amount of third-party effort yeah i i'd
+amount of third-party effort yeah i i'd have to say i think it's worth it
+have to say i think it's worth it especially oh sorry the question was
+especially oh sorry the question was what whether building this was worth it
+what whether building this was worth it so
+so i would say yes i think this was
+i would say yes i think this was something that our players have been
+something that our players have been wanting for a very long time and we see
+wanting for a very long time and we see a lot of positive sentiment to it i
+a lot of positive sentiment to it i think there's from a business
+think there's from a business perspective you're not seeing like
+perspective you're not seeing like direct compensation in terms of how much
+direct compensation in terms of how much this this adds to that but like this is
+this this adds to that but like this is just and this just adds to the
+just and this just adds to the experience because it like i just was
+experience because it like i just was recently talking to someone who said it
+recently talking to someone who said it felt like the game had tripled in
+felt like the game had tripled in population once this was enabled and
+population once this was enabled and that is something really magical to be
+that is something really magical to be able to do with this in this experience
+able to do with this in this experience and especially within
+and especially within within the industry you're seeing a lot
+within the industry you're seeing a lot of like games and like a lot of
+of like games and like a lot of platforms being able to have like those
+platforms being able to have like those those lines blurring i think it's very
+those lines blurring i think it's very important to be able to embrace that and
+important to be able to embrace that and allow for anyone to be able to play with
+allow for anyone to be able to play with each other
+each other cool thank you
+firstly firstly great talk um secondly can you scroll back to the previous
+can you scroll back to the previous slide just
+slide just with there we go he scrolled past that
+with there we go he scrolled past that too fast and now my question so like
+too fast and now my question so like i'm sorry um they're they're i mean
+i'm sorry um they're they're i mean technical technical
+technical technical technical decisions influence design
+technical decisions influence design decisions and so on and so forth so my
+decisions and so on and so forth so my question is like has there been a any
+question is like has there been a any instance in which now like cross play
+instance in which now like cross play going forward has influenced like say
+going forward has influenced like say design of levels or gameplay systems
+design of levels or gameplay systems like has it
+like has it changed anything in a way at least from
+changed anything in a way at least from a design and implementation standpoint
+a design and implementation standpoint so i can't speak directly to that
+so i can't speak directly to that because i'm not specifically a designer
+because i'm not specifically a designer the question is how has like the release
+the question is how has like the release of cosplay and how we went about it like
+of cosplay and how we went about it like changed the way we designed it but like
+changed the way we designed it but like one of the things that i know that we're
+one of the things that i know that we're doing is that we're trying to embrace
+doing is that we're trying to embrace the incremental building of certain
+the incremental building of certain features a lot more crossplay was
+features a lot more crossplay was probably one of the biggest things like
+probably one of the biggest things like outside of crosstalk that we baited in a
+outside of crosstalk that we baited in a live game for at bungie and so for that
+live game for at bungie and so for that um yes it's trying to change the way
+um yes it's trying to change the way that we're releasing it i don't i'm not
+that we're releasing it i don't i'm not part of conversations in terms of how
+part of conversations in terms of how directly it applies to design but that's
+directly it applies to design but that's that's part of it as well okay thank you
+that's part of it as well okay thank you thank you so much i think we're out of
+thank you so much i think we're out of time if there's any more questions i can
+time if there's any more questions i can hang out thank you
+[Music] you

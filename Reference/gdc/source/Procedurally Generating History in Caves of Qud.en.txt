@@ -1,0 +1,803 @@
+[Music] all right hello my name is Jason crimp
+all right hello my name is Jason crimp lot I'm the co-founder of a small indie
+lot I'm the co-founder of a small indie studio called freehold games and we make
+studio called freehold games and we make a game called caves of kud which is a
+a game called caves of kud which is a hybrid open-world RPG science fantasy
+hybrid open-world RPG science fantasy roguelike and we do a lot of
+roguelike and we do a lot of experimentation with procedural
+experimentation with procedural generation so today I'm going to tell
+generation so today I'm going to tell you about a recent system we designed
+you about a recent system we designed for procedurally generating history for
+for procedurally generating history for our game world so if you could first
+our game world so if you could first imagine with me if you will that you are
+imagine with me if you will that you are a lore seeker and a wild and fractured
+a lore seeker and a wild and fractured world you've just come to a strange land
+world you've just come to a strange land called cut where poison jungles strangle
+called cut where poison jungles strangle rusted archways and chrome steeples to
+rusted archways and chrome steeples to the earth your first stop is this Oasis
+the earth your first stop is this Oasis village called Joe pub and as you walk
+village called Joe pub and as you walk arrived in Joppa you notice that in the
+arrived in Joppa you notice that in the northeast corner there's this vine swath
+northeast corner there's this vine swath stone shrine so you move up to approach
+stone shrine so you move up to approach it and as you examine it you see that
+it and as you examine it you see that it's actually depicting a historical
+it's actually depicting a historical event from the region so with the shrine
+event from the region so with the shrine to amass the second mirror born while
+to amass the second mirror born while leading a small army in the forum
+leading a small army in the forum province a l'p who messed the second
+province a l'p who messed the second assassinated the Sultan of cutover an
+assassinated the Sultan of cutover an ordinance prohibiting the practice of
+ordinance prohibiting the practice of staining glass she won and ascended to
+staining glass she won and ascended to the crown she was 6 years old
+so this is an example the procedural history that was generated for one game
+history that was generated for one game so I'm gonna tell you about how we got
+so I'm gonna tell you about how we got here and here's the path we're gonna
+here and here's the path we're gonna take to do it I'm going to just talk
+take to do it I'm going to just talk about procedural izing history and genu
+about procedural izing history and genu general and give you some examples I'll
+general and give you some examples I'll set the context by giving you a little
+set the context by giving you a little more information about caves of cod and
+more information about caves of cod and some of our constraints and aesthetics
+some of our constraints and aesthetics that we followed to arrive at the design
+that we followed to arrive at the design we did I'll show you some more examples
+we did I'll show you some more examples of our generated histories and talk
+of our generated histories and talk about our model I'll give you a quick
+about our model I'll give you a quick crash course on replacement grammars and
+crash course on replacement grammars and that'll segue into a discussion of how
+that'll segue into a discussion of how we do our text generation I'll talk
+we do our text generation I'll talk about the causality and narrative
+about the causality and narrative coherence for histories and then finally
+coherence for histories and then finally I'll just give you some resources and
+I'll just give you some resources and takeaways for generating histories on
+takeaways for generating histories on your own your own systems okay so it's
+your own your own systems okay so it's kind of corny to start with the
+kind of corny to start with the dictionary definition in a talk but when
+dictionary definition in a talk but when you're when we're talking about
+you're when we're talking about something as abstract as history I think
+something as abstract as history I think it's useful to get on the same page so
+it's useful to get on the same page so the definition that I best liked was
+the definition that I best liked was from dictionary calm a continuous
+from dictionary calm a continuous systematic narrative of past events
+systematic narrative of past events relating to a particular people country
+relating to a particular people country period person etc so when we started to
+period person etc so when we started to think about how to procedural i's
+think about how to procedural i's history when we started to really like
+history when we started to really like study history and think about it deeply
+study history and think about it deeply we came upon this model that i'm going
+we came upon this model that i'm going to talk about now so this is a subfield
+to talk about now so this is a subfield of procedural generation that i think is
+of procedural generation that i think is in its infancy there's no real canonical
+in its infancy there's no real canonical formulation for for procedural history
+formulation for for procedural history system so this is what we came up with
+system so this is what we came up with and the patterns I've sort of seen
+and the patterns I've sort of seen repeated in some of the other games that
+repeated in some of the other games that are generating history a couple of
+are generating history a couple of including the examples I'll talk about
+including the examples I'll talk about so these type of systems they tend to
+so these type of systems they tend to model historical entities these are
+model historical entities these are things like people places items
+things like people places items sometimes like artifacts they model
+sometimes like artifacts they model historical events which which change the
+historical events which which change the property of these entities these events
+property of these entities these events that sort of act on these entities the
+that sort of act on these entities the the events are related together V or
+the events are related together V or some sort of underlying logic and then
+some sort of underlying logic and then they're the events are exposed to
+they're the events are exposed to players often via text generation
+players often via text generation so probably the like canonical example
+so probably the like canonical example of procedural history generation is
+of procedural history generation is Turin and Zach Adams
+Turin and Zach Adams or settlement management game or
+or settlement management game or fortress so it's it's really like the
+fortress so it's it's really like the most granular simulation it's simulation
+most granular simulation it's simulation happening at the levels like individual
+happening at the levels like individual dwarves and like deep physical
+dwarves and like deep physical simulations and they're sort of
+simulations and they're sort of combining to give this emergent history
+combining to give this emergent history so there's door for trans legends mode
+so there's door for trans legends mode where you can just read like you could
+where you can just read like you could generate a world and just read the the
+generate a world and just read the the annals of the world this is just kind of
+annals of the world this is just kind of record of the history there system is
+record of the history there system is interesting because events are chosen
+interesting because events are chosen from a larger pool of basically the
+from a larger pool of basically the events are these newsworthy events that
+events are these newsworthy events that are chosen from a larger pool of events
+are chosen from a larger pool of events so you know a dwarf is going about his
+so you know a dwarf is going about his life the simulations running and when
+life the simulations running and when the system Flags something is newsworthy
+the system Flags something is newsworthy it gets like logged in the history
+it gets like logged in the history Chronicle and that's what you end up
+Chronicle and that's what you end up seeing in the the door fortress legends
+seeing in the the door fortress legends mode when you're reading through the
+mode when you're reading through the annals interestingly this is kind of how
+annals interestingly this is kind of how real life works right like we have some
+real life works right like we have some you know we're going about our everyday
+you know we're going about our everyday lives and some what is marking some
+lives and some what is marking some subset of the events that happened to us
+subset of the events that happened to us as newsworthy and recording those and
+as newsworthy and recording those and that's what becomes history and the
+that's what becomes history and the events are related via the underlying
+events are related via the underlying logic of the simulation so if a dwarf
+logic of the simulation so if a dwarf goes like the first event in this list
+goes like the first event in this list here is that this dwarf becomes queen of
+here is that this dwarf becomes queen of the unseen line so if this dwarf becomes
+the unseen line so if this dwarf becomes queen of the unseen minds and then you
+queen of the unseen minds and then you know attracts some other dwarves to her
+know attracts some other dwarves to her location and one of them betrays her and
+location and one of them betrays her and goes and founds another city and that
+goes and founds another city and that city attacks the unseen minds and that
+city attacks the unseen minds and that attack that battle is flagged as a
+attack that battle is flagged as a newsworthy event and gets logged into
+newsworthy event and gets logged into history the way that those two events
+history the way that those two events are related the founding of the unseen
+are related the founding of the unseen minds and then that battle is through
+minds and then that battle is through those interstitial events that are not
+those interstitial events that are not recorded as history but are still part
+recorded as history but are still part of the simulation so this is a very
+of the simulation so this is a very granular low level simulation so on the
+granular low level simulation so on the other end of the spectrum I want to talk
+other end of the spectrum I want to talk a little bit of epitaph epitaph is an
+a little bit of epitaph epitaph is an idol game where you're sort of directing
+idol game where you're sort of directing the course of history for a civilization
+the course of history for a civilization it was developed by max Kaminsky who's a
+it was developed by max Kaminsky who's a game researcher at the expressive
+game researcher at the expressive intelligence studio at UC Santa Cruz and
+intelligence studio at UC Santa Cruz and where's or fortress is this very
+where's or fortress is this very granular low level simulation epitaph is
+granular low level simulation epitaph is a very coarse-grained simulation
+a very coarse-grained simulation not simulating on the level of
+not simulating on the level of individual people it's simulating
+individual people it's simulating civilizations and historic events an
+civilizations and historic events an epitaph for civilization wives events
+epitaph for civilization wives events like your civilization requires a new
+like your civilization requires a new technology or has a famine that kills a
+technology or has a famine that kills a lot of people epitaph is interesting
+lot of people epitaph is interesting because the player actually is in the
+because the player actually is in the driver seat they're directing the course
+driver seat they're directing the course of history what you're doing is you're
+of history what you're doing is you're choosing basically like the tech tree of
+choosing basically like the tech tree of the civilization you're choosing to give
+the civilization you're choosing to give the civilization a certain technology
+the civilization a certain technology and that influences the course of
+and that influences the course of history and the way the events are
+history and the way the events are related in epitaph is that they when an
+related in epitaph is that they when an event happens it influences the
+event happens it influences the likelihood of future events so there's
+likelihood of future events so there's sort of a weeded table of events that
+sort of a weeded table of events that can happen that gets updated every time
+can happen that gets updated every time an event occurs okay so before I jump
+an event occurs okay so before I jump into caves of code I just want to talk a
+into caves of code I just want to talk a little bit about the challenges of
+little bit about the challenges of procedurally generating history that we
+procedurally generating history that we came up with you know came came upon as
+came up with you know came came upon as we started to do this so probably first
+we started to do this so probably first and foremost is just history's immense
+and foremost is just history's immense complexity so history is this dense
+complexity so history is this dense tangled network of people places and
+tangled network of people places and things the relational mechanics are
+things the relational mechanics are often quite obscure it's hard to draw
+often quite obscure it's hard to draw clear causality between one event and
+clear causality between one event and another often and so that's something we
+another often and so that's something we needed to reckon with as we started to
+needed to reckon with as we started to try to systemize history history
+try to systemize history history systematize history there's also this
+systematize history there's also this idea that history has a rhetorical
+idea that history has a rhetorical function so I think unfortunately in
+function so I think unfortunately in games we tend to treat history fairly
+games we tend to treat history fairly reductively we think of it as this sort
+reductively we think of it as this sort of objective monolith of you know this
+of objective monolith of you know this model of the objective events that are
+model of the objective events that are just recorded and that we can rely on
+just recorded and that we can rely on and are trustworthy when really all
+and are trustworthy when really all historical accounts are written by a
+historical accounts are written by a person you know at a period in time that
+person you know at a period in time that has some biased perspective there's
+has some biased perspective there's always a sort of filtering through a
+always a sort of filtering through a particular lens and so capturing that
+particular lens and so capturing that inherit bias to the to the enterprise of
+inherit bias to the to the enterprise of history at all is something that we
+history at all is something that we wanted to think about and then there was
+wanted to think about and then there was this idea that you know we were
+this idea that you know we were integrating this procedural history
+integrating this procedural history system with a game that already was had
+system with a game that already was had a lot of content and it was well fleshed
+a lot of content and it was well fleshed down so we needed to think about how we
+down so we needed to think about how we wanted to integrate it with our other
+wanted to integrate it with our other systems
+systems how it would contribute to the overall
+how it would contribute to the overall vision of the game okay so caves of cod
+vision of the game okay so caves of cod so caves of cut is an open world science
+so caves of cut is an open world science fantasy roguelike and RPG it's it since
+fantasy roguelike and RPG it's it since heavily inspired by an old pen-and-paper
+heavily inspired by an old pen-and-paper RPG called gamma world which was a
+RPG called gamma world which was a derivative of Dungeons and Dragons where
+derivative of Dungeons and Dragons where nuclear apocalypse had sort of destroyed
+nuclear apocalypse had sort of destroyed the world and and nuclear radiation had
+the world and and nuclear radiation had mutated and uplifted animals and plants
+mutated and uplifted animals and plants the human level sentience human level
+the human level sentience human level intelligence there is a handcrafted
+intelligence there is a handcrafted narrative like the type you might see in
+narrative like the type you might see in a Bethesda open-world RPG but we've
+a Bethesda open-world RPG but we've weaved it around these simulative
+weaved it around these simulative systems so there are physical systems
+systems so there are physical systems every wall has a melting point you could
+every wall has a melting point you could dig a tunnel anywhere in the world there
+dig a tunnel anywhere in the world there are social systems there are these 60
+are social systems there are these 60 factions that you can gain favor with
+factions that you can gain favor with and navigate their relationships and
+and navigate their relationships and then most recently is this historical
+then most recently is this historical simulation and the tagline is chisel
+simulation and the tagline is chisel through a layer cake of
+through a layer cake of thousand-year-old civilizations so I
+thousand-year-old civilizations so I don't I think it's not particularly
+don't I think it's not particularly meaningful to talk about our design
+meaningful to talk about our design without talking about the constraints
+without talking about the constraints and aesthetic principles that led us to
+and aesthetic principles that led us to where we ended up with the design so I
+where we ended up with the design so I want to do that a bit so on the
+want to do that a bit so on the left-hand side here I just have some
+left-hand side here I just have some constraints or aesthetics and then the
+constraints or aesthetics and then the right-hand side is the approach that we
+right-hand side is the approach that we took as a result of that constraint so
+took as a result of that constraint so one we were interested in this idea of
+one we were interested in this idea of history as an artifact and what I mean
+history as an artifact and what I mean by that is that we were interested in
+by that is that we were interested in the NPCs and players who were kind of
+the NPCs and players who were kind of working in the game worlds present we
+working in the game worlds present we were interested in how they engaged with
+were interested in how they engaged with that game worlds past so specifically
+that game worlds past so specifically through the lens of the present so how
+through the lens of the present so how they encountered like historical texts
+they encountered like historical texts how they how they engaged with artifacts
+how they how they engaged with artifacts that were from a particular point in
+that were from a particular point in history but you know were being engaged
+history but you know were being engaged within the in the present and so to that
+within the in the present and so to that end we decided that what we really
+end we decided that what we really wanted to do was simulate historical
+wanted to do was simulate historical accounts simulate these cultural
+accounts simulate these cultural artifacts that had some historical
+artifacts that had some historical resonance or meaning to them simulate
+resonance or meaning to them simulate historical text and if that meant that
+historical text and if that meant that we could cheat a little bit on the
+we could cheat a little bit on the actual historical logic that got us
+actual historical logic that got us there that was ok as long as the
+there that was ok as long as the historical accounts were all authentic
+historical accounts were all authentic we were also constrained by resources
+we were also constrained by resources and the game's voice so again like I
+and the game's voice so again like I mentioned kids of cut is a game that was
+mentioned kids of cut is a game that was already quite fleshed out when we
+already quite fleshed out when we decided to add procedural history
+decided to add procedural history procedural history is really just kind
+procedural history is really just kind of like a tertiary system for the game
+of like a tertiary system for the game and so we knew we didn't have the
+and so we knew we didn't have the resources to fully develop a generative
+resources to fully develop a generative history system that we might if we were
+history system that we might if we were building a whole game around it there's
+building a whole game around it there's also this idea that we've done a bunch
+also this idea that we've done a bunch of like handcrafted world building for
+of like handcrafted world building for the game and so we needed procedural
+the game and so we needed procedural histories to jive with the void the
+histories to jive with the void the game's voice that we had already
+game's voice that we had already established so to that end what we
+established so to that end what we decided to do is we decided to condense
+decided to do is we decided to condense the the huge enterprise of procedural
+the the huge enterprise of procedural izing history and just Center the
+izing history and just Center the history around the mythic lives of these
+history around the mythic lives of these five ancient rulers who are called
+five ancient rulers who are called Sultan's and in particular the Sultan at
+Sultan's and in particular the Sultan at the period where the Sultan's lived
+the period where the Sultan's lived would take place before a lot of the
+would take place before a lot of the handwritten lore in the game was set
+okay so we we really value novelty in our output this is like an aesthetic
+our output this is like an aesthetic principle of ours we like to let our
+principle of ours we like to let our generators run wild and see what they
+generators run wild and see what they tell us about our systems so to that end
+tell us about our systems so to that end we really wanted to avoid prescribing
+we really wanted to avoid prescribing any sort of narrative arc for the
+any sort of narrative arc for the Sultan's lives so we didn't want to say
+Sultan's lives so we didn't want to say that you know the Sultan has some
+that you know the Sultan has some formative experience in their early
+formative experience in their early early age and then some trial or
+early age and then some trial or tribulation in their 20s or something
+tribulation in their 20s or something like that we wanted that life arc to
+like that we wanted that life arc to sort of emerge organically from the
+sort of emerge organically from the system so we didn't want to prescribe it
+system so we didn't want to prescribe it we also knew we could rely on rich
+we also knew we could rely on rich narrative context and apophenia I think
+narrative context and apophenia I think I'm pronouncing that wrong epifanio's
+I'm pronouncing that wrong epifanio's how to pronounce I think so that's this
+how to pronounce I think so that's this phenomenon we're human as humans were
+phenomenon we're human as humans were kind of primed to see patterns and
+kind of primed to see patterns and things that are not necessarily there so
+things that are not necessarily there so we knew that these histories would be
+we knew that these histories would be generated in a game world that has led
+generated in a game world that has led has been like very lovingly handcrafted
+has been like very lovingly handcrafted and and there's a real rich narrative
+and and there's a real rich narrative context there so whenever you engage
+context there so whenever you engage with the history when the player was
+with the history when the player was going to engage with the history they
+going to engage with the history they would have that context and we knew we
+would have that context and we knew we could rely on that we could lean on that
+could rely on that we could lean on that and then finally we we really wanted the
+and then finally we we really wanted the histories to have like these
+histories to have like these characteristic one of the sultan's in
+characteristic one of the sultan's in particular to have this characteristic
+particular to have this characteristic personality and this mythic quality to
+personality and this mythic quality to them we wanted to blur the line between
+them we wanted to blur the line between history and myth and so we decided to
+history and myth and so we decided to assign each salt in a this archetypical
+assign each salt in a this archetypical unit of culture that we call it do
+unit of culture that we call it do and a domain can be sort of like a
+and a domain can be sort of like a thematic resonant phenomenon like fire
+thematic resonant phenomenon like fire or ice or it could be something a little
+or ice or it could be something a little more abstract like might or scholarship
+more abstract like might or scholarship if you are familiar with like epic
+if you are familiar with like epic poetry the epithets in epic poetry like
+poetry the epithets in epic poetry like you know wily Odysseus they're sort of
+you know wily Odysseus they're sort of meant to communicate the same thing like
+meant to communicate the same thing like associate the Sultan with with a
+associate the Sultan with with a particular trade okay so here's how we
+particular trade okay so here's how we actually generate history so every time
+actually generate history so every time you start a new game of caves with Cod
+you start a new game of caves with Cod we generate a new history the history is
+we generate a new history the history is segmented into five distinct periods
+segmented into five distinct periods each period is centered around one of
+each period is centered around one of these Sultan's the periods themselves
+these Sultan's the periods themselves are comprised of these historical events
+are comprised of these historical events and each historical event generates a
+and each historical event generates a descriptive text snippet that describes
+descriptive text snippet that describes the event and this is what the players
+the event and this is what the players actually engage with we call these
+actually engage with we call these Gospels so Gospels are the basic units
+Gospels so Gospels are the basic units of historical record and Cod so how do
+of historical record and Cod so how do players engage with the Gospels they're
+players engage with the Gospels they're either shared by NPCs and dialogue or
+either shared by NPCs and dialogue or they're in the descriptions of cultural
+they're in the descriptions of cultural artifacts things like shrines like we
+artifacts things like shrines like we see the shrine here that I read the
+see the shrine here that I read the description from at the beginning of
+description from at the beginning of this Hawk painted objects engraved
+this Hawk painted objects engraved objects here's another example this is a
+objects here's another example this is a painted pitcher so this item is painted
+painted pitcher so this item is painted with this scene from the life of the
+with this scene from the life of the ancient Sultan art Arum a twilight under
+ancient Sultan art Arum a twilight under a strange and onyx sky the people of the
+a strange and onyx sky the people of the hermitage of the unfamiliar saw an image
+hermitage of the unfamiliar saw an image on the horizon that looked like an
+on the horizon that looked like an atomic clock bathed in onyx it was at
+atomic clock bathed in onyx it was at arum and after he came and left the
+arum and after he came and left the hermitage of the unfamiliar the people
+hermitage of the unfamiliar the people built a monument to him and then two
+built a monument to him and then two folks called him clock and onyx so as
+folks called him clock and onyx so as you encounter or more npcs as you're
+you encounter or more npcs as you're reading more of the the descriptions of
+reading more of the the descriptions of these cultural artifacts these Gospels
+these cultural artifacts these Gospels get inscribed into a player journal in
+get inscribed into a player journal in chronological order and as you as you
+chronological order and as you as you encounter more objects as you get more
+encounter more objects as you get more of these Gospels inscribe a narrative
+of these Gospels inscribe a narrative starts to cohere around the lives of the
+starts to cohere around the lives of the sultan's the final thing we do is that
+sultan's the final thing we do is that we take any of the historic sites or
+we take any of the historic sites or relics that came out of history
+relics that came out of history generation again this is all happening
+generation again this is all happening at the start of the game before you're
+at the start of the game before you're actually placed in the world we take any
+actually placed in the world we take any of those interesting historic sites or
+of those interesting historic sites or relics and we actually instantiate the
+relics and we actually instantiate the in the world we make them real places
+in the world we make them real places that you can visit we populate them with
+that you can visit we populate them with cults that worshipped these ancient
+cults that worshipped these ancient ancient Sultan's so there are there's
+ancient Sultan's so there are there's like there inhabited within in the games
+like there inhabited within in the games present you can go interact with these
+present you can go interact with these cult and talk about the Sultan's so the
+cult and talk about the Sultan's so the like I said that the model we use our
+like I said that the model we use our history is really this interplay between
+history is really this interplay between historical entities and events
+historical entities and events historical entities are in our case or
+historical entities are in our case or places items and the Sultan's themselves
+places items and the Sultan's themselves and they're represented as data
+and they're represented as data structures they're essentially these
+structures they're essentially these buckets of properties and then the
+buckets of properties and then the events the historical events actually
+events the historical events actually modify the properties of those entities
+modify the properties of those entities and their things some examples of
+and their things some examples of historical events are sieges a city
+historical events are sieges a city builds an important building building
+builds an important building building gets captured by bandits so really these
+gets captured by bandits so really these are event templates that get their
+are event templates that get their details populated when we're actually
+details populated when we're actually running the history so we wrote a bunch
+running the history so we wrote a bunch of event templates and you can see here
+of event templates and you can see here we're going for like an ancient world
+we're going for like an ancient world aesthetic right you can think of each of
+aesthetic right you can think of each of these is like if you were reading the
+these is like if you were reading the biography of an ancient king or queen
+biography of an ancient king or queen these might each correspond to a chapter
+these might each correspond to a chapter in that biography but of course if you
+in that biography but of course if you were writing a different type of history
+were writing a different type of history if you are saying generating the history
+if you are saying generating the history of a high school your event templates
+of a high school your event templates would look much different right you
+would look much different right you might have character fails a test or two
+might have character fails a test or two characters going on a first date this
+characters going on a first date this special thing about the system is that
+special thing about the system is that the way the events actually resolve an
+the way the events actually resolve an event is deciding how to resolve it does
+event is deciding how to resolve it does so partially through randomness but also
+so partially through randomness but also partially through looking at the state
+partially through looking at the state of the the properties of the entities
+of the the properties of the entities that it's modifying and choosing an
+that it's modifying and choosing an outcome based on those so I'll explain
+outcome based on those so I'll explain how that works let me let me walk you
+how that works let me let me walk you through the process of actually
+through the process of actually generating one of these Sultan's so the
+generating one of these Sultan's so the first thing we do is that we generate a
+first thing we do is that we generate a sultan we initialize their properties so
+sultan we initialize their properties so we give them a name we give them a birth
+we give them a name we give them a birth region we assign one of these culturally
+region we assign one of these culturally resonant phenomenon these domains to
+resonant phenomenon these domains to them and then we choose from our bag of
+them and then we choose from our bag of event templates that we have things like
+event templates that we have things like sieges a city or builds an important
+sieges a city or builds an important building we choose one of those
+building we choose one of those completely at random and
+completely at random and we then move up we go on to resolve the
+we then move up we go on to resolve the details of that event and again the
+details of that event and again the resolution the way that's done it's
+resolution the way that's done it's based on looking at the state of the
+based on looking at the state of the Sultan looking at the Sultan's property
+Sultan looking at the Sultan's property isn't deciding how to resolve and then
+isn't deciding how to resolve and then we generate a gospel via grammar and we
+we generate a gospel via grammar and we update the state so again remember the
+update the state so again remember the point of these events is to actually
+point of these events is to actually change the state of the historical
+change the state of the historical entities at play so we repeat the
+entities at play so we repeat the process about twelve times each Sultan
+process about twelve times each Sultan has about twelve significant life events
+has about twelve significant life events in their life give or take a few and
+in their life give or take a few and then finally if the Sultan's still alive
+then finally if the Sultan's still alive we we have this generic death event
+we we have this generic death event where they die they may have they may be
+where they die they may have they may be dead already because sometime during the
+dead already because sometime during the course of their 12 life events sometimes
+course of their 12 life events sometimes they can dies as the outcome of one of
+they can dies as the outcome of one of those events so you might have picked up
+those events so you might have picked up on the fact that the interesting
+on the fact that the interesting property of this system is that there's
+property of this system is that there's actually no logic behind the choice of
+actually no logic behind the choice of the events so when we're choosing an
+the events so when we're choosing an event like say in a a sultan just built
+event like say in a a sultan just built an important building if we choose the
+an important building if we choose the next event to besiege as a city there is
+next event to besiege as a city there is no reason why that was chosen it's
+no reason why that was chosen it's completely random so cause and effect
+completely random so cause and effect aren't intrinsic to the system but the
+aren't intrinsic to the system but the interesting thing is that these Gospels
+interesting thing is that these Gospels these text snippets that actually
+these text snippets that actually describe what's happening in the event
+describe what's happening in the event they profess causes if there's a siege
+they profess causes if there's a siege as a city event it will often say why
+as a city event it will often say why the Sultan has sieges the siege of the
+the Sultan has sieges the siege of the city so how does that happen well the
+city so how does that happen well the causes are actually these
+causes are actually these rationalizations they're decided after
+rationalizations they're decided after the fact and they're mediated by the
+the fact and they're mediated by the Sultan state I'm gonna give you some
+Sultan state I'm gonna give you some examples to talk about you know what
+examples to talk about you know what that means but first I'm gonna give you
+that means but first I'm gonna give you a very quick crash course on grammars so
+a very quick crash course on grammars so the simplest way to say it is just that
+the simplest way to say it is just that grammars are a way of defining things in
+grammars are a way of defining things in terms of smaller things and a
+terms of smaller things and a replacement grammar I'm going to talk
+replacement grammar I'm going to talk about replacement grammar specifically a
+about replacement grammar specifically a replacement grammar is just a string of
+replacement grammar is just a string of symbols and rules for replacing those
+symbols and rules for replacing those symbols in our case with either text or
+symbols in our case with either text or with other symbols that themselv has
+with other symbols that themselv has themselves have rules that can be
+themselves have rules that can be replaced with text
+replaced with text so grammars are you know used to model
+so grammars are you know used to model language so we could think about like
+language so we could think about like the English sentence structure a
+the English sentence structure a sentences made up of a noun phrase and a
+sentences made up of a noun phrase and a verb phrase a noun phrase can be
+verb phrase a noun phrase can be something as simple as just the
+something as simple as just the now John and then a verb phrase is made
+now John and then a verb phrase is made up of a verb and a noun phrase the
+up of a verb and a noun phrase the object of the verbs acting on the verb
+object of the verbs acting on the verb could be the the verb hit a noun phrase
+could be the the verb hit a noun phrase is made up of a determiner in this case
+is made up of a determiner in this case the just the definite article duh and a
+the just the definite article duh and a noun
+noun ball so we get a sentence like John hit
+ball so we get a sentence like John hit the ball out of this you know sentence
+the ball out of this you know sentence structure that was modeled via grammars
+structure that was modeled via grammars so the way that works in in our system
+so the way that works in in our system how text generation works in our system
+how text generation works in our system we can look at a text template like this
+we can look at a text template like this so this is the this is one of the text
+so this is the this is one of the text templates for the siege of the city
+templates for the siege of the city event acting against injustice Sultan
+event acting against injustice Sultan named led an army to the gates of
+named led an army to the gates of location and so if we were to expand
+location and so if we were to expand this this is what actual text looks like
+this this is what actual text looks like that comes out of our system this is
+that comes out of our system this is what an actual gospel looks like I think
+what an actual gospel looks like I think against the persecution of frogs oh
+against the persecution of frogs oh three deities led an army to the gates
+three deities led an army to the gates of upir so with that in mind let's let's
+of upir so with that in mind let's let's look at this same text snippet through
+look at this same text snippet through the lens of how the causality is
+the lens of how the causality is generated so again we have acting
+generated so again we have acting against injustice Sultan name led an
+against injustice Sultan name led an army to the gates of location so the
+army to the gates of location so the injustice in this case is the reason the
+injustice in this case is the reason the cause the reason why the Sultan decided
+cause the reason why the Sultan decided to seize the city so how do we actually
+to seize the city so how do we actually choose a reason well again we look at
+choose a reason well again we look at the properties that the Sultan has so
+the properties that the Sultan has so here you see the Sultan has a couple
+here you see the Sultan has a couple properties they have a list of allied
+properties they have a list of allied factions so these are just some factions
+factions so these are just some factions that throughout the course of their life
+that throughout the course of their life the Sultan had you know gained an
+the Sultan had you know gained an affinity for for a particular faction in
+affinity for for a particular faction in this case it was frogs we also see here
+this case it was frogs we also see here that the Sultan was at a profession they
+that the Sultan was at a profession they were a geologist at some point in their
+were a geologist at some point in their life and so for this particular event
+life and so for this particular event for the siege as a city event there
+for the siege as a city event there happens to be a grammar rule that says
+happens to be a grammar rule that says hey if you have an allied faction if
+hey if you have an allied faction if you're if you're friendly with one of
+you're if you're friendly with one of these factions replace injustice with
+these factions replace injustice with the persecution of faction name and then
+the persecution of faction name and then intern faction name gets replaced with
+intern faction name gets replaced with whatever faction you're the Sultan is
+whatever faction you're the Sultan is friendly with so in this case we have
+friendly with so in this case we have the Sultan is friendly with frogs and so
+the Sultan is friendly with frogs and so the injustice that the Sultan is
+the injustice that the Sultan is fighting against gets
+fighting against gets place with the persecution of frogs so I
+place with the persecution of frogs so I want to talk a little bit about how a
+want to talk a little bit about how a little narratives can cohere out of
+little narratives can cohere out of these disparate historical events and to
+these disparate historical events and to do that I'm going to read this example
+do that I'm going to read this example these are two Gospels from the same
+these are two Gospels from the same history they appear right after each
+history they appear right after each other so after treating with cats and
+other so after treating with cats and tick super convinced them to help her
+tick super convinced them to help her found a dig site in the Philosopher's
+found a dig site in the Philosopher's quarter of Shane ruk for the purpose of
+quarter of Shane ruk for the purpose of excavating ancient blocks of ice they
+excavating ancient blocks of ice they named it the freezing dig site at the
+named it the freezing dig site at the Battle of old to gush antics occur
+Battle of old to gush antics occur fought to liberate cats she wielded a
+fought to liberate cats she wielded a frosty hammer with such prowess that it
+frosty hammer with such prowess that it became forever known as frost kiss cat's
+became forever known as frost kiss cat's friend so we can see here that a little
+friend so we can see here that a little narrative has kind of cohere right so
+narrative has kind of cohere right so you know and and the reason we can
+you know and and the reason we can interpret that that narrative is because
+interpret that that narrative is because we're bringing some narrative context to
+we're bringing some narrative context to to this to reading these two Gospels so
+to this to reading these two Gospels so we see that antic zipper had some sort
+we see that antic zipper had some sort of secret meeting with cats where she
+of secret meeting with cats where she convinced them to help her found a dig
+convinced them to help her found a dig site
+site the very next event she fights to
+the very next event she fights to liberate cats so because we know how
+liberate cats so because we know how like tit for tat works how deals work we
+like tit for tat works how deals work we can kind of surmise that one might have
+can kind of surmise that one might have happened is the Sultan met with cats
+happened is the Sultan met with cats said hey if you help me found this dicks
+said hey if you help me found this dicks dig site I'll fight for you I'll try to
+dig site I'll fight for you I'll try to liberate you but really that's not what
+liberate you but really that's not what happened at all right because we know
+happened at all right because we know when we pick the event sieges the city
+when we pick the event sieges the city that was done totally randomly and this
+that was done totally randomly and this cause was just sort of rationalized so
+cause was just sort of rationalized so how was it done so again there here's
+how was it done so again there here's the cause she fought to liberate cats
+the cause she fought to liberate cats and when we needed to decide to actually
+and when we needed to decide to actually expand into that cause how we generated
+expand into that cause how we generated this text we looked at the sultan state
+this text we looked at the sultan state so this previous event actually set the
+so this previous event actually set the sultan state so when an event when an
+sultan state so when an event when an event is resolving and it looks at a
+event is resolving and it looks at a sultan state if there isn't anything
+sultan state if there isn't anything satisfactory to actually produce good
+satisfactory to actually produce good text it'll set the state itself so this
+text it'll set the state itself so this event this top event here actually set
+event this top event here actually set antics of her in six opposed
+antics of her in six opposed relationship with cats to friendly it
+relationship with cats to friendly it was it said like hey and take Spurs now
+was it said like hey and take Spurs now friendly with cats she treated with cats
+friendly with cats she treated with cats in this event and then when we got to
+in this event and then when we got to to the actual cause of why of the next
+to the actual cause of why of the next event when she sees the city the system
+event when she sees the city the system looked and said hey the Sultan has a
+looked and said hey the Sultan has a relationship with cats maybe they seeded
+relationship with cats maybe they seeded the city in order to liberate cats we
+the city in order to liberate cats we also you see here that the name of the
+also you see here that the name of the hammer she was wielding as frost like
+hammer she was wielding as frost like its cat's friend the reason we picked
+its cat's friend the reason we picked cat's friend as the suffix of that name
+cat's friend as the suffix of that name is because again she was do it this is
+is because again she was do it this is an event where cats were liberated I
+an event where cats were liberated I also want to point out you might have
+also want to point out you might have noticed all this ice imagery right she
+noticed all this ice imagery right she founds this dig site for the purpose of
+founds this dig site for the purpose of excavating ancient blocks of ice she
+excavating ancient blocks of ice she they named it the freezing dig site
+they named it the freezing dig site she's wielding a frosty hammer the
+she's wielding a frosty hammer the hammer is called Frost his cast friend
+hammer is called Frost his cast friend the reason there's all this ice imagery
+the reason there's all this ice imagery is that all of this text is generated as
+is that all of this text is generated as a result of this Sultan having at the
+a result of this Sultan having at the domain of ice so when this domain was
+domain of ice so when this domain was initial or when the Sultan was
+initial or when the Sultan was initialized she was given a random
+initialized she was given a random domain it happened to be ice and so ice
+domain it happened to be ice and so ice sort of permeates the events of her life
+sort of permeates the events of her life so these the Sultan's state like her
+so these the Sultan's state like her affiliation with a faction and escaped
+affiliation with a faction and escaped cats her domain is acting as this sort
+cats her domain is acting as this sort of narrative glue that's holding these
+of narrative glue that's holding these disparate events together and the fact
+disparate events together and the fact that the events the resolution and the
+that the events the resolution and the text generation is parameterised by the
+text generation is parameterised by the sultan state it really promotes these
+sultan state it really promotes these player interpreted causalities right so
+player interpreted causalities right so we're bringing a lot of narrative
+we're bringing a lot of narrative context to that to our reading of those
+context to that to our reading of those Gospels but it sort of makes sense you
+Gospels but it sort of makes sense you know we if we get the idea that if this
+know we if we get the idea that if this Sultan made some sort of deal with cats
+Sultan made some sort of deal with cats if they helped her found a dig site it
+if they helped her found a dig site it makes sense that she might have fought
+makes sense that she might have fought to liberate them and then domains in
+to liberate them and then domains in particular they act as these sort of
+particular they act as these sort of recurring narrative threads and assault
+recurring narrative threads and assault of life so they really they kind of just
+of life so they really they kind of just tie the Sultan's life together give them
+tie the Sultan's life together give them this nice association with this kind of
+this nice association with this kind of resonant phenomenon in this case ice
+resonant phenomenon in this case ice okay
+okay so some quick resources I want to tell
+so some quick resources I want to tell you about for designing your own
+you about for designing your own generative history system so if you're
+generative history system so if you're interested in the details of our system
+interested in the details of our system we wrote a paper about it it's on our
+we wrote a paper about it it's on our web site so this is you know and this
+web site so this is you know and this slide deck is going to be up on the
+slide deck is going to be up on the vault or whatever
+vault or whatever you could take a picture of this and
+you could take a picture of this and search for it but yeah generation of
+search for it but yeah generation of mythic biographies in case of Cod it's a
+mythic biographies in case of Cod it's a it's like a very detailed paper about
+it's like a very detailed paper about our system epitaph the game I told you
+our system epitaph the game I told you about by max from it's key the source
+about by max from it's key the source codes available I highly recommend it
+codes available I highly recommend it it's really readable it's really
+it's really readable it's really succinct and you can just get your eyes
+succinct and you can just get your eyes on a system that just very like in a
+on a system that just very like in a very succinct way has this coded
+very succinct way has this coded relationship between events and these
+relationship between events and these entities it's good microscope is this
+entities it's good microscope is this tabletop role-playing game where you're
+tabletop role-playing game where you're creating epic histories it's a good tool
+creating epic histories it's a good tool to think about the procedural ization of
+to think about the procedural ization of history this anchor party game opera
+history this anchor party game opera omnia which is so fantastic which takes
+omnia which is so fantastic which takes this idea of like this the subjectivity
+this idea of like this the subjectivity subjectivity of history that I was
+subjectivity of history that I was talking about that's like so often
+talking about that's like so often lacking in games and makes it the whole
+lacking in games and makes it the whole conceit of the game and it's a really
+conceit of the game and it's a really great game if you were here last year
+great game if you were here last year you may have heard Kate Compton's talk
+you may have heard Kate Compton's talk on practical procedural generation she
+on practical procedural generation she also it's an amazing talk she also wrote
+also it's an amazing talk she also wrote a blog post where she goes through she
+a blog post where she goes through she sort of enumerates a bunch of generative
+sort of enumerates a bunch of generative techniques and talks about them one of
+techniques and talks about them one of them are its grammars so I highly
+them are its grammars so I highly recommend that and then Bruno Diaz is a
+recommend that and then Bruno Diaz is a developer who made this game called
+developer who made this game called Voyager this sort of space travel game
+Voyager this sort of space travel game where he procedurally generates history
+where he procedurally generates history and uses grammars to do it does a lot of
+and uses grammars to do it does a lot of the same stuff we do and he wrote a
+the same stuff we do and he wrote a design article in game of Sutra about it
+design article in game of Sutra about it so I'd recommend that as well so for
+so I'd recommend that as well so for takeaways if you're going to generate
+takeaways if you're going to generate your own histories I would recommend
+your own histories I would recommend that you think carefully about your
+that you think carefully about your narrative context so really think about
+narrative context so really think about how you're gonna be using your histories
+how you're gonna be using your histories who is telling the histories what are
+who is telling the histories what are their biases how can you encode that
+their biases how can you encode that into your system
+into your system break your histories up into entities
+break your histories up into entities and events so you can like sit down with
+and events so you can like sit down with some index cards and think what are the
+some index cards and think what are the you know who are the actors that are
+you know who are the actors that are acting in this system who are the the
+acting in this system who are the the people that the that are you know the
+people that the that are you know the people are the places that are actually
+people are the places that are actually the elements of by history you can also
+the elements of by history you can also think like what are my event templates
+think like what are my event templates what type of history I mean am i writing
+what type of history I mean am i writing your event templates are where a lot of
+your event templates are where a lot of like the essence of your history is
+like the essence of your history is encoded create a logic to relate your
+encoded create a logic to relate your event so again you could do something
+event so again you could do something like what epitaph does which is to say
+like what epitaph does which is to say hey if an event hat
+hey if an event hat we changed the the likelihood that
+we changed the the likelihood that future events happen you could also say
+future events happen you could also say that an event only happens if certain
+that an event only happens if certain requirements are met so if certain
+requirements are met so if certain preconditions about the state of the
+preconditions about the state of the salt of the historical entities are met
+salt of the historical entities are met then an event has a chance to happen or
+then an event has a chance to happen or you could do something like what we did
+you could do something like what we did which is kind of cheat and say we don't
+which is kind of cheat and say we don't were actually don't have a logic to our
+were actually don't have a logic to our to our event selection but we're going
+to our event selection but we're going to rationalize it anyway and then use
+to rationalize it anyway and then use replacement grammars to generate text
+replacement grammars to generate text they're wonderful tools for generating
+they're wonderful tools for generating text in particulars are really good for
+text in particulars are really good for taking some sort of state machine or
+taking some sort of state machine or like a simulation and describing it via
+like a simulation and describing it via text because you can use variables that
+text because you can use variables that get replaced with the actual text when
+get replaced with the actual text when you're like resolving that generation
+you're like resolving that generation with that where the details actually
+with that where the details actually become like alive and get in and coded
+become like alive and get in and coded into your text and that's it I'm Jason
+into your text and that's it I'm Jason grim glad this is you follow me on
+grim glad this is you follow me on Twitter and thank you for coming
+we probably have time for one question if someone has a question if not I do
+all right I'm doing it so how did you balance the amount of state that you
+balance the amount of state that you gave to the Sullivans because if you had
+gave to the Sullivans because if you had too much you know different factions
+too much you know different factions that they could be friends with then
+that they could be friends with then there wouldn't be that thread of you
+there wouldn't be that thread of you know they're they're dealing with cats a
+know they're they're dealing with cats a lot but if you don't have enough and it
+lot but if you don't have enough and it doesn't seem like this variety yeah so
+doesn't seem like this variety yeah so the way we did that was that state is
+the way we did that was that state is only really set during historic events
+only really set during historic events aside from the initial state that we
+aside from the initial state that we said when the sultan's initialize so
+said when the sultan's initialize so when we initialize the Sultan we only
+when we initialize the Sultan we only set a few pieces of state we say this is
+set a few pieces of state we say this is your name this is where you were born
+your name this is where you were born this is your domain we only give them
+this is your domain we only give them one domain and then as the events unfold
+one domain and then as the events unfold that state can be set but because
+that state can be set but because there's only 12 events there's only so
+there's only 12 events there's only so many like meaningful things that happen
+many like meaningful things that happen in the Sultan's light so it's very rare
+in the Sultan's light so it's very rare that a sultan becomes friendly with more
+that a sultan becomes friendly with more than one or two factions when it does
+than one or two factions when it does happen when you get one of the outlier
+happen when you get one of the outlier Sultan lives and they're friends with
+Sultan lives and they're friends with six factions and they like have three
+six factions and they like have three husbands because they married robots and
+husbands because they married robots and baboons all this can happen then then
+baboons all this can happen then then it's a real interesting outlier and
+it's a real interesting outlier and that's kind of nice and delightful all
+that's kind of nice and delightful all right I think that wraps it up so please
+right I think that wraps it up so please make sure that you fill out your
+make sure that you fill out your evaluation emails to let Jason know what
+evaluation emails to let Jason know what you thought and let's give one final
+you thought and let's give one final round of applause
+round of applause [Applause]

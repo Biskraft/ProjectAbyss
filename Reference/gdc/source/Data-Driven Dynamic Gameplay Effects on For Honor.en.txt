@@ -1,0 +1,1085 @@
+[Music] so hi everyone welcome to this talk
+so hi everyone welcome to this talk about data-driven gameplay effects on
+about data-driven gameplay effects on for honor before we begin I'd like to
+for honor before we begin I'd like to remind you to silence your phones and
+remind you to silence your phones and also to please fill out the evaluation
+also to please fill out the evaluation at the end of this talk so my name is
+at the end of this talk so my name is Eugenia Chevallier and I'm a gameplay
+Eugenia Chevallier and I'm a gameplay programmer at Ubisoft Montreal I've been
+programmer at Ubisoft Montreal I've been working there for about five years now
+working there for about five years now and I've worked on Rainbow six child of
+and I've worked on Rainbow six child of light shape up and for honor so I'm sure
+light shape up and for honor so I'm sure that many of you who have played for
+that many of you who have played for honor
+come on yes but for those of you who don't know it's an online multiplayer
+don't know it's an online multiplayer like combat game it's a fighting game
+like combat game it's a fighting game competitive and let's watch a small
+competitive and let's watch a small trailer
+[Music]
+[Applause] [Music]
+so what are the modifiers modifiers are contextual gameplay effects they serve
+contextual gameplay effects they serve to change the stats or the behavior of
+to change the stats or the behavior of some of the entities in our game so our
+some of the entities in our game so our fighters can apply status effects on
+fighters can apply status effects on their opponents in our campaign we
+their opponents in our campaign we wanted our each of our bosses to field
+wanted our each of our bosses to field unique and different the feats are
+unique and different the feats are abilities that the player can unlock and
+abilities that the player can unlock and activate along the course of a match
+activate along the course of a match and finally the gear directly modifies
+and finally the gear directly modifies the characters stats so what's the
+the characters stats so what's the problem that we were trying to solve
+problem that we were trying to solve with this with the modifiers essentially
+with this with the modifiers essentially all the systems I've talked about are
+all the systems I've talked about are all very similar they're all trying to
+all very similar they're all trying to affect gameplay in very similar ways and
+affect gameplay in very similar ways and originally the system was developed for
+originally the system was developed for the feats and so the feats we knew that
+the feats and so the feats we knew that we were gonna have about seventy two
+we were gonna have about seventy two unique feats but we weren't sure what
+unique feats but we weren't sure what was going to go in those feats so we
+was going to go in those feats so we needed to make our systems be very open
+needed to make our systems be very open and data-driven and allow for
+and data-driven and allow for experimentation so here was how we did
+experimentation so here was how we did it basically entities in our game have a
+it basically entities in our game have a handler and that handler manages a list
+handler and that handler manages a list of modifiers and those modifiers contain
+of modifiers and those modifiers contain effects effects our gameplay blocks
+effects effects our gameplay blocks written by the programmers that go and
+written by the programmers that go and change something about that entity so
+change something about that entity so the effects that you're going to need
+the effects that you're going to need really depend on your game but for us
+really depend on your game but for us this came into five major categories so
+this came into five major categories so modifying stats disabling capabilities
+modifying stats disabling capabilities adding tags removing modifiers and
+adding tags removing modifiers and creating new effects so let's go over
+creating new effects so let's go over that
+that so modifying stats the only by a certain
+so modifying stats the only by a certain percentage so that's that's how we did
+percentage so that's that's how we did it we come from a base value and then we
+it we come from a base value and then we want to change it by a plus or minus
+want to change it by a plus or minus some percentage
+some percentage so in this video we will see the
+so in this video we will see the berserker activating the run faster feat
+berserker activating the run faster feat and so after that they're gonna run
+and so after that they're gonna run faster about 50% faster so this is one
+faster about 50% faster so this is one example
+example so capabilities or actions that the
+so capabilities or actions that the entity can do like going on a ladder
+entity can do like going on a ladder doing an attack dodging by default all
+doing an attack dodging by default all the capabilities are set to true but the
+the capabilities are set to true but the modifiers can come and disable them so
+modifiers can come and disable them so in this video we'll see the peacekeeper
+in this video we'll see the peacekeeper and the player is spamming the Dodge
+and the player is spamming the Dodge input but we don't want to do the
+input but we don't want to do the character to be able to dodge too often
+character to be able to dodge too often because that would break the game so at
+because that would break the game so at the end of her dodge we apply a modifier
+the end of her dodge we apply a modifier that disables her dodging capability so
+that disables her dodging capability so despite her pressing that button
+despite her pressing that button she can't dodge right away so adding a
+she can't dodge right away so adding a tag these are labels that say that the
+tag these are labels that say that the entity has a certain property or status
+entity has a certain property or status examples of these are being in stealth
+examples of these are being in stealth mode being stunned or being
+mode being stunned or being uninterruptible so in this video we will
+uninterruptible so in this video we will see the warden throwing a stun bomb at
+see the warden throwing a stun bomb at his own feet and stunning himself you'll
+his own feet and stunning himself you'll notice that the UI gets hidden and
+notice that the UI gets hidden and there's a post effect that makes it
+there's a post effect that makes it harder to see what's happening in the
+harder to see what's happening in the game this is done as a modifier so an
+game this is done as a modifier so an important feature for the system to have
+important feature for the system to have was being able to remove active
+was being able to remove active modifiers for example when we heal we
+modifiers for example when we heal we want to remove any poison effects this
+want to remove any poison effects this is exactly what you'll see in this video
+is exactly what you'll see in this video the Orochi is going to activate its
+the Orochi is going to activate its poison feet and poison the warden the
+poison feet and poison the warden the warden then runs to the nearby capture
+warden then runs to the nearby capture point to get healing and remove this
+point to get healing and remove this poison effect
+and finally the system can create new effects so this allows modifiers to
+effects so this allows modifiers to spawn other modifiers to create areas of
+spawn other modifiers to create areas of effect or to create attacks that come
+effect or to create attacks that come from nowhere like the poison which takes
+from nowhere like the poison which takes every two seconds and is treated as an
+every two seconds and is treated as an attack so in this video we'll see the
+attack so in this video we'll see the conqueror which has a field a feat that
+conqueror which has a field a feat that allows him to heal every time he blocks
+allows him to heal every time he blocks so he doesn't block nothing happens he
+so he doesn't block nothing happens he just get hits and then we see that
+just get hits and then we see that there's a modifier that gets applied for
+there's a modifier that gets applied for 1.5 seconds after he manages the
+1.5 seconds after he manages the successfully block there's these are
+successfully block there's these are examples of all of our effects so what
+examples of all of our effects so what we've seen so far is only half of the
+we've seen so far is only half of the equation the second pillar of the
+equation the second pillar of the modifier system is context so context is
+modifier system is context so context is whatever is happening in the game right
+whatever is happening in the game right now this is important because we want
+now this is important because we want our modifiers to be able to react to the
+our modifiers to be able to react to the current state of the game so context for
+current state of the game so context for us came in two parts duration and
+us came in two parts duration and conditions so duration is a very simple
+conditions so duration is a very simple concept but it's very powerful because
+concept but it's very powerful because effect many of our effects are temporary
+effect many of our effects are temporary so it was a feature that we needed and
+so it was a feature that we needed and changing their duration can drastically
+changing their duration can drastically impact the gameplay for example the
+impact the gameplay for example the length of a stun is the difference
+length of a stun is the difference between life and death and the second
+between life and death and the second part of context is conditions so we're
+part of context is conditions so we're able to attach conditions to our
+able to attach conditions to our modifiers and those conditions are able
+modifiers and those conditions are able to have checks on the game state when
+to have checks on the game state when the condition is met the modifier is
+the condition is met the modifier is considered to be active and thereby it's
+considered to be active and thereby it's applying its effects when the condition
+applying its effects when the condition is not met then the modifier is inactive
+is not met then the modifier is inactive it's still there but it's not applying
+it's still there but it's not applying any effects now what's cool is that we
+any effects now what's cool is that we can combine these conditions with
+can combine these conditions with logical operators like and or and not so
+logical operators like and or and not so for example our capture points by
+for example our capture points by default give one point per second while
+default give one point per second while they're captured by a team
+they're captured by a team but we have a modifier on them that says
+but we have a modifier on them that says that has a condition saying if it's
+that has a condition saying if it's captured and we have a player in the
+captured and we have a player in the zone then we double the amount of points
+zone then we double the amount of points that we give so our modifiers can also
+that we give so our modifiers can also be applied on other entities like the
+be applied on other entities like the capture points and NPCs and interactive
+capture points and NPCs and interactive objects so some of our most common
+objects so some of our most common conditions on fur on air I'm going to go
+conditions on fur on air I'm going to go through two of these one of them is the
+through two of these one of them is the action state condition so this is
+action state condition so this is whatever the player is currently doing
+whatever the player is currently doing what movement state are they in and
+what movement state are they in and what's really powerful about this one is
+what's really powerful about this one is that we were able to check the clip type
+that we were able to check the clip type that they were currently doing so their
+that they were currently doing so their animation type that we saw in katana if
+animation type that we saw in katana if you went to the previous talk and so
+you went to the previous talk and so this this gives us a whole lot of detail
+this this gives us a whole lot of detail on what the player is doing and it's
+on what the player is doing and it's easy it can be dynamic so it's easy to
+easy it can be dynamic so it's easy to for designers to to tweak so in this
+for designers to to tweak so in this video we will see the law bringer and he
+video we will see the law bringer and he has a modifier that makes him
+has a modifier that makes him uninterruptible while he is reviving a
+uninterruptible while he is reviving a teammate so that that condition is on
+teammate so that that condition is on the revived action so we can see that he
+the revived action so we can see that he didn't react to getting hit but when he
+didn't react to getting hit but when he stopped doing that action then he can
+stopped doing that action then he can have hit reactions the second major
+have hit reactions the second major condition that we use is the attack
+condition that we use is the attack condition so the attacks are really the
+condition so the attacks are really the core of our game so it made sense for us
+core of our game so it made sense for us to have something to have the ability to
+to have something to have the ability to check details about this so we can check
+check details about this so we can check if we are doing or receiving an attack
+if we are doing or receiving an attack we can check the attack properties if
+we can check the attack properties if it's a specific move and we can check
+it's a specific move and we can check the result
+the result so was it a hit a block and who did I
+so was it a hit a block and who did I hit so back to our conquer this is not a
+hit so back to our conquer this is not a video this is just a screen shot and
+video this is just a screen shot and this feat actually the block feat is a
+this feat actually the block feat is a little bit more complex than I showed in
+little bit more complex than I showed in the previous video what happens in
+the previous video what happens in reality is that we have three modifiers
+reality is that we have three modifiers for this feat and we want to give
+for this feat and we want to give different amounts of healing back
+different amounts of healing back according to what type of attack the
+according to what type of attack the player blocked so if we blocked a
+player blocked so if we blocked a attack from a player we want to maybe
+attack from a player we want to maybe just give him 10 hit points but if he
+just give him 10 hit points but if he blocked a heavy attack maybe we want to
+blocked a heavy attack maybe we want to give him 20 and if he blocked something
+give him 20 and if he blocked something from our low-end pcs our soldiers then
+from our low-end pcs our soldiers then we want to give very little maybe just
+we want to give very little maybe just two so one last thing I already hinted
+two so one last thing I already hinted at it previously but just to be sure
+at it previously but just to be sure that it's clear we cannot apply
+that it's clear we cannot apply modifiers on other people as well
+modifiers on other people as well so the modifiers are on the entity but
+so the modifiers are on the entity but there's times where the entity interact
+there's times where the entity interact with other entities for instance when
+with other entities for instance when I'm doing a revive or when I attack
+I'm doing a revive or when I attack somebody and this provides an
+somebody and this provides an opportunity for us to apply modifiers on
+opportunity for us to apply modifiers on that other person so an example of this
+that other person so an example of this is for the poison effect which you
+is for the poison effect which you already saw but let's show it from the
+already saw but let's show it from the other side I activated my feet and now
+other side I activated my feet and now the person that I hit has a modifier
+the person that I hit has a modifier that's making them bleed over time all
+that's making them bleed over time all right so so now we've seen what the
+right so so now we've seen what the system can do let's look at what this
+system can do let's look at what this means in terms of production so the
+means in terms of production so the system was very versatile for us because
+system was very versatile for us because the conditions and the effects are all
+the conditions and the effects are all modular blocks so we can combine and
+modular blocks so we can combine and reuse them in interesting ways to create
+reuse them in interesting ways to create complexity so let's take for example I
+complexity so let's take for example I have a damage boost effect and if I
+have a damage boost effect and if I combine it with on capture point
+combine it with on capture point condition then I've got a sort of
+condition then I've got a sort of defender feel to my modifier I can reuse
+defender feel to my modifier I can reuse this exact same effect with a low health
+this exact same effect with a low health condition now I've got a sort of last
+condition now I've got a sort of last stand maybe Berserker effect and finally
+stand maybe Berserker effect and finally if I use this damage boost with a
+if I use this damage boost with a condition that says that my attack was
+condition that says that my attack was blocked I get chip damage so this is
+blocked I get chip damage so this is very powerful and it actually enabled us
+very powerful and it actually enabled us to create generic effects and I just
+to create generic effects and I just have a damage speed and healing instead
+have a damage speed and healing instead of having a damage when low health
+of having a damage when low health damage when bleeding and then having a
+damage when bleeding and then having a whole bunch of if conditions inside the
+whole bunch of if conditions inside the code
+what's even cooler is that because all of our systems use the modifiers when I
+of our systems use the modifiers when I add a new effect or a new condition for
+add a new effect or a new condition for one feature in one specific case all of
+one feature in one specific case all of my other systems can benefit from that
+my other systems can benefit from that so then all the designers can reuse this
+so then all the designers can reuse this and we don't have to add extra code so
+and we don't have to add extra code so this is actually great for content
+this is actually great for content creation because we reuse the options
+creation because we reuse the options that were already created so most of the
+that were already created so most of the time when someone comes to me and asked
+time when someone comes to me and asked how you know we need to do this new
+how you know we need to do this new feature I'm like you can already do it
+feature I'm like you can already do it and it's awesome I don't have to do
+and it's awesome I don't have to do anything they can work by themselves
+anything they can work by themselves it's perfect which brings me to designer
+it's perfect which brings me to designer autonomy since this is all in data the
+autonomy since this is all in data the designers can create this autonomously
+designers can create this autonomously and they don't need to go through a
+and they don't need to go through a programmer and that long loop of
+programmer and that long loop of requesting something waiting for the
+requesting something waiting for the programmer having it tested they can
+programmer having it tested they can bypass all of this this allows them to
+bypass all of this this allows them to iterate very easily they have lots of
+iterate very easily they have lots of power to test ideas and to test
+power to test ideas and to test variations of their ideas in a short
+variations of their ideas in a short amount of time what's more if they
+amount of time what's more if they change their minds they don't have to
+change their minds they don't have to like it doesn't need to go through that
+like it doesn't need to go through that whole pipeline again they can change it
+whole pipeline again they can change it themselves and it's much less risky to
+themselves and it's much less risky to test so this was very very scalable in
+test so this was very very scalable in terms of programming for us because once
+terms of programming for us because once the base is done so you have the handler
+the base is done so you have the handler that's able to manage effects and
+that's able to manage effects and conditions all you have to do is add new
+conditions all you have to do is add new gameplay effects and new conditions as
+gameplay effects and new conditions as your game progressively gets more and
+your game progressively gets more and more complicated cool so now that you
+more complicated cool so now that you understand the concept and what it means
+understand the concept and what it means for production let's take a look at
+for production let's take a look at implementation and go a little bit
+implementation and go a little bit deeper into that so there's two parts
+deeper into that so there's two parts really there's how the setup looks in
+really there's how the setup looks in the data and then there's what happens
+the data and then there's what happens at runtime so let's say that someone
+at runtime so let's say that someone comes to me and they're like yeah I need
+comes to me and they're like yeah I need this new feature and the first question
+this new feature and the first question I asked them is where does it start
+I asked them is where does it start like who is the one that's applying this
+like who is the one that's applying this effect these are all examples of the
+effect these are all examples of the origin that's the concept the name that
+origin that's the concept the name that we use for this
+we use for this modifiers are used as a service by all
+modifiers are used as a service by all of these systems and when a system wants
+of these systems and when a system wants to apply modifiers in the game in the
+to apply modifiers in the game in the data they have to be able to reference a
+data they have to be able to reference a modifier data file and so we made these
+modifier data file and so we made these modifiers we chose to make them as
+modifiers we chose to make them as separate data files to make it easy to
+separate data files to make it easy to track in the in the perforce history so
+track in the in the perforce history so we're able to see the history of the
+we're able to see the history of the file to track bugs more easily and see
+file to track bugs more easily and see why certain choices were made because we
+why certain choices were made because we always have a change list associated to
+always have a change list associated to that so here's an example of what it
+that so here's an example of what it looks like
+looks like in the data for our designers so
+in the data for our designers so unfortunately I don't have a really nice
+unfortunately I don't have a really nice tool like the katana guys but it's
+tool like the katana guys but it's coming it's coming so for now this is
+coming it's coming so for now this is all in the property grid but here we
+all in the property grid but here we have an example of multiplying the
+have an example of multiplying the revived other speeds so it's how quickly
+revived other speeds so it's how quickly I'm reviving somebody by and we're doing
+I'm reviving somebody by and we're doing a minus 5% on the amount of time that it
+a minus 5% on the amount of time that it takes so the effect type that we choose
+takes so the effect type that we choose for the stats here is from a drop down
+for the stats here is from a drop down menu and this is created by the
+menu and this is created by the programmers this is an enum in the code
+programmers this is an enum in the code and so what's nice about this is that as
+and so what's nice about this is that as programmers we have control over this we
+programmers we have control over this we can choose what's the best way to
+can choose what's the best way to implement something and we can make sure
+implement something and we can make sure that we're not duplicating effects we
+that we're not duplicating effects we can keep them generic you'll also notice
+can keep them generic you'll also notice that we try to make it easier for our
+that we try to make it easier for our designers to read all of this because
+designers to read all of this because sometimes you know in the property grid
+sometimes you know in the property grid it can be a bit hard to read so we
+it can be a bit hard to read so we provide a little summary at the top of
+provide a little summary at the top of the effect so that they don't have to go
+the effect so that they don't have to go and dig deeper alright so now that
+and dig deeper alright so now that you've set up the data let's see what
+you've set up the data let's see what happens at the runtime so the handler
+happens at the runtime so the handler the handlers job is to handle requests
+the handlers job is to handle requests to activate new modifiers so once a new
+to activate new modifiers so once a new modifier is activated it makes an entry
+modifier is activated it makes an entry for it in its list of entries and it's
+for it in its list of entries and it's going to update all of these entries so
+going to update all of these entries so at the update it's going to check
+at the update it's going to check if the conditions of the modifier are
+if the conditions of the modifier are true and it's also going to check the
+true and it's also going to check the duration so when the duration expires
+duration so when the duration expires it's just going to remove that modifier
+it's just going to remove that modifier so what does the entry look like
+so what does the entry look like basically we keep the start time so the
+basically we keep the start time so the moment at which the modifier is applied
+moment at which the modifier is applied we track its origin where it came from
+we track its origin where it came from and if the condition is true or not at
+and if the condition is true or not at this frame and a pointer to the modifier
+this frame and a pointer to the modifier data so then once we have that how does
+data so then once we have that how does the rest of the code
+the rest of the code check for the modifiers so I call these
+check for the modifiers so I call these queries code queries and they really
+queries code queries and they really depend on each effect type so for
+depend on each effect type so for modifying stats the sort of accessor and
+modifying stats the sort of accessor and query I'm going to make is compute the
+query I'm going to make is compute the modified value so how much am I
+modified value so how much am I currently modifying my attack by for
+currently modifying my attack by for instance for capabilities and for tags
+instance for capabilities and for tags what I want to check for is just is it
+what I want to check for is just is it enabled or not like is this capability
+enabled or not like is this capability disabled as soon as I found one modifier
+disabled as soon as I found one modifier entry that says that it has that effect
+entry that says that it has that effect I can return same for the tag and then
+I can return same for the tag and then for removing a modifier and creating a
+for removing a modifier and creating a new effect these are actions so they
+new effect these are actions so they have to be triggered somehow by an event
+have to be triggered somehow by an event in our case that can be once we activate
+in our case that can be once we activate the new modifier so when it starts it
+the new modifier so when it starts it can be when the condition becomes true
+can be when the condition becomes true or it can be even ticking just like the
+or it can be even ticking just like the damage over time which takes every two
+damage over time which takes every two seconds so let's look at a concrete
+seconds so let's look at a concrete example in the code so further blinded
+example in the code so further blinded the the stun effect you saw that the HUD
+the the stun effect you saw that the HUD gets hidden and so in the UI update we
+gets hidden and so in the UI update we can just check if the player has the tag
+can just check if the player has the tag blinded then I hide so this creates a
+blinded then I hide so this creates a query for it's really not a fancy query
+query for it's really not a fancy query it just goes and asks to the handler and
+it just goes and asks to the handler and the handler is going to go through all
+the handler is going to go through all of its entries and if it finds an entry
+of its entries and if it finds an entry who which condition is true and which
+who which condition is true and which has the effect blinded it's going to
+has the effect blinded it's going to return true so that's the sort of sort
+return true so that's the sort of sort of how it looks like
+so I want to take a tiny bit of time to talk about feedback because our players
+talk about feedback because our players don't necessarily know like all of that
+don't necessarily know like all of that all of this is happening and we need to
+all of this is happening and we need to communicate that to them so the
+communicate that to them so the modifiers need the feedback hooks to be
+modifiers need the feedback hooks to be able to show what's going on underneath
+able to show what's going on underneath so we have three types the most basic
+so we have three types the most basic one is alive so alive is very simple
+one is alive so alive is very simple it's as soon as the modifier gets
+it's as soon as the modifier gets created as soon as that request is made
+created as soon as that request is made and it disappears at the end of its
+and it disappears at the end of its duration so we would say start I alive
+duration so we would say start I alive and then end alive if the modifier is
+and then end alive if the modifier is conditions then we have the active
+conditions then we have the active feedback hook so this is as soon as its
+feedback hook so this is as soon as its condition starts being met we say start
+condition starts being met we say start active and active and then there was a
+active and active and then there was a sneakier one which we didn't find
+sneakier one which we didn't find immediately this was effects applied
+immediately this was effects applied because sometimes I want my cool effects
+because sometimes I want my cool effects to only happen when my modifier actually
+to only happen when my modifier actually changed something in the gameplay so
+changed something in the gameplay so let's imagine that I have a damage buff
+let's imagine that I have a damage buff but then I never hit anyone well then
+but then I never hit anyone well then it's not very cool like my modifier
+it's not very cool like my modifier didn't actually change anything in the
+didn't actually change anything in the game so I want maybe some special effect
+game so I want maybe some special effect for that and what's really cool about
+for that and what's really cool about this effect applied is that we can send
+this effect applied is that we can send a callback to the origin system so in
+a callback to the origin system so in the next video we will see that in this
+the next video we will see that in this case we want to give a callback to the
+case we want to give a callback to the feed system so that we can have some
+feed system so that we can have some feedback in the HUD as well as on the
+feedback in the HUD as well as on the player sword so this is a feat that
+player sword so this is a feat that heals the player every time they kill
+heals the player every time they kill and then PC and we can see that we have
+and then PC and we can see that we have feedback both and effects on the player
+feedback both and effects on the player and in the bottom bottom left in the UI
+so the players have effects and sound and all this cool stuff but as
+and all this cool stuff but as developers we don't really get anything
+developers we don't really get anything like we need to be able to visualize the
+like we need to be able to visualize the system as well even without the pretty
+system as well even without the pretty effects and all of that so debug display
+effects and all of that so debug display is really crucial to this system we have
+is really crucial to this system we have two versions the first one is a lite
+two versions the first one is a lite version and as we can see it's
+version and as we can see it's unobtrusive it's easy to understand and
+unobtrusive it's easy to understand and it's not too detailed and as the
+it's not too detailed and as the programmer who worked on the system I
+programmer who worked on the system I always kept it active and this really
+always kept it active and this really made it easy to spot minor bugs like
+made it easy to spot minor bugs like modifiers that never end if someone
+modifiers that never end if someone forgot to set their duration the
+forgot to set their duration the conditions that are never met and it was
+conditions that are never met and it was good for designers for them to check if
+good for designers for them to check if their modifier was even on the entity
+their modifier was even on the entity you know that they were checking cuz
+you know that they were checking cuz they might be like oh cool I'm gonna
+they might be like oh cool I'm gonna start this modifier but then it you know
+start this modifier but then it you know they're like it doesn't work and I'm
+they're like it doesn't work and I'm like well did you check the debug
+like well did you check the debug display and then they're like oh yeah
+display and then they're like oh yeah it's not even on the player so then
+it's not even on the player so then their problem is higher up somewhere
+their problem is higher up somewhere else and finally we have also this debug
+else and finally we have also this debug display so this is way more detailed
+display so this is way more detailed this is more for when you get a
+this is more for when you get a mysterious bug at a testers desk and
+mysterious bug at a testers desk and you're not sure exactly which version of
+you're not sure exactly which version of the data they have so what's interesting
+the data they have so what's interesting about this is that we show both the data
+about this is that we show both the data so exactly what was set in the modifier
+so exactly what was set in the modifier all of the effects all the conditions
+all of the effects all the conditions and we also show the runtime info so the
+and we also show the runtime info so the origin the duration that's left and
+origin the duration that's left and whether the condition is currently being
+whether the condition is currently being met or not but it's a little hard to
+met or not but it's a little hard to read but it's okay so I want to take the
+read but it's okay so I want to take the rest of the time this time to talk about
+rest of the time this time to talk about challenges because that's really where
+challenges because that's really where where you can see interesting and new
+where you can see interesting and new things happen so there's three areas
+things happen so there's three areas that I want to talk about it's in terms
+that I want to talk about it's in terms of data what what did this entail for
+of data what what did this entail for effect stacking and for programming so
+effect stacking and for programming so the first issue that we encountered was
+the first issue that we encountered was usability and the property grid can get
+usability and the property grid can get a little
+a little it complicated and usually it's not so
+it complicated and usually it's not so bad for the modifying stats effect that
+bad for the modifying stats effect that I showed because it's always once you
+I showed because it's always once you know specific effect but the complexity
+know specific effect but the complexity in the usability really rose when we
+in the usability really rose when we added creating new effects because all
+added creating new effects because all of a sudden they there was like more
+of a sudden they there was like more layers in there so that was a little bit
+layers in there so that was a little bit a little bit harder to read and then
+a little bit harder to read and then another issue that we had was for
+another issue that we had was for standards so originally since this was
+standards so originally since this was only used by the feets there was one
+only used by the feets there was one designer associated to this and so he
+designer associated to this and so he had his own standards and then when
+had his own standards and then when others designers started using the
+others designers started using the system because well it was very powerful
+system because well it was very powerful so different features were like yeah we
+so different features were like yeah we should use the modifiers so then more
+should use the modifiers so then more and more people started using it and
+and more people started using it and that's where we had a lot of data
+that's where we had a lot of data duplication so some you know the
+duplication so some you know the modifiers were always meant to be a
+modifiers were always meant to be a little bit more generic but sometimes
+little bit more generic but sometimes that we were creating the same effect
+that we were creating the same effect many times in different files also the
+many times in different files also the naming conventions while there were none
+naming conventions while there were none so this is pretty much each designer did
+so this is pretty much each designer did whatever they wanted which was okay it's
+whatever they wanted which was okay it's just we wanted to keep that as clean as
+just we wanted to keep that as clean as possible and of course the more data you
+possible and of course the more data you have the more the harder it is to
+have the more the harder it is to enforce these standards I'm going to
+enforce these standards I'm going to talk about that a bit after the other
+talk about that a bit after the other problem we had was when we had
+problem we had was when we had duplicated data how do we feedback it
+duplicated data how do we feedback it like we needed our feedback artists to
+like we needed our feedback artists to go and plug their feedback on every
+go and plug their feedback on every single modifier file it was very easy to
+single modifier file it was very easy to miss some and it hindered prototyping
+miss some and it hindered prototyping because when we created new cool effects
+because when we created new cool effects well if you know they didn't know where
+well if you know they didn't know where to plug in the effects so we weren't
+to plug in the effects so we weren't able to visualize as well what was
+able to visualize as well what was happening so this was also a challenge
+happening so this was also a challenge so our solution something that we tried
+so our solution something that we tried was the called the status effects so
+was the called the status effects so what I've shown up till now the effects
+what I've shown up till now the effects are contained directly inside the
+are contained directly inside the modifiers and then you effects us the
+modifiers and then you effects us the effects effect effects the effects is
+effects effect effects the effects is plugged in on that file so what we did
+plugged in on that file so what we did is we extracted all of the effects and
+is we extracted all of the effects and we put it
+we put it inside a different structure that we
+inside a different structure that we call the status effects and the idea is
+call the status effects and the idea is that all the modifiers could reuse that
+that all the modifiers could reuse that and the status effects we're supposed to
+and the status effects we're supposed to be set up just once in a very generic
+be set up just once in a very generic way so damage boost you know very
+way so damage boost you know very standard and then they were to be used
+standard and then they were to be used referenced by all the modifiers so we
+referenced by all the modifiers so we were hoping to see less duplicated data
+were hoping to see less duplicated data more consistency and the standards and
+more consistency and the standards and yeah all these great things and then the
+yeah all these great things and then the effects could be plugged directly on the
+effects could be plugged directly on the status effect instead of each modifier
+so the question you might be asking yourself is how do we share you know
+yourself is how do we share you know these status effects if we want
+these status effects if we want different percentage values like in this
+different percentage values like in this case if I want my low-level shield to
+case if I want my low-level shield to only give a plus 5% and I want my super
+only give a plus 5% and I want my super heroic shield to give plus 50% of
+heroic shield to give plus 50% of defense let's say how can they share
+defense let's say how can they share that data well what we ended up doing is
+that data well what we ended up doing is having several levels of power inside
+having several levels of power inside our status effects so the the lead
+our status effects so the the lead designer the designer would would set up
+designer the designer would would set up all of these levels and then the
+all of these levels and then the modifiers would reference a specific
+modifiers would reference a specific level of a modifier so was this a
+level of a modifier so was this a success sort of sort of it's not perfect
+success sort of sort of it's not perfect so it actually worked pretty well for
+so it actually worked pretty well for some some designers mostly like the
+some some designers mostly like the designer who helped me make the system
+designer who helped me make the system it was very clear to him but I think we
+it was very clear to him but I think we didn't actually do a very good job at
+didn't actually do a very good job at teaching other designers how to use it
+teaching other designers how to use it so so there was a bit of a problem there
+so so there was a bit of a problem there and I think better tools would have
+and I think better tools would have helped with that so for the designers
+helped with that so for the designers that were that understood it and used it
+that were that understood it and used it it worked fantastically well like for
+it worked fantastically well like for the feats there's you know what you want
+the feats there's you know what you want to see is only like 20 status effects
+to see is only like 20 status effects and 100 modifiers that's the ideal but
+and 100 modifiers that's the ideal but for the designers who weren't using that
+for the designers who weren't using that it ended up just being an extra layer of
+it ended up just being an extra layer of complexity for them and they didn't
+complexity for them and they didn't really understand why they needed that
+really understand why they needed that so next
+the next topic I want to talk about is how to stack effects together when you
+how to stack effects together when you have effects that are coming from so
+have effects that are coming from so many different origins so at the
+many different origins so at the beginning we were doing it very naively
+beginning we were doing it very naively we were adding up the stats mode effect
+we were adding up the stats mode effect and modifications together so if I had a
+and modifications together so if I had a modifier that's a plus 40 percent damage
+modifier that's a plus 40 percent damage and then another one that said minus 15
+and then another one that said minus 15 percent damage my total would be 25
+percent damage my total would be 25 percent makes sense right
+percent makes sense right first problem encountered was busting
+first problem encountered was busting our like limits of like Opie this was
+our like limits of like Opie this was way too powerful we quickly went into
+way too powerful we quickly went into that realm so the first thing we
+that realm so the first thing we introduced was a min and a max pretty
+introduced was a min and a max pretty standard right and so what's interesting
+standard right and so what's interesting about this too is that we had different
+about this too is that we had different mins and maxes by stats that we wanted
+mins and maxes by stats that we wanted to be able to modify because maybe I
+to be able to modify because maybe I want to be able to revive someone a
+want to be able to revive someone a thousand percent faster but I never want
+thousand percent faster but I never want my damage to be more than like 200% so
+my damage to be more than like 200% so it's interesting to have this ability of
+it's interesting to have this ability of changing that now the second more
+changing that now the second more interesting problem that we had was how
+interesting problem that we had was how to deal with different origins so let's
+to deal with different origins so let's say I'm playing the campaign and I've
+say I'm playing the campaign and I've got a boss that does 10 damage normally
+got a boss that does 10 damage normally but I'm playing the campaign in easy
+but I'm playing the campaign in easy mode and let's say that means that he
+mode and let's say that means that he does 80% less damage so that would be 2
+does 80% less damage so that would be 2 damage but now if he activates a feat
+damage but now if he activates a feat that gives him plus 50% damage how do we
+that gives him plus 50% damage how do we stack these so the naive way would be
+stack these so the naive way would be minus 80 plus 50 which is negative 30
+minus 80 plus 50 which is negative 30 just 7 damage now that's kind of weird
+just 7 damage now that's kind of weird because my boss was hitting at 2 and now
+because my boss was hitting at 2 and now he's hitting 4 7 like what was this you
+he's hitting 4 7 like what was this you know so we had to do something a little
+know so we had to do something a little bit different what we ended up doing and
+bit different what we ended up doing and the correct way that we wanted the
+the correct way that we wanted the system to work was to apply the 80%
+system to work was to apply the 80% first and then the 50% so I gives us two
+first and then the 50% so I gives us two then plus 50% free so this led us to
+then plus 50% free so this led us to introducing the concept of core versus
+introducing the concept of core versus external modifier origins so core was
+external modifier origins so core was the gear the campaign and the AI
+the gear the campaign and the AI archetypes it's anything that's really
+archetypes it's anything that's really intrinsic to the character and that's
+intrinsic to the character and that's not going to change along the course of
+not going to change along the course of the game and for external that was
+the game and for external that was defeats the booths and the missions
+defeats the booths and the missions these are dynamic
+these are dynamic we want these DS can change and we want
+we want these DS can change and we want our players to know about them which
+our players to know about them which also leads me to feedback again we did
+also leads me to feedback again we did not want to feedback the core modifiers
+not want to feedback the core modifiers but we wanted to feedback the external
+but we wanted to feedback the external ones because the player needs to change
+ones because the player needs to change their play style when that happens so we
+their play style when that happens so we need to again communicate that so what's
+need to again communicate that so what's this concept of success yes yes it was
+this concept of success yes yes it was so it worked well on the players side
+so it worked well on the players side they understood when they needed to
+they understood when they needed to change their play style on the data side
+change their play style on the data side this also enabled us to reuse the same
+this also enabled us to reuse the same status effects and even the same
+status effects and even the same modifiers because we were able to do
+modifiers because we were able to do that and it made it easier to balance
+that and it made it easier to balance the campaign and the gear because we
+the campaign and the gear because we didn't have to worry about the relative
+didn't have to worry about the relative power of modifiers however it also made
+power of modifiers however it also made the code a little bit more complicated
+the code a little bit more complicated because we had to handle two layers of
+because we had to handle two layers of stacking and it made it a little bit
+stacking and it made it a little bit harder to predict the behavior of
+harder to predict the behavior of modifiers because the same modifier
+modifiers because the same modifier applied by two different origins could
+applied by two different origins could have different effects on the game but
+have different effects on the game but with debug display this was alright so
+with debug display this was alright so for programming one of the major
+for programming one of the major challenges was the API it's making your
+challenges was the API it's making your code easy to use for programmers it's
+code easy to use for programmers it's just as important as making your data
+just as important as making your data easy to use for designers they might
+easy to use for designers they might have to add their own effects they and
+have to add their own effects they and it's the thing is these modifiers were
+it's the thing is these modifiers were getting called a bit all over the place
+getting called a bit all over the place we have so many different types of
+we have so many different types of effects and even though each effect is
+effects and even though each effect is checked generally just in one place in
+checked generally just in one place in the code well every time you add a new
+the code well every time you add a new one that's an extra code
+one that's an extra code so the beginning our code to compute the
+so the beginning our code to compute the modified value is about seven lines long
+modified value is about seven lines long and this was really like horrible and it
+and this was really like horrible and it included computations of the plus and
+included computations of the plus and minus and sometimes we were like getting
+minus and sometimes we were like getting getting the computation wrong so we did
+getting the computation wrong so we did a big pass on the API and we created a
+a big pass on the API and we created a separate modifier utilities file that
+separate modifier utilities file that handles all of our basic queries in a
+handles all of our basic queries in a very clear way and concise way and the
+very clear way and concise way and the idea is to encapsulate the complexity as
+idea is to encapsulate the complexity as much as possible
+so data-driven is always a challenge for programmers because we don't like giving
+programmers because we don't like giving up control and I understand but in this
+up control and I understand but in this case in general it worked out very very
+case in general it worked out very very well for us because the effects were
+well for us because the effects were always checked in one place and it was
+always checked in one place and it was not very complicated what each effect
+not very complicated what each effect was doing so generally it was fine
+was doing so generally it was fine the one case where it was problematic
+the one case where it was problematic was when we were trying to compute the
+was when we were trying to compute the amount of bleeding that was going to
+amount of bleeding that was going to happen and now this seems like a silly
+happen and now this seems like a silly example but it's it like this function
+example but it's it like this function to compute that little red bar is like a
+to compute that little red bar is like a hundred lines long because we have to go
+hundred lines long because we have to go through all of our modifiers and then
+through all of our modifiers and then check inside their status facts and then
+check inside their status facts and then check each of their effects like okay is
+check each of their effects like okay is this a looping attack oh good that's a
+this a looping attack oh good that's a poison effect but then you have to go
+poison effect but then you have to go back and check how much time is left on
+back and check how much time is left on my modifier and then you have to add all
+my modifier and then you have to add all of those together so this was a bit
+of those together so this was a bit inelegant and I hope that you know it's
+inelegant and I hope that you know it's it's bound to happen if you have to go
+it's bound to happen if you have to go and peek inside that data to do things
+and peek inside that data to do things another note on the poison and damage
+another note on the poison and damage over time effects so we realized that we
+over time effects so we realized that we were gonna need to add an extra feature
+were gonna need to add an extra feature to our modifier system so let's say this
+to our modifier system so let's say this enemy here is really mean and he's
+enemy here is really mean and he's applying damage over time and he's like
+applying damage over time and he's like haha now you're poisoned so I start
+haha now you're poisoned so I start bleeding to damage to damage
+bleeding to damage to damage and now he gets a damage boosts so the
+and now he gets a damage boosts so the like I said the damage over time is
+like I said the damage over time is treated as a normal attack so how do we
+treated as a normal attack so how do we figure out that like normally that the
+figure out that like normally that the damage boost would be applying on the
+damage boost would be applying on the bleed but that wouldn't feel good
+bleed but that wouldn't feel good because you know it's it's overtime so
+because you know it's it's overtime so ten seconds after if he gets a damage
+ten seconds after if he gets a damage boost and I start bleeding more maybe
+boost and I start bleeding more maybe like what happened it's really hard for
+like what happened it's really hard for the player to read that but we still
+the player to read that but we still want the damage to apply if the boost
+want the damage to apply if the boost happened before the bleed so what we
+happened before the bleed so what we ended up doing was introducing the
+ended up doing was introducing the concept of snapshots so the each effect
+concept of snapshots so the each effect can say oh I'm gonna require a snapshot
+can say oh I'm gonna require a snapshot and we're gonna store that in the
+and we're gonna store that in the modifier entry and we take it as when we
+modifier entry and we take it as when we create when we activate a new modifier
+create when we activate a new modifier at the beginning of that we're gonna
+at the beginning of that we're gonna take a snapshot of the current modifiers
+take a snapshot of the current modifiers affecting the attack of the attacker and
+affecting the attack of the attacker and the defense of the victim and then when
+the defense of the victim and then when we go through that attack code we're
+we go through that attack code we're going to use the snapshots instead of
+going to use the snapshots instead of the current modifier State so
+the current modifier State so optimization as you might have noticed
+optimization as you might have noticed we do polling on this system and we have
+we do polling on this system and we have about 3,000 queries per frame because of
+about 3,000 queries per frame because of all our different 200 soldiers and then
+all our different 200 soldiers and then eight players so that can be a bit much
+eight players so that can be a bit much so we had to optimize it especially at
+so we had to optimize it especially at the end of course so the first thing
+the end of course so the first thing that we did is have a maximum amount of
+that we did is have a maximum amount of entries per entity type
+entries per entity type so our soldiers we don't really need
+so our soldiers we don't really need them to be complicated we gave them a
+them to be complicated we gave them a maximum of 6 modifiers
+maximum of 6 modifiers but our players well they can have a lot
+but our players well they can have a lot of stuff happen to them so they have up
+of stuff happen to them so they have up to 30 this was good but it wasn't enough
+to 30 this was good but it wasn't enough so we added a bit field so basically
+so we added a bit field so basically every time I activate a new modifier I
+every time I activate a new modifier I update a bit field saying what effects
+update a bit field saying what effects I'm currently changing so if I add a
+I'm currently changing so if I add a damage boost then
+damage boost then the damage boost bit I'm going to say
+the damage boost bit I'm going to say one and then that that's how it's gonna
+one and then that that's how it's gonna work and then once I do my query I know
+work and then once I do my query I know exactly what I'm what I'm looking for
+exactly what I'm what I'm looking for like I'm looking for damage and I can
+like I'm looking for damage and I can immediately check right away if I have
+immediately check right away if I have that one there or not and if I don't
+that one there or not and if I don't have an effect that touches this value I
+have an effect that touches this value I completely bypass the query this made us
+completely bypass the query this made us save about like 80 percent in
+save about like 80 percent in performance because it also makes sense
+performance because it also makes sense since not of all of our entities can
+since not of all of our entities can react to things like we don't really
+react to things like we don't really want to have a revive for our soldiers
+want to have a revive for our soldiers that's not something that's important
+that's not something that's important and instead of having to add specific
+and instead of having to add specific checks in the code by effect type thing
+checks in the code by effect type thing like oh if it's a revive and I'm a
+like oh if it's a revive and I'm a minion don't do it don't do the check
+minion don't do it don't do the check like this query just this bit field
+like this query just this bit field allows us to bypass that no matter what
+allows us to bypass that no matter what because they won't be affected by that
+because they won't be affected by that so to recap the things that went right
+so to recap the things that went right modifiers were used everywhere this is
+modifiers were used everywhere this is cool all of our systems were using it it
+cool all of our systems were using it it was a centralized way for our game
+was a centralized way for our game designers to input content into the game
+designers to input content into the game debug info was so so important it
+debug info was so so important it allowed our designers to really
+allowed our designers to really visualize the system and not just our
+visualize the system and not just our designers actually us to like we it was
+designers actually us to like we it was a it was super useful to understand what
+a it was super useful to understand what was going on ownership I think was key
+was going on ownership I think was key as well I was the only programmer on
+as well I was the only programmer on this system and I was working very
+this system and I was working very closely in collaboration with a designer
+closely in collaboration with a designer and we really tried to make the system
+and we really tried to make the system appropriate for the needs of the project
+appropriate for the needs of the project and their workflow and finally I think
+and their workflow and finally I think that the reason it worked was because it
+that the reason it worked was because it was so simple our effects are generally
+was so simple our effects are generally not very complicated and we didn't do
+not very complicated and we didn't do like node driven things we we didn't let
+like node driven things we we didn't let our designer to shoot themselves in the
+our designer to shoot themselves in the foot because when it's complicated then
+foot because when it's complicated then it's it's so much harder for everyone
+it's it's so much harder for everyone it's harder to optimize it's harder to
+it's harder to optimize it's harder to debug and you end up if it's too
+debug and you end up if it's too complicated you end up having to do a
+complicated you end up having to do a lot of the data yourself whereas here
+lot of the data yourself whereas here they were really independent
+so the modifier is there were about these are our numbers there's about 60
+these are our numbers there's about 60 used for the fight system 200 for the
+used for the fight system 200 for the feets 40 for the gear and 200 for the
+feets 40 for the gear and 200 for the campaign and we had an extra 200 that
+campaign and we had an extra 200 that were used just for prototyping so things
+were used just for prototyping so things that could have gone better the
+that could have gone better the modifiers were used everywhere
+modifiers were used everywhere so sometimes modifiers were not you know
+so sometimes modifiers were not you know the best solution to things like
+the best solution to things like especially things like friendly fire in
+especially things like friendly fire in campaign
+campaign there's the modifier on each of those
+there's the modifier on each of those soldiers saying I'm not gonna damage my
+soldiers saying I'm not gonna damage my allies like no no that's that's way too
+allies like no no that's that's way too much cost and it's something that we
+much cost and it's something that we know is always going to be true in
+know is always going to be true in campaign it would have been just a lot
+campaign it would have been just a lot easier to do it without going through
+easier to do it without going through that there are also cases where you know
+that there are also cases where you know if they take no damage and you push them
+if they take no damage and you push them off a cliff like what happens I had to
+off a cliff like what happens I had to be careful with that in terms of testing
+be careful with that in terms of testing as well so generally since this is the
+as well so generally since this is the system was pretty simple there were
+system was pretty simple there were really few bugs it was it was really
+really few bugs it was it was really nice but when there were bugs that I
+nice but when there were bugs that I would introduce I would usually like no
+would introduce I would usually like no one would know and there's a little bit
+one would know and there's a little bit sad sometimes but so I'd realize happy
+sad sometimes but so I'd realize happy like this hasn't been working for two
+like this hasn't been working for two weeks and you know it runs like a cool
+weeks and you know it runs like a cool cool so so really like I testing it
+cool so so really like I testing it could have been a little bit better but
+could have been a little bit better but sometimes it's hard to know the
+sometimes it's hard to know the difference between like a 24 percent and
+difference between like a 24 percent and a 26 percent so that's where debug tools
+a 26 percent so that's where debug tools are really useful and yeah just knowing
+are really useful and yeah just knowing the system since it's used everywhere
+the system since it's used everywhere it's good if we try to share that
+it's good if we try to share that responsibility like each designer can
+responsibility like each designer can try and know their system really well
+try and know their system really well and just check that it's fine you know
+and just check that it's fine you know every once in a while and finally in
+every once in a while and finally in terms of usability there was still hard
+terms of usability there was still hard for our designers to to like see the
+for our designers to to like see the data to set up the data itself sometimes
+data to set up the data itself sometimes like they'd get too absorbed into the
+like they'd get too absorbed into the property grid and then like sometimes
+property grid and then like sometimes they would do loops so yeah so this
+they would do loops so yeah so this brings me that the future plans I'd
+brings me that the future plans I'd really like to have a dedicated editor
+really like to have a dedicated editor to help with the setup of the data and
+to help with the setup of the data and the
+the bugging as well an optimization that
+bugging as well an optimization that would be nice is for permanent modifiers
+would be nice is for permanent modifiers basically right now our gear is always
+basically right now our gear is always there during the course of the game you
+there during the course of the game you can't change it at runtime and it takes
+can't change it at runtime and it takes up 18 of our 30 slots which is a lot but
+up 18 of our 30 slots which is a lot but if they have conditions we need to keep
+if they have conditions we need to keep them as runtime entries but for those
+them as runtime entries but for those that have no duration and no condition
+that have no duration and no condition we could just you know store them
+we could just you know store them somewhere else just considering still
+somewhere else just considering still that memory was really a scarce resource
+that memory was really a scarce resource for us so I'll try to find a way to do
+for us so I'll try to find a way to do that the status effects we want to see
+that the status effects we want to see evaluate them and make sure that they're
+evaluate them and make sure that they're still what we want to do I think one of
+still what we want to do I think one of the things is that right now every
+the things is that right now every effect needs to go through a modify
+effect needs to go through a modify yeah every effect needs to go through a
+yeah every effect needs to go through a status effect and that's not necessarily
+status effect and that's not necessarily very useful when you're creating new
+very useful when you're creating new effects because you're you're usually
+effects because you're you're usually referencing a specific effect like I
+referencing a specific effect like I want to create this specific area of
+want to create this specific area of effect or I want to apply this specific
+effect or I want to apply this specific modifier so maybe there's something to
+modifier so maybe there's something to rework there and then I'd like even more
+rework there and then I'd like even more debug display for our testers like
+debug display for our testers like seeing exactly how much the total of the
+seeing exactly how much the total of the modifications that's happening like what
+modifications that's happening like what was the final state you know so to
+was the final state you know so to conclude I think this moderate this the
+conclude I think this moderate this the system was really empowering for our
+system was really empowering for our designers it gave them hope like they
+designers it gave them hope like they were like oh maybe I can prototype this
+were like oh maybe I can prototype this by myself and they were all excited and
+by myself and they were all excited and I went in their corner and like jammed
+I went in their corner and like jammed and that was really really nice like
+and that was really really nice like they were they were enthusiastic about
+they were they were enthusiastic about their work and it led them to iterate
+their work and it led them to iterate more and experiment more which
+more and experiment more which ultimately I think created a better game
+ultimately I think created a better game so thank you
+is there time for questions I don't know yes okay but one okay cool thanks yes I
+yes okay but one okay cool thanks yes I went to the previous talk yeah and he
+went to the previous talk yeah and he had the simulation as deterministic and
+had the simulation as deterministic and so it would back step because of inputs
+so it would back step because of inputs and everything like that I'm gonna
+and everything like that I'm gonna assume that had a huge effect on your
+assume that had a huge effect on your modifiers uh so because there's damage
+modifiers uh so because there's damage over time it has to be backed out and
+over time it has to be backed out and then recalculated yeah yeah that's a
+then recalculated yeah yeah that's a great question
+great question so actually we were we were really lucky
+so actually we were we were really lucky because so there is a history buffer for
+because so there is a history buffer for the modifiers as well they're all stored
+the modifiers as well they're all stored in a deterministic yes so when we go
+in a deterministic yes so when we go back in time we just go back to that
+back in time we just go back to that stage and then like so we revert the
+stage and then like so we revert the health weary hurt ever all the modifiers
+health weary hurt ever all the modifiers had to be kept track of and everything
+had to be kept track of and everything and then you had to maybe change which
+and then you had to maybe change which ones are applied yeah yeah wait can you
+ones are applied yeah yeah wait can you repeat that well I mean because I mean
+repeat that well I mean because I mean because the timing of things are things
+because the timing of things are things so somebody so you find out that
+so somebody so you find out that somebody applied in a fit hit a button
+somebody applied in a fit hit a button they caused an ability that removed a
+they caused an ability that removed a modifier so the modifier you already
+modifier so the modifier you already calculated turns out it didn't happen in
+calculated turns out it didn't happen in that frame because now it's been removed
+that frame because now it's been removed and that changed anyways you know that's
+and that changed anyways you know that's a great question so so since since it is
+a great question so so since since it is in the in a state when we roll back to a
+in the in a state when we roll back to a previous time everyone's going to be in
+previous time everyone's going to be in the right modifier state so if if they
+the right modifier state so if if they if it turns out that that modifier got
+if it turns out that that modifier got removed then we're when we roll back
+removed then we're when we roll back it's still there
+it's still there and then we can resem you late all the
+and then we can resem you late all the steps and come back to the to the same
+steps and come back to the to the same conclusion so it's we were so lucky with
+conclusion so it's we were so lucky with that was the the way our simulation was
+that was the the way our simulation was made we as gameplay programmers we
+made we as gameplay programmers we almost didn't have to ever think about
+almost didn't have to ever think about those sorts of so just kind of worked
+those sorts of so just kind of worked for you yes it was great thank you yeah
+for you yes it was great thank you yeah hi you said you have problems of testing
+hi you said you have problems of testing yeah did you do any in unit testing unit
+yeah did you do any in unit testing unit testing so we're actually starting that
+testing so we're actually starting that yeah we were we didn't do any yet and I
+yeah we were we didn't do any yet and I think that could have helped like so
+think that could have helped like so much really especially when the system
+much really especially when the system you know became more complicated like
+you know became more complicated like all these different origins and the
+all these different origins and the stacking and all of that
+stacking and all of that been so useful so I think it's
+been so useful so I think it's definitely something that I want to add
+definitely something that I want to add okay and I have a short question because
+okay and I have a short question because of these handlers and these arrays and
+of these handlers and these arrays and with masks and so on have you considered
+with masks and so on have you considered using an entity component system to
+using an entity component system to actually code the whole game which would
+actually code the whole game which would have solved all of your problems what do
+have solved all of your problems what do you mean
+so I would have to explain what is the most we could we use entity component
+most we could we use entity component system already oh no that's why okay
+system already oh no that's why okay I'll talk to you yeah I have a two
+I'll talk to you yeah I have a two question about the modifiers
+question about the modifiers I saw years ago I do own a similar
+I saw years ago I do own a similar assistant before I made - I see a little
+assistant before I made - I see a little hard why the some effect depending on
+hard why the some effect depending on the resources you use the energy use
+the resources you use the energy use person for example some ports a monster
+person for example some ports a monster is a very big relief at all and some is
+is a very big relief at all and some is very small and that there if you there
+very small and that there if you there some sense the same modifier we attach
+some sense the same modifier we attach or same particle in special pump but the
+or same particle in special pump but the two different master have a different
+two different master have a different skeleton so how do you do this another
+skeleton so how do you do this another question is how is it if we - for
+question is how is it if we - for example - total modifier tip mmm
+example - total modifier tip mmm active in the same energy and then do
+active in the same energy and then do the same thing and at the same thing we
+the same thing and at the same thing we are completed with each other for
+are completed with each other for example them play this animation or
+example them play this animation or change lesson per meter of Mateus
+change lesson per meter of Mateus yeah okay I see we yeah so so most of
+yeah okay I see we yeah so so most of our effect types they stack nicely that
+our effect types they stack nicely that I forgot to say that but so basically we
+I forgot to say that but so basically we try to avoid that problem so the when we
+try to avoid that problem so the when we disable capabilities it's always disable
+disable capabilities it's always disable them so the capabilities means
+them so the capabilities means you can't go into a certain animations
+you can't go into a certain animations so it's always it's always negative so
+so it's always it's always negative so it's it doesn't matter the same for like
+it's it doesn't matter the same for like tags basically we don't have any
+tags basically we don't have any conflicts except except for the the
+conflicts except except for the the modifying of stats you know so adding
+modifying of stats you know so adding percentages together but we don't have
+percentages together but we don't have effect that that conflict otherwise okay
+effect that that conflict otherwise okay well and it actually the there was a
+well and it actually the there was a slight version of that you know when we
+slight version of that you know when we were what happened is we had a health
+were what happened is we had a health regeneration and the damage overtime at
+regeneration and the damage overtime at the same time and that was really hard
+the same time and that was really hard for the player to read and understand so
+for the player to read and understand so that's why we introduced the concept of
+that's why we introduced the concept of removing modifiers so that way I can say
+removing modifiers so that way I can say as soon as I start healing I removed my
+as soon as I start healing I removed my damage over time so we sort of bypassed
+damage over time so we sort of bypassed it yeah it was kind of curious how you
+it yeah it was kind of curious how you handle balancing all of your effects
+handle balancing all of your effects across from each other for your
+across from each other for your designers because I didn't really notice
+designers because I didn't really notice any system for actually like looking at
+any system for actually like looking at in bulk multiple items and like stacking
+in bulk multiple items and like stacking them up and all that and I know I could
+them up and all that and I know I could never get our designer out of Excel
+never get our designer out of Excel because of that very reason yeah that's
+because of that very reason yeah that's a very good question how do we handle
+a very good question how do we handle balancing so we don't have an official
+balancing so we don't have an official process but basically we try to get
+process but basically we try to get designers to talk to each other is that
+designers to talk to each other is that it's really that simple
+it's really that simple so we and we they really do talk a lot
+so we and we they really do talk a lot it's nice because yeah we have the gear
+it's nice because yeah we have the gear yeah excellent excellent hammer yeah
+yeah excellent excellent hammer yeah okay so there's also an Excel version of
+okay so there's also an Excel version of adding these modifiers too which help
+adding these modifiers too which help visualize all of the different levels so
+visualize all of the different levels so for our gear for instance we you know it
+for our gear for instance we you know it can be hard for a designer to like keep
+can be hard for a designer to like keep track of opening each data entry and
+track of opening each data entry and being like okay how much is it so they
+being like okay how much is it so they can actually export that and import it
+can actually export that and import it back in Excel where they have a pretty
+back in Excel where they have a pretty good view of it but then for stacking
+good view of it but then for stacking between different types well we just we
+between different types well we just we asked them to talk to each other
+hey great talk I'm currently using a similar system even if it's a bit less
+similar system even if it's a bit less less evolved and my question is have you
+less evolved and my question is have you ever encountered the the issue that you
+ever encountered the the issue that you have a modifier that turns the feature
+have a modifier that turns the feature on and out enables something or disable
+on and out enables something or disable something and then the assets that you
+something and then the assets that you need for this feature needs to be baked
+need for this feature needs to be baked or cooked in the game so since it's all
+or cooked in the game so since it's all data driven
+data driven mm-hmm did you have to manage this in a
+mm-hmm did you have to manage this in a special way on that I mean do you see my
+special way on that I mean do you see my point I think I said do you mean like in
+point I think I said do you mean like in terms of for instance like effects and
+terms of for instance like effects and sound loading yeah
+sound loading yeah or animations or voices so that's
+or animations or voices so that's actually something that we have to work
+actually something that we have to work on as a team because right now we load a
+on as a team because right now we load a lot of things but there would be a way
+lot of things but there would be a way to do that the thing is that it does
+to do that the thing is that it does like we try to load only what is
+like we try to load only what is currently used in the game but it's all
+currently used in the game but it's all it's all through references you know so
+it's all through references you know so if if we have something that's pointing
+if if we have something that's pointing towards that effects it's going to be
+towards that effects it's going to be loaded but right now the problem is we
+loaded but right now the problem is we load all the other parents things just
+load all the other parents things just reference everything so yeah yeah so for
+reference everything so yeah yeah so for instance the the feats right now even
+instance the the feats right now even though you can only equip for in-game
+though you can only equip for in-game and you can't change them we're still
+and you can't change them we're still loading all of them for all of our
+loading all of them for all of our characters which points to a lot of
+characters which points to a lot of effects and sound data but we're gonna
+effects and sound data but we're gonna we're gonna we're planning on removing
+we're gonna we're planning on removing and only deleting the ones that we need
+and only deleting the ones that we need so that should help a lot thank you okay
+so that should help a lot thank you okay well thank you
+well thank you [Applause]

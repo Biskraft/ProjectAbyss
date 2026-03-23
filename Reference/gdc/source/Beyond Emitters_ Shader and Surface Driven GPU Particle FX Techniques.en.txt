@@ -1,0 +1,1266 @@
+[Music] welcome to
+welcome to beyond emitters shader and surface
+beyond emitters shader and surface driven gpu
+driven gpu particle effects techniques
+particle effects techniques this is a talk about particle effects
+this is a talk about particle effects this talk is not just aimed at graphics
+this talk is not just aimed at graphics programmers
+programmers but also technical artists and vfx
+but also technical artists and vfx artists it's very much a
+artists it's very much a hybrid talk
+so a quick intro about myself i've been working in the game industry since 1994.
+working in the game industry since 1994. mainly as a optimization and rendering
+mainly as a optimization and rendering programmer for
+programmer for a lot of aaa games with some
+a lot of aaa games with some technical artists work on several of
+technical artists work on several of them
+them these days i do many roles because i'm
+these days i do many roles because i'm independent
+independent and i focus a lot more now
+and i focus a lot more now on art vfx even animation and rigging
+on art vfx even animation and rigging because
+because for me i feel like there's some kind of
+for me i feel like there's some kind of special stuff that sort of lies between
+special stuff that sort of lies between disciplines and so
+disciplines and so i really like doing a little bit of
+i really like doing a little bit of everything these days
+so the agenda for this talk is first of all i'm going to just go
+all i'm going to just go over quickly what the target platform
+over quickly what the target platform and the design goals
+and the design goals were basically what motivated me to
+were basically what motivated me to focus just on particle related
+focus just on particle related emission and effects and i'll talk about
+emission and effects and i'll talk about some
+some uh inspiration also some
+uh inspiration also some experimentations that i initially
+experimentations that i initially started with that
+started with that worked out pretty well but they have
+worked out pretty well but they have limitations
+limitations and then i'll eventually get to my sort
+and then i'll eventually get to my sort of
+of what i call my favorite technique that's
+what i call my favorite technique that's i feel is very robust and creates some
+i feel is very robust and creates some pretty cool stuff
+pretty cool stuff uh if you follow me on twitter you may
+uh if you follow me on twitter you may have seen some of that
+have seen some of that i'll also touch a bit on workflow and
+i'll also touch a bit on workflow and optimization
+optimization and at the end there'll be a question
+and at the end there'll be a question and answer
+so the development platform in target this was decided by me a few years ago
+this was decided by me a few years ago directx 11 shader model
+directx 11 shader model and it works with forward and deferred
+and it works with forward and deferred rendering
+rendering i've been using unity for several years
+i've been using unity for several years now and i
+now and i so i started with way back like unity 4
+so i started with way back like unity 4 and pretty much up to the current
+and pretty much up to the current version right now
+version right now so a lot of this material i'm covering
+so a lot of this material i'm covering requires you to have some amount of
+requires you to have some amount of access or
+access or a connection to compute instance
+a connection to compute instance and procedural drawing methods to draw a
+and procedural drawing methods to draw a lot of this stuff
+lot of this stuff efficiently but it's adaptable to
+efficiently but it's adaptable to any engine and a lot of platforms
+so design goals there's many commonly supported particle emission primitives
+supported particle emission primitives and
+and many engines already points lines
+many engines already points lines spheres cones
+spheres cones um so on and so forth and even meshes
+um so on and so forth and even meshes these days
+these days or skin meshes but my frustration with
+or skin meshes but my frustration with particle emission from meshes
+particle emission from meshes but it's still in many engines limited
+but it's still in many engines limited to
+to just vertices edges and
+just vertices edges and random points just on top of triangles
+random points just on top of triangles so we don't really get much
+so we don't really get much sort of interesting finer sort of
+sort of interesting finer sort of coloring or
+coloring or extra control and if you want particles
+extra control and if you want particles to just emit from say part of a mesh
+to just emit from say part of a mesh uh you usually have to sort of chip that
+uh you usually have to sort of chip that off into its own sub-object and it's
+off into its own sub-object and it's not sort of the greatest workflow in my
+not sort of the greatest workflow in my opinion
+so a lot of my own shader work and personal style involves mixing
+personal style involves mixing animated and procedural effects things
+animated and procedural effects things are intended to be more surreal
+are intended to be more surreal or abstract looking instead of looking
+or abstract looking instead of looking realistic but all of this stuff
+realistic but all of this stuff i'm covering today could work for
+i'm covering today could work for realistic as well
+realistic as well but personally i really wanted these
+but personally i really wanted these dynamic and usually animating shaders
+dynamic and usually animating shaders because i like things moving around
+because i like things moving around to give birth to particles in
+to give birth to particles in interesting ways
+interesting ways so even if they were simply mapped on a
+so even if they were simply mapped on a wall or a simple mesh
+wall or a simple mesh i wanted particles to sort of come off
+i wanted particles to sort of come off of those surfaces that
+of those surfaces that made it actually look like it was
+made it actually look like it was fragments of that surface chipping away
+fragments of that surface chipping away and dissolving
+so to elaborate further my ambitious goal is to have particles
+my ambitious goal is to have particles emit from literally everything in the
+emit from literally everything in the world
+world that was kind of one of the core pillars
+that was kind of one of the core pillars i was working towards for my own game
+i was working towards for my own game so for the last couple years i've chased
+so for the last couple years i've chased this goal to make
+this goal to make environments characters pretty much
+environments characters pretty much anything you can think of or render on
+anything you can think of or render on the screen
+the screen emit particles so how do we do that
+emit particles so how do we do that i also wanted much finer detail in that
+i also wanted much finer detail in that expression specifically i wanted
+expression specifically i wanted particles to come off of objects inherit
+particles to come off of objects inherit the surface properties of those objects
+the surface properties of those objects that spawn them i wanted to paint and
+that spawn them i wanted to paint and meshes and work in a very visual way and
+meshes and work in a very visual way and workflow
+workflow make things very artist-friendly instead
+make things very artist-friendly instead of lots of numbers and sliders and a
+of lots of numbers and sliders and a property panel
+so in our industry there's a general avoidance to discuss
+avoidance to discuss failure or even talk about the small
+failure or even talk about the small steps that we take
+steps that we take as we move towards our super big huge
+as we move towards our super big huge dream goals not everything is an
+dream goals not everything is an explosive breakthrough
+explosive breakthrough uh we usually present a lot of material
+uh we usually present a lot of material at talks in conferences sort of like hey
+at talks in conferences sort of like hey this is all done this works like go and
+this is all done this works like go and use it it's awesome
+use it it's awesome but i think there's a lot of material
+but i think there's a lot of material that sort of you know works 90
+that sort of you know works 90 of the time or it's if you're aware of
+of the time or it's if you're aware of the special cases
+the special cases this stuff is actually very valuable to
+this stuff is actually very valuable to other developers and i
+other developers and i i really wish we would sort of share
+i really wish we would sort of share more of that stuff
+more of that stuff so in this presentation i'm going to
+so in this presentation i'm going to cover uh some of the
+cover uh some of the some of those things that are don't
+some of those things that are don't really work for my game but
+really work for my game but depending on your game and your camera
+depending on your game and your camera view
+view and performance and other things like
+and performance and other things like that you may find some inspiration
+that you may find some inspiration or ideas to chase yourself
+so looking back i would say this is the original seed of the idea of
+this is the original seed of the idea of wanting to spawn particles from
+wanting to spawn particles from everything this is a really old
+everything this is a really old demo uh from unity when they started
+demo uh from unity when they started supporting directx directx11 but it
+supporting directx directx11 but it basically just
+basically just renders an image and looks at the bright
+renders an image and looks at the bright parts and
+parts and draws little sprite flares and i thought
+draws little sprite flares and i thought well
+well that'd be cool if it spawned particles
+that'd be cool if it spawned particles instead and they you know sort of flew
+instead and they you know sort of flew off instead of it just being like draw
+off instead of it just being like draw stars on the shiny
+stars on the shiny parts of objects
+so a number of view dependent experiments i'll
+experiments i'll cover now so these experiments only work
+cover now so these experiments only work within the view of the camera
+within the view of the camera but they create some interesting effects
+but they create some interesting effects that may be of use for certain games or
+that may be of use for certain games or have specific use cases that work within
+have specific use cases that work within those
+those constraints
+so the first one i made after looking at the original sample that was the sort of
+the original sample that was the sort of the seed of the
+the seed of the idea was the particle collector
+idea was the particle collector it was to just take your zpre pass
+it was to just take your zpre pass and render the mesh interception objects
+and render the mesh interception objects against that depth and just mark them
+against that depth and just mark them into a render target
+into a render target and i like this because there's actually
+and i like this because there's actually a sort of an upper bound on how many
+a sort of an upper bound on how many particles you can potentially emit
+particles you can potentially emit because for any given x y coordinate
+because for any given x y coordinate you know you're a render target you're
+you know you're a render target you're only emitting one place there so
+only emitting one place there so if you had say a wall
+if you had say a wall and a bunch of decals or or something
+and a bunch of decals or or something covering it
+covering it you're not going to like just draw like
+you're not going to like just draw like tons and tons of them
+tons and tons of them so to discuss more in this one
+so there's basically a full screen pass at the end
+at the end and we just look at the parts that we
+and we just look at the parts that we marked of interest
+marked of interest and right out in the fragment shader at
+and right out in the fragment shader at this
+this at this point two and a pen buffer uh
+at this point two and a pen buffer uh those particle positions because we
+those particle positions because we reconstruct the world space position
+reconstruct the world space position uh from the copy of the depth and the
+uh from the copy of the depth and the marked pixels in the render target
+marked pixels in the render target and then this feeds into the particle
+and then this feeds into the particle gpr gpu particle engine
+so here's the demo of one of my first experiments
+experiments so this is a depth intersection there's
+so this is a depth intersection there's uh
+uh the top left the sort of the debug view
+the top left the sort of the debug view of the render target so where the
+of the render target so where the intersection of those mesh objects and
+intersection of those mesh objects and the depth happens
+the depth happens i decided to part spawn particles there
+i decided to part spawn particles there so
+so this is pretty fun and i had tons and
+this is pretty fun and i had tons and tons of ideas
+tons of ideas with this you can have a water plane
+with this you can have a water plane intersect geometry
+intersect geometry or all kinds of things and
+or all kinds of things and i played around with this quite a lot
+i played around with this quite a lot and had a lot of fun
+and had a lot of fun but this creates some pretty interesting
+but this creates some pretty interesting effects but we're dealing with a view
+effects but we're dealing with a view dependent approach here
+dependent approach here so as faces become thin and edge on to
+so as faces become thin and edge on to the view
+the view we have fewer and fewer samples and
+we have fewer and fewer samples and eventually it becomes
+eventually it becomes fully edge on our back face and we get
+fully edge on our back face and we get nothing
+nothing so here in the highlighted red areas
+so here in the highlighted red areas there's a difference in actual volume
+there's a difference in actual volume of the particles so we have some
+of the particles so we have some problems with things sort of flattening
+problems with things sort of flattening out or entirely
+disappearing so one way to think of this is that
+so one way to think of this is that every single pixel
+every single pixel is a particle emitter it doesn't have to
+is a particle emitter it doesn't have to emit just one it connects
+emit just one it connects it could emit as many as we want it's
+it could emit as many as we want it's just we have to write that in fragment
+just we have to write that in fragment shader
+shader less visible pixels equals less spawn
+less visible pixels equals less spawn particles
+so with the limited depth information for the surface is
+for the surface is perpendicular to the camera view it's
+perpendicular to the camera view it's causing the effect to break down
+causing the effect to break down so large gaps um appear if
+so large gaps um appear if we swing the camera around to the side
+we swing the camera around to the side in a scene view or something detached
+in a scene view or something detached from the normal rendered view
+from the normal rendered view so on the left we see these sort of
+so on the left we see these sort of scraped out or
+scraped out or sort of gaps it kind of reminds me of uh
+sort of gaps it kind of reminds me of uh shadow mapping acne or something because
+shadow mapping acne or something because we're
+we're we're out of samples here
+so we don't have much to work with so how do we fix this
+how do we fix this so i'm quite a fan of
+so i'm quite a fan of workarounds or gentle hacks
+workarounds or gentle hacks so we can patch this with some extra
+so we can patch this with some extra things such as
+things such as extra particle emission actually if it
+extra particle emission actually if it starts to go edge on
+starts to go edge on and then also add some world space
+and then also add some world space jitter on top of the samples that we
+jitter on top of the samples that we actually have that are valid
+actually have that are valid so this is kind of a way to sort of fill
+so this is kind of a way to sort of fill fill in the gaps
+and the way we can detect this is obviously for a given sample
+obviously for a given sample we know what the surface normal is
+we know what the surface normal is relative to the eye view
+relative to the eye view direction now if we're doing
+direction now if we're doing faster or burst particle effects or
+faster or burst particle effects or layering this with other effects that
+layering this with other effects that aren't view dependent
+aren't view dependent a lot of these shortcomings we can kind
+a lot of these shortcomings we can kind of ignore it's just then like this is
+of ignore it's just then like this is just a little extra
+just a little extra vfx frosting on the cake
+so although the single collector pass can create some small particles based on
+can create some small particles based on depth intersection between a mesh
+depth intersection between a mesh and scene depth or explicitly marking
+and scene depth or explicitly marking pixels with shaders
+pixels with shaders i still need a gpu particle emission for
+i still need a gpu particle emission for mesh data that wouldn't require a z
+mesh data that wouldn't require a z pre-pass
+pre-pass and i didn't want to require some strict
+and i didn't want to require some strict draw ordering rules
+so on the left image here there's several mesh objects rendered into the
+several mesh objects rendered into the scene
+scene each object has extra code in its
+each object has extra code in its fragment shader programmed to write out
+fragment shader programmed to write out particle emission
+particle emission positions in world space into the append
+positions in world space into the append buffer that feeds the gpu particle
+buffer that feeds the gpu particle system
+system the image on the right side is an editor
+the image on the right side is an editor view again of the same scene where i've
+view again of the same scene where i've swung the camera around to see what's
+swung the camera around to see what's going on on the faces we can't see
+going on on the faces we can't see so we have in this case back face and
+so we have in this case back face and edge on
+edge on still not emitting which is problematic
+still not emitting which is problematic now we can do some tricks here with
+now we can do some tricks here with turning off back facing
+turning off back facing back face calling and then manually
+back face calling and then manually discarding in the fragment shader
+discarding in the fragment shader those back faces and get at least front
+those back faces and get at least front and back face emission
+and back face emission but we're not handling the case of
+but we're not handling the case of things being edge on still
+things being edge on still and although i was really happy with
+and although i was really happy with this effect it was really frustrated
+this effect it was really frustrated because
+because it wasn't quite robust enough for my
+it wasn't quite robust enough for my needs
+so i wasn't quite done exploring this view dependent stuff in spite of its
+view dependent stuff in spite of its limitations
+limitations and so my next experiment was to combine
+and so my next experiment was to combine screen space deferred decals with a
+screen space deferred decals with a fragment shader driving particle
+fragment shader driving particle emission
+emission so here in the video i have a blue decal
+so here in the video i have a blue decal star like just mapped on a ground with a
+star like just mapped on a ground with a split across it
+split across it where it obviously should not emit
+where it obviously should not emit because it's not intersecting the
+because it's not intersecting the deferred decal
+deferred decal so where the positions of the star are
+so where the positions of the star are visible are also positions that are
+visible are also positions that are valid for spawning those particles
+valid for spawning those particles this effect i like it a lot because it's
+this effect i like it a lot because it's again something you could layer with
+again something you could layer with uh on like specific hits
+uh on like specific hits like uh bullet hits ricochets sort of
+like uh bullet hits ricochets sort of anything you can think of now again with
+anything you can think of now again with this
+this particular implementation i made two
+particular implementation i made two variations one
+variations one basically wrote everything into a single
+basically wrote everything into a single target
+target so i wouldn't get double emission in
+so i wouldn't get double emission in case the decals overlapped
+case the decals overlapped and then another one where i just
+and then another one where i just continually wrote out to the pin buffer
+continually wrote out to the pin buffer as i drew each decal which would allow
+as i drew each decal which would allow overlapping
+so to summarize some important points about these techniques so far
+at this point i had particles can emit from
+from from anything i drawn into the screen as
+from anything i drawn into the screen as long as it's in the render target which
+long as it's in the render target which is great
+is great the pro and the con of this is that the
+the pro and the con of this is that the density is dependent on
+density is dependent on pixel screen coverage
+pixel screen coverage so we're using the existing meshes
+so we're using the existing meshes to drive all this so as we draw an
+to drive all this so as we draw an object to normally see it in our game
+object to normally see it in our game view
+view we can attach this extra work and the
+we can attach this extra work and the fragment shader of
+fragment shader of writing into an append buffer structure
+writing into an append buffer structure to spawn particles so we don't have to
+to spawn particles so we don't have to have a separate
+have a separate draw we can
+draw we can draw the back faces and do some tricks
+draw the back faces and do some tricks to
+to make the back faces emit and
+make the back faces emit and we still have the problems with partial
+we still have the problems with partial and off-screen meshes
+and off-screen meshes not quite behaving as they should when
+not quite behaving as they should when if we ever rotate or move the camera
+if we ever rotate or move the camera around
+around so this is this has some very limited
+so this is this has some very limited uses unfortunately
+uses unfortunately but depending on the context of your
+but depending on the context of your game the type of your game
+game the type of your game how you use your camera in your game
+how you use your camera in your game these could be of
+these could be of use to you
+use to you so to keen uh continue on uh
+to elaborate more with the fragment shader stuff
+shader stuff uh writing to pen buffer we can do like
+uh writing to pen buffer we can do like dissolves in
+dissolves in material specific stuff already that
+material specific stuff already that transfers those material attributes
+transfers those material attributes to those shaders so if we shade a blue
+to those shaders so if we shade a blue triangle or
+triangle or a blue pattern or whatever those
+a blue pattern or whatever those particles
+particles that come from that can get those colors
+that come from that can get those colors it really depends on
+it really depends on the what you put into your pen buffer
+the what you put into your pen buffer structure when
+structure when you are going to pass that data to the
+you are going to pass that data to the gpu
+gpu normally at the bare minimum you want
+normally at the bare minimum you want world position and color
+world position and color but you can add as many parameters as
+but you can add as many parameters as you would like to that
+so there's a lot of possibilities here for visual effects if the limitations of
+for visual effects if the limitations of the technique are acceptable
+the technique are acceptable and can be worked around depending on
+and can be worked around depending on the game and how it uses its camera
+the game and how it uses its camera in the interest of pushing this
+in the interest of pushing this technique even further and working
+technique even further and working around its limitations
+around its limitations there's more ideas to consider such as
+there's more ideas to consider such as adjusting the camera fov
+adjusting the camera fov using an explicit separate render pass
+using an explicit separate render pass using a higher
+using a higher resolution render target if you do so to
+resolution render target if you do so to get even better coverage and sampling
+get even better coverage and sampling if you did vr or something and you just
+if you did vr or something and you just allowed rotational
+allowed rotational pivoting you could render into a cube
+pivoting you could render into a cube map and
+map and handle those cases fairly easily if it's
+handle those cases fairly easily if it's in a separate pass
+in a separate pass we can add some kind of temporal
+we can add some kind of temporal jittering to that camera
+jittering to that camera to improve and and catch samples in case
+to improve and and catch samples in case you have very thin geometry
+you have very thin geometry that you want to have emitting stuff
+that you want to have emitting stuff and then finally we can get fancy and
+and then finally we can get fancy and look at our camera and see where it's
+look at our camera and see where it's going
+going and somewhat fix the sort of edge on
+and somewhat fix the sort of edge on problem by looking ahead
+problem by looking ahead so if you're heading towards to look
+so if you're heading towards to look around the corner
+around the corner your extra pass will have the camera
+your extra pass will have the camera sort of already ahead and looking there
+sort of already ahead and looking there so you can get some
+so you can get some particles sort of spawned ahead of time
+particles sort of spawned ahead of time before you see
+before you see the effect sort of break down a little
+the effect sort of break down a little bit
+bit [Music]
+[Music] so in this section i will cover object
+so in this section i will cover object space particle emission
+space particle emission this is a more general purpose approach
+this is a more general purpose approach and it's much better suited for all game
+and it's much better suited for all game types
+types although i really like the view
+although i really like the view dependent stuff and for particle mission
+dependent stuff and for particle mission building an entire game around the
+building an entire game around the concept of everything that can make
+concept of everything that can make particles
+particles necessitates an object space
+necessitates an object space approach that's robust enough to handle
+approach that's robust enough to handle a third or first person game
+a third or first person game moving around and then looking
+moving around and then looking everywhere and moving quickly
+everywhere and moving quickly so after a lot of experiments this is
+so after a lot of experiments this is sort of
+sort of what i came to uh to solve my problem
+what i came to uh to solve my problem and so i call it unfolded mesh
+and so i call it unfolded mesh shader particle emission and a very
+shader particle emission and a very extreme simplification of that is
+extreme simplification of that is i basically unfold the the every single
+i basically unfold the the every single triangle off of the mesh
+triangle off of the mesh and then i shade it with a gpu to see
+and then i shade it with a gpu to see what it looks like
+what it looks like and then i drive the particle emission
+and then i drive the particle emission from that
+from that and this uses the gpu rasterizer
+and this uses the gpu rasterizer but there's a lot of important details
+but there's a lot of important details to this technique
+to this technique and doing it right and getting it to run
+and doing it right and getting it to run fast so this is where i sort of start my
+fast so this is where i sort of start my deep dive
+deep dive and get really technical
+and get really technical regarding the algorithm and also the
+regarding the algorithm and also the flow of the data as it passes through
+flow of the data as it passes through the
+the gpu pipeline
+so a couple important points to just reinforce before i do that
+reinforce before i do that this is view independent it supports
+this is view independent it supports variable topology
+variable topology sampling density shader effects for
+sampling density shader effects for every single triangle
+every single triangle every single draw call every single
+every single draw call every single instance
+instance i assume uh no input topology and v
+i assume uh no input topology and v i assume that the input topology and the
+i assume that the input topology and the shading is fully dynamic because i don't
+shading is fully dynamic because i don't want to bake anything i want
+want to bake anything i want i want everything to be dynamic uh it's
+i want everything to be dynamic uh it's it's non-negotiable
+it's non-negotiable for me so there's no
+for me so there's no caching or uh precomputation
+caching or uh precomputation no baking i hate it i don't want that
+so we need a few essential ingredients to get this
+a few essential ingredients to get this working
+working so we need the render target we need a
+so we need the render target we need a render target for arresterization
+render target for arresterization the one that we have bound normally to
+the one that we have bound normally to render the game will suffice
+render the game will suffice we need an append buffer that's going to
+we need an append buffer that's going to store the
+store the particle data when we decide we need to
+particle data when we decide we need to spawn particles on
+spawn particles on these triangle surfaces somewhere and
+these triangle surfaces somewhere and then all the bindings and uniforms and
+then all the bindings and uniforms and constant buffers and so on and so forth
+constant buffers and so on and so forth for drawing the mesh normally
+for drawing the mesh normally we can just use that information that we
+we can just use that information that we actually we actually want that because
+actually we actually want that because we want visual parity with
+we want visual parity with what we render on the screen what we
+what we render on the screen what we show the player versus what
+show the player versus what we calculate when we want to emit
+we calculate when we want to emit particles
+particles so with that in mind there's three
+so with that in mind there's three important minimal sort of components to
+important minimal sort of components to get this technique to work
+get this technique to work so we need a vertex shader a geometry
+so we need a vertex shader a geometry shader and a fragment
+shader and a fragment also known as pixel shader
+so unfolding the mesh the first stop is the vertex shader so we need to compute
+the vertex shader so we need to compute the world space
+the world space position of these vertices and we need
+position of these vertices and we need to store them to the output structure
+to store them to the output structure that is going to flow
+that is going to flow through the geometry shader and down to
+through the geometry shader and down to the fragment shader
+the fragment shader this is important to do this to
+this is important to do this to basically solve for the world space
+basically solve for the world space position of the geometry
+position of the geometry because this becomes our sort of
+because this becomes our sort of baseline
+baseline uh scale for once we need to
+uh scale for once we need to determine what the sampling density is
+determine what the sampling density is for
+for determining particle emission so we want
+determining particle emission so we want a unified sort of scale to be in place
+a unified sort of scale to be in place for
+for that so and then the
+that so and then the sp position data obviously is going to
+sp position data obviously is going to be
+be that's those are the points we wanted to
+that's those are the points we wanted to manipulate to make sure that
+manipulate to make sure that the gpu shades the topology
+the gpu shades the topology correctly so we can do the
+correctly so we can do the particle emission determination
+particle emission determination correctly in the fragment shader
+correctly in the fragment shader when we get to that part
+so an important problem to be solved is that if the bare minimum implementation
+that if the bare minimum implementation of particle emission from a mesh
+of particle emission from a mesh is just three trying uh three vertex
+is just three trying uh three vertex positions
+positions uh in case you want to dynamically
+uh in case you want to dynamically tripline or texture
+tripline or texture an object or for some other reason
+an object or for some other reason how do we determine the sampling chart
+how do we determine the sampling chart and density for those triangles
+and density for those triangles how do we do that in gpu how do we make
+how do we do that in gpu how do we make it fast
+it fast so this is a really complex problem
+so this is a really complex problem space there's lots of research done
+space there's lots of research done and i originally thought i would need to
+and i originally thought i would need to create a unique parameterization and
+create a unique parameterization and that got really scary and uh
+that got really scary and uh and so yeah thankfully i don't need to
+and so yeah thankfully i don't need to do any of that
+do any of that so that was not the path i wanted to go
+so that was not the path i wanted to go down anyway it seemed way more complex
+down anyway it seemed way more complex so i needed something that would be fast
+so i needed something that would be fast it would still give me the sampling
+it would still give me the sampling density i needed for the triangles in
+density i needed for the triangles in object space based on their world space
+object space based on their world space size after the visual effects and
+size after the visual effects and skinning
+skinning modified the vertex positions so if you
+modified the vertex positions so if you had any squash and stretch or
+had any squash and stretch or grass wind wave wiggle shaders or
+grass wind wave wiggle shaders or anything happening
+anything happening i wanted to account for that also
+so it then dawned on me that i could completely avoid a majority of the
+completely avoid a majority of the problems with traditional uv atlas and
+problems with traditional uv atlas and sample generation
+sample generation and complex charting for my use case all
+and complex charting for my use case all we need to do is just solve
+we need to do is just solve this problem for each triangle in
+this problem for each triangle in isolation we don't need to care about
+isolation we don't need to care about its
+its whatever is going on with its neighbors
+whatever is going on with its neighbors we don't need about stretching or
+we don't need about stretching or distortioning you know we're not trying
+distortioning you know we're not trying to
+to sort of peel an orange here and then
+sort of peel an orange here and then like nicely
+like nicely chart it without squishing triangles or
+chart it without squishing triangles or anything
+so to properly unfold and generate a sampling grid
+sampling grid i decided to use the geometry shader
+i decided to use the geometry shader these things
+these things some people find this objectionable but
+some people find this objectionable but it's actually really fast
+it's actually really fast so it's important that to reiterate that
+so it's important that to reiterate that i didn't want to rely on any precomputed
+i didn't want to rely on any precomputed data whatsoever
+data whatsoever it would have been easy to sort of
+it would have been easy to sort of pre-compute a unique parameterization
+pre-compute a unique parameterization of uv data precompute some kind of
+of uv data precompute some kind of sampling
+sampling density ahead of time but again i wanted
+density ahead of time but again i wanted everything dynamic
+everything dynamic i didn't want to rely on extra data
+so to solve this one problem one triangle at a time
+triangle at a time for each triangle i auto uv map it
+for each triangle i auto uv map it basically just flattening it based
+basically just flattening it based on its world space size into the
+on its world space size into the currently bound render target device
+currently bound render target device space
+space to make sure each triangle lies
+to make sure each triangle lies completely within the rasterizable
+completely within the rasterizable space of the mound render target so we
+space of the mound render target so we don't clip it with the guard band
+don't clip it with the guard band or excuse me
+or excuse me or any kind of clipping we need to apply
+or any kind of clipping we need to apply a tr
+a tr an offset translation to it to make sure
+an offset translation to it to make sure the gpu sort of sees the whole thing
+the gpu sort of sees the whole thing the easiest way to do this is i just
+the easiest way to do this is i just calculated the centroid of each triangle
+calculated the centroid of each triangle and figured out the offset relative to
+and figured out the offset relative to the center of the render target and just
+the center of the render target and just slid it to the center so when i do this
+slid it to the center so when i do this i get every single triangle the mesh
+i get every single triangle the mesh sort of thrown into the center in a
+sort of thrown into the center in a little crazy little star
+little crazy little star starburst kind of shape
+starburst kind of shape so after calculating the unfolded
+so after calculating the unfolded triangle and charting it so it's
+triangle and charting it so it's centered into this render target
+centered into this render target we can output this triangle to visually
+we can output this triangle to visually debug its correctness and make sure we
+debug its correctness and make sure we accounted for
+accounted for some things that we may overlook so like
+some things that we may overlook so like such as render target aspect ratio
+such as render target aspect ratio and other things such as face winding
+and other things such as face winding order and so on
+order and so on but face winding is usually correct as
+but face winding is usually correct as it comes in so you don't need to worry
+it comes in so you don't need to worry about that but again it's super easy to
+about that but again it's super easy to visually debug this by just getting this
+visually debug this by just getting this part working
+part working and seeing the triangles in in the
+and seeing the triangles in in the render target somewhere
+render target somewhere as long as they're within the rectangle
+as long as they're within the rectangle somewhere you're fine
+somewhere you're fine it's also important in my implementation
+it's also important in my implementation at least you set the depth of the
+at least you set the depth of the primitive to the near clip plane in case
+primitive to the near clip plane in case we have a depth render target active or
+we have a depth render target active or some kind of high z or something going
+some kind of high z or something going on with the gpu that
+on with the gpu that could potentially basically snipe those
+could potentially basically snipe those triangles
+triangles from ever going down to the fragment
+from ever going down to the fragment shader stage where we
+shader stage where we are trying to actually call and write
+are trying to actually call and write into an append buffer and and spawn
+into an append buffer and and spawn these particles
+so it's okay if these triangles overlap um
+um unlike normal uv mapping
+unlike normal uv mapping so i'll why that works i'll get into it
+so i'll why that works i'll get into it later
+so now that we have these unfolded triangles in the valid render target
+triangles in the valid render target area where the gpu sees them
+area where the gpu sees them they'll cause the fragment shader to run
+they'll cause the fragment shader to run but we need to talk about the sampling
+but we need to talk about the sampling density
+density depending on the textures and the shader
+depending on the textures and the shader effect applied
+effect applied made by the artist we may want an
+made by the artist we may want an extremely high or very low density
+extremely high or very low density so it really depends on what your
+so it really depends on what your textures look like or what the effect is
+textures look like or what the effect is and whether you want to emit a lot of
+and whether you want to emit a lot of particles or small amounts so
+particles or small amounts so that's one thing to consider at this
+that's one thing to consider at this point
+point so for every pixel the triangle covers
+so for every pixel the triangle covers the pixel center
+the pixel center center satisfying the rasterization
+center satisfying the rasterization rules of the gpu saying hey we need to
+rules of the gpu saying hey we need to shade this
+shade this pixel the fragment shader executes
+pixel the fragment shader executes the gpu will shade that portion of the
+the gpu will shade that portion of the triangle in a similar manner to how it
+triangle in a similar manner to how it draws the model normally for the game so
+draws the model normally for the game so at this point
+at this point we get exactly the same
+we get exactly the same shading that we would normally get on an
+shading that we would normally get on an object when we draw it in the game
+object when we draw it in the game so these shading results are then
+so these shading results are then combined with additional shader code to
+combined with additional shader code to determine if that position should
+determine if that position should emit a particle or not
+now to improve the coverage of a sampling especially in cases where you
+sampling especially in cases where you want to use a small triangle for
+want to use a small triangle for performance reasons or
+yeah so for each frame and each triangle i add a random
+and each triangle i add a random subpixel offset to all the vertices of
+subpixel offset to all the vertices of that triangle
+that triangle so we're starting to jitter and that
+so we're starting to jitter and that moves the grid around and moves
+moves the grid around and moves the samples we get the rendering the
+the samples we get the rendering the random jittering is
+random jittering is important for improving the sampling
+important for improving the sampling especially for static objects
+especially for static objects such as world your world or level
+such as world your world or level geometry
+geometry the reason being is when we take those
+the reason being is when we take those uh
+uh static objects and we chart them into
+static objects and we chart them into this space
+this space they'll always end up in the exact same
+they'll always end up in the exact same space and then you get the same sampling
+space and then you get the same sampling points
+points which is what you don't want and if your
+which is what you don't want and if your triangles are small this is even more
+triangles are small this is even more obvious
+so adding the jitter constantly jittering every single triangle every
+jittering every single triangle every single frame
+single frame fixes that problem and let's use a
+fixes that problem and let's use a smaller triangle
+smaller triangle so in addition to adding the random
+so in addition to adding the random subpixel offset to the
+subpixel offset to the triangle vertices we can also
+triangle vertices we can also effectively rotate the grid
+effectively rotate the grid that we're sampling from by just
+that we're sampling from by just rotating the triangle
+rotating the triangle this jittering is done for every
+this jittering is done for every triangle again
+triangle again 60 to 120 times a second to ensure
+60 to 120 times a second to ensure varied sampling from different locations
+varied sampling from different locations that are also valid within the bounds of
+that are also valid within the bounds of that triangle
+that triangle so now that we have this another step we
+so now that we have this another step we can add is that we can adjust the size
+can add is that we can adjust the size of this triangle area by uniformly
+of this triangle area by uniformly scaling it
+scaling it so this increases or decreases the
+so this increases or decreases the scaling footprint
+scaling footprint this is something you could also tune uh
+this is something you could also tune uh for vfx
+for vfx uh reasons in the case of very few
+uh reasons in the case of very few particles needing to be emit from every
+particles needing to be emit from every frame
+frame you can actually make these triangles
+you can actually make these triangles very small so a lot of the stuff i do
+very small so a lot of the stuff i do with their like eight by eight pixels uh
+with their like eight by eight pixels uh or even smaller
+or even smaller for cases when you require a burst
+for cases when you require a burst emission of a ton of particles
+emission of a ton of particles uh extremely high number or you need
+uh extremely high number or you need fine detailed sampling
+fine detailed sampling then you would scale the the the
+then you would scale the the the triangles up so if you wrote your name
+triangles up so if you wrote your name on a wall and you wanted a burst of
+on a wall and you wanted a burst of several thousand particles to come out
+several thousand particles to come out perfectly shaped into your name
+perfectly shaped into your name then you would want these triangles to
+then you would want these triangles to be larger because then you would get
+be larger because then you would get more samples you get more accuracy
+more samples you get more accuracy where you need it
+where you need it with our triangle jittered scaled we can
+with our triangle jittered scaled we can proceed to the final fragment shading
+proceed to the final fragment shading stage of the
+stage of the triangles so the shader code in general
+triangles so the shader code in general will look exactly like the
+will look exactly like the the shader that you use to draw your
+the shader that you use to draw your object but you've got to add some
+object but you've got to add some just a few extra things into it
+just a few extra things into it specifically
+specifically determining how many
+determining how many samples or if that sample based on a
+samples or if that sample based on a random
+random dice roller or some artist tuning value
+dice roller or some artist tuning value whether it should emit or not
+whether it should emit or not now the interpolant values pass through
+now the interpolant values pass through the vertex shader and the geometry
+the vertex shader and the geometry shader
+shader down into the fragment shader simplify
+down into the fragment shader simplify the amount of calculations needed per
+the amount of calculations needed per pixel sample for driving the particle
+pixel sample for driving the particle emission because remember we
+emission because remember we we passed the world space position uh
+we passed the world space position uh data along with each vertex
+data along with each vertex so we basically get that for free in
+so we basically get that for free in terms in terms of
+terms in terms of determining where where should the
+determining where where should the particle actually be
+particle actually be spawning
+so in this video here i have an animated horse
+horse with a texture that spawns textured with
+with a texture that spawns textured with a
+a spawning particles and inherit the color
+spawning particles and inherit the color of the polygon surface underneath
+of the polygon surface underneath so after the shading stage is finished
+so after the shading stage is finished this is pushing that data into the
+this is pushing that data into the pen buffer and then it can be copied
+pen buffer and then it can be copied with a say a compute shader copy from
+with a say a compute shader copy from the append buffer into
+the append buffer into the more managed
+the more managed gpu particle system buffers that you may
+gpu particle system buffers that you may have or it needs to be sorted and
+have or it needs to be sorted and whatnot
+whatnot and then you would drop the draw and
+and then you would drop the draw and direct or draw procedural type methods
+so now that i have particles emitting from triangles with pretty much any
+from triangles with pretty much any fragment shader imaginable
+fragment shader imaginable there were still a number of important
+there were still a number of important things to think about solving
+things to think about solving one of these is handling handling very
+one of these is handling handling very fast moving topology
+fast moving topology over a single time step refer to some
+over a single time step refer to some particle systems as distance based
+particle systems as distance based emission
+emission so if you have a rocket or something
+so if you have a rocket or something flying really fast you need to make sure
+flying really fast you need to make sure you get all your smoke
+you get all your smoke puffs sort of connected and covering
+puffs sort of connected and covering that to make it look correct
+so when we have we need to solve for that we need to fill in those gaps so
+that we need to fill in those gaps so how do we do that
+how do we do that so it's similar to an animator needed to
+so it's similar to an animator needed to do breakdowns or tweens
+do breakdowns or tweens so i just used the geometry shader to
+so i just used the geometry shader to sort of do that
+sort of do that so this is a preferable approach to in
+so this is a preferable approach to in my opinion than pushing all the work
+my opinion than pushing all the work down into the fragment shader
+down into the fragment shader i basically create the sort of
+i basically create the sort of in-betweens
+in-betweens and the geometry shader stage in the
+and the geometry shader stage in the case of the triangles being
+case of the triangles being skinned squash stretched the surface
+skinned squash stretched the surface area of these triangles
+area of these triangles is highly variable you usually want also
+is highly variable you usually want also some kind of velocity data in your
+some kind of velocity data in your vertex structure
+vertex structure to know where the triangle has sort of
+to know where the triangle has sort of been and where it's going
+been and where it's going and that can be helpful in terms of
+and that can be helpful in terms of helping you calculate
+helping you calculate what the accurately tweened topology
+what the accurately tweened topology should be in between those
+should be in between those uh two sort of extremes of like your
+uh two sort of extremes of like your current frame and your next
+so the nice thing about this is that the code in the geometry shader stage
+the code in the geometry shader stage that is
+that is calculating the sampling density
+calculating the sampling density we can reuse that for these tweens so
+we can reuse that for these tweens so each in-between
+each in-between triangle that we add to sort of fill in
+triangle that we add to sort of fill in these gaps
+these gaps we'll also get the correct sampling
+we'll also get the correct sampling based on its surface area
+in addition to the vertex positions on the triangle area varying
+the triangle area varying for these tweens all of the shader
+for these tweens all of the shader parameters and uniforms can also be
+parameters and uniforms can also be varying as well
+varying as well so we need to also adjust those
+so we need to also adjust those appropriate calculations that determine
+appropriate calculations that determine those things
+those things especially things like time delta time
+especially things like time delta time your uvs could be scrolling and so on so
+your uvs could be scrolling and so on so this uh
+this uh authoring your affection your tutor
+authoring your affection your tutor effects might be a
+effects might be a tiny little bit extra complicated to
+tiny little bit extra complicated to account for this
+so while this technique works really well there's a limitation to it geometry
+well there's a limitation to it geometry shaders actually have limits
+shaders actually have limits the more complex your vertex shader
+the more complex your vertex shader structure is
+structure is or vertex structure is the fewer tweened
+or vertex structure is the fewer tweened triangles you can have because
+triangles you can have because if you have normals binomials tangents
+if you have normals binomials tangents and
+and so on and so forth your max vertex count
+so on and so forth your max vertex count is basically dropping because
+is basically dropping because your structure is getting more complex
+your structure is getting more complex and has requires more storage
+and has requires more storage so it's necessary to adjust your sort of
+so it's necessary to adjust your sort of maximum in betweens that you support
+maximum in betweens that you support to account for this
+so when i've been talking about this this is mainly been in the context of
+this is mainly been in the context of solving this problem in isolation but
+solving this problem in isolation but what we can do is we can actually
+what we can do is we can actually do this work in addition to just
+do this work in addition to just normally drawing the object by
+normally drawing the object by interleaving
+interleaving the work of those two shaders together
+the work of those two shaders together so as i draw my objects
+so as i draw my objects i also use the geometry shader to push
+i also use the geometry shader to push out those triangles
+out those triangles so in order to get this to work your
+so in order to get this to work your fragment shader
+fragment shader doesn't know whether it's drawing
+doesn't know whether it's drawing drawing pixels that are intended to be
+drawing pixels that are intended to be for the normal game view or whether
+for the normal game view or whether they're for
+they're for shading and figuring out whether we emit
+shading and figuring out whether we emit particles or not so how do we figure
+particles or not so how do we figure this out
+this out the easiest way to do this is to just
+the easiest way to do this is to just add an interpolant
+add an interpolant that basically flags the all three
+that basically flags the all three vertices
+vertices and then you can look at that in the
+and then you can look at that in the fragment chain and say oh okay i'm
+fragment chain and say oh okay i'm emitting particles from this fragment
+emitting particles from this fragment i'm supposed to shade right now
+i'm supposed to shade right now versus just drawing it normally
+so uh some more thoughts on refining the emission
+emission uh and to reiterate is that not all your
+uh and to reiterate is that not all your samples are going to emit
+samples are going to emit uh even if you just even if you run a
+uh even if you just even if you run a really high frame rate and you shrink
+really high frame rate and you shrink the triangles down
+it's you're going to call discard on a lot of a lot of those fragments
+lot of a lot of those fragments and adding the jitter is
+and adding the jitter is helping you get your improved coverage
+helping you get your improved coverage while not needing to make these
+while not needing to make these triangles extraordinarily
+triangles extraordinarily extraordinarily large uh we could
+extraordinarily large uh we could if you can sort of see the visual grid
+if you can sort of see the visual grid of this
+of this uh if you're emitting a lot of them i
+uh if you're emitting a lot of them i personally just add
+personally just add the the smallest amount of world space
+the the smallest amount of world space jitter along the
+jitter along the on the surface of the triangle to sort
+on the surface of the triangle to sort of visually break the grid it's very
+of visually break the grid it's very easy
+easy and then again
+and then again if you're just trickling out particles
+if you're just trickling out particles from something
+from something the triangles can be very small and
+the triangles can be very small and making them bigger actually won't
+making them bigger actually won't improve anything
+so to recap the feature set we finally had something that
+had something that allowed textured and animated fragment
+allowed textured and animated fragment shaders it was view independent
+shaders it was view independent i had conditional rights to an pen
+i had conditional rights to an pen buffer so i could decide which
+buffer so i could decide which samples did and did not need to write
+samples did and did not need to write bound particles
+bound particles i had jittered sampling so i wasn't
+i had jittered sampling so i wasn't tied to the resolution of the textures
+tied to the resolution of the textures or
+or any kind of precomputed baking to make
+any kind of precomputed baking to make any of this happen
+any of this happen and we can work on pretty much any mesh
+and we can work on pretty much any mesh topology
+imaginable so for surface material transfer uh
+for surface material transfer uh to to your spawn particles is pretty
+to to your spawn particles is pretty straightforward because in the case of a
+straightforward because in the case of a deferred render and say using mesh
+deferred render and say using mesh particles
+particles the output of the append buffer
+the output of the append buffer structure would just need to contain the
+structure would just need to contain the necessarily
+necessarily necessary parameters that you would
+necessary parameters that you would normally be writing out to the
+normally be writing out to the g buffer such as albedo emission
+g buffer such as albedo emission and other things of that nature
+and other things of that nature in the case of forward rendered objects
+in the case of forward rendered objects emitting particles
+emitting particles you might want to do a little bit more
+you might want to do a little bit more work or maybe you want to bake stuff
+work or maybe you want to bake stuff and just have then the particle emission
+and just have then the particle emission code
+code pass some of that through again there's
+pass some of that through again there's no hard rules here it's just
+no hard rules here it's just whatever works for you
+so one important thing uh for refining this
+this is you need to be or you probably want
+is you need to be or you probably want to be selective about where
+to be selective about where where these particles are are coming
+where these particles are are coming from and where they don't
+from and where they don't so a few engines out there mostly
+so a few engines out there mostly only support particle emission on a per
+only support particle emission on a per object or sub mesh
+object or sub mesh level so when we have the ability to
+level so when we have the ability to paint stuff
+paint stuff and run the fragment shader and
+and run the fragment shader and determine where this is going to happen
+determine where this is going to happen uh
+uh i use the texture painting workflow for
+i use the texture painting workflow for for pretty much all of this stuff
+for pretty much all of this stuff so in this example areas that should not
+so in this example areas that should not be emitting particles i just made them
+be emitting particles i just made them painted black and the painted texture i
+painted black and the painted texture i then save as an uncompressed texture
+then save as an uncompressed texture asset so
+asset so it's just another texture that i add to
+it's just another texture that i add to my shader
+my shader and then fetch and sort of look at so
+and then fetch and sort of look at so and and
+and and in the fragment shader program there's
+in the fragment shader program there's just one line that says hey is this
+just one line that says hey is this pixel black if not
+pixel black if not if it is black then hey we're not going
+if it is black then hey we're not going to run the particle emission code it's
+to run the particle emission code it's very easy to drive this stuff based on
+very easy to drive this stuff based on your
+your textures mesh here
+textures mesh here of course has a unique uv set applied to
+of course has a unique uv set applied to it that's
+it that's independent of the particle emission
+independent of the particle emission density so i'm not relying on it
+density so i'm not relying on it whatsoever just to reiterate that
+so here's another video of me painting on a mesh to dissolve away specific
+on a mesh to dissolve away specific areas
+areas this is has a lot of use for visual
+this is has a lot of use for visual destruction effects
+destruction effects where you want to emit or not emit
+where you want to emit or not emit particles
+particles now since we're emitting this object
+now since we're emitting this object this
+this topology in object space we're not tied
+topology in object space we're not tied to the resolution of the source texture
+to the resolution of the source texture asset mapped on this geometry so the
+asset mapped on this geometry so the texture for this is like 256 or
+texture for this is like 256 or something and
+something and this is rendered at a much higher
+this is rendered at a much higher resolution
+resolution we can combine masking dissolving mixed
+we can combine masking dissolving mixed resolutions
+resolutions assigned distance fields or any sort of
+assigned distance fields or any sort of smoothing
+smoothing stuff and get accurate emission because
+stuff and get accurate emission because remember we're jittering the triangles
+remember we're jittering the triangles moving them around
+moving them around and getting the sampling at a higher
+and getting the sampling at a higher density that's
+density that's above whatever the texturing is
+so now that i have the ability to control where the particles emit at a
+control where the particles emit at a much finer detail level
+much finer detail level the next desirable parameter to control
+the next desirable parameter to control is the particle flow
+is the particle flow direction as it leaves the surface of a
+direction as it leaves the surface of a particular point
+particular point there's a lot of pre-existing material
+there's a lot of pre-existing material here flow maps and so on and so forth
+here flow maps and so on and so forth and it basically just works out of the
+and it basically just works out of the box if you just
+box if you just uh implement it when i author this data
+uh implement it when i author this data i don't use normalized flow i just
+i don't use normalized flow i just started painting and just mapping the
+started painting and just mapping the stuff to
+stuff to basically red and blue channels and i
+basically red and blue channels and i got interesting stuff
+got interesting stuff so there's no rules here i mean just
+so there's no rules here i mean just experiment all the texture data that you
+experiment all the texture data that you have in shader already could
+have in shader already could create interesting effects with this so
+create interesting effects with this so you
+you don't need to run off and like create a
+don't need to run off and like create a bunch of extra textures to
+bunch of extra textures to make some of this stuff happen
+so some important things to keep in mind non-destructive workflow of course is
+non-destructive workflow of course is really good
+really good i like to also use photoshop and
+i like to also use photoshop and adjustment layers
+adjustment layers use a little bit of quick sole and and
+use a little bit of quick sole and and some other stuff too
+some other stuff too sometimes illustrator for paths and
+sometimes illustrator for paths and gradients for dissolves and
+gradients for dissolves and and whatnot also i add
+and whatnot also i add some tuning values and also a curve
+some tuning values and also a curve modifier in my actual shader
+modifier in my actual shader so i can get a little more out of
+so i can get a little more out of those assets as well
+so to stretch the topology limit even further
+further and just really drive home what this
+and just really drive home what this allows us to do with this
+allows us to do with this this approach is that we can stack and
+this approach is that we can stack and combine multiple
+combine multiple effects here in our vertex and geometry
+effects here in our vertex and geometry shader stages to modify the input
+shader stages to modify the input topology
+topology and it doesn't really increase the
+and it doesn't really increase the performance cost of the later fragment
+performance cost of the later fragment shading stage
+shading stage the reason for that is the surface area
+the reason for that is the surface area would not probably be
+would not probably be varying that much so the triangles when
+varying that much so the triangles when you unfold and chart them
+you unfold and chart them don't change in size significantly
+don't change in size significantly now for certain geometry amplification
+now for certain geometry amplification and procedural stuff such as
+and procedural stuff such as tessellation or anything that's going to
+tessellation or anything that's going to make the surface area of those triangles
+make the surface area of those triangles get bigger
+get bigger then you're obviously going to start to
+then you're obviously going to start to pay more cost
+pay more cost in the geometry shader and fragment
+in the geometry shader and fragment shader stages
+so one more thing so this video here i this is like a 60 000 object thing i
+i this is like a 60 000 object thing i just sort of blew up this is actually
+just sort of blew up this is actually all on the gpu
+all on the gpu it's done in the geometry shader so i
+it's done in the geometry shader so i just fractured each triangle turned each
+just fractured each triangle turned each triangle into a tetrahedra
+triangle into a tetrahedra and then sort of spun it
+and then sort of spun it with a sort of stateless animation and
+with a sort of stateless animation and just randomly tumbled them and then
+just randomly tumbled them and then fed them to the particle emission stuff
+fed them to the particle emission stuff so this is like having 60 000
+so this is like having 60 000 particle emitters of things blowing up
+particle emitters of things blowing up and it's all one draw call
+and it's all one draw call so i was pretty happy with this
+so i was pretty happy with this tessellation and other approaches that
+tessellation and other approaches that can increase the number of
+can increase the number of triangles can also be used with this
+triangles can also be used with this emission technique
+emission technique so again we need to remember though that
+so again we need to remember though that the more triangles we make
+the more triangles we make are the more surface area we increase
+are the more surface area we increase then we increase the cost of doing this
+then we increase the cost of doing this work
+work depending on your use cases you may want
+depending on your use cases you may want to adjust your tessellation factor in
+to adjust your tessellation factor in your
+your particle emission geometry separate from
+particle emission geometry separate from what you render and show to the
+what you render and show to the to the player and the normal rendering
+to the player and the normal rendering view
+so one extremely common question i got when i showed this to some colleagues
+when i showed this to some colleagues was
+was what happens with extremely thin
+what happens with extremely thin geometry like grass
+geometry like grass and this is something i i thought about
+and this is something i i thought about when i also did this implementation
+when i also did this implementation because i wanted to
+because i wanted to make grass burn and like have particles
+make grass burn and like have particles come off every grass blade and stuff
+come off every grass blade and stuff like that
+like that and the thing is is you can just dilate
+and the thing is is you can just dilate the triangle uh and after you unfold it
+the triangle uh and after you unfold it into the the space where the gpu is
+into the the space where the gpu is going to shade it basically using like a
+going to shade it basically using like a conservative rasterization approach
+conservative rasterization approach and we're jittering so we're going to
+and we're jittering so we're going to hit those we're going to hit those
+hit those we're going to hit those triangles and we're going to be able to
+triangles and we're going to be able to emit from them
+emit from them another thing to keep in mind though
+another thing to keep in mind though when you do this is you just don't do
+when you do this is you just don't do this by default
+this by default because there's a lot of visual effects
+because there's a lot of visual effects you may have where you intentionally
+you may have where you intentionally crush
+crush triangles to be zero area
+triangles to be zero area because you have them either some kind
+because you have them either some kind of destruction or
+of destruction or you know limbs or whatever sort of
+you know limbs or whatever sort of collapsing and you you don't want
+collapsing and you you don't want particles to come off of those things
+particles to come off of those things so you would test it with an epsilon
+so you would test it with an epsilon to make sure that those particles happen
+to make sure that those particles happen and the cool thing about
+and the cool thing about doing this is that if you destroy or
+doing this is that if you destroy or just hide things
+just hide things by shrinking them down you don't have to
+by shrinking them down you don't have to worry about them emitting particles so
+worry about them emitting particles so you sort of get that for free
+so talk a little bit about level of detail
+detail a lot of this is kind of obvious
+a lot of this is kind of obvious but one way to do it is based on
+but one way to do it is based on distance
+distance whether something's in and out of the
+whether something's in and out of the frustum you decide hey we're going to
+frustum you decide hey we're going to emit 50 less particles whether
+emit 50 less particles whether something's in or out of the frustum
+something's in or out of the frustum where you decide to do
+where you decide to do that sort of calling or determination
+that sort of calling or determination would be in the vertex shader or the
+would be in the vertex shader or the geometry shader or maybe you have a
+geometry shader or maybe you have a computer
+computer that runs even further in advance and
+that runs even further in advance and writes out to a specific
+writes out to a specific stream of data and sort of helps you and
+stream of data and sort of helps you and it helps inform
+it helps inform whether you should be emitting from
+whether you should be emitting from certain pieces of geometry or not
+so i personally write a lot of my shaders by hand but graphene
+a lot of my shaders by hand but graphene node-based workflows are everywhere
+node-based workflows are everywhere i mean tens and tens of thousands or
+i mean tens and tens of thousands or maybe hundreds of thousands of people
+maybe hundreds of thousands of people are used to this workflow it's really
+are used to this workflow it's really easy you pick it up and you just start
+easy you pick it up and you just start connecting things and you see results
+connecting things and you see results so uh
+so uh i've thought a lot about like what what
+i've thought a lot about like what what do we what do we do
+do we what do we do with this technique how do we put it in
+with this technique how do we put it in the hands of of more people
+the hands of of more people because many of the existing tools for
+because many of the existing tools for shader
+shader graph based workflows we're only letting
+graph based workflows we're only letting you
+you play with the vertex shader and fragment
+play with the vertex shader and fragment shader
+shader so what does that interface look like
+so what does that interface look like when we say hey you run
+when we say hey you run a fragment shader but then you can emit
+a fragment shader but then you can emit particles from it
+particles from it so these are important questions for not
+so these are important questions for not just myself but everybody that wants to
+just myself but everybody that wants to do this stuff
+do this stuff to think about and eventually answer so
+to think about and eventually answer so we can leverage the immense amount of
+we can leverage the immense amount of shaders and visual effects that
+shaders and visual effects that a lot of us have already made without
+a lot of us have already made without any tedious hand porting
+any tedious hand porting to make this stuff happen
+so for uh i have a lot of ideas on how to continue to refine this
+ideas on how to continue to refine this and optimize it but i'm kind of really
+and optimize it but i'm kind of really just having fun
+just having fun uh porting a lot of shaders and figuring
+uh porting a lot of shaders and figuring stuff out more
+stuff out more but again graph based work workflow um
+but again graph based work workflow um you know if we add something uh you know
+you know if we add something uh you know do we just
+do we just make it one particle one sample does it
+make it one particle one sample does it does it become
+does it become uh you know one sample can spawn up to n
+uh you know one sample can spawn up to n particles and i think we need to
+particles and i think we need to collectively consider
+collectively consider what kind of interface do we add to
+what kind of interface do we add to compute or
+compute or open up the geometry shader stage and
+open up the geometry shader stage and and other things
+and other things to existing tools
+so my final thoughts although i'm quite in love with the techniques presented
+in love with the techniques presented today for emitting particles and i'm
+today for emitting particles and i'm really excited to share them with you
+really excited to share them with you and
+and i hope you find some inspiration from
+i hope you find some inspiration from them
+them these don't replace all the use cases
+these don't replace all the use cases you know a lot of the
+you know a lot of the just very simple point line sphere
+just very simple point line sphere emitters and stuff
+emitters and stuff are still great tools you know so this
+are still great tools you know so this is just another the
+is just another the the stuff i've covered today is just
+the stuff i've covered today is just more tools in your toolbox
+so i'd like to thank the following people
+people who reviewed this material and uh
+who reviewed this material and uh encouraged me to
+chase it
+so and that's it and thank you for your time

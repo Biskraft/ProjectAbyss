@@ -1,0 +1,773 @@
+all right thank you all for coming and were the usual things turn off anything
+were the usual things turn off anything that might make noise keep arms and
+that might make noise keep arms and hands inside the vehicle and if you've
+hands inside the vehicle and if you've taken AP statistics
+taken AP statistics you've seen all this before so go see
+you've seen all this before so go see some other talk AP statistics big topic
+some other talk AP statistics big topic complicated lots of math not getting
+complicated lots of math not getting into that today today I am going to give
+into that today today I am going to give you the TLDR version I'm going to give
+you the TLDR version I'm going to give you immediate results in 30 minutes like
+you immediate results in 30 minutes like Bob Ross a few basic moves you can make
+Bob Ross a few basic moves you can make to bank out some happy trees and little
+to bank out some happy trees and little mountains in the space of this talk
+mountains in the space of this talk actual statisticians will probably be
+actual statisticians will probably be looking down their noses at me at the
+looking down their noses at me at the things that I'm glossing over and
+things that I'm glossing over and simplifying but it takes a year to be
+simplifying but it takes a year to be Rembrandt and 30 minutes to be Bob Ross
+Rembrandt and 30 minutes to be Bob Ross let's do it today I'm going to show you
+let's do it today I'm going to show you four different ways to come to decisions
+four different ways to come to decisions about a/b tests using science instead of
+about a/b tests using science instead of yelling about opinions all of the stuff
+yelling about opinions all of the stuff you can do in Excel a couple of them are
+you can do in Excel a couple of them are built into Excel the others are macros
+built into Excel the others are macros that I will give you and I'll close that
+that I will give you and I'll close that with some words of caution now to
+with some words of caution now to conserve time here I'm going to gloss
+conserve time here I'm going to gloss over a little bit about the actual
+over a little bit about the actual how-to in Excel I'll show you the
+how-to in Excel I'll show you the dialogue so I'm going to blitz through
+dialogue so I'm going to blitz through them really quickly so all of that
+them really quickly so all of that information will be up at my support
+information will be up at my support page along with the slides so you don't
+page along with the slides so you don't have to take pictures of every slide you
+have to take pictures of every slide you can just sit back and enjoy the show
+can just sit back and enjoy the show such as it is why do we need statistical
+such as it is why do we need statistical tests if you were to walk into a forest
+tests if you were to walk into a forest and measure every tree and get a graph
+and measure every tree and get a graph something like this you would not need
+something like this you would not need fancy math to know that spruces are
+fancy math to know that spruces are taller than maples but if you could
+taller than maples but if you could measure only 16 trees in a forest and
+measure only 16 trees in a forest and you got a graph like this well do happy
+you got a graph like this well do happy trees grow taller than unhappy ones you
+trees grow taller than unhappy ones you can say do avoid getting me into an da
+can say do avoid getting me into an da trouble let us say that all of my
+trouble let us say that all of my examples here come from hypothetical
+examples here come from hypothetical games incorporated and here at
+games incorporated and here at hypothetical games incorporated our
+hypothetical games incorporated our build times kind of suck a full rebuild
+build times kind of suck a full rebuild of the whole game including as its takes
+of the whole game including as its takes two hours and let's say that I'm a
+two hours and let's say that I'm a programmer in hypothetical games and I'm
+programmer in hypothetical games and I'm tired of looking at progress bars so get
+tired of looking at progress bars so get on my boss and I say you know if we just
+on my boss and I say you know if we just bought everybody a solid-state drive
+bought everybody a solid-state drive bill times would get faster and I'd save
+bill times would get faster and I'd save time my boss he's kind of a curmudgeon
+time my boss he's kind of a curmudgeon and he makes a good point that SSDs are
+and he makes a good point that SSDs are really expensive and would it be worth
+really expensive and would it be worth it to buy one for everybody in the
+it to buy one for everybody in the office all right well I'll come in over
+office all right well I'll come in over weekend clean out my desk do a full
+weekend clean out my desk do a full reboot from scratch two and a half hours
+reboot from scratch two and a half hours fantastic
+fantastic I'm gonna take my SSD from home come in
+I'm gonna take my SSD from home come in plug it into my work computer build on
+plug it into my work computer build on that thing two hours and 20 minutes
+that thing two hours and 20 minutes all right 10-minute improvements a
+all right 10-minute improvements a little bit just to be sure though let me
+little bit just to be sure though let me run this test again back on the hard
+run this test again back on the hard drive and it's two hours and 10 minutes
+drive and it's two hours and 10 minutes so what's faster than what all right I'm
+so what's faster than what all right I'm gonna spend the entire weekend building
+gonna spend the entire weekend building over and over and over again and I get
+over and over and over again and I get numbers that are all over the place
+numbers that are all over the place on average the solid state drive builds
+on average the solid state drive builds about 10 minutes faster but here's the
+about 10 minutes faster but here's the problem with averages with a small
+problem with averages with a small sample and a random distribution you can
+sample and a random distribution you can get completely different averages even
+get completely different averages even if the underlying distribution is the
+if the underlying distribution is the same so long as your sample size is
+same so long as your sample size is small here's another way of looking at
+small here's another way of looking at it let's say that I went to two schools
+it let's say that I went to two schools and I gave every kid at each school a
+and I gave every kid at each school a puzzle and I just measured how long it
+puzzle and I just measured how long it took them to solve the puzzle you might
+took them to solve the puzzle you might look at this and say that kids from New
+look at this and say that kids from New Jersey are smarter than kids in the
+Jersey are smarter than kids in the Bronx of course but that depends on
+Bronx of course but that depends on which particular students you're testing
+which particular students you're testing if I had grabbed only three of students
+if I had grabbed only three of students from every school and tested them well
+from every school and tested them well the averages might have looked
+the averages might have looked completely different or they look
+completely different or they look completely different in the opposite
+completely different in the opposite direction in fact we can enumerate every
+direction in fact we can enumerate every possible three student combination and
+possible three student combination and every average that comes out of every
+every average that comes out of every one of those three student combinations
+one of those three student combinations and those averages of all the combos
+and those averages of all the combos will itself follow a distribution kind
+will itself follow a distribution kind of like this so based on the sample size
+of like this so based on the sample size we have we have a large uncertainty
+we have we have a large uncertainty about whether the mean of the sample
+about whether the mean of the sample corresponds to the mean of the actual
+corresponds to the mean of the actual population as our sample size gets
+population as our sample size gets bigger this estimate becomes more and
+bigger this estimate becomes more and more precise and as it gets smaller we
+more precise and as it gets smaller we have more and more uncertainty so the
+have more and more uncertainty so the tests I'm showing you today are all
+tests I'm showing you today are all about managing this particular
+about managing this particular uncertainty of having only an estimate
+uncertainty of having only an estimate of this population mean from your sample
+of this population mean from your sample mean and in case you're wondering where
+mean and in case you're wondering where this data comes from it's the exact same
+this data comes from it's the exact same distribution so any differences were
+distribution so any differences were purely from chance all right back to
+purely from chance all right back to build times where scientists scientists
+build times where scientists scientists build a hypothesis and then test it
+build a hypothesis and then test it what's my hypothesis
+what's my hypothesis times are faster in a solid-state drive
+times are faster in a solid-state drive actually it's easier to disprove
+actually it's easier to disprove something than it is to prove it
+something than it is to prove it so let's disprove Fred Fred's hypothesis
+so let's disprove Fred Fred's hypothesis is that SSDs don't make a difference and
+is that SSDs don't make a difference and if you can show that fred is wrong then
+if you can show that fred is wrong then I'm right
+I'm right probably the test for this is called
+probably the test for this is called students t-test it's actually named
+students t-test it's actually named after this guy William Gossett who had
+after this guy William Gossett who had to publish under the pseudonym student
+to publish under the pseudonym student because he was under NDA to Guinness at
+because he was under NDA to Guinness at the time that he invented it go figure
+the time that he invented it go figure he was concerned with quality control on
+he was concerned with quality control on beer so let's say that this distribution
+beer so let's say that this distribution represents like the specific gravity of
+represents like the specific gravity of bottles of Guinness that roll off the
+bottles of Guinness that roll off the line and you know it's kind of clustered
+line and you know it's kind of clustered it's a little bit of variation and for
+it's a little bit of variation and for every batch he has to grab ten bottles
+every batch he has to grab ten bottles off the next batch look at those ten
+off the next batch look at those ten bottles kind of guess at what the real
+bottles kind of guess at what the real distribution is that they represent and
+distribution is that they represent and then say do those bottles match again is
+then say do those bottles match again is his quality control standards or are
+his quality control standards or are they different enough from the specs
+they different enough from the specs that we have that we need to kill the
+that we have that we need to kill the batch now students boss apparently an
+batch now students boss apparently an ancestor of Fred not a big fan of
+ancestor of Fred not a big fan of killing the entire batch and a bunch of
+killing the entire batch and a bunch of profits and he says well you know you
+profits and he says well you know you only got ten bottles here with a sample
+only got ten bottles here with a sample size that's small maybe your populate
+size that's small maybe your populate your student your sample mean is only a
+your student your sample mean is only a little bit different from the population
+little bit different from the population mean just by chance I can prove you're
+mean just by chance I can prove you're wrong says student probably there's a
+wrong says student probably there's a couple of ways one is if the mean of our
+couple of ways one is if the mean of our sample was way different from the from
+sample was way different from the from the spec that were expecting we can know
+the spec that were expecting we can know like there is no possible way these ten
+like there is no possible way these ten bottles could represent a good batch of
+bottles could represent a good batch of beer or if student had measured every
+beer or if student had measured every single bottle that came off the line
+single bottle that came off the line then we would have a really good
+then we would have a really good estimate of the other of the mean but if
+estimate of the other of the mean but if the sample size is small and the means
+the sample size is small and the means are close to each other well you know we
+are close to each other well you know we can't really disprove Fred so this is
+can't really disprove Fred so this is what the students t-test built into
+what the students t-test built into Excel does it's one of the most useful
+Excel does it's one of the most useful tests in statistics it takes the data
+tests in statistics it takes the data values that you have and it takes the
+values that you have and it takes the size of the sample and it spits out a
+size of the sample and it spits out a number P which for the purposes of this
+number P which for the purposes of this talk is basically the chance that Fred
+talk is basically the chance that Fred is right we can make a bet with Fred
+is right we can make a bet with Fred before we run the numbers to say if
+before we run the numbers to say if there is less than say a 5% chance that
+there is less than say a 5% chance that you're right
+you're right then we'll agree that you're probably
+then we'll agree that you're probably wrong and the two samples are in fact
+wrong and the two samples are in fact different so that's what P is the
+different so that's what P is the p-value that you've seen in like all the
+p-value that you've seen in like all the scientific studies it's basically the
+scientific studies it's basically the chance of a false positive on
+chance of a false positive on saying that the two things are different
+saying that the two things are different so the Fred's wrong we can say we
+so the Fred's wrong we can say we rejected the null hypothesis we've
+rejected the null hypothesis we've rejected the Fred hypothesis and the two
+rejected the Fred hypothesis and the two groups are statistically significantly
+groups are statistically significantly different but you got to pick this
+different but you got to pick this number before you do any tests like
+number before you do any tests like don't shoot an arrow at a hey BL and
+don't shoot an arrow at a hey BL and then paint the target or anything to
+then paint the target or anything to call a bull's eye and said well it's the
+call a bull's eye and said well it's the 50% chance of being a false positive we
+50% chance of being a false positive we must be fine
+must be fine also any actual statisticians in the
+also any actual statisticians in the audience are now totally cringing
+audience are now totally cringing because I've completely oversimplified
+because I've completely oversimplified everything p-values are hard good enough
+everything p-values are hard good enough for our purposes back to the build times
+for our purposes back to the build times here they are in minutes so here's how
+here they are in minutes so here's how you do a t-test in Excel
+you do a t-test in Excel it's built in you go to the data menu it
+it's built in you go to the data menu it pop up in this tool pack you pick t-test
+pop up in this tool pack you pick t-test in this case we're doing two samples
+in this case we're doing two samples pops up a wizard you specify your
+pops up a wizard you specify your acceptable false positive thresholds
+acceptable false positive thresholds there gives you a table that's the
+there gives you a table that's the number you care about 0.04 3/4 4.3
+number you care about 0.04 3/4 4.3 percent chance of Fred Bing right
+percent chance of Fred Bing right there's this one tail number ignore it
+there's this one tail number ignore it that number is for when you are certain
+that number is for when you are certain what direction the difference may be and
+what direction the difference may be and you only use that number if you were
+you only use that number if you were absolutely positive without doubt that
+absolutely positive without doubt that ssds could only build faster and not
+ssds could only build faster and not slower but you never know that ahead of
+slower but you never know that ahead of time if you did you wouldn't need to be
+time if you did you wouldn't need to be doing the statistics so always use the 2
+doing the statistics so always use the 2 tail value now should we actually buy
+tail value now should we actually buy the ssds all we've shown is that the two
+the ssds all we've shown is that the two populations are different but not how
+populations are different but not how different and not whether it's worth
+different and not whether it's worth spending all the money on those drives
+spending all the money on those drives so what we actually care about is the
+so what we actually care about is the actual difference it means how much of a
+actual difference it means how much of a change is it
+change is it this difference in knees has a margin of
+this difference in knees has a margin of error just like the actual sample mean
+error just like the actual sample mean and we call that the confidence interval
+and we call that the confidence interval um difference in means which is
+um difference in means which is basically we know that the difference is
+basically we know that the difference is 11 minutes give or take a few minutes we
+11 minutes give or take a few minutes we calculate the give or take using this
+calculate the give or take using this macro that I'm giving you at the slide
+macro that I'm giving you at the slide at the URL but I showed you earlier and
+at the URL but I showed you earlier and we'll show you again in this case it
+we'll show you again in this case it pops out a number 8.14 that means that
+pops out a number 8.14 that means that the actual difference in billed times is
+the actual difference in billed times is with 95% certainty somewhere between 11
+with 95% certainty somewhere between 11 minutes minus or plus 8 minutes which is
+minutes minus or plus 8 minutes which is to say somewhere between about 3 and 19
+to say somewhere between about 3 and 19 minutes so should we buy the drives
+minutes so should we buy the drives let's do the arithmetic we've saved
+let's do the arithmetic we've saved about about 11 minutes per build let's
+about about 11 minutes per build let's say it did cost the company 50 cents a
+say it did cost the company 50 cents a minute
+minute so we've
+so we've five bucks and fifty cents a build SSD
+five bucks and fifty cents a build SSD cost about 300 bucks so every Deb would
+cost about 300 bucks so every Deb would need to be doing 55 builds from scratch
+need to be doing 55 builds from scratch in order for the SSD to pay for itself
+in order for the SSD to pay for itself except we've got that uncertainty so if
+except we've got that uncertainty so if we did this test like a thousand times
+we did this test like a thousand times the average would be somewhere between
+the average would be somewhere between three minutes and 19 minutes difference
+three minutes and 19 minutes difference so we would have to do somewhere between
+so we would have to do somewhere between two hundred and ten or thirty one full
+two hundred and ten or thirty one full rebuilds for Deb for the drive to pay
+rebuilds for Deb for the drive to pay for itself so just because the two
+for itself so just because the two things are statistically significantly
+things are statistically significantly different it doesn't mean that the
+different it doesn't mean that the difference is actually practical you
+difference is actually practical you have to look at how big the difference
+have to look at how big the difference in means is you can't just say well the
+in means is you can't just say well the two things are different than we should
+two things are different than we should fly all the drives incidentally if the
+fly all the drives incidentally if the confidence interval stradun zero if I
+confidence interval stradun zero if I said the difference in build times is
+said the difference in build times is like five minutes plus or minus ten
+like five minutes plus or minus ten minutes then it's like the improvement
+minutes then it's like the improvement is negative five to fifteen minutes
+is negative five to fifteen minutes which is to say I've definitely proven
+which is to say I've definitely proven that things are either better or worse
+that things are either better or worse or the same which is to say it proved
+or the same which is to say it proved absolutely nothing so if your confidence
+absolutely nothing so if your confidence interval straddles zero you don't have a
+interval straddles zero you don't have a result you use a t-test for continuous
+result you use a t-test for continuous outcomes anything you can measure would
+outcomes anything you can measure would like an integer or floating-point number
+like an integer or floating-point number and you use it for things that are sort
+and you use it for things that are sort of normal
+of normal ish we distributed kind of bell-shaped
+ish we distributed kind of bell-shaped it doesn't have to be exact the t-test
+it doesn't have to be exact the t-test is pretty robust you can get away with a
+is pretty robust you can get away with a lot of lopsidedness and a lot of
+lot of lopsidedness and a lot of lumpiness but it has to be something
+lumpiness but it has to be something that has a real mean like that where the
+that has a real mean like that where the mean is meaningful if you've got
+mean is meaningful if you've got something like the one on the right the
+something like the one on the right the average value there like there aren't
+average value there like there aren't even any members of the population that
+even any members of the population that are at that ever just like saying the
+are at that ever just like saying the average human being has 1.9 eyes so does
+average human being has 1.9 eyes so does it really matter
+it really matter so you can't use a t-test for that okay
+so you can't use a t-test for that okay let's say that hypothetical games is
+let's say that hypothetical games is working on an online puzzle title Angry
+working on an online puzzle title Angry confectioner's and this is one of those
+confectioner's and this is one of those games where we can actually push updates
+games where we can actually push updates up to our players and measure their live
+up to our players and measure their live fantastic so we've got a new cupcake
+fantastic so we've got a new cupcake mode in cupcake mode isn't doing great
+mode in cupcake mode isn't doing great and Fred says you know I think cupcake
+and Fred says you know I think cupcake you know just isn't any fun and we
+you know just isn't any fun and we should probably cut it looking you know
+should probably cut it looking you know I think like I've been talking to my
+I think like I've been talking to my friends and they're just complaining the
+friends and they're just complaining the cupcake mode is just a little too hard
+cupcake mode is just a little too hard and I think if we make up a community
+and I think if we make up a community easier people would play the puzzles
+easier people would play the puzzles more because they get less frustrated
+more because they get less frustrated here's the problem play times for this
+here's the problem play times for this game are all over the place some people
+game are all over the place some people play one hour week some people
+play one hour week some people play ten-hour a week so how can we like
+play ten-hour a week so how can we like measure a difference in play time when
+measure a difference in play time when we've got such a huge diversity and
+we've got such a huge diversity and player and player play times so how
+player and player play times so how about this how about we run an
+about this how about we run an experiment I'll show some people the
+experiment I'll show some people the easy version I'll show some people the
+easy version I'll show some people the hard version and I'll switch them and
+hard version and I'll switch them and then we'll compare every person's
+then we'll compare every person's playtime during the week where they saw
+playtime during the week where they saw the hard version - how - that same
+the hard version - how - that same person's play time when they played the
+person's play time when they played the easy version we can filter out
+easy version we can filter out individual differences between people in
+individual differences between people in this way when we do this it's still a
+this way when we do this it's still a t-test it's just called a paired t-test
+t-test it's just called a paired t-test as opposed to a two sample also built
+as opposed to a two sample also built into Excel so what we're asking is if I
+into Excel so what we're asking is if I make this puzzle easier more people
+make this puzzle easier more people spend time playing we've got two
+spend time playing we've got two versions of the puzzle and my hypothesis
+versions of the puzzle and my hypothesis that I'm trying to prove or disprove is
+that I'm trying to prove or disprove is that people play the hard version either
+that people play the hard version either more or less than play the easy one and
+more or less than play the easy one and Fred's saying no cupcake mode just is no
+Fred's saying no cupcake mode just is no fun at all we should cut it I don't
+fun at all we should cut it I don't think how hard it's going to be is going
+think how hard it's going to be is going to make a difference let's run the
+to make a difference let's run the experiment we've got a population cut
+experiment we've got a population cut and a half let me get the easy version
+and a half let me get the easy version haven't get the hard version after a
+haven't get the hard version after a week give them a switcheroo record how
+week give them a switcheroo record how long they all played the game the
+long they all played the game the advantage of doing a crossover this way
+advantage of doing a crossover this way is it filters out things like everybody
+is it filters out things like everybody playing the game last week two week or
+playing the game last week two week or if there's a holiday or something like
+if there's a holiday or something like it kind of washes out because you've got
+it kind of washes out because you've got you've split the population in half
+you've split the population in half we've got data from every player for
+we've got data from every player for every version let's add 40 more of these
+every version let's add 40 more of these now we calculate the difference for each
+now we calculate the difference for each person from how much they played the
+person from how much they played the hard version from how much they play the
+hard version from how much they play the easy version looks kind of like that
+easy version looks kind of like that that's where the zero number is looks a
+that's where the zero number is looks a little op sided let's do the math go
+little op sided let's do the math go back to the data analysis thing and
+back to the data analysis thing and Excel you pick paired two-sample t-tests
+Excel you pick paired two-sample t-tests pops this number one percent chance of
+pops this number one percent chance of Fred being right so we can say that yes
+Fred being right so we can say that yes people do play the hard version about
+people do play the hard version about negative 0.18 hours less per week but 11
+negative 0.18 hours less per week but 11 minutes less per week so yes we should
+minutes less per week so yes we should probably make cupcake mode a little bit
+probably make cupcake mode a little bit easier and maybe change the other
+easier and maybe change the other puzzles - what about binary outcomes
+puzzles - what about binary outcomes probably like the question is like do
+probably like the question is like do people turn left or right do they do the
+people turn left or right do they do the thing or not they're like do they do
+thing or not they're like do they do they even buy something or not let's say
+they even buy something or not let's say that hypothetical games is working on
+that hypothetical games is working on generic MOBA
+generic MOBA generic MOBA is a free-to-play game that
+generic MOBA is a free-to-play game that makes its money by selling garments of
+makes its money by selling garments of some description pants let's say so we
+some description pants let's say so we have a nice pants shop the problem is
+have a nice pants shop the problem is nobody goes to the pants shop and in
+nobody goes to the pants shop and in first kind of getting a little bit
+first kind of getting a little bit peevish with me
+peevish with me well our problem is that nobody even
+well our problem is that nobody even goes to the store do they know the
+goes to the store do they know the stores there maybe there's like a like a
+stores there maybe there's like a like a activation energy like maybe they just
+activation energy like maybe they just have to get over that hump so what what
+have to get over that hump so what what can we do that makes them at least go to
+can we do that makes them at least go to the store at least once and buy or just
+the store at least once and buy or just do anything there see that they have in
+do anything there see that they have in inventory maybe they'll notice some
+inventory maybe they'll notice some things on sale and want to buy pants so
+things on sale and want to buy pants so how about I Madison how about we get
+how about I Madison how about we get everybody like a free coupon for one
+everybody like a free coupon for one free monocle and you go to the store you
+free monocle and you go to the store you cash that in and then they'll have gone
+cash that in and then they'll have gone for the experience of knowing that the
+for the experience of knowing that the store is there and doing doing all that
+store is there and doing doing all that and friends like wait we're not selling
+and friends like wait we're not selling any pants and now you want to like lose
+any pants and now you want to like lose the revenue on monocles as well what
+the revenue on monocles as well what difference is this is going to make
+difference is this is going to make here's our question our people who get a
+here's our question our people who get a monocle more likely to buy pants alright
+monocle more likely to buy pants alright let's do a scientific study once again
+let's do a scientific study once again we've got our players let's cut them
+we've got our players let's cut them into a control group in an experimental
+into a control group in an experimental group experimental group gets monocles
+group experimental group gets monocles control group it gets no monocle coupons
+control group it gets no monocle coupons we'll wait
+we'll wait we'll wait a couple weeks and we'll see
+we'll wait a couple weeks and we'll see how many people from each group went on
+how many people from each group went on to buy pants at some point in the next
+to buy pants at some point in the next couple of weeks
+couple of weeks what's my hypothesis I'm hypothesizing
+what's my hypothesis I'm hypothesizing that people who got the monocles are
+that people who got the monocles are more likely to buy pants that week in
+more likely to buy pants that week in France like hang on a second you're
+France like hang on a second you're making an assumption here and your
+making an assumption here and your assumption is that people who get
+assumption is that people who get monocles are more likely to buy pants
+monocles are more likely to buy pants but you've got no data for that right I
+but you've got no data for that right I could easily have be making people less
+could easily have be making people less likely to buy pants maybe I filled their
+likely to buy pants maybe I filled their sartorial needs for the week so whenever
+sartorial needs for the week so whenever you're doing this kind of test you're
+you're doing this kind of test you're saying have I caused more of something
+saying have I caused more of something consider that you might have caused less
+consider that you might have caused less of it that's exactly what the two-tailed
+of it that's exactly what the two-tailed test is about all right so our
+test is about all right so our hypothesis is that people in the
+hypothesis is that people in the experimental group buy pants at a
+experimental group buy pants at a different rate from the control group
+different rate from the control group people and for hypothesis is that it
+people and for hypothesis is that it doesn't make a difference and they're
+doesn't make a difference and they're going to buy pants at the same rate all
+going to buy pants at the same rate all right also if we did this test a hundred
+right also if we did this test a hundred times you get slightly different results
+times you get slightly different results every time so for this test we also have
+every time so for this test we also have the confidence intervals things a little
+the confidence intervals things a little bit of uncertainty will work those out
+bit of uncertainty will work those out got two options for this scenario one is
+got two options for this scenario one is the so-called relative risk test
+the so-called relative risk test is used in epidemiology it's the thing
+is used in epidemiology it's the thing where they say like people who smoke are
+where they say like people who smoke are four times as likely to spontaneously
+four times as likely to spontaneously combust the other is the difference of
+combust the other is the difference of proportions and it's what you say when
+proportions and it's what you say when you say our market share has increased
+you say our market share has increased by five percentage points and you really
+by five percentage points and you really mean it's gone from twenty to twenty
+mean it's gone from twenty to twenty five as opposed to like twenty to
+five as opposed to like twenty to twenty-two this is a relative risk first
+twenty-two this is a relative risk first here's our data eight people in the
+here's our data eight people in the control group bought pants after a
+control group bought pants after a couple of weeks nineteen people in the
+couple of weeks nineteen people in the experimental group bought pants in a
+experimental group bought pants in a couple of weeks chart looks kind of like
+couple of weeks chart looks kind of like that well that's the number people from
+that well that's the number people from their muscle group we bought pants it's
+their muscle group we bought pants it's about two and a half times a little bit
+about two and a half times a little bit less than the number of people in the
+less than the number of people in the control group about pants so the
+control group about pants so the relative risk of somebody in
+relative risk of somebody in experimental group buying pants is about
+experimental group buying pants is about two point four the confidence interval
+two point four the confidence interval once again from the macker that I've
+once again from the macker that I've given you at the at the URL comes out to
+given you at the at the URL comes out to about one point oh eight to five point
+about one point oh eight to five point two five so we know that monopole
+two five so we know that monopole recipients are about two point four
+recipients are about two point four times more likely with an uncertainty of
+times more likely with an uncertainty of somewhere between one point one and five
+somewhere between one point one and five point two five but Fred's definitely
+point two five but Fred's definitely wrong or at least he's only three
+wrong or at least he's only three percent likely to be right it's to the
+percent likely to be right it's to the difference of proportions so that's much
+difference of proportions so that's much simpler we've got a five percent
+simpler we've got a five percent conversion ratio on the control group 12
+conversion ratio on the control group 12 percent on experimental group 12 minus
+percent on experimental group 12 minus five is seven
+five is seven that's our number once again there's a
+that's our number once again there's a confidence interval here that we have to
+confidence interval here that we have to calculate Becker for that is 'litham the
+calculate Becker for that is 'litham the page as well if you do the math this way
+page as well if you do the math this way the interval comes out to about zero
+the interval comes out to about zero point eight percent to about 13 percent
+point eight percent to about 13 percent small sample size huge uncertainty which
+small sample size huge uncertainty which test do we use in this scenario
+test do we use in this scenario well what question are we trying to
+well what question are we trying to answer in this case we're trying to
+answer in this case we're trying to answer how much more cash are we getting
+answer how much more cash are we getting out of people by giving them the coupons
+out of people by giving them the coupons in this case the absolute test is useful
+in this case the absolute test is useful right twelve per hundred people in the
+right twelve per hundred people in the experimental group buy pants five and
+experimental group buy pants five and one hundred people in the control group
+one hundred people in the control group buy pants so that's about fifty nine
+buy pants so that's about fifty nine bucks per hundred players and the
+bucks per hundred players and the experimental twenty-five bucks per
+experimental twenty-five bucks per hundred players and the control so about
+hundred players and the control so about a thirty forty dollar difference or
+a thirty forty dollar difference or depending on that uncertainty somewhere
+depending on that uncertainty somewhere between four and sixty four dollars you
+between four and sixty four dollars you know if I went that to Fred and said you
+know if I went that to Fred and said you could probably make thirty four bucks
+could probably make thirty four bucks more four hundred players he'd be like
+more four hundred players he'd be like but if I went to him and I said this
+but if I went to him and I said this idea makes people more than
+idea makes people more than twice as likely to buy pants sounds a
+twice as likely to buy pants sounds a little bit better so my conclusion is
+little bit better so my conclusion is you should use the relative risk test to
+you should use the relative risk test to convince your boss your marketing
+convince your boss your marketing department your VP and the absolute test
+department your VP and the absolute test to convince yourself all right what if
+to convince yourself all right what if our distribution is kind of lopsided
+our distribution is kind of lopsided like this what if we've got like an app
+like this what if we've got like an app store rating like this right and wording
+store rating like this right and wording people one to five and you know app
+people one to five and you know app store ratings are always kind of bimodal
+store ratings are always kind of bimodal because human beings are nonlinear and
+because human beings are nonlinear and the difference in our heads between five
+the difference in our heads between five stars and four stars is not the same as
+stars and four stars is not the same as between four and three let's think of an
+between four and three let's think of an example all right hypothetical games
+example all right hypothetical games working on a new puzzle
+working on a new puzzle I built the puzzle we send it home with
+I built the puzzle we send it home with our friends and family for a weekend to
+our friends and family for a weekend to play test you've got some metrics in the
+play test you've got some metrics in the app data comes back after the weekend
+app data comes back after the weekend here's how long everybody played our
+here's how long everybody played our game before they got bored most people
+game before they got bored most people didn't play it very much how people
+didn't play it very much how people played it a lot look at this thing and I
+played it a lot look at this thing and I say you know I think I can probably do
+say you know I think I can probably do better than that all right so it's been
+better than that all right so it's been a week putting up a new version of the
+a week putting up a new version of the puzzle fix a few things send it home
+puzzle fix a few things send it home with a totally different group of
+with a totally different group of testers and data comes back like that I
+testers and data comes back like that I think it's an improvement
+think it's an improvement but if you look at the actual averages
+but if you look at the actual averages of these two groups the average time
+of these two groups the average time spent playing the orange puzzle is less
+spent playing the orange puzzle is less it's 6 or 5.9 and the average time spent
+it's 6 or 5.9 and the average time spent paying the blue puzzle is higher at 6.8
+paying the blue puzzle is higher at 6.8 why because average averages are very
+why because average averages are very sensitive to outliers and I'm like but
+sensitive to outliers and I'm like but Fred 78% of the people who played the
+Fred 78% of the people who played the blue puzzle played it from less a lower
+blue puzzle played it from less a lower than average amount of time and like
+than average amount of time and like this what is this is this your parents
+so the number we care about is the median which is just the number where
+median which is just the number where half the population is less than that
+half the population is less than that and half the population is more than
+and half the population is more than that in this case the median time spent
+that in this case the median time spent playing for the blue puzzle is 2 which
+playing for the blue puzzle is 2 which is like half the people played for less
+is like half the people played for less than 2 hours but in the case of the
+than 2 hours but in the case of the orange puzzle the median is 6 so half of
+orange puzzle the median is 6 so half of the people played as much as 6 hours now
+the people played as much as 6 hours now Fred always the sourpuss is failing me
+Fred always the sourpuss is failing me well this is because we only tested it
+well this is because we only tested it in like a dozen people and if you did
+in like a dozen people and if you did this with a hundred players the two took
+this with a hundred players the two took the two puzzle play times would look
+the two puzzle play times would look more
+more the same like no we can match our way
+the same like no we can match our way out of this one the test for this one is
+out of this one the test for this one is the mann-whitney test it is once again
+the mann-whitney test it is once again an Excel macro that have linked to this
+an Excel macro that have linked to this one is not built into Excel but there's
+one is not built into Excel but there's this awesome guy who made a whole bunch
+this awesome guy who made a whole bunch of wizards that includes this one here
+of wizards that includes this one here is our data on the Left we've got the
+is our data on the Left we've got the number of hours that people played
+number of hours that people played Fred's version of the puzzle on the
+Fred's version of the puzzle on the right we've got the number of hours that
+right we've got the number of hours that people played my version of the puzzle
+people played my version of the puzzle pull the data into Excel pop open the
+pull the data into Excel pop open the thing this is the wizard that I'm giving
+thing this is the wizard that I'm giving you probably nonparametric test up comes
+you probably nonparametric test up comes the mann-whitney data comes out like
+the mann-whitney data comes out like this
+this fred chance of Fred being right is 3
+fred chance of Fred being right is 3 percent orange version of the puzzle is
+percent orange version of the puzzle is better some cautions all this time we
+better some cautions all this time we have been using 5 percent as the
+have been using 5 percent as the threshold for for false positives but
+threshold for for false positives but you know what five percent happens a lot
+you know what five percent happens a lot if y'all probably noticed so you've
+if y'all probably noticed so you've always got to define your hypothesis
+always got to define your hypothesis before you do the test to make your bet
+before you do the test to make your bet with Fred before you run into it and
+with Fred before you run into it and don't go data mining don't do the thing
+don't go data mining don't do the thing where you say we've got like a hundred
+where you say we've got like a hundred different metrics and our players and
+different metrics and our players and let's run a hundred different T tests to
+let's run a hundred different T tests to see if any of them correlate with
+see if any of them correlate with console brand do people on PlayStation
+console brand do people on PlayStation play longer than Xbox no okay do people
+play longer than Xbox no okay do people on PlayStation by more than Xbox know do
+on PlayStation by more than Xbox know do they kill more dragons whatever you if
+they kill more dragons whatever you if you have a 5% chance of any one of these
+you have a 5% chance of any one of these tests giving you a false positive you
+tests giving you a false positive you are almost certain if you've done that
+are almost certain if you've done that many - to be off the charts that mean to
+many - to be off the charts that mean to get to definitely get a false positive
+get to definitely get a false positive especially do not do the thing we've got
+especially do not do the thing we've got a hundred variables and you say for
+a hundred variables and you say for every one of these hundreds do they
+every one of these hundreds do they correlate with any of the other 99
+correlate with any of the other 99 variables because then you are
+variables because then you are absolutely guaranteed to get a false
+absolutely guaranteed to get a false positive and you're not doing science
+positive and you're not doing science you are running a novelty website also
+you are running a novelty website also even if you have a real association
+even if you have a real association between two things it doesn't
+between two things it doesn't necessarily mean that one thing is
+necessarily mean that one thing is causing the other right we've all heard
+causing the other right we've all heard the thing correlation is not causation
+the thing correlation is not causation it's not just that two things can be
+it's not just that two things can be correlated without being linked it's
+correlated without being linked it's that they can truly be linked but not
+that they can truly be linked but not mean because that not have a causal
+mean because that not have a causal linkage for example uncorrelated Ettore
+linkage for example uncorrelated Ettore twenty two people who took the survey
+twenty two people who took the survey have a Pinterest account thirty nine
+have a Pinterest account thirty nine thirty nine percent of them have
+thirty nine percent of them have sorry 22% of them have a Pinterest
+sorry 22% of them have a Pinterest account 39 percent of the people who own
+account 39 percent of the people who own cardigans have a Pinterest account does
+cardigans have a Pinterest account does cardigans cause having Pinterest
+cardigans cause having Pinterest accounts does Pinterest cause buying
+accounts does Pinterest cause buying cardigans does the same people like both
+cardigans does the same people like both cardigans and Pinterest
+cardigans and Pinterest can tell from this data all right let's
+can tell from this data all right let's do lightening around put it all together
+do lightening around put it all together working on the vr game got a new camera
+working on the vr game got a new camera scheme does it make our playtesters less
+scheme does it make our playtesters less nauseous and the other scheme alright
+nauseous and the other scheme alright what are we measuring if we are
+what are we measuring if we are measuring whether testers were able to
+measuring whether testers were able to finish the game or not it's a binary
+finish the game or not it's a binary outcome and a relative risk test or
+outcome and a relative risk test or difference of proportions
+difference of proportions what if we're measuring how long they're
+what if we're measuring how long they're able to play before they need a break
+able to play before they need a break it's a continuous outcome it's kind of
+it's a continuous outcome it's kind of bell-shaped probably so you can use a
+bell-shaped probably so you can use a t-test for this one what if we've asked
+t-test for this one what if we've asked me to rate their nausea from 1 to 5 well
+me to rate their nausea from 1 to 5 well if that ratings come in the bell curve
+if that ratings come in the bell curve we can use a t-test if their ratings
+we can use a t-test if their ratings come out like this it's not a normal
+come out like this it's not a normal outcome so we have to use the
+outcome so we have to use the mann-whitney test whatever making an
+mann-whitney test whatever making an educational game you're getting we given
+educational game you're getting we given we've let the kids play our game can
+we've let the kids play our game can they math better after playing our game
+they math better after playing our game well if we are comparing before and
+well if we are comparing before and after test scores on the same kids like
+after test scores on the same kids like every kid after every kid before it is a
+every kid after every kid before it is a paired t-test if you were to compare
+paired t-test if you were to compare like a control group in an experimental
+like a control group in an experimental group you would calculate the difference
+group you would calculate the difference between before and after for every
+between before and after for every student from the control the difference
+student from the control the difference between before and after from every
+between before and after from every student for the experimental and you
+student for the experimental and you would do an independent t-test on the
+would do an independent t-test on the differences we're making a game with a
+differences we're making a game with a lot of PvP character classes are they
+lot of PvP character classes are they balanced seek adult supervision can't do
+balanced seek adult supervision can't do it with a math I've shown you but you
+it with a math I've shown you but you can do some further reading so as I
+can do some further reading so as I mentioned I've given you some tests that
+mentioned I've given you some tests that are good in certain specific scenarios
+are good in certain specific scenarios but with this moderate power comes a
+but with this moderate power comes a moderate responsibility do not push your
+moderate responsibility do not push your tests beyond what they are able to do
+tests beyond what they are able to do here is a chart from a real scientific
+here is a chart from a real scientific study I found basically some
+study I found basically some experimental psychologists asked people
+experimental psychologists asked people a bunch of questions like do you enjoy
+a bunch of questions like do you enjoy bitter foods and drinks and do you tend
+bitter foods and drinks and do you tend to be cynical and then they correlated
+to be cynical and then they correlated every one of these questions against
+every one of these questions against every other ones any questions so
+every other ones any questions so people who tend to be cynical tend to
+people who tend to be cynical tend to enjoy bitter foods and drinks headline
+enjoy bitter foods and drinks headline the next week
+the next week oh it's good stuff
+oh it's good stuff use your skills for good and not stupid
+use your skills for good and not stupid please
+please all right thanks to everybody who helped
+all right thanks to everybody who helped me out with this talk mark Cerny of
+me out with this talk mark Cerny of course my long-suffering sponsor Hal
+course my long-suffering sponsor Hal door my boss my captain who was the
+door my boss my captain who was the opposite of Fred I just want to say
+opposite of Fred I just want to say right here and everybody who came to my
+right here and everybody who came to my rehearsals and extra special special
+rehearsals and extra special special thanks to dr. garrison at the University
+thanks to dr. garrison at the University of Washington who literally taught me
+of Washington who literally taught me everything I know about statistics and
+everything I know about statistics and without whom this talk would not have
+without whom this talk would not have been even remotely possible and to my
+been even remotely possible and to my surprise I even have time for Q&A
+surprise I even have time for Q&A [Applause]
+hi I got a question oh right when discussing reading nausea from one
+when discussing reading nausea from one to five yep you said if the results look
+to five yep you said if the results look like a bell curve used t-tests otherwise
+like a bell curve used t-tests otherwise use that other one yep it seems like it
+use that other one yep it seems like it would be tempting to choose the test
+would be tempting to choose the test that gives better results that is an
+that gives better results that is an excellent point
+excellent point so yes you should probably just use the
+so yes you should probably just use the mann-whitney test so scales like that
+mann-whitney test so scales like that are called Likert scales and depending
+are called Likert scales and depending on which statistician you ask they'll
+on which statistician you ask they'll say if it's at least five five
+say if it's at least five five categories or is least ten categories
+categories or is least ten categories you can treat it as continuous but if
+you can treat it as continuous but if it's less than that you have to treat it
+it's less than that you have to treat it as if it were what's called ordinal
+as if it were what's called ordinal where you can't like actually assign
+where you can't like actually assign them to a continuous number five is
+them to a continuous number five is right at the cusp so it's kind of a
+right at the cusp so it's kind of a judgement call
+judgement call now that you've mentioned that I would
+now that you've mentioned that I would say yeah probably should probably use
+say yeah probably should probably use the mann-whitney it's almost as good as
+the mann-whitney it's almost as good as the t-test in all scenarios anyway all
+the t-test in all scenarios anyway all right thank you
+right thank you any other questions oh I'm gonna skip
+any other questions oh I'm gonna skip ahead into the Q&A slide so what if your
+ahead into the Q&A slide so what if your outcome is something that can't be
+outcome is something that can't be measured as a continuous number what if
+measured as a continuous number what if it's something you can't put a score on
+it's something you can't put a score on but you can just say this thing is
+but you can just say this thing is better than that thing like what if you
+better than that thing like what if you can just rank things from best to worst
+can just rank things from best to worst right now you can't look at these things
+right now you can't look at these things and say that the difference between
+and say that the difference between undiscovered country in first contact is
+undiscovered country in first contact is exactly the same as the difference
+exactly the same as the difference between search for Spock in the motion
+between search for Spock in the motion picture you can just say which of these
+picture you can just say which of these things is better than which of the other
+things is better than which of the other things this test is what the
+things this test is what the mann-whitney was actually designed to do
+mann-whitney was actually designed to do is called an ordinal outcome because you
+is called an ordinal outcome because you can only order things you can't measure
+can only order things you can't measure them continuously so in this case our
+them continuously so in this case our predictor is is the movie even-numbered
+predictor is is the movie even-numbered or odd numbered and the outcome is is
+or odd numbered and the outcome is is good or not and
+good or not and we can do the math the thing pop but the
+we can do the math the thing pop but the number is the thing yeah and it turns
+number is the thing yeah and it turns out actually the even-numbered movies
+out actually the even-numbered movies aren't better or at least to prove it we
+aren't better or at least to prove it we need like 30 of them it's time to bring
+need like 30 of them it's time to bring in Rikers there's no other questions
+in Rikers there's no other questions let's all get comfy
+let's all get comfy [Applause]

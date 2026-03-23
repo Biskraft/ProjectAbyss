@@ -1,0 +1,367 @@
+hi everyone it's me Tim today I want to
+talk about arcanum's Random Encounters
+this is a
+not a follow-up but a
+parallel to the video I did on Fallout
+Random Encounters a few people asked me
+how Arcanum worked and how different it
+was
+and how we handled certain
+special Random Encounters that happened
+at a particular time of the game
+I would admit that
+when the when these questions came in
+all I could remember is it had something
+to do with arcanums
+timed event system we had a really
+complicated timed event system which is
+basically a queue of
+events that any system in the game could
+throw things into and they could be
+either real time which is based on the
+actual time in going on or it could be
+game time
+in fact there was a second timer called
+game time two one of those
+was affected by pauses in the game and
+the other one wasn't
+um
+so I went in there and I did find the
+link to Random Encounters which oddly
+enough weren't in their own
+module they were tacked into a UI module
+so bad design on my part but I did find
+out exactly how they worked
+and I will go through that now
+so arcanum's Random Encounters were set
+to
+occur
+between
+300 and 700 game minutes which works out
+to between every five hours and 11.6
+hours
+it would check for one
+and
+it didn't guarantee one would happen
+but
+that's what it would check that's how
+often would check and then whether the
+Checker or not was successful it would
+reset the next timer for another
+5 to 11.6 hours which means in a 12 hour
+period you might have two encounters
+because they both did it at five or six
+hours or you might only have one so
+the Random Encounters were only allowed
+if you were currently on the world map
+not the UI but you were out on a sector
+that was part of the world map basically
+they were specifically disallowed in any
+place that had a town map
+so think of it as if you were standing
+in a sector and if you hit the
+town map button if a town map came up
+you could not have a random encounter
+there if it didn't come up then you were
+good to go
+now I said this is it whether or not you
+were in the world map UI
+a random counter Could Happen whether
+you were fast traveling via the world
+map and remember this time sped up when
+you did that and this is all based on
+game time
+or whether you're walking those sectors
+manually which you could do you could
+walk between any two points on the world
+map and travel through every sector in
+between
+they would also happen if you're just
+standing there because it only paid
+attention to the passage of game time
+interestingly
+there was in the uh encounters and I'll
+talk about that in a second there was a
+frequency which is what's the chance of
+this happening and would just drop down
+that list of creatures checking the
+frequency until one triggered meaning
+if designers wanted something to happen
+more often they moved it near the top of
+the list and they increased its
+frequency
+the frequency was automatically
+increased if you were sleeping
+meaning as it went down that list
+all the frequencies are in there were
+automatically adjusted upward if you
+were asleep so something that might not
+have encountered you or come at you
+when you were awake would do so if you
+were asleep this was partially realism
+partially funism and partially the hand
+of the designer basically telling the
+player you should probably sleep in an
+inn or building
+or even a dungeon but if you're going to
+sleep out in the wild good luck to you
+the checks were done based on your exact
+location so that was sector and tile you
+know the every location in the game had
+a very
+unique number that specified it the
+checks were done by that
+there was default encounter charts that
+we made
+that were based on the terrain
+of the sector you were on that stab base
+Terrain
+and also time of day so like a
+light Forest during the day would have a
+different encounter chart than a light
+forest at night
+same thing for Desert
+for Coastal
+for planes for grasslands stuff like
+that so they're all different default
+encounters
+those encounters also had what were
+called a power setting which was set by
+the designer to say basically is this an
+easy encounter an average encounter or a
+powerful encounter and then they had the
+frequencies I mentioned which is
+what what was checked against what was
+literally like rolled against
+to see if that encounter triggered
+now
+the designer had access to a variety of
+overrides
+and what that meant was the designer
+could put a point with a radius
+and say if an encounter happened within
+this point in radius here's a default
+table to use instead
+people would use this for things like
+they'd make ruins
+and it didn't really have a town map it
+was just some ruins that you stumble
+cross but they wanted
+that place to be
+if you pass through it you're more
+likely encounter like skeletons or
+zombies so you would
+put a point on the ruin put a small
+radius on it
+point it to a table that was full of
+Undead
+now there's always a chance that you
+might be in multiple circles two circles
+May overlap
+the way that was done is
+if you appeared in multiple circles
+the smaller radius Circle always took
+precedence
+the idea being
+it was smaller it was more concentrated
+or whatever than something that was
+bigger
+if by chance there were two circles that
+overlapped that were the same radius it
+would break ties by the distance and if
+that was exactly the same it would just
+whichever one was
+was detected first
+I don't think that I don't think the
+second tiebreaker ever got triggered by
+any of the designs we put together
+now
+the encounter chart
+[Music]
+um
+it
+specified the creatures and how many
+numbers so you could have a
+one set of creatures you could have a
+mixed set of creatures and how many of
+those should be created it was random
+when they were created they were
+spawned in a certain distance from the
+player
+then equipment was created on them or
+loot it would specify like if it was
+people if it was Bandits they would like
+okay they get this armor and this weapon
+and it's wielded
+if it were just creatures they would
+have loot
+I believe they could even spawn in a
+loot container but I'm not sure about
+that
+they were also arranged into formation
+there was a functioning you could call
+that would scatter them because we
+picked a point away from the player but
+we didn't want them all standing on each
+other so they would spread out into a
+formation
+interestingly and I forgot about this
+and this is why I always like to go back
+to the code
+these encounters tracked how many times
+they were triggered
+we did this because remember I put
+script overrides on everything so that
+was true for hey an encounter just
+triggered if you want to run a script
+that way designers could say hey I only
+want this particular encounter
+to happen so many times so what would
+happen is that script would call they
+would check against some Macs and then
+they might delete that override so once
+you encountered so many special
+Encounters in this area it could delete
+itself
+or they may just want that information
+maybe they want to say every time you
+encounter this there's an extra creature
+or when it passes a certain threshold of
+how many times it's encountered a
+uh boss creature appears in it you got
+all this kind of control over what you
+wanted to do
+now somebody else when they asked about
+Random Encounters specifically said well
+how did you handle special things like
+the Milwaukee in hand showing up you
+know by the way spoiler warning for a 20
+year old game
+um
+the way that worked was
+I already talked that there were in
+counter overrides which worked on
+specific areas of the game well in
+addition to those because this whole
+thing worked through the timed event
+system
+a Quest or a story State could add in
+timed events so you could have a timed
+event that only happened when a certain
+Quest had been completed or while you
+were on a certain Quest
+or when the game was in a particular
+story State remember there were 27 story
+States
+in Arcanum so we had pretty specifically
+defined where you were in this
+non-linear storyline which of the major
+events because remember I said it was
+like a football there were there were
+certain points you had to pass through
+but how you got there was up to you
+those 27 points were defined and at any
+time the script could ask where they
+were where the player was in that story
+these were used for things like
+when you got far enough along in the
+game and you had triggered the milk in
+hand I'd be chasing you down
+for the Assassin guys they would just
+show up
+um
+and when they did they would show up
+they would act like a random encounter
+and they would go and they'd tell the
+random encounter system push your time
+out a certain amount because they
+weren't created by the random encounter
+system but what I didn't want to happen
+have happened was
+you had a random encounter
+from one of these Quest or story States
+and then a minute later you had a real
+random encounter so whenever one of they
+have those happened it pushed out the
+random encounter timer a few more hours
+I did find
+a couple comments of of code that hadn't
+been done I'll give you an example of
+one of them that I understood there was
+a a check that was commented out and
+there was a programmer name next to it
+saying didn't have time to do this which
+said
+if a random encounter was called for
+in a sector that already had creatures
+spawned on it
+the random encounter
+was
+delayed basically it before it was even
+rolled it was just saying you know what
+push a grammar counter out a bit uh the
+check to do around kind of outer bit
+because what we didn't want to do is you
+enter a sector which has full of
+skeletons or maybe
+you know some other kind of monsters and
+boom we throw a random encounter in on
+it
+now personally I would think that would
+be cool if that would happen because
+they may not befriended each other so
+you may have one of those encounters
+that you show up in and they're fighting
+each other
+don't know if anyone ever saw that I
+never saw that just because the chance
+of you being in an occupied sector that
+didn't have a town map that had
+creatures that you hadn't already killed
+and a random encounter triggered at just
+that moment was very small but I'd love
+it if anyone ever saw that
+and then one last thing I want to
+mention Is Random Encounters in Arcanum
+are not equal to monster generators
+monster generators are a totally
+different thing
+uh they were basically an object that
+you could place in the world
+that inside of it had a a
+data structure very similar to a random
+encounter which was here's a list of
+creatures
+uh here's what they're they wield or
+have as Loot and here's a timer but the
+way monster monster generators worked is
+they replace in a particular location
+and then that location was a monster
+spawner
+so it would get called periodically
+based on its own timer and it would
+check and you could have a script over I
+had to go I want to check time of day I
+want to check to see if the players in a
+particular Quest date I want to make
+sure this hasn't happened so many times
+you can check all that and then if it if
+it passed all the checks it would
+create a creature or a set of creatures
+we use this in a variety of places
+um in the game both out in the world and
+in dungeons basically to have an endless
+supply of monsters until the player did
+something that would then meet a
+condition for the monster spawner to
+stop spawning
+I think that's all the ways that
+creatures can be randomly generated in
+Arcanum that aren't being of course
+summoned by a creature that of the
+monster something's about
+I hope uh it was fun to hear about this
+and contrast it to how we did Random
+Encounters which were a totally
+different system in Fallout and I'll
+provide a link to that video below

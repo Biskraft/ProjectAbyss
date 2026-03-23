@@ -1,0 +1,1737 @@
+[Music] thank you all for coming to my talk on
+thank you all for coming to my talk on spider-man there is a lot of ground to
+spider-man there is a lot of ground to cover today so I'm gonna go really fast
+cover today so I'm gonna go really fast you will be super stressed out if you're
+you will be super stressed out if you're trying to take pictures of every slide
+trying to take pictures of every slide you're not I will put them at that URL
+you're not I will put them at that URL sit back relax do not panic
+sit back relax do not panic also remember to send in those evals so
+also remember to send in those evals so I can get on that deck of cards and if
+I can get on that deck of cards and if you have anything that beeps silence it
+you have anything that beeps silence it today I'm gonna talk about the biggest
+today I'm gonna talk about the biggest game we ever made our biggest city our
+game we ever made our biggest city our most populous city the greatest
+most populous city the greatest responsibility we've ever faced and well
+responsibility we've ever faced and well you know insomniac games is two Studios
+you know insomniac games is two Studios one in California one in North Carolina
+one in California one in North Carolina we are about 250 people across multiple
+we are about 250 people across multiple projects
+projects spider-man took us three years to make
+spider-man took us three years to make the engine we use began life more or
+the engine we use began life more or less on fuse it has been used on two
+less on fuse it has been used on two open world games sunset and Marvel's
+open world games sunset and Marvel's spider-man but one of them is a much
+spider-man but one of them is a much more open world than the other
+more open world than the other our Marvel's Manhattan is about five and
+our Marvel's Manhattan is about five and a half kilometers from north to south
+a half kilometers from north to south and that's not the only thing that's
+and that's not the only thing that's bigger basically everything was bigger
+bigger basically everything was bigger about Marvel spider-man our source
+about Marvel spider-man our source assets about 3.3 terabytes 335 gigabytes
+assets about 3.3 terabytes 335 gigabytes of textures 151 gigabytes of models a
+of textures 151 gigabytes of models a hundred and fifty Meg's of source code
+hundred and fifty Meg's of source code somehow and that is several times larger
+somehow and that is several times larger than sunset overdrive so today I want to
+than sunset overdrive so today I want to break down one frame for you I'm gonna
+break down one frame for you I'm gonna talk about how we built the city how we
+talk about how we built the city how we stream the city how we fitted on disk
+stream the city how we fitted on disk how we filled the streets something else
+how we filled the streets something else this place to start at the beginning
+this place to start at the beginning we're sorry the whole story would take
+we're sorry the whole story would take forever to get through some just gonna
+forever to get through some just gonna talk about these five rigs we stepped on
+talk about these five rigs we stepped on and the best place to start is at the
+and the best place to start is at the beginning so 3 2 1
+beginning so 3 2 1 town all units stand by warrant is on
+town all units stand by warrant is on route
+[Music]
+alright let's break down a frame 30 frames a second 33 milliseconds of frame
+frames a second 33 milliseconds of frame PlayStation 4 has 6 CPU cores so we have
+PlayStation 4 has 6 CPU cores so we have a main thread or render thread and for
+a main thread or render thread and for workers we render a frame behind the CPU
+workers we render a frame behind the CPU of course I'm lying we can share half of
+of course I'm lying we can share half of a CPU with the operating system we use
+a CPU with the operating system we use it for the loader and we render more
+it for the loader and we render more like 1 and 1/3 frames behind this in
+like 1 and 1/3 frames behind this in because we do a post processing at the
+because we do a post processing at the start of the frame I'll get back to it
+start of the frame I'll get back to it and instead of having 4 workers we
+and instead of having 4 workers we actually have three tiers of priority
+actually have three tiers of priority times for workers and we also have audio
+times for workers and we also have audio on its own threads which we let run
+on its own threads which we let run wherever it needs to because it needs to
+wherever it needs to because it needs to interrupt things or else it pops here is
+interrupt things or else it pops here is our frame 33 milliseconds the top one is
+our frame 33 milliseconds the top one is the main thread the second one is the
+the main thread the second one is the render thread the bottom two are a low
+render thread the bottom two are a low and high priority worker thread that
+and high priority worker thread that share the same CPU and sorry and let's
+share the same CPU and sorry and let's start with the main fight so the first
+start with the main fight so the first thing that the main thread does for
+thing that the main thread does for about 2 to 5 milliseconds of frame is
+about 2 to 5 milliseconds of frame is deal with streaming we are either
+deal with streaming we are either loading assets or getting rid of assets
+loading assets or getting rid of assets or digitalizing assets of like spawning
+or digitalizing assets of like spawning actors or getting rid of actors we're
+actors or getting rid of actors we're always doing something because spawning
+always doing something because spawning everything that that needs to be active
+everything that that needs to be active when you come into a block takes many
+when you come into a block takes many many milliseconds it's too much to do in
+many milliseconds it's too much to do in one frame so we just amortize that work
+one frame so we just amortize that work also Islanders today the God of War
+also Islanders today the God of War people have a very interesting way of
+people have a very interesting way of dealing with this they should go look at
+dealing with this they should go look at their talk in the vault that's the
+their talk in the vault that's the pipeline 1 I think it's called we spend
+pipeline 1 I think it's called we spend about 10 milliseconds on gameplay logic
+about 10 milliseconds on gameplay logic spread across 5 threads spend about 6
+spread across 5 threads spend about 6 milliseconds on physics and audio also
+milliseconds on physics and audio also across multiple threads the end of the
+across multiple threads the end of the frame on the main thread is taken up
+frame on the main thread is taken up with making stuff ready for the render
+with making stuff ready for the render thread to draw up the next frame so we
+thread to draw up the next frame so we have like a double buffering where we
+have like a double buffering where we copy the state of the steen out for it
+copy the state of the steen out for it to draw we also do like Lorelei's
+to draw we also do like Lorelei's skinning and our occlusion at this point
+skinning and our occlusion at this point render thread picks up all that buffer
+render thread picks up all that buffer from the previous frame and basically
+from the previous frame and basically submits draw calls as fast as it can
+submits draw calls as fast as it can renders the models the shadows all that
+renders the models the shadows all that thing spends about six milliseconds on
+thing spends about six milliseconds on GUI because
+GUI because Scaleform and then if it has any time
+Scaleform and then if it has any time left over at the end of the frame it
+left over at the end of the frame it joins in on the workers just does
+joins in on the workers just does occlusion like anything else obviously
+occlusion like anything else obviously on some frames that has more left over
+on some frames that has more left over time than on other frames here's all of
+time than on other frames here's all of our those other threads and priority
+our those other threads and priority order audio gets first crack of course
+we have a high priority and a low priority tear on our workers the reason
+priority tear on our workers the reason for that is we have a bunch of jobs that
+for that is we have a bunch of jobs that take a long time but can start early but
+take a long time but can start early but then while they're running they're
+then while they're running they're occasionally urgent things need to step
+occasionally urgent things need to step in and interrupt them for example during
+in and interrupt them for example during gameplay there are some skeletal
+gameplay there are some skeletal animation that we have to do right away
+animation that we have to do right away because if it's like a locator at the
+because if it's like a locator at the end of the hand of somebody who has a
+end of the hand of somebody who has a gun or something so if we use a
+gun or something so if we use a cooperative multitasking model it would
+cooperative multitasking model it would be this big palabra where we have to cut
+be this big palabra where we have to cut the big job up into little pieces and
+the big job up into little pieces and all the synchronization but by simply
+all the synchronization but by simply having a high priority tier and a low
+having a high priority tier and a low priority tier of threads the process
+priority tier of threads the process scheduler does the work for us
+so like I'm whipping through this but when you go back and see it on the vault
+when you go back and see it on the vault you can you tech the vampires can see
+you can you tech the vampires can see all of our timings and numbers io is
+all of our timings and numbers io is always ready to run it's waiting for
+always ready to run it's waiting for bytes to come off the disk as they come
+bytes to come off the disk as they come in it decompresses them as fast as it
+in it decompresses them as fast as it can once they're ready they're ready it
+can once they're ready they're ready it sends it off to the main thread to
+sends it off to the main thread to initialize it's a best-effort and we
+initialize it's a best-effort and we just deal with stuff loading at variable
+just deal with stuff loading at variable times alright what about that additional
+times alright what about that additional third of a frame behind so like I said
+third of a frame behind so like I said the main thread ends its frame by
+the main thread ends its frame by submitting the scene over to the render
+submitting the scene over to the render thread which draws it the GPU executes
+thread which draws it the GPU executes those calls as they come in at the end
+those calls as they come in at the end of its frame it says I'm done rendering
+of its frame it says I'm done rendering models meshes textures anything that
+models meshes textures anything that relies on an asset so the main thread
+relies on an asset so the main thread can go ahead and unload all that stuff
+can go ahead and unload all that stuff which means there's a whole bunch of
+which means there's a whole bunch of churn at the asset heap in the asset
+churn at the asset heap in the asset heap at the beginning of the frame like
+heap at the beginning of the frame like we're moving things around getting rid
+we're moving things around getting rid of things so it's not safe for the
+of things so it's not safe for the render thread to start issuing draw
+render thread to start issuing draw calls and anything that might touch an
+calls and anything that might touch an asset because those pointers might
+asset because those pointers might invalidate so we had this big bubble on
+invalidate so we had this big bubble on the GPU for a significant part of the
+the GPU for a significant part of the project until suddenly some bright spark
+project until suddenly some bright spark noticed well there is some work that the
+noticed well there is some work that the GPU can do that doesn't depend on meshes
+GPU can do that doesn't depend on meshes or models or textures just on the pixels
+or models or textures just on the pixels already on the screen and of course
+already on the screen and of course that's post-processing and tone mapping
+that's post-processing and tone mapping so
+so the GPU is ending its frame when the CPU
+the GPU is ending its frame when the CPU is beginning it that's like color
+is beginning it that's like color correction all right let's look at the
+correction all right let's look at the GPU frame and eraser we use a deferred
+GPU frame and eraser we use a deferred rendering model that means we put the
+rendering model that means we put the Pauli's up in the buffer and then go
+Pauli's up in the buffer and then go around and light them later I've mixed
+around and light them later I've mixed up the pixel shaders and the compute
+up the pixel shaders and the compute shaders and this graphic because we
+shaders and this graphic because we don't really distinguish them they're
+don't really distinguish them they're both you know small programs that run in
+both you know small programs that run in the GPU and the graphics what's the
+the GPU and the graphics what's the difference on the asynchronous compute
+difference on the asynchronous compute pipeline the first half of the frame we
+pipeline the first half of the frame we do our water simulation which is fast
+do our water simulation which is fast fourier it is like our waves are
+fourier it is like our waves are actually waves and screen-space
+actually waves and screen-space reflection and ambient occlusion happens
+reflection and ambient occlusion happens like vaguely somewhere in the second
+like vaguely somewhere in the second half of the frame why those things so on
+half of the frame why those things so on our last game global illumination ran on
+our last game global illumination ran on a sink compute and it's like Aysen
+a sink compute and it's like Aysen compute is this miracle thing right it's
+compute is this miracle thing right it's zero cost stuff just runs in the
+zero cost stuff just runs in the background you're not the woman until
+background you're not the woman until like it doesn't fit anymore and then all
+like it doesn't fit anymore and then all of a sudden there is a cost because
+of a sudden there is a cost because they're synchronizing on this
+they're synchronizing on this asynchronous thing so that got but that
+asynchronous thing so that got but that got too big so we moved it over to the
+got too big so we moved it over to the regular compute PI blind which made room
+regular compute PI blind which made room for reflection and ambient occlusion why
+for reflection and ambient occlusion why those things they happen to be the
+those things they happen to be the things that fit it's just a juggling act
+things that fit it's just a juggling act now I'm showing you the end product here
+now I'm showing you the end product here but we were like way over frame for a
+but we were like way over frame for a long time and for once I don't have any
+long time and for once I don't have any fancy optimization tricks because we did
+fancy optimization tricks because we did them all on the last project so this was
+them all on the last project so this was just a long slog of going through every
+just a long slog of going through every component and making it better doing the
+component and making it better doing the micro optimizations most importantly
+micro optimizations most importantly trying to make things more concurrent we
+trying to make things more concurrent we had a lot of concurrency before but
+had a lot of concurrency before but there was logging it wasn't efficient we
+there was logging it wasn't efficient we made it better
+made it better concurrency is hard in our engine
+concurrency is hard in our engine creating actors isn't thread safe for us
+creating actors isn't thread safe for us creating components isn't thread safe
+creating components isn't thread safe for us creating event handlers isn't
+for us creating event handlers isn't thread safe for us allocating memories
+thread safe for us allocating memories also we have a batch component update
+also we have a batch component update model which means that we do all the
+model which means that we do all the animation components in the world and
+animation components in the world and then all the a components in the world
+then all the a components in the world and then all the movers in the world and
+and then all the movers in the world and then all the sound in the world so we
+then all the sound in the world so we have a really good way of saying which
+have a really good way of saying which classes of component come after which
+classes of component come after which other classes so we can say that movers
+other classes so we can say that movers always come after AI but we don't have a
+always come after AI but we don't have a good way of ordering individual actors
+good way of ordering individual actors within that component class so like if
+within that component class so like if to act a if to a eyes are running at the
+to act a if to a eyes are running at the same time and they're trying to read
+same time and they're trying to read data on each other's AI components that
+data on each other's AI components that data may be changing after both moving
+data may be changing after both moving then you literally step on each other
+then you literally step on each other so in those cases we couldn't
+so in those cases we couldn't I'm out but if we had components that
+I'm out but if we had components that didn't touch other component classes we
+didn't touch other component classes we could run like all of the pedestrian
+could run like all of the pedestrian components on one thread while we ran
+components on one thread while we ran all of the sound components in another
+all of the sound components in another thread for example those jobs would be
+thread for example those jobs would be huge but they would be huge in parallel
+huge but they would be huge in parallel in fact for some of our components we
+in fact for some of our components we said did they need to decompose at all a
+said did they need to decompose at all a bunch of them like the pedestrians in
+bunch of them like the pedestrians in particular we just turned them into this
+particular we just turned them into this big global system we took that work away
+big global system we took that work away from the actor because then it can have
+from the actor because then it can have a very big simple for loop and it just
+a very big simple for loop and it just does all the things and there's no
+does all the things and there's no stepping on each other and there's no
+stepping on each other and there's no there's no ordering problems again it
+there's no ordering problems again it ends up being this gigantic job but for
+ends up being this gigantic job but for gigantic jobs at the same time
+gigantic jobs at the same time so that's the TLDR in addition to all
+so that's the TLDR in addition to all that we did love we have to do level of
+that we did love we have to do level of detail very aggressively I don't just
+detail very aggressively I don't just mean geometric level of detail although
+mean geometric level of detail although that matters for skinning but also just
+that matters for skinning but also just like things that are farther away we had
+like things that are farther away we had to go through a lot of work to make them
+to go through a lot of work to make them think less tick less shut stuff off as
+think less tick less shut stuff off as soon as it's had a camera on the other
+soon as it's had a camera on the other hand this old model that we've been
+hand this old model that we've been using for years of like the main thread
+using for years of like the main thread and the render thread and workers it's
+and the render thread and workers it's fine it's fine it's still good right we
+fine it's fine it's still good right we come to the first moral of the story
+come to the first moral of the story simple is good I mean we could have done
+simple is good I mean we could have done the cooperative multitasking it really
+the cooperative multitasking it really would have just complicated things but
+would have just complicated things but also like the lod thing before it leave
+also like the lod thing before it leave it I just it was a continuing struggle
+it I just it was a continuing struggle for us because the game is so big stuff
+for us because the game is so big stuff keeps falling through the cracks for
+keeps falling through the cracks for example here's the body on dr. Morgan
+example here's the body on dr. Morgan Michaels on the left we have the
+Michaels on the left we have the cinematic asset which is 90,000
+cinematic asset which is 90,000 triangles on the right is the gameplay
+triangles on the right is the gameplay asset which is 5,000 triangles can you
+asset which is 5,000 triangles can you tell the difference at this distance all
+tell the difference at this distance all right there is a gameplay scene that
+right there is a gameplay scene that uses him would you like to guess which
+uses him would you like to guess which LOD we used for a while yeah there he is
+LOD we used for a while yeah there he is and all his 90,000 polygons glory
+and all his 90,000 polygons glory obviously the fix for this is simple
+obviously the fix for this is simple once we found it right we just fixed the
+once we found it right we just fixed the LOD distance but this like happened over
+LOD distance but this like happened over and over again somebody modeled cars
+and over again somebody modeled cars that had these beautifully detailed
+that had these beautifully detailed motors and animation on them that the
+motors and animation on them that the hood never opens so
+hood never opens so I mean like there's no lesson here other
+I mean like there's no lesson here other than yesterday it's a continual struggle
+than yesterday it's a continual struggle and you have to stay on top of it for
+and you have to stay on top of it for especially for project this big let's
+especially for project this big let's keep going
+[Music] all right we built this city on mostly
+all right we built this city on mostly Houdini Manhattan's pretty big and our
+Houdini Manhattan's pretty big and our team was not that much bigger so for the
+team was not that much bigger so for the details go see Santiago's talk seven
+details go see Santiago's talk seven hours ago
+hours ago well go find it on the vault the
+well go find it on the vault the overview is we divided Manhattan into
+overview is we divided Manhattan into districts neighborhoods each of which
+districts neighborhoods each of which was tiles which are like a couple of
+was tiles which are like a couple of city blocks and every one of those are
+city blocks and every one of those are stacked up zones a zone is just our atom
+stacked up zones a zone is just our atom of streaming it's a list of scene
+of streaming it's a list of scene objects in the assets that go with them
+objects in the assets that go with them the TLDR is that Houdini made a whole
+the TLDR is that Houdini made a whole bunch of stuff relevant to this talk are
+bunch of stuff relevant to this talk are the streets the ground and the buildings
+the streets the ground and the buildings the thing is after Houdini exported the
+the thing is after Houdini exported the final art for the bill that well it's
+final art for the bill that well it's notion of the final art for the
+notion of the final art for the buildings we then of course have to go
+buildings we then of course have to go and do it by hand because you can never
+and do it by hand because you can never just procedurally adjust everything I
+just procedurally adjust everything I mean you can ever count them the
+mean you can ever count them the procedure allottee however we also use
+procedure allottee however we also use 2d need to make the markup for a lot of
+2d need to make the markup for a lot of stuff the navigation in particular the
+stuff the navigation in particular the traversal markup like the swing points
+traversal markup like the swing points and the ledge grabs and all that stuff
+and the ledge grabs and all that stuff and that depends on the final position
+and that depends on the final position of the geometry right look the artists
+of the geometry right look the artists go in and they push around a skylight
+go in and they push around a skylight and now we have to fix that markup so we
+and now we have to fix that markup so we needed a process where we could
+needed a process where we could procedurally make art edited by hand in
+procedurally make art edited by hand in the level editor and then feed it back
+the level editor and then feed it back into Houdini for its am up for its into
+into Houdini for its am up for its into the markup here we got lucky our common
+the markup here we got lucky our common data interchange format for levels and
+data interchange format for levels and entities and a bunch of stuff is Jason
+entities and a bunch of stuff is Jason why Jason because a few years ago we had
+why Jason because a few years ago we had this dream of getting into web
+this dream of getting into web development and we decided we decided to
+development and we decided we decided to to try to write our tools at our level
+to try to write our tools at our level editor in particular as Chrome apps we
+editor in particular as Chrome apps we backed off of that idea for reasons that
+backed off of that idea for reasons that you can see in ondrea's has talked on
+you can see in ondrea's has talked on the vault and Ron's talk tomorrow but
+the vault and Ron's talk tomorrow but the the short of it is that because all
+the the short of it is that because all those things were written in JavaScript
+those things were written in JavaScript Jason was a natural format and we stuck
+Jason was a natural format and we stuck with that for example this means that
+with that for example this means that Houdini doesn't have to admit any kind
+Houdini doesn't have to admit any kind of complicated binary asset we have to
+of complicated binary asset we have to teach it how to do anything complicated
+teach it how to do anything complicated it just emits prefabs as JSON objects
+it just emits prefabs as JSON objects and for us a prefab is just the
+and for us a prefab is just the structure that we copy and paste into
+structure that we copy and paste into the level automatically in the Builder
+the level automatically in the Builder and our prefabs contain actors and
+and our prefabs contain actors and models and decals and other prefabs all
+models and decals and other prefabs all of which are other JSON objects so this
+of which are other JSON objects so this was super useful for the tech artists
+was super useful for the tech artists and for us
+and for us gameplay systems right every scripting
+gameplay systems right every scripting language can read JSON without trouble
+language can read JSON without trouble so we kind of looked into this very easy
+so we kind of looked into this very easy way to move things between different
+way to move things between different kinds of tools also it led us right new
+kinds of tools also it led us right new builders for new kinds of asset pretty
+builders for new kinds of asset pretty easily
+easily crime like mugging it's the first class
+crime like mugging it's the first class asset in our game because Houdini could
+asset in our game because Houdini could make that prefab then we had a like a
+make that prefab then we had a like a special crime builder that went through
+special crime builder that went through all the crimes in the world and then
+all the crimes in the world and then offline computed the data structure with
+offline computed the data structure with a tree that knows how to spawn them
+a tree that knows how to spawn them under what conditions so that the crime
+under what conditions so that the crime system in the game didn't have to go
+system in the game didn't have to go digging through the level and numerating
+digging through the level and numerating all the volumes like that was a small
+all the volumes like that was a small optimization but the point is writing
+optimization but the point is writing these kinds of custom gameplay builders
+these kinds of custom gameplay builders for custom things specific to this game
+for custom things specific to this game was super handy some numbers about our
+was super handy some numbers about our Houdini it takes like seven hours and
+Houdini it takes like seven hours and generate just the ground every one of
+generate just the ground every one of the overlays like the traffic the props
+the overlays like the traffic the props the crimes the vignettes all that about
+the crimes the vignettes all that about forty minutes each better part of the
+forty minutes each better part of the day to regen the city if we have to not
+day to regen the city if we have to not counting lighting we have eight thousand
+counting lighting we have eight thousand three hundred buildings three hundred
+three hundred buildings three hundred fifty storefronts three thousand random
+fifty storefronts three thousand random crimes three thousand vignettes that
+crimes three thousand vignettes that stuff like traffic accidents five
+stuff like traffic accidents five hundred forty four roads and twelve
+hundred forty four roads and twelve hundred alleys which of course we need
+hundred alleys which of course we need in a game because we have to have
+in a game because we have to have crime-infested alleys for crime to take
+crime-infested alleys for crime to take place in but by contrast the real
+place in but by contrast the real Manhattan has one two three four five
+Manhattan has one two three four five six seven seven alleys and lower
+six seven seven alleys and lower Manhattan if you have seen movies shot
+Manhattan if you have seen movies shot in New York and what ever wondered like
+in New York and what ever wondered like why do alleys in New York look this
+why do alleys in New York look this thing it's the same alley Courtland only
+thing it's the same alley Courtland only in China tell them it's the only one you
+in China tell them it's the only one you can film in TLDR this whole shtick of
+can film in TLDR this whole shtick of like creating procedural content in it
+like creating procedural content in it or doing it by hand and loading it back
+or doing it by hand and loading it back in it's fine it's cyclic and annoying
+in it's fine it's cyclic and annoying but because we had this can be in format
+but because we had this can be in format it was much less than knowing that it
+it was much less than knowing that it could have been and then go see
+could have been and then go see Santiago's talk for the risk is we got a
+Santiago's talk for the risk is we got a lot of stuff to do we come to moral
+lot of stuff to do we come to moral number to fit detect to the context
+number to fit detect to the context because we control the format of all of
+because we control the format of all of our data we were able to create custom
+our data we were able to create custom gameplay builders for stuff that was
+gameplay builders for stuff that was super specific to this game like like a
+super specific to this game like like a set of crimes traffic the ambient vermin
+set of crimes traffic the ambient vermin system all of this was like stuff that
+system all of this was like stuff that is specific to making a game set in
+is specific to making a game set in Manhattan but it was cool also if you
+Manhattan but it was cool also if you care about the art go see a hickie stock
+care about the art go see a hickie stock tomorrow let's keep going
+all right let's me this up a bit all right so go at breakneck pace through
+right so go at breakneck pace through the city and that's a luck to sprint to
+the city and that's a luck to sprint to stream so let's talk about our streaming
+stream so let's talk about our streaming technology actually I've done that in
+technology actually I've done that in this room before so you can go take a
+this room before so you can go take a look at that the gist is that we
+look at that the gist is that we tessellate the city into regular
+tessellate the city into regular polygons regular polygons on a plane you
+polygons regular polygons on a plane you have three choices rectangles triangles
+have three choices rectangles triangles and hexes on sunset overdrive you went
+and hexes on sunset overdrive you went with hexes hexes are definitely the
+with hexes hexes are definitely the right way to go if you're making a
+right way to go if you're making a streaming city game right you definitely
+streaming city game right you definitely don't want to go where the rectangular
+don't want to go where the rectangular good because then you end up with these
+good because then you end up with these long streets that are from one side of
+long streets that are from one side of the city together and there's nothing
+the city together and there's nothing occluding yeah you know it's it's fine
+occluding yeah you know it's it's fine it's fine
+it's fine there were never hexes it's just like a
+there were never hexes it's just like a point and a radius and within when
+point and a radius and within when you're within the radius of the point we
+you're within the radius of the point we load all the zones that are associated
+load all the zones that are associated with that point so if you arrange your
+with that point so if you arrange your points like this it's a hex grid you
+points like this it's a hex grid you arrange them like this it's a
+arrange them like this it's a rectangular grid whatever let's talk
+rectangular grid whatever let's talk about Washington and Mercer here is the
+about Washington and Mercer here is the ground plane we divided the environment
+ground plane we divided the environment art up into multiple zones on sunset
+art up into multiple zones on sunset because we had multiple actors working
+because we had multiple actors working on them at the same time here Houdini
+on them at the same time here Houdini hid did the heavy lifting for us so on
+hid did the heavy lifting for us so on the arts in one's own game play zone
+the arts in one's own game play zone overlay it on top of that
+overlay it on top of that mostly navigation and script hooks we
+mostly navigation and script hooks we also have an overlay for stuff that is
+also have an overlay for stuff that is different at different times of day or
+different at different times of day or different points in the plot so for
+different points in the plot so for example daytime at the beginning of the
+example daytime at the beginning of the game we have a hot dog cart at nighttime
+game we have a hot dog cart at nighttime it's a closed top card the end of the
+it's a closed top card the end of the game it's a post-apocalyptic hot dog
+game it's a post-apocalyptic hot dog card traffic global zone for the entire
+card traffic global zone for the entire city because it's less than a megabyte
+city because it's less than a megabyte and why complicate things did or the
+and why complicate things did or the pedestrian grid did of the pedestrian
+pedestrian grid did of the pedestrian spawn or volumes did a whole bunch of
+spawn or volumes did a whole bunch of stuff so here's everything that stacks
+stuff so here's everything that stacks up to make tile m34 go so like I said we
+up to make tile m34 go so like I said we decided to build our city on a grid well
+decided to build our city on a grid well no Alexander Hamilton did but that's the
+no Alexander Hamilton did but that's the city that we have so on a rectangular
+city that we have so on a rectangular grid typically about nine tiles loaded
+grid typically about nine tiles loaded the one you're standing on the eight
+the one you're standing on the eight that are adjacent if you're close to a
+that are adjacent if you're close to a border it's more like 12 if you move
+border it's more like 12 if you move from one to the other three tiles are
+from one to the other three tiles are now adjacent three begin toss overboard
+now adjacent three begin toss overboard so we load them in move diagonally it's
+so we load them in move diagonally it's five and five still fine
+five and five still fine missions random crimes and basketball
+missions random crimes and basketball games and stuff like that are also zones
+games and stuff like that are also zones the only difference is the ground tiles
+the only difference is the ground tiles load when you're within a geographical
+load when you're within a geographical points missions load when script tells
+points missions load when script tells them to load and because of that they
+them to load and because of that they can poke out geographically like car
+can poke out geographically like car chases obviously go right across the
+chases obviously go right across the city all right some system we have on
+city all right some system we have on sunset
+sunset pretty simple we didn't really
+pretty simple we didn't really complicate it works fine streaming that
+complicate it works fine streaming that can keep up with the player is a much
+can keep up with the player is a much bigger challenge on spider-man go so the
+bigger challenge on spider-man go so the sunset overdrive character moved about
+sunset overdrive character moved about 30 miles an hour or a Spider Man is
+30 miles an hour or a Spider Man is possibly the only human being who can
+possibly the only human being who can move through Manhattan at 70 miles an
+move through Manhattan at 70 miles an hour and the tiles in spider-man where
+hour and the tiles in spider-man where Marvel Spiderman was slightly bigger and
+Marvel Spiderman was slightly bigger and because we're on rectangles we might
+because we're on rectangles we might have to load five instead of three okay
+have to load five instead of three okay so now we can figure out how long do we
+so now we can figure out how long do we have to load a tile and how many bytes
+have to load a tile and how many bytes big can but I'll be alright 32 meters
+big can but I'll be alright 32 meters per second hundred twenty-eight meters
+per second hundred twenty-eight meters by gives us a little under a second to
+by gives us a little under a second to load each tile isn't that a lot however
+load each tile isn't that a lot however we really only need the three tiles that
+we really only need the three tiles that are ahead of you we don't you're not
+are ahead of you we don't you're not going to the ones on either side and if
+going to the ones on either side and if you decide to turn and go to the ones on
+you decide to turn and go to the ones on either side it takes you about a second
+either side it takes you about a second to do that so we have enough time to go
+to do that so we have enough time to go and pull the switcheroo alright so we
+and pull the switcheroo alright so we don't have to load five tiles we only
+don't have to load five tiles we only have to load three it's one 1/3 seconds
+have to load three it's one 1/3 seconds that's more time
+that's more time of course ground tiles are not the only
+of course ground tiles are not the only thing coming off the disk audio is
+thing coming off the disk audio is streaming emissions are streaming you
+streaming emissions are streaming you might be recording a video you might be
+might be recording a video you might be streaming like your game up to twitch
+streaming like your game up to twitch I'm also did you know that you can
+I'm also did you know that you can replace the hard drive in your
+replace the hard drive in your PlayStation without voiding the warranty
+PlayStation without voiding the warranty which is neat right bigger hard drive
+which is neat right bigger hard drive but some people use not very good hard
+but some people use not very good hard drives so we have to come up with a min
+drives so we have to come up with a min spec and like yada yada yada the the
+spec and like yada yada yada the the budget we came up with was 20 megabytes
+budget we came up with was 20 megabytes per tile that's as much as we could
+per tile that's as much as we could confidently stream with all of the other
+confidently stream with all of the other stuff that was happening that includes
+stuff that was happening that includes geometry terrain actors now decals
+geometry terrain actors now decals shaders and most but not all the
+shaders and most but not all the textures the very highest tier of
+textures the very highest tier of textures we stream on-demand when you
+textures we stream on-demand when you get close to them in this video
+get close to them in this video I've replaced the high nips with solid
+I've replaced the high nips with solid red so you can see them coming in and
+red so you can see them coming in and out about 700 megabytes of memory given
+out about 700 megabytes of memory given over to them but like they're always
+over to them but like they're always churning it's about 360 textures alright
+churning it's about 360 textures alright in 2015 we looked at a tile of random
+in 2015 we looked at a tile of random one in Hell's Kitchen but why is Hell's
+one in Hell's Kitchen but why is Hell's Kitchen always this crime infested
+Kitchen always this crime infested neighborhood in comic books it isn't
+neighborhood in comic books it isn't in that way in years the worst robbery
+in that way in years the worst robbery I've ever seen in Hell's Kitchen is what
+I've ever seen in Hell's Kitchen is what Mickey Spillane x-bar' charges for a
+Mickey Spillane x-bar' charges for a martini anyway
+martini anyway I'm kidding it's actually very
+I'm kidding it's actually very affordable twenty eight megabytes was
+affordable twenty eight megabytes was what we had in 2015 which is more than
+what we had in 2015 which is more than 20 so we started to ask well we don't
+20 so we started to ask well we don't want to cut content because then the
+want to cut content because then the game will look Rudy so what else can we
+game will look Rudy so what else can we postpone Frank is like if we load all
+postpone Frank is like if we load all those 20 megabytes to the front and then
+those 20 megabytes to the front and then you stop moving we're wasting bandwidth
+you stop moving we're wasting bandwidth nothing is nothing is coming in so do we
+nothing is nothing is coming in so do we need all the stuff up front like I said
+need all the stuff up front like I said we have multiple MIPS for every texture
+we have multiple MIPS for every texture like everyone and we delay the biggest
+like everyone and we delay the biggest two MIPS and we obviously have to have
+two MIPS and we obviously have to have the lowest the smallest MIPS loaded in
+the lowest the smallest MIPS loaded in when you come into the tile otherwise
+when you come into the tile otherwise the buildings are all solid color but
+the buildings are all solid color but what about the ones in the middle do we
+what about the ones in the middle do we really need those right away yeah it
+really need those right away yeah it turns out when you're going really fast
+turns out when you're going really fast everything is blurry so like I actually
+everything is blurry so like I actually I took out the middle MIPS in this
+I took out the middle MIPS in this screenshot can you even tell the
+screenshot can you even tell the difference so that gave us two budgets
+difference so that gave us two budgets for the tile 20 Meg's up front and then
+for the tile 20 Meg's up front and then 20 Meg's of detail that we load when
+20 Meg's of detail that we load when you're not going at a breakneck pace so
+you're not going at a breakneck pace so like when you slow down if you stop
+like when you slow down if you stop moving me pulling all that stuff so we
+moving me pulling all that stuff so we introduced this idea in 2016 but then
+introduced this idea in 2016 but then the next spring we saw there's a whole
+the next spring we saw there's a whole bunch of other detail stuff that we can
+bunch of other detail stuff that we can also postpone like storefronts right we
+also postpone like storefronts right we have these lovingly modeled cafes with
+have these lovingly modeled cafes with tables and baristas and customers you're
+tables and baristas and customers you're never gonna see it from five stories up
+never gonna see it from five stories up so we can wait until you're on the
+so we can wait until you're on the ground and not running around or not
+ground and not running around or not swinging around to load all that stuff
+swinging around to load all that stuff in so in this video the top left is our
+in so in this video the top left is our delay loading pipeline while I'm
+delay loading pipeline while I'm swinging at maximum speed nothing really
+swinging at maximum speed nothing really comes in because it doesn't have a
+comes in because it doesn't have a chance
+chance but the moment I stopped moving boom
+but the moment I stopped moving boom look at all those textures and potted
+look at all those textures and potted plants it's about 12 Meg's a second just
+plants it's about 12 Meg's a second just of delay loaded assets
+of delay loaded assets so by procrastinating half the tile we
+so by procrastinating half the tile we got our base zone down to 20 megabytes
+got our base zone down to 20 megabytes mostly by saving space on textures which
+mostly by saving space on textures which gave us more room for models materials
+gave us more room for models materials and what we call zone which is like
+and what we call zone which is like script and actors and terrain and
+script and actors and terrain and collision this is another place that our
+collision this is another place that our handcrafted artisanal bespoke engine
+handcrafted artisanal bespoke engine worked for us we changed the idea of
+worked for us we changed the idea of what a level was for this specific game
+what a level was for this specific game right Manhattan come came with a very
+right Manhattan come came with a very specific challenge and we were able to
+specific challenge and we were able to like change the notion of what even
+like change the notion of what even loading means
+loading means for this specific problem and we will
+for this specific problem and we will probably do something different for a
+probably do something different for a game that doesn't have this problem
+game that doesn't have this problem while I'm talking about streaming we
+while I'm talking about streaming we originally hoped to have a game with no
+originally hoped to have a game with no load times ever right we could given
+load times ever right we could given this technology use a bunch of air
+this technology use a bunch of air locking and movie magic to completely
+locking and movie magic to completely hide transitions even for coming from an
+hide transitions even for coming from an exterior space into an interior space
+exterior space into an interior space that is instanced so here's an early
+that is instanced so here's an early example of that the fiscal issue brought
+example of that the fiscal issue brought way going into an interior title right
+way going into an interior title right bottom rights what you see in the game
+bottom rights what you see in the game pulling the debug camera out are we
+pulling the debug camera out are we doing getting rid of that city as fast
+doing getting rid of that city as fast as we can there comes the fist interior
+as we can there comes the fist interior twice the size of hundred meters in this
+twice the size of hundred meters in this guy camera cropping the hides the dirty
+guy camera cropping the hides the dirty work do your thing coming into the
+work do your thing coming into the exterior building
+exterior building [Music]
+the lighting change [Music]
+and we're inside yes seamless right really cool took us a
+yes seamless right really cool took us a month to do if we did everything like
+month to do if we did everything like this we would still be making the game
+this we would still be making the game so we bit the bullet and said load
+so we bit the bullet and said load screens
+screens oh also like if you've wondered why we
+oh also like if you've wondered why we have someone's capable cutscenes they're
+have someone's capable cutscenes they're not cutscenes they're animated load
+not cutscenes they're animated load screens so that's what it took to fit
+screens so that's what it took to fit into the streaming budget like getting
+into the streaming budget like getting it onto disk was another story
+it onto disk was another story right like I said marbles Manhattan a
+right like I said marbles Manhattan a little bit more than six times bigger
+little bit more than six times bigger than sunset city sunset overdrive came
+than sunset city sunset overdrive came on one disc does that mean that we would
+on one disc does that mean that we would need to come on like that's a really big
+need to come on like that's a really big box to take home so let's back off when
+box to take home so let's back off when it let's look at one of the technologies
+it let's look at one of the technologies that we used on sunset to speed speed
+that we used on sunset to speed speed uploads which is duplication we've
+uploads which is duplication we've relied really heavy on duplicating act
+relied really heavy on duplicating act assets and the reason for that is a disk
+assets and the reason for that is a disk is a spinning mechanical device of
+is a spinning mechanical device of momentum and the best way to get good
+momentum and the best way to get good bandwidth out of that is to have a
+bandwidth out of that is to have a consistent read size and never seek
+consistent read size and never seek never move that head back and forth it
+never move that head back and forth it is often better to if you have a piece
+is often better to if you have a piece of data you don't need sandwich between
+of data you don't need sandwich between two pieces of data that you do need to
+two pieces of data that you do need to read over the thing you don't need and
+read over the thing you don't need and then throw it out then it is to seek so
+then throw it out then it is to seek so very simple we can find all the assets
+very simple we can find all the assets that his own needs and then if asset B
+that his own needs and then if asset B is needed by both zones x and y we just
+is needed by both zones x and y we just put it on the disk twice because we
+put it on the disk twice because we didn't know which one you'd load first
+didn't know which one you'd load first and we didn't want to move that head
+and we didn't want to move that head back and forth so here's where we were
+back and forth so here's where we were in 2017 we decided to finally measure
+in 2017 we decided to finally measure how big our package was 44 gigabytes
+how big our package was 44 gigabytes which is about 90% of a blu-ray and we
+which is about 90% of a blu-ray and we had not yet made a 90 percent of the
+had not yet made a 90 percent of the game where does this number come from
+game where does this number come from well we've got 700 tiles in the city
+well we've got 700 tiles in the city that's not even counting the interiors
+that's not even counting the interiors in the raft and 40 megabytes of tile
+in the raft and 40 megabytes of tile like we just said so that works out the
+like we just said so that works out the 28 gigs
+28 gigs this was our budget per tile however
+this was our budget per tile however like we're talking about lighting up
+like we're talking about lighting up there that's one time of day and
+there that's one time of day and contrary to popular belief the Sun does
+contrary to popular belief the Sun does set on Manhattan in fact we have four
+set on Manhattan in fact we have four times a day some daytime sunset
+times a day some daytime sunset nighttime and overcast that's four times
+nighttime and overcast that's four times the lighting data that gets us up to 40
+the lighting data that gets us up to 40 and a half gigs right there what's
+and a half gigs right there what's missing from that number
+missing from that number well those detailed textures the
+well those detailed textures the characters the cinematics the animation
+characters the cinematics the animation basically most of the game so with that
+basically most of the game so with that added in we are at about 6070 gigabytes
+added in we are at about 6070 gigabytes which is more than one blu-ray but less
+which is more than one blu-ray but less than two
+than two good chip on two discs considered it
+good chip on two discs considered it raise your hand if you like games that
+raise your hand if you like games that come on to disks yeah it kind of stinks
+come on to disks yeah it kind of stinks right because like swapping discs for
+right because like swapping discs for installs annoying if it's a digital live
+installs annoying if it's a digital live in Burbank it's like a three day
+in Burbank it's like a three day download for me and even even when
+download for me and even even when you're developing right installing that
+you're developing right installing that gigantic package onto your dev kit every
+gigantic package onto your dev kit every time you want to get timings huge pain
+time you want to get timings huge pain so but let's back off the duplication
+so but let's back off the duplication thing so on the left are the assets that
+thing so on the left are the assets that we duplicate on the right we at our
+we duplicate on the right we at our assets that we do not duplicate remember
+assets that we do not duplicate remember how I said for the middle met textures
+how I said for the middle met textures we wait until the disc is quieted down
+we wait until the disc is quieted down and then read them that means we've time
+and then read them that means we've time enough to seek the drive head over there
+enough to seek the drive head over there so we unduplicated those saved us a
+so we unduplicated those saved us a couple gigabytes anything bigger than
+couple gigabytes anything bigger than four megabytes we just arbitrarily
+four megabytes we just arbitrarily doesn't don't duplicate that because
+doesn't don't duplicate that because well cuz it's big and anything that was
+well cuz it's big and anything that was duplicated more than four hundred times
+duplicated more than four hundred times anything that appeared more than four
+anything that appeared more than four hundred places again a disproportionate
+hundred places again a disproportionate cost on the disks we unduplicated those
+cost on the disks we unduplicated those besides if they're on every other tile
+besides if they're on every other tile to probably always stay in memory until
+to probably always stay in memory until you go to an interior Oh like if you're
+you go to an interior Oh like if you're wondering what we had in more than four
+wondering what we had in more than four hundred tiles you know usual New York
+hundred tiles you know usual New York stuff like pavement and bushes and piles
+stuff like pavement and bushes and piles of trash because we duplicate about
+of trash because we duplicate about fifty six thousand assets they would add
+fifty six thousand assets they would add up to a gigabyte if we didn't duplicate
+up to a gigabyte if we didn't duplicate them but with duplication its eleven
+them but with duplication its eleven gigabytes of space on disk so it's about
+gigabytes of space on disk so it's about a 10 gigabyte cost for the duplication
+a 10 gigabyte cost for the duplication which is a price we pay for faster
+which is a price we pay for faster loading we also considered switching to
+loading we also considered switching to a better compressor than lz4 it's fast
+a better compressor than lz4 it's fast but it's not the compressed but it has a
+but it's not the compressed but it has a bunch of nice properties its byte wise
+bunch of nice properties its byte wise you can interrupt it it's really compact
+you can interrupt it it's really compact in memory nothing else we tried
+in memory nothing else we tried compressed that much better that it was
+compressed that much better that it was worth doing away with LZ except for
+worth doing away with LZ except for textures obviously which used lossy
+textures obviously which used lossy compression jazz-hands
+compression jazz-hands simple is good but it doesn't mean that
+simple is good but it doesn't mean that we couldn't rearrange our asset so that
+we couldn't rearrange our asset so that they compressed better for example
+they compressed better for example models at that point in the project took
+models at that point in the project took about seven and a half gigabytes of disk
+about seven and a half gigabytes of disk space so we figured like chemi at least
+space so we figured like chemi at least get them to compress better so we looked
+get them to compress better so we looked at our biggest model Peter Parker's body
+at our biggest model Peter Parker's body a hundred thousand triangles about four
+a hundred thousand triangles about four point eight six megabytes after an
+point eight six megabytes after an intensive weight loss program we got him
+intensive weight loss program we got him down to three point two megabytes
+down to three point two megabytes the the details here I put them in the
+the the details here I put them in the appendix because they're they're gordy
+appendix because they're they're gordy but like I want to talk about the one
+but like I want to talk about the one thing that made the biggest difference
+thing that made the biggest difference which is in the index buffer that's the
+which is in the index buffer that's the thing that says for every triangle what
+thing that says for every triangle what verts add up to the triangle we move
+verts add up to the triangle we move towards storing every index there as a
+towards storing every index there as a delta from the previous one because 72
+delta from the previous one because 72 usually comes after 71 and is then
+usually comes after 71 and is then followed by 73 so our buffer ended up
+followed by 73 so our buffer ended up with these long strings of just ones
+with these long strings of just ones repeated over and over again which is
+repeated over and over again which is exactly what LZ for compress is really
+exactly what LZ for compress is really well it's basically a glorified
+well it's basically a glorified run-length encoding so like it was
+run-length encoding so like it was mental how much this one change did for
+mental how much this one change did for our compression that was a good we
+our compression that was a good we actually thought there was a bug in our
+actually thought there was a bug in our measurement code so here this is a graph
+measurement code so here this is a graph of our package size across March and
+of our package size across March and April 2018 the y-axis is zeroed at forty
+April 2018 the y-axis is zeroed at forty five gigabytes at one blu-ray so all the
+five gigabytes at one blu-ray so all the orange bars represent how much over
+orange bars represent how much over target we are you can see it getting
+target we are you can see it getting bigger and bigger and bigger and you can
+bigger and bigger and bigger and you can see the point where we put in our model
+see the point where we put in our model optimizations for that and for like a
+optimizations for that and for like a bunch of other stuff and like that's
+bunch of other stuff and like that's like five gigabytes just from better
+like five gigabytes just from better compression so made a huge difference
+compression so made a huge difference lighting lighting is big our lighting
+lighting lighting is big our lighting model uses two terms a diffuse term
+model uses two terms a diffuse term which is like incident light and a
+which is like incident light and a specular term which is basically an
+specular term which is basically an environment map that we use for gloss
+environment map that we use for gloss and reflection I'll get back to the
+and reflection I'll get back to the specular term let's talk about the
+specular term let's talk about the diffuse term first we call them light
+diffuse term first we call them light grids because essentially there's just a
+grids because essentially there's just a farm of computers that divides the city
+farm of computers that divides the city into a grid and marches down and it
+into a grid and marches down and it Bullock with an incident light meter
+Bullock with an incident light meter takes a picture in every direction so
+takes a picture in every direction so that if there's a red wall if this brick
+that if there's a red wall if this brick wall to my right and there's a concrete
+wall to my right and there's a concrete wall to my left I know when I'm standing
+wall to my left I know when I'm standing in that block that the light coming from
+in that block that the light coming from over here is a little bit redder we just
+over here is a little bit redder we just store that information for every voxel
+store that information for every voxel in the city that is our ambient light
+in the city that is our ambient light solution so all right we're cutting the
+solution so all right we're cutting the whole city up into cubes and fox losing
+whole city up into cubes and fox losing it yeah it turns out that empty sky does
+it yeah it turns out that empty sky does not cast a lot of bounce light there's
+not cast a lot of bounce light there's not much there to bounce anything so we
+not much there to bounce anything so we just stopped capturing cells that were
+just stopped capturing cells that were not near anything and it saved an
+not near anything and it saved an embarrassing amount of memory for the
+embarrassing amount of memory for the details go dig up x-rays talk that he
+details go dig up x-rays talk that he did a couple of hours ago after all that
+did a couple of hours ago after all that the budget for a tile was determined not
+the budget for a tile was determined not by streaming bandwidth but how much
+by streaming bandwidth but how much space we had on disk it came in at just
+space we had on disk it came in at just under 12 megabytes which is way less
+under 12 megabytes which is way less than 20 so we now have a lot more room
+than 20 so we now have a lot more room to stream stuff in like we got bigger
+to stream stuff in like we got bigger mission overlays and they can have
+mission overlays and they can have those Heimat textures turning in and out
+those Heimat textures turning in and out and we can do more audio and of course
+and we can do more audio and of course like I said we paid for this by putting
+like I said we paid for this by putting more sikhs on the like by adding more
+more sikhs on the like by adding more seeks to are loading so some of what we
+seeks to are loading so some of what we saved in space we paid for in speed
+saved in space we paid for in speed which is our third moral of this talk
+which is our third moral of this talk revisit speed space trade-offs our
+revisit speed space trade-offs our choice to duplicate assets and previous
+choice to duplicate assets and previous games was based on our having not a lot
+games was based on our having not a lot of CPU power and not allowed to CPU time
+of CPU power and not allowed to CPU time but having a whole lot of slack disk
+but having a whole lot of slack disk space on this project realized belatedly
+space on this project realized belatedly disk space was that much more of a
+disk space was that much more of a premium and we actually had a little bit
+premium and we actually had a little bit more slack on the CPU because we do mize
+more slack on the CPU because we do mize other stuff pretty a little bit better
+other stuff pretty a little bit better so we had to basically redo recalculate
+so we had to basically redo recalculate that trade-off in the context of this
+that trade-off in the context of this specific game if you're wondering what's
+specific game if you're wondering what's on the disk it's this the interesting
+on the disk it's this the interesting thing here is every one of our
+thing here is every one of our localizations is about a gig and a half
+localizations is about a gig and a half which is why we had to have multiple
+which is why we had to have multiple skews for different regions it's just we
+skews for different regions it's just we literally could not fit all the
+literally could not fit all the languages on the same disk in retrospect
+languages on the same disk in retrospect the better compressor would have let us
+the better compressor would have let us fit maybe one more language on the disk
+fit maybe one more language on the disk but still not all of them let's keep
+but still not all of them let's keep going
+[Music] rendering New York is kind of a deal
+rendering New York is kind of a deal it's big it's shiny it's full of stuff
+it's big it's shiny it's full of stuff that's moving around and you can see
+that's moving around and you can see everything from the top of the Empire
+everything from the top of the Empire State Building rendering could be
+State Building rendering could be multiple talks in and of itself
+multiple talks in and of itself luckily digital foundry has done one of
+luckily digital foundry has done one of them for me they've done this amazing
+them for me they've done this amazing video just from like looking at the
+video just from like looking at the retail product yes I could see that I
+retail product yes I could see that I want to talk about a couple of things
+want to talk about a couple of things that we changed for this specific
+that we changed for this specific project from our previous one so
+project from our previous one so remember when I was talking about like
+remember when I was talking about like loading tiles obviously there's more
+loading tiles obviously there's more city out there that you can see like so
+city out there that you can see like so what's what floated out there so we have
+what's what floated out there so we have a single low res zone it's the
+a single low res zone it's the background for the entire city exploded
+background for the entire city exploded all the time you can say from everywhere
+all the time you can say from everywhere and it's about a hundred and ten
+and it's about a hundred and ten megabytes and models and eighty five
+megabytes and models and eighty five Meg's textures now I'm about to start
+Meg's textures now I'm about to start using the word Impostors just to warn
+using the word Impostors just to warn you it is not the same way that
+you it is not the same way that everybody else means Impostors which is
+everybody else means Impostors which is the thing where you render a model onto
+the thing where you render a model onto a billboard and then show the billboard
+a billboard and then show the billboard for us an imposter is like this super
+for us an imposter is like this super low optimized shader piece of geometry
+low optimized shader piece of geometry because you know it's confusing to me
+because you know it's confusing to me too if you can think of a better name
+too if you can think of a better name please tweet it up dual think I was
+please tweet it up dual think I was something better for us an imposter is a
+something better for us an imposter is a lightweight scene object the minimum
+lightweight scene object the minimum that we need to render something
+that we need to render something basically a transform a mesh and some
+basically a transform a mesh and some flags our imposters are automatically
+flags our imposters are automatically generated from the full res geometry by
+generated from the full res geometry by the zone builder they are essentially
+the zone builder they are essentially like super decimated things it loads up
+like super decimated things it loads up the final version like the full res
+the final version like the full res version of the building simplifies it
+version of the building simplifies it decimates it takes a picture of it from
+decimates it takes a picture of it from every side to create a cube map we
+every side to create a cube map we project the cube map onto the impasto to
+project the cube map onto the impasto to create the illusion of detail and that's
+create the illusion of detail and that's that
+that all of the textures go into a big add
+all of the textures go into a big add less per block it's about 4k tops and
+less per block it's about 4k tops and because they're so simple we don't need
+because they're so simple we don't need a bunch of information for this texture
+a bunch of information for this texture that we would need in other things for
+that we would need in other things for example the imposters don't have any UVs
+example the imposters don't have any UVs per face it's just pixels per meter so
+per face it's just pixels per meter so we just know how many how many bytes to
+we just know how many how many bytes to go down how many pixels to go down and
+go down how many pixels to go down and the texture map we have an axis aligned
+the texture map we have an axis aligned to City so we don't have to store
+to City so we don't have to store normals and basically it's just smaller
+normals and basically it's just smaller however we do need to store a higher
+however we do need to store a higher source stream a high-res version of that
+source stream a high-res version of that atlas when you get close because you can
+atlas when you get close because you can tell you
+tell you a distance also flat diffuse textures
+a distance also flat diffuse textures and that super simple shader are not
+and that super simple shader are not always enough some stuff is emissive
+always enough some stuff is emissive especially in the city some stuff is
+especially in the city some stuff is reflective
+reflective we have those neat window windows that
+we have those neat window windows that you can see inside so for that we have
+you can see inside so for that we have the notion of a high quality imposter
+the notion of a high quality imposter which is just initial model with a
+which is just initial model with a little bit smarter shader tacked onto
+little bit smarter shader tacked onto the side of the building when you get
+the side of the building when you get close enough all right not everything is
+close enough all right not everything is in axis aligned bounding box trees are
+in axis aligned bounding box trees are notoriously not box shaped also stuff
+notoriously not box shaped also stuff like water towers AC units stuff like
+like water towers AC units stuff like that they really affect the silhouette
+that they really affect the silhouette of a building and you can notice them
+of a building and you can notice them from very far away if they're missing on
+from very far away if they're missing on sunset overdrive our solution to this
+sunset overdrive our solution to this was to just mark these things as always
+was to just mark these things as always loaded right all the water towers in
+loaded right all the water towers in that game were loaded all the time
+that game were loaded all the time because there weren't many of them we
+because there weren't many of them we have 600,000 of them in Manhattan and
+have 600,000 of them in Manhattan and the minimum that we need to store just
+the minimum that we need to store just the instance data for something for a
+the instance data for something for a rendered model I'm not talking with the
+rendered model I'm not talking with the geometry just like its position and all
+geometry just like its position and all that stuff the minimum is 384 bytes for
+that stuff the minimum is 384 bytes for each of them which would be 230
+each of them which would be 230 megabytes of memory which is more than
+megabytes of memory which is more than like our entire gameplay heap obviously
+like our entire gameplay heap obviously not gonna fly so we decided to come up
+not gonna fly so we decided to come up with something called hibernates on this
+with something called hibernates on this project to save on the runtime cost of
+project to save on the runtime cost of those things we still have the mesh
+those things we still have the mesh loaded but by storing only the bare
+loaded but by storing only the bare minimum because these things they're not
+minimum because these things they're not gonna animate when they're at that
+gonna animate when they're at that distance we don't need any clever
+distance we don't need any clever shaders in them at the distance the
+shaders in them at the distance the player obviously can't interact with
+player obviously can't interact with them at that distance so we can get away
+them at that distance so we can get away with storing only 40 bytes through using
+with storing only 40 bytes through using a bunch of trickery like all of these
+a bunch of trickery like all of these things are associated with a city block
+things are associated with a city block so we don't need an absolute position
+so we don't need an absolute position for them it can just be an offset in the
+for them it can just be an offset in the middle of the block fits into a 16-bit
+middle of the block fits into a 16-bit fix point and when you get close to them
+fix point and when you get close to them we then we basically swap out the
+we then we basically swap out the hibernate with a full instance with all
+hibernate with a full instance with all the animation and the stuff
+the animation and the stuff all told 600,000 hibernating objects
+all told 600,000 hibernating objects takes up 24 megabytes of memory at
+takes up 24 megabytes of memory at runtime and the geometry is really just
+runtime and the geometry is really just 13 megabytes because it's mostly the
+13 megabytes because it's mostly the same water tower and fire escape alright
+same water tower and fire escape alright so till they are in the backgrounds
+so till they are in the backgrounds let's review we use billboards and low
+let's review we use billboards and low poly models in the distance for Brooklyn
+poly models in the distance for Brooklyn Queens Bronx in New Jersey you know all
+Queens Bronx in New Jersey you know all the borough's
+the borough's the skybox is an ordinary skybox
+the skybox is an ordinary skybox imposters are as I've said the the high
+imposters are as I've said the the high quality imposter is stuck on those are
+quality imposter is stuck on those are the hibernates everything else is not
+the hibernates everything else is not background once again this is all about
+background once again this is all about fitting the text of the contact fitting
+fitting the text of the contact fitting the tech to the context this whole
+the tech to the context this whole notion of hibernates is because
+notion of hibernates is because Manhattan has the water towers in the
+Manhattan has the water towers in the antennas and the billboards and those
+antennas and the billboards and those weird fire escapes that you bolt to the
+weird fire escapes that you bolt to the side of the building they're a very
+side of the building they're a very specific solution for this very specific
+specific solution for this very specific product oh yeah specular lighting forgot
+product oh yeah specular lighting forgot about that
+so it would have taken 8 gigabytes to put on disc our specular model is based
+put on disc our specular model is based on something we call n probes and
+on something we call n probes and because their environment maps and
+because their environment maps and probes because their locations that you
+probes because their locations that you put throughout the city the but we build
+put throughout the city the but we build environment Maps like anyone does we go
+environment Maps like anyone does we go to every one of those probe locations
+to every one of those probe locations load at the level take a picture in all
+load at the level take a picture in all six directions make it into a cube map
+six directions make it into a cube map then when you need to do a reflection
+then when you need to do a reflection you just look at the cube map instead of
+you just look at the cube map instead of actually reflecting let's step back a
+actually reflecting let's step back a moment and ask why do we do it this way
+moment and ask why do we do it this way all right if you wanted a reflection we
+all right if you wanted a reflection we could just rerender the scene from the
+could just rerender the scene from the point of view of the reflective surface
+point of view of the reflective surface and then go on that onto the surface the
+and then go on that onto the surface the reason that we do environment maps in
+reason that we do environment maps in the industry in general is to speed
+the industry in general is to speed things up we do that offline for all the
+things up we do that offline for all the world and then just load that when we
+world and then just load that when we need to reflect something but couldn't
+need to reflect something but couldn't we maybe create a little bit of runtime
+we maybe create a little bit of runtime to get back a lot of disk space the
+to get back a lot of disk space the answer is yes we decided to calculate
+answer is yes we decided to calculate our environment Maps kind of at runtime
+our environment Maps kind of at runtime we have 64 of them in memory it's like
+we have 64 of them in memory it's like the cache if as you're swinging through
+the cache if as you're swinging through the city we ditch the ones that you've
+the city we ditch the ones that you've left behind if there's a nearby one that
+left behind if there's a nearby one that doesn't have an environment map on it
+doesn't have an environment map on it yet every frame where we have spare time
+yet every frame where we have spare time we will pick one face from one probe and
+we will pick one face from one probe and render that face because we only need to
+render that face because we only need to use the background geometry for our
+use the background geometry for our environment maps you know animating
+environment maps you know animating things are not captured in our
+things are not captured in our environment maps it takes about a
+environment maps it takes about a millisecond to render one of the faces
+millisecond to render one of the faces so you know six of them and then at two
+so you know six of them and then at two mips it's 12 ml 12 successive frames to
+mips it's 12 ml 12 successive frames to populate an environment map you'll never
+populate an environment map you'll never notice and after all about they take
+notice and after all about they take zero bytes of disk space let's talk
+zero bytes of disk space let's talk about animation
+writing your memoirs don't forget the hyphen between Spyder and man get the
+hyphen between Spyder and man get the chopper ready I won't be long
+so as you can see the visual fidelity target for our facial animation is very
+target for our facial animation is very different from our previous games on
+different from our previous games on rachet we could get away with using
+rachet we could get away with using scale animation for the faces because
+scale animation for the faces because that was a deliberate part of the
+that was a deliberate part of the aesthetic right we wanted that kind of
+aesthetic right we wanted that kind of friendly cartoon look but on Marvel's
+friendly cartoon look but on Marvel's spider-man we used facial capture for
+spider-man we used facial capture for almost all of our cutscene performances
+almost all of our cutscene performances the thing where you've got the camera
+the thing where you've got the camera and the dots and the actors face and you
+and the dots and the actors face and you record them acting the bodies and and
+record them acting the bodies and and some of the head our skeletal animation
+some of the head our skeletal animation like the Jon the eyelids and stuff like
+like the Jon the eyelids and stuff like that but the really fine detail like the
+that but the really fine detail like the movement of the muscles and the creases
+movement of the muscles and the creases and the wrinkles in the skin it's very
+and the wrinkles in the skin it's very hard to do that just with skeletal
+hard to do that just with skeletal animation so for that we decided to use
+animation so for that we decided to use morphs and to get it right we needed
+morphs and to get it right we needed between 600 and 800 morphs per character
+between 600 and 800 morphs per character which is a little autumn morphs to
+which is a little autumn morphs to composite at runtime so we decided to do
+composite at runtime so we decided to do all the morphs offline and then just
+all the morphs offline and then just stream verts at runtime but we do the
+stream verts at runtime but we do the joints but then we'll like the vert
+joints but then we'll like the vert distant the vert offsets from that ended
+distant the vert offsets from that ended up actually being less than two
+up actually being less than two megabytes a second so we thought it was
+megabytes a second so we thought it was crazy talk at first but in the bingo
+crazy talk at first but in the bingo game to get there we worked with a
+game to get there we worked with a couple of partners three lateral scanned
+couple of partners three lateral scanned our actors fours very high quality
+our actors fours very high quality textures really nice models rigged the
+textures really nice models rigged the faces for us with 240 joints and in the
+faces for us with 240 joints and in the case of Peter Parker's 620 blend shapes
+case of Peter Parker's 620 blend shapes so there's the joints going there's the
+so there's the joints going there's the blend shapes for the really fine stuff
+blend shapes for the really fine stuff and then you put them together you can
+and then you put them together you can get basically an expression Union out of
+get basically an expression Union out of him
+him cubic motion then took the recorded
+cubic motion then took the recorded performances and worked up what
+performances and worked up what combination of joints and morphs and so
+combination of joints and morphs and so on we get the animated face to the same
+on we get the animated face to the same position as the actors face so from that
+position as the actors face so from that we can figure out how much bandwidth
+we can figure out how much bandwidth will consume to stream these faces every
+will consume to stream these faces every one of our faces is about 18,000 verts
+one of our faces is about 18,000 verts I'm not counting the body is in the hair
+I'm not counting the body is in the hair and the what not just the face that
+and the what not just the face that we're doing the verts streaming on so
+we're doing the verts streaming on so from that we can work out our bandwidth
+from that we can work out our bandwidth per face metric Peter Parker's face
+per face metric Peter Parker's face 18,000 375 verts exactly
+18,000 375 verts exactly so of course we're gonna store three
+so of course we're gonna store three vectors pervert position and the normal
+vectors pervert position and the normal for the lighting three plugs floats per
+for the lighting three plugs floats per vector at 30 frames a second it's 20
+vector at 30 frames a second it's 20 megabytes a second how about no
+megabytes a second how about no turns out skin does not move more than
+turns out skin does not move more than about a centimeter from your face well
+about a centimeter from your face well you're still alive so we can get away
+you're still alive so we can get away with using fixed point notation for them
+with using fixed point notation for them 10 bits for every component 30 bits per
+10 bits for every component 30 bits per vector also the normal and the tangent
+vector also the normal and the tangent right like what if I told you there was
+right like what if I told you there was something called a cross product that
+something called a cross product that you could use to work at the normals
+you could use to work at the normals just from the positions Y let's step
+just from the positions Y let's step back like why do we store normals and
+back like why do we store normals and tangents in meshes and textures at all
+tangents in meshes and textures at all it's to save on run times because
+it's to save on run times because calculating all that stuff would be
+calculating all that stuff would be redundant except in this case the
+redundant except in this case the bandwidth was really the scariest thing
+bandwidth was really the scariest thing and we actually had a lot of CPU time
+and we actually had a lot of CPU time left over because you're not there's not
+left over because you're not there's not a lot of sin going on during a cutscene
+a lot of sin going on during a cutscene you're not swinging to the city nobody's
+you're not swinging to the city nobody's lying at you so we ended up just as a
+lying at you so we ended up just as a really as a compression tactics strong
+really as a compression tactics strong streaming just the positions and doing
+streaming just the positions and doing the normals and tangents at runtime that
+the normals and tangents at runtime that gets us down to two megabytes a second
+gets us down to two megabytes a second with careful arrangement LZ gets us down
+with careful arrangement LZ gets us down to half a Mexican per face here's the
+to half a Mexican per face here's the format every frame and a stream
+format every frame and a stream animation first has all the joint
+animation first has all the joint positions for all the characters
+positions for all the characters followed by all the versions for all the
+followed by all the versions for all the characters that first stream we do the
+characters that first stream we do the structure of arrays thing so that's like
+structure of arrays thing so that's like all the X components for every one and
+all the X components for every one and all the y components for every vector
+all the y components for every vector and then all the Z components because it
+and then all the Z components because it compresses better that way
+compresses better that way also we Delta compress these things so
+also we Delta compress these things so for frame two every version it's not the
+for frame two every version it's not the absolute position it is the difference
+absolute position it is the difference from its position in frame one because
+from its position in frame one because most firsts actually don't move from
+most firsts actually don't move from frame to frame which means we have these
+frame to frame which means we have these long runs of zeros which lz4 eats up
+long runs of zeros which lz4 eats up obviously this makes streaming this
+obviously this makes streaming this makes scrubbing really annoying but the
+makes scrubbing really annoying but the player doesn't scrub oh also like the
+player doesn't scrub oh also like the Diploma this is that there's a zillion
+Diploma this is that there's a zillion places for things to go wrong all you
+places for things to go wrong all you need is a single off by one error and
+need is a single off by one error and it's just this total Horror Show of like
+it's just this total Horror Show of like joints or verts and verts are joints
+joints or verts and verts are joints also if you have like a black spot on
+also if you have like a black spot on the characters face is that what's going
+the characters face is that what's going on there right is it is it missing is it
+on there right is it is it missing is it missing from the meshes at the wrong
+missing from the meshes at the wrong position
+is the lighting wrong I'm not gonna talk over this yeah so someone belatedly we
+over this yeah so someone belatedly we realized we needed a tool where we could
+realized we needed a tool where we could render just like one streamed face in an
+render just like one streamed face in an app of its own and then point why did I
+app of its own and then point why did I do this
+pointed a single polygon and say you Paulie what's all the math that made you
+Paulie what's all the math that made you once again we revisited our speeding
+once again we revisited our speeding space trade-offs a lot of the things
+space trade-offs a lot of the things that we've done in cinematics previously
+that we've done in cinematics previously were based on the assumption that CPU
+were based on the assumption that CPU was scarce and disk space was plentiful
+was scarce and disk space was plentiful that became not the case on this project
+that became not the case on this project and especially not for bandwidth so we
+and especially not for bandwidth so we realized we could actually spend more
+realized we could actually spend more CPU to make up the space let's talk
+CPU to make up the space let's talk about populating the city please don't
+about populating the city please don't ask me to do the hand thing all right
+ask me to do the hand thing all right our original plan for pedestrians is
+our original plan for pedestrians is that they were just window dressing
+that they were just window dressing interactive you'll just see them from up
+interactive you'll just see them from up above so we could get away with some
+above so we could get away with some simplifications of course here's the
+simplifications of course here's the problem
+yeah so in 2015 we realized that was not gonna fly
+the number of pedestrians we began with it was not enough to fill out the
+it was not enough to fill out the streets it made them look really weird
+streets it made them look really weird when they weren't responsive to the
+when they weren't responsive to the world they needed to look diverse
+world they needed to look diverse because that's kind of New York's thing
+because that's kind of New York's thing and they needed to interact the Spider
+and they needed to interact the Spider Man when you were down there so our
+Man when you were down there so our original original prototype just had
+original original prototype just had actual AI spots that we drove around the
+actual AI spots that we drove around the world for pedestrians and we can run 30
+world for pedestrians and we can run 30 of those at once and we needed a whole
+of those at once and we needed a whole lot more than 30 after a whole bunch of
+lot more than 30 after a whole bunch of chicane array we got it up to about
+chicane array we got it up to about usually more than a thousand pedestrians
+usually more than a thousand pedestrians on screen at a time I'm gonna spare you
+on screen at a time I'm gonna spare you the details and that one because it's
+the details and that one because it's been discussed at GDC for many GDC
+been discussed at GDC for many GDC before many times 2015 apparently the
+before many times 2015 apparently the year of the crowd at GDC so there's a
+year of the crowd at GDC so there's a bunch of great talks hmm what some would
+bunch of great talks hmm what some would say something so you can go dig those up
+say something so you can go dig those up the one thing I do want to show you is
+the one thing I do want to show you is how aggressively we LOD so in this video
+how aggressively we LOD so in this video I've left the LOD pivot back there and
+I've left the LOD pivot back there and I'm pulling the debug camera without
+I'm pulling the debug camera without updating anything we stopped animating
+updating anything we stopped animating the pedestrians of the moment they're
+the pedestrians of the moment they're off camera to save on skinning also when
+off camera to save on skinning also when you get beyond a certain distance they
+you get beyond a certain distance they are not peds at all they're just like
+are not peds at all they're just like these totally unanimity on the skinned
+these totally unanimity on the skinned creepy sack people things because
+creepy sack people things because they're like four pixels tall you'll
+they're like four pixels tall you'll never see the disc the difference right
+never see the disc the difference right we can save all the time and skinning
+we can save all the time and skinning it's just enough movement so that they
+it's just enough movement so that they don't look like they're static we could
+don't look like they're static we could have probably used billboards
+have probably used billboards also we realize kind of late in 2017
+also we realize kind of late in 2017 that window dressing isn't enough if the
+that window dressing isn't enough if the peds aren't interactive you're not they
+peds aren't interactive you're not they don't invite you to spend time on street
+don't invite you to spend time on street level and see all the cool stuff you put
+level and see all the cool stuff you put down there and it seems really robotic
+down there and it seems really robotic and weird if they don't acknowledge with
+and weird if they don't acknowledge with you don't acknowledge you and also
+you don't acknowledge you and also people just enjoy messing with the peds
+people just enjoy messing with the peds and seeing them interact so late in the
+and seeing them interact so late in the game we came up with a couple of
+game we came up with a couple of interactions for them to do the low
+interactions for them to do the low intensity ones were simple right you're
+intensity ones were simple right you're just go down there they would do Kant
+just go down there they would do Kant behavior take pictures of you calm on
+behavior take pictures of you calm on wave whatever also we noticed it was
+wave whatever also we noticed it was kind of weird if you put hit the punch
+kind of weird if you put hit the punch button while facing a pedestrian and
+button while facing a pedestrian and took a roundhouse of their face and they
+took a roundhouse of their face and they didn't react so we just replaced the
+didn't react so we just replaced the animation kind of became a thing we also
+animation kind of became a thing we also came up with some more high-intensity
+came up with some more high-intensity interactions every so often we body
+interactions every so often we body snatch a pedestrian and turned them into
+snatch a pedestrian and turned them into a full AI
+a full AI then they perform one of the few kind
+then they perform one of the few kind interactions when you walk up to them
+interactions when you walk up to them and hit the triangle button in some
+and hit the triangle button in some cases it's a synchronized animation in
+cases it's a synchronized animation in some cases they all point out like
+some cases they all point out like crimes or collectibles for you in some
+crimes or collectibles for you in some cases they're in cahoots with one of the
+cases they're in cahoots with one of the villains and you get close and like aha
+villains and you get close and like aha I work for Fisk you're going down the
+I work for Fisk you're going down the spider-man just to give you a little bit
+spider-man just to give you a little bit of surprise and variety on the streets
+of surprise and variety on the streets so looking back it's the classic GDC
+so looking back it's the classic GDC story we should have started on this
+story we should have started on this soon no no we did we we had this from
+soon no no we did we we had this from the beginning we knew that we needed
+the beginning we knew that we needed this we just had the wrong prototype and
+this we just had the wrong prototype and once we realized we needed more we just
+once we realized we needed more we just kept iterating on that one prototype but
+kept iterating on that one prototype but then going back and rebuilding it from
+then going back and rebuilding it from the beginning so we have like this fully
+the beginning so we have like this fully eye thing and then we just kind of like
+eye thing and then we just kind of like added those non-skin things on top of it
+added those non-skin things on top of it we never went back and built a system
+we never went back and built a system from the ground up that had better
+from the ground up that had better concurrency
+concurrency I will crowd Sam we would have liked
+I will crowd Sam we would have liked more unique interactions really the
+more unique interactions really the westin I want to communicate here is if
+westin I want to communicate here is if you put a human being in the game the
+you put a human being in the game the player is gonna try to interact with
+player is gonna try to interact with them and you just can't fool yourself
+them and you just can't fool yourself that they won't one last thing that I
+that they won't one last thing that I want to talk about before we get into
+want to talk about before we get into Q&A is to talk about photo mode and the
+Q&A is to talk about photo mode and the most important thing I can say about
+most important thing I can say about photo mode is that programmers
+photo mode is that programmers undervalue it but the success of photo
+undervalue it but the success of photo mode is not a tech story it is a social
+mode is not a tech story it is a social story um it was a story a basically like
+story um it was a story a basically like Stone Soup that folktale what everybody
+Stone Soup that folktale what everybody comes and contributes and it made a much
+comes and contributes and it made a much bigger difference than we suspected at
+bigger difference than we suspected at the beginning so we began working on
+the beginning so we began working on photo mode about five months before date
+photo mode about five months before date but we did a lot of work in those five
+but we did a lot of work in those five months an original plan was something
+months an original plan was something very simple just basically so we could
+very simple just basically so we could claim that we had done photo mode
+claim that we had done photo mode basic 3d cameras and controls or get the
+basic 3d cameras and controls or get the camera around and some stickers all
+camera around and some stickers all right well we're getting the stickers
+right well we're getting the stickers from so we had the little social media
+from so we had the little social media display in the pause menu so we just
+display in the pause menu so we just grabbed the textures from that and use
+grabbed the textures from that and use those as stickers and this was a stroke
+those as stickers and this was a stroke of luck because those things have a
+of luck because those things have a specific aesthetic that immediately
+specific aesthetic that immediately encouraged other texture artists to come
+encouraged other texture artists to come along and start contributing their own
+along and start contributing their own stuff other characters in the books and
+stuff other characters in the books and it's a comic book right we can start
+it's a comic book right we can start throwing in the onomatopoeia and and
+throwing in the onomatopoeia and and some speech bubbles and okay what did
+some speech bubbles and okay what did you take but when he would take a
+you take but when he would take a sticker but the set of it being opaque
+sticker but the set of it being opaque in the middle and transparent everywhere
+in the middle and transparent everywhere else
+else what if it's transparent in the middle
+what if it's transparent in the middle and opaque everywhere else and as we're
+and opaque everywhere else and as we're frames came from and then someone looked
+frames came from and then someone looked at that one movie poster from that one
+at that one movie poster from that one movie but the superhero taking a selfie
+movie but the superhero taking a selfie and said how about we have selfies yes
+and said how about we have selfies yes selfie mode is a thing and as when
+selfie mode is a thing and as when people really started to see themselves
+people really started to see themselves in the product because people when we
+in the product because people when we were even developing just loved taking
+were even developing just loved taking selfies of themselves with the content
+selfies of themselves with the content that they had made and bugs that they
+that they had made and bugs that they encountered and when people were doing
+encountered and when people were doing that on the team they started to see
+that on the team they started to see opportunities for themselves to
+opportunities for themselves to contribute like an animator said I can
+contribute like an animator said I can make spider-man make funny faces and the
+make spider-man make funny faces and the lighter said it's not that hard to put
+lighter said it's not that hard to put it light on the on the locator and get a
+it light on the on the locator and get a selfie light and the shade our artist
+selfie light and the shade our artist said yeah you know with just some simple
+said yeah you know with just some simple color look-up tables I can totally make
+color look-up tables I can totally make a whole bunch of photo filters behind
+a whole bunch of photo filters behind the scenes it's really simple we just
+the scenes it's really simple we just duck out the game play character replace
+duck out the game play character replace it with the cinematic character drive in
+it with the cinematic character drive in a matrix with a thumbsticks
+a matrix with a thumbsticks have different poses in the cinematic
+have different poses in the cinematic character depending on whether you were
+character depending on whether you were standing or perching or running the
+standing or perching or running the cameras attached to the locator there's
+cameras attached to the locator there's no fancy okay I mostly just wanted to
+no fancy okay I mostly just wanted to show you this video but it it turned out
+show you this video but it it turned out to be a huge promotional win for us to
+to be a huge promotional win for us to have this in from day one photo mode is
+have this in from day one photo mode is an intrinsically creative thing right
+an intrinsically creative thing right people want to express themselves in our
+people want to express themselves in our game and then immediately to share it
+game and then immediately to share it with their friends and the sharing or
+with their friends and the sharing or the friends was a really nice thing and
+the friends was a really nice thing and if we had done photo mode as I could
+if we had done photo mode as I could deal C weeks later it would be cool I
+deal C weeks later it would be cool I keep what have gone on Twitter and said
+keep what have gone on Twitter and said look at this photo mode thing from the
+look at this photo mode thing from the game from last month but for us because
+game from last month but for us because we had it in day one it hit right at the
+we had it in day one it hit right at the peak of the hype trend like right as her
+peak of the hype trend like right as her advertising spend hit went in this stuff
+advertising spend hit went in this stuff was all over Twitter so it made a huge
+was all over Twitter so it made a huge difference for our launch momentum we
+difference for our launch momentum we were kind of nervous about photo mode at
+were kind of nervous about photo mode at first because we thought people would
+first because we thought people would take pictures that made the game look
+take pictures that made the game look bad but it's not a problem one people
+bad but it's not a problem one people like the silly photos and two no one
+like the silly photos and two no one cares so here's the morals simple is
+cares so here's the morals simple is really good still to this day fit the
+really good still to this day fit the tech to the context I was talking about
+tech to the context I was talking about the context of our specific engine but
+the context of our specific engine but really anything you're doing reevaluate
+really anything you're doing reevaluate the specific game that you're making and
+the specific game that you're making and build the tech around them right we have
+build the tech around them right we have that's why we have programmers on teams
+that's why we have programmers on teams nothing everything nothing has to be
+nothing everything nothing has to be completely generic continually revisit
+completely generic continually revisit the speed and space trade-offs we had to
+the speed and space trade-offs we had to think over all the choices that we had
+think over all the choices that we had made on previous projects for the
+made on previous projects for the specific context of a city that has
+specific context of a city that has everything the Manhattan does and
+everything the Manhattan does and there is no fun than what is even the
+there is no fun than what is even the point right we are toy makers for a
+point right we are toy makers for a living if you're not having at least a
+living if you're not having at least a little bit of fun making the game you're
+little bit of fun making the game you're not going to find creative ways to
+not going to find creative ways to contribute it and you're going to have a
+contribute it and you're going to have a hard time putting fun into the game so I
+hard time putting fun into the game so I am the one up here talking but this talk
+am the one up here talking but this talk was a team effort
+was a team effort so here's everyone who contributed
+so here's everyone who contributed mostly I just punched it into PowerPoint
+mostly I just punched it into PowerPoint I really want to thank Sony and Marvel
+I really want to thank Sony and Marvel for letting us play with their toys and
+for letting us play with their toys and make this game and I super duper want to
+make this game and I super duper want to thank my talk advisor andreas who
+thank my talk advisor andreas who carried me across the finish line and
+carried me across the finish line and the start line and he just carried me
+the start line and he just carried me and thanks to everybody at insomniac who
+and thanks to everybody at insomniac who actually made the game that I'm talking
+actually made the game that I'm talking about
+about oh yeah we're hiring please apply all
+oh yeah we're hiring please apply all right appendix appendix for those of you
+right appendix appendix for those of you watching on video get your pause button
+watching on video get your pause button already here's the numbers BAM
+[Laughter] all right QA
+he'll be fine
+people you can line up while this is going on like I put these in before
+going on like I put these in before while people were milling around alright
+while people were milling around alright I actually have something all right
+I actually have something all right thank you
+thank you what's the funniest glitch like the
+what's the funniest glitch like the things that are displayed here that you
+things that are displayed here that you personally have encountered in this game
+personally have encountered in this game I put them up there which of them do you
+I put them up there which of them do you like the most
+like the most oh the one where the guy gets like
+oh the one where the guy gets like punted over the girders into the
+punted over the girders into the distance and so that just gets me every
+distance and so that just gets me every time you know it's like a football goal
+time you know it's like a football goal that's good it's good yeah all sweet we
+that's good it's good yeah all sweet we got a Brooklyn Bridge
+yeah then we were off by one on the model index alright it seems like oh I
+model index alright it seems like oh I don't know question so as the second
+don't know question so as the second clip demonstrated through the game there
+clip demonstrated through the game there are a lot of characters that get knocked
+are a lot of characters that get knocked off buildings I wondered if you wanted
+off buildings I wondered if you wanted to
+to I expect that being able to show
+I expect that being able to show spider-man did wasn't just knocking
+spider-man did wasn't just knocking people hundreds of feet to their death
+people hundreds of feet to their death was part of the design do you want to
+was part of the design do you want to talk about some of the challenges that
+talk about some of the challenges that came about trying to save those people
+came about trying to save those people oh yeah so the question is spider-man
+oh yeah so the question is spider-man talks a bunch people off the buildings
+talks a bunch people off the buildings how do we keep them from dying the
+how do we keep them from dying the challenge basically the reason that we
+challenge basically the reason that we that they don't dies spider-man doesn't
+that they don't dies spider-man doesn't kill people
+kill people Richard ously and to make them not die
+Richard ously and to make them not die we simply just do a rake like when
+we simply just do a rake like when they're going over we do Ray casts in
+they're going over we do Ray casts in all directions find the nearest vertical
+all directions find the nearest vertical surface and just stick them to that it's
+surface and just stick them to that it's really simple
+really simple thanks oh sorry hi first thanks for the
+thanks oh sorry hi first thanks for the great talk on the slide that you
+great talk on the slide that you mentioned the vertices or the
+mentioned the vertices or the compression and you need specific tools
+compression and you need specific tools would you be able to talk a bit more
+would you be able to talk a bit more about those tools and what was needed
+about those tools and what was needed what was really interesting that sense
+what was really interesting that sense oh the debug tool yes okay so we have a
+oh the debug tool yes okay so we have a notion of a viewer app which loads
+notion of a viewer app which loads basically just the engine but none of
+basically just the engine but none of the gameplay it's just like enough to
+the gameplay it's just like enough to view models in game and we can turn a
+view models in game and we can turn a bunch of stuff on and often that to test
+bunch of stuff on and often that to test specific engine features so essentially
+specific engine features so essentially what we did there is we just can pick a
+what we did there is we just can pick a single animation string the animation
+single animation string the animation and get a whole bunch of Diagnostics on
+and get a whole bunch of Diagnostics on all the math that's going into making
+all the math that's going into making the face from that it's really just we
+the face from that it's really just we have a mouse selector you can click a
+have a mouse selector you can click a polygon and then it just freezes the the
+polygon and then it just freezes the the stream and then just shows all the
+stream and then just shows all the calculations that happen from the
+calculations that happen from the decompression through the lighting
+decompression through the lighting through the normals to the tangents to
+through the normals to the tangents to make that poly happen thank you yep hi
+make that poly happen thank you yep hi so you mentioned about the feeding text
+so you mentioned about the feeding text detect to context and right now like
+detect to context and right now like game engines like unity unreal are used
+game engines like unity unreal are used for several things but I was wondering
+for several things but I was wondering if you have any thoughts on when it's a
+if you have any thoughts on when it's a good trade-off to start investing in
+good trade-off to start investing in your own technology for like your own
+your own technology for like your own game engine and like taking like when is
+game engine and like taking like when is a good time to start investing on that
+a good time to start investing on that the question is when is it a good time
+the question is when is it a good time to start investing in your own engine
+to start investing in your own engine that is a philosophical question that
+that is a philosophical question that I'm not sure I can answer for you I mean
+I'm not sure I can answer for you I mean the the short of it is when you have
+the the short of it is when you have enough of space on your payroll to write
+enough of space on your payroll to write your own engine and when you know what
+your own engine and when you know what you need from your engine write a very
+you need from your engine write a very small engine is a lot easier to build in
+small engine is a lot easier to build in a big one if you're making a very
+a big one if you're making a very specific game I guess you know fits the
+specific game I guess you know fits the text of the context again I don't know
+text of the context again I don't know if I have an answer for you on that one
+if I have an answer for you on that one I'm sorry yeah no worries thinks because
+I'm sorry yeah no worries thinks because it's a platform exclusive and very much
+it's a platform exclusive and very much 100% likely to remain so how beneficial
+100% likely to remain so how beneficial was it to know that you were just using
+was it to know that you were just using that platform's profiling tools for
+that platform's profiling tools for optimization and is that different from
+optimization and is that different from other projects
+other projects it is super useful when you're
+it is super useful when you're optimizing to know that you have a fixed
+optimizing to know that you have a fixed platform that is like the advantage of
+platform that is like the advantage of consoles over developing on PC also both
+consoles over developing on PC also both of the console makers have really good
+of the console makers have really good profiling tools they're different but
+profiling tools they're different but they're both awesome in their own ways
+they're both awesome in their own ways so I mean I guess that's the answer is
+so I mean I guess that's the answer is relying on the tools of the platform
+relying on the tools of the platform maker gave us was absolutely fine
+maker gave us was absolutely fine because they weren't very good did I
+because they weren't very good did I answer your question sufficiently I
+answer your question sufficiently I think so thank you so you are a studio
+think so thank you so you are a studio making multiple games at the same time
+making multiple games at the same time but you fit your engine completely to
+but you fit your engine completely to the game so how does that work out
+the game so how does that work out because they need to strip out
+because they need to strip out everything for the next game or just the
+everything for the next game or just the game where you're prototyping on has to
+game where you're prototyping on has to just live with what you do
+just live with what you do so we that is an excellent question we
+so we that is an excellent question we have this note we have sort of tiers
+have this note we have sort of tiers right we have a core engine mm-hmm we
+right we have a core engine mm-hmm we have the gameplay code and then we have
+have the gameplay code and then we have this notion of like a shared library
+this notion of like a shared library which is the thing that sits in the
+which is the thing that sits in the middle we work on engine features and
+middle we work on engine features and they just grow by creation so when an
+they just grow by creation so when an engine feature that comes available to
+engine feature that comes available to one game it becomes available to all of
+one game it becomes available to all of them so the core stuff like the
+them so the core stuff like the hibernate renders are actually going to
+hibernate renders are actually going to end up in some of the other games just
+end up in some of the other games just because it's conveniently there we do
+because it's conveniently there we do need to be very cautious about when we
+need to be very cautious about when we release the engine to which projects so
+release the engine to which projects so that we don't inadvertently break the
+that we don't inadvertently break the project's but we do make sure that the
+project's but we do make sure that the same engine and the same tools go out to
+same engine and the same tools go out to all the projects eventually is that
+all the projects eventually is that they're on the same because the
+they're on the same because the streaming system is probably very
+streaming system is probably very specific will be used by the other
+specific will be used by the other things yes I mean so if we if
+things yes I mean so if we if we mark the zones that they live in er
+we mark the zones that they live in er than a geographic space then it's like
+than a geographic space then it's like screaming like you know like I've shown
+screaming like you know like I've shown you here if you mark them so they're
+you here if you mark them so they're loaded by script it's the exact same
+loaded by script it's the exact same thing we're using the exact same
+thing we're using the exact same screaming logic it's just it's not
+screaming logic it's just it's not happening all the time and you may
+happening all the time and you may notice that our games stream more and
+notice that our games stream more and more as this technology becomes Camelia
+more as this technology becomes Camelia vailable to every project another small
+vailable to every project another small question is like you have everything set
+question is like you have everything set up that you just fits with the tiles and
+up that you just fits with the tiles and things like that
+things like that did the game designs all of a sudden
+did the game designs all of a sudden wanna like put a cutscene on the other
+wanna like put a cutscene on the other side of the world and I just have to
+side of the world and I just have to stream and doesn't fit in memory or you
+stream and doesn't fit in memory or you were just like very strict and it's not
+were just like very strict and it's not possible so I I dress this in the sunset
+possible so I I dress this in the sunset overdrive talk the gist of it is we have
+overdrive talk the gist of it is we have to be careful not to set cutscenes and
+to be careful not to set cutscenes and faraway locations unless we can load in
+faraway locations unless we can load in like a very small cyclorama behind them
+like a very small cyclorama behind them billy basically loaded in and set
+billy basically loaded in and set quickly enough for that cutscene to work
+quickly enough for that cutscene to work however once we wring that little thing
+however once we wring that little thing with a narrow camera right we can hide
+with a narrow camera right we can hide all kinds of ills while we're streaming
+all kinds of ills while we're streaming the world around it sorry one lost and
+the world around it sorry one lost and so you do duplicate nips and everything
+so you do duplicate nips and everything yeah you put that into things when you
+yeah you put that into things when you for example make textures change what is
+for example make textures change what is iteration time then because you need to
+iteration time then because you need to remake everything to make an individual
+remake everything to make an individual texture in seconds
+texture in seconds yeah but you need to re big then older
+yeah but you need to re big then older basically files loading the loading that
+basically files loading the loading that data I think you're saying so we have
+data I think you're saying so we have two ways of loading assets basically
+two ways of loading assets basically that we use during development the stuff
+that we use during development the stuff that I showed you is like the final
+that I showed you is like the final packaged version when we're trying to
+packaged version when we're trying to optimize it we can also loose load files
+optimize it we can also loose load files in fact we have a thing where for the
+in fact we have a thing where for the most part when you're editing assets on
+most part when you're editing assets on your PC the PC is actually running a
+your PC the PC is actually running a little service little web server that
+little service little web server that when the game goes to load assets it
+when the game goes to load assets it actually hits that web server on your PC
+actually hits that web server on your PC the reason we do that is so that if you
+the reason we do that is so that if you change an asset it updates in the game
+change an asset it updates in the game immediately okay Vicky I thank you
+immediately okay Vicky I thank you excellent talk excellent game but I I
+excellent talk excellent game but I I have to ask why did you dear as the
+have to ask why did you dear as the puddle
+all right so if you don't know what he's talking about
+there was a scene that we showed in our e3 trailer that had this big old puddle
+e3 trailer that had this big old puddle in it and then when we showed that
+in it and then when we showed that seeing same scene in the final trailer
+seeing same scene in the final trailer that puddle was like not there and the
+that puddle was like not there and the internet lost its mind because they
+internet lost its mind because they thought we had taken that reflective
+thought we had taken that reflective puddles for performance reasons ID so we
+puddles for performance reasons ID so we gave this really confuse answer them
+gave this really confuse answer them because nobody actually knew once I had
+because nobody actually knew once I had to do an investigation to figure that I
+to do an investigation to figure that I talked to like 14 people and got a whole
+talked to like 14 people and got a whole bunch of different answers but I finally
+bunch of different answers but I finally got to the bottom of it are you ready we
+got to the bottom of it are you ready we switched from hand painting then to
+switched from hand painting then to procedurally putting them in it's just
+procedurally putting them in it's just too much of a pain to paint all the
+too much of a pain to paint all the puddles in that's it it's a different
+puddles in that's it it's a different procedural scene
+now you can have all the puddles you wants and they also got two more
+wants and they also got two more questions to amendments for Q&A I can
+questions to amendments for Q&A I can talk about one thing I want to talk
+talk about one thing I want to talk about oh yeah so um traffic we had a
+about oh yeah so um traffic we had a really simple traffic system the
+really simple traffic system the basically pedestrians the wheels so the
+basically pedestrians the wheels so the in our system like we don't have an east
+in our system like we don't have an east of global navigation so every car just
+of global navigation so every car just looks immediately ahead of itself and
+looks immediately ahead of itself and then stops if something is in the way
+then stops if something is in the way and pedestrians don't look before
+and pedestrians don't look before crossing the street so you know the
+crossing the street so you know the realism is amazing
+we have at any given time about a hundred and eighty cars I know driving
+hundred and eighty cars I know driving of which 25 are actually moving in the
+of which 25 are actually moving in the rest are stuck in traffic so again
+rest are stuck in traffic so again realism and it parking is really hard in
+realism and it parking is really hard in Manhattan that's it oh sorry
+Manhattan that's it oh sorry can you watch the blooper reel again
+can you watch the blooper reel again only if there's no weather quit want
+only if there's no weather quit want people coming up if they have any other
+people coming up if they have any other questions this is a super naive question
+questions this is a super naive question but I'm really curious like you you said
+but I'm really curious like you you said that you guys did this awesome streaming
+that you guys did this awesome streaming tech for this you know early on in
+tech for this you know early on in production where he he gets into the
+production where he he gets into the interior and everything is seamless
+interior and everything is seamless everything is brilliant it took a whole
+everything is brilliant it took a whole month calendar month I assume of
+month calendar month I assume of development time it seems like with all
+development time it seems like with all that technology you built why was why
+that technology you built why was why did it take so long so it's essentially
+did it take so long so it's essentially to do all the nitty gritty the question
+to do all the nitty gritty the question is why did it take so long to set up the
+is why did it take so long to set up the the the interior transition in the first
+the the interior transition in the first place the answer it's not like a tech
+place the answer it's not like a tech thing it's just the content of like
+thing it's just the content of like framing the cinematic carefully and
+framing the cinematic carefully and being really careful about the budgets
+being really careful about the budgets because you know we still have limited
+because you know we still have limited by how much we can get off the diskens
+by how much we can get off the diskens we're loading stuff in and balancing the
+we're loading stuff in and balancing the things and making the art the right size
+things and making the art the right size so we can load it in I long sir it's
+so we can load it in I long sir it's just a continual balancing act and
+just a continual balancing act and spinning that plate was a bit of a pain
+where we're going we don't need roads
+see ya
+don't is one more yep so when you were dealing with moving out and like
+dealing with moving out and like de-rezzing the people so they didn't
+de-rezzing the people so they didn't have really nice textures on them what
+have really nice textures on them what did you have to do for cars and you also
+did you have to do for cars and you also do that since the cars do look really
+do that since the cars do look really nice in game the yes so the cars lod
+nice in game the yes so the cars lod less and the pedestrians do simply
+less and the pedestrians do simply because we didn't have the program
+because we didn't have the program resource to do it quite as much it's
+resource to do it quite as much it's okay though because the cars aren't
+okay though because the cars aren't skinned to the same level and they're
+skinned to the same level and they're just less poly they do disappear the one
+just less poly they do disappear the one thing that they do is like the moment
+thing that they do is like the moment they're had a view and they go around a
+they're had a view and they go around a corner we just like move them back in
+corner we just like move them back in from someplace else
+from someplace else oh one other thing with the cars is so a
+oh one other thing with the cars is so a cart natural cartridge would obviously
+cart natural cartridge would obviously not be possible in Manhattan you'd get
+not be possible in Manhattan you'd get like three blocks yeah so whenever
+like three blocks yeah so whenever there's a car chase in progress we
+there's a car chase in progress we actually look ahead on the spline where
+actually look ahead on the spline where the car chase goes and just despond all
+the car chase goes and just despond all the cars there it can actually happen
+the cars there it can actually happen okay so you when the car goes are on a
+okay so you when the car goes are on a corner you just kind of like remove it
+corner you just kind of like remove it so like you don't to worry about it
+so like you don't to worry about it moving around and okay thanks just a
+moving around and okay thanks just a quick question
+quick question mm when you're looking at Manhattan from
+mm when you're looking at Manhattan from far away are you simulating any kind of
+far away are you simulating any kind of traffic or pedestrian like if I'm
+traffic or pedestrian like if I'm looking right down the road all the way
+looking right down the road all the way across like multiple streaming levels
+across like multiple streaming levels okay so the question is how much of the
+okay so the question is how much of the traffic and the Pens do we stream from
+traffic and the Pens do we stream from far away the pedestrians like I showed
+far away the pedestrians like I showed you it's the little sac people more than
+you it's the little sac people more than a few blocks away the traffic is
+a few blocks away the traffic is simulating out as far as you can see and
+simulating out as far as you can see and that's one of the reasons why we didn't
+that's one of the reasons why we didn't lod the cars down so much so you're
+lod the cars down so much so you're simulating like the whole city we're
+simulating like the whole city we're simulating like the whole street that
+simulating like the whole street that you can see ahead of you right if
+you can see ahead of you right if something is obscured into the side so
+something is obscured into the side so like we're not simulating the traffic
+like we're not simulating the traffic look to the left and right when we're
+look to the left and right when we're doing that as soon as you turn those
+doing that as soon as you turn those cars come into existence thank you very
+cars come into existence thank you very much
+you [Applause]

@@ -1,0 +1,786 @@
+foreign
+[Music] welcome to my talk on the facial
+welcome to my talk on the facial animation pipeline for Marvel's
+animation pipeline for Marvel's Guardians of the Galaxy I'm Simon Hadid
+Guardians of the Galaxy I'm Simon Hadid a lead technical animator at idos
+a lead technical animator at idos Montreal
+a bit about me I started the first 10 years of my career as a rigging artist
+years of my career as a rigging artist which gave me a solid foundation for
+which gave me a solid foundation for Tool development and
+Tool development and fertility development human anatomy
+fertility development human anatomy Automation and improving the user
+Automation and improving the user experience in more recent years I
+experience in more recent years I dedicated my time and attention to my
+dedicated my time and attention to my true passion which is facial animation
+true passion which is facial animation since action adventure narrative games
+since action adventure narrative games are my favorite genre to play working on
+are my favorite genre to play working on this project was a perfect match and
+this project was a perfect match and allowed me to create genuine and
+allowed me to create genuine and emotional performances
+emotional performances based on the incredible feedback that
+based on the incredible feedback that our game has received I'm proud to say
+our game has received I'm proud to say that our characters have resonated with
+that our characters have resonated with players
+to kick things off I'd like to present you this 30 second clip from one of our
+you this 30 second clip from one of our cinematics showing different stages of
+cinematics showing different stages of production throughout this presentation
+production throughout this presentation we'll see how this scene was created
+we'll see how this scene was created did you say you have all of this energy
+did you say you have all of this energy Faith energy right but when we first saw
+Faith energy right but when we first saw you weren't you stranded on Alice hope
+you weren't you stranded on Alice hope because your shuttle ran out of juice
+because your shuttle ran out of juice yes I was but so why don't you just
+yes I was but so why don't you just believe that your ship had more gas
+believe that your ship had more gas it doesn't work that way
+it doesn't work that way Faith energy is a byproduct of belief
+Faith energy is a byproduct of belief focused belief
+focused belief [Music]
+[Music] okay sure I saw this proven
+to kick things off oh sorry here are the topics we'll be covering in this
+topics we'll be covering in this presentation we'll Begin by talking
+presentation we'll Begin by talking about the vision our goals and
+about the vision our goals and expectations at the start of the project
+expectations at the start of the project next we'll talk about the photogrammetry
+next we'll talk about the photogrammetry scan this is the process in which we
+scan this is the process in which we take images of a model in order to get
+take images of a model in order to get anatomically correct characters
+anatomically correct characters in the third section we'll explore the
+in the third section we'll explore the three types of performance capture that
+three types of performance capture that we used in our game
+we used in our game in the fourth section we'll talk about
+in the fourth section we'll talk about how we processed all the data from these
+how we processed all the data from these capture sessions and converted them into
+capture sessions and converted them into animations
+animations in the fifth section we'll talk about
+in the fifth section we'll talk about the Cinematic polish and how we brought
+the Cinematic polish and how we brought these animations to final quality
+these animations to final quality and finally if we have time we'll end
+and finally if we have time we'll end with a q a so I'd invite you to write
+with a q a so I'd invite you to write down questions in a notepad or in the
+down questions in a notepad or in the chat and I'll do my best to answer them
+chat and I'll do my best to answer them at the end if we run out of time feel
+at the end if we run out of time feel free to reach out to me on Twitter or
+free to reach out to me on Twitter or LinkedIn and I'd be glad to chat about
+LinkedIn and I'd be glad to chat about any of this
+any of this I I want to mention that this is a
+I I want to mention that this is a facial animation-centric talk so I won't
+facial animation-centric talk so I won't be covering everything about the
+be covering everything about the Cinematic pipeline or facial rigging
+Cinematic pipeline or facial rigging it's really about how we capture our
+it's really about how we capture our actors and how we animate our characters
+actors and how we animate our characters I may get into some technical Concepts
+I may get into some technical Concepts but it's still meant to be an overview
+but it's still meant to be an overview of the pipeline
+so the vision what did we set out to do when we started this project
+when we started this project we knew that the Guardians of the Galaxy
+we knew that the Guardians of the Galaxy was going to be a performance driven
+was going to be a performance driven narrative game
+narrative game sits into the Guardians we knew that
+sits into the Guardians we knew that there would be an ensemble cast but five
+there would be an ensemble cast but five characters and that they'd be together
+characters and that they'd be together for most of the game we knew that these
+for most of the game we knew that these characters were going to be stylized to
+characters were going to be stylized to look more like their comic book
+look more like their comic book counterparts but they had to be very
+counterparts but they had to be very believable we wanted a lot of emotion to
+believable we wanted a lot of emotion to come through these characters we also
+come through these characters we also knew that they'd be traveling to
+knew that they'd be traveling to different planets so there would be
+different planets so there would be non-human characters as well
+non-human characters as well we wanted to push what is done in our
+we wanted to push what is done in our industry we wanted to look at different
+industry we wanted to look at different technical innovations that we could
+technical innovations that we could incorporate into our game
+incorporate into our game one of those is photogrammetry typically
+one of those is photogrammetry typically on games we would have a team of
+on games we would have a team of character artists sculpting and using
+character artists sculpting and using reference images to create their
+reference images to create their characters whereas with photogrammetry
+characters whereas with photogrammetry we get the Precision of scanning an
+we get the Precision of scanning an actual person as the basis of our
+actual person as the basis of our characters
+characters we'll talk a bit more about that in the
+we'll talk a bit more about that in the next section
+next section in terms of audio versus video based
+in terms of audio versus video based animations a lot of games use audio
+animations a lot of games use audio tracks to generate facial animations and
+tracks to generate facial animations and while that may give very accurate lip
+while that may give very accurate lip sync it kind of has to approximate what
+sync it kind of has to approximate what to do with the rest of the face which is
+to do with the rest of the face which is usually procedurally generated using
+usually procedurally generated using emotion tags
+emotion tags when working with video based animations
+when working with video based animations and actors performance is our source and
+and actors performance is our source and is directly translated onto our
+is directly translated onto our characters so we get more believable
+characters so we get more believable performances and subtlety
+performances and subtlety we were fortunate to have our own
+we were fortunate to have our own in-house mocap stage and we were
+in-house mocap stage and we were planning to use it extensively on this
+planning to use it extensively on this project
+project our cast was comprised primarily of
+our cast was comprised primarily of local actors which meant the turnaround
+local actors which meant the turnaround from booking our sessions capturing all
+from booking our sessions capturing all our data and then generating usable
+our data and then generating usable animations was very very short
+animations was very very short especially if you were to compare that
+especially if you were to compare that with working with an external mocap
+with working with an external mocap Studio
+Studio let's talk about the advantages of full
+let's talk about the advantages of full performance capture many game developers
+performance capture many game developers tend to record their voice separate from
+tend to record their voice separate from their body mocap and facial capture and
+their body mocap and facial capture and then Stitch all that data together for
+then Stitch all that data together for their cinematics which doesn't always
+their cinematics which doesn't always guarantee that they'll all line up and
+guarantee that they'll all line up and give a cohesive performance
+give a cohesive performance in contrast when we're when we're
+in contrast when we're when we're working with our actors their voices
+working with our actors their voices their faces and their bodies are all
+their faces and their bodies are all recorded at the same time which ensures
+recorded at the same time which ensures that the performance is as accurate and
+that the performance is as accurate and natural as possible
+natural as possible in video games we often hear that we
+in video games we often hear that we have to either choose quantity or
+have to either choose quantity or quality meaning we either have lots of
+quality meaning we either have lots of animations or fewer at a much higher
+animations or fewer at a much higher quality on this project we try to prove
+quality on this project we try to prove that it would be possible to offer
+that it would be possible to offer quantity and quality by having multiple
+quantity and quality by having multiple tiers of quality of facial animation
+tiers of quality of facial animation bronze being mostly automated with
+bronze being mostly automated with little to no manual labor silver is the
+little to no manual labor silver is the one that comes the closest to the actual
+one that comes the closest to the actual performance but requires a manual polish
+performance but requires a manual polish pass and then gold is really that Final
+pass and then gold is really that Final Touch at the end that is reserved for
+Touch at the end that is reserved for the most important shots
+the first topic we're going to look at is photogrammetry scanning this is the
+is photogrammetry scanning this is the process of taking hundreds of images of
+process of taking hundreds of images of a subject from many different angles to
+a subject from many different angles to build a 3D model
+given that our game is stylized our characters didn't need to be one-to-one
+characters didn't need to be one-to-one with the performers so we had to make
+with the performers so we had to make the decision do we want to start by
+the decision do we want to start by casting a model and then designing a
+casting a model and then designing a concept art based on that person or vice
+concept art based on that person or vice versa in our game we decided we were
+versa in our game we decided we were going to design the concept art first
+going to design the concept art first and then cast a model to best fit that
+and then cast a model to best fit that character
+character this photogrammetry room was designed by
+this photogrammetry room was designed by pixel light effects and assembled in our
+pixel light effects and assembled in our own Studio
+own Studio the room itself is composed of 40 DSLR
+the room itself is composed of 40 DSLR cameras and five softbox lights which
+cameras and five softbox lights which would all get triggered at the same time
+would all get triggered at the same time the lights ensured that we have a nice
+the lights ensured that we have a nice diffuse lighting with hardly any Shadows
+diffuse lighting with hardly any Shadows across the face
+across the face in total we had 13 scan sessions so 13
+in total we had 13 scan sessions so 13 different models that came in for
+different models that came in for different characters
+different characters when each model would come in we would
+when each model would come in we would dot to their faces with roughly 100
+dot to their faces with roughly 100 facial facial markers using an eyeliner
+facial facial markers using an eyeliner which allowed the character artists to
+which allowed the character artists to accurately track the deformation and
+accurately track the deformation and skin sliding
+skin sliding in the booth we would ask the models to
+in the booth we would ask the models to hold about 25 different facial
+hold about 25 different facial expressions and these full face
+expressions and these full face expressions is what we use to separate
+expressions is what we use to separate into 138 blend shapes for our facial
+into 138 blend shapes for our facial rings
+rings let's quickly go over the workflow
+let's quickly go over the workflow these cameras would give us CR2 raw
+these cameras would give us CR2 raw image files that we would pass into
+image files that we would pass into Lightroom classic for some color balance
+Lightroom classic for some color balance and light adjustments bringing these
+and light adjustments bringing these edited pictures into reality capture
+edited pictures into reality capture gave us a point cloud and generated very
+gave us a point cloud and generated very high-res meshes
+high-res meshes we were able to automate this process
+we were able to automate this process making it much quicker especially
+making it much quicker especially considering the number of expressions
+considering the number of expressions for each model that would come in then
+for each model that would come in then we would hand off these high-res meshes
+we would hand off these high-res meshes to the character artist team who would
+to the character artist team who would bring them into wrap three apply them
+bring them into wrap three apply them onto our base mesh and then bring them
+onto our base mesh and then bring them into zbrush for cleanup stylization and
+into zbrush for cleanup stylization and final polish
+over here we have a preview in Maya of those blend shapes kind of blending in
+those blend shapes kind of blending in from one another
+from one another uh the goal for this first test was to
+uh the goal for this first test was to try to get our digital character as
+try to get our digital character as close to a perfect match with our real
+close to a perfect match with our real life model before the stylization phase
+life model before the stylization phase the advantage of applying these blend
+the advantage of applying these blend shapes to a base mesh is that we could
+shapes to a base mesh is that we could mix and match different parts of
+mix and match different parts of multiple characters with one another in
+multiple characters with one another in order to create to create brand new
+order to create to create brand new characters
+characters in the upper right corner we can see a
+in the upper right corner we can see a sample of different Expressions taken
+sample of different Expressions taken from a single camera and beneath it we
+from a single camera and beneath it we have an expression sheet of those
+have an expression sheet of those expressions converted as blend shapes
+next we'll talk about performance capture from our in-house motion capture
+capture from our in-house motion capture set our actors body motion facial
+set our actors body motion facial performances and voices are recorded
+performances and voices are recorded simultaneously
+simultaneously there are three types of performance
+there are three types of performance capture that we used on this project and
+capture that we used on this project and we'll explore each of them
+in the bottom picture we can see the mocap volume that we used for all of our
+mocap volume that we used for all of our cinematics even though it's a relatively
+cinematics even though it's a relatively small volume in comparison to other
+small volume in comparison to other Studios it was great for conversations
+Studios it was great for conversations some simple Locomotion and even some
+some simple Locomotion and even some stunts
+stunts at most we had seven actors recorded at
+at most we had seven actors recorded at the same time of which six were wearing
+the same time of which six were wearing head mounted cameras used for facial
+head mounted cameras used for facial performance capture which was the
+performance capture which was the maximum that we actually had available
+maximum that we actually had available on set
+on set uh the body mocap was recorded via
+uh the body mocap was recorded via optitrack and the helmet cams were
+optitrack and the helmet cams were provided by faceware
+provided by faceware in the picture on the right we can see
+in the picture on the right we can see our cast all geared up in their suits
+our cast all geared up in their suits and helmet cameras but you may notice
+and helmet cameras but you may notice that their each actor has their own live
+that their each actor has their own live microphone attached to the front of
+microphone attached to the front of their helmets which allowed us to record
+their helmets which allowed us to record their audio tracks individually and then
+their audio tracks individually and then combine them into a single file whenever
+combine them into a single file whenever we need it
+we need it when capturing the body mocap for all of
+when capturing the body mocap for all of these actors with the facial footage
+these actors with the facial footage with the microphones and three reference
+with the microphones and three reference cameras placed around the room all of
+cameras placed around the room all of this data needed to be synced so we
+this data needed to be synced so we would use a common time code across all
+would use a common time code across all of them we also needed to to trigger the
+of them we also needed to to trigger the recording of all these devices at the
+recording of all these devices at the same time and we also had to name all of
+same time and we also had to name all of our files consistently so we had an
+our files consistently so we had an in-house solution called Lumiere
+in-house solution called Lumiere from the bottom image we can see the
+from the bottom image we can see the monitors with the facial performance
+monitors with the facial performance videos being streamed in real time
+videos being streamed in real time on a typical shoot we would have about
+on a typical shoot we would have about five people supervising the session from
+five people supervising the session from this angle
+this angle we had our producer our cinematic
+we had our producer our cinematic director our mocap specialist our audio
+director our mocap specialist our audio engineer and myself the facial Tech
+engineer and myself the facial Tech um we also had a team who would help us
+um we also had a team who would help us Suit Up the actors whenever in the
+Suit Up the actors whenever in the morning whenever they came in
+morning whenever they came in a lot of this was under normal
+a lot of this was under normal conditions but of course our last year
+conditions but of course our last year of production was not under normal
+of production was not under normal conditions we had restrictive measures
+conditions we had restrictive measures to follow and a strict protocol with
+to follow and a strict protocol with social distancing masks visors hand
+social distancing masks visors hand sanitizers and all that but what was
+sanitizers and all that but what was most interesting is that we had a camera
+most interesting is that we had a camera recording the entire room that we could
+recording the entire room that we could stream via Zoom so that certain people
+stream via Zoom so that certain people could actually monitor shoots from home
+could actually monitor shoots from home and provide feedback through Slack
+and provide feedback through Slack we had to make do with the situation but
+we had to make do with the situation but we pulled it off and managed to complete
+we pulled it off and managed to complete all the recordings that we had left to
+all the recordings that we had left to do
+on this slide we have a closer look at the helmet cams that were used that we
+the helmet cams that were used that we were using this is the Mark III model of
+were using this is the Mark III model of Face rose head mounted camera or HMC for
+Face rose head mounted camera or HMC for short
+short even though they recently released the
+even though they recently released the mark IV model we were using the Mark III
+mark IV model we were using the Mark III during production these cameras are
+during production these cameras are recorded in RGB so color footage at 720p
+recorded in RGB so color footage at 720p 60 frames per second
+60 frames per second beneath the camera there's a dimmable
+beneath the camera there's a dimmable LED light which helps to reduce harsh
+LED light which helps to reduce harsh background lights and minimize Shadows
+background lights and minimize Shadows regarding the calibration we would draw
+regarding the calibration we would draw Tiny dots across the actor's face 27 to
+Tiny dots across the actor's face 27 to be exact then match the same tracking
+be exact then match the same tracking landmarks in the software that we used
+landmarks in the software that we used for uh to track the facial footage
+for uh to track the facial footage on the monitors that we saw in the
+on the monitors that we saw in the previous slide we could display a grid
+previous slide we could display a grid overlay to adjust the framing of each
+overlay to adjust the framing of each actor's helmet and to make sure that the
+actor's helmet and to make sure that the face was nicely centered in that
+face was nicely centered in that vertical video
+vertical video this was useful for ensuring consistency
+this was useful for ensuring consistency throughout the day and between shoots
+throughout the day and between shoots we would also adjust the lenses Focus to
+we would also adjust the lenses Focus to make sure our pixels were as sharp as
+make sure our pixels were as sharp as possible for the tracking process
+possible for the tracking process uh it's also really important to mention
+uh it's also really important to mention the comfort of the actors fortunately
+the comfort of the actors fortunately these helmets are pretty lightweight
+these helmets are pretty lightweight compared to other models while the
+compared to other models while the camera and the lights are placed in
+camera and the lights are placed in front of the actor's face they're just
+front of the actor's face they're just low enough that it doesn't occlude their
+low enough that it doesn't occlude their vision
+vision we always have to keep in mind that we
+we always have to keep in mind that we don't want to hinder their performance
+over here we'll see the performance capture footage for the same cinematic
+capture footage for the same cinematic that we saw earlier at the beginning of
+that we saw earlier at the beginning of the presentation on the right we have
+the presentation on the right we have the six HMC videos in the center we have
+the six HMC videos in the center we have the three reference camera videos and in
+the three reference camera videos and in the bottom we have the take name and the
+the bottom we have the take name and the time code which allows us to sync all
+time code which allows us to sync all the media files including those
+the media files including those individual audio tracks that are all
+individual audio tracks that are all combined to create a single single audio
+combined to create a single single audio file for this video
+did you say you have all of this sorry about that
+about that it's energy Faith energy right but when
+it's energy Faith energy right but when we first saw you weren't you stranded on
+we first saw you weren't you stranded on Hallows hope because your shuttle ran
+Hallows hope because your shuttle ran out of juice
+out of juice yes I was but so why don't you just
+yes I was but so why don't you just believe that your ship had more gas
+believe that your ship had more gas it doesn't work that way
+it doesn't work that way Faith energy is a byproduct of belief
+Faith energy is a byproduct of belief focused belief
+focused belief okay sure I saw this proven
+okay sure I saw this proven these tiled videos are assembled by an
+these tiled videos are assembled by an automation script using ffmpeg commands
+automation script using ffmpeg commands and are crucial for our editing process
+and are crucial for our editing process our cinematic director would use these
+our cinematic director would use these to identify the selected takes and
+to identify the selected takes and Stitch them together to create a first
+Stitch them together to create a first pass edit
+another type of performance capture is what we call banter sessions we knew
+what we call banter sessions we knew that our Guardians of the Galaxy were
+that our Guardians of the Galaxy were going to be talking throughout the
+going to be talking throughout the entire game so not just in cinematics
+entire game so not just in cinematics but also throughout gameplay typically
+but also throughout gameplay typically these types of recording sessions are
+these types of recording sessions are done with a single actor in an audio
+done with a single actor in an audio Booth recording their lines one after
+Booth recording their lines one after another without necessarily having any
+another without necessarily having any castmates to interact with for our game
+castmates to interact with for our game we have the advantage of recording all
+we have the advantage of recording all of our actors together in one space
+of our actors together in one space which allowed them to maintain their
+which allowed them to maintain their chemistry and ensure that dialogues felt
+chemistry and ensure that dialogues felt a lot more genuine and dynamic
+a lot more genuine and dynamic in total we recorded 23 000 lines of
+in total we recorded 23 000 lines of dialogue and for every one of them the
+dialogue and for every one of them the actors were wearing an HMC
+actors were wearing an HMC the videos of these performances were
+the videos of these performances were used to generate facial animations for
+used to generate facial animations for our Locomotion our combat and in-game
+our Locomotion our combat and in-game conversations
+conversations by referring to the time code metadata
+by referring to the time code metadata embedded in our audio tracks we can
+embedded in our audio tracks we can identify the start time and the duration
+identify the start time and the duration of each clip so that we could clip the
+of each clip so that we could clip the corresponding HMC video
+corresponding HMC video even though we were tracking the entire
+even though we were tracking the entire face we were using primarily the lower
+face we were using primarily the lower part for the lip sync the full face data
+part for the lip sync the full face data was passed on to a machine learning
+was passed on to a machine learning process that would give us an emotion
+process that would give us an emotion track
+track which we'll talk about a bit later
+in this video we have a clip from a banter session in this example the
+banter session in this example the actors are standing still while they
+actors are standing still while they read their lines from a tablet
+read their lines from a tablet typically when recording with a
+typically when recording with a stationary or suspended microphone
+stationary or suspended microphone actors are required to direct their
+actors are required to direct their voice which limits their movements since
+voice which limits their movements since our microphones are attached to their
+our microphones are attached to their helmets the actors were free to move
+helmets the actors were free to move around as much as they wanted during the
+around as much as they wanted during the recording sessions without causing gain
+recording sessions without causing gain issues or Distortion in the audio
+issues or Distortion in the audio this Carnage brings back troubling
+this Carnage brings back troubling memories of Worlds I destroyed always
+memories of Worlds I destroyed always wondered what do you use to do that some
+wondered what do you use to do that some kind of Mega bombs rocket blades my own
+kind of Mega bombs rocket blades my own hands and feet knees elbows
+hands and feet knees elbows often my forehead
+often my forehead pretty good
+so good I chose this clip because it also shows a bit of the levity between
+also shows a bit of the levity between among our performers between takes uh
+among our performers between takes uh they were often laughing and cracking
+they were often laughing and cracking jokes
+jokes um and so considering how long some of
+um and so considering how long some of these sessions can be it was really nice
+these sessions can be it was really nice to see that they were still enjoying the
+to see that they were still enjoying the writing that was given to them and
+writing that was given to them and always maintaining that chemistry
+the third and last type of performance capture that we used is the emotion
+capture that we used is the emotion capture uh during these sessions we
+capture uh during these sessions we would ask the actors to perform a range
+would ask the actors to perform a range of different emotions at varying degrees
+of different emotions at varying degrees of intensity
+of intensity the emotions that we had narrowed down
+the emotions that we had narrowed down were content angry nervous and sad
+were content angry nervous and sad the theory behind this is that when we
+the theory behind this is that when we speak with different emotions we have a
+speak with different emotions we have a lot of nonverbal gestures both as a
+lot of nonverbal gestures both as a speaker and as a listener with that in
+speaker and as a listener with that in mind we paired the actors one-on-one and
+mind we paired the actors one-on-one and we had them both standing and seated
+we had them both standing and seated which offered a wide range of different
+which offered a wide range of different body gestures that we could add as a
+body gestures that we could add as a layer on top of locomotions
+layer on top of locomotions as I mentioned earlier the facial
+as I mentioned earlier the facial performance recorded during the Venture
+performance recorded during the Venture session could be passed to a machine
+session could be passed to a machine learning process to generate an emotion
+learning process to generate an emotion track and this would determine an
+track and this would determine an actor's emotional state and intensity
+actor's emotional state and intensity these values would fetch the
+these values would fetch the corresponding animation from our library
+corresponding animation from our library and drive the upper portion of the face
+and drive the upper portion of the face as well as body gestures if you'd like
+as well as body gestures if you'd like to learn more about this I recommend
+to learn more about this I recommend that you check out tomorrow's session
+that you check out tomorrow's session called emotion detection for expressive
+called emotion detection for expressive characters in Guardians of the Galaxy
+characters in Guardians of the Galaxy which is part of the machine learning
+which is part of the machine learning Summit
+in this video we have an example of in-game banters you'll notice that the
+in-game banters you'll notice that the lip sync matches the performance and the
+lip sync matches the performance and the body has overlaid animation you'll also
+body has overlaid animation you'll also notice that there's automated
+notice that there's automated directional Lookouts for the eyes The
+directional Lookouts for the eyes The Head and the Torso so depending on who
+Head and the Torso so depending on who was talking they would look at each
+was talking they would look at each other
+other keep in mind that this is auto-generated
+keep in mind that this is auto-generated so we consider this a bronze performance
+it would still have three no one's throwing rocket
+yeah yeah I'm fine just leave it it's your problem my problem is
+it's your problem my problem is Meatheads trying to hook me over a cliff
+Meatheads trying to hook me over a cliff you're overreacting I did not only
+you're overreacting I did not only because quill stopped you there should
+because quill stopped you there should be no problem I'm watching you you could
+be no problem I'm watching you you could tap the in psychopath
+tap the in psychopath uh imagine that they could be walking or
+uh imagine that they could be walking or running through the environment and
+running through the environment and these animations would be layered on top
+these animations would be layered on top of locomotion but for the sake of this
+of locomotion but for the sake of this clip the characters are standing still I
+clip the characters are standing still I picked this clip also to demonstrate how
+picked this clip also to demonstrate how our facial performance translates quite
+our facial performance translates quite well onto a non-human character like
+well onto a non-human character like rocket
+after we've captured all this data from these three types of performance capture
+these three types of performance capture sessions how do we convert them all into
+sessions how do we convert them all into animation so batch processing it's the
+animation so batch processing it's the ability to run through thousands of
+ability to run through thousands of videos automatically track actors facial
+videos automatically track actors facial performances and apply first pass
+performances and apply first pass animations to their respective character
+animations to their respective character rigs
+to be able to batch the tracking of our performance videos and generate facial
+performance videos and generate facial animations we have to train the software
+animations we have to train the software to understand how each actor's face
+to understand how each actor's face moves slightly different from one
+moves slightly different from one another
+another we often use the term profiles to
+we often use the term profiles to describe The Binding of our real life
+describe The Binding of our real life actor and their respective digital
+actor and their respective digital character
+character on the right we see two screenshots of
+on the right we see two screenshots of faceware analyzer the official facial
+faceware analyzer the official facial tracking software that we use
+tracking software that we use as part of this training process we
+as part of this training process we build a tracking model which is a
+build a tracking model which is a collection of all the different
+collection of all the different expressions and mouth shapes that we
+expressions and mouth shapes that we have throughout our timeline
+have throughout our timeline I wrote less is more in the sense that
+I wrote less is more in the sense that we want to identify our Peak Expressions
+we want to identify our Peak Expressions also known as training frames avoids too
+also known as training frames avoids too many redundancies and let the software
+many redundancies and let the software do the interpolation between them
+do the interpolation between them consistency is key in the sense that if
+consistency is key in the sense that if we introduce too many contradictions
+we introduce too many contradictions between similar Expressions the software
+between similar Expressions the software doesn't really know how to deal with
+doesn't really know how to deal with them and that could result in shaky
+them and that could result in shaky tracking
+tracking after we finished our tracking model we
+after we finished our tracking model we repeat a similar process in Facebook
+repeat a similar process in Facebook retargeter which we were using in Maya
+retargeter which we were using in Maya to build out a pose library of
+to build out a pose library of corresponding facial expressions on our
+corresponding facial expressions on our digital character
+digital character that Library hold on a sec
+that Library hold on a sec uh that Library can contain a lot of
+uh that Library can contain a lot of extremes but we also wanted to include
+extremes but we also wanted to include subtle Expressions to really have a nice
+subtle Expressions to really have a nice range we decided that we would keep a
+range we decided that we would keep a bit of asymmetry in order to get the
+bit of asymmetry in order to get the timing from what the actors were doing
+timing from what the actors were doing in total we had facial profiles for 20
+in total we had facial profiles for 20 characters on our project
+one way to efficiently build a Facebook profile is to record a facial ROM which
+profile is to record a facial ROM which is short for a range of motion
+is short for a range of motion in this video I've chosen different
+in this video I've chosen different parts of a typical ROM and edited down
+parts of a typical ROM and edited down to about a minute
+to about a minute these videos usually take about five
+these videos usually take about five minutes to record we focus on different
+minutes to record we focus on different face groups so we'll start by isolating
+face groups so we'll start by isolating the eyes the brows and then the mouth
+the eyes the brows and then the mouth and then we end with a mix of different
+and then we end with a mix of different emotions and lines to test the range of
+emotions and lines to test the range of our profiles
+eyes looking forward now wide up down left right one wide rotation
+excuse left stupid right
+stupid right mm-hmm
+mm-hmm close
+to do less like a smartphone
+the Human Torch was denied bank loan
+while the purpose of a facial ROM is mostly for building out our character
+mostly for building out our character profiles we found out that it had a lot
+profiles we found out that it had a lot of other benefits as well it served as a
+of other benefits as well it served as a really good vocal warm-up for the actors
+really good vocal warm-up for the actors at the beginning of the day it was good
+at the beginning of the day it was good for adjusting audio levels and for
+for adjusting audio levels and for testing the the recording trigger across
+testing the the recording trigger across our multiple devices including that
+our multiple devices including that embedded time code for those reasons we
+embedded time code for those reasons we would do it every session even if we
+would do it every session even if we weren't necessarily using the footage to
+weren't necessarily using the footage to create new profiles some characters were
+create new profiles some characters were actually able to benefit from the same
+actually able to benefit from the same one facial ROM that we had set up early
+one facial ROM that we had set up early in the project and we never really had
+in the project and we never really had to create another
+to create another ROMs were still necessary whenever we
+ROMs were still necessary whenever we had a new actor joining the cast so that
+had a new actor joining the cast so that we could create a profile for them and
+we could create a profile for them and pair them to their digital character
+these are the tools that we used for batching but I'm noticing we're running
+batching but I'm noticing we're running a bit short on time so I listed here the
+a bit short on time so I listed here the different the the inputs that we
+different the the inputs that we normally provide to the batch in order
+normally provide to the batch in order to generate bronze animations if you
+to generate bronze animations if you have any questions about this please
+have any questions about this please send them to me and
+send them to me and um and I'll do my best to answer you but
+um and I'll do my best to answer you but otherwise we'll move on to the next one
+after batching all this data and generating our bronze animations we can
+generating our bronze animations we can move on to the Cinematic polish this is
+move on to the Cinematic polish this is a technical and artistic polish pass on
+a technical and artistic polish pass on top of existing animations to obtain the
+top of existing animations to obtain the highest Fidelity and most believable
+highest Fidelity and most believable animations
+over here we have the team of motion artists in our team of four we were part
+artists in our team of four we were part of the Cinematic Department one of our
+of the Cinematic Department one of our team's responsibilities was handling the
+team's responsibilities was handling the body mocap which included suiting up the
+body mocap which included suiting up the actors when they would come in as well
+actors when they would come in as well as setting up the actor's body profiles
+as setting up the actor's body profiles in motionbuilder then we would clean up
+in motionbuilder then we would clean up the data and retarget retarget it onto
+the data and retarget retarget it onto their respective body rigs
+their respective body rigs regarding faces our team was in charge
+regarding faces our team was in charge of setting up the faceware profiles
+of setting up the faceware profiles based on the ROMs that would allow us to
+based on the ROMs that would allow us to batch process all those bronze
+batch process all those bronze animations for in-game and for
+animations for in-game and for cinematics
+cinematics we also took care of these silver facial
+we also took care of these silver facial pass
+pass which I broke down here into two steps
+which I broke down here into two steps the technical pass which our goal was to
+the technical pass which our goal was to try to match the performance as closely
+try to match the performance as closely to what the actors did accuracy and
+to what the actors did accuracy and capturing subtlety were really the
+capturing subtlety were really the priority here
+priority here there's also tongue animation since
+there's also tongue animation since Facebook doesn't provide tongue tracking
+Facebook doesn't provide tongue tracking this was keyframed for specific
+this was keyframed for specific close-ups when needed
+close-ups when needed then there's also what we call the
+then there's also what we call the artistic pass where we can actually go
+artistic pass where we can actually go beyond what the performance performers
+beyond what the performance performers did so we can emphasize certain
+did so we can emphasize certain Expressions we can hold expressions for
+Expressions we can hold expressions for comedic timing and it's also an
+comedic timing and it's also an opportunity to accentuate the asymmetry
+opportunity to accentuate the asymmetry that the batch process gave us
+in this video we'll see a comparison between bronze and silver so on screen
+between bronze and silver so on screen left we have a version that was
+left we have a version that was automatically generated meaning no
+automatically generated meaning no manual polish and on the right we have a
+manual polish and on the right we have a silver quality facial animation which
+silver quality facial animation which has both a technical and an artistic
+has both a technical and an artistic pass
+pass this was captured in Maya so not in our
+this was captured in Maya so not in our game engine which is why some of the
+game engine which is why some of the shaders may appear a bit different
+oh
+please proceed nah you go ahead no need I insist no I insist please
+no need I insist no I insist please proceed this pointless pageant of
+proceed this pointless pageant of politeness plagues our progress which is
+politeness plagues our progress which is why you should go first
+why you should go first well I
+well I will Voyage Through the vexing vestibule
+over here is another example of what we did in the motion artist team we
+did in the motion artist team we generally work in a standalone scene
+generally work in a standalone scene with just a single character and nobody
+with just a single character and nobody animation and no set this was meant to
+animation and no set this was meant to give us the maximum frame rates and no
+give us the maximum frame rates and no distractions you may notice the colored
+distractions you may notice the colored sphere in the bottom left corner This
+sphere in the bottom left corner This was meant to help us identify the frames
+was meant to help us identify the frames in which we have close-ups medium shots
+in which we have close-ups medium shots or if the character was off camera this
+or if the character was off camera this allowed us to focus the Polish time on
+allowed us to focus the Polish time on the moments that really mattered
+the moments that really mattered uh this is actually this the facial
+uh this is actually this the facial animation scene for the same sequence
+animation scene for the same sequence that we saw at the very beginning so the
+that we saw at the very beginning so the conversation between Star-Lord and
+conversation between Star-Lord and Ricker
+with all of this energy Faith energy right but when we first saw you weren't
+right but when we first saw you weren't you stranded on Hallows hope because
+you stranded on Hallows hope because your shuttle ran out of juice
+your shuttle ran out of juice yes I was but so why don't you just
+yes I was but so why don't you just believe that your ship had more gas
+believe that your ship had more gas it doesn't work that way
+it doesn't work that way Faith energy is a byproduct of belief
+Faith energy is a byproduct of belief focused belief
+focused belief okay sure I saw this proven
+okay sure I saw this proven after the motion artists have completed
+after the motion artists have completed their work with the body mocap data as
+their work with the body mocap data as well as the Silver facial animation we
+well as the Silver facial animation we would hand this off to the Cinematic
+would hand this off to the Cinematic animators part of their job was to
+animators part of their job was to assemble all the scenes and bring the
+assemble all the scenes and bring the animations to final quality that
+animations to final quality that includes the many different characters
+includes the many different characters props Vehicles cinematic cameras and
+props Vehicles cinematic cameras and environments they would also animate the
+environments they would also animate the hints for all of our characters since
+hints for all of our characters since the that wasn't part of her performance
+the that wasn't part of her performance capture
+capture aside from humanoid characters they
+aside from humanoid characters they would also animate animals and creatures
+would also animate animals and creatures that didn't have mocap data or facial
+that didn't have mocap data or facial animation in the images here we have the
+animation in the images here we have the example of Cosmo the dog while his voice
+example of Cosmo the dog while his voice was provided by an actor we didn't
+was provided by an actor we didn't capture an actual dog's face we did
+capture an actual dog's face we did however capture the body motion of two
+however capture the body motion of two dogs for several of his scenes
+dogs for several of his scenes another task was the head and look at
+another task was the head and look at adjustments since a lot of the
+adjustments since a lot of the characters don't have the same
+characters don't have the same proportions as their characters the best
+proportions as their characters the best example is rocket where his actor was
+example is rocket where his actor was almost the same height as star-lords but
+almost the same height as star-lords but the character of Rocket is much shorter
+the character of Rocket is much shorter specific to character faces our
+specific to character faces our cinematic animators would bring some of
+cinematic animators would bring some of our facial animations to a gold quality
+our facial animations to a gold quality level for specific emotional beats and
+level for specific emotional beats and for marketing shots it was up to them to
+for marketing shots it was up to them to give that final Beauty pass
+give that final Beauty pass they also had the advantage of animating
+they also had the advantage of animating to the camera as opposed to the motion
+to the camera as opposed to the motion artists who worked in Standalone scenes
+artists who worked in Standalone scenes even though we had those colored orbs to
+even though we had those colored orbs to know the proximity of the camera The
+know the proximity of the camera The Cinematic animators were able to polish
+Cinematic animators were able to polish the faces directly in the scene
+the faces directly in the scene so we're almost at the end of the
+so we're almost at the end of the presentation I want to go over some
+presentation I want to go over some takeaways from this production
+takeaways from this production I believe we delivered on our promise of
+I believe we delivered on our promise of shipping with quality and quantity
+shipping with quality and quantity we had 13 scan sessions so 13 models
+we had 13 scan sessions so 13 models that came in as the basis for our
+that came in as the basis for our characters providing anatomically
+characters providing anatomically correct blend shapes we created 20
+correct blend shapes we created 20 unique Facebook profiles that could be
+unique Facebook profiles that could be used for batch processing
+used for batch processing for the in-game dialogue including
+for the in-game dialogue including combat conversations and Locomotion we
+combat conversations and Locomotion we had 23 lines of dialogue
+had 23 lines of dialogue almost all of those were bronze
+almost all of those were bronze animations I didn't put 100 because some
+animations I didn't put 100 because some required some manual adjustments but we
+required some manual adjustments but we were very close and then for cinematics
+were very close and then for cinematics we had a bit over five hours of
+we had a bit over five hours of cinematic content which includes the
+cinematic content which includes the multiple branching paths in our story
+multiple branching paths in our story the ratio between gold and silver was
+the ratio between gold and silver was about 90 silver 10 gold
+about 90 silver 10 gold quickly looking to the Future how can we
+quickly looking to the Future how can we improve all of this I look forward to
+improve all of this I look forward to improving the overall quality of the
+improving the overall quality of the animations that we generate from our
+animations that we generate from our performance capture sessions for example
+performance capture sessions for example polishing them directly in the scenes
+polishing them directly in the scenes with these cinematic cameras I also look
+with these cinematic cameras I also look forward to maybe higher realism but
+forward to maybe higher realism but that's usually dictated by the art
+that's usually dictated by the art direction of the project it would be
+direction of the project it would be nice to see how far we can push our
+nice to see how far we can push our photogrammetry scans in combination with
+photogrammetry scans in combination with performance capture
+performance capture and then finally there's previewing our
+and then finally there's previewing our animations in engine with proper
+animations in engine with proper lighting and shaders to try to get a
+lighting and shaders to try to get a faster turnaround than just rendering in
+faster turnaround than just rendering in Maya
+uh to wrap up I would like to present you
+to wrap up I would like to present you this 40 45 second clip of a gold
+this 40 45 second clip of a gold sequence that incorporates almost
+sequence that incorporates almost everything that we saw in this
+everything that we saw in this presentation so enjoy
+presentation so enjoy tomorrow wait hold on a sec why some
+tomorrow wait hold on a sec why some more children can be sacrificed in the
+more children can be sacrificed in the name of Breakers up Church
+name of Breakers up Church of course not just just what Peter
+of course not just just what Peter if you just let me finish this on the
+if you just let me finish this on the temple ship we wouldn't be here they
+temple ship we wouldn't be here they wouldn't be here
+wouldn't be here I know raker brings back bad memories
+my sister if I had just been better at protecting
+if I had just been better at protecting nebula Maybe
+nebula Maybe she wouldn't be dead
+she wouldn't be dead whoa what nebula's dead how
+whoa what nebula's dead how by who tell me so I can find him and
+by who tell me so I can find him and shake his critac in hand
+shake his critac in hand so it's kind of a heavy scene but I'll
+so it's kind of a heavy scene but I'll leave you with that and um I don't think
+leave you with that and um I don't think we have a lot of time for Q a so if you
+we have a lot of time for Q a so if you have any questions please reach out to
+have any questions please reach out to me I'd be more than happy to answer you
+me I'd be more than happy to answer you can find me at simonize23 on most social
+can find me at simonize23 on most social platforms otherwise find me on LinkedIn
+platforms otherwise find me on LinkedIn and I'll try to organize maybe a post uh
+and I'll try to organize maybe a post uh GDC talk hangout
+GDC talk hangout um I have a zoom link I'm not sure how
+um I have a zoom link I'm not sure how I'm gonna manage to send it to everyone
+I'm gonna manage to send it to everyone maybe put it in the chat so that's the
+maybe put it in the chat so that's the end of my presentation thank you very
+end of my presentation thank you very much
+much [Music]
+thank you

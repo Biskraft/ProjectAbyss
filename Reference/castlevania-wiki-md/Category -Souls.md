@@ -1,0 +1,3 @@
+# Category:Souls
+
+Category: Assets

@@ -1,0 +1,1287 @@
+[Music] welcome to a talk i am nikunj da vinci I
+welcome to a talk i am nikunj da vinci I work at Microsoft Research in Redmond
+work at Microsoft Research in Redmond I'm John Tennant I'm lead technical
+I'm John Tennant I'm lead technical sound designer at the coalition which is
+sound designer at the coalition which is a Microsoft studio up in Vancouver
+a Microsoft studio up in Vancouver British Columbia and today we will talk
+British Columbia and today we will talk about project frightened which shipped
+about project frightened which shipped in Gears of War for last year in October
+in Gears of War for last year in October and Triton is an acoustic system that
+and Triton is an acoustic system that models how sound waves behave in 3d game
+models how sound waves behave in 3d game environments and the thought behind
+environments and the thought behind Triton is acoustics is very important
+Triton is acoustics is very important for immersion in games because in
+for immersion in games because in everyday life we understand our
+everyday life we understand our surroundings audio visually sound and
+surroundings audio visually sound and light work together if somebody walks
+light work together if somebody walks into a different room they become
+into a different room they become invisible and their sound should also
+invisible and their sound should also get muffled accordingly and also sound
+get muffled accordingly and also sound gets around the head it gets around
+gets around the head it gets around corners it fills up spaces so sound is
+corners it fills up spaces so sound is very important for giving us this
+very important for giving us this persistent awareness of what's going on
+persistent awareness of what's going on around us all of the time so we need
+around us all of the time so we need good acoustics in games and there's a
+good acoustics in games and there's a lot of interest in virtual and augmented
+lot of interest in virtual and augmented reality these days and a lot of focus on
+reality these days and a lot of focus on headphone bass HRT F both directional
+headphone bass HRT F both directional audio rendering but environmental
+audio rendering but environmental acoustics is a crucial portion to get
+acoustics is a crucial portion to get positional audio which conveys not only
+positional audio which conveys not only direction but actually locations in the
+direction but actually locations in the environment around you
+but compared to lighting sound has limited CPU and RAM and sounds behavior
+limited CPU and RAM and sounds behavior is physically more complex I'll show you
+is physically more complex I'll show you some examples for sound you have to
+some examples for sound you have to model all these wave effects to get
+model all these wave effects to get convincing convincing results and
+convincing convincing results and because of a combination of both these
+because of a combination of both these problems right now we have a mixture of
+problems right now we have a mixture of approximate methods which work well in
+approximate methods which work well in some cases but you need to know the
+some cases but you need to know the caveats and manual tagging work like
+caveats and manual tagging work like drawing reverb volumes and what this
+drawing reverb volumes and what this means is the designer has to do a lot of
+means is the designer has to do a lot of work to get a baseline sound going and
+work to get a baseline sound going and ultimately it limits the time for audio
+ultimately it limits the time for audio designers to work on the thing they'd
+designers to work on the thing they'd like to make the games and emotional
+like to make the games and emotional experience in a medium for creative
+experience in a medium for creative expression so the thought behind Triton
+expression so the thought behind Triton is why not follow the path that game
+is why not follow the path that game lighting took which is do the physics
+lighting took which is do the physics based on the scene
+based on the scene get a baseline result that's physically
+get a baseline result that's physically plausible and then you design on top of
+plausible and then you design on top of that so you get automation as well as
+that so you get automation as well as freedom to do the artistic expression
+freedom to do the artistic expression that games need to have as soon as we
+that games need to have as soon as we started thinking along these lines we
+started thinking along these lines we realized we had a two part problem part
+realized we had a two part problem part one doing these accurate simulations is
+one doing these accurate simulations is expensive if you want moving sources and
+expensive if you want moving sources and listeners which we wanted
+listeners which we wanted so in GDC 2011 I had a give given a talk
+so in GDC 2011 I had a give given a talk on a research system I'd been working on
+on a research system I'd been working on that good for the first time do real
+that good for the first time do real time we have acoustics but this this
+time we have acoustics but this this form the basis for triton but when we
+form the basis for triton but when we got together and I taught started
+got together and I taught started talking to the coalition audio team and
+talking to the coalition audio team and we started thinking about okay what's
+we started thinking about okay what's the requirements for a real game I
+the requirements for a real game I realized this was very far off so this
+realized this was very far off so this system used to take a full this previous
+system used to take a full this previous system used to take a full core for
+system used to take a full core for doing like many sources it took
+doing like many sources it took gigabytes of RAM for a few rooms and it
+gigabytes of RAM for a few rooms and it used a custom audio engine because the
+used a custom audio engine because the audio filters were changing on-the-fly
+audio filters were changing on-the-fly per source so thinking about this the
+per source so thinking about this the second part of the problem emerged this
+second part of the problem emerged this system used to just do pure physics so
+system used to just do pure physics so how do you design the system like that
+how do you design the system like that if you you don't want to be struct
+if you you don't want to be struct rigidly to what physics predicted and
+rigidly to what physics predicted and secondly so design is a problem and
+secondly so design is a problem and audio middleware integration is another
+audio middleware integration is another problem we couldn't have a custom audio
+problem we couldn't have a custom audio engine in a production game easily so
+engine in a production game easily so over the last five years we've been
+over the last five years we've been working hard at this and we managed to
+working hard at this and we managed to solve this two part problem and that's
+solve this two part problem and that's why we're here to talk to you about so
+why we're here to talk to you about so to give you a flavor of the solution
+to give you a flavor of the solution it's similar to light mapping you do
+it's similar to light mapping you do accurate physics but offline you bake
+accurate physics but offline you bake the results and then you pick out these
+the results and then you pick out these results into some sort of volumetric
+results into some sort of volumetric acoustic data and then you can take this
+acoustic data and then you can take this data and design on top of it and do
+data and design on top of it and do expressive acoustics and standard audio
+expressive acoustics and standard audio middleware so basically you get to have
+middleware so basically you get to have your cake and eat it too you get
+your cake and eat it too you get automation and you get expressive design
+automation and you get expressive design together with that so I will talk about
+together with that so I will talk about this first portion of how to do the
+this first portion of how to do the physics and what to put in the data and
+physics and what to put in the data and then John will talk about how to take
+then John will talk about how to take that and do all your design with it for
+that and do all your design with it for a game so let's dive right in into the
+a game so let's dive right in into the physics
+physics of what sounds too so here's here's a
+of what sounds too so here's here's a scene you're seeing this is the 3d
+scene you're seeing this is the 3d simulation use you're seeing a
+simulation use you're seeing a horizontal slice through it and if I put
+horizontal slice through it and if I put a pulse of source pulse of sound in
+a pulse of source pulse of sound in there immediately see these wave fronts
+there immediately see these wave fronts making their way around the doorways in
+making their way around the doorways in that building on the left and I've put
+that building on the left and I've put two microphones in this scene at point a
+two microphones in this scene at point a and B so when the wave fronts make their
+and B so when the wave fronts make their way you start receiving some signal at a
+way you start receiving some signal at a and then you start receiving some signal
+and then you start receiving some signal at point B now this this thing that
+at point B now this this thing that sound propagates like ripples in water
+sound propagates like ripples in water where it goes around all these
+where it goes around all these obstructions
+obstructions that's called diffraction and you need
+that's called diffraction and you need that you need to model that to get the
+that you need to model that to get the effect of sound bending around corners
+effect of sound bending around corners that's what makes sound useful for
+that's what makes sound useful for navigation because you can always hear
+navigation because you can always hear it and the other one is that sound is
+it and the other one is that sound is just bouncing around and shimmering in
+just bouncing around and shimmering in the space that's reverberation because
+the space that's reverberation because Sound speed is low enough that you can
+Sound speed is low enough that you can hear it bouncing around in the space you
+hear it bouncing around in the space you can hear it in this hall and that's a
+can hear it in this hall and that's a very important effect so these two are
+very important effect so these two are very distinct distinct from light so
+very distinct distinct from light so that's why sound simulation is different
+that's why sound simulation is different and so at point a and B you get very
+and so at point a and B you get very different signals and these signals
+different signals and these signals capture everything that the scene did to
+capture everything that the scene did to the sound when it went from the source
+the sound when it went from the source to listener and it's called the impulse
+to listener and it's called the impulse response this is the key quantity we're
+response this is the key quantity we're after if you model this correctly if you
+after if you model this correctly if you models characteristics nicely you get
+models characteristics nicely you get good acoustics so perceptually for our
+good acoustics so perceptually for our brain there are two important portions
+brain there are two important portions of this impulse response the initial
+of this impulse response the initial energy which is the straight energy that
+energy which is the straight energy that gets from source to listener through
+gets from source to listener through shortest paths and then all these
+shortest paths and then all these reflection all these meandering paths
+reflection all these meandering paths through the scene that gets from source
+through the scene that gets from source to listener so you want these are
+to listener so you want these are important quantities I'll get to them so
+important quantities I'll get to them so based on the impulse response you hear
+based on the impulse response you hear all sorts of interesting acoustic
+all sorts of interesting acoustic effects these are perceptual so the four
+effects these are perceptual so the four most important ones that we focused on
+most important ones that we focused on are obstruction occlusion wetness ratio
+are obstruction occlusion wetness ratio and reverb decay time and there's a
+and reverb decay time and there's a whole long list but this is just an
+whole long list but this is just an initial set this is the first step and
+initial set this is the first step and these are pretty important so we focused
+these are pretty important so we focused on those so the first two effects
+on those so the first two effects obstruction and occlusion usually these
+obstruction and occlusion usually these two concepts are conflated but they are
+two concepts are conflated but they are quite distinct so obstruction refers to
+quite distinct so obstruction refers to how much of the initial energy
+how much of the initial energy from the source to the listener so if
+from the source to the listener so if you see this scene on the bottom left
+you see this scene on the bottom left there's a source on the left and the
+there's a source on the left and the initial sound would get blocked by this
+initial sound would get blocked by this obstruction so the sound waves have to
+obstruction so the sound waves have to make their way around it but reflections
+make their way around it but reflections can get there just fine so this is the
+can get there just fine so this is the case of strong obstruction but little
+case of strong obstruction but little occlusion because occlusion refers to
+occlusion because occlusion refers to the total energy initial plus reflected
+the total energy initial plus reflected but in the second case if I extend the
+but in the second case if I extend the partition both the initial energy and
+partition both the initial energy and reflected energy both of them get
+reflected energy both of them get blocked so you have a case of strong
+blocked so you have a case of strong obstruction and strong occlusion so the
+obstruction and strong occlusion so the approximate obstruction one of the
+approximate obstruction one of the approximations use these days which one
+approximations use these days which one of the nicer ones is to use the shortest
+of the nicer ones is to use the shortest path length so you compute the shortest
+path length so you compute the shortest path and then you compare its length to
+path and then you compare its length to just the straight-line distance and if
+just the straight-line distance and if it's much longer if it's a winding path
+it's much longer if it's a winding path then it reduced the loudness by some
+then it reduced the loudness by some amount you make it weaker but even this
+amount you make it weaker but even this there are some issues like for example
+there are some issues like for example in this case you have a little bit of
+in this case you have a little bit of wave scattering from the corner maybe
+wave scattering from the corner maybe you can ignore this get away with it
+you can ignore this get away with it but think about this case the shortest
+but think about this case the shortest path tells you that the sound should be
+path tells you that the sound should be very weak but there's a strong
+very weak but there's a strong reflection right there so you would
+reflection right there so you would still hear strong sound in this case
+still hear strong sound in this case even in the initial energy so even the
+even in the initial energy so even the initial sound is not just shortest path
+initial sound is not just shortest path but shortest plus a few paths and you
+but shortest plus a few paths and you need to model them to get good effects
+need to model them to get good effects and life can get much worse from there
+and life can get much worse from there and this is a simple scene so you could
+and this is a simple scene so you could have a 3d environment with broken
+have a 3d environment with broken windows and ceilings and all that it
+windows and ceilings and all that it gets pretty complicated very quickly
+now think about occlusion occlusion refers to the total energy all paths so
+refers to the total energy all paths so what does that look like this should
+what does that look like this should scare you because there are so many
+scare you because there are so many paths to compute how do you do this in a
+paths to compute how do you do this in a fraction of an audio poor per source all
+fraction of an audio poor per source all over the game in a complicated scene and
+over the game in a complicated scene and it sound you need to worry about these
+it sound you need to worry about these diffractions going on at the edges if
+diffractions going on at the edges if you ignore those paths you severely
+you ignore those paths you severely underestimate how much loudness a person
+underestimate how much loudness a person would hear and this is ironic because
+would hear and this is ironic because total loudness is one of the simplest
+total loudness is one of the simplest perceptual things but it turns out to be
+perceptual things but it turns out to be the hardest one technically to figure
+the hardest one technically to figure out and because of these difficulties
+out and because of these difficulties and also there's another problem that if
+and also there's another problem that if you're computing these paths
+you're computing these paths and you're moving through the scene if
+and you're moving through the scene if you miss a path at one frame and find it
+you miss a path at one frame and find it in another the loudness will bounce
+in another the loudness will bounce around that's also not good so there are
+around that's also not good so there are no fast methods there's research going
+no fast methods there's research going on on this but as far as game scenarios
+on on this but as far as game scenarios there's no approximate fast methods for
+there's no approximate fast methods for this so that was obstruction and
+this so that was obstruction and occlusion the third effect is wetness
+occlusion the third effect is wetness ratio and it just says what's the
+ratio and it just says what's the relation or ratio between the reflected
+relation or ratio between the reflected energy to the initial energy so if
+energy to the initial energy so if you're in a room you're standing very
+you're in a room you're standing very close to the source the initial energy
+close to the source the initial energy gets there with very high loudness
+gets there with very high loudness because you're close by but reflections
+because you're close by but reflections are relatively weaker but if you walk
+are relatively weaker but if you walk further away the initial energy decay is
+further away the initial energy decay is quite a bit but reflections are still
+quite a bit but reflections are still similar so you have the effect of the
+similar so you have the effect of the sound losing clarity and becoming more
+sound losing clarity and becoming more reverb and as somebody walks away from
+reverb and as somebody walks away from you in a room and there and the scenes
+you in a room and there and the scenes geometry is also important what if I'm
+geometry is also important what if I'm behind this little partition now the
+behind this little partition now the initial energy drops quite a bit because
+initial energy drops quite a bit because it has to make its way around that but
+it has to make its way around that but the reflections can still get there so
+the reflections can still get there so you have a case of very high redness and
+you have a case of very high redness and very low clarity in the sound and lots
+very low clarity in the sound and lots of reverb runs which conveys to you that
+of reverb runs which conveys to you that the sound is in an in an adjoining room
+the sound is in an in an adjoining room and it conveys location and the way we
+and it conveys location and the way we do it in games right now is a designer
+do it in games right now is a designer specify the distance roll off for the
+specify the distance roll off for the reverb but as I just showed you it's
+reverb but as I just showed you it's heavily dependent on the room size and
+heavily dependent on the room size and the specifics of what's in the room so a
+the specifics of what's in the room so a distance based curve doesn't work very
+distance based curve doesn't work very well to model this effect and it really
+well to model this effect and it really needs the scene geometry to work
+needs the scene geometry to work properly so I'm going to show you some
+properly so I'm going to show you some demos now and these are real time
+demos now and these are real time captures from the game but keep in mind
+captures from the game but keep in mind that these are tech demos so I've
+that these are tech demos so I've changed a lot of things so you can hear
+changed a lot of things so you can hear these effects clearly hopefully despite
+these effects clearly hopefully despite this halls reverb and what I've done is
+this halls reverb and what I've done is you'll hear a helicopter sound and I'm
+you'll hear a helicopter sound and I'm playing only the chopping sound from the
+playing only the chopping sound from the helicopters here you can focus on one
+helicopters here you can focus on one sound and listen to the effects all the
+sound and listen to the effects all the guns and everything is turned off so
+guns and everything is turned off so this first demo is with Triton off to
+this first demo is with Triton off to give you a baseline
+okay now we're Triton on listen to the loudness transitions and reverb runs on
+loudness transitions and reverb runs on the sound
+so throughout this scene with it's complicated broken geometry Triton is
+complicated broken geometry Triton is computing right on the geometry you're
+computing right on the geometry you're seeing there's no extra audio geometry
+seeing there's no extra audio geometry to draw and it's computing all these
+to draw and it's computing all these transitions smooth transitions for you
+transitions smooth transitions for you automatically from the geometry and this
+automatically from the geometry and this shows that all those three effects I
+shows that all those three effects I showed you kind of matter for getting
+showed you kind of matter for getting these effects so now I'm gonna break
+these effects so now I'm gonna break down that sound for you and show you how
+down that sound for you and show you how these effects kick in so I'm just going
+these effects kick in so I'm just going to play the initial portion of that
+to play the initial portion of that video and this one just shows the
+video and this one just shows the initial energy the initial wave fronts
+initial energy the initial wave fronts from the helicopter to the player so
+from the helicopter to the player so this one is pretty dramatic because it's
+this one is pretty dramatic because it's just the initial energy but if you play
+just the initial energy but if you play just the reflected energy no initial
+just the reflected energy no initial energy it sounds like this
+so this doesn't vary as much because once a sound gets into a room it keeps
+once a sound gets into a room it keeps bouncing around and fills the whole room
+bouncing around and fills the whole room so you get that effect and when you
+so you get that effect and when you combine them you get so when you're
+combine them you get so when you're hidden from the helicopter it's more
+hidden from the helicopter it's more reverberant and but still has some
+reverberant and but still has some loudness because the reflected energy is
+loudness because the reflected energy is providing some energy even in the
+providing some energy even in the shadowed areas which the initial energy
+shadowed areas which the initial energy doesn't get to so the first one relates
+doesn't get to so the first one relates to obstruction the initial energy total
+to obstruction the initial energy total energy relates to occlusion and the
+energy relates to occlusion and the interaction between the initial and
+interaction between the initial and reflected energy that's the wetness so
+reflected energy that's the wetness so all these three effects arise from these
+all these three effects arise from these two numbers the fourth effect is decay
+two numbers the fourth effect is decay rate and this convey is seen sighs to us
+rate and this convey is seen sighs to us so think of this scene I've shown you
+so think of this scene I've shown you this is the top view sources outside
+this is the top view sources outside listener is inside and the way we do it
+listener is inside and the way we do it right now is to draw reverb volumes
+right now is to draw reverb volumes driven based on the player location and
+driven based on the player location and these this is a lot of work to draw like
+these this is a lot of work to draw like ideally you'd want to draw this many but
+ideally you'd want to draw this many but this is a lot of work it's too much work
+this is a lot of work it's too much work so what physically what do the pads look
+so what physically what do the pads look like they look like very complicated
+like they look like very complicated because they include diffractions and
+because they include diffractions and lots of bounces and you have to compute
+lots of bounces and you have to compute these sort of weak paths to get
+these sort of weak paths to get reverberation going on in a scene and
+reverberation going on in a scene and there's another problem with listener
+there's another problem with listener location driven reverb which is what if
+location driven reverb which is what if I reverse the source and listener all
+I reverse the source and listener all these paths simply reverse in other
+these paths simply reverse in other words if the source of inside a
+words if the source of inside a Cathedral you still expect sound to take
+Cathedral you still expect sound to take a long time to decay out but if you just
+a long time to decay out but if you just drove this based on the listener in this
+drove this based on the listener in this case you'd get a short sort of reverb
+case you'd get a short sort of reverb because the listener is outside so you
+because the listener is outside so you need both locations even for the decay
+need both locations even for the decay rate of reverb and this is a quick demo
+rate of reverb and this is a quick demo of this I'll play it and explain later
+great this is a love affair so the player and a squad the male squad member
+player and a squad the male squad member days speaker line both in the main hall
+days speaker line both in the main hall and you're getting a consistent reverb
+and you're getting a consistent reverb the reverb is not very different between
+the reverb is not very different between them even though the listener has gone
+them even though the listener has gone on to an into a smaller room so I'll
+on to an into a smaller room so I'll play it again so you're getting a mix of
+play it again so you're getting a mix of the spaces that's the important part
+the spaces that's the important part this demo shows that acoustics can
+this demo shows that acoustics can convey location in a scene so her line
+convey location in a scene so her line at the end she's picking two lines one
+at the end she's picking two lines one when she's inside the room and one she's
+when she's inside the room and one she's in the same hall as you and from that
+in the same hall as you and from that you can get a sense of where she's
+you can get a sense of where she's located I'll play it again so you can
+located I'll play it again so you can see her acoustics building up properly
+see her acoustics building up properly as she's in the same space as you so in
+as she's in the same space as you so in a gameplay situation if she's behind you
+a gameplay situation if she's behind you you from the just from the sound you can
+you from the just from the sound you can get a sense of is she right behind you
+get a sense of is she right behind you in the scene or in stuck in a room in an
+in the scene or in stuck in a room in an earlier room so to quickly summarize
+earlier room so to quickly summarize this these are the four effects we
+this these are the four effects we wanted and they all depend on where the
+wanted and they all depend on where the source and listeners are moving around
+source and listeners are moving around in a complicated scene geometry and we
+in a complicated scene geometry and we Triton we can model them and the
+Triton we can model them and the question is how so let's jump into that
+question is how so let's jump into that so the idea of Triton is to do to bake
+so the idea of Triton is to do to bake wave simulations and these wave
+wave simulations and these wave simulations look like the animation I
+simulations look like the animation I showed you in the beginning and they
+showed you in the beginning and they give us accuracy and reliability on all
+give us accuracy and reliability on all these complex geometries you've been
+these complex geometries you've been seeing and then once we break out the
+seeing and then once we break out the data at runtime as Luca Plus
+data at runtime as Luca Plus interpolations it's like light Maps in
+interpolations it's like light Maps in that regard you its CPU light memory
+that regard you its CPU light memory heavy and the thing is if you want
+heavy and the thing is if you want dynamic sources and listener we have to
+dynamic sources and listener we have to sample source and listener locations
+sample source and listener locations possibilities and that means a lot of
+possibilities and that means a lot of ramps so that that's the T key technical
+ramps so that that's the T key technical problem here and baking of course
+problem here and baking of course restricts to static geometry but this is
+restricts to static geometry but this is not a preference it's just the first
+not a preference it's just the first feasible step in our view just like
+feasible step in our view just like lighting maybe we can layer dynamic
+lighting maybe we can layer dynamic stuff on top of it later on so here's
+stuff on top of it later on so here's what the baking pipeline looks like the
+what the baking pipeline looks like the input is
+input is is a game map in FBX format with per
+is a game map in FBX format with per triangle materials assigned and along
+triangle materials assigned and along with that we have some nav mesh geometry
+with that we have some nav mesh geometry which I'll get to later so once we have
+which I'll get to later so once we have this 3d geometry we've oxidized all of
+this 3d geometry we've oxidized all of it each box will get some material code
+it each box will get some material code so you get proper reflectivities
+so you get proper reflectivities throughout the scene and the material
+throughout the scene and the material names map to acoustic reflectivity
+names map to acoustic reflectivity coefficients and the simulator runs on
+coefficients and the simulator runs on this woxall data directly but the
+this woxall data directly but the problem is we need to sample where the
+problem is we need to sample where the player can be now how do we how do we do
+player can be now how do we how do we do this sampling we can draw boxes in the
+this sampling we can draw boxes in the scene to indicate where to draw we have
+scene to indicate where to draw we have to do sampling and John's in immediate
+to do sampling and John's in immediate point was this is similar work as reverb
+point was this is similar work as reverb volumes so this is not very good so we
+volumes so this is not very good so we solve the problem realize that the
+solve the problem realize that the navmesh already tells us very nicely
+navmesh already tells us very nicely where the player can be so we just lay
+where the player can be so we just lay out our samples had some fixed height
+out our samples had some fixed height above this navmesh in the scene and then
+above this navmesh in the scene and then we get these blue boxes those are the
+we get these blue boxes those are the player probe samples and along with that
+player probe samples and along with that we do adaptive sampling which simply
+we do adaptive sampling which simply means that in narrow regions we sample
+means that in narrow regions we sample more densely and in very wide open areas
+more densely and in very wide open areas we sample more coarsely because this
+we sample more coarsely because this this gives us a better Ram budget and it
+this gives us a better Ram budget and it doesn't produce bugs where you just miss
+doesn't produce bugs where you just miss samples in some areas which used to keep
+samples in some areas which used to keep me up at night so this was great and
+me up at night so this was great and then the big process is the same thing
+then the big process is the same thing repeated for all of these probes
+repeated for all of these probes independently and what that process
+independently and what that process looks like is suppose I pick this probe
+looks like is suppose I pick this probe on the with the red circle one the big
+on the with the red circle one the big process for that guy will look something
+process for that guy will look something like you do a 3d wave simulation from
+like you do a 3d wave simulation from that location because then it tells you
+that location because then it tells you for this player location what the KU
+for this player location what the KU sticks is like in 3d throughout the map
+sticks is like in 3d throughout the map so now the source can fly anywhere at
+so now the source can fly anywhere at runtime and we can calculate the
+runtime and we can calculate the acoustics if you look at the lower right
+acoustics if you look at the lower right you can see sound leaking out of the
+you can see sound leaking out of the broken roof of the cathedral again this
+broken roof of the cathedral again this is the 2d slice of a 3d simulation and
+is the 2d slice of a 3d simulation and you can see sound going into that
+you can see sound going into that joining room radiating out doors and
+with time you can see the sound decay out properly which is which captures the
+out properly which is which captures the absorptivity of the scene so we repeat
+absorptivity of the scene so we repeat this process for all probes so think
+this process for all probes so think about you did a probe simulation you
+about you did a probe simulation you capture the signal at one possible point
+capture the signal at one possible point so you have a pair of
+so you have a pair of and listener location for each one of
+and listener location for each one of those you get an impulse response which
+those you get an impulse response which if you remember each of these spikes
+if you remember each of these spikes represent the wavefront coming from
+represent the wavefront coming from source to listener with some delay and
+source to listener with some delay and some loudness and then we have this nice
+some loudness and then we have this nice data I told you which things we want out
+data I told you which things we want out of it so we just extract them so we take
+of it so we just extract them so we take the initial energy and just take a time
+the initial energy and just take a time bin and calculate that it can have
+bin and calculate that it can have multiple paths in it and then we do the
+multiple paths in it and then we do the same for the reflected energy we want
+same for the reflected energy we want the decay rate so we also compute the
+the decay rate so we also compute the decay rate of the reflections and then
+decay rate of the reflections and then the decay rate of the reverb tail so
+the decay rate of the reverb tail so four numbers so we went from these
+four numbers so we went from these impulse responses to four numbers and we
+impulse responses to four numbers and we can visualize them so this is for a
+can visualize them so this is for a single player probe location we have
+single player probe location we have mapped out what the initial energy
+mapped out what the initial energy variation is throughout the scene and in
+variation is throughout the scene and in this you can see in the initial energy
+this you can see in the initial energy you can see strong shadowing effects
+you can see strong shadowing effects like I'm zooming in into one portion
+like I'm zooming in into one portion it's like you get soft shadow edges and
+it's like you get soft shadow edges and if you walked across a doorway you get
+if you walked across a doorway you get the effect of sound going from faint to
+the effect of sound going from faint to loud to faint again in a smooth way
+loud to faint again in a smooth way reflected energy behaves differently in
+reflected energy behaves differently in the helicopter demo you saw it stayed
+the helicopter demo you saw it stayed constant in the room it didn't change
+constant in the room it didn't change that much and that that we see in the
+that much and that that we see in the data as well if you look at this room
+data as well if you look at this room it's pretty constant throughout the room
+it's pretty constant throughout the room once the energy gets in there keeps
+once the energy gets in there keeps bouncing around and so you automatically
+bouncing around and so you automatically just from the 3d geometry you get this
+just from the 3d geometry you get this room division of the whole scene where
+room division of the whole scene where the reflected energy is mapped out as
+the reflected energy is mapped out as constant areas in the scene and similar
+constant areas in the scene and similar for sound decay rate you can see it's
+for sound decay rate you can see it's decaying faster for the smaller room and
+decaying faster for the smaller room and it's decaying slower for the main hall
+it's decaying slower for the main hall so all the four effects I was talking
+so all the four effects I was talking about they're all in this data now the
+about they're all in this data now the thing is this data is smooth these are
+thing is this data is smooth these are not impulse responses these are
+not impulse responses these are parameters and their perceptual
+parameters and their perceptual parameters so we can compress them and
+parameters so we can compress them and we can go from 50 terabytes 200
+we can go from 50 terabytes 200 megabytes so this is what makes it
+megabytes so this is what makes it practical so 100 megabytes we can live
+practical so 100 megabytes we can live with and that was the budget for for
+with and that was the budget for for campaign maps and Gears of War for this
+campaign maps and Gears of War for this actually the initial budget was 150 so
+actually the initial budget was 150 so we came in under
+we came in under yes so we have so these makes are costly
+yes so we have so these makes are costly you do you do pay pre-compute cost for
+you do you do pay pre-compute cost for this for getting these smooth results
+this for getting these smooth results 100 machines take about four hours it's
+100 machines take about four hours it's ten minutes per task ten to twenty
+ten minutes per task ten to twenty minutes and we have thousands of these
+minutes and we have thousands of these for potential flavor locations but it's
+for potential flavor locations but it's trivially parallel through more machines
+trivially parallel through more machines it gets faster now once we have this
+it gets faster now once we have this data run time is look up so we need to
+data run time is look up so we need to decompress out the data which is the
+decompress out the data which is the bottleneck so we use Z loop for the
+bottleneck so we use Z loop for the compression so we keep a decompression
+compression so we keep a decompression cache which is a 20 MB overhead dragon
+cache which is a 20 MB overhead dragon runs in its own worker thread and it's
+runs in its own worker thread and it's receiving where is that visual frame
+receiving where is that visual frame rate so we're uploading acoustics and
+rate so we're uploading acoustics and for about 32 sources which we do per
+for about 32 sources which we do per frame we we can do 10 to 20 percent of
+frame we we can do 10 to 20 percent of an Xbox core because it's only hundred
+an Xbox core because it's only hundred microseconds per query so it's pretty
+microseconds per query so it's pretty fast so overall after we done with all
+fast so overall after we done with all this this is the big picture of the game
+this this is the big picture of the game integration there's a static library for
+integration there's a static library for Triton it loads up the data during map
+Triton it loads up the data during map load the closest writing data as well at
+load the closest writing data as well at runtime you get a source and listener
+runtime you get a source and listener location you do this table lookup that I
+location you do this table lookup that I just described to you and you get these
+just described to you and you get these four numbers out now the cool thing is
+four numbers out now the cool thing is these four numbers mean something they
+these four numbers mean something they are not samples in an impulse response
+are not samples in an impulse response they're actually parameters that
+they're actually parameters that describe something so they are
+describe something so they are meaningful for an audio designer to take
+meaningful for an audio designer to take and interpret into an existing audio
+and interpret into an existing audio pipeline bit and in our case the amount
+pipeline bit and in our case the amount to reverb send values and occlusion
+to reverb send values and occlusion obstruction values which John will talk
+obstruction values which John will talk about so to wrap up my portion this idea
+about so to wrap up my portion this idea of going to perceptual data gives us
+of going to perceptual data gives us efficient similar efficiency and because
+efficient similar efficiency and because we're doing wave simulations we get
+we're doing wave simulations we get robustness in complex geometry from the
+robustness in complex geometry from the designers viewpoint it's automatic no
+designers viewpoint it's automatic no geometric cleanup no volumes to draw and
+geometric cleanup no volumes to draw and it's pretty expressive with John will
+it's pretty expressive with John will talk about there's the paper reference
+talk about there's the paper reference this will be on GDC vault so you can
+this will be on GDC vault so you can look at it later
+look at it later so that was my portion how to get to the
+so that was my portion how to get to the acoustic data from the 3d map and then
+acoustic data from the 3d map and then the question is how to do use this data
+the question is how to do use this data to do audio design so I'll hand it over
+to do audio design so I'll hand it over to John thanks to Kuhn
+to John thanks to Kuhn [Applause]
+so that's what I got from nikunj so I you know I like wise like know how to
+you know I like wise like know how to work with blueprints fairly well but
+work with blueprints fairly well but this is what we have to work with so the
+this is what we have to work with so the challenge was is how do we take this and
+challenge was is how do we take this and interpret it into something that we can
+interpret it into something that we can actually hear in a game move right into
+actually hear in a game move right into it so it's important for me to kind of
+it so it's important for me to kind of might be a little bit of reiteration but
+might be a little bit of reiteration but to describe what Tritan actually is for
+to describe what Tritan actually is for me as a sound designer as opposed to
+me as a sound designer as opposed to what triton is for nikunj as a
+what triton is for nikunj as a researcher so as a sound designer it's a
+researcher so as a sound designer it's a set of listener and source positions
+set of listener and source positions refer to these four numbers inclusion
+refer to these four numbers inclusion obstruction wetness decay rate and it's
+obstruction wetness decay rate and it's a lookup table
+a lookup table it's a inert set of data that has to be
+it's a inert set of data that has to be interpreted and that data is very big so
+interpreted and that data is very big so it takes up a lot of our RAM budget
+it takes up a lot of our RAM budget gonna get into this later but audio
+gonna get into this later but audio designers are often working with smaller
+designers are often working with smaller and smaller RAM budgets so this is a
+and smaller RAM budgets so this is a fairly big sell for an audio team to use
+fairly big sell for an audio team to use this what Triton is not is it's not a
+this what Triton is not is it's not a reverb plug-in you can't just take it
+reverb plug-in you can't just take it put it on a sub bus turn it on and have
+put it on a sub bus turn it on and have it work it's not a plug-in that goes
+it work it's not a plug-in that goes into an audio engine like you before
+into an audio engine like you before turn it on it it works it has to be at
+turn it on it it works it has to be at this stage implemented maybe one day but
+this stage implemented maybe one day but at this stage has to be implemented so
+at this stage has to be implemented so to reiterate what the ideal
+to reiterate what the ideal interpretation of the ideal
+interpretation of the ideal implementation of Triton is because it
+implementation of Triton is because it generates a whole bunch of impulse
+generates a whole bunch of impulse responses ideally we would use those
+responses ideally we would use those impulse responses
+impulse responses for every sound in the game as the game
+for every sound in the game as the game is rendering so that would being you
+is rendering so that would being you know maybe a hundred sounds in a complex
+know maybe a hundred sounds in a complex scene different games use different
+scene different games use different number of voices but obviously this is
+number of voices but obviously this is way over CPU budget and to use this many
+way over CPU budget and to use this many impulse responses it's way over the RAM
+impulse responses it's way over the RAM budget so that's not practical for video
+budget so that's not practical for video games so the next thing that we had to
+games so the next thing that we had to figure out was how do we get variable
+figure out was how do we get variable reverb decay rates without instancing
+reverb decay rates without instancing one reverb plug-in per sound so we came
+one reverb plug-in per sound so we came up we interject please
+up we interject please so this ideal system is describing
+so this ideal system is describing that's what we started with that's the
+that's what we started with that's the GDC 2011 system and that's right see the
+GDC 2011 system and that's right see the round footprint right there said 100 GB
+round footprint right there said 100 GB so that's that's the motivation here
+so that's that's the motivation here thank you so this was the first version
+thank you so this was the first version of our implementation it's very simple
+of our implementation it's very simple we used three instances of wise reverb
+we used three instances of wise reverb and we sent to those three instances of
+and we sent to those three instances of wise room verb per 3d game object to
+wise room verb per 3d game object to achieve different reverb decay times so
+achieve different reverb decay times so the big one was three seconds then the
+the big one was three seconds then the middle one was one second and the
+middle one was one second and the smaller one was half a second so if you
+smaller one was half a second so if you wanted a reverb tail of say 0.75 seconds
+wanted a reverb tail of say 0.75 seconds long you would send a little bit to the
+long you would send a little bit to the middle one and a little bit to the small
+middle one and a little bit to the small one and what your ear actually heard was
+one and what your ear actually heard was about 0.75 second 2k rate and so what
+about 0.75 second 2k rate and so what what it gave us was send levels
+what it gave us was send levels controlled by Triton that give us decay
+controlled by Triton that give us decay rates per 3d sound so this we didn't
+rates per 3d sound so this we didn't know if it was going to work we gave it
+know if it was going to work we gave it a shot turned out that it worked really
+a shot turned out that it worked really really well
+really well occlusion obstruction in this in this
+occlusion obstruction in this in this implementation was immediately awesome
+implementation was immediately awesome so I'm going to show a video example of
+so I'm going to show a video example of that in a second but the reverb still
+that in a second but the reverb still needed work room verb when stacked on
+needed work room verb when stacked on top of each other again and again can
+top of each other again and again can sound a little bit cacophonous it's this
+sound a little bit cacophonous it's this same tone stacked we didn't quite know
+same tone stacked we didn't quite know to how to control all these sources
+to how to control all these sources going through reverb room verb and it
+going through reverb room verb and it was unpredictable about 25 percent of
+was unpredictable about 25 percent of the time so it wasn't yet shippable but
+the time so it wasn't yet shippable but it was a successful proof-of-concept
+it was a successful proof-of-concept mainly because occlusion obstruction was
+mainly because occlusion obstruction was excellent and that is typically one of
+excellent and that is typically one of the hardest problems to solve so here's
+the hardest problems to solve so here's a little demo of what we got out of that
+a little demo of what we got out of that first implementation so there's a
+first implementation so there's a firefight happening around where that
+firefight happening around where that red circle is and the players just going
+red circle is and the players just going to move around at the scene you can hear
+to move around at the scene you can hear it occluding and obstructing
+[Applause]
+what is this okay so obviously we knew we had something cool occlusion
+we had something cool occlusion obstructions really well what are we so
+obstructions really well what are we so the rest of the talk is gonna kind of
+the rest of the talk is gonna kind of focus on the story of how we got the
+focus on the story of how we got the reverb to sound a bit better
+reverb to sound a bit better so our next version of the
+so our next version of the implementation was significantly more
+implementation was significantly more complex because we had all of these
+complex because we had all of these numbers to work with we wanted to do
+numbers to work with we wanted to do something cooler so this is what it
+something cooler so this is what it looked like we we added well we added
+looked like we we added well we added nine more reverbs so what you're seeing
+nine more reverbs so what you're seeing here are is a matrix of reverbs the
+here are is a matrix of reverbs the first row of of six
+first row of of six there's indoor reflections and outdoor
+there's indoor reflections and outdoor reflections the second row of six our
+reflections the second row of six our indoor late reflections and outdoor late
+indoor late reflections and outdoor late reflections and so threatenin is
+reflections and so threatenin is controlling the sense / 3d game object
+controlling the sense / 3d game object to each - this matrix of reverbs as the
+to each - this matrix of reverbs as the player moves around the scene so in
+player moves around the scene so in theory it should work really really well
+theory it should work really really well and it did and I'm going to just
+and it did and I'm going to just actually just give you a picture of what
+actually just give you a picture of what this looks like in in a wise real quick
+this looks like in in a wise real quick so we have our Triton bus there on the
+so we have our Triton bus there on the top left expanded that looks kind of
+top left expanded that looks kind of crazy but the reason there's so many
+crazy but the reason there's so many buses there is we were doing a set of 12
+buses there is we were doing a set of 12 reverbs per map and because there is no
+reverbs per map and because there is no signal being sent to the buses that
+signal being sent to the buses that weren't being used those buses didn't
+weren't being used those buses didn't register on the CPU so we were only ever
+register on the CPU so we were only ever running 12 convolution reverbs at a time
+running 12 convolution reverbs at a time which sounds like a lot but it actually
+which sounds like a lot but it actually worked kind of okay
+worked kind of okay CPU was not the problem with this
+CPU was not the problem with this implementation so then as you can see
+implementation so then as you can see there the map working name of that map
+there the map working name of that map was Dan B and then a single instance
+was Dan B and then a single instance would look like that so it's just the
+would look like that so it's just the wise convolution reverb plug-in
+wise convolution reverb plug-in now the difficult thing with this system
+now the difficult thing with this system that the main problem with it was we're
+that the main problem with it was we're working with a very new set of tech and
+working with a very new set of tech and we knew we had the squirrely behavior
+we knew we had the squirrely behavior about about 25 percent of the time which
+about about 25 percent of the time which is definitely not shippable the hard
+is definitely not shippable the hard part with this stuff was calibrating and
+part with this stuff was calibrating and tuning so because we were working with
+tuning so because we were working with impulse responses that were recorded by
+impulse responses that were recorded by different people different parts of the
+different people different parts of the world with different microphones using
+world with different microphones using different theories of structure we had
+different theories of structure we had to calibrate in tune every single reverb
+to calibrate in tune every single reverb that was in this matrix of 12 perfectly
+that was in this matrix of 12 perfectly to be sure that what we were getting in
+to be sure that what we were getting in the end wasn't a mistake in tuning but
+the end wasn't a mistake in tuning but was actually what Triton was trying to
+was actually what Triton was trying to give so this task of calibrating and
+give so this task of calibrating and tuning every single reverb that we
+tuning every single reverb that we wanted to use ended up being the main
+wanted to use ended up being the main flaw in this implementation so the
+flaw in this implementation so the version 2 summary there's two sets of
+version 2 summary there's two sets of six reverbs and and Triton is feeding
+six reverbs and and Triton is feeding indoor and outdoor signals to both of
+indoor and outdoor signals to both of them
+them you can change reverb sets per map you
+you can change reverb sets per map you could also change reverb sets mid map if
+could also change reverb sets mid map if you wanted to so there's a lot of
+you wanted to so there's a lot of versatility for it
+versatility for it we had great response for the reverbs
+we had great response for the reverbs and the early reflections as you moved
+and the early reflections as you moved around room there were incredible
+around room there were incredible relevant Torey moments that this system
+relevant Torey moments that this system can work and is going to work but we
+can work and is going to work but we didn't know whether or not we could
+didn't know whether or not we could calibrate and tune this much stuff in
+calibrate and tune this much stuff in time
+time so because calibrating and tuning were
+so because calibrating and tuning were so hard it was very very difficult to
+so hard it was very very difficult to figure out where the bugs were coming
+figure out where the bugs were coming from
+from I always thought they're coming from
+I always thought they're coming from McCune she always thought they were
+McCune she always thought they were coming from me
+so one of the word really really well with this implementation was the
+with this implementation was the blending that we did between indoors and
+blending that we did between indoors and outdoors so I'm going back to the slides
+outdoors so I'm going back to the slides familiar this is the this is the matrix
+familiar this is the this is the matrix of reverbs I want to talk about how we
+of reverbs I want to talk about how we achieved the indoor and outdoor blend so
+achieved the indoor and outdoor blend so in a in a video game that isn't
+in a in a video game that isn't completely simplistic you often have
+completely simplistic you often have partially destroyed buildings you have
+partially destroyed buildings you have you have doorways of various sizes and
+you have doorways of various sizes and so it's it's not really a binary concept
+so it's it's not really a binary concept with inside or outside you usually
+with inside or outside you usually partially indoors or partially outdoors
+partially indoors or partially outdoors and so for a while what I was doing was
+and so for a while what I was doing was I was just shooting array above the
+I was just shooting array above the player 15 meters if it intersected with
+player 15 meters if it intersected with geometry the players inside if it didn't
+geometry the players inside if it didn't intersect
+intersect I used filtering over time to gradually
+I used filtering over time to gradually smooth the value out to the players
+smooth the value out to the players outside so this is still binary didn't
+outside so this is still binary didn't work at portals so I told the problem to
+work at portals so I told the problem to nikunj and nikunj said well all the hard
+nikunj and nikunj said well all the hard work is already done to to get this data
+work is already done to to get this data we can just use the Triton data set to
+we can just use the Triton data set to figure out how indoors or outdoors the
+figure out how indoors or outdoors the player is so we shoot energy around how
+player is so we shoot energy around how much of that energy intersects with the
+much of that energy intersects with the sky determines how outdoors a player is
+sky determines how outdoors a player is so as of as the player moves towards the
+so as of as the player moves towards the portal the outdoors value which is at
+portal the outdoors value which is at one point through three here would
+one point through three here would change to 0.72 here so this is how we
+change to 0.72 here so this is how we achieved the mix in between the indoor
+achieved the mix in between the indoor reverb bus and the outdoor reverb bus
+reverb bus and the outdoor reverb bus and it gave us
+and it gave us mic-check gave us a really nice blend as
+mic-check gave us a really nice blend as the player moved through thresholds and
+the player moved through thresholds and spaces which are traditionally very
+spaces which are traditionally very difficult to manage the set on for
+difficult to manage the set on for saying unforeseen uses as well we were
+saying unforeseen uses as well we were using a 6 channel ambience for wind and
+using a 6 channel ambience for wind and a 6 channel ambience
+a 6 channel ambience in game I think my batteries might be
+in game I think my batteries might be low or something
+low or something anyway I'll keeps keep talking should I
+anyway I'll keeps keep talking should I talk into here okay whoa
+talk into here okay whoa it's my lap down okay cool we were using
+it's my lap down okay cool we were using as I said sick channels ambiences for
+as I said sick channels ambiences for wind and rain and we played and for
+wind and rain and we played and for various reasons we played those on the
+various reasons we played those on the listener position and so then as the
+listener position and so then as the player moved through the spaces we use
+player moved through the spaces we use the outdoors and its value to determine
+the outdoors and its value to determine how much of the wind and rain the player
+how much of the wind and rain the player should hear so as we pass by thresholds
+should hear so as we pass by thresholds we used the outdoors as value to
+we used the outdoors as value to modulate the filtering the pitch and the
+modulate the filtering the pitch and the voice volume of those sounds and so I
+voice volume of those sounds and so I got a demo of that here so you're
+got a demo of that here so you're hearing just the rain just the rain
+so portals in Nuremburg no longer an issue this was huge for me it solved
+issue this was huge for me it solved many many issues I was very excited
+many many issues I was very excited about this
+about this so version 2 although it solved the
+so version 2 although it solved the problem of whether your inside and
+problem of whether your inside and outside and it solved a lot of problems
+outside and it solved a lot of problems with our ambiences it still generated
+with our ambiences it still generated some mountain corn uncomfortable
+some mountain corn uncomfortable questions we still had some squirrelly
+questions we still had some squirrelly behavior from time to time we didn't
+behavior from time to time we didn't know why and the system was going to
+know why and the system was going to require a lot of sound designer time to
+require a lot of sound designer time to calibrate tune and interpret
+calibrate tune and interpret aesthetically to be honest so about six
+aesthetically to be honest so about six months out from shipping we had Chuck
+months out from shipping we had Chuck and rod in my office and we were doing a
+and rod in my office and we were doing a demo
+demo I think it was a dialog tuning level
+I think it was a dialog tuning level where you could walk around and and
+where you could walk around and and trigger squad speech at random so that
+trigger squad speech at random so that you could get further from your squad
+you could get further from your squad and do roll offs and stuff and I thought
+and do roll offs and stuff and I thought I thought this down this level was
+I thought this down this level was pretty great and I said please ignore
+pretty great and I said please ignore the reverb we haven't tuned it yet well
+the reverb we haven't tuned it yet well there was this one spot walked through
+there was this one spot walked through and all of a sudden the squad sounded
+and all of a sudden the squad sounded like they are inside an airplane hangar
+like they are inside an airplane hangar they weren't inside an airplane hangar
+they weren't inside an airplane hangar and the conversation very quickly
+and the conversation very quickly switched to a conversation about triton
+switched to a conversation about triton and they asked us politely to get it to
+and they asked us politely to get it to a shippable level of quality on one map
+a shippable level of quality on one map in two weeks to see if the work would
+in two weeks to see if the work would scale to the rest of the maps of the
+scale to the rest of the maps of the game it's a completely fair challenge so
+game it's a completely fair challenge so big change a strategy we had to figure
+big change a strategy we had to figure out where the bugs were coming from and
+out where the bugs were coming from and we had to reduce calibrate reduce timing
+we had to reduce calibrate reduce timing for calibration and tuning so we had to
+for calibration and tuning so we had to reduce the number of sounds going into
+reduce the number of sounds going into Triton and we had to reduce the number
+Triton and we had to reduce the number of reverb outputs coming out of Triton
+of reverb outputs coming out of Triton again occlusion obstruction worked just
+again occlusion obstruction worked just fine so I'm not even talking about a
+fine so I'm not even talking about a collision obstruction anymore we're only
+collision obstruction anymore we're only talking about reverb here once we
+talking about reverb here once we simplified we started to get a real
+simplified we started to get a real understanding of the root causes of our
+understanding of the root causes of our problems so what did that simplification
+problems so what did that simplification look like it looked like this
+look like it looked like this we cut six of the buses and combined the
+we cut six of the buses and combined the late reflections and early reflections
+late reflections and early reflections into the first six buses so as a
+into the first six buses so as a dramatically simplified implementation
+dramatically simplified implementation we knew the indoor and outdoor switching
+we knew the indoor and outdoor switching worked really well and we knew we could
+worked really well and we knew we could manage six buses per map as a set rather
+manage six buses per map as a set rather than rather than twelve so the rest of
+than rather than twelve so the rest of the talk is going to be about what we
+the talk is going to be about what we learned once we did this and how we
+learned once we did this and how we shipped first I'm just going to run
+shipped first I'm just going to run through these points real quick I'm and
+through these points real quick I'm and explain them later physical
+explain them later physical dynamic range that's modeled by the
+dynamic range that's modeled by the Triton numbers versus anesthetic dynamic
+Triton numbers versus anesthetic dynamic range that sound designers interpret to
+range that sound designers interpret to create a mix dry gain Triton models dry
+create a mix dry gain Triton models dry gain that can be applied to a sound when
+gain that can be applied to a sound when you're in certain enclosed spaces
+physics based decay times versus aesthetically chosen decay times so we
+aesthetically chosen decay times so we choose decay it turns out that we choose
+choose decay it turns out that we choose decay times in film TV and games on an
+decay times in film TV and games on an emotional scale as well as a physical
+emotional scale as well as a physical scale it's not just physics based
+scale it's not just physics based interpretations so this got to a
+interpretations so this got to a thinking shift in thinking we're getting
+thinking shift in thinking we're getting these realistic values from tridon but
+these realistic values from tridon but how many how real is 2-wheel for the
+how many how real is 2-wheel for the game so lesson number one dynamic range
+game so lesson number one dynamic range real-world dynamic range is about a
+real-world dynamic range is about a hundred and 90 decibels between barely
+hundred and 90 decibels between barely audible and permanent hearing damage
+this is no news for sound designers we've we've always had to interpret this
+we've we've always had to interpret this in a game mix but what was new was a
+in a game mix but what was new was a realization that we had to make that
+realization that we had to make that interpretation pre reverb send when
+interpretation pre reverb send when using a system like Triton so that was
+using a system like Triton so that was that was new so to illustrate for the
+that was new so to illustrate for the non sound designers in the room what
+non sound designers in the room what that looks like there's a map of
+that looks like there's a map of real-world sounds
+real-world sounds a map of sounds that are in Gears of War
+a map of sounds that are in Gears of War for as they would fall in a real-world
+for as they would fall in a real-world decibel scale all of that has to be
+decibel scale all of that has to be mapped into about a 35 decibel scale of
+mapped into about a 35 decibel scale of dynamic range all of that was going
+dynamic range all of that was going through Triton and it didn't sound right
+through Triton and it didn't sound right obviously now seems obvious now wasn't
+obviously now seems obvious now wasn't obvious then so we knew we needed to
+obvious then so we knew we needed to focus on a specific dynamic range going
+focus on a specific dynamic range going into the reverb and even more so than
+into the reverb and even more so than that we knew we had to nail it for a
+that we knew we had to nail it for a single the single most important element
+single the single most important element of sound in the game which is the squad
+of sound in the game which is the squad speech so we figured once we nail the
+speech so we figured once we nail the squad speech get that sounding good
+squad speech get that sounding good through all of the reverb spaces in the
+through all of the reverb spaces in the game then we can start adding the other
+game then we can start adding the other stuff the other fallout from realizing
+stuff the other fallout from realizing the dynamic from the dynamic range
+the dynamic from the dynamic range characteristic of Triton was that we
+characteristic of Triton was that we were too aggressive with our occlusion
+were too aggressive with our occlusion obstruction curves and we backed them
+obstruction curves and we backed them off a little bit so we were working with
+off a little bit so we were working with a attenuation of a hundred decibels
+a attenuation of a hundred decibels before and we backed it off to an
+before and we backed it off to an attenuation of 25 decibels in a linear
+attenuation of 25 decibels in a linear game experience like Gears of War this
+game experience like Gears of War this was an aesthetic choice to move away
+was an aesthetic choice to move away from reality
+from reality other games wouldn't want to make this
+other games wouldn't want to make this choice this would be a per game decision
+choice this would be a per game decision so lesson number two dry gain once we
+so lesson number two dry gain once we moved to this more simplified in
+moved to this more simplified in implementation I was walking around the
+implementation I was walking around the office and I was I was snapping my
+office and I was I was snapping my fingers clicking my tongue and I was
+fingers clicking my tongue and I was trying to figure out like all of these
+trying to figure out like all of these things that nikunj is telling me that
+things that nikunj is telling me that happened in the real world do they
+happened in the real world do they actually happen in the real world and it
+actually happen in the real world and it turns out that if you just cup your
+turns out that if you just cup your hands in front of your face all of a
+hands in front of your face all of a sudden sounds get louder okay so if you
+sudden sounds get louder okay so if you walk into a dead-end hallway and snap
+walk into a dead-end hallway and snap your fingers there it's a lot louder so
+your fingers there it's a lot louder so nikumans rightly so how to drag in
+nikumans rightly so how to drag in component to the Triton implementation
+component to the Triton implementation it turns out that dry gain when
+it turns out that dry gain when implemented into a video game at least
+implemented into a video game at least when implemented and
+when implemented and of war did not sound expected it was an
+of war did not sound expected it was an unexpected bit of real reality so the
+unexpected bit of real reality so the solution to that was very simple we took
+solution to that was very simple we took the dry gain bus which had the
+the dry gain bus which had the capability of being plus 12 DB and
+capability of being plus 12 DB and reduced its reduced its range took plus
+reduced its reduced its range took plus 3 DB so the loudest that the dry gain
+3 DB so the loudest that the dry gain could be added to any sound was 3
+could be added to any sound was 3 decibels instead of 12 decibels so now
+decibels instead of 12 decibels so now it's lesson number 3 and this was
+it's lesson number 3 and this was perhaps the coolest lesson of all Triton
+perhaps the coolest lesson of all Triton simulations were very real
+sometimes small spaces like a marble bathroom can generate a very very long
+bathroom can generate a very very long decay time other times large spaces can
+decay time other times large spaces can generate very very short decay times and
+generate very very short decay times and so what we realized is we needed a way
+so what we realized is we needed a way to tweak these numbers to fit our
+to tweak these numbers to fit our expectations as sound designers to
+expectations as sound designers to emotionally interpret a space so what
+emotionally interpret a space so what did this mean it meant if there was a
+did this mean it meant if there was a church and something really grim was
+church and something really grim was about to happen in the church perhaps we
+about to happen in the church perhaps we want a very long decay time in that
+want a very long decay time in that church longer than what that church
+church longer than what that church would actually give us in real life so
+would actually give us in real life so the solution was a new blueprint node to
+the solution was a new blueprint node to make the distortion or reinterpretation
+make the distortion or reinterpretation the creative reinterpretation of the
+the creative reinterpretation of the Triton values possible for sound
+Triton values possible for sound designers as we move through the Maps so
+designers as we move through the Maps so I've got a demo showing this so this is
+I've got a demo showing this so this is Triton turned off in this map and then
+Triton turned off in this map and then Triton turned on afterwards
+I'd say it's about time we got the hell out of here hey oh we're not gonna talk
+out of here hey oh we're not gonna talk about what happened back there with the
+about what happened back there with the nest I mean what the hell was that look
+nest I mean what the hell was that look like they were wait you mean like
+like they were wait you mean like evolving shouldn't that take a lot of
+evolving shouldn't that take a lot of time it's amazing how much you can hear
+time it's amazing how much you can hear this room okay so I swear there's no
+this room okay so I swear there's no reverb on that so here is the same scene
+reverb on that so here is the same scene with Triton turned on with exaggerated
+with Triton turned on with exaggerated reverb for the big space and then as the
+reverb for the big space and then as the squad moves into the smaller space we
+squad moves into the smaller space we start to get a more physically accurate
+start to get a more physically accurate reverb hey we're not going to talk about
+reverb hey we're not going to talk about what happened back there
+what happened back there with the nest I mean what the hell whoa
+wait you mean like evolving shouldn't that take a lot of time some insect
+that take a lot of time some insect juveniles can become drones in days
+juveniles can become drones in days hours even so juvies and drums Julie's
+hours even so juvies and drums Julie's in terms of water I have a feeling we're
+in terms of water I have a feeling we're gonna find out so you're hearing in this
+gonna find out so you're hearing in this demo an amalgamation of all of the
+demo an amalgamation of all of the things that I've been talking about so
+things that I've been talking about so far we've got conversation over multiple
+far we've got conversation over multiple spaces a big church space to a small
+spaces a big church space to a small room and then moving smoothly into the
+room and then moving smoothly into the outdoors you hear the rain fading up
+outdoors you hear the rain fading up smoothly and all of that was
+smoothly and all of that was accomplished with this final into this
+accomplished with this final into this final implementation so yeah so in
+final implementation so yeah so in conclusion implementing Triton the
+conclusion implementing Triton the biggest risk of implementing this system
+biggest risk of implementing this system turned out not to be the tech itself but
+turned out not to be the tech itself but the tuning and calibration of it so we
+the tuning and calibration of it so we really need we initially bit off more
+really need we initially bit off more than we could chew we pulled that back
+than we could chew we pulled that back we found all of the problems and we were
+we found all of the problems and we were able to ship a system that sounded
+able to ship a system that sounded pretty good
+pretty good the second big lesson was to focus
+the second big lesson was to focus on an emotionally motivated cinematic
+on an emotionally motivated cinematic experience for acoustics rather than a
+experience for acoustics rather than a physics based reality driven experience
+physics based reality driven experience so this is my favorite slide who knows
+so this is my favorite slide who knows what the uncanny valley is raise your
+what the uncanny valley is raise your hand sweet okay when our first
+hand sweet okay when our first implementation to Trident put us about
+implementation to Trident put us about here we knew we had something cool we
+here we knew we had something cool we were moving towards reality pretty cool
+were moving towards reality pretty cool our second implementation of Trident
+our second implementation of Trident definitely put us here people were
+definitely put us here people were freaked out we got a lot of interesting
+freaked out we got a lot of interesting feedback version 2.5 was cool but it was
+feedback version 2.5 was cool but it was still too real too real I don't know
+still too real too real I don't know it's an aesthetic choice right we were
+it's an aesthetic choice right we were still getting the interesting feedback
+still getting the interesting feedback but at that stage we had the
+but at that stage we had the simplification of the parameters to
+simplification of the parameters to achieve something that was shippable so
+achieve something that was shippable so we moved to something fairly simple but
+we moved to something fairly simple but we still have a lot we should all the
+we still have a lot we should all the hard work to create the Triton data is
+hard work to create the Triton data is done all we need to do now is start
+done all we need to do now is start pulling more numbers from it and
+pulling more numbers from it and figuring out creative ways to add them
+figuring out creative ways to add them to the acoustics in our game so we
+to the acoustics in our game so we really think that we've only scratched
+really think that we've only scratched the surface of what we're going to be
+the surface of what we're going to be able to do with this system so there's a
+able to do with this system so there's a final demo this is kind of like the
+final demo this is kind of like the victory lap demo it shows Triton working
+victory lap demo it shows Triton working through various indoor and outdoor
+through various indoor and outdoor spaces it's got some aesthetically
+spaces it's got some aesthetically chosen reverbs for caves
+chosen reverbs for caves it's got rain it's got wind and yeah
+it's got rain it's got wind and yeah it's it's it's maybe Triton's proudest
+it's it's it's maybe Triton's proudest moment at least it's my favorite it's my
+moment at least it's my favorite it's my favorite moment in the game
+favorite moment in the game [Applause]
+you will be able to see the burial site from here it's on the other side of the
+from here it's on the other side of the dam come on guys on top of that thing no
+dam come on guys on top of that thing no one remembers that the four sources of
+one remembers that the four sources of energy water air solar and gas no I'm
+energy water air solar and gas no I'm also the dam was built preambles wow
+also the dam was built preambles wow that old it's hardly anything left it's
+that old it's hardly anything left it's that old there are still a few things
+you know while back looked about many local burial sites that actually work
+local burial sites that actually work and I got a big old les there were
+and I got a big old les there were dozens of them
+dozens of them maybe even the hookers they can't all be
+maybe even the hookers they can't all be infested right gonna find out we're
+all right so conclusions both of us so the major takeaway that we hope all of
+the major takeaway that we hope all of you will take away is that baked wave
+you will take away is that baked wave acoustics systems are practical for
+acoustics systems are practical for video games today the designing of those
+video games today the designing of those the designing of those numbers the sound
+the designing of those numbers the sound designing of those numbers is what is
+designing of those numbers is what is critical so how you interpret those
+critical so how you interpret those numbers for your game and what makes it
+numbers for your game and what makes it challenging to begin with is the source
+challenging to begin with is the source of enlistments are all moving around we
+of enlistments are all moving around we wanted that from the beginning and that
+wanted that from the beginning and that gives you a large amount of data and the
+gives you a large amount of data and the key idea to compress it is to go to
+key idea to compress it is to go to these perceptual parameters and it's a
+these perceptual parameters and it's a pretty sweet spot because you get low
+pretty sweet spot because you get low memory usage it makes it practical but
+memory usage it makes it practical but also this perceptual data is now you
+also this perceptual data is now you know what Cabul area where a designer
+know what Cabul area where a designer can take this and design so for the
+can take this and design so for the future the very next thing we're looking
+future the very next thing we're looking at is to add directional effects I told
+at is to add directional effects I told you we have four parameters we want more
+you we have four parameters we want more if we want the directional effects of
+if we want the directional effects of sound coming out the cave of a mouth and
+sound coming out the cave of a mouth and its proper direction and reflected
+its proper direction and reflected delayed echoes we're looking at
+delayed echoes we're looking at streaming to reduce the memory footprint
+streaming to reduce the memory footprint we just load up everything right now so
+we just load up everything right now so we can stream that and we want to make
+we can stream that and we want to make the bakes faster because that's that's
+the bakes faster because that's that's the key cost right now associated with
+the key cost right now associated with this and we feel that once we have these
+this and we feel that once we have these features we can it would be in a place
+features we can it would be in a place where we could package it and kind of
+where we could package it and kind of share with other interested studios and
+share with other interested studios and longer-term we'd also want to do dynamic
+longer-term we'd also want to do dynamic geometry of course with this thing
+geometry of course with this thing that's a longer term goal so this system
+that's a longer term goal so this system never would have happened if it wasn't
+never would have happened if it wasn't for the support of a lot of people it's
+for the support of a lot of people it's new tech never shipped in a game before
+new tech never shipped in a game before a lot of people put a lot of faith that
+a lot of people put a lot of faith that we could figure it out and make it sound
+we could figure it out and make it sound okay it didn't sound okay for a fair
+okay it didn't sound okay for a fair amount of time so it's a big thanks to
+amount of time so it's a big thanks to these people yep
+these people yep thank you
+so I'd highly recommend you listen to these videos with headphones on our good
+these videos with headphones on our good speaker setup later on because this hall
+speaker setup later on because this hall adds a lot and I put the slides on my
+adds a lot and I put the slides on my website but they will also be on GDC
+website but they will also be on GDC vault so if you have questions just step
+vault so if you have questions just step up to the mic
+Hey okay hello hey there we go so first off thank you for that talk that was
+off thank you for that talk that was really eye-opening and you know just
+really eye-opening and you know just gets all our creative mind it's just
+gets all our creative mind it's just going but I I missed a certain idea that
+going but I I missed a certain idea that you had in one of the slides and it was
+you had in one of the slides and it was during the outdoor nests yep and it was
+during the outdoor nests yep and it was a energy reaching sky and then that was
+a energy reaching sky and then that was divided by what was it total energy shot
+divided by what was it total energy shot from it yeah so the fraction of energy
+from it yeah so the fraction of energy that gets to escape the same nothing
+that gets to escape the same nothing gets out then it's zero
+gets out then it's zero yeah everything escapes then it's one
+yeah everything escapes then it's one yeah okay No thank you so much
+yeah okay No thank you so much great talk I have two questions one is
+great talk I have two questions one is for your when you tweet the the values
+for your when you tweet the the values for your your reverb so I was wondering
+for your your reverb so I was wondering how much roughly what percentage of the
+how much roughly what percentage of the spaces you have to adjust to get the
+spaces you have to adjust to get the more emotional kind of response I would
+more emotional kind of response I would say that there were fewer than a dozen
+say that there were fewer than a dozen yeah fewer because it really was tried
+yeah fewer because it really was tried and worked really really well most of
+and worked really really well most of the time there was just certain spaces
+the time there was just certain spaces that you'd walk into and the squad would
+that you'd walk into and the squad would say something really key and something
+say something really key and something really cool was about to happen you're
+really cool was about to happen you're like it's not doing it for me I want
+like it's not doing it for me I want something cooler and so you pick a cert
+something cooler and so you pick a cert you know that's when you would go crazy
+you know that's when you would go crazy by tweaking the values like I want this
+by tweaking the values like I want this I want this way wetter
+I want this way wetter I want the decay time way longer and
+I want the decay time way longer and then when the firefight starts okay
+then when the firefight starts okay we'll pull it back and another thing
+we'll pull it back and another thing that happens is many spaces are in real
+that happens is many spaces are in real life much more clutter than they're in
+life much more clutter than they're in the game but our expectation comes from
+the game but our expectation comes from real life and clutter reduces the decay
+real life and clutter reduces the decay rate so it's like you walk into this
+rate so it's like you walk into this empty room and it river breeze for a
+empty room and it river breeze for a long time and you feel this is a small
+long time and you feel this is a small room because typically when you see
+room because typically when you see those small rooms they have stuff in
+those small rooms they have stuff in them and so those cases also happened
+them and so those cases also happened and the other quick question is for your
+and the other quick question is for your reverbs you said you didn't do any kind
+reverbs you said you didn't do any kind of directional kind of panning on that
+of directional kind of panning on that no okay yeah find that to impact the
+no okay yeah find that to impact the effect of
+effect of not having panning on it is the first
+not having panning on it is the first thing I asked for after we shipped
+thing I asked for after we shipped because these simulations you're seeing
+because these simulations you're seeing have all that the question is can we get
+have all that the question is can we get the data we want without blowing around
+the data we want without blowing around budget that's really the only question
+budget that's really the only question okay and how do we render it of course
+okay and how do we render it of course how does it go into the middleware or
+how does it go into the middleware or our DSP or what so those are the two
+our DSP or what so those are the two questions you need to Co solve for each
+questions you need to Co solve for each parameter once we figure out okay this
+parameter once we figure out okay this is something we want that's the process
+is something we want that's the process right yeah thank you
+right yeah thank you hello I had a question about how you
+hello I had a question about how you generated your impulse responses do use
+generated your impulse responses do use like a normal raycast methodology do you
+like a normal raycast methodology do you find that difference or anything else so
+find that difference or anything else so a difference it's a finite difference go
+a difference it's a finite difference go back to you saw what I worked on in grad
+back to you saw what I worked on in grad school so it's faster than finite
+school so it's faster than finite difference it's fast in finite
+difference it's fast in finite differences are you talking about the
+differences are you talking about the impulse responses that were used for the
+impulse responses that were used for the reverbs in the final game or these
+reverbs in the final game or these simulations I've been showing you are
+simulations I've been showing you are like fluid simulations you could think
+like fluid simulations you could think of right okay so they're solving for
+of right okay so they're solving for pressure values over space on a grid
+pressure values over space on a grid yeah what time yeah and DDR high orders
+yeah what time yeah and DDR high orders what's that hi rod like high orders of
+what's that hi rod like high orders of reflectional yeah this has infinite
+reflectional yeah this has infinite order oh yes like if you have a small
+order oh yes like if you have a small space they can bounce around any number
+space they can bounce around any number of times they want yeah so this is
+of times they want yeah so this is different from ray tracing for sound
+different from ray tracing for sound this is an advantage if that's why we
+this is an advantage if that's why we went with this yeah because it gives us
+went with this yeah because it gives us diffraction all that for free
+diffraction all that for free yeah and it's a big it cost to start
+yeah and it's a big it cost to start with this yeah if you buy the bullet
+with this yeah if you buy the bullet then if you didn't do anything with the
+then if you didn't do anything with the rim no tire that you got back from that
+rim no tire that you got back from that though the the nodal data that you got
+though the the nodal data that you got back which need the room notes so like
+back which need the room notes so like you know like if you got a bass trap in
+you know like if you got a bass trap in the corner of a room that kind of yeah
+the corner of a room that kind of yeah we didn't yes so frequency dependent
+we didn't yes so frequency dependent data yeah we didn't get that out so
+data yeah we didn't get that out so that's another thing yeah even if you
+that's another thing yeah even if you get good do low mid and high mm-hmm
+get good do low mid and high mm-hmm that's triples numbers yeah I'm sure so
+that's triples numbers yeah I'm sure so yeah just like how to extract that yeah
+yeah just like how to extract that yeah cool just problems yeah another quick
+cool just problems yeah another quick one so did you ever think of I know you
+one so did you ever think of I know you can use the full impulse responses that
+can use the full impulse responses that you got back because it's too much RAM
+you got back because it's too much RAM and and too much processing to do but
+and and too much processing to do but did you think about just using the first
+did you think about just using the first part like the earlier reflection part of
+part like the earlier reflection part of the impulse responses because it's much
+the impulse responses because it's much less data you're describing the 2011
+less data you're describing the 2011 system
+system okay it looked for it took the early
+okay it looked for it took the early reflections and looked for peaks in that
+reflections and looked for peaks in that yeah to get this sharp reflections and
+yeah to get this sharp reflections and it kept their amplitudes and delays
+it kept their amplitudes and delays oh that's hundred GP right okay so is
+oh that's hundred GP right okay so is too much okay
+too much okay that's why we did this okay thanks for
+that's why we did this okay thanks for asking a good president
+asking a good president I guess just a wise question if you guys
+I guess just a wise question if you guys could theoretically run for concurrent
+could theoretically run for concurrent convolution reverbs what were your
+convolution reverbs what were your memory pools for your lower engine and
+memory pools for your lower engine and default okay so we we were we ran up to
+default okay so we we were we ran up to twelve and then we shipped with six
+twelve and then we shipped with six right and so the question is how much
+right and so the question is how much memory we were using for those well the
+memory we were using for those well the the convolutions were always fixed the
+the convolutions were always fixed the length to 0.5 seconds 0.75 no I'm sorry
+length to 0.5 seconds 0.75 no I'm sorry Oh point five one second and three
+Oh point five one second and three seconds so it was always the same you
+seconds so it was always the same you could you know I think we're doing 48k
+could you know I think we're doing 48k resolution convolutions so III I don't
+resolution convolutions so III I don't know the math but you can figure it out
+know the math but you can figure it out thanks no problem well I guess that's it
+thanks no problem well I guess that's it we are duty-bound to put that slide up
+we are duty-bound to put that slide up oh one more question I'm just wondering
+oh one more question I'm just wondering what your your RAM budget was on the
+what your your RAM budget was on the game say again the RAM budget was for
+game say again the RAM budget was for one time we were initially given a round
+one time we were initially given a round budget of 500 megabytes and we shipped
+budget of 500 megabytes and we shipped with 400 because we came in under budget
+with 400 because we came in under budget so Triton initially had a budget of 150
+so Triton initially had a budget of 150 Meg's yeah and so we we ship most maps
+Meg's yeah and so we we ship most maps were a hundred to a hundred and ten
+were a hundred to a hundred and ten Meg's
+Meg's we can improve that with existing tech
+we can improve that with existing tech the problem was time to get it lower
+the problem was time to get it lower yeah thank you you're welcome
+thanks so much guys
+you

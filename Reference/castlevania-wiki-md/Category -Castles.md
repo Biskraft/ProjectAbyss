@@ -1,0 +1,3 @@
+# Category:Castles
+
+Category: Environments

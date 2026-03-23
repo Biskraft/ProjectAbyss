@@ -1,0 +1,925 @@
+[Music] so my name is cotton I'm a technique
+so my name is cotton I'm a technique architect at Ubisoft my job is to go to
+architect at Ubisoft my job is to go to a different project and help them to
+a different project and help them to build new technologies or improve the
+build new technologies or improve the games last year I had the opportunity to
+games last year I had the opportunity to work on far cry 4 and developed a
+work on far cry 4 and developed a technique called adaptive vortexes with
+technique called adaptive vortexes with this technique we are able to render
+this technique we are able to render thousands of details under a surface in
+thousands of details under a surface in less than one millisecond and achieves
+less than one millisecond and achieves 10 pixels per centimeter resolution it
+10 pixels per centimeter resolution it gives our artists the freedom to place
+gives our artists the freedom to place as many details that they want and
+as many details that they want and achieve great result in Far Cry 4 so the
+achieve great result in Far Cry 4 so the content of the talk is divided into five
+content of the talk is divided into five parts first I will give an overview of
+parts first I will give an overview of virtual textures technique then I'll
+virtual textures technique then I'll talk about far cry 4 to wring rendering
+talk about far cry 4 to wring rendering our first approach implementing a
+our first approach implementing a procedural virtua textures the problem
+procedural virtua textures the problem with that will far cry 4 I know why we
+with that will far cry 4 I know why we would like to develop a tab - in virtual
+would like to develop a tab - in virtual textures after that I will talk about
+textures after that I will talk about what this technique is how it works and
+what this technique is how it works and why we call it adaptive virtual Texas
+why we call it adaptive virtual Texas then I will talk about the challenges we
+then I will talk about the challenges we faced during the implementation of the
+faced during the implementation of the virtual textures and how we solve them
+virtual textures and how we solve them at last I will show some screenshot from
+at last I will show some screenshot from the game talk about the performance
+the game talk about the performance memory and the give a summary vote for
+memory and the give a summary vote for Texas is not a new technique it was
+Texas is not a new technique it was first mentioned by John Carmack
+first mentioned by John Carmack as mega textures from id Software mega
+as mega textures from id Software mega textures Emily's a very large sniffing
+textures Emily's a very large sniffing of the textures this texture is too
+of the textures this texture is too large to fit into a memory so it is
+large to fit into a memory so it is divided into multiple equal sized pages
+divided into multiple equal sized pages for example the page size could be too
+for example the page size could be too 36 by 256 or 128 by 128 we allocate a
+36 by 256 or 128 by 128 we allocate a smaller size physical texture cache in
+smaller size physical texture cache in the video memory to cache the resident
+the video memory to cache the resident virtual texture pages we also use an
+virtual texture pages we also use an interesting texture to map the
+interesting texture to map the relationship between the virtual capture
+relationship between the virtual capture page and the physical texture page the
+page and the physical texture page the content of this interaction texture is
+content of this interaction texture is used to translate the virtual textured
+used to translate the virtual textured UV address into physical texture address
+the virtual textures are used in some games for example mega textures in
+games for example mega textures in bridge and procedural virtual textures
+bridge and procedural virtual textures in battlefield 3 mega texture spray
+in battlefield 3 mega texture spray bakes all the textures in used by the
+bakes all the textures in used by the game into a very large virtual texture
+game into a very large virtual texture and it is stored on the disk the
+and it is stored on the disk the rendering engine that decides which page
+rendering engine that decides which page are needed depending on where the camera
+are needed depending on where the camera is looking at then loads the required
+is looking at then loads the required page from the disk and update the page
+page from the disk and update the page table this way the final socialists know
+table this way the final socialists know the location of each virtual page inside
+the location of each virtual page inside the physical texture cache on GDC 2012
+the physical texture cache on GDC 2012 dice presented a new technique called
+dice presented a new technique called procedural vote for textures it is bit
+procedural vote for textures it is bit different than the mega textures we
+different than the mega textures we talked about because it neither bakes
+talked about because it neither bakes the textures into the virtual texture in
+the textures into the virtual texture in the tool not stream them from hard drive
+the tool not stream them from hard drive instead displays the Turing rendering
+instead displays the Turing rendering into virtual textures at the runtime and
+into virtual textures at the runtime and use this and a cache for future Fermi's
+use this and a cache for future Fermi's rendering by doing that it can save
+rendering by doing that it can save expensive rendering cost of Turing
+expensive rendering cost of Turing material blending once they are cached
+material blending once they are cached in the physical texture and improve the
+in the physical texture and improve the Turing
+Turing rendering performance since the missing
+rendering performance since the missing virtual texture page are rendered by a
+virtual texture page are rendered by a graphics engine into virtual texture UV
+graphics engine into virtual texture UV space the prime of the physical texture
+space the prime of the physical texture cache is much faster
+cache is much faster pairing to loading them from the disk so
+pairing to loading them from the disk so there is a much less vigil popping up
+there is a much less vigil popping up comparing to standard for protectors our
+comparing to standard for protectors our adaptive filter captures is actually
+adaptive filter captures is actually based on based technique now I'll
+based on based technique now I'll explain the basic fact I for Turing
+explain the basic fact I for Turing rendering pipeline and our visual target
+rendering pipeline and our visual target I also explain our first approach using
+I also explain our first approach using procedural virtual textures for f4 is a
+procedural virtual textures for f4 is a cross-platform game with the bell on
+cross-platform game with the bell on both current and nourishing and the next
+both current and nourishing and the next generations it has a very large award as
+generations it has a very large award as a ten by ten kilometer size the Turin is
+a ten by ten kilometer size the Turin is just divided into two parts fry distance
+just divided into two parts fry distance Turin and the nearest ten stirring we
+Turin and the nearest ten stirring we render fattest anteroom by offline
+render fattest anteroom by offline pegged geometry and the textures we call
+pegged geometry and the textures we call this vist artery the nearest entering is
+this vist artery the nearest entering is geometry is generated from the high res
+geometry is generated from the high res height map the rendering engine by
+height map the rendering engine by blending for detailed material layers
+blending for detailed material layers using a mask texture we also support
+using a mask texture we also support road suppliers under decals to add
+road suppliers under decals to add unique details countering surfaces
+unique details countering surfaces our visual target is as high as 1/10
+our visual target is as high as 1/10 taxes per centimeter so that the Turing
+taxes per centimeter so that the Turing surfaces are displayed with fine details
+surfaces are displayed with fine details when the camera is very close to the
+when the camera is very close to the what mention that we would like to apply
+what mention that we would like to apply our virtual touches on the edges
+our virtual touches on the edges transparent only to distinguish the
+transparent only to distinguish the next-generation platforms from the
+next-generation platforms from the current generation we would like to add
+current generation we would like to add a massive number of details which will
+a massive number of details which will procedurally generated into the terrain
+procedurally generated into the terrain to enrich the environment I'll show a
+to enrich the environment I'll show a difference between without and with
+difference between without and with procedural generated generated decals
+procedural generated generated decals this is without and this in the web
+another example showing the different and indecent without this ill with the
+and indecent without this ill with the procedural decals we would like to
+procedural decals we would like to achieve and unique and diversify the
+achieve and unique and diversify the Turin looking by adding decals with the
+Turin looking by adding decals with the leaves pebbles sends cracks on the trees
+leaves pebbles sends cracks on the trees for example a simple deferred decals
+for example a simple deferred decals rendering would be too expensive to
+rendering would be too expensive to render details in this quantity and
+render details in this quantity and quality so we are thinking about baking
+quality so we are thinking about baking with decals interprocedural virtual
+with decals interprocedural virtual textures as an optimization our our
+textures as an optimization our our first approach is implementing a
+first approach is implementing a procedural work for textures we allocate
+procedural work for textures we allocate a 512 K by 512 architecture and the page
+a 512 K by 512 architecture and the page size in 256 by 256 we use an interesting
+size in 256 by 256 we use an interesting texture to map from the vajra texture to
+texture to map from the vajra texture to physical texture the site is a 2k our
+physical texture the site is a 2k our physical temperature size is
+physical temperature size is configurable and we set as 19 by 19 we
+configurable and we set as 19 by 19 we have three of them they are arrow below
+have three of them they are arrow below normal map and a speculum the
+normal map and a speculum the information for required virtual pages
+information for required virtual pages our computer are computed during the
+our computer are computed during the Jeep buffer rendering pass for every
+Jeep buffer rendering pass for every pixel on the screen without put on the
+pixel on the screen without put on the page index and am if enough level of the
+page index and am if enough level of the virtual texture into a full screen
+virtual texture into a full screen render target we call this page ID
+render target we call this page ID buffer we explain the format for this
+buffer we explain the format for this offer later in the talk we analyze this
+offer later in the talk we analyze this page ID buffer and CPU to see which
+page ID buffer and CPU to see which pages are needed at which bitmap level
+pages are needed at which bitmap level with an allocated physical texture pages
+with an allocated physical texture pages and the render both terrain material and
+and the render both terrain material and the details into this page finally we
+the details into this page finally we update the interaction capture to be
+update the interaction capture to be able to translate from the virtual
+able to translate from the virtual address into a physical address these
+address into a physical address these pages are cached in our physical texture
+pages are cached in our physical texture texture cache according to a least
+texture cache according to a least recently used algorithm
+recently used algorithm once in the cache the Terran sailor
+once in the cache the Terran sailor could just fetch from the virtual
+could just fetch from the virtual textures and we completely removed the
+textures and we completely removed the rendering cost of tearing materials and
+rendering cost of tearing materials and details in the future and with
+details in the future and with conventional virtual textures we used an
+conventional virtual textures we used an interaction texture to map from the
+interaction texture to map from the virtual UV into physical UV each entry
+virtual UV into physical UV each entry of this interesting texture represents a
+of this interesting texture represents a mapping from the virtual address into
+mapping from the virtual address into physical address the content of this
+physical address the content of this texture is used to generate the final
+texture is used to generate the final physical memory location for the virtual
+physical memory location for the virtual texture page the format of this texture
+texture page the format of this texture is 32 inches bit with the first sitting
+is 32 inches bit with the first sitting bit representing the final physical
+bit representing the final physical texture page offset and 8 bits
+texture page offset and 8 bits representing the meta map level of this
+representing the meta map level of this page the last bit is 40 Berg owning
+so procedural retro Texas works quite well to cache the rendering result of
+well to cache the rendering result of the Turing and the decals as an
+the Turing and the decals as an optimization approach but there's a big
+optimization approach but there's a big problem for the far cry 4 since the
+problem for the far cry 4 since the standard the virtual textures applies
+standard the virtual textures applies the virtual texture onto the whole would
+the virtual texture onto the whole would uniformly with a 512 K by 512 K word
+uniformly with a 512 K by 512 K word protector on a 10 by 10 kilomettre would
+protector on a 10 by 10 kilomettre would this means the texture revolution is
+this means the texture revolution is only 0.5 texas per centimeter this is
+only 0.5 texas per centimeter this is too low to achieve a 10 texas per
+too low to achieve a 10 texas per centimeter resolution it will require 10
+centimeter resolution it will require 10 million by 10 million sized virtual
+million by 10 million sized virtual textures this is definitely over the
+textures this is definitely over the limit of the next generation platform so
+limit of the next generation platform so we need to find a better solution
+so allegory to develop a procedural vote a Texas technique in a large award and
+a Texas technique in a large award and achieve at high texture resolution of 10
+achieve at high texture resolution of 10 Texas per centimeter this seems
+Texas per centimeter this seems impossible when we applying the virtual
+impossible when we applying the virtual Texas uniformly onto the wood but the
+Texas uniformly onto the wood but the one thing in our favor is that we only
+one thing in our favor is that we only need that 10 Texas per centimeter
+need that 10 Texas per centimeter resolution when the camera is very close
+resolution when the camera is very close to the terrain for terrain surface let a
+to the terrain for terrain surface let a bit further away a v Texas per
+bit further away a v Texas per centimeter might be enough and into
+centimeter might be enough and into water require even less texture
+water require even less texture resolution when the pterence of this are
+resolution when the pterence of this are very far away from the camera so G to
+very far away from the camera so G to find a way to apply the virtual
+find a way to apply the virtual temperature know uniformly unto the
+temperature know uniformly unto the world based on the distance from the
+world based on the distance from the camera this is how our adaptive work for
+camera this is how our adaptive work for captures come into play now let's talk
+captures come into play now let's talk about adapting work for Texas it is
+about adapting work for Texas it is based on procedural virtual textures and
+based on procedural virtual textures and it improve it by increase the texture
+it improve it by increase the texture resolution we divided our wood into
+resolution we divided our wood into multiple sectors each sector is 64 by 64
+multiple sectors each sector is 64 by 64 meter size for all need different
+meter size for all need different sectors we will allocate a virtual image
+sectors we will allocate a virtual image for each of them inside the virtual
+for each of them inside the virtual texture a virtual image is simply a
+texture a virtual image is simply a square space inside the virtual texture
+square space inside the virtual texture and the size of this image increases for
+and the size of this image increases for the sectors nearer the camera and
+the sectors nearer the camera and vice-versa
+vice-versa this is why we called adaptive moon for
+this is why we called adaptive moon for Texas we adapt the resolution of the
+Texas we adapt the resolution of the virtual texture based on the distance
+virtual texture based on the distance from the camera to the sector nearest
+from the camera to the sector nearest sectors are located at full resolution
+sectors are located at full resolution of 10 Texas per centimeter so we
+of 10 Texas per centimeter so we allocate 64 by 64 K virtual image for
+allocate 64 by 64 K virtual image for the sector allocate less like 32 K by 32
+the sector allocate less like 32 K by 32 ok
+ok or 16 K by 16 K the minimum size is 1k
+or 16 K by 16 K the minimum size is 1k by 1k we display our adaptation of the
+by 1k we display our adaptation of the virtual image inside the virtual texture
+virtual image inside the virtual texture as an overlay on it on the game screen
+as an overlay on it on the game screen mapped as the Red Square inside the
+mapped as the Red Square inside the virtual textures the colored square here
+virtual textures the colored square here represent the allocated virtual images
+represent the allocated virtual images for all innocent sectors
+every sector saves its virtual image UV offset and the size and that this
+offset and the size and that this information will be passed into terrain
+information will be passed into terrain shader to determine the page ID and the
+shader to determine the page ID and the map map level for every pixel on the
+map map level for every pixel on the screen now let's look at have a deeper
+screen now let's look at have a deeper look at the allocation of the virtual
+look at the allocation of the virtual images first we find two sectors nearest
+images first we find two sectors nearest to the camera and we allocate to 64 by
+to the camera and we allocate to 64 by 64 sized virtual images then we found
+64 sized virtual images then we found six sectors further away from the camera
+six sectors further away from the camera and we allocate 632 K by 32 key virtual
+and we allocate 632 K by 32 key virtual images for multiple sectors that are
+images for multiple sectors that are even further way we allocate 16 K by 16
+even further way we allocate 16 K by 16 K virtual images we continue this
+K virtual images we continue this process until all the additional sectors
+process until all the additional sectors are allocated inside our virtual texture
+at runtime during each frame we calculate a target virtual image size
+calculate a target virtual image size for every sector based on its distance
+for every sector based on its distance from the camera if this side is
+from the camera if this side is different than a curve the side of the
+different than a curve the side of the sector we will allocate a new virtual
+sector we will allocate a new virtual image as a tactic size and remove the
+image as a tactic size and remove the old one now I will play a video
+old one now I will play a video demonstrating the readjustment of the
+demonstrating the readjustment of the virtual image for all the sectors during
+virtual image for all the sectors during the team
+you will notice that when a player moves forward some sectors are becoming closer
+forward some sectors are becoming closer or further to the camera so that their
+or further to the camera so that their virtual images are adjusted dynamically
+virtual images are adjusted dynamically by allocating a new one and remove the
+by allocating a new one and remove the old one
+let's look at some place here here you will notice that there's a light blue
+will notice that there's a light blue virtual image is allocated with the
+virtual image is allocated with the bigger size when this sector is closer
+bigger size when this sector is closer to the camera then later on it is
+to the camera then later on it is removed from the virtual texture because
+removed from the virtual texture because this sector is behind the camera and it
+this sector is behind the camera and it moves further away from the camera this
+moves further away from the camera this two pictures show the obscuring of the
+two pictures show the obscuring of the virtual image when the camera moves
+virtual image when the camera moves closer to a sector the virtual image
+closer to a sector the virtual image size is increased from 32k to 64k to
+size is increased from 32k to 64k to provide higher display resolution and
+provide higher display resolution and these two pictures shows the tongue
+these two pictures shows the tongue skewing of the virtual image when a
+skewing of the virtual image when a camera is the further away from a sector
+camera is the further away from a sector the size is decreased from 64 K to 32
+the size is decreased from 64 K to 32 okay as a higher resolution is not
+okay as a higher resolution is not necessary now let's look at what happens
+necessary now let's look at what happens when we upscale a virtual image from 32
+when we upscale a virtual image from 32 to 64 K our adaptive mode for textures
+to 64 K our adaptive mode for textures need to be updated to reflect the
+need to be updated to reflect the changes of the virtual image under it
+changes of the virtual image under it make sure that rendering is correct a
+make sure that rendering is correct a naive way would be render all the
+naive way would be render all the visible pages inside the new virtual
+visible pages inside the new virtual image from scratch and update the
+image from scratch and update the interaction texture entries for these
+interaction texture entries for these pages but this would be true slow
+pages but this would be true slow in fact the read the rendering result of
+in fact the read the rendering result of the terrine material blending with
+the terrine material blending with additional details is already cached in
+additional details is already cached in our physical temperature we don't want
+our physical temperature we don't want to render them all over again we could
+to render them all over again we could just shift them around by updating our
+just shift them around by updating our interaction capture entries and reduce
+interaction capture entries and reduce the content
+since we're up skill scaling the image from 32k to 64k we realized that the mid
+from 32k to 64k we realized that the mid map in the old image exactly the same as
+map in the old image exactly the same as the mid map one low wouldn't even lower
+the mid map one low wouldn't even lower in the new image so we can accomplish
+in the new image so we can accomplish most what do we need to do by remapping
+most what do we need to do by remapping the virtual texture so that the old maps
+the virtual texture so that the old maps from 0 to 9 becomes the new mix from 1
+from 0 to 9 becomes the new mix from 1 to 10 now 32k by 32k virtual image
+to 10 now 32k by 32k virtual image contains 16,000 pages so we use a
+contains 16,000 pages so we use a computer shader to rewrite the
+computer shader to rewrite the interaction texture
+interaction texture note that the interaction texture
+note that the interaction texture contains the mid level so the
+contains the mid level so the modification need to be a little bit
+modification need to be a little bit more complex than the simple copy of the
+more complex than the simple copy of the interesting interaction entry we now
+interesting interaction entry we now demonstrate how to update the
+demonstrate how to update the interaction capture entries to reduce
+interaction capture entries to reduce the mid 0 of the old image form it one
+the mid 0 of the old image form it one of the new image for example we mark the
+of the new image for example we mark the map 0 fold virtual image as Red Square
+map 0 fold virtual image as Red Square inside the virtual texture and it's
+inside the virtual texture and it's related space in interaction texture we
+related space in interaction texture we also mark the new virtual image map one
+also mark the new virtual image map one inside the virtual texture and in
+inside the virtual texture and in architecture as yellow square what do we
+architecture as yellow square what do we need to do is to remove the virtual
+need to do is to remove the virtual texture so that we use the content of
+texture so that we use the content of the Red Square
+the Red Square in yellow square to yellow square so
+in yellow square to yellow square so let's look at the specific interest in
+let's look at the specific interest in culture entries pointing to a page
+culture entries pointing to a page inside our physical texture as offset 3
+inside our physical texture as offset 3 2 and the middle 0 to reduce this
+2 and the middle 0 to reduce this content we simply copy the page offset
+content we simply copy the page offset into the new place and a shift down the
+into the new place and a shift down the map by 1 we do this for all the pages
+map by 1 we do this for all the pages inside the map one of the new virtual
+inside the map one of the new virtual image
+for the pages in the new image from Neptune obtain the update are very
+Neptune obtain the update are very similar as what we explained for the
+similar as what we explained for the myth 1 so now we have updated all the
+myth 1 so now we have updated all the interaction capture entries for maple
+interaction capture entries for maple one to be obtained in our new virtual
+one to be obtained in our new virtual image then what about the bit zero pages
+image then what about the bit zero pages this page don't exist in the old virtual
+this page don't exist in the old virtual image because they have a higher capture
+image because they have a higher capture resolution this pages need to be
+resolution this pages need to be rendered in the next frame but in this
+rendered in the next frame but in this frame we cannot live like that otherwise
+frame we cannot live like that otherwise there will be some random color just
+there will be some random color just played on the screen because these pages
+played on the screen because these pages are not rendered yet into our virtual
+are not rendered yet into our virtual textures by the nature of the mid map we
+textures by the nature of the mid map we know that form a personal pages
+know that form a personal pages correspond to one if one page so we will
+correspond to one if one page so we will temporarily map them to corresponding
+temporarily map them to corresponding lower page to prevent visual popping up
+lower page to prevent visual popping up they will be they will be correctly
+they will be they will be correctly updated when the pages are rendered in
+updated when the pages are rendered in the next frame as a result the terrine
+the next frame as a result the terrine surface will look a bit blurred in this
+surface will look a bit blurred in this frame but in the next frame it will
+frame but in the next frame it will become sharp this happens very quickly
+become sharp this happens very quickly during the fridge so it is generally not
+during the fridge so it is generally not noticeable here we show how we up
+noticeable here we show how we up duplicate the interaction country to do
+duplicate the interaction country to do a remapping
+a remapping we simply duplicate when mid one
+we simply duplicate when mid one interruption entry into four
+interruption entry into four corresponding map zero entry to remap
+corresponding map zero entry to remap the virtual texture we don't shift down
+the virtual texture we don't shift down the mid level in this case and we will
+the mid level in this case and we will do for the when we'll do this for all
+do for the when we'll do this for all the pages inside the module you'll
+the pages inside the module you'll notice that we set the mid level level
+notice that we set the mid level level as one only in Direction country instead
+as one only in Direction country instead of zero this will tell the rendering of
+of zero this will tell the rendering of terrain to display a lower mid level
+terrain to display a lower mid level instead
+the pixel shader that handles the Turing rendering uses the interaction structure
+rendering uses the interaction structure entry to calculate the final physical
+entry to calculate the final physical texture UV address it was shift to a
+texture UV address it was shift to a scale that Buick on it by shifted nib
+scale that Buick on it by shifted nib level and I just play a lower lip level
+level and I just play a lower lip level result I provide in the coolest limpid
+result I provide in the coolest limpid for your reference now let's look at an
+for your reference now let's look at an scaling a virtual image from 64k to 32k
+scaling a virtual image from 64k to 32k the process is actually the reverse of
+the process is actually the reverse of obscuring a virtual image again we
+obscuring a virtual image again we update the corresponding interaction
+update the corresponding interaction touch entries to reuse the content of
+touch entries to reuse the content of the old image in this case the maple
+the old image in this case the maple won't return from the old image in the
+won't return from the old image in the same as the mep zero to midnight in the
+same as the mep zero to midnight in the new virtual image so we use a computer
+new virtual image so we use a computer sheet to rewrite our interaction texture
+sheet to rewrite our interaction texture entries note that the mid ten pages
+entries note that the mid ten pages don't exist in the old virtual images so
+don't exist in the old virtual images so we cannot remember on there but in fact
+we cannot remember on there but in fact that mix letter smaller than 64 by 64
+that mix letter smaller than 64 by 64 shouldn't be utilized well our power by
+shouldn't be utilized well our power by our word protection system because this
+our word protection system because this page are very far away from the term
+page are very far away from the term from the camera and it is handled by a
+from the camera and it is handled by a different rendering system which we
+different rendering system which we explained before as far distance during
+explained before as far distance during rendering so in in reality we just
+rendering so in in reality we just ignore these nips and they use a higher
+ignore these nips and they use a higher nib instead
+now as I'll explain some challenges we faced during developing virtual touches
+faced during developing virtual touches and how we solve them the first
+and how we solve them the first challenge is to reduce the memory
+challenge is to reduce the memory footprint when we upkeep outputting the
+footprint when we upkeep outputting the virtual texture page ID during the G
+virtual texture page ID during the G before rendering pass our page ID buffer
+before rendering pass our page ID buffer in 32 bits the first two bits represent
+in 32 bits the first two bits represent the page ID and four bits for the mid
+the page ID and four bits for the mid level and the focus for the virtual
+level and the focus for the virtual image size we need to keep the data
+image size we need to keep the data minimum to reduce the memory footprint
+minimum to reduce the memory footprint and bandwidth we use 1/8 by 1/8 great
+and bandwidth we use 1/8 by 1/8 great write a buffer instead of a full screen
+write a buffer instead of a full screen render target so that the actual memory
+render target so that the actual memory is only one 64th of the full render
+is only one 64th of the full render target we have to set early steps of
+target we have to set early steps of tensile attribute in the shader so that
+tensile attribute in the shader so that any pixels failing the depth test won't
+any pixels failing the depth test won't be outputted into the page ID buffer
+be outputted into the page ID buffer this is how our teams sing and page ID
+this is how our teams sing and page ID buffer look like caching of the virtual
+buffer look like caching of the virtual textures can take a long time when many
+textures can take a long time when many new pages are requested in a single
+new pages are requested in a single frame for example when a camera is
+frame for example when a camera is moving fast we need to render a lot of
+moving fast we need to render a lot of pages this happens in fact cry for when
+pages this happens in fact cry for when the player is driving a vehicle or
+the player is driving a vehicle or flying with the wind suit our solution
+flying with the wind suit our solution to this problem is called distributed
+to this problem is called distributed rendering we sought required pages by
+rendering we sought required pages by their map map level from low to high
+their map map level from low to high lower milk map pages are rendered before
+lower milk map pages are rendered before higher web pages so if you're a
+higher web pages so if you're a rendering cost for the for the adaptive
+rendering cost for the for the adaptive virtual textures is higher and the
+virtual textures is higher and the threshold for example one millisecond we
+threshold for example one millisecond we will postpone the remaining Jaime pages
+will postpone the remaining Jaime pages into the next frames
+into the next frames as a result we realize that transition
+as a result we realize that transition from blood to shop for Turing surfaces
+from blood to shop for Turing surfaces in several friends but it happens very
+in several friends but it happens very quickly so it is not generally not
+quickly so it is not generally not noticeable here I will show some two for
+noticeable here I will show some two for continued frames when we do just stupid
+continued frames when we do just stupid rendering you will see that the frame
+rendering you will see that the frame transition from blurred to sharp in four
+transition from blurred to sharp in four frames but it really happens very
+frames but it really happens very quickly so you can't see it because our
+quickly so you can't see it because our adaptive virtual textures can render so
+adaptive virtual textures can render so many details efficiently our artists
+many details efficiently our artists would like to place a massive number of
+would like to place a massive number of decals in the game but placing such
+decals in the game but placing such amount of decals by hand is not a
+amount of decals by hand is not a solution so in fact for with developed
+solution so in fact for with developed up procedural content generator to place
+up procedural content generator to place these details automatically the artist
+these details automatically the artist can set rules to generate the decals
+can set rules to generate the decals like leaves sent stones on the trees and
+like leaves sent stones on the trees and beside pushes with random shapes and the
+beside pushes with random shapes and the colors this really helps our artist
+colors this really helps our artist director achieve our graphics benchmark
+here we show the road rendering with procedurally generated decals we mark
+procedurally generated decals we mark the procedural details add as red
+the procedural details add as red squares this has these are cracks thirds
+squares this has these are cracks thirds stones leaves for example an example
+stones leaves for example an example with procedural details we place
+with procedural details we place automatically the stones leaves sends
+automatically the stones leaves sends and the trees and beside the bushes and
+and the trees and beside the bushes and we can we can have like thousand of them
+we can we can have like thousand of them automatically attached
+using if we use a bilinear filtering for virtual textures the image will look
+virtual textures the image will look like very blurred when you view the
+like very blurred when you view the current surface from a very sharp new
+current surface from a very sharp new angle so we would like to support 8x and
+angle so we would like to support 8x and the tropic filtering for virtual
+the tropic filtering for virtual textures but because of the nature of
+textures but because of the nature of the virtual texture the neighbor
+the virtual texture the neighbor physical texture pages are not necessary
+physical texture pages are not necessary adjacent in the world space so there
+adjacent in the world space so there will be a color bleeding when the
+will be a color bleeding when the textures are filtered across the page
+textures are filtered across the page model to solve this problem we add a
+model to solve this problem we add a fourth Texas border to our physical
+fourth Texas border to our physical texture page and our physical texture
+texture page and our physical texture page size becomes to 64 by 264 we render
+page size becomes to 64 by 264 we render the page with enlarged viewport so that
+the page with enlarged viewport so that the border pixels are rendered with
+the border pixels are rendered with color letter adjacent in the word space
+doing that we can support 8x electronic filtering nicely
+if we only do Ana stroke filtering with a bilinear filtering we could see a
+a bilinear filtering we could see a visible scenes altering surfaces when
+visible scenes altering surfaces when there's a map level changes in the area
+there's a map level changes in the area so we need to do something better we
+so we need to do something better we support a software trilinear filtering
+support a software trilinear filtering for far cry 4 to fix the problem the
+for far cry 4 to fix the problem the solution is very simple we just fetch
+solution is very simple we just fetch the rotary textures twice with two
+the rotary textures twice with two different mid-level and we do a line
+different mid-level and we do a line linear planning between these two colors
+linear planning between these two colors to get the final color this works very
+to get the final color this works very well
+another solution introduced a hardware trilinear filtering you can do this by
+trilinear filtering you can do this by treat a quarter sized map one physical
+treat a quarter sized map one physical texture and you update this lip one
+texture and you update this lip one physical texture cache whenever the
+physical texture cache whenever the mid-40s detection cache is updated so
+mid-40s detection cache is updated so you basically keep two lips of the
+you basically keep two lips of the physical temperature in the memory now
+physical temperature in the memory now this would require 25% more memory for
+this would require 25% more memory for the physical texture cache our physical
+the physical texture cache our physical culture is in Far Cry 4 used 200
+culture is in Far Cry 4 used 200 megabytes in the video memory
+megabytes in the video memory so we basically save about 50 megabytes
+so we basically save about 50 megabytes by using software virtual type trilinear
+by using software virtual type trilinear filtering under the performance
+filtering under the performance difference between the software and
+difference between the software and hardware approach is very small in fact
+hardware approach is very small in fact rifle here we can see with only bilinear
+rifle here we can see with only bilinear filtering the image is very blurred and
+filtering the image is very blurred and also you can still hear the seams
+also you can still hear the seams because the image if you have the image
+because the image if you have the image that in front of that will for example a
+that in front of that will for example a lower bitmap under the image below that
+lower bitmap under the image below that is with the higher move now
+and anaerobic filtering makes the image quite sharp in this case but we can
+quite sharp in this case but we can still see available scenes here during
+still see available scenes here during trilinear filtering and anaesthetic
+trilinear filtering and anaesthetic filtering has a best result now I will
+filtering has a best result now I will show some screenshot from the game and
+show some screenshot from the game and talk about the performance and memory we
+talk about the performance and memory we only support adaptive virtual textures
+only support adaptive virtual textures on the next-generation platforms
+on the next-generation platforms rendered with procedurally generated
+rendered with procedurally generated decals on current generation platforms
+decals on current generation platforms like ps3 and 360 we simply disable
+like ps3 and 360 we simply disable virtual textures and procedural details
+virtual textures and procedural details here we can see the difference between
+here we can see the difference between current generation platform and the next
+current generation platform and the next generation this is the current
+generation this is the current generation of this next generation
+this is another example showing the difference between the current
+difference between the current generation and the next generation
+okay under the example which I render and messing them up decals thanks to our
+and messing them up decals thanks to our adaptive virtual textures and they'll
+adaptive virtual textures and they'll really enrich our environment by adding
+really enrich our environment by adding a lot more variety into the game we
+a lot more variety into the game we capture the rendering performance for
+capture the rendering performance for adaptive virtual textures on ps4 the
+adaptive virtual textures on ps4 the rendering cost are for adaptable for
+rendering cost are for adaptable for textures is less than 0.2 millisecond
+textures is less than 0.2 millisecond for Aesthetica C for dynamic scene where
+for Aesthetica C for dynamic scene where we need to cash a lot of work to attach
+we need to cash a lot of work to attach of pages the rendering cost is a less
+of pages the rendering cost is a less than one millisecond this is quite good
+than one millisecond this is quite good because to render such amount of details
+because to render such amount of details with a traditional deferred decals
+with a traditional deferred decals rendering it would probably take more
+rendering it would probably take more than 10 milliseconds so our deputy
+than 10 milliseconds so our deputy virtual textures is more than 10 times
+virtual textures is more than 10 times faster and achieve better result the
+faster and achieve better result the memory usage for adaptive architectures
+memory usage for adaptive architectures around 220 megabytes
+around 220 megabytes here we have 16 sitting megabytes for in
+here we have 16 sitting megabytes for in the ricean capture and 200 megabytes for
+the ricean capture and 200 megabytes for our physical texture our physical
+our physical texture our physical texture is actually compressed into DHT
+texture is actually compressed into DHT and a PC format to save the memory and
+and a PC format to save the memory and if this is done in the runtime using a
+if this is done in the runtime using a computer shader
+so to summarize procedural virtual textures is a good technique to improve
+textures is a good technique to improve the Turing rendering performance we use
+the Turing rendering performance we use adaptive virtual textures to increase
+adaptive virtual textures to increase the resolution of virtual textures and
+the resolution of virtual textures and then we can achieve a great visual
+then we can achieve a great visual result by drawing a massive number of
+result by drawing a massive number of details on fact
+details on fact for I would intend to right for
+for I would intend to right for rendering him and asked him for the
+rendering him and asked him for the support of a technique and also GDC
+support of a technique and also GDC advisory for the review of the slides I
+advisory for the review of the slides I provided some reference for the virtual
+provided some reference for the virtual textures on the slide
+textures on the slide and thank you very much
+so if there's any question if you got free to ask us to send in front of the
+free to ask us to send in front of the microphone hiya great talk
+microphone hiya great talk just wondering whether you you whether
+just wondering whether you you whether you considered using partially resident
+you considered using partially resident textures at all um whether you think
+textures at all um whether you think that would fit with this technique yes
+that would fit with this technique yes we we evaluate the partial ability
+we we evaluate the partial ability textures in working and we finally
+textures in working and we finally didn't use that because during the
+didn't use that because during the developing of the factory for the
+developing of the factory for the features is not completed on all
+features is not completed on all platforms and the implementation is all
+platforms and the implementation is all different in ps4 and xboxone for example
+different in ps4 and xboxone for example Xbox it's called a peyote resource and
+Xbox it's called a peyote resource and kiss voice and more like partially
+kiss voice and more like partially velvety textures using a virtual memory
+velvety textures using a virtual memory yeah so it is good to use a software
+yeah so it is good to use a software approach because we can keep the same
+approach because we can keep the same rendering API and uncross all the
+rendering API and uncross all the platforms and it's really a save a lot
+platforms and it's really a save a lot of effort for us and it's actually the
+of effort for us and it's actually the soft approach is quite fast it turns
+soft approach is quite fast it turns really slower than the hard way approach
+really slower than the hard way approach so quite good but in the future we might
+so quite good but in the future we might consider using that if because the I saw
+consider using that if because the I saw a small problem of the software software
+a small problem of the software software approach that you have to add for Texas
+approach that you have to add for Texas border on the physical texture page like
+border on the physical texture page like we explained for the futuring so we you
+we explained for the futuring so we you might save some memory by using a
+might save some memory by using a hardware approach thanks one question do
+hardware approach thanks one question do you use any kind of moral luck seclusion
+you use any kind of moral luck seclusion mapping or any kind of products mapping
+mapping or any kind of products mapping on a deep show on the terrain I think
+on a deep show on the terrain I think Paden do use any kind of parallax make a
+Paden do use any kind of parallax make a cake so you're asking any if I use any
+cake so you're asking any if I use any kind of parallax mapping for the Turing
+kind of parallax mapping for the Turing we have some kind of a parallax decals
+we have some kind of a parallax decals for a turian puncher for this detail so
+for a turian puncher for this detail so we don't render with virtual textures
+we don't render with virtual textures because this depending on the view angle
+because this depending on the view angle so we cannot really take them
+so we cannot really take them but in the future we are thinking about
+but in the future we are thinking about baking heightmap into virtual textures
+baking heightmap into virtual textures so you can have a kind of like facility
+so you can have a kind of like facility you have achieved a hardware
+you have achieved a hardware tessellations with votre textures so you
+tessellations with votre textures so you save diffuse normal map and specular and
+save diffuse normal map and specular and also a 8-bit height map this will be
+also a 8-bit height map this will be compressed into PC format so in the if
+compressed into PC format so in the if you use a hardware tessellation shader
+you use a hardware tessellation shader you can fetch this height map in the
+you can fetch this height map in the tessellation shader and you can get that
+tessellation shader and you can get that directly from the virtual texture
+directly from the virtual texture instead of rendering these decals with
+instead of rendering these decals with parallax so it's using a like
+parallax so it's using a like tessellation shader instead or you can
+tessellation shader instead or you can do whatever you want great well thanks I
+do whatever you want great well thanks I was wondering if you are allocating the
+was wondering if you are allocating the virtual texture pages dynamically to do
+virtual texture pages dynamically to do AC correct that gets a two-time indirect
+AC correct that gets a two-time indirect fetch in the pixel shader thing repeated
+fetch in the pixel shader thing repeated quick on the virtual texture UV
+quick on the virtual texture UV coordinates of the try now video please
+coordinates of the try now video please but if you are allocating dynamic tight
+but if you are allocating dynamic tight yeah it's so so I asking if I allocate
+yeah it's so so I asking if I allocate to this virtual image dynamically yes
+to this virtual image dynamically yes yes I we do way like we said that we we
+yes I we do way like we said that we we have true talent Li and adjust the
+have true talent Li and adjust the virtual image size depending on the
+virtual image size depending on the existence from the camera so when when
+existence from the camera so when when we need to change the size of the
+we need to change the size of the virtual image we have to remove the
+virtual image we have to remove the older virtual image and the create a new
+older virtual image and the create a new way so this is a really attendant Lee
+way so this is a really attendant Lee allocating so one thing I didn't talk
+allocating so one thing I didn't talk about that is that we have kind of the
+about that is that we have kind of the allocation system so you can just
+allocation system so you can just standing Lehrer move the other one and
+standing Lehrer move the other one and have the new one but it's a kind of like
+have the new one but it's a kind of like called tree style so there's not much
+called tree style so there's not much fragmentation
+fragmentation when you allocating a new and the rim
+when you allocating a new and the rim the human soul it's always like a
+the human soul it's always like a landing the power to so yes I had a
+landing the power to so yes I had a question concerning your physical
+question concerning your physical texture I was wondering if you had any
+texture I was wondering if you had any issues with fragmentation on that
+issues with fragmentation on that texture and also if you had any issues
+texture and also if you had any issues with your with thrashing your your
+with your with thrashing your your texture cache so yah steam if I have
+texture cache so yah steam if I have Fred imitation for the physical texture
+Fred imitation for the physical texture and if I have some trash you mean
+and if I have some trash you mean the fingertips show you the fool so in
+the fingertips show you the fool so in the physical texture as you're
+the physical texture as you're allocating bigger and smaller
+allocating bigger and smaller textures into it uh-huh did you did you
+textures into it uh-huh did you did you run into any issues where your
+run into any issues where your fragmentation was filling it up bigger
+fragmentation was filling it up bigger than you then then potentially it could
+than you then then potentially it could hold we don't have a fragmentation
+hold we don't have a fragmentation issues because we allocated it's in size
+issues because we allocated it's in size we every page is a to 64 PI to 64 so we
+we every page is a to 64 PI to 64 so we don't have any fragmentation issues but
+don't have any fragmentation issues but we do have some kind of like yeah you
+we do have some kind of like yeah you the texture filtering cache could be
+the texture filtering cache could be full right because you are rendering in
+full right because you are rendering in physics actually all the time so but we
+physics actually all the time so but we use like I said we use a least recently
+use like I said we use a least recently used algorithm so the least using
+used algorithm so the least using physical texture pages will be swept out
+physical texture pages will be swept out automatically and we render with a new
+automatically and we render with a new physical with the new render into this
+physical with the new render into this physical texture so also we set the size
+physical texture so also we set the size of the our physical texture as a 95 90
+of the our physical texture as a 95 90 so we we can just resize so we find a
+so we we can just resize so we find a good spot for the correct size for our
+good spot for the correct size for our physical temperature so we don't see a
+physical temperature so we don't see a lot of the swapping out and swapping of
+lot of the swapping out and swapping of the of the rendering so otherwise you if
+the of the rendering so otherwise you if you constantly swap out and you don't
+you constantly swap out and you don't save much by using the virtual textures
+save much by using the virtual textures because you can only want to also
+because you can only want to also achieve the result in the in the memory
+achieve the result in the in the memory for for the terrain that
+for for the terrain that in front of you for example but yet
+in front of you for example but yet sometimes you face some problem and the
+sometimes you face some problem and the way you grow very well you go forward
+way you grow very well you go forward and you turn the wrong there might be
+and you turn the wrong there might be some issues with that but with all this
+some issues with that but with all this computer rendering and the mid-level
+computer rendering and the mid-level rendering you don't really see them so
+rendering you don't really see them so yes I see
+yes I see and the second part so did you did you
+and the second part so did you did you do anything to minimize texture cache
+do anything to minimize texture cache frog texture cache misses when you're
+frog texture cache misses when you're looking into your physical texture space
+looking into your physical texture space do I do anything to make some eyes on my
+do I do anything to make some eyes on my capture so your text your cache when
+capture so your text your cache when you're when you're grabbing that texture
+you're when you're grabbing that texture to render your different decals sessions
+to render your different decals sessions it could potentially look at all sorts
+it could potentially look at all sorts of different spots on that physical
+of different spots on that physical texture and potentially your texture
+texture and potentially your texture cache could get thrash and you need to
+cache could get thrash and you need to pull in more textures did you run into
+pull in more textures did you run into any issues like that no we didn't see
+any issues like that no we didn't see any issues for that the rendering of the
+any issues for that the rendering of the Turing is very fast it takes less than
+Turing is very fast it takes less than one millisecond to run all the Turing on
+one millisecond to run all the Turing on the details so I didn't really check
+the details so I didn't really check check for that thank you
+so you mentioned that you rendered during the GBO pass deferred pass you
+during the GBO pass deferred pass you ran the page AG's and then you said that
+ran the page AG's and then you said that he use quarter-sized page at bar fire
+he use quarter-sized page at bar fire instead of full resolution does that
+instead of full resolution does that mean that you actually shrink after the
+mean that you actually shrink after the full screen different pass not a shrink
+full screen different pass not a shrink the size to get it okay so the question
+the size to get it okay so the question of that if I render into full-screen run
+of that if I render into full-screen run and tablet or if I run into a 1/8 size
+and tablet or if I run into a 1/8 size of the page ID so actually a rendering
+of the page ID so actually a rendering into a full-screen rental is our first
+into a full-screen rental is our first approach then later on we change that
+approach then later on we change that approach so we do not render into a
+approach so we do not render into a full-screen target anymore
+full-screen target anymore instead when we render into a 1/8 size
+instead when we render into a 1/8 size so you know taking occlusion into into
+so you know taking occlusion into into account if some tree for example or big
+account if some tree for example or big stone or house occluding part of the
+stone or house occluding part of the terrain it still be in a page a deep
+terrain it still be in a page a deep buffer it still be like there's no no no
+buffer it still be like there's no no no it's okay because I explained I didn't
+it's okay because I explained I didn't writing the you know slide but I have
+writing the you know slide but I have notes that I also talked that when you
+notes that I also talked that when you do a read write buffer you can set
+do a read write buffer you can set attribute in a shader you can set as
+attribute in a shader you can set as only depth stencil so with that shader
+only depth stencil so with that shader you any pixels that failing the depth
+you any pixels that failing the depth test won't be writing into your result
+test won't be writing into your result right offer so if it's occluded it we're
+right offer so if it's occluded it we're going to be right and if you have true
+going to be right and if you have true pixels which is behind that pixel and
+pixels which is behind that pixel and this won't be right again into your page
+no I don't I don't down that tongue size depth is it's it's cheaper for rendering
+depth is it's it's cheaper for rendering pass it's ultimately timed by the shade
+pass it's ultimately timed by the shade attribute so it's like rendering to the
+attribute so it's like rendering to the render target the same as rendering to
+render target the same as rendering to burn Connie but the difference that is
+burn Connie but the difference that is if you don't at that attribute into your
+if you don't at that attribute into your shader which without put all the pixels
+shader which without put all the pixels into your read write buffer but as soon
+into your read write buffer but as soon as add that shade which is
+as add that shade which is attribute from
+attribute from shada from the sheet language and then
+shada from the sheet language and then it will do it same as the read the
+it will do it same as the read the target but you can still render into the
+target but you can still render into the buffer so you don't render any pixel
+buffer so you don't render any pixel twice all you like that I've sort of two
+twice all you like that I've sort of two related questions first you mentioned
+related questions first you mentioned that the budget for rendering new new
+that the budget for rendering new new pages was one millisecond right how many
+pages was one millisecond right how many texels could you actually fill in one
+texels could you actually fill in one millisecond how many how many texts so I
+millisecond how many how many texts so I mean the the one millisecond hmm implies
+mean the the one millisecond hmm implies some kind of actual amount of texture
+some kind of actual amount of texture you could actually fill for creating new
+you could actually fill for creating new MIPS so mm-hmm are you talking about -
+MIPS so mm-hmm are you talking about - how many new virtual types of pages I
+how many new virtual types of pages I can actually render well I guess
+can actually render well I guess physical texture pages yeah physical
+physical texture pages yeah physical texture pages I can actually render yeah
+maybe 10 20 i don't know me ten something okay because you don't really
+something okay because you don't really when you when you when the player walks
+when you when you when the player walks in the team you they are not updated
+in the team you they are not updated frequently
+frequently right what so the related question is
+right what so the related question is what about weird extreme cases like a
+what about weird extreme cases like a player taking the helicopter and from
+player taking the helicopter and from when I get very close to the ground very
+when I get very close to the ground very very quickly like I'm hugging the ground
+very quickly like I'm hugging the ground so creating like a worst-case scenario
+so creating like a worst-case scenario where you're mmm
+where you're mmm zipping over the ground and you're sort
+zipping over the ground and you're sort of getting ahead of the cache yeah so I
+of getting ahead of the cache yeah so I mean you mentioned that you fall back
+mean you mentioned that you fall back but are there cases where the the
+but are there cases where the the blurring of falling back can become
+blurring of falling back can become actually obvious so yeah I mention I
+actually obvious so yeah I mention I have a fallback to low res right virtru
+have a fallback to low res right virtru mid Maps right
+mid Maps right yes actually you're right you could
+yes actually you're right you could sometimes like when you really run a lot
+sometimes like when you really run a lot of pages in one frame and you could not
+of pages in one frame and you could not finish and you have to postpone from the
+finish and you have to postpone from the next frame right for example if you walk
+next frame right for example if you walk forward and know if you if you I can
+forward and know if you if you I can walk backward like like do this and you
+walk backward like like do this and you suddenly turn like 180 degree around you
+suddenly turn like 180 degree around you could see the pages like transition from
+could see the pages like transition from blurred to sharp and sometimes it's
+blurred to sharp and sometimes it's quite obvious so we have a different
+quite obvious so we have a different algorithm for this so in this case we
+algorithm for this so in this case we sort the pages according to that
+sort the pages according to that importance so I always render the
+importance so I always render the important which is in front of me first
+important which is in front of me first then the page that are far away from me
+then the page that are far away from me so you have a lot less visual popping up
+so you have a lot less visual popping up in this case that was quite quite well
+in this case that was quite quite well okay can I steal it here because it's
+okay can I steal it here because it's free frames of latency right your honor
+free frames of latency right your honor lies in CPU mean from GPU meaning it's
+lies in CPU mean from GPU meaning it's gpiod back type of PC driver invokes
+gpiod back type of PC driver invokes free frames of latency
+free frames of latency so in that case exactly you mentioned
+so in that case exactly you mentioned you go you go in backwards then you turn
+you go you go in backwards then you turn around and although you can do that very
+around and although you can do that very fast when you realize what's happening
+fast when you realize what's happening but there will be free frames of
+but there will be free frames of reference chain you'll see blurred image
+we also have a like kind of like CPU page ID feedback so because the GPU page
+page ID feedback so because the GPU page ID feedback will only feed back the
+ID feedback will only feed back the pages that in your view first of right
+pages that in your view first of right and the we increase that feel threatened
+and the we increase that feel threatened a little bit larger so that some pages
+a little bit larger so that some pages that beside you outside the view frustum
+that beside you outside the view frustum we are also included into the feedback
+we are also included into the feedback of the page ID list but they are a bit
+of the page ID list but they are a bit like low res but still it helps because
+like low res but still it helps because when you turn right like you said you
+when you turn right like you said you have a free latency so it's already
+have a free latency so it's already there so I think it will help and also
+there so I think it will help and also usually you don't really see that much
+usually you don't really see that much because a page is quite large so you
+because a page is quite large so you always have the cash than you always
+always have the cash than you always referee's so most time it's okay I so um
+referee's so most time it's okay I so um I just wanted to clarify from the
+I just wanted to clarify from the question that was over there so you're
+question that was over there so you're actually you're rendering the scene
+actually you're rendering the scene again presumably with low resolution
+again presumably with low resolution geometry at you know and 8/8 size is
+geometry at you know and 8/8 size is that right no no are we doing to render
+that right no no are we doing to render again we only render seeing one time I
+again we only render seeing one time I mean that cheap offer but we are put it
+mean that cheap offer but we are put it into a low res range right buffer okay
+into a low res range right buffer okay right okay that was the bit that I okay
+right okay that was the bit that I okay so you're just selecting that based on
+so you're just selecting that based on some of the just yeah one of the one of
+some of the just yeah one of the one of the one oh yeah I should have said that
+the one oh yeah I should have said that right so you have like 16 pixels right
+right so you have like 16 pixels right and then you select one pixels because
+and then you select one pixels because it doesn't matter because usually the
+it doesn't matter because usually the page the new close pixels are sharing
+page the new close pixels are sharing the same page ID right if we if we don't
+the same page ID right if we if we don't share the same page ID it doesn't really
+share the same page ID it doesn't really matter if you have all one level lower
+matter if you have all one level lower you move one X also only totally okay
+you move one X also only totally okay thanks different maps that used to
+thanks different maps that used to pointing currently you talked about
+pointing currently you talked about wanting to have eight maps later on
+wanting to have eight maps later on mm-hmm but currently it's what the hues
+mm-hmm but currently it's what the hues novels particular hmm what kind of thing
+novels particular hmm what kind of thing are you managing with your virtual
+are you managing with your virtual texture what kind of a map I manage with
+texture what kind of a map I manage with the virtual temperatures so we have
+the virtual temperatures so we have diffuse which is XYZ we have normal map
+diffuse which is XYZ we have normal map which is X Y we have specular occlusion
+which is X Y we have specular occlusion and we have roughness we have watch else
+and we have roughness we have watch else I don't remember if I like that textures
+I don't remember if I like that textures how much physical texture see you do the
+how much physical texture see you do the so maps normal map diffuse maybe you can
+so maps normal map diffuse maybe you can utilize alpha channel
+utilize alpha channel yes that's right how many physical
+yes that's right how many physical gestures and three yeah
+what are the Foreman's format diffuse is a TFT one normal map is bc v bc v yes
+a TFT one normal map is bc v bc v yes and another way G actual one I think for
+and another way G actual one I think for the normal map I have to use bc v
+the normal map I have to use bc v otherwise the compression will be really
+otherwise the compression will be really bad and but this file is really great
+okay thank you very much [Applause]

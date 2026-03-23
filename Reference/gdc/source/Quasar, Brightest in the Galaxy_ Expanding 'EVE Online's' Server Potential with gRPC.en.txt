@@ -1,0 +1,1509 @@
+[Music] hi everyone
+hi everyone my name is nick herron i'm the technical
+my name is nick herron i'm the technical director of infrastructure for you
+director of infrastructure for you online at ccp games which is a really
+online at ccp games which is a really long title for cosmic plumber uh we'll
+long title for cosmic plumber uh we'll be talking about quasar which is a
+be talking about quasar which is a collection of technologies uh that we've
+collection of technologies uh that we've employed to evolve the development stack
+employed to evolve the development stack for eve online this includes things like
+for eve online this includes things like grpc it includes things like kubernetes
+grpc it includes things like kubernetes and dolang and we'll talk a lot of
+and dolang and we'll talk a lot of different technologies as we work our
+different technologies as we work our way through
+way through and first we'll kind of go through
+and first we'll kind of go through what is eve online for those of you that
+what is eve online for those of you that might be unfamiliar we'll talk a bit
+might be unfamiliar we'll talk a bit about eve's network topology
+about eve's network topology uh and what that looks like and how
+uh and what that looks like and how that's evolved over time to get us to
+that's evolved over time to get us to this point of
+this point of solving some of these problems uh with a
+solving some of these problems uh with a system like quasar
+system like quasar and ultimately how we fundamentally
+and ultimately how we fundamentally worked on changing
+worked on changing how we build services in eve online from
+how we build services in eve online from a technical aspect and from a cultural
+a technical aspect and from a cultural aspect and so hopefully we can drink
+aspect and so hopefully we can drink from the fire hose fast enough to get to
+from the fire hose fast enough to get to some questions towards the end
+some questions towards the end and let's just start with eve online
+and let's just start with eve online it even online has many different names
+it even online has many different names internet spaceships is probably the most
+internet spaceships is probably the most endearing one
+endearing one there's also spreadsheets in space i
+there's also spreadsheets in space i recently heard the one space lord
+recently heard the one space lord simulator um
+simulator um most people though
+most people though watch eve online from afar
+watch eve online from afar in the sense that they hear about the
+in the sense that they hear about the the
+the heists in corporations or alliances
+heists in corporations or alliances players basically liquidating all assets
+players basically liquidating all assets of other players and massive
+of other players and massive uh
+uh in massive theft uh you know that takes
+in massive theft uh you know that takes like
+like one to two years to kind of really pull
+one to two years to kind of really pull off
+off but ultimately what allows us to happen
+but ultimately what allows us to happen is that
+is that is that eve is a single shard sandbox
+is that eve is a single shard sandbox mmo uh for spaceships
+mmo uh for spaceships and
+and from when we say single shard this means
+from when we say single shard this means that eve online doesn't really have
+that eve online doesn't really have realms or regions everyone's connecting
+realms or regions everyone's connecting to the same server and playing with the
+to the same server and playing with the same resources and playing in the same
+same resources and playing in the same universe
+universe and when we talk about sandbox one of
+and when we talk about sandbox one of the
+the one of the more emergent mechanisms
+one of the more emergent mechanisms inside of eve is is probably the
+inside of eve is is probably the player-driven economy
+player-driven economy and with our
+and with our market the the kind of market
+market the the kind of market transactions are roughly half a million
+transactions are roughly half a million on a slow day and this represents
+on a slow day and this represents probably about 12 billion items
+probably about 12 billion items uh moving around
+uh moving around in the universe but keep in mind that
+in the universe but keep in mind that that number is pretty high considering
+that number is pretty high considering like it's not that high considering that
+like it's not that high considering that uh those things involve like munitions
+uh those things involve like munitions weapons ships
+weapons ships raw materials
+raw materials um
+um and probably the other you know biggest
+and probably the other you know biggest claim to fame for eve online is the
+claim to fame for eve online is the massive fleet fights that we have uh
+massive fleet fights that we have uh we're in the guinness world record for
+we're in the guinness world record for most concurrent participants in a
+most concurrent participants in a multiplayer video game uh for a pvp
+multiplayer video game uh for a pvp battle around 6 500.
+battle around 6 500. and we'll talk a bit about how
+and we'll talk a bit about how dealing with the the natural tendencies
+dealing with the the natural tendencies of the player base to congregate and
+of the player base to congregate and want to basically have a brawl in the
+want to basically have a brawl in the same place how that kind of affects the
+same place how that kind of affects the technology decisions we made and the
+technology decisions we made and the techniques that we use
+techniques that we use to
+to deal with that kind of server load
+deal with that kind of server load and to get a little bit more perspective
+and to get a little bit more perspective on
+on what that means for eve online we can't
+what that means for eve online we can't really just make these broad sweeping
+really just make these broad sweeping changes
+changes easily because eve online has been in
+easily because eve online has been in development for
+development for about 20 years
+about 20 years [Music]
+[Music] and
+and i'm sorry i shouldn't say in development
+i'm sorry i shouldn't say in development it's been bro you've been running for 20
+it's been bro you've been running for 20 years but we've been developing on it
+years but we've been developing on it that entire time
+that entire time it released back in 2003 and
+it released back in 2003 and started development a few years before
+started development a few years before that
+that after 20 years this roughly looks like a
+after 20 years this roughly looks like a little bit more than 2 million change
+little bit more than 2 million change lists in perforce
+lists in perforce and kind of as a silly unit of
+and kind of as a silly unit of measurement to give a little bit of
+measurement to give a little bit of perspective on the size of the code base
+perspective on the size of the code base we talk in the measurement of you know
+we talk in the measurement of you know how many ue4s this represents uh
+how many ue4s this represents uh and so if we start with
+and so if we start with the c plus plus aspect of the engine
+the c plus plus aspect of the engine uh this contains things like the
+uh this contains things like the renderer the simulation engine
+renderer the simulation engine and the seed of python marshalling along
+and the seed of python marshalling along with all of the other middlewares that
+with all of the other middlewares that we have that are integrated into the
+we have that are integrated into the engine itself
+engine itself next up is the sql code base which is a
+next up is the sql code base which is a lot of the backbone of eve online
+lot of the backbone of eve online originally
+originally because this represents about 7000 procs
+because this represents about 7000 procs that power the persistence of eve online
+that power the persistence of eve online and
+and also has a lot of the logic of how the
+also has a lot of the logic of how the gameplay works itself
+gameplay works itself uh i prob i would guesstimate there's
+uh i prob i would guesstimate there's probably around 30 to 70
+probably around 30 to 70 30 70 splits for sequel to python logic
+30 70 splits for sequel to python logic because some of that logic is in sql
+because some of that logic is in sql procs a majority of that logic is
+procs a majority of that logic is definitely in python code
+definitely in python code speaking of python um this represents
+speaking of python um this represents our rules engine
+our rules engine um and
+um and all of the services that we'll be
+all of the services that we'll be talking about
+talking about the uh proprietary protocol that we have
+the uh proprietary protocol that we have for network layer
+for network layer um and this is all powered by stackless
+um and this is all powered by stackless python
+python as well
+as well and then kind of because we got curious
+and then kind of because we got curious a little bit while doing these numbers
+a little bit while doing these numbers ultimately looked at how much authored
+ultimately looked at how much authored content is in the universe
+content is in the universe and that ended up being a concerning 53
+and that ended up being a concerning 53 million lines of yaml uh this is
+million lines of yaml uh this is ultimately where
+ultimately where originally the university of online was
+originally the university of online was authored inside of a sql database but
+authored inside of a sql database but then that was eventually all pulled out
+then that was eventually all pulled out to be authored on on file uh simply to
+to be authored on on file uh simply to take advantage of source control
+take advantage of source control mechanisms like perforce
+mechanisms like perforce and so moving on to a little bit about
+and so moving on to a little bit about what the topology of eve looks like
+so in the beginning it was deceptively
+in the beginning it was deceptively simple eve online
+simple eve online there was basically a data center an
+there was basically a data center an mssql database
+mssql database what we call soul nodes which in any
+what we call soul nodes which in any modern clustered
+modern clustered service
+service these are just basically worker nodes
+these are just basically worker nodes that can take on whatever workloads they
+that can take on whatever workloads they need to to take on
+need to to take on in our case soul nodes naturally started
+in our case soul nodes naturally started spreading out across things like
+spreading out across things like uh character information services or
+uh character information services or alliance services or corporation
+alliance services or corporation services in the game that could also
+services in the game that could also cover regional markets as well depending
+cover regional markets as well depending on how much load was needed and how much
+on how much load was needed and how much processing was needed for each of those
+processing was needed for each of those groupings of services
+groupings of services another example of that is we have our
+another example of that is we have our main trade hub solar system in the
+main trade hub solar system in the universe
+universe which is has a dedicated
+which is has a dedicated soul node to it because it needs
+soul node to it because it needs all of the single logical processor that
+all of the single logical processor that it's using to process all the python
+it's using to process all the python um
+um and all of these souls are then
+and all of these souls are then interconnected to one another uh which
+interconnected to one another uh which gives it the property of being a single
+gives it the property of being a single hop mesh network
+hop mesh network um
+um which is very advantageous in the early
+which is very advantageous in the early stages of figuring out you know how
+stages of figuring out you know how would you load balance how do you how do
+would you load balance how do you how do you route information and traffic that
+you route information and traffic that way but ultimately it's a quadratic
+way but ultimately it's a quadratic problem
+problem of resource management where the more we
+of resource management where the more we scale horizontally the more ram and cpu
+scale horizontally the more ram and cpu processing we need because of that
+processing we need because of that guaranteed one-hot mesh network
+guaranteed one-hot mesh network now we also have proxies which are
+now we also have proxies which are basically the same as the souls it's
+basically the same as the souls it's this exact same code actually
+this exact same code actually but these are more for workloads that
+but these are more for workloads that are
+are slightly different in the sense they're
+slightly different in the sense they're handling all of the desktop client
+handling all of the desktop client connections
+connections and those connections
+and those connections are
+are more about making sure that we can deal
+more about making sure that we can deal with
+with uh the you know tens of thousands of
+uh the you know tens of thousands of connections coming into the cluster
+connections coming into the cluster and not affect the kind of premium that
+and not affect the kind of premium that we have on cpu inside the cluster and
+we have on cpu inside the cluster and the proxies differ slightly from the
+the proxies differ slightly from the solenoids in the sense that the proxies
+solenoids in the sense that the proxies don't connect all the proxies but they
+don't connect all the proxies but they do connect all of their soul nodes so we
+do connect all of their soul nodes so we still have a scaling ceiling to deal
+still have a scaling ceiling to deal with but it's not as
+with but it's not as exaggerated as the the soul node scaling
+exaggerated as the the soul node scaling themselves
+themselves and all of these are connected
+and all of these are connected with a a
+with a a a proprietary network protocol that we
+a proprietary network protocol that we have and this is built on top of what we
+have and this is built on top of what we call carbon io
+call carbon io uh and there's a lot of mechanisms that
+uh and there's a lot of mechanisms that we have in in a certain era of eve
+we have in in a certain era of eve technology where we just have carbon as
+technology where we just have carbon as part of the name and we'll talk about
+part of the name and we'll talk about another one later on
+another one later on the carbon io is basically the the
+the carbon io is basically the the it powers the the proprietary
+it powers the the proprietary network implementation of the protocol
+network implementation of the protocol in python um
+in python um and this combines with techniques like
+and this combines with techniques like uh i o completion ports which is akin to
+uh i o completion ports which is akin to e-polling for linux but it's specific to
+e-polling for linux but it's specific to windows
+windows because these servers are running on
+because these servers are running on windows
+windows and i o completion ports basically
+and i o completion ports basically allows us to defer
+allows us to defer scheduling
+scheduling checking if sockets are available or not
+checking if sockets are available or not which is an actual benefit for us
+which is an actual benefit for us because we use stackless python and
+because we use stackless python and python regardless of its stackless
+python regardless of its stackless python or not can only do one thing at a
+python or not can only do one thing at a time so anything you can do to save
+time so anything you can do to save scheduling time when it's not needed
+scheduling time when it's not needed will be a benefit to performance
+will be a benefit to performance and so moving forward a bit
+and so moving forward a bit we have kind of an interesting
+we have kind of an interesting evolution and reaction that happened in
+evolution and reaction that happened in the infrastructure of eve online very
+the infrastructure of eve online very early on
+early on whenever
+whenever uh there was a release
+uh there was a release and just for clarification we kind of
+and just for clarification we kind of collapsed the souls and proxies into
+collapsed the souls and proxies into monolith services
+monolith services as we move forward to kind of declutter
+as we move forward to kind of declutter some of these uh diagrams but
+some of these uh diagrams but um
+um as we made new releases for eve online
+as we made new releases for eve online uh our we realized that the players
+uh our we realized that the players understood that information was power
+understood that information was power and instantly with a new release with
+and instantly with a new release with new information that was put on a
+new information that was put on a a website or on a forum that would be
+a website or on a forum that would be scraped by bots almost immediately
+scraped by bots almost immediately causing traffic problems and and
+causing traffic problems and and availability problems for both the
+availability problems for both the forums and the websites
+forums and the websites and so a response to that was made where
+and so a response to that was made where the xml api came online and this is just
+the xml api came online and this is just http or sorry this is xml over http
+http or sorry this is xml over http and it just had a direct read-only
+and it just had a direct read-only access to
+access to uh the persistent state of the universe
+uh the persistent state of the universe itself and this had some heavy heavily
+itself and this had some heavy heavily aggressive caching
+aggressive caching on uh the api itself so that probably we
+on uh the api itself so that probably we you wouldn't get anything up to date and
+you wouldn't get anything up to date and faster than an hour timetable but this
+faster than an hour timetable but this was all built to protect uh
+was all built to protect uh the services but also provide a ton of
+the services but also provide a ton of information to the players
+information to the players and this part gets a little bit more
+and this part gets a little bit more interesting because
+interesting because the players started building on
+the players started building on paradigms that we didn't even have names
+paradigms that we didn't even have names for yet even as a as a gaming industry
+for yet even as a as a gaming industry this is well before the advent of mobile
+this is well before the advent of mobile gaming and those kind of things
+gaming and those kind of things and you know players started using these
+and you know players started using these apis to build appointment mechanisms to
+apis to build appointment mechanisms to remind them to go back into the game
+remind them to go back into the game and either update some information that
+and either update some information that they had or some jobs that they had
+they had or some jobs that they had running in the game or update their
+running in the game or update their skill plan their skill cue
+skill plan their skill cue and what they needed in in that skill
+and what they needed in in that skill queue and so this kind of established
+queue and so this kind of established one of the primary uh retention factors
+one of the primary uh retention factors of eve online very very early on
+of eve online very very early on where the community would start
+where the community would start augmenting the actual capabilities of
+augmenting the actual capabilities of eve online as it was growing
+eve online as it was growing then we kind of moved into the era of
+then we kind of moved into the era of web 2.0
+web 2.0 and with this brought on all of the kind
+and with this brought on all of the kind of federated logins uh oauth2 all of
+of federated logins uh oauth2 all of those kind of things and this is where
+those kind of things and this is where we started introducing more
+we started introducing more uh applications out in the wild where
+uh applications out in the wild where they were integrated with a lot more of
+they were integrated with a lot more of these services like the websites and
+these services like the websites and like
+like the launcher at that point
+then ultimately the surface area grows a bit more
+bit more we get to the point where
+we get to the point where uh cc game starts building a
+uh cc game starts building a first-person shooter for playstation
+first-person shooter for playstation called dust 514
+called dust 514 and the one of the goals was to connect
+and the one of the goals was to connect dust 514 with with e because they were
+dust 514 with with e because they were in the same universe
+in the same universe where you could call in
+where you could call in an orbital strike
+an orbital strike from the playstation console to an eve
+from the playstation console to an eve player uh in a spaceship and they
+player uh in a spaceship and they succeeded at that but they needed a way
+succeeded at that but they needed a way to solve for the problem of
+to solve for the problem of how do i make a network call from a
+how do i make a network call from a playstation console to to eve we're not
+playstation console to to eve we're not going to you know rebuild all the
+going to you know rebuild all the proprietary protocol and make it
+proprietary protocol and make it compatible with playstation and all
+compatible with playstation and all these other things and so what ended up
+these other things and so what ended up happening was
+happening was they built a
+they built a a restful interface uh carbon rest so we
+a restful interface uh carbon rest so we called it crest for short
+called it crest for short and
+and this was a a hypermedia restful json api
+this was a a hypermedia restful json api and hypermedia is
+and hypermedia is is a version a methodology of restful
+is a version a methodology of restful implementation where it's a bit more
+implementation where it's a bit more academic in the sense that
+academic in the sense that it's all about self-referential links
+it's all about self-referential links and self-documenting information
+and self-documenting information so that
+so that basically any kind of bot could go
+basically any kind of bot could go through and rebuild and find information
+through and rebuild and find information that you need
+that you need but we slowly learned over the years
+but we slowly learned over the years that
+that it's humans that write the integrations
+it's humans that write the integrations with those applications not robots so
+with those applications not robots so that was a pro and a con for for that
+that was a pro and a con for for that api as soon as it was created
+api as soon as it was created now
+now the the crest interface solved two
+the the crest interface solved two problems the biggest problem being that
+problems the biggest problem being that the xml api was read only and so we
+the xml api was read only and so we couldn't actually affect any change in
+couldn't actually affect any change in the universe
+the universe uh but then there were special endpoints
+uh but then there were special endpoints made that only like the playstation
+made that only like the playstation network could talk to
+network could talk to um
+um for calling in these orbital strikes or
+for calling in these orbital strikes or making these requests for orbital
+making these requests for orbital strikes and that created a new
+strikes and that created a new interesting paradigm where we could
+interesting paradigm where we could write
+write into
+into the universe or at least we had a path
+the universe or at least we had a path to do so
+to do so uh
+uh with this restful uh api
+with this restful uh api now
+now we didn't necessarily open this up
+we didn't necessarily open this up initially to everyone but ultimately it
+initially to everyone but ultimately it kept growing and growing the same way
+kept growing and growing the same way that the xml api kept growing
+that the xml api kept growing and
+and while we allowed right endpoints they
+while we allowed right endpoints they weren't necessarily affecting the
+weren't necessarily affecting the universe the same way that like dust
+universe the same way that like dust could affect the universe
+could affect the universe so what i mean by affecting the universe
+so what i mean by affecting the universe is most of these endpoints you could
+is most of these endpoints you could write to
+write to they would allow you to send an e-mail
+they would allow you to send an e-mail or
+or set your autopilot path or change your
+set your autopilot path or change your contact list uh in the desktop client
+contact list uh in the desktop client those kind of things something that's
+those kind of things something that's localized to the actual character itself
+localized to the actual character itself the other interesting problem that this
+the other interesting problem that this this solved was that it dealt with the
+this solved was that it dealt with the problem space of
+problem space of needing to understand the schema of the
+needing to understand the schema of the database
+database because crest was actually built on top
+because crest was actually built on top of the soul node code the same way that
+of the soul node code the same way that the proxies were so it had access to all
+the proxies were so it had access to all the proprietary protocols
+the proprietary protocols and all the runtime information so i
+and all the runtime information so i didn't really need to care about drift
+didn't really need to care about drift between
+between developers in the monolith services
+developers in the monolith services versus
+versus making sure the xml api could keep up
+making sure the xml api could keep up with the changes in the database schema
+with the changes in the database schema in the database it all just had direct
+in the database it all just had direct access to this information
+access to this information and so that was probably again a pro and
+and so that was probably again a pro and a con in the sense that it gave us the
+a con in the sense that it gave us the capability to get runtime information
+capability to get runtime information not necessarily have to fight with
+not necessarily have to fight with whatever the state of the database would
+whatever the state of the database would eventually be
+eventually be but at the same time it put all the
+but at the same time it put all the constraints on us again for that
+constraints on us again for that monolithic environment and those those
+monolithic environment and those those those points in time where we can't
+those points in time where we can't really get performance or scale out uh
+really get performance or scale out uh for that uh
+for that uh for those nodes in particular
+for those nodes in particular and so then we get to
+and so then we get to you know what
+you know what kind of how do we categorize the the the
+kind of how do we categorize the the the of of this surface area so
+of of this surface area so to kind of reiterate some of these
+to kind of reiterate some of these pieces you know we're using stackless
+pieces you know we're using stackless python we use we're dealing with the
+python we use we're dealing with the global interpreter lock in python this
+global interpreter lock in python this is the piece the global interpreter lock
+is the piece the global interpreter lock is the piece that only allows python to
+is the piece that only allows python to do one thing at a time
+do one thing at a time and then there's also carbon io which
+and then there's also carbon io which again got a lot of speed ups with with
+again got a lot of speed ups with with iocp implementations
+iocp implementations um but ultimately we'd have to like all
+um but ultimately we'd have to like all roads lead back to the global
+roads lead back to the global interpreter block we'd have to find a
+interpreter block we'd have to find a way to get around the global interpreter
+way to get around the global interpreter lock itself
+lock itself then we have the problem of the database
+then we have the problem of the database the fact that every data model every bit
+the fact that every data model every bit of information everything about the
+of information everything about the universe is in a singular database
+universe is in a singular database and this limits
+and this limits what we can change moving forward it
+what we can change moving forward it limits how we can the agility that we
+limits how we can the agility that we have in making bigger changes in that
+have in making bigger changes in that database because ultimately everything
+database because ultimately everything is shared
+is shared um and we'll get into some other things
+um and we'll get into some other things that reinforce this as well
+that reinforce this as well from a maintenance perspective
+from a maintenance perspective we had a problem around deployment so
+we had a problem around deployment so eve online goes down every day at 11 utc
+eve online goes down every day at 11 utc uh and probably reboots in a little
+uh and probably reboots in a little under a minute
+under a minute during that time he's doing a lot of
+during that time he's doing a lot of housekeeping work a lot of that we've
+housekeeping work a lot of that we've kind of taken out so the housekeeping
+kind of taken out so the housekeeping isn't needed uh but we still have a
+isn't needed uh but we still have a bigger uh bigger uh problem to solve
+bigger uh bigger uh problem to solve with you know recycling ram and cleaning
+with you know recycling ram and cleaning out basically what the cluster was doing
+out basically what the cluster was doing during the 24 or the 23-hour run i
+during the 24 or the 23-hour run i should say
+should say and this really
+and this really affects agility because even though we
+affects agility because even though we have the auto reboot to deploy we have
+have the auto reboot to deploy we have to take advantage of that time period to
+to take advantage of that time period to deploy any changes
+deploy any changes and that means that many different teams
+and that means that many different teams have to come online uh to then prep the
+have to come online uh to then prep the you know make sure the builds for that
+you know make sure the builds for that is good prep the changes deploy those
+is good prep the changes deploy those changes uh and all that has to be
+changes uh and all that has to be coordinated and synchronized there's not
+coordinated and synchronized there's not a lot of agility for a team that wants
+a lot of agility for a team that wants to make a change in the universe quickly
+to make a change in the universe quickly there's basically a
+there's basically a 23-hour turnaround to make a change to
+23-hour turnaround to make a change to the server
+and ultimately all of these kind of things lead to uniform criticality
+things lead to uniform criticality and this is kind of present in the
+and this is kind of present in the database where
+database where if you have a database table that's
+if you have a database table that's causing a problem for the database
+causing a problem for the database it doesn't matter how insignificant that
+it doesn't matter how insignificant that feature is it's a problem for everyone
+feature is it's a problem for everyone it's the same with you know if we have a
+it's the same with you know if we have a problem with eve mail
+problem with eve mail and that we should be able to turn that
+and that we should be able to turn that off but ultimately if it causes a bigger
+off but ultimately if it causes a bigger problem for the cluster it could cascade
+problem for the cluster it could cascade through the cluster bringing the entire
+through the cluster bringing the entire cluster down which makes it the same
+cluster down which makes it the same criticality as the space simulation and
+criticality as the space simulation and that doesn't necessarily make sense it
+that doesn't necessarily make sense it doesn't really allow developers to
+doesn't really allow developers to to move quickly and iterate on on those
+to move quickly and iterate on on those services themselves
+services themselves and then there's ultimately problems
+and then there's ultimately problems around the development process so again
+around the development process so again with the database kind of highlights
+with the database kind of highlights this as well where there's really no
+this as well where there's really no domain boundaries
+domain boundaries and this gets into a place where
+we were seeing that you know while there was a user domain and character domain
+was a user domain and character domain and and how all of these pieces were
+and and how all of these pieces were built
+built you know all of those principles were
+you know all of those principles were there but over time
+there but over time you combine that with
+you combine that with uh the fact that there's a single
+uh the fact that there's a single database that there's a monolithic code
+database that there's a monolithic code base
+base and
+and my personal opinion that there's also
+my personal opinion that there's also introduced a dynamically typed language
+introduced a dynamically typed language you combine all three of those and over
+you combine all three of those and over time everything slowly starts to weld
+time everything slowly starts to weld itself together unless you're incredibly
+itself together unless you're incredibly vigilant at that but the amount of
+vigilant at that but the amount of developers that have been through ccp
+developers that have been through ccp it's inevitable that you some of that
+it's inevitable that you some of that will eventually slip through and you
+will eventually slip through and you will then get this momentum that you
+will then get this momentum that you can't really stop
+can't really stop this also gets into data ownership
+this also gets into data ownership the fact that we talked about if you
+the fact that we talked about if you wanted to make a change to the user
+wanted to make a change to the user table and how that worked
+table and how that worked it became difficult to do so because
+it became difficult to do so because everyone owned the data in the database
+everyone owned the data in the database and no one owned the data in the
+and no one owned the data in the database
+database so any broad sweeping major changes
+so any broad sweeping major changes were incredibly difficult to achieve and
+were incredibly difficult to achieve and very laborious to get to the point of of
+very laborious to get to the point of of understanding what the effect of those
+understanding what the effect of those changes would actually be
+changes would actually be and all of this kind of
+and all of this kind of rolls into cognitive load for the
+rolls into cognitive load for the developer
+developer there are so many different things that
+there are so many different things that a developer needs to keep track of in
+a developer needs to keep track of in order to build a feature in order to get
+order to build a feature in order to get anything done there and and our
+anything done there and and our developers have gotten really really
+developers have gotten really really good at this the side effect of that is
+good at this the side effect of that is that it occupies so much of the work
+that it occupies so much of the work that they're doing they can't remotely
+that they're doing they can't remotely think about what would happen if they
+think about what would happen if they try to do something outside the box or
+try to do something outside the box or differently to how we've been doing it
+differently to how we've been doing it for the last 20 years
+for the last 20 years and that's where the real problem lies
+and that's where the real problem lies as far as building new features and
+as far as building new features and and making things more interesting for
+and making things more interesting for eve online
+and so taking that away and looking at this
+taking that away and looking at this again this kind of became
+again this kind of became the list of problems that we had to
+the list of problems that we had to solve in quasars infancy
+solve in quasars infancy and quasar didn't really come about as a
+and quasar didn't really come about as a singular idea
+singular idea initially until we started seeing these
+initially until we started seeing these patterns form
+patterns form and those patterns started forming in
+and those patterns started forming in the same way the patterns formed for the
+the same way the patterns formed for the crest apis
+crest apis where you know dust had a need for that
+where you know dust had a need for that product and they were trying to
+product and they were trying to implement the need for that product
+implement the need for that product and we then started another project
+and we then started another project where we were going to add a companion
+where we were going to add a companion app to
+app to eve online so a mobile app for eve
+eve online so a mobile app for eve online
+online and when looking at that there's all
+and when looking at that there's all sorts of pieces that puzzle that don't
+sorts of pieces that puzzle that don't make any sense
+make any sense is in the terms of how eve online works
+is in the terms of how eve online works the fact that you could send a message
+the fact that you could send a message to somebody who isn't online in eve
+to somebody who isn't online in eve doesn't make sense unless it was email
+doesn't make sense unless it was email unless there's some layer of persistence
+unless there's some layer of persistence to it
+to it there was no concept of of cueing or
+there was no concept of of cueing or deferring information in any of the
+deferring information in any of the real-time systems
+real-time systems um
+um and then also just thinking about how
+and then also just thinking about how many systems would be online to ask
+many systems would be online to ask questions about this
+questions about this would be
+would be even more interesting to see as we saw
+even more interesting to see as we saw all the heavy caching that we're doing
+all the heavy caching that we're doing with the apis themselves
+with the apis themselves and we wanted this to be more reactive
+and we wanted this to be more reactive it would be more dynamic in the sense of
+it would be more dynamic in the sense of what you could do
+what you could do with the application itself
+with the application itself so we started building what we call the
+so we started building what we call the eve swagger interface
+eve swagger interface esi we call it easy
+esi we call it easy um and eve swagger interface is based
+um and eve swagger interface is based off swagger spec originally which is now
+off swagger spec originally which is now open api
+open api and we did this because we wanted
+and we did this because we wanted something concrete
+something concrete that our our actual community could take
+that our our actual community could take and generate code with and build some
+and generate code with and build some interesting things with
+interesting things with um and that was a long process and we
+um and that was a long process and we went through a lot of things that we
+went through a lot of things that we eventually migrated over everybody to
+eventually migrated over everybody to easy from xml api and crest api those
+easy from xml api and crest api those are gone
+are gone um all for the better from what we've
+um all for the better from what we've heard from the community as far as you
+heard from the community as far as you know how how they've been able to build
+know how how they've been able to build things on it
+things on it um
+um but then we started thinking about when
+but then we started thinking about when we were first started building easy
+we were first started building easy we tried to understand okay well where
+we tried to understand okay well where do we put this how do we deploy this
+do we put this how do we deploy this because we know we don't want the
+because we know we don't want the 23-hour cycle of deployment we
+23-hour cycle of deployment we definitely don't want that
+definitely don't want that and and how do we make sure that this
+and and how do we make sure that this doesn't roll into the same level of
+doesn't roll into the same level of criticality as the rest of the pieces of
+criticality as the rest of the pieces of the cluster
+the cluster and how do we make sure that we we stay
+and how do we make sure that we we stay away from any uh of the production
+away from any uh of the production database like like the third-party api
+database like like the third-party api is not the same criticality as if people
+is not the same criticality as if people can actually play the games we need to
+can actually play the games we need to be careful about making sure those don't
+be careful about making sure those don't actually connect to one another
+actually connect to one another and so with that we started getting into
+and so with that we started getting into uh products like kubernetes and cloud
+uh products like kubernetes and cloud providers and the cloud providers
+providers and the cloud providers basically allowed us to provision any of
+basically allowed us to provision any of those pieces that we needed for
+those pieces that we needed for running a database
+running a database we could just online a postgres instance
+we could just online a postgres instance and not have to worry about our massive
+and not have to worry about our massive mssql instance
+mssql instance um
+um and then kubernetes we actually got into
+and then kubernetes we actually got into kubernetes
+kubernetes pretty early on i don't know if that's a
+pretty early on i don't know if that's a bad thing or a good thing considering
+bad thing or a good thing considering you know how many people talk about and
+you know how many people talk about and joke about whether you need cube but
+joke about whether you need cube but we've been growing up with cube since
+we've been growing up with cube since probably 0 16 pre v1
+probably 0 16 pre v1 um and this has given us a lot of power
+um and this has given us a lot of power over how we see
+over how we see developers building services and
+developers building services and deploying them and maintaining them
+deploying them and maintaining them and this has also given us a lot more
+and this has also given us a lot more tooling around dealing with things like
+tooling around dealing with things like uniform criticality in the sense of
+uniform criticality in the sense of cube will make sure that you have
+cube will make sure that you have services that can deal with uh being
+services that can deal with uh being restarted so make sure you have
+restarted so make sure you have redundancy and all these other things so
+redundancy and all these other things so just by nature of how cube works that
+just by nature of how cube works that gave us kind of a
+gave us kind of a a leg up in how we were building those
+a leg up in how we were building those types of services to make sure we had
+types of services to make sure we had zero hit uh down times when we were
+zero hit uh down times when we were transferring from
+transferring from one pod instance to another for example
+one pod instance to another for example but then we were looking at okay now we
+but then we were looking at okay now we have a place to put these services
+have a place to put these services how do we communicate with our primary
+how do we communicate with our primary cluster
+cluster and that all came into a message bus
+and that all came into a message bus the message bus
+the message bus ultimately is one of the key aspects
+ultimately is one of the key aspects of the architecture of quasar in the
+of the architecture of quasar in the sense that we discovered we could
+sense that we discovered we could sidestep decades of technical debt with
+sidestep decades of technical debt with a message bus it gave us an escape hatch
+a message bus it gave us an escape hatch to get in and out of the legacy code
+to get in and out of the legacy code base
+base and then once we had a message bus
+and then once we had a message bus connected and working through that and i
+connected and working through that and i think we originally started with google
+think we originally started with google pub sub and then eventually we wound up
+pub sub and then eventually we wound up in rabbit and q
+in rabbit and q um
+um during all that period of watching this
+during all that period of watching this this ecosystem explode inside the
+this ecosystem explode inside the message bus and the growing and surface
+message bus and the growing and surface area
+area we realized okay we need a way to deal
+we realized okay we need a way to deal with our messages a bit more
+with our messages a bit more uh
+uh a bit more clearly because at the time
+a bit more clearly because at the time they were just json messages flying
+they were just json messages flying around
+around and it became
+and it became very obvious very quickly that we needed
+very obvious very quickly that we needed to change that
+to change that so we started looking into protobuf we
+so we started looking into protobuf we looked at many other schema based things
+looked at many other schema based things uh but ultimately landed on protobuf
+uh but ultimately landed on protobuf and this one's interesting because it
+and this one's interesting because it actually ended up helping us define
+actually ended up helping us define domain boundaries
+domain boundaries really really well in our ecosystem
+really really well in our ecosystem because it introduced this new concept
+because it introduced this new concept of modeling
+of modeling into the system
+into the system that we didn't have before where we it
+that we didn't have before where we it wasn't just a
+wasn't just a a random
+a random uh python function that just appeared
+uh python function that just appeared with some different arguments that had
+with some different arguments that had to work for the whole system to work it
+to work for the whole system to work it was it forced our developers to think
+was it forced our developers to think about a little bit more about what they
+about a little bit more about what they were building and how that worked in the
+were building and how that worked in the whole ecosystem and so it started
+whole ecosystem and so it started creating these nice domain boundaries or
+creating these nice domain boundaries or helping us with that and
+helping us with that and we intentionally started off with this
+we intentionally started off with this because we initially started off with
+because we initially started off with the proto definitions our repo for the
+the proto definitions our repo for the protobuf definitions
+protobuf definitions um
+um we initially started off with the
+we initially started off with the technique of uh consumer driven
+technique of uh consumer driven contracts uh where the idea was that if
+contracts uh where the idea was that if you need something from the ecosystem
+you need something from the ecosystem convey that uh express that in protobuf
+convey that uh express that in protobuf and then have the teams who are
+and then have the teams who are responsible for producing that
+responsible for producing that information uh be able to provide you
+information uh be able to provide you with that information
+with that information and and that is ended up working pretty
+and and that is ended up working pretty well for us for quite some time
+well for us for quite some time now the one of the reasons that we
+now the one of the reasons that we picked protobuf in addition to all the
+picked protobuf in addition to all the other reasons
+other reasons um
+um is that we had our eye on grpc
+is that we had our eye on grpc because we knew eventually we'd have to
+because we knew eventually we'd have to deal with the fact that
+deal with the fact that we shouldn't be in the business of
+we shouldn't be in the business of building a protocol that doesn't make
+building a protocol that doesn't make any sense unless it's solving a specific
+any sense unless it's solving a specific problem and our protocol was solving the
+problem and our protocol was solving the problem of generic services across the
+problem of generic services across the board not a very specific problem
+board not a very specific problem and so one of the reasons we pick
+and so one of the reasons we pick protobuf is to lean into grpc eventually
+protobuf is to lean into grpc eventually and then we got to that point where we
+and then we got to that point where we started thinking about okay protobuf has
+started thinking about okay protobuf has this interesting characteristic where
+this interesting characteristic where you can generate c
+you can generate c plus code and python code from the same
+plus code and python code from the same message definitions
+message definitions and load that c plus plus
+and load that c plus plus module into the same memory that the
+module into the same memory that the python module is loaded and python will
+python module is loaded and python will then marshal
+then marshal two c plus plus and let c plus plus do
+two c plus plus and let c plus plus do the serialization so right off the bat
+the serialization so right off the bat we got a huge performance increase in
+we got a huge performance increase in serialization because ultimately python
+serialization because ultimately python doesn't do the serializing c plus plus
+doesn't do the serializing c plus plus ones
+ones and it was doing in such a way that we
+and it was doing in such a way that we didn't really have to care about the
+didn't really have to care about the complexities behind the scenes of
+complexities behind the scenes of whatever scalar values we were using
+whatever scalar values we were using inside of protobuf that was all covered
+inside of protobuf that was all covered also the interesting side effect of
+also the interesting side effect of providing a more type safe
+providing a more type safe environment within python because
+environment within python because protobuf was enforcing the types that
+protobuf was enforcing the types that were being applied there
+were being applied there and then we started thinking about this
+and then we started thinking about this process of
+process of okay if we can marshal things into c
+okay if we can marshal things into c plus plus the same way that protobuf
+plus plus the same way that protobuf does why couldn't we do that with
+does why couldn't we do that with messages
+messages because ultimately the biggest problem
+because ultimately the biggest problem that we have is when we're looking at
+that we have is when we're looking at fleet fights
+fleet fights we saw
+we saw 30 of our time was being spent in three
+30 of our time was being spent in three major places serialization transmission
+major places serialization transmission and multiplex
+and so serialization pretty obvious transmission
+transmission while we do get benefits from iocp it
+while we do get benefits from iocp it doesn't change the fact that we actually
+doesn't change the fact that we actually have to put the data on the socket um so
+have to put the data on the socket um so that was also a percentage of of the
+that was also a percentage of of the actual cpu time but there's also the
+actual cpu time but there's also the multiplexing when what i mean by
+multiplexing when what i mean by multiplexing is fan in fan out of
+multiplexing is fan in fan out of messages itself so for example a
+messages itself so for example a thousand people in the solar system one
+thousand people in the solar system one person fires that's a thousand messages
+person fires that's a thousand messages technically 999. but you get the point
+technically 999. but you get the point that we then have to multiplex out of
+that we then have to multiplex out of python into those uh clients eventually
+python into those uh clients eventually um
+um and so we realized that with the message
+and so we realized that with the message bus
+bus we got that for free
+we got that for free ultimately because
+ultimately because that's the point of message they knew
+that's the point of message they knew how to do routing and fan out all those
+how to do routing and fan out all those were kind of built in so ultimately with
+were kind of built in so ultimately with the domain boundaries that we had set up
+the domain boundaries that we had set up and the modeling that we had set up
+and the modeling that we had set up usage of the
+usage of the of the message bus became kind of second
+of the message bus became kind of second nature to achieve what we were already
+nature to achieve what we were already doing in our own proprietary systems
+doing in our own proprietary systems but then we started looking at the
+but then we started looking at the serialization and the transmission part
+serialization and the transmission part so
+so even though we got faster serialization
+even though we got faster serialization it still meant that we had to spend time
+it still meant that we had to spend time within the global interpreter lock to
+within the global interpreter lock to wait for c plus to give us that
+wait for c plus to give us that information back
+information back and so we started toying around was the
+and so we started toying around was the idea of okay what if we had an actual
+idea of okay what if we had an actual thread
+thread beside the main python thread
+beside the main python thread and when i say things like actual thread
+and when i say things like actual thread so stackless python operates on a single
+so stackless python operates on a single logical processor
+logical processor the end
+the end and i don't mean core i mean single
+and i don't mean core i mean single logical process
+logical process and so we have a very finite amount of
+and so we have a very finite amount of cpu that we can actually use there which
+cpu that we can actually use there which it might be gobbled up by these three
+it might be gobbled up by these three things that we're talking about
+things that we're talking about scheduling all and then actual you know
+scheduling all and then actual you know um
+um rules engines or any other simulation
+rules engines or any other simulation pieces that may need to be translated
+pieces that may need to be translated into python
+into python but ultimately we realized if we have a
+but ultimately we realized if we have a separate thread doing this we could
+separate thread doing this we could simply marshal the messages to and from
+simply marshal the messages to and from python and c plus but then have a
+python and c plus but then have a dedicated c plus
+dedicated c plus thread just burning on
+thread just burning on the actual grpc implementations and then
+the actual grpc implementations and then just handing those versions over to
+just handing those versions over to python because we've already generated
+python because we've already generated the python version of those messages so
+the python version of those messages so it gave us a nice ecosystem to sidestep
+it gave us a nice ecosystem to sidestep the global interpreter law completely
+the global interpreter law completely now we can still only go as fast as
+now we can still only go as fast as global interpreter lock but
+global interpreter lock but theoretically that gives us a 30
+theoretically that gives us a 30 performance increase because we're no
+performance increase because we're no longer needing to care about
+longer needing to care about serialization transmission or
+serialization transmission or multiplexing because the rest of the
+multiplexing because the rest of the ecosystem kind of takes care of that
+ecosystem kind of takes care of that and that's that's really the core of of
+and that's that's really the core of of where we started looking this whole
+where we started looking this whole looking at this whole system
+looking at this whole system holistically uh and and where the where
+holistically uh and and where the where the name quasar started to come from
+the name quasar started to come from and then once we had that and we
+and then once we had that and we realized well we could we we've done
+realized well we could we we've done this in the server we've proven that
+this in the server we've proven that that works
+that works and then well we can do that for the
+and then well we can do that for the client as well like that's just that's
+client as well like that's just that's just a different domain we need to model
+just a different domain we need to model but we can do that for the client as
+but we can do that for the client as well
+well once we got to that point we realized we
+once we got to that point we realized we could build domain services and we're
+could build domain services and we're specifically not saying microservices
+specifically not saying microservices because
+because that gets tricky ultimately domain
+that gets tricky ultimately domain services being you know this service is
+services being you know this service is responsible for anything you can do with
+responsible for anything you can do with a user this service is responsible for
+a user this service is responsible for anything you do with skills or
+anything you do with skills or corporation
+corporation or the market for example
+or the market for example but once we saw this
+but once we saw this it became a bit more interesting to
+it became a bit more interesting to reason about where we got to currently
+reason about where we got to currently with quasar
+with quasar it it allowed us to then sidestep all of
+it it allowed us to then sidestep all of those pieces of the techno of the
+those pieces of the techno of the previous
+previous uh era of technology because we can
+uh era of technology because we can isolate the domain services and every
+isolate the domain services and every resource that they need
+resource that they need in a cloud provider
+in a cloud provider but we needed a way to get to and from
+but we needed a way to get to and from all of these pieces so one of the other
+all of these pieces so one of the other things that we learned early on
+things that we learned early on uh was you know running a message bus
+uh was you know running a message bus or having a message bus is tricky
+or having a message bus is tricky because most people just want their
+because most people just want their messages the side effect of that
+messages the side effect of that sometimes is that they start treating it
+sometimes is that they start treating it as a hard drive
+as a hard drive and because of that because the domain
+and because of that because the domain services we want to really standardize
+services we want to really standardize all of that across the board based on
+all of that across the board based on the rpcs that we defined in the the grpc
+the rpcs that we defined in the the grpc protobuf definitions
+protobuf definitions we onlined uh the service gateway which
+we onlined uh the service gateway which represents our east-west traffic
+represents our east-west traffic uh which is ultimately any kind of ccp
+uh which is ultimately any kind of ccp networks that we have
+networks that we have uh which is our cloud provider and our
+uh which is our cloud provider and our data center among other networks as well
+data center among other networks as well and then for anything that was outside
+and then for anything that was outside of those networks it was north south
+of those networks it was north south traffic we had the public gateway and so
+traffic we had the public gateway and so on the service gateway side that was
+on the service gateway side that was basically all of our services and our
+basically all of our services and our our legacy services connecting into the
+our legacy services connecting into the service gateway which rpc and on the
+service gateway which rpc and on the client side we have all of our
+client side we have all of our applications connecting in uh through
+applications connecting in uh through grpc into the public gateway now it's
+grpc into the public gateway now it's not technically all grpc so the desktop
+not technically all grpc so the desktop client the launcher those are definitely
+client the launcher those are definitely grpc um those have full connectivity and
+grpc um those have full connectivity and have full capabilities
+have full capabilities but things like the third party apis
+but things like the third party apis easy is still going through
+easy is still going through a
+a swagger spec interface and then getting
+swagger spec interface and then getting to the message bus um the websites are
+to the message bus um the websites are going the websites in the installer are
+going the websites in the installer are going through
+going through a http gateway which then translates
+a http gateway which then translates that into events on the message bus
+that into events on the message bus um the mobile client also same as the
+um the mobile client also same as the third party apis it has a back end that
+third party apis it has a back end that has direct access to rabbit and queue
+has direct access to rabbit and queue and so with all of these pieces
+and so with all of these pieces we
+we basically kind of were able to address
+basically kind of were able to address most of the problem spaces of being able
+most of the problem spaces of being able to have go from proprietary technology
+to have go from proprietary technology to standard technology and this includes
+to standard technology and this includes protobuf grpc cube
+protobuf grpc cube um postgres
+um postgres rabbitmq amqp protocols all these
+rabbitmq amqp protocols all these different things that we have access to
+different things that we have access to now
+now and again to reiterate this was a
+and again to reiterate this was a message bus ecosystem
+message bus ecosystem so it allowed us to add and remove
+so it allowed us to add and remove pieces without really needing to
+pieces without really needing to reconfigure any other pieces of the
+reconfigure any other pieces of the ecosystem which was very important for
+ecosystem which was very important for us at the beginning because we didn't
+us at the beginning because we didn't really know how this was all going to
+really know how this was all going to play out
+and then also the ubiquitous language of the
+also the ubiquitous language of the ecosystem so
+ecosystem so protobuf provide us a way to
+protobuf provide us a way to express how the ecosystem should
+express how the ecosystem should interact with one another
+interact with one another without being tied to implementation
+without being tied to implementation details that's a very powerful
+details that's a very powerful capability because it allowed us to then
+capability because it allowed us to then think about okay what does this really
+think about okay what does this really need to do
+need to do and allow us to push more into our
+and allow us to push more into our pre-production processes and get people
+pre-production processes and get people to the place where
+to the place where they understood exactly what they're
+they understood exactly what they're building and then understood exactly
+building and then understood exactly what they needed to build and the how
+what they needed to build and the how came later
+came later as far as the details of the
+as far as the details of the implementation
+implementation and then again domain services the
+and then again domain services the domain services here
+domain services here allowed us to
+allowed us to to build a lot of different pieces
+to build a lot of different pieces in isolation to get rid of that uniform
+in isolation to get rid of that uniform criticality to allow people to iterate
+criticality to allow people to iterate at their own speeds that was a very
+at their own speeds that was a very important part of this
+important part of this um i mean
+um i mean we we had teams who recently released
+we we had teams who recently released features the day before the release of
+features the day before the release of the feature
+the feature uh you know hey oh we forgot to deploy
+uh you know hey oh we forgot to deploy this no problem do it now
+this no problem do it now and that was
+and that was done they just did that and that's a
+done they just did that and that's a wildly different cultural experience
+wildly different cultural experience than what the rest of our developers are
+than what the rest of our developers are used to where it's 11 o'clock server
+used to where it's 11 o'clock server goes down switch out everything work
+goes down switch out everything work with all the other teams get it back
+with all the other teams get it back online hope everything's working
+online hope everything's working correctly or else we have to have
+correctly or else we have to have another downtime or
+another downtime or hot fix it until like live reload code
+hot fix it until like live reload code until we get to the next downtime
+until we get to the next downtime and so what have we kind of learned from
+and so what have we kind of learned from you know introducing this suite of
+you know introducing this suite of technologies
+technologies into our ecosystem so
+into our ecosystem so the first one we kind of touched on
+the first one we kind of touched on earlier is the micro versus domain
+earlier is the micro versus domain um we've been very careful not to call
+um we've been very careful not to call them micro services simply because
+them micro services simply because we kind of got the feeling that nobody
+we kind of got the feeling that nobody knows what that means
+knows what that means um and ultimately this came from mobile
+um and ultimately this came from mobile and web where you have better isolated
+and web where you have better isolated systems like completely orthogonal
+systems like completely orthogonal orthogonal systems that are interacting
+orthogonal systems that are interacting with each other on a specific client
+with each other on a specific client like a browser or mobile or mobile app
+like a browser or mobile or mobile app itself
+itself whereas a game client intrinsically is
+whereas a game client intrinsically is a monolith like
+a monolith like we're not going to get away from that
+we're not going to get away from that anytime soon but that'd be very
+anytime soon but that'd be very interesting to see us kind of grow out
+interesting to see us kind of grow out of that
+of that but everything that we have is very
+but everything that we have is very coupled data ultimately everything
+coupled data ultimately everything inside of a game plan needs to interact
+inside of a game plan needs to interact with everything else in a game plan you
+with everything else in a game plan you have to separate that by boundaries
+have to separate that by boundaries those boundaries being domain boundaries
+those boundaries being domain boundaries and so these are one of the first things
+and so these are one of the first things that we learned
+that we learned another big one was and this is probably
+another big one was and this is probably another conversation and of itself
+another conversation and of itself is message bus versus service mesh
+is message bus versus service mesh we again like we said earlier chose to
+we again like we said earlier chose to go with a message bus simply because it
+go with a message bus simply because it was it was easier it was just so much
+was it was easier it was just so much simpler because we could see everything
+simpler because we could see everything in one place uh we understood how we
+in one place uh we understood how we could add and remove pieces to the
+could add and remove pieces to the puzzle not to worry about what was on
+puzzle not to worry about what was on the other side as long as producers and
+the other side as long as producers and consumers were doing their jobs
+consumers were doing their jobs whereas the service mesh has a lot of
+whereas the service mesh has a lot of complexity up front a service measure is
+complexity up front a service measure is great if you know exactly how you know
+great if you know exactly how you know that change is going to play out um we
+that change is going to play out um we do keep an eye on things like linker d
+do keep an eye on things like linker d and istio
+and istio as well as things like uh
+as well as things like uh envoy and ambassador for cube um but
+envoy and ambassador for cube um but ultimately we're pretty happy with our
+ultimately we're pretty happy with our message bus ecosystem especially after
+message bus ecosystem especially after we saw a recent release from uh linker d
+we saw a recent release from uh linker d about performance
+about performance uh they have probably a i think they
+uh they have probably a i think they said a 20 millisecond overhead uh we're
+said a 20 millisecond overhead uh we're seeing a five millisecond overhead in
+seeing a five millisecond overhead in our
+our ecosystem so we're still pretty happy
+ecosystem so we're still pretty happy with that unless that changes anytime
+with that unless that changes anytime soon we probably won't be heavily
+soon we probably won't be heavily looking into a service mesh uh shift uh
+looking into a service mesh uh shift uh but that's one of the first uh
+but that's one of the first uh conversations big conversations that we
+conversations big conversations that we had about the ecosystem
+had about the ecosystem we also learned that
+we also learned that apis represent team boundaries and this
+apis represent team boundaries and this is this is a really big one for the
+is this is a really big one for the cultural aspect of it
+cultural aspect of it simply because
+simply because when teams were working in the monolith
+when teams were working in the monolith they had to solve all of the problems
+they had to solve all of the problems and
+and once you started peeling away some of
+once you started peeling away some of those problems they got more freedom to
+those problems they got more freedom to do more things
+do more things basically focus on the product they're
+basically focus on the product they're trying to build it got a little bit more
+trying to build it got a little bit more interesting an example of this is
+interesting an example of this is usually when teams build
+usually when teams build something a new feature they're building
+something a new feature they're building tooling for the customer support the
+tooling for the customer support the game masters player experience those
+game masters player experience those types of teams
+types of teams but in this ecosystem what we do is we
+but in this ecosystem what we do is we basically say build the api
+basically say build the api and then we'll help the tooling teams
+and then we'll help the tooling teams use that api but you don't have to
+use that api but you don't have to provide the tooling form
+provide the tooling form so these teams that had to worry about a
+so these teams that had to worry about a ui for how to manipulate or or
+ui for how to manipulate or or administrate their feature that that
+administrate their feature that that kind of all kind of fell away because
+kind of all kind of fell away because ultimately it's about the api and what
+ultimately it's about the api and what the actual functionality of the future
+the actual functionality of the future was
+and then ultimately like relatively speaking
+speaking new technology is easy culture is not
+new technology is easy culture is not and we learn this in a very interesting
+and we learn this in a very interesting way because the
+way because the the td of eve online the the head cosmic
+the td of eve online the the head cosmic plumber uh
+plumber uh we were we were working with a lot of
+we were we were working with a lot of teams and building these different
+teams and building these different pieces and we were trying to understand
+pieces and we were trying to understand like the problem isn't learning the
+like the problem isn't learning the technology the problem isn't the time to
+technology the problem isn't the time to learn the technology it's something
+learn the technology it's something nobody wants to once they don't want to
+nobody wants to once they don't want to learn the technology
+learn the technology it's not complex technology and we
+it's not complex technology and we learned that the cultural shift from
+learned that the cultural shift from working
+working in a in a 20 year old code base
+in a in a 20 year old code base to a
+to a newer more progressive code base in the
+newer more progressive code base in the sense of having modern techniques
+sense of having modern techniques involved like
+involved like upfront test driven development upfront
+upfront test driven development upfront domain driven design
+domain driven design all of those things built in you have
+all of those things built in you have these uh
+these uh almost
+almost subconscious behaviors that happen
+subconscious behaviors that happen because they're not the developers
+because they're not the developers aren't belligerent or malicious in any
+aren't belligerent or malicious in any way but when you have this giant
+way but when you have this giant umbrella of a monolith you think about
+umbrella of a monolith you think about things differently and you worry about
+things differently and you worry about things in different ways because you
+things in different ways because you have to because of all those big uh that
+have to because of all those big uh that uniform criticality
+uniform criticality and then a lot of that kind of allows
+and then a lot of that kind of allows you to get away with some interesting
+you to get away with some interesting things that you wouldn't normally get
+things that you wouldn't normally get away with if it's a very isolated and
+away with if it's a very isolated and focused project
+focused project and so this was probably the biggest uh
+and so this was probably the biggest uh the biggest cultural change that we had
+the biggest cultural change that we had to deal with in general um
+to deal with in general um but then
+but then overall like why why this holistic
+overall like why why this holistic approach why not fix things individually
+approach why not fix things individually i mean we ultimately saw with the
+i mean we ultimately saw with the outcome of fixing things individually
+outcome of fixing things individually with the xml api and crest was
+with the xml api and crest was but all we've been talking internally
+but all we've been talking internally and externally about you forever like
+and externally about you forever like what what what how does eve live into
+what what what how does eve live into the next decade
+the next decade and so
+and so we know that eve needs to fundamentally
+we know that eve needs to fundamentally change to continue in the next decade
+change to continue in the next decade and that fundamental change cannot
+and that fundamental change cannot happen if we continue
+happen if we continue to work uh in the same manner and so
+to work uh in the same manner and so quasar has become our stepping stone to
+quasar has become our stepping stone to allow and facilitate that fundamental
+allow and facilitate that fundamental change and how we build and maintain
+change and how we build and maintain eve online
+eve online and yeah that about wraps it up thanks
+and yeah that about wraps it up thanks guys i appreciate your time and i think
+guys i appreciate your time and i think we might have some time for some
+we might have some time for some questions
+[Applause] all right thank you very much nick uh if
+all right thank you very much nick uh if anybody has any questions there are two
+anybody has any questions there are two mics you're welcome to form lines we
+mics you're welcome to form lines we will just swap back and forth if anybody
+will just swap back and forth if anybody has more than one question please ask
+has more than one question please ask one question at a time then go back to
+one question at a time then go back to the back of the line and come forward
+the back of the line and come forward again so everybody gets a chance and i
+again so everybody gets a chance and i also just want to remind everybody uh
+also just want to remind everybody uh after this session if you could please
+after this session if you could please fill out the survey it gives him
+fill out the survey it gives him feedback it gives us feedback so we can
+feedback it gives us feedback so we can do better okay thank you very much
+do better okay thank you very much everybody
+hi can you hear me throw a case of the mask
+can you hear me throw a case of the mask sounds good
+sounds good so you're talking about this shift
+so you're talking about this shift between uh culture we're working with
+between uh culture we're working with like a 20 year old code base and how it
+like a 20 year old code base and how it was the hardest thing to change
+was the hardest thing to change uh assumably um you'd think that now for
+uh assumably um you'd think that now for the next 10 years to solve the issue of
+the next 10 years to solve the issue of having to go through that culture shift
+having to go through that culture shift again
+again do you have any plans to kind of like
+do you have any plans to kind of like prophylactically address when you're
+prophylactically address when you're going to make the next change in uh
+going to make the next change in uh culture in order to like integrate the
+culture in order to like integrate the new forms of tech and make that switch
+new forms of tech and make that switch easier
+easier so
+so the the interesting part about that is
+the the interesting part about that is we're in a different phase of the
+we're in a different phase of the lifespan of eve online
+lifespan of eve online so a lot of a lot of eve online
+so a lot of a lot of eve online originally had a lot of great principles
+originally had a lot of great principles in it like if you look at the core
+in it like if you look at the core structure of eve online at the code base
+structure of eve online at the code base it is it is service oriented
+it is it is service oriented architecture which is just you know an
+architecture which is just you know an old-school term for microservices really
+old-school term for microservices really and and all of those things are there
+and and all of those things are there but the problem is that
+but the problem is that in those critical moments where where
+in those critical moments where where eve had to make it work
+eve had to make it work in the early stages of its life
+in the early stages of its life that just kind of piled on and piled on
+that just kind of piled on and piled on and piled on and then of course there's
+and piled on and then of course there's evolutions of of a company's you know
+evolutions of of a company's you know lifespan and how how a product lives
+lifespan and how how a product lives through that
+through that and some of those things have to do with
+and some of those things have to do with the fact that
+the fact that you know at some point they just were
+you know at some point they just were just like great eve's awesome let's just
+just like great eve's awesome let's just keep adding things and there was nothing
+keep adding things and there was nothing really mitigating those factors
+really mitigating those factors and so ultimately what we're looking at
+and so ultimately what we're looking at here is to make sure that we're more
+here is to make sure that we're more modular in the sense of
+modular in the sense of you know
+you know back then eve had to invent a lot of
+back then eve had to invent a lot of things they had to invent carbon io in
+things they had to invent carbon io in order to make things work the way they
+order to make things work the way they want like
+want like things like raft protocols grpc all none
+things like raft protocols grpc all none of that existed like the concept of
+of that existed like the concept of orchestration
+orchestration and in in routing at that complexity
+and in in routing at that complexity level didn't really exist in a real time
+level didn't really exist in a real time system
+system uh so i think the biggest difference
+uh so i think the biggest difference here is that we're the
+here is that we're the like the philosophy has changed where
+like the philosophy has changed where the team that we started this project we
+the team that we started this project we we had the motto of if you can't google
+we had the motto of if you can't google it don't use it simple as that
+it don't use it simple as that and so we stuck with that and that's
+and so we stuck with that and that's kind of what we're hoping helps keep us
+kind of what we're hoping helps keep us on track moving into the future of what
+on track moving into the future of what we should be inventing are only things
+we should be inventing are only things that are unique to our product not the
+that are unique to our product not the rest of the technology stack the rest of
+rest of the technology stack the rest of the world is already using
+the world is already using awesome thank you
+hi can you hear me yeah yeah um so i was wondering um seems
+yeah yeah um so i was wondering um seems like one of the major problems with eve
+like one of the major problems with eve with so much information moving around
+with so much information moving around is that you need to keep an
+is that you need to keep an authoritative kind of
+authoritative kind of copy of the information so that you can
+copy of the information so that you can prevent kind of desync was that kept up
+prevent kind of desync was that kept up mostly by the kind of the single python
+mostly by the kind of the single python thread or is there other measures you
+thread or is there other measures you took
+took so in in the original cluster
+so in in the original cluster uh there was a concept of a session and
+uh there was a concept of a session and that session could move from node to
+that session could move from node to node and whether or not that session was
+node and whether or not that session was up to date
+up to date who knows you could only know that for
+who knows you could only know that for certain if you knew you had an active
+certain if you knew you had an active connection to the the same desktop
+connection to the the same desktop client and so there was this
+client and so there was this authoritative state that moved around in
+authoritative state that moved around in the sense of having quick access not
+the sense of having quick access not necessarily for being authoritative
+necessarily for being authoritative that's the interesting part you could
+that's the interesting part you could always figure out what the actual
+always figure out what the actual authoritative information was that was
+authoritative information was that was easy inside of of the eve cluster it was
+easy inside of of the eve cluster it was the expense that that came at that that
+the expense that that came at that that function call that that db dip whatever
+function call that that db dip whatever that might be that was expensive in the
+that might be that was expensive in the ecosystem of of stackless python
+ecosystem of of stackless python um in quasar
+um in quasar that's still there but it manifested
+that's still there but it manifested itself differently it was interesting
+itself differently it was interesting going through this process again and
+going through this process again and kind of you know working with some of
+kind of you know working with some of the original devs like hilmar our ceo
+the original devs like hilmar our ceo who built some of the original pieces
+who built some of the original pieces and working with talking with him about
+and working with talking with him about like well why do these things exist and
+like well why do these things exist and and re
+and re kind of running into those same kind of
+kind of running into those same kind of problems like as a session but inside of
+problems like as a session but inside of quasar it's taking on a more modern
+quasar it's taking on a more modern approach that you mostly see with things
+approach that you mostly see with things like
+like headers in an http ecosystem where
+headers in an http ecosystem where that's the authoritative information you
+that's the authoritative information you can't really you know if you've ever
+can't really you know if you've ever done anything with like aws in their
+done anything with like aws in their their off protocol they basically
+their off protocol they basically sign those headers so they can't be
+sign those headers so they can't be touched and if they are then you know
+touched and if they are then you know they're wrong
+they're wrong so those paradigms still exist and move
+so those paradigms still exist and move over they just manifest slightly
+over they just manifest slightly differently
+differently okay thank you
+hey nick um quick question for you so is there a class of problems that
+there a class of problems that the changes you recently made is still
+the changes you recently made is still maybe not addressing to do with sort of
+maybe not addressing to do with sort of um
+um the challenges you were talking about
+the challenges you were talking about earlier with schema changes in the
+earlier with schema changes in the database and how
+database and how you know that kind of transpires and is
+you know that kind of transpires and is there still
+there still um a sort of issue with agility and how
+um a sort of issue with agility and how fast you can move around the persistence
+fast you can move around the persistence there
+there yeah so
+yeah so one of the things that kind of caught us
+one of the things that kind of caught us off guard was when we talked about the
+off guard was when we talked about the 53 million lines of of yaml um that's
+53 million lines of of yaml um that's where everything is authored and we use
+where everything is authored and we use perforce as a runtime versioning
+perforce as a runtime versioning mechanism for that and what we didn't
+mechanism for that and what we didn't really think about was that that only
+really think about was that that only solved half the problem
+solved half the problem um
+um sorry so the authoring time version
+sorry so the authoring time version versioning i should say there is no
+versioning i should say there is no runtime versioning and that's where the
+runtime versioning and that's where the problem lies and so what we thought what
+problem lies and so what we thought what we saw developers do initially is that
+we saw developers do initially is that they're like oh we just need to send
+they're like oh we just need to send these ammo files everywhere and we're
+these ammo files everywhere and we're like you're not sending 53 million lines
+like you're not sending 53 million lines of gamble everywhere that's not gonna
+of gamble everywhere that's not gonna happen
+happen and so
+and so uh that's probably one of the blind
+uh that's probably one of the blind sides that we had in this ecosystem
+sides that we had in this ecosystem where then we kind of had to had to just
+where then we kind of had to had to just kind of throw that that mentality away
+kind of throw that that mentality away and say hey you own your data store how
+and say hey you own your data store how do you want to offer your data how do
+do you want to offer your data how do you want to promote your data how do you
+you want to promote your data how do you want to version your data if you even
+want to version your data if you even need to version it
+need to version it um and so that's one of the things that
+um and so that's one of the things that we're still working with teams on to see
+we're still working with teams on to see how that really manifests
+how that really manifests in a in a useful like more generic
+in a in a useful like more generic pattern so to speak
+pattern so to speak brilliant really interesting talk thank
+brilliant really interesting talk thank you
+you thank you
+hi there um earlier you mentioned that if you have
+if you have see a thousand people in one system and
+see a thousand people in one system and one person shoes you get 999 redundant
+one person shoes you get 999 redundant messages
+messages it seems you know redundant to have that
+it seems you know redundant to have that many messages so
+many messages so by what system do you sort of trim that
+by what system do you sort of trim that down to more reasonable size or do you
+down to more reasonable size or do you just deal with all thousand of them
+that's tricky so those messages aren't necessarily
+those messages aren't necessarily redundant because all clients probably
+redundant because all clients probably need to see that that happened so eve
+need to see that that happened so eve online is interesting in the sense that
+online is interesting in the sense that there are no there's no wall blocking
+there are no there's no wall blocking the corners like you can't you can't do
+the corners like you can't you can't do all the old school mmo tricks of making
+all the old school mmo tricks of making the town hall have these indented
+the town hall have these indented entrances and so people can't see
+entrances and so people can't see everyone on the outside everyone on the
+everyone on the outside everyone on the inside can't see around the outside vice
+inside can't see around the outside vice versa right so uh you're in space
+versa right so uh you're in space there's no occlusion uh so everyone is
+there's no occlusion uh so everyone is relevant all the time in a space battle
+relevant all the time in a space battle so
+so the the bigger problem is actually worse
+the the bigger problem is actually worse than that so on top of the 999 that we
+than that so on top of the 999 that we need to send out that we know we need to
+need to send out that we know we need to send out
+send out there might be parts of the object graph
+there might be parts of the object graph that might be unique to certain subsets
+that might be unique to certain subsets of those entities because for example
+of those entities because for example the one part of relevancy that we do
+the one part of relevancy that we do have is whether or not you're cloaked
+have is whether or not you're cloaked if you're cloaked in a ship you're in a
+if you're cloaked in a ship you're in a whole different chain of information
+whole different chain of information that gets pushed out to the clients
+that gets pushed out to the clients because ultimately other like no one
+because ultimately other like no one else knows you're cloaked but that means
+else knows you're cloaked but that means you're getting separate information
+you're getting separate information based on that
+based on that because we can't leak any other data
+because we can't leak any other data that's relevant to you
+that's relevant to you because then people know you're there
+because then people know you're there and it kind of defeats the whole point
+and it kind of defeats the whole point of cloaking but
+of cloaking but more the espionage stuff we've been
+more the espionage stuff we've been looking more into is how we can provide
+looking more into is how we can provide a
+a less than perfect intel uh
+less than perfect intel uh for eve online but
+for eve online but ultimately i think the
+ultimately i think the the things that we're trying to combat
+the things that we're trying to combat there and that's one of the next big
+there and that's one of the next big things that we want to do with quasar
+things that we want to do with quasar simulation data over quasar
+simulation data over quasar to actually achieve the goal of getting
+to actually achieve the goal of getting rid of that multiplexing problem
+but it also kind of highlights a lot of the
+the uh i've called them barnacles on the
+uh i've called them barnacles on the network protocol where their
+network protocol where their developers just like hey i just need to
+developers just like hey i just need to send like this effect is going and
+send like this effect is going and there's a simulation frame flying by i'm
+there's a simulation frame flying by i'm going to put it on that
+going to put it on that and it makes it really difficult to
+and it makes it really difficult to formalize those messages so the bigger
+formalize those messages so the bigger problem that we have right now is how do
+problem that we have right now is how do we formalize the domain boundaries
+we formalize the domain boundaries within the simulation frames uh versus
+within the simulation frames uh versus any of the extra gameplay logic that's
+any of the extra gameplay logic that's added onto it like if the light's
+added onto it like if the light's blinking on the ship or or the turrets
+blinking on the ship or or the turrets are facing this way as opposed to that
+are facing this way as opposed to that way like those kind of things did they
+way like those kind of things did they answer your question
+answer your question yeah i'd say yeah thank you
+yeah i'd say yeah thank you yeah thanks
+uh can you hear me
+can you hear me yeah
+yeah uh
+uh do you have any data on
+do you have any data on how how the transition to grpc increase
+how how the transition to grpc increase the performance on the
+the performance on the messaging system between the client and
+messaging system between the client and your server side
+your server side yes actually we saw so
+yes actually we saw so it's it's it's comparing apples to
+it's it's it's comparing apples to oranges really uh because ultimately
+oranges really uh because ultimately within a stack of python ecosystem
+within a stack of python ecosystem there's a bit of a tax that tax comes
+there's a bit of a tax that tax comes from the scheduler so the more stuff
+from the scheduler so the more stuff that you're doing the more latency you
+that you're doing the more latency you incur
+incur uh just by definition it's not because
+uh just by definition it's not because you're using more like i mean it is
+you're using more like i mean it is because you're using more cpu but it's
+because you're using more cpu but it's the one logical processor that you have
+the one logical processor that you have so it's a bit apples to oranges but in
+so it's a bit apples to oranges but in general we've seen probably an average
+general we've seen probably an average of 60 millisecond performance increase
+of 60 millisecond performance increase across the board
+across the board and in some cases it's been more
+and in some cases it's been more profound than others
+profound than others okay thank you
+okay thank you [Music]
+[Music] you

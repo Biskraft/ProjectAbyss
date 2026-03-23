@@ -1,0 +1,270 @@
+hi everyone it's me Tim today I want to
+explain exactly how
+criticals work in Fallout and by
+criticals I mean both
+critical successes and critical failures
+this is sort of a follow-up because
+someone asked about this when I
+explained how all the Fallout attributes
+work
+so I want to go through exactly how we
+coded it my notes are really clear on
+this so
+I'll go through
+um
+just so you know there was a
+a critical hit or failure is called an
+outcome we caught it an outcome
+the
+success outcomes were based on where you
+hit the target so that's why called
+shots were important because you'd get a
+different hit effect if you hit someone
+in the head versus hit someone in the
+Torso or in the groin the failures were
+all based on the type of weapon you were
+using
+both Critical Hits uh critical successes
+and failures were both based on the role
+you did and I'll talk about that now all
+the outcomes had a damage multiplier
+which was done in units of one half so
+if
+if the damage multiplier was 2 that
+meant 1.0 so there was no it was the
+damage was the same so if you saw damage
+of one that way you only did half damage
+so a 3 was 1.5 a 4 was 2.0 2.0 the
+reason we did this is integers were far
+less bytes to store than
+um a floating Point number and it was
+frequently we used things like threes
+and fours honest critical success to
+mean I did 50 more damage or I did 100
+more damage because you did 1.5 or 2.
+there's also a list of effects that
+would happen if the
+successor failure happened
+and there could be multiple ones they
+were done as Flags so there could be
+multiple effects at once also critical
+successes had something additional which
+they had a stacked that the target had
+to roll against and if they failed there
+was a secondary list of effects that
+could be applied
+now critical successes and failures were
+both calculated the same way there was a
+percent
+chance that it would happen based on the
+role you had
+and it was the amount you wrote above or
+below
+what you needed to hit divided by 10. so
+if you needed an 80 and you rolled a 70
+. uh that was a 10 chance if you roll a
+60 you had a 20 chance
+if you rolled a 90 remember failures are
+high if you wrote a 90 and you had an 80
+chance to hit then that was a
+10 percent
+into failure so you had a one percent
+chance of
+failing
+so
+for just success roles
+the chance of succeeding was also you
+also added in your pure luck score now
+because the range was 0 to 100 that
+meant the best you could have is a 100
+chance to hit and roll a uh zero which
+means
+that's uh 100 the 100 divided by 10 is
+10 if your luck was 10 that meant you
+could have a 20 chance of getting a
+critical right there that meant luck
+tended to dominate this because usually
+we're talking you have about an 80
+chance of hitting so the best you'd have
+is an eight percent and then luck would
+add in
+to that so luck was usually proportional
+to
+your
+chance of getting a critical critical
+critical success but often luck was
+higher so somebody with a high luck
+tended to get a lot more
+critical successes
+luck was not a factor in
+uh critical fails in this way but I'll
+explain how it works
+um the other thing I want to point out
+is
+I turned off all criticals all critical
+successes and critical failures on the
+first game day you played
+meaning
+in those caves
+and if you probably had a random
+encounter between the caves and Shady
+Sands
+nobody got a critical success or
+critical failure not you not any of the
+creatures
+why did I do this psychology
+there is no difference between getting a
+critical failure on your first roll and
+then getting 100 hits in a row
+it's identical mathematically to getting
+100 hits in a row and then having a
+critical failure but psychologically I
+discovered very early on
+when we were qaing that that initial
+critical failure if someone started the
+game and immediately had a critical
+failure they would be in my office
+saying your random number generator is
+wrong it's stupid you don't know what
+you're doing you better fix this it's a
+bug I'm Gonna Keep reporting it until
+you fix it
+I could show them the Code
+I could show them how the random number
+generator worked
+didn't matter I was wrong they were
+right finally I just stopped wanting to
+have this conversation so I disabled
+criticals
+interestingly
+while people kept coming to me and
+complaining they were starting the game
+and instantly failing no one noticed
+they had no critical successes either
+and I'm like good
+that psychology thing works both ways
+so the game ships with that I remember
+putting it in
+um so the way critical success was
+processed was exactly like this so if
+the critical success was rolled because
+of the attack
+which was used basing the skill of the
+attacker plus any bonuses they got
+they then rolled a number one to a
+hundred and added the better crit perk
+I think you got plus 20 to this role for
+every level of that perk you took
+so this number mapped to six outcomes
+roughly every 20
+plus one for if you've rolled higher
+than 100 you could only get it if you
+were getting some kind of bonus
+and then that was looked up those six
+outcomes based on
+the location you hit the person so every
+creature had a critical success chart on
+hitting them that was divided up by
+their
+location and each one of those locations
+had six outcomes so
+the effect it would read the effect and
+remember it could be more than one
+effect and those would be applied and
+then would roll against the target's
+stat
+that was indicated for that location
+because often in the head it was uh it
+was mostly rolling for endurance but I
+think when you got hit in the head it
+rolled against luck
+so that luck would factor in
+um
+and if the target failed to roll then
+extra effects got applied and I said
+these could be stacked so an example for
+example an attack might
+say I bypass armor and knock down the
+target
+so that happens but then it says they
+have to roll against their endurance and
+if they fail they'll also be knocked out
+which means there's a possibility they
+were they had their armor bypassed when
+damage was applied and they were knocked
+down and they were knocked out so all
+those could happen
+also note that some creatures in the
+game were marked as immune to critical
+successes I don't know all of them that
+were I only know the overseer was
+so I don't know who what else but the
+overseer you could not critically
+um
+seed against
+of course we're a little different
+they still had outcomes
+but they were based on the weapon type
+so a pistol would fail differently than
+a dagger which would fail differently
+than a missile launcher
+again the player would roll one to a
+hundred but this time would be adjusted
+by luck the roll would go down for every
+for points of luck above five and the
+roll would be adjusted up for like under
+five because remember high high rolls
+are bad when you're critically failing
+these things match to five outcomes
+roughly every twenty percent there was
+no special
+outcome if you rolled over a hundred
+which you could if you were really
+unlucky but we didn't have a special
+failure
+then the effects were applied
+it is possible that some of the weapons
+for the lowest role possible didn't have
+any effects so I would say you
+critically failed but nothing happened
+also just like critical success those
+effects could stack so it's possible
+that
+based on your weapon you could hurt
+yourself and then fall down
+again some creatures were immune to
+critical failure I know the overseer
+couldn't critically failure fail now
+this is talking about when you fought
+the overseer when he was in his console
+that rose up and down and had machine
+guns the overseer who was out in the uh
+hallway when he told you to leave at the
+end was a different overseer
+and then finally those effects would
+last
+for a certain duration
+um things like being knocked out those
+were endurance controlled the higher
+your endurance the less you were knocked
+out
+however some things lasted until they
+were healed so if you got your arm
+crippled say or you were blinded that
+lasted until you had someone use the
+doctor skill on you and heal you
+usually for NPCs that didn't matter
+because if they ever got knocked out or
+um crippled or whatever usually just
+killed them or it was a random encounter
+and you never saw them again so this
+really just mattered for the PC
+but
+the NPCs use the same rules
+that as far as I can tell is exactly the
+process of
+critical hit critical successes and
+critical failures
+in combat in Fallout so I hope that
+answers lots of the questions that
+people have been asking

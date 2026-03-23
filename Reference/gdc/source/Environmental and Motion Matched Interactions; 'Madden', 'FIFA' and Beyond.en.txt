@@ -1,0 +1,903 @@
+[Music]
+hello welcome to environmental and motion match interactions madden fifa
+motion match interactions madden fifa and beyond i'm henry allen a senior
+and beyond i'm henry allen a senior software engineer on the frostbite
+software engineer on the frostbite animation team at electronic arts and
+animation team at electronic arts and the product owner and primary engineer
+the product owner and primary engineer for our multi-character interaction
+for our multi-character interaction system
+the goal for this talk is to share some developments in our multi-character
+developments in our multi-character interaction system at ea that may be of
+interaction system at ea that may be of interest or applicable to similar
+interest or applicable to similar systems and other games and engines
+systems and other games and engines first we'll do a quick overview of
+first we'll do a quick overview of interact ea's multi-character
+interact ea's multi-character interaction system
+interaction system we've shown this at gdc before so we'll
+we've shown this at gdc before so we'll just spend a few minutes briefly
+just spend a few minutes briefly clarifying what it is how it works and
+clarifying what it is how it works and establishing key concepts relevant to
+establishing key concepts relevant to the rest of the talk
+the rest of the talk then we'll move on to the meat of the
+then we'll move on to the meat of the presentation which is focused around two
+presentation which is focused around two topics
+topics first extending this type of system to
+first extending this type of system to interacting not just with other
+interacting not just with other characters but also with the environment
+characters but also with the environment and or objects in the world take this
+and or objects in the world take this kick for example it would probably work
+kick for example it would probably work better without the blindfold that's off
+better without the blindfold that's off topic though but it probably won't work
+topic though but it probably won't work too well without that box for the
+too well without that box for the athlete to brace his hand on
+athlete to brace his hand on the box isn't a character per se but
+the box isn't a character per se but it's integral to the interaction we'll
+it's integral to the interaction we'll look at ways to handle this type of
+look at ways to handle this type of thing using a multi-character
+thing using a multi-character interaction system
+interaction system and then we'll get into motion and pose
+and then we'll get into motion and pose matching we'll take a look at two ways
+matching we'll take a look at two ways we've integrated motion matching tech
+we've integrated motion matching tech with our multi-character tech which have
+with our multi-character tech which have very little to do with this picture
+very little to do with this picture so let's get into it
+so let's get into it interact is short for interaction
+interact is short for interaction scenario system and as stated it's ea's
+scenario system and as stated it's ea's multi-character interaction system
+multi-character interaction system used for detecting multi-character
+used for detecting multi-character situations that match available
+situations that match available multi-character animation content and
+multi-character animation content and then playing and synchronizing the
+then playing and synchronizing the chosen animations to create crafted
+chosen animations to create crafted multi-character gameplay moments in
+multi-character gameplay moments in games that replicate real world
+games that replicate real world interactions like these
+interactions like these for example all the blocking tackling
+for example all the blocking tackling and most other player contacts happening
+and most other player contacts happening here
+here our multi-character interaction system
+our multi-character interaction system is responsible for detecting when these
+is responsible for detecting when these can and should play and coordinating the
+can and should play and coordinating the animations and alignment of the players
+animations and alignment of the players involved
+so briefly how does it work first the game and or animation state
+first the game and or animation state machines control which candidates we can
+machines control which candidates we can even consider
+even consider we'll only spend time looking at
+we'll only spend time looking at candidates who actually requested a
+candidates who actually requested a particular interaction and how fast the
+particular interaction and how fast the conditions to enter it
+conditions to enter it the game creator has total control as to
+the game creator has total control as to whether or when such a request is made
+whether or when such a request is made in the interaction evaluator a
+in the interaction evaluator a centralized processor we gather all
+centralized processor we gather all requests for the frame and group them by
+requests for the frame and group them by interaction requested so we can process
+interaction requested so we can process all candidates for each unique
+all candidates for each unique interaction type as a group
+interaction type as a group for each interaction type being
+for each interaction type being considered we'll first identify a master
+considered we'll first identify a master candidate a reference character around
+candidate a reference character around which will match the interaction
+which will match the interaction in our example we've got the ball
+in our example we've got the ball carriers master
+carriers master so for given master candidate evaluation
+so for given master candidate evaluation we then do a broad face check to quickly
+we then do a broad face check to quickly rule out any candidates who are out of
+rule out any candidates who are out of range of various physical match
+range of various physical match conditions in our database distances
+conditions in our database distances angles speeds etc
+angles speeds etc then identify appropriate role in slot
+then identify appropriate role in slot assignments for each remaining candidate
+assignments for each remaining candidate and finally we search the database of
+and finally we search the database of animations to find a match or not
+animations to find a match or not we're essentially just examining the
+we're essentially just examining the relative trajectories of the master and
+relative trajectories of the master and the candidates looking for animations
+the candidates looking for animations that match
+that match if we do find a match we ask the game or
+if we do find a match we ask the game or animation state machine to start the
+animation state machine to start the animation on each character
+animation on each character and run some additional processing
+and run some additional processing afterwards each frame to adjust the
+afterwards each frame to adjust the participants into alignment
+participants into alignment just to clarify these physical match
+just to clarify these physical match conditions in the database are
+conditions in the database are automatically generated based on the
+automatically generated based on the relative trajectories of the characters
+relative trajectories of the characters in each source animation
+in each source animation with some content creator defined match
+with some content creator defined match tolerances applied
+tolerances applied and we also automatically generate
+and we also automatically generate bounding ranges which encompass the
+bounding ranges which encompass the coverage in the database for each of
+coverage in the database for each of these conditions
+these conditions which is what we use in that broad phase
+which is what we use in that broad phase step i mentioned earlier so that we can
+step i mentioned earlier so that we can efficiently check if a particular match
+efficiently check if a particular match condition like distance to master is
+condition like distance to master is outside the range supported in our
+outside the range supported in our database
+database allowing us to reject various candidates
+allowing us to reject various candidates before getting to the point of searching
+before getting to the point of searching the database
+the database that's as deep as i'm going to go into
+that's as deep as i'm going to go into how the system works today but there's
+how the system works today but there's more detail in the previous interact
+more detail in the previous interact presentation for those interested
+so let's move on to object and environment interaction
+environment interaction we've solved the solve the blindfold
+we've solved the solve the blindfold issue with googly eyes but how do we
+issue with googly eyes but how do we integrate environment and object
+integrate environment and object interaction into this type of system
+interaction into this type of system to lead up to that we need to discuss
+to lead up to that we need to discuss passive participation and interaction
+passive participation and interaction which we refer to as ghost interaction
+this running punch is an example we have two different characters interacting
+two different characters interacting with the same victim the guy in the
+with the same victim the guy in the middle he's not joining into the
+middle he's not joining into the animation or alignment of either
+animation or alignment of either interaction until impact he's a passive
+interaction until impact he's a passive or ghost participant
+or ghost participant at the point of impact he late joins
+at the point of impact he late joins into the interaction that is ready first
+into the interaction that is ready first with the guy on the right in this case
+with the guy on the right in this case and the guy on the left aborts and
+and the guy on the left aborts and transitions into a new punch interaction
+transitions into a new punch interaction this ghosting or passive participation
+this ghosting or passive participation is an important feature for involuntary
+is an important feature for involuntary interaction like getting punched as it
+interaction like getting punched as it lets us keep the user or ai in control
+lets us keep the user or ai in control until the point at which it actually
+until the point at which it actually makes sense to bring them into the
+makes sense to bring them into the interaction
+interaction it also leads to the realization that it
+it also leads to the realization that it can be useful to have interactions where
+can be useful to have interactions where one of the participants never
+one of the participants never participates at all other than to serve
+participates at all other than to serve as a reference point
+as a reference point this juke is triggering two different
+this juke is triggering two different interactions with the ball carrier as
+interactions with the ball carrier as ghost in both
+ghost in both he's totally uninfluenced by the
+he's totally uninfluenced by the defenders as they respond to his move
+defenders as they respond to his move this is essentially a form of
+this is essentially a form of context-driven animation where the
+context-driven animation where the context is provided by some other
+context is provided by some other character
+now since the other character is just providing context for an interaction
+providing context for an interaction there's no technical reason that the
+there's no technical reason that the passive participant actually has to be
+passive participant actually has to be another character
+another character since the vast majority of interaction
+since the vast majority of interaction matching logic is based on trajectories
+matching logic is based on trajectories the partner could simply be a static
+the partner could simply be a static object or locate locator in the world
+object or locate locator in the world matching to a specific location should
+matching to a specific location should actually be simpler than matching
+actually be simpler than matching against other moving characters
+against other moving characters so we should be able to support
+so we should be able to support interacting with objects and environment
+interacting with objects and environment using this exact same system if we alter
+using this exact same system if we alter it to support interacting on some
+it to support interacting on some abstraction instead of directly on
+abstraction instead of directly on characters
+characters so that's what we set out to do
+so that's what we set out to do the runtime was fairly straightforward
+the runtime was fairly straightforward there's just a few properties we use for
+there's just a few properties we use for matching characters
+matching characters but we don't want to represent
+but we don't want to represent interaction points using characters
+interaction points using characters so instead we support defining locators
+so instead we support defining locators in the world which are just identifying
+in the world which are just identifying an interaction point that has these
+an interaction point that has these properties we need
+properties we need the big arrow will represent a locator
+the big arrow will represent a locator here
+here the other issue is we don't want to
+the other issue is we don't want to special case all of our code to work
+special case all of our code to work with both characters and locators
+with both characters and locators so we just added a new interface for
+so we just added a new interface for retrieving information needed for
+retrieving information needed for matching and updated the system to for
+matching and updated the system to for the most part use this interface instead
+the most part use this interface instead of directly operating on characters
+of directly operating on characters and this let us wrap locators in an
+and this let us wrap locators in an implementation of the same interface
+implementation of the same interface so the system can mostly be unaware of
+so the system can mostly be unaware of whether it's looking at a character or a
+whether it's looking at a character or a locator
+locator on the tool side in our sequence
+on the tool side in our sequence controller we added support for locator
+controller we added support for locator tracks where you can add a locator and
+tracks where you can add a locator and specify its interaction slot similar to
+specify its interaction slot similar to how you would for another character
+how you would for another character and support for positioning the locator
+and support for positioning the locator in the scene defining its expected
+in the scene defining its expected relative position and orientation for
+relative position and orientation for this particular interaction animation
+this particular interaction animation and we had to update the code that
+and we had to update the code that measures match conditions for our
+measures match conditions for our database to support detecting slots
+database to support detecting slots represented by locators and doing the
+represented by locators and doing the distance angle etc measurements for
+distance angle etc measurements for those the same as characters but it
+those the same as characters but it wasn't anything crazy
+wasn't anything crazy so here's an early untuned prototype of
+so here's an early untuned prototype of the system in action
+the system in action we've got an interaction with a few
+we've got an interaction with a few vaulting animations each has a locator
+vaulting animations each has a locator in it defining where the character's
+in it defining where the character's hands should go to achieve the vault
+hands should go to achieve the vault interaction
+interaction and then we have locators representing
+and then we have locators representing the vault positions in the world and the
+the vault positions in the world and the character is able to use the interaction
+character is able to use the interaction system to match and playback vault
+system to match and playback vault interactions against those locators
+interactions against those locators selecting and playing appropriate
+selecting and playing appropriate animations based on matching the
+animations based on matching the character's distance and angle to the
+character's distance and angle to the vault locator in the world against the
+vault locator in the world against the distances and angles in the original
+distances and angles in the original animations
+animations in our game preview here we've just
+in our game preview here we've just placed locators at the vault points
+placed locators at the vault points manually for now with the idea they
+manually for now with the idea they could be driven by content creators or
+could be driven by content creators or world queries in the future
+vaulting is just one example of how the setup could be used
+setup could be used you could use it for something as simple
+you could use it for something as simple as having a character reach out and feel
+as having a character reach out and feel the texture of a nearby wall
+the texture of a nearby wall or when the player runs their character
+or when the player runs their character into a wall you can have them push off
+into a wall you can have them push off of it rather than face planning into it
+of it rather than face planning into it or for handling opening door
+or for handling opening door interactions from different angles
+interactions from different angles speeds styles etc or even different
+speeds styles etc or even different character types
+character types or interacting with other objects in the
+or interacting with other objects in the world like treasure chests or furniture
+world like treasure chests or furniture or whatever
+or whatever now we do want to prevent things like
+now we do want to prevent things like attempting to use a door opening
+attempting to use a door opening animation when a vault would be
+animation when a vault would be appropriate
+appropriate so we also support exposing some content
+so we also support exposing some content creator defined type info to for example
+creator defined type info to for example let the content creator just distinguish
+let the content creator just distinguish vault locations from door opening points
+vault locations from door opening points and to support more complex situations
+and to support more complex situations we extended the locator interface to
+we extended the locator interface to optionally exposed game variables
+optionally exposed game variables this just a means in our system to
+this just a means in our system to convey a logical state from the game
+convey a logical state from the game that can be used for matching
+that can be used for matching for example in our tackle case earlier
+for example in our tackle case earlier we have a game variable indicating who's
+we have a game variable indicating who's the ball carrier and that's used as a
+the ball carrier and that's used as a match condition for the ball carrier
+match condition for the ball carrier slot in the interaction
+speaking of more complex cases here's an example of how madden is using this with
+example of how madden is using this with tackles
+tackles they've placed the locator in the
+they've placed the locator in the animation to indicate the relative
+animation to indicate the relative position of a first down or end zone
+position of a first down or end zone line for this specific interaction
+line for this specific interaction so that in game when a tackle occurs
+so that in game when a tackle occurs near one of these lines we can use the
+near one of these lines we can use the locator on the line to match this type
+locator on the line to match this type of animation that shows awareness and
+of animation that shows awareness and has the player reaching across for a
+has the player reaching across for a first down or touchdown
+as shown here in madden they're spawning locators as needed when the character is
+locators as needed when the character is near the first down or end zone allowing
+near the first down or end zone allowing the system to match against them and
+the system to match against them and trigger these multi-character tackle
+trigger these multi-character tackle interactions when appropriate where the
+interactions when appropriate where the locator is an additional persistent who
+locator is an additional persistent who just serves as context and a reference
+just serves as context and a reference point for the interaction
+last bit on locators can this concept be applied to interacting with a moving
+applied to interacting with a moving object because this needs to be in the
+object because this needs to be in the game
+game the main issue is with something on a
+the main issue is with something on a ballistic arc you definitely can't
+ballistic arc you definitely can't adjust its position or velocity to have
+adjust its position or velocity to have it sync to an interaction because it
+it sync to an interaction because it doesn't look natural to for example have
+doesn't look natural to for example have the ball change course midair
+the ball change course midair so the character or characters intending
+so the character or characters intending to interact with it really need to do
+to interact with it really need to do the moving
+the moving but you really can't match your
+but you really can't match your interaction with the current position of
+interaction with the current position of the object either because then the
+the object either because then the characters are aligning to an old
+characters are aligning to an old position and chasing the object as it
+position and chasing the object as it moves and they try to align as if they
+moves and they try to align as if they didn't know it was going to keep moving
+didn't know it was going to keep moving so we really need to anticipate the
+so we really need to anticipate the movement
+movement well since we support evaluating
+well since we support evaluating multiple candidates for interactions
+multiple candidates for interactions what if we place multiple locators
+what if we place multiple locators representing future positions of the
+representing future positions of the object then the system can choose to
+object then the system can choose to interact with any future position of the
+interact with any future position of the object as it arrives
+object as it arrives this is the approach that madden team
+this is the approach that madden team came up with to get both single and
+came up with to get both single and multi-character catches using this
+multi-character catches using this system
+system this is some debug output from a madden
+this is some debug output from a madden multiplayer catch
+multiplayer catch these circles are predicted future
+these circles are predicted future excuse me predicted future positions of
+excuse me predicted future positions of the football each of these is
+the football each of these is represented as a locator to the system
+represented as a locator to the system and is using game variables to convey
+and is using game variables to convey the exact time the ball will arrive at
+the exact time the ball will arrive at that particular location
+that particular location so that it can match an interaction with
+so that it can match an interaction with any of them
+any of them in order to create moments like these
+in order to create moments like these where one or two characters interact
+where one or two characters interact with each other and the future position
+with each other and the future position of the ball for a multiplayer catch or
+of the ball for a multiplayer catch or catch deflection interaction
+catch deflection interaction i think this concept and even the
+i think this concept and even the implementation of using locators with
+implementation of using locators with the multi-character interaction system
+the multi-character interaction system is pretty simple maybe even obvious but
+is pretty simple maybe even obvious but we're also finding it to be incredibly
+we're also finding it to be incredibly useful and powerful
+okay now let's move on to the second half of our talk motion matching
+half of our talk motion matching for those not familiar motion matching
+for those not familiar motion matching is an animation technique where given a
+is an animation technique where given a path to follow and a character pose
+path to follow and a character pose it selects the most continuous pose to
+it selects the most continuous pose to play next
+play next out of a database of poses
+out of a database of poses with more and more of our teams relying
+with more and more of our teams relying on motion matching technology to achieve
+on motion matching technology to achieve higher fidelity animation without
+higher fidelity animation without compromising player control it was
+compromising player control it was inevitable that we'd see demand for the
+inevitable that we'd see demand for the same kinds of power in multi-character
+same kinds of power in multi-character situations
+situations one way we tackled this with madden was
+one way we tackled this with madden was integrating motion matching with our
+integrating motion matching with our rally system
+rally system a system that helps get characters into
+a system that helps get characters into position for pre-selected or predicted
+position for pre-selected or predicted interactions
+interactions for example take this case where the
+for example take this case where the characters are too far apart to start a
+characters are too far apart to start a tackle
+tackle the system could look at future
+the system could look at future anticipated positions of the candidates
+anticipated positions of the candidates and pre-choose a potential interaction
+and pre-choose a potential interaction we can then use this information too for
+we can then use this information too for the characters who want to interact
+the characters who want to interact guide them towards the ideal position
+guide them towards the ideal position and rotation for that interaction
+so now we support rallying characters who want to interact using motion
+who want to interact using motion matching
+matching here you can see the blue path is the
+here you can see the blue path is the predicted path of the ball carrier
+predicted path of the ball carrier and the gray path is the plotted
+and the gray path is the plotted intercept path for the tackler
+intercept path for the tackler limited to a time horizon for how far
+limited to a time horizon for how far out we want to initiate tackles
+out we want to initiate tackles if the paths intersect we find an
+if the paths intersect we find an interaction that works for those future
+interaction that works for those future trajectories
+trajectories then use motion matching to drive the
+then use motion matching to drive the defender to the ideal location so the
+defender to the ideal location so the interaction animation can start without
+interaction animation can start without any warping or alignment necessary
+any warping or alignment necessary here it is in motion this gives us much
+here it is in motion this gives us much more flexibility to start interactions
+more flexibility to start interactions from a greater
+from a greater variety of distances and angles
+variety of distances and angles without having to do much if any warping
+without having to do much if any warping to achieve alignment because
+to achieve alignment because participants are using motion match
+participants are using motion match locomotion and pathing to get into the
+locomotion and pathing to get into the ideal location before the interaction
+ideal location before the interaction animation is actually started
+but that's just single character motion matching to get into interactions
+matching to get into interactions how can we apply motion matching once we
+how can we apply motion matching once we are in the context of a multi-character
+are in the context of a multi-character situation while i was doing this the
+situation while i was doing this the initial work at ea in this space
+initial work at ea in this space actually started with the owners of our
+actually started with the owners of our motion matching tech the brilliant folks
+motion matching tech the brilliant folks on our a team
+on our a team they essentially modified their motion
+they essentially modified their motion matching tech so that pose features used
+matching tech so that pose features used for checking quality of different
+for checking quality of different aspects of the pose
+aspects of the pose could be measured relative to user
+could be measured relative to user specified reference joint the
+specified reference joint the character's trajectory joint in this
+character's trajectory joint in this example
+example and then made it so that
+and then made it so that so that the reference joint could
+so that the reference joint could actually come from another character
+actually come from another character so they could identify a reference
+so they could identify a reference character and perform pose and motion
+character and perform pose and motion matching on multiple characters relative
+matching on multiple characters relative to that character's reference joint
+this is one of their first prototypes showing this using multi-character
+showing this using multi-character motion matching to select the two
+motion matching to select the two character punch and punch reaction
+character punch and punch reaction interaction
+interaction they were able to build some pretty
+they were able to build some pretty compelling demos and even shippable tech
+compelling demos and even shippable tech for well-defined setups like two
+for well-defined setups like two characters paired and driven by game
+characters paired and driven by game code
+code however they soon started running into
+however they soon started running into various multi-character problems we've
+various multi-character problems we've solved over the years with interact
+solved over the years with interact like how do you pick apart partners when
+like how do you pick apart partners when there are multiple possibilities or
+there are multiple possibilities or efficiently rule out out-of-range
+efficiently rule out out-of-range candidates
+candidates or deal with potential for multiple
+or deal with potential for multiple simultaneous instances of the
+simultaneous instances of the interaction
+interaction or support passive or ghost
+or support passive or ghost participation for interactions like this
+participation for interactions like this punch where it could look and feel even
+punch where it could look and feel even better if the victim joined on impact
+better if the victim joined on impact dynamic partnering broad phase and ghost
+dynamic partnering broad phase and ghost interactions are already key components
+interactions are already key components of interact along with a host of other
+of interact along with a host of other solutions to multi-character specific
+solutions to multi-character specific problems
+problems so it quickly became clear that
+so it quickly became clear that continuing development of
+continuing development of multi-character motion matching
+multi-character motion matching independent of our existing
+independent of our existing multi-character system was going to lead
+multi-character system was going to lead to duplicated effort on a large scale
+to duplicated effort on a large scale considering the years of development on
+considering the years of development on an interact
+and also competition where our users within ea would have to choose
+within ea would have to choose i'm not making a comment here about one
+i'm not making a comment here about one of these texts being walmart in this
+of these texts being walmart in this poor analogy by the way maybe this is
+poor analogy by the way maybe this is more apt so we realized our teams needed
+more apt so we realized our teams needed to join forces for this problem but we
+to join forces for this problem but we have these two powerful complex systems
+have these two powerful complex systems how do we get them working together
+how do we get them working together well with our motion matching now
+well with our motion matching now supporting multi-character they're both
+supporting multi-character they're both doing their matching relative to a
+doing their matching relative to a reference character
+reference character and they're both at their core animation
+and they're both at their core animation selection systems driven by a database
+selection systems driven by a database of animation
+of animation content so our initial proof of concept
+content so our initial proof of concept was essentially to replace the
+was essentially to replace the interaction scenario database with a
+interaction scenario database with a pose matching database
+pose matching database this actually worked but it was
+this actually worked but it was definitely not getting us access to the
+definitely not getting us access to the full power of both systems we got the
+full power of both systems we got the bare minimum amount of interact that we
+bare minimum amount of interact that we needed but quite a bit of functionality
+needed but quite a bit of functionality was lost with this setup
+was lost with this setup so with our proof of concept we went
+so with our proof of concept we went back to the drawing board to come up
+back to the drawing board to come up with a different approach
+with a different approach one possibility was that consolidating
+one possibility was that consolidating the two databases into one solution with
+the two databases into one solution with the features of both
+the features of both the main issue with this idea is that
+the main issue with this idea is that the two databases function quite
+the two databases function quite differently
+differently for motion matching each match condition
+for motion matching each match condition or pose feature is
+or pose feature is assigned a cost based on how well it
+assigned a cost based on how well it matches the original animation
+matches the original animation and the sum of the cost determines post
+and the sum of the cost determines post cost which we use to compare different
+cost which we use to compare different poses so it's kind of a soft matching
+poses so it's kind of a soft matching well for interaction we do pass fail
+well for interaction we do pass fail matching on each match condition
+matching on each match condition and if any fail we reject the match
+and if any fail we reject the match both are good for the different problems
+both are good for the different problems they're solving and we felt that neither
+they're solving and we felt that neither should necessarily change
+should necessarily change so what we came up with instead was to
+so what we came up with instead was to keep the interaction system functioning
+keep the interaction system functioning exactly how it normally does
+exactly how it normally does but if we have multiple animations or
+but if we have multiple animations or animation frames to choose from after
+animation frames to choose from after interaction selection
+interaction selection we send those results in for motion
+we send those results in for motion matching to help refine the selection
+matching to help refine the selection the key piece to this approach would be
+the key piece to this approach would be entry ranges a feature interact already
+entry ranges a feature interact already supports which allows us to match
+supports which allows us to match against multiple entry points in the
+against multiple entry points in the same animation
+same animation for example here we've defined entry
+for example here we've defined entry points every four frames up to frame 20.
+points every four frames up to frame 20. this leads to the database creating
+this leads to the database creating match conditions for each entry point
+match conditions for each entry point instead of just frame 0.
+instead of just frame 0. the asset and frame just to be selected
+the asset and frame just to be selected is on the left by the way and the match
+is on the left by the way and the match conditions are on the right
+conditions are on the right so for example we can match and start
+so for example we can match and start this animation at frame 16 if the
+this animation at frame 16 if the characters are too close together to
+characters are too close together to match it in an earlier frame
+match it in an earlier frame for the motion matching case we could
+for the motion matching case we could even match ranges of frames figuring
+even match ranges of frames figuring that frames that are near each other can
+that frames that are near each other can generally share match conditions from an
+generally share match conditions from an interaction perspective
+interaction perspective and then send along the passing entries
+and then send along the passing entries or batches of frames to our motion
+or batches of frames to our motion matching to refine the selection
+matching to refine the selection this would let us keep the selection
+this would let us keep the selection features of both systems and keep the
+features of both systems and keep the two distinct matching styles intact
+two distinct matching styles intact and we were hopeful that with
+and we were hopeful that with interaction selection matching and
+interaction selection matching and rejecting batches of frames it would
+rejecting batches of frames it would serve as sort of a broad phase for
+serve as sort of a broad phase for motion matching limiting the number of
+motion matching limiting the number of frames to examine and helping to address
+frames to examine and helping to address some performance and scale
+some performance and scale concerns
+concerns this felt like it could be quite an
+this felt like it could be quite an upgrade from our first attempt
+early in the presentation i showed this video as an example of ghost interaction
+video as an example of ghost interaction and late join but it's also showing off
+and late join but it's also showing off motion matching
+motion matching so let's look at a test case i started
+so let's look at a test case i started with using just interact
+with using just interact again we have a
+again we have a ghost running punch into a late join
+ghost running punch into a late join situation
+situation at the start the system chooses a punch
+at the start the system chooses a punch and
+and punch from the front interaction but the
+punch from the front interaction but the victim being a ghost participant that
+victim being a ghost participant that can do what he wants happens to be
+can do what he wants happens to be turning around
+turning around so when it's time to late join the
+so when it's time to late join the animation is no longer a good match and
+animation is no longer a good match and we bail
+we bail then immediately start a new interaction
+then immediately start a new interaction which is a good match in terms of
+which is a good match in terms of distances angles velocities but it's
+distances angles velocities but it's really poor in terms of pose continuity
+really poor in terms of pose continuity if pose matching was working and we have
+if pose matching was working and we have enough coverage we should be able to get
+enough coverage we should be able to get a much better selection when the
+a much better selection when the animation changes
+animation changes after a flurry of typing here's a here's
+after a flurry of typing here's a here's that same setup
+that same setup exact same situation as before but now
+exact same situation as before but now we've hooked in pose matching on the
+we've hooked in pose matching on the hands and feet
+hands and feet we handled failed join and new selection
+we handled failed join and new selection much more gracefully there's still a
+much more gracefully there's still a hitch but it's a lot better than totally
+hitch but it's a lot better than totally changing hands and feet
+to clarify the animation we chose initially had the ghost joining on this
+initially had the ghost joining on this frame because the characters were facing
+frame because the characters were facing each other at the time we did the
+each other at the time we did the selection
+selection however when it came time for the actual
+however when it came time for the actual join the ghost had rotated 180 degrees
+join the ghost had rotated 180 degrees so the join failed and a new post-match
+so the join failed and a new post-match interaction triggered
+interaction triggered this punch from behind
+this punch from behind which looks a lot better than our
+which looks a lot better than our initial test case since the frame chosen
+initial test case since the frame chosen is taking into account post continuity
+is taking into account post continuity specifically the positions and
+specifically the positions and velocities of the hands and feet
+velocities of the hands and feet the hitch is because we exit the
+the hitch is because we exit the interaction for a frame and start a new
+interaction for a frame and start a new one
+one it could look even better if we had a
+it could look even better if we had a way to just switch animations without
+way to just switch animations without exiting the interaction state at all
+exiting the interaction state at all which leads to our next topic
+which leads to our next topic continuous reselection
+continuous reselection by this time we had a first adopter and
+by this time we had a first adopter and they wanted continuous pose matching for
+they wanted continuous pose matching for their jostling feature
+their jostling feature traditional interactions involve
+traditional interactions involve choosing and playing out in an animation
+choosing and playing out in an animation it's sometimes transitioning between
+it's sometimes transitioning between interactions like this two character to
+interactions like this two character to three character tackle case
+three character tackle case but part of the point of motion matching
+but part of the point of motion matching is the ability to switch from any frame
+is the ability to switch from any frame of any animation in the database to any
+of any animation in the database to any other frame of any other animation as
+other frame of any other animation as needed to best maintain post continuity
+needed to best maintain post continuity while respecting the desired path of the
+while respecting the desired path of the player or now players in our case
+player or now players in our case for example here the green path is the
+for example here the green path is the desired path and the animation and
+desired path and the animation and associated blue path is updating
+associated blue path is updating constantly to match it
+constantly to match it i'll refer to this as re-query
+i'll refer to this as re-query we wanted to integrate motion matching
+we wanted to integrate motion matching re-query in the same way we did for the
+re-query in the same way we did for the initial selection where motion matching
+initial selection where motion matching refines interaction selection
+refines interaction selection however interact did not have this
+however interact did not have this concept of continuous requiring but
+concept of continuous requiring but conceptually it should be able to
+conceptually it should be able to as an aside once we went down the path
+as an aside once we went down the path of interaction matching as a broad phase
+of interaction matching as a broad phase for motion matching there were multiple
+for motion matching there were multiple features and and options we added
+features and and options we added uh we ended up adding to the interaction
+uh we ended up adding to the interaction system to mirror functionality available
+system to mirror functionality available in motion matching to allow them to work
+in motion matching to allow them to work together as seamlessly efficiently and
+together as seamlessly efficiently and effectively as possible this is just the
+effectively as possible this is just the first such change
+first such change so we updated the multi-character system
+so we updated the multi-character system to support re-query
+to support re-query and motion matching hooked into this
+and motion matching hooked into this fairly naturally given the setup we had
+fairly naturally given the setup we had already put in place
+already put in place and this is the example again with
+and this is the example again with continuous re-query enabled
+continuous re-query enabled the hitch is gone because we're changing
+the hitch is gone because we're changing animations more seamless seamlessly and
+animations more seamless seamlessly and without ever dropping out and restarting
+without ever dropping out and restarting the interaction
+the interaction the animation is actually switching
+the animation is actually switching twice before contact because of the
+twice before contact because of the extreme change in rotation of the victim
+extreme change in rotation of the victim between when the interaction was started
+between when the interaction was started and when the victim is in position to
+and when the victim is in position to join
+and here's the setup we used for stress testing this there's no physics or
+testing this there's no physics or collision enabled here so it's a bit
+collision enabled here so it's a bit sloppy uh but it's a proof of concept
+sloppy uh but it's a proof of concept and we've been having fun with this all
+and we've been having fun with this all this punching but i mentioned earlier we
+this punching but i mentioned earlier we had a customer
+had a customer so sam on the a team threw together a
+so sam on the a team threw together a bit of code to provide an input path
+bit of code to provide an input path based on a combination of input paths
+based on a combination of input paths for multiple characters
+for multiple characters and we used that to do this prototype
+and we used that to do this prototype for fifa jostling with 2000 frames of
+for fifa jostling with 2000 frames of animation
+animation two characters are user controlled here
+two characters are user controlled here and you can see their inputs in the top
+and you can see their inputs in the top left
+left i think it shows off pretty well some of
+i think it shows off pretty well some of the benefits of the power and power of
+the benefits of the power and power of combining these two systems
+combining these two systems the ability to maintain control of
+the ability to maintain control of characters during interaction while
+characters during interaction while still getting high fidelity animation by
+still getting high fidelity animation by allowing seamless transition into out of
+allowing seamless transition into out of and between interactions at any frame
+and between interactions at any frame multiple simultaneous instances of the
+multiple simultaneous instances of the interaction automatic partnering and
+interaction automatic partnering and slotting of the characters and automated
+slotting of the characters and automated match conditions of broad phase that let
+match conditions of broad phase that let us easily avoid expensive queries when
+us easily avoid expensive queries when candidates are out of the supported
+candidates are out of the supported range
+so this brings us to the point where we felt pretty good about the systems
+felt pretty good about the systems working together and it was time for
+working together and it was time for fifa to get involved as the first
+fifa to get involved as the first adopter
+adopter if you've had a bunch of data ready to
+if you've had a bunch of data ready to throw at the system and got things set
+throw at the system and got things set up pretty quickly these are just some of
+up pretty quickly these are just some of their animations
+but as you might expect there were a few challenges that presented themselves i
+challenges that presented themselves i don't have time to go into everything
+don't have time to go into everything but i'll touch on a few
+when fifa initially hooked it up we found that selection was very unstable
+found that selection was very unstable it would rarely choose and stay in the
+it would rarely choose and stay in the same animation for more than a frame or
+same animation for more than a frame or two at a time
+two at a time it's kind of the point uh that we should
+it's kind of the point uh that we should be able to switch animations and frames
+be able to switch animations and frames as needed but not constantly and
+as needed but not constantly and seemingly arbitrarily
+seemingly arbitrarily a big reason for this instability was
+a big reason for this instability was the different matching styles
+the different matching styles specifically the hard matching and
+specifically the hard matching and interaction work poorly with continuous
+interaction work poorly with continuous re-query
+re-query that's because for each possible entry
+that's because for each possible entry range any one match condition failing or
+range any one match condition failing or matching on a given frame could totally
+matching on a given frame could totally change the frames available for motion
+change the frames available for motion matching to pick from
+matching to pick from so anytime we're at the fringe values of
+so anytime we're at the fringe values of any match condition we'd continually
+any match condition we'd continually shuffle the frames available to pose
+shuffle the frames available to pose matching which would lead to chosen
+matching which would lead to chosen matches jumping around
+matches jumping around the main thing we did to address this
+the main thing we did to address this was for re-query to expand interaction
+was for re-query to expand interaction match tolerances for subsequent frames
+match tolerances for subsequent frames of the currently playing animation
+of the currently playing animation in other words once we pick a particular
+in other words once we pick a particular animation
+animation the match tolerances to force us out
+the match tolerances to force us out should be more relaxed than the ones
+should be more relaxed than the ones that let us in
+that let us in this made things a lot more stable
+another big issue we faced was how we handled pathing
+handled pathing typically interact supports animation
+typically interact supports animation and alignment dictating the character
+and alignment dictating the character path while interacting which is using
+path while interacting which is using root motion
+root motion that's what we're showing here
+that's what we're showing here we thought this looked really promising
+we thought this looked really promising but there was quickly a realization that
+but there was quickly a realization that using any sort of root motion to align
+using any sort of root motion to align these interactions would take away
+these interactions would take away control from users and affect gameplay
+notice how the blue animation path is never quite taking the player where the
+never quite taking the player where the green desired path indicates that they
+green desired path indicates that they should go
+should go this was a deal breaker for fifa josl
+this was a deal breaker for fifa josl because we couldn't accept taking away
+because we couldn't accept taking away any user control to make these
+any user control to make these interactions play
+interactions play fortunately the fifa engineer working
+fortunately the fifa engineer working with us convinced us to try something
+with us convinced us to try something else
+else just playing the animation without
+just playing the animation without modifying paths at all
+modifying paths at all so we tried it out
+so we tried it out and we found that with enough coverage
+and we found that with enough coverage and tighter tolerances set for choosing
+and tighter tolerances set for choosing the interactions they may play slightly
+the interactions they may play slightly misaligned but it's not so noticeable
+misaligned but it's not so noticeable and at the cost of precise alignment
+and at the cost of precise alignment this gets us higher fidelity
+this gets us higher fidelity interactions than we had before in these
+interactions than we had before in these jostling situations with no compromises
+jostling situations with no compromises on player control and pathing
+on player control and pathing essentially this is the ability to use
+essentially this is the ability to use the system as a continuous
+the system as a continuous multi-character animation selector but
+multi-character animation selector but not for alignment
+performance was also a concern fifa threw a lot of data at the system
+fifa threw a lot of data at the system 82 000 frames of animation last i
+82 000 frames of animation last i checked
+checked so i'd like to touch on just a couple of
+so i'd like to touch on just a couple of the optimizations that we did
+the optimizations that we did something we quickly noticed for this
+something we quickly noticed for this type of jostle interaction it's very
+type of jostle interaction it's very possible and even common for traditional
+possible and even common for traditional interaction matching conditions to stay
+interaction matching conditions to stay static for many frames
+static for many frames here's an extreme example notice how the
+here's an extreme example notice how the relative speeds positions and angles
+relative speeds positions and angles between these characters in this test
+between these characters in this test animation isn't really changing at all
+with our default setup of having entry ranges every four frames we had 75
+ranges every four frames we had 75 entries in the database for this 300
+entries in the database for this 300 frame animation
+frame animation now we could have reduced that number of
+now we could have reduced that number of entries by going every eight frames
+entries by going every eight frames instead for example
+instead for example but in general the larger we make
+but in general the larger we make entries the less precise our interaction
+entries the less precise our interaction matching becomes
+matching becomes because frames sharing an interrange
+because frames sharing an interrange share match conditions
+share match conditions but the match conditions for many of
+but the match conditions for many of those frames in this particular
+those frames in this particular animation are almost identical because
+animation are almost identical because the character's positions and angles
+the character's positions and angles relative to each other is largely static
+relative to each other is largely static so the optimization was to evaluate the
+so the optimization was to evaluate the data offline
+data offline and automatically tune entry ranges to
+and automatically tune entry ranges to extend as long as all the interaction
+extend as long as all the interaction match conditions remain fairly constant
+match conditions remain fairly constant leading to examples like this where we
+leading to examples like this where we went from 75 entries in the database to
+went from 75 entries in the database to 4 for this animation
+4 for this animation this dramatically reduced the size of
+this dramatically reduced the size of our interaction matching database from
+our interaction matching database from about 20 000 entries to around 3000
+about 20 000 entries to around 3000 which helped with performance during the
+which helped with performance during the interaction selection phase
+interaction selection phase and led to us passing in fewer larger
+and led to us passing in fewer larger chunks of data to motion matching which
+chunks of data to motion matching which could be collated more cheaply and which
+could be collated more cheaply and which it could chew through more efficiently
+it could chew through more efficiently than many smaller chunks
+than many smaller chunks this was a nice performance boost
+the other optimization i want to mention has to do with path matching
+has to do with path matching the optimization was actually to add
+the optimization was actually to add more match features to the interaction
+more match features to the interaction system to make it a more effective broad
+system to make it a more effective broad face for the path matching done in the
+face for the path matching done in the motion matching system
+motion matching system and further reduce the number of frames
+and further reduce the number of frames sent to motion matching
+sent to motion matching for example if the green arrow here is
+for example if the green arrow here is our desired path in game
+our desired path in game motion matching would score the red path
+motion matching would score the red path very poorly because it's going to turn
+very poorly because it's going to turn the wrong way in the future
+the wrong way in the future interact didn't have this future match
+interact didn't have this future match concept so we added it in the form of
+concept so we added it in the form of distance and angle to future position
+distance and angle to future position match conditions
+match conditions this lets us rule out many more
+this lets us rule out many more animations and frames that would score
+animations and frames that would score poorly in motion matching both in bulk
+poorly in motion matching both in bulk and much earlier in the process
+and much earlier in the process these two optimizations and others
+these two optimizations and others helped us get performance to target
+helped us get performance to target even with the performance in hand i do
+even with the performance in hand i do need to touch on scalability
+to do these two character jostles we needed a lot of post coverage from the
+needed a lot of post coverage from the same set of angles distances and speeds
+same set of angles distances and speeds for each character
+for each character throwing a third or more characters in
+throwing a third or more characters in would exponentially increase the
+would exponentially increase the required coverage
+required coverage but i think this is really powerful for
+but i think this is really powerful for interactions involving two or maybe
+interactions involving two or maybe three characters
+three characters for continuous re-query like we just saw
+for continuous re-query like we just saw with fifa josling or just helping pick a
+with fifa josling or just helping pick a better start frame
+better start frame and i think it can be used for larger
+and i think it can be used for larger interactions where they're just
+interactions where they're just post-matching a few of the characters to
+post-matching a few of the characters to help pick a better entry frame
+help pick a better entry frame anyhow here's a few cases in action
+anyhow here's a few cases in action you can see that it's often very
+you can see that it's often very transient just a moment of contact
+transient just a moment of contact because we're only using it when the
+because we're only using it when the game situation is very close match to
+game situation is very close match to available animation content
+available animation content and it's not perfectly aligned since
+and it's not perfectly aligned since we've chosen the trade-off here of
+we've chosen the trade-off here of keeping root motion weight at zero
+keeping root motion weight at zero sacrificing precise alignment to avoid
+sacrificing precise alignment to avoid influencing gameplay
+influencing gameplay i think we can improve on this in the
+i think we can improve on this in the future for example using root motion and
+future for example using root motion and alignment carefully in context where it
+alignment carefully in context where it does make sense to get higher fidelity
+does make sense to get higher fidelity visuals
+visuals but we're really happy with the results
+but we're really happy with the results we got from this and looking forward to
+we got from this and looking forward to leveraging it in more games and
+leveraging it in more games and situations
+and that's everything i have for you today
+today thanks to the madden fifa and frostbite
+thanks to the madden fifa and frostbite teams for their feedback and helping
+teams for their feedback and helping collecting the videos i shared and thank
+collecting the videos i shared and thank you for coming i hope you found
+you for coming i hope you found something interesting or useful have a
+something interesting or useful have a great rest of your day
+great rest of your day [Music]
+[Music] you

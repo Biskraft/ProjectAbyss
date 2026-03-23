@@ -1,0 +1,1307 @@
+[Music] okay hello small announcements could
+okay hello small announcements could everyone please silence their mobile
+everyone please silence their mobile phones thank you all for coming
+phones thank you all for coming really appreciate it welcome to play
+really appreciate it welcome to play traverse mechanics in the false world of
+traverse mechanics in the false world of horizon zero dawn my name is Bhavik
+horizon zero dawn my name is Bhavik Hinton and I'm a game programmer at
+Hinton and I'm a game programmer at guerilla I would like to start off with
+guerilla I would like to start off with a short video that gives the impression
+a short video that gives the impression of the various player first mechanics in
+of the various player first mechanics in the first world of horizon zero dawn as
+the first world of horizon zero dawn as the game has just been released this
+the game has just been released this week you might have already seen some
+week you might have already seen some glimpses of it
+so who is this flame-haired female warrior who are we dealing with let me
+warrior who are we dealing with let me introduce to you a Lloyd a tribal
+introduce to you a Lloyd a tribal outcast
+outcast searching to understand our origins a
+searching to understand our origins a law is an adventurer with a lot of
+law is an adventurer with a lot of agility and endurance growing up in a
+agility and endurance growing up in a wild in years of training meter into a
+wild in years of training meter into a very strong climber with well-developed
+very strong climber with well-developed fighting and hunting skills the world of
+fighting and hunting skills the world of horizon is huge and most of most of the
+horizon is huge and most of most of the terrain is procedurally generated the
+terrain is procedurally generated the world sports a lot of different eco
+world sports a lot of different eco tubes there's a large variety of
+tubes there's a large variety of reversed forest vegetation climates and
+reversed forest vegetation climates and wildlife next to that the world is also
+wildlife next to that the world is also filled with man-made structures and
+filled with man-made structures and settlements both indoor as well as
+settlements both indoor as well as outdoor all of this makes it quite
+outdoor all of this makes it quite challenging for game programmer to
+challenging for game programmer to implement a Sulha traversal system so
+implement a Sulha traversal system so now that you had a small introduction to
+now that you had a small introduction to horizon let's have a very quick look on
+horizon let's have a very quick look on what will be covered during this
+what will be covered during this presentation I will explain very briefly
+presentation I will explain very briefly what the goals and constraints were for
+what the goals and constraints were for the traversal mechanics a short look at
+the traversal mechanics a short look at our tools workflow and animation
+our tools workflow and animation pipeline then we'll start off with a
+pipeline then we'll start off with a breakdown on how we achieved creating
+breakdown on how we achieved creating responsive navigation followed by an
+responsive navigation followed by an in-depth description over more advanced
+in-depth description over more advanced traversal mechanics and last some of our
+traversal mechanics and last some of our future plans will be discussed to begin
+future plans will be discussed to begin with I would like to say a few things
+with I would like to say a few things about the goals and constraints that we
+about the goals and constraints that we had for play traversal at the start of
+had for play traversal at the start of the project from the design point of
+the project from the design point of view the overall requirement was to have
+view the overall requirement was to have responsive and fluid movement horizon is
+responsive and fluid movement horizon is an open world action RPG so
+an open world action RPG so responsiveness as a big influence on the
+responsiveness as a big influence on the actual gameplay the traversal
+actual gameplay the traversal development team consists of two
+development team consists of two programmers three animators one designer
+programmers three animators one designer and one producer and from a technical
+and one producer and from a technical point of view everything needed to run
+point of view everything needed to run at a minimum of 30 fps and as the
+at a minimum of 30 fps and as the terrain is mostly procedurally generated
+terrain is mostly procedurally generated we also had to make sure that all the
+we also had to make sure that all the movement would work properly everywhere
+movement would work properly everywhere in the world no matter where you are at
+in the world no matter where you are at guerilla our animators work with both
+guerilla our animators work with both Maya as well as MotionBuilder morpheme
+Maya as well as MotionBuilder morpheme is used as an animation middleware
+is used as an animation middleware consisting of an animation authoring
+consisting of an animation authoring application morphine Kinect and a
+application morphine Kinect and a runtime engine morphing Kinect allows
+runtime engine morphing Kinect allows our animators to graphically Auto blend
+our animators to graphically Auto blend trees state machines and transition
+trees state machines and transition logic all this animation behavior for
+logic all this animation behavior for character is stored in an animation
+character is stored in an animation Network the morphing runtime code that
+Network the morphing runtime code that is integrated into our decima engine
+is integrated into our decima engine then takes care of instantiating such
+then takes care of instantiating such animation networks and handles the
+animation networks and handles the runtime playback the decima engine is
+runtime playback the decima engine is our own in-house developed engine
+our own in-house developed engine consisting of an editor and a runtime
+consisting of an editor and a runtime the decimal editor is our authoring tool
+the decimal editor is our authoring tool that allows users to graphically build
+that allows users to graphically build huge and dynamic game worlds including
+huge and dynamic game worlds including all systems and logic we wanted the
+all systems and logic we wanted the world of rising to have a lot of
+world of rising to have a lot of similarities with our current world
+similarities with our current world covering a lot of different landscapes
+covering a lot of different landscapes the image on the slide shows a typical
+the image on the slide shows a typical traversable area and origin you can see
+traversable area and origin you can see a lot of differences in elevation in the
+a lot of differences in elevation in the terrain and unlike the Dutch landscape
+terrain and unlike the Dutch landscape I'm used to it's not flat at all during
+I'm used to it's not flat at all during the presentation I will explain the
+the presentation I will explain the various mechanics that we have developed
+various mechanics that we have developed that will allow a Lloyd here standing on
+that will allow a Lloyd here standing on the left of the screen to reach the far
+the left of the screen to reach the far right of the screen so if we want to get
+right of the screen so if we want to get anywhere we first have to make sure that
+anywhere we first have to make sure that ello is able to start moving in our
+ello is able to start moving in our opinion the field of responsiveness of a
+opinion the field of responsiveness of a controllable third person character is
+controllable third person character is mostly defined by the starts and stops
+mostly defined by the starts and stops that is why for Rison we really want to
+that is why for Rison we really want to get a fluid and responsive start/stop
+get a fluid and responsive start/stop system the system should support left
+system the system should support left and right footed Ness and the movement
+and right footed Ness and the movement has to be very easy to control where the
+has to be very easy to control where the character should always go into the
+character should always go into the direction of the players input let me
+direction of the players input let me introduce you the first problem we
+introduce you the first problem we encountered during the early prototyping
+encountered during the early prototyping of our start/stop system when trying to
+of our start/stop system when trying to transition from a stop to a start the
+transition from a stop to a start the movement input wasn't directly handled
+movement input wasn't directly handled in the animation network as we were
+in the animation network as we were first waiting for the stop animation to
+first waiting for the stop animation to be completely finished this was done
+be completely finished this was done because the stop animation contains some
+because the stop animation contains some nice secondary motion which we would
+nice secondary motion which we would like to show
+like to show let me visualize what this problem looks
+let me visualize what this problem looks like in the next video
+on the top right you can see the input of the controller now the latency
+of the controller now the latency between the input and the actual
+between the input and the actual movement of a LOI the solution to this
+movement of a LOI the solution to this problem relies heavily on the use of
+problem relies heavily on the use of animation events within morpheme each
+animation events within morpheme each animation clip can be annotated with
+animation clip can be annotated with such events which have a time the
+such events which have a time the duration and an ID the animators can
+duration and an ID the animators can control when and for how long
+control when and for how long events are active and how events are
+events are active and how events are blended with multiple animations more
+blended with multiple animations more from runtime will provide a list of
+from runtime will provide a list of currently active events to the game
+currently active events to the game after each update this is an important
+after each update this is an important tool for game logic to synchronize its
+tool for game logic to synchronize its own state with the animation network we
+own state with the animation network we solve the problem for the unresponsive
+solve the problem for the unresponsive stop to start transition by allowing an
+stop to start transition by allowing an early reaction during the period of time
+early reaction during the period of time that the exit allowed event is active
+that the exit allowed event is active when during this event any movement
+when during this event any movement input is given an early transition to
+input is given an early transition to the start animation is triggered to
+the start animation is triggered to increase responsiveness if no movement
+increase responsiveness if no movement input is given we just continue playing
+input is given we just continue playing the stop animation until the end before
+the stop animation until the end before transitioning to the idle normally the
+transitioning to the idle normally the exit allowed events are only active at
+exit allowed events are only active at the end part of the animation clip the
+the end part of the animation clip the next video demonstrates the result
+let's continue on the starch system by taking a close look into the setup of
+taking a close look into the setup of our directional starts we have three
+our directional starts we have three states controlling how to start we have
+states controlling how to start we have a forward start state and a left and a
+a forward start state and a left and a right one the forward state includes all
+right one the forward state includes all animations for starting to move more or
+animations for starting to move more or less forward within a 45 degree angle
+less forward within a 45 degree angle note that we have no support for
+note that we have no support for stepping backwards as the horizon is all
+stepping backwards as the horizon is all about moving forward as you might have
+about moving forward as you might have noticed there are transitions possible
+noticed there are transitions possible between the different start states this
+between the different start states this is done to make sure that we can already
+is done to make sure that we can already trigger a new start in a different
+trigger a new start in a different direction we found out that this
+direction we found out that this increased responsiveness even further
+within the start system we have three animation variables that control the
+animation variables that control the animation Network a boolean variable
+animation Network a boolean variable move that indicates if we are willing to
+move that indicates if we are willing to move a float variable speed representing
+move a float variable speed representing how fast we are willing to move and a
+how fast we are willing to move and a float variable heading indicating the
+float variable heading indicating the direction in which we would like to move
+direction in which we would like to move movement in code is handled with a
+movement in code is handled with a movement velocity and the turn speed the
+movement velocity and the turn speed the turn speed is dependent on the movement
+turn speed is dependent on the movement speed so the faster we move the faster
+speed so the faster we move the faster we are able to turn a lowest ability to
+we are able to turn a lowest ability to make a moving 180-degree turn by quickly
+make a moving 180-degree turn by quickly steering the movement stake in the
+steering the movement stake in the opposite direction
+opposite direction since gamepad sticks and fingers are
+since gamepad sticks and fingers are slow such subtle changes in movement
+slow such subtle changes in movement Direction still take a few frames
+Direction still take a few frames they're definitely not instant to handle
+they're definitely not instant to handle this properly we are keeping a history
+this properly we are keeping a history of the last three movement input
+of the last three movement input directions and base our stops turns and
+directions and base our stops turns and starts on that movement speed and
+starts on that movement speed and direction are always instantly updated
+direction are always instantly updated though the image on the slide represents
+though the image on the slide represents the blend three of a directional start
+the blend three of a directional start as you can see it contains four blend
+as you can see it contains four blend nodes the first blend node is blending
+nodes the first blend node is blending on the move heading 45 90 and 180 degree
+on the move heading 45 90 and 180 degree this make sure we match the current
+this make sure we match the current direction of the start / direction we
+direction of the start / direction we can achieve three different speed ranges
+can achieve three different speed ranges we have slow walk fast walk and jog and
+we have slow walk fast walk and jog and these inputs are blended on the move
+these inputs are blended on the move speeds for
+with the setup of a directional start in mind let's focus on the animation
+mind let's focus on the animation metadata in the animation clips this
+metadata in the animation clips this diagram shows the trajectory of a 90
+diagram shows the trajectory of a 90 degree directional start all directional
+degree directional start all directional start animations are annotated with
+start animations are annotated with various events and one very important
+various events and one very important one is the local motion event this event
+one is the local motion event this event tells us at runtime if we should use
+tells us at runtime if we should use animation driven movement so during the
+animation driven movement so during the first part of this animation where the
+first part of this animation where the trajectory is rotating we let the
+trajectory is rotating we let the Animation completely dictate the
+Animation completely dictate the movement of our character this is done
+movement of our character this is done to make sure we end in a correct
+to make sure we end in a correct direction as to play with it and it
+direction as to play with it and it reduces the amount of foot sliding when
+reduces the amount of foot sliding when the locomotion event is no longer active
+the locomotion event is no longer active the character's movement will be
+the character's movement will be completely driven by the regular
+completely driven by the regular movement code again the use of the
+movement code again the use of the locomotion event did cause the problem
+locomotion event did cause the problem that our character's movement became
+that our character's movement became unresponsive and uncontrollable during
+unresponsive and uncontrollable during so-called micro movements our movement
+so-called micro movements our movement logic was set up as shown in the diagram
+logic was set up as shown in the diagram on the slide in this example we
+on the slide in this example we transition to a stop if the movement
+transition to a stop if the movement stick is released during a start because
+stick is released during a start because the stop animation contains animation
+the stop animation contains animation driven forward movement transitioning
+driven forward movement transitioning from a start to a stop would take away
+from a start to a stop would take away all control for the player not giving
+all control for the player not giving him any chance to steer or abort we
+him any chance to steer or abort we solve this problem by introducing steps
+solve this problem by introducing steps and shuffles in the start state and
+and shuffles in the start state and remove the transitions from a start to a
+remove the transitions from a start to a stop and from a stop to a start steps
+stop and from a stop to a start steps and shuffles our start motions combined
+and shuffles our start motions combined with stop motions shuffles are
+with stop motions shuffles are considered directional motions where the
+considered directional motions where the foot in there stays the same but quick
+foot in there stays the same but quick rotation and small forward displacement
+rotation and small forward displacement is applied in motion the shuffle is
+is applied in motion the shuffle is triggered by quickly tapping the
+triggered by quickly tapping the movement stick in any direction we
+movement stick in any direction we define a step as a small forward motion
+define a step as a small forward motion where the player switches food in this
+where the player switches food in this the step is triggered by letting go of
+the step is triggered by letting go of the movement stick once the feet have
+the movement stick once the feet have started to cross each other it only
+started to cross each other it only contains forward displacement and no
+contains forward displacement and no rotation each directional starting
+rotation each directional starting contains an event for
+contains an event for we allow the transition to a step or
+we allow the transition to a step or shuffle so let's focus again on the
+shuffle so let's focus again on the animation metadata in the 90-degree
+animation metadata in the 90-degree directional start the moment we want to
+directional start the moment we want to stop moving the current playback
+stop moving the current playback position in the animation determines if
+position in the animation determines if we will trigger a step or a shuffle when
+we will trigger a step or a shuffle when we have reached the end of the animation
+we have reached the end of the animation clip and we still want to keep moving we
+clip and we still want to keep moving we allow an early transition to the cycle
+allow an early transition to the cycle all transitions from a start animation
+all transitions from a start animation to either step or shuffle or
+to either step or shuffle or synchronized transitions meaning that
+synchronized transitions meaning that the time in the source animation is
+the time in the source animation is synced with the destination animation
+synced with the destination animation here's a short video that shows what
+here's a short video that shows what this looks like in action
+now that we're able to start the stop let's continue with the next obstacle as
+let's continue with the next obstacle as seen in the image there's some elevation
+seen in the image there's some elevation noticeable in the terrain smoothly
+noticeable in the terrain smoothly standing on and walking over such rough
+standing on and walking over such rough and wild surfaces turn out to be quite
+and wild surfaces turn out to be quite challenging before going into detail now
+challenging before going into detail now how we achieve smooth movement I would
+how we achieve smooth movement I would first like to mention the constraints
+first like to mention the constraints that we had to take into account for the
+that we had to take into account for the player-character we don't use a
+player-character we don't use a navigation mesh mostly for memory budget
+navigation mesh mostly for memory budget reasons we didn't have one making
+reasons we didn't have one making certain things a little bit harder
+certain things a little bit harder player navigation is done by simulating
+player navigation is done by simulating a capsule shape through the physics
+a capsule shape through the physics world so now real magic happening here
+world so now real magic happening here we do have a maximum sloping of 50
+we do have a maximum sloping of 50 degrees and a maximum speed of Illinois
+degrees and a maximum speed of Illinois six meters per second while sprinting
+six meters per second while sprinting the maximum height that alloy can jump
+the maximum height that alloy can jump is 1.5 meters above the ground our
+is 1.5 meters above the ground our capsule Collider supports different
+capsule Collider supports different predefined sizes where the differ
+predefined sizes where the differ default standing size is 1.8 meters high
+default standing size is 1.8 meters high and 70 centimeters wide for implementing
+and 70 centimeters wide for implementing smooth movement along an even train we
+smooth movement along an even train we need to know what the ground surface
+need to know what the ground surface gradient is and we definitely like to
+gradient is and we definitely like to ignore high-frequency differences in
+ignore high-frequency differences in elevation therefore we cannot directly
+elevation therefore we cannot directly rely on the contact normal of the
+rely on the contact normal of the captions intersection with the ground
+captions intersection with the ground since that's very sensitive to that we
+since that's very sensitive to that we solve this by constructing a contact
+solve this by constructing a contact plane from for collision probes around
+plane from for collision probes around the place capsule Collider and smooth
+the place capsule Collider and smooth out the results over time if you look at
+out the results over time if you look at the top view image on the slide you can
+the top view image on the slide you can see that we have four probes around the
+see that we have four probes around the player marked with a blue dot all the
+player marked with a blue dot all the probes have a fixed start and end offset
+probes have a fixed start and end offset relative to the player's position and
+relative to the player's position and are aligned with the orientation of the
+are aligned with the orientation of the player the contact plane can then be
+player the contact plane can then be constructed by calculating a plane
+constructed by calculating a plane normal which is the cross product of the
+normal which is the cross product of the direction between the right and left
+direction between the right and left contact position with the direction
+contact position with the direction between the front and back contact
+between the front and back contact position we then smooth out the
+position we then smooth out the resulting normal with a previous one to
+resulting normal with a previous one to rule
+rule even more high-frequency noise note that
+even more high-frequency noise note that some intersection points of the probes
+some intersection points of the probes are rejected because of two extreme
+are rejected because of two extreme angles but as long as we have three or
+angles but as long as we have three or more contact positions we can construct
+more contact positions we can construct our plane normal once we have
+our plane normal once we have constructed our contact plane simply
+constructed our contact plane simply projecting a Lloyd desired movement onto
+projecting a Lloyd desired movement onto it will make our move smoothly over the
+it will make our move smoothly over the terrain the forward and lateral slope
+terrain the forward and lateral slope angles are also sent by the game logic
+angles are also sent by the game logic to the animation Network which allows a
+to the animation Network which allows a Lloyd to play additive animations based
+Lloyd to play additive animations based on the slope angle to prevent us from
+on the slope angle to prevent us from having to waste precious cycles while
+having to waste precious cycles while waiting for the probe results we decided
+waiting for the probe results we decided to probe async the collision probes are
+to probe async the collision probes are scheduled so they can be executed on
+scheduled so they can be executed on different threads later in the frame
+different threads later in the frame however this means that the results of
+however this means that the results of approach are lacking one frame as we
+approach are lacking one frame as we have to wait for the frame to be
+have to wait for the frame to be finished to gather our results so now
+finished to gather our results so now that the movement is smooth along uneven
+that the movement is smooth along uneven terrain how do we keep the feet aligned
+terrain how do we keep the feet aligned with the ground the solution for this is
+with the ground the solution for this is to procedurally adjust the position and
+to procedurally adjust the position and orientation of the legs and feet
+orientation of the legs and feet duration events any animations decide
+duration events any animations decide when the feet and X are allowed to be
+when the feet and X are allowed to be adjusted and are called decides where
+adjusted and are called decides where the feet are allowed to be placed
+the feet are allowed to be placed depending on the game state and the
+depending on the game state and the results of the collision probe so
+results of the collision probe so placing a foot and uneven terrain works
+placing a foot and uneven terrain works as follows we start by doing a ray cast
+as follows we start by doing a ray cast from knee height downwards to the
+from knee height downwards to the collision mesh to detect any surface
+collision mesh to detect any surface underneath the foot the intersection
+underneath the foot the intersection point is sent back to the two bone IKS
+point is sent back to the two bone IKS over where the chain will be solved from
+over where the chain will be solved from ankle to knee to hips with adjustments
+ankle to knee to hips with adjustments of the pelvis as well all animations
+of the pelvis as well all animations have been annotated with footrest events
+have been annotated with footrest events that control when a foot is resting on
+that control when a foot is resting on the ground and so we know when I just
+the ground and so we know when I just meant has to be fully active separate
+meant has to be fully active separate events are used per foot the described
+events are used per foot the described approach works quite well in most
+approach works quite well in most situations but one specific case that it
+situations but one specific case that it can't handle is shown here on the slide
+can't handle is shown here on the slide standing close to a cliff with one foot
+standing close to a cliff with one foot in the air we've been calling the
+in the air we've been calling the the floating food problem this happens
+the floating food problem this happens when the downward ray cast is not
+when the downward ray cast is not hitting any ground below the food we
+hitting any ground below the food we solve this problem by adding a full bag
+solve this problem by adding a full bag mechanism in the case that the ray cast
+mechanism in the case that the ray cast is unable to detect the ground once this
+is unable to detect the ground once this happened we perform another intersection
+happened we perform another intersection test but then with a sweat sphere
+test but then with a sweat sphere instead of a ray so we can actually
+instead of a ray so we can actually cover the whole size of the food to find
+cover the whole size of the food to find an intersection with the surface this
+an intersection with the surface this wider intersection test could find
+wider intersection test could find intersections that have a horizontal
+intersections that have a horizontal offset from the food but that's a no
+offset from the food but that's a no perfectly fine by dik however the full
+perfectly fine by dik however the full back mechanism is only enabled for a LOI
+back mechanism is only enabled for a LOI as NPCs are always attached to
+as NPCs are always attached to navigation mesh that guarantees to have
+navigation mesh that guarantees to have a valid surface underneath the next
+a valid surface underneath the next video will demonstrate the result
+it's not only small differences in elevation that Allah will encounter when
+elevation that Allah will encounter when traversing our world she also has to
+traversing our world she also has to deal with blocking obstacles like rocks
+deal with blocking obstacles like rocks broken three robot parts etc SLO is very
+broken three robot parts etc SLO is very agile we wanted her to effortlessly
+agile we wanted her to effortlessly traverse most obstacles on her way and
+traverse most obstacles on her way and so our vault system was born our full
+so our vault system was born our full system is capable of performing three
+system is capable of performing three types of moves
+types of moves we support step up step over and step
+we support step up step over and step off the detection distances in
+off the detection distances in parameters that are used are dependent
+parameters that are used are dependent on the current type of movement for
+on the current type of movement for example swimming or sprinting as
+example swimming or sprinting as different detection settings compared to
+different detection settings compared to normal walking in the vault system the
+normal walking in the vault system the first step is to see if we are actually
+first step is to see if we are actually allowed to vault our level designers can
+allowed to vault our level designers can disable vaulting in certain gameplay
+disable vaulting in certain gameplay areas by placing trigger volumes besides
+areas by placing trigger volumes besides that individual game assets can also be
+that individual game assets can also be marked as not foldable for example a
+marked as not foldable for example a table with a pickup on top of it if the
+table with a pickup on top of it if the player is allowed to vault we start by
+player is allowed to vault we start by scheduling collision probes this
+scheduling collision probes this scheduling is done the same way as how
+scheduling is done the same way as how we detect the surface gradients so again
+we detect the surface gradients so again we will be one frame late as the results
+we will be one frame late as the results will only be available in the next frame
+moving on to the next frame we are now able to process the results from
+able to process the results from previous frame the collision probe that
+previous frame the collision probe that we scheduled is a swept straight
+we scheduled is a swept straight intersection test in front of a loin the
+intersection test in front of a loin the probe starts at the standing height and
+probe starts at the standing height and ends a few metres below the starting
+ends a few metres below the starting point if the intersection point of this
+point if the intersection point of this web sphere is higher than our current
+web sphere is higher than our current position it means we should start
+position it means we should start analyzing the obstacle shape for
+analyzing the obstacle shape for possible step up or step over if the
+possible step up or step over if the intersection point has horizontal offset
+intersection point has horizontal offset relative to the starting point it means
+relative to the starting point it means there is no direct ground underneath the
+there is no direct ground underneath the starting point and we have probably hit
+starting point and we have probably hit an edge and should start searching for a
+an edge and should start searching for a possible step off because we don't use
+possible step off because we don't use navigation mesh for the player we have
+navigation mesh for the player we have no directly available metrics for the
+no directly available metrics for the shape of the obstacle because of this we
+shape of the obstacle because of this we have to
+have to do some smart shape analysis to another
+do some smart shape analysis to another set of collision probes these multiple
+set of collision probes these multiple collision probes are downward ray cast
+collision probes are downward ray cast in front of us with a fixed offset in
+in front of us with a fixed offset in between this way we can detect the depth
+between this way we can detect the depth of the obstacle and determine if the
+of the obstacle and determine if the obstacle is flat enough to actually
+obstacle is flat enough to actually stand on by looking at the height
+stand on by looking at the height differences of the intersection
+differences of the intersection positions of the raycast we can see if
+positions of the raycast we can see if we should be stepping onto the obstacle
+we should be stepping onto the obstacle or if we can actually step over it
+or if we can actually step over it first step off the same logic is applied
+first step off the same logic is applied as a step on the only difference is that
+as a step on the only difference is that the intersection position should be
+the intersection position should be lower than a lowest current position
+lower than a lowest current position once the obstacle shape has been
+once the obstacle shape has been analyzed we store all metrics of the
+analyzed we store all metrics of the found obstacle which allows us to choose
+found obstacle which allows us to choose a matching animation to trigger
+transition selection is based on a scoring system with weighted variables
+scoring system with weighted variables for each transition we calculate the
+for each transition we calculate the score in the transition with the high
+score in the transition with the high score will be triggered first we have to
+score will be triggered first we have to make sure the transition is actually
+make sure the transition is actually possible for the obstacle matrix each
+possible for the obstacle matrix each transition is categorized by an obstacle
+transition is categorized by an obstacle type normal or climb a ball and a full
+type normal or climb a ball and a full type step up step over step off every
+type step up step over step off every transition contains metrics of the
+transition contains metrics of the corresponding fold motion next to that
+corresponding fold motion next to that each transition is allowed in defined
+each transition is allowed in defined ranges maximum upwards displacement
+ranges maximum upwards displacement maximum forwards displacement etc by
+maximum forwards displacement etc by comparing the obstacle metrics with the
+comparing the obstacle metrics with the animation metrics we can select the
+animation metrics we can select the transition that suits best and as we
+transition that suits best and as we prefer climb bow falls over normal fold
+prefer climb bow falls over normal fold folds each transition to climb above
+folds each transition to climb above Stickle receives a bonus score so having
+Stickle receives a bonus score so having looked at finding a valid fall
+looked at finding a valid fall transition let's now move on to
+transition let's now move on to executing one as a result of supporting
+executing one as a result of supporting a variable range for each full
+a variable range for each full transition we introduced the problem the
+transition we introduced the problem the obstacle has probably never the exact
+obstacle has probably never the exact same metrics as the motion in the
+same metrics as the motion in the animation so how can we make sure that
+animation so how can we make sure that the transition will match the obstacle
+the transition will match the obstacle and actually intersects with the shape
+and actually intersects with the shape we use animation warping to solve this
+we use animation warping to solve this problem
+animation warping is the bending and stretching of an animated motion to
+stretching of an animated motion to reach a specific position at a specific
+reach a specific position at a specific time the advantage of warping is that
+time the advantage of warping is that you don't need a lot of unique
+you don't need a lot of unique animations to cover all cases another
+animations to cover all cases another nice thing is that while warping the
+nice thing is that while warping the destination position can be adjusted
+destination position can be adjusted during playback the image on the slide
+during playback the image on the slide gives a rough idea of what animation
+gives a rough idea of what animation warping does on the left side you see
+warping does on the left side you see the original motion and the right shows
+the original motion and the right shows the work motion in order to efficiently
+the work motion in order to efficiently spread out to warping adjustments over
+spread out to warping adjustments over time we need to know the total remaining
+time we need to know the total remaining displacement at any time in the
+displacement at any time in the animation so this will require an
+animation so this will require an analysis of the animation in horizon
+analysis of the animation in horizon zero dawn all the warping is operating
+zero dawn all the warping is operating on each axis individually so consider
+on each axis individually so consider this graph to be the displacement over
+this graph to be the displacement over time on the forward axis of the
+time on the forward axis of the trajectory bone relative to the start
+trajectory bone relative to the start position let's say if our current frame
+position let's say if our current frame is at the orange dotted line you can see
+is at the orange dotted line you can see that the next frame will contain a lot
+that the next frame will contain a lot of forward displacement the frame after
+of forward displacement the frame after that will contain almost no four
+that will contain almost no four displacement and frame after that will
+displacement and frame after that will contain some backwards displacement etc
+by summing up the displacement of the remaining frames we know our total
+remaining frames we know our total remaining displacement to work this
+remaining displacement to work this animation for every frame that's played
+animation for every frame that's played we need to add a little bit of extra
+we need to add a little bit of extra displacement and rotation the amount of
+displacement and rotation the amount of motion that's added each frame is
+motion that's added each frame is dependent on the amount of displacement
+dependent on the amount of displacement in the animation for that frame and the
+in the animation for that frame and the amount that's still remaining
+calculating the amount of extra displacement that is needed is done by
+displacement that is needed is done by dividing the current displacement by the
+dividing the current displacement by the remaining displacement multiplied by the
+remaining displacement multiplied by the requested destination displacement note
+requested destination displacement note that the extra displacement is always
+that the extra displacement is always pointing in the direction of the
+pointing in the direction of the requested destination we improve this
+requested destination we improve this basic warping technique with several
+basic warping technique with several enhancements that improve the
+enhancements that improve the usability and quality of the world
+usability and quality of the world motions a lot during the war motions
+motions a lot during the war motions over volts we needed to make sure that
+over volts we needed to make sure that the hands are placed exactly on the
+the hands are placed exactly on the obstacle shape to achieve this we have
+obstacle shape to achieve this we have extended or warping logic to allow any
+extended or warping logic to allow any bone to reach the given destination this
+bone to reach the given destination this is done by calculating your set of the
+is done by calculating your set of the hand bone to the trajectory bone at any
+hand bone to the trajectory bone at any point in the animation and subtract its
+point in the animation and subtract its offset from the destination position
+offset from the destination position this makes sure the hand bone will end
+this makes sure the hand bone will end up at the destination position one note
+up at the destination position one note when using this technique the trajectory
+when using this technique the trajectory is defined by the motion of the hand
+is defined by the motion of the hand bone another enhancement that we have
+bone another enhancement that we have implemented is to work only during
+implemented is to work only during specific time ranges for example when
+specific time ranges for example when both feet are still on the ground you
+both feet are still on the ground you probably don't want to enable the
+probably don't want to enable the warping yet as this will introduce foot
+warping yet as this will introduce foot sliding this is done by using specific
+sliding this is done by using specific animation events that represents the
+animation events that represents the time window when warping can be applied
+time window when warping can be applied multiple events are allowed in one
+multiple events are allowed in one animation clip this is a very powerful
+animation clip this is a very powerful enhancement to warping and it's very
+enhancement to warping and it's very easy to implement if the animation event
+easy to implement if the animation event isn't active in the frame we don't take
+isn't active in the frame we don't take the displacement into account when
+the displacement into account when calculating our remaining displacement
+calculating our remaining displacement this is illustrated by the graph on the
+this is illustrated by the graph on the slide one problem is that sometimes you
+slide one problem is that sometimes you don't want to reach the destination at
+don't want to reach the destination at the end of the animation but at a
+the end of the animation but at a specific time in the animation we solve
+specific time in the animation we solve this by allowing a user-defined arrival
+this by allowing a user-defined arrival time the arrival time is indicated by
+time the arrival time is indicated by specific event in the animation the
+specific event in the animation the remaining displacement of the animation
+remaining displacement of the animation used in a warping formula is calculated
+used in a warping formula is calculated till the user-defined arrival time the
+till the user-defined arrival time the displacement after this is not affecting
+displacement after this is not affecting the warping but can be used for post
+the warping but can be used for post arrive emotions such as a landing
+arrive emotions such as a landing animation the last enhancement that we
+animation the last enhancement that we have implemented that can really help
+have implemented that can really help improving the quality of the world
+improving the quality of the world motions is to preserve the original
+motions is to preserve the original velocity of the animation one noticeable
+velocity of the animation one noticeable problem
+problem discourse by warping an animation is
+discourse by warping an animation is that adding displacement can cause
+that adding displacement can cause unnatural speedups
+unnatural speedups we solve this issue by also adjusting
+we solve this issue by also adjusting the playback speed of the warped
+the playback speed of the warped animation to illustrate this the graph
+animation to illustrate this the graph on the slide shows the result of an
+on the slide shows the result of an animation warping to twice its own
+animation warping to twice its own distance you can see in a graph marked
+distance you can see in a graph marked with an orange line that this doubles
+with an orange line that this doubles the velocity to solve the unnatural
+the velocity to solve the unnatural speed up we modify the playback speed to
+speed up we modify the playback speed to cancel out the speed increase in this
+cancel out the speed increase in this example case we playback at half the
+example case we playback at half the speed there are limits to how much
+speed there are limits to how much faster or slower we can can play the
+faster or slower we can can play the animation before it starts looking
+animation before it starts looking unnatural as well
+unnatural as well therefore we let our animators control
+therefore we let our animators control these on a per animation basis the use
+these on a per animation basis the use of animation warping allowed us to turn
+of animation warping allowed us to turn the full system into a very versatile
+the full system into a very versatile system that we use for a lot of
+system that we use for a lot of different features such as diving into
+different features such as diving into water climbing out of water
+water climbing out of water grabbing ledges here's a short video
+grabbing ledges here's a short video demonstrating all of these features we
+demonstrating all of these features we start by triggering a step off then
+start by triggering a step off then there's a step own to a climb above
+there's a step own to a climb above Stegall
+followed by step on to a normal obstacle as you can see all folding is triggered
+as you can see all folding is triggered automatically I don't press any buttons
+automatically I don't press any buttons for triggering the various faults we
+for triggering the various faults we have various variations
+have various variations Yury every step over with the left hand
+Yury every step over with the left hand and for that same height we also have
+and for that same height we also have one with the right hand we can dive into
+one with the right hand we can dive into water and climb out of water all of this
+water and climb out of water all of this makes a lloyd pretty exhausted not all
+makes a lloyd pretty exhausted not all obstacles in the world can be faulted
+obstacles in the world can be faulted sometimes a law is only option to cross
+sometimes a law is only option to cross it is to jump so let's take a look at
+it is to jump so let's take a look at how L you can jump to the latches at the
+how L you can jump to the latches at the other side of this river I would first
+other side of this river I would first like to explain very briefly how we
+like to explain very briefly how we annotate the world with environmental
+annotate the world with environmental metadata the world of horizon is split
+metadata the world of horizon is split up in big tiles each tile is 512 by 512
+up in big tiles each tile is 512 by 512 meters and currently we have more than
+meters and currently we have more than 100 of them each tile is streamable and
+100 of them each tile is streamable and 3x3 tiles around a large position are
+3x3 tiles around a large position are always loaded a single tile contains
+always loaded a single tile contains various environmental metadata the most
+various environmental metadata the most common one is probably the glacier mesh
+common one is probably the glacier mesh which in our case is pretty low detailed
+which in our case is pretty low detailed and is available everywhere in the world
+and is available everywhere in the world it tells us where a Lloyd can and cannot
+it tells us where a Lloyd can and cannot go it also provides information about
+go it also provides information about surface materials for impact sounds and
+surface materials for impact sounds and effects besides that we have other types
+effects besides that we have other types of metadata such as volumes that
+of metadata such as volumes that indicate where you can swim and volumes
+indicate where you can swim and volumes for defining where a low it can be
+for defining where a low it can be installed we also have information of
+installed we also have information of all the roads in world their weight
+all the roads in world their weight their connections and all of the
+their connections and all of the junctions but the most important one for
+junctions but the most important one for the traversal system is that we have
+the traversal system is that we have annotated geometry that identified
+annotated geometry that identified traversable routes all geometry in the
+traversable routes all geometry in the world can be annotated
+world can be annotated either points or lines the points or
+either points or lines the points or lines can be attached to static geometry
+lines can be attached to static geometry but also to dynamic moveable geometry
+but also to dynamic moveable geometry these points and lines form what we call
+these points and lines form what we call an annotation the annotation can contain
+an annotation the annotation can contain multiple tags which makes them very
+multiple tags which makes them very abstract and versatile and in the next
+abstract and versatile and in the next slide I will explain why as all our
+slide I will explain why as all our geometry streamable the annotations will
+geometry streamable the annotations will happily stream along with it and as
+happily stream along with it and as already mentioned they provide semantics
+already mentioned they provide semantics for various gameplay systems such as our
+for various gameplay systems such as our traversal system in this image the red
+traversal system in this image the red lines highlight the annotations we use
+lines highlight the annotations we use text to indicate which traversal
+text to indicate which traversal mechanics are allowed only annotated
+mechanics are allowed only annotated geometry for example climb above means
+geometry for example climb above means that a log can hang with our hands on
+that a log can hang with our hands on the annotation where balance of ball
+the annotation where balance of ball means that Lu can't stand with her feet
+means that Lu can't stand with her feet on it and stable means that it should
+on it and stable means that it should look like that she could fall off at any
+look like that she could fall off at any moment by playing an additive animation
+moment by playing an additive animation and zip line a ball means that she is
+and zip line a ball means that she is able to zip line along the annotation
+able to zip line along the annotation multiple tags are allowed on the single
+multiple tags are allowed on the single annotation before I continue explaining
+annotation before I continue explaining the traversal mechanics that use these
+the traversal mechanics that use these annotations I would first like to
+annotations I would first like to describe how we did set up our jump
+describe how we did set up our jump system because attaching to one of the
+system because attaching to one of the annotations often happens from a jump in
+annotations often happens from a jump in horizon our John trajectory is split up
+horizon our John trajectory is split up in two phases we have a pre apex face
+in two phases we have a pre apex face which is animation driven and we have
+which is animation driven and we have the post apex face which is code driven
+the post apex face which is code driven as already mentioned animation driven
+as already mentioned animation driven movement takes away control therefore we
+movement takes away control therefore we edit in air steering during a complete
+edit in air steering during a complete takeoff and falling phase we allow
+takeoff and falling phase we allow adjustments only orientation of alloys
+adjustments only orientation of alloys which results in bending the trajectory
+which results in bending the trajectory by applying dampening on the forward
+by applying dampening on the forward momentum when a player lets go of the
+momentum when a player lets go of the movement stick we simulate in air
+movement stick we simulate in air breaking and this improves
+breaking and this improves controllability even more we are using
+controllability even more we are using an animation to even take off to
+an animation to even take off to guarantee that the trajectory matches
+guarantee that the trajectory matches the jump motion in our previous games
+the jump motion in our previous games the complete reactor reverse code Riven
+the complete reactor reverse code Riven which made it hard for our animators to
+which made it hard for our animators to create a matching motion for
+create a matching motion for the different speed ranges so with all
+the different speed ranges so with all of these improvements on controllability
+of these improvements on controllability you could think that jumping towards a
+you could think that jumping towards a specific destination is a piece of cake
+specific destination is a piece of cake so I've prepared a demonstration to see
+so I've prepared a demonstration to see this in action as you can see it is
+this in action as you can see it is still annoying and difficult for the
+still annoying and difficult for the player to time and predict the jump to
+player to time and predict the jump to end at a specific location or at least
+end at a specific location or at least for an amateur like me so how can we
+for an amateur like me so how can we improve this behavior it would really
+improve this behavior it would really help if we were able to predict the jump
+help if we were able to predict the jump trajectory so we can apply small
+trajectory so we can apply small adjustments to guide the player to a
+adjustments to guide the player to a specific traversable destination one
+specific traversable destination one important note is that we absolutely
+important note is that we absolutely want to maintain the illusion of control
+to be able to predict the junk-- trajectory at run time we need to know
+trajectory at run time we need to know the full motion of our jump animation
+the full motion of our jump animation this is why we analyze our animated
+this is why we analyze our animated motion during the offline conversion
+motion during the offline conversion process and store all the metadata in
+process and store all the metadata in so-called motion tables motion tables
+so-called motion tables motion tables are databases of animation metadata for
+are databases of animation metadata for individual animation States they contain
+individual animation States they contain information about how the displacement
+information about how the displacement speed time etc changes for animation
+speed time etc changes for animation States dependent on the animation
+States dependent on the animation variables that affect the animation
+variables that affect the animation States these motion tables are for
+States these motion tables are for example used for storing the animation
+example used for storing the animation matrix in the fall transitions as
+matrix in the fall transitions as mentioned earlier in an offline step we
+mentioned earlier in an offline step we populate our motion tables by analyzing
+populate our motion tables by analyzing the resulting motion of all animation
+the resulting motion of all animation states for all valid permutation of
+states for all valid permutation of input variables this is quite an
+input variables this is quite an expensive task at runtime we are able to
+expensive task at runtime we are able to query the database for a given state
+query the database for a given state with the active runtime animation
+with the active runtime animation variables based on the active set of
+variables based on the active set of animation variables several storage
+animation variables several storage results are then blended together to
+results are then blended together to form a final resulting set of metadata
+form a final resulting set of metadata here's a rough example of how that works
+here's a rough example of how that works this example shows a simple animation
+this example shows a simple animation state
+state that blends three animations together
+that blends three animations together depending on two input values that are
+depending on two input values that are set by the game logic in this case
+set by the game logic in this case variables x and y the blend note simply
+variables x and y the blend note simply blends two animations together where the
+blends two animations together where the weight depends on the input variable in
+weight depends on the input variable in this case when X is zero 100% of a will
+this case when X is zero 100% of a will be blended with zero percent of B and
+be blended with zero percent of B and when X is 0.5 a and B will be equally
+when X is 0.5 a and B will be equally blended for our motion table we want to
+blended for our motion table we want to pre calculate all metrics for animation
+pre calculate all metrics for animation state for certain combinations of input
+state for certain combinations of input values we are only interested in
+values we are only interested in combinations of input values that make
+combinations of input values that make any of the blend notes choose a single
+any of the blend notes choose a single one of its inputs in this case we have a
+one of its inputs in this case we have a total of four input values possible for
+total of four input values possible for the two different blend nodes X can
+the two different blend nodes X can either be 0 or 1 and Y can either be 4
+either be 0 or 1 and Y can either be 4 or 8 because there's no blend node
+or 8 because there's no blend node attached to the input value when y
+attached to the input value when y equals 8 we have a total of three
+equals 8 we have a total of three combinations possible so for these three
+combinations possible so for these three combinations of input values the
+combinations of input values the animation metrics are stored in the
+animation metrics are stored in the table query in metric for arbitrary
+table query in metric for arbitrary input values is now just a matter of
+input values is now just a matter of blending the storage results together
+blending the storage results together applying the same blending as in the
+applying the same blending as in the animation network to the value stored in
+animation network to the value stored in a motion table results in a valid
+a motion table results in a valid outcome now that we're able to query the
+outcome now that we're able to query the metrics of a John motion we can easily
+metrics of a John motion we can easily calculate the position over apex by
+calculate the position over apex by adding a complete displacement from a
+adding a complete displacement from a tank of animation to a take-off position
+tank of animation to a take-off position this will be the initial position of the
+this will be the initial position of the falling phase the initial velocity will
+falling phase the initial velocity will be the velocity of the lost frame from
+be the velocity of the lost frame from the take-off animation which again is
+the take-off animation which again is also queried from the motion table using
+also queried from the motion table using these positions we can construct a
+these positions we can construct a parabolic trajectory as shown on the
+parabolic trajectory as shown on the slide with the constructed parabolic
+slide with the constructed parabolic trajectory we can now start searching
+trajectory we can now start searching for nearby jump destinations this is
+for nearby jump destinations this is done by gathering all possible targets
+done by gathering all possible targets within a certain radius of Illinois we
+within a certain radius of Illinois we iterate
+iterate adjunct reactor II with a fixed time
+adjunct reactor II with a fixed time step to see if a target is reachable at
+step to see if a target is reachable at any given moment during the jump targets
+any given moment during the jump targets that are above our apex are never
+that are above our apex are never reachable because it would look to a
+reachable because it would look to a natural if a target is close enough to
+natural if a target is close enough to our originally predicted trajectory we
+our originally predicted trajectory we can calculate a skill factor of the
+can calculate a skill factor of the parabola by defining the desired
+parabola by defining the desired displacement by the original
+displacement by the original displacement this way we know how much
+displacement this way we know how much extra velocity is needed to reach the
+extra velocity is needed to reach the target we only allow guiding to targets
+target we only allow guiding to targets for which the change of velocity is
+for which the change of velocity is within an adjustable limit this makes it
+within an adjustable limit this makes it very easy for designers to tweak and
+very easy for designers to tweak and control the snappiness of the JUNK idn't
+control the snappiness of the JUNK idn't system the previous slide showed how we
+system the previous slide showed how we could predict the trajectory if the
+could predict the trajectory if the target position was exactly in front of
+target position was exactly in front of a Lloyd but since we support in air
+a Lloyd but since we support in air steering we should also allow some
+steering we should also allow some bending of the trajectory to reach a
+bending of the trajectory to reach a certain destination we are able to
+certain destination we are able to account for this by calculating the
+account for this by calculating the required turn speed by constructing a
+required turn speed by constructing a circle that goes through both our
+circle that goes through both our current position as our destination
+current position as our destination position we can do this in 2d since
+position we can do this in 2d since we're only focusing on heading changes
+we're only focusing on heading changes by calculating the angle between the
+by calculating the angle between the vector from the current position to the
+vector from the current position to the circle Center in the target position to
+circle Center in the target position to the circle Center divided by the travel
+the circle Center divided by the travel time we have our turn speed if the
+time we have our turn speed if the desired turn speed is bigger than an
+desired turn speed is bigger than an adjustment limit again we don't allow
+adjustment limit again we don't allow God guidance to this destination the
+God guidance to this destination the next video will show this jump guidance
+next video will show this jump guidance system in full effect in this video I
+system in full effect in this video I will post again press the jump button
+will post again press the jump button and then you can see the original
+and then you can see the original trajectory as a white line and a
+trajectory as a white line and a predicted trajectory with a colored line
+the green circle is a circle used for calculating our turn speeds it's a
+calculating our turn speeds it's a really big green line we're almost there
+really big green line we're almost there now the world of horizon is filled with
+now the world of horizon is filled with Rockwell's like this which a low can
+Rockwell's like this which a low can climb without much of a problem to give
+climb without much of a problem to give our designers maximum control a toy can
+our designers maximum control a toy can only climb on annotated geometry while
+only climb on annotated geometry while climbing she's physically attached to
+climbing she's physically attached to the geometry at a single point when
+the geometry at a single point when climbing with hands this at each point
+climbing with hands this at each point is between the hands this is also the
+is between the hands this is also the position where a large trajectory joint
+position where a large trajectory joint is located when Loa is standing on an
+is located when Loa is standing on an annotation that touch point is located
+annotation that touch point is located between the feet we trigger transitional
+between the feet we trigger transitional animations when climbing from one
+animations when climbing from one annotation to another first of all we
+annotation to another first of all we look for all nearby destinations and
+look for all nearby destinations and find the one that has the best
+find the one that has the best combination of distance and angle then
+combination of distance and angle then we go through all our possible
+we go through all our possible transition animations and currently we
+transition animations and currently we have more than 100 of them and find the
+have more than 100 of them and find the one which motions would meet the least
+one which motions would meet the least amount of warping each transition has
+amount of warping each transition has conditions and ranges that we take into
+conditions and ranges that we take into account and we also check if the
+account and we also check if the transitions motion won't collide with
+transitions motion won't collide with anything and in the end we will trigger
+anything and in the end we will trigger the best transition that we found and
+the best transition that we found and warp it to our founded destination
+during climbing we use AI K on the hands and feet to guide them for the hands we
+and feet to guide them for the hands we always make sure they are placed onto
+always make sure they are placed onto the geometry this can either be on the
+the geometry this can either be on the current position or when we are
+current position or when we are performing a transition on the
+performing a transition on the destination position while climbing we
+destination position while climbing we also continually check if our feet can
+also continually check if our feet can be placed against the geometry in front
+be placed against the geometry in front of us if no geometry is available
+of us if no geometry is available at the foot position the I K on the feet
+at the foot position the I K on the feet can be turned off and we will let the
+can be turned off and we will let the feet just dangle to find the I care s
+feet just dangle to find the I care s position we are using multiple collation
+position we are using multiple collation probes to find an intersection position
+probes to find an intersection position for dance we use a slightly tilted probe
+for dance we use a slightly tilted probe that goes to the palm of the hands and
+that goes to the palm of the hands and for the feet we use two sets of
+for the feet we use two sets of collision probes to allow a Lloyd to
+collision probes to allow a Lloyd to pull up ur legs a bit more each of the
+pull up ur legs a bit more each of the four limbs can be controlled
+four limbs can be controlled individually our animations control when
+individually our animations control when the hands of feet will be resting on
+the hands of feet will be resting on geometry and when not they have an
+geometry and when not they have an animation event that drive our I gaze
+animation event that drive our I gaze and also lock the limbs the next video
+and also lock the limbs the next video shows the probing and I case in action
+shows the probing and I case in action here a law is hanging with I case
+here a law is hanging with I case enabled on the hand and feet the green
+enabled on the hand and feet the green lines visualize the intersection tests
+lines visualize the intersection tests now a law is hanging without the eye
+now a law is hanging without the eye case enabled on the feet the red lines
+case enabled on the feet the red lines visualized there is no felo geometry for
+visualized there is no felo geometry for feet to rest against one of the bigger
+feet to rest against one of the bigger challenges that we had to support for
+challenges that we had to support for climbing was was climbing on dynamic
+climbing was was climbing on dynamic objects such as the tall neck for
+objects such as the tall neck for example not all assets in our game have
+example not all assets in our game have the same update frequency a Lloyd for
+the same update frequency a Lloyd for example is updated at a higher frequency
+example is updated at a higher frequency than our tall neck so when jumping
+than our tall neck so when jumping towards a tall neck or climbing on one
+towards a tall neck or climbing on one we have to compensate the motion of all
+we have to compensate the motion of all the tall necks annotation for this
+the tall necks annotation for this difference in update frequency next to
+difference in update frequency next to that we also have to correctly apply the
+that we also have to correctly apply the motion of the object where attached to
+motion of the object where attached to two alloys body to make sure our feet
+two alloys body to make sure our feet and hands are placed correctly on the
+and hands are placed correctly on the client asset the collision probing also
+client asset the collision probing also needs to be in sync with the desired
+needs to be in sync with the desired update frequency since though necks are
+update frequency since though necks are updated at a much lower frequency their
+updated at a much lower frequency their collision volumes also move at a much
+collision volumes also move at a much lower frequency so loz probing for
+lower frequency so loz probing for collision should also be performed at
+collision should also be performed at the same lower frequency to stay in sync
+well that brings us to the end of the final section now I would like to
+final section now I would like to emphasize on what we think worked well
+emphasize on what we think worked well and what didn't work that well first of
+and what didn't work that well first of all what worked really well for us is
+all what worked really well for us is having the ability to distinguish
+having the ability to distinguish between early reactions and late
+between early reactions and late reactions when transitioning between
+reactions when transitioning between animations based on events this really
+animations based on events this really allowed us to make the character feel
+allowed us to make the character feel more responsive and helped us a lot in
+more responsive and helped us a lot in improving the overall quality of our
+improving the overall quality of our movement system the abstract text only
+movement system the abstract text only annotations that provides manTech for a
+annotations that provides manTech for a traversal system allowed us to create a
+traversal system allowed us to create a very reliable germ prediction system as
+very reliable germ prediction system as well as a very flexible climbing system
+well as a very flexible climbing system because we select client transitions
+because we select client transitions based on required displacement needed to
+based on required displacement needed to reach a destination the climbing system
+reach a destination the climbing system managed to even climb moving dynamic
+managed to even climb moving dynamic geometry in the jump guidance system
+geometry in the jump guidance system there are only two variables that week
+there are only two variables that week we have a maximum change in velocity and
+we have a maximum change in velocity and a maximum change in turn speed therefore
+a maximum change in turn speed therefore the designers were able to find their
+the designers were able to find their desired balance between snappiness and
+desired balance between snappiness and realism a guided trajectory also allows
+realism a guided trajectory also allows us to already anticipate on the landing
+us to already anticipate on the landing making it possible to seamlessly blend
+making it possible to seamlessly blend to a landing animation that fits the
+to a landing animation that fits the destination such as toe max zip lines
+destination such as toe max zip lines work rolls etc so what didn't work that
+work rolls etc so what didn't work that well because most of our traversal
+well because most of our traversal systems and tools were developed from
+systems and tools were developed from scratch scratch upon switching from
+scratch scratch upon switching from killzone to horizon our level designers
+killzone to horizon our level designers initially didn't have the visualization
+initially didn't have the visualization and editor tools to optimize areas for
+and editor tools to optimize areas for traverse ability our ambition was to
+traverse ability our ambition was to have a lot more traversable parts
+have a lot more traversable parts throughout the world then what we ended
+throughout the world then what we ended up shaping with well the full system
+up shaping with well the full system eventually worked out fine it is
+eventually worked out fine it is probably not the best an efficient way
+probably not the best an efficient way to implement it a big improvement would
+to implement it a big improvement would be to also support the navigation mesh
+be to also support the navigation mesh for the player as this would also solve
+for the player as this would also solve other problems as well for example
+other problems as well for example preventing the player from getting stuck
+preventing the player from getting stuck or entering inaccessible areas and last
+or entering inaccessible areas and last but not least we
+but not least we reach the point where animation networks
+reach the point where animation networks have become very complex and hard to
+have become very complex and hard to maintain this is mostly because both
+maintain this is mostly because both programmers as well as animators alter
+programmers as well as animators alter them we are looking into making things
+them we are looking into making things more manageable by moving more of the
+more manageable by moving more of the decision logic from the network to code
+decision logic from the network to code as well as applying stricter ownership
+as well as applying stricter ownership of the networks so what are we thinking
+of the networks so what are we thinking of next one of the most interesting
+of next one of the most interesting thoughts last year at the GDC for us was
+thoughts last year at the GDC for us was the talk by Simon Clive a Ubisoft
+the talk by Simon Clive a Ubisoft Montreal about motion matching since
+Montreal about motion matching since there are few similarities with what
+there are few similarities with what we've been exploring for horizon we are
+we've been exploring for horizon we are very interested in reach researching
+very interested in reach researching some of its possibilities as already
+some of its possibilities as already mentioned in small post-mortem we are
+mentioned in small post-mortem we are probably going to investigate plane
+probably going to investigate plane navigation through the use of a
+navigation through the use of a navigation mesh we are also very
+navigation mesh we are also very interested in using full body I gave for
+interested in using full body I gave for our various mechanics we didn't get to
+our various mechanics we didn't get to it for horizon because of time
+it for horizon because of time constraints and regular to buona que was
+constraints and regular to buona que was giving fine results but full body I case
+giving fine results but full body I case sounds like a very useful upgrade I
+would really like to thank everyone at guerilla team traversal and especially
+guerilla team traversal and especially my colleague - Kaito for helping
+my colleague - Kaito for helping preparing this presentation Tyson I have
+preparing this presentation Tyson I have been working a lot together on these
+been working a lot together on these mechanics and therefore will be joining
+mechanics and therefore will be joining the stage for the Q&A sessions finally I
+the stage for the Q&A sessions finally I would like to end by thanking you all
+would like to end by thanking you all for your attention and interest please
+for your attention and interest please fill in the feedback form that should
+fill in the feedback form that should have been sent to your email and if
+have been sent to your email and if anyone has any questions we will be
+anyone has any questions we will be pleased to answer them
+pleased to answer them [Applause]
+[Applause] all right so you mentioned that there
+all right so you mentioned that there was a lot of annotation of your assets
+was a lot of annotation of your assets that either I didn't catch all those
+that either I didn't catch all those designers or artists had to do mostly
+designers or artists had to do mostly artists okay and there's also a lot of
+artists okay and there's also a lot of times where you mentioned that designers
+times where you mentioned that designers could tweak parameters on like to get a
+could tweak parameters on like to get a good balance between realism and and
+good balance between realism and and snappiness so my question is how much of
+snappiness so my question is how much of a burden did all that annotation work
+a burden did all that annotation work place on the designers and artists and
+place on the designers and artists and how did you mitigate it
+how did you mitigate it well the annotations were mostly done in
+well the annotations were mostly done in Maya and like the tweaking of the
+Maya and like the tweaking of the variables is happening in our décima
+variables is happening in our décima editor so they're the designers can
+editor so they're the designers can tweak the values hi Zak tubes New Mexico
+tweak the values hi Zak tubes New Mexico State was great thanks I was wondering
+State was great thanks I was wondering how you kind of signal to players sort
+how you kind of signal to players sort of like where they're going to land
+of like where they're going to land since you're sort of dynamically
+since you're sort of dynamically adjusting and I heard in one of the
+adjusting and I heard in one of the videos her kind of like saying oh I
+videos her kind of like saying oh I could jump to that from here is that
+could jump to that from here is that kind of one of the ways you did that and
+kind of one of the ways you did that and did you use your dynamic adjustment
+did you use your dynamic adjustment system to kind of like contextually
+system to kind of like contextually change that are you wondering how we
+change that are you wondering how we make it clear for the player yeah if I'm
+make it clear for the player yeah if I'm playing like how do I know where I'm
+playing like how do I know where I'm going to like land when I try to jump on
+going to like land when I try to jump on something it's mostly intuitive it's
+something it's mostly intuitive it's like only when it's within your your
+like only when it's within your your forward movements we adjust you there so
+forward movements we adjust you there so it's never really like a surprise that
+it's never really like a surprise that you land somewhere so because it's in
+you land somewhere so because it's in your path it should already be clear
+your path it should already be clear that that's the location you will end up
+that that's the location you will end up at but did you ever kind of ran into any
+at but did you ever kind of ran into any issues where it's like it was just like
+issues where it's like it was just like a little bit further than you kind of
+a little bit further than you kind of allowed it to be I mean is this
+allowed it to be I mean is this something that came up I can play
+something that came up I can play testing or it just kind of seemed to
+testing or it just kind of seemed to work all around it's I think it's mostly
+work all around it's I think it's mostly a matter of tweaking we we tweaked
+a matter of tweaking we we tweaked everything so it's exactly intuitive and
+everything so it's exactly intuitive and it's never too snappy because that's the
+it's never too snappy because that's the thing we want to prevent you don't want
+thing we want to prevent you don't want the player to subtly grab
+the player to subtly grab that you didn't want to grab at all
+that you didn't want to grab at all Thanks hello thank you for presentation
+Thanks hello thank you for presentation was great very informative for me and
+was great very informative for me and what was mm for not using navigation
+what was mm for not using navigation meshes and well mostly for memory budget
+meshes and well mostly for memory budget reasons we didn't have fun for the
+reasons we didn't have fun for the player all right it's me I so you talked
+player all right it's me I so you talked about the annotation system and a little
+about the annotation system and a little bit about how designers or artists head
+bit about how designers or artists head interact with that did you ever put any
+interact with that did you ever put any thought into using auto-generating some
+thought into using auto-generating some that information by doing pre physics
+that information by doing pre physics tests as a process on assets they had
+tests as a process on assets they had brought in I'm curious if you'd consider
+brought in I'm curious if you'd consider that and rejected it or you know time
+that and rejected it or you know time constraints etc we actually did some
+constraints etc we actually did some experiments with that and it turned out
+experiments with that and it turned out that it was quite okay hmm
+that it was quite okay hmm but we also like T to have total control
+but we also like T to have total control mostly from the design side they wanted
+mostly from the design side they wanted to have total control over the first
+to have total control over the first robots apparently we didn't want to have
+robots apparently we didn't want to have a world where you could just climb
+a world where you could just climb everywhere
+everywhere sure that's it's kind of mostly a design
+sure that's it's kind of mostly a design decision that cool thank you very much
+decision that cool thank you very much hi thanks for the talk really
+hi thanks for the talk really informative really thorough you talked
+informative really thorough you talked at one point when mantling normal
+at one point when mantling normal obstacles you could do left or
+obstacles you could do left or right-handed what was that all
+right-handed what was that all randomized or were or did you analyze
+randomized or were or did you analyze and kind of based on the shape of the
+and kind of based on the shape of the object well we have various variations
+object well we have various variations for the different heights but for I
+for the different heights but for I think for every height we have a couple
+think for every height we have a couple of variations so then we have a left
+of variations so then we have a left hand and a writer and and that's yeah
+hand and a writer and and that's yeah that's actually just completely random
+that's actually just completely random yeah was there any thought that maybe
+yeah was there any thought that maybe having that as part of the selection
+having that as part of the selection parameters you know like maybe with like
+parameters you know like maybe with like the angled log the left hand being
+the angled log the left hand being higher up would be a little more natural
+higher up would be a little more natural than the
+than the and like was not in the batter yet well
+and like was not in the batter yet well not really it's not how would how it
+not really it's not how would how it works in our case gotcha thanks that was
+works in our case gotcha thanks that was actually the question I was gonna ask
+actually the question I was gonna ask but I have another one so without a lot
+but I have another one so without a lot of this some like with the vault
+of this some like with the vault traversals and stuff it seems like it
+traversals and stuff it seems like it could have been used pretty easily on
+could have been used pretty easily on NPCs did you give that any consideration
+NPCs did you give that any consideration or try it or clearly out of the picture
+or try it or clearly out of the picture I think we did we did do some
+I think we did we did do some experiments with it but I don't actually
+experiments with it but I don't actually know why we never well currently the
+know why we never well currently the vault system is pretty expensive because
+vault system is pretty expensive because we do a lot of physics probing
+we do a lot of physics probing everywhere so if we enable that own NPCs
+everywhere so if we enable that own NPCs then it becomes yeah then we're probably
+then it becomes yeah then we're probably not going to hit that dirty FPS
+not going to hit that dirty FPS requirement but like the NPCs are
+requirement but like the NPCs are attached to navigation mesh but because
+attached to navigation mesh but because of time constraints we never made a full
+of time constraints we never made a full system based on the navigation mesh but
+system based on the navigation mesh but that could be the next step I mean you
+that could be the next step I mean you could just like put boulders in front of
+could just like put boulders in front of them and not mark them out of the
+them and not mark them out of the navigation mesh and they just go right
+navigation mesh and they just go right through them with this system yeah yeah
+through them with this system yeah yeah we because of time constraint we haven't
+we because of time constraint we haven't actually done anything with NPCs and
+actually done anything with NPCs and vaulting okay thanks
+vaulting okay thanks hi thank you for the great talk I have a
+hi thank you for the great talk I have a question you mentioned that you detect
+question you mentioned that you detect if the obstacle is deep enough to climb
+if the obstacle is deep enough to climb bit by raycasting before the player so
+bit by raycasting before the player so didn't you have a problem with really
+didn't you have a problem with really narrow shelves when the player is moving
+narrow shelves when the player is moving or almost parallel to the Shelf so the
+or almost parallel to the Shelf so the race will all hit the Shelf but it's
+race will all hit the Shelf but it's really very very narrow yeah well
+really very very narrow yeah well currently like I think the minimum depth
+currently like I think the minimum depth of an obstacle is something around 30
+of an obstacle is something around 30 centimeters and that's also where the
+centimeters and that's also where the first race starts so that's how we are
+first race starts so that's how we are and yeah otherwise the vault system
+and yeah otherwise the vault system won't work so then you don't jump over
+won't work so then you don't jump over it okay but do you put some special
+it okay but do you put some special constraints or on how the geometry must
+constraints or on how the geometry must be constrained like I must be
+be constrained like I must be constructed or
+constructed or artists were free to create anything at
+artists were free to create anything at guerilla most of the time our artists
+guerilla most of the time our artists don't have constraints like they can do
+don't have constraints like they can do whatever they want and we have to make
+whatever they want and we have to make sure that our systems are working ok
+sure that our systems are working ok thank you
+you mentioned that vaulting was automatic and didn't require any player
+automatic and didn't require any player input basically just as long as they
+input basically just as long as they were moving along they would
+were moving along they would automatically vault over obstacles I'm
+automatically vault over obstacles I'm curious how you protected the player
+curious how you protected the player from accidentally triggering a vault on
+from accidentally triggering a vault on like objects maybe they didn't intend to
+like objects maybe they didn't intend to vault over like a small wall they're
+vault over like a small wall they're running alongside or something we do
+running alongside or something we do have like methods of excluding folding
+have like methods of excluding folding over objects you can mark them as unfold
+over objects you can mark them as unfold table you can put them in a volume that
+table you can put them in a volume that excludes all vaulting so we have
+excludes all vaulting so we have exclusion options there okay thank you
+thank you great talk I'm also interested in using a full-body I care in the
+in using a full-body I care in the future what would be a benefit you get
+future what would be a benefit you get from using full-body I care for next fad
+from using full-body I care for next fad our next house currently it's for
+our next house currently it's for example really interested in the mellah
+example really interested in the mellah combat system so we currently we just
+combat system so we currently we just blend a couple of animations to read
+blend a couple of animations to read certain height but that would be perfect
+certain height but that would be perfect for full-body animations but also like
+for full-body animations but also like having full-body animations for for on
+having full-body animations for for on steep slopes and like that kind of
+steep slopes and like that kind of things okay thank you I guess when you
+things okay thank you I guess when you were talking about the climbing you
+were talking about the climbing you mentioned that some of the NPCs are
+mentioned that some of the NPCs are updated with water frequency and when a
+updated with water frequency and when a law is climbing on them you basically
+law is climbing on them you basically dump her down as well did you try to
+dump her down as well did you try to bump up the update frequency of the
+bump up the update frequency of the NPC's rather than we didn't want to do
+NPC's rather than we didn't want to do that because that will advice that will
+that because that will advice that will increase like the performance cost if
+increase like the performance cost if you only do that just because you want
+you only do that just because you want to know where the annotations are that's
+to know where the annotations are that's quite high penalty too
+quite high penalty too to pay so it was just performance
+to pay so it was just performance reasons not yeah okay hi I want you to
+reasons not yeah okay hi I want you to know in a directed at the runtime level
+know in a directed at the runtime level why did you use morpheme and what tasks
+why did you use morpheme and what tasks you delegate into this middleware
+you delegate into this middleware because in model in all of what you
+because in model in all of what you described you're telling how you program
+described you're telling how you program the animation that what did more him the
+the animation that what did more him the runtime part what did it do and what did
+runtime part what did it do and what did you make it do the runtime code is just
+you make it do the runtime code is just part of morphing and that's just
+part of morphing and that's just integrated into our decima engine so
+integrated into our decima engine so that that handles the runtime playback
+that that handles the runtime playback of the animation networks is that what
+of the animation networks is that what you mean not really
+when you cook your animation assets from a Mayan motion builder you go through
+a Mayan motion builder you go through first a cooking step in morpheme right
+first a cooking step in morpheme right that's what you showed and what does he
+that's what you showed and what does he do and at frame time what couldn't you
+do and at frame time what couldn't you do and what did this meter will do for
+do and what did this meter will do for you
+you I'm not sure if I'm clear so morpheme is
+I'm not sure if I'm clear so morpheme is is two parts it's an authoring tool that
+is two parts it's an authoring tool that allows you to import animations from my
+allows you to import animations from my emotion builder and make a whole
+emotion builder and make a whole blending tree and state machine for it
+blending tree and state machine for it okay and then you have a runtime engine
+okay and then you have a runtime engine which is capable of playing back their
+which is capable of playing back their state machines and blend trees and
+state machines and blend trees and basically providing a pose at any frame
+basically providing a pose at any frame for any frame okay hi I was just
+for any frame okay hi I was just wondering if you used any physics
+wondering if you used any physics animation on her body
+animation on her body when throws it all full-body animation
+when throws it all full-body animation yeah currently we have three physics
+yeah currently we have three physics states oh we have soft key hard key and
+states oh we have soft key hard key and we have ragdolls
+hey thanks for a talk you talked about your adaptation system that you used for
+your adaptation system that you used for marking up the environment for climbing
+marking up the environment for climbing but for the voltage
+but for the voltage it sounds like it's using a different
+it sounds like it's using a different system so I'm wondering why you're not
+system so I'm wondering why you're not using annotations as well for the
+using annotations as well for the vaulting system well we wanted our full
+vaulting system well we wanted our full system to be completely dynamic for
+system to be completely dynamic for example when you kill a big Raptor it
+example when you kill a big Raptor it will lose all of its parts and then if
+will lose all of its parts and then if you run up to it it will automatically
+you run up to it it will automatically work because we have those physics
+work because we have those physics probes and we don't want to have our
+probes and we don't want to have our artists also annotate all the geometry
+artists also annotate all the geometry in the world to also make the whole
+in the world to also make the whole thing possible so we had to come up with
+thing possible so we had to come up with a dynamic system
+a dynamic system thanks I was just curious about your AI
+thanks I was just curious about your AI and that meshes was that restricted to
+and that meshes was that restricted to smaller areas that allowed you to get
+smaller areas that allowed you to get away with using the memory for that or
+away with using the memory for that or you know compared to the physics you had
+you know compared to the physics you had for the player instead of an ADD mesh
+for the player instead of an ADD mesh there well we don't know much about the
+there well we don't know much about the navigation mesh for the AL I know it's
+navigation mesh for the AL I know it's just
+just generated but like I don't know exactly
+generated but like I don't know exactly I would I would oh it's implemented or
+I would I would oh it's implemented or generated well I mean it was it was too
+generated well I mean it was it was too much of a memory cost for you to put on
+much of a memory cost for you to put on a lloyd wright's yeah but the NPC's were
+a lloyd wright's yeah but the NPC's were okay yeah NPCs have a navigation mesh
+okay yeah NPCs have a navigation mesh but like a load can currently yet
+but like a load can currently yet traverse the whole world so also on the
+traverse the whole world so also on the really steep slopes and like the
+really steep slopes and like the navigation mesh is a bit constrained to
+navigation mesh is a bit constrained to do like smaller flatter terrain so so
+do like smaller flatter terrain so so it's much more coarse basically yeah
+it's much more coarse basically yeah yeah okay thank you
+yeah okay thank you [Applause]

@@ -1,0 +1,734 @@
+[Music] hey everyone my name's Ben I'm the lead
+hey everyone my name's Ben I'm the lead programmer of havoc AI so I've been
+programmer of havoc AI so I've been talking here on and off for like five
+talking here on and off for like five years about how game AI needs to be more
+years about how game AI needs to be more ambitious and I don't think that's a
+ambitious and I don't think that's a particularly controversial viewpoint of
+particularly controversial viewpoint of course we should try to make things
+course we should try to make things better
+better so the question is what holds us back
+so the question is what holds us back what limits game AI what limits a set of
+what limits game AI what limits a set of tools we can use and the number one
+tools we can use and the number one answer is computation time there might
+answer is computation time there might be some technique that's absolutely
+be some technique that's absolutely amazing for say action selection for a
+amazing for say action selection for a companion AI but if it takes 20
+companion AI but if it takes 20 milliseconds to run then it's off the
+milliseconds to run then it's off the table we have 60 frames a second to push
+table we have 60 frames a second to push out so that's just not practical we have
+out so that's just not practical we have to do the best we can with the time we
+to do the best we can with the time we have and I don't want to imply that AI
+have and I don't want to imply that AI is alone in that tragedy everybody wants
+is alone in that tragedy everybody wants to do more the physics people want to do
+to do more the physics people want to do real-time fluid dynamics the graphics
+real-time fluid dynamics the graphics people want individual beard hairs
+people want individual beard hairs swaying in the wind the sound people I'm
+swaying in the wind the sound people I'm not really 1% on what the sound people
+not really 1% on what the sound people want but I'll bet they if they had more
+want but I'll bet they if they had more computation time stuff would sound just
+computation time stuff would sound just extra awesome well I don't have any
+extra awesome well I don't have any answers for them but I've got an answer
+answers for them but I've got an answer for us because in AI we have special
+for us because in AI we have special powers we have an ability we can do
+powers we have an ability we can do something that none of those guys can do
+something that none of those guys can do we can wait let me explain the other
+we can wait let me explain the other disciplines I mentioned physics graphics
+disciplines I mentioned physics graphics sound are presentational they do their
+sound are presentational they do their things 60 times a second or whatever
+things 60 times a second or whatever your target frame rate is and it has to
+your target frame rate is and it has to happen that frame if you're tossing
+happen that frame if you're tossing crates around they can't pause for a few
+crates around they can't pause for a few frames and decide which way to bounce
+frames and decide which way to bounce players would notice that these systems
+players would notice that these systems have a responsibility to run in real
+have a responsibility to run in real time
+time some of AI is real time things like
+some of AI is real time things like collision avoidance whatever we need to
+collision avoidance whatever we need to feed to animation that stuff but those
+feed to animation that stuff but those things are already fast enough what's
+things are already fast enough what's left is stuff like action selection
+left is stuff like action selection navigation rebuilding occupancy grids
+navigation rebuilding occupancy grids what's left is deliberation basically
+what's left is deliberation basically and by deliberation
+and by deliberation I mean large-scale comp
+I mean large-scale comp which takes in a lot of information and
+which takes in a lot of information and produces a complicated result things
+produces a complicated result things like action selection where you have to
+like action selection where you have to think about everyone around you and what
+think about everyone around you and what your health is and how many arrows you
+your health is and how many arrows you have left or pathfinding where you
+have left or pathfinding where you consider thousands of potential routes
+consider thousands of potential routes through the world and produce a path
+through the world and produce a path potentially involved involving many many
+potentially involved involving many many steps these things are slow they have to
+steps these things are slow they have to be slow to be good but they're
+be slow to be good but they're infrequent we don't need to peg the CPU
+infrequent we don't need to peg the CPU at a hundred percent just on path
+at a hundred percent just on path finding because we only need new paths
+finding because we only need new paths once in a while
+once in a while say costs 20 milliseconds to find a path
+say costs 20 milliseconds to find a path well that's way too much to spend on a
+well that's way too much to spend on a single frame but it's also crazy fast by
+single frame but it's also crazy fast by human standards if we were to spread
+human standards if we were to spread that out over 20 frames that's a third
+that out over 20 frames that's a third of a second one millisecond per frame a
+of a second one millisecond per frame a third of a second is an entirely
+third of a second is an entirely reasonable amount of time for a
+reasonable amount of time for a character to spend figuring out which
+character to spend figuring out which way to go
+way to go that's normal human reaction time so our
+that's normal human reaction time so our special power is we can amortize these
+special power is we can amortize these expensive but infrequent processes and
+expensive but infrequent processes and hide the latency behind normal human
+hide the latency behind normal human reaction time we can harness a huge
+reaction time we can harness a huge amount of potential computation time as
+amount of potential computation time as long as we don't do it too often and as
+long as we don't do it too often and as long as we're willing to wait a little
+long as we're willing to wait a little while for the results if a particular
+while for the results if a particular planning problem takes an unexpectedly
+planning problem takes an unexpectedly long time that doesn't blow the frame
+long time that doesn't blow the frame rate it just means the guy spends an
+rate it just means the guy spends an extra fraction of a second cogitating
+extra fraction of a second cogitating slicing up long computations I think is
+slicing up long computations I think is absolutely essential for really next
+absolutely essential for really next level AI we will never get there without
+level AI we will never get there without it so how to slice up a task I see three
+it so how to slice up a task I see three approaches the most obvious way is split
+approaches the most obvious way is split it up manually like do n iterations of a
+it up manually like do n iterations of a star on this frame and n iterations on
+star on this frame and n iterations on the next frame or if you're building a
+the next frame or if you're building a navmesh maybe you'll do the face
+navmesh maybe you'll do the face clipping on one frame and edge
+clipping on one frame and edge connection on the next frame next and so
+connection on the next frame next and so on the second approach is put the
+on the second approach is put the computation on a background thread or
+computation on a background thread or multiple background threads and let it
+multiple background threads and let it chug along with your workload and then
+chug along with your workload and then every frame you check whether it's
+every frame you check whether it's finished and the third approach is kind
+finished and the third approach is kind of a combination of the two and it's
+of a combination of the two and it's what I'm going to spend most of my time
+what I'm going to spend most of my time talking about but first I want to
+talking about but first I want to concentrate on those four
+concentrate on those four - and why they're good but not quite
+- and why they're good but not quite good enough the big problem with manual
+good enough the big problem with manual slicing is that it really really sucks -
+slicing is that it really really sucks - right when I'm programming an algorithm
+right when I'm programming an algorithm I do it with four loops and function
+I do it with four loops and function calls and all the normal programming
+calls and all the normal programming stuff one millisecond after an algorithm
+stuff one millisecond after an algorithm starts running maybe it's five function
+starts running maybe it's five function calls deep it's got a ton of local state
+calls deep it's got a ton of local state at each of the five levels its midway
+at each of the five levels its midway through a loop the state it is in is
+through a loop the state it is in is remarkably complicated and writing the
+remarkably complicated and writing the algorithm in such a way that it can save
+algorithm in such a way that it can save that state and then stop and then come
+that state and then stop and then come back to that state later is truly
+back to that state later is truly painful here's an easy example quicksort
+painful here's an easy example quicksort here's regular old quicksort and here's
+here's regular old quicksort and here's what I need to do to spread quicksort
+what I need to do to spread quicksort over multiple frames I need an external
+over multiple frames I need an external state I need to flatten subroutine calls
+state I need to flatten subroutine calls in general I need way more complicated
+in general I need way more complicated ways of expressing the same thing simply
+ways of expressing the same thing simply put this is not how these programming
+put this is not how these programming languages were meant to be used manual
+languages were meant to be used manual slicing is painful enough in fact they
+slicing is painful enough in fact they if you're doing it you're tempted to
+if you're doing it you're tempted to scale back your ambitions just because
+scale back your ambitions just because every layer of detail doubles the
+every layer of detail doubles the difficulty also it forces you to guess
+difficulty also it forces you to guess where you need to split and usually your
+where you need to split and usually your guesses are wrong and then changing
+guesses are wrong and then changing those splits is even more painful
+those splits is even more painful because you have to completely rework
+because you have to completely rework which state you save and how you resume
+which state you save and how you resume the algorithm for example that manually
+the algorithm for example that manually sliced quicksort assumes I'll never want
+sliced quicksort assumes I'll never want to slice in the middle of a left
+to slice in the middle of a left recursion that's why it's so short and
+recursion that's why it's so short and simple relatively speaking feel like
+simple relatively speaking feel like rewriting it when that assumption turns
+rewriting it when that assumption turns out to be wrong because it gets a lot
+out to be wrong because it gets a lot longer manual slicing is a monumentally
+longer manual slicing is a monumentally inefficient solution in terms of
+inefficient solution in terms of implementation burden but at the same
+implementation burden but at the same time we should recognize for a moment
+time we should recognize for a moment how promising it is as an ideal if we
+how promising it is as an ideal if we could really do this we'd have as much
+could really do this we'd have as much control over timing as we wanted I'll
+control over timing as we wanted I'll mention in passing that some languages
+mention in passing that some languages support a coding style known as
+support a coding style known as continuation passing or another related
+continuation passing or another related construct known as Co routines which
+construct known as Co routines which make this all considerably simpler so if
+make this all considerably simpler so if your game is written in C sharp or Lu
+your game is written in C sharp or Lu it's worth looking into though
+it's worth looking into though continuation passing and co-routines can
+continuation passing and co-routines can work even better with the approach I'll
+work even better with the approach I'll talk about later the next approach is
+talk about later the next approach is background threads where you rely on the
+background threads where you rely on the operating system scheduler to do the
+operating system scheduler to do the time slicing for you you create a
+time slicing for you you create a background thread or maybe multiple
+background thread or maybe multiple threads organized into a pool and you
+threads organized into a pool and you execute your long-running tasks on them
+execute your long-running tasks on them instead of on the main thread the idea
+instead of on the main thread the idea is to use up spare CPU cycles during the
+is to use up spare CPU cycles during the rest of the frame and during the AI step
+rest of the frame and during the AI step just process what's done since these
+just process what's done since these threads have their own stacks there's no
+threads have their own stacks there's no need for manual slicing the operating
+need for manual slicing the operating system takes care of saving State for
+system takes care of saving State for you and you can program in the normal
+you and you can program in the normal fashion I've used background threads a
+fashion I've used background threads a lot and I think they can work very well
+lot and I think they can work very well but there's some problems you need to
+but there's some problems you need to constantly keep in mind if you're using
+constantly keep in mind if you're using these the immediate problem is your
+these the immediate problem is your background threads can end up taking
+background threads can end up taking resources away from your main thread
+resources away from your main thread you've got enough background tasks to
+you've got enough background tasks to fill up your cores and then you've also
+fill up your cores and then you've also got the main thread of course and all of
+got the main thread of course and all of these threads have stuff to do so if the
+these threads have stuff to do so if the scheduler decides that it's going to run
+scheduler decides that it's going to run your background task threads for a while
+your background task threads for a while and pause your main thread then there
+and pause your main thread then there goes your framerate but wait you say
+goes your framerate but wait you say thread priorities I'll just set my
+thread priorities I'll just set my background threads have low priority and
+background threads have low priority and my main thread to have a high priority
+my main thread to have a high priority so the background threads only execute
+so the background threads only execute when there's nothing else going on good
+when there's nothing else going on good idea except here's a bunch of threads
+idea except here's a bunch of threads and here's your CPU cores at any given
+and here's your CPU cores at any given time some of the threads are running
+time some of the threads are running some are ready to run and some are
+some are ready to run and some are waiting for i/o or waiting for more
+waiting for i/o or waiting for more tasks or waiting for a mutex and the
+tasks or waiting for a mutex and the usual assumption is the cores are filled
+usual assumption is the cores are filled with the highest priority threads which
+with the highest priority threads which are currently ready to run so if a high
+are currently ready to run so if a high priority thread becomes ready it kicks
+priority thread becomes ready it kicks out a lower priority thread and when a
+out a lower priority thread and when a thread starts waiting on something it
+thread starts waiting on something it gets replaced with the ready thread
+gets replaced with the ready thread which has the highest priority but on
+which has the highest priority but on some platforms which shall remain
+some platforms which shall remain nameless but which were possibly
+nameless but which were possibly developed by a company I maybe now work
+developed by a company I maybe now work for
+for there's this weird effect where once a
+there's this weird effect where once a thread is assigned to a core it really
+thread is assigned to a core it really doesn't want to move each core has its
+doesn't want to move each core has its own set of threads and only looks there
+own set of threads and only looks there when it needs to find a thread to run
+when it needs to find a thread to run the only time a thread is moved is when
+the only time a thread is moved is when a core has absolutely nothing to do only
+a core has absolutely nothing to do only then does it steal a thread from another
+then does it steal a thread from another core so if this is your main thread and
+core so if this is your main thread and this is your graphics thread they can
+this is your graphics thread they can get stuck on the same core and you've
+get stuck on the same core and you've got all these other threads on the other
+got all these other threads on the other cores humming along since of course
+cores humming along since of course they've got plenty to do with the effect
+they've got plenty to do with the effect that your hybrid priority threads have
+that your hybrid priority threads have to compete with each other for resources
+to compete with each other for resources while your low priority threads get all
+while your low priority threads get all the time they want the solution is
+the time they want the solution is thread affinities where you control
+thread affinities where you control which threads can be on which cores
+which threads can be on which cores thread affinities are powerful but
+thread affinities are powerful but they're really difficult to get right if
+they're really difficult to get right if you make them too stringent you end up
+you make them too stringent you end up wasting cores a decent rule of thumb is
+wasting cores a decent rule of thumb is give all your high-priority threads
+give all your high-priority threads different thread affinities and don't
+different thread affinities and don't give thread affinities to lower priority
+give thread affinities to lower priority threads but even that isn't enough if
+threads but even that isn't enough if you have multi-threaded foreground tasks
+you have multi-threaded foreground tasks to the point we have oversubscribed
+to the point we have oversubscribed cores another problem is priority
+cores another problem is priority inversion which I'll just rush through
+inversion which I'll just rush through if this low priority thread holds a lock
+if this low priority thread holds a lock and this high priority thread wants that
+and this high priority thread wants that lock then this medium priority thread
+lock then this medium priority thread ends up getting all the core time
+ends up getting all the core time priority inversion is a complicated
+priority inversion is a complicated subject and I don't want to go too far
+subject and I don't want to go too far into it but the main takeaway is that if
+into it but the main takeaway is that if your background thread and foreground
+your background thread and foreground threads share a lock which is pretty
+threads share a lock which is pretty much inevitable if you want them to
+much inevitable if you want them to communicate then you can get into
+communicate then you can get into situations where a background thread
+situations where a background thread prevents your main thread from running
+the final problem with background threads is more subtle the whole point
+threads is more subtle the whole point of background threads is to use up spare
+of background threads is to use up spare CPU but that means that the latency of
+CPU but that means that the latency of your background tasks is at the mercy of
+your background tasks is at the mercy of everything else in your game so in some
+everything else in your game so in some area of the game say that have a lot of
+area of the game say that have a lot of physics bodies suddenly your AI latency
+physics bodies suddenly your AI latency goes way up in that
+goes way up in that because physics tasks are taking up more
+because physics tasks are taking up more time which means less time for the
+time which means less time for the background tasks with background threads
+background tasks with background threads you have a ton of potential CPU but no
+you have a ton of potential CPU but no guaranteed CPU manual slicing doesn't
+guaranteed CPU manual slicing doesn't have that problem because your code runs
+have that problem because your code runs in the foreground so well what do we
+in the foreground so well what do we like about these systems with manual
+like about these systems with manual slicing the primary advantage is the
+slicing the primary advantage is the level of control if we were to do enough
+level of control if we were to do enough work on it we can do AI for exactly as
+work on it we can do AI for exactly as we want to as long as we want to do AI
+we want to as long as we want to do AI but it's a lot of work background
+but it's a lot of work background threads are a lot easier you don't
+threads are a lot easier you don't usually hear somebody say how easy
+usually hear somebody say how easy multi-threading is but there you go
+multi-threading is but there you go but you have no control over what
+but you have no control over what they're doing here's a third option and
+they're doing here's a third option and it's how we've been approaching
+it's how we've been approaching asynchrony in havoc AI the basic idea is
+asynchrony in havoc AI the basic idea is you have a pool of threads like with the
+you have a pool of threads like with the last approach but instead of running in
+last approach but instead of running in the foreground and the background
+the foreground and the background they run in the foreground and every
+they run in the foreground and every threat frame the main thread waits for
+threat frame the main thread waits for them but it doesn't wait forever after a
+them but it doesn't wait forever after a specific period of time say 3
+specific period of time say 3 milliseconds those threads get suspended
+milliseconds those threads get suspended and then the next frame they get woken
+and then the next frame they get woken up again so this is the best of both
+up again so this is the best of both worlds in a way for manual slicing you
+worlds in a way for manual slicing you get precise control over how much CPU
+get precise control over how much CPU goes to AI and you get a guaranteed
+goes to AI and you get a guaranteed amount of execution time regardless of
+amount of execution time regardless of what else is going on in the game
+what else is going on in the game but unlike manual slicing you don't have
+but unlike manual slicing you don't have to code in an unpleasent style you just
+to code in an unpleasent style you just implement as usual and you let the OS
+implement as usual and you let the OS take care of saving your state and
+take care of saving your state and suspending and resuming things the
+suspending and resuming things the problem then becomes how do you do this
+problem then becomes how do you do this how do you get the threads to run for
+how do you get the threads to run for precisely 3 milliseconds during the AI
+precisely 3 milliseconds during the AI step and then stop
+step and then stop well my first idea was to have the OS
+well my first idea was to have the OS scheduled things so the main thread has
+scheduled things so the main thread has the absolute highest priority and the
+the absolute highest priority and the asynchronous threads are just below that
+asynchronous threads are just below that but suspended the main thread wakes up
+but suspended the main thread wakes up the async threads and then sets a timer
+the async threads and then sets a timer for itself for 3 milliseconds and then
+for itself for 3 milliseconds and then sleeps on that timer while the async
+sleeps on that timer while the async threads do their thing when the timer
+threads do their thing when the timer goes off it suspends the async
+goes off it suspends the async fred's processes any results that
+fred's processes any results that they've produced during that frame and
+they've produced during that frame and then the AI tech is over there's a
+then the AI tech is over there's a couple of problems with this though
+couple of problems with this though first most of the platforms you're going
+first most of the platforms you're going to be working on are not set up for this
+to be working on are not set up for this level of precision a timer which goes
+level of precision a timer which goes off won't actually resumed the thread
+off won't actually resumed the thread holding the timer until after the next
+holding the timer until after the next natural scheduler tick which on most
+natural scheduler tick which on most platforms is around 16 milliseconds on
+platforms is around 16 milliseconds on some platforms you can adjust this but
+some platforms you can adjust this but even at the minimum tick you don't have
+even at the minimum tick you don't have very fine-grained control the more
+very fine-grained control the more serious problem is the possibility of
+serious problem is the possibility of deadlock let's say that when in a sync
+deadlock let's say that when in a sync threads 3 milliseconds were up it had
+threads 3 milliseconds were up it had just finished processing it had grabbed
+just finished processing it had grabbed a lock to write its output and then just
+a lock to write its output and then just then the main thread suspended it and
+then the main thread suspended it and then of course the main thread tried to
+then of course the main thread tried to grab that lock itself just to see if
+grab that lock itself just to see if there is output ready and bam deadlock
+there is output ready and bam deadlock your game has crashed the main thread is
+your game has crashed the main thread is waiting for a lock but the only thread
+waiting for a lock but the only thread that can give it that lock is asleep and
+that can give it that lock is asleep and the only thread that can wake up that
+the only thread that can wake up that thread is waiting for a lock so do not
+thread is waiting for a lock so do not be tempted to go this route
+be tempted to go this route it might work 999 times out of a
+it might work 999 times out of a thousand and then the stars align and
+thousand and then the stars align and you get a deadlock probably while you're
+you get a deadlock probably while you're demoing your game at e3
+demoing your game at e3 that's how fate works deadlock happens
+that's how fate works deadlock happens because at some points it is just not
+because at some points it is just not safe to suspend async threads
+safe to suspend async threads my initial thought was that the async
+my initial thought was that the async threads should just guard those
+threads should just guard those locations setting some flag to tell the
+locations setting some flag to tell the main thread that it has to wait a little
+main thread that it has to wait a little longer before it gets to suspend them
+longer before it gets to suspend them but there's a simpler and more elegant
+but there's a simpler and more elegant solution let the threads themselves take
+solution let the threads themselves take care of going to sleep instead of
+care of going to sleep instead of relying on the scheduler the async
+relying on the scheduler the async threads regularly check a timer and when
+threads regularly check a timer and when their time is up they voluntarily grab a
+their time is up they voluntarily grab a semaphore which won't be given to them
+semaphore which won't be given to them until the next frame causing them to
+until the next frame causing them to sleep they also take care of notifying
+sleep they also take care of notifying the main thread when the last async
+the main thread when the last async thread has grabbed the semaphore and
+thread has grabbed the semaphore and gone to sleep
+so the main thread wakes up the async threads by releasing the seam before
+threads by releasing the seam before they're waiting on and then it waits for
+they're waiting on and then it waits for the everyone's gone back to sleep signal
+the everyone's gone back to sleep signal when the async threads are woken up they
+when the async threads are woken up they mark down the current time add three
+mark down the current time add three milliseconds and then they go to work
+milliseconds and then they go to work every now and then they check on the
+every now and then they check on the time and when they're three milliseconds
+time and when they're three milliseconds are up they wait on the sema4 again and
+are up they wait on the sema4 again and the last one to go to sleep notifies the
+the last one to go to sleep notifies the main thread that the async step is over
+main thread that the async step is over and importantly the async threads never
+and importantly the async threads never go to sleep if they're holding an
+go to sleep if they're holding an externally visible lock they only go to
+externally visible lock they only go to sleep when it's safe to sleep
+sleep when it's safe to sleep essentially we're replacing the OS
+essentially we're replacing the OS scheduler with our own scheduler the
+scheduler with our own scheduler the replacement is more precise and it also
+replacement is more precise and it also has more information about when it's
+has more information about when it's safe to switch over it does require that
+safe to switch over it does require that we do these periodic timer checks a
+we do these periodic timer checks a procedure we call ten two thread pool
+procedure we call ten two thread pool instead of using hardware interrupts but
+instead of using hardware interrupts but that's really not a major burden
+that's really not a major burden compared to manual slicing there's a
+compared to manual slicing there's a certain number of annoying but important
+certain number of annoying but important details I'm going to go into but before
+details I'm going to go into but before I go into those I want to note in
+I go into those I want to note in passing that our implementation of an
+passing that our implementation of an asynchronous thread pool and task queue
+asynchronous thread pool and task queue will be available in the next release of
+will be available in the next release of havoc AI or actually just having if your
+havoc AI or actually just having if your license of any havoc product you'll have
+license of any havoc product you'll have access to the system for your own code
+access to the system for your own code so if you license havoc anything you can
+so if you license havoc anything you can probably just take a nap right now I
+probably just take a nap right now I also want to give credit where credit is
+also want to give credit where credit is due
+due Havoc's implementation and the majority
+Havoc's implementation and the majority of details I'll go into later are not my
+of details I'll go into later are not my work but the work of my teammate Lieven
+work but the work of my teammate Lieven von der Heide
+von der Heide so if you want to thank someone for this
+so if you want to thank someone for this being an actual thing as opposed to a
+being an actual thing as opposed to a clever idea he's the one who actually
+clever idea he's the one who actually made this stuff work
+the first detail is how the locks in the cyma fors work the machinery of resuming
+cyma fors work the machinery of resuming the async threads and pausing the main
+the async threads and pausing the main thread and then resuming the main thread
+thread and then resuming the main thread when the async threads are back to being
+when the async threads are back to being paused obviously this is the most
+paused obviously this is the most important part of the system but I don't
+important part of the system but I don't want to spend a ton of time on it simply
+want to spend a ton of time on it simply because working through correctness
+because working through correctness proofs is nobody's idea of a good time
+proofs is nobody's idea of a good time but in short each async thread has its
+but in short each async thread has its own SEMA for which it uses to suspend
+own SEMA for which it uses to suspend between threads or between frames and
+between threads or between frames and the main thread has a SEMA for which the
+the main thread has a SEMA for which the async threads used to wake it back up
+async threads used to wake it back up suffice it to say that it's not that
+suffice it to say that it's not that difficult if you can implement a task
+difficult if you can implement a task queueing system with dependencies that
+queueing system with dependencies that went on you can implement a simple async
+went on you can implement a simple async thread pool and just Google the sleeping
+thread pool and just Google the sleeping barber problem everything you need to
+barber problem everything you need to know is there I do though want to talk
+know is there I do though want to talk about thread affinities and how they
+about thread affinities and how they relate to the locking it's very
+relate to the locking it's very important that you set thread affinities
+important that you set thread affinities for all your async threads
+for all your async threads otherwise you can run into the problem I
+otherwise you can run into the problem I mentioned earlier where threads get
+mentioned earlier where threads get distributed to the wrong cores and end
+distributed to the wrong cores and end up waiting for each other while low
+up waiting for each other while low priority threads run without thread
+priority threads run without thread affinities this is almost guaranteed to
+affinities this is almost guaranteed to happen so make sure to give each async
+happen so make sure to give each async thread its own core and of course don't
+thread its own core and of course don't over subscribe your async threads but
+over subscribe your async threads but having one async thread per core sets up
+having one async thread per core sets up a hilarious problem when you wake up all
+a hilarious problem when you wake up all the async threads
+the async threads halfway through this wakeup may be the
+halfway through this wakeup may be the main thread wakes up the async thread
+main thread wakes up the async thread that it shares its thread affinity with
+that it shares its thread affinity with that's on the same core as it is and
+that's on the same core as it is and what happens well the async thread takes
+what happens well the async thread takes off particularly if it's reliant if it's
+off particularly if it's reliant if it's benefiting it from priority boosting and
+benefiting it from priority boosting and then the main thread is no longer
+then the main thread is no longer running and never has a chance to wake
+running and never has a chance to wake up the rest of the async threads you can
+up the rest of the async threads you can solve this with careful use of
+solve this with careful use of affinities and priorities and wakening
+affinities and priorities and wakening the threads up in the right order but a
+the threads up in the right order but a much simpler solution is just to chain
+much simpler solution is just to chain the wake up's
+the wake up's instead of the main thread waking up all
+instead of the main thread waking up all the async threads it just wakes up the
+the async threads it just wakes up the first async thread and when that async
+first async thread and when that async thread wakes up the first thing it does
+thread wakes up the first thing it does is wake up the second thread which wakes
+is wake up the second thread which wakes up the third thread and so on so as long
+up the third thread and so on so as long as you've set correct affinities for all
+as you've set correct affinities for all the async threads that should wake them
+the async threads that should wake them up basically simultaneously without any
+up basically simultaneously without any worries about scheduling the next detail
+worries about scheduling the next detail is timing an x64 processor has a number
+is timing an x64 processor has a number of timers available to it but the only
+of timers available to it but the only one that's really precise enough
+one that's really precise enough our needs is the time stamp counter
+our needs is the time stamp counter which is accessed through the our DTSC
+which is accessed through the our DTSC instruction our DTSC gives you very high
+instruction our DTSC gives you very high precision but it's not perfect in
+precision but it's not perfect in particularly in particular it's a
+particularly in particular it's a remarkably slow instruction on some x64
+remarkably slow instruction on some x64 trips it's one of the slowest
+trips it's one of the slowest instructions you can execute so if
+instructions you can execute so if you've got an inner loop like this don't
+you've got an inner loop like this don't tend to thread pool every time through
+tend to thread pool every time through instead you can do a tend to thread pool
+instead you can do a tend to thread pool on certain counter multiples or you can
+on certain counter multiples or you can separate an inner and an outer loop like
+separate an inner and an outer loop like this by the way once upon a time the
+this by the way once upon a time the timestamp counter was at the mercy of
+timestamp counter was at the mercy of the CPU clock frequency and could be
+the CPU clock frequency and could be thrown off by power saving that's
+thrown off by power saving that's actually no longer the case on modern
+actually no longer the case on modern x64 chips but if you have a very low min
+x64 chips but if you have a very low min spec it's worth thinking about likewise
+spec it's worth thinking about likewise once upon a time our DTS II wasn't
+once upon a time our DTS II wasn't necessarily synchronized between cores
+necessarily synchronized between cores but on the platforms we've tried this on
+but on the platforms we've tried this on synchronization hasn't actually been a
+synchronization hasn't actually been a problem it's important that you tend to
+problem it's important that you tend to thread pool function be as efficient as
+thread pool function be as efficient as possible because it's going to be called
+possible because it's going to be called a lot make sure you don't grab any locks
+a lot make sure you don't grab any locks or sema4 x' or atomically change any
+or sema4 x' or atomically change any global values before it's time to go for
+global values before it's time to go for you to go to sleep and make sure that
+you to go to sleep and make sure that any per thread state is on a different
+any per thread state is on a different cache line to avoid false sharing
+cache line to avoid false sharing between the async threads you should
+between the async threads you should also make it not suck to call tend to
+also make it not suck to call tend to thread pool in particular don't force
+thread pool in particular don't force your programmers to pass a thread pool
+your programmers to pass a thread pool pointer everywhere you could use a
+pointer everywhere you could use a singleton but even better is to use a
+singleton but even better is to use a thread local variable in order to store
+thread local variable in order to store a pointer to the per thread state that
+a pointer to the per thread state that gives you a useful side benefit you can
+gives you a useful side benefit you can make ten to thread pool behave like a no
+make ten to thread pool behave like a no op if it's called outside any async
+op if it's called outside any async thread pooling that reduces the need to
+thread pooling that reduces the need to make two versions of your algorithms and
+make two versions of your algorithms and makes it easier to retrofit asynchrony
+makes it easier to retrofit asynchrony onto existing code that you're already
+onto existing code that you're already using elsewhere
+the trickiest part of all this stuff is calling ten - thread pool at the right
+calling ten - thread pool at the right frequency if you call it too seldom
+frequency if you call it too seldom you'll get time spikes and if you call
+you'll get time spikes and if you call too often you'll waste a lot of CPU time
+too often you'll waste a lot of CPU time on our DTSC now we've spent a lot of
+on our DTSC now we've spent a lot of time getting timings just right because
+time getting timings just right because we've set a target of 100 microseconds
+we've set a target of 100 microseconds for our maximum variance that is a
+for our maximum variance that is a thread never stays awake more than 100
+thread never stays awake more than 100 microseconds longer than it was supposed
+microseconds longer than it was supposed to which means it has to call this at
+to which means it has to call this at least once every 100 microseconds for
+least once every 100 microseconds for that level of variance you need to
+that level of variance you need to retrofit a lot of code for async use for
+retrofit a lot of code for async use for instance we actually have a special
+instance we actually have a special version for a synchrony of mem copy
+version for a synchrony of mem copy just because copying a 1 megabyte array
+just because copying a 1 megabyte array takes about half a millisecond for
+takes about half a millisecond for smaller data sizes for higher acceptable
+smaller data sizes for higher acceptable variants you don't have to go this far
+variants you don't have to go this far but you should have some way of finding
+but you should have some way of finding places in your code where you're calling
+places in your code where you're calling tend to thread pool either too seldom or
+tend to thread pool either too seldom or too often a profiler can really help
+too often a profiler can really help with this particularly if you examine
+with this particularly if you examine where tend to thread pool is most being
+where tend to thread pool is most being called from you can also manually
+called from you can also manually instrument your code if you're 10 to
+instrument your code if you're 10 to thread pool function if you pass in a
+thread pool function if you pass in a unique ID from each place then you can
+unique ID from each place then you can record when that happened and look for
+record when that happened and look for unusually high or low intervals between
+unusually high or low intervals between the calls a major pain point with
+the calls a major pain point with asynchronous computation and games is
+asynchronous computation and games is working with World States actually in
+working with World States actually in this system
+this system threading notwithstanding since
+threading notwithstanding since everything's happening in the foreground
+everything's happening in the foreground during a dedicated AI tick it's actually
+during a dedicated AI tick it's actually a lot easier than with general
+a lot easier than with general multi-threading but there are still a
+multi-threading but there are still a couple of things you need to keep in
+couple of things you need to keep in mind first of course is don't hold
+mind first of course is don't hold external locks when you're checking the
+external locks when you're checking the sleep timer second is if you read world
+sleep timer second is if you read world states and then call tender thread pool
+states and then call tender thread pool and then read more world state consider
+and then read more world state consider whether the first batch of world state
+whether the first batch of world state might now have changed for things like
+might now have changed for things like influence maps maybe that doesn't matter
+influence maps maybe that doesn't matter for things like planning problems it
+for things like planning problems it probably does you can also have your
+probably does you can also have your tender thread pool function return
+tender thread pool function return whether it slept or not and
+whether it slept or not and roll back and recheck things if it did
+roll back and recheck things if it did so far I've talked about acing threads
+so far I've talked about acing threads as either running in the foreground or
+as either running in the foreground or suspended but you can also set it up so
+suspended but you can also set it up so async threads switch between foreground
+async threads switch between foreground and background mode by adjusting the
+and background mode by adjusting the thread priorities during the tick that
+thread priorities during the tick that gives you a guaranteed time slice during
+gives you a guaranteed time slice during the AI step but it still allows you to
+the AI step but it still allows you to soak up those idle CPU resources during
+soak up those idle CPU resources during the rest of the frame one important
+the rest of the frame one important point about this the main thread should
+point about this the main thread should increase async priorities and async
+increase async priorities and async threads should decrease their own
+threads should decrease their own priorities make sure to do it that way
+priorities make sure to do it that way otherwise things will happen at the
+otherwise things will happen at the wrong time and threads will get stuck
+wrong time and threads will get stuck there's a big drawback to the background
+there's a big drawback to the background mode though when async threads are in
+mode though when async threads are in the foreground
+the foreground they have full access to the external
+they have full access to the external world data as long as they don't try to
+world data as long as they don't try to sleep in the middle of a transaction but
+sleep in the middle of a transaction but if they're in the background then it's
+if they're in the background then it's just like any other multi-threaded
+just like any other multi-threaded system you have to worry about
+system you have to worry about concurrent access so if your system
+concurrent access so if your system needs to read a lot of world state
+needs to read a lot of world state making it work in the background may be
+making it work in the background may be more trouble than it's worth I should
+more trouble than it's worth I should also mention that allowing both
+also mention that allowing both background threads and suspended frames
+background threads and suspended frames makes an implementation considerably
+makes an implementation considerably more complex one bit of future work
+more complex one bit of future work we've been looking at is internal locks
+we've been looking at is internal locks and by internal I mean locks that are
+and by internal I mean locks that are shared by asynchronous threads but are
+shared by asynchronous threads but are not visible outside the thread pool you
+not visible outside the thread pool you see these pretty often when you've got
+see these pretty often when you've got multiple threads working in parallel to
+multiple threads working in parallel to produce a set of output internal locks
+produce a set of output internal locks of course aren't a problem as long as
+of course aren't a problem as long as you don't hold them across a 10-2 thread
+you don't hold them across a 10-2 thread pool call but it would be nice to have a
+pool call but it would be nice to have a lock which had that flexibility the idea
+lock which had that flexibility the idea is that that special kind of lock
+is that that special kind of lock wouldn't interfere with 10/2 thread pool
+wouldn't interfere with 10/2 thread pool and the way it would do that is if a
+and the way it would do that is if a thread is waiting for an internal lock
+thread is waiting for an internal lock it should be treated as effectively
+it should be treated as effectively already suspended that means it needs to
+already suspended that means it needs to be implemented on top of the existing
+be implemented on top of the existing per thread sema4 is and there's a lot of
+per thread sema4 is and there's a lot of machinery for making sure that when a
+machinery for making sure that when a lock is released it goes to the right
+lock is released it goes to the right thread depending on whether it's
+thread depending on whether it's suspended for the right or wrong reasons
+suspended for the right or wrong reasons it's not easy it's not going to be easy
+it's not easy it's not going to be easy to implement but I think a successful
+to implement but I think a successful implementation of this would open up a
+implementation of this would open up a flexibility in what sorts of processing
+flexibility in what sorts of processing people could do in an async thread pool
+people could do in an async thread pool I know that asynchronous processing
+I know that asynchronous processing isn't the most natural way to write code
+isn't the most natural way to write code instinctively we want to be able to ask
+instinctively we want to be able to ask a question and get the answer back
+a question and get the answer back immediately
+immediately but asynchronous AI opens up
+but asynchronous AI opens up possibilities which nothing else opens
+possibilities which nothing else opens up for us computers have basically
+up for us computers have basically stopped getting faster if you can't
+stopped getting faster if you can't afford a technique today you won't be
+afford a technique today you won't be able to afford it in five years either
+able to afford it in five years either unless you changed the rules and
+unless you changed the rules and asynchrony changes the rules it uses
+asynchrony changes the rules it uses game ai's natural tolerance for latency
+game ai's natural tolerance for latency to open up more processing power than
+to open up more processing power than we've ever had before I swear a
+we've ever had before I swear a synchrony is important it's probably the
+synchrony is important it's probably the most important thing I've ever talked
+most important thing I've ever talked about here this is something you need to
+about here this is something you need to do if you want to move forward thank you
+got a couple minute for questions I
+thanks for the talk I wanted to ask
+implementation with what fibers yeah I would love to use fibers for that matter
+would love to use fibers for that matter I would love to use user mode scheduling
+I would love to use user mode scheduling and all sorts of things that are just
+and all sorts of things that are just perfect for this we had to worry about
+perfect for this we had to worry about cross-platform compatibility I didn't
+cross-platform compatibility I didn't want something that I'd have to
+want something that I'd have to re-implement and have different vagaries
+re-implement and have different vagaries on each platform so that meant you know
+on each platform so that meant you know doing it the vanilla way with locks and
+doing it the vanilla way with locks and such like thanks so given how easy it is
+such like thanks so given how easy it is to call ten to thread pool and how
+to call ten to thread pool and how widespread the calls are yep it seems
+widespread the calls are yep it seems like it's very easy to actually call it
+like it's very easy to actually call it from a scope that's holding a lock
+from a scope that's holding a lock do you often run into these problems do
+do you often run into these problems do have some like instrumentation or some I
+have some like instrumentation or some I mean we ran into it a few times when we
+mean we ran into it a few times when we were first using this when we were
+were first using this when we were retrofitting existing code but like
+retrofitting existing code but like we're already very careful with locks
+we're already very careful with locks because when you're holding a lock
+because when you're holding a lock you're doing something unsafe of course
+you're doing something unsafe of course and because you're doing something
+and because you're doing something unsafe you're restricting what can
+unsafe you're restricting what can happen
+happen world so our use of locks is already
+world so our use of locks is already pretty tight we did see a few uses of
+pretty tight we did see a few uses of this but I would say that none of them
+this but I would say that none of them were very difficult to resolve with the
+were very difficult to resolve with the exception of the stuff happening
+exception of the stuff happening entirely internally it's the funny thing
+entirely internally it's the funny thing that it was the external locks which
+that it was the external locks which were harder to fix than the internal
+were harder to fix than the internal ones last question so since when you do
+ones last question so since when you do time slicing you're essentially trading
+time slicing you're essentially trading CPU time for memory do you guys handle
+CPU time for memory do you guys handle anything with memory spikes essentially
+anything with memory spikes essentially now that if different asynchronous tasks
+now that if different asynchronous tasks in the background are getting pause but
+in the background are getting pause but consuming a quite a bit of memory so by
+consuming a quite a bit of memory so by trading CPU time for memory you mean
+trading CPU time for memory you mean because there's all these threads which
+because there's all these threads which their own working set yes
+their own working set yes it hasn't tended to be a big problem I
+it hasn't tended to be a big problem I mean yes you have a stack per thread but
+mean yes you have a stack per thread but if you've got more threads going then
+if you've got more threads going then they generally have smaller heap sizes
+they generally have smaller heap sizes just because they're operating on a
+just because they're operating on a smaller area of the problem it's
+smaller area of the problem it's definitely possible to limit the amount
+definitely possible to limit the amount of memory being used per thread but this
+of memory being used per thread but this just isn't something we've seen a need
+just isn't something we've seen a need to do yet yeah
+you

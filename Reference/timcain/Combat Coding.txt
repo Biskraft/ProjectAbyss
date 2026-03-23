@@ -1,0 +1,367 @@
+hi everyone it's me Tim today I want to
+talk about combat like technical how to
+code combat kind of thing like I'm going
+to talk data structures and event
+handling I wasn't going to do this but
+I've done some technical talks in the
+past and people really liked it and I
+was trying to think of what I could talk
+about that was General enough that it
+would be applicable to a lot of you but
+at the same time really interesting and
+I hit upon the combat stuff because a
+whoa okay maybe I should start editing
+I'm gonna leave that in
+there yes
+um I I want to talk about combat because
+a every RPG has
+combat and
+B I did this a bunch of different ways I
+did it one way for bar tail construction
+set and another way for Fallout even
+though they were both turn-based and
+then another way for Arcanum and I
+finally settled on this method which I
+really like
+um for the programmers out there it's
+one based
+on
+a manager for combat data structures
+which I call combat packets and then an
+event handler so why did I do it this
+way why did this become my favorite
+because making the packets global and
+having them controlled by a manager
+meant there was far less memory
+fragmentation because things are going
+to be requesting these packets a lot and
+freeing them up a lot and as I'll
+explain as I go through it a lot of
+things want to see these packets more
+than just the attacker so making it
+something that exists outside of the
+attacker that can be referenced and
+passed around just makes things a lot
+easier I use the event handler because a
+lot of independent systems often want to
+know about these events
+and through this combat packet can be
+easily passed all the information they'd
+ever want to know of course all the
+different combat routines want to know
+but so does UI so does the sound system
+and those are independent of combat but
+often need to know
+information like who's the attacker
+who's the victim what's the victim's
+armor what is the weapon that's being
+used in the attack so it can decide how
+to display things in the UI and how to
+make sounds so
+I'm going to walk through how I did this
+in I think everything
+after
+Arcanum so let's let's start first of
+all there's a starting
+event where some attacker decides I want
+to do an
+attack maybe it's a turnbas system and
+it becomes their turn maybe it's an a
+realtime system in the AI said hey it's
+time to do an attack maybe a cool down
+happened
+maybe another event happened that hit
+them like hey you were just attacked by
+somebody what do you want to do I want
+to attack
+back this is the point where the
+attacker asks the combat manager please
+give me a combat packet and the manager
+goes here you
+go the manager is the one that controls
+the memory for it probably initialized
+it before it turn it passed it over so
+everything is appropriately initialized
+to a Zer null nothing
+value during that start event that's
+when the attacker is going to fill in as
+many fields as he already knows about
+now the the packet has fields for like
+who's being attacked there's a Target
+array keep in mind and I I'm being very
+careful the target might be a creature
+it might be a location because you throw
+a fireball at a location and then it
+hits a bunch of targets
+so what I usually had was a Target Field
+which could be a object or location
+and then victims which was an array of
+objects of everything that got
+hurt there's other fields on this packet
+like what's the full amount of damage
+that got rolled by the attack what was
+the Damage Done To Each Target some
+Flags we need to keep about the attack
+State those will be filled in as we go
+along as it gets past to different
+things so like I said the target might
+be an object or location but that object
+might not be a creature you might be
+throwing
+fine trap
+or uh open lock so the object might be a
+creature or it might be a chest or door
+or a lock or trap
+so you have to use data structures you
+might want to use a
+union the programmers or you might have
+a generic
+object pointer that can point to a
+creature or a door or an
+object so here at the start it fill you
+fill in whatever you want to whatever
+you know you don't know all of it for
+example maybe the attacker knows who
+they want to an attack like they know
+that this person just hit me I went to
+attack them but they don't know what
+ability they want to use so there may be
+a function saying what ability I have
+available to attack this attacker this
+this person I'm the attacker or you may
+already decide what ability you want to
+do but you now you want to know where to
+throw it for example you may have a
+wizard NPC who basically casts Fireballs
+into the combat when every time his cool
+down happens so cooldown happens and he
+knows it's time for him to throw
+Fireball but where to throw it so
+there's probably a function called
+saying if I threw this spell where would
+I throw it or who would I Target
+sometimes you may need to decide both
+like in a turn-based combat it's your
+turn now who do you want to attack what
+spill what ability do you want to use
+there may be a a method for deciding
+both where you go what should I do and
+it may recommend
+a person to attack and then you can say
+what ability should I use or it may say
+I think it's time for you to use this
+ability uh who should I use it on so you
+may have all three of those methods
+available for this ability who do I
+attack who I'm attacking this person
+what ability I want to use or hey just
+tell me what to do so the attacker fills
+in whatever they can already do on that
+packet um I'm also going to note for
+optimization purposes here's where you
+do anything that's expensive and I'll
+talk about that later if you do
+something frequently and expensive to
+calculate you do it here but like I've
+said in another video you optimize later
+so at this point the attacker's done and
+it it tells the combat manager ah Here's
+My ATT my field and attack packet let's
+go basically events get queued up there
+is a an attack begin event this is where
+the animation for the attack starts
+maybe a sound happens maybe skill the
+skill roll maybe it's determined here
+whether he hits or or not because maybe
+he does a slightly different animation
+when he misses or maybe the weapon can
+jam and you have to know that before
+anything starts Maybe not maybe the
+skill happens when the
+actual uh hit happens on the on the
+target there may be an event for
+projectile launch because remember if
+you have a gun or a bow its animation
+begins and there's a particular time in
+the projectile actually goes notice that
+that projectile launch may be an an an
+event on the animation which is another
+reason to use combat packets all the
+animation event will do is come back and
+tell the attacker you're playing an
+animation and this event just happened
+and you know that event is I've got to
+I've got to create a projectile for my
+attack well guess what you have this
+packet Line Round And it's got you as
+the attacker and it has the weapon
+you're using to attack or the ability
+you know what you can figure out what to
+make you do that so you create a
+projectile maybe another sound gets
+fired a lot of people are listening to
+these events
+now there's an attack in progress there
+may be some
+regular method that gets called every
+tick every frame to see if a projectile
+should be moved if you need to check on
+its
+progress
+um you know to maybe it hits something
+or maybe it's supposed to make a sound
+as goes long again another reason that
+that packet should not be on the
+attacker that it should be accessible to
+anybody because here's a a a frame rate
+or a heartbeat based method that's being
+called that may not be on the attacker
+so the projectile gets moved the sword
+gets swung these things
+happen you may maybe the person has an
+uh a globe of invulnerability around
+them that you actually stop before the
+hit of the attack that you stop early
+this is where you check something like
+that so then finally another event that
+happens is the attack is hit now you may
+or may not know whether it's successful
+like I said you may not you may have
+rolled it earlier or you may not this is
+where you'd roll it you have events that
+you call on the attacker your attack hit
+you have events that you call on each
+Target again a good reason this packet
+isn't on the attacker hey you were just
+hit by this
+attack those individual targets may
+decide here's how much damage was
+done uh but I have this damage
+resistance or I have to roll a saving
+throw this is where all that's
+done another reason to have this in a
+packet is some spells or abilities may
+have something unusual like it's an area
+of effect and there's a chance one
+person and it gets stunned or it stuns
+one up to three people in in the group
+this is where you kind of have to have a
+packet so that you can
+decide do those roles or whatever and
+then up a counter or set a flag in that
+packet so that once it's reached that
+limit nobody else gets stunned or
+whatever the effect is going to be or if
+you determine that it's an attack miss
+you may just call a function attack miss
+or you may send out another event
+because other things want to know that
+it was a miss Miss maybe your UI does
+something different on a Miss than a hit
+or there's a different sound that's
+needed again the attacker gets the Miss
+event and every Target that could have
+been hit but was
+missed gets that event or if it's like a
+fireball and some people made their save
+and some didn't some of those targets
+will get you were hit by the Fireball
+and the other gets you were missed by
+the fireball so they all know
+that then there's an attack finishing
+event which again is a frame rate based
+maybe the projectile that missed keeps
+moving maybe an animation has to be
+completed maybe there's something that
+gets triggered by the hit that needs to
+play out that's where that's done
+finally there's another event attack
+completed everything's over the attack
+is over this is when this event gets
+happened this is things that tell event
+abilities your cooldown can start you
+were just used your cooldown can start
+now this is also where the packet gets
+released back to the manager maybe it in
+reinitializes it before it puts it away
+maybe not I usually initialize it when I
+need it but it sticks it back on the
+Quee of here are packets available for
+me to hand
+out again this is the kind of stuff I
+did when memory was important but if
+you're using something like unity and
+you don't use a packet manager like this
+and you just make a new one whenever you
+feel like it and you free it up whenever
+you feel like it eventually like you can
+force um garbage collection on Unity but
+if you don't do it frequently enough it
+will decide to do it on its own and it's
+going to decide to do it in a time you
+don't want so maybe it's not when you're
+loading a level where no one will notice
+a hiccup of a tenth of a second it might
+do it in the middle of a big attack
+animation where that hiccup is
+noticeable or your frame rate takes a
+dump because it decides to spend you
+know 100 milliseconds doing a garbage
+collection this is why I always try to
+do that stuff myself I don't I'm not
+going to leave it to Unity or unreal to
+do that for me also I mentioned
+optimization I may think of places to
+optimize while I'm doing this but I I
+you do optimization afterwards one thing
+I mentioned was let's say there is
+something that in the attack packet
+that's kind of expensive to calculate
+maybe it's what the target's armor is
+and and you need to look it up because
+the sound system looks it up to decide
+what sound to play because a sword on
+leather sounds different than a sword on
+plate mail maybe it's the combat
+resolution itself that says I need to
+know what the damage resistance was on
+the victim's armor maybe of the 15 or so
+events that this packet flows through 10
+of them are looking up the victim's
+armor you may during optimization phase
+go that's expensive I will look it up
+once in combat start and store it but
+maybe of those 15 events only three or
+four do a look up and it's not that
+expensive just look it up that's why you
+save optimizations to a later and you
+decide to do just the ones you need
+because if you over optimize you're not
+only you're wasting time that you could
+have spent fixing bugs that are
+important but your optimizations may do
+nothing they don't help the frame rate
+they don't reduce memory they did
+nothing
+so I just want to throw that in there
+because that's an example of how I do
+this anyway so to summarize the way I've
+always loved doing combat is there's a
+combat packet that contains all the data
+about a single attack of an attacker on
+one or more
+targets that gets created by a combat
+manager who handles it independently of
+any of those attackers or targets can be
+referenced by all the events and the
+event handlers happen all the handle all
+the stages that that attack goes through
+anyway took me years to figure that out
+I used to do it like in with it much
+more non-event based code very
+deterministic coding that was a mistake
+this is the way I do it now so that was
+a bit of a technical discussion hope
+people like it hope people like
+listening to it I can do more of those
+let me know

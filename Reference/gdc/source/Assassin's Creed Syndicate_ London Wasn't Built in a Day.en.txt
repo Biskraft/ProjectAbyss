@@ -1,0 +1,904 @@
+[Music] hello and welcome to my talk I'm going
+hello and welcome to my talk I'm going to talk about se syndicate and how we
+to talk about se syndicate and how we built the city so I'm Damian Tim would
+built the city so I'm Damian Tim would simply tool programmer at Ubisoft Quebec
+simply tool programmer at Ubisoft Quebec so first of all I will give you an idea
+so first of all I will give you an idea general idea of the CTV build and the
+general idea of the CTV build and the kind of game we did for a season decade
+kind of game we did for a season decade so it's set in the Victorian London
+so it's set in the Victorian London we built a city almost six square
+we built a city almost six square kilometers with almost 80 kilometres of
+kilometers with almost 80 kilometres of drivable streets a little bit more than
+drivable streets a little bit more than eight or nine intersections and we
+eight or nine intersections and we placed around 8,000 buildings I'm
+placed around 8,000 buildings I'm speaking about generic buildings because
+speaking about generic buildings because we include it excludes the landmarks
+we include it excludes the landmarks train station factor isn't kind of big
+train station factor isn't kind of big buildings so the presentation is going
+buildings so the presentation is going to cover the different aspect of the
+to cover the different aspect of the solution we developed to build London
+solution we developed to build London instead of a simple list of topics let's
+instead of a simple list of topics let's watch a short video that introduced the
+watch a short video that introduced the London we built and all the features
+the only kind of weird but you get the idea of the feature we are so in
+idea of the feature we are so in addition of the video I'm going to talk
+addition of the video I'm going to talk about the user interface also you the
+about the user interface also you the interface they will evolve throughout
+interface they will evolve throughout the project for each subject I'm going
+the project for each subject I'm going to introduce the context explain what we
+to introduce the context explain what we did and some information about the
+did and some information about the post-mortem and feedback we get on these
+post-mortem and feedback we get on these features so but first a little bit of
+features so but first a little bit of franchise history
+franchise history we narrated all the technology from AC
+we narrated all the technology from AC unity unity was set in Paris during the
+unity unity was set in Paris during the French Revolution the Australasian for
+French Revolution the Australasian for city building was focused on house
+city building was focused on house blocks they were organized there was
+blocks they were organized there was sorry no organized traffic in Paris
+sorry no organized traffic in Paris therefore the width of the street we had
+therefore the width of the street we had no real importance if a street was a
+no real importance if a street was a little bit too large or too small it was
+little bit too large or too small it was only be perceived as organic by the
+only be perceived as organic by the player the street we are likely attached
+player the street we are likely attached in front of the building in a slightly
+in front of the building in a slightly downward slope until to the middle of
+downward slope until to the middle of the street and the AC needed tools only
+the street and the AC needed tools only supported creating streets on the grid
+supported creating streets on the grid you can see the blue lines on the
+you can see the blue lines on the pictures so as consequence to it we're
+pictures so as consequence to it we're always a constraint in length or in
+always a constraint in length or in angle to length and angle will not be
+angle to length and angle will not be affected flexible when we set a goal for
+affected flexible when we set a goal for associates indicate we decided very
+associates indicate we decided very early that we wanted a more realistic
+early that we wanted a more realistic street simulation meaning that we had to
+street simulation meaning that we had to change away Street we handled compared
+change away Street we handled compared to the previous assistant head game in
+to the previous assistant head game in simple world we wanted organized traffic
+simple world we wanted organized traffic for instance if you played an AC game
+for instance if you played an AC game before syndicate you might remember the
+before syndicate you might remember the street could have different widths and
+street could have different widths and the crowd always fill out the entire
+the crowd always fill out the entire street we had to move the crowd
+street we had to move the crowd simulation and circulation on the
+simulation and circulation on the sidewalk the ethoxide engine called
+sidewalk the ethoxide engine called anvil had never been used to create any
+anvil had never been used to create any driving or racing game
+driving or racing game for and the team has no prior experience
+for and the team has no prior experience in this kind of game we knew we were
+in this kind of game we knew we were going to need an easy way to iterate
+going to need an easy way to iterate very late in production and easy way to
+very late in production and easy way to edit it very late in production the last
+edit it very late in production the last goal was to reuse as much as possible
+goal was to reuse as much as possible the IC unity technology for obvious
+the IC unity technology for obvious reasons so in the franchisor grow the
+reasons so in the franchisor grow the ground wealth usually manually created
+ground wealth usually manually created by artists for a season decade since we
+by artists for a season decade since we needed to enforce some very strict
+needed to enforce some very strict Street metrics for the driving
+Street metrics for the driving experience we decided to have and to
+experience we decided to have and to generate all the street measures both
+generate all the street measures both matically we started by using debug
+matically we started by using debug displayed to prototype all the feature
+displayed to prototype all the feature we wanted let's me let me show you a
+we wanted let's me let me show you a quick video of the prototyping phase
+quick video of the prototyping phase without audio this time and the
+without audio this time and the beginning at we are going to see
+beginning at we are going to see education after intersection and our
+education after intersection and our happen to attend to fill the AC unity
+happen to attend to fill the AC unity solution on the whole network
+not good okay sorry trying to fix it okay
+trying to fix it okay it should work no okay so that's the
+it should work no okay so that's the debug display intersection so remember
+debug display intersection so remember it's only in debug display so that one
+it's only in debug display so that one network that the building so in the last
+network that the building so in the last frame of the video we try to fit the AC
+frame of the video we try to fit the AC unity for the Paris house block on the
+unity for the Paris house block on the new street we just created highlighted
+new street we just created highlighted in blue house blocks and as you can see
+in blue house blocks and as you can see the orange arrow is pretty white offset
+the orange arrow is pretty white offset between the building location and the
+between the building location and the edge of the street this is due to the
+edge of the street this is due to the strong anger enforcement of the AC unity
+strong anger enforcement of the AC unity technology we could on 4th Street to
+technology we could on 4th Street to have to be at certain angle but we
+have to be at certain angle but we realized pretty quickly that if we
+realized pretty quickly that if we process that way any change in a city
+process that way any change in a city result will altering much more as well
+result will altering much more as well in tundle we would have a domino effect
+in tundle we would have a domino effect that will spread addition point and in
+that will spread addition point and in the fabric of the map as you can imagine
+the fabric of the map as you can imagine this content was pretty drastic and we
+this content was pretty drastic and we needed to get rid of it I will show you
+needed to get rid of it I will show you later how we managed to other with this
+later how we managed to other with this but keep it in the back of your mind
+after our first obtained in using double display we started looking into what our
+display we started looking into what our mesh and collision generation here is a
+mesh and collision generation here is a quick video of the first time we were
+quick video of the first time we were able to drive on the street so it's of
+able to drive on the street so it's of course it's in debug displayed
+course it's in debug displayed programmer art but this is real geometry
+programmer art but this is real geometry generated so it's a first time wearable
+generated so it's a first time wearable to drive
+the physician we settled for the hotmail generation is Baden slices small chunks
+generation is Baden slices small chunks of old from different sizes carefully
+of old from different sizes carefully polished by artists to generate the
+polished by artists to generate the street from any lengths we calculate the
+street from any lengths we calculate the best combination of slices to
+best combination of slices to approximate the length and stretch all
+approximate the length and stretch all to apply a little bit to achieve the
+to apply a little bit to achieve the desired length during this process we
+desired length during this process we also handled slopes if one end of the
+also handled slopes if one end of the treat is higher than the other for the
+treat is higher than the other for the intersection we created unique slices
+intersection we created unique slices for each type of intersection to reduce
+for each type of intersection to reduce the number of intersection we were able
+the number of intersection we were able to move the extremity of the street from
+to move the extremity of the street from police or - 50 degrees so if we take top
+police or - 50 degrees so if we take top view of the street very schematic one
+it's a t-shape intersection and we could move the end of the street in the red
+move the end of the street in the red cone and it will be the same for all
+cone and it will be the same for all other street entry at the end of the
+other street entry at the end of the project we added curvature are very
+project we added curvature are very small curvature in the center of the
+small curvature in the center of the street this picture is this picture is
+street this picture is this picture is very exaggerated the curvature is very
+very exaggerated the curvature is very big but will you get the idea to
+big but will you get the idea to conclude on the street merging action
+conclude on the street merging action the final generated revealed by the
+the final generated revealed by the effective factor in terms of graphical
+effective factor in terms of graphical fidelity the small stretching of meshes
+fidelity the small stretching of meshes was not noticeable at all however we had
+was not noticeable at all however we had made the street match the narration very
+made the street match the narration very easy and we did not do anything for the
+easy and we did not do anything for the lot besides the street meshes it was a
+lot besides the street meshes it was a major production issue on one side we
+major production issue on one side we made sure it was very easy to move the
+made sure it was very easy to move the street around and to iterate fast on
+street around and to iterate fast on driving but each time we move a street
+driving but each time we move a street someone had to redo the ground around it
+someone had to redo the ground around it the intersection we have very tedious to
+the intersection we have very tedious to create
+create we had even with a small angle
+we had even with a small angle collection so prefer my name is
+collection so prefer my name is 50-degree we were we had to create more
+50-degree we were we had to create more than 100 intersections and at the end
+than 100 intersections and at the end because everything was generated it was
+because everything was generated it was very easy to add the curvature let when
+very easy to add the curvature let when we tackle the next big challenge
+we tackle the next big challenge creating the building placed along
+creating the building placed along around the whole network
+around the whole network we went building London we had to
+we went building London we had to account for some major iconic element of
+account for some major iconic element of the city the first is you can see in
+the city the first is you can see in this design document the building have
+this design document the building have not always the same depth it's an iconic
+not always the same depth it's an iconic element and you can create some
+element and you can create some interesting park or situation at the
+interesting park or situation at the back of the building so we wanted to
+back of the building so we wanted to reproduce that in our version of London
+reproduce that in our version of London in London we have a lot of pedestrian
+in London we have a lot of pedestrian back alleys who allow people to work
+back alleys who allow people to work from side wall to the courtyard some
+from side wall to the courtyard some time with overpass and another iconic
+time with overpass and another iconic element are the what in front of some
+element are the what in front of some buildings and we also try to reuse the
+buildings and we also try to reuse the modular solution created by unity
+building a split in multiple parts it being a key element of the building the
+being a key element of the building the front as you will expect
+front as you will expect open on the facade of the building in a
+open on the facade of the building in a similar fashion the back represent
+similar fashion the back represent everything behind the building
+everything behind the building contrary to Paris we separated the front
+contrary to Paris we separated the front and the back to a low level easier to
+and the back to a low level easier to switch front and back independently
+switch front and back independently because you could have a very nice
+because you could have a very nice representation of the street side but
+representation of the street side but you want to change the parkour situation
+you want to change the parkour situation on the back by changing the type of
+on the back by changing the type of staff you have at the back so you could
+staff you have at the back so you could change the front or the back
+change the front or the back independently the roof was the last in
+independently the roof was the last in deep it
+deep it indispensable parts to complete the
+indispensable parts to complete the building the basement and found it
+building the basement and found it unfortunately not very visible here
+unfortunately not very visible here could be added automatically if the
+could be added automatically if the building is in a slope so if one side of
+building is in a slope so if one side of the building is not at the same level as
+the building is not at the same level as the other side the garden could be added
+the other side the garden could be added in front to increase the space between
+in front to increase the space between sidewalk and buildings we also use did
+sidewalk and buildings we also use did garden for of them what and finnaly the
+garden for of them what and finnaly the park apart since it will not be an
+park apart since it will not be an affected game without traversal we had
+affected game without traversal we had reusable preset pub group used for
+reusable preset pub group used for parkour navigation and hood alongside
+parkour navigation and hood alongside the facade breeding paths are dependent
+the facade breeding paths are dependent one to another and this meant if we
+one to another and this meant if we change one part or the dependent part we
+change one part or the dependent part we also change for example if you try to
+also change for example if you try to add an extra floor on the front you will
+add an extra floor on the front you will have to change the back to add this
+have to change the back to add this extra floor these back could be a
+extra floor these back could be a different depth so you ended up change
+different depth so you ended up change in the roof and so on and so forth
+in the roof and so on and so forth in some cases the building could be a
+in some cases the building could be a path through building with open window
+path through building with open window in front and in the back control it was
+in front and in the back control it was a regular building the front part also
+a regular building the front part also contains the back information and you
+contains the back information and you can see the hole in the window and doors
+can see the hole in the window and doors we had no editable back to ensure that
+we had no editable back to ensure that building the wall inside will always fit
+building the wall inside will always fit all the interior wall are in a separate
+all the interior wall are in a separate part I will remove the world to see the
+part I will remove the world to see the interior a separate part and we the data
+interior a separate part and we the data interpret and the props are told in a
+interpret and the props are told in a different part that all with a given
+different part that all with a given interior wall part to have different
+interior wall part to have different population the props part also contains
+population the props part also contains NPC placement inside the building and
+NPC placement inside the building and the roof similar of the rig for regular
+the roof similar of the rig for regular buildings and we of course have also all
+buildings and we of course have also all other paths
+other paths garden basement and Paco and the last
+garden basement and Paco and the last type of part combination is the back
+type of part combination is the back alley in order to
+alley in order to we play some back alley from building by
+we play some back alley from building by bukhari here you can see building and
+bukhari here you can see building and now I can replace it by a back alley the
+now I can replace it by a back alley the tool will automatically generates the
+tool will automatically generates the ground between the two buildings to fill
+ground between the two buildings to fill the gap and you could add a building
+the gap and you could add a building overpass as an option the building are
+overpass as an option the building are built using small modules we have to
+built using small modules we have to type two main type of modules the first
+type two main type of modules the first of a three meter wide module used for
+of a three meter wide module used for important piece of the building windows
+important piece of the building windows Dorf a with features you can stack some
+Dorf a with features you can stack some modules one on top of the other to
+modules one on top of the other to create different floors the second main
+create different floors the second main type of module Arthur Collins half a
+type of module Arthur Collins half a meter wide you can have as many columns
+meter wide you can have as many columns as you want with a little bit of
+as you want with a little bit of imagination the facade of the building
+imagination the facade of the building is taking shape and for some specific
+is taking shape and for some specific module for a feature of the building we
+module for a feature of the building we had wider modules always multiple of
+had wider modules always multiple of three in this case 6 meters and street
+three in this case 6 meters and street level store are built using the same
+level store are built using the same technique the same solution so 3 meter
+technique the same solution so 3 meter of modules and Collins but with another
+of modules and Collins but with another design and if you add decals and color
+design and if you add decals and color on each side you have a pretty nice
+on each side you have a pretty nice reusable building it's a combination of
+reusable building it's a combination of 3 media modules and health emitter
+3 media modules and health emitter currents here interview you can create
+currents here interview you can create your first 3 meter wide building but
+your first 3 meter wide building but however if you put the color on the
+however if you put the color on the other side of the wall you can create a
+other side of the wall you can create a 4 meter wide building and if we apply
+4 meter wide building and if we apply the same solution using 2 emoji module 3
+the same solution using 2 emoji module 3 meter wide modules you will get a 6 & 7
+for obvious time and budget constraint we were looking at posture I generate
+we were looking at posture I generate some part essentially is a very tedious
+some part essentially is a very tedious and look relativity one like the
+and look relativity one like the basements thanks to a very strict naming
+basements thanks to a very strict naming convention for each module we were able
+convention for each module we were able to extract its exact location in the
+to extract its exact location in the building and its exact purpose for
+building and its exact purpose for example here we have a house original
+example here we have a house original house B stands for Victorian one F
+house B stands for Victorian one F stands for D F and for door and one for
+stands for D F and for door and one for variation by creating a basement path
+variation by creating a basement path using a matching naming convention we
+using a matching naming convention we are able to generate all the basement
+are able to generate all the basement around the city you can see the name
+around the city you can see the name equation is the same the only one F is
+equation is the same the only one F is replaced by 0 F in London the front of
+replaced by 0 F in London the front of the building are from devious
+the building are from devious architectural style but the back all
+architectural style but the back all shares the Victorian style since that
+shares the Victorian style since that interesting fact is working on our
+interesting fact is working on our advantage it made sense to increase to
+advantage it made sense to increase to find a solution to share the back part
+find a solution to share the back part Swan London and find a generation
+Swan London and find a generation solution for each back building we
+solution for each back building we created a polished and single template
+created a polished and single template and template is done cloned and adapt to
+and template is done cloned and adapt to each architectural style in London you
+each architectural style in London you have to to type of of Georgian back you
+have to to type of of Georgian back you have the yellow one and the red one just
+have the yellow one and the red one just by changing the color just by sending
+by changing the color just by sending the module using the naming convention
+the module using the naming convention to all our modules we were able to
+to all our modules we were able to generate backs for hoser the oath of
+generate backs for hoser the oath of Georgian side is the right one and if we
+Georgian side is the right one and if we add a kind of small item on the top you
+add a kind of small item on the top you can see we can increase the side of the
+can see we can increase the side of the building in case this was used in the
+building in case this was used in the case of neoclassical building wall a
+case of neoclassical building wall a little bit taller than the Georgian one
+little bit taller than the Georgian one and we use the same generation process
+and we use the same generation process for the roof in the shed because they
+for the roof in the shed because they share only four different shape
+share only four different shape throughout London
+to conclude on the building part with this module solution we could produce a
+this module solution we could produce a lot of building for less of function
+lot of building for less of function cost which all the power generation
+cost which all the power generation solution we were able to save time
+solution we were able to save time increased initiative is a number of back
+increased initiative is a number of back hoof and basement we are able to create
+hoof and basement we are able to create smaller working with smaller modules
+smaller working with smaller modules that easy replaced reproduce copy fixed
+that easy replaced reproduce copy fixed it's a much easier way to work and
+it's a much easier way to work and module offer a great separation for
+module offer a great separation for taking a match edge of the outline
+taking a match edge of the outline standing now let me know how the
+standing now let me know how the building are built it's time to explain
+building are built it's time to explain how they are placed along the street and
+how they are placed along the street and how we are able to fit any lengths and
+how we are able to fit any lengths and any angle the London London is split in
+any angle the London London is split in seven district each having is own active
+seven district each having is own active artistic the action thus to support this
+artistic the action thus to support this action we created seven data bank one
+action we created seven data bank one data bank for each district and each
+data bank for each district and each data bank of team contains three
+data bank of team contains three building style for example if we take
+building style for example if we take City of London we have close to free
+City of London we have close to free style we have inside we also called the
+style we have inside we also called the style it as a Victorian one the judge
+style it as a Victorian one the judge and one and the neoclassical one all
+and one and the neoclassical one all district are limited to only three
+district are limited to only three building style out of the seven we have
+building style out of the seven we have in the game from my conception purposes
+in the game from my conception purposes the stuff London district ended up
+the stuff London district ended up containing two a little bit knowledge
+containing two a little bit knowledge one World Trade building and it with
+one World Trade building and it with more than 80 corner buildings across
+more than 80 corner buildings across this type building a split in different
+this type building a split in different sizes here we are going to explore the
+sizes here we are going to explore the Victorian kit we started by creating the
+Victorian kit we started by creating the straight building in seven different
+straight building in seven different sizes 3 4 6 7 10 13 16 and 5 different
+sizes 3 4 6 7 10 13 16 and 5 different height 2 3 4 5 and 6 floors and we also
+height 2 3 4 5 and 6 floors and we also created all the corner between 30
+created all the corner between 30 degrees to 270
+degrees to 270 in ten degree increment a kid can hold
+in ten degree increment a kid can hold more than one building for each type but
+more than one building for each type but can also not hold a building for each
+can also not hold a building for each type so you can have multiple building
+type so you can have multiple building in for example the Victorian kit has 3 7
+in for example the Victorian kit has 3 7 meter wide to floor height building but
+meter wide to floor height building but had no 10 meter while wide to flow high
+had no 10 meter while wide to flow high building so each kid can contain more or
+building so each kid can contain more or less buildings building our place next
+less buildings building our place next one next to the other that mean that the
+one next to the other that mean that the given the available width of building 4
+given the available width of building 4 3 4 6 7 etc we could only result in 3 in
+3 4 6 7 etc we could only result in 3 in street lengths in integral the same way
+street lengths in integral the same way it was in Paris since we needed to be
+it was in Paris since we needed to be able to create Street from any lengths
+able to create Street from any lengths we introduced the concept of adjustable
+we introduced the concept of adjustable building only one per frontage I'm going
+building only one per frontage I'm going to talk about it in the next slide and
+to talk about it in the next slide and the frontage describe the group of
+the frontage describe the group of buildings of a one side of the street
+buildings of a one side of the street when the user when the user wrist size a
+when the user when the user wrist size a street I try to keep as many existing
+street I try to keep as many existing building as possible so if you reduce
+building as possible so if you reduce the street from 3 or 4 meters we are
+the street from 3 or 4 meters we are going to remove a 10 meter Victorian
+going to remove a 10 meter Victorian building and try to reinsert a 6 meter
+building and try to reinsert a 6 meter Victorian building to keep the street
+Victorian building to keep the street earth consistent opposed as possible
+let's focus on the adjustable building that you see me is capable to assume any
+that you see me is capable to assume any size between 3 and 4 meters let's check
+size between 3 and 4 meters let's check out a small video look at the building
+out a small video look at the building with the light green cylinder in front
+with the light green cylinder in front in his side is going to shrink until it
+in his side is going to shrink until it reach under 3 meters
+in fact the building is split in three four in three subgroups one for each
+four in three subgroups one for each side containing the currents and the
+side containing the currents and the world perpendicular to the street and a
+world perpendicular to the street and a central group containing the rift we
+central group containing the rift we slide the subgroup into the free meter
+slide the subgroup into the free meter Center to which all the thighs between 3
+Center to which all the thighs between 3 & 4 so if we take a graphical
+& 4 so if we take a graphical representation of all the street lengths
+representation of all the street lengths we could build if we add the building we
+we could build if we add the building we have at the beginning 4 3 4 6 7 etc we
+have at the beginning 4 3 4 6 7 etc we ended up with this side of this kind of
+ended up with this side of this kind of treatment could create if you had all
+treatment could create if you had all the combination of buildings we can
+the combination of buildings we can create almost everything around 9 meters
+create almost everything around 9 meters and if we add one adjustable building in
+and if we add one adjustable building in each frontage we were able to create
+each frontage we were able to create everything between 3 and 4 meters
+everything between 3 and 4 meters everything between 6 & 8 and everything
+everything between 6 & 8 and everything over 9 meters in order to our street at
+over 9 meters in order to our street at any angle we had to have corner
+any angle we had to have corner buildings capable to match any angle to
+buildings capable to match any angle to generate the the general concept between
+generate the the general concept between adjusting building to an angle is to
+adjusting building to an angle is to rotate the wall around six people points
+rotate the wall around six people points here you can see a 90 degree building in
+here you can see a 90 degree building in top view and the 6000 points are located
+top view and the 6000 points are located here we use only rotation on the
+here we use only rotation on the building no scaling in order to avoid
+building no scaling in order to avoid creating unique geometry for each corner
+since we already have created building for each corner in 10 degree increments
+for each corner in 10 degree increments we needed only a rotation of priests or
+we needed only a rotation of priests or -5 degrees we thought that such a minor
+-5 degrees we thought that such a minor deformation will not be noticeable only
+deformation will not be noticeable only the roof needed to have unique geometry
+the roof needed to have unique geometry the geometry is generated deforming a
+the geometry is generated deforming a template and the coefficient the
+template and the coefficient the coefficient decrease with altitude in
+coefficient decrease with altitude in order to keep the off ridge so
+order to keep the off ridge so let's check out the origin of the
+let's check out the origin of the deformation together here is a
+deformation together here is a screenshot of the back of 90 degree
+screenshot of the back of 90 degree building at first I want the gray
+building at first I want the gray deformation remember the top view from
+deformation remember the top view from the previous slide they went away is
+the previous slide they went away is between this world and this world let's
+between this world and this world let's continue our journey two degrees three
+continue our journey two degrees three four five at this point it's pretty
+four five at this point it's pretty clear we cannot use this solution in
+clear we cannot use this solution in anthropology the result makes no sense
+anthropology the result makes no sense nobody will build a building with window
+nobody will build a building with window that close to each other and if we look
+that close to each other and if we look at other part of the the roof in front
+at other part of the the roof in front doesn't look that bad with a 5 degree
+doesn't look that bad with a 5 degree deformation but the back is pretty much
+deformation but the back is pretty much destroyed and even the current are
+destroyed and even the current are stretched too much so we had to find
+stretched too much so we had to find another solution we concluded that it
+another solution we concluded that it was not possible to have an adjustment
+was not possible to have an adjustment of plus or minus 5 degrees on the corner
+of plus or minus 5 degrees on the corner building alone so we decided to split
+building alone so we decided to split the load in three buildings the corner
+the load in three buildings the corner and the two building adjacent the corner
+and the two building adjacent the corner to the gray on each building edges in
+to the gray on each building edges in the corner and one on the corner itself
+the corner and one on the corner itself the corner billing is alas to be
+the corner billing is alas to be alternated in order to avoid generating
+alternated in order to avoid generating roof geometry as much as possible if we
+roof geometry as much as possible if we look at a building next to the corner he
+look at a building next to the corner he split in three parts like the adjustable
+split in three parts like the adjustable building and instead of just lighting
+building and instead of just lighting the world inside and out we just rotate
+the world inside and out we just rotate the wall next to the build just in
+the wall next to the build just in corner and he's going to adjust to the
+corner and he's going to adjust to the angle correctly to conclude on the
+angle correctly to conclude on the building placement I'm going to bring
+building placement I'm going to bring back the diagram from for flight ago
+back the diagram from for flight ago with the introduction of the angle
+with the introduction of the angle solution we had new limitation we needed
+solution we had new limitation we needed a minimum of
+a minimum of three buildings along a street one next
+three buildings along a street one next to each corner to account for the
+to each corner to account for the angular deformation and one in the
+angular deformation and one in the center to account for the fractal part
+center to account for the fractal part of the street lengths so everything and
+of the street lengths so everything and there are nine meters was not possible
+there are nine meters was not possible anymore to sum up we have we ended up
+anymore to sum up we have we ended up having to build much more building
+having to build much more building adjustable as the free meter we
+adjustable as the free meter we originally intended to create because it
+originally intended to create because it looked where to always have free meter
+looked where to always have free meter buildings next to corners so we ended up
+buildings next to corners so we ended up having to create limit adjustable
+having to create limit adjustable buildings not only for the free meter
+buildings not only for the free meter like we originally intended but also for
+like we originally intended but also for for freaks 7 10 13 I think we don't
+for freaks 7 10 13 I think we don't create a D 16 and this building are 30%
+create a D 16 and this building are 30% more expensive to create because you
+more expensive to create because you have subgroup to manage and and kind of
+have subgroup to manage and and kind of stuff in hope in order to have 9 meters
+stuff in hope in order to have 9 meters between corners we had because 9 meters
+between corners we had because 9 meters is now there are minimum three things we
+is now there are minimum three things we can create now we had to produce smaller
+can create now we had to produce smaller corner building in order to try to give
+corner building in order to try to give to crop some side of the of the corner
+to crop some side of the of the corner so we ended up creating more smaller
+so we ended up creating more smaller cone and at this point you are probably
+cone and at this point you are probably asking yourself was it worth it all this
+asking yourself was it worth it all this job placing building next to the street
+job placing building next to the street was definitely worth was it for our
+was definitely worth was it for our project we had early playable buildings
+project we had early playable buildings we called why very early in production
+we called why very early in production and the city was ready sooner as any
+and the city was ready sooner as any other event hit game before but
+other event hit game before but definitely there is a lot of room for
+definitely there is a lot of room for improvement let's continue in the props
+improvement let's continue in the props and card life
+and card life we placed throughout London in addition
+we placed throughout London in addition of the park wall group do a member from
+of the park wall group do a member from the beginning we needed to be able to
+the beginning we needed to be able to add props in front of buildings to
+add props in front of buildings to create some
+create some Paco rode off simply to add some variety
+Paco rode off simply to add some variety we reused the modular structure of the
+we reused the modular structure of the building in order to add magnets at some
+building in order to add magnets at some key modules now you can see in the
+key modules now you can see in the picture this current is for art form and
+picture this current is for art form and yet on it at this point you probably
+yet on it at this point you probably wondering why is occurring that man yet
+wondering why is occurring that man yet - tuition was originally created for the
+- tuition was originally created for the highway bridge to snap two segments of
+highway bridge to snap two segments of bridge together to avoid gaps between
+bridge together to avoid gaps between the segment for the overpass you have a
+the segment for the overpass you have a small video about that it's very short
+small video about that it's very short be aware up snapped in in addition of
+be aware up snapped in in addition of the magnet on the building we added
+the magnet on the building we added magnet on the tops we very early
+magnet on the tops we very early discovered that we had to filter
+discovered that we had to filter everything because when we added magnet
+everything because when we added magnet on honing and we didn't filter it we we
+on honing and we didn't filter it we we didn't have owning only on top of store
+didn't have owning only on top of store we had earning everywhere so filtering
+we had earning everywhere so filtering is key the first implementation of the
+is key the first implementation of the magnet solution was for the user to
+magnet solution was for the user to select any time and try to drag it along
+select any time and try to drag it along the wall until it snaps somewhere it was
+the wall until it snaps somewhere it was very similar that the solution we used
+very similar that the solution we used for bridges but we quickly hide that it
+for bridges but we quickly hide that it was not a good solution we had to make
+was not a good solution we had to make new magnets one close to another and the
+new magnets one close to another and the placement was very tedious we switched
+placement was very tedious we switched to displayed all the available slot on
+to displayed all the available slot on the wall and just by selecting one a
+the wall and just by selecting one a list of all the compatible pops will be
+list of all the compatible pops will be displayed and you will have a good tool
+displayed and you will have a good tool wherever you want and move to the next
+wherever you want and move to the next the list is always curated depending of
+the list is always curated depending of the flags on the props and ETM you want
+the flags on the props and ETM you want to place for the chimney we use the same
+to place for the chimney we use the same magnetic solution with specific tags of
+magnetic solution with specific tags of course and as you can see we had some
+course and as you can see we had some Sriman a variety innovation we
+Sriman a variety innovation we originally intended to have cascading
+originally intended to have cascading man yet for chimney one for slapping the
+man yet for chimney one for slapping the shinde wall on top of the roof and on
+shinde wall on top of the roof and on this wall we would have awesome a net to
+this wall we would have awesome a net to snap to snap the silly exhaust on the
+snap to snap the silly exhaust on the top of the wall but after using the man
+top of the wall but after using the man yet we arrived that it was not that it
+yet we arrived that it was not that it was sufficient to have only one snap man
+was sufficient to have only one snap man yet for the chimneys
+yet for the chimneys so we didn't do cascading magnet but he
+so we didn't do cascading magnet but he would be fun and the cord life is a big
+would be fun and the cord life is a big part of the a fun-filled expand the
+part of the a fun-filled expand the creditor living bringing world feeling
+creditor living bringing world feeling throughout the city called life is made
+throughout the city called life is made up of station like a guide reading his
+up of station like a guide reading his newspaper to people talking about the
+newspaper to people talking about the weather
+weather placed throughout the city in order to
+placed throughout the city in order to ensure proper station placement we
+ensure proper station placement we created slots for cold station at ground
+created slots for cold station at ground level the new garage was very similar as
+level the new garage was very similar as pop man yet the sweet question tool
+pop man yet the sweet question tool automatically generated a first path of
+automatically generated a first path of car life when the building are built and
+car life when the building are built and as you can see the idea is the same you
+as you can see the idea is the same you have slots they are much bigger because
+have slots they are much bigger because car life is much bigger but it's the
+car life is much bigger but it's the same ID you have slots you have lists
+same ID you have slots you have lists you select another whole life and you
+you select another whole life and you can cycle between all the car life
+can cycle between all the car life the main feedback we received on the
+the main feedback we received on the building pops is that it was available
+building pops is that it was available too late in production the post-mortem
+too late in production the post-mortem revealed that it was a really efficient
+revealed that it was a really efficient way to add items on wall and off it on
+way to add items on wall and off it on collage diversity scene since all the
+collage diversity scene since all the available props are clearly displayed on
+available props are clearly displayed on previous a solid game because of the
+previous a solid game because of the difficulty to find pops level designer
+difficulty to find pops level designer tend to reuse as they new instead of
+tend to reuse as they new instead of even if more were produced called life
+even if more were produced called life slot ended up not being used that much
+slot ended up not being used that much not because of the implementation but
+not because of the implementation but because of the restriction imposed by
+because of the restriction imposed by the 5 of the side wall
+the 5 of the side wall we did not have enough space on sidewall
+we did not have enough space on sidewall to add a lot of car life many station
+to add a lot of car life many station and the rep in location not covered by
+and the rep in location not covered by the whole network parks back alleys and
+the whole network parks back alleys and this kind of term as you can see in this
+this kind of term as you can see in this design document as you can see in this
+design document as you can see in this design document street lamp and lamppost
+design document street lamp and lamppost our first part of the game early on it
+our first part of the game early on it was one of the last feature we
+was one of the last feature we implemented in the whole network
+implemented in the whole network pipeline side wall pops are generated
+pipeline side wall pops are generated based on old holes are defined ones and
+based on old holes are defined ones and use multiple times throughout the city
+use multiple times throughout the city the holes are very simple parameters if
+the holes are very simple parameters if we start from an empty street we could
+we start from an empty street we could use a rule to add ball outs next to the
+use a rule to add ball outs next to the street we props will be play every pub
+street we props will be play every pub will be placed directly on the sidewalk
+will be placed directly on the sidewalk we also could alternate between two
+we also could alternate between two props in this case I added from lamppost
+props in this case I added from lamppost the ratio the ratio doesn't need to be
+the ratio the ratio doesn't need to be one-to-one we could have to balance
+one-to-one we could have to balance between each lamppost but as you can see
+between each lamppost but as you can see here already as you after stick the act
+here already as you after stick the act all going to tell you finishing a street
+all going to tell you finishing a street with a ball out is not very pretty so we
+with a ball out is not very pretty so we quickly arrived that enforcing strictly
+quickly arrived that enforcing strictly the space between 12 is not very
+the space between 12 is not very important it's a fact and starting and
+important it's a fact and starting and finishing with one specific pub is more
+finishing with one specific pub is more important so we ended up having kind of
+important so we ended up having kind of an auto scaling roof that try to have a
+an auto scaling roof that try to have a lamppost at the start in the beginning
+lamppost at the start in the beginning the lamppost is defined by the rule the
+the lamppost is defined by the rule the rule could also be placed next to the
+rule could also be placed next to the building or in the center of the street
+building or in the center of the street and of course you can adjust density and
+and of course you can adjust density and the endpoint of each side the first
+the endpoint of each side the first bottom highlighted that the bigger
+bottom highlighted that the bigger challenge we faced was the whole
+challenge we faced was the whole description
+description a lot of level designer needed to use a
+a lot of level designer needed to use a whole ones to look what the result to
+whole ones to look what the result to really understand what it did this was
+really understand what it did this was noticeable in wolf placing props on both
+noticeable in wolf placing props on both side of the street in an alternating
+side of the street in an alternating pattern we also did not have a proper
+pattern we also did not have a proper solution for attempt placed only once
+solution for attempt placed only once like mailboxes we ended up putting a big
+like mailboxes we ended up putting a big value in the distance between field of
+value in the distance between field of the walls we also made the mistake to
+the walls we also made the mistake to not strongly enforce the rules to have
+not strongly enforce the rules to have only destructible object in it and we
+only destructible object in it and we ended up having indestructible object on
+ended up having indestructible object on sidewalks it was fixed later but at the
+sidewalks it was fixed later but at the end it was a big success because we
+end it was a big success because we ended up placing a little bit less that
+ended up placing a little bit less that eight thousand props throughout London
+eight thousand props throughout London with this tradition the user interface
+with this tradition the user interface is the last section of the talk is a
+is the last section of the talk is a journey through the evolution of the
+journey through the evolution of the user interface during the project the
+user interface during the project the user interface was designed in two parts
+user interface was designed in two parts first was the 3d orientation we decided
+first was the 3d orientation we decided to use a lot of debug display to a
+to use a lot of debug display to a present editable all the indictable
+present editable all the indictable information starting by the street here
+information starting by the street here is a picture in this picture we can
+is a picture in this picture we can easily recognize the street a street is
+easily recognize the street a street is a group of edge that share the same
+a group of edge that share the same color a street share of the same
+color a street share of the same configuration like pavement style and
+configuration like pavement style and width each Street can be named and
+width each Street can be named and leveled in our shoes to use the real
+leveled in our shoes to use the real name of the street in London
+if we zoom a little bit further the stars are cutting a new street they
+the stars are cutting a new street they are new building placed on the frontage
+are new building placed on the frontage but the orientation is what will be
+but the orientation is what will be present if you select the frontage it
+present if you select the frontage it highlighted in yellow and then an orange
+highlighted in yellow and then an orange and yellow sphere appear this fair are
+and yellow sphere appear this fair are used to offset the
+used to offset the construction along the frontage with
+construction along the frontage with using the offset we could expand of a
+using the offset we could expand of a strict building placement alongside the
+strict building placement alongside the frontage it was very useful in case we
+frontage it was very useful in case we didn't have any corner building or we
+didn't have any corner building or we wanted to fill empty space with trade
+wanted to fill empty space with trade building we choose to color instead of
+building we choose to color instead of left and white offset because it was
+left and white offset because it was less confusing when building are
+less confusing when building are generated the frontage is split in two
+generated the frontage is split in two lots each rod hold only one building
+lots each rod hold only one building with an in alternation between green and
+with an in alternation between green and dark green the only light will not focus
+dark green the only light will not focus on the adjustable building and mentioned
+on the adjustable building and mentioned previously please look at the first lot
+previously please look at the first lot when the usual select a lot he was able
+when the usual select a lot he was able to do very simple operation like
+to do very simple operation like splitting or merging some rods in this
+splitting or merging some rods in this case I'm going to split this lot in
+case I'm going to split this lot in three smaller Lots so just an action
+three smaller Lots so just an action pressing one key on the keyboard and of
+pressing one key on the keyboard and of course you can convert into back alleys
+course you can convert into back alleys karate to open building you can do every
+karate to open building you can do every operation just by selecting one plot and
+operation just by selecting one plot and one smaller section is highlighted in
+one smaller section is highlighted in yellow the props or the popped holes are
+yellow the props or the popped holes are displayed on front edge - they have
+displayed on front edge - they have their own documentation each slot has a
+their own documentation each slot has a smaller foundation and you can select it
+smaller foundation and you can select it to remove it in case it's in front of
+to remove it in case it's in front of back alley entry for example since the
+back alley entry for example since the world goal of this project was to have
+world goal of this project was to have traffic homing throughout the beautiful
+traffic homing throughout the beautiful city we had to find a way to account and
+city we had to find a way to account and edit his flow we chose to use common
+edit his flow we chose to use common orientation of course work and our even
+orientation of course work and our even if the Estonian was pretty pretty scared
+if the Estonian was pretty pretty scared by that because because it was not used
+by that because because it was not used during the Victorian area but it was
+during the Victorian area but it was very easy to grasp for the well designer
+very easy to grasp for the well designer the cost work will be moved along the
+the cost work will be moved along the edge
+from this original position so you could move the location where the people are
+move the location where the people are going to cross the street and to avoid
+going to cross the street and to avoid any traffic jam we could configure every
+any traffic jam we could configure every lane in only one or multiple direction
+for changing building paths we started from what was developed on AC unity we
+from what was developed on AC unity we used the cycling world to describe the
+used the cycling world to describe the action of changing buildings from one
+action of changing buildings from one part to another the process on unity was
+part to another the process on unity was very simple you use your mouse to click
+very simple you use your mouse to click to the path we wanted to change the roof
+to the path we wanted to change the roof of the body for example and you press up
+of the body for example and you press up and down on your keyboard to change
+and down on your keyboard to change between the relation it's called cycling
+between the relation it's called cycling for this reason to improve on that we
+for this reason to improve on that we decided to focus on load instead of
+decided to focus on load instead of building parts by rolling all the paths
+building parts by rolling all the paths to be changed in in by only selecting
+to be changed in in by only selecting one load when a lot was selected we had
+one load when a lot was selected we had a cycler appearing on the top left of
+a cycler appearing on the top left of the screen and for the type of path we
+the screen and for the type of path we want to cycle and a cycler for the value
+want to cycle and a cycler for the value on the right top side of the screen to
+on the right top side of the screen to side between all the value so this time
+side between all the value so this time the level designer could know you what
+the level designer could know you what part is coming next
+part is coming next and each cycling will clearly contains a
+and each cycling will clearly contains a key you have to press and you are no
+key you have to press and you are no longer need to use your mouse to change
+longer need to use your mouse to change between parts you probably remember this
+between parts you probably remember this dependency graph from a cover slide ago
+dependency graph from a cover slide ago it indicate dependency between the three
+it indicate dependency between the three major parts if you change one the other
+major parts if you change one the other part also depending paths are going to
+part also depending paths are going to change if we look at this simple case
+change if we look at this simple case it's a Victorian house we flowe angle
+it's a Victorian house we flowe angle roof and if you want to keep the same
+roof and if you want to keep the same parameters but try to convert it into a
+parameters but try to convert it into a Georgian one we would have to cycle the
+Georgian one we would have to cycle the front as soon as that happened all the
+front as soon as that happened all the other part will also change
+this will weathered in 15 women designer and a pretty destructive process in
+and a pretty destructive process in order to address this problem we
+order to address this problem we introduced a new cycling mode not likely
+introduced a new cycling mode not likely related to a specific path but multiple
+related to a specific path but multiple concept the concept of style it allowed
+concept the concept of style it allowed the user to change the style without
+the user to change the style without having to cycle throughout every part so
+having to cycle throughout every part so it just turned aside once and the
+it just turned aside once and the phone's the back and the roof are going
+phone's the back and the roof are going to change we also applied the same
+to change we also applied the same concept to the floor height but at this
+concept to the floor height but at this point we realized that the cycling was
+point we realized that the cycling was not the proper solution we needed we
+not the proper solution we needed we needed to be able to go from one point
+needed to be able to go from one point in relief to another without having to
+in relief to another without having to pass throughout every buildings in every
+pass throughout every buildings in every item in the way and needlessly altering
+item in the way and needlessly altering stuff in the way the Caddy is the
+stuff in the way the Caddy is the solution we finally settled on it was a
+solution we finally settled on it was a floating panel that appeared on the
+floating panel that appeared on the right whatever you select in the 3d
+right whatever you select in the 3d orientation the caddock always contains
+orientation the caddock always contains custom-made UI for the situation here
+custom-made UI for the situation here are some example the first is a street
+are some example the first is a street configuration because we only had a
+configuration because we only had a limited number of treat width we had to
+limited number of treat width we had to provide a simple way to edit the total
+provide a simple way to edit the total which is calculating the point the
+which is calculating the point the ponding of the parameter provided by the
+ponding of the parameter provided by the level designer the second is the cord
+level designer the second is the cord life slot the felt is caddy for lots in
+life slot the felt is caddy for lots in basement configuration the top part for
+basement configuration the top part for these four general configuration that
+these four general configuration that type the style the number of floors you
+type the style the number of floors you are going to have the bottom is for
+are going to have the bottom is for basement configuration specifically the
+basement configuration specifically the fourth is for building props here we use
+fourth is for building props here we use the thumbnail view it on collage variety
+the thumbnail view it on collage variety by preventing all the props in a simple
+by preventing all the props in a simple and understandable way
+and understandable way and the last similar to the firm but
+and the last similar to the firm but this time in front of Eurasian the top
+this time in front of Eurasian the top is the same you have style so on and so
+is the same you have style so on and so forth but button displays all the
+forth but button displays all the thumbnail for the building part to allow
+thumbnail for the building part to allow the user to move quickly from one to
+the user to move quickly from one to another and once more had the
+another and once more had the interesting side effect on quality the
+interesting side effect on quality the city because everything was clearly
+city because everything was clearly displayed the first thing we learned is
+displayed the first thing we learned is that in order to have read 3d view we
+that in order to have read 3d view we absolutely need performance we did a bug
+absolutely need performance we did a bug display we ended up having to having to
+display we ended up having to having to do a lot of optimization in 3d display
+do a lot of optimization in 3d display on during and peeking I cannot emphasize
+on during and peeking I cannot emphasize enough how important it is being able to
+enough how important it is being able to render in 3d open the new field in you
+render in 3d open the new field in you expose abilities and will as probably
+expose abilities and will as probably all for the majority of the game editor
+all for the majority of the game editor which is really property grid based but
+which is really property grid based but the Caddy with its custom UI tailored to
+the Caddy with its custom UI tailored to every face specific job was the most
+every face specific job was the most praised feature of the post-mortem usual
+praised feature of the post-mortem usual asking of this kind of edition in other
+asking of this kind of edition in other part of envy
+part of envy so takeaways a whole generation is not
+so takeaways a whole generation is not enough if you create a theory system
+enough if you create a theory system consider generating the entire ground
+consider generating the entire ground not only the street
+not only the street it's riveted in a lot of time spent in
+it's riveted in a lot of time spent in back and forth between artists would
+back and forth between artists would wind the ground and level designer will
+wind the ground and level designer will move the street around so consider
+move the street around so consider building generating everything one of
+building generating everything one of the biggest success is the possibility
+the biggest success is the possibility to drive in the game very early on even
+to drive in the game very early on even if the old world grey flat we were able
+if the old world grey flat we were able to test and improve the game London was
+to test and improve the game London was the first city in all the brain front
+the first city in all the brain front story to be played as early in
+story to be played as early in production we think that is a major
+production we think that is a major ingredient of the success of our first
+ingredient of the success of our first Assassin's Creed but Quebec modular
+Assassin's Creed but Quebec modular building are suitable solution in our
+building are suitable solution in our however I personally think we didn't
+however I personally think we didn't push the boundary enough we should
+push the boundary enough we should assemble all the building by curd
+assemble all the building by curd not by hand and we would have it was a
+not by hand and we would have it was a major of time-consuming for the project
+major of time-consuming for the project and last custom you I have a way to go
+and last custom you I have a way to go the post-mortem revealed that custom UI
+the post-mortem revealed that custom UI that suits needs of each clef of user of
+that suits needs of each clef of user of level designer level artist with your
+level designer level artist with your designer and all the classes you could
+designer and all the classes you could have built with a combination of
+have built with a combination of clickable 3d elements and custom design
+clickable 3d elements and custom design panel tailor for each job is the way to
+panel tailor for each job is the way to go every game editor has a property grid
+go every game editor has a property grid to edit complex object but please not
+to edit complex object but please not underestimate the gain of carefully
+underestimate the gain of carefully design user interface thank you and if
+design user interface thank you and if you have any question feel free to use
+you have any question feel free to use Mike's send me a mail and I will be
+Mike's send me a mail and I will be tomorrow but piece of lounge from 11th
+tomorrow but piece of lounge from 11th to 12th
+to 12th [Applause]
+[Applause] [Music]
+[Music] [Applause]
+yes hello I have a question about optimizations of these like generated
+optimizations of these like generated buildings and cities how did you dealt
+buildings and cities how did you dealt with the level of details like lot these
+with the level of details like lot these kind of things
+kind of things look the question is about how we
+look the question is about how we optimize the modules we used sampling on
+optimize the modules we used sampling on for the majority of the job the el-oued
+for the majority of the job the el-oued a 1 and a 2 we used some people hi thank
+a 1 and a 2 we used some people hi thank you for the talk was great I was
+you for the talk was great I was wondering when you were talking about
+wondering when you were talking about the placement like of the lots what
+the placement like of the lots what about the depth and like the like
+about the depth and like the like negative space that it's great because
+negative space that it's great because like of the depth of the buildings how
+like of the depth of the buildings how do you manage that actual part of the
+do you manage that actual part of the placement of buildings behind the
+placement of buildings behind the building yeah behind of the negative
+building yeah behind of the negative space like the empty space that means
+space like the empty space that means that the Puft was done by so the
+that the Puft was done by so the question is about what we do behind the
+question is about what we do behind the building so that did the part with
+building so that did the part with generated by hand that's that part of
+generated by hand that's that part of the problem thank you
+thank you [Applause]

@@ -1,0 +1,1730 @@
+[Music] hi so we have a little bit of business
+hi so we have a little bit of business before we get started I'm supposed to
+before we get started I'm supposed to ask you to pretty please mute your cell
+ask you to pretty please mute your cell phones so they don't go off and also to
+phones so they don't go off and also to make sure to fill out your surveys when
+make sure to fill out your surveys when you're done or when we're done
+you're done or when we're done they're super helpful for GBC to figure
+they're super helpful for GBC to figure out who they should invite back and
+out who they should invite back and they're also super useful for me to
+they're also super useful for me to figure out if you liked the way I
+figure out if you liked the way I presented and you liked what I presented
+presented and you liked what I presented so please take a moment when we're done
+so please take a moment when we're done to do that alright that's that's this
+to do that alright that's that's this stuff out of the way let's get started
+stuff out of the way let's get started so my name is John McDonald I'm here
+so my name is John McDonald I'm here from valve and today I wanted to come
+from valve and today I wanted to come and talk a little bit about how we've
+and talk a little bit about how we've been using deep learning to effectively
+been using deep learning to effectively combat cheating in csgo spoiler alert it
+combat cheating in csgo spoiler alert it works pretty well we're pretty happy
+works pretty well we're pretty happy with it so that's a bunch of stuff we
+with it so that's a bunch of stuff we have a whole hour so we're gonna we're
+have a whole hour so we're gonna we're gonna cover a lot of ground I'm gonna
+gonna cover a lot of ground I'm gonna spend a little bit of time probably a
+spend a little bit of time probably a fair warning probably about 15 minutes
+fair warning probably about 15 minutes kind of talking about the state of csgo
+kind of talking about the state of csgo with respect to cheating other things
+with respect to cheating other things that we do in this space and then we'll
+that we do in this space and then we'll dive into sort of the pitch that I was
+dive into sort of the pitch that I was making to folks around valve in 2016 for
+making to folks around valve in 2016 for why we should maybe give this a try
+why we should maybe give this a try we'll dive into results and then we'll
+we'll dive into results and then we'll talk a little bit about how you train
+talk a little bit about how you train and utilize deep networks we'll talk
+and utilize deep networks we'll talk about some ongoing in your term work and
+about some ongoing in your term work and then we'll finish up one thing that's
+then we'll finish up one thing that's probably worth mentioning is that
+probably worth mentioning is that notably absent from this list is deep
+notably absent from this list is deep learning I'm not actually going to try
+learning I'm not actually going to try and teach you deep learning in an hour
+and teach you deep learning in an hour because I don't believe that I can do it
+because I don't believe that I can do it but I will point you at the end towards
+but I will point you at the end towards resources so that if when we're done you
+resources so that if when we're done you feel like oh that's something that maybe
+feel like oh that's something that maybe I should try you know where to get
+I should try you know where to get started
+started and good news it's actually pretty
+and good news it's actually pretty straightforward to to learn alright so
+straightforward to to learn alright so let's talk a little bit about csgo
+let's talk a little bit about csgo itself first csgo if you're unfamiliar I
+itself first csgo if you're unfamiliar I think most of you probably are but it is
+think most of you probably are but it is a succession of counter-strike it is a
+a succession of counter-strike it is a competitive multiplayer game it's a
+competitive multiplayer game it's a fast-paced action we have sort of
+fast-paced action we have sort of bullets that are extremely extremely
+bullets that are extremely extremely Lethal and when you're dead for around
+Lethal and when you're dead for around you're out
+you're out combat engagements in csgo are very very
+combat engagements in csgo are very very short the average engagement time can be
+short the average engagement time can be like 1 to 2 seconds and all this sort of
+like 1 to 2 seconds and all this sort of matters because it impacts our cheating
+matters because it impacts our cheating problem csgo has a 12 point 4 million
+problem csgo has a 12 point 4 million monthly uniques and 3 million uniques
+monthly uniques and 3 million uniques check back in every day so we're we're
+check back in every day so we're we're pretty happy that our player base is so
+pretty happy that our player base is so rabid finally it's the 10th title that
+rabid finally it's the 10th title that shipped on Source engine and we'll see
+shipped on Source engine and we'll see how this plays into our cheating problem
+how this plays into our cheating problem a little bit later as well one of our
+a little bit later as well one of our most popular modes for csgo is the
+most popular modes for csgo is the competitive mode it's a 5 B 5 game mode
+competitive mode it's a 5 B 5 game mode first to 16 wins and each round is about
+first to 16 wins and each round is about 2 minutes and 57 seconds when you sign
+2 minutes and 57 seconds when you sign in for matchmaking we we ask you to
+in for matchmaking we we ask you to agree that you could be you know signing
+agree that you could be you know signing up for a 90 minute commitment the
+up for a 90 minute commitment the average game is actually more like 40
+average game is actually more like 40 minutes 65% of our players check back in
+minutes 65% of our players check back in with this mode at least once a month and
+with this mode at least once a month and there are 600,000 of these matches every
+there are 600,000 of these matches every day it varies depending on time of day
+day it varies depending on time of day and sorry a day of week and you know
+and sorry a day of week and you know summer there's a lot more matches
+summer there's a lot more matches school's out etcetera but it turns out
+school's out etcetera but it turns out turns out college kids love to play
+turns out college kids love to play video games I don't know if any of y'all
+video games I don't know if any of y'all knew that but so let's let's dive in and
+knew that but so let's let's dive in and talk about cheating because that's
+talk about cheating because that's that's kind of why we're here
+that's kind of why we're here so back in 2016 I was sort of figuring
+so back in 2016 I was sort of figuring out what I was going to work on next I
+out what I was going to work on next I had finished up some other csgo work and
+had finished up some other csgo work and and I was trying to figure out what I
+and I was trying to figure out what I wanted to do and usually when I'm in
+wanted to do and usually when I'm in that space valve I just kind of try and
+that space valve I just kind of try and sort of figure out what the community
+sort of figure out what the community wants cuz I figure anytime you sort of
+wants cuz I figure anytime you sort of pay down some death in the community
+pay down some death in the community that's a pretty good investment while
+that's a pretty good investment while you're trying to figure out sort of
+you're trying to figure out sort of larger problem to work on and it turns
+larger problem to work on and it turns out I couldn't do that because the only
+out I couldn't do that because the only thing the community was talking about
+thing the community was talking about was cheating it was this just deafening
+was cheating it was this just deafening conversation and we saw this and of
+conversation and we saw this and of course like this information is all
+course like this information is all anecdotal but we saw it on on Reddit and
+anecdotal but we saw it on on Reddit and we saw it on our own csgo teen feedback
+we saw it on our own csgo teen feedback alias where players mail us directly I'm
+alias where players mail us directly I'm you know the feedback alias in
+you know the feedback alias in particular I had some data on it was
+particular I had some data on it was like 90% of the incoming mail was people
+like 90% of the incoming mail was people saying your game is filled with cheaters
+saying your game is filled with cheaters and that's
+and that's you know that's really frustrating but
+you know that's really frustrating but we weren't sure whether or not the
+we weren't sure whether or not the problem was a sort of a perception
+problem was a sort of a perception problem or whether there was actually a
+problem or whether there was actually a cheating problem except it turned out
+cheating problem except it turned out that vac bans which we'll talk about in
+that vac bans which we'll talk about in a little bit sort of supported this
+a little bit sort of supported this conversation like we had a lot of vac
+conversation like we had a lot of vac bans that we were handing out and we
+bans that we were handing out and we think that csgo has sort of two main
+think that csgo has sort of two main components that lead to cheating being
+components that lead to cheating being such a significant problem and there's a
+such a significant problem and there's a third aspect we'll talk about in a
+third aspect we'll talk about in a little bit but one is that the designs
+little bit but one is that the designs sort of the design is this very
+sort of the design is this very satisfying combat experience where
+satisfying combat experience where almost any weapon in the game can be a
+almost any weapon in the game can be a one-shot kill but that does also sort of
+one-shot kill but that does also sort of fail to disincentivize cheating I'm on
+fail to disincentivize cheating I'm on balance we think that's a good trade
+balance we think that's a good trade because players really enjoy this but
+because players really enjoy this but but it does sort of make us a juicy
+but it does sort of make us a juicy target for cheating similarly since the
+target for cheating similarly since the engine is so old it's and about 75 to 80
+engine is so old it's and about 75 to 80 percent of the code in csgo is actually
+percent of the code in csgo is actually unchanged from half-life 2 that means
+unchanged from half-life 2 that means that if you have a cheap that somebody
+that if you have a cheap that somebody wrote back in say 2005 for half-life 2
+wrote back in say 2005 for half-life 2 deathmatch and then they posted it on
+deathmatch and then they posted it on github a couple of years ago on a lark I
+github a couple of years ago on a lark I think probably actually works on csgo
+think probably actually works on csgo with a small amount of of changes like
+with a small amount of of changes like maybe five to ten minutes of tinkering
+maybe five to ten minutes of tinkering now the good news is we do actually
+now the good news is we do actually catch pretty much all of those cheats
+catch pretty much all of those cheats like if it's on github you're gonna get
+like if it's on github you're gonna get banned for using it but but that just
+banned for using it but but that just means that there's just this
+means that there's just this availability of cheats that we don't see
+availability of cheats that we don't see in a lot of other places there are two
+in a lot of other places there are two main sort of cheats that are prevalent
+main sort of cheats that are prevalent in csgo there's a third one that we're
+in csgo there's a third one that we're not really going to talk about today but
+not really going to talk about today but it also is just this very minor sort of
+it also is just this very minor sort of issue and the primary two are probably
+issue and the primary two are probably the two that you might be used to if
+the two that you might be used to if you're familiar with cheating in your
+you're familiar with cheating in your games and that is basically something
+games and that is basically something that helps you aim better and something
+that helps you aim better and something that gives you information that you're
+that gives you information that you're not supposed to have and you can sort of
+not supposed to have and you can sort of so the aim the aim hacks or aimbots tend
+so the aim the aim hacks or aimbots tend to make it sort of much much easier for
+to make it sort of much much easier for you to communicate headshot that guy
+you to communicate headshot that guy because because in csgo
+because because in csgo if I see a target and I want to headshot
+if I see a target and I want to headshot him I need to identify him I need to
+him I need to identify him I need to decide that he is an enemy or she could
+decide that he is an enemy or she could be
+be decide that they're an enemy I need to
+decide that they're an enemy I need to move my mouse over I need to place it
+move my mouse over I need to place it ideally on their head push them into the
+ideally on their head push them into the mouse and then start dragging it down to
+mouse and then start dragging it down to sort of deal with recoil or I could have
+sort of deal with recoil or I could have a cheat that does all of those things if
+a cheat that does all of those things if I just press the X button including not
+I just press the X button including not shooting if that person is actually a
+shooting if that person is actually a friend of mine and so that that
+friend of mine and so that that communication of intent there is a big
+communication of intent there is a big Delta between sort of the intent of the
+Delta between sort of the intent of the action and the actual action
+action and the actual action I mean information assistance hacks are
+I mean information assistance hacks are exactly what you would expect wall hacks
+exactly what you would expect wall hacks you know substituting materials or what
+you know substituting materials or what have you but it's just giving you
+have you but it's just giving you information that basically you shouldn't
+information that basically you shouldn't have and then there's sort of this scale
+have and then there's sort of this scale that we sort of think about hacks on
+that we sort of think about hacks on there's the subtle cheats where somebody
+there's the subtle cheats where somebody is trying to basically pretend that
+is trying to basically pretend that they're a better player than they are
+they're a better player than they are and those are actually pretty hard to
+and those are actually pretty hard to detect and not what we went after first
+detect and not what we went after first and then sort of the scale kind of ramps
+and then sort of the scale kind of ramps up in obviousness until you get to what
+up in obviousness until you get to what we call rage cheats and the purpose of a
+we call rage cheats and the purpose of a rage cheat is not not subtlety the
+rage cheat is not not subtlety the purpose of a rage cheat is to make you
+purpose of a rage cheat is to make you pissed off that I am cheating and there
+pissed off that I am cheating and there is nothing you can do about it and all I
+is nothing you can do about it and all I want to do for the next 40 minutes is
+want to do for the next 40 minutes is ruin your day and so we decided that
+ruin your day and so we decided that seems like a pretty good target to go
+seems like a pretty good target to go after first
+after first now cheating because of the 5v5 nature
+now cheating because of the 5v5 nature in csgo you can sort of think like about
+in csgo you can sort of think like about the cheating problem as it relates to an
+the cheating problem as it relates to an individual user so if I'm gonna play a
+individual user so if I'm gonna play a competitive match given that I am clean
+competitive match given that I am clean even a low base rate of cheating like if
+even a low base rate of cheating like if two percent of players are sort of
+two percent of players are sort of cheaters and they're randomly
+cheaters and they're randomly distributed then two out of ten matches
+distributed then two out of ten matches that I play are gonna be dirty and if
+that I play are gonna be dirty and if the rate is of if the base rate of
+the rate is of if the base rate of cheating were seven percent like half of
+cheating were seven percent like half of the matches that I into will have at
+the matches that I into will have at least one cheater and that is again
+least one cheater and that is again assuming that I'm a clean player because
+assuming that I'm a clean player because there are nine other opportunities for a
+there are nine other opportunities for a cheater tool and the other thing that is
+cheater tool and the other thing that is maybe mildly that's slightly even more
+maybe mildly that's slightly even more irritating about that is that given that
+irritating about that is that given that you were a clean player you are more
+you were a clean player you are more likely to play against a cheater than
+likely to play against a cheater than you are to have a cheater land on your
+you are to have a cheater land on your team because there are only four slots
+team because there are only four slots for them to land on your team in five
+for them to land on your team in five slots for them to land
+slots for them to land the other team so that that makes it an
+the other team so that that makes it an even more irritating problem for our
+even more irritating problem for our sort of good actor players now the good
+sort of good actor players now the good news is we're gonna I'm gonna spend a
+news is we're gonna I'm gonna spend a minute here sort of an into digression
+minute here sort of an into digression the good news is that we don't actually
+the good news is that we don't actually just randomly distribute our players we
+just randomly distribute our players we release the system in 2016 called trust
+release the system in 2016 called trust score and this sort of mitigates the
+score and this sort of mitigates the damage of cheating a fair amount and the
+damage of cheating a fair amount and the idea is that we sort of pay attention we
+idea is that we sort of pay attention we trained the model based on how you
+trained the model based on how you interact with csgo and how you interact
+interact with csgo and how you interact with Steam and we use that to try and
+with Steam and we use that to try and predict how likely it is that you're
+predict how likely it is that you're going to go on to receive a ban of some
+going to go on to receive a ban of some sort and then we basically use that
+sort and then we basically use that trust score to match - as an additional
+trust score to match - as an additional factor when we're doing matchmaking like
+factor when we're doing matchmaking like in addition to your skill and what map
+in addition to your skill and what map you want to play and you know sort of
+you want to play and you know sort of other things and that lets us sort of
+other things and that lets us sort of put known good actors in with other
+put known good actors in with other known good actors more often and so as a
+known good actors more often and so as a result our known good actors run into
+result our known good actors run into cheaters way less often and this can
+cheaters way less often and this can sort of be more easily visualized like
+sort of be more easily visualized like imagine this is just a population of
+imagine this is just a population of players don't count them there are 50
+players don't count them there are 50 dots here and so we need to set them
+dots here and so we need to set them into 5 5 b 5 matches and because it is
+into 5 5 b 5 matches and because it is way easier to do with PowerPoint maybe
+way easier to do with PowerPoint maybe we set our matches up like this right
+we set our matches up like this right and so now we've created five matches
+and so now we've created five matches and let's find out how we did so you
+and let's find out how we did so you have this sort of concept for that we're
+have this sort of concept for that we're going to introduce called the rainbow of
+going to introduce called the rainbow of trust and we think that blue players are
+trust and we think that blue players are very unlikely to go on to receive bands
+very unlikely to go on to receive bands but red players are very likely to go on
+but red players are very likely to go on to receive bands now you might be asking
+to receive bands now you might be asking if the red players are likely to go on
+if the red players are likely to go on to receive bands why don't you just ban
+to receive bands why don't you just ban them the answer is because they haven't
+them the answer is because they haven't cheated yet like we don't know for sure
+cheated yet like we don't know for sure that they're cheaters they are just more
+that they're cheaters they are just more likely to go on to be cheating but let's
+likely to go on to be cheating but let's assume in this case that five of the red
+assume in this case that five of the red players are cheating you can see that in
+players are cheating you can see that in the worst case here like all five of
+the worst case here like all five of these matches now have cheaters and what
+these matches now have cheaters and what Trust lets us do is basically say hey
+Trust lets us do is basically say hey when we're trying to build matches if we
+when we're trying to build matches if we assume all of these players are sort of
+assume all of these players are sort of that any subgroup of ten players here
+that any subgroup of ten players here would form a reasonable match we could
+would form a reasonable match we could draw our matches like this instead and
+draw our matches like this instead and now we've created four good matches and
+now we've created four good matches and the players who were most certain are
+the players who were most certain are going to go into cheap are very unlikely
+going to go into cheap are very unlikely to run into cheaters so we have a bunch
+to run into cheaters so we have a bunch of data that shows that Trust works
+of data that shows that Trust works really well but I kind of prefer the
+really well but I kind of prefer the anecdotal version instead and that's
+anecdotal version instead and that's that we actually wants to trust about
+that we actually wants to trust about six months before before we announced it
+six months before before we announced it and during that time we were gathering
+and during that time we were gathering feedback and looking for people that
+feedback and looking for people that sort of like had bugs like just general
+sort of like had bugs like just general feedback right they didn't know that we
+feedback right they didn't know that we were running the experiment but and so
+were running the experiment but and so what would happen is you'd see a thread
+what would happen is you'd see a thread pop up on like the steam community
+pop up on like the steam community forums where somebody would say csgo is
+forums where somebody would say csgo is filled with cheaters and then you'd see
+filled with cheaters and then you'd see somebody else reply and usually quite a
+somebody else reply and usually quite a few someone else's who would reply and
+few someone else's who would reply and say I don't really ever run into
+say I don't really ever run into cheaters anymore I don't know what
+cheaters anymore I don't know what you're talking about and at this point
+you're talking about and at this point we had sort of been public about some of
+we had sort of been public about some of the other anti-cheat work that we are
+the other anti-cheat work that we are doing and so the playerbase assumed that
+doing and so the playerbase assumed that that was why they weren't seeing
+that was why they weren't seeing cheaters as often but we would go and
+cheaters as often but we would go and basically say like hey let's go figure
+basically say like hey let's go figure out you know what what this person's
+out you know what what this person's trust score is and we'd go and we'd look
+trust score is and we'd go and we'd look at the opie and you'd be like this dude
+at the opie and you'd be like this dude is types of 50 accounts and 49 of them
+is types of 50 accounts and 49 of them have bands for cheating I don't care
+have bands for cheating I don't care that that guy runs in the cheaters he
+that that guy runs in the cheaters he should run into cheaters because he's
+should run into cheaters because he's definitely going to cheat again but
+definitely going to cheat again but maybe he hasn't done it yet so that's
+maybe he hasn't done it yet so that's pretty much all I kind of wanted to say
+pretty much all I kind of wanted to say on trust I did want to mention though
+on trust I did want to mention though like a thing that's cool about Trust is
+like a thing that's cool about Trust is that it doesn't it doesn't really reduce
+that it doesn't it doesn't really reduce the rate of cheating but it reduces the
+the rate of cheating but it reduces the blast radius when people decide to cheat
+blast radius when people decide to cheat so let's dive in and talk about a couple
+so let's dive in and talk about a couple of the other anti cheat things that that
+of the other anti cheat things that that we do so the main probably the main
+we do so the main probably the main thrust of work that we do is just
+thrust of work that we do is just mitigating exploits we just fix you know
+mitigating exploits we just fix you know fixed bugs when they come in and and
+fixed bugs when they come in and and that goes away somebody reports hey
+that goes away somebody reports hey here's this problem we investigate we
+here's this problem we investigate we figure out what the problem is and we
+figure out what the problem is and we fix it and so one of the canonical
+fix it and so one of the canonical examples for this was this speed hack it
+examples for this was this speed hack it turned out that players realized some
+turned out that players realized some malicious players realized that if they
+malicious players realized that if they this parts a little bit technical I'm
+this parts a little bit technical I'm sorry but they basically realized that
+sorry but they basically realized that if they lied to the process they lied to
+if they lied to the process they lied to csgo about how fast their clock was
+csgo about how fast their clock was running they could convince the game
+running they could convince the game client
+client that basically it was running ten ticks
+that basically it was running ten ticks at a time and so then the game client
+at a time and so then the game client would faithfully be like hey server
+would faithfully be like hey server here's ten movement packets and that
+here's ten movement packets and that would effectively and then the game
+would effectively and then the game server was like you know for reasons
+server was like you know for reasons that client authoritative feels awesome
+that client authoritative feels awesome we would we would bait the game server
+we would we would bait the game server would just go yeah ken looks good to me
+would just go yeah ken looks good to me and it would just process all ten
+and it would just process all ten movement packets in sort of a single
+movement packets in sort of a single server tick and then the result of that
+server tick and then the result of that is that that player would just sort of
+is that that player would just sort of appear to just teleport around the map
+appear to just teleport around the map effectively it will and so the fix was
+effectively it will and so the fix was basically as brutally simple as you
+basically as brutally simple as you imagined it would be it is that the
+imagined it would be it is that the server is like I'm you know modulo some
+server is like I'm you know modulo some latency issues I'm only going to accept
+latency issues I'm only going to accept one movement packet for each client per
+one movement packet for each client per tick and the problem just goes away now
+tick and the problem just goes away now this is like I said this is sort of our
+this is like I said this is sort of our primary form of mitigating exploits it's
+primary form of mitigating exploits it's always an option it's always ongoing
+always an option it's always ongoing work and the thing is is that as we do
+work and the thing is is that as we do that work like bad actors continue to
+that work like bad actors continue to probe and try and find new areas and
+probe and try and find new areas and this sort of evolutionary behavior on
+this sort of evolutionary behavior on their part results in this treadmill of
+their part results in this treadmill of work and we don't mind doing the
+work and we don't mind doing the treadmill of work it's important
+treadmill of work it's important valuable work but it is a treadmill that
+valuable work but it is a treadmill that we're sort of signed up for it
+we're sort of signed up for it another primary form of anti-cheat that
+another primary form of anti-cheat that we utilizes vac valve anti-cheat and
+we utilizes vac valve anti-cheat and valve vac basically is a system of sort
+valve vac basically is a system of sort of client-side detections so I'm gonna
+of client-side detections so I'm gonna pay attention to what's going on your
+pay attention to what's going on your system and then I'm gonna anonymize that
+system and then I'm gonna anonymize that and scrub it of anything that might be
+and scrub it of anything that might be personally identifiable and then I'm
+personally identifiable and then I'm going to hand it up to the server and
+going to hand it up to the server and now that vac is only active when you're
+now that vac is only active when you're connected to vac secured servers and if
+connected to vac secured servers and if you receive a vac ban it only prohibits
+you receive a vac ban it only prohibits you from playing on vac secured servers
+you from playing on vac secured servers but that is about 98% of servers so
+but that is about 98% of servers so you're you're pretty locked down at that
+you're you're pretty locked down at that point and then the evidentiary standard
+point and then the evidentiary standard for vac meaning like win back takes an
+for vac meaning like win back takes an action we're a hundred percent certain
+action we're a hundred percent certain that you had your hand in the cookie jar
+that you had your hand in the cookie jar with a caveat and the caveat is that
+with a caveat and the caveat is that sometimes we make mistakes but when we
+sometimes we make mistakes but when we make mistakes we rectify them clearly
+make mistakes we rectify them clearly and immediately there's a blog post
+and immediately there's a blog post there's a clarification that this was
+there's a clarification that this was the thing and it was wrong and we fixed
+the thing and it was wrong and we fixed it and we're very sorry and as a result
+it and we're very sorry and as a result of this
+of this our community has very high confidence
+our community has very high confidence that when vak takes action that we are
+that when vak takes action that we are punishing cheaters which is borne out
+punishing cheaters which is borne out but interestingly I know that a lot of
+but interestingly I know that a lot of devs actually struggle with the opposite
+devs actually struggle with the opposite problem they have an anti cheat and
+problem they have an anti cheat and their players believe that their anti
+their players believe that their anti cheat really gets cheaters but they're
+cheat really gets cheaters but they're not actually certain that that the anti
+not actually certain that that the anti cheat isn't also punishing innocent
+cheat isn't also punishing innocent users we definitely don't have that
+users we definitely don't have that problem we're very happy about that okay
+problem we're very happy about that okay so we don't talk about vac very often
+so we don't talk about vac very often and the reason that we don't talk about
+and the reason that we don't talk about that is that talking about it makes it
+that is that talking about it makes it less effective and in particular talking
+less effective and in particular talking about detections just stops them from
+about detections just stops them from working so for example if I got up on
+working so for example if I got up on stage today and I said hey guys here's a
+stage today and I said hey guys here's a detection what we do is when somebody
+detection what we do is when somebody has a process and their process is
+has a process and their process is scribbling into CS goes memory we go
+scribbling into CS goes memory we go identify all of the binary parts of that
+identify all of the binary parts of that process and then we go find the
+process and then we go find the executable code that loaded that process
+executable code that loaded that process from disk and then we md5 Summit and
+from disk and then we md5 Summit and then we send it home and we figure out
+then we send it home and we figure out if that is a malicious actor or like OBS
+if that is a malicious actor or like OBS or something instead when I tell you
+or something instead when I tell you that that's the thing that we do I just
+that that's the thing that we do I just lift that thing on fire like it doesn't
+lift that thing on fire like it doesn't work anymore or at least by the time
+work anymore or at least by the time this it's twitch and you know three
+this it's twitch and you know three seconds it definitely won't work anymore
+seconds it definitely won't work anymore the good news is that we actually have
+the good news is that we actually have thousands of detections that are sort of
+thousands of detections that are sort of various sophistication and we write more
+various sophistication and we write more every day but again every time we do
+every day but again every time we do this our bad actors evolve and the
+this our bad actors evolve and the treadmill continues alright great so
+treadmill continues alright great so let's let's get to why we think deep
+let's let's get to why we think deep learning might be an effective component
+learning might be an effective component in our sort of anti-cheat strategy but
+in our sort of anti-cheat strategy but before we do that let's talk a little
+before we do that let's talk a little bit about deep learning so if you're not
+bit about deep learning so if you're not really familiar with deep learning at
+really familiar with deep learning at all or you're just familiar with the
+all or you're just familiar with the buzzwords then I'm gonna give you the
+buzzwords then I'm gonna give you the 40,000 foot view and the basic concept
+40,000 foot view and the basic concept behind deep learning is that deep
+behind deep learning is that deep learning can help you basically just
+learning can help you basically just automatically build a function that maps
+automatically build a function that maps inputs to outputs so if you're familiar
+inputs to outputs so if you're familiar with algebra notation you're probably
+with algebra notation you're probably familiar with y equals f of X right and
+familiar with y equals f of X right and we're just saying like Y is the result
+we're just saying like Y is the result of applying some F to some input
+of applying some F to some input and the cool thing about deep learning
+and the cool thing about deep learning is deep learning says if I have enough X
+is deep learning says if I have enough X and I have enough Y I can solve for F
+and I have enough Y I can solve for F and that's pretty powerful it turns out
+and that's pretty powerful it turns out that then you can take that F that you
+that then you can take that F that you have just built and you can apply it to
+have just built and you can apply it to sort of never-before-seen X values and
+sort of never-before-seen X values and get actually pretty sensible wise and if
+get actually pretty sensible wise and if you don't use deep learning then
+you don't use deep learning then engineers are writing your f values
+engineers are writing your f values that's that treadmill of work that we
+that's that treadmill of work that we were talking about and that lets you
+were talking about and that lets you make this trade that it valve were
+make this trade that it valve were really excited about that lets us
+really excited about that lets us basically trade data and compute for
+basically trade data and compute for engineering time because the valve we
+engineering time because the valve we are always always short on engineers but
+are always always short on engineers but we have a lot of data and we have a lot
+we have a lot of data and we have a lot of compute power so if I were to take
+of compute power so if I were to take this analogy if maybe you don't follow
+this analogy if maybe you don't follow along with the algebra and I were to
+along with the algebra and I were to take this into the real world maybe you
+take this into the real world maybe you would imagine that if I had a bunch of
+would imagine that if I had a bunch of cubes of meat and I had a bunch of
+cubes of meat and I had a bunch of hamburger patties and I had enough of
+hamburger patties and I had enough of them that and I told deep learning
+them that and I told deep learning hey build me build me the thing that
+hey build me build me the thing that will convert these cubes of meat into
+will convert these cubes of meat into delicious hamburger patties it's gonna
+delicious hamburger patties it's gonna give me a meat grinder and with that so
+give me a meat grinder and with that so that is the analogy that we're gonna
+that is the analogy that we're gonna stick with a little bit through the talk
+stick with a little bit through the talk and I apologize to vegetarians I'm
+and I apologize to vegetarians I'm really sorry we work shop what else
+really sorry we work shop what else could it be and it's like this one works
+could it be and it's like this one works really well so I'm sorry now you might
+really well so I'm sorry now you might have noticed that I said that we're only
+have noticed that I said that we're only building a possible function that map's
+building a possible function that map's inputs to outputs and the reason is
+inputs to outputs and the reason is basically data starvation problem you
+basically data starvation problem you could if you had enough X&Y like there
+could if you had enough X&Y like there is a closed form solution that is sort
+is a closed form solution that is sort of the best possible F that converts
+of the best possible F that converts that X to Y but the thing is is that you
+that X to Y but the thing is is that you would need so much data so so so much
+would need so much data so so so much data like quintillions of examples
+data like quintillions of examples quintillions and quintillions of
+quintillions and quintillions of examples even for very simple functions
+examples even for very simple functions so the reality is that like you're not
+so the reality is that like you're not going to do that you're gonna get just
+going to do that you're gonna get just one of the myriad of possible solutions
+one of the myriad of possible solutions now deep learning is actually really
+now deep learning is actually really good at pattern recognition it's really
+good at pattern recognition it's really good at things that you're already
+good at things that you're already familiar with like is there a cat
+familiar with like is there a cat sitting on the sofa the answer is yes
+sitting on the sofa the answer is yes and also if you have a computer the
+and also if you have a computer the computer in your pocket
+computer in your pocket you have interacted with Siri or Google
+you have interacted with Siri or Google assistance deep learning is made use of
+assistance deep learning is made use of to transform the words that you say into
+to transform the words that you say into text that then translates to commands
+text that then translates to commands that then is used to sort of do fuzzy
+that then is used to sort of do fuzzy lookups and it's used in so many pieces
+lookups and it's used in so many pieces along the way now deep learning
+along the way now deep learning basically operates in two modes there's
+basically operates in two modes there's sort of training time where you're like
+sort of training time where you're like hey I've got a bunch of cubes of meat
+hey I've got a bunch of cubes of meat and I have hamburger patties and I want
+and I have hamburger patties and I want to build a meat grinder and it'll and
+to build a meat grinder and it'll and then once you've built that meat grinder
+then once you've built that meat grinder it's like great now I want to take these
+it's like great now I want to take these cubes of chicken and I want to turn
+cubes of chicken and I want to turn those into a chicken burger because that
+those into a chicken burger because that sounds like a thing that might be good
+sounds like a thing that might be good deep learning is that works in these two
+deep learning is that works in these two modes that we call like I said training
+modes that we call like I said training and imprinting now I might during the
+and imprinting now I might during the talk accidentally say machine learning
+talk accidentally say machine learning because we actually do a fair amount of
+because we actually do a fair amount of machine learning at valve as well and
+machine learning at valve as well and the simplest way to talk about this for
+the simplest way to talk about this for the purposes of my talk if I use machine
+the purposes of my talk if I use machine learning you should just assume I mean
+learning you should just assume I mean deep learning but but if if this sort of
+deep learning but but if if this sort of red circle represents deep learning then
+red circle represents deep learning then this orange circle represents machine
+this orange circle represents machine learning like deep learning
+learning like deep learning fundamentally it's just a subfield of
+fundamentally it's just a subfield of machine learning in simultaneous Immel
+machine learning in simultaneous Immel early when people are talking about deep
+early when people are talking about deep learning what they're really talking
+learning what they're really talking about is neural nets so if you learned
+about is neural nets so if you learned those thirty years ago it turns out they
+those thirty years ago it turns out they finally work spoiler alert the solution
+finally work spoiler alert the solution to get them to work was to have a
+to get them to work was to have a million times as much data and a billion
+million times as much data and a billion times as much compute and then they work
+times as much compute and then they work great all right so let's get back to our
+great all right so let's get back to our elevator pitch so we were basically we
+elevator pitch so we were basically we were looking at like how do we attack
+were looking at like how do we attack this cheating problem we tossed around a
+this cheating problem we tossed around a ton of ideas but I didn't I really
+ton of ideas but I didn't I really didn't want to sign up for the treadmill
+didn't want to sign up for the treadmill and so looking at this it was like well
+and so looking at this it was like well you know humans when they watch matches
+you know humans when they watch matches they can tell that cheating is occurring
+they can tell that cheating is occurring and I think that's probably because
+and I think that's probably because they're detecting a pattern of cheating
+they're detecting a pattern of cheating and deep learning is really good at
+and deep learning is really good at detecting patterns so like shouldn't
+detecting patterns so like shouldn't deep learning be able to detect cheating
+deep learning be able to detect cheating and as I mentioned before aimbots seem
+and as I mentioned before aimbots seem like both the largest the biggest
+like both the largest the biggest problem because because they're not
+problem because because they're not subtle at least a lot of them are not
+subtle at least a lot of them are not subtle and they're also this sort of
+subtle and they're also this sort of really loud signal at least it seems
+really loud signal at least it seems like so it seemed like well we should go
+like so it seemed like well we should go after those first because if we can't do
+after those first because if we can't do those
+those then we're definitely not going to be
+then we're definitely not going to be able to do the things that are more
+able to do the things that are more subtle now if you recall I mentioned
+subtle now if you recall I mentioned that deep learning is trying to solve y
+that deep learning is trying to solve y equals f of X for F the problem was like
+equals f of X for F the problem was like if only we had a source for X&Y good
+if only we had a source for X&Y good news it turns out we had a source of X&Y
+news it turns out we had a source of X&Y for years
+for years CS Co has had this system called
+CS Co has had this system called overwatch no relation which is a jury
+overwatch no relation which is a jury review system and but basically what we
+review system and but basically what we have is we have players they watch cases
+have is we have players they watch cases and we bet those are our X values and
+and we bet those are our X values and then they decide guilt through some
+then they decide guilt through some process that I don't know I don't know
+process that I don't know I don't know what their process is and then they
+what their process is and then they render a verdict and and they do this in
+render a verdict and and they do this in this way where they go through this
+this way where they go through this process they players report other
+process they players report other players and then a sort of central
+players and then a sort of central coordinator selects cases by the way
+coordinator selects cases by the way that is a that is a computer it is not a
+that is a that is a computer it is not a person there isn't like a guy at valve
+person there isn't like a guy at valve that is like I am the coordinator that
+that is like I am the coordinator that would be kind of cool but it's not a
+would be kind of cool but it's not a thing and then the players adjudicate
+thing and then the players adjudicate those cases they other players basically
+those cases they other players basically decide is this person guilty and they do
+decide is this person guilty and they do that through a process where they're
+that through a process where they're sort of presented with an evidentiary
+sort of presented with an evidentiary window the evidentiary window is eight
+window the evidentiary window is eight rounds long and they're asked like hey
+rounds long and they're asked like hey watch and the play time is a minimize so
+watch and the play time is a minimize so you don't know who the players are and
+you don't know who the players are and you watch basically a demo of eight
+you watch basically a demo of eight rounds and then at the end you're asked
+rounds and then at the end you're asked did this person use aim assist Invicta
+did this person use aim assist Invicta them if you believe there is evidence
+them if you believe there is evidence beyond a reasonable doubt and we ask
+beyond a reasonable doubt and we ask that for Amos iStent movement assistance
+that for Amos iStent movement assistance information assistance and other
+information assistance and other assistance that we're not sure about and
+assistance that we're not sure about and also griefing if you're guilty you get a
+also griefing if you're guilty you get a BAM and if you're not guilty there's no
+BAM and if you're not guilty there's no punishment right so it works kind of the
+punishment right so it works kind of the way that you would expect it to over
+way that you would expect it to over watch uses naive Bayes to basically look
+watch uses naive Bayes to basically look for a guilty threshold that's a bunch of
+for a guilty threshold that's a bunch of Mathew stuff I'm not really going to go
+Mathew stuff I'm not really going to go through but the point is that according
+through but the point is that according we have a model and basically the
+we have a model and basically the evidentiary standard is that 99 that it
+evidentiary standard is that 99 that it needs to be ninety-nine point eight
+needs to be ninety-nine point eight percent likely as decided by your peers
+percent likely as decided by your peers that you were cheating now the actual
+that you were cheating now the actual rate that people get convicted at is
+rate that people get convicted at is usually five nines like usually
+usually five nines like usually convictions and overwatch the jurors are
+convictions and overwatch the jurors are super super convinced that that person
+super super convinced that that person is a cheater
+is a cheater so as I mentioned the system had existed
+so as I mentioned the system had existed for kind of a while so back in 2015 we
+for kind of a while so back in 2015 we decided hey we noticed this trend we did
+decided hey we noticed this trend we did some work and as a result it increased
+some work and as a result it increased participation and over watched and it's
+participation and over watched and it's probably worth explaining a little bit
+probably worth explaining a little bit about this graph the gray line at the
+about this graph the gray line at the top is the sort of total participation
+top is the sort of total participation in overwatch and the blue line is
+in overwatch and the blue line is basically the number of cases that were
+basically the number of cases that were dismissed and the red line is
+dismissed and the red line is convictions and so we noticed this great
+convictions and so we noticed this great trend were like hey this is awesome as
+trend were like hey this is awesome as more people participate in overwatch we
+more people participate in overwatch we get more convictions so we should
+get more convictions so we should probably get more people to do overwatch
+probably get more people to do overwatch that would be awesome so we this graph
+that would be awesome so we this graph it just shoots up in participation it's
+it just shoots up in participation it's amazing there's so much participation it
+amazing there's so much participation it turns out the conviction rate doesn't
+turns out the conviction rate doesn't move at all like well the number of
+move at all like well the number of convictions is stone-dead flat and then
+convictions is stone-dead flat and then that is a trend that we see continuing
+that is a trend that we see continuing on this graph which is also amazing and
+on this graph which is also amazing and I will totally make sure that those are
+I will totally make sure that those are fixed when we post I don't know why they
+fixed when we post I don't know why they were broken I'm very sad I'm sorry ok so
+were broken I'm very sad I'm sorry ok so the thing that we found in those graphs
+the thing that we found in those graphs that you guys totally loved is that
+that you guys totally loved is that overwatch really helps us with blatant
+overwatch really helps us with blatant cheaters but he doesn't handle subtle
+cheaters but he doesn't handle subtle cheats as well and that it turned out
+cheats as well and that it turned out that increasing participation like
+that increasing participation like incentivizing participation and
+incentivizing participation and increasing participation didn't help at
+increasing participation didn't help at all like it seemed like the problem was
+all like it seemed like the problem was basically that we were failing to
+basically that we were failing to properly select cases no the bad news is
+properly select cases no the bad news is that as players got convicted and over
+that as players got convicted and over watched they would sort of evolve their
+watched they would sort of evolve their behavior but the good news is that
+behavior but the good news is that jurors evolved as well like they're not
+jurors evolved as well like they're not fooled by your new oh well I'll just
+fooled by your new oh well I'll just turn 75° a frame instead of 78° of frame
+turn 75° a frame instead of 78° of frame jurors are like nah man that's still
+jurors are like nah man that's still cheating Bowl so the elevator pitch
+cheating Bowl so the elevator pitch for vac net was born and the idea was
+for vac net was born and the idea was that basically we would use this
+that basically we would use this overwatch as a giant pool of labeled
+overwatch as a giant pool of labeled data and we would train vac net from
+data and we would train vac net from overwatch and then we would build a
+overwatch and then we would build a cluster of machines that would monitor
+cluster of machines that would monitor matches with them
+matches with them that we built we would use back net then
+that we built we would use back net then to submit cases and then humans would
+to submit cases and then humans would ultimately decide whether or not the
+ultimately decide whether or not the person was a cheater so back to our sort
+person was a cheater so back to our sort of overwatch pipeline all we have to do
+of overwatch pipeline all we have to do is slot in vac net kind of right here
+is slot in vac net kind of right here okay so how did we do man I hope my
+okay so how did we do man I hope my grafts work over here oh boy
+grafts work over here oh boy okay good I have a later graph that I
+okay good I have a later graph that I see is totally good so we're just gonna
+see is totally good so we're just gonna skip ahead great so oh yeah hey hey
+skip ahead great so oh yeah hey hey here's the period I'm sorry I know I
+here's the period I'm sorry I know I said I wouldn't move here is the period
+said I wouldn't move here is the period where we had increased participation
+where we had increased participation right here and you see this conviction
+right here and you see this conviction rate just doesn't move at all it was
+rate just doesn't move at all it was just horrifying and and and again
+just horrifying and and and again throughout here like our participation
+throughout here like our participation fell and it just didn't impact the
+fell and it just didn't impact the conviction rate at all sorry all right
+conviction rate at all sorry all right okay so so we deployed back in it we
+okay so so we deployed back in it we deployed back in it in early 2017 and
+deployed back in it in early 2017 and during this time participation sort of
+during this time participation sort of doesn't really change like in maybe is
+doesn't really change like in maybe is going up a little bit if you squint at
+going up a little bit if you squint at it but most likely what's happened is it
+it but most likely what's happened is it sort of just asymptotes it down to the
+sort of just asymptotes it down to the level of participation that we expect it
+level of participation that we expect it looks a whole lot like sort of any game
+looks a whole lot like sort of any game launch ever that has sales right so here
+launch ever that has sales right so here we deployed back net and you can see hey
+we deployed back net and you can see hey we started getting more convictions
+we started getting more convictions that's great and we deployed a really
+that's great and we deployed a really simple model we didn't quite have enough
+simple model we didn't quite have enough data yet but we were like hey this thing
+data yet but we were like hey this thing is doing pretty good in the conviction
+is doing pretty good in the conviction rate overall for vac net I started to go
+rate overall for vac net I started to go up and then a little bit later we had
+up and then a little bit later we had the opportunity to sort of train with
+the opportunity to sort of train with more data until finally in December
+more data until finally in December early December we hit the crossover
+early December we hit the crossover point we're now like we actually get
+point we're now like we actually get more convictions than non convictions
+more convictions than non convictions and overwatch so yeah the system works
+and overwatch so yeah the system works great so how great does it work
+great so how great does it work so human submitted cases when a human
+so human submitted cases when a human submits a case to overwatch the
+submits a case to overwatch the likelihood that they get a conviction is
+likelihood that they get a conviction is only fifteen to thirty percent and that
+only fifteen to thirty percent and that sort of varies on a bunch of factors
+sort of varies on a bunch of factors like the factors might include the time
+like the factors might include the time of day the day of the week the time of
+of day the day of the week the time of the year is the game on sale is visit
+the year is the game on sale is visit Spring Break spring break and you know
+Spring Break spring break and you know there's a bunch of things but but the
+there's a bunch of things but but the point is that human convictions are very
+point is that human convictions are very low
+low I'm back net convictions are very high
+I'm back net convictions are very high like vac net gets a conviction when it
+like vac net gets a conviction when it submits a case it convicts eighty to
+submits a case it convicts eighty to ninety five percent of the time and it
+ninety five percent of the time and it varies pretty much on the same factors
+varies pretty much on the same factors with one exception and that one
+with one exception and that one exception is that whenever we retrain
+exception is that whenever we retrain vac net its conviction rate is like
+vac net its conviction rate is like nearly a hundred percent for a little
+nearly a hundred percent for a little while until cheaters adapt and start to
+while until cheaters adapt and start to react to it alright so hopefully I've
+react to it alright so hopefully I've convinced you this is kind of a cool
+convinced you this is kind of a cool thing and it works pretty well and I'm
+thing and it works pretty well and I'm good at Excel we can talk about how we
+good at Excel we can talk about how we train a learner and we're only gonna
+train a learner and we're only gonna spend one slide on this because I really
+spend one slide on this because I really just wanted here to give you a pointer
+just wanted here to give you a pointer to Karis which is like if you're new to
+to Karis which is like if you're new to deep learning
+deep learning Garrus is great but the sort of main
+Garrus is great but the sort of main sort of thrust of training the learner
+sort of thrust of training the learner is that you need lots of xmy data and at
+is that you need lots of xmy data and at least for supervised learning which is
+least for supervised learning which is the thing that we've been sort of
+the thing that we've been sort of talking about here you need lots of X Y
+talking about here you need lots of X Y data you need to fit it and then sort of
+data you need to fit it and then sort of you just repeatedly ask hey how are you
+you just repeatedly ask hey how are you doing hey how are you doing you have
+doing hey how are you doing you have some measures that you pay attention to
+some measures that you pay attention to and you're like how are you doing are
+and you're like how are you doing are you doing good are you doing better
+you doing good are you doing better great and then when it stops getting
+great and then when it stops getting better you're like okay hold the phone
+better you're like okay hold the phone I've got my meat grinder and then like I
+I've got my meat grinder and then like I said you want to take a look at Karis so
+said you want to take a look at Karis so we're gonna jump ahead and talk about
+we're gonna jump ahead and talk about how we actually feed this thing so you
+how we actually feed this thing so you recall the metaphor it the metaphor is
+recall the metaphor it the metaphor is that we have this meat grinder and all
+that we have this meat grinder and all we need to do is feed it cubes of meat
+we need to do is feed it cubes of meat and the problem is that as a game
+and the problem is that as a game developer you don't have cubes of meat
+developer you don't have cubes of meat what you have is a cow and that's not a
+what you have is a cow and that's not a commentary on your engine my engine is
+commentary on your engine my engine is the cow east of all cows but but what
+the cow east of all cows but but what you have is not the thing that you need
+you have is not the thing that you need and the good news is well if you think
+and the good news is well if you think about it like the bulk of the work of
+about it like the bulk of the work of like how do I turn this cow into a
+like how do I turn this cow into a delicious hamburger you're like well the
+delicious hamburger you're like well the overwhelming majority of the work is how
+overwhelming majority of the work is how I turn the cow into cubes of meat like
+I turn the cow into cubes of meat like that is the work and in terms and it
+that is the work and in terms and it turns out it's actually like 95 percent
+turns out it's actually like 95 percent of the effort that you're going to spend
+of the effort that you're going to spend and all of that effort is basically
+and all of that effort is basically effort that you already know how to do
+effort that you already know how to do it is just bog standard engineering work
+it is just bog standard engineering work there's no sort of magic box around it
+there's no sort of magic box around it only 1% of the effort is actually kind
+only 1% of the effort is actually kind of around like deep learning turning you
+of around like deep learning turning you know in our metaphor it's turning the
+know in our metaphor it's turning the crank
+crank and 4% is cooking the metaphor breaks
+and 4% is cooking the metaphor breaks down a little bit here so we should we
+down a little bit here so we should we should probably just leave it there for
+should probably just leave it there for a little bit maybe we'll come back if
+a little bit maybe we'll come back if you have a game to sort of be a little
+you have a game to sort of be a little more concrete there are some pieces that
+more concrete there are some pieces that you really want to have and I think the
+you really want to have and I think the most important is that you want to have
+most important is that you want to have a replay format we call it a demo format
+a replay format we call it a demo format you know other engines call it other
+you know other engines call it other things but the sort of salient point
+things but the sort of salient point here is like you basically want to have
+here is like you basically want to have a record that you ideally recorded from
+a record that you ideally recorded from the server or from a third party
+the server or from a third party observer like you don't want the client
+observer like you don't want the client to record this thing because they will
+to record this thing because they will just lie and you want to be able to play
+just lie and you want to be able to play that thing back later and then you need
+that thing back later and then you need you know all of the sort of
+you know all of the sort of infrastructure around storing and
+infrastructure around storing and fetching those things and transmitting
+fetching those things and transmitting them and you're gonna want to manage
+them and you're gonna want to manage metadata so you can say like which
+metadata so you can say like which player was in this match so that you can
+player was in this match so that you can evaluate them and ideally and this is
+evaluate them and ideally and this is the big ask I know you need a data
+the big ask I know you need a data labeling service ideally no I do
+labeling service ideally no I do actually think that there is a way to
+actually think that there is a way to attack this problem that doesn't require
+attack this problem that doesn't require a data labeling service but I haven't
+a data labeling service but I haven't proven it yet so maybe I'll see you in
+proven it yet so maybe I'll see you in 2019 and we can talk about it then and I
+2019 and we can talk about it then and I want to switch gears a little bit now
+want to switch gears a little bit now and talk about sort of our data herd so
+and talk about sort of our data herd so I mentioned before that we have roughly
+I mentioned before that we have roughly 600,000 5v5 matches per day and for each
+600,000 5v5 matches per day and for each of those five to five matches to
+of those five to five matches to evaluate all ten players there's roughly
+evaluate all ten players there's roughly four minutes of work that we have to do
+four minutes of work that we have to do and so if you do the math you figure
+and so if you do the math you figure that is 2.4 million CPU minutes of work
+that is 2.4 million CPU minutes of work that we need to do every day and somehow
+that we need to do every day and somehow we need to fit that into 14 hundred and
+we need to fit that into 14 hundred and forty actual minutes because that's how
+forty actual minutes because that's how many there are a day and you can do this
+many there are a day and you can do this by just using a bunch of processors we
+by just using a bunch of processors we need about 1,700 so that's what we did
+need about 1,700 so that's what we did we bought a giant farm machines and this
+we bought a giant farm machines and this is actually only used this is not used
+is actually only used this is not used for training this is only used for
+for training this is only used for running the inferencing sides of things
+running the inferencing sides of things and this is actually only half of the
+and this is actually only half of the farm the other half is in a different
+farm the other half is in a different data center right this is our actual
+data center right this is our actual farm I took this picture I went out with
+farm I took this picture I went out with the dev ops team when we got them I was
+the dev ops team when we got them I was like super excited I've never been to
+like super excited I've never been to data center before and it was like candy
+data center before and it was like candy trip it was great and then I was like
+trip it was great and then I was like wow it's really loud in here and it's
+wow it's really loud in here and it's really cold on this side and it's really
+really cold on this side and it's really hot on that side but it's it's totally
+hot on that side but it's it's totally worth going you should go if you get a
+worth going you should go if you get a chance anyways what we're looking at
+chance anyways what we're looking at here is basically these two CH a C's and
+here is basically these two CH a C's and each chassis basically has 16 blades
+each chassis basically has 16 blades those are the things that are sort of
+those are the things that are sort of vertical and each of those blades has 54
+vertical and each of those blades has 54 cores and 128 gigs of ram so they're
+cores and 128 gigs of ram so they're pretty beefy that's about 3,500
+pretty beefy that's about 3,500 processors total and we we bought
+processors total and we we bought basically 2x what we needed so that we
+basically 2x what we needed so that we would have room to expand and we'll
+would have room to expand and we'll maybe talk about that in a little bit
+maybe talk about that in a little bit too like I said though this is basically
+too like I said though this is basically only used for inferencing time this is
+only used for inferencing time this is like I've already built the meat grinder
+like I've already built the meat grinder and now I need to actually watch all of
+and now I need to actually watch all of the matches and like I said 95% of the
+the matches and like I said 95% of the work is basically a round turning
+work is basically a round turning account of meat for us 95 percent of the
+account of meat for us 95 percent of the work is like cracking the demos and then
+work is like cracking the demos and then building inputs out of that to feed into
+building inputs out of that to feed into the learner and then it's like like 1%
+the learner and then it's like like 1% of the work is the part where it's like
+of the work is the part where it's like by the way does this look like a cheat
+by the way does this look like a cheat by the way does this look like a cheat
+by the way does this look like a cheat the the part that we do the training the
+the the part that we do the training the part where we actually build the meat
+part where we actually build the meat grinder the part is just run on
+grinder the part is just run on commodity 1080 T eyes that's it under
+commodity 1080 T eyes that's it under our desks like there it's totally normal
+our desks like there it's totally normal hardware ok so now I want to talk brass
+hardware ok so now I want to talk brass tacks I want to talk about like what
+tacks I want to talk about like what goes into the cubes of meat that we're
+goes into the cubes of meat that we're feeding our model deep-learning has sort
+feeding our model deep-learning has sort of these specific input constraints in
+of these specific input constraints in our case we've said let's keep a meat
+our case we've said let's keep a meat and that means that the meat needs to be
+and that means that the meat needs to be sort of uniform and fixed size and if
+sort of uniform and fixed size and if you're uncomfortable with a meat analogy
+you're uncomfortable with a meat analogy and maybe you're familiar with sequel
+and maybe you're familiar with sequel then you can kind of just think about
+then you can kind of just think about like this thing just needs to be fed
+like this thing just needs to be fed with database where all of the columns
+with database where all of the columns are non nullable and every time you ask
+are non nullable and every time you ask run a query you always make sure you ask
+run a query you always make sure you ask for all of the columns and you ask for
+for all of the columns and you ask for the columns in the same order and deep
+the columns in the same order and deep learning needs to sort of like deep
+learning needs to sort of like deep learning algorithms need to be fed in
+learning algorithms need to be fed in that way now if you recall we decided
+that way now if you recall we decided that we were going to specifically
+that we were going to specifically target aim assistance first that was the
+target aim assistance first that was the first thing that we were going after
+first thing that we were going after and if you think about like when
+and if you think about like when somebody is cheating using an aimbot
+somebody is cheating using an aimbot they're gonna basically use their gonna
+they're gonna basically use their gonna express that cheating us like win
+express that cheating us like win bullets when they're firing bullets
+bullets when they're firing bullets downrange and so we basically did some
+downrange and so we basically did some manual feature work around around that
+manual feature work around around that so here we're gonna sort of have this
+so here we're gonna sort of have this atom on the right and we'll fill the
+atom on the right and we'll fill the atom with stuff and the first thing that
+atom with stuff and the first thing that we decided to stuff into the atom was
+we decided to stuff into the atom was like what weapon is the person using or
+like what weapon is the person using or they use in an OP or they using an ak-47
+they use in an OP or they using an ak-47 and in for a for cuz no one uses
+and in for a for cuz no one uses anything else they're using one of those
+anything else they're using one of those and then it's cool there are other guns
+and then it's cool there are other guns they're great you should try them then
+they're great you should try them then then we want to know basically what was
+then we want to know basically what was the result of of that shot was it a head
+the result of of that shot was it a head shot was it a hit like but somewhere
+shot was it a hit like but somewhere else that wasn't the head was it a total
+else that wasn't the head was it a total miss and we want to stick that thing
+miss and we want to stick that thing into our sort of atom of stuff and then
+into our sort of atom of stuff and then we want to know like hey given that I
+we want to know like hey given that I actually did manage to get a hit because
+actually did manage to get a hit because I don't have the answer otherwise how
+I don't have the answer otherwise how far away was the target if it was a hit
+far away was the target if it was a hit and we have a sort of special value that
+and we have a sort of special value that we reserved for the cases where we're
+we reserved for the cases where we're like I don't know it didn't hit and the
+like I don't know it didn't hit and the learner is fine with that and then this
+learner is fine with that and then this one requires kind of a little bit more
+one requires kind of a little bit more unpacking what we what we needed was
+unpacking what we what we needed was basically the sort of Delta view angle
+basically the sort of Delta view angle pitch and so what that means is like for
+pitch and so what that means is like for about a half second before the shot and
+about a half second before the shot and up through every tick until a quarter
+up through every tick until a quarter second after the shot we basically say
+second after the shot we basically say like what is your delta pitch on this
+like what is your delta pitch on this tick versus the previous tick and we
+tick versus the previous tick and we just repeatedly do that and a half
+just repeatedly do that and a half second before and quarter second after
+second before and quarter second after which sort of chosen purely capriciously
+which sort of chosen purely capriciously but we take all of those and we stuff
+but we take all of those and we stuff them into our atom and if you've been
+them into our atom and if you've been watching the atom you might have noticed
+watching the atom you might have noticed that like everything lands in the same
+that like everything lands in the same place every time like we make sure that
+place every time like we make sure that all of the data lands in the same place
+all of the data lands in the same place every time because deep learning doesn't
+every time because deep learning doesn't really care where it is but it cares
+really care where it is but it cares that it's consistent every time like
+that it's consistent every time like that is a necessary property in order
+that is a necessary property in order for it to learn so then with a delta
+for it to learn so then with a delta view angle sorry I probably should have
+view angle sorry I probably should have clarified and I will do that right now
+clarified and I will do that right now the view angle is obviously just like
+the view angle is obviously just like the way that you're kind of looking
+the way that you're kind of looking around and before we were looking only
+around and before we were looking only at pitch which is basically your up and
+at pitch which is basically your up and down so we were like hey like you looked
+down so we were like hey like you looked up one degree hey you looked up two
+up one degree hey you looked up two degrees and then we need the same thing
+degrees and then we need the same thing for yaw so we want to know like now
+for yaw so we want to know like now right to left how much did your view
+right to left how much did your view angle adjust right to left but only as
+angle adjust right to left but only as can express as a delta against the
+can express as a delta against the previous tic like I turned right one
+previous tic like I turned right one degree I turned right two degrees and
+degree I turned right two degrees and we're only doing this around in the
+we're only doing this around in the windows around when you take a shot and
+windows around when you take a shot and so we do this again half second before
+so we do this again half second before and a quarter second after and this was
+and a quarter second after and this was sort of picked purely capriciously and
+sort of picked purely capriciously and then we stuff that thing into our atom
+then we stuff that thing into our atom of stuff and so we have our X right well
+of stuff and so we have our X right well not really because if you recall our
+not really because if you recall our training data is not that this
+training data is not that this particular shot came from a TV demo and
+particular shot came from a TV demo and this particular shot did not come from a
+this particular shot did not come from a 2d demo our data is labeled where it's
+2d demo our data is labeled where it's like hey in this eight round window
+like hey in this eight round window something somewhere in here triggered a
+something somewhere in here triggered a juror to decide that this behavior was
+juror to decide that this behavior was Chiddy and and convicted and it's re
+Chiddy and and convicted and it's re convict it convinced a bunch of jurors
+convict it convinced a bunch of jurors that that this behavior was cheating so
+that that this behavior was cheating so we can't just use one atom because this
+we can't just use one atom because this is only the information about one shot
+is only the information about one shot we need like a sequence of them we need
+we need like a sequence of them we need like big sequence of them and in fact
+like big sequence of them and in fact actually what we want is a hundred and
+actually what we want is a hundred and forty of them or at least that's what
+forty of them or at least that's what the model uses right now it's also sort
+the model uses right now it's also sort of purely capricious and I will make a
+of purely capricious and I will make a slight apology because this is a cube of
+slight apology because this is a cube of meat to go with the metaphor we've been
+meat to go with the metaphor we've been doing but actually it is just a serial
+doing but actually it is just a serial representation of 140 shots we just take
+representation of 140 shots we just take 140 out of an eight round window and we
+140 out of an eight round window and we stuff those into the model and then
+stuff those into the model and then we're like hey if you if you were to
+we're like hey if you if you were to present the sequence of 140 shots to a
+present the sequence of 140 shots to a juror what is the likelihood you would
+juror what is the likelihood you would get a conviction okay so I spend a bunch
+get a conviction okay so I spend a bunch of time early in the talk talking about
+of time early in the talk talking about how we can't talk about anti cheat
+how we can't talk about anti cheat because talking about anti cheat makes
+because talking about anti cheat makes it not work anymore so did I just spend
+it not work anymore so did I just spend 40 minutes like lighting this technique
+40 minutes like lighting this technique on fire it's like a year of work overall
+on fire it's like a year of work overall I mean we deployed it in like four
+I mean we deployed it in like four months we're pretty excited about that
+months we're pretty excited about that but like did we just like this thing on
+but like did we just like this thing on fire
+fire and the good news is no no we didn't
+and the good news is no no we didn't it's great let's talk about why we
+it's great let's talk about why we didn't light it on fire so if you recall
+didn't light it on fire so if you recall my original sort of elevator pitch was
+my original sort of elevator pitch was like hey we're gonna train data from vac
+like hey we're gonna train data from vac net sorry from overwatch and then we're
+net sorry from overwatch and then we're gonna have it monitor matches and we're
+gonna have it monitor matches and we're gonna submit cases and the players have
+gonna submit cases and the players have been determine guilt and the reason that
+been determine guilt and the reason that we didn't like this thing on fire is
+we didn't like this thing on fire is because we're actually gonna do that
+because we're actually gonna do that thing in a loop we're just gonna do it
+thing in a loop we're just gonna do it over and over and over and over again
+over and over and over and over again and because we're using overwatch and we
+and because we're using overwatch and we didn't actually replace all player
+didn't actually replace all player reports we just supplemented player
+reports we just supplemented player report behaviors that means that the
+report behaviors that means that the learner is getting the opportunity to
+learner is getting the opportunity to evolve along with human jurors so as
+evolve along with human jurors so as human jurors identify sort of new GE
+human jurors identify sort of new GE behavior the learner has the opportunity
+behavior the learner has the opportunity to do the same thing so you can think
+to do the same thing so you can think about this a little bit like imagine
+about this a little bit like imagine that you're a chief developer there
+that you're a chief developer there might actually be one of the audience
+might actually be one of the audience I'm not sure but your chief developer
+I'm not sure but your chief developer and you're like aha all I need to do is
+and you're like aha all I need to do is make my cheat look GT three quarters of
+make my cheat look GT three quarters of a second before shot and then look
+a second before shot and then look totally normal through the half second
+totally normal through the half second and then get the kill and then move on
+and then get the kill and then move on now I think that's extremely improbable
+now I think that's extremely improbable in the first place but it actually won't
+in the first place but it actually won't work anyways for two reasons and one is
+work anyways for two reasons and one is that human jurors will just be like yeah
+that human jurors will just be like yeah dude I don't care that looks GT like
+dude I don't care that looks GT like Boop conviction and then the learner
+Boop conviction and then the learner will retrain and they'll be like I don't
+will retrain and they'll be like I don't know why locking on in this particular
+know why locking on in this particular way is considered to be cheating to
+way is considered to be cheating to humans but in order for me to do the
+humans but in order for me to do the best job I can do I need to label that
+best job I can do I need to label that as cheating so it will just learn the
+as cheating so it will just learn the thing and the other reason is that even
+thing and the other reason is that even if that didn't work
+if that didn't work retrain like we chose half a second
+retrain like we chose half a second before and a quarter second afterwards
+before and a quarter second afterwards just totally capriciously we could just
+just totally capriciously we could just make it three seconds before in two
+make it three seconds before in two seconds afterwards and model would be
+seconds afterwards and model would be just as happy it doesn't care it would
+just as happy it doesn't care it would effectively result in us saying like oh
+effectively result in us saying like oh we need to retrain so let me take the
+we need to retrain so let me take the five seconds to find the command in my
+five seconds to find the command in my command history and press the button to
+command history and press the button to start the retraining and then that'll
+start the retraining and then that'll run for six hours and when it's done now
+run for six hours and when it's done now it's happy with looking at stuff for
+it's happy with looking at stuff for that one
+that one all right so I think we're mostly the
+all right so I think we're mostly the way through let's talk a little bit
+way through let's talk a little bit about sort of ongoing in your term work
+about sort of ongoing in your term work that that that's going on around this
+that that that's going on around this we're doing so one of the things is like
+we're doing so one of the things is like I mentioned like right now when we
+I mentioned like right now when we retrain we still sort of just go and
+retrain we still sort of just go and look at like we basically just look at
+look at like we basically just look at like how is it doing and then we decide
+like how is it doing and then we decide like okay now seems like a reasonable
+like okay now seems like a reasonable time I'm gonna go retrain and I don't
+time I'm gonna go retrain and I don't think that's actually the right answer I
+think that's actually the right answer I think the right answer is to just
+think the right answer is to just totally get us out of the loop and
+totally get us out of the loop and instead basically just say hey like on a
+instead basically just say hey like on a cron job this should just once a day
+cron job this should just once a day retrain and then if it's convicting more
+retrain and then if it's convicting more stuff than the previous version then
+stuff than the previous version then then we should just deploy that one and
+then we should just deploy that one and we should just make that heuristic based
+we should just make that heuristic based and get totally out of the loop the
+and get totally out of the loop the other thing that we're kind of working
+other thing that we're kind of working on is basically new learners and the
+on is basically new learners and the learner that we built the features that
+learner that we built the features that we built are sort of based around
+we built are sort of based around catching aimbots
+catching aimbots but we actually think and part of that
+but we actually think and part of that was because we didn't have enough data
+was because we didn't have enough data yet that we were willing to sort of go
+yet that we were willing to sort of go whole hog on this but we think that a
+whole hog on this but we think that a better approach is actually instead to
+better approach is actually instead to just sort of build a first-person
+just sort of build a first-person narrative for each of the players in the
+narrative for each of the players in the round and say like I don't know what
+round and say like I don't know what matters in here at all and I don't want
+matters in here at all and I don't want to do any input engineering
+to do any input engineering I just want to basically say like here
+I just want to basically say like here is a first-person narrative for this
+is a first-person narrative for this player if you take eight round windows
+player if you take eight round windows of this first-person narrative does that
+of this first-person narrative does that look more like a cheesy first-person
+look more like a cheesy first-person narrative or more like an on TV
+narrative or more like an on TV first-person narrative and we think that
+first-person narrative and we think that that model is much more likely to be
+that model is much more likely to be able to attack the other types of
+able to attack the other types of cheating' that that we see so like wall
+cheating' that that we see so like wall hacks and it's been so on the other
+hacks and it's been so on the other thing that we've been kind of working on
+thing that we've been kind of working on is like generalizing back nets other
+is like generalizing back nets other game modes so we deployed to we have a
+game modes so we deployed to we have a 2v2 competitive mode that's pretty
+2v2 competitive mode that's pretty popular and we deployed to that a few
+popular and we deployed to that a few weeks ago and the conviction rate in
+weeks ago and the conviction rate in that mode was like 99 percent for a
+that mode was like 99 percent for a while it was great
+while it was great cheaters didn't get the memo that we
+cheaters didn't get the memo that we were doing it and players were super
+were doing it and players were super happy and we're just busting cheaters
+happy and we're just busting cheaters left and right I felt so good
+finally we're actually looking to generalize back Nets esteem we think
+generalize back Nets esteem we think that the model both the model we have in
+that the model both the model we have in the model that we're moving towards
+the model that we're moving towards should actually with a relatively small
+should actually with a relatively small number of examples should generalize to
+number of examples should generalize to other initially first-person shooters
+other initially first-person shooters but then later to just other games in
+but then later to just other games in general and we're definitely looking for
+general and we're definitely looking for partners to make that happen so if
+partners to make that happen so if that's the thing that you're interested
+that's the thing that you're interested in
+in we should talk alright let's finish up
+so basically I think hopefully I maybe convince you a little bit of this but
+convince you a little bit of this but our sort of opinion at valve is that
+our sort of opinion at valve is that deep learning is just this sea change
+deep learning is just this sea change technology for evolutionary behavior we
+technology for evolutionary behavior we think that it is really actually helping
+think that it is really actually helping us get developers off of the treadmill
+us get developers off of the treadmill without impacting our customers in any
+without impacting our customers in any way like our customers are seeing fewer
+way like our customers are seeing fewer cheaters today than they have been in
+cheaters today than they have been in the conversation around cheating has
+the conversation around cheating has died tremendously compared to where it
+died tremendously compared to where it was before we started this work like I
+was before we started this work like I think the volume and as I'm sorry to
+think the volume and as I'm sorry to give a crappy anecdote but I think the
+give a crappy anecdote but I think the volume based on csgo team feedback and
+volume based on csgo team feedback and and sort of eyeballing the steam forums
+and sort of eyeballing the steam forums and reddit it's like the volume of the
+and reddit it's like the volume of the conversation it's probably 1% as loud as
+conversation it's probably 1% as loud as it was before we started this now we're
+it was before we started this now we're applying deep learning to a bunch of
+applying deep learning to a bunch of problems at valve there's anti cheat and
+problems at valve there's anti cheat and anti-fraud dota hero selection uses deep
+anti-fraud dota hero selection uses deep learning in it ship to week and a half
+learning in it ship to week and a half ago there's some other dota stuff that's
+ago there's some other dota stuff that's more complicated and I don't want to
+more complicated and I don't want to explain dota so I'm not going to talk
+explain dota so I'm not going to talk about it but that's stuff ship using
+about it but that's stuff ship using deep learning as well and and there's a
+deep learning as well and and there's a bunch of other work going on as well so
+bunch of other work going on as well so I mentioned before I would not try and
+I mentioned before I would not try and teach you deep learning which I
+teach you deep learning which I successfully avoided and instead I would
+successfully avoided and instead I would point you at some resources the
+point you at some resources the foundational work I would sort of
+foundational work I would sort of suggests this Udacity course is really
+suggests this Udacity course is really useful if you are a super high level
+useful if you are a super high level user and you do not give a crap about
+user and you do not give a crap about how the insides work the Udacity course
+how the insides work the Udacity course is actually great like you will come
+is actually great like you will come away with an understanding of like sort
+away with an understanding of like sort of how to build systems that use deep
+of how to build systems that use deep learning but you will definitely not
+learning but you will definitely not understand the guts meanwhile the
+understand the guts meanwhile the Coursera course the machine
+Coursera course the machine learning course will help you really
+learning course will help you really like actually build the pieces from the
+like actually build the pieces from the ground up so if you're kind of more like
+ground up so if you're kind of more like me where you're like now I need to see
+me where you're like now I need to see how the sausage is made at least once
+how the sausage is made at least once I recommend the Coursera course they're
+I recommend the Coursera course they're both about they're each about 30 hours
+both about they're each about 30 hours of study you know that you can do sort
+of study you know that you can do sort of at your own pace and they're both
+of at your own pace and they're both great I recommend them both additionally
+great I recommend them both additionally once you've done that and I point you at
+once you've done that and I point you at the machine learning courses because it
+the machine learning courses because it turns out everything that you or at
+turns out everything that you or at least most of the things that you learn
+least most of the things that you learn around machine learning will be super
+around machine learning will be super super helpful at understanding deep
+super helpful at understanding deep learning
+learning but once you've basically done either of
+but once you've basically done either of those I suggest basically jumping into
+those I suggest basically jumping into either the Coursera course that's deep
+either the Coursera course that's deep learning specific on Coursera or the
+learning specific on Coursera or the Stanford course CS 231 in with
+Stanford course CS 231 in with faithfully the all of the material is
+faithfully the all of the material is online except for the lectures good news
+online except for the lectures good news is there a bootleg version of all of the
+is there a bootleg version of all of the lectures on YouTube I highly recommend
+lectures on YouTube I highly recommend the ones with Andre karpati but they're
+the ones with Andre karpati but they're all good and so you can go through the
+all good and so you can go through the basically the whole course alright so
+basically the whole course alright so hopefully people have some interesting
+hopefully people have some interesting questions if you have questions please
+questions if you have questions please walk to the mics I did want to mention
+walk to the mics I did want to mention that sort of the whole thrust of the
+that sort of the whole thrust of the talk is like how we can sort of increase
+talk is like how we can sort of increase value that we deliver to customers and
+value that we deliver to customers and deep learning is an important piece of
+deep learning is an important piece of that bike the other way is like to just
+that bike the other way is like to just get more awesome people at valve so if
+get more awesome people at valve so if you thought this was interesting you
+you thought this was interesting you should definitely apply at Belk
+should definitely apply at Belk software.com slash jobs and also while
+software.com slash jobs and also while it sorry one more thing is please fill
+it sorry one more thing is please fill out surveys
+out surveys pretty please okay I'm gonna say you
+pretty please okay I'm gonna say you were there first but I'm not positive oh
+were there first but I'm not positive oh so I know vegetarians but oh okay I'm
+so I know vegetarians but oh okay I'm fine I'm fine with that farm anyway so
+fine I'm fine with that farm anyway so there's the there's the pod there's the
+there's the there's the pod there's the project I heard people working on that
+project I heard people working on that with the Unreal Tournament
+with the Unreal Tournament so we're people with that you're using
+so we're people with that you're using machine learning to Train Brobot to play
+machine learning to Train Brobot to play like a human so do you actually see that
+like a human so do you actually see that the concern in just problems faced I see
+the concern in just problems faced I see so the question is am i concerned that
+so the question is am i concerned that somebody will basically counter my deep
+somebody will basically counter my deep learning approach with a deep learning
+learning approach with a deep learning approach trying to play like a human so
+approach trying to play like a human so note that is a really good that is a
+note that is a really good that is a really good question
+really good question maybe so there might be a little deep
+maybe so there might be a little deep learning specific apologize there's
+learning specific apologize there's maybe an attack with gans that might
+maybe an attack with gans that might sort of yield fruit but I don't know for
+sort of yield fruit but I don't know for sure
+sure that
+that definitely something that somebody would
+definitely something that somebody would have to spend a lot a lot a lot of
+have to spend a lot a lot a lot of compute timeline so that translates to
+compute timeline so that translates to them spending a lot a lot a lot of money
+them spending a lot a lot a lot of money and otherwise they just don't have the
+and otherwise they just don't have the data like a slide that I didn't have
+data like a slide that I didn't have about here up here but that's sort of
+about here up here but that's sort of fascinating about deep learning is that
+fascinating about deep learning is that it turns out that the algorithm you pick
+it turns out that the algorithm you pick in deep learning and machine learning it
+in deep learning and machine learning it doesn't matter the thing that matters is
+doesn't matter the thing that matters is more data like more data wins and so the
+more data like more data wins and so the problem is somebody is going to either
+problem is somebody is going to either need to outspend the amount of data that
+need to outspend the amount of data that I have because I have lots of data and
+I have because I have lots of data and also I could just do the same thing or
+also I could just do the same thing or they're they're gonna need more data
+they're they're gonna need more data than I have and they definitely don't
+than I have and they definitely don't have that so that's a good question
+have that so that's a good question Thanks yeah when you show the rainbow
+Thanks yeah when you show the rainbow slide
+slide you said rainbow trust was very robust
+you said rainbow trust was very robust that you weren't sure about any of the
+that you weren't sure about any of the players but you were more sure that some
+players but you were more sure that some of them were more likely to be cheaters
+of them were more likely to be cheaters right that's right so in order to make
+right that's right so in order to make better experience for the blue guys yeah
+better experience for the blue guys yeah five of the red guys who aren't cheaters
+five of the red guys who aren't cheaters but for some reason you mislabeled them
+but for some reason you mislabeled them as untrustworthy because they're not
+as untrustworthy because they're not cheaters
+cheaters you just think they're more likely
+you just think they're more likely you're going to ruin their experience
+you're going to ruin their experience like completely right aren't you worried
+like completely right aren't you worried that I'm going to make them turns in
+that I'm going to make them turns in order to make the others so experienced
+order to make the others so experienced yeah so we so that's definitely a
+yeah so we so that's definitely a concern for trust like that's definitely
+concern for trust like that's definitely a thing that players are concerned about
+a thing that players are concerned about but we haven't seen it actually bear
+but we haven't seen it actually bear fruit like when that model also tends to
+fruit like when that model also tends to be very conservative so we're actually
+be very conservative so we're actually despite what I'm showing here we're
+despite what I'm showing here we're actually more likely to accidentally
+actually more likely to accidentally slip somebody who is a cheater into blue
+slip somebody who is a cheater into blue than we are to get somebody who's red to
+than we are to get somebody who's red to accidentally qualify somebody who's
+accidentally qualify somebody who's oranges red so now if you command using
+oranges red so now if you command using these if you really sure that they're
+these if you really sure that they're cheaters yeah you want to be sort of
+cheaters yeah you want to be sort of very you want to be certain that they
+very you want to be certain that they are very likely to go on to be cheers
+are very likely to go on to be cheers like most of the people that get caught
+like most of the people that get caught there have are actually in the situation
+there have are actually in the situation that I gave the anecdote about where
+that I gave the anecdote about where they have many accounts and most of them
+they have many accounts and most of them have been back then okay thank you
+have been back then okay thank you hey yeah so I'm a big fan of you guys
+hey yeah so I'm a big fan of you guys using K humans in the loop to make sure
+using K humans in the loop to make sure you don't have false positives but how
+you don't have false positives but how are you planning on extending this
+are you planning on extending this therefore it for like
+therefore it for like you're asking for partners for this and
+you're asking for partners for this and partners may not have the level of
+partners may not have the level of community participation that but you Val
+community participation that but you Val does yeah that's a good question um we
+does yeah that's a good question um we thought that far yet I think that
+thought that far yet I think that probably it's possible that the actual
+probably it's possible that the actual feature would be the whole thing like
+feature would be the whole thing like overwatch and everything that's one
+overwatch and everything that's one possible approach the other would be to
+possible approach the other would be to use something like this maybe instead to
+use something like this maybe instead to basically to feed into something like
+basically to feed into something like trust score where you're like I'm not
+trust score where you're like I'm not taking as nearly as harsh in action like
+taking as nearly as harsh in action like I'm not banning you and taking away your
+I'm not banning you and taking away your stuff instead I'm just like yeah I don't
+stuff instead I'm just like yeah I don't quite trust you as much so I'm gonna
+quite trust you as much so I'm gonna stick you with other people who I don't
+stick you with other people who I don't trust quite as much so I think like soft
+trust quite as much so I think like soft punishments might be a better choice for
+punishments might be a better choice for a smaller partner that's a good question
+a smaller partner that's a good question thank you okay there are you seeing an
+thank you okay there are you seeing an increase between the overlap of cheaters
+increase between the overlap of cheaters that are really bad players and actual
+that are really bad players and actual legitimate good players and how do you
+legitimate good players and how do you deal with those scenarios I'm not sure
+deal with those scenarios I'm not sure that I understand can you rephrase that
+that I understand can you rephrase that so at some point a very good player is
+so at some point a very good player is gonna look like a cheater how do you
+gonna look like a cheater how do you deal with Donson I see it turns out so
+deal with Donson I see it turns out so overwatch so the question is how do you
+overwatch so the question is how do you tell the difference between somebody
+tell the difference between somebody who's just really good at the game and a
+who's just really good at the game and a cheater right and it turns out that the
+cheater right and it turns out that the things that overwatch is good at
+things that overwatch is good at catching are not like overwatch doesn't
+catching are not like overwatch doesn't catch subtle cheaters because we ask
+catch subtle cheaters because we ask players like don't convict if you're not
+players like don't convict if you're not sure and so they're like that is
+sure and so they're like that is plausibly just a player that's really
+plausibly just a player that's really good and so they just take the
+good and so they just take the not-guilty button and we we've sort of
+not-guilty button and we we've sort of hand verified that tons and tons of
+hand verified that tons and tons of times that like hey let's spot check
+times that like hey let's spot check convictions and make sure that like
+convictions and make sure that like people are still not convicting things
+people are still not convicting things that they shouldn't be and we haven't
+that they shouldn't be and we haven't found a single case of it that's not to
+found a single case of it that's not to say there hasn't been like one case and
+say there hasn't been like one case and all of overwatch like there probably has
+all of overwatch like there probably has but but but we haven't seen it yeah okay
+but but but we haven't seen it yeah okay are you at all concerned about the
+are you at all concerned about the possibility now that your secret is out
+possibility now that your secret is out of cheap developers polluting your data
+of cheap developers polluting your data pool by putting ringers in your juries
+pool by putting ringers in your juries am I worried about
+am I worried about so am I worried now that I've basically
+so am I worried now that I've basically shown everything about cheaters
+shown everything about cheaters polluting my data
+polluting my data they'll try I'm not really too worried
+they'll try I'm not really too worried about it because humans should be able
+about it because humans should be able to tell the difference like that's kind
+to tell the difference like that's kind of the fundamental premise that we're
+of the fundamental premise that we're going on and so if humans decide that
+going on and so if humans decide that that behavior is cheated then the
+that behavior is cheated then the learner should decide that it's GT as
+learner should decide that it's GT as well but it's possible like it's
+well but it's possible like it's definitely we'll see maybe I'll be back
+definitely we'll see maybe I'll be back in GGC 2019 I'll be like don't talk
+in GGC 2019 I'll be like don't talk about cheating Everett this was a
+about cheating Everett this was a terrible mistake but I don't think so
+terrible mistake but I don't think so that's a good question great talk and
+that's a good question great talk and great analogy I really like the office
+great analogy I really like the office again sorry they remind me of the burger
+again sorry they remind me of the burger I had yesterday the super duper I have
+I had yesterday the super duper I have two questions first one is about the the
+two questions first one is about the the actual data shape like you showed it the
+actual data shape like you showed it the cube shape data but I don't think that
+cube shape data but I don't think that is actually Q no no it is not a gas I
+is actually Q no no it is not a gas I was wondering like is it like a the one
+was wondering like is it like a the one user was represented as a a long vector
+user was represented as a a long vector or max of yeah so what it is is it is
+or max of yeah so what it is is it is actually it is totally a sort of serial
+actually it is totally a sort of serial data
+data it's just serial data doesn't look very
+it's just serial data doesn't look very good on its spine but it is basically
+good on its spine but it is basically just like here's all of the information
+just like here's all of the information about a shot and then repeated 140 times
+about a shot and then repeated 140 times and if a player I didn't really talk
+and if a player I didn't really talk about this at the time but like if a
+about this at the time but like if a player shoots say 200 times in an 8
+player shoots say 200 times in an 8 round window then we just build a hunt
+round window then we just build a hunt like 60 140 shot windows and we ask to
+like 60 140 shot windows and we ask to inference all of them would any of these
+inference all of them would any of these results in the conviction oh wait but
+results in the conviction oh wait but there are y'all like it's like you could
+there are y'all like it's like you could just sort of imagine the time line where
+just sort of imagine the time line where somebody takes a shot every single time
+somebody takes a shot every single time they take a shot and then we're like
+they take a shot and then we're like great let's look at like that is art the
+great let's look at like that is art the whole timeline and then let's build
+whole timeline and then let's build sliding windows of 140 and see if any
+sliding windows of 140 and see if any sliding windows will result in a
+sliding windows will result in a conviction
+conviction I see and my next question is about the
+I see and my next question is about the deep learning architecture if you oh I
+deep learning architecture if you oh I have a slide for this let's here I'm
+have a slide for this let's here I'm just gonna burn oh wait maybe I can no
+just gonna burn oh wait maybe I can no I'm sure it won't sorry maybe I can skip
+I'm sure it won't sorry maybe I can skip to the no no point this that I'm so
+to the no no point this that I'm so pissed about those graphs so I actually
+pissed about those graphs so I actually have the slide for exactly what our
+have the slide for exactly what our architecture is and I am I'm so glad I
+architecture is and I am I'm so glad I kept this one in so we use in our I'm
+kept this one in so we use in our I'm sorry for not a deep learning
+sorry for not a deep learning we use an iron in because we have
+we use an iron in because we have sequence data and the only sort of weird
+sequence data and the only sort of weird thing is like we're actually using GRU
+thing is like we're actually using GRU and Ray Lewin actually works better most
+and Ray Lewin actually works better most of the time Ray Lewis aware training a
+of the time Ray Lewis aware training a model it'll just be like I just can't
+model it'll just be like I just can't converge but actually most of the time
+converge but actually most of the time it does converge and it does
+it does converge and it does significantly better than to an H so
+significantly better than to an H so that is surprising and otherwise this
+that is surprising and otherwise this stuff is all just totally purely
+stuff is all just totally purely capricious like we just searched we just
+capricious like we just searched we just did like a grid search and we treated
+did like a grid search and we treated all of the architecture like a hyper
+all of the architecture like a hyper parameter you know like a set of hyper
+parameter you know like a set of hyper parameters at all as well and that is
+parameters at all as well and that is like the thing that currently works the
+like the thing that currently works the best good change tomorrow but that's
+best good change tomorrow but that's what it is today
+what it is today I was wondering if you have also tried
+I was wondering if you have also tried like one-dimensional convolutional
+like one-dimensional convolutional neural network which is high on my list
+neural network which is high on my list of things to try hi so as a person who
+of things to try hi so as a person who does a lot of overwatch cases it's kind
+does a lot of overwatch cases it's kind of interesting to see how you're using
+of interesting to see how you're using this data hold on thank you for your
+this data hold on thank you for your service yeah so I'm kind of curious
+service yeah so I'm kind of curious about the more subtle cases cuz just
+about the more subtle cases cuz just speaking purely as a person who does
+speaking purely as a person who does does overwatch cases is there are a lot
+does overwatch cases is there are a lot of times when you aren't certain and I
+of times when you aren't certain and I think the language is actually really
+think the language is actually really good about really convincing you that
+good about really convincing you that you really have to be very evidence
+you really have to be very evidence beyond a reasonable doubt it's very you
+beyond a reasonable doubt it's very you know very precise yeah legally precise
+know very precise yeah legally precise ends up when we get talks so I'm kind of
+ends up when we get talks so I'm kind of curious about about how you go to
+curious about about how you go to approach the subtle case and if maybe
+approach the subtle case and if maybe you could talk a little bit about how to
+you could talk a little bit about how to tackle that if it's going to be like an
+tackle that if it's going to be like an unsupervised approach that maybe bears
+unsupervised approach that maybe bears fruit there or I yeah so I think I think
+fruit there or I yeah so I think I think an unsupervised approach is gonna have
+an unsupervised approach is gonna have to be the answer like I think again
+to be the answer like I think again sorry deep learning little nerding I
+sorry deep learning little nerding I pretty sure it's gonna need to be an
+pretty sure it's gonna need to be an unsupervised approach and I think
+unsupervised approach and I think probably it'll be around outlier
+probably it'll be around outlier analysis but I haven't done much work on
+analysis but I haven't done much work on it yet but I think that's probably the
+it yet but I think that's probably the only thing to do the thing that's a
+only thing to do the thing that's a little trickier for for that is actually
+little trickier for for that is actually like the policy decision around it
+like the policy decision around it instead of the like hey like given that
+instead of the like hey like given that I make that thing work now what do I do
+I make that thing work now what do I do because like humans are not convicting
+because like humans are not convicting that and like I would need to have of
+that and like I would need to have of like extreme
+like extreme high confidence that a person was
+high confidence that a person was cheating in a subtle way before I would
+cheating in a subtle way before I would be willing to take action against them
+be willing to take action against them because like I'm putting a black mark on
+because like I'm putting a black mark on their Steam account I'm taking their
+their Steam account I'm taking their stuff away like they don't kids are
+stuff away like they don't kids are playing back secured servers so we need
+playing back secured servers so we need to be sort of very very careful around
+to be sort of very very careful around what we do punitive ly in that situation
+what we do punitive ly in that situation but it may be that you feed it into
+but it may be that you feed it into trust and then you're just like right I
+trust and then you're just like right I think it's also interesting have you
+think it's also interesting have you done experiments with with how to create
+done experiments with with how to create effects this I'm sorry how what how to
+effects this I'm sorry how what how to creat effects okay great because you
+creat effects okay great because you have a relatively high tick rate at 64
+have a relatively high tick rate at 64 which gives you sort of a lot of
+which gives you sort of a lot of moment-by-moment data and I don't know
+moment-by-moment data and I don't know if having higher tick rate or a lower
+if having higher tick rate or a lower tick rate evaluation of this has any
+tick rate evaluation of this has any impact so over watch cases are actually
+impact so over watch cases are actually handed down only a 32k there are already
+handed down only a 32k there are already stepped down and so we actually just
+stepped down and so we actually just work on that day okay just thank you
+work on that day okay just thank you cool I think I have like time for one or
+cool I think I have like time for one or two more questions probably although
+two more questions probably although were the last people in the room so
+were the last people in the room so maybe we can go a minute or two long
+maybe we can go a minute or two long maybe okay cool kind of dragging on it
+maybe okay cool kind of dragging on it here's my tool of counter strike by the
+here's my tool of counter strike by the way you play law and everything going on
+way you play law and everything going on with that right you definitely I think
+with that right you definitely I think the data part will always win
+the data part will always win you guys always have the data and you
+you guys always have the data and you can always get the data so I'm sold on
+can always get the data so I'm sold on the machine learning part but when
+the machine learning part but when steamos came out I was actually hoping
+steamos came out I was actually hoping you know we've got twitch going big and
+you know we've got twitch going big and we've got people making entire
+we've got people making entire livelihoods on this now and it made me
+livelihoods on this now and it made me wonder why you know we have secure boot
+wonder why you know we have secure boot we have all these systems now couldn't
+we have all these systems now couldn't we create you know in addition to this
+we create you know in addition to this could we not create a secure system in
+could we not create a secure system in such that it's like for contestant play
+such that it's like for contestant play you have to boot these sort of encrypted
+you have to boot these sort of encrypted images that are a whole lot more secure
+images that are a whole lot more secure I mean this is a whole other combo no
+I mean this is a whole other combo no but it allows you to do the things like
+but it allows you to do the things like hey did he actually move his Mouse
+hey did he actually move his Mouse physically like did I get X Y input from
+physically like did I get X Y input from that hey did the DLLs exactly mat you
+that hey did the DLLs exactly mat you know I'm doing checksums and you know so
+know I'm doing checksums and you know so we've thought about this and like I
+we've thought about this and like I actually that was kind of the approach I
+actually that was kind of the approach I ran down initially and there are sort of
+ran down initially and there are sort of a few problems around it yeah us to go
+a few problems around it yeah us to go yeah I think the easy
+yeah I think the easy one is like that I feel super invasive
+one is like that I feel super invasive right like as a user like I'm like hey
+right like as a user like I'm like hey what you need to do is play my game on
+what you need to do is play my game on like my OS and you need to sing and like
+like my OS and you need to sing and like I don't know like and the problem is
+I don't know like and the problem is ultimately at the end of the day if the
+ultimately at the end of the day if the user has access to their to their system
+user has access to their to their system physical access there is nothing I can
+physical access there is nothing I can do to determine for certain that they
+do to determine for certain that they haven't tampered with it like because
+haven't tampered with it like because any query that you're like well you just
+any query that you're like well you just ask them this I'm like so what I do is I
+ask them this I'm like so what I do is I hijack that function and I lie because I
+hijack that function and I lie because I did that I've like I've done that yeah
+did that I've like I've done that yeah works great like it's it's Turtles all
+works great like it's it's Turtles all the way down ah but it may not be and
+the way down ah but it may not be and maybe we should talk yeah hey great talk
+maybe we should talk yeah hey great talk um quasi related because you mentioned
+um quasi related because you mentioned like reddit in the forum's a lot at any
+like reddit in the forum's a lot at any point is you develop something to sort
+point is you develop something to sort of scour those in terms of watching
+of scour those in terms of watching trends for like no we haven't been maybe
+trends for like no we haven't been maybe we should the question is like do we
+we should the question is like do we have tools to scour read it and like
+have tools to scour read it and like quantify things better and other forums
+quantify things better and other forums we don't but maybe we should like that
+we don't but maybe we should like that that feels like a thing that actually
+that feels like a thing that actually and you know performing sentiment
+and you know performing sentiment analysis in particular being like hey is
+analysis in particular being like hey is there like a new topic that is currently
+there like a new topic that is currently lighting the internet on fire like that
+lighting the internet on fire like that might actually be a pretty valuable
+might actually be a pretty valuable thing but it's not a thing that we have
+thing but it's not a thing that we have right now look yes that would be that
+right now look yes that would be that would be great though okay two questions
+would be great though okay two questions first
+first great talk Thanks so firstly how long
+great talk Thanks so firstly how long does it take to train the data and hours
+does it take to train the data and hours data do you use so we have about 700,000
+data do you use so we have about 700,000 labeled pieces of data now and it takes
+labeled pieces of data now and it takes about six hours to train on an ADT I
+about six hours to train on an ADT I well I'm once an 80s guy we're actually
+well I'm once an 80s guy we're actually working on parallelizing it and feeding
+working on parallelizing it and feeding it to a bunch of via one hundreds so
+it to a bunch of via one hundreds so we'll bring that down to ten minutes or
+we'll bring that down to ten minutes or so
+so pretty soon cool and the second question
+pretty soon cool and the second question have hackers tried to play the overwatch
+have hackers tried to play the overwatch system and ads um people who just pass
+system and ads um people who just pass everything No well sorry
+everything No well sorry maybe maybe they've tried but it but one
+maybe maybe they've tried but it but one of the things that we do in overwatch is
+of the things that we do in overwatch is we pay attention to how good you are at
+we pay attention to how good you are at overwatch like how often you go and
+overwatch like how often you go and agree with the consensus and so somebody
+agree with the consensus and so somebody who is just like not guilty not guilty
+who is just like not guilty not guilty not guilty
+not guilty guilty and they do that repeatedly on
+guilty and they do that repeatedly on cases that get convicted or the other
+cases that get convicted or the other way like they try and pollute it the
+way like they try and pollute it the other way they get they get basically to
+other way they get they get basically to the point where we're like you can keep
+the point where we're like you can keep doing cases but I don't believe you
+doing cases but I don't believe you anymore so have a good time yeah it's
+anymore so have a good time yeah it's good
+good hi Hey um it'll probably last year just
+hi Hey um it'll probably last year just sort yeah thanks a lot for the talk now
+sort yeah thanks a lot for the talk now I really know what's your next game
+I really know what's your next game gonna be it's a VR simulator of meat
+gonna be it's a VR simulator of meat grinder that's right be right there sign
+grinder that's right be right there sign me up for that but actually I have a
+me up for that but actually I have a question from a different point you know
+question from a different point you know obviously you're talking about real
+obviously you're talking about real customers the real players playing and
+customers the real players playing and that's why you have created that system
+that's why you have created that system I work for a competitive play so we see
+I work for a competitive play so we see lots and lots of games happen when
+lots and lots of games happen when people play for extra money and I think
+people play for extra money and I think years ago is the biggest game in this
+years ago is the biggest game in this amount in terms of in terms of volume
+amount in terms of in terms of volume actually not so many tournament
+actually not so many tournament organizers running so many tournaments
+organizers running so many tournaments so many games are being played and the
+so many games are being played and the level of cheating there is slightly
+level of cheating there is slightly different people are using enhancement
+different people are using enhancement drugs because wrong matches and I'm just
+drugs because wrong matches and I'm just curious is there a way for a deep
+curious is there a way for a deep learning network to try to serve
+learning network to try to serve ciphered through that thing or we as
+ciphered through that thing or we as tournament organizers should look
+tournament organizers should look elsewhere obviously we are doing it on
+elsewhere obviously we are doing it on physically one lands happen everything's
+physically one lands happen everything's secure there but I'm more curious about
+secure there but I'm more curious about online qualifiers so the question is
+online qualifiers so the question is basically how do we do this for pros
+basically how do we do this for pros right or how do we do this for as
+right or how do we do this for as tournament organizers and I think that
+tournament organizers and I think that there probably is an approach there that
+there probably is an approach there that works but I don't have enough confidence
+works but I don't have enough confidence to talk about it right the second but it
+to talk about it right the second but it is definitely a thing that we're
+is definitely a thing that we're thinking a lot about because we think
+thinking a lot about because we think the you know the integrity of the pro
+the you know the integrity of the pro scene is super important like it's it's
+scene is super important like it's it's really really important so it's
+really really important so it's definitely a thing that we're thinking
+definitely a thing that we're thinking about but I'm not quite ready to talk
+about but I'm not quite ready to talk about exactly how we think it'll work
+about exactly how we think it'll work yeah thank you it's a great question
+yeah thank you it's a great question that's one
+that's one hey I'm wondering how many of your
+hey I'm wondering how many of your players have to weigh in on to an
+players have to weigh in on to an overwatch case before it closed one way
+overwatch case before it closed one way or another and how many overwatch case
+or another and how many overwatch case do you close every day so I can't
+do you close every day so I can't comment on the second one because the
+comment on the second one because the team agreed
+team agreed it probably was not actually that useful
+it probably was not actually that useful to talk about the first question how
+to talk about the first question how many players need to weigh in so it kind
+many players need to weigh in so it kind of it varies I'm trying to answer and
+of it varies I'm trying to answer and not be hand-wavy
+not be hand-wavy but it kind of depends on how long it
+but it kind of depends on how long it takes to converge like cases can be sort
+takes to converge like cases can be sort of rejected like if you get if you just
+of rejected like if you get if you just happen to randomly hand the case out to
+happen to randomly hand the case out to a bunch of people who it turns out are
+a bunch of people who it turns out are like they are always right they always
+like they are always right they always go with consensus then maybe it takes as
+go with consensus then maybe it takes as few as seven of them to agree that that
+few as seven of them to agree that that a person is you know this thing is super
+a person is you know this thing is super guilty or this person is definitely not
+guilty or this person is definitely not guilty
+guilty it might take as many as 50 or 100 if
+it might take as many as 50 or 100 if it's something that's like a little sort
+it's something that's like a little sort of less certain or if you know they're
+of less certain or if you know they're people that are new to overwatch and
+people that are new to overwatch and we're not sure you know about how good
+we're not sure you know about how good they are at identifying the conviction
+they are at identifying the conviction rates alright thank you guys so much for
+rates alright thank you guys so much for sticking around through the graveyard
+sticking around through the graveyard shift I really appreciate that it's
+shift I really appreciate that it's great

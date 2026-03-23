@@ -1,0 +1,279 @@
+Hi everybody, it's me Tim. Today I want
+to talk about Fallout's memory model. I
+had a good time talking about the foot
+sliding problem in the previous video
+and that was kind of where programming
+and art came together.
+This talk is purely programming. It is
+how we addressed memory use
+in Fallout. Fallout one for those of you
+who are using numbers. It's a an
+incredibly good example of game
+development in the 90s. In fact, it's
+such a 90s story that if you listen
+carefully in the background, you can
+probably hear Germany reunifying.
+What you need to know as context, well,
+I'm going to give a lot of context. PCs
+were wildly different. There were we
+were making games for IBM PC and Tandes
+there, you know, a lot of different
+manufacturers, lots of different video
+cards. I talked about how Vasa became
+popular enough that by the time we made
+Fallout, we could just assume people
+would have a Vasa driver. Where in my
+previous game, Rags to Riches, couldn't
+assume that, and you had to ask people
+what kind of card they had.
+What's important for this video is that
+the minimum spec for Fallout was very
+low, particularly for memory. It was
+16meg. 16meg is not a lot. It's very
+little memory. It's to put it in a
+visual perspective. If you're looking at
+the screen for Fallout, which is 640480,
+48 of those screens is all the memory we
+had for the entire game to run in. So
+all the code, all the data we had to
+keep, all the art we had to load, 48 of
+those screens tops.
+So that wasn't much memory. We actually
+to be honest we had far less because it
+we said you need a 16meg machine and of
+course the Windows or DOSs took up space
+on that and other things took up space.
+We didn't have a lot of memory to work
+with. So we had to be really really
+really careful with it and we tried but
+in the end we had to handle memory
+oursel and this is basically the story
+of why
+fall was made on the Wattcom C compiler.
+Now, I'm going to tell you, I like that
+compiler. So, don't mis don't
+misconstrue this story. I like that
+compiler, but with a big butt. And I
+like big butts. And I cannot lie.
+This is the story of me finding a
+really, really bad bug in the compiler
+very early on. I think this happened in
+94.
+Might have been 95, but I'm pretty sure
+it was 94.
+I was working on the very early version
+of of Fallout's engine and I was getting
+memory overwrites and that occurs when
+you're writing out data and it's going
+to the wrong places. Like I'll I'd write
+out data. I discovered it because I was
+writing out I was zeroing out some
+memory and some other data got zeroed
+out and it took me a while but I traced
+it to real which is one of the standard
+C library calls.
+C lets you handle memory with basically
+three um functions. Maloc which you say
+I want a block this big and it gives you
+the block. realic which is you give it a
+block and say I need this block to
+change size either smaller or bigger and
+it gives you back a pointer to
+a new block which contain which is the
+size you asked for and if there was any
+data it transferred it over and then
+free which just says I'm I'm done with
+this block you can get rid of it.
+I found a problem with realic
+specifically sometimes real would give
+me a block that Wattcom had already
+given to someone else as memory.
+I wrote them because back then customer
+support had an email. I emailed them and
+they didn't believe me. In their
+defense, I'm sure they get tons of
+people telling them the compiler's
+broken
+and it's not really, it's just they
+wrote bad code.
+Bad programmers love to blame everyone
+else for their code. Actually, bad
+people do that on everything they do.
+But anyway, so what I did is I wrote a
+very simple program. It was just a few
+lines long. What it did is it
+maloclocked a bunch of blocks. So it
+made an array of blocks and the array
+stored
+the pointer to the block and how big it
+was. And that was important. Then I made
+a loop and that loop was really simple.
+It would pick one of those blocks and
+reallocate to a new size. Remember react
+changed the size of the memory block.
+Then it would loop over all the blocks
+and would make sure that given where
+they started and how big they were, none
+of them overlapped. And if it did, it
+would print out like memory integrity
+failed.
+Very simple program, you know, set
+create the blocks and then a loop that
+just said realloc check, realloc check,
+realloc check.
+you could run that program and within
+seconds it would stop and say memory
+integrity failed. So I mailed them that
+program and I said I'm pretty sure the
+bug's in your compiler. If it's not,
+tell me where the bug is in this piece
+of code. A few days later they wrote me
+back and they said we have a bug in
+Realic. We will fix it. The patch will
+be out soon. So luckily we got that
+fixed. Just so you know,
+moving forward it was very difficult to
+trust. you'd find a bug and you're like,
+is that me or is it Wattcom? But I can
+tell you something. Other people at
+Interplay were using Microsoft's
+compiler and I'd hear things from them
+like I don't know if this is a bug with
+me or a bug with the compiler because
+frequently back then the optimization
+flags would introduce bugs. So you'd
+optimize for time or for space. So you'd
+have ask it to compact how much memory
+you're using or you say, "Hey, make this
+this chunk of code as fast as you can
+compile as you can optimize it." And
+sometimes those flags would introduce
+mistakes.
+So anyway, it wasn't just WCOM. I moved
+past it. But what we decided to do was
+moving forward,
+we decided to handle memory oursel. And
+I will describe how that worked. When
+Fallout started, it called Maloc one
+time and grabbed one enormous block of
+memory and just went boom and set it
+aside. And we never called Maloc again.
+What we did was when the
+game needed a block, it would call one
+of our functions and it would give a
+portion of the memory memory out of that
+big block. So we handled Maloc, Real and
+Free ourselves using that one block of
+memory that when the game started, it
+grabbed. If it couldn't grab it, you
+weren't a Minsspec machine.
+The cool thing about this is the game
+itself didn't store direct pointers to
+the block. So you didn't you weren't
+returned a pointer to a block in memory.
+You were given a handle. And if you
+wanted to actually use that handle, you
+would call a function saying, "Hey, lock
+it. Lock the handle." And that lock
+would return the pointer that you used.
+And while that block was locked, that
+pointer was always valid. And then when
+you unlocked it, it wasn't th wasn't
+thrown away, but you couldn't access
+that memory block again unless you
+locked the handle. And the reason for
+this was compaction. What we could do is
+if we had that one big block of memory
+and we had a lot of blocks that were
+assigned inside of it, any block that
+wasn't locked, we could move it. We
+could copy it to a new location
+and
+copy, you know, in including it it's all
+the data it had. And we knew because it
+wasn't locked, nobody was using that
+pointer. So, it was safe to do so. Why
+would we want to do this? Well, what we
+discovered when we were starting to
+develop Fallout because we had so much
+data we had to store and the game was
+Super VGA, which at the time was new and
+was using way more memory than VGA. We
+discovered that
+many times the game would run out of
+memory, but it wasn't out of memory. It
+was just out of contiguous memory. Like
+somewhere somebody would go, "Give me a
+thousand bytes." And it would go, "Can't
+give you a thousand bytes." But the
+total memory being used wasn't the full
+size of that block. It was just there
+was no place where a thousand bytes were
+free in one contiguous line. There may
+be 500 here and 500 here.
+Because we used handles, we could take
+every block that wasn't locked and shove
+it down. So compact it into one spot,
+which would free up all the memory that
+was free would be one big block.
+This allowed us to get by on much less
+memory than we would have had to use if
+blocks were just being created and
+destroyed and fragmenting up memory.
+This in turn let Fallout run on much
+lower spec machines than it should have
+been able to at the time. And this was
+really important to to Interplay and to
+marketing because more people could buy
+it. It it opened up the number of people
+who could play this game. Now I'll tell
+you these days you tell those people to
+story these days you don't need this.
+Windows uses a virtual address space and
+page tables and whenever you ask for
+memory you're given memory even if it's
+not available yet and then as you access
+memory windows underneath will load in
+and out will redirect your use of memory
+to to an actual physical memory in RAM.
+So you may think you have, you know, a
+gigabyte of memory that your program is
+using. Really, it may be using far less
+than that of actual RAM and the rest is
+all virtual. But back then, we had to do
+this. And I like talking about this
+because it's one of those things that
+when people talk about how video game
+development was different back then and
+it took longer and or it didn't take
+longer, it required a different skill
+set.
+Like if I were to make Fallout now in
+Unity, I could make it much faster and
+probably with a smaller team. But back
+then, we were building everything from
+scratch. And some of the stuff we were
+doing was so
+low level, so right above the metal um
+that you needed a really good skill set
+on optimization and codewriting to even
+get a game out the door. It was 100%
+required back then. So, I thought I'd
+talk about this because it's really fun.
+And also,
+when you think about, hey, what took
+Fallout, you know, what was what was a
+lot of time spent on Fallout and what
+was bug fixing like and what kind of
+optimizations did you have to do? This
+was a big one. Getting Fallout running
+with its own memory model was a big one.
+And once we got that working, it solved
+just a ton of other issues. We stopped
+running out of memory. Uh, the game
+could run on lower spec machines. Just a
+lot of problems were solved by just
+having one big block and we allocated
+from it ourselves. So I thought that was
+interesting enough to talk about. Hope
+you liked it.

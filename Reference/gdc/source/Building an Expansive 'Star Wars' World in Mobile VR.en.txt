@@ -1,0 +1,720 @@
+[Music]
+thank you for joining us today my name is roma and i'm a senior gameplay
+is roma and i'm a senior gameplay engineer at ilmx lab which is
+engineer at ilmx lab which is lucasfilm's immersive entertainment
+lucasfilm's immersive entertainment studio
+studio our core mission at xlab is to pioneer a
+our core mission at xlab is to pioneer a new era of interactive storytelling via
+new era of interactive storytelling via connected stories that cross platforms
+connected stories that cross platforms the goal is to move from storytelling to
+the goal is to move from storytelling to story living where we invite you to step
+story living where we invite you to step inside living worlds to meet beloved
+inside living worlds to meet beloved characters and become the hero of your
+characters and become the hero of your own personal adventure
+we're excited to talk to you today about how we build an expansive star wars
+how we build an expansive star wars world in mobile vr with star wars tales
+world in mobile vr with star wars tales from the galaxy's edge
+from the galaxy's edge tales began in the fall of 2019 it was a
+tales began in the fall of 2019 it was a continuation of our partnership with
+continuation of our partnership with oculus studios which previously we
+oculus studios which previously we released a very immortal the vr series
+released a very immortal the vr series for
+for that experience delivered on the oculus
+that experience delivered on the oculus rift which is desktop powered and the
+rift which is desktop powered and the oculus quest which was oculus first
+oculus quest which was oculus first untethered mobile vr headset
+untethered mobile vr headset similar to vader tails is also a
+similar to vader tails is also a flagship title for the recently released
+flagship title for the recently released oculus quest 2 which is a more powerful
+oculus quest 2 which is a more powerful entry into the mobile vr market
+entry into the mobile vr market but even though our experience was to be
+but even though our experience was to be featured for the quest 2 we still had to
+featured for the quest 2 we still had to deliver a performant experience for
+deliver a performant experience for quest 1
+quest 1 and that's what we're going to tell you
+and that's what we're going to tell you about how we did it
+about how we did it so now in mobile vr there are challenges
+so now in mobile vr there are challenges that we've run into especially for a
+that we've run into especially for a platform that is not as powerful as
+platform that is not as powerful as quest two which is quest one
+quest two which is quest one um some of those challenges include
+um some of those challenges include explorable world with long sidelines
+explorable world with long sidelines there are more characters more
+there are more characters more interactive cinematics lots of weapons
+interactive cinematics lots of weapons inventory collectibles and of course
+inventory collectibles and of course lots of combat
+lots of combat all of this challenges the device
+all of this challenges the device first what i want to tell you about uh
+first what i want to tell you about uh is the game thread challenges we ran
+is the game thread challenges we ran into so on this project i was the lead
+into so on this project i was the lead game thread performance engineer
+game thread performance engineer and we ran into a few issues some of
+and we ran into a few issues some of those i'm gonna mention here and how we
+those i'm gonna mention here and how we went about addressing them
+went about addressing them some of those issues include moving
+some of those issues include moving complex component hierarchies
+complex component hierarchies spawning and despawning hitches
+spawning and despawning hitches ticks during combats that are not needed
+ticks during combats that are not needed and stalls on the cpu
+and stalls on the cpu so first component hierarchy so it's as
+so first component hierarchy so it's as a rule of thumb
+a rule of thumb the bigger a component hierarchy is the
+the bigger a component hierarchy is the longer it will take to move
+longer it will take to move so there are a few tips to know and
+so there are a few tips to know and whenever we run into those kind of
+whenever we run into those kind of issues first is to try as much as you
+issues first is to try as much as you can
+can to use actor components instead of scene
+to use actor components instead of scene components especially for things that
+components especially for things that don't need to have a transform all the
+don't need to have a transform all the time that is up to date things that are
+time that is up to date things that are not visual for instance
+not visual for instance second is to use unrail's built-in
+second is to use unrail's built-in scoped movement which allows you to do
+scoped movement which allows you to do all the transform calculations ahead of
+all the transform calculations ahead of time and only do the move once at the
+time and only do the move once at the end which goes into the next point of
+end which goes into the next point of making sure you only move heavy
+making sure you only move heavy hierarchies once a frame at most
+hierarchies once a frame at most if possible of course
+if possible of course lastly we managed to build a system to
+lastly we managed to build a system to detach
+detach components that were not needed and to
+components that were not needed and to reattach them when needed and i'm
+reattach them when needed and i'm talking about components like vfx or
+talking about components like vfx or audio things are not present all the
+audio things are not present all the time
+time but that might show up every once in a
+but that might show up every once in a while
+while now there's a special case sound address
+now there's a special case sound address skeletal meshes so on top of the issues
+skeletal meshes so on top of the issues that
+that i have detailed before
+i have detailed before skeletal meshes have to update their
+skeletal meshes have to update their bones twice once when the character
+bones twice once when the character moves and the second time when the
+moves and the second time when the animation evaluation ends
+animation evaluation ends this is especially a problem if you have
+this is especially a problem if you have lots of bones if you have lots of things
+lots of bones if you have lots of things attached to your bones
+attached to your bones things that themselves have lots of
+things that themselves have lots of subcomponents as well
+subcomponents as well what we did for those is what i called
+what we did for those is what i called the detachment optimization so for this
+the detachment optimization so for this we detached the skeletal mesh from its
+we detached the skeletal mesh from its parent component
+parent component and instead of moving the components we
+and instead of moving the components we use the anim graph to move all the bones
+use the anim graph to move all the bones where they're supposed to be
+where they're supposed to be so basically we saved the transform that
+so basically we saved the transform that the component was supposed to have and
+the component was supposed to have and put it on the root bone
+put it on the root bone this was great it helped us a lot
+this was great it helped us a lot especially during combat where we have
+especially during combat where we have lots of characters on screen we use it
+lots of characters on screen we use it on the player pawn all that all enemies
+on the player pawn all that all enemies and some of the cinematic characters too
+and some of the cinematic characters too there are obviously are some drawbacks
+there are obviously are some drawbacks you can't use the transform of the
+you can't use the transform of the component anymore you have to use the
+component anymore you have to use the root bone transform
+root bone transform and uh some adding anim nodes don't know
+and uh some adding anim nodes don't know how to work with this so you have to go
+how to work with this so you have to go in and fix them thankfully we managed to
+in and fix them thankfully we managed to keep that um
+keep that um a little
+a little it didn't take us too long to do that
+so another issue that comes about when moving upon the hierarchies is overlaps
+moving upon the hierarchies is overlaps there are a lot of times where overlaps
+there are a lot of times where overlaps are turned on whether it's by default or
+are turned on whether it's by default or it's people thinking they're doing the
+it's people thinking they're doing the right thing entering them on there's a
+right thing entering them on there's a lot of cases where actually you don't
+lot of cases where actually you don't need overlap so for instance when you're
+need overlap so for instance when you're only going to be doing traces on a
+only going to be doing traces on a specific collision
+specific collision so it's great to educate people as to
+so it's great to educate people as to how
+how collision and physics work what the
+collision and physics work what the settings are for and when to turn them
+settings are for and when to turn them on
+on and definitely make sure you tell them
+and definitely make sure you tell them to leave things off by default unless
+to leave things off by default unless needed
+needed and finally one thing that has helped us
+and finally one thing that has helped us a couple times is to switch to a list of
+a couple times is to switch to a list of targets as opposed to collisions for
+targets as opposed to collisions for instance if you have a sphere collision
+instance if you have a sphere collision that only detects enemies you can maybe
+that only detects enemies you can maybe instead keep a list of the enemies and
+instead keep a list of the enemies and just do a distance check against them
+just do a distance check against them that will that will take a lot less time
+all right so moving on from components now we have hitches um there are hitches
+now we have hitches um there are hitches in unreal engine and especially when
+in unreal engine and especially when spawning and despawning actors and
+spawning and despawning actors and components so the best weapon we have to
+components so the best weapon we have to fight against those is to use a pooling
+fight against those is to use a pooling system
+system there isn't one built into unreal um so
+there isn't one built into unreal um so we had to
+we had to roll out our own
+roll out our own and it helped us a lot uh basically the
+and it helped us a lot uh basically the concept is you spawn everything ahead of
+concept is you spawn everything ahead of time
+time you hide them and use them when needed
+you hide them and use them when needed and when they're done you re-hide them
+and when they're done you re-hide them again make sure to turn off all the
+again make sure to turn off all the ticks collision everything
+ticks collision everything it's great uh it helped us get rid of
+it's great uh it helped us get rid of most of the hitches
+most of the hitches it also allowed us to use caps for all
+it also allowed us to use caps for all our enemies
+our enemies and for also weapons and lots of items
+and for also weapons and lots of items that could potentially balloon
+that could potentially balloon otherwise
+otherwise another thing it helps is with spawning
+another thing it helps is with spawning and despawning of objects when they're
+and despawning of objects when they're far away so that's my next slide
+far away so that's my next slide during combat and even when you're just
+during combat and even when you're just exploring the world it's very common to
+exploring the world it's very common to see things ticking rendering
+see things ticking rendering or even
+or even updating their collision when they're
+updating their collision when they're really far away and you don't actually
+really far away and you don't actually care about all this
+care about all this so what we did for that is to use a
+so what we did for that is to use a player distance system that we put on
+player distance system that we put on almost all of our objects interactive
+almost all of our objects interactive objects and enemies well not enemies
+objects and enemies well not enemies the
+the idea is to reduce the impact when you're
+idea is to reduce the impact when you're not close to the items
+not close to the items and we leverage our cooling system to
+and we leverage our cooling system to spawn the items when you're close enough
+spawn the items when you're close enough and despondent when you're far away
+and despondent when you're far away so that was a great help
+so that was a great help all right finally and i want to say last
+all right finally and i want to say last but not least a game thread stalls
+but not least a game thread stalls on quest especially quest one we only
+on quest especially quest one we only have three cores that we can use the
+have three cores that we can use the rest are reserved and in heavy moments
+rest are reserved and in heavy moments such as combat we are using
+such as combat we are using all of those uh very intensely by
+all of those uh very intensely by rendering by audio gameplay everything
+rendering by audio gameplay everything is acting up all at once
+is acting up all at once so it's really hard to address stalls
+so it's really hard to address stalls sometimes they're just there because
+sometimes they're just there because there's just too much work to do
+there's just too much work to do but there are some cases where you can
+but there are some cases where you can solve some of them
+solve some of them in order to do that we've used a tool
+in order to do that we've used a tool called
+called unreal insights that you may be familiar
+unreal insights that you may be familiar with
+with this tool is aiming to replace uh the
+this tool is aiming to replace uh the stats capture that we've been doing in
+stats capture that we've been doing in the past
+the past um i think it's great personally i think
+um i think it's great personally i think it there's a little bit of work to do on
+it there's a little bit of work to do on it but um we've been using it with great
+it but um we've been using it with great success it's great for people who are
+success it's great for people who are more visual in understanding things it
+more visual in understanding things it helps you see what things are happening
+helps you see what things are happening in which order
+in which order uh it also has a smaller impact on
+uh it also has a smaller impact on performance than the sas capture because
+performance than the sas capture because it doesn't have to save everything to a
+it doesn't have to save everything to a file it just sends it over the network
+file it just sends it over the network now it's a little bit hard to set up on
+now it's a little bit hard to set up on quest um there are some resources online
+quest um there are some resources online that are not too hard to find
+that are not too hard to find and as of our version of unreal we
+and as of our version of unreal we didn't have any of the object names that
+didn't have any of the object names that were causing the
+were causing the the stats so it was a little bit tricky
+the stats so it was a little bit tricky to interpret thankfully we're able to go
+to interpret thankfully we're able to go in the engine and add some of that back
+in the engine and add some of that back so hopefully we can see that in the
+so hopefully we can see that in the future version of the engine
+future version of the engine so with this tool we were able to to see
+so with this tool we were able to to see uh one thing in particular
+uh one thing in particular and if you can see on this image there
+and if you can see on this image there is a stall that i've circled and right
+is a stall that i've circled and right after you can see a parallel animation
+after you can see a parallel animation evaluation that's completing
+evaluation that's completing thanks to this graph we were able to
+thanks to this graph we were able to determine that
+determine that one of our skeletal meshes had a
+one of our skeletal meshes had a prerequisite on it that was forcing it
+prerequisite on it that was forcing it to complete in an earlier tick than what
+to complete in an earlier tick than what we were okay with
+we were okay with by by fixing this we were able to let
+by by fixing this we were able to let the animation uh complete in parallel
+the animation uh complete in parallel and finish way later in the frame which
+and finish way later in the frame which saves us some of the stall uh so to
+saves us some of the stall uh so to unuse unreal insights the most
+unuse unreal insights the most effectively the way we did it's uh
+effectively the way we did it's uh critical in my mind to understand the
+critical in my mind to understand the task graph system so dive a little bit
+task graph system so dive a little bit if you have to
+if you have to and uh definitely be careful of take
+and uh definitely be careful of take prerequisites because those get added
+prerequisites because those get added automatically when you parent components
+automatically when you parent components to each other
+to each other uh so keep an eye out for those things
+uh so keep an eye out for those things all right i'm gonna close the game
+all right i'm gonna close the game thread parts with some miscellaneous
+thread parts with some miscellaneous tips some of those are obvious but i
+tips some of those are obvious but i just thought i'd mention it no
+just thought i'd mention it no blueprintix please keep everything in
+blueprintix please keep everything in native because
+native because you will have to do it at some point i
+you will have to do it at some point i guarantee it uh you will have to move
+guarantee it uh you will have to move things to native
+things to native except of course in some very trivial
+except of course in some very trivial cases
+cases in the same
+in the same same vein no blueprint implementable or
+same vein no blueprint implementable or blueprint native events on ticks because
+blueprint native events on ticks because those incur the same kind of overhead as
+those incur the same kind of overhead as the regular blueprinting and even with
+the regular blueprinting and even with blueprint native events that are not
+blueprint native events that are not implemented in blueprints you will have
+implemented in blueprints you will have to
+to maybe remove that
+maybe remove that favorite non-dynamic delegates dynamic
+favorite non-dynamic delegates dynamic delegates actually use a similar tech
+delegates actually use a similar tech under the hood as blueprint does so you
+under the hood as blueprint does so you will also have
+will also have an overhead with that so try to keep
+an overhead with that so try to keep those to minimum finally beware of
+those to minimum finally beware of blueprint timers so
+blueprint timers so the blueprint timers actually show up in
+the blueprint timers actually show up in a different area of the stats capture
+a different area of the stats capture than the regular ticks
+than the regular ticks so in our case it took us almost until
+so in our case it took us almost until the end of development to realize that
+the end of development to realize that we had three millisecond hitches
+we had three millisecond hitches happening very frequently in the timer
+happening very frequently in the timer and that were causing some of our issues
+and that were causing some of our issues that we just couldn't see happening in
+that we just couldn't see happening in the regular tick section so definitely
+the regular tick section so definitely uh remember that and keep an eye out for
+uh remember that and keep an eye out for those
+those now game thread is not the only thing
+now game thread is not the only thing that we've had challenges with
+that we've had challenges with uh of course we've been trying to push
+uh of course we've been trying to push our rendering and i'm gonna hand it over
+our rendering and i'm gonna hand it over to jeff to talk about our rendering
+to jeff to talk about our rendering challenges on this project
+thanks roman hi i'm jeff gribby technical art director on tails from the
+technical art director on tails from the galaxy's edge as tad it was my
+galaxy's edge as tad it was my responsibility to oversee the
+responsibility to oversee the render side performance and optimization
+render side performance and optimization approach as well as investigate
+approach as well as investigate techniques for visual enhancements this
+techniques for visual enhancements this was an exciting opportunity for us to
+was an exciting opportunity for us to partner both with disney theme parks
+partner both with disney theme parks lucasfilm storytelling to give our fans
+lucasfilm storytelling to give our fans an opportunity to step well beyond
+an opportunity to step well beyond blackspire outbooks explore the lands of
+blackspire outbooks explore the lands of otto
+otto we knew early on from our experiences
+we knew early on from our experiences with vader immortal thorough
+with vader immortal thorough optimization was going to be essential
+optimization was going to be essential to bringing about our rich environments
+to bringing about our rich environments and interactive storytelling content to
+and interactive storytelling content to life
+life unreal engine has numerous built-in
+unreal engine has numerous built-in methods of optimization i'm going to
+methods of optimization i'm going to share with you some of the methods we
+share with you some of the methods we chose to use enhance as well as some of
+chose to use enhance as well as some of the features we implemented
+we want to achieve vast diverse regions for you to explore and to do so option
+for you to explore and to do so option conclusion was going to be vital to
+conclusion was going to be vital to keeping our performance metrics down
+keeping our performance metrics down this was by far our best means of
+this was by far our best means of performance gains we wanted systems that
+performance gains we wanted systems that were thorough
+were thorough automated and avoided human error
+automated and avoided human error and were also computationally efficient
+and were also computationally efficient above all we want our rs teams to spend
+above all we want our rs teams to spend more time building our worlds and less
+more time building our worlds and less time focused on optimizing them
+for mesh occlusion we opted to use unreal's pre-computed visibility system
+unreal's pre-computed visibility system it's a powerful tool in that it's uh
+it's a powerful tool in that it's uh it's simplicity is set up as well as its
+it's simplicity is set up as well as its automated automation tied with
+automated automation tied with lightweight generation
+lightweight generation it works by scattering cells over every
+it works by scattering cells over every single static mesh within a volume
+single static mesh within a volume emitting rays from those cells to detect
+emitting rays from those cells to detect mesh boundaries
+mesh boundaries unfortunately though most of the the
+unfortunately though most of the the default configurations lead to
+default configurations lead to noticeable bumps and inaccurate
+noticeable bumps and inaccurate occlusion queries
+occlusion queries to remedy this the sample settings need
+to remedy this the sample settings need to be set extremely high for accurate
+to be set extremely high for accurate results especially with long sight lines
+results especially with long sight lines filled with various obstacles
+filled with various obstacles we also needed many cells to increase
+we also needed many cells to increase the occlusion effectiveness too large of
+the occlusion effectiveness too large of a cell size and we ended up just drawing
+a cell size and we ended up just drawing too much
+too much that said higher sample settings can
+that said higher sample settings can lead to exponential computation times so
+lead to exponential computation times so it's critical for the effectiveness of
+it's critical for the effectiveness of this tool to limit the amount of cells
+this tool to limit the amount of cells and the only option to do that is to
+and the only option to do that is to hand place individual volumes over each
+hand place individual volumes over each location where you want these visibility
+location where you want these visibility cells placed in a large map this can be
+cells placed in a large map this can be extremely difficult to maintain
+so instead to reduce the computation time and retain accuracy we modified the
+time and retain accuracy we modified the system to only place cells on specified
+system to only place cells on specified meshes
+we also exposed a method to export the navigation measures geometry which we
+navigation measures geometry which we could then use for selective cell
+could then use for selective cell placement this approach dropped us from
+placement this approach dropped us from roughly forty thousand cells using
+roughly forty thousand cells using individually hand placed volumes to only
+individually hand placed volumes to only five thousand cells and another nice
+five thousand cells and another nice perk was that we only needed to place a
+perk was that we only needed to place a single volume to encompass the entire
+single volume to encompass the entire map which made maintenance a breeze
+we also had a player jetpack to account for which tripled the potential player
+for which tripled the potential player height but with our cell count nice and
+height but with our cell count nice and low we added some logic first to support
+low we added some logic first to support cell stacking here we were able to add
+cell stacking here we were able to add three layers of additional cells to
+three layers of additional cells to cover uh each potential player height
+cover uh each potential player height from the jetpack this way the cells
+from the jetpack this way the cells remain nice and small to maximize
+remain nice and small to maximize occlusion
+we also expose controls within the world settings to allow for performance
+settings to allow for performance configurations within each map as well
+configurations within each map as well as mesh quantity sampling thresholds to
+as mesh quantity sampling thresholds to circumvent fluctuations in the amount of
+circumvent fluctuations in the amount of meshes that we needed to process
+meshes that we needed to process early on our development those mesh
+early on our development those mesh quantities would shift drastically
+quantities would shift drastically this helped to provide us predictable
+this helped to provide us predictable computation times for computed
+computation times for computed visibility
+one last bit that was troublesome was how each run the pre-computed visibility
+how each run the pre-computed visibility system would generate fresh occlusion
+system would generate fresh occlusion ids with every static mesh and store
+ids with every static mesh and store those ids and then the levels containing
+those ids and then the levels containing those meshes that typically meant
+those meshes that typically meant dirtying every level within a map unless
+dirtying every level within a map unless those levels were available to be saved
+those levels were available to be saved he ran the risk of a potential update
+he ran the risk of a potential update and essentially an incorrect id
+and essentially an incorrect id even when all maps were saved the id
+even when all maps were saved the id structure deteriorates rapidly
+structure deteriorates rapidly with mesh additions and modifications
+with mesh additions and modifications and you're stuck with a flickering
+and you're stuck with a flickering incorrect uh occlusion queries
+incorrect uh occlusion queries uh with an up-to-date editor session
+uh with an up-to-date editor session though uh within with a not up-to-date
+though uh within with a not up-to-date editor session it can be very difficult
+editor session it can be very difficult to determine what to optimize
+so we modified the system to store the mapping ids in the persistent level
+mapping ids in the persistent level tying the static mesh ids to their
+tying the static mesh ids to their footpaths
+footpaths this provided us a system that would not
+this provided us a system that would not determine and uh remain uh valid
+determine and uh remain uh valid with our uh hybrid pre-computed
+with our uh hybrid pre-computed visibilities now in editor we set up syn
+visibilities now in editor we set up syn cameras to run through our maps not only
+cameras to run through our maps not only to optimize and
+to optimize and visualize our pre-computer visibility
+visualize our pre-computer visibility but also to detect other objects not
+but also to detect other objects not including
+even when uh optimized even with optimized pressure collision uh given
+optimized pressure collision uh given our sight line detail we still had
+our sight line detail we still had significant draw calls overdraw by
+significant draw calls overdraw by memory consumption we were averaging
+memory consumption we were averaging roughly 600 draw calls and gpu well
+roughly 600 draw calls and gpu well within the 20s and we knew we had to
+within the 20s and we knew we had to perform some form of texture at the
+perform some form of texture at the scene and mesh combining so once again
+scene and mesh combining so once again we looked into unreal's built-in
+we looked into unreal's built-in performance solutions for what
+performance solutions for what two solutions that stood out to us the
+two solutions that stood out to us the hierarchical lotting system which is a
+hierarchical lotting system which is a automated system of mesh combining and
+automated system of mesh combining and the merge actors texture atlas and
+the merge actors texture atlas and generation system
+generation system both uh provide automation of essential
+both uh provide automation of essential optimization tasks but we ran into some
+optimization tasks but we ran into some complications
+complications the systems degraded visual quality
+the systems degraded visual quality either by overriding some of the
+either by overriding some of the customizations we built into our source
+customizations we built into our source materials
+materials or by packing some of the tileable
+or by packing some of the tileable textures into too small of a unique
+textures into too small of a unique texture the systems were also kind of
+texture the systems were also kind of cumbersome to implement by our artist
+cumbersome to implement by our artist teams and in some ways were destructive
+teams and in some ways were destructive to their workflows
+to their workflows plus we experienced numerous lighting
+plus we experienced numerous lighting and geometry led transition box killing
+and geometry led transition box killing our immersion so we wanted to see if
+our immersion so we wanted to see if there was a way we could leverage some
+there was a way we could leverage some of these systems with some enhancements
+textures and audio usually accounted for the lion share of our memory allocation
+the lion share of our memory allocation we found that we achieved higher detail
+we found that we achieved higher detail with 4k towable textures as opposed to
+with 4k towable textures as opposed to numerous unique textures at lower res
+numerous unique textures at lower res to increase variation we blended
+to increase variation we blended multiple tiling textures through mass
+multiple tiling textures through mass regions and offset the tie line by
+regions and offset the tie line by object size this way we could kit bash
+object size this way we could kit bash our environments with very small uh base
+our environments with very small uh base set of meshes and still achieve a
+set of meshes and still achieve a diverse looking terrain
+diverse looking terrain through the use of uh custom parameters
+through the use of uh custom parameters we could we could drive unique mesh
+we could we could drive unique mesh overrides through a common master
+overrides through a common master material
+material but for this to be effective at reducing
+but for this to be effective at reducing draw calls we would need to utilize
+draw calls we would need to utilize hierarchical lighting technique that
+hierarchical lighting technique that would support our customizations
+unfortunately that's where we ran into some snacks with unreal's built-in
+some snacks with unreal's built-in h-slot system so we set about to see if
+h-slot system so we set about to see if we can make some modifications to
+we can make some modifications to simplify its implementation make it
+simplify its implementation make it non-destructive for irish workflows
+non-destructive for irish workflows support custom material systems and see
+support custom material systems and see if we could also utilize it to reduce
+if we could also utilize it to reduce overdraw
+overdraw first off we modified how each lies a
+first off we modified how each lies a cluster opting for a very simplistic
+cluster opting for a very simplistic approach parenting source meshes under
+approach parenting source meshes under an overridden exposed led actor lot
+an overridden exposed led actor lot actors are the invisible age slide
+actors are the invisible age slide actors in your level
+actors in your level this provider is not only a readable
+this provider is not only a readable deterministic system for our artist
+deterministic system for our artist teams to define how their h-lots are
+teams to define how their h-lots are clustered but it was also
+clustered but it was also non-destructive to their workflows and
+non-destructive to their workflows and by exposing the lot actor we could
+by exposing the lot actor we could control key specifics including the
+control key specifics including the ability to create our own customized
+ability to create our own customized each line meshes
+each line meshes [Music]
+utilizing houdini we built a tool that could ingest and export a set of h-line
+could ingest and export a set of h-line clusters not only combining those meshes
+clusters not only combining those meshes preserving materials preserving our
+preserving materials preserving our material systems but also utilizing the
+material systems but also utilizing the exported navigation mesh to scatter
+exported navigation mesh to scatter visibility rays to remove triangles not
+visibility rays to remove triangles not visible to the player region
+visible to the player region taking that a step further each a slot
+taking that a step further each a slot would be resampled and lot at varying
+would be resampled and lot at varying view distances to further decimate
+view distances to further decimate non-visible triangles as well as to
+non-visible triangles as well as to incorporate the correct set of source
+incorporate the correct set of source mass lods from that distance
+and the whole process was automated and batched over our server farm that meant
+batched over our server farm that meant we could run the entire process in
+we could run the entire process in roughly 15 minutes for a full map which
+roughly 15 minutes for a full map which typically uh contains somewhere around
+typically uh contains somewhere around seven sub levels and 50 to 100 each
+seven sub levels and 50 to 100 each slots each automation meant we were
+slots each automation meant we were achieving far better results than what
+achieving far better results than what we could manually achieve and this
+we could manually achieve and this drastically reduced overdropped
+drastically reduced overdropped and because the system was now exposed
+and because the system was now exposed within houdini we could further continue
+within houdini we could further continue to modify its performance functionality
+in situations where the sight line was still too expensive we leveraged tiered
+still too expensive we leveraged tiered eight slots to call additional triangles
+eight slots to call additional triangles visible from specific vantages
+here in the mouth of the cavern player could see the entire region below which
+could see the entire region below which is far too expensive to draw
+is far too expensive to draw using a tier 2h slot we trim the
+using a tier 2h slot we trim the triangles from that particular vantage
+triangles from that particular vantage reducing the gpu once the player drops
+reducing the gpu once the player drops down the sideline is contained and we
+down the sideline is contained and we restore ourselves back to our tier one
+restore ourselves back to our tier one set of h lines the transition is not
+set of h lines the transition is not perceivable
+given the uh h law's effectiveness of reducing overdraw we opted to set our
+reducing overdraw we opted to set our age slots to always uh be visible and
+age slots to always uh be visible and replace the source meshes entirely this
+replace the source meshes entirely this had numerous benefits from removing
+had numerous benefits from removing e-slide transition pumps lighting
+e-slide transition pumps lighting lod-pops saving memory by eliminating
+lod-pops saving memory by eliminating source mesh light maps and it
+source mesh light maps and it improved the
+improved the pcv computation time
+pcv computation time because we had far less static meshes to
+because we had far less static meshes to compute for pre-computed visibility
+compute for pre-computed visibility and unreal's internal h-log mechanics
+and unreal's internal h-log mechanics allow for us to leverage the source mesh
+allow for us to leverage the source mesh collisions which were instanced keeping
+collisions which were instanced keeping our memory footprint nice and low for
+our memory footprint nice and low for our collisions with our memory gains we
+our collisions with our memory gains we could actually go back through and
+could actually go back through and increase the light map resolution of all
+increase the light map resolution of all of our h-lots
+despite the effectiveness of our egg slots we still encountered occasions of
+slots we still encountered occasions of gpu performance drops notably during
+gpu performance drops notably during intense combat nothing breaks immersion
+intense combat nothing breaks immersion like a game stall uh one thing that we
+like a game stall uh one thing that we pursued early on was uh to implement
+pursued early on was uh to implement dynamic resolution on the oculus plus
+dynamic resolution on the oculus plus which currently functions on oculus rift
+which currently functions on oculus rift by dynamically modifying the the render
+by dynamically modifying the the render target size
+target size modifying the render target size though
+modifying the render target size though on quest was out of the question as it
+on quest was out of the question as it requires a reallocation of memory that
+requires a reallocation of memory that is far too expensive
+is far too expensive instead
+instead one of our rendered engineers looked
+one of our rendered engineers looked into mimicking this behavior by simply
+into mimicking this behavior by simply adjusting the viewport size and this had
+adjusting the viewport size and this had no incurred expenses once functioning we
+no incurred expenses once functioning we were able to gradually apply and remove
+were able to gradually apply and remove this offset during moments of gpu
+this offset during moments of gpu overage which was really helpful in just
+overage which was really helpful in just a pinch
+those render side optimizations open the door to applying a few render size
+door to applying a few render size enhancements
+enhancements we integrated the use of stereo layers
+we integrated the use of stereo layers in our game
+in our game game menus and subtitles since stereo
+game menus and subtitles since stereo layers have drawn independent uh to an
+layers have drawn independent uh to an independent render target they benefit
+independent render target they benefit from crystalx and and displays with
+from crystalx and and displays with aliasing disabled one of our challenges
+aliasing disabled one of our challenges though by our engineers to overcome
+though by our engineers to overcome though was to bring the hands over the
+though was to bring the hands over the menu we couldn't use a depth test on the
+menu we couldn't use a depth test on the menu as the menu would then draw behind
+menu as the menu would then draw behind other objects within the scene
+other objects within the scene but instead we found a solution
+but instead we found a solution contained within the oculus sdk for
+contained within the oculus sdk for android that allows for the creation of
+android that allows for the creation of a poke-hole material which essentially
+a poke-hole material which essentially acts as a depth layer to composite
+acts as a depth layer to composite against the stereo layer
+against the stereo layer another feature we added for increased
+another feature we added for increased reflection detail and surfaces was uh
+reflection detail and surfaces was uh mobile parallax reflections this allowed
+mobile parallax reflections this allowed for a lighting team to place specific
+for a lighting team to place specific lighting objects and sources to capture
+lighting objects and sources to capture accurately reflected
+accurately reflected uh reflections within our surfaces
+uh reflections within our surfaces another solution our radar
+another solution our radar engineering team provided us with was
+engineering team provided us with was the inclusion of decals and forward
+the inclusion of decals and forward rendering unreal only supports decals in
+rendering unreal only supports decals in deferred but we were able to mirror a
+deferred but we were able to mirror a technique from a previous gdc talk that
+technique from a previous gdc talk that allowed for up to two decals per
+allowed for up to two decals per primitive
+vertex animation proved to be an efficient means for storing and
+efficient means for storing and delivering large amounts of animation
+delivering large amounts of animation data
+data whereas a joint driven animation roughly
+whereas a joint driven animation roughly kept out at about 200 to 250 joints per
+kept out at about 200 to 250 joints per animatable object we found with a mobile
+animatable object we found with a mobile gpu we could handily support upwards of
+gpu we could handily support upwards of 4 000 objects utilizing vertex animation
+4 000 objects utilizing vertex animation this allowed for us to use traditional
+this allowed for us to use traditional film tools for destruction elements as
+film tools for destruction elements as opposed to storing animation data within
+opposed to storing animation data within individual vertices vertex animation
+individual vertices vertex animation rigid bodies can store their animation
+rigid bodies can store their animation per component allow for greater
+per component allow for greater quantities we cover this with
+quantities we cover this with positioning but turning and
+positioning but turning and interpolation to reduce the data to
+interpolation to reduce the data to exercises as well as procedural
+exercises as well as procedural overrides to further maximize game
+overrides to further maximize game performance
+the real's hierarchical uh instancing system provides an efficient means that
+system provides an efficient means that uh clustered uh uh draw call reduction
+uh clustered uh uh draw call reduction led support and viewport frustum calling
+led support and viewport frustum calling for instances
+for instances we tapped into overriding a uh per
+we tapped into overriding a uh per instance random float to pass in
+instance random float to pass in individual instance arguments to drive
+individual instance arguments to drive unique characteristics and control our
+unique characteristics and control our instances
+instances one example of this was our customized
+one example of this was our customized foliage system
+foliage system we combined several offset variations of
+we combined several offset variations of each foliage type into a single mesh and
+each foliage type into a single mesh and then use a texture driven vertex
+then use a texture driven vertex deformation along with unique baked
+deformation along with unique baked texture analysis to create variation
+texture analysis to create variation with minimal draw and gpu impact
+with minimal draw and gpu impact scene lighting was then passed into the
+scene lighting was then passed into the emissive materials by pre-sampling the
+emissive materials by pre-sampling the nearest light probes to each instance
+nearest light probes to each instance and baking those values into a column
+and baking those values into a column lookup table which we could then
+lookup table which we could then reference in the uh in the material
+reference in the uh in the material using uh baked ids that were sent
+using uh baked ids that were sent through the for instance parameter this
+through the for instance parameter this approach scaled our viewable foliage
+approach scaled our viewable foliage from the 20s up to the 200s
+another use case for instance a couple with vertex animation were crowds here
+with vertex animation were crowds here we would take our
+we would take our traditional film crowd simulations
+traditional film crowd simulations extract
+extract extract per component animations and
+extract per component animations and store that within the uh data texture
+store that within the uh data texture mapping ids to the source of suvs
+mapping ids to the source of suvs for unreal uh on the unreal side we set
+for unreal uh on the unreal side we set up a blueprint system to assign and
+up a blueprint system to assign and those individual instance ids from data
+those individual instance ids from data files right now from houdini
+files right now from houdini further variation can be achieved
+further variation can be achieved through packing multiple
+through packing multiple assets together as well as texture
+assets together as well as texture at the same
+variants and here's a wonderful example of that process delivered by one of our
+of that process delivered by one of our effects team members that really helped
+effects team members that really helped to bring life to black spire outposts
+combining these processes together was how we're able to achieve the final
+how we're able to achieve the final growth system in the jedi legend for the
+growth system in the jedi legend for the engaging conclusion of part one of our
+engaging conclusion of part one of our experience here we needed a system that
+experience here we needed a system that would spawn and generate corruption
+would spawn and generate corruption growth over various surfaces within our
+growth over various surfaces within our final map supporting hundreds of growing
+final map supporting hundreds of growing instance vines we really wanted to
+instance vines we really wanted to engage all the senses and provide you a
+engage all the senses and provide you a means to interact with the environment
+means to interact with the environment with a lightsaber this would not have
+with a lightsaber this would not have been possible without utilizing some of
+been possible without utilizing some of the techniques we presented here today
+in summary we learned a great deal about core performance optimization methods
+core performance optimization methods in designing a vr project on
+in designing a vr project on using those practices is a core
+using those practices is a core foundation will only further increase
+foundation will only further increase the quality and breadth of our work on
+the quality and breadth of our work on higher-end processors
+higher-end processors [Music]
+we'd like to give special thanks today for the support teams at oculus unreal
+for the support teams at oculus unreal engine gdc for hosting this talk and the
+engine gdc for hosting this talk and the entire xlab team from production
+entire xlab team from production engineering qa and the artist teams
+engineering qa and the artist teams we're really privileged to be here to
+we're really privileged to be here to represent them today
+and thank you for joining in our talk today star wars tales from the galaxy's
+today star wars tales from the galaxy's edge part two is launching later this
+edge part two is launching later this year if you're interested in hearing
+year if you're interested in hearing more about that please follow us on
+more about that please follow us on social media at ilmexler
+social media at ilmexler thank you

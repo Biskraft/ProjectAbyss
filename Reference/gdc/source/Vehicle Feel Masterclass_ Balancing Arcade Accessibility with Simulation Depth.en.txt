@@ -1,0 +1,1645 @@
+[Music] so hello everyone my name is Matthew
+so hello everyone my name is Matthew Harris from criterion games and welcome
+Harris from criterion games and welcome to vehicle film master class balancing
+to vehicle film master class balancing arcade accessibility with simulation
+arcade accessibility with simulation depth and if you think that's a lot of
+depth and if you think that's a lot of words to felt on one slide then you're
+words to felt on one slide then you're gonna love the rest of this presentation
+gonna love the rest of this presentation during this talk I'm going to discuss
+during this talk I'm going to discuss proteins vehicle design philosophy and
+proteins vehicle design philosophy and how we build vehicle handling that is
+how we build vehicle handling that is both intuitive but deep and master ball
+both intuitive but deep and master ball this talk isn't a set of hard and fast
+this talk isn't a set of hard and fast rules to follow to me the perfect
+rules to follow to me the perfect vehicle game as all games are different
+vehicle game as all games are different but it's more sharing about processes
+but it's more sharing about processes and guidelines that we follow throughout
+and guidelines that we follow throughout development with a view to both inform
+development with a view to both inform and inspire hopefully you'll find some
+and inspire hopefully you'll find some useful learnings whether you're new to
+useful learnings whether you're new to vehicle design or who just shipped your
+vehicle design or who just shipped your seventh Forza title so before I get
+seventh Forza title so before I get stuck into the presentation I want to
+stuck into the presentation I want to briefly talk about criterion games as
+briefly talk about criterion games as history originally set up in 1993 as
+history originally set up in 1993 as criterion software by turn developed the
+criterion software by turn developed the render wear engine and started making
+render wear engine and started making games in order to show it off early
+games in order to show it off early games such as trick style that aren't
+games such as trick style that aren't incredibly popular burnout franchise and
+incredibly popular burnout franchise and then on to Need for Speed hot pursuit
+then on to Need for Speed hot pursuit and Most Wanted over a decade of working
+and Most Wanted over a decade of working after over a decade of working on racing
+after over a decade of working on racing games we started to lend our vehicle
+games we started to lend our vehicle expertise to dice where we worked on
+expertise to dice where we worked on vehicles in battlefield 1 x-wing VR
+vehicles in battlefield 1 x-wing VR mission and most recently stars
+mission and most recently stars battlefront 2 as for myself I joined
+battlefront 2 as for myself I joined criterion 5 years ago I need 50 verse
+criterion 5 years ago I need 50 verse Need for Speed Most Wanted and went on
+Need for Speed Most Wanted and went on this selection of titles a criterion we
+this selection of titles a criterion we encourage cross discipline skills as
+encourage cross discipline skills as much as possible and so of my career
+much as possible and so of my career accrue over my career criterion as a
+accrue over my career criterion as a programmer I took special interest in
+programmer I took special interest in game feel particularly in the design of
+game feel particularly in the design of vehicle handling this proved incredibly
+vehicle handling this proved incredibly useful as understanding how to tune in
+useful as understanding how to tune in design great vehicle handling as a
+design great vehicle handling as a programmer meant that I could work
+programmer meant that I could work closely with our designers to deliver
+closely with our designers to deliver great game feel and that's why I'm a
+great game feel and that's why I'm a programmer standing here giving a design
+programmer standing here giving a design talk ok so what I'm actually going to
+talk ok so what I'm actually going to talk about today as you might guess from
+talk about today as you might guess from my background this is give me a
+my background this is give me a technical design talk and it's aimed at
+technical design talk and it's aimed at taking you through the key parts of
+taking you through the key parts of criterions vehicle design philosophy
+criterions vehicle design philosophy along the way I'm going to talk about
+along the way I'm going to talk about the key differences between arcade and
+the key differences between arcade and simulation games and how each type
+simulation games and how each type bounces accessibility with mastery and
+bounces accessibility with mastery and depth then I'll move on to the
+depth then I'll move on to the simulation itself and discuss our
+simulation itself and discuss our physicality first approach to designing
+physicality first approach to designing vehicles and how to identify where the
+vehicles and how to identify where the play in our vehicles comes from after
+play in our vehicles comes from after setting up a physical simulation we had
+setting up a physical simulation we had accessibility
+accessibility to the input layer on our cysts which
+to the input layer on our cysts which are critical to providing accessibility
+are critical to providing accessibility without reducing depth once the vehicle
+without reducing depth once the vehicle is controllable and satisfying
+is controllable and satisfying we need to feedback the vehicles
+we need to feedback the vehicles handling by the camera I'll talk through
+handling by the camera I'll talk through some key concepts we use here throughout
+some key concepts we use here throughout the majority of the talk I'll be using
+the majority of the talk I'll be using motorsport racing as the context as it
+motorsport racing as the context as it provides a great variety of examples
+provides a great variety of examples however in the final section I'm going
+however in the final section I'm going to show how a design philosophy can
+to show how a design philosophy can apply to a very different type of
+apply to a very different type of vehicle the starfighters in styles about
+vehicle the starfighters in styles about a front to one important thing to know
+a front to one important thing to know here is that the whole talk is focused
+here is that the whole talk is focused around the handling side of game field
+around the handling side of game field things like audio VFX sensor speed and
+things like audio VFX sensor speed and force feedback are very important to
+force feedback are very important to game feel but you could produce higher
+game feel but you could produce higher presentations on those so I won't be
+presentations on those so I won't be talking about those today let's start
+talking about those today let's start with a discussion on arcade versus
+with a discussion on arcade versus simulation when thinking about the term
+simulation when thinking about the term arcade I don't mean a game genre like
+arcade I don't mean a game genre like top-down shooters such a geometry Wars
+top-down shooters such a geometry Wars I'm talking about a particular set of
+I'm talking about a particular set of game design decisions that lead to a
+game design decisions that lead to a particular arcade feel games that have
+particular arcade feel games that have an arcade e-field
+an arcade e-field tend to focus on intuitive controls that
+tend to focus on intuitive controls that are readily apparent to the player make
+are readily apparent to the player make compromises on realism for the sake of
+compromises on realism for the sake of fun and haven't often have a multitude
+fun and haven't often have a multitude of game mechanics that the players
+of game mechanics that the players trying to balance against each other
+trying to balance against each other simulation games on the other hand I
+simulation games on the other hand I trying to replicate a real-world
+trying to replicate a real-world experience and so tend to have a control
+experience and so tend to have a control system that's about immersiveness first
+system that's about immersiveness first and aims for a high degree of realism
+and aims for a high degree of realism and believability from his gameplay and
+and believability from his gameplay and handling simulation games tend to have
+handling simulation games tend to have fewer game mechanics than arcade games
+fewer game mechanics than arcade games as they tend to focus their gameplay
+as they tend to focus their gameplay around controlling a realistic vehicle
+around controlling a realistic vehicle rather than one with weapons and boost
+rather than one with weapons and boost different design decisions can lead to a
+different design decisions can lead to a more arcade or simulation feel for your
+more arcade or simulation feel for your game so in the next slide I'm going to
+game so in the next slide I'm going to try putting a selection of multiple
+try putting a selection of multiple games on a sliding scale between Arcana
+games on a sliding scale between Arcana simulation let's start the simulation
+simulation let's start the simulation end of the spectrum with games such as
+end of the spectrum with games such as for the horizon for regular Forza and
+for the horizon for regular Forza and iRacing these games are focused towards
+iRacing these games are focused towards delivering a realistic simulation of
+delivering a realistic simulation of motorsport
+motorsport with a gameplay entirely around racing
+with a gameplay entirely around racing lines cornering and drafting they tend
+lines cornering and drafting they tend to have most of their assists off by
+to have most of their assists off by default but will often give the user the
+default but will often give the user the option to turn on accessibility options
+option to turn on accessibility options such as help with braking or steering
+such as help with braking or steering simulation games tend to end up with
+simulation games tend to end up with quite high learning curve but a very
+quite high learning curve but a very rewarding for players who put in the
+rewarding for players who put in the time to master them as we move towards
+time to master them as we move towards arcade-style games we have a subcategory
+arcade-style games we have a subcategory in the middle of sim cade which aware
+in the middle of sim cade which aware hybrid games such as Forza horizon and
+hybrid games such as Forza horizon and Need for Speed they've
+Need for Speed they've these examples aim for a Hollywood
+these examples aim for a Hollywood realism tone where things are a bit more
+realism tone where things are a bit more over the top but still within the realms
+over the top but still within the realms of real-life pleasure doing exaggerated
+of real-life pleasure doing exaggerated drifts and massive jumps putting cars
+drifts and massive jumps putting cars from real manufacturers they're often
+from real manufacturers they're often additional challenges added on top of
+additional challenges added on top of racing in Simchat games such as extreme
+racing in Simchat games such as extreme horror extreme weather in Forza horizon
+horror extreme weather in Forza horizon or weapons and cop chases in Need for
+or weapons and cop chases in Need for Speed finally we get to the arcade star
+Speed finally we get to the arcade star racers which tend to go for a heavily
+racers which tend to go for a heavily stylized or even a cartoonish tone our
+stylized or even a cartoonish tone our case star races tend to have a large
+case star races tend to have a large variety of game mechanics such as
+variety of game mechanics such as drifting boosting stunts and weapons in
+drifting boosting stunts and weapons in which the players have to learn in
+which the players have to learn in addition to racing for this reason the
+addition to racing for this reason the racing gameplay tends to be quite
+racing gameplay tends to be quite accessible for new players but still
+accessible for new players but still provides plenty of depth for players who
+provides plenty of depth for players who really want to get the most out of the
+really want to get the most out of the game so in comparing Arkady's simulation
+game so in comparing Arkady's simulation the arcade style races have a variety of
+the arcade style races have a variety of game for mechanics on top of cornering
+game for mechanics on top of cornering and speed management such as weapons
+and speed management such as weapons stunts and boosting simulation races
+stunts and boosting simulation races have fewer mechanics for the player to
+have fewer mechanics for the player to focus on but have a simulation focused
+focus on but have a simulation focused towards realism and their aim is to make
+towards realism and their aim is to make cornering and racing as satisfying as
+cornering and racing as satisfying as possible arcade is generally more
+possible arcade is generally more accessible and fun whereas simulation is
+accessible and fun whereas simulation is hard to get into but offers a more
+hard to get into but offers a more serious rate and more serious take on
+serious rate and more serious take on racing competition one key thing that is
+racing competition one key thing that is consistent across all these games is
+consistent across all these games is that the player has two input controls
+that the player has two input controls that are satisfying cadence the actions
+that are satisfying cadence the actions per minute for simulation games and
+per minute for simulation games and arcade games are actually pretty
+arcade games are actually pretty comparable for a simulation game the
+comparable for a simulation game the player focuses all their attention on
+player focuses all their attention on their racing line trying to tap break
+their racing line trying to tap break and turn at just the right intervals to
+and turn at just the right intervals to nail that corner
+nail that corner whereas in arcade game player that the
+whereas in arcade game player that the player divides their attention between
+player divides their attention between drifting around corners but also
+drifting around corners but also boosting and firing weapons although
+boosting and firing weapons although some people might see arcade style races
+some people might see arcade style races as casual and simple in fact they have a
+as casual and simple in fact they have a wider variety of game challenges for the
+wider variety of game challenges for the player to focus on than in simulation
+player to focus on than in simulation games
+so when deciding where on this scale you're aiming for game to be you should
+you're aiming for game to be you should consider a number of factors
+consider a number of factors what sort of players are you targeting
+what sort of players are you targeting your game at are they serious sports
+your game at are they serious sports fans the demand realism or your players
+fans the demand realism or your players more interested in fantasy fulfillment
+more interested in fantasy fulfillment how serious and realistic is your game
+how serious and realistic is your game tone if you're planning on having lots
+tone if you're planning on having lots of mechanics such as boost in weapons
+of mechanics such as boost in weapons then you're likely for more on the
+then you're likely for more on the arcade side of the spectrum balance the
+arcade side of the spectrum balance the number of mechanics and complexity of
+number of mechanics and complexity of the simulation against your assists in
+the simulation against your assists in order to achieve a sensible rate of
+order to achieve a sensible rate of actions per minute how much effort do
+actions per minute how much effort do you understand your physical simulation
+you understand your physical simulation if you can't put much time into physical
+if you can't put much time into physical simulation but you're trying to build a
+simulation but you're trying to build a realistic motorsport simulator then you
+realistic motorsport simulator then you might end up with boring and shallow
+might end up with boring and shallow gameplay do you want your game to be
+gameplay do you want your game to be accessible by lots of players or you
+accessible by lots of players or you focused on an experienced target market
+focused on an experienced target market if you're building an arcade or simce
+if you're building an arcade or simce Dreiser you'll likely need some assists
+Dreiser you'll likely need some assists to help keep the input frequency at
+to help keep the input frequency at satisfying levels once again these
+satisfying levels once again these aren't hard and fast rules but you
+aren't hard and fast rules but you should have a strong idea of what you
+should have a strong idea of what you want to see on the spectrum
+want to see on the spectrum don't try and have it all otherwise you
+don't try and have it all otherwise you risk building an overly demanding and
+risk building an overly demanding and complex game a criterion our approach
+complex game a criterion our approach has been to combine what we see is the
+has been to combine what we see is the best of both worlds between our caving
+best of both worlds between our caving simulation we start with physicality and
+simulation we start with physicality and build a realistic physically based
+build a realistic physically based simulation then we build assists on top
+simulation then we build assists on top of that which makes the simulation more
+of that which makes the simulation more accessible and allows the player to
+accessible and allows the player to focus on more things at once our
+focus on more things at once our designers them very carefully balanced
+designers them very carefully balanced physicality accessibility in order to
+physicality accessibility in order to get a balanced experience that hits our
+get a balanced experience that hits our aim of easy to learn but hard to master
+aim of easy to learn but hard to master criterions use this type of approach
+criterions use this type of approach since never speed hot pursuit and that's
+since never speed hot pursuit and that's worked well for us ever since ok so the
+worked well for us ever since ok so the next part of the vehicle design
+next part of the vehicle design philosophy that I'm going to talk about
+philosophy that I'm going to talk about is the physical simulation of the
+is the physical simulation of the vehicle
+so we see the physical simulation as a foundation allows us to build a game
+foundation allows us to build a game with deep mastery and rewarding
+with deep mastery and rewarding challenge in this section I'm going to
+challenge in this section I'm going to start by talking about how the context
+start by talking about how the context of our game affects the elements we
+of our game affects the elements we might want to simulate and then go on to
+might want to simulate and then go on to compare different physical simulations
+compare different physical simulations of car dynamics but using approaches
+of car dynamics but using approaches that mimic real-world physical effects
+that mimic real-world physical effects we ideally want to pick parts of the
+we ideally want to pick parts of the simulation that will have played to the
+simulation that will have played to the handling giving the player multiple
+handling giving the player multiple things to balance and learn in order to
+things to balance and learn in order to achieve their goal before starting work
+achieve their goal before starting work on your physical simulation it's
+on your physical simulation it's important to consider your game context
+important to consider your game context this is because we see the context as a
+this is because we see the context as a serve requirements on your physical
+serve requirements on your physical simulation think about if your
+simulation think about if your environment is wide open or enclosed how
+environment is wide open or enclosed how might this affect that the desired
+might this affect that the desired behavior of a vehicle also consider what
+behavior of a vehicle also consider what the players goal is when driving the
+the players goal is when driving the vehicle are they racing performing
+vehicle are they racing performing stunts or they just trying to get from A
+stunts or they just trying to get from A to B if getting from A to B needs to be
+to B if getting from A to B needs to be a challenge then maybe your game is
+a challenge then maybe your game is about complex traversal here's an
+about complex traversal here's an example of a racing sim Forza Motorsport
+example of a racing sim Forza Motorsport the vehicle is on a wide road and will
+the vehicle is on a wide road and will encounter long curved turns and the
+encounter long curved turns and the player wants to win the race through
+player wants to win the race through precision driving through corners and
+precision driving through corners and drafting behind other races on the other
+drafting behind other races on the other side of the racing spectrum we've got
+side of the racing spectrum we've got something like burnout which is sent
+something like burnout which is sent mainly on urban roads with some tight
+mainly on urban roads with some tight turns and some jumps navigate the player
+turns and some jumps navigate the player could be racing against other vehicles
+could be racing against other vehicles or could be doing stunts to win a score
+or could be doing stunts to win a score attack mode there still have focused on
+attack mode there still have focused on cornering here but also on boosting and
+cornering here but also on boosting and stunts destinies Sparrow is a great
+stunts destinies Sparrow is a great example of a transport vehicle it's
+example of a transport vehicle it's primarily designed to go across open
+primarily designed to go across open terrain but the player will often pilot
+terrain but the player will often pilot it down narrow corridors so it needs to
+it down narrow corridors so it needs to deal with both the main player intention
+deal with both the main player intention here is to get to their target without
+here is to get to their target without colliding and slowing down too much but
+colliding and slowing down too much but it's lower pressure than the previous
+it's lower pressure than the previous examples in uncharted the Jeep provides
+examples in uncharted the Jeep provides some light puzzle mechanics when trying
+some light puzzle mechanics when trying to navigate our rookie mud slides and
+to navigate our rookie mud slides and the challenge to the players in picking
+the challenge to the players in picking an effective route of the mudslide while
+an effective route of the mudslide while trying to keep the tires in a state of
+trying to keep the tires in a state of grip each context has its own
+grip each context has its own requirements from the vehicle if we
+requirements from the vehicle if we change the context we should re-evaluate
+change the context we should re-evaluate the vehicle and see if it's still suits
+the vehicle and see if it's still suits it one example of this would be the
+it one example of this would be the sparrow in destiny which I really
+sparrow in destiny which I really enjoyed driving as a transport vehicle
+enjoyed driving as a transport vehicle but when they introduced Sparrow racing
+but when they introduced Sparrow racing I didn't feel like the
+I didn't feel like the lent itself to racing very well as a
+lent itself to racing very well as a time special event this was fine if they
+time special event this was fine if they wanted to build more of the game around
+wanted to build more of the game around racing I'd hope that they would retune
+racing I'd hope that they would retune the vehicle to fit that context during
+the vehicle to fit that context during production it's also easy to forget
+production it's also easy to forget about updating a vehicle if the context
+about updating a vehicle if the context shifts during development particularly
+shifts during development particularly if that vehicle is shipped before we
+if that vehicle is shipped before we build the speeder bike for Star Wars
+build the speeder bike for Star Wars Battlefront 1 and because it shipped in
+Battlefront 1 and because it shipped in that game we made the assumption that it
+that game we made the assumption that it wouldn't take too much more work for
+wouldn't take too much more work for styles Battlefront 2 however the new
+styles Battlefront 2 however the new games map topography coupled with some
+games map topography coupled with some tech debt ended up meaning we had to
+tech debt ended up meaning we had to rework it entirely for the sequel
+rework it entirely for the sequel vehicle and environment are
+vehicle and environment are complementary to each other and changing
+complementary to each other and changing one may require changing the other so
+one may require changing the other so for this next part of the talk I'm gonna
+for this next part of the talk I'm gonna use motorsport racing as a context
+use motorsport racing as a context although my examples could apply to all
+although my examples could apply to all racing games let's think of this is
+racing games let's think of this is somewhere on the simce deepest part of
+somewhere on the simce deepest part of the spectrum such as Forza horizon or
+the spectrum such as Forza horizon or Need for Speed there's an expectation
+Need for Speed there's an expectation from this context for realism so we need
+from this context for realism so we need a simulation view based off of real
+a simulation view based off of real physical effects and allow the player to
+physical effects and allow the player to play with grip and acceleration there
+play with grip and acceleration there needs to be enough depth to the
+needs to be enough depth to the simulation for each vehicle to
+simulation for each vehicle to accelerate and turn differently so our
+accelerate and turn differently so our simulation needs to be detailed enough
+simulation needs to be detailed enough to support this accurately there's an
+to support this accurately there's an added benefit that if we use a realistic
+added benefit that if we use a realistic physical simulation we should be able to
+physical simulation we should be able to use real-world tuning data such as
+use real-world tuning data such as engine or tyre metrics as a starting
+engine or tyre metrics as a starting point for tuning our vehicles let's
+point for tuning our vehicles let's start with a trivially simple model in
+start with a trivially simple model in order to illustrate why detailed physics
+order to illustrate why detailed physics models are needed this is so basic the
+models are needed this is so basic the very few games would be served well by
+very few games would be served well by this physical model uses a simple
+this physical model uses a simple frictionless rigidbody with a single
+frictionless rigidbody with a single force and torque apply to the center of
+force and torque apply to the center of mass to move it
+mass to move it the result is vehicle motion that is
+the result is vehicle motion that is flat unrealistic and not enjoyable or
+flat unrealistic and not enjoyable or interesting to drive it's very abstract
+interesting to drive it's very abstract in the way the forces are simulated so
+in the way the forces are simulated so we should take some inspiration from
+we should take some inspiration from real-world vehicles in order to improve
+real-world vehicles in order to improve it in the following slides I'm going to
+it in the following slides I'm going to go through how a more complex physical
+go through how a more complex physical simulation could improve the physicality
+simulation could improve the physicality of our vehicle
+of our vehicle I'll start by looking at a list of
+I'll start by looking at a list of real-world systems for motorsport
+real-world systems for motorsport vehicles and then I'll pick a couple of
+vehicles and then I'll pick a couple of those to go into in more depth we'll
+those to go into in more depth we'll look at the powertrain and also tire
+look at the powertrain and also tire friction finally I'll conclude this
+friction finally I'll conclude this section with some footage from the
+section with some footage from the Student Need for Speed Most Wanted in
+Student Need for Speed Most Wanted in order to show off physicality in a shift
+order to show off physicality in a shift game
+so here a handful of real-world systems that you might want to simulate to add
+that you might want to simulate to add more physicality and play to our vehicle
+more physicality and play to our vehicle this is an exhaustive list but it should
+this is an exhaustive list but it should give you an idea the sort of physical
+give you an idea the sort of physical effects you might want to consider in
+effects you might want to consider in the following slides I'm going to go
+the following slides I'm going to go through engine transmission and tire
+through engine transmission and tire friction the engine and transmission are
+friction the engine and transmission are key parts of the powertrain some when I
+key parts of the powertrain some when I refer to them collectively as a
+refer to them collectively as a powertrain system let's look at an
+powertrain system let's look at an element that we would like for our
+element that we would like for our complex physical model the powertrain
+complex physical model the powertrain the purpose of the powertrain is to
+the purpose of the powertrain is to transmit energy from the engine into the
+transmit energy from the engine into the wheels in this case the engine provides
+wheels in this case the engine provides energy to the clutch which passes it
+energy to the clutch which passes it through to the transmission and then to
+through to the transmission and then to the differential and wheels our first
+the differential and wheels our first glance you might think that we could
+glance you might think that we could just tell the wheels to start tearing at
+just tell the wheels to start tearing at a set speed and we get the same result
+a set speed and we get the same result however the powertrain has an important
+however the powertrain has an important quality it is a feedback loop the engine
+quality it is a feedback loop the engine provides talk to the wheels
+provides talk to the wheels however the wheels will resist movement
+however the wheels will resist movement not just because the wheel itself has
+not just because the wheel itself has inertia but because the wheel is in
+inertia but because the wheel is in contact with the ground and needs to
+contact with the ground and needs to overcome the inertia of the whole
+overcome the inertia of the whole vehicle before it starts to rotate an
+vehicle before it starts to rotate an optimal speed so we get resistance
+optimal speed so we get resistance feedback through the whole powertrain
+feedback through the whole powertrain this means that some of the energy is
+this means that some of the energy is used to overcome its inertia affecting
+used to overcome its inertia affecting the amount of energy to use there's
+the amount of energy to use there's actually used to drive the vehicle
+actually used to drive the vehicle forward so if we decide to model these
+forward so if we decide to model these parts of a car we should look into each
+parts of a car we should look into each piece and see what we might want to put
+piece and see what we might want to put into our simulation for example your
+into our simulation for example your engine simulation could need author will
+engine simulation could need author will talk at different operating rpm as well
+talk at different operating rpm as well as the inertia of the engine itself and
+as the inertia of the engine itself and supporting that feedback mechanism that
+supporting that feedback mechanism that we just talked about your clutch might
+we just talked about your clutch might want differ at different operating
+want differ at different operating efficiencies at different rpm your
+efficiencies at different rpm your transmission could simulate different
+transmission could simulate different numerous different gear setups and how
+numerous different gear setups and how long it takes to change between them
+long it takes to change between them finally your tires should apply force in
+finally your tires should apply force in a realistic manner via tire friction
+a realistic manner via tire friction which I'll go into later so we've gone
+which I'll go into later so we've gone away and implemented an improved
+away and implemented an improved powertrain so let's look at what that
+powertrain so let's look at what that actually gets us let's compare the
+actually gets us let's compare the simple model with the new complex
+simple model with the new complex powertrain version using speed over time
+powertrain version using speed over time graphs on the Left we have the simple
+graphs on the Left we have the simple model which has a very uniform
+model which has a very uniform acceleration profile comparing that to
+acceleration profile comparing that to the more complex powertrain we overall
+the more complex powertrain we overall see a more curved acceleration profile
+see a more curved acceleration profile indicating that we get more and more
+indicating that we get more and more acceleration at the beginning of takeoff
+acceleration at the beginning of takeoff than we do and when they're in top speed
+than we do and when they're in top speed you'll also know that there are small
+you'll also know that there are small bumps in the graph which represent the
+bumps in the graph which represent the gear changes
+gear changes due to the simulation of the
+due to the simulation of the transmission we have multiple gears that
+transmission we have multiple gears that are more effective at providing
+are more effective at providing acceleration at the lower of their
+acceleration at the lower of their working speed range and then starts to
+working speed range and then starts to tail off as the vehicle speed approaches
+tail off as the vehicle speed approaches the next gears working range even just
+the next gears working range even just looking at a vehicle driving in a
+looking at a vehicle driving in a straight line the simulation is added
+straight line the simulation is added much more complexity and interesting
+much more complexity and interesting physicality to than this simple model
+physicality to than this simple model next up let's have a look at another
+next up let's have a look at another system tire friction so looking at this
+system tire friction so looking at this diagram we have the wheel hub with
+diagram we have the wheel hub with hubcaps illustration in the centre and
+hubcaps illustration in the centre and the rubber tire around the outside the
+the rubber tire around the outside the section of the bottom of the tire is
+section of the bottom of the tire is slightly flattened another load of the
+slightly flattened another load of the vehicle and is called the contact patch
+vehicle and is called the contact patch the blue lines represent the tread and
+the blue lines represent the tread and wall of the tire and we'll show how it
+wall of the tire and we'll show how it deforms as the wheel moves forward the
+deforms as the wheel moves forward the green dot is a specific point on the
+green dot is a specific point on the wheel hub and the red point is the
+wheel hub and the red point is the corresponding point where the tire
+corresponding point where the tire touches the ground via the contact patch
+touches the ground via the contact patch now as the wheel hub rotates clockwise
+now as the wheel hub rotates clockwise if we look at the green point on the hub
+if we look at the green point on the hub its moved a small amount and this means
+its moved a small amount and this means that the wall and tread of the tire
+that the wall and tread of the tire stretches between the green and red
+stretches between the green and red points the elastic force of the rubber
+points the elastic force of the rubber tire now strives to spring back into his
+tire now strives to spring back into his rest position moving the red point on
+rest position moving the red point on the tire surface towards the left
+the tire surface towards the left even though remains in contact with the
+even though remains in contact with the ground this applies an equal force back
+ground this applies an equal force back on to the wheel hub which pushes the
+on to the wheel hub which pushes the whole vehicle forward slightly
+whole vehicle forward slightly this happens continually until the
+this happens continually until the vehicle is traveling in a spew which
+vehicle is traveling in a spew which matches the rotational velocity of the
+matches the rotational velocity of the tire now we understand the physical
+tire now we understand the physical behavior were trying to simulate we need
+behavior were trying to simulate we need a simulation model the dynamics of how
+a simulation model the dynamics of how much force is applied under what
+much force is applied under what conditions is incredibly complex and
+conditions is incredibly complex and there are many models that can used to
+there are many models that can used to simulate it in this case I'm going to
+simulate it in this case I'm going to use the Pacheco model in the Pacheco
+use the Pacheco model in the Pacheco model the formula takes the rotation
+model the formula takes the rotation speed of the wheel and relative velocity
+speed of the wheel and relative velocity of the road the slip angle is the angle
+of the road the slip angle is the angle between the direction of the ground
+between the direction of the ground velocity and the direction of the wheel
+velocity and the direction of the wheel hub the Pacheco formula produces two
+hub the Pacheco formula produces two forces the longitudinal force which
+forces the longitudinal force which drives the vehicle forward and the
+drives the vehicle forward and the lateral force which turns the vehicle
+lateral force which turns the vehicle during acceleration the road speed is
+during acceleration the road speed is lower than the wheel speed so we get
+lower than the wheel speed so we get longitudinal slip which maps to a
+longitudinal slip which maps to a particular force in this graph the
+particular force in this graph the right-hand side is when the vehicle is
+right-hand side is when the vehicle is accelerating and the left-hand side is
+accelerating and the left-hand side is when it's breaking this red graph is the
+when it's breaking this red graph is the lateral force applied under a particular
+lateral force applied under a particular slip angle so represents the turning
+slip angle so represents the turning force applied during cornering
+force applied during cornering what's interesting about these graphs is
+what's interesting about these graphs is that each of them has a peak which is
+that each of them has a peak which is where the most effective acceleration or
+where the most effective acceleration or cornering behavior is found this is what
+cornering behavior is found this is what gives us the limit the effect of playing
+gives us the limit the effect of playing with the limits of grip this means that
+with the limits of grip this means that the player has to try and hit these
+the player has to try and hit these Peaks in order to be as effective as
+Peaks in order to be as effective as possible during the race this adds a lot
+possible during the race this adds a lot of depth of mastery but let's look at
+of depth of mastery but let's look at what this actually results in so let's
+what this actually results in so let's have a look at how the physical
+have a look at how the physical simulation ends up looking in the final
+simulation ends up looking in the final game pay close attention to the way the
+game pay close attention to the way the chassis the vehicle rocks back and forth
+chassis the vehicle rocks back and forth during gear changes due to the
+during gear changes due to the simulation of the drivetrain what other
+simulation of the drivetrain what other body rolls to the side during corners
+body rolls to the side during corners due to the simulation of tire friction
+due to the simulation of tire friction and suspension the depth of the
+and suspension the depth of the simulation shows through and gives the
+simulation shows through and gives the player precise control and physical play
+player precise control and physical play to master
+to master [Music]
+[Music] so now that we have our physical
+so now that we have our physical simulation sorted and we've got an
+simulation sorted and we've got an accurate deep simulation of the desired
+accurate deep simulation of the desired vehicle we should look at input and
+vehicle we should look at input and assists in order to give the game that
+assists in order to give the game that feel we want and get the balance between
+feel we want and get the balance between arcade and simulation that we're aiming
+arcade and simulation that we're aiming for in this section I'm going to talk
+for in this section I'm going to talk through drifting which in case you
+through drifting which in case you didn't know is whether we forced the
+didn't know is whether we forced the rear wheels of a tire to break traction
+rear wheels of a tire to break traction so the vehicle drift sideways in Ottoman
+so the vehicle drift sideways in Ottoman maintain momentum what's in a turn
+maintain momentum what's in a turn drifting is something is possible but
+drifting is something is possible but tricky to achieve in real life so in
+tricky to achieve in real life so in criterion games we apply several assists
+criterion games we apply several assists to help players achieve a long
+to help players achieve a long satisfying drift so I'll use that as an
+satisfying drift so I'll use that as an example in the following slides let's
+example in the following slides let's start by thinking about the input layer
+start by thinking about the input layer this is effectively the control mapping
+this is effectively the control mapping and any modifications you might do to
+and any modifications you might do to those control inputs these control
+those control inputs these control inputs are then sent across to the
+inputs are then sent across to the simulation where it turns the wheels or
+simulation where it turns the wheels or drives the engine in the simulation
+drives the engine in the simulation however the important point to take away
+however the important point to take away here is that you have assists that might
+here is that you have assists that might work on either side for example the
+work on either side for example the input layer level assist might be to
+input layer level assist might be to detect a particular button combo to
+detect a particular button combo to trigger drift mode and a simulation
+trigger drift mode and a simulation level assist might be to apply increased
+level assist might be to apply increased physical damping whilst in this drift
+physical damping whilst in this drift mode so we know where we might power
+mode so we know where we might power assists but what we want to achieve by
+assists but what we want to achieve by adding some once you've got your input
+adding some once you've got your input layer communicating with a simulation
+layer communicating with a simulation you'll have something playable and you
+you'll have something playable and you can then review it and see what needs to
+can then review it and see what needs to change you might find the IMP and
+change you might find the IMP and complexity is too high and you might
+complexity is too high and you might want to reduce it it could also be to
+want to reduce it it could also be to reduce the simulation feel and move
+reduce the simulation feel and move towards more of the arcade side of the
+towards more of the arcade side of the spectrum you might want to take existing
+spectrum you might want to take existing forces or effects in the simulation and
+forces or effects in the simulation and emphasize them such as making drifts
+emphasize them such as making drifts last longer a detailed simulation can
+last longer a detailed simulation can also bring unwanted side effects such as
+also bring unwanted side effects such as extreme slowdown on uneven terrain or
+extreme slowdown on uneven terrain or even collision hitching this might be
+even collision hitching this might be something you want to target with
+something you want to target with assists it could also be something which
+assists it could also be something which conveys the game state back to the
+conveys the game state back to the player in a more intuitive or obvious
+player in a more intuitive or obvious manner so the learning curve is easier
+manner so the learning curve is easier even though most of these examples of
+even though most of these examples of your intended default experience you
+your intended default experience you could also use the Syst as accessibility
+could also use the Syst as accessibility options to make your game playable by a
+options to make your game playable by a wider range of players now that we
+wider range of players now that we decided what we want to achieve through
+decided what we want to achieve through our assists let's look at some of the
+our assists let's look at some of the different types I divide assists up into
+different types I divide assists up into five categories player intention driver
+five categories player intention driver physical real world and
+physical real world and back assists I'm going to talk through
+back assists I'm going to talk through each of these in the next few slides
+each of these in the next few slides these aren't hard templates for more
+these aren't hard templates for more thought exercise that might help you
+thought exercise that might help you think what parts of the game to target
+think what parts of the game to target when we were building the drift
+when we were building the drift mechanics in Need for Speed we took our
+mechanics in Need for Speed we took our simulation which have realistic drifting
+simulation which have realistic drifting behavior and used assists to make it
+behavior and used assists to make it more stable
+more stable easier to sustain and maintain more of
+easier to sustain and maintain more of your speed than in real life to get this
+your speed than in real life to get this to feel great use multiple types of a
+to feel great use multiple types of a assists to achieve this I use drifting
+assists to achieve this I use drifting as an example when talking through these
+as an example when talking through these categories the first type of assist is
+categories the first type of assist is the player intention assist this is an
+the player intention assist this is an assist of the input level which looked
+assist of the input level which looked which looks at the players input and
+which looks at the players input and tries to work out whether the players
+tries to work out whether the players intention is different from the normal
+intention is different from the normal mapping it can look at the current
+mapping it can look at the current simulation to provide context what the
+simulation to provide context what the players intention might be an example is
+players intention might be an example is using a brake tap to enter drift if
+using a brake tap to enter drift if you're driving if you're driving
+you're driving if you're driving straight ahead and tap the brake then
+straight ahead and tap the brake then you probably want to slow down if you're
+you probably want to slow down if you're dry if you're turning heavily when you
+dry if you're turning heavily when you to have the brake you probably want to
+to have the brake you probably want to enter drift in order to turn more
+enter drift in order to turn more aggressively next up is the notion of
+aggressively next up is the notion of driver assists which can simulate the
+driver assists which can simulate the experience and muscle memory of a
+experience and muscle memory of a professional driver an example of how
+professional driver an example of how this is used in drifts is in bouncing
+this is used in drifts is in bouncing your talk when you're drifting in a real
+your talk when you're drifting in a real car the tires are trying to twist
+car the tires are trying to twist themselves to match the direction the
+themselves to match the direction the vehicle is drifting and the driver is
+vehicle is drifting and the driver is able to feel this through the steering
+able to feel this through the steering wheel and adjust accordingly to extend
+wheel and adjust accordingly to extend the drift on a console pad the analog
+the drift on a console pad the analog stick doesn't really lend itself to this
+stick doesn't really lend itself to this so we emulate this behavior by Reese
+so we emulate this behavior by Reese entering the steering input so that zero
+entering the steering input so that zero input equates to keep drifting at this
+input equates to keep drifting at this angle rather than meaning straighten up
+angle rather than meaning straighten up the wheels this is absolutely key for a
+the wheels this is absolutely key for a controllable drift and gives the player
+controllable drift and gives the player the level of control and ace driver
+the level of control and ace driver could achieve we also apply physical
+could achieve we also apply physical assists which are forces that we applied
+assists which are forces that we applied directly to the vehicle's physics
+directly to the vehicle's physics simulation we take existing qualities of
+simulation we take existing qualities of the simulation that we want to feel
+the simulation that we want to feel hyper real and emphasize what's there we
+hyper real and emphasize what's there we want to look at the forces applied by
+want to look at the forces applied by the situation that are hindering the
+the situation that are hindering the effect we want and counteract them for
+effect we want and counteract them for example if you're in a deep drift a
+example if you're in a deep drift a component of the tire friction is
+component of the tire friction is opposing motion and slowing the vehicle
+opposing motion and slowing the vehicle down we want our drifts to maintain
+down we want our drifts to maintain speed round corners so we calculate the
+speed round corners so we calculate the magnitude of the frictional force
+magnitude of the frictional force slowing us down and reapply that force
+slowing us down and reapply that force in the direction of the vehicles
+in the direction of the vehicles velocity in order to minimize the speed
+velocity in order to minimize the speed loss or allow our desires to tune how
+loss or allow our desires to tune how much speed loss they desire
+real-world assists are where we might simulate part of a vehicle which is
+simulate part of a vehicle which is available in real life and we can
+available in real life and we can manipulate it to achieve the desired
+manipulate it to achieve the desired effect for example we might want an
+effect for example we might want an anti-lock braking system to allow
+anti-lock braking system to allow players to brake effectively without how
+players to brake effectively without how to carefully tap the triggers when we
+to carefully tap the triggers when we start drifting we can turn off ABS to
+start drifting we can turn off ABS to allow the back wheels to spin and lose
+allow the back wheels to spin and lose traction entering the drift quickly when
+traction entering the drift quickly when we detect that the player is trying to
+we detect that the player is trying to exit the drift we can then turn ABS back
+exit the drift we can then turn ABS back on in order to allow fast acceleration
+on in order to allow fast acceleration out of the drift finally we've got
+out of the drift finally we've got feedback assists which don't actually
+feedback assists which don't actually affect the handling but our assists
+affect the handling but our assists which help the player understand the
+which help the player understand the simulation better and show you why to
+simulation better and show you why to help guide the player wherever possible
+help guide the player wherever possible we feedback the simulation from
+we feedback the simulation from real-world sources like the strain of
+real-world sources like the strain of the engine or the squeal of the tires
+the engine or the squeal of the tires for feedback assists are specifically
+for feedback assists are specifically things you wouldn't see in real life an
+things you wouldn't see in real life an example of this is the Forza braking
+example of this is the Forza braking line which looks at the upcoming turn
+line which looks at the upcoming turn and highlights the line read if your
+and highlights the line read if your tires are gonna lose traction and you
+tires are gonna lose traction and you ought to slow down
+seeing as assist can influence both the controls and the physical simulation
+controls and the physical simulation getting the feel of them right is just
+getting the feel of them right is just as important as tuning a physical
+as important as tuning a physical simulation itself depending on how you
+simulation itself depending on how you engineer and shooting them you could end
+engineer and shooting them you could end up disguising all that great simulation
+up disguising all that great simulation work so here are a few tips to bring out
+work so here are a few tips to bring out the physicality when writing assists
+the physicality when writing assists firstly try to tune them to be as subtle
+firstly try to tune them to be as subtle as possible while still achieving the
+as possible while still achieving the desired effect it's often easy to have
+desired effect it's often easy to have very strong stabilization forces which
+very strong stabilization forces which help the player effectively a wipe over
+help the player effectively a wipe over all your great simulation work rather
+all your great simulation work rather than switching your behavior on or off
+than switching your behavior on or off based on a binary condition try to fade
+based on a binary condition try to fade them in or out over some parameter even
+them in or out over some parameter even if that parameter is time this means
+if that parameter is time this means there is less obvious to the player
+there is less obvious to the player they're being assisted and add some
+they're being assisted and add some nuance to it think about where the
+nuance to it think about where the optimal assist strength is and allow the
+optimal assist strength is and allow the player to gradually learn how to find
+player to gradually learn how to find the perfect balance giving it depth and
+the perfect balance giving it depth and mastering the game should feed this back
+mastering the game should feed this back to the player and not to allow them to
+to the player and not to allow them to tell if they're doing better or not also
+tell if they're doing better or not also as a programmer try to make sure you add
+as a programmer try to make sure you add in plenty of helpful debug
+in plenty of helpful debug visualizations in order to help your
+visualizations in order to help your designers understand the systems but
+designers understand the systems but being able to tell what by being able to
+being able to tell what by being able to see what physical effect their parameter
+see what physical effect their parameter changes have and tune them as well as
+changes have and tune them as well as they possibly can if possible set up
+they possibly can if possible set up auto tester to your vehicles and they're
+auto tester to your vehicles and they're expected top speeds accelerations etc as
+expected top speeds accelerations etc as this can help catch unexpected changes
+this can help catch unexpected changes or your physical
+or your physical facts affecting vehicle physical assists
+facts affecting vehicle physical assists affecting vehicle performance we had an
+affecting vehicle performance we had an issue on Most Wanted where a vehicle
+issue on Most Wanted where a vehicle artist adjusted the size of a wheel and
+artist adjusted the size of a wheel and then this affected the top speed of a
+then this affected the top speed of a vehicle but thankfully this was caught
+vehicle but thankfully this was caught by an auto test and fixed quickly so
+by an auto test and fixed quickly so we've got our physical we got physics
+we've got our physical we got physics and our assists working nicely together
+and our assists working nicely together now we need to feed this back to the
+now we need to feed this back to the player to affect it feed this back to
+player to affect it feed this back to the player effectively through camera
+the player effectively through camera behavior I wanted to start a section off
+behavior I wanted to start a section off with a phrasal user criterion a lot
+with a phrasal user criterion a lot camera is handling it doesn't matter how
+camera is handling it doesn't matter how great your simulation and assists are if
+great your simulation and assists are if your camera doesn't feed it back to the
+your camera doesn't feed it back to the player well a stiffle loose camera can
+player well a stiffle loose camera can massively change the feel of a vehicle
+massively change the feel of a vehicle so should be considered par for handling
+so should be considered par for handling we have the same designers that tuned
+we have the same designers that tuned the handling parameters on a vehicle
+the handling parameters on a vehicle also tune the camera parameters because
+also tune the camera parameters because they're so intrinsically linked there
+they're so intrinsically linked there are two fundamentally different
+are two fundamentally different approaches you can take one stand to
+approaches you can take one stand to think about vehicle cameras one is a
+think about vehicle cameras one is a camera LED system where the player input
+camera LED system where the player input turns the camera and then there's a
+turns the camera and then there's a layer that interprets the camera
+layer that interprets the camera direction and passes that through to the
+direction and passes that through to the vehicle controls alternatively a vehicle
+vehicle controls alternatively a vehicle LED system is where the player input
+LED system is where the player input controls the vehicle directly and the
+controls the vehicle directly and the camera follows the vehicle as a separate
+camera follows the vehicle as a separate system camera LED systems usually match
+system camera LED systems usually match the shooter input paradigm with aim and
+the shooter input paradigm with aim and pitch on and pitch on the right stick
+pitch on and pitch on the right stick generally allows the player to point the
+generally allows the player to point the camera accurately or something.but at
+camera accurately or something.but at the loss of handling feel and precision
+the loss of handling feel and precision this can be good for games where the
+this can be good for games where the primary vehicle gameplay is aiming and
+primary vehicle gameplay is aiming and shooting a weapon and the driving
+shooting a weapon and the driving component is secondary an example of
+component is secondary an example of this type of camera is the monk v tank
+this type of camera is the monk v tank in battlefield 1 this video shows me
+in battlefield 1 this video shows me rotating the camera separately to the
+rotating the camera separately to the vehicle using the right stick and
+vehicle using the right stick and holding the left stick forward in order
+holding the left stick forward in order to move towards where the cameras
+to move towards where the cameras pointing there's an intelligent layer
+pointing there's an intelligent layer that decides how to move the tracks of
+that decides how to move the tracks of the tank in order to make it point
+the tank in order to make it point towards the camera rather than direct
+towards the camera rather than direct control one problem with a layer like
+control one problem with a layer like this is that it can add some ambiguity
+this is that it can add some ambiguity which means you can get some unexpected
+which means you can get some unexpected motion particularly on trying to reverse
+motion particularly on trying to reverse a vehicle with camera LED handling
+vehicle LED camera are usually the default option for racing games and
+default option for racing games and usually match the driving in for
+usually match the driving in for paradigm where steering is on the left
+paradigm where steering is on the left stick and the camera follows the Vickers
+stick and the camera follows the Vickers motion this gives a more direct control
+motion this gives a more direct control feel and can allow greater driving
+feel and can allow greater driving precision and camera feedback but makes
+precision and camera feedback but makes it harder for the player to quickly move
+it harder for the player to quickly move the camera to look behind them these
+the camera to look behind them these types of cameras are often accompanied
+types of cameras are often accompanied by a look behind camera button in order
+by a look behind camera button in order to compensate for this here's an example
+to compensate for this here's an example of one of the transport vehicles the
+of one of the transport vehicles the criterion worked on it for battlefield
+criterion worked on it for battlefield one the armored car which is we decided
+one the armored car which is we decided to use a vehicle LED camera for best
+to use a vehicle LED camera for best game feel a criterion we almost always
+game feel a criterion we almost always use vehicle though cameras due to the
+use vehicle though cameras due to the precise handling feel we require from
+precise handling feel we require from our games I'm going to consider it
+our games I'm going to consider it continue this section by looking at
+continue this section by looking at vehicle at cameras in more detail so a
+vehicle at cameras in more detail so a good camera should feedback important
+good camera should feedback important game state to the player such as camera
+game state to the player such as camera angle while drifting you will respond to
+angle while drifting you will respond to player needs ensuring that the cameras
+player needs ensuring that the cameras focused on what the player needs to see
+focused on what the player needs to see and does an abstract line of sight the
+and does an abstract line of sight the camera should sell physicality by using
+camera should sell physicality by using the physical simulation to complement
+the physical simulation to complement the motion of the vehicle so let's look
+the motion of the vehicle so let's look at a rigid camera which is locked behind
+at a rigid camera which is locked behind the vehicle and points directly down the
+the vehicle and points directly down the front of the vehicle this is a camera
+front of the vehicle this is a camera with no behaviour and this is simplest
+with no behaviour and this is simplest possible starting point the vehicles
+possible starting point the vehicles position is effectively locked on the
+position is effectively locked on the screen which means that an either
+screen which means that an either physicality from the simulation is shown
+physicality from the simulation is shown through the background of the scene
+through the background of the scene rolling and pitching as the vehicle
+rolling and pitching as the vehicle drives which can be quite disorienting
+drives which can be quite disorienting it makes it difficult to focus on game
+it makes it difficult to focus on game objectives
+to improve this we should start by conveying the motion of the vehicle by
+conveying the motion of the vehicle by moving it in relation to the frame of
+moving it in relation to the frame of the screen if the vehicle is in a deep
+the screen if the vehicle is in a deep right turn would expect that the camera
+right turn would expect that the camera would lag behind slightly and the
+would lag behind slightly and the vehicle will shift to the left of the
+vehicle will shift to the left of the screen in order to achieve this we use a
+screen in order to achieve this we use a sprung camera system whereby we set a
+sprung camera system whereby we set a target point for the camera to tend
+target point for the camera to tend towards but allow some motion in all
+towards but allow some motion in all directions with a force pulling the
+directions with a force pulling the camera to the target to a target
+camera to the target to a target position proportionally to how far away
+position proportionally to how far away it is from the target we can tune this
+it is from the target we can tune this power access to land for certain
+power access to land for certain behaviors to convey differently on
+behaviors to convey differently on screen for example we might want lots of
+screen for example we might want lots of sideways motion when turning but less
+sideways motion when turning but less forward and backward motion when
+forward and backward motion when accelerating and decelerating in
+accelerating and decelerating in conjunction with pulling the camera
+conjunction with pulling the camera towards a target we also point the
+towards a target we also point the camera to look ahead target which is
+camera to look ahead target which is fixed in front of the vehicle and shows
+fixed in front of the vehicle and shows the player where the vehicle is heading
+the player where the vehicle is heading it's also sometimes worth considering
+it's also sometimes worth considering using velocity extrapolation on your
+using velocity extrapolation on your look ahead target in order to mate your
+look ahead target in order to mate your camera look into turns and keep the
+camera look into turns and keep the players focused near the center of the
+players focused near the center of the screen when turning let's take a look at
+screen when turning let's take a look at what that looks like so know through
+what that looks like so know through walk throughout all these videos the
+walk throughout all these videos the physical simulation and handling are
+physical simulation and handling are identical all we're changing is the
+identical all we're changing is the camera
+so as you can see the vehicle is much more dynamic on screen and actually see
+more dynamic on screen and actually see the size of it as well as the motion of
+the size of it as well as the motion of the vehicle when traveling over bumpy
+the vehicle when traveling over bumpy terrain
+there are three key parameters we use when tuning this type of camera the most
+when tuning this type of camera the most important one is convergence which is
+important one is convergence which is how far we move the camera towards the
+how far we move the camera towards the target each sim frame the higher the
+target each sim frame the higher the value the tighter the camera is to the
+value the tighter the camera is to the back of the vehicle then we have Mon
+back of the vehicle then we have Mon momentum which accelerates the camera in
+momentum which accelerates the camera in the direction it's already traveling and
+the direction it's already traveling and damping which is used to stop the camera
+damping which is used to stop the camera overshooting the target and resulting in
+overshooting the target and resulting in oscillations in order to demonstrate the
+oscillations in order to demonstrate the different types of feel that different
+different types of feel that different converters of parameters can get you
+converters of parameters can get you here's an example of strong convergence
+here's an example of strong convergence [Music]
+[Music] notice it is very similar to the rigid
+notice it is very similar to the rigid camera example vehicle isn't moving too
+camera example vehicle isn't moving too much on screen it doesn't feel very
+much on screen it doesn't feel very physical
+switching to a weak convergence we see a lot more motion in the frame the vehicle
+lot more motion in the frame the vehicle feels dynamic and aligned however
+feels dynamic and aligned however because the convergence is so weak the
+because the convergence is so weak the vehicle appears to be pointing
+vehicle appears to be pointing off-screen during large turns this can
+off-screen during large turns this can make it tricky to control as you can't
+make it tricky to control as you can't see what you're going in this situation
+see what you're going in this situation we could either tighten up the camera or
+we could either tighten up the camera or add velocity extrapolation to our look
+add velocity extrapolation to our look ahead target so that the camera looks
+ahead target so that the camera looks towards the vehicles direction more
+towards the vehicles direction more effectively the camera also needs to
+effectively the camera also needs to sell the physicality of the vehicle and
+sell the physicality of the vehicle and feedback what the simulation is doing a
+feedback what the simulation is doing a good example of this is the landing
+good example of this is the landing camera when the vehicle comes off a
+camera when the vehicle comes off a large jump and then hits the ground so
+large jump and then hits the ground so hard that the suspension bottoms out we
+hard that the suspension bottoms out we wanted to convey this with a large
+wanted to convey this with a large camera movement that doesn't obscure the
+camera movement that doesn't obscure the road ahead for long but still sells that
+road ahead for long but still sells that impact we use some camera shake when we
+impact we use some camera shake when we land Plus this is a good example of how
+land Plus this is a good example of how old momentum and damping forces are fed
+old momentum and damping forces are fed the camera to give it an exaggerated
+the camera to give it an exaggerated behavior when landing so if we don't do
+behavior when landing so if we don't do anything special to the camera this
+anything special to the camera this front camera still gives you some
+front camera still gives you some feedback this isn't too bad and you
+feedback this isn't too bad and you could probably ship this but let's go
+could probably ship this but let's go the extra mile and try to improve it
+let's add some camera shake on landing when we detect that all four wheels are
+when we detect that all four wheels are on the ground after traveling downwards
+on the ground after traveling downwards quickly this camera shake that I'm about
+quickly this camera shake that I'm about to show you is 30 Hertz oscillation in
+to show you is 30 Hertz oscillation in pitch and roll in north 25 seconds this
+pitch and roll in north 25 seconds this helps a little bit but we can do better
+[Music]
+let's reduce the damping of our sprung camera so the momentum term carries it
+camera so the momentum term carries it further downwards than the target giving
+further downwards than the target giving us a much better sense of the impact
+us a much better sense of the impact this should make our impact a much more
+this should make our impact a much more impressive exciting and physical
+so how does AI battlefield one work stack up to the camera requirements we
+stack up to the camera requirements we set ourselves earlier
+set ourselves earlier well we feed the simulation back to the
+well we feed the simulation back to the player by using the camera convergence
+player by using the camera convergence to affect the vehicles position on
+to affect the vehicles position on screen allowing the player to tell the
+screen allowing the player to tell the turning radius of the vehicle the camera
+turning radius of the vehicle the camera responds to player needs by looking into
+responds to player needs by looking into turns letting the player see where
+turns letting the player see where they're going we sell physicality by
+they're going we sell physicality by giving special attention to the landing
+giving special attention to the landing camera making the vehicle feel extra
+camera making the vehicle feel extra heavy and solid here's another look at
+heavy and solid here's another look at the armored car illustrating all those
+the armored car illustrating all those previous points but also gives you a
+previous points but also gives you a chance to hear the audio treatment and
+chance to hear the audio treatment and give the V answer show them and see the
+give the V answer show them and see the VFX which adds even more on top of our
+VFX which adds even more on top of our handling work
+[Music]
+so in this final section I'm going to show how we apply these principles when
+show how we apply these principles when making star fighters in Star Wars
+making star fighters in Star Wars Battlefront 2 when we started looking at
+Battlefront 2 when we started looking at what we could bring to Styles by the
+what we could bring to Styles by the front two we decided on the overall
+front two we decided on the overall direction of wanting players to feel
+direction of wanting players to feel like an ace pilot and give them that
+like an ace pilot and give them that fantasy when controlling the star
+fantasy when controlling the star fighters after playing some battlefront
+fighters after playing some battlefront 1 we felt we could help improve the
+1 we felt we could help improve the handling significantly we wanted this to
+handling significantly we wanted this to go alongside a game mode
+go alongside a game mode there was much larger scale that in that
+there was much larger scale that in that game this is the original Fighter
+game this is the original Fighter Squadron mode from battle for one where
+Squadron mode from battle for one where players for Danang swings and TIE
+players for Danang swings and TIE fighters above the surface of planets
+fighters above the surface of planets the main shooting mechanic here was to
+the main shooting mechanic here was to hold left trigger to lock onto anything
+hold left trigger to lock onto anything within a wide code in the middle of the
+within a wide code in the middle of the screen a right trigger to fire shots
+screen a right trigger to fire shots have them be auto aimed as long as you
+have them be auto aimed as long as you had a lock on you may also tap Baylor's
+had a lock on you may also tap Baylor's help in this video that bar from one
+help in this video that bar from one used a camera led handling level where
+used a camera led handling level where the camera moves first and then the
+the camera moves first and then the vehicle catches up
+vehicle catches up [Music]
+so when we started to look at how we could improve over Battlefront one we
+could improve over Battlefront one we looked at player feedback players really
+looked at player feedback players really enjoy getting to play out their Star
+enjoy getting to play out their Star Wars fantasies plus the gameplay was
+Wars fantasies plus the gameplay was very accessible to a wide audience
+very accessible to a wide audience however there's a general feeling of
+however there's a general feeling of lack of depth around the auditorium
+lack of depth around the auditorium shooting that it was difficult to
+shooting that it was difficult to control and the staff fighters felt too
+control and the staff fighters felt too much like toys on a string on players
+much like toys on a string on players really wanted manual roll control so we
+really wanted manual roll control so we took each of those points and make sure
+took each of those points and make sure we focus on fixing them with aiming
+we focus on fixing them with aiming close to that of a shooter handling the
+close to that of a shooter handling the felt precise and a camera that showed
+felt precise and a camera that showed off of physicality the vehicles and of
+off of physicality the vehicles and of course roll control this is a great
+course roll control this is a great chance for us to apply the vehicle
+chance for us to apply the vehicle design philosophy when designing our
+design philosophy when designing our star fighters here's some gameplay where
+star fighters here's some gameplay where we ended up with on battlefront twos
+we ended up with on battlefront twos star fighter assault mode
+[Music]
+so as for reviews we've got a lot of good responses around the stuff I do
+good responses around the stuff I do what we did with critics highlighting
+what we did with critics highlighting the handling and shooting being a huge
+the handling and shooting being a huge improvement over the first game so now
+improvement over the first game so now we know how it turned out let's see how
+we know how it turned out let's see how we used each section the vehicle design
+we used each section the vehicle design philosophy during development when
+philosophy during development when looking at balance between Arcada
+looking at balance between Arcada simulation we looked at our target
+simulation we looked at our target market which consisted of both fans who
+market which consisted of both fans who are casual gamers and wanted an
+are casual gamers and wanted an accessible experience but also hardcore
+accessible experience but also hardcore players who expected something more like
+players who expected something more like a flight sim to live out their pilot
+a flight sim to live out their pilot fantasies we ended up deciding to
+fantasies we ended up deciding to balance this by having intuitive
+balance this by having intuitive pitching your controls that you might
+pitching your controls that you might find in an arcade style game but give
+find in an arcade style game but give players full roll control and allow
+players full roll control and allow players to execute their own evasive
+players to execute their own evasive maneuvers rather than having them
+maneuvers rather than having them triggered as cutscenes
+triggered as cutscenes on the d-pad but like in battlefront 1
+on the d-pad but like in battlefront 1 we also decided to go with a shooter
+we also decided to go with a shooter input paradigm with flight and aiming on
+input paradigm with flight and aiming on the right stick as it be more intuitive
+the right stick as it be more intuitive to players coming from a shooter
+to players coming from a shooter background and also match the rest of
+background and also match the rest of the game however we know that anyone
+the game however we know that anyone expecting a flight sim style control so
+expecting a flight sim style control so that would find this quite jarring so we
+that would find this quite jarring so we made sure there was an option to remap
+made sure there was an option to remap the analog sticks fully when thinking
+the analog sticks fully when thinking about how we were gonna simulate our
+about how we were gonna simulate our starfighters we look to the real world
+starfighters we look to the real world analog of fighter planes which were the
+analog of fighter planes which were the original inspiration for Star Wars is
+original inspiration for Star Wars is dogfighting scenes which is why in Star
+dogfighting scenes which is why in Star Wars x-wings Bank into turns like planes
+Wars x-wings Bank into turns like planes and crashing Star Destroyers fall
+and crashing Star Destroyers fall downwards thinking of fighter planes
+downwards thinking of fighter planes wheeler two air foils which is the thing
+wheeler two air foils which is the thing that keeps planes in the air but also
+that keeps planes in the air but also gives secondary effects such as altitude
+gives secondary effects such as altitude loss when turning we decided this didn't
+loss when turning we decided this didn't really match with what we expected for a
+really match with what we expected for a Starfighter
+Starfighter so we went with a simple anti-graft
+so we went with a simple anti-graft simulation instead we did however when
+simulation instead we did however when the banked turns from a fighter plane so
+the banked turns from a fighter plane so we simulated this with a horizon
+we simulated this with a horizon steering setup where the controls
+steering setup where the controls remained a lot to the horizon but the
+remained a lot to the horizon but the Starfighter banks on-screen we used a
+Starfighter banks on-screen we used a simple engine thrust force instead of a
+simple engine thrust force instead of a more complex prop or jet engine as we
+more complex prop or jet engine as we didn't feel like we really needed the
+didn't feel like we really needed the play of airflow in space where there
+play of airflow in space where there isn't any air when in a heavy turn the
+isn't any air when in a heavy turn the aerodynamic drag of a plane can affect
+aerodynamic drag of a plane can affect how aggressive it can turn we ended up
+how aggressive it can turn we ended up doing something similar with an air
+doing something similar with an air brake that allowed a lot of experienced
+brake that allowed a lot of experienced players to pull the air brake when
+players to pull the air brake when turning to get a temporarily reduced
+turning to get a temporarily reduced radius even though there's no physical
+radius even though there's no physical justification for it it ended up fitting
+justification for it it ended up fitting right and it was something that we
+right and it was something that we investigated in a prototype and play
+investigated in a prototype and play tested it until we were convinced we
+tested it until we were convinced we wanted it in production in order to get
+wanted it in production in order to get the feeling of bank turns we use horizon
+the feeling of bank turns we use horizon steering which is quite a simple concept
+steering which is quite a simple concept where we have two sim two separate
+where we have two sim two separate frames represent an orientation in
+frames represent an orientation in practice this could be a matrix or a
+practice this could be a matrix or a quaternion the control frame stays flat
+quaternion the control frame stays flat when the player yours which means that
+when the player yours which means that it points in the direction of flight
+it points in the direction of flight following the pitch of the Starfighter
+following the pitch of the Starfighter but allows the yaw of this ship to be
+but allows the yaw of this ship to be expressed in the direction it appears to
+expressed in the direction it appears to the player on screen when the player
+the player on screen when the player turns left and right on the stick the
+turns left and right on the stick the control frame stays flat against the
+control frame stays flat against the horizon but the vehicles body frame is
+horizon but the vehicles body frame is rolled into the tone giving the feeling
+rolled into the tone giving the feeling of banked hands we wanted looking at the
+of banked hands we wanted looking at the video on the right you can see the
+video on the right you can see the Starfighter banking with a camera
+Starfighter banking with a camera staying flat allowing the player to
+staying flat allowing the player to intuitively control the fighter
+intuitively control the fighter direction if the Starfighter was pitched
+direction if the Starfighter was pitched up then the staff ID would rotate on
+up then the staff ID would rotate on this newly oriented horizon so if we
+this newly oriented horizon so if we were pointing directly upwards instead
+were pointing directly upwards instead of turning left or right we would end up
+of turning left or right we would end up pointing downwards in the local pitch
+pointing downwards in the local pitch horizon rather than fading to the
+horizon rather than fading to the world's horizon so let's move on to the
+world's horizon so let's move on to the camera initially we wanted to we
+camera initially we wanted to we initially wanted to work out whether we
+initially wanted to work out whether we should use a camera LED or vehicle LED
+should use a camera LED or vehicle LED system we initially thought that a
+system we initially thought that a camera LED system would allow for the
+camera LED system would allow for the precise aiming that we wanted however
+precise aiming that we wanted however this was the system that battlefront one
+this was the system that battlefront one used and I didn't have the sort of
+used and I didn't have the sort of precision that we'd hoped for using a
+precision that we'd hoped for using a vehicle LED camera instead would allow
+vehicle LED camera instead would allow us greater flight precision which is one
+us greater flight precision which is one of our initial goals and improved
+of our initial goals and improved physicality for that reason we opted for
+physicality for that reason we opted for a vehicle LED camera which is a sprung
+a vehicle LED camera which is a sprung camera in a similar style to what we did
+camera in a similar style to what we did on battlefield 1 y-wing so thinking
+on battlefield 1 y-wing so thinking about the approaches we learn about in
+about the approaches we learn about in the camera section I've got a vehicle
+the camera section I've got a vehicle LED camera who looks into the direction
+LED camera who looks into the direction of travel
+of travel and allows the Starfighter to move
+and allows the Starfighter to move significantly but predictably on screen
+[Music]
+one problem we encountered while authoring camera shake on battlefront 2
+authoring camera shake on battlefront 2 was it was really hard to aim while the
+was it was really hard to aim while the camera was shaking this seems pretty
+camera was shaking this seems pretty obvious because you're aiming down the
+obvious because you're aiming down the camera so of course shaking it makes
+camera so of course shaking it makes things harder however we wanted to try
+things harder however we wanted to try and find a way to convey the same camera
+and find a way to convey the same camera shake feeling whilst maintaining aim
+shake feeling whilst maintaining aim precision conventional camera shake
+precision conventional camera shake works by rotating the camera around its
+works by rotating the camera around its center point pitch Ural rolling by X
+center point pitch Ural rolling by X degrees which means that if your focus
+degrees which means that if your focus point is in the distance it moves a lot
+point is in the distance it moves a lot on screen to come by this we wrote an
+on screen to come by this we wrote an orbit camera shake system which would
+orbit camera shake system which would shake the camera by moving it laterally
+shake the camera by moving it laterally as well as rotating it keeping the
+as well as rotating it keeping the camera pointed at a particular point far
+camera pointed at a particular point far away towards the horizon there's men of
+away towards the horizon there's men of the things in the foreground such as the
+the things in the foreground such as the vehicle would move around on screen but
+vehicle would move around on screen but distant targets we were aiming at
+distant targets we were aiming at remains stable in this video keep an eye
+remains stable in this video keep an eye on the pillar in the distance notice of
+on the pillar in the distance notice of the pillar crosshair and vehicle all
+the pillar crosshair and vehicle all shaking around significantly when we
+shaking around significantly when we move over to the orbit camera shaking
+move over to the orbit camera shaking only the vehicle is shaky I mean only
+only the vehicle is shaky I mean only the player feels that they're being
+the player feels that they're being buffeted around but can still aim
+buffeted around but can still aim effectively it's easy to imagine
+effectively it's easy to imagine blending these two effects together to
+blending these two effects together to allow our designers to tune just how
+allow our designers to tune just how much shape they want for near and far
+much shape they want for near and far objects but in our case we opted for
+objects but in our case we opted for distant aim stability due to our games
+distant aim stability due to our games focus on shooting seeing as we have a
+focus on shooting seeing as we have a strong sense of up in our levels we
+strong sense of up in our levels we found that players would end up upside
+found that players would end up upside down quite frequently even if they
+down quite frequently even if they weren't using the roll control in order
+weren't using the roll control in order to help alleviate this we added some
+to help alleviate this we added some auto rolling which would kick in when
+auto rolling which would kick in when the sticks are centered the idea being
+the sticks are centered the idea being that return to center is a player
+that return to center is a player intention to fly straight so that's
+intention to fly straight so that's always accompany by rolling to the
+always accompany by rolling to the horizon players won't find it too
+horizon players won't find it too obtrusive it's also a smaller more
+obtrusive it's also a smaller more subtle force when you're almost level
+subtle force when you're almost level again trying to be as unobtrusive as
+again trying to be as unobtrusive as possible we also have a small 20 degree
+possible we also have a small 20 degree window when the star fighter is inverted
+window when the star fighter is inverted where the auto roll never kicks in this
+where the auto roll never kicks in this is to allow players to fly upside down
+is to allow players to fly upside down when they intend to all other angles
+when they intend to all other angles tend back to the horizon it's also worth
+tend back to the horizon it's also worth mentioning that we anticipated more
+mentioning that we anticipated more hardcore players of our audience would
+hardcore players of our audience would prefer to have total control over
+prefer to have total control over orientation so we added a toggle to turn
+orientation so we added a toggle to turn auto roll off in the settings
+after getting the starfighters to handle quite nicely we looked at shooting we
+quite nicely we looked at shooting we found they was incredibly hard to hit a
+found they was incredibly hard to hit a moving target by pointing your ship
+moving target by pointing your ship towards another as an illustration let's
+towards another as an illustration let's think about aiming towards this Thai
+think about aiming towards this Thai interceptor firstly our maximum
+interceptor firstly our maximum targeting range was around 800 meters
+targeting range was around 800 meters which meant that ships could end up
+which meant that ships could end up quite small on screen they were also
+quite small on screen they were also traveling it up to 120 meters per second
+traveling it up to 120 meters per second and also the lasers and star wars have a
+and also the lasers and star wars have a travel time so you need to lead your
+travel time so you need to lead your target these factors combine to make
+target these factors combine to make unassisted aiming incredibly difficult
+unassisted aiming incredibly difficult for our players so we needed to add some
+for our players so we needed to add some assists one of the main assists we added
+assists one of the main assists we added was the auto aim cone which is a cone in
+was the auto aim cone which is a cone in front of the player which we targeted
+front of the player which we targeted the gun barrels to fire the laser shots
+the gun barrels to fire the laser shots more towards the correct target position
+more towards the correct target position in theory it's quite similar to the
+in theory it's quite similar to the battlefront one approach except that we
+battlefront one approach except that we gradually fade the effect in and out
+gradually fade the effect in and out rather than switching it on and off like
+rather than switching it on and off like in battle from one in the case of this
+in battle from one in the case of this diagram we've got the player aiming
+diagram we've got the player aiming ahead of the target and we have a
+ahead of the target and we have a predicted position of the target which
+predicted position of the target which is the yellow dot which is where the
+is the yellow dot which is where the ship will be by the time a player's shot
+ship will be by the time a player's shot gets to it we show a reticle and screen
+gets to it we show a reticle and screen in this position so the player knows
+in this position so the player knows where to aim this is a type of feedback
+where to aim this is a type of feedback assist because it's providing extra
+assist because it's providing extra simulation data to the player fire you I
+simulation data to the player fire you I if this predictive position is inside
+if this predictive position is inside the aim cone then we shift the gun
+the aim cone then we shift the gun barrels towards this perfect predicted
+barrels towards this perfect predicted position however we fail it gradually
+position however we fail it gradually based on how far into the cone the
+based on how far into the cone the predicted position is this means that if
+predicted position is this means that if the players aim is quite far from the
+the players aim is quite far from the target they only get a little bit of
+target they only get a little bit of help but as the crosshair gets closer
+help but as the crosshair gets closer and closer to the target reticle they
+and closer to the target reticle they get more and more of an assist until
+get more and more of an assist until they're inside the reticle which
+they're inside the reticle which guarantees our here because it's fully
+guarantees our here because it's fully assisted this makes the effect subtle
+assisted this makes the effect subtle enough that players don't notice the
+enough that players don't notice the shots diverging from their crosshair but
+shots diverging from their crosshair but they hit a lot more hits than they would
+they hit a lot more hits than they would otherwise
+otherwise it also gives a nice feedback loop of
+it also gives a nice feedback loop of getting gradually more and more hits as
+getting gradually more and more hits as your name improves rather than the old
+your name improves rather than the old approach that was either hit or miss the
+approach that was either hit or miss the aim cone helped a lot but the feel of
+aim cone helped a lot but the feel of putting your crosshair onto the
+putting your crosshair onto the predictive reticle still felt quite
+predictive reticle still felt quite fiddly players were constantly
+fiddly players were constantly overshooting making a lot of
+overshooting making a lot of correctional inputs the main reason for
+correctional inputs the main reason for this is that the targets are constantly
+this is that the targets are constantly moving so instead of the player trying
+moving so instead of the player trying to aim at a particular static point
+to aim at a particular static point they're actually targeting an ideal
+they're actually targeting an ideal angular velocity as well
+angular velocity as well an orientation north to keep up with a
+an orientation north to keep up with a moving target we decided to reduce this
+moving target we decided to reduce this complexity by introducing sticky
+complexity by introducing sticky targeting this was inspired by one of
+targeting this was inspired by one of the amos sisters scene in destiny where
+the amos sisters scene in destiny where they pull the cursor along with the
+they pull the cursor along with the enemy when the enemy strafe is left or
+enemy when the enemy strafe is left or right effectively we want to drag the
+right effectively we want to drag the cursor along with the target and to do
+cursor along with the target and to do so we take the linear velocity of the
+so we take the linear velocity of the target in world space and then transform
+target in world space and then transform it into the players and local space
+it into the players and local space angular velocity this target angular
+angular velocity this target angular velocity can then be mapped into the
+velocity can then be mapped into the input layer we can effectively work out
+input layer we can effectively work out how close the player was to achieving
+how close the player was to achieving this ideal input and then fade the value
+this ideal input and then fade the value towards this ideal in a similar way to
+towards this ideal in a similar way to how we did it with the cut with the aim
+how we did it with the cut with the aim cone logic we use the aim cone to fade
+cone logic we use the aim cone to fade the effect in and out and we only apply
+the effect in and out and we only apply us to get outing when the player has
+us to get outing when the player has nonzero right stick input which means
+nonzero right stick input which means that we only help them aim when they're
+that we only help them aim when they're trying to aim the senator working really
+trying to aim the senator working really well as we show in the next
+well as we show in the next demonstration video in this first part
+demonstration video in this first part Steve targeting spot you can see that
+Steve targeting spot you can see that the player is making a lot of dirty
+the player is making a lot of dirty directional movements to try and aim at
+directional movements to try and aim at the enemy his results are the most kills
+the enemy his results are the most kills only happening when the enemy is
+only happening when the enemy is traveling in a straight line or makes
+traveling in a straight line or makes for an easier target this next video
+for an easier target this next video shows the contrast when we turn sticky
+shows the contrast when we turn sticky toffee after maximum the aim point is
+toffee after maximum the aim point is super stable non stop tiger but he'll be
+super stable non stop tiger but he'll be able to feel the curse is being dragged
+able to feel the curse is being dragged along with the timer as in this case
+along with the timer as in this case where the cursor calls the tiger plate
+where the cursor calls the tiger plate for total flight path exactly then this
+for total flight path exactly then this last part shows the tuning ended up
+last part shows the tuning ended up shipping live where the player where the
+shipping live where the player where the players much reduce correctional input
+players much reduce correctional input but still subtle enough that the player
+but still subtle enough that the player doesn't notice that they're being
+doesn't notice that they're being assisted
+so overall we ended up with a hybrid vehicle shooter experience that we're
+vehicle shooter experience that we're really proud of we use a simplified
+really proud of we use a simplified physical model but with the control
+physical model but with the control options for highly skilled players we
+options for highly skilled players we use the vehicle LED camera to allow
+use the vehicle LED camera to allow precise handling and then layer on
+precise handling and then layer on assists to help our shooting feel
+assists to help our shooting feel precise and satisfying so we're pretty
+precise and satisfying so we're pretty much at the end of the presentation now
+much at the end of the presentation now so I'll just summarize some of the key
+so I'll just summarize some of the key points we discussed today games should
+points we discussed today games should balance simulation depth with arcade
+balance simulation depth with arcade accessibility in order to achieve
+accessibility in order to achieve intuitive controls with challenge and
+intuitive controls with challenge and mastery build your vehicle for the
+mastery build your vehicle for the context is intended for and retune if
+context is intended for and retune if the context changes think about how
+the context changes think about how devious emulation should go look at real
+devious emulation should go look at real world vehicles for inspiration and
+world vehicles for inspiration and decide on what parts would add to the
+decide on what parts would add to the depth to the player experience build
+depth to the player experience build assists to make the game more accessible
+assists to make the game more accessible bounce the amount and strength of the
+bounce the amount and strength of the assists depending on how many game
+assists depending on how many game mechanics the players to interact with
+mechanics the players to interact with ensuring the input frequency isn't too
+ensuring the input frequency isn't too high consider camera led and vehicle LED
+high consider camera led and vehicle LED cameras allow the physicality of the
+cameras allow the physicality of the vehicle to be conveyed through the
+vehicle to be conveyed through the camera and give the player the feedback
+camera and give the player the feedback they need and that's it thank you very
+they need and that's it thank you very much
+[Music]
+who any questions hello bring doc thank you very much thanks I've been working
+you very much thanks I've been working on console vehicle systems for a very
+on console vehicle systems for a very long time but recently been asked to
+long time but recently been asked to help out with PC and I was wondering if
+help out with PC and I was wondering if you had any input or thoughts about
+you had any input or thoughts about digital inputs that are more prevalent
+digital inputs that are more prevalent on PC controls
+on PC controls versus analog sticks and joysticks yes
+versus analog sticks and joysticks yes so the question was thank you the
+so the question was thank you the question was about digital inputs versus
+question was about digital inputs versus analog inputs and console versus PC so
+analog inputs and console versus PC so there are a couple of a couple of big
+there are a couple of a couple of big things there so firstly if you're using
+things there so firstly if you're using keyboard to input then you kind of
+keyboard to input then you kind of you've only got on and off inputs so one
+you've only got on and off inputs so one of the things that we do for both
+of the things that we do for both console and PC is we have steer rates so
+console and PC is we have steer rates so it's kind of fading in and out our input
+it's kind of fading in and out our input in terms of you know just turn to
+in terms of you know just turn to maximum and put you're kind of more fade
+maximum and put you're kind of more fade in and out we use that for our console
+in and out we use that for our console input consult had inputs but we also use
+input consult had inputs but we also use it for our PC input in terms of if you
+it for our PC input in terms of if you hold down a then they will gradually
+hold down a then they will gradually fade towards that which helps a little
+fade towards that which helps a little bit one of the things that we did for
+bit one of the things that we did for stars Battlefront 2 is that we had a and
+stars Battlefront 2 is that we had a and D would control the role and one of the
+D would control the role and one of the things you can do on a pad is because
+things you can do on a pad is because you have an analog input you can
+you have an analog input you can effectively balance the rolling against
+effectively balance the rolling against the auto roll system so if your system
+the auto roll system so if your system is trying to like level you then you can
+is trying to like level you then you can kind of balance it like quarter percent
+kind of balance it like quarter percent left input to kind of keep you locked at
+left input to kind of keep you locked at a particular angle which is totally
+a particular angle which is totally impossible to do with just AMD so we had
+impossible to do with just AMD so we had a separate kind of input mechanism on PC
+a separate kind of input mechanism on PC which is if you were holding down AMD at
+which is if you were holding down AMD at the same time then we use that new
+the same time then we use that new concept to say just lock wherever I am
+concept to say just lock wherever I am so you could kind of say a two here and
+so you could kind of say a two here and then up both of them to this lock in
+then up both of them to this lock in place so we tried to come up with new
+place so we tried to come up with new mechanisms that will suit the PC better
+mechanisms that will suit the PC better than on pad high with sim keyed racing
+than on pad high with sim keyed racing games that you were talking about how do
+games that you were talking about how do you approach handling and assist when
+you approach handling and assist when you're tuning vehicles to be understeery
+you're tuning vehicles to be understeery versus over Siri okay so thank you the
+versus over Siri okay so thank you the question was about understeer versus
+question was about understeer versus oversteer
+oversteer I think it depends on what you're trying
+I think it depends on what you're trying to get what you're trying to get out of
+to get what you're trying to get out of your key experience so in terms of you
+your key experience so in terms of you if you want your vehicle to feel quite
+if you want your vehicle to feel quite heavy it's often nice to have a slightly
+heavy it's often nice to have a slightly under steering vehicle where you're kind
+under steering vehicle where you're kind of even if you're staring at maximum you
+of even if you're staring at maximum you might not be able to make that corner
+might not be able to make that corner and then you encourage your players to
+and then you encourage your players to brake turn into the corner drift round
+brake turn into the corner drift round so I think a lot of most wanted
+so I think a lot of most wanted traveling was a little bit understeery
+traveling was a little bit understeery but then it encourages you to like
+but then it encourages you to like really kick that back out and get into a
+really kick that back out and get into a nice big drift whereas if you want if
+nice big drift whereas if you want if you don't really want your game to be
+you don't really want your game to be about drifting and you want to be very
+about drifting and you want to be very much like a little bit more along the
+much like a little bit more along the lines of like f0 or something works
+lines of like f0 or something works pretty much I want complete control over
+pretty much I want complete control over the left stick and I don't need to be
+the left stick and I don't need to be drifting at all it's just maximum
+drifting at all it's just maximum responsiveness then you probably have
+responsiveness then you probably have something that's way more oversteer
+something that's way more oversteer Ian's gonna like kick into turns really
+Ian's gonna like kick into turns really aggressively so you have full control
+aggressively so you have full control over there that's kinda how I would do
+over there that's kinda how I would do it in the demo when you had the landing
+it in the demo when you had the landing camera in bottom out and hit the ground
+camera in bottom out and hit the ground on the landing was it colliding
+on the landing was it colliding elastically with the ground or was just
+elastically with the ground or was just zeroing at its velocity and then the
+zeroing at its velocity and then the spring force was putting it back so the
+spring force was putting it back so the question was about suspension
+question was about suspension bottoming out so we have on battlefield
+bottoming out so we have on battlefield one we had for like full regular sort of
+one we had for like full regular sort of raycast suspension wheels and then we
+raycast suspension wheels and then we had a rigid body as well so when you
+had a rigid body as well so when you completely bottomed out we detect when
+completely bottomed out we detect when it goes above a certain threshold and
+it goes above a certain threshold and the suspension of like it's more than
+the suspension of like it's more than 80% compressed and we'd count that as
+80% compressed and we'd count that as being bottoming out
+being bottoming out oftentimes we would find that the the
+oftentimes we would find that the the actual rigid body would collide and we'd
+actual rigid body would collide and we'd need to try and smooth it as much as
+need to try and smooth it as much as possible sometimes you get a little bit
+possible sometimes you get a little bit of collision hitching but in general we
+of collision hitching but in general we want to try and keep that maximum 20% of
+want to try and keep that maximum 20% of the suspension like very very rigid in
+the suspension like very very rigid in terms of the suspension force that it
+terms of the suspension force that it applies back so you still get the effect
+applies back so you still get the effect of you've pretty much bottomed out the
+of you've pretty much bottomed out the suspension but you still remain in that
+suspension but you still remain in that 20% to try and keep it floating off the
+20% to try and keep it floating off the ground effect
+ground effect stopping the rigidbody from actually
+stopping the rigidbody from actually colliding so yes we did get some
+colliding so yes we did get some collision hitting and hitting the ground
+collision hitting and hitting the ground we try to minimize it through a very
+we try to minimize it through a very small amount of very very strong
+small amount of very very strong suspension at the top of the suspension
+suspension at the top of the suspension raycast does the camera itself hit the
+raycast does the camera itself hit the ground so it's not so technically with
+ground so it's not so technically with the stuff that I showed in the
+the stuff that I showed in the presentation it's possible future tuned
+presentation it's possible future tuned the camera so that it would like lurch
+the camera so that it would like lurch below so the momentum would keep it
+below so the momentum would keep it going so it would keep going down so if
+going so it would keep going down so if you had a massive momentum term it could
+you had a massive momentum term it could potentially go all the way down below
+potentially go all the way down below the ground however even if you did tune
+the ground however even if you did tune it like that we have another separate
+it like that we have another separate system which is a capsule collision
+system which is a capsule collision system that basically says hey if you're
+system that basically says hey if you're gonna collide with the ground kind of
+gonna collide with the ground kind of push yourself out and resolve it in a
+push yourself out and resolve it in a way that won't actually go through the
+way that won't actually go through the terrain so we have another system on top
+terrain so we have another system on top of that to protect against those sorts
+of that to protect against those sorts of issues for the audience's you talked
+of issues for the audience's you talked about on the starfighters did you do
+about on the starfighters did you do anything different for projectile
+anything different for projectile convergence and something like the
+convergence and something like the x-wing versus the TIE fighter where
+x-wing versus the TIE fighter where there's projectiles are spawning from
+there's projectiles are spawning from different points and colliding basic
+different points and colliding basic coming from different angles the TIE
+coming from different angles the TIE fighters are very straight for the
+fighters are very straight for the x-wings are coming from the outer wings
+x-wings are coming from the outer wings hmm yeah really good question so this is
+hmm yeah really good question so this is a bow you're not actually shooting from
+a bow you're not actually shooting from where you think you're shooting from
+where you think you're shooting from you're shooting from you know like gum
+you're shooting from you know like gum barrel to the edges of the wings it's
+barrel to the edges of the wings it's more complex than just being far away
+more complex than just being far away from the center of the vehicle it's also
+from the center of the vehicle it's also far away from the center of the camera
+far away from the center of the camera so one of the most difficult vehicles
+so one of the most difficult vehicles for this was slave 1 which is like a
+for this was slave 1 which is like a massive vehicle and the gun barrels are
+massive vehicle and the gun barrels are right at the bottom and we needed the
+right at the bottom and we needed the camera to be up here so if you've got
+camera to be up here so if you've got the camera way up here and the gun
+the camera way up here and the gun barrels down here you'd be trying to aim
+barrels down here you'd be trying to aim along where the cameras looking and the
+along where the cameras looking and the camera the the gun barrels would
+camera the the gun barrels would effectively be pointing up so what we
+effectively be pointing up so what we found was there's this really weird
+found was there's this really weird behavior where if you were trying to aim
+behavior where if you were trying to aim at something that was quite close your
+at something that was quite close your gun brows will be pointing like up 40
+gun brows will be pointing like up 40 degrees or something so you would be
+degrees or something so you would be like I want to fire here but then all
+like I want to fire here but then all the all your missed shots are actually
+the all your missed shots are actually going up in the screen and looks really
+going up in the screen and looks really weird
+weird and that's actually a very difficult
+and that's actually a very difficult problem to solve because you either say
+problem to solve because you either say I want to shoot down the camera center
+I want to shoot down the camera center or I want to shoot accurately from where
+or I want to shoot accurately from where the gun barrels actually are so what we
+the gun barrels actually are so what we did was we did some we kind of fudged it
+did was we did some we kind of fudged it a little bit by looking at what your
+a little bit by looking at what your target is in terms of I'm shooting
+target is in terms of I'm shooting towards this guy over here so I'm going
+towards this guy over here so I'm going to try and fade it so that my shots will
+to try and fade it so that my shots will will always hit him and try and make it
+will always hit him and try and make it so that if he's really really close to
+so that if he's really really close to me in terms of like if he's right up in
+me in terms of like if he's right up in the camera and the vertical deviation
+the camera and the vertical deviation from where the gun barrel is actually
+from where the gun barrel is actually pointing would be very aggressive and
+pointing would be very aggressive and would give me that effective shots going
+would give me that effective shots going off into the sky then limited to a
+off into the sky then limited to a particular set angle all right and did
+particular set angle all right and did you also have to account I'm reusing
+you also have to account I'm reusing that an accommodation what's the
+that an accommodation what's the prediction point so that if the player
+prediction point so that if the player was trying to aim in front of a moving
+was trying to aim in front of a moving Atari that's moving laterally that it
+Atari that's moving laterally that it would have to predict in front of them
+would have to predict in front of them where the shots could converge - yeah so
+where the shots could converge - yeah so we did all of our calculations based on
+we did all of our calculations based on the predicted position so we know where
+the predicted position so we know where you're trying to aim and we would aim
+you're trying to aim and we would aim towards that point so we'd use that to
+towards that point so we'd use that to fit it in there now
+just one more actually sort of a comment and suggestion for people if you're
+and suggestion for people if you're working on racing games or vehicle
+working on racing games or vehicle dynamic systems I'm not sure about the
+dynamic systems I'm not sure about the UK but in the United States we have a
+UK but in the United States we have a sport called Auto cross that people do
+sport called Auto cross that people do in parking lots and you set up cone
+in parking lots and you set up cone tracks and stuff and I would encourage
+tracks and stuff and I would encourage you to take a look and see if there's
+you to take a look and see if there's you know that sort of an activity in
+you know that sort of an activity in whatever city you live in because
+whatever city you live in because driving a real vehicle at the edge you
+driving a real vehicle at the edge you develop a different intuition for the
+develop a different intuition for the way a lot of these systems work and the
+way a lot of these systems work and the vehicle dynamics programmer that I
+vehicle dynamics programmer that I worked with he and I would go out on
+worked with he and I would go out on weekends and participate in you know
+weekends and participate in you know championships and stuff and it it was
+championships and stuff and it it was great fun but it also really gave us a
+great fun but it also really gave us a better you know fundamental just
+better you know fundamental just intuition and understanding of the way
+intuition and understanding of the way the vehicles work when they're really at
+the vehicles work when they're really at the edge of the performance envelope
+the edge of the performance envelope which most people never experience I
+which most people never experience I mean even if you're go karting or you're
+mean even if you're go karting or you're doing other stuff there's different you
+doing other stuff there's different you know ways of white transfer and when you
+know ways of white transfer and when you actually lose control what happens when
+actually lose control what happens when you spin out and those sorts of things
+you spin out and those sorts of things so just suggesting if people are working
+so just suggesting if people are working on those systems see if there's like a
+on those systems see if there's like a SCCA or Porsche Club or a BMW Club or
+SCCA or Porsche Club or a BMW Club or anything in your area and you know
+anything in your area and you know participate in those sorts of things
+participate in those sorts of things know yeah definitely like actually
+know yeah definitely like actually getting real experiences there because
+getting real experiences there because they're super valuable I think whenever
+they're super valuable I think whenever we were trying to do a new type of
+we were trying to do a new type of vehicle we would try and actually go and
+vehicle we would try and actually go and drive something similar unfortunately we
+drive something similar unfortunately we can't get World War 1 vehicles so we
+can't get World War 1 vehicles so we could actually drive any of those but
+could actually drive any of those but it's it's super valuable and also it
+it's it's super valuable and also it works the other way around as well like
+works the other way around as well like I found that playing a lot of racing
+I found that playing a lot of racing games throughout my life made me really
+games throughout my life made me really good at go-karting I mean not that good
+good at go-karting I mean not that good but you know
+but you know for the future turkey bottom I want to
+for the future turkey bottom I want to go with shooting the guns from not from
+go with shooting the guns from not from the camera yes did you do anything to
+the camera yes did you do anything to handle where there is an object between
+handle where there is an object between the gun and the target but that same
+the gun and the target but that same object is not between the camera and the
+object is not between the camera and the target so we didn't do too much oh so
+target so we didn't do too much oh so sorry this was about if there's a object
+sorry this was about if there's a object between the gun and where the target
+between the gun and where the target actually is it's kind of obstructing we
+actually is it's kind of obstructing we didn't do too much of that
+didn't do too much of that mainly because assets you like the
+mainly because assets you like the situation of the game is mainly aiming
+situation of the game is mainly aiming it like a Starfighter which is over here
+it like a Starfighter which is over here and I'm kind of going through a tunnel
+and I'm kind of going through a tunnel maybe is the most geometry we tend to
+maybe is the most geometry we tend to get in in between things we didn't find
+get in in between things we didn't find that players had that a lot in in in
+that players had that a lot in in in battlefront - I'd see a few if you were
+battlefront - I'd see a few if you were doing a first-person shooter that
+doing a first-person shooter that obviously can just like position the
+obviously can just like position the camera right up again at the position
+camera right up again at the position the gun right up against the wall and
+the gun right up against the wall and you get that situation a lot in which
+you get that situation a lot in which case I think you'd probably something
+case I think you'd probably something along the lines of doing ray casts from
+along the lines of doing ray casts from the gun and being like well if that's
+the gun and being like well if that's obstructed then fire the bullet here
+obstructed then fire the bullet here instead of where I think it should go
+instead of where I think it should go from the cameras point of view and
+from the cameras point of view and decide which is most apropos to
+decide which is most apropos to flickable thanks cool if there's any
+flickable thanks cool if there's any more questions or anyone wants to catch
+more questions or anyone wants to catch up afterwards grab a business card or
+up afterwards grab a business card or something fun then come grab me
+something fun then come grab me afterwards thank you very much

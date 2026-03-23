@@ -1,0 +1,258 @@
+﻿Hi! My name's Mark and I am 
+making a video game about magnets.
+So, one of my goals with this series 
+is to show you a true, transparent,  
+and unvarnished look at what it takes to make 
+your very own video game. And part of that means  
+I can't just show you the stuff that's fun and 
+exciting and makes for good video footage, like  
+prototyping game mechanics, designing 
+levels, or doing surprise demo drops.
+And, as it turns out, there's a lot of stuff in 
+game development that just isn't very glamorous.  
+Stuff like menus, the heads-up display, saving 
+and loading data, supporting different controller  
+types, syncing options, tracking progress, doing 
+level transitions, and more. This is stuff that  
+doesn't really get shown in dev diaries and 
+documentaries because, in truth, it's very dry.
+But someone's got to make this stuff. And in this 
+game… that someone is… well it's me, isn't it?
+Okay, so last time on this series I 
+completely overhauled my character controller.  
+And part of that meant giving the player 
+some options about how the character works:  
+like letting you change from holding the 
+button to aim, to toggling it on and off.  
+Or letting the player remap all of the keys 
+and controller buttons. Or letting the player  
+change the colour of the magnet. And this was 
+all well and good for a throwaway test level,  
+but if I want these options to work across an 
+entire game I'm going to need to find some way to  
+sync these options from level to level, let 
+the player save and load these options from  
+their hard drive, and provide some kind of 
+UI to let the player set these… settings.
+And so after a bit of fiddling 
+around, here's what I came up with.
+When you first load the [game] to the title 
+screen, I spawn in an options manager. This is  
+an invisible game object with a bunch of scripts 
+to track the player's options and save and load  
+those options to the hard drive. And the object 
+is tagged “Don't Destroy On Load”, which means  
+when the player starts the game, the title screen 
+is deleted from memory and replaced with a level  
+but, the options manager hangs around like a bad 
+fart. And because it's still there in memory,  
+the new level can find the options 
+manager and essentially… ask it questions.
+Like the character can say ‘should 
+I have low sensitivity aiming right  
+now?’ and the magnet can say ‘what 
+colour am I supposed to be?’ and  
+this panel can ask ‘should I have 
+accessibility symbols on right now?’
+What I've essentially done here is decouple the 
+meta level game logic from the moment to moment  
+level design. Which might seem kind of obvious 
+in retrospect, but I definitely didn't have this  
+during the MVP. There, every level had 
+its own duplicated version of the code  
+for saving and loading progress, transitioning 
+between levels, and there was even a duplicated  
+version of the pause menu in every level in 
+the game. It was wildly inefficient, it made  
+testing levels slow, it added all this extra 
+junk to my hierarchy, it made it difficult  
+to change any of these options, and it 
+was hard to track stuff between levels.
+This new system is much, much smarter. So 
+I decided to create a bunch more of these  
+invisible managers. Now, you can send a level 
+name to the transition manager and it will wipe  
+away the current level and wipe into the new 
+level. That's paired nicely with the music  
+manager which takes the non-existent soundtrack 
+and fades out and in with the level load. There's  
+also the HUD manager which draws stuff on top of 
+the screen, like these tutorial prompts and these  
+context sensitive button icons. Which, yes, 
+do change if you change your controller. And  
+I made a UI manager to hold the pause menu and 
+the options menu. Which, yes, is hideously ugly  
+right now. I'm just focused on the functionality 
+- I’ll make it pretty in the future.
+Just like sound design, UI design is a Future Mark  
+problem. And, yes, I realise that Future 
+Mark problems are starting to stack up a bit.
+But there was one more manager I wanted to build. 
+So, back in the MVP, the game moves from level one  
+to level two to level three and so on. And I'm 
+not sure if such a linear progression of levels  
+is the best for a puzzle game. Sure, 
+some puzzle games do have this like  
+Portal and Inside. But others, like Braid, 
+Stephen's Sausage Roll, and Baba Is You,  
+have a more open-ended structure. You can 
+skip levels, play puzzles out of order, and  
+come back later to puzzles you skipped in 
+the past. And I kind of like this. I'm not  
+keen on giving the player a big brick wall just 
+because they got stumped on one of the puzzles.
+So I wanted to build a non-linear level structure 
+into my game, and here's how I did it. In each  
+level the goal is to find and collect a key, and 
+I have a new progression manager that has a list  
+of all the keys in the game and it ticks them off 
+when you find one, and it saves that data to the  
+hard drive. I built a really simple hub level with 
+doors that go between the different puzzles and a  
+special door at the end that is only unlocked 
+after the player has a certain number of keys.  
+A number that I can very easily change 
+as I tweak the balance of the game.
+And speaking of tweaking and balancing I 
+wanted to make it really easy on myself to  
+change the order of the levels 
+based on players feedback  
+about the relative difficulty of the puzzles. So 
+the whole system is essentially routed through  
+the level's file name. The levels are named 
+something like 01 Lift 02, with the first two  
+characters denoting which hub the level belongs 
+to, and the last two characters denoting which key  
+is found in that level. And then all of the 
+relevant systems just read the level name  
+and pull out the strings they need, to find 
+out where the level belongs. And this means  
+I can change the order of the levels just by 
+renaming the files, which is super efficient.
+And while we're on this efficiency kick, let's 
+talk about tools. So another thing I found in  
+my MVP was that it was really kind of frustrating 
+to build and especially iterate on level designs.
+Like let me give you an example: if I want to 
+take this electromagnet and make it a bit shorter  
+and change it to be red, I need 
+to resize the area effector,  
+resize the visual for the beam, move the 
+particle system and reduce its lifetime,  
+change the particle colours, change the beam’s 
+colour, change the sprite’s colour, change the  
+magnet’s layer, change the buffer zone’s tag, 
+and change the area effector's collider mask.  
+And now imagine doing this for pretty much every 
+mechanic in the game just because you want to  
+move something one tile up or you want to start 
+the level with a door open rather than closed.
+And what I came to realise is that Unity is a tool 
+for making games, but it's not a tool for making  
+my game - because that's on me. I have to put 
+in place the tools and systems that will allow  
+me to generate content for my specific game. 
+And so with that in mind, the new version of  
+the electromagnetic panel has a simple slider in 
+the inspector for the height, and as I move this  
+slider up and down it's automatically updating all 
+of those variables I talked about earlier. Same  
+for these buttons to change it from red to blue, 
+or on to off. Basically, if there's something  
+in my game that I want to change a lot and the 
+process of doing it is just a rote sequence of  
+steps, I might as well build a simple script 
+that can do it all in a single button press.
+And so I updated more and more of the stuff from 
+my MVP to be more easy and efficient to use. Like  
+this moving box: I now use Unity's gizmos to show 
+me exactly where the box will move from and to,  
+and the path it will take. I also set 
+up a dedicated window just for my prefab  
+game mechanics so I can drag and drop them into 
+the scene like I'm playing Super Magnet Maker.
+Oh, and another thing that annoyed me in the 
+MVP was Unity Events. Not the events themselves,  
+they are amazing. They basically work like 
+this: in, say, the code for this green button  
+I can say when the button is pressed just ‘invoke 
+a Unity Event’. And then, back in the editor,  
+in the inspector I have a really simple field 
+where I can just drag in any object from the scene  
+and have it run basically any function on 
+it. So, now, when I press the green button  
+it turns off the electromagnetic panel. 
+Really powerful stuff for a puzzle game. But  
+it's a bit frustrating that I have to find the 
+relevant thing in the hierarchy. It would be  
+super amazing if I just had a Photoshop-style 
+pipette to click on the object in the scene.
+And so I abused my internet fame to get 
+someone much smarter than me to just  
+build that exact thing I described, and it is 
+amazing, and I use it all the time. There's  
+a link to the GitHub page for this Unity 
+asset in the description for this video.
+So now that I've built a bunch of 
+tools that should hopefully make it  
+easier and more efficient to design 
+puzzles, I decided I might as well  
+test it by building a puzzle. And, yeah, it was 
+a lot more efficient. But there were still a few  
+annoyances and bottlenecks to the process, so 
+I fixed them and tested it again by building  
+another level. And then another level. And 
+another level, before realising something…
+I now have a whole fleet of system level managers 
+working in the background. I have this whole  
+hub structure built. And I've made 
+four or five brand new puzzles. Did  
+I just accidentally make a video game? Whoops!
+It's funny, I genuinely wasn't planning 
+on making a new demo for my game,  
+but I've got like 90 percent 
+of one on my hard drive now.
+I think it just goes to show how powerful 
+it can be to have efficient tools.  
+They can make building the game so 
+fast and easy that you can build stuff  
+without even realising it. So I think it's 
+worth putting in a little bit of extra effort  
+and a bit of extra pain at the beginning of 
+the process, because it will just save you  
+so much time and effort and heartache for 
+the main part of the game's development.
+But whatever the case, this is awesome 
+because, again, back in the MVP,  
+there was a lot of feedback I needed to 
+address. Stuff that people didn't really  
+like about the game: like the character feels 
+incredibly crummy to control, there's lots of  
+annoying inconsistencies in the visual language, 
+the mix between platforming and puzzles had some  
+players confused about how to play, most of the 
+puzzles fell short of that ‘aha!’ eureka moment,  
+many of the levels were messy and buggy and 
+had you waiting around for cycles to reset,  
+and the game didn't truly feel like it 
+was built around this magnet mechanic.
+So this new demo, Untitled Magnet Game 
+version 2.0, is a chance for me to  
+fix all of those problems and see what people 
+think of the game now. And so I would love it  
+if you could pop over to itch.io and play 
+this brand new… surprise demo drop. Yes,  
+I had to do it. It's available to everyone, 
+not just patrons. It works on PC and Mac,  
+you can play it with keyboard and mouse, or with 
+various different controllers. Please give it a go  
+and drop me some feedback either in the comments 
+on this video or over on Itch.io. And then I will  
+come back discuss the new round of feedback 
+and see where I should take the game next.  
+Thank you so much for watching, have fun 
+with the game, and I'll talk to you soon…
+Oh, before I go the GMTK Game Jam is 
+back for 2022. It starts on July 15th,  
+so while you're over on Itch.io just sign up for 
+the game jam there as well. I'll see you soon.

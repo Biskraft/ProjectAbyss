@@ -1,0 +1,2064 @@
+[Music] i'm jason grimblet and this is brian
+i'm jason grimblet and this is brian butler we're co-founders at a small
+butler we're co-founders at a small indie studio called freehold games
+indie studio called freehold games and we're going to end the day of math
+and we're going to end the day of math for game developers
+for game developers with a talk with basically no math in it
+with a talk with basically no math in it so
+so i apologize um in advance but uh yeah
+i apologize um in advance but uh yeah we're going to be walking you through
+we're going to be walking you through the architecture for one of our big
+the architecture for one of our big procedural generation systems
+procedural generation systems so the talk is called n10 procedural
+so the talk is called n10 procedural generation in caves of cod
+generation in caves of cod so let's say that you have some
+so let's say that you have some familiarity with procedural generation
+familiarity with procedural generation some various techniques let's say you've
+some various techniques let's say you've used l systems to generate some plants
+used l systems to generate some plants or maybe this weird horseshoe creature
+or maybe this weird horseshoe creature you've used noise maps to generate
+you've used noise maps to generate terrain
+terrain uh maybe you've used a markov chain to
+uh maybe you've used a markov chain to generate some text
+generate some text but we have a problem here so here's our
+but we have a problem here so here's our problem statement
+problem statement which is the reason why we're here how
+which is the reason why we're here how do you combine production techniques to
+do you combine production techniques to build large-scale generative systems
+build large-scale generative systems and obviously large-scale is a relative
+and obviously large-scale is a relative term but what we mean for our purposes
+term but what we mean for our purposes today is any
+today is any system that requires you to compose
+system that requires you to compose several of these techniques
+several of these techniques in some novel way something you can't
+in some novel way something you can't just go up and look up a tutorial for
+just go up and look up a tutorial for so who are we why are we here to talk
+so who are we why are we here to talk about this today
+about this today again we're jason and brian from
+again we're jason and brian from freehold games we've made some
+freehold games we've made some roguelikes
+roguelikes uh sprogywood and caves of cod a couple
+uh sprogywood and caves of cod a couple years ago
+years ago tanya short and tarn adams edited this
+tanya short and tarn adams edited this book called procedural
+book called procedural generation and game design and we have a
+generation and game design and we have a few chapters in there and then
+few chapters in there and then coming out like today or something this
+coming out like today or something this procedural storytelling game design book
+procedural storytelling game design book uh is available here at gdc i think and
+uh is available here at gdc i think and i have a chapter in there about
+i have a chapter in there about procedurally generating history which is
+procedurally generating history which is one of the modules we're going to touch
+one of the modules we're going to touch on today as we walk through this larger
+on today as we walk through this larger architecture
+architecture so let me give you some context about
+so let me give you some context about what keys of cut is if you haven't heard
+what keys of cut is if you haven't heard of it it's an open world science fantasy
+of it it's an open world science fantasy rpg and roguelike it's a
+rpg and roguelike it's a tile based game the tagline is chiseled
+tile based game the tagline is chiseled through a layer cake of
+through a layer cake of thousand-year-old civilizations
+thousand-year-old civilizations we've sort of weaved a handcrafted
+we've sort of weaved a handcrafted narrative the type you might find in
+narrative the type you might find in say an elder scrolls rpg around some
+say an elder scrolls rpg around some deeply simulative systems and
+deeply simulative systems and like we said like i said earlier like
+like we said like i said earlier like brian said in his last stock we make
+brian said in his last stock we make extensive use of procgen and that's kind
+extensive use of procgen and that's kind of why we're
+of why we're here today to talk about this so again
+here today to talk about this so again we have this problem statement
+we have this problem statement how do you combine combine proc gen
+how do you combine combine proc gen techniques to build large-scale
+techniques to build large-scale generative systems
+generative systems and we're going to walk you through a
+and we're going to walk you through a little case study here today for how we
+little case study here today for how we procedurally generated this large-scale
+procedurally generated this large-scale output
+output this whole of villages and caves of cod
+this whole of villages and caves of cod and
+and where we can we'll try to generalize it
+where we can we'll try to generalize it into some wisdom
+into some wisdom but for the most part we're just going
+but for the most part we're just going to be walking you through the system
+to be walking you through the system and you know you can kind of experience
+and you know you can kind of experience that and take notes and
+that and take notes and see how you might apply it to your own
+see how you might apply it to your own generative systems
+generative systems so it's going to be a pretty long talk
+so it's going to be a pretty long talk today and there's there's a lot going on
+today and there's there's a lot going on so
+so this is what we're going to be doing so
+this is what we're going to be doing so first i'm going to establish some design
+first i'm going to establish some design context
+context we're going to tell you about what our
+we're going to tell you about what our broad approach was we're going to get on
+broad approach was we're going to get on the same page by
+the same page by agreeing on what a village is i'll show
+agreeing on what a village is i'll show you some of the techniques we use
+you some of the techniques we use and then the little starred item here
+and then the little starred item here village generation this is where really
+village generation this is where really where most of the talk is going to live
+where most of the talk is going to live we're going to be doing this sort of
+we're going to be doing this sort of dive into the whole system flow of our
+dive into the whole system flow of our village generation and then we'll try to
+village generation and then we'll try to distill it down to some takeaways
+distill it down to some takeaways at the end so design context very
+at the end so design context very important so like any time you're
+important so like any time you're building
+building a large-scale system or any system
+a large-scale system or any system really i think it's important to
+really i think it's important to frame it with what your design context
+frame it with what your design context is because this is really what's going
+is because this is really what's going to be
+to be involved in making and coming down and
+involved in making and coming down and finally like making decisions so
+finally like making decisions so a couple bullet points here that are
+a couple bullet points here that are somewhat obvious but
+somewhat obvious but benefit from some unpacking so we're
+benefit from some unpacking so we're making an rpg
+making an rpg so we're taking a simulative approach to
+so we're taking a simulative approach to design so what i mean by this is
+design so what i mean by this is you know a village is something that
+you know a village is something that exists in the world
+exists in the world we're trying to reproduce its dynamics
+we're trying to reproduce its dynamics to some degree maybe not perfectly maybe
+to some degree maybe not perfectly maybe we have our own things we want to say
+we have our own things we want to say and so we're going to
+and so we're going to heighten certain aspects of our village
+heighten certain aspects of our village but but by and large a village is
+but but by and large a village is something again that we're trying to
+something again that we're trying to reproduce the dynamics of
+reproduce the dynamics of perspective is limited to a player
+perspective is limited to a player avatar so we have this idea of
+avatar so we have this idea of generating a village but
+generating a village but how players are going to engage with
+how players are going to engage with that village in our game
+that village in our game is by being embodied in a player avatar
+is by being embodied in a player avatar they're going to be walking through the
+they're going to be walking through the village
+village exploring the spaces that way talking to
+exploring the spaces that way talking to npcs
+npcs this is different if say we were making
+this is different if say we were making a sim city type game where we were also
+a sim city type game where we were also say generating a village but
+say generating a village but your engagement model with how you
+your engagement model with how you actually engage with that village
+actually engage with that village you know is different maybe it's the
+you know is different maybe it's the course of the
+course of the the village's lifespan over 500 years
+the village's lifespan over 500 years and you're
+and you're you're looking at all sort of um
+you're looking at all sort of um systemic
+systemic properties of that village but for us
+properties of that village but for us we're actually we're making an rpg
+we're actually we're making an rpg you're embodied in the world you're
+you're embodied in the world you're going to be experiencing the village
+going to be experiencing the village that way
+that way and then this aesthetic principle that
+and then this aesthetic principle that we kind of hit on a lot in our talks
+we kind of hit on a lot in our talks that we like to
+that we like to to frame um what we're talking about
+to frame um what we're talking about with is that we value novelty very
+with is that we value novelty very highly in output so
+highly in output so we like to say we let our generators run
+we like to say we let our generators run wild and then we
+wild and then we sort of establish a context where that's
+sort of establish a context where that's okay
+so modularity is good this is another bit of design context so
+bit of design context so both from the software design
+both from the software design perspective so decoupled
+perspective so decoupled modules are tractable they're flexible
+modules are tractable they're flexible can be combined
+can be combined but also from the game design
+but also from the game design perspective this sort of dovetails with
+perspective this sort of dovetails with the idea that we like to let our
+the idea that we like to let our generators run wild so
+generators run wild so decoupled modules can be composed into
+decoupled modules can be composed into various
+various novel uh varied and novel output and
+novel uh varied and novel output and you'll sort of see that play out as we
+you'll sort of see that play out as we walk through the system
+walk through the system okay this is mountain this is mountain
+okay this is mountain this is mountain fuji in fact but we're going to call it
+fuji in fact but we're going to call it abstraction mountain today so
+abstraction mountain today so this is a silly metaphor but it's gonna
+this is a silly metaphor but it's gonna it's gonna do some work here so
+it's gonna do some work here so basically we're the broad approach we're
+basically we're the broad approach we're going to be taking is to model
+going to be taking is to model our village very abstractly at first and
+our village very abstractly at first and then through through a
+then through through a process of multi-steps through
+process of multi-steps through transformations we're going to get down
+transformations we're going to get down into concrete valley where we're
+into concrete valley where we're actually
+actually fabricating game objects and building
+fabricating game objects and building something that the player is going to
+something that the player is going to experience firsthand so our broader
+experience firsthand so our broader poach what are we going to do we're
+poach what are we going to do we're going to be generating a village over
+going to be generating a village over multiple steps we're going to be
+multiple steps we're going to be modeling fat village facets at various
+modeling fat village facets at various levels of abstraction
+levels of abstraction so the earlier steps are going to be
+so the earlier steps are going to be more abstract
+more abstract and then we're going to be using that
+and then we're going to be using that those abstract data models as inputs
+those abstract data models as inputs into the later steps where we reify them
+into the later steps where we reify them where we make them more concrete
+where we make them more concrete conversely if we get to a point where we
+conversely if we get to a point where we have to make a concrete decision
+have to make a concrete decision and there's no abstract input available
+and there's no abstract input available we're going to use some defaults
+we're going to use some defaults and so what that means is we don't have
+and so what that means is we don't have to fully model
+to fully model meaning the like flow of meaning through
+meaning the like flow of meaning through our system sometimes we make a random
+our system sometimes we make a random decision
+decision and we're just going to rely on
+and we're just going to rely on apophenia like the
+apophenia like the the tendency for people to perceive
+the tendency for people to perceive patterns and things and the fact that we
+patterns and things and the fact that we do have some meaningful decisions we're
+do have some meaningful decisions we're making to have it all coherent to
+making to have it all coherent to coherent output and uh today it's all
+coherent output and uh today it's all about the plumbing we're really going to
+about the plumbing we're really going to be focusing on the input and output of
+be focusing on the input and output of our various steps and how we're
+our various steps and how we're consuming and then producing more output
+consuming and then producing more output we're not going to be doing deep dives
+we're not going to be doing deep dives into the individual modules
+into the individual modules for a couple reasons one we just don't
+for a couple reasons one we just don't have the time we're going to take up
+have the time we're going to take up most of the time just
+most of the time just walking through the system flow for the
+walking through the system flow for the second reason for a lot of our modules
+second reason for a lot of our modules the techniques are quite simple
+the techniques are quite simple like they're they're things that are
+like they're they're things that are well researched well understood you
+well researched well understood you could go out and learn about
+could go out and learn about some of them are more complex and we'll
+some of them are more complex and we'll touch on those but for the most part
+touch on those but for the most part we're going to be talking about how
+we're going to be talking about how the the joints where these these modules
+the the joints where these these modules are hooked up together
+are hooked up together so here's a village in caves of cut
+so here's a village in caves of cut again it's this this tile map
+again it's this this tile map you see there's a lot going on here
+you see there's a lot going on here right there's like this inner circular
+right there's like this inner circular building
+building that's surrounded by this outer circular
+that's surrounded by this outer circular building you see a bunch of doors you
+building you see a bunch of doors you see a bunch of
+see a bunch of uh villagers here in the bottom right
+uh villagers here in the bottom right corner there's this
+corner there's this little building that looks like a
+little building that looks like a library there's a bookshelf in there in
+library there's a bookshelf in there in the top right corner
+the top right corner you see a building that has an oven and
+you see a building that has an oven and some drinking vessels that's some sort
+some drinking vessels that's some sort of kitchen or food storage area
+of kitchen or food storage area so we're going to be you know this is
+so we're going to be you know this is the final result we're going to be
+the final result we're going to be unpacking how we arrived here
+so let's get on the same page about what is a village right
+is a village right village is something is a concept that
+village is something is a concept that exists in the world we can kind of come
+exists in the world we can kind of come to some understanding about what we mean
+to some understanding about what we mean and when we're thinking about this you
+and when we're thinking about this you know we're both
+know we're both caves are kind of sort of a far future
+caves are kind of sort of a far future setting so it actually borrows a lot
+setting so it actually borrows a lot from i'd say the ancient world is a real
+from i'd say the ancient world is a real ancient world aesthetic
+ancient world aesthetic so in in deciding what we wanted to
+so in in deciding what we wanted to represent
+represent in our village that's where we got a lot
+in our village that's where we got a lot of our inspiration
+of our inspiration we also have been working on this game
+we also have been working on this game for a long time over a decade now in
+for a long time over a decade now in fact and
+fact and we have villages in the game we have
+we have villages in the game we have handwritten static villages that we
+handwritten static villages that we design
+design and so what we could do is we could take
+and so what we could do is we could take those and unpack those and kind of
+those and unpack those and kind of figure out what we were doing as
+figure out what we were doing as designers to to build that what we had
+designers to to build that what we had in mind and then we could
+in mind and then we could try to proceduralize it so what's in our
+try to proceduralize it so what's in our village we have villagers first of all
+village we have villagers first of all so those are going to be represented
+so those are going to be represented like they are in most np rpgs as npcs
+like they are in most np rpgs as npcs history like the relationship with the
+history like the relationship with the past and the present is very important
+past and the present is very important in case of cut so
+in case of cut so we're going to be wanting to generate
+we're going to be wanting to generate some sort of history there's the
+some sort of history there's the geography of the village location how
+geography of the village location how it's integrated into the geography
+it's integrated into the geography the village is going to have some
+the village is going to have some architectures that we generate it's
+architectures that we generate it's going to have a government
+going to have a government cultural practices religion all sort of
+cultural practices religion all sort of um
+um like we're going to generate a whole
+like we're going to generate a whole culture essentially a storytelling
+culture essentially a storytelling tradition you know the the village has
+tradition you know the the village has some history but how do they
+some history but how do they actually relay that history to to people
+actually relay that history to to people who visit the village
+who visit the village the village is going to have a
+the village is going to have a relationship with local resources maybe
+relationship with local resources maybe they they cook a particular meal they
+they they cook a particular meal they will use a local ingredient to do that
+will use a local ingredient to do that they're going to have furniture styles
+they're going to have furniture styles for the furniture that exist in all of
+for the furniture that exist in all of the buildings
+the buildings there's going to be some food and drink
+there's going to be some food and drink like signature dishes for each meal
+like signature dishes for each meal we do this thing where we procedurally
+we do this thing where we procedurally generate dialogue for these npcs and so
+generate dialogue for these npcs and so sometimes they have proverbs that
+sometimes they have proverbs that they've
+they've they've sort of invented based on their
+they've sort of invented based on their history and their culture
+history and their culture and then finally we have this sort of
+and then finally we have this sort of collective and personal needs of the
+collective and personal needs of the village which we're going to be modeling
+village which we're going to be modeling as most rpgs do
+as most rpgs do as quests here's a slide with just some
+as quests here's a slide with just some techniques we use
+techniques we use through the course of this uh this sort
+through the course of this uh this sort of
+of multi-tiered system i'm not going to
+multi-tiered system i'm not going to what what'll happen is as i walk through
+what what'll happen is as i walk through the system
+the system uh i'll call out some of these
+uh i'll call out some of these techniques as we as we get there but
+techniques as we as we get there but here's a slide with all of them
+so village generation really happens over three distinct phases during
+over three distinct phases during during uh the course of
+during uh the course of a caves of god game so let's i'm gonna
+a caves of god game so let's i'm gonna focus on the second and third right now
+focus on the second and third right now the blue and red ones and we're gonna
+the blue and red ones and we're gonna get back to design in a minute
+get back to design in a minute so first of all when you spin up a new
+so first of all when you spin up a new games of new game of caves of cod you
+games of new game of caves of cod you hit
+hit create world create new character in the
+create world create new character in the world we're generating a whole new world
+world we're generating a whole new world for you
+for you and during that phase what we call world
+and during that phase what we call world generation
+generation we're actually generating the history of
+we're actually generating the history of each of these villages
+each of these villages we're going to this next step called
+we're going to this next step called resolve neighbors where we're
+resolve neighbors where we're figuring out where the village is going
+figuring out where the village is going to exist in the world and what
+to exist in the world and what relationships it's going to have with
+relationships it's going to have with its
+its with its sort of local neighbors in that
+with its sort of local neighbors in that in that uh
+in that uh local region then the world is generated
+local region then the world is generated you have a character you can then go
+you have a character you can then go walk around the world
+walk around the world we don't actually build the village
+we don't actually build the village until you're about to enter the little
+until you're about to enter the little world map tile that says that where the
+world map tile that says that where the village is so we do this sort of village
+village is so we do this sort of village fabrication on demand
+fabrication on demand once you actually do you decide to enter
+once you actually do you decide to enter the village then we do this we're in
+the village then we do this we're in this last fabrication phase and this is
+this last fabrication phase and this is where we're going to actually generate a
+where we're going to actually generate a specific culture for the village
+specific culture for the village based on the history we're going to
+based on the history we're going to generate a specific architectural style
+generate a specific architectural style and map out what the buildings look like
+and map out what the buildings look like and finally the last step
+and finally the last step right before the villages actually
+right before the villages actually appears for in front of the like is
+appears for in front of the like is loaded on the screen for the player
+loaded on the screen for the player we're going to fabricate game objects
+we're going to fabricate game objects where we're actually going to place
+where we're actually going to place walls place
+walls place npcs place furniture in the building
+npcs place furniture in the building this first phase is what we're
+this first phase is what we're what we call design phase it's where all
+what we call design phase it's where all of our pre-baked material goes in
+of our pre-baked material goes in so all of the like static handwritten
+so all of the like static handwritten templates that we're
+templates that we're using to seat our procedural generation
+using to seat our procedural generation are done here and this is done at
+are done here and this is done at compile time right it's just
+compile time right it's just if if we have some sort of static
+if if we have some sort of static blueprints that we're writing
+blueprints that we're writing we're going to bake them into the game
+we're going to bake them into the game and then once the dynamic phases start
+and then once the dynamic phases start to happen we're going to be able to
+to happen we're going to be able to leverage those
+leverage those so we have abstraction mountain again so
+so we have abstraction mountain again so again
+again those five steps we're gonna lay out
+those five steps we're gonna lay out here we're gonna start really abstractly
+here we're gonna start really abstractly with the village history
+with the village history um now we get back to this idea that i
+um now we get back to this idea that i was talking about earlier where because
+was talking about earlier where because we're generating a village with a very
+we're generating a village with a very specific engagement model where
+specific engagement model where players are only going to be interacting
+players are only going to be interacting with it by actually walking through the
+with it by actually walking through the village and
+village and you know looking at monuments talking to
+you know looking at monuments talking to npcs
+npcs we can get away with generating the uh
+we can get away with generating the uh with with representing the history
+with with representing the history pretty abstractly
+pretty abstractly now when we actually get down to
+now when we actually get down to fabricate game objects we need to
+fabricate game objects we need to actually generate concrete things that
+actually generate concrete things that the player can
+the player can interact with but these five steps are
+interact with but these five steps are arranged along this sort of axis of
+arranged along this sort of axis of abstraction
+abstraction we're gonna generate history represent
+we're gonna generate history represent it really abstractly
+it really abstractly resolve some neighbor relationships kind
+resolve some neighbor relationships kind of make some decisions about the history
+of make some decisions about the history uh go go down start to actually make
+uh go go down start to actually make decisions about what the culture looks
+decisions about what the culture looks like
+like and at each step we're just getting
+and at each step we're just getting closer and closer to concrete valley
+closer and closer to concrete valley here where we're actually going to be
+here where we're actually going to be serving the village up to the player
+serving the village up to the player so this is a screenshot of a monument
+so this is a screenshot of a monument in one of these villages we're going to
+in one of these villages we're going to be using it as a sort of touchstone like
+be using it as a sort of touchstone like as a
+as a as a sort of um a nice consistent
+as a sort of um a nice consistent thread that we're going to be able to
+thread that we're going to be able to follow as we do this walk through this
+follow as we do this walk through this of this big system so we see here it's a
+of this big system so we see here it's a little building some sort of some sort
+little building some sort of some sort of monument hall
+of monument hall we see there's some torch posts in the
+we see there's some torch posts in the corners and then there's in the center
+corners and then there's in the center of these yellow and scion monuments
+of these yellow and scion monuments everything in caves of cut is an object
+everything in caves of cut is an object you can interact with it it has a little
+you can interact with it it has a little description here
+description here which i'll read so in nine in 790 the
+which i'll read so in nine in 790 the villagers of nawan
+villagers of nawan demanded that the mayor abdicate and all
+demanded that the mayor abdicate and all forms of hierarchy be abolished from
+forms of hierarchy be abolished from their village
+their village the two pillars of civic life and now on
+the two pillars of civic life and now on thus became anarchy and valatara
+thus became anarchy and valatara legendary giant dragonfly
+legendary giant dragonfly so um caves of cud's a game where
+so um caves of cud's a game where there's a lot of like uplifted
+there's a lot of like uplifted plants and animals so it's very common
+plants and animals so it's very common to see a lot of like sapient dragonflies
+to see a lot of like sapient dragonflies for instance and if you see
+for instance and if you see on the right side of this village
+on the right side of this village there's a little statue of a dragonfly
+there's a little statue of a dragonfly which also is part of the village so
+which also is part of the village so we're gonna walk through kind of how we
+we're gonna walk through kind of how we came
+came from generating some history about this
+from generating some history about this village to actually producing this
+village to actually producing this monument hall
+monument hall and this this monument and pasting this
+and this this monument and pasting this description onto it
+okay so we're going to walk through we're on the first step here
+we're on the first step here generate history so let me let me
+generate history so let me let me describe this slide because there's a
+describe this slide because there's a lot going on here and and
+lot going on here and and this is the format we're going to use
+this is the format we're going to use for the rest of the slides in the deck
+for the rest of the slides in the deck so again remember i said like what's
+so again remember i said like what's important today is the input and output
+important today is the input and output so we have
+so we have input coming in from the left and bottom
+input coming in from the left and bottom i'll describe the difference between
+i'll describe the difference between those
+those uh types of inputs in a minute we have
+uh types of inputs in a minute we have output
+output each step is going to have some sort of
+each step is going to have some sort of output at some some level of abstraction
+output at some some level of abstraction where i generate history so we're going
+where i generate history so we're going to start with some really abstract
+to start with some really abstract output and work from there
+output and work from there and then on the right you see there's
+and then on the right you see there's this little right pane where and all
+this little right pane where and all this is we
+this is we is us tracking the steps we're on so you
+is us tracking the steps we're on so you see the five steps laid out starting
+see the five steps laid out starting with generate history ending with
+with generate history ending with fabricate game objects
+fabricate game objects the step we're on right now as we follow
+the step we're on right now as we follow as we walk through the flow here is
+as we walk through the flow here is going to be darkened so generate history
+going to be darkened so generate history right now you see is highlighted
+right now you see is highlighted and then there's just a little extra bit
+and then there's just a little extra bit of information here where you see
+of information here where you see at the top it says world gen and at the
+at the top it says world gen and at the bottom of this pane it says
+bottom of this pane it says fabrication this is just to remind you
+fabrication this is just to remind you where
+where we're in which phase we're in so
+we're in which phase we're in so for the first two steps generate history
+for the first two steps generate history and resolve neighbor relationships we're
+and resolve neighbor relationships we're going to be doing this during world
+going to be doing this during world generation
+generation when you when you click new game and
+when you when you click new game and you're spinning up one of these new
+you're spinning up one of these new worlds
+worlds and then for the last three steps from
+and then for the last three steps from generate culture onward
+generate culture onward we're going to be doing during the
+we're going to be doing during the fabrication phase
+fabrication phase which is where you've actually entered a
+which is where you've actually entered a map a particular village and you're
+map a particular village and you're generating it on the fly
+generating it on the fly so what are our inputs here what do they
+so what are our inputs here what do they mean so
+mean so on the left coming from the left here is
+on the left coming from the left here is going to be our dynamic inputs
+going to be our dynamic inputs things that are actually being like
+things that are actually being like generated per game and are
+generated per game and are going to be served down from step to
+going to be served down from step to step so the first dynamic input because
+step so the first dynamic input because this is the first step the only
+this is the first step the only dynamic input is the is the world seed
+dynamic input is the is the world seed so the c that we're using to seed our
+so the c that we're using to seed our random number calls
+random number calls every bit of procedural generation we do
+every bit of procedural generation we do will be using it
+will be using it and because we we have this system of
+and because we we have this system of world seeds we can reproduce that if you
+world seeds we can reproduce that if you enter the world seeded the caves of cod
+enter the world seeded the caves of cod will produce the same world
+will produce the same world mostly at bottom at the bottom here we
+mostly at bottom at the bottom here we have
+have what we call our design inputs so these
+what we call our design inputs so these are actually these static
+are actually these static pre-baked inputs that are coming during
+pre-baked inputs that are coming during that design
+that design phase so there are things like um we
+phase so there are things like um we have here like factions like we have a
+have here like factions like we have a bunch of factions in caves of cod
+bunch of factions in caves of cod they're all static they're handwritten
+they're all static they're handwritten we
+we we add them you know at compile time
+we add them you know at compile time they're the same from game to game
+they're the same from game to game we have the sort of map of regions that
+we have the sort of map of regions that can exist in every game
+can exist in every game we have this graph of cultural
+we have this graph of cultural relationships these are all the design
+relationships these are all the design time inputs
+time inputs and one thing i wanted to want to
+and one thing i wanted to want to mention about this slide is like
+mention about this slide is like you're going to be seeing a lot of
+you're going to be seeing a lot of slides with a lot of a lot of shapes
+slides with a lot of a lot of shapes here flowing into each other
+here flowing into each other you don't have to necessarily were
+you don't have to necessarily were necessarily worry about
+necessarily worry about like understanding at the specifics of
+like understanding at the specifics of every slide
+every slide more important it's more of a tool for
+more important it's more of a tool for us to sort of tell the story
+us to sort of tell the story of the system generation as the
+of the system generation as the information's flowing through so
+information's flowing through so where something's particularly important
+where something's particularly important i'll call it out but don't worry about
+i'll call it out but don't worry about seeing a bunch of slides and memorizing
+seeing a bunch of slides and memorizing them
+them okay so let's look at some of these
+okay so let's look at some of these design inputs from the bottom here so
+design inputs from the bottom here so like factions
+like factions again we have a bunch of handwritten
+again we have a bunch of handwritten factions in our game
+factions in our game so you go to the faction screen you see
+so you go to the faction screen you see a bunch of different faction names like
+a bunch of different faction names like again a bunch of uplifted animals you
+again a bunch of uplifted animals you have antelopes you have apes
+have antelopes you have apes arachnids you have a reputation score
+arachnids you have a reputation score with each of these and that determines
+with each of these and that determines how
+how their behavior toward you this is sort
+their behavior toward you this is sort of what i mean by
+of what i mean by factions in our game one really
+factions in our game one really interesting
+interesting design time input is this graph of
+design time input is this graph of cultural relationships
+cultural relationships so what we have is we have this what it
+so what we have is we have this what it is
+is it's it is what it sounds like it's this
+it's it is what it sounds like it's this graph of cultural relationships that
+graph of cultural relationships that we've modeled as this replacement
+we've modeled as this replacement grammar and it's a little messy because
+grammar and it's a little messy because we also embed
+we also embed we also use it as a replacement grammar
+we also use it as a replacement grammar for generating text
+for generating text procedurally generated text and so what
+procedurally generated text and so what we've done is we have a sort of
+we've done is we have a sort of a a mapping of relationships between
+a a mapping of relationships between various elements of culture that we've
+various elements of culture that we've again hand-baked
+again hand-baked and then a little textual snippets
+and then a little textual snippets associated with them that we can call
+associated with them that we can call into when we're procedurally generating
+into when we're procedurally generating dialogue
+dialogue and we'll use that again and again
+and we'll use that again and again throughout these steps so what are we
+throughout these steps so what are we actually outputting from this step right
+actually outputting from this step right we're generating history and remember
+we're generating history and remember we're at the top of abstraction mountain
+we're at the top of abstraction mountain we're at abstract peak
+we're at abstract peak so we're going to be generating pretty
+so we're going to be generating pretty abstract output
+abstract output so you know this stuff sounds really
+so you know this stuff sounds really good right okay so we're going to give
+good right okay so we're going to give the village
+the village a name we're going to give it a sort of
+a name we're going to give it a sort of base faction like the the base static
+base faction like the the base static faction who decided to found this
+faction who decided to found this village
+village we'll give it a palette so that if they
+we'll give it a palette so that if they like decide to paint their
+like decide to paint their you know drinking wear later that we
+you know drinking wear later that we know what color to make it
+know what color to make it we have a descriptions of historic
+we have a descriptions of historic events things like government
+events things like government things the village find sacred things
+things the village find sacred things that they find profane
+that they find profane signature items that the village becomes
+signature items that the village becomes known for like maybe they're known for
+known for like maybe they're known for creating a particular type of drinking
+creating a particular type of drinking jug
+jug um signature dishes that they're known
+um signature dishes that they're known in the region for
+in the region for and again there's a lot of information
+and again there's a lot of information here but because we're
+here but because we're we're only going to be engaging with the
+we're only going to be engaging with the village history
+village history later on when we actually make it more
+later on when we actually make it more concrete and allow the player to
+concrete and allow the player to roam throughout the village and look at
+roam throughout the village and look at historical artifacts things like
+historical artifacts things like monuments
+monuments or historical texts or having a
+or historical texts or having a conversation with an npc
+conversation with an npc and asking about the history because
+and asking about the history because that's the only way that history
+that's the only way that history is actually surfaced in the game we can
+is actually surfaced in the game we can be really abstract with how we
+be really abstract with how we represented here
+represented here and in fact if we look at like a
+and in fact if we look at like a screenshot of just
+screenshot of just we're inspecting the data structure here
+we're inspecting the data structure here all of village history really is
+all of village history really is is it's a bag of key value pairs at the
+is it's a bag of key value pairs at the moment so
+moment so you see we have this we have properties
+you see we have this we have properties here and then we have a bunch of
+here and then we have a bunch of properties
+properties like name we have the name of the
+like name we have the name of the village region we have the
+village region we have the the region that the village is in we can
+the region that the village is in we can go down and see like governor
+go down and see like governor they're the mayor we have just like all
+they're the mayor we have just like all of those things that we had listed in
+of those things that we had listed in that previous slide are just represented
+that previous slide are just represented as strings actually at this point
+as strings actually at this point pretty simply um as far as
+pretty simply um as far as how we actually how the history
+how we actually how the history generation actually works
+generation actually works we do some interesting stuff i'm not
+we do some interesting stuff i'm not going to do a deep dive here but
+going to do a deep dive here but we essentially have a little state
+we essentially have a little state machine that we walk through and we have
+machine that we walk through and we have these historic event templates
+these historic event templates that we pick and we do some interesting
+that we pick and we do some interesting things where we actually have a sort of
+things where we actually have a sort of inversion of historical logic where we
+inversion of historical logic where we decide how an event
+decide how an event ends and then create a rationalization
+ends and then create a rationalization for why it ended that way so for example
+for why it ended that way so for example we might have an event where a village
+we might have an event where a village starts to worship
+starts to worship a nearby creature and once we we've
+a nearby creature and once we we've chosen that event template we're going
+chosen that event template we're going to have the village worship the creature
+to have the village worship the creature we're going to generate
+we're going to generate a little procedural text to describe
+a little procedural text to describe that event and then we'll create some
+that event and then we'll create some rationalization
+rationalization based on the current the current state
+based on the current the current state of the state machine
+of the state machine to decide why that um why that village
+to decide why that um why that village is going to worship that creature
+is going to worship that creature if you want to do a oh okay so yeah this
+if you want to do a oh okay so yeah this is this is again our monument here
+is this is again our monument here so when we see here this little snippet
+so when we see here this little snippet of text that gets attached this
+of text that gets attached this description of this monument
+description of this monument we have the villagers of nylon demanded
+we have the villagers of nylon demanded that the mayor abdicate
+that the mayor abdicate in all forms of hierarchy be abolished
+in all forms of hierarchy be abolished so anarchy in the village
+so anarchy in the village that happened during history generation
+that happened during history generation and then that little snippet of text was
+and then that little snippet of text was generated as as
+generated as as part of the procedural description of
+part of the procedural description of that historic event and now
+that historic event and now all the way in the fifth step when we
+all the way in the fifth step when we get there to fabricate game objects we
+get there to fabricate game objects we get to just staple it all into one of
+get to just staple it all into one of these historic
+these historic monuments if you want to um
+monuments if you want to um do a deep dive into how the actual
+do a deep dive into how the actual history module works how the
+history module works how the history generation works i gave a talk
+history generation works i gave a talk on it last year at the indie game summit
+on it last year at the indie game summit so you can rewrote a paper on it so you
+so you can rewrote a paper on it so you can go and research that but for now
+can go and research that but for now we're going to keep it at a high level
+we're going to keep it at a high level so we can flow through the system
+so we can flow through the system so next we're actually going to enter
+so next we're actually going to enter the second step where we're going to
+the second step where we're going to resolve some
+resolve some neighbor relationships and brian's going
+neighbor relationships and brian's going to tell you about that and
+to tell you about that and that's how we're going to end this world
+that's how we're going to end this world generation phase
+all right am i on okay so we have villages that have been developed at an
+villages that have been developed at an extremely abstract level
+extremely abstract level you see that they don't exist they have
+you see that they don't exist they have been reified into the world at all
+been reified into the world at all in fact some of the relationships they
+in fact some of the relationships they have with the world are still extremely
+have with the world are still extremely abstract like the fact that they worship
+abstract like the fact that they worship a creature at this point
+a creature at this point uh in generation they don't even know
+uh in generation they don't even know what creature they worship they simply
+what creature they worship they simply know that they
+know that they worship a creature the fact that they
+worship a creature the fact that they worship a creature is interesting but
+worship a creature is interesting but that we need to reify it farther so
+that we need to reify it farther so we're going to take a step down
+we're going to take a step down abstraction mountain here into resolving
+abstraction mountain here into resolving neighborhood neighborhood relationships
+neighborhood neighborhood relationships let's take a look specifically at our
+let's take a look specifically at our first step world location this is going
+first step world location this is going to take a few inputs it's going to take
+to take a few inputs it's going to take the world seed this is
+the world seed this is gives it gives us our random variation
+gives it gives us our random variation we're going to take the village history
+we're going to take the village history that that's the output we just took a
+that that's the output we just took a look at
+look at and we're going to take a world map and
+and we're going to take a world map and we're going to do some processing on it
+we're going to do some processing on it and we're going to find a location for
+and we're going to find a location for this very abstract village which is
+this very abstract village which is going to give it a little bit
+going to give it a little bit more concrete life the world map in
+more concrete life the world map in caves of cod is largely static the
+caves of cod is largely static the design of the map
+design of the map so in this case this map is the world
+so in this case this map is the world every time
+every time so the location of individual tiles like
+so the location of individual tiles like this is a jungle tile this is a desert
+this is a jungle tile this is a desert tile this is a mountain tile these are a
+tile this is a mountain tile these are a few important static locations is the
+few important static locations is the same every time you start
+same every time you start the game however the location of the
+the game however the location of the villages is dynamic so you have a
+villages is dynamic so you have a you have sort of a static backbone
+you have sort of a static backbone against which we're
+against which we're placing this procedural content
+placing this procedural content in addition to this layout we have some
+in addition to this layout we have some data that describes
+data that describes what generally is a part of each of
+what generally is a part of each of these cells so this is for example a
+these cells so this is for example a description of what's in each jungle
+description of what's in each jungle what's on the surface particular types
+what's on the surface particular types of encounters what kind of music plays
+of encounters what kind of music plays there what's underneath it as you
+there what's underneath it as you descend beneath it
+descend beneath it and so what we do here is we go through
+and so what we do here is we go through each village we have an
+each village we have an abstract representation of its location
+abstract representation of its location so it might say hey this is a jungle
+so it might say hey this is a jungle village or this is a mountain village
+village or this is a mountain village and we find a good location for it so
+and we find a good location for it so for example here we've got shubal which
+for example here we've got shubal which we've plopped into a mountain and says
+we've plopped into a mountain and says the top of high-fastness
+the top of high-fastness communities gather in honor of susaraya
+communities gather in honor of susaraya legendary goat
+legendary goat so this makes sense because goats live
+so this makes sense because goats live in mountains right
+in mountains right and so we go through each village and we
+and so we go through each village and we find a place for it to live
+find a place for it to live in the world as well as a bunch of other
+in the world as well as a bunch of other stuff that lives in the world
+stuff that lives in the world weird creatures and shoemakers and you
+weird creatures and shoemakers and you know
+know uh distilleries are all placed in this
+uh distilleries are all placed in this at this point all across the world
+at this point all across the world and villages are one of these one of
+and villages are one of these one of these objects that's placed concretely
+these objects that's placed concretely so we develop this map
+so we develop this map and then we do the reification of these
+and then we do the reification of these abstract relationships so now that we
+abstract relationships so now that we have a map
+have a map of these village locations and for
+of these village locations and for instance legendary monsters in their
+instance legendary monsters in their lairs
+lairs we can go through each village and
+we can go through each village and resolve those abstract relationships
+resolve those abstract relationships into concrete relationships so
+into concrete relationships so any of these abstract tags that says
+any of these abstract tags that says legendary monster
+legendary monster now we go and say well this village
+now we go and say well this village probably is related to a legendary
+probably is related to a legendary monster that's spatially correlated with
+monster that's spatially correlated with it so let's go find
+it so let's go find a nearby monster that's maybe a couple
+a nearby monster that's maybe a couple squares away and now that's the monster
+squares away and now that's the monster that they worship
+that they worship we retrofit the history with this more
+we retrofit the history with this more concrete
+concrete element so we've done some reification
+element so we've done some reification here to give it a very concrete
+here to give it a very concrete uh instance and we do that for all the
+uh instance and we do that for all the abstract relationships in the village
+abstract relationships in the village so at the end of this point we've got
+so at the end of this point we've got all those abstract
+all those abstract relationships which you can sort of
+relationships which you can sort of think of as like a linking metaphor we
+think of as like a linking metaphor we link those against
+link those against real objects in the world
+real objects in the world and so you can see here the actual data
+and so you can see here the actual data we've got
+we've got an entry here which says asterisk
+an entry here which says asterisk worship's legendary creature
+worship's legendary creature this is an example of the kind of name
+this is an example of the kind of name value pair we generate it's very simple
+value pair we generate it's very simple and we're doing particular stylized
+and we're doing particular stylized connections for each of these
+connections for each of these individual tags so for instance we've
+individual tags so for instance we've placed these monsters like kelly eufat
+placed these monsters like kelly eufat the legendary boar
+the legendary boar and these are linked to the to the
+and these are linked to the to the individual villages
+individual villages so that makes sense for everybody
+finally we we saw in the previous slide that we had
+that we had static factions that we've designed so
+static factions that we've designed so you can be friendly with boards and you
+you can be friendly with boards and you can be friendly with bears
+can be friendly with bears in addition to this you can have
+in addition to this you can have factional relationships with the
+factional relationships with the villages
+villages and in the step of resolving neighbors
+and in the step of resolving neighbors we create some physical concrete links
+we create some physical concrete links between the villages and the faction
+between the villages and the faction system
+system so on this slide you can see for each
+so on this slide you can see for each village we create a new faction and
+village we create a new faction and inject that in
+inject that in up against the static world state and so
+up against the static world state and so we now
+we now now we have new dynamic members of these
+now we have new dynamic members of these that are different from game to game
+that are different from game to game at that point the world generation is
+at that point the world generation is complete so you're dropped into the game
+complete so you're dropped into the game and when you visit the village in
+and when you visit the village in practice the rest of these steps happen
+practice the rest of these steps happen in real time so you enter the map
+in real time so you enter the map and we go oh we need to know what this
+and we go oh we need to know what this village really looks like and we start
+village really looks like and we start generating the culture at that point
+generating the culture at that point yeah so i'm gonna hello
+yeah so i'm gonna hello okay so generate culture we're in the
+okay so generate culture we're in the third step now so now
+third step now so now like brian said we're we've entered a
+like brian said we're we've entered a village we have to kind of
+village we have to kind of generate a we're still in a sort of
+generate a we're still in a sort of abstract layer here though
+abstract layer here though but we're working toward actually
+but we're working toward actually fabricating the game objects but now
+fabricating the game objects but now we're actually going to take the history
+we're actually going to take the history and generate a specific culture
+and generate a specific culture from it so what are our inputs again we
+from it so what are our inputs again we have the seed the seed is sort of an
+have the seed the seed is sort of an implicit input because we're doing
+implicit input because we're doing random calls so we're always
+random calls so we're always always going to be using our world seed
+always going to be using our world seed we have the village history right which
+we have the village history right which now is updated to be a little more
+now is updated to be a little more concrete
+concrete if a village worships a creature we now
+if a village worships a creature we now would know which creature it is
+would know which creature it is we also have the village region the
+we also have the village region the region that the village is placed in
+region that the village is placed in whether it's a jungle or a mountain or a
+whether it's a jungle or a mountain or a desert
+desert and that's going to affect the culture
+and that's going to affect the culture because we have all these sort of
+because we have all these sort of specifications for
+specifications for what a jungle culture might look like
+what a jungle culture might look like versus what a desert culture might look
+versus what a desert culture might look like what are our design
+like what are our design inputs well we have um population tables
+inputs well we have um population tables which is this
+which is this tool that we use to encapsulate some
+tool that we use to encapsulate some discrete procedural logic so i'll be
+discrete procedural logic so i'll be talking about that in a minute and then
+talking about that in a minute and then we have that graph of cultural
+we have that graph of cultural relationships that i showed you a few
+relationships that i showed you a few steps ago
+steps ago that's being used to generate text and
+that's being used to generate text and figure out which culture things are
+figure out which culture things are culturally adjacent to each other if
+culturally adjacent to each other if if a village likes you know rubies which
+if a village likes you know rubies which what are they more likely to like
+what are they more likely to like in addition to that so
+in addition to that so let's talk about this one output you
+let's talk about this one output you know when we're thinking about what is
+know when we're thinking about what is actually getting output from this step
+actually getting output from this step we're going to have a culture all the
+we're going to have a culture all the various facets of a
+various facets of a caves of cut village culture one of
+caves of cut village culture one of which is the storytelling tradition
+which is the storytelling tradition so the storytelling tradition ties us
+so the storytelling tradition ties us back to this monument this diptych
+back to this monument this diptych so basically the storytelling tradition
+so basically the storytelling tradition of
+of this village this particular village is
+this village this particular village is that they like to inscribe
+that they like to inscribe they like to build monuments that share
+they like to build monuments that share the story of their history
+the story of their history there are other type of types of
+there are other type of types of storytelling traditions for instance
+storytelling traditions for instance some villages like to engrave their
+some villages like to engrave their histories onto their furniture this is
+histories onto their furniture this is an example of an engraved oven
+an example of an engraved oven some villages just like to inscribe
+some villages just like to inscribe their history into tomes so this is a
+their history into tomes so this is a little library again that gets built and
+little library again that gets built and we see a bookshelf
+we see a bookshelf and here's a description of a book it's
+and here's a description of a book it's the history of toppable volume two
+the history of toppable volume two and if we were you know another game
+and if we were you know another game object in caves of cod you could pick it
+object in caves of cod you could pick it up you can open it up and read it and
+up you can open it up and read it and it'll have the history of the village
+it'll have the history of the village so how are we what you know what does it
+so how are we what you know what does it mean that we're outputting this
+mean that we're outputting this the village storytelling tradition at
+the village storytelling tradition at this point right well it's really at
+this point right well it's really at this point
+this point it's just a sort of specification we're
+it's just a sort of specification we're just going to pick a string
+just going to pick a string and the way we do that is that we what
+and the way we do that is that we what we call like rolled is
+we call like rolled is this dice metaphor we roll on this table
+this dice metaphor we roll on this table this is a little table we have
+this is a little table we have each of these entries has a little
+each of these entries has a little weight and we decide
+weight and we decide which of these story telling traditions
+which of these story telling traditions we're going to use
+we're going to use so i want to that's an example of a
+so i want to that's an example of a population table and i'm going to take a
+population table and i'm going to take a little tangent here
+little tangent here out of these steps to tell you about a
+out of these steps to tell you about a tool we wrote
+tool we wrote to make our lives easier with procedural
+to make our lives easier with procedural generation called population tables
+generation called population tables so what is a population table again
+so what is a population table again it is um this this table that we're
+it is um this this table that we're going to roll on so we see here
+going to roll on so we see here there's an entry for each type of
+there's an entry for each type of storytelling tradition
+storytelling tradition each of them have weights so you see
+each of them have weights so you see these are relative weights so
+these are relative weights so it's uh doors has a weight of 20.
+it's uh doors has a weight of 20. if we look down a little bit monuments
+if we look down a little bit monuments has a weight of 40. what this means is
+has a weight of 40. what this means is that it's twice as likely that a village
+that it's twice as likely that a village is going to
+is going to tell their history through building
+tell their history through building monuments than it is through like
+monuments than it is through like painting or engraving their doors
+painting or engraving their doors now the thing about these population
+now the thing about these population tables is that they're
+tables is that they're they're a nice expressive way to
+they're a nice expressive way to encapsulate a certain type of procedural
+encapsulate a certain type of procedural generation
+generation discrete type of procedural generation
+discrete type of procedural generation we can um
+we can um we can like i already showed you that we
+we can like i already showed you that we can
+can encode various weights here but we could
+encode various weights here but we could add all sorts of metadata to
+add all sorts of metadata to express various various meaning in terms
+express various various meaning in terms of our
+of our procedural uh procedural generation
+procedural uh procedural generation fabrication
+fabrication so for instance this is a this is a
+so for instance this is a this is a table of jungle creatures
+table of jungle creatures the point here of the table is to just
+the point here of the table is to just find a creature that lives in the jungle
+find a creature that lives in the jungle maybe we need to like you know have an
+maybe we need to like you know have an encounter for the player
+encounter for the player so as you see here we have these various
+so as you see here we have these various styles what it's the first style it says
+styles what it's the first style it says is pick one and what that means is we're
+is pick one and what that means is we're going to look through each of these
+going to look through each of these entries and just pick one at random
+entries and just pick one at random based on their weight you see they have
+based on their weight you see they have a number there so sometimes the the
+a number there so sometimes the the number of
+number of creatures we're fabricating changes you
+creatures we're fabricating changes you see the last entry here is actually
+see the last entry here is actually another style so we can nest these
+another style so we can nest these styles
+styles what this means is if we if we end up
+what this means is if we if we end up you know sometimes we'll pick the first
+you know sometimes we'll pick the first entry in this table right in which case
+entry in this table right in which case the the table will just return a bore
+the the table will just return a bore so whoever called into this population
+so whoever called into this population table is just going to get a bore
+table is just going to get a bore as a result but sometimes we pick this
+as a result but sometimes we pick this last entry this latch that
+last entry this latch that last century is actually a nested sub
+last century is actually a nested sub table
+table this table has a style of pick each and
+this table has a style of pick each and so what that means is instead of just
+so what that means is instead of just picking one of the following objects
+picking one of the following objects we're going to pick all of them
+we're going to pick all of them and this is a nice way to okay sometimes
+and this is a nice way to okay sometimes we'll generate a board but maybe
+we'll generate a board but maybe sometimes we want a whole encounter
+sometimes we want a whole encounter so here we have goat folk goat folk are
+so here we have goat folk goat folk are like
+like goat they're goat creatures that live in
+goat they're goat creatures that live in caves of cod and so we want to generate
+caves of cod and so we want to generate a little goat folk
+a little goat folk encounter so we're going to pick each of
+encounter so we're going to pick each of these
+these objects there's going to be one or two
+objects there's going to be one or two one or two goat folk savages
+one or two goat folk savages there's a 50 chance to have one goat
+there's a 50 chance to have one goat folk seller
+folk seller a 50 chance to have a yurt warden and
+a 50 chance to have a yurt warden and then a 10
+then a 10 chance to have a shot in so again we
+chance to have a shot in so again we have like all these specifications to
+have like all these specifications to generate a sort of diverse
+generate a sort of diverse um array of output and we've expressed
+um array of output and we've expressed all of them in the metadata in this
+all of them in the metadata in this table table and this is data this we
+table table and this is data this we just
+just just we define this during
+just we define this during um design the design phase and we
+um design the design phase and we pre-bake it in
+pre-bake it in and then it's a it's a nice way to
+and then it's a it's a nice way to express this uh
+express this uh this sort of logic so we you know the
+this sort of logic so we you know the last table was to generate some
+last table was to generate some creatures we could also use it to
+creatures we could also use it to populate some furniture so this is the
+populate some furniture so this is the table that represents the
+table that represents the the furniture in an apple merchant's
+the furniture in an apple merchant's tent and
+tent and you see here we have some extra metadata
+you see here we have some extra metadata here these hints
+here these hints so we can say like hey let's put a torch
+so we can say like hey let's put a torch post and this is picky so we're gonna
+post and this is picky so we're gonna pick each of these things and put them
+pick each of these things and put them in the apple merchants
+in the apple merchants tent we have a torch pots so we say
+tent we have a torch pots so we say let's pick one or two of these and let's
+let's pick one or two of these and let's put it outside the door
+put it outside the door you see colon too that means within
+you see colon too that means within radius two so near the door push some
+radius two so near the door push some torch posts we see a woven basket pick
+torch posts we see a woven basket pick one or two and put it in the inside
+one or two and put it in the inside corner of the room
+corner of the room so this is just some metadata about
+so this is just some metadata about where we want to place these objects we
+where we want to place these objects we can inject into this table
+can inject into this table and then the actual consumer of this
+and then the actual consumer of this table whoever is calling into it
+table whoever is calling into it is going to know what to do with those
+is going to know what to do with those hints so for instance if we're
+hints so for instance if we're populating a building
+populating a building the consumer knows oh inside corner
+the consumer knows oh inside corner place this in
+place this in in the inside corner of a building which
+in the inside corner of a building which we've sketched out already
+we've sketched out already if we're populating something else like
+if we're populating something else like someone's inventory these hints would be
+someone's inventory these hints would be meaningless and we would just ignore
+meaningless and we would just ignore them we wouldn't even include them in
+them we wouldn't even include them in the data
+the data so those are population tables just a a
+so those are population tables just a a nice like
+nice like it was a pattern we hit on we realized
+it was a pattern we hit on we realized we were doing a lot of this discrete
+we were doing a lot of this discrete procedural generation and so we wrote
+procedural generation and so we wrote this little tool to be able to
+this little tool to be able to express that a little more succinctly so
+express that a little more succinctly so back to our steps here where again we're
+back to our steps here where again we're in
+in step three of our five steps on our
+step three of our five steps on our journey down abstraction mountain into
+journey down abstraction mountain into concrete valley
+concrete valley we just picked a storytelling tradition
+we just picked a storytelling tradition let's look at another output so
+let's look at another output so let's pick a signature dish so you know
+let's pick a signature dish so you know we really wanted to
+we really wanted to make food important in caves of cud we
+make food important in caves of cud we wanted to sort of
+wanted to sort of play and replicate the idea that food is
+play and replicate the idea that food is just an important aspect of culture
+just an important aspect of culture that's often overlooked in games
+that's often overlooked in games so each village actually has a signature
+so each village actually has a signature dish that they're known for cooking
+dish that they're known for cooking this village and you could walk up to
+this village and you could walk up to their oven and eat their dish this
+their oven and eat their dish this this village is known for their fungus
+this village is known for their fungus and electric schnitzel with goulash
+and electric schnitzel with goulash each of these dishes actually has a
+each of these dishes actually has a procedurally generated static
+procedurally generated static status effect that it imbues you with so
+status effect that it imbues you with so you eat this dish that's
+you eat this dish that's based on fungus and electric goulash and
+based on fungus and electric goulash and you get protection against developing a
+you get protection against developing a fungal infection
+fungal infection which can happen in caves of cod and
+which can happen in caves of cod and protection against
+protection against electrical attacks
+electrical attacks you can also go up walk up to the
+you can also go up walk up to the villagers here and
+villagers here and there's sort of a currency of reputation
+there's sort of a currency of reputation you can
+you can you can do this thing called the water
+you can do this thing called the water ritual of them which is the sort of like
+ritual of them which is the sort of like secret exchange of of culture
+secret exchange of of culture and you can spend reputation to learn
+and you can spend reputation to learn how to cook this dish
+how to cook this dish and there's a whole cooking system you
+and there's a whole cooking system you can go to a campfire
+can go to a campfire if you have the right ingredients you
+if you have the right ingredients you can cook this dish and you can get that
+can cook this dish and you can get that effect
+effect and so the you know okay that's all well
+and so the you know okay that's all well and good like i've explained how
+and good like i've explained how what it looks like for the player to
+what it looks like for the player to encounter signature dishes but how did
+encounter signature dishes but how did we actually get there to generate it
+we actually get there to generate it so we actually you we touch all of these
+so we actually you we touch all of these inputs in the course of
+inputs in the course of generating a signature dish so we have
+generating a signature dish so we have some random calls so we're going to use
+some random calls so we're going to use the seed
+the seed we have the village history so these
+we have the village history so these village history templates sometimes
+village history templates sometimes a village's history will include an
+a village's history will include an event that that involves food like
+event that that involves food like let's say a traveling chef arrived and
+let's say a traveling chef arrived and decided to cook a meal and it was very
+decided to cook a meal and it was very popular in the in the village or
+popular in the in the village or the villagers start to grow some sort of
+the villagers start to grow some sort of crop and
+crop and use it start to use it in their in their
+use it start to use it in their in their meals and it become they become known
+meals and it become they become known for using that ingredient right
+for using that ingredient right the village region is important where we
+the village region is important where we actually place the village because
+actually place the village because each region has a certain set of local
+each region has a certain set of local ingredients
+ingredients right so your your dishes are going to
+right so your your dishes are going to look different in the jungle than
+look different in the jungle than they're going to look in the desert
+they're going to look in the desert so coming up from the design inputs we
+so coming up from the design inputs we have these population tables that are
+have these population tables that are mapping
+mapping those regions to the various type of
+those regions to the various type of ingredients and plant and animal
+ingredients and plant and animal like wildlife that exist that are
+like wildlife that exist that are possible to
+possible to be uh consumed and used as ingredients
+be uh consumed and used as ingredients to the to the dishes
+to the to the dishes and then we also have that graph of
+and then we also have that graph of cultural relationships that is actually
+cultural relationships that is actually mapping together all
+mapping together all various sort of text snippets that it's
+various sort of text snippets that it's allowing us to generate a sensible
+allowing us to generate a sensible name for that uh dish so like the fungus
+name for that uh dish so like the fungus and electric schnitzel
+and electric schnitzel little text snippets that we've that we
+little text snippets that we've that we have sort of
+have sort of filtered up through our text generation
+filtered up through our text generation into the into that dish name
+into the into that dish name and then finally we output that dish we
+and then finally we output that dish we have it uh like a
+have it uh like a data structure to store all that and
+data structure to store all that and when we actually get down
+when we actually get down to more steps to fabricate game objects
+to more steps to fabricate game objects and we're actually building the village
+and we're actually building the village oven
+oven we put an interface in there that lets
+we put an interface in there that lets you had like cook that dish there
+you had like cook that dish there so now brian's going to tell you a
+so now brian's going to tell you a little bit about how the next step we're
+little bit about how the next step we're actually starting to generate the
+actually starting to generate the architecture of the village
+thing all right okay so we've gone through
+through three entire pretty big steps and we
+three entire pretty big steps and we haven't built any game objects
+haven't built any game objects right all of these have been abstract
+right all of these have been abstract decisions we're setting ourselves up
+decisions we're setting ourselves up to generate some actual game objects in
+to generate some actual game objects in the game
+the game and so this is our first step where
+and so this is our first step where we're actually going to build some stuff
+but first we have to make just a few more decisions
+more decisions from all of the prior abstract decisions
+from all of the prior abstract decisions we we now have to make some very
+we we now have to make some very specific decisions like building style
+specific decisions like building style and this is going to start to be a
+and this is going to start to be a concrete decision
+concrete decision this is like are these going to be
+this is like are these going to be square buildings are they going to be
+square buildings are they going to be round buildings are we going to if you
+round buildings are we going to if you saw my previous talk
+saw my previous talk what wfc templates are we're going to
+what wfc templates are we're going to pull in in order to do the
+pull in in order to do the building maybe these are little tiny wfc
+building maybe these are little tiny wfc templates or big spacious ones
+templates or big spacious ones um what are the important buildings this
+um what are the important buildings this is driven by storytelling tradition for
+is driven by storytelling tradition for example
+example what are the agricultural plants what
+what are the agricultural plants what are the decorative plants and you can
+are the decorative plants and you can see these are very concrete decisions
+see these are very concrete decisions we've gone from
+we've gone from this is sort of a religious village that
+this is sort of a religious village that worships goats
+worships goats to they grow weeds
+to they grow weeds right i mean it depends so one of the
+right i mean it depends so one of the important inputs here is the actual
+important inputs here is the actual physical place that the village is
+physical place that the village is placed
+placed um in this case we're gonna start build
+um in this case we're gonna start build a village in a canyon and so we actually
+a village in a canyon and so we actually first we generate the zone as if there
+first we generate the zone as if there was no village there
+was no village there and we rip all the monsters and stuff
+and we rip all the monsters and stuff off of it
+off of it we then make a bunch of these decision
+we then make a bunch of these decision points so let's talk specifically about
+points so let's talk specifically about building style
+building style and then the rest of the decision points
+and then the rest of the decision points are pretty similar
+are pretty similar we're making very concrete decisions
+we're making very concrete decisions using population tables to make this
+using population tables to make this building style decision
+building style decision so let's take a look at these input
+so let's take a look at these input population tables
+population tables on the left you can see a default
+on the left you can see a default building style this applies if no other
+building style this applies if no other specializations exist
+specializations exist below it you can see a region based
+below it you can see a region based population table so this is a population
+population table so this is a population tail
+tail table that selects is selected for a
+table that selects is selected for a salt dunes region you can see that tents
+salt dunes region you can see that tents are given very high weight in this table
+are given very high weight in this table on the right you can see population
+on the right you can see population tables for specific
+tables for specific factions so in this case you can see the
+factions so in this case you can see the birds always have
+birds always have aries fish always live in ponds mollusks
+aries fish always live in ponds mollusks always live in ponds
+always live in ponds and we have we have an internal order of
+and we have we have an internal order of priorities so that if you've got a fish
+priorities so that if you've got a fish village it rolls off the
+village it rolls off the re the the factional table if it doesn't
+re the the factional table if it doesn't it falls down to a regional table
+it falls down to a regional table if that doesn't exist it gets the
+if that doesn't exist it gets the default so if we've got a
+default so if we've got a we don't have one of these for each type
+we don't have one of these for each type of faction for instance
+of faction for instance we specialize the ones that are
+we specialize the ones that are important and the rest of them fall
+important and the rest of them fall through to regional
+through to regional or default population tables
+or default population tables important buildings this ties back to
+important buildings this ties back to the monument this decision is made
+the monument this decision is made in largely the same way for monuments
+in largely the same way for monuments if we have a monumental
+if we have a monumental monument hall style then we're gonna
+monument hall style then we're gonna we're gonna build a building like this
+we're gonna build a building like this right and this is another
+right and this is another this is another decision that's made in
+this is another decision that's made in a very similar way so we go through all
+a very similar way so we go through all of these
+of these prefabrication design points and now we
+prefabrication design points and now we have an answer for each of these we know
+have an answer for each of these we know what liquid what door style what wall
+what liquid what door style what wall type what building style
+type what building style so now we've got to actually build a map
+so now we've got to actually build a map to place some objects on
+to place some objects on so we start with this canyon and we
+so we start with this canyon and we figure out where we
+figure out where we where are we going to place buildings
+where are we going to place buildings this is actually a pretty non-trivial
+this is actually a pretty non-trivial problem for an arbitrary map
+problem for an arbitrary map this is the answer we came up with you
+this is the answer we came up with you can think of many each of these colored
+can think of many each of these colored regions
+regions is a seeded deccer map so you can see
+is a seeded deccer map so you can see zeros there
+zeros there what we do is we throw down a random
+what we do is we throw down a random seed into a deekster map
+seed into a deekster map and then we throw down a seed into any
+and then we throw down a seed into any places that didn't get filled with that
+places that didn't get filled with that dexter map i encourage you to look up
+dexter map i encourage you to look up that technique if you don't know about
+that technique if you don't know about it
+it it's really powerful for as simple as it
+it's really powerful for as simple as it is and then we start placing seeds at
+is and then we start placing seeds at local maxima until the biggest region is
+local maxima until the biggest region is no bigger than a defined size
+no bigger than a defined size and we pick the size based on the style
+and we pick the size based on the style of the building then we get some nice
+of the building then we get some nice well distributed regions we figure out
+well distributed regions we figure out what the biggest internal rect of each
+what the biggest internal rect of each of these regions is and that gives us
+of these regions is and that gives us the places where we can place buildings
+the places where we can place buildings so then we go ahead and we maybe we
+so then we go ahead and we maybe we build some square buildings or some
+build some square buildings or some round buildings or if you saw my
+round buildings or if you saw my previous talk we pick some wfc templates
+previous talk we pick some wfc templates and we jen a building that's going to
+and we jen a building that's going to fit in that rectangle
+fit in that rectangle then we drop those buildings in and so
+then we drop those buildings in and so you can see we've got some tents in the
+you can see we've got some tents in the lower right
+lower right we've got a little green building in the
+we've got a little green building in the upper left we've got a couple caves
+upper left we've got a couple caves which we're going to turn into houses
+which we're going to turn into houses we've got some wfc buildings in the
+we've got some wfc buildings in the in the left and right sides here these
+in the left and right sides here these have been dropped into that deekstr map
+have been dropped into that deekstr map seated space and then we do one farther
+seated space and then we do one farther and now
+and now one farther piece of analysis because we
+one farther piece of analysis because we need to know where the inside of the
+need to know where the inside of the buildings are
+buildings are where the outside of the buildings are
+where the outside of the buildings are and so what we do is we drop
+and so what we do is we drop dexter seeds into each of the individual
+dexter seeds into each of the individual buildings we close off any narrow spaces
+buildings we close off any narrow spaces until we've got nice constrained spaces
+until we've got nice constrained spaces and then we have a good analysis of
+and then we have a good analysis of inside and outside and a fairly simple
+inside and outside and a fairly simple way
+way this works for arbitrary building styles
+this works for arbitrary building styles so now we have data we've got a
+so now we have data we've got a nice map with a set of walls we know
+nice map with a set of walls we know where the inside is we know where the
+where the inside is we know where the outside is
+outside is you can see a few results of this
+you can see a few results of this process
+process and we are finally ready to fill these
+and we are finally ready to fill these villages
+villages with stuff
+okay so we're at the bottom of abstraction mountain
+at the bottom of abstraction mountain we're at concrete valley now finally
+we're at concrete valley now finally we're actually going to be fabricating
+we're actually going to be fabricating game objects to serve up to the player
+game objects to serve up to the player you're going to be walking around the
+you're going to be walking around the village this is the last step
+village this is the last step so what are our design inputs here well
+so what are our design inputs here well we have what we call object blueprints
+we have what we call object blueprints so each of these game objects
+so each of these game objects it needs to have some sort of
+it needs to have some sort of specification and we
+specification and we generally pre-bake these in during the
+generally pre-bake these in during the design phase so
+design phase so this is the you know just the xml
+this is the you know just the xml specification we use for a torch post
+specification we use for a torch post for
+for each of these uh parts here is actually
+each of these uh parts here is actually a little component
+a little component that encapsulates some logic or some
+that encapsulates some logic or some behavior
+behavior that is relevant to the torch boat so
+that is relevant to the torch boat so you see the first here is a render
+you see the first here is a render part that just tells the torch post how
+part that just tells the torch post how it tells the system how to actually
+it tells the system how to actually show the torch post what ascii character
+show the torch post what ascii character to use if we're in ascii mode
+to use if we're in ascii mode what tile to use if we're in tile mode
+what tile to use if we're in tile mode what color to make it it has a physics
+what color to make it it has a physics part so that just means it has a weight
+part so that just means it has a weight we did we define here whether it's
+we did we define here whether it's takeable whether it's a solid object
+takeable whether it's a solid object whether you can walk through it in the
+whether you can walk through it in the same tile if we scroll down or
+same tile if we scroll down or if we just look down a little bit we see
+if we just look down a little bit we see light source
+light source um we see here that if it's lit then or
+um we see here that if it's lit then or it is lit
+it is lit and then it has it it um shines light in
+and then it has it it um shines light in radius six so this is what actually
+radius six so this is what actually makes it behave like a torch so each of
+makes it behave like a torch so each of these parts
+these parts encapsulates some amount of that logic
+encapsulates some amount of that logic that we expect to have from a torch
+that we expect to have from a torch now what are we actually outputting as
+now what are we actually outputting as this step well it's the last step here
+this step well it's the last step here right so our output is actually going to
+right so our output is actually going to be a furnished and populated village map
+be a furnished and populated village map so again an example of that is going to
+so again an example of that is going to look like this monument here
+look like this monument here we have the map the monument hall that
+we have the map the monument hall that we that came in from the
+we that came in from the generate architecture step last step so
+generate architecture step last step so we're going to build that here
+we're going to build that here we have the actual specification for
+we have the actual specification for what a monument looks like defined in a
+what a monument looks like defined in a blueprint somewhere
+blueprint somewhere and we fabricate that but then we don't
+and we fabricate that but then we don't just fabricate it we actually
+just fabricate it we actually dynamically alter it and in this case in
+dynamically alter it and in this case in the case of a monument
+the case of a monument we're just going to pick one of these
+we're just going to pick one of these historic snippets and staple it onto
+historic snippets and staple it onto this monument so we have a little
+this monument so we have a little description here you look at the
+description here you look at the monument
+monument and that's how we know the history of
+and that's how we know the history of this village that
+this village that they abolished you know hierarchy and
+they abolished you know hierarchy and forced the mayor to abdicate
+forced the mayor to abdicate that's communicated through through this
+that's communicated through through this monument here
+monument here so each this is that village that we
+so each this is that village that we looked at at the start of the talk or
+looked at at the start of the talk or near the start of the talk with a bunch
+near the start of the talk with a bunch going on so each of these game objects
+going on so each of these game objects was was fabricated in the same way so we
+was was fabricated in the same way so we could walk through and look at a couple
+could walk through and look at a couple of them so
+of them so this is a village that has a desecrated
+this is a village that has a desecrated marble statue of
+marble statue of liramir the legendary bloated leech um
+liramir the legendary bloated leech um we can see it's desecrated here so i
+we can see it's desecrated here so i know from looking at this kind of what
+know from looking at this kind of what happened right so
+happened right so what happened is sometime during the
+what happened is sometime during the village history the village decided that
+village history the village decided that they were furious
+they were furious at some creature and that they were
+at some creature and that they were going to record it and the annals of
+going to record it and the annals of their history
+their history then during resolved neighbor
+then during resolved neighbor relationships we looked at nearby
+relationships we looked at nearby creatures who
+creatures who are good candidates for for the hatred
+are good candidates for for the hatred of this village
+of this village we found this bloated leech decided that
+we found this bloated leech decided that was a good one
+was a good one and then finally when we actually get to
+and then finally when we actually get to village fab
+village fab or for fabricate game objects we decided
+or for fabricate game objects we decided that this you know this village likes to
+that this you know this village likes to um as part of generate culture we
+um as part of generate culture we decided that this village likes to build
+decided that this village likes to build these statues
+these statues we fabricated this this marble statue we
+we fabricated this this marble statue we desecrated it because the village
+desecrated it because the village doesn't like the leech if the village
+doesn't like the leech if the village had liked the leech then they probably
+had liked the leech then they probably wouldn't have desecrated it
+wouldn't have desecrated it and we we serve it up and we place it in
+and we we serve it up and we place it in the village
+the village here's a goat this is this is actually a
+here's a goat this is this is actually a villager so again there's it's
+villager so again there's it's it's quite common to find plant and
+it's quite common to find plant and animal villagers in caves of cod
+animal villagers in caves of cod um a goat has a blueprint just like a
+um a goat has a blueprint just like a torch post does
+torch post does it has a specification for how a goat's
+it has a specification for how a goat's supposed to act so again we're going to
+supposed to act so again we're going to have the
+have the game object factory just fabricate a
+game object factory just fabricate a game object from that blueprint
+game object from that blueprint except before doing it right before we
+except before doing it right before we place it we alter it
+place it we alter it so you can see this goat actually has a
+so you can see this goat actually has a tattoo so this is a
+tattoo so this is a different storytelling tradition some
+different storytelling tradition some villages like to
+villages like to tell their stories via tattoo of the
+tell their stories via tattoo of the villagers get tattoos so this goat
+villagers get tattoos so this goat got a tattoo as opposed to monuments now
+got a tattoo as opposed to monuments now it's interesting to note here why did
+it's interesting to note here why did the you know we could ask the question
+the you know we could ask the question why did the village
+why did the village choose to share their stories in the
+choose to share their stories in the form of tattoos
+form of tattoos so sometimes there's an answer to that
+so sometimes there's an answer to that sometimes there's some like
+sometimes there's some like through line of meaning that we could
+through line of meaning that we could trace back back to the history
+trace back back to the history where there was some historic event
+where there was some historic event where tattoos became popular in the
+where tattoos became popular in the village
+village sometimes there's not so in this case
+sometimes there's not so in this case with this village
+with this village we just made that decision randomly we
+we just made that decision randomly we needed a villain a storytelling
+needed a villain a storytelling tradition
+tradition nothing in the history specified what it
+nothing in the history specified what it should be because the histories aren't
+should be because the histories aren't complete we let them be sort of spotty
+complete we let them be sort of spotty but what we did here is because we
+but what we did here is because we didn't have any sort of abstract
+didn't have any sort of abstract representation we just made a decision
+representation we just made a decision randomly
+randomly and because because there are these
+and because because there are these three lines of meaning
+three lines of meaning for a lot of the decisions the village
+for a lot of the decisions the village tends to cohere
+tends to cohere pretty well into into like a meaningful
+pretty well into into like a meaningful space that you could walk around
+space that you could walk around but some of the decisions are made
+but some of the decisions are made randomly and are
+randomly and are kind of rely on sort of the herd meaning
+kind of rely on sort of the herd meaning around the whole village to sort of
+around the whole village to sort of make sense and again like we rely on a
+make sense and again like we rely on a puffinia for a player sort of to like
+puffinia for a player sort of to like looking a strong narrative context
+looking a strong narrative context that's going to let a player
+that's going to let a player you know interact with this goat and
+you know interact with this goat and because of what they know about the
+because of what they know about the world and goats and villagers and
+world and goats and villagers and and all of the sort of lore they've
+and all of the sort of lore they've gathered
+gathered through playing caves of cud they have a
+through playing caves of cud they have a context to interpret this goat and its
+context to interpret this goat and its tattoo
+so like i mentioned we procedurally generate some dialogue so here
+generate some dialogue so here is the it's actually a dragonfly queen
+is the it's actually a dragonfly queen of this village this village at some
+of this village this village at some point had converted to a monarchy
+point had converted to a monarchy there's a queen we see a little proverb
+there's a queen we see a little proverb here a little snippet of text
+here a little snippet of text resorbing matter is no way to bless the
+resorbing matter is no way to bless the queen so
+queen so i can unpack that a little i because you
+i can unpack that a little i because you know being the designer i can see where
+know being the designer i can see where some of these text snippets came from
+some of these text snippets came from i know that resorbing matter is has to
+i know that resorbing matter is has to do with gelatinous cubes so
+do with gelatinous cubes so they the village had some running with
+they the village had some running with gelatinous cubes in their past
+gelatinous cubes in their past but you know they decided that resorbing
+but you know they decided that resorbing matter what
+matter what what gelatinous cubes do that's no way
+what gelatinous cubes do that's no way to honor the queen so we generate these
+to honor the queen so we generate these little snippets of text
+little snippets of text this one is a proverb that gets appended
+this one is a proverb that gets appended to some of the
+to some of the dialogue whenever you interact with a
+dialogue whenever you interact with a villager
+villager here is a we see here um
+here is a we see here um megosa shrub this is a plant villager
+megosa shrub this is a plant villager and we actually have this whole dynamic
+and we actually have this whole dynamic quest system
+quest system so this last module which we're not
+so this last module which we're not going to get into here because it's
+going to get into here because it's probably the most complex of these
+probably the most complex of these modules
+modules um we have this this way to dynamically
+um we have this this way to dynamically take this history
+take this history and produce some sort of meaningful
+and produce some sort of meaningful quest around it and
+quest around it and have you go interact with the world so
+have you go interact with the world so in this case this
+in this case this this shrub is asking you to go visit
+this shrub is asking you to go visit this location and it says you know what
+this location and it says you know what pearls might this place contain
+pearls might this place contain carbon dioxide ample sunlight a shrine
+carbon dioxide ample sunlight a shrine to the practice of shield slamming we
+to the practice of shield slamming we must know
+must know so how is this text generated we look at
+so how is this text generated we look at um
+um you know we in in our map of cultural
+you know we in in our map of cultural relationships we look at some things
+relationships we look at some things that plants like we know this is a
+that plants like we know this is a plants village
+plants village plants like carbon dioxide plants like
+plants like carbon dioxide plants like ample sunlight we inject those in here
+ample sunlight we inject those in here through our replacement grammar and then
+through our replacement grammar and then a shrine to the practice of shield
+a shrine to the practice of shield slamming
+slamming that's a cultural practice that this
+that's a cultural practice that this village like honors
+village like honors and and i can tell that by reading this
+and and i can tell that by reading this but what had happened is
+but what had happened is there was some historic event where
+there was some historic event where shield slamming which is a skill in the
+shield slamming which is a skill in the game
+game became you know favorable in that
+became you know favorable in that village and now this villagers will
+village and now this villagers will actually teach you that skill if you go
+actually teach you that skill if you go and interact with them
+and interact with them so again each of the this whole village
+so again each of the this whole village each of these objects has some sort of
+each of these objects has some sort of little history like that
+little history like that and i hope i was we were able to sort of
+and i hope i was we were able to sort of illuminate the process
+illuminate the process by which by which that that sort of
+by which by which that that sort of coheres
+coheres so this is a complex system takeaways
+so this is a complex system takeaways are going to be of you know
+are going to be of you know whatever they they might be valuable
+whatever they they might be valuable they might might not be but um
+they might might not be but um a couple things that are you know we
+a couple things that are you know we a couple just like nuggets that we we
+a couple just like nuggets that we we tend to tend to
+tend to tend to like find be patterns in our systems
+like find be patterns in our systems that we were using over and over
+that we were using over and over so like i mentioned all the way back at
+so like i mentioned all the way back at the beginning you want to think
+the beginning you want to think carefully about your design context
+carefully about your design context so all of these decisions are really
+so all of these decisions are really made
+made you know what's driving them is is is
+you know what's driving them is is is the design right the game design the
+the design right the game design the vision we have like so what a village
+vision we have like so what a village looks like
+looks like we have some very specific ideas when
+we have some very specific ideas when we're designing
+we're designing the game and so we want this
+the game and so we want this architecture to sort of be able to serve
+architecture to sort of be able to serve those ideas
+those ideas you want to lean into modularity
+you want to lean into modularity there's sort of a tendency to couple
+there's sort of a tendency to couple everything in these procedural systems
+everything in these procedural systems especially with this qualitative type of
+especially with this qualitative type of procedural
+procedural generation where you expect every
+generation where you expect every decision to have some sort of meaningful
+decision to have some sort of meaningful through line
+through line kind of like it does in real history but
+kind of like it does in real history but for the purposes of generating these
+for the purposes of generating these villages that are only going to be
+villages that are only going to be engaged with in a very particular way
+engaged with in a very particular way you can sort of cheat
+you can sort of cheat occasionally you can you can have these
+occasionally you can you can have these decoupled modules which make
+decoupled modules which make reasoning about your system much simpler
+reasoning about your system much simpler and then just combine them
+and then just combine them and you're you're often surprised by the
+and you're you're often surprised by the results this this
+results this this novel and uh sort of surprising output
+novel and uh sort of surprising output is one of the advantages
+is one of the advantages of of modularity so you want to use
+of of modularity so you want to use abstractions your advantage so again we
+abstractions your advantage so again we have a history
+have a history we only have a specific way to engage
+we only have a specific way to engage with the history
+with the history we can represent it pretty abstractly we
+we can represent it pretty abstractly we don't need to have a real
+don't need to have a real fleshed-out representation of this
+fleshed-out representation of this history
+history and you can you know think about what
+and you can you know think about what what facets of your village or
+what facets of your village or system are going to be you know engaged
+system are going to be you know engaged with in this way what can you do early
+with in this way what can you do early what can you do abstractly and then use
+what can you do abstractly and then use this input into your later modules
+this input into your later modules so that's the next bullet here
+so that's the next bullet here parameterize your modules it's really
+parameterize your modules it's really nice when you have this this flowing
+nice when you have this this flowing system of like
+system of like output from one step write your module
+output from one step write your module so that you can
+so that you can consume this output and again use
+consume this output and again use defaults where you need to
+defaults where you need to if you don't have a if you don't have a
+if you don't have a if you don't have a good decision
+good decision or you don't have a good input that's
+or you don't have a good input that's going to help you make a decision make
+going to help you make a decision make one randomly or make one according to
+one randomly or make one according to some other logic
+some other logic and then finally this sort of goes
+and then finally this sort of goes without saying but just build expressive
+without saying but just build expressive tools so
+tools so we found this pattern in our procedural
+we found this pattern in our procedural generation in our design we were often
+generation in our design we were often making these discrete
+making these discrete procten sort of calls and so we built
+procten sort of calls and so we built these population tables
+these population tables that allowed us to express that really
+that allowed us to express that really succinctly in metadata and it
+succinctly in metadata and it saved a lot of time in in design so
+saved a lot of time in in design so that's it thank you very much i'm jason
+that's it thank you very much i'm jason this is brian we i think we have a
+this is brian we i think we have a little time for questions if you have
+little time for questions if you have any questions please ask
+any questions please ask [Applause]
+[Applause] thanks guys that was great um brian i'm
+thanks guys that was great um brian i'm a huge fan of your irdc talk
+a huge fan of your irdc talk on data-driven design and uh the sort of
+on data-driven design and uh the sort of walk-through through your blueprint
+walk-through through your blueprint system
+system and jason you touched on this at the
+and jason you touched on this at the very end
+very end that when you build these holistic
+that when you build these holistic systems you're really tempted to couple
+systems you're really tempted to couple things and so you have this persistent
+things and so you have this persistent global view of things especially when
+global view of things especially when you have any kind of physical
+you have any kind of physical implications of the structures you're
+implications of the structures you're building i find
+building i find um so i was wondering if you guys might
+um so i was wondering if you guys might be able to compare and contrast
+be able to compare and contrast like the beautiful componentization of
+like the beautiful componentization of the blueprint system
+the blueprint system with the architecture you've used to
+with the architecture you've used to generate the world whether that's sort
+generate the world whether that's sort of like a big serial procedure
+of like a big serial procedure or whether that actually is composed of
+or whether that actually is composed of these nice little
+these nice little discrete components too
+uh sure do you have a good answer i think the answer here
+think the answer here oh yeah okay so the question is um
+um okay so the question is how related is the envy component system to
+is the envy component system to to these proc gen modules and there's
+to these proc gen modules and there's some relationship we take a sort of
+some relationship we take a sort of inspiration from that but the reality is
+inspiration from that but the reality is that
+that we back into these modules a lot of time
+we back into these modules a lot of time right
+right it's the the idea that you've got these
+it's the the idea that you've got these discrete procedural modules that are
+discrete procedural modules that are feeding
+feeding each other input and output is something
+each other input and output is something that we haven't really encountered
+that we haven't really encountered anywhere else
+anywhere else and so we're sort of discovering the
+and so we're sort of discovering the architecture that allows us to do that
+architecture that allows us to do that so you'll note that
+so you'll note that this isn't quite as utterly pristine in
+this isn't quite as utterly pristine in part because we don't have the same kind
+part because we don't have the same kind of
+of basic groundwork we had to build off ecs
+basic groundwork we had to build off ecs systems
+systems so we're inspired by that modularity we
+so we're inspired by that modularity we really like the the power
+really like the the power that entity component systems give us
+that entity component systems give us when defining the objects
+when defining the objects but the fact that you're working on this
+but the fact that you're working on this very
+very very uneven discrete playing field right
+very uneven discrete playing field right like some of these things are very
+like some of these things are very abstract and some of these things are
+abstract and some of these things are very concrete
+very concrete makes it difficult to find a very
+makes it difficult to find a very unified architecture to represent all of
+unified architecture to represent all of it maybe there is one and then
+it maybe there is one and then 25 years we'll begin we talk about it
+25 years we'll begin we talk about it but right now i feel like we're just
+but right now i feel like we're just sort of peering in the door
+sort of peering in the door at what it means to have these
+at what it means to have these procedural inputs and outputs and
+procedural inputs and outputs and different levels of abstraction and
+different levels of abstraction and concreteness feed into one another
+concreteness feed into one another cool thanks yeah and additionally it
+cool thanks yeah and additionally it would also add to that like because it's
+would also add to that like because it's a because it's a game with a really long
+a because it's a game with a really long dev cycle we've been working on it now
+dev cycle we've been working on it now for 10 years we tend to add things
+for 10 years we tend to add things like we're adding things to the game a
+like we're adding things to the game a decade later and so a lot of the modules
+decade later and so a lot of the modules that we're adding now we had no
+that we're adding now we had no anticipation for and so
+anticipation for and so in that sense kind of by necessity it's
+in that sense kind of by necessity it's been
+been this sort of composition of modules as
+this sort of composition of modules as we added more and more systems to the
+we added more and more systems to the game that had no sort of like
+game that had no sort of like had no template in the early versions of
+had no template in the early versions of the game
+the game yeah thanks
+yeah thanks hello so population tool tables
+hello so population tool tables looks like a great tool i can see that
+looks like a great tool i can see that it's xml
+it's xml but i'm wondering have you considered
+but i'm wondering have you considered abstracting this tool into something you
+abstracting this tool into something you could share with the community given
+could share with the community given that you're big on sharing information
+that you're big on sharing information with the community
+with the community have we considered that well we're
+have we considered that well we're considering it right now that you
+considering it right now that you suggested
+suggested yes we are i would love to see that
+yes we are i would love to see that closer up thank you
+closer up thank you hi thanks for the talk um so i saw some
+hi thanks for the talk um so i saw some visualizations that you showed us the
+visualizations that you showed us the buggy visual studio some ascii art to
+buggy visual studio some ascii art to actually see what's going on
+actually see what's going on it was that how far you went to
+it was that how far you went to visualize what was actually being
+visualize what was actually being generated like if you really needed to
+generated like if you really needed to see the final
+see the final version you just ran the game uh
+version you just ran the game uh yeah largely the the visualizations you
+yeah largely the the visualizations you were seeing there were not created for
+were seeing there were not created for for gdc specifically but were actually
+for gdc specifically but were actually the debug visualizations i used to
+the debug visualizations i used to visualize the system
+visualize the system so that alongside with just the visual
+so that alongside with just the visual studio debugger is
+studio debugger is is largely the extent of our our
+is largely the extent of our our visualization and debugging tools yeah
+visualization and debugging tools yeah that's hardcore did you consider
+that's hardcore did you consider something that would make it easier
+something that would make it easier did you just not uh think you had time
+did you just not uh think you had time or not need i
+or not need i i mean i guess i felt like i built the
+i mean i guess i felt like i built the tools that i needed to get the system to
+tools that i needed to get the system to get the output we wanted so
+get the output we wanted so those tools were sufficient whether that
+those tools were sufficient whether that means i
+means i like an unpleasant life is
+like an unpleasant life is is arguable right i mean i probably have
+is arguable right i mean i probably have a slightly higher threshold for pain
+a slightly higher threshold for pain as well as jason does when developing
+as well as jason does when developing games of god
+games of god um but really the individual techniques
+um but really the individual techniques are fairly straightforward
+are fairly straightforward right i mean we're talking about wfc
+right i mean we're talking about wfc sounds crazy it's not
+sounds crazy it's not it's not that hard to use you know pearl
+it's not that hard to use you know pearl and noise is not that hard to use
+and noise is not that hard to use the individual techniques are not that
+the individual techniques are not that hard the hard thing is finding a design
+hard the hard thing is finding a design space you want to explore and then
+space you want to explore and then mapping those simple tools to them
+mapping those simple tools to them right that once you get into building
+right that once you get into building the individual individual tools once you
+the individual individual tools once you understand what you're trying to build
+understand what you're trying to build it it really is honestly not not that
+it it really is honestly not not that not that difficult i guess
+not that difficult i guess so you didn't get to a point where
+so you didn't get to a point where something very weird was being generated
+something very weird was being generated and you couldn't
+and you couldn't replicate you couldn't really see that
+replicate you couldn't really see that happening i guess
+happening i guess those kind of concerns in caves of cud
+those kind of concerns in caves of cud we often like wow that's really strange
+we often like wow that's really strange that's okay
+that's okay let's leave that in right i mean that's
+let's leave that in right i mean that's that's an interesting output and so
+that's an interesting output and so um i would say that no we did not often
+um i would say that no we did not often run into
+run into into situations where we had some
+into situations where we had some degenerate output that we we
+degenerate output that we we just couldn't understand it does happen
+just couldn't understand it does happen at the margins
+at the margins but the fact that we can reproduce those
+but the fact that we can reproduce those environments with a seed for example
+environments with a seed for example makes it really useful so we can go and
+makes it really useful so we can go and say hey just send me your save file
+say hey just send me your save file we can load up that save file issue a
+we can load up that save file issue a command to rebuild that zone and it'll
+command to rebuild that zone and it'll just rebuild the zone with the same
+just rebuild the zone with the same contact so i can get in there and
+contact so i can get in there and debugger and walk through that player's
+debugger and walk through that player's that village regenerating and you know
+that village regenerating and you know figure out
+figure out what happened there so there so because
+what happened there so there so because these are repeatable systems that seed
+these are repeatable systems that seed is very useful for
+is very useful for for debugging um complex procedural
+for debugging um complex procedural problems okay so in that case you could
+problems okay so in that case you could just get the save file that had that
+just get the save file that had that situation you see that being generated
+situation you see that being generated yeah that's
+yeah that's my question you can drop right in where
+my question you can drop right in where the player is and issue command you say
+the player is and issue command you say rebuild
+rebuild and because our our zone building is so
+and because our our zone building is so discreet
+discreet you can rebuild that individual zone and
+you can rebuild that individual zone and it will walk through the same steps
+it will walk through the same steps and you'll get the same whatever it is
+and you'll get the same whatever it is you're looking very nice thank you
+you're looking very nice thank you and we do actually have a couple more
+and we do actually have a couple more tools there are like if you go into
+tools there are like if you go into we have like a sort of modding tool in
+we have like a sort of modding tool in the game and you could see like we do
+the game and you could see like we do have like a noise map
+have like a noise map visualizer we have something for our our
+visualizer we have something for our our grammar text generation we've built a
+grammar text generation we've built a couple but like
+couple but like where they're useful to us yeah okay
+where they're useful to us yeah okay thanks
+thanks do you do any generation based on user
+do you do any generation based on user interactions or input
+interactions or input at all yeah well i mean like
+at all yeah well i mean like a little bit because we have cases where
+a little bit because we have cases where like what they what the player does in
+like what they what the player does in the game is sort of inscribed in this
+the game is sort of inscribed in this chronology
+chronology uh a sort of player journal and then we
+uh a sort of player journal and then we use that to seed
+use that to seed some of the generation but it's kind of
+some of the generation but it's kind of light right most of most of the
+light right most of most of the generation we're doing
+generation we're doing is is done during world generation and
+is is done during world generation and then like finalized during fabrication
+then like finalized during fabrication and
+and the user's input to it is is on the
+the user's input to it is is on the light side
+light side thanks sure hi thanks for the talk
+thanks sure hi thanks for the talk um i have a question you touched a
+um i have a question you touched a little bit on in a minute ago about
+little bit on in a minute ago about say the save games um do you guys save
+say the save games um do you guys save like the full results of everything or
+like the full results of everything or do you save just the seed or
+do you save just the seed or somewhat somewhere in between oh oh okay
+somewhat somewhere in between oh oh okay so the the serialization
+so the the serialization is just the worst i'm sure everybody
+is just the worst i'm sure everybody who's touched it is it knows that
+who's touched it is it knows that um and in caves of cod we actually do
+um and in caves of cod we actually do serialize the whole world state
+serialize the whole world state um we we save it off in in chunks so
+um we we save it off in in chunks so each of those
+each of those screens is a discrete chunk which we'll
+screens is a discrete chunk which we'll save off to disk
+save off to disk and we just serialize the full game
+and we just serialize the full game state and it's really awful and causes
+state and it's really awful and causes us all kinds of problems but it mostly
+us all kinds of problems but it mostly works
+works we use built-in.net binary serialization
+we use built-in.net binary serialization mostly we just dump the structure to the
+mostly we just dump the structure to the disk
+disk and then we're able to refresh it thanks
+um hi uh the pipeline you demonstrated seems uh extremely
+demonstrated seems uh extremely functional in a way
+functional in a way like it's just a composition of
+like it's just a composition of functions to take an input and taken out
+functions to take an input and taken out but
+but i was wondering if you made use of any
+i was wondering if you made use of any like functional programming techniques
+like functional programming techniques like persistent data structures
+like persistent data structures immutable data that kind of thing
+immutable data that kind of thing and just at the implementation level um
+and just at the implementation level um so the question is do we use functional
+so the question is do we use functional programming the answer is no not really
+programming the answer is no not really it's a it's a c sharp program and
+it's a it's a c sharp program and we're largely really functionally you
+we're largely really functionally you know generating a chunk of data it's
+know generating a chunk of data it's getting stuck in some data structure and
+getting stuck in some data structure and then the next
+then the next module is it's less that we're really
+module is it's less that we're really passing it and that makes it look a
+passing it and that makes it look a little
+little a lot cleaner than it is the reality is
+a lot cleaner than it is the reality is that we have a mod the you know we go
+that we have a mod the you know we go and we generate the culture and it
+and we generate the culture and it reaches out to this global state
+reaches out to this global state um and grabs the things that it's
+um and grabs the things that it's interested in you can you can visualize
+interested in you can you can visualize it as a set of
+it as a set of functional parameters and it's cleaner
+functional parameters and it's cleaner to think about that way but our
+to think about that way but our implementation is a bit messier we've
+implementation is a bit messier we've sort of
+sort of we've done some abstraction here to
+we've done some abstraction here to unpack what we're doing in order to make
+unpack what we're doing in order to make it sort of explicable
+it sort of explicable the actual implementation is not a
+the actual implementation is not a little functional occasionally
+little functional occasionally a little bit yeah yeah i mean we yeah
+a little bit yeah yeah i mean we yeah the code is like 15 years old and has
+the code is like 15 years old and has many many layers so
+many many layers so there's a little bit of everything in
+there's a little bit of everything in there at some point
+there at some point thank you do we agree i think
+thank you do we agree i think we might be done here right can we get
+we might be done here right can we get answer your question
+answer your question just just one real quick so just want to
+just just one real quick so just want to say thanks uh
+say thanks uh for the talk and for the game both are
+for the talk and for the game both are awesome um i was going to ask if one was
+awesome um i was going to ask if one was going to
+going to uh develop a system like this do you
+uh develop a system like this do you think it would be wiser to start
+think it would be wiser to start concrete and work abstract or start
+concrete and work abstract or start abstract and work concrete or
+abstract and work concrete or is there some sort of i know it's an old
+is there some sort of i know it's an old system that you you have now but if
+system that you you have now but if somebody was going to do this today like
+somebody was going to do this today like what that process might look like in
+what that process might look like in your mind
+your mind i mean i i think i think you want to
+i mean i i think i think you want to start with
+start with visualizing at the concrete level but
+visualizing at the concrete level but then
+and maybe building some sort of prototypes at the concrete level to get
+prototypes at the concrete level to get an idea of what you want your output to
+an idea of what you want your output to be like i mean that's a nice technique
+be like i mean that's a nice technique to use with
+to use with proc gen in general so maybe hand design
+proc gen in general so maybe hand design some output that you're trying to gonna
+some output that you're trying to gonna interpolate between but then as far as
+interpolate between but then as far as for the actual system i think you want
+for the actual system i think you want to
+to well i mean you probably want to build a
+well i mean you probably want to build a system this big well
+system this big well you when you do i think you want your
+you when you do i think you want your early steps to be abstract yeah
+early steps to be abstract yeah i would agree with that i think that
+i would agree with that i think that what you want to do in a procedural
+what you want to do in a procedural system the question is do you start
+system the question is do you start abstract or you just start concrete i
+abstract or you just start concrete i think the reality is that you start
+think the reality is that you start with hand designing what your output
+with hand designing what your output what you want your output to be
+what you want your output to be and then whether you start abstract or
+and then whether you start abstract or concrete would
+concrete would if i was going to answer that i would
+if i was going to answer that i would say i would try to figure out what the
+say i would try to figure out what the riskiest thing is
+riskiest thing is right like is the abstract model of this
+right like is the abstract model of this the riskiest thing
+the riskiest thing because the the concrete is a simple
+because the the concrete is a simple tile based game
+tile based game or do i have a very a very novel
+or do i have a very a very novel concrete
+concrete representation is that very risky then i
+representation is that very risky then i would probably start there and try to
+would probably start there and try to flush the risk out of the system the
+flush the risk out of the system the unknowns out of the system
+unknowns out of the system so it would be very dependent on on
+so it would be very dependent on on context that makes sense thanks
+sure

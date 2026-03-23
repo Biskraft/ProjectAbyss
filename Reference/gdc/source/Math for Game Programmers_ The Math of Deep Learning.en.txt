@@ -1,0 +1,668 @@
+[Music] it's thanks for coming
+it's thanks for coming that's an amazing turnout my name is
+that's an amazing turnout my name is Alex I'm a co-founder creative AI and in
+Alex I'm a co-founder creative AI and in general we apply lots of AI techniques
+general we apply lots of AI techniques into creative industries one of those is
+into creative industries one of those is deep learning well that's more of a
+deep learning well that's more of a hobby of mine I apply algorithms on
+hobby of mine I apply algorithms on recent papers that I've read and put
+recent papers that I've read and put them onto github including this one that
+them onto github including this one that I did recently called neural enhance you
+I did recently called neural enhance you can find the code at github slash Alex
+can find the code at github slash Alex JC
+JC that's all the neural network and
+that's all the neural network and another project I did this one's
+another project I did this one's published last year the ICCC
+published last year the ICCC called neural doodle where you can just
+called neural doodle where you can just sketch cool things in the neural network
+sketch cool things in the neural network will paint that out in the style of an
+will paint that out in the style of an artist so in this case it's turning my
+artist so in this case it's turning my doodles into hanwha painting so that's
+doodles into hanwha painting so that's also on github and my journey with
+also on github and my journey with neural networks actually started a long
+neural networks actually started a long time ago and fifteen years ago I
+time ago and fifteen years ago I published an article called it was a
+published an article called it was a book chapter called the dark art of
+book chapter called the dark art of neural networks and luckily a lot of
+neural networks and luckily a lot of things have changed since then and now
+things have changed since then and now they actually work
+they actually work and and we understand that much much
+and and we understand that much much better like the entire academic
+better like the entire academic community is kind of converged around
+community is kind of converged around deep learning and adding ideas or taking
+deep learning and adding ideas or taking the best ideas from the field and we've
+the best ideas from the field and we've got a much better theoretical
+got a much better theoretical understanding of how they work the
+understanding of how they work the downside however is that deep learning
+downside however is that deep learning is still and it may always be a dark art
+is still and it may always be a dark art that part is not going to change you
+that part is not going to change you will never understand a deep learning
+will never understand a deep learning model as well as we understand the
+model as well as we understand the rule-based system or a finite state
+rule-based system or a finite state machine and the reason for that is that
+machine and the reason for that is that they're modern deep learning models can
+they're modern deep learning models can be made up of up to a billion parameters
+be made up of up to a billion parameters that's a billion floating-point numbers
+that's a billion floating-point numbers that somehow combined together multiply
+that somehow combined together multiply divide they have to somehow understand
+divide they have to somehow understand how this works and you will get a very
+how this works and you will get a very different sense of understanding of how
+different sense of understanding of how such a model works compared to a finite
+such a model works compared to a finite state machine with a few states so what
+state machine with a few states so what I want to give you in this talk is an
+I want to give you in this talk is an overview of all the different tools that
+overview of all the different tools that you can use to understand deep learning
+you can use to understand deep learning and starting from the data side of
+and starting from the data side of things and understanding properties of
+things and understanding properties of the data sets how they can help us
+the data sets how they can help us understand how that data flows through
+understand how that data flows through these different models so covering the
+these different models so covering the models in the computation and then
+models in the computation and then finally the more the learning side of
+finally the more the learning side of things in the optimization there are
+things in the optimization there are lots of different fields of maths that
+lots of different fields of maths that help understand deep learning and I'll
+help understand deep learning and I'll give you sufficient references so you
+give you sufficient references so you can dig into it at home not too many
+can dig into it at home not too many equations but a lot of homework so what
+equations but a lot of homework so what is deep learning ultimately the simple
+is deep learning ultimately the simple answer is that you compute an output Y
+answer is that you compute an output Y based on an input X and deep learning is
+based on an input X and deep learning is basically making a really heavy memory
+basically making a really heavy memory intensive overweight bloated function f
+intensive overweight bloated function f the world compute Y from X but it can do
+the world compute Y from X but it can do things that no other thing no other
+things that no other thing no other machine learning algorithm can do but I
+machine learning algorithm can do but I like to think of deep learning is
+like to think of deep learning is basically taking all the ideas of neural
+basically taking all the ideas of neural network that work well in practice and
+network that work well in practice and and moving more towards the side of
+and moving more towards the side of software engineering so it's a field
+software engineering so it's a field that is typically called differentiable
+that is typically called differentiable computing so not just solving problems
+computing so not just solving problems that you'd expect with neural networks
+that you'd expect with neural networks but generally building large programs
+but generally building large programs that just happen to be
+that just happen to be a differentiable which means we can
+a differentiable which means we can train them using gradient descent or
+train them using gradient descent or other optimization algorithms and this
+other optimization algorithms and this is particularly important because these
+is particularly important because these two disciplines are going to merge the
+two disciplines are going to merge the software engineering and deep learning
+software engineering and deep learning are becoming closer and closer thanks to
+are becoming closer and closer thanks to libraries like tensor flow and so it's
+libraries like tensor flow and so it's it's very useful to understand how deep
+it's very useful to understand how deep learning works a bit more formally
+learning works a bit more formally because it's going to become such an
+because it's going to become such an important part of solving difficult
+important part of solving difficult problems in the future
+problems in the future so when should you use deep learning and
+so when should you use deep learning and well the simple answer to this is that
+well the simple answer to this is that it's the same as machine learning in
+it's the same as machine learning in general whether you're doing a
+general whether you're doing a classification problem you're predicting
+classification problem you're predicting outputs that classes this is a cat a dog
+outputs that classes this is a cat a dog that's your output Y based on input X
+that's your output Y based on input X could be an image or a regression
+could be an image or a regression problem which is basically predicting
+problem which is basically predicting continuous values Y from the same input
+continuous values Y from the same input X then that's kind of a special case
+X then that's kind of a special case generation is sort of predicting very
+generation is sort of predicting very large images based on very small inputs
+large images based on very small inputs so that's kind of deep learning is also
+so that's kind of deep learning is also shining in that department that's one of
+shining in that department that's one of my favorite applications of deep
+my favorite applications of deep learning
+so what really justifies using deep learning is actually the dataset itself
+learning is actually the dataset itself so you need to have certain properties
+so you need to have certain properties in your data set in fact I think there
+in your data set in fact I think there are three big properties of your data
+are three big properties of your data that justifies using deep learning
+that justifies using deep learning otherwise you might as well just use
+otherwise you might as well just use regular machine learning linear
+regular machine learning linear classifiers these three properties are a
+classifiers these three properties are a very high dimensional input so if you're
+very high dimensional input so if you're working with large images or videos or
+working with large images or videos or even a highly sampled audio signals and
+even a highly sampled audio signals and deep learning is ideally suited to this
+deep learning is ideally suited to this and that's why all the progress has been
+and that's why all the progress has been made on image recognition and voice
+made on image recognition and voice recognition and translation because of
+recognition and translation because of really a lot of data there and deep
+really a lot of data there and deep learning does it exceptionally well with
+learning does it exceptionally well with it but it also requires you to have a
+it but it also requires you to have a sufficiently interesting problem so this
+sufficiently interesting problem so this sort of think of deep learning as as
+sort of think of deep learning as as trying to approximate a manifold in
+trying to approximate a manifold in n-dimensional space so it's like a
+n-dimensional space so it's like a decision surface that separates true
+decision surface that separates true from false in in your in your input
+from false in in your in your input space and neural networks are very good
+space and neural networks are very good or deep learning in general is very good
+or deep learning in general is very good at finding these complex decisions
+at finding these complex decisions surface and
+surface and if you just had a very simple decision
+if you just had a very simple decision surface you wouldn't need a deep
+surface you wouldn't need a deep learning model for that the third thing
+learning model for that the third thing is having a lot of examples and this is
+is having a lot of examples and this is almost a cliche of deep learning that he
+almost a cliche of deep learning that he need a lot of data for but Google's
+need a lot of data for but Google's internal data set that they wrote about
+internal data set that they wrote about in some recent papers have over a
+in some recent papers have over a hundred million images which is
+hundred million images which is completely crazy and it allows you to be
+completely crazy and it allows you to be very lazy about how to approach things
+very lazy about how to approach things you just grab that much data and you
+you just grab that much data and you don't have to worry so much however it
+don't have to worry so much however it does help if you have a statistical
+does help if you have a statistical understanding of how the data is
+understanding of how the data is structured so if you have these images
+structured so if you have these images it's good to have some sense of how the
+it's good to have some sense of how the data is distributed so are the more cats
+data is distributed so are the more cats and dogs and if so we need to rebuy a
+and dogs and if so we need to rebuy a things or if there are very few chairs
+things or if there are very few chairs we may need to train the neural network
+we may need to train the neural network a bit more on those variations to get it
+a bit more on those variations to get it to be a just as accurate or recognizing
+to be a just as accurate or recognizing chairs and it is animals for example so
+chairs and it is animals for example so this is called data D biasing and it's
+this is called data D biasing and it's over I would say a relatively standard
+over I would say a relatively standard practice in machine learning and data
+practice in machine learning and data science but what deep learning is sort
+science but what deep learning is sort of increasingly doing is also doing the
+of increasingly doing is also doing the same thing but in the input space so
+same thing but in the input space so it's a bit harder to do because
+it's a bit harder to do because typically these input spaces are very
+typically these input spaces are very big here we see a data set that's very
+big here we see a data set that's very imbalanced there's lots of samples on
+imbalanced there's lots of samples on the right side but we're missing
+the right side but we're missing information on the left side so we could
+information on the left side so we could gather more examples from the left and
+gather more examples from the left and have a much better representative
+have a much better representative picture of this data set and this is
+picture of this data set and this is more valuable than having a lot of
+more valuable than having a lot of examples that are condensed on the right
+examples that are condensed on the right side it's better to have a nice
+side it's better to have a nice distribution of your input data across
+distribution of your input data across all the dimensions that you care about
+all the dimensions that you care about and this is very active and important
+and this is very active and important area of research and effects Google's
+area of research and effects Google's data set a hundred thousand 100 million
+data set a hundred thousand 100 million images is actually partly automatically
+images is actually partly automatically labeled as well so they didn't go
+labeled as well so they didn't go through all those images and manually
+through all those images and manually assigning labels to them they just
+assigning labels to them they just understand that based on proximity or
+understand that based on proximity or the structure of the images that they
+the structure of the images that they have a certain tag so they don't have to
+have a certain tag so they don't have to go through that whole thing manually and
+go through that whole thing manually and that is kind of the the essence of this
+that is kind of the the essence of this field of interactive learning being able
+field of interactive learning being able to suggest questions to humans say what
+to suggest questions to humans say what is this and then popping that up and
+is this and then popping that up and getting a really valuable piece of data
+getting a really valuable piece of data is better than having 10 times more data
+is better than having 10 times more data there's a very low value
+there's a very low value here are some references if you want to
+here are some references if you want to go into more detail the slides will be
+go into more detail the slides will be available later you don't have to
+available later you don't have to scribble it down so now we have this
+scribble it down so now we have this data we can basically feed it into
+data we can basically feed it into neural models of deep learning models I
+neural models of deep learning models I like to think of these models as
+like to think of these models as computational graphs I'm not going to
+computational graphs I'm not going to use the words biologically inspired or I
+use the words biologically inspired or I might occasionally use the word neuron
+might occasionally use the word neuron but deep learning is progress way beyond
+but deep learning is progress way beyond the biological inspiration that it
+the biological inspiration that it originally started with now it's easier
+originally started with now it's easier to think of these models as very large
+to think of these models as very large computation graphs that basically take
+computation graphs that basically take some input and then produce some outputs
+some input and then produce some outputs where the step steps of operations in
+where the step steps of operations in between so on the left side we'd have
+between so on the left side we'd have our input X and that is typically a
+our input X and that is typically a tensor so that means it's a a 2d matrix
+tensor so that means it's a a 2d matrix for example if it's an image if it's a
+for example if it's an image if it's a batch of images it might be a 3d matrix
+batch of images it might be a 3d matrix if it's a batch of videos it might be a
+if it's a batch of videos it might be a 4d matrix and then on the output we have
+4d matrix and then on the output we have similarly it's going to be an also a
+similarly it's going to be an also a tensor which is going to be another
+tensor which is going to be another matrix of it could be boolean values
+matrix of it could be boolean values that this is a cat a dog a chair or
+that this is a cat a dog a chair or probabilities of different classes so
+within this computation graph we have even more tensors and these are
+even more tensors and these are potentially smaller matrices of
+potentially smaller matrices of different sizes scattered throughout the
+different sizes scattered throughout the graph and these make up the model what
+graph and these make up the model what we're going to be doing our computation
+we're going to be doing our computation way than what will be trained it it
+way than what will be trained it it becomes this function f and we have lots
+becomes this function f and we have lots of little tensors scattered throughout
+of little tensors scattered throughout and some of them will be relatively
+and some of them will be relatively small others will be much bigger and
+small others will be much bigger and it's effectively you can think of it as
+it's effectively you can think of it as a way of expressing all these different
+a way of expressing all these different matrices that build up one bigger matrix
+matrices that build up one bigger matrix multiplication with lots of custom
+multiplication with lots of custom operations in there instead another way
+operations in there instead another way to think of this is that when you
+to think of this is that when you specify these computation graphs in for
+specify these computation graphs in for example in tensor flow you'll specify
+example in tensor flow you'll specify what happens to your input X and the
+what happens to your input X and the line might not immediately know what it
+line might not immediately know what it is so there's some abstraction there and
+is so there's some abstraction there and then it will sort of reason about these
+then it will sort of reason about these different operations in in this abstract
+different operations in in this abstract way like multiply this input times this
+way like multiply this input times this other matrix and then perform a
+other matrix and then perform a nonlinear function on that at the
+nonlinear function on that at the Sault split it - and all these different
+Sault split it - and all these different steps are specified on abstract concepts
+steps are specified on abstract concepts and then tensor flow or theano or the
+and then tensor flow or theano or the deep learning libraries will compile
+deep learning libraries will compile that and run it on your GPU as fast as
+that and run it on your GPU as fast as it can so just two things to note about
+it can so just two things to note about these computation graphs is that the
+these computation graphs is that the first is that it's important to have
+first is that it's important to have nonlinear functions regular intervals
+nonlinear functions regular intervals throughout the graph if you just have
+throughout the graph if you just have linear functions throughout your your
+linear functions throughout your your deep model you'll end up with just
+deep model you'll end up with just another linear function so it's going to
+another linear function so it's going to be a really expensive linear function
+be a really expensive linear function which is a complete waste of time so you
+which is a complete waste of time so you want to put nonlinear functions into
+want to put nonlinear functions into your into your graph to really give it
+your into your graph to really give it the benefits of the depths and the
+the benefits of the depths and the deeper you go the more benefits you get
+deeper you go the more benefits you get as long as you add normally near
+as long as you add normally near functions so from left to right these
+functions so from left to right these are some of the most common the most
+are some of the most common the most popular ones on the left is the tan h
+popular ones on the left is the tan h function it's like a smooth step from
+function it's like a smooth step from minus 1 to plus 1 sigmoid looks a bit
+minus 1 to plus 1 sigmoid looks a bit similar except is between 0 1 and they
+similar except is between 0 1 and they basically use this very often room for a
+basically use this very often room for a machine translation and sequence the
+machine translation and sequence the sequence learning in the middle we've
+sequence learning in the middle we've got the r lu it's called the rectified
+got the r lu it's called the rectified linear unit which is basically defined
+linear unit which is basically defined as 0 on the negative infinity side and
+as 0 on the negative infinity side and it's the identity function on the
+it's the identity function on the positive infinity side and this is used
+positive infinity side and this is used extremely often in image recognition
+extremely often in image recognition image processing and then on the right
+image processing and then on the right side we have the Lu exponential linear
+side we have the Lu exponential linear function which kind of a mix between the
+function which kind of a mix between the two goes from minus 1 smoothly
+two goes from minus 1 smoothly transitioning into a linear function and
+transitioning into a linear function and this is used more often in image
+this is used more often in image segmentation and yeah I like this one
+segmentation and yeah I like this one it's said it's a good one for generative
+it's said it's a good one for generative models so the second thing to note about
+models so the second thing to note about the computation we here we have lots of
+the computation we here we have lots of linear nonlinear functions throughout
+linear nonlinear functions throughout the graph but it's also good to have
+the graph but it's also good to have these residual connections so this is a
+these residual connections so this is a concept that's borrowed from signal
+concept that's borrowed from signal processing where you have a base signal
+processing where you have a base signal and then you add a bit more detail on
+and then you add a bit more detail on top of that so in this case we're going
+top of that so in this case we're going to have a separate branch that branches
+to have a separate branch that branches off and then another computation is done
+off and then another computation is done and then we add the result back in later
+and then we add the result back in later and this is important because it helps
+and this is important because it helps the data flow a bit more smoothly if you
+the data flow a bit more smoothly if you can imagine a graph like this that has
+can imagine a graph like this that has thousands of layers like this is that
+thousands of layers like this is that the biggest debt that Microsoft has
+the biggest debt that Microsoft has trained went up to 1,500 deep models the
+trained went up to 1,500 deep models the data flows much more smoothly if you
+data flows much more smoothly if you have these regular skip connections
+have these regular skip connections throughout the graph so that means that
+throughout the graph so that means that when you're going forwards and you're
+when you're going forwards and you're computing these functions it means you
+computing these functions it means you can remove parts and it still kind of
+can remove parts and it still kind of works but also when you're going
+works but also when you're going backwards it means that the the training
+backwards it means that the the training procedure has a easier time updating all
+procedure has a easier time updating all the values in the neural networks I
+the values in the neural networks I think this is one of the biggest
+think this is one of the biggest insights of the past couple years
+insights of the past couple years actually it made a big difference in all
+actually it made a big difference in all the competitions
+so the tricks we've seen so far are on the general side they're reusable
+the general side they're reusable concepts you can apply them into like
+concepts you can apply them into like whatever function you're trying to
+whatever function you're trying to approximate you can use these but there
+approximate you can use these but there are also very specific tricks that apply
+are also very specific tricks that apply to for example image processing and this
+to for example image processing and this can be thought of as a node inside the
+can be thought of as a node inside the computation graphics called a
+computation graphics called a convolution filter you might have heard
+convolution filter you might have heard the word convolutional neural networks
+the word convolutional neural networks and this is what's going on under the
+and this is what's going on under the hood it's like it's taking a really
+hood it's like it's taking a really small kernel or 3x3 matrix
+small kernel or 3x3 matrix and scanning it over the input image and
+and scanning it over the input image and then producing another output as a
+then producing another output as a result so you can think of this as like
+result so you can think of this as like edge detection or pattern detection on
+edge detection or pattern detection on the 3x3 scale and then producing this
+the 3x3 scale and then producing this sort of the output grayscale image that
+sort of the output grayscale image that shows how strong those edge detector
+shows how strong those edge detector edge detector were activated so you can
+edge detector were activated so you can imagine stacking these detectors
+imagine stacking these detectors together we have more on three 3x3
+together we have more on three 3x3 matrices and just ending up with more
+matrices and just ending up with more and more output channels and they're all
+and more output channels and they're all detecting different kinds of patterns
+detecting different kinds of patterns and those patterns then get turned into
+and those patterns then get turned into more patterns and as you make the neural
+more patterns and as you make the neural network deeper it learns patterns of
+network deeper it learns patterns of patterns and building higher level
+patterns and building higher level abstractions so on the right you see
+abstractions so on the right you see there are gaps between the blue cells
+there are gaps between the blue cells that means we're sort of padding them
+that means we're sort of padding them with 0 that means you can do things like
+with 0 that means you can do things like op sampling operations you can also skip
+op sampling operations you can also skip certain cells as well you can do down
+certain cells as well you can do down sampling operations and you can change
+sampling operations and you can change the kernel size and make it a 5 by 5
+the kernel size and make it a 5 by 5 matrix and so in practice most image
+matrix and so in practice most image recognition neural networks use layers
+recognition neural networks use layers and layers of these operations just
+and layers of these operations just stack together
+stack together to basically form these deep
+to basically form these deep computational graphs that recognize
+computational graphs that recognize images so another common pattern that's
+images so another common pattern that's used often in image not image
+used often in image not image recognition
+recognition translation is the LST M cell so it's a
+translation is the LST M cell so it's a long short-term memory and if you can
+long short-term memory and if you can think of it as like a almost an electric
+think of it as like a almost an electric circuit
+circuit it's very specifically crafted to be
+it's very specifically crafted to be assembled together so they put together
+assembled together so they put together like thousands of these and then they
+like thousands of these and then they stack another layer of them on top of
+stack another layer of them on top of each other and they can learn sequence
+each other and they can learn sequence the sequence translations so they're
+the sequence translations so they're very good at translating and that's what
+very good at translating and that's what Google uses everywhere so here are more
+Google uses everywhere so here are more details about the models but so far in
+details about the models but so far in general deep learning is difficult to
+general deep learning is difficult to get right when you're trying to figure
+get right when you're trying to figure out what you need to plug together it's
+out what you need to plug together it's a very intuition driven process and this
+a very intuition driven process and this is the part where the the dark art comes
+is the part where the the dark art comes in you need to have some sense of what's
+in you need to have some sense of what's going to work and you can do that by
+going to work and you can do that by reading a lot of the papers in the field
+reading a lot of the papers in the field so every morning I try to read some PDFs
+so every morning I try to read some PDFs from archive.org which is a preprint
+from archive.org which is a preprint server for the machine learning
+server for the machine learning community has sort of converged on so
+community has sort of converged on so you can get papers that are related to
+you can get papers that are related to what you're trying to solve and then get
+what you're trying to solve and then get a sense of what architecture they're
+a sense of what architecture they're using and try it out but so in practice
+using and try it out but so in practice if you have hundreds of thousands of
+if you have hundreds of thousands of GPUs available to you if you're willing
+GPUs available to you if you're willing to spend the money on their cloud
+to spend the money on their cloud compute then you can use more
+compute then you can use more experimental testing approaches trying
+experimental testing approaches trying out all the different variations of your
+out all the different variations of your architecture and seeing what comes out
+architecture and seeing what comes out it can be a bit expensive but that makes
+it can be a bit expensive but that makes it more of a methodical like an
+it more of a methodical like an experimental science as opposed to we
+experimental science as opposed to we don't yet have a full analytical
+don't yet have a full analytical understanding of how these architectures
+understanding of how these architectures work so in practice was they what this
+work so in practice was they what this means is it puts more emphasis on the
+means is it puts more emphasis on the computation side of things and
+computation side of things and understanding how the data flows through
+understanding how the data flows through your neural networks and that's
+your neural networks and that's important to understand the statistics
+important to understand the statistics of the data as it's progressing through
+of the data as it's progressing through the network
+the network so in traditional machine learning you
+so in traditional machine learning you have to well it's recommended that you
+have to well it's recommended that you normalize your input data which means
+normalize your input data which means you want the mean to be around zero and
+you want the mean to be around zero and you want the standard deviation to be
+you want the standard deviation to be around one so that has a lot of benefits
+around one so that has a lot of benefits all these nonlinear functions that we
+all these nonlinear functions that we talked about if you feed in a nice
+talked about if you feed in a nice normal distribution into these functions
+normal distribution into these functions you get a mix of Plus Ones and minus
+you get a mix of Plus Ones and minus ones or of a positive or a zero and in
+ones or of a positive or a zero and in the case of the middle function and so
+the case of the middle function and so this means that the neural network or
+this means that the neural network or the deep learning model is actually
+the deep learning model is actually making decisions it's actually deciding
+making decisions it's actually deciding whether something should be true or
+whether something should be true or false or a plus one and minus one where
+false or a plus one and minus one where as if you weren't normalizing your data
+as if you weren't normalizing your data it might end up in the case of this tan
+it might end up in the case of this tan edge function all the values might end
+edge function all the values might end up being one point 0 in which case is
+up being one point 0 in which case is giving you no extra information about
+giving you no extra information about your input data you've just lost a lot
+your input data you've just lost a lot of information and these were
+of information and these were fundamentally the problems that the
+fundamentally the problems that the machine learning community wrestled with
+machine learning community wrestled with for about 20 years until they figured
+for about 20 years until they figured out what was happening so it sounds
+out what was happening so it sounds simple but it took us a while to figure
+simple but it took us a while to figure out how how things were things were
+out how how things were things were going on under the hood so as you take
+going on under the hood so as you take your data and you filter it through this
+your data and you filter it through this computational graph like the deeper it
+computational graph like the deeper it gets the harder it is to to predict what
+gets the harder it is to to predict what shape the data distributions going to
+shape the data distributions going to have if it's going to drift off towards
+have if it's going to drift off towards infinity or if it's going to converge
+infinity or if it's going to converge towards zero and end up just vanishing
+towards zero and end up just vanishing completely so that will depend entirely
+completely so that will depend entirely on the kinds of operations that you're
+on the kinds of operations that you're using it will depend on how you've
+using it will depend on how you've initialized your data how you've
+initialized your data how you've initialized the parameters and so it's
+initialized the parameters and so it's generally a very difficult thing to
+generally a very difficult thing to predict these distributions so the trick
+predict these distributions so the trick and this is what brought back there the
+and this is what brought back there the deep learning craze is correctly
+deep learning craze is correctly initializing the parameters this is one
+initializing the parameters this is one of the approaches such that your output
+of the approaches such that your output distribution is basically also a
+distribution is basically also a normalized distribution so if you set
+normalized distribution so if you set the certain weights and sort of biases
+the certain weights and sort of biases you can sort of shift your data
+you can sort of shift your data distribution around and then
+distribution around and then make sure that it is a normal
+make sure that it is a normal distribution again so there's some great
+distribution again so there's some great papers on this this is a recent paper
+papers on this this is a recent paper with a new approach to doing that called
+with a new approach to doing that called weight normalization it's a well written
+weight normalization it's a well written paper and quite accessible the other
+paper and quite accessible the other approach which is used almost everywhere
+approach which is used almost everywhere is called batch normalization so
+is called batch normalization so basically keeping track of the mean and
+basically keeping track of the mean and the standard deviation of your data set
+the standard deviation of your data set as you're filtering it through the graph
+as you're filtering it through the graph and then effectively you're you can
+and then effectively you're you can adjust it on the fly as the more data
+adjust it on the fly as the more data you filter through it then the better
+you filter through it then the better will understand how to to move the data
+will understand how to to move the data set around and this is a technique that
+set around and this is a technique that allowed us to really get much better
+allowed us to really get much better results in image recognition and it made
+results in image recognition and it made the significant difference this is one
+the significant difference this is one of the the most important techniques of
+of the the most important techniques of the last five years so the result of
+the last five years so the result of applying these techniques things like
+applying these techniques things like batch normalization you get a nice
+batch normalization you get a nice distribution of positive and negative
+distribution of positive and negative results like each of the channels inside
+results like each of the channels inside your your deep mode making decisions
+your your deep mode making decisions positive and negative and you end up
+positive and negative and you end up with a nice sparse result as opposed to
+with a nice sparse result as opposed to just having zeros everywhere so and this
+just having zeros everywhere so and this is what so made things like neural style
+is what so made things like neural style possible because each of these different
+possible because each of these different photos as you filter it through the
+photos as you filter it through the network will have a different
+network will have a different fingerprint or a different unique
+fingerprint or a different unique identifier and it looks a bit like this
+identifier and it looks a bit like this so you can train for this and try and
+so you can train for this and try and encourage these results to emerge and
+encourage these results to emerge and I'm gonna skip a bit quickly through
+I'm gonna skip a bit quickly through that what this means is that you have
+that what this means is that you have certain channels of certain neurons that
+certain channels of certain neurons that have certain activation patterns and you
+have certain activation patterns and you can remove them and that work will still
+can remove them and that work will still mostly work so we don't want to put all
+mostly work so we don't want to put all of our eggs in one basket there is that
+of our eggs in one basket there is that there's a certain amount of redundancy
+there's a certain amount of redundancy there and the the systems are relatively
+there and the the systems are relatively fault tolerant thanks to these
+fault tolerant thanks to these representations and yeah you can train
+representations and yeah you can train to encourage these representations to
+to encourage these representations to emerge and the yeah I'm going to skip
+emerge and the yeah I'm going to skip this because I'm running short on time
+this because I'm running short on time but that leads into the section on
+but that leads into the section on training and gradient descent so this is
+training and gradient descent so this is where we take all these the models that
+where we take all these the models that we've talked about and we actually train
+we've talked about and we actually train them to approximate the function that
+them to approximate the function that we're interested in learning and in
+we're interested in learning and in general this is also from the machine
+general this is also from the machine learning perspective they're two
+learning perspective they're two functions that you can use to train a
+functions that you can use to train a model the first is mean error which is
+model the first is mean error which is you calculate the difference between
+you calculate the difference between what you have and what you want and then
+what you have and what you want and then you use that as a signal to basically
+you use that as a signal to basically train the whole network if you have non
+train the whole network if you have non continuous values if you have like
+continuous values if you have like boolean's like this is a cat a dog then
+boolean's like this is a cat a dog then you'll use another error function it's
+you'll use another error function it's called a categorical cross entropy and
+called a categorical cross entropy and so that these are two they're not
+so that these are two they're not specific to deep learning there you'll
+specific to deep learning there you'll use them in regular machine learning as
+use them in regular machine learning as well and the way deep learning takes
+well and the way deep learning takes those signals and then trains the model
+those signals and then trains the model is use an algorithm called back
+is use an algorithm called back propagation and back propagation
+propagation and back propagation combines two things it combines the
+combines two things it combines the chain rule with the update rule the
+chain rule with the update rule the chain rule is there to take the error
+chain rule is there to take the error which is calculated down there on the
+which is calculated down there on the right side we calculate how far off we
+right side we calculate how far off we are from our target and then we sort of
+are from our target and then we sort of propagate that through the graph again
+propagate that through the graph again and the goal is to calculate the
+and the goal is to calculate the gradient of the error so we want to know
+gradient of the error so we want to know what direction we need to adjust the
+what direction we need to adjust the weights in to get a better result
+weights in to get a better result so there are derivations of how you can
+so there are derivations of how you can do this there are some great tutorials
+do this there are some great tutorials and links to this I'm not going to
+and links to this I'm not going to derive that now but as a result of
+derive that now but as a result of applying the chain rule and going back
+applying the chain rule and going back we get a sense of what the error
+we get a sense of what the error function looks like locally and so we
+function looks like locally and so we can step in the right direction to
+can step in the right direction to minimize that error that is done using
+minimize that error that is done using an update rule and there's a collection
+an update rule and there's a collection of different rules that you can use as
+of different rules that you can use as the standard SGD which is stochastic
+the standard SGD which is stochastic gradient gradient descent and that's the
+gradient gradient descent and that's the the classic it's been around for decades
+the classic it's been around for decades and there are others are more recent
+and there are others are more recent more modern and they have a lot of
+more modern and they have a lot of different benefits but all the bottom
+different benefits but all the bottom ones use a lot of extra memory to sort
+ones use a lot of extra memory to sort of maintain they maintain extra per
+of maintain they maintain extra per parameter weights that
+parameter weights that how quickly to step so you basically get
+how quickly to step so you basically get a lot of acceleration for free but it
+a lot of acceleration for free but it costs you memory so all these different
+costs you memory so all these different algorithms the ones that are used the
+algorithms the ones that are used the most often are the plain old stochastic
+most often are the plain old stochastic gradient descent so the simplest thing
+gradient descent so the simplest thing you could possibly do like just take one
+you could possibly do like just take one step in the direction of the gradient
+step in the direction of the gradient based on random data and the most second
+based on random data and the most second most popular is probably atom at the
+most popular is probably atom at the bottom which is used very often Eve is
+bottom which is used very often Eve is the up and coming these academics and
+the up and coming these academics and their names and rmsprop is also it will
+their names and rmsprop is also it will come back you most of the time as a
+come back you most of the time as a practitioner you don't need to know
+practitioner you don't need to know about these they're completely
+about these they're completely encapsulated you just call this update
+encapsulated you just call this update rule and it just works and you don't
+rule and it just works and you don't have to worry about the details one
+have to worry about the details one thing you might have to worry about is
+thing you might have to worry about is that deep optimization or optimization
+that deep optimization or optimization of these deep graphs is a non convex
+of these deep graphs is a non convex problem so you have no guarantees that
+problem so you have no guarantees that you will reach a global minima but as it
+you will reach a global minima but as it turns out and this is very recent
+turns out and this is very recent research on the pop doesn't really
+research on the pop doesn't really matter that you can't prove that the
+matter that you can't prove that the global minima can't be reached because
+global minima can't be reached because it's such a huge parameter space with
+it's such a huge parameter space with over a billion different parameters
+over a billion different parameters there are minima's everywhere and
+there are minima's everywhere and there's many symmetric versions of the
+there's many symmetric versions of the solution and as it turns out these
+solution and as it turns out these algorithms like the update rules will
+algorithms like the update rules will converge often to results that are if
+converge often to results that are if not the global minima they're pretty
+not the global minima they're pretty close and so you won't notice in
+close and so you won't notice in practice so there are also some proofs
+practice so there are also some proofs if you simplify deep learning down to
+if you simplify deep learning down to some very basic primitives then it
+some very basic primitives then it actually is convex so if you wants what
+actually is convex so if you wants what we can mathematically prove it's not
+we can mathematically prove it's not quite the state of the art but the state
+quite the state of the art but the state of the art stuff you don't have to worry
+of the art stuff you don't have to worry about it it mostly just works the hard
+about it it mostly just works the hard part is figuring out the architecture so
+part is figuring out the architecture so here's some more great tutorials that go
+here's some more great tutorials that go into more detail about the back
+into more detail about the back propagation process and I highly
+propagation process and I highly recommend those and again I'll post the
+recommend those and again I'll post the slides online afterwards
+so to summarize data is important but it's more important to understand this
+it's more important to understand this statistics of your data and make sure
+statistics of your data and make sure it's well distributed across all your
+it's well distributed across all your output categories and all your input
+output categories and all your input space the models in deep learning of
+space the models in deep learning of progress way beyond neural networks and
+progress way beyond neural networks and biologically inspired models their
+biologically inspired models their general computation graphs that you
+general computation graphs that you could integrate into your software to
+could integrate into your software to solve problems based on data making
+solve problems based on data making architectures and models for deep
+architectures and models for deep learning is difficult but you can sort
+learning is difficult but you can sort of get away with doing lots of
+of get away with doing lots of simulations and seeing which one's work
+simulations and seeing which one's work best it's a bit computationally
+best it's a bit computationally expensive but it's quite a reliable way
+expensive but it's quite a reliable way forward and from the optimization
+forward and from the optimization perspective you can't guarantee for sure
+perspective you can't guarantee for sure that it will converge but in practice it
+that it will converge but in practice it always does and modern deep learning
+always does and modern deep learning libraries are very reliable so you get
+libraries are very reliable so you get very good results from them great that's
+very good results from them great that's it for me thank you very much
+it for me thank you very much [Applause]
+[Applause] [Music]

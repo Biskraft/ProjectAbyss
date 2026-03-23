@@ -1,0 +1,1503 @@
+[Music] thank you everyone for coming
+thank you everyone for coming this is cursed problems in game design
+this is cursed problems in game design I'm Alex Jaffe so how do I go far into
+I'm Alex Jaffe so how do I go far into this thing cool this is amazing okay so
+this thing cool this is amazing okay so welcome to GDC where we make good games
+welcome to GDC where we make good games gooder with talks like how I balance my
+gooder with talks like how I balance my shotgun in 90 days and you can to quest
+shotgun in 90 days and you can to quest markers that even filthy casuals can
+markers that even filthy casuals can follow and eight hot loot table
+follow and eight hot loot table distributions for 29 days so these are
+distributions for 29 days so these are actually great talks that I love that
+actually great talks that I love that have done a ton to improve my ability as
+have done a ton to improve my ability as a game designers I've learned a lot from
+a game designers I've learned a lot from and I think this is what a lot of our
+and I think this is what a lot of our work as game designers is it's it's
+work as game designers is it's it's making games great making great player
+making games great making great player experiences but these problems that
+experiences but these problems that these are trying to solve a lot of them
+these are trying to solve a lot of them feel more like they feel kinda like
+feel more like they feel kinda like pearl diving like there are all these
+pearl diving like there are all these solutions out there and you're this huge
+solutions out there and you're this huge array of them to pick from and what
+array of them to pick from and what you're looking for is the best shiniest
+you're looking for is the best shiniest pearl to make your game as perfect as it
+pearl to make your game as perfect as it can be and that's great and it's really
+can be and that's great and it's really important but I've often found myself
+important but I've often found myself more drawn to a different kind of design
+more drawn to a different kind of design problem one that's more like wandering
+problem one that's more like wandering the desert for days months maybe even
+the desert for days months maybe even years looking for a solution
+years looking for a solution wondering where one might be and
+wondering where one might be and thinking maybe one doesn't even exist so
+thinking maybe one doesn't even exist so the thing that's gotten me so maybe
+the thing that's gotten me so maybe interested in these incredibly hard
+interested in these incredibly hard design problems is my own background I'm
+design problems is my own background I'm Alex hi I used to be a mathematician for
+Alex hi I used to be a mathematician for a few years and when I was a
+a few years and when I was a mathematician you know I would spend so
+mathematician you know I would spend so long I'm like one problem one problem
+long I'm like one problem one problem that maybe people have worked on for
+that maybe people have worked on for decades and you'd usually make no
+decades and you'd usually make no progress you'd spend again months or
+progress you'd spend again months or years on it just kind of banging your
+years on it just kind of banging your head against it and eventually you build
+head against it and eventually you build a sort of Stockholm Syndrome with a
+a sort of Stockholm Syndrome with a problem like you come to love the way
+problem like you come to love the way this thing tortures you and and you
+this thing tortures you and and you think maybe I can learn more from this
+think maybe I can learn more from this problem that I even can from the
+problem that I even can from the solution and I think there's really some
+solution and I think there's really some truth to that right problems realign our
+truth to that right problems realign our thinking when they're really well posed
+thinking when they're really well posed sometimes finding the solution isn't the
+sometimes finding the solution isn't the most important part and so that's what's
+most important part and so that's what's inspired this talk and for years I've
+inspired this talk and for years I've kind of wanted to focus on this topic
+kind of wanted to focus on this topic and I've thought about it as I did my
+and I've thought about it as I did my PhD in essentially computational game
+PhD in essentially computational game balancing at the University of
+balancing at the University of Washington and I've been a designer
+Washington and I've been a designer at SuperBot congregate and spry Fox as
+at SuperBot congregate and spry Fox as well as a data scientist and now I'm a
+well as a data scientist and now I'm a designer at Riot Games and R&D in the
+designer at Riot Games and R&D in the Bay Area office it's pretty awesome a
+Bay Area office it's pretty awesome a lot of you may not even know it exists
+lot of you may not even know it exists but it's a great place and so all this
+but it's a great place and so all this time I've been thinking about hard
+time I've been thinking about hard design problems and what I've wondered
+design problems and what I've wondered is all these different problems that if
+is all these different problems that if you pay attention to game design you
+you pay attention to game design you start to notice I wonder if there's
+start to notice I wonder if there's anything kind of shared any shared DNA
+anything kind of shared any shared DNA between them that causes them to be so
+between them that causes them to be so hard that caused them to maybe even be
+hard that caused them to maybe even be impossible and yeah I think I know what
+impossible and yeah I think I know what that is at least for many of them and
+that is at least for many of them and that you may not be surprised is that
+that you may not be surprised is that they are cursed I'll get to a definition
+they are cursed I'll get to a definition in a minute what this means and I'll
+in a minute what this means and I'll also get you some examples till you know
+also get you some examples till you know you want to know what like at least one
+you want to know what like at least one hard problem is but first an outline
+hard problem is but first an outline okay so they're basically two parts of
+okay so they're basically two parts of this talk in the first part I tell you
+this talk in the first part I tell you what curse problems are and where to
+what curse problems are and where to find them
+find them and basically this is important because
+and basically this is important because look the problems I'm going to talk
+look the problems I'm going to talk about today the category of problems
+about today the category of problems they really don't have a clear solution
+they really don't have a clear solution you can't just go in and solve them you
+you can't just go in and solve them you really have to know that they are right
+really have to know that they are right in your face so that you don't waste
+in your face so that you don't waste your time and your team's energy on them
+your time and your team's energy on them and so this is the most important part
+and so this is the most important part of the talk the talk where we understand
+of the talk the talk where we understand what curse problems are and can actually
+what curse problems are and can actually identify them and that's what I do i
+identify them and that's what I do i define them I show you an example and
+define them I show you an example and then I sort of give you maybe some
+then I sort of give you maybe some intuition for how to identify them
+intuition for how to identify them through the use of a bunch of examples
+through the use of a bunch of examples ok so that's the first part but the
+ok so that's the first part but the second part is defense against curse
+second part is defense against curse problems
+problems it's what to do when you come up against
+it's what to do when you come up against a curse problem and you have no choice
+a curse problem and you have no choice but kind of to bare right ahead or
+but kind of to bare right ahead or hopefully what I'm really gonna tell you
+hopefully what I'm really gonna tell you you have to do is you have to tilt a
+you have to do is you have to tilt a little to the side because you can't
+little to the side because you can't solve the problem but maybe you can give
+solve the problem but maybe you can give up some part of what you're trying to do
+up some part of what you're trying to do and you can solve that and so what I'll
+and you can solve that and so what I'll do is I'll tell you a model for how I
+do is I'll tell you a model for how I think about games in this context and
+think about games in this context and then I'll talk about four techniques for
+then I'll talk about four techniques for addressing Kirk's curse problems
+addressing Kirk's curse problems remember I said I'm not gonna solve them
+remember I said I'm not gonna solve them because they are unsolvable but they
+because they are unsolvable but they will be ways to handle them and these
+will be ways to handle them and these are techniques that I've sort of I've
+are techniques that I've sort of I've taken looking at all the techniques game
+taken looking at all the techniques game developers have used over decades to
+developers have used over decades to address problems like these and kind of
+address problems like these and kind of bucket them into these four categories
+bucket them into these four categories and I think it's a helpful framing for
+and I think it's a helpful framing for what to do
+what to do when you encounter one and finally I'll
+when you encounter one and finally I'll show some more applications of these
+show some more applications of these techniques so you build intuition for
+techniques so you build intuition for how to apply them if you ever get there
+how to apply them if you ever get there alright everyone aboard there we go
+alright everyone aboard there we go let's have a definition this is actually
+let's have a definition this is actually a sub definition I need real quick
+a sub definition I need real quick player promises you may have heard of
+player promises you may have heard of them I consider them a games essential
+them I consider them a games essential experiences why did the player actually
+experiences why did the player actually come to play this right what is the core
+come to play this right what is the core of this game
+of this game Zack McClendon has a talk welcome to the
+Zack McClendon has a talk welcome to the yardsale which talks a lot about player
+yardsale which talks a lot about player promises if you want to learn more about
+promises if you want to learn more about them it's great talk but for me the key
+them it's great talk but for me the key thing that's happening here is that
+thing that's happening here is that promises live in the designers heart
+promises live in the designers heart it's the thing that is driving us to
+it's the thing that is driving us to make this game right it's what we care
+make this game right it's what we care about at the fundamental level the stuff
+about at the fundamental level the stuff we don't want to give up but often
+we don't want to give up but often weirdly they also can lie in the players
+weirdly they also can lie in the players heart and sometimes you give a player
+heart and sometimes you give a player something really simple just a few
+something really simple just a few mechanics few systems and then they
+mechanics few systems and then they immediately come to believe that the
+immediately come to believe that the game owes them something in specific and
+game owes them something in specific and you kind of have to accept that you have
+you kind of have to accept that you have to deal with the fact that you've made
+to deal with the fact that you've made this promise to play the rather wet
+this promise to play the rather wet player whether you meant to or not and
+player whether you meant to or not and you have to add that so now that we've
+you have to add that so now that we've outlined what promises are the curse
+outlined what promises are the curse problem definition it is an unsolvable
+problem definition it is an unsolvable design problem rooted in a conflict
+design problem rooted in a conflict between core player promises you're
+between core player promises you're gonna see this slide a lot so it's
+gonna see this slide a lot so it's basically anytime I'm trying to solve
+basically anytime I'm trying to solve the Sun problem and I have implicitly or
+the Sun problem and I have implicitly or explicitly promised two things that
+explicitly promised two things that cannot coexist it is surprisingly common
+cannot coexist it is surprisingly common so one of the key properties here there
+so one of the key properties here there is no direct solution one does not
+is no direct solution one does not simply solve curse problems you have to
+simply solve curse problems you have to instead you have to work around it you
+instead you have to work around it you have to give something up like the
+have to give something up like the Gordian knot you kind of have to cut
+Gordian knot you kind of have to cut through the problem itself and and find
+through the problem itself and and find a kind of a strange non solution so
+a kind of a strange non solution so that's definition and now you finally
+that's definition and now you finally get an example thank you for your
+get an example thank you for your patience the example will be a little
+patience the example will be a little hypothetical at first but it will become
+hypothetical at first but it will become more concrete as I move through it so
+more concrete as I move through it so I'll talk about free-for-all politics
+I'll talk about free-for-all politics which I consider a cursed classic so a
+which I consider a cursed classic so a cursed problem often begins with a dream
+cursed problem often begins with a dream say it's the 90s and you love be em ups
+say it's the 90s and you love be em ups you love the punch in and the kick in
+you love the punch in and the kick in and like a crowd control lots of enemies
+and like a crowd control lots of enemies to defeat and it's also the 90s and so
+to defeat and it's also the 90s and so at some point Street Fighter 2 comes out
+at some point Street Fighter 2 comes out you're like wow this is amazing I get
+you're like wow this is amazing I get all this really high school execution
+all this really high school execution all this tactical choice making
+all this tactical choice making knowledge test I get to read my
+knowledge test I get to read my opponents mind and act accordingly and
+opponents mind and act accordingly and you think maybe these are two great
+you think maybe these are two great tastes that would go great together how
+tastes that would go great together how about we give a controller to every one
+about we give a controller to every one of these characters and we make this
+of these characters and we make this huge martial arts brawler game everybody
+huge martial arts brawler game everybody fighting it out with the technical
+fighting it out with the technical execution and the tactics of a fighting
+execution and the tactics of a fighting game but the kind of crowd control and
+game but the kind of crowd control and chaos of a beat em up this seems like I
+chaos of a beat em up this seems like I think a perfectly reasonable
+think a perfectly reasonable hypothetical game something that sounds
+hypothetical game something that sounds exciting to me I think it's a nice
+exciting to me I think it's a nice fantasy but as you go to make this you
+fantasy but as you go to make this you want this really really high competitive
+want this really really high competitive integrity game that's all about managing
+integrity game that's all about managing your opponents you notice something
+your opponents you notice something weird which is the best player say jeans
+weird which is the best player say jeans dude with the jump that player the one
+dude with the jump that player the one who's great at tactics and great at
+who's great at tactics and great at buttons and graded mind-reading isn't
+buttons and graded mind-reading isn't actually winning other players are
+actually winning other players are winning and the reason why is politics
+winning and the reason why is politics which I'll define is competition through
+which I'll define is competition through social negotiation alliances and
+social negotiation alliances and manipulation and there's some great
+manipulation and there's some great treatment of politics in characters
+treatment of politics in characters characteristics of games by Elias
+characteristics of games by Elias Garfield and good Shara this is probably
+Garfield and good Shara this is probably my favorite or at least one of my
+my favorite or at least one of my favorite game design textbooks and it is
+favorite game design textbooks and it is sorely under red so please check it out
+sorely under red so please check it out so what happens is players start to play
+so what happens is players start to play this game they sit down to play and you
+this game they sit down to play and you realize that they immediately figure out
+realize that they immediately figure out who the best player is in terms of the
+who the best player is in terms of the core gameplay and instead they start
+core gameplay and instead they start formula Lyons's against this player they
+formula Lyons's against this player they gang up on them they maybe pretend to be
+gang up on them they maybe pretend to be their friend and betray this person they
+their friend and betray this person they you know they play down and pretend not
+you know they play down and pretend not to be so strong and then you know at the
+to be so strong and then you know at the last minute they strike and and kick ass
+last minute they strike and and kick ass and and what happens is you realize that
+and and what happens is you realize that the core skill of playing this game is
+the core skill of playing this game is not the skill that you were emphasizing
+not the skill that you were emphasizing it's not the game you thought you're
+it's not the game you thought you're making this is a game of Thrones this is
+making this is a game of Thrones this is a game entirely about politics and
+a game entirely about politics and manipulation and and yeah maybe maybe
+manipulation and and yeah maybe maybe punching well is helpful but it's not
+punching well is helpful but it's not really what you're what you cared about
+really what you're what you cared about as a designer and probably not what the
+as a designer and probably not what the player expected so remember Chris
+player expected so remember Chris problem is an unsolvable design problem
+problem is an unsolvable design problem rooted in a conflict between core player
+rooted in a conflict between core player promises so in this case a player looks
+promises so in this case a player looks at this game they look at all the you
+at this game they look at all the you know the difficult execution the
+know the difficult execution the look at you know all the moves you can
+look at you know all the moves you can do and they think this is a game about
+do and they think this is a game about combat mastery I want to focus on combat
+combat mastery I want to focus on combat master and be great at this and I want
+master and be great at this and I want the game to you know emphasize that
+the game to you know emphasize that correctly but it's also it's a you know
+correctly but it's also it's a you know that we've made this really competitive
+that we've made this really competitive game and emphasizing the winner I want
+game and emphasizing the winner I want to play to win these are both reasonable
+to play to win these are both reasonable promises to take away from the game I've
+promises to take away from the game I've described but these promises are
+described but these promises are incompatible
+incompatible because plane to win in a free-for-all
+because plane to win in a free-for-all game requires politics it is the optimal
+game requires politics it is the optimal strategy from a game theoretic
+strategy from a game theoretic standpoint from a psychological
+standpoint from a psychological standpoint but the focus on combat
+standpoint but the focus on combat mastery is not compatible with political
+mastery is not compatible with political play they're different player emphases
+play they're different player emphases and so you end up with this big nope you
+and so you end up with this big nope you you can't make this game the game is
+you can't make this game the game is cursed
+cursed all right this game you have in your
+all right this game you have in your head is cursed so you probably wonder
+head is cursed so you probably wonder anymore can't I do something and yes you
+anymore can't I do something and yes you can do something you can get out of this
+can do something you can get out of this situation but it requires giving
+situation but it requires giving something up it requires changing
+something up it requires changing something about your core premise so
+something about your core premise so it's a fantasy what do you do you let go
+it's a fantasy what do you do you let go of the dream at least a little bit so
+of the dream at least a little bit so one thing you could do is just just an
+one thing you could do is just just an example is you could weaken the promises
+example is you could weaken the promises okay so we said the promise would focus
+okay so we said the promise would focus on combat mastery and also to play to
+on combat mastery and also to play to win but maybe we change our game a
+win but maybe we change our game a little bit to weaken these we pour in a
+little bit to weaken these we pour in a little bit of casts and we end up with
+little bit of casts and we end up with the game where you kind of do some cool
+the game where you kind of do some cool moves if you can but you don't really
+moves if you can but you don't really expect it and you want to win if
+expect it and you want to win if possible but it's not something doesn't
+possible but it's not something doesn't feel like something you can really
+feel like something you can really really guarantee just by being the best
+really guarantee just by being the best at the core skills and when you do this
+at the core skills and when you do this you make these changes you you change
+you make these changes you you change weaken the promises here you end up with
+weaken the promises here you end up with something that might even be better even
+something that might even be better even though it's not what you initially
+though it's not what you initially expected you end up up with smash
+expected you end up up with smash brothers this is a very good beloved
+brothers this is a very good beloved game it basically takes this premise I
+game it basically takes this premise I described and says screw it just like
+described and says screw it just like let it be crazy I'm not talking about
+let it be crazy I'm not talking about the 1v1 game without the items on you
+the 1v1 game without the items on you know final destination I'm talking about
+know final destination I'm talking about like the party game it's a four player
+like the party game it's a four player game with random items and stage hazards
+game with random items and stage hazards and smash balls like this is the game
+and smash balls like this is the game that initially made this game big and
+that initially made this game big and it's a great game because they knew what
+it's a great game because they knew what they were making they had a wall they
+they were making they had a wall they had a box of constraints they had a box
+had a box of constraints they had a box of promises that they could actually
+of promises that they could actually fulfill and I'm not saying that Nintendo
+fulfill and I'm not saying that Nintendo saw they were in a curse problem
+saw they were in a curse problem situation and they cleverly found their
+situation and they cleverly found their way out of it though that may be
+way out of it though that may be happened I think it just aligns with
+happened I think it just aligns with their values right the game they wanted
+their values right the game they wanted to make happen to be a game you can make
+to make happen to be a game you can make but you can totally imagine another
+but you can totally imagine another designer in the situation like really
+designer in the situation like really really focusing on that initial problem
+really focusing on that initial problem I described and just wandering the
+I described and just wandering the desert cursed to wander for years just
+desert cursed to wander for years just looking for that one solution to make
+looking for that one solution to make their game perfect and the worst part is
+their game perfect and the worst part is that they might be dragging a whole
+that they might be dragging a whole buttload of teammates with them this is
+buttload of teammates with them this is not a good situation you want to
+not a good situation you want to recognize curse problems before they
+recognize curse problems before they really cost you you don't want to get
+really cost you you don't want to get stuck in them but you also want to
+stuck in them but you also want to understand your options to move forward
+understand your options to move forward so that is what I will continue to talk
+so that is what I will continue to talk about so let's talk about how to
+about so let's talk about how to identify Cris problems now by the way
+identify Cris problems now by the way I'm sorry for the Harry Potter
+I'm sorry for the Harry Potter references I've never seen a Harry
+references I've never seen a Harry Potter movie so I feel like somehow that
+Potter movie so I feel like somehow that makes it more justifiable okay
+makes it more justifiable okay so I'll give you two more curse problems
+so I'll give you two more curse problems and throughout the talk I'll show you a
+and throughout the talk I'll show you a bunch more curse problems as it becomes
+bunch more curse problems as it becomes relevant okay and some of them you may
+relevant okay and some of them you may look at and kind of like look askance at
+look at and kind of like look askance at because I'm gonna talk about really
+because I'm gonna talk about really great games they're really successful
+great games they're really successful you think they can't possibly be cursed
+you think they can't possibly be cursed right but even no game is perfect right
+right but even no game is perfect right and even great games can be suffering in
+and even great games can be suffering in a large way from some failed promise and
+a large way from some failed promise and you know maybe you want to make a
+you know maybe you want to make a different game maybe that game and then
+different game maybe that game and then the other thing is also we'll see some
+the other thing is also we'll see some games that are what they are because
+games that are what they are because they made the sacrifices necessary to
+they made the sacrifices necessary to get out of a curse problem situation so
+get out of a curse problem situation so one example is the quarterbacking
+one example is the quarterbacking problem this one's pretty well known so
+problem this one's pretty well known so you're playing a turn-based cooperative
+you're playing a turn-based cooperative game if you played a game like pandemic
+game if you played a game like pandemic you try to put out viruses spreading
+you try to put out viruses spreading around the world everyone's having a
+around the world everyone's having a good time I'm going to Australia you're
+good time I'm going to Australia you're going to I don't know Canada and
+going to I don't know Canada and everybody's kind of doing their own
+everybody's kind of doing their own thing in the you know it's cooperative
+thing in the you know it's cooperative experience until one player who's real
+experience until one player who's real clever has this idea that everybody
+clever has this idea that everybody should go to different countries than
+should go to different countries than where they planned and you know we're
+where they planned and you know we're all good people good friends that we go
+all good people good friends that we go along with it and we actually perform
+along with it and we actually perform well as a consequence and slowly this
+well as a consequence and slowly this person takes more and more
+person takes more and more responsibility until they're essentially
+responsibility until they're essentially running the entire show and we're
+running the entire show and we're playing a single-player game effectively
+playing a single-player game effectively we're just the hands of this one person
+we're just the hands of this one person with all the clever ideas this is sort
+with all the clever ideas this is sort of a fundamental property of turn-based
+of a fundamental property of turn-based cooperative games
+cooperative games this can happen because on the one hand
+this can happen because on the one hand you want to have this cooperative
+you want to have this cooperative experience I want this like harmonious
+experience I want this like harmonious Ocean's eleven feel where everybody's
+Ocean's eleven feel where everybody's doing their own part like I'm the doctor
+doing their own part like I'm the doctor and that means like I'm thinking doctor
+and that means like I'm thinking doctor thoughts and you can't think my doctors
+thoughts and you can't think my doctors not for me but it's a strategy game so
+not for me but it's a strategy game so one person sort of can do the whole
+one person sort of can do the whole thing right we want to play to win and
+thing right we want to play to win and the best way to play to win is actually
+the best way to play to win is actually centralized decision-making at least in
+centralized decision-making at least in a game like this and that centralized
+a game like this and that centralized decision-making is fundamentally
+decision-making is fundamentally incompatible with the interdependence
+incompatible with the interdependence between players that's part of the
+between players that's part of the fantasy of a co-op game so even though
+fantasy of a co-op game so even though this is a great game it fundamentally
+this is a great game it fundamentally kind of breaks its own promises is a
+kind of breaks its own promises is a curse problem and a lot of games like it
+curse problem and a lot of games like it are okay and let's look at one more for
+are okay and let's look at one more for now I call the skill inflation problem
+now I call the skill inflation problem so this occurs for evergreen competitive
+so this occurs for evergreen competitive games or PvP games you want to exist for
+games or PvP games you want to exist for many years games like this launch and
+many years games like this launch and they are often awesome that you an
+they are often awesome that you an amazing time you have all different
+amazing time you have all different players playing at different skill
+players playing at different skill levels but slowly as the game matures
+levels but slowly as the game matures the audience matures with it right and
+the audience matures with it right and all the players get better and better
+all the players get better and better kind of in lockstep and what's worse the
+kind of in lockstep and what's worse the players who aren't getting better they
+players who aren't getting better they tend to leave maybe because they're not
+tend to leave maybe because they're not as invested or because it's frustrating
+as invested or because it's frustrating and by the time you're years into one of
+and by the time you're years into one of these games like you may still have a
+these games like you may still have a great game but it's very very hard for
+great game but it's very very hard for new players to break it because all the
+new players to break it because all the players they see around them are
+players they see around them are incredibly good they maybe have a hard
+incredibly good they maybe have a hard time matchmaking with players at their
+time matchmaking with players at their level and even they go online and they
+level and even they go online and they watch twitch and everybody's good and
+watch twitch and everybody's good and they just feel like a total fraud so
+they just feel like a total fraud so this sucks it's we this players even an
+this sucks it's we this players even an individual player even a really serious
+individual player even a really serious player suffers from this because this
+player suffers from this because this player wants a long journey of mastery
+player wants a long journey of mastery they want to be able to get better for
+they want to be able to get better for like decades but they also want a stable
+like decades but they also want a stable vibrant community they want players you
+vibrant community they want players you know coming together and and playing
+know coming together and and playing together and new people coming in and
+together and new people coming in and they wanna be able to play this for
+they wanna be able to play this for their whole life these things are
+their whole life these things are incompatible because a long journey of
+incompatible because a long journey of mastery naturally results in a rising
+mastery naturally results in a rising skill pool but a stable vibrant
+skill pool but a stable vibrant community requires a broad variety of
+community requires a broad variety of skill levels right these don't go
+skill levels right these don't go together and it again is a curse problem
+together and it again is a curse problem now as I said right all of these curse
+now as I said right all of these curse problems they have answers but the thing
+problems they have answers but the thing I'm going to show you is how these
+I'm going to show you is how these answers end up requiring giving up some
+answers end up requiring giving up some small sometimes large piece of the
+small sometimes large piece of the fantasy okay so
+fantasy okay so what isn't a curse problem you may ask
+what isn't a curse problem you may ask it's not all design problems it's not
+it's not all design problems it's not like any time you're weighed any two
+like any time you're weighed any two things against each other we have a
+things against each other we have a curse problem I really want to make this
+curse problem I really want to make this clear let's just consider like any
+clear let's just consider like any common degenerate core gameplay pattern
+common degenerate core gameplay pattern like for example this is hungrybox
+like for example this is hungrybox playing Jigglypuff in smash melee now
+playing Jigglypuff in smash melee now we're at the 1v1 version of AoE and this
+we're at the 1v1 version of AoE and this pattern is extremely frustrating to a
+pattern is extremely frustrating to a lot of players including pros right he
+lot of players including pros right he plays Jigglypuff in this way that's
+plays Jigglypuff in this way that's extremely defensive very reactive you
+extremely defensive very reactive you make one mistake and he just jumps on
+make one mistake and he just jumps on you other players are forced to play his
+you other players are forced to play his game basically and a lot of them don't
+game basically and a lot of them don't like it and so you as the smash designer
+like it and so you as the smash designer may be totally fine with us
+may be totally fine with us like cool this is the game we're playing
+like cool this is the game we're playing but you might want to remove it what can
+but you might want to remove it what can you do you could tweak any number of
+you do you could tweak any number of things you could do ink attacks defense
+things you could do ink attacks defense movement the pace of the game map all
+movement the pace of the game map all kinds of changes you can make to
+kinds of changes you can make to basically make this play pattern should
+basically make this play pattern should go away
+go away either by making it impossible or
+either by making it impossible or disincentivizing it and there's nothing
+disincentivizing it and there's nothing to stop you from doing this because
+to stop you from doing this because there's no fundamental rule of smash
+there's no fundamental rule of smash there's nothing like deep within your
+there's nothing like deep within your heart about this game that tells you
+heart about this game that tells you have to be able to play this incredibly
+have to be able to play this incredibly annoying keep away game like it is just
+annoying keep away game like it is just an emergent property of the choices they
+an emergent property of the choices they made so they can go in and fix it and
+made so they can go in and fix it and it's still going to be the same game can
+it's still going to be the same game can we do a similar thing with free-for-all
+we do a similar thing with free-for-all politics we cannot because no matter
+politics we cannot because no matter what I do to kind of tweak the you know
+what I do to kind of tweak the you know the the main tuning parameters of the
+the the main tuning parameters of the game or change the content we're still
+game or change the content we're still gonna have this fundamental and
+gonna have this fundamental and compatibility right the the politics it
+compatibility right the the politics it does not go with non no politics and
+does not go with non no politics and there's no little change you can make to
+there's no little change you can make to you know move or something that makes
+you know move or something that makes make cities not go together
+make cities not go together makes things go together excuse me so
+makes things go together excuse me so we're gonna play a game all right
+we're gonna play a game all right you the people are gonna tell me what is
+you the people are gonna tell me what is Harding what is cursed and this is
+Harding what is cursed and this is important because I want you to build
+important because I want you to build intuition for these and it's not like
+intuition for these and it's not like some objective thing it is a little
+some objective thing it is a little subjective so you know reasonable people
+subjective so you know reasonable people can disagree about what's cursed but I
+can disagree about what's cursed but I also think that reasonable people having
+also think that reasonable people having had enough time to become familiar with
+had enough time to become familiar with this concept will mostly agree about
+this concept will mostly agree about what's cursed and what's not you have to
+what's cursed and what's not you have to identify two promises they're
+identify two promises they're incompatible with one another and you
+incompatible with one another and you have to convince yourself that they're
+have to convince yourself that they're actually
+actually and the second part is actually where
+and the second part is actually where you might have more disagreement but you
+you might have more disagreement but you know all you need to really know is that
+know all you need to really know is that they're incompatible enough that I have
+they're incompatible enough that I have to take a kind of different approach to
+to take a kind of different approach to dealing with the problem so first
+dealing with the problem so first example exploration games with millions
+example exploration games with millions of worlds
+of worlds so no man sky had this huge promise
+so no man sky had this huge promise right everyone was so excited about this
+right everyone was so excited about this incredible exploration game traveling
+incredible exploration game traveling through space seeing millions of planets
+through space seeing millions of planets seeing all kinds of diverse flora and
+seeing all kinds of diverse flora and fauna lots of stuff to do it was really
+fauna lots of stuff to do it was really exciting but when it launched people
+exciting but when it launched people were disappointed right it felt like the
+were disappointed right it felt like the promises were not kept you know there
+promises were not kept you know there was millions of worlds to explore I
+was millions of worlds to explore I promise this vibrant diverse interactive
+promise this vibrant diverse interactive ecosystems promise my question is are
+ecosystems promise my question is are these fundamentally incompatible
+these fundamentally incompatible promises is this a curse problem or are
+promises is this a curse problem or are these just hard to simultaneously
+these just hard to simultaneously satisfy so who thinks it's cursed
+satisfy so who thinks it's cursed alright who thinks it's hard alright
+alright who thinks it's hard alright Frank's wrong yeah so it is they do I
+Frank's wrong yeah so it is they do I think I think they go together and the
+think I think they go together and the proof that they go together is that a
+proof that they go together is that a year later this is kind of a spoiler
+year later this is kind of a spoiler bull question because a year later Novus
+bull question because a year later Novus guy came out with an update that was
+guy came out with an update that was really successful people felt like that
+really successful people felt like that promise had been delivered upon you just
+promise had been delivered upon you just takes so much work to make the game they
+takes so much work to make the game they had promised there's nothing there's no
+had promised there's nothing there's no contradiction in it it's just really
+contradiction in it it's just really hard alright question two of three lute
+hard alright question two of three lute games with efficient training this is
+games with efficient training this is the Diablo 3 auction house so besides
+the Diablo 3 auction house so besides from the audience so despite what you
+from the audience so despite what you may think I think this is a cool idea
+may think I think this is a cool idea because Diablo is a game about you know
+because Diablo is a game about you know gathering lots of loot killing monsters
+gathering lots of loot killing monsters finding all kinds of cool stuff and then
+finding all kinds of cool stuff and then often I think when you're collecting so
+often I think when you're collecting so much this commerce fantasy naturally
+much this commerce fantasy naturally comes online you want to trade with your
+comes online you want to trade with your friends you want to buy you want to sell
+friends you want to buy you want to sell you want to feel like you're part of
+you want to feel like you're part of this big global marketplace but when it
+this big global marketplace but when it actually launched people felt like it
+actually launched people felt like it didn't really land and it was kind of
+didn't really land and it was kind of like the game didn't work out so the
+like the game didn't work out so the rich loot experience and the ubiquitous
+rich loot experience and the ubiquitous marketplace fantasy these are these two
+marketplace fantasy these are these two promises that you get when you put an
+promises that you get when you put an efficient trading market into a loot
+efficient trading market into a loot based game are these fundamental
+based game are these fundamental incompatible is it cursed raise your
+incompatible is it cursed raise your hand if it's cursed
+hand if it's cursed alright now raise your hand if it's hard
+alright now raise your hand if it's hard okay so a little more disagreement so
+okay so a little more disagreement so I'm gonna make a pretty strong claim
+I'm gonna make a pretty strong claim that this is cursed because
+that this is cursed because varied loot drop experiences is kind of
+varied loot drop experiences is kind of the core theme cork or a piece of a rich
+the core theme cork or a piece of a rich loot experience right I need to
+loot experience right I need to constantly be able to kill a monster and
+constantly be able to kill a monster and then wonder what's gonna come out of it
+then wonder what's gonna come out of it and then see this amazing thing pop out
+and then see this amazing thing pop out and be like this is great the best day
+and be like this is great the best day of my life
+of my life but on the other hand this marketplace
+but on the other hand this marketplace fantasy means items are fungible for one
+fantasy means items are fungible for one another every item is essentially just
+another every item is essentially just worth to me what I can buy it for in the
+worth to me what I can buy it for in the auction house so what's happened all of
+auction house so what's happened all of a sudden is now every months in the game
+a sudden is now every months in the game is basically just pawning gold over and
+is basically just pawning gold over and over and over again effectively so I
+over and over again effectively so I claim it's cursed and I think in the end
+claim it's cursed and I think in the end there was nothing that could have done
+there was nothing that could have done to tune this to make the core fantasy
+to tune this to make the core fantasy work out one of the producers of the
+work out one of the producers of the game or I should say this is a special
+game or I should say this is a special case of what I called the commodified
+case of what I called the commodified reward problem when the producer said
+reward problem when the producer said that the auction house undermines
+that the auction house undermines Diablos core gameplay which is to kill
+Diablos core gameplay which is to kill monsters to get loot and I endorsed that
+monsters to get loot and I endorsed that statement okay so the third and final
+statement okay so the third and final quiz question always on location based
+quiz question always on location based games this is the preferred method of
+games this is the preferred method of playing Pokemon go so I mean this is a
+playing Pokemon go so I mean this is a spicy image obviously but in general you
+spicy image obviously but in general you know I think location-based games have
+know I think location-based games have this interesting situation where the
+this interesting situation where the promise is hey you go into the world and
+promise is hey you go into the world and it's an overlay on top of your life it's
+it's an overlay on top of your life it's like this extra magical layer in your
+like this extra magical layer in your life where everything is a little bit
+life where everything is a little bit different and at any moment you know I
+different and at any moment you know I might want to pull out my phone and you
+might want to pull out my phone and you know catch a Pokemon and that sounds
+know catch a Pokemon and that sounds cool but also has this tension which is
+cool but also has this tension which is that I might be driving and die or kill
+that I might be driving and die or kill someone I might just be walking down the
+someone I might just be walking down the street and trip I might go out of my way
+street and trip I might go out of my way maybe in a way that kind of
+maybe in a way that kind of inconveniences me or just in a more
+inconveniences me or just in a more banal level I might not really be like
+banal level I might not really be like present in my daily life right I might
+present in my daily life right I might not pay attention to my friends so what
+not pay attention to my friends so what I'm under in these two things this this
+I'm under in these two things this this the game kind of demands rewards at
+the game kind of demands rewards at specific times and places to make it
+specific times and places to make it feel like it has that magical overlay
+feel like it has that magical overlay but also there's this need for personal
+but also there's this need for personal safety and convenience and also
+safety and convenience and also mindfulness at some level that I think
+mindfulness at some level that I think of the basic need that the game doesn't
+of the basic need that the game doesn't promise but we assumed games will not
+promise but we assumed games will not violate so who thinks it's cursed all
+violate so who thinks it's cursed all right who thinks it's just really hard
+right who thinks it's just really hard all right I want to know how you guys
+all right I want to know how you guys want to solve this because because I for
+want to solve this because because I for the life of me these two things seem
+the life of me these two things seem fundamentally incompatible
+fundamentally incompatible so I think that now I know why this
+so I think that now I know why this might happen why it might seem hard so
+might happen why it might seem hard so I'm saying that these are this is cursed
+I'm saying that these are this is cursed because you sort of need to be able to
+because you sort of need to be able to play anywhere at any time in order to
+play anywhere at any time in order to satisfy the first promise but to satisfy
+satisfy the first promise but to satisfy the second you need to play when
+the second you need to play when appropriate and I know why it might seem
+appropriate and I know why it might seem like this is just a hard problem because
+like this is just a hard problem because you're like well surely we can put
+you're like well surely we can put limits in the game right we can make it
+limits in the game right we can make it so you only see you know monsters at
+so you only see you know monsters at times that are appropriate or what other
+times that are appropriate or what other people are playing around here or
+people are playing around here or something like that and I think that all
+something like that and I think that all of those once we get a little further
+of those once we get a little further into Chris problems to see that all of
+into Chris problems to see that all of those kind of are violating that first
+those kind of are violating that first promise to some extent and so that's why
+promise to some extent and so that's why I say this is curse because the moves
+I say this is curse because the moves that you have to make to actually make
+that you have to make to actually make this situation go away kind of turn it
+this situation go away kind of turn it into a different game at least a little
+into a different game at least a little bit and I think that's why you still
+bit and I think that's why you still have these problems in these games years
+have these problems in these games years later because you don't want to break
+later because you don't want to break that first core promise okay so a
+that first core promise okay so a general lees that calls like a life
+general lees that calls like a life disruption problem and there are other
+disruption problem and there are other very different games that encounter
+very different games that encounter these problems so this is where we are
+these problems so this is where we are the big ocean there is your game it's a
+the big ocean there is your game it's a wide sea of possibilities all kinds of
+wide sea of possibilities all kinds of things for players to do have fun and
+things for players to do have fun and that eldritch horror that living in the
+that eldritch horror that living in the heart of your game is your curse problem
+heart of your game is your curse problem right there just there underneath the
+right there just there underneath the sea kind of corrupting everything around
+sea kind of corrupting everything around them and it's not like a fish you can't
+them and it's not like a fish you can't just like spirit and pull it out
+just like spirit and pull it out the thing about Cthulhu is he's not
+the thing about Cthulhu is he's not leaving the ocean like he's just there
+leaving the ocean like he's just there he's a its core baked into the premise
+he's a its core baked into the premise of your game so what do you do when you
+of your game so what do you do when you encounter an eldritch horror that won't
+encounter an eldritch horror that won't leave you make sacrifices so you kill
+leave you make sacrifices so you kill your babies
+and that's what we're gonna do there's four little kinds of sacrifices
+there's four little kinds of sacrifices down here we can make and each of them
+down here we can make and each of them is a little different right they're
+is a little different right they're different ways of giving up some subtle
+different ways of giving up some subtle sometimes implicit piece of one of your
+sometimes implicit piece of one of your promises and that's the rest of the talk
+promises and that's the rest of the talk okay so we talked about curse problems
+okay so we talked about curse problems we've talked about why they are hard why
+we've talked about why they are hard why they will likely screw you over if you
+they will likely screw you over if you don't notice them now we're gonna say
+don't notice them now we're gonna say alright well if you still are dealing
+alright well if you still are dealing with one if you still want to make this
+with one if you still want to make this game how can you make a sacrifice give
+game how can you make a sacrifice give up some piece of your fantasy and make
+up some piece of your fantasy and make it a slightly different game that
+it a slightly different game that hopefully is still sound makes you happy
+hopefully is still sound makes you happy so that was good enough so first I'll
+so that was good enough so first I'll present a game model like what is Wow
+present a game model like what is Wow how I think about a game that will build
+how I think about a game that will build these techniques on top of and it will
+these techniques on top of and it will look scary at first but it won't be
+look scary at first but it won't be scary so remember a curse problem is an
+scary so remember a curse problem is an unsolvable design problem rooted in a
+unsolvable design problem rooted in a conflict between core player promises
+conflict between core player promises and I'm gonna talk about a common
+and I'm gonna talk about a common special case of this in which these two
+special case of this in which these two promises aren't just anything one is an
+promises aren't just anything one is an experience and one is an objective so by
+experience and one is an objective so by experiences I mean moment to moment
+experiences I mean moment to moment gameplay what is this game like to play
+gameplay what is this game like to play but by objectives I mean like the goals
+but by objectives I mean like the goals of the game the driving forces the
+of the game the driving forces the things that I'm trying to get out of the
+things that I'm trying to get out of the game in the end and these are these
+game in the end and these are these objectives are kind of pulling us
+objectives are kind of pulling us through motivating us through different
+through motivating us through different experiences whether we think they're
+experiences whether we think they're great or not and I think it's okay to
+great or not and I think it's okay to limit us to just this definition of
+limit us to just this definition of curse problems for now because first of
+curse problems for now because first of all it covers a lot of the cases
+all it covers a lot of the cases probably more than half but second it's
+probably more than half but second it's just a much simpler case to talk about
+just a much simpler case to talk about the techniques I'm going to talk about
+the techniques I'm going to talk about will kind of are easier to explain in
+will kind of are easier to explain in this context they do generalize to the
+this context they do generalize to the to the general case that looks like this
+to the general case that looks like this any two player promises but we're
+any two player promises but we're focusing on this so remember the
+focusing on this so remember the free-for-all politics problem so in this
+free-for-all politics problem so in this case we have the desire to focus on
+case we have the desire to focus on combat mastery that is an experience and
+combat mastery that is an experience and the desire to play to win
+the desire to play to win is an objective that's the kind of
+is an objective that's the kind of contrast I'm talking about so here's my
+contrast I'm talking about so here's my model it's a game start state is asked
+model it's a game start state is asked and the objective is wherever you're
+and the objective is wherever you're going oh and the objective can be given
+going oh and the objective can be given by the game but often it's at least
+by the game but often it's at least partially supplied supplied
+partially supplied supplied by the player and all the nodes in
+by the player and all the nodes in between other play space it's all the
+between other play space it's all the things you can do in the game kind of
+things you can do in the game kind of like a state machine but you should
+like a state machine but you should think of these nodes as including kind
+think of these nodes as including kind of the player's mental state as well as
+of the player's mental state as well as the digital state of the game and these
+the digital state of the game and these objectives they pull players through the
+objectives they pull players through the game they as I said they kind of guide
+game they as I said they kind of guide you into certain places one after
+you into certain places one after another and they guide you through the
+another and they guide you through the sort of golden path like this is the
+sort of golden path like this is the right way to play and you might not want
+right way to play and you might not want to play this way but it's what you're
+to play this way but it's what you're gonna do and there might be multiple
+gonna do and there might be multiple golden paths but kind of use one as an
+golden paths but kind of use one as an example
+example so I'm attracted a little this here is
+so I'm attracted a little this here is your game and this is your game on curse
+your game and this is your game on curse problems this is the situation we get
+problems this is the situation we get into where the fire represents promise
+into where the fire represents promise is not being met right the experiential
+is not being met right the experiential promise that was sort of given by the
+promise that was sort of given by the designer or just the player imagined
+designer or just the player imagined themselves is just not being met but the
+themselves is just not being met but the player is taking themselves through it
+player is taking themselves through it because they want to get to that
+because they want to get to that objective so to make this concrete in
+objective so to make this concrete in this case the fiery health gape is
+this case the fiery health gape is political play the grassy lovely area is
+political play the grassy lovely area is unrestrained combat the players were
+unrestrained combat the players were promised and the objective is winning
+promised and the objective is winning okay so you notice by the way that they
+okay so you notice by the way that they may spend a little bit of time to
+may spend a little bit of time to understand combat you're not doing
+understand combat you're not doing political play all the time but there's
+political play all the time but there's enough of it that this probably isn't
+enough of it that this probably isn't what the players sign up for so what can
+what the players sign up for so what can we do what's out are our options well
+we do what's out are our options well that is where these four techniques will
+that is where these four techniques will come into play games have faced curse
+come into play games have faced curse problems for throughout time often of
+problems for throughout time often of course people didn't know that they were
+course people didn't know that they were facing them sometimes they didn't even
+facing them sometimes they didn't even know they were facing a hard problem at
+know they were facing a hard problem at all because they naturally found their
+all because they naturally found their way into a way to address some previous
+way into a way to address some previous hard problem but along the way not
+hard problem but along the way not nonetheless designers have made the
+nonetheless designers have made the sacrifices needed to address these
+sacrifices needed to address these problems and really I think they these
+problems and really I think they these sacrifices really bucket nicely into
+sacrifices really bucket nicely into four techniques you don't really have to
+four techniques you don't really have to worry about it too much here this is
+worry about it too much here this is what they look like looks absurd I know
+what they look like looks absurd I know it sounds absurd barriers gates carrots
+it sounds absurd barriers gates carrots and s'mores those are the four
+and s'mores those are the four techniques I'll talk about I'm gonna go
+techniques I'll talk about I'm gonna go through them one by one so that they
+through them one by one so that they make sense all right so the first
+make sense all right so the first technique is barriers this is cutting
+technique is barriers this is cutting affordances that allow players to break
+affordances that allow players to break promises right basically it's the
+promises right basically it's the players doing something that we don't
+players doing something that we don't want them to do just make it impossible
+want them to do just make it impossible if you can and then they're going to
+if you can and then they're going to have to spend time in the grassy how do
+have to spend time in the grassy how do you blend
+you blend so let's look at an example for
+so let's look at an example for free-for-all politics one thing you can
+free-for-all politics one thing you can do is limit players agency over one
+do is limit players agency over one another so for example in a footrace it
+another so for example in a footrace it is very hard to play politics because
+is very hard to play politics because you can't do anything to affect the
+you can't do anything to affect the other players State for the most part
+other players State for the most part but there are softer examples to battle
+but there are softer examples to battle royale games are actually kind of an
+royale games are actually kind of an incredible innovation in free-for-all
+incredible innovation in free-for-all games because players are so far apart
+games because players are so far apart and there's so much hidden information
+and there's so much hidden information and there are so many players and
+and there are so many players and lethality is so high that it's just not
+lethality is so high that it's just not viable to play a political game I can't
+viable to play a political game I can't be like oh yeah I know which player I'm
+be like oh yeah I know which player I'm going after right I mean maybe you can't
+going after right I mean maybe you can't but it would be an insane idea and you
+but it would be an insane idea and you can't make a line from the people
+can't make a line from the people because they might just like shoot you
+because they might just like shoot you at any moment you can try to do these
+at any moment you can try to do these things but it's basically not a viable
+things but it's basically not a viable option instead you're forced to play
+option instead you're forced to play hard right you play the game of shooting
+hard right you play the game of shooting and jumping around and building that is
+and jumping around and building that is what this game promised it's limited
+what this game promised it's limited your agency over other players basically
+your agency over other players basically through spreading you apart and as a
+through spreading you apart and as a consequence you don't get politics so
+consequence you don't get politics so now the important part is remember I
+now the important part is remember I said you always sacrifice something even
+said you always sacrifice something even if it's a subtle implied goal in this
+if it's a subtle implied goal in this case what you sacrifice is some of the
+case what you sacrifice is some of the PvP fantasy of control I think part of
+PvP fantasy of control I think part of PvP games of many of them is being like
+PvP games of many of them is being like I own you you are gonna do what I say
+I own you you are gonna do what I say and I can take you down exactly the path
+and I can take you down exactly the path I want to take you down and that's just
+I want to take you down and that's just isn't really it's definitely possible
+isn't really it's definitely possible footrace and it's sort of not possible
+footrace and it's sort of not possible for most of a battle royale game you've
+for most of a battle royale game you've limited agency over each other and so
+limited agency over each other and so naturally players cannot affect impact
+naturally players cannot affect impact each other as much ok so now let's see a
+each other as much ok so now let's see a second example which I called gates
+second example which I called gates gates are basically a softer touch
+gates are basically a softer touch version of barriers you don't completely
+version of barriers you don't completely lock the player out of the actions that
+lock the player out of the actions that might allow the promises to break but
+might allow the promises to break but you do make them very difficult to
+you do make them very difficult to perform and challenge is something we
+perform and challenge is something we get to add in wherever we see
+get to add in wherever we see appropriate in games it's a nice
+appropriate in games it's a nice specific affordance of the medium so for
+specific affordance of the medium so for example you know you might spend most of
+example you know you might spend most of your time not in political play but
+your time not in political play but players might figure out a way to do it
+players might figure out a way to do it a little bit so in the case of referral
+a little bit so in the case of referral politics one thing we can do is limit
+politics one thing we can do is limit visibility of players success so in free
+visibility of players success so in free in PlayStation all-stars battle royale
+in PlayStation all-stars battle royale which I was a technical designer on it's
+which I was a technical designer on it's a it's another brawler for a player
+a it's another brawler for a player brawler one of the things we did was we
+brawler one of the things we did was we hid the player scores notice there's no
+hid the player scores notice there's no score in here listed and not only we
+score in here listed and not only we hide it we actually made it harder for
+hide it we actually made it harder for players to
+players to about your score in this game is twice
+about your score in this game is twice your kills - your deaths so that means
+your kills - your deaths so that means that it's kind of hard to like play this
+that it's kind of hard to like play this game plays hard as you can and also keep
+game plays hard as you can and also keep track of everybody's score and know
+track of everybody's score and know who's in the lead and moreover you sort
+who's in the lead and moreover you sort of have this plausible deniability that
+of have this plausible deniability that lets you just go hard like nobody knows
+lets you just go hard like nobody knows how well I'm doing like I'll just go
+how well I'm doing like I'll just go ahead and just kick as much ass as I
+ahead and just kick as much ass as I want and that's what lets players play
+want and that's what lets players play freely and not go as hard into politics
+freely and not go as hard into politics so what do we give up well among other
+so what do we give up well among other things we give up some of the tension of
+things we give up some of the tension of buzzer-beaters right we don't get these
+buzzer-beaters right we don't get these situations where we know you know all
+situations where we know you know all the players are really really close
+the players are really really close together you wonder who's gonna win
+together you wonder who's gonna win because you kind of just like don't know
+because you kind of just like don't know and then the game ends you're like Oh
+and then the game ends you're like Oh turns out you know Jerry won okay so the
+turns out you know Jerry won okay so the third example is carrots this is where
+third example is carrots this is where you know we changed the objective if the
+you know we changed the objective if the objective is what's drawing them through
+objective is what's drawing them through these problematic states let's change it
+these problematic states let's change it or let's create some new goals that help
+or let's create some new goals that help keep them following these objectives all
+keep them following these objectives all the way to the to the goal without
+the way to the to the goal without spending time during political play so
+spending time during political play so how can we do this with free-for-all
+how can we do this with free-for-all games one way is to add meta game
+games one way is to add meta game effects this is kind of not a well-known
+effects this is kind of not a well-known technique I think but you know I found
+technique I think but you know I found my way here through using this framework
+my way here through using this framework and I look for example of games that did
+and I look for example of games that did it so an interesting case it's actually
+it so an interesting case it's actually in a tournament context for Settlers of
+in a tournament context for Settlers of Catan tournaments they don't use you
+Catan tournaments they don't use you know whether or not you want a game to
+know whether or not you want a game to determine your placement at a tournament
+determine your placement at a tournament and how you move through it they
+and how you move through it they actually use your performance in an
+actually use your performance in an individual game so if you win a game you
+individual game so if you win a game you get four points but if you get third
+get four points but if you get third place you get two points and all of
+place you get two points and all of these points end up determining how you
+these points end up determining how you move through the tournament and how well
+move through the tournament and how well you perform so this weird thing happens
+you perform so this weird thing happens where I'm not so incentivized to play
+where I'm not so incentivized to play politics because I don't care as much
+politics because I don't care as much who wins or who loses what I really care
+who wins or who loses what I really care about is raising my own own performance
+about is raising my own own performance up just getting from third place to
+up just getting from third place to second place is like great for me and I
+second place is like great for me and I think politics is naturally diminished
+think politics is naturally diminished as a consequence but there's also the
+as a consequence but there's also the side effect which is you kind of
+side effect which is you kind of diminish the magic circle of an
+diminish the magic circle of an individual game right like the game
+individual game right like the game doesn't have this win or lose clarity
+doesn't have this win or lose clarity it's just kind of like okay more points
+it's just kind of like okay more points for the point bucket that's going to end
+for the point bucket that's going to end up determining maybe what I really care
+up determining maybe what I really care about which is whether
+about which is whether in the tournament alright so the fourth
+in the tournament alright so the fourth technique again I'm gonna say these are
+technique again I'm gonna say these are pretty much all you can do to deal with
+pretty much all you can do to deal with curse problems is s'mores it's just to
+curse problems is s'mores it's just to say okay players are violating the
+say okay players are violating the promises that we think we're making for
+promises that we think we're making for them but maybe we can just make that fun
+them but maybe we can just make that fun maybe we can lean into that so much that
+maybe we can lean into that so much that the promise kind of dissipates and
+the promise kind of dissipates and players understand that they're playing
+players understand that they're playing a different game so you guys so give the
+a different game so you guys so give the marshmallows to melt in the fire and
+marshmallows to melt in the fire and then you got s'mores okay um so you know
+then you got s'mores okay um so you know players will spend their time here and
+players will spend their time here and it's still great so how do you do that
+it's still great so how do you do that with free-for-all games well you've
+with free-for-all games well you've probably seen games like this before you
+probably seen games like this before you can give players tools to actually lean
+can give players tools to actually lean into that political play make it really
+into that political play make it really deep and fun through for example adding
+deep and fun through for example adding secrecy which is sorely missing from
+secrecy which is sorely missing from brawlers especially if you don't mind
+brawlers especially if you don't mind your players never being friends again
+your players never being friends again you can even diplomacy and they'll have
+you can even diplomacy and they'll have a great time for one game and you know
+a great time for one game and you know what happens here is like they have this
+what happens here is like they have this incredible game of Game of Thrones esque
+incredible game of Game of Thrones esque intrigue and you can see it right there
+intrigue and you can see it right there on the box it says the game of
+on the box it says the game of international intrigue it's very
+international intrigue it's very intriguing but the consequence is that
+intriguing but the consequence is that you have this lack of emphasis on moment
+you have this lack of emphasis on moment to moment action right it's not so much
+to moment action right it's not so much about exactly where I place my units
+about exactly where I place my units it's really about the relationships I
+it's really about the relationships I break along the way so and I also want
+break along the way so and I also want to call out by the way that first
+to call out by the way that first example that I showed you of creating
+example that I showed you of creating smash through weakening promises this is
+smash through weakening promises this is another example of s'mores right we've
+another example of s'mores right we've said okay we had these hard promises
+said okay we had these hard promises that this game seemed to imply what can
+that this game seemed to imply what can we do to change our game so the game
+we do to change our game so the game itself no longer makes those promises to
+itself no longer makes those promises to the player it's another instantiation of
+the player it's another instantiation of s'mores
+s'mores okay so you've seen the four techniques
+okay so you've seen the four techniques barriers gates carrots and s'mores I
+barriers gates carrots and s'mores I want to call out that these are they are
+want to call out that these are they are general-purpose design techniques it's
+general-purpose design techniques it's not like you can't use these for
+not like you can't use these for uncursed problems the thing that I think
+uncursed problems the thing that I think is interesting is that this is sort of
+is interesting is that this is sort of all you can do in a curse problem
+all you can do in a curse problem setting and you know I really want you
+setting and you know I really want you to think of this as like a tiny design
+to think of this as like a tiny design framework something to apply when you
+framework something to apply when you get into certain kinds of situations
+get into certain kinds of situations it's not going to tell you how to do the
+it's not going to tell you how to do the work you're not gonna be like oh what do
+work you're not gonna be like oh what do I do
+I do oh I don't care it's now
+oh I don't care it's now to solve this problem but it gives you a
+to solve this problem but it gives you a structure for a difficult creative
+structure for a difficult creative process this has worked for me many
+process this has worked for me many times I'm looking at a problem and I
+times I'm looking at a problem and I actually think through these four
+actually think through these four categories it prompts my brain to think
+categories it prompts my brain to think about directions that I never would have
+about directions that I never would have gone down otherwise because your brain
+gone down otherwise because your brain doesn't want to make these sacrifices
+doesn't want to make these sacrifices right it wants to solve the problem
+right it wants to solve the problem exactly it's defined and it can't so you
+exactly it's defined and it can't so you need something to tell you like I have
+need something to tell you like I have you you know considered like refinance
+you you know considered like refinance in your home or something so that's it
+in your home or something so that's it now I'm just gonna give you a few more
+now I'm just gonna give you a few more examples that's all we're doing right
+examples that's all we're doing right now we're just doing examples so you can
+now we're just doing examples so you can build intuition for how these techniques
+build intuition for how these techniques work and I'm gonna show you exactly one
+work and I'm gonna show you exactly one more example for each of the techniques
+more example for each of the techniques I already showed you all four techniques
+I already showed you all four techniques on free-for-all politics but now I'm
+on free-for-all politics but now I'm going to do two for another problem and
+going to do two for another problem and two for one after that just an interest
+two for one after that just an interest of time you can apply all these
+of time you can apply all these techniques to all these problems so I'll
+techniques to all these problems so I'll talk about the coop abuse problem this
+talk about the coop abuse problem this sucks
+sucks so high-stakes co-op games often involve
+so high-stakes co-op games often involve a lot of terrible treatment between
+a lot of terrible treatment between players and I think you know as game
+players and I think you know as game developers we have a responsibility to
+developers we have a responsibility to do what we can to make this better and
+do what we can to make this better and some of this as meg janeth so eloquently
+some of this as meg janeth so eloquently said yesterday involves you know telling
+said yesterday involves you know telling the worst players like the Nazis to get
+the worst players like the Nazis to get the [ __ ] out of our games but they're
+the [ __ ] out of our games but they're also thinking we have responsibilities
+also thinking we have responsibilities with designers as well to say like what
+with designers as well to say like what can we do as our game in our games to
+can we do as our game in our games to make these this behavior less likely now
+make these this behavior less likely now unfortunately it feels like there's this
+unfortunately it feels like there's this fundamental incompatibility players want
+fundamental incompatibility players want to play to win right that's these games
+to play to win right that's these games signal themselves as sort of wind
+signal themselves as sort of wind oriented but a lot of players also they
+oriented but a lot of players also they come for social belonging the reason why
+come for social belonging the reason why you're playing a co-op game among others
+you're playing a co-op game among others is because you want to feel like a part
+is because you want to feel like a part of something these two things they often
+of something these two things they often don't go well together because players
+don't go well together because players who want to play to win will not be
+who want to play to win will not be satisfied human beings feel like a game
+satisfied human beings feel like a game is fair when they win seventy percent of
+is fair when they win seventy percent of the time and that's probably not going
+the time and that's probably not going to happen in your PvP game so if that
+to happen in your PvP game so if that player also is lacking anger management
+player also is lacking anger management skills and tends to blame others more
+skills and tends to blame others more than themselves you're gonna get them
+than themselves you're gonna get them feeling too satisfied and frustrated the
+feeling too satisfied and frustrated the social belonging meeting player wants
+social belonging meeting player wants psychological safety needs it for that
+psychological safety needs it for that to happen but these things don't go
+to happen but these things don't go together and I say sometimes here
+together and I say sometimes here because it depends on the player depends
+because it depends on the player depends on the player state of mind it feels
+on the player state of mind it feels like there's this fundamental
+like there's this fundamental tension in any co-op game that has
+tension in any co-op game that has high-stakes PvP or otherwise but of
+high-stakes PvP or otherwise but of course so the problem is cursed but of
+course so the problem is cursed but of course as I said there are things you
+course as I said there are things you can do you just need to be willing to
+can do you just need to be willing to give something up if you really really
+give something up if you really really want to go down this path by the way it
+want to go down this path by the way it was funny totally independently a couple
+was funny totally independently a couple of my colleagues at Riot
+of my colleagues at Riot Naomi MacArthur and Kenny Shores gave a
+Naomi MacArthur and Kenny Shores gave a talk like yesterday or day before impact
+talk like yesterday or day before impact of social systems and game design and
+of social systems and game design and player interactions just talked about a
+player interactions just talked about a similar topic what you can do in your
+similar topic what you can do in your design to de-emphasize player abuse
+design to de-emphasize player abuse that's a cool one to check out so we're
+that's a cool one to check out so we're gonna look at barriers now alright so
+gonna look at barriers now alright so one approach is to just limit player
+one approach is to just limit player communication right and you can see a
+communication right and you can see a great example of that in a game like
+great example of that in a game like journey it's not a high-stakes co-op
+journey it's not a high-stakes co-op game but we still learn from it they
+game but we still learn from it they basically said hey we want to create an
+basically said hey we want to create an online game in which everyone could have
+online game in which everyone could have a beautiful time together and they
+a beautiful time together and they cannot treat each other like [ __ ] and
+cannot treat each other like [ __ ] and they did it they made this game we're
+they did it they made this game we're basically you can run around and walk
+basically you can run around and walk and jump and make beautiful pings and
+and jump and make beautiful pings and you feel connected to someone and it's
+you feel connected to someone and it's it's a huge success and you can
+it's a huge success and you can generalize this to PvP games even though
+generalize this to PvP games even though we haven't seen much of it
+we haven't seen much of it I think apex legends is proof that you
+I think apex legends is proof that you can because they have such a in such a
+can because they have such a in such a kind of communicative ping system that
+kind of communicative ping system that you could easily imagine just turning
+you could easily imagine just turning off voice and text communication this
+off voice and text communication this game entirely and still having a great
+game entirely and still having a great game the sacrifice here among others is
+game the sacrifice here among others is the rich social channel for relationship
+the rich social channel for relationship building right like we play co-op games
+building right like we play co-op games one of the reasons is so that we can you
+one of the reasons is so that we can you know build relationships make friends
+know build relationships make friends and it's very hard to practice
+and it's very hard to practice disclosure when you can't use your words
+disclosure when you can't use your words so maybe there's some way to tie these
+so maybe there's some way to tie these you know tie this together into a game
+you know tie this together into a game that slowly opens up into more
+that slowly opens up into more communication but you know you see that
+communication but you know you see that we are giving something out by doing
+we are giving something out by doing this alright so tech to connect
+this alright so tech to connect technique to is gates can we make it
+technique to is gates can we make it difficult to abuse each other and yeah I
+difficult to abuse each other and yeah I mean one way to do this is to limit
+mean one way to do this is to limit individual responsibility and here's the
+individual responsibility and here's the storm I think does this very
+storm I think does this very intentionally they take the MOBA formula
+intentionally they take the MOBA formula and they say let's have players share
+and they say let's have players share responsibility more let's make it so
+responsibility more let's make it so everybody contributes to a shared gold
+everybody contributes to a shared gold pool for example and as a consequence I
+pool for example and as a consequence I don't even know who is doing well and
+don't even know who is doing well and who is doing poorly at least on this
+who is doing poorly at least on this front and it makes it that much harder
+front and it makes it that much harder for me to pick someone out
+for me to pick someone out to abuse to blame my problems on there's
+to abuse to blame my problems on there's an even more extreme example this and
+an even more extreme example this and something like a gaming werewolf or
+something like a gaming werewolf or mafia or any social deduction game in
+mafia or any social deduction game in which you know one of the teams doesn't
+which you know one of the teams doesn't know who else is on their team it's
+know who else is on their team it's really hard for me to flame at you for
+really hard for me to flame at you for not helping me out if I don't even know
+not helping me out if I don't even know that you're supposed to be helping me
+that you're supposed to be helping me out at the end of the game players may
+out at the end of the game players may all hate each other but at least during
+all hate each other but at least during the game it's all kosher so here we give
+the game it's all kosher so here we give up some of the fantasy of harmonious
+up some of the fantasy of harmonious cooperation right like because players
+cooperation right like because players are less individualized there is less of
+are less individualized there is less of that Ocean's eleven feeling of like you
+that Ocean's eleven feeling of like you know I'm using my bomb skills and you're
+know I'm using my bomb skills and you're using your not werewolf skills wherever
+using your not werewolf skills wherever they are and each of us is coming
+they are and each of us is coming together to contribute individually to
+together to contribute individually to this fantasy of cooperation okay so we
+this fantasy of cooperation okay so we saw barriers and gates for co-op abuse
+saw barriers and gates for co-op abuse now we are going to see carrots and
+now we are going to see carrots and s'mores for what I call the quantified
+s'mores for what I call the quantified creativity problem so this is the same
+creativity problem so this is the same spore it's an example of a creative game
+spore it's an example of a creative game with goals now I had this experience
+with goals now I had this experience when I bought the sims 1 as a teenager
+when I bought the sims 1 as a teenager that might resonate with you which is I
+that might resonate with you which is I was super excited by it initially I
+was super excited by it initially I loved you know the weird storytelling
+loved you know the weird storytelling and the relationships and building crazy
+and the relationships and building crazy houses and so on but slowly I got sucked
+houses and so on but slowly I got sucked into what almost felt like another game
+into what almost felt like another game which was the the rat race of improving
+which was the the rat race of improving in my sims career and he was a scientist
+in my sims career and he was a scientist and I really really wanted to get into
+and I really really wanted to get into level 10 because we got the level 10 he
+level 10 because we got the level 10 he was an astronaut and it was so excited
+was an astronaut and it was so excited and finally I got there and I spent all
+and finally I got there and I spent all this time and all this effort just
+this time and all this effort just focusing on leveling him up and you know
+focusing on leveling him up and you know living the life I needed you to get him
+living the life I needed you to get him there and he goes into space and I'm
+there and he goes into space and I'm like yes and he comes down and like I
+like yes and he comes down and like I think both of us got post space
+think both of us got post space depression because it was like what's
+depression because it was like what's left to do now we got there right like
+left to do now we got there right like my life dream is complete and I noticed
+my life dream is complete and I noticed I'd completely forgot about what
+I'd completely forgot about what initially interested me about the game
+initially interested me about the game which was this creative play this wild
+which was this creative play this wild storytelling and fun and an
+storytelling and fun and an expressiveness and I you know this is a
+expressiveness and I you know this is a problem is players see a game like this
+problem is players see a game like this they want to express themselves the game
+they want to express themselves the game clearly signals they should but the game
+clearly signals they should but the game also wants to draw them in with goals
+also wants to draw them in with goals and that ends up making players want to
+and that ends up making players want to progress their character or whatever
+progress their character or whatever whatever form the progression takes and
+whatever form the progression takes and these things are in conflict because
+these things are in conflict because expressing yourself involves following
+expressing yourself involves following intrinsic goals kind of like following
+intrinsic goals kind of like following your heart basically and progressing
+your heart basically and progressing your character involves following extras
+your character involves following extras goals doing what the game says you
+goals doing what the game says you should do and it's pretty well known
+should do and it's pretty well known that extrinsic goals tend to subsume
+that extrinsic goals tend to subsume intrinsic goals right the more time I
+intrinsic goals right the more time I spend focusing on getting those carats
+spend focusing on getting those carats the less I really care about what it
+the less I really care about what it came for in the first place it's just
+came for in the first place it's just kind of seems to be a rule of thumb in
+kind of seems to be a rule of thumb in games in in life so these two things
+games in in life so these two things don't go together
+don't go together the problem is cursed and note that the
+the problem is cursed and note that the Sims is obviously a wildly successful
+Sims is obviously a wildly successful game as I said but I suspect that the
+game as I said but I suspect that the players who really latch on to this game
+players who really latch on to this game are the ones who completely ignore the
+are the ones who completely ignore the progression right for whom it basically
+progression right for whom it basically does nothing and who just really focus
+does nothing and who just really focus on that self-expression and I think the
+on that self-expression and I think the designers clearly here want to create a
+designers clearly here want to create a game in which both of these things can
+game in which both of these things can come together right into this harmonious
+come together right into this harmonious union so can we do this with these
+union so can we do this with these techniques
+techniques let's try carrots so can we incentivize
+let's try carrots so can we incentivize players to be creative well yeah we can
+players to be creative well yeah we can actually give them concrete reasons to
+actually give them concrete reasons to be creative and this is super weird
+be creative and this is super weird because this is going to turn your game
+because this is going to turn your game into a very different game but it might
+into a very different game but it might she'll still share some of the DNA like
+she'll still share some of the DNA like one game that kind of does this is clash
+one game that kind of does this is clash of clans it's a game about building all
+of clans it's a game about building all these towns put all your little stuff
+these towns put all your little stuff down and and you can make really wild
+down and and you can make really wild and creative shapes and layouts and you
+and creative shapes and layouts and you actually are incentivized to because you
+actually are incentivized to because you want to play off meta if players are
+want to play off meta if players are gonna come at you with a specific you
+gonna come at you with a specific you know set of armies that are there to
+know set of armies that are there to destroy whatever the typical maps are
+destroy whatever the typical maps are you benefit from doing this weird
+you benefit from doing this weird creative map as weird layout right
+creative map as weird layout right you're gonna tend to win it's like
+you're gonna tend to win it's like bringing a magic deck to a tournament
+bringing a magic deck to a tournament that no one was prepared for so that's
+that no one was prepared for so that's cool like you still get to be creative
+cool like you still get to be creative but the game is actually telling you to
+but the game is actually telling you to at least to some extent
+at least to some extent for a very different example you can
+for a very different example you can look at alpha bear which we made at spry
+look at alpha bear which we made at spry Fox and this is the game it's oh it's a
+Fox and this is the game it's oh it's a word game you spell words from tiles on
+word game you spell words from tiles on a grid and the tiles expiring you want
+a grid and the tiles expiring you want to use up all the letters before they
+to use up all the letters before they expire and there's this weird tension
+expire and there's this weird tension where players they try to win this game
+where players they try to win this game I spell in using all the words but they
+I spell in using all the words but they also really like the spelling funny
+also really like the spelling funny weird words like that's a kind of
+weird words like that's a kind of creative self-expression they get
+creative self-expression they get through the game and the game was was
+through the game and the game was was not incentivizing at all there was
+not incentivizing at all there was nothing pushing players towards this
+nothing pushing players towards this kind of fun creative play and then for
+kind of fun creative play and then for totally unrelated reasons we added this
+totally unrelated reasons we added this mad libs feature that would take words
+mad libs feature that would take words that you spelled in the game and then
+that you spelled in the game and then put them automatically into a mad lib so
+put them automatically into a mad lib so you've spelled Yeti and it says I code
+you've spelled Yeti and it says I code so
+so someday we can afford a Yeti of our own
+someday we can afford a Yeti of our own and maybe if you're really lucky you can
+and maybe if you're really lucky you can afford a whole town of yetis that's some
+afford a whole town of yetis that's some industry humor look it up bad story
+industry humor look it up bad story okay so so the thing about what's
+okay so so the thing about what's happening here is players actually got
+happening here is players actually got really incentivized to to like make
+really incentivized to to like make these funny weird words right to spell
+these funny weird words right to spell them out even though it's nothing to do
+them out even though it's nothing to do with the incentives of the actual game
+with the incentives of the actual game we've created this sort of social
+we've created this sort of social intrinsic metagame around the kind of
+intrinsic metagame around the kind of extrinsic ly motivated internal game and
+extrinsic ly motivated internal game and even though there's no real scoring or
+even though there's no real scoring or anything in the social game you know
+anything in the social game you know there are likes on Twitter or whatever
+there are likes on Twitter or whatever people who share these a lot and it felt
+people who share these a lot and it felt like the players could play these two
+like the players could play these two games simultaneously in harmony and it
+games simultaneously in harmony and it almost seemed like the fact that they
+almost seemed like the fact that they were separate games made it easier to
+were separate games made it easier to hold both of these things in their head
+hold both of these things in their head players really enjoyed looking forward
+players really enjoyed looking forward to spelling the words that would make
+to spelling the words that would make these mad libs okay what do you
+these mad libs okay what do you sacrifice you sacrifice the safety of
+sacrifice you sacrifice the safety of unconstrained creativity obviously in
+unconstrained creativity obviously in both of these examples I don't get to
+both of these examples I don't get to just go wild and do anything I want
+just go wild and do anything I want right I'm really I still trying to win
+right I'm really I still trying to win you know and that means I'm gonna be way
+you know and that means I'm gonna be way less expressive than I would be
+less expressive than I would be otherwise but maybe that's okay for you
+otherwise but maybe that's okay for you as a designer in each of these cases
+as a designer in each of these cases you're developing your game you have to
+you're developing your game you have to decide what kinds of sacrifices you're
+decide what kinds of sacrifices you're willing to make alright for a final
+willing to make alright for a final example how do we use s'mores how do we
+example how do we use s'mores how do we say okay maybe the lack of creativity
+say okay maybe the lack of creativity isn't so bad
+isn't so bad well you'll end up in a very different
+well you'll end up in a very different place here but I claim there still a
+place here but I claim there still a connection you could create rich deep
+connection you could create rich deep goals around the simulation in the game
+goals around the simulation in the game like Sim City or The Sims and maybe
+like Sim City or The Sims and maybe forget a total different game well you
+forget a total different game well you actually got here is Civ civilization in
+actually got here is Civ civilization in a weird way is Sim City with the
+a weird way is Sim City with the creativity kind of sucked out nothing
+creativity kind of sucked out nothing can't be creative in Civilization it's
+can't be creative in Civilization it's that you wouldn't be this isn't the game
+that you wouldn't be this isn't the game you would pick because they realize that
+you would pick because they realize that there's so much depth there in the core
+there's so much depth there in the core gameplay there's so much strategy and so
+gameplay there's so much strategy and so many interesting constraints and goals
+many interesting constraints and goals that they just lean right into it and
+that they just lean right into it and say okay we're gonna make a different
+say okay we're gonna make a different game but it still has some of that core
+game but it still has some of that core DNA of what's a sim city is and you know
+DNA of what's a sim city is and you know you focus a lot more on on winning these
+you focus a lot more on on winning these games than you do unlike making a really
+games than you do unlike making a really weird civilization and of course here
+weird civilization and of course here you've given up most of the original
+you've given up most of the original self-expression goal right this is kind
+self-expression goal right this is kind of the most extreme of the sacrifices
+of the most extreme of the sacrifices but you want to know the full
+but you want to know the full spectrum because you might find yourself
+spectrum because you might find yourself in a really cool space by being willing
+in a really cool space by being willing to relax their goal so that's it these
+to relax their goal so that's it these examples have shown two examples for
+examples have shown two examples for each there are a lot more out there but
+each there are a lot more out there but as much as I have time to show you so
+as much as I have time to show you so you can build this intuition for how to
+you can build this intuition for how to use these techniques so to wrap up Chris
+use these techniques so to wrap up Chris problems cannot just be solved
+problems cannot just be solved they require sacrifice you have to give
+they require sacrifice you have to give something up but there's kind of an
+something up but there's kind of an exciting silver lining to the existence
+exciting silver lining to the existence of these cursor problems I've talked
+of these cursor problems I've talked about what to do when you run into one
+about what to do when you run into one right and you kind of stare it face down
+right and you kind of stare it face down but you can also seek them out Chris
+but you can also seek them out Chris problems are the highest hanging fruit
+problems are the highest hanging fruit out there like people are ignoring them
+out there like people are ignoring them because a lot of people think they're
+because a lot of people think they're impossible but they're also the rapists
+impossible but they're also the rapists problems right there they have so much
+problems right there they have so much potential for finding new ways to
+potential for finding new ways to discreate games and if you actually seek
+discreate games and if you actually seek them out and decide to you know pivot a
+them out and decide to you know pivot a little bit you find this whole new open
+little bit you find this whole new open area so here are some challenges just a
+area so here are some challenges just a few things that people told me kind of
+few things that people told me kind of are impossible there are many more cool
+are impossible there are many more cool ones but so one is making a multiplayer
+ones but so one is making a multiplayer game with player generated content that
+game with player generated content that somehow lives in harmonious balance that
+somehow lives in harmonious balance that isn't totally broken another is you know
+isn't totally broken another is you know creating PvP games like I said in which
+creating PvP games like I said in which all players feel there was a just
+all players feel there was a just outcome despite the fact that they want
+outcome despite the fact that they want to win seventy percent of the time and
+to win seventy percent of the time and the last one is a game that maintains a
+the last one is a game that maintains a sense of mystery and discovery in the
+sense of mystery and discovery in the age of the Internet in which all secrets
+age of the Internet in which all secrets are laid bare these sort of seemed
+are laid bare these sort of seemed fundamentally contradictory but the idea
+fundamentally contradictory but the idea is when you have a contradiction you
+is when you have a contradiction you only have to pull out kind of one pin of
+only have to pull out kind of one pin of those promises and you get this whole
+those promises and you get this whole wide-open space so the next time you
+wide-open space so the next time you find yourself wandering the desert this
+find yourself wandering the desert this cursed to search forever for the
+cursed to search forever for the solution to your problem and maybe with
+solution to your problem and maybe with your whole team with you stop looking
+your whole team with you stop looking turn around there's a lush forest of
+turn around there's a lush forest of possibility behind you thanks
+also please fill out your speaker forms okay so I think we have time for
+okay so I think we have time for questions
+questions it's for 48 we have 12 minutes of
+it's for 48 we have 12 minutes of questions available all right does
+questions available all right does anyone have questions hey I'm going
+anyone have questions hey I'm going what's your name
+what's your name Ebru Abram cool did you see a situation
+Ebru Abram cool did you see a situation where adding monetization would conflict
+where adding monetization would conflict with the player goals and create a curse
+with the player goals and create a curse power problem oh yeah definitely I mean
+power problem oh yeah definitely I mean that's definitely one of the curse sort
+that's definitely one of the curse sort of canonical Chris problems that I think
+of canonical Chris problems that I think of in the modern era there are a lot of
+of in the modern era there are a lot of ways to frame it like there are multiple
+ways to frame it like there are multiple pairs of promises that break even for an
+pairs of promises that break even for an individual player who sorry the question
+individual player who sorry the question was can I see monetization creating
+was can I see monetization creating curse problems when you added in and
+curse problems when you added in and yeah even for an individual player who
+yeah even for an individual player who is you know promised this opportunity to
+is you know promised this opportunity to make their game more exciting by
+make their game more exciting by spending money like you could you can
+spending money like you could you can create that right I think like that
+create that right I think like that player might be satisfied but you sort
+player might be satisfied but you sort of naturally create a fundamentally
+of naturally create a fundamentally devalued experience for other players
+devalued experience for other players right we're very well aware of that the
+right we're very well aware of that the fact that other players can pay to win
+fact that other players can pay to win or improve brings down the sort of
+or improve brings down the sort of feeling of value for the other players
+feeling of value for the other players you have this natural conflict between
+you have this natural conflict between promises for sure yeah and I think
+promises for sure yeah and I think that's it's a great area to actually try
+that's it's a great area to actually try applying some of these techniques and
+applying some of these techniques and figure out if you can find clever ways
+figure out if you can find clever ways to make monetization work for everyone
+any other questions I think I further talked it was
+I think I further talked it was interesting what generation my name is
+interesting what generation my name is Anatoly nice to meet you I wanted to ask
+Anatoly nice to meet you I wanted to ask are there any like examples of you using
+are there any like examples of you using this example in your actual write work I
+this example in your actual write work I thought someone might ask that and the
+thought someone might ask that and the answer is I cannot talk about it at all
+answer is I cannot talk about it at all sorry that's the funny thing about
+sorry that's the funny thing about giving talks when you're in R&D yeah but
+giving talks when you're in R&D yeah but thank you for asking
+thank you for asking I'll tell you in a couple years Hey hi
+I'll tell you in a couple years Hey hi my name is Matias I was rendering the
+my name is Matias I was rendering the Russo talk during the war design day the
+Russo talk during the war design day the Ortiz board game design track about a
+Ortiz board game design track about a defense for King making yeah what did
+defense for King making yeah what did you think about it and do you think it's
+you think about it and do you think it's a viable approach to you know this curse
+a viable approach to you know this curse problem so I love that talk that talk I
+problem so I love that talk that talk I went to see it because I was related
+went to see it because I was related this to talk by Cole
+this to talk by Cole I don't know pronounce the name where'll
+I don't know pronounce the name where'll who was a designer root which is a board
+who was a designer root which is a board game it seems really cool I haven't come
+game it seems really cool I haven't come to play yet and basically he talked
+to play yet and basically he talked about King making which is a special
+about King making which is a special case of free-for-all politics where
+case of free-for-all politics where players get so far behind in the game
+players get so far behind in the game that they know they're going to lose and
+that they know they're going to lose and the only thing they can do is basically
+the only thing they can do is basically decide who's going to win that's where
+decide who's going to win that's where they get their fun from now it's like
+they get their fun from now it's like it's considered kind of a dark
+it's considered kind of a dark anti-pattern in games and his whole talk
+anti-pattern in games and his whole talk was like a defense of King Mickey and
+was like a defense of King Mickey and how this is actually a really cool form
+how this is actually a really cool form of game play that's that's really unique
+of game play that's that's really unique and offers a lot of individual potential
+and offers a lot of individual potential and the other talk was awesome and I
+and the other talk was awesome and I recommend you check it out in general so
+recommend you check it out in general so King making is itself it's a curse
+King making is itself it's a curse problem but it doesn't fit the framework
+problem but it doesn't fit the framework that I talked about where experiences
+that I talked about where experiences conflict with objectives King making is
+conflict with objectives King making is actually it's a it's a curse that
+actually it's a it's a curse that applies I'm trying to remember exactly
+applies I'm trying to remember exactly the framing but I think it applies
+the framing but I think it applies across players because you can't have
+across players because you can't have these curses where one players promises
+these curses where one players promises are in conflict with another players and
+are in conflict with another players and so finding solutions to it kind of is
+so finding solutions to it kind of is naturally harder but yeah you can't
+naturally harder but yeah you can't apply these techniques and you know you
+apply these techniques and you know you can make games about King making and and
+can make games about King making and and that that can be super fun he have some
+that that can be super fun he have some good examples in that talk of games
+good examples in that talk of games where you know you that's that you know
+where you know you that's that you know that's what you're there to do so it
+that's what you're there to do so it doesn't feel so bad when at the end of a
+doesn't feel so bad when at the end of a game that's all you can do okay that it
+game that's all you can do okay that it alright thank you so much everyone for
+alright thank you so much everyone for coming
+coming [Applause]

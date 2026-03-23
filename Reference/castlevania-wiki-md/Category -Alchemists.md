@@ -1,0 +1,3 @@
+# Category:Alchemists
+
+Category: Characters

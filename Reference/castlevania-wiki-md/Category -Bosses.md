@@ -1,0 +1,3 @@
+# Category:Bosses
+
+Category: Enemies

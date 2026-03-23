@@ -1,0 +1,3 @@
+# Category:Gunslingers
+
+Category: Characters

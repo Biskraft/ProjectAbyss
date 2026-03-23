@@ -1,0 +1,1627 @@
+[Music] welcome to this presentation of it is
+welcome to this presentation of it is rocket science the physics and
+rocket science the physics and networking at rocket league you all know
+networking at rocket league you all know the rules by now please silence your
+the rules by now please silence your cellphone's partway through the talk you
+cellphone's partway through the talk you will get an evaluation in your email if
+will get an evaluation in your email if it's not in your email then check your
+it's not in your email then check your spam if it's not in your spam maybe GGC
+spam if it's not in your spam maybe GGC doesn't care about your opinion my name
+doesn't care about your opinion my name is Jared Cohen I am the lead gameplay
+is Jared Cohen I am the lead gameplay engineer at psionics Sonic's being best
+engineer at psionics Sonic's being best known as the creators of rocket League I
+known as the creators of rocket League I have had the pleasure of working for
+have had the pleasure of working for Sonic's for 11 years now I was involved
+Sonic's for 11 years now I was involved with the development and release of
+with the development and release of rocky league's predecessor be concisely
+rocky league's predecessor be concisely named supersonic acrobatic rocket
+named supersonic acrobatic rocket powered battle cars every time I say
+powered battle cars every time I say that name I make sure to hold my head
+that name I make sure to hold my head high and say the whole thing all the way
+high and say the whole thing all the way to the bidder in I'm very proud of it
+to the bidder in I'm very proud of it I've also was part of the initial
+I've also was part of the initial startup for the rocket League prototype
+startup for the rocket League prototype and has been have been involved with the
+and has been have been involved with the development of it all the way through
+development of it all the way through its release the fires of release and
+its release the fires of release and continue to sport as a live game today
+continue to sport as a live game today so I've pretty much made a career out of
+so I've pretty much made a career out of cars playing soccer today we're going to
+cars playing soccer today we're going to talk about the tech of rocket League if
+talk about the tech of rocket League if you're interested in the history or
+you're interested in the history or design of rocket League then Corey Davis
+design of rocket League then Corey Davis gave a great talk at GDC 2016 that's
+gave a great talk at GDC 2016 that's available on youtube and at the vault I
+available on youtube and at the vault I highly suggest you check out
+highly suggest you check out specifically three topics we're gonna be
+specifically three topics we're gonna be covering today we're going to take a
+covering today we're going to take a look at the physics engine even though
+look at the physics engine even though we're a nun religion 3-game we decided
+we're a nun religion 3-game we decided to put in an alternative physics engine
+to put in an alternative physics engine and take a look at kind of global
+and take a look at kind of global physics settings that we chose for the
+physics settings that we chose for the game this is a very quick section but it
+game this is a very quick section but it actually contains what I think is one of
+actually contains what I think is one of the most important takeaways for the
+the most important takeaways for the whole talk so keep an eye out for that
+whole talk so keep an eye out for that then we were looking to vehicle system
+then we were looking to vehicle system specifically vehicle tuning and what you
+specifically vehicle tuning and what you can do to make your lives easier when
+can do to make your lives easier when working with physics based vehicles and
+working with physics based vehicles and then we're going to kind of switch
+then we're going to kind of switch contexts and talk about networking so
+contexts and talk about networking so once we got this game made that we
+once we got this game made that we really wanted to play online how the
+really wanted to play online how the hell we get to play over the intern
+hell we get to play over the intern I'm actually really excited about
+I'm actually really excited about talking about the networking because for
+talking about the networking because for me it was like my own personal moon
+me it was like my own personal moon landing achieving this type of game to
+landing achieving this type of game to be playable online so looking forward to
+be playable online so looking forward to talking about that first an overview of
+talking about that first an overview of rocket League for the uninitiated
+rocket League for the uninitiated elevator pitch is it's cars playing
+elevator pitch is it's cars playing soccer we needed our cars to be a little
+soccer we needed our cars to be a little more exciting than real-life cars so
+more exciting than real-life cars so they drive fast they steer fast they can
+they drive fast they steer fast they can jump they can double jump they can dodge
+jump they can double jump they can dodge we strapped on some rocket boosters to
+we strapped on some rocket boosters to make them even faster combine that with
+make them even faster combine that with jumping in air control and they can fly
+jumping in air control and they can fly through the air too so high level goals
+through the air too so high level goals that we had for rocket League on the
+that we had for rocket League on the tech side of things is we needed fast
+tech side of things is we needed fast responsive vehicles we weren't going for
+responsive vehicles we weren't going for a realistic physics simulation
+conversely to that we also wanted consistent controllable physics we
+consistent controllable physics we wanted to make sure that players felt
+wanted to make sure that players felt like they had control over the car and
+like they had control over the car and kind of a say-so in how the car was
+kind of a say-so in how the car was interacting with the ball in the rest of
+interacting with the ball in the rest of the physics simulation and we wanted the
+the physics simulation and we wanted the game to not be just playable over the
+game to not be just playable over the internet but needed to be competitive so
+internet but needed to be competitive so competitively playable over the Internet
+competitively playable over the Internet let's dive right in in the first part of
+let's dive right in in the first part of the talk look at our physics engine we
+the talk look at our physics engine we decided to go with the bullet physics
+decided to go with the bullet physics engine for a number of reasons first off
+engine for a number of reasons first off it is open source so you can debug it
+it is open source so you can debug it you can modify it you can make it do
+you can modify it you can make it do what you want it to do and I want to say
+what you want it to do and I want to say that this bullet point if I had to pick
+that this bullet point if I had to pick one thing that was most responsible for
+one thing that was most responsible for rocket leagues technical success it was
+rocket leagues technical success it was the fact that we went with an open
+the fact that we went with an open source physics engine that we could go
+source physics engine that we could go in and fix edge case problems literal
+in and fix edge case problems literal edges problems and make the vehicle
+edges problems and make the vehicle system work exactly how we wanted to do
+system work exactly how we wanted to do I highly suggest you do it if you want
+I highly suggest you do it if you want to make a physics driven game yourself
+to make a physics driven game yourself we also need a really fast single
+we also need a really fast single threaded physics simulator many physics
+threaded physics simulator many physics engines kind of focus on multi-threaded
+engines kind of focus on multi-threaded physics and handling lots of objects
+physics and handling lots of objects over the course of a frame we needed
+over the course of a frame we needed something that could run on a single
+something that could run on a single thread and be able to handle mini frames
+thread and be able to handle mini frames all at once as we'll get into when we
+all at once as we'll get into when we get in the networking section it was
+get in the networking section it was pretty quick to integrate because
+pretty quick to integrate because we did not actually replace the physics
+we did not actually replace the physics engine that came with Unreal Engine 3 we
+engine that came with Unreal Engine 3 we simply added bullet as an additional
+simply added bullet as an additional physics engine and it handles all of the
+physics engine and it handles all of the gameplay physics and we took a couple of
+gameplay physics and we took a couple of days to get boxes rolling around in the
+days to get boxes rolling around in the level and then maybe another week to get
+level and then maybe another week to get the vehicle prototype in so if you think
+the vehicle prototype in so if you think the idea of switching physics engines
+the idea of switching physics engines sounds too daunting it's not so bad if
+sounds too daunting it's not so bad if you're only piecemeal integrating the
+you're only piecemeal integrating the things that you need from another
+things that you need from another physics engine we use discrete collision
+physics engine we use discrete collision detection like most physics engine dues
+detection like most physics engine dues most physics engines do the key
+most physics engines do the key difference is with discrete collision
+difference is with discrete collision detection the actor will move and then
+detection the actor will move and then it tries to find things that's colliding
+it tries to find things that's colliding with with continuous collision detection
+with with continuous collision detection first we look for things we could
+first we look for things we could collide with and then we move we'll get
+collide with and then we move we'll get into why that's an important distinction
+into why that's an important distinction later on but of course that was chosen
+later on but of course that was chosen because it's more performant and we run
+because it's more performant and we run at a fixed tick rate which is not usual
+at a fixed tick rate which is not usual for an unreal engine game but I'm
+for an unreal engine game but I'm actually quite surprised it isn't usual
+actually quite surprised it isn't usual with a fixed tick rate you can have
+with a fixed tick rate you can have deterministic physics so your physics
+deterministic physics so your physics frames are always working with the same
+frames are always working with the same Delta time no matter how fast the game
+Delta time no matter how fast the game is rendering for rocket League we chose
+is rendering for rocket League we chose to go with 120 Hertz tick rate so each
+to go with 120 Hertz tick rate so each frame is approximately 8 milliseconds
+frame is approximately 8 milliseconds and I want to get into why we made that
+and I want to get into why we made that decision rather than going with
+decision rather than going with something more standard like 60 Hertz so
+something more standard like 60 Hertz so I want to look at a scenario where a car
+I want to look at a scenario where a car is actually driving towards the ball it
+is actually driving towards the ball it comes from a stop hit smack speed and
+comes from a stop hit smack speed and hits this ball towards the goal notice
+hits this ball towards the goal notice how high the ball gets in the frame and
+how high the ball gets in the frame and where it lands on the back of the goal
+where it lands on the back of the goal now we're going to repeat this
+now we're going to repeat this experiment with the ball going to the
+experiment with the ball going to the speed and hitting the or the car getting
+speed and hitting the or the car getting up to speed and hitting the ball at max
+up to speed and hitting the ball at max speed but we're just going to move the
+speed but we're just going to move the ball back a couple of units notice the
+ball back a couple of units notice the difference in the trajectory notice
+difference in the trajectory notice where the ball lands so as far as we
+where the ball lands so as far as we know we have a deterministic physics
+know we have a deterministic physics simulation but we have these
+simulation but we have these inconsistencies so what happens if we
+inconsistencies so what happens if we have the physics rate to 120 Hertz ball
+have the physics rate to 120 Hertz ball ends there repeat the experiment we get
+ends there repeat the experiment we get much more consistent results what's
+much more consistent results what's going on so if we look at look at
+going on so if we look at look at frame by frame here we see a physics
+frame by frame here we see a physics frame run where the car moves and then
+frame run where the car moves and then we look for intersections and no
+we look for intersections and no intersections yet car continues moving
+intersections yet car continues moving nothing's happening
+nothing's happening finally the car moves and we just are
+finally the car moves and we just are barely intersecting the ball so at this
+barely intersecting the ball so at this point the physics engine needs to
+point the physics engine needs to calculate the impact normal so it gets a
+calculate the impact normal so it gets a vector from the impact point on the car
+vector from the impact point on the car to the center of the ball and this is
+to the center of the ball and this is roughly the direction the ball is going
+roughly the direction the ball is going to travel it I should clarify that
+to travel it I should clarify that rocket League doesn't exactly do this we
+rocket League doesn't exactly do this we do augment this vector a little bit with
+do augment this vector a little bit with our custom forces and Cory talks about
+our custom forces and Cory talks about that in his talk but it's the same
+that in his talk but it's the same principle so with our experiments
+principle so with our experiments instead of starting the car here we're
+instead of starting the car here we're gonna move him back just a little bit so
+gonna move him back just a little bit so step through the physics simulation
+step through the physics simulation again at this point in the previous
+again at this point in the previous simulation we were actually intersecting
+simulation we were actually intersecting the ball but because we move the car
+the ball but because we move the car back it hasn't quite made it there yet
+back it hasn't quite made it there yet now when it steps it's actually got a
+now when it steps it's actually got a pretty deep penetration this impact
+pretty deep penetration this impact normal is calculated again and now it
+normal is calculated again and now it looks like that instead of that so
+looks like that instead of that so that's the differences we're seeing in
+that's the differences we're seeing in these hits and that's why we went with
+these hits and that's why we went with 120 Hertz just for better consistency
+120 Hertz just for better consistency with the physics simulation so when you
+with the physics simulation so when you run on a slower of physics rate you have
+run on a slower of physics rate you have to take larger steps for each physics
+to take larger steps for each physics frame that results in a larger variance
+frame that results in a larger variance and penetrations and you get
+and penetrations and you get inconsistent physics simulation we up
+inconsistent physics simulation we up the rate to have more consistency but of
+the rate to have more consistency but of course this made everything more
+course this made everything more expensive it was the easy thing to do in
+expensive it was the easy thing to do in retrospect I wish we had found another
+retrospect I wish we had found another way to handle these penetrations but the
+way to handle these penetrations but the games released and so we're kind of
+games released and so we're kind of stuck with it so coming to the end of
+stuck with it so coming to the end of the physics engine part of this talk I
+the physics engine part of this talk I strongly suggest if you're making a
+strongly suggest if you're making a physics driven game get a physics engine
+physics driven game get a physics engine that you can change use a fixed tick
+that you can change use a fixed tick rate for deterministic deterministic
+rate for deterministic deterministic physics that's good not just for
+physics that's good not just for replayability but also for networking as
+replayability but also for networking as we'll see when we get to the networking
+we'll see when we get to the networking section and you can play around with
+section and you can play around with your tick rate for a better physics
+your tick rate for a better physics simulation but it will come at a cost
+simulation but it will come at a cost and you might have to optimize that
+and you might have to optimize that later on so switching gears over to
+later on so switching gears over to vehicle tuning section
+we have some high-level goals with rocket League specific to our vehicles
+rocket League specific to our vehicles we needed the fast acceleration baked
+we needed the fast acceleration baked and braking for a fast gameplay we need
+and braking for a fast gameplay we need a sharp steering and despite all those
+a sharp steering and despite all those things we also need the cars to be
+things we also need the cars to be stable we don't want them to leave the
+stable we don't want them to leave the ground too much by accident and the
+ground too much by accident and the event they do leave the ground when to
+event they do leave the ground when to make sure that they are able to have a
+make sure that they are able to have a fast recovery so they can get back into
+fast recovery so they can get back into the action so you would think that
+the action so you would think that making a vehicle drive faster would be
+making a vehicle drive faster would be something pretty simple to do we just
+something pretty simple to do we just simply say depending on the
+simply say depending on the implementation of your physic system or
+implementation of your physic system or your vehicle implementation you just
+your vehicle implementation you just simply add more torque to the wheel so
+simply add more torque to the wheel so if the player presses thatíll we're just
+if the player presses thatíll we're just gonna up that torque value this should
+gonna up that torque value this should calls the wheel to spin move the car
+calls the wheel to spin move the car forward problem is that depends on
+forward problem is that depends on friction them specifically the tire
+friction them specifically the tire friction as it's touching the ground
+friction as it's touching the ground this could be a complicated friction
+this could be a complicated friction model so if you have too little friction
+model so if you have too little friction the tire is just going to spin if you
+the tire is just going to spin if you have too much friction you might have
+have too much friction you might have sticky tires whenever you come in for a
+sticky tires whenever you come in for a landing friction depends on the spin
+landing friction depends on the spin speed of the wheel so if we'll spinning
+speed of the wheel so if we'll spinning faster you have less friction so you
+faster you have less friction so you have unpredictable driving spin speed of
+have unpredictable driving spin speed of the wheel depends on the wheel radius so
+the wheel depends on the wheel radius so you might want to grow the rear wheel as
+you might want to grow the rear wheel as we have here just because you think it
+we have here just because you think it looks cool but then you have to retweet
+looks cool but then you have to retweet everything there is about your vehicle
+everything there is about your vehicle suspension is important for keeping
+suspension is important for keeping wheels on the ground if you have saw
+wheels on the ground if you have saw suspension they will maintain their
+suspension they will maintain their contact with the ground better if you
+contact with the ground better if you have hard suspension then they might
+have hard suspension then they might ride off the ground a little bit and
+ride off the ground a little bit and affect the driving gravity and mass
+affect the driving gravity and mass pretty much affect everything about your
+pretty much affect everything about your vehicle's driving driving if anything
+vehicle's driving driving if anything about those changes then you end up
+about those changes then you end up retweeting all these values anyways and
+retweeting all these values anyways and if you are really mad at your game
+if you are really mad at your game designer and we just want to ruin his
+designer and we just want to ruin his day
+day give him a transmission to work with
+give him a transmission to work with this means he has to sort out gear
+this means he has to sort out gear ratios in order to figure out an
+ratios in order to figure out an acceleration curve so these are all
+acceleration curve so these are all things that we have dealt with over the
+things that we have dealt with over the years you're constantly having to tweak
+years you're constantly having to tweak all these values and it's always a
+all these values and it's always a balancing act and you're only you have
+balancing act and you're only you have to settle on a compromise for how you
+to settle on a compromise for how you want your vehicle to behave in any given
+want your vehicle to behave in any given scenario we know this is a pretty
+scenario we know this is a pretty prevalent problem in the industry
+prevalent problem in the industry because Sonic's over the years our
+because Sonic's over the years our primary income was through contract work
+primary income was through contract work and many of our contracts were just
+and many of our contracts were just simply helping other studios implement
+simply helping other studios implement vehicles because they couldn't sort out
+vehicles because they couldn't sort out all these problems on their own so we
+all these problems on their own so we know it's a problem and we know we
+know it's a problem and we know we needed to do something better for rocket
+needed to do something better for rocket League so the idea was just simplify the
+League so the idea was just simplify the vehicle system as much as we can while
+vehicle system as much as we can while still making it feel like you're driving
+still making it feel like you're driving a vehicle so in order to reduce
+a vehicle so in order to reduce complexity talking about the
+complexity talking about the transmission maybe don't start
+transmission maybe don't start immediately having transmission just
+immediately having transmission just because a car has it in real life
+because a car has it in real life doesn't mean you actually need to
+doesn't mean you actually need to simulate one in the physics engine if
+simulate one in the physics engine if you ever play our game you'll notice the
+you ever play our game you'll notice the cars sound like they're changing gears
+cars sound like they're changing gears but it's all fake it's just in the sound
+but it's all fake it's just in the sound system instead provide your designers an
+system instead provide your designers an acceleration curve that they can tweak
+acceleration curve that they can tweak directly so if the vehicles have to stop
+directly so if the vehicles have to stop and the player presses throttle apply
+and the player presses throttle apply this amount of force to the vehicle if
+this amount of force to the vehicle if the vehicle is going top speed and the
+the vehicle is going top speed and the player is pressing throttle maybe don't
+player is pressing throttle maybe don't apply any force at all so much easier to
+apply any force at all so much easier to work with much better to get the desired
+work with much better to get the desired acceleration curve that you want right
+acceleration curve that you want right off the bat mass is a super important
+off the bat mass is a super important property affects pretty much everything
+property affects pretty much everything about how your vehicle handles so it's
+about how your vehicle handles so it's very important to make sure it doesn't
+very important to make sure it doesn't change out from underneath you
+change out from underneath you many physics engines offer a feature
+many physics engines offer a feature where you just simply provide them the
+where you just simply provide them the density of an actor and the size of the
+density of an actor and the size of the actor or its collision size and it will
+actor or its collision size and it will calculate the mass for you and this is a
+calculate the mass for you and this is a pain in the butt because if you play
+pain in the butt because if you play around with the collision shape for your
+around with the collision shape for your vehicle your mass will suddenly change
+vehicle your mass will suddenly change and now your driving is change and now
+and now your driving is change and now you've got to tweak all those variables
+you've got to tweak all those variables all over again so how you suggest you
+all over again so how you suggest you just turn that off and override the mass
+just turn that off and override the mass manually also ignore mass when you're
+manually also ignore mass when you're applying all these driving forces so
+applying all these driving forces so driving braking if in case the rocket
+driving braking if in case the rocket league you have jumping in the dodging
+league you have jumping in the dodging you want to take mass out of the
+you want to take mass out of the equation so if you apply a force of five
+equation so if you apply a force of five to a car you want to make sure it has
+to a car you want to make sure it has the same amount even if that mass
+the same amount even if that mass changes many physics engines offer the
+changes many physics engines offer the ability to do this by simply you know
+ability to do this by simply you know passing a flag to the add force function
+passing a flag to the add force function to say ignore mass tire friction is
+to say ignore mass tire friction is another complicated thing longitudinal
+another complicated thing longitudinal tire friction is where the wheel spins
+tire friction is where the wheel spins and it's what causes the car
+and it's what causes the car Ford it catches on the ground all those
+Ford it catches on the ground all those variables we saw on the blueprint slide
+variables we saw on the blueprint slide or all directly affecting longitudinal
+or all directly affecting longitudinal tire friction so we can actually just
+tire friction so we can actually just get rid of longitudinal tire friction we
+get rid of longitudinal tire friction we don't simulate it at all in rocket
+don't simulate it at all in rocket League just simply if the player presses
+League just simply if the player presses forward and they have the wheels have
+forward and they have the wheels have contact with the ground we apply a force
+contact with the ground we apply a force to the vehicle we also simplify the
+to the vehicle we also simplify the lateral friction instead of depending on
+lateral friction instead of depending on lat slits lat slip angles or ratios and
+lat slits lat slip angles or ratios and what not we were trying to figure out
+what not we were trying to figure out how can we simulate it so that you have
+how can we simulate it so that you have actual friction such as if the vehicle
+actual friction such as if the vehicle comes in from sliding or necessary for
+comes in from sliding or necessary for steering while being simple to work with
+steering while being simple to work with and we tried a few different scenarios
+and we tried a few different scenarios and I want to share with you what we
+and I want to share with you what we ended up with and what we're using today
+ended up with and what we're using today so for our lateral tire friction what we
+so for our lateral tire friction what we end up doing is we look at the wheel and
+end up doing is we look at the wheel and we look at how fast it's moving through
+we look at how fast it's moving through world space and in this case we look at
+world space and in this case we look at how fast it's moving forward and we also
+how fast it's moving forward and we also look at how fast is moving to the side
+look at how fast is moving to the side so we look at these speeds we use this
+so we look at these speeds we use this the calculator ratio we just do side
+the calculator ratio we just do side speed divided by side speed plus forward
+speed divided by side speed plus forward speed this gives us a value between zero
+speed this gives us a value between zero and one where zero means the wheel is
+and one where zero means the wheel is going perfectly forward and one means
+going perfectly forward and one means the wheel is going perfectly to the side
+the wheel is going perfectly to the side we feed this into a curve if it's a
+we feed this into a curve if it's a pretty simple curve I think ours only
+pretty simple curve I think ours only actually has two points but basically if
+actually has two points but basically if you feed in a value of one where the
+you feed in a value of one where the vehicle the wheel is going perfectly to
+vehicle the wheel is going perfectly to the side they're gonna get a value of
+the side they're gonna get a value of zero point two out of it so it's nice
+zero point two out of it so it's nice and slippery when the car comes in from
+and slippery when the car comes in from a sideways landing but if you feed in a
+a sideways landing but if you feed in a value of zero so that the wheel is going
+value of zero so that the wheel is going forward it's going to give you a value
+forward it's going to give you a value of 1 for friction so you have very
+of 1 for friction so you have very sticky friction and this is how we're
+sticky friction and this is how we're able to make it so the cars have very
+able to make it so the cars have very tight steering very sticky steering but
+tight steering very sticky steering but they stay slippery when they come in for
+they stay slippery when they come in for a sideways landing and that's pretty
+a sideways landing and that's pretty hard to do when you have a more
+hard to do when you have a more realistic tyre friction model you also
+realistic tyre friction model you also have to throw in ground fiction friction
+have to throw in ground fiction friction because you don't want the vehicle just
+because you don't want the vehicle just sticking on a slope perfectly so we just
+sticking on a slope perfectly so we just throw the ground normal into another
+throw the ground normal into another curve that's scales friction finally we
+curve that's scales friction finally we use the physics engine to give us what
+use the physics engine to give us what impulse would be necessary to make this
+impulse would be necessary to make this will come to a stop right now given the
+will come to a stop right now given the look
+look of the wheel and the mass that the wheel
+of the wheel and the mass that the wheel supports once the physics engine gives
+supports once the physics engine gives us that we just scale that number by
+us that we just scale that number by this friction value that we calculated
+this friction value that we calculated and apply to the wheel and that's pretty
+and apply to the wheel and that's pretty much all we do these few lines of code
+much all we do these few lines of code is basically our lateral tire friction
+is basically our lateral tire friction model it's pretty simple but it works
+model it's pretty simple but it works really well and as again allows us to do
+really well and as again allows us to do the tight steering while also having the
+the tight steering while also having the vehicles be sliding while we're talking
+vehicles be sliding while we're talking about friction another important aspect
+about friction another important aspect is where you actually apply the forces
+is where you actually apply the forces on the vehicle so in this scenario we
+on the vehicle so in this scenario we have the vehicle on the ground but he's
+have the vehicle on the ground but he's sliding to the right so we're applying
+sliding to the right so we're applying friction force right here normally when
+friction force right here normally when you're doing friction forces you want to
+you're doing friction forces you want to apply them somewhere around the bottom
+apply them somewhere around the bottom of the wheel or maybe around the wheel
+of the wheel or maybe around the wheel axle the point is it's usually offset
+axle the point is it's usually offset from the cars center of mass which is
+from the cars center of mass which is indicated there when you apply a force
+indicated there when you apply a force that is offset from the center of mass
+that is offset from the center of mass you get a torque in this case a rolling
+you get a torque in this case a rolling torque which causes the car to roll and
+torque which causes the car to roll and that's not good because we want our
+that's not good because we want our players to build driver around without
+players to build driver around without fear of having their cars roll seeing
+fear of having their cars roll seeing this in action the player is able to
+this in action the player is able to steer a little bit and it's fine but
+steer a little bit and it's fine but once they get up to speed and steer too
+once they get up to speed and steer too much they just flip over on their side
+much they just flip over on their side and they're done for this is great if
+and they're done for this is great if you're making Reliant Robin simulator
+you're making Reliant Robin simulator not so good for a competitive game there
+not so good for a competitive game there are a few workarounds you can do for
+are a few workarounds you can do for this one you can just lower tire
+this one you can just lower tire friction obviously this is not great if
+friction obviously this is not great if you want to have good steering you can
+you want to have good steering you can limit your steering goals so just simply
+limit your steering goals so just simply prevent the player from turning that
+prevent the player from turning that sharply now you're limiting your turn
+sharply now you're limiting your turn radiuses and it's a big pain in the butt
+radiuses and it's a big pain in the butt to maintain that steering angle curve
+to maintain that steering angle curve you can apply a physics constraint
+you can apply a physics constraint usually called a state upright
+usually called a state upright constraint which is a constraint that
+constraint which is a constraint that you actually flip on when all the wheels
+you actually flip on when all the wheels are on the ground that will try to align
+are on the ground that will try to align the vehicles up access with the surface
+the vehicles up access with the surface normal that it's touching it comes
+normal that it's touching it comes tricky trying to figure out when you
+tricky trying to figure out when you should turn this constraint on or off
+should turn this constraint on or off depending on various specific gameplay
+depending on various specific gameplay scenarios what we did for rocket League
+scenarios what we did for rocket League and what I would continue doing going
+and what I would continue doing going forward for any vehicle game is we apply
+forward for any vehicle game is we apply the friction forces at the height of the
+the friction forces at the height of the center of mass so we don't get that
+center of mass so we don't get that rolling torque so instead of applying
+rolling torque so instead of applying them down here apply them up there so
+them down here apply them up there so now there's no rolling torque and we
+now there's no rolling torque and we don't have to worry about flipping the
+don't have to worry about flipping the from steering once we see that in action
+from steering once we see that in action the vehicle is able to turn as tight as
+the vehicle is able to turn as tight as we want it to and we don't have to worry
+we want it to and we don't have to worry about it rolling well you'll notice it
+about it rolling well you'll notice it has really uninteresting turning right
+has really uninteresting turning right now there's no suspension wobble that
+now there's no suspension wobble that got lost because we don't have any of
+got lost because we don't have any of that torque anymore but you can just add
+that torque anymore but you can just add it back individuals so our cars look
+it back individuals so our cars look like they have suspension but it's all
+like they have suspension but it's all fake it's all just done in the animation
+fake it's all just done in the animation system and so this way you can have
+system and so this way you can have suspension look as wobbly as you want
+suspension look as wobbly as you want without it actually affecting how you
+without it actually affecting how you want the vehicle to drive wheel
+want the vehicle to drive wheel positions this is an important aspect of
+positions this is an important aspect of how well your vehicle can steer looking
+how well your vehicle can steer looking at two properties I call them axle
+at two properties I call them axle separation which is how far the rear
+separation which is how far the rear wheels are from the front wheels and
+wheels are from the front wheels and axle width which is how far the left
+axle width which is how far the left wheel is from the right wheel these two
+wheel is from the right wheel these two numbers make a ratio and that ratio is a
+numbers make a ratio and that ratio is a very important number for how well your
+very important number for how well your vehicle can steer here we have a tool
+vehicle can steer here we have a tool that we use to measure a vehicle's
+that we use to measure a vehicle's handling so what we'll do is we'll have
+handling so what we'll do is we'll have the vehicle drive forward and steer
+the vehicle drive forward and steer various maneuvers have various speeds
+various maneuvers have various speeds and record its position along the track
+and record its position along the track just to see how well Tenley and to
+just to see how well Tenley and to compare it to other vehicles so what
+compare it to other vehicles so what happens if we move the front axle
+happens if we move the front axle forward just two centimetres already the
+forward just two centimetres already the vehicle is not turning as well it's
+vehicle is not turning as well it's getting a little sluggish and it's
+getting a little sluggish and it's sometimes very subtle you won't notice
+sometimes very subtle you won't notice it playing but your hardcore players
+it playing but your hardcore players will and they'll call you out on it
+will and they'll call you out on it so what can we do about this whereas say
+so what can we do about this whereas say was a big problem that we had with
+was a big problem that we had with rocket League is we allowed the physics
+rocket League is we allowed the physics wheels to be defined by the arts we just
+wheels to be defined by the arts we just simply put the physics wheel wherever
+simply put the physics wheel wherever the visual wheel was on the car as you
+the visual wheel was on the car as you can guess this had a dramatic effect on
+can guess this had a dramatic effect on handling we would get a new vehicle in
+handling we would get a new vehicle in and we'd have a long iteration times of
+and we'd have a long iteration times of trying to figure out how to get it
+trying to figure out how to get it drivable either adjusting the visual
+drivable either adjusting the visual mesh or more likely adding offsets the
+mesh or more likely adding offsets the physics wheels until it became drivable
+physics wheels until it became drivable so as of summer of last year after
+so as of summer of last year after release we switched to a vehicle preset
+release we switched to a vehicle preset system the idea of a vehicle preset
+system the idea of a vehicle preset system is we simply completely separate
+system is we simply completely separate the physics settings from the visuals we
+the physics settings from the visuals we don't look at the visuals all visuals
+don't look at the visuals all visuals at all when setting up the physics for
+at all when setting up the physics for the vehicle for us that includes the
+the vehicle for us that includes the collision size and translation for the
+collision size and translation for the vehicle collision and also the wheel
+vehicle collision and also the wheel positions and the radius of each wheel
+positions and the radius of each wheel with this we have many vehicles I don't
+with this we have many vehicles I don't mean know how many vehicles we have in
+mean know how many vehicles we have in the game now but we only have a handful
+the game now but we only have a handful of actual physics presets so as soon as
+of actual physics presets so as soon as we get a new vehicle in we just give an
+we get a new vehicle in we just give an existing preset and it's good to go
+existing preset and it's good to go of course this gave us faster iteration
+of course this gave us faster iteration I wish we had done in a really long time
+I wish we had done in a really long time ago possible downside is your physics
+ago possible downside is your physics don't line up with your visuals anymore
+don't line up with your visuals anymore obviously so I thought there would be a
+obviously so I thought there would be a problem where if the wheel is going up a
+problem where if the wheel is going up a slope it might intersect the geometry
+slope it might intersect the geometry because the visual is all set from the
+because the visual is all set from the physics nobody seems to really care it's
+physics nobody seems to really care it's not that important a very fast-paced
+not that important a very fast-paced game stability talking about how we can
+game stability talking about how we can get vehicles back in the action once
+get vehicles back in the action once they become unstable let's look at a
+they become unstable let's look at a scenario where vehicle actually leaves
+scenario where vehicle actually leaves the ground and lands awkwardly on its
+the ground and lands awkwardly on its side notice it takes a while to recover
+side notice it takes a while to recover it does recover because it's got a low
+it does recover because it's got a low center of mass but when it does it's
+center of mass but when it does it's facing the wrong direction so for rocket
+facing the wrong direction so for rocket league we work around this by adding
+league we work around this by adding auxiliary forces to help out looking at
+auxiliary forces to help out looking at two scenarios here we have a vehicle on
+two scenarios here we have a vehicle on the left who has wheels touching the
+the left who has wheels touching the ground but not all of them and a vehicle
+ground but not all of them and a vehicle on the right who has a body touching the
+on the right who has a body touching the ground but no wheels for both of these
+ground but no wheels for both of these situations we're going to look at the
+situations we're going to look at the surface normal that it's touching and
+surface normal that it's touching and we're going to apply a rolling torch to
+we're going to apply a rolling torch to try to align the vehicles up axis with
+try to align the vehicles up axis with that surface normal we played around
+that surface normal we played around with also doing pitch torques to try to
+with also doing pitch torques to try to get maybe the front end down faster or
+get maybe the front end down faster or y'all torques if it was maybe y'all'd up
+y'all torques if it was maybe y'all'd up and rolled we found that made really
+and rolled we found that made really unpredictable corrections on the vehicle
+unpredictable corrections on the vehicle and decided that roll alone was
+and decided that roll alone was perfectly fine one difference between
+perfectly fine one difference between these two scenarios is once the vehicles
+these two scenarios is once the vehicles got a wheel on the ground we're also
+got a wheel on the ground we're also going to give a downward linear force to
+going to give a downward linear force to really clamp it down into that ground
+really clamp it down into that ground much faster obviously we don't want to
+much faster obviously we don't want to do that for this scenario on the right
+do that for this scenario on the right because that would be counteracting that
+because that would be counteracting that roll force but once he's rolled far
+roll force but once he's rolled far enough we will flip it on and that
+enough we will flip it on and that plants our vehicles to the ground and
+plants our vehicles to the ground and will flip off these extra forces once
+will flip off these extra forces once we got three or more wheels touching the
+we got three or more wheels touching the ground looking at what we had before
+ground looking at what we had before just refresh your memory we have the
+just refresh your memory we have the vehicle leave the ground takes a while
+vehicle leave the ground takes a while to recover it's facing the wrong
+to recover it's facing the wrong direction after we apply stability
+direction after we apply stability forces the vehicle is able to write
+forces the vehicle is able to write itself much quicker and it's now facing
+itself much quicker and it's now facing the correct direction still so coming
+the correct direction still so coming into an end talking about everything
+into an end talking about everything that we did for our vehicles and some
+that we did for our vehicles and some key takeaways from it strongly encourage
+key takeaways from it strongly encourage you to start with the simplest vehicle
+you to start with the simplest vehicle system you possibly can and just simply
+system you possibly can and just simply add complexity whenever the need arises
+add complexity whenever the need arises you'll you'll find that the need doesn't
+you'll you'll find that the need doesn't arise that often or if you read have a
+arise that often or if you read have a vehicle system you want to use or you
+vehicle system you want to use or you have to use find ways to trim out the
+have to use find ways to trim out the complexity by keeping things constant or
+complexity by keeping things constant or removing things from the equation
+removing things from the equation anything that you lose with that you can
+anything that you lose with that you can always just make up in the visuals we
+always just make up in the visuals we have a surprising amount of our things
+have a surprising amount of our things that look like physics that are actually
+that look like physics that are actually all happening sort of under the hood so
+all happening sort of under the hood so to speak in the animation layer and
+to speak in the animation layer and another thing is when iterating on your
+another thing is when iterating on your vehicles don't depend on the visuals
+vehicles don't depend on the visuals those are going to change all the time
+those are going to change all the time so just keep your physics headings
+so just keep your physics headings separate and you'll be able to iterate
+separate and you'll be able to iterate much faster so concluding our vehicle
+much faster so concluding our vehicle tuning section we get to move on to what
+tuning section we get to move on to what I would think would be the meat of the
+I would think would be the meat of the talk in my favorite part is talking
+talk in my favorite part is talking about networking so we had some
+about networking so we had some interesting challenges with rocky
+interesting challenges with rocky league's networking first off input
+league's networking first off input delay is not an option so what I mean by
+delay is not an option so what I mean by this is many physics driven games that
+this is many physics driven games that involve vehicles they can get away with
+involve vehicles they can get away with having the client send their input up to
+having the client send their input up to the server and have the server simulate
+the server and have the server simulate the physics emulation and send the
+the physics emulation and send the results back down to the client before
+results back down to the client before the client even sees the car move at all
+the client even sees the car move at all they can do this because the vehicles
+they can do this because the vehicles are more realistic they have a slow
+are more realistic they have a slow acceleration slow braking they don't
+acceleration slow braking they don't turn too sharply and you can totally get
+turn too sharply and you can totally get away with having this added network
+away with having this added network latency obviously we can't do that for
+latency obviously we can't do that for oculi because it's so fast pace it would
+oculi because it's so fast pace it would be very noticeable it makes
+be very noticeable it makes pretty unplayable so since we can't have
+pretty unplayable so since we can't have input delay we're gonna have to
+input delay we're gonna have to implement some kind of client prediction
+implement some kind of client prediction this has been kind of a solved problem
+this has been kind of a solved problem since the mid 90s we've had client
+since the mid 90s we've had client prediction for shooters for so long the
+prediction for shooters for so long the tricky part is how we're going to apply
+tricky part is how we're going to apply client prediction to a physics
+client prediction to a physics simulation that involves rigidbody
+simulation that involves rigidbody vehicles another issue is when the
+vehicles another issue is when the player is sending their inputs up to the
+player is sending their inputs up to the server it suffers from packet loss
+server it suffers from packet loss package jitter it arrives unpredictably
+package jitter it arrives unpredictably on the server this isn't a problem for
+on the server this isn't a problem for most games because the server can just
+most games because the server can just simply not run physics for that
+simply not run physics for that particular player until his input comes
+particular player until his input comes in and once it comes in we run physics
+in and once it comes in we run physics immediately and everything's good we
+immediately and everything's good we don't want to do that for Rocky League
+don't want to do that for Rocky League and we'll get into more detailed reasons
+and we'll get into more detailed reasons why and the next slides another
+why and the next slides another challenge is collision with moving
+challenge is collision with moving objects normally when you're using
+objects normally when you're using client prediction if you've played a
+client prediction if you've played a game a shooter where you've been had
+game a shooter where you've been had high latency and have either run into
+high latency and have either run into other players and been rubber-banding
+other players and been rubber-banding around or maybe even something as simple
+around or maybe even something as simple as going up an elevator and characters
+as going up an elevator and characters jittering on the way up
+jittering on the way up that is because client prediction is
+that is because client prediction is fighting this server server
+fighting this server server authoritative moving object so we need
+authoritative moving object so we need to overcome that in rocket Li because
+to overcome that in rocket Li because the core game involves hitting a moving
+the core game involves hitting a moving object last but not least we wanted to
+object last but not least we wanted to be a PC game so we needed a hundred
+be a PC game so we needed a hundred percent server Authority we didn't want
+percent server Authority we didn't want to trust the clients for anything
+to trust the clients for anything because cheaters like to cheat so why
+because cheaters like to cheat so why can't we have the server just simply
+can't we have the server just simply wait for client input as players send
+wait for client input as players send their inputs to the server they suffer
+their inputs to the server they suffer from loss they suffer from jitter so
+from loss they suffer from jitter so this so the server can just simply wait
+this so the server can just simply wait for inputs to come in before running
+for inputs to come in before running physics for that player this isn't very
+physics for that player this isn't very good for rigidbody simulation because a
+good for rigidbody simulation because a core tenant of rigidbody simulations is
+core tenant of rigidbody simulations is everyone moves at the same time a little
+everyone moves at the same time a little bit at a time we can't have one actor
+bit at a time we can't have one actor sitting there while all the rest are
+sitting there while all the rest are running their own simulations it's also
+running their own simulations it's also particularly bad for rocket Li because
+particularly bad for rocket Li because you could get a pretty bad D sync when
+you could get a pretty bad D sync when you're hitting a moving object
+you're hitting a moving object and I want to take a look at that real
+and I want to take a look at that real quick here we have a scenario where a
+quick here we have a scenario where a client's car on the left is moving
+client's car on the left is moving towards the moving ball we're gonna step
+towards the moving ball we're gonna step through it frame by frame and see what
+through it frame by frame and see what the client sees as he's approaching the
+the client sees as he's approaching the ball finally he thinks that he has hit
+ball finally he thinks that he has hit the ball here and is able to predict the
+the ball here and is able to predict the hit and maybe he sees the ball go into
+hit and maybe he sees the ball go into the goal for a server he's sitting here
+the goal for a server he's sitting here waiting for the client inputs to come in
+waiting for the client inputs to come in before running physics one comes in so
+before running physics one comes in so he's good to go runs a physics frame but
+he's good to go runs a physics frame but then the next input gets delayed a
+then the next input gets delayed a little bit this isn't a problem the
+little bit this isn't a problem the server could just not run physics for
+server could just not run physics for that car but he's got to run everyone
+that car but he's got to run everyone else because the show must go on so it
+else because the show must go on so it continues running physics for the ball
+continues running physics for the ball finally the player input comes in but at
+finally the player input comes in but at this point the balls already moved past
+this point the balls already moved past him and he has missed the ball finally
+him and he has missed the ball finally the server sends this new information
+the server sends this new information back down to the client clients who
+back down to the client clients who thought the ball was in the goal sees
+thought the ball was in the goal sees the ball just walk back here he says
+the ball just walk back here he says what the hell so the reason we don't
+what the hell so the reason we don't want servers to Pauls individual players
+want servers to Pauls individual players to wait for their inputs is because it
+to wait for their inputs is because it results in non-deterministic behavior
+results in non-deterministic behavior between the client simulation and the
+between the client simulation and the server simulation what about hitting a
+server simulation what about hitting a moving object what kind of challenges
+moving object what kind of challenges are we seeing with that the idea is the
+are we seeing with that the idea is the client is predicting his vehicle so his
+client is predicting his vehicle so his vehicle is ahead of the server's but the
+vehicle is ahead of the server's but the server is authoritative over the ball so
+server is authoritative over the ball so the client under these in this situation
+the client under these in this situation normally for most games is just simply
+normally for most games is just simply drawing the ball where the server tells
+drawing the ball where the server tells him the ball is at but this is old
+him the ball is at but this is old information the tricky part with this is
+information the tricky part with this is we have two things interacting on the
+we have two things interacting on the client that are kind of existing in two
+client that are kind of existing in two different timelines with the car being
+different timelines with the car being ahead of the server the ball being
+ahead of the server the ball being behind the server
+behind the server looking at this in action to see what
+looking at this in action to see what actually happens here we have a car
+actually happens here we have a car moving down towards a moving ball we're
+moving down towards a moving ball we're gonna overlay the client's view so we
+gonna overlay the client's view so we can see what he sees and what the server
+can see what he sees and what the server sees at the same time the client thinks
+sees at the same time the client thinks he's driving towards the ball and is
+he's driving towards the ball and is able to get a hit off here this is what
+able to get a hit off here this is what the client sees in his view
+the client sees in his view this is what the server sees the client
+this is what the server sees the client is nowhere near the ball and he doesn't
+is nowhere near the ball and he doesn't get a hit so this time line discrepancy
+get a hit so this time line discrepancy is something that we have to overcome
+is something that we have to overcome for rocket League now some people ask
+for rocket League now some people ask for that particular scenario why don't
+for that particular scenario why don't we just do some form of lag compensation
+this is something we can take from a page from the book of first-person
+page from the book of first-person shooters is the idea that in a shooter
+shooters is the idea that in a shooter you can predict your weapon shooting and
+you can predict your weapon shooting and then predict that it hits something and
+then predict that it hits something and sin to pack it to the server saying hey
+sin to pack it to the server saying hey I shot this guy when the server
+I shot this guy when the server eventually gets that packet he can look
+eventually gets that packet he can look back in time see that that guy was where
+back in time see that that guy was where you thought he was confirm the hit maybe
+you thought he was confirm the hit maybe give you a kill and this way you're able
+give you a kill and this way you're able to fire your weapon as if we have zero
+to fire your weapon as if we have zero latency and everything is great how
+latency and everything is great how would this apply to rocket League maybe
+would this apply to rocket League maybe clients could predict hitting the ball
+clients could predict hitting the ball and send a packet up to the server
+and send a packet up to the server saying hey I hit the ball server can do
+saying hey I hit the ball server can do the same thing look back in time confirm
+the same thing look back in time confirm that it's a good hit update the balls
+that it's a good hit update the balls position update the trajectory and
+position update the trajectory and continue on like everything is going
+continue on like everything is going great what does this actually look like
+great what does this actually look like in practice
+in practice here we're going to overlay the server
+here we're going to overlay the server view on top of a laggy client this
+view on top of a laggy client this example will say the client has a 200
+example will say the client has a 200 millisecond ping which is pretty high
+millisecond ping which is pretty high client's driving towards the ball thinks
+client's driving towards the ball thinks that he hits the ball here so he's gonna
+that he hits the ball here so he's gonna send a packet up to the server saying
+send a packet up to the server saying hey I hit the ball server keeps running
+hey I hit the ball server keeps running the physics simulation until he finally
+the physics simulation until he finally gets the packet from the client saying
+gets the packet from the client saying when the ball is back here I think I hit
+when the ball is back here I think I hit it server's gonna look back in time and
+it server's gonna look back in time and agree yep you're not a cheater I agree
+agree yep you're not a cheater I agree so I'm gonna move the ball back here and
+so I'm gonna move the ball back here and update its position run a few frames of
+update its position run a few frames of physics to get back ahead of the client
+physics to get back ahead of the client and now we're all in sync again
+and now we're all in sync again everything's good and the client just
+everything's good and the client just felt like he hit the ball with zero
+felt like he hit the ball with zero latency so everything seems great until
+latency so everything seems great until we add another player into the mix now
+we add another player into the mix now we're gonna see things from the point of
+we're gonna see things from the point of view of a low ping player
+view of a low ping player this guy's ping is so low basically what
+this guy's ping is so low basically what he sees is what the server sees walking
+he sees is what the server sees walking through frame by frame he's gonna try to
+through frame by frame he's gonna try to hit the ball as well
+hit the ball as well at this point he thinks he's about to
+at this point he thinks he's about to hit the ball or maybe that he did hit
+hit the ball or maybe that he did hit the ball but remember this packet is now
+the ball but remember this packet is now arriving on the server from the high
+arriving on the server from the high ping client indicating that he hit the
+ping client indicating that he hit the ball so the server is gonna move that
+ball so the server is gonna move that ball back rerun physics send that update
+ball back rerun physics send that update down to the low ping client and he sees
+down to the low ping client and he sees the ball warp past him
+the ball warp past him maybe rolling into the goal he says what
+maybe rolling into the goal he says what the hell man so we can't do lag
+the hell man so we can't do lag compensation because laggy clients would
+compensation because laggy clients would ruin the game for everyone else now I
+ruin the game for everyone else now I should specify that this is actually a
+should specify that this is actually a viable option option lag compensation if
+viable option option lag compensation if you're running out of time or resources
+you're running out of time or resources because this is exactly what we did for
+because this is exactly what we did for supersonic acrobatic rocket-powered
+supersonic acrobatic rocket-powered model cars people had fun playing the
+model cars people had fun playing the game online it developed an online kind
+game online it developed an online kind of cult following but we can do better
+of cult following but we can do better what do we end up doing for rocket
+what do we end up doing for rocket League to get it playable over the
+League to get it playable over the Internet it really came down to two key
+Internet it really came down to two key concepts as far as I'm concerned first
+concepts as far as I'm concerned first one is to handle the problem of jittery
+one is to handle the problem of jittery player inputs coming into the server
+player inputs coming into the server we're gonna buffer those inputs just
+we're gonna buffer those inputs just like a video player would buffer a video
+like a video player would buffer a video stream the second thing that ended up
+stream the second thing that ended up being kind of wacky is we have the
+being kind of wacky is we have the clients predict everything about the
+clients predict everything about the simulation so instead of running
+simulation so instead of running prediction and corrections on their own
+prediction and corrections on their own vehicle they're actually going to run it
+vehicle they're actually going to run it on their own vehicle every other vehicle
+on their own vehicle every other vehicle and the ball so with that said I'm going
+and the ball so with that said I'm going to split and networking up into two
+to split and networking up into two distinct sections and talk about input
+distinct sections and talk about input buffer after apologize you're about to
+buffer after apologize you're about to get a wall of text I don't have pretty
+get a wall of text I don't have pretty slides for this one so just bear with me
+slides for this one so just bear with me so the idea what the input buffer is the
+so the idea what the input buffer is the client for every physics frame he runs
+client for every physics frame he runs he's recording input and just sending
+he's recording input and just sending that off to the server this is arriving
+that off to the server this is arriving on the server at some random rate who
+on the server at some random rate who knows when an input was gonna get in
+knows when an input was gonna get in there so instead of processing input as
+there so instead of processing input as soon as it comes into the server the
+soon as it comes into the server the server is gonna put it into a buffer and
+server is gonna put it into a buffer and let that buffer fill up for a little bit
+let that buffer fill up for a little bit so when it comes time for the server
+so when it comes time for the server run physics you can just take one item
+run physics you can just take one item from this buffer and he's good to go
+from this buffer and he's good to go he doesn't have to ever pause for the
+he doesn't have to ever pause for the player because ideally there's always
+player because ideally there's always something in this input buffer that he
+something in this input buffer that he can pull from the nice thing about this
+can pull from the nice thing about this is it eliminates certain classes of
+is it eliminates certain classes of cheats you don't get speed cheaters
+cheats you don't get speed cheaters because if player increases the rate of
+because if player increases the rate of which their game is running as a cheater
+which their game is running as a cheater all they're gonna do is fill up that
+all they're gonna do is fill up that input buffer faster
+input buffer faster likewise if they intentionally try to
+likewise if they intentionally try to make their network jittery or laggy to
+make their network jittery or laggy to try to appear jittery to other players
+try to appear jittery to other players it can't happen because the server's
+it can't happen because the server's just simply pulling inputs out of a
+just simply pulling inputs out of a buffer whenever it needs it downside is
+buffer whenever it needs it downside is it increases average latency because the
+it increases average latency because the server instead of processing input from
+server instead of processing input from a player as soon as it arrives it's
+a player as soon as it arrives it's going to sit on it for a few frames and
+going to sit on it for a few frames and then process it sometime later there are
+then process it sometime later there are a few key requirements if you're going
+a few key requirements if you're going to implement an input buffer on the
+to implement an input buffer on the server first off you don't want it to
+server first off you don't want it to run empty because if a new input buffer
+run empty because if a new input buffer runs empty that means the next time the
+runs empty that means the next time the server goes through run physics he won't
+server goes through run physics he won't have any input to work with so he's just
+have any input to work with so he's just gonna have to reuse whatever the
+gonna have to reuse whatever the previous input was not terrible but you
+previous input was not terrible but you might miss something important you also
+might miss something important you also don't want the buffer to get too big
+don't want the buffer to get too big because now inputs are just sitting in
+because now inputs are just sitting in the buffer for longer and it's adding
+the buffer for longer and it's adding latency to the player so the question
+latency to the player so the question becomes what techniques can we use to
+becomes what techniques can we use to grow or shrink this input buffer one
+grow or shrink this input buffer one technique is upstream throttle or at
+technique is upstream throttle or at least I'm calling it upstream throttle
+least I'm calling it upstream throttle the idea is the server can tell the
+the idea is the server can tell the client to run faster or slower depending
+client to run faster or slower depending on how empty or full the IMP input
+on how empty or full the IMP input buffer on the server is so if the input
+buffer on the server is so if the input buffer is low he tells the client to
+buffer is low he tells the client to speed up maybe run an extra physics
+speed up maybe run an extra physics frame more than he would have normally
+frame more than he would have normally if the buffers getting full tells the
+if the buffers getting full tells the client maybe don't run one more physics
+client maybe don't run one more physics frame and now inputs are coming in to
+frame and now inputs are coming in to the buffer slower than they're being
+the buffer slower than they're being pulled out so the buffer can shrink down
+pulled out so the buffer can shrink down this is the technique used by overwatch
+this is the technique used by overwatch as explained in last year's
+as explained in last year's see talk given by Tim Ford overwatch
+see talk given by Tim Ford overwatch gameplay architecture netcode if you
+gameplay architecture netcode if you haven't seen this you have to watch it
+haven't seen this you have to watch it if you have seen it go watch it again
+if you have seen it go watch it again it's totally worth it
+it's totally worth it what rocket league uses is what I'm
+what rocket league uses is what I'm calling downstream throttle the idea
+calling downstream throttle the idea here is the server handles the input
+here is the server handles the input buffer himself without talking to the
+buffer himself without talking to the client he just simply consumes 0 1 or 2
+client he just simply consumes 0 1 or 2 client inputs for every physics frame
+client inputs for every physics frame depending on what he needs so the idea
+depending on what he needs so the idea is if the buffer is running low the
+is if the buffer is running low the server's gonna repeat an input for to
+server's gonna repeat an input for to physics frames so that he's consuming
+physics frames so that he's consuming inputs slower and it gives a chance for
+inputs slower and it gives a chance for the buffer to fill up if the buffer is
+the buffer to fill up if the buffer is running full is gonna consume two inputs
+running full is gonna consume two inputs for one physics frame not throw out an
+for one physics frame not throw out an input it'll still process it so we can
+input it'll still process it so we can catch jumps and dodges and other
+catch jumps and dodges and other important things but he's just simply
+important things but he's just simply gonna consume it and then consume the
+gonna consume it and then consume the next input 2 for 1 physics frame this is
+next input 2 for 1 physics frame this is effective it works we're still running
+effective it works we're still running with this today but if you think about
+with this today but if you think about it it can result in minor D sinks
+it it can result in minor D sinks because the server is doing exactly what
+because the server is doing exactly what we didn't want to do which is repeating
+we didn't want to do which is repeating player input or reading input without
+player input or reading input without running a physics frame for it so the
+running a physics frame for it so the one to one ratio of input to physics
+one to one ratio of input to physics frame that the client is running may not
+frame that the client is running may not be the exact same thing the server is
+be the exact same thing the server is running and you could get D sinks I just
+running and you could get D sinks I just mentioned if you're gonna go with input
+mentioned if you're gonna go with input buffers I strongly suggest starting off
+buffers I strongly suggest starting off with the upstream throttle method where
+with the upstream throttle method where you tell the client to run faster or
+you tell the client to run faster or slower it seems much smarter to me and
+slower it seems much smarter to me and we're investigating converting rocket
+we're investigating converting rocket League to that system pretty much right
+League to that system pretty much right now sorry not today we're investigating
+now sorry not today we're investigating it today the other aspect for rocket
+it today the other aspect for rocket leagues networking is predicting
+leagues networking is predicting everything so the best way I can explain
+everything so the best way I can explain this and to see how exactly it works and
+this and to see how exactly it works and how we're able to hit moving objects is
+how we're able to hit moving objects is just walking it through walking through
+just walking it through walking through it with you one frame at a time and
+it with you one frame at a time and we're going to see this whole process
+we're going to see this whole process from beginning in the end so the idea
+from beginning in the end so the idea what we have here is the client on the
+what we have here is the client on the Left has a vehicle and use press
+Left has a vehicle and use press throttle but that input hasn't made it
+throttle but that input hasn't made it to the server yet so the server doesn't
+to the server yet so the server doesn't know the ball isn't
+know the ball isn't on the client maybe he doesn't know it's
+on the client maybe he doesn't know it's moving yet but the server knows it does
+moving yet but the server knows it does maybe somebody just hit it so they're
+maybe somebody just hit it so they're out of sync and we need to get them back
+out of sync and we need to get them back in sync for every physics train that the
+in sync for every physics train that the client runs he's gonna record the
+client runs he's gonna record the current input and an incremental frame
+current input and an incremental frame number this is just a number to identify
+number this is just a number to identify this particular physics frame he then
+this particular physics frame he then runs physics and record the results to
+runs physics and record the results to history so for frame number one the car
+history so for frame number one the car is there the ball is there
+is there the ball is there he then sends this frame number and his
+he then sends this frame number and his inputs up to the server it's gonna take
+inputs up to the server it's gonna take some time to get there while it's in
+some time to get there while it's in route the client and server are just
+route the client and server are just going to keep on running physics finally
+going to keep on running physics finally this information makes it to the server
+this information makes it to the server the server is able to read that players
+the server is able to read that players input see that the player is actually
+input see that the player is actually pressing throttle now and then it's
+pressing throttle now and then it's gonna run physics just like it always
+gonna run physics just like it always would car moves forward on server ball
+would car moves forward on server ball moves forward on server now that the
+moves forward on server now that the server has run physics he's able to pack
+server has run physics he's able to pack the current physics state up into a
+the current physics state up into a packet and send that information plus
+packet and send that information plus the frame number back down to the client
+the frame number back down to the client it's going to take some time for this
+it's going to take some time for this information to get down there so again
+information to get down there so again the server and the client just keep on
+the server and the client just keep on running physics finally it makes it to
+running physics finally it makes it to the client and the client is able to see
+the client and the client is able to see or I should say compare the server state
+or I should say compare the server state to what he had recorded in history so
+to what he had recorded in history so this is what we got from the server this
+this is what we got from the server this is what we have recorded for frame
+is what we have recorded for frame number one on the client the car is good
+number one on the client the car is good because we were predicting our car and
+because we were predicting our car and we knew we were holding throttle so
+we knew we were holding throttle so that's fine but we didn't know the ball
+that's fine but we didn't know the ball was moving so that is way off it's far
+was moving so that is way off it's far enough off that we're gonna have to do a
+enough off that we're gonna have to do a correction so the first thing we do for
+correction so the first thing we do for a correction is we update that pointing
+a correction is we update that pointing history to the new data that we got just
+history to the new data that we got just got from the server then we're gonna
+got from the server then we're gonna take where all of our physics actors are
+take where all of our physics actors are now so our car all cars and the ball and
+now so our car all cars and the ball and we're going to move them back in time to
+we're going to move them back in time to that point in history then we're going
+that point in history then we're going to rerun physics frames a whole bunch of
+to rerun physics frames a whole bunch of times to catch back up to the frame we
+times to catch back up to the frame we had just left from
+had just left from now the car is back where it was before
+now the car is back where it was before because we have deterministic physics
+because we have deterministic physics simulation the ball is where it should
+simulation the ball is where it should be
+be because we now know that the ball was
+because we now know that the ball was moving on frame 1 and we can accurately
+moving on frame 1 and we can accurately predict that it should be further ahead
+predict that it should be further ahead now if you compare what the server
+now if you compare what the server receives versus what the client sees at
+receives versus what the client sees at this moment in time the clients car is
+this moment in time the clients car is ahead of the service car which we kind
+ahead of the service car which we kind of expect with client prediction but an
+of expect with client prediction but an interesting point is now the clients
+interesting point is now the clients ball is ahead of the server's ball
+ball is ahead of the server's ball instead of behind so now the car and the
+instead of behind so now the car and the ball are on the same timeline so he's
+ball are on the same timeline so he's able to hit the ball exactly how does
+able to hit the ball exactly how does that work out here we have the client
+that work out here we have the client moving towards a moving ball here Rick
+moving towards a moving ball here Rick the seat we're gonna overlay the
+the seat we're gonna overlay the server's you with his car being behind
+server's you with his car being behind the clients and the ball being behind
+the clients and the ball being behind the clients as well here is the data
+the clients as well here is the data that the server is sending down to the
+that the server is sending down to the client here client thinks he hits the
+client here client thinks he hits the ball eventually the input from that
+ball eventually the input from that frame number makes its way up to the
+frame number makes its way up to the server the server runs physics and
+server the server runs physics and because we have deterministic physics
+because we have deterministic physics between client and server they calculate
+between client and server they calculate the exact same outcome there's no
+the exact same outcome there's no coordination they're just running the
+coordination they're just running the same inputs in the same physics that
+same inputs in the same physics that frame makes its way back down to the
+frame makes its way back down to the clients where you can look up in history
+clients where you can look up in history confirm that everything's good and we
+confirm that everything's good and we don't need to do a correction and
+don't need to do a correction and continue on just playing the game as we
+continue on just playing the game as we work so now the client can hit the ball
+work so now the client can hit the ball predict inning as if it's zero latency
+predict inning as if it's zero latency but we don't have to do any lag
+but we don't have to do any lag compensation we're the results of all
+compensation we're the results of all this if you think about it if you've
+this if you think about it if you've ever played a first-person shooter back
+ever played a first-person shooter back before lag compensation was invented you
+before lag compensation was invented you know back in the day you remember that
+know back in the day you remember that you would actually have to lead your
+you would actually have to lead your target and shoot ahead of them so if
+target and shoot ahead of them so if they're over here you're shooting ahead
+they're over here you're shooting ahead of them and you kind of just hope that
+of them and you kind of just hope that they run into your bullet that's
+they run into your bullet that's basically what we're doing in raqqa
+basically what we're doing in raqqa league but we're able to project the
+league but we're able to project the ball where the player needs to be going
+ball where the player needs to be going in order to hit it we're just kind of
+in order to hit it we're just kind of doing it behind the scenes for them this
+doing it behind the scenes for them this works really well with the ball because
+works really well with the ball because the ball
+the ball predictably it's predictable physics
+predictably it's predictable physics it's not a whole lot of dynamic input is
+it's not a whole lot of dynamic input is happening with the ball as you might
+happening with the ball as you might guess it doesn't work so well with other
+guess it doesn't work so well with other cars because they can change their
+cars because they can change their inputs at any time and all of a sudden
+inputs at any time and all of a sudden you got 150 milliseconds of steering
+you got 150 milliseconds of steering this way changes to 150 milliseconds of
+this way changes to 150 milliseconds of steering that way it's still better than
+steering that way it's still better than not running prediction on the cars at
+not running prediction on the cars at all
+all trust me up I've tried turning it off on
+trust me up I've tried turning it off on the other cars it looks really bad huge
+the other cars it looks really bad huge upside is we don't have server-side lag
+upside is we don't have server-side lag compensation so high paying clients
+compensation so high paying clients aren't ruining the game for everyone
+aren't ruining the game for everyone else downside is we have crazy expensive
+else downside is we have crazy expensive Corrections on the client because
+Corrections on the client because instead of running correction on just
+instead of running correction on just the clients character like most games do
+the clients character like most games do we're running corrections on the entire
+we're running corrections on the entire physics scene this is where that 120
+physics scene this is where that 120 Hertz physics simulation really bites us
+Hertz physics simulation really bites us in the ass you get a 200 millisecond
+in the ass you get a 200 millisecond ping client running 120 Hertz physics
+ping client running 120 Hertz physics that's twenty-four physics trains we
+that's twenty-four physics trains we gotta run all at once while continuing
+gotta run all at once while continuing to run everything else about the game
+to run everything else about the game it's it's tough but it's doable after
+it's it's tough but it's doable after all this work what we get is you can
+all this work what we get is you can play the game you can drive around in
+play the game you can drive around in your own car with a high latency hit the
+your own car with a high latency hit the ball around it feels like you have no
+ball around it feels like you have no latency at all
+latency at all high ping clients aren't ruining the
+high ping clients aren't ruining the game for everyone else we can hit moving
+game for everyone else we can hit moving objects which is not something you're
+objects which is not something you're supposed to be allowed to do when
+supposed to be allowed to do when running client prediction and we have
+running client prediction and we have what I consider the holy grail of
+what I consider the holy grail of client-server networking a completely
+client-server networking a completely authoritative server all he does is read
+authoritative server all he does is read inputs execute physics so summary for
+inputs execute physics so summary for the whole talk for today and key
+the whole talk for today and key takeaways reducing complexity can help
+takeaways reducing complexity can help you achieve your goals this is not just
+you achieve your goals this is not just for physics systems and for vehicles but
+for physics systems and for vehicles but really just everything about your game
+really just everything about your game if you don't like how it's going
+if you don't like how it's going you just gut it and start from simple we
+you just gut it and start from simple we we probably redid how the car interacts
+we probably redid how the car interacts with the ball like three times you do
+with the ball like three times you do have a choice of physics engine we
+have a choice of physics engine we didn't think we did until we tried it
+didn't think we did until we tried it and found it surprisingly easy to add an
+and found it surprisingly easy to add an additional physics engine so maybe you
+additional physics engine so maybe you consider that for your game networking
+consider that for your game networking is still hard
+is still hard had client predictions since the mid-90s
+had client predictions since the mid-90s but we still find interesting new ways
+but we still find interesting new ways to apply it to new types of games and I
+to apply it to new types of games and I highly recommend any games to go forward
+highly recommend any games to go forward use a fixed tick rate it's so much
+use a fixed tick rate it's so much easier to debug to reproduce problems
+easier to debug to reproduce problems it's great for client-server networking
+it's great for client-server networking because they're running the same
+because they're running the same deterministic simulation and I also
+deterministic simulation and I also recommend client input buffers instead
+recommend client input buffers instead of having the server wait for clients
+of having the server wait for clients even if I was to make a shooter I would
+even if I was to make a shooter I would go this route it's just more reliable
+go this route it's just more reliable but extra work some resources if you
+but extra work some resources if you want to learn a little bit more about we
+want to learn a little bit more about we talked about today
+talked about today gaffur on games but it's a fantastic
+gaffur on games but it's a fantastic website you should just read everything
+website you should just read everything on it but particularly if you want to
+on it but particularly if you want to know more about fixed time steps there's
+know more about fixed time steps there's this article I already mentioned the
+this article I already mentioned the overwatch gameplay architecture and
+overwatch gameplay architecture and netcode that's available on the vault
+netcode that's available on the vault there's these two articles I found that
+there's these two articles I found that seem to do a really good job explaining
+seem to do a really good job explaining client prediction and reconciliation in
+client prediction and reconciliation in general if you want to know more about
+general if you want to know more about how that works in other games and
+how that works in other games and there's also a YouTube channel called
+there's also a YouTube channel called rocket science where they actually
+rocket science where they actually really dive very deep into how physics
+really dive very deep into how physics and other things work in rocket League
+and other things work in rocket League and I've actually watched all the
+and I've actually watched all the episodes and I've actually learned a few
+episodes and I've actually learned a few things about our game that I didn't know
+things about our game that I didn't know so I highly recommend it it's really
+so I highly recommend it it's really great that's it for this presentation we
+great that's it for this presentation we got some pretty good time for Q&A
+got some pretty good time for Q&A [Applause]
+[Applause] cool sooo I kind of understand the
+cool sooo I kind of understand the system you showed we're on the client
+system you showed we're on the client site prediction it looks like you almost
+site prediction it looks like you almost kind of extrapolate the ball forward
+kind of extrapolate the ball forward based on what the server seeing when you
+based on what the server seeing when you rewind back it seems like forward and I
+rewind back it seems like forward and I can see how that system would work
+can see how that system would work really well in the beginning of a match
+really well in the beginning of a match case for example where the two Center
+case for example where the two Center forwards are charging the ball in the
+forwards are charging the ball in the center and if they don't do any kind of
+center and if they don't do any kind of crazy turning that should work out
+crazy turning that should work out perfectly because the extrapolated other
+perfectly because the extrapolated other car will collide with the ball where he
+car will collide with the ball where he would normally collide on his side of
+would normally collide on his side of the simulation but do you know if that
+the simulation but do you know if that causes issues of one of the guys at the
+causes issues of one of the guys at the last second changes his a vector to
+last second changes his a vector to decide not to hit the ball because it
+decide not to hit the ball because it takes a while from the input to arrive
+takes a while from the input to arrive yes absolutely does I said I should
+yes absolutely does I said I should clarify real quick we don't use
+clarify real quick we don't use extrapolation what we're doing is
+extrapolation what we're doing is rerunning physics frames but I get what
+rerunning physics frames but I get what you're saying and it absolutely
+you're saying and it absolutely absolutely does cause problems that's
+absolutely does cause problems that's why kickoffs are basically the worst
+why kickoffs are basically the worst thing for our game there the player can
+thing for our game there the player can change their input at the last moment
+change their input at the last moment and you predicted that they hit the ball
+and you predicted that they hit the ball but instead they actually miss the ball
+but instead they actually miss the ball so you see the ball moving on your
+so you see the ball moving on your screen but it's actually not moving what
+screen but it's actually not moving what we did for that was make sure that we
+we did for that was make sure that we send the ball information down to the
+send the ball information down to the client at a regular interval even if
+client at a regular interval even if nothing has changed so you'll see the
+nothing has changed so you'll see the ball slide away for a second and then
+ball slide away for a second and then slide back cool okay got it
+slide back cool okay got it um so you had said they use a 120 Hertz
+um so you had said they use a 120 Hertz fixed physics step to improve
+fixed physics step to improve consistency yes but you said also
+consistency yes but you said also multiple times or a few times throughout
+multiple times or a few times throughout the presentation that there are some
+the presentation that there are some minor regrets regarding that I'm curious
+minor regrets regarding that I'm curious if you were to go back and say remake
+if you were to go back and say remake everything from scratch if you would go
+everything from scratch if you would go with a different method yes I would at
+with a different method yes I would at least investigate something where
+least investigate something where possibly taking the penetration depths
+possibly taking the penetration depths into account when calculating those
+into account when calculating those vectors I would try that out first
+vectors I would try that out first before turning on 120 Hertz we did 120
+before turning on 120 Hertz we did 120 Hertz because we were strapped for time
+Hertz because we were strapped for time well you're always strapped for time
+well you're always strapped for time marching when you're working on a game
+marching when you're working on a game but it was the easy thing to do but yeah
+but it was the easy thing to do but yeah I would definitely investigate a
+I would definitely investigate a different solution to the problem
+different solution to the problem often length I have to hopefully short
+often length I have to hopefully short questions one being how do you deal with
+questions one being how do you deal with things like audio or effects that you
+things like audio or effects that you can't necessarily roll back
+can't necessarily roll back so like the collision of the ball Nick's
+so like the collision of the ball Nick's an audio cue happened but then if that
+an audio cue happened but then if that collision didn't turn out to happen when
+collision didn't turn out to happen when you get the information back from the
+you get the information back from the server do you actually like stop the
+server do you actually like stop the audio or you just say screw it you heard
+audio or you just say screw it you heard that and it's erroneous luckily our
+that and it's erroneous luckily our audio is pretty short so we just leave
+audio is pretty short so we just leave it
+it one thing we make sure not to do is
+one thing we make sure not to do is repeat audio so if we if the player
+repeat audio so if we if the player thinks they hit the ball and then a
+thinks they hit the ball and then a correction comes in and they rerun
+correction comes in and they rerun physics and they just hit the ball again
+physics and they just hit the ball again we make sure we're not going to repeat
+we make sure we're not going to repeat that audio and it won't stack up but
+that audio and it won't stack up but otherwise if the player thinks they hit
+otherwise if the player thinks they hit the ball and a correction comes in and
+the ball and a correction comes in and turns out they actually missed it
+turns out they actually missed it it's a short-lived audio so we just let
+it's a short-lived audio so we just let it keep playing and sorry the second one
+it keep playing and sorry the second one is on the input buffers on the server
+is on the input buffers on the server sometimes things can come in out of
+sometimes things can come in out of order do you respect that and reorder
+order do you respect that and reorder them on the way into the buffer or does
+them on the way into the buffer or does order actually not end up mattering
+order actually not end up mattering because you've buffered anyway yeah we
+because you've buffered anyway yeah we respect well they can come in a vorded
+respect well they can come in a vorded but we'll enter them into the buffer in
+but we'll enter them into the buffer in order but because they have that
+order but because they have that sequential frame number we know what
+sequential frame number we know what order they belong in and like any other
+order they belong in and like any other sort of out of order things that that
+sort of out of order things that that end up affecting that system like maybe
+end up affecting that system like maybe that we've made a decision when we have
+that we've made a decision when we have frame 5 but frame 6 is still on the way
+frame 5 but frame 6 is still on the way we so we don't player inputs one at a
+we so we don't player inputs one at a time we're always saying like the last
+time we're always saying like the last 10 inputs cool which is you know it's a
+10 inputs cool which is you know it's a standard thing to do so that way if you
+standard thing to do so that way if you lose a packet and when the next one
+lose a packet and when the next one comes in it's got a whole lot of inputs
+comes in it's got a whole lot of inputs ready for you great thanks mm-hmm
+ready for you great thanks mm-hmm so obviously if you can predict the
+so obviously if you can predict the inputs of other players more accurately
+inputs of other players more accurately it'll end up in a better consistent view
+it'll end up in a better consistent view of the world can talk a little bit about
+of the world can talk a little bit about the model you use for that prediction
+the model you use for that prediction obviously discrete button presses might
+obviously discrete button presses might be tough to predict for other players
+be tough to predict for other players but what about something like the analog
+but what about something like the analog stick we
+it's a good point so with the analog stick what we actually do we don't try
+stick what we actually do we don't try to predict player inputs it's just I
+to predict player inputs it's just I mean maybe you could do some like
+mean maybe you could do some like machine learning or something that might
+machine learning or something that might be kind of cool but beyond that you
+be kind of cool but beyond that you can't predict what they're gonna do so
+can't predict what they're gonna do so your your client doesn't predict the
+your your client doesn't predict the other cars in correct shape it'll take
+other cars in correct shape it'll take so here's what we actually do is it'll
+so here's what we actually do is it'll take whatever their input is that the
+take whatever their input is that the last input that we know of that we got
+last input that we know of that we got from the server and it'll for the first
+from the server and it'll for the first frame of the correction it's gonna use
+frame of the correction it's gonna use that input for that frame and then the
+that input for that frame and then the next frame specifically in regards to
+next frame specifically in regards to your comment about analog inputs it's
+your comment about analog inputs it's gonna decay that input a little bit and
+gonna decay that input a little bit and then the next frame decay it some more
+then the next frame decay it some more so it's kind of like we're losing
+so it's kind of like we're losing certainty over amount of time so if the
+certainty over amount of time so if the car is like full steering right on the
+car is like full steering right on the first correction frame by like 150
+first correction frame by like 150 milliseconds in we're just it's got like
+milliseconds in we're just it's got like it's straight steering and no brakes and
+it's straight steering and no brakes and that was actually something we did in
+that was actually something we did in response to people were saying the game
+response to people were saying the game looked more laggy and even though we
+looked more laggy and even though we hadn't changed the networking we had
+hadn't changed the networking we had made the game faster and so they were
+made the game faster and so they were seeing cars if you throttled back and
+seeing cars if you throttled back and forth between steering they would see
+forth between steering they would see cars doing this and so if I decaying the
+cars doing this and so if I decaying the inputs now the cars just kind of do that
+inputs now the cars just kind of do that and it looks less laggy okay so I do
+and it looks less laggy okay so I do have a real question but first so you
+have a real question but first so you were saying lag high lag players don't
+were saying lag high lag players don't ruin the experience I like to counter
+ruin the experience I like to counter that by saying they suck his teammates
+that by saying they suck his teammates well so they actually it's a real real
+well so they actually it's a real real question so if on my screen and it's
+question so if on my screen and it's interesting what he was saying about my
+interesting what he was saying about my client doesn't predict other players if
+client doesn't predict other players if on my screen I see someone else hit the
+on my screen I see someone else hit the ball and they swear they hit the ball
+ball and they swear they hit the ball but then it's a goal and the replay
+but then it's a goal and the replay shows that that was missed how is that
+shows that that was missed how is that being handled that I saw it and a
+being handled that I saw it and a teammate saw it it could have didn't
+teammate saw it it could have didn't happen yeah so you saw a hit the
+happen yeah so you saw a hit the teammates saw the hit you both could
+teammates saw the hit you both could have been working with the compressed
+have been working with the compressed inputs that were sent down from the
+inputs that were sent down from the server and so that's a problem is up
+server and so that's a problem is up until this patch that we're going to be
+until this patch that we're going to be coming out with April 3rd April 3rd this
+coming out with April 3rd April 3rd this server would actually send compressed
+server would actually send compressed physics State down to the clients for
+physics State down to the clients for the networking reasons but the so the
+the networking reasons but the so the server is running with
+server is running with you know full bits floating point
+you know full bits floating point precision compresses it and then the
+precision compresses it and then the clients have to work with this compress
+clients have to work with this compress state so there's a slight desync there
+state so there's a slight desync there so what we added was again on that gaff
+so what we added was again on that gaff Ron gamed website it talks about
+Ron gamed website it talks about quantizing physics state and the idea is
+quantizing physics state and the idea is you're going to run the same compression
+you're going to run the same compression on the server then run physics then run
+on the server then run physics then run that compress the result back down to
+that compress the result back down to the client and we implemented that for
+the client and we implemented that for this upcoming patch so we're hoping
+this upcoming patch so we're hoping there will be less instances of exactly
+there will be less instances of exactly what you just described great thank you
+what you just described great thank you thank you
+thank you hello sir I got a question about
+hello sir I got a question about cheaters do guys
+cheaters do guys cheaters physik visit cheaters or
+cheaters physik visit cheaters or revisional visual only or nobody cheats
+revisional visual only or nobody cheats so far we've only seen visual cheaters
+so far we've only seen visual cheaters the question is what kind of cheers
+the question is what kind of cheers we're running with our game well we were
+we're running with our game well we were blessed with a game that doesn't quite
+blessed with a game that doesn't quite fit the normal cheating model since it's
+fit the normal cheating model since it's not a shooter it's actually really quite
+not a shooter it's actually really quite nice we haven't had to worry about
+nice we haven't had to worry about cheaters too much mostly we've just seen
+cheaters too much mostly we've just seen visual where they'll kind of draw the
+visual where they'll kind of draw the trajectory of the ball a little bit and
+trajectory of the ball a little bit and then we actually try it out we're like
+then we actually try it out we're like wow that really doesn't help all that
+wow that really doesn't help all that much so we actually just don't care
+much so we actually just don't care about that yet druga the biggest concern
+about that yet druga the biggest concern we'd have is people start adding things
+we'd have is people start adding things to help them with like a mist or flying
+to help them with like a mist or flying or something so that would be a physical
+or something so that would be a physical cheat but as far as people actually like
+cheat but as far as people actually like warping around on the server or futzing
+warping around on the server or futzing with their inputs or something going to
+with their inputs or something going to the server we just don't have that
+the server we just don't have that problem
+problem thank you all right thanks for your
+thank you all right thanks for your stalkers fascinating thank you umm I'm
+stalkers fascinating thank you umm I'm wondering you hinted a little bit at how
+wondering you hinted a little bit at how you deploy physics changes post-launch
+you deploy physics changes post-launch and I'm wondering kind of how you if you
+and I'm wondering kind of how you if you could talk a little bit about the
+could talk a little bit about the process of how you test and evaluate
+process of how you test and evaluate those physics changes and net code
+those physics changes and net code changes and how you decide what's too
+changes and how you decide what's too risky and might affect the competitive
+risky and might affect the competitive landscape yeah so specifically some of
+landscape yeah so specifically some of the vehicle presets we considered a win
+the vehicle presets we considered a win because we have data on what cars people
+because we have data on what cars people are using and of course everyone's using
+are using and of course everyone's using octane so it was actually a big win
+octane so it was actually a big win because we were able to apply these
+because we were able to apply these physics presets to these cars that
+physics presets to these cars that nobody was using and now they're more
+nobody was using and now they're more playable so some people complained that
+playable so some people complained that my car drives a little differently but
+my car drives a little differently but then once they try it out like oh wait
+then once they try it out like oh wait it's actually better so in that
+it's actually better so in that particular regard we weren't too
+particular regard we weren't too concerned we just kind of did it
+concerned we just kind of did it otherwise pretty much any time we make a
+otherwise pretty much any time we make a physics change and this includes any
+physics change and this includes any kind of bug fix we do in physics any
+kind of bug fix we do in physics any kind of networking change with all the
+kind of networking change with all the networking changes we have coming out
+networking changes we have coming out with this April 3rd patch we always add
+with this April 3rd patch we always add an ability to dynamically turn it off
+an ability to dynamically turn it off from from the back end so every single
+from from the back end so every single feature that goes out if something goes
+feature that goes out if something goes wrong after we deploy it and of course
+wrong after we deploy it and of course we test it before we send it out but if
+we test it before we send it out but if something goes wrong which sometimes it
+something goes wrong which sometimes it does we can just flip it off and then
+does we can just flip it off and then fix it and deploy a patch
+fix it and deploy a patch cool thanks hmm I actually prefer the
+cool thanks hmm I actually prefer the hybrid hitbox but thanks sorry
+hybrid hitbox but thanks sorry great talk very clear slides that's very
+great talk very clear slides that's very easy to understand thank you at the risk
+easy to understand thank you at the risk of sounding lazy since you guys started
+of sounding lazy since you guys started the development of this have you run
+the development of this have you run into any third-party solutions that
+into any third-party solutions that solve all of this for you so velvet
+solve all of this for you so velvet forests I have not seen anything I
+forests I have not seen anything I haven't seen anybody else doing any
+haven't seen anybody else doing any anything like this before the only thing
+anything like this before the only thing we've seen is third-party solutions that
+we've seen is third-party solutions that claim to help your latency in general
+claim to help your latency in general which is definitely worth looking into
+which is definitely worth looking into but that's pretty much it
+but that's pretty much it thank you mm-hmm you go ahead so you
+thank you mm-hmm you go ahead so you talked about how you can predict ball
+talked about how you can predict ball easily and that allows you to calculate
+easily and that allows you to calculate the physics for player 2 ball collisions
+the physics for player 2 ball collisions and that's that's not an Austin what do
+and that's that's not an Austin what do you do with like player 2 player
+you do with like player 2 player collisions when they're not near a ball
+collisions when they're not near a ball so for example if I gums were being
+so for example if I gums were being really fast and on my client I see that
+really fast and on my client I see that I have avoided hitting their a but
+I have avoided hitting their a but because of flag or whatever it is on his
+because of flag or whatever it is on his client it might seem that he still at
+client it might seem that he still at the first position and this hitting him
+the first position and this hitting him do you run into issues surrounding that
+do you run into issues surrounding that how do you solve those were you asking
+how do you solve those were you asking about other players hitting the ball or
+about other players hitting the ball or just simply other players other players
+just simply other players other players interacting with other players with
+interacting with other players with other players yeah we still run
+other players yeah we still run prediction on them because if you don't
+prediction on them because if you don't it's extremely hard to actually run into
+it's extremely hard to actually run into another player there are distinct issues
+another player there are distinct issues you'll think you hit a player but then
+you'll think you hit a player but then he'll just you know suck right back to
+he'll just you know suck right back to where he was before and it's
+where he was before and it's luckily it's not a core issue for our
+luckily it's not a core issue for our game so it hasn't been a huge problem
+game so it hasn't been a huge problem but pretty much we just run prediction
+but pretty much we just run prediction just like we do for the ball and we
+just like we do for the ball and we decay the player inputs as I mentioned
+decay the player inputs as I mentioned with the previous question that's pretty
+with the previous question that's pretty much it me again
+much it me again I was curious on the slide where you had
+I was curious on the slide where you had you know we find that the client because
+you know we find that the client because the clients in control of his own car
+the clients in control of his own car you know that matches up with the
+you know that matches up with the server's understanding of the future or
+server's understanding of the future or the past and like do you do any kind of
+the past and like do you do any kind of diff when you're re running and re
+diff when you're re running and re simulating to know that like okay these
+simulating to know that like okay these these objects are in sync and they
+these objects are in sync and they continue to be in sync so we don't need
+continue to be in sync so we don't need to simulate that or is it just like a
+to simulate that or is it just like a regular old simulation when you're
+regular old simulation when you're planning it back do we do a diff between
+planning it back do we do a diff between the server information coming in on the
+the server information coming in on the client or what the client have recorded
+client or what the client have recorded well in other words when that matches up
+well in other words when that matches up right like when the server and the
+right like when the server and the client
+client agree that they're both in the same
+agree that they're both in the same position in a historical frame does that
+position in a historical frame does that mean you don't need to re simulate that
+mean you don't need to re simulate that object or potentially you could interact
+object or potentially you could interact with other things yes
+with other things yes so before we added quantization
+so before we added quantization quantities Asian I don't know we would
+quantities Asian I don't know we would basically if a correction came in from
+basically if a correction came in from the server and it was kind of close to
+the server and it was kind of close to what we had we're not going to bother
+what we had we're not going to bother doing a correction so if it's like with
+doing a correction so if it's like with just a few units off you know that's
+just a few units off you know that's close enough
+close enough after quantization I haven't turned it
+after quantization I haven't turned it on yet but I might make it so that it
+on yet but I might make it so that it has to be exact because we're now
+has to be exact because we're now working with more exact units but like
+working with more exact units but like per object does that matter in other
+per object does that matter in other words if it's not if no correction is
+words if it's not if no correction is needed that I understand but if there is
+needed that I understand but if there is correction being done do you do it on
+correction being done do you do it on all of the objects in simulation or do
+all of the objects in simulation or do only of the objects that disagree we do
+only of the objects that disagree we do it for all objects so if the balls miss
+it for all objects so if the balls miss corrected we're gonna rerun physics
+corrected we're gonna rerun physics we're gonna warp everyone back and rerun
+we're gonna warp everyone back and rerun physics for all the cars on the ball
+physics for all the cars on the ball thanks mm-hmm hi thank you for the talk
+thanks mm-hmm hi thank you for the talk is so what kind of extra work you had to
+is so what kind of extra work you had to do on the physics system to achieve a
+do on the physics system to achieve a deterministic simulation was it to
+deterministic simulation was it to achieve the I'm sorry to achieve what
+achieve the I'm sorry to achieve what about simulate deterministic simulation
+about simulate deterministic simulation termina sztyc um it was mostly
+termina sztyc um it was mostly deterministic there were a few weird
+deterministic there were a few weird things that you wouldn't expect
+things that you wouldn't expect there was an issue where
+there was an issue where if the ball hit to physics objects kind
+if the ball hit to physics objects kind of at the same time versus if it hit one
+of at the same time versus if it hit one on it first and then hit the other one
+on it first and then hit the other one let me clarify that if the ball hits two
+let me clarify that if the ball hits two different meshes such as like a triangle
+different meshes such as like a triangle mesh and then a plane there is an issue
+mesh and then a plane there is an issue where it gets added to the collision
+where it gets added to the collision hash and then that the size of the
+hash and then that the size of the collision hash is used later on to
+collision hash is used later on to determine what order collisions are
+determine what order collisions are processed in so depending on what order
+processed in so depending on what order those things get added to the hash and
+those things get added to the hash and the size of the hash you could have
+the size of the hash you could have things processed in different orders so
+things processed in different orders so we end up with non-deterministic results
+we end up with non-deterministic results sometimes surprisingly non-deterministic
+sometimes surprisingly non-deterministic the the quick fix would have been to
+the the quick fix would have been to make the hash a fixed size but I don't
+make the hash a fixed size but I don't want to do that so though we actually
+want to do that so though we actually dived in and fixed the code to say if
+dived in and fixed the code to say if the ball is hitting these two things at
+the ball is hitting these two things at the same time make sure that the order
+the same time make sure that the order in which their process produces the same
+in which their process produces the same results other than that there you want
+results other than that there you want to make sure you turn off any
+to make sure you turn off any randomization some physics users use
+randomization some physics users use randomization so to turn that off yes
+randomization so to turn that off yes yeah I'm optimization for the compiler
+yeah I'm optimization for the compiler right for what for the compiler some
+right for what for the compiler some optimizations oh I remember all in the
+optimizations oh I remember all in the writing about it no I mean you're not
+writing about it no I mean you're not gonna get especially with being
+gonna get especially with being multi-platform they're all playable with
+multi-platform they're all playable with each other we're not gonna get perfect
+each other we're not gonna get perfect floating-point simulation so that's why
+floating-point simulation so that's why all the corrections and stuff they're
+all the corrections and stuff they're just gonna fix that out for us a great
+just gonna fix that out for us a great thank you thank you yeah I'm surprised
+thank you thank you yeah I'm surprised you guys didn't run into a bullet
+you guys didn't run into a bullet physics floating point errors because
+physics floating point errors because it's full of them but my question is I
+it's full of them but my question is I guess so whenever you're running these
+guess so whenever you're running these kind of simulations where your
+kind of simulations where your requirement is that whatever a player's
+requirement is that whatever a player's driving has to be super responsive and
+driving has to be super responsive and there's latency involved and they can
+there's latency involved and they can crash into each other you usually have
+crash into each other you usually have some form of desync like it's an
+some form of desync like it's an unsolved problem essentially so do you
+unsolved problem essentially so do you guys do any kind of tracking on seeing
+guys do any kind of tracking on seeing like hey how often our corrections
+like hey how often our corrections happening in clients like do you know
+happening in clients like do you know like approximately what number of
+like approximately what number of percentage of interactions end up being
+percentage of interactions end up being some form of a decent even if it's not
+some form of a decent even if it's not something that human eyes gonna catch is
+something that human eyes gonna catch is like a bad behavior right it's a metric
+like a bad behavior right it's a metric that we're actually behind the scenes we
+that we're actually behind the scenes we report metrics of various things from
+report metrics of various things from the game
+the game server we actually just flipping on with
+server we actually just flipping on with this latest patch to actually track that
+this latest patch to actually track that sort of thing so that we can if a you
+sort of thing so that we can if a you know a game is running poorly or servers
+know a game is running poorly or servers running poorly we can actually see that
+running poorly we can actually see that oh this server is actually having larger
+oh this server is actually having larger Corrections happening on the client so
+Corrections happening on the client so it's something we just recently turned
+it's something we just recently turned on probably should turn a long time ago
+on probably should turn a long time ago you want to share any numbers sir um
+you want to share any numbers sir um well you don't have them flooding in yet
+well you don't have them flooding in yet it's not until the patch goes out thank
+it's not until the patch goes out thank you okay well we'll be out in the
+you okay well we'll be out in the overlook if any Wells has any more
+overlook if any Wells has any more questions otherwise thanks for coming
+questions otherwise thanks for coming out
+out [Applause]

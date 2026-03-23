@@ -1,0 +1,359 @@
+hi everyone it's me Tim today I want to
+talk about Event
+Systems these are some that I mentioned
+a while back in a video on NPC reactions
+which I'll link
+below and last Friday I even mentioned
+NPCs triggering off each
+other which talks about Event Systems as
+well while the first video LED Lemmings
+19 to ask
+would you be interested in doing a video
+focused on events how they're triggered
+how they're handled how they work exist
+in single player versus multiplayer
+games like wild star caveats issues
+problems technical or otherwise and
+whatever else you think is worth talking
+about sure this is going to be probably
+aimed at programmers I'm not going to
+give you implementation details but any
+programmer who's had more than one data
+structures class will know what I'm
+talking about when I'm saying hey you
+need to make a list of events maybe you
+want an array maybe you want a link list
+maybe you want a doubly link list maybe
+you want a stack and you probably don't
+want to Stack anyway you might want to
+Hash anyway let's talk about Event
+Systems Event Systems are basically a
+programmer makes you a general event
+system which is a list of
+things events to check to see if they
+should fire there are things there are
+systems that can put stuff into the
+event queue and then other things that
+listen for an event to fire they can
+listen to them by any kind of thing they
+want they can listen to by event type by
+who caused the event by who the event is
+triggering on we'll get to
+that I I try to think about how this
+would vary in single versus multiplayer
+games and the only thing I can think of
+is most events have conditions under
+which they should fire and as long as
+one of those conditions
+is testing to see if the players there
+is present for it like if you want
+someone to react to a play player who
+did
+something they're only going to react if
+the player is present so in a
+multiplayer game
+if another player goes by that NPC it's
+not going to trigger because the other
+player isn't present that's probably
+sufficient otherwise the Event Systems
+might be pretty similar so let's talk
+about how these Event Systems generally
+work so the so the event system is a
+queue of events
+these events can be placed into the
+queue from anywhere in the game combat
+might do it the skill system might do it
+the dialogue system might do
+it what kind of events do they put in
+there they might put in hey something
+just died and the event includes every
+event generally includes its type and a
+Tim stamp and a
+location it almost always includes who C
+who who's triggering the event in which
+case it's the thing that died and then
+based on what event type it is it may
+include other data like who killed me
+and did I see anything else around me at
+the time and all that can just get
+bundled up in the event data and stuck
+in the queue you might also want to
+queue up if a skill was used
+successfully so like someone picked a
+lock you might cue that event you also
+may want to record if it was
+unsuccessful someone tried to pick a
+lock and failed throw that in the event
+system the
+it may even be something as simple as
+the player sold an item they went to an
+an NPC who has a shop and they sold an
+item throw that in the event queue all
+of this depends on your design you want
+to be thinking about what do you want
+the game and the NPCs and creatures and
+narrator and anything in the game you
+want what do you want it to react to If
+you want it to react to something later
+you probably need an event Cube
+one of the things here that your
+programmers are going to have to figure
+out with the
+designers or how exactly what event do
+you need for example if you make the
+entire game and the only thing that you
+think needs an event when it dies are
+cyy pigs because you're going to have a
+companion that gets really mad if you
+kill too many cyy pigs so you need to
+throw an event every time a cist pig is
+killed and it adds to some counter and
+when it gets high enough and the
+companion with you he's like I can't
+believe you killed a dozen Cy pigs
+You're a
+murderer if that's all you need you
+probably just need an event cyy Pig
+died however if the design calls for
+reacting to different things dying maybe
+it's a Cissy Pig maybe it's this
+particular NPC who's the boss of a gang
+and maybe there's another place where
+you need to count how many times you
+know a a wolf is killed then you
+probably need a general event which is
+just creature died
+and then part of its event data is what
+creature died and what type it is and
+all
+that the way Event Systems work is the
+event queue is checked every update it
+it receives an update which you know in
+unity is every frame in Arcanum it
+was a heartbeat that we
+kept on the you know and so things got a
+heartbeat which could be anywhere from
+every 2 seconds to every 10th of a
+second events can be queued to happen
+immediately and I'll tell you in a
+minute why you would still want to cue
+it even if it's going to trigger
+immediately others have times they
+should happen which is like 5 minutes
+from now have this event
+happen others may be like every Tuesday
+at midnight trigger this event which
+means the event when it triggers says oh
+I'm every Tuesday at midnight and after
+it triggers itself it reasserts itself
+in the queue to happen again some events
+can do that they can reinsert themselves
+but some events will have conditions
+like I'm in the queue and you should
+only fire me when the player camps or
+when the player enters this particular
+town I want this event to
+fire so there might be a time queue for
+events and a location queue for an event
+and maybe even a camp queue if that's
+something that can happen anywhere and
+at any time so the um the like the
+location queue is checked every time the
+player enters a new location is there
+any vent waiting in the location queue
+waiting to Fire and then when the player
+camps it checks the camp queue you don't
+necessarily need to do that y though you
+can just have a general queue and those
+sit at the at the near the front and
+whenever the player camps it goes hey is
+there any camping queue in here this is
+an optimization thing which I'll talk
+about in a
+minute effectively when a condition
+fires an event meets its condition it
+fires and it's reported to every
+listener and that's the cool thing
+events can have listen and listeners
+register themselves when a system starts
+up in your game it can say hey I want to
+be notified when an event in the queue
+meets this condition it might be I want
+to know when anyone dies or it might be
+I just want to be told when a cyy pig
+dies and depending on how you implement
+it it may just have to be told whenever
+anyone dies and then it looks itself to
+see if it was a cyy
+pig or it may it may be able to register
+hey I want to know when this event that
+meets this condition so that way the
+event system only calls the listeners
+for events that trigger their the
+condition it's up to your programmer how
+to do that and it depends again on your
+design the cool thing is one event can
+have multiple listeners that trigger for
+it which means you can have one event in
+the queue and it's like oh I need to
+call these three different systems that
+all cared about someone
+dying they now they can be called for a
+certain event type or event specifics um
+you may want to register something
+saying let me know when ever the player
+does something so the player is is
+marked as the initiating event or it may
+be let me call me whenever the player is
+responsible for something so the player
+is the one it's not the the event isn't
+happening to the player like someone
+died but the player is the reason the
+event's happening so people might
+register listening for all kinds of
+things The Listener decides whether it
+wants to
+respond and because maybe it was maybe
+it was something it didn't care about or
+maybe the the reason it cared about it
+no longer exists maybe it wanted to
+report it to an NPC who's dead
+now and if they want to respond they can
+either respond immediately or their
+response can be their own event and this
+event might go back in the general queue
+or it might go on their own event queue
+which means we should probably talk
+about why you might want multiple event
+cues you might have that public General
+event queue and I talked about it might
+break break up into a a public location
+queue and a public camping queue which
+is anybody can see but there's also
+private event cues these are cues that
+exist on a particular NPC or one of your
+companions or boss or creature there may
+even be ones in locations just for a
+location so it's private to that
+location the event can only update if
+that creature is currently loaded and
+active or you're entering that
+location or and that means the NPC is
+probably near the player or is a
+companion in the player's party you
+don't need need to implement private
+event cues you can have a general event
+queue that handles all of
+this that that way you have a
+centralized like Clearing House of all
+events in your game but it might be more
+efficient to have private cues and again
+this depends on your design if you have
+lots and lots of events and many of them
+are tied to a particular creature or a
+particular location you might want to go
+with private event
+cues this is an optimization
+that your programmer will have to decide
+to make after he sees your design so see
+the video I have on how to do
+optimization and designers this is why
+you need to be as specific as possible
+when you make your design docs if you
+give a half completed design dock to a
+programmer and they look at it and go I
+don't say any need to have private event
+CU so I'm making a general one and then
+later you're like oh by the way I need
+all the NPCs and especially bosses to be
+able to respond to specific events and
+that tank your your game's performance
+and then you get mad at the programmer
+for not foreseeing something you didn't
+ask for that's on you so everybody
+should watch that optimization
+video let me tell you the two biggest
+reasons I like using event cues in my
+game one the designer will care about
+one the programmer will care about the
+design one is event cues let you delay
+an event until a time or condition
+occurs this is really great designers
+will love this because it lets you do
+things like zombies all spawn in this um
+Cemetery at midnight or once the player
+has wielded this amulet and as long as
+he's wearing it these assassins will
+spawn occasionally as Random Encounters
+to attack him and try to get the amulet
+back designers love this kind of thing
+because it lets them have the game react
+but not
+immediately programmers like event cues
+because
+it it helps with something called scope
+where systems don't have to know about
+each
+other to work with the event system for
+example your skill system may know
+nothing about your AI
+system
+but an AI may want to know hey let me
+know if a lockpick was successful
+because I need to tell nearby guards if
+they saw
+it now the skill doesn't know anything
+about the AI system so it doesn't want
+to call in every time you successfully
+pick a lock it doesn't want to have to
+know I have to call this AI routine on
+guards maybe I have to collect every
+guard in the area and call this routine
+on them to see if they care about this
+lock being picked they don't have to
+know anything about that all they have
+to do is go oh the player successfully
+picked this lock I'm going to put this
+event this location this time this lock
+this player and they were successful at
+lockpicking boom it goes on the queue
+maybe it's set for immediate processing
+and it calls listeners and the nearby
+guards have set set themselves to be
+listeners for that event they're
+watching out for successful lockpicks if
+that event comes in every guard gets it
+and they're like if I can see the player
+if I'm aimed towards the player and he's
+within range and he's not using stealth
+or whatever boom that triggers and I can
+say hey what are you doing over there on
+that lock what's great about that is the
+skill system just posted in the event
+system and the AI system had just reg
+registered itself in the event system
+they both see the event system and they
+know nothing about each other and they
+don't care anything about each other and
+what's great about this is later when
+the designers are like oops I forgot I
+wanted to add another skill to the game
+called disarm trap and I also want that
+to you know have an event pended for it
+you can do it you've the skill system
+can just you you can already talk to the
+event system you just make a new event
+throw it in there and then whoever wants
+to listen to it can listen to it this is
+why I love Event Systems this is a very
+high level description of how to make an
+event system I've been using these for
+decades in my games it really helps you
+create not just NPC reactivity but
+General game
+reactivity designers like it programmers
+like it my guess is artists like it too
+and even if they don't know about it
+they like it so everybody likes it so I
+hope this answered your
+question Lemmings 19

@@ -1,0 +1,503 @@
+[Music] carefully and take to heart all of your
+carefully and take to heart all of your suggestions and the ratings very much
+suggestions and the ratings very much matter for whether we're invited back
+matter for whether we're invited back next year so please do that and please
+next year so please do that and please make sure you check your junk mail
+make sure you check your junk mail folders for those things they often end
+folders for those things they often end up in there so I'm going to end on what
+up in there so I'm going to end on what I'm hoping is a light note this was a
+I'm hoping is a light note this was a last-minute swap in for a different talk
+last-minute swap in for a different talk that we had it had planned but I wanted
+that we had it had planned but I wanted to talk about homogeneous coordinates
+to talk about homogeneous coordinates and so my goal here is to kind of plant
+and so my goal here is to kind of plant some seeds intuitive seeds about this
+some seeds intuitive seeds about this I'm going to be very informal about this
+I'm going to be very informal about this and my goal is to hopefully give you a
+and my goal is to hopefully give you a little better gut level comfort with
+little better gut level comfort with homogeneous coordinates and what they
+homogeneous coordinates and what they are and how they work so I'm gonna be a
+are and how they work so I'm gonna be a lot less formal so let's start with some
+lot less formal so let's start with some questions and motivations what we're
+questions and motivations what we're trying to do here is understand how is
+trying to do here is understand how is the illusion exactly of 3d perspective
+the illusion exactly of 3d perspective achieved how does the perspective
+achieved how does the perspective projection matrix work exactly or what's
+projection matrix work exactly or what's the essence of it rather why do we keep
+the essence of it rather why do we keep ending up in Veck fours all the time and
+ending up in Veck fours all the time and exactly what does W mean anyway we sort
+exactly what does W mean anyway we sort of kind of know what it means sometimes
+of kind of know what it means sometimes so I'm going to pick a very specific and
+so I'm going to pick a very specific and strong bias mostly just focusing on 3d
+strong bias mostly just focusing on 3d and 2d games and we mostly primarily use
+and 2d games and we mostly primarily use matrices for transforming positions
+matrices for transforming positions directions and other matrices right and
+directions and other matrices right and we use the 5% of matrix math that
+we use the 5% of matrix math that mathematicians use right but I'm
+mathematicians use right but I'm focusing on that 5% so for this talk I'm
+focusing on that 5% so for this talk I'm talking about Veck 4 I'm talking about
+talking about Veck 4 I'm talking about matrix 4 right and trying to get to the
+matrix 4 right and trying to get to the bottom of those so I want to start and
+bottom of those so I want to start and this is kind of chronological through my
+this is kind of chronological through my own understanding wrestling with like
+own understanding wrestling with like what the hell this stuff means and so I
+what the hell this stuff means and so I was like probably most game programmers
+was like probably most game programmers that I know my initial theory was the W
+that I know my initial theory was the W is for witchcraft
+is for witchcraft which was working fine for a while so
+which was working fine for a while so let's look at a couple of things
+let's look at a couple of things relating to W and see if we can start
+relating to W and see if we can start building some intuitions so let's say
+building some intuitions so let's say you have two different positions right 3
+you have two different positions right 3 2 & 5 3 if we were in 2d we could
+2 & 5 3 if we were in 2d we could subtract them right to get the
+subtract them right to get the displacement between them of 2 1 0 now
+displacement between them of 2 1 0 now we have two different positions
+we have two different positions somewhere else they have different
+somewhere else they have different coordinates but the displacement between
+coordinates but the displacement between them different positions all have
+them different positions all have different coordinates different
+different coordinates different displacements do not so there's
+displacements do not so there's something right there way there that's
+something right there way there that's interesting about the differences
+interesting about the differences between these and it's very easy for us
+between these and it's very easy for us to just say vector 3 position and vector
+to just say vector 3 position and vector 3 displacement right and gloss over the
+3 displacement right and gloss over the differences another example let's say
+differences another example let's say you have an actor who's at two-30 facing
+you have an actor who's at two-30 facing north and she gets bumped to the right
+north and she gets bumped to the right for position changes her facing does not
+for position changes her facing does not right so these are all obvious things
+right so these are all obvious things I'm just trying to look for little
+I'm just trying to look for little nuggets of wisdom that we can harvest
+nuggets of wisdom that we can harvest and chase down so let's take a little
+and chase down so let's take a little quick pop quiz what is a position - a
+quick pop quiz what is a position - a position is a displacement right we all
+position is a displacement right we all know that a position plus a displacement
+know that a position plus a displacement makes more sense if I make the
+makes more sense if I make the displacement on it
+displacement on it that's another position right I'm here
+that's another position right I'm here at a location I take two steps to the
+at a location I take two steps to the left now I'm somewhere else two
+left now I'm somewhere else two displacements sure I can add that walk
+displacements sure I can add that walk five feet north walk five feet
+five feet north walk five feet you've now walked northeast so we can
+you've now walked northeast so we can add displacements tip-to-tail
+add displacements tip-to-tail can we add two positions so we can
+can we add two positions so we can certainly add the numbers right they
+certainly add the numbers right they would add up to 5 comma 7 comma 0 but
+would add up to 5 comma 7 comma 0 but like what does that even mean and if we
+like what does that even mean and if we try to justify it by drawing it the line
+try to justify it by drawing it the line to the origin well really now we're just
+to the origin well really now we're just saying well if they were displacements
+saying well if they were displacements we could have added them but that's not
+we could have added them but that's not the same thing is it so that's part of
+the same thing is it so that's part of the question is like can you add
+the question is like can you add positions or what does that even mean
+positions or what does that even mean clearly however positions and directions
+clearly however positions and directions are not the same so let's take another
+are not the same so let's take another example let's say we have a box that's
+example let's say we have a box that's kind of setting around the origin it's
+kind of setting around the origin it's got these four points
+got these four points and let's say it has vertex normals and
+and let's say it has vertex normals and maybe a forward vector right if the box
+maybe a forward vector right if the box is rotated every single one of the
+is rotated every single one of the things changed all the vectors changed
+things changed all the vectors changed all the positions change right but if we
+all the positions change right but if we translate the box will note that the
+translate the box will note that the positions are all changing but the
+positions are all changing but the vectors the directions are not changing
+vectors the directions are not changing so translation apparently is changing
+so translation apparently is changing positions but not directions so
+positions but not directions so positions and directions both rotate but
+positions and directions both rotate but positions translate somehow directions
+positions translate somehow directions don't mathematicians have provided us a
+don't mathematicians have provided us a fix this is the w and this is where it
+fix this is the w and this is where it comes from and it's called the
+comes from and it's called the homogeneous coordinate or it's a
+homogeneous coordinate or it's a homogeneous coordinate and for now we're
+homogeneous coordinate and for now we're gonna say that someone told us the
+gonna say that someone told us the mathematicians told us you should use W
+mathematicians told us you should use W equals 0 for directions and W equals one
+equals 0 for directions and W equals one for positions all right so that's our
+for positions all right so that's our first real working theory right so let's
+first real working theory right so let's take a look at what that means I'm gonna
+take a look at what that means I'm gonna break out a matrix here and I'm using
+break out a matrix here and I'm using column-major notation so by column-major
+column-major notation so by column-major notation what I mean is these three
+notation what I mean is these three columns of the matrix are the x y&z or
+columns of the matrix are the x y&z or rather ijk basis vectors that form the
+rather ijk basis vectors that form the coordinate system and then we have a
+coordinate system and then we have a potential translation as well and then
+potential translation as well and then we have to make it a square matrix which
+we have to make it a square matrix which we'd called augmented matrix we have
+we'd called augmented matrix we have these 0 0 0 1 terms in the bottom we
+these 0 0 0 1 terms in the bottom we don't know why there are those terms
+don't know why there are those terms except that's kind of just following the
+except that's kind of just following the pattern of diagonals on the ones but
+pattern of diagonals on the ones but what's interesting is if I think about
+what's interesting is if I think about the matrix in this way as a basis of a
+the matrix in this way as a basis of a space then I can extend those by
+space then I can extend those by stepping one in the I direction and one
+stepping one in the I direction and one in the j direction and draw a little
+in the j direction and draw a little point and another one in the I and one
+point and another one in the I and one other one J and draw a point and I can
+other one J and draw a point and I can create a graph paper out of this right
+create a graph paper out of this right and if I change those vectors by
+and if I change those vectors by changing in the columns where they point
+changing in the columns where they point I'm changing the graph paper likewise I
+I'm changing the graph paper likewise I can change the translation here to
+can change the translation here to change the graph paper and move it over
+change the graph paper and move it over so if I'm drawing something in
+so if I'm drawing something in local space like say in this square up
+local space like say in this square up there just by changing the graph paper I
+there just by changing the graph paper I rotate my object right this is the whole
+rotate my object right this is the whole basis of modern transformations and if I
+basis of modern transformations and if I rotate it if I translate I move the
+rotate it if I translate I move the graph paper and I draw the object on the
+graph paper and I draw the object on the graph paper that's now moved rather than
+graph paper that's now moved rather than moving the object itself in the vertex
+moving the object itself in the vertex buffer or something like that so let's
+buffer or something like that so let's look at a couple examples let's say I
+look at a couple examples let's say I have a rotation matrix like this one and
+have a rotation matrix like this one and I have a position X Y Z 1 because the
+I have a position X Y Z 1 because the mathematicians told us to put a 1 there
+mathematicians told us to put a 1 there for positions so we do the matrix math
+for positions so we do the matrix math and the result is that the position is
+and the result is that the position is changed it is rotating okay that's great
+changed it is rotating okay that's great let's do a rotation of a direction and
+let's do a rotation of a direction and sure enough the direction was also
+sure enough the direction was also rotated which is exactly what we saw on
+rotated which is exactly what we saw on our box right and the zero still in the
+our box right and the zero still in the bottom so it's still a direction after
+bottom so it's still a direction after it's rotated now let's do translations
+it's rotated now let's do translations on the matrix and when we look at the
+on the matrix and when we look at the results for the position it is
+results for the position it is translated right but when we look at the
+translated right but when we look at the results for the translation of a
+results for the translation of a direction
+direction it's 0.7 times zero meaning the zero
+it's 0.7 times zero meaning the zero specifically says I ignore a translation
+specifically says I ignore a translation so directions ignore translation by
+so directions ignore translation by virtue of this zero right that's why
+virtue of this zero right that's why they told us to put that there to
+they told us to put that there to achieve mathematically what we kind of
+achieve mathematically what we kind of knew intuitively so that makes sense now
+knew intuitively so that makes sense now to say W is zero for directions w one
+to say W is zero for directions w one for positions so the matrix math with
+for positions so the matrix math with those rules just kind of does the right
+those rules just kind of does the right thing right translates our positions but
+thing right translates our positions but not our directions we've got a normal
+not our directions we've got a normal and I move way over here I don't want my
+and I move way over here I don't want my normal to be something wacky it should
+normal to be something wacky it should still kind of point that way and be
+still kind of point that way and be normalized so let's come back to the
+normalized so let's come back to the matrix itself and look at it if we'd
+matrix itself and look at it if we'd have these I J and K basis vectors and
+have these I J and K basis vectors and the translation if we instead viewed
+the translation if we instead viewed those as four vectors right let's extend
+those as four vectors right let's extend these columns all the way down and
+these columns all the way down and include them in our new way of thinking
+include them in our new way of thinking what does that tell us well it's
+what does that tell us well it's interesting that has zeros for the ijk
+interesting that has zeros for the ijk basis vectors so those are now pure
+basis vectors so those are now pure directions which feels right to me
+directions which feels right to me this however feels weird the translation
+this however feels weird the translation it's sort of implying is a position with
+it's sort of implying is a position with a one in the W that doesn't seem right
+a one in the W that doesn't seem right to me
+to me I think of a translation in a different
+I think of a translation in a different way so if I'm translating something like
+way so if I'm translating something like this I think of that as more of a
+this I think of that as more of a relative movement right I could
+relative movement right I could translate to the right and then
+translate to the right and then translate again and move more to the
+translate again and move more to the right that seems like a displacement so
+right that seems like a displacement so it's a little weird to me that there's a
+it's a little weird to me that there's a 1 in that w for the translation column
+1 in that w for the translation column all right so let's play around a little
+all right so let's play around a little bit more what about a matrix versus a
+bit more what about a matrix versus a matrix multiply does that eliminate
+matrix multiply does that eliminate anything so if I have some
+anything so if I have some transformation and I multiply it by a
+transformation and I multiply it by a translation that I'm trying to apply if
+translation that I'm trying to apply if we do the matrix math out we get a
+we do the matrix math out we get a matrix who is affected that the
+matrix who is affected that the translation was changed but we'll notice
+translation was changed but we'll notice that the I J and K basis vectors again
+that the I J and K basis vectors again were unaffected by the translation we
+were unaffected by the translation we just applied and in general the ijk
+just applied and in general the ijk basis vectors are not going to be
+basis vectors are not going to be translated and yet the translation basis
+translated and yet the translation basis is changed so now let's update our
+is changed so now let's update our theory to say well it's not exactly that
+theory to say well it's not exactly that 0 means directions and W 1 means points
+0 means directions and W 1 means points it's more like whether or not you should
+it's more like whether or not you should be translated that's what it means
+be translated that's what it means and then actually in that sense it feels
+and then actually in that sense it feels good that a translation part of a matrix
+good that a translation part of a matrix would itself be translated because you
+would itself be translated because you could double double triple translate and
+could double double triple translate and have them accumulate right so in that
+have them accumulate right so in that sense it feels correct to have a W of
+sense it feels correct to have a W of four so let's do the quiz again but now
+four so let's do the quiz again but now in four dimensions right in homogeneous
+in four dimensions right in homogeneous coordinates I've got a position minus a
+coordinates I've got a position minus a position those are points in space they
+position those are points in space they have ones I subtract them and now I the
+have ones I subtract them and now I the one - the one gives me a 0 for the W
+one - the one gives me a 0 for the W coordinate it is a displacement right
+coordinate it is a displacement right mathematically now not just intuitively
+mathematically now not just intuitively position plus a displacement I add the W
+position plus a displacement I add the W and I get another point
+displacement possible displacement they both have zero for the double use so I
+both have zero for the double use so I add them up and they still have zeros
+add them up and they still have zeros for the W so that makes sense so now
+for the W so that makes sense so now when I do my position versus ition I get
+when I do my position versus ition I get a two for my W coordinate ok that's
+a two for my W coordinate ok that's strange
+strange so what does that even mean right now I
+so what does that even mean right now I have to like say W equals something else
+have to like say W equals something else for things that don't exist so let's
+for things that don't exist so let's look at real space or what I think of as
+look at real space or what I think of as real space I'm sure the mathematicians
+real space I'm sure the mathematicians here will have better terminology for
+here will have better terminology for this I'm just trying to give you my
+this I'm just trying to give you my intuitions so we're saying it doesn't
+intuitions so we're saying it doesn't make sense to add two points together
+make sense to add two points together right well but that's actually not true
+right well but that's actually not true what if we wanted to say average two
+what if we wanted to say average two points how do you do an average everyone
+points how do you do an average everyone knows you add two things and you divide
+knows you add two things and you divide by 2 right
+by 2 right well now that makes sense if I add these
+well now that makes sense if I add these two points I'm gonna get some crazy
+two points I'm gonna get some crazy thing but I have to divide by 2 to
+thing but I have to divide by 2 to finish the average and that brings it
+finish the average and that brings it back into sort of real space right and
+back into sort of real space right and that's perfectly legit so it is ok to
+that's perfectly legit so it is ok to add positions together as long as I
+add positions together as long as I divide by this w afterwards to clean up
+divide by this w afterwards to clean up alright if W ends up being 14 I need to
+alright if W ends up being 14 I need to divide by 14 to bring it back into the
+divide by 14 to bring it back into the real world so to speak likewise if I
+real world so to speak likewise if I have an average of n positions 22
+have an average of n positions 22 positions I add them all up I divide by
+positions I add them all up I divide by 22 and I get something still in real
+22 and I get something still in real space so now I kind of feel like W means
+space so now I kind of feel like W means how grounded a thing is in real space
+how grounded a thing is in real space right and it kind of feels if I use that
+right and it kind of feels if I use that terminology what directions aren't
+terminology what directions aren't grounded they fly around freely with no
+grounded they fly around freely with no change positions are grounded they're
+change positions are grounded they're anchored and they can't move without
+anchored and they can't move without changing values right when we saw we
+changing values right when we saw we move to position and changes its values
+move to position and changes its values okay so let's shift gears real quick and
+okay so let's shift gears real quick and talk about some applications of what
+talk about some applications of what this means another pop quiz what makes
+this means another pop quiz what makes something look 3d there are a bunch of
+something look 3d there are a bunch of cues one of them is relative size right
+cues one of them is relative size right Eric is much bigger apparently than
+Eric is much bigger apparently than someone back there to me perspective as
+someone back there to me perspective as things go away they sort of converge all
+things go away they sort of converge all together in the distance motion parallax
+together in the distance motion parallax the people walking back and forth over
+the people walking back and forth over there don't seem to be moving nearly as
+there don't seem to be moving nearly as fast as the people in front of me things
+fast as the people in front of me things that are close cover up things that are
+that are close cover up things that are far etcetera texturing lighting shading
+far etcetera texturing lighting shading distance fog like in the mountains they
+distance fog like in the mountains they seem really foggy and far away I have my
+seem really foggy and far away I have my eyes triangulate on someone blah blah
+eyes triangulate on someone blah blah blah
+blah w is gonna help us achieve these three
+okay so let's look a little more at the illusion of perspective I have a simple
+illusion of perspective I have a simple cheesy gif here but I think it it's
+cheesy gif here but I think it it's helpful to take the things you take for
+helpful to take the things you take for granted and go back and look at them
+granted and go back and look at them with fresh eyes and you look at what's
+with fresh eyes and you look at what's actually happening apparently to these
+actually happening apparently to these things is that they're all getting
+things is that they're all getting smaller that's obvious but they're also
+smaller that's obvious but they're also converging on the center of the screen
+converging on the center of the screen right as I pull away from them okay so
+right as I pull away from them okay so this is something that several people
+this is something that several people alluded to and Eric did in his talk so
+alluded to and Eric did in his talk so let's say I have two views here one of
+let's say I have two views here one of them on the left is a top-down view and
+them on the left is a top-down view and so that's the camera that little cone
+so that's the camera that little cone and then the pink line at that's the
+and then the pink line at that's the z-axis going up so the pink line is the
+z-axis going up so the pink line is the near plane or it's right in front of the
+near plane or it's right in front of the camera and then on the right is gonna be
+camera and then on the right is gonna be the what I would see on my screen so
+the what I would see on my screen so let's say on my screen I see a big block
+let's say on my screen I see a big block and it's actually a little bit far away
+and it's actually a little bit far away it's kind of three units away from me on
+it's kind of three units away from me on Z on the left one and so kind of what we
+Z on the left one and so kind of what we want to do is say well how should that
+want to do is say well how should that appear to be right if I'm in 2d mode it
+appear to be right if I'm in 2d mode it should look here the same but if I'm in
+should look here the same but if I'm in 3d mode it should appear smaller if it's
+3d mode it should appear smaller if it's far away so we should draw lines from
+far away so we should draw lines from the points to the origin and then move
+the points to the origin and then move the object closer to the origin and this
+the object closer to the origin and this is part of why we have a coordinate
+is part of why we have a coordinate system by default where zero zero zero
+system by default where zero zero zero is in the center of the screen is we can
+is in the center of the screen is we can easily move things towards it just
+easily move things towards it just dividing them by something and how much
+dividing them by something and how much do we divide it by if you look at the
+do we divide it by if you look at the left diagram if we're three away then we
+left diagram if we're three away then we need to divide by three in other words
+need to divide by three in other words we're sort of projecting this thing on
+we're sort of projecting this thing on to the z equals one on to the near plane
+to the z equals one on to the near plane okay so if I have a group of objects I
+okay so if I have a group of objects I do the same for all of them a is already
+do the same for all of them a is already on the near plane nothing to do B has to
+on the near plane nothing to do B has to come in close see also is far away and
+come in close see also is far away and so you can see on the right which is our
+so you can see on the right which is our screen C is gonna appear to be much
+screen C is gonna appear to be much smaller and in the distance right and D
+smaller and in the distance right and D is gonna already be right where it needs
+is gonna already be right where it needs to be so this is kind of what it would
+to be so this is kind of what it would be in 2d mode and this is what it would
+be in 2d mode and this is what it would be in 3d mode so the takeaway here is in
+be in 3d mode so the takeaway here is in order to make objects look smaller as
+order to make objects look smaller as they go far away and get closer to the
+they go far away and get closer to the screen we want zero zero to be in the
+screen we want zero zero to be in the center of the screen and basically we
+center of the screen and basically we want to divide by the distance all right
+want to divide by the distance all right and we all kind of know this intuitively
+and we all kind of know this intuitively so the question is how does a matrix do
+so the question is how does a matrix do that all right I didn't think matrices
+that all right I didn't think matrices can divide so let's look at this
+can divide so let's look at this perspective projection transform and
+perspective projection transform and it's probably unless you're a graphics
+it's probably unless you're a graphics programmer and possibly even then it's
+programmer and possibly even then it's usually something you just look up on
+usually something you just look up on the internet and you type in you used to
+the internet and you type in you used to just call GL perspective or d 3d get
+just call GL perspective or d 3d get matrix left-hand or whatever that is and
+matrix left-hand or whatever that is and now those are gone so now we have to
+now those are gone so now we have to just steal the code off the internet
+just steal the code off the internet right type it in and its field of view
+right type it in and its field of view what does it actually do so cutting away
+what does it actually do so cutting away all the chaff let's say we assume a
+all the chaff let's say we assume a square screen so there's no aspect ratio
+square screen so there's no aspect ratio to consider let's say we consider a
+to consider let's say we consider a perfect 90 degree field of view so it's
+perfect 90 degree field of view so it's gonna be like the tangent of 45 in the
+gonna be like the tangent of 45 in the math so that's goes to 1 all this stuff
+math so that's goes to 1 all this stuff the most important term of the
+the most important term of the perspective that gets this out of us is
+perspective that gets this out of us is this term down below in the bottom
+this term down below in the bottom a 1 typically in directx and a negative
+a 1 typically in directx and a negative 1 in OpenGL so let's look at what that
+1 in OpenGL so let's look at what that term does exactly just using that what
+term does exactly just using that what I'm calling a pure perspective matrix
+I'm calling a pure perspective matrix and you can do this you can render this
+and you can do this you can render this and it will have a 3d effect let's
+and it will have a 3d effect let's transform a position ooh it's got a zero
+transform a position ooh it's got a zero in it so when we transform it we get
+in it so when we transform it we get zero zero one zero times X Y Z zero and
+zero zero one zero times X Y Z zero and so what happens is that this perspective
+so what happens is that this perspective matrix does nothing except take our Z
+matrix does nothing except take our Z coordinate and put it in our W that's
+coordinate and put it in our W that's all it does
+all it does right and then we call that clip space
+so the beauty of this is it's not actually a matrix that does the 3d
+actually a matrix that does the 3d illusion at all in fact we would have to
+illusion at all in fact we would have to do it in software and we did for a long
+do it in software and we did for a long time
+time it's the dividing by W that does it
+it's the dividing by W that does it so we said before if we say added up
+so we said before if we say added up three points and they all have so that
+three points and they all have so that we're gonna take a threeway average we
+we're gonna take a threeway average we have to divide by W to bring them back
+have to divide by W to bring them back into real space right and it was the
+into real space right and it was the same thing we saw when we're trying to
+same thing we saw when we're trying to bring the objects project them onto the
+bring the objects project them onto the Z equals one plane now by having the W
+Z equals one plane now by having the W divided we basically take our XY Z Z and
+divided we basically take our XY Z Z and divide it by whatever is in our W
+divide it by whatever is in our W coordinate at the time which is our Z
+coordinate at the time which is our Z and since this is clip space which is
+and since this is clip space which is based on eye space that Z is going to be
+based on eye space that Z is going to be depth out from us or negative Z would be
+depth out from us or negative Z would be depth out in OpenGL and after this w
+depth out in OpenGL and after this w divide which happens automatically all
+divide which happens automatically all the time in hardware whether you want it
+the time in hardware whether you want it or not now we're in what are called
+or not now we're in what are called normalized device coordinates it's the
+normalized device coordinates it's the same as clip space 0 0 in the center
+same as clip space 0 0 in the center it's just now we've done this divide so
+it's just now we've done this divide so now we get that effect that we wanted
+now we get that effect that we wanted right X divided by Z Y divided by Z
+right X divided by Z Y divided by Z where the farther you out you are out on
+where the farther you out you are out on Z the more you're going to divide your x
+Z the more you're going to divide your x and y you make them smaller and smaller
+and y you make them smaller and smaller close to 0 that's
+close to 0 that's gonna bring them all closer to each
+gonna bring them all closer to each other and closer to the center of the
+other and closer to the center of the screen which is exactly the perspective
+screen which is exactly the perspective illusion so it's interesting if we're in
+illusion so it's interesting if we're in 2d this is happening anyway right there
+2d this is happening anyway right there really is no 2d right there's there's
+really is no 2d right there's there's just 3d and so we divide by W but that's
+just 3d and so we divide by W but that's a benign divide it divides by one so
+a benign divide it divides by one so what happens then we're just looking for
+what happens then we're just looking for little tidbits of intuition here
+little tidbits of intuition here what if RW was say point one it was kind
+what if RW was say point one it was kind of small well we would divide by that
+of small well we would divide by that right that would mean X divided by 0.1
+right that would mean X divided by 0.1 which is like x times 10 what if it was
+which is like x times 10 what if it was very small very very very small very
+very small very very very small very very small what happens is you have this
+very small what happens is you have this sort of sense that as W goes down from
+sort of sense that as W goes down from one and if sort of approaches zero that
+one and if sort of approaches zero that the point is getting bigger and bigger
+the point is getting bigger and bigger and bigger and bigger but it's keeping
+and bigger and bigger but it's keeping it same proportions and as we divide by
+it same proportions and as we divide by approaching zero we scale it by
+approaching zero we scale it by approaching it infinity and so it's kind
+approaching it infinity and so it's kind of an interesting thing that it
+of an interesting thing that it basically means that directions are kind
+basically means that directions are kind of like points that are infinitely far
+of like points that are infinitely far away in a sense mathematically I don't
+away in a sense mathematically I don't know if there's a more elegant way to
+know if there's a more elegant way to say it I just find it interesting okay
+say it I just find it interesting okay let me just wrap up didn't have a whole
+let me just wrap up didn't have a whole lot I wanted to cover so I guess there
+lot I wanted to cover so I guess there are a lot of different ways of thinking
+are a lot of different ways of thinking about homogeneous coordinates for me I
+about homogeneous coordinates for me I like to think of it as a measure of
+like to think of it as a measure of something's groundedness in real space
+something's groundedness in real space but really that means it's a measure of
+but really that means it's a measure of its translate ability which generally
+its translate ability which generally means we're gonna have zero for
+means we're gonna have zero for directions and 1 for positions but of
+directions and 1 for positions but of course we saw there are exceptions and
+course we saw there are exceptions and it's the translatable part that's more
+it's the translatable part that's more important than the direction Nisour the
+important than the direction Nisour the position is and generally anything with
+position is and generally anything with the W value other than 1 or 0 is kind of
+the W value other than 1 or 0 is kind of in an improper State that almost always
+in an improper State that almost always we want to resolve back into real space
+we want to resolve back into real space by dividing by
+by dividing by and lastly that directions are kind of
+and lastly that directions are kind of like points at an infinite distance and
+like points at an infinite distance and I Gino quoted Ken Shu max amazing toast
+I Gino quoted Ken Shu max amazing toast and it's like plain text early internet
+and it's like plain text early internet about blooper coordinates which if
+about blooper coordinates which if you're interested in this homogeneous
+you're interested in this homogeneous stuff that's the next step I highly
+stuff that's the next step I highly recommend it and go read it it's really
+recommend it and go read it it's really taking homogeneous coordinates to their
+taking homogeneous coordinates to their fruition is how it feels to me so and
+fruition is how it feels to me so and that's great if you can go read that
+that's great if you can go read that five times through and play with it for
+five times through and play with it for three weeks on paper and see what it's
+three weeks on paper and see what it's all kinds of things will pop out at you
+all kinds of things will pop out at you and that's all I have thank you
+and that's all I have thank you [Applause]

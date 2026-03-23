@@ -1,54 +1,221 @@
-# Claude Code Game Studios -- Game Studio Agent Architecture
+# Project Abyss — 프로젝트
 
-Indie game development managed through 48 coordinated Claude Code subagents.
-Each agent owns a specific domain, enforcing separation of concerns and quality.
+> This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Technology Stack
+## 프로젝트 개요
 
-- **Engine**: [CHOOSE: Godot 4 / Unity / Unreal Engine 5]
-- **Language**: [CHOOSE: GDScript / C# / C++ / Blueprint]
-- **Version Control**: Git with trunk-based development
-- **Build System**: [SPECIFY after choosing engine]
-- **Asset Pipeline**: [SPECIFY after choosing engine]
+Project Abyss는 웹 기반 횡스크롤 온라인 액션 RPG (메트로베니아 + 야리코미)이다. Projectbyss저장소는 게임 기획 리서치, 레퍼런스 분석, 프로토타입을 관리하는 중앙 저장소이다.
 
-> **Note**: Engine-specialist agents exist for Godot, Unity, and Unreal with
-> dedicated sub-specialists. Use the set matching your engine.
+- **장르:** 웹 기반 횡스크롤 온라인 액션 RPG
+- **플랫폼:** 웹 브라우저 (PC + 모바일 풀 지원)
+- **타겟:** 탐험과 파밍을 즐기는 코어~미드코어 유저
+- **레퍼런스:** 월하의 야상곡(탐험/전투) + 디스가이아(아이템계/야리코미) + 스펠렁키(절차적 생성)
 
-## Project Structure
+### 한 줄 요약
 
-@.claude/docs/directory-structure.md
+> "거대한 고딕 세계를 탐험하고, 획득한 아이템 속으로 들어가 끝없이 강화하며, 다른 플레이어와 함께 싸우는 횡스크롤 온라인 액션 RPG"
 
-## Engine Version Reference
+### 3대 핵심 판타지 (Core Fantasy)
 
-@docs/engine-reference/godot/VERSION.md
+1. **탐험가** — 능력을 하나씩 얻으며 갈 수 없던 곳을 뚫어 세계의 비밀을 밝혀낸다
+2. **장인** — 아이템 속에 들어가 이노센트를 사냥하고, 세상에 하나뿐인 최강 장비를 만든다
+3. **모험가** — 친구와 함께 끝없는 심연의 던전에 도전하고, 위기를 함께 극복한다
 
-## Technical Preferences
+### 핵심 설계 원칙
 
-@.claude/docs/technical-preferences.md
+- **3-Space 분리 모델:** 월드(탐험) / 아이템계(협동 파밍) / 허브(소셜)
+- **순환 구조:** 월드 탐험 → 아이템 획득 → 아이템계 진입 → 장비 강화 → 스탯 게이트 해금 → 새 구역 탐험
+- **수동 정복 선행:** 자동 사냥은 직접 클리어한 구역에서만 가능
+- **스탯 게이트 + 능력 게이트:** 장비 스탯과 능력(이단점프, 변신 등) 이중 게이트로 탐험 깊이 확보
 
-## Coordination Rules
+---
 
-@.claude/docs/coordination-rules.md
+## 폴더 구조
 
-## Collaboration Protocol
+```
+VibeCoding/
+├── CLAUDE.md                    # 이 파일
+├── VibeCoding.code-workspace    # VS Code 워크스페이스
+├── Documents/                   # GDD 문서 (System_, Design_, UI_, Content_ 접두사)
+│   ├── Terms/                   # 메타 문서 (비전, 작성 규칙, 용어집, 인덱스)
+│   ├── System/                  # 시스템 메커닉 문서 (5단계 구조 필수)
+│   ├── Design/                  # 설계 원칙/철학 문서
+│   ├── UI/                      # UI/HUD 명세 문서
+│   └── Content/                 # 콘텐츠 목록 문서
+├── Sheets/                      # CSV 데이터 시트 (SSoT)
+└── Reference/                   # 레퍼런스 및 리서치 자료
+    ├── 게임 기획 개요.md          # 핵심 기획서 (Project Abyss 전체 설계)
+    ├── WIKI_INDEX.md             # 위키 MD 파일 주제별 인덱스
+    ├── 디스가이아 시스템 분석.md    # 위키 기반 디스가이아 시스템 분석
+    ├── 캐슬바니아 시스템 분석.md    # 위키 기반 캐슬바니아 시스템 분석
+    ├── designdocs_인사이트.md      # Design Doc 채널 인사이트 정리
+    ├── extracredit_인사이트.md     # Extra Credits 인사이트 정리
+    ├── jonastyroller_인사이트.md   # Jonas Tyroller 인사이트 정리
+    ├── noclip_인사이트.md          # Noclip 인사이트 정리
+    ├── sakurai_인사이트.md         # 사쿠라이 마사히로 인사이트 정리
+    ├── timcain_인사이트.md         # Tim Cain 인사이트 정리
+    ├── castlevania-wiki-md/       # 캐슬바니아 위키 MD (7,434개 파일)
+    ├── disgaea-wiki-md/           # 디스가이아 위키 MD (1,585개 파일)
+    ├── gmtk/                      # GMTK 유튜브 트랜스크립트
+    ├── designdocs/                # Design Doc 유튜브 트랜스크립트
+    ├── gdc/                       # GDC 강연 자료
+    ├── extracredit/               # Extra Credits 트랜스크립트
+    ├── jonastyroller/             # Jonas Tyroller 트랜스크립트
+    ├── noclip/                    # Noclip 다큐멘터리 트랜스크립트
+    ├── sakurai/                   # 사쿠라이 마사히로 트랜스크립트
+    ├── timcain/                   # Tim Cain 트랜스크립트
+    ├── Disgaea_ItemWorld_Reverse_GDD.md          # 디스가이아 아이템계 역기획서
+    ├── Spelunky-LevelGeneration-ReverseGDD.md    # 스펠렁키 레벨 생성 역기획서
+    ├── DeadCells-LevelGeneration-ReverseGDD.md   # 데드셀 레벨 생성 역기획서
+    ├── Metroidvania Game Design Deep Dive.md     # 메트로베니아 디자인 심층 분석
+    ├── wiki_to_md.py              # 위키 XML → MD 변환 스크립트
+    └── wiki_to_md_robust.py       # 위키 변환 스크립트 (안정화 버전)
+```
 
-**User-driven collaboration, not autonomous execution.**
-Every task follows: **Question -> Options -> Decision -> Draft -> Approval**
+---
 
-- Agents MUST ask "May I write this to [filepath]?" before using Write/Edit tools
-- Agents MUST show drafts or summaries before requesting approval
-- Multi-file changes require explicit approval for the full changeset
-- No commits without user instruction
+## 핵심 참고 문서
 
-See `docs/COLLABORATIVE-DESIGN-PRINCIPLE.md` for full protocol and examples.
+작업 전 반드시 확인해야 할 문서:
 
-> **First session?** If the project has no engine configured and no game concept,
-> run `/start` to begin the guided onboarding flow.
+| 문서                          | 경로                                                 | 용도                                                |
+| :---------------------------- | :--------------------------------------------------- | :-------------------------------------------------- |
+| 게임 기획 개요                | `Reference/게임 기획 개요.md`                      | 전체 게임 설계서 (3-Space, 순환 구조, 기술 스택 등) |
+| 위키 인덱스                   | `Reference/WIKI_INDEX.md`                          | 디스가이아/캐슬바니아 위키 주제별 정리              |
+| 디스가이아 시스템 분석        | `Reference/디스가이아 시스템 분석.md`              | 아이템계, 이노센트, 스탯 등 핵심 시스템             |
+| 캐슬바니아 시스템 분석        | `Reference/캐슬바니아 시스템 분석.md`              | 탐험, 장비, 맵 구조 분석                            |
+| 아이템계 역기획서             | `Reference/Disgaea_ItemWorld_Reverse_GDD.md`       | 아이템계 상세 역분석                                |
+| 스펠렁키 레벨 생성 역기획서   | `Reference/Spelunky-LevelGeneration-ReverseGDD.md` | 절차적 레벨 생성 역분석                             |
+| 메트로베니아 디자인 심층 분석 | `Reference/Metroidvania Game Design Deep Dive.md`  | 메트로베니아 장르 분석                              |
 
-## Coding Standards
+---
 
-@.claude/docs/coding-standards.md
+## 핵심 시스템 요약
 
-## Context Management
+### 3-Space 분리 모델
 
-@.claude/docs/context-management.md
+| 공간                  | 핵심 목적               | 인원      | 맵 유형                    |
+| :-------------------- | :---------------------- | :-------- | :------------------------- |
+| 월드 (World)          | 탐험, 능력 획득, 스토리 | 솔로(1인) | 핸드크래프트 + 절차적 혼합 |
+| 아이템계 (Item World) | 아이템 강화, 야리코미   | 1 ~ 4인   | 완전 절차적 생성 (100층)   |
+| 허브 (Hub)            | 사교, 거래, 준비        | 무제한    | 고정 맵                    |
+
+### 아이템계 핵심 규칙
+
+- 모든 장비 아이템은 내부에 던전(100층)을 보유
+- 10층마다 보스 (아이템 장군 → 아이템 왕 → 아이템 신 → 아이템 대신)
+- 재귀적 진입 가능 (최대 깊이 3)
+- 이노센트: 아이템에 거주하며 보너스 스탯 부여 (야생 → 복종)
+
+### 스탯 게이트 + 능력 게이트
+
+- **스탯 게이트:** STR(물리장벽), INT(마법봉인), DEX(기동성), VIT(환경저항), SPD(시간제한), LCK(숨겨진 경로)
+- **능력 게이트:** 이단 점프, 벽 타기, 안개 변신, 수중 호흡, 역중력
+
+### 레어리티 체계
+
+| 등급      | 스탯 배율 | 이노센트 슬롯 | 아이템계 층수  |
+| :-------- | :-------- | :------------ | :------------- |
+| Common    | x1.0      | 2             | 30층           |
+| Uncommon  | x1.3      | 3             | 50층           |
+| Rare      | x1.7      | 4             | 70층           |
+| Legendary | x2.2      | 6             | 100층          |
+| Mythic    | x3.0      | 8             | 100층 + 보너스 |
+
+---
+
+## 기술 스택
+
+### 클라이언트
+
+| 기술          | 용도                     |
+| :------------ | :----------------------- |
+| PixiJS v8     | 2D 렌더링 (WebGL/WebGPU) |
+| TypeScript    | 메인 언어                |
+| Vite          | 빌드/번들러              |
+| @pixi/tilemap | 타일맵 렌더링            |
+| Howler.js     | 오디오 (BGM, SFX)        |
+
+### 서버
+
+| 기술       | 용도                        |
+| :--------- | :-------------------------- |
+| Node.js    | 게임 서버 (초기 프로토타입) |
+| WebSocket  | 실시간 통신                 |
+| PostgreSQL | 메인 DB                     |
+| Redis      | 캐시/세션                   |
+
+### 맵 에디터
+
+| 기술             | 용도                    |
+| :--------------- | :---------------------- |
+| Tiled Map Editor | Room 템플릿, Chunk 제작 |
+| 커스텀 에디터    | 구역 연결, 게이트 설정  |
+
+---
+
+## 레퍼런스 자료 활용 가이드
+
+### 위키 자료 (disgaea-wiki-md/, castlevania-wiki-md/)
+
+- `WIKI_INDEX.md`에서 주제별로 분류된 핵심 문서를 확인
+- 디스가이아: 아이템계, 이노센트, 스탯, 전생, 클래스 시스템 레퍼런스
+- 캐슬바니아: 맵 구조, 장비, 적 배치, 능력 시스템 레퍼런스
+
+### 유튜브 트랜스크립트 (gmtk/, designdocs/, sakurai/ 등)
+
+- 각 채널별 `*_인사이트.md` 파일에 핵심 인사이트 정리
+- 원본 트랜스크립트는 각 폴더 내 `.txt` 파일
+
+### 역기획서
+
+- 아이템계 → `Disgaea_ItemWorld_Reverse_GDD.md`
+- 절차적 레벨 생성 → `Spelunky-LevelGeneration-ReverseGDD.md`, `DeadCells-LevelGeneration-ReverseGDD.md`
+- 메트로베니아 → `Metroidvania Game Design Deep Dive.md`
+
+---
+
+## 개발 우선순위 (Phase)
+
+| Phase                | 목표                                | 핵심 과제                                             |
+| :------------------- | :---------------------------------- | :---------------------------------------------------- |
+| Phase 1 (프로토타입) | 핵심 루프가 재미있는가?             | 이동/전투, 타일맵, 절차적 방 생성, 아이템계 미니 버전 |
+| Phase 2 (알파)       | 성장/탐험 쾌감이 있는가?            | 장비/이노센트, 스탯·능력 게이트, 월드 연결, 보스     |
+| Phase 3 (베타)       | 파티 플레이/무한 파밍이 작동하는가? | WebSocket 멀티, 아이템계 100층, 허브, 자동 사냥       |
+| Phase 4 (런칭)       | 장기 운영 가능한가?                 | 시즌, 거래소, 이벤트, 길드                            |
+
+---
+
+## 용어 사전 (Quick Reference)
+
+| 용어                | 정의                                                        |
+| :------------------ | :---------------------------------------------------------- |
+| 야리코미 (やりこみ) | 게임의 한계까지 파고드는 극한 플레이                        |
+| 메트로베니아        | Metroid + Castlevania. 능력 게이트 기반 비선형 탐험 액션    |
+| 3-Space 모델        | 월드/아이템계/허브 세 공간 분리 설계                        |
+| 스탯 게이트         | 장비 스탯이 특정 수치 이상일 때 열리는 진행 장벽            |
+| 능력 게이트         | 특정 능력 획득 시 열리는 진행 장벽                          |
+| 이노센트            | 아이템 내부에 거주하며 보너스 스탯을 부여하는 존재          |
+| 아이템계            | 장비 아이템 내부의 절차적 던전 (100층)                      |
+| 재귀적 진입         | 아이템계 안에서 획득한 아이템의 아이템계에 다시 진입하는 것 |
+| Critical Path       | 시작점에서 종료점까지 반드시 통과 가능한 경로               |
+| Room Template       | 절차적 생성의 기본 단위가 되는 사전 제작된 방 구조          |
+| Chunk               | Room 내부에 배치되는 지형/장애물의 작은 블록 단위           |
+
+---
+
+## 유틸리티 스크립트
+
+| 스크립트             | 경로                               | 용도                           |
+| :------------------- | :--------------------------------- | :----------------------------- |
+| wiki_to_md.py        | `Reference/wiki_to_md.py`        | 위키 XML 덤프 → Markdown 변환 |
+| wiki_to_md_robust.py | `Reference/wiki_to_md_robust.py` | 위키 변환 안정화 버전          |
+
+---
+
+## 톤 & 매너
+
+- **시각:** 고딕, 다크 판타지, 스프라이트 기반 픽셀/하이디테일 2D
+- **분위기:** 월하의 야상곡의 고딕 + 디스가이아의 경쾌한 야리코미
+- **탐험:** 신비롭고 광활한 미지의 세계
+- **전투:** 타격감 있는 횡스크롤 액션 (히트스탑, 화면 흔들림, 넉백)

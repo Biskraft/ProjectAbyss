@@ -1,0 +1,6 @@
+# Skeleton Cave (Harmony of Dissonance)/Dialogue
+
+## Dialogue
+
+
+Category: Harmony of Dissonance Dialogue Data
